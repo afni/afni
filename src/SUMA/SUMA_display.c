@@ -674,7 +674,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    /* Show the Cross Hair, if required */
    if (csv->ShowCrossHair) {
       /*fprintf(SUMA_STDOUT,"Showing Cross Hair \n");*/
-      if (!SUMA_DrawCrossHair (csv->Ch)) {
+      if (!SUMA_DrawCrossHair (csv)) {
          fprintf(stderr,"display error: Failed to Create Cross Hair\n");
       }
    }
