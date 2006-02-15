@@ -75,8 +75,8 @@
 #define SUMA_SELECTED_FACESET_LINE_INTENSITY 0.75 /*!< line gray color intensity */
 #define SUMA_NODE_ALPHA 1 /*!< Node Color Intensity 1, max intensity 0 min intensity*/
 #define FOV_INITIAL 30
-#define FOV_MIN 0.01
-#define FOV_MAX 140
+#define FOV_MIN 0.001
+#define FOV_MAX 300
 #define FOV_IN_FACT 1.05   /*!< Still used for colormap display, Obsolete for surface viewers, see sv->KeyZoomGain */
 #define FOV_OUT_FACT 0.95  /*!< Still used for colormap display, Obsolete for surface viewers, see sv->KeyZoomGain */
 #define MOUSE_ZOOM_FACT 30 /*!< The larger, the slower the gain on mouse movement */

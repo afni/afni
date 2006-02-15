@@ -308,7 +308,7 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    /* calculate the center and dimensions for the nodes in the patch only */
    PatchNodeMask = SUMA_MaskOfNodesInPatch(SO, &(SO->N_patchNode));
    if (!SO->N_patchNode || SO->N_patchNode == SO->N_Node) { 
-      if (!PatchNodeMask ) { SUMA_SL_Err("Faied in SUMA_MaskOfNodesInPatch.\nUsing values from all nodes."); }
+      if (!PatchNodeMask ) { SUMA_SL_Err("Failed in SUMA_MaskOfNodesInPatch.\nUsing values from all nodes."); }
       SUMA_COPY_VEC(SO->Center, SO->patchCenter, 3, float, float);
       SUMA_COPY_VEC(SO->MinDims, SO->patchMinDims, 3, float, float);
       SUMA_COPY_VEC(SO->MaxDims, SO->patchMaxDims, 3, float, float);
