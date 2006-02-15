@@ -2573,60 +2573,67 @@ DList * SUMA_Addto_ROIplane_List (DList *ROIplaneListIn, SUMA_DO *dov, int idov)
 }
 
 /*! Create the cross hair */
-SUMA_Boolean SUMA_DrawCrossHair (SUMA_CrossHair* Ch)
+SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_DrawCrossHair"};
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+   static GLdouble radsph, fac;
+   static GLfloat gapch, radch;
+   SUMA_CrossHair* Ch = sv->Ch;
    
    SUMA_ENTRY;
-
+   
+   fac = SUMA_MAX_PAIR(sv->ZoomCompensate, 0.03);
+   radsph = Ch->sphrad*fac;
+   gapch = Ch->g*fac;
+   radch = Ch->r*fac;
    glLineWidth(Ch->LineWidth);
    /*fprintf(SUMA_STDOUT, "Center: %f, %f, %f. Gap %f, Radius: %f\n",\
-      Ch->c[0], Ch->c[2], Ch->c[2], Ch->g, Ch->r);*/
+      Ch->c[0], Ch->c[2], Ch->c[2], gapch, radch);*/
       glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
       glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
-      if (Ch->g) { /* gap */
+      if (gapch) { /* gap */
          glMaterialfv(GL_FRONT, GL_EMISSION, Ch->XaxisColor); /*turn on emissivity for axis*/
          glBegin(GL_LINES);
-         glVertex3f(Ch->c[0] - Ch->r, Ch->c[1], Ch->c[2]);
-         glVertex3f(Ch->c[0] - Ch->g, Ch->c[1], Ch->c[2]);
-         glVertex3f(Ch->c[0] + Ch->r, Ch->c[1], Ch->c[2]);
-         glVertex3f(Ch->c[0] + Ch->g, Ch->c[1], Ch->c[2]);
+         glVertex3f(Ch->c[0] - radch, Ch->c[1], Ch->c[2]);
+         glVertex3f(Ch->c[0] - gapch, Ch->c[1], Ch->c[2]);
+         glVertex3f(Ch->c[0] + radch, Ch->c[1], Ch->c[2]);
+         glVertex3f(Ch->c[0] + gapch, Ch->c[1], Ch->c[2]);
          glEnd();  
 
          glMaterialfv(GL_FRONT, GL_EMISSION, Ch->YaxisColor); /*turn on emissivity for axis*/
          glBegin(GL_LINES);
-         glVertex3f(Ch->c[0], Ch->c[1] - Ch->r, Ch->c[2]);
-         glVertex3f(Ch->c[0], Ch->c[1] - Ch->g, Ch->c[2]);
-         glVertex3f(Ch->c[0], Ch->c[1] + Ch->r, Ch->c[2]);
-         glVertex3f(Ch->c[0], Ch->c[1] + Ch->g, Ch->c[2]);
+         glVertex3f(Ch->c[0], Ch->c[1] - radch, Ch->c[2]);
+         glVertex3f(Ch->c[0], Ch->c[1] - gapch, Ch->c[2]);
+         glVertex3f(Ch->c[0], Ch->c[1] + radch, Ch->c[2]);
+         glVertex3f(Ch->c[0], Ch->c[1] + gapch, Ch->c[2]);
          glEnd();  
 
          glMaterialfv(GL_FRONT, GL_EMISSION, Ch->ZaxisColor); /*turn on emissivity for axis*/
          glBegin(GL_LINES);
-         glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] - Ch->r);
-         glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] - Ch->g);
-         glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] + Ch->r);
-         glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] + Ch->g);
+         glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] - radch);
+         glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] - gapch);
+         glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] + radch);
+         glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] + gapch);
          glEnd();  
 
       }/*gap */ else {/*no gap */
          glMaterialfv(GL_FRONT, GL_EMISSION, Ch->XaxisColor); /*turn on emissivity for axis*/
          glBegin(GL_LINES);
-         glVertex3f(Ch->c[0] - Ch->r, Ch->c[1], Ch->c[2]);
-         glVertex3f(Ch->c[0] + Ch->r, Ch->c[1], Ch->c[2]);
+         glVertex3f(Ch->c[0] - radch, Ch->c[1], Ch->c[2]);
+         glVertex3f(Ch->c[0] + radch, Ch->c[1], Ch->c[2]);
          glEnd();  
          
          glMaterialfv(GL_FRONT, GL_EMISSION, Ch->YaxisColor); /*turn on emissivity for axis*/
          glBegin(GL_LINES);
-         glVertex3f(Ch->c[0], Ch->c[1] - Ch->r, Ch->c[2]);
-         glVertex3f(Ch->c[0], Ch->c[1] + Ch->r, Ch->c[2]);
+         glVertex3f(Ch->c[0], Ch->c[1] - radch, Ch->c[2]);
+         glVertex3f(Ch->c[0], Ch->c[1] + radch, Ch->c[2]);
          glEnd();  
 
          glMaterialfv(GL_FRONT, GL_EMISSION, Ch->ZaxisColor); /*turn on emissivity for axis*/
          glBegin(GL_LINES);
-         glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] - Ch->r);
-         glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] + Ch->r);
+         glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] - radch);
+         glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] + radch);
          glEnd();  
       }
       glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity for axis*/
@@ -2636,7 +2643,7 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_CrossHair* Ch)
       /*fprintf(SUMA_STDOUT, "SHOWING SPHERE\n");*/
       glMaterialfv(GL_FRONT, GL_EMISSION, Ch->sphcol); /*turn on emissivity for sphere */
       glTranslatef (Ch->c[0], Ch->c[1],Ch->c[2]);
-      gluSphere(Ch->sphobj, Ch->sphrad, Ch->slices, Ch->stacks);
+      gluSphere(Ch->sphobj, radsph, Ch->slices, Ch->stacks);
       glTranslatef (-Ch->c[0], -Ch->c[1],-Ch->c[2]);
       glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity for axis*/
    }
@@ -2764,15 +2771,17 @@ void SUMA_Free_SphereMarker (SUMA_SphereMarker *SM)
 }
 
 /*! Create the highlighted faceset  marker */
-SUMA_Boolean SUMA_DrawFaceSetMarker (SUMA_FaceSetMarker* FM)
-{   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0}, dx, dy, dz;
+SUMA_Boolean SUMA_DrawFaceSetMarker (SUMA_FaceSetMarker* FM, SUMA_SurfaceViewer *sv)
+{   
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0}, dx, dy, dz, fac;
    static char FuncName[]={"SUMA_DrawFaceSetMarker"};
    
    SUMA_ENTRY;
 
-   dx = SUMA_SELECTED_FACESET_OFFSET_FACTOR * FM->NormVect[0];
-   dy = SUMA_SELECTED_FACESET_OFFSET_FACTOR * FM->NormVect[1];
-   dz = SUMA_SELECTED_FACESET_OFFSET_FACTOR * FM->NormVect[2];
+   fac = (SUMA_SELECTED_FACESET_OFFSET_FACTOR);
+   dx = fac * FM->NormVect[0];
+   dy = fac * FM->NormVect[1];
+   dz = fac * FM->NormVect[2];
     
    glLineWidth(FM->LineWidth);
    glDisable(GL_LINE_STIPPLE);
@@ -3037,7 +3046,8 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             glMaterialfv(GL_FRONT, GL_EMISSION, SurfObj->NodeMarker->sphcol); /*turn on emissidity for sphere */
             glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
             glTranslatef (SurfObj->NodeList[id], SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
-            gluSphere(SurfObj->NodeMarker->sphobj, SurfObj->NodeMarker->sphrad, SurfObj->NodeMarker->slices, SurfObj->NodeMarker->stacks);
+            gluSphere(SurfObj->NodeMarker->sphobj, SurfObj->NodeMarker->sphrad*SUMA_MAX_PAIR(sv->ZoomCompensate, 0.03),
+                      SurfObj->NodeMarker->slices, SurfObj->NodeMarker->stacks);
             glTranslatef (-SurfObj->NodeList[id], -SurfObj->NodeList[id+1],-SurfObj->NodeList[id+2]);
             glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissidity for axis*/
          }
@@ -3045,7 +3055,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          /* Draw Selected FaceSet Highlight */
          if (SurfObj->ShowSelectedFaceSet && SurfObj->SelectedFaceSet >= 0) {
             if (LocalHead) fprintf(SUMA_STDOUT,"Drawing FaceSet Selection \n");            
-            if (!SUMA_DrawFaceSetMarker (SurfObj->FaceSetMarker)) {
+            if (!SUMA_DrawFaceSetMarker (SurfObj->FaceSetMarker, sv)) {
                fprintf(SUMA_STDERR,"Error SUMA_DrawMesh: Failed in SUMA_DrawFaceSetMarker\b");
             }
          } 
