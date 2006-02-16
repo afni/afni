@@ -1649,14 +1649,14 @@ float SUMA_etime (struct  timeval  *t, int Report  )
    
    if (Report)
       {
-         fprintf(stderr,"%s: Reporting \n", FuncName);
-         delta_t = (((tn.tv_sec - t->tv_sec)*Time_Fact) + (tn.tv_usec - t->tv_usec)) /Time_Fact;
+         /* fprintf(stderr,"%s: Reporting from %d sec to %d sec\n", FuncName, t->tv_sec, tn.tv_sec);  */
+         delta_t = (((float)(tn.tv_sec - t->tv_sec)*Time_Fact) + (float)(tn.tv_usec - t->tv_usec)) /Time_Fact;
       }
    else
       {
-         fprintf(stderr,"%s: Initializing \n", FuncName);
          t->tv_sec = tn.tv_sec;
          t->tv_usec = tn.tv_usec;
+         /*fprintf(stderr,"%s: Initialized to %f sec \n", FuncName, (float)tn.tv_sec); */
          delta_t = 0.0;
       }
       
