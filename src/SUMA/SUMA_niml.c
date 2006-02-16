@@ -755,6 +755,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       }/* NewMesh_IJK */   
 
       if (strcmp(nel->name,"PrepNewSurface") == 0) { /* PrepNewSurface */
+         int viewopt = 0;
          /* show me nel */
          /* if (LocalHead) SUMA_nel_stdout (nel); */
          /* look for the surface idcode */
@@ -772,7 +773,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          }
 
          if (LocalHead) fprintf(SUMA_STDERR,"%s: Surface SO about to be prepped: Label %s, State %s, Group %s\n", FuncName, SO->Label, SO->State, SO->Group);
-
+         
          #if 0
          if (NI_get_attribute(nel, "VolParFilecode")) {
             SO->VolPar = SUMA_VolPar_Attr (NI_get_attribute(nel, "VolParFilecode"));
@@ -806,12 +807,14 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             SUMA_SL_Err("Failed to register group");
             SUMA_RETURN(NOPE);
          }
-
+ 
 	      /* Register the surfaces in Spec file with the surface viewer and perform setups */
-	      if (LocalHead) fprintf (SUMA_STDERR, "%s: Registering surfaces with surface viewers ...\n", FuncName);
+         viewopt = 0;
+	      fprintf (SUMA_STDERR, "%s: Registering surfaces with surface viewers, viewopt = %d...\n", FuncName, viewopt);
 
          for (i = 0; i< SUMA_MAX_SURF_VIEWERS; ++i) {
-            if (!SUMA_SetupSVforDOs (*Spec, SUMAg_DOv, SUMAg_N_DOv, &(SUMAg_SVv[i]))) {
+            if (!SUMA_SetupSVforDOs (*Spec, SUMAg_DOv, SUMAg_N_DOv, 
+                     &(SUMAg_SVv[i]), viewopt)) {
 			      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SetupSVforDOs function.\n", FuncName);
 			      SUMA_RETURN(NOPE);
 		      }

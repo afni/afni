@@ -73,8 +73,9 @@ void usage_toy_circle (SUMA_GENERIC_ARGV_PARSE *ps)
                "                 Approximate the number of subdivisions on the icosahedron.\n"
                "                 Default N_sub is 100.\n"
                "  -dim DIM: Set the dimension.  Default is 2D.\n"
-               "  -dt DT: Choose time step for moving points to new locations.\n"
-               "                 Default DT is 0.001.\n"
+               "  -N_step N_STEP: Set the number of steps (inverse dt)\n"
+               /*"  -dt DT: Choose time step for moving points to new locations.\n"
+               "                 Default DT is 0.001.\n" */
                "  -renew_weights:Choose to recalculate spline weights after every step.\n"
                "                 Default does not renew the weights.\n"
                "  -adjust: Choose to scale displacement.\n"
@@ -93,7 +94,7 @@ void usage_toy_circle (SUMA_GENERIC_ARGV_PARSE *ps)
 
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_toy_circle_ParseInput(char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps, MyCircleOpt *popt)
 {
-   static char FuncName[]={"SUMA_BrainWrap_ParseInput"}; 
+   static char FuncName[]={"SUMA_toy_circle_ParseInput"}; 
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar, shft;
    SUMA_Boolean brk;
@@ -150,6 +151,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_toy_circle_ParseInput(char *argv[], int a
       
       
       if (!brk && (strcmp(argv[kar], "-dt") == 0)) {
+         fprintf(stderr, "No MORE dt, fool!\n");
+         exit (1);
          kar ++;
          if (kar >= argc)  
          {
