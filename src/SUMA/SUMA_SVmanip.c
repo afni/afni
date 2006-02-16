@@ -1360,16 +1360,17 @@ int SUMA_WhichState (char *state, SUMA_SurfaceViewer *csv, char *ForceGroup)
    view states in the surface viewer's structure
    Essentially, it creates the vector VSv that is a part of the surface viewer structure
 */
-SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *csv, SUMA_DO* dov, int N_dov)
+SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *csv, SUMA_DO* dov, int N_dov, int viewopt)
 {
    static char FuncName[]={"SUMA_RegisterSpecSO"};
-   int is, i;
-   static int iwarn=0;
+   int is, i, old_N_VSv = 0;
    SUMA_SurfaceObject * SO;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
+   if (!viewopt) viewopt = UPDATE_ALL_VIEWING_PARAMS_MASK;
+   
    if (LocalHead && SUMA_WhichSV(csv, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) != 0) {
       fprintf(SUMA_STDERR,"%s: Muted for viewer[%c]\n", FuncName, 65+SUMA_WhichSV(csv, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) );
       /* turn off the LocalHead, too much output*/
@@ -1401,6 +1402,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
    
    /* register the various states from each SO in DOv */
    if (LocalHead) fprintf(SUMA_STDERR,"%s: Cycling through DOvs, looking for surfaces of group %s\n", FuncName, Spec->Group[0]);
+   old_N_VSv = csv->N_VSv;
    for (i=0; i < N_dov; ++i) {
       if (SUMA_isSO_G(dov[i], Spec->Group[0])) {
          SO = (SUMA_SurfaceObject *)(dov[i].OP);
@@ -1412,7 +1414,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
                fprintf(SUMA_STDERR,"%s: For %s\nState:%s,Group:%s to be added\n", 
                   FuncName, SO->Label, SO->State, SO->Group);
             }
-            SUMA_New_ViewState (csv);
+            SUMA_New_ViewState (csv); 
             csv->VSv[csv->N_VSv-1].Name = SUMA_copy_string(SO->State);
             csv->VSv[csv->N_VSv-1].Group = SUMA_copy_string(SO->Group); /* ZSS Changed from Spec->Group[0] */
             if (!csv->VSv[csv->N_VSv-1].Name || !csv->VSv[csv->N_VSv-1].Group) {
@@ -1435,22 +1437,23 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
    /* allocate for FOV */
    if (!csv->FOV) {
       csv->FOV = (float *)SUMA_calloc(csv->N_VSv, sizeof(float));
+      for (i=0; i < csv->N_VSv; ++i) {
+         csv->FOV[i] = csv->FOV_original;
+      } 
    } else {
       csv->FOV = (float *)SUMA_realloc(csv->FOV, csv->N_VSv * sizeof(float));
+      for (i=old_N_VSv; i< csv->N_VSv; ++i) {
+         csv->FOV[i] = csv->FOV[0]; /*  used to be  = csv->FOV_original, 
+                           but it is best to set to 0th view, 
+                           gives user ability to set display 
+                           before auto-movie making via talk-suma */;
+      }
    }
    
    /* allocate space for MembSOs counters will be reset for later use counting proceeds
    also initialize FOV*/
-   if (!iwarn) {
-      SUMA_LH(  "WARNING: This block is resetting FOV\n"
-                  "to all surface views regardless\n"
-                  "of whether a new addition was made or not.\n"
-                  "This message will not be shown again in this session.\n"
-                  "Well, looks like it does no bad thing...");
-                  ++iwarn;
-   }
+
    for (i=0; i < csv->N_VSv; ++i) {
-      csv->FOV[i] = csv->FOV_original;
       
       if (!csv->VSv[i].MembSOs) {
          csv->VSv[i].MembSOs = (int *) SUMA_calloc(csv->VSv[i].N_MembSOs, sizeof(int));
@@ -2211,7 +2214,7 @@ SUMA_Boolean SUMA_AdoptGroup(SUMA_SurfaceViewer *csv, char *group)
 }
 
 /*!
-ans = SUMA_SetupSVforDOs (Spec, DOv, N_DOv, cSV);
+ans = SUMA_SetupSVforDOs (Spec, DOv, N_DOv, cSV, vo);
 
 This functions registers all surfaces in a spec file with a surface viewer. 
 The following steps are performed:
@@ -2219,9 +2222,10 @@ SUMA_RegisterSpecSO (register info on all surfaces loaded)
 SUMA_RegisterDO (only Surface Objects)
 SUMA_RegisterDO (all non SO objects)
 SUMA_BestStandardView (decide on best standard view)
-SUMA_UpdateRotaCenter (based on surfaces in first view)
-SUMA_UpdateViewPoint (based on surfaces in first view)
-SUMA_EyeAxisStandard (based on surfaces in first view)
+SUMA_UpdateRotaCenter (based on surfaces in first view) if vo & UPDATE_ROT_MASK
+SUMA_UpdateViewPoint (based on surfaces in first view)  if vo & UPDATE_VIEW_POINT_MASK
+SUMA_EyeAxisStandard (based on surfaces in first view)  if vo & UPDATE_EYE_AXIS_STD_MASK
+
 Set the Current SO pointer to the first surface object 
 if surface is SureFit, flip lights
 \param Spec (SUMA_SurfSpecFile)
@@ -2231,7 +2235,7 @@ if surface is SureFit, flip lights
 \ret ans (SUMA_Boolean) YUP/NOPE
 */
 
-SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv, SUMA_SurfaceViewer *cSV)
+SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv, SUMA_SurfaceViewer *cSV, int viewopt)
 {
    static char FuncName[] = {"SUMA_SetupSVforDOs"};
    int kar;
@@ -2242,6 +2246,10 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
    
    SUMA_ENTRY;
 
+   if (!viewopt) {
+      viewopt = UPDATE_ALL_VIEWING_PARAMS_MASK;
+   }
+   
    #if 0
    /* adds DOs individually, left for reference purposes */
    /* Register all DOs with SV */
@@ -2285,7 +2293,7 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
       }
       
       
-      if (!SUMA_RegisterSpecSO(&Spec, cSV, DOv, N_DOv)) {
+      if (!SUMA_RegisterSpecSO(&Spec, cSV, DOv, N_DOv, viewopt)) {
          fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_RegisterSpecSO.\n", FuncName);
          SUMA_RETURN(NOPE);
       } 
@@ -2325,32 +2333,43 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
    #endif
 
    /* decide what the best state is */
-   cSV->StdView = SUMA_BestStandardView (cSV, DOv, N_DOv);
-   /*fprintf(SUMA_STDOUT,"%s: Standard View Now %d\n", FuncName, cSV->StdView);*/
-   if (cSV->StdView == SUMA_Dunno) {
-      fprintf(SUMA_STDERR,"Error %s: Could not determine the best standard view. Choosing default SUMA_3D\n", FuncName);
-      cSV->StdView = SUMA_3D;
+   if (viewopt & UPDATE_STANDARD_VIEW_MASK) {
+      cSV->StdView = SUMA_BestStandardView (cSV, DOv, N_DOv);
+      if (LocalHead) fprintf(SUMA_STDOUT,"%s: Standard View Now %d\n", FuncName, cSV->StdView);
+      if (cSV->StdView == SUMA_Dunno) {
+         fprintf(SUMA_STDERR,"Error %s: Could not determine the best standard view. Choosing default SUMA_3D\n", FuncName);
+         cSV->StdView = SUMA_3D;
+      }
+   }
+   
+   if (viewopt & UPDATE_ROT_MASK) {
+      /* Set the Rotation Center  */
+      if (LocalHead) fprintf(SUMA_STDOUT,"%s: Setting the Rotation Center \n", FuncName);
+      if (!SUMA_UpdateRotaCenter(cSV, DOv, N_DOv)) {
+         fprintf (SUMA_STDERR,"Error %s: Failed to update center of rotation\n", FuncName);
+         SUMA_RETURN(NOPE);
+      }
    }
 
-   /* Set the Rotation Center */
-   if (!SUMA_UpdateRotaCenter(cSV, DOv, N_DOv)) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to update center of rotation", FuncName);
-      SUMA_RETURN(NOPE);
+   if (viewopt & UPDATE_VIEW_POINT_MASK) {
+      /* set the viewing points */
+      if (LocalHead) fprintf(SUMA_STDOUT,"%s: setting the viewing points\n", FuncName);
+      if (!SUMA_UpdateViewPoint(cSV, DOv, N_DOv)) {
+         fprintf (SUMA_STDERR,"Error %s: Failed to update view point\n", FuncName);
+         SUMA_RETURN(NOPE);
+      }
    }
 
-   /* set the viewing points */
-   if (!SUMA_UpdateViewPoint(cSV, DOv, N_DOv)) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to update view point", FuncName);
-      SUMA_RETURN(NOPE);
+   if (viewopt & UPDATE_EYE_AXIS_STD_MASK) {
+      /* Change the defaults of the eye axis to fit standard EyeAxis */
+      if (LocalHead) fprintf(SUMA_STDOUT,"%s: Changing defaults of the eye axis to fit standard EyeAxis\n", FuncName);
+      EyeAxis_ID = SUMA_GetEyeAxis (cSV, DOv);
+      if (EyeAxis_ID < 0) {
+         fprintf (SUMA_STDERR,"Error %s: Failed to get Eye Axis.\n", FuncName);
+         SUMA_RETURN(NOPE);
+      }
+      SUMA_EyeAxisStandard ((SUMA_Axis *)DOv[EyeAxis_ID].OP, cSV);
    }
-
-   /* Change the defaults of the eye axis to fit standard EyeAxis */
-   EyeAxis_ID = SUMA_GetEyeAxis (cSV, DOv);
-   if (EyeAxis_ID < 0) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to get Eye Axis.\n", FuncName);
-      SUMA_RETURN(NOPE);
-   }
-   SUMA_EyeAxisStandard ((SUMA_Axis *)DOv[EyeAxis_ID].OP, cSV);
 
 
    /* Set the index Current SO pointer to the first surface object read of the first state, tiz NOT (Fri Jan 31 15:18:49 EST 2003) a surface of course*/

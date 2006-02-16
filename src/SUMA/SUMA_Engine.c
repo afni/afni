@@ -666,7 +666,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 	            if (LocalHead) fprintf (SUMA_STDERR, "%s: Registering surfaces with surface viewers ...\n", FuncName);
                
                for (ii = 0; ii < EngineData->i; ++ii) {
-                  if (!SUMA_SetupSVforDOs (Spec, SUMAg_DOv, SUMAg_N_DOv, &(SUMAg_SVv[EngineData->iv15[ii]]))) {
+                  if (!SUMA_SetupSVforDOs (Spec, SUMAg_DOv, SUMAg_N_DOv, &(SUMAg_SVv[EngineData->iv15[ii]]), 0)) {
 			            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SetupSVforDOs function.\n", FuncName);
 			            exit(1);
 		            }
