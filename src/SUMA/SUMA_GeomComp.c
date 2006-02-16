@@ -3818,6 +3818,15 @@ void usage_SUMA_getPatch ()
                "                      output files can be done at the outset.\n"
                "\n" 
                "  Optional parameters:\n"
+               "     -coord_gain GAIN: Multiply node coordinates by a GAIN.\n"
+               "                       That's useful if you have a tiny patch that needs\n"
+               "                       enlargement for easier viewing in SUMA.\n"
+               "                       Although you can zoon over very large ranges in SUMA\n"
+               "                       tiny tiny patches are hard to work with because\n"
+               "                       SUMA's parameters are optimized to work with objects\n"
+               "                       on the order of a brain, not on the order of 1 mm.\n"
+               "                       WARNING: Do not use this option if you are measuring\n"
+               "                       the volume of a patch!\n"
                "     -out_type TYPE: Type of all output patches, regardless of input surface type.\n"
                "                     Choose from: FreeSurfer, SureFit, 1D and Ply.\n"
                "     -hits min_hits: Minimum number of nodes specified for a triangle\n"
@@ -3860,6 +3869,7 @@ typedef struct {
    int nodecol;
    int DoVol;
    int VolOnly;
+   float coordgain;
 } SUMA_GETPATCH_OPTIONS;
 
 /*!
@@ -3898,6 +3908,7 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
    Opt->N_surf = -1;
    Opt->DoVol = 0;
    Opt->VolOnly = 0;
+   Opt->coordgain = 0.0;
    Opt->oType = SUMA_FT_NOT_SPECIFIED;
    for (i=0; i<SURFPATCH_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
 	brk = NOPE;
@@ -3928,6 +3939,16 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
 				exit (1);
 			}
 			Opt->minhits = atoi(argv[kar]);
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-coord_gain") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -coord_gain \n");
+				exit (1);
+			}
+			Opt->coordgain = atof(argv[kar]);
 			brk = YUP;
 		}
       
@@ -4214,7 +4235,7 @@ int main (int argc,char *argv[])
             exit(1);
          }
          if (LocalHead) SUMA_ShowPatch(ptch, NULL);
-
+      
          /* Now create a surface with that patch */
          if (Opt->N_surf > 1) {
             sprintf(ext, "_%c", 65+i);
@@ -4230,12 +4251,19 @@ int main (int argc,char *argv[])
          /* save the original pointers to the facesets and their number */
          FaceSetList = SO->FaceSetList;
          N_FaceSet = SO->N_FaceSet;
+         
          /* replace with Patch */
          SO->FaceSetList = ptch->FaceSetList;
          SO->N_FaceSet = ptch->N_FaceSet; 
+         
          if (SO->N_FaceSet <= 0) {
             SUMA_S_Warn("The patch is empty.\n Non existing surface not written to disk.\n");
          } else {
+            /* Is the gain wanted? */
+            if (Opt->coordgain) {
+               SUMA_SL_Note("Applying coord gain to surface nodes!");
+               for (cnt=0; cnt < SO->NodeDim*SO->N_Node; ++cnt) SO->NodeList[cnt] *= Opt->coordgain;
+            }
             if (!SUMA_Save_Surface_Object (SO_name, SO, SO->FileType, SUMA_ASCII, NULL)) {
                   fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
                   exit (1);

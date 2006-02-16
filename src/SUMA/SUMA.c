@@ -228,7 +228,7 @@ int main (int argc,char *argv[])
 
 	/* Register the surfaces in Spec file with the surface viewer and perform setups */
 	for (kar = 0; kar < SUMA_MAX_SURF_VIEWERS; ++kar) {
-		if (!SUMA_SetupSVforDOs (Spec, SUMAg_DOv, SUMAg_N_DOv, &SUMAg_SVv[kar])) {
+		if (!SUMA_SetupSVforDOs (Spec, SUMAg_DOv, SUMAg_N_DOv, &SUMAg_SVv[kar], 0)) {
 			fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SetupSVforDOs function.\n", FuncName);
 			exit (1);
 		}

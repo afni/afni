@@ -3046,7 +3046,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             glMaterialfv(GL_FRONT, GL_EMISSION, SurfObj->NodeMarker->sphcol); /*turn on emissidity for sphere */
             glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
             glTranslatef (SurfObj->NodeList[id], SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
-            gluSphere(SurfObj->NodeMarker->sphobj, SurfObj->NodeMarker->sphrad*SUMA_MAX_PAIR(sv->ZoomCompensate, 0.03),
+            gluSphere(SurfObj->NodeMarker->sphobj, SurfObj->NodeMarker->sphrad*SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06),
                       SurfObj->NodeMarker->slices, SurfObj->NodeMarker->stacks);
             glTranslatef (-SurfObj->NodeList[id], -SurfObj->NodeList[id+1],-SurfObj->NodeList[id+2]);
             glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissidity for axis*/
