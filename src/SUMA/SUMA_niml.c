@@ -3061,7 +3061,7 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
    static float etm = 0.0;
    static int i_in = 0;
    char stmp[500];
-   struct  timeval tt;
+   static struct  timeval tt;
    NI_element *nel=NULL;
    NI_group *ngr = NULL;
    float *f=NULL;
@@ -3072,7 +3072,8 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
    
    SUMA_ENTRY;
    
-
+   /* fprintf (SUMA_STDERR, "%s: LocalHead = %d\n", FuncName, LocalHead); */
+   
    if (action == 0) { /* initialization of connection */
       
       SUMA_LH("Setting up for communication with SUMA ...");
@@ -3262,12 +3263,16 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
       if (cs->nelps > 0) { /* make sure that you are not sending elements too fast */
          if (!etm) {
             etm = 100000.0; /* first pass, an eternity */
+            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Initializing timer\n", FuncName);
             SUMA_etime(&tt, 0);
          }
-         else etm = SUMA_etime(&tt, 1);
+         else {
+            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calculating etm\n", FuncName);
+            etm = SUMA_etime(&tt, 1);
+         }
          wtm = 1./cs->nelps - etm;
          if (wtm > 0) { /* wait */
-            SUMA_LH("Sleeping to meet refresh rate...");
+            if (LocalHead) fprintf (SUMA_STDOUT, "%s: Sleeping by %f to meet refresh rate...", FuncName, wtm);
             NI_sleep((int)(wtm*1000));
          }
       }
@@ -3290,7 +3295,10 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
       if (nel) NI_free_element(nel) ; nel = NULL;
       if (ngr) NI_free_element(ngr) ; ngr = NULL;
       
-      if (cs->nelps > 0) SUMA_etime(&tt, 0); /* start the timer */
+      if (cs->nelps > 0) {
+         if (LocalHead) fprintf (SUMA_STDOUT,"%s: Resetting time...\n", FuncName);
+         SUMA_etime(&tt, 0); /* start the timer */
+      }
       ++i_in;
       SUMA_RETURN(YUP);
    }/* action == 1 */
@@ -3401,7 +3409,7 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_COMM_STRUCT *cs, void *data, int action)
    static float etm = 0.0;
    static int i_in = 0;
    char stmp[500];
-   struct  timeval tt;
+   static struct  timeval tt;
    NI_element *nel=NULL;
    float *f=NULL;
    int n=-1, WaitClose, WaitMax, *ip = NULL;
