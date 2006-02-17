@@ -1645,7 +1645,7 @@ float SUMA_etime (struct  timeval  *t, int Report  )
    SUMA_ENTRY;
 
    /* get time */
-   gettimeofday(&tn,0);
+   gettimeofday(&tn, NULL);
    
    if (Report)
       {
