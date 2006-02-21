@@ -15,9 +15,9 @@ typedef struct
    {
       int dbg_flag;
       int N_sub; /* number of subdivisions (for 2D objects, it is the number of nodes) */
-      int N_step; /* Number of steps.  Related to dt.  Must be multiple of 10. */
+      int N_step; /* Number of steps.  Related to dt.  This is the inverse of dt. */
       int dom_dim;
-      double dt;
+      double dt; 
       char *ctrl; /* a pointer copy of argv containing filename, do not free */
       int N_ctrl_points;
       int *CtrlPts_iim; /* Index of a particular ctrl point in the mesh. It's not necessary
@@ -60,27 +60,27 @@ void usage_toy_circle (SUMA_GENERIC_ARGV_PARSE *ps)
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
                "usage:\n"
-               "  toy_circle [-ctrl CTRL_FILE] [-debug DEBUG] [-N_sub N_SUB] [-dim DIM] [-dt DT] \n"
-               "                             [-renew_weights] [-adjust] [-ouput OUTPUT]\n"
+               "  toy_circle [-ctrl CTRL_FILE] [-dom_dim DOM_DIM] [-dim DIM] [-N_sub N_SUB] [-N_step N_STEP]\n"
+               "                    [-renew_weights] [-adjust] [-debug DEBUG] [-ouput OUTPUT]\n"
                "  Must specify control file.  -ctrl is a mandatory option.\n"
                " \n"
-               "  -ctrl CTRLFILE:Control nodes 1D file.\n"
-               "                 Each row is for one node's intial and final XYZ.\n"  
-               "  -debug DEBUG:  Choose the debug level, default is 0.\n"
-               "                 Level 1 reports program's progress.\n"
-               "                 Level 2 tracks first control point.\n"
-               "  -N_sub N_SUB:Set the number of subdivisions on the circle.\n"
-               "                 Approximate the number of subdivisions on the icosahedron.\n"
-               "                 Default N_sub is 100.\n"
-               "  -dim DIM: Set the dimension.  Default is 2D.\n"
-               "  -N_step N_STEP: Set the number of steps (inverse dt)\n"
+               "  -ctrl CTRLFILE:   Control nodes 1D file.\n"
+               "                    Each row is for one node's intial and final XYZ.\n" 
+               "  -dom_dim DOM_DIM: Set domain dimension.  Default is 2 for the circle.\n"
+               "                    Must choose dom_dim = 3 for a sphere.\n" 
+               "  -dim DIM:         Set the dimension.  Default is 2D.\n"
+               "  -N_sub N_SUB:     Set the number of subdivisions on the circle.\n"
+               "                    Approximate the number of subdivisions on the icosahedron.\n"
+               "                    Default N_sub is 100.\n"
+               "  -N_step N_STEP:   Set the number of steps (inverse dt).\n"
                /*"  -dt DT: Choose time step for moving points to new locations.\n"
                "                 Default DT is 0.001.\n" */
-               "  -renew_weights:Choose to recalculate spline weights after every step.\n"
-               "                 Default does not renew the weights.\n"
-               "  -adjust: Choose to scale displacement.\n"
-               "                 Default is no adjustment.\n"                            
-               "  -output OUTPUT:Name output file. Default OUTPUT is test_move.\n"
+               "  -renew_weights:   Choose to recalculate spline weights after every step.\n"
+               "                    Default does not renew the weights.\n"
+               "  -adjust:          Choose to scale displacement.\n"
+               "                    Default is no adjustment.\n"  
+               "  -debug DEBUG:     Choose to turn debugging on.  Default is no debugging.\n"                        
+               "  -output OUTPUT:   Name output file. Default OUTPUT is test_move.\n"
                " \n"
                "%s"
                "%s"
@@ -107,7 +107,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_toy_circle_ParseInput(char *argv[], int a
    popt->dbg_flag = 0;
    popt->N_sub = 100;
    popt->N_step = 100;
-   popt->dt = 0.001;
+   popt->dt = 0.001; 
    popt->ctrl = NULL;
    popt->N_ctrl_points = 1;
    popt->renew_weights = 0;
@@ -136,20 +136,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_toy_circle_ParseInput(char *argv[], int a
       
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
-         if (kar+1 >= argc)
-         {
-            fprintf (SUMA_STDERR, "need a number after -debug \n");
-            exit (1);
-         }
-         
-         Opt->debug = atoi(argv[++kar]);
-         popt->dbg_flag = Opt->debug;
-         fprintf(stderr, "%s: dbg-flag = %d\n", FuncName, popt->dbg_flag); 
-         brk = YUP;
+         popt->dbg_flag = 1; 
+         brk = 1;
       }
-      
-      
-      
+  
       if (!brk && (strcmp(argv[kar], "-dt") == 0)) {
          fprintf(stderr, "No MORE dt, fool!\n");
          exit (1);
@@ -1101,7 +1091,7 @@ int main (int argc,char *argv[])
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    MyCircleOpt myopt, *opt = NULL;
    int i, i3, idm, j;
-   double  t, dt, dt2, te;
+   double dt;    /*dt2, te; */
    double u[3], oxyz[3]={0.0, 0.0, 0.0};
    double um=-1.0, oda, faa, error, dtheta=0.0, nrm[3]={0.0, 0.0, 0.0}, nrmi[3]={0.0, 0.0, 0.0}, nrmf[3]={0.0, 0.0, 0.0};
    int niter=0;
@@ -1134,7 +1124,7 @@ int main (int argc,char *argv[])
    Opt = SUMA_toy_circle_ParseInput (argv, argc, ps, &myopt);
    opt = (MyCircleOpt *)Opt->popt;
   
-   if (opt->dbg_flag > 0) { fprintf(stderr,"%s: About to allocate (N_sub = %d).\n", FuncName, opt->N_sub); }
+   if (opt->dbg_flag) { fprintf(stderr,"%s: About to allocate (N_sub = %d).\n", FuncName, opt->N_sub); }
    Ci = (MyCircle *)SUMA_malloc(sizeof (MyCircle)); 
    
    /* based on dim, fix N_sub */
@@ -1147,7 +1137,7 @@ int main (int argc,char *argv[])
          FuncName, Ci->N_Node, opt->N_sub);
    }
  
-   if (opt->dbg_flag > 0) { fprintf(stderr,"%s: Object contains %d nodes.\n", FuncName, Ci->N_Node); }
+   if (opt->dbg_flag) { fprintf(stderr,"%s: Object contains %d nodes.\n", FuncName, Ci->N_Node); }
    Ci->NodeList = Ci->VelocityField = Ci->NewNodeList = Ci->VelocityMagnitude = Ci->Theta = NULL;
    Ci->NodeList = (double *)SUMA_malloc(Ci->N_Node * 3 * sizeof (double));
    Ci->VelocityField = (double *)SUMA_malloc(Ci->N_Node * 3 * sizeof (double));
@@ -1161,7 +1151,7 @@ int main (int argc,char *argv[])
    if( opt->dot == 1) { fprintf( stderr, "USING DOT PRODUCT RESTRICTION.\n"); } 
       
    if (opt->dom_dim == 2) {
-      if (opt->dbg_flag > 0) { fprintf(stderr,"%s: Creating circle.\n", FuncName); }
+      if (opt->dbg_flag) { fprintf(stderr,"%s: Creating circle.\n", FuncName); }
 
       for (i = 0; i < Ci->N_Node; ++i)
       {  
@@ -1181,7 +1171,7 @@ int main (int argc,char *argv[])
    } else {
       float ctr[3];
       
-      if (opt->dbg_flag > 0) { fprintf(stderr,"%s: Creating icosahedron with %d subdivisions.\n", FuncName, opt->N_sub); }
+      if (opt->dbg_flag) { fprintf(stderr,"%s: Creating icosahedron with %d subdivisions.\n", FuncName, opt->N_sub); }
       opt->Radius= 1.0;
       opt->Center[0] = opt->Center[1] = opt->Center[2] = 0.0;
       ctr[0] = (float)opt->Center[0];
@@ -1221,7 +1211,7 @@ int main (int argc,char *argv[])
       
    }
    
-   if (opt->dbg_flag > 0 || LocalHead) {  
+   if (opt->dbg_flag || LocalHead) {  
       FILE *cout=fopen("circleiXYZ.1D","w");
       if (cout) {
          for (i = 0; i < Ci->N_Node; ++i) {
@@ -1332,23 +1322,23 @@ int main (int argc,char *argv[])
                           opt->adjust );
    } 
    
-   if (opt->dbg_flag > 0) 
+   if (opt->dbg_flag) 
    { fprintf(stderr,"%s: Moving the points. (N_Node = %d)\n", FuncName, Ci->N_Node); }
    
-   if (opt->dbg_flag > 0) {
+   if (opt->dbg_flag) {
       if (opt->adjust == 0) fprintf(stderr,"%s: Moving the points, no adjustment. (N_Node = %d)\n", FuncName, Ci->N_Node); 
       else fprintf(stderr,"%s: Moving the points, adjusted. (N_Node = %d)\n", FuncName, Ci->N_Node); 
    }
-
-   te=0.0;
+   
+   /* te=0.0;
+      dt = opt->dt; 
+      dt2 = dt / 2.0; */
    niter = 0;
-   /* dt = opt->dt; */
-   dt2 = dt / 2.0;
    do { 
       
       dt = 1.0/(opt->N_step - niter); 
    
-      if (opt->dbg_flag > 0) { if (!(niter%100)) fprintf(stderr,"%s: te = %.3f.\n", FuncName, te); }
+      if (opt->dbg_flag) { fprintf(stderr,"%s: niter = %d, dt = %.3f.\n", FuncName, niter, dt); }
       
       for (i = 0; i < Ci->N_Node; ++i) 
       {  
@@ -1360,7 +1350,7 @@ int main (int argc,char *argv[])
          u[2] = Ci->VelocityField[i3+2] * dt;
 
       
-         if (opt->dbg_flag > 0 && i == opt->CtrlPts_iim[0]) { /* debug when node is 1st control point */
+         if (opt->dbg_flag && i == opt->CtrlPts_iim[0]) { /* debug when node is 1st control point */
          fprintf(SUMA_STDERR, "MAIN: \n"
                               "DotProduct of u=Vf*dt before adjustment: \n"
                               "   udotrad  = [%.18f]\n"
@@ -1385,7 +1375,7 @@ int main (int argc,char *argv[])
          }
          
          
-         if (opt->dbg_flag > 0 && i == opt->CtrlPts_iim[0]) { 
+         if (opt->dbg_flag && i == opt->CtrlPts_iim[0]) { 
          fprintf(SUMA_STDERR, "MAIN: \n"
                               "DotProduct of u=Vf*dt after adjustment: \n"
                               "   udotrad  = [%.18f]\n"
@@ -1394,15 +1384,15 @@ int main (int argc,char *argv[])
                               u[0], u[1], u[2] ); } 
          
 
-         if (opt->dbg_flag > 0 && i == opt->CtrlPts_iim[0]) { /* debug when node is 1st control point */
+         if (opt->dbg_flag && i == opt->CtrlPts_iim[0]) { /* debug when node is 1st control point */
             fprintf(SUMA_STDERR, "********************************************\n"
                                  "Iter %d: debug for ctrl point 0 == node %d\n"
-                                 "te = %f\n"
+                                 "dt = %f\n"
                                  "u        = [%.8f %.8f %.8f], um = %.8f\n"
                                  "udotrad  = [%.18f]\n" 
                                  "old[XYZ] = [%.8f %.8f %.8f]\n", 
                                  niter, i,
-                                 te, 
+                                 dt, 
                                  u[0], u[1], u[2], um,
                                  SUMA_MT_DOT( (&(u[0])),(&(Ci->NewNodeList[i3  ]))), 
                                  Ci->NewNodeList[i3  ], Ci->NewNodeList[i3+1], Ci->NewNodeList[i3+2]);
@@ -1429,7 +1419,7 @@ int main (int argc,char *argv[])
                               SUMA_POW2(Ci->NewNodeList[i3+1]) + 
                               SUMA_POW2(Ci->NewNodeList[i3+2]) );
          
-         /*if (opt->dbg_flag > 0) { fprintf(stderr,"mag initial: %f\n", mag); } */
+         /*if (opt->dbg_flag) { fprintf(stderr,"mag initial: %f\n", mag); } */
          if (newnode_mag > 0.000000001) {
             Ci->NewNodeList[i3  ] = opt->Radius*(Ci->NewNodeList[i3  ])/( newnode_mag );
             Ci->NewNodeList[i3+1] = opt->Radius*(Ci->NewNodeList[i3+1])/( newnode_mag );
@@ -1442,7 +1432,7 @@ int main (int argc,char *argv[])
          Ci->NewNodeList[i3  ] = Ci->NewNodeList[i3  ] + u[0];
          Ci->NewNodeList[i3+1] = Ci->NewNodeList[i3+1] + u[1];
          Ci->NewNodeList[i3+2] = Ci->NewNodeList[i3+2] + u[2];
-         if (opt->dbg_flag > 0 && i == opt->CtrlPts_iim[0]) { /* debug when node is 1st control point */
+         if (opt->dbg_flag && i == opt->CtrlPts_iim[0]) { /* debug when node is 1st control point */
             fprintf(SUMA_STDERR, "par[XYZ] = [%.8f %.8f %.8f]\n", 
                                  Ci->NewNodeList[i3  ], Ci->NewNodeList[i3+1], Ci->NewNodeList[i3+2]); }
    
@@ -1450,7 +1440,7 @@ int main (int argc,char *argv[])
                               SUMA_POW2(Ci->NewNodeList[i3+1]) + 
                               SUMA_POW2(Ci->NewNodeList[i3+2]) );
                               
-         /*if (opt->dbg_flag > 0) { fprintf(stderr,"mag initial: %f\n", mag); } */
+         /*if (opt->dbg_flag) { fprintf(stderr,"mag initial: %f\n", mag); } */
          if ( newnode_mag > 0.000000001 ) {
             Ci->NewNodeList[i3  ] = opt->Radius * (Ci->NewNodeList[i3  ])/( newnode_mag );
             Ci->NewNodeList[i3+1] = opt->Radius * (Ci->NewNodeList[i3+1])/( newnode_mag );
@@ -1459,7 +1449,7 @@ int main (int argc,char *argv[])
          #endif
             
          /* THIS DTHETA IS AN ABSOLUTE ANGLE THAT IS ALWAYS POSITIVE. */
-         if (opt->dbg_flag > 0 && i == opt->CtrlPts_iim[0]) { /* debug when node is 1st control point */
+         if (opt->dbg_flag && i == opt->CtrlPts_iim[0]) { /* debug when node is 1st control point */
             SUMA_ANGLE_DIST_NC( (&(oxyz[0])), (&(Ci->NewNodeList[i3])), dtheta, nrm);
 
             fprintf(SUMA_STDERR, "new[XYZ] = [%.8f %.8f %.8f]\n"
@@ -1484,7 +1474,7 @@ int main (int argc,char *argv[])
          }
       }
      
-      if (opt->dbg_flag > 0) { fprintf(stderr,"%s: Writing results to %s\n", FuncName, opt->outfile); }
+      if (opt->dbg_flag) { fprintf(stderr,"%s: Writing results to %s\n", FuncName, opt->outfile); }
   
       /*Call spline weight function to recalculate spline weights for renew_weights option.*/
       if (opt->renew_weights) { 
@@ -1583,12 +1573,12 @@ int main (int argc,char *argv[])
    for (i=0; i<opt->N_ctrl_points; ++i) {
       i3 = 3 * i;
       fprintf(SUMA_STDERR,"%s: Angular error reports where control points coincide with nodes:\n"
-                          "Niter = %d, last te used= %f\n"
+                          "Niter = %d, last dt used= %f\n"
                           "#Col. 0: Ctrl_Node\n"
                           "#Col. 1: Original Desired Angle \n"
                           "#Col. 2: Final Achieved Angle  \n"
                           "#Col. 3: Error (ODA-FAA) in rad.\n"
-                          "#Col. 4: Error (ODA-FAA) in deg.\n", FuncName, niter, te - dt);
+                          "#Col. 4: Error (ODA-FAA) in deg.\n", FuncName, niter, dt);
       if (opt->CtrlPts_iim[i] >= 0) {
          SUMA_ANGLE_DIST_NC( (&(opt->CtrlPts_f[i3])), (&(opt->CtrlPts_I[i3])), oda, nrmi); /* original desired angle */ 
          SUMA_ANGLE_DIST_NC( (&(Ci->NewNodeList[3*opt->CtrlPts_iim[i]])), (&(opt->CtrlPts_I[i3])), faa, nrmf); /* final achieved angle */ 
@@ -1603,7 +1593,7 @@ int main (int argc,char *argv[])
    }
    
    /* Compute the distance between the nodes on the surface and the center of the sphere. */
-   if( 1 ) {
+   if( LocalHead ) {
       FILE *sphere_radius = NULL;
       sphere_radius = fopen ("sphere_radius.1D", "w");
       for( i = 0; i < Ci->N_Node; ++i) 
@@ -1616,8 +1606,9 @@ int main (int argc,char *argv[])
       fclose (sphere_radius); sphere_radius = NULL;
    }
  
+   /*
    FILE *test = NULL;
-   if (opt->dbg_flag > 0) { fprintf(stderr,"%s: Writing results to %s\n", FuncName, opt->outfile); }
+   if (opt->dbg_flag) { fprintf(stderr,"%s: Writing results to %s\n", FuncName, opt->outfile); }
    test = fopen ("test_move.1D", "w"); 
    for ( i = 0; i < Ci->N_Node; ++i) 
    {
@@ -1627,7 +1618,7 @@ int main (int argc,char *argv[])
          Ci->VelocityField[i3+2], Ci->NewNodeList[i3], Ci->NewNodeList[i3+1], Ci->NewNodeList[i3+2], Ci->Theta[i3], Ci->Theta[i3+1]);
    } 
    fclose (test); test = NULL;
- 
+   */
    
    /* you don't want to exit rapidly because the SUMA might not be done processing the last elements*/
    if (ps->cs->Send && !ps->cs->GoneBad) {
@@ -1646,7 +1637,8 @@ int main (int argc,char *argv[])
    if (nbad) {
       fprintf(SUMA_STDERR,"Shist %s!:\n you have %d bad points!\n", FuncName, nbad);
    } else {
-      fprintf(SUMA_STDERR,"%s: Happy pretend Valentine!\n you have no errors!\n" , FuncName);
+      fprintf(SUMA_STDERR,"%s: Happy pretend Valentine!\n"
+                          "   You have no errors when checking node normals!\n" , FuncName);
    }
    if (shist) SUMA_free(shist); shist = NULL;
 
@@ -1662,7 +1654,7 @@ int main (int argc,char *argv[])
    if (Ci->NewNodeList) SUMA_free(Ci->NewNodeList); Ci ->NewNodeList = NULL; 
    if (Ci->Theta) SUMA_free(Ci->Theta); Ci ->Theta = NULL;  
    if (Ci) SUMA_free(Ci); Ci = NULL;
-   if (Opt->debug > 2) LocalHead = YUP;
+   if (Opt->debug > 2) LocalHead = YUP;   /* What is this? */
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
    if (opt->CtrlPts_iim) SUMA_free(opt->CtrlPts_iim); opt->CtrlPts_iim = NULL;
