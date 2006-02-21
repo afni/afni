@@ -67,10 +67,14 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
 {
    static char FuncName[]={"SUMA_SphereQuality"};
    float *dist = NULL, mdist, *dot=NULL, nr, r[3], *bad_dot = NULL;
+   float *face_dot=NULL, *face_bad_dot = NULL, *face_cent = NULL;
    float dmin, dmax, dminloc, dmaxloc;
    int i, i3, *isortdist = NULL;
    int *bad_ind = NULL, ibad =-1;
+   int *face_bad_ind = NULL, face_ibad =-1;
+   int F[3];
    FILE *fid;
+   FILE *face_id;
    char *fname;
    SUMA_COLOR_MAP *CM;
    SUMA_SCALE_TO_MAP_OPT * OptScl;
@@ -179,7 +183,7 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
    If we had a perfect sphere then the normal of each node
    will be colinear with the direction of the vector between the
    sphere's center and the node.
-   The mode the deviation, the worse the sphere */
+   The more the deviation, the worse the sphere */
    dot     = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
    bad_ind = (int *)  SUMA_calloc(SO->N_Node, sizeof(int)  );
    bad_dot = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
@@ -314,16 +318,104 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
          fprintf (SUMA_STDERR,"cos(ang) @ node %d: %f\n", bad_ind[i], bad_dot[i]);
       } 
    }  
+ 
+   /* Newer idea:
+   Compare the normal of each facet to the direction of the vector
+   between the sphere's center and the center of the facet.  
+   Use the center of mass of the triangle as the center of the facet.
+   If we had a perfect sphere then these vectors would
+   be colinear. The more the deviation, the worse the sphere */
    
+   face_cent      = (float *)SUMA_calloc(3*SO->N_FaceSet, sizeof(float));
+   face_dot       = (float *)SUMA_calloc(SO->N_FaceSet, sizeof(float));
+   face_bad_ind   = (int *)  SUMA_calloc(SO->N_FaceSet, sizeof(int)  );
+   face_bad_dot   = (float *)SUMA_calloc(SO->N_FaceSet, sizeof(float));
+   face_ibad = 0;
+   
+   /* Calculate Center of Gravity of each facet. */
+   for (i=0; i < SO->N_FaceSet; ++i) {
+      i3 = 3*i;
+      F[0] = 3*SO->FaceSetList[i3  ];
+      F[1] = 3*SO->FaceSetList[i3+1];
+      F[2] = 3*SO->FaceSetList[i3+2];
+      
+      face_cent[i3  ] = (1.0/3.0) * ( SO->NodeList[F[0]  ] + SO->NodeList[F[1]  ] + SO->NodeList[F[2]  ] );
+      face_cent[i3+1] = (1.0/3.0) * ( SO->NodeList[F[0]+1] + SO->NodeList[F[1]+1] + SO->NodeList[F[2]+1] );
+      face_cent[i3+2] = (1.0/3.0) * ( SO->NodeList[F[0]+2] + SO->NodeList[F[1]+2] + SO->NodeList[F[2]+2] );
+   }
+     
+   for (i=0; i < SO->N_FaceSet; ++i) {
+      i3 = 3*i;
+      r[0] = face_cent[i3  ] - SO->Center[0];
+      r[1] = face_cent[i3+1] - SO->Center[1];
+      r[2] = face_cent[i3+2] - SO->Center[2];
+      
+      nr = sqrt ( r[0] * r[0] + r[1] * r[1] + r[2] * r[2] );
+      r[0] /= nr; r[1] /= nr; r[2] /= nr; 
+      
+      face_dot[i] =  r[0]*SO->FaceNormList[i3  ] + 
+                     r[1]*SO->FaceNormList[i3+1] +
+                     r[2]*SO->FaceNormList[i3+2] ;
+      
+      if (fabs(face_dot[i]) < 0.9) {
+         face_bad_ind[face_ibad] = i;
+         face_bad_dot[face_ibad] = face_dot[i];
+         ++face_ibad;
+      }
+   }
+   
+   face_bad_ind = (int *)  SUMA_realloc(face_bad_ind, face_ibad * sizeof(int));
+   face_bad_dot = (float *)SUMA_realloc(face_bad_dot, face_ibad * sizeof(float));
+   
+   fname = SUMA_append_string(Froot, "_facedotprod.1D.dset");
+   if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
+   face_id= fopen(fname, "w");
+   fprintf(face_id,"#Cosine of facet normal angles with radial direction from facet center\n"
+               "#col 0: Facet Index\n"
+               "#col 1: cos(angle)\n"
+               ); 
+   if (shist) fprintf(face_id,"#History:%s\n", shist);
+   for (i=0; i<SO->N_FaceSet; ++i) fprintf(face_id,"%d\t%f\n", i, face_dot[i]);
+   fclose(face_id);
+   SUMA_free(fname); fname = NULL;
+
+   fname = SUMA_append_string(Froot, "_FaceBadNodes.1D.dset");
+   if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
+   face_id= fopen(fname, "w");
+   fprintf(face_id,"#Facets with normals at angle with radial direction: abs(dot product < 0.9)\n"
+               "#col 0: Facet Index\n"
+               "#col 1: cos(angle)\n"
+               ); 
+   if (shist) fprintf(face_id,"#History:%s\n", shist);
+   for (i=0; i<face_ibad; ++i) fprintf(face_id,"%d\t%f\n", face_bad_ind[i], face_bad_dot[i]);
+   fclose(face_id);
+   SUMA_free(fname); fname = NULL;
+
+   /* report, just 10 of them  */
+   {
+      int face_nrep;
+      face_nrep = SUMA_MIN_PAIR(face_ibad, 10); 
+      fprintf (SUMA_STDERR,"%d of the %d facets with normals at angle with radial direction\n"
+                           " i.e. abs(dot product < 0.9)\n"
+                           " See output files for full list\n", face_nrep, face_ibad);
+      for (i=0; i < face_nrep; ++i) {
+         fprintf (SUMA_STDERR,"cos(ang) @ facet %d: %f\n", face_bad_ind[i], face_bad_dot[i]);
+      /* If face_nrep is zero, then this will not be printed. */
+      } 
+   }  
+ 
    if (dot) SUMA_free(dot);
    if (bad_dot) SUMA_free(bad_dot);
    if (bad_ind) SUMA_free(bad_ind);
+   if (face_cent) SUMA_free(face_cent);
+   if (face_dot) SUMA_free(face_dot);
+   if (face_bad_dot) SUMA_free(face_bad_dot);
+   if (face_bad_ind) SUMA_free(face_bad_ind); 
    if (isortdist) SUMA_free(isortdist);
    if (dist) SUMA_free(dist);
    if (CM) SUMA_Free_ColorMap (CM);
    if (OptScl) SUMA_free(OptScl);
-   
-   
+  
    SUMA_RETURN(ibad);
 }
 

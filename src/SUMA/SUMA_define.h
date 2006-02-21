@@ -1436,7 +1436,7 @@ typedef struct {
    float ArrowRotationAngle; /*!< Angle to rotate surface by when arrows are used.
                                  Units are in radians */
    float KeyZoomGain; /*!< gain for zooming in and out with the 'z' and 'Z' keys. Typical range from 0 to 0.5. Must be < 1*/
-   SUMA_Boolean BF_Cull; /*!< flag for backface culling */
+   byte BF_Cull; /*!< flag for backface culling */
    SUMA_RENDER_MODES PolyMode; /*!< polygon viewing mode, SRM_Fill, SRM_Line, SRM_Points
                                     There is a similar field for each surface object to 
                                     allow independent control for each surface. If the rendering mode
