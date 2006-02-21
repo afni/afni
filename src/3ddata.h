@@ -3395,7 +3395,7 @@ extern THD_3dim_dataset * THD_copy_dset_subs( THD_3dim_dataset * , int * ) ;
    "               2 4 6\n"                                                   \
    "               0 3 3\n"                                                   \
    "               7 2 9\n"                                                   \
-   "This example has 3 rows and 4 columns.  Each column is considered as\n"   \
+   "This example has 4 rows and 3 columns.  Each column is considered as\n"   \
    "a timeseries in AFNI.  The convention is to store this type of data\n"    \
    "in a filename ending in '.1D'.\n"                                         \
    "\n"                                                                       \
