@@ -538,9 +538,9 @@ DUMP1 ;
 void MRG_Syntax(void)
 {
    printf(
-    "Edit and/or merge 3D datasets\n"
-    "Usage: 3dmerge [options] datasets ...\n"
-    "where the options are:\n"
+    "Edit and/or merge 3D datasets to a single output dataset, using mean, max,\n"
+    " count, ... and optionally apply thresholding, clustering, filtering, masking\n"
+    "Usage: 3dmerge [options] datasets ...\n\n"
    ) ;
 
    printf( "%s\n" , EDIT_options_help() ) ;
@@ -745,7 +745,7 @@ void MRG_Syntax(void)
 
     "OPTIONS THAT CONTROL THE NAMES OF THE OUTPUT DATASET:\n"
     "  -session dirname  = write output into given directory (default=./)\n"
-    "  -prefix  pname    = use 'pname' for the output directory prefix\n"
+    "  -prefix  pname    = use 'pname' for the output dataset prefix\n"
     "                       (default=mrg)\n"
 #if 0
     "  -label   string   = use 'string' for the label in the output\n"
