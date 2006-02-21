@@ -19,10 +19,20 @@ int main( int argc , char * argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: 1dcat a.1D b.1D ...\n"
             "where each file a.1D, b.1D, etc. is an ASCII file of numbers\n"
-            "arranged in rows and columns.\n"
-            "The row-by-row catenation of these files is written to stdout.\n"
+            "  arranged in rows and columns.\n"
+            "The row-by-row concatenation of the columns included in these files is\n"
+	    "  written to stdout.\n"
             "\n"
-            TS_HELP_STRING
+	    "1dcat takes as input one or more 1D files, and writes out a 1D file\n"
+	    "containing the side-by-side concatenation of all or a subset of the\n"
+	    "columns from the input files. All files must have the same number of rows.\n"
+	    "Example:\n"
+	    " Input file 1:\n   1\n   2\n   3\n   4\n"
+	    " Input file 2:\n   5\n   6\n   7\n   8\n"
+            "\n 1dcat data1.1D data2.1D > catout.1D\n" 
+	    " Output file: \n   1 5\n   2 6\n   3 7\n   4 8\n"
+            "\n\nGeneric 1D file usage help:\n"
+            TS_HELP_STRING 
            ) ;
       exit(0) ;
    }
