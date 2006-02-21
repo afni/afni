@@ -1662,7 +1662,7 @@ SUMA_DRAWN_ROI **SUMA_Find_ROIrelatedtoSO (SUMA_SurfaceObject *SO, SUMA_DO* dov,
 }
 
 /*! Create the ROIs for a particular surface */
-SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
+SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_Draw_SO_ROI"};
    GLfloat ROI_SphCol[] = {1.0, 0.0, 0.0, 1.0};
@@ -1744,7 +1744,8 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
                               glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_SphCol_frst);
                               idFirst = 3 * ROId->nPath[0];
                               glTranslatef (SO->NodeList[idFirst], SO->NodeList[idFirst+1], SO->NodeList[idFirst+2]);
-                              gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
+                              gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad*SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06), 
+                                       SO->NodeMarker->slices, SO->NodeMarker->stacks);
                               glTranslatef (-SO->NodeList[idFirst], -SO->NodeList[idFirst+1], -SO->NodeList[idFirst+2]);
                            } 
 
@@ -1762,7 +1763,8 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
                               glEnd();
 
                               glTranslatef (SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);
-                              gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
+                              gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad*SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06),
+                                        SO->NodeMarker->slices, SO->NodeMarker->stacks);
                               glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], -SO->NodeList[id+2]);
                            }
 
@@ -1841,7 +1843,8 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
                      for (ii=0; ii < ROI->N_ElInd; ++ii) {
                         id = 3 * ROI->ElInd[ii];
                         glTranslatef (SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);
-                        gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
+                        gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad*SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06), 
+                           SO->NodeMarker->slices, SO->NodeMarker->stacks);
                         glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], -SO->NodeList[id+2]);
                      }
                      break;
@@ -3027,7 +3030,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          
          SUMA_LH("ROIs");
          /* draw surface ROIs */
-         if (!SUMA_Draw_SO_ROI (SurfObj, SUMAg_DOv, SUMAg_N_DOv)) {
+         if (!SUMA_Draw_SO_ROI (SurfObj, SUMAg_DOv, SUMAg_N_DOv, sv)) {
             fprintf (SUMA_STDERR, "Error %s: Failed in drawing ROI objects.\n", FuncName);
          }
          /* Draw Axis */

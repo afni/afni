@@ -40,7 +40,7 @@ SUMA_DRAWN_ROI * SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWIN
 SUMA_ROI * SUMA_AllocateROI (char *Parent_idcode_str, SUMA_ROI_TYPE Type, char * label, int N_ElInd, int *ElInd);
 SUMA_Boolean SUMA_freeDrawnROI (SUMA_DRAWN_ROI *D_ROI); 
 SUMA_Boolean SUMA_freeROI (SUMA_ROI *ROI); 
-SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_dov);
+SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_dov, SUMA_SurfaceViewer *csv);
 SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label);
 void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO);
 SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO);
