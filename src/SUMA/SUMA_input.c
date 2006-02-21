@@ -264,14 +264,22 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_B:
-               sv->BF_Cull = !sv->BF_Cull;
-               if (sv->BF_Cull) {
-                  glCullFace (GL_BACK);
-                  glEnable (GL_CULL_FACE);
-                  SUMA_SLP_Note ("BackFace Culling enabled.");
-               } else {
-                  glDisable(GL_CULL_FACE);
-                  SUMA_SLP_Note ("BackFace Culling disabled.");
+               sv->BF_Cull = (sv->BF_Cull+1)%3;
+               switch (sv->BF_Cull) {
+                  case 0:
+                     glDisable(GL_CULL_FACE);
+                     SUMA_SLP_Note ("BackFace Culling disabled.");
+                     break;
+                  case 1:
+                     glCullFace (GL_BACK);
+                     glEnable (GL_CULL_FACE);
+                     SUMA_SLP_Note ("BackFace Culling enabled.");
+                     break;
+                  case 2:
+                     glCullFace (GL_FRONT);
+                     glEnable (GL_CULL_FACE);
+                     SUMA_SLP_Note ("FrontFace Culling enabled.");
+                     break;
                }
                SUMA_postRedisplay(w, clientData, callData);
             break;
