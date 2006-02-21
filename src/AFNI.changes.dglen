@@ -106,5 +106,5 @@
  voxels in each sub-brick. 
 21 Feb 2006
  * corrected some help for 1dcat program and generic help message used by other 
- 1D programs
+ 1D programs. Updated help a bit for 3dmerge.c also.
  
