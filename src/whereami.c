@@ -149,7 +149,7 @@ void whereami_usage(void)
                "                                 write out a mask dataset of the region.\n"
                " -prefix PREFIX: Prefix for the output mask dataset\n"
                " -dbg DEBUG: Debug flag\n"
-               " -bmask BIN_ROI_MASK\n"
+               /*" -bmask BIN_ROI_MASK\n"*/
                "\n"
                "Note on the reported coordinates of the Focus Point:\n"
                "Coordinates of the Focus Point are reported in 3 coordinate spaces.\n"
