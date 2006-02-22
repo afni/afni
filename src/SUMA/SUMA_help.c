@@ -591,7 +591,7 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "     a: attenuation by background, toggle.\n\n");
    SS = SUMA_StringAppend (SS, 
-      "     B: Backface culling, toggle.\n");
+      "     B: Backface/Frontface/Noface culling, toggle.\n");
    SS = SUMA_StringAppend (SS, 
       "     b: background color, toggle.\n\n");
    SS = SUMA_StringAppend (SS, 

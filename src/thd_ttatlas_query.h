@@ -125,6 +125,16 @@ typedef struct {
    ATLAS_ZONE **zone; /*!< the zones */
 } ATLAS_QUERY;
 
+typedef struct {
+   THD_3dim_dataset *dset; /* This is a copy of static atlas pointers. Do NOT Free! */
+   AFNI_ATLAS_CODES atcode;
+   int mxlablen;
+   int mxelm;
+   float probkey;
+   byte *lrmask;        /* Do not free this one either */
+} ATLAS_DSET_HOLDER;
+
+void Set_Whereami_Max_Find(int n);
 THD_3dim_dataset * get_altas(char *epath, char *aname) ;
 int compare_Z_IQSORT_FLOAT (Z_QSORT_FLOAT *a, Z_QSORT_FLOAT *b );
 char Is_Side_Label(char *str, char *opt);
@@ -175,6 +185,7 @@ THD_3dim_dataset *THD_3dim_from_ROIstring(char *shar);
 void Set_ROI_String_Decode_Verbosity(byte lvl);
 short * UniqueShort (short *y, int ysz, int *kunq, int Sorted );
 byte * UniqueByte (byte *y, int ysz, int *kunq, int Sorted );
+ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask);
 
 
 /* Transforms for going from one space to another */
