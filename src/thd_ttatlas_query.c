@@ -14,8 +14,29 @@ static THD_3dim_dataset * dseCA_EZ_ML = NULL ;
 static int           have_dseCA_EZ_LR = -1   ;
 static THD_3dim_dataset * dseCA_EZ_LR = NULL ;
 
-#define MAX_FIND 9                    /* max number to find within WAMIRAD  */
+#define MAX_FIND_DEFAULT 9            /* max number to find within WAMIRAD  */
 #define WAMIRAD  7.5                  /* search radius: must not exceed 9.5 */
+
+int Init_Whereami_Max_Find(void) {
+   
+   char *eee = getenv("AFNI_WHEREAMI_MAX_FIND");
+   if (eee) {
+      return(atoi(eee));
+   }
+   return(MAX_FIND_DEFAULT);
+}
+
+static int MAX_FIND = -1;
+
+void Set_Whereami_Max_Find(int n) {
+   if (n > 0) {
+      MAX_FIND = n;
+   } else {
+      MAX_FIND = Init_Whereami_Max_Find();
+   }
+   return;
+}
+
 static MCW_cluster * wamiclust=NULL ;
 static MCW_cluster * wamiclust_CA_EZ=NULL ;
 
@@ -1222,6 +1243,7 @@ char * TT_whereami( float xx , float yy , float zz )
    
    RETURN(rbuf) ;
 }
+
 char * TT_whereami_old( float xx , float yy , float zz ) /* ZSS */
 {
    int ii,kk , ix,jy,kz , nx,ny,nz,nxy , aa,bb,cc , ff,b2f,b4f,rff ;
@@ -1230,11 +1252,24 @@ char * TT_whereami_old( float xx , float yy , float zz ) /* ZSS */
    THD_string_array *sar ;
    char *b2lab , *b4lab ;
    char lbuf[256] , *rbuf ;
-   int nfind, b2_find[MAX_FIND], b4_find[MAX_FIND], rr_find[MAX_FIND] ;
+   int nfind, *b2_find=NULL, *b4_find=NULL, *rr_find=NULL ;
 
    THD_3dim_dataset * dset ; /* 01 Aug 2001 */
 
 ENTRY("TT_whereami_old") ;
+
+   
+   if (MAX_FIND < 0) {
+      Set_Whereami_Max_Find(MAX_FIND);
+   }   
+   b2_find = (int*)calloc(MAX_FIND, sizeof(int));
+   b4_find = (int*)calloc(MAX_FIND, sizeof(int));
+   rr_find = (int*)calloc(MAX_FIND, sizeof(int));
+   if (!b2_find || !b4_find || !rr_find) {
+      ERROR_message("Jiminy Crickets!\nFailed to allocate for finds!\nMAX_FIND = %d\n", MAX_FIND);
+      RETURN(NULL);
+   }
+   
 
    /*-- setup stuff: load atlas dataset, prepare search mask --*/
 
@@ -1471,6 +1506,8 @@ else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
    for( ii=0 ; ii < sar->num ; ii++ ){
       strcat(rbuf,sar->ar[ii]) ; strcat(rbuf,"\n") ;
    }
+
+   free(b2_find); b2_find = NULL; free(b4_find); b4_find = NULL; free(rr_find); rr_find = NULL;
 
    DESTROY_SARR(sar) ; RETURN(rbuf) ;
 }
@@ -2245,12 +2282,12 @@ ATLAS_SEARCH *Free_Atlas_Search(ATLAS_SEARCH *as)
 */
 THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_CODES atcode, AFNI_ATLAS_REGION *aar, int *codes, int n_codes)
 {
-      byte *bmask = NULL, *ba=NULL, LocalHead = 0, build_lr, *lrmask=NULL;
+      byte *bmask = NULL, *ba=NULL, LocalHead = 0;
       int ii=0, sb, nxyz, nx, ny, nz, kk, ll = 0, fnd = -1, fnd2=-1;
-      THD_3dim_dataset * dset ; /* 01 Aug 2001 */
       THD_3dim_dataset * maskset = NULL;
       char madeupname[500], madeuplabel[40];
-      
+      ATLAS_DSET_HOLDER adh;
+
       ENTRY("Atlas_Region_Mask");
       
       if (!codes || n_codes == 0) {
@@ -2266,119 +2303,21 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_CODES atcode, AFNI_ATLAS_REGION *
          fprintf(stderr,"\n");
       }
       
-      dset = NULL;
-      build_lr = 0;
-      lrmask = NULL;
-      switch (atcode) {
-         case CA_EZ_N27_MPM_ATLAS:
-            if (dseCA_EZ_MPM == NULL) {
-               if (LocalHead) fprintf(stderr,"Loading %s\n", Atlas_Code_to_Atlas_Name(atcode));
-               ii = CA_EZ_MPM_load_atlas(); 
-               if (ii == 0) {
-                  ERROR_message("Could not read MPM atlas(dset %s+tlrc)", 
-                              Atlas_Code_to_Atlas_Dset_Name(atcode));
-                  RETURN(NULL);
-               }
-            }
-            dset = dseCA_EZ_MPM;
-            build_lr = 1;
-            break;
-         case CA_EZ_N27_ML_ATLAS:
-            if (dseCA_EZ_ML == NULL) {
-               if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
-               ii = CA_EZ_ML_load_atlas(); 
-               if (ii == 0) {
-                  ERROR_message("Could not read ML atlas(dset %s+tlrc)", 
-                              Atlas_Code_to_Atlas_Dset_Name(atcode));
-                  RETURN(NULL);
-               }
-            }
-            dset = dseCA_EZ_ML;
-            build_lr = 1;
-            break;
-         case CA_EZ_N27_LR_ATLAS:
-            if (dseCA_EZ_LR == NULL) {
-               if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
-               ii = CA_EZ_LR_load_atlas(); 
-               if (ii == 0) {
-                  ERROR_message("Could not read LR atlas(dset %s+tlrc)", 
-                              Atlas_Code_to_Atlas_Dset_Name(atcode));
-                  RETURN(NULL);
-               }
-            }
-            dset = dseCA_EZ_LR;
-            build_lr = 1;
-            break;
-         case CA_EZ_N27_PMAPS_ATLAS:
-            /* Load the PMaps */
-            if (dseCA_EZ_PMaps == NULL) {
-               if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
-               ii = CA_EZ_PMaps_load_atlas(); 
-               if (ii == 0) {
-                  ERROR_message("Could not read PMAPS atlas(dset %s+tlrc)", 
-                              Atlas_Code_to_Atlas_Dset_Name(atcode));
-                  RETURN(NULL);
-               }
-            }
-            dset = dseCA_EZ_PMaps;
-            build_lr = 1;
-            break;
-         case AFNI_TLRC_ATLAS:
-            /* Load the AFNI_TLRC atlas */
-            if (dseTT == NULL && dseTT_big == NULL) {
-               if (LocalHead) fprintf(stderr,"Loading %s\n", Atlas_Code_to_Atlas_Name(atcode));
-               ii = TT_load_atlas() ; 
-               if (ii == 0) {
-                  ERROR_message("Could not read TLRC atlas (dset %s+tlrc)", 
-                              Atlas_Code_to_Atlas_Dset_Name(atcode));
-                  RETURN(NULL);
-               }
-
-            }
-            /* 01 Aug 2001: maybe use big dataset (so don't need both in memory) */
-            dset = (dseTT_big != NULL) ? dseTT_big : dseTT ;
-
-            #if 0
-            if( dset == dseTT_big ) fprintf(stderr,"TT_whereami using dseTT_big\n") ;
-            else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
-            #endif
-            break;
-         default:
-            ERROR_message("Should not be here");
-            RETURN(NULL);
+      adh = Atlas_With_Trimming (atcode, 1);
+      if (!adh.dset) {
+         ERROR_message("Failed getting atlas");
+         RETURN(NULL);
       }
       
-      if (!dset) RETURN(NULL); 
-      /* load the dset */
-      DSET_load(dset);
-      if (LocalHead) INFO_message("   loaded dset");
-      
-      /* have LR mask ? */
-      if (build_lr) {
-         if (dseCA_EZ_LR == NULL) {
-            if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
-            ii = CA_EZ_LR_load_atlas(); 
-            if (ii == 0) {
-               WARNING_message(  "Could not read LR atlas (dset %s+tlrc)\n"
-                                 "LR decision will be based on coordinates.",
-                                 Atlas_Code_to_Atlas_Dset_Name(atcode));
-            } else {
-               DSET_load(dseCA_EZ_LR);
-               lrmask = DSET_BRICK_ARRAY(dseCA_EZ_LR,0);
-               if (!lrmask) { ERROR_message("Unexpected NULL array.\nProceeding without LR mask"); }
-            }
-         }
-      }
-
-      nxyz = DSET_NX(dset) * DSET_NY(dset) * DSET_NZ(dset);
+      nxyz = DSET_NX(adh.dset) * DSET_NY(adh.dset) * DSET_NZ(adh.dset);
       if (!(bmask = (byte*)calloc(nxyz, sizeof(byte)))) {
          ERROR_message("Failed to allocate for mask");
          RETURN(maskset);
       }
       
       if (atcode != CA_EZ_N27_PMAPS_ATLAS) {
-         for (sb=0; sb < DSET_NVALS(dset); ++sb) {
-            ba = DSET_BRICK_ARRAY(dset,sb); 
+         for (sb=0; sb < DSET_NVALS(adh.dset); ++sb) {
+            ba = DSET_BRICK_ARRAY(adh.dset,sb); 
             if (!ba) { ERROR_message("Unexpected NULL array"); free(bmask); bmask = NULL; RETURN(maskset); }
 
             for (kk=0; kk < n_codes; ++kk) {
@@ -2403,12 +2342,12 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_CODES atcode, AFNI_ATLAS_REGION *
             if (LocalHead) INFO_message("Looking for sub-brick labeled %s\n", Clean_Atlas_Label(CA_EZ_list[fnd].dsetpref)); 
             fnd2 = -1;
             sb = 0;
-            while (sb < DSET_NVALS(dset) && fnd2 < 0) { /* sb in question should be nothing but fnd. But be careful nonetheless */ 
-               if (DSET_BRICK_LAB(dset,sb) && strcmp(DSET_BRICK_LAB(dset,sb), Clean_Atlas_Label(CA_EZ_list[fnd].dsetpref)) == 0) fnd2 = sb;
+            while (sb < DSET_NVALS(adh.dset) && fnd2 < 0) { /* sb in question should be nothing but fnd. But be careful nonetheless */ 
+               if (DSET_BRICK_LAB(adh.dset,sb) && strcmp(DSET_BRICK_LAB(adh.dset,sb), Clean_Atlas_Label(CA_EZ_list[fnd].dsetpref)) == 0) fnd2 = sb;
                else ++sb;
             }
             if (fnd2 < 0) {ERROR_message("Unexpected negative find"); free(bmask); bmask = NULL; RETURN(maskset); }
-            ba = DSET_BRICK_ARRAY(dset,fnd2); 
+            ba = DSET_BRICK_ARRAY(adh.dset,fnd2); 
             for (ii=0; ii< nxyz; ++ii) {
                if (ba[ii]) bmask[ii] = ba[ii];
             }
@@ -2418,7 +2357,7 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_CODES atcode, AFNI_ATLAS_REGION *
       /* Now trim the LR business, if required. */
       if (aar->side == 'l' || aar->side == 'r') {
          for (ii=0; ii<nxyz; ++ii) { 
-            if ( bmask[ii] && Atlas_Voxel_Side(dset, ii, lrmask) != aar->side ) bmask[ii] = 0; 
+            if ( bmask[ii] && Atlas_Voxel_Side(adh.dset, ii, adh.lrmask) != aar->side ) bmask[ii] = 0; 
          }
          snprintf(madeupname, 400*sizeof(char), "%s.%s.%c",Atlas_Code_to_Atlas_Name(atcode), Clean_Atlas_Label_to_Prefix(Clean_Atlas_Label(aar->orig_label)), aar->side);
          snprintf(madeuplabel, 36*sizeof(char), "%c.%s", aar->side, Clean_Atlas_Label_to_Prefix(Clean_Atlas_Label(aar->orig_label)));
@@ -2429,13 +2368,13 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_CODES atcode, AFNI_ATLAS_REGION *
       
       /* Now form the output mask dataset */
      
-      maskset = EDIT_empty_copy( dset ) ;
+      maskset = EDIT_empty_copy( adh.dset ) ;
       EDIT_dset_items(  maskset,
                           ADN_prefix    , madeupname ,
                           ADN_datum_all , MRI_byte ,
                           ADN_nvals     , 1 ,
                           ADN_ntt       , 0 ,
-                          ADN_func_type , ISANAT(dset) ? dset->func_type
+                          ADN_func_type , ISANAT(adh.dset) ? adh.dset->func_type
                                                        : FUNC_FIM_TYPE ,
                           ADN_brick_label_one, madeuplabel,
                           ADN_directory_name , "./" ,
@@ -2915,7 +2854,7 @@ ATLAS_ZONE *Atlas_Zone(ATLAS_ZONE *zn, int level, char *label, int code, float p
    ENTRY("Atlas_Zone");
    
    if ( (prob < 0 && prob != -1.0 && prob != -2.0) || prob > 1) {
-      ERROR_message( "Probability must be 0<=prob<=1 or -1.0\n"
+      ERROR_message( "Probability must be 0<=prob<=1 or -1.0 or -2.0\n"
                      "You sent %f\n", prob);
       RETURN(zno);
    }
@@ -3210,23 +3149,164 @@ void CA_EZ_LR_purge_atlas(void)
 }
 
 
+ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
+{
+   ATLAS_DSET_HOLDER adh;
+   int ii;
+   byte build_lr = 1;
+   byte LocalHead = 0;
+   
+   ENTRY("Atlas_With_Trimming");
+   
+      if (LocalHead) INFO_message("Now Processing atlas %s (%d)", Atlas_Code_to_Atlas_Name(atcode), atcode);
+      adh.dset = NULL;
+      adh.atcode = atcode;
+      adh.mxlablen = -1;
+      adh.mxelm = -1;
+      adh.probkey = -100.0;
+      adh.lrmask = NULL;
+      build_lr = 1;
+      switch (atcode) {
+         case CA_EZ_N27_MPM_ATLAS:
+            /* Load the MPM */
+            if (dseCA_EZ_MPM == NULL) {
+               if (LocalHead) fprintf(stderr,"Loading %s\n", Atlas_Code_to_Atlas_Name(atcode));
+               ii = CA_EZ_MPM_load_atlas(); 
+               if (ii == 0) {
+                  WARNING_message("Could not read MPM atlas(dset %s+tlrc)", 
+                              Atlas_Code_to_Atlas_Dset_Name(atcode));
+                  break;
+               }
+            }
+            adh.dset = dseCA_EZ_MPM;
+            adh.mxlablen = CA_EZ_CMAX;
+            adh.mxelm = CA_EZ_COUNT;
+            adh.probkey = -2.0;
+            build_lr = 1;
+            break;
+         case CA_EZ_N27_ML_ATLAS:
+            /* Load the MacroLabels */
+            if (dseCA_EZ_ML == NULL) {
+               if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
+               ii = CA_EZ_ML_load_atlas(); 
+               if (ii == 0) {
+                  WARNING_message("Could not read ML atlas (dset %s+tlrc)", 
+                              Atlas_Code_to_Atlas_Dset_Name(atcode));
+                  break;
+               }
+            }
+            adh.dset = dseCA_EZ_ML;
+            adh.mxlablen = ML_EZ_CMAX;
+            adh.mxelm = ML_EZ_COUNT;
+            adh.probkey = -1.0;
+            build_lr = 1;
+            break;
+         case CA_EZ_N27_LR_ATLAS:
+            /* Load the MacroLabels */
+            if (dseCA_EZ_LR == NULL) {
+               if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
+               ii = CA_EZ_LR_load_atlas(); 
+               if (ii == 0) {
+                  WARNING_message("Could not read LR atlas (dset %s+tlrc)", 
+                              Atlas_Code_to_Atlas_Dset_Name(atcode));
+                  break;
+               }
+            }
+            adh.dset = dseCA_EZ_LR;
+            adh.mxlablen = LR_EZ_CMAX;
+            adh.mxelm = LR_EZ_COUNT;
+            adh.probkey = -1.0;
+            build_lr = 1;
+            break;
+         case CA_EZ_N27_PMAPS_ATLAS:
+            /* Load the PMaps */
+            if (dseCA_EZ_PMaps == NULL) {
+               if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
+               ii = CA_EZ_PMaps_load_atlas(); 
+               if (ii == 0) {
+                  WARNING_message("Could not read PMAPS atlas (dset %s+tlrc)", 
+                              Atlas_Code_to_Atlas_Dset_Name(atcode));
+                  break;
+               }
+            }
+            adh.dset = dseCA_EZ_PMaps;
+            adh.mxlablen = CA_EZ_CMAX;
+            adh.mxelm = CA_EZ_COUNT;
+            adh.probkey = 0.0;
+            build_lr = 1;
+            break;
+         case AFNI_TLRC_ATLAS:
+            /* Load the AFNI_TLRC atlas */
+            if (dseTT == NULL && dseTT_big == NULL) {
+               if (LocalHead) fprintf(stderr,"Loading %s\n", Atlas_Code_to_Atlas_Name(atcode));
+               ii = TT_load_atlas() ; 
+               if (ii == 0) {
+                  WARNING_message("Could not read TLRC atlas (dset %s+tlrc)", 
+                              Atlas_Code_to_Atlas_Dset_Name(atcode));
+                  break;
+               }
+
+            }
+            /* 01 Aug 2001: maybe use big dataset (so don't need both in memory) */
+            adh.dset = (dseTT_big != NULL) ? dseTT_big : dseTT ;
+
+            #if 0
+            if( adh.dset == dseTT_big ) fprintf(stderr,"TT_whereami using dseTT_big\n") ;
+            else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
+            #endif
+            adh.mxlablen = TTO_CMAX;
+            adh.mxelm = TTO_COUNT;
+            adh.probkey = -1.0;
+            build_lr = 0;
+            break;
+         default:
+            ERROR_message("Should not be here");
+            RETURN(adh);
+      }
+
+      if (!adh.dset) { RETURN(adh); }
+
+      /* load the dset */
+      DSET_load(adh.dset);
+      if (LocalHead) INFO_message("   loaded dset");
+
+      /* have LR mask ? */
+      if (build_lr && LoadLRMask) {
+         if (dseCA_EZ_LR == NULL) {
+            if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
+            ii = CA_EZ_LR_load_atlas(); 
+            if (ii == 0) {
+               WARNING_message(  "Could not read LR atlas (dset %s+tlrc)\n"
+                                 "LR decision will be based on coordinates.",
+                                 Atlas_Code_to_Atlas_Dset_Name(atcode));
+            } else {
+               DSET_load(dseCA_EZ_LR);
+               adh.lrmask = DSET_BRICK_ARRAY(dseCA_EZ_LR,0);
+               if (!adh.lrmask) { ERROR_message("Unexpected NULL array.\nProceeding without LR mask"); }
+            }
+         }
+      }
+   
+   
+   RETURN(adh);
+}
+
 char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *atlaslist, int N_atlaslist)
 {
    char *s = NULL;
-   float probkey = -1.0;
-   int ii,kk , ix,jy,kz , nx,ny,nz,nxy , aa,bb,cc , ff,baf,rff, iatlas=0,mxlablen=0, mxelm=0, sb = 0 ;
+   int ii,kk , ix,jy,kz , nx,ny,nz,nxy , aa,bb,cc , ff,baf,rff, iatlas=0, sb = 0 ;
    THD_ivec3 ijk ;
    byte *ba = NULL ;
    THD_string_array *sar ;
    char *blab ;
    char lbuf[256] , *rbuf ;
-   int nfind, b_find[MAX_FIND], rr_find[MAX_FIND] ;
+   int nfind, *b_find=NULL, *rr_find=NULL ;
    ATLAS_QUERY *wami = NULL;
    ATLAS_ZONE *zn = NULL;
    AFNI_ATLAS_CODES atcode=UNKNOWN_ATLAS;
-   THD_3dim_dataset * dset = NULL ;
    THD_fvec3 vn3, vo3;
    ATLAS_COORD ac;
+   ATLAS_DSET_HOLDER adh;
    byte LocalHead = 0;
    
    ENTRY("whereami_9yards");
@@ -3261,6 +3341,15 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
          RETURN(s);
    }
    
+   if (MAX_FIND < 0) {
+      Set_Whereami_Max_Find(MAX_FIND);
+   }   
+   b_find = (int*)calloc(MAX_FIND, sizeof(int));
+   rr_find = (int*)calloc(MAX_FIND, sizeof(int));
+   if (!b_find || !rr_find) {
+      ERROR_message("Jiminy Crickets!\nFailed to allocate for finds!\nMAX_FIND = %d\n", MAX_FIND);
+      RETURN(s);
+   }
    
    if (!*wamip) { /* A new query structure, if necessary*/
       if (LocalHead) INFO_message("New wami");
@@ -3269,114 +3358,19 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
    
    if (LocalHead) INFO_message("Coords: %f %f %f (%d)\n", ac.x, ac.y, ac.z, ac.space);
    
+   
    for (iatlas=0; iatlas<N_atlaslist; ++iatlas) {/* iatlas loop */
       atcode = atlaslist[iatlas];
       if (LocalHead) INFO_message("Now Processing atlas %s (%d)", Atlas_Code_to_Atlas_Name(atcode), atcode);
-      dset = NULL;
-      switch (atcode) {
-         case CA_EZ_N27_MPM_ATLAS:
-            /* Load the MPM */
-            if (dseCA_EZ_MPM == NULL) {
-               if (LocalHead) fprintf(stderr,"Loading %s\n", Atlas_Code_to_Atlas_Name(atcode));
-               ii = CA_EZ_MPM_load_atlas(); 
-               if (ii == 0) {
-                  WARNING_message("Could not read MPM atlas(dset %s+tlrc)", 
-                              Atlas_Code_to_Atlas_Dset_Name(atcode));
-                  break;
-               }
-            }
-            dset = dseCA_EZ_MPM;
-            mxlablen = CA_EZ_CMAX;
-            mxelm = CA_EZ_COUNT;
-            probkey = -2.0;
-            break;
-         case CA_EZ_N27_ML_ATLAS:
-            /* Load the MacroLabels */
-            if (dseCA_EZ_ML == NULL) {
-               if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
-               ii = CA_EZ_ML_load_atlas(); 
-               if (ii == 0) {
-                  WARNING_message("Could not read ML atlas (dset %s+tlrc)", 
-                              Atlas_Code_to_Atlas_Dset_Name(atcode));
-                  break;
-               }
-            }
-            dset = dseCA_EZ_ML;
-            atcode = CA_EZ_N27_ML_ATLAS;
-            mxlablen = ML_EZ_CMAX;
-            mxelm = ML_EZ_COUNT;
-            probkey = -1.0;
-            break;
-         case CA_EZ_N27_LR_ATLAS:
-            /* Load the MacroLabels */
-            if (dseCA_EZ_LR == NULL) {
-               if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
-               ii = CA_EZ_LR_load_atlas(); 
-               if (ii == 0) {
-                  WARNING_message("Could not read LR atlas (dset %s+tlrc)", 
-                              Atlas_Code_to_Atlas_Dset_Name(atcode));
-                  break;
-               }
-            }
-            dset = dseCA_EZ_LR;
-            atcode = CA_EZ_N27_LR_ATLAS;
-            mxlablen = LR_EZ_CMAX;
-            mxelm = LR_EZ_COUNT;
-            probkey = -1.0;
-            break;
-         case CA_EZ_N27_PMAPS_ATLAS:
-            /* Load the PMaps */
-            if (dseCA_EZ_PMaps == NULL) {
-               if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
-               ii = CA_EZ_PMaps_load_atlas(); 
-               if (ii == 0) {
-                  WARNING_message("Could not read PMAPS atlas (dset %s+tlrc)", 
-                              Atlas_Code_to_Atlas_Dset_Name(atcode));
-                  break;
-               }
-            }
-            dset = dseCA_EZ_PMaps;
-            mxlablen = CA_EZ_CMAX;
-            mxelm = CA_EZ_COUNT;
-            break;
-         case AFNI_TLRC_ATLAS:
-            /* Load the AFNI_TLRC atlas */
-            if (dseTT == NULL && dseTT_big == NULL) {
-               if (LocalHead) fprintf(stderr,"Loading %s\n", Atlas_Code_to_Atlas_Name(atcode));
-               ii = TT_load_atlas() ; 
-               if (ii == 0) {
-                  WARNING_message("Could not read TLRC atlas (dset %s+tlrc)", 
-                              Atlas_Code_to_Atlas_Dset_Name(atcode));
-                  break;
-               }
-
-            }
-            /* 01 Aug 2001: maybe use big dataset (so don't need both in memory) */
-            dset = (dseTT_big != NULL) ? dseTT_big : dseTT ;
-
-            #if 0
-            if( dset == dseTT_big ) fprintf(stderr,"TT_whereami using dseTT_big\n") ;
-            else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
-            #endif
-            mxlablen = TTO_CMAX;
-            mxelm = TTO_COUNT;
-            probkey = -1.0;
-            break;
-         default:
-            ERROR_message("Should not be here");
-            RETURN(s);
-      }
       
-      if (!dset) continue; 
+      adh = Atlas_With_Trimming (atcode, 0);
       
-      /* load the dset */
-      DSET_load(dset);
-      if (LocalHead) INFO_message("   loaded dset");
-      
+      if (!adh.dset) continue; 
+            
       if (atcode == CA_EZ_N27_ML_ATLAS || atcode == CA_EZ_N27_MPM_ATLAS || atcode == AFNI_TLRC_ATLAS || atcode == CA_EZ_N27_LR_ATLAS ) { /* the multi-radius searches */
-         for (sb=0; sb < DSET_NVALS(dset); ++sb) {
+         for (sb=0; sb < DSET_NVALS(adh.dset); ++sb) {
             if (LocalHead)  fprintf(stderr,"Processing sub-brick %d with %s\n",sb,  Atlas_Code_to_Atlas_Name(atcode));  
-            ba = DSET_BRICK_ARRAY(dset,sb); if (!ba) { ERROR_message("Unexpected NULL array"); RETURN(s); }
+            ba = DSET_BRICK_ARRAY(adh.dset,sb); if (!ba) { ERROR_message("Unexpected NULL array"); RETURN(s); }
 
             if( wamiclust_CA_EZ == NULL ){
                wamiclust_CA_EZ = MCW_build_mask( 1.0,1.0,1.0 , WAMIRAD ) ;
@@ -3393,12 +3387,12 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
 
             /*-- find locations near the given one that are in the Atlas --*/
 
-            ijk = THD_3dmm_to_3dind( dset , TEMP_FVEC3(ac.x,ac.y,ac.z) ) ;  /* get indexes */
+            ijk = THD_3dmm_to_3dind( adh.dset , TEMP_FVEC3(ac.x,ac.y,ac.z) ) ;  /* get indexes */
             UNLOAD_IVEC3(ijk,ix,jy,kz) ;                               /* from coords */
 
-            nx = DSET_NX(dset) ;               /* size of atlas dataset axes */
-            ny = DSET_NY(dset) ;
-            nz = DSET_NZ(dset) ; nxy = nx*ny ;
+            nx = DSET_NX(adh.dset) ;               /* size of atlas dataset axes */
+            ny = DSET_NY(adh.dset) ;
+            nz = DSET_NZ(adh.dset) ; nxy = nx*ny ;
 
             nfind = 0 ;
 
@@ -3443,8 +3437,9 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
                nfind++ ;
 
                if( nfind == MAX_FIND ) {
-                 WARNING_message("More regions found than the %d to be reported.\n"
-                                 "Please report this case on the AFNI message board.\n", MAX_FIND); 
+                 INFO_message("Potentially more regions could be found than the %d reported.\n"
+                              "Set the environment variable AFNI_WHEREAMI_MAX_FIND to higher\n"
+                              "than %d if you desire a larger report.\n", MAX_FIND, MAX_FIND); 
                  break ;  /* don't find TOO much */
                }
             }
@@ -3474,13 +3469,13 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
                baf = b_find[ff] ; blab = NULL ;
 
                if( baf != 0 ){                               /* find label     */
-                  for( ii=0 ; ii < mxelm ; ii++ ) {          /* in AFNI's atlas list */
+                  for( ii=0 ; ii < adh.mxelm ; ii++ ) {          /* in AFNI's atlas list */
                      if( atcode == CA_EZ_N27_MPM_ATLAS && baf == CA_EZ_list[ii].tdval ) break ;
                      else if( atcode == CA_EZ_N27_ML_ATLAS && baf == ML_EZ_list[ii].tdval ) break ;
                      else if( atcode == CA_EZ_N27_LR_ATLAS && baf == LR_EZ_list[ii].tdval ) break ;
                      else if( atcode == AFNI_TLRC_ATLAS && baf == TTO_list[ii].tdval ) break ;
                   }   
-                  if( ii < mxelm )  {                     /* always true? */
+                  if( ii < adh.mxelm )  {                     /* always true? */
                      if( atcode == CA_EZ_N27_MPM_ATLAS) blab = CA_EZ_list[ii].name ;
                      else if( atcode == CA_EZ_N27_ML_ATLAS) blab = ML_EZ_list[ii].name ;
                      else if( atcode == CA_EZ_N27_LR_ATLAS) blab = LR_EZ_list[ii].name ;
@@ -3495,7 +3490,7 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
 
                zn = Get_Atlas_Zone (wami, (int)rr_find[ff] ); /* zone levels are based on search radius */
                zn = Atlas_Zone(  zn, zn->level, 
-                                 blab, baf, probkey, rr_find[ff], atcode); 
+                                 blab, baf, adh.probkey, rr_find[ff], atcode); 
                wami = Add_To_Atlas_Query(wami, zn);
 
                rff = rr_find[ff] ;  /* save for next time around */
@@ -3505,36 +3500,36 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
          if (LocalHead)  fprintf(stderr,"Processing with %s\n", Atlas_Code_to_Atlas_Name(atcode)); 
          
          /*-- find locations near the given one that are in the Atlas --*/
-         ijk = THD_3dmm_to_3dind( dset , TEMP_FVEC3(ac.x,ac.y,ac.z) ) ;  /* get indexes */
+         ijk = THD_3dmm_to_3dind( adh.dset , TEMP_FVEC3(ac.x,ac.y,ac.z) ) ;  /* get indexes */
          UNLOAD_IVEC3(ijk,ix,jy,kz) ;                               /* from coords */
 
-         nx = DSET_NX(dset) ;               /* size of atlas dataset axes */
-         ny = DSET_NY(dset) ;
-         nz = DSET_NZ(dset) ; nxy = nx*ny ;
+         nx = DSET_NX(adh.dset) ;               /* size of atlas dataset axes */
+         ny = DSET_NY(adh.dset) ;
+         nz = DSET_NZ(adh.dset) ; nxy = nx*ny ;
          kk = ix + jy*nx + kz*nxy ;        /* index into brick arrays */
          
          zn = Get_Atlas_Zone(wami, 0);    /* get the zero level zone */
-         for (ii=0; ii<DSET_NVALS(dset); ++ii) {
-            ba = DSET_BRICK_ARRAY(dset,ii); if (!ba) { ERROR_message("Unexpected NULL array"); RETURN(s); }
+         for (ii=0; ii<DSET_NVALS(adh.dset); ++ii) {
+            ba = DSET_BRICK_ARRAY(adh.dset,ii); if (!ba) { ERROR_message("Unexpected NULL array"); RETURN(s); }
             if( ba[kk] != 0 ){
-               if( dset->dblk->brick_lab == NULL || dset->dblk->brick_lab[ii] == NULL) {
+               if( adh.dset->dblk->brick_lab == NULL || adh.dset->dblk->brick_lab[ii] == NULL) {
                   zn = Atlas_Zone(zn, 0, "No Label", -1, (float)ba[kk]/250.0, 0, atcode);
                } else {
                   int nn=0, nlab=0;
                   char *lab_buf; /* do not free this one */
-                  if( dset->dblk->brick_lab[ii] && dset->dblk->brick_lab[ii][0] != '\0' ){
+                  if( adh.dset->dblk->brick_lab[ii] && adh.dset->dblk->brick_lab[ii][0] != '\0' ){
                      /* find the code that area label that goes with this sub-brick 
                         Remember to account for the '.'*/
-                     blab = NULL; nn = 0; nlab = strlen(dset->dblk->brick_lab[ii]); 
-                     if (nlab > mxlablen) {
+                     blab = NULL; nn = 0; nlab = strlen(adh.dset->dblk->brick_lab[ii]); 
+                     if (nlab > adh.mxlablen) {
                         ERROR_message("Dset labels too long!");
                      }
-                     while( !blab && nn < mxelm ) {
+                     while( !blab && nn < adh.mxelm ) {
                         lab_buf = Clean_Atlas_Label(CA_EZ_list[nn].dsetpref);
-                        /* fprintf(stderr,"Key:>%s<, N:%d, Str:>%s<\n", dset->dblk->brick_lab[ii], nlab, lab_buf); */
-                        if ((nlab == strlen(lab_buf)) && (strcmp(lab_buf, dset->dblk->brick_lab[ii]) == 0) ) {
+                        /* fprintf(stderr,"Key:>%s<, N:%d, Str:>%s<\n", adh.dset->dblk->brick_lab[ii], nlab, lab_buf); */
+                        if ((nlab == strlen(lab_buf)) && (strcmp(lab_buf, adh.dset->dblk->brick_lab[ii]) == 0) ) {
                            blab = CA_EZ_list[nn].name;
-                           /* fprintf(stderr," Matched %s with %s\n", dset->dblk->brick_lab[ii], CA_EZ_list[nn].dsetpref); */
+                           /* fprintf(stderr," Matched %s with %s\n", adh.dset->dblk->brick_lab[ii], CA_EZ_list[nn].dsetpref); */
                         }
                         ++nn;
                      } 
@@ -3579,6 +3574,9 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
    }
    
    *wamip = wami;
+   
+   free(b_find); b_find = NULL; free(rr_find); rr_find = NULL;
+
    RETURN(s);
 }
 

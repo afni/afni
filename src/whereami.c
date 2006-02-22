@@ -18,8 +18,6 @@ static THD_3dim_dataset * dseCA_EZ_PMaps = NULL ;
 static int           have_dseCA_EZ_ML = -1   ;
 static THD_3dim_dataset * dseCA_EZ_ML = NULL ;
 
-#define MAX_FIND 9                    /* max number to find within WAMIRAD  */
-#define WAMIRAD  7.5                  /* search radius: must not exceed 9.5 */
 static MCW_cluster * wamiclust=NULL ;
 static MCW_cluster * wamiclust_CA_EZ=NULL ;
 
@@ -151,6 +149,7 @@ void whereami_usage(void)
                "                                 write out a mask dataset of the region.\n"
                " -prefix PREFIX: Prefix for the output mask dataset\n"
                " -dbg DEBUG: Debug flag\n"
+               " -bmask BIN_ROI_MASK\n"
                "\n"
                "Note on the reported coordinates of the Focus Point:\n"
                "Coordinates of the Focus Point are reported in 3 coordinate spaces.\n"
@@ -202,10 +201,11 @@ int main(int argc, char **argv)
    int N_atlaslist = 0, nbest = 0;
    byte atlas_sort = 1, LocalHead = 0, write_mask=0;
    ATLAS_SEARCH *as=NULL;
-   char *mskpref= NULL;
+   char *mskpref= NULL, *bmsk = NULL;
    
 
-   mskpref = NULL;    
+   mskpref = NULL; 
+   bmsk = NULL;   
    write_mask = 0;
    dicom = 1;
    output = 0;
@@ -368,6 +368,15 @@ int main(int argc, char **argv)
             continue; 
          }
          
+         if (strcmp(argv[iarg],"-bmask") == 0) {
+            ++iarg;
+            if (iarg >= argc) {
+               fprintf(stderr,"** Need parameter after -bmask\n"); return(1);
+            }            
+            bmsk = argv[iarg];
+            ++iarg;
+            continue; 
+         }
          { /* bad news in tennis shoes */
             fprintf(stderr,"** bad option %s\n", argv[iarg]);
             return 1;
@@ -603,6 +612,38 @@ int main(int argc, char **argv)
       if (string) fprintf(stdout,"%s\n", string);
       else fprintf(stdout,"whereami NULL string out.\n");
       if (string) free(string); string = NULL;            
+   }
+    
+   if (bmsk) {
+      byte *bmask_vol = NULL;
+      THD_3dim_dataset *mset=NULL;
+      ATLAS_DSET_HOLDER adh;
+      /* load the mask dset */
+	   if (!(mset = THD_open_dataset (bmsk))) {
+         fprintf(stderr,"** Failed to open mask set %s.\n", bmsk);
+         return(1);
+      } 
+
+	   if (!(bmask_vol = THD_makemask( mset , 0 , 1.0,0.0 ))) {  /* get all non-zero values */
+         fprintf(stderr,"** No byte for you.\n");
+         return(1);
+      }
+      
+      /* for each atlas */
+      for (k=0; k < N_atlaslist; ++k) {
+         adh = Atlas_With_Trimming (atlaslist[k], 0);
+         if (!adh.dset) {
+            fprintf(stderr,"** Warning: Atlas %s could not be loaded.\n", Atlas_Code_to_Atlas_Name(atlaslist[k]));
+            continue;
+         }  
+         /* resample mask per atlas, use linear interpolation, cut-off at 0.5 */
+
+            /* Get range of integral values in atlas, create counting array Max_Range elements long*/
+
+            /* for each sub-brick sb */
+                /* if mask[i] ++count[atlas_sb[i]]; */
+      }
+         
    }
    
 return 0;
