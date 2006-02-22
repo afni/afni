@@ -25,13 +25,16 @@ int main( int argc , char * argv[] )
 
    if( argc < 3 ){
       printf("Usage: 1deval [options] -expr 'expression'\n"
-             "Evaluates the expression and writes the result to stdout.\n"
+             "Evaluates an expression that may include columns of data\n"
+	     "from one or more text files and writes the result to stdout.\n\n"
              "Any single letter from a-z can be used as the independent\n"
-             "variable in the expression.\n"
+             "variable in the expression. Only a single column can be\n"
+	     "used for each variable. Unless specified (as described below),\n"
+	     "the first column is used, and other columns are ignored.\n"
              "\n"
              "Options:\n"
-             "  -del d   = Use 'd' as the step for the variable in the\n"
-             "               expression [default = 1.0]\n"
+             "  -del d   = Use 'd' as the step for a single undetermined variable\n"
+             "               in the expression [default = 1.0]\n"
              "  -num n   = Evaluate the expression 'n' times.\n"
              "               If -num is not used, then the length of an\n"
              "               input time series is used.  If there are no\n"
@@ -44,9 +47,8 @@ int main( int argc , char * argv[] )
              "                 surface data.\n" 
              "Examples:\n"
              "  1deval -expr 'sin(2*PI*t)' -del 0.01 -num 101 > sin.1D\n"
-             "  1deval -expr 'a*b*x' -a fred.1D -b ethel.1D > x.1D\n"
-
-             "\n"
+             "  1deval -expr 'a*b*x' -a fred.1D -b ethel.1D > x.1D\n\n"
+             "Generic 1D file usage help:\n"
              TS_HELP_STRING
             ) ;
       exit(0) ;
