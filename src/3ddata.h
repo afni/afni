@@ -3634,6 +3634,9 @@ extern int thd_floatscan  ( int , float *   ) ; /* 30 Jul 1999 */
 extern int thd_complexscan( int , complex * ) ; /* 14 Sep 1999 */
 
 extern byte * THD_makemask( THD_3dim_dataset *, int,float,float) ;
+extern int    THD_makedsetmask( THD_3dim_dataset *, int,float,float, byte*cmask) ;
+extern int *THD_unique_vals( THD_3dim_dataset *mask_dset , int miv, int *n_unique, byte*cmask );
+
 extern int    THD_countmask( int , byte * ) ;
 extern byte * THD_automask( THD_3dim_dataset * ) ;         /* 13 Aug 2001 */
 extern void   THD_automask_verbose( int ) ;                /* 28 Oct 2003 */

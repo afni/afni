@@ -1,18 +1,21 @@
 #ifndef _TTATLAS_QUERY_HEADER_
 #define _TTATLAS_QUERY_HEADER_
 
+
 /*-----------------------------------------------------------*/
 /*----------------- data for Talairach To -------------------*/
 /*----------------- Some of that stuff used -----------------*/
 /*----------------- be in afni.h. ZSS Feb. 06----------------*/
-#define TTO_CMAX    48
-#define TTO_LMAX    (TTO_CMAX+16)
+#define ATLAS_CMAX    64   /* If you change this parameter,edit constant in CA_EZ_Prep.m (MaxLbl* checks) */
+#define TTO_LMAX    (ATLAS_CMAX+16)
 #define TTO_FORMAT  "%s [%3d,%3d,%3d]"
 
 typedef struct {
-   short xx,yy,zz,tdlev,tdval ;
-   char name[TTO_CMAX] ;
-} TTO_point ;
+   short tdval;         /* Leave this one to be the very first element */
+   char name[ATLAS_CMAX] ;  /* Leave this one to be the second element */  
+   short xx,yy,zz,tdlev ;
+   char dsetpref[ATLAS_CMAX];
+} ATLAS_point ;
 
 #define TTO_COUNT 241
 
@@ -24,7 +27,7 @@ typedef struct {
    restricted to when MAIN is defined */
 #else
 #endif
-extern TTO_point TTO_list[TTO_COUNT] ;
+extern ATLAS_point TTO_list[TTO_COUNT] ;
 extern char * TTO_labels[TTO_COUNT] ;
 extern int TTO_labeled ;
 extern int TTO_current ;
@@ -132,8 +135,12 @@ typedef struct {
    int mxelm;
    float probkey;
    byte *lrmask;        /* Do not free this one either */
+   int maxindexcode; /*!< Highest integral value in dset */
+   ATLAS_point *apl; /*!< Atlas point list, no free baby*/
+   byte duplicateLRentries; /*!< Are LR labels listed in adh.apl and under the same code? (only case I know of is in TTO_list*/
 } ATLAS_DSET_HOLDER;
 
+const char *Atlas_Val_to_Atlas_Name(ATLAS_DSET_HOLDER adh, int tdval);
 void Set_Whereami_Max_Find(int n);
 THD_3dim_dataset * get_altas(char *epath, char *aname) ;
 int compare_Z_IQSORT_FLOAT (Z_QSORT_FLOAT *a, Z_QSORT_FLOAT *b );
@@ -183,8 +190,10 @@ void TT_whereami_remove_atlas(AFNI_ATLAS_CODES ac);
 void TT_whereami_add_atlas(AFNI_ATLAS_CODES ac);
 THD_3dim_dataset *THD_3dim_from_ROIstring(char *shar);
 void Set_ROI_String_Decode_Verbosity(byte lvl);
+int * UniqueInt (int *y, int ysz, int *kunq, int Sorted );
 short * UniqueShort (short *y, int ysz, int *kunq, int Sorted );
 byte * UniqueByte (byte *y, int ysz, int *kunq, int Sorted );
+
 ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask);
 
 

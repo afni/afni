@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "thd_ttatlas_query.h"
+#include "rickr/r_new_resam_dset.h"
 
 static int           have_dseTT = -1   ;
 static THD_3dim_dataset * dseTT = NULL ;
@@ -149,8 +150,20 @@ void whereami_usage(void)
                "                                 write out a mask dataset of the region.\n"
                " -prefix PREFIX: Prefix for the output mask dataset\n"
                " -dbg DEBUG: Debug flag\n"
-               /*" -bmask BIN_ROI_MASK\n"*/
-               "\n"
+               " -bmask BINARY_MASK: Report on the overlap of all non-zero voxels in BINARY_MASK dataset\n"
+               "                     with various atlas regions. \n"
+               " -omask ORDERED_MASK:Report on the overlap of each ROI formed by an integral value\n"
+               "                     in ORDERED_MASK. For example, if ORDERED_MASK has ROIs with\n"
+               "                     values 1, 2, and 3, then you'll get three reports, one for each\n"
+               "                     ROI value. Note that -omask and -bmask are mutually exculsive.\n"
+               " -cmask MASK_COMMAND: command for masking values in BINARY_MASK, \n"
+               "                      or ORDERED_MASK on the fly.\n"
+               "        e.g. -cmask '-a fred_func+orig[2] -expr step(a-0.8)'\n"
+               "        Note that this mask should form a single sub-brick,\n"
+               "        and must be at the same resolution as BINARY_MASK or ORDERED_MASK.\n"
+               "        This option follows the style of 3dmaskdump (since the\n"
+               "        code for it was, uh, borrowed from there (thanks Bob!, thanks Rick!)).\n"
+               "        See '3dmaskdump -help' for more information.\n"
                "Note on the reported coordinates of the Focus Point:\n"
                "Coordinates of the Focus Point are reported in 3 coordinate spaces.\n"
                "The 3 spaces are Talairach (TLRC), MNI, MNI Anatomical (MNI Anat.). All three\n"
@@ -202,8 +215,12 @@ int main(int argc, char **argv)
    byte atlas_sort = 1, LocalHead = 0, write_mask=0;
    ATLAS_SEARCH *as=NULL;
    char *mskpref= NULL, *bmsk = NULL;
+   byte *cmask=NULL ; int ncmask=0 ;
+   int dobin = 0;
    
-
+   dobin = 0;
+   ncmask=0 ;
+   cmask=NULL ;
    mskpref = NULL; 
    bmsk = NULL;   
    write_mask = 0;
@@ -368,15 +385,35 @@ int main(int argc, char **argv)
             continue; 
          }
          
-         if (strcmp(argv[iarg],"-bmask") == 0) {
+         if (strcmp(argv[iarg],"-bmask") == 0 || strcmp(argv[iarg],"-omask") == 0 ) {
             ++iarg;
             if (iarg >= argc) {
                fprintf(stderr,"** Need parameter after -bmask\n"); return(1);
+            }
+            if (bmsk) {
+               fprintf(stderr,"** -bmask and -omask are mutually exclusive.\n"); return(1);
             }            
             bmsk = argv[iarg];
+            if (strcmp(argv[iarg],"-bmask") == 0) dobin = 1;
+            else dobin = 0;
+            
             ++iarg;
             continue; 
          }
+         
+         if( strcmp(argv[iarg],"-cmask") == 0 ){  
+            if( iarg+1 >= argc ){
+               fprintf(stderr,"** -cmask option requires a following argument!\n");
+               exit(1) ;
+            }
+            cmask = EDT_calcmask( argv[++iarg] , &ncmask ) ;
+            if( cmask == NULL ){
+               fprintf(stderr,"** Can't compute -cmask!\n"); exit(1);
+            }
+            iarg++ ; 
+            continue ;
+         }
+
          { /* bad news in tennis shoes */
             fprintf(stderr,"** bad option %s\n", argv[iarg]);
             return 1;
@@ -410,7 +447,7 @@ int main(int argc, char **argv)
       atlaslist[N_atlaslist] = CA_EZ_N27_PMAPS_ATLAS; ++N_atlaslist; isatlasused[CA_EZ_N27_PMAPS_ATLAS] = 1;
    }
    
-   if (nakedarg < 3 && !Show_Atlas_Code && !shar) {
+   if (nakedarg < 3 && !Show_Atlas_Code && !shar && !bmsk) {
       whereami_usage();
       return 1;
    }
@@ -506,6 +543,143 @@ int main(int argc, char **argv)
          aa = Free_Atlas(aa);
    }
    
+   /* le bmask business */
+   if (bmsk) {
+      byte *bmask_vol = NULL, *ba = NULL;
+      THD_3dim_dataset *mset=NULL, *mset_orig = NULL, *rset = NULL;
+      ATLAS_DSET_HOLDER adh;
+      int isb, nvox_in_mask=0, *count = NULL, *unq=NULL, n_unq=0, iroi=0;
+      float frac=0.0, sum = 0.0;
+      char tmps[20];
+      /* load the mask dset */
+	   if (!(mset_orig = THD_open_dataset (bmsk))) {
+         fprintf(stderr,"** Failed to open mask set %s.\n", bmsk);
+         return(1);
+      } 
+      
+      if (cmask) {
+         if (ncmask != DSET_NVOX(mset_orig)) {
+            fprintf(stderr,"** Voxel number mismatch between -bmask and -cmask input.\n"
+                           "Make sure both volumes have the same number of voxels.\n");
+            
+            return(1);
+         }
+      }
+      
+      if (dobin) { /* one pass, do all */
+         n_unq = 1;
+         unq = NULL;
+      } else {
+         /* get unique values*/
+         unq = THD_unique_vals( mset_orig , 0, &n_unq, cmask );
+         if (unq) {
+            fprintf(stdout,"++ Have %d unique values of:\n", n_unq );
+            for (k=0; k<n_unq; ++k) fprintf (stdout, "   %d", unq [k]);
+            fprintf (stdout, "\n");
+         } else {
+            fprintf(stdout,"++ Failed to find unique values.\n");
+            return(1);   
+         }
+      }
+      
+      
+      mset = mset_orig;
+	   /* turn the mask dataset to zeros and 1s */
+      if (!THD_makedsetmask( mset , 0 , 1.0, 0.0 , cmask)) {  /* get all non-zero values */
+            fprintf(stderr,"** No mask for you.\n");
+            return(1);
+      }
+      
+      /* for each atlas */
+      for (k=0; k < N_atlaslist; ++k) {
+         adh = Atlas_With_Trimming (atlaslist[k], 0);
+         if (!adh.dset) {
+            fprintf(stderr,"** Warning: Atlas %s could not be loaded.\n", Atlas_Code_to_Atlas_Name(atlaslist[k]));
+            continue;
+         }
+         if (adh.maxindexcode < 1) {
+            if (LocalHead) fprintf(stderr,"** Warning: Atlas %s not suitable for this application.\n", Atlas_Code_to_Atlas_Name(atlaslist[k]));
+            continue;
+         }
+         if (adh.maxindexcode > 255) {
+            fprintf(stderr,"** Warning: Max index code (%d) higher than expected.\n"
+                           "What's cracking?.\n", adh.maxindexcode);
+         }  
+         /* resample mask per atlas, use linear interpolation, cut-off at 0.5 */
+         rset = r_new_resam_dset ( mset, adh.dset,	0,	0,	0,	NULL, MRI_LINEAR, NULL);
+         if (!rset) {
+            fprintf(stderr,"** ERROR: Failed to reslice!?\n"); return(1);
+         }
+         
+         /* get byte mask of regions > 0.5 */
+         if (!(bmask_vol = THD_makemask( rset , 0 , 0.5 , 2.0 ))) {  /* get all non-zero values */
+            fprintf(stderr,"** No byte for you.\n");
+            return(1);
+         }
+         nvox_in_mask = 0;
+         for (i=0; i<DSET_NVOX(adh.dset); ++i) {
+            if (bmask_vol[i]) ++nvox_in_mask; 
+         }
+         /* for each sub-brick sb */
+         for (isb=0; isb< DSET_NVALS(adh.dset); ++isb) {
+            ba = DSET_BRICK_ARRAY(adh.dset,isb); 
+            if (!ba) { ERROR_message("Unexpected NULL array"); return(1); }
+            /* Create count array for range of integral values in atlas */
+            count = (int *)calloc(adh.maxindexcode+1, sizeof(int));
+            switch (adh.atcode) {
+               case AFNI_TLRC_ATLAS:
+               case CA_EZ_N27_ML_ATLAS:
+               case CA_EZ_N27_LR_ATLAS:
+                  for (i=0; i<DSET_NVOX(adh.dset); ++i) {
+                     if (bmask_vol[i] && ba[i] ) ++count[ba[i]]; /* Can't use 0 values, even if used in atlas codes */
+                                                                 /* such as for the AC/PC in TT_Daemon! They can't be*/
+                                                                 /* differentiated with this algorithm from non-brain, areas*/
+                  }
+                  break;
+               case CA_EZ_N27_MPM_ATLAS:
+                  for (i=0; i<DSET_NVOX(adh.dset); ++i) {
+                     if (bmask_vol[i] && ba[i] >= CA_EZ_MPM_MIN ) ++count[ba[i]]; 
+                  }
+                  break;
+               case CA_EZ_N27_PMAPS_ATLAS: /* not appropriate */
+                  break;
+               default:
+                  fprintf(stderr,"** Error: What is this atlas code (%d)?\n", adh.atcode);
+                  return(1);
+            }
+            /* Now form percentages */
+            fprintf(stdout,"Intersection of ROI with atlas %s (sb%d):\n", Atlas_Code_to_Atlas_Name(atlaslist[k]), isb);
+            sum = 0.0;
+            for (i=0; i<=adh.maxindexcode; ++i) {
+               if (count[i]) {
+                  frac = (float)count[i]/(float)nvox_in_mask;
+                  sum += frac;
+                  sprintf(tmps, "%3.1f", frac*100.0); 
+                  fprintf(stdout, "   %-5s%% overlap with %s, code %d\n", 
+                           tmps, STR_PRINT(Atlas_Val_to_Atlas_Name(adh, i)), i );
+               }
+            }
+            sprintf(tmps, "%3.1f", sum*100.0);
+            fprintf(stdout, "   -----\n"
+                            "   %-5s%% of cluster accounted for.\n"
+                            "\n", tmps);
+            /* done with count */
+            if (count) free(count); count = NULL;
+         }
+         /* done with resampled mset */
+         DSET_delete(rset); rset = NULL;
+      }
+
+      /* free unique values list, nothing done */
+      if (unq) free(unq); unq = NULL;
+
+      /* done with mset_orig */
+      DSET_delete(mset_orig); mset_orig = NULL;
+           
+   }
+   
+   if(cmask) free(cmask); cmask = NULL;   /* Should not be needed beyond here */
+
 
    if (nakedarg < 3) { /* nothing left to do */
       return(0);
@@ -614,37 +788,6 @@ int main(int argc, char **argv)
       if (string) free(string); string = NULL;            
    }
     
-   if (bmsk) {
-      byte *bmask_vol = NULL;
-      THD_3dim_dataset *mset=NULL;
-      ATLAS_DSET_HOLDER adh;
-      /* load the mask dset */
-	   if (!(mset = THD_open_dataset (bmsk))) {
-         fprintf(stderr,"** Failed to open mask set %s.\n", bmsk);
-         return(1);
-      } 
-
-	   if (!(bmask_vol = THD_makemask( mset , 0 , 1.0,0.0 ))) {  /* get all non-zero values */
-         fprintf(stderr,"** No byte for you.\n");
-         return(1);
-      }
-      
-      /* for each atlas */
-      for (k=0; k < N_atlaslist; ++k) {
-         adh = Atlas_With_Trimming (atlaslist[k], 0);
-         if (!adh.dset) {
-            fprintf(stderr,"** Warning: Atlas %s could not be loaded.\n", Atlas_Code_to_Atlas_Name(atlaslist[k]));
-            continue;
-         }  
-         /* resample mask per atlas, use linear interpolation, cut-off at 0.5 */
-
-            /* Get range of integral values in atlas, create counting array Max_Range elements long*/
-
-            /* for each sub-brick sb */
-                /* if mask[i] ++count[atlas_sb[i]]; */
-      }
-         
-   }
    
 return 0;
 }

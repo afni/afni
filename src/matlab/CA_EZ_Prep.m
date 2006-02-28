@@ -30,7 +30,7 @@ if (exist(toolbox_dir) ~= 7),
       return;
    end
 else
-   c = input('Found toolbox here: %s\nEnter "y" to use it, anything else to quit.\n','s');
+   c = input(sprintf('Found toolbox here: %s\nEnter "y" to use it, anything else to quit.\n', toolbox_dir),'s');
    if (isempty(c) || ( c(1) ~= 'y' && c(1) ~= 'Y' ) ),
       return;
    end
@@ -185,7 +185,7 @@ if (~isempty(which('se_note'))),
          aur(iout) = '-'; %dunno what to do yet....
          otr = flipud(char(ot));
          car = char(ca);
-         sdecl = sprintf('char CA_EZ_REF_STR[%d][%d]', size(otr,1)+size(aur,1)+size(car,1)+10, max([size(otr,2)+15, size(aur,2)+15,size(car,2)+15]));
+         sdecl = sprintf('extern char CA_EZ_REF_STR[%d][%d]', size(otr,1)+size(aur,1)+size(car,1)+10, max([size(otr,2)+15, size(aur,2)+15,size(car,2)+15]));
          %do someting nice
          fida = fopen(rname,'w');
          fprintf(fida, '%s = {\n',sdecl);
@@ -229,33 +229,33 @@ end
 
 %Now do specifics to .h file
    NLbl_ML = size(MapML,1);
-   MaxLbl_ML = max(size(MapML,2)+3, 58);
-   
+   MaxLbl_ML = size(MapML,2)+3;
    NLbl_MPM = length(MapMPM);
    MaxLbl_MPM = 0;
    for (i=1:1:NLbl_MPM), 
       if (MaxLbl_MPM < length(MapMPM(i).name)), MaxLbl_MPM = length(MapMPM(i).name); end
    end
-   MaxLbl_MPM = max(MaxLbl_MPM+3, 48);
+   MaxLbl_MPM = MaxLbl_MPM+3;
+   if (MaxLbl_MPM > 64),
+      fprintf(2,'Error: Labels longer than ATLAS_CMAX defined in AFNI src code.\nIncrease limit here and in thd_ttaltas_query.h\n');
+      return;
+   end
    
    fprintf(fidh,'/* ----------- Macro Labels --------------------- */\n');
    fprintf(fidh,'/* ----------- Based on: %s -------------*/\n', ML_file(1).name);   
-   fprintf(fidh,'#define ML_EZ_CMAX    %d\n#define ML_EZ_COUNT   %d\n\n', MaxLbl_ML, NLbl_ML);
-   fprintf(fidh,'typedef struct {\n   short tdval;\n   char name[ML_EZ_CMAX];\n} ML_EZ_point ;\n\n');
-   fprintf(fidh,'extern ML_EZ_point ML_EZ_list[ML_EZ_COUNT] ;\nextern char * ML_EZ_labels[ML_EZ_COUNT] ;\n');
+   fprintf(fidh,'#define ML_EZ_COUNT   %d\n\n', NLbl_ML);
+   fprintf(fidh,'extern ATLAS_point ML_EZ_list[ML_EZ_COUNT] ;\nextern char * ML_EZ_labels[ML_EZ_COUNT] ;\n');
    fprintf(fidh,'extern int ML_EZ_labeled ;\nextern int ML_EZ_current ;\n');
    fprintf(fidh,'/* ----------- Left Right   --------------------- */\n');
    fprintf(fidh,'/* ---- Based on my understanding -------------- */\n');
-   fprintf(fidh,'#define LR_EZ_CMAX    36\n#define LR_EZ_COUNT   3\n\n');
-   fprintf(fidh,'typedef struct {\n   short tdval;\n   char name[LR_EZ_CMAX];\n} LR_EZ_point ;\n\n');
-   fprintf(fidh,'extern LR_EZ_point LR_EZ_list[LR_EZ_COUNT] ;\nextern char * LR_EZ_labels[LR_EZ_COUNT] ;\n');
+   fprintf(fidh,'#define LR_EZ_COUNT   3\n\n');
+   fprintf(fidh,'extern ATLAS_point LR_EZ_list[LR_EZ_COUNT] ;\nextern char * LR_EZ_labels[LR_EZ_COUNT] ;\n');
    fprintf(fidh,'extern int LR_EZ_labeled ;\nextern int LR_EZ_current ;\n\n');
    fprintf(fidh,'/* -----------     MPM      --------------------- */\n');
    fprintf(fidh,'/* ----------- Based on: %s --------------*/\n', MPM_file(1).name);   
-   fprintf(fidh,'#define CA_EZ_CMAX    %d\n#define CA_EZ_COUNT   %d\n', MaxLbl_MPM, NLbl_MPM);
+   fprintf(fidh,'#define CA_EZ_COUNT   %d\n', NLbl_MPM);
    fprintf(fidh,'#define CA_EZ_MPM_MIN 100  /*!< minimum meaningful value in MPM atlas */\n');
-   fprintf(fidh,'typedef struct {\n   char name[CA_EZ_CMAX];\n   short tdval;\n   char dsetpref[CA_EZ_CMAX];\n} CA_EZ_point ;\n\n');
-   fprintf(fidh,'extern CA_EZ_point CA_EZ_list[CA_EZ_COUNT] ;\nextern char * CA_EZ_labels[CA_EZ_COUNT] ;\n');
+   fprintf(fidh,'extern ATLAS_point CA_EZ_list[CA_EZ_COUNT] ;\nextern char * CA_EZ_labels[CA_EZ_COUNT] ;\n');
    fprintf(fidh,'extern int CA_EZ_labeled ;\nextern int CA_EZ_current ;\n\n');
    fprintf(fidh,'/* -----------     Refs      --------------------- */\n');
    fprintf(fidh,'/* ----------- Based on se_note.m --------------*/\n');   
@@ -265,32 +265,35 @@ end
 %first create ML structure
    fprintf(fidc,'/* ----------- Macro Labels --------------------- */\n');
    fprintf(fidc,'/* ----------- Based on: %s -------------*/\n', ML_file(1).name);   
-   fprintf(fidc,'ML_EZ_point ML_EZ_list[ML_EZ_COUNT] = {\n');
+   fprintf(fidc,'ATLAS_point ML_EZ_list[ML_EZ_COUNT] = {\n');
    for (i=1:1:size(MapML,1)),
       %pad string by dots
-      fprintf(fidc,'   { %-3d , "%s"},\n', i, pad_with_dot(MapML(i,:), 50));   
+      fprintf(fidc,'   { %-3d , "%s", 0, 0, 0, 0, ""}', i, pad_with_dot(MapML(i,:), 50));   
+      if (i<size(MapML,1)) fprintf(fidc,',\n'); else fprintf(fidc,'\n'); end      
    end
    fprintf(fidc,'};\n\n');
 
 %Now create MPM structure
    fprintf(fidc,'/* -----------     MPM      --------------------- */\n');
    fprintf(fidc,'/* ----------- Based on: %s --------------*/\n', MPM_file(1).name);   
-   fprintf(fidc,'CA_EZ_point CA_EZ_list[CA_EZ_COUNT] = { \n');
+   fprintf(fidc,'ATLAS_point CA_EZ_list[CA_EZ_COUNT] = { \n');
    for (i=1:1:NLbl_MPM), 
       [err,PathString,FileString] = GetPath (MapMPM(i).ref, 1);
-      fprintf(fidc,'   { "%s", %-3d, "%s" },\n', ...
-                        pad_with_dot(MapMPM(i).name,40), MapMPM(i).GV, pad_with_dot(RemoveExtension(FileString,'.img|.mnc|.hdr'), 27));
+      fprintf(fidc,'   { %-3d, "%s", 0, 0, 0, 0, "%s" }', ...
+                        MapMPM(i).GV, pad_with_dot(MapMPM(i).name,40), pad_with_dot(RemoveExtension(FileString,'.img|.mnc|.hdr'), 27));
+      if (i<NLbl_MPM) fprintf(fidc,',\n'); else fprintf(fidc,'\n'); end
    end
    fprintf(fidc,'};\n\n');
 
 %Now create LR structure
    fprintf(fidc,'/* ----------- Left Right   --------------------- */\n');
    fprintf(fidc,'/* ---- Based on my understanding -------------- */\n');
-   fprintf(fidc,'LR_EZ_point LR_EZ_list[LR_EZ_COUNT] = {\n');
+   fprintf(fidc,'ATLAS_point LR_EZ_list[LR_EZ_COUNT] = {\n');
    Lst = ['Non-Brain...'; 'Right Brain.'; 'Left Brain..'];
    for (i=1:1:3), 
-      fprintf(fidc,'   { %-3d, "%s" },\n', ...
-                        i, Lst(i, :));
+      fprintf(fidc,'   { %-3d, "%s", 0, 0, 0, 0, "" }', ...
+                        i-1, Lst(i, :));
+      if (i<3) fprintf(fidc,',\n'); else fprintf(fidc,'\n'); end
    end
    fprintf(fidc,'};\n\n');
 
