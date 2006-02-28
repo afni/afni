@@ -98,26 +98,26 @@ byte * THD_makemask( THD_3dim_dataset *mask_dset ,
 
 /*! 
    Similar to THD_makemask except that it turns the dset itself to mask values
-   returns (0) if it fails, 1 if OK
+   returns (-1) if it fails, number of non-zero voxels if OK
 */
 int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
                      int miv , float mask_bot , float mask_top,
                      byte *cmask )
 {
-   int nvox , ii ;
+   int nvox , ii, nonzero=-1 ;
 
    if( !ISVALID_DSET(mask_dset)    ||
        miv < 0                     ||
-       miv >= DSET_NVALS(mask_dset)  ) return (0) ;
+       miv >= DSET_NVALS(mask_dset)  ) return (-1) ;
 
    nvox = DSET_NVOX(mask_dset) ;
 
-   DSET_load(mask_dset) ; if( !DSET_LOADED(mask_dset) ) return (0) ;
+   DSET_load(mask_dset) ; if( !DSET_LOADED(mask_dset) ) return (-1) ;
 
-
+   nonzero = 0;
    switch( DSET_BRICK_TYPE(mask_dset,miv) ){
       default:
-         DSET_unload(mask_dset) ; return (0) ;
+         DSET_unload(mask_dset) ; return (-1) ;
 
       case MRI_short:{
          short mbot , mtop ;
@@ -133,10 +133,12 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
          }
          if (cmask)  {
             for( ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 && cmask[ii]) mar[ii]=1;
+               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 && cmask[ii]) { mar[ii]=1; ++nonzero; }
+               else { mar[ii] = 0; }
          } else {
             for( ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ) mar[ii]=1;
+               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ) { mar[ii]=1; ++nonzero; }
+               else { mar[ii] = 0; }
          }
       }
       break ;
@@ -155,10 +157,12 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
          }
          if (cmask) {
             for( ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 && cmask[ii]) mar[ii]=1;
+               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 && cmask[ii]){ mar[ii]=1; ++nonzero; }
+               else { mar[ii] = 0; }
          } else {
             for( ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ) mar[ii]=1;
+               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ){ mar[ii]=1; ++nonzero; }
+               else { mar[ii] = 0; }
          }
       }
       break ;
@@ -177,16 +181,18 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
          }
          if (cmask) {
             for( ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 && cmask[ii]) mar[ii]=1;
+               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 && cmask[ii]) { mar[ii]=1; ++nonzero; }
+               else { mar[ii] = 0; }
          } else {
             for( ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ) mar[ii]=1;
+               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ) { mar[ii]=1; ++nonzero; }
+               else { mar[ii] = 0; }
          }
       }
       break ;
    }
 
-   return (1) ;
+   return (nonzero) ;
 }
 /*! 
    Returns a list of the unique values in a dataset.

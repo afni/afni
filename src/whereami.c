@@ -40,6 +40,32 @@ static MCW_cluster * wamiclust_CA_EZ=NULL ;
 #define zischar(ch) ( ( ((ch) >= 'A' && (ch) <= 'Z' ) || ((ch) >= 'a' && (ch) <= 'z' ) ) ? 1 : 0 )
 #define isnakedarg(s) ( ( (s)[0] == '-' && strlen(s) > 1 && zischar((s)[1]) ) ? 0 : 1 )
 
+char *PrettyRef(char *ref) {
+   int i=0;
+   char *pj=NULL, *pea=NULL;
+   static char strbuf[500];
+   
+   pj = strstr(ref, "-> ");
+   if (!pj || pj == ref) return(ref);
+   
+   pea = pj; /* now go back until no more - are found */
+   while (pea[0] == '-') --pea; 
+   
+   pj = pj + 3; /* start of journal reference */
+   
+   /* copy name of area */
+   i = 0;
+   while (ref<=pea) {
+      strbuf[i] = *ref; ++ref;++i;
+   }
+   strbuf[i] = '\0';
+   
+   /* now add the reference */
+   snprintf(strbuf, 490*sizeof(char), "%s\n            -> %s", strbuf, pj);
+   
+   return(strbuf);
+}
+
 void whereami_usage(void) 
 {
    int i = 0;
@@ -50,7 +76,10 @@ void whereami_usage(void)
                "   to atlases present with your AFNI installation.\n"
                "   ++ Show the contents of available atlases\n"
                "   ++ Extract ROIs for certain atlas regions using symbolic notation\n"
+               "   ++ Report on the overlap of ROIs with Atlas-defined regions.\n"
+               "\n"
                "Options (all options are optional):\n"
+               "-----------------------------------\n"
                "   <x y z [output_format]>: Specifies the x y z coordinates of the \n"
                "                            location probed. Coordinate are in mm and \n"
                "                            assumed to be in RAI or DICOM format, unless\n"
@@ -94,10 +123,10 @@ void whereami_usage(void)
                Atlas_Code_to_Atlas_Name(CA_EZ_N27_PMAPS_ATLAS),
                Atlas_Code_to_Atlas_Name(CA_EZ_N27_LR_ATLAS));                       
       i = 0;
-      printf(  "Anatomy Toolbox Reference and Warning:\n"
-               "--------------------------------------\n" );
+      printf(  "   Anatomy Toolbox Reference and Warning:\n"
+               "   --------------------------------------\n" );
       do { 
-         printf(  "   %s\n" , CA_EZ_REF_STR[i]);
+         printf(  "      %s\n" , PrettyRef(CA_EZ_REF_STR[i]));
          ++i;  
       } while (CA_EZ_REF_STR[i][0] != '\0');
               /* "      [1] Auditory cortex (TE 1.0, TE 1.1, TE 1.2) : Morosan et al., Neuroimage, 2001\n"
@@ -109,9 +138,12 @@ void whereami_usage(void)
                "      [7] Visual cortex (BA 17, BA 18) : Amunts et al., Neuroimage, 2000\n"
                "      Warning:\n"
                "        All other areas may only be used after consultation (contact S.Eickhoff@fz-juelich.de)\n" */
-       printf( "   \nSee Eickhoff et al. Neuroimage 25 (2005) for more info on Probability Maps (CA_N27_PM)\n"
-               "    and Maximum Probability Maps (CA_N27_MPM)\n");
-       printf( "--------------------------------------\n\n" 
+       printf( "   \n"
+               "   See Eickhoff et al. Neuroimage 25 (2005) for more info on:\n"
+               "       Probability Maps (CA_N27_PM)\n"
+               "       and Maximum Probability Maps (CA_N27_MPM)\n");
+       printf( "   ----------------------------------------------------------\n"
+               "\n" 
                " -atlas_sort: Sort results by atlas (default)\n"
                " -zone_sort | -radius_sort: Sort by radius of search\n"
                " -old : Run whereami in the olde (Pre Feb. 06) way.\n"
@@ -150,6 +182,9 @@ void whereami_usage(void)
                "                                 write out a mask dataset of the region.\n"
                " -prefix PREFIX: Prefix for the output mask dataset\n"
                " -dbg DEBUG: Debug flag\n"
+               "\n"
+               "Options for determing the percent overlap of ROIs with Atlas-defined areas:\n"
+               "---------------------------------------------------------------------------\n"
                " -bmask BINARY_MASK: Report on the overlap of all non-zero voxels in BINARY_MASK dataset\n"
                "                     with various atlas regions. \n"
                " -omask ORDERED_MASK:Report on the overlap of each ROI formed by an integral value\n"
@@ -164,20 +199,24 @@ void whereami_usage(void)
                "        This option follows the style of 3dmaskdump (since the\n"
                "        code for it was, uh, borrowed from there (thanks Bob!, thanks Rick!)).\n"
                "        See '3dmaskdump -help' for more information.\n"
+               "\n"
                "Note on the reported coordinates of the Focus Point:\n"
-               "Coordinates of the Focus Point are reported in 3 coordinate spaces.\n"
+               "----------------------------------------------------\n"
+               "  Coordinates of the Focus Point are reported in 3 coordinate spaces.\n"
                "The 3 spaces are Talairach (TLRC), MNI, MNI Anatomical (MNI Anat.). All three\n"
                "coordinates are reported in the LPI coordinate order.\n"
-               "The TLRC coordinates follow the convention specified by the Talairach and Tournoux Atlas.\n"
-               "The MNI coordinates are derived from the TLRC ones using an approximation equation.\n"
-               "The MNI Anat. coordinates are a shifted version of the MNI coordinates (see Eickhoff et al. 05).\n"
-               " However since the MNI coordinates reported here are derived from TLRC by an approximate \n"
-               " function it is best to derive the MNI Anat. coordinates in a different manner.\n"
-               " This is possible because the MNI Anat. coordinates are defined relative to the single-subject N27 \n"
-               " dataset. MNI Anat. coordinates are thus derived via the 12 piece-wise linear transformations \n"
-               " used to put the MNI N27 brain in TLRC space.\n" 
+               "  The TLRC coordinates follow the convention specified by the Talairach and Tournoux Atlas.\n"
+               "  The MNI coordinates are derived from the TLRC ones using an approximation equation.\n"
+               "  The MNI Anat. coordinates are a shifted version of the MNI coordinates (see Eickhoff et al. 05).\n"
+               "\n"
+               "  However because the MNI coordinates reported here are derived from TLRC by an approximate \n"
+               "function it is best to derive the MNI Anat. coordinates in a different manner.\n"
+               "This option is possible because the MNI Anat. coordinates are defined relative to the \n"
+               "single-subject N27 dataset. MNI Anat. coordinates are thus derived via the 12 piece-wise \n"
+               "linear transformations used to put the MNI N27 brain in TLRC space.\n" 
                "\n"
                "Installing Atlases:\n"
+               "-------------------\n"
                "   Atlases are stored as AFNI datasets, plus perhaps an extra file or two.\n"
                "   These files should be placed in a location that AFNI can find. \n"
                "   Let us refer to this directory as ATLAS_DIR, usually it is the same as\n"
@@ -192,8 +231,12 @@ void whereami_usage(void)
                "   files in the upacked directory into ATLAS_DIR.\n"
                "\n"
                "Questions Comments:\n"
+               "-------------------\n"
                "   Ziad S. Saad   (ziad@nih.gov)\n"
-               "   SSCC/NIMH/NIH/DHHS/USA\n" 
+               "   SSCC/NIMH/NIH/DHHS/USA\n"
+               "\n"
+               "Thanks to Kristina Simonyan for feedback and testing.\n"
+               "\n" 
                "\n");
    EXRETURN;
 }
@@ -386,6 +429,8 @@ int main(int argc, char **argv)
          }
          
          if (strcmp(argv[iarg],"-bmask") == 0 || strcmp(argv[iarg],"-omask") == 0 ) {
+            if (strcmp(argv[iarg],"-bmask") == 0) dobin = 1;
+            else dobin = 0;
             ++iarg;
             if (iarg >= argc) {
                fprintf(stderr,"** Need parameter after -bmask\n"); return(1);
@@ -394,8 +439,6 @@ int main(int argc, char **argv)
                fprintf(stderr,"** -bmask and -omask are mutually exclusive.\n"); return(1);
             }            
             bmsk = argv[iarg];
-            if (strcmp(argv[iarg],"-bmask") == 0) dobin = 1;
-            else dobin = 0;
             
             ++iarg;
             continue; 
@@ -548,9 +591,11 @@ int main(int argc, char **argv)
       byte *bmask_vol = NULL, *ba = NULL;
       THD_3dim_dataset *mset=NULL, *mset_orig = NULL, *rset = NULL;
       ATLAS_DSET_HOLDER adh;
-      int isb, nvox_in_mask=0, *count = NULL, *unq=NULL, n_unq=0, iroi=0;
+      int isb, nvox_in_mask=0, *count = NULL;
+      int *ics=NULL, *unq=NULL, n_unq=0, iroi=0, nonzero;
       float frac=0.0, sum = 0.0;
       char tmps[20];
+      
       /* load the mask dset */
 	   if (!(mset_orig = THD_open_dataset (bmsk))) {
          fprintf(stderr,"** Failed to open mask set %s.\n", bmsk);
@@ -567,9 +612,11 @@ int main(int argc, char **argv)
       }
       
       if (dobin) { /* one pass, do all */
+         fprintf(stdout,"++ In binary mode ...\n");
          n_unq = 1;
          unq = NULL;
       } else {
+         fprintf(stdout,"++ In ordered mode ...\n");
          /* get unique values*/
          unq = THD_unique_vals( mset_orig , 0, &n_unq, cmask );
          if (unq) {
@@ -582,94 +629,126 @@ int main(int argc, char **argv)
          }
       }
       
-      
-      mset = mset_orig;
-	   /* turn the mask dataset to zeros and 1s */
-      if (!THD_makedsetmask( mset , 0 , 1.0, 0.0 , cmask)) {  /* get all non-zero values */
-            fprintf(stderr,"** No mask for you.\n");
-            return(1);
-      }
-      
-      /* for each atlas */
-      for (k=0; k < N_atlaslist; ++k) {
-         adh = Atlas_With_Trimming (atlaslist[k], 0);
-         if (!adh.dset) {
-            fprintf(stderr,"** Warning: Atlas %s could not be loaded.\n", Atlas_Code_to_Atlas_Name(atlaslist[k]));
-            continue;
-         }
-         if (adh.maxindexcode < 1) {
-            if (LocalHead) fprintf(stderr,"** Warning: Atlas %s not suitable for this application.\n", Atlas_Code_to_Atlas_Name(atlaslist[k]));
-            continue;
-         }
-         if (adh.maxindexcode > 255) {
-            fprintf(stderr,"** Warning: Max index code (%d) higher than expected.\n"
-                           "What's cracking?.\n", adh.maxindexcode);
-         }  
-         /* resample mask per atlas, use linear interpolation, cut-off at 0.5 */
-         rset = r_new_resam_dset ( mset, adh.dset,	0,	0,	0,	NULL, MRI_LINEAR, NULL);
-         if (!rset) {
-            fprintf(stderr,"** ERROR: Failed to reslice!?\n"); return(1);
-         }
-         
-         /* get byte mask of regions > 0.5 */
-         if (!(bmask_vol = THD_makemask( rset , 0 , 0.5 , 2.0 ))) {  /* get all non-zero values */
-            fprintf(stderr,"** No byte for you.\n");
-            return(1);
-         }
-         nvox_in_mask = 0;
-         for (i=0; i<DSET_NVOX(adh.dset); ++i) {
-            if (bmask_vol[i]) ++nvox_in_mask; 
-         }
-         /* for each sub-brick sb */
-         for (isb=0; isb< DSET_NVALS(adh.dset); ++isb) {
-            ba = DSET_BRICK_ARRAY(adh.dset,isb); 
-            if (!ba) { ERROR_message("Unexpected NULL array"); return(1); }
-            /* Create count array for range of integral values in atlas */
-            count = (int *)calloc(adh.maxindexcode+1, sizeof(int));
-            switch (adh.atcode) {
-               case AFNI_TLRC_ATLAS:
-               case CA_EZ_N27_ML_ATLAS:
-               case CA_EZ_N27_LR_ATLAS:
-                  for (i=0; i<DSET_NVOX(adh.dset); ++i) {
-                     if (bmask_vol[i] && ba[i] ) ++count[ba[i]]; /* Can't use 0 values, even if used in atlas codes */
-                                                                 /* such as for the AC/PC in TT_Daemon! They can't be*/
-                                                                 /* differentiated with this algorithm from non-brain, areas*/
-                  }
-                  break;
-               case CA_EZ_N27_MPM_ATLAS:
-                  for (i=0; i<DSET_NVOX(adh.dset); ++i) {
-                     if (bmask_vol[i] && ba[i] >= CA_EZ_MPM_MIN ) ++count[ba[i]]; 
-                  }
-                  break;
-               case CA_EZ_N27_PMAPS_ATLAS: /* not appropriate */
-                  break;
-               default:
-                  fprintf(stderr,"** Error: What is this atlas code (%d)?\n", adh.atcode);
+      for (iroi=0; iroi<n_unq; ++iroi) {
+         if (dobin) {
+            mset = mset_orig;
+	         /* turn the mask dataset to zeros and 1s */
+            if ((nonzero = THD_makedsetmask( mset , 0 , 1.0, 0.0 , cmask)) < 0) {  /* get all non-zero values */
+                  fprintf(stderr,"** No mask for you.\n");
                   return(1);
             }
-            /* Now form percentages */
-            fprintf(stdout,"Intersection of ROI with atlas %s (sb%d):\n", Atlas_Code_to_Atlas_Name(atlaslist[k]), isb);
-            sum = 0.0;
-            for (i=0; i<=adh.maxindexcode; ++i) {
-               if (count[i]) {
-                  frac = (float)count[i]/(float)nvox_in_mask;
-                  sum += frac;
-                  sprintf(tmps, "%3.1f", frac*100.0); 
-                  fprintf(stdout, "   %-5s%% overlap with %s, code %d\n", 
-                           tmps, STR_PRINT(Atlas_Val_to_Atlas_Name(adh, i)), i );
-               }
+         } else {
+            if (unq[iroi] == 0) { /* skip nonesense */
+               fprintf(stdout,"++ Skipping unique value of 0\n");
+               continue;
+            } else {
+               fprintf(stdout,"++ Processing unique value of %d\n", unq[iroi]);
             }
-            sprintf(tmps, "%3.1f", sum*100.0);
-            fprintf(stdout, "   -----\n"
-                            "   %-5s%% of cluster accounted for.\n"
-                            "\n", tmps);
-            /* done with count */
-            if (count) free(count); count = NULL;
+            mset = EDIT_full_copy(mset_orig, "tmp_ccopy");
+            /* turn the mask dataset to zeros and 1s */
+            if ((nonzero = THD_makedsetmask( mset , 0 , (float)unq[iroi], (float)unq[iroi] , cmask)) < 0) {  /* get all non-zero values */
+                  fprintf(stderr,"** No mask for you.\n");
+                  return(1);
+            }
          }
-         /* done with resampled mset */
-         DSET_delete(rset); rset = NULL;
-      }
+         fprintf(stdout,"++    %d voxels in ROI\n", nonzero);
+         
+         /* for each atlas */
+         for (k=0; k < N_atlaslist; ++k) {
+            adh = Atlas_With_Trimming (atlaslist[k], 0);
+            if (!adh.dset) {
+               fprintf(stderr,"** Warning: Atlas %s could not be loaded.\n", Atlas_Code_to_Atlas_Name(atlaslist[k]));
+               continue;
+            }
+            if (adh.maxindexcode < 1) {
+               if (LocalHead) fprintf(stderr,"** Warning: Atlas %s not suitable for this application.\n", Atlas_Code_to_Atlas_Name(atlaslist[k]));
+               continue;
+            }
+            if (adh.maxindexcode > 255) {
+               fprintf(stderr,"** Warning: Max index code (%d) higher than expected.\n"
+                              "What's cracking?.\n", adh.maxindexcode);
+            }  
+            /* resample mask per atlas, use linear interpolation, cut-off at 0.5 */
+            rset = r_new_resam_dset ( mset, adh.dset,	0,	0,	0,	NULL, MRI_LINEAR, NULL);
+            if (!rset) {
+               fprintf(stderr,"** ERROR: Failed to reslice!?\n"); return(1);
+            }
+            /* get byte mask of regions > 0.5 */
+            if (!(bmask_vol = THD_makemask( rset , 0 , 0.5 , 2.0 ))) {  /* get all non-zero values */
+               fprintf(stderr,"** No byte for you.\n");
+               return(1);
+            }
+            nvox_in_mask = 0;
+            for (i=0; i<DSET_NVOX(adh.dset); ++i) {
+               if (bmask_vol[i]) ++nvox_in_mask; 
+            }
+            fprintf(stdout,"++    %d voxels in atlas-resampled mask\n", nvox_in_mask);
+            /* for each sub-brick sb */
+            for (isb=0; isb< DSET_NVALS(adh.dset); ++isb) {
+               ba = DSET_BRICK_ARRAY(adh.dset,isb); 
+               if (!ba) { ERROR_message("Unexpected NULL array"); return(1); }
+               /* Create count array for range of integral values in atlas */
+               count = (int *)calloc(adh.maxindexcode+1, sizeof(int));
+               switch (adh.atcode) {
+                  case AFNI_TLRC_ATLAS:
+                  case CA_EZ_N27_ML_ATLAS:
+                  case CA_EZ_N27_LR_ATLAS:
+                     for (i=0; i<DSET_NVOX(adh.dset); ++i) {
+                        if (bmask_vol[i] && ba[i] ) ++count[ba[i]]; /* Can't use 0 values, even if used in atlas codes */
+                                                                    /* such as for the AC/PC in TT_Daemon! They can't be*/
+                                                                    /* differentiated with this algorithm from non-brain, areas*/
+                     }
+                     break;
+                  case CA_EZ_N27_MPM_ATLAS:
+                     for (i=0; i<DSET_NVOX(adh.dset); ++i) {
+                        if (bmask_vol[i] && ba[i] >= CA_EZ_MPM_MIN ) ++count[ba[i]]; 
+                     }
+                     break;
+                  case CA_EZ_N27_PMAPS_ATLAS: /* not appropriate */
+                     break;
+                  default:
+                     fprintf(stderr,"** Error: What is this atlas code (%d)?\n", adh.atcode);
+                     return(1);
+               }
+               /* Now form percentages */
+               if (!unq) {
+                  fprintf(stdout,"Intersection of ROI (all non-zero values) with atlas %s (sb%d):\n", Atlas_Code_to_Atlas_Name(atlaslist[k]), isb);
+               } else {
+                  fprintf(stdout,"Intersection of ROI (valued %d) with atlas %s (sb%d):\n", unq[iroi], Atlas_Code_to_Atlas_Name(atlaslist[k]), isb);
+               }
+               
+               /* sort the count */
+               if (!(ics = z_idqsort (count, (adh.maxindexcode+1) ))) {
+                  fprintf(stderr,"** Error: Failed to sort!\n");
+                  return(1);
+               }
 
+               sum = 0.0;
+               for (i=0; i<=adh.maxindexcode; ++i) {
+                  if (count[i]) {
+                     frac = (float)count[i]/(float)nvox_in_mask;
+                     sum += frac;
+                     sprintf(tmps, "%3.1f", frac*100.0); 
+                     fprintf(stdout, "   %-5s%% overlap with %s, code %d\n", 
+                              tmps, STR_PRINT(Atlas_Val_to_Atlas_Name(adh, ics[i])), ics[i] );
+                  }
+               }
+               sprintf(tmps, "%3.1f", sum*100.0);
+               fprintf(stdout, "   -----\n"
+                               "   %-5s%% of cluster accounted for.\n"
+                               "\n", tmps);
+               /* done with count */
+               if (count) free(count); count = NULL;
+               if (ics) free(ics); ics = NULL;
+            }
+            /* done with resampled mset */
+            DSET_delete(rset); rset = NULL;
+         }
+         
+         /* delete mset if not same as mset_orig */
+         if (mset != mset_orig) DSET_delete(mset); mset = NULL;
+      } /* iroi */
+      
       /* free unique values list, nothing done */
       if (unq) free(unq); unq = NULL;
 

@@ -1527,6 +1527,18 @@ int compare_Z_IQSORT_FLOAT (Z_QSORT_FLOAT *a, Z_QSORT_FLOAT *b )
    return (0);
 }
 
+int compare_Z_IQSORT_INT (Z_QSORT_INT *a, Z_QSORT_INT *b )
+{
+   if (a->x < b->x)
+      return (1);
+   else if (a->x == b->x)
+      return (0);
+   else if (a->x > b->x)
+      return (-1);
+   /* this will never be reached but it will shut the compiler up */
+   return (0);
+}
+
 int compare_int (int *a, int *b )
 {/* compare_int*/
     if (*a < *b)
@@ -1584,7 +1596,51 @@ char Is_Side_Label(char *str, char *opt)
    RETURN('u');
 }
 
-/* inverse sort */
+/* inverse sort ints */
+int *z_idqsort (int *x , int nx )
+{/*z_idqsort*/
+   static char FuncName[]={"z_idqsort"}; 
+   int *I, k;
+   Z_QSORT_INT *Z_Q_fStrct;
+   
+   ENTRY("z_iqsort");
+
+   /* allocate for the structure */
+   Z_Q_fStrct = (Z_QSORT_INT *) calloc(nx, sizeof (Z_QSORT_INT));
+   I = (int *) calloc (nx, sizeof(int));
+
+   if (!Z_Q_fStrct || !I)
+      {
+         ERROR_message("Allocation problem");
+         RETURN (NULL);
+      }
+
+   for (k=0; k < nx; ++k) /* copy the data into a structure */
+      {
+         Z_Q_fStrct[k].x = x[k];
+         Z_Q_fStrct[k].Index = k;
+      }
+
+   /* sort the structure by it's field value */
+   qsort(Z_Q_fStrct, nx, sizeof(Z_QSORT_INT), (int(*) (const void *, const void *)) compare_Z_IQSORT_INT);
+
+   /* recover the index table */
+   for (k=0; k < nx; ++k) /* copy the data into a structure */
+      {
+         x[k] = Z_Q_fStrct[k].x;
+         I[k] = Z_Q_fStrct[k].Index;
+      }
+
+   /* free the structure */
+   free(Z_Q_fStrct);
+
+   /* return */
+   RETURN (I);
+
+
+}/*z_idqsort*/
+
+/* inverse sort floats */
 int *z_iqsort (float *x , int nx )
 {/*z_iqsort*/
    static char FuncName[]={"z_iqsort"}; 
