@@ -589,7 +589,7 @@ d3dmerge:3dmerge.c
 
 whereami:whereami.c
 	$(RM) $@
-	$(CC) -o whereami whereami.c $(INFLAGS) $(LFLAGS) -lmri $(LLIBS)
+	$(CC) -o whereami whereami.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(AFWARPOBJS) -lrickr -lmri -lf2c $(LLIBS)
 
 3dUniformize:3dUniformize.o
 	$(RM) $@

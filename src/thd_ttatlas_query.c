@@ -51,248 +51,248 @@ added to libmri.a and accessible without restrictions. libmri.a and other
 binaries are fatter as a result. But you dont' get nothin for nothin.
 ZSS Feb. 2006 with a nod of approval by RickR */ 
 /* TTatlas by Jack Lancaster and Peter Fox */
-TTO_point TTO_list[TTO_COUNT] = {
-      {  0, -1, -1,0,  0,"Anterior Commissure....................."} ,
-      {  0, 23,  0,0,  0,"Posterior Commissure...................."} ,
-      {  0,  7, 21,0,  0,"Corpus Callosum........................."} ,
-      { 30, 24, -9,4, 68,"Left  Hippocampus......................."} ,
-      {-30, 24, -9,4, 68,"Right Hippocampus......................."} ,
-      { 23,  5,-15,4, 71,"Left  Amygdala.........................."} ,
-      {-23,  5,-15,4, 71,"Right Amygdala.........................."} ,
-      { 10, 54, 14,2, 20,"Left  Posterior Cingulate..............."} ,
-      {-10, 54, 14,2, 20,"Right Posterior Cingulate..............."} ,
-      {  8,-32,  7,2, 21,"Left  Anterior Cingulate................"} ,
-      { -8,-32,  7,2, 21,"Right Anterior Cingulate................"} ,
-      { 11,-11,-12,2, 22,"Left  Subcallosal Gyrus................."} ,
-      {-11,-11,-12,2, 22,"Right Subcallosal Gyrus................."} ,
-      { 50, 22, 12,2, 24,"Left  Transverse Temporal Gyrus........."} ,
-      {-50, 22, 12,2, 24,"Right Transverse Temporal Gyrus........."} ,
-      { 25,  2,-28,2, 25,"Left  Uncus............................."} ,
-      {-25,  2,-28,2, 25,"Right Uncus............................."} ,
-      {  7,-30,-23,2, 26,"Left  Rectal Gyrus......................"} ,
-      { -7,-30,-23,2, 26,"Right Rectal Gyrus......................"} ,
-      { 40, 48,-16,2, 27,"Left  Fusiform Gyrus...................."} ,
-      {-40, 48,-16,2, 27,"Right Fusiform Gyrus...................."} ,
-      { 35, 86, -7,2, 28,"Left  Inferior Occipital Gyrus.........."} ,
-      {-35, 86, -7,2, 28,"Right Inferior Occipital Gyrus.........."} ,
-      { 56, 39,-13,2, 29,"Left  Inferior Temporal Gyrus..........."} ,
-      {-56, 39,-13,2, 29,"Right Inferior Temporal Gyrus..........."} ,
-      { 39,  7,  9,2, 30,"Left  Insula............................"} ,
-      {-39,  7,  9,2, 30,"Right Insula............................"} ,
-      { 25, 25,-12,2, 31,"Left  Parahippocampal Gyrus............."} ,
-      {-25, 25,-12,2, 31,"Right Parahippocampal Gyrus............."} ,
-      { 14, 78, -3,2, 32,"Left  Lingual Gyrus....................."} ,
-      {-14, 78, -3,2, 32,"Right Lingual Gyrus....................."} ,
-      { 35, 83,  9,2, 33,"Left  Middle Occipital Gyrus............"} ,
-      {-35, 83,  9,2, 33,"Right Middle Occipital Gyrus............"} ,
-      { 11,-39,-25,2, 34,"Left  Orbital Gyrus....................."} ,
-      {-11,-39,-25,2, 34,"Right Orbital Gyrus....................."} ,
-      { 52, 39,  0,2, 35,"Left  Middle Temporal Gyrus............."} ,
-      {-52, 39,  0,2, 35,"Right Middle Temporal Gyrus............."} ,
-      { 51, 17,  0,2, 36,"Left  Superior Temporal Gyrus..........."} ,
-      {-51, 17,  0,2, 36,"Right Superior Temporal Gyrus..........."} ,
-      { 37, 82, 27,2, 37,"Left  Superior Occipital Gyrus.........."} ,
-      {-37, 82, 27,2, 37,"Right Superior Occipital Gyrus.........."} ,
-      { 44,-24,  2,2, 39,"Left  Inferior Frontal Gyrus............"} ,
-      {-44,-24,  2,2, 39,"Right Inferior Frontal Gyrus............"} ,
-      { 13, 83, 18,2, 40,"Left  Cuneus............................"} ,
-      {-13, 83, 18,2, 40,"Right Cuneus............................"} ,
-      { 45, 64, 33,2, 41,"Left  Angular Gyrus....................."} ,
-      {-45, 64, 33,2, 41,"Right Angular Gyrus....................."} ,
-      { 51, 48, 31,2, 42,"Left  Supramarginal Gyrus..............."} ,
-      {-51, 48, 31,2, 42,"Right Supramarginal Gyrus..............."} ,
-      { 10, 11, 34,2, 43,"Left  Cingulate Gyrus..................."} ,
-      {-10, 11, 34,2, 43,"Right Cingulate Gyrus..................."} ,
-      { 48, 41, 39,2, 44,"Left  Inferior Parietal Lobule.........."} ,
-      {-48, 41, 39,2, 44,"Right Inferior Parietal Lobule.........."} ,
-      { 14, 61, 41,2, 45,"Left  Precuneus........................."} ,
-      {-14, 61, 41,2, 45,"Right Precuneus........................."} ,
-      { 27, 59, 53,2, 46,"Left  Superior Parietal Lobule.........."} ,
-      {-27, 59, 53,2, 46,"Right Superior Parietal Lobule.........."} ,
-      { 37,-29, 26,2, 47,"Left  Middle Frontal Gyrus.............."} ,
-      {-37,-29, 26,2, 47,"Right Middle Frontal Gyrus.............."} ,
-      {  7, 32, 53,2, 48,"Left  Paracentral Lobule................"} ,
-      { -7, 32, 53,2, 48,"Right Paracentral Lobule................"} ,
-      { 43, 25, 43,2, 49,"Left  Postcentral Gyrus................."} ,
-      {-43, 25, 43,2, 49,"Right Postcentral Gyrus................."} ,
-      { 44,  8, 38,2, 50,"Left  Precentral Gyrus.................."} ,
-      {-44,  8, 38,2, 50,"Right Precentral Gyrus.................."} ,
-      { 19,-40, 27,2, 51,"Left  Superior Frontal Gyrus............"} ,
-      {-19,-40, 27,2, 51,"Right Superior Frontal Gyrus............"} ,
-      {  9,-24, 35,2, 52,"Left  Medial Frontal Gyrus.............."} ,
-      { -9,-24, 35,2, 52,"Right Medial Frontal Gyrus.............."} ,
-      { 22,  1,  2,2, 70,"Left  Lentiform Nucleus................."} ,
-      {-22,  1,  2,2, 70,"Right Lentiform Nucleus................."} ,
-      {  4,  3, -9,4, 72,"Left  Hypothalamus......................"} ,
-      { -4,  3, -9,4, 72,"Right Hypothalamus......................"} ,
-      {  5, 19, -4,4, 73,"Left  Red Nucleus......................."} ,
-      { -5, 19, -4,4, 73,"Right Red Nucleus......................."} ,
-      { 11, 18, -7,4, 74,"Left  Substantia Nigra.................."} ,
-      {-11, 18, -7,4, 74,"Right Substantia Nigra.................."} ,
-      { 32,  1,  5,2, 75,"Left  Claustrum........................."} ,
-      {-32,  1,  5,2, 75,"Right Claustrum........................."} ,
-      { 12, 19,  8,2, 76,"Left  Thalamus.........................."} ,
-      {-12, 19,  8,2, 76,"Right Thalamus.........................."} ,
-      { 11, -7,  9,2, 77,"Left  Caudate..........................."} ,
-      {-11, -7,  9,2, 77,"Right Caudate..........................."} ,
-      { 27, 35,  9,4,124,"Left  Caudate Tail......................"} ,
-      {-27, 35,  9,4,124,"Right Caudate Tail......................"} ,
-      { 12, -6, 14,4,125,"Left  Caudate Body......................"} ,
-      {-12, -6, 14,4,125,"Right Caudate Body......................"} ,
-      {  9,-13,  0,4,126,"Left  Caudate Head......................"} ,
-      { -9,-13,  0,4,126,"Right Caudate Head......................"} ,
-      { 11,  6,  9,4,128,"Left  Ventral Anterior Nucleus.........."} ,
-      {-11,  6,  9,4,128,"Right Ventral Anterior Nucleus.........."} ,
-      { 15, 20,  4,4,129,"Left  Ventral Posterior Medial Nucleus.."} ,
-      {-15, 20,  4,4,129,"Right Ventral Posterior Medial Nucleus.."} ,
-      { 18, 19,  5,4,130,"Left  Ventral Posterior Lateral Nucleus."} ,
-      {-18, 19,  5,4,130,"Right Ventral Posterior Lateral Nucleus."} ,
-      {  6, 16,  8,4,131,"Left  Medial Dorsal Nucleus............."} ,
-      { -6, 16,  8,4,131,"Right Medial Dorsal Nucleus............."} ,
-      { 12, 20, 16,4,132,"Left  Lateral Dorsal Nucleus............"} ,
-      {-12, 20, 16,4,132,"Right Lateral Dorsal Nucleus............"} ,
-      { 16, 27,  8,4,133,"Left  Pulvinar.........................."} ,
-      {-16, 27,  8,4,133,"Right Pulvinar.........................."} ,
-      { 17, 20, 14,4,134,"Left  Lateral Posterior Nucleus........."} ,
-      {-17, 20, 14,4,134,"Right Lateral Posterior Nucleus........."} ,
-      { 14, 12,  9,4,135,"Left  Ventral Lateral Nucleus..........."} ,
-      {-14, 12,  9,4,135,"Right Ventral Lateral Nucleus..........."} ,
-      {  7, 18, 16,4,136,"Left  Midline Nucleus..................."} ,
-      { -7, 18, 16,4,136,"Right Midline Nucleus..................."} ,
-      {  8,  8, 12,4,137,"Left  Anterior Nucleus.................."} ,   /* 04 Mar 2002 */
-      { -8,  8, 12,4,137,"Right Anterior Nucleus.................."} ,
-      { 11, 20,  2,4,138,"Left  Mammillary Body..................."} ,
-      {-11, 20,  2,4,138,"Right Mammillary Body..................."} ,
-      { 15,  4, -2,4,144,"Left  Medial Globus Pallidus............"} ,
-      {-15,  4, -2,4,144,"Right Medial Globus Pallidus............"} ,
-      { 20,  5,  0,4,145,"Left  Lateral Globus Pallidus..........."} ,
-      {-20,  5,  0,4,145,"Right Lateral Globus Pallidus..........."} ,
-      { 24,  0,  3,4,151,"Left  Putamen..........................."} ,
-      {-24,  0,  3,4,151,"Right Putamen..........................."} ,
-      { 12, -8, -8,4,146,"Left  Nucleus Accumbens................."} , /* 20 Aug */
-      {-12, -8, -8,4,146,"Right Nucleus Accumbens................."} , /* 2001 */
-      { 17, 24, -2,4,147,"Left  Medial Geniculum Body............."} ,
-      {-17, 24, -2,4,147,"Right Medial Geniculum Body............."} ,
-      { 22, 24, -1,4,148,"Left  Lateral Geniculum Body............"} ,
-      {-22, 24, -1,4,148,"Right Lateral Geniculum Body............"} ,
-      { 10, 13, -3,4,149,"Left  Subthalamic Nucleus..............."} ,
-      {-10, 13, -3,4,149,"Right Subthalamic Nucleus..............."} ,
-      { 53, 19, 50,4, 81,"Left  Brodmann area 1..................."} ,
-      {-53, 19, 50,4, 81,"Right Brodmann area 1..................."} ,
-      { 49, 26, 43,4, 82,"Left  Brodmann area 2..................."} ,
-      {-49, 26, 43,4, 82,"Right Brodmann area 2..................."} ,
-      { 39, 23, 50,4, 83,"Left  Brodmann area 3..................."} ,
-      {-39, 23, 50,4, 83,"Right Brodmann area 3..................."} ,
-      { 39, 18, 49,4, 84,"Left  Brodmann area 4..................."} ,
-      {-39, 18, 49,4, 84,"Right Brodmann area 4..................."} ,
-      { 16, 40, 57,4, 85,"Left  Brodmann area 5..................."} ,
-      {-16, 40, 57,4, 85,"Right Brodmann area 5..................."} ,
-      { 29,  0, 50,4, 86,"Left  Brodmann area 6..................."} ,
-      {-29,  0, 50,4, 86,"Right Brodmann area 6..................."} ,
-      { 16, 60, 48,4, 87,"Left  Brodmann area 7..................."} ,
-      {-16, 60, 48,4, 87,"Right Brodmann area 7..................."} ,
-      { 24,-30, 44,4, 88,"Left  Brodmann area 8..................."} ,
-      {-24,-30, 44,4, 88,"Right Brodmann area 8..................."} ,
-      { 32,-33, 30,4, 89,"Left  Brodmann area 9..................."} ,
-      {-32,-33, 30,4, 89,"Right Brodmann area 9..................."} ,
-      { 24,-56,  6,4, 90,"Left  Brodmann area 10.................."} ,
-      {-24,-56,  6,4, 90,"Right Brodmann area 10.................."} ,
-      { 17,-43,-18,4, 91,"Left  Brodmann area 11.................."} ,
-      {-17,-43,-18,4, 91,"Right Brodmann area 11.................."} ,
-      { 39,  4,  8,4, 93,"Left  Brodmann area 13.................."} ,
-      {-39,  4,  8,4, 93,"Right Brodmann area 13.................."} ,
-      { 10, 88,  5,4, 94,"Left  Brodmann area 17.................."} ,
-      {-10, 88,  5,4, 94,"Right Brodmann area 17.................."} ,
-      { 19, 85,  4,4, 95,"Left  Brodmann area 18.................."} ,
-      {-19, 85,  4,4, 95,"Right Brodmann area 18.................."} ,
-      { 34, 80, 18,4, 96,"Left  Brodmann area 19.................."} ,
-      {-34, 80, 18,4, 96,"Right Brodmann area 19.................."} ,
-      { 47, 21,-23,4, 97,"Left  Brodmann area 20.................."} ,
-      {-47, 21,-23,4, 97,"Right Brodmann area 20.................."} ,
-      { 58, 18,-10,4, 98,"Left  Brodmann area 21.................."} ,
-      {-58, 18,-10,4, 98,"Right Brodmann area 21.................."} ,
-      { 57, 23,  5,4, 99,"Left  Brodmann area 22.................."} ,
-      {-57, 23,  5,4, 99,"Right Brodmann area 22.................."} ,
-      {  4, 37, 24,4,100,"Left  Brodmann area 23.................."} ,
-      { -4, 37, 24,4,100,"Right Brodmann area 23.................."} ,
-      {  6, -6, 30,4,101,"Left  Brodmann area 24.................."} ,
-      { -6, -6, 30,4,101,"Right Brodmann area 24.................."} ,
-      {  6,-15,-13,4,102,"Left  Brodmann area 25.................."} ,
-      { -6,-15,-13,4,102,"Right Brodmann area 25.................."} ,
-      { 15, 35,  0,4,103,"Left  Brodmann area 27.................."} ,
-      {-15, 35,  0,4,103,"Right Brodmann area 27.................."} ,
-      { 22, -2,-24,4,104,"Left  Brodmann area 28.................."} ,
-      {-22, -2,-24,4,104,"Right Brodmann area 28.................."} ,
-      {  6, 48, 11,4,105,"Left  Brodmann area 29.................."} ,
-      { -6, 48, 11,4,105,"Right Brodmann area 29.................."} ,
-      { 13, 62, 10,4,106,"Left  Brodmann area 30.................."} ,
-      {-13, 62, 10,4,106,"Right Brodmann area 30.................."} ,
-      {  9, 47, 32,4,107,"Left  Brodmann area 31.................."} ,
-      { -9, 47, 32,4,107,"Right Brodmann area 31.................."} ,
-      {  8,-24, 30,4,108,"Left  Brodmann area 32.................."} ,
-      { -8,-24, 30,4,108,"Right Brodmann area 32.................."} ,
-      {  5,-12, 24,4,109,"Left  Brodmann area 33.................."} ,
-      { -5,-12, 24,4,109,"Right Brodmann area 33.................."} ,
-      { 18,  0,-16,4,110,"Left  Brodmann area 34.................."} ,
-      {-18,  0,-16,4,110,"Right Brodmann area 34.................."} ,
-      { 23, 25,-15,4,111,"Left  Brodmann area 35.................."} ,
-      {-23, 25,-15,4,111,"Right Brodmann area 35.................."} ,
-      { 33, 33,-15,4,112,"Left  Brodmann area 36.................."} ,
-      {-33, 33,-15,4,112,"Right Brodmann area 36.................."} ,
-      { 48, 55, -7,4,113,"Left  Brodmann area 37.................."} ,
-      {-48, 55, -7,4,113,"Right Brodmann area 37.................."} ,
-      { 41,-12,-23,4,114,"Left  Brodmann area 38.................."} ,
-      {-41,-12,-23,4,114,"Right Brodmann area 38.................."} ,
-      { 48, 64, 28,4,115,"Left  Brodmann area 39.................."} ,
-      {-48, 64, 28,4,115,"Right Brodmann area 39.................."} ,
-      { 51, 40, 38,4,116,"Left  Brodmann area 40.................."} ,
-      {-51, 40, 38,4,116,"Right Brodmann area 40.................."} ,
-      { 47, 26, 11,4,117,"Left  Brodmann area 41.................."} ,
-      {-47, 26, 11,4,117,"Right Brodmann area 41.................."} ,
-      { 63, 22, 12,4,118,"Left  Brodmann area 42.................."} ,
-      {-63, 22, 12,4,118,"Right Brodmann area 42.................."} ,
-      { 58, 10, 16,4,119,"Left  Brodmann area 43.................."} ,
-      {-58, 10, 16,4,119,"Right Brodmann area 43.................."} ,
-      { 53,-11, 12,4,120,"Left  Brodmann area 44.................."} ,
-      {-53,-11, 12,4,120,"Right Brodmann area 44.................."} ,
-      { 54,-23, 10,4,121,"Left  Brodmann area 45.................."} ,
-      {-54,-23, 10,4,121,"Right Brodmann area 45.................."} ,
-      { 50,-38, 16,4,122,"Left  Brodmann area 46.................."} ,
-      {-50,-38, 16,4,122,"Right Brodmann area 46.................."} ,
-      { 38,-24,-11,4,123,"Left  Brodmann area 47.................."} ,
-      {-38,-24,-11,4,123,"Right Brodmann area 47.................."} ,
-      {  2, 65,-32,2, 53,"Left  Uvula of Vermis..................."} ,
-      { -2, 65,-32,2, 53,"Right Uvula of Vermis..................."} ,
-      {  2, 73,-28,2, 54,"Left  Pyramis of Vermis................."} ,
-      { -2, 73,-28,2, 54,"Right Pyramis of Vermis................."} ,
-      {  2, 71,-24,2, 55,"Left  Tuber of Vermis..................."} ,
-      { -2, 71,-24,2, 55,"Right Tuber of Vermis..................."} ,
-      {  2, 72,-17,2, 56,"Left  Declive of Vermis................."} ,
-      { -2, 72,-17,2, 56,"Right Declive of Vermis................."} ,
-      {  3, 63, -3,2, 57,"Left  Culmen of Vermis.................."} ,
-      { -3, 63, -3,2, 57,"Right Culmen of Vermis.................."} ,
-      { 28, 51,-36,2, 58,"Left  Cerebellar Tonsil................."} ,
-      {-28, 51,-36,2, 58,"Right Cerebellar Tonsil................."} ,
-      { 29, 71,-38,2, 59,"Left  Inferior Semi-Lunar Lobule........"} ,
-      {-29, 71,-38,2, 59,"Right Inferior Semi-Lunar Lobule........"} ,
-      {  7, 54,-20,2, 60,"Left  Fastigium........................."} ,
-      { -7, 54,-20,2, 60,"Right Fastigium........................."} ,
-      {  7, 55,-27,2, 61,"Left  Nodule............................"} ,
-      { -7, 55,-27,2, 61,"Right Nodule............................"} ,
-      { 21, 76,-26,2, 62,"Left  Uvula............................."} ,
-      {-21, 76,-26,2, 62,"Right Uvula............................."} ,
-      { 27, 74,-30,2, 63,"Left  Pyramis..........................."} ,
-      {-27, 74,-30,2, 63,"Right Pyramis..........................."} ,
-      { 20, 46,-16,2, 66,"Left  Culmen............................"} ,
-      {-20, 46,-16,2, 66,"Right Culmen............................"} ,
-      { 26, 69,-17,2, 65,"Left  Declive..........................."} ,
-      {-26, 69,-17,2, 65,"Right Declive..........................."} ,
-      { 14, 54,-23,4,127,"Left  Dentate..........................."} ,
-      {-14, 54,-23,4,127,"Right Dentate..........................."} ,
-      { 44, 71,-27,2, 64,"Left  Tuber............................."} ,
-      {-44, 71,-27,2, 64,"Right Tuber............................."} ,
-      {  4, 45,-13,2, 67,"Left  Cerebellar Lingual................"} ,
-      { -4, 45,-13,2, 67,"Right Cerebellar Lingual................"}
+ATLAS_point TTO_list[TTO_COUNT] = {
+      {  0,"Anterior Commissure.....................",  0, -1, -1,0, "" } ,
+      {  0,"Posterior Commissure....................",  0, 23,  0,0, "" } ,
+      {  0,"Corpus Callosum.........................",  0,  7, 21,0, "" } ,
+      { 68,"Left  Hippocampus.......................", 30, 24, -9,4, "" } ,
+      { 68,"Right Hippocampus.......................",-30, 24, -9,4, "" } ,
+      { 71,"Left  Amygdala..........................", 23,  5,-15,4, "" } ,
+      { 71,"Right Amygdala..........................",-23,  5,-15,4, "" } ,
+      { 20,"Left  Posterior Cingulate...............", 10, 54, 14,2, "" } ,
+      { 20,"Right Posterior Cingulate...............",-10, 54, 14,2, "" } ,
+      { 21,"Left  Anterior Cingulate................",  8,-32,  7,2, "" } ,
+      { 21,"Right Anterior Cingulate................", -8,-32,  7,2, "" } ,
+      { 22,"Left  Subcallosal Gyrus.................", 11,-11,-12,2, "" } ,
+      { 22,"Right Subcallosal Gyrus.................",-11,-11,-12,2, "" } ,
+      { 24,"Left  Transverse Temporal Gyrus.........", 50, 22, 12,2, "" } ,
+      { 24,"Right Transverse Temporal Gyrus.........",-50, 22, 12,2, "" } ,
+      { 25,"Left  Uncus.............................", 25,  2,-28,2, "" } ,
+      { 25,"Right Uncus.............................",-25,  2,-28,2, "" } ,
+      { 26,"Left  Rectal Gyrus......................",  7,-30,-23,2, "" } ,
+      { 26,"Right Rectal Gyrus......................", -7,-30,-23,2, "" } ,
+      { 27,"Left  Fusiform Gyrus....................", 40, 48,-16,2, "" } ,
+      { 27,"Right Fusiform Gyrus....................",-40, 48,-16,2, "" } ,
+      { 28,"Left  Inferior Occipital Gyrus..........", 35, 86, -7,2, "" } ,
+      { 28,"Right Inferior Occipital Gyrus..........",-35, 86, -7,2, "" } ,
+      { 29,"Left  Inferior Temporal Gyrus...........", 56, 39,-13,2, "" } ,
+      { 29,"Right Inferior Temporal Gyrus...........",-56, 39,-13,2, "" } ,
+      { 30,"Left  Insula............................", 39,  7,  9,2, "" } ,
+      { 30,"Right Insula............................",-39,  7,  9,2, "" } ,
+      { 31,"Left  Parahippocampal Gyrus.............", 25, 25,-12,2, "" } ,
+      { 31,"Right Parahippocampal Gyrus.............",-25, 25,-12,2, "" } ,
+      { 32,"Left  Lingual Gyrus.....................", 14, 78, -3,2, "" } ,
+      { 32,"Right Lingual Gyrus.....................",-14, 78, -3,2, "" } ,
+      { 33,"Left  Middle Occipital Gyrus............", 35, 83,  9,2, "" } ,
+      { 33,"Right Middle Occipital Gyrus............",-35, 83,  9,2, "" } ,
+      { 34,"Left  Orbital Gyrus.....................", 11,-39,-25,2, "" } ,
+      { 34,"Right Orbital Gyrus.....................",-11,-39,-25,2, "" } ,
+      { 35,"Left  Middle Temporal Gyrus.............", 52, 39,  0,2, "" } ,
+      { 35,"Right Middle Temporal Gyrus.............",-52, 39,  0,2, "" } ,
+      { 36,"Left  Superior Temporal Gyrus...........", 51, 17,  0,2, "" } ,
+      { 36,"Right Superior Temporal Gyrus...........",-51, 17,  0,2, "" } ,
+      { 37,"Left  Superior Occipital Gyrus..........", 37, 82, 27,2, "" } ,
+      { 37,"Right Superior Occipital Gyrus..........",-37, 82, 27,2, "" } ,
+      { 39,"Left  Inferior Frontal Gyrus............", 44,-24,  2,2, "" } ,
+      { 39,"Right Inferior Frontal Gyrus............",-44,-24,  2,2, "" } ,
+      { 40,"Left  Cuneus............................", 13, 83, 18,2, "" } ,
+      { 40,"Right Cuneus............................",-13, 83, 18,2, "" } ,
+      { 41,"Left  Angular Gyrus.....................", 45, 64, 33,2, "" } ,
+      { 41,"Right Angular Gyrus.....................",-45, 64, 33,2, "" } ,
+      { 42,"Left  Supramarginal Gyrus...............", 51, 48, 31,2, "" } ,
+      { 42,"Right Supramarginal Gyrus...............",-51, 48, 31,2, "" } ,
+      { 43,"Left  Cingulate Gyrus...................", 10, 11, 34,2, "" } ,
+      { 43,"Right Cingulate Gyrus...................",-10, 11, 34,2, "" } ,
+      { 44,"Left  Inferior Parietal Lobule..........", 48, 41, 39,2, "" } ,
+      { 44,"Right Inferior Parietal Lobule..........",-48, 41, 39,2, "" } ,
+      { 45,"Left  Precuneus.........................", 14, 61, 41,2, "" } ,
+      { 45,"Right Precuneus.........................",-14, 61, 41,2, "" } ,
+      { 46,"Left  Superior Parietal Lobule..........", 27, 59, 53,2, "" } ,
+      { 46,"Right Superior Parietal Lobule..........",-27, 59, 53,2, "" } ,
+      { 47,"Left  Middle Frontal Gyrus..............", 37,-29, 26,2, "" } ,
+      { 47,"Right Middle Frontal Gyrus..............",-37,-29, 26,2, "" } ,
+      { 48,"Left  Paracentral Lobule................",  7, 32, 53,2, "" } ,
+      { 48,"Right Paracentral Lobule................", -7, 32, 53,2, "" } ,
+      { 49,"Left  Postcentral Gyrus.................", 43, 25, 43,2, "" } ,
+      { 49,"Right Postcentral Gyrus.................",-43, 25, 43,2, "" } ,
+      { 50,"Left  Precentral Gyrus..................", 44,  8, 38,2, "" } ,
+      { 50,"Right Precentral Gyrus..................",-44,  8, 38,2, "" } ,
+      { 51,"Left  Superior Frontal Gyrus............", 19,-40, 27,2, "" } ,
+      { 51,"Right Superior Frontal Gyrus............",-19,-40, 27,2, "" } ,
+      { 52,"Left  Medial Frontal Gyrus..............",  9,-24, 35,2, "" } ,
+      { 52,"Right Medial Frontal Gyrus..............", -9,-24, 35,2, "" } ,
+      { 70,"Left  Lentiform Nucleus.................", 22,  1,  2,2, "" } ,
+      { 70,"Right Lentiform Nucleus.................",-22,  1,  2,2, "" } ,
+      { 72,"Left  Hypothalamus......................",  4,  3, -9,4, "" } ,
+      { 72,"Right Hypothalamus......................", -4,  3, -9,4, "" } ,
+      { 73,"Left  Red Nucleus.......................",  5, 19, -4,4, "" } ,
+      { 73,"Right Red Nucleus.......................", -5, 19, -4,4, "" } ,
+      { 74,"Left  Substantia Nigra..................", 11, 18, -7,4, "" } ,
+      { 74,"Right Substantia Nigra..................",-11, 18, -7,4, "" } ,
+      { 75,"Left  Claustrum.........................", 32,  1,  5,2, "" } ,
+      { 75,"Right Claustrum.........................",-32,  1,  5,2, "" } ,
+      { 76,"Left  Thalamus..........................", 12, 19,  8,2, "" } ,
+      { 76,"Right Thalamus..........................",-12, 19,  8,2, "" } ,
+      { 77,"Left  Caudate...........................", 11, -7,  9,2, "" } ,
+      { 77,"Right Caudate...........................",-11, -7,  9,2, "" } ,
+      {124,"Left  Caudate Tail......................", 27, 35,  9,4, "" } ,
+      {124,"Right Caudate Tail......................",-27, 35,  9,4, "" } ,
+      {125,"Left  Caudate Body......................", 12, -6, 14,4, "" } ,
+      {125,"Right Caudate Body......................",-12, -6, 14,4, "" } ,
+      {126,"Left  Caudate Head......................",  9,-13,  0,4, "" } ,
+      {126,"Right Caudate Head......................", -9,-13,  0,4, "" } ,
+      {128,"Left  Ventral Anterior Nucleus..........", 11,  6,  9,4, "" } ,
+      {128,"Right Ventral Anterior Nucleus..........",-11,  6,  9,4, "" } ,
+      {129,"Left  Ventral Posterior Medial Nucleus..", 15, 20,  4,4, "" } ,
+      {129,"Right Ventral Posterior Medial Nucleus..",-15, 20,  4,4, "" } ,
+      {130,"Left  Ventral Posterior Lateral Nucleus.", 18, 19,  5,4, "" } ,
+      {130,"Right Ventral Posterior Lateral Nucleus.",-18, 19,  5,4, "" } ,
+      {131,"Left  Medial Dorsal Nucleus.............",  6, 16,  8,4, "" } ,
+      {131,"Right Medial Dorsal Nucleus.............", -6, 16,  8,4, "" } ,
+      {132,"Left  Lateral Dorsal Nucleus............", 12, 20, 16,4, "" } ,
+      {132,"Right Lateral Dorsal Nucleus............",-12, 20, 16,4, "" } ,
+      {133,"Left  Pulvinar..........................", 16, 27,  8,4, "" } ,
+      {133,"Right Pulvinar..........................",-16, 27,  8,4, "" } ,
+      {134,"Left  Lateral Posterior Nucleus.........", 17, 20, 14,4, "" } ,
+      {134,"Right Lateral Posterior Nucleus.........",-17, 20, 14,4, "" } ,
+      {135,"Left  Ventral Lateral Nucleus...........", 14, 12,  9,4, "" } ,
+      {135,"Right Ventral Lateral Nucleus...........",-14, 12,  9,4, "" } ,
+      {136,"Left  Midline Nucleus...................",  7, 18, 16,4, "" } ,
+      {136,"Right Midline Nucleus...................", -7, 18, 16,4, "" } ,
+      {137,"Left  Anterior Nucleus..................",  8,  8, 12,4, "" } ,   /* 04 Mar 2002 */
+      {137,"Right Anterior Nucleus..................", -8,  8, 12,4, "" } ,
+      {138,"Left  Mammillary Body...................", 11, 20,  2,4, "" } ,
+      {138,"Right Mammillary Body...................",-11, 20,  2,4, "" } ,
+      {144,"Left  Medial Globus Pallidus............", 15,  4, -2,4, "" } ,
+      {144,"Right Medial Globus Pallidus............",-15,  4, -2,4, "" } ,
+      {145,"Left  Lateral Globus Pallidus...........", 20,  5,  0,4, "" } ,
+      {145,"Right Lateral Globus Pallidus...........",-20,  5,  0,4, "" } ,
+      {151,"Left  Putamen...........................", 24,  0,  3,4, "" } ,
+      {151,"Right Putamen...........................",-24,  0,  3,4, "" } ,
+      {146,"Left  Nucleus Accumbens.................", 12, -8, -8,4, "" } , /* 20 Aug */
+      {146,"Right Nucleus Accumbens.................",-12, -8, -8,4, "" } , /* 2001 */
+      {147,"Left  Medial Geniculum Body.............", 17, 24, -2,4, "" } ,
+      {147,"Right Medial Geniculum Body.............",-17, 24, -2,4, "" } ,
+      {148,"Left  Lateral Geniculum Body............", 22, 24, -1,4, "" } ,
+      {148,"Right Lateral Geniculum Body............",-22, 24, -1,4, "" } ,
+      {149,"Left  Subthalamic Nucleus...............", 10, 13, -3,4, "" } ,
+      {149,"Right Subthalamic Nucleus...............",-10, 13, -3,4, "" } ,
+      { 81,"Left  Brodmann area 1...................", 53, 19, 50,4, "" } ,
+      { 81,"Right Brodmann area 1...................",-53, 19, 50,4, "" } ,
+      { 82,"Left  Brodmann area 2...................", 49, 26, 43,4, "" } ,
+      { 82,"Right Brodmann area 2...................",-49, 26, 43,4, "" } ,
+      { 83,"Left  Brodmann area 3...................", 39, 23, 50,4, "" } ,
+      { 83,"Right Brodmann area 3...................",-39, 23, 50,4, "" } ,
+      { 84,"Left  Brodmann area 4...................", 39, 18, 49,4, "" } ,
+      { 84,"Right Brodmann area 4...................",-39, 18, 49,4, "" } ,
+      { 85,"Left  Brodmann area 5...................", 16, 40, 57,4, "" } ,
+      { 85,"Right Brodmann area 5...................",-16, 40, 57,4, "" } ,
+      { 86,"Left  Brodmann area 6...................", 29,  0, 50,4, "" } ,
+      { 86,"Right Brodmann area 6...................",-29,  0, 50,4, "" } ,
+      { 87,"Left  Brodmann area 7...................", 16, 60, 48,4, "" } ,
+      { 87,"Right Brodmann area 7...................",-16, 60, 48,4, "" } ,
+      { 88,"Left  Brodmann area 8...................", 24,-30, 44,4, "" } ,
+      { 88,"Right Brodmann area 8...................",-24,-30, 44,4, "" } ,
+      { 89,"Left  Brodmann area 9...................", 32,-33, 30,4, "" } ,
+      { 89,"Right Brodmann area 9...................",-32,-33, 30,4, "" } ,
+      { 90,"Left  Brodmann area 10..................", 24,-56,  6,4, "" } ,
+      { 90,"Right Brodmann area 10..................",-24,-56,  6,4, "" } ,
+      { 91,"Left  Brodmann area 11..................", 17,-43,-18,4, "" } ,
+      { 91,"Right Brodmann area 11..................",-17,-43,-18,4, "" } ,
+      { 93,"Left  Brodmann area 13..................", 39,  4,  8,4, "" } ,
+      { 93,"Right Brodmann area 13..................",-39,  4,  8,4, "" } ,
+      { 94,"Left  Brodmann area 17..................", 10, 88,  5,4, "" } ,
+      { 94,"Right Brodmann area 17..................",-10, 88,  5,4, "" } ,
+      { 95,"Left  Brodmann area 18..................", 19, 85,  4,4, "" } ,
+      { 95,"Right Brodmann area 18..................",-19, 85,  4,4, "" } ,
+      { 96,"Left  Brodmann area 19..................", 34, 80, 18,4, "" } ,
+      { 96,"Right Brodmann area 19..................",-34, 80, 18,4, "" } ,
+      { 97,"Left  Brodmann area 20..................", 47, 21,-23,4, "" } ,
+      { 97,"Right Brodmann area 20..................",-47, 21,-23,4, "" } ,
+      { 98,"Left  Brodmann area 21..................", 58, 18,-10,4, "" } ,
+      { 98,"Right Brodmann area 21..................",-58, 18,-10,4, "" } ,
+      { 99,"Left  Brodmann area 22..................", 57, 23,  5,4, "" } ,
+      { 99,"Right Brodmann area 22..................",-57, 23,  5,4, "" } ,
+      {100,"Left  Brodmann area 23..................",  4, 37, 24,4, "" } ,
+      {100,"Right Brodmann area 23..................", -4, 37, 24,4, "" } ,
+      {101,"Left  Brodmann area 24..................",  6, -6, 30,4, "" } ,
+      {101,"Right Brodmann area 24..................", -6, -6, 30,4, "" } ,
+      {102,"Left  Brodmann area 25..................",  6,-15,-13,4, "" } ,
+      {102,"Right Brodmann area 25..................", -6,-15,-13,4, "" } ,
+      {103,"Left  Brodmann area 27..................", 15, 35,  0,4, "" } ,
+      {103,"Right Brodmann area 27..................",-15, 35,  0,4, "" } ,
+      {104,"Left  Brodmann area 28..................", 22, -2,-24,4, "" } ,
+      {104,"Right Brodmann area 28..................",-22, -2,-24,4, "" } ,
+      {105,"Left  Brodmann area 29..................",  6, 48, 11,4, "" } ,
+      {105,"Right Brodmann area 29..................", -6, 48, 11,4, "" } ,
+      {106,"Left  Brodmann area 30..................", 13, 62, 10,4, "" } ,
+      {106,"Right Brodmann area 30..................",-13, 62, 10,4, "" } ,
+      {107,"Left  Brodmann area 31..................",  9, 47, 32,4, "" } ,
+      {107,"Right Brodmann area 31..................", -9, 47, 32,4, "" } ,
+      {108,"Left  Brodmann area 32..................",  8,-24, 30,4, "" } ,
+      {108,"Right Brodmann area 32..................", -8,-24, 30,4, "" } ,
+      {109,"Left  Brodmann area 33..................",  5,-12, 24,4, "" } ,
+      {109,"Right Brodmann area 33..................", -5,-12, 24,4, "" } ,
+      {110,"Left  Brodmann area 34..................", 18,  0,-16,4, "" } ,
+      {110,"Right Brodmann area 34..................",-18,  0,-16,4, "" } ,
+      {111,"Left  Brodmann area 35..................", 23, 25,-15,4, "" } ,
+      {111,"Right Brodmann area 35..................",-23, 25,-15,4, "" } ,
+      {112,"Left  Brodmann area 36..................", 33, 33,-15,4, "" } ,
+      {112,"Right Brodmann area 36..................",-33, 33,-15,4, "" } ,
+      {113,"Left  Brodmann area 37..................", 48, 55, -7,4, "" } ,
+      {113,"Right Brodmann area 37..................",-48, 55, -7,4, "" } ,
+      {114,"Left  Brodmann area 38..................", 41,-12,-23,4, "" } ,
+      {114,"Right Brodmann area 38..................",-41,-12,-23,4, "" } ,
+      {115,"Left  Brodmann area 39..................", 48, 64, 28,4, "" } ,
+      {115,"Right Brodmann area 39..................",-48, 64, 28,4, "" } ,
+      {116,"Left  Brodmann area 40..................", 51, 40, 38,4, "" } ,
+      {116,"Right Brodmann area 40..................",-51, 40, 38,4, "" } ,
+      {117,"Left  Brodmann area 41..................", 47, 26, 11,4, "" } ,
+      {117,"Right Brodmann area 41..................",-47, 26, 11,4, "" } ,
+      {118,"Left  Brodmann area 42..................", 63, 22, 12,4, "" } ,
+      {118,"Right Brodmann area 42..................",-63, 22, 12,4, "" } ,
+      {119,"Left  Brodmann area 43..................", 58, 10, 16,4, "" } ,
+      {119,"Right Brodmann area 43..................",-58, 10, 16,4, "" } ,
+      {120,"Left  Brodmann area 44..................", 53,-11, 12,4, "" } ,
+      {120,"Right Brodmann area 44..................",-53,-11, 12,4, "" } ,
+      {121,"Left  Brodmann area 45..................", 54,-23, 10,4, "" } ,
+      {121,"Right Brodmann area 45..................",-54,-23, 10,4, "" } ,
+      {122,"Left  Brodmann area 46..................", 50,-38, 16,4, "" } ,
+      {122,"Right Brodmann area 46..................",-50,-38, 16,4, "" } ,
+      {123,"Left  Brodmann area 47..................", 38,-24,-11,4, "" } ,
+      {123,"Right Brodmann area 47..................",-38,-24,-11,4, "" } ,
+      { 53,"Left  Uvula of Vermis...................",  2, 65,-32,2, "" } ,
+      { 53,"Right Uvula of Vermis...................", -2, 65,-32,2, "" } ,
+      { 54,"Left  Pyramis of Vermis.................",  2, 73,-28,2, "" } ,
+      { 54,"Right Pyramis of Vermis.................", -2, 73,-28,2, "" } ,
+      { 55,"Left  Tuber of Vermis...................",  2, 71,-24,2, "" } ,
+      { 55,"Right Tuber of Vermis...................", -2, 71,-24,2, "" } ,
+      { 56,"Left  Declive of Vermis.................",  2, 72,-17,2, "" } ,
+      { 56,"Right Declive of Vermis.................", -2, 72,-17,2, "" } ,
+      { 57,"Left  Culmen of Vermis..................",  3, 63, -3,2, "" } ,
+      { 57,"Right Culmen of Vermis..................", -3, 63, -3,2, "" } ,
+      { 58,"Left  Cerebellar Tonsil.................", 28, 51,-36,2, "" } ,
+      { 58,"Right Cerebellar Tonsil.................",-28, 51,-36,2, "" } ,
+      { 59,"Left  Inferior Semi-Lunar Lobule........", 29, 71,-38,2, "" } ,
+      { 59,"Right Inferior Semi-Lunar Lobule........",-29, 71,-38,2, "" } ,
+      { 60,"Left  Fastigium.........................",  7, 54,-20,2, "" } ,
+      { 60,"Right Fastigium.........................", -7, 54,-20,2, "" } ,
+      { 61,"Left  Nodule............................",  7, 55,-27,2, "" } ,
+      { 61,"Right Nodule............................", -7, 55,-27,2, "" } ,
+      { 62,"Left  Uvula.............................", 21, 76,-26,2, "" } ,
+      { 62,"Right Uvula.............................",-21, 76,-26,2, "" } ,
+      { 63,"Left  Pyramis...........................", 27, 74,-30,2, "" } ,
+      { 63,"Right Pyramis...........................",-27, 74,-30,2, "" } ,
+      { 66,"Left  Culmen............................", 20, 46,-16,2, "" } ,
+      { 66,"Right Culmen............................",-20, 46,-16,2, "" } ,
+      { 65,"Left  Declive...........................", 26, 69,-17,2, "" } ,
+      { 65,"Right Declive...........................",-26, 69,-17,2, "" } ,
+      {127,"Left  Dentate...........................", 14, 54,-23,4, "" } ,
+      {127,"Right Dentate...........................",-14, 54,-23,4, "" } ,
+      { 64,"Left  Tuber.............................", 44, 71,-27,2, "" } ,
+      { 64,"Right Tuber.............................",-44, 71,-27,2, "" } ,
+      { 67,"Left  Cerebellar Lingual................",  4, 45,-13,2, "" } ,
+      { 67,"Right Cerebellar Lingual................", -4, 45,-13,2, "" }
 } ;
 
 char * TTO_labels[TTO_COUNT] ;
@@ -1527,7 +1527,18 @@ int compare_Z_IQSORT_FLOAT (Z_QSORT_FLOAT *a, Z_QSORT_FLOAT *b )
    return (0);
 }
 
-int compare_short (byte *a, byte *b )
+int compare_int (int *a, int *b )
+{/* compare_int*/
+    if (*a < *b)
+      return (-1);
+   else if (*a == *b)
+      return (0);
+   else
+      return (1);
+   
+}/* compare_short*/
+
+int compare_short (short *a, short *b )
 {/* compare_short*/
     if (*a < *b)
       return (-1);
@@ -1537,6 +1548,7 @@ int compare_short (byte *a, byte *b )
       return (1);
    
 }/* compare_short*/
+
 int compare_byte (byte *a, byte *b )
 {/* compare_byte*/
     if (*a < *b)
@@ -1622,8 +1634,71 @@ int *z_iqsort (float *x , int nx )
    kunq: (int *) pointer to number of unique values
    Sorted: (1 means values in y are sorted)
 */
-short * UniqueShort (short *y, int ysz, int *kunq, int Sorted )
+int * UniqueInt (int *y, int ysz, int *kunq, int Sorted )
 {/*UniqueInt*/
+   int  *xunq, *x;
+   int k;
+   byte LocalHead = 0;
+   static char FuncName[]={"UniqueInt"};
+
+   ENTRY("UniqueInt");
+   *kunq = 0;
+
+   if (!ysz) {
+      RETURN(NULL);
+   }
+   if (!Sorted)
+    {/* must sort y , put in a new location so that y is not disturbed*/
+      x = (int *)calloc(ysz, sizeof(int));
+      if (!x)
+         {
+            fprintf (stderr,"Error %s: Failed to allocate for x.", FuncName);
+            RETURN (NULL);
+         }
+      for (k=0; k < ysz; ++k)
+         x[k] = y[k];
+      qsort(x,ysz,sizeof(int), (int(*) (const void *, const void *)) compare_int);
+   }
+   else
+      x = y;
+
+   xunq = (int *) calloc(ysz,sizeof(int));
+   if (xunq == NULL)
+    {
+      fprintf (stderr,"Error %s: Could not allocate memory", FuncName);
+      RETURN (NULL);
+   }
+
+   *kunq = 0;
+   xunq[0] = x[0];
+   for (k=1;k<ysz;++k)
+    {
+      if ((x[k] != x[k - 1]))
+         {
+            ++*kunq;
+            xunq[*kunq] = x[k];   
+         }
+   }
+   ++*kunq;
+   
+   
+   /* get rid of extra space allocated */
+   xunq = (int *) realloc(xunq, *kunq*sizeof(int));
+
+   if (!Sorted)
+      free (x);
+
+   RETURN (xunq);
+}/*UniqueInt*/
+
+/* return the unique values in y
+   y : Vector of values
+   ysz: Number of elements in y
+   kunq: (int *) pointer to number of unique values
+   Sorted: (1 means values in y are sorted)
+*/
+short * UniqueShort (short *y, int ysz, int *kunq, int Sorted )
+{/*UniqueShort*/
    short  *xunq, *x;
    int k;
    byte LocalHead = 0;
@@ -1678,6 +1753,7 @@ short * UniqueShort (short *y, int ysz, int *kunq, int Sorted )
 
    RETURN (xunq);
 }/*UniqueShort*/
+
 /* return the unique values in y
    y : Vector of values
    ysz: Number of elements in y
@@ -1685,7 +1761,7 @@ short * UniqueShort (short *y, int ysz, int *kunq, int Sorted )
    Sorted: (1 means values in y are sorted)
 */
 byte * UniqueByte (byte *y, int ysz, int *kunq, int Sorted )
-{/*UniqueInt*/
+{/*UniqueByte*/
    byte  *xunq, *x;
    int k;
    byte LocalHead = 0;
@@ -3148,6 +3224,99 @@ void CA_EZ_LR_purge_atlas(void)
    PURGE_DSET(dseCA_EZ_LR); return;
 }
 
+#define IS_BLANK(c) ( ((c) == ' ' || (c) == '\t' || (c) == '\n' || (c) == '\v' || (c) == '\f' || (c) == '\r') ? 1 : 0 )
+
+/* removes one occurence of left or right in name , search is case insensitive*/
+char *NoLeftRight (char *name) 
+{
+   char *nolr0=NULL;
+   ENTRY("NoLeftRight");
+   
+   if (!name) RETURN(NULL);
+   
+   nolr0 = strcasestr(name, "LEFT");
+   /* if (nolr0) fprintf(stderr,"%s\n%s\n", name, nolr0+4); */
+   if (!nolr0) { /* left not found, remove right */
+      nolr0 = strcasestr(name, "RIGHT");
+     /* if (nolr0) fprintf(stderr,"%s\n%s\n", name, nolr0+5); */
+     if (nolr0) {
+         nolr0 += 5; /* jump beyond right */
+      }   
+   }else {
+      nolr0 += 4; /* jump beyond left */
+   }
+   
+   /* deblank */
+   if (nolr0) {
+      while (nolr0[0] != '\0' && IS_BLANK(nolr0[0]))  {
+         ++nolr0;
+      }
+   }
+   
+   RETURN(nolr0);
+}
+
+const char *Atlas_Val_to_Atlas_Name(ATLAS_DSET_HOLDER adh, int tdval) 
+{
+   int ii, cmax = 600;
+   static char tmps[600];
+   
+   ENTRY("Atlas_Val_to_Atlas_Name");
+   
+   tmps[0] = '\0';
+   if (tdval > adh.maxindexcode) {
+      ERROR_message("integer code (%d) higher than maximum integer code (%d)!", tdval, adh.maxindexcode);
+      RETURN(NULL);      
+   }
+   if (!adh.apl) {
+      ERROR_message("No list for this atlas, fool!");
+      RETURN(NULL);   
+   }
+   
+   if (!adh.duplicateLRentries) {
+      /* quicky */
+      if (tdval < adh.mxelm) {
+         if (adh.apl[tdval].tdval == tdval) RETURN(Clean_Atlas_Label(adh.apl[tdval].name));
+      }
+      /* longy */
+      for( ii=0 ; ii < adh.mxelm ; ii++ ) { 
+         if (adh.apl[ii].tdval == tdval) RETURN(Clean_Atlas_Label(adh.apl[ii].name));
+      }
+   } else {
+      int fnd[30], nfnd =0;
+      /* search for all, for safety */
+      for( ii=0 ; ii < adh.mxelm ; ii++ ) { 
+         if (adh.apl[ii].tdval == tdval) {
+            fnd[nfnd] = ii; ++nfnd;
+         }
+      }
+      
+      if ( nfnd == 0) RETURN(NULL);
+      
+      if ( nfnd == 1) {
+         RETURN(NoLeftRight(Clean_Atlas_Label(adh.apl[fnd[0]].name)));
+      }
+      
+      if (nfnd > 2) {
+         /* too many entries, return them all */
+         snprintf(tmps,sizeof(char)*(int)((cmax-6*nfnd)/nfnd), "%s", Clean_Atlas_Label(adh.apl[fnd[0]].name)); 
+         for( ii=1 ; ii < nfnd; ++ii) {
+            snprintf(tmps,sizeof(char)*(int)((cmax-6*nfnd)/nfnd), "-AND-%s", Clean_Atlas_Label(adh.apl[fnd[ii]].name)); 
+         }
+      } else {
+         /* get ridd of the LR business */
+         if (strcmp(NoLeftRight(Clean_Atlas_Label(adh.apl[fnd[0]].name)), NoLeftRight(Clean_Atlas_Label(adh.apl[fnd[1]].name))) == 0) {
+            RETURN(NoLeftRight(Clean_Atlas_Label(adh.apl[fnd[0]].name)));
+         }else{
+            snprintf(tmps,sizeof(char)*cmax, "%s-AND-%s", Clean_Atlas_Label(adh.apl[fnd[0]].name), Clean_Atlas_Label(adh.apl[fnd[1]].name));
+            RETURN(tmps);
+         }
+      }
+   }
+    
+   RETURN(NULL);
+}
+
 
 ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
 {
@@ -3165,6 +3334,9 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
       adh.mxelm = -1;
       adh.probkey = -100.0;
       adh.lrmask = NULL;
+      adh.maxindexcode = -1;
+      adh.duplicateLRentries = 0; /* Are LR labels listed in adh.apl and under the same code? (only case I know of is in TTO_list*/
+      adh.apl = NULL;
       build_lr = 1;
       switch (atcode) {
          case CA_EZ_N27_MPM_ATLAS:
@@ -3179,9 +3351,14 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
                }
             }
             adh.dset = dseCA_EZ_MPM;
-            adh.mxlablen = CA_EZ_CMAX;
+            adh.mxlablen = ATLAS_CMAX;
             adh.mxelm = CA_EZ_COUNT;
             adh.probkey = -2.0;
+            for (ii=0; ii<CA_EZ_COUNT; ++ii) { 
+               if (CA_EZ_list[ii].tdval > adh.maxindexcode) adh.maxindexcode = CA_EZ_list[ii].tdval;
+            }
+            adh.apl = CA_EZ_list;
+            adh.duplicateLRentries = 0; /* Are LR labels listed in adh.apl and under the same code? (only case I know of is in TTO_list*/
             build_lr = 1;
             break;
          case CA_EZ_N27_ML_ATLAS:
@@ -3196,9 +3373,14 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
                }
             }
             adh.dset = dseCA_EZ_ML;
-            adh.mxlablen = ML_EZ_CMAX;
+            adh.mxlablen = ATLAS_CMAX;
             adh.mxelm = ML_EZ_COUNT;
+            for (ii=0; ii<ML_EZ_COUNT; ++ii) { 
+               if (ML_EZ_list[ii].tdval > adh.maxindexcode) adh.maxindexcode = ML_EZ_list[ii].tdval;
+            }
             adh.probkey = -1.0;
+            adh.apl = ML_EZ_list;
+            adh.duplicateLRentries = 0; /* Are LR labels listed in adh.apl and under the same code? (only case I know of is in TTO_list*/
             build_lr = 1;
             break;
          case CA_EZ_N27_LR_ATLAS:
@@ -3213,9 +3395,14 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
                }
             }
             adh.dset = dseCA_EZ_LR;
-            adh.mxlablen = LR_EZ_CMAX;
+            adh.mxlablen = ATLAS_CMAX;
             adh.mxelm = LR_EZ_COUNT;
+            for (ii=0; ii<LR_EZ_COUNT; ++ii) { 
+               if (LR_EZ_list[ii].tdval > adh.maxindexcode) adh.maxindexcode = LR_EZ_list[ii].tdval;
+            }
             adh.probkey = -1.0;
+            adh.apl = LR_EZ_list;
+            adh.duplicateLRentries = 0; /* Are LR labels listed in adh.apl and under the same code? (only case I know of is in TTO_list*/
             build_lr = 1;
             break;
          case CA_EZ_N27_PMAPS_ATLAS:
@@ -3230,9 +3417,12 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
                }
             }
             adh.dset = dseCA_EZ_PMaps;
-            adh.mxlablen = CA_EZ_CMAX;
+            adh.mxlablen = ATLAS_CMAX;
             adh.mxelm = CA_EZ_COUNT;
+            adh.maxindexcode = -1; /* not appropriate */
             adh.probkey = 0.0;
+            adh.apl = NULL;
+            adh.duplicateLRentries = 0; /* Are LR labels listed in adh.apl and under the same code? (only case I know of is in TTO_list*/
             build_lr = 1;
             break;
          case AFNI_TLRC_ATLAS:
@@ -3254,9 +3444,14 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
             if( adh.dset == dseTT_big ) fprintf(stderr,"TT_whereami using dseTT_big\n") ;
             else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
             #endif
-            adh.mxlablen = TTO_CMAX;
+            adh.mxlablen = ATLAS_CMAX;
             adh.mxelm = TTO_COUNT;
             adh.probkey = -1.0;
+            for (ii=0; ii<TTO_COUNT; ++ii) { 
+               if (TTO_list[ii].tdval > adh.maxindexcode) adh.maxindexcode = TTO_list[ii].tdval;
+            }
+            adh.apl = TTO_list;
+            adh.duplicateLRentries = 1; /* Are LR labels listed in adh.apl and under the same code? (only case I know of is in TTO_list*/
             build_lr = 0;
             break;
          default:
@@ -3264,6 +3459,11 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
             RETURN(adh);
       }
 
+      if (adh.maxindexcode > 255) {
+            fprintf(stderr,"** Warning: Max index code (%d) higher than expected.\n"
+                           "What's cracking?.\n", adh.maxindexcode);
+      }
+      
       if (!adh.dset) { RETURN(adh); }
 
       /* load the dset */
