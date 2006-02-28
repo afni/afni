@@ -167,7 +167,7 @@ if (~isempty(which('se_note'))),
             end
             k = k + 1;
          end
-         %Now fix up the looks of the list
+         %Now fix up the looks of the list DO NOT CHANGE USAGE OF '-----> ' for padding, C function PrettyRef depends on them
          imx = 0;
          for (l=1:1:length(ca)),
             isep = strfind(char(ca(l)), '-x->');
