@@ -3285,15 +3285,19 @@ void CA_EZ_LR_purge_atlas(void)
 /* removes one occurence of left or right in name , search is case insensitive*/
 char *NoLeftRight (char *name) 
 {
-   char *nolr0=NULL;
+   char *nolr0=NULL, namesave[500];
+   int i;
    ENTRY("NoLeftRight");
    
-   if (!name) RETURN(NULL);
+   if (!name) RETURN(name);
    
-   nolr0 = strcasestr(name, "LEFT");
-   /* if (nolr0) fprintf(stderr,"%s\n%s\n", name, nolr0+4); */
+   snprintf(namesave,499*sizeof(char), "%s", name);
+   
+   for (i=0; i<strlen(name); ++i) name[i] = TO_UPPER(name[i]);
+   nolr0 = strstr(name, "LEFT");
+   /*if (nolr0) fprintf(stderr,"%s\n%s\n", name, nolr0+4); */
    if (!nolr0) { /* left not found, remove right */
-      nolr0 = strcasestr(name, "RIGHT");
+      nolr0 = strstr(name, "RIGHT");
      /* if (nolr0) fprintf(stderr,"%s\n%s\n", name, nolr0+5); */
      if (nolr0) {
          nolr0 += 5; /* jump beyond right */
@@ -3309,7 +3313,11 @@ char *NoLeftRight (char *name)
       }
    }
    
-   RETURN(nolr0);
+   /* put it back */
+   sprintf(name,"%s", namesave); 
+   
+   if (nolr0) RETURN(nolr0);
+   else RETURN(name);
 }
 
 const char *Atlas_Val_to_Atlas_Name(ATLAS_DSET_HOLDER adh, int tdval) 
