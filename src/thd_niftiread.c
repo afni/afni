@@ -44,6 +44,13 @@ ENTRY("THD_open_nifti") ;
       these are mutually exclusive in AFNI at present */
 
    ntt = nim->nt ; nbuc = nim->nu ;
+
+   /* nt and nu might be 0 now (see irritating niftilib 1.17 update)  */
+   /* so ensure that ntt and nbuc are positive    02 Mar 2006 [rickr] */
+
+   if( ntt  <= 0 ) ntt  = 1;
+   if( nbuc <= 0 ) nbuc = 1;
+
    if( ntt > 1 && nbuc > 1 ){
      fprintf(stderr,
              "** AFNI can't deal with 5 dimensional NIfTI dataset file %s\n",

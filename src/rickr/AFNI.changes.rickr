@@ -1425,4 +1425,6 @@
 02 Mar 2006:
   * modified nifti_tool.c (v 1.12) to deal with nt = 0 in act_cbl(), due
     to change of leaving nt..nw as 0 (potentially) in nifti1_io.c
+  * modified nifti1_io.c (v 1.18) to deal with nt = 0 in nifti_alloc_NBL_mem()
+  * modified thd_niftiread.c to be sure that ntt and nbuc are at least 1
 
