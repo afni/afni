@@ -596,7 +596,7 @@ THD_fvec3 THD_mni__tta_N27( THD_fvec3 mv, int dir )
    LOAD_FVEC3( tv , tx,ty,tz ) ;
    LOAD_FVEC3( tv2 , tx,ty,tz ) ;
    
-   if (1) { /* Meth. 1, Left here should we allow user someday to specify a .HEAD with their own transform... */
+   if (0) { /* Meth. 1, Left here should we allow user someday to specify a .HEAD with their own transform... */
       INFO_message("What about the path?\nNeed something fool proof\n");
       if (!MNI_N27_to_TLRC_DSET) {
         MNI_N27_to_TLRC_DSET = THD_open_one_dataset( MNI_N27_to_AFNI_TLRC_HEAD ) ;
@@ -649,7 +649,7 @@ THD_fvec3 THD_mni__tta_N27( THD_fvec3 mv, int dir )
       else tv2 = AFNI_backward_warp_vector((THD_warp *)ww, mv);
    }
    
-   if (1) {
+   if (0) {
       INFO_message("tv2(Meth. 2): %f %f %f\n", tv2.xyz[0], tv2.xyz[1], tv2.xyz[2]);
    }
    
@@ -669,7 +669,7 @@ THD_fvec3 THD_tta_to_mni_N27( THD_fvec3 mv )
 THD_fvec3 THD_mnia_to_tta_N27( THD_fvec3 mv )
 {
    THD_fvec3 mva;
-   /*go from MNI Anat to MNI (remember, shift is in RAI space, not LPI)*/
+   /*go from MNI Anat to MNI (remember, shift is in RAI space, not LPI. See also script @Shift_volume)*/
    mva.xyz[0] = mv.xyz[0] + 0.0 ;
    mva.xyz[1] = mv.xyz[1] - 4.0 ;
    mva.xyz[2] = mv.xyz[2] - 5.0 ;
@@ -683,7 +683,7 @@ THD_fvec3 THD_tta_to_mnia_N27( THD_fvec3 mv )
    
    mva = THD_mni__tta_N27( mv , -1);
    
-   /*go from MNI to MNI Anat (remember, shift is in RAI space, not LPI)*/     
+   /*go from MNI to MNI Anat (remember, shift is in RAI space, not LPI. See also script @Shift_volume)*/     
    mva.xyz[0] = mva.xyz[0] + 0.0 ;
    mva.xyz[1] = mva.xyz[1] + 4.0 ;
    mva.xyz[2] = mva.xyz[2] + 5.0 ;

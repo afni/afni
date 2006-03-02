@@ -100,8 +100,20 @@ void whereami_usage(void)
                "                            friendly for use in spreadsheets. \n"
                "                            The default output flag is 0. You can use\n"
                "                            options -tab/-classic instead of the 0/1 flag.\n"
-               " -lpi/-spm: Input coordinates are in LPI or SPM format. Default input\n"
-               "            format is RAI/DICOM.\n"
+               " -coord_file XYZ.1D: Input coordinates are stored in file XYZ.1D\n"
+               "                     Use the '[ ]' column selectors to specify the\n"
+               "                     X,Y, and Z columns in XYZ.1D.\n"
+               "                     Say you ran the following 3dclust command:\n"
+               "           3dclust -1Dformat -1clip 0.3  5 3000 func+orig'[1]' > out.1D\n"
+               "                     You can run whereami on each cluster's center\n"
+               "                     of mass with:\n"
+               "           whereami -coord_file out.1D'[1,2,3]' -tab\n"
+               "               NOTE: You cannot use -coord_file AND specify x,y,z on\n"
+               "                     command line.\n" 
+               " -lpi/-spm: Input coordinates are in LPI or SPM format. \n"
+               " -rai/-dicom: Input coordinates are in RAI or DICOM format.\n"
+               " NOTE: The default format for input coordinates is set by AFNI_ORIENT\n"
+               "       environment variable. If it is not set, then the default is RAI/DICOM\n"
                " -classic: Classic output format (output_format = 0).\n"
                " -tab: Tab delimited output (output_format = 1). Useful for spreadsheeting.\n"
                " -atlas ATLAS: Use atlas ATLAS for the query.\n"
@@ -193,7 +205,10 @@ void whereami_usage(void)
                "                     ROI value. Note that -omask and -bmask are mutually exculsive.\n"
                " -cmask MASK_COMMAND: command for masking values in BINARY_MASK, \n"
                "                      or ORDERED_MASK on the fly.\n"
-               "        e.g. -cmask '-a fred_func+orig[2] -expr step(a-0.8)'\n"
+               "        e.g. whereami -bmask JoeROIs+tlrc \\n"
+               "                      -cmask '-a JoeROIs+tlrc -expr equals(a,2)'\n"
+               "              Would set to 0, all voxels in JoeROIs that are not\n"
+               "              equal to 2.\n"
                "        Note that this mask should form a single sub-brick,\n"
                "        and must be at the same resolution as BINARY_MASK or ORDERED_MASK.\n"
                "        This option follows the style of 3dmaskdump (since the\n"
@@ -242,12 +257,12 @@ void whereami_usage(void)
 }
 int main(int argc, char **argv)
 {
-   float x, y, z;
+   float x, y, z, xi, yi, zi;
    char *string, *fstring, atlas_name[256], *sfp=NULL, *shar = NULL;
    int output = 0;
    int first = 1, num = 0;
    int a, nakedland = 0, k = 0, Show_Atlas_Code=0;
-   int iarg, dicom = 1, i, nakedarg, arglen;
+   int iarg, dicom = 1, i, nakedarg, arglen, ixyz=0, nxyz=0;
    AFNI_ATLAS *aa = NULL;
    AFNI_ATLAS_REGION *aar= NULL;
    int *imatch=NULL, nmatch=0;
@@ -260,6 +275,9 @@ int main(int argc, char **argv)
    char *mskpref= NULL, *bmsk = NULL;
    byte *cmask=NULL ; int ncmask=0 ;
    int dobin = 0;
+   char *coord_file=NULL;
+   float *coord_list = NULL;
+   
    
    dobin = 0;
    ncmask=0 ;
@@ -267,12 +285,14 @@ int main(int argc, char **argv)
    mskpref = NULL; 
    bmsk = NULL;   
    write_mask = 0;
-   dicom = 1;
+   dicom = -1; /* not set */
    output = 0;
    OldMethod = 0;
+   coord_file = NULL;
    for (k=0; k < NUMBER_OF_ATLASES; ++k)  isatlasused[k] = 0;
    iarg = 1 ; nakedarg = 0; Show_Atlas_Code = 0; shar = NULL;
    sprintf(atlas_name, "TT_Daemon");
+   xi = 0.0; yi=0.0, zi=0.0;
    while( iarg < argc ){
       arglen = strlen(argv[iarg]);
       if(!isnakedarg(argv[iarg])) {
@@ -296,6 +316,13 @@ int main(int argc, char **argv)
             ++iarg;
             continue; 
          }
+         
+         if (strcmp(argv[iarg],"-rai") == 0 || strcmp(argv[iarg],"-dicom") == 0) { 
+            dicom = 1; 
+            ++iarg;
+            continue; 
+         }
+         
          if (strcmp(argv[iarg],"-help") == 0 ) { 
             whereami_usage();
             return(1); 
@@ -303,11 +330,6 @@ int main(int argc, char **argv)
          }
          if (strcmp(argv[iarg],"-old") == 0 ) { 
             OldMethod = 1; 
-            ++iarg;
-            continue; 
-         }
-         if (strcmp(argv[iarg],"-dicom") == 0 || strcmp(argv[iarg],"-rai") == 0) { 
-            dicom = 1; 
             ++iarg;
             continue; 
          }
@@ -334,10 +356,10 @@ int main(int argc, char **argv)
          if (strcmp(argv[iarg],"-atlas") == 0) {
             ++iarg;
             if (iarg >= argc) {
-               fprintf(stderr,"** Need parameter after -atlas\n"); return(1);
+               fprintf(stderr,"** Error: Need parameter after -atlas\n"); return(1);
             }
             if (N_atlaslist >= NUMBER_OF_ATLASES) { 
-               fprintf(stderr,"** Too many atlases specified.\n");
+               fprintf(stderr,"** Error: Too many atlases specified.\n");
                return(1);
             }
             if ( strcmp(argv[iarg],Atlas_Code_to_Atlas_Name(AFNI_TLRC_ATLAS)) == 0 ) {
@@ -387,7 +409,7 @@ int main(int argc, char **argv)
                isatlasused[CA_EZ_N27_ML_ATLAS] = 1;   
                isatlasused[CA_EZ_N27_PMAPS_ATLAS] = 1;
             } else {
-               fprintf(stderr,"** Atlas name %s is not recognized\n", argv[iarg]);
+               fprintf(stderr,"** Error: Atlas name %s is not recognized\n", argv[iarg]);
                return(1);
             }
             sprintf(atlas_name,"%s",argv[iarg]);
@@ -403,16 +425,27 @@ int main(int argc, char **argv)
             if (strncmp(argv[iarg],"-mask", 4) == 0) write_mask = 1;
             ++iarg;
             if (iarg >= argc) {
-               fprintf(stderr,"** Need parameter after -show_atlas_region/-mask_atlas_region\n"); return(1);
+               fprintf(stderr,"** Error: Need parameter after -show_atlas_region/-mask_atlas_region\n"); return(1);
             }            
             shar = argv[iarg];
             ++iarg;
             continue; 
          }
+         
+         if (strcmp(argv[iarg],"-coord_file") == 0) {
+            ++iarg;
+            if (iarg >= argc) {
+               fprintf(stderr,"** Error: Need parameter after -coord_file\n"); return(1);
+            }
+            coord_file = argv[iarg];
+            ++iarg;
+            continue;             
+         }
+          
          if (strcmp(argv[iarg],"-dbg") == 0) {
             ++iarg;
             if (iarg >= argc) {
-               fprintf(stderr,"** Need parameter after -dbg\n"); return(1);
+               fprintf(stderr,"** Error: Need parameter after -dbg\n"); return(1);
             }            
             LocalHead = MIN_PAIR(atoi(argv[iarg]), 4);
             ++iarg;
@@ -421,7 +454,7 @@ int main(int argc, char **argv)
          if (strcmp(argv[iarg],"-prefix") == 0) {
             ++iarg;
             if (iarg >= argc) {
-               fprintf(stderr,"** Need parameter after -prefix\n"); return(1);
+               fprintf(stderr,"** Error: Need parameter after -prefix\n"); return(1);
             }            
             mskpref = argv[iarg];
             ++iarg;
@@ -433,10 +466,10 @@ int main(int argc, char **argv)
             else dobin = 0;
             ++iarg;
             if (iarg >= argc) {
-               fprintf(stderr,"** Need parameter after -bmask\n"); return(1);
+               fprintf(stderr,"** Error: Need parameter after -bmask\n"); return(1);
             }
             if (bmsk) {
-               fprintf(stderr,"** -bmask and -omask are mutually exclusive.\n"); return(1);
+               fprintf(stderr,"** Error: -bmask and -omask are mutually exclusive.\n"); return(1);
             }            
             bmsk = argv[iarg];
             
@@ -446,40 +479,68 @@ int main(int argc, char **argv)
          
          if( strcmp(argv[iarg],"-cmask") == 0 ){  
             if( iarg+1 >= argc ){
-               fprintf(stderr,"** -cmask option requires a following argument!\n");
+               fprintf(stderr,"** Error: -cmask option requires a following argument!\n");
                exit(1) ;
             }
             cmask = EDT_calcmask( argv[++iarg] , &ncmask ) ;
             if( cmask == NULL ){
-               fprintf(stderr,"** Can't compute -cmask!\n"); exit(1);
+               fprintf(stderr,"** Error: Can't compute -cmask!\n"); exit(1);
             }
             iarg++ ; 
             continue ;
          }
 
          { /* bad news in tennis shoes */
-            fprintf(stderr,"** bad option %s\n", argv[iarg]);
+            fprintf(stderr,"** Error: bad option %s\n", argv[iarg]);
             return 1;
          }
       
       } else {
          /* xyz format */
          if (nakedarg && !nakedland) {
-            fprintf(stderr,"** Keep x, y, z and output options together\n"
+            fprintf(stderr,"** Error: Keep x, y, z and output options together\n"
                            "argument %s not appropriate here.\n", argv[iarg]);
             return 1;
          }
-         if (nakedarg == 0) { x = atof(argv[iarg]); nakedland = 1; }
-         else if (nakedarg == 1) y = atof(argv[iarg]);
-         else if (nakedarg == 2) z = atof(argv[iarg]);
+         if (nakedarg == 0) { xi = atof(argv[iarg]); nakedland = 1; }
+         else if (nakedarg == 1) yi = atof(argv[iarg]);
+         else if (nakedarg == 2) zi = atof(argv[iarg]);
          else if (nakedarg == 3) output = atoi(argv[iarg]);
          ++nakedarg;
          ++iarg;
          continue;
       }
       
-      fprintf(stderr,"** Shouldn't be here Jim! (%s)\n", argv[iarg]);
+      fprintf(stderr,"** Error: Shouldn't be here Jim! (%s)\n", argv[iarg]);
       return 1;
+   }
+   
+   if (nakedarg >= 3 && coord_file) {
+      /* bad combo */
+      fprintf(stderr,"** Error: Can't specify x, y, z coordinates on command line AND in coord_file.\n");
+      return(1) ;
+   }
+
+
+   if (dicom == -1) {
+      THD_coorder cord;
+      /* try to set based on AFNI_ORIENT */
+      THD_coorder_fill (my_getenv("AFNI_ORIENT"), &cord);
+      if (strcmp(cord.orcode,"RAI") == 0) {
+         fprintf(stdout,"++ Input coordinates set by default rules to %s\n", cord.orcode); 
+      }else if (strcmp(cord.orcode,"LPI") == 0) {
+         fprintf(stdout,"++ Input coordinates set by default rules to %s\n", cord.orcode); 
+      }else {
+         fprintf(stderr,"** Error: Only RAI or LPI allowed\n"
+                        "default setting returned %s\n"
+                        "You need to override AFNI_ORIENT \n"
+                        "and use either -lpi or -rai\n", cord.orcode);
+         return 1;
+      }
+   } else {
+      if (dicom == 1) fprintf(stdout,"++ Input coordinates set by user to %s\n", "RAI"); 
+      else if (dicom == 0) fprintf(stdout,"++ Input coordinates set by user to %s\n", "LPI");
+      else { fprintf(stderr,"** Error: Should not happen!\n"); return(1); } 
    }
    
    if (N_atlaslist == 0) {
@@ -490,10 +551,11 @@ int main(int argc, char **argv)
       atlaslist[N_atlaslist] = CA_EZ_N27_PMAPS_ATLAS; ++N_atlaslist; isatlasused[CA_EZ_N27_PMAPS_ATLAS] = 1;
    }
    
-   if (nakedarg < 3 && !Show_Atlas_Code && !shar && !bmsk) {
+   if (nakedarg < 3 && !Show_Atlas_Code && !shar && !bmsk && !coord_file) {
       whereami_usage();
       return 1;
    }
+   
    
    if (LocalHead) Set_Show_Atlas_Mode(LocalHead);
 
@@ -598,13 +660,19 @@ int main(int argc, char **argv)
       
       /* load the mask dset */
 	   if (!(mset_orig = THD_open_dataset (bmsk))) {
-         fprintf(stderr,"** Failed to open mask set %s.\n", bmsk);
+         fprintf(stderr,"** Error: Failed to open mask set %s.\n", bmsk);
          return(1);
       } 
       
+      /* are we in TLRC land? */
+      if (mset_orig->view_type != VIEW_TALAIRACH_TYPE) {
+         fprintf(stderr,"** Error: Mask set %s is not of the Talairach persuasion.\n", bmsk);
+         return(1);
+      }
+      
       if (cmask) {
          if (ncmask != DSET_NVOX(mset_orig)) {
-            fprintf(stderr,"** Voxel number mismatch between -bmask and -cmask input.\n"
+            fprintf(stderr,"** Error: Voxel number mismatch between -bmask and -cmask input.\n"
                            "Make sure both volumes have the same number of voxels.\n");
             
             return(1);
@@ -634,7 +702,7 @@ int main(int argc, char **argv)
             mset = mset_orig;
 	         /* turn the mask dataset to zeros and 1s */
             if ((nonzero = THD_makedsetmask( mset , 0 , 1.0, 0.0 , cmask)) < 0) {  /* get all non-zero values */
-                  fprintf(stderr,"** No mask for you.\n");
+                  fprintf(stderr,"** Error: No mask for you.\n");
                   return(1);
             }
          } else {
@@ -647,7 +715,7 @@ int main(int argc, char **argv)
             mset = EDIT_full_copy(mset_orig, "tmp_ccopy");
             /* turn the mask dataset to zeros and 1s */
             if ((nonzero = THD_makedsetmask( mset , 0 , (float)unq[iroi], (float)unq[iroi] , cmask)) < 0) {  /* get all non-zero values */
-                  fprintf(stderr,"** No mask for you.\n");
+                  fprintf(stderr,"** Error: No mask for you either.\n");
                   return(1);
             }
          }
@@ -671,11 +739,11 @@ int main(int argc, char **argv)
             /* resample mask per atlas, use linear interpolation, cut-off at 0.5 */
             rset = r_new_resam_dset ( mset, adh.dset,	0,	0,	0,	NULL, MRI_LINEAR, NULL);
             if (!rset) {
-               fprintf(stderr,"** ERROR: Failed to reslice!?\n"); return(1);
+               fprintf(stderr,"** Error: Failed to reslice!?\n"); return(1);
             }
             /* get byte mask of regions > 0.5 */
             if (!(bmask_vol = THD_makemask( rset , 0 , 0.5 , 2.0 ))) {  /* get all non-zero values */
-               fprintf(stderr,"** No byte for you.\n");
+               fprintf(stderr,"** Error: No byte for you.\n");
                return(1);
             }
             nvox_in_mask = 0;
@@ -759,114 +827,159 @@ int main(int argc, char **argv)
    
    if(cmask) free(cmask); cmask = NULL;   /* Should not be needed beyond here */
 
-
-   if (nakedarg < 3) { /* nothing left to do */
+   
+   if (nakedarg < 3 && !coord_file) { /* nothing left to do */
       return(0);
    }
 
-   if (!dicom) {
-      /* go from lpi to rai */
-      x = -x;
-      y = -y; 
+   if (coord_file) { /* load the XYZ coordinates from a 1D file */
+         MRI_IMAGE * XYZ_im=NULL;
+         float *XYZv = NULL;
+         
+         XYZ_im = mri_read_1D( coord_file ) ;
+         if( XYZ_im == NULL ){
+            fprintf(stderr,"** Error: Can't read XYZ.1D file %s\n",coord_file);
+            return(1) ;
+         }
+         if (XYZ_im->ny != 3) {
+            fprintf(stderr,"** Error: Need three columns as input.\n   Found %d columns\n", XYZ_im->ny);
+            return(1) ;
+         }
+         XYZv = MRI_FLOAT_PTR(XYZ_im) ;
+         coord_list = (float *)calloc(3*XYZ_im->nx, sizeof(float));
+         if (!coord_list) {
+            fprintf(stderr,"** Error: Failed to allocate\n");
+            return(1) ;
+         }
+         /* copy to me own vectors */
+         nxyz = XYZ_im->nx;
+         for (ixyz=0; ixyz<nxyz; ++ixyz) {
+            coord_list[3*ixyz]   = XYZv[ixyz];
+            coord_list[3*ixyz+1] = XYZv[ixyz+XYZ_im->nx];
+            coord_list[3*ixyz+2] = XYZv[ixyz+XYZ_im->nx*2];
+         }
+         mri_free(XYZ_im); XYZ_im = NULL;
+   } else {
+      coord_list = (float *)calloc(3, sizeof(float));
+      coord_list[0] = xi; coord_list[1] = yi; coord_list[2] = zi; 
+      nxyz = 1;
    }
-
-  
-   if (OldMethod) {
-     string = TT_whereami_old(x,y,z);
-     if (string == NULL ) {                              /* 30 Apr 2005 [rickr] */
-       fprintf(stderr,"** whereami lookup failure: is TTatlas+tlrc/TTatlas.nii.gz available?\n");
-       fprintf(stderr,"   (the TTatlas+tlrc or TTatlas.nii.gz dataset must be in your PATH)\n");
-       return 1;
-     }
-
-     #if 0 /* ZSS does not work Fri Jan 20 15:54:41 EST 2006 */
-     if (output == 1) {
-       fstring = malloc(sizeof(string));
-       strncpy(fstring, "Focus point", 11);
-       num = 11;
-       for(a = 0; string[a] != '\0'; a++) {
-         /* remove header info up to Focus point:
-             remove newlines as you go; once you hit a *, stop */
-         if ((string[a] != ':') && (first == 1)) {
-           continue;
-         }
-         first = 0;
-         if ((string[a] == ' ') && (string[a-1] == ' ')) {
-           continue;
-         }
-         if ((string[a] == '*')) {
-           fstring[num] = '\0';
-           printf("%s\n", fstring);
-           break;
-         }
-         if ((string[a] != '\n')) {
-           if (string[a] == 'W') {
-             fstring[num++] = '\t';
-           }
-           fstring[num++] = string[a];
-         } else {
-           fstring[num++] = ' ';
-         }
-       }
-         free(fstring);
-     } else {
-       printf("%s\n", string);
-     }
-     #else
-      if (output == 1) { 
-         /* ZSS: my best interpretation of the original intent of output == 1 */
-         fstring = strdup(string);
-         /* ignore everything up till Focus point */
-         sfp = strstr(string,"Focus point");
-         if (!sfp) {
-            fprintf(stderr,"** Failed to find 'Focus point' string.\n"
-                           "This is a beuge please inform the authors.\n");
-            return(1);
-         }
-         /* copy all the rest, replacing each new line followed by a non blank with a tab. */
-         k = 0;
-         while (*sfp != '\0' && sfp < string+strlen(string)) {
-            if (*sfp == '\n') { /* new line encountered */
-               /* put a tab in copy string */
-               fstring[k] = '\t'; ++k;
-               /* skip until next character */
-               while (!zischar(*sfp) &&  sfp < string+strlen(string)) ++ sfp;
-            }else{
-               /* add the character */
-               fstring[k] = *sfp; ++k; ++ sfp;
-            }
-
-         }
-         fstring[k] = '\0';
-         fprintf(stdout,"%s\n", fstring);
-         free(fstring); fstring = NULL;
-      } else {
-         printf("%s\n", string);
-      }
-     #endif
-   } /* end TT_Daemon */
-
    
-   if (!OldMethod) {
-      /* Set TT_whereami's atlas list */
-      for (k=0; k < N_atlaslist; ++k) {
-         TT_whereami_add_atlas(atlaslist[k]);
-      }
-      
-      /* the new whereami */
-      if (atlas_sort) {
-         if (output == 1) TT_whereami_set_outmode (TAB1_WAMI_ATLAS_SORT);
-         else TT_whereami_set_outmode (CLASSIC_WAMI_ATLAS_SORT);
-      } else {
-         if (output == 1) TT_whereami_set_outmode (TAB1_WAMI_ZONE_SORT);
-         else TT_whereami_set_outmode (CLASSIC_WAMI_ZONE_SORT);
-      }
-      string = TT_whereami(x,y,z);
-      if (string) fprintf(stdout,"%s\n", string);
-      else fprintf(stdout,"whereami NULL string out.\n");
-      if (string) free(string); string = NULL;            
+   if (!coord_list) {
+      fprintf(stderr,"** Error: No coords!\n");
+      return(1) ;
    }
-    
+   
+   for (ixyz = 0; ixyz < nxyz; ++ixyz) {
+      x = coord_list[3*ixyz];
+      y = coord_list[3*ixyz+1];
+      z = coord_list[3*ixyz+2];
+      
+      if (!dicom) {
+         /* go from lpi to rai */
+         x = -x;
+         y = -y; 
+      }
+
+
+      if (OldMethod) {
+        string = TT_whereami_old(x,y,z);
+        if (string == NULL ) {                              /* 30 Apr 2005 [rickr] */
+          fprintf(stderr,"** Error: whereami lookup failure: is TTatlas+tlrc/TTatlas.nii.gz available?\n");
+          fprintf(stderr,"   (the TTatlas+tlrc or TTatlas.nii.gz dataset must be in your PATH)\n");
+          return 1;
+        }
+
+        #if 0 /* ZSS does not work Fri Jan 20 15:54:41 EST 2006 */
+        if (output == 1) {
+          fstring = malloc(sizeof(string));
+          strncpy(fstring, "Focus point", 11);
+          num = 11;
+          for(a = 0; string[a] != '\0'; a++) {
+            /* remove header info up to Focus point:
+                remove newlines as you go; once you hit a *, stop */
+            if ((string[a] != ':') && (first == 1)) {
+              continue;
+            }
+            first = 0;
+            if ((string[a] == ' ') && (string[a-1] == ' ')) {
+              continue;
+            }
+            if ((string[a] == '*')) {
+              fstring[num] = '\0';
+              printf("%s\n", fstring);
+              break;
+            }
+            if ((string[a] != '\n')) {
+              if (string[a] == 'W') {
+                fstring[num++] = '\t';
+              }
+              fstring[num++] = string[a];
+            } else {
+              fstring[num++] = ' ';
+            }
+          }
+            free(fstring);
+        } else {
+          printf("%s\n", string);
+        }
+        #else
+         if (output == 1) { 
+            /* ZSS: my best interpretation of the original intent of output == 1 */
+            fstring = strdup(string);
+            /* ignore everything up till Focus point */
+            sfp = strstr(string,"Focus point");
+            if (!sfp) {
+               fprintf(stderr,"** Error: Failed to find 'Focus point' string.\n"
+                              "This is a beuge please inform the authors.\n");
+               return(1);
+            }
+            /* copy all the rest, replacing each new line followed by a non blank with a tab. */
+            k = 0;
+            while (*sfp != '\0' && sfp < string+strlen(string)) {
+               if (*sfp == '\n') { /* new line encountered */
+                  /* put a tab in copy string */
+                  fstring[k] = '\t'; ++k;
+                  /* skip until next character */
+                  while (!zischar(*sfp) &&  sfp < string+strlen(string)) ++ sfp;
+               }else{
+                  /* add the character */
+                  fstring[k] = *sfp; ++k; ++ sfp;
+               }
+
+            }
+            fstring[k] = '\0';
+            fprintf(stdout,"%s\n", fstring);
+            free(fstring); fstring = NULL;
+         } else {
+            printf("%s\n", string);
+         }
+        #endif
+      } /* end TT_Daemon */
+
+
+      if (!OldMethod) {
+         /* Set TT_whereami's atlas list */
+         for (k=0; k < N_atlaslist; ++k) {
+            TT_whereami_add_atlas(atlaslist[k]);
+         }
+
+         /* the new whereami */
+         if (atlas_sort) {
+            if (output == 1) TT_whereami_set_outmode (TAB1_WAMI_ATLAS_SORT);
+            else TT_whereami_set_outmode (CLASSIC_WAMI_ATLAS_SORT);
+         } else {
+            if (output == 1) TT_whereami_set_outmode (TAB1_WAMI_ZONE_SORT);
+            else TT_whereami_set_outmode (CLASSIC_WAMI_ZONE_SORT);
+         }
+         string = TT_whereami(x,y,z);
+         if (string) fprintf(stdout,"%s\n", string);
+         else fprintf(stdout,"whereami NULL string out.\n");
+         if (string) free(string); string = NULL;            
+      }
+   } /* ixyz */   
+   
+   if (coord_list) free(coord_list); coord_list = NULL; 
    
 return 0;
 }
