@@ -132,9 +132,12 @@ static char * g_history[] =
   "1.10 18 November 2005 [rickr] - added check_hdr and check_nim actions\n"
   "\n",
   "1.11 31 January 2006 [rickr] - check for new vox_offset in act_mod_hdrs\n"
+  "\n",
+  "1.12 02 March 2006 [rickr]\n"
+  "   - in act_cbl(), check for nt = 0 because of niftilib update 1.17\n"
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 1.11 (January 31, 2006)";
+static char g_version[] = "version 1.12 (March 2, 2006)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -3276,7 +3279,8 @@ int act_cbl( nt_opts * opts )
    nim = nifti_image_read(fname, 0);  /* get image */
    if( !nim ) return 1;
       
-   blist = nifti_get_intlist(nim->nt, selstr);
+   /* since nt can be zero now (sigh), check for it   02 Mar 2006 [rickr] */
+   blist = nifti_get_intlist(nim->nt > 0 ? nim->nt : 1, selstr);
    nifti_image_free(nim);             /* throw away, will re-load */
    if( !blist ){
       fprintf(stderr,"** failed sub-brick selection using '%s'\n",selstr);

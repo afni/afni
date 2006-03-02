@@ -1422,3 +1422,7 @@
 09 Feb 2006:
   * added example to 3dANOVA3 -help
 
+02 Mar 2006:
+  * modified nifti_tool.c (v 1.12) to deal with nt = 0 in act_cbl(), due
+    to change of leaving nt..nw as 0 (potentially) in nifti1_io.c
+
