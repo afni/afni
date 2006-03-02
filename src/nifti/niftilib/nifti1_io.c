@@ -280,9 +280,11 @@ static char * gni_history[] =
   "   - added 2 size_t casts\n"
   "1.17 22 November 2005 [rickr]\n",
   "   - in hdr->nim, for i > dim[0], pass 0 or 1, else set to 1\n"
+  "1.18 02 March 2006 [rickr]\n",
+  "   - in nifti_alloc_NBL_mem(), fixed nt=0 case from 1.17 change\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.17 (Nov 22, 2005)";
+static char gni_version[] = "nifti library version 1.18 (2 March, 2006)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1 };
@@ -761,7 +763,11 @@ static int nifti_alloc_NBL_mem(nifti_image * nim, int nbricks,
 
    /* if nbricks is not specified, use the default */
    if( nbricks > 0 ) nbl->nbricks = nbricks;
-   else              nbl->nbricks = nim->nt * nim->nu * nim->nv * nim->nw;
+   else {  /* I missed this one with the 1.17 change    02 Mar 2006 [rickr] */
+      nbl->nbricks = 1;
+      for( c = 4; c <= nim->ndim; c++ )
+          nbl->nbricks *= nim->dim[c];
+   }
 
    nbl->bsize   = nim->nx * nim->ny * nim->nz * nim->nbyper;  /* bytes */
    nbl->bricks  = (void **)malloc(nbl->nbricks * sizeof(void *));
