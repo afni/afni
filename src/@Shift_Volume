@@ -2,6 +2,9 @@
 
 
 PARSE:
+   ## REMEMBER The shift from mnia-->mni and mni-->mnia are in RAI, not LPI
+   set mnia_to_mni = ( 0 -4 -5)
+   set mni_to_mnia = ( 0  4  5)
    set Narg = $#
    set cnt = 1
    set v1_list = ""
@@ -49,9 +52,9 @@ PARSE:
             echo "One at a time."
             goto END
          endif
-         set DR = 0 
-         set DA = 4 
-         set DI = -5
+         set DR = $mnia_to_mni[1] 
+         set DA = $mnia_to_mni[2]  
+         set DI = $mnia_to_mni[3] 
          set donext = 0   
       endif
       
@@ -61,9 +64,9 @@ PARSE:
             echo "One at a time."
             goto END
          endif
-         set DR = 0 
-         set DA = -4 
-         set DI = 5
+         set DR = $mni_to_mnia[1]  
+         set DA = $mni_to_mnia[2]
+         set DI = $mni_to_mnia[3] 
          set donext = 0   
       endif
       
@@ -117,7 +120,7 @@ DOIT:
    set v1_orient = `@GetAfniOrient $v1`
    
    #Shift in orientation of v1
-   set D_orv1 = `@FromRAI -xyz $DR $DA $DI -or $v1_orient`
+   set D_orv1 = `@FromRAI -xyz $DR $DA $DI -or $v1_orient -delta`
    
    #apply delta
    if ($usecp == 1) then
@@ -153,10 +156,10 @@ HELP:
    echo "   Shifts a dataset"
    echo "   -rai_shift dR dA dI: Move dset by dR dA dI mm (RAI coord sys)."
    echo "   or:"
-   echo "   -MNI_Anat_to_MNI: (same as -rai_shift-rai_shift 0 4 -5)"
+   echo "   -MNI_Anat_to_MNI: (same as -rai_shift-rai_shift $mnia_to_mni)"
    echo "                    Moves a dataset from MNI Anatomical space"
    echo "                    to MNI space."
-   echo "   -MNI_to_MNI_Anat: (same as -rai_shift-rai_shift 0 -4 5)"
+   echo "   -MNI_to_MNI_Anat: (same as -rai_shift-rai_shift $mni_to_mnia)"
    echo "                    Moves a dataset from MNI space"
    echo "                    to MNI Anatomical space."
    echo "   For the -MNI_* options, See Eickhoff et al. Neuroimage (25) 2005"
