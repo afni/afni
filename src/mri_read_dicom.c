@@ -648,8 +648,8 @@ MRI_IMARR * mri_read_dicom( char *fname )
          if( sp > 0.0f && sp < GFAC*th ) dz = sp+th ;   /* the stupid GE way again */
 
          if( sp > 0.0f && sp < GFAC*th && nwarn < NWMAX ){
-           fprintf(stderr,
-                   "++ DICOM WARNING: file %s has Slice_Spacing=%f smaller than Slice_Thickness=%f\n",
+           fprintf(stderr, "++ DICOM WARNING: file %s has Slice_Spacing=%f"
+                           " smaller than Slice_Thickness=%f\n",
                    fname , sp , th ) ;
            if( nwarn == 0 )
             fprintf(stderr,
@@ -1139,9 +1139,10 @@ MRI_IMARR * mri_read_dicom( char *fname )
                use_MRILIB_zoff=1; MRILIB_zoff=zz; 
                if( kor > 0 ) MRILIB_zoff = -MRILIB_zoff ;
              }
-
+#if 0
 fprintf(stderr,"Coords (method 1/%s): %.4f %.4f %.4f\n",
         (mosaic)?"mosaic":"cosines" , MRILIB_xoff,MRILIB_yoff,MRILIB_zoff ) ;
+#endif
 
            } else {  /** not mosaic, or don't have cosines **/
 
@@ -1215,8 +1216,10 @@ fprintf(stderr,"Coords (method 1/%s): %.4f %.4f %.4f\n",
              }
              nzoff++ ;  /* 3rd and later images don't count for z-orientation */
 
+#if 0
 fprintf(stderr,"Coords (method 1/nonmosaic): %.4f %.4f %.4f\n",
         MRILIB_xoff,MRILIB_yoff,MRILIB_zoff ) ;
+#endif
 
            } /* end of non-mosaic and/or non-cosines option */
          } /* end of getting 3 values from Image Position */
@@ -1251,8 +1254,10 @@ fprintf(stderr,"Coords (method 1/nonmosaic): %.4f %.4f %.4f\n",
        if( !use_MRILIB_yoff ){ use_MRILIB_yoff=1; MRILIB_yoff=yy; }
        if( !use_MRILIB_zoff ){ use_MRILIB_zoff=1; MRILIB_zoff=zz; }
 
+#if 0
 fprintf(stderr,"Coords (method 2): %.4f %.4f %.4f\n",
         MRILIB_xoff,MRILIB_yoff,MRILIB_zoff ) ;
+#endif
 
      } /*** end of Method 2: using sexinfo ***/
 
@@ -1303,8 +1308,10 @@ fprintf(stderr,"Coords (method 2): %.4f %.4f %.4f\n",
            }
            nzoff++ ;  /* 3rd and later images don't count for z-orientation */
 
+#if 0
 fprintf(stderr,"Coords (method 3): %.4f %.4f %.4f\n",
         MRILIB_xoff,MRILIB_yoff,MRILIB_zoff ) ;
+#endif
          }
        }
      } /* end of Method 3: using Slice Location */

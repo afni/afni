@@ -314,11 +314,30 @@ STATUS("setting orientation from MRILIB_orients") ;
          }
       }
 
+      /* 27 Jan 2006: use_MRILIB_dicom_matrix ?? */
+
+      if( use_MRILIB_dicom_matrix ){
+        mat44 nmat ; int icod,jcod,kcod ;
+
+        nmat = MRILIB_dicom_matrix ; XYINVERT_MAT44(nmat) ;
+        nifti_mat44_to_orientation( nmat , &icod, &jcod, &kcod ) ;
+        if( icod > 0 && jcod > 0 && kcod > 0 ){
+          static int orient_nifti2afni[7] =
+            { -1 , ORI_L2R_TYPE, ORI_R2L_TYPE, ORI_P2A_TYPE,
+                   ORI_A2P_TYPE, ORI_I2S_TYPE, ORI_S2I_TYPE } ;
+
+          user_inputs.xorient = orient_nifti2afni[icod] ;
+          user_inputs.yorient = orient_nifti2afni[jcod] ;
+          user_inputs.zorient = orient_nifti2afni[kcod] ;
+DUMP_MAT44("MRILIB_dicom_matrix",MRILIB_dicom_matrix) ;
+        }
+      }
+
       /* 10 May 2001: use global zoff, if given [will override MRILIB_zoff] */
 
       if( use_zoff ){
-         user_inputs.zorigin = zoff ;
-         user_inputs.xyz_centered &= ~ZCENTERED ;
+        user_inputs.zorigin = zoff ;
+        user_inputs.xyz_centered &= ~ZCENTERED ;
       }
    }
 
