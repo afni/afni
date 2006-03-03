@@ -31,11 +31,9 @@ extern float MRILIB_zcos[3] ;
 extern int   use_MRILIB_slicespacing ;  /* 10 Jan 2004 */
 extern float MRILIB_slicespacing ;
 
-extern int   use_MRILIB_dicomstuff    ; /* 18 Jan 2006 */
-extern int   MRILIB_dicom_mosaic      ;
-extern float MRILIB_dicom_orimat[3][3];
-extern float MRILIB_dicom_origin[3]   ;
-extern float MRILIB_dicom_deltas[3]   ;
+#include "nifti1_io.h"
+extern int use_MRILIB_dicom_matrix ;    /* 26 Jan 2006 */
+extern mat44   MRILIB_dicom_matrix ;
 
 /*! Clear the MRILIB globals (which are designed to transmit info from image files to to3d.c). */
 
@@ -45,6 +43,7 @@ extern float MRILIB_dicom_deltas[3]   ;
      use_MRILIB_xoff=use_MRILIB_yoff=use_MRILIB_zoff=0;   \
      use_MRILIB_xcos=use_MRILIB_ycos=use_MRILIB_zcos=0;   \
      use_MRILIB_slicespacing=0;                           \
+     use_MRILIB_dicom_matrix=0;                           \
  } while(0)
 
 #include <stdio.h>
@@ -614,6 +613,7 @@ extern void   mri_dicom_seterr( int ) ;     /* 05 Nov 2002 */
 extern MRI_IMARR * mri_read_dicom( char * )  ;
 extern int         mri_imcount_dicom( char * ) ;
 extern char *      mri_dicom_sexinfo( void ) ;   /* 23 Dec 2002 */
+extern char *      mri_dicom_sex1010( void ) ;
 extern int mri_possibly_dicom( char * ) ;        /* 07 May 2003 */
 
 
