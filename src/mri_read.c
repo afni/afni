@@ -10,6 +10,10 @@
     and arrays of 2D images (into MRI_IMARR struct).
 */
 
+/*--------------------------------------------------------*/
+/*** 7D SAFE (but most routines only return 2D images!) ***/
+/*--------------------------------------------------------*/
+
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
@@ -28,8 +32,12 @@
 #include "mrilib.h"
 #include "ge4_header.h"
 
-/* prototype for local function */
-short check_dicom_magic_num( char * );
+/*---------------------------------------------------------------*/
+static MRI_IMAGE * mri_try_mri( FILE * , int * ) ;  /* prototypes */
+static MRI_IMAGE * mri_try_7D ( FILE * , int * ) ;
+static MRI_IMAGE * mri_try_pgm( FILE * , int * ) ;
+static int         check_dicom_magic_num( char * ) ;
+/*---------------------------------------------------------------*/
 
 /*! Global variable to signal image orientation, if possible. */
 
@@ -95,11 +103,13 @@ int use_MRILIB_slicespacing = 0 ;
 
 float MRILIB_slicespacing = 0.0 ;
 
-/*** 7D SAFE (but most routines only return 2D images!) ***/
+/*! Global variable saying whether to use DICOM matrix below. */
 
-MRI_IMAGE *mri_try_mri( FILE * , int * ) ;  /* prototypes */
-MRI_IMAGE *mri_try_7D ( FILE * , int * ) ;
-MRI_IMAGE *mri_try_pgm( FILE * , int * ) ;
+int use_MRILIB_dicom_matrix = 0 ;
+
+/*! Global variable defining 3D image position and orientation. */
+
+mat44   MRILIB_dicom_matrix     ;
 
 /*-----------------------------------------------------------------*/
 
@@ -685,7 +695,7 @@ ENTRY( "mri_read_ge4" );
             to have its data read from imfile.
 */
 
-MRI_IMAGE *mri_try_mri( FILE *imfile , int *skip )
+static MRI_IMAGE *mri_try_mri( FILE *imfile , int *skip )
 {
    int ch , nch , nx,ny,imcode ;
    char buf[64] ;
@@ -718,7 +728,7 @@ ENTRY("mri_try_mri") ;
 
 /*! Try to read a "Cox nD MRI" image file (fat chance). */
 
-MRI_IMAGE *mri_try_7D( FILE *imfile , int *skip )
+static MRI_IMAGE *mri_try_7D( FILE *imfile , int *skip )
 {
    int ch , nch , nx,ny,nz,nt,nu,nv,nw , imcode , ndim ;
    char buf[64] ;
@@ -774,7 +784,7 @@ ENTRY("mri_try_7D") ;
             (if the file is a PGM file), or NULL.
 */
 
-MRI_IMAGE *mri_try_pgm( FILE *imfile , int *skip )
+static MRI_IMAGE *mri_try_pgm( FILE *imfile , int *skip )
 {
    int ch , nch , nx,ny,maxval ;
    char buf[64] ;
@@ -3115,9 +3125,9 @@ Done:
     Bytes 128-131 should be "DICM" in a Dicom Part 10 file
 */
 
-short check_dicom_magic_num( char * fname )
+int check_dicom_magic_num( char *fname )
 {
-  FILE * fp;
+  FILE *fp;
   char test_string[5] ;
 
   fp = fopen( fname, "rb" ) ;

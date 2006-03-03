@@ -20,10 +20,10 @@ static void output_message( char *prefix , char *fmt , va_list vararg_ptr )
      strcat(ifmt,fmt) ;
    }
    ll = strlen(ifmt) ; if( ll < 1024 ) ll = 1024 ;
-   msg = malloc(sizeof(char)*16*ll) ; msg[0] = '\0' ;
+   msg = malloc(sizeof(char)*16*ll+1) ; msg[0] = '\0' ;
    vsprintf(msg,ifmt,vararg_ptr) ; ll = strlen(msg) ;
    if( msg[ll-1] != '\n' ){ msg[ll] = '\n' ; msg[ll+1] = '\0' ; }
-   fputs(msg,stderr) ;
+   fputs(msg,stderr) ; free(msg) ;  /* 03 Mar 2006: forgot the free! */
    if( ifmt != fmt ) free(ifmt) ;
    return ;
 }
