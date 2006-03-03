@@ -51,6 +51,8 @@ ENTRY("THD_open_nifti") ;
    if( ntt  <= 0 ) ntt  = 1;
    if( nbuc <= 0 ) nbuc = 1;
 
+   if( nim->nz <= 0 ) nim->nz = 1 ;  /* 03 Mar 2006: RWCox */
+
    if( ntt > 1 && nbuc > 1 ){
      fprintf(stderr,
              "** AFNI can't deal with 5 dimensional NIfTI dataset file %s\n",
