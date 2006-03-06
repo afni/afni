@@ -1062,7 +1062,7 @@ wr_equiv_init(FILE *outfile, int memno, chainp *Values, int iscomm)
 			if (curtype != -1) {
 				L1 = (loc - loc0)/dL;
 				nice_printf(outfile, "%s e_%d%s;\n",
-					typename[curtype], ++k,
+					type_name[curtype], ++k,
 					Len(L1,curtype));
 				}
 			curtype = dtype;
@@ -1081,7 +1081,7 @@ wr_equiv_init(FILE *outfile, int memno, chainp *Values, int iscomm)
 				}
 			L1 = L / typesize[filltype];
 			nice_printf(outfile, "%s fill_%d[%ld];\n",
-				typename[filltype], ++k, L1);
+				type_name[filltype], ++k, L1);
 			loc = dloc;
 			}
 		if (wasblank) {

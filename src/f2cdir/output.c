@@ -1211,7 +1211,7 @@ out_call(FILE *outfile, int op, int ftype, expptr len, expptr name, expptr args)
 			if (Ac && narg < at->dnargs
 			 && q->headblock.vtype != (t = Ac[narg].type)
 			 && t > TYADDR && t < TYSUBR)
-				nice_printf(outfile, "(%s*)", typename[t]);
+				nice_printf(outfile, "(%s*)", type_name[t]);
 
 			/* &x[0] == x */
 			/* This also prevents &sizeof(doublereal)[0] */
@@ -1263,7 +1263,7 @@ out_call(FILE *outfile, int op, int ftype, expptr len, expptr name, expptr args)
 	else if (Ac && narg < at->dnargs
 		&& q->headblock.vtype != (t = Ac[narg].type)
 		&& t > TYADDR && t < TYSUBR)
-		nice_printf(outfile, "(%s*)", typename[t]);
+		nice_printf(outfile, "(%s*)", type_name[t]);
 
 	if ((q -> tag == TADDR || q-> tag == TNAME) &&
 		(byvalue || q -> headblock.vstg != STGREG)) {

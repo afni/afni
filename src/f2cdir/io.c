@@ -802,7 +802,7 @@ putio(expptr nelt, register expptr addr)
 		c->memoffset = ICON(0);
 		c->uname_tag = UNAM_IDENT;
 		c->charleng = 1;
-		sprintf(c->user.ident, "(ftnlen)sizeof(%s)", typename[type]);
+		sprintf(c->user.ident, "(ftnlen)sizeof(%s)", type_name[type]);
 		addr = mkexpr(OPCHARCAST, addr, ENULL);
 		}
 

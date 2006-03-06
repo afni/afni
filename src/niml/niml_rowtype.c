@@ -273,7 +273,7 @@ int NI_rowtype_define( char *tname , char *tdef )
    /*-- check inputs --*/
 
    if( !NI_is_name(tname) )              ERREX("bad typename") ;
-   if( strlen(tname) > 255 )             ERREX("toolong typename") ;
+   if( strlen(tname) > 255 )             ERREX("overlong typename") ;
    if( tdef  == NULL || *tdef  == '\0' ) ERREX("empty type definition") ;
 
    /*-- create Htable of basic types, if not already defined --*/
