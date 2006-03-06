@@ -104,7 +104,7 @@ int typealign[NTYPES] = {
 
 int type_choice[4] = { TYDREAL, TYSHORT, TYLONG,  TYSHORT };
 
-char *typename[] = {
+char *type_name[] = {
 	"<<unknown>>",
 	"address",
 	"integer1",

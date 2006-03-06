@@ -1187,7 +1187,7 @@ extern void * NI_registry_replace         ( void *, void * ) ;
 #ifndef TYPEDEF_NI_datacontainer
 #define TYPEDEF_NI_datacontainer
 typedef struct {
-  char typename   [IDCODE_LEN] ; /* e.g., "NI_ELEMENT"   */
+  char type_name  [IDCODE_LEN] ; /* e.g., "NI_ELEMENT"   */
   char self_name  [IDCODE_LEN] ; /* e.g., "AFNI_dataset" */
   char self_idcode[IDCODE_LEN] ;
   int  ival , jval ;

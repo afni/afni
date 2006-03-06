@@ -2685,7 +2685,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          if( user_inputs.tunits == UNITS_MSEC_TYPE ){
            if( AFNI_yesenv("AFNI_ALLOW_MILLISECONDS") )
              WARNING_message("TR expressed in milliseconds is deprecated.") ;
-           else
+           else if( TR != 0.0f )
              WARNING_message(
                "TR expressed in milliseconds will be converted to TR=%.6fs",
                0.001*TR) ;
