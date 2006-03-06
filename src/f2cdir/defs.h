@@ -126,7 +126,7 @@ extern int tylog, tylogical;	/* TY____ of the implementation of   logical.
 				   This will be LONG unless '-2' is given
 				   on the command line */
 extern int type_choice[];
-extern char *typename[];
+extern char *type_name[];
 
 extern int typesize[];	/* size (in bytes) of an object of each
 				   type.  Indexed by TY___ macros */

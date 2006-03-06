@@ -638,7 +638,7 @@ int AFNI_dataset_to_obj( NI_objcontainer *dc )
    NI_group *ngr ;
    THD_3dim_dataset *dset ;
 
-   if( dc == NULL || strcmp(dc->typename,"AFNI_dataset") != 0 ) return 0 ;
+   if( dc == NULL || strcmp(dc->type_name,"AFNI_dataset") != 0 ) return 0 ;
 
    dset = (THD_3dim_dataset *)dc->self_data ;
    if( !ISVALID_DSET(dset) ) return 0 ;

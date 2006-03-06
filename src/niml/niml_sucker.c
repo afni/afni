@@ -74,13 +74,13 @@ void NI_suck_stream( char *sname, int msec, int *ndc, NI_objcontainer ***dc )
    if( nn == NI_ELEMENT_TYPE ){
      NI_element *nel = (NI_element *)nini ;
 
-     NI_strncpy( mdc->typename  , "NI_ELEMENT" , IDCODE_LEN ) ;
+     NI_strncpy( mdc->type_name , "NI_ELEMENT" , IDCODE_LEN ) ;
      NI_strncpy( mdc->self_name , nel->name    , IDCODE_LEN ) ;
 
    } else if( nn == NI_GROUP_TYPE ){
      NI_group *ngr = (NI_group *)nini ;
 
-     NI_strncpy( mdc->typename  , "NI_GROUP" , IDCODE_LEN ) ;
+     NI_strncpy( mdc->type_name , "NI_GROUP" , IDCODE_LEN ) ;
      NI_strncpy( mdc->self_name , ngr->name  , IDCODE_LEN ) ;
 
    } else {  /** should never happen */
@@ -143,10 +143,10 @@ void NI_register_objconverters( char *self_name ,
 /*---------------------------------------------------------------------------*/
 /*! See if we can convert an element to an object.
     On input:
-     - dc->typename should be "NI_ELEMENT" or "NI_GROUP"
+     - dc->type_name should be "NI_ELEMENT" or "NI_GROUP"
      - conversion is based on dc->self_name
     On output
-     - dc->typename will be set to dc->self_name
+     - dc->type_name will be set to dc->self_name
      - data in dc->self_data will be altered, and the NIML element
        will have been destroyed
 -----------------------------------------------------------------------------*/
@@ -157,8 +157,8 @@ void NI_convert_elm_to_obj( NI_objcontainer *dc )
 
    if( dc == NULL ) return ;
 
-   if( strcmp(dc->typename,"NI_ELEMENT") != 0 &&
-       strcmp(dc->typename,"NI_GROUP"  ) != 0   ) return ;
+   if( strcmp(dc->type_name,"NI_ELEMENT") != 0 &&
+       strcmp(dc->type_name,"NI_GROUP"  ) != 0   ) return ;
 
    for( cc=0 ; cc < num_converters ; cc++ )
      if( strcmp(converters[cc].self_name,dc->self_name) == 0 ) break ;
@@ -167,8 +167,7 @@ void NI_convert_elm_to_obj( NI_objcontainer *dc )
 
    nn = converters[cc].to_obj( dc ) ;
    if( nn > 0 )
-     NI_strncpy( dc->typename , dc->self_name , IDCODE_LEN ) ;
+     NI_strncpy( dc->type_name , dc->self_name , IDCODE_LEN ) ;
 
    return ;
 }
-

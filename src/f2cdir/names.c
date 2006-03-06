@@ -90,7 +90,7 @@ c_type_decl(int type, int is_extern)
 #endif
 	case TYLOGICAL1:
 	case TYLOGICAL2:
-	case TYLOGICAL:	strcpy(buff, typename[type]);
+	case TYLOGICAL:	strcpy(buff, type_name[type]);
 			break;
 	case TYCHAR:	if (is_extern)
 			    strcpy (buff, "/* Character */ VOID");
