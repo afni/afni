@@ -177,6 +177,13 @@ extern void machdep() ;
 #define DONT_USE_SCANDIR
 #define DONT_UNROLL_FFTS  /* off by default */
 
+#ifdef DT_UNKNOWN                 /** 07 Mar 2006: niftilib problem fix **/
+# define QQDT_UNK DT_UNKNOWN
+# undef  DT_UNKNOWN
+#else
+# undef  QQDT_UNK
+#endif
+
 /*** HP-UX ***/
 
 #ifdef HP
@@ -341,6 +348,12 @@ extern long   strtol() ;
 /************************************************************************
    Do NOT change anything below this line (unless your name is Cox)!
 *************************************************************************/
+
+#ifdef QQDT_UNK                   /** 07 Mar 2006 **/
+# undef  DT_UNKNOWN
+# define DT_UNKNOWN QQDT_UNK
+# undef  QQDT_UNK
+#endif
 
 # define DISCARD_EXCESS_EXPOSES   /* 15 Aug 2002 */
 
