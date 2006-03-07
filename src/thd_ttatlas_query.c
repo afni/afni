@@ -3282,6 +3282,19 @@ void CA_EZ_LR_purge_atlas(void)
 
 #define IS_BLANK(c) ( ((c) == ' ' || (c) == '\t' || (c) == '\n' || (c) == '\v' || (c) == '\f' || (c) == '\r') ? 1 : 0 )
 
+char *AddLeftRight(char *name, char lr)
+{
+   static char namesave[500];
+   
+   ENTRY("AddLeftRight");
+   
+   if (lr == 'l' || lr == 'L') sprintf(namesave,"Left %s", name);
+   else if (lr == 'r' || lr == 'R') sprintf(namesave,"Right %s", name);
+   else RETURN(name);
+   
+   RETURN(namesave);
+}
+
 /* removes one occurence of left or right in name , search is case insensitive*/
 char *NoLeftRight (char *name) 
 {
@@ -3740,10 +3753,11 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
                      else if( atcode == AFNI_TLRC_ATLAS && baf == TTO_list[ii].tdval ) break ;
                   }   
                   if( ii < adh.mxelm )  {                     /* always true? */
-                     if( atcode == CA_EZ_N27_MPM_ATLAS) blab = CA_EZ_list[ii].name ;
+                     if( atcode == CA_EZ_N27_MPM_ATLAS) blab = CA_EZ_list[ii].name;
                      else if( atcode == CA_EZ_N27_ML_ATLAS) blab = ML_EZ_list[ii].name ;
                      else if( atcode == CA_EZ_N27_LR_ATLAS) blab = LR_EZ_list[ii].name ;
-                     else if( atcode == AFNI_TLRC_ATLAS) blab = TTO_list[ii].name ; 
+                     else if( atcode == AFNI_TLRC_ATLAS) blab =  
+                              AddLeftRight(NoLeftRight(TTO_list[ii].name),(ac.x<0.0)?'R':'L');
                   }
                }
 
