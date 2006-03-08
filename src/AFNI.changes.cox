@@ -5797,3 +5797,8 @@
 09 Jan 2005
  * mri_warp3D_align.c now will revert to 'best' fit if final fit is
      much worse in RMS terms.
+
+08 Mar 2005
+ * Bug fix in afni_version.c for MOTD failure when network down.
+ * Modify PERROR() macro in thd_iochan.c to NOT print so many duplicate
+     messages.

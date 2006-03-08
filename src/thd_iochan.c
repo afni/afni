@@ -69,13 +69,16 @@ void iochan_enable_perror( int q ){ pron = q; }   /* ditto */
 #  define PERROR(x) perror(x)
 #  define STATUS(x) fprintf(stderr,"%s\n",x)
 #else
-   static char *pqlast = NULL ;
-#  define PERROR(x)                                                  \
-     do{ if( (x) != NULL && pron ){                                  \
-           int skip = ( pqlast != NULL && strcmp(pqlast,x) == 0 ) ;  \
-           if( pqlast != NULL ) free(pqlast) ;                       \
-           pqlast = strdup(x) ;                                      \
-           if( !skip ) perror(x);                                    \
+   static char *pqlast = NULL  ;
+   static double pqtim = -6.66 ;
+#  define PERROR(x)                                                    \
+     do{ if( (x) != NULL && pron ){                                    \
+           double qtim = COX_clock_time() ;                            \
+           int skip = ( qtim-pqtim < 0.666 &&                          \
+                        pqlast     != NULL && strcmp(pqlast,x) == 0 ); \
+           if( pqlast != NULL ) free(pqlast) ;                         \
+           pqlast = strdup(x) ; pqtim = qtim ;                         \
+           if( !skip ) perror(x);                                      \
          }} while(0)
 #  define STATUS(x) /* nada */
 #endif

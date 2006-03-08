@@ -438,6 +438,9 @@ char * AFNI_make_update_script(void){ return NULL; }
 #endif /* SHOWOFF */
 
 /*----------------------------------------------------------------------*/
+#define MOTD_fails ERROR_message("Can't connect to AFNI server!\a\n")
+
+/*----------------------------------------------------------------------*/
 /*! Display the AFNI message of the day.  [29 Nov 2005]
 ------------------------------------------------------------------------*/
 
@@ -451,15 +454,15 @@ ENTRY("AFNI_display_motd") ;
    set_HTTP_10( 0 ) ;
 
    if( GLOBAL_motd == NULL || *GLOBAL_motd == '\0' ){ /* fetch motd name */
-     char *vbuf , *vvbuf ;                           /* from AFNI server */
+     char *vbuf=NULL , *vvbuf ;                       /* from AFNI server */
      nbuf = read_URL( VERSION_URL , &vbuf ) ;
-     if( nbuf == 0 || vbuf == NULL ) EXRETURN ;
+     if( nbuf <= 0 || vbuf == NULL ){ MOTD_fails; EXRETURN; }
      vvbuf = strstr(vbuf,"motd=") ;
-     if( vvbuf == NULL ){ free(vbuf); EXRETURN; }
+     if( vvbuf == NULL ){ free(vbuf); MOTD_fails; EXRETURN; }
      GLOBAL_motd = (char *)calloc(sizeof(char),VSIZE) ;
      sscanf( vvbuf+5 , "%988s" , GLOBAL_motd ) ; free(vbuf) ;
      if( GLOBAL_motd[0] == '\0' ){
-       free(GLOBAL_motd); GLOBAL_motd=NULL; EXRETURN;
+       free(GLOBAL_motd); GLOBAL_motd=NULL; MOTD_fails; EXRETURN;
      }
    }
 
@@ -482,6 +485,8 @@ ENTRY("AFNI_display_motd") ;
        fputs(msg,stderr) ;
 
      free(msg) ; free(buf) ;
+   } else {
+     MOTD_fails ;
    }
 
    EXRETURN ;
