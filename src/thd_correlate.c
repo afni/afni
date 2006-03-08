@@ -7,12 +7,12 @@
    The output overwrites the input.
 --------------------------------------------------------------------------------*/
 
-static void rank_order_float( int n , float * a )
+static void rank_order_float( int n , float *a )
 {
    register int ii , ns , n1 , ib ;
-   static int    nb = 0 ;
-   static int *   b = NULL ;  /* workspaces */
-   static float * c = NULL ;
+   static int   nb = 0 ;
+   static int   *b = NULL ;  /* workspaces */
+   static float *c = NULL ;
    float cs ;
 
    /*- handle special cases -*/
@@ -60,7 +60,7 @@ static void rank_order_float( int n , float * a )
    Rank orders a[], subtracts the mean rank, and returns the sum-of-squares
 -----------------------------------------------------------------------------*/
 
-static float spearman_rank_prepare( int n , float * a )
+static float spearman_rank_prepare( int n , float *a )
 {
    register int ii ;
    register float rb , rs ;
@@ -78,7 +78,7 @@ static float spearman_rank_prepare( int n , float * a )
 
 /*------------------------------------------------------------------------------*/
 
-static float quadrant_corr_prepare( int n , float * a )
+static float quadrant_corr_prepare( int n , float *a )
 {
    register int ii ;
    register float rb , rs ;
@@ -103,7 +103,7 @@ static float quadrant_corr_prepare( int n , float * a )
     Note that these 2 routines are destructive (r and x are replaced by ranks)
 -------------------------------------------------------------------------------*/
 
-static float spearman_rank_corr( int n , float * x , float rv , float * r )
+static float spearman_rank_corr( int n , float *x , float rv , float *r )
 {
    register int ii ;
    register float ss ; float xv ;
@@ -117,7 +117,7 @@ static float spearman_rank_corr( int n , float * x , float rv , float * r )
 
 /*------------------------------------------------------------------------------*/
 
-static float quadrant_corr( int n , float * x , float rv , float * r )
+static float quadrant_corr( int n , float *x , float rv , float *r )
 {
    register int ii ;
    register float ss ; float xv ;
@@ -140,6 +140,8 @@ float THD_spearman_corr( int n , float *x , float *y )
    return spearman_rank_corr( n,y,xv,x ) ;
 }
 
+/*--------------------------------------------------------------------------*/
+
 float THD_quadrant_corr( int n , float *x , float *y )
 {
    float xv = quadrant_corr_prepare(n,x) ;
@@ -147,7 +149,9 @@ float THD_quadrant_corr( int n , float *x , float *y )
    return quadrant_corr( n,y,xv,x ) ;
 }
 
-float THD_pearson_corr( int n, float *x , float *y )
+/*--------------------------------------------------------------------------*/
+
+float THD_pearson_corr( int n, float *x , float *y )  /* not destructive */
 {
    float xv=0 , yv=0 , xy=0 ;
    int ii ;
@@ -158,4 +162,21 @@ float THD_pearson_corr( int n, float *x , float *y )
 
    if( xv <= 0.0 || yv <= 0.0 ) return 0.0 ;
    return xy/sqrt(xv*yv) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Compute the rank-order correlation between 2 images [08 Mar 2006].
+----------------------------------------------------------------------------*/
+
+float mri_spearman_corr( MRI_IMAGE *im , MRI_IMAGE *jm )
+{
+   float *far , *gar , cc ;
+   MRI_IMAGE *fim , *gim ;
+
+   if( im == NULL || jm == NULL || im->nvox != jm->nvox ) return 0.0f ;
+
+   fim = mri_to_float(im) ; far = mri_data_pointer(fim) ;
+   gim = mri_to_float(jm) ; gar = mri_data_pointer(gim) ;
+   cc  = THD_spearman_corr( fim->nvox , far , gar ) ;
+   mri_free(gim) ; mri_free(fim) ; return cc ;
 }

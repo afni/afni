@@ -5802,3 +5802,5 @@
  * Bug fix in afni_version.c for MOTD failure when network down.
  * Modify PERROR() macro in thd_iochan.c to NOT print so many duplicate
      messages.
+ * Modified afni_environ.c so that setting AFNI_ALWAYS_LOCK immediately
+     changes the lock situation.
