@@ -4266,6 +4266,14 @@ printf("T3D_read_images: file %d (%s) has #im=%d\n",lf,gname[lf],arr->num) ;
 printf("T3D_read_images: putting data into slice %d\n",kz) ;
 #endif
 
+#if 0
+        { static MRI_IMAGE *im0 = NULL ; float cc ;
+          if( im0 == NULL ) im0 = mri_copy(shim) ;
+          cc = mri_spearman_corr( im0 , shim ) ;
+          fprintf(stderr,"corr(lf=%d,kim=%d)=%f\n",lf,kim,cc) ;
+        }
+#endif
+
          if( ! time_dep ){
 
             /**-- copy data from shim into the kz-th slice in bar --**/

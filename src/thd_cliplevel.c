@@ -29,8 +29,12 @@ ENTRY("THD_cliplevel") ;
       case MRI_byte : nhist =   255 ; lim = im ; break ;
 
       default:
-        fac = mri_maxabs(im) ; if( fac == 0.0 ) RETURN(0.0) ;
-        sfac = 32767.0/fac ; nhist = 32767 ;
+        if( im->kind == MRI_rgb ){
+          nhist = 255 ;
+        } else {
+          fac = mri_maxabs(im) ; if( fac == 0.0 ) RETURN(0.0) ;
+          sfac = 32767.0/fac ; nhist = 32767 ;
+        }
         lim = mri_to_short( sfac , im ) ;
       break ;
    }
