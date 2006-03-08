@@ -15,6 +15,7 @@ static int AFNI_drive_switch_function( char *cmd ) ;
 static int AFNI_drive_open_window( char *cmd ) ;
 static int AFNI_drive_close_window( char *cmd ) ;
 static int AFNI_drive_quit( char *cmd ) ;
+static int AFNI_drive_setenv( char *cmd ) ;
 
 static int AFNI_drive_set_subbricks( char *cmd ) ;  /* 30 Nov 2005 */
 
@@ -138,7 +139,7 @@ static AFNI_driver_pair dpair[] = {
  { "SEE_OVERLAY"        , AFNI_set_func_visible        } ,
  { "SET_FUNC_RESAM"     , AFNI_set_func_resam          } ,
  { "SLEEP"              , AFNI_sleeper                 } ,
- { "SETENV"             , AFNI_setenv                  } ,  /* external */
+ { "SETENV"             , AFNI_drive_setenv            } ,
  { "DEFINE_COLORSCALE"  , AFNI_define_colorscale       } ,
  { "DEFINE_COLOR_SCALE" , AFNI_define_colorscale       } ,
  { "OPEN_PANEL"         , AFNI_open_panel              } ,
@@ -2121,11 +2122,10 @@ static int AFNI_sleeper( char *cmd )
    return(0) ;
 }
 
-#if 0   /** code removed to afni_environ.c on 03 Jun 2005 **/
 /*------------------------------------------------------------------*/
 /*! SETENV name value */
 
-int AFNI_setenv( char *cmd )
+int AFNI_drive_setenv( char *cmd )
 {
    char nam[256]="\0" , val[1024]="\0" , eqn[1280] , *eee ;
 
@@ -2142,9 +2142,16 @@ int AFNI_setenv( char *cmd )
 
    sprintf(eqn,"%s=%s",nam,val) ;
    eee = strdup(eqn) ; putenv(eee) ;
+
+   /** special cases require special actions **/
+
+   if( strcmp(nam,"AFNI_ALWAYS_LOCK") == 0 ){
+          if( NOISH  (val) ) AFNI_lock_clear_CB (NULL,NULL,NULL) ;
+     else if( YESSISH(val) ) AFNI_lock_setall_CB(NULL,NULL,NULL) ;
+   }
+
    return(0) ;
 }
-#endif
 
 /*------------------------------------------------------------------*/
 /*! REDISPLAY */
