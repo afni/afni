@@ -32,11 +32,11 @@ ENTRY("mri_to_short") ;
 #ifdef MRI_DEBUG
    fprintf( stderr , "mri_to_short: scale factor = %e\n" , scale ) ;
 #endif
-            break ;
+         break ;
 
          default:
             scale = 1.0 ;
-            break ;
+         break ;
       }
    } else {
       scale = scl ;

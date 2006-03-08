@@ -204,5 +204,13 @@ int AFNI_setenv( char *cmd )
 
    sprintf(eqn,"%s=%s",nam,val) ;
    eee = strdup(eqn) ; putenv(eee) ;
+
+   /** special cases require special actions **/
+
+   if( strcmp(nam,"AFNI_ALWAYS_LOCK") == 0 ){
+          if( NOISH  (val) ) AFNI_lock_clear_CB (NULL,NULL,NULL) ;
+     else if( YESSISH(val) ) AFNI_lock_setall_CB(NULL,NULL,NULL) ;
+   }
+
    return(0) ;
 }
