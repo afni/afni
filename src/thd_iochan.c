@@ -76,10 +76,12 @@ void iochan_enable_perror( int q ){ pron = q; }   /* ditto */
            double qtim = COX_clock_time() ;                            \
            int skip = ( qtim-pqtim < 0.666 &&                          \
                         pqlast     != NULL && strcmp(pqlast,x) == 0 ); \
-           if( pqlast != NULL ) free(pqlast) ;                         \
-           pqlast = strdup(x) ; pqtim = qtim ;                         \
-           if( !skip ) perror(x);                                      \
-         }} while(0)
+           if( !skip ){                                                \
+             perror(x); pqtim = qtim;                                  \
+             if( pqlast != NULL ) free(pqlast) ;                       \
+             pqlast = strdup(x) ;                                      \
+           }                                                           \
+        }} while(0)
 #  define STATUS(x) /* nada */
 #endif
 /*---------------------------------------------------------------*/
