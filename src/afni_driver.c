@@ -2131,7 +2131,12 @@ int AFNI_drive_setenv( char *cmd )
 
    if( cmd == NULL || strlen(cmd) < 3 ) return(-1) ;
 
+   /*-- scan for the name and value --*/
+
    sscanf( cmd , "%255s %1023s" , nam , val ) ;
+
+   /*-- if didn't get both, try "name=value" --*/
+
    if( nam[0] == '\0' || val[0] == '\0' && strchr(cmd,'=') != NULL ){
      char *ccc = strdup(cmd) ;
      eee = strchr(ccc,'=') ; *eee = ' ' ;
@@ -2140,16 +2145,23 @@ int AFNI_drive_setenv( char *cmd )
    }
    if( nam[0] == '\0' || val[0] == '\0' ) return(-1) ;
 
+   /*-- set the actual environment variable; on some Unixes,
+        must be in a permanent piece of memory, thus the strdup() --*/
+
    sprintf(eqn,"%s=%s",nam,val) ;
    eee = strdup(eqn) ; putenv(eee) ;
 
    /**------- special cases require special actions -------**/
    /** much of this code is directly from afni_pplug_env.c **/
 
+   /*-- turn locking on or off --*/
+
    if( strcmp(nam,"AFNI_ALWAYS_LOCK") == 0 ){
           if( NOISH  (val) ) AFNI_lock_clear_CB (NULL,NULL,NULL) ;
      else if( YESSISH(val) ) AFNI_lock_setall_CB(NULL,NULL,NULL) ;
    }
+
+   /*-- turn image global ranging on or off --*/
 
    else if( strcmp(nam,"AFNI_IMAGE_GLOBALRANGE") == 0 ){
      Three_D_View *im3d ; int ii,gbr=YESSISH(val) ;
@@ -2168,16 +2180,22 @@ int AFNI_drive_setenv( char *cmd )
      }
    }
 
+   /*-- display coordinate order --*/
+
    else if( strcmp(nam,"AFNI_ORIENT") == 0 ){
      MCW_strncpy(GLOBAL_argopt.orient_code,val,4) ;
      THD_coorder_fill( GLOBAL_argopt.orient_code , &GLOBAL_library.cord ) ;
      PLUTO_force_redisplay() ;
    }
 
+   /*-- display edges only of overlay blobs --*/
+
    else if( strcmp(nam,"AFNI_EDGIZE_OVERLAY") == 0 ||
             strcmp(nam,"AFNI_OVERLAY_ZERO")   == 0   ){
       PLUTO_force_redisplay() ;
    }
+
+   /*-- compression mode --*/
 
    else if( strcmp(nam,"AFNI_COMPRESSOR") == 0 ){
      int meth = PLUTO_string_index( val, NUM_COMPRESS_elist, COMPRESS_elist );
@@ -2185,6 +2203,9 @@ int AFNI_drive_setenv( char *cmd )
      THD_set_write_compression(meth) ;
    }
 
+   /*-- session name trail length --*/
+
+#ifdef USE_SESSTRAIL
    else if( strcmp(nam,"AFNI_SESSTRAIL") == 0 ){
      int tt ; THD_session *sess ; char *str ;
      int ii = SESSTRAIL ; SESSTRAIL = (int)strtod(val,NULL) ;
@@ -2199,6 +2220,9 @@ int AFNI_drive_setenv( char *cmd )
        strcpy( sess->lastname , str+tt ) ;
      }
    }
+#endif
+
+   /*-- left on the left? --*/
 
    else if( strcmp(nam,"AFNI_LEFT_IS_LEFT") == 0 ){
      GLOBAL_argopt.left_is_left = YESSISH(val) ;
@@ -2212,6 +2236,7 @@ int AFNI_drive_setenv( char *cmd )
 
 static int AFNI_redisplay( char *cmd )
 {
+#if 0
    int cc ;
    Three_D_View *qq3d ;
 
@@ -2220,6 +2245,9 @@ static int AFNI_redisplay( char *cmd )
       if( ! IM3D_OPEN(qq3d) ) continue ;
       AFNI_set_viewpoint( qq3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
    }
+#else
+   PLUTO_force_redisplay() ;
+#endif
    return(0) ;
 }
 
