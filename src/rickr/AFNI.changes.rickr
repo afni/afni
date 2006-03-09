@@ -1428,3 +1428,6 @@
   * modified nifti1_io.c (v 1.18) to deal with nt = 0 in nifti_alloc_NBL_mem()
   * modified thd_niftiread.c to be sure that ntt and nbuc are at least 1
 
+09 Mar 2006:
+  * modified waver.c not to show -help after command typo
+

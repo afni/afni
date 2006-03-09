@@ -542,8 +542,10 @@ void Syntax(void)
 
 /*----------------------------------------------------------------*/
 
+/* no -help here (let the user see the error)        9 Mar 2006 [rickr]  */
 #define ERROR \
- do{fprintf(stderr,"Illegal %s option\n",argv[nopt]);Syntax();}while(0)
+ do{fprintf(stderr,"Illegal '%s' option",argv[nopt]);  \
+    fprintf(stderr,"  (consider 'waver -help')\n");exit(0);}while(0)
 
 void Process_Options( int argc , char * argv[] )
 {
@@ -931,6 +933,7 @@ void Process_Options( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-ver",4) == 0 ){  /* 06 Jan 2006 [rickr] */
          PRINT_VERSION("waver");
+         fprintf(stderr,"   (compiled %s)\n",__DATE__);
          exit(0) ;
       }
 
