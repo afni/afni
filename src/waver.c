@@ -183,7 +183,7 @@ static double WAV_dt   =   0.1 ;
 static int      IN_npts = -666 ;
 static double * IN_ts   = NULL ;
 
-static int      WAV_duration = -666.0 ;
+static double   WAV_duration = -666.0 ;
 static int      WAV_npts     = -666 ;
 static double * WAV_ts       = NULL ;
 

@@ -5808,3 +5808,4 @@
 09 Mar 2005
  * A little more dynamical action when a few environment variables are
      changed via external scripts.
+ * WAV_duration in waver.c was an int, not a double (thanks, Rasmus!).
