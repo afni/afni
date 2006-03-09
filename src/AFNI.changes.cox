@@ -5804,3 +5804,7 @@
      messages.
  * Modified afni_environ.c so that setting AFNI_ALWAYS_LOCK immediately
      changes the lock situation.
+
+09 Mar 2005
+ * A little more dynamical action when a few environment variables are
+     changed via external scripts.
