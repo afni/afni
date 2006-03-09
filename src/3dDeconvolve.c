@@ -676,6 +676,7 @@ void display_help_menu()
     "       * The intended use of this option is to provide slice-          \n"
     "         dependent physiological noise regressors, e.g., from program  \n"
     "         1dCRphase.                                                    \n"
+    "     *** NOT YET IMPLEMENTED ***                                       \n"
     "                                                                       \n"
     "**** General linear test (GLT) options:                                \n"
     "-num_glt num         num = number of general linear tests (GLTs)       \n"
@@ -915,11 +916,11 @@ ENTRY("initialize_stim_options") ;
       MTEST (option_data->stim_label[is]);
       sprintf (option_data->stim_label[is], "Stim#%d", is+1);
 
-      option_data->stim_base[is] = 0;
-      option_data->stim_minlag[is]   = 0;
-      option_data->stim_maxlag[is]   = 0;
-      option_data->stim_nptr[is]     = 1;
-      option_data->slice_base[is] = 0;
+      option_data->stim_base[is]    = 0;
+      option_data->stim_minlag[is]  = 0;
+      option_data->stim_maxlag[is]  = 0;
+      option_data->stim_nptr[is]    = 1;
+      option_data->slice_base[is]   = 0;
 
       option_data->iresp_filename[is] = NULL;
       option_data->sresp_filename[is] = NULL;
@@ -1389,7 +1390,7 @@ void get_options
       /*-----   -slice_base k sname  [12 Aug 2005] ------*/
 
       if( strcmp(argv[nopt],"-slice_base") == 0 ){
-        DC_error(" -slice_base NOT IMPLEMENTED YET !!!") ;
+        DC_error(" -slice_base ***NOT IMPLEMENTED YET*** !!!") ;
 
         nopt++;
         if (nopt+1 >= argc)  DC_error ("need 2 arguments after -slice_base");
@@ -1406,8 +1407,8 @@ void get_options
         option_data->stim_filename[k] = malloc(sizeof(char)*THD_MAX_NAME);
         MTEST(option_data->stim_filename[k]);
         strcpy(option_data->stim_filename[k], argv[nopt]);
-        option_data->slice_base[k] = 1 ;
-        option_data->stim_base[k] = 1;    /* mark as being in the baseline */
+        option_data->slice_base[k] = 1;
+        option_data->stim_base[k]  = 1;   /* mark as being in the baseline */
         nopt++;
         continue;
       }
@@ -2061,12 +2062,12 @@ ENTRY("read_input_data") ;
         if( !option_data->slice_base[is] ){  /**** ordinary input file ****/
 
           (*stimulus)[is] = read_time_series (option_data->stim_filename[is],
-                                      &((*stim_length)[is]));
+                                              &((*stim_length)[is]));
 
           if ((*stimulus)[is] == NULL)
             {
               sprintf (message,  "Unable to read '-stim_file %d %s'",
-                     is+1 , option_data->stim_filename[is]);
+                       is+1 , option_data->stim_filename[is]);
               DC_error (message);
             }
 
@@ -2083,7 +2084,7 @@ ENTRY("read_input_data") ;
           if( sim->ny > 1 ){                         /* multicolumn */
             option_data->slice_base[is] = sim->ny ;
             option_data->num_slice_base++ ;
-          } else {                                   /* unicolumn */
+          } else {                                   /* uni-column! */
             option_data->slice_base[is] = 0 ;
             WARNING_message("'slice_base %d %s' has only 1 column",
                             is+1 , option_data->stim_filename[is] ) ;
@@ -2182,6 +2183,12 @@ ENTRY("read_input_data") ;
           }
         }
         if( nerr > 0 ) ERROR_exit("Can't continue from nz mismatch!") ;
+
+        if( nz == 1 ){                           /* only 1 slice? */
+          for( is=0 ; is < num_stimts ; is++ )   /* get rid of   */
+            option_data->slice_base[is] = 0 ;    /* slice_base  */
+          option_data->num_slice_base = 0 ;      /* markings!  */
+        }
       }
 
       basis_TR = DSET_TR(*dset_time) ;          /* 11 Aug 2004 */
