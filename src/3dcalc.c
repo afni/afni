@@ -103,6 +103,8 @@ static int                 CALC_type[26] ;
 static byte **             CALC_byte[26] ;
 static short **            CALC_short[26] ;
 static float **            CALC_float[26] ;
+static complex **          CALC_complex[26] ; /* 10 Mar 2006 */
+static int                 CALC_cxcode[26] ;
 static float *             CALC_ffac[26] ;
 static int                 CALC_noffac[26] ;  /* 14 Nov 2003 */
 
@@ -134,6 +136,12 @@ static float Gfac = 0.587 ;
 static float Bfac = 0.114 ;
 
 static int   CALC_taxis_num = 0 ;    /* 28 Apr 2003 */
+
+#define CX_REALPART  0               /* 10 Mar 2006: complex to real methods */
+#define CX_IMAGPART  1
+#define CX_MAGNITUDE 2
+#define CX_PHASE     3
+static int CUR_cxcode = CX_MAGNITUDE ;  /* default conversion method */
 
 /*--------------------------- prototypes ---------------------------*/
 void CALC_read_opts( int , char ** ) ;
@@ -205,16 +213,10 @@ void CALC_read_opts( int argc , char * argv[] )
    }
 
    while( nopt < argc && argv[nopt][0] == '-' ){
-      #ifdef USE_TRACING
-               if( strncmp(argv[nopt],"-trace",5) == 0 ){
-                  DBG_trace = 1 ;
-                  nopt++ ; continue ;
-               }
-               if( strncmp(argv[nopt],"-TRACE",5) == 0 ){  
-                  DBG_trace = 2 ;
-                  nopt++ ; continue ;
-               }
-      #endif
+#ifdef USE_TRACING
+      if( strncmp(argv[nopt],"-trace",5) == 0 ){ DBG_trace=1; nopt++; continue; }
+      if( strncmp(argv[nopt],"-TRACE",5) == 0 ){ DBG_trace=2; nopt++; continue; }
+#endif
       /**** -dicom, -RAI, -LPI, -SPM [18 May 2005] ****/
 
       if( strcasecmp(argv[nopt],"-dicom") == 0 || strcasecmp(argv[nopt],"-rai") == 0 ){
@@ -238,6 +240,24 @@ void CALC_read_opts( int argc , char * argv[] )
         if( Rfac == 0.0 && Gfac == 0.0 && Bfac == 0.0 )
           ERROR_exit("All 3 factors after -rgbfac are zero!?\n");
         continue ;
+      }
+
+      /**** -cx2r code [10 Mar 2006] ***/
+
+      if( strncasecmp(argv[nopt],"-cx2r",5) == 0 ){
+        if( ++nopt >= argc )
+          ERROR_exit("need an argument after -cx2r!\n") ;
+             if( strncasecmp(argv[nopt],"real",4) == 0 )  CUR_cxcode=CX_REALPART ;
+        else if( strncasecmp(argv[nopt],"imag",4) == 0 )  CUR_cxcode=CX_IMAGPART ;
+        else if( strncasecmp(argv[nopt],"mag",3) == 0 ||
+                 strncasecmp(argv[nopt],"abs",3) == 0   ) CUR_cxcode=CX_MAGNITUDE;
+        else if( strncasecmp(argv[nopt],"pha",3) == 0 ||
+                 strncasecmp(argv[nopt],"arc",3) == 0   ) CUR_cxcode=CX_PHASE    ;
+        else {
+                                                          CUR_cxcode=CX_MAGNITUDE;
+          WARNING_message("Don't understand '-cx2r %s' - using ABS",argv[nopt]);
+        }
+        nopt++ ; continue ;
       }
 
       /**** -taxis N:dt [28 Apr 2003] ****/
@@ -304,8 +324,10 @@ void CALC_read_opts( int argc , char * argv[] )
             CALC_datum = MRI_float ;
          } else if( strcasecmp(argv[nopt],"byte") == 0 ){
             CALC_datum = MRI_byte ;
+#if 0
          } else if( strcasecmp(argv[nopt],"complex") == 0 ){  /* not listed in help */
             CALC_datum = MRI_complex ;
+#endif
          } else {
             ERROR_exit("-datum of type '%s' not supported in 3dcalc!\n",argv[nopt]) ;
          }
@@ -523,6 +545,7 @@ void CALC_read_opts( int argc , char * argv[] )
             CALC_dshift_l[ival] = ijkl[4] ;
 
             CALC_dshift_mode[ival] = CALC_dshift_mode_current ;
+            CALC_cxcode[ival]      = CUR_cxcode ;  /* 10 Mar 2006 */
 
             CALC_has_timeshift = CALC_has_timeshift || (ijkl[4] != 0) ;
 
@@ -599,7 +622,7 @@ void CALC_read_opts( int argc , char * argv[] )
                                        DSET_BRICK_TYPE(dset,ii), DSET_ARRAY(dset,ii),
                                        MRI_float , far ) ;
                EDIT_substitute_brick( dset , ii , MRI_float , far ) ;
-               DSET_BRICK_FACTOR(dset,ii) = 0.0 ;
+               DSET_BRICK_FACTOR(dset,ii) = 0.0f ;
              }
            }
          }
@@ -613,24 +636,24 @@ void CALC_read_opts( int argc , char * argv[] )
 
          CALC_ffac[ival] = (float *) malloc( sizeof(float) * ntime[ival] ) ;
          if ( ntime[ival] == 1 ) {
-            CALC_ffac[ival][0] = DSET_BRICK_FACTOR( dset , isub) ;
-            if (CALC_ffac[ival][0] == 0.0 ) CALC_ffac[ival][0] = 1.0 ;
-            if( CALC_ffac[ival][0] != 1.0 ) CALC_noffac[ival] = 0 ;  /* 14 Nov 2003 */
+           CALC_ffac[ival][0] = DSET_BRICK_FACTOR( dset , isub) ;
+           if (CALC_ffac[ival][0] == 0.0 ) CALC_ffac[ival][0] = 1.0 ;
+           if( CALC_ffac[ival][0] != 1.0 ) CALC_noffac[ival] = 0 ;  /* 14 Nov 2003 */
          } else {
-             for (ii = 0 ; ii < ntime[ival] ; ii ++ ) {
-               CALC_ffac[ival][ii] = DSET_BRICK_FACTOR(dset, ii) ;
-               if (CALC_ffac[ival][ii] == 0.0 ) CALC_ffac[ival][ii] = 1.0;
-               if( CALC_ffac[ival][ii] != 1.0 ) CALC_noffac[ival] = 0 ;  /* 14 Nov 2003 */
-             }
+            for (ii = 0 ; ii < ntime[ival] ; ii ++ ) {
+              CALC_ffac[ival][ii] = DSET_BRICK_FACTOR(dset, ii) ;
+              if (CALC_ffac[ival][ii] == 0.0 ) CALC_ffac[ival][ii] = 1.0;
+              if( CALC_ffac[ival][ii] != 1.0 ) CALC_noffac[ival] = 0 ;  /* 14 Nov 2003 */
+            }
          }
 
          /* read data from disk */
 
          if( CALC_verbose ){
-            int iv , nb ;
-            for( iv=nb=0 ; iv < DSET_NVALS(dset) ; iv++ )
-               nb += DSET_BRICK_BYTES(dset,iv) ;
-            INFO_message("Reading dataset %s (%d bytes)\n",argv[nopt-1],nb);
+           int iv , nb ;
+           for( iv=nb=0 ; iv < DSET_NVALS(dset) ; iv++ )
+             nb += DSET_BRICK_BYTES(dset,iv) ;
+           INFO_message("Reading dataset %s (%d bytes)\n",argv[nopt-1],nb);
          }
 
          if( ! DSET_LOADED(dset) ){
@@ -638,53 +661,71 @@ void CALC_read_opts( int argc , char * argv[] )
            if( ! DSET_LOADED(dset) )
              ERROR_exit("Can't read data brick for dataset %s\n",argv[nopt-1]) ;
          }
+
          /* set pointers for actual dataset arrays */
 
+         CALC_cxcode[ival] = CUR_cxcode ; /* 10 Mar 2006 */
+
          switch (CALC_type[ival]) {
-             case MRI_short:
-                CALC_short[ival] = (short **) malloc( sizeof(short *) * ntime[ival] ) ;
-                if (ntime[ival] == 1 )
-                    CALC_short[ival][0] = (short *) DSET_ARRAY(dset, isub) ;
-                else
-                    for (ii=0; ii < ntime[ival]; ii++)
-                       CALC_short[ival][ii] = (short *) DSET_ARRAY(dset, ii);
+           case MRI_short:
+             CALC_short[ival] = (short **) malloc( sizeof(short *) * ntime[ival] ) ;
+             if (ntime[ival] == 1 )
+               CALC_short[ival][0] = (short *) DSET_ARRAY(dset, isub) ;
+             else
+               for (ii=0; ii < ntime[ival]; ii++)
+                 CALC_short[ival][ii] = (short *) DSET_ARRAY(dset, ii);
+           break;
+
+           case MRI_float:
+             CALC_float[ival] = (float **) malloc( sizeof(float *) * ntime[ival] ) ;
+             if (ntime[ival] == 1 )
+               CALC_float[ival][0] = (float *) DSET_ARRAY(dset, isub) ;
+             else
+               for (ii=0; ii < ntime[ival]; ii++)
+                 CALC_float[ival][ii] = (float *) DSET_ARRAY(dset, ii);
+           break;
+
+           case MRI_byte:
+             CALC_byte[ival] = (byte **) malloc( sizeof(byte *) * ntime[ival] ) ;
+             if (ntime[ival] == 1 )
+               CALC_byte[ival][0] = (byte *) DSET_ARRAY(dset, isub) ;
+             else
+               for (ii=0; ii < ntime[ival]; ii++)
+                 CALC_byte[ival][ii] = (byte *) DSET_ARRAY(dset, ii);
             break;
 
-            case MRI_float:
-               CALC_float[ival] = (float **) malloc( sizeof(float *) * ntime[ival] ) ;
-               if (ntime[ival] == 1 )
-                  CALC_float[ival][0] = (float *) DSET_ARRAY(dset, isub) ;
-               else
-                  for (ii=0; ii < ntime[ival]; ii++)
-                     CALC_float[ival][ii] = (float *) DSET_ARRAY(dset, ii);
-            break;
+           case MRI_rgb:   /* 10 Feb 2003 */
+             CALC_byte[ival] = (byte **) malloc( sizeof(byte *) * ntime[ival] ) ;
+             if (ntime[ival] == 1 )
+               CALC_byte[ival][0] = (byte *) DSET_ARRAY(dset, isub) ;
+             else
+               for (ii=0; ii < ntime[ival]; ii++)
+                 CALC_byte[ival][ii] = (byte *) DSET_ARRAY(dset, ii);
+           break ;
 
-            case MRI_byte:
-               CALC_byte[ival] = (byte **) malloc( sizeof(byte *) * ntime[ival] ) ;
-               if (ntime[ival] == 1 )
-                  CALC_byte[ival][0] = (byte *) DSET_ARRAY(dset, isub) ;
-               else
-                  for (ii=0; ii < ntime[ival]; ii++)
-                     CALC_byte[ival][ii] = (byte *) DSET_ARRAY(dset, ii);
-            break;
+           case MRI_complex: /* 10 Mar 2006 */
+             CALC_complex[ival] = (complex **)malloc( sizeof(complex *) * ntime[ival] );
+             if( ntime[ival] == 1 )
+               CALC_complex[ival][0] = (complex *) DSET_ARRAY(dset, isub) ;
+             else
+               for (ii=0; ii < ntime[ival]; ii++)
+                 CALC_complex[ival][ii] = (complex *) DSET_ARRAY(dset, ii);
+           break ;
 
-            case MRI_rgb:   /* 10 Feb 2003 */
-               CALC_byte[ival] = (byte **) malloc( sizeof(byte *) * ntime[ival] ) ;
-               if (ntime[ival] == 1 )
-                  CALC_byte[ival][0] = (byte *) DSET_ARRAY(dset, isub) ;
-               else
-                  for (ii=0; ii < ntime[ival]; ii++)
-                     CALC_byte[ival][ii] = (byte *) DSET_ARRAY(dset, ii);
-            break ;
-
-            default:
-               ERROR_exit("Dataset %s has illegal data type: %s\n" ,
-                         argv[nopt-1] , MRI_type_name[CALC_type[ival]] ) ;
+           default:
+             ERROR_exit("Dataset %s has illegal data type: %s\n" ,
+                        argv[nopt-1] , MRI_type_name[CALC_type[ival]] ) ;
 
          } /* end of switch over type switch */
-         if( CALC_datum < 0 && CALC_type[ival] != MRI_rgb ) CALC_datum = CALC_type[ival] ;
 
-DSET_DONE: continue;
+         /* if -datum not given or implied yet, set the output datum now */
+
+         if( CALC_datum < 0 && CALC_type[ival] != MRI_rgb ){
+           if( CALC_type[ival] == MRI_complex ) CALC_datum = MRI_float ;
+           else                                 CALC_datum = CALC_type[ival] ;
+         }
+
+DSET_DONE: continue;  /*** target for various goto statements above ***/
 
       } /* end of dataset input */
 
@@ -1020,6 +1061,23 @@ void CALC_Syntax(void)
     "                  will compute the intensity rescaled to the range 0..1.0\n"
     "                  (i.e., 0.001173=0.299/255, etc.)                      \n"
     "                                                                        \n"
+    "  -cx2r METHOD  = For complex input datasets, the 2 channels must be    \n"
+    "                  converted to 1 real number for calculation.  The      \n"
+    "                  methods available are:  REAL  IMAG  ABS  PHASE        \n"
+    "                * The default method is ABS = sqrt(REAL^2+IMAG^2)       \n"
+    "                * PHASE = atan2(IMAG,REAL)                              \n"
+    "                * Multiple '-cx2r' options can be given:                \n"
+    "                    when a complex dataset is given on the command line,\n"
+    "                    the most recent previous method will govern.        \n"
+    "                * If a complex dataset is used in a differential        \n"
+    "                    subscript, then the most recent previous -cx2r      \n"
+    "                    method applies to the extraction; for example       \n"
+    "                      -cx2r REAL -a cx+orig -cx2r IMAG -b 'a[0,0,0,0]'  \n"
+    "                    means that variable 'a' refers to the real part     \n"
+    "                    of the input dataset and variable 'b' to the        \n"
+    "                    imaginary part of the input dataset.                \n"
+    "                * 3dcalc cannot be used to CREATE a complex dataset!    \n"
+    "                                                                        \n"
     "------------------------------------------------------------------------\n"
     "DATASET TYPES:                                                          \n"
     "-------------                                                           \n"
@@ -1267,14 +1325,14 @@ void CALC_Syntax(void)
     " At this time, C relational, boolean, and conditional expressions are\n"
     " NOT implemented.  Built in functions include:\n"
     "\n"
-    "   sin  , cos  , tan  , asin  , acos  , atan  , atan2,                  \n"
-    "   sinh , cosh , tanh , asinh , acosh , atanh , exp  ,                  \n"
-    "   log  , log10, abs  , int   , sqrt  , max   , min  ,                  \n"
-    "   J0   , J1   , Y0   , Y1    , erf   , erfc  , qginv, qg ,             \n"
-    "   rect , step , astep, bool  , and   , or    , mofn ,                  \n"
-    "   sind , cosd , tand , median, lmode , hmode , mad  ,                  \n"
-    "   gran , uran , iran , eran  , lran  , orstat,                         \n"
-    "   mean , stdev, sem  , Pleg\n"
+    "    sin  , cos  , tan  , asin  , acos  , atan  , atan2,       \n"
+    "    sinh , cosh , tanh , asinh , acosh , atanh , exp  ,       \n"
+    "    log  , log10, abs  , int   , sqrt  , max   , min  ,       \n"
+    "    J0   , J1   , Y0   , Y1    , erf   , erfc  , qginv, qg ,  \n"
+    "    rect , step , astep, bool  , and   , or    , mofn ,       \n"
+    "    sind , cosd , tand , median, lmode , hmode , mad  ,       \n"
+    "    gran , uran , iran , eran  , lran  , orstat,              \n"
+    "    mean , stdev, sem  , Pleg\n"
     "\n"
     " where:\n"
     " * qg(x)    = reversed cdf of a standard normal distribution\n"
@@ -1552,17 +1610,17 @@ int main( int argc , char *argv[] )
                             just copy the single value (or zero) to all voxels. */
 
             if( TS_flim[ids] != NULL ){
-               if( jbot == 0 ){  /* only must do this on first vector at each time */
-                  double tval ;
-                  if( kt < TS_flim[ids]->nx ) tval = TS_flar[ids][kt] ;
-                  else                        tval = 0.0 ;
+              if( jbot == 0 ){  /* only must do this on first vector at each time */
+                double tval ;
+                if( kt < TS_flim[ids]->nx ) tval = TS_flar[ids][kt] ;
+                else                        tval = 0.0 ;
 
-                  for (jj =jbot ; jj < jtop ; jj ++ )
-                     atoz[ids][jj-ii] = tval ;
-               }
+                for (jj =jbot ; jj < jtop ; jj ++ )
+                  atoz[ids][jj-ii] = tval ;
+              }
             }
 
-            /* 22 Feb 2005: IJKAR 1D arrays */
+            /** 22 Feb 2005: IJKAR 1D arrays **/
 
             else if( IJKAR_flim[ids] != NULL ){
               int ss , ix=IJKAR_flim[ids]->nx ;
@@ -1589,7 +1647,7 @@ int main( int argc , char *argv[] )
               }
             }
 
-            /* 22 Nov 1999: if a differentially subscripted dataset is here */
+            /** 22 Nov 1999: if a differentially subscripted dataset is here **/
 
             else if( CALC_dshift[ids] >= 0 ){
                int jds = CALC_dshift[ids] ;     /* actual dataset index */
@@ -1605,114 +1663,128 @@ int main( int argc , char *argv[] )
 
                kts = kt + ld ;                        /* t shift */
                if( kts < 0 || kts > dst ){
-                  switch( mode ){
-                     case DSHIFT_MODE_ZERO:
-                       for( jj=jbot ; jj < jtop ; jj++ ) atoz[ids][jj-ii] = 0.0 ;
-                       dun = 1 ;
-                     break ;
-                     default:
-                     case DSHIFT_MODE_STOP:
-                            if( kts <  0  ) kts = 0   ;
-                       else if( kts > dst ) kts = dst ;
-                     break ;
-                     case DSHIFT_MODE_WRAP:
-                        while( kts <  0  ) kts += (dst+1) ;
-                        while( kts > dst ) kts -= (dst+1) ;
-                     break ;
-                  }
+                 switch( mode ){
+                   case DSHIFT_MODE_ZERO:
+                     for( jj=jbot ; jj < jtop ; jj++ ) atoz[ids][jj-ii] = 0.0 ;
+                     dun = 1 ;
+                   break ;
+                   default:
+                   case DSHIFT_MODE_STOP:
+                          if( kts <  0  ) kts = 0   ;
+                     else if( kts > dst ) kts = dst ;
+                   break ;
+                   case DSHIFT_MODE_WRAP:
+                     while( kts <  0  ) kts += (dst+1) ;
+                     while( kts > dst ) kts -= (dst+1) ;
+                   break ;
+                 }
                }
 
-               if( !dun ){
-                  for( dun=0,jj=jbot ; jj < jtop ; jj++ ){
-                     jjs = jj ;
-                     if( ijkd ){
-                        ix = DSET_index_to_ix(CALC_dset[jds],jj) ;
-                        jy = DSET_index_to_jy(CALC_dset[jds],jj) ;
-                        kz = DSET_index_to_kz(CALC_dset[jds],jj) ;
+               if( !dun ){   /* must get some actual data */
+                 for( dun=0,jj=jbot ; jj < jtop ; jj++ ){ /* loop over voxels */
+                   jjs = jj ;                  /* nominal voxel spatial index */
+                   if( ijkd ){                 /* if spatial shift is ordered */
+                     ix = DSET_index_to_ix(CALC_dset[jds],jj) ;
+                     jy = DSET_index_to_jy(CALC_dset[jds],jj) ;
+                     kz = DSET_index_to_kz(CALC_dset[jds],jj) ;
 
-                        ix += id ;                  /* x shift */
-                        if( ix < 0 || ix > dsx ){
-                           switch( mode ){
-                              case DSHIFT_MODE_ZERO:
-                                 atoz[ids][jj-ii] = 0.0 ; dun = 1 ;
-                              break ;
-                              default:
-                              case DSHIFT_MODE_STOP:
-                                     if( ix <  0  ) ix = 0   ;
-                                else if( ix > dsx ) ix = dsx ;
-                              break ;
-                              case DSHIFT_MODE_WRAP:
-                                 while( ix <  0  ) ix += (dsx+1) ;
-                                 while( ix > dsx ) ix -= (dsx+1) ;
-                              break ;
-                           }
-                        }
-                        if( dun ){ dun=0; continue; } /* go to next jj */
-
-                        jy += jd ;                  /* y shift */
-                        if( jy < 0 || jy > dsy ){
-                           switch( mode ){
-                              case DSHIFT_MODE_ZERO:
-                                 atoz[ids][jj-ii] = 0.0 ; dun = 1 ;
-                              break ;
-                              default:
-                              case DSHIFT_MODE_STOP:
-                                     if( jy <  0  ) jy = 0   ;
-                                else if( jy > dsy ) jy = dsy ;
-                              break ;
-                              case DSHIFT_MODE_WRAP:
-                                 while( jy <  0  ) jy += (dsy+1) ;
-                                 while( jy > dsy ) jy -= (dsy+1) ;
-                              break ;
-                           }
-                        }
-                        if( dun ){ dun=0; continue; } /* go to next jj */
-
-                        kz += kd ;                  /* z shift */
-                        if( kz < 0 || kz > dsz ){
-                           switch( mode ){
-                              case DSHIFT_MODE_ZERO:
-                                 atoz[ids][jj-ii] = 0.0 ; dun = 1 ;
-                              break ;
-                              default:
-                              case DSHIFT_MODE_STOP:
-                                     if( kz <  0  ) kz = 0   ;
-                                else if( kz > dsz ) kz = dsz ;
-                              break ;
-                              case DSHIFT_MODE_WRAP:
-                                 while( kz <  0  ) kz += (dsz+1) ;
-                                 while( kz > dsz ) kz -= (dsz+1) ;
-                              break ;
-                           }
-                        }
-                        if( dun ){ dun=0; continue; } /* go to next jj */
-
-                        jjs = DSET_ixyz_to_index(CALC_dset[jds],ix,jy,kz) ;
+                     ix += id ;                  /* x shift */
+                     if( ix < 0 || ix > dsx ){
+                       switch( mode ){
+                         case DSHIFT_MODE_ZERO:
+                           atoz[ids][jj-ii] = 0.0 ; dun = 1 ;
+                         break ;
+                         default:
+                         case DSHIFT_MODE_STOP:
+                              if( ix <  0  ) ix = 0   ;
+                           else if( ix > dsx ) ix = dsx ;
+                         break ;
+                         case DSHIFT_MODE_WRAP:
+                           while( ix <  0  ) ix += (dsx+1) ;
+                           while( ix > dsx ) ix -= (dsx+1) ;
+                         break ;
+                       }
                      }
-                     switch( CALC_type[jds] ) {
-                        case MRI_short:
-                           atoz[ids][jj-ii] =  CALC_short[jds][kts][jjs]
-                                             * CALC_ffac[jds][kts];
-                        break ;
-                        case MRI_float:
-                           atoz[ids][jj-ii] =  CALC_float[jds][kts][jjs]
-                                             * CALC_ffac[jds][kts];
-                        break ;
-                        case MRI_byte:
-                           atoz[ids][jj-ii] =  CALC_byte[jds][kts][jjs]
-                                             * CALC_ffac[jds][kts];
-                        break ;
-                        case MRI_rgb:
-                           atoz[ids][jj-ii] = Rfac*CALC_byte[jds][kts][3*jjs  ]
-                                             +Gfac*CALC_byte[jds][kts][3*jjs+1]
-                                             +Bfac*CALC_byte[jds][kts][3*jjs+2] ;
-                        break ;
-                     }
-                  }
-               }
-            }
+                     if( dun ){ dun=0; continue; } /* go to next jj */
 
-            /* the case of a 3D dataset (i.e., only 1 sub-brick) */
+                     jy += jd ;                  /* y shift */
+                     if( jy < 0 || jy > dsy ){
+                       switch( mode ){
+                         case DSHIFT_MODE_ZERO:
+                           atoz[ids][jj-ii] = 0.0 ; dun = 1 ;
+                         break ;
+                         default:
+                         case DSHIFT_MODE_STOP:
+                                if( jy <  0  ) jy = 0   ;
+                           else if( jy > dsy ) jy = dsy ;
+                         break ;
+                         case DSHIFT_MODE_WRAP:
+                           while( jy <  0  ) jy += (dsy+1) ;
+                           while( jy > dsy ) jy -= (dsy+1) ;
+                         break ;
+                       }
+                     }
+                     if( dun ){ dun=0; continue; } /* go to next jj */
+
+                     kz += kd ;                  /* z shift */
+                     if( kz < 0 || kz > dsz ){
+                       switch( mode ){
+                         case DSHIFT_MODE_ZERO:
+                           atoz[ids][jj-ii] = 0.0 ; dun = 1 ;
+                         break ;
+                         default:
+                         case DSHIFT_MODE_STOP:
+                                if( kz <  0  ) kz = 0   ;
+                           else if( kz > dsz ) kz = dsz ;
+                         break ;
+                         case DSHIFT_MODE_WRAP:
+                           while( kz <  0  ) kz += (dsz+1) ;
+                           while( kz > dsz ) kz -= (dsz+1) ;
+                         break ;
+                       }
+                     }
+                     if( dun ){ dun=0; continue; } /* go to next jj */
+
+                     jjs = DSET_ixyz_to_index(CALC_dset[jds],ix,jy,kz) ;
+                   } /* end of spatial shift index calculation */
+
+                  switch( CALC_type[jds] ) {  /* extract data */
+                    case MRI_short:
+                      atoz[ids][jj-ii] =  CALC_short[jds][kts][jjs]
+                                        * CALC_ffac[jds][kts];
+                    break ;
+                    case MRI_float:
+                      atoz[ids][jj-ii] =  CALC_float[jds][kts][jjs]
+                                        * CALC_ffac[jds][kts];
+                    break ;
+                    case MRI_byte:
+                      atoz[ids][jj-ii] =  CALC_byte[jds][kts][jjs]
+                                        * CALC_ffac[jds][kts];
+                    break ;
+                    case MRI_rgb:
+                      atoz[ids][jj-ii] = Rfac*CALC_byte[jds][kts][3*jjs  ]
+                                        +Gfac*CALC_byte[jds][kts][3*jjs+1]
+                                        +Bfac*CALC_byte[jds][kts][3*jjs+2] ;
+                    break ;
+                    case MRI_complex:{                        /* 10 Mar 2006 */
+                      complex cv=CALC_complex[jds][kts][jjs] ;
+                      float   xx=cv.r, yy=cv.i , vv ;
+                      switch( CALC_cxcode[ids] ){           /* ids, NOT jds! */
+                        case CX_REALPART:  vv = xx ;                    break ;
+                        case CX_IMAGPART:  vv = yy ;                    break ;
+                        case CX_PHASE:     vv = (xx==0.0f && yy==0.0f)
+                                                ? 0.0f : atan2(yy,xx) ; break ;
+                        default:
+                        case CX_MAGNITUDE: vv = sqrt(xx*xx+yy*yy) ;     break ;
+                      }
+                      atoz[ids][jj-ii] = vv ;
+                    }
+                  } /* end of data extraction switch */
+                } /* end of loop over voxels */
+              } /* end of getting actual data */
+            } /* end of differential subscripted input */
+
+            /** the case of a 3D dataset (i.e., only 1 sub-brick) **/
 
             else if ( ntime[ids] == 1 && CALC_type[ids] >= 0 ) {
                switch( CALC_type[ids] ) {
@@ -1749,10 +1821,26 @@ int main( int argc , char *argv[] )
                                           +Gfac*CALC_byte[ids][0][3*jj+1]
                                           +Bfac*CALC_byte[ids][0][3*jj+2] ;
                   break;
-               }
-            }
 
-           /* the case of a 3D+time dataset (or a bucket, etc.) */
+                  case MRI_complex:{                          /* 10 Mar 2006 */
+                    complex cv ; float xx,yy,vv ;
+                    for( jj=jbot ; jj < jtop ; jj++ ){
+                      cv=CALC_complex[ids][0][jj] ; xx = cv.r ; yy = cv.i ;
+                      switch( CALC_cxcode[ids] ){
+                        case CX_REALPART:  vv = xx ;                    break ;
+                        case CX_IMAGPART:  vv = yy ;                    break ;
+                        case CX_PHASE:     vv = (xx==0.0f && yy==0.0f)
+                                                ? 0.0f : atan2(yy,xx) ; break ;
+                        default:
+                        case CX_MAGNITUDE: vv = sqrt(xx*xx+yy*yy) ;     break ;
+                      }
+                      atoz[ids][jj-ii] = vv ;
+                    }
+                  }
+               }
+            } /** end of 3D dataset **/
+
+            /** the case of a 3D+time dataset (or a bucket, etc.) **/
 
             else if( ntime[ids] > 1 && CALC_type[ids] >= 0 ) {
                switch ( CALC_type[ids] ) {
@@ -1789,6 +1877,22 @@ int main( int argc , char *argv[] )
                                          +Gfac*CALC_byte[ids][kt][3*jj+1]
                                          +Bfac*CALC_byte[ids][kt][3*jj+2] ;
                  break;
+
+                 case MRI_complex:{                          /* 10 Mar 2006 */
+                   complex cv ; float xx,yy,vv ;
+                   for( jj=jbot ; jj < jtop ; jj++ ){
+                     cv=CALC_complex[ids][kt][jj] ; xx = cv.r ; yy = cv.i ;
+                     switch( CALC_cxcode[ids] ){
+                       case CX_REALPART:  vv = xx ;                    break ;
+                       case CX_IMAGPART:  vv = yy ;                    break ;
+                       case CX_PHASE:     vv = (xx==0.0f && yy==0.0f)
+                                               ? 0.0f : atan2(yy,xx) ; break ;
+                       default:
+                       case CX_MAGNITUDE: vv = sqrt(xx*xx+yy*yy) ;     break ;
+                     }
+                     atoz[ids][jj-ii] = vv ;
+                   }
+                 }
                }
              }
 
