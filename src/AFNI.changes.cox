@@ -5809,3 +5809,6 @@
  * A little more dynamical action when a few environment variables are
      changed via external scripts.
  * WAV_duration in waver.c was an int, not a double (thanks, Rasmus!).
+
+10 Mar 2005
+ * Mods to 3dcalc.c to allow use of complex-valued dataset on input.
