@@ -1433,4 +1433,7 @@
 
 13 Mar 2006:
   * added examples to 3dmaskave.c
+  * modified to3d.c, mri_read_dicom.c, mrilib.h: added option and global
+    variable for assume_dicom_mosaic, to apply the liberal DICOM mosaic test
+    only when set (via -assume_dicom_mosaic in to3d)
 

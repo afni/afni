@@ -112,9 +112,13 @@ NULL } ;
 #define E_SIEMENS_1                  26    /* 31 Oct 2002 */
 #define E_SIEMENS_2                  27
 
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+/* global set via 'to3d -assume_dicom_mosaic'            13 Mar 2006 [rickr] */
+int assume_dicom_mosaic = 0;   /* (case of 1 is equivalent to Rich's change) */
+
+/*---------------------------------------------------------------------------*/
 /*! Read image(s) from a DICOM file, if possible.
--------------------------------------------------------------------------------------*/
+-----------------------------------------------------------------------------*/
 
 MRI_IMARR * mri_read_dicom( char *fname )
 {
@@ -333,7 +337,11 @@ ENTRY("mri_read_dicom") ;
    /* KRH 25 Jul 2003 if start and end markers are present for
     * Siemens extra info, cut string down to those boundaries */
 
-   if( str_sexinfo                               != NULL   ){
+   /* if assume_dicom_mosaic is not set, then require "MOSAIC" string */
+   /*                                             13 Mar 2006 [rickr] */
+   if( ( assume_dicom_mosaic ||
+         ( epos[E_ID_IMAGE_TYPE] && strstr(epos[E_ID_IMAGE_TYPE],"MOSAIC") ) )
+       && str_sexinfo                               != NULL   ){
 
      sexi_start = strstr(str_sexinfo, "### ASCCONV BEGIN ###");
      sexi_end = strstr(str_sexinfo, "### ASCCONV END ###");
@@ -1267,7 +1275,11 @@ ENTRY("mri_imcount_dicom") ;
      }
    }
 
-   if( str_sexinfo                               != NULL   ){
+   /* if assume_dicom_mosaic is not set, then require "MOSAIC" string */
+   /*                                             13 Mar 2006 [rickr] */
+   if( ( assume_dicom_mosaic ||
+         ( epos[E_ID_IMAGE_TYPE] && strstr(epos[E_ID_IMAGE_TYPE],"MOSAIC") ) )
+       && str_sexinfo != NULL   ){
 
      /* 31 Oct 2002: extract extra Siemens info from file */
 
