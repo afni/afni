@@ -226,7 +226,7 @@ ENTRY("THD_load_1D") ;
 void THD_write_1D( char *sname, char *pname , THD_3dim_dataset *dset )
 {
    char fname[THD_MAX_NAME] , *cpt ;
-   int iv,nv , nx,ny,nz,nxyz,ii,jj,kk ;
+   int iv,nv , nx,ny,nz,nxyz,ii,jj,kk , qq ;
    FILE *fp=NULL ;
    int binflag ; char shp ; float val[1] ;
 
@@ -395,8 +395,13 @@ ENTRY("THD_write_1D") ;
           break ;
        } /* end of switch on sub-brick data type */
 
-       if( binflag ) fwrite( val , sizeof(float) , 1 , fp ) ;
-       else          fprintf( fp , " %g" , val[0] ) ;
+       if( binflag ) qq = fwrite( val , sizeof(float) , 1 , fp ) ;
+       else          qq = fprintf( fp , " %g" , val[0] ) ;
+
+       if( qq <= 0 ){   /* check for output error */
+         ERROR_message("THD_write_1D('%s') failure!",fname) ;
+         goto DONE ;
+       }
 
      } /* end of loop over sub-bricks */
 
@@ -406,6 +411,7 @@ ENTRY("THD_write_1D") ;
 
    /* NIML-style trailer */
 
+ DONE:
    fflush(fp) ;
 
    if( fp != stdout ){

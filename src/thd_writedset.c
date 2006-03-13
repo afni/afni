@@ -57,7 +57,7 @@ ENTRY("THD_write_3dim_dataset") ;
    if( DSET_IS_VOLUMES(dset) && write_brick ) RETURN(False) ;  /* 20 Jun 2002 */
 
    if( DSET_IS_1D(dset) ||
-       ( DSET_NY(dset)==1 && DSET_NZ(dset)==1 ) ){            /* 04 Mar 2003 */
+       ( DSET_NY(dset)==1 && DSET_NZ(dset)==1 ) ){             /* 04 Mar 2003 */
 
      THD_write_1D( new_sessname , new_prefixname , dset ) ;
      RETURN(True) ;
