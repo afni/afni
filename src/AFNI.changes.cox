@@ -5812,3 +5812,7 @@
 
 10 Mar 2005
  * Mods to 3dcalc.c to allow use of complex-valued dataset on input.
+
+13 Mar 2005
+ * Checks in afni_func.c, adwarp.c, and thd_writedblk.c for free disk
+     space, just before actual writing of .BRIK file.

@@ -73,8 +73,19 @@ ENTRY("THD_write_nifti") ;
   nbl.bricks = (void **) malloc ( DSET_NVALS(dset) * sizeof(void*) ) ;
   nbl.nbricks = DSET_NVALS(dset) ;
   nbl.bsize = DSET_BRICK_BYTES(dset,0) ;
-  for (ii = 0 ; ii < DSET_NVALS(dset) ; ii++ ) {
+  for (ii = 0 ; ii < DSET_NVALS(dset) ; ii++ )
     nbl.bricks[ii] = DSET_ARRAY(dset,ii) ;
+
+  /*-- 13 Mar 2006: check disk space --*/
+
+  { FILE *fp = fopen(nim->fname,"ab") ;
+    int mm   = THD_freemegabytes(nim->fname) ;
+    int rr   = (int)(dset->dblk->total_bytes/(1024*1024)) ;
+    if( fp != NULL ) fclose(fp) ;
+    if( mm >= 0 && mm <= rr )
+      WARNING_message("Disk space: writing dataset %s (%d MB),"
+                      " but only %d free MB on disk"                   ,
+              nim->fname , rr , mm ) ;
   }
 
   /*-- use handy-dandy library function to write out data */
