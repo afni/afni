@@ -123,28 +123,28 @@ Boolean THD_write_datablock( THD_datablock *blk , Boolean write_brick )
      WRITE_ERR("illegal file names stored in dataset") ;
 
    if( dkptr->rank != 3 )
-      WRITE_ERR("cannot write non-3D datablock") ;
+     WRITE_ERR("cannot write non-3D datablock") ;
 
    /*-- create directory if necessary --*/
 
    if( ! THD_is_directory(dkptr->directory_name) ){
-      id = mkdir( dkptr->directory_name , THD_MKDIR_MODE ) ;
-      if( id != 0 ){
-         fprintf(stderr,
-              "\n"
-              "*** cannot mkdir new directory: %s\n"
-              "  - Do you have permission to write to this disk?\n"
-              "  - Is the disk full?\n" ,
-              dkptr->directory_name) ;
-         return False ;
-      }
+     id = mkdir( dkptr->directory_name , THD_MKDIR_MODE ) ;
+     if( id != 0 ){
+       fprintf(stderr,
+            "\n"
+            "*** cannot mkdir new directory: %s\n"
+            "  - Do you have permission to write to this disk?\n"
+            "  - Is the disk full?\n" ,
+            dkptr->directory_name) ;
+       return False ;
+     }
    }
 
    /* 25 April 1998: deal with byte order issues */
 
    if( native_order < 0 ){                /* initialization */
-      native_order = mri_short_order() ;
-      if( output_order < 0 ) THD_enviro_write_order() ;
+     native_order = mri_short_order() ;
+     if( output_order < 0 ) THD_enviro_write_order() ;
    }
    if( dkptr->byte_order <= 0 ) dkptr->byte_order = native_order ;
    save_order = (output_order > 0) ? output_order
@@ -167,7 +167,8 @@ fprintf(stderr,"THD_write_datablock: save_order=%d  dkptr->byte_order=%d\n",
 
    good = THD_write_atr( blk ) ;
    if( good == False )
-     WRITE_ERR("failure to write attributes - is disk full? do you have write permission?") ;
+     WRITE_ERR(
+     "failure to write attributes - is disk full? do you have write permission?");
 
    /*-- if not writing data, can exit --*/
 
@@ -188,7 +189,17 @@ fprintf(stderr,"THD_write_datablock: save_order=%d  dkptr->byte_order=%d\n",
    if( id < blk->nvals ) WRITE_ERR("only partial data exists in memory") ;
 
    if( blk->malloc_type == DATABLOCK_MEM_UNDEFINED )
-      WRITE_ERR("undefined data exists in memory") ;
+     WRITE_ERR("undefined data exists in memory") ;
+
+   /*-- 13 Mar 2006: check for free disk space --*/
+
+   { int mm = THD_freemegabytes( dkptr->header_name ) ;
+     int rr = blk->total_bytes / (1024l * 1024l) ;
+     if( mm >= 0 && mm <= rr )
+       WARNING_message("Disk space: writing file %s (%d MB),"
+                       " but only %d free MB on disk"        ,
+         dkptr->brick_name , rr , mm ) ;
+   }
 
    /*-- write data out in whatever format is ordered --*/
 
