@@ -31,6 +31,8 @@ extern float MRILIB_zcos[3] ;
 extern int   use_MRILIB_slicespacing ;  /* 10 Jan 2004 */
 extern float MRILIB_slicespacing ;
 
+extern int   assume_dicom_mosaic ;   /* mri_read_dicom.c  13 Mar 2006 [rickr] */
+
 #include "nifti1_io.h"
 extern int use_MRILIB_dicom_matrix ;    /* 26 Jan 2006 */
 extern mat44   MRILIB_dicom_matrix ;

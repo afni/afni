@@ -2911,6 +2911,13 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          nopt++ ; continue ;  /* go to next arg */
       }
 
+      /*----- -assume_dicom_mosaic -----*/  /* 13 Mar 2006 [rickr] */
+
+      if( strncmp(Argv[nopt],"-assume_dicom_mosaic",16) == 0 ){
+         assume_dicom_mosaic = 1 ;  /* global in mri_read_dicom.c */
+         nopt++ ; continue ;  /* go to next arg */
+      }
+
       /*--- illegal option ---*/
 
       printf("*** ILLEGAL OPTION: %s\n\n",Argv[nopt]) ;
@@ -3414,6 +3421,14 @@ void Syntax()
     "       and there is a significant (> 1%%) number of negative inputs.\n"
     "    * There must be at least 6 time points for the outlier count to\n"
     "       be carried out.\n"
+   ) ;
+
+   printf(
+    "\n"
+    "OTHER NEW OPTIONS:\n"
+    "  -assume_dicom_mosaic\n"
+    "     If present, this tells the program that any DICOM file is a\n"
+    "     potential MOSAIC image, even without such an indicator string.\n"
    ) ;
 
    printf(
