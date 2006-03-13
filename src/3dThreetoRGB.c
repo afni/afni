@@ -197,7 +197,7 @@ int main( int argc , char * argv[] )
      }
      mask = THD_makemask( mset , 0 , 1.0,0.0 ) ;
      if( mask == NULL ){
-       fprintf(stderr,"** Can't mask mask!\n"); exit(1);
+       fprintf(stderr,"** Can't make mask!\n"); exit(1);
      }
      DSET_unload(mset) ;
    }
