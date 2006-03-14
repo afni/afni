@@ -49,7 +49,7 @@ static int     af_type_set=0 ;                 /* 20 Dec 2001 */
 /*** additions of Mar 2, 1995 ***/
 
 #define FatalError(str) \
-   ( fprintf(stderr,"\n*** %s\n\n try 'to3d -help'\n",(str)) , exit(1) )
+   ( fprintf(stderr,"\n** %s\n\n try 'to3d -help'\n",(str)) , exit(1) )
 
 static struct {
    int ncolor ;       /* -ncolor # */
@@ -165,7 +165,7 @@ int main( int argc , char * argv[] )
    PRINT_VERSION("to3d") ; AUTHOR("RW Cox") ;
 
    if( DBG_trace ){                              /* 10 Sep 2002 */
-     fprintf(stderr,"Enabling mcw_malloc()\n") ;
+     fprintf(stderr,"++ Enabling mcw_malloc()\n") ;
      enable_mcw_malloc() ;
    }
 
@@ -210,7 +210,7 @@ int main( int argc , char * argv[] )
    THD_check_AFNI_version("to3d") ;
 
    if( user_inputs.nosave ){
-     printf("Opening X11 now") ; fflush(stdout) ;
+     printf("++ Opening X11 now") ; fflush(stdout) ;
      wset.topshell = XtVaAppInitialize( &app , "AFNI" , NULL , 0 ,
                                         &argc , argv , FALLback , NULL ) ;
      printf("..opened\n") ;
@@ -221,8 +221,8 @@ int main( int argc , char * argv[] )
    if( negative_shorts ){
       float perc = (100.0*negative_shorts)/nvox_total ;
       fprintf(stderr,
-       "to3d WARNING: %d negative voxels (%g%%) were read in images of shorts.\n"
-       "              It is possible the input images need byte-swapping.\n",
+       "++ to3d WARNING: %d negative voxels (%g%%) were read in images of shorts.\n"
+       "++               It is possible the input images need byte-swapping.\n",
        negative_shorts , perc ) ;
    }
 
@@ -365,27 +365,27 @@ DUMP_MAT44("MRILIB_dicom_matrix",MRILIB_dicom_matrix) ;
              user_inputs.tpattern[ii] *= MRILIB_tr ;
            }
          }
-         printf("Setting TR=%gs from image header\n",MRILIB_tr) ;
+         printf("++ Setting TR=%gs from image header\n",MRILIB_tr) ;
 
       } else {
-         printf("Command line TR=%g%s ; Images TR=%gs\n",
+         printf("++ Command line TR=%g%s ; Images TR=%gs\n",
                 user_inputs.TR,UNITS_TYPE_LABEL(user_inputs.tunits),MRILIB_tr) ;
       }
    }
    if( user_inputs.ntt > 1 && user_inputs.TR <= 0.0 ){
-     printf("Setting TR=1s by default\n") ;
+     printf("++ Setting TR=1s by default\n") ;
      user_inputs.TR = 1.0 ; user_inputs.tunits = UNITS_SEC_TYPE ;
    }
 
    if( all_good && !user_inputs.nosave ){      /* done! */
      T3D_save_file_CB( NULL , NULL , NULL ) ;
-     printf("3D dataset written to disk\n") ;
+     printf("++ 3D dataset written to disk\n") ;
      exit(0) ;
    }
 
    /* Otherwise, initialize X11 and Xt */
 
-   printf("Making widgets") ; fflush(stdout) ;
+   printf("++ Making widgets") ; fflush(stdout) ;
 
    if( wset.topshell == NULL )
      wset.topshell = XtVaAppInitialize( &app , "AFNI" , NULL , 0 ,
@@ -1956,7 +1956,7 @@ static to3d_data default_user_inputs = {
 /*.....................................................................*/
 
 #define WarningError(str) \
-  { fprintf(stderr,"\n***Warning: %s\n",(str)) ; nopt++ ; continue ; }
+  { fprintf(stderr,"\n++ WARNING: %s\n",(str)) ; nopt++ ; continue ; }
 
 void T3D_initialize_user_data(void)
 {
@@ -2089,7 +2089,7 @@ ENTRY("T3D_initialize_user_data") ;
       if( strncmp(Argv[nopt],"-zpad",5) == 0 ){
          char * eee ;
          if( ++nopt >= Argc ) FatalError("-zpad needs a count") ;
-         if( zpad > 0.0 ) fprintf(stderr,"+++ WARNING: second -zpad option found!\n") ;
+         if( zpad > 0.0 ) fprintf(stderr,"++ WARNING: second -zpad option found!\n") ;
          zpad = strtod( Argv[nopt] , &eee ) ;
          if( zpad < 0.0 ) FatalError("-zpad is negative") ;
          zpad_mm = (*eee == 'm') ;
@@ -2695,13 +2695,13 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
 
          nerr = 0 ;
          if( ntt < 2 ){
-           fprintf(stderr,"Illegal value of nt after -time: option\n") ; nerr++ ;
+           fprintf(stderr,"** Illegal value of nt after -time: option\n") ; nerr++ ;
          }
          if( nzz < NZBOT ){
-           fprintf(stderr,"Illegal value of nz after -time: option\n") ; nerr++ ;
+           fprintf(stderr,"** Illegal value of nz after -time: option\n") ; nerr++ ;
          }
          if( TR < 0.0 ){
-           fprintf(stderr,"Illegal value of TR after -time: option\n") ; nerr++ ;
+           fprintf(stderr,"** Illegal value of TR after -time: option\n") ; nerr++ ;
          }
          if( nerr > 0 ){
            nopt++ ; continue ;  /* skip on to next option, this one is bad! */
@@ -2726,7 +2726,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
 
             fp = fopen( tpattern+1 , "r" ) ;
             if( fp == NULL ){
-               fprintf(stderr,"Cannot open tpattern file %s\n",tpattern+1) ;
+               fprintf(stderr,"** Cannot open tpattern file %s\n",tpattern+1) ;
             } else {
                for( ii=0 ; ii < nzz ; ii++ )
                   fscanf( fp , "%f" , user_inputs.tpattern + ii ) ;
@@ -2805,7 +2805,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
             user_inputs.tpattern = NULL ;
 
          } else {
-            fprintf(stderr,"Unknown tpattern = %s\n",tpattern) ;
+            fprintf(stderr,"** Unknown tpattern = %s\n",tpattern) ;
          }
 
          nopt++ ; continue ;
@@ -2822,7 +2822,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          val = strtod( Argv[++nopt] , NULL ) ;
          if( val > 0 ) argopt.gamma = val ;
          else fprintf(stderr,
-                "\n*** warning: -gamma value %s illegal\n", Argv[nopt]);
+                "\n** warning: -gamma value %s illegal\n", Argv[nopt]);
 
          nopt++ ; continue ;  /* go to next arg */
       }
@@ -2836,7 +2836,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          val = strtod( Argv[++nopt] , NULL ) ;
          if( val != 0.0 ) argopt.gsfac = val ;
          else fprintf(stderr,
-                "\n*** warning: -gsfac value %s illegal\n", Argv[nopt]);
+                "\n** warning: -gsfac value %s illegal\n", Argv[nopt]);
 
          nopt++ ; continue ;  /* go to next arg */
       }
@@ -2875,7 +2875,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          val = strtod( Argv[++nopt] , NULL ) ;
          if( val > 4 ) argopt.ncolor = val ;
          else fprintf(stderr,
-                "\n*** warning: -ncolor value %s illegal\n", Argv[nopt]);
+                "\n** warning: -ncolor value %s illegal\n", Argv[nopt]);
 
          nopt++ ; continue ;  /* go to next arg */
       }
@@ -2920,7 +2920,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
 
       /*--- illegal option ---*/
 
-      printf("*** ILLEGAL OPTION: %s\n\n",Argv[nopt]) ;
+      printf("** ILLEGAL OPTION: %s\n\n",Argv[nopt]) ;
       FatalError("cannot continue") ;
 
    }
@@ -3427,8 +3427,8 @@ void Syntax()
     "\n"
     "OTHER NEW OPTIONS:\n"
     "  -assume_dicom_mosaic\n"
-    "     If present, this tells the program that any DICOM file is a\n"
-    "     potential MOSAIC image, even without such an indicator string.\n"
+    "    If present, this tells the program that any Siemens DICOM file\n"
+    "    is a potential MOSAIC image, even without the indicator string.\n"
    ) ;
 
    printf(
@@ -3754,7 +3754,7 @@ void T3D_orient_av_CB( MCW_arrowval * av , XtPointer cd )
       user_inputs.view_type = ior ;
    } else {
       XBell( XtDisplay(wset.topshell) , 100 ) ;
-      fprintf(stderr,"\n*** illegal call to T3D_orient_av_CB!\n") ;
+      fprintf(stderr,"\n** Illegal call to T3D_orient_av_CB!\n") ;
    }
    RESET_QUIT ;
 }
@@ -3773,7 +3773,7 @@ void T3D_origin_av_CB( MCW_arrowval * av , XtPointer cd )
       user_inputs.zorigin = size ;
    } else {
       XBell( XtDisplay(wset.topshell) , 100 ) ;
-      fprintf(stderr,"\n*** illegal call to T3D_origin_av_CB!\n") ;
+      fprintf(stderr,"\n** Illegal call to T3D_origin_av_CB!\n") ;
    }
    RESET_QUIT ;
 }
@@ -3796,7 +3796,7 @@ void T3D_size_av_CB( MCW_arrowval * av , XtPointer cd )
 #endif
    } else {
       XBell( XtDisplay(wset.topshell) , 100 ) ;
-      fprintf(stderr,"\n*** illegal call to T3D_size_av_CB!\n") ;
+      fprintf(stderr,"\n** Illegal call to T3D_size_av_CB!\n") ;
    }
    T3D_set_dependent_geometries() ;
    RESET_QUIT ;
@@ -3838,7 +3838,7 @@ void T3D_type_av_CB( MCW_arrowval * av , XtPointer cd )
       user_inputs.anatomy_type = itype ;
    } else {
       XBell( XtDisplay(wset.topshell) , 100 ) ;
-      fprintf(stderr,"\n*** illegal call to T3D_type_av_CB!\n") ;
+      fprintf(stderr,"\n** Illegal call to T3D_type_av_CB!\n") ;
    }
 
    /*--- check if # of values/pixel has altered ---*/
@@ -3928,6 +3928,7 @@ void T3D_read_images(void)
    char ** gname ;
    int time_dep , ltt,kzz , ntt,nzz , nvoxt ;
    int kzmod ;  /* 06 Nov 2002 */
+   int nsmax=0 ;
 
 ENTRY("T3D_read_images") ;
 
@@ -3947,17 +3948,19 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
    /**--- count up the actual number of images into nz ---**/
 
 #ifndef AFNI_DEBUG
-   printf("Counting images: ");fflush(stdout);
+   printf("++ Counting images: ");fflush(stdout);
 #endif
 
    nz = 0 ;
    for( lf=0 ; lf < gnim ; lf++ ){
-      ii = mri_imcount( gname[lf] ) ;
-      if( ii == 0 ){
-         fprintf(stderr,"*** bad file specifier %s\n",gname[lf]) ;
-         exit(1) ;
-      }
-      nz += ii ;
+     ii = mri_imcount( gname[lf] ) ;
+     if( ii == 0 ){
+       if( mri_dicom_sexinfo() != NULL && !assume_dicom_mosaic )
+         WARNING_message(
+            "Hmmm ... try using '-assume_dicom_mosaic'?") ;
+       ERROR_exit("bad file specifier %s\n",gname[lf]) ;
+     }
+     nz += ii ; nsmax = MAX(nsmax,ii) ;
    }
 #ifdef AFNI_DEBUG
    printf("T3D_read_images: mri_imcount totals nz=%d\n",nz) ;
@@ -3965,9 +3968,12 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
    printf(" total=%d 2D slices\n",nz) ;
 #endif
 
+   if( nsmax < 2 && mri_dicom_sexinfo() != NULL && !assume_dicom_mosaic )
+     WARNING_message(
+       "If images are wrong, try using '-assume_dicom_mosaic'?") ;
+
    if( nz < NZBOT ){
-      fprintf(stderr,"*** Must have at least %d input images! ***\n",NZBOT) ;
-      exit(1) ;
+     ERROR_exit("Must have at least %d input images! ***\n",NZBOT) ;
    }
 
    /**------ Perform various sanity checks if the user is
@@ -3977,9 +3983,9 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
    if( time_dep ){ ntt = user_inputs.ntt ; nzz = user_inputs.nzz ; }
 
    if( time_dep && nz != ntt * nzz ){
-      fprintf(stderr,"*** Number of slices on command line   = %d\n"
-                     "*** Number of slices needed for -time: = %d\n"
-                     "*** Something is wrong with your command line!\n" ,
+      fprintf(stderr,"** Number of slices on command line   = %d\n"
+                     "** Number of slices needed for -time: = %d\n"
+                     "** Something is wrong with your command line!\n" ,
               nz , ntt * nzz ) ;
       exit(1) ;
    }
@@ -3990,15 +3996,15 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
                         : ANAT_nvals[user_inputs.anatomy_type]  ;
 
       if( nvals != 1 ){
-         fprintf(stderr,"*** Sorry: time dependent datasets with more than one\n"
-                        "***        value per time point are not yet supported!\n" ) ;
+         fprintf(stderr,"** Sorry: time dependent datasets with more than one\n"
+                        "**        value per time point are not yet supported!\n" ) ;
          exit(1) ;
       }
 
 #if 0
       if( isfunc ){
-         fprintf(stderr,"*** Sorry: time dependent functional\n"
-                        "***        datasets are not yet supported!\n" ) ;
+         fprintf(stderr,"** Sorry: time dependent functional\n"
+                        "**        datasets are not yet supported!\n" ) ;
          exit(1) ;
       }
 #endif
@@ -4016,7 +4022,7 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
       arr = mri_read_file( gname[0] ) ;
 
    if( arr == NULL || arr->num == 0 ){
-      fprintf(stderr,"*** cannot read first file! ***\n") ; exit(1) ;
+     fprintf(stderr,"** cannot read first file! ***\n") ; exit(1) ;
    }
    im = arr->imarr[0] ;
 
@@ -4062,7 +4068,7 @@ printf("T3D_read_images: first file (%s) has nx=%d ny=%d #im=%d\n",
    /*--- read all files, convert to desired type if needed, put in the brick ---*/
 
 #ifndef AFNI_DEBUG
-   printf("Reading images: ");fflush(stdout);
+   printf("++ Reading images: ");fflush(stdout);
    kzmod = (int)(0.0234567*nz)+1 ;                /* 06 Nov 2002 */
 #endif
 
@@ -4081,7 +4087,7 @@ printf("T3D_read_images: first file (%s) has nx=%d ny=%d #im=%d\n",
             arr = mri_read_file( gname[lf] ) ;
 
          if( arr == NULL || arr->num == 0 ){
-            fprintf(stderr,"*** cannot read file %s\n",gname[lf]) ;
+            fprintf(stderr,"** cannot read file %s\n",gname[lf]) ;
             exit(1) ;
          }
 #ifdef AFNI_DEBUG
@@ -4104,7 +4110,7 @@ printf("T3D_read_images: file %d (%s) has #im=%d\n",lf,gname[lf],arr->num) ;
 
          im = arr->imarr[kim] ;
          if( im->nx != nx || im->ny != ny ){
-            fprintf(stderr,"*** file %s has nonconforming images: first=%dx%d this=%dx%d\n",
+            fprintf(stderr,"** file %s has nonconforming images: first=%dx%d this=%dx%d\n",
                    gname[lf] , nx,ny , im->nx,im->ny) ;
             exit(1) ;
          }
@@ -4281,6 +4287,7 @@ printf("T3D_read_images: file %d (%s) has #im=%d\n",lf,gname[lf],arr->num) ;
 printf("T3D_read_images: putting data into slice %d\n",kz) ;
 #endif
 
+        /* random correlation testing code -- RWCox */
 #if 0
         { static MRI_IMAGE *im0 = NULL ; float cc ;
           if( im0 == NULL ) im0 = mri_copy(shim) ;
@@ -4326,15 +4333,15 @@ printf("T3D_read_images: putting data into slice %d\n",kz) ;
 #endif
 
    if( nfloat_err > 0 )  /* 14 Sep 1999 */
-      printf("*** Found %d float errors in inputs - see program float_scan!\n",
-             nfloat_err) ;
+     printf("** Found %d float errors in inputs - see program float_scan!\n",
+            nfloat_err) ;
 
    MCW_free_expand( gnim , gname ) ;
 
    /**-- 10 Jan 2004: set slice thickness to slice spacing, if given --**/
 
    if( use_MRILIB_slicespacing && fabs(MRILIB_slicespacing-imdz) > 0.01l ){
-     fprintf(stderr,"Using slice spacing=%g",MRILIB_slicespacing) ;
+     fprintf(stderr,"++ Using slice spacing=%g",MRILIB_slicespacing) ;
      if( imdz > 0.0 ) fprintf(stderr," instead of slice thickness=%g",imdz) ;
      fprintf(stderr,"\n") ;
      imdz = MRILIB_slicespacing ;
@@ -4343,32 +4350,32 @@ printf("T3D_read_images: putting data into slice %d\n",kz) ;
    /**-- 19 Jan 2000: check inputs shorts for negativity --**/
 
    if( argopt.datum_all == MRI_short ){
-      short * sar = (short *) dbrick ;
-      for( ii=0 ; ii < nvoxt ; ii++ )
-         if( sar[ii] < 0 ) negative_shorts++ ;
+     short * sar = (short *) dbrick ;
+     for( ii=0 ; ii < nvoxt ; ii++ )
+       if( sar[ii] < 0 ) negative_shorts++ ;
    }
    nvox_total = nvoxt ; /* 24 Aug 2001 */
 
    /**--- print conversion information ---**/
 
    if( nonshort_num > 0 )
-      printf( "Number of non-short slices converted to shorts = %d\n"
-              "Smallest value in them                         = %f\n"
-              "Largest value in them                          = %f\n" ,
+      printf( "++ Number of non-short slices converted to shorts = %d\n"
+              "++ Smallest value in them                         = %f\n"
+              "++ Largest value in them                          = %f\n" ,
              nonshort_num , nonshort_min , nonshort_max ) ;
 
    if( nonbyte_num > 0 )
-      printf( "Number of non-byte slices converted to bytes = %d\n"
-              "Smallest value in them                       = %f\n"
-              "Largest value in them                        = %f\n" ,
+      printf( "++ Number of non-byte slices converted to bytes = %d\n"
+              "++ Smallest value in them                       = %f\n"
+              "++ Largest value in them                        = %f\n" ,
              nonbyte_num , nonbyte_min , nonbyte_max ) ;
 
    if( nonfloat_num > 0 )
-      printf( "Number of non-float slices converted to floats = %d\n",
+      printf( "++ Number of non-float slices converted to floats = %d\n",
              nonfloat_num ) ;
 
    if( noncomplex_num > 0 )
-      printf( "Number of non-complex slices converted to complexes = %d\n",
+      printf( "++ Number of non-complex slices converted to complexes = %d\n",
              noncomplex_num ) ;
 
    /*--- now create the rest of the data structures, as far as we can ---*/
@@ -4384,10 +4391,10 @@ printf("T3D_read_images: putting data into slice %d\n",kz) ;
       if( nim != ntt * nzz ){
          fprintf(stderr,
                   "\n"
-                  "***** TIME-DEPENDENCE ERROR *****\n"
-                  " Number of images input does not\n"
-                  " match number specified in -time:\n"
-                  " option on command line!\n" ) ;
+                  "** TIME-DEPENDENCE ERROR **\n"
+                  "** Number of images input does not\n"
+                  "** match number specified in -time:\n"
+                  "** option on command line!\n" ) ;
          exit(1) ;
       }
    }
@@ -4400,10 +4407,10 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
    if( nz * nvals != nim ){
       fprintf(stderr,
                "\n"
-               "***** DATA TYPE ERROR *****\n"
-               " Number of images not an even\n"
-               " multiple of number of values\n"
-               " required for chosen data type\n" ) ;
+               "** DATA TYPE ERROR **\n"
+               "** Number of images not an even\n"
+               "** multiple of number of values\n"
+               "** required for chosen data type\n" ) ;
       exit(1) ;
    }
 
@@ -4585,7 +4592,7 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
          zorg =  user_inputs.zin_bot - 0.5*dz ;
       } else {
          if( nz == 1 ){
-            fprintf(stderr,"*** -zSLAB illegal with only 1 slice! ***\n") ;
+            fprintf(stderr,"** -zSLAB illegal with only 1 slice! ***\n") ;
             exit(1) ;
          }
          dz   = (user_inputs.zin_bot + user_inputs.zin_top) / (nz-1) ;
@@ -4640,7 +4647,7 @@ void T3D_open_view_CB( Widget w ,
 
    if( br == NULL ){
       XBell( XtDisplay(wset.topshell) , 100 ) ;
-      fprintf(stderr,"\n*** bad data in THD_3dim_dataset_to_brick!\n");
+      fprintf(stderr,"\n** bad data in THD_3dim_dataset_to_brick!\n");
       return ;
    }
 
@@ -4971,7 +4978,7 @@ void T3D_save_file_CB( Widget w ,
          break ;
 
          default:
-            fprintf(stderr,"*** Can't zpad: zzorient=%d\n",daxes->zzorient) ;
+            fprintf(stderr,"** Can't zpad: zzorient=%d\n",daxes->zzorient) ;
          break ;
       }
 
@@ -5872,7 +5879,7 @@ ENTRY("T3D_check_outliers") ;
                                 MCW_CALLER_KILL ) ;
         CURSOR_watchize ;
      } else {
-        fprintf(stderr,"Checking for time series outliers\n") ;
+        fprintf(stderr,"++ Checking for time series outliers\n") ;
      }
 
      THD_outlier_count( dset , 0.01 , &out_count , &out_ctop ) ;
@@ -5945,7 +5952,7 @@ ENTRY("T3D_check_outliers") ;
                                     MCW_USER_KILL | MCW_TIMER_KILL ) ;
      } else {
         if( cc == 0 )
-          fprintf(stderr,"No unusual outlier concentration found\n") ;
+          fprintf(stderr,"++ No unusual outlier concentration found\n") ;
      }
    }
 
