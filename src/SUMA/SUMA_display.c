@@ -278,6 +278,8 @@ void SUMA_LoadSegDO (char *s, void *csvp)
    static char FuncName[]={"SUMA_LoadSegDO"};
    SUMA_SegmentDO *SDO = NULL;
    SUMA_SurfaceViewer *sv;
+   SUMA_DO_Types dotp=no_type;
+   void *VDO = NULL;
    
    SUMA_ENTRY;
    
@@ -285,13 +287,35 @@ void SUMA_LoadSegDO (char *s, void *csvp)
    
    if (!s) { SUMA_RETURNe; }
    
-   if (!(SDO = SUMA_ReadSegDO(s))) {
-      SUMA_SL_Err("Failed to read segment file.\n");
-      SUMA_RETURNe;
+   /* what type are we dealing with ? */
+   dotp = SUMA_Guess_DO_Type(s);
+   if (dotp == no_type) {
+      /* assume segments */
+      dotp = LS_type;
+   }
+   
+   switch (dotp) {
+      case LS_type:
+         if (!(SDO = SUMA_ReadSegDO(s))) {
+            SUMA_SL_Err("Failed to read segments file.\n");
+            SUMA_RETURNe;
+         }
+         VDO = (void *)SDO;
+         break;
+      case SP_type:
+         if (!(VDO = (void *)SUMA_ReadSphDO(s))) {
+            SUMA_SL_Err("Failed to read spheres file.\n");
+            SUMA_RETURNe;
+         }
+         break;
+      default:
+         SUMA_SL_Err("Should not get here");
+         SUMA_RETURNe;
+         break;
    }
    
    /* addDO */
-   if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, LS_type, SUMA_LOCAL)) {
+   if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, VDO, dotp, SUMA_LOCAL)) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
       SUMA_RETURNe;
    }
@@ -600,6 +624,12 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    while (i < csv->N_DO) {
       if (dov[csv->RegisteredDO[i]].CoordType == SUMA_SCREEN) {
          switch (dov[csv->RegisteredDO[i]].ObjectType) {
+            case no_type:
+               SUMA_SL_Err("Should not be doing this buidness");
+               break;
+            case SP_type:
+               SUMA_SL_Warn("Not ready yet!");
+               break;
             case SO_type:
                break;
             case AO_type:
@@ -665,6 +695,14 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                if (!SUMA_DrawSegmentDO ((SUMA_SegmentDO *)dov[csv->RegisteredDO[i]].OP)) {
                   fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSegmentDO.\n", FuncName);
                }
+               break;
+            case SP_type:
+               if (!SUMA_DrawSphereDO ((SUMA_SphereDO *)dov[csv->RegisteredDO[i]].OP)) {
+                  fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSphereDO.\n", FuncName);
+               }
+               break;
+            case no_type:
+               SUMA_SL_Err("What's cracking?");
                break;
          }
       }

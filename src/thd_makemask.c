@@ -111,7 +111,8 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
        miv >= DSET_NVALS(mask_dset)  ) return (-1) ;
 
    nvox = DSET_NVOX(mask_dset) ;
-
+   
+   DSET_mallocize(mask_dset); /* do this or else it could be a read only dset! */
    DSET_load(mask_dset) ; if( !DSET_LOADED(mask_dset) ) return (-1) ;
 
    nonzero = 0;

@@ -677,10 +677,45 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "     Ctrl+s: Open controller for \n"
       "             surface in Focus.\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "     Ctrl+Alt+s: Input filename with coordinates\n"
-      "                 forming a segment (6 values) on \n"
-      "                 each line.\n");
+   SS = SUMA_StringAppend (SS, 
+      "     Ctrl+Alt+s: Input filename containing displayable objects.\n"
+      "                 Files are of 1D format with a necessary comment\n"
+      "                 at the top to indicate the type of objects in \n"
+      "                 the file.\n"
+      "          Type 1:Segments between (x0,y0,z0) and (x1,y1,z1) \n"
+      "                 1st line must be '#segments' (without quotes).\n"
+      "                 Remainder of file is N rows, each defining a \n"
+      "                 segment between two points.\n"
+      "                 Column content depends on the number of columns\n"
+      "                 in the file:\n"
+      "                 6  cols: x0 y0 z0 x1 y1 z1\n"
+      "                 7  cols: x0 y0 z0 x1 y1 z1 th\n"
+      "                          with th being line thickness\n"
+      "                 10 cols: x0 y0 z0 x1 y1 z1 c0 c1 c2 c3\n"
+      "                          with c0..3 being the RGBA values\n"
+      "                          between 0 and 1.0\n"
+      "                 11 cols: x0 y0 z0 x1 y1 z1 c0 c1 c2 c3 th\n"
+      "          Type 2:Spheres centered at (ox, oy, oz) \n"
+      "                 1st line must be '#spheres' (without quotes).\n"
+      "                 Remainder of file is N rows, each defining a \n"
+      "                 sphere.\n"
+      "                 Column content depends on the number of columns\n"
+      "                 in the file:\n"
+      "                 3  cols: ox oy oz\n"
+      "                 4  cols: ox oy oz rd\n"
+      "                          with rd being the radius of the sphere\n"
+      "                 5  cols: ox oy oz rd st\n"
+      "                          with st being the style of the sphere's\n"
+      "                          rendering. Choose from:\n"
+      "                             0: points\n"
+      "                             1: Lines\n"
+      "                             2: Filled\n"
+      "                 7  cols: ox oy oz c0 c1 c2 c3 \n"
+      "                          with c0..3 being the RGBA values\n"
+      "                          between 0 and 1.0\n"
+      "                 8  cols: ox oy oz c0 c1 c2 c3 rd\n"
+      "                 9  cols: ox oy oz c0 c1 c2 c3 rd st\n"
+            );
    SS = SUMA_StringAppend (SS, 
       "     Alt+s: Switch mouse buttons 1 and 3.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
