@@ -585,15 +585,15 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
    /* get first 100 chars */
    i = 0;
    sbuf[i] = '\0';
-   while (i<100 && sbuf[i] != EOF) {
+   while (i<100 && !feof(fid)) {
       sbuf[i] = fgetc(fid);
-      if (sbuf[i] == EOF) {
+      if (feof(fid)) {
          break;
       }
       ++i;  
    }
    sbuf[i] = '\0';
-   
+
    /* check for tags */
    if (strstr(sbuf,"#spheres")) {
       dotp = SP_type;
