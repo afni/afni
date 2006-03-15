@@ -259,6 +259,12 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
       case GO_type:
          fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, Not trained to free GO objects\n");
          break;
+      case no_type:
+         fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, no free no_type\n");
+         break;
+      case SP_type:
+         SUMA_free_SphereDO ((SUMA_SphereDO *)dov->OP);
+         break;
          
    }   
 

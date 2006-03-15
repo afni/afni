@@ -317,7 +317,7 @@ SUMA_Boolean SUMA_niml_call (SUMA_CommonFields *cf, int si, SUMA_Boolean fromSUM
             }
             if (!strcmp(cf->HostName_v[si],"localhost")) { /* only try shared memory when 
                                                                   AfniHostName is localhost */
-               fprintf (SUMA_STDERR, "%s: Trying shared memory...\n", FuncName);
+               fprintf (SUMA_STDERR, "%s: Trying local connection...\n", FuncName);
                if( strstr( cf->NimlStream_v[si] , "tcp:localhost:" ) != NULL ) {
                   if (!NI_stream_reopen( cf->ns_v[si] , "shm:WeLikeElvis:1M" )) {
                      fprintf (SUMA_STDERR, "Warning %s: Shared memory communcation failed.\n", FuncName);

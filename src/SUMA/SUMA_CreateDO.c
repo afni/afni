@@ -556,6 +556,61 @@ SUMA_SurfaceObject *SUMA_Cmap_To_SO_old (SUMA_COLOR_MAP *Cmap, float orig[3], fl
 }
 
 /*!
+   A poor man's function to sniff if a DO file contains spheres or segments
+   Not to be used as a general purpose DO file detector 
+*/
+SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
+{
+   static char FuncName[]={"SUMA_Guess_DO_Type"};
+   SUMA_DO_Types dotp = no_type;
+   FILE *fid=NULL;
+   char sbuf[200];
+   int i;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!s) {
+      SUMA_SL_Warn("Query with null file name");
+      SUMA_RETURN(dotp);
+   }
+   
+   fid = fopen(s,"r");
+   
+   if (!fid) {
+      SUMA_SLP_Err("Could not open file for read");
+      SUMA_RETURN(dotp);
+   }
+   
+   /* get first 100 chars */
+   i = 0;
+   sbuf[i] = '\0';
+   while (i<100 && sbuf[i] != EOF) {
+      sbuf[i] = fgetc(fid);
+      if (sbuf[i] == EOF) {
+         break;
+      }
+      ++i;  
+   }
+   sbuf[i] = '\0';
+   
+   /* check for tags */
+   if (strstr(sbuf,"#spheres")) {
+      dotp = SP_type;
+   } else if (strstr(sbuf,"#segments") == 0) {
+      dotp = LS_type;
+   } 
+   
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"%s: Searched header string:\n>>>%s<<<\ndotp = %d\n", FuncName, sbuf, dotp);
+   }
+   
+   fclose(fid); fid = NULL;
+   
+   SUMA_RETURN(dotp);
+}
+
+/*!
  allocate for a segment DO 
    SDO = SUMA_Alloc_SegmentDO ( N_n, Label)
 
@@ -613,6 +668,9 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label)
    SDO->LineWidth = 4.0;
    SDO->LineCol[0] = 1.0; SDO->LineCol[1] = 0.3; SDO->LineCol[2] = 1.0; SDO->LineCol[3] = 1.0; 
    
+   SDO->colv = NULL;
+   SDO->thickv = NULL;
+   
    SUMA_RETURN (SDO);
 }
 
@@ -628,6 +686,8 @@ void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO)
    if (SDO->n1) SUMA_free(SDO->n1);
    if (SDO->idcode_str) SUMA_free(SDO->idcode_str);
    if (SDO->Label) SUMA_free(SDO->Label);
+   if (SDO->thickv) SUMA_free(SDO->thickv);
+   if (SDO->colv) SUMA_free(SDO->colv);
    if (SDO) SUMA_free(SDO);
    
    SUMA_RETURNe;
@@ -639,7 +699,7 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s)
    SUMA_SegmentDO *SDO = NULL;
    MRI_IMAGE * im = NULL;
    float *far=NULL;
-   int itmp, itmp2;
+   int itmp, itmp2, icol_thick = -1, icol_col=-1;
    int nrow=-1, ncol=-1;
    
    SUMA_ENTRY;
@@ -655,12 +715,6 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s)
       SUMA_SLP_Err("Failed to read 1D file");
       SUMA_RETURN(NULL);
    }
-   im = mri_read_1D (s);
-
-   if (!im) {
-      SUMA_SLP_Err("Failed to read 1D file");
-      SUMA_RETURN(NULL);
-   }
 
    far = MRI_FLOAT_PTR(im);
    ncol = im->nx;
@@ -670,12 +724,36 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s)
       SUMA_SLP_Err("Empty file");
       SUMA_RETURN(NULL);
    }
-   if (nrow !=  6 ) {
-      SUMA_SLP_Err("File must have\n"
-                   "6 columns.");
-      mri_free(im); im = NULL;   /* done with that baby */
-      SUMA_RETURN(NULL);
-   }/* find out if file exists and how many values it contains */
+   
+   icol_col = -1;
+   icol_thick = -1;
+   switch (nrow) {
+      case 6:
+         fprintf(SUMA_STDERR,"%s: Segment file %s's format:\n"
+                              "x0 y0 z0 x1 y1 z1\n", FuncName, s);
+         break;
+      case 7:
+         fprintf(SUMA_STDERR,"%s: Segment file %s's format:\n"
+                              "x0 y0 z0 x1 y1 z1 th\n", FuncName, s);
+         icol_thick = 6;
+         break;
+      case 10:
+         fprintf(SUMA_STDERR,"%s: Segment file %s's format:\n"
+                              "x0 y0 z0 x1 y1 z1 c0 c1 c2 c3\n", FuncName, s);
+         icol_col = 6;
+         break;
+      case 11:
+         fprintf(SUMA_STDERR,"%s: Segment file %s's format:\n"
+                              "x0 y0 z0 x1 y1 z1 c0 c1 c2 c3 th\n", FuncName, s);
+         icol_col = 6;
+         icol_thick = 10;
+         break;
+      default:
+         SUMA_SLP_Err("File must have\n"
+                   "6,7,10 or 11 columns.");
+         mri_free(im); im = NULL;   /* done with that baby */
+         SUMA_RETURN(NULL);
+   }
 
    /* allocate for segments DO */
    SDO = SUMA_Alloc_SegmentDO (ncol, s);
@@ -696,12 +774,197 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s)
       SDO->n1[itmp2+2] = far[itmp+5*ncol]; 
       ++itmp;
    } 
-
+   
+   if (icol_col > 0) {
+      SDO->colv = (GLfloat *)SUMA_malloc(4*sizeof(GLfloat)*SDO->N_n);
+      if (!SDO->colv) {
+         SUMA_SL_Crit("Failed in to allocate for colv.");
+         SUMA_RETURN(NULL);
+      }
+      /* fill up idividual colors */
+      itmp = 0;
+      while (itmp < SDO->N_n) {
+         itmp2 = 4*itmp;
+         SDO->colv[itmp2]     = far[itmp+(icol_col  )*ncol];
+         SDO->colv[itmp2+1]   = far[itmp+(icol_col+1)*ncol];
+         SDO->colv[itmp2+2]   = far[itmp+(icol_col+2)*ncol];
+         SDO->colv[itmp2+3]   = far[itmp+(icol_col+3)*ncol];
+         ++itmp;
+      } 
+   }
+   if (icol_thick > 0) {
+      SDO->thickv = (GLfloat *)SUMA_malloc(sizeof(GLfloat)*SDO->N_n);
+      if (!SDO->thickv) {
+         SUMA_SL_Crit("Failed in to allocate for colv.");
+         SUMA_RETURN(NULL);
+      }
+      /* fill up idividual thickness */
+      itmp = 0;
+      while (itmp < SDO->N_n) {
+         SDO->thickv[itmp]     = far[itmp+(icol_thick  )*ncol];
+         ++itmp;
+      } 
+   }
+   
    mri_free(im); im = NULL; far = NULL;
 
    SUMA_RETURN(SDO);
 }
 
+GLenum SUMA_SphereStyleConvert (int v)
+{
+   switch (v) {
+      case 0:
+         return(GLU_POINT);
+      case 1:
+         return(GLU_LINE);
+      case 2:
+         return(GLU_FILL);
+      default:
+         return(GLU_FILL);
+   }
+}
+
+SUMA_SphereDO * SUMA_ReadSphDO (char *s)
+{
+   static char FuncName[]={"SUMA_ReadSphDO"};
+   SUMA_SphereDO *SDO = NULL;
+   MRI_IMAGE * im = NULL;
+   float *far=NULL;
+   int itmp, itmp2, icol_rad=-1, icol_style = -1, icol_col = -1;
+   int nrow=-1, ncol=-1;
+   
+   SUMA_ENTRY;
+      
+   if (!s) {
+      SUMA_SLP_Err("NULL s");
+      SUMA_RETURN(NULL);
+   }
+   
+   im = mri_read_1D (s);
+
+   if (!im) {
+      SUMA_SLP_Err("Failed to read 1D file");
+      SUMA_RETURN(NULL);
+   }
+
+   far = MRI_FLOAT_PTR(im);
+   ncol = im->nx;
+   nrow = im->ny;
+
+   if (!ncol) {
+      SUMA_SLP_Err("Empty file");
+      SUMA_RETURN(NULL);
+   }
+   
+   icol_col = -1;
+   icol_rad = -1;
+   icol_style = -1;
+   switch (nrow) {
+      case 3:
+         fprintf(SUMA_STDERR,"%s: Sphere file %s's format:\n"
+                              "ox oy oz\n", FuncName, s);
+         break;
+      case 4:
+         fprintf(SUMA_STDERR,"%s: Sphere file %s's format:\n"
+                              "ox oy oz rd\n", FuncName, s);
+         icol_rad = 3;
+         break;
+      case 5:
+         fprintf(SUMA_STDERR,"%s: Sphere file %s's format:\n"
+                              "ox oy oz rd st\n", FuncName, s);
+         icol_rad = 3;
+         icol_style = 4;
+         break;
+      case 7:
+         fprintf(SUMA_STDERR,"%s: Sphere file %s's format:\n"
+                              "ox oy oz c0 c1 c2 c3\n", FuncName, s);
+         icol_col = 3;
+         break;
+      case 8:
+         fprintf(SUMA_STDERR,"%s: Sphere file %s's format:\n"
+                              "ox oy oz c0 c1 c2 c3 rd\n", FuncName, s);
+         icol_col = 3;
+         icol_rad = 7;
+         break;
+      case 9:
+         fprintf(SUMA_STDERR,"%s: Sphere file %s's format:\n"
+                              "ox oy oz c0 c1 c2 c3 rd st\n", FuncName, s);
+         icol_col = 3;
+         icol_rad = 7;
+         icol_style = 8;
+         break;
+      default:
+         SUMA_SLP_Err("File must have\n"
+                   "3,4,5,7,8 or 9 columns.");
+         mri_free(im); im = NULL;   /* done with that baby */
+         SUMA_RETURN(NULL);
+   }
+
+   /* allocate for segments DO */
+   SDO = SUMA_Alloc_SphereDO (ncol, s);
+   if (!SDO) {
+      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Allocate_SphereDO.\n", FuncName);
+      SUMA_RETURN(NULL);
+   }
+
+   /* fill up SDO */
+   itmp = 0;
+   while (itmp < SDO->N_n) {
+      itmp2 = 3*itmp;
+      SDO->cxyz[itmp2]   = far[itmp       ];
+      SDO->cxyz[itmp2+1] = far[itmp+  ncol];
+      SDO->cxyz[itmp2+2] = far[itmp+2*ncol];
+      ++itmp;
+   } 
+   
+   if (icol_col > 0) {
+      SDO->colv = (GLfloat *)SUMA_malloc(4*sizeof(GLfloat)*SDO->N_n);
+      if (!SDO->colv) {
+         SUMA_SL_Crit("Failed in to allocate for colv.");
+         SUMA_RETURN(NULL);
+      }
+      /* fill up idividual colors */
+      itmp = 0;
+      while (itmp < SDO->N_n) {
+         itmp2 = 4*itmp;
+         SDO->colv[itmp2]     = far[itmp+(icol_col  )*ncol];
+         SDO->colv[itmp2+1]   = far[itmp+(icol_col+1)*ncol];
+         SDO->colv[itmp2+2]   = far[itmp+(icol_col+2)*ncol];
+         SDO->colv[itmp2+3]   = far[itmp+(icol_col+3)*ncol];
+         ++itmp;
+      } 
+   }
+   if (icol_rad > 0) {
+      SDO->radv = (GLfloat *)SUMA_malloc(sizeof(GLfloat)*SDO->N_n);
+      if (!SDO->radv) {
+         SUMA_SL_Crit("Failed in to allocate for radv.");
+         SUMA_RETURN(NULL);
+      }
+      /* fill up idividual radius */
+      itmp = 0;
+      while (itmp < SDO->N_n) {
+         SDO->radv[itmp]     = far[itmp+(icol_rad  )*ncol];
+         ++itmp;
+      } 
+   }
+   if (icol_style > 0) {
+      SDO->stylev = (GLenum *)SUMA_malloc(sizeof(GLenum)*SDO->N_n);
+      if (!SDO->stylev) {
+         SUMA_SL_Crit("Failed in to allocate for radv.");
+         SUMA_RETURN(NULL);
+      }
+      /* fill up idividual style */
+      itmp = 0;
+      while (itmp < SDO->N_n) {
+         SDO->stylev[itmp]     = SUMA_SphereStyleConvert((int)far[itmp+(icol_style  )*ncol]);
+         ++itmp;
+      } 
+   }
+   mri_free(im); im = NULL; far = NULL;
+
+   SUMA_RETURN(SDO);
+}
 
 /*! Allocate for a axis object */
 SUMA_Axis* SUMA_Alloc_Axis (const char *Name)
@@ -877,6 +1140,137 @@ void SUMA_WorldAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
    SUMA_RETURNe;
 }
 
+SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO)
+{
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+   int i, N_n3, i3;
+   GLfloat rad = 3;
+   static char FuncName[]={"SUMA_DrawSphereDO"};
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SDO) {
+      fprintf(stderr,"Error %s: NULL pointer.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   glLineWidth(SDO->LineWidth);
+   
+   if (!SDO->colv) {
+      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, SDO->CommonCol);
+      glMaterialfv(GL_FRONT, GL_EMISSION, SDO->CommonCol);
+   }
+   if (!SDO->radv) rad = SDO->CommonRad;
+   if (!SDO->stylev) {
+      gluQuadricDrawStyle (SDO->sphobj, SDO->CommonStyle); 
+      if (SDO->CommonStyle == GLU_FILL) gluQuadricNormals (SDO->sphobj , GLU_SMOOTH);
+      else gluQuadricNormals (SDO->sphobj , GLU_NONE); 
+   }
+   
+   for (i=0; i<SDO->N_n;++i) {
+      i3 = 3*i;
+      if (SDO->colv) {
+         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, &(SDO->colv[i*4]));
+         glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[i*4]));
+      }
+      if (SDO->radv) rad = SDO->radv[i];
+      if (SDO->stylev) {
+         gluQuadricDrawStyle (SDO->sphobj, SDO->stylev[i]); 
+         if (SDO->stylev[i] == GLU_FILL) gluQuadricNormals (SDO->sphobj , GLU_SMOOTH);
+         else gluQuadricNormals (SDO->sphobj , GLU_NONE); 
+      }
+      glTranslatef (SDO->cxyz[i3], SDO->cxyz[i3+1], SDO->cxyz[i3+2]);
+      gluSphere(SDO->sphobj, rad/* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06)  User set values, not cool to play with dimensions! */, 
+                SDO->CommonSlices, SDO->CommonStacks);
+      glTranslatef (-SDO->cxyz[i3], -SDO->cxyz[i3+1], -SDO->cxyz[i3+2]);
+   }
+   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
+   glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
+
+   SUMA_RETURN (YUP);
+   
+}
+
+SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label)
+{
+   static char FuncName[]={"SUMA_Alloc_SphereDO"};
+   SUMA_SphereDO* SDO;
+   
+   SUMA_ENTRY;
+
+   SDO = (SUMA_SphereDO*)SUMA_malloc (sizeof (SUMA_SphereDO));
+   if (SDO == NULL) {
+      fprintf(stderr,"SUMA_Alloc_SphereDO Error: Failed to allocate SDO\n");
+      SUMA_RETURN (NULL);
+   }
+   
+   GLfloat *radv; /*!< Vector of sphere radii, 1 elements per sphere. NULL if using CommonRad */
+   GLfloat *colv; /*!< Vector of sphere colors, 4 elements per sphere. NULL if using CommonCol */
+
+   if (N_n > 0) {
+      SDO->cxyz = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
+   
+      if (!SDO->cxyz) {
+         fprintf(stderr,"Error %s: Failed to allocate for SDO->cxyz\n", FuncName);
+         if (SDO) SUMA_free (SDO);
+         SUMA_RETURN (NULL);
+      }
+      SDO->N_n = N_n;
+   } else {
+      SDO->cxyz = NULL;
+      SDO->N_n = 0;
+   }
+   
+   SDO->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));
+   UNIQ_idcode_fill(SDO->idcode_str);
+   
+   if (Label) {
+      SDO->Label = (char *)SUMA_calloc (strlen(Label)+1, sizeof(char));
+      SDO->Label = strcpy (SDO->Label, Label);
+   } else {
+      SDO->Label = NULL;
+   }
+   
+   /* create the ball object*/
+   SDO->sphobj = gluNewQuadric();
+   
+   /* setup some default values */
+   SDO->LineWidth = 4.0;
+   SDO->CommonRad = 2.0;
+   SDO->CommonCol[0] = 1.0; SDO->CommonCol[1] = 1.0; SDO->CommonCol[2] = 1.0; SDO->CommonCol[3] = 1.0; 
+   SDO->CommonSlices = 10;
+   SDO->CommonStacks = 10;
+   SDO->CommonStyle = GLU_FILL;
+   SDO->radv=NULL;
+   SDO->colv=NULL;
+   SDO->stylev = NULL;
+   
+   SUMA_RETURN (SDO);
+}
+
+void SUMA_free_SphereDO (SUMA_SphereDO * SDO)
+{
+   static char FuncName[]={"SUMA_free_SphereDO"};
+
+   SUMA_ENTRY;
+   
+   if (!SDO) SUMA_RETURNe;
+   
+   if (SDO->cxyz) SUMA_free(SDO->cxyz);
+   if (SDO->idcode_str) SUMA_free(SDO->idcode_str);
+   if (SDO->Label) SUMA_free(SDO->Label);
+   if (SDO->sphobj) gluDeleteQuadric(SDO->sphobj);
+   if (SDO->radv) SUMA_free(SDO->radv);
+   if (SDO->colv) SUMA_free(SDO->colv);
+   if (SDO->stylev) SUMA_free(SDO->stylev);
+
+   if (SDO) SUMA_free(SDO);
+   
+   SUMA_RETURNe;
+
+}
+
 SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO)
 {
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
@@ -890,7 +1284,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO)
       SUMA_RETURN (NOPE);
    }
    
-   glLineWidth(SDO->LineWidth);
+   if (!SDO->thickv) glLineWidth(SDO->LineWidth);  
    
    switch (SDO->Stipple) {
       case SUMA_DASHED_LINE:
@@ -904,21 +1298,41 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO)
          SUMA_RETURN(NOPE);
    }
    
-   glBegin(GL_LINES);
-   glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol); /*turn on emissivity for */
-   glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
-   glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
-   
-   i = 0;
-   N_n3 = 3*SDO->N_n;
-   while (i < N_n3) {
-      glVertex3f(SDO->n0[i], SDO->n0[i+1], SDO->n0[i+2]);
-      glVertex3f(SDO->n1[i], SDO->n1[i+1], SDO->n1[i+2]); 
-      i += 3;
+   if (!SDO->thickv) {
+      glBegin(GL_LINES);
+      if (!SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol); /*turn on emissivity  */
+      glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
+      glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
+
+      i = 0;
+      N_n3 = 3*SDO->N_n;
+      while (i < N_n3) {
+         if (SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i/3)]));
+         glVertex3f(SDO->n0[i], SDO->n0[i+1], SDO->n0[i+2]);
+         glVertex3f(SDO->n1[i], SDO->n1[i+1], SDO->n1[i+2]); 
+         i += 3;
+      }
+
+      glEnd();
+   } else { /* slow slow slow */
+      if (!SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol);
+      glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
+      glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
+      i = 0;
+      N_n3 = 3*SDO->N_n;
+      while (i < N_n3) {
+         if (SDO->thickv) glLineWidth(SDO->thickv[i/3]);   
+         glBegin(GL_LINES);
+         if (SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i/3)]));
+         glVertex3f(SDO->n0[i], SDO->n0[i+1], SDO->n0[i+2]);
+         glVertex3f(SDO->n1[i], SDO->n1[i+1], SDO->n1[i+2]); 
+         i += 3;
+         glEnd();
+      }
+      
    }
    
-   glEnd();
-      switch (SDO->Stipple) {
+   switch (SDO->Stipple) {
       case SUMA_DASHED_LINE:
          glDisable(GL_LINE_STIPPLE);
          break;
@@ -2735,7 +3149,7 @@ SUMA_SphereMarker* SUMA_Alloc_SphereMarker (void)
    
    SUMA_ENTRY;
 
-   SM = SUMA_malloc (sizeof (SUMA_SphereMarker));
+   SM = (SUMA_SphereMarker*)SUMA_malloc (sizeof (SUMA_SphereMarker));
    if (SM == NULL) {
       fprintf(stderr,"SUMA_Alloc_SphereMarker Error: Failed to allocate SM\n");
       SUMA_RETURN (NULL);
