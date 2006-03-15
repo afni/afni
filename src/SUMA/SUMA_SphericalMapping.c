@@ -175,9 +175,38 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
    fprintf (SUMA_STDERR," Largest 10 absolute departures from estimated radius:\n"
                         " See output files for more detail.\n");
    for (i=SO->N_Node-1; i > SO->N_Node - 10; --i) {
-      fprintf (SUMA_STDERR,"dist @ %d: %f\n", isortdist[i], dist[i]);
+      fprintf (SUMA_STDERR,"dist @ %d: %f\n", isortdist[i], dist[i]); 
    }
    
+   /* write the FaceSetList to file */
+   fname = SUMA_append_string(Froot, "_FaceSetList.1D.dset");
+   if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
+   fid = fopen(fname, "w");
+   fprintf(fid,"#FaceSetList.\n"
+               "#col 0: Facet Index\n");
+   if (shist) fprintf(fid,"#History:%s\n\n", shist);
+   for (i=0; i<SO->N_FaceSet; ++i) { 
+      i3 = 3*i; 
+      fprintf(fid,"%d   %d    %d    %d\n", 
+                  i, SO->FaceSetList[i3  ], SO->FaceSetList[i3+1], SO->FaceSetList[i3+2]);
+   }
+   fclose(fid);
+   SUMA_free(fname); fname = NULL;
+   
+   /* write the FaceNormList to file */
+   fname = SUMA_append_string(Froot, "_FaceNormList.1D.dset");
+   if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
+   fid = fopen(fname, "w");
+   fprintf(fid,"#Facet Normals.\n"
+               "#col 0: Facet Index\n\n");
+   if (shist) fprintf(fid,"#History:%s\n", shist);
+   for (i=0; i<SO->N_FaceSet; ++i) { 
+      i3 = 3*i; 
+      fprintf(fid,"%d   %f    %f    %f\n", 
+                  i, SO->FaceNormList[i3  ], SO->FaceNormList[i3+1], SO->FaceNormList[i3+2]);
+   }
+   fclose(fid);
+   SUMA_free(fname); fname = NULL;
    
    /* New idea:
    If we had a perfect sphere then the normal of each node
@@ -357,7 +386,7 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
                      r[1]*SO->FaceNormList[i3+1] +
                      r[2]*SO->FaceNormList[i3+2] ;
       
-      if (fabs(face_dot[i]) < 0.9) {
+      if (fabs(face_dot[i]) < 0.5) {
          face_bad_ind[face_ibad] = i;
          face_bad_dot[face_ibad] = face_dot[i];
          ++face_ibad;
@@ -367,6 +396,7 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
    face_bad_ind = (int *)  SUMA_realloc(face_bad_ind, face_ibad * sizeof(int));
    face_bad_dot = (float *)SUMA_realloc(face_bad_dot, face_ibad * sizeof(float));
    
+   /* write the data */
    fname = SUMA_append_string(Froot, "_facedotprod.1D.dset");
    if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
    face_id= fopen(fname, "w");
@@ -379,7 +409,7 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
    fclose(face_id);
    SUMA_free(fname); fname = NULL;
 
-   fname = SUMA_append_string(Froot, "_FaceBadNodes.1D.dset");
+   fname = SUMA_append_string(Froot, "_BadFaceSets.1D.dset");
    if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
    face_id= fopen(fname, "w");
    fprintf(face_id,"#Facets with normals at angle with radial direction: abs(dot product < 0.9)\n"
@@ -402,8 +432,8 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
          fprintf (SUMA_STDERR,"cos(ang) @ facet %d: %f\n", face_bad_ind[i], face_bad_dot[i]);
       /* If face_nrep is zero, then this will not be printed. */
       } 
-   }  
- 
+   }
+     
    if (dot) SUMA_free(dot);
    if (bad_dot) SUMA_free(bad_dot);
    if (bad_ind) SUMA_free(bad_ind);
@@ -415,8 +445,10 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
    if (dist) SUMA_free(dist);
    if (CM) SUMA_Free_ColorMap (CM);
    if (OptScl) SUMA_free(OptScl);
-  
-   SUMA_RETURN(ibad);
+
+/* CAREFUL, CHANGED RETURN VARIABLE TO REFLECT FACET DEVIATIONS INSTEAD OF BAD NODES.  Before was just "(ibad)" */  
+   
+   SUMA_RETURN(face_ibad);
 }
 
 /*!
@@ -749,7 +781,7 @@ void SUMA_addTri(int *triList, int *ctr, int n1, int n2, int n3) {
   \param ToSpHere (int) if 1 then project nodes to form a sphere of radius r
   \ret SO (SUMA_SurfaceObject *) icosahedron is a surface object structure.
   returns NULL if function fails.
-  SO returned with NodeList, N_Node, FaceSetList, N_FaceSet, and NodeNormList
+  SO returned with NodeList, N_Node, List, N_FaceSet, and NodeNormList
      
   Written by Brenna Argall  
 */
