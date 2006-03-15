@@ -41,9 +41,13 @@ SUMA_ROI * SUMA_AllocateROI (char *Parent_idcode_str, SUMA_ROI_TYPE Type, char *
 SUMA_Boolean SUMA_freeDrawnROI (SUMA_DRAWN_ROI *D_ROI); 
 SUMA_Boolean SUMA_freeROI (SUMA_ROI *ROI); 
 SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_dov, SUMA_SurfaceViewer *csv);
+SUMA_DO_Types SUMA_Guess_DO_Type(char *s);
 SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label);
 void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO);
 SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO);
+SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label);
+void SUMA_free_SphereDO (SUMA_SphereDO * SDO);
+SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO);
 SUMA_Boolean SUMA_isROIdequal (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId2);
 void SUMA_FreeROIDatum (void * data);
 SUMA_ROI_DATUM * SUMA_AllocROIDatum (void);
@@ -70,6 +74,7 @@ SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value, char
                                           float *FillColor, float *EdgeColor, int EdgeThickness , 
                                           SUMA_DO *dov, int N_dov, SUMA_Boolean ForDisplay);
 SUMA_SegmentDO * SUMA_ReadSegDO (char *s);
+SUMA_SphereDO * SUMA_ReadSphDO (char *s);
 SUMA_SurfaceObject *SUMA_Cmap_To_SO (SUMA_COLOR_MAP *Cmap, float orig[3], float topright[3], int verb);
 SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA_Boolean AddText);
 DList *SUMA_SortedAxisSegmentList ( SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, 

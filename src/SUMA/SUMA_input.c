@@ -745,7 +745,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                break;
             }
          case XK_s:
-            if ((Kev.state & Mod1Mask || Kev.state & Mod2Mask) && (Kev.state & ControlMask) && SUMAg_CF->Dev){
+            if ((Kev.state & Mod1Mask || Kev.state & Mod2Mask) && (Kev.state & ControlMask) ){
                if (!list) list = SUMA_CreateList();
                ED = SUMA_InitializeEngineListData (SE_LoadSegDO);
                if (!SUMA_RegisterEngineListCommand (  list, ED,
