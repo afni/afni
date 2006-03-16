@@ -565,8 +565,8 @@ void identify_software ()
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
 #endif
 
-#ifdef USE_ALTIVEC
-  INFO_message ("Compiled with Altivec acceleration for Mac OS X\n") ;
+#ifdef USE_ACCELERATE
+  INFO_message ("Compiled with vector acceleration for Mac OS X\n") ;
 #elif defined(USE_SUNPERF) && !defined(FLOATIZE)
   INFO_message ("Compiled with BLAS-1 acceleration for Solaris\n") ;
 #elif defined(USE_SCSLBLAS)
