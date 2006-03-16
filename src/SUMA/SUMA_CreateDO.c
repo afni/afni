@@ -1146,6 +1146,7 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO)
    int i, N_n3, i3;
    GLfloat rad = 3;
    static char FuncName[]={"SUMA_DrawSphereDO"};
+   float origwidth=0.0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1155,6 +1156,7 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO)
       SUMA_RETURN (NOPE);
    }
    
+   glGetFloatv(GL_LINE_WIDTH, &origwidth);
    glLineWidth(SDO->LineWidth);
    
    if (!SDO->colv) {
@@ -1187,6 +1189,7 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO)
    }
    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
    glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
+   glLineWidth(origwidth);
 
    SUMA_RETURN (YUP);
    
@@ -1275,6 +1278,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO)
 {
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    int i, N_n3;
+   float origwidth=0.0;
    static char FuncName[]={"SUMA_DrawSegmentDO"};
    
    SUMA_ENTRY;
@@ -1284,6 +1288,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO)
       SUMA_RETURN (NOPE);
    }
    
+   glGetFloatv(GL_LINE_WIDTH, &origwidth);
    if (!SDO->thickv) glLineWidth(SDO->LineWidth);  
    
    switch (SDO->Stipple) {
@@ -1341,7 +1346,8 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO)
    }
    
    glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity */
-
+   glLineWidth(origwidth);
+     
    SUMA_RETURN (YUP);
    
 }
