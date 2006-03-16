@@ -38,6 +38,7 @@ typedef struct
                            around the circle or sphere. */
       int neighbor;          /* Check distance to nearest node and adjust step size accordingly. */
       char outfile[500];
+      int pause;
    } MyCircleOpt;
 
 typedef struct
@@ -74,6 +75,7 @@ void usage_toy_circle (SUMA_GENERIC_ARGV_PARSE *ps)
                "                    Approximate the number of subdivisions on the icosahedron.\n"
                "                    Default N_sub is 100.\n"
                "  -N_step N_STEP:   Set the number of steps (inverse dt).\n"
+               "  -talk_pause\n"
                /*"  -dt DT: Choose time step for moving points to new locations.\n"
                "                 Default DT is 0.001.\n" */
                "  -renew_weights:   Choose to recalculate spline weights after every step.\n"
@@ -124,6 +126,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_toy_circle_ParseInput(char *argv[], int a
    popt->dot = 0;
    popt->half_kernel = 0;
    popt->neighbor = 0;
+   popt->pause = 0;
    snprintf(popt->outfile, 499*sizeof(char),"test_move");
    kar = 1;
    brk = NOPE;
@@ -141,7 +144,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_toy_circle_ParseInput(char *argv[], int a
          popt->dbg_flag = 1; 
          brk = 1;
       }
-  
+      if (!brk && (strcmp(argv[kar], "-talk_pause") == 0))
+      {
+         popt->pause = 1; 
+         brk = 1;
+      }
       if (!brk && (strcmp(argv[kar], "-dt") == 0)) {
          fprintf(stderr, "No MORE dt, fool!\n");
          exit (1);
@@ -1227,6 +1234,9 @@ int main (int argc,char *argv[])
          } else {
             SUMA_LH("Sending Ico");
             SUMA_SendSumaNewSurface(SO, ps ->cs);
+         }
+         if (opt->pause) {
+            SUMA_PAUSE_PROMPT("Initial surface in your face\nDo something to proceed.\n");
          }
       }
    }
