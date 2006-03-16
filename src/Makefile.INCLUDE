@@ -1740,7 +1740,7 @@ mpeg_encode:
 
 mpegtoppm:
 	( cd mpegtoppm_dir ; chmod ugo+x ./configure ;                                         \
-	  ./configure --disable-sdl --disable-mlib --without-x --disable-dependency-tracking ; \
+	  ./configure --disable-sdl --disable-mlib --without-x --disable-dependency-tracking --disable-accel-detect ; \
 	  $(MAKE) ; mv doc/sample2 ../mpegtoppm ; $(MAKE) clean ; )
 
 #######

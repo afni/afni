@@ -2,7 +2,7 @@
 
 /*--------------------------------------------------------------------------*/
 
-char *AFD_manufacturer_string( int code )
+char *AFD_manufacturer_code_to_string( int code )
 {
    static char *manf[] = {
      "UNKNOWN"   ,

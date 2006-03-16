@@ -37,7 +37,12 @@ extern int   assume_dicom_mosaic ;   /* mri_read_dicom.c  13 Mar 2006 [rickr] */
 extern int use_MRILIB_dicom_matrix ;    /* 26 Jan 2006 */
 extern mat44   MRILIB_dicom_matrix ;
 
-/*! Clear the MRILIB globals (which are designed to transmit info from image files to to3d.c). */
+#include "mri_dicom_stuff.h"
+extern int                MRILIB_dicom_count ;  /* 15 Mar 2006 */
+extern AFD_dicom_header **MRILIB_dicom_header ;
+
+/*! Clear the MRILIB globals
+    (which transmit info from image files to to3d.c). */
 
 #define CLEAR_MRILIB_globals                              \
  do{ MRILIB_orients[0]='\0';                              \
@@ -46,6 +51,7 @@ extern mat44   MRILIB_dicom_matrix ;
      use_MRILIB_xcos=use_MRILIB_ycos=use_MRILIB_zcos=0;   \
      use_MRILIB_slicespacing=0;                           \
      use_MRILIB_dicom_matrix=0;                           \
+     MRILIB_dicom_count=0; MRILIB_dicom_header=NULL;      \
  } while(0)
 
 #include <stdio.h>
@@ -616,7 +622,7 @@ extern MRI_IMARR * mri_read_dicom( char * )  ;
 extern int         mri_imcount_dicom( char * ) ;
 extern char *      mri_dicom_sexinfo( void ) ;   /* 23 Dec 2002 */
 extern char *      mri_dicom_sex1010( void ) ;
-extern int mri_possibly_dicom( char * ) ;        /* 07 May 2003 */
+extern int         mri_possibly_dicom( char * ) ;        /* 07 May 2003 */
 
 
 /*! Set the data pointer in an MRI_IMAGE to NULL. */

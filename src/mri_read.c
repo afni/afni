@@ -111,6 +111,14 @@ int use_MRILIB_dicom_matrix = 0 ;
 
 mat44   MRILIB_dicom_matrix     ;
 
+/*! Global variable counting number of DICOM files read. */
+
+int     MRILIB_dicom_count = 0 ;
+
+/*! Global variable containing DICOM header info for each file. */
+
+AFD_dicom_header **MRILIB_dicom_header = NULL ;
+
 /*-----------------------------------------------------------------*/
 
 /*! Database of preset file sizes for auto-use of 3D.

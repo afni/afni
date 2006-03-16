@@ -82,7 +82,7 @@ extern MRI_IMAGE *mri_read_1D(char *) ;
 #undef DOTP
 #undef VSUB
 
-#if defined(USE_ALTIVEC)                             /** Apple **/
+#if defined(USE_ACCELERATE)                             /** Apple **/
 
 # include <Accelerate/Accelerate.h>
 # define DOTP(n,x,y,z) dotpr( x,1 , y,1 , z , n )
