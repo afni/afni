@@ -1,0 +1,70 @@
+# This Makefile is for Mac OSX 10.4 (Tiger)
+
+# You should install 'fink' before using this, and then use fink to
+# install the packages below:
+#   glib2-dev openmotif3
+# The first is needed to compile SUMA; the second for both AFNI and SUMA.
+# Fink can be found at http://fink.sourceforge.net
+
+USE_ZLIB = -DHAVE_ZLIB
+LZLIB    = -lz
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp -DDONT_USE_MCW_MALLOC
+CC     = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
+CCVOL  = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
+CCFAST = cc -O3 -ffast-math -DDARWIN $(CEXTRA)
+CCMIN  = cc
+CCD    = $(CC) $(CCDEBS)
+
+IFLAGS = -I. -I/sw/include -I/usr/X11R6/include -I/usr/local/include
+LFLAGS = -L. -L/sw/lib -L/usr/X11R6/lib -L/usr/local/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
+
+CCSVD  = cc -O0 -no-cpp-precomp
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -bundle -flat_namespace -undefined suppress -Wl,-x
+PLUGIN_CC     = $(CC) -dynamic -fno-common
+PLFLAGS       = -dynamic -L. -L/sw/lib -L/usr/X11R6/lib -L/usr/local/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
+
+SPECIAL = -framework Accelerate -DUSE_ACCELERATE
+
+AR     = /usr/bin/ar
+RANLIB = /usr/bin/ranlib
+TAR    = /usr/bin/tar
+MKDIR  = /bin/mkdir
+GZIP   = /usr/bin/gzip
+LD     = cc
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = macosx_10.4_Intel
+LIBDIR = $(INSTALLDIR)
+SHOWOFF = -DSHOWOFF=macosx_10.4_Intel
+
+#INSTALL_PREREQ = suma_gts
+INSTALL_PREREQ = suma
+
+# for dynamic linking
+
+LLIBS  = -lmri /sw/lib/libXm.a -lXm -lXmu -lXp -lXpm -lXext -lXt -lX11 $(LZLIB) -lm -lmri -lc
+
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# For suma 
+SUMA_INCLUDE_PATH = -I/sw/include -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include
+SUMA_LINK_PATH = -L/usr/lib -L/sw/lib -L/usr/X11R6/lib -L../ -L/usr/local/lib
+SUMA_LINK_LIB = /sw/lib/libXm.a -lXm -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) -lm -lmx -lglib -bind_at_load
+SUMA_MAKEFILE_NAME = SUMA_Makefile
+SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
+
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+###############################################################
+
+MAKE = make
+include Makefile.INCLUDE
