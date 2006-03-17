@@ -373,6 +373,8 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->ShowLeft = YUP;
       SV->Record = NOPE;
       SV->rdc = SUMA_RDC_NOT_SET;
+      
+      SV->Blend_Mode = SUMA_NO_BLEND;
    }
    SUMA_RETURN (SVv);
 }
@@ -1035,6 +1037,7 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend_va(SS,"   Show Eye Axis %d\n", SV->ShowEyeAxis);
    SS = SUMA_StringAppend_va(SS,"   Show Cross Hair %d\n", SV->ShowCrossHair);
    SS = SUMA_StringAppend_va(SS,"   PolyMode %d\n", SV->PolyMode);
+   SS = SUMA_StringAppend_va(SS,"   Blend_Mode %d\n", SV->Blend_Mode);
    
    SS = SUMA_StringAppend_va(SS,"   Group Name %s, indexed %d\n", SV->CurGroupName, SV->iCurGroup);
    SS = SUMA_StringAppend_va(SS,"   Current State %s, indexed %d\n", SV->State, SV->iState);
