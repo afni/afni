@@ -1221,8 +1221,6 @@ SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label)
       SUMA_RETURN (NULL);
    }
    
-   GLfloat *radv; /*!< Vector of sphere radii, 1 elements per sphere. NULL if using CommonRad */
-   GLfloat *colv; /*!< Vector of sphere colors, 4 elements per sphere. NULL if using CommonCol */
 
    if (N_n > 0) {
       SDO->cxyz = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
