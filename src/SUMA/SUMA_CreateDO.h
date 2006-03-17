@@ -44,7 +44,7 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_dov, 
 SUMA_DO_Types SUMA_Guess_DO_Type(char *s);
 SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented);
 void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO);
-SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO);
+SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv);
 SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label);
 void SUMA_free_SphereDO (SUMA_SphereDO * SDO);
 SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO);
