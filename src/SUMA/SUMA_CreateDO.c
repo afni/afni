@@ -597,8 +597,10 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
    /* check for tags */
    if (strstr(sbuf,"#spheres")) {
       dotp = SP_type;
-   } else if (strstr(sbuf,"#segments") == 0) {
+   } else if (strstr(sbuf,"#segments")) {
       dotp = LS_type;
+   } else if (strstr(sbuf,"#oriented_segments")) {
+      dotp = OLS_type;
    } 
    
    if (LocalHead) {
@@ -622,7 +624,7 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
    \returns SDO (SUMA_SegmentDO *) 
      
 */
-SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label)
+SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented)
 {
    static char FuncName[]={"SUMA_Alloc_SegmentDO"};
    SUMA_SegmentDO * SDO= NULL;
@@ -671,6 +673,11 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label)
    SDO->colv = NULL;
    SDO->thickv = NULL;
    
+   SDO->topobj = NULL;
+   if (oriented) {
+      SDO->botobj = gluNewQuadric();
+   } else SDO->botobj = NULL;
+   
    SUMA_RETURN (SDO);
 }
 
@@ -688,12 +695,14 @@ void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO)
    if (SDO->Label) SUMA_free(SDO->Label);
    if (SDO->thickv) SUMA_free(SDO->thickv);
    if (SDO->colv) SUMA_free(SDO->colv);
+   if (SDO->botobj) gluDeleteQuadric(SDO->botobj);
+   if (SDO->topobj) gluDeleteQuadric(SDO->topobj);
    if (SDO) SUMA_free(SDO);
    
    SUMA_RETURNe;
 }
 
-SUMA_SegmentDO * SUMA_ReadSegDO (char *s)
+SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented)
 {
    static char FuncName[]={"SUMA_ReadSegDO"};
    SUMA_SegmentDO *SDO = NULL;
@@ -701,6 +710,7 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s)
    float *far=NULL;
    int itmp, itmp2, icol_thick = -1, icol_col=-1;
    int nrow=-1, ncol=-1;
+   char buf[30];
    
    SUMA_ENTRY;
    
@@ -715,7 +725,10 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s)
       SUMA_SLP_Err("Failed to read 1D file");
       SUMA_RETURN(NULL);
    }
-
+   
+   if (oriented) sprintf(buf,"Oriented segment");
+   else sprintf(buf,"Segment");
+   
    far = MRI_FLOAT_PTR(im);
    ncol = im->nx;
    nrow = im->ny;
@@ -729,22 +742,22 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s)
    icol_thick = -1;
    switch (nrow) {
       case 6:
-         fprintf(SUMA_STDERR,"%s: Segment file %s's format:\n"
-                              "x0 y0 z0 x1 y1 z1\n", FuncName, s);
+         fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
+                              "x0 y0 z0 x1 y1 z1\n", FuncName, buf, s);
          break;
       case 7:
-         fprintf(SUMA_STDERR,"%s: Segment file %s's format:\n"
-                              "x0 y0 z0 x1 y1 z1 th\n", FuncName, s);
+         fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
+                              "x0 y0 z0 x1 y1 z1 th\n", FuncName, buf, s);
          icol_thick = 6;
          break;
       case 10:
-         fprintf(SUMA_STDERR,"%s: Segment file %s's format:\n"
-                              "x0 y0 z0 x1 y1 z1 c0 c1 c2 c3\n", FuncName, s);
+         fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
+                              "x0 y0 z0 x1 y1 z1 c0 c1 c2 c3\n", FuncName, buf, s);
          icol_col = 6;
          break;
       case 11:
-         fprintf(SUMA_STDERR,"%s: Segment file %s's format:\n"
-                              "x0 y0 z0 x1 y1 z1 c0 c1 c2 c3 th\n", FuncName, s);
+         fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
+                              "x0 y0 z0 x1 y1 z1 c0 c1 c2 c3 th\n", FuncName, buf, s);
          icol_col = 6;
          icol_thick = 10;
          break;
@@ -756,7 +769,7 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s)
    }
 
    /* allocate for segments DO */
-   SDO = SUMA_Alloc_SegmentDO (ncol, s);
+   SDO = SUMA_Alloc_SegmentDO (ncol, s, oriented);
    if (!SDO) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Allocate_SegmentDO.\n", FuncName);
       SUMA_RETURN(NULL);
@@ -1277,8 +1290,8 @@ void SUMA_free_SphereDO (SUMA_SphereDO * SDO)
 SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO)
 {
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-   int i, N_n3;
-   float origwidth=0.0;
+   int i, N_n3, i3;
+   float origwidth=0.0, rad = 0.0;
    static char FuncName[]={"SUMA_DrawSegmentDO"};
    
    SUMA_ENTRY;
@@ -1345,6 +1358,31 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO)
          break;
    }
    
+   /* draw the bottom object */
+   if (SDO->botobj) {
+      glLineWidth(0.5);
+      if (!SDO->colv) {
+         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, SDO->LineCol);
+      }
+      if (!SDO->thickv) rad = SDO->LineWidth*0.25;
+      gluQuadricDrawStyle (SDO->botobj, GLU_FILL); 
+      gluQuadricNormals (SDO->botobj , GLU_SMOOTH);
+
+      for (i=0; i<SDO->N_n;++i) {
+         i3 = 3*i;
+         if (SDO->colv) {
+            glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, &(SDO->colv[i*4]));
+            glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[i*4]));
+         }
+         if (SDO->thickv) rad = SDO->thickv[i]*0.25;
+         glTranslatef (SDO->n0[i3], SDO->n0[i3+1], SDO->n0[i3+2]);
+         gluSphere(SDO->botobj, rad/* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06)  User set values, not cool to play with dimensions! */, 
+                   10, 10);
+         glTranslatef (-SDO->n0[i3], -SDO->n0[i3+1], -SDO->n0[i3+2]);
+      }
+      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
+   }
+
    glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity */
    glLineWidth(origwidth);
      
@@ -3002,6 +3040,7 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    static GLdouble radsph, fac;
    static GLfloat gapch, radch;
+   float origwidth = 0.0;
    SUMA_CrossHair* Ch = sv->Ch;
    
    SUMA_ENTRY;
@@ -3010,6 +3049,8 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
    radsph = Ch->sphrad*fac;
    gapch = Ch->g*fac;
    radch = Ch->r*fac;
+
+   glGetFloatv(GL_LINE_WIDTH, &origwidth);
    glLineWidth(Ch->LineWidth);
    /*fprintf(SUMA_STDOUT, "Center: %f, %f, %f. Gap %f, Radius: %f\n",\
       Ch->c[0], Ch->c[2], Ch->c[2], gapch, radch);*/
@@ -3071,6 +3112,7 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
       glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity for axis*/
    }
    
+   glLineWidth(origwidth);
    SUMA_RETURN (YUP);
 }
 
