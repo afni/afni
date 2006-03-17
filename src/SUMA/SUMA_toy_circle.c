@@ -1112,12 +1112,13 @@ int main (int argc,char *argv[])
    static char FuncName[]={"toy_circle"}; 
    char outfile[] = {"Coords_0.txt"}, outfile_speed[] = {"Plot_Speed0.txt"}, outfile_test[50]; 
    char outfile_SphereQuality[] = {"SphereQuality_0"}, outfile_neighb[] = {"Neighbor_Check0.txt"};
+   char outfile_segments[50], outfile_Vmag[50];
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    MyCircleOpt myopt, *opt = NULL;
    int i, i3, idm, j, j3, k;
    double dt;    /*dt2, te; */
-   double u[3], oxyz[3]={0.0, 0.0, 0.0};
+   double u[3], oxyz[3]={0.0, 0.0, 0.0}, Vf_segment[3];
    double um=-1.0, oda, faa, error, dtheta=0.0, nrm[3]={0.0, 0.0, 0.0}, nrmi[3]={0.0, 0.0, 0.0}, nrmf[3]={0.0, 0.0, 0.0};
    int niter=0;
    SUMA_SurfaceObject *SO = NULL;
@@ -1355,7 +1356,7 @@ int main (int argc,char *argv[])
    
       if( LocalHead ) { fprintf(stderr,"%s: niter = %d, dt = %.3f.\n", FuncName, niter, dt); }
       
-      /* For debugging, write coordinate and velocity field info to file. */
+      /* For debugging, write coordinates and velocity field info to file. */
       FILE *test = NULL;
       sprintf( outfile_test, "%s%d.1D", opt->outfile, (niter) );
       test = fopen (outfile_test, "w"); 
@@ -1375,8 +1376,38 @@ int main (int argc,char *argv[])
             i, Ci->NewNodeList[i3], Ci->NewNodeList[i3+1], Ci->NewNodeList[i3+2], 
             dt*Ci->VelocityField[i3  ], dt*Ci->VelocityField[i3+1], dt*Ci->VelocityField[i3+2], Ci->Theta[i3+2]);
       } 
-      fclose (test); test = NULL;      
- 
+      fclose (test); test = NULL;   
+      
+      /*Write oriented segment file for plotting in SUMA. */
+      FILE *plot_segments = NULL;
+      sprintf( outfile_segments, "SUMA_segments%d.1D", niter ); 
+      plot_segments = fopen (outfile_segments, "w"); 
+      fprintf (plot_segments, "#segments\n");
+      for ( i = 0; i < Ci->N_Node; ++i) {
+         i3 = 3*i;
+         /*To plot end of segment, must calculate the location of the point of the velocity vector. 
+            This is done by adding the position vector of the node to the velocity vector at that node.*/
+         Vf_segment[0] = Ci->NewNodeList[i3  ] + Ci->VelocityField[i3  ];
+         Vf_segment[1] = Ci->NewNodeList[i3+1] + Ci->VelocityField[i3+1];
+         Vf_segment[2] = Ci->NewNodeList[i3+2] + Ci->VelocityField[i3+2];
+         fprintf (plot_segments, "%11.8f  %11.8f  %11.8f  %11.8f  %11.8f  %11.8f 0.0  0.0  1.0  1.0  1.0\n",
+                                 Ci->NewNodeList[i3], Ci->NewNodeList[i3+1], Ci->NewNodeList[i3+2], 
+                                 Vf_segment[0], Vf_segment[1], Vf_segment[2] );
+      }
+      fclose (plot_segments); plot_segments = NULL; 
+      
+      /*Write velocity magnitudes to file for plotting in SUMA.*/  
+      FILE *plot_Vmag = NULL;
+      sprintf( outfile_Vmag, "SUMA_Vmag%d.1D", niter ); 
+      plot_Vmag = fopen (outfile_Vmag, "w"); 
+      for ( i = 0; i < Ci->N_Node; ++i) {
+         i3 = 3*i;
+         fprintf (plot_Vmag, "%11.8f\n", sqrt(  SUMA_POW2(Ci->VelocityField[i3  ]) + 
+                                                SUMA_POW2(Ci->VelocityField[i3+1]) + 
+                                                SUMA_POW2(Ci->VelocityField[i3+2]) ));
+      }
+      fclose (plot_Vmag); plot_Vmag = NULL; 
+     
       FILE *neighb = NULL;
       if( opt->neighbor) {
          sprintf( outfile_neighb, "Neighbor_Check%d.txt", niter);
@@ -1571,7 +1602,6 @@ int main (int argc,char *argv[])
          }
       }
       
-     
      /* Check sphere quality at each iteration. */ /*   WHY MUST THE NORMALS BE RECOMPUTED AGAIN? JUST COMPUTED ABOVE.*/
      /* if( !nbad ) {  */
          fprintf( SUMA_STDERR, "\nNITER = %d", niter );
@@ -1584,7 +1614,6 @@ int main (int argc,char *argv[])
          if (shist) SUMA_free(shist); shist = NULL;
          SUMA_Save_Surface_Object(SO_name, SO, SUMA_VEC, SUMA_ASCII, NULL);
      /* }  */
-     
        
       if (LocalHead) { fprintf(stderr,"%s: Writing results to %s\n", FuncName, opt->outfile); }
   
