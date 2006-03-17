@@ -656,7 +656,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case OLS_type:
             case LS_type:
-               if (!SUMA_DrawSegmentDO ((SUMA_SegmentDO *)dov[csv->RegisteredDO[i]].OP)) {
+               if (!SUMA_DrawSegmentDO ((SUMA_SegmentDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
                   fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSegmentDO.\n", FuncName);
                }
                break;
@@ -701,7 +701,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case OLS_type:
             case LS_type:
-               if (!SUMA_DrawSegmentDO ((SUMA_SegmentDO *)dov[csv->RegisteredDO[i]].OP)) {
+               if (!SUMA_DrawSegmentDO ((SUMA_SegmentDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
                   fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSegmentDO.\n", FuncName);
                }
                break;
