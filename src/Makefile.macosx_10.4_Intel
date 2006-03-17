@@ -27,7 +27,8 @@ PLUGIN_LFLAGS = -bundle -flat_namespace -undefined suppress -Wl,-x
 PLUGIN_CC     = $(CC) -dynamic -fno-common
 PLFLAGS       = -dynamic -L. -L/sw/lib -L/usr/X11R6/lib -L/usr/local/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
 
-SPECIAL = -framework Accelerate -DUSE_ACCELERATE
+# include the line below if you want to include vector arith in 3dDeconvolve_f
+# SPECIAL = -framework Accelerate -DUSE_ACCELERATE
 
 AR     = /usr/bin/ar
 RANLIB = /usr/bin/ranlib
