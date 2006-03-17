@@ -268,16 +268,21 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                switch (sv->BF_Cull) {
                   case 0:
                      glDisable(GL_CULL_FACE);
+                     glDisable(GL_BLEND);
                      SUMA_SLP_Note ("BackFace Culling disabled.");
                      break;
                   case 1:
                      glCullFace (GL_BACK);
                      glEnable (GL_CULL_FACE);
+                     glEnable (GL_BLEND);
+                     glBlendFunc(GL_ONE,GL_ZERO);
                      SUMA_SLP_Note ("BackFace Culling enabled.");
                      break;
                   case 2:
                      glCullFace (GL_FRONT);
                      glEnable (GL_CULL_FACE);
+                     glEnable (GL_BLEND);
+                     glBlendFunc(GL_ONE,GL_SRC_ALPHA);
                      SUMA_SLP_Note ("FrontFace Culling enabled.");
                      break;
                }

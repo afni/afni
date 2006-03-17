@@ -295,8 +295,15 @@ void SUMA_LoadSegDO (char *s, void *csvp)
    }
    
    switch (dotp) {
+      case OLS_type:
+         if (!(SDO = SUMA_ReadSegDO(s, 1))) {
+            SUMA_SL_Err("Failed to read segments file.\n");
+            SUMA_RETURNe;
+         }
+         VDO = (void *)SDO;
+         break;
       case LS_type:
-         if (!(SDO = SUMA_ReadSegDO(s))) {
+         if (!(SDO = SUMA_ReadSegDO(s, 0))) {
             SUMA_SL_Err("Failed to read segments file.\n");
             SUMA_RETURNe;
          }
@@ -647,6 +654,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case ROIO_type:
                /* those are drawn by SUMA_DrawMesh */
                break;
+            case OLS_type:
             case LS_type:
                if (!SUMA_DrawSegmentDO ((SUMA_SegmentDO *)dov[csv->RegisteredDO[i]].OP)) {
                   fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSegmentDO.\n", FuncName);
@@ -691,6 +699,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case ROIO_type:
                /* those are drawn by SUMA_DrawMesh */
                break;
+            case OLS_type:
             case LS_type:
                if (!SUMA_DrawSegmentDO ((SUMA_SegmentDO *)dov[csv->RegisteredDO[i]].OP)) {
                   fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSegmentDO.\n", FuncName);

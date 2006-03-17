@@ -250,6 +250,7 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
             fprintf(SUMA_STDERR,"Error SUMA_freeROI, could not free  ROI.\n");
          }
          break;
+      case OLS_type:
       case LS_type:
          SUMA_free_SegmentDO ((SUMA_SegmentDO *)dov->OP);
          break;
@@ -518,12 +519,23 @@ void SUMA_Show_DOv (SUMA_DO *dov, int N_dov, FILE *Out)
                fprintf(Out,"\tName: %s\tidcode: %s\n", ao->Name, ao->idcode_str);
             }
             break;
+         case OLS_type:
          case LS_type:
             {
                SUMA_SegmentDO *sdo=NULL;
                
                sdo = (SUMA_SegmentDO *)dov[i].OP;
                fprintf(Out,"DOv ID: %d\n\tLine Segment Object\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
+               fprintf(Out,"\tLabel: %s\tidcode: %s\n", sdo->Label, sdo->idcode_str);
+            
+            }
+            break;
+         case SP_type:
+            {
+               SUMA_SphereDO *sdo=NULL;
+               
+               sdo = (SUMA_SphereDO *)dov[i].OP;
+               fprintf(Out,"DOv ID: %d\n\tSphere Object\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
                fprintf(Out,"\tLabel: %s\tidcode: %s\n", sdo->Label, sdo->idcode_str);
             
             }
@@ -630,7 +642,7 @@ SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov)
    SUMA_ROI *ROI = NULL;
    SUMA_SegmentDO *sdo = NULL;
    SUMA_Axis *sax = NULL;
-   
+   SUMA_SphereDO *spdo=NULL;
    SUMA_ENTRY;
 
    if (idcode == NULL) {
@@ -663,6 +675,13 @@ SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov)
                SUMA_RETURN (YUP);
             }
             break;
+         case (SP_type):
+            spdo = (SUMA_SphereDO *)dov[i].OP;
+            if (strcmp(idcode, spdo->idcode_str)== 0) {
+               SUMA_RETURN (YUP);
+            }
+            break;
+         case (OLS_type):
          case (LS_type):
             sdo = (SUMA_SegmentDO *)dov[i].OP;
             if (strcmp(idcode, sdo->idcode_str)== 0) {
@@ -692,6 +711,7 @@ int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
    SUMA_ROI *ROI = NULL;
    SUMA_SegmentDO *sdo = NULL;
    SUMA_Axis *sax = NULL;
+   SUMA_SphereDO *spdo=NULL;
    
    SUMA_ENTRY;
 
@@ -725,6 +745,13 @@ int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
                SUMA_RETURN (i);
             }
             break;
+         case (SP_type):
+            spdo = (SUMA_SphereDO *)dov[i].OP;
+            if (strcmp(idcode, spdo->idcode_str)== 0) {
+               SUMA_RETURN (i);
+            }
+            break;
+         case (OLS_type):
          case (LS_type):
             sdo = (SUMA_SegmentDO *)dov[i].OP;
             if (strcmp(idcode, sdo->idcode_str)== 0) {
