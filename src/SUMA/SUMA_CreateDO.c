@@ -1287,7 +1287,7 @@ void SUMA_free_SphereDO (SUMA_SphereDO * SDO)
 
 }
 
-SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO)
+SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
 {
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    int i, N_n3, i3;
@@ -1376,7 +1376,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO)
          }
          if (SDO->thickv) rad = SDO->thickv[i]*0.25;
          glTranslatef (SDO->n0[i3], SDO->n0[i3+1], SDO->n0[i3+2]);
-         gluSphere(SDO->botobj, rad/* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06)  User set values, not cool to play with dimensions! */, 
+         gluSphere(SDO->botobj, rad *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06) , 
                    10, 10);
          glTranslatef (-SDO->n0[i3], -SDO->n0[i3+1], -SDO->n0[i3+2]);
       }
