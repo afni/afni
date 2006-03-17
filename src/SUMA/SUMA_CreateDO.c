@@ -1364,7 +1364,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
       if (!SDO->colv) {
          glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, SDO->LineCol);
       }
-      if (!SDO->thickv) rad = SDO->LineWidth*0.25;
+      if (!SDO->thickv) rad = SDO->LineWidth*0.5*sv->FOV[sv->iState]/FOV_INITIAL;
       gluQuadricDrawStyle (SDO->botobj, GLU_FILL); 
       gluQuadricNormals (SDO->botobj , GLU_SMOOTH);
 
@@ -1374,9 +1374,12 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
             glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, &(SDO->colv[i*4]));
             glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[i*4]));
          }
-         if (SDO->thickv) rad = SDO->thickv[i]*0.25;
+         if (SDO->thickv) rad = SDO->thickv[i]*0.5*sv->FOV[sv->iState]/FOV_INITIAL;
+         /* fprintf(SUMA_STDERR,"thickv[i] = %f, FOV %f, FOV_INITIAL %f, radinit=%f, radcomp=%f\n", 
+                        SDO->thickv[i], sv->FOV[sv->iState], FOV_INITIAL,
+                        rad,  rad *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06)); */
          glTranslatef (SDO->n0[i3], SDO->n0[i3+1], SDO->n0[i3+2]);
-         gluSphere(SDO->botobj, rad *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06) , 
+         gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad, 0.005) /* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06) */ , 
                    10, 10);
          glTranslatef (-SDO->n0[i3], -SDO->n0[i3+1], -SDO->n0[i3+2]);
       }

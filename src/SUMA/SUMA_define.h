@@ -74,7 +74,7 @@
 #define SUMA_SELECTED_FACESET_OFFSET_FACTOR 0.01 /*!< highlighting is done by drawing two triangles at a fractional distance of the normal vector */
 #define SUMA_SELECTED_FACESET_LINE_INTENSITY 0.75 /*!< line gray color intensity */
 #define SUMA_NODE_ALPHA 1 /*!< Node Color Intensity 1, max intensity 0 min intensity*/
-#define FOV_INITIAL 30
+#define FOV_INITIAL 30.0  /*!< Leave this at 30 always, change defaults from .sumarc's SUMA_FOV_Original */
 #define FOV_MIN 0.001
 #define FOV_MAX 300
 #define FOV_IN_FACT 1.05   /*!< Still used for colormap display, Obsolete for surface viewers, see sv->KeyZoomGain */
