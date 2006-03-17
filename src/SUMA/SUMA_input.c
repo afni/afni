@@ -264,29 +264,50 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_B:
-               sv->BF_Cull = (sv->BF_Cull+1)%3;
-               switch (sv->BF_Cull) {
-                  case 0:
-                     glDisable(GL_CULL_FACE);
-                     glDisable(GL_BLEND);
-                     SUMA_SLP_Note ("BackFace Culling disabled.");
-                     break;
-                  case 1:
-                     glCullFace (GL_BACK);
-                     glEnable (GL_CULL_FACE);
-                     glEnable (GL_BLEND);
-                     glBlendFunc(GL_ONE,GL_ZERO);
-                     SUMA_SLP_Note ("BackFace Culling enabled.");
-                     break;
-                  case 2:
-                     glCullFace (GL_FRONT);
-                     glEnable (GL_CULL_FACE);
-                     glEnable (GL_BLEND);
-                     glBlendFunc(GL_ONE,GL_SRC_ALPHA);
-                     SUMA_SLP_Note ("FrontFace Culling enabled.");
-                     break;
+               if (( Kev.state & ControlMask)){ 
+                  if (SUMAg_CF->Dev ) {
+                     sv->Blend_Mode = (sv->Blend_Mode+1)%SUMA_N_BLEND_MODES;
+                     switch (sv->Blend_Mode) {
+                        case SUMA_NO_BLEND:
+                           glDisable(GL_BLEND);
+                           SUMA_SLP_Note ("Blending  disabled.");
+                           break;
+                        case SUMA_BLEND1:
+                           glEnable (GL_BLEND);
+                           glBlendFunc(GL_ONE,GL_SRC_ALPHA);
+                           SUMA_SLP_Note ("Blending mode1.");
+                           break;
+                        case SUMA_BLEND2:
+                           glEnable (GL_BLEND);
+                           glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                           SUMA_SLP_Note ("Blending mode2.");
+                           break;
+                        default:
+                           SUMA_SL_Err ("Should not be here");
+                           break;
+                     }
+                     SUMA_postRedisplay(w, clientData, callData);
+                  }
+               } else {
+                  sv->BF_Cull = (sv->BF_Cull+1)%3;
+                  switch (sv->BF_Cull) {
+                     case 0:
+                        glDisable(GL_CULL_FACE);
+                        SUMA_SLP_Note ("Culling disabled.");
+                        break;
+                     case 1:
+                        glCullFace (GL_BACK);
+                        glEnable (GL_CULL_FACE);
+                        SUMA_SLP_Note ("BackFace Culling enabled.");
+                        break;
+                     case 2:
+                        glCullFace (GL_FRONT);
+                        glEnable (GL_CULL_FACE);
+                        SUMA_SLP_Note ("FrontFace Culling enabled.");
+                        break;
+                  }
+                  SUMA_postRedisplay(w, clientData, callData);
                }
-               SUMA_postRedisplay(w, clientData, callData);
             break;
 
          case XK_b:

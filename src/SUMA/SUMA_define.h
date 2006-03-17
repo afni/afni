@@ -340,6 +340,8 @@ typedef enum { SAP_Do,
                SAP_Redo,
             } SUMA_ACTION_POLARITY;               
 
+typedef enum { SUMA_NO_BLEND=0, SUMA_BLEND1, SUMA_BLEND2, SUMA_N_BLEND_MODES} SUMA_BLEND_MODES;
+
 typedef enum {
    SUMA_ROI_FILL_TO_ALLROI, /*!< Fill until you encounter a node part of any ROI */
    SUMA_ROI_FILL_TO_THISROI, /*!< Fill until you encounter a node part of this ROI */
@@ -1525,7 +1527,8 @@ typedef struct {
    char *CurGroupName; /*!< current name of group */
    int iCurGroup; /*!< index into GroupList (stored in SUMAg_CF) of current group of Surface Viewer */
    SUMA_REDISPLAY_CAUSE rdc;  /*!< Why has a redisplay been requested */
-}SUMA_SurfaceViewer;
+   SUMA_BLEND_MODES Blend_Mode; /*!< blending mode */
+} SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */
 typedef struct {
