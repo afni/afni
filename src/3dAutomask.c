@@ -11,6 +11,7 @@ int main( int argc , char * argv[] )
    float SIhh=0.0 ;        /* 06 Mar 2003 */
    int   SIax=0 , SIbot,SItop ;
    int   verb=1 ;
+   float clfrac=0.5 ;      /* 20 Mar 2006 */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dAutomask [options] dataset\n"
@@ -24,6 +25,11 @@ int main( int argc , char * argv[] )
              "Options:\n"
              "  -prefix ppp = Write mask into dataset with prefix 'ppp'.\n"
              "                 [default='automask']\n"
+             "  -clfrac cc  = Set the 'clip level fraction' to 'cc', which\n"
+             "                 must be a number between 0.1 and 0.9.\n"
+             "                 A small 'cc' means to make the initial threshold\n"
+             "                 for clipping (a la 3dClipLevel) smaller, which\n"
+             "                 will tend to make the mask larger.  [default=0.5]\n"
              "  -q          = Don't write progress messages (i.e., be quiet).\n"
              "  -eclip      = After creating the mask, remove exterior\n"
              "                 voxels below the clip threshold.\n"
@@ -46,6 +52,14 @@ int main( int argc , char * argv[] )
    /*-- options --*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+      if( strcmp(argv[iarg],"-clfrac") == 0 ){    /* 20 Mar 2006 */
+        clfrac = strtod( argv[++iarg] , NULL ) ;
+        if( clfrac < 0.1f || clfrac > 0.9f )
+          ERROR_exit("-clfrac value %f is illegal!",clfrac) ;
+        THD_automask_set_clipfrac(clfrac) ;
+        iarg++ ; continue ;
+      }
 
       if( strcmp(argv[iarg],"-SI") == 0 ){        /* 06 Mar 2003 */
         SIhh = strtod( argv[++iarg] , NULL ) ;

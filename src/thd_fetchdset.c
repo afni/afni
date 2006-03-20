@@ -68,7 +68,7 @@ ENTRY("THD_fetch_dset") ;
    }
    if( nbp < dset->dblk->total_bytes ){
       fprintf(stderr,"\n ** Got %s but only had %d bytes, but needed %lld\n",
-              hp,nbp,dset->dblk->total_bytes) ;
+              hp,nbp,(long long)dset->dblk->total_bytes) ;
       free(bp) ; free(hp) ; DSET_delete(dset) ; RETURN(NULL) ;
    }
    fprintf(stderr,": %d bytes read\n",nbp) ;

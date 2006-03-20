@@ -3649,6 +3649,8 @@ extern void THD_autobbox( THD_3dim_dataset * ,             /* 06 Jun 2002 */
 extern void MRI_autobbox( MRI_IMAGE * ,
                           int *, int * , int *, int * , int *, int * ) ;
 
+extern void THD_automask_set_clipfrac( float f ) ;         /* 20 Mar 2006 */
+
 extern int THD_mask_fillin_completely( int,int,int, byte *, int ) ; /* 19 Apr 2002 */
 extern int THD_mask_fillin_once      ( int,int,int, byte *, int ) ;
 
