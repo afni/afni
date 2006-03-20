@@ -5820,3 +5820,4 @@
 
 20 Mar 2006
  * Modify 3dAutomask.c and thd_automask.c to add new -clfrac option.
+ * Modify matrix_f.c to use Solaris BLAS in single precision.
