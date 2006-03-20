@@ -93,6 +93,14 @@ extern MRI_IMAGE *mri_read_1D(char *) ;
 # include <scsl_blas.h>
 # define SETUP_BLAS
 
+#elif defined(USE_SUNPERF)                           /** Sun Solaris **/
+#  ifndef _SUNPERF_COMPLEX
+#  define _SUNPERF_COMPLEX
+     typedef struct { double r; double i; } doublecomplex;
+#  endif
+#  include <sunperf.h>
+#  define SETUP_BLAS
+
 #endif  /* vectorization special cases */
 
 /* single precision BLAS-1 functions */
