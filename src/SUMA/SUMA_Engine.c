@@ -318,7 +318,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                                         "*",
                                                         SUMAg_CF->X->FileSelectDlg);
             }
-            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Segment File", &SUMAg_CF->X->FileSelectDlg);
+            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Displayable Objects File", &SUMAg_CF->X->FileSelectDlg);
             break;
             
          case SE_LoadViewFileSelection:
