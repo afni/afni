@@ -709,6 +709,78 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             if (LocalHead) fprintf (SUMA_STDERR, "%s: Done in SE_Load_Spec.\n", FuncName);
             break;
             
+         case SE_SetClip:
+            {
+               int iplane = -1, Delete = 0;
+               /* expects a clipping plane name in EngineData->s, equation in fv15 and type in i*/
+               if (EngineData->fv15_Dest != NextComCode || EngineData->s_Dest != NextComCode  || EngineData->i_Dest != NextComCode ) {
+                  fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+                  break;
+               }
+
+               /* find plane in question */
+               iplane = -1;
+               for (ii=0; ii<SUMAg_CF->N_ClipPlanes; ++ii) {
+                  if (  strcmp(SUMAg_CF->ClipPlanesLabels[ii], EngineData->s) == 0  
+                     && SUMAg_CF->ClipPlaneType[ii] == (SUMA_CLIP_PLANE_TYPES)EngineData->i) {
+                     iplane = ii; break;
+                  }
+               }
+
+               /* stick equation where it belongs */
+               if (EngineData->fv15[0] == 0.0 && EngineData->fv15[1] == 0.0 && EngineData->fv15[2] == 0.0 && EngineData->fv15[3] == 0.0) {
+                  Delete = 1; /* no more clipping */
+               } else {
+                  Delete = 0; /* a plane to add, modify */
+               }
+
+               /* what to do? */
+               if (Delete && iplane >=0) {
+                  /* delete */
+                  SUMAg_CF->ClipPlaneType[iplane] = SUMA_NO_CLIP_PLANE_TYPE;
+                  SUMAg_CF->ClipPlanesLabels[iplane][0]='\0';
+                  SUMAg_CF->ClipPlanes[4*iplane] = SUMAg_CF->ClipPlanes[4*iplane+1] = SUMAg_CF->ClipPlanes[4*iplane+2] = SUMAg_CF->ClipPlanes[4*iplane+3]= 0.0;
+                  --SUMAg_CF->N_ClipPlanes;
+                  glDisable(SUMA_index_to_clip_plane(iplane));
+               } else if (Delete) {
+                  /* delete what ? */
+                  SUMA_SL_Warn("No plane to delete");
+                  break;
+               } else if (!Delete && iplane < 0) { 
+                  /* add a new one */
+                  if (SUMAg_CF->N_ClipPlanes == SUMA_MAX_N_CLIP_PLANES) {
+                     SUMA_SLP_Err("No more clipping planes available.");
+                     break;   
+                  }
+                  SUMAg_CF->ClipPlaneType[SUMAg_CF->N_ClipPlanes] = (SUMA_CLIP_PLANE_TYPES)EngineData->i;
+                  snprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], 8*sizeof(char), "%s", EngineData->s);
+                  SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes  ] = (GLdouble)EngineData->fv15[0];
+                  SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes+1] = (GLdouble)EngineData->fv15[1];
+                  SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes+2] = (GLdouble)EngineData->fv15[2];
+                  SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes+3] = (GLdouble)EngineData->fv15[3];
+                  ++SUMAg_CF->N_ClipPlanes;
+               } else {
+                  /* Replace an existing one */
+                  SUMAg_CF->ClipPlaneType[iplane] = (SUMA_CLIP_PLANE_TYPES)EngineData->i;
+                  snprintf(SUMAg_CF->ClipPlanesLabels[iplane], 8*sizeof(char), "%s", EngineData->s);
+                  SUMAg_CF->ClipPlanes[4*iplane  ] = (GLdouble)EngineData->fv15[0];
+                  SUMAg_CF->ClipPlanes[4*iplane+1] = (GLdouble)EngineData->fv15[1];
+                  SUMAg_CF->ClipPlanes[4*iplane+2] = (GLdouble)EngineData->fv15[2];
+                  SUMAg_CF->ClipPlanes[4*iplane+3] = (GLdouble)EngineData->fv15[3];
+               }
+               ED = SUMA_InitializeEngineListData (SE_Redisplay_AllVisible);
+               if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                      SEF_Empty, NULL, 
+                                                      SES_Afni, NULL, NOPE, 
+                                                      SEI_Tail, NULL )) {
+                  fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+                  break;
+               }
+               
+               /* Show the clip planes */
+               SUMA_Show_Clip_Planes(SUMAg_CF, NULL);
+            }
+            break;
          case SE_SetLookAt:
             /* expects a center XYZ in EngineData->fv3[0 .. 2] */
             if (EngineData->fv3_Dest != NextComCode) {

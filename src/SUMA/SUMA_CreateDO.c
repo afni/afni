@@ -1221,7 +1221,6 @@ SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label)
       SUMA_RETURN (NULL);
    }
    
-
    if (N_n > 0) {
       SDO->cxyz = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
    
@@ -3308,10 +3307,10 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 {  static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    GLfloat *colp = NULL;
    int i, ii, ND, id, ip, NP, PolyMode;
-   static char FuncName[]={"SUMA_DrawMesh"};
    SUMA_DRAWN_ROI *DrawnROI = NULL;
-      static unsigned char *image=NULL;
-      static GLuint texName;
+   static char FuncName[]={"SUMA_DrawMesh"};
+   static unsigned char *image=NULL;
+   static GLuint texName;
    SUMA_Boolean LocalHead = NOPE;
       
    SUMA_ENTRY;
@@ -3329,6 +3328,19 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
      /* not the default, do the deed */
      SUMA_SET_GL_RENDER_MODE(SurfObj->PolyMode); 
    }
+   
+   #if 0 /* demo only. now handled elsewhere */
+   if (0) { /* clipping parts of the OBJECT */
+      GLdouble eqn[4] = {0.0, 1.0, 0.0, 0.0}; /* clip nodes with y < 0, below plane of equation eqn (y = 0)*/
+      GLdouble eqn2[4] = {1.0, 0.0, 0.0, 0.0}; /* clip nodes with x < 0, below plane of equation eqn (x = 0)*/
+      
+      SUMA_S_Note("The clip");
+      glClipPlane(GL_CLIP_PLANE0, eqn);
+      glEnable(GL_CLIP_PLANE0);
+      glClipPlane(GL_CLIP_PLANE1, eqn2);
+      glEnable(GL_CLIP_PLANE1);
+   }
+   #endif
    
    SUMA_LH("Draw Method");
    ND = SurfObj->NodeDim;
