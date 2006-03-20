@@ -17,7 +17,7 @@
    #define INLINE   inline
 #else
    #define INLINE   /**/
-#endif
+#endif
 #include "thd_shear3d.h"
 #include "matrix.h"
 /*#include "matrix.c"*/

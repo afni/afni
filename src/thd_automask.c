@@ -13,6 +13,12 @@ void THD_automask_extclip( int e ){ exterior_clip = e ; }
 
 static int dall = 0 ;
 
+static float clfrac = 0.5f ;                     /* 20 Mar 2006 */
+void THD_automask_set_clipfrac( float f )
+{
+  if( f >= 0.1f && f <= 0.9f ) clfrac = f ;
+}
+
 /*---------------------------------------------------------------------*/
 
 static int mask_count( int nvox , byte *mmm )
@@ -105,7 +111,7 @@ ENTRY("mri_automask_image") ;
 
    /* find clip value to excise small stuff */
 
-   clip_val = THD_cliplevel(medim,0.5) ;
+   clip_val = THD_cliplevel(medim,clfrac) ;
 
    if( verb ) ININFO_message("Clip level = %f\n",clip_val) ;
 
@@ -738,7 +744,7 @@ ENTRY("THD_autobbox") ;
    nvox = medim->nvox ;
    for( ii=0 ; ii < nvox ; ii++ ) mar[ii] = fabs(mar[ii]) ;
 
-   clip_val = THD_cliplevel(medim,0.5) ;
+   clip_val = THD_cliplevel(medim,clfrac) ;
    for( ii=0 ; ii < nvox ; ii++ )
      if( mar[ii] < clip_val ) mar[ii] = 0.0 ;
 
