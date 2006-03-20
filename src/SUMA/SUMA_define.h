@@ -119,6 +119,9 @@
 #define SUMA_MEMTRACE_FLAG 1    /*!< Flag to turn on(1) or off (0) the memory tracing capability */
 #define SUMA_PI 3.141592653589793115997963 
 #define SUMA_EPSILON 0.000001
+
+#define SUMA_MAX_N_CLIP_PLANES 6 /*!< Limited by maximum nuber of clip planes allowed by OpenGL, assume min of 6*/
+
 /*!
    Debugging flags
 */
@@ -164,7 +167,7 @@ typedef enum { SE_Empty,
                SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  SE_SetLight0Pos, SE_OpenColFileSelection,
                SE_SaveDrawnROIFileSelection, SE_OpenDrawnROIFileSelection, SE_SendColorMapToAfni, SE_SaveSOFileSelection,
                SE_SetSOinFocus, SE_StartListening, SE_LoadViewFileSelection, SE_SaveViewFileSelection, SE_LoadSegDO,
-               SE_OpenDsetFileSelection, SE_OpenCmapFileSelection, 
+               SE_OpenDsetFileSelection, SE_OpenCmapFileSelection, SE_SetClip,
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
                
 typedef enum { SEF_Empty, 
@@ -246,6 +249,8 @@ typedef enum { SW_CmapMode,
                   SW_Direct, SW_NN, SW_Interp,  
                   SW_N_CmapMode } 
                SUMA_WIDGET_CMAP_MODE;  /*keep parallel with enum of SUMA_COLORMAP_INTERP_MODE */
+
+typedef enum { SUMA_NO_CLIP_PLANE_TYPE, SUMA_SCREEN_CLIP, SUMA_ALL_OBJECT_CLIP} SUMA_CLIP_PLANE_TYPES;
                                  
 typedef enum {
    SUMA_RDC_ERROR = -1,
@@ -1194,6 +1199,7 @@ typedef struct {
    Widget ViewMenu[SW_N_View]; /*!< Vector of widgets under View Menu */
    Widget HelpMenu[SW_N_Help]; /*!< Vector of widgets under Help Menu */
    SUMA_PROMPT_DIALOG_STRUCT *LookAt_prmpt; /*!< structure for the LookAt dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *SetRot_prmpt; /*!< structure for the set rotation dialog */
    SUMA_PROMPT_DIALOG_STRUCT *JumpIndex_prmpt; /*!< structure for the Jump To Index dialog */
    SUMA_PROMPT_DIALOG_STRUCT *JumpXYZ_prmpt; /*!< structure for the Jump To XYZ dialog */
    SUMA_PROMPT_DIALOG_STRUCT *JumpFocusNode_prmpt; /*!< structure for setting the Focus Node dialog */
@@ -1219,6 +1225,8 @@ typedef struct {
                                  is set to 0 (No smoothing). */
    SUMA_Boolean WarnClose; /*!< Pops up a window to double check before SUMA quits */
    SUMA_LIST_WIDGET *SwitchCmapLst; /*!< list widget for switching colormaps */
+   SUMA_PROMPT_DIALOG_STRUCT *Clip_prmpt; /*!< structure for the LookAt dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *ClipObj_prmpt; /*!< structure for the LookAt dialog */
 }SUMA_X_AllView;
 
 /*! structure defining a cross hair */
@@ -1528,6 +1536,7 @@ typedef struct {
    int iCurGroup; /*!< index into GroupList (stored in SUMAg_CF) of current group of Surface Viewer */
    SUMA_REDISPLAY_CAUSE rdc;  /*!< Why has a redisplay been requested */
    SUMA_BLEND_MODES Blend_Mode; /*!< blending mode */
+   
 } SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */
@@ -2225,7 +2234,11 @@ typedef struct {
    SUMA_Boolean isGraphical; /*!< if YUP then Named afni colors will get resolved when creating color maps. 
                                   Otherwise they are set to gray. Only suma and ScaleToMap will need to set 
                                   this variable to YUP, for the moment June 3 05 */
-                                    
+
+   int N_ClipPlanes; /*!< Number of screen clipping planes, 3 max allowed */
+   GLdouble ClipPlanes[4*SUMA_MAX_N_CLIP_PLANES]; /*!< Equations of  clipping planes */
+   SUMA_CLIP_PLANE_TYPES ClipPlaneType[SUMA_MAX_N_CLIP_PLANES]; /*!< Screen clipping, object clipping, etc. */
+   char ClipPlanesLabels[SUMA_MAX_N_CLIP_PLANES][9]; 
 } SUMA_CommonFields;
 
 typedef enum { SUMA_NO_SORT, SUMA_BY_PLANE_DISTANCE, SUMA_BY_SEGMENT_DISTANCE, SUMA_SORT_BY_LLC_DISTANCE, SUMA_SORT_BY_LL_QUAD } SUMA_SORT_BOX_AXIS_OPTION;

@@ -132,6 +132,7 @@ sets the select color of the widget to its foreground color */
 String *SUMA_get_fallbackResources ();         
 Boolean SUMA_handleRedisplay (XtPointer w);
 void SUMA_postRedisplay(Widget w, XtPointer clientData, XtPointer call);
+GLenum SUMA_index_to_clip_plane(int iplane) ;
 void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov);
 Colormap SUMA_getShareableColormap_Eng(XVisualInfo * vi, Display *dpy);
 Colormap SUMA_getShareableColormap(SUMA_SurfaceViewer * csv);

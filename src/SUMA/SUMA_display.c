@@ -569,6 +569,35 @@ void SUMA_LoadVisualState(char *fname, void *csvp)
    SUMA_RETURNe;
 }
 
+GLenum SUMA_index_to_clip_plane(int iplane) 
+{
+   static char FuncName[]={"SUMA_index_to_clip_plane"};
+   
+   switch(iplane) {
+      case 0:
+         return(GL_CLIP_PLANE0);
+         break;
+      case 1:
+         return(GL_CLIP_PLANE1);
+         break;
+      case 2:
+         return(GL_CLIP_PLANE2);
+         break;
+      case 3:
+         return(GL_CLIP_PLANE3);
+         break;
+      case 4:
+         return(GL_CLIP_PLANE4);
+         break;
+      case 5:
+         return(GL_CLIP_PLANE5);
+         break;
+      default:
+         SUMA_SLP_Err("You are not to have more than 6 planes!!!");
+         return(GL_CLIP_PLANE0);
+         break;
+   }
+}
 void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 {   
    int i;
@@ -624,6 +653,14 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    
    SUMA_SET_GL_PROJECTION(csv);
    
+   if (SUMAg_CF->N_ClipPlanes) { /* clipping parts in fixed (screen)  coordinate space */
+      for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i) {
+         if (SUMAg_CF->ClipPlaneType[i] == SUMA_SCREEN_CLIP) {
+            glClipPlane(SUMA_index_to_clip_plane(i), &(SUMAg_CF->ClipPlanes[4*i]));
+            glEnable(SUMA_index_to_clip_plane(i));
+         }
+      }
+   }
 
    /* cycle through csv->RegisteredDO and display those things that have a fixed CoordType*/
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: Creating objects with fixed coordinates ...\n", FuncName);
@@ -670,6 +707,16 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    /* cycle through csv->RegisteredDO and display those things that have a Local CoordType*/
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: Creating objects with local coordinates ...\n", FuncName);
 
+   /* cuting plane for all? */
+   if (SUMAg_CF->N_ClipPlanes) { /* clipping parts in object coordinate space */
+      for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i) {
+         if (SUMAg_CF->ClipPlaneType[i] == SUMA_ALL_OBJECT_CLIP) {
+            glClipPlane(SUMA_index_to_clip_plane(i), &(SUMAg_CF->ClipPlanes[4*i]));
+            glEnable(SUMA_index_to_clip_plane(i));
+         }
+      }
+   }
+   
    i = 0;
    while (i < csv->N_DO) {
       if (dov[csv->RegisteredDO[i]].CoordType == SUMA_LOCAL) {

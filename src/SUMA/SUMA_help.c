@@ -594,6 +594,23 @@ char * SUMA_help_message_Info(void)
       "     B: Backface/Frontface/Noface culling, toggle.\n");
    SS = SUMA_StringAppend (SS, 
       "     b: background color, toggle.\n\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend_va (SS, 
+      "     Ctrl+C: Set screen-coordinate-based clipping planes\n"
+      "      Alt+C: Set object-coordinate-based clipping planes\n"
+      "           o Planes are defined by a string of the format:\n"
+      "             NAME: a, b, c, d\n"
+      "             Where NAME is a user-given short name,\n"
+      "             a, b, c, and d define the plane's equation\n"
+      "             aX + bY + cZ + d = 0\n"
+      "                Example: A: 0, 0, 1, 0\n"
+      "           o To delete a plane, just enter its name followed\n"
+      "             by the ':' (e.g. 'A:')\n"
+      "           o If you enter only two parameters after the name, \n"
+      "             they are assumed to be the c and d parameters,\n"
+      "             a and b are set to 0.\n"
+      "           o You are allowed a maximum of %d planes\n"
+      "\n",
+      SUMA_MAX_N_CLIP_PLANES);
    SS = SUMA_StringAppend (SS, 
       "     c: load a node color file.\n\n");
    SS = SUMA_StringAppend (SS, 
@@ -662,6 +679,10 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "     p: Viewer rendering mode  \n"
       "        (Fill, Line, Points), switch.\n\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
+      "     Alt+r: Set new center of rotation.\n"
+      "            Enter nothing to go back to default.\n"
+      "\n");
    SS = SUMA_StringAppend (SS, 
       "     r: record current image\n"
       "        in an a la AFNI image viewer.\n"

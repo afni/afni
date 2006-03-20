@@ -61,6 +61,11 @@ SUMA_Boolean SUMA_RegisterGroup (SUMA_CommonFields *cf, SUMA_SurfSpecFile *spec)
 SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleGroupList (SUMA_SurfaceViewer *sv); 
 SUMA_Boolean SUMA_SwitchGroups (SUMA_SurfaceViewer *sv, char *group);
 SUMA_Boolean SUMA_AdoptGroup(SUMA_SurfaceViewer *csv, char *group);
+const char * SUMA_Clip_Type_to_Clip_Name (SUMA_CLIP_PLANE_TYPES tp);
+char * SUMA_Show_Clip_Planes_Info (SUMA_CommonFields *cf);
+void SUMA_Show_Clip_Planes (SUMA_CommonFields *cf, FILE *out);
+
+
 
 
 #endif

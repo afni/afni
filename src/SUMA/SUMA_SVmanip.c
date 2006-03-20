@@ -316,6 +316,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 
       SV->X->Title = NULL;
       SV->X->LookAt_prmpt = NULL;
+      SV->X->SetRot_prmpt = NULL;
       SV->X->JumpIndex_prmpt = NULL;
       SV->X->JumpXYZ_prmpt = NULL;
       SV->X->JumpFocusNode_prmpt = NULL;
@@ -390,6 +391,7 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV)
    if (SV->Ch) SUMA_Free_CrossHair (SV->Ch);
    if (SV->X->Title) SUMA_free(SV->X->Title);
    if (SV->X->LookAt_prmpt) SUMA_FreePromptDialogStruct (SV->X->LookAt_prmpt);
+   if (SV->X->SetRot_prmpt) SUMA_FreePromptDialogStruct (SV->X->SetRot_prmpt);
    if (SV->X->JumpIndex_prmpt) SUMA_FreePromptDialogStruct (SV->X->JumpIndex_prmpt);
    if (SV->X->JumpXYZ_prmpt) SUMA_FreePromptDialogStruct (SV->X->JumpXYZ_prmpt);
    if (SV->X->JumpFocusNode_prmpt) SUMA_FreePromptDialogStruct (SV->X->JumpFocusNode_prmpt);
@@ -1630,6 +1632,8 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->X->Log_TextShell = NULL;
    cf->X->FileSelectDlg = NULL;
    cf->X->N_ForeSmooth_prmpt = NULL;
+   cf->X->Clip_prmpt = NULL;
+   cf->X->ClipObj_prmpt = NULL;
    {
       char *eee = getenv("SUMA_NumForeSmoothing");
       if (eee) {
@@ -1716,6 +1720,13 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    
    cf->IgnoreVolreg = NOPE;
    cf->isGraphical = NOPE;
+   
+   cf->N_ClipPlanes = 0;
+   for (i=0; i<SUMA_MAX_N_CLIP_PLANES; ++i) {
+      cf->ClipPlanes[4*i] = cf->ClipPlanes[4*i+1] = cf->ClipPlanes[4*i+2] = cf->ClipPlanes[4*i+3]= 0.0;
+      cf->ClipPlaneType[i] = SUMA_NO_CLIP_PLANE_TYPE;
+      cf->ClipPlanesLabels[i][0]='\0';
+   }
    return (cf);
 
 }
@@ -2041,6 +2052,8 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    if (cf->X->SumaCont) SUMA_FreeSumaContStruct (cf->X->SumaCont); cf->X->SumaCont = NULL;
    if (cf->X->DrawROI) SUMA_FreeDrawROIStruct (cf->X->DrawROI); cf->X->DrawROI = NULL;
    if (cf->X->N_ForeSmooth_prmpt) SUMA_FreePromptDialogStruct (cf->X->N_ForeSmooth_prmpt); cf->X->N_ForeSmooth_prmpt = NULL;
+   if (cf->X->Clip_prmpt) SUMA_FreePromptDialogStruct (cf->X->Clip_prmpt); cf->X->Clip_prmpt = NULL;
+   if (cf->X->ClipObj_prmpt) SUMA_FreePromptDialogStruct (cf->X->ClipObj_prmpt); cf->X->ClipObj_prmpt = NULL;
    if (cf->X->SwitchCmapLst) SUMA_FreeScrolledList (cf->X->SwitchCmapLst);
    if (cf->X) free(cf->X); cf->X = NULL;
    if (cf->MessageList) SUMA_EmptyDestroyList(cf->MessageList); cf->MessageList = NULL;
@@ -2063,15 +2076,82 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    return (YUP);
 }
 
+void SUMA_Show_Clip_Planes (SUMA_CommonFields *cf, FILE *out)
+{
+   static char FuncName[]={"SUMA_Show_Clip_Planes"};
+   char *s=NULL;
+   
+   SUMA_ENTRY;
+   
+   s = SUMA_Show_Clip_Planes_Info (cf);
+   
+   if (!out) fprintf(SUMA_STDERR,"%s", s);
+   else fprintf(out,"%s", s);
+   
+   SUMA_free(s);
+   
+   SUMA_RETURNe;
+}
+
+const char * SUMA_Clip_Type_to_Clip_Name (SUMA_CLIP_PLANE_TYPES tp)
+{
+   switch (tp) {
+      case SUMA_NO_CLIP_PLANE_TYPE:
+         return("No_type");
+      case SUMA_SCREEN_CLIP:
+         return("Screen_Clip");
+      case SUMA_ALL_OBJECT_CLIP:
+         return("All_Objects_Clip");
+      default:
+         return("Bad value");
+   }
+}
+
+char * SUMA_Show_Clip_Planes_Info (SUMA_CommonFields *cf)
+{
+   static char FuncName[]={"SUMA_Show_Clip_Planes_Info"};
+   int i;
+   char *s=NULL;
+   SUMA_STRING *SS=NULL;
+   
+   SUMA_ENTRY;
+
+   SS = SUMA_StringAppend_va(NULL, NULL);
+   
+   if (cf == NULL) {
+      SS = SUMA_StringAppend_va(SS," NULL cf structure.\n");
+      SS = SUMA_StringAppend_va(SS, NULL);
+      s = SS->s; SUMA_free(SS); SS= NULL;
+      SUMA_RETURN(s);
+   }
+   
+   
+   SS = SUMA_StringAppend_va(SS," Number of Clip Planes: %d\n", cf->N_ClipPlanes);
+   for (i=0; i<cf->N_ClipPlanes; ++i) {
+      SS = SUMA_StringAppend_va(SS," %d: Clip plane >>%s<< of type %s. Eq: %.2fX + %.2fY + %.2fZ + %.2f = 0\n",
+                     i, cf->ClipPlanesLabels[i], SUMA_Clip_Type_to_Clip_Name(cf->ClipPlaneType[i]),
+                     (float)cf->ClipPlanes[4*i], (float)cf->ClipPlanes[4*i+1], (float)cf->ClipPlanes[4*i+2], (float)cf->ClipPlanes[4*i+3]);
+   }
+   
+   SS = SUMA_StringAppend_va(SS, NULL);
+   s = SS->s; SUMA_free(SS); SS= NULL;
+   
+   SUMA_RETURN(s);
+}   
+
 void SUMA_Show_CommonFields (SUMA_CommonFields *cf, FILE *out)
 {
    static char FuncName[]={"SUMA_Show_CommonFields"};
    char *s=NULL;
    
-   s = SUMA_CommonFieldsInfo (cf, 1);
+   SUMA_ENTRY;
+
+   s = SUMA_CommonFieldsInfo (cf,1);
    
    if (!out) fprintf(SUMA_STDERR,"%s", s);
    else fprintf(out,"%s", s);
+   
+   SUMA_free(s);
    
    SUMA_RETURNe;
 }
@@ -2088,7 +2168,7 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
    SS = SUMA_StringAppend_va(NULL, NULL);
    
    if (cf == NULL) {
-      SS = SUMA_StringAppend_va(SS," NULL cf structure.\n", FuncName);
+      SS = SUMA_StringAppend_va(SS," NULL cf structure.\n");
       SS = SUMA_StringAppend_va(SS, NULL);
       s = SS->s; SUMA_free(SS); SS= NULL;
       SUMA_RETURN(s);
