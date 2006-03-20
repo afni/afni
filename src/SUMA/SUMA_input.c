@@ -3951,6 +3951,7 @@ void SUMA_SetRotCenter (char *s, void *data)
          XBell (XtDisplay (sv->X->TOPLEVEL), 50);
          SUMA_RETURNe;
       }
+      SUMA_RETURNe;
    }
    
    /* parse s */
