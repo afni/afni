@@ -14,6 +14,8 @@ int main( int argc , char *argv[] )
    float * far , f00,fp0,f0p,fm0,f0m , top,bot,dif , fmax ;
    byte  * bar ;
 
+#undef  BAR
+#undef  FAR
 #define BAR(i,j) bar[(i)+(j)*nx]
 #define FAR(i,j) far[(i)+(j)*nx]
 

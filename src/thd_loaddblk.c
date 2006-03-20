@@ -332,7 +332,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
       if( fsize < blk->total_bytes )
         fprintf(stderr ,
                 "\n*** WARNING: file %s size is %d, but should be at least %lld!\n" ,
-                dkptr->brick_name , fsize , blk->total_bytes ) ;
+                dkptr->brick_name , fsize , (long long)blk->total_bytes ) ;
 
       /* clear the sub-brick pointers */
 
@@ -495,7 +495,8 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
             fprintf(stderr ,
                     "\n*** failure while reading from brick file %s\n"
                       "*** desired %lld bytes but only got %lld\n" ,
-                    dkptr->brick_name , blk->total_bytes , idone ) ;
+                    dkptr->brick_name ,
+                    (long long)blk->total_bytes , (long long)idone ) ;
             perror("*** Unix error message") ;
             RETURN( False );
          }

@@ -497,6 +497,9 @@ int main( int argc , char *argv[] )
            sx = sy = sz = 0 ; rr = pp = yy = 0.0f ;
          }
 
+#undef  BAR
+#undef  QAR
+#undef  FAR
 #define BAR(i,j,k) bar[(i)+(j)*nx+(k)*nxy]
 #define QAR(i,j,k) qar[(i)+(j)*nx+(k)*nxy]
 #define FAR(i,j,k) far[(i)+(j)*nx+(k)*nxy]

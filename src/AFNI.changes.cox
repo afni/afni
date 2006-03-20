@@ -5794,26 +5794,29 @@
 30 Dec 2005
  * Web browser stuff in afni.h, afni_func.c, afni_widg.c.
 
-09 Jan 2005
+09 Jan 2006
  * mri_warp3D_align.c now will revert to 'best' fit if final fit is
      much worse in RMS terms.
 
-08 Mar 2005
+08 Mar 2006
  * Bug fix in afni_version.c for MOTD failure when network down.
  * Modify PERROR() macro in thd_iochan.c to NOT print so many duplicate
      messages.
  * Modified afni_environ.c so that setting AFNI_ALWAYS_LOCK immediately
      changes the lock situation.
 
-09 Mar 2005
+09 Mar 2006
  * A little more dynamical action when a few environment variables are
      changed via external scripts.
  * WAV_duration in waver.c was an int, not a double (thanks, Rasmus!).
 
-10 Mar 2005
+10 Mar 2006
  * Mods to 3dcalc.c to allow use of complex-valued dataset on input.
 
-13 Mar 2005
+13 Mar 2006
  * Checks in afni_func.c, adwarp.c, and thd_writedblk.c for free disk
      space, just before actual writing of .BRIK file.
  * 3dTwotoComplex.c from 3dThreetoRGB.c
+
+20 Mar 2006
+ * Modify 3dAutomask.c and thd_automask.c to add new -clfrac option.
