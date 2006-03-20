@@ -334,25 +334,54 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }
             break;            
 
-         case XK_c:
-            if (!list) list = SUMA_CreateList();
-            ED = SUMA_InitializeEngineListData (SE_OpenColFileSelection);
-            if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED,
-                                                   SEF_vp, (void *)(SUMAg_DOv[sv->Focus_SO_ID].OP),
-                                                   SES_Suma, (void *)sv, NOPE,
-                                                   SEI_Head, NULL))) {
-               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+         case XK_C:
+            if (SUMAg_CF->Dev && (Kev.state & Mod1Mask || Kev.state & Mod2Mask)){
+               SUMAg_CF->X->ClipObj_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "Enter object clip plane parameters (a,b,c,d)", 
+                                                      "A: 0,0,1,0",
+                                                      sv->X->TOPLEVEL, YUP,
+                                                      SUMA_APPLY_BUTTON,
+                                                      SUMA_SetObjectClip, (void *)sv,
+                                                      NULL, NULL,
+                                                      NULL, NULL,
+                                                      NULL, NULL,  
+                                                      SUMAg_CF->X->ClipObj_prmpt);
+               
+               SUMAg_CF->X->ClipObj_prmpt = SUMA_CreatePromptDialog("Enter object clip plane parameters (a,b,c,d)", SUMAg_CF->X->ClipObj_prmpt);
+            } else if (SUMAg_CF->Dev && (Kev.state & ControlMask)){
+               SUMAg_CF->X->Clip_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "Enter screen clip plane parameters (a,b,c,d)", 
+                                                      "A: 0,0,1,0",
+                                                      sv->X->TOPLEVEL, YUP,
+                                                      SUMA_APPLY_BUTTON,
+                                                      SUMA_SetScreenClip, (void *)sv,
+                                                      NULL, NULL,
+                                                      NULL, NULL,
+                                                      NULL, NULL,  
+                                                      SUMAg_CF->X->Clip_prmpt);
+               
+               SUMAg_CF->X->Clip_prmpt = SUMA_CreatePromptDialog("Enter screen clip plane parameters (a,b,c,d)", SUMAg_CF->X->Clip_prmpt);
             }
-            
-            if (!SUMA_RegisterEngineListCommand (  list, ED,
-                                          SEF_ip, sv->X->TOPLEVEL,
-                                          SES_Suma, (void *)sv, NOPE,
-                                          SEI_In, NextElm)) {
-               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
-            }  
-            
-            if (!SUMA_Engine (&list)) {
-               fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            break; 
+         case XK_c:
+            {   
+               if (!list) list = SUMA_CreateList();
+               ED = SUMA_InitializeEngineListData (SE_OpenColFileSelection);
+               if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                                      SEF_vp, (void *)(SUMAg_DOv[sv->Focus_SO_ID].OP),
+                                                      SES_Suma, (void *)sv, NOPE,
+                                                      SEI_Head, NULL))) {
+                  fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+               }
+
+               if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                             SEF_ip, sv->X->TOPLEVEL,
+                                             SES_Suma, (void *)sv, NOPE,
+                                             SEI_In, NextElm)) {
+                  fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+               }  
+
+               if (!SUMA_Engine (&list)) {
+                  fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+               }
             }
             
             break;
@@ -738,7 +767,20 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
          
          case XK_r:
-            {
+            if (SUMAg_CF->Dev && (Kev.state & Mod1Mask || Kev.state & Mod2Mask)) {
+               sv->X->SetRot_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "Center of Rotation X,Y,Z:", 
+                                                      "0,0,0",
+                                                      sv->X->TOPLEVEL, YUP,
+                                                      SUMA_APPLY_BUTTON,
+                                                      SUMA_SetRotCenter, (void *)sv,
+                                                      NULL, NULL,
+                                                      NULL, NULL,
+                                                      NULL, NULL,  
+                                                      sv->X->SetRot_prmpt);
+               
+               sv->X->SetRot_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->SetRot_prmpt);
+               
+            } else {
                GLvoid *pixels;
                pixels = SUMA_grabPixels(1, sv->X->WIDTH, sv->X->HEIGHT);
                if (pixels) {
@@ -3770,6 +3812,161 @@ void SUMA_SetNumForeSmoothing (char *s, void *data)
    SUMA_RETURNe;
    
 }
+
+/*!
+   \brief Sets the screen clipping plane 
+   
+   \param s (char *) a strng containing a,b,c,d parameters of plane equation 
+   \param data (void *) a typecast of the pointer to the surface viewer to be affected
+
+*/
+void SUMA_SetScreenClip (char *s, void *data)
+{
+   SUMA_SetClip(s,(SUMA_SurfaceViewer *)data, SUMA_SCREEN_CLIP);
+}
+void SUMA_SetObjectClip (char *s, void *data)
+{
+   SUMA_SetClip(s,(SUMA_SurfaceViewer *)data, SUMA_ALL_OBJECT_CLIP);
+}
+
+void SUMA_SetClip (char *s, SUMA_SurfaceViewer *sv, SUMA_CLIP_PLANE_TYPES tp)
+{
+   static char FuncName[]={"SUMA_SetScreenClip"};
+   DList *list=NULL;
+   SUMA_EngineData *ED = NULL;
+   float fv15[15];
+   int npar=0;
+   char *sn;
+   char namebuf[24];
+   int itmp, ii, it=0;
+   DListElmt *NextElm= NULL;
+   SUMA_Boolean LocalHead = NOPE; 
+
+   SUMA_ENTRY;
+
+   if (!s) {
+      SUMA_Show_Clip_Planes(SUMAg_CF, NULL);
+      SUMA_RETURNe;
+   }
+   
+   /* Get the name, if any */
+   if ((sn = strstr(s,":"))) {/* found name */
+      if (sn - s > 7) {
+         SUMA_SLP_Err("Plane label too long!");
+         SUMA_RETURNe;
+      }
+      ii=0; 
+      while (s[ii] != ':') { namebuf[ii] = s[ii]; ++ii; }/* copy name */
+      namebuf[ii] = '\0';
+      itmp = 0; ++ii;
+      while (s[ii] != '\0') { s[itmp] = s[ii]; ++ii; ++itmp; } /* copy rest */
+      s[itmp] = '\0';
+      /* get the equation */
+      npar = SUMA_StringToNum (s, fv15, 4);
+      if (npar != 4 && npar != 2  && npar != 0) { /* problem, beep and ignore */
+         XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+         SUMA_RETURNe;
+      }
+      if (npar == 2) { /* the z game */
+         fv15[2] = fv15[0];
+         fv15[3] = fv15[1];
+         fv15[0] = 0.0;
+         fv15[1] = 0.0;
+      } else if (npar == 0) { /* the nothing */
+         fv15[0] = 0.0;
+         fv15[1] = 0.0;
+         fv15[2] = 0.0;
+         fv15[3] = 0.0;
+      }
+   }else {
+      SUMA_SLP_Err("Must provide plane label!");
+      SUMA_RETURNe;
+   }
+   
+
+   /* register fv15 with ED */
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_SetClip);
+   if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_fv15, (void *)fv15, 
+                                          SES_Suma, (void *)sv, NOPE, 
+                                          SEI_Head, NULL ))) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+      SUMA_RETURNe;
+   }
+   /* register type expected */
+   it = (int)tp;
+   if (!(SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)(&it), 
+                                          SES_Suma, (void *)sv, NOPE, 
+                                          SEI_In, NextElm ))) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+      SUMA_RETURNe;
+   }
+   /* register name of plane */
+   if (!(SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_s, (void*)(namebuf), 
+                                          SES_Suma, (void *)sv, NOPE, 
+                                          SEI_In, NextElm ))) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+      SUMA_RETURNe;
+   }
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+   }
+
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Sets the rotation center 
+
+   \param s (char *) a strng containing X, Y, Z coordinates
+   \param data (void *) a typecast of the pointer to the surface viewer to be affected
+   
+   NOTE: This is a bit ugly because there is a jump in surface location with the change in
+   center of rotation. Something also needs updating but I am not sure what it is.  
+*/
+
+void SUMA_SetRotCenter (char *s, void *data)
+{
+   static char FuncName[]={"SUMA_SetRotCenter"};
+   DList *list=NULL;
+   SUMA_EngineData *ED = NULL;
+   SUMA_SurfaceViewer *sv = NULL;
+   float fv3[3];
+   SUMA_Boolean LocalHead = NOPE; 
+
+   SUMA_ENTRY;
+   
+   sv = (SUMA_SurfaceViewer *)data;
+   if (!sv) {
+      XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+      SUMA_RETURNe;
+   }
+   
+   if (!s) {
+      if (!SUMA_UpdateRotaCenter(sv, SUMAg_DOv, SUMAg_N_DOv)) {
+         fprintf (SUMA_STDERR,"Error %s: Failed to update center of rotation", FuncName);
+         XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+         SUMA_RETURNe;
+      }
+   }
+   
+   /* parse s */
+   if (SUMA_StringToNum (s, fv3, 3) != 3) { /* problem, beep and ignore */
+      XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+      SUMA_RETURNe;
+   }
+   
+   sv->GVS[sv->StdView].RotaCenter[0] = fv3[0];
+   sv->GVS[sv->StdView].RotaCenter[1] = fv3[1];
+   sv->GVS[sv->StdView].RotaCenter[2] = fv3[2];
+      
+   
+   SUMA_RETURNe;
+}
+
 /*!
    \brief rotates surface to face a certain coordinate 
 

@@ -194,6 +194,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"LoadViewFileSelection")) SUMA_RETURN(SE_LoadViewFileSelection);
    if (!strcmp(Scom,"SaveViewFileSelection")) SUMA_RETURN(SE_SaveViewFileSelection);
    if (!strcmp(Scom,"LoadSegDO")) SUMA_RETURN(SE_LoadSegDO);
+   if (!strcmp(Scom,"SetClip")) SUMA_RETURN(SE_SetClip);   
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    
    /* Last one is Bad Code */
@@ -381,6 +382,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("SaveViewFileSelection"); 
       case SE_LoadSegDO:
          SUMA_RETURN("LoadSegDO");    
+      case SE_SetClip:
+         SUMA_RETURN("SetClip");     
       /*case SE_:
          SUMA_RETURN("");      */
       default:        
