@@ -1,8 +1,8 @@
 /*! Data for atlases from Eickhoff's SPM toolbox.
 Automatically compiled from: AllAreas_v13b_MPM.mat
- located at: /Volumes/elrond0/home4/users/ziad/Programs/matlab/spm2/toolbox/Anatomy_13b
+ located at: /var/automount/Volumes/elrond0/home4/users/ziad/Programs/matlab/spm2/toolbox/Anatomy_13b2
  by function /Users/ziad/AFNI/src/matlab/CA_EZ_Prep.m
-Date: 13-Feb-2006*/
+Date: 21-Mar-2006*/
 
 /* ----------- Macro Labels --------------------- */
 /* ----------- Based on: Macro.mat -------------*/
@@ -25,7 +25,6 @@ extern int LR_EZ_current ;
 /* ----------- Based on: AllAreas_v13b_MPM.mat --------------*/
 #define CA_EZ_COUNT   28
 #define CA_EZ_MPM_MIN 100  /*!< minimum meaningful value in MPM atlas */
-
 extern ATLAS_point CA_EZ_list[CA_EZ_COUNT] ;
 extern char * CA_EZ_labels[CA_EZ_COUNT] ;
 extern int CA_EZ_labeled ;

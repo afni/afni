@@ -40,6 +40,8 @@ LIBDIR = $(INSTALLDIR)
 
 LLIBS  = -lmri -lXm -lXt -lXext -lX11 $(LZLIB) -lm -lc
 
+INSTALL_PREREQ = suma
+
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma 
 SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I../ -I../niml/ -I./ -I/usr/Motif-2.1/include -Igts/src
