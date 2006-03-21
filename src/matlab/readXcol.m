@@ -1,23 +1,53 @@
 %
 % a script to show and sample default colors on the X windows system
-% default colors are read from myrgb.txt
+% default colors are read from /usr/lib/X11/rgb.txt if it exists, else from myrgb.txt
 % see also ROIcmap
 %
-ColFile = fopen ('myrgb.txt', 'r');
-N = 752;
 
-name(N).s = '';
-name(N).r = 0;
-name(N).g = 0;
-name(N).b = 0;
-for (i=1:1:N),
-name(i).r = fscanf(ColFile, '%g ', 1);
-name(i).g = fscanf(ColFile, '%g ', 1);
-name(i).b = fscanf(ColFile, '%g ', 1);
-name(i).s = fgets(ColFile);
+Nmax = 2000;
+name(Nmax).s = '';
+name(Nmax).r = 0;
+name(Nmax).g = 0;
+name(Nmax).b = 0;
+if (exist('/usr/lib/X11/rgb.txt') == 2),
+   Colname = '/usr/lib/X11/rgb.txt';
+   fprintf(1,'Using %s\n', Colname);
+   ColFile = fopen (Colname,'r');
+   %skip until first number
+   tmp = fgets(ColFile);
+   i = 0;
+   while (tmp ~= -1 )
+      tmp = zdeblank(tmp);
+      if (isdigit(tmp(1))),
+         i = i + 1;
+         [name(i).r,name(i).g,name(i).b,s1,s2,s3,s4] = strread(tmp,'%d%d%d %s %s %s %s');
+         if (~isempty(s4)) name(i).s = sprintf('%s %s %s %s', char(s1), char(s2), char(s3), char(s4));
+         elseif (~isempty(s3)) name(i).s = sprintf('%s %s %s', char(s1), char(s2), char(s3));
+         elseif (~isempty(s2)) name(i).s = sprintf('%s %s', char(s1), char(s2));
+         else name(i).s = char(s1);
+         end
+      end
+      tmp = fgets(ColFile);
+   end
+   fclose (ColFile);
+   N = i;
+else
+   ColFile = fopen ('myrgb.txt', 'r');
+   Colname = 'myrgb.txt';
+   fprintf(1,'Using %s\n', Colname);
+   N = 752;
+   for (i=1:1:N),
+   name(i).r = fscanf(ColFile, '%g ', 1);
+   name(i).g = fscanf(ColFile, '%g ', 1);
+   name(i).b = fscanf(ColFile, '%g ', 1);
+   name(i).s = fgets(ColFile);
+   end
+   fclose (ColFile);
 end
 
-fclose (ColFile);
+name = name(1:N);
+
+
 
 Mall = zeros (N, 3);
 Mall(:,1) = [name(:).r]';
@@ -42,7 +72,7 @@ end
 end
 figure(1), clf;
 subplot (211); 
-str = sprintf('Pick colors (background then foreground) with mouse\nHit "enter" to quit');
+str = sprintf('Colors in %s\nPick colors (background then foreground) with mouse\nHit "enter" to quit', Colname);
 colormap(Mall); image ([1:1:N]); title (str, 'fontsize',14);
 drawnow;
 i = 0;

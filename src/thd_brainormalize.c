@@ -7,7 +7,7 @@
 static int verb = 0 ;
 static int monkey = 0;
 void mri_monkeybusiness( int v ) { monkey = v ; }
-void mri_brainormalize_verbose( int v ){ verb = v ; }
+void mri_brainormalize_verbose( int v ){ verb = v ; THD_automask_verbose(v); }
 static float thd_bn_xcm = 0.0;
 static float thd_bn_ycm = 20.0;
 #ifdef THD_BN_CMTOP
@@ -1176,10 +1176,16 @@ ENTRY("mri_brainormalize") ;
 
    if( im == NULL || xxor < 0 || xxor > LAST_ORIENT_TYPE ||
                      yyor < 0 || yyor > LAST_ORIENT_TYPE ||
-                     zzor < 0 || zzor > LAST_ORIENT_TYPE   ) RETURN(NULL) ;
+                     zzor < 0 || zzor > LAST_ORIENT_TYPE   ) {
+                     
+                     ERROR_message("NULL input or bad orientation\n");
+                     RETURN(NULL) ;
+   }
 
-   if( im->nx < 16 || im->ny < 16 || im->nz < 16 ) RETURN(NULL) ;
-
+   if( im->nx < 16 || im->ny < 16 || im->nz < 16 ) {
+      ERROR_message("Too few slices (< 16) in at least one dimension.\n");
+      RETURN(NULL) ;
+   }
    val = mri_maxabs(im) ; if( val <= 0.0 ) RETURN(NULL) ;
 
    /* make a short copy */
@@ -1512,9 +1518,16 @@ ENTRY("mri_brainormalize") ;
      for( ii=0 ; ii < nxyz ; ii++ )
        mask[ii] = (sar[ii] > mbot) && (sar[ii] < mtop) ;
 
+     if( verb )
+      fprintf(stderr,"++mri_brainormalize: eroding...\n");
+   
      THD_mask_erode( nx,ny,nz, mask ) ;
+     if( verb )
+      fprintf(stderr,"++mri_brainormalize: clustering 1...\n");
      THD_mask_clust( nx,ny,nz, mask ) ;
      for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
+     if( verb )
+      fprintf(stderr,"++mri_brainormalize: clustering 2...\n");
      THD_mask_clust( nx,ny,nz, mask ) ;
      for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
 
@@ -1531,6 +1544,8 @@ ENTRY("mri_brainormalize") ;
    {
      /*-- clip top 1% of values that have survived --*/
 
+     if( verb )
+      fprintf(stderr,"++mri_brainormalize: clipping top...\n");
      hist = (int *) calloc(sizeof(int),32768) ;
      for( ii=0 ; ii < nxyz ; ii++ ) hist[sar[ii]]++ ;
      for( ii=kk=0 ; ii < 32767 ; ii++ ) kk += hist[ii] ;
