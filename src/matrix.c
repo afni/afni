@@ -85,6 +85,14 @@
 #  define SETUP_BLAS1
 #  undef SETUP_BLAS2
 #  define TRANSA 'T'
+#elif defined(USE_ACML)
+#  ifndef _ACML_COMPLEX
+#  define _ACML_COMPLEX
+ /*    typedef struct { float real, imag; } complex; */
+ /*    typedef struct { double real, imag; } doublecomplex; */
+#  endif
+#  include <acml.h>
+#  define SETUP_BLAS1
 #endif
 
 /* double precision BLAS-1 functions */

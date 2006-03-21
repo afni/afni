@@ -596,7 +596,7 @@ extern int         mri_isgray( MRI_IMAGE * ) ;
 extern int         mri_imcount_mpeg( char * ) ;
 
 extern void cfft( int , int , float * , float * ) ;
-extern void cfft2d( int , int , int , float * , float * ) ;
+extern void cfft2d_cox( int , int , int , float * , float * ) ;
 extern void csfft_cox( int,int , complex * ) ;
 extern void csfft_many( int,int,int , complex * ) ;
 extern int  csfft_nextup(int) ;

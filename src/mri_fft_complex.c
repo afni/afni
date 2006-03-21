@@ -76,7 +76,7 @@ void mri_fft_complex( int mode , float taper , MRI_IMAGE *im )
 
    /*** FFT buffers and copy them back to original image ***/
 
-   cfft2d( mode , im->nx , im->ny , rbuf,ibuf ) ;
+   cfft2d_cox( mode , im->nx , im->ny , rbuf,ibuf ) ;
 
    for( ii=0 ; ii < npix ; ii++ ){
       cxim[ii].r = rbuf[ii] ;
