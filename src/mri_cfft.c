@@ -113,7 +113,7 @@ i1_plus2:   i1 += m[i5];
 /*********************************************************************/
 
 /*----------------------------------*/
-void cfft2d( int mode , int nx,int ny , float *xr, float *xi )
+void cfft2d_cox( int mode , int nx,int ny , float *xr, float *xi )
 /*----------------------------------*/
 {
    float *rbuf , *ibuf ;
@@ -122,7 +122,7 @@ void cfft2d( int mode , int nx,int ny , float *xr, float *xi )
    rbuf = (float *)malloc( ny * sizeof(float) ) ;
    ibuf = (float *)malloc( ny * sizeof(float) ) ;
    if( rbuf == NULL || ibuf == NULL ){
-      fprintf(stderr,"malloc error in cfft2d\n") ;
+      fprintf(stderr,"malloc error in cfft2d_cox\n") ;
       exit(1) ;
    }
 
