@@ -3789,8 +3789,10 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
          zn = Get_Atlas_Zone(wami, 0);    /* get the zero level zone */
          for (ii=0; ii<DSET_NVALS(adh.dset); ++ii) {
             ba = DSET_BRICK_ARRAY(adh.dset,ii); if (!ba) { ERROR_message("Unexpected NULL array"); RETURN(s); }
+            if (LocalHead)  fprintf(stderr,"  ++ Sub-brick %d in %s ba[kk]=%d\n", ii, Atlas_Code_to_Atlas_Name(atcode), ba[kk]);
             if( ba[kk] != 0 ){
                if( adh.dset->dblk->brick_lab == NULL || adh.dset->dblk->brick_lab[ii] == NULL) {
+                  if (LocalHead)  fprintf(stderr,"  ++ No Label!\n");
                   zn = Atlas_Zone(zn, 0, "No Label", -1, (float)ba[kk]/250.0, 0, atcode);
                } else {
                   int nn=0, nlab=0;
@@ -3807,20 +3809,23 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
                         /* fprintf(stderr,"Key:>%s<, N:%d, Str:>%s<\n", adh.dset->dblk->brick_lab[ii], nlab, lab_buf); */
                         if ((nlab == strlen(lab_buf)) && (strcmp(lab_buf, adh.dset->dblk->brick_lab[ii]) == 0) ) {
                            blab = CA_EZ_list[nn].name;
-                           /* fprintf(stderr," Matched %s with %s\n", adh.dset->dblk->brick_lab[ii], CA_EZ_list[nn].dsetpref); */
+                           if (LocalHead) fprintf(stderr," Matched %s with %s\n", adh.dset->dblk->brick_lab[ii], CA_EZ_list[nn].dsetpref); 
                         }
                         ++nn;
                      } 
                      --nn; /* go back one to get back to proper indexing */
-                     if (blab) {       
+                     if (blab) {
+                        if (LocalHead) fprintf(stderr," blabing: %s\n", blab);       
                         zn = Atlas_Zone(zn, 0, blab, CA_EZ_list[nn].tdval , (float)ba[kk]/250.0, 0, atcode);
                      } else {
+                        if (LocalHead) fprintf(stderr," no blabing:\n"); 
                         zn = Atlas_Zone(zn, 0, "Unexpected trouble.", -1, -1.0, 0, atcode);
                      }
                   } else {
                      zn = Atlas_Zone(zn, 0, "Empty Label", -1, (float)ba[kk]/250.0, 0, atcode);
                   }
                }
+               wami = Add_To_Atlas_Query(wami, zn);   
             }
          }   
          

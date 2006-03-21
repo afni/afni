@@ -20,7 +20,7 @@ FuncName = 'CA_EZ_Prep';
 MapMPM = [];
 MapML = [];
 
-toolbox_dir = '/Volumes/elrond0/home4/users/ziad/Programs/matlab/spm2/toolbox/Anatomy_13b';
+toolbox_dir = '/Volumes/elrond0/home4/users/ziad/Programs/matlab/spm2/toolbox/Anatomy';
 
 if (exist(toolbox_dir) ~= 7),
    fprintf(2,'Toolbox directory %s not found\nPick a new one:', toolbox_dir);
@@ -30,7 +30,14 @@ if (exist(toolbox_dir) ~= 7),
       return;
    end
 else
-   c = input(sprintf('Found toolbox here: %s\nEnter "y" to use it, anything else to quit.\n', toolbox_dir),'s');
+   %get around the symbolic linc so that reference is to actual directory ...
+   curdir = pwd;
+   cd (toolbox_dir);
+   toolbox_dir = pwd;
+   cd (curdir);
+   [err,pt] = GetPath(toolbox_dir);
+   [err,sout] = unix(sprintf('ls -l %s', pt));
+   c = input(sprintf('Found toolbox here: %s\nDirectory Listing:\n%s\nEnter "y" to use it, anything else to quit.\n', toolbox_dir, sout),'s');
    if (isempty(c) || ( c(1) ~= 'y' && c(1) ~= 'Y' ) ),
       return;
    end
@@ -185,7 +192,7 @@ if (~isempty(which('se_note'))),
          aur(iout) = '-'; %dunno what to do yet....
          otr = flipud(char(ot));
          car = char(ca);
-         sdecl = sprintf('extern char CA_EZ_REF_STR[%d][%d]', size(otr,1)+size(aur,1)+size(car,1)+10, max([size(otr,2)+15, size(aur,2)+15,size(car,2)+15]));
+         sdecl = sprintf('char CA_EZ_REF_STR[%d][%d]', size(otr,1)+size(aur,1)+size(car,1)+10, max([size(otr,2)+15, size(aur,2)+15,size(car,2)+15]));
          %do someting nice
          fida = fopen(rname,'w');
          fprintf(fida, '%s = {\n',sdecl);
