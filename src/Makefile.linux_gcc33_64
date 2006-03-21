@@ -10,7 +10,7 @@ CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF)
 
 CC     = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
 CCVOL  = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA)
-CCFAST = /usr/bin/gcc -O3 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA)
+CCFAST = /usr/bin/gcc -O3 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA) -DUSE_ACML
 
 # The following line includes compiling for the SSE operations.
 # However, I found that it actually makes things worse in some test code.
@@ -20,8 +20,8 @@ CCFAST = /usr/bin/gcc -O3 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA)
 
 CCMIN  = /usr/bin/gcc -m64 $(CPROF)
 CCD    = $(CC) $(CCDEBS)
-IFLAGS = -I. -I/usr/X11R6/include
-LFLAGS = -L. -L/usr/X11R6/lib64
+IFLAGS = -I. -I/usr/X11R6/include -I/opt/acml3.1.0/gnu64/include
+LFLAGS = -L. -L/usr/X11R6/lib64 /opt/acml3.1.0/gnu64/lib/libacml.a
 
 CCSVD  = /usr/bin/gcc -O0 -m64 -fPIC
 

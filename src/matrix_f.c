@@ -101,6 +101,15 @@ extern MRI_IMAGE *mri_read_1D(char *) ;
 #  include <sunperf.h>
 #  define SETUP_BLAS
 
+#elif defined(USE_ACML)                     /** AMD Core Math Library **/
+#  ifndef _ACML_COMPLEX
+#  define _ACML_COMPLEX
+ /*  typedef struct { float real, imag; } complex; */
+     typedef struct { double real, imag; } doublecomplex;
+#  endif
+#  include <acml.h>
+#  define SETUP_BLAS
+
 #endif  /* vectorization special cases */
 
 /* single precision BLAS-1 functions */
