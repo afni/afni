@@ -72,6 +72,16 @@ if (srf.tristrip > 0)
 	srf.tristripseq = fread(fp,srf.tristrip,'int32',0,'ieee-le');
 end
 
+srf.mtcfile = fscanf(fp, '%s');
+fprintf(1,'\nAssociated mtc file: ');
+if (length(srf.mtcfile) > 1)
+	fprintf(1,'%s',srf.mtcfile);
+else
+	fprintf(1,'none');
+end
+fprintf(1,'\n');
+
+
 [omega cnt] = fread(fp,1,'uchar',0,'ieee-le');
 if (cnt ~= 0) 
 	fprintf(1,'\nWarning: extra elements at end of file.');
