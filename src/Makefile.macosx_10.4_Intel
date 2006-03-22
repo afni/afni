@@ -2,7 +2,7 @@
 
 # You should install 'fink' before using this, and then use fink to
 # install the packages below:
-#   glib2-dev openmotif3
+#   glib glib2-dev openmotif3
 # The first is needed to compile SUMA; the second for both AFNI and SUMA.
 # Fink can be found at http://fink.sourceforge.net
 
