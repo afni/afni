@@ -1437,3 +1437,6 @@
     variable for assume_dicom_mosaic, to apply the liberal DICOM mosaic test
     only when set (via -assume_dicom_mosaic in to3d)
 
+23 Mar 2006:
+  * modified 3dcalc.c: do not scale shorts if values are {0,1}
+
