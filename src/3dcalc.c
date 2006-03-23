@@ -2079,7 +2079,9 @@ int main( int argc , char *argv[] )
 
            } else if( !CALC_nscale ){            /* maybe scale */
 
-             fimfac = (gtop > MRI_TYPE_maxval[CALC_datum] || (gtop > 0.0 && gtop <= 1.0) )
+             /* (gtop <= 1.0) to (gtop < 1.0)     23 Mar 2006 [rickr/dglen] */
+             fimfac = (gtop > MRI_TYPE_maxval[CALC_datum]
+                        || (gtop > 0.0 && gtop < 1.0) )
                       ? MRI_TYPE_maxval[CALC_datum]/ gtop : 0.0 ;
 
              if( fimfac == 0.0 && gtop > 0.0 ){  /* 28 Jul 2003: check for non-integers */
