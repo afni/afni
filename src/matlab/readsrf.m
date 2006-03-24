@@ -1,7 +1,14 @@
-function [srf] = readsrf(filename)
+function [srf] = readsrf(filename, NoNeg)
 %
-% function [srf] = readsrf(filename)
+%  [srf] = readsrf(filename, [NoNeg])
 %
+% filename: filename of .srf surface file
+% NoNeg: Optional parameter for dealing with nodes that should not be
+%        displayed
+%        1 (default) tells the function to remove triangles containing 
+%                    such nodes from the mesh
+%        0           leaves mesh untouched.
+% 
 % readsrf attempts to read the BrainVoyagerQX v. 4 srf surface files
 % to display:
 % colormap(srf.cmap)
@@ -10,9 +17,15 @@ function [srf] = readsrf(filename)
 % get the idea you could do
 % trisurf(srf.triangles(1:100:end, srf.VX, srf.VY, srf.VZ, srf.mesh_color)
 %
+% BrainVoyager flags nodes that should not be displayed. The default 
+% behavior of this function is to remove triangles containing such nodes
+% from the triangle list. If you do not like that, set NoNeg to 0.
+%
 % Kate Fissell 3/06
-% Modified by ZSS, SSCC/NIMH/NIH
+% Modified by ZSS, SSCC/NIMH/NIH 
+% With thanks to Hester Breman 
 
+if (nargin == 1) NoNeg = 1; end
 
 fp = fopen(filename,'r');
 if (fp == -1) 
@@ -52,7 +65,7 @@ srf.cmap(1,:) = fread(fp,3,'float32',0,'ieee-le');
 srf.alpha_convex = fread(fp,1,'float32',0,'ieee-le');
 srf.cmap(2,:) = fread(fp,3,'float32',0,'ieee-le');
 srf.alpha_concave = fread(fp,1,'float32',0,'ieee-le');
-srf.mesh_color = fread(fp,srf.numvert,'float32',0,'ieee-le');
+srf.mesh_color = fread(fp,srf.numvert,'int32',0,'ieee-le');
 
 
 %% read srf.neighbors of vertices
@@ -66,6 +79,27 @@ end
 srf.triangles = fread(fp,srf.numtri*3,'int32',0,'ieee-le');
 srf.triangles = reshape(srf.triangles, [3 srf.numtri]);
 srf.triangles = srf.triangles' + 1;	%% matlab uses 1 based indices so inc vertex indices
+
+%% Remove triangles having negative colors 
+ipos = find (srf.mesh_color >= 0);
+OK = zeros(length(srf.mesh_color),1);
+OK(ipos) = 1;
+N_troub = length(srf.mesh_color) - length(ipos);
+if (N_troub > 0),
+   fprintf(2,'Note:\nHave %d nodes that should not be rendered.\n', N_troub);
+   if (NoNeg),
+      fprintf(2,' Removing them from triangulation.\nSee help readsrf to change this default.\n');
+      keep = ones(size(srf.triangles,1),1);
+      for (i=1:1:size(srf.triangles,1)),
+         if (~OK(srf.triangles(i,1)) | ~OK(srf.triangles(i,2)) | ~OK(srf.triangles(i,3)) ),
+            keep(i) = 0;
+         end
+      end
+      srf.triangles = srf.triangles(find(keep),:);
+   else
+      fprintf(2,' Keeping them per user''s instruction.\nSee help readsrf for options.\n');
+   end
+end
 
 srf.tristrip = fread(fp,1,'int32',0,'ieee-le');
 if (srf.tristrip > 0)

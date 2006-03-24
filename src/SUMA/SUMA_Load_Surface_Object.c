@@ -621,7 +621,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
 
          break;
      case SUMA_BRAIN_VOYAGER:
-         if (!SUMA_BrainVoyager_Read ((char *)SO_FileName_vp, SO, 1)) {
+         if (!SUMA_BrainVoyager_Read ((char *)SO_FileName_vp, SO, 1, 1)) {
             fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Ply_Read.\n", FuncName);
             SUMA_RETURN(NULL);
          }

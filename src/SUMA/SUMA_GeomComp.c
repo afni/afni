@@ -4550,10 +4550,11 @@ SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes,
                               int *Full_FaceSetList, int N_Full_FaceSetList, 
                               SUMA_MEMBER_FACE_SETS *Memb, int MinHits)
 {
+   static char FuncName[]={"SUMA_getPatch"};
    int * BeenSelected;
    int i, j, node, ip, ip2, NP;
    SUMA_PATCH *Patch;
-   static char FuncName[]={"SUMA_getPatch"};
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -4588,7 +4589,6 @@ SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes,
       fprintf (SUMA_STDERR,"Error %s: Could not allocate for Patch->FaceSetList || Patch_FaceSetIndex.\n", FuncName);
       SUMA_RETURN(NULL);
    }
-   
    j=0;
    for (i=0; i < N_Full_FaceSetList; ++i) {
       if (BeenSelected[i] >= MinHits) {
@@ -4638,7 +4638,7 @@ SUMA_Boolean SUMA_freePatch (SUMA_PATCH *Patch)
 
 SUMA_Boolean SUMA_ShowPatch (SUMA_PATCH *Patch, FILE *Out) 
 {
-   static char FuncName[]={"SUMA_freePatch"};
+   static char FuncName[]={"SUMA_ShowPatch"};
    int ip, i;
    
    SUMA_ENTRY;
