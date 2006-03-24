@@ -5821,3 +5821,10 @@
 20 Mar 2006
  * Modify 3dAutomask.c and thd_automask.c to add new -clfrac option.
  * Modify matrix_f.c to use Solaris BLAS in single precision.
+
+24 Mar 2006
+ * Modify thd_niftiread.c to prioritize sform over qform (to match
+     other packages), but to allow user to set environment variable
+     NIFTI_FORM_PRIORITY to 'Q' or 'S' to signify the priority.
+ * Also, if both qform and sform are present, check to see if they
+     have the same handedness -- if not, print a warning message.
