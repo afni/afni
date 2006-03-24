@@ -20,6 +20,7 @@ THD_3dim_dataset * THD_open_nifti( char *pathname )
    THD_fvec3 dxyz , orgxyz ;
    THD_mat33 R ;
    char *ppp , prefix[THD_MAX_PREFIX] ;
+   char form_priority = 'S' ;             /* 23 Mar 2006 */
 
 ENTRY("THD_open_nifti") ;
 
@@ -55,7 +56,7 @@ ENTRY("THD_open_nifti") ;
 
    if( ntt > 1 && nbuc > 1 ){
      fprintf(stderr,
-             "** AFNI can't deal with 5 dimensional NIfTI dataset file %s\n",
+             "** AFNI can't deal with 5 dimensional NIfTI(%s)\n",
              pathname ) ;
      RETURN(NULL) ;
    }
@@ -121,37 +122,76 @@ ENTRY("THD_open_nifti") ;
      }
    }
 
+   /* 23 Mar 2006: set qform or sform as having priority -- RWCox */
 
-  /* KRH 07/11/05 -- adding ability to choose spatial transform
-      from the options of qform, sform, bothform, or noform.
-
-     If qform is present, it will be used.
-
-     If qform is absent, but sform present, then the sform
-       will be modified to be an orthogonal rotation and used.
-
-     If both qform and sform are absent, then we will have
-       an error.
-
-     Previously assumed qform present.  */
-
-   if ((nim->qform_code > 0) && (nim->sform_code > 0) ) {
-     use_qform = 1 ;
-     use_sform = 0 ;
-   } else if (nim->qform_code > 0) {
-     use_qform = 1 ;
-     use_sform = 0 ;
-   } else if (nim->sform_code > 0) { 
-     use_qform = 0 ;
-     use_sform = 1 ;
-   } else {
-     use_qform = 0 ;
-     use_sform = 0 ;
-     fprintf(stderr,
-             "** NO spatial transform (neither preferred qform nor sform), in NIfTI dataset file:\n %s\nUsing senseless defaults.\n",
-             pathname ) ;
+   ppp = my_getenv("NIFTI_FORM_PRIORITY") ;
+   if( ppp == NULL ) ppp = getenv("AFNI_FORM_PRIORITY") ;
+   if( ppp == NULL ) ppp = getenv("AFNI_NIFTI_PRIORITY") ;
+   if( ppp == NULL ) ppp = getenv("AFNI_NIFTI_FORM") ;
+   if( ppp == NULL ) ppp = getenv("AFNI_NIFTI_FORM_PRIORITY") ;
+   if( ppp != NULL ){
+     char fp = toupper(*ppp) ;
+     if( fp == 'S' || fp == 'Q' ) form_priority = fp ;
+     else WARNING_message("Illegal NIFTI_FORM_PRIORITY='%s'",ppp) ;
    }
 
+   /** 24 Mar 2006: check determs of qform and sform, if have both **/
+
+   if( nim->qform_code > 0 && nim->sform_code > 0 ){
+     float qdet , sdet ;
+     LOAD_MAT(R, nim->qto_xyz.m[0][0] ,
+                 nim->qto_xyz.m[0][1] ,
+                 nim->qto_xyz.m[0][2] ,
+                 nim->qto_xyz.m[1][0] ,
+                 nim->qto_xyz.m[1][1] ,
+                 nim->qto_xyz.m[1][2] ,
+                 nim->qto_xyz.m[2][0] ,
+                 nim->qto_xyz.m[2][1] ,
+                 nim->qto_xyz.m[2][2]  ) ; qdet = MAT_DET(R) ;
+
+     LOAD_MAT(R, nim->sto_xyz.m[0][0] ,
+                 nim->sto_xyz.m[0][1] ,
+                 nim->sto_xyz.m[0][2] ,
+                 nim->sto_xyz.m[1][0] ,
+                 nim->sto_xyz.m[1][1] ,
+                 nim->sto_xyz.m[1][2] ,
+                 nim->sto_xyz.m[2][0] ,
+                 nim->sto_xyz.m[2][1] ,
+                 nim->sto_xyz.m[2][2]  ) ; sdet = MAT_DET(R) ;
+
+     if( qdet*sdet < 0.0f )
+       WARNING_message("NIfTI('%s'): Qform/Sform handedness differ; %c wins!",
+                       pathname , form_priority ) ;
+   }
+
+   /* KRH 07/11/05 -- adding ability to choose spatial transform
+      from the options of qform, sform, bothform, or noform.
+
+      If qform is present, it will be used.
+
+      If qform is absent, but sform present, then the sform
+        will be modified to be an orthogonal rotation and used.
+
+      If both qform and sform are absent, then we will have
+        an error.
+
+      Previously assumed qform present.  */
+
+   /* 23 Mar 2006: use form_priority to choose between them */
+
+   if ((nim->qform_code > 0) && (nim->sform_code > 0) ) {
+     if( form_priority == 'Q' )   { use_qform = 1 ; use_sform = 0 ; }
+     else                         { use_qform = 0 ; use_sform = 1 ; }
+   } else if (nim->qform_code > 0){ use_qform = 1 ; use_sform = 0 ; }
+     else if (nim->sform_code > 0){ use_qform = 0 ; use_sform = 1 ; }
+     else {
+                                    use_qform = 0 ; use_sform = 0 ;
+     ERROR_message(
+      "NO spatial transform (neither qform nor sform), in NIfTI file '%s'" ,
+      pathname ) ;
+   }
+
+   /** now take NIfTI-1.1 coords and transform to AFNI codes **/
 
    if (use_qform) {
 
@@ -171,7 +211,7 @@ ENTRY("THD_open_nifti") ;
                   nim->qto_xyz.m[2][2]  ) ;
 
      orixyz = THD_matrix_to_orientation( R ) ;   /* compute orientation codes */
-   
+
      iview = ((nim->qform_code == NIFTI_XFORM_TALAIRACH ) ||
               (nim->qform_code == NIFTI_XFORM_MNI_152 ))
              ? VIEW_TALAIRACH_TYPE : VIEW_ORIGINAL_TYPE ;
@@ -285,11 +325,11 @@ ENTRY("THD_open_nifti") ;
                     nim->sto_xyz.m[2][0] * nim->sto_xyz.m[2][0] ) ;
 
      xmax = MAX3(fabs(nim->sto_xyz.m[0][0]),fabs(nim->sto_xyz.m[1][0]),fabs(nim->sto_xyz.m[2][0])) / dxtmp ;
- 
+
      dytmp = sqrt ( nim->sto_xyz.m[0][1] * nim->sto_xyz.m[0][1] +
                     nim->sto_xyz.m[1][1] * nim->sto_xyz.m[1][1] +
                     nim->sto_xyz.m[2][1] * nim->sto_xyz.m[2][1] ) ;
- 
+
      ymax = MAX3(fabs(nim->sto_xyz.m[0][1]),fabs(nim->sto_xyz.m[1][1]),fabs(nim->sto_xyz.m[2][1])) / dytmp ;
 
      dztmp = sqrt ( nim->sto_xyz.m[0][2] * nim->sto_xyz.m[0][2] +
@@ -321,8 +361,8 @@ ENTRY("THD_open_nifti") ;
 
      float dxtmp, dytmp, dztmp ;
 
-     /* if pixdim data are present, use them in order to set pixel 
-        dimensions.  otherwise, set the dimensions to 1 unit.         */ 
+     /* if pixdim data are present, use them in order to set pixel
+        dimensions.  otherwise, set the dimensions to 1 unit.         */
 
      dxtmp = ((nim->pixdim[1] > 0) ? nim->pixdim[1] : 1) ;
      dytmp = ((nim->pixdim[2] > 0) ? nim->pixdim[2] : 1) ;
