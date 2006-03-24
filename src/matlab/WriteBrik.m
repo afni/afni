@@ -105,10 +105,14 @@ if (~isfield(Opt, 'Prefix') | isempty (Opt.Prefix)),
    errordlg(ErrMessage); return;
 end
 %set format if not present
-if (~isfield(Info,'FileFormat') | isempty(Info.FileFormat)),
+if (~isempty(Info) & ~isstruct(Info)),
+   err = 1; 
+   ErrMessage = sprintf('Error %s: Info must be a struct. Check your arguments.', FuncName);  
+   errordlg(ErrMessage); return;
+end
+if (~isempty(Info) & (isempty(Info.FileFormat) | ~isfield(Info,'FileFormat'))),
 	Info.FileFormat = 'BRIK';
 end
-    
 %is this a 1D file ?
 is1D = 0;
 if (isempty(Info) & size(M,4) == 1 & size(M,3) == 1),
@@ -124,7 +128,7 @@ end
 
 
 if (is1D),
-   if (isempty(Info)), Info = Info_1D(M); end
+   if (isempty(Info)), [err,Info] = Info_1D(M); end
    Opt1D.OverWrite = 'n'; % default mode
    if (isfield(Opt,'Slices') & ~isempty(Opt.Slices)), 
       if (length(Opt.Slices) ~= 1),
@@ -147,7 +151,6 @@ if (is1D),
    end
    FullName = sprintf('%s%s', Name, Ext);
    [err, UsedName] = wryte3(M, FullName, Opt1D);
-   Info = Info_1D(M); 
 	
 	if (isempty(Ext) == 1),
 	   Ext = '.1D.dset';		

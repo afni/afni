@@ -2508,13 +2508,15 @@ void SUMA_Show_FreeSurfer (SUMA_FreeSurfer_struct *FS, FILE *Out)
    SO->Name;
    SO->FileType;
    SO->FileFormat
+   
+   see readsrf.m for more info
 
 */
-SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int debug) 
+SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int debug, byte hide_negcols) 
 {
    static char FuncName[]={"SUMA_BrainVoyager_Read"};
 	float FileVersion, cx, cy, cz, *fbuf = NULL;
-	int i, ii, chnk, ex, surf_type, n_neighbors, bs;
+	int i, ii, chnk, ex, surf_type, n_neighbors, bs, cnt_inmesh=0, *ibuf=NULL;
 	char buffer[256];
    float fbuffer[256];
    FILE *fl=NULL;
@@ -2589,7 +2591,8 @@ SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int de
    fbuf = (float *)SUMA_malloc(SO->N_Node*sizeof(float));
    SO->NodeList = (float *)SUMA_malloc(SO->NodeDim*SO->N_Node*sizeof(float));
    SO->FaceSetList = (int *)SUMA_malloc(SO->FaceSetDim*SO->N_FaceSet*sizeof(int));
-   if (!fbuf || !SO->NodeList || !SO->FaceSetList) {
+   ibuf = (int*)SUMA_malloc(SO->N_Node*sizeof(int));
+   if (!ibuf || !fbuf || !SO->NodeList || !SO->FaceSetList) {
       SUMA_SL_Crit("Failed to allocate.");
       SUMA_RETURN(NOPE);
    }
@@ -2608,6 +2611,7 @@ SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int de
    if (ex != SO->N_Node) { SUMA_SL_Warn("Failed to read all node Z info"); }
    if (bs) SUMA_SWAP_VEC(fbuf,SO->N_Node,sizeof(float));
    for (i=0; i<SO->N_Node; ++i) SO->NodeList[3*i+2] = fbuf[i];
+   /* no need for buffer anymore ... */
    SUMA_free(fbuf); fbuf = NULL;
    if (LocalHead) { 
       char *sdbg = SUMA_ShowMeSome((void *)SO->NodeList, SUMA_float, SUMA_MIN_PAIR(20, SO->N_Node), 20);
@@ -2625,7 +2629,28 @@ SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int de
       fprintf(SUMA_STDERR,"%s colorstuff:\n%s\n", FuncName, sdbg);
       SUMA_free(sdbg);sdbg = NULL;
    }
-   fseek(fl, SO->N_Node*sizeof(float), SEEK_CUR); /* junp over mesh color */
+   if (0) { /* don't skip mesh color, it is use to hide triangles ! */
+      fseek(fl, SO->N_Node*sizeof(int), SEEK_CUR); /* jump over mesh color */
+      cnt_inmesh = SO->N_Node;
+   } else { 
+      if (!ibuf) {
+         SUMA_SL_Crit("Failed to allocate.");
+         SUMA_RETURN(NOPE);
+      }
+      /* read into buffer */
+      ex = fread(ibuf, sizeof(int), SO->N_Node, fl);
+      if (ex != SO->N_Node) { SUMA_SL_Warn("Failed to read all node color info"); }
+      if (bs) SUMA_SWAP_VEC(ibuf,SO->N_Node,sizeof(int));
+      /* Hide negative node indices (per info from Hester Breman*/
+      cnt_inmesh = 0;
+      for (i=0; i<SO->N_Node; ++i) { 
+         if (ibuf[i] >= 0) {
+            ibuf[cnt_inmesh] = i; 
+            ++cnt_inmesh;
+         }
+      }
+   }  
+   
    
    /* skip nearest neighbor info */
    for (i=0; i<SO->N_Node; ++i) {
@@ -2649,6 +2674,61 @@ SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int de
       SUMA_free(sdbg);sdbg = NULL;
    }
    fclose(fl); fl = NULL;
+   
+   /* decide on whether some nodes need to be hidden, flat maps in BV contain the entire mesh! */
+   if (hide_negcols && cnt_inmesh < SO->N_Node) {
+      SUMA_PATCH *patch=NULL;
+      SUMA_MEMBER_FACE_SETS *Memb = NULL;
+      fprintf(SUMA_STDERR,"%s: %d nodes have negative colors \nand have been removed from mesh %s\n",
+         FuncName, SO->N_Node - cnt_inmesh, f_name);
+      Memb =  SUMA_MemberFaceSets (SO->N_Node, SO->FaceSetList, SO->N_FaceSet, SO->NodeDim, NULL);
+      if (!Memb->NodeMemberOfFaceSet) {
+            SUMA_SL_Crit("Failed to create Memb FaceSets!");
+            SUMA_RETURN(NOPE);
+      }
+      SUMA_LH("Patchin");
+      if (!(patch = SUMA_getPatch (  ibuf, cnt_inmesh, 
+                           SO->FaceSetList, SO->N_FaceSet, 
+                           Memb, SO->NodeDim))) {
+
+         SUMA_SL_Err("Failed to create patch, proceeding but mesh might be a mess.");
+      } else {
+         SUMA_LH("Switchin");
+         if (SO->FaceSetList) SUMA_free(SO->FaceSetList); SO->FaceSetList = NULL;
+         SO->FaceSetList = patch->FaceSetList; patch->FaceSetList = NULL;
+         SO->N_FaceSet = patch->N_FaceSet; 
+         /* done with Memb */
+         SUMA_Free_MemberFaceSets(Memb); Memb = NULL;   
+         /* done with patch */
+         SUMA_freePatch(patch); patch = NULL;
+      }
+      /* Does this merit a warning?*/
+      if (strstr(f_name, "FLAT") && debug) {
+         SUMA_S_Note(
+            "\n"
+            "****************************************************************\n"
+            "Viewing BrainVoyager's Flat Maps:\n"
+            "---------------------------------\n"
+            "BV, it seems, shows both flattened cortical surfaces\n"
+            "using the same mesh. Each side of the flat surface \n"
+            "represents another hemisphere.\n"
+            "SUMA, which by default displays both backward and forward facing\n"
+            "triangles, will display both sides simultaneously. To look at\n"
+            "each side separately, set 'Backface Culling' to \n"
+            "'cull the FrontFace'. Backface Culling modes are toggled\n"
+            "with the 'B' button. Read SUMA's GUI help 'ctrl+h' for reminder.\n" 
+            "****************************************************************\n"
+            "\n"
+            );
+      }
+   } else {
+      if (LocalHead) {
+         fprintf(SUMA_STDERR,"%s: All nodes preserved in mesh.\n", FuncName);
+      }
+   }
+
+   if (ibuf) SUMA_free(ibuf); ibuf = NULL;
+
    
    SO->FileType = SUMA_BRAIN_VOYAGER;
    SO->Name = SUMA_StripPath(f_name);
