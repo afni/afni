@@ -5828,3 +5828,8 @@
      NIFTI_FORM_PRIORITY to 'Q' or 'S' to signify the priority.
  * Also, if both qform and sform are present, check to see if they
      have the same handedness -- if not, print a warning message.
+
+25 Mar 2006
+ * Modify matrix.c and matrix_f.c to unroll matrix-vector multiply by
+     four rather than two, after profiling with Shark on the MacIntel
+     (which showed that loop overhead was a significant factor).
