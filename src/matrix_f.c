@@ -1048,20 +1048,39 @@ void vector_multiply (matrix a, vector b, vector * c)
 #else
 
 #ifdef UNROLL_VECMUL
-  if( cols%2 == 0 ){              /* even number of cols */
-    for (i = 0;  i < rows;  i++){
-        sum = 0.0f ; aa = a.elts[i] ;
-        for (j = 0;  j < cols;  j+=2 )
-          sum += aa[j]*bb[j] + aa[j+1]*bb[j+1];
+  switch( cols%4 ){
+    case 0:
+     for (i = 0;  i < rows;  i++){
+        sum = 0.0 ; aa = a.elts[i] ;
+        for (j = 0;  j < cols;  j+=4 )
+          sum += aa[j]*bb[j]+aa[j+1]*bb[j+1]+aa[j+2]*bb[j+2]+aa[j+3]*bb[j+3];
         c->elts[i] = sum ;
-    }
-  } else {                        /* odd number of cols */
-    for (i = 0;  i < rows;  i++){
+     }
+    break ;
+    case 1:
+     for (i = 0;  i < rows;  i++){
         aa = a.elts[i] ; sum = aa[0]*bb[0] ;
-        for (j = 1;  j < cols;  j+=2 )
-          sum += aa[j]*bb[j] + aa[j+1]*bb[j+1];
+        for (j = 1;  j < cols;  j+=4 )
+          sum += aa[j]*bb[j]+aa[j+1]*bb[j+1]+aa[j+2]*bb[j+2]+aa[j+3]*bb[j+3];
         c->elts[i] = sum ;
-    }
+     }
+    break ;
+    case 2:
+     for (i = 0;  i < rows;  i++){
+        aa = a.elts[i] ; sum = aa[0]*bb[0]+aa[1]*bb[1] ;
+        for (j = 2;  j < cols;  j+=4 )
+          sum += aa[j]*bb[j]+aa[j+1]*bb[j+1]+aa[j+2]*bb[j+2]+aa[j+3]*bb[j+3];
+        c->elts[i] = sum ;
+     }
+    break ;
+    case 3:
+     for (i = 0;  i < rows;  i++){
+        aa = a.elts[i] ; sum = aa[0]*bb[0]+aa[1]*bb[1]+aa[2]*bb[2] ;
+        for (j = 3;  j < cols;  j+=4 )
+          sum += aa[j]*bb[j]+aa[j+1]*bb[j+1]+aa[j+2]*bb[j+2]+aa[j+3]*bb[j+3];
+        c->elts[i] = sum ;
+     }
+    break ;
   }
 #else
     for (i = 0;  i < rows;  i++){
@@ -1126,20 +1145,39 @@ float  vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
 #else
 
 #ifdef UNROLL_VECMUL
-  if( cols%2 == 0 ){                   /* even number */
-    for (i = 0;  i < rows;  i++){
-      aa = a.elts[i] ; sum = c.elts[i] ;
-      for (j = 0;  j < cols;  j+=2)
-        sum -= aa[j]*bb[j] + aa[j+1]*bb[j+1];
-      d->elts[i] = sum ; qsum += sum*sum ;
-    }
-  } else {                            /* odd number */
-    for (i = 0;  i < rows;  i++){
-      aa = a.elts[i] ; sum = c.elts[i] - aa[0]*bb[0] ;
-      for (j = 1;  j < cols;  j+=2)
-        sum -= aa[j]*bb[j] + aa[j+1]*bb[j+1];
-      d->elts[i] = sum ; qsum += sum*sum ;
-    }
+  switch( cols%4 ){
+    case 0:
+     for (i = 0;  i < rows;  i++){
+        aa = a.elts[i] ; sum = c.elts[i] ;
+        for (j = 0;  j < cols;  j+=4 )
+          sum -= aa[j]*bb[j]+aa[j+1]*bb[j+1]+aa[j+2]*bb[j+2]+aa[j+3]*bb[j+3];
+        d->elts[i] = sum ; qsum += sum*sum ;
+     }
+    break ;
+    case 1:
+     for (i = 0;  i < rows;  i++){
+        aa = a.elts[i] ; sum = c.elts[i]-aa[0]*bb[0] ;
+        for (j = 1;  j < cols;  j+=4 )
+          sum -= aa[j]*bb[j]+aa[j+1]*bb[j+1]+aa[j+2]*bb[j+2]+aa[j+3]*bb[j+3];
+        d->elts[i] = sum ; qsum += sum*sum ;
+     }
+    break ;
+    case 2:
+     for (i = 0;  i < rows;  i++){
+        aa = a.elts[i] ; sum = c.elts[i]-aa[0]*bb[0]-aa[1]*bb[1] ;
+        for (j = 2;  j < cols;  j+=4 )
+          sum -= aa[j]*bb[j]+aa[j+1]*bb[j+1]+aa[j+2]*bb[j+2]+aa[j+3]*bb[j+3];
+        d->elts[i] = sum ; qsum += sum*sum ;
+     }
+    break ;
+    case 3:
+     for (i = 0;  i < rows;  i++){
+        aa = a.elts[i] ; sum = c.elts[i]-aa[0]*bb[0]-aa[1]*bb[1]-aa[2]*bb[2] ;
+        for (j = 3;  j < cols;  j+=4 )
+          sum -= aa[j]*bb[j]+aa[j+1]*bb[j+1]+aa[j+2]*bb[j+2]+aa[j+3]*bb[j+3];
+        d->elts[i] = sum ; qsum += sum*sum ;
+     }
+    break ;
   }
 #else
   for (i = 0;  i < rows;  i++){
