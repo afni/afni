@@ -33,8 +33,11 @@ void signal_model
 /* computation of time series */
 int compute_ts( float * rtimes, float * rates, int nrates,
                 float * ts_cp, int ts_len,
-                float dt, float tr,
+                float dt, float ** ts_times,
                 float v, float vmax, float k12, float k21, float km );
+int get_init_data( float ** rtime, float ** rates, int * len, float * dt );
+
+static int debug = 0;
 /*----------------------------------------------------------------------
 
   Initialize MODEL_interface struct with default values and model name.
@@ -97,15 +100,18 @@ void signal_model (
     {
         if( get_init_data( &rtime, &rates, &rlen, &dt ) != 0 )
             exit(1); /* bad things, man, bad things */
+        if( debug > 2 )
+        {
+            int c;
+            fprintf(stderr,"+d computation times (%d events): \n", ts_len);
+            for( c = 0; c < ts_len; c++ )
+                fprintf(stderr,"  %.1f", x_array[c][1]);
+            fputc('\n', stderr);
+        }
         first_call = 0;
     }
 
     TR = x_array[1][1] - x_array[0][1];  /* assume time delta is constant */
-    if( TR <= 0 )
-    {
-        fprintf(stderr,"** apparent TR of %f is illegal, exiting...\n", TR);
-        exit(1);
-    }
     if( dt > TR )
     {
         fprintf(stderr,"** dt > TR (%f > %f), this is unacceptable\n"
@@ -113,7 +119,7 @@ void signal_model (
         exit(1);
     }
 
-    compute_ts( rtime, rates, rlen, ts_array, ts_len, dt, TR,
+    compute_ts( rtime, rates, rlen, ts_array, ts_len, dt, x_array,
                 params[0], params[1], params[2], params[3], km );
 }
 
@@ -134,7 +140,7 @@ void signal_model (
 */
 int compute_ts( float * rtimes, float * rates, int nrates,
                 float * ts_cp, int ts_len, /* result and length */
-                float dt, float tr,
+                float dt, float ** ts_times, /* times are in column 1 */
                 float v, float vmax, float k12, float k21, float km )
 {
     /* computation variables */
@@ -158,7 +164,9 @@ int compute_ts( float * rtimes, float * rates, int nrates,
 
     for( itr = 0; itr < ts_len; itr++ ) /* loop over result time indices   */
     {
-        while( cur_time <= tr_time )    /* repeat until next tr time       */
+        tr_time = ts_times[itr][1];
+
+        while( cur_time <= tr_time )    /* repeat until next result time   */
         {
             cp0 = cp;                   /* set old values and get new ones */
             ct0 = ct;
@@ -182,7 +190,6 @@ int compute_ts( float * rtimes, float * rates, int nrates,
         }
 
         ts_cp[itr] = cp;
-        tr_time += tr;
     }
 
     return 0;
@@ -193,10 +200,8 @@ int compute_ts( float * rtimes, float * rates, int nrates,
 int get_init_data( float ** rtime, float ** rates, int * len, float * dt )
 {
     MRI_IMAGE * im;
-    float       fval;
     char      * rate_file;
     char      * dt_text;
-    int         rv;
 
     if( !rtime || !rates || !len || !dt )
     {
@@ -236,6 +241,22 @@ int get_init_data( float ** rtime, float ** rates, int * len, float * dt )
         fprintf(stderr,"NLfim: MM: using default dt of %.3f s\n", NL_MM_DEF_DT);
         fprintf(stderr,"       (use env var AFNI_MM_MODEL_DT to override)\n");
         *dt = NL_MM_DEF_DT;
+    }
+
+    /* get debug level (abuse now unneeded dt_text variable) */
+    dt_text = my_getenv("AFNI_MM_MODEL_DEBUG");
+    if( dt_text ) debug = atoi( dt_text );
+    if( dt_text && debug )
+    {
+        int c;
+        fprintf(stderr,"+d NLfim: debug level set to %d\n", debug);
+        fprintf(stderr,"          dt = %f, rate file = %s\n", *dt, rate_file);
+        if( debug > 1 )
+        {
+            fprintf(stderr,"    time        rate\n    --------    --------\n");
+            for( c = 0; c < *len; c++ )
+                fprintf(stderr, "    %8f    %8f\n", (*rtime)[c], (*rates)[c]);
+        }
     }
 
     return 0;
