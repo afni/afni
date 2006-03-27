@@ -2107,7 +2107,7 @@ ENTRY("mri_read_1D") ;
    if( fname == NULL || fname[0] == '\0' || strlen(fname) > 511 ) RETURN(NULL) ;
 
    if( strncmp(fname,"1D:",3) == 0 ){       /* 28 Apr 2003 */
-     return mri_1D_fromstring( fname+3 ) ;
+     outim = mri_1D_fromstring( fname+3 ) ; RETURN(outim) ;
    }
 
    /*-- split filename and subvector list --*/
@@ -2184,6 +2184,7 @@ ENTRY("mri_read_1D") ;
      mri_free(flim); free(sslist); flim = outim;
    }
 
+   mri_add_name(fname,flim) ;
    RETURN(flim) ;
 }
 

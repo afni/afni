@@ -1082,6 +1082,15 @@ floatvecvec * SYM_expand_ranges( int nlast, int nrang, SYM_irange *rang, char *s
 #include "afni_environ.h"  /* 07 Jun 1999 addition */
 /*------------------------------------------------------------------------*/
 
+extern MRI_IMAGE * mri_matrix_mult ( MRI_IMAGE *, MRI_IMAGE *);
+extern MRI_IMAGE * mri_matrix_psinv( MRI_IMAGE *, float *    );
+extern void        mri_matrix_psinv_svd( int ) ;
+#define            mri_matrix_transpose(x) mri_transpose_float(x)
+
+extern double Plegendre( double x , int m ) ;
+
+/*------------------------------------------------------------------------*/
+
 extern MRI_IMAGE * THD_average_timeseries( MCW_cluster_array *, THD_3dim_dataset *) ;
 extern MRI_IMAGE * THD_average_one_timeseries( MCW_cluster *, THD_3dim_dataset *) ;
 
