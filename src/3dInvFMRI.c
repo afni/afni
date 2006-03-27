@@ -3,8 +3,9 @@
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *yset=NULL , *aset=NULL , *mset=NULL ;
-   MRI_IMAGE *fim=NULL , *qim ; float *flar , *qar ;
+   MRI_IMAGE *fim=NULL , *qim , *pfim=NULL ; float *flar , *qar , *par=NULL ;
    MRI_IMARR *fimar=NULL ;
+   MRI_IMAGE *aim , *yim ; float *aar , *yar ;
    int nt=0 , nxyz=0 , nvox=0 , nparam=0 , nqbase , polort=0 , ii,jj,kk,bb ;
    byte *mask=NULL ; int nmask=0 , iarg ;
    char *fname_out="-" ;
@@ -110,9 +111,19 @@ int main( int argc , char *argv[] )
    if( DSET_NVOX(aset) != nxyz )
      ERROR_exit("Grid mismatch between -data and -map") ;
 
+   DSET_load(yset);
+   if( !DSET_LOADED(yset) )
+     ERROR_exit("Can't load dataset '%s'",DSET_BRIKNAME(yset)) ;
+   DSET_load(aset);
+   if( !DSET_LOADED(aset) )
+     ERROR_exit("Can't load dataset '%s'",DSET_BRIKNAME(aset)) ;
+
    if( mset != NULL ){
      if( DSET_NVOX(mset) != nxyz )
        ERROR_exit("Grid mismatch between -data and -mask") ;
+     DSET_load(mset);
+     if( !DSET_LOADED(mset) )
+       ERROR_exit("Can't load dataset '%s'",DSET_BRIKNAME(mset)) ;
      mask = THD_makemask( mset , 0 , 1.0f,-1.0f ); DSET_delete(mset);
      nmask = THD_countmask( nxyz , mask ) ;
      if( nmask < 2 ){
@@ -149,7 +160,6 @@ int main( int argc , char *argv[] )
        }
        bb = polort+1 ;
      }
-
 #undef  Q
 #define Q(i,j) qar[(i)+(j)*qim->nx]
      if( fimar != NULL ){
@@ -162,5 +172,41 @@ int main( int argc , char *argv[] )
          bb += qim->ny ;
        }
        DESTROY_IMARR(fimar) ; fimar=NULL ;
+       pfim = mri_matrix_psinv( fim , NULL ) ; par = MRI_FLOAT_PTR(pfim) ;
+#undef  P
+#define P(i,j) par[(i)+(j)*nqbase]   /* nqbase X nt */
      }
    }
+
+   /**--- set up map image into aim/aar ---**/
+
+#undef  GOOD
+#define GOOD(i) (nmask > 0 && mask[i])
+
+#undef  A
+#define A(i,j) aar[(i)+(j)*nvox]   /* nvox X nparam */
+
+   nvox = (nmask > 0) ? nmask : nxyz ;
+   aim  = mri_new( nvox , nparam , MRI_float ); aar = MRI_FLOAT_PTR(aim);
+   for( jj=0 ; jj < nparam ; jj++ ){
+     for( ii=kk=0 ; ii < nxyz ; ii++ ){
+       if( GOOD(ii) ){ A(kk,jj) = THD_get_voxel(aset,ii,jj); kk++; }
+   }}
+
+   /**--- set up data image into yim/yar ---**/
+
+#undef  Y
+#define Y(i,j) yar[(i)+(j)*nt]   /* nt X nvox */
+
+   yim  = mri_new( nt , nvox , MRI_float ); yar = MRI_FLOAT_PTR(yim);
+   for( ii=0 ; ii < nt ; ii++ ){
+     for( jj=kk=0 ; jj < nxyz ; jj++ ){
+       if( GOOD(jj) ){ Y(ii,kk) = THD_get_voxel(aset,jj,ii); kk++; }
+   }}
+
+   /**--- filter data image by baseline ---**/
+
+   if( par != NULL ){
+   }
+
+}
