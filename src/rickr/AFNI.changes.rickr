@@ -1440,3 +1440,6 @@
 23 Mar 2006:
   * modified 3dcalc.c: do not scale shorts if values are {0,1}
 
+27 Mar 2006:
+  * modified model_michaelis_menton.c to handle '-time' option to 3dNLfim
+
