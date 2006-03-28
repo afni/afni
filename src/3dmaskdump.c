@@ -156,7 +156,7 @@ int main( int argc , char * argv[] )
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
-   mainENTRY("3dmaskdump main"); machdep() ; PRINT_VERSION("3dmaskdump") ;
+   mainENTRY("3dmaskdump main"); machdep() ;
 
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
@@ -294,6 +294,9 @@ int main( int argc , char * argv[] )
 
       fprintf(stderr,"** Unknown option: %s\n",argv[narg]) ; exit(1) ;
    }
+
+   /* keep -quiet quiet                      27 Mar 2006 [rickr] */
+   if( verb > 0 ) PRINT_VERSION("3dmaskdump") ;
 
    /* should have at least one more argument */
 
