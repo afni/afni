@@ -5833,3 +5833,7 @@
  * Modify matrix.c and matrix_f.c to unroll matrix-vector multiply by
      four rather than two, after profiling with Shark on the MacIntel
      (which showed that loop overhead was a significant factor).
+
+28 Mar 2006
+ * Modify 3dDeconvolve.c to set ival=-1 on various inputs, before
+     sscanf()-ing it, so that bad values give error messages.
