@@ -142,8 +142,7 @@ static char g_help[] =
     " ----------------------------------------------------------------------\n"
     "   History:\n"
     " \n"
-    "   1.0  9 September 2004 [rickr]\n"
-    "     - initial version\n"
+    "   1.0   9 September 2004 [rickr] - initial version\n"
     " \n"
     "   1.1  16 September 2004 [rickr]\n"
     "     - init gp_index to -1 (set it in afni)\n"
@@ -170,11 +169,9 @@ static char g_help[] =
     "     - process all parameters, but only complain if 'ready'\n"
     "     - always pass along debug/dnode\n"
     " \n"
-    "   1.5  11 December 2004 [rickr]\n"
-    "     - describe the default vol2surf operation in this Help\n"
-    " \n"
-    "   1.5a 22 March 2005 [rickr]\n"
-    "     - removed all tabs\n"
+    "   1.5  11 December 2004 [rickr] - describe default behavior here\n"
+    "   1.5a 22 March 2005 [rickr] - removed all tabs\n"
+    "   1.6  28 March 2006 [rickr] - fixed mode computation\n"
         ;
 
 #define P_MAP_NAMES_NVALS      12       /* should match enum for global maps */
