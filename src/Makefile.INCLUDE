@@ -71,7 +71,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            nifti_tool nifti_stats nifti1_test whereami plugout_drive            \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \
-           3dTwotoComplex                                                       \
+           3dTwotoComplex 3dInvFMRI                                             \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -96,7 +96,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dWarp nicat 3dSpatNorm 3dWarpDrive 3dretroicor ge_header         \
                   3dAFNItoRaw DTIStudioFibertoSegments im2niml 3dLocalstat 3dGetrow \
                   Imon nifti_tool nifti_stats nifti1_test Dimon 3danisosmooth       \
-                  3dmaxima 3dTwotoComplex                                           \
+                  3dmaxima 3dTwotoComplex 3dInvFMRI                                 \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -126,7 +126,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                dicom_to_raw rotcom 3dDeconvolve_f 3dUniformize 3dWarp 3dWarpDrive \
                file_tool.exe Imon.exe 3dresample.exe serial_helper.exe im2niml    \
                nifti_tool.exe 3dAFNItoRaw DTIStudioFibertoSegments Dimon.exe      \
-               3danisosmooth 3dTwotoComplex
+               3danisosmooth 3dTwotoComplex 3dInvFMRI
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -500,6 +500,10 @@ dsetdup:dsetdup.o
 3dTwotoComplex:3dTwotoComplex.o
 	$(RM) $@
 	$(CC) -o 3dTwotoComplex 3dTwotoComplex.o $(LFLAGS) $(LLIBS)
+
+3dInvFMRI:3dInvFMRI.o
+	$(RM) $@
+	$(CC) -o 3dInvFMRI 3dInvFMRI.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dvolreg:3dvolreg.o
 	$(RM) $@
