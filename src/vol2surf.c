@@ -76,8 +76,8 @@ char gv2s_history[] =
     "  - check for out of bounds, even if an endpoint is in (e.g. midpoint)\n"
     "  - in thd_mask_from_brick(), allow for absolute thresholding\n"
     "\n"
-    "March 22, 2005 [rickr]\n"
-    "  - remove tabs\n"
+    "March 22, 2005 [rickr] - removed tabs\n"
+    "March 28, 2006 [rickr] - fixed mode computation\n"
     "---------------------------------------------------------------------\n";
 
 #include "mrilib.h"
@@ -1045,7 +1045,7 @@ static int v2s_map_needs_sort( int map )
 
 
 /*----------------------------------------------------------------------
- * float_list_comp_mode         - compute the mode of the list
+ * float_list_comp_mode         - compute the mode of the sorted list
  *
  * return  0 : on success
  *        -1 : on error
@@ -1074,7 +1074,7 @@ ENTRY("float_list_comp_mode");
             {
                 *mode  = fcur;
                 *nvals = ncur;
-                *index = c;
+                *index = c - ncur;   /* note first occurance */
             }
 
             fcur = f->list[c];
@@ -1086,7 +1086,7 @@ ENTRY("float_list_comp_mode");
     {
         *mode  = fcur;
         *nvals = ncur;
-        *index = c;
+        *index = c - ncur;   /* note first occurance */
     }
 
     RETURN(0);
