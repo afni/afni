@@ -1175,7 +1175,7 @@ void get_options
       {
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -nfirst ");
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if (ival < 0)
           DC_error ("illegal argument after -nfirst ");
         option_data->NFirst = ival;
@@ -1189,7 +1189,7 @@ void get_options
       {
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -nlast ");
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if (ival < 0)
           DC_error ("illegal argument after -nlast ");
         option_data->NLast = ival;
@@ -1203,7 +1203,7 @@ void get_options
       {
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -polort ");
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -2 ; sscanf (argv[nopt], "%d", &ival);
         if (ival < -1)
           DC_error ("illegal argument after -polort ");
         option_data->polort = ival;
@@ -1263,7 +1263,7 @@ void get_options
       {
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -progress ");
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if (ival < 0)
           DC_error ("illegal argument after -progress ");
         option_data->progress = ival;
@@ -1277,7 +1277,7 @@ void get_options
       {
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -rmsmin ");
-        sscanf (argv[nopt], "%f", &fval);
+        fval = -666.0 ; sscanf (argv[nopt], "%f", &fval);
         if (fval < 0.0)
           DC_error ("illegal argument after -rmsmin ");
         option_data->rms_min = fval;
@@ -1303,7 +1303,7 @@ void get_options
       {
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -num_stimts ");
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if (ival < 0)
           {
             DC_error ("-num_stimts num   Require: num >= 0 ");
@@ -1319,7 +1319,7 @@ void get_options
       if( strcmp(argv[nopt],"-TR_times") == 0 ){
         nopt++ ;
         if( nopt >= argc ) DC_error("need argument after -TR_times") ;
-        sscanf( argv[nopt] , "%f" , &basis_dtout ) ;
+        basis_dtout = -1.0 ; sscanf( argv[nopt] , "%f" , &basis_dtout ) ;
         if( basis_dtout <= 0.0f ){
           fprintf(stderr,"** ERROR: -TR_times '%s' is illegal\n",argv[nopt]) ;
           exit(1) ;
@@ -1331,7 +1331,7 @@ void get_options
       if( strcmp(argv[nopt],"-TR_irc") == 0 ){
         nopt++ ;
         if( nopt >= argc ) DC_error("need argument after -TR_irc") ;
-        sscanf( argv[nopt] , "%f" , &irc_dt ) ;
+        irc_dt = -1.0 ; sscanf( argv[nopt] , "%f" , &irc_dt ) ;
         if( irc_dt <= 0.0f ){
           fprintf(stderr,"** ERROR: -TR_irc '%s' is illegal\n",argv[nopt]) ;
           exit(1) ;
@@ -1354,7 +1354,7 @@ void get_options
       if( strcmp(argv[nopt],"-stim_times") == 0 ){
         nopt++ ;
         if( nopt+2 >= argc ) DC_error("need 3 arguments after -stim_times");
-        sscanf( argv[nopt] , "%d" , &ival ) ;
+        ival = -1 ; sscanf( argv[nopt] , "%d" , &ival ) ;
         if( (ival < 1) || (ival > option_data->num_stimts) ){
           fprintf(stderr,
                   "** ERROR: '-stim_times %d' value out of range 1..%d\n",
@@ -1395,7 +1395,7 @@ void get_options
         nopt++;
         if (nopt+1 >= argc)  DC_error ("need 2 arguments after -slice_base");
 
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if ((ival < 1) || (ival > option_data->num_stimts))
           DC_error ("-slice_base k sname   Require: 1 <= k <= num_stimts");
         k = ival-1;
@@ -1419,7 +1419,7 @@ void get_options
         nopt++;
         if (nopt+1 >= argc)  DC_error ("need 2 arguments after -stim_file");
 
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if ((ival < 1) || (ival > option_data->num_stimts))
           DC_error ("-stim_file k sname   Require: 1 <= k <= num_stimts");
         k = ival-1;
@@ -1445,7 +1445,7 @@ void get_options
         nopt++;
         if (nopt+1 >= argc)  DC_error ("need 2 arguments after -stim_label");
 
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if ((ival < 1) || (ival > option_data->num_stimts))
           DC_error ("-stim_label k slabel   Require: 1 <= k <= num_stimts");
         k = ival-1;
@@ -1464,7 +1464,7 @@ void get_options
         if (nopt >= argc)
           DC_error ("need 1 argument after -stim_base");
 
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if ((ival < 1) || (ival > option_data->num_stimts))
           DC_error ("-stim_base k   Require: 1 <= k <= num_stimts");
         k = ival-1;
@@ -1481,13 +1481,13 @@ void get_options
         if (nopt+1 >= argc)
           DC_error ("need 2 arguments after -stim_minlag");
 
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if ((ival < 1) || (ival > option_data->num_stimts))
           DC_error ("-stim_minlag k lag   Require: 1 <= k <= num_stimts");
         k = ival-1;
         nopt++;
 
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if (ival < 0)
           DC_error ("-stim_minlag k lag   Require: 0 <= lag");
         option_data->stim_minlag[k] = ival;
@@ -1503,13 +1503,13 @@ void get_options
         if (nopt+1 >= argc)
           DC_error ("need 2 arguments after -stim_maxlag");
 
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if ((ival < 1) || (ival > option_data->num_stimts))
           DC_error ("-stim_maxlag k lag   Require: 1 <= k <= num_stimts");
         k = ival-1;
         nopt++;
 
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if (ival < 0)
           DC_error ("-stim_maxlag k lag   Require: 0 <= lag");
         option_data->stim_maxlag[k] = ival;
@@ -1525,13 +1525,13 @@ void get_options
         if (nopt+1 >= argc)
           DC_error ("need 2 arguments after -stim_nptr");
 
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if ((ival < 1) || (ival > option_data->num_stimts))
           DC_error ("-stim_nptr k p   Require: 1 <= k <= num_stimts");
         k = ival-1;
         nopt++;
 
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if (ival < 1)
           DC_error ("-stim_nptr k p   Require: 1 <= p");
         option_data->stim_nptr[k] = ival;
@@ -1545,7 +1545,7 @@ void get_options
       {
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -num_glt ");
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if (ival < 0)
           {
             DC_error ("-num_glt num   Require: num >= 0 ");
@@ -1567,7 +1567,7 @@ void get_options
         nopt++;
         if (nopt+1 >= argc)  DC_error ("need 2 arguments after -glt");
 
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if (ival < 1)
           {
             DC_error ("-glt s gltname  Require: s >= 1  (s = #rows in GLT)");
@@ -1619,7 +1619,7 @@ void get_options
         nopt++;
         if (nopt+1 >= argc)  DC_error ("need 2 arguments after -glt_label");
 
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if ((ival < 1) || (ival > option_data->num_glt))
           DC_error ("-stim_label k slabel   Require: 1 <= k <= num_glt");
         k = ival-1;
@@ -1637,7 +1637,7 @@ void get_options
         nopt++;
         if (nopt+1 >= argc)  DC_error ("need 2 arguments after -iresp");
 
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if ((ival < 1) || (ival > option_data->num_stimts))
           DC_error ("-iresp k iprefix   Require: 1 <= k <= num_stimts");
         k = ival-1;
@@ -1667,7 +1667,7 @@ void get_options
         nopt++;
         if (nopt+1 >= argc)  DC_error ("need 2 arguments after -sresp");
 
-        sscanf (argv[nopt], "%d", &ival);
+        ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if ((ival < 1) || (ival > option_data->num_stimts))
           DC_error ("-sresp k iprefix   Require: 1 <= k <= num_stimts");
         k = ival-1;
