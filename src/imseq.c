@@ -448,13 +448,21 @@ static void ISQ_setup_ppmto_filters(void)
    }
    else { CANT_FIND("pnmtopng","PNG"); need_netpbm; }
 
-   /*-- 16 Nov 2004: more warnings? --*/
+   /*----- 16 Nov 2004: more warnings? -----*/
 
    if( !AFNI_noenv("AFNI_IMSAVE_WARNINGS") && ncant > 0 ){
-     if( need_netpbm > 0 )
+     if( need_netpbm > 0 ){
        fprintf(stderr,
                "++ Some of the missing image Save programs are in\n"
                "++  the netpbm software package, which is freeware.\n" ) ;
+#ifdef DARWIN
+       fprintf(stderr,
+               "++  The 'fink' package at http://fink.sourceforge.net/\n"
+               "++  is a way to get the netpbm programs for OS X; *OR*\n");
+#endif
+       fprintf(stderr,
+               "++  Netpbm can be found at http://netpbm.sourceforge.net/\n");
+     }
 
      fprintf(stderr,
                "++ To disable these warnings, set environment\n"
