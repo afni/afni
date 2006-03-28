@@ -11,17 +11,24 @@ MRI_IMAGE * mri_matrix_mult( MRI_IMAGE *ima , MRI_IMAGE *imb )
    float *amat , *bmat , *cmat , sum ;
    int ii,jj,kk ;
 
-   if( ima == NULL            || imb == NULL            ) return NULL ;
-   if( ima->kind != MRI_float || imb->kind != MRI_float ) return NULL ;
+ENTRY("mri_matrix_mult") ;
 
-   nr = ima->nx ; mm = ima->ny ; nc = imb->ny ; if( imb->nx != mm ) return NULL;
+   if( ima == NULL            || imb == NULL            ) RETURN( NULL );
+   if( ima->kind != MRI_float || imb->kind != MRI_float ) RETURN( NULL );
+
+   nr = ima->nx ; mm = ima->ny ; nc = imb->ny ;
+   if( imb->nx != mm ){
+     ERROR_message("mri_matrix_mult( %d X %d , %d X %d )?",
+                   ima->nx , ima->ny , imb->nx , imb->ny ) ;
+     RETURN( NULL);
+   }
 
 #undef  A
 #undef  B
 #undef  C
-#define A(i,j) amat[(i)+(j)*nr]
-#define B(i,j) bmat[(i)+(j)*mm]
-#define C(i,j) cmat[(i)+(j)*nr]
+#define A(i,j) amat[(i)+(j)*nr]   /* nr X mm */
+#define B(i,j) bmat[(i)+(j)*mm]   /* mm X nc */
+#define C(i,j) cmat[(i)+(j)*nr]   /* nr X nc */
 
    imc  = mri_new( nr , nc , MRI_float ) ;
    amat = MRI_FLOAT_PTR(ima); bmat = MRI_FLOAT_PTR(imb);
@@ -34,7 +41,102 @@ MRI_IMAGE * mri_matrix_mult( MRI_IMAGE *ima , MRI_IMAGE *imb )
        C(ii,jj) = sum ;
    }}
 
-   return imc ;
+   RETURN( imc );
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Compute the product of two matrices, stored in 2D float images.
+    The first matrix is transposed.
+-------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_matrix_multranA( MRI_IMAGE *ima , MRI_IMAGE *imb )
+{
+   int nr , nc , mm ;
+   MRI_IMAGE *imc ;
+   float *amat , *bmat , *cmat , sum ;
+   int ii,jj,kk ;
+
+ENTRY("mri_matrix_multranA") ;
+
+   if( ima == NULL            || imb == NULL            ) RETURN( NULL );
+   if( ima->kind != MRI_float || imb->kind != MRI_float ) RETURN( NULL );
+
+   nr = ima->ny ; mm = ima->nx ; nc = imb->ny ;
+   if( imb->nx != mm ){
+     ERROR_message("mri_matrix_multranA( %d X %d , %d X %d )?",
+                   ima->nx , ima->ny , imb->nx , imb->ny ) ;
+     RETURN( NULL);
+   }
+
+#undef  A
+#undef  B
+#undef  C
+#define A(i,j) amat[(i)+(j)*mm]   /* mm X nr */
+#define B(i,j) bmat[(i)+(j)*mm]   /* mm X nc */
+#define C(i,j) cmat[(i)+(j)*nr]   /* nr X nc */
+
+   imc  = mri_new( nr , nc , MRI_float ) ;
+   amat = MRI_FLOAT_PTR(ima); bmat = MRI_FLOAT_PTR(imb);
+   cmat = MRI_FLOAT_PTR(imc);
+
+   for( jj=0 ; jj < nc ; jj++ ){
+     for( ii=0 ; ii < nr ; ii++ ){
+       sum = 0.0f ;
+       for( kk=0 ; kk < mm ; kk++ ) sum += A(kk,ii)*B(kk,jj) ;
+       C(ii,jj) = sum ;
+   }}
+
+   RETURN( imc );
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Compute the product of two matrices, stored in 2D float images.
+    The second matrix is transposed.
+-------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_matrix_multranB( MRI_IMAGE *ima , MRI_IMAGE *imb )
+{
+   int nr , nc , mm ;
+   MRI_IMAGE *imc ;
+   float *amat , *bmat , *cmat , sum ;
+   int ii,jj,kk ;
+
+ENTRY("mri_matrix_multranB") ;
+
+   if( ima == NULL            || imb == NULL            ) RETURN( NULL );
+   if( ima->kind != MRI_float || imb->kind != MRI_float ) RETURN( NULL );
+
+   nr = ima->nx ; mm = ima->ny ; nc = imb->nx ;
+   if( imb->ny != mm ){
+     ERROR_message("mri_matrix_multranB( %d X %d , %d X %d )?",
+                   ima->nx , ima->ny , imb->nx , imb->ny ) ;
+     RETURN( NULL);
+   }
+
+#undef  A
+#undef  B
+#undef  C
+#define A(i,j) amat[(i)+(j)*nr]   /* nr X mm */
+#define B(i,j) bmat[(i)+(j)*nc]   /* nc X mm */
+#define C(i,j) cmat[(i)+(j)*nr]   /* nr X nc */
+
+   imc  = mri_new( nr , nc , MRI_float ) ;
+   amat = MRI_FLOAT_PTR(ima); bmat = MRI_FLOAT_PTR(imb);
+   cmat = MRI_FLOAT_PTR(imc);
+
+#if 0
+   INFO_message("mri_matrix_multranB( %d X %d , %d X %d )",
+                ima->nx , ima->ny , imb->nx , imb->ny ) ;
+#endif
+
+   for( jj=0 ; jj < nc ; jj++ ){
+     for( ii=0 ; ii < nr ; ii++ ){
+       sum = 0.0f ;
+       for( kk=0 ; kk < mm ; kk++ ) sum += A(ii,kk)*B(jj,kk) ;
+       C(ii,jj) = sum ;
+   }}
+
+   RETURN( imc );
 }
 
 /*-----------------------------------------------------------------------*/
@@ -58,7 +160,9 @@ MRI_IMAGE * mri_matrix_psinv( MRI_IMAGE *imc , float *wt )
    register double sum ;
    int do_svd= (force_svd || AFNI_yesenv("AFNI_PSINV_SVD")) ;
 
-   if( imc == NULL || imc->kind != MRI_float ) return NULL ;
+ENTRY("mri_matrix_psinv") ;
+
+   if( imc == NULL || imc->kind != MRI_float ) RETURN( NULL );
    m    = imc->nx ;
    n    = imc->ny ;
    rmat = MRI_FLOAT_PTR(imc) ;
@@ -183,7 +287,7 @@ MRI_IMAGE * mri_matrix_psinv( MRI_IMAGE *imc , float *wt )
      if( smax <= 0.0 ){                        /* this is bad */
        ERROR_message("SVD fails in mri_matrix_psinv()!\n");
        free((void *)xfac); free((void *)sval);
-       free((void *)vmat); free((void *)umat); return NULL;
+       free((void *)vmat); free((void *)umat); RETURN( NULL);
      }
 
      for( ii=0 ; ii < n ; ii++ )
@@ -226,7 +330,7 @@ MRI_IMAGE * mri_matrix_psinv( MRI_IMAGE *imc , float *wt )
      }
    }
 
-   return imp;
+   RETURN( imp);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -333,8 +437,8 @@ double Plegendre( double x , int m )   /* Legendre polynomials over [-1,1] */
 
    /** if here, m > 20 ==> use recurrence relation **/
 
-   pkm2 = legendre( x , 19 ) ;
-   pkm1 = legendre( x , 20 ) ;
+   pkm2 = Plegendre( x , 19 ) ;  /* recursion! */
+   pkm1 = Plegendre( x , 20 ) ;
    for( k=21 ; k <= m ; k++ , pkm2=pkm1 , pkm1=pk )
      pk = ((2.0*k-1.0)*x*pkm1 - (k-1.0)*pkm2)/k ;
    return pk ;
