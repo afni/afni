@@ -6246,6 +6246,7 @@ void ONED_matrix_save( matrix X , char *fname )
      for( ii=0 ; ii < nx ; ii++ ) xar[ii+jj*nx] = X.elts[ii][jj] ;
 
    mri_write_1D(fname,xim) ; mri_free(xim) ;
+   if( verb ) fprintf(stderr,"++ Wrote matrix values to file %s\n",fname) ;
    return ;
 }
 
