@@ -1447,3 +1447,6 @@
 28 Mar 2006:
   * modified vol2surf.c, plug_vol2surf.c: fixed mode computation
 
+28 Mar 2006:
+  * modified model_michaelis_menton.c: added mag(nitude) parameter
+
