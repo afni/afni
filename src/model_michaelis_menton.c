@@ -34,7 +34,7 @@ void signal_model
 int compute_ts( float * rtimes, float * rates, int nrates,
                 float * ts_cp, int ts_len,
                 float dt, float ** ts_times,
-                float v, float vmax, float k12, float k21, float km );
+                float v, float vmax, float k12, float k21, float mag, float km);
 int get_init_data( float ** rtime, float ** rates, int * len, float * dt );
 
 static int debug = 0;
@@ -54,19 +54,21 @@ MODEL_interface * initialize_model ()
 
     strcpy(M->label, "michaelis_menton");  /* Michaelis/Menten model    */
     M->model_type = MODEL_SIGNAL_TYPE;     /* signal model (not noise)  */
-    M->params = 4;                         /* number of user parameters */
+    M->params = 5;                         /* number of user parameters */
 
     /* set param labels */
     strcpy(M->plabel[0], "v");
     strcpy(M->plabel[1], "vmax");
     strcpy(M->plabel[2], "k12");
     strcpy(M->plabel[3], "k21");
+    strcpy(M->plabel[4], "mag");
 
     /* min and max constraints will default to the expected mean +/- 20% */
     M->min_constr[0] = 120.000;  M->max_constr[0] = 180.000;  /* mean 150  */
     M->min_constr[1] =   0.880;  M->max_constr[1] =   1.320;  /* mean 1.1  */
     M->min_constr[2] =   0.056;  M->max_constr[2] =   0.084;  /* mean 0.07 */
     M->min_constr[3] =   0.040;  M->max_constr[3] =   0.060;  /* mean 0.05 */
+    M->min_constr[4] =   0.080;  M->max_constr[4] =   0.120;  /* mean 0.1  */
   
     M->call_func = &signal_model; /* set the signal model generator callback */
 
@@ -120,7 +122,7 @@ void signal_model (
     }
 
     compute_ts( rtime, rates, rlen, ts_array, ts_len, dt, x_array,
-                params[0], params[1], params[2], params[3], km );
+                params[0], params[1], params[2], params[3], params[4], km );
 }
 
 
@@ -141,7 +143,7 @@ void signal_model (
 int compute_ts( float * rtimes, float * rates, int nrates,
                 float * ts_cp, int ts_len, /* result and length */
                 float dt, float ** ts_times, /* times are in column 1 */
-                float v, float vmax, float k12, float k21, float km )
+                float v, float vmax, float k12, float k21, float mag, float km)
 {
     /* computation variables */
     double ct = 0.0, cp = 0.0;      /* cur values       */
@@ -189,7 +191,7 @@ int compute_ts( float * rtimes, float * rates, int nrates,
             }
         }
 
-        ts_cp[itr] = cp;
+        ts_cp[itr] = cp * mag;
     }
 
     return 0;
