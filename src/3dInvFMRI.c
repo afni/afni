@@ -10,6 +10,7 @@ int main( int argc , char *argv[] )
    int nt=0 , nxyz=0 , nvox=0 , nparam=0 , nqbase , polort=0 , ii,jj,kk,bb ;
    byte *mask=NULL ; int nmask=0 , iarg ;
    char *fname_out="-" ;   /** equiv to stdout **/
+   float alpha=0.0f ;
 
    /**--- help the pitiful user? ---**/
 
@@ -42,6 +43,10 @@ int main( int argc , char *argv[] )
       "\n"
       " -out vvv   = Name of 1D output file will be 'vvv'.\n"
       "                [default = '-', which is stdout]\n"
+      "\n"
+      " -alpha aa  = Set the 'alpha' factor to 'aa'; alpha is used to penalize\n"
+      "                large values of the output vectors.  Default is 0.\n"
+      "                A large-ish value for alpha would be 0.1.\n"
       "\n"
       "METHOD:\n"
       " Formulate the problem as\n"
@@ -83,6 +88,14 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
    while( iarg < argc ){
+
+     if( strcmp(argv[iarg],"-alpha") == 0 ){
+       alpha = (float)strtod(argv[++iarg],NULL) ;
+       if( alpha <= 0.0f ){
+         alpha = 0.0f ; WARNING_message("-alpha '%s' ignored!",argv[iarg]) ;
+       }
+       iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-data") == 0 || strcmp(argv[iarg],"-input") == 0 ){
        if( yset != NULL ) ERROR_exit("Can't input 2 3D+time datasets") ;
@@ -226,7 +239,7 @@ int main( int argc , char *argv[] )
 
      INFO_message("Computing pseudo-inverse of baseline matrix F") ;
 
-     pfim = mri_matrix_psinv( fim , NULL ) ; par = MRI_FLOAT_PTR(pfim) ;
+     pfim = mri_matrix_psinv(fim,NULL,0.0f) ; par = MRI_FLOAT_PTR(pfim) ;
 
 #undef  P
 #define P(i,j) par[(i)+(j)*nqbase]   /* nqbase X nt */
@@ -287,7 +300,7 @@ int main( int argc , char *argv[] )
 
    INFO_message("Computing pseudo-inverse of A") ;
 
-   pfim = mri_matrix_psinv( aim , NULL ) ;  /* nparam X nvox */
+   pfim = mri_matrix_psinv(aim,NULL,alpha) ;  /* nparam X nvox */
    if( pfim == NULL ) ERROR_exit("mri_matrix_psinv() fails") ;
    mri_free(aim) ;
 
