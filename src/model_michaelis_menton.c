@@ -102,6 +102,10 @@ void signal_model (
     {
         if( get_init_data( &rtime, &rates, &rlen, &dt ) != 0 )
             exit(1); /* bad things, man, bad things */
+        if( debug )
+            fprintf(stderr,"+d init params (v, vmax, k12, k21, mag)\n"
+                           "             = (%f, %f, %f, %f, %f)\n",
+                    params[0], params[1], params[2], params[3], params[4]);
         if( debug > 2 )
         {
             int c;
