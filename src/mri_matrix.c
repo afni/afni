@@ -149,13 +149,18 @@ void mri_matrix_psinv_svd( int i ){ force_svd = i; }
     the weighted least squares problem
       [imc] [b] = [v]
     where [b] is an n-vector and [v] is an m-vector, where m > n.
+    If alpha > 0, then the actual matrix calculated is
+                          -1
+      [imc' imc + alpha I]   imc'    (where ' = transpose)
+
+    This can be used to solve the penalized least squares problem.
 -------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_matrix_psinv( MRI_IMAGE *imc , float *wt )
+MRI_IMAGE * mri_matrix_psinv( MRI_IMAGE *imc , float *wt , float alpha )
 {
    float *rmat ;
    int m , n , ii,jj,kk ;
-   double *amat , *umat , *vmat , *sval , *xfac , smax,del,ww ;
+   double *amat , *umat , *vmat , *sval , *xfac , smax,del,ww , alp ;
    MRI_IMAGE *imp=NULL ; float *pmat ;
    register double sum ;
    int do_svd= (force_svd || AFNI_yesenv("AFNI_PSINV_SVD")) ;
@@ -169,6 +174,11 @@ ENTRY("mri_matrix_psinv") ;
    amat = (double *)calloc( sizeof(double),m*n ) ;  /* input matrix */
    xfac = (double *)calloc( sizeof(double),n   ) ;  /* column norms of [a] */
 
+#undef  PSINV_EPS
+#define PSINV_EPS 1.e-8
+
+   alp  = (alpha <= 0.0f) ? PSINV_EPS : (double)alpha ;
+
 #undef  R
 #undef  A
 #undef  P
@@ -179,9 +189,6 @@ ENTRY("mri_matrix_psinv") ;
 #define P(i,j) pmat[(i)+(j)*n]   /* i=0..n-1 , j=0..m-1 */
 #define U(i,j) umat[(i)+(j)*m]
 #define V(i,j) vmat[(i)+(j)*n]
-
-#undef  PSINV_EPS
-#define PSINV_EPS 1.e-8
 
    /* copy input matrix into amat */
 
@@ -221,7 +228,7 @@ ENTRY("mri_matrix_psinv") ;
        for( kk=0 ; kk < m ; kk++ ) sum += A(kk,ii) * A(kk,jj) ;
        V(ii,jj) = sum ;
      }
-     V(ii,ii) += PSINV_EPS ;   /* note V(ii,ii)==1 before this */
+     V(ii,ii) += alp ;   /* note V(ii,ii)==1 before this */
    }
 
    /* Choleski factor V in place */
@@ -269,8 +276,10 @@ ENTRY("mri_matrix_psinv") ;
 
   SVD_PLACE:
 
-     umat = (double *)calloc( sizeof(double),m*n ); /* left singular vectors */
+#if 0
      vmat = (double *)calloc( sizeof(double),n*n ); /* right singular vectors */
+#endif
+     umat = (double *)calloc( sizeof(double),m*n ); /* left singular vectors */
      sval = (double *)calloc( sizeof(double),n   ); /* singular values */
 
      /* compute SVD of scaled matrix */
@@ -295,7 +304,7 @@ ENTRY("mri_matrix_psinv") ;
 
      /* "reciprocals" of singular values:  1/s is actually s/(s^2+del) */
 
-     del = PSINV_EPS * smax*smax ;
+     del = PSINV_EPS * smax*smax ; if( del < alp ) del = alp ;
      for( ii=0 ; ii < n ; ii++ )
        sval[ii] = sval[ii] / ( sval[ii]*sval[ii] + del ) ;
 
