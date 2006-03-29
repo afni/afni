@@ -5837,3 +5837,7 @@
 28 Mar 2006
  * Modify 3dDeconvolve.c to set ival=-1 on various inputs, before
      sscanf()-ing it, so that bad values give error messages.
+ * Also add -x1D option to 3dDeconvolve.c, to save X matrix to a .1D file.
+
+29 Mar 2006
+ * First version of 3dInvFMRI.c.

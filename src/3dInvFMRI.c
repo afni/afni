@@ -56,16 +56,19 @@ int main( int argc , char *argv[] )
       "       p = number of stimulus time series to estimate\n"
       "         = number of paramters in -map file\n"
       "       q = number of baseline parameters\n"
-      " The solution is given by\n"
-      "                  -1             -1\n"
+      " The least squares solution is given by\n"
+      "                   -1             -1\n"
       "   V0 = [I - F(F'F)  F'] Y A (A'A)\n"
       "\n"
-      " Technically, the solution is unidenfiable up to an arbitrary\n"
+      " This solution minimizes the sum of squares over the N*M elements\n"
+      " of the matrix   Y - V A' + F C'   (N.B.: A' means A-transpose).\n"
+      "\n"
+      " Technically, the solution is unidentfiable up to an arbitrary\n"
       " multiple of the columns of F (i.e., V = V0 + F G, where G is\n"
       " an arbitrary q x p matrix); the solution above is the solution\n"
       " that is orthogonal to the columns of F.\n"
       "\n"
-      "-- RWCox - March 2006\n"
+      "-- RWCox - March 2006 - purely for experimental purposes!\n"
      ) ;
      exit(0) ;
    }
@@ -178,12 +181,12 @@ int main( int argc , char *argv[] )
    INFO_message("q = number of baselines = %d",nqbase) ;
 
 #undef  F
-#define F(i,j) flar[(i)+(j)*nt]
+#define F(i,j) flar[(i)+(j)*nt]   /* nt X nqbase */
    if( nqbase > 0 ){
      fim  = mri_new( nt , nqbase , MRI_float ) ;
      flar = MRI_FLOAT_PTR(fim) ;
      bb = 0 ;
-     if( polort >= 0 ){
+     if( polort >= 0 ){                /** load polynomial baseline **/
        double a = 2.0/(nt-1.0) ;
        for( jj=0 ; jj <= polort ; jj++ ){
          for( ii=0 ; ii < nt ; ii++ )
@@ -192,8 +195,9 @@ int main( int argc , char *argv[] )
        bb = polort+1 ;
      }
 #undef  Q
-#define Q(i,j) qar[(i)+(j)*qim->nx]
-     if( fimar != NULL ){
+#define Q(i,j) qar[(i)+(j)*qim->nx]  /* qim->nx X qim->ny */
+
+     if( fimar != NULL ){             /** load -base baseline columns **/
        for( kk=0 ; kk < IMARR_COUNT(fimar) ; kk++ ){
          qim = IMARR_SUBIMAGE(fimar,kk) ; qar = MRI_FLOAT_PTR(qim) ;
          for( jj=0 ; jj < qim->ny ; jj++ ){
@@ -205,7 +209,7 @@ int main( int argc , char *argv[] )
        DESTROY_IMARR(fimar) ; fimar=NULL ;
      }
 
-     /* remove mean from each column after first */
+     /* remove mean from each column after first? */
 
      if( polort >= 0 && nqbase > 1 ){
        float sum ;
@@ -223,11 +227,12 @@ int main( int argc , char *argv[] )
      INFO_message("Computing pseudo-inverse of baseline matrix F") ;
 
      pfim = mri_matrix_psinv( fim , NULL ) ; par = MRI_FLOAT_PTR(pfim) ;
+
 #undef  P
 #define P(i,j) par[(i)+(j)*nqbase]   /* nqbase X nt */
 
-#if 1
-     qim = mri_matrix_transpose(pfim) ;
+#if 0
+     qim = mri_matrix_transpose(pfim) ;    /** save to disk? **/
      mri_write_1D( "Fpsinv.1D" , qim ) ;
      mri_free(qim) ;
 #endif
@@ -248,6 +253,7 @@ int main( int argc , char *argv[] )
      for( ii=kk=0 ; ii < nxyz ; ii++ ){
        if( GOOD(ii) ){ A(kk,jj) = THD_get_voxel(aset,ii,jj); kk++; }
    }}
+   DSET_unload(aset) ;
 
    /**--- set up data image into yim/yar ---**/
 
@@ -263,7 +269,7 @@ int main( int argc , char *argv[] )
    }}
    DSET_unload(yset) ;
 
-   /**--- filter data image by baseline ---**/
+   /**--- project baseline out of data image ---**/
 
    if( pfim != NULL ){
 #undef  T
@@ -271,9 +277,9 @@ int main( int argc , char *argv[] )
      INFO_message("Projecting baseline out of Y") ;
      qim = mri_matrix_mult( pfim , yim ) ;   /* nqbase X nvox */
      tim = mri_matrix_mult(  fim , qim ) ;   /* nt X nvox */
-     tar = MRI_FLOAT_PTR(tim) ;
-     for( jj=0 ; jj < nt ; jj++ )
-       for( ii=0 ; ii < nvox ; ii++ ) Y(ii,jj) -= T(ii,jj) ;
+     tar = MRI_FLOAT_PTR(tim) ;              /* Y projected onto baseline */
+     for( jj=0 ; jj < nvox ; jj++ )
+       for( ii=0 ; ii < nt ; ii++ ) Y(ii,jj) -= T(ii,jj) ;
      mri_free(tim); mri_free(qim); mri_free(pfim); mri_free(fim);
    }
 
@@ -283,16 +289,16 @@ int main( int argc , char *argv[] )
 
    pfim = mri_matrix_psinv( aim , NULL ) ;  /* nparam X nvox */
    if( pfim == NULL ) ERROR_exit("mri_matrix_psinv() fails") ;
+   mri_free(aim) ;
 
    /**--- and apply to data to get results ---*/
 
    INFO_message("Computing result") ;
 
    tim = mri_matrix_multranB( yim , pfim ) ; /* nt x nparam */
+   mri_free(pfim) ; mri_free(yim) ;
 
-   /**--- cleanup and write results ---**/
-
-   mri_free(pfim) ; mri_free(yim) ; mri_free(aim) ;
+   /**--- write results ---**/
 
    INFO_message("Writing result to '%s'",fname_out) ;
 
