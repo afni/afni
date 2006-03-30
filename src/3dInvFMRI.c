@@ -1,5 +1,10 @@
 #include "mrilib.h"
 
+static void linear_filter_reflect( int ntap, float *wt, int npt, float *x ) ;
+static void median5_filter_reflect( int npt, float *x ) ;
+
+/*-------------------------------------------------------------------------*/
+
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *yset=NULL , *aset=NULL , *mset=NULL ;
@@ -11,6 +16,8 @@ int main( int argc , char *argv[] )
    byte *mask=NULL ; int nmask=0 , iarg ;
    char *fname_out="-" ;   /** equiv to stdout **/
    float alpha=0.0f ;
+   int   nfir =0 ; float firwt[5]={0.09f,0.25f,0.32f,0.25f,0.09f} ;
+   int   nmed =0 ;
 
    /**--- help the pitiful user? ---**/
 
@@ -47,6 +54,9 @@ int main( int argc , char *argv[] )
       " -alpha aa  = Set the 'alpha' factor to 'aa'; alpha is used to penalize\n"
       "                large values of the output vectors.  Default is 0.\n"
       "                A large-ish value for alpha would be 0.1.\n"
+      "\n"
+      " -fir5     = Smooth the results with a 5 point lowpass FIR filter.\n"
+      " -median5  = Smooth the results with a 5 point median filter.\n"
       "\n"
       "METHOD:\n"
       " Formulate the problem as\n"
@@ -88,6 +98,18 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
    while( iarg < argc ){
+
+     if( strcmp(argv[iarg],"-fir5") == 0 ){
+       if( nmed > 0 ) WARNING_message("Ignoring -fir5 in favor of -median5") ;
+       else           nfir = 5 ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-median5") == 0 ){
+       if( nfir > 0 ) WARNING_message("Ignoring -median5 in favor of -fir5") ;
+       else           nmed = 5 ;
+       iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-alpha") == 0 ){
        alpha = (float)strtod(argv[++iarg],NULL) ;
@@ -311,10 +333,96 @@ int main( int argc , char *argv[] )
    tim = mri_matrix_multranB( yim , pfim ) ; /* nt x nparam */
    mri_free(pfim) ; mri_free(yim) ;
 
+   /**--- smooth? ---**/
+
+   if( nfir > 0 && tim->nx > nfir ){
+     INFO_message("FIR-5-ing result") ;
+     tar = MRI_FLOAT_PTR(tim) ;
+     for( jj=0 ; jj < tim->ny ; jj++ )
+       linear_filter_reflect( nfir,firwt , tim->nx , tar + (jj*tim->nx) ) ;
+   }
+
+   if( nmed > 0 && tim->nx > nmed ){
+     INFO_message("Median-5-ing result") ;
+     tar = MRI_FLOAT_PTR(tim) ;
+     for( jj=0 ; jj < tim->ny ; jj++ )
+       median5_filter_reflect( tim->nx , tar + (jj*tim->nx) ) ;
+   }
+
    /**--- write results ---**/
 
    INFO_message("Writing result to '%s'",fname_out) ;
 
    mri_write_1D( fname_out , tim ) ;
    exit(0) ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void linear_filter_reflect( int ntap, float *wt, int npt, float *x )
+{
+   int ii , nt2=(ntap-1)/2 , jj , np1=npt-1 , np2=2*(npt-1) ;
+   register float sum ;
+   static int nfar=0 ;
+   static float *far=NULL ;
+
+   if( ntap >= npt || wt == NULL || x == NULL ) return ;
+
+   if( npt > nfar ){
+     if( far != NULL ) free(far) ;
+     far = (float *)malloc(sizeof(float)*npt) ; nfar = npt ;
+   }
+
+#undef  XX
+#define XX(i) ( ((i)<0) ? far[-(i)] : ((i)>np1) ? far[np2-(i)] : far[(i)] )
+
+   memcpy( far , x , sizeof(float)*npt ) ;
+
+   for( ii=0 ; ii < npt ; ii++ ){
+     for( sum=0.0f,jj=0 ; jj < ntap ; jj++ ) sum += wt[jj] * XX(ii-nt2+jj) ;
+     x[ii] = sum ;
+   }
+
+   return ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+#undef  SWAP
+#define SWAP(x,y) (temp=x,x=y,y=temp)
+#undef  SORT2
+#define SORT2(a,b) if(a>b) SWAP(a,b);
+
+static float median_float5(float *p)
+{
+    register float temp ;
+    SORT2(p[0],p[1]) ; SORT2(p[3],p[4]) ; SORT2(p[0],p[3]) ;
+    SORT2(p[1],p[4]) ; SORT2(p[1],p[2]) ; SORT2(p[2],p[3]) ;
+    SORT2(p[1],p[2]) ; return(p[2]) ;
+}
+
+static void median5_filter_reflect( int npt, float *x )
+{
+   int ii ;
+   float p[5] ;
+   static int nfar=0 ;
+   static float *far=NULL ;
+
+   if( x == NULL || npt < 5 ) return ;
+
+   if( npt > nfar ){
+     if( far != NULL ) free(far) ;
+     far = (float *)malloc(sizeof(float)*(npt+4)) ; nfar = npt ;
+   }
+
+   memcpy( far+2 , x , sizeof(float)*npt ) ;
+   far[0] = x[2]; far[1] = x[1]; far[npt+2] = x[npt-2]; far[npt+3] = x[npt-3];
+
+   for( ii=0 ; ii < npt ; ii++ ){
+     p[0] = far[ii]; p[1] = far[ii+1]; p[2] = far[ii+2];
+                     p[3] = far[ii+3]; p[4] = far[ii+4];
+     x[ii] = median_float5(p) ;
+   }
+
+   return ;
 }
