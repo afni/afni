@@ -8,16 +8,21 @@ static void median5_filter_reflect( int npt, float *x ) ;
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *yset=NULL , *aset=NULL , *mset=NULL ;
-   MRI_IMAGE *fim=NULL, *qim,*tim, *pfim=NULL ;
-   float     *flar    , *qar,*tar, *par=NULL ;
+   MRI_IMAGE *fim=NULL, *qim,*tim, *pfim=NULL , *vim ;
+   float     *flar    , *qar,*tar, *par=NULL  , *var ;
    MRI_IMARR *fimar=NULL ;
    MRI_IMAGE *aim , *yim ; float *aar , *yar ;
    int nt=0 , nxyz=0 , nvox=0 , nparam=0 , nqbase , polort=0 , ii,jj,kk,bb ;
    byte *mask=NULL ; int nmask=0 , iarg ;
    char *fname_out="-" ;   /** equiv to stdout **/
+
    float alpha=0.0f ;
    int   nfir =0 ; float firwt[5]={0.09f,0.25f,0.32f,0.25f,0.09f} ;
    int   nmed =0 ;
+
+#define METHOD_C  3
+#define METHOD_K 11
+   int   method = METHOD_C ;
 
    /**--- help the pitiful user? ---**/
 
@@ -26,7 +31,7 @@ int main( int argc , char *argv[] )
       "Usage: 3dInvFMRI [options]\n"
       "Program to compute stimulus time series, given a 3D+time dataset\n"
       "and an activation map (the inverse of the usual FMRI analysis problem).\n"
-      "\n"
+      "-------------------------------------------------------------------\n"
       "OPTIONS:\n"
       "\n"
       " -data yyy  =\n"
@@ -51,16 +56,20 @@ int main( int argc , char *argv[] )
       " -out vvv   = Name of 1D output file will be 'vvv'.\n"
       "                [default = '-', which is stdout]\n"
       "\n"
+      " -method M  = Determines the method to use.  'M' is a single letter:\n"
+      "               -method C = least squares fit to data matrix Y [default]\n"
+      "               -method K = least squares fit to activation matrix A\n"
+      "\n"
       " -alpha aa  = Set the 'alpha' factor to 'aa'; alpha is used to penalize\n"
       "                large values of the output vectors.  Default is 0.\n"
       "                A large-ish value for alpha would be 0.1.\n"
       "\n"
       " -fir5     = Smooth the results with a 5 point lowpass FIR filter.\n"
       " -median5  = Smooth the results with a 5 point median filter.\n"
-      "\n"
-      "METHOD:\n"
+      "-------------------------------------------------------------------\n"
+      "METHODS:\n"
       " Formulate the problem as\n"
-      "    Y = V A' + F C'\n"
+      "    Y = V A' + F C' + errors\n"
       " where Y = data matrix      (N x M) [from -data]\n"
       "       V = stimulus         (N x p) [to -out]\n"
       "       A = map matrix       (M x p) [from -map]\n"
@@ -71,13 +80,27 @@ int main( int argc , char *argv[] )
       "       p = number of stimulus time series to estimate\n"
       "         = number of paramters in -map file\n"
       "       q = number of baseline parameters\n"
-      " The least squares solution is given by\n"
-      "                   -1             -1\n"
-      "   V0 = [I - F(F'F)  F'] Y A (A'A)\n"
+      "   and ' = matrix transpose operator\n"
+      " Next, define matrix Z (Y detrended relative to columns of F) by\n"
+      "                       -1\n"
+      "   Z = [I - F(F'F)  F']  Y\n"
+      "-------------------------------------------------------------------\n"
+      " The method C solution is given by\n"
+      "                 -1\n"
+      "   V0 = Z A [A'A]\n"
       "\n"
       " This solution minimizes the sum of squares over the N*M elements\n"
       " of the matrix   Y - V A' + F C'   (N.B.: A' means A-transpose).\n"
+      "-------------------------------------------------------------------\n"
+      " The method K solution is given by\n"
+      "             -1                            -1\n"
+      "   W = [Z Z']  Z A   and then   V = W [W'W]\n"
       "\n"
+      " This solution minimizes the sum of squares of the difference between\n"
+      " the A(V) predicted from V and the input A, where A(V) is given by\n"
+      "                    -1\n"
+      "   A(V) = Z' V [V'V]   = Z'W\n"
+      "-------------------------------------------------------------------\n"
       " Technically, the solution is unidentfiable up to an arbitrary\n"
       " multiple of the columns of F (i.e., V = V0 + F G, where G is\n"
       " an arbitrary q x p matrix); the solution above is the solution\n"
@@ -98,6 +121,17 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
    while( iarg < argc ){
+
+     if( strcmp(argv[iarg],"-method") == 0 ){
+       switch( argv[++iarg][0] ){
+         default:
+           WARNING_message("Ignoring illegal -method '%s'",argv[iarg]) ;
+         break ;
+         case 'C': method = METHOD_C ; break ;
+         case 'K': method = METHOD_K ; break ;
+       }
+       iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-fir5") == 0 ){
        if( nmed > 0 ) WARNING_message("Ignoring -fir5 in favor of -median5") ;
@@ -218,7 +252,7 @@ int main( int argc , char *argv[] )
 #undef  F
 #define F(i,j) flar[(i)+(j)*nt]   /* nt X nqbase */
    if( nqbase > 0 ){
-     fim  = mri_new( nt , nqbase , MRI_float ) ;
+     fim  = mri_new( nt , nqbase , MRI_float ) ;   /* F matrix */
      flar = MRI_FLOAT_PTR(fim) ;
      bb = 0 ;
      if( polort >= 0 ){                /** load polynomial baseline **/
@@ -259,8 +293,10 @@ int main( int argc , char *argv[] )
      /* compute pseudo-inverse of baseline matrix,
         so we can project it out from the data time series */
 
-     INFO_message("Computing pseudo-inverse of baseline matrix F") ;
+     /*      -1          */
+     /* (F'F)  F' matrix */
 
+     INFO_message("Computing pseudo-inverse of baseline matrix F") ;
      pfim = mri_matrix_psinv(fim,NULL,0.0f) ; par = MRI_FLOAT_PTR(pfim) ;
 
 #undef  P
@@ -273,7 +309,7 @@ int main( int argc , char *argv[] )
 #endif
    }
 
-   /**--- set up map image into aim/aar ---**/
+   /**--- set up map image into aim/aar = A matrix ---**/
 
 #undef  GOOD
 #define GOOD(i) (mask==NULL || mask[i])
@@ -282,7 +318,6 @@ int main( int argc , char *argv[] )
 #define A(i,j) aar[(i)+(j)*nvox]   /* nvox X nparam */
 
    INFO_message("Loading map matrix A") ;
-
    aim = mri_new( nvox , nparam , MRI_float ); aar = MRI_FLOAT_PTR(aim);
    for( jj=0 ; jj < nparam ; jj++ ){
      for( ii=kk=0 ; ii < nxyz ; ii++ ){
@@ -290,13 +325,12 @@ int main( int argc , char *argv[] )
    }}
    DSET_unload(aset) ;
 
-   /**--- set up data image into yim/yar ---**/
+   /**--- set up data image into yim/yar = Y matrix ---**/
 
 #undef  Y
 #define Y(i,j) yar[(i)+(j)*nt]   /* nt X nvox */
 
    INFO_message("Loading data matrix Y") ;
-
    yim = mri_new( nt , nvox , MRI_float ); yar = MRI_FLOAT_PTR(yim);
    for( ii=0 ; ii < nt ; ii++ ){
      for( jj=kk=0 ; jj < nxyz ; jj++ ){
@@ -304,7 +338,7 @@ int main( int argc , char *argv[] )
    }}
    DSET_unload(yset) ;
 
-   /**--- project baseline out of data image ---**/
+   /**--- project baseline out of data image = Z matrix ---**/
 
    if( pfim != NULL ){
 #undef  T
@@ -318,42 +352,70 @@ int main( int argc , char *argv[] )
      mri_free(tim); mri_free(qim); mri_free(pfim); mri_free(fim);
    }
 
-   /**--- compute pseudo-inverse of map ---**/
+   /***** At this point:
+             matrix A is in aim,
+             matrix Z is in yim.
+          Solve for V into vim, using the chosen method *****/
 
-   INFO_message("Computing pseudo-inverse of A") ;
+   switch( method ){
+     default: ERROR_exit("Illegal method code!  WTF?") ; /* Huh? */
 
-   pfim = mri_matrix_psinv(aim,NULL,alpha) ;  /* nparam X nvox */
-   if( pfim == NULL ) ERROR_exit("mri_matrix_psinv() fails") ;
-   mri_free(aim) ;
+     /*.....................................................................*/
+     case METHOD_C:
+       /**--- compute pseudo-inverse of A map ---**/
 
-   /**--- and apply to data to get results ---*/
+       INFO_message("Method C: Computing pseudo-inverse of A") ;
+       pfim = mri_matrix_psinv(aim,NULL,alpha) ;  /* nparam X nvox */
+       if( pfim == NULL ) ERROR_exit("mri_matrix_psinv() fails") ;
+       mri_free(aim) ;
 
-   INFO_message("Computing result") ;
+       /**--- and apply to data to get results ---*/
 
-   tim = mri_matrix_multranB( yim , pfim ) ; /* nt x nparam */
-   mri_free(pfim) ; mri_free(yim) ;
+       INFO_message("Computing result V") ;
+       vim = mri_matrix_multranB( yim , pfim ) ; /* nt x nparam */
+       mri_free(pfim) ; mri_free(yim) ;
+     break ;
+
+     /*.....................................................................*/
+     case METHOD_K:
+       /**--- compute pseudo-inverse of transposed Z ---*/
+
+       INFO_message("Method K: Computing pseudo-inverse of Z'") ;
+       tim  = mri_matrix_transpose(yim)        ; mri_free(yim) ;
+       pfim = mri_matrix_psinv(tim,NULL,alpha) ; mri_free(tim) ;
+       if( pfim == NULL ) ERROR_exit("mri_matrix_psinv() fails") ;
+
+       INFO_message("Computing W") ;
+       tim = mri_matrix_mult( pfim , aim ) ;
+       mri_free(aim) ; mri_free(pfim) ;
+
+       INFO_message("Computing result V") ;
+       pfim = mri_matrix_psinv(tim,NULL,0.0f) ; mri_free(tim) ;
+       vim  = mri_matrix_transpose(pfim)      ; mri_free(pfim);
+     break ;
+
+   } /* end of switch on method */
 
    /**--- smooth? ---**/
 
-   if( nfir > 0 && tim->nx > nfir ){
+   if( nfir > 0 && vim->nx > nfir ){
      INFO_message("FIR-5-ing result") ;
-     tar = MRI_FLOAT_PTR(tim) ;
-     for( jj=0 ; jj < tim->ny ; jj++ )
-       linear_filter_reflect( nfir,firwt , tim->nx , tar + (jj*tim->nx) ) ;
+     var = MRI_FLOAT_PTR(vim) ;
+     for( jj=0 ; jj < vim->ny ; jj++ )
+       linear_filter_reflect( nfir,firwt , vim->nx , var + (jj*vim->nx) ) ;
    }
 
-   if( nmed > 0 && tim->nx > nmed ){
+   if( nmed > 0 && vim->nx > nmed ){
      INFO_message("Median-5-ing result") ;
-     tar = MRI_FLOAT_PTR(tim) ;
-     for( jj=0 ; jj < tim->ny ; jj++ )
-       median5_filter_reflect( tim->nx , tar + (jj*tim->nx) ) ;
+     var = MRI_FLOAT_PTR(vim) ;
+     for( jj=0 ; jj < vim->ny ; jj++ )
+       median5_filter_reflect( vim->nx , var + (jj*vim->nx) ) ;
    }
 
    /**--- write results ---**/
 
    INFO_message("Writing result to '%s'",fname_out) ;
-
-   mri_write_1D( fname_out , tim ) ;
+   mri_write_1D( fname_out , vim ) ;
    exit(0) ;
 }
 
