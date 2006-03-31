@@ -209,9 +209,11 @@ int main( int argc , char *argv[] )
    if( DSET_NVOX(aset) != nxyz )
      ERROR_exit("Grid mismatch between -data and -map") ;
 
+   INFO_message("Loading dataset for Y") ;
    DSET_load(yset);
    if( !DSET_LOADED(yset) )
      ERROR_exit("Can't load dataset '%s'",DSET_BRIKNAME(yset)) ;
+   INFO_message("Loading dataset for A") ;
    DSET_load(aset);
    if( !DSET_LOADED(aset) )
      ERROR_exit("Can't load dataset '%s'",DSET_BRIKNAME(aset)) ;
@@ -219,6 +221,7 @@ int main( int argc , char *argv[] )
    if( mset != NULL ){
      if( DSET_NVOX(mset) != nxyz )
        ERROR_exit("Grid mismatch between -data and -mask") ;
+     INFO_message("Loading dataset for mask") ;
      DSET_load(mset);
      if( !DSET_LOADED(mset) )
        ERROR_exit("Can't load dataset '%s'",DSET_BRIKNAME(mset)) ;
@@ -230,23 +233,23 @@ int main( int argc , char *argv[] )
      }
    }
 
+   nvox = (nmask > 0) ? nmask : nxyz ;
+   INFO_message("N = time series length  = %d",nt    ) ;
+   INFO_message("M = number of voxels    = %d",nvox  ) ;
+   INFO_message("p = number of params    = %d",nparam) ;
+
    /**--- set up baseline funcs in one array ---*/
 
    nqbase = (polort >= 0 ) ? polort+1 : 0 ;
    if( fimar != NULL ){
      for( kk=0 ; kk < IMARR_COUNT(fimar) ; kk++ ){
        qim = IMARR_SUBIMAGE(fimar,kk) ;
-       if( qim->nx != nt )
-         WARNING_message("-base '%s' length=%d; data length=%d",qim->nx,nt) ;
+       if( qim != NULL && qim->nx != nt )
+         WARNING_message("-base #%d length=%d; data length=%d",kk+1,qim->nx,nt) ;
        nqbase += qim->ny ;
      }
    }
 
-   nvox = (nmask > 0) ? nmask : nxyz ;
-
-   INFO_message("N = time series length  = %d",nt    ) ;
-   INFO_message("M = number of voxels    = %d",nvox  ) ;
-   INFO_message("p = number of params    = %d",nparam) ;
    INFO_message("q = number of baselines = %d",nqbase) ;
 
 #undef  F
