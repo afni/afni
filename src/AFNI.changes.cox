@@ -5841,3 +5841,9 @@
 
 29 Mar 2006
  * First version of 3dInvFMRI.c.
+
+31 Mar 2006
+ * to3d.c: if first filename is 'something.img', check if 'something.hdr'
+     exists, and if so, suggest that the .hdr file is more likely to be
+     what they want to input.
+ * Added '-method' and smoothing options to 3dInvFMRI.c.
