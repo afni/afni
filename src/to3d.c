@@ -3947,6 +3947,19 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
 
    /**--- count up the actual number of images into nz ---**/
 
+   /** 31 Mar 2006: check for .img and .hdr goofup [the JW error] **/
+
+   if( STRING_HAS_SUFFIX(gname[0],".img") ){
+     char *hn=strdup(gname[0]) ;
+     strcpy(hn+strlen(hn)-3,"hdr") ;
+     if( THD_is_file(hn) )
+       fprintf(stderr,
+                "++ WARNING: First image filename is '%s',\n"
+                "++ -------  But if it is an ANALYZE or NIfTI-1 file,\n"
+                "++ -------  perhaps you mean to use '%s'.\n" ,
+               gname[0] , hn ) ;
+   }
+
 #ifndef AFNI_DEBUG
    printf("++ Counting images: ");fflush(stdout);
 #endif
@@ -4021,18 +4034,21 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
 #endif
       arr = mri_read_file( gname[0] ) ;
 
-   if( arr == NULL || arr->num == 0 ){
-     fprintf(stderr,"** cannot read first file! ***\n") ; exit(1) ;
-   }
+   if( arr == NULL || arr->num == 0 )
+     ERROR_exit("Cannot read first file '%s'",gname[0]) ;
+
    im = arr->imarr[0] ;
 
    nx = im->nx ;
    ny = im->ny ; npix = nx * ny ;
 
+   printf("++ Each 2D slice is %d X %d pixels\n",nx,ny) ;
+
    /* 05 Feb 2001: set voxel sizes, if available */
 
    if( im->dw > 0.0 ){
-      imdx = im->dx ; imdy = im->dy ; imdz = im->dz ;  /* globals */
+     imdx = im->dx ; imdy = im->dy ; imdz = im->dz ;  /* globals */
+     printf("++ Voxel dimensions: %.4f X %.4f X %.4f mm\n",imdx,imdy,imdz) ;
    }
 
    /**--- use 1st file to set default datum type, if not set already ---**/
@@ -4052,6 +4068,7 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
 
          case MRI_rgb:      argopt.datum_all = MRI_rgb     ; break ;
       }
+      printf("++ Image data type = %s\n",MRI_type_name[argopt.datum_all]) ;
    }
 
    /**--- allocate storage for all slices to be input ---**/
@@ -4059,11 +4076,6 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
    dsize  = mri_datum_size( (MRI_TYPE) argopt.datum_all ) ;
    dbrick = bar = (char*)XtMalloc( dsize * nx * ny * nz ) ;
    nvoxt  = nx * ny * nz ;
-
-#if 0
-printf("T3D_read_images: first file (%s) has nx=%d ny=%d #im=%d\n",
-       gname[0],nx,ny,arr->num) ;
-#endif
 
    /*--- read all files, convert to desired type if needed, put in the brick ---*/
 
@@ -4087,8 +4099,7 @@ printf("T3D_read_images: first file (%s) has nx=%d ny=%d #im=%d\n",
             arr = mri_read_file( gname[lf] ) ;
 
          if( arr == NULL || arr->num == 0 ){
-            fprintf(stderr,"** cannot read file %s\n",gname[lf]) ;
-            exit(1) ;
+           fprintf(stderr,"** cannot read file %s\n",gname[lf]) ; exit(1) ;
          }
 #ifdef AFNI_DEBUG
 printf("T3D_read_images: file %d (%s) has #im=%d\n",lf,gname[lf],arr->num) ;
@@ -4110,9 +4121,13 @@ printf("T3D_read_images: file %d (%s) has #im=%d\n",lf,gname[lf],arr->num) ;
 
          im = arr->imarr[kim] ;
          if( im->nx != nx || im->ny != ny ){
-            fprintf(stderr,"** file %s has nonconforming images: first=%dx%d this=%dx%d\n",
-                   gname[lf] , nx,ny , im->nx,im->ny) ;
-            exit(1) ;
+           fprintf(stderr,
+                     "\n"
+                     "** FATAL ERROR: Image file %s has nonconforming images:\n"
+                     "**              First file was %d X %d\n"
+                     "**              This file  is  %d X %d\n" ,
+                  gname[lf] , nx,ny , im->nx,im->ny) ;
+           exit(1) ;
          }
 
 #ifdef USE_MRI_DELAY
