@@ -3955,8 +3955,8 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
      if( THD_is_file(hn) )
        fprintf(stderr,
                 "++ WARNING: First image filename is '%s',\n"
-                "++ -------  But if it is an ANALYZE or NIfTI-1 file,\n"
-                "++ -------  perhaps you mean to use '%s'.\n" ,
+                "++ -- JW -: But if it is an ANALYZE or NIfTI-1 file,\n"
+                "++ -------: perhaps you mean to use '%s'.\n" ,
                gname[0] , hn ) ;
    }
 
