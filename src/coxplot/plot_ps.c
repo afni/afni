@@ -193,8 +193,8 @@ void ps_space( int ix1 , int iy1 , int ix2 , int iy2 )
   fprintf( psfile , "initgraphics\n");
   fprintf( psfile , "1 setlinewidth\n");
   fprintf( psfile , "66 72 translate\n");
-  scal=480.0/(ix2-ix1);
-  fprintf( psfile , "%f %f scale\n",scal,480.0/(iy2-iy1));
+  scal=468.0/(ix2-ix1);
+  fprintf( psfile , "%f %f scale\n",scal,468.0/(iy2-iy1));
   if (ix1 || iy1) fprintf( psfile , "%d %d translate\n",-ix1, -iy1);
   ps_linemod( "solid" ) ;
   atcur=inpath=font=0;
