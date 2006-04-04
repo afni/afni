@@ -2903,6 +2903,9 @@ void check_for_valid_inputs
 #endif
 
 
+#undef  TMESS
+#define TMESS WARNING_message   /* WARNING_message or ERROR_exit */
+
   /*----- Check whether time lags are reasonable -----*/
   for (is = 0;  is < num_stimts;  is++)
     {
@@ -2913,16 +2916,14 @@ void check_for_valid_inputs
       {
         if (option_data->iresp_filename[is] != NULL)
           {
-            sprintf (message, "Only %d time point for output dataset %s ",
+            TMESS("Only %d time point for output dataset %s",
                    m, option_data->iresp_filename[is]);
-            DC_error (message);
           }
 
         if (option_data->sresp_filename[is] != NULL)
           {
-            sprintf (message, "Only %d time point for output dataset %s",
+            TMESS("Only %d time point for output dataset %s",
                    m, option_data->sresp_filename[is]);
-            DC_error (message);
           }
       }
       if ((m < 4) && (option_data->tshift))
