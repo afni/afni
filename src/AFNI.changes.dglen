@@ -109,4 +109,6 @@
  1D programs. Updated help a bit for 3dmerge.c also.
 22 Feb 2006
  * additional help updates for 1deval
+3 Apr 2006 
+ * various fixes for Draw Dataset plug-in (datum check and label errors)
  
