@@ -47,6 +47,9 @@ void DRAW_2dfiller( int nx , int ny , int ix , int jy , byte * ar ) ;
 
 void DRAW_saveas_finalize_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 
+static int Check_value(void);
+static void Sensitize_copy_bbox(int);
+
 static void DRAW_2D_expand( int, int *, int *, int *, int, int *, int ** ) ;  /* 07 Oct 2002 */
 static void DRAW_3D_expand( int, int *, int *, int *, int, int *, int ** ) ;  /* 07 Oct 2002 */
 
@@ -409,6 +412,7 @@ char * DRAW_main( PLUGIN_interface * plint )
 
    SENSITIZE(save_pb,0) ; SENSITIZE(saveas_pb,0) ;
    SENSITIZE(choose_pb,1) ;
+   Sensitize_copy_bbox(1);
 
    /* 19 Nov 2003: new undo/redo stuff */
 
@@ -553,7 +557,6 @@ void DRAW_make_widgets(void)
                            "Make copy of dataset on input?" ) ;
 
      /*** arrowvals to let user choose Copy method ***/
-
      copy_mode_av = new_MCW_optmenu( rc , NULL ,
                                      0 , 1 , 1 , 0 , NULL,NULL ,
                                      MCW_av_substring_CB , cmode_label ) ;
@@ -582,23 +585,25 @@ void DRAW_make_widgets(void)
      MCW_reghint_children( copy_datum_av->wrowcol ,
                            "Data storage type for copy" ) ;
      MCW_reghelp_children( copy_datum_av->wrowcol ,
-                           "Data storage type for copy:\n"
+                           "Data storage type for zero-filled copy:\n"
                            "As Is => use data type in input dataset\n"
                            "Byte  => store new dataset as bytes\n"
                            "Short => store new dataset as shorts\n"
-                           "Float => store new dataset as floats"   ) ;
+                           "Float => store new dataset as floats") ;
 
-     AV_SENSITIZE( copy_mode_av , False ) ;
-     AV_SENSITIZE( copy_type_av , False ) ;
-     AV_SENSITIZE( copy_datum_av, False ) ;
+     MCW_set_bbox(copy_bbox, 1); /* turn copy on by default - drg 4/3/2006 */
 
+     AV_SENSITIZE( copy_mode_av , True ) ;
+     AV_SENSITIZE( copy_type_av , True ) ;
+     AV_SENSITIZE( copy_datum_av, True ) ;
+     
      XtManageChild(rc) ;
 
    } /* end of Copy mode stuff */
 
    /*** button to let user choose dataset to edit ***/
 
-   xstr = XmStringCreateLtoR( "Choose Dataset on Which to Draw" , XmFONTLIST_DEFAULT_TAG ) ;
+   xstr = XmStringCreateLtoR( "Choose dataset for copying" , XmFONTLIST_DEFAULT_TAG ) ;
    choose_pb = XtVaCreateManagedWidget(
                   "AFNI" , xmPushButtonWidgetClass , rowcol ,
                      XmNlabelString , xstr ,
@@ -984,8 +989,35 @@ void DRAW_copy_bbox_CB( Widget w, XtPointer client_data, XtPointer call_data )
    AV_SENSITIZE( copy_mode_av , sens ) ;
    AV_SENSITIZE( copy_type_av , sens ) ;
    AV_SENSITIZE( copy_datum_av, sens ) ;
+   if(sens)
+      MCW_set_widget_label( choose_pb , "Choose dataset for copying" );
+   else
+      MCW_set_widget_label( choose_pb , "Choose dataset to change" );
+   
    return ;
 }
+
+/*
+  turn on or off copy dataset check box and related buttons 
+*/
+static void 
+Sensitize_copy_bbox(int  sens) 
+{
+   XtPointer clienttemp; 
+
+   SENSITIZE(copy_bbox->wbut[0], sens);
+   SENSITIZE(copy_bbox->wbut[1], sens);
+   /* dummy pointers passed */
+   if(sens) 
+      DRAW_copy_bbox_CB(copy_bbox->wbut[0], clienttemp, clienttemp);
+  else
+   {
+      AV_SENSITIZE( copy_mode_av , 0 ) ;
+      AV_SENSITIZE( copy_type_av , 0 ) ;
+      AV_SENSITIZE( copy_datum_av, 0 ) ;
+   }
+}
+   
 
 /*-------------------------------------------------------------------
   Callback for done button
@@ -1107,7 +1139,7 @@ void DRAW_save_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    DRAW_attach_dtable( vl_dtable, "VALUE_LABEL_DTABLE",  dset ) ;
    DSET_write(dset) ; dset_changed = 0 ; SENSITIZE(choose_pb,1) ;
-
+   Sensitize_copy_bbox(1);   /* turn copy dataset widgets back on  - drg 4/4/2006 */
    MCW_invert_widget(save_pb) ;
    SENSITIZE(save_pb,0) ; SENSITIZE(saveas_pb,0) ;
    return ;
@@ -1200,6 +1232,8 @@ void DRAW_saveas_finalize_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    dset_changed = 0 ; SENSITIZE(choose_pb,1) ;
    MCW_invert_widget(saveas_pb) ;
    SENSITIZE(save_pb,0) ; SENSITIZE(saveas_pb,0) ;
+   Sensitize_copy_bbox(1); 
+
    return ;
 }
 
@@ -1678,6 +1712,7 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs *cbs )
    dset_idc = dset->idcode ;   /* 31 Mar 1999 */
 
    SENSITIZE(save_pb,0) ; SENSITIZE(saveas_pb,0) ;
+   Sensitize_copy_bbox(0); 
 
    /*-- write the informational label --*/
 
@@ -1806,13 +1841,104 @@ void DRAW_value_CB( MCW_arrowval * av , XtPointer cd )
    if( value_float != 0.0 ){
      XtSetSensitive( label_label , True ) ;
      XtSetSensitive( label_textf , True ) ;
+     if(Check_value()) {
+/*        value_float = 1.0;
+	av->ival = 1;
+	av->fval = 1.0;
+*/        XtSetSensitive( label_label , False ) ;
+        XtSetSensitive( label_textf , False ) ;
+      }
    } else {
      XtSetSensitive( label_label , False ) ;
      XtSetSensitive( label_textf , False ) ;
    }
+
    DRAW_set_value_label() ;
+
    return ;
 }
+
+/* check if the value in the value field will be changed 
+  once it gets applied to the dataset */
+/* error message is popped up if data value can not be applied*/
+/* also returns 0 for data okay, 1 if can not use the data value */  
+static int Check_value(void)
+{
+   int   ityp;
+   float bfac; 
+   float value_float2, delta;
+   
+   /* sanity check */
+
+   if( dset==NULL) {
+     (void) MCW_popup_message( label_textf , \
+        "Please choose dataset first\n", \
+	 MCW_USER_KILL | MCW_TIMER_KILL) ;
+     PLUTO_beep() ;  
+   
+    return(1) ;
+   }
+   ityp = DSET_BRICK_TYPE(dset,0) ;
+   bfac = DSET_BRICK_FACTOR(dset,0) ;
+   
+   if( bfac == 0.0 ) bfac = 1.0 ;
+
+   switch( ityp ){
+
+      default: fprintf(stderr,"Illegal brick type=%s in AFNI Editor!\n",
+                       MRI_TYPE_name[ityp] ) ;
+		       return(0);
+      break ;
+
+      case MRI_short:{
+        short   val = (short)   (value_float/bfac) ;
+	value_float2 = val * bfac;
+      }
+      break ;
+
+      case MRI_byte:{
+        byte   val = (byte)   (value_float/bfac) ;
+	value_float2 = val * bfac;
+      }
+      break ;
+
+      case MRI_float:{
+        float   val = (value_float/bfac) ;
+	value_float2 = val * bfac;
+      }
+      break ;
+
+      case MRI_complex:{
+        complex   val ;
+        /*static complex cxzero = { 0.0 , 0.0 } ;*/
+
+        val = CMPLX( (value_float/bfac) , 0.0 ) ;
+        return(0);  /* assume everything is okay for complex for now */
+      }
+      break ;
+
+   } /* end of switch on brick type */
+
+   delta = fabs(value_float2 - value_float);
+   if(delta>0.000001) {
+     (void) MCW_popup_message( label_textf , \
+          "**************************************************************\n" \
+	  "This dataset type does not accept this value in this plug-in\n" \
+	  "Use 3D Edit plug-in, 3dcalc or 3dmerge to copy the dataset\n"   \
+	  "to a new datum type.\n"
+          "**************************************************************",\
+	 MCW_USER_KILL | MCW_TIMER_KILL) ;
+     PLUTO_beep() ;
+     AV_assign_fval( value_av ,  value_float2 ) ;
+     value_int   = value_av->ival ;
+     value_float = value_av->fval ;
+     DRAW_set_value_label();  /* reset value and label field to previous entry */
+     return(1);
+   }  
+
+   return(0);
+}
+
 
 /*---------------------------------------------------------------------
   Callbacks and functions for value label and text field [15 Oct 2003]
@@ -1910,9 +2036,11 @@ void DRAW_label_CB( Widget wtex , XtPointer cld, XtPointer cad )
                  " **\n"
                  " ** Value,Label pairs must be unique \n"
                  " *********************************** \n"
-             , str_lab , str_old ) ;
-     (void) MCW_popup_message( label_textf , msg , MCW_USER_KILL ) ;
+             , str_lab , str_old ) ;  
+     /* changed popup to disappear with timer to make it easier to continue */
+     (void) MCW_popup_message( label_textf , msg , MCW_USER_KILL | MCW_TIMER_KILL) ;
      PLUTO_beep() ;
+     DRAW_set_value_label();
      free(str_lab) ; return ;
    }
 
@@ -2440,6 +2568,7 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
    return ;
 }
 
+
 /*--------------------------------------------------------------------------
   Routine to draw into a dataset.
   If yd & zd are NULL, then xd is used as the direct 3D array index,
@@ -2579,6 +2708,7 @@ int DRAW_into_dataset( int np , int *xd , int *yd , int *zd , void *var )
    dset_changed = 1 ;
    SENSITIZE(save_pb,1) ; SENSITIZE(saveas_pb,1) ;
    SENSITIZE(choose_pb,0) ;
+   Sensitize_copy_bbox(0); 
 
    /* save buffer pushed onto appropriate stack */
 
