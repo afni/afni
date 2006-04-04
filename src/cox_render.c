@@ -197,25 +197,32 @@ void CREN_set_interp( void * ah , int mmm )
 void CREN_set_rgbmap( void *ah, int ncol, byte *rmap, byte *gmap, byte *bmap )
 {
    CREN_stuff * ar = (CREN_stuff *) ah ;
-   int ii ;
+   double dsrc, dfac = 1.0;
+   int    ii, isrc;
 
    if( !ISVALID_CREN(ar) ) return ;
-   if( ncol<1 || ncol>128 || rmap==NULL || gmap==NULL || bmap==NULL ) return ;
+   if( ncol<1 || rmap==NULL || gmap==NULL || bmap==NULL ) return ;
 
-   ar->nrgb = ncol ;
+   /* check big ncol separately, NPANE_BIG is now 256  28 Mar 2006 [rickr] */
+   if( ncol > 128 ){
+      dfac = ncol/128.0 ;
+      ar->nrgb = 128 ;
+   } else
+       ar->nrgb = ncol ;
 
    /* copy into rendering struct, and compute intensity of each color */
 
-   for( ii=0 ; ii < ncol ; ii++ ){
-      ar->rmap[ii] = rmap[ii] ;
-      ar->gmap[ii] = gmap[ii] ;
-      ar->bmap[ii] = bmap[ii] ;
-      ar->imap[ii] = (byte)(0.299*rmap[ii]+0.587*gmap[ii]+0.114*bmap[ii]) ;
+   for( ii=0 ; ii < ar->nrgb ; ii++ ){
+      isrc = (int)(dfac * ii);
+      ar->rmap[ii] = rmap[isrc] ;
+      ar->gmap[ii] = gmap[isrc] ;
+      ar->bmap[ii] = bmap[isrc] ;
+      ar->imap[ii] = (byte)(0.299*rmap[isrc]+0.587*gmap[isrc]+0.114*bmap[isrc]);
    }
 
    /* set leftovers to 0 */
 
-   for( ii=ncol ; ii < 128 ; ii++ )
+   for( ii=ar->nrgb ; ii < 128 ; ii++ )
       ar->rmap[ii] = ar->gmap[ii] = ar->bmap[ii] = ar->imap[ii] = 0 ;
 
    return ;
@@ -1114,7 +1121,7 @@ void extract_byte_tsx( int nx , int ny , int nz , byte * vol ,
                v1 = vol[aoff+ijkoff] ;
                v2 = vol[aoff+(ijkoff+dts2)] ;
 #ifdef BECLEVER
-               if( (v1|v2) & 128 != 0 )
+               if( ((v1|v2) & 128) != 0 )
 #else
                if( v1 < 128 && v2 < 128 )
 #endif
@@ -1133,7 +1140,7 @@ void extract_byte_tsx( int nx , int ny , int nz , byte * vol ,
                v3 = vol[aoff+(ijkoff+UL)] ;
                v4 = vol[aoff+(ijkoff+UR)] ;
 #ifdef BECLEVER
-               if( (v1|v2|v3|v4) & 128 != 0 )
+               if( ((v1|v2|v3|v4) & 128) != 0 )
 #else
                if( v1 < 128 && v2 < 128 && v3 < 128 && v4 < 128 )
 #endif
@@ -1218,7 +1225,7 @@ void extract_byte_lix( int nx , int ny , int nz , byte * vol ,
          v3 = vol[aoff+(ijkoff+UL)] ;
          v4 = vol[aoff+(ijkoff+UR)] ;
 #ifdef BECLEVER
-         if( (v1|v2|v3|v4) & 128 != 0 )
+         if( ((v1|v2|v3|v4) & 128) != 0 )
 #else
          if( v1 < 128 && v2 < 128 && v3 < 128 && v4 < 128 )  /* gray */
 #endif

@@ -48,11 +48,9 @@ static char g_cren_hist[] =
  "      - added sneaky (shhhh...) debugging interface\n"
  "           o access via 'dh' in opacity box\n"
  "\n"
- " 1.7  23 October 2002 [rickr]\n"
- "      - incremental rotation is now the default\n"
+ " 1.7  23 October 2002 [rickr] - incremental rotation is now the default\n"
  "\n"
- " 1.8  22 July 2003 [rickr]\n"
- "      - handle bigmode color bar (see v1.8)\n"
+ " 1.8  22 July 2003 [rickr] - handle bigmode color bar (see v1.8)\n"
  "\n"
  " 1.9  27 July 2004 [rickr]\n"
  "      - updated calls to r_new_resam_dset, passing sublist\n"
@@ -60,8 +58,8 @@ static char g_cren_hist[] =
  "      - created printable history through debug interface\n"
  "         (via 'dh', where 'd?' is now debug help\n"
  "\n"
- " 1.9a 22 March 2005 [rickr]\n"
- "      - removed all tabs\n"
+ " 1.9a 22 March 2005 [rickr] - removed all tabs\n"
+ " 1.10  4 April 2006 [rickr] - handle NPANE_BIG > 128 for bigmode\n"
  "\n";
 /***********************************************************************/
 
@@ -4831,7 +4829,6 @@ ENTRY( "RCREND_evaluate" );
 void RCREND_textact_CB( Widget wtex, XtPointer client_data, XtPointer call_data )
 {
    MCW_arrowval * av         = (MCW_arrowval *) client_data ;
-   XmAnyCallbackStruct * cbs = (XmAnyCallbackStruct *) call_data ;
    float sval ;
    int iv ;
 
@@ -6777,7 +6774,6 @@ ENTRY( "RCREND_set_pbar_top_CB" );
 
 void RCREND_finalize_saveim_CB( Widget wcaller, XtPointer cd, MCW_choose_cbs * cbs )
 {
-   Three_D_View *im3d = (Three_D_View *) cd ;
    char *fname , *ptr ;
    int ll , nx=20 , ny=256 ;
    MRI_IMAGE * im ;
@@ -6926,12 +6922,15 @@ ENTRY( "RCREND_reload_func_dset" );
 
    /*--- Load the overlay image with the color overlay index ---*/
 
-   /* bigmode stuff - for computing color index             [v1.8 rickr] */
+   /* bigmode stuff - for computing color index             [v1.8  rickr] */
+   /* if NPANE_BIG > 128, we still need to break this into  [v1.10 rickr] */
+   /*    128 pieces, as only 128 colors are still being                   */
+   /*    mapped in CREN_set_rgbmap()                                      */
    if ( pbar->bigmode )
    {
         btop   = scale_factor / cfac;
         bbot   = (func_posfunc) ? (0) : -btop;
-        bdelta = (btop - bbot) / NPANE_BIG;
+        bdelta = (btop - bbot) / 128;  /* was NPANE_BIG   4 Apr 2006 [rickr] */
    }
    else
    {
@@ -6956,8 +6955,10 @@ ENTRY( "RCREND_reload_func_dset" );
                   ovar[ii] = 0 ;
                } else if ( pbar->bigmode ) {
                    /* since 0 is considered blank, use 1 through 127 */
+                   /* big_scale is used for NPANE_BIG > 128, to map a large
+                      color range down to [1,127]     4 Apr 2006 [rickr] */
                    bindex = (int)( (btop - sar[ii])/bdelta + 1);
-                   RANGE(bindex,1,(NPANE_BIG-1));
+                   RANGE(bindex,1,127);  /* was NPANE_BIG - 1 */
                    if ( CRBM_IS_BLACK_INDEX(bindex) )
                        ovar[ii] = 0;
                    else
@@ -6980,7 +6981,7 @@ ENTRY( "RCREND_reload_func_dset" );
                } else if ( pbar->bigmode ) {
                    /* since 0 is considered blank, use 1 through 127 */
                    bindex = (int)( (btop - sar[ii])/bdelta + 1);
-                   RANGE(bindex,1,(NPANE_BIG-1));
+                   RANGE(bindex,1,127);  /* was NPANE_BIG - 1 */
                    if ( CRBM_IS_BLACK_INDEX(bindex) )
                        ovar[ii] = 0;
                    else
@@ -7007,7 +7008,7 @@ ENTRY( "RCREND_reload_func_dset" );
                } else if ( pbar->bigmode ) {
                    /* since 0 is considered blank, use 1 through 127 */
                    bindex = (int)( (btop - sar[ii])/bdelta + 1);
-                   RANGE(bindex,1,(NPANE_BIG-1));
+                   RANGE(bindex,1,127);  /* was NPANE_BIG - 1 */
                    if ( CRBM_IS_BLACK_INDEX(bindex) )
                        ovar[ii] = 0;
                    else
@@ -7043,7 +7044,7 @@ ENTRY( "RCREND_reload_func_dset" );
                } else if ( pbar->bigmode ) {
                    /* since 0 is considered blank, use 1 through 127 */
                    bindex = (int)( (btop - sar[ii])/bdelta + 1);
-                   RANGE(bindex,1,(NPANE_BIG-1));
+                   RANGE(bindex,1,127);  /* was NPANE_BIG - 1 */
                    if ( CRBM_IS_BLACK_INDEX(bindex) )
                        ovar[ii] = 0;
                    else
@@ -7068,7 +7069,7 @@ ENTRY( "RCREND_reload_func_dset" );
                } else if ( pbar->bigmode ) {
                    /* since 0 is considered blank, use 1 through 127 */
                    bindex = (int)( (btop - sar[ii])/bdelta + 1);
-                   RANGE(bindex,1,(NPANE_BIG-1));
+                   RANGE(bindex,1,127);  /* was NPANE_BIG - 1 */
                    if ( CRBM_IS_BLACK_INDEX(bindex) )
                        ovar[ii] = 0;
                    else
@@ -7097,7 +7098,7 @@ ENTRY( "RCREND_reload_func_dset" );
                } else if ( pbar->bigmode ) {
                    /* since 0 is considered blank, use 1 through 127 */
                    bindex = (int)( (btop - sar[ii])/bdelta + 1);
-                   RANGE(bindex,1,(NPANE_BIG-1));
+                   RANGE(bindex,1,127);  /* was NPANE_BIG - 1 */
                    if ( CRBM_IS_BLACK_INDEX(bindex) )
                        ovar[ii] = 0;
                    else
@@ -9299,7 +9300,6 @@ static void idisp_xhair_pts ( char * note, CR_xhairs * p )
 
 static int draw_xhairs_in_image( CR_xhairs * x, MRI_IMAGE * im )
 {
-    THD_fvec3 * p1, * p2;
     byte        rgb[3] = {0,0,0};
 
 ENTRY( "draw_xhairs_in_image" );
@@ -9443,7 +9443,7 @@ ENTRY( "r_debug_check" );
 static int rd_disp_color_info ( char * str, CR_debug * d, CR_data * crd )
 {
     MCW_pbar * fcb = wfunc_color_pbar;
-    int        c, incr;
+    int        c, incr, half = NPANE_BIG/2;  /* 4 Apr 2006 [rickr] */
 
     if ( str && isdigit(*str) )
         incr = abs(atoi(str));
@@ -9453,11 +9453,12 @@ static int rd_disp_color_info ( char * str, CR_debug * d, CR_data * crd )
     fprintf(stderr,"-- debug color increment: %d\n", incr );
     fprintf(stderr,"-- bigstuff:   r    g    b   +64  r    g    b\n"
                    "              ---  ---  ---      ---  ---  ---\n");
-    for ( c = 0; c < NPANE_BIG/2; c += incr )
+    for ( c = 0; c < half; c += incr )
         fprintf(stderr, "   %3d/%3d:   %3d  %3d  %3d      %3d  %3d  %3d\n",
-          c, c+64,
-          crd->bigstuff.r[c   ], crd->bigstuff.g[c   ], crd->bigstuff.b[c   ],
-          crd->bigstuff.r[c+64], crd->bigstuff.g[c+64], crd->bigstuff.b[c+64]);
+          c, c+half,
+          crd->bigstuff.r[c   ],   crd->bigstuff.g[c   ],
+          crd->bigstuff.b[c   ],   crd->bigstuff.r[c+half],
+          crd->bigstuff.g[c+half], crd->bigstuff.b[c+half]);
 
     fprintf(stderr,"-- fcb: mode, bigmode, num_panes = %d,%d,%d\n",
             fcb->mode, fcb->bigmode, fcb->num_panes );

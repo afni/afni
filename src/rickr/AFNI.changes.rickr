@@ -1450,3 +1450,13 @@
 28 Mar 2006:
   * modified model_michaelis_menton.c: added mag(nitude) parameter
 
+04 Apr 2006:
+  * modified cox_render.c
+      - CREN_set_rgbmap(): if ncol>128, still apply 128 colors
+      - in BECLEVER sections, enclose bitwise and operations in
+        parentheses, as '!=' has higher priority than '&'
+  * modified plug_crender.c
+      - RCREND_reload_func_dset(): use 128 instead of NPANE_BIG to set
+          bdelta, and to apply RANGE to bindex (127)
+      - rd_disp_color_info(), don't assume 128 colors, use NPANE_BIG
+
