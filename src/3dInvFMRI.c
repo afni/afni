@@ -7,9 +7,9 @@ static void median5_filter_reflect( int npt, float *x ) ;
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *yset=NULL , *aset=NULL , *mset=NULL ;
-   MRI_IMAGE *fim=NULL, *qim,*tim, *pfim=NULL , *vim ;
-   float     *flar    , *qar,*tar, *par=NULL  , *var ;
+   THD_3dim_dataset *yset=NULL , *aset=NULL , *mset=NULL , *wset=NULL ;
+   MRI_IMAGE *fim=NULL, *qim,*tim, *pfim=NULL , *vim     , *wim=NULL  ;
+   float     *flar    , *qar,*tar, *par=NULL  , *var     , *war  ;
    MRI_IMARR *fimar=NULL ;
    MRI_IMAGE *aim , *yim ; float *aar , *yar ;
    int nt=0 , nxyz=0 , nvox=0 , nparam=0 , nqbase , polort=0 , ii,jj,kk,bb ;
@@ -19,6 +19,7 @@ int main( int argc , char *argv[] )
    float alpha=0.0f ;
    int   nfir =0 ; float firwt[5]={0.09f,0.25f,0.32f,0.25f,0.09f} ;
    int   nmed =0 ;
+   int   nwt  =0 ;
 
 #define METHOD_C  3
 #define METHOD_K 11
@@ -42,8 +43,15 @@ int main( int argc , char *argv[] )
       "                each sub-brick of which defines the beta weight map for\n"
       "                an unknown stimulus time series [also non-optional].\n"
       "\n"
+      " -mapwt www = Defines a weighting factor to use for each element of\n"
+      "                the map.  The dataset 'www' can have either 1 sub-brick,\n"
+      "                or the same number as in the -map dataset.  In the\n"
+      "                first case, in each voxel, each sub-brick of the map\n"
+      "                gets the same weight in the least squares equations.\n"
+      "                  [default: all weights are 1]\n"
+      "\n"
       " -mask mmm  = Defines a mask dataset, to restrict input voxels from\n"
-      "                -data and -map.\n"
+      "                -data and -map.  [default: all voxels are used]\n"
       "\n"
       " -base fff  = Each column of the 1D file 'fff' defines a baseline time\n"
       "                series; these columns should be the same length as\n"
@@ -54,7 +62,7 @@ int main( int argc , char *argv[] )
       "                To specify no baseline model at all, use '-polort -1'.\n"
       "\n"
       " -out vvv   = Name of 1D output file will be 'vvv'.\n"
-      "                [default = '-', which is stdout]\n"
+      "                [default = '-', which is stdout; probably not good]\n"
       "\n"
       " -method M  = Determines the method to use.  'M' is a single letter:\n"
       "               -method C = least squares fit to data matrix Y [default]\n"
@@ -66,6 +74,7 @@ int main( int argc , char *argv[] )
       "\n"
       " -fir5     = Smooth the results with a 5 point lowpass FIR filter.\n"
       " -median5  = Smooth the results with a 5 point median filter.\n"
+      "               [default: no smoothing; only 1 of these can be used]\n"
       "-------------------------------------------------------------------\n"
       "METHODS:\n"
       " Formulate the problem as\n"
@@ -108,6 +117,63 @@ int main( int argc , char *argv[] )
       "\n"
       "-- RWCox - March 2006 - purely for experimental purposes!\n"
      ) ;
+
+     printf("\n"
+     "===================== EXAMPLE USAGE =====================================\n"
+     "** Step 1: From a training dataset, generate activation map.\n"
+     "  The input dataset has 4 runs, each 108 time points long.  3dDeconvolve\n"
+     "  is used on the first 3 runs (time points 0..323) to generate the\n"
+     "  activation map.  There are two visual stimuli (Complex and Simple).\n"
+     "\n"
+     "  3dDeconvolve -x1D xout_short_two.1D -input rall_vr+orig'[0..323]'   \\\n"
+     "      -num_stimts 2                                                   \\\n"
+     "      -stim_file 1 hrf_complex.1D               -stim_label 1 Complex \\\n"
+     "      -stim_file 2 hrf_simple.1D                -stim_label 2 Simple  \\\n"
+     "      -concat '1D:0,108,216'                                          \\\n"
+     "      -full_first -fout -tout                                         \\\n"
+     "      -bucket func_ht2_short_two -cbucket cbuc_ht2_short_two\n"
+     "\n"
+     "** Step 2: Create a mask of highly activated voxels.\n"
+     "  The F statistic threshold is set to 30, corresponding to a voxel-wise\n"
+     "  p = 1e-12 = very significant.  The mask is also lightly clustered, and\n"
+     "  restricted to brain voxels.\n"
+     "\n"
+     "  3dAutomask -prefix Amask rall_vr+orig\n"
+     "  3dcalc -a 'func_ht2_short+orig[0]' -b Amask+orig -datum byte \\\n"
+     "         -nscale -expr 'step(a-30)*b' -prefix STmask300\n"
+     "  3dmerge -dxyz=1 -1clust 1.1 5 -prefix STmask300c STmask300+orig\n"
+     "\n"
+     "** Step 3: Run 3dInvFMRI to estimate the stimulus functions in run #4.\n"
+     "  Run #4 is time points 324..431 of the 3D+time dataset (the -data\n"
+     "  input below).  The -map input is the beta weights extracted from\n"
+     "  the -cbucket output of 3dDeconvolve.\n"
+     "\n"
+     "  3dInvFMRI -mask STmask300c+orig                       \\\n"
+     "            -data rall_vr+orig'[324..431]'              \\\n"
+     "            -map cbuc_ht2_short_two+orig'[6..7]'        \\\n"
+     "            -polort 1 -alpha 0.01 -median5 -method K    \\\n"
+     "            -out ii300K_short_two.1D\n"
+     "\n"
+     "  3dInvFMRI -mask STmask300c+orig                       \\\n"
+     "            -data rall_vr+orig'[324..431]'              \\\n"
+     "            -map cbuc_ht2_short_two+orig'[6..7]'        \\\n"
+     "            -polort 1 -alpha 0.01 -median5 -method C    \\\n"
+     "            -out ii300C_short_two.1D\n"
+     "\n"
+     "** Step 4: Plot the results, and get confused.\n"
+     "\n"
+     "  1dplot -ynames VV KK CC -xlabel Run#4 -ylabel ComplexStim \\\n"
+     "         hrf_complex.1D'{324..432}'                         \\\n"
+     "         ii300K_short_two.1D'[0]'                           \\\n"
+     "         ii300C_short_two.1D'[0]'\n"
+     "\n"
+     "  1dplot -ynames VV KK CC -xlabel Run#4 -ylabel SimpleStim \\\n"
+     "         hrf_simple.1D'{324..432}'                         \\\n"
+     "         ii300K_short_two.1D'[1]'                          \\\n"
+     "         ii300C_short_two.1D'[1]'\n"
+     "=========================================================================\n"
+     ) ;
+
      exit(0) ;
    }
 
@@ -171,6 +237,13 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     if( strcmp(argv[iarg],"-mapwt") == 0 ){
+       if( wset != NULL ) ERROR_exit("Can't input 2 -mapwt datasets") ;
+       wset = THD_open_dataset(argv[++iarg]) ;
+       if( wset == NULL ) ERROR_exit("Can't open dataset %s",argv[iarg]) ;
+       iarg++ ; continue ;
+     }
+
      if( strcmp(argv[iarg],"-mask") == 0 ){
        if( mset != NULL ) ERROR_exit("Can't input 2 -mask datasets") ;
        mset = THD_open_dataset(argv[++iarg]) ;
@@ -217,6 +290,19 @@ int main( int argc , char *argv[] )
    DSET_load(aset);
    if( !DSET_LOADED(aset) )
      ERROR_exit("Can't load dataset '%s'",DSET_BRIKNAME(aset)) ;
+
+   if( wset != NULL ){
+     if( DSET_NVOX(wset) != nxyz )
+       ERROR_exit("Grid mismatch between -data and -mapwt") ;
+     nwt = DSET_NVALS(wset) ;
+     if( nwt > 1 && nwt != nparam )
+       ERROR_exit("Wrong number of values=%d in -mapwt; should be 1 or %d",
+                  nwt , nparam ) ;
+     INFO_message("Loading dataset for mapwt") ;
+     DSET_load(wset);
+     if( !DSET_LOADED(wset) )
+       ERROR_exit("Can't load dataset '%s'",DSET_BRIKNAME(wset)) ;
+   }
 
    if( mset != NULL ){
      if( DSET_NVOX(mset) != nxyz )
@@ -328,6 +414,42 @@ int main( int argc , char *argv[] )
    }}
    DSET_unload(aset) ;
 
+   /**--- set up map weight into wim/war ---**/
+
+#undef  WT
+#define WT(i,j) war[(i)+(j)*nvox]   /* nvox X nparam */
+
+   if( wset != NULL ){
+     int numneg=0 , numpos=0 ;
+     float fac ;
+
+     INFO_message("Loading map weight matrix") ;
+     wim = mri_new( nvox , nwt , MRI_float ) ; war = MRI_FLOAT_PTR(wim) ;
+     for( jj=0 ; jj < nwt ; jj++ ){
+       for( ii=kk=0 ; ii < nxyz ; ii++ ){
+         if( GOOD(ii) ){
+           WT(kk,jj) = THD_get_voxel(wset,ii,jj);
+                if( WT(kk,jj) > 0.0f ){ numpos++; WT(kk,jj) = sqrt(WT(kk,jj)); }
+           else if( WT(kk,jj) < 0.0f ){ numneg++; WT(kk,jj) = 0.0f;            }
+           kk++;
+         }
+     }}
+     DSET_unload(wset) ;
+     if( numpos <= nparam )
+       WARNING_message("Only %d positive weights found in -wtmap!",numpos) ;
+     if( numneg > 0 )
+       WARNING_message("%d negative weights found in -wtmap!",numneg) ;
+
+     for( jj=0 ; jj < nwt ; jj++ ){
+       fac = 0.0f ;
+       for( kk=0 ; kk < nvox ; kk++ ) if( WT(kk,jj) > fac ) fac = WT(kk,jj) ;
+       if( fac > 0.0f ){
+         fac = 1.0f / fac ;
+         for( kk=0 ; kk < nvox ; kk++ ) WT(kk,jj) *= fac ;
+       }
+     }
+   }
+
    /**--- set up data image into yim/yar = Y matrix ---**/
 
 #undef  Y
@@ -368,6 +490,7 @@ int main( int argc , char *argv[] )
        /**--- compute pseudo-inverse of A map ---**/
 
        INFO_message("Method C: Computing pseudo-inverse of A") ;
+       if( wim != NULL ) WARNING_message("Ignoring -mapwt dataset") ;
        pfim = mri_matrix_psinv(aim,NULL,alpha) ;  /* nparam X nvox */
        if( pfim == NULL ) ERROR_exit("mri_matrix_psinv() fails") ;
        mri_free(aim) ;
@@ -384,6 +507,20 @@ int main( int argc , char *argv[] )
        /**--- compute pseudo-inverse of transposed Z ---*/
 
        INFO_message("Method K: Computing pseudo-inverse of Z'") ;
+       if( nwt > 1 ){
+         WARNING_message("Ignoring -mapwt dataset: more than 1 sub-brick") ;
+         nwt = 0 ; mri_free(wim) ; wim = NULL ; war = NULL ;
+       }
+
+       if( nwt == 1 ){
+         float fac ;
+         for( kk=0 ; kk < nvox ; kk++ ){
+           fac = war[kk] ;
+           for( ii=0 ; ii < nt     ; ii++ ) Y(ii,kk) *= fac ;
+           for( ii=0 ; ii < nparam ; ii++ ) A(kk,ii) *= fac ;
+         }
+       }
+
        tim  = mri_matrix_transpose(yim)        ; mri_free(yim) ;
        pfim = mri_matrix_psinv(tim,NULL,alpha) ; mri_free(tim) ;
        if( pfim == NULL ) ERROR_exit("mri_matrix_psinv() fails") ;
@@ -398,6 +535,8 @@ int main( int argc , char *argv[] )
      break ;
 
    } /* end of switch on method */
+
+   if( wim != NULL ) mri_free(wim) ;
 
    /**--- smooth? ---**/
 

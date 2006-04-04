@@ -5847,3 +5847,6 @@
      exists, and if so, suggest that the .hdr file is more likely to be
      what they want to input.
  * Added '-method' and smoothing options to 3dInvFMRI.c.
+
+04 Apr 2006
+ * Changes to 3dInvFMRI.c: -mapwt, better help, God knows what else.
