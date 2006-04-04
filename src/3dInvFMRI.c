@@ -133,6 +133,10 @@ int main( int argc , char *argv[] )
      "      -full_first -fout -tout                                         \\\n"
      "      -bucket func_ht2_short_two -cbucket cbuc_ht2_short_two\n"
      "\n"
+     "  N.B.: You may want to de-spike, smooth, and register the 3D+time\n"
+     "        dataset prior to the analysis (as usual).  These steps are not\n"
+     "        shown here -- I'm presuming you know how to use AFNI already.\n"
+     "\n"
      "** Step 2: Create a mask of highly activated voxels.\n"
      "  The F statistic threshold is set to 30, corresponding to a voxel-wise\n"
      "  p = 1e-12 = very significant.  The mask is also lightly clustered, and\n"
@@ -171,6 +175,11 @@ int main( int argc , char *argv[] )
      "         hrf_simple.1D'{324..432}'                         \\\n"
      "         ii300K_short_two.1D'[1]'                          \\\n"
      "         ii300C_short_two.1D'[1]'\n"
+     "\n"
+     "  N.B.: I've found that method K works better if MORE voxels are\n"
+     "        included in the mask (lower threshold) and method C if\n"
+     "        FEWER voxels are included.  The above threshold gave 945\n"
+     "        voxels being used to determine the 2 output time series.\n"
      "=========================================================================\n"
      ) ;
 
