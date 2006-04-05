@@ -20,6 +20,7 @@ static int                      ZCAT_datum = -1 ;    /* dataset datum */
 static int                      ZCAT_fscale = 0 ;
 static int                      ZCAT_gscale = 0 ;
 static int                      ZCAT_nscale = 0 ;
+static int                      ZCAT_frugal = 0 ;    /* 05 Apr 2006 */
 
 #define DSUB(id) DSET_IN_3DARR(ZCAT_dsar,(id))
 
@@ -43,52 +44,58 @@ void ZCAT_read_opts( int argc , char * argv[] )
 
    while( nopt < argc ){
 
+      /**** -frugal [05 Apr 2006] ****/
+
+      if( strncmp(argv[nopt],"-frugal",6) == 0 ){
+        ZCAT_frugal = 1 ; nopt++ ; continue ;
+      }
+
       /**** -nscale ****/
 
       if( strncmp(argv[nopt],"-nscale",6) == 0 ){
-         ZCAT_gscale = ZCAT_fscale = 0 ; ZCAT_nscale = 1 ;
-         nopt++ ; continue ;
+        ZCAT_gscale = ZCAT_fscale = 0 ; ZCAT_nscale = 1 ; nopt++ ; continue ;
       }
 
       /**** -fscale ****/
 
       if( strncmp(argv[nopt],"-fscale",6) == 0 ){
-         ZCAT_fscale = 1 ; ZCAT_nscale = 0 ;
-         nopt++ ; continue ;
+        ZCAT_fscale = 1 ; ZCAT_nscale = 0 ; nopt++ ; continue ;
       }
 
 #if 0
       /**** -gscale ****/
 
       if( strncmp(argv[nopt],"-gscale",6) == 0 ){
-         ZCAT_gscale = ZCAT_fscale = 1 ; ZCAT_nscale = 0 ;
-         nopt++ ; continue ;
+        ZCAT_gscale = ZCAT_fscale = 1 ; ZCAT_nscale = 0 ; nopt++ ; continue ;
       }
 #endif
 
       /**** -prefix prefix ****/
 
       if( strncmp(argv[nopt],"-prefix",6) == 0 ){
-         nopt++ ;
-         if( nopt >= argc ){
-            fprintf(stderr,"*** need argument after -prefix!\n") ; exit(1) ;
-         }
-         MCW_strncpy( ZCAT_output_prefix , argv[nopt++] , THD_MAX_PREFIX ) ;
-         continue ;
+        nopt++ ;
+        if( nopt >= argc ){
+          fprintf(stderr,"** need argument after -prefix!\n") ; exit(1) ;
+        }
+        MCW_strncpy( ZCAT_output_prefix , argv[nopt++] , THD_MAX_PREFIX ) ;
+        if( strstr(ZCAT_output_prefix,".nii") != NULL )
+          ERROR_exit("Sorry: 3dZcat doesn't support NIfTI output!") ;
+        else if( !THD_filename_ok(ZCAT_output_prefix) )
+          ERROR_exit("Illegal character in -prefix '%s'",ZCAT_output_prefix) ;
+        continue ;
       }
 
       /**** -verb ****/
 
       if( strncmp(argv[nopt],"-verb",5) == 0 ){
-         ZCAT_verb++ ;
-         nopt++ ; continue ;
+        ZCAT_verb++ ; nopt++ ; continue ;
       }
 
       /**** -datum type ****/
 
       if( strncmp(argv[nopt],"-datum",6) == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"*** need an argument after -datum!\n"); exit(1);
+           fprintf(stderr,"** need an argument after -datum!\n"); exit(1);
          }
               if( strcmp(argv[nopt],"short") == 0 ) ZCAT_datum = MRI_short ;
          else if( strcmp(argv[nopt],"float") == 0 ) ZCAT_datum = MRI_float ;
@@ -97,27 +104,29 @@ void ZCAT_read_opts( int argc , char * argv[] )
          else if( strcmp(argv[nopt],"complex")== 0) ZCAT_datum = MRI_complex ;
 #endif
          else {
-            fprintf(stderr,"*** -datum %s not supported in 3dZcat!\n",
-                    argv[nopt] ) ;
-            exit(1) ;
+           fprintf(stderr,"** -datum %s not supported in 3dZcat!\n",
+                   argv[nopt] ) ;
+           exit(1) ;
          }
          nopt++ ; continue ;  /* go to next arg */
       }
 
       /**** Garbage ****/
 
-      if( argv[nopt][0] == '-' ){
-         fprintf(stderr,"*** Unknown option: %s\n",argv[nopt]) ; exit(1) ;
+      if( strcmp(argv[nopt],"-input") == 0 ){
+        nopt++ ;
+      } else if( argv[nopt][0] == '-' ){
+        fprintf(stderr,"** Unknown option: %s\n",argv[nopt]) ; exit(1) ;
       }
 
       /**** read dataset ****/
 
       if( ZCAT_verb )
-         fprintf(stderr,"+++ Opening dataset %s\n",argv[nopt]) ;
+        fprintf(stderr,"++ Opening dataset %s\n",argv[nopt]) ;
 
       dset = THD_open_dataset( argv[nopt++] ) ;
       if( dset == NULL ){
-         fprintf(stderr,"*** Can't open dataset %s\n",argv[nopt-1]) ; exit(1) ;
+         fprintf(stderr,"** Can't open dataset %s\n",argv[nopt-1]) ; exit(1) ;
       }
       THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;
 
@@ -130,13 +139,13 @@ void ZCAT_read_opts( int argc , char * argv[] )
          ZCAT_nxy   = ii ;
          ZCAT_nbrik = DSET_NVALS(dset) ;
       } else if( ii != ZCAT_nxy ){
-         fprintf(stderr,"*** Dataset %s differs in slice size from others\n",argv[nopt-1]);
+         fprintf(stderr,"** Dataset %s differs in slice size from others\n",argv[nopt-1]);
          exit(1) ;
       } else if ( DSET_NVALS(dset) != ZCAT_nbrik ){
-         fprintf(stderr,"*** Dataset %s has different number of sub-bricks\n",argv[nopt-1]) ;
+         fprintf(stderr,"** Dataset %s has different number of sub-bricks\n",argv[nopt-1]) ;
          exit(1) ;
       } else if ( DSET_BRICK_TYPE(dset,0) == MRI_complex ){
-         fprintf(stderr,"*** Dataset %s is complex-valued -- ILLEGAL\n",argv[nopt-1]) ;
+         fprintf(stderr,"** Dataset %s is complex-valued -- ILLEGAL\n",argv[nopt-1]) ;
          exit(1) ;
       }
 
@@ -162,24 +171,19 @@ void ZCAT_Syntax(void)
     "                    [default='zcat']\n"
     "  -datum type   = Coerce the output data to be stored as the given\n"
     "                    type, which may be byte, short, or float.\n"
-    "  -fscale     = Force scaling of the output to the maximum integer\n"
-    "                  range.  This only has effect if the output datum\n"
-    "                  is byte or short (either forced or defaulted).\n"
-    "                  This option is sometimes necessary to eliminate\n"
-    "                  unpleasant truncation artifacts.\n"
-    "  -nscale     = Don't do any scaling on output to byte or short datasets.\n"
-    "                   This may be especially useful when operating on mask\n"
-    "                   datasets whose output values are only 0's and 1's.\n"
-    "  -verb         = Print out some verbositiness as the program\n"
-    "                    proceeds.\n"
+    "  -fscale       = Force scaling of the output to the maximum integer\n"
+    "                    range.  This only has effect if the output datum\n"
+    "                    is byte or short (either forced or defaulted).\n"
+    "                    This option is sometimes necessary to eliminate\n"
+    "                    unpleasant truncation artifacts.\n"
+    "  -nscale       = Don't do any scaling on output to byte or short datasets.\n"
+    "                    This may be especially useful when operating on mask\n"
+    "                    datasets whose output values are only 0's and 1's.\n"
+    "  -verb         = Print out some verbositiness as the program proceeds.\n"
+    "  -frugal       = Be 'frugal' in the use of memory, at the cost of I/O time.\n"
+    "                    Only needed if the program runs out of memory.\n"
     "\n"
     "Command line arguments after the above are taken as input datasets.\n"
-    "A dataset is specified using one of these forms:\n"
-    "   'prefix+view', 'prefix+view.HEAD', or 'prefix+view.BRIK'.\n"
-    "\n"
-
-    MASTER_SHORTHELP_STRING
-
     "\n"
     "Notes:\n"
     "* You can use the '3dinfo' program to see how many slices a\n"
@@ -229,14 +233,14 @@ int main( int argc , char * argv[] )
 
    ninp = ZCAT_dsar->num ;
    if( ninp < 2 ){
-      fprintf(stderr,"*** Must have at least 2 input datasets!\n") ; exit(1) ;
+      fprintf(stderr,"** Must have at least 2 input datasets!\n") ; exit(1) ;
    }
 
    new_nz = 0 ;
    for( ids=0 ; ids < ninp ; ids++ ) new_nz += DSET_NZ(DSUB(ids)) ;
 
    if( ZCAT_verb )
-      fprintf(stderr,"+++ Output will have %d slices\n",new_nz) ;
+      fprintf(stderr,"++ Output will have %d slices\n",new_nz) ;
 
    /** find 1st dataset that is time dependent, if any **/
 
@@ -246,7 +250,7 @@ int main( int argc , char * argv[] )
    }
    if( ids == ninp ) dset = DSUB(0) ; /* fallback position */
    if( ZCAT_verb )
-      fprintf(stderr,"+++ Using %s as 'master' dataset\n",DSET_HEADNAME(dset)) ;
+      fprintf(stderr,"++ Using %s as 'master' dataset\n",DSET_HEADNAME(dset)) ;
 
    new_dset = EDIT_empty_copy( dset ) ; /* make a copy of its header */
 
@@ -273,20 +277,28 @@ int main( int argc , char * argv[] )
    /* can't re-write existing dataset */
 
    if( THD_is_file(DSET_HEADNAME(new_dset)) ){
-     fprintf(stderr,"*** Fatal error: dataset %s already exists!\n",
+     fprintf(stderr,"** Fatal error: dataset %s already exists!\n",
              DSET_HEADNAME(new_dset) ) ;
      exit(1) ;
    }
 
    THD_force_malloc_type( new_dset->dblk , DATABLOCK_MEM_MALLOC ) ;
 
+   if( !ZCAT_frugal ){                        /* 05 Apr 2006 */
+     for( ids=0 ; ids < ninp ; ids++ ){
+       dset = DSUB(ids) ; DSET_load(dset) ;
+       if( !DSET_LOADED(dset) )
+         ERROR_exit("Can't load dataset '%s' from disk",DSET_BRIKNAME(dset)) ;
+     }
+   }
+
    /*-- open output BRIK file --*/
 
    cmode = THD_get_write_compression() ;
-   far = COMPRESS_fopen_write( DSET_BRICKNAME(new_dset) , cmode ) ;
+   far = COMPRESS_fopen_write( DSET_BRIKNAME(new_dset) , cmode ) ;
    if( far == NULL ){
       fprintf(stderr,
-        "\a\n*** cannot open output file %s\n",DSET_BRICKNAME(new_dset)) ;
+        "\a\n*** cannot open output file %s\n",DSET_BRIKNAME(new_dset)) ;
       exit(1) ;
    }
 
@@ -299,7 +311,7 @@ int main( int argc , char * argv[] )
    for( iv=0 ; iv < DSET_NVALS(new_dset) ; iv++ ){
 
       if( ZCAT_verb )
-         fprintf(stderr,"+++ Computing output sub-brick #%d\n",iv) ;
+        fprintf(stderr,"++ Computing output sub-brick #%d\n",iv) ;
 
       fscale = ZCAT_fscale ;  /* local for this brick */
 
@@ -312,15 +324,19 @@ int main( int argc , char * argv[] )
 
       for( kz=ids=0 ; ids < ninp ; ids++ ){
 
-         dset = DSUB(ids) ; nz = DSET_NZ(dset) ; DSET_load(dset) ;
-         if( ! DSET_LOADED(dset) ){
-            fprintf(stderr,"*** Fatal error: can't load data from %s\n",
-                    DSET_HEADNAME(dset)) ;
-            exit(1) ;
+         dset = DSUB(ids) ; nz = DSET_NZ(dset) ;
+         if( ZCAT_frugal ){
+           DSET_load(dset) ;
+           if( ! DSET_LOADED(dset) ){
+             fprintf(stderr,"** Fatal error: can't load data from %s\n",
+                     DSET_BRIKNAME(dset)) ;
+             fprintf(stderr,"** If out of memory, retry with '-frugal' option\n") ;
+             COMPRESS_fclose(far) ; remove(DSET_BRIKNAME(new_dset)) ;
+             exit(1) ;
+          }
          }
-
          if( ZCAT_verb == 2 )
-            fprintf(stderr," ++ processing input %s\n",DSET_HEADNAME(dset)) ;
+           fprintf(stderr," + processing input %s\n",DSET_BRIKNAME(dset)) ;
 
          /* copy data from input to holding space, converting to float */
 
@@ -328,7 +344,7 @@ int main( int argc , char * argv[] )
 
             default:
                fprintf(stderr,
-                       "*** Illegal input brick type=%s in dataset %s\n",
+                       "** Illegal input brick type=%s in dataset %s\n",
                        MRI_TYPE_name[DSET_BRICK_TYPE(dset,iv)] ,
                        DSET_HEADNAME(dset) ) ;
             exit(1) ;
@@ -367,7 +383,9 @@ int main( int argc , char * argv[] )
 
          } /* end of switch over input brick type */
 
-         kz += nz ; DSET_unload(dset) ;
+         kz += nz ;
+         if( ZCAT_frugal ) DSET_unload(dset) ;
+         else              DSET_unload_one(dset,iv) ;
 
       } /* end of loop over input datasets */
 
@@ -380,8 +398,8 @@ int main( int argc , char * argv[] )
 
          default:                   /* should never transpire */
             fprintf(stderr,
-                    "*** Fatal Error ***\n"
-                    "*** Somehow ended up with -datum = %d\n",ZCAT_datum) ;
+                    "** Fatal Error **\n"
+                    "** Somehow ended up with -datum = %d\n",ZCAT_datum) ;
          exit(1) ;
 
          case MRI_float:            /* the trivial case */
@@ -397,7 +415,7 @@ int main( int argc , char * argv[] )
 
             gtop = MCW_vol_amax( nxyz , 1 , 1 , MRI_float, fvol ) ;
             if( gtop == 0.0 )
-              fprintf(stderr,"+++ Warning: output sub-brick %d is all zeros!\n",iv) ;
+              fprintf(stderr,"++ Warning: output sub-brick %d is all zeros!\n",iv) ;
 
             /* compute scaling factor */
 
@@ -412,9 +430,9 @@ int main( int argc , char * argv[] )
 
             if( ZCAT_verb == 2 ){
                if( fimfac != 0.0 )
-                  fprintf(stderr," ++ Output sub-brick %d scale factor = %f\n",iv,fimfac) ;
+                  fprintf(stderr," + Output sub-brick %d scale factor = %f\n",iv,fimfac) ;
                else
-                  fprintf(stderr,"+++ Output sub-brick %d: no scale factor\n" ,iv) ;
+                  fprintf(stderr,"++ Output sub-brick %d: no scale factor\n" ,iv) ;
             }
 
             /* now scale fvol into svol */
@@ -440,7 +458,7 @@ int main( int argc , char * argv[] )
    /*-- cleanup, and write dataset header --*/
 
    if( ZCAT_verb )
-      fprintf(stderr,"+++ Computing output sub-brick statistics\n") ;
+      fprintf(stderr,"++ Computing output sub-brick statistics\n") ;
 
    for( ids=0 ; ids < ninp ; ids++ )       /* remove inputs from memory */
       DSET_delete( DSUB(ids) ) ;
@@ -455,5 +473,5 @@ int main( int argc , char * argv[] )
    DSET_write_header(new_dset) ;           /* write output HEAD */
    fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
 
-   exit(0) ;                               /* stage left */
+   exit(0) ;                               /* stage left, pursued by a bear */
 }
