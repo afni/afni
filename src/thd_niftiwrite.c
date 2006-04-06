@@ -51,6 +51,7 @@ ENTRY("THD_write_nifti") ;
   }
 
   nim = populate_nifti_image(dset,options) ;
+  if( !nim ) RETURN(0) ;   /* catch failure    6 Apr 2006 [rickr] */
 
   /*-- construct filename --*/
 
@@ -120,7 +121,7 @@ ENTRY("populate_nifti_image") ;
   nim = (nifti_image *) calloc( 1 , sizeof(nifti_image) ) ;
   if( !nim ) {
     fprintf(stderr, "** ERROR: failed to allocate nifti image\n");
-    RETURN(0) ;
+    RETURN(NULL) ;
   }
 
   /*-- calculate and set ndim and intents --*/
@@ -148,13 +149,15 @@ ENTRY("populate_nifti_image") ;
       if( DSET_BRICK_TYPE(dset,ii) != type0){
         fprintf(stderr,
         "** ERROR: CANNOT WRITE NIfTI FILE; BRICK DATA TYPES NOT CONSISTENT\n") ;
-        RETURN(0);
+        RETURN(NULL);
       } else if( DSET_BRICK_FACTOR(dset,ii) != fac0) {
         fprintf(stderr,
         "** ERROR: CANNOT WRITE NIfTI FILE; BRICK FACTORS NOT CONSISTENT\n") ;
         fprintf(stderr,
-        "RICH HAMMETT SHOULD FIX THIS REAL SOON NOW\n") ;
-        RETURN(0);
+        "   (consider transforming to a float dataset before performing\n"
+        "    this opertation, or consider '3dAFNItoNIFTI -float')\n"
+        ) ;
+        RETURN(NULL);
       }
     }
   } else {  /* we only have one brick */
@@ -227,13 +230,13 @@ ENTRY("populate_nifti_image") ;
       fprintf(stderr,
                "** ERROR: Can't write NIfTI file since dataset is RGBA: %s\n",
                options.infile_name) ;
-      RETURN(0) ;
+      RETURN(NULL) ;
       break;
     default:
       fprintf(stderr,
                "** ERROR: Can't write NIfTI file since datatype is unknown: %s\n",
                options.infile_name) ;
-      RETURN(0) ;
+      RETURN(NULL) ;
       break;
   }
 
@@ -519,7 +522,7 @@ ENTRY("populate_nifti_image") ;
           fprintf(stderr,
           "++ ERROR: CANNOT WRITE NIfTI FILE; LOGIC BORKED IN SLICE TIMING\n") ;
           fprintf(stderr, "RICH HAMMETT SHOULD FIX THIS REAL SOON NOW\n") ;
-          RETURN(0);
+          RETURN(NULL);
       }
 
       nim->slice_start = sfirst ;

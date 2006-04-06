@@ -1460,3 +1460,9 @@
           bdelta, and to apply RANGE to bindex (127)
       - rd_disp_color_info(), don't assume 128 colors, use NPANE_BIG
 
+06 Apr 2006:
+  * modifited thd_writenifti.c
+        - in THD_write_nifti, catch populate_nifti_image() failure (crashed)
+        - in populate_nifti_image(), return NULL (not 0) on failure, and give
+            a hint for what to do in case of 'brick factors not consistent'
+
