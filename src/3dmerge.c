@@ -953,7 +953,9 @@ int main( int argc , char * argv[] )
 
    if( MRG_edopt.fake_dxyz ) dx = dy = dz = 1.0 ;  /* 11 Sep 2000 */
 
+#if 0
    nice(1) ;  /* slow us down, a little */
+#endif
 
    if( MRG_edopt.nfmask > 0 && MRG_edopt.nfmask != nxyz ){
       fprintf(stderr,

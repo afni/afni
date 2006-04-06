@@ -689,7 +689,9 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
    /** number of pieces to process **/
    /* num_piece = (nxyz + piece_size - 1) / nxyz ; */
 
+#if 0
    nice(2) ;  /** lower priority a little **/
+#endif
 
    for( piece=0 ; piece < 1 ; piece++ ){  /* only 1 piece now   13 Dec 2005 [rickr] */
 
