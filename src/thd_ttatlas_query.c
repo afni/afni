@@ -697,6 +697,7 @@ char MNI_Anatomical_Side(ATLAS_COORD ac)
    THD_ivec3 ijk ;
    int  ix,jy,kz , nx,ny,nz,nxy, ii=0, kk=0;
    byte *ba=NULL;
+   static int n_warn = 0;
    byte LocalHead = 0;
    
    ENTRY("MNI_Anatomical_Side");
@@ -709,14 +710,18 @@ char MNI_Anatomical_Side(ATLAS_COORD ac)
    if (dseCA_EZ_LR == NULL) {
       if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(CA_EZ_N27_LR_ATLAS));
       ii = CA_EZ_LR_load_atlas(); 
-      if (ii == 0) {
+      if (ii == 0 && !n_warn) {
          WARNING_message("Could not read LR atlas (dset %s+tlrc)", 
             Atlas_Code_to_Atlas_Dset_Name(CA_EZ_N27_LR_ATLAS));
+         ++n_warn;
       }
    }
    
    if (dseCA_EZ_LR == NULL) {
-      WARNING_message("Relying on x coordinate to guess side");
+      if (n_warn < 2) {
+         WARNING_message("Relying on x coordinate to guess side");
+         ++n_warn;
+      }
       if (ac.x<0.0) { 
          RETURN('r'); 
       } else { 
@@ -3401,6 +3406,7 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
    int ii;
    byte build_lr = 1;
    byte LocalHead = 0;
+   static int n_warn[NUMBER_OF_ATLASES];
    
    ENTRY("Atlas_With_Trimming");
    
@@ -3422,8 +3428,11 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
                if (LocalHead) fprintf(stderr,"Loading %s\n", Atlas_Code_to_Atlas_Name(atcode));
                ii = CA_EZ_MPM_load_atlas(); 
                if (ii == 0) {
-                  WARNING_message("Could not read MPM atlas(dset %s+tlrc)", 
-                              Atlas_Code_to_Atlas_Dset_Name(atcode));
+                  if (!n_warn[atcode]) WARNING_message(  "Could not read MPM atlas(dset %s+tlrc)\n"
+                                                         "See whereami -help for help on installing\n"
+                                                         "atlases.\n", 
+                                    Atlas_Code_to_Atlas_Dset_Name(atcode));
+                  ++(n_warn[atcode]);
                   break;
                }
             }
@@ -3444,8 +3453,11 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
                if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
                ii = CA_EZ_ML_load_atlas(); 
                if (ii == 0) {
-                  WARNING_message("Could not read ML atlas (dset %s+tlrc)", 
+                  if (!n_warn[atcode]) WARNING_message(  "Could not read ML atlas (dset %s+tlrc)\n"
+                                                         "See whereami -help for help on installing\n"
+                                                         "atlases.\n", 
                               Atlas_Code_to_Atlas_Dset_Name(atcode));
+                  ++(n_warn[atcode]);
                   break;
                }
             }
@@ -3466,8 +3478,11 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
                if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
                ii = CA_EZ_LR_load_atlas(); 
                if (ii == 0) {
-                  WARNING_message("Could not read LR atlas (dset %s+tlrc)", 
+                  if (!n_warn[atcode]) WARNING_message(  "Could not read LR atlas (dset %s+tlrc)\n"
+                                                         "See whereami -help for help on installing\n"
+                                                         "atlases.\n", 
                               Atlas_Code_to_Atlas_Dset_Name(atcode));
+                  ++(n_warn[atcode]);
                   break;
                }
             }
@@ -3488,8 +3503,11 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
                if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
                ii = CA_EZ_PMaps_load_atlas(); 
                if (ii == 0) {
-                  WARNING_message("Could not read PMAPS atlas (dset %s+tlrc)", 
+                  if (!n_warn[atcode]) WARNING_message(  "Could not read PMAPS atlas (dset %s+tlrc)\n"
+                                                         "See whereami -help for help on installing\n"
+                                                         "atlases.\n", 
                               Atlas_Code_to_Atlas_Dset_Name(atcode));
+                  ++(n_warn[atcode]);
                   break;
                }
             }
@@ -3508,8 +3526,11 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
                if (LocalHead) fprintf(stderr,"Loading %s\n", Atlas_Code_to_Atlas_Name(atcode));
                ii = TT_load_atlas() ; 
                if (ii == 0) {
-                  WARNING_message("Could not read TLRC atlas (dset %s+tlrc)", 
+                  if (!n_warn[atcode]) WARNING_message(  "Could not read TLRC atlas (dset %s+tlrc)\n"
+                                                         "See whereami -help for help on installing\n"
+                                                         "atlases.\n", 
                               Atlas_Code_to_Atlas_Dset_Name(atcode));
+                  ++(n_warn[atcode]);
                   break;
                }
 
@@ -3553,9 +3574,10 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
             if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
             ii = CA_EZ_LR_load_atlas(); 
             if (ii == 0) {
-               WARNING_message(  "Could not read LR atlas (dset %s+tlrc)\n"
-                                 "LR decision will be based on coordinates.",
+               if (!n_warn[atcode]) WARNING_message(  "Could not read LR atlas (dset %s+tlrc)\n"
+                                                      "LR decision will be based on coordinates.",
                                  Atlas_Code_to_Atlas_Dset_Name(atcode));
+               ++(n_warn[atcode]);
             } else {
                DSET_load(dseCA_EZ_LR);
                adh.lrmask = DSET_BRICK_ARRAY(dseCA_EZ_LR,0);

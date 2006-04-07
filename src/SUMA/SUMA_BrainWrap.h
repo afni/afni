@@ -4,26 +4,38 @@
 typedef enum { SUMA_3dSS_NO_PAUSE = 0, SUMA_3dSS_DEMO_PAUSE, SUMA_3dSS_INTERACTIVE } SUMA_3DSS_MODES;
 
 float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObject **SOhull);
-int SUMA_Find_IminImax (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, int ni, 
+int SUMA_Find_IminImax (float *xyz, float *dir, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, int ni, 
                         float *MinMax, float *MinMax_dist , float *MinMax_over, float *MinMax_over_dist,
-                        float *Means, float *undershish, float *overshish, int *dvecind_under, int *dvecind_over, int ShishMax);
+                        float *Means, float *undershish, float *overshish, int *dvecind_under, int *dvecind_over, 
+                        float d1, float d4, int ShishMax);
 int SUMA_SkullMask (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs);
 int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs);
 byte *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, int *N_inp, int fillhole) ;
 short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_VOLPAR *VolPar, int *N_inp, int fillhole, THD_3dim_dataset *fillholeset);
 short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, int *N_inpnt, int  fillhole, THD_3dim_dataset *fillholeset) ;
+int SUMA_PushToEdge(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs) ;
+int SUMA_PushToOuterSkull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs) ;
 int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs) ;
 float *SUMA_Suggest_Touchup(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch);
 float *SUMA_Suggest_Touchup_Grad(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch);
+float *SUMA_Suggest_Touchup_PushEdge(SUMA_SurfaceObject *SO, 
+                                    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
+                                    float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch);
+float *SUMA_Suggest_Touchup_PushOuterSkull(SUMA_SurfaceObject *SO, 
+                                    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
+                                    float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch);
+
 int SUMA_DidUserQuit(void);
 EDIT_options *SUMA_BlankAfniEditOptions(void);
+void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs);
+
 /*!
    SUMA_WRAP_BRAIN_SMOOTH(niter, bufp1, bufp2);
    \brief a chunk used in two places in SUMA_BrainWrap.
    Requires two float pointers than can be null on the first call
    but must be freed at the end 
 */
-#define SUMA_WRAP_BRAIN_SMOOTH_NN(niter, dsmooth, refNodeList){ \
+#define SUMA_WRAP_BRAIN_SMOOTH_NN(niter, dsmooth, refNodeList, nmask){ \
    SUMA_SurfaceObject m_SOref;   \
    int m_in;   \
    float *m_a, m_P2[2][3], m_U[3], m_Un, m_Rref, m_R, m_Dr, m_Dn;  \
@@ -33,9 +45,8 @@ EDIT_options *SUMA_BlankAfniEditOptions(void);
    }  \
    SUMA_SO_RADIUS(SO, m_Rref);   /* get the radius before shrinking */\
    memcpy((void*)refNodeList, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float)); /* copy original surface coords */ \
-   dsmooth = SUMA_NN_GeomSmooth( SO, niter, SO->NodeList, 3, SUMA_ROW_MAJOR, dsmooth, cs, NULL);    \
+   dsmooth = SUMA_NN_GeomSmooth( SO, niter, SO->NodeList, 3, SUMA_ROW_MAJOR, dsmooth, cs, nmask);    \
    memcpy((void*)SO->NodeList, (void *)dsmooth, SO->N_Node * 3 * sizeof(float)); /* copy smoothed surface coords */  \
-   SUMA_RECOMPUTE_NORMALS(SO);   \
    /* matching area fails for some reason. */\
    if (0) { \
       /* just grow surface by 3 mm outward, fails for meshes of different size and different degrees of smoothing*/  \
@@ -49,15 +60,18 @@ EDIT_options *SUMA_BlankAfniEditOptions(void);
       SUMA_SO_RADIUS(SO, m_R);   /* get the radius after shrinking */\
       m_Dr = ( m_Rref - m_R ) / m_Rref;   \
       for (m_in=0; m_in < SO->N_Node; ++m_in) { \
-         m_a = &(SO->NodeList[3*m_in]); \
-         SUMA_UNIT_VEC(SO->Center, m_a, m_U, m_Un);\
-         m_Dn = m_Dr*m_Un + m_Un;   \
-         if (m_Un) { \
-            SUMA_POINT_AT_DISTANCE_NORM(m_U, SO->Center, m_Dn, m_P2);  \
-            SO->NodeList[3*m_in] = m_P2[0][0]; SO->NodeList[3*m_in+1] = m_P2[0][1]; SO->NodeList[3*m_in+2] = m_P2[0][2];   \
-         }  \
+         if (!nmask || nmask[m_in]) {  \
+            m_a = &(SO->NodeList[3*m_in]); \
+            SUMA_UNIT_VEC(SO->Center, m_a, m_U, m_Un);\
+            m_Dn = m_Dr*m_Un + m_Un;   \
+            if (m_Un) { \
+               SUMA_POINT_AT_DISTANCE_NORM(m_U, SO->Center, m_Dn, m_P2);  \
+               SO->NodeList[3*m_in] = m_P2[0][0]; SO->NodeList[3*m_in+1] = m_P2[0][1]; SO->NodeList[3*m_in+2] = m_P2[0][2];   \
+            }  \
+         }\
       }  \
    }  \
+   SUMA_RECOMPUTE_NORMALS(SO);   \
 }
 
 /* Area matching is failing for some reason (negative area patches ?) */
@@ -99,7 +113,7 @@ EDIT_options *SUMA_BlankAfniEditOptions(void);
       m_touchup = (float *)SUMA_calloc(SO->N_Node, sizeof(float));   \
       if (!m_touchup) { SUMA_SL_Crit("Failed to allocate"); exit(1); }  \
       for (m_in=0; m_in<SO->N_Node; ++m_in) {   \
-         SUMA_Find_IminImax(SO, Opt, m_in,  m_MinMax, m_MinMax_dist, m_MinMax_over, m_MinMax_over_dist, m_Means, NULL, NULL, NULL, NULL, 0); \
+         SUMA_Find_IminImax(&(SO->NodeList[3*m_in]), &(SO->NodeNormList[3*m_in]), Opt, m_in,  m_MinMax, m_MinMax_dist, m_MinMax_over, m_MinMax_over_dist, m_Means, NULL, NULL, NULL, NULL, 0); \
          /* Shift the node outwards:   \
             0- the minimum location of the minimum over the node is not 0
             AND

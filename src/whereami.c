@@ -123,7 +123,7 @@ void whereami_usage(void)
                "   %-12s: Created by tracing Talairach and Tournoux brain illustrations.\n"
                "   Generously contributed by Jack Lancaster and Peter Fox of RIC UTHSCSA)\n"
                "\n"
-               "   %-12s: Anatomy Toolbox's atlases with some created from cytoarchitectonic \n"
+               "   %-12s: Anatomy Toolbox's atlases, some created from cytoarchitectonic \n"
                "   %-12s: studies of 10 human post-mortem brains (CA_N27_MPM, CA_N27_PM). \n"
                "   %-12s: Generously contributed by Simon Eickhoff,\n"
                "   %-12s: Katrin Amunts and Karl Zilles of IME, Julich, \n"
@@ -193,9 +193,9 @@ void whereami_usage(void)
                " -mask_atlas_region REGION_CODE: Same as -show_atlas_region, plus\n"
                "                                 write out a mask dataset of the region.\n"
                " -prefix PREFIX: Prefix for the output mask dataset\n"
-               " -dbg DEBUG: Debug flag\n"
+               " -debug DEBUG: Debug flag\n"
                "\n"
-               "Options for determing the percent overlap of ROIs with Atlas-defined areas:\n"
+               "Options for determining the percent overlap of ROIs with Atlas-defined areas:\n"
                "---------------------------------------------------------------------------\n"
                " -bmask MASK: Report on the overlap of all non-zero voxels in MASK dataset\n"
                "              with various atlas regions. NOTE: The mask itself is not binary,\n"
@@ -273,7 +273,7 @@ void whereami_usage(void)
                "\n"
                "   Note: You can safely ignore the:\n"
                "              ** Can't find anat parent ....  \n"
-               "         messages for the Altas datasets.\n"
+               "         messages for the Atlas datasets.\n"
                "\n"
                "Convenient Colormaps For Atlas Datasets:\n"
                "----------------------------------------\n"
@@ -485,10 +485,10 @@ int main(int argc, char **argv)
             continue;             
          }
           
-         if (strcmp(argv[iarg],"-dbg") == 0) {
+         if (strcmp(argv[iarg],"-dbg") == 0 || strcmp(argv[iarg],"-debug") == 0 ) {
             ++iarg;
             if (iarg >= argc) {
-               fprintf(stderr,"** Error: Need parameter after -dbg\n"); return(1);
+               fprintf(stderr,"** Error: Need parameter after -debug\n"); return(1);
             }            
             LocalHead = MIN_PAIR(atoi(argv[iarg]), 4);
             ++iarg;

@@ -1,7 +1,7 @@
 #include "SUMA_suma.h"
 #include "../thd_brainormalize.h"
 #include "../rickr/r_new_resam_dset.h"
-
+#include "extrema.h"
 #undef STAND_ALONE
 
 #if defined SUMA_BrainWrap_STANDALONE
@@ -36,7 +36,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
       sts = SUMA_help_talk(ps);
       printf ( "\n"
                "Usage: A program to extract the brain from surrounding.\n"
-               "  tissue from MRI T1-weighted images. The largely automated\n"
+               "  tissue from MRI T1-weighted images. The fully automated\n"
                "  process consists of three steps:\n"
                "  1- Preprocessing of volume to remove gross spatial image \n"
                "  non-uniformity artifacts and reposition the brain in\n"
@@ -54,11 +54,67 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "       data\n"
                "     . two additional processing stages to ensure convergence and\n"
                "       reduction of clipped areas.\n"
+               "     . use of 3d edge detection.\n"
                "  3- The creation of various masks and surfaces modeling brain\n"
                "     and portions of the skull\n"
                "\n"
+               "  Common examples of usage:\n"
+               "  -------------------------\n"
+               "  o 3dSkullStrip -input VOL -prefix VOL_PREFIX\n"
+               "     Vanilla mode, should work for most datasets.\n"
+               "  o 3dSkullStrip -input VOL -prefix VOL_PREFIX -push_to_edge\n"
+               "     Adds an agressive push to brain edges. Use this option\n"
+               "     when the chunks of gray matter are not included. This option\n"
+               "     might cause the mask to leak into non-brain areas.\n"
+               "  o 3dSkullStrip -input VOL -prefix VOL_PREFIX -monkey\n"
+               "     Vanilla mode, for use with monkey data.\n"
+               "  o 3dSkullStrip -input VOL -prefix VOL_PREFIX -ld 30\n"
+               "     Use a denser mesh, in the cases where you have lots of \n"
+               "     csf between gyri.\n"
+               "\n"
+               "  Tips:\n"
+               "  -----\n"
+               "     I ran the program with the default parameters on 200+ datasets.\n"
+               "     The results were quite good in all but a couple of instances, here\n"
+               "     are some tips on fixing trouble spots:\n"  
+               "\n"
+               "     Clipping in frontal areas, close to the eye balls:\n"
+               "        + Try -push_to_edge option first.\n"
+               "          Can also try -no_avoid_eyes option.\n"
+               "     Clipping in general:\n"
+               "        + Try -push_to_edge option first.\n"
+               "          Can also use lower -shrink_fac, start with 0.5 then 0.4\n"
+               "     Some lobules are not included:\n"
+               "        + Use a denser mesh. Start with -ld 30. If that still fails,\n"
+               "        try even higher density (like -ld 50) and increase iterations \n"
+               "        (say to -niter 750). Expect the program to take much longer in that case.\n"
+               "        + Instead of using denser meshes, you could try blurring the data \n"
+               "        before skull stripping. Something like -blur_fwhm 2 did\n"
+               "        wonders for some of my data with the default options of 3dSkullStrip\n"
+               "        Blurring is a lot faster than increasing mesh density.\n"
+               "        + Use also a smaller -shrink_fac is you have lots of CSF between gyri.\n"
+               "     Massive chunks missing:\n"
+               "        + If brain has very large ventricles and lots of CSF between gyri, the\n"
+               "        ventricles will keep attracting the surface inwards. In such cases, use\n"
+               "        the -visual option to see what is happening and try these options to \n"
+               "        reduce the severity of the problem:\n"
+               "            -blur_fwhm 2 -use_skull\n"
+               "\n" 
+               "  Eye Candy Mode: \n"
+               "  ---------------\n"
+               "  You can run BrainWarp and have it send successive iterations\n"
+               " to SUMA and AFNI. This is very helpful in following the\n"
+               " progression of the algorithm and determining the source\n"
+               " of trouble, if any.\n"
+               "  Example:\n"
+               "     afni -niml -yesplugouts &\n"
+               "     suma -niml &\n"
+               "     3dSkullStrip -input Anat+orig -o_ply anat_brain -visual\n"
+               "\n"
+               "  Help section for the intrepid:\n"
+               "  ------------------------------\n" 
                "  3dSkullStrip  < -input VOL >\n"
-               "             [< -o_TYPE PREFIX >] [< -prefix Vol_Prefix >] \n"
+               "             [< -o_TYPE PREFIX >] [< -prefix VOL_PREFIX >] \n"
                "             [< -spatnorm >] [< -no_spatnorm >] [< -write_spatnorm >]\n"
                "             [< -niter N_ITER >] [< -ld LD >] \n"
                "             [< -shrink_fac SF >] [< -var_shrink_fac >] \n"
@@ -69,13 +125,15 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "             [< -smooth_final SM >] [< -avoid_vent >] [< -no_avoid_vent >]\n"
                "             [< -use_skull >] [< -no_use_skull >] \n"
                "             [< -avoid_eyes >] [< -no_avoid_eyes >] \n"
+               "             [< -use_edge >] [< -no_use_edge >] \n"
+               "             [< -push_to_edge >] [<-no_push_to_edge>]\n"
                "             [< -perc_int PERC_INT >] \n"
                "             [< -max_inter_iter MII >] [-mask_vol]\n"
-               "             [< -debug DBG >] [< -node_dbg NODE_DBG >]\n"
+               "             [< -debug DBG >] [< -node_debug NODE_DBG >]\n"
                "             [< -demo_pause >]\n"
                "             [< -monkey >]\n"  
                "\n"
-               "  NOTE: Program is in Beta mode, please report bugs and strange failures\n"
+               "  NOTE: Please report bugs and strange failures\n"
                "        to ziad@nih.gov\n"
                "\n"
                "  Mandatory parameters:\n"
@@ -97,6 +155,21 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "        of the program, a mask volume was written out.\n" 
                "        You can still get that mask volume instead of the\n"
                "        skull-stripped volume with the option -mask_vol . \n"
+               "        NOTE: The output volume does not have values identical\n"
+               "              to those in the input. In particular, the range might\n"
+               "              be larger and some low-intensity values are set to 0.\n"
+               "              If you insist on having the same range of values as in\n"
+               "              the input, then either use:\n"
+               "         3dcalc -nscale -a VOL+VIEW -b VOL_PREFIX+VIEW \\\n"
+               "                -expr 'a*step(b)' -prefix VOL_SAME_RANGE\n"
+               "              With the command above, you can preserve the range\n"
+               "              of values of the input but some low-intensity voxels would still\n"
+               "              be masked. If you want to preserve them, then use -mask_vol\n"
+               "              in the 3dSkullStrip command that would produce \n"
+               "              VOL_MASK_PREFIX+VIEW. Then run 3dcalc masking with voxels\n"
+               "              inside the brain surface envelope:\n"
+               "         3dcalc -nscale -a VOL+VIEW -b VOL_MASK_PREFIX+VIEW \\\n"
+               "                -expr 'a*step(b-3.01)' -prefix VOL_SAME_RANGE_KEEP_LOW\n"
                "     -mask_vol: Output a mask volume instead of a skull-stripped\n"
                "                volume.\n"
                "                The mask volume containes:\n"
@@ -183,6 +256,12 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "     -no_avoid_vent: Do not use -avoid_vent.\n"
                "     -avoid_eyes: avoid eyes. Default\n"
                "     -no_avoid_eyes: Do not use -avoid_eyes.\n"
+               "     -use_edge: Use edge detection to reduce leakage into meninges and eyes.\n"
+               "                Default.\n"
+               "     -no_use_edge: Do no use edges.\n"
+               "     -push_to_edge: Perform aggressive push to edge at the end.\n"
+               "                    This option might cause leakage.\n"
+               "     -no_push_to_edge: (Default).\n"
                "     -use_skull: Use outer skull to limit expansion of surface into\n"
                "                 the skull due to very strong shading artifacts.\n"
                "                 This option is buggy at the moment, use it only \n"
@@ -220,43 +299,8 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "     -debug DBG: debug levels of 0 (default), 1, 2, 3.\n"
                "        This is no Rick Reynolds debug, which is oft nicer\n"
                "        than the results, but it will do.\n"
-               "     -node_dbg NODE_DBG: Output lots of parameters for node\n"
+               "     -node_debug NODE_DBG: Output lots of parameters for node\n"
                "                         NODE_DBG for each iteration.\n"
-               "\n"
-               "  Tips:\n"
-               "     I ran the program with the default parameters on 200+ datasets.\n"
-               "     The results were quite good in all but a couple of instances, here\n"
-               "     are some tips on fixing trouble spots:\n"  
-               "\n"
-               "     Clipping in frontal areas, close to the eye balls:\n"
-               "        + Try -no_avoid_eyes option\n"
-               "     Clipping in general:\n"
-               "        + Use lower -shrink_fac, start with 0.5 then 0.4\n"
-               "     Some lobules are not included:\n"
-               "        + Use a denser mesh. Start with -ld 30. If that still fails,\n"
-               "        try even higher density (like -ld 50) and increase iterations \n"
-               "        (say to -niter 750). Expect the program to take much longer in that case.\n"
-               "        + Instead of using denser meshes, you could try blurring the data \n"
-               "        before skull stripping. Something like -blur_fwhm 2 did\n"
-               "        wonders for some of my data with the default options of 3dSkullStrip\n"
-               "        Blurring is a lot faster than increasing mesh density.\n"
-               "        + Use also a smaller -shrink_fac is you have lots of CSF between gyri.\n"
-               "     Massive chunks missing:\n"
-               "        + If brain has very large ventricles and lots of CSF between gyri, the\n"
-               "        ventricles will keep attracting the surface inwards. In such cases, use\n"
-               "        the -visual option to see what is happening and try these options to \n"
-               "        reduce the severity of the problem:\n"
-               "            -blur_fwhm 2 -use_skull\n"
-               "\n" 
-               " Eye Candy Mode: (previous restrictions removed)\n"
-               "  You can run BrainWarp and have it send successive iterations\n"
-               " to SUMA and AFNI. This is very helpful in following the\n"
-               " progression of the algorithm and determining the source\n"
-               " of trouble, if any.\n"
-               "  Example:\n"
-               "     afni -niml -yesplugouts &\n"
-               "     suma -niml &\n"
-               "     3dSkullStrip -input Anat+orig -o_ply anat_brain -talk_suma -feed_afni -send_kth 5\n"
                "\n"
                /*
                "     -sm_fac SMFAC: Smoothing factor (Default is 1)\n"
@@ -331,10 +375,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
    Opt->NodeDbg = -1;
    Opt->t2 = Opt->t98 = Opt->t = Opt->tm = -1;
    Opt->r = 0;
-   Opt->d1 = 20;
+   Opt->d1 = -1;
    Opt->su1 = 1;
    Opt->UseNew = -1.0;
-   Opt->d4 = 15;
+   Opt->d4 = -1;
    Opt->ztv = NULL;
    Opt->Kill98 = 0;
    Opt->NoEyes = 1;
@@ -367,6 +411,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
    Opt->shrink_bias_name = NULL;
    Opt->shrink_bias = NULL;
    Opt->monkey = 0;
+   Opt->Use_emask = 1;
+   Opt->emask  = NULL;
+   Opt->PushToEdge = -1;
+   Opt->PushToOuterSkull = 1;
    
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -663,10 +711,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
          }
          brk = YUP;
 		}
-      if (!brk && (strcmp(argv[kar], "-node_dbg") == 0)) {
+      if (!brk && ( (strcmp(argv[kar], "-node_dbg") == 0) || (strcmp(argv[kar], "-node_debug") == 0)) ) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -node_dbg \n");
+		  		fprintf (SUMA_STDERR, "need argument after -node_debug \n");
 				exit (1);
 			}
 			Opt->NodeDbg = atoi(argv[kar]);
@@ -724,6 +772,26 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
 				exit (1);
 			}
 			Opt->in_name = SUMA_copy_string(argv[kar]);
+         brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-use_edge") == 0)) {
+			Opt->Use_emask = 1;
+         brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-no_use_edge") == 0)) {
+			Opt->Use_emask = 0;
+         brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-push_to_edge") == 0)) {
+			Opt->PushToEdge = 1;
+         brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-no_push_to_edge") == 0)) {
+			Opt->PushToEdge = 0;
          brk = YUP;
 		}
       
@@ -790,6 +858,13 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
    
    if (Opt->UseNew < 0) Opt->UseNew = Opt->UseNew * -1.0;
    
+   if (Opt->PushToEdge < 0) Opt->PushToEdge = 0;
+   
+   if (Opt->PushToEdge > 0 && Opt->Use_emask <= 0) {
+      fprintf(SUMA_STDERR,"Error %s:\nCannot use -push_to_edge without -use_edge\n", FuncName);
+      exit (1);      
+   }
+   
    if (Opt->fillhole < 0) {
       if (Opt->UseExpansion) {
          if (Opt->debug) {
@@ -838,6 +913,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
          exit(1);
       }
    }
+   
+    
    SUMA_RETURN(Opt);
 }
 
@@ -928,6 +1005,15 @@ int main (int argc,char *argv[])
       } else {
          mri_brainormalize_initialize(Opt->iset->daxes->xxdel, Opt->iset->daxes->yydel, Opt->iset->daxes->zzdel);
       }
+      if (Opt->d1 < 0) {
+         Opt->d1 = 20.0/THD_BN_rat(); /* half as big */
+      }
+      if (Opt->d4 < 0) {
+         Opt->d4 = 15.0/THD_BN_rat(); /* half as big */
+      }
+      
+      if (Opt->debug) fprintf(SUMA_STDERR,"%s: Size Ratio = %f\n", FuncName, THD_BN_rat());
+      
       imin->dx = fabs(Opt->iset->daxes->xxdel) ;
       imin->dy = fabs(Opt->iset->daxes->yydel) ;
       imin->dz = fabs(Opt->iset->daxes->zzdel) ;
@@ -951,7 +1037,7 @@ int main (int argc,char *argv[])
       } else {
          imout = mri_brainormalize( imin , Opt->iset->daxes->xxorient,
                                         Opt->iset->daxes->yyorient,
-                                        Opt->iset->daxes->zzorient, NULL, NULL) ;
+                                        Opt->iset->daxes->zzorient, &imout_orig, NULL) ;
       }
       mri_free( imin ) ;
 
@@ -1004,7 +1090,6 @@ int main (int argc,char *argv[])
                           ADN_none ) ;
 
          EDIT_substitute_brick( Opt->OrigSpatNormedSet , 0 , imout_orig->kind , mri_data_pointer(imout_orig) ) ;      
-
          oset = r_new_resam_dset ( Opt->OrigSpatNormedSet, Opt->iset,	0,	0,	0,	NULL, MRI_LINEAR, NULL);
          if (!oset) {
             fprintf(stderr,"**ERROR: Failed to reslice!?\n"); exit(1);
@@ -1019,7 +1104,6 @@ int main (int argc,char *argv[])
             SUMA_LH("Writing SpatNormed dset in original space");
             DSET_write(Opt->OrigSpatNormedSet) ;
          }
-
          if (prefix) SUMA_free(prefix); prefix = NULL;
          if (spatprefix) SUMA_free(spatprefix); spatprefix = NULL; 
       }
@@ -1090,7 +1174,7 @@ int main (int argc,char *argv[])
                          ADN_view_type   , VIEW_ORIGINAL_TYPE ,
                          ADN_type        , HEAD_ANAT_TYPE ,
                          ADN_func_type   , ANAT_BUCK_TYPE ,
-                       ADN_none ) ;
+                       ADN_none ) ; 
 
       EDIT_substitute_brick( oset , 0 , imout->kind , mri_data_pointer(imout) ) ;      
       if (Opt->WriteSpatNorm) {
@@ -1118,17 +1202,134 @@ int main (int argc,char *argv[])
       DSET_load(Opt->in_vol);
       if (Opt->fillhole) Opt->OrigSpatNormedSet = Opt->in_vol; /* original is same as in_vol */
       /* initialize, just to make sure numbers are ok for if statement below */
+      mri_monkeybusiness(Opt->monkey);
       mri_brainormalize_initialize(Opt->in_vol->daxes->xxdel, Opt->in_vol->daxes->yydel, Opt->in_vol->daxes->zzdel);
       if (DSET_NX( Opt->in_vol) !=  THD_BN_nx() || DSET_NY( Opt->in_vol) !=  THD_BN_ny()  || DSET_NZ( Opt->in_vol) !=  THD_BN_nz() ) {
          fprintf(SUMA_STDERR,"Error %s:\n SpatNormed Dset must be %d x %d x %d\n", FuncName, THD_BN_nx(), THD_BN_ny(), THD_BN_nz() );
          exit(1);
       }
+      if (Opt->d1 < 0) {
+         Opt->d1 = 20.0/THD_BN_rat(); /* half as big */
+      }
+      if (Opt->d4 < 0) {
+         Opt->d4 = 15.0/THD_BN_rat(); /* half as big */
+      }
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: Size factor = %f\n", FuncName, THD_BN_rat());
+
       Opt->iset_hand = SUMA_THD_handedness( Opt->in_vol );
       if (LocalHead) fprintf(SUMA_STDERR,"%s: Handedness of orig dset %d\n", FuncName, Opt->iset_hand);
 
    }
    
-   
+   /* set the travel step based on the resolution of the voxels */
+   Opt->travstp = SUMA_MIN_PAIR(SUMA_ABS(Opt->in_vol->daxes->xxdel), SUMA_ABS(Opt->in_vol->daxes->yydel));
+   Opt->travstp = SUMA_MIN_PAIR(Opt->travstp, SUMA_ABS(Opt->in_vol->daxes->zzdel));
+    
+   /* calculate an edge mask ? */
+   if (Opt->Use_emask) {
+      float *emask_sort = NULL, PercRange[2]= { 10, 90 }, PercRangeVal[2] = { 0.0, 0.0 };
+      int border[3]={0,0,0};
+      int indims[3]={0,0,0};
+      float filterCoefs[3] = {1.0, 1.0, 1.0};
+      int nxyz = DSET_NX(Opt->in_vol)*DSET_NY(Opt->in_vol)*DSET_NZ(Opt->in_vol);
+      recursiveFilterType filterType = ALPHA_DERICHE;
+      
+      Opt->emask = (float *) SUMA_malloc( sizeof(float)*nxyz);
+      if (!Opt->emask) {
+         fprintf(SUMA_STDERR,"Error %s:\n Failed to allocate for edge mask\n", FuncName);
+         exit(1);
+      }
+      /*-- Edge detect  --*/
+      indims[0] = DSET_NX(Opt->in_vol);
+      indims[1] = DSET_NY(Opt->in_vol);
+      indims[2] = DSET_NZ(Opt->in_vol);
+      border[0] = 50;
+      border[1] = 50;
+      border[2] = 50;
+      
+      switch( DSET_BRICK_TYPE(Opt->in_vol,0) ){
+        default:
+           fprintf(stderr,"ERROR: illegal input sub-brick datum\n") ;
+           exit(1) ;
+
+        case MRI_float:{
+          float *pp = (float *) DSET_ARRAY(Opt->in_vol,0) ;
+          float fac = DSET_BRICK_FACTOR(Opt->in_vol,0)  ;
+
+          if( fac ) {
+            for( ii=0 ; ii < nxyz ; ii++ ) { pp[ii] *= fac; }
+          }
+          if ( Extract_Gradient_Maxima_3D( (void *)pp, FLOAT,
+				            Opt->emask, FLOAT,
+				            indims,
+				            border,
+				            filterCoefs,
+				            filterType ) == 0 ) {
+             fprintf( stderr, "ERROR: gradient extraction failed.\n" );
+             exit( 1 );
+           }
+
+        }
+        break ;
+
+         case MRI_short:{
+            short *pp = (short *) DSET_ARRAY(Opt->in_vol,0) ;
+            float fac = DSET_BRICK_FACTOR(Opt->in_vol,0)  ;
+
+            if( fac ) {
+               for( ii=0 ; ii < nxyz ; ii++ ) { pp[ii] *= fac; }
+            }
+            if ( Extract_Gradient_Maxima_3D( (void *)pp, USHORT,
+				            Opt->emask, FLOAT,
+				            indims,
+				            border,
+				            filterCoefs,
+				            filterType ) == 0 ) {
+             fprintf( SUMA_STDERR, "ERROR: gradient extraction failed.\n" );
+             exit( 1 );
+            }
+         }
+         break ;
+
+         case MRI_byte:{
+            byte *pp = (byte *) DSET_ARRAY(Opt->in_vol,0) ;
+            float fac = DSET_BRICK_FACTOR(Opt->in_vol,0)  ;
+
+            if( fac ) {
+               for( ii=0 ; ii < nxyz ; ii++ ) { pp[ii] *= fac; }
+            }
+            if ( Extract_Gradient_Maxima_3D( (void *)pp, UCHAR,
+				            Opt->emask, FLOAT,
+				            indims,
+				            border,
+				            filterCoefs,
+				            filterType ) == 0 ) {
+             fprintf(SUMA_STDERR , "ERROR: gradient extraction failed.\n" );
+             exit( 1 );
+            }
+         }
+         break ;
+      }      
+      
+      /* get the mask threshold */
+      PercRange[0] = 10; PercRange[1] = 90;
+      emask_sort = SUMA_PercRange (Opt->emask, NULL, nxyz, PercRange, PercRangeVal, NULL);
+      if (!emask_sort) {
+         fprintf( stderr, "ERROR: mask sorting failed.\n" );
+         exit( 1 );
+      } else {
+         SUMA_free(emask_sort); emask_sort = NULL;
+      }
+      
+      if (Opt->debug) fprintf (SUMA_STDERR,"%s: Edge threshold set to %f (%f percentile), (%f percentile = %f)\n", 
+                        FuncName, PercRangeVal[1], PercRange[1], PercRange[0], PercRangeVal[0]);
+      /* Now that we have an edge vector, select appropriate values */
+      for (ii=0; ii<nxyz; ++ii) {
+         if (Opt->emask[ii] < PercRangeVal[1]) Opt->emask[ii] = 0.0;
+      }
+           
+   } 
+  
    if (!ISVALID_DSET(Opt->in_vol)) {
       if (!Opt->in_name) {
          SUMA_SL_Err("NULL input volume.");
@@ -1240,35 +1441,6 @@ int main (int argc,char *argv[])
       /* need sv for communication to AFNI */
       SO->VolPar = SUMA_VolParFromDset (Opt->in_vol);
       SO->SUMA_VolPar_Aligned = YUP; /* Surface is in alignment with volume, should not call SUMA_Align_to_VolPar ... */
-      if (0){  
-         SUMA_VTI *vti=NULL;
-         int iii, n1, n2, n3;
-         float *tmpXYZ=NULL;
-         SUMA_S_Note("Test Section");
-         /* copy surface coordinates, we're going to ijk land */
-         tmpXYZ = (float *)SUMA_malloc(SO->N_Node * 3 * sizeof(float));
-         if (!tmpXYZ) {
-            SUMA_SL_Crit("Faile to allocate");
-            exit(1);
-         }
-         memcpy ((void*)tmpXYZ, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float));
- 
-         /* transform the surface's coordinates from RAI to 3dfind */
-         SUMA_vec_dicomm_to_3dfind (tmpXYZ, SO->N_Node, SO->VolPar);
-         vti = SUMA_CreateVTI(SO->N_FaceSet, NULL);
-         for (iii=0; iii<SO->N_FaceSet; ++iii) vti->TriIndex[iii] = iii;
-         n1 = SO->FaceSetList[5*3]; n2 = SO->FaceSetList[5*3+1]; n3 = SO->FaceSetList[5*3+2];   
-         fprintf(SUMA_STDERR, "%s: Triangle 5 has nodes: \n"
-                              "        %f %f %f\n"
-                              "        %f %f %f\n"
-                              "        %f %f %f\n", FuncName, 
-                              SO->NodeList[n1*3], SO->NodeList[n1*3+1], SO->NodeList[n1*3+2], 
-                              SO->NodeList[n2*3], SO->NodeList[n2*3+1], SO->NodeList[n2*3+2],
-                              SO->NodeList[n3*3], SO->NodeList[n3*3+1], SO->NodeList[n3*3+2]); 
-         
-         vti = SUMA_GetVoxelsIntersectingTriangle(SO, SO->VolPar, tmpXYZ, vti);
-         vti = SUMA_FreeVTI(vti);
-      }
       if (!SO->State) {SO->State = SUMA_copy_string("3dSkullStrip"); }
       if (!SO->Group) {SO->Group = SUMA_copy_string("3dSkullStrip"); }
       if (!SO->Label) {SO->Label = SUMA_copy_string(stmp); }
@@ -1317,7 +1489,7 @@ int main (int argc,char *argv[])
       }
 
       if (!nint && Opt->UseSkull) {
-         /* get a crude mask of inner skull */
+         /* get a crude mask of outer skull */
          if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("Shrinking skull hull next"); }
          SUMA_SkullMask (SOhull, Opt, ps->cs);
          /* Now take mask and turn it into a volume */
@@ -1347,6 +1519,7 @@ int main (int argc,char *argv[])
             ps->cs->afni_Send = NOPE;
          }
       }
+      
             
       /* This is it baby, start walking */
       if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("Brain expansion next"); }
@@ -1429,7 +1602,7 @@ int main (int argc,char *argv[])
                   break;
                case 'p':
                   fprintf (SUMA_STDERR,"Passing this stage \n");
-                  goto BEAUTY;
+                  goto PUSH_TO_EDGE;
                   break;
                case 'c':
                   fprintf (SUMA_STDERR,"Continuing with stage.\n");
@@ -1444,9 +1617,62 @@ int main (int argc,char *argv[])
          if (Opt->k98maskcnt && Opt->k98mask) { for (ii=0; ii<Opt->k98maskcnt; ++ii) Opt->dvec[Opt->k98mask[ii]] = mval; }
          /* SUMA_REPOSITION_TOUCHUP(6);*/
          SUMA_Reposition_Touchup(SO, Opt, 6, ps->cs);
-         
          if (LocalHead) fprintf (SUMA_STDERR,"%s: Touchup correction  Done.\n", FuncName);
    }
+   
+   PUSH_TO_EDGE:
+   if (Opt->PushToEdge) {
+      fprintf (SUMA_STDERR,"%s: Pushing to Edge ...\n", FuncName);
+      ps->cs->kth = 1; /*make sure all gets sent at this stage */
+      if (Opt->DemoPause  == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("Push To Edge Correction"); }
+      if (Opt->debug) fprintf (SUMA_STDERR,"%s: Push to edge correction ...\n", FuncName);
+      if (Opt->DemoPause == SUMA_3dSS_INTERACTIVE) {
+            fprintf (SUMA_STDERR,"3dSkullStrip Interactive: \n"
+                                 "Push To Edge.\n"
+                                 "Do you want to (C)ontinue, (P)ass or (S)ave this?  ");
+            cbuf = SUMA_ReadCharStdin ('c', 0,"csp");
+            fprintf (SUMA_STDERR,"%c\n", cbuf);
+            switch (cbuf) {
+               case 's':
+                  fprintf (SUMA_STDERR,"Saving mask as is.\n");
+                  goto FINISH_UP;
+                  break;
+               case 'p':
+                  fprintf (SUMA_STDERR,"Passing this stage \n");
+                  goto BEAUTY;
+                  break;
+               case 'c':
+                  fprintf (SUMA_STDERR,"Continuing with stage.\n");
+                  break;
+            }                 
+      }
+      {  
+         int il = 0;
+         float dtroub = 1.0;
+         int N_troub = 1, past_N_troub = 0;
+         while (il < 5 && dtroub > 0.1 && N_troub) {
+            N_troub = SUMA_PushToEdge(SO, Opt, 4, ps->cs); SUMA_RECOMPUTE_NORMALS(SO);
+            if (ps->cs->Send) {
+               if (!SUMA_SendToSuma (SO, ps->cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+                  SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+               }
+            }
+            if (!past_N_troub) { 
+               past_N_troub = N_troub; 
+               if (LocalHead) fprintf (SUMA_STDERR,"%s: \n PushToEdge, pass %d %d troubled nodes, going for more...\n", FuncName, il, N_troub);
+            } else {
+               dtroub = (float)(past_N_troub - N_troub)/(float)past_N_troub;
+               if (LocalHead) fprintf (SUMA_STDERR,"%s: \n PushToEdge, pass %d : %f change in troubled nodes.\n", FuncName, il, dtroub);
+               past_N_troub = N_troub;
+            }
+          ++il;
+        }
+      }
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Edge push correction  Done.\n", FuncName);
+      ps->cs->kth = kth_buf; 
+   }
+   
+   
    BEAUTY:
    /* smooth the surface a bit */
    if (Opt->smooth_end) {
@@ -1484,6 +1710,88 @@ int main (int argc,char *argv[])
       }
       ps->cs->kth = kth_buf; 
    }
+   
+   PUSH_TO_OUTER_SKULL:
+   if (0 && Opt->PushToOuterSkull) {
+      /* first get a convex hull volume of the brain surface */
+      SUMA_Push_Nodes_To_Hull(SO, Opt, ps->cs);
+      
+      if (ps->cs->Send) {
+         if (!SUMA_SendToSuma (SO, ps->cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+         }
+      }
+      SUMA_PAUSE_PROMPT("Like that hull ? ");
+            
+      fprintf (SUMA_STDERR,"%s: Pushing to Outer Skull ...\n", FuncName);
+      ps->cs->kth = 1; /*make sure all gets sent at this stage */
+      if (Opt->DemoPause  == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("Push To Outer Skull "); }
+      if (Opt->debug) fprintf (SUMA_STDERR,"%s: Push to Outer Skull ...\n", FuncName);
+      if (Opt->DemoPause == SUMA_3dSS_INTERACTIVE) {
+            fprintf (SUMA_STDERR,"3dSkullStrip Interactive: \n"
+                                 "Push To Outer Skull.\n"
+                                 "Do you want to (C)ontinue, (P)ass or (S)ave this?  ");
+            cbuf = SUMA_ReadCharStdin ('c', 0,"csp");
+            fprintf (SUMA_STDERR,"%c\n", cbuf);
+            switch (cbuf) {
+               case 's':
+                  fprintf (SUMA_STDERR,"Saving mask as is.\n");
+                  goto FINISH_UP;
+                  break;
+               case 'p':
+                  fprintf (SUMA_STDERR,"Passing this stage \n");
+                  goto BEAUTY;
+                  break;
+               case 'c':
+                  fprintf (SUMA_STDERR,"Continuing with stage.\n");
+                  break;
+            }                 
+      }
+      {  
+         int il = 0;
+         float dtroub = 1.0;
+         int N_exp, N_troub = 1, past_N_troub = 0;
+         
+         /* reset stop flags */
+         Opt->nmask = (byte*)SUMA_malloc(sizeof(byte)*SO->N_Node);
+         for (il=0; il<SO->N_Node; ++il) Opt->nmask[il] = 1;
+         
+         LocalHead = YUP;
+         N_exp = 50;
+         il = 0;
+         while (il < N_exp || (N_troub < 0.01 * SO->N_Node && dtroub < 0.010)) {
+            N_troub = SUMA_PushToOuterSkull(SO, Opt, 10+(25.0*(N_exp-il)/(float)N_exp), ps->cs); SUMA_RECOMPUTE_NORMALS(SO);
+            if (ps->cs->Send) {
+               if (!SUMA_SendToSuma (SO, ps->cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+                  SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+               }
+            }
+            if (LocalHead) fprintf (SUMA_STDERR,"%s: %d trouble nodes reported by SUMA_PushToOuterSkull\n", FuncName, N_troub);
+            if (!past_N_troub) { 
+               past_N_troub = N_troub; 
+               if (LocalHead) fprintf (SUMA_STDERR,"%s: \nSUMA_PushToOuterSkull , pass %d %d troubled nodes, going for more...\n", FuncName, il, N_troub);
+            } else {
+               dtroub = (float)(past_N_troub - N_troub)/(float)past_N_troub;
+               if (LocalHead) fprintf (SUMA_STDERR,"%s: \nSUMA_PushToOuterSkull, pass %d : %f change in troubled nodes.\n", FuncName, il, dtroub);
+               past_N_troub = N_troub;
+            }
+          ++il;
+        }
+      }
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Outer Skull push correction  Done.\n", FuncName);
+      dsmooth = SUMA_Taubin_Smooth( SO, NULL,
+                                    0.6307, -.6732, SO->NodeList,
+                                    Opt->smooth_end, 3, SUMA_ROW_MAJOR, dsmooth, ps->cs, NULL);    
+      memcpy((void*)SO->NodeList, (void *)dsmooth, SO->N_Node * 3 * sizeof(float));
+      SUMA_RECOMPUTE_NORMALS(SO);
+      if (ps->cs->Send) {
+         if (!SUMA_SendToSuma (SO, ps->cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+         }
+      }
+      ps->cs->kth = kth_buf; 
+   }
+   
    TOUCHUP_2:
    /* one more correction pass */
    if (Opt->UseNew > 1.0) {
@@ -1614,13 +1922,13 @@ int main (int argc,char *argv[])
    Opt->nvox = DSET_NVOX( Opt->OrigSpatNormedSet );
    Opt->dvec = (double *)SUMA_malloc(sizeof(double) * Opt->nvox);
    if (!Opt->dvec) {
-      SUMA_SL_Crit("Faile to allocate for dvec.\nOh misery.");
+      SUMA_SL_Crit("Failed to allocate for dvec.\nOh misery.");
       SUMA_RETURN(NOPE);
    }
+   
    EDIT_coerce_scale_type( Opt->nvox , DSET_BRICK_FACTOR(Opt->OrigSpatNormedSet,0) ,
                            DSET_BRICK_TYPE(Opt->OrigSpatNormedSet,0), DSET_ARRAY(Opt->OrigSpatNormedSet, 0) ,      /* input  */
                            MRI_double               , Opt->dvec  ) ;   /* output */
-   
    if (!Opt->MaskMode) {
       SUMA_LH("Creating skull-stripped volume");
       for (i=0; i<SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz; ++i) {
@@ -1654,6 +1962,7 @@ int main (int argc,char *argv[])
       EDIT_one_dataset( dset , edopt);
       SUMA_free(edopt);
    }
+   
    
    if (!dset) {
       SUMA_SL_Err("Failed to create output dataset!");
