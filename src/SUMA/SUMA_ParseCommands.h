@@ -99,6 +99,12 @@ typedef struct {
    
    char *in_nodeindices;
    
+   float *emask;
+   int Use_emask;
+   byte *nmask;
+   
+   int PushToEdge; 
+   int PushToOuterSkull;  
    byte b1;
    byte b2;
    

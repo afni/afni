@@ -101,6 +101,30 @@ THD_fvec3 THD_3dmm_to_3dfind( THD_3dim_dataset * dset ,
 
 /*--------------------------------------------------------------------*/
 
+THD_ivec3 THD_3dmm_to_3dind_warn( THD_3dim_dataset * dset ,
+                             THD_fvec3 fv, int *out )
+{
+   THD_dataxes * daxes ;
+   THD_ivec3     iv ;
+
+   *out = 0;
+   daxes = CURRENT_DAXES(dset) ;
+
+   iv.ijk[0] = (fv.xyz[0] - daxes->xxorg) / daxes->xxdel + 0.499 ;
+   iv.ijk[1] = (fv.xyz[1] - daxes->yyorg) / daxes->yydel + 0.499 ;
+   iv.ijk[2] = (fv.xyz[2] - daxes->zzorg) / daxes->zzdel + 0.499 ;
+
+        if( iv.ijk[0] < 0            ) { iv.ijk[0] = 0 ; *out = 1; }
+   else if( iv.ijk[0] > daxes->nxx-1 ) { iv.ijk[0] = daxes->nxx-1 ; *out = 1; }
+
+        if( iv.ijk[1] < 0            ) { iv.ijk[1] = 0 ; *out = 1; }
+   else if( iv.ijk[1] > daxes->nyy-1 ) { iv.ijk[1] = daxes->nyy-1 ; *out = 1; }
+
+        if( iv.ijk[2] < 0            ) { iv.ijk[2] = 0 ; *out = 1; }
+   else if( iv.ijk[2] > daxes->nzz-1 ) { iv.ijk[2] = daxes->nzz-1 ; *out = 1; }
+
+   return iv ;
+}
 THD_ivec3 THD_3dmm_to_3dind( THD_3dim_dataset * dset ,
                              THD_fvec3 fv )
 {

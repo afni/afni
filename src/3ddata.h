@@ -3495,6 +3495,7 @@ extern void THD_update_one_bstat( THD_3dim_dataset * , int ) ; /* 29 Mar 2005 */
 extern THD_fvec3 THD_3dind_to_3dmm( THD_3dim_dataset * , THD_ivec3 ) ;
 extern THD_fvec3 THD_3dind_to_3dmm_no_wod( THD_3dim_dataset * , THD_ivec3 ) ;
 extern THD_ivec3 THD_3dmm_to_3dind( THD_3dim_dataset * , THD_fvec3 ) ;
+extern THD_ivec3 THD_3dmm_to_3dind_warn( THD_3dim_dataset * , THD_fvec3, int * ) ;
 extern THD_ivec3 THD_3dmm_to_3dind_no_wod( THD_3dim_dataset * , THD_fvec3 ) ;
                                                    /* 28 Sep 2004  [rickr] */
 
@@ -4059,6 +4060,7 @@ extern float THD_BN_zheight(void);
 extern float THD_BN_xcm (void);
 extern float THD_BN_ycm (void);
 extern float THD_BN_zcm (void);
+extern float THD_BN_rat (void);
 /*------------------------------------------------------------------------*/
 /* 09 May 2005: stuff for converting a dataset to from a NIML group.      */
 

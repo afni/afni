@@ -6,46 +6,85 @@
 
 static int verb = 0 ;
 static int monkey = 0;
-void mri_monkeybusiness( int v ) { monkey = v ; }
 void mri_brainormalize_verbose( int v ){ verb = v ; THD_automask_verbose(v); }
-static float thd_bn_xcm = 0.0;
-static float thd_bn_ycm = 20.0;
+
+#define  THD_BN_DXYZ    1.0
+#define  THD_BN_NX      167
+#define  THD_BN_NY      212
+#define  THD_BN_NZ      175
+#define  THD_BN_ZHEIGHT 170.0
+#define  THD_BN_XORG    -83.0
+#define  THD_BN_YORG    -89.0
+#define  THD_BN_ZORG    -82.0
+#define  THD_BN_XCM     0.0
+#define  THD_BN_YCM     20.0
 #ifdef THD_BN_CMTOP
-   static float thd_bn_zcm = 20.0;
+   #define  THD_BN_ZCM  20.0
 #else
-   static float thd_bn_zcm = 0.0;
-#endif
-static float thd_bn_dxyz = 1.0;
-static int thd_bn_nx     = 167;
-static int thd_bn_ny     = 212;
-static int thd_bn_nz     = 175;
-static float thd_bn_zheight = 170.0; /* height of box, from top slice */
-static float thd_bn_xorg = -83.0 ;  /* the box for the master dataset grid */
-static float thd_bn_yorg = -89.0 ;
-static float thd_bn_zorg = -82.0 ;
+   #define  THD_BN_ZCM  0.0
+#endif   
+#define HUMAN_RAT      1.0   /* Ratio is size of human / human dimensions */
+#define MONKEY_RAT      2.0   /* Ratio is size of human / monkey dimensions */
+
+static float thd_bn_dxyz = 0.0;
+static int thd_bn_nx     = 0;
+static int thd_bn_ny     = 0;
+static int thd_bn_nz     = 0;
+static float thd_bn_zheight = 0.0; /* height of box, from top slice */
+static float thd_bn_xorg = 0.0 ;  /* the box for the master dataset grid */
+static float thd_bn_yorg = 0.0 ;
+static float thd_bn_zorg = 0.0 ;
+static float thd_bn_xcm = 0.0;
+static float thd_bn_ycm = 0.0;
+static float thd_bn_zcm = 0.0;
+static float thd_bn_rat = 0.0;
+
+void mri_monkeybusiness( int v ) { 
+   monkey = v ;  
+}
 void mri_brainormalize_initialize(float dx, float dy, float dz)
 {
-   float scl_x, scl_y, scl_z;
+   
+   /* set the resolution */
+   thd_bn_dxyz = MIN(fabs(dx), fabs(dy)); thd_bn_dxyz = MIN(thd_bn_dxyz, fabs(dz));
    
    if (monkey) {
-      /* do the monkey thing */
-      scl_x = scl_y = scl_z = 1.0/2.0;
+      /* do the monkey thing, smaller box, basically, half the size of human*/
+      thd_bn_nx     = (int)(THD_BN_NX/MONKEY_RAT);
+      thd_bn_ny     = (int)(THD_BN_NY/MONKEY_RAT);
+      thd_bn_nz     = (int)(THD_BN_NZ/MONKEY_RAT);
+      thd_bn_zheight = THD_BN_ZHEIGHT/MONKEY_RAT; 
+      thd_bn_xorg =  THD_BN_XORG/MONKEY_RAT;  
+      thd_bn_yorg =  THD_BN_YORG/MONKEY_RAT ;
+      thd_bn_zorg =  THD_BN_ZORG/MONKEY_RAT;
+      thd_bn_xcm = THD_BN_XCM/MONKEY_RAT;
+      thd_bn_ycm = THD_BN_YCM/MONKEY_RAT;
+      thd_bn_zcm = THD_BN_ZCM/MONKEY_RAT;
+      thd_bn_rat = MONKEY_RAT;
    } else {
-      scl_x = scl_y = scl_z = 1.0;
+      thd_bn_dxyz = THD_BN_DXYZ;
+      thd_bn_nx     = THD_BN_NX;
+      thd_bn_ny     = THD_BN_NY;
+      thd_bn_nz     = THD_BN_NZ;
+      thd_bn_zheight = THD_BN_ZHEIGHT; 
+      thd_bn_xorg =  THD_BN_XORG;  
+      thd_bn_yorg =  THD_BN_YORG ;
+      thd_bn_zorg =  THD_BN_ZORG;
+      thd_bn_xcm = THD_BN_XCM;
+      thd_bn_ycm = THD_BN_YCM;
+      thd_bn_zcm = THD_BN_ZCM;
+      thd_bn_rat = HUMAN_RAT;
    }
    /* Set the reinterpolation resolution to the smallest delta */
-   thd_bn_dxyz = MIN(fabs(dx), fabs(dy)); thd_bn_dxyz = MIN(thd_bn_dxyz, fabs(dz));
-   thd_bn_nx = (int)( (float)thd_bn_nx / thd_bn_dxyz * scl_x);
-   thd_bn_ny = (int)( (float)thd_bn_ny / thd_bn_dxyz * scl_y);
-   thd_bn_nz = (int)( (float)thd_bn_nz / thd_bn_dxyz * scl_z);
-   thd_bn_zheight *=  scl_z;
-   thd_bn_xorg *=  scl_x;
-   thd_bn_yorg *=  scl_y;
-   thd_bn_zorg *=  scl_z;
-   thd_bn_xcm *= scl_x;
-   thd_bn_ycm *= scl_y;
-   thd_bn_zcm *= scl_z;
+   thd_bn_nx = (int)( (float)thd_bn_nx / thd_bn_dxyz );
+   thd_bn_ny = (int)( (float)thd_bn_ny / thd_bn_dxyz );
+   thd_bn_nz = (int)( (float)thd_bn_nz / thd_bn_dxyz );
    return;
+}
+
+float THD_BN_rat()
+{
+   return thd_bn_rat;
 }
 float THD_BN_xcm ()
 {
@@ -1615,7 +1654,11 @@ ENTRY("mri_brainormalize") ;
    if( jj > 255 ){
      float fac = 255.0 / jj ;
      if( verb ) fprintf(stderr," + scaling by fac=%g\n",fac) ;
-     for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = (byte)(fac*sar[ii]+0.49) ;
+     for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = (byte)(fac*sar[ii]+0.49) ;   /* Note that sar is not scaled down and sar is used in creating
+                                                                              imout_orig So the output image is not in the same range as the
+                                                                              input. You could fix this by scaling sar by far before setting
+                                                                              bar, but why restrict yourself to a smaller data range. You will
+                                                                              not regain the exact values before SpatNorm anyway. */
    } else {
      for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = (byte)sar[ii] ;
    }
