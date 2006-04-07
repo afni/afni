@@ -10,12 +10,12 @@ function [srf] = readsrf(filename, NoNeg)
 %        0           leaves mesh untouched.
 % 
 % readsrf attempts to read the BrainVoyagerQX v. 4 srf surface files
-% to display:
+% To display:
 % colormap(srf.cmap)
 % trisurf(srf.triangles, srf.VX, srf.VY, srf.VZ, srf.mesh_color)
 % but that would probably grind your machine to a halt, just to
 % get the idea you could do
-% trisurf(srf.triangles(1:100:end, srf.VX, srf.VY, srf.VZ, srf.mesh_color)
+% trisurf(srf.triangles(1:100:end), srf.VX, srf.VY, srf.VZ, srf.mesh_color)
 %
 % BrainVoyager flags nodes that should not be displayed. The default 
 % behavior of this function is to remove triangles containing such nodes
@@ -46,7 +46,6 @@ fprintf(1,'\nVersion: %.6f',srf.version);
 fprintf(1,'\nNumber of vertices: %d',srf.numvert);
 fprintf(1,'\nNumber of srf.triangles: %d',srf.numtri);
 fprintf(1,'\nMesh center: %.3f %.3f %.3f',srf.meshcenXYZ);
-fprintf(1,'\n');
 
 
 %% read vertices and normals
@@ -68,10 +67,27 @@ srf.alpha_concave = fread(fp,1,'float32',0,'ieee-le');
 srf.mesh_color = fread(fp,srf.numvert,'int32',0,'ieee-le');
 
 
-%% read srf.neighbors of vertices
+%% read srf.neighbors of vertices to get max number of neighbors
+neighbors_fileoffset = ftell(fp);
+max_neigh = 0;
+big_vert = 0;
 for i=1:srf.numvert
-	srf.numneigh = fread(fp,1,'int32',0,'ieee-le');
-	srf.neighbors = fread(fp,srf.numneigh,'int32',0,'ieee-le');
+	numneigh = fread(fp,1,'int32',0,'ieee-le');
+	if (numneigh > max_neigh)
+		max_neigh = numneigh;
+		big_vert = i;
+	end
+	neighbors = fread(fp,numneigh,'int32',0,'ieee-le');
+end
+fprintf(1,'\nVertex %d has the maximum of %d neighbors',big_vert,max_neigh);
+
+%% rewind back to start of neighbors and read and store them
+fseek(fp,neighbors_fileoffset,'bof');
+srf.neighbors = zeros(srf.numvert,max_neigh+1);
+for i=1:srf.numvert
+	n = fread(fp,1,'int32',0,'ieee-le');
+	srf.neighbors(i,1) = n;
+	srf.neighbors(i,2:n+1) = fread(fp,n,'int32',0,'ieee-le');
 end
 
 
@@ -113,7 +129,7 @@ if (length(srf.mtcfile) > 1)
 else
 	fprintf(1,'none');
 end
-fprintf(1,'\n');
+fprintf(1,'\n\n');
 
 
 [omega cnt] = fread(fp,1,'uchar',0,'ieee-le');

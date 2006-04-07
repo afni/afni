@@ -2764,6 +2764,12 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    
    Opt->popt = NULL;
    
+   Opt->emask = NULL;
+   Opt->Use_emask = 0;
+   Opt->PushToEdge = 0;
+   
+   Opt->nmask = NULL;
+   
    SUMA_RETURN(Opt);
 }   
 SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt)
@@ -2792,6 +2798,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
    if (Opt->shrink_bias) SUMA_free(Opt->shrink_bias); Opt->shrink_bias = NULL;
    if (Opt->shrink_bias_name) SUMA_free(Opt->shrink_bias_name); Opt->shrink_bias_name = NULL;
    if (Opt->popt) Opt->popt = NULL; /* freeing, if needed for this structure should be done elsewhere*/
+   if (Opt->emask) SUMA_free(Opt->emask); Opt->emask = NULL;
+   if (Opt->nmask) SUMA_free(Opt->nmask); Opt->nmask = NULL;
    if (Opt) SUMA_free(Opt);
 
    SUMA_RETURN(NULL);

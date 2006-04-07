@@ -1440,6 +1440,30 @@ THD_ivec3 SUMA_THD_3dmm_to_3dind( SUMA_SurfaceObject *SO  ,
    SUMA_RETURN(iv) ;
 }
 
+THD_ivec3 SUMA_THD_3dmm_to_3dind_warn( SUMA_SurfaceObject *SO  ,
+                             THD_fvec3 fv , int *out)
+{
+   static char FuncName[]={"SUMA_THD_3dmm_to_3dind_warn"};
+   THD_ivec3     iv ;
+
+   SUMA_ENTRY;
+   *out = 0;
+   
+   iv.ijk[0] = (fv.xyz[0] - SO->VolPar->xorg) / SO->VolPar->dx + 0.499 ;
+   iv.ijk[1] = (fv.xyz[1] - SO->VolPar->yorg) / SO->VolPar->dy + 0.499 ;
+   iv.ijk[2] = (fv.xyz[2] - SO->VolPar->zorg) / SO->VolPar->dz + 0.499 ;
+
+        if( iv.ijk[0] < 0            ) { iv.ijk[0] = 0 ; *out = 1; }
+   else if( iv.ijk[0] > SO->VolPar->nx-1 ) { iv.ijk[0] = SO->VolPar->nx-1 ; *out = 1; }
+
+        if( iv.ijk[1] < 0            ) { iv.ijk[1] = 0 ; *out = 1; }
+   else if( iv.ijk[1] > SO->VolPar->ny-1 ) { iv.ijk[1] = SO->VolPar->ny-1 ; *out = 1; }
+
+        if( iv.ijk[2] < 0            ) { iv.ijk[2] = 0 ; *out = 1; }
+   else if( iv.ijk[2] > SO->VolPar->nz-1 ) { iv.ijk[2] = SO->VolPar->nz-1 ; *out = 1; }
+
+   SUMA_RETURN(iv) ;
+}
 /*! 
    \brief how many voxels in each of the RL AP IS directions
 */
