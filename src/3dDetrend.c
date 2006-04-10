@@ -141,7 +141,7 @@ void DT_read_opts( int argc , char * argv[] )
         nopt++ ;
         if( nopt >= argc ) ERROR_exit("need argument after -slicevector") ;
 #ifdef ALLOW_BYSLICE
-        if( DT_byslice )   ERROR_exti("can't mix -slicevector and -byslice") ;
+        if( DT_byslice )   ERROR_exit("can't mix -slicevector and -byslice") ;
 #endif
         flim = mri_read_1D( argv[nopt++] ) ;
         if( flim == NULL ) ERROR_exit("can't read -slicevector '%s'",argv[nopt-1]) ;
