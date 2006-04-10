@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "parser.h"
 
@@ -25,10 +25,15 @@ static int                DT_exnum   = 0    ;
 static int                DT_verb    = 0    ;
 static int                DT_replace = 0    ;
 static int                DT_norm    = 0    ;  /* 23 Nov 1999 */
-static int                DT_byslice = 0    ;  /* 08 Dec 1999 */
 static int                DT_nvector = 0    ;  /* 08 Dec 1999 */
 
+#ifdef ALLOW_BYSLICE
+static int                DT_byslice = 0    ;  /* 08 Dec 1999 */
+#endif
+
 static float              DT_current_del = -1.0 ;
+
+static int                DT_polort  = -1   ;  /* 10 Apr 2006 */
 
 static char DT_output_prefix[THD_MAX_PREFIX] = "detrend" ;
 static char DT_session[THD_MAX_NAME]         = "./"   ;
@@ -45,184 +50,201 @@ void DT_Syntax(void) ;
 void DT_read_opts( int argc , char * argv[] )
 {
    int nopt = 1 , nvals , ii , nvcheck ;
+   MRI_IMARR *slice_imar ;
 
    INIT_IMARR(DT_imar) ;
+   INIT_IMARR(slice_imar) ;
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+      /**** -polort p ****/
+
+      if( strncmp(argv[nopt],"-polort",6) == 0 ){
+        nopt++ ;
+        if( nopt >= argc ) ERROR_exit("Need argument after -polort") ;
+        DT_polort = (int)strtod(argv[nopt],NULL) ;
+        if( DT_polort < 0 )
+          WARNING_message("Ignoring negative value after -polort") ;
+        nopt++ ; continue ;
+      }
 
       /**** -prefix prefix ****/
 
       if( strncmp(argv[nopt],"-prefix",6) == 0 ){
-         nopt++ ;
-         if( nopt >= argc ){
-            fprintf(stderr,"*** need argument after -prefix!\n") ; exit(1) ;
-         }
-         MCW_strncpy( DT_output_prefix , argv[nopt++] , THD_MAX_PREFIX ) ;
-         continue ;
+        nopt++ ;
+        if( nopt >= argc ) ERROR_exit("Need argument after -prefix") ;
+        MCW_strncpy( DT_output_prefix , argv[nopt] , THD_MAX_PREFIX ) ;
+        if( !THD_filename_ok(DT_output_prefix) )
+          ERROR_exit("bad name '%s' after -prefix",argv[nopt]) ;
+        nopt++ ; continue ;
       }
 
       /**** -session directory ****/
 
       if( strncmp(argv[nopt],"-session",6) == 0 ){
-         nopt++ ;
-         if( nopt >= argc ){
-            fprintf(stderr,"*** need argument after -session!\n") ; exit(1) ;
-         }
-         MCW_strncpy( DT_session , argv[nopt++] , THD_MAX_NAME ) ;
-         continue ;
+        nopt++ ;
+        if( nopt >= argc ) ERROR_exit("Need argument after -session") ;
+        MCW_strncpy( DT_session , argv[nopt] , THD_MAX_NAME ) ;
+        if( !THD_filename_ok(DT_session) )
+          ERROR_exit("bad name '%s' after -session",argv[nopt]) ;
+        nopt++ ; continue ;
       }
 
       /**** -verb ****/
 
       if( strncmp(argv[nopt],"-verb",5) == 0 ){
-         DT_verb++ ;
-         nopt++ ; continue ;
+        DT_verb++ ; nopt++ ; continue ;
       }
 
       /**** -replace ****/
 
       if( strncmp(argv[nopt],"-replace",5) == 0 ){
-         DT_replace++ ;
-         nopt++ ; continue ;
+        DT_replace++ ; nopt++ ; continue ;
       }
 
-#ifdef ALLOW_BYSLICE
       /**** -byslice [08 Dec 1999] ****/
 
       if( strncmp(argv[nopt],"-byslice",5) == 0 ){
-         DT_byslice++ ;
-         nopt++ ; continue ;
-      }
+#ifdef ALLOW_BYSLICE
+        if( IMARR_COUNT(slice_imar) > 0 )
+          ERROR_exit("can't mix -byslice and -slicevector") ;
+        DT_byslice++ ; nopt++ ; continue ;
+#else
+        ERROR_exit("-byslice is no longer suppported") ;
 #endif
+      }
 
       /**** -normalize [23 Nov 1999] ****/
 
       if( strncmp(argv[nopt],"-normalize",5) == 0 ){
-         DT_norm++ ;
-         nopt++ ; continue ;
+        DT_norm++ ; nopt++ ; continue ;
       }
 
       /**** -vector ****/
 
       if( strncmp(argv[nopt],"-vector",4) == 0 ){
-         MRI_IMAGE * flim ;
-         nopt++ ;
-         if( nopt >= argc ){
-            fprintf(stderr,"*** need argument after -vector!\n"); exit(1);
-         }
-         flim = mri_read_1D( argv[nopt++] ) ;
-         if( flim == NULL ){
-            fprintf(stderr,"*** can't read -vector %s\n",argv[nopt-1]); exit(1);
-         }
-         ADDTO_IMARR(DT_imar,flim) ;
-         if( DT_verb )
-            fprintf(stderr,"+++ Read in %s: rows=%d cols=%d\n",
-                           argv[nopt-1],flim->ny,flim->nx ) ;
-         continue ;
+        MRI_IMAGE * flim ;
+        nopt++ ;
+        if( nopt >= argc ) ERROR_exit("need argument after -vector") ;
+        flim = mri_read_1D( argv[nopt++] ) ;
+        if( flim == NULL ) ERROR_exit("can't read -vector '%s'",argv[nopt-1]) ;
+        ADDTO_IMARR(DT_imar,flim) ;
+        if( DT_verb ) INFO_message("Read file %s: rows=%d cols=%d",
+                                   argv[nopt-1],flim->ny,flim->nx ) ;
+        continue ;
+      }
+
+      /**** -slicevector ****/
+
+      if( strncmp(argv[nopt],"-slicevector",6) == 0 ){
+        MRI_IMAGE *flim ;
+        nopt++ ;
+        if( nopt >= argc ) ERROR_exit("need argument after -slicevector") ;
+#ifdef ALLOW_BYSLICE
+        if( DT_byslice )   ERROR_exti("can't mix -slicevector and -byslice") ;
+#endif
+        flim = mri_read_1D( argv[nopt++] ) ;
+        if( flim == NULL ) ERROR_exit("can't read -slicevector '%s'",argv[nopt-1]) ;
+        ADDTO_IMARR(slice_imar,flim) ;
+        if( DT_verb ) INFO_message("Read file %s: rows=%d cols=%d",
+                                   argv[nopt-1],flim->ny,flim->nx ) ;
+        continue ;
       }
 
       /**** -del ****/
 
       if( strncmp(argv[nopt],"-del",4) == 0 ){
-         nopt++ ;
-         if( nopt >= argc ){
-            fprintf(stderr,"*** need argument after -del!\n"); exit(1);
-         }
-         DT_current_del = strtod( argv[nopt++] , NULL ) ;
-         if( DT_verb )
-            fprintf(stderr,"+++ Set expression stepsize = %g\n",DT_current_del) ;
-         continue ;
+        nopt++ ;
+        if( nopt >= argc ) ERROR_exit("need argument after -del") ;
+        DT_current_del = strtod( argv[nopt++] , NULL ) ;
+        if( DT_verb )
+          INFO_message("Set expression stepsize = %g\n",DT_current_del) ;
+        continue ;
       }
 
       /**** -expr ****/
 
       if( strncmp(argv[nopt],"-expr",4) == 0 ){
-         int nexp , qvar , kvar ;
-         char sym[4] ;
+        int nexp , qvar , kvar ;
+        char sym[4] ;
 
-         nopt++ ;
-         if( nopt >= argc ){
-            fprintf(stderr,"*** need argument after -expr!\n"); exit(1);
-         }
+        nopt++ ;
+        if( nopt >= argc ) ERROR_exit("need argument after -expr") ;
 
-         nexp = DT_exnum + 1 ;
-         if( DT_exnum == 0 ){   /* initialize storage */
-            DT_expr   = (char **)        malloc( sizeof(char *) ) ;
-            DT_excode = (PARSER_code **) malloc( sizeof(PARSER_code *) ) ;
-            DT_exdel  = (float *)        malloc( sizeof(float) ) ;
-            DT_exvar  = (int *)          malloc( sizeof(int) ) ;
-         } else {
-            DT_expr   = (char **)        realloc( DT_expr ,
-                                                  sizeof(char *)*nexp ) ;
-            DT_excode = (PARSER_code **) realloc( DT_excode ,
-                                                  sizeof(PARSER_code *)*nexp ) ;
-            DT_exdel  = (float *)        realloc( DT_exdel ,
-                                                  sizeof(float)*nexp) ;
-            DT_exvar  = (int *)          realloc( DT_exvar ,
-                                                  sizeof(int)*nexp) ;
-         }
-         DT_expr[DT_exnum]   = argv[nopt] ;                         /* string */
-         DT_exdel[DT_exnum]  = DT_current_del ;                     /* delta */
-         DT_excode[DT_exnum] = PARSER_generate_code( argv[nopt] ) ; /* compile */
-         if( DT_excode[DT_exnum] == NULL ){
-            fprintf(stderr,"*** Illegal expression: %s\n",argv[nopt]); exit(1);
-         }
+        nexp = DT_exnum + 1 ;
+        if( DT_exnum == 0 ){   /* initialize storage */
+          DT_expr   = (char **)        malloc( sizeof(char *) ) ;
+          DT_excode = (PARSER_code **) malloc( sizeof(PARSER_code *) ) ;
+          DT_exdel  = (float *)        malloc( sizeof(float) ) ;
+          DT_exvar  = (int *)          malloc( sizeof(int) ) ;
+        } else {
+          DT_expr   = (char **)        realloc( DT_expr ,
+                                                sizeof(char *)*nexp ) ;
+          DT_excode = (PARSER_code **) realloc( DT_excode ,
+                                                sizeof(PARSER_code *)*nexp ) ;
+          DT_exdel  = (float *)        realloc( DT_exdel ,
+                                                sizeof(float)*nexp) ;
+          DT_exvar  = (int *)          realloc( DT_exvar ,
+                                                sizeof(int)*nexp) ;
+        }
+        DT_expr[DT_exnum]   = argv[nopt] ;                         /* string */
+        DT_exdel[DT_exnum]  = DT_current_del ;                     /* delta */
+        DT_excode[DT_exnum] = PARSER_generate_code( argv[nopt] ) ; /* compile */
+        if( DT_excode[DT_exnum] == NULL )
+          ERROR_exit("Illegal expression: '%s'",argv[nopt]) ;
 
-         qvar = 0 ; kvar = -1 ;                       /* find symbol */
-         for( ii=0 ; ii < 26 ; ii++ ){
-            sym[0] = 'A' + ii ; sym[1] = '\0' ;
-            if( PARSER_has_symbol(sym,DT_excode[DT_exnum]) ){
-               qvar++ ; if( kvar < 0 ) kvar = ii ;
-               if( DT_verb )
-                  fprintf(stderr,"+++ Found expression symbol %s\n",sym) ;
-            }
-         }
-         if( qvar > 1 ){
-            fprintf(stderr,"*** Expression %s should have just one symbol!\n",
-                           DT_expr[DT_exnum] ) ;
-            exit(1) ;
-         }
-         DT_exvar[DT_exnum] = kvar ;
-
-         DT_exnum = nexp ; nopt++ ; continue ;
+        qvar = 0 ; kvar = -1 ;                       /* find symbol */
+        for( ii=0 ; ii < 26 ; ii++ ){
+          sym[0] = 'A' + ii ; sym[1] = '\0' ;
+          if( PARSER_has_symbol(sym,DT_excode[DT_exnum]) ){
+            qvar++ ; if( kvar < 0 ) kvar = ii ;
+            if( DT_verb )
+              INFO_message("Found expression symbol %s\n",sym) ;
+          }
+        }
+        if( qvar != 1 )
+          ERROR_exit("-expr '%s' should have exactly one symbol",DT_expr[DT_exnum]) ;
+        DT_exvar[DT_exnum] = kvar ;
+        DT_exnum = nexp ; nopt++ ; continue ;
       }
 
       /**** ERROR ****/
 
-      fprintf(stderr,"*** Unknown option: %s\n",argv[nopt]) ; exit(1) ;
+      ERROR_exit("Unknown option: %s\n",argv[nopt]) ;
 
    }  /* end of scan over options */
 
    /*-- check for errors --*/
 
-   if( nopt >= argc ){
-      fprintf(stderr,"*** No input dataset!?\n") ; exit(1) ;
-   }
+   if( nopt >= argc ) ERROR_exit("No input dataset?!") ;
+
+#ifdef ALLOW_BYSLICE
+   if( IMARR_COUNT(slice_imar) > 0 && DT_byslice )
+     ERROR_exit("Illegal mixing of -slicevector and -byslice") ;
+#endif
 
    DT_nvector = IMARR_COUNT(DT_imar) ;
-   if( DT_nvector + DT_exnum == 0 ){
-      fprintf(stderr,"*** No -vector or -expr options!?\n") ; exit(1) ;
-   }
+   if( DT_nvector + DT_exnum == 0 && DT_polort <= 0 )
+     ERROR_exit("No detrending options ordered!") ;
+
 #ifdef ALLOW_BYSLICE
-   if( DT_nvector == 0 && DT_byslice ){
-      fprintf(stderr,"*** No -vector option supplied with -byslice!?\n"); exit(1);
-   }
+   if( DT_nvector == 0 && DT_byslice )
+     ERROR_exit("No -vector option supplied with -byslice!") ;
 #endif
 
    /*--- read input dataset ---*/
 
    DT_dset = THD_open_dataset( argv[nopt] ) ;
-   if( DT_dset == NULL ){
-      fprintf(stderr,"*** Can't open dataset %s\n",argv[nopt]) ; exit(1) ;
-   }
+   if( DT_dset == NULL )
+     ERROR_exit("Can't open dataset %s\n",argv[nopt]) ;
 
    DT_current_del = DSET_TR(DT_dset) ;
    if( DT_current_del <= 0.0 ){
-      DT_current_del = 1.0 ;
-      if( DT_verb )
-         fprintf(stderr,"+++ Input has no TR value; setting TR=1.0\n") ;
+     DT_current_del = 1.0 ;
+     if( DT_verb )
+       WARNING_message("Input has no TR value; setting TR=1.0\n") ;
    } else if( DT_verb ){
-         fprintf(stderr,"+++ Input has TR=%g\n",DT_current_del) ;
+     INFO_message("Input has TR=%g\n",DT_current_del) ;
    }
 
    /*-- check vectors for good size --*/
@@ -232,34 +254,47 @@ void DT_read_opts( int argc , char * argv[] )
    if( DT_byslice ) nvcheck *= DSET_NZ(DT_dset) ;
 #endif
    for( ii=0 ; ii < DT_nvector ; ii++ ){
-      if( IMARR_SUBIMAGE(DT_imar,ii)->nx < nvcheck ){
-         fprintf(stderr,"*** %d-th -vector is shorter than dataset!\n",ii+1) ;
-         exit(1) ;
-      }
+     if( IMARR_SUBIMAGE(DT_imar,ii)->nx < nvcheck )
+       ERROR_exit("%d-th -vector is shorter than dataset!\n",ii+1) ;
    }
 
    /*--- create time series from expressions */
 
    if( DT_exnum > 0 ){
-      double atoz[26] , del ;
-      int kvar , jj ;
-      MRI_IMAGE * flim ;
-      float * flar ;
+     double atoz[26] , del ;
+     int kvar , jj ;
+     MRI_IMAGE * flim ;
+     float * flar ;
 
-      for( jj=0 ; jj < DT_exnum ; jj++ ){
-         if( DT_verb ) fprintf(stderr,"+++ Evaluating %d-th -expr\n",jj+1) ;
-         kvar = DT_exvar[jj] ;
-         del  = DT_exdel[jj] ;
-         if( del <= 0.0 ) del = DT_current_del ;
-         flim = mri_new( nvals , 1 , MRI_float ) ;
-         flar = MRI_FLOAT_PTR(flim) ;
-         for( ii=0 ; ii < 26 ; ii++ ) atoz[ii] = 0.0 ;
-         for( ii=0 ; ii < nvals ; ii++ ){
-            if( kvar >= 0 ) atoz[kvar] = ii * del ;
-            flar[ii]   = PARSER_evaluate_one( DT_excode[jj] , atoz ) ;
-         }
-         ADDTO_IMARR( DT_imar , flim ) ;
-      }
+     for( jj=0 ; jj < DT_exnum ; jj++ ){
+       if( DT_verb ) INFO_message("Evaluating %d-th -expr\n",jj+1) ;
+       kvar = DT_exvar[jj] ;
+       del  = DT_exdel[jj] ;
+       if( del <= 0.0 ) del = DT_current_del ;
+       flim = mri_new( nvals , 1 , MRI_float ) ;
+       flar = MRI_FLOAT_PTR(flim) ;
+       for( ii=0 ; ii < 26 ; ii++ ) atoz[ii] = 0.0 ;
+       for( ii=0 ; ii < nvals ; ii++ ){
+         if( kvar >= 0 ) atoz[kvar] = ii * del ;
+         flar[ii]   = PARSER_evaluate_one( DT_excode[jj] , atoz ) ;
+       }
+       ADDTO_IMARR( DT_imar , flim ) ;
+     }
+   }
+
+   /*--- from polort [10 Apr 2006] ---*/
+
+   if( DT_polort >= 0 ){
+     int kk ;
+     MRI_IMAGE *flim ;
+     float *flar ; double fac=2.0/(nvals-1.0) ;
+
+     for( kk=0 ; kk <= DT_polort ; kk++ ){
+       flim = mri_new( nvals , 1 , MRI_float ) ;
+       flar = MRI_FLOAT_PTR(flim) ;
+       for( ii=0 ; ii < nvals ; ii++ ) flar[ii] = Plegendre(fac*ii-1.0,kk) ;
+       ADDTO_IMARR( DT_imar , flim ) ;
+     }
    }
 
    return ;
@@ -328,9 +363,10 @@ void DT_Syntax(void)
     "                   independent variable in 'eee'.  For example:\n"
     "                    -expr 'cos(2*PI*t/40)' -expr 'sin(2*PI*t/40)'\n"
     "                   will remove sine and cosine waves of period 40\n"
-    "                   from the dataset.  Another example:\n"
-    "                    -expr '1' -expr 't' -expr 't*t'\n"
-    "                   will remove a quadratic trend from the data.\n"
+    "                   from the dataset.\n"
+    "\n"
+    " -polort ppp   = Add Legendre polynomials of order up to and\n"
+    "                   including 'ppp' in the list of vectors to remove.\n"
     "\n"
     " -del ddd      = Use the numerical value 'ddd' for the stepsize\n"
     "                   in subsequent -expr options.  If no -del option\n"
@@ -345,8 +381,8 @@ void DT_Syntax(void)
 #ifdef ALLOW_BYSLICE
     "\n"
     " N.B.: expressions are NOT calculated on a per-slice basis when the\n"
-    "        -byslice option is used.  If you want to do this, you could\n"
-    "        compute vectors with the required time series using 1devel.\n"
+    "        -byslice option is used.  If you have to do this, you could\n"
+    "        compute vectors with the required time series using 1deval.\n"
 #endif
    ) ;
 
@@ -395,24 +431,19 @@ int main( int argc , char * argv[] )
 
    /* can't re-write existing dataset */
 
-   if( THD_is_file(DSET_HEADNAME(new_dset)) ){
-      fprintf(stderr,"*** Fatal error: file %s already exists!\n",
-              DSET_HEADNAME(new_dset) ) ;
-      exit(1) ;
-   }
+   if( THD_is_file(DSET_HEADNAME(new_dset)) )
+     ERROR_exit("File %s already exists!\n",DSET_HEADNAME(new_dset) ) ;
 
    /* read input in, and attach its bricks to the output dataset */
    /* (not good in a plugin, but OK in a standalone program!)    */
 
-   if( DT_verb ) fprintf(stderr,"+++ Loading input dataset .BRIK\n") ;
+   if( DT_verb ) INFO_message("Loading input dataset bricks\n") ;
 
    DSET_mallocize( new_dset ) ;
    DSET_mallocize( DT_dset ) ;
    DSET_load( DT_dset ) ;
-   if( !DSET_LOADED(DT_dset) ){
-      fprintf(stderr,"*** Can't read input dataset .BRIK!\n") ;
-      exit(1) ;
-   }
+   if( !DSET_LOADED(DT_dset) )
+     ERROR_exit("Can't read input dataset bricks\n") ;
 
    nvals = DSET_NVALS(new_dset) ;
    for( iv=0 ; iv < nvals ; iv++ )
@@ -421,9 +452,8 @@ int main( int argc , char * argv[] )
                              DSET_ARRAY(DT_dset,iv)       ) ;
 
    if( DT_norm && DSET_BRICK_TYPE(new_dset,0) != MRI_float ){
-      fprintf(stderr,"+++ Warning: turning -normalize option off since\n"
-                     "             input dataset is not in float format!\n");
-      DT_norm = 0 ;
+     INFO_message("Turning -normalize option off (input not in float format)");
+     DT_norm = 0 ;
    }
 
    /* load reference (detrending) vectors;
@@ -446,16 +476,14 @@ int main( int argc , char * argv[] )
 
    if( !DT_byslice ){
       choleski = startup_lsqfit( nvals , NULL , nvec , refvec ) ;
-      if( choleski == NULL ){
-         fprintf(stderr,"*** Linearly dependent vectors can't be used!\n") ;
-         exit(1) ;
-      }
+      if( choleski == NULL )
+        ERROR_exit("Choleski factorization fails: linearly dependent vectors!\n") ;
 
       /* loop over voxels, fitting and detrending (or replacing) */
 
       nvox = DSET_NVOX(new_dset) ;
 
-      if( DT_verb ) fprintf(stderr,"+++ Computing voxel fits\n") ;
+      if( DT_verb ) INFO_message("Computing voxel fits\n") ;
 
       for( kk=0 ; kk < nvox ; kk++ ){
 
@@ -503,7 +531,7 @@ int main( int argc , char * argv[] )
 
       for( ksl=0 ; ksl < nslice ; ksl++ ){
 
-         if( DT_verb ) fprintf(stderr,"+++ Computing voxel fits for slice %d\n",ksl) ;
+         if( DT_verb ) INFO_message("Computing voxel fits for slice %d\n",ksl) ;
 
          /* extract slice vectors from input interlaced vectors */
 
@@ -520,10 +548,8 @@ int main( int argc , char * argv[] )
          /* initialize fitting for this slice */
 
          choleski = startup_lsqfit( nvals , NULL , nvec , refvec ) ;
-         if( choleski == NULL ){
-            fprintf(stderr,"*** Linearly dependent vectors found at slice %d\n",ksl) ;
-            exit(1) ;
-         }
+         if( choleski == NULL )
+           ERROR_exit("Choleski fails: linearly dependent vectors at slice %d\n",ksl) ;
 
          /* loop over voxels in this slice */
 
@@ -560,6 +586,6 @@ int main( int argc , char * argv[] )
    /*-- done done done done --*/
 
    DSET_write(new_dset) ;
-   if( DT_verb ) fprintf(stderr,"+++ Wrote output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
+   if( DT_verb ) WROTE_DSET(new_dset) ;
    exit(0) ;
 }

@@ -5853,3 +5853,6 @@
 
 05 Apr 2006
  * Add -frugal option to 3dZcat.c.
+
+10 Apr 2006
+ * Add -polort option to 3dDetrend.c.
