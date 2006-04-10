@@ -52,12 +52,12 @@ LIBDIR = $(INSTALLDIR)
 INSTALL_PREREQ = suma_gts
 #INSTALL_PREREQ = suma
 
-LIBDL = libdl.a
+# LIBDL = libdl.a
 
 # for dynamic linking
 
-LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm -lmri -ldl -lc
-# LLIBS  = -lmri /sw/lib/libXm.a -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm -lmri -ldl -lc
+LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm -lmri -lc
+# LLIBS  = -lmri /sw/lib/libXm.a -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm -lmri -lc
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma
