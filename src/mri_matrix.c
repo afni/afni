@@ -343,6 +343,35 @@ ENTRY("mri_matrix_psinv") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/*! The output matrix is the orthogonal projection onto the linear space
+    spanned by the columns of the input imc.  If pout != 0, then instead
+    it is the orthogonal projection onto the complement of this space.
+    If the input is NxM, the output is NxN.   [10 Apr 2006]
+------------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_matrix_ortproj( MRI_IMAGE *imc , int pout )
+{
+   MRI_IMAGE *imp , *imt ;
+
+ENTRY("mri_matrix_ortproj") ;
+
+   if( imc == NULL || imc->kind != MRI_float ) RETURN( NULL );
+
+   imp = mri_matrix_psinv( imc , NULL , 0.0 ) ;
+   if( imp == NULL ) RETURN(NULL) ;
+   imt = mri_matrix_mult( imc , imp ) ; mri_free(imp) ;
+
+   if( pout ){
+     int nn , nq , ii ; float *tar ;
+     nn = imt->nx ; nq = nn*nn ; tar = MRI_FLOAT_PTR(imt) ;
+     for( ii=0 ; ii < nq ; ii+=(nn+1) ) tar[ii] -= 1.0f ;
+     for( ii=0 ; ii < nq ; ii++       ) tar[ii]  = -tar[ii] ;
+   }
+
+   RETURN(imt) ;
+}
+
+/*----------------------------------------------------------------------------*/
 
 double Plegendre( double x , int m )   /* Legendre polynomials over [-1,1] */
 {
