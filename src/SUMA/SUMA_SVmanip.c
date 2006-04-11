@@ -2465,7 +2465,12 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
    }
    
    /* if surface is SureFit , flip lights */
-   if (SO->FileType == SUMA_SUREFIT || SO->FileType == SUMA_OPENDX_MESH || SO->FileType == SUMA_BRAIN_VOYAGER) {
+   if (SO->normdir == 0 && (SO->FileType == SUMA_SUREFIT || SO->FileType == SUMA_OPENDX_MESH || SO->FileType == SUMA_BRAIN_VOYAGER)) {
+      SUMA_LH("Flippo for safety");
+      cSV->light0_position[0] *= -1;
+      cSV->light0_position[1] *= -1;      
+      cSV->light0_position[2] *= -1;
+   } else if (SO->normdir == -1) {
       SUMA_LH("Flippo for safety");
       cSV->light0_position[0] *= -1;
       cSV->light0_position[1] *= -1;      

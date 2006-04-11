@@ -3946,6 +3946,7 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
          }
       }
 
+      SS = SUMA_StringAppend_va (SS, "Node Normal Direction (1=out, -1=in, 0=dunno) = %d\n", SO->normdir);
       if (SO->NodeNormList == NULL) {
          sprintf (stmp,"NodeNormList is NULL\n\n");
          SS = SUMA_StringAppend (SS,stmp);
@@ -4234,7 +4235,8 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].NodeList = NULL; 
       SO[i].FaceSetList = NULL; 
       SO[i].FaceNormList = NULL; 
-      SO[i].NodeNormList = NULL; 
+      SO[i].NodeNormList = NULL;
+      SO[i].normdir = 0; 
       SO[i].glar_NodeList = NULL; 
       SO[i].glar_FaceSetList = NULL; 
       SO[i].glar_FaceNormList = NULL; 
