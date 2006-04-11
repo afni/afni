@@ -1865,7 +1865,7 @@ int main (int argc, char ** argv)
    /*----- warn user (after any help) -----*/
    if( !option_data->old_method )
        fprintf(stderr,"\n"
-       "** Changes have been made for 3ANOVA computations.\n"
+       "** Changes have been made for 3dANOVA computations.\n"
        "   For details, please see:\n"
        "   %s\n\n", ANOVA_MODS_LINK);
 
