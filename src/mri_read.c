@@ -2116,7 +2116,7 @@ ENTRY("mri_read_1D") ;
    dpt = strstr(fname,"{") ;            /* 30 Apr 2003: subsampling list */
 
    if( cpt == fname || dpt == fname ){  /* can't be at start of filename! */
-      fprintf(stderr,"*** Illegal filename in mri_read_1D: %s\n",fname) ;
+      ERROR_message("Illegal filename in mri_read_1D('%s')\n",fname) ;
       RETURN(NULL) ;
    } else {                             /* got a subvector list */
       strcpy( dname , fname ) ;
@@ -2124,7 +2124,7 @@ ENTRY("mri_read_1D") ;
       if( dpt != NULL ){ ii = dpt-fname; dname[ii] = '\0'; }
    }
 
-   /*-- read file in --*/
+   /*-- read file in, flip it sideways --*/
 
    inim = mri_read_ascii(dname) ;
    if( inim == NULL ) RETURN(NULL) ;
