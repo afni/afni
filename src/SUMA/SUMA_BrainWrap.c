@@ -2479,9 +2479,12 @@ void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_
 {
    static char FuncName[]={"SUMA_SO_Hull_Volume"};
    float U[3], Un, *a, P2[2][3]={ {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} }, *norm, shft, *b; 
-   int *ijk=NULL, nf = 0, N_iter = 0, N_troub, in, N_smooth, N_itermax;
-   float *dsmooth=NULL, *refNodeList=NULL, *dirvec = NULL;
+   int *ijk=NULL, nf = 0, N_iter = 0, N_troub, in, N_smooth, N_itermax, inh;
+   float *dsmooth=NULL, *refNodeList=NULL, *dirvec = NULL, *diropt=NULL, iscale;
    byte *nmask = NULL;
+   SUMA_Boolean exists; 
+   void *SO_name_hull;
+   
    SUMA_M2M_STRUCT *M2M = NULL;
    SUMA_SurfaceObject *SOhull = NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -2505,6 +2508,11 @@ void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_
             SOhull = NULL;
             SUMA_RETURN(NULL);
          }
+      fprintf (SUMA_STDERR,"%s: Writing hull surface  ...\n", FuncName);
+      SO_name_hull = SUMA_Prefix2SurfaceName("hull", NULL, NULL, SUMA_PLY, &exists);
+      if (!SUMA_Save_Surface_Object (SO_name_hull, SOhull, Opt->SurfFileType, Opt->SurfFileFormat, NULL)) {
+         fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+      }
    }
 
    /* need idcodes for SO and SOhull */
@@ -2517,49 +2525,74 @@ void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_
       SUMA_RETURN(NULL);
    }
    
-   N_itermax = 30;
-   N_iter = 0;
-   N_troub = 1;
-   N_smooth = 20;
-   do {
-      /* filter */
-      N_smooth = (int)( (20 * (float)(N_itermax - N_iter)/(float)N_itermax ) / 2.0 ) * 2;
-      fprintf(SUMA_STDERR,"%s:  Now smoothing with %d iterations \n", FuncName, N_smooth);
-      if (N_smooth > 0) {
-         dsmooth = SUMA_NN_GeomSmooth( SO, N_smooth , SO->NodeList, 3, SUMA_ROW_MAJOR, dsmooth, cs, nmask);    \
+   {
+      N_itermax = 50;
+      N_iter = 0;
+      N_smooth = 20;
+      do {
+         N_troub = 0;
+         iscale = (float)(N_itermax - N_iter)/(float)N_itermax;
+         #if 0
+         /* filter */
+         N_smooth = (int)( (10 + 20 * iscale ) / 2.0 ) * 2;
+         fprintf(SUMA_STDERR,"%s:  Now smoothing with %d iterations \n", FuncName, N_smooth);
+         if (N_smooth > 0) {
+            dsmooth = SUMA_NN_GeomSmooth( SO, N_smooth , SO->NodeList, 3, SUMA_ROW_MAJOR, dsmooth, cs, nmask);    \
+         }
          SUMA_RECOMPUTE_NORMALS(SO);
-      }
-      /* find distance of each node to hull, go along direction from center instead of normals*/
-      for (in=0; in < SO->N_Node; ++in) {
-         a = &(SO->NodeList[3*in]);   
-         b = &(dirvec[3*in  ]);
-         SUMA_UNIT_VEC(SO->Center, a, b, Un);
-      }
-      M2M = SUMA_GetM2M_NN( SO, SOhull, NULL, SO->N_Node, NULL, 100.0, Opt->NodeDbg);
-      /* move each node by fraction of distance along dirvec */
-      for (in=0; in < SO->N_Node; ++in) {
-         if (M2M->PD[in] > 0.1) {
-            a = &(SO->NodeList[3*in]);   
-            norm = &(dirvec[3*in]);  
-            SUMA_POINT_AT_DISTANCE(norm, a, M2M->PD[in], P2);
-            SO->NodeList[3*in] = P2[0][0]; SO->NodeList[3*in+1] = P2[0][1]; SO->NodeList[3*in+2] = P2[0][2];   
-            if (LocalHead || Opt->NodeDbg == in) fprintf(SUMA_STDERR,"%s: Acting on node %d, boosting by %f, original request of %fmm\n", 
-                     FuncName, in, M2M->PD[in], M2M->PD[in]);  
-            ++N_troub;  
+         #else
+         if (N_iter > N_itermax / 2) {
+            SUMA_WRAP_BRAIN_SMOOTH_NN(6, dsmooth, refNodeList, nmask);  
+         } else if (N_iter < N_itermax) {
+            /* civilized smoothing */
+            dsmooth = SUMA_Taubin_Smooth( SO, NULL,
+                                    0.6307, -.6732, SO->NodeList,
+                                    Opt->smooth_end, 3, SUMA_ROW_MAJOR, dsmooth, cs, NULL);    
+            memcpy((void*)SO->NodeList, (void *)dsmooth, SO->N_Node * 3 * sizeof(float));
+            SUMA_RECOMPUTE_NORMALS(SO);
+         } 
+         #endif
+         if (0 && N_iter > N_itermax / 2) {
+            /* find distance of each node to hull, go along direction from center instead of normals*/
+            for (in=0; in < SO->N_Node; ++in) {
+               a = &(SO->NodeList[3*in]);   
+               b = &(dirvec[3*in  ]);
+               SUMA_UNIT_VEC(SO->Center, a, b, Un);
+            }
+            diropt = dirvec;
          } else {
-            if (M2M->PD[in] < 0) fprintf(SUMA_STDERR,"%s: Node %d has PD of %f\n", FuncName, in,M2M->PD[in]); 
+            diropt = SO->NodeNormList; /* initially, use normals, because some nodes may be behind
+                                          the center, ie. normal dot (center-->node) is negative */
          }
-      }
-      /*free M2M */
-      M2M = SUMA_FreeM2M(M2M);
-      ++N_iter;
-      if (cs->Send) {
-         if (!SUMA_SendToSuma (SO, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
-            SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+         M2M = SUMA_GetM2M_NN( SO, SOhull, NULL, SO->N_Node, diropt, 100.0, Opt->NodeDbg);
+         /* move each node by fraction of distance along dirvec */
+         for (in=0; in < SO->N_Node; ++in) {
+            shft = M2M->PD[in];
+            if (SUMA_ABS(shft) > 0.1){
+               a = &(SO->NodeList[3*in]);   
+               norm = &(diropt[3*in]);  
+               SUMA_POINT_AT_DISTANCE(norm, a, SUMA_MIN_PAIR(shft, 4), P2);
+               SO->NodeList[3*in] = P2[0][0]; SO->NodeList[3*in+1] = P2[0][1]; SO->NodeList[3*in+2] = P2[0][2];   
+               ++N_troub;  
+               if (LocalHead || Opt->NodeDbg == in) fprintf(SUMA_STDERR,"%s: Acting on node %d, boosting by %f, original request of %fmm\n", 
+                        FuncName, in, shft, shft);  
+            }
          }
-      }   
-   } while (N_troub && N_iter < 20);
-
+         /*free M2M */
+         M2M = SUMA_FreeM2M(M2M);
+         ++N_iter;
+         if (cs->Send) {
+            if (!SUMA_SendToSuma (SO, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+               SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+            }
+         } 
+         if (1 || LocalHead) { 
+            fprintf(SUMA_STDERR,"%s: Iteration %d, N_troub = %d\n", FuncName,N_iter, N_troub);
+         }  
+      } while (N_troub && N_iter < N_itermax);
+   }
+   
+   
    if (SOhull) SUMA_Free_Surface_Object (SOhull); SOhull = NULL;
    if (dsmooth) SUMA_free(dsmooth); dsmooth = NULL;
    if (refNodeList) SUMA_free(refNodeList); refNodeList = NULL;

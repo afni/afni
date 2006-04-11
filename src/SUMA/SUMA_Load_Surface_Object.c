@@ -436,6 +436,10 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
          SUMA_RETURN (NOPE);
       }
    
+   /* find normal directions, if possible.
+      Do not do this here, normally, I can guess well and if certain about orientation
+      for a particular format, set at surface reading level. No need to do more computations */
+      /* if (SO->normdir == 0) SO->normdir = SUMA_SurfNormDir(SO); */
          
    SUMA_RETURN(YUP);
 }
@@ -593,7 +597,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          } else { 
             SO->SUMA_VolPar_Aligned = NOPE;
          }
-
+         SO->normdir = 0;  /* not set */
          break;
       case SUMA_OPENDX_MESH:
          if (!SUMA_OpenDX_Read_SO ((char *)SO_FileName_vp, SO)) {
@@ -619,7 +623,9 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
             SO->SUMA_VolPar_Aligned = NOPE;
          }
 
+         SO->normdir = -1;  /* negative */
          break;
+         
      case SUMA_BRAIN_VOYAGER:
          if (!SUMA_BrainVoyager_Read ((char *)SO_FileName_vp, SO, 1, 1)) {
             fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Ply_Read.\n", FuncName);
@@ -643,6 +649,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          } else { 
             SO->SUMA_VolPar_Aligned = NOPE;
          }
+         
+         SO->normdir = -1;  /* negative */
          break;
             
       case SUMA_INVENTOR_GENERIC:
@@ -672,6 +680,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          }
          SO->FaceSetDim = 3; /*This must also be automated */
          SUMA_NEW_ID(SO->idcode_str,SO_FileName); 
+
+         SO->normdir = 0;  /* not set */
          break;
          
       case SUMA_FREE_SURFER:
@@ -730,7 +740,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          } else { 
             SO->SUMA_VolPar_Aligned = NOPE;
          }
-         
+         SO->normdir = 1; /* normals point out */
          /* free FS */
          if (!SUMA_Free_FreeSurfer (FS)) {
             fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Free_FreeSurfer.\n", FuncName);
@@ -740,6 +750,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          /* create the IDcode */
          SUMA_NEW_ID(SO->idcode_str,SO_FileName_vp);
          if (LocalHead) fprintf (SUMA_STDERR, "%s: Assigned idcode_str:%s:.\n", FuncName, SO->idcode_str);
+
+         SO->normdir = 1;  /* positive */
          break;
          
       case SUMA_VEC:
@@ -909,6 +921,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
             SO->SUMA_VolPar_Aligned = NOPE;
          }
 
+         SO->normdir = 0;  /* not set */
          break;
          
       case SUMA_FT_ERROR:
@@ -961,7 +974,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          SO->N_FaceSet = SF->N_FaceSet;
          SF->FaceSetList = NULL;
          SO->FaceSetDim = 3; /*This must also be automated */
-
+         
          /* change coordinates to align them with volparent data set, if possible */
          if (VolParName != NULL && strlen(SF_FileName->name_param)) {
             SO->VolPar = SUMA_VolPar_Attr (VolParName);
@@ -985,6 +998,10 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          
          sprintf (stmp, "%s%s", SF_FileName->name_coord, SF_FileName->name_topo);
          SUMA_NEW_ID(SO->idcode_str, stmp);
+
+         if ((int) SF->tag_version == 1) { SO->normdir = 1; }
+         else SO->normdir = -1;
+         
          break;
    } /* SO_FileType*/
    
@@ -2772,7 +2789,9 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
       }   
             
       /* flip sign of convexity if it's a SureFit Surface */
-      if (SO->FileType == SUMA_SUREFIT) {
+      if (     (SO->normdir == 0 && (SO->FileType == SUMA_SUREFIT)) /* guess something */
+            || SO->normdir == -1  /* You know they'z got to be flipped */
+         ) {
          for (i=0; i < SO->N_Node; ++i) {
             Cx[i] = -Cx[i];
          }

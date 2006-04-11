@@ -346,7 +346,8 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
    FILE *sf_file;
 	int ex, EndHead, FoundHead, evl, cnt, skp, ND, id;
 	char stmp[100], head_strt[100], head_end[100], s[1000], delimstr[] = {' ', '\0'}, *st;
-	
+	int LocalHead = 0;
+   
 	SUMA_ENTRY;
 	
 	ND = 3;
@@ -426,7 +427,11 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 	}
 	/* Now read the Number of Nodes */
 	fscanf(sf_file, "%d", &SF->N_Node);
-	/*fprintf (stdout,"Expecting %d nodes.\n", SF->N_Node);*/
+	if (LocalHead) fprintf (stdout,"Expecting %d nodes.\n", SF->N_Node);
+   if (SF->N_Node <= 3) {
+      SUMA_S_Err("Too few nodes!");
+      SUMA_RETURN (NOPE);
+   }
 	
 	/* allocate space */
 	SF->NodeList = (float *)SUMA_calloc(SF->N_Node * ND, sizeof(float));
@@ -456,9 +461,227 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 {/*SUMA_SureFit_Read_Topo*/
 	static char FuncName[]={"SUMA_SureFit_Read_Topo"}; 
+	int ex = 0, EndHead, FoundHead, evl, cnt, skp, jnk, i, ip, NP, nread=0;
+	char stmp[100], head_strt[100], head_end[100], s[1000], 
+         delimstr[] = {' ', '\0'}, *st, *eop, *fl0, *fl1, *op2, *fl,
+         *fleh, *flns, *flbh;
+	int LocalHead = 0,  Found=0;
+	double tmpdbl;
+   
+	SUMA_ENTRY;
+
+	/* check for existence */
+	if (!SUMA_filexists(f_name)) {
+		fprintf(SUMA_STDERR,"File %s does not exist or cannot be read.\n", f_name);
+		SUMA_RETURN (NOPE);
+	}
+
+   SUMA_LH("Sucking file");
+
+   nread = SUMA_suck_file( f_name , &fl ) ;
+   if (!fl) {
+      SUMA_SL_Err("Failed to read file.");
+      SUMA_RETURN(NOPE);
+   }
+	
+	sprintf(SF->name_topo, "%s", f_name);
+	
+	/* find BeginHeader and EndHeader tags*/
+	fl0 = fl; /* beginning */
+   fl1 = fl + nread; /* end */
+
+   eop = SUMA_MIN_PAIR(fl1, fl+5000);
+   SUMA_ADVANCE_PAST(fl,eop,"BeginHeader",Found,1);
+	if (!Found) {
+		fprintf(SUMA_STDERR,"Error %s: BeginHeader not found in %s.\nPerhaps you are using old versions of Caret/SureFit files.\n", FuncName, f_name);
+		SUMA_RETURN (NOPE);
+	}
+   flbh = fl;
+   
+   
+   SUMA_ADVANCE_PAST(fl,eop,"EndHeader",Found,1);
+	if (!Found) {
+		fprintf(SUMA_STDERR,"Error %s: EndHeader not found in %s.\nPerhaps you are using old versions of Caret/SureFit files.\n", FuncName, f_name);
+		SUMA_RETURN (NOPE);
+	}
+   fleh = fl;
+   
+   /* find the header fields */
+   fl = flbh;
+   SUMA_ADVANCE_PAST(fl,fleh,"encoding",Found,1);
+   if (Found) {
+      op2 = fl;
+      SUMA_SKIP_LINE(op2, fleh);
+      snprintf(SF->encoding_topo, (op2-fl)*sizeof(char), "%s", fl);
+      if (LocalHead) {
+         fprintf(SUMA_STDERR,"%s: Found encoding (%d) >>>%s<<<\n", FuncName, (int)(op2-fl), SF->encoding_topo);
+      }  
+   }
+   fl = flbh;
+   SUMA_ADVANCE_PAST(fl,fleh,"perimeter_id",Found,1);
+   if (Found) {
+      op2 = fl;
+      SUMA_SKIP_LINE(op2, fleh);
+      snprintf(SF->perimeter_id, (op2-fl)*sizeof(char), "%s", fl);
+      if (LocalHead) {
+         fprintf(SUMA_STDERR,"%s: Found perimeter_id >>>%s<<<\n", FuncName, SF->perimeter_id);
+      }  
+   }
+   
+   fl = flbh;
+   SUMA_ADVANCE_PAST(fl,fleh,"date",Found,1);
+   if (Found) {
+      op2 = fl;
+      SUMA_SKIP_LINE(op2, fleh);
+      snprintf(SF->date, (op2-fl)*sizeof(char), "%s", fl);
+      if (LocalHead) {
+         fprintf(SUMA_STDERR,"%s: Found date >>>%s<<<\n", FuncName, SF->date);
+      }  
+   }
+   
+   
+   /* is next string a number ? */
+   fl = fleh;
+   SUMA_ADVANCE_PAST_NUM(fl, tmpdbl, Found);
+   if (Found) {
+      SF->N_Node_Specs = (int)tmpdbl;
+      if (LocalHead) fprintf (stdout,"Expecting %d Node_Specs .\n", SF->N_Node_Specs);
+      SF->N_FaceSet = -1; /* got to read it later*/
+      SF->tag_version = -1; /* don't know */
+      goto NODE_SPECS;
+   }else {
+      fl = fleh;
+      eop = SUMA_MIN_PAIR(fl1, fl+500);
+      SUMA_ADVANCE_PAST(fl, eop, "tag-version", Found, 0);
+      if (Found) {
+         /* read tag-version */
+         SUMA_ADVANCE_PAST_NUM(fl, tmpdbl, Found);
+         SF->tag_version = (float) tmpdbl;
+         if (Found) {
+            if (LocalHead) fprintf (stdout,"Found tag-version %f\n", tmpdbl);
+            if ((int)tmpdbl != 1) {
+               SUMA_S_Warn("tag-version not equal to 1.\nSUMA may not know how to read this file.\n");
+            }
+         } else {
+            if (LocalHead) fprintf (stdout,"Found tag-version but no number! Trying hope.\n");
+            /* skip till end of line */
+            SUMA_SKIP_LINE(fl, eop);   
+         }
+         
+         SUMA_ADVANCE_PAST_NUM(fl, tmpdbl, Found);
+         if (Found) {
+            SF->N_FaceSet = (int)tmpdbl;
+            if (LocalHead) fprintf (stdout,"Found number of FaceSets: %d\n", SF->N_FaceSet);
+         } else {
+            SUMA_S_Err("No FaceSets number!");
+            SUMA_RETURN (NOPE);
+         }
+         SF->N_Node_Specs = -1; /* not set */
+         goto FACESETS;
+      }else {
+         SUMA_S_Err("Don't know how to interpret file!");
+         SUMA_RETURN (NOPE);
+      }
+   }
+
+
+	NODE_SPECS:
+	SF->FN.N_Node = SF->N_Node_Specs;
+	SF->FN.N_Neighb_max = 0;
+
+	/* allocate for Node Specs Matrix and First_Neighb structure*/
+	SF->Specs_mat = (int **) SUMA_allocate2D(SF->N_Node_Specs, 6, sizeof(int));
+	/*assume maximum number of neighbors is SUMA_MAX_NUMBER_NODE_NEIGHB */
+	SF->FN.FirstNeighb = (int **) SUMA_allocate2D(SF->FN.N_Node, SUMA_MAX_NUMBER_NODE_NEIGHB, sizeof (int));
+	SF->FN.N_Neighb = (int *) SUMA_calloc (SF->FN.N_Node, sizeof(int));
+	SF->FN.NodeId = (int *) SUMA_calloc (SF->FN.N_Node, sizeof(int));
+	
+	if (SF->Specs_mat == NULL || SF->FN.FirstNeighb == NULL || SF->FN.N_Neighb == NULL || SF->FN.NodeId == NULL ){
+		fprintf(SUMA_STDERR, "Error %s: Could not allocate space for SF->Specs_mat &/| SF->FN.FirstNeighb &/| SF->FN.N_Neighb &/| SF->FN.NodeId.\n", FuncName);
+		SUMA_RETURN (NOPE);
+	} 
+	
+	/* Now read the node specs */
+	if (LocalHead) fprintf (stdout,"About to read specs\n");
+	cnt = 0;
+   do {
+      for (i=0; i<6; ++i) {
+         SUMA_ADVANCE_PAST_NUM(fl, tmpdbl, Found);
+         if (Found) {
+            SF->Specs_mat[cnt][i] = (int)tmpdbl;
+         } else {
+            fprintf(SUMA_STDERR, "Error %s: Failed reading Specs_mat at number %d\n", FuncName, cnt);
+            SUMA_RETURN (NOPE);
+         }
+      }
+      SF->FN.NodeId[cnt] = SF->Specs_mat[cnt][0];
+		SF->FN.N_Neighb[cnt] = SF->Specs_mat[cnt][1];
+		if (SF->FN.N_Neighb[cnt] > SUMA_MAX_NUMBER_NODE_NEIGHB-1) {
+			fprintf (SUMA_STDERR,"Error %s: Node %d has more neighbors (%d) than the maximum allowed (%d)\n", \
+				FuncName, SF->FN.NodeId[cnt], SF->FN.N_Neighb[cnt], SUMA_MAX_NUMBER_NODE_NEIGHB-1);
+			SUMA_RETURN (NOPE);
+		}
+		if (SF->FN.N_Neighb[cnt] > SF->FN.N_Neighb_max) SF->FN.N_Neighb_max = SF->FN.N_Neighb[cnt];
+		
+		/* Now Read in the Neighbors info */
+		for (i=0; i < SF->FN.N_Neighb[cnt]; ++ i) {
+			SUMA_ADVANCE_PAST_NUM(fl, tmpdbl, Found); /* skip first number */
+         SUMA_ADVANCE_PAST_NUM(fl, tmpdbl, Found);
+         if (Found) {
+            SF->FN.FirstNeighb[cnt][i] = (int)tmpdbl;
+         } else {
+            fprintf (SUMA_STDERR,"Error %s: Failed to read neighbor index! cnt = %d, i = %d\n", FuncName, cnt, i);
+            SUMA_RETURN (NOPE);
+         }
+		}
+		/* seal with -1 */
+		SF->FN.FirstNeighb[cnt][SF->FN.N_Neighb[cnt]] = -1;
+		
+		++cnt;
+   } while (cnt < SF->N_Node_Specs);
+   
+	if (cnt != SF->N_Node_Specs) {
+		fprintf(SUMA_STDERR, "Error %s: Expecting %d NodeSpecs, read %d.\n", FuncName, SF->N_Node_Specs, cnt);
+		SUMA_RETURN (NOPE);
+	}
+   
+   FACESETS:
+   if (SF->N_FaceSet < 0) { 
+      /* have to read it still */
+      SUMA_ADVANCE_PAST_NUM(fl, tmpdbl, Found);
+      if (Found) {
+         SF->N_FaceSet = (int)tmpdbl;
+         if (LocalHead) fprintf (stdout,"Found number of FaceSets: %d\n", SF->N_FaceSet);
+      } else {
+         SUMA_S_Err("No FaceSets number!");
+         SUMA_RETURN (NOPE);
+      }
+   }
+   
+	if (LocalHead) fprintf (stdout, "Reading facesets\n");
+   if (SF->N_FaceSet < 3) {
+      fprintf(SUMA_STDERR, "Error %s: Too few (%d) triangles.\n", FuncName, SF->N_FaceSet);
+      SUMA_RETURN (NOPE);
+   }
+	
+	NP = 3;	
+   SF->FaceSetList = (int *)SUMA_strtol_vec(fl, SF->N_FaceSet * NP, &ex, SUMA_int);
+   if (!SF->FaceSetList || ex != SF->N_FaceSet * NP) {
+      fprintf(SUMA_STDERR, "Error %s: Failed to read all FaceSets. Expected %d vals, read %d.\nOr NULL output.\n", FuncName, SF->N_FaceSet*NP, ex);
+      SUMA_RETURN (NOPE);
+   }
+	
+   SUMA_RETURN (YUP);
+}/*SUMA_SureFit_Read_Topo*/
+
+/* Old version , could not handle versions with tag-version string */
+SUMA_Boolean SUMA_SureFit_Read_Topo_old (char * f_name, SUMA_SureFit_struct *SF)
+{/*SUMA_SureFit_Read_Topo_old*/
+	static char FuncName[]={"SUMA_SureFit_Read_Topo_old"}; 
    FILE *sf_file;
 	int ex, EndHead, FoundHead, evl, cnt, skp, jnk, i, ip, NP;
 	char stmp[100], head_strt[100], head_end[100], s[1000], delimstr[] = {' ', '\0'}, *st;
+	int LocalHead = 1;
 	
 	SUMA_ENTRY;
 
@@ -535,9 +758,16 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 		}
 	}
 	/* Now read the Number of Nodes Specs */
-	fscanf(sf_file, "%d", &SF->N_Node_Specs);
-	/*fprintf (stdout,"Expecting %d Node_Specs.\n", SF->N_Node_Specs);*/
+	ex = fscanf (sf_file,"%s",s);
+   SF->N_Node_Specs = atoi(s);
+   /* fscanf(sf_file, "%d", &SF->N_Node_Specs); */
+	if (LocalHead) fprintf (stdout,"Expecting %d Node_Specs (from string %s) .\n", SF->N_Node_Specs, s);
 	
+   if (!SF->N_Node_Specs || SUMA_iswordin (s, "tag-") == 1) {
+      if (LocalHead) fprintf (stdout,"Looks like SF file is in new format (%s).\n", s);
+      goto FACESETS;
+   }
+   
 	SF->FN.N_Node = SF->N_Node_Specs;
 	SF->FN.N_Neighb_max = 0;
 
@@ -581,9 +811,16 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 		fprintf(SUMA_STDERR, "Error %s: Expecting %d NodeSpecs, read %d.\n", FuncName, SF->N_Node_Specs, cnt);
 		SUMA_RETURN (NOPE);
 	}
+	
+   FACESETS:
+   
 	/*fprintf (stdout, "Done with Node Specs.\n");*/
 	ex = fscanf (sf_file,"%d", &(SF->N_FaceSet));
-	/*fprintf (stdout, "Expecting to read %d facesets.\n", SF->N_FaceSet);*/
+	if (LocalHead) fprintf (stdout, "Expecting to read %d facesets.\n", SF->N_FaceSet);
+   if (SF->N_FaceSet < 3) {
+      fprintf(SUMA_STDERR, "Error %s: Too few (%d) triangles.\n", FuncName, SF->N_FaceSet);
+      SUMA_RETURN (NOPE);
+   }
 	
 	NP = 3;
 	SF->FaceSetList = (int *) SUMA_calloc(SF->N_FaceSet * 3, sizeof(int));
@@ -592,7 +829,7 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 		SUMA_RETURN (NOPE);
 	} 
 	
-	/*fprintf (stdout,"About to read FaceSets\n");*/
+   /*fprintf (stdout,"About to read FaceSets\n");*/
 	cnt = 0;
 	while (ex != EOF && cnt < SF->N_FaceSet)	{
 		ip = NP * cnt;
@@ -607,7 +844,7 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
 	fclose (sf_file);
 	
 SUMA_RETURN (YUP);
-}/*SUMA_SureFit_Read_Topo*/
+}/*SUMA_SureFit_Read_Topo_old*/
 
 /*!
 Show data structure containing SureFit surface object
