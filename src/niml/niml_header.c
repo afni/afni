@@ -373,7 +373,7 @@ NI_str_array * NI_decode_string_list( char *ss , char *sep )
 #if 0
       while( nn > 0 && isspace(ss[jd+nn-1]) ) nn-- ; /* clip trailing blanks */
 #endif
-      sar->str[num] = NI_malloc(char, nn+1) ;              /* make output string  */
+      sar->str[num] = NI_malloc(char, nn+1) ;        /* make output string  */
       if( nn > 0 ) memcpy(sar->str[num],ss+jd,nn) ;  /* copy sub-string    */
       sar->str[num++][nn] = '\0' ;                   /* terminate output  */
 

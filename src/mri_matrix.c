@@ -16,6 +16,16 @@ ENTRY("mri_matrix_mult") ;
    if( ima == NULL            || imb == NULL            ) RETURN( NULL );
    if( ima->kind != MRI_float || imb->kind != MRI_float ) RETURN( NULL );
 
+   if( ima->nx == 1 && ima->ny == 1 ){           /** scalar multiply? **/
+     amat = MRI_FLOAT_PTR(ima) ;
+     imc = mri_matrix_scale( amat[0] , imb ) ;
+     RETURN(imc) ;
+   } else if( imb->nx == 1 && imb->ny == 1 ){
+     bmat = MRI_FLOAT_PTR(imb) ;
+     imc = mri_matrix_scale( bmat[0] , ima ) ;
+     RETURN(imc) ;
+   }
+
    nr = ima->nx ; mm = ima->ny ; nc = imb->ny ;
    if( imb->nx != mm ){
      ERROR_message("mri_matrix_mult( %d X %d , %d X %d )?",
@@ -137,6 +147,56 @@ ENTRY("mri_matrix_multranB") ;
    }}
 
    RETURN( imc );
+}
+
+/*-----------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_matrix_sadd( float fa, MRI_IMAGE *ima, float fb, MRI_IMAGE *imb )
+{
+   int ii , nrc ;
+   MRI_IMAGE *imc ;
+   float *amat , *bmat , *cmat ;
+
+ENTRY("mri_matrix_sadd") ;
+
+   if( ima == NULL            || imb == NULL            ) RETURN( NULL );
+   if( ima->kind != MRI_float || imb->kind != MRI_float ) RETURN( NULL );
+
+   nrc = ima->nvox ;
+   if( imb->nvox != nrc ){
+     ERROR_message("mri_matrix_sadd( %d X %d , %d X %d ) ?",
+                   ima->nx,ima->ny , imb->nx,imb->ny ) ;
+     RETURN(NULL) ;
+   }
+
+   imc  = mri_new_conforming(ima,MRI_float) ;
+   amat = MRI_FLOAT_PTR(ima); bmat = MRI_FLOAT_PTR(imb);
+   cmat = MRI_FLOAT_PTR(imc);
+   for( ii=0 ; ii < nrc ; ii++ ) cmat[ii] = fa*amat[ii] + fb*bmat[ii] ;
+
+   RETURN(imc) ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_matrix_scale( float fa, MRI_IMAGE *ima )
+{
+   int ii , nrc ;
+   MRI_IMAGE *imc ;
+   float *amat , *cmat ;
+
+ENTRY("mri_matrix_scale") ;
+
+   if( ima == NULL            ) RETURN( NULL );
+   if( ima->kind != MRI_float ) RETURN( NULL );
+
+   nrc  = ima->nvox ;
+   imc  = mri_new_conforming(ima,MRI_float ) ;
+   amat = MRI_FLOAT_PTR(ima);
+   cmat = MRI_FLOAT_PTR(imc);
+   for( ii=0 ; ii < nrc ; ii++ ) cmat[ii] = fa*amat[ii] ;
+
+   RETURN(imc) ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -372,15 +432,18 @@ ENTRY("mri_matrix_ortproj") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/*! Legendre polynomial of non-negative order m evaluated at x;
+    x may be any real number, but the main use is for -1 <= x <= 1 (duh).
+------------------------------------------------------------------------------*/
 
-double Plegendre( double x , int m )   /* Legendre polynomials over [-1,1] */
+double Plegendre( double x , int m )
 {
-   double pk, pkm1, pkm2 ; int k ;
+   double pk, pkm1, pkm2 ; int k ;  /* for the recurrence, when m > 20 */
 
    if( m < 0 ) return 1.0 ;    /* bad input */
 
-   switch( m ){                /*** P_m(x) for m=0..20 ***/
-    case 0: return 1.0 ;
+   switch( m ){                /*** direct formulas for P_m(x) for m=0..20 ***/
+    case 0: return 1.0 ;       /* that was easy */
     case 1: return x ;
     case 2: return (3.0*x*x-1.0)/2.0 ;
     case 3: return (5.0*x*x-3.0)*x/2.0 ;
@@ -473,11 +536,226 @@ double Plegendre( double x , int m )   /* Legendre polynomials over [-1,1] */
             * x * x) * x * x) * x * x) * x * x) * x * x;
    }
 
-   /** if here, m > 20 ==> use recurrence relation **/
+   /**----- if here, m > 20 ==> use recurrence relation ----**/
 
-   pkm2 = Plegendre( x , 19 ) ;  /* recursion! */
+   pkm2 = Plegendre( x , 19 ) ;  /* recursion to start things off! */
    pkm1 = Plegendre( x , 20 ) ;
    for( k=21 ; k <= m ; k++ , pkm2=pkm1 , pkm1=pk )
      pk = ((2.0*k-1.0)*x*pkm1 - (k-1.0)*pkm2)/k ;
    return pk ;
+}
+
+/******************************************************************************/
+/**** Matrix RPN calculator ***************************************************/
+/******************************************************************************/
+
+static MRI_IMARR *matar = NULL ;  /* list of named matrices */
+
+/*----------------------------------------------------------------------------*/
+
+static int matrix_name_lookup( char *nam )
+{
+   int ii ;
+   MRI_IMAGE *im ;
+
+   if( nam == NULL || matar == NULL ) return -1 ;
+
+   for( ii=0 ; ii < IMARR_COUNT(matar) ; ii++ ){
+    im = IMARR_SUBIM(matar,ii) ;
+    if( im != NULL && strcmp(nam,im->name) == 0 ) return ii;
+   }
+
+   return -1 ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static void matrix_name_assign( char *nam , MRI_IMAGE *ima )
+{
+   int ii ; MRI_IMAGE *imb ;
+
+   if( nam == NULL || *nam == '\0' || ima == NULL ) return ;
+
+   if( matar == NULL ) INIT_IMARR(matar) ;
+
+   ii  = matrix_name_lookup( nam ) ;
+   imb = mri_to_float(ima) ; mri_add_name(nam,imb) ;
+   if( ii < 0 ){
+     ADDTO_IMARR(matar,imb) ;
+   } else {
+     mri_free( IMARR_SUBIM(matar,ii) ) ;
+     IMARR_SUBIM(matar,ii) = imb ;
+   }
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+#undef  ERREX
+#define ERREX(sss)                                                      \
+  do{ ERROR_message("matrix_evalrpn('%s') at '%s': %s" , expr,cmd,sss ); \
+      DESTROY_IMARR(imstk); NI_delete_str_array(sar); RETURN(NULL);       \
+  } while(0)
+
+MRI_IMAGE * mri_matrix_evalrpn( char *expr )
+{
+   NI_str_array *sar ;
+   char         *cmd , mess[512] ;
+   MRI_IMARR *imstk ;
+   int         nstk , ii , ss ;
+   MRI_IMAGE *ima, *imb, *imc ;
+   float     *aar, *bar, *car ;
+
+ENTRY("mri_matrix_evalrpn") ;
+
+   sar = NI_decode_string_list( expr , "~" ) ;
+   if( sar == NULL ) RETURN(NULL) ;
+
+   INIT_IMARR(imstk) ;
+   mri_matrix_psinv_svd(1) ;
+
+   for( ss=0 ; ss < sar->num ; ss++ ){
+
+      cmd = sar->str[ss] ;
+      nstk = IMARR_COUNT(imstk) ;
+
+      if( *cmd == '\0' ) continue ;      /* WTF? */
+
+      else if( isdigit(cmd[0]) || (cmd[0]=='-' && isdigit(cmd[1])) ){
+        imc = mri_new(1,1,MRI_float) ; car = MRI_FLOAT_PTR(imc) ;
+        car[0] = (float)strtod(cmd,NULL) ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
+      else if( cmd[0] == '\'' || cmd[0] == '"' ){
+        char *buf = strdup(cmd+1) ;
+        imc = mri_new(1,1,MRI_float) ;
+        for( ii=0 ; buf[ii] != cmd[0] && buf[ii] != '\0' ; ii++ ) ; /*nada*/
+        buf[ii] = '\0' ; mri_add_name(buf,imc) ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
+      else if( cmd[0] == '=' && isalpha(cmd[1]) ){
+        if( nstk < 1 ) ERREX("no matrix") ;
+        ima = IMARR_SUBIM(imstk,nstk-1) ;
+        matrix_name_assign(cmd+1,ima) ;
+      }
+
+      else if( strcmp(cmd,"'") == 0 || strncasecmp(cmd,"&trans",6) == 0 ){
+        if( nstk < 1 ) ERREX("no matrix") ;
+        ima = IMARR_SUBIM(imstk,nstk-1) ;
+        imc = mri_matrix_transpose(ima) ;
+        TRUNCATE_IMARR(imstk,nstk-1) ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
+      else if( strncasecmp(cmd,"&read",5) == 0 ){
+        char *buf = strdup(cmd+5) ;
+        if( nstk < 1 ) ERREX("no string") ;
+        ima = IMARR_SUBIM(imstk,nstk-1) ;
+        if( ima->name == NULL ) ERREX("no string") ;
+        imc = mri_read_1D( ima->name ) ;
+        if( imc == NULL ){
+          sprintf(mess,"can't read file '%s'",ima->name); ERREX(mess);
+        }
+        TRUNCATE_IMARR(imstk,nstk-1) ;
+        ADDTO_IMARR(imstk,imc) ;
+        if( buf[0] == '=' && isalpha(buf[1]) ) matrix_name_assign(buf+1,imc) ;
+      }
+
+      else if( strncasecmp(cmd,"&write",5) == 0 ){
+        if( nstk < 2 ) ERREX("no inputs") ;
+        ima = IMARR_SUBIM(imstk,nstk-1) ;
+        imb = IMARR_SUBIM(imstk,nstk-2) ;
+        if( ima->name == NULL ) ERREX("no string") ;
+        mri_write_1D( ima->name , imb ) ;
+        TRUNCATE_IMARR(imstk,nstk-1) ;
+      }
+
+      else if( strncasecmp(cmd,"&ident(",7) == 0 ){
+        int nn=0 ; sscanf(cmd+7,"%d",&nn) ;
+        if( nn <= 0 ) ERREX("illegal dimension") ;
+        imc = mri_new(nn,nn,MRI_float) ; car = MRI_FLOAT_PTR(imc) ;
+        for( ii=0 ; ii < nn ; ii++ ) car[ii+ii*nn] = 1.0f ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
+      else if( strncasecmp(cmd,"&Psinv",6) == 0 ){
+        if( nstk < 1 ) ERREX("no matrix") ;
+        ima = IMARR_SUBIM(imstk,nstk-1) ;
+        imc = mri_matrix_psinv( ima , NULL , 0.0f ) ;
+        if( imc == NULL ) ERREX("can't compute") ;
+        TRUNCATE_IMARR(imstk,nstk-1) ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
+      else if( strncasecmp(cmd,"&Pproj",6) == 0 ){
+        if( nstk < 1 ) ERREX("no matrix") ;
+        ima = IMARR_SUBIM(imstk,nstk-1) ;
+        imc = mri_matrix_ortproj( ima , 0 ) ;
+        if( imc == NULL ) ERREX("can't compute") ;
+        TRUNCATE_IMARR(imstk,nstk-1) ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
+      else if( strncasecmp(cmd,"&Qproj",6) == 0 ){
+        if( nstk < 1 ) ERREX("no matrix") ;
+        ima = IMARR_SUBIM(imstk,nstk-1) ;
+        imc = mri_matrix_ortproj( ima , 1 ) ;
+        if( imc == NULL ) ERREX("can't compute") ;
+        TRUNCATE_IMARR(imstk,nstk-1) ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
+      else if( strcmp(cmd,"*") == 0 ){   /* multiply */
+        if( nstk < 2 ) ERREX("no matrices") ;
+        ima = IMARR_SUBIM(imstk,nstk-2) ;
+        imb = IMARR_SUBIM(imstk,nstk-1) ;
+        imc = mri_matrix_mult( ima , imb ) ;
+        if( imc == NULL ) ERREX("illegal multiply") ;
+        TRUNCATE_IMARR(imstk,nstk-2) ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
+      else if( strcmp(cmd,"+") == 0 ){   /* add */
+        if( nstk < 2 ) ERREX("no matrices") ;
+        ima = IMARR_SUBIM(imstk,nstk-2) ;
+        imb = IMARR_SUBIM(imstk,nstk-1) ;
+        imc = mri_matrix_sadd( 1.0f,ima , 1.0f,imb ) ;
+        if( imc == NULL ) ERREX("illegal add") ;
+        TRUNCATE_IMARR(imstk,nstk-2) ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
+      else if( strcmp(cmd,"-") == 0 ){   /* subtract */
+        if( nstk < 2 ) ERREX("no matrices") ;
+        ima = IMARR_SUBIM(imstk,nstk-2) ;
+        imb = IMARR_SUBIM(imstk,nstk-1) ;
+        imc = mri_matrix_sadd( 1.0f,ima , -1.0f,imb ) ;
+        if( imc == NULL ) ERREX("illegal subtract") ;
+        TRUNCATE_IMARR(imstk,nstk-2) ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
+      else if( isalpha(cmd[0]) ){   /* named matrix */
+        ii = matrix_name_lookup(cmd) ;
+        if( ii >= 0 ){
+          imc = mri_to_float(IMARR_SUBIM(matar,ii)) ;
+          ADDTO_IMARR(imstk,imc) ;
+        } else {
+          sprintf(mess,"can't lookup name '%s'",cmd); ERREX(mess);
+        }
+      }
+
+      else {
+        ERREX("unknown operation!?") ;
+      }
+   }
+
+   NI_delete_str_array(sar) ;
+   nstk = IMARR_COUNT(imstk) ;
+   if( nstk > 0 ) ima = mri_to_float( IMARR_SUBIM(imstk,nstk-1) ) ;
+   else           ima = NULL ;
+   DESTROY_IMARR(imstk) ;
+   RETURN(ima) ;
 }
