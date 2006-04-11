@@ -3914,7 +3914,7 @@ int main (int argc, char ** argv)
    /*----- warn user (after any help) -----*/
    if( option_data->model == 3 && !option_data->old_method )
        fprintf(stderr,"\n"
-           "** Changes have been made for 3ANOVA2 computations of type 3.\n"
+           "** Changes have been made for 3dANOVA2 computations of type 3.\n"
            "   For details, please see:\n"
            "   %s\n\n", ANOVA_MODS_LINK);
 
