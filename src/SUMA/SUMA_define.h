@@ -1767,6 +1767,7 @@ typedef struct {
    
    float *NodeNormList ; /*!< N_Node x 3 vector (used to be matrix prior to SUMA 1.2) containing normalized normal vectors for each node*/
    float *FaceNormList ; /*!< N_FaceSet x 3 vector (used to be matrix prior to SUMA 1.2) containing normalized normal vectors for each polygon*/ 
+   int normdir;        ; /*!< direction of normals, 0 not known. 1 outwards, -1 inwards */
    
    float Center[3];       /*!< The centroid of the surface (using all the nodes in NodeList)*/
    float MaxDims[3];      /*!< The maximum along each of the XYZ dimensions */
@@ -1885,6 +1886,7 @@ typedef struct {
    char name_param[SUMA_MAX_NAME_LENGTH];
    float AC_WholeVolume[3]; /*!< XYZ (from .Orient.params file) of Anterior Comissure of whole volume */
    float AC[3]; /*!< XYZ of Anterior Comissure of cropped volume */
+   float tag_version;
 } SUMA_SureFit_struct;
 
 /* structure containing FreeSurfer Surface */

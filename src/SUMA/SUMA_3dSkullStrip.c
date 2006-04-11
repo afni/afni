@@ -414,7 +414,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
    Opt->Use_emask = 1;
    Opt->emask  = NULL;
    Opt->PushToEdge = -1;
-   Opt->PushToOuterSkull = 1;
+   Opt->PushToOuterSkull = 0;
    
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -428,6 +428,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
       
       if (!brk && (strcmp(argv[kar], "-pushout") == 0)) {
          Opt->UseExpansion = 1;
+         brk = YUP;
+      }
+
+      if (!brk && (strcmp(argv[kar], "-pos") == 0)) {
+         Opt->PushToOuterSkull = 1;
          brk = YUP;
       }
 
@@ -1712,7 +1717,7 @@ int main (int argc,char *argv[])
    }
    
    PUSH_TO_OUTER_SKULL:
-   if (0 && Opt->PushToOuterSkull) {
+   if (Opt->PushToOuterSkull) {
       /* first get a convex hull volume of the brain surface */
       SUMA_Push_Nodes_To_Hull(SO, Opt, ps->cs);
       

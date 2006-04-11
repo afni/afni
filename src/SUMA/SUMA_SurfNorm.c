@@ -231,6 +231,58 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
    SUMA_RETURN (RetStrct);
 }/*SUMA_SurfNorm*/
 
+/*!
+   Try to guess the direction of the surface normals
+   0 = dunno
+   1 = out
+   -1 = inwards 
+   
+*/
+int SUMA_SurfNormDir (SUMA_SurfaceObject *SO) 
+{
+   static char FuncName[]={"SUMA_SurfNormDir"};
+   int in, cntneg, cntpos;
+   float *a, *b, dot, d, U[3];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO->N_Node) {
+      SUMA_S_Err("No Nodes!");
+      SUMA_RETURN(0);
+   }
+   if (!SO->NodeNormList) {
+      SUMA_RECOMPUTE_NORMALS(SO);
+   }
+   
+   cntneg = 0;
+   cntpos = 0;
+   
+   for (in=0; in<SO->N_Node; ++in) {   
+      a = &(SO->NodeList[3*in]);
+      SUMA_UNIT_VEC(SO->Center, a , U, d); /* original distance from center */
+      b = &(SO->NodeNormList[3*in]);
+      SUMA_DOTP_VEC(U, b, dot, 3, float, float); /* dot product with normal at node*/
+      if (dot < 0) {
+         ++cntneg;    
+      } else {
+         ++cntpos;
+      }
+   }
+         
+   if (cntneg < cntpos) {
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: %.2f%% sure that normals point outwards.\n", FuncName, (cntpos-cntneg)/(float)SO->N_Node*100.0);
+      SUMA_RETURN(1);
+   } else if (cntneg > cntpos) {
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: %.2f%% sure that normals point inwards.\n", FuncName, (cntneg-cntpos)/(float)SO->N_Node*100.0);
+      SUMA_RETURN(-1);
+   } else {
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: Not sure where node normals point!\n", FuncName);
+      SUMA_RETURN(0);
+   }
+   
+   SUMA_RETURN(0);
+}
    
    
    

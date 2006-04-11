@@ -1392,7 +1392,8 @@ ENTRY("mri_brainormalize") ;
    aj = thd_bn_dxyz/dy ; bj = jcm/sum - aj*(thd_bn_ycm-thd_bn_yorg)/thd_bn_dxyz ;
    ak = thd_bn_dxyz/dz ; bk = kcm/sum - ak*(thd_bn_zcm-thd_bn_zorg)/thd_bn_dxyz ;
 
-   if( verb ) fprintf(stderr,"++mri_brainormalize: warping to standard grid\n a = [%f %f %f], b = [%f %f %f]\n", ai, aj, ak, bi, bj, bk) ;
+   if( verb ) fprintf(stderr,"++mri_brainormalize: warping to standard grid\n a = [%f %f %f], b = [%f %f %f]\nthd_bn_nxyz=[%d %d %d]\n", 
+                           ai, aj, ak, bi, bj, bk, thd_bn_nx,thd_bn_ny,thd_bn_nz) ;
 
    mri_warp3D_method( MRI_CUBIC ) ;
    tim = mri_warp3D( sim , thd_bn_nx,thd_bn_ny,thd_bn_nz , ijkwarp ) ;
@@ -1405,9 +1406,13 @@ ENTRY("mri_brainormalize") ;
    
    nx = tim->nx ; ny = tim->ny ; nz = tim->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
    sar = MRI_SHORT_PTR(tim) ;
-
+   if( verb ) fprintf(stderr,"++mri_brainormalize: sar points to %d values.\n", nxyz);
+   if( verb ) fprintf(stderr,"++mri_brainormalize: sar[%d] = %d, sar[%d]=%d, sar[%d]=%d\n", 0, sar[0], nxyz/2, sar[nxyz/2], nxyz-1, sar[nxyz-1]);
+   
+   
    /*-- rescale to partially uniformize --*/
 
+   if( verb ) fprintf(stderr,"++mri_brainormalize: Rescaling.\n");
    { clipvec bvec ; float bval , sv ;
      bvec = get_octant_clips( tim , 0.40f ) ;
      if( bvec.clip_000 > 0.0f ){
@@ -1417,6 +1422,11 @@ ENTRY("mri_brainormalize") ;
            bval = pointclip( ii,jj,kk , &bvec ) ; /* cliplevel here */
            sv   = 1000.0f * sar[ijk] / bval ;
            sar[ijk] = SHORTIZE(sv) ;
+           if (sar[ijk] < 0) {
+            /* if( verb ) fprintf(stderr,"--mri_brainormalize: Negative values! sar[%d %d %d (%d)] = %d\nBlasphemy set to 0.\n",
+                           ii, jj, kk, ijk, sar[ijk]); */
+            sar[ijk] = 0;  /* ZSS April 11 06 */
+           }
          }
      }}}
    }
@@ -1429,13 +1439,19 @@ ENTRY("mri_brainormalize") ;
      float pdif ;
      short mbot,mtop ;
 
+     if( verb ) fprintf(stderr,"++mri_brainormalize: Remasking.\n");
+     
      /* build histogram */
-
+     if( verb ) fprintf(stderr,"++mri_brainormalize:     Build histogram\n");
      hist = (int *) calloc(sizeof(int),32768) ;
      gist = (int *) calloc(sizeof(int),32768) ;
 
      memset( hist , 0 , sizeof(int)*32768 ) ;
-     for( ii=0 ; ii < nxyz ; ii++ ) hist[sar[ii]]++ ;
+     for( ii=0 ; ii < nxyz ; ii++ ) { 
+         /* fprintf(stderr," hist[%d] was %d\n", sar[ii], hist[sar[ii]]); */
+         hist[sar[ii]]++ ;
+     }
+      if( verb ) fprintf(stderr,"++mri_brainormalize:     Find min\n");
      for( sbot=1 ; sbot < 32768 && hist[sbot]==0 ; sbot++ ) ; /* nada */
      if( sbot == 32768 ) goto Remask_Done ;
      for( stop=32768-1 ; stop > sbot && hist[stop]==0 ; stop-- ) ; /* nada */
@@ -1443,6 +1459,7 @@ ENTRY("mri_brainormalize") ;
 
      /* find median */
      
+     if( verb ) fprintf(stderr,"++mri_brainormalize:     Find Median\n");
      nmask = 0 ;
      for( ii=sbot ; ii <= stop ; ii++ ) nmask += hist[ii] ;
      nhalf = nmask / 2 ; nmask = 0 ;
@@ -1574,6 +1591,8 @@ ENTRY("mri_brainormalize") ;
      free((void *)mask) ;
 
    Remask_Done:
+      if( verb )
+      fprintf(stderr,"++mri_brainormalize: Remask Done...\n");
      free((void *)hist) ; free((void *)gist) ;
 
    }
