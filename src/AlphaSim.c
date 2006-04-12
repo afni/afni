@@ -33,7 +33,7 @@
   Date:    02 December 2002
 
   Mod:     Added -max_clust_size, to override MAX_CLUSTER_SIZE.
-           Also, increased default from 1000 to 5000.
+           Also, increased default from 1000 to 10000.
   Date:    12 Apr 2006 [rickr]
 */
 
@@ -50,7 +50,7 @@
 #include "mrilib.h"
 
 #define MAX_NAME_LENGTH THD_MAX_NAME /* max. string length for file names */
-#define MAX_CLUSTER_SIZE 5000        /* max. size of cluster for freq. table */
+#define MAX_CLUSTER_SIZE 10000       /* max. size of cluster for freq. table */
 
 /*---------------------------------------------------------------------------*/
 /*
