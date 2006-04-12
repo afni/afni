@@ -31,6 +31,10 @@
 
   Mod:     Set MAX_NAME_LENGTH equal to THD_MAX_NAME.
   Date:    02 December 2002
+
+  Mod:     Added -max_clust_size, to override MAX_CLUSTER_SIZE.
+           Also, increased default from 1000 to 5000.
+  Date:    12 Apr 2006 [rickr]
 */
 
 
@@ -46,7 +50,7 @@
 #include "mrilib.h"
 
 #define MAX_NAME_LENGTH THD_MAX_NAME /* max. string length for file names */
-#define MAX_CLUSTER_SIZE 1000        /* max. size of cluster for freq. table */
+#define MAX_CLUSTER_SIZE 5000        /* max. size of cluster for freq. table */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -56,6 +60,8 @@
 static char * mask_filename = NULL;  /* file containing the mask */
 static byte * mask_vol  = NULL;      /* mask volume */
 static int mask_ngood = 0;           /* number of good voxels in mask volume */
+/* allow updating via the -max_clust_size option         12 Apr 2006 [rickr] */
+static int g_max_cluster_size = MAX_CLUSTER_SIZE;
 
 
 /*---------------------------------------------------------------------------*/
@@ -99,6 +105,7 @@ void display_help_menu()
      "-iter n       n  = number of Monte Carlo simulations                  \n"
      "[-quiet]     suppress screen output                                   \n"
      "[-out file]  file = name of output file                               \n"
+     "[-max_clust_size size]  size = maximum allowed voxels in a cluster    \n"
      );
   
   exit(0);
@@ -574,6 +581,18 @@ void get_options (int argc, char ** argv,
 	}
       
 
+      /*-----   -max_clust_size size   -----*/
+      if (strncmp(argv[nopt], "-max_clust_size", 10) == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)
+             AlphaSim_error ("need argument after -max_clust_size ");
+	  g_max_cluster_size = atoi( argv[nopt] );
+	  nopt++;
+	  continue;
+	}
+      
+
       /*----- unknown command -----*/
       AlphaSim_error ("unrecognized command line option ");
     }
@@ -632,6 +651,14 @@ void check_for_valid_inputs (int nx,  int ny,  int nz,
 	}
     }
 
+                                                  /* 12 Apr 2006 [rickr] */
+  /* use a limit of ten million, more than the voxels in a +tlrc dataset */
+  if (g_max_cluster_size < 2 || g_max_cluster_size > 10000000)
+  {
+      sprintf (message, "Invalid -max_clust_size %d.  Must be in [%d,%d]. ",
+               g_max_cluster_size, 2, 10000000);
+      AlphaSim_error (message);
+  }
 }
 
 
@@ -694,18 +721,18 @@ void initialize (int argc, char ** argv,
 
   
   /*----- allocate memory space and initialize frequency table -----*/   
-  *freq_table = (long *) malloc( MAX_CLUSTER_SIZE * sizeof(long) );
+  *freq_table = (long *) malloc( g_max_cluster_size * sizeof(long) );
   if (*freq_table == NULL)
     AlphaSim_error ("memory allocation error");
-  for (i = 0;  i < MAX_CLUSTER_SIZE;  i++)
+  for (i = 0;  i < g_max_cluster_size;  i++)
     (*freq_table)[i] = 0;
 
   
   /*----- allocate memory space and initialize max cluster size table -----*/  
-  *max_table = (long *) malloc( MAX_CLUSTER_SIZE * sizeof(long) );
+  *max_table = (long *) malloc( g_max_cluster_size * sizeof(long) );
   if (*max_table == NULL)
     AlphaSim_error ("memory allocation error");
-  for (i = 0;  i < MAX_CLUSTER_SIZE;  i++)
+  for (i = 0;  i < g_max_cluster_size;  i++)
     (*max_table)[i] = 0;
 
 
@@ -1200,20 +1227,20 @@ void identify_clusters (int nx,  int ny,  int nz,
 
 	  size = cl->num_pt;
 
-	  if (size < MAX_CLUSTER_SIZE)
+	  if (size < g_max_cluster_size)
 	    freq_table[size]++;
 	  else
-	    freq_table[MAX_CLUSTER_SIZE-1]++;
+	    freq_table[g_max_cluster_size-1]++;
 
 	  if (size > max_size)
 	    max_size = size;
 
 	}
 
-      if (max_size < MAX_CLUSTER_SIZE)
+      if (max_size < g_max_cluster_size)
 	max_table[max_size]++;
       else
-	max_table[MAX_CLUSTER_SIZE-1]++;
+	max_table[g_max_cluster_size-1]++;
       
       if (!quiet)  
 	printf ("NumCl=%4d  MaxClSz=%4d\n", clar->num_clu, max_size);
@@ -1248,28 +1275,28 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
 
   
   /*----- allocate memory space for probability table -----*/   
-  prob_table = (float *) malloc( MAX_CLUSTER_SIZE * sizeof(float) );
+  prob_table = (float *) malloc( g_max_cluster_size * sizeof(float) );
   if (prob_table == NULL)
     AlphaSim_error ("memory allocation error");
-  for (i = 1;  i < MAX_CLUSTER_SIZE;  i++)
+  for (i = 1;  i < g_max_cluster_size;  i++)
     prob_table[i] = 0.0;
   
   /*----- allocate memory space for alpha table -----*/   
-  alpha_table = (float *) malloc( MAX_CLUSTER_SIZE * sizeof(float) );
+  alpha_table = (float *) malloc( g_max_cluster_size * sizeof(float) );
   if (alpha_table == NULL)
     AlphaSim_error ("memory allocation error");
-  for (i = 1;  i < MAX_CLUSTER_SIZE;  i++)
+  for (i = 1;  i < g_max_cluster_size;  i++)
     alpha_table[i] = 0.0;
 
   /*----- allocate memory space for cum. prop. of cluster size table  -----*/ 
-  cum_prop_table = (float *) malloc( MAX_CLUSTER_SIZE * sizeof(float) );
+  cum_prop_table = (float *) malloc( g_max_cluster_size * sizeof(float) );
   if (cum_prop_table == NULL)
     AlphaSim_error ("memory allocation error");
-  for (i = 1;  i < MAX_CLUSTER_SIZE;  i++)
+  for (i = 1;  i < g_max_cluster_size;  i++)
     cum_prop_table[i] = 0.0;
 
   total_num_clusters = 0;
-  for (i = 1;  i < MAX_CLUSTER_SIZE;  i++)
+  for (i = 1;  i < g_max_cluster_size;  i++)
     total_num_clusters += freq_table[i];
 
   if (power)
@@ -1280,16 +1307,16 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
     else
       divisor = (float)(niter) * nx * ny * nz;
 
-  for (i = 1;  i < MAX_CLUSTER_SIZE;  i++)
+  for (i = 1;  i < g_max_cluster_size;  i++)
     {
       prob_table[i] = i * freq_table[i] / divisor;
       alpha_table[i] = (float)max_table[i] / (float)niter;
       cum_prop_table[i] = (float)freq_table[i] / (float)total_num_clusters;
     }
 
-  for (i = 1;  i < MAX_CLUSTER_SIZE-1;  i++)
+  for (i = 1;  i < g_max_cluster_size-1;  i++)
     {
-      j = MAX_CLUSTER_SIZE - i;
+      j = g_max_cluster_size - i;
       prob_table[j-1] += prob_table[j];
       alpha_table[j-1] += alpha_table[j];
       cum_prop_table[i+1] += cum_prop_table[i];
@@ -1366,7 +1393,7 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
   else
     fprintf (fout, "Cl Size     Frequency    Cum Prop     p/Voxel"
 	     "   Max Freq       Power\n");    
-  for (i = 1;  i < MAX_CLUSTER_SIZE;  i++)
+  for (i = 1;  i < g_max_cluster_size;  i++)
     if (alpha_table[i] < EPSILON)
       break;
     else
