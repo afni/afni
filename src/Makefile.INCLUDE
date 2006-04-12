@@ -1818,6 +1818,10 @@ ccalc:parser.o parser_int.o ccalc.o
 	$(RM) $@
 	$(CC) -o 1deval 1deval.o parser.o parser_int.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
+1dmatcalc:parser.o parser_int.o 1dmatcalc.o
+	$(RM) $@
+	$(CC) -o 1dmatcalc 1dmatcalc.o parser.o parser_int.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 colfit.c:
 	$(F2C) colfit.f
 
