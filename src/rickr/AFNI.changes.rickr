@@ -1467,5 +1467,5 @@
             a hint for what to do in case of 'brick factors not consistent'
 
 11 Apr 2006: put 'd' in 3dANOVA* 'Changes have been made' warnings
-12 Apr 2006: added -max_clust_size option to AlphaSim (default now 5000)
+12 Apr 2006: added -max_clust_size option to AlphaSim (default now 10000)
 
