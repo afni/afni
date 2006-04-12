@@ -1092,6 +1092,7 @@ extern MRI_IMAGE * mri_matrix_ortproj  ( MRI_IMAGE * , int ) ;
 extern MRI_IMAGE * mri_matrix_sadd     ( float, MRI_IMAGE *, float, MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_matrix_scale    ( float, MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_matrix_evalrpn  ( char * ) ;
+extern char      * mri_matrix_evalrpn_help(void) ;
 
 #define            mri_matrix_transpose(x) mri_transpose(x)
 
