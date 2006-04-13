@@ -5856,3 +5856,7 @@
 
 10 Apr 2006
  * Add -polort option to 3dDetrend.c.
+
+13 Apr 2006
+ * mri_matrix_evalrpn() ==> 1dmatcalc.c and 3dmatcalc.c.
+ * Modify mri_fromstring.c to allow 1D:... generation of multiple columns.
