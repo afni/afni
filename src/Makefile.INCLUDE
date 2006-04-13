@@ -50,7 +50,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnvals          \
            fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim 3daxialize \
            p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta   \
-           waver 3dnewid 3dcalc ccalc imcalc           3drefit 3dbucket         \
+           waver 3dnewid 3dcalc ccalc imcalc 1dmatcalc 3drefit 3dbucket         \
            3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt 3dnoise plugout_ijk       \
            3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna         \
            2dImReg 3dmaskave 3dbuc2fim byteorder imstack 3dDeconvolve 3dTcat    \
@@ -72,7 +72,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            nifti_tool nifti_stats nifti1_test whereami plugout_drive            \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \
-           3dTwotoComplex 3dInvFMRI                                             \
+           3dTwotoComplex 3dInvFMRI 3dmatcalc                                   \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -97,7 +97,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dWarp nicat 3dSpatNorm 3dWarpDrive 3dretroicor ge_header         \
                   3dAFNItoRaw DTIStudioFibertoSegments im2niml 3dLocalstat 3dGetrow \
                   Imon nifti_tool nifti_stats nifti1_test Dimon 3danisosmooth       \
-                  3dmaxima 3dTwotoComplex 3dInvFMRI                                 \
+                  3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc             \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -107,7 +107,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnvals count  \
                fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim 3dGetrow \
                p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta \
-               waver 3dnewid 3dcalc ccalc imcalc           3drefit 3dbucket       \
+               waver 3dnewid 3dcalc ccalc imcalc 1dmatcalc 3drefit 3dbucket       \
                3dAFNItoNIML    AlphaSim 3dFWHM plugout_tt 3dnoise plugout_ijk     \
                3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna       \
                2dImReg 3dmaskave 3dbuc2fim byteorder imstack 3dDeconvolve 3dTcat  \
@@ -127,7 +127,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                dicom_to_raw rotcom 3dDeconvolve_f 3dUniformize 3dWarp 3dWarpDrive \
                file_tool.exe Imon.exe 3dresample.exe serial_helper.exe im2niml    \
                nifti_tool.exe 3dAFNItoRaw DTIStudioFibertoSegments Dimon.exe      \
-               3danisosmooth 3dTwotoComplex 3dInvFMRI
+               3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -1821,6 +1821,10 @@ ccalc:parser.o parser_int.o ccalc.o
 1dmatcalc:parser.o parser_int.o 1dmatcalc.o
 	$(RM) $@
 	$(CC) -o 1dmatcalc 1dmatcalc.o parser.o parser_int.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
+3dmatcalc:parser.o parser_int.o 3dmatcalc.o
+	$(RM) $@
+	$(CC) -o 3dmatcalc 3dmatcalc.o parser.o parser_int.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 colfit.c:
 	$(F2C) colfit.f
