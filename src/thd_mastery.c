@@ -99,16 +99,10 @@ ENTRY("THD_open_dataset") ;
    kk = MIN(ii,jj) ;
    memcpy(dname,pathname,kk) ; dname[kk] = '\0' ;
 
+   /* allow NIfTI extensions here                14 Apr 2006 [rickr] */
    if( STRING_HAS_SUFFIX(dname,".mnc")    ||
-#if 0  /* THD_load_nifti() allows mastery   14 Apr 2006 [rickr] */
-       STRING_HAS_SUFFIX(dname,".hdr")    ||
-       STRING_HAS_SUFFIX(dname,".nia")    ||
-       STRING_HAS_SUFFIX(dname,".nii")    ||
-       STRING_HAS_SUFFIX(dname,".nii.gz") ||
-#endif
        STRING_HAS_SUFFIX(dname,".mri")    ||
        STRING_HAS_SUFFIX(dname,".svl")      ){
-
      fprintf(stderr,"** Can't use selectors on dataset: %s\n",pathname) ;
      RETURN(NULL) ;
    }
@@ -135,7 +129,15 @@ ENTRY("THD_open_dataset") ;
      for( kk=0 ; kk < ivlist[0] ; kk++ ) ivlist[kk+1] = kk ;
    }
 
+   /* ************************************************ */
    /* 21 Feb 2001: if present, load the sub-range data */
+
+   /* THD_init_one_datablock() was not called   14 Apr 2006 [rickr] */
+   if( STRING_HAS_SUFFIX(dname,".hdr") || STRING_HAS_SUFFIX(dname,".nia") ||
+       STRING_HAS_SUFFIX(dname,".nii") || STRING_HAS_SUFFIX(dname,".nii.gz")){
+      dset->dblk->master_bot = 1.0 ;
+      dset->dblk->master_top = 0.0 ;
+   }
 
    if( bpt != NULL ){
       char *dpt = strstr(bpt,"..") ;
