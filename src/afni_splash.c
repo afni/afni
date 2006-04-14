@@ -755,7 +755,6 @@ typedef struct { int mon,day; char *label; } mday ;
 static mday facials[] = {
  {MAR,30,"face_vincent" } ,
  {FEB,12,"face_lincoln" } ,
- {APR,14,"face_lincoln" } ,
  {JAN, 3,"face_tolkien" } ,
  {MAR,14,"face_einstein"} ,
  {APR,27,"face_grant"   } ,
