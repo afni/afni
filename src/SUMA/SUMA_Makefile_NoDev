@@ -3,13 +3,13 @@
 MAKE = make
 SUMALIB = libSUMA.a
 SUMAGTSLIB = libSUMAGTS.a
-AFNILIB = -lrickr -lmrix -lcoxplot -lmri -lf2c 
+AFNILIB = -lrickr -lmrix -lcoxplot -lmri -lf2c -l3DEdge
 MAINCODE = SUMA
 SUMALIBLIST = libSUMA.a libglut.a libply.a 
 
 ## 07 Dec 2005 -- Modify include path (RWCox)
 
-SUMA_INPATH = ${SUMA_INCLUDE_PATH} -I../nifti/niftilib -I../nifti/znzlib
+SUMA_INPATH = ${SUMA_INCLUDE_PATH} -I../nifti/niftilib -I../nifti/znzlib -I../3DEdge/src
 
 SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c SUMA_MiscFunc.c SUMA_IV_XYZextract.c	\
 		 SUMA_IV_FaceSetsextract.c  SUMA_SurfNorm.c SUMA_DOmanip.c SUMA_StripPath.c 	\

@@ -610,7 +610,7 @@ ENTRY("mri_short2mask") ;
 
    clustedit3D( nx,ny,nz , mask , (int)rint(0.02*nxyz) ) ;
 
-   if( verb ) fprintf(stderr," + mri_short2mask: %d voxels survive\n",
+   if( verb > 1) fprintf(stderr," + mri_short2mask: %d voxels survive\n",
                              mask_count(nxyz,mask) ) ;
 
    RETURN(mask) ;
@@ -1213,6 +1213,8 @@ MRI_IMAGE * mri_brainormalize( MRI_IMAGE *im, int xxor, int yyor, int zzor, MRI_
    
 ENTRY("mri_brainormalize") ;
 
+   if( verb) fprintf(stderr,"++mri_brainormalize: normalizing\n") ;
+   
    if( im == NULL || xxor < 0 || xxor > LAST_ORIENT_TYPE ||
                      yyor < 0 || yyor > LAST_ORIENT_TYPE ||
                      zzor < 0 || zzor > LAST_ORIENT_TYPE   ) {
@@ -1229,7 +1231,7 @@ ENTRY("mri_brainormalize") ;
 
    /* make a short copy */
 
-   if( verb ) fprintf(stderr,"++mri_brainormalize: copying input\n") ;
+   if( verb > 1) fprintf(stderr,"++mri_brainormalize: copying input\n") ;
 
    if( im->kind == MRI_short || im->kind == MRI_byte || im->kind == MRI_rgb )
      tim = mri_to_short( 1.0 , im ) ;
@@ -1267,7 +1269,7 @@ ENTRY("mri_brainormalize") ;
    if( ii==1 && jj==2 && kk==3 ){      /* no flip needed */
      sim = tim ;
    } else {                            /* flipization */
-     if( verb )
+     if( verb > 1)
        fprintf(stderr,"++mri_brainormalize: flipping to RAI orientation\n") ;
      sim = mri_flip3D( ii,jj,kk , tim ) ;
      mri_free(tim) ;
@@ -1289,7 +1291,7 @@ ENTRY("mri_brainormalize") ;
    sim_xo = 0.0; sim_yo = 0.0; sim_zo = 0.0;  /* origins are added after this function returns.*/
    sim_nx = sim->nx; sim_ny = sim->ny; sim_nz = sim->nz; 
    
-   if( verb ) fprintf(stderr,"++mri_brainormalize: making mask\n") ;
+   if( verb > 1) fprintf(stderr,"++mri_brainormalize: making mask\n") ;
    mask = mri_short2mask( sim ) ;
 
    if( mask == NULL ){ mri_free(sim); RETURN(NULL); }
@@ -1301,7 +1303,7 @@ ENTRY("mri_brainormalize") ;
           THD_mask_dilate     ( nx,ny,nz , mask , 5 ) ;
 
    kk = mask_count(nxyz,mask) ;
-   if( verb )
+   if( verb > 1)
      fprintf(stderr,"++mri_brainormalize: filled in mask now has %d voxels\n",kk) ;
 
    if( kk <= 999 ){ free((void *)mask); mri_free(sim); RETURN(NULL); }
@@ -1362,7 +1364,7 @@ ENTRY("mri_brainormalize") ;
 
    /* apply mask to image (will also remove any negative values) */
 
-   if( verb )
+   if( verb > 1)
      fprintf(stderr,"++mri_brainormalize: applying mask to image; %d voxels\n",kk) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( !mask[ii] ) sar[ii] = 0 ;
 
@@ -1392,7 +1394,7 @@ ENTRY("mri_brainormalize") ;
    aj = thd_bn_dxyz/dy ; bj = jcm/sum - aj*(thd_bn_ycm-thd_bn_yorg)/thd_bn_dxyz ;
    ak = thd_bn_dxyz/dz ; bk = kcm/sum - ak*(thd_bn_zcm-thd_bn_zorg)/thd_bn_dxyz ;
 
-   if( verb ) fprintf(stderr,"++mri_brainormalize: warping to standard grid\n a = [%f %f %f], b = [%f %f %f]\nthd_bn_nxyz=[%d %d %d]\n", 
+   if( verb > 1) fprintf(stderr,"++mri_brainormalize: warping to standard grid\n a = [%f %f %f], b = [%f %f %f]\nthd_bn_nxyz=[%d %d %d]\n", 
                            ai, aj, ak, bi, bj, bk, thd_bn_nx,thd_bn_ny,thd_bn_nz) ;
 
    mri_warp3D_method( MRI_CUBIC ) ;
@@ -1406,8 +1408,8 @@ ENTRY("mri_brainormalize") ;
    
    nx = tim->nx ; ny = tim->ny ; nz = tim->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
    sar = MRI_SHORT_PTR(tim) ;
-   if( verb ) fprintf(stderr,"++mri_brainormalize: sar points to %d values.\n", nxyz);
-   if( verb ) fprintf(stderr,"++mri_brainormalize: sar[%d] = %d, sar[%d]=%d, sar[%d]=%d\n", 0, sar[0], nxyz/2, sar[nxyz/2], nxyz-1, sar[nxyz-1]);
+   if( verb > 1) fprintf(stderr,"++mri_brainormalize: sar points to %d values.\n", nxyz);
+   if( verb > 1) fprintf(stderr,"++mri_brainormalize: sar[%d] = %d, sar[%d]=%d, sar[%d]=%d\n", 0, sar[0], nxyz/2, sar[nxyz/2], nxyz-1, sar[nxyz-1]);
    
    
    /*-- rescale to partially uniformize --*/
@@ -1439,10 +1441,10 @@ ENTRY("mri_brainormalize") ;
      float pdif ;
      short mbot,mtop ;
 
-     if( verb ) fprintf(stderr,"++mri_brainormalize: Remasking.\n");
+     if( verb > 1) fprintf(stderr,"++mri_brainormalize: Remasking.\n");
      
      /* build histogram */
-     if( verb ) fprintf(stderr,"++mri_brainormalize:     Build histogram\n");
+     if( verb > 1) fprintf(stderr,"++mri_brainormalize:     Build histogram\n");
      hist = (int *) calloc(sizeof(int),32768) ;
      gist = (int *) calloc(sizeof(int),32768) ;
 
@@ -1451,7 +1453,7 @@ ENTRY("mri_brainormalize") ;
          /* fprintf(stderr," hist[%d] was %d\n", sar[ii], hist[sar[ii]]); */
          hist[sar[ii]]++ ;
      }
-      if( verb ) fprintf(stderr,"++mri_brainormalize:     Find min\n");
+      if( verb > 1) fprintf(stderr,"++mri_brainormalize:     Find min\n");
      for( sbot=1 ; sbot < 32768 && hist[sbot]==0 ; sbot++ ) ; /* nada */
      if( sbot == 32768 ) goto Remask_Done ;
      for( stop=32768-1 ; stop > sbot && hist[stop]==0 ; stop-- ) ; /* nada */
@@ -1459,7 +1461,7 @@ ENTRY("mri_brainormalize") ;
 
      /* find median */
      
-     if( verb ) fprintf(stderr,"++mri_brainormalize:     Find Median\n");
+     if( verb > 1) fprintf(stderr,"++mri_brainormalize:     Find Median\n");
      nmask = 0 ;
      for( ii=sbot ; ii <= stop ; ii++ ) nmask += hist[ii] ;
      nhalf = nmask / 2 ; nmask = 0 ;
@@ -1567,22 +1569,22 @@ ENTRY("mri_brainormalize") ;
 
      mbot = cbot ; mtop = 32767 ;
 
-     if( verb )
+     if( verb > 1)
       fprintf(stderr,"++mri_brainormalize: masking standard image %d..%d\n",mbot,mtop) ;
-
+     else if (verb) fprintf(stderr,"++mri_brainormalize: Eroding, clustering ...\n");
      mask = (byte *) malloc( sizeof(byte)*nxyz ) ;
      for( ii=0 ; ii < nxyz ; ii++ )
        mask[ii] = (sar[ii] > mbot) && (sar[ii] < mtop) ;
 
-     if( verb )
+     if( verb > 1)
       fprintf(stderr,"++mri_brainormalize: eroding...\n");
    
      THD_mask_erode( nx,ny,nz, mask ) ;
-     if( verb )
+     if( verb > 1)
       fprintf(stderr,"++mri_brainormalize: clustering 1...\n");
      THD_mask_clust( nx,ny,nz, mask ) ;
      for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
-     if( verb )
+     if( verb > 1)
       fprintf(stderr,"++mri_brainormalize: clustering 2...\n");
      THD_mask_clust( nx,ny,nz, mask ) ;
      for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
@@ -1591,7 +1593,7 @@ ENTRY("mri_brainormalize") ;
      free((void *)mask) ;
 
    Remask_Done:
-      if( verb )
+      if( verb > 1)
       fprintf(stderr,"++mri_brainormalize: Remask Done...\n");
      free((void *)hist) ; free((void *)gist) ;
 
@@ -1602,8 +1604,10 @@ ENTRY("mri_brainormalize") ;
    {
      /*-- clip top 1% of values that have survived --*/
 
-     if( verb )
+   
+     if( verb > 1)
       fprintf(stderr,"++mri_brainormalize: clipping top...\n");
+     else if (verb) fprintf(stderr,"++mri_brainormalize: Clipping extreme values.\n");
      hist = (int *) calloc(sizeof(int),32768) ;
      for( ii=0 ; ii < nxyz ; ii++ ) hist[sar[ii]]++ ;
      for( ii=kk=0 ; ii < 32767 ; ii++ ) kk += hist[ii] ;
@@ -1612,7 +1616,7 @@ ENTRY("mri_brainormalize") ;
        jj += hist[ii] ; if( hist[ii] > 0 && ktop == 0 ) ktop = ii ;
      }
      jj = ii ;
-     if( verb ) fprintf(stderr," + 99%% clipping at %d (from %d)\n",jj,ktop) ;
+     if( verb > 1) fprintf(stderr," + 99%% clipping at %d (from %d)\n",jj,ktop) ;
      for( ii=0 ; ii < nxyz ; ii++ ) if( sar[ii] > jj ) sar[ii] = jj ;
 
      free((void *)hist) ;
@@ -1685,7 +1689,7 @@ ENTRY("mri_brainormalize") ;
    /* create a spat norm of the original volume ZSS */
    if (imout_origp) {
       mri_warp3D_method( MRI_LINEAR) ;
-      if (1 && verb) fprintf(stderr,"thd_brainormalize (ZSS):\n n: %d %d %d\n d: %f %f %f\n o: %f %f %f\n ", sim_nx, sim_ny, sim_nz, sim_dx, sim_dy, sim_dz, sim_xo, sim_yo, sim_zo);
+      if (verb > 1) fprintf(stderr,"thd_brainormalize (ZSS):\n n: %d %d %d\n d: %f %f %f\n o: %f %f %f\n ", sim_nx, sim_ny, sim_nz, sim_dx, sim_dy, sim_dz, sim_xo, sim_yo, sim_zo);
       imout_orig = mri_warp3D( tim, sim_nx, sim_ny, sim_nz, ijk_invwarp );
       imout_orig->dx = sim_dx; imout_orig->dy = sim_dy; imout_orig->dz = sim_dz; 
       imout_orig->xo = sim_xo; imout_orig->yo = sim_yo; imout_orig->zo = sim_zo; 
@@ -1700,7 +1704,7 @@ ENTRY("mri_brainormalize") ;
          MRI_IMAGE *imout_orig_NN;
          /* create a mask version now */
          mri_warp3D_method( MRI_LINEAR) ;
-         if (1 && verb) fprintf(stderr,"thd_brainormalize (ZSS):\n Masking \n ");
+         if (verb > 1) fprintf(stderr,"thd_brainormalize (ZSS):\n Masking \n ");
          tim_NN = MRI_SHORT_PTR(tim);
          for (ii = 0; ii<nxyz; ++ii) { if (tim_NN[ii]) tim_NN[ii] = maskval; }
          imout_orig_NN = mri_warp3D( tim, sim_nx, sim_ny, sim_nz, ijk_invwarp );
@@ -1721,7 +1725,7 @@ ENTRY("mri_brainormalize") ;
             } 
          }
          if (n_masked) meanmasked /= n_masked;
-         if (1 && verb) fprintf(stderr,"thd_brainormalize (ZSS):\n (N, mean, max, min) of values masked: (%d, %f, %d, %d)\n", 
+         if (verb > 1) fprintf(stderr,"thd_brainormalize (ZSS):\n (N, mean, max, min) of values masked: (%d, %f, %d, %d)\n", 
             n_masked, meanmasked, minmasked, maxmasked);
          mri_free(imout_orig_NN) ;
       }

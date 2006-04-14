@@ -1,5 +1,6 @@
 #include "SUMA_suma.h"
 #include "../thd_brainormalize.h"
+#include "extrema.h"
 
 #undef STAND_ALONE
 
@@ -23,6 +24,7 @@ extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv; 
 extern int SUMAg_N_DOv;  
 #endif
+
 
 static int InteractiveQuit;
 
@@ -1055,7 +1057,7 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTION
       }
       if (Stage == 2) {
          if (Stage2Type == 1) { 
-            if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("About to be in stage 2"); }
+            if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("About to be in stage 2, type 1"); }
             /* see if there is room for extension */
             touchup = SUMA_Suggest_Touchup(SO, Opt, 4.0, cs, &N_troub);
             if (!touchup) SUMA_SL_Warn("Failed in SUMA_Suggest_Touchup");
@@ -1083,9 +1085,10 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTION
             if (touchup) SUMA_free(touchup); touchup = NULL;
          
          } else if (Stage2Type == 2) {
+            if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("About to be in stage 2, type 2"); }
             if (Opt->PushToEdge) {
                /* Make a bloody jump */
-               N_troub = SUMA_PushToEdge(SO, Opt, 4, cs); SUMA_RECOMPUTE_NORMALS(SO);
+               N_troub = SUMA_PushToEdge(SO, Opt, 4, cs, 1); SUMA_RECOMPUTE_NORMALS(SO);
             } else {
                N_troub = 0;
             }
@@ -2197,9 +2200,12 @@ int SUMA_GetNodeHood(SUMA_SurfaceObject *SO, int in, float frac, float *xyz_list
    SUMA_RETURN(0);
 }
 
+#define SUMA_IS_ON_FLESH(vect, ie) ( ( vect[ie] > Opt->t2 || (ie > 0 && vect[ie-1] > Opt->t2) || (vect[ie+1] > Opt->t2) ) ? 1 : 0 )
+
 float *SUMA_Suggest_Touchup_PushOuterSkull(SUMA_SurfaceObject *SO, 
                                     SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
-                                    float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch)
+                                    float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch,
+                                    int PriorityAtNode)
 {
    static char FuncName[]={"SUMA_Suggest_Touchup_PushOuterSkull"};
    int in, N_troub = 0, cond1=0, cond2=0, cond3 = 0, cond4 = 0, cond5 = 0, nn, ShishMax, Down, Cross, inh;   
@@ -2235,7 +2241,7 @@ float *SUMA_Suggest_Touchup_PushOuterSkull(SUMA_SurfaceObject *SO,
          a = &(xyz_list[0]); /* direction U will be same for all neighbors */
          SUMA_UNIT_VEC(SO->Center, a , U, Un);
          for (inh=0; inh <= SO->FN->N_Neighb[in]; ++inh) {
-               if (Opt->NodeDbg == in) { 
+               if (Opt->debug > 2 && Opt->NodeDbg == in ) { 
                      fprintf(SUMA_STDERR, "%s: Searching node %d's %dth neighbor\n %f %f %f\n", 
                                     FuncName, in, inh, xyz_list[3*inh], xyz_list[3*inh+1],xyz_list[3*inh+2]);
                }
@@ -2247,47 +2253,10 @@ float *SUMA_Suggest_Touchup_PushOuterSkull(SUMA_SurfaceObject *SO,
                */ 
 
 
-               #if 0
-               cond1 = 0;
-               { /* find next location based on edges */
-                  /* find next edge above */
-                  if (Opt->NodeDbg == in) { 
-                     fprintf(SUMA_STDERR, "%s: emask over node %d, neighb %d\n", FuncName, in, inh);
-                     ie = 0;
-                     while (dvecind_over[ie] >= 0) {
-                        fprintf(SUMA_STDERR,"%d\t %f\t\t", ie, Opt->emask[dvecind_over[ie]]);
-                        ++ie;
-                     }
-                     fprintf(SUMA_STDERR,"\n");
-                  }
-                  /* skip over edge first */
-                  ie = 0;
-                  while (dvecind_over[ie] >= 0 && Opt->emask[dvecind_over[ie]]) ++ie;
-                  touchup[in] = 0.0;
-                  while (!cond1 &&  dvecind_over[ie] >= 0 /* meaningful voxel index */
-                                    && Opt->travstp*(ie) < limtouch
-                                     ) { 
-                     if (Opt->emask[dvecind_over[ie]] && Opt->travstp*(ie)>=1.0 ) {
-                        if (ie > 0 && overshish[ie] >= 0 && overshish[ie+1] >= 0 
-                              && overshish[ie+1] > overshish[ie-1] ) { /* don't go if value of over edge is > than value below edge */
-                              
-                           touchup[in] = Opt->travstp*(ie);
-                           if (Opt->NodeDbg == in) { 
-                              fprintf(SUMA_STDERR, "%s: Node %d, neighb %d,  will be pushed to outer skull by a proposed %fmm!, ie = %d\n", 
-                                          FuncName, in, inh, touchup[in], ie);
-                           }
-                           cond1 = 1; 
-                        }   
-                     }
-                     ++ie;
-                  }
-            
-               }
-               #else
                { /* find next location based on edges */
                   /* find the farthest edge */
                   
-                  if (Opt->NodeDbg == in) { 
+                  if (Opt->debug > 2 && Opt->NodeDbg == in) { 
                      fprintf(SUMA_STDERR, "%s: emask over node %d, neighb %d\n", FuncName, in, inh);
                      ie = 0;
                      while (dvecind_over[ie] >= 0) {
@@ -2298,9 +2267,9 @@ float *SUMA_Suggest_Touchup_PushOuterSkull(SUMA_SurfaceObject *SO,
                   }
                   ie = 0;
                   while (dvecind_over[ie] >= 0) {
-                     if (Opt->emask[dvecind_over[ie]] && overshish[ie]) {
+                     if (Opt->emask[dvecind_over[ie]] && SUMA_IS_ON_FLESH(overshish, ie)) {
                         touchup[in] = Opt->travstp*(ie+1);
-                        if (Opt->NodeDbg == in) { 
+                        if (Opt->debug > 2 && Opt->NodeDbg == in) { 
                               fprintf(SUMA_STDERR, "%s: Edge candidate for %d, neighb %d at %f with edge %f (vox index %d)\n",
                                                       FuncName, in, inh, touchup[in], 
                                                       Opt->emask[dvecind_over[ie]], dvecind_over[ie]);
@@ -2309,34 +2278,32 @@ float *SUMA_Suggest_Touchup_PushOuterSkull(SUMA_SurfaceObject *SO,
                      ++ie;
                   }
                   
-                  if (0 && !touchup[in]) { /* try some more, we're going out here */
-                     ie = 0;
-                     while (overshish[ie] >= 0) {
-                        if (overshish[ie] > Opt->t2) touchup[in] = Opt->travstp*(ie+1);
-                        ++ie;
-                     }
-                  }
-                    
                }
-               #endif
                
                shft_list[inh] = touchup[in]; /* store touchup result */
-                          
          }
          /* Now sort the shft_list */
-         if (Opt->NodeDbg == in) {   
+         if (Opt->debug > 2 && Opt->NodeDbg == in) {   
             fprintf(SUMA_STDERR, "%s: Shifts in neighborhood of node %d\n", FuncName, in);
             for (ie=0; ie<SO->FN->N_Neighb[in]+1; ++ie) {
                fprintf(SUMA_STDERR, "%f \t", shft_list[ie]);
             }
             fprintf(SUMA_STDERR, "\n");
          }
-         qsort(shft_list, SO->FN->N_Neighb[in], sizeof(float), (int(*) (const void *, const void *)) SUMA_compare_int);
-         /* get the max */
+         if (PriorityAtNode && shft_list[0] > 0.001) {
+            /* OK, accept */
+            touchup[in] = shft_list[0];
+            if (Opt->debug > 2 && Opt->NodeDbg == in) {   
+               fprintf(SUMA_STDERR, "%s: Touchup value for node %d is %fmm\n", FuncName, in, touchup[in]);
+            }
+         } else {
+            qsort(shft_list, SO->FN->N_Neighb[in], sizeof(float), (int(*) (const void *, const void *)) SUMA_compare_float);
+            /* get the median */
+            touchup[in] = shft_list[(int)(SO->FN->N_Neighb[in]/2)];
          
-         touchup[in] = shft_list[(int)(SO->FN->N_Neighb[in]/2)];
-         if (Opt->NodeDbg == in) {   
-            fprintf(SUMA_STDERR, "%s: Median touchup value for node %d is %fmm\n", FuncName, in, touchup[in]);
+            if (Opt->debug > 2 && Opt->NodeDbg == in) {   
+               fprintf(SUMA_STDERR, "%s: Median touchup value for node %d is %fmm\n", FuncName, in, touchup[in]);
+            }
          }
          if (touchup[in]) ++N_troub;
       }
@@ -2355,6 +2322,367 @@ float *SUMA_Suggest_Touchup_PushOuterSkull(SUMA_SurfaceObject *SO,
    SUMA_RETURN(touchup);
 
 }
+
+/*
+   average intensity above and below a location 
+*/
+#define SUMA_AVERAGE_BELOW_ABOVE(sunder, sover, ie, depth, undervect, overvect) {\
+   /* sum over ie should be larger than sum below ie */  \
+      cnt = 1; \
+      sover = 0.0;   \
+      while (overvect[ie+cnt] >= 0  && cnt <= depth) {  \
+         sover += overvect[ie+cnt];   \
+         ++cnt;   \
+      }  \
+      if (cnt > 1) sover /= (float)(cnt-1);  \
+      /* now back off from ie */ \
+      cnt = 1; \
+      sunder = 0.0;  \
+      while (ie - cnt >= 0 && cnt <= depth) {   \
+         sunder += overvect[ie-cnt];  \
+         ++cnt;   \
+      }  \
+      /* continue below node */  \
+      while (undervect[ie+depth-cnt] >= 0  && cnt <= depth) { \
+         sunder += undervect[ie+depth-cnt]; \
+         ++cnt;   \
+      }  \
+      if (cnt > 1) sunder /= (float)(cnt-1);    \
+} 
+
+
+float *SUMA_Suggest_Touchup_PushInnerSkull(SUMA_SurfaceObject *SO, 
+                                    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
+                                    float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch)
+{
+   static char FuncName[]={"SUMA_Suggest_Touchup_PushInnerSkull"};
+   int in, N_troub = 0, cond1=0, cond2=0, cond3 = 0, cond4 = 0, cond5 = 0, nn, ShishMax, Down, Cross, inh;   
+   float MinMax_over[2], MinMax[2], MinMax_dist[2], MinMax_over_dist[2], Means[3], tb, GradThick; 
+   float U[3], Dw[3], Up[3], dwn, dup, Un, *a, P2[2][3]={ {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} }, *norm, shft, *b; 
+   float *touchup=NULL, EdgeBelow=-1.0; 
+   float *overshish=NULL, *undershish=NULL, *gradovershish=NULL, 
+         *xyz_list=NULL, *shft_list=NULL, *shft_list_under=NULL,
+         sup, sdwn, sover, sunder;
+   int *dvecind_under=NULL, *dvecind_over=NULL, ie, cnt;
+   int nx, ny, nxy, i, j, k, depth, new_stop = 0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   nx = SO->VolPar->nx; ny = SO->VolPar->ny; nxy = nx * ny;
+
+   if (!Opt->emask) {
+      SUMA_SL_Err("No emask!!!\n");
+      SUMA_RETURN(NOPE);
+   }
+      
+      Opt->d4 = limtouch+1.0;
+      
+      ShishMax = (int)(SUMA_MAX_PAIR(Opt->d1, Opt->d4) / Opt->travstp * 1.2); 
+      overshish = (float *)SUMA_malloc(sizeof(float)*ShishMax);
+      undershish = (float *)SUMA_malloc(sizeof(float)*ShishMax);
+      gradovershish = (float *)SUMA_malloc(sizeof(float)*ShishMax);
+      dvecind_under = (int *)SUMA_malloc(sizeof(int)*ShishMax);
+      dvecind_over = (int *)SUMA_malloc(sizeof(int)*ShishMax);
+      touchup = (float *)SUMA_calloc(SO->N_Node, sizeof(float));   
+      xyz_list = (float *) SUMA_calloc(3*(SO->FN->N_Neighb_max+1), sizeof(float));
+      shft_list = (float *) SUMA_calloc(SO->FN->N_Neighb_max+1, sizeof(float));
+      shft_list_under = (float *) SUMA_calloc(SO->FN->N_Neighb_max+1, sizeof(float));
+      if (!touchup) { SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(NOPE); }  
+      for (in=0; in<SO->N_Node; ++in) {
+         if (1) {
+            /* get a bunch of locations around the node */
+            SUMA_GetNodeHood(SO, in, 0.5, xyz_list);
+            a = &(xyz_list[0]); /* direction U will be same for all neighbors */
+            b = &(Opt->Skull_Outer[3*in]);
+            SUMA_UNIT_VEC(a, b , U, Un);  /* direction is along the line between the current location and the outer skull */
+            for (inh=0; inh <= SO->FN->N_Neighb[in]; ++inh) {
+                  if (Opt->debug > 2 && Opt->NodeDbg == in) { 
+                        fprintf(SUMA_STDERR, "%s: Searching node %d's %dth neighbor\n %f %f %f\n", 
+                                       FuncName, in, inh, xyz_list[3*inh], xyz_list[3*inh+1],xyz_list[3*inh+2]);
+                  }
+
+                 SUMA_Find_IminImax(&(xyz_list[3*inh]), U, Opt, in,  MinMax, MinMax_dist, MinMax_over, MinMax_over_dist, Means,
+                                     undershish, overshish, dvecind_under, dvecind_over,  Opt->d1, Opt->d4, ShishMax); 
+
+                  { /* find next location based on edges */
+                     /* find the closest upper edge */
+                     if (Opt->NodeDbg == in) { 
+                        fprintf(SUMA_STDERR, "%s: emask over node %d, neighb %d\n", FuncName, in, inh);
+                        ie = 0;
+                        while (dvecind_over[ie] >= 0) {
+                           fprintf(SUMA_STDERR,"%d\t %f\t\t", ie, Opt->emask[dvecind_over[ie]]);
+                           ++ie;
+                        }
+                        fprintf(SUMA_STDERR,"\n");
+                        fprintf(SUMA_STDERR, "%s: dvec over node %d, neighb %d\n", FuncName, in, inh);
+                        ie = 0;
+                        while (dvecind_over[ie] >= 0) {
+                           SUMA_1D_2_3D_index(dvecind_over[ie], i, j, k, nx, nxy);
+                           fprintf(SUMA_STDERR,"%d\t [%d %d %d] %f\t\t", ie, i, j, k, Opt->dvec[dvecind_over[ie]]);
+                           ++ie;
+                        }
+                        fprintf(SUMA_STDERR,"\n");
+                     }
+                     ie = 0;
+                     touchup[in] = 0.0;
+                     depth = 3; /* how far to go over node and below it */
+                     while (dvecind_over[ie] >= 0 && touchup[in] < 0.001 && Opt->travstp*(ie+1) < limtouch) {
+                        if (Opt->emask[dvecind_over[ie]] 
+                             &&  SUMA_IS_ON_FLESH(overshish, ie) /* we're on flesh either at location or 1 step around it */
+                           ) {
+                           SUMA_AVERAGE_BELOW_ABOVE(sunder, sover, ie, depth, undershish, overshish);
+                           if (sover < sunder) {
+                              if (Opt->NodeDbg == in) { 
+                                 fprintf(SUMA_STDERR, "%s: Node %d's edge at %f is no good, sover = %f sunder = %f\n", FuncName, in, touchup[in], sover, sunder);
+                              }
+                              touchup[in] = 0.0;
+                           } else {
+                              touchup[in] = Opt->travstp*(ie);
+                           }
+                           if (Opt->Stop[in] < 0 && touchup[in] > 0.001) { /* special case, 1st estimate */
+                              if (touchup[in] <= 1.0) {
+                                 if (Opt->NodeDbg == in) { 
+                                    fprintf(SUMA_STDERR, "%s: Node %d's edge at %f is too close\n", FuncName, in, touchup[in]);
+                                 }
+                                 /* too close to an edge, need to initialize Opt->Stop, ignore */
+                                 touchup[in] = 0.0;
+                              } 
+                           }
+                           if (Opt->debug > 2 && Opt->NodeDbg == in) { 
+                                 fprintf(SUMA_STDERR, "%s: Edge candidate for %d, neighb %d at %f with edge %f (vox index %d)\n",
+                                                         FuncName, in, inh, touchup[in], 
+                                                         Opt->emask[dvecind_over[ie]], dvecind_over[ie]);
+                           }                             
+                        }
+                        ++ie;
+                     }
+
+                  }
+                  shft_list[inh] = touchup[in]; /* store upper touchup result */
+
+                  { /* Then find closest lower edge */
+                     if (Opt->debug > 2 && Opt->NodeDbg == in) { 
+                        fprintf(SUMA_STDERR, "%s: emask under node %d, neighb %d\n", FuncName, in, inh);
+                        ie = 0;
+                        while (dvecind_under[ie] >= 0) {
+                           fprintf(SUMA_STDERR,"%d\t %f\t\t", ie, Opt->emask[dvecind_under[ie]]);
+                           ++ie;
+                        }
+                        fprintf(SUMA_STDERR,"\n");
+                     }
+                     ie = 0;
+                     touchup[in] = 0.0;
+                     while (  dvecind_under[ie] >= 0  /* valid values */
+                              && touchup[in] < 0.001 
+                              && Opt->travstp*(ie+1) < limtouch /* reach is within limit */
+                              ) {
+                        if (Opt->emask[dvecind_under[ie]] 
+                              && SUMA_IS_ON_FLESH(undershish, ie)
+                           ) {
+                           touchup[in] = Opt->travstp*(ie);
+                           if (Opt->debug > 2 && Opt->NodeDbg == in) { 
+                                 fprintf(SUMA_STDERR, "%s: Edge candidate for %d, neighb %d at %f with edge %f (vox index %d)\n",
+                                                         FuncName, in, inh, touchup[in], 
+                                                         Opt->emask[dvecind_under[ie]], dvecind_under[ie]);
+                           }                             
+                        }
+                        ++ie;
+                     }
+
+                  }
+                  shft_list_under[inh] = touchup[in]; /* store under touchup result */           
+            }
+            /* Now sort the shft_list */
+            if (Opt->NodeDbg == in) {   
+               fprintf(SUMA_STDERR, "%s: Upper Shifts in neighborhood of node %d\n", FuncName, in);
+               for (ie=0; ie<SO->FN->N_Neighb[in]+1; ++ie) {
+                  fprintf(SUMA_STDERR, "%f \t", shft_list[ie]);
+               }
+               fprintf(SUMA_STDERR, "\n");
+            }
+            qsort(shft_list, SO->FN->N_Neighb[in], sizeof(float), (int(*) (const void *, const void *)) SUMA_compare_float);
+            /* get smallest non zero jump */
+            sup = 0.0;
+            cnt = 0;
+            while (sup < 0.001 && cnt < SO->FN->N_Neighb[in]) { sup = shft_list[cnt]; ++cnt; }
+            if (Opt->NodeDbg == in) {   
+               fprintf(SUMA_STDERR, "%s: Lower Shifts in neighborhood of node %d\n", FuncName, in);
+               for (ie=0; ie<SO->FN->N_Neighb[in]+1; ++ie) {
+                  fprintf(SUMA_STDERR, "%f \t", shft_list_under[ie]);
+               }
+               fprintf(SUMA_STDERR, "\n");
+            }
+            qsort(shft_list_under, SO->FN->N_Neighb[in], sizeof(float), (int(*) (const void *, const void *)) SUMA_compare_float);
+            sdwn = shft_list_under[(int)(SO->FN->N_Neighb[in]/2)];
+            
+         } else {
+            /* No fancy search, just along segment */
+            a = &(SO->NodeList[3*in]); /* direction U will be same for all neighbors */
+            b = &(Opt->Skull_Outer[3*in]);
+            SUMA_UNIT_VEC(a, b , U, Un);  /* direction is along the line between the current location and the outer skull */
+            SUMA_Find_IminImax( a, U, Opt, in,  MinMax, MinMax_dist, MinMax_over, MinMax_over_dist, Means,
+                                undershish, overshish, dvecind_under, dvecind_over,  Opt->d1, Opt->d4, ShishMax); 
+
+            { /* find next location based on edges */
+               if (Opt->NodeDbg == in) { 
+                        fprintf(SUMA_STDERR, "%s: emask over node %d, neighb %d\n", FuncName, in, inh);
+                        ie = 0;
+                        while (dvecind_over[ie] >= 0) {
+                           fprintf(SUMA_STDERR,"%d\t %f\t\t", ie, Opt->emask[dvecind_over[ie]]);
+                           ++ie;
+                        }
+                        fprintf(SUMA_STDERR,"\n");
+               }
+               ie = 0;
+               touchup[in] = 0.0;
+               while (dvecind_over[ie] >= 0 && touchup[in] < 0.001 && Opt->travstp*(ie+1) < limtouch) {
+                  if (Opt->emask[dvecind_over[ie]] && overshish[ie]) {
+                     touchup[in] = Opt->travstp*(ie);
+                     if (Opt->Stop[in] < 0) { /* special case, 1st estimate */
+                        if (touchup[in] <= 1.0) {
+                           if (Opt->NodeDbg == in) { 
+                              fprintf(SUMA_STDERR, "%s: Node %d's edge at %f is too close\n", FuncName, in, touchup[in]);
+                           }
+                           /* too close to an edge, need to initialize Opt->Stop, ignore */
+                           touchup[in] = 0.0;
+                        } else {
+                           /* sum over ie should be larger than sum below ie */
+                           cnt = 1;
+                           sover = 0.0;
+                           while (overshish[ie+cnt] >= 0  && cnt <= 3) {
+                              sover += overshish[ie+cnt];
+                              ++cnt;
+                           }
+                           if (cnt > 1) sover /= (float)(cnt-1);
+                           cnt = 1;
+                           sunder = 0.0;
+                           while (undershish[ie+cnt] >= 0  && cnt <= 3) {
+                              sunder += undershish[ie+cnt];
+                              ++cnt;
+                           }
+                           if (cnt > 1) sunder /= (float)(cnt-1);
+                           if (sover < sunder) {
+                              if (Opt->NodeDbg == in) { 
+                                 fprintf(SUMA_STDERR, "%s: Node %d's edge at %f is no good, sover = %f sunder = %f\n", FuncName, in, touchup[in], sover, sunder);
+                              }
+                              touchup[in] = 0.0;
+                           }
+                        }
+                     }
+                     if ( Opt->NodeDbg == in) { 
+                           fprintf(SUMA_STDERR, "%s: Edge candidate for %d, at %f with edge %f (vox index %d)\n",
+                                                   FuncName, in, touchup[in], 
+                                                   Opt->emask[dvecind_over[ie]], dvecind_over[ie]);
+                     }                             
+                  }
+                  ++ie;
+               }
+
+            }
+
+            sup = touchup[in]; /* store upper touchup result */
+
+            { /* Then find closest lower edge */
+               ie = 0;
+               touchup[in] = 0.0;
+               while (  dvecind_under[ie] >= 0  /* valid values */
+                        && touchup[in] < 0.001 
+                        && Opt->travstp*(ie+1) < limtouch /* reach is within limit */
+                        ) {
+                  if (Opt->emask[dvecind_under[ie]] && undershish[ie]) {
+                     touchup[in] = Opt->travstp*(ie);
+                     if (Opt->debug > 2 && Opt->NodeDbg == in) { 
+                           fprintf(SUMA_STDERR, "%s: Edge candidate for %d, at %f with edge %f (vox index %d)\n",
+                                                   FuncName, in, touchup[in], 
+                                                   Opt->emask[dvecind_under[ie]], dvecind_under[ie]);
+                     }                             
+                  }
+                  ++ie;
+               }
+
+            }
+            sdwn = touchup[in]; /* store under touchup result */           
+         }
+         
+         if (Opt->Stop[in] >= 0.0) {
+            /* Where would we be if we went up? */
+            SUMA_POINT_AT_DISTANCE(U, a, sup, P2);
+            Up[0] = P2[0][0]; Up[1] = P2[0][1]; Up[2] = P2[0][2];   
+            /* Where would we be if we went down? */
+            SUMA_POINT_AT_DISTANCE(U, a, -sdwn, P2);
+            Dw[0] = P2[0][0]; Dw[1] = P2[0][1]; Dw[2] = P2[0][2];   
+            /* which one gets us close to Opt->Stop ? */
+            a = &(Opt->Brain_Hull[3*in]);
+            SUMA_UNIT_VEC(a, Up, U, dup);
+            SUMA_UNIT_VEC(a, Dw, U, dwn);
+            if (Opt->NodeDbg == in) {   
+               fprintf(SUMA_STDERR, "%s: Shift up takes us to %f mm from hull at %f %f %f\n", FuncName, dup, a[0], a[1], a[2]);
+               fprintf(SUMA_STDERR, "%s: Shift down takes us to %f mm from hull\n", FuncName, dwn);
+            }
+            if (SUMA_ABS((Opt->Stop[in] - dup)) < SUMA_ABS((Opt->Stop[in] - dwn))) {
+               /* better go up */
+               touchup[in] = sup;   
+            }  else {
+               /* better go down */
+               touchup[in] = -sdwn;   
+            } 
+         } else {
+            /* should happen on first pass */
+            new_stop = 1;
+            /* get the median up*/
+            touchup[in] = sup;
+            Opt->Stop[in] = touchup[in];
+            /* how far is the outer skull from the hull? */
+            a = &(Opt->Brain_Hull[3*in]);
+            b = &(Opt->Skull_Outer[3*in]);
+            SUMA_UNIT_VEC(a, b, U, Un);
+            if (Opt->NodeDbg == in) {   
+               fprintf(SUMA_STDERR, "%s: Brain Hull to outerskull distance at node %d is %fmm\n", FuncName, in, Un);
+            }
+         }
+         if (Opt->NodeDbg == in) {   
+            fprintf(SUMA_STDERR, "%s: Median touchup value for node %d is %fmm, Opt->Stop = %f\n", FuncName, in, touchup[in], Opt->Stop[in]);
+         }
+         if (touchup[in]) ++N_troub;
+      }
+             
+      /* if have just created touchup, blur it with a median filter */
+      if (new_stop) {
+         float *touchv = SUMA_malloc(SO->FN->N_Neighb_max * sizeof(float));
+         float *far = SUMA_malloc(SO->N_Node * sizeof(float)); 
+         for (in = 0;  in < SO->N_Node; ++in) {
+            for (nn = 0; nn < SO->FN->N_Neighb[in]; ++nn) {
+               touchv[nn] = Opt->Stop[SO->FN->FirstNeighb[in][nn]];
+            }
+            qsort(touchv, SO->FN->N_Neighb[in], sizeof(float), (int(*) (const void *, const void *)) SUMA_compare_float);
+            far[in] = touchv[(int)(SO->FN->N_Neighb[in]/2)];
+            if (Opt->NodeDbg == in) {   
+               fprintf(SUMA_STDERR, "%s: Median interpolated Stop for node %d is %fmm\n", FuncName, in, far[in]);
+            }
+         }
+         memcpy((void*)Opt->Stop, (void *)far, SO->N_Node*sizeof(float));
+         SUMA_free(far); far = NULL;
+         SUMA_free(touchv); touchv = NULL;
+      }       
+             
+              
+      
+      if (overshish) SUMA_free(overshish); overshish = NULL; 
+      if (gradovershish) SUMA_free(gradovershish); gradovershish = NULL; 
+      if (undershish) SUMA_free(undershish); undershish = NULL; 
+      if (dvecind_under) SUMA_free(dvecind_under); dvecind_under=NULL;
+      if (dvecind_over) SUMA_free(dvecind_over); dvecind_over = NULL;
+      if (shft_list) SUMA_free(shft_list); shft_list = NULL;
+      if (shft_list_under) SUMA_free(shft_list_under); shft_list_under = NULL;
+      if (xyz_list) SUMA_free(xyz_list); xyz_list = NULL;
+      
+   *N_touch = N_troub;
+   
+   SUMA_RETURN(touchup);
+
+}
+
 float *SUMA_Suggest_Touchup_PushEdge(SUMA_SurfaceObject *SO, 
                                     SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
                                     float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch)
@@ -2412,9 +2740,9 @@ float *SUMA_Suggest_Touchup_PushEdge(SUMA_SurfaceObject *SO,
             /* find next edge above */
             ie = 0;
             while (!cond1 &&  dvecind_over[ie] >= 0 /* meaningful voxel index */
-                          &&  overshish[ie] > Opt->t2 /* value on top not extremely small */
+                          &&  SUMA_IS_ON_FLESH(overshish, ie) /* value on top not extremely small */
                               && overshish[ie] < 0.9*Opt->t98 /* value on top not too high */
-                              && overshish[ie] <= 1.1*undershish[0] /* value on top not much higher than value at node */) {
+                              && overshish[ie] <= 1.1/3.0*(undershish[0]+undershish[1]+undershish[3]) /* value on top not much higher than value at node */) {
                if (Opt->emask[dvecind_over[ie]]) {
                   touchup[in] = Opt->travstp*(ie+1);
                   if (Opt->NodeDbg == in) { 
@@ -2475,11 +2803,11 @@ float *SUMA_Suggest_Touchup_PushEdge(SUMA_SurfaceObject *SO,
 /*!
    Push nodes of surface to the surface's convex hull
 */
-void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs)
+void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs, int N_itermax)
 {
-   static char FuncName[]={"SUMA_SO_Hull_Volume"};
+   static char FuncName[]={"SUMA_Push_Nodes_To_Hull"};
    float U[3], Un, *a, P2[2][3]={ {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} }, *norm, shft, *b; 
-   int *ijk=NULL, nf = 0, N_iter = 0, N_troub, in, N_smooth, N_itermax, inh;
+   int *ijk=NULL, nf = 0, N_iter = 0, N_troub, in, N_smooth, inh;
    float *dsmooth=NULL, *refNodeList=NULL, *dirvec = NULL, *diropt=NULL, iscale;
    byte *nmask = NULL;
    SUMA_Boolean exists; 
@@ -2496,23 +2824,25 @@ void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_
          SOhull = NULL;
          SUMA_RETURN(NULL);
    } else {
-         fprintf(SUMA_STDERR,"%s:\nForming hull.\n", FuncName);
+         if (LocalHead) fprintf(SUMA_STDERR,"%s:\nForming hull.\n", FuncName);
          if (!(SOhull = SUMA_Patch2Surf(SO->NodeList, SO->N_Node, ijk, nf, 3))) {
             SUMA_SL_Err("Failed to create hull");
             SUMA_RETURN(NULL);
          }
          SUMA_RECOMPUTE_NORMALS((SOhull));
-         if (!SUMA_SurfaceMetrics(SOhull, "EdgeList,MemberFace,PolyArea", NULL)) {
+         if (!SUMA_SurfaceMetrics_eng(SOhull, "EdgeList,MemberFace,PolyArea", NULL, SUMA_MAX_PAIR(0, Opt->debug -1), SUMAg_CF->DsetList)) {
             fprintf(SUMA_STDERR,"Error %s: Error in SUMA_SurfaceMetrics\n", FuncName);
             SUMA_Free_Surface_Object (SOhull); /* that takes care of freeing leftovers in MF */
             SOhull = NULL;
             SUMA_RETURN(NULL);
          }
+      #if 0
       fprintf (SUMA_STDERR,"%s: Writing hull surface  ...\n", FuncName);
       SO_name_hull = SUMA_Prefix2SurfaceName("hull", NULL, NULL, SUMA_PLY, &exists);
       if (!SUMA_Save_Surface_Object (SO_name_hull, SOhull, Opt->SurfFileType, Opt->SurfFileFormat, NULL)) {
          fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
       }
+      #endif
    }
 
    /* need idcodes for SO and SOhull */
@@ -2526,7 +2856,6 @@ void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_
    }
    
    {
-      N_itermax = 50;
       N_iter = 0;
       N_smooth = 20;
       do {
@@ -2541,7 +2870,7 @@ void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_
          }
          SUMA_RECOMPUTE_NORMALS(SO);
          #else
-         if (N_iter > N_itermax / 2) {
+         if (N_iter < N_itermax / 2) {
             SUMA_WRAP_BRAIN_SMOOTH_NN(6, dsmooth, refNodeList, nmask);  
          } else if (N_iter < N_itermax) {
             /* civilized smoothing */
@@ -2586,8 +2915,9 @@ void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_
                SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
             }
          } 
-         if (1 || LocalHead) { 
-            fprintf(SUMA_STDERR,"%s: Iteration %d, N_troub = %d\n", FuncName,N_iter, N_troub);
+         if (LocalHead) { 
+            fprintf(SUMA_STDERR,"%s: Iteration %d, N_troub = %d                              \n", 
+                  FuncName, N_iter, N_troub);
          }  
       } while (N_troub && N_iter < N_itermax);
    }
@@ -2606,7 +2936,7 @@ void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_
    Be conservative, DO NO HARM!
    
 */
-int SUMA_PushToEdge(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs) 
+int SUMA_PushToEdge(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int agressive) 
 {
    static char FuncName[]={"SUMA_PushToEdge"};
    byte *fmask=NULL;
@@ -2642,7 +2972,7 @@ int SUMA_PushToEdge(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Op
          } 
          if (1 || Opt->Stop[in] >= 0) { /* no need to heed the freezd */
             if (1 || !SUMA_IS_EYE_ZONE(a,SO->Center)) { 
-               if (0)  { shft = touchup[in]; }/* To aggressive, force smoothing */ 
+               if (agressive)  { shft = touchup[in]; }/* if not aggressive, force smoothing */ 
                else { /* use the mean of the immediate neighbors, no high freq. shifts expected down low */
                   shft = touchup[in];
                   if (Opt->NodeDbg == in) {
@@ -2694,7 +3024,7 @@ int SUMA_PushToEdge(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Op
    Be conservative, DO NO HARM!
    
 */
-int SUMA_PushToOuterSkull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs) 
+int SUMA_PushToOuterSkull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int N_itermax) 
 {
    static char FuncName[]={"SUMA_PushToOuterSkull"};
    byte *fmask=NULL;
@@ -2703,7 +3033,7 @@ int SUMA_PushToOuterSkull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRU
    float MinMax_over[2], MinMax[2], MinMax_dist[2], MinMax_over_dist[2], Means[3], tb; 
    float U[3], Un, *a, P2[2][3]={ {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} }, shft, *b, dot; 
    float *touchup=NULL, **wgt=NULL, *dsmooth=NULL, *refNodeList=NULL, *overshish=NULL, 
-         *undershish=NULL, *gradovershish=NULL, min_shft; 
+         *undershish=NULL, *gradovershish=NULL; 
    int   nstp, stillmoving, kth_buf, N_Touch, ie, ShishMax = 0, ine,
          *dvecind_under=NULL, *dvecind_over=NULL;
    float stp, *csmooth=NULL, *shftvec=NULL, *targetloc=NULL, EdgeBelow, move_frac;
@@ -2712,7 +3042,12 @@ int SUMA_PushToOuterSkull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRU
    
    SUMA_ENTRY; 
    
-   move_frac = 0.3;
+   if (niter < N_itermax/2)
+      move_frac = 0.3;
+   else if (niter < N_itermax - 5)
+      move_frac = 0.8;
+   else move_frac = 1.0;
+   
    if (Opt->debug > 2) LocalHead = YUP;
       
    {   
@@ -2738,14 +3073,20 @@ int SUMA_PushToOuterSkull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRU
    }
       
       
-      /* smooth the surface a little, then apply shift */
-      SUMA_WRAP_BRAIN_SMOOTH_NN(4, dsmooth, refNodeList, Opt->nmask);
-      /* How much did this node loose in filtering ?*/
-      for (in=0; in<SO->N_Node; ++in) {   
-         a = &(refNodeList[3*in]);
-         SUMA_UNIT_VEC(SO->Center, a , U, Opt->Stop[in]); /* original distance from center */
+      if (niter < N_itermax - 5) {
+         /* smooth the surface a little, then apply shift */
+         SUMA_WRAP_BRAIN_SMOOTH_NN(4, dsmooth, refNodeList, Opt->nmask);
+         #if 0
+         SUMA_S_Note("Not used? ");
+         /* How much did this node loose in filtering ?*/
+         for (in=0; in<SO->N_Node; ++in) {   
+            a = &(refNodeList[3*in]);
+            SUMA_UNIT_VEC(SO->Center, a , U, Opt->Stop[in]); /* original distance from center */
+         }
+         #endif
       }
-      touchup = SUMA_Suggest_Touchup_PushOuterSkull(SO, Opt, limtouch, cs, &N_troub);
+      
+      touchup = SUMA_Suggest_Touchup_PushOuterSkull(SO, Opt, limtouch, cs, &N_troub, 1);
 
       if (!N_troub) {
          SUMA_LH("Nothing to do, no trouble nodes.");
@@ -2754,12 +3095,9 @@ int SUMA_PushToOuterSkull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRU
       if (LocalHead) fprintf (SUMA_STDERR,"%s: ********************* %d candidate nodes found\n", FuncName, N_troub); 
       /* add the changes */   
       for (in=0; in<SO->N_Node; ++in) {   
-         a = &(SO->NodeList[3*in]); 
-         b = &(refNodeList[3*in]);  
-         SUMA_UNIT_VEC(SO->Center, b , U, min_shft); /* original distance from center */
          if (Opt->NodeDbg == in || LocalHead) { 
-               fprintf(SUMA_STDERR,"%s: min_shft = %f, Touchup for node %d is %f\n", 
-                  FuncName, min_shft, in, touchup[in]); 
+               fprintf(SUMA_STDERR,"%s:  Touchup for node %d is %f\n", 
+                  FuncName, in, touchup[in]); 
          } 
          { 
             { 
@@ -2767,15 +3105,13 @@ int SUMA_PushToOuterSkull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRU
                if (shft) { 
                   a = &(SO->NodeList[3*in]);   
                   SUMA_UNIT_VEC(SO->Center, a , U, Un); /* Un is the current distance from the center */
-                  if (0 && Un < min_shft) min_shft = min_shft - Un; /* This now contains a minimum boost */
-                  else min_shft = 0.0;
                   /* if the direction is opposite the normal, flip it */
                   b = &(SO->NodeNormList[3*in]);
                   SUMA_DOTP_VEC(U, b, dot, 3, float, float);
                   if (dot < 0) {
                      U[0] = -U[0]; U[1] = -U[1]; U[2] = -U[2];
                   }
-                  SUMA_POINT_AT_DISTANCE(U, a, min_shft + move_frac*(SUMA_MIN_PAIR(shft, limtouch)), P2);   
+                  SUMA_POINT_AT_DISTANCE(U, a, move_frac*(SUMA_MIN_PAIR(shft, limtouch)), P2);   
                   SO->NodeList[3*in] = P2[0][0]; SO->NodeList[3*in+1] = P2[0][1]; SO->NodeList[3*in+2] = P2[0][2];   
                   if (LocalHead) fprintf(SUMA_STDERR,"%s: Acting on node %d, boosting by %f, original request of %fmm\n", 
                            FuncName, in, SUMA_MIN_PAIR(shft, limtouch), shft);   
@@ -2786,87 +3122,6 @@ int SUMA_PushToOuterSkull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRU
          }
       }  
       
-      #if 0
-      /* Now bring other nodes over */
-      {
-         /* create a mask to keep nodes that moved from getting smoothed */
-         int n_avg = 0, in3 = 0;
-         float x,y,z;
-         byte *msk = (byte *)SUMA_malloc(sizeof(byte)*3*SO->N_Node);
-         if (!msk) {
-            SUMA_SL_Crit("Failed to byte!");
-            SUMA_RETURN(0);
-         }
-         /* first a quick helper, move nodes that were left behind */
-         for (in=0; in<SO->N_Node; ++in) {
-            if (!touchup[in]) { /* move loser node to average of neighbors */
-               in3 = 3*in;
-               /* does this node have neighbors that moved? */
-               n_avg = 0; 
-               for (nin=0; nin<SO->FN->N_Neighb[in]; ++nin) {
-                  if (touchup[SO->FN->FirstNeighb[in][nin]]) ++n_avg;
-               }
-               if (n_avg > 3) { /* node has enough mobile neighbors */
-                  x = y = z = 0.0;  
-                  n_avg = 0; 
-                  for (nin=0; nin<SO->FN->N_Neighb[in]; ++nin) {
-                        if (touchup[SO->FN->FirstNeighb[in][nin]]) { /* only use those neighbors that moved */
-                           if (in == Opt->NodeDbg) {
-                              fprintf(SUMA_STDERR,"%s: Contributing neighbor to node %d is %d.\n"
-                                                   "   %f %f %f\n",
-                                                   FuncName, in, SO->FN->FirstNeighb[in][nin],
-                                                   SO->NodeList[ 3*SO->FN->FirstNeighb[in][nin]   ],
-                                                   SO->NodeList[(3*SO->FN->FirstNeighb[in][nin])+1],
-                                                   SO->NodeList[(3*SO->FN->FirstNeighb[in][nin])+2] );    
-                           }
-                           x += SO->NodeList[ 3*SO->FN->FirstNeighb[in][nin]   ];
-                           y += SO->NodeList[(3*SO->FN->FirstNeighb[in][nin])+1];
-                           z += SO->NodeList[(3*SO->FN->FirstNeighb[in][nin])+2];
-                           ++n_avg;
-                        }
-                        if (in == Opt->NodeDbg) {
-                              fprintf(SUMA_STDERR, "%s: n_avg = %d\n"
-                                                   "Coord sum = %f %f %f\n",
-                                                   FuncName, n_avg, 
-                                                   x,
-                                                   y,
-                                                   z);
-                        }
-                        SO->NodeList[in3  ] = x / (float)n_avg;
-                        SO->NodeList[in3+1] = y / (float)n_avg;
-                        SO->NodeList[in3+2] = z / (float)n_avg;
-                  }
-                  if (in == Opt->NodeDbg || LocalHead) { 
-                     fprintf(SUMA_STDERR,"%s: Node %d was helped up (%d upward neighbors).\n"
-                                         "New Coords: %f %f %f\n", 
-                           FuncName, in, n_avg,
-                           SO->NodeList[in3  ], SO->NodeList[in3+1], SO->NodeList[in3+2]); 
-                  }
-               } else {
-                  if (in == Opt->NodeDbg) { 
-                     fprintf(SUMA_STDERR,"%s: Node %d does not have enough (%d) upward mobile neighbors .\n",
-                        FuncName, in, n_avg); 
-                  }
-               }
-            }
-         }
-         
-         
-         #if 0
-         dsmooth = SUMA_Taubin_Smooth( SO, NULL,
-                                    0.6307, -.6732, SO->NodeList,
-                                    Opt->smooth_end, 3, SUMA_ROW_MAJOR, dsmooth, cs, NULL);    
-         memcpy((void*)SO->NodeList, (void *)dsmooth, SO->N_Node * 3 * sizeof(float));
-         SUMA_RECOMPUTE_NORMALS(SO);
-         if (cs->Send) {
-            if (!SUMA_SendToSuma (SO, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
-               SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
-            }
-         }
-         #endif
-         if (msk) SUMA_free(msk); msk = NULL;
-      }
-      #endif
       ++niter;
       
       if (dsmooth) SUMA_free(dsmooth); dsmooth = NULL;
@@ -2884,6 +3139,110 @@ int SUMA_PushToOuterSkull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRU
    
 
 }
+
+/*!
+   \brief A function to move node surfaces outwards to the edge.
+   Be conservative, DO NO HARM!
+   
+*/
+int SUMA_PushToInnerSkull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs) 
+{
+   static char FuncName[]={"SUMA_PushToInnerSkull"};
+   byte *fmask=NULL;
+   static int niter = 0;
+   int in, N_troub = 0, cond1=0, cond2=0, cond3 = 0, cond4 = 0, nn, nin;   
+   float MinMax_over[2], MinMax[2], MinMax_dist[2], MinMax_over_dist[2], Means[3], tb; 
+   float U[3], Un, *a, P2[2][3]={ {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} }, shft, *b, dot; 
+   float *touchup=NULL, **wgt=NULL, *dsmooth=NULL, *refNodeList=NULL, *overshish=NULL, 
+         *undershish=NULL, *gradovershish=NULL, min_shft; 
+   int   nstp, stillmoving, kth_buf, N_Touch, ie, ShishMax = 0, ine,
+         *dvecind_under=NULL, *dvecind_over=NULL;
+   float stp, *csmooth=NULL, *shftvec=NULL, *targetloc=NULL, EdgeBelow, move_frac;
+   SUMA_Boolean Send_buf;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY; 
+   
+   if (!Opt->Brain_Hull || !Opt->Skull_Outer) {
+      SUMA_S_Err("Need Brain Hull and Skull_Outer");
+      SUMA_RETURN(-1);
+   }
+   
+   move_frac = 1.0;
+   if (Opt->debug > 2) LocalHead = YUP;
+      
+   if (!niter) {
+      SUMA_LH("Starting from Brain Hull");
+      memcpy((void *)SO->NodeList, (void*)Opt->Brain_Hull,  SO->N_Node * 3 * sizeof(float)); 
+      /* Resetta the new Opt->Stop values */
+      for (in=0; in<SO->N_Node; ++in) {
+         Opt->Stop[in] = -1.0;
+      }     
+   } else {
+     limtouch = 5.0; /* don't go far after first pass */
+   }
+            
+   touchup = SUMA_Suggest_Touchup_PushInnerSkull(SO, Opt, limtouch, cs, &N_troub);
+
+      if (!N_troub) {
+         SUMA_LH("Nothing to do, no trouble nodes.");
+         SUMA_RETURN(N_troub);
+      }
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: ********************* %d candidate nodes found\n", FuncName, N_troub); 
+      /* add the changes */   
+      for (in=0; in<SO->N_Node; ++in) {   
+         a = &(SO->NodeList[3*in]); 
+         b = &(Opt->Skull_Outer[3*in]);  
+         SUMA_UNIT_VEC(a, b , U, min_shft); /* Direction from hull to outer skull */
+         if (Opt->NodeDbg == in || LocalHead) { 
+               fprintf(SUMA_STDERR,"%s: min_shft = %f, Touchup for node %d is %f\n", 
+                  FuncName, min_shft, in, touchup[in]); 
+         } 
+         { 
+            /* smooth the shifts */
+            shft = touchup[in];
+            { 
+               if (shft) { 
+                  a = &(SO->NodeList[3*in]);
+                  b = &(Opt->Skull_Outer[3*in]);     
+                  SUMA_UNIT_VEC(a , b, U, Un); /* Un is the current distance from the hull to the outer skull */
+                  if (0 && Un < min_shft) min_shft = min_shft - Un; /* This now contains a minimum boost */
+                  else min_shft = 0.0;
+                  
+                  SUMA_POINT_AT_DISTANCE(U, a, min_shft + move_frac*(SUMA_MIN_PAIR(shft, limtouch)), P2);   
+                  SO->NodeList[3*in] = P2[0][0]; SO->NodeList[3*in+1] = P2[0][1]; SO->NodeList[3*in+2] = P2[0][2];   
+                  if (LocalHead) fprintf(SUMA_STDERR,"%s: Acting on node %d, boosting by %f, original request of %fmm\n", 
+                           FuncName, in, SUMA_MIN_PAIR(shft, limtouch), shft);   
+               } else { /* node is to be stopped, if we have iterated enough */
+                  if (niter > 1) Opt->nmask[in] = 0; 
+               }
+            }
+         }
+      }  
+      /* push the surface to its hull */
+      if (!niter) {
+         if (Opt->debug) SUMA_S_Note("Pushing inner skull surface to its hull");
+         SUMA_Push_Nodes_To_Hull(SO, Opt, cs, 8);
+      }
+      
+      ++niter;
+      
+      if (dsmooth) SUMA_free(dsmooth); dsmooth = NULL;
+      if (refNodeList) SUMA_free(refNodeList); refNodeList = NULL;
+      if (fmask) SUMA_free(fmask); fmask = NULL; 
+      if (shftvec) SUMA_free(shftvec); shftvec = NULL;
+      if (targetloc) SUMA_free(targetloc); targetloc = NULL;
+      if (touchup == dsmooth) dsmooth = NULL;
+      if (touchup) SUMA_free(touchup); touchup = NULL;   
+      if (dsmooth) SUMA_free(dsmooth); dsmooth = NULL;   
+      if (csmooth) SUMA_free(csmooth); csmooth = NULL;   
+      if (wgt) SUMA_free2D ((char **)wgt, SO->N_Node); wgt = NULL;   
+   
+   SUMA_RETURN(0);
+   
+
+}
+
 /*!
    \brief A function to move node surfaces towards a better future.
    
@@ -3102,3 +3461,230 @@ EDIT_options *SUMA_BlankAfniEditOptions(void)
 
    SUMA_RETURN(edopt);
 }  
+
+/*!
+   \brief Create an edge dataset
+   \param inset (THD_3dim_dataset *) input dataset
+   \param emask (float *) a preallocated vector as big as DSET_NX(inset)*DSET_NY(inset)*DSET_NZ(inset). 
+                           This vector will contain the edge values
+   \param poutsetp (THD_3dim_dataset **)If not null, it will point to a dataset that contains
+                                        the edges.
+*/
+SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_dataset **poutsetp)
+{
+   static char FuncName[]={"SUMA_3dedge3"};
+   THD_3dim_dataset *outset;
+   int verb = 1, datum = -1;
+   int border[3]={0,0,0};
+   int indims[3]={0,0,0};
+   float filterCoefs[3] = {1.0, 1.0, 1.0}, **sum = NULL;
+   int ii, nx, ny, nz, nval, kk;
+   int nxyz = DSET_NX(inset)*DSET_NY(inset)*DSET_NZ(inset);
+   int fscale=0 , gscale=0 , nscale=0 ;
+   
+   recursiveFilterType filterType = ALPHA_DERICHE;
+
+   /*-- Edge detect  --*/
+   indims[0] = DSET_NX(inset);
+   indims[1] = DSET_NY(inset);
+   indims[2] = DSET_NZ(inset);
+   border[0] = 50;
+   border[1] = 50;
+   border[2] = 50;
+
+   switch( DSET_BRICK_TYPE(inset,0) ){
+     default:
+        fprintf(stderr,"ERROR: illegal input sub-brick datum\n") ;
+        SUMA_RETURN(0) ;
+
+     case MRI_float:{
+       float *pp = (float *) DSET_ARRAY(inset,0) ;
+       float fac = DSET_BRICK_FACTOR(inset,0)  ;
+
+       if( fac ) {
+         for( ii=0 ; ii < nxyz ; ii++ ) { pp[ii] *= fac; }
+       }
+       if ( Extract_Gradient_Maxima_3D( (void *)pp, FLOAT,
+				         emask, FLOAT,
+				         indims,
+				         border,
+				         filterCoefs,
+				         filterType ) == 0 ) {
+          fprintf( stderr, "ERROR: gradient extraction failed.\n" );
+          exit( 1 );
+        }
+
+     }
+     break ;
+
+      case MRI_short:{
+         short *pp = (short *) DSET_ARRAY(inset,0) ;
+         float fac = DSET_BRICK_FACTOR(inset,0)  ;
+
+         if( fac ) {
+            for( ii=0 ; ii < nxyz ; ii++ ) { pp[ii] *= fac; }
+         }
+         if ( Extract_Gradient_Maxima_3D( (void *)pp, USHORT,
+				         emask, FLOAT,
+				         indims,
+				         border,
+				         filterCoefs,
+				         filterType ) == 0 ) {
+          fprintf( SUMA_STDERR, "ERROR: gradient extraction failed.\n" );
+          exit( 1 );
+         }
+      }
+      break ;
+
+      case MRI_byte:{
+         byte *pp = (byte *) DSET_ARRAY(inset,0) ;
+         float fac = DSET_BRICK_FACTOR(inset,0)  ;
+
+         if( fac ) {
+            for( ii=0 ; ii < nxyz ; ii++ ) { pp[ii] *= fac; }
+         }
+         if ( Extract_Gradient_Maxima_3D( (void *)pp, UCHAR,
+				         emask, FLOAT,
+				         indims,
+				         border,
+				         filterCoefs,
+				         filterType ) == 0 ) {
+          fprintf(SUMA_STDERR , "ERROR: gradient extraction failed.\n" );
+          exit( 1 );
+         }
+      }
+      break ;
+   }      
+
+   if (poutsetp) {
+      /* user wants an output dset */
+      nx   = DSET_NX(inset) ;
+      ny   = DSET_NY(inset) ;
+      nz   = DSET_NZ(inset) ; nxyz= nx*ny*nz;
+      nval = DSET_NVALS(inset) ; /* emask has enough room for one sub-brik only */ 
+
+      sum = (float **) malloc( sizeof(float *)*nval ) ;    /* array of sub-bricks */
+      for( kk=0 ; kk < nval ; kk++ ){
+        sum[kk] = (float *) malloc(sizeof(float)*nxyz) ;  /* kk-th sub-brick */ 
+      }
+      
+      /* fill sum */
+      {
+         float *a  = sum[0];
+         for (kk=0; kk < DSET_NVOX(inset); ++kk) {
+            a[kk] = emask[kk];
+         }
+      }
+      
+      outset = EDIT_empty_copy( inset ) ;
+   
+      if( datum < 0 ) datum = DSET_BRICK_TYPE(inset,0) ;
+
+      /*
+      tross_Copy_History( inset , outset ) ;
+      tross_Make_History( "3dedge3 function call" , 0 , NULL , outset ) ;
+      */
+      EDIT_dset_items( outset ,
+                          ADN_prefix    , "LeBigMac" ,
+                          ADN_datum_all , datum ,
+                       ADN_none ) ;
+
+      /*
+      if( THD_is_file(outset->dblk->diskptr->header_name) ){
+         fprintf(stderr,
+                 "*** Output file %s already exists -- cannot continue!\n",
+                 outset->dblk->diskptr->header_name ) ;
+         SUMA_RETURN(0) ;
+      }
+
+      */
+         
+      switch( datum ){
+
+         default:
+            fprintf(stderr,
+                    "*** Fatal Error ***\n"
+                    "*** Somehow ended up with datum = %d\n",datum) ;
+            SUMA_RETURN(0) ;
+
+         case MRI_float:{
+            for( kk=0 ; kk < nval ; kk++ ){
+                EDIT_substitute_brick(outset, kk, MRI_float, sum[kk]);
+                DSET_BRICK_FACTOR(outset, kk) = 0.0;
+            }
+         }
+         break ;
+
+         case MRI_byte:
+         case MRI_short:{
+            void ** dfim ;
+            float gtop , fimfac , gtemp ;
+
+            if( verb )
+               fprintf(stderr,"  ++ Scaling output to type %s brick(s)\n",
+                       MRI_TYPE_name[datum] ) ;
+
+            dfim = (void **) malloc(sizeof(void *)*nval) ;
+
+            if( gscale ){   /* allow global scaling */
+               gtop = 0.0 ;
+               for( kk=0 ; kk < nval ; kk++ ){
+                  gtemp = MCW_vol_amax( nxyz , 1 , 1 , MRI_float, sum[kk] ) ;
+                  gtop  = MAX( gtop , gtemp ) ;
+                  if( gtemp == 0.0 )
+                     fprintf(stderr,"  -- Warning: output sub-brick %d is all zeros!\n",kk) ;
+               }
+            }
+
+            for (kk = 0 ; kk < nval ; kk ++ ) {
+
+               if( ! gscale ){
+                  gtop = MCW_vol_amax( nxyz , 1 , 1 , MRI_float, sum[kk] ) ;
+                  if( gtop == 0.0 )
+                     fprintf(stderr,"  -- Warning: output sub-brick %d is all zeros!\n",kk) ;
+               }
+
+               if( fscale ){
+                  fimfac = (gtop > 0.0) ? MRI_TYPE_maxval[datum] / gtop : 0.0 ;
+               } else if( !nscale ){
+                  fimfac = (gtop > MRI_TYPE_maxval[datum] || (gtop > 0.0 && gtop <= 1.0) )
+                           ? MRI_TYPE_maxval[datum]/ gtop : 0.0 ;
+               } else {
+                  fimfac = 0.0 ;
+               }
+
+               if( verb ){
+                  if( fimfac != 0.0 )
+                     fprintf(stderr,"  ++ Sub-brick %d scale factor = %f\n",kk,fimfac) ;
+                  else
+                     fprintf(stderr,"  ++ Sub-brick %d: no scale factor\n" ,kk) ;
+               }
+
+               dfim[kk] = (void *) malloc( mri_datum_size(datum) * nxyz ) ;
+               if( dfim[kk] == NULL ){ fprintf(stderr,"*** malloc fails at output\n");SUMA_RETURN(0); }
+
+               EDIT_coerce_scale_type( nxyz , fimfac ,
+                                       MRI_float, sum[kk] , datum,dfim[kk] ) ;
+               free( sum[kk] ) ;
+               EDIT_substitute_brick(outset, kk, datum, dfim[kk] );
+
+               DSET_BRICK_FACTOR(outset,kk) = (fimfac != 0.0) ? 1.0/fimfac : 0.0 ;
+             }
+         }
+         break ;
+      }
+
+      if( verb ) fprintf(stderr,"  ++ Computing output statistics\n") ;
+      THD_load_statistics( outset ) ;
+
+      if (verb) {
+         THD_write_3dim_dataset( NULL,NULL , outset , True ) ;
+         fprintf(stderr,"  ++ Wrote output: %s\n",DSET_BRIKNAME(outset)) ;
+      }
+      
+      *poutsetp = outset;
+      
+   }   
+      
+   SUMA_RETURN(YUP);
+}

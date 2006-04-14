@@ -100,15 +100,26 @@ typedef struct {
    char *in_nodeindices;
    
    float *emask;
+   float *fatemask;
    int Use_emask;
    byte *nmask;
    
    int PushToEdge; 
-   int PushToOuterSkull;  
+   int DoSkulls;  
    byte b1;
    byte b2;
    
    void *popt;    /*< NULL pointer to hide program specific structure */
+   
+   float *Brain_Contour;
+   float *Brain_Hull;
+   float *Skull_Outer;
+   float *Skull_Inner;
+   
+   char *UseThisBrain;/* do not free, argv[.] copy */
+   char *UseThisBrainHull; /* do not free, argv[.] copy */
+   char *UseThisSkullOuter; /* do not free, argv[.] copy */
+   
 } SUMA_GENERIC_PROG_OPTIONS_STRUCT;
 
 #define SUMA_MAX_SURF_ON_COMMAND 100
