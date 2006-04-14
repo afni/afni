@@ -3469,6 +3469,7 @@ extern void    THD_load_mpeg   ( THD_datablock * ) ;         /* 03 Dec 2003 */
 extern void    THD_load_tcat   ( THD_datablock * ) ;         /* 04 Aug 2004 */
 
 extern void    THD_zerofill_dataset( THD_3dim_dataset * ) ;  /* 18 Mar 2005 */
+extern int     THD_apply_master_subrange( THD_datablock * ); /* 14 Apr 2006 */
 
 extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
 #define DSET_datum_constant(ds) THD_datum_constant((ds)->dblk)

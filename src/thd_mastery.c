@@ -100,10 +100,12 @@ ENTRY("THD_open_dataset") ;
    memcpy(dname,pathname,kk) ; dname[kk] = '\0' ;
 
    if( STRING_HAS_SUFFIX(dname,".mnc")    ||
+#if 0  /* THD_load_nifti() allows mastery   14 Apr 2006 [rickr] */
        STRING_HAS_SUFFIX(dname,".hdr")    ||
        STRING_HAS_SUFFIX(dname,".nia")    ||
        STRING_HAS_SUFFIX(dname,".nii")    ||
        STRING_HAS_SUFFIX(dname,".nii.gz") ||
+#endif
        STRING_HAS_SUFFIX(dname,".mri")    ||
        STRING_HAS_SUFFIX(dname,".svl")      ){
 

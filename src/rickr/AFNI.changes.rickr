@@ -1239,8 +1239,7 @@
     strings below 509 bytes in length (-hist, -help strings)
   * modified nifti_stats.c: replaced strdup with malloc/strcpy for warning
 
-29 Auguest 2005: Dimon (-> v 2.2)
-  * added options -rev_org_dir and -rev_sort_dir
+29 Auguest 2005: Dimon (-> v 2.2): added options -rev_org_dir and -rev_sort_dir
 
 01 September 2005:
   * modified 3dANOVA2.c (to properly handle multiple samples)
@@ -1253,8 +1252,7 @@
       - moved marker test and creation to said functions in edt_emptycopy.c
   * modified plug_realtime.c: add empty markers to appropriate datasets
 
-20 September 2005:
-  * modified 2dImReg.c to return 0 from main
+20 September 2005: modified 2dImReg.c to return 0 from main
 
 26 September 2005:
   * modified 3dANOVA3.c: applied formulas provided by Gang for variance
@@ -1327,11 +1325,9 @@
 23 November 2005:
   * modified 3dANOVA2.c, added -old_method for type 3 ameans, adiff, acontr
 
-25 November 2005:
-  * modified 3dANOVA.c, added subject ethel to -help example
+25 November 2005: modified 3dANOVA.c, added subject ethel to -help example
 
-29 November 2005:
-  * modified 3dROIstats.c, added more help with examples
+29 November 2005: modified 3dROIstats.c, added more help with examples
 
 02 December 2005:
   * modified 3dANOVA3.c, 3dANOVA2.c, 3dANOVA.h, 3dANOVA.lib
@@ -1341,8 +1337,7 @@
       - Contrasts are verified via contrasts_are_valid().
   * fixed Makefile.INCLUDE (had extra '\' at end of PROGRAMS)
 
-08 December 2005:
-  * modified 3dRegAna.c, setting default workmem to 750 (MB)
+08 December 2005: modified 3dRegAna.c, setting default workmem to 750 (MB)
 
 09 December 2005:
   * modified 3dANOVA.c
@@ -1360,11 +1355,9 @@
       - added -voxel option (similar to the 3dANOVA progs)
       - replaced scaling work with EDIT_convert_dtype() call
 
-15 Dec 2005:
-  * modified 3dhistog.c: fixed use of sub-brick factors
+15 Dec 2005: modified 3dhistog.c: fixed use of sub-brick factors
 
-16 Dec 2005:
-  * modified 3dUniformize.c: fixed upper_limit==0 case in resample()
+16 Dec 2005: modified 3dUniformize.c: fixed upper_limit==0 case in resample()
 
 28 Dec 2005:
   * modified 3dANOVA3.c
@@ -1391,8 +1384,7 @@
   * modified 3dANOVA2.c, replaced calc_sum_sum2_acontr and calc_t_from_sums
         with calc_type3_acontr, to avoid intermediate storage of data as floats
 
-06 Jan 2006:
-  * modified waver.c: only output version info with new '-ver' option.
+06 Jan 2006: modified waver.c: only output version info with new '-ver' option
 
 25 Jan 2006:
   * added model_michaelis_menton.c model function for Jasmin Salloum
@@ -1413,14 +1405,11 @@
       override BASE_TCP_CONTROL with environment variable AFNI_PLUGOUT_TCP_BASE
   * modified README.environment for description of AFNI_PLUGOUT_TCP_BASE
 
-02 Feb 2006:
-  * submitted version 7 of plug_permtest.c for Matthew Belmonte
+02 Feb 2006: submitted version 7 of plug_permtest.c for Matthew Belmonte
 
-07 Feb 2006:
-  * added -datum option to 3dWavelets.c
+07 Feb 2006: added -datum option to 3dWavelets.c
 
-09 Feb 2006:
-  * added example to 3dANOVA3 -help
+09 Feb 2006: added example to 3dANOVA3 -help
 
 02 Mar 2006:
   * modified nifti_tool.c (v 1.12) to deal with nt = 0 in act_cbl(), due
@@ -1428,8 +1417,7 @@
   * modified nifti1_io.c (v 1.18) to deal with nt = 0 in nifti_alloc_NBL_mem()
   * modified thd_niftiread.c to be sure that ntt and nbuc are at least 1
 
-09 Mar 2006:
-  * modified waver.c not to show -help after command typo
+09 Mar 2006: modified waver.c not to show -help after command typo
 
 13 Mar 2006:
   * added examples to 3dmaskave.c
@@ -1437,18 +1425,15 @@
     variable for assume_dicom_mosaic, to apply the liberal DICOM mosaic test
     only when set (via -assume_dicom_mosaic in to3d)
 
-23 Mar 2006:
-  * modified 3dcalc.c: do not scale shorts if values are {0,1}
+23 Mar 2006: modified 3dcalc.c: do not scale shorts if values are {0,1}
 
 27 Mar 2006:
   * modified model_michaelis_menton.c to handle '-time' option to 3dNLfim
   * modified 3dmaskdump.c: to keep -quiet quiet
 
-28 Mar 2006:
-  * modified vol2surf.c, plug_vol2surf.c: fixed mode computation
+28 Mar 2006: modified vol2surf.c, plug_vol2surf.c: fixed mode computation
 
-28 Mar 2006:
-  * modified model_michaelis_menton.c: added mag(nitude) parameter
+28 Mar 2006: modified model_michaelis_menton.c: added mag(nitude) parameter
 
 04 Apr 2006:
   * modified cox_render.c
@@ -1461,11 +1446,19 @@
       - rd_disp_color_info(), don't assume 128 colors, use NPANE_BIG
 
 06 Apr 2006:
-  * modifited thd_writenifti.c
-        - in THD_write_nifti, catch populate_nifti_image() failure (crashed)
-        - in populate_nifti_image(), return NULL (not 0) on failure, and give
-            a hint for what to do in case of 'brick factors not consistent'
+  * modified thd_writenifti.c
+      - in THD_write_nifti, catch populate_nifti_image() failure (crashed)
+      - in populate_nifti_image(), return NULL (not 0) on failure, and give
+          a hint for what to do in case of 'brick factors not consistent'
 
 11 Apr 2006: put 'd' in 3dANOVA* 'Changes have been made' warnings
-12 Apr 2006: added -max_clust_size option to AlphaSim (default now 10000)
+
+14 Apr 2006: applied mastery to NIFTI-1 datasets
+  * modified thd_mastery.c: allow NIfTI suffices in THD_open_dataset()
+  * modified thd_load_datablock.c: broke sub-ranging out to
+      THD_apply_master_subrange() for use in THD_load_nifti()
+  * modified 3ddata.h: added prototype for THD_apply_master_subrange()
+  * modified thd_niftiread.c: THD_load_nifti():
+      - if mastered, pass nvals and master_ival to nifti_image_read_bricks()
+      - at end, if mastered and bot <= top, THD_apply_master_subrange()
 
