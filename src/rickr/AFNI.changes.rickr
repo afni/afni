@@ -1454,7 +1454,9 @@
 11 Apr 2006: put 'd' in 3dANOVA* 'Changes have been made' warnings
 
 14 Apr 2006: applied mastery to NIFTI-1 datasets
-  * modified thd_mastery.c: allow NIfTI suffices in THD_open_dataset()
+  * modified thd_mastery.c:
+      - allow NIfTI suffices in THD_open_dataset()
+      - if NIfTI, init master_bot and master_top
   * modified thd_load_datablock.c: broke sub-ranging out to
       THD_apply_master_subrange() for use in THD_load_nifti()
   * modified 3ddata.h: added prototype for THD_apply_master_subrange()
