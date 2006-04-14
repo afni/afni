@@ -85,7 +85,7 @@ ENTRY("EDIT_cluster_array") ;
          {
             switch (edit_clust)
             {
-               case ECFLAG_MEAN :  clar->clar[iclu]->mag[ii] = mean;
+               case ECFLAG_MEAN :  clar->clar[iclu]->mag[ii] = mean;  break;
                case ECFLAG_MAX  :  clar->clar[iclu]->mag[ii] = max;   break;
                case ECFLAG_AMAX :  clar->clar[iclu]->mag[ii] = amax;  break;
                case ECFLAG_SMAX :  clar->clar[iclu]->mag[ii] = smax;  break;
