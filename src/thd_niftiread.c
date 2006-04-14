@@ -658,7 +658,12 @@ ENTRY("THD_load_nifti") ;
 
    STATUS("calling nifti_image_read_bricks") ;
    NBL.nbricks = 0 ;
-   nim = nifti_image_read_bricks( dkptr->brick_name, 0,NULL , &NBL ) ;
+   if( ! DBLK_IS_MASTERED(dblk) )   /* allow mastering   14 Apr 2006 [rickr] */
+       nim = nifti_image_read_bricks( dkptr->brick_name, 0,NULL , &NBL ) ;
+   else
+       nim = nifti_image_read_bricks( dkptr->brick_name, dblk->nvals,
+                                      dblk->master_ival, &NBL ) ;
+
    if( nim == NULL || NBL.nbricks <= 0 ) EXRETURN ;
 
    datum = DBLK_BRICK_TYPE(dblk,0) ;  /* destination data type */
@@ -777,6 +782,9 @@ ENTRY("THD_load_nifti") ;
        }
      }
    }
+
+   if( DBLK_IS_MASTERED(dblk) && dblk->master_bot <= dblk->master_top )
+      THD_apply_master_subrange(dblk) ;
 
    /*-- throw away the trash and return --*/
 
