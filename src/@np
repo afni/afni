@@ -1,0 +1,125 @@
+#!/bin/tcsh -f
+
+set extlist = ( 1D 1D.dset m nii asc ply 1D.coord 1D.topo coord topo srf)
+PARSE:   
+   set Narg = $#
+   
+   set cnt = 1
+   set pref = ""
+   set anat_in = ''
+   set verb = 0
+   set n_ext = 0
+   if ("$1" == '') goto HELP
+   while ($cnt <= $Narg)
+      set donext = 1;
+      
+      if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+         goto HELP
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-input") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need  volume after -input"
+            goto END
+         else
+            @ cnt ++
+            set anat_in = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-e") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need  volume after -e"
+            goto END
+         else
+            @ cnt ++
+            if ($n_ext == 0) then
+               set extlist = ''
+            endif
+            set extlist = ($extlist "$argv[$cnt]")
+            @ n_ext ++
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-verb") then
+         set verb = 1;      
+         set donext = 0      
+      endif
+
+      if ($donext && "$pref" == "") then
+         set pref = "$argv[$cnt]"
+         set donext = 0   
+      endif
+      
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      @ cnt ++
+   end
+   
+   if ($n_ext == 0) then
+      set n_ext = $#extlist
+   endif
+   
+WORK:
+   set bad = 1;
+   set pref = `@NoExt $pref $extlist`
+   set pref = `@GetAfniPrefix $pref`
+   set tpref = $pref
+   set cnt = 0
+   while ($bad) 
+      set bad = 0 
+      if ( -f $tpref ) then
+         set bad = 1
+      endif
+      if ($bad == 0 && `@CheckForAfniDset $tpref+orig`) then
+         set bad = 1
+      endif
+      if ($bad == 0 && `@CheckForAfniDset $tpref+acpc`) then
+         set bad = 1
+      endif
+      if ($bad == 0 && `@CheckForAfniDset $tpref+tlrc`) then
+         set bad = 1
+      endif
+      if ($bad == 0) then
+         set cnt = 1
+         while ($cnt <= $n_ext && $bad == 0)
+            set ex = $extlist[$cnt]
+            if (-f ${tpref}.${ex}) then
+               set bad = 1
+            endif
+            @ cnt ++
+         end
+      endif
+      if ($bad) then
+         @ cnt ++
+         set cntstr = `count $cnt $cnt 1 -digits 3`
+         set tpref = ${pref}_v$cntstr
+      endif
+   end
+   echo $tpref
+   goto END
+   
+HELP:
+   echo ""
+   echo "Usage: `basename $0` <pref>"
+   echo ""
+   echo " Finds an appropriate new prefix to use, given the files"
+   echo " you already have in your directory. "
+   echo " Use this script to automatically create a valid prefix"
+   echo " when you are repeatedly running similar commands but"
+   echo " do not want to delete previous output."
+   echo ""
+   echo " In addition to checking for valid AFNI prefix,"
+   echo " the script will look for matching files with extensions:"
+   echo "    $extlist "
+   echo ""
+   echo " Script is slow, it is for lazy people."
+   echo ""
+   goto END
+   
+END:
+   
