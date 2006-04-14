@@ -2653,6 +2653,16 @@ int SUMA_compare_int (int *a, int *b )
    
 }/*SUMA_compare_int*/
    
+int SUMA_compare_float (float *a, float *b )
+{/*SUMA_compare_float*/
+    if (*a < *b)
+      return (-1);
+   else if (*a == *b)
+      return (0);
+   else
+      return (1);
+   
+}/*SUMA_compare_float*/
 /*!**
    
 File : from ~/Programs/C/Z/Zlib/code/SUMA_z_qsort.c

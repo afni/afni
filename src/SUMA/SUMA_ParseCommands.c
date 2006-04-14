@@ -2765,13 +2765,24 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    Opt->popt = NULL;
    
    Opt->emask = NULL;
+   Opt->fatemask = NULL;
    Opt->Use_emask = 0;
    Opt->PushToEdge = 0;
    
    Opt->nmask = NULL;
    
+   Opt->Brain_Contour = NULL;
+   Opt->Brain_Hull = NULL;
+   Opt->Skull_Outer = NULL;
+   Opt->Skull_Inner = NULL;
+   
+   Opt->UseThisBrain = NULL; /* do not free, argv[.] copy */
+   Opt->UseThisBrainHull = NULL; /* do not free, argv[.] copy */
+   Opt->UseThisSkullOuter = NULL; /* do not free, argv[.] copy */
+   
    SUMA_RETURN(Opt);
-}   
+}
+   
 SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt)
 {
    static char FuncName[]={"SUMA_Free_Generic_Prog_Options_Struct"};
@@ -2799,7 +2810,12 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
    if (Opt->shrink_bias_name) SUMA_free(Opt->shrink_bias_name); Opt->shrink_bias_name = NULL;
    if (Opt->popt) Opt->popt = NULL; /* freeing, if needed for this structure should be done elsewhere*/
    if (Opt->emask) SUMA_free(Opt->emask); Opt->emask = NULL;
+   if (Opt->fatemask) SUMA_free(Opt->fatemask); Opt->fatemask = NULL;
    if (Opt->nmask) SUMA_free(Opt->nmask); Opt->nmask = NULL;
+   if (Opt->Brain_Contour)  SUMA_free(Opt->Brain_Contour);  Opt->Brain_Contour= NULL;
+   if (Opt->Brain_Hull)  SUMA_free(Opt->Brain_Hull); Opt->Brain_Hull= NULL;
+   if (Opt->Skull_Outer)  SUMA_free(Opt->Skull_Outer); Opt->Skull_Outer= NULL;
+   if (Opt->Skull_Inner)  SUMA_free(Opt->Skull_Inner); Opt->Skull_Inner= NULL;
    if (Opt) SUMA_free(Opt);
 
    SUMA_RETURN(NULL);
