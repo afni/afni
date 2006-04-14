@@ -436,6 +436,7 @@ NodeDef might be dynamically changed in the overlay plane */
    #define COLP_N_ALLOC(cop) cop->dset_link->dnel->vec_len
 #endif
 /* #define DSET_(dset) NI_get_attribute(dset->nel,"") */
+   
 
 /*!
    NEL_READ macro for reading a NI element from strm
@@ -759,6 +760,7 @@ char* SUMA_sdset_id(SUMA_DSET *dset);
 char* SUMA_sdset_idmdom(SUMA_DSET *dset);
 NI_group *SUMA_oDsetNel2nDsetNgr(NI_element *nel); 
 void SUMA_SetParent_DsetToLoad(char *parent);
+float *SUMA_Load1D (char *oName, int *ncol, int *nrow, int RowMajor, int verb);
 /*********************** BEGIN Miscellaneous support functions **************************** */
 #ifdef SUMA_COMPILED
    #define SUMA_STANDALONE_INIT {   \

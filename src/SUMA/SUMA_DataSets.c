@@ -3979,6 +3979,51 @@ SUMA_DSET *SUMA_Load1DDset (char *oName, int verb)
 }
 
 /*!
+   \brief a convenience function to return a 1D file in a float array
+   \param oName (char *) name of 1D file, can use '[]' if you like.
+   \param ncol (int *) to hold the number of columns in the file.
+   \param nrow (int *) to hold the number of rows in the file.
+   \param RowMajor (int) 0 keep result in column major   xxxxxx yyyyyy zzzzzz
+                        1 turn results to row major       xyz xyz xyz xyz 
+   \return far(float *), the float array. Should be freed with free but SUMA_free 
+   would work too. 
+*/
+float *SUMA_Load1D (char *oName, int *ncol, int *nrow, int RowMajor, int verb)
+{
+   static char FuncName[]={"SUMA_Load1D"};
+   char *FullName = NULL;
+   MRI_IMAGE *im = NULL, *imt = NULL;
+   float *far=NULL;
+   int i;
+   
+   SUMA_ENTRY;
+   
+   if (!oName) { SUMA_SL_Err("Null Name"); SUMA_RETURN(NULL); }
+   
+   /* got the name, now read it */
+   im = mri_read_1D (oName);
+   if (!im) {
+      if (verb) SUMA_SLP_Err("Failed to read file");
+      SUMA_RETURN(NULL);
+   }   
+   *ncol = im->ny;
+   *nrow = im->nx;
+   
+   if (RowMajor) {
+      imt = mri_transpose(im); mri_free(im); im = imt; imt = NULL;
+   }   
+   
+   far = MRI_FLOAT_PTR(im);
+   /* make sure that pointer is gone from im, or risk hell */
+   im->im.float_data = NULL;
+      
+   /* done, clean up and out you go */
+   if (im) mri_free(im); im = NULL; 
+
+   SUMA_RETURN(far);
+}
+
+/*!
    \brief Replaces a dataset's idcode with a new one
 */
 SUMA_Boolean SUMA_NewDsetID (SUMA_DSET *dset)
