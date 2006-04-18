@@ -1467,4 +1467,5 @@
 18 Apr 2006:
   * modified cs_addto_args.c: addto_args(), terminate empty sin before strcat
   * modified mri_matrix.c: moved var defn to start of block in DECODE_VALUE
+  * modified SUMA_3dSkull_Strip.c: 'int code[3]' must be defined at block start
 
