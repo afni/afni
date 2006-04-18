@@ -204,6 +204,8 @@ void addto_args( int argc , char * argv[] , int * new_argc , char *** new_argv )
    sin  = (char *) malloc( sizeof(char) * nall ) ;  /* will hold stdin */
    nsin = 0 ;
 
+   sin[0] = '\0';  /* 'terminate' this empty string    18 Apr 2006 [rickr] */
+
    do{
       cpt = fgets( lbuf , BLEN , stdin ) ; /* read line */
       if( cpt == NULL ) break ;            /* end of file */
