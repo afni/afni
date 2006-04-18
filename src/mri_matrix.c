@@ -610,8 +610,8 @@ static void matrix_name_assign( char *nam , MRI_IMAGE *ima )
         else ERROR_message("mri_matrix_evalrpn: bad (&C)") ;     \
       } else if( *(ccc) == '=' && isalpha(*((ccc)+1)) ){         \
         char *xx=strdup((ccc)+1) , *pp=strchr(xx,')') ;          \
-        if( pp != NULL ) *pp = '\0' ;                            \
-        int qq = matrix_name_lookup(xx) ;                        \
+        int qq = matrix_name_lookup(xx) ; /* swap these lines */ \
+        if( pp != NULL ) *pp = '\0' ;  /* 18 Apr 2006 [rickr] */ \
         if( qq >= 0 ){                                           \
           MRI_IMAGE *iq = IMARR_SUBIM(matar,qq) ;                \
           float *qar = MRI_FLOAT_PTR(iq) ;                       \
@@ -644,7 +644,7 @@ MRI_IMAGE * mri_matrix_evalrpn( char *expr )
    MRI_IMARR *imstk ;
    int         nstk , ii , ss ;
    MRI_IMAGE *ima, *imb, *imc ;
-   float     *aar, *bar, *car ;
+   float     *car ;
 
 ENTRY("mri_matrix_evalrpn") ;
 
