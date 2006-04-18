@@ -1288,6 +1288,7 @@ int main (int argc,char *argv[])
                exit( 1 );
             }
             /* create a fat mask please */
+            {  /* need a block for compiling     18 Apr 2006 [rickr] */
                int code[3], ncode;
                MCW_cluster *nbhd=NULL ;
 
@@ -1315,7 +1316,7 @@ int main (int argc,char *argv[])
                   THD_write_3dim_dataset( NULL,NULL , fatoutset , True ) ;
                   fprintf(stderr,"  ++ Wrote output: %s\n",DSET_BRIKNAME(fatoutset)) ;   
                }
-
+            }
 
             if (outset) DSET_delete(outset) ; outset = NULL;
             if (fatoutset) DSET_delete(fatoutset) ; fatoutset = NULL;
