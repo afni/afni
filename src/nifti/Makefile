@@ -11,7 +11,7 @@ UTILS_PROGS	=	nifti_stats nifti_tool nifti1_test
 THIS_DIR	=	`basename ${PWD}`
 
 ## Note the TARFILE_NAME embeds the release version number
-TARFILE_NAME	=	nifticlib-0.2
+TARFILE_NAME	=	nifticlib-0.3
 
 
 ## Compiler  defines
@@ -48,10 +48,9 @@ ZLIB_LIBS 	= 	$(ZLIB_PATH) -lm -lz
 ## Platform specific redefines
 
 ## SGI 32bit
-ifeq ($(ARCH),SGI)
-ZLIB_INC	=	-I/usr/freeware/include
-ZLIB_PATH	=	-L/usr/freeware/lib32
-endif
+##ZLIB_INC	=	-I/usr/freeware/include
+##ZLIB_PATH	=	-L/usr/freeware/lib32
+##RANLIB		=	echo "ranlib not needed"
 
 
 ## RedHat Fedora Linux
@@ -101,6 +100,7 @@ clean_all: clean install_clean doc_clean
 
 
 znz:
+	echo "arch is $(ARCH)"
 	(cd $(ZNZ); $(MAKE) depend; $(MAKE) lib;)
 	@echo " ----------- $(ZNZ) build completed."
 	@echo ""
