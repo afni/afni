@@ -1469,3 +1469,8 @@
   * modified mri_matrix.c: moved var defn to start of block in DECODE_VALUE
   * modified SUMA_3dSkull_Strip.c: 'int code[3]' must be defined at block start
 
+19 Apr 2006: nifticlib-0.3 updates (from Kate Fissell)
+  * added Updates.txt
+  * modified Makefile, utils/Makefile: removed $(ARCH) and commented SGI lines
+  * modified real_easy/nifti1_read_write.c : corrected typos
+
