@@ -913,7 +913,7 @@ void CALC_Syntax(void)
     "   about the point with coordinates (x,y,z)=(20,30,70):                 \n"
     "                                                                        \n"
     "     3dcalc -a anat+tlrc                                              \\\n"
-    "            -expr 'step((9-(x-20)*(x-20)-(y-30)*(y-30)-(z-70)*(z-70))'\\\n"
+    "            -expr 'step(9-(x-20)*(x-20)-(y-30)*(y-30)-(z-70)*(z-70))' \\\n"
     "            -prefix ball                                                \n"
     "                                                                        \n"
     " 8. Some datsets are 'short' (16 bit) integers with a scalar attached,  \n"
