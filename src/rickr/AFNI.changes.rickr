@@ -1473,4 +1473,5 @@
   * added Updates.txt
   * modified Makefile, utils/Makefile: removed $(ARCH) and commented SGI lines
   * modified real_easy/nifti1_read_write.c : corrected typos
+  * modified 3dcalc.c: fixed typo in 'step(9-(x-20)*...' example
 
