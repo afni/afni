@@ -1,0 +1,19 @@
+
+Updates to the niftilb C package
+
+
+Updates in version 0.3 April 12, 2006
+
+    - added const in appropriate function parameter locations
+    - shortened all string constants below 509 character limit
+    - added nifti_is_complete_filename()
+    - made minor memory fixes
+    - fixed error in QSTR() definition
+    - use nifti_set_filenames() in nifti_convert_nhdr2nim()
+    - added new tests in Testing/niftilib/nifti_test.c
+    - added skip blank extension option to keep 348 byte header
+    - when reading, allow 0 or 1 in dim[] fields above dim[0]
+    - added more tests to nifti_hdr_looks_good()
+    - nifti_tool: added check_hdr and check_nim action options
+
+-----------------------------------------------------------------
