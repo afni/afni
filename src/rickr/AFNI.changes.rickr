@@ -1475,3 +1475,8 @@
   * modified real_easy/nifti1_read_write.c : corrected typos
   * modified 3dcalc.c: fixed typo in 'step(9-(x-20)*...' example
 
+20 Apr 2006:
+  * modified thd_opendset.c: added functions storage_mode_from_filename()
+      and has_known_non_afni_extension() {for 3dcopy}
+  * modified 3ddata.h: added prototypes for those two functions
+
