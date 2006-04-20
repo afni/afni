@@ -910,6 +910,8 @@ static THD_warp tempA_warp ;
 
   Later: OK, now we have more than one type.  However, type #1
          was never implemented (the ill-fated STORAGE_BY_SLICES).
+
+  see also: thd_opendset.c: storage_mode_from_filename()
 ***/
 
 #define STORAGE_UNDEFINED  0
@@ -3292,6 +3294,9 @@ extern THD_3dim_dataset * THD_open_3D( char * ) ;           /* 21 Mar 2003 */
 extern THD_3dim_dataset * THD_open_nifti( char * ) ;        /* 28 Aug 2003 */
 extern THD_3dim_dataset * THD_open_mpeg( char * ) ;         /* 03 Dec 2003 */
 extern THD_3dim_dataset * THD_open_tcat( char * ) ;         /* 04 Aug 2004 */
+
+extern int storage_mode_from_filename( char * fname );      /* 20 Apr 2006 */
+extern int has_known_non_afni_extension( char * fname ) ;   /*     [rickr] */
 
 extern void THD_datablock_apply_atr( THD_3dim_dataset * ) ; /* 09 May 2005 */
 

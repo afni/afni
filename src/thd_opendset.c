@@ -234,3 +234,68 @@ ENTRY("THD_dataset_headname") ;
    THD_delete_3dim_dataset( dset , False ) ;
    RETURN(str) ;
 }
+
+
+/* ------------------------------------------------------------- */
+/* given a filename, return one STORAGE_BY_* value from 3ddata.h
+ *                                           20 Apr 2006 [rickr] */
+int storage_mode_from_filename( char * fname )
+{
+ENTRY("storage_mode_from_filename");
+
+    if( !fname || !*fname )                    RETURN(STORAGE_UNDEFINED);
+
+    /* STORAGE_BY_SLICES was never implemented   :'( */
+
+    if( STRING_HAS_SUFFIX(fname, ".HEAD") ||
+        STRING_HAS_SUFFIX(fname, ".BRIK") ||
+        STRING_HAS_SUFFIX(fname, ".BRIK.gz") ) RETURN(STORAGE_BY_BRICK);
+        
+    if( STRING_HAS_SUFFIX(fname, ".mnc") )     RETURN(STORAGE_BY_MINC);
+
+    if( 0 )                                    RETURN(STORAGE_BY_VOLUMES);
+
+    if( 0 )   /* default is NIFTI */           RETURN(STORAGE_BY_ANALYZE);
+        
+    if( STRING_HAS_SUFFIX(fname, ".mri") )     RETURN(STORAGE_BY_CTFMRI);
+
+    if( STRING_HAS_SUFFIX(fname, ".svl") )     RETURN(STORAGE_BY_CTFSAM);
+
+    if( STRING_HAS_SUFFIX(fname, ".1D") )      RETURN(STORAGE_BY_1D);
+
+    if( STRING_HAS_SUFFIX(fname, ".3D") )      RETURN(STORAGE_BY_3D);
+
+    if( STRING_HAS_SUFFIX(fname, ".nii")    ||
+        STRING_HAS_SUFFIX(fname, ".nii.gz") ||
+        STRING_HAS_SUFFIX(fname, ".nia")    ||
+        STRING_HAS_SUFFIX(fname, ".hdr")    ||
+        STRING_HAS_SUFFIX(fname, ".img") )     RETURN(STORAGE_BY_NIFTI);
+
+    if( STRING_HAS_SUFFIX(fname, ".mpg")   ||
+        STRING_HAS_SUFFIX(fname, ".mpeg")  ||
+        STRING_HAS_SUFFIX(fname, ".MPG")   ||
+        STRING_HAS_SUFFIX(fname, ".MPEG") )    RETURN(STORAGE_BY_MPEG);
+
+    RETURN(STORAGE_UNDEFINED);
+}
+                                
+/* ------------------------------------------------------------- */
+/* given a filename, return 1 if it has a know extension that is
+ * not an AFNI extension                     20 Apr 2006 [rickr] */
+int has_known_non_afni_extension( char * fname )
+{
+    int mode;
+
+ENTRY("has_known_non_afni_extension");
+
+    mode = storage_mode_from_filename(fname);
+
+    /* UNDEFINED, BRICK and VOLUMES are the unknown or AFNI cases */
+    if( mode <= STORAGE_UNDEFINED   ||
+        mode == STORAGE_BY_BRICK    ||
+        mode == STORAGE_BY_VOLUMES  ||
+        mode  > LAST_STORAGE_MODE ) RETURN(0);
+
+    RETURN(1); /* otherwise, we recognize it as non-AFNI */
+}
+
