@@ -111,4 +111,7 @@
  * additional help updates for 1deval
 3 Apr 2006 
  * various fixes for Draw Dataset plug-in (datum check and label errors)
- 
+20 Apr 2006
+ * update for 3dcopy to support writing NIFTI datasets 
+ (Rick is responsible for this)
+

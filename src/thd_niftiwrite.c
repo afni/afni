@@ -155,7 +155,7 @@ ENTRY("populate_nifti_image") ;
         "** ERROR: CANNOT WRITE NIfTI FILE; BRICK FACTORS NOT CONSISTENT\n") ;
         fprintf(stderr,
         "   (consider transforming to a float dataset before performing\n"
-        "    this opertation, or consider '3dAFNItoNIFTI -float')\n"
+        "    this operation, or consider '3dAFNItoNIFTI -float')\n"
         ) ;
         RETURN(NULL);
       }
