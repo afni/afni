@@ -238,6 +238,16 @@ int get_init_data( float ** rtime, float ** rates, int * len, float * dt )
     *rates = *rtime + im->nx;
     *len   = im->nx;
 
+    /* check to see if the rate times are in seconds */
+    dt_text = my_getenv("AFNI_MM_MODEL_RATE_IN_SECS");
+    if( dt_text && (*dt_text == 'y' || *dt_text == 'Y') )
+    {
+        int c;
+        fprintf(stderr,"NLfim: rate times are taken in seconds\n");
+        /* so convert to minutes */
+        for( c = 0; c < *len; c++ ) (*rtime)[c] /= 60.0;
+    }
+
     /* get dt from another env var */
     dt_text = my_getenv("AFNI_MM_MODEL_DT");
     if( dt_text )

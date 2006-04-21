@@ -1480,3 +1480,6 @@
       and has_known_non_afni_extension() {for 3dcopy}
   * modified 3ddata.h: added prototypes for those two functions
 
+21 Apr 2006:
+  * modified model_michaelis_menton.c: apply AFNI_MM_MODEL_RATE_IN_SECS
+
