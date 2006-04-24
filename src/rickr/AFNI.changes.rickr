@@ -1480,6 +1480,7 @@
       and has_known_non_afni_extension() {for 3dcopy}
   * modified 3ddata.h: added prototypes for those two functions
 
-21 Apr 2006:
-  * modified model_michaelis_menton.c: apply AFNI_MM_MODEL_RATE_IN_SECS
+21 Apr 2006: modified model_michaelis_menton.c: apply AFNI_MM_MODEL_RATE_IN_SECS
+
+24 Apr 2006: nifti_tool.c:act_disp_ci(): removed time series length check
 
