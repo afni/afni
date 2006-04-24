@@ -118,6 +118,19 @@ ENTRY("mri_localstat") ;
 
 /*--------------------------------------------------------------------------*/
 
+static int verb=0 , vn=0 ;
+void THD_localstat_verb(int i){ verb=i; vn=0; }
+
+static void vstep_print(void)
+{
+   static char xx[10] = "0123456789" ;
+   fprintf(stderr , "%c" , xx[vn%10] ) ;
+   if( vn%10 == 9) fprintf(stderr,".") ;
+   vn++ ;
+}
+
+/*--------------------------------------------------------------------------*/
+
 THD_3dim_dataset * THD_localstat( THD_3dim_dataset *dset , byte *mask ,
                                   MCW_cluster *nbhd , int ncode, int *code )
 {
@@ -125,6 +138,7 @@ THD_3dim_dataset * THD_localstat( THD_3dim_dataset *dset , byte *mask ,
    MRI_IMAGE *nbim ;
    int iv,cc , nvin,nvout , nx,ny,nz,nxyz , ii,jj,kk,ijk ;
    float **aar ;
+   int vstep ;
 
 ENTRY("THD_localstat") ;
 
@@ -145,6 +159,9 @@ ENTRY("THD_localstat") ;
    ny = DSET_NY(dset) ;
    nz = DSET_NZ(dset) ; nxyz = nx*ny*nz ;
 
+   vstep = (verb && nxyz > 99999) ? nxyz/50 : 0 ;
+   if( vstep ) fprintf(stderr,"++ voxel loop:") ;
+
    aar = (float **)malloc(sizeof(float *)*ncode) ;
 
    for( iv=0 ; iv < nvin ; iv++ ){
@@ -157,6 +174,7 @@ ENTRY("THD_localstat") ;
      for( ijk=kk=0 ; kk < nz ; kk++ ){
       for( jj=0 ; jj < ny ; jj++ ){
        for( ii=0 ; ii < nx ; ii++,ijk++ ){
+         if( vstep && ijk%vstep==vstep-1 ) vstep_print() ;
          nbim = THD_get_dset_nbhd( dset,iv , mask,ii,jj,kk , nbhd ) ;
          for( cc=0 ; cc < ncode ; cc++ )
            aar[cc][ijk] = mri_nstat( code[cc] , nbim ) ;
@@ -167,6 +185,7 @@ ENTRY("THD_localstat") ;
        EDIT_substitute_brick( oset , iv*ncode+cc , MRI_float , aar[cc] ) ;
    }
 
+   if( vstep ) fprintf(stderr,"\n") ;
    free((void *)aar) ;
    RETURN(oset) ;
 }
