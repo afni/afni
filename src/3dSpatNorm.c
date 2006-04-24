@@ -6,7 +6,8 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *imin, *imout , *imout_orig;
    THD_3dim_dataset *iset, *oset , *ooset;
    char *prefix = "SpatNorm" ;
-   int iarg , verb=0, OrigSpace = 0 ;
+   int iarg , verb=0, OrigSpace = 0 , monkey = 0;
+   float SpatNormDxyz= 0.0;
    THD_ivec3 orixyz , nxyz ;
    THD_fvec3 dxyz , orgxyz, originRAIfv, fv2;
 
@@ -45,10 +46,21 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-     /* -verb */
-
+     if( strcmp(argv[iarg],"-dxyz") == 0 ){
+       if( ++iarg >= argc ){
+         fprintf(stderr,"**ERROR: -dxyz requires another argument!\n") ;
+         exit(1) ;
+       }
+       SpatNormDxyz = atof(argv[iarg]) ;
+       
+       iarg++ ; continue ;
+     }
+     
      if( strncmp(argv[iarg],"-verb",5) == 0 ){
        verb++ ; iarg++ ; continue ;
+     }
+     if( strncmp(argv[iarg],"-monkey",5) == 0 ){
+       monkey = 1 ; iarg++ ; continue ;
      }
      
      if( strncmp(argv[iarg],"-orig_space",10) == 0 ){
@@ -84,6 +96,29 @@ int main( int argc , char *argv[] )
    imin->dx = fabs(iset->daxes->xxdel) ;
    imin->dy = fabs(iset->daxes->yydel) ;
    imin->dz = fabs(iset->daxes->zzdel) ;
+   
+   mri_monkeybusiness(monkey);
+   if (SpatNormDxyz) {
+      if (verb) fprintf(stderr,"Overriding default resampling\n");
+      mri_brainormalize_initialize(SpatNormDxyz, SpatNormDxyz, SpatNormDxyz);
+   } else {
+      float xxdel, yydel, zzdel, minres;
+      if (monkey) minres = 0.3;
+      else minres = 0.5;
+      /* don't allow for too low a resolution, please */
+      if (imin->dx < minres) xxdel = minres;
+      else xxdel = imin->dx;
+      if (imin->dy < minres) yydel = minres;
+      else yydel = imin->dy;
+      if (imin->dz < minres) zzdel = minres;
+      else zzdel = imin->dz;
+      if (verb) {
+         fprintf(stderr,"%s:\n Original resolution %f, %f, %f\n SpatNorm resolution %f, %f, %f\n",
+                     "3dSpatnorm", imin->dx, imin->dy, imin->dz, 
+                     xxdel, yydel, zzdel);
+      }   
+      mri_brainormalize_initialize(xxdel, yydel, zzdel);
+   }
    
    mri_brainormalize_initialize(imin->dz, imin->dy, imin->dz); /* To get around the #define for voxel counts and dimensions */
    

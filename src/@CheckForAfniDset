@@ -44,7 +44,7 @@ USAGE:
 	echo "returns 0 if neither .HEAD nor .BRIK(.gz) exist" 
 	echo "        1 if only .HEAD exists"
    echo "        2 if both .HEAD and .BRIK(.gz) exist"
-	echo ""
+	echo "        3 if .nii dataset "
    echo "Ziad Saad (ziad@nih.gov)"
    echo "  SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
    echo ""
