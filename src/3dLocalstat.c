@@ -254,6 +254,7 @@ int main( int argc , char *argv[] )
 
    /*---- actually do some work for a change ----*/
 
+   THD_localstat_verb(1) ;
    outset = THD_localstat( inset , mask , nbhd , ncode , code ) ;
 
    DSET_unload(inset) ;
