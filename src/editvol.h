@@ -565,5 +565,6 @@ extern MRI_IMAGE * mri_localstat( MRI_IMAGE *, byte *, MCW_cluster *, int ) ;
 
 extern THD_3dim_dataset * THD_localstat( THD_3dim_dataset *, byte *,
                                          MCW_cluster *, int, int *) ;
+extern void THD_localstat_verb(int) ; 
 
 #endif /* _MCW_EDITVOL_ */
