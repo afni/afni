@@ -60,7 +60,8 @@ int main( int argc , char * argv[] )
    int addBriks = 0;
    int numMultBriks,methIndex,brikIndex;
 
-   /*----- Read command line -----*/
+   /*----- Help the pitiful user? -----*/
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dTstat [options] dataset\n"
              "Computes one or more voxel-wise statistics for a 3D+time dataset\n"
@@ -78,14 +79,13 @@ int main( int argc , char * argv[] )
              " -cvar   = compute coefficient of variation of input\n"
              "             voxels = stdev/fabs(mean)\n"
              "   **N.B.: You can add NOD to the end of the above 2\n"
-             "           options to turn off detrending, as in\n"
-             "             -stdevNOD or -cvarNOD\n"
+             "           options only, to turn off detrending, as in\n"
+             "             -stdevNOD  and/or  -cvarNOD\n"
              "\n"
              " -MAD    = compute MAD (median absolute deviation) of\n"
              "             input voxels = median(|voxel-median(voxel)|)\n"
              "             [N.B.: the trend is NOT removed for this]\n"
-             " -DW    = compute Durbin-Watson Statistic of\n"
-             "             input voxels\n"
+             " -DW    = compute Durbin-Watson Statistic of input voxels\n"
              "             [N.B.: the trend IS removed for this]\n"
              " -median = compute median of input voxels  [undetrended]\n"
              " -min    = compute minimum of input voxels [undetrended]\n"
@@ -118,8 +118,12 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   /* bureaucracy */
+
    mainENTRY("3dTstat main"); machdep(); AFNI_logger("3dTstat",argc,argv);
    PRINT_VERSION("3dTstat"); AUTHOR("KR Hammett & RW Cox");
+
+   /*--- scan command line for options ---*/
 
    nopt = 1 ;
    nbriks = 0 ;
@@ -230,9 +234,7 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-autocorr") == 0 ){
          meth[nmeths++] = METH_AUTOCORR ;
-         if( ++nopt >= argc ){
-            fprintf(stderr,"*** -autocorr needs an argument!\n"); exit(1);
-         }
+         if( ++nopt >= argc ) ERROR_exit("-autocorr needs an argument!\n");
          meth[nmeths++] = atoi(argv[nopt++]);
          if (meth[nmeths - 1] == 0) {
            addBriks++;
@@ -244,9 +246,7 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-autoreg") == 0 ){
          meth[nmeths++] = METH_AUTOREGP ;
-         if( ++nopt >= argc ){
-            fprintf(stderr,"*** -autoreg needs an argument!\n"); exit(1);
-         }
+         if( ++nopt >= argc ) ERROR_exit("-autoreg needs an argument!\n");
          meth[nmeths++] = atoi(argv[nopt++]);
          if (meth[nmeths - 1] == 0) {
            addBriks++;
@@ -259,22 +259,17 @@ int main( int argc , char * argv[] )
       /*-- prefix --*/
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
-         if( ++nopt >= argc ){
-            fprintf(stderr,"*** -prefix needs an argument!\n"); exit(1);
-         }
+         if( ++nopt >= argc ) ERROR_exit("-prefix needs an argument!\n");
          MCW_strncpy(prefix,argv[nopt],THD_MAX_PREFIX) ;
-         if( !THD_filename_ok(prefix) ){
-            fprintf(stderr,"*** %s is not a valid prefix!\n",prefix); exit(1);
-         }
+         if( !THD_filename_ok(prefix) )
+           ERROR_exit("%s is not a valid prefix!\n",prefix);
          nopt++ ; continue ;
       }
 
       /*-- datum --*/
 
       if( strcmp(argv[nopt],"-datum") == 0 ){
-         if( ++nopt >= argc ){
-            fprintf(stderr,"*** -datum needs an argument!\n"); exit(1);
-         }
+         if( ++nopt >= argc ) ERROR_exit("-datum needs an argument!\n");
          if( strcmp(argv[nopt],"short") == 0 ){
             datum = MRI_short ;
          } else if( strcmp(argv[nopt],"float") == 0 ){
@@ -282,16 +277,15 @@ int main( int argc , char * argv[] )
          } else if( strcmp(argv[nopt],"byte") == 0 ){
             datum = MRI_byte ;
          } else {
-            fprintf(stderr,"-datum of type '%s' is not supported!\n",
-                    argv[nopt] ) ;
-            exit(1) ;
+            ERROR_exit("-datum of type '%s' is not supported!\n",
+                       argv[nopt] ) ;
          }
          nopt++ ; continue ;
       }
 
       /*-- Quien sabe'? --*/
 
-      fprintf(stderr,"*** Unknown option: %s\n",argv[nopt]) ; exit(1) ;
+      ERROR_exit("Unknown option: %s\n",argv[nopt]) ;
    }
 
    /*--- If no options selected, default to single stat MEAN -- KRH ---*/
@@ -301,29 +295,23 @@ int main( int argc , char * argv[] )
 
    /*----- read input dataset -----*/
 
-   if( nopt >= argc ){
-      fprintf(stderr,"*** No input dataset!?\n"); exit(1);
-   }
+   if( nopt >= argc ) ERROR_exit(" No input dataset!?") ;
 
    old_dset = THD_open_dataset( argv[nopt] ) ;
-   if( !ISVALID_DSET(old_dset) ){
-      fprintf(stderr,"*** Can't open dataset %s\n",argv[nopt]); exit(1);
-   }
+   if( !ISVALID_DSET(old_dset) )
+     ERROR_exit("Can't open dataset %s\n",argv[nopt]);
 
-   if( DSET_NVALS(old_dset) < 2 ){
-      fprintf(stderr,"*** Can't use dataset with < 2 values per voxel!\n") ;
-      exit(1) ;
-   }
+   if( DSET_NVALS(old_dset) < 2 )
+     ERROR_exit("Can't use dataset with < 2 values per voxel!\n") ;
 
    if( DSET_NUM_TIMES(old_dset) < 2 ){
-      fprintf(stderr,"--- Input dataset is not 3D+time!\n"
-                     "--- Adding an artificial time axis with dt=1.0\n" ) ;
-      EDIT_dset_items( old_dset ,
-                          ADN_ntt    , DSET_NVALS(old_dset) ,
-                          ADN_ttorg  , 0.0 ,
-                          ADN_ttdel  , 1.0 ,
-                          ADN_tunits , UNITS_SEC_TYPE ,
-                       NULL ) ;
+     WARNING_message("Input dataset is not 3D+time; assuming TR=1.0") ;
+     EDIT_dset_items( old_dset ,
+                        ADN_ntt    , DSET_NVALS(old_dset) ,
+                        ADN_ttorg  , 0.0 ,
+                        ADN_ttdel  , 1.0 ,
+                        ADN_tunits , UNITS_SEC_TYPE ,
+                      NULL ) ;
    }
 
    /* If one or more of the -autocorr/-autoreg options was called with */
@@ -367,10 +355,9 @@ int main( int argc , char * argv[] )
         }
       }
       DSET_write( new_dset ) ;
-      fprintf(stderr,"--- Output dataset %s\n",DSET_BRIKNAME(new_dset)) ;
+      WROTE_DSET( new_dset ) ;
    } else {
-      fprintf(stderr,"*** Unable to compute output dataset!\n") ;
-      exit(1) ;
+      ERROR_exit("Unable to compute output dataset!\n") ;
    }
 
    exit(0) ;
@@ -645,8 +632,9 @@ static void STATS_tsfunc( double tzero, double tdelta ,
         /* populate the appropriate BRIKs with the data.    */
         for( ii = 0; ii < numVals; ii++) {
           val[out_index + ii] = y[ii];
-          if (!finite(y[ii])) {
-            fprintf(stderr,"BAD NUMBER y[%d] = %f, Call# %d\n",ii,y[ii],ncall);
+          if (!finite(y[ii])){
+            WARNING_message("BAD FLOAT y[%d]=%f; Call#%d\n",ii,y[ii],ncall);
+            val[out_index + ii] = 0.0f ;
           }
         }
         /* Although meth_index will be incremented by the   */
