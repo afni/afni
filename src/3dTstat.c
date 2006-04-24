@@ -35,7 +35,7 @@
 
 #define METH_SUM          17  /* RWCox 24 Apr 2006 */
 
-#define MAX_NUM_OF_METHS 20
+#define MAX_NUM_OF_METHS  20
 static int meth[MAX_NUM_OF_METHS]  = {METH_MEAN};
 static int nmeths                  = 0;
 static char prefix[THD_MAX_PREFIX] = "stat" ;
@@ -53,9 +53,9 @@ static void STATS_tsfunc( double tzero , double tdelta ,
 
 static void autocorr( int npts, float ints[], int numVals, float outcoeff[] ) ;
 
-int main( int argc , char * argv[] )
+int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
+   THD_3dim_dataset *old_dset , *new_dset ;  /* input and output datasets */
    int nopt, nbriks, ii ;
    int addBriks = 0;
    int numMultBriks,methIndex,brikIndex;
@@ -370,7 +370,7 @@ int main( int argc , char * argv[] )
 static void STATS_tsfunc( double tzero, double tdelta ,
                           int npts, float ts[],
                           double ts_mean, double ts_slope,
-                          void * ud, int nbriks, float * val          )
+                          void *ud, int nbriks, float *val          )
 {
    static int nvox , ncall ;
    int meth_index, ii , out_index;
@@ -540,7 +540,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
 
       case METH_AUTOCORR:{
         int numVals;
-        float* ts_corr;
+        float *ts_corr;
         /* for these new methods, the extra, needed integer */
         /* parameter is stored in the static array "meth",  */
         /* in the element right after the indicator for     */
@@ -666,7 +666,7 @@ static void autocorr( int npts, float in_ts[], int numVals, float outcoeff[] )
 
   int ii,nfft;
   double scaler;
-  complex * cxar = NULL;
+  complex *cxar = NULL;
 
   /* Calculate size for FFT, including padding for eliminating overlap  */
   /* from circular convolution */
