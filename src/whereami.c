@@ -784,7 +784,7 @@ int main(int argc, char **argv)
             if (!rset) {
                fprintf(stderr,"** Error: Failed to reslice!?\n"); return(1);
             }
-            /* get byte mask of regions > 0.5 */
+           /* get byte mask of regions > 0.5 */
             if (!(bmask_vol = THD_makemask( rset , 0 , 0.5 , 2.0 ))) {  /* get all non-zero values */
                fprintf(stderr,"** Error: No byte for you.\n");
                return(1);

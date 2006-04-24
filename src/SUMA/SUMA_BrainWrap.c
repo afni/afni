@@ -139,6 +139,12 @@ float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObj
    if (LocalHead) {
          fprintf (SUMA_STDERR,"%s: Volume %f, radius %f\n", FuncName, vol, Opt->r);
    }
+   if (Opt->monkey) {
+      Opt->r  = Opt->r/THD_BN_rat();
+      if (LocalHead) {
+         fprintf (SUMA_STDERR,"%s: Radius reduced to %f, less brain, more muscle.\n",  FuncName, Opt->r);
+      }
+   }
    
    /* form a vector of values inside the sphere */
    if (Opt->tm < 0) {
