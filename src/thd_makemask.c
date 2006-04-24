@@ -193,6 +193,9 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
       break ;
    }
 
+   /* remove any scaling factor ZSS April 24 06*/
+   EDIT_BRICK_FACTOR(mask_dset,miv , 0.0);
+   
    return (nonzero) ;
 }
 /*! 

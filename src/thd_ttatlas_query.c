@@ -3521,11 +3521,12 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
             build_lr = 1;
             break;
          case AFNI_TLRC_ATLAS:
-            /* Load the AFNI_TLRC atlas */
-            if (dseTT == NULL && dseTT_big == NULL) {
+            /* Load the AFNI_TLRC atlas, work with big one only, need to match resolution of CA_ atlases 
+               (ZSS: April 24 06)*/
+            if (dseTT_big == NULL) {
                if (LocalHead) fprintf(stderr,"Loading %s\n", Atlas_Code_to_Atlas_Name(atcode));
-               ii = TT_load_atlas() ; 
-               if (ii == 0) {
+               TT_retrieve_atlas_big(); 
+               if (dseTT_big == NULL) {
                   if (!n_warn[atcode]) WARNING_message(  "Could not read TLRC atlas (dset %s+tlrc)\n"
                                                          "See whereami -help for help on installing\n"
                                                          "atlases.\n", 
@@ -3536,7 +3537,7 @@ ATLAS_DSET_HOLDER Atlas_With_Trimming (AFNI_ATLAS_CODES atcode, int LoadLRMask)
 
             }
             /* 01 Aug 2001: maybe use big dataset (so don't need both in memory) */
-            adh.dset = (dseTT_big != NULL) ? dseTT_big : dseTT ;
+            adh.dset = (dseTT_big != NULL) ? dseTT_big : dseTT ; /* should always be the big one */
 
             #if 0
             if( adh.dset == dseTT_big ) fprintf(stderr,"TT_whereami using dseTT_big\n") ;

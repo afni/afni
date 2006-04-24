@@ -53,7 +53,8 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "       data\n"
                "     . two additional processing stages to ensure convergence and\n"
                "       reduction of clipped areas.\n"
-               "     . use of 3d edge detection.\n"
+               "     . use of 3d edge detection, see Deriche and Monga references\n"
+               "       in 3dedge3 -help.\n"
                "  3- The creation of various masks and surfaces modeling brain\n"
                "     and portions of the skull\n"
                "\n"
@@ -84,6 +85,11 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "     Clipping in general:\n"
                "        + Try -push_to_edge option first.\n"
                "          Can also use lower -shrink_fac, start with 0.5 then 0.4\n"
+               "     Problems down below:\n"
+               "        + Piece of cerbellum missing, reduce -shrink_fac_bot_lim \n"
+               "          from default value.\n"
+               "        + Leakage in lower areas, increase -shrink_fac_bot_lim \n"
+               "          from default value.\n"
                "     Some lobules are not included:\n"
                "        + Use a denser mesh. Start with -ld 30. If that still fails,\n"
                "        try even higher density (like -ld 50) and increase iterations \n"
@@ -118,7 +124,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "             [< -spatnorm >] [< -no_spatnorm >] [< -write_spatnorm >]\n"
                "             [< -niter N_ITER >] [< -ld LD >] \n"
                "             [< -shrink_fac SF >] [< -var_shrink_fac >] \n"
-               "             [< -no_var_shrink_fac >] [< shrink_fac_bot_lim SFBL >]\n"
+               "             [< -no_var_shrink_fac >] [< -shrink_fac_bot_lim SFBL >]\n"
                "             [< -pushout >] [< -no_pushout >] [< -exp_frac FRAC]\n"
                "             [< -touchup >] [< -no_touchup >]\n"
                "             [< -fill_hole R >] [< -NN_smooth NN_SM >]\n"
@@ -205,7 +211,8 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "        For denser meshes, you need more iterations\n"
                "        N_ITER of 750 works for LD of 50.\n"
                "     -ld LD: Parameter to control the density of the surface.\n"
-               "             Default is 20. See CreateIcosahedron -help\n"
+               "             Default is 20 if -no_use_edge is used,\n"
+               "             30 with -use_edge. See CreateIcosahedron -help\n"
                "             for details on this option.\n"
                "     -shrink_fac SF: Parameter controlling the brain vs non-brain\n"
                "             intensity threshold (tb). Default is 0.6.\n"
@@ -224,9 +231,12 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "             the outer surface of the brain. (Default)\n"
                "     -no_var_shrink_fac: Do not use var_shrink_fac.\n"
                "     -shrink_fac_bot_lim SFBL: Do not allow the varying SF to go\n"
-               "             below SFBL . Default 0.65. \n"
+               "             below SFBL . Default 0.65, 0.4 when edge detection is used. \n"
                "             This option helps reduce potential for leakage below \n"
                "             the cerebellum.\n"
+               "             In certain cases where you have severe non-uniformity resulting\n"
+               "             in low signal towards the bottom of the brain, you will need to reduce\n"
+               "             this parameter.\n"
 /*               "     -shrink_fac_bias SHRINK_BIAS_FILE: A file containing bias \n"
                "                      factors to apply to the shrink_fac at certain nodes.\n"
                "                      This option is experimental at the moment.\n"
@@ -380,7 +390,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
    Opt->Zt = 0.6;
    Opt->ExpFrac = 0.1;
    Opt->N_it = 250;
-   Opt->Icold = 20;
+   Opt->Icold = -1;
    Opt->NodeDbg = -1;
    Opt->t2 = Opt->t98 = Opt->t = Opt->tm = -1;
    Opt->r = 0;
@@ -405,7 +415,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
    Opt->PercInt = 0;
    Opt->UseSkull = 0;
    Opt->send_hull = 1;
-   Opt->bot_lztclip = 0.65; /* 0.5 is OK but causes too much leakage below cerebellum in most dsets, 0.65 seems better. 0 if you do not want to use it*/
+   Opt->bot_lztclip = -1; /* 0.5 is OK but causes too much leakage below cerebellum in most dsets, 0.65 seems better. 0 if you do not want to use it*/
 	Opt->var_lzt = 1.0; /* a flag at the moment, set it to 1 to cause shirnk fac to vary during iterations. Helps escape certain large 
                            chunks of CSF just below the brain */
    Opt->DemoPause = SUMA_3dSS_NO_PAUSE;
@@ -912,6 +922,16 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
       exit (1);      
    }
    
+   if (Opt->bot_lztclip < 0) {
+      if (!Opt->Use_emask) Opt->bot_lztclip = 0.65;
+      else Opt->bot_lztclip = 0.4;
+   }
+   
+   if (Opt->Icold < 0) {
+      if (!Opt->Use_emask) Opt->Icold = 20;
+      else Opt->Icold = 30;
+   }
+   
    if (Opt->fillhole < 0) {
       if (Opt->UseExpansion) {
          if (Opt->debug) {
@@ -1075,13 +1095,29 @@ int main (int argc,char *argv[])
          if (Opt->debug) SUMA_S_Note("Overriding default resampling");
          mri_brainormalize_initialize(Opt->SpatNormDxyz, Opt->SpatNormDxyz, Opt->SpatNormDxyz);
       } else {
-         mri_brainormalize_initialize(Opt->iset->daxes->xxdel, Opt->iset->daxes->yydel, Opt->iset->daxes->zzdel);
+         float xxdel, yydel, zzdel, minres;
+         if (Opt->monkey) minres = 0.5;
+         else minres = 0.5;
+         /* don't allow for too low a resolution, please */
+         if (SUMA_ABS(Opt->iset->daxes->xxdel) < minres) xxdel = minres;
+         else xxdel = SUMA_ABS(Opt->iset->daxes->xxdel);
+         if (SUMA_ABS(Opt->iset->daxes->yydel) < minres) yydel = minres;
+         else yydel = SUMA_ABS(Opt->iset->daxes->yydel);
+         if (SUMA_ABS(Opt->iset->daxes->zzdel) < minres) zzdel = minres;
+         else zzdel = SUMA_ABS(Opt->iset->daxes->zzdel);
+         if (Opt->debug) {
+            fprintf(SUMA_STDERR,"%s:\n Original resolution %f, %f, %f\n SpatNorm resolution %f, %f, %f\n",
+                        FuncName, Opt->iset->daxes->xxdel, Opt->iset->daxes->yydel, Opt->iset->daxes->zzdel, 
+                        xxdel, yydel, zzdel);
+         }   
+         mri_brainormalize_initialize(xxdel, yydel, zzdel);
       }
+      
       if (Opt->d1 < 0) {
-         Opt->d1 = 20.0/THD_BN_rat(); /* half as big */
+         Opt->d1 = 20.0/THD_BN_rat(); /* account for size difference */
       }
       if (Opt->d4 < 0) {
-         Opt->d4 = 15.0/THD_BN_rat(); /* half as big */
+         Opt->d4 = 15.0/THD_BN_rat(); /* account for size difference */
       }
       
       if (Opt->debug > 1) fprintf(SUMA_STDERR,"%s: Size Ratio = %f\n", FuncName, THD_BN_rat());
@@ -1329,7 +1365,7 @@ int main (int argc,char *argv[])
          }
       }
       /* get the mask threshold */
-      PercRange[0] = 90; PercRange[1] = 95;
+      PercRange[0] = 92; PercRange[1] = 99.999;
       emask_sort = SUMA_PercRange (Opt->emask, NULL, DSET_NVOX(Opt->in_vol), PercRange, PercRangeVal, NULL);
       if (!emask_sort) {
          fprintf( stderr, "ERROR: mask sorting failed.\n" );
@@ -1337,9 +1373,12 @@ int main (int argc,char *argv[])
       } else {
          SUMA_free(emask_sort); emask_sort = NULL;
       }
+      /* The minimum acceptable edge is at least one tenth of the 99.999 percentile edge */
+      if (PercRangeVal[0] < PercRangeVal[1]/10.0) PercRangeVal[0] = PercRangeVal[1]/10.0;
       
-      if (Opt->debug) fprintf (SUMA_STDERR,"%s: Edge threshold set to %f (%f percentile), (%f percentile = %f)\n", 
-                        FuncName, PercRangeVal[0], PercRange[0], PercRange[1], PercRangeVal[1]);
+      if (Opt->debug) fprintf (SUMA_STDERR,  "%s: Edge threshold set to %f (perhaps from %f percentile, minimum acceptable was %f)\n"
+                                             "      (%f percentile = %f)\n", 
+                        FuncName, PercRangeVal[0], PercRange[0], PercRange[1]/10.0, PercRange[1], PercRangeVal[1]);
       /* Now that we have an edge vector, select appropriate values */
       for (ii=0; ii<DSET_NVOX(Opt->in_vol); ++ii) {
          if (Opt->emask[ii] < PercRangeVal[0]) Opt->emask[ii] = 0.0;
@@ -1355,8 +1394,8 @@ int main (int argc,char *argv[])
             SUMA_free(emask_sort); emask_sort = NULL;
          }
 
-         if (Opt->debug) fprintf (SUMA_STDERR,"%s: Fat Edge threshold set to %f (%f percentile), (%f percentile = %f)\n", 
-                           FuncName, PercRangeVal[0], PercRange[0], PercRange[1], PercRangeVal[1]);
+         if (Opt->debug) fprintf (SUMA_STDERR,"%s: Fat Edge threshold set to %f (from %f percentile) , (%f percentile = %f)\n", 
+                           FuncName, PercRangeVal[0], PercRange[0],  PercRange[1], PercRangeVal[1]);
          /* Now that we have an edge vector, select appropriate values */
          for (ii=0; ii<DSET_NVOX(Opt->in_vol); ++ii) {
             if (Opt->fatemask[ii] < PercRangeVal[0]) Opt->fatemask[ii] = 0.0;
