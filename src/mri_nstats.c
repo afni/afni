@@ -43,7 +43,7 @@ float mri_nstat( int code , MRI_IMAGE *im )
        vv /= (npt-1) ;
             if( code == NSTAT_SIGMA ) outval = sqrt(vv) ;
        else if( code == NSTAT_VAR   ) outval = vv ;
-       else if( mm   !=  0.0f        ) outval = sqrt(vv) / fabsf(mm) ;
+       else if( mm   !=  0.0f       ) outval = sqrt(vv) / fabsf(mm) ;
      }
      break ;
 
