@@ -127,17 +127,15 @@ static char * g_history[] =
   "   - added remove_ext_list(), for removing a list of extensions by indices\n"
   "   - added -strip action, to strip all extensions and descrip fields\n"
   "\n",
-  "1.9  25 August 2005 [rickr] - const/string cleanup for warnings\n"
-  "\n",
-  "1.10 18 November 2005 [rickr] - added check_hdr and check_nim actions\n"
-  "\n",
-  "1.11 31 January 2006 [rickr] - check for new vox_offset in act_mod_hdrs\n"
-  "\n",
-  "1.12 02 March 2006 [rickr]\n"
-  "   - in act_cbl(), check for nt = 0 because of niftilib update 1.17\n"
+  "1.9  25 Aug 2005 [rickr] - const/string cleanup for warnings\n",
+  "1.10 18 Nov 2005 [rickr] - added check_hdr and check_nim actions\n",
+  "1.11 31 Jan 2006 [rickr] - check for new vox_offset in act_mod_hdrs\n",
+  "1.12 02 Mar 2006 [rickr]\n"
+  "   - in act_cbl(), check for nt = 0 because of niftilib update 1.17\n",
+  "1.13 24 Apr 2006 [rickr] - act_disp_ci(): remove time series length check\n",
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 1.12 (March 2, 2006)";
+static char g_version[] = "version 1.13 (April 24, 2006)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -3128,13 +3126,8 @@ int act_disp_ci( nt_opts * opts )
          if( data ) free(data);
          err++;
       }
-      else if( len != (nim->nt * nim->nbyper) )
-      {
-         fprintf(stderr,"** dset read '%s', returned length %d instead of %d\n",
-                 nim->fname, len, nim->nt * nim->nbyper);
-         free(data);  data = NULL;
-         err++;
-      }
+
+      /* remove check for length of time series  24 Apr 2006 */
 
       if( err ){ nifti_image_free(nim);  continue; }
 
