@@ -265,6 +265,7 @@ static mday holiday[] = {
    {APR, 4,"Hungary Liberation Day"                                  } ,
    {APR, 4,"Senegal Independence Day"                                } ,
    {APR, 4,"Yamamoto Isoroku's birthday"                             } ,
+   {APR, 6,"Birthday of the Twinkie"                                 } ,
    {APR, 8,"Siddhartha Gautama's birthday"                           } ,
    {APR, 9,"Anniversary of Lee's surrender at Appomattox"            } ,
    {APR,10,"Anniversary of loss of USS Thresher"                     } ,
