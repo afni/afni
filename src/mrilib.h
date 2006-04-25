@@ -1172,4 +1172,16 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
 
 /*------------------------------------------------------------------*/
 
+#define METRIC_KULL  0
+#define METRIC_HELL  1
+#define METRIC_TRIA  2
+#define METRIC_JDIV  3
+#define METRIC_JSDV  4
+#define METRIC_XISQ  5
+#define METRIC_XXSQ  6
+#define METRIC_AGDV  7
+extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
+
+/*------------------------------------------------------------------*/
+
 #endif /* _MCW_MRILIB_HEADER_ */
