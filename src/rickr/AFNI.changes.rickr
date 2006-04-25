@@ -1484,3 +1484,5 @@
 
 24 Apr 2006: nifti_tool.c:act_disp_ci(): removed time series length check
 
+25 Apr 2006: changed ^M to newline in 3dcopy.c (stupid Macs)
+
