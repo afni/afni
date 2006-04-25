@@ -1,11 +1,13 @@
 #include "mrilib.h"
 
+void mri_metrics_pp( MRI_IMAGE *imp , MRI_IMAGE *imq , float *met ) ;
+
 int main( int argc , char * argv[] )
 {
-   int narg , ndset , nvox ;
+   int narg , ndset , nvox , nvals,iv ;
    THD_3dim_dataset *xset , *yset , *mask_dset=NULL ;
    byte *mmm=NULL ;
-   float met[3] ;
+   float met[9] ;
 
    /*-- read command line arguments --*/
 
@@ -44,8 +46,9 @@ int main( int argc , char * argv[] )
    if( xset == NULL || yset == NULL )
      ERROR_exit("Cannot open both input datasets!\n") ;
 
-   if( DSET_NVALS(xset) > 1 || DSET_NVALS(yset) > 1 )
-     WARNING_message("Will only use sub-brick #0 of input datasets") ;
+   if( DSET_NVALS(xset) > 1 )
+     WARNING_message("Will only use sub-brick #0 of 1st input dataset") ;
+   nvals = DSET_NVALS(yset) ;
 
    nvox = DSET_NVOX(xset) ;
    if( nvox != DSET_NVOX(yset) )
@@ -71,10 +74,84 @@ int main( int argc , char * argv[] )
    DSET_load(yset) ;
    if( !DSET_LOADED(yset) ) ERROR_exit("Can't load 2nd dataset") ;
 
-   mri_metrics( DSET_BRICK(xset,0) , DSET_BRICK(yset,0) , met ) ;
+   printf("# KULL   HELL  TRIA   JDIV   JSDV   XISQ   XXSQ\n") ;
+   for( iv=0 ; iv < nvals ; iv++ ){
+#if 0
+     mri_metrics( DSET_BRICK(xset,0) , DSET_BRICK(yset,iv) , met ) ;
+     printf( "%f %f %f %f %f %f %f %f\n" ,
+             met[METRIC_KULL], met[METRIC_HELL], met[METRIC_TRIA] ,
+             met[METRIC_JDIV], met[METRIC_JSDV], met[METRIC_XISQ] ,
+             met[METRIC_XXSQ], met[METRIC_AGDV]
+           ) ;
+#else
+     mri_metrics_pp( DSET_BRICK(xset,0) , DSET_BRICK(yset,iv) , met ) ;
+     printf( "%f %f %f %f\n",met[0],met[1],met[2],met[3]) ;
+#endif
+   }
 
-   INFO_message("Mutual Info = %f",met[METRIC_KULL]) ;
-   INFO_message("Hellinger   = %f",met[METRIC_HELL]) ;
-   INFO_message("Triangular  = %f",met[METRIC_TRIA]) ;
    exit(0) ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void mri_metrics_pp( MRI_IMAGE *imp , MRI_IMAGE *imq , float *met )
+{
+   int nvox ;
+   int *rst , *pst , *qst ;
+   byte *par, *qar ;
+   float qj,rij , rat,tmp,lrr,rm1,rp1 , fac ;
+   float esum,tsum,hsum , jsum,dsum,xsum , qsum,asum ;
+   register int ii,jj,kk ;
+   MRI_IMAGE *imqq, *impp ;
+
+   if( imp == NULL || imq == NULL            ) return ;
+   if( met == NULL || imp->nvox != imq->nvox ) return ;
+
+   nvox = imp->nvox ; fac = 1.0f / nvox ;
+
+   impp = (imp->kind==MRI_byte) ? imp : mri_to_byte(imp) ;
+   imqq = (imq->kind==MRI_byte) ? imq : mri_to_byte(imq) ;
+   par  = MRI_BYTE_PTR(impp) ;
+   qar  = MRI_BYTE_PTR(imqq) ;
+
+   pst = (int *)calloc(256    ,sizeof(int)) ;
+   qst = (int *)calloc(256    ,sizeof(int)) ;
+   rst = (int *)calloc(256*256,sizeof(int)) ;
+
+   for( kk=0 ; kk < nvox ; kk++ ){
+     ii = par[kk] ; jj = qar[kk] ;
+     pst[ii]++ ; qst[jj]++ ; rst[ii+256*jj]++ ;
+   }
+
+   esum = tsum = hsum = 0.0f ;
+   jsum = dsum = xsum = 0.0f ;
+   qsum = asum =        0.0f ;
+   for( jj=0 ; jj < 256 ; jj++ ){
+     qj = (float)qst[jj] ;
+     if( qj > 0.0f ){
+       kk = 256*jj ; qj *= fac ;
+       for( ii=0 ; ii < 256 ; ii++ ){
+         rij = (float)rst[ii+kk] ;
+         if( rij > 0.0f ){
+           rat = (qj *(float)pst[ii]) / rij ;
+           lrr = logf(rat) ;
+
+           esum += rij * lrr ;
+           tmp   = 1.0f/sqrtf(rat)-1.0f ; hsum += rij * tmp ;
+           tmp   = 1.0f/cbrtf(rat)-1.0f ; qsum += rij * tmp ;
+           tmp   = lrr*lrr              ; asum += rij * tmp ;
+         }
+       }
+     }
+   }
+
+   free((void*)rst); free((void*)qst); free((void*)pst);
+   if( impp != imp ) mri_free(impp);
+   if( imqq != imq ) mri_free(imqq);
+
+   met[0] = -fac * esum ;
+   met[1] =  fac * hsum ;
+   met[2] =  fac * qsum * 2.0f ;
+   met[3] =  fac * asum * 0.5f ;
+   return ;
 }
