@@ -1,6 +1,6 @@
 #include "mrilib.h"
 
-void mri_metrics_pp( MRI_IMAGE *imp , MRI_IMAGE *imq , float *met ) ;
+void mri_metrics_pp( MRI_IMAGE *imp, MRI_IMAGE *imq, float *met, byte *mmm ) ;
 
 int main( int argc , char * argv[] )
 {
@@ -74,19 +74,10 @@ int main( int argc , char * argv[] )
    DSET_load(yset) ;
    if( !DSET_LOADED(yset) ) ERROR_exit("Can't load 2nd dataset") ;
 
-   printf("# KULL   HELL  TRIA   JDIV   JSDV   XISQ   XXSQ\n") ;
+   printf("# LOG SQRT CBRT\n") ;
    for( iv=0 ; iv < nvals ; iv++ ){
-#if 0
-     mri_metrics( DSET_BRICK(xset,0) , DSET_BRICK(yset,iv) , met ) ;
-     printf( "%f %f %f %f %f %f %f %f\n" ,
-             met[METRIC_KULL], met[METRIC_HELL], met[METRIC_TRIA] ,
-             met[METRIC_JDIV], met[METRIC_JSDV], met[METRIC_XISQ] ,
-             met[METRIC_XXSQ], met[METRIC_AGDV]
-           ) ;
-#else
-     mri_metrics_pp( DSET_BRICK(xset,0) , DSET_BRICK(yset,iv) , met ) ;
-     printf( "%f %f %f %f\n",met[0],met[1],met[2],met[3]) ;
-#endif
+     mri_metrics_pp( DSET_BRICK(xset,0), DSET_BRICK(yset,iv), met, mmm ) ;
+     printf( "%f %f %f\n",met[0],met[1],met[2]) ;
    }
 
    exit(0) ;
@@ -94,9 +85,9 @@ int main( int argc , char * argv[] )
 
 /*------------------------------------------------------------------------*/
 
-void mri_metrics_pp( MRI_IMAGE *imp , MRI_IMAGE *imq , float *met )
+void mri_metrics_pp( MRI_IMAGE *imp , MRI_IMAGE *imq , float *met , byte *mmm )
 {
-   int nvox ;
+   int nvox , nmmm=0 ;
    int *rst , *pst , *qst ;
    byte *par, *qar ;
    float qj,rij , rat,tmp,lrr,rm1,rp1 , fac ;
@@ -107,7 +98,7 @@ void mri_metrics_pp( MRI_IMAGE *imp , MRI_IMAGE *imq , float *met )
    if( imp == NULL || imq == NULL            ) return ;
    if( met == NULL || imp->nvox != imq->nvox ) return ;
 
-   nvox = imp->nvox ; fac = 1.0f / nvox ;
+   nvox = imp->nvox ;
 
    impp = (imp->kind==MRI_byte) ? imp : mri_to_byte(imp) ;
    imqq = (imq->kind==MRI_byte) ? imq : mri_to_byte(imq) ;
@@ -118,9 +109,20 @@ void mri_metrics_pp( MRI_IMAGE *imp , MRI_IMAGE *imq , float *met )
    qst = (int *)calloc(256    ,sizeof(int)) ;
    rst = (int *)calloc(256*256,sizeof(int)) ;
 
-   for( kk=0 ; kk < nvox ; kk++ ){
-     ii = par[kk] ; jj = qar[kk] ;
-     pst[ii]++ ; qst[jj]++ ; rst[ii+256*jj]++ ;
+   if( mmm != NULL ){
+     for( kk=0 ; kk < nvox ; kk++ ) if( mmm[kk] ) nmmm++ ;
+     fac = 1.0f / nmmm ;
+     for( kk=0 ; kk < nvox ; kk++ ){
+       if( mmm[kk] == 0 ) continue ;
+       ii = par[kk] ; jj = qar[kk] ;
+       pst[ii]++ ; qst[jj]++ ; rst[ii+256*jj]++ ;
+     }
+   } else {
+     fac = 1.0f / nvox ;
+     for( kk=0 ; kk < nvox ; kk++ ){
+       ii = par[kk] ; jj = qar[kk] ;
+       pst[ii]++ ; qst[jj]++ ; rst[ii+256*jj]++ ;
+     }
    }
 
    esum = tsum = hsum = 0.0f ;
@@ -139,7 +141,7 @@ void mri_metrics_pp( MRI_IMAGE *imp , MRI_IMAGE *imq , float *met )
            esum += rij * lrr ;
            tmp   = 1.0f/sqrtf(rat)-1.0f ; hsum += rij * tmp ;
            tmp   = 1.0f/cbrtf(rat)-1.0f ; qsum += rij * tmp ;
-           tmp   = lrr*lrr              ; asum += rij * tmp ;
+           tmp   = lrr*lrr*lrr          ; asum += rij * tmp ;
          }
        }
      }
@@ -149,9 +151,8 @@ void mri_metrics_pp( MRI_IMAGE *imp , MRI_IMAGE *imq , float *met )
    if( impp != imp ) mri_free(impp);
    if( imqq != imq ) mri_free(imqq);
 
-   met[0] = -fac * esum ;
-   met[1] =  fac * hsum ;
-   met[2] =  fac * qsum * 2.0f ;
-   met[3] =  fac * asum * 0.5f ;
+   met[0] = -fac * esum * 0.5f ;
+   met[1] =  fac * hsum * 0.5f ;
+   met[2] =  fac * qsum ;
    return ;
 }
