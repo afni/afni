@@ -76,6 +76,6 @@ extern int compare_double (double *a, double *b );
 extern int compare_float (float *a, float *b );
 extern int compare_int (int *a, int *b );
 extern int compare_short (short *a, short *b );
-extern int compare_byte (byte *a, byte *b );
+extern int compare_char (char *a, char *b );
 
 #endif
