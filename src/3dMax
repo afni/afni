@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 echo "*****"   > /dev/stderr
-echo "NOTE: 3dMax is now replaced by 3dBrickStat"   > /dev/stderr
+echo "NOTE: 3dMax has been replaced by 3dBrickStat"   > /dev/stderr
 echo "***** This script will run 3dBrickStat for"   > /dev/stderr
 echo "      you to avoid breaking your code."   > /dev/stderr
 echo "      Please start using new name."   > /dev/stderr
@@ -10,4 +10,12 @@ echo " "> /dev/stderr
 
 3dBrickStat $argv[*]
 
+echo "*****"   > /dev/stderr
+echo "NOTE: 3dMax has been replaced by 3dBrickStat"   > /dev/stderr
+echo "***** This script will run 3dBrickStat for"   > /dev/stderr
+echo "      you to avoid breaking your code."   > /dev/stderr
+echo "      Please start using new name."   > /dev/stderr
+echo "Finished Running: "  > /dev/stderr
+echo " 3dBrickStat $argv[*] " > /dev/stderr
+echo " "> /dev/stderr
 
