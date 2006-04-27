@@ -60,4 +60,22 @@ extern float cl1_solve_res( int, int, float *, float **, float *,int, float*,int
 
 extern char *approximate_number_string( double ) ;  /* 16 Jan 2004 */
 
+typedef struct {
+      float x;
+      int Index;
+} Z_QSORT_FLOAT;
+
+typedef struct {
+      int x;
+      int Index;
+} Z_QSORT_INT;
+
+extern int compare_Z_IQSORT_FLOAT (Z_QSORT_FLOAT *a, Z_QSORT_FLOAT *b );
+extern int compare_Z_IQSORT_INT (Z_QSORT_INT *a, Z_QSORT_INT *b );
+extern int compare_double (double *a, double *b );
+extern int compare_float (float *a, float *b );
+extern int compare_int (int *a, int *b );
+extern int compare_short (short *a, short *b );
+extern int compare_byte (byte *a, byte *b );
+
 #endif

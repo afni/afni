@@ -53,6 +53,9 @@ int main(int argc, char *argv[])
     float *input_data;
     byte *temp_datab;
     short *temp_datas;
+    double *percentile=NULL;
+    float *fv = NULL;
+    int nfv = 0, perc = 0, nzperc = 0;
 
     if (argc < 3 || strcmp(argv[1], "-help") == 0) {
 	printf("Usage: 3dROIstats -mask[n] mset [options] datasets\n"
@@ -122,6 +125,8 @@ int main(int argc, char *argv[])
 	       "  -nzminmax     Compute the min/max of non_zero voxels\n"
 	       "  -sigma        Means to compute the standard deviation as well\n"
 	       "                 as the mean.\n"
+          "  -median       Compute the median of all voxels.\n"
+          "  -nzmedian     Compute the median of non_zero voxels.\n"
 	       "  -summary      Only output a summary line with the grand mean across all briks\n"
 	       "                 in the input dataset. \n"
 	       "\n"
@@ -191,6 +196,22 @@ int main(int argc, char *argv[])
  */
 	if (strncmp(argv[narg], "-sigma", 5) == 0) {
 	    sigma = 1;
+	    narg++;
+	    continue;
+	}
+	if (strncmp(argv[narg], "-median", 5) == 0) {
+	    if (nzperc) {
+         Error_Exit("perc cannot be used with nzperc");
+       }
+       perc = 1;
+	    narg++;
+	    continue;
+	}
+   if (strncmp(argv[narg], "-nzmedian", 5) == 0) {
+	    if (perc) {
+         Error_Exit("nzperc cannot be used with perc");
+       }
+       nzperc = 1;
 	    narg++;
 	    continue;
 	}
@@ -343,6 +364,12 @@ int main(int argc, char *argv[])
 		    fprintf(stdout, "\tNZMin_%d ", i - 32768);
 		    fprintf(stdout, "\tNZMax_%d ", i - 32768);
 		}
+      if (perc) {
+         fprintf(stdout, "\tMed_%d ", i - 32768);
+      }
+      if (nzperc) {
+         fprintf(stdout, "\tNZMed_%d ", i - 32768);
+      }
 	    }
 	}
     /* load the non_zero array if the numROI option used - 5/00 */
@@ -365,6 +392,12 @@ int main(int argc, char *argv[])
 		    fprintf(stdout, "\tNZMin_%d ", i );
 		    fprintf(stdout, "\tNZMax_%d ", i );
 		}
+      if (perc) {
+         fprintf(stdout, "\tMed_%d ", i );
+      }
+      if (nzperc) {
+         fprintf(stdout, "\tNZMed_%d ", i );
+      }
 	    }
 	}
 	num_ROI = force_num_ROI;
@@ -497,7 +530,8 @@ int main(int argc, char *argv[])
 
 	    /* do the stats */
 
-	    for (i = 0; i < nvox; i++) {
+	    
+       for (i = 0; i < nvox; i++) {
 		if (mask_data[i]) {
 		    ROI = non_zero[mask_data[i] + 32768];
 		    if ((ROI < 0) || (ROI >= num_ROI))
@@ -524,8 +558,33 @@ int main(int argc, char *argv[])
 			sumsq[ROI] += input_data[i] * input_data[i];
 		}
 	    }
-
-	    /* print the next line of results */
+       /* do the damned median, simple, not fastest implementation but good enough*/
+       if (perc || nzperc) {
+         percentile = (double *)malloc(sizeof(double)*num_ROI);
+         fv = (float *)malloc(sizeof(float)*nvox);
+         if (!fv || !percentile) {
+            Error_Exit("Failed to allocate for fv");
+         }
+         for (ROI=0; ROI < num_ROI; ++ROI){ /* ROI */
+            nfv = 0;
+            for (i = 0; i < nvox; i++) { /* i */
+               if (mask_data[i] && ROI == non_zero[mask_data[i] + 32768]) {
+                  if (perc) { 
+                     fv[nfv] = input_data[i]; ++nfv; 
+                  } else { /* non zero only */
+                     if (input_data[i] != 0.0) { 
+                        fv[nfv] = input_data[i]; ++nfv; 
+                     }  
+                  }
+               }
+            }/* i */
+            /* get the median */
+            percentile[ROI] = (double) qmed_float( nfv , fv ) ;
+         } /* ROI */
+         free(fv); fv = NULL;
+	    }
+       
+       /* print the next line of results */
 	    if (!quiet && !summary)
 		fprintf(stdout, "%s\t%d", argv[narg], brik);
 	    if (!summary) {
@@ -553,6 +612,9 @@ int main(int argc, char *argv[])
 			    fprintf(stdout, "\t%f", nzmin[i] );
 			    fprintf(stdout, "\t%f", nzmax[i] );
 			}
+         if (perc || nzperc) {
+			    fprintf(stdout, "\t%f", percentile[i] );
+			}
 		    } else {	/* no voxels, so just leave blanks */
 			fprintf(stdout, "\t ");
 			if (nzmean)
@@ -569,6 +631,8 @@ int main(int argc, char *argv[])
 			    fprintf(stdout, "\t ");
 			    fprintf(stdout, "\t ");
 			}
+         if (perc || nzperc)
+			    fprintf(stdout, "\t ");
 		    }
 		}		/* loop over ROI for print */
 
@@ -618,5 +682,8 @@ int main(int argc, char *argv[])
     }
     if (sigma)
 	free(sumsq);
+    if (perc || nzperc) {
+	if (percentile) free(percentile); percentile = NULL;
+	 }
     exit(0);
 }
