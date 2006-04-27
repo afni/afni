@@ -1789,7 +1789,7 @@ byte * UniqueByte (byte *y, int ysz, int *kunq, int Sorted )
          }
       for (k=0; k < ysz; ++k)
          x[k] = y[k];
-      qsort(x,ysz,sizeof(byte), (int(*) (const void *, const void *)) compare_byte);
+      qsort(x,ysz,sizeof(byte), (int(*) (const void *, const void *)) compare_char);
    }
    else
       x = y;
