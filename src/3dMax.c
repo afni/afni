@@ -11,16 +11,23 @@ static void Max_tsfunc( double tzero , double tdelta ,
                          int npts , float ts[] , double ts_mean ,
                          double ts_slope , void * ud , int nbriks, float * val ) ;
 static float minvalue=1E10, maxvalue=-1E10;
+
+
 /*! compute the overall minimum and maximum voxel values for a dataset */
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
    int nopt, nbriks;
    int slow_flag, quick_flag, min_flag, max_flag, mean_flag, automask,count_flag, sum_flag;
-   int positive_flag, negative_flag, zero_flag, nan_flag;
+   int positive_flag, negative_flag, zero_flag, nan_flag, perc_flag;
    byte * mmm=NULL ;
    int    mmvox=0 ;
    int nxyz, i;
+   float *dvec = NULL;
+   int N_mp;
+   double *mpv=NULL, *perc = NULL;
+   double mp =0.0f, mp0 = 0.0f, mps = 0.0f, mp1 = 0.0f, di =0.0f ;
+   byte *mmf = NULL;
    MRI_IMAGE *anat_im = NULL;
 
 
@@ -31,6 +38,9 @@ int main( int argc , char * argv[] )
              "\n"
              "The output is a number to the console.  The input dataset\n"
              "may use a sub-brick selection list, as in program 3dcalc.\n"
+             "\n"
+             "Note: If you don't specify one sub-brick, the parameter you get\n"
+             "----- back is computed from all the sub-bricks in dataset.\n"
              "Options :\n"
              "  -quick = get the information from the header only (default)\n"
              "  -slow = read the whole dataset to find the min and max values\n"
@@ -49,7 +59,16 @@ int main( int argc , char * argv[] )
              "  -mask dset = use dset as mask to include/exclude voxels\n"
              "  -automask = automatically compute mask for dataset\n"
              "    Can not be combined with -mask\n"
-	     "  -ver = print author and version info\n"
+	          "  -percentile p0 ps p1 write the percentile values starting\n"
+             "              at p0%% and ending at p1%% at a step of ps%%\n"
+             "              To get the median, just use -percentile 50 1 50\n"
+             "              Output is of the the form p%%  value p%% value ...\n"
+             "              Percentile values are output first. Only one sub-brick\n"
+             "              is accepted as input with this option.\n"
+             "              Write the author if you REALLY need this option\n"
+             "              to work with multiple sub-bricks.\n"
+             "  -median a shortcut for -percentile 50 1 50\n"
+        "  -ver = print author and version info\n"
              "  -help = print this help screen\n"
            ) ;
       printf("\n" MASTER_SHORTHELP_STRING ) ;
@@ -71,7 +90,8 @@ int main( int argc , char * argv[] )
    negative_flag = -1;
    zero_flag = -1;
    nan_flag = -1;
-
+   perc_flag = -1;
+   
    datum = MRI_float;
    while( nopt < argc && argv[nopt][0] == '-' ){
       if( strcmp(argv[nopt],"-ver") == 0 ){
@@ -81,6 +101,26 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-quick") == 0 ){
 	quick_flag = 1;
+        nopt++; continue;
+      }
+
+      if( strcmp(argv[nopt],"-percentile") == 0 ){
+	perc_flag = 1;
+        ++nopt;
+        if (nopt + 2 >= argc) {
+           ERROR_exit( "** Error: Need 3 parameter after -percentile\n"); 
+        }
+        mp0 = atof(argv[nopt])/100.0f; ++nopt;
+        mps = atof(argv[nopt])/100.0f; ++nopt;
+        mp1 = atof(argv[nopt])/100.0f; 
+        nopt++; continue;
+      }
+
+      if( strcmp(argv[nopt],"-median") == 0 ){
+	perc_flag = 1;
+        mp0 = 0.50f; 
+        mps = 0.01f; 
+        mp1 = 0.50f;
         nopt++; continue;
       }
 
@@ -238,13 +278,13 @@ int main( int argc , char * argv[] )
    }
 
    if(max_flag==-1) {                   /* if max_flag is not set by user,*/
-     if(min_flag || mean_flag ||count_flag || sum_flag)   /* check if other user options set */
+     if(min_flag || mean_flag ||count_flag || sum_flag || perc_flag)   /* check if other user options set */
          max_flag = 0;
       else
 	max_flag = 1;                  /* otherwise check only for max */
      }
 
-   if((mean_flag==1)||(count_flag==1)||(positive_flag!=-1)||(nan_flag!=-1)||(sum_flag == 1))  /* mean flag or count_flag implies slow */
+   if((mean_flag==1)||(count_flag==1)||(positive_flag!=-1)||(nan_flag!=-1)||(sum_flag == 1)||(perc_flag == 1))  /* mean flag or count_flag implies slow */
      slow_flag = 1;
 
    /* check slow and quick options */
@@ -295,11 +335,64 @@ int main( int argc , char * argv[] )
    if(slow_flag!=1)
       exit(0);
 
+   /* ZSS do some diddlyiddly sorting - DO not affect Daniel's function later on*/
+   if (perc_flag == 1) {
+      DSET_mallocize (old_dset);
+      DSET_load (old_dset);	                
+      if (DSET_NVALS(old_dset) != 1) {
+         ERROR_exit( "-percentile can only be used on one sub-brick only.\n"
+                     "Use sub-brick selectors '[.]' to specify sub-brick of interest.\n");
+      }
+      
+     /* prep for input and output of percentiles */
+      if (mp0 > mp1) {
+         N_mp = 1; 
+      } else {
+         N_mp = (int)((double)(mp1-mp0)/(double)mps) + 1;
+      } 
+      mpv = (double *)malloc(sizeof(double)*N_mp);
+      perc = (double *)malloc(sizeof(double)*N_mp);
+      if (!mpv || !perc) {
+         ERROR_message("Failed to allocate for mpv or perc");
+         exit(1);
+      }  
+      N_mp = 0;
+      mp = mp0;
+      do {
+         mpv[N_mp] = mp; ++N_mp; mp += mps;
+      } while (mp <= mp1+.00000001);
+
+      if (!Percentate (DSET_ARRAY(old_dset, 0), mmm, nxyz,
+               DSET_BRICK_TYPE(old_dset,0), mpv, N_mp,
+               0, perc,
+               zero_flag, positive_flag, negative_flag )) {
+
+         ERROR_message("Failed to compute percentiles.");
+         exit(1);         
+      }
+      
+      /* take care of brick factor */
+      if (DSET_BRICK_FACTOR(old_dset,0)) {
+         for (i=0; i<N_mp; ++i) {
+            perc[i] = perc[i]*DSET_BRICK_FACTOR(old_dset,0);
+         }
+      }
+      
+      for (i=0; i<N_mp; ++i) {
+         fprintf(stdout,"%.1f %f   ", mpv[i]*100.0f, perc[i]); 
+      }
+      free(mpv); mpv = NULL;
+      free(perc); perc = NULL;
+      
+   }
+
    Max_func(min_flag, max_flag, mean_flag,count_flag,positive_flag, negative_flag, zero_flag,\
      nan_flag, sum_flag, old_dset, mmm, mmvox);
 
+   
    if(mmm!=NULL)
      free(mmm);
+   
    exit(0);
 
 /* unused code time series method for extracting data */

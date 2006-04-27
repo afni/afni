@@ -1520,62 +1520,6 @@ else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
 /* Begin ZSS: Additions for Eickhoff and Zilles Cytoarchitectonic maps */
 
 
-int compare_Z_IQSORT_FLOAT (Z_QSORT_FLOAT *a, Z_QSORT_FLOAT *b )
-{
-   if (a->x < b->x)
-      return (1);
-   else if (a->x == b->x)
-      return (0);
-   else if (a->x > b->x)
-      return (-1);
-   /* this will never be reached but it will shut the compiler up */
-   return (0);
-}
-
-int compare_Z_IQSORT_INT (Z_QSORT_INT *a, Z_QSORT_INT *b )
-{
-   if (a->x < b->x)
-      return (1);
-   else if (a->x == b->x)
-      return (0);
-   else if (a->x > b->x)
-      return (-1);
-   /* this will never be reached but it will shut the compiler up */
-   return (0);
-}
-
-int compare_int (int *a, int *b )
-{/* compare_int*/
-    if (*a < *b)
-      return (-1);
-   else if (*a == *b)
-      return (0);
-   else
-      return (1);
-   
-}/* compare_short*/
-
-int compare_short (short *a, short *b )
-{/* compare_short*/
-    if (*a < *b)
-      return (-1);
-   else if (*a == *b)
-      return (0);
-   else
-      return (1);
-   
-}/* compare_short*/
-
-int compare_byte (byte *a, byte *b )
-{/* compare_byte*/
-    if (*a < *b)
-      return (-1);
-   else if (*a == *b)
-      return (0);
-   else
-      return (1);
-   
-}/* compare_byte*/
 
 /*!
     l left
