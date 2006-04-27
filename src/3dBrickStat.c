@@ -1,4 +1,4 @@
-/*********************** 3dMax.c **********************************************/
+/*********************** 3dBrickStat.c **********************************************/
 /* Author: Daniel Glen, 26 Apr 2005 */
 #include "mrilib.h"
 #include "thd_shear3d.h"
@@ -33,7 +33,7 @@ int main( int argc , char * argv[] )
 
    /*----- Read command line -----*/
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dMax [options] dataset\n"
+      printf("Usage: 3dBrickStat [options] dataset\n"
              "Compute maximum and/or minimum voxel values of an input dataset\n"
              "\n"
              "The output is a number to the console.  The input dataset\n"
@@ -75,7 +75,7 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
-   mainENTRY("3dMax main"); machdep(); AFNI_logger("3dMax",argc,argv);
+   mainENTRY("3dBrickStat main"); machdep(); AFNI_logger("3dBrickStat",argc,argv);
    nopt = 1 ;
 
    min_flag  = 0;
@@ -95,7 +95,7 @@ int main( int argc , char * argv[] )
    datum = MRI_float;
    while( nopt < argc && argv[nopt][0] == '-' ){
       if( strcmp(argv[nopt],"-ver") == 0 ){
-        PRINT_VERSION("3dMax"); AUTHOR("Daniel Glen");
+        PRINT_VERSION("3dBrickStat"); AUTHOR("Daniel Glen");
         nopt++; continue;
       }
 
