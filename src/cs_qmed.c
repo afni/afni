@@ -280,8 +280,8 @@ int compare_short (short *a, short *b )
    
 }/* compare_short*/
 
-int compare_byte (byte *a, byte *b )
-{/* compare_byte*/
+int compare_char (char *a, char *b )
+{/* compare_char*/
     if (*a < *b)
       return (-1);
    else if (*a == *b)
@@ -289,7 +289,7 @@ int compare_byte (byte *a, byte *b )
    else
       return (1);
    
-}/* compare_byte*/
+}/* compare_char*/
 
 
 /*!
@@ -592,7 +592,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
    if (option != 2) { /* partial sort of vvec */
       switch (type) {
          case MRI_byte:
-            qsort(vvec, mmvox, sizeof(byte), (int(*) (const void *, const void *))compare_byte); 
+            qsort(vvec, mmvox, sizeof(byte), (int(*) (const void *, const void *))compare_char); 
             break; 
          case MRI_short:
             qsort(vvec, mmvox, sizeof(short), (int(*) (const void *, const void *))compare_short); 
