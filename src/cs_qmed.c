@@ -205,3 +205,445 @@ static float median_float9(float *p)
     SORT2(p[4],p[7]) ; SORT2(p[4],p[2]) ; SORT2(p[6],p[4]) ;
     SORT2(p[4],p[2]) ; return(p[4]) ;
 }
+
+
+void *Percentate (void *vec, byte *mm, int nxyz,
+                  int type, double *mpv, int N_mp,
+                  int option, double *perc ,
+                  int zero_flag, int positive_flag, int negative_flag);
+/*************** General purpose sorty functions ZSS 06********************/
+int compare_Z_IQSORT_FLOAT (Z_QSORT_FLOAT *a, Z_QSORT_FLOAT *b )
+{
+   if (a->x < b->x)
+      return (1);
+   else if (a->x == b->x)
+      return (0);
+   else if (a->x > b->x)
+      return (-1);
+   /* this will never be reached but it will shut the compiler up */
+   return (0);
+}
+
+int compare_Z_IQSORT_INT (Z_QSORT_INT *a, Z_QSORT_INT *b )
+{
+   if (a->x < b->x)
+      return (1);
+   else if (a->x == b->x)
+      return (0);
+   else if (a->x > b->x)
+      return (-1);
+   /* this will never be reached but it will shut the compiler up */
+   return (0);
+}
+
+int compare_double (double *a, double *b )
+{/* compare_double*/
+    if (*a < *b)
+      return (-1);
+   else if (*a == *b)
+      return (0);
+   else
+      return (1);
+   
+}/* compare_double*/
+
+int compare_float (float *a, float *b )
+{/* compare_float*/
+    if (*a < *b)
+      return (-1);
+   else if (*a == *b)
+      return (0);
+   else
+      return (1);
+   
+}/* compare_float*/
+
+int compare_int (int *a, int *b )
+{/* compare_int*/
+    if (*a < *b)
+      return (-1);
+   else if (*a == *b)
+      return (0);
+   else
+      return (1);
+   
+}/* compare_int*/
+
+int compare_short (short *a, short *b )
+{/* compare_short*/
+    if (*a < *b)
+      return (-1);
+   else if (*a == *b)
+      return (0);
+   else
+      return (1);
+   
+}/* compare_short*/
+
+int compare_byte (byte *a, byte *b )
+{/* compare_byte*/
+    if (*a < *b)
+      return (-1);
+   else if (*a == *b)
+      return (0);
+   else
+      return (1);
+   
+}/* compare_byte*/
+
+
+/*!
+   \brief find the percentiles of values in vec
+   void *Percentate (void *vec, byte *mm, int nxyz,
+                  int type, float *mpv, int N_mp,
+                  int option, float *perc )
+   \param vec (void *) pointer to nxyz values
+   \param mm (byte *) pointer to byte mask (NULL to include everything)
+   \param nxyz (int) number of values in vec and mm
+   \param type (int) think DSET_BRICK_TYPE(dset,isb)
+   \param mp (double*) vector of percentiles like [0.10 0.20 0.50 0.60] 
+   \param N_mp (int) number of percentiles in mp (4 for example above)
+   \param option (int)  0: vec is not sorted, but will be (partially if mm is not all 1s) 
+                           when the function returns
+                        1: vec is not sorted, but a copy will be made and returned
+                        2: vec is sorted already
+   \param perc (double *) percentile values in vec, should be big enough to contain
+                          N_mp values
+   \param zero_flag (int) if 1 then keep  zero values
+   \param positive_flag (int) if 1 then keep positive ( > 0) values 
+   \param negative_flag (int) if 1 then keep negative ( < 0) values 
+   \return vvec (void *)   NULL in case of error.
+                           If option is 0, vvec = vec so don't free vvec!
+                           If option is 1, vvec is a sorted copy of vec, need to free it separately.
+                           If option is 2, vvec = vec so don't free vvec!
+   *****
+   NOTE: For efficiency, sorting is done only for jth values where mm[j] != 0.
+   ***** So when vec is sorted only the first mmvox values are usable, where mmvox is the number
+         of voxels where mm[j] != 0. If your mask changes between calls, do not reuse a vec that
+         had been (partially) sorted by this function.
+         Also, keep in mind this if using the flags, the mask will differ from mm
+*/                           
+void *Percentate (void *vec, byte *mm, int nxyz,
+                  int type, double *mpv, int N_mp,
+                  int option, double *perc ,
+                  int zero_flag, int positive_flag, int negative_flag)
+{
+   void *vvec=NULL;
+   byte *bv=NULL;
+   short *sv=NULL;
+   int *iv=NULL;
+   float *fv=NULL;
+   double *dv=NULL;
+   byte *mmf=NULL;
+   int i,n, mmvox;
+   double di;
+   
+   ENTRY("Percentate");
+
+   if (!perc || !N_mp) {
+      ERROR_message("No return carrier or no values.");
+      RETURN(NULL);
+   }
+   if (!vec || !nxyz) {
+      ERROR_message("Null input or nxyz = 0.");
+      RETURN(NULL);
+   }
+   if (option < 0 || option > 2) {
+      ERROR_message("RTFM");
+      RETURN(NULL);
+   }      
+
+   /* prep input */
+   if (option == 0 || option == 2) {
+      vvec = vec;
+   } else {
+      /* make copy */
+      switch (type) {
+         case MRI_byte:
+            vvec = (void *)malloc(sizeof(byte)*nxyz);
+            if (!vvec) {
+               ERROR_message("Failed to allocate 1.");
+               RETURN(NULL);
+            }
+            memcpy(vvec, vec, nxyz*sizeof(byte));
+            break;
+         case MRI_short:
+            vvec = (void *)malloc(sizeof(short)*nxyz);
+            if (!vvec) {
+               ERROR_message("Failed to allocate 2.");
+               RETURN(NULL);
+            }
+            memcpy(vvec, vec, nxyz*sizeof(short));
+            break;
+         case MRI_int:
+            vvec = (void *)malloc(sizeof(int)*nxyz);
+            if (!vvec) {
+               ERROR_message("Failed to allocate 3.");
+               RETURN(NULL);
+            }
+            memcpy(vvec, vec, nxyz*sizeof(int));
+            break;
+         case MRI_float:
+            vvec = (void *)malloc(sizeof(float)*nxyz);
+            if (!vvec) {
+               ERROR_message("Failed to allocate 4.");
+               RETURN(NULL);
+            }
+            memcpy(vvec, vec, nxyz*sizeof(float));
+            break;
+         case MRI_double:
+            vvec = (void *)malloc(sizeof(double)*nxyz);
+            if (!vvec) {
+               ERROR_message("Failed to allocate 5.");
+               RETURN(NULL);
+            }
+            memcpy(vvec, vec, nxyz*sizeof(double));
+            break;
+         default:
+            ERROR_message("Data type not supported.");
+            RETURN(NULL);
+      } 
+   }
+
+   /* From now on, work with vvec */
+      
+   /* do the flag masking */
+   if (zero_flag == 1 || positive_flag == 1 || negative_flag == 1) {
+      mmf = (byte *)calloc(nxyz, sizeof(byte));/* everything is rejected at first */
+      if (!mmf) {
+         ERROR_message("Failed to allocate for mmf.\nOh misery.");
+         RETURN(NULL);
+      }
+   }
+      
+   if (zero_flag == 1 && positive_flag == 1 && negative_flag == 1) {
+      for (i=0; i<nxyz; ++i) {
+         mmf[i] = 1; 
+      }
+   } else if (positive_flag == 1 && negative_flag == 1) {
+      switch (type) {
+         case MRI_byte:
+            bv = (byte *)vvec;
+            for (i=0; i<nxyz; ++i) if (bv[i] != 0) { mmf[i] = 1; }  
+            break;
+         case MRI_short:
+            sv = (short *)vvec;
+            for (i=0; i<nxyz; ++i) if (sv[i] != 0) { mmf[i] = 1; }  
+            break;
+         case MRI_int:
+            iv = (int *)vvec;
+            for (i=0; i<nxyz; ++i) if (iv[i] != 0) { mmf[i] = 1; }  
+            break;
+         case MRI_float:
+            fv = (float *)vvec;
+            for (i=0; i<nxyz; ++i) if (fv[i] != 0.0f) { mmf[i] = 1; }  
+            break;
+         case MRI_double:
+            dv = (double *)vvec;
+            for (i=0; i<nxyz; ++i) if (dv[i] != 0.0f) { mmf[i] = 1; }  
+            break;
+         default:
+            ERROR_message("Data type not supported. Boo hooo hooo.");
+            RETURN(NULL);
+      } 
+   } else {
+      /* zeros ? */
+      if (zero_flag == 1) { 
+         switch (type) {
+            case MRI_byte:
+               bv = (byte *)vvec;
+               for (i=0; i<nxyz; ++i) if (bv[i] == 0) { mmf[i] = 1; }  
+               break;
+            case MRI_short:
+               sv = (short *)vvec;
+               for (i=0; i<nxyz; ++i) if (sv[i] == 0) { mmf[i] = 1; }  
+               break;
+            case MRI_int:
+               iv = (int *)vvec;
+               for (i=0; i<nxyz; ++i) if (iv[i] == 0) { mmf[i] = 1; }  
+               break;
+            case MRI_float:
+               fv = (float *)vvec;
+               for (i=0; i<nxyz; ++i) if (fv[i] == 0.0f) { mmf[i] = 1; }  
+               break;
+            case MRI_double:
+               dv = (double *)vvec;
+               for (i=0; i<nxyz; ++i) if (dv[i] == 0.0f) { mmf[i] = 1; }  
+               break;
+            default:
+               ERROR_message("Data type not supported. Boo hooo hooo.");
+               RETURN(NULL);
+         } 
+      }
+      /* positives ? */
+      if (positive_flag == 1) { 
+         switch (type) {
+            case MRI_byte:
+               bv = (byte *)vvec;
+               for (i=0; i<nxyz; ++i) if (bv[i] > 0) { mmf[i] = 1; }  
+               break;
+            case MRI_short:
+               sv = (short *)vvec;
+               for (i=0; i<nxyz; ++i) if (sv[i] > 0) { mmf[i] = 1; }  
+               break;
+            case MRI_int:
+               iv = (int *)vvec;
+               for (i=0; i<nxyz; ++i) if (iv[i] > 0) { mmf[i] = 1; }  
+               break;
+            case MRI_float:
+               fv = (float *)vvec;
+               for (i=0; i<nxyz; ++i) if (fv[i] > 0.0f) { mmf[i] = 1; }  
+               break;
+            case MRI_double:
+               dv = (double *)vvec;
+               for (i=0; i<nxyz; ++i) if (dv[i] > 0.0f) { mmf[i] = 1; }  
+               break;
+            default:
+               ERROR_message("Data type not supported. Boo hooo hooo.");
+               RETURN(NULL);
+         }
+      }
+      /* negatives ? */
+      if (negative_flag == 1) { 
+         switch (type) {
+            case MRI_byte:
+               WARNING_message("Not possible to have negative values with byte data.\nYou'll get zeros for that.");  
+               bv = (byte *)vvec;
+               for (i=0; i<nxyz; ++i) { mmf[i] = 0; }  
+               break;
+            case MRI_short:
+               sv = (short *)vvec;
+               for (i=0; i<nxyz; ++i) if (sv[i] < 0) { mmf[i] = 1; }  
+               break;
+            case MRI_int:
+               iv = (int *)vvec;
+               for (i=0; i<nxyz; ++i) if (iv[i] < 0) { mmf[i] = 1; }  
+               break;
+            case MRI_float:
+               fv = (float *)vvec;
+               for (i=0; i<nxyz; ++i) if (fv[i] < 0.0f) { mmf[i] = 1; }  
+               break;
+            case MRI_double:
+               dv = (double *)vvec;
+               for (i=0; i<nxyz; ++i) if (dv[i] < 0.0f) { mmf[i] = 1; }  
+               break;
+            default:
+               ERROR_message("Data type not supported. Boo hooo hooo.");
+               RETURN(NULL);
+         }
+      }
+   }   
+   
+   /* include mm, if needed */
+   if (mm) {
+      if (mmf) {
+         for (i=0; i<nxyz; ++i) {
+            mmf[i] = mmf[i]*mm[i];  
+         }
+      } else {
+         mmf = mm;
+      } 
+   }
+   
+
+   /* mask vvec with final mask*/
+   if (mmf) { 
+      mmvox = 0;
+      switch (type) {
+         case MRI_byte:
+            bv = (byte*)vvec;
+            for (i=0; i<nxyz; ++i) {
+               if (mmf[i]) { bv[mmvox] = bv[i]; ++mmvox;}  
+            }
+            break; 
+         case MRI_short:
+            sv = (short*)vvec;
+            for (i=0; i<nxyz; ++i) {
+               if (mmf[i]) { sv[mmvox] = sv[i]; ++mmvox;}  
+            }
+            break;
+         case MRI_int:
+            iv = (int*)vvec;
+            for (i=0; i<nxyz; ++i) {
+               if (mmf[i]) { iv[mmvox] = iv[i]; ++mmvox;}  
+            }
+            break;
+         case MRI_float:
+            fv = (float*)vvec;
+            for (i=0; i<nxyz; ++i) {
+               if (mmf[i]) { fv[mmvox] = fv[i]; ++mmvox;}  
+            }
+            break;
+         case MRI_double:
+            dv = (double *)vvec;
+            for (i=0; i<nxyz; ++i) {
+               if (mmf[i]) { dv[mmvox] = dv[i]; ++mmvox;}  
+            }
+            break;
+         default:
+            ERROR_message("Bad type! Should bot be here hon.");
+            RETURN(NULL);
+      }
+      if (mmf != mm) free(mmf); mmf = NULL;
+   } else {
+      mmvox = nxyz;
+   }
+
+   if (option != 2) { /* partial sort of vvec */
+      switch (type) {
+         case MRI_byte:
+            qsort(vvec, mmvox, sizeof(byte), (int(*) (const void *, const void *))compare_byte); 
+            break; 
+         case MRI_short:
+            qsort(vvec, mmvox, sizeof(short), (int(*) (const void *, const void *))compare_short); 
+            break;
+         case MRI_int:
+            qsort(vvec, mmvox, sizeof(int), (int(*) (const void *, const void *))compare_int); 
+            break;
+         case MRI_float:
+            qsort(vvec, mmvox, sizeof(float), (int(*) (const void *, const void *))compare_float); 
+            break;
+         case MRI_double:
+            qsort(vvec, mmvox, sizeof(double), (int(*) (const void *, const void *))compare_double); 
+            break;
+         default:
+            ERROR_message("Bad type! Should bot be here honhon.");
+            RETURN(NULL);
+      }  
+   }  
+
+   /* vvec is now sorted, now we're ready to get the percentile values */
+   for (n=0; n<N_mp; ++n) {
+      di = mpv[n]*mmvox;
+      i = ( ( ((di) - (int)(di)) < 0.5f ) ? (int)(di) : ((int)(di)+1) );
+      if (i >= mmvox) i = mmvox-1;
+      switch (type) {
+         case MRI_byte:
+            bv = (byte *)vvec;
+            perc[n] = (double)(bv[i]); 
+            break; 
+         case MRI_short:
+            sv = (short *)vvec;
+            perc[n] = (double)(sv[i]); 
+            break;
+         case MRI_int:
+            iv = (int *)vvec;
+            perc[n] = (double)(iv[i]);  
+            break;
+         case MRI_float:
+            fv = (float *)vvec;
+            perc[n] = (double)(fv[i]);   
+            break;
+         case MRI_double:
+            dv = (double *)vvec;
+            perc[n] = (double)(dv[i]);    
+            break;
+         default:
+            ERROR_message("Bad type! Should bot be here Joe.");
+            RETURN(NULL);
+      }     
+      /* fprintf(stderr,"mpv[%d] = %f, di = %f, i = %d, mmvox = %d\nperc[%d] = %f\n", n, mpv[n], di, i, mmvox, n, perc[n]); */
+   }
+   
+   RETURN(vvec);
+}

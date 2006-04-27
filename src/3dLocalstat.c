@@ -120,7 +120,7 @@ int main( int argc , char *argv[] )
        DSET_load(mset) ;
        if( !DSET_LOADED(mset) ) ERROR_exit("Can't load dataset '%s'",argv[iarg]) ;
        mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
-       mask = THD_makemask( mset , 0 , 1.0f,-1.0f ) ; DSET_delete(mset) ;
+       mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
        if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
        mmm = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
        INFO_message("Number of voxels in mask = %d",mmm) ;
