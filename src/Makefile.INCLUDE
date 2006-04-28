@@ -198,6 +198,9 @@ Ifile:Ifile.o
 3dHmetric:3dHmetric.o
 	$(CC) -o 3dHmetric 3dHmetric.o $(LFLAGS) $(LLIBS)
 
+3dJointHist:3dJointHist.o
+	$(CC) -o 3dJointHist 3dJointHist.o $(LFLAGS) $(LLIBS)
+
 3dUndump:3dUndump.o
 	$(CC) -o 3dUndump 3dUndump.o $(LFLAGS) $(LLIBS)
 
