@@ -119,7 +119,7 @@ void qmedmad_float( int n, float *ar, float *med, float *mad )
 
    if( mad != NULL && n > 1 ){
      for( ii=0 ; ii < n ; ii++ )   /* subtract off median */
-       q[ii] = fabs(q[ii]-me) ;    /* (absolute deviation) */
+       q[ii] = fabsf(q[ii]-me) ;   /* (absolute deviation) */
      ma = qmed_float( n , q ) ;    /* MAD = median absolute deviation */
    }
 
