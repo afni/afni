@@ -15,7 +15,11 @@
 
   Mod:   16 Feb 2005, RWCox: remove threshold stuff, and add -doall.
 
+  Mod:   19 May 2005, dglen: added -min/-max options
+
   Mod:   15 Dec 2005, rickr: fixed use of sub-brick factors
+
+  Mod:   28 Apr 2006, rickr: fixed min/max range setting kk outside array
 */
 
 #include <stdio.h>
@@ -265,7 +269,9 @@ int main( int argc , char * argv[] )
          short *funq=NULL;
          for( ii=0 ; ii < nxyz ; ii++ ){
            fval = fim[ii]*fimfac ;
-           if( KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
+           /* make sure we stay in range       28 Apr 2006 [rickr] */
+           if( (fval >= fbot && fval <= ftop) &&
+                KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
              kk = (int)( (fval-fbot)*dfi ) ; /* use real value */
              fbin[kk]++ ;
            }
@@ -289,7 +295,8 @@ int main( int argc , char * argv[] )
          byte *funq=NULL;
          for( ii=0 ; ii < nxyz ; ii++ ){
            fval = fim[ii]*fimfac ;
-           if( KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
+           if( (fval >= fbot && fval <= ftop) &&
+                KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
              kk = (int)( (fval-fbot)*dfi ) ;
              fbin[kk]++ ;
            }
@@ -311,7 +318,8 @@ int main( int argc , char * argv[] )
        case MRI_float:{
          float *fim = (float *)vfim ;
          for( ii=0 ; ii < nxyz ; ii++ ){
-           if( KEEP(fim[ii]*fimfac) && (HI_mask == NULL || HI_mask[ii]) ){
+           if( (fval >= fbot && fval <= ftop) &&
+                KEEP(fim[ii]*fimfac) && (HI_mask == NULL || HI_mask[ii]) ){
              kk = (int)( (fim[ii]-fbot)*dfi ) ;
              fbin[kk]++ ;
            }
