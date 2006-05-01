@@ -597,7 +597,7 @@ L_CREATE_BRICK:
       set i1 = $Sr[$#Sr]
       set Sr = `grep -w fov COR-.info`
       set FOV = `ccalc -eval $Sr[$#Sr] \* 1000`
-      set Sr = `grep -w x COR-.info`
+      set Sr = `grep -w x COR-.info | grep -v xform`
       set nx = $Sr[$#Sr]
       set Sr = `grep -w y COR-.info`
       set ny = $Sr[$#Sr]
