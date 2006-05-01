@@ -61,8 +61,7 @@ int main( int argc , char * argv[] )
              "    Can not be combined with -mask\n"
 	          "  -percentile p0 ps p1 write the percentile values starting\n"
              "              at p0%% and ending at p1%% at a step of ps%%\n"
-             "              To get the median, just use -percentile 50 1 50\n"
-             "              Output is of the the form p%%  value p%% value ...\n"
+             "              Output is of the the form p%% value   p%% value ...\n"
              "              Percentile values are output first. Only one sub-brick\n"
              "              is accepted as input with this option.\n"
              "              Write the author if you REALLY need this option\n"
@@ -113,6 +112,9 @@ int main( int argc , char * argv[] )
         mp0 = atof(argv[nopt])/100.0f; ++nopt;
         mps = atof(argv[nopt])/100.0f; ++nopt;
         mp1 = atof(argv[nopt])/100.0f; 
+        if (mps == 0.0f) {
+         ERROR_exit( "** Error: step cannot be 0" ); 
+        }
         nopt++; continue;
       }
 
