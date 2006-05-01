@@ -40,6 +40,13 @@ ENTRY("THD_get_dset_nbhd") ;
    RETURN(im) ;
 }
 
+
+static byte SearchAboutMaskedVoxel = 0;
+
+void SetSearchAboutMaskedVoxel(int v)
+{
+   SearchAboutMaskedVoxel = v;
+}
 /*---------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_get_nbhd( MRI_IMAGE *inim , byte *mask ,
@@ -58,8 +65,11 @@ ENTRY("mri_get_nbhd") ;
    nz = inim->nz ; nxyz = nxy*nz ; npt = nbhd->num_pt ; nout = 0 ;
 
    kk = xx + yy*nx + zz*nxy ;
-   if( npt == 0 || kk < 0 || kk >= nxyz || !INMASK(kk) ) RETURN(NULL) ;
-
+   if (SearchAboutMaskedVoxel) {
+      if( npt == 0 || kk < 0 || kk >= nxyz                ) RETURN(NULL) ;
+   } else {
+      if( npt == 0 || kk < 0 || kk >= nxyz || !INMASK(kk) ) RETURN(NULL) ;
+   }
    kind  = inim->kind ;
    brick = mri_data_pointer(inim) ;  if( brick == NULL ) RETURN(NULL) ;
    im    = mri_new( npt , 1 , kind ) ;

@@ -567,4 +567,6 @@ extern THD_3dim_dataset * THD_localstat( THD_3dim_dataset *, byte *,
                                          MCW_cluster *, int, int *) ;
 extern void THD_localstat_verb(int) ; 
 
+extern void SetSearchAboutMaskedVoxel(int v);
+
 #endif /* _MCW_EDITVOL_ */

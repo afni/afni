@@ -607,6 +607,10 @@ whereami:whereami.c
 	$(RM) $@
 	$(CC) -o whereami whereami.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(AFWARPOBJS) -lrickr -lmri -lf2c $(LLIBS)
 
+3dSegment:3dSegment.c
+	$(RM) $@
+	$(CC) -o 3dSegment 3dSegment.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(AFWARPOBJS) -lrickr -lmri -lf2c $(LLIBS)
+
 3dUniformize:3dUniformize.o
 	$(RM) $@
 	$(CC) -o 3dUniformize 3dUniformize.o $(PLFLAGS) -lmri -lf2c $(LLIBS)
