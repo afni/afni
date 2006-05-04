@@ -201,21 +201,21 @@ int main(int argc, char *argv[])
 	}
 	if (strncmp(argv[narg], "-median", 5) == 0) {
 	    if (nzperc) {
-         Error_Exit("perc cannot be used with nzperc");
-       }
-       perc = 1;
+             Error_Exit("perc cannot be used with nzperc");
+            }
+            perc = 1;
 	    narg++;
 	    continue;
 	}
-   if (strncmp(argv[narg], "-nzmedian", 5) == 0) {
+       if (strncmp(argv[narg], "-nzmedian", 9) == 0) {
 	    if (perc) {
-         Error_Exit("nzperc cannot be used with perc");
-       }
-       nzperc = 1;
+             Error_Exit("nzperc cannot be used with perc");
+            }
+            nzperc = 1;
 	    narg++;
 	    continue;
 	}
-	if (strncmp(argv[narg], "-nzmean", 5) == 0) {
+	if (strncmp(argv[narg], "-nzmean", 7) == 0) {
 	    nzmean = 1;
 	    narg++;
 	    continue;
