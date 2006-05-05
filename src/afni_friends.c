@@ -303,6 +303,7 @@ static mday holiday[] = {
 
    {MAY, 1,"Emperor Claudius's birthday"                             } ,
    {MAY, 1,"Herman Melville's birthday"                              } ,
+   {MAY, 1,"Anniversary of Crab Nebula Supernova"                    } ,
    {MAY, 2,"Baron Von Richtofen's birthday"                          } ,
    {MAY, 3,"Anniversary of Polish Constitution"                      } ,
    {MAY, 3,"Nicolo Machiavelli's birthday"                           } ,
