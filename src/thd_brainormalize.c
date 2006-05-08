@@ -24,7 +24,7 @@ void mri_brainormalize_verbose( int v ){ verb = v ; THD_automask_verbose(v); }
    #define  THD_BN_ZCM  0.0
 #endif   
 #define HUMAN_RAT      1.0   /* Ratio is size of human / human dimensions */
-#define MONKEY_RAT      1.8   /* Ratio is size of human / monkey dimensions */
+#define MONKEY_RAT      2.0   /* Ratio is size of human / monkey dimensions */
 
 static float thd_bn_dxyz = 0.0;
 static int thd_bn_nx     = 0;
@@ -49,28 +49,20 @@ void mri_brainormalize_initialize(float dx, float dy, float dz)
    thd_bn_dxyz = MIN(fabs(dx), fabs(dy)); thd_bn_dxyz = MIN(thd_bn_dxyz, fabs(dz));
    
    if (monkey) {
-      /* do the monkey thing, smaller box*/
+      /* do the monkey thing, smaller box, basically, half the size of human*/
       thd_bn_nx     = (int)(THD_BN_NX/MONKEY_RAT);
       thd_bn_ny     = (int)(THD_BN_NY/MONKEY_RAT);
       thd_bn_nz     = (int)(THD_BN_NZ/MONKEY_RAT);
       thd_bn_zheight = THD_BN_ZHEIGHT/MONKEY_RAT; 
-      #if 0
       thd_bn_xorg =  THD_BN_XORG/MONKEY_RAT;  
       thd_bn_yorg =  THD_BN_YORG/MONKEY_RAT ;
       thd_bn_zorg =  THD_BN_ZORG/MONKEY_RAT;
       thd_bn_xcm = THD_BN_XCM/MONKEY_RAT;
       thd_bn_ycm = THD_BN_YCM/MONKEY_RAT;
       thd_bn_zcm = THD_BN_ZCM/MONKEY_RAT;
-      #else
-      thd_bn_xorg =  THD_BN_XORG + THD_BN_NX*(MONKEY_RAT-1.0)/(2.0*MONKEY_RAT);  
-      thd_bn_yorg =  THD_BN_YORG + THD_BN_NY*(MONKEY_RAT-1.0)/(2.0*MONKEY_RAT);
-      thd_bn_zorg =  THD_BN_ZORG + THD_BN_NZ*(MONKEY_RAT-1.0)/(2.0*MONKEY_RAT);
-      thd_bn_xcm = THD_BN_XCM ;
-      thd_bn_ycm = THD_BN_YCM ;
-      thd_bn_zcm = THD_BN_ZCM - 20; /* needs a little shift down, too much clipping on top */
-      #endif
       thd_bn_rat = MONKEY_RAT;
    } else {
+      thd_bn_dxyz = THD_BN_DXYZ;
       thd_bn_nx     = THD_BN_NX;
       thd_bn_ny     = THD_BN_NY;
       thd_bn_nz     = THD_BN_NZ;
@@ -83,8 +75,6 @@ void mri_brainormalize_initialize(float dx, float dy, float dz)
       thd_bn_zcm = THD_BN_ZCM;
       thd_bn_rat = HUMAN_RAT;
    }
-   /* nx , ny and nz, up till now reflect box size rather than number of voxels */
-   
    /* Set the reinterpolation resolution to the smallest delta */
    thd_bn_nx = (int)( (float)thd_bn_nx / thd_bn_dxyz );
    thd_bn_ny = (int)( (float)thd_bn_ny / thd_bn_dxyz );
@@ -1037,7 +1027,7 @@ static byte * make_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
    kk = mask_count(nxyz,ppp) ;
    if( kk == 0 ){ free((void *)ppp) ; return NULL ; }
    if( verb ) fprintf(stderr," + Initial peel mask has %d voxels\n",kk ) ;
-   THD_mask_erode( nx,ny,nz, ppp ) ;
+   THD_mask_erode( nx,ny,nz, ppp, 1 ) ;
    THD_mask_clust( nx,ny,nz, ppp ) ;
    kk = mask_count(nxyz,ppp) ;
    if( kk == 0 ){ free((void *)ppp) ; return NULL ; }
@@ -1071,14 +1061,14 @@ static void zedit_mask( int nx, int ny, int nz, byte *mmm, int zdepth, int zbot 
 
    for( zz=zb ; zz <= zt ; zz++ ){
      memcpy( zzz , mmm+(zz-zd)*nxy , nxy*zslab ) ;
-     THD_mask_erode( nx,ny,zslab, zzz ) ;
+     THD_mask_erode( nx,ny,zslab, zzz, 1 ) ;
      THD_mask_clust( nx,ny,zslab, zzz ) ;
      memcpy( ppp+zz*nxy , zzz+zd*nxy , nxy ) ;
    }
    free((void *)zzz) ;
    memcpy( mmm+zb*nxy , ppp+zb*nxy , (zt-zb+1)*nxy ) ;
    free((void *)ppp) ;
-   THD_mask_erode( nx,ny,nz, mmm ) ;
+   THD_mask_erode( nx,ny,nz, mmm, 1 ) ;
    THD_mask_clust( nx,ny,nz, mmm ) ;
 }
 
@@ -1329,7 +1319,8 @@ ENTRY("mri_brainormalize") ;
      zcount[kk] = mask_count( nxy , mask+kk*nxy ) ;
    }
 
-   if( verb > 2){
+#if 0
+   if( verb ){
      fprintf(stderr,"++mri_brainormalize: zcount from top slice #%d\n",nz-1) ;
      for( kk=nz-1 ; kk >= 0 ; kk-- ){
        fprintf(stderr," %.3f",((double)(zcount[kk]))/((double)nxy) ) ;
@@ -1337,20 +1328,16 @@ ENTRY("mri_brainormalize") ;
      }
      fprintf(stderr,"\n") ;
    }
+#endif
 
    /* search down for topmost slice that meets the criterion */
 
    z1 = (int)(0.010*nxy) ;
    z2 = (int)(0.015*nxy) ;
    z3 = (int)(0.020*nxy) ;
-   for( kk=nz-1 ; kk > 2 ; kk-- ) {
-      if (verb > 2) {
-         fprintf(stderr,"%d: %d vs %d \n %d vs %d \n %d vs %d \n\n", 
-            kk, zcount[kk], z1, zcount[kk-1], z2, zcount[kk-2], z3);
-      }
+   for( kk=nz-1 ; kk > 2 ; kk-- )
      if( zcount[kk] >= z1 && zcount[kk-1] >= z2 && zcount[kk-2] >= z3 ) break ;
-   }
-   
+
    free((void *)zcount) ;
    if( kk <= 2 ){ free((void *)mask); mri_free(sim); RETURN(NULL); }
 
@@ -1592,7 +1579,7 @@ ENTRY("mri_brainormalize") ;
      if( verb > 1)
       fprintf(stderr,"++mri_brainormalize: eroding...\n");
    
-     THD_mask_erode( nx,ny,nz, mask ) ;
+     THD_mask_erode( nx,ny,nz, mask, 1 ) ;
      if( verb > 1)
       fprintf(stderr,"++mri_brainormalize: clustering 1...\n");
      THD_mask_clust( nx,ny,nz, mask ) ;

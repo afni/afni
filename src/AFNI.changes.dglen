@@ -114,4 +114,9 @@
 20 Apr 2006
  * update for 3dcopy to support writing NIFTI datasets 
  (Rick is responsible for this)
-
+4 May 2006
+ * fix for 3dROIstats.c for nzmedian and nzmean confusion
+ * erosion without redilation in thd_automask.c called in various places and
+ needs an additional parameter to continue redilating.
+ 
+ 
