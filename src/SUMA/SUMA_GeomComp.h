@@ -3,7 +3,6 @@
 
 typedef enum { SUMA_SMOOTH_NOT_SET, SUMA_EQUAL, SUMA_FUJIWARA, SUMA_DESBRUN } SUMA_TAUBIN_SMOOTH_OPTIONS;
 
-static byte SUMA_Taubin_Weights=SUMA_SMOOTH_NOT_SET;
 static int SUMA_SSidbg=-1; /*!< Index of node for debug */
 
 typedef struct {
@@ -82,6 +81,7 @@ float * SUMA_Chung_Smooth_05 (SUMA_SurfaceObject *SO, float **wgt,
 SUMA_Boolean  SUMA_Taubin_Smooth_TransferFunc (float l, float m, int N, FILE *Out);
 SUMA_Boolean SUMA_Taubin_Smooth_Coef (float k, float *l, float *m);
 void SUMA_Set_Taubin_Weights(SUMA_TAUBIN_SMOOTH_OPTIONS tb);
+byte SUMA_Get_Taubin_Weights(void);
 void SUMA_Set_SurfSmooth_NodeDebug(int n);
 float ** SUMA_Taubin_Desbrun_Smooth_Weights (SUMA_SurfaceObject *SO, float *NewNodeList, float ***UseThisWeight);
 float ** SUMA_Taubin_Fujiwara_Smooth_Weights (SUMA_SurfaceObject *SO, float *NewNodeList, float ***UseThisWeight);

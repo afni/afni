@@ -2330,6 +2330,12 @@ float ** SUMA_Chung_Smooth_Weights_05 (SUMA_SurfaceObject *SO, float sigma)
    SUMA_RETURN(wgt);
 }
 
+static byte SUMA_Taubin_Weights=SUMA_SMOOTH_NOT_SET;
+byte SUMA_Get_Taubin_Weights(void)
+{
+   return(SUMA_Taubin_Weights);
+}
+
 void SUMA_Set_Taubin_Weights(SUMA_TAUBIN_SMOOTH_OPTIONS tb) 
 {
    SUMA_Taubin_Weights = tb;

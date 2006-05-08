@@ -4947,7 +4947,8 @@ void SUMA_ShowDrawnROI (SUMA_DRAWN_ROI *D_ROI, FILE *out, SUMA_Boolean ShortVers
    the engine function for SUMA_FillToMask.
    replaces the recursive version now called SUMA_FillToMask_Engine_old
 */
-void SUMA_FillToMask_Engine (SUMA_NODE_FIRST_NEIGHB *FN, int *Visited, int *ROI_Mask, int nseed, int *N_Visited, int N_Node)
+void SUMA_FillToMask_Engine (SUMA_NODE_FIRST_NEIGHB *FN, int *Visited, int *ROI_Mask, 
+                              int nseed, int *N_Visited, int N_Node)
 {  
    static char FuncName[]={"SUMA_FillToMask_Engine"};
    int i, nnext;
@@ -4970,11 +4971,16 @@ void SUMA_FillToMask_Engine (SUMA_NODE_FIRST_NEIGHB *FN, int *Visited, int *ROI_
          nnext = FN->FirstNeighb[nseed][i];
          /* fprintf (SUMA_STDERR,"nnext=%d\n", nnext); fflush(SUMA_STDERR); */
          if (!Visited[nnext] && !ROI_Mask[nnext]) {
+            /*fprintf (SUMA_STDERR,"N_candidate=%d\n", N_candidate);*/
             candidate[N_candidate] = nnext; ++N_candidate; 
             Visited[nnext] = 1; ++*N_Visited;   /* add this candidate so you don't revisit it as a new candidate later */
          }
+      }      
+      if (N_candidate) { /* Need this safeguard, in case there are no candidates. 
+                        Happened when fill area has one empty node in it only! 
+                        Fixed in Madison 06, ZSS*/
+         nseed = candidate[N_candidate-1]; --N_candidate;
       }
-      nseed = candidate[N_candidate-1]; --N_candidate;
    } while (N_candidate);
    
    if (candidate) SUMA_free(candidate); candidate = NULL; 
