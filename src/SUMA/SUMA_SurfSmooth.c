@@ -183,7 +183,7 @@ void usage_SUMA_SurfSmooth ()
               "                          not see their value change, but they will still \n"
               "                          contribute to the values of nodes in the filtermask.\n"
               "                          At the moment, it is only implemented for methods\n"
-              "                          NN_geom, LM and LB_FEM\n"
+              "                          NN_geom, LM, LB_FEM and HEAT (and maybe other ones)\n"
               "      -b_mask filter_binary_mask: Similar to -n_mask, except that filter_binary_mask\n"
               "                          contains 1 for nodes to filter and 0 for nodes to be ignored.\n"
               "                          The number of rows in filter_binary_mask must be equal to the\n"
@@ -1419,20 +1419,21 @@ int main (int argc,char *argv[])
             wgt = NULL;
             
             d_order =  SUMA_ROW_MAJOR; 
-            if (SUMA_Taubin_Weights == SUMA_FUJIWARA) {
+            if (SUMA_Get_Taubin_Weights() == SUMA_FUJIWARA) {
                SUMA_SL_Note("Fujiwara!!!");
                wgt = SUMA_Taubin_Fujiwara_Smooth_Weights(SO, NULL, NULL);
                if (!wgt) {
                   SUMA_SL_Err("Failed to compute weights.\n");
                   exit(1);
                }
-            } else if (SUMA_Taubin_Weights == SUMA_DESBRUN) {
+            } else if (SUMA_Get_Taubin_Weights() == SUMA_DESBRUN) {
                wgt = SUMA_Taubin_Desbrun_Smooth_Weights(SO, NULL, NULL);
                if (!wgt) {
                   SUMA_SL_Err("Failed to compute weights.\n");
                   exit(1);
                }
-            } else if (SUMA_Taubin_Weights != SUMA_EQUAL) {
+            } else if (SUMA_Get_Taubin_Weights() != SUMA_EQUAL) {
+               /* fprintf(stderr,"%d, %d\n", SUMA_Get_Taubin_Weights() , SUMA_EQUAL); */
                SUMA_SL_Err("Weights improperly initialized!");
                exit(1);
             }
