@@ -61,6 +61,7 @@ void Syntax(char *str)
     "  -dzorigin dz    values input to the 'Nudge xyz' plugin.\n"
     "               ** WARNING: you can't use these options at the same\n"
     "                  time you use -orient.\n"
+    "               ** WARNING: consider -shift_tags if dataset has tags\n"
     "\n"
     "  -xdel dimx      Makes the size of the voxel the given dimension,\n"
     "  -ydel dimy      for the given axis (x,y,z); dimensions in mm.\n"
@@ -107,6 +108,12 @@ void Syntax(char *str)
     "                  if it can handle them (is anatomical, is in the +orig\n"
     "                  view, and isn't 3D+time).\n"
     "               ** WARNING: this will erase any markers that already exist!\n"
+    "\n"
+    "  -shift_tags     Apply -dxorigin (and y and z) changes to tags.\n"
+    "\n"
+    "  -dxtag dx       Add dx to the coordinates of all tags.\n"
+    "  -dytag dy       Add dy to the coordinates of all tags.\n"
+    "  -dztag dz       Add dz to the coordinates of all tags.\n"
     "\n"
     "  -view code      Changes the 'view' to be 'code', where the string 'code'\n"
     "                  is one of 'orig', 'acpc', or 'tlrc'.\n"
@@ -242,6 +249,8 @@ int main( int argc , char * argv[] )
    int new_xorg   = 0 ; float xorg ; int cxorg=0, dxorg=0 , duporg=0 ;
    int new_yorg   = 0 ; float yorg ; int cyorg=0, dyorg=0 ;
    int new_zorg   = 0 ; float zorg ; int czorg=0, dzorg=0 ;
+   int new_tags   = 0 ; int shift_tags = 0 ; /* 08 May 2006 [rickr] */
+                        float dxtag=0.0, dytag=0.0, dztag=0.0 ;
    int new_xdel   = 0 ; float xdel ;
    int new_ydel   = 0 ; float ydel ;
    int new_zdel   = 0 ; float zdel ;
@@ -853,6 +862,35 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;  /* go to next arg */
       }
 
+      /* tag options    08 May 2006 [rickr] */
+
+      /* -shift_tags, apply -d?origin to tags */
+      if( strncmp(argv[iarg],"-shift_tags",11) == 0 ){
+         shift_tags = 1 ;
+         iarg++ ; continue ;  /* go to next arg */
+      }
+
+      if( strncmp(argv[iarg],"-dxtag",6) == 0 ){
+         if( ++iarg >= argc ) Syntax("need an argument after -dxtag!");
+         dxtag = strtod(argv[iarg],NULL) ;
+         new_tags = 1 ; new_stuff++ ;
+         iarg++ ; continue ;  /* go to next arg */
+      }
+
+      if( strncmp(argv[iarg],"-dytag",6) == 0 ){
+         if( ++iarg >= argc ) Syntax("need an argument after -dytag!");
+         dytag = strtod(argv[iarg],NULL) ;
+         new_tags = 1 ; new_stuff++ ;
+         iarg++ ; continue ;  /* go to next arg */
+      }
+
+      if( strncmp(argv[iarg],"-dztag",6) == 0 ){
+         if( ++iarg >= argc ) Syntax("need an argument after -dztag!");
+         dztag = strtod(argv[iarg],NULL) ;
+         new_tags = 1 ; new_stuff++ ;
+         iarg++ ; continue ;  /* go to next arg */
+      }
+
       /** anything else must be a -type **/
       /*  try the anatomy prefixes */
 
@@ -896,6 +934,21 @@ int main( int argc , char * argv[] )
 
    if( new_orient && (dxorg || dyorg || dzorg) )     /* 02 Mar 2000 */
       Syntax("Can't use -orient with -d?origin!?") ;
+
+   if( new_tags || shift_tags ){                     /* 08 May 2006 [rickr] */
+      if( new_tags && shift_tags )
+         Syntax("Cant' use -shift_tags with -d{xyz}tag") ;
+      if( new_orient )
+         Syntax("Can't use -orient with -shift_tags or -d{xyz}tags") ;
+      if( shift_tags && !dxorg && !dyorg && !dzorg )
+         Syntax("-shift_tags option requires a -d{xyz}origin option") ;
+
+      if( shift_tags ){    /* then copy shifts to tag vars */
+         if( dxorg ) dxtag = xorg ;
+         if( dyorg ) dytag = yorg ;
+         if( dzorg ) dztag = zorg ;
+      }
+   }
 
    /*--- process datasets ---*/
 
@@ -1152,6 +1205,21 @@ int main( int argc , char * argv[] )
             INFO_message("Changed dataset view type and filenames.\n") ;
          }
       }
+
+      /* check for tag shifts                  08 May 2006 [rickr] */
+      if( new_tags || shift_tags ){
+         THD_usertag * tag;
+         if( !dset->tagset ) WARNING_message("No tags to shift\n") ;
+         else {
+            INFO_message("modifying tags") ;
+            for( ii = 0; ii < dset->tagset->num; ii++ ){
+               tag = dset->tagset->tag + ii ;
+               tag->x += dxtag;  tag->y += dytag;  tag->z += dztag;
+            }
+         }
+      } else if ( dset->tagset && ( new_xorg || new_yorg || new_zorg ||
+                                    new_xdel || new_ydel || new_zdel ) )
+         WARNING_message("modifying coordinates of dataset with tags") ;
 
       /* code moved to edt_emptycopy.c                   13 Sep 2005 [rickr] */
       if( new_markers && okay_to_add_markers(dset) ){
