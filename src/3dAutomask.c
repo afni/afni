@@ -7,7 +7,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset *dset , *mset ;
    char *prefix = "automask" ;
    byte *mask ;
-   int iarg=1 , fillin=0 , nmask,nfill , dilate=0 , dd ;
+   int iarg=1 , fillin=0 , nmask,nfill , dilate=0 , dd  , erode = 0;
    float SIhh=0.0 ;        /* 06 Mar 2003 */
    int   SIax=0 , SIbot,SItop ;
    int   verb=1 ;
@@ -34,6 +34,8 @@ int main( int argc , char * argv[] )
              "  -eclip      = After creating the mask, remove exterior\n"
              "                 voxels below the clip threshold.\n"
              "  -dilate nd  = Dilate the mask outwards 'nd' times.\n"
+             "  -erode nd   = Erode the mask outwards 'nd' times.\n"
+    
 #ifdef ALLOW_FILLIN
              "  -fillin nnn = Fill in holes inside the mask of width up\n"
              "                 to 'nnn' voxels. [default=0=no fillin]\n"
@@ -102,6 +104,13 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;
       }
 
+      if( strcmp(argv[iarg],"-erode") == 0 ){
+         erode = strtol( argv[++iarg] , NULL , 10 ) ;
+         if( erode < 0 )
+           ERROR_exit("-erode %s is illegal!\n",argv[iarg]);
+         iarg++ ; continue ;
+      }
+
       ERROR_exit("ILLEGAL option: %s\n",argv[iarg]) ;
    }
 
@@ -145,6 +154,27 @@ int main( int argc , char * argv[] )
      THD_mask_clust( nx,ny,nz, mask ) ;
      for( ii=0 ; ii < nmm ; ii++ ) mask[ii] = !mask[ii] ;
    }
+
+   /* 3 May 2006 - drg- eroding option added */
+   if( erode > 0 ){
+     int ii,nx,ny,nz , nmm ;
+     if( verb ) INFO_message("Eroding automask\n") ;
+     nx = DSET_NX(dset) ; ny = DSET_NY(dset) ; nz = DSET_NZ(dset) ;
+     nmm = 1 ;
+     ii  = rint(0.032*nx) ; nmm = MAX(nmm,ii) ;
+     ii  = rint(0.032*ny) ; nmm = MAX(nmm,ii) ;
+     ii  = rint(0.032*nz) ; nmm = MAX(nmm,ii) ;
+     for( dd=0 ; dd < erode ; dd++ ){
+       THD_mask_erode           ( nx,ny,nz , mask, 0) ;
+       THD_mask_fillin_completely( nx,ny,nz , mask, nmm ) ;
+     }
+     nmm = nx*ny*nz ;
+     for( ii=0 ; ii < nmm ; ii++ ) mask[ii] = !mask[ii] ;
+     THD_mask_clust( nx,ny,nz, mask ) ;
+     for( ii=0 ; ii < nmm ; ii++ ) mask[ii] = !mask[ii] ;
+   }
+
+
 
    /* 18 Apr 2002: print voxel count */
 
