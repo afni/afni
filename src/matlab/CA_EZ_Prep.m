@@ -155,7 +155,7 @@ if (~isempty(which('se_note'))),
       % find the corresponding references
       ti = char(cs(ref(1)).s); ar = char(cs(ref(2)).s);
       if (nref ~= 2 || (size(ar,1) ~= size(ti,1))),
-         fprintf(2,'Unexpected number of ref strings or some mismatch\n');
+         fprintf(2,'Unexpected number of ref strings or some mismatch (%d, %d, %d)\n', nref, size(ar,1), size(ti,1));
          return;
       else
          k = 1;
@@ -266,7 +266,7 @@ end
    fprintf(fidh,'extern int CA_EZ_labeled ;\nextern int CA_EZ_current ;\n\n');
    fprintf(fidh,'/* -----------     Refs      --------------------- */\n');
    fprintf(fidh,'/* ----------- Based on se_note.m --------------*/\n');   
-   fprintf(fidh,'%s;\n', sdecl);
+   fprintf(fidh,'extern %s;\n', sdecl);
 
 
 %first create ML structure
