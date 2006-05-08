@@ -1488,3 +1488,5 @@
 
 28 Apr 2006: 3dhistog.c: fixed min/max range setting kk outside array
 
+08 May 2006: 3drefit.c: added options -shift_tags, -dxtag, -dytag, -dztag
+
