@@ -571,9 +571,6 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm, int redilate )
 
 ENTRY("THD_mask_erode") ;
 
-if(!redilate)
-   printf("not redilating\n");
-   
    if( mmm == NULL ) EXRETURN ;
 
    nnn = (byte *)calloc(sizeof(byte),nxyz) ;  /* mask of eroded voxels */
@@ -669,9 +666,6 @@ fprintf(stderr,"%s", (num<17) ? "o" : "x") ;
 	if( nnn[ii] ){ mmm[ii] = 1 ; jj++ ; }
 
       if( verb && jj > 0 ) ININFO_message("Restored %d eroded voxels\n",jj) ;
-   }
-   else {
-    printf("skipped redilating n");
    }
 
    free(nnn) ; EXRETURN ;
