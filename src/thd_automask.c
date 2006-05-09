@@ -1,6 +1,5 @@
 #include "mrilib.h"
 
-#define USE_DILATE
 #define USE_FILLIN
 
 #undef DEBUG
@@ -146,7 +145,7 @@ ENTRY("mri_automask_image") ;
    /* 18 Apr 2002: now erode the resulting volume
                    (to break off any thinly attached pieces) */
 
-   THD_mask_erode( nx,ny,nz, mmm ) ;
+   THD_mask_erode( nx,ny,nz, mmm, 1 ) ;
 
    /* now recluster it, and again keep only the largest survivor */
 
@@ -170,7 +169,7 @@ ENTRY("mri_automask_image") ;
      jj = THD_peel_mask( nx,ny,nz , mmm , 7 ) ;
      if( jj > 0 ){
        ININFO_message("Peeled %d voxels from surface\n",jj) ;
-       THD_mask_erode( nx,ny,nz, mmm ) ;
+       THD_mask_erode( nx,ny,nz, mmm, 1 ) ;
        THD_mask_clust( nx,ny,nz, mmm ) ;
      }
    }
@@ -189,7 +188,7 @@ ENTRY("mri_automask_image") ;
               jj , mask_count(nvox,mmm) ) ;
    }
 
-   THD_mask_erode( nx,ny,nz, mmm ) ;
+   THD_mask_erode( nx,ny,nz, mmm, 1 ) ;
    THD_mask_clust( nx,ny,nz, mmm ) ;
 #endif
 
@@ -225,7 +224,7 @@ ENTRY("mri_automask_image") ;
    if( verb ) ININFO_message("Mask now has %d voxels\n",mask_count(nvox,mmm)) ;
 
    if( exterior_clip && jj > 0 ){
-     THD_mask_erode( nx,ny,nz, mmm ) ;
+     THD_mask_erode( nx,ny,nz, mmm, 1 ) ;
      THD_mask_clust( nx,ny,nz, mmm ) ;
    }
 
@@ -564,7 +563,7 @@ ENTRY("THD_mask_clust") ;
     in 3D (nearest and next-nearest neighbors).
 ----------------------------------------------------------------------------*/
 
-void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
+void THD_mask_erode( int nx, int ny, int nz, byte *mmm, int redilate )
 {
    int ii,jj,kk , jy,kz, im,jm,km , ip,jp,kp , num ;
    int nxy=nx*ny , nxyz=nxy*nz ;
@@ -572,6 +571,9 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
 
 ENTRY("THD_mask_erode") ;
 
+if(!redilate)
+   printf("not redilating\n");
+   
    if( mmm == NULL ) EXRETURN ;
 
    nnn = (byte *)calloc(sizeof(byte),nxyz) ;  /* mask of eroded voxels */
@@ -627,46 +629,50 @@ fprintf(stderr,"%s", (num<17) ? "o" : "x") ;
 
    if( verb && jj > 0 ) ININFO_message("Eroded   %d voxels\n",jj) ;
 
-   /* re-dilate eroded voxels that are next to survivors */
+   /* optionally re-dilate eroded voxels that are next to survivors */
+   if(redilate) {
+      STATUS("marking to redilate") ;
+      for( kk=0 ; kk < nz ; kk++ ){
+       kz = kk*nxy ; km = kz-nxy ; kp = kz+nxy ;
+       if( kk == 0    ) km = kz ;
+       if( kk == nz-1 ) kp = kz ;
 
-#ifdef USE_DILATE
-   STATUS("marking to redilate") ;
-   for( kk=0 ; kk < nz ; kk++ ){
-    kz = kk*nxy ; km = kz-nxy ; kp = kz+nxy ;
-    if( kk == 0    ) km = kz ;
-    if( kk == nz-1 ) kp = kz ;
+       for( jj=0 ; jj < ny ; jj++ ){
+	jy = jj*nx ; jm = jy-nx ; jp = jy+nx ;
+	if( jj == 0    ) jm = jy ;
+	if( jj == ny-1 ) jp = jy ;
 
-    for( jj=0 ; jj < ny ; jj++ ){
-     jy = jj*nx ; jm = jy-nx ; jp = jy+nx ;
-     if( jj == 0    ) jm = jy ;
-     if( jj == ny-1 ) jp = jy ;
+	for( ii=0 ; ii < nx ; ii++ ){
+	  if( nnn[ii+jy+kz] ){           /* was eroded */
+            im = ii-1 ; ip = ii+1 ;
+            if( ii == 0    ) im = 0 ;
+            if( ii == nx-1 ) ip = ii ;
+            nnn[ii+jy+kz] =              /* see if has any nbhrs */
+        	  mmm[im+jy+km]
+               || mmm[ii+jm+km] || mmm[ii+jy+km] || mmm[ii+jp+km]
+               || mmm[ip+jy+km]
+               || mmm[im+jm+kz] || mmm[im+jy+kz] || mmm[im+jp+kz]
+               || mmm[ii+jm+kz]                  || mmm[ii+jp+kz]
+               || mmm[ip+jm+kz] || mmm[ip+jy+kz] || mmm[ip+jp+kz]
+               || mmm[im+jy+kp]
+               || mmm[ii+jm+kp] || mmm[ii+jy+kp] || mmm[ii+jp+kp]
+               || mmm[ip+jy+kp] ;
+	  }
+        } 
+      }  
+    }
 
-     for( ii=0 ; ii < nx ; ii++ ){
-       if( nnn[ii+jy+kz] ){           /* was eroded */
-         im = ii-1 ; ip = ii+1 ;
-         if( ii == 0    ) im = 0 ;
-         if( ii == nx-1 ) ip = ii ;
-         nnn[ii+jy+kz] =              /* see if has any nbhrs */
-               mmm[im+jy+km]
-            || mmm[ii+jm+km] || mmm[ii+jy+km] || mmm[ii+jp+km]
-            || mmm[ip+jy+km]
-            || mmm[im+jm+kz] || mmm[im+jy+kz] || mmm[im+jp+kz]
-            || mmm[ii+jm+kz]                  || mmm[ii+jp+kz]
-            || mmm[ip+jm+kz] || mmm[ip+jy+kz] || mmm[ip+jp+kz]
-            || mmm[im+jy+kp]
-            || mmm[ii+jm+kp] || mmm[ii+jy+kp] || mmm[ii+jp+kp]
-            || mmm[ip+jy+kp] ;
-       }
-   } } }
+      /* actually do the dilation */
 
-   /* actually do the dilation */
+      STATUS("redilating") ;
+      for( jj=ii=0 ; ii < nxyz ; ii++ )
+	if( nnn[ii] ){ mmm[ii] = 1 ; jj++ ; }
 
-   STATUS("redilating") ;
-   for( jj=ii=0 ; ii < nxyz ; ii++ )
-     if( nnn[ii] ){ mmm[ii] = 1 ; jj++ ; }
-
-   if( verb && jj > 0 ) ININFO_message("Restored %d eroded voxels\n",jj) ;
-#endif
+      if( verb && jj > 0 ) ININFO_message("Restored %d eroded voxels\n",jj) ;
+   }
+   else {
+    printf("skipped redilating n");
+   }
 
    free(nnn) ; EXRETURN ;
 }
@@ -784,7 +790,7 @@ ENTRY("MRI_autobbox") ;
    nx = qim->nx; ny = qim->ny; nz = qim->nz; nxy = nx*ny;
 
    THD_mask_clust( nx,ny,nz, mmm ) ;
-   THD_mask_erode( nx,ny,nz, mmm ) ;
+   THD_mask_erode( nx,ny,nz, mmm, 1 ) ;
    THD_mask_clust( nx,ny,nz, mmm ) ;
 
    /* For each plane direction,
