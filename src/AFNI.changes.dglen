@@ -118,5 +118,6 @@
  * fix for 3dROIstats.c for nzmedian and nzmean confusion
  * erosion without redilation in thd_automask.c called in various places and
  needs an additional parameter to continue redilating.
- 
+9 May 2006
+ * 3dAutomask.c and thd_automask.c - stupid typos, debugging printfs removed, ...
  
