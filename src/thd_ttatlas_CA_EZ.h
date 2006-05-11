@@ -33,3 +33,4 @@ extern int CA_EZ_current ;
 /* -----------     Refs      --------------------- */
 /* ----------- Based on se_note.m --------------*/
 extern char CA_EZ_REF_STR[27][141];
+extern char CA_EZ_VERSION_STR[27];

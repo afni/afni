@@ -21,3 +21,5 @@ char CA_EZ_REF_STR[27][141] = {
 " Ziad S. Saad (ziad@nih.gov, SSCC/NIMH/NIH)",
 " Info automatically created with CA_EZ_Prep.m based on se_note.m",
 ""};/* Must be the only empty string in the array*/
+char CA_EZ_VERSION_STR[27] = { "Version 1.3c" };
+
