@@ -113,9 +113,11 @@ void whereami_usage(void)
                " -lpi/-spm: Input coordinates are in LPI or SPM format. \n"
                " -rai/-dicom: Input coordinates are in RAI or DICOM format.\n"
                " NOTE: The default format for input coordinates is set by AFNI_ORIENT\n"
-               "       environment variable. If it is not set, then the default is RAI/DICOM\n"
+               "       environment variable. If it is not set, then the default is \n"
+               "       RAI/DICOM\n"
                " -classic: Classic output format (output_format = 0).\n"
-               " -tab: Tab delimited output (output_format = 1). Useful for spreadsheeting.\n"
+               " -tab: Tab delimited output (output_format = 1). \n"
+               "       Useful for spreadsheeting.\n"
                " -atlas ATLAS: Use atlas ATLAS for the query.\n"
                "               You can use this option repeatedly to specify\n"
                "               more than one atlas. Default is all available atlases.\n"
@@ -128,7 +130,8 @@ void whereami_usage(void)
                "   %-12s: Generously contributed by Simon Eickhoff,\n"
                "   %-12s: Katrin Amunts and Karl Zilles of IME, Julich, \n"
                "   Germany. Please take into account the references and abide by the \n"
-               "   warning below (provided with the Anatomy toolbox) when using these atlases:\n", 
+               "   warning below (provided with the Anatomy toolbox) when using these \n"
+               "   atlases:\n", 
                Atlas_Code_to_Atlas_Name(AFNI_TLRC_ATLAS),
                Atlas_Code_to_Atlas_Name(CA_EZ_N27_MPM_ATLAS),
                Atlas_Code_to_Atlas_Name(CA_EZ_N27_ML_ATLAS),
@@ -163,47 +166,69 @@ void whereami_usage(void)
                "                   in use. The output is not too pretty because\n"
                "                   the option is for debugging use.\n"
                " -show_atlas_region REGION_CODE: You can now use symbolic notation to\n"
-               "                                 select atlas regions. REGION_CODE has three\n"
-               "                                 colon-separated elements forming it:\n"
-               "                           Atlas_Name:Side:Area.\n"
-               "                     Atlas_Name: one of the atlas names listed above.\n"
-               "                                 If you do not have a particular atlas in your AFNI\n"
-               "                                 installation, you'll need to download it (see below).\n"
-               "                     Side      : Either left, right or nothing(::) for bilateral.\n"
-               "                     Area      : A string identifying an area. The string cannot contain\n"
-               "                                 blanks. Replace blanks by '_' for example Cerebellar Vermis\n"
-               "                                 is Cerebellar_Vermis. You can also use the abbreviated \n" 
-               "                                 version cereb_ver and the program will try to guess at \n"
-               "                                 what you want and offer suggestions if it can't find the\n"
-               "                                 area or if there is ambiguity. Abbreviations are formed\n"
-               "                                 by truncating the components (chunks) of an area's name (label).\n"
-               "                                 For example:\n"
-               "                              1- TT_Daemon::ant_cing specifies the bilateral\n"
-               "                                 anterior cingulate in the TT_Daemon atlas.\n"
-               "                              2- CA_N27_ML:left:hippo specifies the left\n"
-               "                                 hippocampus in the CA_N27_ML atlas.\n"
-               "                              3- CA_N27_MPM:right:124 specifies the right\n"
-               "                                 ROI with integer code 124 in the CA_N27_MPM atlas\n"
-               "                              4- CA_N27_ML::cereb_ver seeks the Cerebellar\n"
-               "                                 Vermis in the CA_N27_ML atlas. However there\n"
-               "                                 many distinct areas with this name so the program\n"
-               "                                 will return with 'potential matches' or suggestions.\n"
-               "                                 Use the suggestions to refine your query. For example:\n"
-               "                                 CA_N27_ML::cereb_vermis_8\n"
+               "                                 select atlas regions. REGION_CODE has \n"
+               "                                 three colon-separated elements forming it:\n"
+               "            Atlas_Name:Side:Area.\n"
+               "      Atlas_Name: one of the atlas names listed above.\n"
+               "                  If you do not have a particular atlas in your AFNI\n"
+               "                  installation, you'll need to download it (see below).\n"
+               "      Side      : Either left, right or nothing(::) for bilateral.\n"
+               "      Area      : A string identifying an area. The string cannot contain\n"
+               "                  blanks. Replace blanks by '_' for example Cerebellar Vermis\n"
+               "                  is Cerebellar_Vermis. You can also use the abbreviated \n" 
+               "                  version cereb_ver and the program will try to guess at \n"
+               "                  what you want and offer suggestions if it can't find the\n"
+               "                  area or if there is ambiguity. Abbreviations are formed\n"
+               "                  by truncating the components (chunks) of an area's name \n"
+               "                  (label). For example:\n"
+               "               1- TT_Daemon::ant_cing specifies the bilateral\n"
+               "                  anterior cingulate in the TT_Daemon atlas.\n"
+               "               2- CA_N27_ML:left:hippo specifies the left\n"
+               "                  hippocampus in the CA_N27_ML atlas.\n"
+               "               3- CA_N27_MPM:right:124 specifies the right\n"
+               "                  ROI with integer code 124 in the CA_N27_MPM atlas\n"
+               "               4- CA_N27_ML::cereb_ver seeks the Cerebellar\n"
+               "                  Vermis in the CA_N27_ML atlas. However there\n"
+               "                  many distinct areas with this name so the program\n"
+               "                  will return with 'potential matches' or suggestions.\n"
+               "                  Use the suggestions to refine your query. For example:\n"
+               "                  CA_N27_ML::cereb_vermis_8\n"
                " -mask_atlas_region REGION_CODE: Same as -show_atlas_region, plus\n"
                "                                 write out a mask dataset of the region.\n"
                " -prefix PREFIX: Prefix for the output mask dataset\n"
+               " -max_areas MAX_N: Set a limit on the number of distinct areas to report.\n"
+               "             This option will override the value set by the environment\n"
+               "             variable AFNI_WHEREAMI_MAX_FIND, which is now set to %d\n"
+               "             The variable  AFNI_WHEREAMI_MAX_FIND should be set in your\n"
+               "             .afnirc file.\n"
+               " -max_search_radius MAX_RAD: Set a limit on the maximum searching radius when\n"
+               "                     reporting results. This option will override the \n"
+               "                     value set by the environment variable \n"
+               "                     AFNI_WHEREAMI_MAX_SEARCH_RAD,\n"
+               "                     which is now set to %f .\n" 
+               " NOTE: You can turn off some of the whining by setting the environment \n"
+               "       variable  AFNI_WHEREAMI_NO_WARN\n"            
                " -debug DEBUG: Debug flag\n"
+               " -CA_N27_version: Output the version of the Anatomy Toolbox atlases and quit.\n"
+               "                  If you get warnings that AFNI's version differs from that \n"
+               "                  of the atlas' datasets then you will need to download the \n"
+               "                  latest atlas datasets from AFNI's website. You cannot use \n"
+               "                  older atlases because the atlas' integer-code to area-label\n"
+               "                  map changes from one version to the next.\n"
+               "                  To get the version of the atlas' datasets, run 3dNotes \n"
+               "                  on the atlases and look for 'Version' in one of the notes\n"
+               "                  printed out.\n" 
                "\n"
                "Options for determining the percent overlap of ROIs with Atlas-defined areas:\n"
                "---------------------------------------------------------------------------\n"
                " -bmask MASK: Report on the overlap of all non-zero voxels in MASK dataset\n"
                "              with various atlas regions. NOTE: The mask itself is not binary,\n"
                "              the masking operation results in a binary mask.\n"
-               " -omask ORDERED_MASK:Report on the overlap of each ROI formed by an integral value\n"
-               "                     in ORDERED_MASK. For example, if ORDERED_MASK has ROIs with\n"
-               "                     values 1, 2, and 3, then you'll get three reports, one for each\n"
-               "                     ROI value. Note that -omask and -bmask are mutually exculsive.\n"
+               " -omask ORDERED_MASK:Report on the overlap of each ROI formed by an integral \n"
+               "                     value in ORDERED_MASK. For example, if ORDERED_MASK has \n"
+               "                     ROIs with values 1, 2, and 3, then you'll get three \n"
+               "                     reports, one for each ROI value. Note that -omask and\n"
+               "                     -bmask are mutually exculsive.\n"
                " -cmask MASK_COMMAND: command for masking values in BINARY_MASK, \n"
                "                      or ORDERED_MASK on the fly.\n"
                "        e.g. whereami -bmask JoeROIs+tlrc \\\n"
@@ -219,16 +244,20 @@ void whereami_usage(void)
                "Note on the reported coordinates of the Focus Point:\n"
                "----------------------------------------------------\n"
                "  Coordinates of the Focus Point are reported in 3 coordinate spaces.\n"
-               "The 3 spaces are Talairach (TLRC), MNI, MNI Anatomical (MNI Anat.). All three\n"
-               "coordinates are reported in the LPI coordinate order.\n"
-               "  The TLRC coordinates follow the convention specified by the Talairach and Tournoux Atlas.\n"
-               "  The MNI coordinates are derived from the TLRC ones using an approximation equation.\n"
-               "  The MNI Anat. coordinates are a shifted version of the MNI coordinates (see Eickhoff et al. 05).\n"
+               "The 3 spaces are Talairach (TLRC), MNI, MNI Anatomical (MNI Anat.). \n"
+               "All three coordinates are reported in the LPI coordinate order.\n"
+               "  The TLRC coordinates follow the convention specified by the Talairach and \n"
+               "     Tournoux Atlas.\n"
+               "  The MNI coordinates are derived from the TLRC ones using an approximation \n"
+               "     equation.\n"
+               "  The MNI Anat. coordinates are a shifted version of the MNI coordinates \n"
+               "     (see Eickhoff et al. 05).\n"
                "\n"
-               "  However because the MNI coordinates reported here are derived from TLRC by an approximate \n"
-               "function it is best to derive the MNI Anat. coordinates in a different manner.\n"
-               "This option is possible because the MNI Anat. coordinates are defined relative to the \n"
-               "single-subject N27 dataset. MNI Anat. coordinates are thus derived via the 12 piece-wise \n"
+               "  However because the MNI coordinates reported here are derived from TLRC \n"
+               "by an approximate function it is best to derive the MNI Anat. coordinates \n"
+               "in a different manner. This option is possible because the MNI Anat. \n"
+               "coordinates are defined relative to the single-subject N27 dataset. \n"
+               "MNI Anat. coordinates are thus derived via the 12 piece-wise \n"
                "linear transformations used to put the MNI N27 brain in TLRC space.\n" 
                "\n"
                "Installing Atlases:\n"
@@ -237,9 +266,10 @@ void whereami_usage(void)
                "   These files should be placed in a location that AFNI can find. \n"
                "   Let us refer to this directory as ATLAS_DIR, usually it is the same as\n"
                "   the directory in which AFNI's binaries (such as the program afni) reside.\n"
-               "   At a minimum, you need the TTatlas+tlrc dataset present to activate the AFNI\n"
-               "   'whereami' feature. To install it, if you do not have it already, download \n"
-               "   TTatlas+tlrc* from this link: http://afni.nimh.nih.gov/pub/dist/tgz/\n"
+               "   At a minimum, you need the TTatlas+tlrc dataset present to activate the \n"
+               "   AFNI 'whereami' feature. To install it, if you do not have it already, \n"
+               "   download TTatlas+tlrc* from this link: \n"
+               "   http://afni.nimh.nih.gov/pub/dist/tgz/\n"
                "   and move TTatlas+tlrc* to ATLAS_DIR.\n"
                "   The Anatomy Toolbox atlases are in archives called CA_EZ_v*.tgz with *\n"
                "   indicating a particular version number. Download the archive from:\n"
@@ -295,7 +325,7 @@ void whereami_usage(void)
                "\n"
                "Thanks to Kristina Simonyan for feedback and testing.\n"
                "\n" 
-               "\n");
+               "\n",Init_Whereami_Max_Find(), Init_Whereami_Max_Rad());
    EXRETURN;
 }
 int main(int argc, char **argv)
@@ -317,9 +347,9 @@ int main(int argc, char **argv)
    ATLAS_SEARCH *as=NULL;
    char *mskpref= NULL, *bmsk = NULL;
    byte *cmask=NULL ; int ncmask=0 ;
-   int dobin = 0;
+   int dobin = 0, N_areas;
    char *coord_file=NULL;
-   float *coord_list = NULL;
+   float *coord_list = NULL, rad;
    
    
    dobin = 0;
@@ -330,6 +360,8 @@ int main(int argc, char **argv)
    write_mask = 0;
    dicom = -1; /* not set */
    output = 0;
+   rad = -1.0;
+   N_areas = -1;
    OldMethod = 0;
    coord_file = NULL;
    for (k=0; k < NUMBER_OF_ATLASES; ++k)  isatlasused[k] = 0;
@@ -359,7 +391,10 @@ int main(int argc, char **argv)
             ++iarg;
             continue; 
          }
-         
+         if (strcmp(argv[iarg],"-ca_n27_version") == 0) { 
+            fprintf(stdout,"Anatomy Toolbox Version in AFNI is:\n%s\n", CA_EZ_VERSION_STR);  
+            return(0);
+         }
          if (strcmp(argv[iarg],"-rai") == 0 || strcmp(argv[iarg],"-dicom") == 0) { 
             dicom = 1; 
             ++iarg;
@@ -484,7 +519,34 @@ int main(int argc, char **argv)
             ++iarg;
             continue;             
          }
-          
+         
+         if (strcmp(argv[iarg],"-max_areas") == 0) {
+            ++iarg;
+            if (iarg >= argc) {
+               fprintf(stderr,"** Error: Need parameter after -max_areas\n"); return(1);
+            }
+            N_areas = atoi(argv[iarg]);
+            if (N_areas < 1 || N_areas > 50) {
+               fprintf(stderr,"** Error: -max_areas parameter must be between 1 and 50.\n"); return(1);
+            }
+            Set_Whereami_Max_Find(N_areas);
+            ++iarg;
+            continue;             
+         }
+         
+         if (strcmp(argv[iarg],"-max_search_radius") == 0) {
+            ++iarg;
+            if (iarg >= argc) {
+               fprintf(stderr,"** Error: Need parameter after -max_search_radius\n"); return(1);
+            }
+            rad = atof(argv[iarg]);
+            if (rad < 1.0 || rad > 9.5) {
+               fprintf(stderr,"** Error: -max_search_radius parameter must be between 1.0 and 9.5.\n"); return(1);
+            }
+            Set_Whereami_Max_Rad(rad);
+            ++iarg;
+            continue;             
+         } 
          if (strcmp(argv[iarg],"-dbg") == 0 || strcmp(argv[iarg],"-debug") == 0 ) {
             ++iarg;
             if (iarg >= argc) {
