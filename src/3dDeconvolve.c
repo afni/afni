@@ -6191,9 +6191,10 @@ MRI_IMAGE * PLOT_matrix_gray( matrix X )
 
 void JPEG_matrix_gray( matrix X , char *fname )
 {
-   char *pg , *jpfilt ;
+   char *pg , *jpfilt, *eee ;
    MRI_IMAGE *im ;
    FILE *fp ;
+   int jpeg_compress;
 
    if( fname == NULL || *fname == '\0' ) return ;
 
@@ -6212,8 +6213,19 @@ void JPEG_matrix_gray( matrix X , char *fname )
      return ;
    }
 
+   eee = my_getenv("AFNI_JPEG_COMPRESS");
+   if(eee!=NULL) {
+      jpeg_compress = strtod(eee, NULL);
+      if((jpeg_compress<=0) || (jpeg_compress>100))
+         jpeg_compress = 95;
+    }
+   else jpeg_compress = 95;
+   
+      
    jpfilt = (char *)malloc( sizeof(char)*(strlen(pg)+strlen(fname)+32) ) ;
-   sprintf( jpfilt , "%s -quality 95 > %s" , pg , fname ) ;
+
+   sprintf( jpfilt , "%s -quality %d > %s" , pg , jpeg_compress, fname ) ;
+
 #ifndef CYGWIN
    signal( SIGPIPE , SIG_IGN ) ; errno = 0 ;
 #endif
