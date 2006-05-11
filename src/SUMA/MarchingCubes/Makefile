@@ -1,3 +1,7 @@
+# SUMA modifications:
+# Comment out CC
+# remove all -pg options for Sun's pleasure
+
 ##############################################################################
 #
 # Makefile for Marching Cubes examples
@@ -10,7 +14,7 @@ LIBS      = -L/usr/lib/ -lm
 
 ########################### Programs #################################
 
-CC        = gcc -Wall
+#CC        = gcc -Wall ---- Passed from SUMA
 
 ########################### Flags #################################
 
@@ -18,7 +22,7 @@ FLAGS     = -I. -I/usr/include
 
 ifeq ($(MAKECMDGOALS),mc)
   OBJDIR  = debug
-  CFLAGS  = -pg -g -ggdb $(FLAGS) -DDEBUG
+  CFLAGS  = -g -ggdb $(FLAGS) -DDEBUG
 endif
 ifeq ($(MAKECMDGOALS),mcR)
   OBJDIR  = release
@@ -26,7 +30,7 @@ ifeq ($(MAKECMDGOALS),mcR)
 endif
 ifeq ($(MAKECMDGOALS),mcGL)
   OBJDIR  = debug_GL
-  CFLAGS  = -pg -g -ggdb $(FLAGS) -DDEBUG
+  CFLAGS  = -g -ggdb $(FLAGS) -DDEBUG
 endif
 ifeq ($(MAKECMDGOALS),mcGLR)
   OBJDIR  = release_GL
@@ -44,7 +48,7 @@ MC_OBJECTS = \
   $(OBJDIR)/main.o
 
 mc : $(OBJDIR) $(MC_OBJECTS)
-	$(CC) -pg -g -ggdb -o $@ $(MC_OBJECTS) $(LIBS)
+	$(CC) -g -ggdb -o $@ $(MC_OBJECTS) $(LIBS)
 
 mcR : $(OBJDIR) $(MC_OBJECTS)
 	$(CC) -O3 -o $@ $(MC_OBJECTS)
@@ -61,7 +65,7 @@ MCGL_OBJECTS = \
 
 
 mcGL : $(OBJDIR) $(MCGL_OBJECTS)
-	$(CC) -pg -g -ggdb -o $@ $(MCGL_OBJECTS) $(LIBS)
+	$(CC) -g -ggdb -o $@ $(MCGL_OBJECTS) $(LIBS)
 
 mcGLR : $(OBJDIR) $(MCGL_OBJECTS)
 	$(CC) -O3 -o $@ $(MCGL_OBJECTS) $(LIBS)
@@ -70,7 +74,7 @@ mcGLR : $(OBJDIR) $(MCGL_OBJECTS)
 ###########################  luttest  ################################
 
 luttest : LookUpTableTest.cpp LookUpTable.h
-	$(CC) -pg -g -ggdb -o $@ $< -I. $(LIBS)
+	$(CC) -g -ggdb -o $@ $< -I. $(LIBS)
 
 luttestR : LookUpTableTest.cpp LookUpTable.h
 	$(CC) -O3 -o $@ $< -I. $(LIBS)
