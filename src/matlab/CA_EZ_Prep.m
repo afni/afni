@@ -126,6 +126,7 @@ if (~isempty(which('se_note'))),
    fprintf(1,'\nNow trying to get at references using se_note\n');
    se_note;
    k = 0;
+   vers = '';
    if (exist('fg')),   
       h = get(fg, 'Children');
       cs = [];
@@ -148,9 +149,18 @@ if (~isempty(which('se_note'))),
             else
                cs(k).typ = 0; %other strings
                ot(l) = cellstr(cs(k).s);
+               if (~isempty(strfind(char(ot(l)), 'Version'))),
+                  vers = zdeblank(char(ot(l)));
+               end 
                l = l + 1;
             end
          end   
+      end
+      if (isempty(vers)),
+         fprintf(2,'Version string not found!\n');
+         return;
+      else
+         fprintf(2,'Version set to %s\n', vers);
       end
       % find the corresponding references
       ti = char(cs(ref(1)).s); ar = char(cs(ref(2)).s);
@@ -193,6 +203,7 @@ if (~isempty(which('se_note'))),
          otr = flipud(char(ot));
          car = char(ca);
          sdecl = sprintf('char CA_EZ_REF_STR[%d][%d]', size(otr,1)+size(aur,1)+size(car,1)+10, max([size(otr,2)+15, size(aur,2)+15,size(car,2)+15]));
+         sdecl2 = sprintf('char CA_EZ_VERSION_STR[%d]',length(vers)+3); 
          %do someting nice
          fida = fopen(rname,'w');
          fprintf(fida, '%s = {\n',sdecl);
@@ -204,7 +215,7 @@ if (~isempty(which('se_note'))),
          fprintf(fida, '" ",\n" ",\n"AFNI adaptation by",\n" Ziad S. Saad (ziad@nih.gov, SSCC/NIMH/NIH)",\n');
          fprintf(fida, '" Info automatically created with CA_EZ_Prep.m based on se_note.m",\n'); 
          fprintf(fida, '""};/* Must be the only empty string in the array*/\n'); %Must be the only empty string in the array
-         
+         fprintf(fida, '%s = { "%s" };\n', sdecl2, vers);
          fclose(fida);
       end
    end
@@ -267,6 +278,7 @@ end
    fprintf(fidh,'/* -----------     Refs      --------------------- */\n');
    fprintf(fidh,'/* ----------- Based on se_note.m --------------*/\n');   
    fprintf(fidh,'extern %s;\n', sdecl);
+   fprintf(fidh,'extern %s;\n', sdecl2);
 
 
 %first create ML structure
