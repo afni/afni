@@ -2280,5 +2280,14 @@ static char * readme_env[] = {
    "If this YES/NO variable is set to YES, then the GLT matrices generated\n" ,
    "in 3dDeconvolve by the \"-gltsym\" option will be printed to the screen\n" ,
    "when the program starts up.\n" ,
-   NULL } ;
-#define NUM_readme_env 2281
+   "\n" ,
+    "-------------------------\n" ,
+   "Variable: AFNI_JPEG_COMPRESS\n" ,
+   "-------------------------\n" ,
+   "This variable determines the compression quality of JPEG images saved\n" ,
+   "in AFNI (under the AFNI GUI or aiv). Reducing this number can give \n",
+   "JPEG files, but the files will lose information and have more artifacts\n",
+   "The default is 95.To reset this,set to a number from 1 to 100,for example:\n" ,
+   "  setenv AFNI_JPEG_COMPRESS 60\n" ,
+  NULL } ;
+#define NUM_readme_env 2290

@@ -118,6 +118,7 @@ static void ENV_trusthost( char * ) ;     /* 21 Feb 2001 */
 static void ENV_cwd( char * ) ;           /* 22 Feb 2001 */
 static void ENV_redraw_titles( char * );  /* 21 Dec 2004 */
 static void ENV_redisplay( char * );      /* 21 Mar 2005 */
+static void ENV_setjpegquality(char *);   /* 11 May 2006 */
 
 #ifdef USE_SESSTRAIL
 static void ENV_sesstrail( char * ) ;
@@ -424,6 +425,12 @@ PLUGIN_interface * ENV_init(void)
 
    /* 20 Oct 2005 [RWCox] */
    ENV_add_yesno( "AFNI_TTATLAS_CAUTION" , "Add caution to 'Where Am I' output?" ) ;
+
+   /* 10 May 2006 [drg] */
+   ENV_add_numeric( "AFNI_JPEG_COMPRESS" ,
+                    "JPEG compression quality %" ,
+                    1,100,0,95 , ENV_setjpegquality ) ;
+
 
    /*---------------- compute helpstring -----------------------*/
 
@@ -855,5 +862,11 @@ static void ENV_marksquality( char *vname )
 {
    char *str = getenv(vname) ;
    GLOBAL_argopt.elide_quality = YESSISH(str) ;
+}
+
+
+static void ENV_setjpegquality(char *vname)
+{
+   ISQ_setup_ppmto_filters();
 }
 #endif
