@@ -120,4 +120,6 @@
  needs an additional parameter to continue redilating.
 9 May 2006
  * 3dAutomask.c and thd_automask.c - stupid typos, debugging printfs removed, ...
- 
+10 May 2006
+ * JPEG compression factor environment variable in several places
+

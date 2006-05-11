@@ -277,14 +277,14 @@ static char *  ppmto_jpg95_filter = NULL ;  /* 28 Jul 2005 */
  } while(0)
 
 /*---- setup programs as filters: ppm stdin to some output file ----*/
-
-static void ISQ_setup_ppmto_filters(void)
+void ISQ_setup_ppmto_filters(void)
 {
    char *pg , *pg2 , *str , *eee ;
    int bv ;
    int dbg ;
    int ncant=0 , need_netpbm=0 ;  /* 16 Nov 2004 */
-
+   int jpeg_compress;
+   
    ppmto_num = 0 ; bv = ISQ_SAV_PNM ;
 
    dbg = AFNI_yesenv("AFNI_IMSAVE_DEBUG") ;  /* 03 Sep 2004 */
@@ -318,8 +318,18 @@ static void ISQ_setup_ppmto_filters(void)
 
    pg = THD_find_executable( "cjpeg" ) ;
    if( pg != NULL ){
+   /* user environment variable compression quality - mod 5/10/2006 drg */
+      eee = my_getenv("AFNI_JPEG_COMPRESS");
+      if(eee!=NULL) {
+         jpeg_compress = (int) strtod(eee, NULL);
+	 if((jpeg_compress<=0) || (jpeg_compress>100))
+            jpeg_compress = 95;
+      }
+      else jpeg_compress = 95;
+
+printf("\njpeg_compress %d\n", jpeg_compress);
       str = AFMALL( char, strlen(pg)+32) ;
-      sprintf(str,"%s -quality 95 > %%s",pg) ;
+      sprintf(str,"%s -quality %d > %%s",pg,jpeg_compress);
       bv <<= 1 ; ADDTO_PPMTO(str,"jpg",bv) ;
       ppmto_jpg95_filter = strdup(str) ;  /* 28 Jul 2005 */
 

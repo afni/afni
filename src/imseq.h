@@ -788,4 +788,6 @@ extern void mri_rgb_transform_nD( MRI_IMAGE *, int, generic_func * ) ;
 
 extern void ISQ_save_jpeg( MCW_imseq *seq , char *fname ) ; /* 28 Jul 2005 */
 
+extern void ISQ_setup_ppmto_filters(void); /* 11 May 2006 */
+
 #endif /* _MCW_IMSEQ_HEADER_ */
