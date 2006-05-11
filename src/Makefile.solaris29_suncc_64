@@ -40,12 +40,22 @@ LINT = /usr/bin/lint -b -u -v -x -Aa $(IFLAGS) $(CCDEFS)
 SHOWOFF = -DSHOWOFF=solaris29_suncc_64
 EXPROGS = 3dDeconvolve_n
 
+INSTALL_PREREQ = suma
+
 INSTALLDIR = ./solaris29_suncc_64
 LIBDIR = $(INSTALLDIR)
 
 LLIBS  = -lmri -lXm -lXt -lX11 $(LZLIB) -lm $(EXTRA_LIBS)
 
-
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# For suma
+#NOTE: Must use make on kampos that is in /usr/local/bin/make (GNU make)
+#      Else, MarchinCube's Makefile produces a stupid error 
+SUMA_MAKEFILE_NAME = SUMA_Makefile_NoDev
+SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -Igts/src -I/usr/openwin/include -I/usr/include -I/usr/openwin/share/include/X11 -I/usr/local/include -I/apps/solaris.utils/sun-studio11/SUNWspro/prod -I/opt/sfw/include -I/usr/local/lib/glib-2.0/include -I../niml/ -I/usr/local/include/glib-2.0
+SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../ -L/usr/local/lib -L/sw/lib -L/usr/openwin/lib -L/apps/solaris.utils/sun-studio11/SUNWspro/lib -L/apps/solaris.utils/sun-studio11/SUNWspro/prod/lib -L/usr/local/include/glib-2.0 -R/usr/openwin/lib
+SUMA_LINK_LIB = -lXm -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) -lm -lsocket -lnsl
+SUMA_BIN_ARCHIVE = SUMA_SOLARIS.tar
 ######################################################################
 
 MAKE = make
