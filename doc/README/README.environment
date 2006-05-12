@@ -2213,6 +2213,13 @@ looking for "firefox", "mozilla", "netscape", and "opera" (in that order).
 If a browser is found, or set, then the 'hidden' popup menu (in the blank
 square to the right of the 'done' button) will have a menu item to open it.
 
+----------------------------
+Variable: AFNI_JPEG_COMPRESS
+----------------------------
+This variable determines the compression quality of JPEG files saved in
+the AFNI GUI and 3dDeconvolve. Its value can be set to an integer from 
+1 to 100. If not set, the default value is 95%.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
