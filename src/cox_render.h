@@ -40,8 +40,9 @@ extern MRI_IMAGE * CREN_render         ( void *, THD_mat33 * ) ;
 #define CREN_SUM_VOX   0
 #define CREN_MIP_VOX   1
 #define CREN_MIP_OPA   2
+#define CREN_MINIP_VOX 3
 
-#define CREN_LAST_MODE 2
+#define CREN_LAST_MODE 3
 
 #define CREN_NN        0
 #define CREN_TWOSTEP   1
