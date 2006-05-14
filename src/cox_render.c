@@ -152,12 +152,13 @@ void CREN_set_min_opacity( void * ah , float opm )
    return ;
 }
 
-/*-----------------------------------------------------------------------------
+/*---------------------------------------------------------------------------
    Set the rendering mode
-     CREN_SUM_VOX = integral of voxel data times opacity
-     CREN_MIP_VOX = maximum voxel intensity
-     CREN_MIP_OPA = maximum opacity
--------------------------------------------------------------------------------*/
+     CREN_SUM_VOX   = integral of voxel data times opacity
+     CREN_MIP_VOX   = maximum voxel intensity
+     CREN_MIP_OPA   = maximum opacity
+     CREN_MINIP_VOX = minimum nonzero voxel intensity [09 May 2006] 
+-----------------------------------------------------------------------------*/
 
 void CREN_set_render_mode( void * ah , int mmm )
 {
@@ -617,6 +618,10 @@ fprintf(stderr,"warp: aii=%g  aij=%g\n"
      case CREN_MIP_VOX:
      break ;
 
+     case CREN_MINIP_VOX:             /* 09 May 2006 */
+       memset( rgb , 255 , ma*mb ) ;
+     break ;
+
      case CREN_MIP_OPA:
      break ;
    }
@@ -694,6 +699,17 @@ fprintf(stderr,"warp: aii=%g  aij=%g\n"
           }
         break ;
 
+        case CREN_MINIP_VOX:   /* minIP on the signal intensity */
+          for( p3=pij=0 ; pij < mab ; pij++,p3+=3 ){
+             vv = sl[pij] ; if( vv == 0 ) continue ;      /* skip */
+                  if( vv < 128  ) vv = vv << 1 ;          /* gray  */
+             else if( vv < vtop ) vv = ar->imap[vv-128] ; /* color */
+             else                 continue ;              /* skip  */
+
+             if( vv < rgb[p3] ) rgb[p3] = vv ;      /* minIP   */
+          }
+        break ;
+
         case CREN_MIP_OPA:{  /* MIP on the opacity */
           float opa ;
           for( p3=pij=0 ; pij < mab ; pij++,p3+=3 ){
@@ -719,13 +735,20 @@ fprintf(stderr,"warp: aii=%g  aij=%g\n"
    switch( ar->renmode ){
      default:
      case CREN_SUM_VOX:
-        free(used) ;
+       free(used) ;
      break ;
 
      case CREN_MIP_VOX:  /* fill in missing GB values */
      case CREN_MIP_OPA:
-        for( p3=pij=0 ; pij < mab ; pij++,p3+=3 )
-           rgb[p3+1] = rgb[p3+2] = rgb[p3] ;
+       for( p3=pij=0 ; pij < mab ; pij++,p3+=3 )
+         rgb[p3+1] = rgb[p3+2] = rgb[p3] ;
+     break ;
+
+     case CREN_MINIP_VOX:  /* fill in missing GB values */
+       for( p3=pij=0 ; pij < mab ; pij++,p3+=3 ){
+         if( rgb[p3] == 255 ) rgb[p3] = 0 ;
+         rgb[p3+1] = rgb[p3+2] = rgb[p3] ;
+       }
      break ;
    }
 

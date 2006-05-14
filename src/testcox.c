@@ -17,15 +17,23 @@ int main( int argc , char * argv[] )
    byte * bar ;
    double ctim ;
    int imode=CREN_TWOSTEP ;
+   int pmode=CREN_SUM_VOX ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: testcox [-rotate a b c] [-out f] [-bot b] [-nn|-ts|-li] dset\n") ;
+      printf("Usage: testcox [-rotate a b c] [-mip|-MIP] [-out f] [-bot b] [-nn|-ts|-li] dset\n") ;
       exit(0) ;
    }
 
    enable_mcw_malloc() ;
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+      if( strcmp(argv[iarg],"-MIP") == 0 ){
+        pmode = CREN_MIP_VOX ; iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-mip") == 0 ){
+        pmode = CREN_MINIP_VOX ; iarg++ ; continue ;
+      }
 
       if( strcmp(argv[iarg],"-nn") == 0 ){
          imode = CREN_NN ;
@@ -110,9 +118,7 @@ int main( int argc , char * argv[] )
    CREN_set_databytes( rhand , brim->nx,brim->ny,brim->nz , bar ) ;
    CREN_dset_axes( rhand , dset ) ;
 
-#if 0
-   CREN_set_render_mode( rhand , CREN_MIP_OPA ) ;
-#endif
+   CREN_set_render_mode( rhand , pmode ) ;
 
    CREN_set_interp( rhand , imode ) ;
 
@@ -123,7 +129,7 @@ int main( int argc , char * argv[] )
         fprintf(stderr,"renderer fails!\n") ; exit(1) ;
       }
 
-      sprintf(fn,"tc%03d.ppm",(int)rint(th3)) ;
+      sprintf(fn,"tc%03d.jpg",(int)rint(th3)) ;
       mri_write_pnm( fn, im ) ;
       fprintf(stderr,"+++ Output to file %s\n",fn);
       mri_free(im) ; nim++ ;
