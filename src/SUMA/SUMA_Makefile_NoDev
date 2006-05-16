@@ -175,22 +175,22 @@ SUMA_Algorithms_NS.o: SUMA_Algorithms.c
 #This one's old, but it works
 SUMA_TestDataSets_NS: SUMA_TestDataSets.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o
 	$(RM) $@
-	${CC} -DSUMA_TEST_DATA_SETS_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_TestDataSets.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o \
+	${CC} ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_TestDataSets.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o \
          ${SUMA_INPATH} ${SUMA_LINK_PATH} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 #You can do the same from AFNI/src with make TestDsetIO
 SUMA_TestDsetIO_NS: SUMA_TestDsetIO.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o
 	$(RM) $@
-	${CC} -DSUMA_TEST_DATA_SETS_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_TestDsetIO.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o \
+	${CC} ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_TestDsetIO.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o \
          ${SUMA_INPATH} ${SUMA_LINK_PATH} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 #>>>>>>>>>>>>>>>>>> End special block, compiling without all of SUMA's load <<<<<<<<<<<<<<<<<<<<
 #SUMA_TestDsetIO Should be the same as  SUMA_TestDsetIO_NS but it uses SUMA_COMPILED and it links to libSUMA.a
 SUMA_TestDsetIO: SUMA_TestDsetIO.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_Test_DSET_IO_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_TestDsetIO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_TestDsetIO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 ConvertDset: SUMA_ConvertDset.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_ConvertDset_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_ConvertDset.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_ConvertDset.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 ROI2dataset: SUMA_Surface_IO.c
 	$(RM) $@

@@ -1,6 +1,5 @@
 /* This program is meant be run with SUMA's libraries */
 #define STAND_ALONE
-#define SUMA_Test_DSET_IO_STANDALONE
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -31,7 +30,6 @@
 
 
 
-#ifdef SUMA_ConvertDset_STANDALONE
 void usage_ConverDset()
 {
    static char FuncName[]={"usage_ConverDset"};
@@ -258,4 +256,3 @@ int main (int argc,char *argv[])
    
 	SUMA_RETURN(0);
 }    
-#endif
