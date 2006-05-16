@@ -495,7 +495,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             if (svi->LinkAfniCrossHair) {/* link cross hair */
                /* look for the surface idcode */
                nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-               if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
+               if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "domain_parent_idcode");
                if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
                   if (LocalHead) fprintf(SUMA_STDERR,"%s: surface_idcode missing in nel (%s), using svi->Focus_SO_ID.\n", FuncName, nel->name);
                   dest_SO_ID = svi->Focus_SO_ID; /* default */
@@ -659,7 +659,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          /* if (LocalHead) SUMA_nel_stdout (nel); */
          /* look for the surface idcode */
          nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "domain_parent_idcode");
          if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
             fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel (%s).\n", FuncName, nel->name);
             SUMA_RETURN(NOPE);
@@ -760,7 +760,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          /* if (LocalHead) SUMA_nel_stdout (nel); */
          /* look for the surface idcode */
          nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "domain_parent_idcode");
          if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
             fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel (%s).\n", FuncName, nel->name);
             SUMA_RETURN(NOPE);
@@ -912,7 +912,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          /* look for the surface idcode */
          nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "domain_parent_idcode");
          if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
             fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel (%s).\n", FuncName, nel->name);
             SUMA_RETURN(NOPE);
@@ -954,7 +954,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          /* look for the surface idcode */
          nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "domain_parent_idcode");
          if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
             fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel (%s).\n", FuncName, nel->name);
             SUMA_RETURN(NOPE);
@@ -1055,7 +1055,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          /* look for the surface idcode */
          nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "domain_parent_idcode");
          if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
             fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel (%s).\n", FuncName, nel->name);
             SUMA_RETURN(NOPE);
@@ -2032,8 +2032,8 @@ void SUMA_FakeIt (int Solo)
       NI_add_column( nel , niml_ROI_Datum_type, niml_ROI->ROI_datum );
       
       fprintf(stderr,"*********** Setting attributes element\n");
-      NI_set_attribute (nel, "Object_ID", niml_ROI->idcode_str);
-      NI_set_attribute (nel, "Parent_ID", niml_ROI->Parent_idcode_str);
+      NI_set_attribute (nel, "self_idcode", niml_ROI->idcode_str);
+      NI_set_attribute (nel, "domain_parent_idcode", niml_ROI->Parent_idcode_str);
       NI_set_attribute (nel, "Label", niml_ROI->Label);
       sprintf(stmp,"%d", niml_ROI->iLabel);
       NI_set_attribute (nel, "iLabel", stmp);
@@ -2258,13 +2258,13 @@ SUMA_Boolean SUMA_Mesh_IJK_nel2Mesh_IJK(SUMA_SurfaceObject *SO, NI_element *nel)
       SUMA_RETURN(NOPE);
    }
    
-   tmp = NI_get_attribute(nel, "Parent_ID");
+   tmp = NI_get_attribute(nel, "domain_parent_idcode");
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) {
       if (strcmp(SO->idcode_str, tmp)) {
          SUMA_SL_Err("idcode mismatch."); SUMA_RETURN(NOPE);
       }
    }
-   tmp = NI_get_attribute(nel, "Object_ID");
+   tmp = NI_get_attribute(nel, "self_idcode");
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->facesetlist_idcode_str = SUMA_copy_string(tmp);
    
    tmp = NI_get_attribute(nel, "Mesh_Dim");
@@ -2426,10 +2426,10 @@ SUMA_Boolean SUMA_NodeXYZ_nel2NodeXYZ (SUMA_SurfaceObject *SO, NI_element *nel)
       }
    }
 
-   tmp = NI_get_attribute(nel, "Object_ID");
+   tmp = NI_get_attribute(nel, "self_idcode");
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->nodelist_idcode_str = SUMA_copy_string(tmp);
 
-   tmp = NI_get_attribute(nel, "Parent_ID");
+   tmp = NI_get_attribute(nel, "domain_parent_idcode");
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) {
       if (strcmp(tmp, SO->idcode_str)) {
          SUMA_SL_Err("idcode of parent mismatch"); SUMA_RETURN(NOPE);
@@ -2575,10 +2575,10 @@ SUMA_Boolean SUMA_VolPar_nel2SOVolPar(SUMA_SurfaceObject *SO, NI_element *nel)
    if (SO->VolPar) { SUMA_SL_Err("SO->VolPar must be NULL here"); SUMA_RETURN(NOPE); }
    SO->VolPar = SUMA_Alloc_VolPar();
    
-   tmp = NI_get_attribute(nel, "Object_ID");
+   tmp = NI_get_attribute(nel, "self_idcode");
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->VolPar->idcode_str = SUMA_copy_string(tmp);
 
-   tmp = NI_get_attribute(nel, "Parent_ID");
+   tmp = NI_get_attribute(nel, "domain_parent_idcode");
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) {
       if (strcmp(tmp, SO->idcode_str)) {
          SUMA_SL_Err("idcode of parent mismatch"); SUMA_RETURN(NOPE);

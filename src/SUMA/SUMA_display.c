@@ -4105,7 +4105,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
       SUMA_LH("Initializing for real");
       if (ColPlane->dset_link) { /* get the parent surface of the colorplane */
          if (ColPlane->dset_link->ngr) {
-            SOpar = SUMA_findSOp_inDOv(NI_get_attribute(ColPlane->dset_link->ngr,"Parent_ID"), SUMAg_DOv, SUMAg_N_DOv);
+            SOpar = SUMA_findSOp_inDOv(NI_get_attribute(ColPlane->dset_link->ngr,"domain_parent_idcode"), SUMAg_DOv, SUMAg_N_DOv);
          }
       }
       if (!SOpar) {
