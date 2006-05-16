@@ -19,7 +19,6 @@
 #include "SUMA_suma.h"
 
 
-#ifdef SUMA_TEST_DATA_SETS_STAND_ALONE
 void  SUMA_TestDataSets_Usage()
    
   {/*Usage*/
@@ -313,4 +312,3 @@ int main (int argc,char *argv[])
    SUMA_RETURN(0);
 }/* Main */
 
-#endif
