@@ -15,8 +15,32 @@
                                        This define is stuck here so that non-SUMA DataSet manipulating programs 
                                        can use it, one hopes.
                                        Numbering is yyyymmdd */
+
 #define SUMA_EMPTY_ATTR "~"
-#define SUMA_NI_SS ","    /* string separator */
+#define AFNI_NI_CSS "~"    
+#define AFNI_NI_cSS '~'    /* AFNI's NIML Column String Separator (used to separate strings belonging to different columns of input) 
+                              AFNI takes the niml attribute string and turns it into its internal attribute structure.
+                              AFNI_NI_CSS[0] is replaced by \0 and the string is broken into its per-column string list.
+                              That is not the case for BRICK_STATSYM which is treated as one ';' separated string that gets
+                              separately transformed into BRICK_STATAUX attribute entry in AFNI.
+                              This is somewhat confusing when viewing an AFNI dataset in NIML format because BRICK_STATSYM is of ni_type = "String"
+                              like say BRICK_LABS. However this makes sense in AFNI's format because these strings actually
+                              get transformed to attributes of different types in AFNI's internal format.
+                              SUMA will use the same separator for all attributes of ni_type = "String".
+                              Use Macros SUMA_2_AFNI_NI_PCS and AFNI_2_SUMA_NI_PCS if you need to change between SUMA- and AFNI-per-column-strings  
+                              */
+#define SUMA_NI_CSS ";"    /* SUMA's NIML  Per-Column-String Separator (used to separate strings belonging to different columns of input)  */
+#define SUMA_NI_cSS ';'
+
+#define SUMA_2_AFNI_NI_PCS(a) {\
+   int m_i = 0; \
+   while ((a)[m_i]) { if ((a)[m_i] == SUMA_NI_cSS) (a)[m_i] = AFNI_NI_cSS; ++m_i; } \
+}
+
+#define AFNI_2_SUMA_NI_PCS(a) {\
+   int m_i = 0; \
+   while ((a)[m_i]) { if ((a)[m_i] == AFNI_NI_cSS) (a)[m_i] = SUMA_NI_cSS; ++m_i; } \
+}
 
 typedef enum { NOPE, YUP} SUMA_Boolean;
 
@@ -222,7 +246,7 @@ typedef struct {
          idcode_str: Unique identifier for the data set
          MeshParent_idcode: Unique identifier of the surface containing the mesh  
                             over which this set is defined
-         GeomParent_idcode: Unique identifier of the surface containing the 
+         geometry_parent_idcode: Unique identifier of the surface containing the 
                             coordinates of the nodes whose attributes 
                             (values) are in this set.
          sorted_node_def: flag indicating that nodes in NodeDef are sorted
@@ -319,7 +343,7 @@ typedef struct {
             idcode_str: Unique identifier for the data set
             MeshParent_idcode: Unique identifier of the surface containing the mesh  
                                over which this set is defined
-            GeomParent_idcode: Unique identifier of the surface containing the 
+            geometry_parent_idcode: Unique identifier of the surface containing the 
                                coordinates of the nodes whose attributes 
                                (values) are in this set.
             sorted_node_def: flag indicating that nodes in NodeDef are sorted
@@ -399,7 +423,7 @@ typedef struct {
    #define SDSET_FILENAME(dset) NI_get_attribute(dset->nel,"filename")
    #define SDSET_LABEL(dset) NI_get_attribute(dset->nel,"label")
    #define SDSET_ID(dset) SUMA_sdset_id(dset) 
-   #define SDSET_IDGDOM(dset) NI_get_attribute(dset->nel,"GeomParent_idcode") 
+   #define SDSET_IDGDOM(dset) NI_get_attribute(dset->nel,"geometry_parent_idcode") 
    #define SDSET_IDMDOM(dset) SUMA_sdset_idmdom(dset)
    #define SDSET_SORTED(dset) NI_get_attribute(dset->nel,"sorted_node_def") 
    #define SDSET_TYPE_NAME(dset) dset->nel->name
@@ -409,11 +433,11 @@ typedef struct {
    #define SDSET_FILENAME(dset) NI_get_attribute(dset->ngr,"filename")
    #define SDSET_LABEL(dset) NI_get_attribute(dset->ngr,"label")
    #define SDSET_ID(dset) SUMA_sdset_id(dset) 
-   #define SDSET_IDGDOM(dset) NI_get_attribute(dset->ngr,"GeomParent_idcode") 
+   #define SDSET_IDGDOM(dset) NI_get_attribute(dset->ngr,"geometry_parent_idcode") 
    #define SDSET_IDMDOM(dset) SUMA_sdset_idmdom(dset)
    #define SDSET_SORTED(dset) NI_get_attribute(dset->ngr,"sorted_node_def") 
-   #define SDSET_TYPE_NAME(dset) dset->ngr->name
-   #define SDSET_TYPE(dset) SUMA_Dset_Type(dset->ngr->name)
+   #define SDSET_TYPE_NAME(dset) NI_get_attribute(dset->ngr,"dset_type")
+   #define SDSET_TYPE(dset) SUMA_Dset_Type(NI_get_attribute(dset->ngr,"dset_type"))
    #define SDEST_VECLEN(dset) dset->dnel->vec_len
 
 #endif
@@ -476,7 +500,7 @@ NodeDef might be dynamically changed in the overlay plane */
             SUMA_SL_Err ("Failed to read element");  \
          } else { \
             /* Look for the _data element */ \
-            if (!(dset->dnel = SUMA_FindDsetDataAttributeElement(dset))) {  \
+            if (!(dset->dnel = SUMA_FindDsetDataElement(dset))) {  \
                SUMA_SL_Err("Cannot find data element!\nCleaning up.\n");   \
                NI_free_element (dset->ngr); dset->ngr = NULL;  \
             }  \
@@ -666,10 +690,48 @@ NodeDef might be dynamically changed in the overlay plane */
    }  \
 }
 
+#define SUMA_MAX_OPEN_DX_FIELD_COMPONENTS 500
+#define SUMA_MAX_OPEN_DX_FIELD_ATTRIBUTES 500
+#define SUMA_MAX_OPEN_DX_OBJECTS  500
 
-NI_element *SUMA_FindDsetDataAttributeElement(SUMA_DSET *dset);
+typedef struct {
+   int rank;
+   int shape;
+   int items;
+   int bad_data;
+   char *type;
+   char *object;
+   char *class;
+   char *data;
+   char *data_off;
+   int data_format;
+   void *datap;
+   int n_comp;
+   char *comp_name[SUMA_MAX_OPEN_DX_FIELD_COMPONENTS];
+   char *comp_value[SUMA_MAX_OPEN_DX_FIELD_COMPONENTS];
+   int n_attr;
+   char *attr_name[SUMA_MAX_OPEN_DX_FIELD_ATTRIBUTES];
+   char *attr_string[SUMA_MAX_OPEN_DX_FIELD_ATTRIBUTES];
+   int *counts;
+   int n_counts;
+   float *delta;
+   int n_delta;
+   float *origin;
+   int n_origin;
+} SUMA_OPEN_DX_STRUCT;
+
+#define SUMA_OK_OPENDX_DATA_TYPE(tp) ( (  tp == SUMA_int || \
+                                          tp == SUMA_float ||  \
+                                          tp == SUMA_double || \
+                                          tp == SUMA_byte )   \
+                                           ? 1 : 0 )
+
+#define SUMA_NCOL_OPENDX(dx) ( ( ( (dx)->shape == 0 ) ? 1 : ((dx)->shape) ) )
+
+NI_element *SUMA_FindDsetDataElement(SUMA_DSET *dset);
 NI_element *SUMA_FindDsetAttributeElement(SUMA_DSET *dset, char *attname);
 NI_element *SUMA_FindNgrAttributeElement(NI_group *ngr, char *attname);
+NI_element *SUMA_FindNgrDataElement(NI_group *ngr, char *nelname, char *typename);
 float SUMA_LatestVersionNumber(void);
 char * SUMA_Dset_Type_Name (SUMA_DSET_TYPE tp);
 SUMA_DSET_TYPE SUMA_Dset_Type (char *Name);
@@ -693,10 +755,10 @@ int SUMA_AddColAttr (NI_element *nel, char *col_label,
                      SUMA_COL_TYPE ctp, void *col_attr, int col_index);
 SUMA_Boolean SUMA_NewDsetGrp (SUMA_DSET *dset, SUMA_DSET_TYPE dtp, 
                            char* MeshParent_idcode, 
-                          char * GeomParent_idcode, int N_el, 
+                          char * geometry_parent_idcode, int N_el, 
                           char *filename, char *thisidcode);
 NI_element * SUMA_NewNel (SUMA_DSET_TYPE dtp, char* MeshParent_idcode, 
-                          char * GeomParent_idcode, int N_el, 
+                          char * geometry_parent_idcode, int N_el, 
                           char *name, char *thisidcode);
 SUMA_DSET_FORMAT SUMA_Dset_Format (char *Name);
 char * SUMA_Dset_Format_Name (SUMA_DSET_FORMAT fr);
@@ -761,6 +823,13 @@ char* SUMA_sdset_idmdom(SUMA_DSET *dset);
 NI_group *SUMA_oDsetNel2nDsetNgr(NI_element *nel); 
 void SUMA_SetParent_DsetToLoad(char *parent);
 float *SUMA_Load1D (char *oName, int *ncol, int *nrow, int RowMajor, int verb);
+SUMA_OPEN_DX_STRUCT **SUMA_OpenDX_Read(char *fname, int *nobj);
+void SUMA_Show_OpenDX_Struct(SUMA_OPEN_DX_STRUCT **dxv, int N_dxv, FILE *out);
+SUMA_OPEN_DX_STRUCT *SUMA_Free_OpenDX_Struct(SUMA_OPEN_DX_STRUCT *dx);
+SUMA_OPEN_DX_STRUCT *SUMA_Alloc_OpenDX_Struct(void);
+void * SUMA_OpenDx_Object_Header_Field(char *op, int nchar, const char *attr, char **op_end);
+SUMA_Boolean SUMA_OpenDx_Object_Data(char *op, int nchar, SUMA_OPEN_DX_STRUCT *dx);
+
 /*********************** BEGIN Miscellaneous support functions **************************** */
 #ifdef SUMA_COMPILED
    #define SUMA_STANDALONE_INIT {   \
@@ -835,6 +904,11 @@ void *SUMA_BinarySuck(char *fname, SUMA_VARTYPE data_type, int endian, int start
 void SUMA_swap_2(void *ppp);
 void SUMA_swap_4(void *ppp);
 void SUMA_swap_8(void *ppp);
+int SUMA_suck_file( char *fname , char **fbuf );
+char * SUMA_file_suck( char *fname , int *nread );
+void *SUMA_AdvancePastNumbers(char *op, char **opend, SUMA_VARTYPE tp);
+void *SUMA_strtol_vec(char *op, int nvals, int *nread, SUMA_VARTYPE vtp);
+
 
 /*********************** END Miscellaneous support functions **************************** */
 
