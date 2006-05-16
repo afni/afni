@@ -325,7 +325,7 @@ typedef struct {
             SUMA_Dset_Format_Name
             SUMA_AddNelHist
                     
-         Sample Code: SUMA_Test_DSET_IO_STANDALONE
+         Sample Code: SUMA_TestDSETIO.c
          */              
    #else   /* the post april 06 05 way */
    /* *** You can go crazy below */
