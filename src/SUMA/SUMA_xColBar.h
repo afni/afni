@@ -29,7 +29,7 @@
          int m_N_Node=-1;  \
          /* number of nodes of parent surface */   \
          m_idcode_str = NI_get_attribute(m_dset->ngr, "MeshParent_idcode"); /* obsolete */\
-         if (!m_idcode_str) m_idcode_str = NI_get_attribute(m_dset->ngr, "Parent_ID"); \
+         if (!m_idcode_str) m_idcode_str = NI_get_attribute(m_dset->ngr, "domain_parent_idcode"); \
          if (m_idcode_str) { \
             m_SOp = SUMA_findSOp_inDOv(m_idcode_str, SUMAg_DOv, SUMAg_N_DOv);  \
             if (m_SOp) {  \

@@ -1,43 +1,6 @@
 #ifndef SUMA_SURFACE_IO_INCLUDED
 #define SUMA_SURFACE_IO_INCLUDED
 
-#define SUMA_MAX_OPEN_DX_FIELD_COMPONENTS 500
-#define SUMA_MAX_OPEN_DX_FIELD_ATTRIBUTES 500
-#define SUMA_MAX_OPEN_DX_OBJECTS  500
-
-typedef struct {
-   int rank;
-   int shape;
-   int items;
-   int bad_data;
-   char *type;
-   char *object;
-   char *class;
-   char *data;
-   char *data_off;
-   int data_format;
-   void *datap;
-   int n_comp;
-   char *comp_name[SUMA_MAX_OPEN_DX_FIELD_COMPONENTS];
-   char *comp_value[SUMA_MAX_OPEN_DX_FIELD_COMPONENTS];
-   int n_attr;
-   char *attr_name[SUMA_MAX_OPEN_DX_FIELD_ATTRIBUTES];
-   char *attr_string[SUMA_MAX_OPEN_DX_FIELD_ATTRIBUTES];
-   int *counts;
-   int n_counts;
-   float *delta;
-   int n_delta;
-   float *origin;
-   int n_origin;
-} SUMA_OPEN_DX_STRUCT;
-
-#define SUMA_OK_OPENDX_DATA_TYPE(tp) ( (  tp == SUMA_int || \
-                                          tp == SUMA_float ||  \
-                                          tp == SUMA_double || \
-                                          tp == SUMA_byte )   \
-                                           ? 1 : 0 )
-
-#define SUMA_NCOL_OPENDX(dx) ( ( ( (dx)->shape == 0 ) ? 1 : ((dx)->shape) ) )
 
 SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( char *if_name, char *if_name2, char *vp_name, 
                                                    SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *sv_name, int debug);
@@ -79,16 +42,10 @@ SUMA_FORM_AFNI_DSET_STRUCT *SUMA_Free_FormAfniDset_Opt(SUMA_FORM_AFNI_DSET_STRUC
 THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals, int N_vals, SUMA_FORM_AFNI_DSET_STRUCT *Opt);
 NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee) ;
 SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr); 
-SUMA_OPEN_DX_STRUCT *SUMA_Alloc_OpenDX_Struct(void);
-SUMA_OPEN_DX_STRUCT *SUMA_Free_OpenDX_Struct(SUMA_OPEN_DX_STRUCT *dx);
 SUMA_OPEN_DX_STRUCT ** SUMA_Free_OpenDX_StructVec(SUMA_OPEN_DX_STRUCT **dxv, int nobj);
-void SUMA_Show_OpenDX_Struct(SUMA_OPEN_DX_STRUCT **dxv, int N_dxv, FILE *out);
 SUMA_Boolean SUMA_OpenDX_Write(char *fname, SUMA_SurfaceObject *SO);
-SUMA_Boolean SUMA_OpenDx_Object_Data(char *op, int nchar, SUMA_OPEN_DX_STRUCT *dx);
 SUMA_Boolean SUMA_OpenDx_Object_Attr(char *op, int nchar, SUMA_OPEN_DX_STRUCT *dx);
 SUMA_Boolean SUMA_OpenDx_Object_Components(char *op, int nchar, SUMA_OPEN_DX_STRUCT *dx);
-void * SUMA_OpenDx_Object_Header_Field(char *op, int nchar, const char *attr, char **op_end);
-SUMA_OPEN_DX_STRUCT **SUMA_OpenDX_Read(char *fname, int *nobj);
 SUMA_OPEN_DX_STRUCT *SUMA_Find_OpenDX_Object_Name(SUMA_OPEN_DX_STRUCT **dxv, int iop, char *nm, int *nf);
 SUMA_OPEN_DX_STRUCT *SUMA_Find_OpenDX_Object_Class(SUMA_OPEN_DX_STRUCT **dxv, int iop, char *nm, int *nf);
 SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO);

@@ -34,12 +34,12 @@
 
 #define SUMA_2_AFNI_NI_PCS(a) {\
    int m_i = 0; \
-   while ((a)[m_i]) { if ((a)[m_i] == SUMA_NI_cSS) (a)[m_i] = AFNI_NI_cSS; ++m_i; } \
+   if ((a)) { while ((a)[m_i]) { if ((a)[m_i] == SUMA_NI_cSS) (a)[m_i] = AFNI_NI_cSS; ++m_i; } }\
 }
 
 #define AFNI_2_SUMA_NI_PCS(a) {\
    int m_i = 0; \
-   while ((a)[m_i]) { if ((a)[m_i] == AFNI_NI_cSS) (a)[m_i] = SUMA_NI_cSS; ++m_i; } \
+   if ((a)) { while ((a)[m_i]) { if ((a)[m_i] == AFNI_NI_cSS) (a)[m_i] = SUMA_NI_cSS; ++m_i; } }\
 }
 
 typedef enum { NOPE, YUP} SUMA_Boolean;

@@ -22,10 +22,6 @@
 #include <Xm/Frame.h>
 #include <math.h>
 #include <signal.h>
-#include <GL/gl.h>
-#include <GL/glu.h>
-#include <GL/glx.h>
-#include <GLUT/GL/glut.h>
 
 /* from Fri Aug  9 17:54:03 EDT 2002 and on SUMA will need motif headers */
 
@@ -57,6 +53,7 @@
    #include "SUMA_Algorithms.h"
    #include "SUMA_DataSets.h"
    #include "SUMA_Macros.h"  
+   #include "SUMA_StringParse.h"  
    #define SUMA_ENTRY ENTRY(FuncName)
    #define SUMA_RETURN RETURN
    #define SUMA_RETURNe EXRETURN
@@ -156,6 +153,10 @@
 
 /* The include files */
 #if defined SUMA_COMPILED
+   #include <GL/gl.h>
+   #include <GL/glu.h>
+   #include <GL/glx.h>
+   #include <GLUT/GL/glut.h>
    /* SUMA specific includes*/
    #include "SUMA_define.h"   
    #include "SUMA_prototype.h"

@@ -164,17 +164,33 @@ quickspec: SUMA_Load_Surface_Object.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED -DSUMA_quickspec_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Load_Surface_Object.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
-SUMA_TestDataSets: SUMA_DataSets.c
-	$(RM) $@
-	${CC} -DSUMA_TEST_DATA_SETS_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_DataSets.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+#>>>>>>>>>>>>>>>>>> Begin special block, compiling without all of SUMA's load <<<<<<<<<<<<<<<<<<<<
+#A special compilation of SUMA_DataSets and SUMA_Algorithms, without SUMA_COMPILED defined
+SUMA_DataSets_NS.o: SUMA_DataSets.c 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INPATH} -o SUMA_DataSets_NS.o -c SUMA_DataSets.c
 
-SUMA_TestDsetIO: SUMA_DataSets.c
-	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_Test_DSET_IO_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_DataSets.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+SUMA_Algorithms_NS.o: SUMA_Algorithms.c 
+	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INPATH} -o SUMA_Algorithms_NS.o -c SUMA_Algorithms.c
 
-ConvertDset: SUMA_DataSets.c
+#This one's old, but it works
+SUMA_TestDataSets_NS: SUMA_TestDataSets.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_ConvertDset_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_DataSets.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_TEST_DATA_SETS_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_TestDataSets.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o \
+         ${SUMA_INPATH} ${SUMA_LINK_PATH} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+#You can do the same from AFNI/src with make TestDsetIO
+SUMA_TestDsetIO_NS: SUMA_TestDsetIO.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o
+	$(RM) $@
+	${CC} -DSUMA_TEST_DATA_SETS_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_TestDsetIO.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o \
+         ${SUMA_INPATH} ${SUMA_LINK_PATH} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+#>>>>>>>>>>>>>>>>>> End special block, compiling without all of SUMA's load <<<<<<<<<<<<<<<<<<<<
+#SUMA_TestDsetIO Should be the same as  SUMA_TestDsetIO_NS but it uses SUMA_COMPILED and it links to libSUMA.a
+SUMA_TestDsetIO: SUMA_TestDsetIO.c
+	$(RM) $@
+	${CC} -DSUMA_COMPILED -DSUMA_Test_DSET_IO_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_TestDsetIO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+
+ConvertDset: SUMA_ConvertDset.c
+	$(RM) $@
+	${CC} -DSUMA_COMPILED -DSUMA_ConvertDset_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_ConvertDset.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 ROI2dataset: SUMA_Surface_IO.c
 	$(RM) $@
@@ -501,7 +517,6 @@ standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
    3dCRUISEtoAFNI	3dBRAIN_VOYAGERtoAFNI 3dSurfMask SurfToSurf ROIgrow\
    SumaProgramTemplate 
    
-#SUMA_TestDataSets
  
 anew: clean libSUMA.a mainobj suma standalones packbins install 
 
