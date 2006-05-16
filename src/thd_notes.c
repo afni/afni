@@ -27,12 +27,15 @@ char * tross_commandline( char * pname , int argc , char ** argv )
    char * ch ;
    int ii , ll ;
 
-   if( argc < 2 || argv == NULL ) return NULL ;
+   if( argc < 1 || argv == NULL ) return NULL ; /* ZSS, changed argc < 2 to argc < 1 */
 
    if( pname == NULL ) pname = argv[0] ;
 
    ii = strlen(pname) ; ch = AFMALL(char, ii+4) ; strcpy(ch,pname) ;
-
+   if (argc < 2) {  /* ZSS */
+      /* no options, get the hell outa here */
+      return ch ;
+   }
    for( ii=1 ; ii < argc ; ii++ ){
       if( argv[ii] == NULL || argv[ii][0] == '\0' ) continue ; /* skip */
 
