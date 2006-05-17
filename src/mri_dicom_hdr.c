@@ -6518,8 +6518,13 @@ ENTRY("readVRLength") ;
 	    (void) DCM_DumpElements((DCM_OBJECT **) object, 0);
 	(void) DCM_CloseObject((DCM_OBJECT **) object);
         if( rwc_err ){
+
+#if 0 /* do not report this (the NIMH GE scanners are producing such files)
+         17 May 2006 [rickr] */
+
          fprintf(stderr,"** DICOM ERROR: illegal odd length=%d in element (%04x,%04x)\n",  /* RWC */
                  e->length,DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) ) ; rwc_err-- ;
+#endif
         }
 	RETURN( COND_PushCondition(DCM_UNEVENELEMENTLENGTH,
 				  DCM_Message(DCM_UNEVENELEMENTLENGTH),
@@ -6958,7 +6963,8 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 	knownLength = TRUE,
 	explicitVR = FALSE,
 	acceptVRMismatch = FALSE,
-	part10Flag = FALSE;
+	part10Flag = FALSE,
+	readpreamble = TRUE;     /* read just to skip - 17 May 2006 [rickr] */
     unsigned char
        *ptr = NULL;
     PRV_ELEMENT_ITEM
@@ -7042,7 +7048,7 @@ ENTRY("readFile1") ;
     if (parentObject != NULL)
 	(*object)->pixelRepresentation = (*parentObject)->pixelRepresentation;
 
-    if (recursionLevel == 0 && part10Flag) {
+    if (recursionLevel == 0 && (part10Flag || readpreamble)) {/* 17 May 2006 */
 	flag = readPreamble(name, &ptr, fd, &size, fileOffset, knownLength,
 			    object, scannedLength);
 	if (flag != DCM_NORMAL)
