@@ -1,0 +1,837 @@
+#!/bin/tcsh -f
+
+# make surface spec files from the surface files
+#
+# usage @SUMA_Make_Spec_SF [options]
+#
+# options:  -sid	subject_id	: specify subject ID
+#	    -sfpath	SureFit_path : specify path to SureFit files
+#      -debug      level	: display extra output
+#
+
+#----------------------------------------------------------------------
+
+goto L_INIT_VARS
+     L_INIT_VARS_DONE:
+
+goto L_CHECK_USAGE
+     L_CHECK_USAGE_DONE:
+
+goto L_PARSE_COMMAND
+     L_PARSE_COMMAND_DONE:
+
+goto L_VERIFY_PROGRAMS
+     L_VERIFY_PROGRAMS_DONE:
+
+goto L_SET_SURF_DIRS
+     L_SET_SURF_DIRS_DONE:
+
+goto L_CHECK_FOR_OVERWRITE
+     L_CHECK_FOR_OVERWRITE_DONE:
+
+goto L_LOOK_FOR_SURF
+     L_LOOK_FOR_SURF_DONE:
+
+goto L_LOOK_FOR_TOPO
+     L_LOOK_FOR_TOPO_DONE:
+
+goto L_LOOK_FOR_VOLPARAMS
+     L_LOOK_FOR_VOLPARAMS_DONE:
+
+goto L_CREATE_SPEC
+     L_CREATE_SPEC_DONE:
+
+goto L_TEST_SURF_VOL
+     L_TEST_SURF_VOL_DONE:
+
+goto L_GOOD_END	# finished, woohooo!
+
+
+####################################################################
+# variable initialization
+
+L_INIT_VARS:
+
+    set prog_name = $0:t
+    set endstr = "$prog_name ... finished"
+    set debug     = 0
+
+    set surf_attribs = (Fiducial		\
+			Raw \
+         VeryInflated			\
+			Inflated		\
+			)
+
+goto L_INIT_VARS_DONE
+
+
+####################################################################
+# check usage, and possibly print help
+
+L_CHECK_USAGE:
+
+    if ( $#argv == 0 ) then
+	echo "usage: $prog_name [options] -sid SUBJECT_ID"
+	echo "usage: $prog_name -help"
+	set endstr = ""
+	goto L_GOOD_END
+    endif
+
+goto L_CHECK_USAGE_DONE
+
+
+####################################################################
+# parse the command line
+
+L_PARSE_COMMAND:
+
+    # init command line arg values
+
+    set sf_dir		= "."
+    set subj_id		= ""
+
+    set args     = $#argv
+    set count    = 1
+
+    while ( $count <= $args )
+	switch ( "$argv[$count]" )
+
+	    # ----------------------------------------------------------
+	    # usage: -help
+	    case "-h":
+	    case "-help":
+
+		goto L_HELP_END		# and don't ya' come back, neither
+
+	    breaksw
+
+	    # ----------------------------------------------------------
+	    # usage: -sid SUBJECT_ID
+	    case "-sid":
+
+		if ( $count >= $args ) then
+		    set endstr = "arg usage: -sid SUBJECT_ID"
+		    goto L_BAD_END
+		endif
+
+		@ count ++
+		set subj_id  = $argv[$count]
+
+	    breaksw
+
+	    # ----------------------------------------------------------
+	    # usage: -sfpath SUREFIT_PATH
+	    case "-sfpath":
+
+		if ( $count >= $args ) then
+		    set endstr = "arg usage: -sfpath SUREFIT_PATH"
+		    goto L_BAD_END
+		endif
+
+		@ count ++
+		set sf_dir  = $argv[$count]
+
+		if ( ! -d $sf_dir ) then
+		    set endstr = "failure: directory not found - '$sf_dir'"
+		    goto L_BAD_END
+		endif
+
+	    breaksw
+
+	    # ----------------------------------------------------------
+	    # usage : -debug DEBUG_LEVEL
+	    case "-debug":
+
+		if ( $count >= $args ) then
+		    set endstr = "arg usage: -debug DEBUG_LEVEL"
+		    goto L_BAD_END
+		endif
+
+		@ count ++
+		set debug = $argv[$count]
+
+		if ( "$debug" > 2 ) set debug = 2
+		if ( "$debug" < 0 ) set debug = 0
+
+	    breaksw
+
+	    # ----------------------------------------------------------
+	    # bad argument
+	    default:
+
+		set endstr = "invalid option: '$argv[$count]'"
+		goto L_BAD_END
+
+	    breaksw
+	endsw
+
+	@ count ++
+    end
+
+    if ( $subj_id == "" ) then
+	set endstr = "missing required option: -sid"
+	goto L_BAD_END
+    endif
+
+    if ( $debug ) echo "-- usage okay"
+    if ( $debug > 1 ) set echo
+
+    set spec_files   = ({$subj_id}_lh.spec {$subj_id}_rh.spec )
+    set afni_prefix  = ${subj_id}_SurfVol
+    set afni_dataset = $afni_prefix+orig
+
+    # set and go to the base directory
+    cd $sf_dir
+    set start_dir = $cwd
+
+    if ( $debug ) echo "-- using start_dir '$start_dir'"
+
+goto L_PARSE_COMMAND_DONE
+
+
+####################################################################
+# make sure programs exist
+
+L_VERIFY_PROGRAMS:
+
+    set caret_convert = ""
+    set failed_pgms = 0
+    foreach test_command ( afni suma caret_file_convert)
+
+	(which $test_command) >& /dev/null
+
+	if ( $status ) then
+	    echo "Warning: program not found in path: $test_command"
+	    #these programs are not necessary
+		 #@ failed_pgms ++
+	else
+      if ("$test_command" == "caret_file_convert") then
+         set caret_convert = "$test_command"
+      endif
+   endif
+    end
+
+    if ( $failed_pgms ) then
+	set endstr = "$failed_pgms program(s) not found"
+	goto L_BAD_END
+    endif
+
+    if ( $debug ) echo "-- all programs found"
+
+goto L_VERIFY_PROGRAMS_DONE
+
+
+####################################################################
+# 1. set surfaces_dir and vol_dir - check cwd and parent
+
+L_SET_SURF_DIRS:
+
+    # find SURFACES directory
+
+    if ( -d  SURFACES) then
+	set surfaces_dir = ./SURFACES
+    else if ( $cwd:t == SURFACES ) then
+	set surfaces_dir = .
+    else if ( -d ../SURFACES ) then
+	set surfaces_dir = ../SURFACES
+    else
+	# this is a general failure case, even if we find one
+	set surfaces_dirs = ( `find . -maxdepth 4 -type d -name SURFACES -print` )
+	
+	if ( $#surfaces_dirs == 0 ) then
+	    #See if surfaces are in this directory
+       set surfs = ( `ls *.topo *.coord` )
+       if ($#surfs > 1 ) then
+         #Looks like that is the norm for CARET surfaces
+         #echo "Warning: Looks like surfaces are outside of a SURFACES directory."
+         #echo "Working from current directory"
+         set surfaces_dir = ./
+         goto VERIFY_PERMISSION
+       endif
+       echo "failure: cannot find directory 'SURFACES' under '$sf_dir'"
+	    echo "(subject to a maximum search depth of 4 subdirectories)"
+
+	    set endstr = ""
+	else if ( $#surfaces_dirs == 1 ) then
+	    echo "SURFACES directory found at '$surfaces_dirs[1]'"
+	    set endstr = "consider running program from '$surfaces_dirs[1]:h'"
+	else
+	    echo "multiple SURFACES directories found:"
+	    set count = 1
+	    while ( $count <= $#surfaces_dirs )
+		echo "     $surfaces_dirs[$count]"
+		@ count ++
+	    end
+
+	    set endstr = ( "consider running program from one of the" \
+			   "SURFACES directories" )
+	endif
+
+	goto L_BAD_END
+    endif
+
+VERIFY_PERMISSION:
+    # verify SURFACES dir permissions
+    if ( ! -w $surfaces_dir ) then
+	set endstr = "failure: no write permissions for directory '$surfaces_dir'"
+	goto L_BAD_END
+    endif
+
+    if ( $debug ) echo "-- using SURFACES directory '$surfaces_dir'..."
+
+    # vol_dir is the parent directory of SURFACES
+    if ("$surfaces_dir" == "./") then
+      set vol_dir = "./"
+      set Vol_Param_loc = ""
+    else 
+      set vol_dir = $surfaces_dir/../
+      set Vol_Param_loc = "../"
+    endif
+    
+    # verify orig dir permissions
+    if ( ! -w $vol_dir ) then
+	set endstr = "failure: no write permissions for directory '$vol_dir'"
+	goto L_BAD_END
+    endif
+
+    if ( $debug ) echo "-- using volume directory '$vol_dir'..."
+
+	#set suma_dir to be surfaces_dir
+    set suma_dir = $surfaces_dir
+
+    
+
+goto L_SET_SURF_DIRS_DONE
+
+
+####################################################################
+# verify non-existence of spec files and AFNI files
+
+L_CHECK_FOR_OVERWRITE:
+
+    set test_failures = 0
+
+    foreach test_file (	$suma_dir/$spec_files[1]	\
+			$suma_dir/$spec_files[2]	\
+			)
+	if ( -f $test_file ) then
+	    if ( $test_failures == 0 ) then
+		echo "failure: will not overwrite files: "
+		set test_failures = 1
+	    endif
+
+	    echo "        '$test_file'"
+	endif
+    end
+
+    if ( $test_failures ) then
+        set endstr = "please remove these files if you want to rerun the script."
+	goto L_BAD_END
+    endif
+
+goto L_CHECK_FOR_OVERWRITE_DONE
+
+####################################################################
+# find surface files
+
+L_LOOK_FOR_SURF:
+
+    cd $surfaces_dir
+
+    set list_lh = "X"	# init to something useless - allows nice empty check
+    set list_rh = "X"
+    set list_lrh = "X"
+    
+	 foreach Side ( 'L' 'R' 'LR')
+		#get all the surfaces and ask user to identify one to use
+		set CHOOSE_LIST = `ls -t *.$Side.*Fiducial*.coord`
+		if ($#CHOOSE_LIST > 0) then
+				   echo "Choose final Fiducial surface (1st one is most likely since it was created last):"
+				   #vvvvvvvvvvvvvvvvvvvv   chooser block 
+				   #This cannot be used inside a loop with a goto statement.  	
+					    set CHOOSE_LIST_cnt = 1
+					    foreach CHOOSE_LIST_item ( $CHOOSE_LIST )
+	 					   echo "$CHOOSE_LIST_cnt- $CHOOSE_LIST_item"
+						   @ CHOOSE_LIST_cnt ++
+					    end
+					    set CHOOSE_LIST_select = 0
+					    while ($CHOOSE_LIST_select > $#CHOOSE_LIST || $CHOOSE_LIST_select < 1)
+	 					   echo "Enter number of Choice:"
+	 					   set CHOOSE_LIST_select = $<
+					    end
+					   set CHOSEN_ITEM = $CHOOSE_LIST[$CHOOSE_LIST_select]
+					   set CHOSEN_ITEM_INDEX = $CHOOSE_LIST_select
+				   #^^^^^^^^^^^^^^^^^^   chooser block 
+
+         set NoExt = $CHOSEN_ITEM:r #remove the .coord extension
+		   set NodeNumb = $NoExt:e	#extract the number before .coord
+		   foreach attrib ( $surf_attribs )
+			   set candidate = `ls *.$Side.$attrib.*$NodeNumb*.coord`
+
+			   if ($#candidate != 1) then
+				   #Don't complain if a certain candidate is not found. ZSS My. 17th 
+               #echo 'candidate surfaces= '
+				   #echo $candidate
+				   #set endstr = "found 0 or more than one candidate surfaces matching '*."$Side'.'$attrib'.*'$NodeNumb'*.coord'
+				   #goto L_BAD_END
+			   else 
+				   if ($Side == 'L') then
+					   set list_lh = ( $list_lh $candidate )
+				   else if ($Side == 'R') then
+					   set list_rh = ( $list_rh $candidate )
+               else if ($Side == 'LR') then
+                  set list_lrh = ( $list_lrh $candidate )
+				   endif
+			   endif
+   	   end
+      endif
+	end
+	
+	 set list_lh = ( $list_lh[2-] )	# now remove the leading "X"
+    set list_rh = ( $list_rh[2-] )
+    set list_lrh = ( $list_lrh[2-] )
+
+    if ( $#list_lh == 0 && $#list_rh == 0 && $#list_lrh == 0) then
+		set endstr = "found no LH or RH or LRH surface files under '$surfaces_dir'"
+		goto L_BAD_END
+    endif
+
+    if ( $#list_lh > 0 ) then
+		echo "-- found $#list_lh LH surfaces"
+		if ( $debug ) echo "    --" $list_lh
+    endif
+
+    if ( $#list_rh > 0 ) then
+		echo "-- found $#list_rh RH surfaces"
+		if ( $debug ) echo "    --" $list_rh
+    endif
+
+    if ( $#list_lrh > 0 ) then
+		echo "-- found $#list_rh LRH surfaces"
+		if ( $debug ) echo "    --" $list_lrh
+    endif
+
+    cd $start_dir
+goto L_LOOK_FOR_SURF_DONE
+
+####################################################################
+# choose an item from a list files
+L_CHOOSE_LIST:
+
+#pass a list in CHOOSE_LIST and a return label in CHOOSE_LIST_RET variables 
+#expect CHOSEN_ITEM and CHOSEN_ITEM_INDEX (first item is 1)
+
+	 set CHOOSE_LIST_cnt = 1
+	 foreach CHOOSE_LIST_item ( $CHOOSE_LIST )
+	 	echo "$CHOOSE_LIST_cnt- $CHOOSE_LIST_item"
+		@ CHOOSE_LIST_cnt ++
+	 end
+	 set CHOOSE_LIST_select = 0
+	 while ($CHOOSE_LIST_select > $#CHOOSE_LIST || $CHOOSE_LIST_select < 1)
+	 	echo "Enter number of Choice:"
+	 	set CHOOSE_LIST_select = $<
+	 end
+
+	set CHOSEN_ITEM = $CHOOSE_LIST[$CHOOSE_LIST_select]
+	set CHOSEN_ITEM_INDEX = $CHOOSE_LIST_select
+
+goto $CHOOSE_LIST_RET
+
+####################################################################
+# find topo files
+
+L_LOOK_FOR_TOPO:
+	 cd $surfaces_dir
+
+
+	foreach Side (L R LR)
+   	set list_topo = "X"	# init to something useless - allows nice empty check
+		if ($Side == 'L') then
+			set list = ( $list_lh )
+		else if ($Side == 'R') then
+			set list = ( $list_rh )
+		else 
+			set list = ( $list_lrh )
+		endif
+		#for each item in list, try to guess the appropriate .topo file
+		foreach coord ( $list )
+			#remove .coord
+			set NoExt = $coord:r
+			set NodeNumb = $NoExt:e
+			
+			set candidate = `ls *.$Side.*$NodeNumb.topo`
+			if ($#candidate == 0) then
+				set endstr = "found no topo for $coord."
+				goto L_BAD_END
+    		else
+				if ($#candidate > 1) then
+					echo "Choose topo file to go with $list file:"
+					set CHOOSE_LIST = ( $candidate )
+						#vvvvvvvvvvvvvvvvvvvv   chooser block 
+							 set CHOOSE_LIST_cnt = 1
+							 foreach CHOOSE_LIST_item ( $CHOOSE_LIST )
+	 							echo "$CHOOSE_LIST_cnt- $CHOOSE_LIST_item"
+								@ CHOOSE_LIST_cnt ++
+							 end
+							 set CHOOSE_LIST_select = 0
+							 while ($CHOOSE_LIST_select > $#CHOOSE_LIST || $CHOOSE_LIST_select < 1)
+	 							echo "Enter number of Choice:"
+	 							set CHOOSE_LIST_select = $<
+							 end
+							set CHOSEN_ITEM = $CHOOSE_LIST[$CHOOSE_LIST_select]
+							set CHOSEN_ITEM_INDEX = $CHOOSE_LIST_select
+						#^^^^^^^^^^^^^^^^^^   chooser block 
+					set candidate = $CHOSEN_ITEM
+				endif
+			endif
+			set list_topo = ( $list_topo $candidate )
+		end
+
+		if ($Side == 'L') then
+			set list_topo_lh = ( $list_topo[2-] )		#Remove the X
+			#echo "Topo List side $Side :"
+			#echo "$list_topo_lh"
+		else if ($Side == 'R') then
+			set list_topo_rh = ( $list_topo[2-] )
+			#echo "Topo List side $Side :"
+			#echo "$list_topo_rh"
+		else if ($Side == 'LR') then
+			set list_topo_lrh = ( $list_topo[2-] )
+			#echo "Topo List side $Side :"
+			#echo "$list_topo_lrh"
+      endif
+	end
+   
+	cd $start_dir
+
+goto L_LOOK_FOR_TOPO_DONE
+
+####################################################################
+# Get the vol param file (and the afni brick used in creating surface)
+
+L_LOOK_FOR_VOLPARAMS:
+	cd $vol_dir
+	
+	foreach Side (L R LR)
+		set candidate = `ls -t *.$Side.*.params`
+		if ($#candidate == 0) then
+				#Ignore, if not found, not all hemis are there
+            #set endstr = "found no vol params found for $Side side"
+				#goto L_BAD_END
+    	else
+			if ($#candidate > 1) then
+				echo "Choose .params file used in SureFit to create the surfaces:"
+				set CHOOSE_LIST = ( $candidate )
+					#vvvvvvvvvvvvvvvvvvvv   chooser block 
+						 set CHOOSE_LIST_cnt = 1
+						 foreach CHOOSE_LIST_item ( $CHOOSE_LIST )
+	 						echo "$CHOOSE_LIST_cnt- $CHOOSE_LIST_item"
+							@ CHOOSE_LIST_cnt ++
+						 end
+						 set CHOOSE_LIST_select = 0
+						 while ($CHOOSE_LIST_select > $#CHOOSE_LIST || $CHOOSE_LIST_select < 1)
+	 						echo "Enter number of Choice:"
+	 						set CHOOSE_LIST_select = $<
+						 end
+						set CHOSEN_ITEM = $CHOOSE_LIST[$CHOOSE_LIST_select]
+						set CHOSEN_ITEM_INDEX = $CHOOSE_LIST_select
+					#^^^^^^^^^^^^^^^^^^   chooser block 
+				set candidate = $CHOSEN_ITEM
+			endif
+		endif
+		if ($Side == 'L') then
+			set Vol_Param_lh = $candidate
+		else if ($Side == 'R') then
+			set Vol_Param_rh = $candidate
+		else 
+      	set Vol_Param_lrh = $candidate
+      endif
+	end
+	
+	# try for afni data set used in creating surface
+   set candidate = `ls -t *.HEAD`
+	echo $#candidate $candidate
+	if ($#candidate == 0) then
+				#ignore, do not complain
+            set endstr = "found no afni data sets used in creating surfaces"
+				goto L_BAD_END
+   else 
+		if ($#candidate > 1) then
+			echo "Choose AFNI data set used in SureFit to create the surfaces:"
+			set CHOOSE_LIST = ( $candidate )
+				#vvvvvvvvvvvvvvvvvvvv   chooser block 
+					 set CHOOSE_LIST_cnt = 1
+					 foreach CHOOSE_LIST_item ( $CHOOSE_LIST )
+	 					echo "$CHOOSE_LIST_cnt- $CHOOSE_LIST_item"
+						@ CHOOSE_LIST_cnt ++
+					 end
+					 set CHOOSE_LIST_select = 0
+					 while ($CHOOSE_LIST_select > $#CHOOSE_LIST || $CHOOSE_LIST_select < 1)
+	 					echo "Enter number of Choice:"
+	 					set CHOOSE_LIST_select = $<
+					 end
+					set CHOSEN_ITEM = $CHOOSE_LIST[$CHOOSE_LIST_select]
+					set CHOSEN_ITEM_INDEX = $CHOOSE_LIST_select
+				#^^^^^^^^^^^^^^^^^^   chooser block 
+			set candidate = $CHOSEN_ITEM
+		endif
+	endif	
+		set afni_dataset = $candidate
+		
+	cd $start_dir
+
+goto L_LOOK_FOR_VOLPARAMS_DONE
+
+####################################################################
+# actually create the spec file
+
+L_CREATE_SPEC:
+
+    cd $suma_dir
+
+    foreach hand ( lh rh lrh)
+ 	if ( $hand == lh ) then
+	    set list_cur = ( $list_lh )		# get a current list copy
+		 set list_topo_cur = ( $list_topo_lh )
+		 set Vol_Param = $Vol_Param_lh
+	else if ( $hand == rh ) then
+	    set list_cur = ( $list_rh )
+		 set list_topo_cur = ( $list_topo_rh )
+		 set Vol_Param = $Vol_Param_rh
+	else if ( $hand == lrh ) then
+	    set list_cur = ( $list_lrh )
+		 set list_topo_cur = ( $list_topo_lrh )
+		 set Vol_Param = $Vol_Param_lrh
+   endif
+
+	set spec_file = {$subj_id}_$hand.spec
+   if ( $#list_cur > 0) then
+	   if ( $debug ) echo "++ creating spec file '$spec_file'..."
+
+	   (echo "# delimits comments" > $spec_file) >& /dev/null
+
+	   if ( $status ) then
+	       set endstr = ( "failure: no permissions to create spec file" \
+			    "'$suma_dir/$spec_file'" )
+	       goto L_BAD_END
+	   endif
+
+	   # note user, date, machine, pwd, command line
+	   echo ""							>> $spec_file
+	   echo "# Creation information:"				>> $spec_file
+	   echo "#     user    : $user"				>> $spec_file
+	   echo "#     date    : `date`"				>> $spec_file
+	   echo "#     machine : `uname -n`"			>> $spec_file
+	   echo "#     pwd     : $cwd"				>> $spec_file
+	   echo "#     command : $prog_name $argv"			>> $spec_file
+	   echo ""							>> $spec_file
+
+	   # define the group
+	   echo "# define the group"				>> $spec_file
+	   echo "        Group = $subj_id"				>> $spec_file
+	   echo ""							>> $spec_file
+
+	   # define the states
+	   echo "# define various States"				>> $spec_file
+	   foreach attrib ( $surf_attribs )
+	       echo "        StateDef = $attrib"			>> $spec_file
+	   end
+	   echo ""							>> $spec_file
+
+      set pair = ('')
+	   set cnt = 1
+	   foreach surf ( $list_cur )
+	       set NoExt = $surf:r	#remove .coord
+		    set NodeNumb = $NoExt:e	#store NodeNumb
+		    set NoExt = $NoExt:r	#remove NodeNumb
+		    set s_state = ''
+          set i_state = 1
+          while ($i_state <= $#surf_attribs )
+            set gr = `echo $NoExt | grep .{$surf_attribs[$i_state]}.`
+            if ("$gr" != "") then
+               set s_state = $surf_attribs[$i_state]
+               set i_state = $#surf_attribs
+            endif
+            @ i_state ++ 
+          end
+          if ( $s_state == '') then
+            set endstr = ( "failure: Failed to determine state for surface $surf"  )
+	         goto L_BAD_END
+          endif
+          set s_head = $NoExt:r #store surface header, no state
+
+	       # check for SAME mapping ref
+	       if ( "$s_state" == "Fiducial" ) then
+		   set surf_map_ref = $surf
+         set map_ref = SAME
+	       else
+		   set map_ref = $surf_map_ref
+	       endif
+
+	       # EmbedDimension is 2 for .flat surfaces, else 3
+	       #this is not set for SureFit yet. Must figure out nomenclature
+		    if ( $surf =~ *.flat* ) then
+		   set embed_ref = 2
+	       else
+		   set embed_ref = 3
+	       endif
+
+	       echo "NewSurface"					>> $spec_file
+	       echo "        SurfaceFormat = ASCII"		>> $spec_file
+	       echo "        SurfaceType = SureFit"		>> $spec_file
+	       echo "        SureFitCoord = $surf"	>> $spec_file
+	       echo "        SureFitTopo = $list_topo_cur[$cnt]" >> $spec_file
+		    echo "        SureFitVolParam = $Vol_Param_loc$Vol_Param"	>> $spec_file
+		    echo "        LocalDomainParent = $map_ref"		>> $spec_file
+	       echo "        SurfaceState = $s_state"		>> $spec_file
+	       echo "        EmbedDimension = $embed_ref"		>> $spec_file
+	       echo ""						>> $spec_file
+
+          #if binary format and have caret_file_convert, do the danse
+          set isbin = `file $surf | grep ' data'`
+          if ("$isbin" != '') then
+            echo "Surface file $surf is in binary format."
+            if ($caret_convert != "") then
+               echo "Running caret_file_convert -text $surf ..."
+               caret_file_convert -text $surf $list_topo_cur[$cnt]
+            else
+               echo "caret_file_convert not found, need to run:"
+               echo "caret_file_convert -text $surf $list_topo_cur[$cnt]"
+               echo "before running SUMA."
+            endif
+          endif
+          set pair = ($pair $surf $list_topo_cur[$cnt])
+      @ cnt ++
+	   end
+
+	   echo "++ created spec file'$suma_dir/$spec_file'"
+    endif  # if list is not empty
+    end 	# foreach hand
+
+    cd $start_dir
+
+goto L_CREATE_SPEC_DONE
+
+
+
+####################################################################
+# echo details for the user to launch suma and afni, in order to
+# check the alignment
+
+L_TEST_SURF_VOL:
+
+    echo ""
+    echo "------------------------------------------------------------------"
+    echo "Please verify that the datasets are aligned properly in both"
+    echo "afni and suma.  You may do this by running the following commands:"
+    echo ""
+    echo "    cd $suma_dir"
+    echo "    afni -niml &"
+    echo "    suma -spec $spec_file -sv $afni_dataset"
+
+goto L_TEST_SURF_VOL_DONE
+
+
+####################################################################
+# display help and exit
+
+L_HELP_END:
+
+    echo ""
+    echo "$prog_name - prepare for surface viewing in SUMA"
+    echo ""
+    echo "    This script was tested with Caret-5.2 surfaces."
+    echo ""
+    echo "    This script goes through the following steps:"
+    echo "      - determine the location of surfaces and "
+	 echo "        then AFNI volume data sets used to create them."
+    echo "      - creation of left and right hemisphere SUMA spec files"
+    echo ""
+    echo "      - all created files are stored in the directory where "
+    echo "        surfaces are encountered"
+    echo ""
+    echo "  Usage: $prog_name [options] -sid SUBJECT_ID"
+    echo ""
+    echo "  examples:"
+    echo ""
+    echo "    $prog_name -sid subject1"
+    echo "    $prog_name -help"
+    echo "    $prog_name -sfpath subject1/surface_stuff -sid subject1"
+    echo ""
+    echo "  options:"
+    echo ""
+    echo "    -help    : show this help information"
+    echo ""
+    echo "    -debug LEVEL    : print debug information along the way"
+    echo "          e.g. -debug 1"
+    echo "          the default level is 0, max is 2"
+    echo ""
+    echo "    -sfpath PATH    : path to directory containing 'SURFACES'"
+	 echo "                      and AFNI volume used in creating the surfaces."
+    echo "          e.g. -sfpath subject1/surface_models"
+    echo "          the default PATH value is './', the current directory"
+    echo ""
+    echo "          This is generally the location of the 'SURFACES' directory,"
+    echo "          though having PATH end in SURFACES is OK.  "
+    echo ""
+    echo "          Note: when this option is provided, all file/path"
+    echo "          messages will be with respect to this directory."
+    echo ""
+    echo ""
+    echo "    -sid SUBJECT_ID : required subject ID for file naming"
+    echo ""
+    echo ""
+    echo "  notes:"
+    echo ""
+    echo "    0. More help may be found at http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
+    echo "    1. Surface file names should look like the standard names used by Caret:"
+	 echo "       Human.3dAnatomy.LR.Fiducial.2006-05-09.54773.coord"
+    echo "       Human.3dAnatomy.LR.CLOSED.2006-05-09.54773.topo"
+	 echo "       Otherwise the script cannot detect them. You will need to decide which"
+	 echo "       surface is the most recent (the best) and the script helps you by listing"
+	 echo "       the available surfaces with the most recent one first."
+	 echo "       This sorting ususally works except when the time stamps on the surface files"
+	 echo "       are messed up. In such a case you just need to know which one to use."
+	 echo "       Once the Fiducial surface is chosen, it's complimentary surfaces are selected"
+	 echo "       using the node number in the file name."
+    echo "    3. You can tailor the script to your needs. Just make sure you rename it or risk"
+	 echo "       having your modifications overwritten with the next SUMA version you install."
+	 echo "    4. The script looks for $surf_attribs"
+    echo "       surfaces, let us know if more need to be sought."
+    echo "    5. The test data I had contained .R. and .LR. surfaces! I am not sure what .LR."
+    echo "       means since the surfaces are for one hemisphere but the script will use"
+    echo "       these surfaces too."
+    echo ""
+    echo "     R. Reynolds (rickr@codon.nih.gov), Z. Saad (ziad@nih.gov)"
+    echo ""
+
+    exit
+
+
+####################################################################
+# failure!
+
+L_BAD_END:
+
+    echo ""
+    if ( "$endstr" != "" ) echo "$endstr"
+    echo program failure: exiting...
+    echo ""
+
+    exit
+
+####################################################################
+# finished!
+
+L_GOOD_END:
+
+    if ( $debug > 1 ) unset echo
+
+    echo ""
+    if ( "$endstr" != "" ) then
+	echo "$endstr"
+	echo ""
+    endif
+
+    exit	# just to be consistent
+
