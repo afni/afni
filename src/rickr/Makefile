@@ -37,9 +37,9 @@ Imon: Imon.o $(IMON_OBJS) Imon.h realtime.h
 	$(RM) $@
 	$(CC) -o Imon Imon.o $(IMON_OBJS) $(LFLAGS) -L.. -lm $(EXTRA_LIBS_2)
 
-Dimon: Dimon.o dimon_afni.o l_mri_dicom_hdr.o $(IMON_OBJS)
+Dimon: Dimon.o dimon_afni.o mri_dicom_hdr.o $(IMON_OBJS)
 	$(RM) $@
-	$(CC) -o Dimon Dimon.o dimon_afni.o l_mri_dicom_hdr.o $(IMON_OBJS) $(LFLAGS) -L.. -lm $(EXTRA_LIBS_2)
+	$(CC) -o Dimon Dimon.o dimon_afni.o mri_dicom_hdr.o $(IMON_OBJS) $(LFLAGS) -L.. -lm $(EXTRA_LIBS_2)
 
 serial_helper: serial_helper.o
 	$(RM) $@
@@ -64,9 +64,9 @@ l_mcw_glob.o: l_mcw_glob.c l_mcw_glob.h
 	$(RM) $@
 	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c l_mcw_glob.c -I.. $(IFLAGS)
 
-l_mri_dicom_hdr.o: l_mri_dicom_hdr.c
+mri_dicom_hdr.o: ../mri_dicom_hdr.c
 	$(RM) $@
-	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c l_mri_dicom_hdr.c -I.. $(IFLAGS)
+	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -DFOR_DIMON -c ../mri_dicom_hdr.c -I.. $(IFLAGS)
 
 realtime.o: realtime.c realtime.h
 	$(RM) $@
