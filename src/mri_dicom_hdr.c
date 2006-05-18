@@ -68,9 +68,21 @@
 
 #include "mri_dicom_hdr.h"
 
+/* Dimon needs to compile without libmri     18 May 2006 */
+/* (this allows removal of rickr/l_mri_dicom_hdr.c)      */
+#ifndef FOR_DIMON
+
 #include "mcw_malloc.h"
 #include "Amalloc.h"
 #include "debugtrace.h"    /* 10 Sep 2002 */
+
+#else
+
+#include "Amalloc.h"
+#include "dbtrace.h"
+
+#endif
+
 
 /****************************************************************/
 /***** Function and variables to set byte order of this CPU *****/
@@ -102,6 +114,10 @@ static void RWC_set_endianosity(void)
      }
    }
 }
+
+/******************************************************************/
+/*** decide in DCM_OpenFile whether we have a 128 byte preamble ***/
+g_readpreamble = FALSE;                    /* 18 May 2006 [rickr] */
 
 /****************************************************************/
 /***** Function and variables to replace printf() ***************/
@@ -1044,6 +1060,18 @@ ENTRY("DCM_OpenFile") ;
     size = fileSize(fd);
     if (size <= 0)
 	RETURN(DCM_FILEACCESSERROR);
+
+    /* check whether this file has a preamble   18 May 2006 */
+    {
+        char lbuf[132];             /* 128 preamble + 4 byte "DICM" label */
+        if (read(fd, lbuf, 132) != 132) {
+            (void) close(fd); rwc_fd = -1;
+            RETURN(COND_PushCondition(DCM_FILEOPENFAILED,
+                     DCM_Message(DCM_FILEOPENFAILED), name, "DCM_OpenFile"));
+        }
+        g_readpreamble = (strncmp(lbuf+128, "DICM", 4) == 0);
+        (void) lseek(fd, 0, SEEK_SET); /* either way, rewind */
+    }
 
     if ((opt & DCM_LENGTHTOENDMASK) == DCM_USELENGTHTOEND) {
 	cond = readLengthToEnd(fd, name,
@@ -6963,8 +6991,7 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 	knownLength = TRUE,
 	explicitVR = FALSE,
 	acceptVRMismatch = FALSE,
-	part10Flag = FALSE,
-	readpreamble = TRUE;     /* read just to skip - 17 May 2006 [rickr] */
+	part10Flag = FALSE;
     unsigned char
        *ptr = NULL;
     PRV_ELEMENT_ITEM
@@ -7048,7 +7075,7 @@ ENTRY("readFile1") ;
     if (parentObject != NULL)
 	(*object)->pixelRepresentation = (*parentObject)->pixelRepresentation;
 
-    if (recursionLevel == 0 && (part10Flag || readpreamble)) {/* 17 May 2006 */
+    if (recursionLevel == 0 && (part10Flag || g_readpreamble)) {
 	flag = readPreamble(name, &ptr, fd, &size, fileOffset, knownLength,
 			    object, scannedLength);
 	if (flag != DCM_NORMAL)
