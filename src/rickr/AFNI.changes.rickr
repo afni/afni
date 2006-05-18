@@ -1495,3 +1495,11 @@
       - make reading of preamble automatic
       - do not print any 'illegal odd length' warnings
 
+18 May 2006: allowed for older DICOM files that do not have a preamble
+  * removed rickr/l_mri_dicom_hdr.c
+  * modified mri_dicom_hdr.c
+      - added FOR_DICOM test to compile for Dicom
+      - made g_readpreamble global, set in DCM_OpenFile, used in readFile1
+      - DCM_OpenFile reads 132 bytes to check for "DICM" at end
+  * modified rickr/Makefile to use ../mri_dicom_hdr.c aot l_mri_dicom_hdr.c
+
