@@ -327,7 +327,9 @@ void ISQ_setup_ppmto_filters(void)
       }
       else jpeg_compress = 95;
 
+#if 0
 printf("\njpeg_compress %d\n", jpeg_compress);
+#endif
       str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s -quality %d > %%s",pg,jpeg_compress);
       bv <<= 1 ; ADDTO_PPMTO(str,"jpg",bv) ;
