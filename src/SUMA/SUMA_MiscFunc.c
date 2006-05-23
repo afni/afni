@@ -1031,7 +1031,8 @@ void SUMA_free2D(char **a,int rows)
    
    SUMA_ENTRY;
 
-
+   if (!a) SUMA_RETURNe;
+   
       #ifdef USE_SUMA_MALLOC
          SUMA_SL_Err("NO LONGER SUPPORTED");
          SUMA_RETURNe;
@@ -1059,7 +1060,7 @@ void SUMA_free2D(char **a,int rows)
       #endif
       
    /* free each row of data */
-   for(i = 0 ; i < rows ; i++) free(a[i]);
+   for(i = 0 ; i < rows ; i++) if (a[i]) free(a[i]);
 
    /* free each row pointer */
    free((char *)a);

@@ -25,7 +25,7 @@ SUMA_Boolean SUMA_AfniExists(char *prefix, char *c2view);
 SUMA_Boolean SUMA_AfniView (char *nameorig, char *cview);
 SUMA_Boolean SUMA_AfniExistsView(int exists, char *view);
 char *SUMA_AfniPrefix(char *name, char *view, char *path, int *exists);
-byte * SUMA_isSkin(THD_3dim_dataset *dset, double *dvec, double thresh, int *N_skin);
+byte * SUMA_isSkin(THD_3dim_dataset *dset, float *fvec, double thresh, int *N_skin);
 void SUMA_Show_VolPar(SUMA_VOLPAR *VP, FILE *Out);
 char *SUMA_VolPar_Info (SUMA_VOLPAR *VP);
 SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void* S_struct);

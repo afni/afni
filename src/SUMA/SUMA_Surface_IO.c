@@ -422,6 +422,13 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 				ex = fscanf (sf_file,"%s",(SF->coordframe_id));
 				skp = 1;
 			}
+         
+         sprintf(stmp,"caret-version");
+			if (!skp && SUMA_iswordin (st, stmp) == 1) {
+				/*fprintf(stdout,"Found caret-version\n");*/
+				ex = fscanf (sf_file,"%f",&(SF->caret_version));
+				skp = 1;
+			}
 
 		}
 	}
@@ -858,48 +865,72 @@ void SUMA_Show_SureFit (SUMA_SureFit_struct *SF, FILE *Out)
 	ND = 3;
 	NP = 3;
 	if (Out == NULL) Out = SUMA_STDOUT;
-	fprintf (Out, "\n%s: Coord Info\n", SF->name_coord);
+   fprintf (Out, "\n%s: Coord Info\n", SF->name_coord);
+	fprintf (Out, "caret-version %f\n", SF->caret_version);
 	fprintf (Out, "N_Node %d\n", SF->N_Node);
-	fprintf (Out, "encoding_coord: %s\nconfiguration id: %s, coordframe_id: %s\n", SF->encoding_coord,SF->configuration_id, SF->coordframe_id);
-	fprintf (Out, "First 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
-		SF->NodeId[0], SF->NodeList[0], SF->NodeList[1], SF->NodeList[2],
-		SF->NodeId[1], SF->NodeList[3], SF->NodeList[4], SF->NodeList[5]);
-	if (SF->N_Node > 2) {
-      fprintf (Out, "Last 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
-		   SF->NodeId[SF->N_Node-2], SF->NodeList[ND*(SF->N_Node-2)], SF->NodeList[ND*(SF->N_Node-2)+1], SF->NodeList[ND*(SF->N_Node-2)+2],
-		   SF->NodeId[SF->N_Node-1], SF->NodeList[ND*(SF->N_Node-1)], SF->NodeList[ND*(SF->N_Node-1)+1], SF->NodeList[ND*(SF->N_Node-1)+2]);
-	}
+	fprintf (Out, "encoding_coord: %s\nconfiguration id: %s, coordframe_id: %s \n", SF->encoding_coord,SF->configuration_id, SF->coordframe_id);
+	if (!SF->NodeId) {
+      fprintf (Out, "NULL NodeId:\n");
+   }
+   if (!SF->NodeList) {
+      fprintf (Out, "NULL NodeList:\n");
+   }
+   if (SF->NodeId && SF->NodeList) {
+      fprintf (Out, "First 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
+		   SF->NodeId[0], SF->NodeList[0], SF->NodeList[1], SF->NodeList[2],
+		   SF->NodeId[1], SF->NodeList[3], SF->NodeList[4], SF->NodeList[5]);
+	   if (SF->N_Node > 2) {
+         fprintf (Out, "Last 2 points [id] X Y Z:\n\t[%d] %f %f %f\n\t[%d] %f %f %f\n", \
+		      SF->NodeId[SF->N_Node-2], SF->NodeList[ND*(SF->N_Node-2)], SF->NodeList[ND*(SF->N_Node-2)+1], SF->NodeList[ND*(SF->N_Node-2)+2],
+		      SF->NodeId[SF->N_Node-1], SF->NodeList[ND*(SF->N_Node-1)], SF->NodeList[ND*(SF->N_Node-1)+1], SF->NodeList[ND*(SF->N_Node-1)+2]);
+	   }
+   } 
    fprintf (Out, "\n%s: Topo Info\n", SF->name_topo);
 	fprintf (Out, "N_Node_Specs %d\n", SF->N_Node_Specs);
 	fprintf (Out, "ecnoding_topo: %s, date %s\n",  SF->encoding_topo, SF->date);
 	fprintf (Out, "N_FaceSet %d\n", SF->N_FaceSet);
-	if (SF->N_FaceSet > 2) {
+	if (!SF->FaceSetList) {
+      fprintf (Out, "NULL SF->FaceSetList:\n");
+   }
+   if (SF->N_FaceSet > 2 && SF->FaceSetList) {
 	   fprintf (Out, "First 2 polygons:\n\t%d %d %d\n\t%d %d %d\n", \
 		   SF->FaceSetList[0], SF->FaceSetList[1], SF->FaceSetList[2],
 		   SF->FaceSetList[3], SF->FaceSetList[4], SF->FaceSetList[5]);
       fprintf (Out, "Last 2 polygons:\n\t%d %d %d\n\t%d %d %d\n", \
 		   SF->FaceSetList[NP*(SF->N_FaceSet-2)], SF->FaceSetList[NP*(SF->N_FaceSet-2) + 1], SF->FaceSetList[NP*(SF->N_FaceSet-2) + 2],
 		   SF->FaceSetList[NP*(SF->N_FaceSet-1)], SF->FaceSetList[NP*(SF->N_FaceSet-1) + 1], SF->FaceSetList[NP*(SF->N_FaceSet-1) + 2]);
-	} else {
+	} else if (SF->FaceSetList){
       fprintf (Out, "First polygon:\n\t%d %d %d\n", \
 		   SF->FaceSetList[0], SF->FaceSetList[1], SF->FaceSetList[2] );
    }
    fprintf (Out, "\nNode Specs (%d):\n", SF->N_Node_Specs);
-	fprintf (Out, "First Entry: \t%d %d %d %d %d %d\n", \
-	SF->Specs_mat[0][0], SF->Specs_mat[0][1],SF->Specs_mat[0][2], SF->Specs_mat[0][3],SF->Specs_mat[0][4], SF->Specs_mat[0][5]);
-	cnt = 0;
-	while (cnt < SF->FN.N_Neighb[0]) {
-		fprintf (Out, "\t%d %d\n", cnt, SF->FN.FirstNeighb[0][cnt]); 
-		++cnt;
-	}
-	fprintf (Out, "Last Entry: \t%d %d %d %d %d %d\n", \
-		SF->Specs_mat[SF->N_Node_Specs-1][0], SF->Specs_mat[SF->N_Node_Specs-1][1],SF->Specs_mat[SF->N_Node_Specs-1][2],\
-		SF->Specs_mat[SF->N_Node_Specs-1][3],SF->Specs_mat[SF->N_Node_Specs-1][4], SF->Specs_mat[SF->N_Node_Specs-1][5]);
-	cnt = 0;
-	while (cnt < SF->FN.N_Neighb[SF->N_Node_Specs-1]) {
-		fprintf (Out, "\t%d %d\n", cnt, SF->FN.FirstNeighb[SF->N_Node_Specs-1][cnt]); 
-		++cnt;
-	}
+	if (SF->Specs_mat) {
+      fprintf (Out, "First Entry: \t%d %d %d %d %d %d\n", \
+	   SF->Specs_mat[0][0], SF->Specs_mat[0][1],SF->Specs_mat[0][2], SF->Specs_mat[0][3],SF->Specs_mat[0][4], SF->Specs_mat[0][5]);
+	} else {
+      fprintf (Out, "NULL SF->Specs_mat\n");
+   }
+   if (SF->FN.FirstNeighb) {
+      cnt = 0;
+	   while (cnt < SF->FN.N_Neighb[0]) {
+		   fprintf (Out, "\t%d %d\n", cnt, SF->FN.FirstNeighb[0][cnt]); 
+		   ++cnt;
+	   }
+   } else {
+      fprintf (Out, "NULL SF->FN.FirstNeighb\n");
+   }
+	if (SF->Specs_mat) {
+      fprintf (Out, "Last Entry: \t%d %d %d %d %d %d\n", \
+		   SF->Specs_mat[SF->N_Node_Specs-1][0], SF->Specs_mat[SF->N_Node_Specs-1][1],SF->Specs_mat[SF->N_Node_Specs-1][2],\
+		   SF->Specs_mat[SF->N_Node_Specs-1][3],SF->Specs_mat[SF->N_Node_Specs-1][4], SF->Specs_mat[SF->N_Node_Specs-1][5]);
+	} 
+   if (SF->FN.N_Neighb) {
+      cnt = 0;
+	   while (cnt < SF->FN.N_Neighb[SF->N_Node_Specs-1]) {
+		   fprintf (Out, "\t%d %d\n", cnt, SF->FN.FirstNeighb[SF->N_Node_Specs-1][cnt]); 
+		   ++cnt;
+	   }
+   }
 
 	SUMA_RETURNe;
 }
@@ -1058,10 +1089,17 @@ free data structure containing SureFit surface object
 SUMA_Boolean SUMA_Free_SureFit (SUMA_SureFit_struct *SF)  
 {
 	static char FuncName[]={"SUMA_Free_SureFit"};
-	
+	SUMA_Boolean LocalHead = NOPE;
+   
 	SUMA_ENTRY;
 
-	if (SF->NodeList != NULL) SUMA_free(SF->NodeList);
+	if (!SF) SUMA_RETURN (YUP);
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"%p, %p, %p, %p, %p, %p, %p\n", 
+         SF->NodeList, SF->NodeId, SF->Specs_mat, SF->FN.FirstNeighb,
+         SF->FN.N_Neighb, SF->FN.NodeId, SF->FaceSetList);
+   }
+   if (SF->NodeList != NULL) SUMA_free(SF->NodeList);
 	if (SF->NodeId != NULL) SUMA_free(SF->NodeId);
 	if (SF->Specs_mat != NULL) SUMA_free2D ((char **)SF->Specs_mat, SF->N_Node_Specs);
 	if (SF->FN.FirstNeighb != NULL) SUMA_free2D((char **)SF->FN.FirstNeighb, SF->FN.N_Node);
@@ -1083,7 +1121,8 @@ SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF)
    FILE *sf_file;
 	SUMA_Boolean Done;
 	char delimstr[] = {' ', '\0'}, stmp[100], s[1000], *st;
-
+   SUMA_Boolean LocalHead = NOPE;
+   
 	SUMA_ENTRY;
 
 	/* check for existence */
@@ -1103,47 +1142,63 @@ SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF)
 		}
 
 	/* read until you reach something you like */
-	ex = 1;
+	SF->AC_WholeVolume[0] = SF->AC_WholeVolume[1] = SF->AC_WholeVolume[2] = 0.0f;
+	SF->AC[0] = SF->AC[1] = SF->AC[2] = 0.0f;
+   
+   ex = 1;
 	Done = NOPE;			
 	sprintf(delimstr,"=");
 	while (ex != EOF && !Done)
 	{
 		ex = fscanf (sf_file,"%s",s);
-		
+		if (LocalHead) fprintf(SUMA_STDERR, "Working >>>%s<<<\n", s);
 		sprintf(stmp,"ACx_WholeVolume");
 		evl = SUMA_iswordin (s,stmp);
 		if (evl == 1) {
 			/* found ACx_WholeVolume */
-			/*fprintf(SUMA_STDOUT, "Found ACx_WholeVolume:");*/
+			if (LocalHead) fprintf(SUMA_STDERR, "Found ACx_WholeVolume:");
 			/* go past the = sign and grab the value */
 			st = strtok(s, delimstr);
 			st = strtok(NULL, delimstr);
-			SF->AC_WholeVolume[0] = atof(st);
-			/*fprintf(SUMA_STDOUT, " %f\n", SF->AC_WholeVolume[0]);*/
+			if (st) {
+            SF->AC_WholeVolume[0] = atof(st);
+			   if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->AC_WholeVolume[0]);
+         } else {
+            if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
+         }
 			continue;
 		}
 		sprintf(stmp,"ACy_WholeVolume");
 		evl = SUMA_iswordin (s,stmp);
 		if (evl == 1) {
 			/* found ACy_WholeVolume */
-			/*fprintf(SUMA_STDOUT, "Found ACy_WholeVolume:");*/
+			if (LocalHead) fprintf(SUMA_STDERR, "Found ACy_WholeVolume:");
 			/* go past the = sign and grab the value */
 			st = strtok(s, delimstr);
 			st = strtok(NULL, delimstr);
-			SF->AC_WholeVolume[1] = atof(st);
-			/*fprintf(SUMA_STDOUT, " %f\n", SF->AC_WholeVolume[1]);*/
+			if (st) {
+            SF->AC_WholeVolume[1] = atof(st);
+            if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->AC_WholeVolume[1]);
+         } else {
+            if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
+         }
+			
 			continue;
 		}
 		sprintf(stmp,"ACz_WholeVolume");
 		evl = SUMA_iswordin (s,stmp);
 		if (evl == 1) {
 			/* found ACz_WholeVolume */
-			/*fprintf(SUMA_STDOUT, "Found ACz_WholeVolume:");*/
+			if (LocalHead) fprintf(SUMA_STDERR, "Found ACz_WholeVolume:");
 			/* go past the = sign and grab the value */
 			st = strtok(s, delimstr);
 			st = strtok(NULL, delimstr);
-			SF->AC_WholeVolume[2] = atof(st);
-			/*fprintf(SUMA_STDOUT, " %f\n", SF->AC_WholeVolume[2]);*/
+			if (st) {
+            SF->AC_WholeVolume[2] = atof(st);
+            if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->AC_WholeVolume[2]);
+         } else {
+            if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
+         }
 			continue;
 		}
 		 
@@ -1151,37 +1206,49 @@ SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF)
 		evl = SUMA_iswordin (s,stmp);
 		if (evl == 1) {
 			/* found ACx */
-			/*fprintf(SUMA_STDOUT, "Found ACx:");*/
+			if (LocalHead) fprintf(SUMA_STDERR, "Found ACx:");
 			/* go past the = sign and grab the value */
 			st = strtok(s, delimstr);
 			st = strtok(NULL, delimstr);
-			SF->AC[0] = atof(st);
-			/*fprintf(SUMA_STDOUT, " %f\n", SF->AC[0]);*/
+			if (st) {
+            SF->AC[0] = atof(st);
+            if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->AC[0]);
+         } else {
+            if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
+         }
 			continue;
 		}
 		sprintf(stmp,"ACy");
 		evl = SUMA_iswordin (s,stmp);
 		if (evl == 1) {
 			/* found ACy */
-			/*fprintf(SUMA_STDOUT, "Found ACy:");*/
+			if (LocalHead) fprintf(SUMA_STDERR, "Found ACy:");
 			/* go past the = sign and grab the value */
 			st = strtok(s, delimstr);
 			st = strtok(NULL, delimstr);
-			SF->AC[1] = atof(st);
-			/*fprintf(SUMA_STDOUT, " %f\n", SF->AC[1]);*/
-			continue;
+			if (st) {
+            SF->AC[1] = atof(st);
+			   if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->AC[1]);
+			} else {
+            if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
+         }
+         continue;
 		}
 		sprintf(stmp,"ACz");
 		evl = SUMA_iswordin (s,stmp);
 		if (evl == 1) {
 			/* found ACz */
-			/*fprintf(SUMA_STDOUT, "Found ACz:");*/
+			if (LocalHead) fprintf(SUMA_STDERR, "Found ACz:");
 			/* go past the = sign and grab the value */
 			st = strtok(s, delimstr);
 			st = strtok(NULL, delimstr);
-			SF->AC[2] = atof(st);
-			/*fprintf(SUMA_STDOUT, " %f\n", SF->AC[2]);*/
-			continue;
+			if (st) {
+            SF->AC[2] = atof(st);
+			   if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->AC[2]);
+			} else {
+            if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
+         }
+         continue;
 		}
 		
 	}
@@ -1189,28 +1256,28 @@ SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF)
 	fclose(sf_file);
 	
 	/* Sanity Checks */
-	if (SF->AC[0] == 0.0 && SF->AC[1] == 0.0 && SF->AC[2] == 0.0) {
-		fprintf (SUMA_STDERR,"Error %s: All values for AC are 0.0. Check your params file.\n", FuncName);
-		SUMA_RETURN (NOPE);
+	if (SF->AC[0] == 0.0f && SF->AC[1] == 0.0f && SF->AC[2] == 0.0f) {
+		if (SF->caret_version < 5.2) fprintf (SUMA_STDERR,"Warning %s: All values for AC are 0.0.\n", FuncName);
+		/* SUMA_RETURN (NOPE); */
 	}
 	
-	if (SF->AC_WholeVolume[0] == 0.0 && SF->AC_WholeVolume[1] == 0.0 && SF->AC_WholeVolume[2] == 0.0) {
-		fprintf (SUMA_STDERR,"Error %s: All values for AC_WholeVolume are 0.0. Check your params file.\n", FuncName);
-		SUMA_RETURN (NOPE);
+	if (SF->AC_WholeVolume[0] == 0.0f && SF->AC_WholeVolume[1] == 0.0f && SF->AC_WholeVolume[2] == 0.0f) {
+		if (SF->caret_version < 5.2) fprintf (SUMA_STDERR,"Warning %s: All values for AC_WholeVolume are 0.0. \n", FuncName);
+		/* SUMA_RETURN (NOPE); */
 	}
 	
 	if (SF->AC[0] == SF->AC_WholeVolume[0] && SF->AC[1] == SF->AC_WholeVolume[1] && SF->AC[2] == SF->AC_WholeVolume[2])
 	{
-		SUMA_SL_Warn("Idetincal values for AC and AC_WholeVolume.\nCheck your params file if not using Talairach-ed surfaces.\n");
+		if (SF->caret_version < 5.2) SUMA_SL_Warn("Idetincal values for AC and AC_WholeVolume.\nCheck your params file if not using Talairach-ed surfaces.\n");
       /* looks like that's OK for TLRC surfaces ...*/
       /*
       fprintf (SUMA_STDERR,"Error %s: Idetincal values for AC and AC_WholeVolume. Check your params file.\n", FuncName);
 		SUMA_RETURN (NOPE);
       */
 	}
-	if (SF->AC[0] < 0 || SF->AC[1] < 0 || SF->AC[2] < 0 || SF->AC_WholeVolume[0] < 0 || SF->AC_WholeVolume[1] < 0 || SF->AC_WholeVolume[2] < 0) 
+	if (SF->AC[0] < 0.0f || SF->AC[1] < 0.0f || SF->AC[2] < 0.0f || SF->AC_WholeVolume[0] < 0.0f || SF->AC_WholeVolume[1] < 0.0f || SF->AC_WholeVolume[2] < 0.0f) 
 	{
-		fprintf (SUMA_STDERR,"Error %s: Negative values in AC or AC_WholeVolume. Check you params file.\n", FuncName);
+		fprintf (SUMA_STDERR,"Error %s: Negative values in AC or AC_WholeVolume. Check your params file.\n", FuncName);
 		SUMA_RETURN (NOPE);
 	}
 	

@@ -326,7 +326,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ConvexHull_ParseInput (char *argv[], int 
    Opt->debug = 0;
    Opt->v0 = 0.0;
    Opt->v1 = -1.0;
-   Opt->dvec = NULL;
+   Opt->fvec = NULL;
    Opt->SurfFileType = SUMA_PLY;
    Opt->SurfFileFormat = SUMA_ASCII;
    Opt->xform = SUMA_ISO_XFORM_MASK;
@@ -703,7 +703,7 @@ int main (int argc,char *argv[])
    }
    
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
-   if (Opt->dvec) SUMA_free(Opt->dvec); Opt->dvec = NULL;
+   if (Opt->fvec) SUMA_free(Opt->fvec); Opt->fvec = NULL;
    if (Opt->mcdatav) {SUMA_free(Opt->mcdatav); Opt->mcdatav = NULL;} 
    if (Opt->in_vol) { DSET_delete( Opt->in_vol); Opt->in_vol = NULL;} 
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
