@@ -1503,7 +1503,7 @@
       - DCM_OpenFile reads 132 bytes to check for "DICM" at end
   * modified rickr/Makefile to use ../mri_dicom_hdr.c aot l_mri_dicom_hdr.c
 
-23 May 2006: some nifti updates by Hand Johnson
+23 May 2006: some nifti updates by Hans Johnson (lib ver 1.19)
   * added Testing/Data, /Testing/niftilib/nifti_test2.c and
           Testing/Data/ATestReferenceImageForReadingAndWriting.nii.gz
   * modified CMakeLists.txt, niftilib/CMakeLists.txt, utils/CMakeLists.txt,
