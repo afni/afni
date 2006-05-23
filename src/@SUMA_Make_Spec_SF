@@ -72,7 +72,8 @@ L_CHECK_USAGE:
     if ( $#argv == 0 ) then
 	echo "usage: $prog_name [options] -sid SUBJECT_ID"
 	echo "usage: $prog_name -help"
-	set endstr = ""
+	echo "See Also @SUMA_Make_Spec_Caret"
+   set endstr = ""
 	goto L_GOOD_END
     endif
 
@@ -533,7 +534,7 @@ L_LOOK_FOR_VOLPARAMS:
 			set candidate = $CHOSEN_ITEM
 		endif
 	endif	
-		echo Here
+		
 		set afni_dataset = $candidate
 		
 	cd $start_dir
@@ -662,6 +663,8 @@ L_HELP_END:
 
     echo ""
     echo "$prog_name - prepare for surface viewing in SUMA"
+    echo ""
+    echo "Use @SUMA_Make_Spec_Caret for caret surfaces"
     echo ""
     echo "    This script goes through the following steps:"
     echo "      - determine the location of surfaces and "

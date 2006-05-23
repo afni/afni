@@ -64,7 +64,7 @@ extern int SUMAg_N_DOv;
 SUMA_Boolean SUMA_AllocSpecFields (SUMA_SurfSpecFile *Spec)
 {
    static char FuncName[]={"SUMA_AllocSpecFields"};
-   SUMA_Boolean LocalHead=YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -935,6 +935,14 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
             fprintf(SUMA_STDERR,"Error %s: Failed to allocate for SF\n", FuncName);
             SUMA_RETURN (NULL);
          }
+         SF->NodeList= NULL;
+         SF->NodeId = NULL;
+         SF->Specs_mat = NULL;
+         SF->FaceSetList = NULL;
+         SF->FN.N_Neighb = NULL;
+         SF->FN.FirstNeighb = NULL;
+         SF->FN.NodeId = NULL;
+         SF->caret_version = -1.0;
          SF_FileName = (SUMA_SFname *)SO_FileName_vp;
          /* form the topo and the coord names */
          SO->Name_coord = SUMA_StripPath(SF_FileName->name_coord);
@@ -1002,6 +1010,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          if ((int) SF->tag_version == 1) { SO->normdir = 1; }
          else SO->normdir = -1;
          
+         /* SUMA_Show_SureFit(SF, SUMA_STDERR); */
          break;
    } /* SO_FileType*/
    
@@ -4403,14 +4412,14 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
       case SUMA_OPENDX_MESH:
       case SUMA_PLY:
       case SUMA_BRAIN_VOYAGER:
-         if (  SUMA_iswordin (SO->Name.FileName, ".white") || 
-               SUMA_iswordin (SO->Name.FileName, ".smoothwm") ||
-               SUMA_iswordin (SO->Name.FileName, ".pial") ||
-               SUMA_iswordin (SO->Name.FileName, ".orig") ||
-               SUMA_iswordin (SO->Name.FileName, ".fiducial") ||
-               SUMA_iswordin (SO->Name.FileName, "_WM") || 
-               SUMA_iswordin (SO->Name.FileName, "_GM") || 
-               ( SUMA_iswordin (SO->Name.FileName, "_RECO") && !SUMA_iswordin (SO->Name.FileName, "_inf") )
+         if (  SUMA_iswordin (SO->Name.FileName, ".white") == 1 || 
+               SUMA_iswordin (SO->Name.FileName, ".smoothwm") == 1 ||
+               SUMA_iswordin (SO->Name.FileName, ".pial") == 1 ||
+               SUMA_iswordin (SO->Name.FileName, ".orig") == 1 ||
+               SUMA_iswordin (SO->Name.FileName, ".fiducial") == 1 ||
+               SUMA_iswordin (SO->Name.FileName, "_WM") == 1 || 
+               SUMA_iswordin (SO->Name.FileName, "_GM") == 1 || 
+               ( SUMA_iswordin (SO->Name.FileName, "_RECO") == 1 && !(SUMA_iswordin (SO->Name.FileName, "_inf") == 1) )
                ) {
             SUMA_RETURN('Y');
          } else {
@@ -4419,13 +4428,15 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
          break;
       case SUMA_SUREFIT:
       case SUMA_VEC:
-         if (  SUMA_iswordin (SO->Name_coord.FileName, ".white") || 
-               SUMA_iswordin (SO->Name_coord.FileName, ".smoothwm") ||
-               SUMA_iswordin (SO->Name_coord.FileName, ".pial") ||
-               SUMA_iswordin (SO->Name_coord.FileName, ".orig") ||
-               SUMA_iswordin (SO->Name_coord.FileName, ".fiducial") ||
-               SUMA_iswordin (SO->Name.FileName, "_WM") ||
-               SUMA_iswordin (SO->Name.FileName, "_GM")
+         if (  SUMA_iswordin (SO->Name_coord.FileName, ".white") == 1 || 
+               SUMA_iswordin (SO->Name_coord.FileName, ".smoothwm") == 1 ||
+               SUMA_iswordin (SO->Name_coord.FileName, ".pial") == 1 ||
+               SUMA_iswordin (SO->Name_coord.FileName, ".orig") == 1 ||
+               SUMA_iswordin (SO->Name_coord.FileName, ".fiducial") == 1 ||
+               SUMA_iswordin (SO->Name_coord.FileName, ".Fiducial") == 1 ||
+               SUMA_iswordin (SO->Name_coord.FileName, ".Raw") == 1 ||
+               SUMA_iswordin (SO->Name.FileName, "_WM") == 1 ||
+               SUMA_iswordin (SO->Name.FileName, "_GM") == 1
                ) {
             SUMA_RETURN('Y');
          } else {
@@ -4453,34 +4464,34 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
          break;
       case SUMA_FREE_SURFER:
       case SUMA_FREE_SURFER_PATCH:
-         if (SUMA_iswordin (SO->Name.FileName, "lh")) {
+         if (SUMA_iswordin (SO->Name.FileName, "lh") == 1) {
             SUMA_RETURN(SUMA_LEFT);
-         } else if (SUMA_iswordin (SO->Name.FileName, "rh")) {
+         } else if (SUMA_iswordin (SO->Name.FileName, "rh") == 1) {
                      SUMA_RETURN(SUMA_RIGHT);
                   }
          break;
       case SUMA_BRAIN_VOYAGER:
-         if (SUMA_iswordin (SO->Name.FileName, "_LH")) {
+         if (SUMA_iswordin (SO->Name.FileName, "_LH") == 1) {
             SUMA_RETURN(SUMA_LEFT);
-         } else if (SUMA_iswordin (SO->Name.FileName, "_RH")) {
+         } else if (SUMA_iswordin (SO->Name.FileName, "_RH") == 1) {
                      SUMA_RETURN(SUMA_RIGHT);
                   }
          break;
       case SUMA_SUREFIT:
-         if (SUMA_iswordin (SO->Name_coord.FileName, "left") ||
-             SUMA_iswordin (SO->Name_coord.FileName, ".L.")) {
+         if (SUMA_iswordin (SO->Name_coord.FileName, "left") == 1 ||
+             SUMA_iswordin (SO->Name_coord.FileName, ".L.") == 1) {
             SUMA_RETURN(SUMA_LEFT);
-         } else if (SUMA_iswordin (SO->Name_coord.FileName, "right") ||
-             SUMA_iswordin (SO->Name_coord.FileName, ".R.")) {
+         } else if (SUMA_iswordin (SO->Name_coord.FileName, "right") == 1 ||
+             SUMA_iswordin (SO->Name_coord.FileName, ".R.") == 1) {
              SUMA_RETURN(SUMA_RIGHT);
                 }
          break;
       case SUMA_VEC:
-         if (SUMA_iswordin (SO->Name_coord.FileName, "lh") ||
-             SUMA_iswordin (SO->Name_coord.FileName, "left")) {
+         if (SUMA_iswordin (SO->Name_coord.FileName, "lh") == 1 ||
+             SUMA_iswordin (SO->Name_coord.FileName, "left") == 1) {
                SUMA_RETURN(SUMA_LEFT);
-         } else if (SUMA_iswordin (SO->Name_coord.FileName, "rh") ||
-                     SUMA_iswordin (SO->Name_coord.FileName, "right")) {
+         } else if (SUMA_iswordin (SO->Name_coord.FileName, "rh") == 1 ||
+                     SUMA_iswordin (SO->Name_coord.FileName, "right") == 1) {
                      SUMA_RETURN(SUMA_RIGHT);
                }
          break;
@@ -4491,11 +4502,11 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
          break;
       case SUMA_OPENDX_MESH:
       case SUMA_PLY:
-         if (SUMA_iswordin (SO->Name.FileName, "lh") ||
-             SUMA_iswordin (SO->Name.FileName, "left")) {
+         if (SUMA_iswordin (SO->Name.FileName, "lh") == 1 ||
+             SUMA_iswordin (SO->Name.FileName, "left") == 1) {
                SUMA_RETURN(SUMA_LEFT);
-         } else if (SUMA_iswordin (SO->Name.FileName, "rh") ||
-                  SUMA_iswordin (SO->Name.FileName, "right")) { 
+         } else if (SUMA_iswordin (SO->Name.FileName, "rh") == 1 ||
+                  SUMA_iswordin (SO->Name.FileName, "right") == 1) { 
                      SUMA_RETURN(SUMA_RIGHT);
                }
          break;

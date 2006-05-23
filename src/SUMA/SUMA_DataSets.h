@@ -325,7 +325,6 @@ typedef struct {
             SUMA_Dset_Format_Name
             SUMA_AddNelHist
                     
-         Sample Code: SUMA_TestDSETIO.c
          */              
    #else   /* the post april 06 05 way */
    /* *** You can go crazy below */
@@ -355,6 +354,8 @@ typedef struct {
             ColumnLabel
             ColumnAttribute
             History
+         
+         Sample Code: SUMA_TestDSETIO.c
          */    
    NI_element *dnel; /*!< a copy of the NI_element pointer that contains the tabular data inside ngr. Do not free this
                            element separately, and make sure its value is changed in syncrony with the one in ngr. */
