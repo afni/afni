@@ -11169,6 +11169,7 @@ double nifti_cdf2stat( double p , int code, double p1,double p2,double p3 )
    return pq2stat(pq,code,p1,p2,p3) ;
 }
 
+#if defined(__COMPILE_UNUSED_FUNCTIONS__)
 /*--------------------------------------------------------------------------*/
 /*! Given a reversed cdf probability, find the value that gave rise to it.
      - q        = 1-cdf; 0 < q < 1
@@ -11184,7 +11185,7 @@ double nifti_rcdf2stat( double q , int code, double p1,double p2,double p3 )
    pq.p = 1.0-q ; pq.q = q ;
    return pq2stat(pq,code,p1,p2,p3) ;
 }
-
+#endif/*(__COMPILE_UNUSED_FUNCTIONS__)*/
 /*--------------------------------------------------------------------------*/
 /*! Given a statistic, compute a z-score from it.  That is, the output
     is z such that cdf(z) of a N(0,1) variable is the same as the cdf

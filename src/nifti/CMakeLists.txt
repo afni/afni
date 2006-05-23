@@ -4,7 +4,7 @@ PROJECT(NIFTI)
 # Configure Dart testing support.
 INCLUDE(${CMAKE_ROOT}/Modules/Dart.cmake)
 
-SUBDIRS(znzlib niftilib)
+SUBDIRS(znzlib niftilib utils)
 ADD_DEFINITIONS(-DHAVE_ZLIB)
 
 
