@@ -5050,7 +5050,7 @@ znzFile nifti_write_ascii_image(nifti_image *nim, const nifti_brick_list * NBL,
                                                                                 
    if ( write_data   ) { nifti_write_all_data(fp,nim,NBL); }         /* data */
    if ( ! leave_open ) { znzclose(fp); }
-                                                                                
+   free(hstr);
    return fp;  /* returned but may be closed */
 }
 
@@ -5124,10 +5124,11 @@ nifti_image * nifti_copy_nim_info(const nifti_image * src)
   memcpy(dest, src, sizeof(nifti_image));
   if( src->fname ) dest->fname = nifti_strdup(src->fname);
   if( src->iname ) dest->iname = nifti_strdup(src->iname);
-
+  dest->num_ext = 0;
+  dest->ext_list = NULL;
   /* errors will be printed in NCE(), continue in either case */
   (void)nifti_copy_extensions(dest, src);
-  
+
   dest->data = NULL;
 
   return dest;
