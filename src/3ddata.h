@@ -3320,7 +3320,7 @@ extern THD_3dim_dataset * THD_copy_dset_subs( THD_3dim_dataset * , int * ) ;
  "This program accepts datasets that are modified on input according to the\n"  \
  "following schemes:\n"                                                         \
  "  'r1+orig[3..5]'                                    {sub-brick selector}\n"  \
- "  'r1+orig<100.200>'                                 {sub-range selector}\n"  \
+ "  'r1+orig<100..200>'                                {sub-range selector}\n"  \
  "  'r1+orig[3..5]<100..200>'                          {both selectors}\n"      \
  "  '3dcalc( -a r1+orig -b r2+orig -expr 0.5*(a+b) )'  {calculation}\n"         \
  "For the gruesome details, see the output of 'afni -help'.\n"
