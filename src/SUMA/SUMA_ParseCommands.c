@@ -2508,6 +2508,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    Opt->v0 = 0.0;
    Opt->v1 = 0.0;
    Opt->dvec = NULL;
+   Opt->fvec = NULL;
    Opt->SurfFileType = SUMA_PLY;
    Opt->SurfFileFormat = SUMA_ASCII;
    Opt->xform = SUMA_ISO_XFORM_UNDEFINED;
@@ -2606,6 +2607,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
    if (Opt->k98mask) SUMA_free(Opt->k98mask); Opt->k98mask = NULL;
    if (Opt->Stop) SUMA_free(Opt->Stop); Opt->Stop = NULL;
    if (Opt->dvec) SUMA_free(Opt->dvec); Opt->dvec = NULL;
+   if (Opt->fvec) SUMA_free(Opt->fvec); Opt->fvec = NULL;
    if (Opt->mcdatav) {SUMA_free(Opt->mcdatav); Opt->mcdatav = NULL;} 
    if (Opt->in_vol) { DSET_delete( Opt->in_vol); Opt->in_vol = NULL;} 
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;

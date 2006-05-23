@@ -378,7 +378,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
    Opt->debug = 0;
    Opt->v0 = 0.0;
    Opt->v1 = -1.0;
-   Opt->dvec = NULL;
+   Opt->fvec = NULL;
    Opt->SurfFileType = SUMA_PLY;
    Opt->SurfFileFormat = SUMA_ASCII;
    Opt->xform = SUMA_ISO_XFORM_MASK;
@@ -1556,7 +1556,7 @@ int main (int argc,char *argv[])
          /* Now take mask and turn it into a volume */
          fprintf (SUMA_STDERR,"%s: Locating voxels on skull boundary  ...\n", FuncName);
          isin = SUMA_FindVoxelsInSurface (SOhull, SO->VolPar, &N_in, 0, NULL);
-         for (i=0; i<SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz; ++i) { if (isin[i] <= SUMA_ON_NODE) Opt->dvec[i] = 0; }
+         for (i=0; i<SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz; ++i) { if (isin[i] <= SUMA_ON_NODE) Opt->fvec[i] = 0; }
          #if 0
             SUMA_SL_Note("Writing hull mask");
             {
@@ -1692,7 +1692,7 @@ int main (int argc,char *argv[])
                SUMA_SL_Warn("Looks like some values in dset might be larger than 255 !");
                mval = Opt->t98+10;
             }
-            if (Opt->k98maskcnt && Opt->k98mask) { for (ii=0; ii<Opt->k98maskcnt; ++ii) Opt->dvec[Opt->k98mask[ii]] = mval; }
+            if (Opt->k98maskcnt && Opt->k98mask) { for (ii=0; ii<Opt->k98maskcnt; ++ii) Opt->fvec[Opt->k98mask[ii]] = mval; }
             /* SUMA_REPOSITION_TOUCHUP(6);*/
             SUMA_Reposition_Touchup(SO, Opt, 6, ps->cs);
             if (LocalHead) fprintf (SUMA_STDERR,"%s: Touchup correction  Done.\n", FuncName);
@@ -2138,23 +2138,23 @@ int main (int argc,char *argv[])
       exit(1);
    }
    
-   /* change Opt->dvec to reflect original data (not spat normed baby)*/
-   if (Opt->dvec) { SUMA_free(Opt->dvec); Opt->dvec = NULL; }
+   /* change Opt->fvec to reflect original data (not spat normed baby)*/
+   if (Opt->fvec) { SUMA_free(Opt->fvec); Opt->fvec = NULL; }
    Opt->nvox = DSET_NVOX( Opt->OrigSpatNormedSet );
-   Opt->dvec = (double *)SUMA_malloc(sizeof(double) * Opt->nvox);
-   if (!Opt->dvec) {
-      SUMA_SL_Crit("Failed to allocate for dvec.\nOh misery.");
+   Opt->fvec = (float *)SUMA_malloc(sizeof(float) * Opt->nvox);
+   if (!Opt->fvec) {
+      SUMA_SL_Crit("Failed to allocate for fvec.\nOh misery.");
       SUMA_RETURN(NOPE);
    }
    
    EDIT_coerce_scale_type( Opt->nvox , DSET_BRICK_FACTOR(Opt->OrigSpatNormedSet,0) ,
                            DSET_BRICK_TYPE(Opt->OrigSpatNormedSet,0), DSET_ARRAY(Opt->OrigSpatNormedSet, 0) ,      /* input  */
-                           MRI_double               , Opt->dvec  ) ;   /* output */
+                           MRI_float               , Opt->fvec  ) ;   /* output */
    if (!Opt->MaskMode) {
       SUMA_LH("Creating skull-stripped volume");
       for (i=0; i<SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz; ++i) {
          /* apply the mask automatically */
-         if (isin[i] >= SUMA_ON_NODE) isin_float[i] = (float)Opt->dvec[i];
+         if (isin[i] >= SUMA_ON_NODE) isin_float[i] = (float)Opt->fvec[i];
          else isin_float[i] = 0.0;
       }
    } else {

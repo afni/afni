@@ -273,6 +273,138 @@ SEG_OPTS *Segment_ParseInput (char *argv[], int argc)
    RETURN(Opt);
 }
 
+/*!
+   based on qmedmad_float, sped up for 3dSegment
+*/
+
+void qmedmad_float_3dSeg( int n, float *ar, float *med, float *mad )
+{
+   float me=0.0f , ma=0.0f , *q ;
+   register int ii ;
+
+   if( med == NULL && mad == NULL || n <= 0 || ar == NULL ) return ;
+
+   #if 0 /* Protectionism */
+   q = (float *)malloc(sizeof(float)*n) ;
+   memcpy(q,ar,sizeof(float)*n) ;  /* duplicate input array */
+   #else
+   q = ar;
+   #endif
+   me = qmed_float( n , q ) ;      /* compute median */
+
+   if( mad != NULL && n > 1 ){
+     for( ii=0 ; ii < n ; ii++ )   /* subtract off median */
+       q[ii] = fabsf(q[ii]-me) ;   /* (absolute deviation) */
+     ma = qmed_float( n , q ) ;    /* MAD = median absolute deviation */
+   }
+
+   #if 0
+   free(q) ;                       /* 05 Nov 2001 - oops */
+   #endif
+   
+   if( med != NULL ) *med = me ;   /* 19 Aug 2005 - assign only */
+   if( mad != NULL ) *mad = ma ;   /*               if not NULL */
+   return ;
+}
+
+
+/*!
+   Based on mri_nstat, spedup for 3dSegment 
+*/
+int mri_nstat_3dSeg( MRI_IMAGE *im, int *code_vec, int N_code, float *val_vec )
+{
+   MRI_IMAGE *fim ;
+   float     *far , outval=0.0f, med = 0.0f, mad = 0.0f ;
+   int npt, code , medmaded = 0;
+   int ic = 0;
+   
+   if( im == NULL || im->nvox == 0 ) return outval ;
+
+   /* convert input to float format, if not already there */
+
+   if( im->kind != MRI_float ) fim = mri_to_float(im) ;
+   else                        fim = im ;
+   far = MRI_FLOAT_PTR(fim) ;  /* array of values to statisticate */
+   npt = fim->nvox ;           /* number of values */
+   
+   for (ic=0; ic < N_code; ++ic) {
+      code = code_vec[ic];
+      outval = 0.0f;
+      switch( code ){
+
+        case NSTAT_NUM: outval = (float)npt ; break ;  /* quite easy */
+
+        default:
+        case NSTAT_MEAN:{
+          register int ii ;
+          for( ii=0 ; ii < npt ; ii++ ) outval += far[ii] ;
+          outval /= npt ;
+        }
+        break ;
+
+        case NSTAT_SIGMA:   /* these 3 need the mean and variance sums */
+        case NSTAT_CVAR:
+        case NSTAT_VAR:{
+          register float mm,vv ; register int ii ;
+          if( npt == 1 ) break ;                     /* will return 0.0 */
+          for( mm=0.0,ii=0 ; ii < npt ; ii++ ) mm += far[ii] ;
+          mm /= npt ;
+          for( vv=0.0,ii=0 ; ii < npt ; ii++ ) vv += (far[ii]-mm)*(far[ii]-mm) ;
+          vv /= (npt-1) ;
+               if( code == NSTAT_SIGMA ) outval = sqrt(vv) ;
+          else if( code == NSTAT_VAR   ) outval = vv ;
+          else if( mm   !=  0.0f       ) outval = sqrt(vv) / fabsf(mm) ;
+        }
+        break ;
+
+        case NSTAT_MEDIAN:
+          if (!medmaded) {
+            qmedmad_float_3dSeg( npt , far , &med , &mad ) ;
+            medmaded = 1;
+          }
+          outval = med;
+        break ;
+
+        case NSTAT_MAD:
+          if (!medmaded) {
+            qmedmad_float_3dSeg( npt , far , &med , &mad ) ;
+            medmaded = 1;
+          }
+          outval = mad;
+        break ;
+
+        case NSTAT_MAX:{
+          register int ii ;
+          outval = far[0] ;
+          for( ii=1 ; ii < npt ; ii++ ) if( far[ii] > outval ) outval = far[ii] ;
+        }
+        break ;
+
+        case NSTAT_MIN:{
+          register int ii ;
+          outval = far[0] ;
+          for( ii=1 ; ii < npt ; ii++ ) if( far[ii] < outval ) outval = far[ii] ;
+        }
+        break ;
+
+        case NSTAT_ABSMAX:{
+          register int ii ; register float vv ;
+          outval = fabsf(far[0]) ;
+          for( ii=1 ; ii < npt ; ii++ ){
+            vv = fabsf(far[ii]) ; if( vv > outval ) outval = vv ;
+          }
+        }
+        break ;
+      }
+
+      val_vec[ic] = outval;
+   }
+   
+   /* cleanup and exit */
+   if( fim != im  ) mri_free(fim) ;
+   return (1) ;
+}
+
 
 int Segment(SEG_OPTS *Opt) 
 {
@@ -287,7 +419,8 @@ int Segment(SEG_OPTS *Opt)
    float min_T, T_csf, T_gm, T_wm, vval_candidate;
    byte bb=0;
    int ShowVoxSketchy=0, many = 0, far = 0, n_csf, n_gm, n_wm, n_m, iloop;
-   
+   int N_code =0, code_vec[20];
+   float val_vec[20];
    ENTRY("Segment");
    
    /* prep output */
@@ -360,6 +493,9 @@ int Segment(SEG_OPTS *Opt)
                                        if the voxel ii, jj, kk itself is not in the mask   */
       /* for each voxel in aset */
         far = 0; many = 0;
+        code_vec[0] = NSTAT_MEDIAN;
+        code_vec[1] = NSTAT_MAD;
+        N_code = 2;
         for( ijk=kk=0 ; kk < nz ; kk++ ){
          for( jj=0 ; jj < ny ; jj++ ){
           for( ii=0 ; ii < nx ; ii++,ijk++ ){
@@ -371,8 +507,16 @@ int Segment(SEG_OPTS *Opt)
 
                dist_csf = dist_wm = dist_gm = -1.0;
                if (nbim_csf) {
+                  #if 0
                   med_csf = mri_nstat( NSTAT_MEDIAN , nbim_csf ) ;
                   mad_csf = mri_nstat( NSTAT_MAD    , nbim_csf ) ;
+                  #else
+                  if (!mri_nstat_3dSeg( nbim_csf, code_vec, N_code, val_vec )) {
+                     fprintf(stderr,"Failed in mri_nstat_3dSeg @csf[%d %d %d]!\n", ii, jj, kk);
+                  }
+                  med_csf = val_vec[0] ;
+                  mad_csf = val_vec[1] ;
+                  #endif
                   dist_csf = med_csf - aval[ijk]; if (dist_csf < 0.0) dist_csf = -dist_csf;
                } else {
                   if (Opt->debug > 2) fprintf(stderr,"NULL nbim_csf @[%d %d %d]\n", ii, jj, kk);
@@ -380,8 +524,16 @@ int Segment(SEG_OPTS *Opt)
                   mad_csf = -1.0;
                }
                if (nbim_wm) {
+                  #if 0
                   med_wm = mri_nstat( NSTAT_MEDIAN , nbim_wm ) ;
                   mad_wm = mri_nstat( NSTAT_MAD    , nbim_wm ) ;
+                  #else
+                  if (!mri_nstat_3dSeg( nbim_wm, code_vec, N_code, val_vec )) {
+                     fprintf(stderr,"Failed in mri_nstat_3dSeg @wm[%d %d %d]!\n", ii, jj, kk);
+                  }
+                  med_wm = val_vec[0] ;
+                  mad_wm = val_vec[1] ;
+                  #endif
                   dist_wm  = med_wm  - aval[ijk]; if (dist_wm  < 0.0) dist_wm  = -dist_wm;
                } else {
                   if (Opt->debug > 2) fprintf(stderr,"NULL nbim_wm @[%d %d %d]\n", ii, jj, kk);
@@ -389,8 +541,16 @@ int Segment(SEG_OPTS *Opt)
                   mad_wm = -1.0;
                }
                if (nbim_gm) {
+                  #if 0
                   med_gm  = mri_nstat( NSTAT_MEDIAN , nbim_gm ) ;
                   mad_gm = mri_nstat( NSTAT_MAD    , nbim_gm ) ;
+                  #else
+                  if (!mri_nstat_3dSeg( nbim_gm, code_vec, N_code, val_vec )) {
+                     fprintf(stderr,"Failed in mri_nstat_3dSeg @gm[%d %d %d]!\n", ii, jj, kk);
+                  }
+                  med_gm = val_vec[0] ;
+                  mad_gm = val_vec[1] ;
+                  #endif
                   dist_gm  = med_gm  - aval[ijk]; if (dist_gm  < 0.0) dist_gm  = -dist_gm;
                } else {
                   if (Opt->debug > 2) fprintf(stderr,"NULL nbim_gm @[%d %d %d]\n", ii, jj, kk);

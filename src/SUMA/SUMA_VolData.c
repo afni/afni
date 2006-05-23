@@ -250,12 +250,12 @@ char *SUMA_AfniPrefix(char *nameorig, char *view, char *path, int *exists)
 /*!
    \brief A function to find the skin of a volume
    \param dset (THD_3dim_dataset *) an AFNI volume
-   \param dvec (double *) (nx * ny * nz) data vector
-   \param thresh (double) consider only values in dvec > thresh
+   \param fvec (float *) (nx * ny * nz) data vector
+   \param thresh (double) consider only values in fvec > thresh
    \param N_skin (int *) number of voxels that are skin
    \return skin (byte *) (nx * ny * nz) vector containing 1 for skin voxels, 0 elsewhere.
 */
-byte * SUMA_isSkin(THD_3dim_dataset *dset, double *dvec, double thresh, int *N_skin)
+byte * SUMA_isSkin(THD_3dim_dataset *dset, float *fvec, double thresh, int *N_skin)
 {
    static char FuncName[]={"SUMA_isSkin"};
    byte *isskin=NULL;
@@ -263,8 +263,8 @@ byte * SUMA_isSkin(THD_3dim_dataset *dset, double *dvec, double thresh, int *N_s
   
    SUMA_ENTRY;
    
-   if (!dset || !dvec) {
-      SUMA_SL_Err("NULL input dset or dvec");
+   if (!dset || !fvec) {
+      SUMA_SL_Err("NULL input dset or fvec");
       SUMA_RETURN(isskin);
    }
    
@@ -285,13 +285,13 @@ byte * SUMA_isSkin(THD_3dim_dataset *dset, double *dvec, double thresh, int *N_s
          x = 0;
          do { /* the upstroke */
             i1D = SUMA_3D_2_1D_index(x, y, z, nx, nxy);
-            if (dvec[i1D] > thresh) { isskin[i1D] = 1; ++ *N_skin; }
+            if (fvec[i1D] > thresh) { isskin[i1D] = 1; ++ *N_skin; }
             ++x; 
          } while (x < nx && !isskin[i1D]);
          x = nx - 1;
          do { /* the downstroke */
             i1D = SUMA_3D_2_1D_index(x, y, z, nx, nxy);
-            if (dvec[i1D] > thresh) { isskin[i1D] = 1; ++ *N_skin; }
+            if (fvec[i1D] > thresh) { isskin[i1D] = 1; ++ *N_skin; }
             --x; 
          } while (x >=0 && !isskin[i1D]);
       } /* y */
@@ -302,13 +302,13 @@ byte * SUMA_isSkin(THD_3dim_dataset *dset, double *dvec, double thresh, int *N_s
          y = 0;
          do { /* the upstroke */
             i1D = SUMA_3D_2_1D_index(x, y, z, nx, nxy);
-            if (dvec[i1D] > thresh) { isskin[i1D] = 1; ++ *N_skin; }
+            if (fvec[i1D] > thresh) { isskin[i1D] = 1; ++ *N_skin; }
             ++y; 
          } while (y < ny && !isskin[i1D]);
          y = ny - 1;
          do { /* the downstroke */
             i1D = SUMA_3D_2_1D_index(x, y, z, nx, nxy);
-            if (dvec[i1D] > thresh) { isskin[i1D] = 1; ++ *N_skin; }
+            if (fvec[i1D] > thresh) { isskin[i1D] = 1; ++ *N_skin; }
             --y; 
          } while (y >=0 && !isskin[i1D]);
       } /* x */
@@ -319,13 +319,13 @@ byte * SUMA_isSkin(THD_3dim_dataset *dset, double *dvec, double thresh, int *N_s
          z = 0;
          do { /* the upstroke */
             i1D = SUMA_3D_2_1D_index(x, y, z, nx, nxy);
-            if (dvec[i1D] > thresh) { isskin[i1D] = 1; ++ *N_skin; }
+            if (fvec[i1D] > thresh) { isskin[i1D] = 1; ++ *N_skin; }
             ++z; 
          } while (z < nz && !isskin[i1D]);
          z = nz - 1;
          do { /* the downstroke */
             i1D = SUMA_3D_2_1D_index(x, y, z, nx, nxy);
-            if (dvec[i1D] > thresh) { isskin[i1D] = 1; ++ *N_skin; }
+            if (fvec[i1D] > thresh) { isskin[i1D] = 1; ++ *N_skin; }
             --z; 
          } while (z >=0 && !isskin[i1D]);
       } /* y */
@@ -871,7 +871,8 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
       case SUMA_SUREFIT:
          /* For SureFit, coordinates are actually a float version of the indices */
          SF = (SUMA_SureFit_struct *)S_Struct;
-         {   THD_fvec3 fv, iv;
+         if (SF->caret_version < 5.2) {   
+            THD_fvec3 fv, iv;
             float D[3];
             /* Calcluate Delta caused by cropping */
             for (i=0; i < 3; ++i) D[i] = SF->AC_WholeVolume[i] - SF->AC[i];
@@ -889,6 +890,21 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
                SO->NodeList[id] = iv.xyz[0];
                SO->NodeList[id+1] = iv.xyz[1];
                SO->NodeList[id+2] = iv.xyz[2];
+            }
+         } else {
+            float D[3];
+            /* Calcluate Delta caused by cropping */
+            for (i=0; i < 3; ++i) D[i] = SF->AC_WholeVolume[i] - SF->AC[i];
+            if (D[0] != 0.0 || D[1] != 0.0 ||D[2] != 0.0) {
+               fprintf (SUMA_STDERR,"Error %s: Shift Values: [%f, %f, %f]\n", FuncName, D[0], D[1], D[2]);
+               fprintf (SUMA_STDERR,"Never encountered this case. Please notify authors and send sample data.\n");
+               SUMA_RETURN (NOPE); 
+            }
+            /* Caret, just LPI baby, take it to RAI*/
+            for (i=0; i < SO->N_Node; ++i) {
+               id = i * ND;
+               SO->NodeList[id] = -SO->NodeList[id];
+               SO->NodeList[id+1] = -SO->NodeList[id+1];
             }
          }
          break;
@@ -975,33 +991,51 @@ SUMA_Boolean SUMA_Delign_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
          }
          break;
       case SUMA_SUREFIT:
-         /* For SureFit, coordinates are actually a float version of the indices */
-         SUMA_SL_Warn(  "Reverse implementation not finished\n"
-                        "Send me a complaint, I must have forgotten\n"
-                        "Coords will be left untouched. (ziad@nih.gov)\n");
-         #if 0               
          SF = (SUMA_SureFit_struct *)S_Struct;
-         {   THD_fvec3 fv, iv;
+         if (SF->caret_version < 5.2) {   
+            /* For SureFit, coordinates are actually a float version of the indices */
+            SUMA_SL_Warn(  "Reverse implementation not finished\n"
+                           "Send me a complaint, I must have forgotten\n"
+                           "Coords will be left untouched. (ziad@nih.gov)\n");
+            #if 0               
+            {   THD_fvec3 fv, iv;
+               float D[3];
+               /* Calcluate Delta caused by cropping */
+               for (i=0; i < 3; ++i) D[i] = SF->AC_WholeVolume[i] - SF->AC[i];
+               /* fprintf (SUMA_STDERR,"%s: Shift Values: [%f, %f, %f]\n", FuncName, D[0], D[1], D[2]); */
+               for (i=0; i < SO->N_Node; ++i) {
+                  id = i * ND;
+                  /* change float indices to mm coords */
+                  iv.xyz[0] = SO->NodeList[id] + D[0];
+                  iv.xyz[1] = SO->NodeList[id+1] + D[1];
+                  iv.xyz[2] = SO->NodeList[id+2] + D[2];
+                  fv = SUMA_THD_3dfind_to_3dmm( SO, iv );
+
+                  /* change mm to RAI coords */
+                  iv = SUMA_THD_3dmm_to_dicomm( SO->VolPar->xxorient, SO->VolPar->yyorient, SO->VolPar->zzorient,  fv );
+                  SO->NodeList[id] = iv.xyz[0];
+                  SO->NodeList[id+1] = iv.xyz[1];
+                  SO->NodeList[id+2] = iv.xyz[2];
+               }
+            }
+            #endif
+         } else {
             float D[3];
             /* Calcluate Delta caused by cropping */
             for (i=0; i < 3; ++i) D[i] = SF->AC_WholeVolume[i] - SF->AC[i];
-            /* fprintf (SUMA_STDERR,"%s: Shift Values: [%f, %f, %f]\n", FuncName, D[0], D[1], D[2]); */
+            if (D[0] != 0.0f || D[1] != 0.0f ||D[2] != 0.0f) {
+               fprintf (SUMA_STDERR,"Error %s: Shift Values: [%f, %f, %f]\n", FuncName, D[0], D[1], D[2]);
+               fprintf (SUMA_STDERR,"Never encountered this case. Please notify authors and send sample data.\n");
+               SUMA_RETURN (NOPE); 
+            }
+
+            /* just go back from RAI to LPI */
             for (i=0; i < SO->N_Node; ++i) {
                id = i * ND;
-               /* change float indices to mm coords */
-               iv.xyz[0] = SO->NodeList[id] + D[0];
-               iv.xyz[1] = SO->NodeList[id+1] + D[1];
-               iv.xyz[2] = SO->NodeList[id+2] + D[2];
-               fv = SUMA_THD_3dfind_to_3dmm( SO, iv );
-               
-               /* change mm to RAI coords */
-               iv = SUMA_THD_3dmm_to_dicomm( SO->VolPar->xxorient, SO->VolPar->yyorient, SO->VolPar->zzorient,  fv );
-               SO->NodeList[id] = iv.xyz[0];
-               SO->NodeList[id+1] = iv.xyz[1];
-               SO->NodeList[id+2] = iv.xyz[2];
-            }
+               SO->NodeList[id] = -SO->NodeList[id];
+               SO->NodeList[id+1] = -SO->NodeList[id+1];
+            }   
          }
-         #endif
          break;
       case SUMA_BRAIN_VOYAGER:
          /* For Brain Voyager, all you need to do is 

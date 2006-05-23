@@ -32,6 +32,7 @@ typedef struct {
    float v0;
    float v1;
    int nvox;
+   float *fvec;
    double *dvec;
    int obj_type;
    int obj_type_res;

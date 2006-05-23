@@ -1887,6 +1887,7 @@ typedef struct {
    float AC_WholeVolume[3]; /*!< XYZ (from .Orient.params file) of Anterior Comissure of whole volume */
    float AC[3]; /*!< XYZ of Anterior Comissure of cropped volume */
    float tag_version;
+   float caret_version;
 } SUMA_SureFit_struct;
 
 /* structure containing FreeSurfer Surface */

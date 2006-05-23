@@ -6,7 +6,7 @@ typedef enum { SUMA_3dSS_NO_PAUSE = 0, SUMA_3dSS_DEMO_PAUSE, SUMA_3dSS_INTERACTI
 float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObject **SOhull);
 int SUMA_Find_IminImax (float *xyz, float *dir, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, int ni, 
                         float *MinMax, float *MinMax_dist , float *MinMax_over, float *MinMax_over_dist,
-                        float *Means, float *undershish, float *overshish, int *dvecind_under, int *dvecind_over, 
+                        float *Means, float *undershish, float *overshish, int *fvecind_under, int *fvecind_over, 
                         float d1, float d4, int ShishMax);
 int SUMA_SkullMask (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs);
 int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs);
@@ -298,19 +298,19 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_datase
       \param XYZ coordinates of starting point
       \param U the famed direction vector
       \param in_vol AFNI volume structure
-      \param dvec data vector 
+      \param fvec data vector 
       \param stp size of the step to take 
       \param n_stp number of steps to take
       \param nxx, nxy number of voxels in the x and x*y directions
-      \param shish a vector to store dvec's values as it crosses them 
+      \param shish a vector to store fvec's values as it crosses them 
       \param N_shishmax (int) maximum number of values allowed in shish
 */
 
-#define SUMA_ONE_SHISH_PLEASE(nl, U, in_vol, dvec, stp, n_stp, nxx, nxy, shish, N_shishmax){\
+#define SUMA_ONE_SHISH_PLEASE(nl, U, in_vol, fvec, stp, n_stp, nxx, nxy, shish, N_shishmax){\
    int m_istep, m_nind;   \
    static THD_fvec3 m_ncoord, m_ndicom; \
    static THD_ivec3 m_nind3;  \
-   static double m_jmp, m_td[3];  \
+   static float m_jmp, m_td[3];  \
    m_istep = 0; \
    m_jmp = 0.0;  \
    while (m_istep <= n_stp) {   \
@@ -320,7 +320,7 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_datase
       m_ncoord = THD_dicomm_to_3dmm(in_vol, m_ndicom);   \
       m_nind3 = THD_3dmm_to_3dind(in_vol, m_ncoord);  \
       m_nind = m_nind3.ijk[0] + m_nind3.ijk[1] * nxx + m_nind3.ijk[2] * nxy;  \
-      if (m_istep < N_shishmax) shish[m_istep] = dvec[m_nind];  \
+      if (m_istep < N_shishmax) shish[m_istep] = fvec[m_nind];  \
       else break; \
       m_jmp += stp;  \
       ++m_istep;  \
