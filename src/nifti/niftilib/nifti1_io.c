@@ -282,9 +282,12 @@ static char * gni_history[] =
   "   - in hdr->nim, for i > dim[0], pass 0 or 1, else set to 1\n"
   "1.18 02 March 2006 [rickr]\n",
   "   - in nifti_alloc_NBL_mem(), fixed nt=0 case from 1.17 change\n"
+  "1.19 23 May 2006 [HJohnson,rickr]\n",
+  "   - nifti_write_ascii_image(): free(hstr\n"
+  "   - nifti_copy_extensions(): clear num_ext and ext_list\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.18 (2 March, 2006)";
+static char gni_version[] = "nifti library version 1.19 (23 May, 2006)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1 };
