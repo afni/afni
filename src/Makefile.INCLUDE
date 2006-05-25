@@ -1127,6 +1127,7 @@ afni_src.tgz:
 	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir mpegtoppm_dir   ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat ./afni_src
 	$(CP) -pr SUMA matlab rickr faces poems ni_test_? README.*           ./afni_src
+	chmod -R ugo+rw                                                      ./afni_src
 	$(TAR) cf - afni_src | $(GZIP) -9v > afni_src.tgz
 	$(RM) -r afni_src
 
