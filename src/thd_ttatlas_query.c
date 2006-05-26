@@ -3189,6 +3189,21 @@ int Check_Version_Match(THD_3dim_dataset * dset, AFNI_ATLAS_CODES ac)
    
    RETURN(0); /* not good */
 }
+
+static int N_VersionMessage = 0;
+
+static char *VersionMessage(void)
+{
+   static char verr[1000];
+   ENTRY("VersionMessage");
+   sprintf( verr, "Mismatch of Anatomy Toolbox Versions.\n"
+                  "Version in AFNI is %s and appears\n"
+                  "different from version string in atlas' notes.\n"
+                  "See whereami -help for more info.\n", CA_EZ_VERSION_STR);
+   RETURN(verr);
+}
+
+
 int CA_EZ_ML_load_atlas(void)
 {
    char *epath ;
@@ -3212,12 +3227,11 @@ int CA_EZ_ML_load_atlas(void)
    if( dseCA_EZ_ML != NULL ){                     /* got it!!! */
       /* check on version */
       if (!Check_Version_Match(dseCA_EZ_ML, CA_EZ_N27_ML_ATLAS)) {
-         ERROR_message( "Mismatch of Anatomy Toolbox Versions.\n"
-                        "Version in AFNI is %s and appears\n"
-                        "different from version string in atlas' notes.\n"
-                        "See whereami -help for more info.\n", CA_EZ_VERSION_STR);
+         if (!N_VersionMessage) { AFNI_popup_message( VersionMessage() ); ++N_VersionMessage; }
+         ERROR_message( VersionMessage() );
          /* dump the load */
-         CA_EZ_ML_purge_atlas();
+         /* CA_EZ_ML_purge_atlas();, not good enough will get reloaded elsewhere */
+         DSET_delete(dseCA_EZ_ML) ;  dseCA_EZ_ML = NULL;
          RETURN(0) ;               
       }
       have_dseCA_EZ_ML = 1; RETURN(1);
@@ -3249,12 +3263,11 @@ int CA_EZ_LR_load_atlas(void)
    if( dseCA_EZ_LR != NULL ){                     /* got it!!! */
       /* check on version */
       if (!Check_Version_Match(dseCA_EZ_LR, CA_EZ_N27_LR_ATLAS)) {
-         ERROR_message( "Mismatch of Anatomy Toolbox Versions.\n"
-                        "Version in AFNI is %s and appears\n"
-                        "different from version string in atlas' notes.\n"
-                        "See whereami -help for more info.\n", CA_EZ_VERSION_STR);
+         if (!N_VersionMessage) { AFNI_popup_message( VersionMessage() ); ++N_VersionMessage; }
+         ERROR_message(  VersionMessage() );
          /* dump the load */
-         CA_EZ_LR_purge_atlas();
+         /* CA_EZ_LR_purge_atlas();, not good enough will get reloaded elsewhere */
+         DSET_delete(dseCA_EZ_LR) ; dseCA_EZ_LR = NULL;
          RETURN(0) ;               
       }
       have_dseCA_EZ_LR = 1; RETURN(1);
@@ -3286,12 +3299,11 @@ int CA_EZ_MPM_load_atlas(void)
    if( dseCA_EZ_MPM != NULL ){                     /* got it!!! */
       /* check on version */
       if (!Check_Version_Match(dseCA_EZ_MPM, CA_EZ_N27_MPM_ATLAS)) {
-         ERROR_message( "Mismatch of Anatomy Toolbox Versions.\n"
-                        "Version in AFNI is %s and appears\n"
-                        "different from version string in atlas' notes.\n"
-                        "See whereami -help for more info.\n", CA_EZ_VERSION_STR);
+         if (!N_VersionMessage) { AFNI_popup_message( VersionMessage() ); ++N_VersionMessage; }
+         ERROR_message( VersionMessage() );
          /* dump the load */
-         CA_EZ_MPM_purge_atlas();
+         /*CA_EZ_MPM_purge_atlas();, not good enough will get reloaded elsewhere */
+         DSET_delete(dseCA_EZ_MPM) ; dseCA_EZ_MPM = NULL;
          RETURN(0) ;               
       }
       have_dseCA_EZ_MPM = 1; RETURN(1);
@@ -3299,6 +3311,7 @@ int CA_EZ_MPM_load_atlas(void)
 
    RETURN(0) ; /* got here -> didn't find it */
 }
+
 
 int CA_EZ_PMaps_load_atlas(void)
 {
@@ -3323,12 +3336,11 @@ int CA_EZ_PMaps_load_atlas(void)
    if( dseCA_EZ_PMaps != NULL ){                     /* got it!!! */
       /* check on version */
       if (!Check_Version_Match(dseCA_EZ_PMaps, CA_EZ_N27_PMAPS_ATLAS)) {
-         ERROR_message( "Mismatch of Anatomy Toolbox Versions.\n"
-                        "Version in AFNI is %s and appears\n"
-                        "different from version string in atlas' notes.\n"
-                        "See whereami -help for more info.\n", CA_EZ_VERSION_STR);
+         if (!N_VersionMessage) { AFNI_popup_message( VersionMessage() ); ++N_VersionMessage; }
+         ERROR_message(  VersionMessage() );
          /* dump the load */
-         CA_EZ_PMaps_purge_atlas();
+         /* CA_EZ_PMaps_purge_atlas();, not good enough will get reloaded elsewhere */
+         DSET_delete(dseCA_EZ_PMaps) ; dseCA_EZ_PMaps = NULL;
          RETURN(0) ;               
       }
       have_dseCA_EZ_PMaps = 1; RETURN(1);
