@@ -1,3 +1,11 @@
+#include "SUMA_suma.h"
+
+
+/*#define  DO_SCALE_RANGE   *//*!< scale node coordinates to 0 <--> 100. DO NOT USE IT, OBSOLETE*/
+#ifndef DO_SCALE_RANGE
+   #define DO_SCALE 319.7   /*!< scale node coordinates by specified factor. Useful for tesscon coordinate system in iv files*/
+#endif
+
 SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
 SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
                                     SUMAg_SVv contains SUMA_MAX_SURF_VIEWERS structures */
@@ -42,6 +50,21 @@ void usage_SUMA_SurfaceMetrics ()
                "         C[i] = Sum(dj/dij) over all neighbors j of i\n"
                "         dj is the distance of neighboring node j to the tangent plane at i\n"
                "         dij is the length of the segment ij\n"
+               "      -closest_node XYZ_LIST.1D: Find the closest node on the surface\n"
+               "                              to each XYZ triplet in XYZ_LIST.1D\n"
+               "                              Note that it is assumed that the XYZ\n"
+               "                              coordinates are in RAI (DICOM) per AFNI's\n"
+               "                              coordinate convention. For correspondence\n"
+               "                              with coordinates observed in SUMA and AFNI\n"
+               "                              be sure to use the proper -sv parameter for\n"
+               "                              the surface and XYZ coordinates in question.\n"
+               "         Output file is prefix.closest.1D. Results in 8 columns:\n"
+               "         Col.0: Index of closest node.\n"
+               "         Col.1: Distance of closest node to XYZ reference point.\n"
+               "         Col.2..4: XYZ of reference point (same as XYZ_LIST.1D, copied \n"
+               "                   here for clarity).\n"
+               "         Col.5..7: XYZ of closest node (after proper surface coordinate\n"
+               "                   transformation, including SurfaceVolume transform.\n"
                "      -area: output area of each triangle. \n"
                "         Output file is prefix.area. Results in two columns:\n"
                "         Col.0: Triangle Index\n"
@@ -141,6 +164,7 @@ int main (int argc,char *argv[])
    THD_3dim_dataset *aset=NULL;
    char *surf_names[SURFACEMETRICS_MAX_SURF];
    char *spec_file, *histnote;
+   char *closest_to_xyz = NULL;
    int insurf_method = 0, N_surf = 0, ind = 0;
    SUMA_Boolean   brk, Do_tlrc, Do_conv, Do_curv, 
                   Do_area, Do_edges, Do_vol, Do_sph, NewCent, Do_cord, Do_TriNorm, 
@@ -175,6 +199,7 @@ int main (int argc,char *argv[])
    Do_NodeNorm = NOPE;
    Do_en = NOPE;
    Do_in = NOPE;
+   closest_to_xyz = NULL;
    NormScale = 5.0;
    NewCent = NOPE;
    OutPrefix = NULL;
@@ -315,7 +340,7 @@ int main (int argc,char *argv[])
 		}
       
       if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
-         if (iType == SUMA_FT_NOT_SPECIFIED) {
+         if (0 && iType == SUMA_FT_NOT_SPECIFIED) {/* iType input no longer allowed */
             fprintf (SUMA_STDERR, " -sv option must be preceeded by -i_TYPE option.");
             exit(1);
          }
@@ -356,6 +381,15 @@ int main (int argc,char *argv[])
 				exit (1);
 			}
          NormScale = atof(argv[kar]);
+         brk = YUP;
+      }
+      if (!brk && (strcmp(argv[kar], "-closest_node") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -closest_node ");
+				exit (1);
+			}
+         closest_to_xyz = argv[kar];
          brk = YUP;
       }
       
@@ -416,12 +450,12 @@ int main (int argc,char *argv[])
    MetricList = SUMA_StringAppend (MetricList, NULL); 
    
    /* sanity checks */
-   if (!strlen(MetricList->s) && !Do_vol && !Do_sph && !Do_cord && !Do_TriNorm && !Do_NodeNorm && !Do_en && !Do_in) {
+   if (!strlen(MetricList->s) && !Do_vol && !Do_sph && !Do_cord && !Do_TriNorm && !Do_NodeNorm && !Do_en && !Do_in && !closest_to_xyz) {
       SUMA_S_Err("No Metrics specified.\nNothing to do.\n");
       exit(1);
    }
    
-   if (sv_name) {
+   if (0 && sv_name) { /* stupid check for volumes... */
       if (!SUMA_filexists(sv_name)) {
          fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, sv_name);
          exit(1);
@@ -910,6 +944,97 @@ int main (int argc,char *argv[])
       SUMA_free(enmask); enmask = NULL;
       
       fclose(fout); fout = NULL;
+   }
+   
+   if (closest_to_xyz) { /* read xyz list, report closest node (SLOW implementation...)*/
+      MRI_IMAGE *im = NULL;
+      float *far=NULL, *p=NULL;
+      int nx2, N_XYZ = 0,i, i3, *closest=NULL, n;
+      double xyz[3], d, *dXYZ=NULL;
+
+      /* load the 1D file */
+      im = mri_read_1D (closest_to_xyz);
+      if (!im) {
+         fprintf(SUMA_STDERR,"Error %s:\n Failed to read/find %s.\n", FuncName, closest_to_xyz);
+         exit(1);
+      }   
+
+      far = MRI_FLOAT_PTR(im);
+      if (im->nx == 0) {
+         fprintf(SUMA_STDERR,"Error %s:\n Empty file %s.\n", FuncName, closest_to_xyz);
+         exit(1);
+      }
+      if (im->ny != 3) {
+         fprintf(SUMA_STDERR,"Error %s:\n Found %d columns in %s. Expecting 3\n", FuncName, im->ny, closest_to_xyz);
+         exit(1);
+      }
+
+      /* set the results vector */
+      dXYZ = (double *)SUMA_malloc(im->nx*sizeof(double));
+      closest = (int *)SUMA_malloc(im->nx*sizeof(int));
+      if (!dXYZ || !closest) {
+         SUMA_S_Crit("Failed to allocate.");
+         exit(1);
+      }
+
+      nx2 = 2*im->nx;
+      for (i=0;i<im->nx; ++i) {  /* for each of the coordinates in question */
+         xyz[0] = (double)far[i];
+         xyz[1] = (double)far[i+im->nx];
+         xyz[2] = (double)far[i+nx2];
+         dXYZ[i] = 1023734552736672366372.0;
+         closest[i] = -1;
+         for (n=0; n<SO->N_Node; ++n) {
+            p = &(SO->NodeList[SO->NodeDim*n]);
+            SUMA_SEG_NORM(p, xyz, d);
+            if (d < dXYZ[i]) {
+               dXYZ[i] = d; closest[i] = n;
+            }
+         }
+      }
+
+      /* write out the results */
+      sprintf(OutName, "%s.closest.1D.dset", OutPrefix);
+      if (SUMA_filexists(OutName)) {
+         SUMA_S_Err("Closest nodes output file exists.\nWill not overwrite.");
+         exit(1);
+      }
+
+      fout = fopen(OutName,"w");
+      if (!fout) {
+         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         exit(1);
+      }  
+
+      fprintf (fout,"#closest nodes reference points\n");
+      fprintf (fout,"#n = index of closest node\n");
+      fprintf (fout,"#d = distance of closest node\n");
+      fprintf (fout,"#X = X of reference point\n");
+      fprintf (fout,"#Y = Y of reference point\n");
+      fprintf (fout,"#Z = Z of reference point\n");
+      fprintf (fout,"#Xn = X of node\n");
+      fprintf (fout,"#Yn = Y of node\n");
+      fprintf (fout,"#Zn = Z of node\n");
+     
+      fprintf (fout,"#n\td\tX\tY\tZ\tXn\tYn\tZn\n\n");
+      if (histnote) fprintf (fout,"#History:%s\n", histnote);
+
+      for (i=0; i < im->nx; ++i) {
+         fprintf (fout,"%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n", 
+            closest[i], dXYZ[i], far[i], far[i+im->nx], far[i+nx2], 
+               SO->NodeList[SO->NodeDim*closest[i]], 
+               SO->NodeList[SO->NodeDim*closest[i]+1], 
+               SO->NodeList[SO->NodeDim*closest[i]+2]);
+      }
+
+      fclose(fout); fout = NULL;
+
+      /* clean up im */
+      if (im) mri_free(im); im = NULL; 
+
+      /* clean up other */
+      if (closest) SUMA_free(closest); closest = NULL;
+      if (dXYZ) SUMA_free(dXYZ); dXYZ = NULL;
    }
    
    SUMA_LH("Clean up");
