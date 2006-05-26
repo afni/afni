@@ -146,11 +146,14 @@ if(PRINT_TRACING){
             if( strstr(fname_splash[np],targ) != NULL ) break ;
           if( np < num_splash ) first_splash = np ;
 
+#if 0
           if( first_splash >= 0 && num_face > 0 && strcmp(targ,"bobkarl") == 0 ){
             for( np=0 ; np < num_face ; np++ )
               if( strstr(fname_face[np],"rwcox6") != NULL ) break ;
             if( np < num_face ) first_face = np ;
           }
+#endif
+
 if(PRINT_TRACING){
  char str[256];
  sprintf(str,"first_face=%d  first_splash=%d",first_face,first_splash); STATUS(str);
