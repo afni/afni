@@ -283,7 +283,7 @@ static char * gni_history[] =
   "1.18 02 March 2006 [rickr]\n",
   "   - in nifti_alloc_NBL_mem(), fixed nt=0 case from 1.17 change\n"
   "1.19 23 May 2006 [HJohnson,rickr]\n",
-  "   - nifti_write_ascii_image(): free(hstr\n"
+  "   - nifti_write_ascii_image(): free(hstr)\n"
   "   - nifti_copy_extensions(): clear num_ext and ext_list\n"
   "----------------------------------------------------------------------\n"
 };

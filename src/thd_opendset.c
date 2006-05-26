@@ -17,6 +17,7 @@ extern THD_3dim_dataset *THD_3dim_from_ROIstring(char *shar);
        RETURN(NULL) ;                                                     \
      }} while(0)
 
+
 /*----------------------------------------------------------------
    simply given a pathname, try to open it as a dataset
    [allow for .HEAD, .BRIK, or just prefix+viewcode filenames]
@@ -104,6 +105,26 @@ ENTRY("THD_open_one_dataset") ;
 
      CHECK_FOR_DATA(pathname) ;               /* 06 Jan 2005 */
      RETURN( THD_open_mpeg(pathname) ) ;
+   }
+
+   /*-- 26 May 2006 [rickr]: the NIML way! --*/
+
+   if( STRING_HAS_SUFFIX(pathname,".niml") ){
+
+     CHECK_FOR_DATA(pathname) ;
+fprintf(stderr,"** reading .niml : coming soon to a module near you\n");
+RETURN(NULL) ; /* until written */
+/*     RETURN( THD_open_nifti(pathname) ) ; */
+   }
+
+   /*-- 26 May 2006 [rickr]: the NI_SURF_DSET way! --*/
+
+   if( STRING_HAS_SUFFIX(pathname,".niml.dset") ){
+
+     CHECK_FOR_DATA(pathname) ;
+fprintf(stderr,"** reading .niml.dset : coming soon to a module near you\n");
+RETURN(NULL) ; /* until written */
+/*     RETURN( THD_open_nifti(pathname) ) ; */
    }
 
    /* -- Try to read an AFNI dataset and if that fails, 
@@ -243,38 +264,43 @@ int storage_mode_from_filename( char * fname )
 {
 ENTRY("storage_mode_from_filename");
 
-    if( !fname || !*fname )                    RETURN(STORAGE_UNDEFINED);
+    if( !fname || !*fname )                     RETURN(STORAGE_UNDEFINED);
 
     /* STORAGE_BY_SLICES was never implemented   :'( */
 
     if( STRING_HAS_SUFFIX(fname, ".HEAD") ||
         STRING_HAS_SUFFIX(fname, ".BRIK") ||
-        STRING_HAS_SUFFIX(fname, ".BRIK.gz") ) RETURN(STORAGE_BY_BRICK);
+        STRING_HAS_SUFFIX(fname, ".BRIK.gz") )  RETURN(STORAGE_BY_BRICK);
         
-    if( STRING_HAS_SUFFIX(fname, ".mnc") )     RETURN(STORAGE_BY_MINC);
+    if( STRING_HAS_SUFFIX(fname, ".mnc") )      RETURN(STORAGE_BY_MINC);
 
-    if( 0 )                                    RETURN(STORAGE_BY_VOLUMES);
+    if( 0 )                                     RETURN(STORAGE_BY_VOLUMES);
 
-    if( 0 )   /* default is NIFTI */           RETURN(STORAGE_BY_ANALYZE);
+    if( 0 )   /* default is NIFTI */            RETURN(STORAGE_BY_ANALYZE);
         
-    if( STRING_HAS_SUFFIX(fname, ".mri") )     RETURN(STORAGE_BY_CTFMRI);
+    if( STRING_HAS_SUFFIX(fname, ".mri") )      RETURN(STORAGE_BY_CTFMRI);
 
-    if( STRING_HAS_SUFFIX(fname, ".svl") )     RETURN(STORAGE_BY_CTFSAM);
+    if( STRING_HAS_SUFFIX(fname, ".svl") )      RETURN(STORAGE_BY_CTFSAM);
 
-    if( STRING_HAS_SUFFIX(fname, ".1D") )      RETURN(STORAGE_BY_1D);
+    if( STRING_HAS_SUFFIX(fname, ".1D") )       RETURN(STORAGE_BY_1D);
 
-    if( STRING_HAS_SUFFIX(fname, ".3D") )      RETURN(STORAGE_BY_3D);
+    if( STRING_HAS_SUFFIX(fname, ".3D") )       RETURN(STORAGE_BY_3D);
 
     if( STRING_HAS_SUFFIX(fname, ".nii")    ||
         STRING_HAS_SUFFIX(fname, ".nii.gz") ||
         STRING_HAS_SUFFIX(fname, ".nia")    ||
         STRING_HAS_SUFFIX(fname, ".hdr")    ||
-        STRING_HAS_SUFFIX(fname, ".img") )     RETURN(STORAGE_BY_NIFTI);
+        STRING_HAS_SUFFIX(fname, ".img") )      RETURN(STORAGE_BY_NIFTI);
 
     if( STRING_HAS_SUFFIX(fname, ".mpg")   ||
         STRING_HAS_SUFFIX(fname, ".mpeg")  ||
         STRING_HAS_SUFFIX(fname, ".MPG")   ||
-        STRING_HAS_SUFFIX(fname, ".MPEG") )    RETURN(STORAGE_BY_MPEG);
+        STRING_HAS_SUFFIX(fname, ".MPEG") )     RETURN(STORAGE_BY_MPEG);
+
+    /* 26 May 2006 [rickr] */
+    if( STRING_HAS_SUFFIX(fname, ".niml") )     RETURN(STORAGE_BY_NIML);
+
+    if( STRING_HAS_SUFFIX(fname,".niml.dset") ) RETURN(STORAGE_BY_NI_SURF_DSET);
 
     RETURN(STORAGE_UNDEFINED);
 }
