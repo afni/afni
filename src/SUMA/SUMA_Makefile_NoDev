@@ -152,9 +152,9 @@ ConvertSurface: SUMA_Surface_IO.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED -DSUMA_ConvertSurface_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Surface_IO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
-SurfaceMetrics: SUMA_Load_Surface_Object.c
+SurfaceMetrics: SUMA_SurfaceMetrics.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_SurfaceMetrics_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Load_Surface_Object.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_SurfaceMetrics_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_SurfaceMetrics.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 inspec: SUMA_Load_Surface_Object.c
 	$(RM) $@
