@@ -17,6 +17,8 @@ static THD_3dim_dataset * dseCA_EZ_LR = NULL ;
 #define MAX_FIND_DEFAULT 9            /* max number to find within WAMIRAD  */
 #define WAMIRAD_DEFAULT  7.5           /* search radius: must not exceed 9.5 */
 
+#define POPUP_MESSAGE(sss)  /*nuthin fer now -- RWC quick fix*/
+
 int Init_Whereami_Max_Find(void) {
    
    char *eee = getenv("AFNI_WHEREAMI_MAX_FIND");
@@ -3227,7 +3229,7 @@ int CA_EZ_ML_load_atlas(void)
    if( dseCA_EZ_ML != NULL ){                     /* got it!!! */
       /* check on version */
       if (!Check_Version_Match(dseCA_EZ_ML, CA_EZ_N27_ML_ATLAS)) {
-         if (!N_VersionMessage) { AFNI_popup_message( VersionMessage() ); ++N_VersionMessage; }
+         if (!N_VersionMessage) { POPUP_MESSAGE( VersionMessage() ); ++N_VersionMessage; }
          ERROR_message( VersionMessage() );
          /* dump the load */
          /* CA_EZ_ML_purge_atlas();, not good enough will get reloaded elsewhere */
@@ -3263,7 +3265,7 @@ int CA_EZ_LR_load_atlas(void)
    if( dseCA_EZ_LR != NULL ){                     /* got it!!! */
       /* check on version */
       if (!Check_Version_Match(dseCA_EZ_LR, CA_EZ_N27_LR_ATLAS)) {
-         if (!N_VersionMessage) { AFNI_popup_message( VersionMessage() ); ++N_VersionMessage; }
+         if (!N_VersionMessage) { POPUP_MESSAGE( VersionMessage() ); ++N_VersionMessage; }
          ERROR_message(  VersionMessage() );
          /* dump the load */
          /* CA_EZ_LR_purge_atlas();, not good enough will get reloaded elsewhere */
@@ -3299,7 +3301,7 @@ int CA_EZ_MPM_load_atlas(void)
    if( dseCA_EZ_MPM != NULL ){                     /* got it!!! */
       /* check on version */
       if (!Check_Version_Match(dseCA_EZ_MPM, CA_EZ_N27_MPM_ATLAS)) {
-         if (!N_VersionMessage) { AFNI_popup_message( VersionMessage() ); ++N_VersionMessage; }
+         if (!N_VersionMessage) { POPUP_MESSAGE( VersionMessage() ); ++N_VersionMessage; }
          ERROR_message( VersionMessage() );
          /* dump the load */
          /*CA_EZ_MPM_purge_atlas();, not good enough will get reloaded elsewhere */
@@ -3336,7 +3338,7 @@ int CA_EZ_PMaps_load_atlas(void)
    if( dseCA_EZ_PMaps != NULL ){                     /* got it!!! */
       /* check on version */
       if (!Check_Version_Match(dseCA_EZ_PMaps, CA_EZ_N27_PMAPS_ATLAS)) {
-         if (!N_VersionMessage) { AFNI_popup_message( VersionMessage() ); ++N_VersionMessage; }
+         if (!N_VersionMessage) { POPUP_MESSAGE( VersionMessage() ); ++N_VersionMessage; }
          ERROR_message(  VersionMessage() );
          /* dump the load */
          /* CA_EZ_PMaps_purge_atlas();, not good enough will get reloaded elsewhere */
