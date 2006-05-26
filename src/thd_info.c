@@ -26,7 +26,6 @@ char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
 {
    THD_dataxes      *daxes ;
    THD_fvec3 fv1 , fv2 , fv3 ;
-   THD_ivec3 iv ;
    int ival , ntimes , nval_per , n1,n2,n3 , kv,npar ;
    float tf ;
 
@@ -120,6 +119,13 @@ ENTRY("THD_dataset_info") ;
 
      case STORAGE_BY_MPEG:
        outbuf = THD_zzprintf(outbuf,"Storage Mode:    MPEG file\n") ; break ;
+
+     case STORAGE_BY_NIML:   /* 26 May 2006 [rickr] */
+       outbuf = THD_zzprintf(outbuf,"Storage Mode:    NIML file\n") ; break ;
+
+     case STORAGE_BY_NI_SURF_DSET:
+       outbuf = THD_zzprintf(outbuf,"Storage Mode:    NI_SURF_DSET file\n") ;
+       break ;
    }
 
    /*-- keywords --*/
@@ -331,9 +337,8 @@ ENTRY("THD_dataset_info") ;
 
    if( verbose >= 0 ){
      ATR_int *notecount;
-     ATR_string *note;
-     int num_notes, i, j, num_char , mmm ;
-     char note_name[20], *chn , *chd ;
+     int num_notes, i, j, mmm ;
+     char *chn , *chd ;
 
      notecount = THD_find_int_atr(dset->dblk, "NOTES_COUNT");
      if( notecount != NULL ){
