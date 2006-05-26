@@ -105,9 +105,8 @@ Boolean THD_load_datablock( THD_datablock *blk )
 {
    THD_diskptr *dkptr ;
    int id , offset ;
-   int nx,ny,nz , nxy,nxyz , nv,vv , ii , ibr , nbad ;
+   int nx,ny,nz , nxy,nxyz , nv , ii , ibr ;
    char *ptr ;
-   MRI_IMAGE *im ;
    int verb=verbose ;
    int64_t idone , print_size=PRINT_SIZE ;
 
@@ -255,6 +254,32 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
        RETURN( True ) ;
      }
      STATUS("can't read MPEG dataset file?!") ;
+     RETURN( False ) ;
+   }
+
+   if( dkptr->storage_mode == STORAGE_BY_NIML ){   /* 26 May 2006 [rickr] */
+#if 0 /* TBD */
+      THD_load_niml( blk ) ;
+     ii = THD_count_databricks( blk ) ;
+     if( ii == blk->nvals ){
+       THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
+       RETURN( True ) ;
+     }
+#endif
+     STATUS("can't read NIML dataset file?!") ;
+     RETURN( False ) ;
+   }
+
+   if( dkptr->storage_mode == STORAGE_BY_NI_SURF_DSET ){  /* 26 May 2006 */
+#if 0 /* TBD */
+     THD_load_niml( blk ) ;
+     ii = THD_count_databricks( blk ) ;
+     if( ii == blk->nvals ){
+       THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
+       RETURN( True ) ;
+     }
+#endif
+     STATUS("can't read NI_SURF_DSET dataset file?!") ;
      RETURN( False ) ;
    }
 

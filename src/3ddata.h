@@ -914,19 +914,21 @@ static THD_warp tempA_warp ;
   see also: thd_opendset.c: storage_mode_from_filename()
 ***/
 
-#define STORAGE_UNDEFINED  0
-#define STORAGE_BY_BRICK   2
-#define STORAGE_BY_MINC    3
-#define STORAGE_BY_VOLUMES 4  /* 20 Jun 2002 */
-#define STORAGE_BY_ANALYZE 5
-#define STORAGE_BY_CTFMRI  6  /* 04 Dec 2002 */
-#define STORAGE_BY_CTFSAM  7
-#define STORAGE_BY_1D      8  /* 04 Mar 2003 */
-#define STORAGE_BY_3D      9  /* 21 Mar 2003 */
-#define STORAGE_BY_NIFTI  10  /* 28 Aug 2003 */
-#define STORAGE_BY_MPEG   11  /* 03 Dec 2003 */
+#define STORAGE_UNDEFINED         0
+#define STORAGE_BY_BRICK          2
+#define STORAGE_BY_MINC           3
+#define STORAGE_BY_VOLUMES        4  /* 20 Jun 2002 */
+#define STORAGE_BY_ANALYZE        5
+#define STORAGE_BY_CTFMRI         6  /* 04 Dec 2002 */
+#define STORAGE_BY_CTFSAM         7
+#define STORAGE_BY_1D             8  /* 04 Mar 2003 */
+#define STORAGE_BY_3D             9  /* 21 Mar 2003 */
+#define STORAGE_BY_NIFTI         10  /* 28 Aug 2003 */
+#define STORAGE_BY_MPEG          11  /* 03 Dec 2003 */
+#define STORAGE_BY_NIML          12  /* NIML AFNI dset   25 May 2006 [rickr] */
+#define STORAGE_BY_NI_SURF_DSET  13  /* NIML surface dset */
 
-#define LAST_STORAGE_MODE 11
+#define LAST_STORAGE_MODE        13
 
 /*! Contains information about where/how dataset is stored on disk.
 
@@ -1046,7 +1048,7 @@ typedef struct {
       char **  brick_lab  ;     /*!< labels for all sub-bricks                 */
       char **  brick_keywords ; /*!< keywords strings for all sub-bricks       */
       int *    brick_statcode ; /*!< a FUNC_*_TYPE ==> kind of statistic here  */
-      float ** brick_stataux ;  /*!< stat_aux parameters for each sub-brick with brick_statcode[iv] > 0               */
+      float ** brick_stataux ;  /*!< stat_aux parameters for each sub-brick with brick_statcode[iv] > 0 */
 
       int64_t total_bytes ;   /*!< totality of data storage needed */
       int     malloc_type ;   /*!< memory allocation method */
@@ -1065,6 +1067,9 @@ typedef struct {
       int       natr ;        /*!< number of attributes read from disk (or to write to disk) */
       int       natr_alloc ;  /*!< number of attributes allocated in atr below */
       ATR_any * atr ;         /*!< array of attributes (from the header) */
+
+      int       nnodes ;      /*!< number of node indices [25 May 2006 rickr] */
+      int     * node_list ;   /*!< index array for STORAGE_BY_NI_SURF_DSET    */
 
    /* pointers to other stuff */
 
@@ -2290,6 +2295,18 @@ typedef struct THD_3dim_dataset {
 #define DBLK_IS_NIFTI(db) ( ISVALID_DBLK(db) && ISVALID_DISKPTR((db)->diskptr) &&  \
                            (db)->diskptr->storage_mode == STORAGE_BY_NIFTI )
 
+/*! Determine if datablock db is stored in a NIML file on disk  26 May 2006 */
+
+#define DBLK_IS_NIML(db) ( ISVALID_DBLK(db)               &&  \
+                           ISVALID_DISKPTR((db)->diskptr) &&  \
+                           (db)->diskptr->storage_mode == STORAGE_BY_NIML )
+
+/*! Determine if datablock db is stored in a NI_SURF_DSET file on disk */
+
+#define DBLK_IS_NI_SURF_DSET(db) ( ISVALID_DBLK(db)   &&  \
+                       ISVALID_DISKPTR((db)->diskptr) &&  \
+                       (db)->diskptr->storage_mode == STORAGE_BY_NI_SURF_DSET )
+
 /*! Determine if dataset ds is stored in a 1D file on disk */
 
 #define DSET_IS_1D(ds) ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&           \
@@ -2307,6 +2324,18 @@ typedef struct THD_3dim_dataset {
 #define DSET_IS_NIFTI(ds) ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&        \
                             ISVALID_DISKPTR((ds)->dblk->diskptr) &&                \
                             (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NIFTI )
+
+/*! Determine if dataset ds is stored in a NIML file on disk  26 May 2006 */
+
+#define DSET_IS_NIML(ds) ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&  \
+                           ISVALID_DISKPTR((ds)->dblk->diskptr)         &&  \
+                         (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NIML )
+
+/*! Determine if dataset ds is stored in a NI_SURF_DSET file on disk */
+
+#define DSET_IS_NI_SURF_DSET(ds) (ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) \
+                 && ISVALID_DISKPTR((ds)->dblk->diskptr) &&                    \
+                 (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NI_SURF_DSET )
 
 /*! Determine if datablock db is stored by volume files rather than 1 big BRIK */
 

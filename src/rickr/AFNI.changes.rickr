@@ -1514,3 +1514,14 @@
       - nifti_copy_extensions(): clear num_ext, ext_list
   * rickr: use NULL when clearing ext_list
 
+26 May 2006: .niml/.niml.dset preparations
+  * modified 3ddata.h
+      - #define STORAGE_BY_NIML,NI_SURF_DSET, and update LAST_STORAGE_MODE
+      - add nnodes, node_list to THD_datablock struct
+      - define DBLK_IS_NIML, DBLK_IS_NI_SURF_DSET, and similar DSET_*
+  * modified thd_open_dset.c:
+      - THD_open_one_dataset(): added (unfinished) .niml/.niml.dset cases
+      - storage_mode_from_filename(): added .niml/.nim.dset cases
+  * modified thd_info.c: THD_dataset_info(): added the 2 new STORAGE_MODEs
+  * modified thd_loadblk.c: added (unfinished) cases for the new storage modes
+
