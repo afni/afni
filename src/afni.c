@@ -1615,6 +1615,7 @@ STATUS("initialize plugins") ;
         }
 #endif
 
+        TT_setup_popup_func( AFNI_popup_message ) ;  /* 26 May 2006 */
       }
       break ;
 

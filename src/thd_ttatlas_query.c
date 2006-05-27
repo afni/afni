@@ -17,7 +17,14 @@ static THD_3dim_dataset * dseCA_EZ_LR = NULL ;
 #define MAX_FIND_DEFAULT 9            /* max number to find within WAMIRAD  */
 #define WAMIRAD_DEFAULT  7.5           /* search radius: must not exceed 9.5 */
 
-#define POPUP_MESSAGE(sss)  /*nuthin fer now -- RWC quick fix*/
+#if 0
+# define POPUP_MESSAGE(sss)  /*nuthin fer now -- RWC quick fix*/
+#else
+  static void PMESS(char *sss){ return; }
+  static void (*POPUP_MESSAGE)(char *) = PMESS ;
+  void TT_setup_popup_func( void (*pf)(char *) )
+   { POPUP_MESSAGE = (pf==NULL) ? PMESS : pf; return; }
+#endif
 
 int Init_Whereami_Max_Find(void) {
    
