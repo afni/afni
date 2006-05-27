@@ -4051,6 +4051,8 @@ extern int  TT_load_atlas (void);
 extern void TT_purge_atlas(void);
 extern THD_3dim_dataset * TT_retrieve_atlas(void) ;
 
+extern void TT_setup_popup_func( void (*pf)(char *) ) ; /* 26 May 2006 */
+
 extern THD_3dim_dataset * TT_retrieve_atlas_big(void) ; /* 01 Aug 2001 */
 extern void TT_purge_atlas_big(void);
 
