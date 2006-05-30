@@ -545,6 +545,9 @@ int main( int argc , char * argv[] )
 
         DSET_load( dset ) ;             /* reload data from disk */
 
+        /* needs a new ID, but after loading     30 May 2006 [rickr] */
+        dset->idcode = MCW_new_idcode() ; 
+
         EDIT_dset_items( dset ,         /* rename dataset internally */
                            ADN_prefix , CL_prefix ,
                          ADN_none ) ;
