@@ -284,7 +284,7 @@ void ISQ_setup_ppmto_filters(void)
    int dbg ;
    int ncant=0 , need_netpbm=0 ;  /* 16 Nov 2004 */
    int jpeg_compress;
-   
+
    ppmto_num = 0 ; bv = ISQ_SAV_PNM ;
 
    dbg = AFNI_yesenv("AFNI_IMSAVE_DEBUG") ;  /* 03 Sep 2004 */
@@ -3271,7 +3271,13 @@ ENTRY("ISQ_saver_CB") ;
 
                /* open a pipe to the filter function */
 
-               sprintf( fname, "%s%s", seq->saver_prefix, ppmto_suffix[ff] ) ;
+               sprintf(filt,".%s.",ppmto_suffix[ff]) ;
+               if( STRING_HAS_SUFFIX(seq->saver_prefix,filt) ){
+                 strcpy(fname,seq->saver_prefix) ;
+                 fname[sll-1] = '\0' ;
+               } else {
+                 sprintf( fname, "%s%s", seq->saver_prefix, ppmto_suffix[ff] ) ;
+               }
                sprintf( filt , ppmto_filter[ff] , fname ) ;
                printf("Writing one image to file %s\n",fname) ;
                signal( SIGPIPE , SIG_IGN ) ; errno = 0 ;
