@@ -113,6 +113,7 @@ typedef struct  /* user options */
     int              sort_num_suff; /* flag to sort by numerical suffix */
     int              rev_org_dir;   /* flag to reverse dicom_org dir    */
     int              rev_sort_dir;  /* flag to reverse glob sort dir    */
+    char           * flist_file;    /* filename to save file list to    */
 
     /* realtime options */
     int              rt;            /* run in real-time afni mode       */

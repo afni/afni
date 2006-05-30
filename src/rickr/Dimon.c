@@ -115,6 +115,7 @@ static int check_im_byte_order ( int * order, vol_t * v, param_t * p );
 static int check_im_store_space( im_store_t * is, int num_images );
 static int check_stalled_run   ( int run, int seq_num, int naps, int nap_time );
 static int complete_orients_str( vol_t * v, param_t * p );
+static int create_flist_file   ( param_t * p );
 static int create_gert_script  ( stats_t * s, param_t * p );
 static int create_gert_reco    ( stats_t * s, opts_t * opts );
 static int create_gert_dicom   ( stats_t * s, param_t * p );
@@ -1017,6 +1018,7 @@ static int read_ge_files(
             {
                 MCW_file_expand(1, &p->glob_dir, &p->nfiles, &p->fnames);
                 if ( dicom_order_files( p ) != 0 ) return -1;
+                if ( p->opts.flist_file ) create_flist_file( p );
                 org_todo = 0;  /* now don't do it again */
             }
         }
@@ -1672,6 +1674,16 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         {
             p->opts.rev_sort_dir = 1;
         }
+        else if ( ! strncmp( argv[ac], "-save_file_list", 10 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -save_file_list FILENAME\n", stderr );
+                return 1;
+            }
+
+            p->opts.flist_file = argv[ac];
+        }
         else if ( ! strncmp( argv[ac], "-sort_by_num_suffix", 12 ) )
         {
             p->opts.sort_num_suff = 1;
@@ -1840,6 +1852,11 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         if( ! p->opts.dicom_glob )
         {
             fprintf(stderr,"** missing -infile_pattern option\n");
+            return 1;
+        }
+        if( p->opts.flist_file && !p->opts.dicom_org )
+        {
+            fprintf(stderr,"** -save_file_list invalid without -dicom_org\n");
             return 1;
         }
     }
@@ -2432,6 +2449,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   sort_num_suff      = %d\n"
             "   rev_org_dir        = %d\n"
             "   rev_sort_dir       = %d\n"
+            "   flist_file         = %s\n"
             "   (rt, swap, rev_bo) = (%d, %d, %d)\n"
             "   host               = %s\n"
             "   drive_list(u,a,p)  = %d, %d, %p\n"
@@ -2447,6 +2465,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->debug, opt->gert_reco, opt->quit, opt->use_dicom,
             opt->dicom_org, opt->sort_num_suff,
             opt->rev_org_dir, opt->rev_sort_dir,
+            CHECK_NULL_STR(opt->flist_file),
             opt->rt, opt->swap, opt->rev_bo,
             CHECK_NULL_STR(opt->host),
             opt->drive_list.nused, opt->drive_list.nalloc, opt->drive_list.str,
@@ -2933,6 +2952,9 @@ static int usage ( char * prog, int level )
           "          a single file per run that contains the image filenames\n"
           "          for that run (in order).  This is fed to 'to3d'.\n"
           "\n"
+          "        - This may be used with '-save_file_list', to store the\n"
+          "          list of sorted filenames in an output file.\n"
+          "\n"
           "        - The images can be sorted in reverse order using the\n"
           "          option, -rev_org_dir.\n"
           "\n"
@@ -2988,6 +3010,16 @@ static int usage ( char * prog, int level )
           "\n"
           "        With this option, the program will sort the input files\n"
           "        in descending order, as opposed to ascending order.\n"
+          "\n"
+          "    -save_file_list FILENAME : store the list of sorted files\n"
+          "\n"
+          "        e.g.  -save_file_list dicom_file_list\n"
+          "\n"
+          "        With this option the program will store the list of files,\n"
+          "        sorted via -dicom_org, in the output file, FILENAME.  The\n"
+          "        user may wish to have a separate list of the files.\n"
+          "\n"
+          "        Note: this option requires '-dicom_org'.\n"
           "\n"
           "    -sort_by_num_suffix : sort files according to numerical suffix\n"
           "\n"
@@ -3321,6 +3353,41 @@ static int create_gert_dicom( stats_t * s, param_t * p )
 
     /* now make it an executable */
     system( "chmod u+x " IFM_GERT_DICOM );
+
+    return 0;
+}
+
+
+/* ----------------------------------------------------------------------
+ * Create an output file containing the (sorted?) file list.
+ * ---------------------------------------------------------------------- */
+static int create_flist_file( param_t * p )
+{
+    opts_t * opts = &p->opts;
+    FILE   * fp;
+    int      c;
+
+    if( !opts->flist_file )
+    {
+        fprintf(stderr,"** missing filename for create_file_list\n");
+        return -1;
+    }
+
+    fp = fopen(opts->flist_file, "w");
+    if( !fp )
+    {
+        fprintf(stderr,"** failed to open '%s' for output file list\n",
+                opts->flist_file);
+        return -1;
+    }
+
+    for( c = 0; c < p->nfiles; c++ )
+        fprintf(fp, "%s\n", p->fnames[c]);
+
+    fclose(fp);
+
+    if( gD.level > 1 )
+        fprintf(stderr,"+d saved file list in '%s'\n", opts->flist_file);
 
     return 0;
 }
