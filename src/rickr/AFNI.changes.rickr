@@ -1525,3 +1525,5 @@
   * modified thd_info.c: THD_dataset_info(): added the 2 new STORAGE_MODEs
   * modified thd_loadblk.c: added (unfinished) cases for the new storage modes
 
+30 May 2006: 3dclust.c: get a new ID for an output 3dclust dataset
+
