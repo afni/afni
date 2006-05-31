@@ -482,7 +482,7 @@ Rotation through angle alpha about an axis m_u.  Alpha is always positive and co
 P1, P2: intial and final vector location
 m_alpha: angle between P1 and P2
 m_u: axis of rotation and cross product of P1, P2
-mn_u: magnitude of axis of rotation needed to normalize the axis of rota
+mn_u: magnitude of axis of rotation needed to normalize the axis of rotation
 m_M: 3x3 rotation matrix
 Equations based on matlab script AxisRotate3D.m     
 */
@@ -492,8 +492,6 @@ Equations based on matlab script AxisRotate3D.m
    static double m_xy_vera, m_xz_vera, m_yz_vera; \
    static double m_cosa, m_sina, m_vera; \
    SUMA_ANGLE_DIST_NC(P2 , P1, m_alpha, m_u); \
-      if( i == opt->CtrlPts_iim[0] ) { \
-         fprintf(SUMA_STDERR, "ALPHA CALCULATED BY MACRO: %f\n", m_alpha); }\
    m_mag_u = sqrt( m_u[0]*m_u[0] + m_u[1]*m_u[1] + m_u[2]*m_u[2] ); \
    if( m_mag_u > 0.000000001 ) { m_u[0] = m_u[0]/m_mag_u ;  m_u[1] = m_u[1]/m_mag_u ; m_u[2] = m_u[2]/m_mag_u ;}; \
    m_x = m_u[0]; m_y = m_u[1]; m_z = m_u[2]; \
