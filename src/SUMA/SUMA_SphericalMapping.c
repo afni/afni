@@ -192,7 +192,7 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
    }
    fclose(fid);
    SUMA_free(fname); fname = NULL;
-   
+      
    /* write the FaceNormList to file */
    fname = SUMA_append_string(Froot, "_FaceNormList.1D.dset");
    if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
@@ -385,8 +385,8 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
       face_dot[i] =  r[0]*SO->FaceNormList[i3  ] + 
                      r[1]*SO->FaceNormList[i3+1] +
                      r[2]*SO->FaceNormList[i3+2] ;
-      
-      if (fabs(face_dot[i]) < 0.5) {
+      /*If change the dot product cut off, be sure to change it in the print statements as well.*/
+      if (face_dot[i] < 0.00001) {
          face_bad_ind[face_ibad] = i;
          face_bad_dot[face_ibad] = face_dot[i];
          ++face_ibad;
@@ -412,7 +412,7 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
    fname = SUMA_append_string(Froot, "_BadFaceSets.1D.dset");
    if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
    face_id= fopen(fname, "w");
-   fprintf(face_id,"#Facets with normals at angle with radial direction: abs(dot product < 0.9)\n"
+   fprintf(face_id,"#Facets with normals at angle with radial direction: (dot product < 0.00001)\n"
                "#col 0: Facet Index\n"
                "#col 1: cos(angle)\n"
                ); 
@@ -426,7 +426,7 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
       int face_nrep;
       face_nrep = SUMA_MIN_PAIR(face_ibad, 10); 
       fprintf (SUMA_STDERR,"%d of the %d facets with normals at angle with radial direction\n"
-                           " i.e. abs(dot product < 0.9)\n"
+                           " i.e. (dot product < 0.00001)\n"
                            " See output files for full list\n", face_nrep, face_ibad);
       for (i=0; i < face_nrep; ++i) {
          fprintf (SUMA_STDERR,"cos(ang) @ facet %d: %f\n", face_bad_ind[i], face_bad_dot[i]);
@@ -446,7 +446,9 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
    if (CM) SUMA_Free_ColorMap (CM);
    if (OptScl) SUMA_free(OptScl);
 
-/* CAREFUL, CHANGED RETURN VARIABLE TO REFLECT FACET DEVIATIONS INSTEAD OF BAD NODES.  Before was just "(ibad)" */  
+/* CAREFUL, MIGHT HAVE CHANGED RETURN VARIABLE TO REFLECT FACET DEVIATIONS INSTEAD OF BAD NODES.  
+      Use "(face_ibad)" if want to flag in program when first bad facet occurs.
+      Otherwise, use original return variable.  Before was just "(ibad)" */  
    
    SUMA_RETURN(face_ibad);
 }
