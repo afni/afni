@@ -1,3 +1,6 @@
+#ifndef MATRIX_INCLUDED
+#define MATRIX_INCLUDED
+
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
@@ -361,3 +364,5 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt ) ;  /* 19 Jul 2
 
 double get_matrix_flops(void) ;
 double get_matrix_dotlen(void) ;
+
+#endif

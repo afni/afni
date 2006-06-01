@@ -8019,7 +8019,7 @@ char * SUMA_OpenDX_Read_CruiseVolHead(char *fname, THD_3dim_dataset *dset, int L
    /* 3d what? */
    chunk = 0;
    form[0] = '\0';
-   data_type = SUMA_VarType2TypeCast(dxa->type);
+   data_type = SUMA_CTypeName2VarType(dxa->type);
    switch (data_type) {
       case SUMA_float:
          sprintf(form,"3Df");
@@ -8219,7 +8219,7 @@ SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO)
    }
    
    SUMA_LH("checking...");
-   if (SUMA_VarType2TypeCast (dxp->type) != SUMA_float) {
+   if (SUMA_CTypeName2VarType (dxp->type) != SUMA_float) {
       SUMA_SL_Err("Expected floats for positions"); goto CLEAN_EXIT;
    }
    if (dxp->bad_data) {
@@ -8231,7 +8231,7 @@ SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO)
    if (dxp->shape != 3) {
       SUMA_SL_Err("Expected rank of 3 for positions"); goto CLEAN_EXIT;
    }
-   if (SUMA_VarType2TypeCast (dxc->type) != SUMA_int) {
+   if (SUMA_CTypeName2VarType (dxc->type) != SUMA_int) {
       SUMA_SL_Err("Expected ints for connections"); goto CLEAN_EXIT;
    }
    if (dxc->bad_data) {
@@ -8245,7 +8245,7 @@ SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO)
    }
    /* if dxo */
    if (dxo) {
-      if (SUMA_VarType2TypeCast (dxo->type) != SUMA_float) {
+      if (SUMA_CTypeName2VarType (dxo->type) != SUMA_float) {
          SUMA_SL_Err("Expected floats for origin.\nOrigin ignored"); dxo = NULL;
       }
       if (!dxo->datap || dxo->shape * dxo->items != 3) {

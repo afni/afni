@@ -34,6 +34,185 @@ float SUMA_LatestVersionNumber(void)
 #define NEL_DSET_TYPE(a) (NI_get_attribute((a), "dset_type"))
 #define NEL_DATA_TYPE(a) (NI_get_attribute((a), "data_type"))
  
+/*! ********** Begin Multiplexed Vectors Functions ************* */
+/*!
+   \brief A function to create a multiplexed vector structure
+   \param tp (SUMA_VARTYPE) type of data in array. Only SUMA_double for now.
+   \param N_dims (int) Number of array dimensions
+   \param *dims (int) Size of each dimension
+   \param first_dim_first (byte) 1 = first dimension first (column major, for a matrix) 
+                                 only 1 is accepted at the moment
+   \return mxv (SUMA_MX_VEC *) the structure with enough memory allocated to the pointer
+                               of interest. (mxv->dv for SUMA_double).
+   - Use SUMA_FreeMxVec to free mxv
+   - see macros mxvd* to handle data in mxv
+*/
+SUMA_MX_VEC *SUMA_NewMxVec(SUMA_VARTYPE tp, int N_dims, int *dims, byte first_dim_first)
+{
+   static char FuncName[]={"SUMA_NewMxVec"};
+   SUMA_MX_VEC *mxv=NULL;
+   int n_vals=0, i = 0;
+   
+   SUMA_ENTRY;
+   
+   if (first_dim_first != 1) {
+      SUMA_SL_Err("first_dim_first must be 1 for now");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (N_dims < 1) {
+      SUMA_SL_Err("N_dims < 1");
+      SUMA_RETURN(NULL);
+   } else if (N_dims > 49) {
+      SUMA_SL_Err("N_dims > 49");
+      SUMA_RETURN(NULL);
+   }
+   if (!dims) {
+      SUMA_SL_Err("NULL dims");
+      SUMA_RETURN(NULL);
+   }
+   mxv = (SUMA_MX_VEC *)SUMA_malloc(sizeof(SUMA_MX_VEC));
+   mxv->fdf = 1;
+   mxv->bv = NULL;
+   mxv->sv = NULL;
+   mxv->iv = NULL;
+   mxv->fv = NULL;
+   mxv->dv = NULL;
+   mxv->N_vals = dims[0]; 
+   mxv->dims[0] = dims[0];
+   for (i=1; i<N_dims; ++i) {
+      mxv->N_vals = mxv->N_vals * dims[i]; 
+      mxv->dims[i] = dims[i];
+   }
+   if (mxv->N_vals <= 0) {
+      SUMA_SL_Err("Negative dims");
+      SUMA_free(mxv); SUMA_RETURN(NULL);
+   }
+   
+   mxv->tp = tp;
+   switch (tp) {
+      case SUMA_byte:
+         mxv->v = SUMA_calloc(mxv->N_vals, sizeof(byte));
+         mxv->bv = (byte *)mxv->v; 
+         break;
+      case SUMA_short:
+         mxv->v = SUMA_calloc(mxv->N_vals, sizeof(short));
+         mxv->sv = (short *)mxv->v;         
+         break;
+      case SUMA_int:
+         mxv->v = SUMA_calloc(mxv->N_vals, sizeof(int));
+         mxv->iv = (int *)mxv->v;         
+         break;
+      case SUMA_float:
+         mxv->v = SUMA_calloc(mxv->N_vals, sizeof(float));
+         mxv->fv = (float *)mxv->v;         
+         break;
+      case SUMA_double:
+         mxv->v = SUMA_calloc(mxv->N_vals, sizeof(double));
+         mxv->dv = (double *)mxv->v;         
+         break;
+      default:
+         SUMA_SL_Err("Bad type");
+         SUMA_free(mxv); SUMA_RETURN(NULL);
+   }
+   
+   if (!mxv->v) {
+      SUMA_SL_Crit("Failed to allocate");
+      SUMA_free(mxv); SUMA_RETURN(NULL);
+   }
+   
+   /* mutlipliers for first_dim_first */
+   mxv->fdfm[0] = mxv->dims[0];
+   for (i=1; i<N_dims-1; ++i) {
+      mxv->fdfm[i] = mxv->fdfm[i-1]*mxv->dims[i];
+   }
+   
+   SUMA_RETURN(mxv);
+} 
+
+
+SUMA_MX_VEC *SUMA_FreeMxVec(SUMA_MX_VEC *mxv)
+{
+   static char FuncName[]={"SUMA_FreeMxVec"};
+   
+   SUMA_ENTRY;
+   
+   if (mxv) {
+      if (mxv->v) SUMA_free(mxv->v);
+      SUMA_free(mxv);
+   }
+   
+   SUMA_RETURN(NULL);
+}
+
+void SUMA_ShowMxVec (SUMA_MX_VEC *mxv, int detail, FILE *out)
+{
+   static char FuncName[]={"SUMA_ShowMxVec"};
+   char *si = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!out) out = SUMA_STDERR;
+   
+   si = SUMA_MxVec_Info(mxv, detail);
+   
+   fprintf(out,"%s\n", si);
+   
+   if (si) SUMA_free(si); si = NULL;
+   
+   SUMA_RETURNe;
+   
+}
+/*!
+   \brief Function to return info on SUMA_DSET
+   
+   - You must free the returned string on your own
+   \sa SUMA_ShowDset
+*/
+char *SUMA_MxVec_Info (SUMA_MX_VEC *mxv, int detail)
+{
+   static char FuncName[]={"SUMA_MxVec_Info"};
+   int i, imx = 5;
+   SUMA_COL_TYPE ctp;
+   char *s=NULL, stmp[200];
+   SUMA_STRING *SS=NULL;
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend(NULL, NULL);
+   
+   if (mxv) {
+      SS = SUMA_StringAppend_va(SS, "mxv: %p\n"
+                                    "data type: %d (%s)\n"
+                                    "fdf: %d\n"
+                                    "N_dims: %d\n"
+                                    , mxv, mxv->tp, SUMA_VarType2CTypeName(mxv->tp), mxv->fdf, mxv->N_dims);
+      SS = SUMA_StringAppend_va(SS, "dims: ");
+      for (i=0; i<mxv->N_dims; ++i) {
+         SS = SUMA_StringAppend_va(SS, "%d ", mxv->dims[i]);
+      }
+      SS = SUMA_StringAppend_va(SS, "\n");
+      
+      if (mxv->v) {
+         if (detail < 0) {
+            imx = mxv->N_vals;
+         } else {
+            imx = 5*detail;
+         }
+         s = SUMA_ShowMeSome( mxv->v, 
+                              mxv->tp,
+                              mxv->N_vals, imx);
+         SS = SUMA_StringAppend_va(SS, "         %s\n", s); SUMA_free(s); s = NULL;
+      } else SS = SUMA_StringAppend_va(SS, "         NULL\n");
+   } else {
+      SS = SUMA_StringAppend(SS, "NULL mxv.");
+   }
+   
+   SUMA_SS2S(SS, s);
+   
+   SUMA_RETURN(s);
+}
+
 /*!
    Creates a NI group to store surface data 
    N_el is the number of data elements stored in each column
@@ -1227,9 +1406,9 @@ int SUMA_FillNelCol (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
    SUMA_RETURN(1);
 }
 
-SUMA_VARTYPE SUMA_VarType2TypeCast (char *vt)
+SUMA_VARTYPE SUMA_CTypeName2VarType (char *vt)
 {
-   static char FuncName[]={"SUMA_VarType2TypeCast"};
+   static char FuncName[]={"SUMA_CTypeName2VarType"};
    
    SUMA_ENTRY;
    
@@ -1242,6 +1421,34 @@ SUMA_VARTYPE SUMA_VarType2TypeCast (char *vt)
    if (strstr(vt,"short")) SUMA_RETURN(SUMA_short);
    
    SUMA_RETURN(SUMA_notypeset);
+}
+
+const char *SUMA_VarType2CTypeName (SUMA_VARTYPE vt)
+{
+   static char FuncName[]={"SUMA_VarType2CTypeName"};
+   
+   SUMA_ENTRY;
+   
+   switch (vt) {
+      case SUMA_int:
+         SUMA_RETURN("int");
+         break;
+      case SUMA_float:
+         SUMA_RETURN("float");
+         break;
+      case SUMA_byte:
+         SUMA_RETURN("byte");
+         break;
+      case SUMA_double:
+         SUMA_RETURN("double");
+         break;
+      case SUMA_short:
+         SUMA_RETURN("short");
+         break;
+      default:
+         SUMA_RETURN("dunno");
+   }
+   
 }
 
 int SUMA_SizeOf(SUMA_VARTYPE vt)
@@ -3677,7 +3884,7 @@ SUMA_Boolean SUMA_OpenDx_Object_Data(char *op, int nchar, SUMA_OPEN_DX_STRUCT *d
             j=0; while (op[j] && j<500) { fprintf(SUMA_STDERR,"%c", op[j]); ++j; }
             fprintf(SUMA_STDERR,"\n");
          }  
-         dx->datap = SUMA_strtol_vec(op, dx->items*SUMA_NCOL_OPENDX(dx), &nread, SUMA_VarType2TypeCast (dx->type));
+         dx->datap = SUMA_strtol_vec(op, dx->items*SUMA_NCOL_OPENDX(dx), &nread, SUMA_CTypeName2VarType (dx->type));
          if (LocalHead) {
             fprintf(SUMA_STDERR,"%s: Read %d/%d values\n", FuncName, nread, dx->items*SUMA_NCOL_OPENDX(dx));
          }
@@ -4251,7 +4458,7 @@ SUMA_OPEN_DX_STRUCT *SUMA_Free_OpenDX_Struct(SUMA_OPEN_DX_STRUCT *dx)
    if (dx->data) SUMA_free(dx->data); dx->data = NULL;
    if (dx->data_off) SUMA_free(dx->data_off); dx->data_off = NULL;
    if (dx->datap) {
-      if ( SUMA_OK_OPENDX_DATA_TYPE(SUMA_VarType2TypeCast (dx->type)) ) {
+      if ( SUMA_OK_OPENDX_DATA_TYPE(SUMA_CTypeName2VarType (dx->type)) ) {
          SUMA_free(dx->datap); dx->datap = NULL;
       } else {
          SUMA_SL_Warn("Do not know how to free datap.\nYou now possibly have a leak on your hands.");
@@ -4324,7 +4531,7 @@ void SUMA_Show_OpenDX_Struct(SUMA_OPEN_DX_STRUCT **dxv, int N_dxv, FILE *out)
          else SS = SUMA_StringAppend_va(SS, "data_off: NULL\n"); 
          SS = SUMA_StringAppend_va(SS, "data_format: %d \n", dx->data_format);
          if (dx->datap) {
-            s = SUMA_ShowMeSome(dx->datap, SUMA_VarType2TypeCast(dx->type), dx->items * SUMA_NCOL_OPENDX(dx), 5);
+            s = SUMA_ShowMeSome(dx->datap, SUMA_CTypeName2VarType(dx->type), dx->items * SUMA_NCOL_OPENDX(dx), 5);
             SS = SUMA_StringAppend_va(SS, "\t%s\n", s); SUMA_free(s); s = NULL;
          }
          if (dx->n_comp) {

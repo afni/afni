@@ -69,6 +69,34 @@ typedef struct {
    double *v;
 } SUMA_DVEC;
 
+typedef struct {
+   SUMA_VARTYPE tp;
+   int N_dims;
+   int N_vals;
+   int dims[50];
+   int fdfm[50];
+   void *v;
+   byte *bv;
+   short *sv;
+   int *iv;
+   float *fv;
+   double *dv;
+   byte fdf;
+} SUMA_MX_VEC;
+
+/*! macros to access pointers to elements in type double multiplexed vectors with mxv->fdf = 1;
+  \sa SUMA_NewMxVec*/ 
+#define mxvdp4(mxv,i,j,k,l) ( mxv->dv + ( (int)(i) + (int)(j) * mxv->fdfm[0] + (int)(k) * mxv->fdfm[1] + (int)(l) * mxv->fdfm[2] ) )
+#define mxvdp3(mxv,i,j,k)   ( mxv->dv + ( (int)(i) + (int)(j) * mxv->fdfm[0] + (int)(k) * mxv->fdfm[1]   ) )
+#define mxvdp2(mxv,i,j  )   ( mxv->dv + ( (int)(i) + (int)(j) * mxv->fdfm[0]   ) )
+#define mxvdp1(mxv,i  )     ( mxv->dv + ( (int)(i)   ) )
+/*! macros to access elements in type double multiplexed vectors with mxv->fdf = 1;
+  \sa SUMA_NewMxVec*/ 
+#define mxvd4(mxv,i,j,k,l) ( mxv->dv[( (int)(i) + (int)(j) * mxv->fdfm[0] + (int)(k) * mxv->fdfm[1] + (int)(l) * mxv->fdfm[2] )] )
+#define mxvd3(mxv,i,j,k)   ( mxv->dv[( (int)(i) + (int)(j) * mxv->fdfm[0] + (int)(k) * mxv->fdfm[1]   )] )
+#define mxvd2(mxv,i,j  )   ( mxv->dv[( (int)(i) + (int)(j) * mxv->fdfm[0]   )] )
+#define mxvd1(mxv,i  )     ( mxv->dv[( (int)(i)   )] )
+
 /*! filename and path */
 typedef struct {
    char *Path;
@@ -830,6 +858,11 @@ SUMA_OPEN_DX_STRUCT *SUMA_Free_OpenDX_Struct(SUMA_OPEN_DX_STRUCT *dx);
 SUMA_OPEN_DX_STRUCT *SUMA_Alloc_OpenDX_Struct(void);
 void * SUMA_OpenDx_Object_Header_Field(char *op, int nchar, const char *attr, char **op_end);
 SUMA_Boolean SUMA_OpenDx_Object_Data(char *op, int nchar, SUMA_OPEN_DX_STRUCT *dx);
+SUMA_MX_VEC *SUMA_FreeMxVec(SUMA_MX_VEC *mxv);
+SUMA_MX_VEC *SUMA_NewMxVec(SUMA_VARTYPE tp, int N_dims, int *dims, byte first_dim_first);
+char *SUMA_MxVec_Info (SUMA_MX_VEC *mxv, int detail);
+void SUMA_ShowMxVec (SUMA_MX_VEC *mxv, int detail, FILE *out);
+
 
 /*********************** BEGIN Miscellaneous support functions **************************** */
 #ifdef SUMA_COMPILED
@@ -898,7 +931,8 @@ char *SUMA_Get_Sub_String(char *cs, char *sep, int ii);
 int SUMA_AddColAtt_CompString(NI_element *nel, int col, char *lbl, char *sep);
 NI_str_array * SUMA_NI_decode_string_list( char *ss , char *sep );
 char  * SUMA_NI_get_ith_string( char *ss , char *sep, int i );
-SUMA_VARTYPE SUMA_VarType2TypeCast (char *vt);
+SUMA_VARTYPE SUMA_CTypeName2VarType (char *vt);
+const char *SUMA_VarType2CTypeName (SUMA_VARTYPE vt);
 SUMA_COL_TYPE SUMA_VarType2ColType (char *vt);
 int SUMA_SizeOf(SUMA_VARTYPE vt);
 void *SUMA_BinarySuck(char *fname, SUMA_VARTYPE data_type, int endian, int start, int end, int *nvals_read);
