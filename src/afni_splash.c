@@ -141,7 +141,7 @@ if(PRINT_TRACING){
  sprintf(str,"num_face=%d  num_splash=%d",num_face,num_splash); STATUS(str);
 }
         if( num_splash > 0 ){
-          char *targ = (lrand48()&16 != 0) ? "bobkarl" : "sscc" ;
+          char *targ = (lrand48()%3 == 0) ? "bobkarl" : "sscc2006" ;
           for( np=0 ; np < num_splash ; np++ )
             if( strstr(fname_splash[np],targ) != NULL ) break ;
           if( np < num_splash ) first_splash = np ;
