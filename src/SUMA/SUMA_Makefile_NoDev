@@ -358,9 +358,17 @@ ROIgrow: SUMA_ROIgrow.c
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
-toy_circle: SUMA_toy_circle.c
+toy_circle: SUMA_toy_circle.c SUMA_SurfWarp.o
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_toy_circle.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_toy_circle.c \
+		${SUMA_INPATH} ${SUMA_LINK_PATH} SUMA_SurfWarp.o	\
+		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
+		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+
+path_optimize: SUMA_path_optimize.c SUMA_SurfWarp.o
+	$(RM) $@
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_path_optimize.c \
+		${SUMA_INPATH} ${SUMA_LINK_PATH} SUMA_SurfWarp.o	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
