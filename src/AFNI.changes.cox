@@ -5863,3 +5863,7 @@
 
 24 Apr 2006
  * Add -sum option to 3dTstat.c.
+
+01 Jun 2006
+ * New AFNI splash photograph.
+ * imseq.c now doesn't append ".jpg" if Save filename already ends in it.
