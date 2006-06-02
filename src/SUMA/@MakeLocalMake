@@ -48,7 +48,18 @@ endif
 echo "INSTALLDIR_SUMA = INSTALLDIR" >> $mo
 echo "include SUMA_Makefile_NoDev" >> $mo
 
-echo "Local Makefile $mo created."
+if ( -f Makefile) then
+   set mold = Makefile.back."`date +%Y`.`date +%m`.`date +%d`"
+   mv Makefile $mold
+   echo "Moved old Makefile to $mold"
+endif
+
+if ( -f Makefile) then
+   echo "Could not move old makefile, new Makefile is called $mo"
+else
+   mv $mo Makefile
+   echo "Local Makefile created."
+endif
 
 goto END
 
