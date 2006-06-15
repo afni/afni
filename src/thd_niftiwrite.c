@@ -7,6 +7,8 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
 
 void nifti_set_afni_extension(THD_3dim_dataset *dset,nifti_image *nim) ;
 
+static int get_slice_timing_pattern( float * times, int len, float * delta );
+
 /*******************************************************************/
 /*!  Write an AFNI dataset as a NIfTI file.
      - dset  = AFNI dataset
@@ -104,16 +106,14 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
   int nparam, type0 , ii , jj, val;
   int nif_x_axnum, nif_y_axnum, nif_z_axnum ;
   int slast, sfirst ;
-  int pattern_unknown = 0 ;
+  int pattern, tlen ;
   nifti_image *nim ;
   char axcode[3], axsign[3] ;
   float axstep[3] , axstart[3] ;
   int   axnum[3] ;
   float fac0 ;
   float dumqx, dumqy, dumqz, dumdx, dumdy, dumdz ;
-  float pixdimfac[4] ;
-  float odd_del, even_del, tmp_float ;
-  int even_parity_sign = 0 ;
+  float *tlist;
 
 ENTRY("populate_nifti_image") ;
   /*-- create nifti_image structure --*/
@@ -403,136 +403,62 @@ ENTRY("populate_nifti_image") ;
 #define MYEPSILON 0.00001
 #define MYFPEQ(a, b) (fabs((a) - (b)) < MYEPSILON)
 
+      tlist = dset->taxis->toff_sl;
       for (ii = 0 ; ii < nim->nz ; ii++ ) {
-        if (!MYFPEQ(dset->taxis->toff_sl[ii],0.0)) break ;
+        if (!MYFPEQ(tlist[ii],0.0)) break ;
       }
       sfirst = ii ;
       for (ii = nim->nz - 1 ; ii >= sfirst ; ii-- ) {
-        if (!MYFPEQ(dset->taxis->toff_sl[ii],0.0)) break ;
+        if (!MYFPEQ(tlist[ii],0.0)) break ;
       }
       slast = ii ;
 
-      if (slast == sfirst) {
-        /* only zero or one non-zero elements  */
-        pattern_unknown = 1 ;
-      } else { /* if there is more than one non-zero slice time */
+      /* pattern check re-written to deal with including zeros */
+      /* on either end                     14 Jun 2006 [rickr] */
 
-      /*-- Calc deltas between offsets in above range.     */
-      /*-- Special case for only two elements!!!!!!!!!!!!!!*/
+      pattern = NIFTI_SLICE_UNKNOWN;
 
-        if ( slast - sfirst == 1 ) {
-          if (dset->taxis->toff_sl[slast] > dset->taxis->toff_sl[sfirst] ) {
-            nim->slice_code = NIFTI_SLICE_SEQ_INC ;
-          } else {
-            nim->slice_code = NIFTI_SLICE_SEQ_DEC ;
-          }
-        } else { /* if there are more than two slice timing offsets */
+      /* do we have all zeros? */
+      if( sfirst == slast && MYFPEQ(tlist[sfirst],0.0) ) {
+         nim->slice_duration = 0.0;
+      } else { /* see if there is a known pattern in the list */
+         tlen = slast-sfirst+2;
 
-      /*-- While storing in two variables, delta_even and  *
-       *-- delta_odd, check to see if all evens are equal  *
-       *-- and all odds are equal. Fail if not.            */
+         /* try including leading adjacent zero in the pattern, first */
+         if( sfirst > 0 ) {
+            pattern = get_slice_timing_pattern(tlist+sfirst-1, tlen,
+                                            &nim->slice_duration);
+            if( pattern != NIFTI_SLICE_UNKNOWN ) sfirst--;
+         }
 
-          odd_del = dset->taxis->toff_sl[sfirst +  1] -
-                            dset->taxis->toff_sl[sfirst] ;
-          even_del = dset->taxis->toff_sl[sfirst +  2] -
-                       dset->taxis->toff_sl[sfirst +  1];
-          for (ii = sfirst + 2 ; ii < slast - 1 ; ii += 2 ) {
-            if (MYFPEQ(odd_del, dset->taxis->toff_sl[ii + 1] - dset->taxis->toff_sl[ii])) {
-              if (MYFPEQ(even_del, dset->taxis->toff_sl[ii +  2] - dset->taxis->toff_sl[ii +  1])) {
-                continue;
-              }
-            }
-            pattern_unknown = 1 ;
-            break ;
-          }
+         /* try including trailing adjacent zero in the pattern, next */
+         if( pattern == NIFTI_SLICE_UNKNOWN && slast < nim->nz-1 ) {
+            pattern = get_slice_timing_pattern(tlist+sfirst, tlen,
+                                               &nim->slice_duration);
+            if( pattern != NIFTI_SLICE_UNKNOWN ) slast++;
+         }
 
-          if (ii == slast - 1 ) {
-            if (!MYFPEQ(odd_del, dset->taxis->toff_sl[ii + 1] - dset->taxis->toff_sl[ii])) {
-              pattern_unknown = 1 ;
-            }
-          } else {
-            tmp_float = (dset->taxis->toff_sl[ii] - dset->taxis->toff_sl[ii - 1]) / odd_del ;
-            even_parity_sign = tmp_float / fabs (tmp_float) ;
-          }
+         /* if no pattern yet, try list without zeros */
+         if( pattern == NIFTI_SLICE_UNKNOWN )
+            pattern = get_slice_timing_pattern(tlist+sfirst, tlen-1,
+                                               &nim->slice_duration);
 
-      /*-- If evens equal odds, it's NIFTI_SLICE_SEQ_INC (if *
-       *-- positive) or NIFTI_SLICE_SEQ_DEC (if negative)    */
-          if (!pattern_unknown ) {
-            if (MYFPEQ(odd_del, even_del)) {
-              if (odd_del > 0) nim->slice_code = NIFTI_SLICE_SEQ_INC ;
-                else nim->slice_code = NIFTI_SLICE_SEQ_INC ;
-            } else {
+         if( pattern == NIFTI_SLICE_UNKNOWN ) {
+            nim->slice_code = pattern ;
+            nim->slice_start = 0 ;
+            nim->slice_end = 0 ;
+            nim->slice_duration = 0.0 ;
+         } else {
+            nim->slice_start = sfirst ;
+            nim->slice_end = slast ;
+            nim->slice_code = pattern;
+         }
 
-      /*-- Else if they ARE of opposite sign, then the           *
-       *-- order is NIFTI_SLICE_ALT_INC if the sum of delta_odd  *
-       *-- and delta_even is positive, and NIFTI_SLICE_ALT_DEC   *
-       *-- if negative.                                          */
-
-              if ((odd_del * even_del < 0 ) && (even_parity_sign != -1)) {
-                if (odd_del + even_del > 0 ) {
-                  nim->slice_code = NIFTI_SLICE_ALT_INC ;
-                } else {
-                  if (odd_del + even_del < 0 ) {
-                    nim->slice_code = NIFTI_SLICE_ALT_DEC ;
-                  } else {
-                    pattern_unknown = 1 ;
-                  }
-                }
-              } else {
-                pattern_unknown = 1 ;
-              }
-            }
-          }
-        } /* if there are more than two slice timing offsets */
-      } /* if there is more than one non-zero slice time */
-    } else { /* time offset not exists */
-      pattern_unknown = 1 ;
-    }
-
-  /*-- Now store slice_start and slice_end from the position *
-   *-- of the first and last non-zero elements above.  IFF   *
-   *-- we have removed at least one zero from the beginning  *
-   *-- of an INC order or the end of a DEC order, then       *
-   *-- shift slice_start or slice end to add exactly one zero*
-   *-- back to the appropriate end.                          */
-  /*-- If we've done all of this, we might as well populate  *
-   *-- slice_duration as well.  It is the absolute value of  *
-   *-- the delta for the sequential cases, or the sum of the *
-   *-- two deltas for the alternating cases.                 */
-
-    if (!pattern_unknown ) {
-      switch (nim->slice_code) {
-        case NIFTI_SLICE_SEQ_INC:
-          nim->slice_duration = odd_del ;
-          if (sfirst > 0) sfirst-- ;
-          break ;
-        case NIFTI_SLICE_ALT_INC:
-          nim->slice_duration = fabs (odd_del + even_del ) ;
-          if (sfirst > 0) sfirst-- ;
-          break ;
-        case NIFTI_SLICE_SEQ_DEC:
-          nim->slice_duration = fabs (odd_del) ;
-          if (slast < nim->nz - 1) slast++ ;
-          break ;
-        case NIFTI_SLICE_ALT_DEC:
-          nim->slice_duration = fabs (odd_del + even_del ) ;
-          if (slast < nim->nz - 1) slast++ ;
-          break ;
-        default: /* sanity check */
-          fprintf(stderr,
-          "++ ERROR: CANNOT WRITE NIfTI FILE; LOGIC BORKED IN SLICE TIMING\n") ;
-          fprintf(stderr, "RICH HAMMETT SHOULD FIX THIS REAL SOON NOW\n") ;
-          RETURN(NULL);
+         if( options.debug_level > 1)
+            fprintf(stderr,"+d timing pattern '%s', slice %d to %d, stime %f\n",
+               nifti_slice_string(pattern), sfirst, slast, nim->slice_duration);
       }
-
-      nim->slice_start = sfirst ;
-      nim->slice_end = slast ;
-
-    } else {
-      nim->slice_code = NIFTI_SLICE_UNKNOWN ;
-      nim->slice_start = 0 ;
-      nim->slice_end = 0 ;
-    } /* end the if !pattern_unknown final assignment section */
+    }
 
     nim->time_units = NIFTI_UNITS_SEC ;
 
@@ -601,7 +527,6 @@ static char *badlist[] = {
 
 void nifti_set_afni_extension( THD_3dim_dataset *dset , nifti_image *nim )
 {
-   THD_datablock *blk ;
    NI_group      *ngr ;
    NI_element    *nel ;
    NI_stream      ns  ;
@@ -662,4 +587,116 @@ void nifti_set_afni_extension( THD_3dim_dataset *dset , nifti_image *nim )
    NI_stream_close(ns) ;   /* frees the string buffer, too */
    NI_free_element(ngr) ;  /* done with this trashola */
    return ;
+}
+
+
+/*! given a list of floats, detect any slice timing pattern
+ *                                                14 Jun 2006 [rickr]
+ *
+ *    - if a pattern is found and delta is set, return the time delta
+ *    - return one of:
+ *        NIFTI_SLICE_UNKNOWN,
+ *        NIFTI_SLICE_SEQ_INC,  NIFTI_SLICE_SEQ_DEC,
+ *        NIFTI_SLICE_ALT_INC,  NIFTI_SLICE_ALT_DEC,
+ *        NIFTI_SLICE_ALT_INC2, NIFTI_SLICE_ALT_DEC2,
+ */
+static int get_slice_timing_pattern( float * times, int len, float * delta )
+{
+   float * flist, diff;
+   int   * ilist;
+   int     c, index, pattern;
+
+ENTRY("get_slice_timing_pattern");
+
+   if( delta ) *delta = 0.0;  /* init, in case of early return */
+   if( ! times || len < 2 ) RETURN(NIFTI_SLICE_UNKNOWN);
+
+   /* if the length is very short, deal with it separately */
+   if( len == 2 ){
+      if( delta ) *delta = fabs(times[1]-times[0]);
+      if( times[1] > times[0] ) RETURN(NIFTI_SLICE_SEQ_INC);
+      else                      RETURN(NIFTI_SLICE_SEQ_DEC);
+   }
+
+   /*** sort the list, and look for a linear pattern ***/
+
+   /* duplicate list */
+   flist = (float *)malloc(len * sizeof(float));
+   ilist = (int   *)malloc(len * sizeof(int));
+   if(!flist || !ilist) {   /* yeah, lazy... */
+      ERROR_message(" GSTP: cannot dupe timing list\n");
+      RETURN(NIFTI_SLICE_UNKNOWN);
+   }
+   memcpy(flist, times, len*sizeof(float));
+   for(c = 0; c < len; c++) ilist[c] = c;  /* init ilist with current indices */
+
+   /* sort flist, with ilist returning original indices */
+   qsort_floatint(len, flist, ilist);
+
+   /* and check for a fixed difference */
+   diff = flist[1] - flist[0];
+   pattern = 1;
+   for( c = 1; c < len-1; c++ )
+     if( !MYFPEQ(diff, (flist[c+1]-flist[c])) ) { pattern = 0; break; }
+
+   /* if no pattern, just return failure */
+   if( !pattern ) {
+      free(flist);  free(ilist);  RETURN(NIFTI_SLICE_UNKNOWN);
+   }
+
+   /* we have linear offsets, now see if the slices match a known pattern */
+   /* repeatedly: init to a pattern, and see if it fails */
+   
+   /* SEQ_INC  (0,1,2,3...,l-1) */
+   pattern = NIFTI_SLICE_SEQ_INC;  index = 0;
+   for( c = 0; c < len; c++ ) {
+      if( ilist[c] != index ) { pattern = NIFTI_SLICE_UNKNOWN;  break; }
+      index++;
+   }
+
+   if( pattern == NIFTI_SLICE_UNKNOWN ) { /* (l-1,l-2,...2,1,0) */
+       pattern = NIFTI_SLICE_SEQ_DEC;  index = len-1;
+       for( c = 0; c < len; c++ ) {
+          if( ilist[c] != index ) { pattern = NIFTI_SLICE_UNKNOWN;  break; }
+          index--;
+       }
+   }
+
+   if( pattern == NIFTI_SLICE_UNKNOWN ) { /* (0,2,4,6,...,1,3,5,...) */
+       pattern = NIFTI_SLICE_ALT_INC;  index = 0;
+       for( c = 0; c < len; c++ ) {
+          if( ilist[c] != index ) { pattern = NIFTI_SLICE_UNKNOWN;  break; }
+          index += 2;  if( index >= len ) index = 1;  /* so no parity issue */
+       }
+   }
+
+   if( pattern == NIFTI_SLICE_UNKNOWN ) { /* (l-1,l-3,...1/0,l-2,l-4,...,0/1) */
+       pattern = NIFTI_SLICE_ALT_DEC;  index = len-1;
+       for( c = 0; c < len; c++ ) {
+          if( ilist[c] != index ) { pattern = NIFTI_SLICE_UNKNOWN;  break; }
+          index -= 2;  if( index < 0 ) index = len-2;
+       }
+   }
+
+   if( pattern == NIFTI_SLICE_UNKNOWN ) { /* (1,3,5,...,0,2,4...) */
+       pattern = NIFTI_SLICE_ALT_INC2;  index = 1;
+       for( c = 0; c < len; c++ ) {
+          if( ilist[c] != index ) { pattern = NIFTI_SLICE_UNKNOWN;  break; }
+          index += 2;  if( index >= len ) index = 0;
+       }
+   }
+
+   if( pattern == NIFTI_SLICE_UNKNOWN ) { /* (l-2,l-4,...4,2,0,l-1,...,5,3,1) */
+       pattern = NIFTI_SLICE_ALT_DEC2;  index = len-2;
+       for( c = 0; c < len; c++ ) {
+          if( ilist[c] != index ) { pattern = NIFTI_SLICE_UNKNOWN;  break; }
+          index -= 2;  if( index < 0 ) index = len-1;
+       }
+   }
+
+   if( delta && pattern != NIFTI_SLICE_UNKNOWN ) *delta = diff;
+
+   /** done, whatever the case may be **/
+   free(flist);  free(ilist);
+   RETURN(pattern);
 }
