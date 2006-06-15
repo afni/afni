@@ -1529,3 +1529,9 @@
   * modified 3dclust.c: get a new ID for an output 3dclust dataset
   * modified Imon.h, Dimon.c: added -save_file_list option
 
+15 Jun 2006:
+  * modified thd_niftiwrite.c:
+      - in populate_nifti_image(), check for including any adjacent zero offset
+        in the slice timing pattern
+      - added get_slice_timing_pattern() to test for NIFTI_SLICE_* patterns
+
