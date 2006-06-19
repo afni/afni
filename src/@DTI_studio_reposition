@@ -32,7 +32,7 @@ endif
 
 #Create AFNI dataset from .hdr
 rm -f ${ana_pref}_tmp+????.????
-echo "++ Chaging format "
+echo "++ Changing format "
 3dcopy $ana ${ana_pref}_tmp
 if ( -f ${ana_pref}_tmp+orig.HEAD) then 
    set ana_view = "+orig"
@@ -76,20 +76,22 @@ echo "Verify results in AFNI"
 goto END
 
 HELP:
-   echo "`basename $0` <DTI_hdr_volume> <AFNI_reference_volume>"
-   echo "This script reslices and repositions an DTI_studio ANALYZE"
-   echo "volume to match the original volume used to input data"
-   echo "into DTI studio"
+   echo "`basename $0` <DTI_Studio_volume> <AFNI_reference_volume>"
+   echo "This script reslices and repositions a DTI Studio Analyze format"
+   echo "volume to match an AFNI volume used as input data for DTI Studio."
    echo "Check realignment with AFNI to be sure all went well."
+   echo ""
    echo "Example:"
-   echo "FA35.hdr is a (renamed) volume from DTI_studio that contains"
-   echo "   fractional anisotropy"
-   echo "sample_dti_vol+orig is an AFNI volume of one DWI in the first"
-   echo "   gradient direction (54 slices). sample_dti_vol+orig was "
-   echo "   created using: "
-   echo "   to3d -prefix sample_dti_vol DTIepi2new-000[0-4]?.dcm DTIepi2new-0005[0-4].dcm "
-   echo "To create a version of FA35 that is in alignment with sample_dti_vol do:"
-   echo "`basename $0` FA35.hdr sample_dti_vol+orig"
+   echo "Fibers.hdr is an Analyze volume from DTI Studio that contains"
+   echo "   fiber tract volume data. The Analyze format data will have two files -"
+   echo "   Fibers.hdr with the header data and Fibers.img with the data"
+   echo "   DTI Studio allows saving the fibers as volumes in the Fiber panel,"
+   echo "   disk icon in the lower right"
+   echo "FA+orig is an AFNI volume to which to match the Analyze volume"
+   echo "To create an AFNI brick version of Fibers that is in alignment"
+   echo " with FA+orig (output is Fibers+orig):"
+   echo ""
+   echo "`basename $0` Fibers.hdr FA+orig"
    echo ""
    goto END
    
