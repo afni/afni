@@ -43,15 +43,17 @@ int main( int argc , char * argv[] )
    char fiberheaderstring[32];
    int totalpts=0;
    int npts, nfibers;
-   int statcode;
-
+   int statcode, ii;
+   int swapdata = 0;
+   
    /*----- Read command line -----*/
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: DTIStudioFibertoSegments [options] dataset\n"
              "Convert a DTIStudio Fiber file to a SUMA segment file\n"
              "Options:\n"
              "  -output / -prefix = name of the output file (not an AFNI dataset prefix)\n"
-             "    the default output name will be rawxyzseg.dat\n\n"
+             "    the default output name will be rawxyzseg.dat\n"
+	     "  -swap - swap bytes in data\\n\n"
 	     );
       exit(0) ;
    }
@@ -63,31 +65,31 @@ int main( int argc , char * argv[] )
       {
        if (++nopt >= argc)
 	 {
-	  fprintf (stderr, "*** Error - output / prefix needs an argument!\n");
-	  exit (1);
+	  ERROR_exit("output / prefix needs an argument!\n");
 	 }
        MCW_strncpy (outfname, argv[nopt], THD_MAX_PREFIX);	/* change name from default prefix */
        if (!THD_filename_ok (outfname))
 	 {
-	  fprintf (stderr, "*** Error - %s is not a valid output name!\n", outfname);
-	  exit (1);
+	  ERROR_exit("%s is not a valid output name!\n", outfname);
 	 }
        if (THD_is_file(outfname))
         {
-	  fprintf (stderr, "*** Error - %s already exists!\n", outfname);
-	  exit (1);
+	  ERROR_exit("%s already exists!\n", outfname);
 	 }
        nopt++; continue;
       }
 
-     fprintf(stderr, "*** Error - unknown option %s\n", argv[nopt]);
-     exit(1);
+     if(strcmp(argv[nopt],"-swap")==0) {
+         swapdata = 1;
+	 nopt++; continue;
+     }
+     
+     ERROR_exit("unknown option %s\n", argv[nopt]);
    }
  
    fout = fopen (outfname, "w") ;
    if( fout == NULL ){
-     fprintf (stderr, "*** Error - can not create %s for some reason!\n", outfname);
-     exit (1);
+     ERROR_exit("can not create %s for some reason!\n", outfname);
    }
 
 
@@ -95,18 +97,15 @@ int main( int argc , char * argv[] )
    MCW_strncpy (infname, argv[nopt], THD_MAX_PREFIX);	/* get name of fiber file */
    if (!THD_filename_ok (infname))
       {
-       fprintf (stderr, "*** Error - %s is not a valid input name!\n", infname);
-       exit (1);
+       ERROR_exit("%s is not a valid input name!\n", infname);
       }
    if (!THD_is_file(infname))
       {
-       fprintf (stderr, "*** Error - %s does not exist!\n", infname);
-       exit (1);
+       ERROR_exit("%s does not exist!\n", infname);
       }
    fin = fopen (infname, "r") ;
    if( fin == NULL ){
-      fprintf (stderr, "*** Error - can not open %s for some reason!\n", infname);
-      exit (1);
+      ERROR_exit("can not open %s for some reason!\n", infname);
    }
  
 
@@ -115,30 +114,36 @@ int main( int argc , char * argv[] )
 
    statcode = fread(fiberheaderstring, 8, 1, fin);
    if(!strcmp(fiberheaderstring,"FiberDat")) {
-     fprintf(stderr, "*** Error - file does not have correct header format\n");
      fclose(fin);
      fclose(fout);
-     exit(1);
+     ERROR_exit("file does not have correct header format\n header does not start with FiberDat");
    }
 
    statcode = fread(&nfibers, sizeof(int), 1, fin);
+
+   if((statcode>=1) && (swapdata)) {
+       swap_fourbytes(1, &nfibers ) ;
+   }
+     
    if((statcode<1)||(nfibers<1)) {
-     fprintf(stderr, "*** Error - file does not have correct header format\n");
      fclose(fin);
      fclose(fout);
-     exit(1);
+     ERROR_exit("file does not have correct header format\nNumber of fibers is %u\n", nfibers);
    }
 
    fseek(fin, 128, SEEK_SET);    /* go to start of data - 128 byte header */
-
-   fprintf(stderr, "Number of fibers = %d \n", nfibers);
+   PRINT_VERSION("DTIStudioFibertoSegments"); AUTHOR("Daniel Glen");
+   INFO_message("Number of fibers = %d", nfibers);
    for(i=0;i<nfibers;i++) {                    /* get all the fibers */
       statcode = fread(&npts,sizeof(int),1, fin);
+      if((statcode>=1) && (swapdata)) {
+        swap_fourbytes(1,&npts) ;
+      }   
+
       if((statcode<1)||(npts<1)) {
-         fprintf(stderr, "*** can not read fiber info.\n");
          fclose(fin);
          fclose(fout);
-         exit(1);
+         ERROR_exit("can not read fiber info for segment number %d\n", i);
       }
 
       totalpts += npts;
@@ -147,11 +152,13 @@ int main( int argc , char * argv[] )
       for(j=0;j<npts;j++) {                     /* get each point in each fiber */
 	statcode = fread(fxyz, sizeof(float),3, fin);      /* xyz floating point triplet */
         if(statcode<3) {
-           fprintf(stderr, "*** can not read fiber data.\n");
            fclose(fin);
            fclose(fout);
-           exit(1);
+           ERROR_exit("Can not read fiber data");
         }
+        if(swapdata) {
+           swap_fourbytes(3,fxyz) ;
+	}
 
         if(j!=0) {     /* after first point put space and write x,y,z, then repeat x,y,z on next line */
 	  statcode = fprintf(fout," %10.3f %10.3f %10.3f\n",fxyz[0],fxyz[1],fxyz[2]);
@@ -160,14 +167,14 @@ int main( int argc , char * argv[] )
 	  statcode = fprintf(fout,"%10.3f %10.3f %10.3f",fxyz[0],fxyz[1],fxyz[2]);
         }
         if(statcode==0) {
-	   fprintf(stderr, "*** Error - writing output file!\n");
+           fclose(fin);
            fclose(fout);
-           exit(1);
+	   ERROR_exit("writing output file!");
         }
      }
    }
 
-   fprintf(stderr, "Total number of points = %d \n", totalpts);
+   INFO_message("Total number of points = %d", totalpts);
    fclose(fout);
    fclose(fin);
    exit(0);

@@ -122,4 +122,8 @@
  * 3dAutomask.c and thd_automask.c - stupid typos, debugging printfs removed, ...
 10 May 2006
  * JPEG compression factor environment variable in several places
+19 Jun 2006
+ * byte swapping support for cross-platform conversion of DTI Studio fibers in 
+DTIStudioFibertoSegments.Also updated warning and error messages to AFNI
+standards. Made help clearer for @DTI_studio_reposition.
 
