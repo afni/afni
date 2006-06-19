@@ -405,6 +405,7 @@ void flip_memplot( int rot , int mirror , MEM_plotdata *mp )
 {
    int fopt , ii,nn ;
    float xtop , ytop=1.0 , x1,y1,x2,y2 ;
+   int thc ;
 
    if( mp == NULL ) return ;                          /* nothing in */
    if( rot == MRI_ROT_0 && mirror == FALSE ) return ; /* do nothing */
@@ -420,8 +421,9 @@ void flip_memplot( int rot , int mirror , MEM_plotdata *mp )
        for( nn=ii=0 ; ii < mp->nxyline ; ii++,nn+=NXY_MEMPLOT ){
           x1 = mp->xyline[nn  ] ; y1 = mp->xyline[nn+1] ;
           x2 = mp->xyline[nn+2] ; y2 = mp->xyline[nn+3] ;
+          thc = (int)mp->xyline[nn+5] ; if( thc == -THCODE_OPAC ) continue ;
           mp->xyline[nn  ] = ytop - y1 ;
-          mp->xyline[nn+1] = x1 ;
+          mp->xyline[nn+1] = x1 ;       if( thc == -THCODE_CIRC ) continue ;
           mp->xyline[nn+2] = ytop - y2 ;
           mp->xyline[nn+3] = x2 ;
        }
@@ -431,8 +433,9 @@ void flip_memplot( int rot , int mirror , MEM_plotdata *mp )
        for( nn=ii=0 ; ii < mp->nxyline ; ii++,nn+=NXY_MEMPLOT ){
           x1 = mp->xyline[nn  ] ; y1 = mp->xyline[nn+1] ;
           x2 = mp->xyline[nn+2] ; y2 = mp->xyline[nn+3] ;
+          thc = (int)mp->xyline[nn+5] ;  if( thc == -THCODE_OPAC ) continue ;
           mp->xyline[nn  ] = xtop - x1 ;
-          mp->xyline[nn+1] = ytop - y1 ;
+          mp->xyline[nn+1] = ytop - y1 ; if( thc == -THCODE_CIRC ) continue ;
           mp->xyline[nn+2] = xtop - x2 ;
           mp->xyline[nn+3] = ytop - y2 ;
        }
@@ -442,8 +445,9 @@ void flip_memplot( int rot , int mirror , MEM_plotdata *mp )
        for( nn=ii=0 ; ii < mp->nxyline ; ii++,nn+=NXY_MEMPLOT ){
           x1 = mp->xyline[nn  ] ; y1 = mp->xyline[nn+1] ;
           x2 = mp->xyline[nn+2] ; y2 = mp->xyline[nn+3] ;
+          thc = (int)mp->xyline[nn+5] ;  if( thc == -THCODE_OPAC ) continue ;
           mp->xyline[nn  ] = y1 ;
-          mp->xyline[nn+1] = xtop - x1 ;
+          mp->xyline[nn+1] = xtop - x1 ; if( thc == -THCODE_CIRC ) continue ;
           mp->xyline[nn+2] = y2 ;
           mp->xyline[nn+3] = xtop - x2 ;
        }
@@ -453,8 +457,9 @@ void flip_memplot( int rot , int mirror , MEM_plotdata *mp )
        for( nn=ii=0 ; ii < mp->nxyline ; ii++,nn+=NXY_MEMPLOT ){
           x1 = mp->xyline[nn  ] ; y1 = mp->xyline[nn+1] ;
           x2 = mp->xyline[nn+2] ; y2 = mp->xyline[nn+3] ;
+          thc = (int)mp->xyline[nn+5] ; if( thc == -THCODE_OPAC ) continue ;
           mp->xyline[nn  ] = xtop - x1 ;
-          mp->xyline[nn+1] = y1 ;
+          mp->xyline[nn+1] = y1 ;       if( thc == -THCODE_CIRC ) continue ;
           mp->xyline[nn+2] = xtop - x2 ;
           mp->xyline[nn+3] = y2 ;
        }
@@ -464,8 +469,9 @@ void flip_memplot( int rot , int mirror , MEM_plotdata *mp )
        for( nn=ii=0 ; ii < mp->nxyline ; ii++,nn+=NXY_MEMPLOT ){
           x1 = mp->xyline[nn  ] ; y1 = mp->xyline[nn+1] ;
           x2 = mp->xyline[nn+2] ; y2 = mp->xyline[nn+3] ;
+          thc = (int)mp->xyline[nn+5] ; if( thc == -THCODE_OPAC ) continue ;
           mp->xyline[nn  ] = y1 ;
-          mp->xyline[nn+1] = x1 ;
+          mp->xyline[nn+1] = x1 ;       if( thc == -THCODE_CIRC ) continue ;
           mp->xyline[nn+2] = y2 ;
           mp->xyline[nn+3] = x2 ;
        }
@@ -475,8 +481,9 @@ void flip_memplot( int rot , int mirror , MEM_plotdata *mp )
        for( nn=ii=0 ; ii < mp->nxyline ; ii++,nn+=NXY_MEMPLOT ){
           x1 = mp->xyline[nn  ] ; y1 = mp->xyline[nn+1] ;
           x2 = mp->xyline[nn+2] ; y2 = mp->xyline[nn+3] ;
+          thc = (int)mp->xyline[nn+5]  ; if( thc == -THCODE_OPAC ) continue ;
           mp->xyline[nn  ] = x1 ;
-          mp->xyline[nn+1] = ytop - y1 ;
+          mp->xyline[nn+1] = ytop - y1 ; if( thc == -THCODE_CIRC ) continue ;
           mp->xyline[nn+2] = x2 ;
           mp->xyline[nn+3] = ytop - y2 ;
        }
@@ -486,8 +493,9 @@ void flip_memplot( int rot , int mirror , MEM_plotdata *mp )
        for( nn=ii=0 ; ii < mp->nxyline ; ii++,nn+=NXY_MEMPLOT ){
           x1 = mp->xyline[nn  ] ; y1 = mp->xyline[nn+1] ;
           x2 = mp->xyline[nn+2] ; y2 = mp->xyline[nn+3] ;
+          thc = (int)mp->xyline[nn+5]  ; if( thc == -THCODE_OPAC ) continue ;
           mp->xyline[nn  ] = ytop - y1 ;
-          mp->xyline[nn+1] = xtop - x1 ;
+          mp->xyline[nn+1] = xtop - x1 ; if( thc == -THCODE_CIRC ) continue ;
           mp->xyline[nn+2] = ytop - y2 ;
           mp->xyline[nn+3] = xtop - x2 ;
        }
