@@ -5867,3 +5867,7 @@
 01 Jun 2006
  * New AFNI splash photograph.
  * imseq.c now doesn't append ".jpg" if Save filename already ends in it.
+
+19 Jun 2006
+ * Fixed flip_memplot() error in coxplot/plot_cox.c, where non-line elements
+     were being flipped when they shouldn't be.
