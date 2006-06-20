@@ -1535,3 +1535,5 @@
         in the slice timing pattern
       - added get_slice_timing_pattern() to test for NIFTI_SLICE_* patterns
 
+20 Jun 2006: modified 3drefit.c to handle NIfTI datasets
+
