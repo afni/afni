@@ -1710,40 +1710,47 @@ SUMA_COLOR_MAP *SUMA_CmapOfPlane (SUMA_OVERLAYS *Sover )
 SUMA_Boolean SUMA_RemoveSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr)
 {
    static char FuncName[]={"SUMA_RemoveSO_CoordBias"};
-   int i, i3;
+   int i, i3, x_i3;
       
    SUMA_ENTRY;
    
+   if (!SO || !ovr) {
+      SUMA_SL_Err("Dim dim diM");
+      SUMA_RETURN(NOPE);    
+   }
+   x_i3 = 3*SO->N_Node;
    if (ovr->OptScl->BiasVect) { /* something to be removed */
       switch (ovr->OptScl->DoBias) {
          case SW_CoordBias_X:
             /* Remove X bias */
             for (i=0; i < ovr->N_NodeDef; ++i) {
                i3 = 3*ovr->NodeDef[i];
-               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i];
+               if (i3 < x_i3) SO->NodeList[i3] -= ovr->OptScl->BiasVect[i];
             }
             break;
          case SW_CoordBias_Y:
             /* Remove Y bias */
             for (i=0; i < ovr->N_NodeDef; ++i) {
                i3 = 3*ovr->NodeDef[i]+1;
-               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i];
+               if (i3 < x_i3) SO->NodeList[i3] -= ovr->OptScl->BiasVect[i];
             }
             break;
          case SW_CoordBias_Z:
             /* Remove Z bias */
             for (i=0; i < ovr->N_NodeDef; ++i) {
                i3 = 3*ovr->NodeDef[i]+2;
-               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i];
+               if (i3 < x_i3) SO->NodeList[i3] -= ovr->OptScl->BiasVect[i];
             }
             break;
          case SW_CoordBias_N:
             /* Remove Normal bias */
             for (i=0; i < ovr->N_NodeDef; ++i) {
                i3 = 3*ovr->NodeDef[i];
-               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3]; ++i3; 
-               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3]; ++i3; 
-               SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3];  
+               if (i3 < x_i3) {
+                  SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3]; ++i3; 
+                  SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3]; ++i3; 
+                  SO->NodeList[i3] -= ovr->OptScl->BiasVect[i] * SO->NodeNormList[i3];  
+               }
             }
             break;
          default:

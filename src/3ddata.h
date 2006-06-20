@@ -3155,6 +3155,10 @@ typedef struct {
 #define ATRTYPE_WARP_DATA  ATR_FLOAT_TYPE
 #define ATRSIZE_WARP_DATA  0
 
+#define ATRNAME_WARP_DATA_3DWD_AF  "WARPDRIVE_MATVEC_INV_000000"  /* Talairach warp via 3dWarpDrive */
+#define ATRTYPE_WARP_DATA_3DWD_AF  ATR_FLOAT_TYPE
+#define ATRSIZE_WARP_DATA_3DWD_AF  0         /* not using this one. Calv. Cool. June 24 */
+
 #define ATRNAME_WARP_PARENT "WARP_PARENTNAME"
 #define ATRTYPE_WARP_PARENT ATR_STRING_TYPE
 #define ATRSIZE_WARP_PARENT 0

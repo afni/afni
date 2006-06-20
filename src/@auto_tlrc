@@ -130,6 +130,10 @@ PARSE:
          else
             @ cnt ++
             set suf = "$argv[$cnt]"
+            if ("$suf" == "none" || "$suf" == "NONE" || "$suf" == "None") then
+               echo "Suffix not used."
+               set suf = ''
+            endif
             set donext = 0   
          endif   
       endif
@@ -540,6 +544,10 @@ AUTO_TLRC_MODE:
    if ($KeepView == 0) then
       echo "Changing view of transformed anatomy"
       3drefit -view ${ref_view} ${tt_pref}${anat_view}.HEAD
+      if ("${ref_view}" == "+tlrc" && "${anat_view}" == "+orig") then
+         #Now add a 3drefit line to specify the warp parent
+         3drefit -wset ${anat_in} ${tt_pref}${ref_view}
+      endif
    endif
 
    goto WRAP_UP
@@ -716,10 +724,12 @@ HELP:
       echo ""                      
       echo "   Example:"
       echo "   `basename $0` -base TT_N27+tlrc. -input SubjectHighRes+orig."
-      echo "    (the output is named SubjectHighRes_at+TLRC, by default."
+      echo "    (the output is named SubjectHighRes_at+TLRC, by default. See -suffix for more info.)"
       echo ""
       echo "Usage 2: A script to transform any dataset by the same TLRC "
       echo "         transform obtained with `basename $0` in Usage 1 mode"
+      echo ""
+      echo "         Note: You can now also use adwarp instead."
       echo ""
       echo "   `basename $0` [options] <-apar TLRC_parent> <-input DSET>"
       echo "   Mandatory parameters:"
@@ -762,6 +772,8 @@ HELP:
       echo "   -suffix    SUF :  Name the output dataset by append SUF "
       echo "                     to the prefix of the input data for the output."
       echo "                     Default for SUF is _at"
+      echo "              NOTE:  You can now set SUF to 'none' or 'NONE' and enable"
+      echo "                     afni's warp on demand features."                
       echo "   -keep_view     :  Do not mark output dataset as +tlrc"
       echo "   -verb          :  Yakiti yak yak" 
       echo ""

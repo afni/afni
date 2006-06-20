@@ -424,6 +424,194 @@ ENTRY("THD_datablock_from_atr") ;
    RETURN(1) ;
 }
 
+/*-------------------------------------------------------------------*/
+/*!  Given a 12 parameter affine transform created a la 3dWarpDrive's
+WARPDRIVE_MATVEC_INV_000000, turn it into a WARP_DATA type array of 30
+parameters. See matlab function MATVEC_to_WARP.m for more inspiration.
+
+ZSS: June 06 
+---------------------------------------------------------------------*/
+
+int Matvec_2_WarpData(ATR_float  *atr_flo, THD_affine_warp *ww, float *wdv)
+{
+   int ans=0;
+   mat44 Mfor, Mbac;
+   int k;
+   int dbg = 0;
+    
+   ENTRY("Matvec_2_WarpData") ;
+   if (!atr_flo) {
+      fprintf(stderr,"NULL atr_flo!\n");
+      RETURN(ans);
+   }
+   if (atr_flo->nfl != 12) {
+      fprintf(stderr,"atr_flo->nfl != 12\n");
+      RETURN(ans);
+   }
+   
+   if (!ww) {
+      fprintf(stderr,"NULL ww\n");
+      RETURN(ans);
+   }     
+   
+   ww->type       = WARP_AFFINE_TYPE;
+   ww->resam_type = 0 ;   /* not used */
+   ww->warp.type  = MAPPING_LINEAR_TYPE ;
+
+   k = 0;
+   Mfor.m[0][0] = atr_flo->fl[k]; ++k;
+   Mfor.m[0][1] = atr_flo->fl[k]; ++k;
+   Mfor.m[0][2] = atr_flo->fl[k]; ++k;
+   Mfor.m[0][3] = atr_flo->fl[k]; ++k;
+   Mfor.m[1][0] = atr_flo->fl[k]; ++k;
+   Mfor.m[1][1] = atr_flo->fl[k]; ++k;
+   Mfor.m[1][2] = atr_flo->fl[k]; ++k;
+   Mfor.m[1][3] = atr_flo->fl[k]; ++k;
+   Mfor.m[2][0] = atr_flo->fl[k]; ++k;
+   Mfor.m[2][1] = atr_flo->fl[k]; ++k;
+   Mfor.m[2][2] = atr_flo->fl[k]; ++k;
+   Mfor.m[2][3] = atr_flo->fl[k]; ++k;
+   Mfor.m[3][0] = 0.0;
+   Mfor.m[3][1] = 0.0;
+   Mfor.m[3][2] = 0.0;
+   Mfor.m[3][3] = 0.0;
+   if (dbg) { 
+      DUMP_MAT44("Mfor:\n",Mfor);
+   }
+   
+   /* calculate the backward transform */
+   Mbac = nifti_mat44_inverse(Mfor);
+   if (dbg) {
+      DUMP_MAT44("Mbac:\n",Mbac);                              
+   }
+
+   if (wdv) {
+      /* Load the forward transform */
+      /* Now load the 30 values of Wd */
+      k=0;
+      wdv[k] = Mfor.m[0][0]; ++k;
+      wdv[k] = Mfor.m[0][1]; ++k;
+      wdv[k] = Mfor.m[0][2]; ++k;
+      wdv[k] = Mfor.m[1][0]; ++k;
+      wdv[k] = Mfor.m[1][1]; ++k;
+      wdv[k] = Mfor.m[1][2]; ++k;
+      wdv[k] = Mfor.m[2][0]; ++k;
+      wdv[k] = Mfor.m[2][1]; ++k;
+      wdv[k] = Mfor.m[2][2]; ++k;
+
+      wdv[k] = Mbac.m[0][0]; ++k;
+      wdv[k] = Mbac.m[0][1]; ++k;
+      wdv[k] = Mbac.m[0][2]; ++k;
+      wdv[k] = Mbac.m[1][0]; ++k;
+      wdv[k] = Mbac.m[1][1]; ++k;
+      wdv[k] = Mbac.m[1][2]; ++k;
+      wdv[k] = Mbac.m[2][0]; ++k;
+      wdv[k] = Mbac.m[2][1]; ++k;
+      wdv[k] = Mbac.m[2][2]; ++k;
+
+      wdv[k] = -Mfor.m[0][3]; ++k;
+      wdv[k] = -Mfor.m[1][3]; ++k;
+      wdv[k] = -Mfor.m[2][3]; ++k;
+
+      wdv[k] = -Mbac.m[0][3]; ++k;
+      wdv[k] = -Mbac.m[1][3]; ++k;
+      wdv[k] = -Mbac.m[2][3]; ++k;
+
+      /* bot and top are filled as to not cause trouble for Talairach bounding box at a minimum from: 
+         [-80 ; -80 ; -65] to [80 ; 110 ; 85] */
+      wdv[k] = -80 * 2; ++k; /* x 2 ? be generous, it is free! */
+      wdv[k] = -80 * 2; ++k; 
+      wdv[k] = -65 * 2; ++k; 
+
+      wdv[k] =  80 * 2; ++k; 
+      wdv[k] = 110 * 2; ++k; 
+      wdv[k] =  85 * 2; ++k; 
+   }
+   
+   /* Now load the 30 values into warp */
+   ww->warp.mfor.mat[0][0] = Mfor.m[0][0]; 
+   ww->warp.mfor.mat[0][1] = Mfor.m[0][1]; 
+   ww->warp.mfor.mat[0][2] = Mfor.m[0][2]; 
+   ww->warp.mfor.mat[1][0] = Mfor.m[1][0]; 
+   ww->warp.mfor.mat[1][1] = Mfor.m[1][1]; 
+   ww->warp.mfor.mat[1][2] = Mfor.m[1][2]; 
+   ww->warp.mfor.mat[2][0] = Mfor.m[2][0]; 
+   ww->warp.mfor.mat[2][1] = Mfor.m[2][1]; 
+   ww->warp.mfor.mat[2][2] = Mfor.m[2][2]; 
+   
+   ww->warp.mbac.mat[0][0] = Mbac.m[0][0]; 
+   ww->warp.mbac.mat[0][1] = Mbac.m[0][1]; 
+   ww->warp.mbac.mat[0][2] = Mbac.m[0][2]; 
+   ww->warp.mbac.mat[1][0] = Mbac.m[1][0]; 
+   ww->warp.mbac.mat[1][1] = Mbac.m[1][1]; 
+   ww->warp.mbac.mat[1][2] = Mbac.m[1][2]; 
+   ww->warp.mbac.mat[2][0] = Mbac.m[2][0]; 
+   ww->warp.mbac.mat[2][1] = Mbac.m[2][1]; 
+   ww->warp.mbac.mat[2][2] = Mbac.m[2][2]; 
+   
+   ww->warp.bvec.xyz[0] = -Mfor.m[0][3]; 
+   ww->warp.bvec.xyz[1] = -Mfor.m[1][3]; 
+   ww->warp.bvec.xyz[2] = -Mfor.m[2][3]; 
+   
+   ww->warp.svec.xyz[0] = -Mbac.m[0][3]; 
+   ww->warp.svec.xyz[1] = -Mbac.m[1][3]; 
+   ww->warp.svec.xyz[2] = -Mbac.m[2][3]; 
+   
+   /* bot and top are filled as to not cause trouble for Talairach bounding box at a minimum from: 
+      [-80 ; -80 ; -65] to [80 ; 110 ; 85] */
+   ww->warp.bot.xyz[0] = -80 * 2;  /* x 2 ? be generous, it is free! */
+   ww->warp.bot.xyz[1] = -80 * 2;  
+   ww->warp.bot.xyz[2] = -65 * 2;  
+   
+   ww->warp.top.xyz[0] =  80 * 2;  
+   ww->warp.top.xyz[1] = 110 * 2;  
+   ww->warp.top.xyz[2] =  85 * 2;  
+
+   RETURN(1);
+} 
+
+int THD_WarpData_From_3dWarpDrive(THD_3dim_dataset *dset, ATR_float *atr_flt)
+{
+   int dbg = 0;
+   
+   ENTRY("THD_WarpData_From_3dWarpDrive");
+
+   if (!dset) {
+      fprintf(stderr,"NULL dset!");
+      RETURN(0);
+   }
+   if (dset->warp) {
+      fprintf(stderr,"Warp already there!");
+      RETURN(0);
+   }
+   if (!atr_flt) {
+      fprintf(stderr,"No attribute!");
+      RETURN(0);
+   }
+   if (atr_flt->nfl != 12) {
+      fprintf(stderr,"Number of parameters in TLRC transform is not 12.\nI won't float your boat.\n");
+      RETURN(0); 
+   }
+   dset->warp = myXtNew( THD_warp ) ;
+   ADDTO_KILL( dset->kl , dset->warp ) ;
+   {   
+      THD_affine_warp *ww = (THD_affine_warp *) dset->warp ;
+      if (!Matvec_2_WarpData(atr_flt, ww, NULL)) {
+         fprintf(stderr,"Failed to create warp!");
+         RETURN(0);
+      } 
+   }
+   /* If you have a warp, you must have a warp_parent 
+   However, previous versions of @auto_tlrc did not set
+   that, so use some defaults */
+   if( strlen(dset->warp_parent_name) <= 0 
+         && ISZERO_IDCODE(dset->warp_parent_idcode)) {
+      if (dbg) fprintf(stderr,"Assigning a dummy warp parent name\n");
+      sprintf(dset->warp_parent_name,"Not_Set");
+   }
+
+   RETURN(1);
+}
 /*---------------------------------------------------------------------------*/
 /* Macros to fetch an attribute named nnn and test if it exists. */
 
@@ -691,7 +879,25 @@ ENTRY("THD_datablock_apply_atr") ;
        break ;  /* end talairach_12 warp */
 
      } /* end of switch on warp type */
-   }
+   } /* end of if on warp existing */   else { /* But perhaps there is a little something from auto talairaching ZSS, June 06 */
+      if (dset->view_type == VIEW_TALAIRACH_TYPE) { /* something to do */
+         int dbg = 0;
+         atr_flt = THD_find_float_atr( blk , ATRNAME_WARP_DATA_3DWD_AF ) ; 
+         if ( atr_flt == NULL ){
+            /* A tlrc set with no transform. No problem */
+            /* fprintf(stderr,"Dude, where's my transform?\n");  */
+         } else {
+            STATUS("AutoTlrc Warp") ;
+            if (dbg) fprintf(stderr,"++ Will be using %s attribute for talairach warp in dset %s\n",
+                                    ATRNAME_WARP_DATA_3DWD_AF, dset->self_name) ;
+            if (!THD_WarpData_From_3dWarpDrive(dset, atr_flt)) {
+               fprintf(stderr,"Error: Failed to create WarpData!\n");
+            }
+         }
+      } else {
+         /* fprintf(stderr,"Not in TLRC space, bother not.\n"); */
+      }
+   } /* the very end of if on warp existing */
 
    /*-- brick stats --*/
 
