@@ -18,7 +18,10 @@ void Syntax(char *str)
            "using to3d.\n"
            "To see the current values stored in a .HEAD file, use the command\n"
            "'3dinfo dataset'.  Using 3dinfo both before and after 3drefit is\n"
-           "a good idea to make sure the changes have been made correctly!\n\n"
+           "a good idea to make sure the changes have been made correctly!\n"
+           "\n"
+           "20 Jun 2006: 3drefit will now work on NIfTI datasets (but it will\n"
+           "             write out the entire dataset)\n\n"
          ) ;
 
    printf(
@@ -277,6 +280,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset *auxset=NULL ;   /* 08 Jun 2004 */
    char *new_label2   = NULL ;       /* 21 Dec 2004 */
    int denote         = 0 ;          /* 08 Jul 2005 */
+   Boolean write_output ;            /* 20 Jun 2006 [rickr] */
 
    char str[256] ;
    int  iarg , ii ;
@@ -984,6 +988,8 @@ int main( int argc , char * argv[] )
    /*--- process datasets ---*/
 
    for( ; iarg < argc ; iarg++ ){
+      write_output = False ;   /* some datasets will be overwritten */
+
       dset = THD_open_one_dataset( argv[iarg] ) ;
       if( dset == NULL ){
          ERROR_message("Can't open dataset %s\n",argv[iarg]) ;
@@ -1006,8 +1012,7 @@ int main( int argc , char * argv[] )
          continue ;
       }
       if( DSET_IS_NIFTI(dset) ){
-         ERROR_message("Can't process NIFTI dataset %s\n",argv[iarg]);
-         continue ;
+         write_output = True ;     /* 20 Jun 2006 [rickr] */
       }
       if( DSET_IS_MPEG(dset) ){
          ERROR_message("Can't process MPEG dataset %s\n",argv[iarg]);
@@ -1346,7 +1351,9 @@ int main( int argc , char * argv[] )
 
       if( denote ) THD_anonymize_write(1) ;   /* 08 Jul 2005 */
 
-      THD_write_3dim_dataset( NULL,NULL , dset , False ) ;
+      if( write_output ) DSET_load(dset) ;    /* 20 Jun 2006 */
+
+      THD_write_3dim_dataset( NULL,NULL , dset , write_output ) ;
       THD_delete_3dim_dataset( dset , False ) ;
    }
    exit(0) ;
