@@ -3307,7 +3307,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    Display *dpy;
    SUMA_SurfaceObject *SO;
    char *slabel, *lbl30; 
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    static char FuncName[] = {"SUMA_cb_createSurfaceCont"};
    
    SUMA_ENTRY;
@@ -3862,6 +3862,11 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    
    if (SO->N_Overlays) {
       SUMA_InitializeColPlaneShell(SO, SO->Overlays[0]);
+      #ifdef DARWIN
+      /* Sometimes color maps do not show up on mac when you first 
+         open the surface controller */
+      SUMA_SwitchColPlaneCmap(SO, SUMA_CmapOfPlane(SO->SurfCont->curColPlane));
+      #endif
    }
    
    SUMA_RETURNe;
