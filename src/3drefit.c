@@ -92,6 +92,10 @@ void Syntax(char *str)
     "                   aset = NULL --> remove the anat parent info from the dataset\n"
     "                   aset = SELF --> set the anat parent to be the dataset itself\n"
     "\n"
+    "  -wpar wset      Set the warp parent (the +orig version of a +tlrc dset).\n"
+    "                  This option is used by @auto_tlrc. Do not use it unless\n"
+    "                  you know what you're doing. \n"
+    "\n"
     "  -clear_bstat    Clears the statistics (min and max) stored for each sub-brick\n"
     "                  in the dataset.  This is useful if you have done something to\n"
     "                  modify the contents of the .BRIK file associated with this\n"
@@ -241,8 +245,9 @@ void Syntax(char *str)
 
 int main( int argc , char * argv[] )
 {
-   THD_3dim_dataset * dset , * aset = NULL ;
+   THD_3dim_dataset * dset , * aset = NULL , *waset = NULL;
                       int aset_code = 0    ; /* 14 Dec 1999 */
+                      int waset_code = 0;
    THD_dataxes      * daxes ;
    int new_stuff = 0 ;
    int new_orient = 0 ; char orient_code[4] ; int xxor,yyor,zzor ;
@@ -424,6 +429,32 @@ int main( int argc , char * argv[] )
             aset = THD_open_one_dataset( argv[iarg] ) ;
             if( aset == NULL )
                Syntax("Can't open -apar dataset!") ;
+         }
+
+         new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -wpar wset [ZSS June 06] -----*/
+
+      if( strcmp(argv[iarg],"-wpar")       == 0 ||
+          strcmp(argv[iarg],"-warpparent") == 0 ||
+          strcmp(argv[iarg],"-wset")       == 0    ){
+
+         if( iarg+1 >= argc )
+            Syntax("need 1 argument after -wpar!") ;
+
+         if( waset != NULL || waset_code != 0 )                 
+            Syntax("Can't have more than one -wpar option!");
+
+         iarg++ ;
+         if( strcmp(argv[iarg],"NULL") == 0 ){    
+            waset_code = ASET_NULL ;
+         } else if( strcmp(argv[iarg],"SELF") == 0 ){
+            waset_code = ASET_SELF ;
+         } else {
+            waset = THD_open_one_dataset( argv[iarg] ) ;
+            if( waset == NULL )
+               Syntax("Can't open -wpar dataset!") ;
          }
 
          new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
@@ -1003,6 +1034,15 @@ int main( int argc , char * argv[] )
          dset->anat_parent_name[0] = '\0' ;
       }
 
+      /* ZSS June 06, add a warp parent field please */
+      if( waset != NULL ){
+         EDIT_dset_items( dset , ADN_warp_parent , waset , ADN_none ) ;
+      } else if( waset_code == ASET_SELF ){
+         EDIT_dset_items( dset , ADN_warp_parent , dset , ADN_none ) ;
+      } else if( waset_code == ASET_NULL ){
+         EDIT_ZERO_ANATOMY_PARENT_ID( dset ) ;
+         dset->warp_parent_name[0] = '\0' ;
+      } 
       /* Oct 04/02: zmodify volreg fields */
       if (Do_volreg_mat) {
          sprintf(str,"VOLREG_MATVEC_%06d", volreg_matind) ;

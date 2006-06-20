@@ -2,36 +2,38 @@
 #define SUMA_COLOR_INCLUDED
 
 #define SUMA_ADD_COORD_BIAS_VECT(SO, ovr, BiasDim, BiasVect) {   \
-   int m_i, m_i3; \
+   int m_i, m_i3, mx_i3 = 3*SO->N_Node; \
    switch (BiasDim) {   \
       case SW_CoordBias_X: \
          /* Add X bias */  \
          for (m_i=0; m_i < ovr->N_NodeDef; ++m_i) {   \
             m_i3 = 3*ovr->NodeDef[m_i]; \
-            SO->NodeList[m_i3] += BiasVect[m_i];   \
+            if (m_i3 < mx_i3) SO->NodeList[m_i3] += BiasVect[m_i];   \
          }  \
          break;   \
       case SW_CoordBias_Y: \
          /* Add Y bias */  \
          for (m_i=0; m_i < ovr->N_NodeDef; ++m_i) {   \
             m_i3 = 3*ovr->NodeDef[m_i]+1;  \
-            SO->NodeList[m_i3] += BiasVect[m_i];   \
+            if (m_i3 < mx_i3) SO->NodeList[m_i3] += BiasVect[m_i];   \
          }  \
          break;   \
       case SW_CoordBias_Z: \
          /* Add Z bias */  \
          for (m_i=0; m_i < ovr->N_NodeDef; ++m_i) {   \
             m_i3 = 3*ovr->NodeDef[m_i]+2;  \
-            SO->NodeList[m_i3] += BiasVect[m_i];   \
+            if (m_i3 < mx_i3) SO->NodeList[m_i3] += BiasVect[m_i];   \
          }  \
          break;   \
       case SW_CoordBias_N: \
          /* Add Normal bias */   \
          for (m_i=0; m_i < ovr->N_NodeDef; ++m_i) {   \
             m_i3 = 3*ovr->NodeDef[m_i]; \
-            SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3]; ++m_i3;    \
-            SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3]; ++m_i3;    \
-            SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3];          \
+            if (m_i3 < mx_i3) {  \
+               SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3]; ++m_i3;    \
+               SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3]; ++m_i3;    \
+               SO->NodeList[m_i3] += BiasVect[m_i] * SO->NodeNormList[m_i3];          \
+            }  \
          }  \
          break;   \
       default: \

@@ -20,6 +20,9 @@ void THD_allow_empty_dataset( int n ){ allow_nodata = n ; }
 
 #define USE_APPLICATOR  /* 10 May 2005 */
 
+extern int Matvec_2_WarpData(ATR_float  *atr_flo, THD_affine_warp *ww, float *wdv);
+extern int THD_WarpData_From_3dWarpDrive(THD_3dim_dataset *dset, ATR_float *atr_flt);
+
 /*-------------------------------------------------------------------*/
 /*!  Given a datablock, make it into a 3D dataset if possible.
 ---------------------------------------------------------------------*/
@@ -449,7 +452,20 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
          } /* end of switch on warp type */
       } /* end of if on legal warp data */
-   } /* end of if on warp existing */
+   } /* end of if on warp existing */   else { /* But perhaps there is a little something from auto talairaching ZSS, June 06 */
+      if (dset->view_type == VIEW_TALAIRACH_TYPE) { /* something to do */
+         atr_flo = THD_find_float_atr( blk , ATRNAME_WARP_DATA_3DWD_AF ) ; 
+         if ( atr_flo == NULL ){
+            /* A tlrc set with no transform. No problem */
+         } else {
+            if (!THD_WarpData_From_3dWarpDrive(dset, atr_flo)) {
+               fprintf(stderr,"Error: Failed to create WarpData!\n");
+            }
+         }
+      } else {
+         /* fprintf(stderr,"Not in TLRC space, bother not.\n"); */
+      }
+   } /* the very end of if on warp existing */
 #endif
 
    /*----- read statistics, if available -----*/
