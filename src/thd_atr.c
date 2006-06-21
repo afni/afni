@@ -17,6 +17,86 @@
   interrogated to form the actual data structure of a THD_3dim_dataset.
 ************************************************************************/
 
+void atr_print( ATR_any * atr, char *ssep, char *spsep, char quote, int do_name)
+{
+   int ii ;
+   char ssep_def[]={"~"};
+   int neword = 1;
+   
+   if (!ssep) ssep = ssep_def;
+   
+   switch( atr->type ){
+
+      default:
+         fprintf(stderr,"*** Illegal attribute type found: %d\n",atr->type);
+      exit(1) ;
+
+      case ATR_FLOAT_TYPE:{
+         ATR_float * aa = (ATR_float *) atr ;
+         if( do_name ) printf("%s = ",aa->name) ;
+         for( ii=0 ; ii < aa->nfl ; ii++ )
+            printf("%s ",MV_format_fval(aa->fl[ii])) ;
+         printf("\n") ;
+      }
+      return ;
+
+      case ATR_INT_TYPE:{
+         ATR_int * aa = (ATR_int *) atr ;
+         if( do_name ) printf("%s = ",aa->name) ;
+         for( ii=0 ; ii < aa->nin ; ii++ )
+            printf("%d ",aa->in[ii]) ;
+         printf("\n") ;
+      }
+      return ;
+
+      case ATR_STRING_TYPE:{
+         ATR_string * aa = (ATR_string *) atr ;
+         char *str = (char *)malloc(sizeof(char)*(aa->nch+1)) ;
+         char *eee ;
+         memcpy(str,aa->ch,aa->nch) ; str[aa->nch] = '\0' ;
+#if 0
+         eee = tross_Expand_String(str) ;
+#else
+         eee = NULL ;
+#endif
+         if( do_name ) printf("%s = ",aa->name) ;
+         if( eee != NULL ){
+            printf("%s\n",eee) ; free(eee) ;
+         } else if( str[0] != '\0' ){
+            int isb = 0;
+            neword = 1;
+            for (ii=0; ii<aa->nch;++ii) {
+               if (str[ii] == '\0') {
+                  ++isb;
+                  if (quote != '\0') printf("%c", quote);
+                  if (strcmp(ssep,"NUM") == 0) {
+                     /* handled below*/
+                  } else {
+                     printf("%s",ssep);
+                  }
+                  neword = 1;
+               } else {
+                  if (neword) {
+                     if (strcmp(ssep,"NUM") == 0) {
+                        printf(" %d ",isb);
+                     }
+                     if (quote != '\0') printf("%c", quote); 
+                  }
+                  if (spsep && str[ii] == ' ') printf("%s", spsep);
+                  else printf("%c", str[ii]);
+                  neword = 0;
+               }
+            }
+            printf("\n") ;
+         } else {
+            printf("(null)\n") ;
+         }
+         free(str) ;
+      }
+      return ;
+   }
+}
+
 /*-----------------------------------------------------------------------*/
 /*!  Given the rudiments of a datablock, read all the attributes into it
 -------------------------------------------------------------------------*/
@@ -520,6 +600,8 @@ if(PRINT_TRACING){
          new_atr->ch   = (char *) XtMalloc( sizeof(char) * acount ) ;
          memcpy( new_atr->ch , ar , sizeof(char)*acount ) ;
          new_atr->ch[acount-1] = '\0' ;
+         /*fprintf(stderr,"Have %d chars\n", acount);
+         atr_print( (ATR_any *)new_atr, NULL , NULL, '\0', 1) ;*/ 
 
          ADDTO_KILL( blk->kl , new_atr->name ) ;
          ADDTO_KILL( blk->kl , new_atr->ch ) ;
