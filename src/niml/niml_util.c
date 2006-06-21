@@ -146,6 +146,18 @@ char * NI_strdup( char *str )
 }
 
 /*------------------------------------------------------------------------*/
+/*! Like NI_strdup, but relies on length, not nul      21 Jun 2006 [rickr]
+--------------------------------------------------------------------------*/
+
+char * NI_strdup_len( char *str, int len )
+{
+   char *dup ;
+   if( str == NULL || len < 0 ) return NULL ;
+   dup = NI_malloc(char, len+1) ; strncpy(dup,str,len) ; dup[len] = '\0' ;
+   return dup;
+}
+
+/*------------------------------------------------------------------------*/
 /*! Find a string in an array of strings; return index (-1 if not found).
 --------------------------------------------------------------------------*/
 
@@ -333,7 +345,7 @@ char * quotize_string( char *str )
 char * quotize_string_vector( int num , char **str , char sep )
 {
    char *out , **qstr ;
-   int ii , ntot , ll,nn ;
+   int ii , ntot , ll ;
 
    /* handle special cases */
 
@@ -406,7 +418,7 @@ char * quotize_int_vector( int num , int *vec , char sep )
 
 char * quotize_float_vector( int num , float *vec , char sep )
 {
-   int ii , jj , ff ;
+   int ii , ff ;
    char *out , **qstr , fbuf[32] ;
 
    if( num <= 0 || vec == NULL )
@@ -436,7 +448,7 @@ char * quotize_float_vector( int num , float *vec , char sep )
 
 int NI_is_name( char *str )
 {
-   int ii , ll ;
+   int ii ;
 
    if( str == NULL || str[0] == '\0' || !isalpha(str[0]) ) return 0 ;
 

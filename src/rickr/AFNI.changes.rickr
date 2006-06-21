@@ -1537,3 +1537,7 @@
 
 20 Jun 2006: modified 3drefit.c to handle NIfTI datasets
 
+21 Jun 2006:
+  * modified niml.h, niml_util.c: added NI_strdup_len()
+  * modified @make_stim_file, adding -zero_based option
+

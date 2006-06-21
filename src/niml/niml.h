@@ -532,6 +532,7 @@ extern int NI_malloc_replace( void *(*um)(size_t)        ,
 
 extern char * NI_strncpy( char *, const char *, size_t ) ;
 extern char * NI_strdup( char * ) ;
+extern char * NI_strdup_len( char *, int ) ;
 extern int    NI_strlen( char * ) ;
 extern long   NI_filesize( char * ) ;
 extern int    NI_clock_time(void) ;
