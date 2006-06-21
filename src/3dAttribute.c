@@ -15,7 +15,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset * dset ;
    char * aname ;
    ATR_any * atr ;
-   char *ssep=NULL, *spsep = NULL;
+   char *ssep=NULL, *sprep = NULL;
    char ssep_def[] = {"~"};
    char quote = '\0';
    
@@ -39,12 +39,12 @@ int main( int argc , char * argv[] )
              "                  I recommend ' ' which makes parsing easy, assuming each\n"
              "                  individual string contains no spaces to begin with.\n" 
              "                  Try -ssep 'NUM'\n"
-             "    -spsep SPSEP  Use string SPSEP to replace blank space in string \n"
+             "    -sprep SPREP  Use string SPREP to replace blank space in string \n"
              "                  attributes.\n"
              "    -quote        Use single quote around each string.\n"
              "    Examples:\n"
              "       3dAttribute -quote -ssep ' '  BRICK_LABS SomeStatDset+tlrc.BRIK\n"
-             "       3dAttribute -quote -ssep 'NUM' -spsep '+' BRICK_LABS SomeStatDset+tlrc.BRIK\n"
+             "       3dAttribute -quote -ssep 'NUM' -sprep '+' BRICK_LABS SomeStatDset+tlrc.BRIK\n"
             ) ;
       exit(0) ;
    }
@@ -71,13 +71,13 @@ int main( int argc , char * argv[] )
          nopt++ ; continue ;
       }
       
-      if( strcmp(argv[nopt],"-spsep") == 0 ){
+      if( strcmp(argv[nopt],"-sprep") == 0 ){
          nopt++ ;
          if (nopt >= argc) {
-            fprintf(stderr,"*** Need string after -spsep\n");
+            fprintf(stderr,"*** Need string after -sprep\n");
             exit(1) ;
          }
-         spsep = argv[nopt] ;
+         sprep = argv[nopt] ;
          nopt++ ; continue ;
       }
       
@@ -100,13 +100,13 @@ int main( int argc , char * argv[] )
    if( !do_all ){
       atr = THD_find_atr( dset->dblk , aname ) ;
       if( atr == NULL ) exit(1) ;                  /* failure */
-      atr_print( atr, ssep, spsep, quote, do_name ) ;
+      atr_print( atr, ssep, sprep, quote, do_name ) ;
       exit(0) ;
    }
 
    for( ia=0 ; ia < dset->dblk->natr ; ia++ ){
       atr = &(dset->dblk->atr[ia]) ;
-      atr_print(atr, ssep, spsep, quote, do_name) ;
+      atr_print(atr, ssep, sprep, quote, do_name) ;
    }
 
    exit(0) ;
