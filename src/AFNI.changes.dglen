@@ -126,4 +126,5 @@
  * byte swapping support for cross-platform conversion of DTI Studio fibers in 
 DTIStudioFibertoSegments.Also updated warning and error messages to AFNI
 standards. Made help clearer for @DTI_studio_reposition.
-
+21 Jun 2006
+ * 3dNotes support for NIFTI file format and display of history notes
