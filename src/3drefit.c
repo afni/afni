@@ -159,12 +159,14 @@ void Syntax(char *str)
     "                  documentation file README.attributes. More than one\n"
     "                  '-atrcopy' option can be used.\n"
     "          **N.B.: This option is for those who know what they are doing!\n"
-    "                  It can only be used to alter attributes that are NOT\n"
+    "                  Without the -saveatr option, this option is\n"
+    "                  meant to be used to alter attributes that are NOT\n"
     "                  directly mapped into dataset internal structures, since\n"
     "                  those structures are mapped back into attribute values\n"
     "                  as the dataset is being written to disk.  If you want\n"
     "                  to change such an attribute, you have to use the\n"
-    "                  corresponding 3drefit option directly.\n"
+    "                  corresponding 3drefit option directly or use the \n"
+    "                  -saveatr option.\n"
     "\n"
     "  -atrstring n 'x' Copy the string 'x' into the dataset(s) being\n"
     "                   modified, giving it the attribute name 'n'.\n"
@@ -175,6 +177,16 @@ void Syntax(char *str)
     "                  communicating information between programs.  However,\n"
     "                  when most AFNI programs write a new dataset, they will\n"
     "                  not preserve any such non-standard attributes.\n"
+    "  -saveatr        Copy the attributes that are known to AFNI into the \n"
+    "                  dset->dblk structure thereby forcing changes to known\n"
+    "                  attributes to be present in the output.\n"
+    "                  This option only makes sense with -atrcopy\n"
+    "          **N.B.: Don't do something like copy labels of a dataset with \n"
+    "                  30 sub-bricks to one that has only 10, or vice versa.\n"
+    "                  This option is for those who would deservedly earn a\n"
+    "                  hunting license.\n"
+    "     Example: \n"
+    "     3drefit -saveatr -atrcopy WithLabels+tlrc BRICK_LABS NeedsLabels+tlrc\n"
    ) ;
 
    printf(
@@ -303,7 +315,8 @@ int main( int argc , char * argv[] )
 
    int   num_atrcopy = 0 ;    /* 03 Aug 2005 */
    ATR_any **atrcopy = NULL ;
-
+   int saveatr = 0;
+   
    /*-------------------------- help me if you can? --------------------------*/
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax(NULL) ;
@@ -349,7 +362,7 @@ int main( int argc , char * argv[] )
         atrcopy = (ATR_any **)realloc( (void *)atrcopy ,
                                        sizeof(ATR_any *)*(num_atrcopy+1) ) ;
         atrcopy[num_atrcopy++] = THD_copy_atr( atr ) ;
-
+        /* atr_print( atr, NULL , NULL, '\0', 1) ;  */
         DSET_delete(qset) ; new_stuff++ ;
 
        atrcopy_done:
@@ -386,7 +399,10 @@ int main( int argc , char * argv[] )
         iarg++ ; continue ;
       }
 
-
+      if( strcmp(argv[iarg],"-saveatr") == 0 ){
+        saveatr = 1 ; iarg++ ; continue ;
+      }
+      
       /*----- -denote [08 Jul 2005] -----*/
 
       if( strcmp(argv[iarg],"-denote") == 0 ){
@@ -986,7 +1002,6 @@ int main( int argc , char * argv[] )
    }
 
    /*--- process datasets ---*/
-
    for( ; iarg < argc ; iarg++ ){
       write_output = False ;   /* some datasets will be overwritten */
 
@@ -1346,8 +1361,12 @@ int main( int argc , char * argv[] )
 
       /* 03 Aug 2005: implement atrcopy */
 
-      for( ii=0 ; ii < num_atrcopy ; ii++ )
+      for( ii=0 ; ii < num_atrcopy ; ii++ ) {
         THD_insert_atr( dset->dblk , atrcopy[ii] ) ;
+      }
+      
+      /* Do we want to force new attributes into output ? ZSS Jun 06*/
+      if (saveatr) THD_datablock_from_atr(dset->dblk , DSET_DIRNAME(dset)  , dset->dblk->diskptr->header_name);
 
       if( denote ) THD_anonymize_write(1) ;   /* 08 Jul 2005 */
 

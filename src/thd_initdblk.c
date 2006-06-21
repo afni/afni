@@ -324,7 +324,6 @@ ENTRY("THD_datablock_from_atr") ;
    THD_init_datablock_labels( dblk ) ;
 
    atr_labs = THD_find_string_atr( dblk , ATRNAME_BRICK_LABS ) ;
-
    if( atr_labs != NULL && atr_labs->nch > 0 ){  /* create labels from attribute */
      int ipos = -1 , ipold , ngood ;
 

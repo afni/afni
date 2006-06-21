@@ -5,7 +5,6 @@
   from an AFNI header.
 -----------------------------------------------------------------------------*/
 
-void atr_print( ATR_any * atr ) ;
 
 static int do_all  = 0 ;
 static int do_name = 0 ;
@@ -16,7 +15,10 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset * dset ;
    char * aname ;
    ATR_any * atr ;
-
+   char *ssep=NULL, *spsep = NULL;
+   char ssep_def[] = {"~"};
+   char quote = '\0';
+   
    if( argc < 3 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dAttribute [options] aname dset\n"
              "Prints (to stdout) the value of the attribute 'aname' from\n"
@@ -30,6 +32,19 @@ int main( int argc , char * argv[] )
              "          they are in the .HEAD file, one per line.  You may want\n"
              "          to do '3dAttribute -all elvis+orig | sort' to get them\n"
              "          in alphabetical order.\n"
+             "  Special options for string attributes:\n"
+             "    -ssep SSEP    Use string SSEP as a separator between strings for\n"
+             "                  multiple sub-bricks. The default is '~', which is what\n"
+             "                  is used internally in AFNI's .HEAD file. For tcsh,\n"
+             "                  I recommend ' ' which makes parsing easy, assuming each\n"
+             "                  individual string contains no spaces to begin with.\n" 
+             "                  Try -ssep 'NUM'\n"
+             "    -spsep SPSEP  Use string SPSEP to replace blank space in string \n"
+             "                  attributes.\n"
+             "    -quote        Use single quote around each string.\n"
+             "    Examples:\n"
+             "       3dAttribute -quote -ssep ' '  BRICK_LABS SomeStatDset+tlrc.BRIK\n"
+             "       3dAttribute -quote -ssep 'NUM' -spsep '+' BRICK_LABS SomeStatDset+tlrc.BRIK\n"
             ) ;
       exit(0) ;
    }
@@ -40,7 +55,32 @@ int main( int argc , char * argv[] )
          do_all = do_name = 1 ;
          nopt++ ; continue ;
       }
-
+      
+      if( strcmp(argv[nopt],"-quote") == 0 ){
+         quote = '\'' ;
+         nopt++ ; continue ;
+      }
+      
+      if( strcmp(argv[nopt],"-ssep") == 0 ){
+         nopt++ ;
+         if (nopt >= argc) {
+            fprintf(stderr,"*** Need string after -ssep\n");
+            exit(1) ;
+         }
+         ssep = argv[nopt] ;
+         nopt++ ; continue ;
+      }
+      
+      if( strcmp(argv[nopt],"-spsep") == 0 ){
+         nopt++ ;
+         if (nopt >= argc) {
+            fprintf(stderr,"*** Need string after -spsep\n");
+            exit(1) ;
+         }
+         spsep = argv[nopt] ;
+         nopt++ ; continue ;
+      }
+      
       if( strcmp(argv[nopt],"-name") == 0 ){
          do_name = 1 ;
          nopt++ ; continue ;
@@ -49,6 +89,7 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"*** Illegal option: %s\n",argv[nopt]) ; exit(1) ;
    }
 
+   if (!ssep) ssep = ssep_def;
    if( !do_all ) aname = argv[nopt++] ;
 
    dset  = THD_open_one_dataset( argv[nopt] ) ;
@@ -59,13 +100,13 @@ int main( int argc , char * argv[] )
    if( !do_all ){
       atr = THD_find_atr( dset->dblk , aname ) ;
       if( atr == NULL ) exit(1) ;                  /* failure */
-      atr_print( atr ) ;
+      atr_print( atr, ssep, spsep, quote, do_name ) ;
       exit(0) ;
    }
 
    for( ia=0 ; ia < dset->dblk->natr ; ia++ ){
       atr = &(dset->dblk->atr[ia]) ;
-      atr_print(atr) ;
+      atr_print(atr, ssep, spsep, quote, do_name) ;
    }
 
    exit(0) ;
@@ -73,54 +114,3 @@ int main( int argc , char * argv[] )
 
 /*----------------------------------------------------------------------*/
 
-void atr_print( ATR_any * atr )
-{
-   int ii ;
-
-   switch( atr->type ){
-
-      default:
-         fprintf(stderr,"*** Illegal attribute type found: %d\n",atr->type);
-      exit(1) ;
-
-      case ATR_FLOAT_TYPE:{
-         ATR_float * aa = (ATR_float *) atr ;
-         if( do_name ) printf("%s = ",aa->name) ;
-         for( ii=0 ; ii < aa->nfl ; ii++ )
-            printf("%s ",MV_format_fval(aa->fl[ii])) ;
-         printf("\n") ;
-      }
-      return ;
-
-      case ATR_INT_TYPE:{
-         ATR_int * aa = (ATR_int *) atr ;
-         if( do_name ) printf("%s = ",aa->name) ;
-         for( ii=0 ; ii < aa->nin ; ii++ )
-            printf("%d ",aa->in[ii]) ;
-         printf("\n") ;
-      }
-      return ;
-
-      case ATR_STRING_TYPE:{
-         ATR_string * aa = (ATR_string *) atr ;
-         char *str = (char *)malloc(sizeof(char)*(aa->nch+1)) ;
-         char *eee ;
-         memcpy(str,aa->ch,aa->nch) ; str[aa->nch] = '\0' ;
-#if 0
-         eee = tross_Expand_String(str) ;
-#else
-         eee = NULL ;
-#endif
-         if( do_name ) printf("%s = ",aa->name) ;
-         if( eee != NULL ){
-            printf("%s\n",eee) ; free(eee) ;
-         } else if( str[0] != '\0' ){
-            printf("%s\n",str) ;
-         } else {
-            printf("(null)\n") ;
-         }
-         free(str) ;
-      }
-      return ;
-   }
-}
