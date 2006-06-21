@@ -1139,6 +1139,7 @@ extern void THD_store_datablock_label    ( THD_datablock * , int , char * ) ;
 extern void THD_store_datablock_keywords ( THD_datablock * , int , char * ) ;
 extern void THD_append_datablock_keywords( THD_datablock * , int , char * ) ;
 extern int  THD_datablock_from_atr       ( THD_datablock *, char *, char * ) ;
+extern void atr_print( ATR_any * atr, char *ssep , char *spsep, char quote, int do_name) ;
 
 /*! Initialize all sub-bricks auxiliary data to nothing. */
 
