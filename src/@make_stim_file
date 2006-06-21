@@ -6,6 +6,7 @@
 # options:  -outfile    OUTFILE         : filename for 'binary' output
 #           -maxreps	REPS		: the maximum number of repetitions
 #           -no_headers			: do not include headers
+#           -zero_based			: stim times are 0-based
 #
 #           -debug      LEVEL           : specify level of debug output
 #           -help			: get information about the program
@@ -42,6 +43,7 @@ endif
 set i_maxreps 	= 0
 set i_outfile	= ""
 set i_headers 	= 1	# default is to include them
+set i_zerobase 	= 0     # to allow 0-based stim times  21 Jun 2006 [rickr]
 
 # check for options
 
@@ -88,6 +90,14 @@ while ( $count <= $args )
 	breaksw
 
 	# ----------------------------------------------------------
+	# usage : -zero_based
+	case "-zero_based"
+
+	    set i_zerobase = 1
+
+	breaksw
+
+	# ----------------------------------------------------------
 	# usage : -debug DEBUG_LEVEL
 	case "-debug":
 
@@ -125,10 +135,11 @@ while ( $count <= $args )
 end
 
 if ( $debug ) then
-    echo "-- prog   : '$prog_name'"
-    echo "-- outfile: '$i_outfile'"
-    echo "-- maxreps: '$i_maxreps'"
-    echo "-- headers: '$i_headers'"
+    echo "-- prog    : '$prog_name'"
+    echo "-- outfile : '$i_outfile'"
+    echo "-- maxreps : '$i_maxreps'"
+    echo "-- headers : '$i_headers'"
+    echo "-- zerobase: '$i_zerobase'"
     echo ""
     echo "-- startdir: '$start_dir'"
     echo "-- tempdir : '$temp_dir'"
@@ -277,11 +288,15 @@ foreach header ( $header_list )
         goto L_BAD_END
     endif
 
-    set cur = 1
+    if ( $i_zerobase ) then
+        set cur = 0
+    else
+        set cur = 1
+    endif
     foreach stime ( $stim_times )
 
-        # a zero value means list termination
-	if ( $stime == 0 ) then		# we are done
+        # check for termination
+	if ( $stime == -1 || ($stime == 0 && ! $i_zerobase) ) then
 	    if ( $debug ) echo "-- early finish for '$header', last is '$cur'"
 
 	    if ( $cur == 1 ) then
@@ -309,7 +324,11 @@ foreach header ( $header_list )
     end
 
     # track the overall max
-    if ( $stime > $l_maxreps) set l_maxreps = $stime
+    if ( $i_zerobase ) then
+        if ( $stime >= $l_maxreps) @ l_maxreps = $stime + 1
+    else
+        if ( $stime > $l_maxreps) set l_maxreps = $stime
+    endif
 
     if ( $debug ) echo "++ file '$f_prefix$header' filled with '$stime' entries"
 end
@@ -437,6 +456,12 @@ echo ""
 echo "    -no_headers      : do not include headers in output file"
 echo "          e.g. -no_headers"
 echo "          the default is print column headers (# commented out)"
+echo ""
+echo "    -zero_based      : consider stim times as zero-based numbers"
+echo "          e.g. -zero_based"
+echo "          the default is 1-based (probably a bad choice...)"
+echo ""
+echo ""
 echo "------------------------------"
 echo "  Notes:"
 echo ""
