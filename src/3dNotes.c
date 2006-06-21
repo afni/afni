@@ -12,6 +12,10 @@
  *******************************************************/
 
 #include "mrilib.h"
+#undef  ZMAX
+#undef  SZMAX
+#define ZMAX  8000
+#define SZMAX "%.8000s"   /* same as ZMAX */
 
 void Error_Exit(char *message) {
         fprintf (stderr, "\n\nError: %s\n", message);
@@ -34,7 +38,7 @@ void Show_Help(void) {
 " \n"
 "3dNotes -a      \"Subject sneezed in scanner, Aug 13 2004\" elvis+orig     \n"
 "3dNotes -h      \"Subject likes fried PB & banana sandwiches\" elvis+orig  \n"
-"3dNotes -HH     \"Subject has left the building\" elvis +orig              \n"
+"3dNotes -HH     \"Subject has left the building\" elvis+orig              \n"
 "3dNotes -d 2 -h \"Subject sick of PB'n'banana sandwiches\" elvis+orig  \n"
 " \n"
 "----------------------------------------------------------------------- \n"
@@ -64,8 +68,8 @@ void Show_Help(void) {
 "                                                                        \n"
 "                                                                        \n"
 "The default action, with no options, is to display the notes for the\n"
-"dataset.  If there are options, all deletions occur first and esentially\n"
-"simutaneously.  Then, notes are added in the order listed on the command\n"
+"dataset.  If there are options, all deletions occur first and essentially\n"
+"simultaneously.  Then, notes are added in the order listed on the command\n"
 "line.  If you do something like -d 10 -d 10, it will delete both notes 10\n"
 "and 11.  Don't do that.\n\n"
    );
@@ -75,12 +79,31 @@ void Show_Help(void) {
 
 void Display_Notes(THD_3dim_dataset *dset) {
    ATR_int *notecount;
-   int num_notes, i;
+   int num_notes, i, hnotecount;
    char * chn , * chd ;
 
    notecount = THD_find_int_atr(dset->dblk, "NOTES_COUNT");
-   if (notecount == NULL) 
+   /** If present, print out History **/
+
+   chn = tross_Get_History(dset) ;
+   if( chn != NULL )
+       hnotecount = strlen(chn) ;
+   else
+       hnotecount = 0;
+
+   if ((notecount == NULL) && (hnotecount==0))
       Error_Exit("There are no notes in the dataset");
+
+   if(hnotecount) {
+       printf("\n----- HISTORY -----\n") ;
+       for( i=0 ; i < hnotecount ; i += ZMAX )
+         printf(SZMAX,chn+i);
+       free(chn) ;
+       printf("\n");
+     }
+   
+   if(notecount==NULL) return;
+   
    num_notes = notecount->in[0];
    for (i=1; i<= num_notes; i++) {
       chn = tross_Get_Note( dset , i ) ;
@@ -109,7 +132,7 @@ int main (int argc, char * argv[]) {
    int delnotes[MAX_DSET_NOTES], delindex, delnum;
    int HH=0 ;  /* 09 Dec 2000 */
    int ShowString;
-   
+   Boolean write_output;  /* 21 Jun 2006 [dg] - similar to change in 3drefit by rickr */
    if (argc == 1)   /* no file listed */
       Show_Help();
 
@@ -121,7 +144,7 @@ int main (int argc, char * argv[]) {
    }
 
 
-        /* Loop over arguements and pull out what we need */
+        /* Loop over arguments and pull out what we need */
         ShowString = 0;
         while( narg < argc && argv[narg][0] == '-' ){
 
@@ -205,8 +228,11 @@ int main (int argc, char * argv[]) {
    if( DSET_IS_3D(dset)      ) Error_Exit("Cannot use .3D dataset") ;
    if( DSET_IS_CTFMRI(dset)  ) Error_Exit("Cannot use CTF dataset") ;
    if( DSET_IS_CTFSAM(dset)  ) Error_Exit("Cannot use CTF dataset") ;
-   if( DSET_IS_NIFTI(dset)   ) Error_Exit("Cannot use NIFTI dataset") ;
-
+   if( DSET_IS_NIFTI(dset)   )  /* 21 Jun 2006 */
+      write_output = True;
+   else
+      write_output = False;
+         
    /* First, delete notes */
    do {
       delnum = 0;
@@ -240,7 +266,8 @@ int main (int argc, char * argv[]) {
    if ((curr_note == 0) && (curr_del == 0) && (history_note == NULL))
       Display_Notes(dset);
    else {
-           THD_write_3dim_dataset( NULL,NULL , dset , False ) ;
+           if(write_output) DSET_load(dset);  /* 21 Jun 2006 */
+           THD_write_3dim_dataset( NULL,NULL , dset , write_output ) ;
            THD_delete_3dim_dataset( dset , False ) ; 
    }
 
