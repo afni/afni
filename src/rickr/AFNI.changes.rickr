@@ -1541,3 +1541,7 @@
   * modified niml.h, niml_util.c: added NI_strdup_len()
   * modified @make_stim_file, adding -zero_based option
 
+27 Jun 2006:
+  * modified nifti1_io.c: fixed assign of efirst to match stated logic in
+      nifti_findhdrname() (problem found by Atle Bjørnerud)
+

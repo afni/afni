@@ -285,9 +285,12 @@ static char * gni_history[] =
   "1.19 23 May 2006 [HJohnson,rickr]\n",
   "   - nifti_write_ascii_image(): free(hstr)\n"
   "   - nifti_copy_extensions(): clear num_ext and ext_list\n"
+  "1.20 27 Jun 2006 [rickr]\n",
+  "   - nifti_findhdrname(): fixed assign of efirst to match stated logic\n"
+  "     (problem found by Atle Bjørnerud)\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.19 (23 May, 2006)";
+static char gni_version[] = "nifti library version 1.20 Jun, 2006)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1 };
@@ -2380,7 +2383,7 @@ char * nifti_findhdrname(const char* fname)
 
    /* if we get more extension choices, this could be a loop */
 
-   if ( ext && strncmp(ext,".img",4) != 0 ) efirst = 0;
+   if ( ext && strncmp(ext,".img",4) == 0 ) efirst = 0;
    else                                     efirst = 1;
 
    hdrname = (char *)calloc(sizeof(char),strlen(basename)+8);
