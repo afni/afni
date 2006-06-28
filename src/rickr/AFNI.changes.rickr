@@ -1545,7 +1545,25 @@
   * modified nifti1_io.c: fixed assign of efirst to match stated logic in
       nifti_findhdrname() (problem found by Atle Bjørnerud)
 
-28 Jun 2006:
-  * modified thd_opendset.c and 3ddata.h:
+28 Jun 2006: many changes to handle NIML and NI_SURF_DSET datasets (incomplete)
+  * added thd_niml.c
+      - top-level THD_open_niml(), THD_load_niml(), THD_write_niml() functions
+      - general read_niml_file(), write_niml_file() functions
+      - processing NI_SURF_DSET datasets, including THD_ni_surf_dset_to_afni()
+  * modified thd_opendset.c
       - added file_extension_list array and find_filename_extension()
+      - apply THD_open_niml() to NIML and NI_SURF_DSET cases
+  * modified 3ddata.h - added prototypes
+  * modified edt_dset_items.c: added DSET_IS_NIML, DSET_IS_NI_SURF_DSET cases
+      for new_prefix editing
+  * modified thd_3Ddset.c
+      - broke THD_open_3D() into read_niml_file() and THD_niml_3D_to_dataset()
+  * modified thd_fetchdset.c
+      - added NIML and NI_SURF_DSET cases
+  * modified thd_loaddblk.c
+      - opened STORAGE_BY_NIML and BY_NI_SURF_DSET cases
+  * modified thd_nimlatr.c: just for unused variables
+  * modified thd_writedset.c:
+      - added NIML and NI_SURF_DSET write cases using THD_write_niml()
+  * modified Makefile.INCLUDE: to add thd_niml.o to THD_OBJS
 

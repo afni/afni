@@ -12,7 +12,7 @@ NI_group * THD_nimlize_dsetatr( THD_3dim_dataset *dset )
    THD_datablock *blk ;
    ATR_any *atr_any ;
    NI_element *nel ;
-   int ia , ii ;
+   int ia ;
    NI_group *ngr = NULL ;   /* will be output */
 
 ENTRY("THD_nimlize_dsetatr") ;
@@ -120,8 +120,6 @@ ENTRY("THD_nimlize_dsetatr") ;
 
 void THD_dblkatr_from_niml( NI_group *ngr , THD_datablock *blk )
 {
-   ATR_any    *atr ;
-   NI_element *nel ;
    int         ip  ;
    char       *rhs ;
 

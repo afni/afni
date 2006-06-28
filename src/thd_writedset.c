@@ -144,6 +144,18 @@ ENTRY("THD_write_3dim_dataset") ;
      THD_write_3D( NULL, NULL, dset ) ; RETURN(True) ;
    }
 
+   /*------ 12 Jun 2006: use the .niml format -----*/
+
+   if( STRING_HAS_SUFFIX(ppp,".niml") || DSET_IS_NIML(dset) ){
+     THD_write_niml( dset, write_brick ) ; RETURN(True) ;
+   }
+
+   /*------ 28 Jun 2006: use the .niml.dset format -----*/
+
+   if( STRING_HAS_SUFFIX(ppp,".niml.dset") || DSET_IS_NI_SURF_DSET(dset) ){
+     THD_write_niml( dset, write_brick ) ; RETURN(True) ;
+   }
+
    /*----- write datablock to disk in AFNI .HEAD/.BRIK format -----*/
 
    RETURN( THD_write_datablock(blk,write_brick) ) ;

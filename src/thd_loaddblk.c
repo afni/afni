@@ -258,27 +258,25 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
    }
 
    if( dkptr->storage_mode == STORAGE_BY_NIML ){   /* 26 May 2006 [rickr] */
-#if 0 /* TBD */
-      THD_load_niml( blk ) ;
-     ii = THD_count_databricks( blk ) ;
-     if( ii == blk->nvals ){
+     if( THD_load_niml( blk ) ){
+        STATUS("failed to load NIML file");
+        RETURN( True );
+     }
+     if( THD_count_databricks( blk ) == blk->nvals ){
        THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
        RETURN( True ) ;
      }
-#endif
      STATUS("can't read NIML dataset file?!") ;
      RETURN( False ) ;
    }
 
    if( dkptr->storage_mode == STORAGE_BY_NI_SURF_DSET ){  /* 26 May 2006 */
-#if 0 /* TBD */
      THD_load_niml( blk ) ;
      ii = THD_count_databricks( blk ) ;
      if( ii == blk->nvals ){
        THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
        RETURN( True ) ;
      }
-#endif
      STATUS("can't read NI_SURF_DSET dataset file?!") ;
      RETURN( False ) ;
    }
