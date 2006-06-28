@@ -3329,8 +3329,9 @@ extern THD_3dim_dataset * THD_open_nifti( char * ) ;        /* 28 Aug 2003 */
 extern THD_3dim_dataset * THD_open_mpeg( char * ) ;         /* 03 Dec 2003 */
 extern THD_3dim_dataset * THD_open_tcat( char * ) ;         /* 04 Aug 2004 */
 
-extern int storage_mode_from_filename( char * fname );      /* 20 Apr 2006 */
-extern int has_known_non_afni_extension( char * fname ) ;   /*     [rickr] */
+extern int    storage_mode_from_filename( char * ) ;       /* 20 Apr 2006 */
+extern int    has_known_non_afni_extension( char * ) ;     /*     [rickr] */
+extern char * find_filename_extension( char * ) ;          /* 28 Jun 2006 */
 
 extern void THD_datablock_apply_atr( THD_3dim_dataset * ) ; /* 09 May 2005 */
 
