@@ -17,6 +17,22 @@ extern THD_3dim_dataset *THD_3dim_from_ROIstring(char *shar);
        RETURN(NULL) ;                                                     \
      }} while(0)
 
+/*-----------------------------------------------------------------
+ * this is a list of known filename extensions
+   (as found in THD_open_one_dataset())         28 Jun 2006 [rickr]
+-------------------------------------------------------------------*/
+static char * file_extension_list[] = {
+    ".HEAD", ".BRIK", ".BRIK.gz",
+    ".mnc",
+    ".mri",
+    ".svl",
+    ".1D",
+    ".3D",
+    ".nii", ".nii.gz", ".nia", ".hdr", ".img",
+    ".mpg", ".mpeg", ".MPG", ".MPEG",
+    ".niml", ".niml.dset"
+};
+
 
 /*----------------------------------------------------------------
    simply given a pathname, try to open it as a dataset
@@ -300,6 +316,31 @@ ENTRY("storage_mode_from_filename");
 
     RETURN(STORAGE_UNDEFINED);
 }
+
+
+/* ---------------------------------------------------- */
+/* given a filename, return a pointer to the extension
+ * (from file_extension_list)
+ *                                  28 Jun 2006 [rickr] */
+char * find_filename_extension( char * fname )
+{
+    char ** eptr;
+    int c, flen, num_ext;
+                                                                                
+ENTRY("find_filename_extension");
+                                                                                
+    if( !fname || !*fname ) RETURN(NULL);
+                                                                                
+    num_ext = sizeof(file_extension_list)/sizeof(char *);
+    flen = strlen(fname);
+                                                                                
+    for( c = 0, eptr = file_extension_list; c < num_ext; c++, eptr++ )
+        if( STRING_HAS_SUFFIX(fname, *eptr) )
+            RETURN(fname + (flen - strlen(*eptr)));
+                                                                                
+    RETURN(NULL);   /* not found */
+}
+
                                 
 /* ------------------------------------------------------------- */
 /* given a filename, return 1 if it has a know extension that is
