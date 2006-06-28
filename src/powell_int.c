@@ -39,7 +39,7 @@ int powell_newuoa( int ndim , double *x ,
    if( maxcall <  10+5*ndim ) maxcall = 10+5*ndim ;
 
    n      = ndim ;
-   npt    = 3*n+1; icode = (n+1)*(n+2)/2; if( npt > icode ) npt = icode;
+   npt    = (int)(2.5*n+1); icode = (n+1)*(n+2)/2; if( npt > icode ) npt=icode;
    maxfun = maxcall ;
 
    rhobeg = (doublereal)rstart ;
@@ -48,6 +48,7 @@ int powell_newuoa( int ndim , double *x ,
    icode = (npt+14)*(npt+n) + 3*n*(n+3)/2 + 666 ;
    w = (doublereal *)malloc(sizeof(doublereal)*icode) ;
    icode = 0 ;
+   userfun = ufunc ;
 
    (void)newuoa_( &n , &npt , (doublereal *)x ,
                   &rhobeg , &rhoend , &maxfun , w , &icode ) ;
