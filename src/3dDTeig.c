@@ -9,6 +9,8 @@ static void EIG_tsfunc( double tzero , double tdelta ,
                          int npts , float ts[] , double ts_mean ,
                          double ts_slope , void * ud , int nbriks, float * val ) ;
 
+static int udflag = 0;
+
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
@@ -18,7 +20,7 @@ int main( int argc , char * argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dDTeig [options] dataset\n"
              "Computes eigenvalues and eigenvectors for an input dataset of\n"
-             " 6 sub-bricks Dxx,Dxy,Dxz,Dyy,Dyz,Dzz.\n"
+             " 6 sub-bricks Dxx,Dxy,Dyy,Dxz,Dyz,Dzz (lower diagonal order).\n"
 	     " The results are stored in a 14-subbrick bucket dataset.\n"
 	     " The resulting 14-subbricks are\n"
 	     "  lambda_1,lambda_2,lambda_3,\n"
@@ -26,6 +28,12 @@ int main( int argc , char * argv[] )
              "  FA,MD.\n\n"
              "The output is a bucket dataset.  The input dataset\n"
              "may use a sub-brick selection list, as in program 3dcalc.\n"
+             " Options:\n"
+             "  -prefix pname = Use 'pname' for the output dataset prefix name.\n"
+             "    [default='DT']\n\n"
+      	     "  -datum type = Coerce the output data to be stored as the given type\n"
+	     "    which may be byte, short or float. [default=float]\n"
+             "  -uddata = tensor data is stored as upper diagonal instead of lower diagonal\n"
              " Mean diffusivity (MD) calculated as simple average of eigenvalues.\n"
 	     " Fractional Anisotropy (FA) calculated according to Pierpaoli C, Basser PJ.\n"
              " Microstructural and physiological features of tissues elucidated by\n"
@@ -74,6 +82,12 @@ int main( int argc , char * argv[] )
          }
          nopt++ ; continue ;
       }
+
+      if( strcmp(argv[nopt],"-uddata") == 0 ){   /* upper diagonal tensor data */
+        udflag = 1;
+        nopt++; continue;
+      }
+
    }
 
    /*----- read input dataset -----*/
@@ -187,11 +201,16 @@ static void EIG_tsfunc( double tzero, double tdelta ,
    }
 
    /* load the symmetric matrix vector from the "timeseries" subbrik vector values */
-
-   a[0]=ts[0]; a[1]=ts[1]; a[2]=ts[2];  
-   a[3]=ts[1]; a[4]=ts[3]; a[5]=ts[4];
-   a[6]=ts[2]; a[5]=ts[4]; a[8]=ts[5];
-
+   if(udflag) {               /* read in as upper diagonal elements */
+      a[0]=ts[0]; a[1]=ts[1]; a[2]=ts[2];  
+      a[3]=ts[1]; a[4]=ts[3]; a[5]=ts[4];
+      a[6]=ts[2]; a[5]=ts[4]; a[8]=ts[5];
+   }
+   else {         /* read D tensor in as lower diagonal elements - NIFTI standard */ 
+      a[0]=ts[0]; a[1]=ts[1]; a[2]=ts[3];
+      a[3]=ts[1]; a[4]=ts[2]; a[5]=ts[4];
+      a[6]=ts[3]; a[5]=ts[4]; a[8]=ts[5];
+   }
   symeig_double(3, a, e);    /* compute eigenvalues in e, eigenvectors in a */
  
   maxindex=2;                      /* find the lowest, middle and highest eigenvalue */
