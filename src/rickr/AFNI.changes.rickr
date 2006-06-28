@@ -1545,3 +1545,7 @@
   * modified nifti1_io.c: fixed assign of efirst to match stated logic in
       nifti_findhdrname() (problem found by Atle Bjørnerud)
 
+28 Jun 2006:
+  * modified thd_opendset.c and 3ddata.h:
+      - added file_extension_list array and find_filename_extension()
+
