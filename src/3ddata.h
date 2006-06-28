@@ -1139,6 +1139,7 @@ extern void THD_store_datablock_label    ( THD_datablock * , int , char * ) ;
 extern void THD_store_datablock_keywords ( THD_datablock * , int , char * ) ;
 extern void THD_append_datablock_keywords( THD_datablock * , int , char * ) ;
 extern int  THD_datablock_from_atr       ( THD_datablock *, char *, char * ) ;
+extern void atr_print( ATR_any * atr, char *ssep , char *spsep, char quote, int do_name) ;
 
 /*! Initialize all sub-bricks auxiliary data to nothing. */
 
@@ -3154,6 +3155,10 @@ typedef struct {
 #define ATRNAME_WARP_DATA  "WARP_DATA"
 #define ATRTYPE_WARP_DATA  ATR_FLOAT_TYPE
 #define ATRSIZE_WARP_DATA  0
+
+#define ATRNAME_WARP_DATA_3DWD_AF  "WARPDRIVE_MATVEC_INV_000000"  /* Talairach warp via 3dWarpDrive */
+#define ATRTYPE_WARP_DATA_3DWD_AF  ATR_FLOAT_TYPE
+#define ATRSIZE_WARP_DATA_3DWD_AF  0         /* not using this one. Calv. Cool. June 24 */
 
 #define ATRNAME_WARP_PARENT "WARP_PARENTNAME"
 #define ATRTYPE_WARP_PARENT ATR_STRING_TYPE
