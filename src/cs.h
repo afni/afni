@@ -58,6 +58,10 @@ extern int sphere_voronoi_vectors( int , float *, float ** ) ;
 extern float cl1_solve    ( int, int, float *, float **, float *,int ) ; /* cl1.c */
 extern float cl1_solve_res( int, int, float *, float **, float *,int, float*,int ) ; /* cl1.c */
 
+extern int powell_newuoa( int ndim , double *x ,
+                          double rstart , double rend ,
+                          int maxcall , double (*ufunc)(int,double *) ) ;
+
 extern char *approximate_number_string( double ) ;  /* 16 Jan 2004 */
 
 typedef struct {
