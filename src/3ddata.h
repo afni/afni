@@ -1139,7 +1139,6 @@ extern void THD_store_datablock_label    ( THD_datablock * , int , char * ) ;
 extern void THD_store_datablock_keywords ( THD_datablock * , int , char * ) ;
 extern void THD_append_datablock_keywords( THD_datablock * , int , char * ) ;
 extern int  THD_datablock_from_atr       ( THD_datablock *, char *, char * ) ;
-extern void atr_print( ATR_any * atr, char *ssep , char *spsep, char quote, int do_name) ;
 
 /*! Initialize all sub-bricks auxiliary data to nothing. */
 
@@ -3156,10 +3155,6 @@ typedef struct {
 #define ATRTYPE_WARP_DATA  ATR_FLOAT_TYPE
 #define ATRSIZE_WARP_DATA  0
 
-#define ATRNAME_WARP_DATA_3DWD_AF  "WARPDRIVE_MATVEC_INV_000000"  /* Talairach warp via 3dWarpDrive */
-#define ATRTYPE_WARP_DATA_3DWD_AF  ATR_FLOAT_TYPE
-#define ATRSIZE_WARP_DATA_3DWD_AF  0         /* not using this one. Calv. Cool. June 24 */
-
 #define ATRNAME_WARP_PARENT "WARP_PARENTNAME"
 #define ATRTYPE_WARP_PARENT ATR_STRING_TYPE
 #define ATRSIZE_WARP_PARENT 0
@@ -3328,10 +3323,16 @@ extern THD_3dim_dataset * THD_open_3D( char * ) ;           /* 21 Mar 2003 */
 extern THD_3dim_dataset * THD_open_nifti( char * ) ;        /* 28 Aug 2003 */
 extern THD_3dim_dataset * THD_open_mpeg( char * ) ;         /* 03 Dec 2003 */
 extern THD_3dim_dataset * THD_open_tcat( char * ) ;         /* 04 Aug 2004 */
+extern THD_3dim_dataset * THD_open_niml( char * ) ;         /* 01 Jun 2006 */
 
-extern int    storage_mode_from_filename( char * ) ;       /* 20 Apr 2006 */
-extern int    has_known_non_afni_extension( char * ) ;     /*     [rickr] */
-extern char * find_filename_extension( char * ) ;          /* 28 Jun 2006 */
+extern THD_3dim_dataset * THD_niml_3D_to_dataset( NI_element *, char * ) ;
+extern THD_3dim_dataset * THD_ni_surf_dset_to_afni( NI_group *, int ) ;
+extern void * read_niml_file( char *, int ) ;
+extern int    storage_mode_from_niml( void * ) ;
+
+
+extern int storage_mode_from_filename( char * fname );      /* 20 Apr 2006 */
+extern int has_known_non_afni_extension( char * fname ) ;   /*     [rickr] */
 
 extern void THD_datablock_apply_atr( THD_3dim_dataset * ) ; /* 09 May 2005 */
 
@@ -3507,6 +3508,7 @@ extern void    THD_load_3D     ( THD_datablock * ) ;         /* 21 Mar 2003 */
 extern void    THD_load_nifti  ( THD_datablock * ) ;         /* 28 Aug 2003 */
 extern void    THD_load_mpeg   ( THD_datablock * ) ;         /* 03 Dec 2003 */
 extern void    THD_load_tcat   ( THD_datablock * ) ;         /* 04 Aug 2004 */
+extern int     THD_load_niml   ( THD_datablock * ) ;         /* 12 Jun 2006 */
 
 extern void    THD_zerofill_dataset( THD_3dim_dataset * ) ;  /* 18 Mar 2005 */
 extern int     THD_apply_master_subrange( THD_datablock * ); /* 14 Apr 2006 */
@@ -3517,10 +3519,13 @@ extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
 #define ALLOW_FSL_FEAT  /* 27 Aug 2002 */
 
 #define MINC_FLOATIZE_MASK 1
-extern int THD_write_minc( char *, THD_3dim_dataset * , int ) ; /* 11 Apr 2002 */
+extern int THD_write_minc( char *, THD_3dim_dataset * , int) ; /* 11 Apr 2002 */
 
-extern void THD_write_1D ( char *, char *, THD_3dim_dataset *); /* 04 Mar 2003 */
-extern void THD_write_3D ( char *, char *, THD_3dim_dataset *); /* 21 Mar 2003 */
+extern void THD_write_1D( char *, char *, THD_3dim_dataset *); /* 04 Mar 2003 */
+extern void THD_write_3D( char *, char *, THD_3dim_dataset *); /* 21 Mar 2003 */
+extern int  THD_write_niml( THD_3dim_dataset *, int);
+
+extern int  write_niml_file( char *, NI_group *);      /* 12 Jun 2006 [rickr] */
 
 extern void THD_reconcile_parents( THD_sessionlist * ) ;
 extern THD_slist_find THD_dset_in_sessionlist( int,void *, THD_sessionlist *, int ) ;

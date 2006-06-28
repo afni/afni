@@ -21,10 +21,12 @@ ENTRY("THD_fetch_dset") ;
 
    hp = AFMALL(char, sizeof(char)*(strlen(url)+32)) ; strcpy(hp,url) ;
    cp = strstr(hp,".HEAD") ;
-   if( cp == NULL                       &&
-       !STRING_HAS_SUFFIX(hp,".nii")    &&  /* 28 Aug 2003 */
-       !STRING_HAS_SUFFIX(hp,".nii.gz") &&  /* 06 Apr 2005 */
-       !STRING_HAS_SUFFIX(hp,".mnc")    &&
+   if( cp == NULL                          &&
+       !STRING_HAS_SUFFIX(hp,".nii")       &&  /* 28 Aug 2003 */
+       !STRING_HAS_SUFFIX(hp,".nii.gz")    &&  /* 06 Apr 2005 */
+       !STRING_HAS_SUFFIX(hp,".niml")      &&  /* 16 Jun 2006 [rickr] */
+       !STRING_HAS_SUFFIX(hp,".niml.dset") &&
+       !STRING_HAS_SUFFIX(hp,".mnc")       &&
        !STRING_HAS_SUFFIX(hp,".mnc.gz")   ) strcat(hp,".HEAD") ;
 
    /*** read the .HEAD file to a temporary file ***/
@@ -38,7 +40,10 @@ ENTRY("THD_fetch_dset") ;
    fprintf(stderr,": %d bytes read\n ++ Trying to initialize dataset %s\n",nhp,thp) ;
    THD_allow_empty_dataset(1) ;
    dset = THD_open_one_dataset(thp) ;
-   if( DSET_IS_MINC(dset) || DSET_IS_NIFTI(dset) ) DSET_load(dset) ;  /* 29 Oct 2001 */
+   if( DSET_IS_MINC(dset) || DSET_IS_NIFTI(dset) ||       /* 29 Oct 2001 */
+       DSET_IS_NIML(dset) || DSET_IS_NI_SURF_DSET(dset) ) /* 16 Jun 2006 [r] */
+      DSET_load(dset) ;
+
    THD_allow_empty_dataset(0) ;
    unlink(thp) ; free(thp) ;
    if( dset == NULL ){ fprintf(stderr," ** Can't decode %s\n",hp); free(hp); RETURN(NULL); }
@@ -49,7 +54,9 @@ ENTRY("THD_fetch_dset") ;
    }
 
    DSET_superlock(dset) ;  /* don't let be deleted from memory */
-   if( DSET_IS_MINC(dset) || DSET_IS_NIFTI(dset) ) RETURN(dset) ;  /* 29 Oct 2001 */
+   if( DSET_IS_MINC(dset) || DSET_IS_NIFTI(dset) ||       /* 29 Oct 2001 */
+       DSET_IS_NIML(dset) || DSET_IS_NI_SURF_DSET(dset) ) /* 16 Jun 2006 [r] */
+      RETURN(dset) ;
    DSET_mallocize(dset) ;
 
    /*** try to read the .BRIK or .BRIK.gz file into memory ***/

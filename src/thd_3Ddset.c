@@ -8,35 +8,36 @@
 /*-----------------------------------------------------------------*/
 /*! Open a NIML 3D file as an AFNI dataset.  Each column is a
     separate sub-brick.  Dataset returned is empty (no data).
+
+    Broken into modules.      31 May 2006 [rickr]
 -------------------------------------------------------------------*/
 
 THD_3dim_dataset * THD_open_3D( char *pathname )
+{
+   THD_3dim_dataset *dset=NULL ;  /* use locals only for tracing */
+   NI_element *nel ;
+
+ENTRY("THD_open_3D") ;
+
+   nel = read_niml_file(pathname, 0) ;  /* do not get data */
+   if( nel ) dset = THD_niml_3D_to_dataset(nel, pathname) ;
+
+   RETURN(dset) ;
+}
+
+/*-----------------------------------------------------------------*/
+/*! Convert a NIML 3D element (no data) to an AFNI dataset.
+    This was moved from THD_open_3D().  31 May 2006 [rickr]
+-------------------------------------------------------------------*/
+THD_3dim_dataset * THD_niml_3D_to_dataset( NI_element * nel, char * pathname )
 {
    THD_3dim_dataset *dset=NULL ;
    char prefix[1024] , *ppp ;
    THD_ivec3 nxyz , orixyz ;
    THD_fvec3 dxyz , orgxyz ;
    int nvals , ii ;
-   NI_element *nel ;
-   NI_stream ns ;
 
-ENTRY("THD_open_3D") ;
-
-   /*-- read input file into NI_element --*/
-
-   if( pathname == NULL || *pathname == '\0' ) RETURN(NULL) ;
-
-   ppp = (char*)calloc( sizeof(char) , strlen(pathname)+16 ) ;
-
-   strcpy(ppp,"file:") ; strcat(ppp,pathname) ;
-   ns = NI_stream_open( ppp , "r" ) ; free(ppp) ;
-   if( ns == NULL ) RETURN(NULL) ;
-
-STATUS("reading header") ;
-
-   NI_skip_procins(1) ; NI_read_header_only(1) ;
-   nel = NI_read_element(ns,333); NI_stream_close(ns);
-   NI_skip_procins(0) ; NI_read_header_only(0) ;
+ENTRY("THD_3D_niml_to_dataset") ;
 
    /*-- check data element for reasonability --*/
 
