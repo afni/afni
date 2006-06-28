@@ -81,6 +81,9 @@ static void matrix_copy (matrix a, matrix * b);
 static int DWI_Open_NIML_stream(void);
 static int DWI_NIML_create_graph(void);
 static void DWI_AFNI_update_graph(double *Edgraph, double *dtau, int npts);
+static void vals_to_NIFTI(float *val);
+static void Save_Sep_DTdata(THD_3dim_dataset *, char *, int);
+static void Copy_dset_array(THD_3dim_dataset *, int,int,char *, int);
 
 int
 main (int argc, char *argv[])
@@ -101,7 +104,7 @@ main (int argc, char *argv[])
   double *cumulativewtptr;
   int mmvox=0 ;
   int nxyz;
-
+  int sep_dsets = 0;
 
    /*----- Read command line -----*/
   if (argc < 2 || strcmp (argv[1], "-help") == 0)
@@ -141,11 +144,12 @@ main (int argc, char *argv[])
               "   -verbose nnnnn = print convergence steps every nnnnn voxels that survive to\n"
               "    convergence loops (can be quite lengthy).\n\n"
               "   -drive_afni nnnnn = show convergence graphs every nnnnn voxels that survive\n"
-              "    to convergence loops. AFNI must have NIML communications on (afni -niml).\n\n"
+              "    to convergence loops. AFNI must have NIML communications on (afni -niml)\n\n"
+              "   -sep_dsets = save tensor, eigenvalues,vectors,FA,MD in separate datasets\n\n"
               " Example:\n"
               "  3dDWItoDT -prefix rw01 -automask -reweight -max_iter 10 \\\n"
               "            -max_iter_rw 10 tensor25.1D grad02+orig.\n\n"
-	      " The output is a 6 sub-brick bucket dataset containing Dxx,Dxy,Dxz,Dyy,Dyz,Dzz.\n"
+	      " The output is a 6 sub-brick bucket dataset containing Dxx,Dxy,Dyy,Dxz,Dyz,Dzz.\n"
               " Additional sub-briks may be appended with the -eigs and -debug_briks options.\n"
 	      " These results are appropriate as the input to the 3dDTeig program.\n"
 	      "\n");
@@ -343,6 +347,14 @@ main (int argc, char *argv[])
 	  continue;
         }
 
+     if (strcmp (argv[nopt], "-sep_dsets") == 0)
+        {
+          sep_dsets = 1;  /* save data in separate datasets */
+          nopt++;
+	  continue;
+        }
+
+
 	ERROR_exit("Error - unknown option %s", argv[nopt]);
     }
   
@@ -467,25 +479,6 @@ main (int argc, char *argv[])
       /*anat_im = THD_extract_float_brick( 0, old_dset ); */
       anat_im = DSET_BRICK (old_dset, 0);	/* set pointer to the 0th sub-brik of the dataset */
       maskptr = mri_automask_image (anat_im);	/* maskptr is a byte pointer for volume */
-#if 0
-      /* convert byte mask to same format type as dataset */
-      nvox = DSET_NVOX (old_dset);
-      sar = (short *) calloc (nvox, sizeof (short));
-      /* copy maskptr values to far ptr */
-      tempsptr = sar;
-      tempbptr = maskptr;
-      for (i = 0; i < nvox; i++)
-	{
-	  *tempsptr++ = (short) *tempbptr++;
-	  tempval = *(tempsptr - 1);
-	}
-
-      free (maskptr);
-
-      /*old_dset->dblk->malloc_type = DATABLOCK_MEM_MALLOC; *//* had to set this? */
-      EDIT_add_brick (old_dset, MRI_short, 0.0, sar);	/* add sub-brik to end */
-
-#endif
     }
 
   /* temporarily set artificial timing to 1 second interval */
@@ -557,8 +550,8 @@ main (int argc, char *argv[])
       tross_Copy_History (old_dset, new_dset);
       EDIT_dset_items (new_dset, ADN_brick_label_one + 0, "Dxx", ADN_none);
       EDIT_dset_items (new_dset, ADN_brick_label_one + 1, "Dxy", ADN_none);
-      EDIT_dset_items (new_dset, ADN_brick_label_one + 2, "Dxz", ADN_none);
-      EDIT_dset_items (new_dset, ADN_brick_label_one + 3, "Dyy", ADN_none);
+      EDIT_dset_items (new_dset, ADN_brick_label_one + 3, "Dxz", ADN_none);
+      EDIT_dset_items (new_dset, ADN_brick_label_one + 2, "Dyy", ADN_none);
       EDIT_dset_items (new_dset, ADN_brick_label_one + 4, "Dyz", ADN_none);
       EDIT_dset_items (new_dset, ADN_brick_label_one + 5, "Dzz", ADN_none);
       if(eigs_flag) {
@@ -587,8 +580,12 @@ main (int argc, char *argv[])
       }
 
       tross_Make_History ("3dDWItoDT", argc, argv, new_dset);
-      DSET_write (new_dset);
-      INFO_message("--- Output dataset %s", DSET_BRIKNAME(new_dset));
+      if(sep_dsets)
+         Save_Sep_DTdata(new_dset, prefix, datum);
+      else {
+         DSET_write (new_dset);
+         INFO_message("--- Output dataset %s", DSET_BRIKNAME(new_dset));
+      } 
     }
   else
     {
@@ -597,6 +594,122 @@ main (int argc, char *argv[])
 
   exit (0);
 }
+
+/*! save separate datasets for each kind of output */
+static void
+Save_Sep_DTdata(whole_dset, prefix, output_datum)
+THD_3dim_dataset *whole_dset; /* whole dataset */
+char *prefix;
+int output_datum;
+{
+/* takes base prefix and appends to it for DT, eigvalues, eigvectors, FA, MD,
+   debug bricks */
+   int nbriks;
+   char nprefix[THD_MAX_PREFIX], tprefix[THD_MAX_PREFIX];
+   char *ext, nullch; 
+   
+   ENTRY("Save_Sep_DTdata");
+   sprintf(tprefix,"%s",prefix);
+   if(has_known_non_afni_extension(prefix)){   /* for NIFTI, 3D, Niml, Analyze,...*/
+      ext = find_filename_extension(prefix);
+      tprefix[strlen(prefix) - strlen(ext)] = '\0';  /* remove non-afni-extension for now*/
+   }
+   else {
+      nullch = '\0';
+      ext = &nullch;
+   }
+   
+   sprintf(nprefix,"%s_DT%s", tprefix,ext);
+   Copy_dset_array(whole_dset,0,6, nprefix, output_datum);
+   if(eigs_flag) {
+     sprintf(nprefix,"%s_L1%s", tprefix,ext);
+     Copy_dset_array(whole_dset,6,1, nprefix, output_datum);
+     sprintf(nprefix,"%s_L2%s", tprefix,ext);
+     Copy_dset_array(whole_dset,7,1, nprefix, output_datum);
+     sprintf(nprefix,"%s_L3%s", tprefix,ext);
+     Copy_dset_array(whole_dset,8,1, nprefix, output_datum);
+     sprintf(nprefix,"%s_V1%s", tprefix,ext);
+     Copy_dset_array(whole_dset,9,3, nprefix, output_datum);
+     sprintf(nprefix,"%s_V2%s", tprefix,ext);
+     Copy_dset_array(whole_dset,12,3, nprefix, output_datum);
+     sprintf(nprefix,"%s_V3%s", tprefix,ext);
+     Copy_dset_array(whole_dset,15,3, nprefix, output_datum);
+     sprintf(nprefix,"%s_FA%s", tprefix,ext);
+     Copy_dset_array(whole_dset,18,1, nprefix, output_datum);
+     sprintf(nprefix,"%s_MD%s", tprefix,ext);
+     Copy_dset_array(whole_dset,19,1, nprefix, output_datum);
+   }  
+   if(debug_briks) {
+     sprintf(nprefix,"%s_debugbriks%s", tprefix,ext);
+     nbriks =   whole_dset->dblk->nvals;
+     Copy_dset_array(whole_dset,nbriks-4,4, nprefix, output_datum);
+   }
+   
+   EXRETURN;
+}
+
+static void
+Copy_dset_array(whole_dset,startbrick,nbriks,prefix,output_datum)
+THD_3dim_dataset *whole_dset;
+int startbrick, nbriks;
+char *prefix;
+int output_datum;
+{
+   THD_3dim_dataset *out_dset;
+   MRI_IMAGE *data_im = NULL;
+
+   int i, ierror;
+   MRI_IMARR *fim_array;
+   MRI_IMAGE *fim;
+   void *dataptr;
+   float *fbuf;
+   void *out_ptr;
+
+ENTRY("Copy_dset_array");
+
+   out_dset = EDIT_empty_copy(whole_dset) ;
+   fbuf = (float *)  malloc (sizeof(float)   * nbriks);
+
+   tross_Copy_History (whole_dset, out_dset);
+   ierror = EDIT_dset_items( out_dset ,
+            ADN_malloc_type , DATABLOCK_MEM_MALLOC , /* store in memory */
+                        ADN_prefix , prefix ,
+			ADN_datum_all, output_datum,
+			ADN_nvals, nbriks,
+			ADN_ntt, 0,
+                        ADN_type        , ISHEAD(whole_dset)       /* dataset type */
+                                 ? HEAD_FUNC_TYPE
+                                 : GEN_FUNC_TYPE ,
+                        ADN_func_type   , FUNC_BUCK_TYPE ,        /* function type */
+                        ADN_none ) ;
+			
+   if(ierror>0) 
+       ERROR_exit("*** Error - Unable to edit dataset!");
+
+   THD_init_datablock_keywords( out_dset->dblk ) ;
+   THD_init_datablock_stataux( out_dset->dblk ) ; /* for some reason, need to do this for 
+                                                    single brick NIFTI files */
+ 
+   /* attach brick, factors and labels to new dataset using existing brick pointers */
+   for(i=0;i<nbriks;i++) {
+      fim = DSET_BRICK(whole_dset,startbrick+i);
+      dataptr = mri_data_pointer(fim);
+      fbuf[i] = whole_dset->dblk->brick_fac[startbrick+i];
+      /* copy labels here too.....*/  
+      EDIT_dset_items (out_dset, ADN_brick_label_one + i, whole_dset->dblk->brick_lab[startbrick+i], ADN_none);
+      /*----- attach mri_image pointer to to be sub-brick #i -----*/
+      EDIT_substitute_brick(out_dset, i, output_datum, dataptr);
+   }
+
+   (void) EDIT_dset_items( out_dset , ADN_brick_fac , fbuf , ADN_none ) ;
+   DSET_write (out_dset);
+   INFO_message("--- Output dataset %s", DSET_BRIKNAME(out_dset));
+   /*----- deallocate memory -----*/
+   THD_delete_3dim_dataset (out_dset, False);   out_dset = NULL ;
+   free (fbuf);   fbuf = NULL;
+   EXRETURN;
+}
+
 
 /* Form R matrix as matrix of [bxx 2bxy 2bxz byy 2byz bzz] for Np rows */
 static void
@@ -664,7 +777,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
   int max_converge_step, graphpoint;
   double dtau[50], Edgraph[50];
   int graphflag;
-
+  
   ENTRY ("DWItoDT_tsfunc");
   /* ts is input vector data of Np+1 floating point numbers.
      For each point in volume brik convert vector data to
@@ -751,6 +864,9 @@ DWItoDT_tsfunc (double tzero, double tdelta,
        val[18] = Calc_FA(val+6);                /* calculate fractional anisotropy */
        val[19] = Calc_MD(val+6);                /* calculate mean diffusivity */
      }
+
+     vals_to_NIFTI(val);
+
      EXRETURN;
   }
  
@@ -774,7 +890,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
        val[nbriks-2] = 0;                  /* store original error */
        val[nbriks-1] = 0;
      }
-
+    vals_to_NIFTI(val);   /* swap D tensor values for NIFTI standard */
     EXRETURN;
   }
 
@@ -801,6 +917,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
       val[nbriks-4] = -1.0; /* use -1 as flag for number of converge steps to mean exited for insignificant deltatau value */
       val[nbriks-1] = J;
     }
+    vals_to_NIFTI(val);   /* swap D tensor values for NIFTI standard */
     EXRETURN;
   }
 
@@ -979,6 +1096,8 @@ DWItoDT_tsfunc (double tzero, double tdelta,
   if(graphflag==1) {
      DWI_AFNI_update_graph(Edgraph, dtau, graphpoint);
   }
+
+  vals_to_NIFTI(val);   /* swap D tensor values for NIFTI standard */
 
   EXRETURN;
 }
@@ -2035,3 +2154,12 @@ static void DWI_AFNI_update_graph(double *Edgraph, double *dtau, int npts)
    EXRETURN;
 }
 
+/* need to put D tensor in NIFTI format standard */
+static void vals_to_NIFTI(float *val)
+{
+     float temp;
+     
+     temp = val[2];              /* D tensor as lower diagonal for NIFTI standard */
+     val[2] = val[3];
+     val[3] = temp;
+}

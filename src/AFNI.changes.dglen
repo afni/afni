@@ -128,3 +128,12 @@ DTIStudioFibertoSegments.Also updated warning and error messages to AFNI
 standards. Made help clearer for @DTI_studio_reposition.
 21 Jun 2006
  * 3dNotes support for NIFTI file format and display of history notes
+22 Jun 2006
+ * 3dZcat updated to support NIFTI. edt_dsetitems had to be modified also for
+ duplication of .nii or .nii.gz suffix in file names.
+ * 3dDWItoDT can now make separate files for each type of output data to make it
+ easier to work with other packages. Lower diagonal order used for Dtensor to
+ make compliant with NIFTI standard in 3dDWItoDT and 3dDTeig.
+ 
+ 
+ 
