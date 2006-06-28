@@ -326,22 +326,22 @@ char * find_filename_extension( char * fname )
 {
     char ** eptr;
     int c, flen, num_ext;
-                                                                                
+
 ENTRY("find_filename_extension");
-                                                                                
+
     if( !fname || !*fname ) RETURN(NULL);
-                                                                                
+
     num_ext = sizeof(file_extension_list)/sizeof(char *);
     flen = strlen(fname);
-                                                                                
+
     for( c = 0, eptr = file_extension_list; c < num_ext; c++, eptr++ )
         if( STRING_HAS_SUFFIX(fname, *eptr) )
             RETURN(fname + (flen - strlen(*eptr)));
-                                                                                
+
     RETURN(NULL);   /* not found */
 }
 
-                                
+
 /* ------------------------------------------------------------- */
 /* given a filename, return 1 if it has a know extension that is
  * not an AFNI extension                     20 Apr 2006 [rickr] */
