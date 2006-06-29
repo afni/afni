@@ -174,7 +174,7 @@ void Syntax(char *str)
     "                  dataset using -atrstring option. A cursed day came when\n"
     "                  it was convenient to use -atrcopy to copy an AFNI-specific\n"
     "                  attribute (BRICK_LABS to be exact) and for that to\n"
-    "                  take effect in the ouput, the option -saveatr was added.\n"
+    "                  take effect in the output, the option -saveatr was added.\n"
     "                  Contact Daniel Glen and/or Rick Reynolds for further \n"
     "                  clarification and any other needs you may have.\n"
     "\n"
