@@ -648,6 +648,7 @@ int output_datum;
    EXRETURN;
 }
 
+/*! create new dataset from part of existing dataset in memory */
 static void
 Copy_dset_array(whole_dset,startbrick,nbriks,prefix,output_datum)
 THD_3dim_dataset *whole_dset;
@@ -665,7 +666,7 @@ int output_datum;
    float *fbuf;
    void *out_ptr;
 
-ENTRY("Copy_dset_array");
+   ENTRY("Copy_dset_array");
 
    out_dset = EDIT_empty_copy(whole_dset) ;
    fbuf = (float *)  malloc (sizeof(float)   * nbriks);
