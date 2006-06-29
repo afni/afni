@@ -51,6 +51,7 @@ SUMA_Boolean SUMA_isSO (SUMA_DO DO);
 SUMA_Boolean SUMA_isSO_G (SUMA_DO DO, char *Group);
 SUMA_DOMAIN_KINSHIPS SUMA_WhatAreYouToMe (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2);
 SUMA_Boolean SUMA_isRelated (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2, int level);
+SUMA_Boolean SUMA_isNBVrelated (SUMA_SegmentDO *SDO, SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_isROIrelated (SUMA_ROI *ROI, SUMA_SurfaceObject *SO);
 SUMA_DRAWN_ROI * SUMA_FetchROI_InCreation (SUMA_SurfaceObject *SO, SUMA_DO * dov, int N_dov); 

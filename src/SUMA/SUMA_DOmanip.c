@@ -250,6 +250,7 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
             fprintf(SUMA_STDERR,"Error SUMA_freeROI, could not free  ROI.\n");
          }
          break;
+      case NBV_type:
       case OLS_type:
       case LS_type:
          SUMA_free_SegmentDO ((SUMA_SegmentDO *)dov->OP);
@@ -1366,6 +1367,55 @@ SUMA_DRAWN_ROI * SUMA_FetchROI_InCreation (SUMA_SurfaceObject *SO, SUMA_DO * dov
    }
    SUMA_RETURN (NULL);
 }
+
+/*!
+\brief Returns YUP if the surface: NBV->Parent_idcode_str is the same as SO->idcode_str.
+NOPE otherwise
+
+ans = SUMA_isNBVrelated (NBV, SO);
+
+\param NBV (SUMA_SegmentDO  *) pointer to NBV object
+\param SO (SUMA_SurfaceObject *) pointer to surface object
+\return ans (SUMA_Boolean) YUP/NOPE
+
+*/
+SUMA_Boolean SUMA_isNBVrelated (SUMA_SegmentDO *SDO, SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_isNBVrelated"};
+   SUMA_SurfaceObject *SO_NBV = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   /* Just compare the idcodes, not allowing for kinship yet but code below could do that */
+   if (strcmp(SO->idcode_str, SDO->Parent_idcode_str) == 0) {
+      SUMA_RETURN(YUP);
+   } else {
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (LocalHead) {
+      fprintf (SUMA_STDERR, "%s: %s SO->LocalDomainParentID\n", FuncName, SO->LocalDomainParentID);
+      fprintf (SUMA_STDERR, "%s: %s SDO->Parent_idcode_str\n", FuncName, SDO->Parent_idcode_str);
+      fprintf (SUMA_STDERR, "%s: %s SO->idcode_str\n", FuncName, SO->idcode_str);
+   }
+   
+   /* find the pointer to the surface having for an idcode_str: ROI->Parent_idcode_str */
+   SO_NBV = SUMA_findSOp_inDOv(SDO->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+   
+   if (!SO_NBV) {
+      SUMA_SL_Err("Could not find surface of SDO->Parent_idcode_str");
+      SUMA_RETURN (NOPE);
+   }
+   
+   if ( SUMA_isRelated (SO, SO_NBV, 1)) { /*  relationship of the 1st order only */ 
+      SUMA_RETURN (YUP);
+   }
+   
+   /* If you get here, you have SO_NBV so return happily */
+   SUMA_RETURN (NOPE);
+}
+
 
 /*!
 \brief Returns YUP if the surface: dROI->Parent_idcode_str is related to SO->idcode_str or SO->LocalDomainParentID.

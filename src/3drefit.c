@@ -187,14 +187,15 @@ void Syntax(char *str)
     "                  communicating information between programs.  However,\n"
     "                  when most AFNI programs write a new dataset, they will\n"
     "                  not preserve any such non-standard attributes.\n"
-    "  -saveatr        Copy the attributes that are known to AFNI into the \n"
-    "                  dset->dblk structure thereby forcing changes to known\n"
+    "  -saveatr        (default) Copy the attributes that are known to AFNI into \n"
+    "                  the dset->dblk structure thereby forcing changes to known\n"
     "                  attributes to be present in the output.\n"
     "                  This option only makes sense with -atrcopy\n"
     "          **N.B.: Don't do something like copy labels of a dataset with \n"
     "                  30 sub-bricks to one that has only 10, or vice versa.\n"
     "                  This option is for those who would deservedly earn a\n"
     "                  hunting license.\n"
+    "  -nosaveatr      Opposite of -saveatr\n"
     "     Example: \n"
     "     3drefit -saveatr -atrcopy WithLabels+tlrc BRICK_LABS NeedsLabels+tlrc\n"
    ) ;
@@ -325,7 +326,7 @@ int main( int argc , char * argv[] )
 
    int   num_atrcopy = 0 ;    /* 03 Aug 2005 */
    ATR_any **atrcopy = NULL ;
-   int saveatr = 0;
+   int saveatr = 1;
    
    /*-------------------------- help me if you can? --------------------------*/
 
@@ -411,6 +412,10 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-saveatr") == 0 ){
         saveatr = 1 ; iarg++ ; continue ;
+      }
+      
+      if( strcmp(argv[iarg],"-nosaveatr") == 0 ){
+        saveatr = 0 ; iarg++ ; continue ;
       }
       
       /*----- -denote [08 Jul 2005] -----*/

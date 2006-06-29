@@ -73,7 +73,8 @@ float * SUMA_PolySurf3 (float *NodeList, int N_Node, int *FaceSetList, int N_Fac
 float SUMA_TriSurf3 (float *n0, float *n1, float *n2);
 float * SUMA_TriSurf3v (float *NodeList, int *FaceSets, int N_FaceSet);
 SUMA_Boolean SUMA_TriNorm (float *n0, float *n1, float *n2, float *norm);
-SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float *NodeList, int N_Node, float *NodeNormList, float *Face_A, int N_FaceSet, SUMA_NODE_FIRST_NEIGHB *FN, SUMA_EDGE_LIST *el);
+SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float *NodeList, int N_Node, float *NodeNormList, float *Face_A, 
+                                                   int N_FaceSet, SUMA_NODE_FIRST_NEIGHB *FN, SUMA_EDGE_LIST *el, char *out);
 SUMA_Boolean SUMA_Householder (float *Ni, float **Q);
 void SUMA_Free_SURFACE_CURVATURE (SUMA_SURFACE_CURVATURE *SC);
 float * SUMA_Convexity (float *NodeList, int N_Node, float *NodeNormList, SUMA_NODE_FIRST_NEIGHB *FN);

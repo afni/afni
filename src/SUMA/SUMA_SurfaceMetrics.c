@@ -125,7 +125,7 @@ void usage_SUMA_SurfaceMetrics ()
                "                   If the surface does not have a spec file, use the \n"
                "                   program quickspec to create one.\n"
                "   -surf_A insurf: Name of surface of interest. \n"
-               "                   NOTE: i_TYPE inSurf option is now obsolete.\n"
+               "                   NOTE: i_TYPE inSurf option is not supported for this program.\n"
                "\n"
                "   -sv SurfaceVolume [VolParam for sf surfaces]: Specify a surface volume\n"
                "                   for surface alignment. See ConvertSurface -help for more info.\n"
@@ -216,7 +216,7 @@ int main (int argc,char *argv[])
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
 		if (!brk && (strcmp(argv[kar], "-i_fs") == 0)) {
-         SUMA_SL_Err("Option -i_fs is obsolete.\nUse -spec and -surf_A instead.\n");
+         SUMA_SL_Err("Option -i_fs is not supported for this program.\nUse -spec and -surf_A instead.\n");
          exit(1);
          kar ++;
 			if (kar >= argc)  {
@@ -229,7 +229,7 @@ int main (int argc,char *argv[])
 		}
       
       if (!brk && (strcmp(argv[kar], "-i_sf") == 0)) {
-         SUMA_SL_Err("Option -i_sf is obsolete.\nUse -spec and -surf_A instead.\n");
+         SUMA_SL_Err("Option -i_sf is not supported for this program.\nUse -spec and -surf_A instead.\n");
          exit(1);
          kar ++;
 			if (kar+1 >= argc)  {
@@ -243,7 +243,7 @@ int main (int argc,char *argv[])
 		}
       
       if (!brk && (strcmp(argv[kar], "-i_vec") == 0)) {
-         SUMA_SL_Err("Option -i_vec is obsolete.\nUse -spec and -surf_A instead.\n");
+         SUMA_SL_Err("Option -i_vec is not supported for this program.\nUse -spec and -surf_A instead.\n");
          exit(1);
          kar ++;
 			if (kar+1 >= argc)  {
@@ -257,7 +257,7 @@ int main (int argc,char *argv[])
 		}
       
       if (!brk && (strcmp(argv[kar], "-i_ply") == 0)) {
-         SUMA_SL_Err("Option -i_ply is obsolete.\nUse -spec and -surf_A instead.\n");
+         SUMA_SL_Err("Option -i_ply is not supported for this program.\nUse -spec and -surf_A instead.\n");
          exit(1);
          kar ++;
 			if (kar >= argc)  {

@@ -2889,7 +2889,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
    if (DoCurv) {
       /* calculate the curvature */
       if (LocalHead) fprintf(SUMA_STDOUT, "%s: Calculating curvature ...\n", FuncName);
-      SO->SC = SUMA_Surface_Curvature (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->PolyArea, SO->N_FaceSet, SO->FN, SO->EL);
+      SO->SC = SUMA_Surface_Curvature (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->PolyArea, SO->N_FaceSet, SO->FN, SO->EL, NULL);
    }
    
    
