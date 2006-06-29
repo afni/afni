@@ -8,6 +8,8 @@ static int datum                   = MRI_float ;
 static void EIG_tsfunc( double tzero , double tdelta ,
                          int npts , float ts[] , double ts_mean ,
                          double ts_slope , void * ud , int nbriks, float * val ) ;
+static void Save_Sep_eigdata(THD_3dim_dataset *, char *, int);
+static void Copy_dset_array(THD_3dim_dataset *, int,int,char *, int);
 
 static int udflag = 0;
 
@@ -15,6 +17,7 @@ int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
    int nopt, nbriks ;
+   int sep_dsets = 0;
 
    /*----- Read command line -----*/
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -30,10 +33,11 @@ int main( int argc , char * argv[] )
              "may use a sub-brick selection list, as in program 3dcalc.\n"
              " Options:\n"
              "  -prefix pname = Use 'pname' for the output dataset prefix name.\n"
-             "    [default='DT']\n\n"
+             "    [default='eig']\n\n"
       	     "  -datum type = Coerce the output data to be stored as the given type\n"
-	     "    which may be byte, short or float. [default=float]\n"
-             "  -uddata = tensor data is stored as upper diagonal instead of lower diagonal\n"
+	     "    which may be byte, short or float. [default=float]\n\n"
+             "  -sep_dsets = save eigenvalues,vectors,FA,MD in separate datasets\n\n"
+             "  -uddata = tensor data is stored as upper diagonal instead of lower diagonal\n\n"
              " Mean diffusivity (MD) calculated as simple average of eigenvalues.\n"
 	     " Fractional Anisotropy (FA) calculated according to Pierpaoli C, Basser PJ.\n"
              " Microstructural and physiological features of tissues elucidated by\n"
@@ -50,9 +54,7 @@ int main( int argc , char * argv[] )
    nbriks = 14 ;
    datum = MRI_float;
    while( nopt < argc && argv[nopt][0] == '-' ){
-
       /*-- prefix --*/
-
       if( strcmp(argv[nopt],"-prefix") == 0 ){
          if( ++nopt >= argc ){
             ERROR_exit("  -prefix needs an argument!");
@@ -65,7 +67,6 @@ int main( int argc , char * argv[] )
       }
 
       /*-- datum --*/
- 
       if( strcmp(argv[nopt],"-datum") == 0 ){
          if( ++nopt >= argc ){
             ERROR_exit(" -datum needs an argument!");
@@ -88,10 +89,17 @@ int main( int argc , char * argv[] )
         nopt++; continue;
       }
 
+      if (strcmp (argv[nopt], "-sep_dsets") == 0)
+         {
+           sep_dsets = 1;  /* save data in separate datasets */
+           nopt++;
+	   continue;
+         }
+
+      ERROR_exit("Error - unknown option %s", argv[nopt]);
    }
 
    /*----- read input dataset -----*/
-
    if( nopt >= argc ){
       ERROR_exit("No input dataset!?");
    }
@@ -145,13 +153,127 @@ int main( int argc , char * argv[] )
       EDIT_dset_items(new_dset, ADN_brick_label_one+13,"MD",ADN_none);
 
       tross_Make_History( "3dDTeig" , argc,argv , new_dset ) ;
-      DSET_write( new_dset ) ;
-      INFO_message("Output dataset: %s",DSET_BRIKNAME(new_dset)) ;
+      if(sep_dsets)
+         Save_Sep_eigdata(new_dset, prefix, datum);
+      else {
+         DSET_write (new_dset);
+         INFO_message("--- Output dataset %s", DSET_BRIKNAME(new_dset));
+      } 
    } else {
       ERROR_exit("Unable to compute output dataset!") ;
    }
 
    exit(0) ;
+}
+
+
+/*! save separate datasets for each kind of output */
+/* copied from 3dDWItoDT.c */
+static void
+Save_Sep_eigdata(whole_dset, prefix, output_datum)
+THD_3dim_dataset *whole_dset; /* whole dataset */
+char *prefix;
+int output_datum;
+{
+/* takes base prefix and appends to it for eigvalues, eigvectors, FA, MD */
+   int nbriks;
+   char nprefix[THD_MAX_PREFIX], tprefix[THD_MAX_PREFIX];
+   char *ext, nullch; 
+   
+   ENTRY("Save_Sep_eigdata");
+
+   sprintf(tprefix,"%s",prefix);
+   if(has_known_non_afni_extension(prefix)){   /* for NIFTI, 3D, Niml, Analyze,...*/
+      ext = find_filename_extension(prefix);
+      tprefix[strlen(prefix) - strlen(ext)] = '\0';  /* remove non-afni-extension for now*/
+   }
+   else {
+      nullch = '\0';
+      ext = &nullch;
+   }
+  
+   sprintf(nprefix,"%s_L1%s", tprefix,ext);
+   Copy_dset_array(whole_dset,0,1, nprefix, output_datum);
+   sprintf(nprefix,"%s_L2%s", tprefix,ext);
+   Copy_dset_array(whole_dset,1,1, nprefix, output_datum);
+   sprintf(nprefix,"%s_L3%s", tprefix,ext);
+   Copy_dset_array(whole_dset,2,1, nprefix, output_datum);
+   sprintf(nprefix,"%s_V1%s", tprefix,ext);
+   Copy_dset_array(whole_dset,3,3, nprefix, output_datum);
+   sprintf(nprefix,"%s_V2%s", tprefix,ext);
+   Copy_dset_array(whole_dset,6,3, nprefix, output_datum);
+   sprintf(nprefix,"%s_V3%s", tprefix,ext);
+   Copy_dset_array(whole_dset,9,3, nprefix, output_datum);
+   sprintf(nprefix,"%s_FA%s", tprefix,ext);
+   Copy_dset_array(whole_dset,12,1, nprefix, output_datum);
+   sprintf(nprefix,"%s_MD%s", tprefix,ext);
+   Copy_dset_array(whole_dset,13,1, nprefix, output_datum);
+   
+   EXRETURN;
+}
+
+/*! create new dataset from part of existing dataset in memory */
+/* copied from 3dDWItoDT.c */
+static void
+Copy_dset_array(whole_dset,startbrick,nbriks,prefix,output_datum)
+THD_3dim_dataset *whole_dset;
+int startbrick, nbriks;
+char *prefix;
+int output_datum;
+{
+   THD_3dim_dataset *out_dset;
+   MRI_IMAGE *data_im = NULL;
+
+   int i, ierror;
+   MRI_IMARR *fim_array;
+   MRI_IMAGE *fim;
+   void *dataptr;
+   float *fbuf;
+   void *out_ptr;
+
+   ENTRY("Copy_dset_array");
+
+   out_dset = EDIT_empty_copy(whole_dset) ;
+   fbuf = (float *)  malloc (sizeof(float)   * nbriks);
+
+   tross_Copy_History (whole_dset, out_dset);
+   ierror = EDIT_dset_items( out_dset ,
+            ADN_malloc_type , DATABLOCK_MEM_MALLOC , /* store in memory */
+                        ADN_prefix , prefix ,
+			ADN_datum_all, output_datum,
+			ADN_nvals, nbriks,
+			ADN_ntt, 0,
+                        ADN_type        , ISHEAD(whole_dset)       /* dataset type */
+                                 ? HEAD_FUNC_TYPE
+                                 : GEN_FUNC_TYPE ,
+                        ADN_func_type   , FUNC_BUCK_TYPE ,        /* function type */
+                        ADN_none ) ;
+			
+   if(ierror>0) 
+       ERROR_exit("*** Error - Unable to edit dataset!");
+
+   THD_init_datablock_keywords( out_dset->dblk ) ;
+   THD_init_datablock_stataux( out_dset->dblk ) ; /* for some reason, need to do this for 
+                                                    single brick NIFTI files */
+ 
+   /* attach brick, factors and labels to new dataset using existing brick pointers */
+   for(i=0;i<nbriks;i++) {
+      fim = DSET_BRICK(whole_dset,startbrick+i);
+      dataptr = mri_data_pointer(fim);
+      fbuf[i] = whole_dset->dblk->brick_fac[startbrick+i];
+      /* copy labels here too.....*/  
+      EDIT_dset_items (out_dset, ADN_brick_label_one + i, whole_dset->dblk->brick_lab[startbrick+i], ADN_none);
+      /*----- attach mri_image pointer to to be sub-brick #i -----*/
+      EDIT_substitute_brick(out_dset, i, output_datum, dataptr);
+   }
+
+   (void) EDIT_dset_items( out_dset , ADN_brick_fac , fbuf , ADN_none ) ;
+   DSET_write (out_dset);
+   INFO_message("--- Output dataset %s", DSET_BRIKNAME(out_dset));
+   /*----- deallocate memory -----*/
+   THD_delete_3dim_dataset (out_dset, False);   out_dset = NULL ;
+   free (fbuf);   fbuf = NULL;
+   EXRETURN;
 }
 
 /**********************************************************************
