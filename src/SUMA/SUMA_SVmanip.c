@@ -212,7 +212,65 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->light1_position[1] = 1.0;
       SV->light1_position[2] = 1.0;
       SV->light1_position[3] = 0.0;
-
+      
+      SV->dim_spe = 1.0;
+      SV->dim_dif = 1.0;
+      SV->dim_emi = 1.0;
+      SV->dim_amb = 1.0;
+      
+      {
+         static SUMA_Boolean err = NOPE;
+         float fv3[3];
+         char *eee = getenv("SUMA_Light0Color");
+         if (eee && !err) {
+            if (SUMA_StringToNum (eee, fv3, 3) != 3) { 
+               err = YUP;
+               SUMA_SL_Err("Syntax error in environment\n"
+                           "variable SUMA_Light0Color");
+               SV->light0_color[0] = SUMA_LIGHT0_COLOR_R;
+               SV->light0_color[1] = SUMA_LIGHT0_COLOR_G;
+               SV->light0_color[2] = SUMA_LIGHT0_COLOR_B;
+               SV->light0_color[3] = SUMA_LIGHT0_COLOR_A;
+            }else {
+               SV->light0_color[0] = fv3[0];
+               SV->light0_color[1] = fv3[1];
+               SV->light0_color[2] = fv3[2];
+               SV->light0_color[3] = SUMA_LIGHT0_COLOR_A;  
+            }
+         }else {
+            SV->light0_color[0] = SUMA_LIGHT0_COLOR_R;
+            SV->light0_color[1] = SUMA_LIGHT0_COLOR_G;
+            SV->light0_color[2] = SUMA_LIGHT0_COLOR_B;
+            SV->light0_color[3] = SUMA_LIGHT0_COLOR_A;   
+         } 
+      }
+      
+      {
+         static SUMA_Boolean err = NOPE;
+         float fv3[3];
+         char *eee = getenv("SUMA_AmbientLight");
+         if (eee && !err) {
+            if (SUMA_StringToNum (eee, fv3, 3) != 3) { 
+               err = YUP;
+               SUMA_SL_Err("Syntax error in environment\n"
+                           "variable SUMA_AmbientLight");
+               SV->lmodel_ambient[0] = SUMA_LMODEL_AMBIENT_COLOR_R;
+               SV->lmodel_ambient[1] = SUMA_LMODEL_AMBIENT_COLOR_G;
+               SV->lmodel_ambient[2] = SUMA_LMODEL_AMBIENT_COLOR_B;
+               SV->lmodel_ambient[3] = SUMA_LMODEL_AMBIENT_COLOR_A;
+            }else {
+               SV->lmodel_ambient[0] = fv3[0];
+               SV->lmodel_ambient[1] = fv3[1];
+               SV->lmodel_ambient[2] = fv3[2];
+               SV->lmodel_ambient[3] = SUMA_LMODEL_AMBIENT_COLOR_A;  
+            }
+         }else {
+            SV->lmodel_ambient[0] = SUMA_LMODEL_AMBIENT_COLOR_R;
+            SV->lmodel_ambient[1] = SUMA_LMODEL_AMBIENT_COLOR_G;
+            SV->lmodel_ambient[2] = SUMA_LMODEL_AMBIENT_COLOR_B;
+            SV->lmodel_ambient[3] = SUMA_LMODEL_AMBIENT_COLOR_A;   
+         } 
+      }
       {
          static SUMA_Boolean err = NOPE;
          float fv3[3];
@@ -239,7 +297,6 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
             SV->clear_color[3] = SUMA_CLEAR_COLOR_A;   
          } 
       }
-      
       
       SV->WindWidth = 350;
       SV->WindHeight = 350;

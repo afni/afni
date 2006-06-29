@@ -618,20 +618,56 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_L:
-               prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "X,Y,Z coordinates of light0:", 
-                                                      "",
-                                                      sv->X->TOPLEVEL, NOPE,
-                                                      SUMA_APPLY_BUTTON,
-                                                      SUMA_SetLight0, (void *)sv,
-                                                      NULL, NULL,
-                                                      NULL, NULL,
-                                                      SUMA_isNumString, (void*)3,  
-                                                      NULL);
-               
-               prmpt = SUMA_CreatePromptDialog(sv->X->Title, prmpt);
+               if ((Kev.state & ControlMask)){
+                  if (SUMAg_CF->Dev) {
+                     GLfloat light0_color[] = { SUMA_LIGHT0_COLOR_INIT};
+                     sv->dim_spe = sv->dim_spe * 0.8; if (sv->dim_spe < 0.1) sv->dim_spe = 1.0;
+                     sv->dim_dif = sv->dim_dif * 0.8; if (sv->dim_dif < 0.1) sv->dim_dif = 1.0;
+                     sv->dim_amb = sv->dim_amb * 0.8; if (sv->dim_amb < 0.1) sv->dim_amb = 1.0;
+                     sv->dim_emi = sv->dim_emi * 0.8; if (sv->dim_emi < 0.1) sv->dim_emi = 1.0;
+                     /* dim the lights */
+                     fprintf(SUMA_STDERR,"%s:  light dim factor now %.3f\n", FuncName, sv->dim_spe);
+                     /*fprintf(SUMA_STDERR,"%s:  light dim factor now %.3f\n%f %f %f %f\n", FuncName, sv->dim_spe,
+                                                         sv->light0_color[0], sv->light0_color[1], sv->light0_color[2], sv->light0_color[3]);
+                                                         */
+                     light0_color[0] = sv->light0_color[0]*sv->dim_spe;
+                     light0_color[1] = sv->light0_color[1]*sv->dim_spe;
+                     light0_color[2] = sv->light0_color[2]*sv->dim_spe;
+                     light0_color[3] = sv->light0_color[3]*sv->dim_spe;
+                     glLightfv(GL_LIGHT0, GL_SPECULAR, light0_color);
+                     light0_color[0] = sv->light0_color[0]*sv->dim_dif;
+                     light0_color[1] = sv->light0_color[1]*sv->dim_dif;
+                     light0_color[2] = sv->light0_color[2]*sv->dim_dif;
+                     light0_color[3] = sv->light0_color[3]*sv->dim_dif;
+                     glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_color);
+                     light0_color[0] = sv->lmodel_ambient[0]*sv->dim_amb;
+                     light0_color[1] = sv->lmodel_ambient[1]*sv->dim_amb;
+                     light0_color[2] = sv->lmodel_ambient[2]*sv->dim_amb;
+                     light0_color[3] = sv->lmodel_ambient[3]*sv->dim_amb;
+                     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, sv->lmodel_ambient);
+                     if (!list) list = SUMA_CreateList(); 
+                     SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+
+                     if (!SUMA_Engine (&list)) {
+                        fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+                     }
+                  }
+               } else {
+                  prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "X,Y,Z coordinates of light0:", 
+                                                         "",
+                                                         sv->X->TOPLEVEL, NOPE,
+                                                         SUMA_APPLY_BUTTON,
+                                                         SUMA_SetLight0, (void *)sv,
+                                                         NULL, NULL,
+                                                         NULL, NULL,
+                                                         SUMA_isNumString, (void*)3,  
+                                                         NULL);
+
+                  prmpt = SUMA_CreatePromptDialog(sv->X->Title, prmpt);
+               }
                
             break;
-
+         
          case XK_M:
             if ((Kev.state & Mod1Mask || Kev.state & Mod2Mask) && (Kev.state & ControlMask) ){
                   #ifndef DONT_USE_MCW_MALLOC
@@ -922,8 +958,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_Z:
-            /*fprintf(stdout,"Zoom in");*/
             sv->FOV[sv->iState] /= (1+sv->KeyZoomGain); if (sv->FOV[sv->iState] < FOV_MIN) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MIN; }
+            /*fprintf(stderr,"Zoom in %f\n", sv->FOV[sv->iState]);*/
             /* Now update the zoom compensation variable */
             if (sv->ZoomCompensate) {
                sv->ZoomCompensate = sv->FOV[sv->iState] / sv->FOV_original;
@@ -934,8 +970,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_z:
-            /*fprintf(stdout,"Zoom out");*/
-            sv->FOV[sv->iState] /= (1-sv->KeyZoomGain); if (sv->FOV[sv->iState] > FOV_MAX) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MAX; }
+            sv->FOV[sv->iState] /= (1-sv->KeyZoomGain); 
+            if (sv->ortho) { 
+               if (sv->FOV[sv->iState] > FOV_MAX/2.0) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MAX/2.0; }
+            } else {
+               if (sv->FOV[sv->iState] > FOV_MAX) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MAX; }
+            }
+            /*fprintf(stderr,"Zoom out %f\n", sv->FOV[sv->iState]);*/
             /* Now update the zoom compensation variable */
             if (sv->ZoomCompensate) {
                sv->ZoomCompensate = sv->FOV[sv->iState] / sv->FOV_original;
@@ -1033,7 +1074,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         break;
                      }
                   }
-                  SO->SC = SUMA_Surface_Curvature (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->PolyArea, SO->N_FaceSet, SO->FN, SO->EL);
+                  SO->SC = SUMA_Surface_Curvature (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->PolyArea, SO->N_FaceSet, SO->FN, SO->EL, "Curvs_c.txt");
                   if (SO->SC == NULL) {
                         fprintf(stderr,"Error %s: Failed in SUMA_Surface_Curvature\n", FuncName);
                         break;
@@ -1353,11 +1394,16 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             
             {
                char stmp[200];
-               if (sv->ortho) sprintf(stmp,"Using orthographic projection viewing"); 
-               else sprintf(stmp,"Using perspective viewing");
+               if (sv->ortho) {
+                  sprintf(stmp,"Using orthographic projection viewing");
+                  sv->FOV[sv->iState] = sv->FOV[sv->iState] / 2.0;
+               } else {
+                  sprintf(stmp,"Using perspective viewing");
+                  sv->FOV[sv->iState] = sv->FOV[sv->iState] * 2.0;
+               }
                SUMA_SLP_Note(stmp);
             }
-            
+
             SUMA_SET_GL_PROJECTION(sv);
             SUMA_postRedisplay(w, clientData, callData);
             break; 

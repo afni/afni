@@ -309,13 +309,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
                                                         SUMA_LoadSegDO, (void *)sv,
                                                         NULL, NULL,
-                                                        "*",
+                                                        "*.1D*",
                                                         SUMAg_CF->X->FileSelectDlg);
             } else {
                SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
                                                         SUMA_LoadSegDO, (void *)sv,
                                                         NULL, NULL,
-                                                        "*",
+                                                        "*.1D*",
                                                         SUMAg_CF->X->FileSelectDlg);
             }
             SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Displayable Objects File", &SUMAg_CF->X->FileSelectDlg);
