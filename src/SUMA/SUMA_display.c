@@ -273,11 +273,12 @@ SUMA_postRedisplay(Widget w,
    SUMA_RETURNe;
 }
 
-void SUMA_LoadSegDO (char *s, void *csvp)
+void SUMA_LoadSegDO (char *s, void *csvp )
 {
    static char FuncName[]={"SUMA_LoadSegDO"};
    SUMA_SegmentDO *SDO = NULL;
    SUMA_SurfaceViewer *sv;
+   SUMA_SurfaceObject *SO=NULL;
    SUMA_DO_Types dotp=no_type;
    void *VDO = NULL;
    
@@ -295,15 +296,26 @@ void SUMA_LoadSegDO (char *s, void *csvp)
    }
    
    switch (dotp) {
+      case NBV_type:
+         if (!(SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP)) {
+            SUMA_SL_Err("No surface in focus to which the vector would be attached.\n");
+            SUMA_RETURNe;
+         }
+         if (!(SDO = SUMA_ReadNBVecDO(s, 1, SO->idcode_str))) {
+            SUMA_SL_Err("Failed to read segments file.\n");
+            SUMA_RETURNe;
+         }
+         VDO = (void *)SDO;
+         break;
       case OLS_type:
-         if (!(SDO = SUMA_ReadSegDO(s, 1))) {
+         if (!(SDO = SUMA_ReadSegDO(s, 1, NULL))) {
             SUMA_SL_Err("Failed to read segments file.\n");
             SUMA_RETURNe;
          }
          VDO = (void *)SDO;
          break;
       case LS_type:
-         if (!(SDO = SUMA_ReadSegDO(s, 0))) {
+         if (!(SDO = SUMA_ReadSegDO(s, 0, NULL))) {
             SUMA_SL_Err("Failed to read segments file.\n");
             SUMA_RETURNe;
          }
@@ -691,6 +703,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case ROIO_type:
                /* those are drawn by SUMA_DrawMesh */
                break;
+            case NBV_type:
             case OLS_type:
             case LS_type:
                if (!SUMA_DrawSegmentDO ((SUMA_SegmentDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
@@ -744,6 +757,9 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                /* those are drawn by SUMA_DrawMesh */
                break;
             case ROIO_type:
+               /* those are drawn by SUMA_DrawMesh */
+               break;
+            case NBV_type:
                /* those are drawn by SUMA_DrawMesh */
                break;
             case OLS_type:
@@ -884,11 +900,8 @@ SUMA_context_Init(SUMA_SurfaceViewer *sv)
    GLfloat mat_diffuse[] = { SUMA_MAT_DIFFUSE_INIT };
    GLfloat mat_emission[] = { SUMA_MAT_EMISSION_INIT  };
    
-   GLfloat light0_color[] = { SUMA_LIGHT0_COLOR_INIT};
    /*GLfloat green_light[] = { 0.0, 1.0, 0.0, 1.0};*/
    
-   GLfloat lmodel_ambient[] = {SUMA_LMODEL_AMBIENT};
-
    SUMA_ENTRY;
 
    glClearColor (sv->clear_color[0], sv->clear_color[1], sv->clear_color[2], sv->clear_color[3]);
@@ -906,15 +919,15 @@ SUMA_context_Init(SUMA_SurfaceViewer *sv)
    
    /* set the directional light properties */
    glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
-   glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_color);
-   glLightfv(GL_LIGHT0, GL_SPECULAR, light0_color);
+   glLightfv(GL_LIGHT0, GL_DIFFUSE, sv->light0_color);
+   glLightfv(GL_LIGHT0, GL_SPECULAR, sv->light0_color);
 
    /*glLightfv(GL_LIGHT1, GL_POSITION, sv->light1_position);
    glLightfv(GL_LIGHT1, GL_DIFFUSE, green_light);
    glLightfv(GL_LIGHT1, GL_SPECULAR, green_light);*/
    
    /* set the ambient light */
-   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
+   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, sv->lmodel_ambient);
  
    glEnable(GL_LIGHTING); /* prepare GL to perform lighting calculations */
    glEnable(GL_LIGHT0); /*Turn lights ON */
@@ -3307,7 +3320,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    Display *dpy;
    SUMA_SurfaceObject *SO;
    char *slabel, *lbl30; 
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    static char FuncName[] = {"SUMA_cb_createSurfaceCont"};
    
    SUMA_ENTRY;

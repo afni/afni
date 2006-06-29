@@ -4339,10 +4339,11 @@ void SUMA_Show_Edge_List (SUMA_EDGE_LIST *EL, FILE *Out)
    if (EL->idcode_str) fprintf(Out,"IDcode: %s\n", EL->idcode_str);
    else fprintf(Out,"IDcode: NULL\n");
    
-   fprintf(Out,"i-\t[EL[i][0] EL[i][1]]\t[ELps[i][0] ELps[i][1] ELps[i][2] ELps[i][3]]\n");
+   fprintf(Out,"Average InterNodal Distance: %f\n", EL->AvgLe);
+   fprintf(Out,"i-\t[EL[i][0] EL[i][1]]\t[ELps[i][0] ELps[i][1] ELps[i][2] ELps[i][3]]\tLe[i]\n");
    for (i=0; i < EL->N_EL; ++i) {
-      fprintf(Out,"%d-\t[%d %d]\t[%d %d %d %d]\n", 
-               i, EL->EL[i][0], EL->EL[i][1], EL->ELps[i][0], EL->ELps[i][1], EL->ELps[i][2], EL->ELps[i][3]);
+      fprintf(Out,"%d-\t[%d %d]\t[%d %d %d %d]\t%f\n", 
+               i, EL->EL[i][0], EL->EL[i][1], EL->ELps[i][0], EL->ELps[i][1], EL->ELps[i][2], EL->ELps[i][3], EL->Le[i]);
    
    }
    fprintf(Out,"\nTriLimb contents:\n");
@@ -4452,6 +4453,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
    else SEL->owner_id[0] = '\0';
    SEL->LinkedPtrType = SUMA_LINKED_OVERLAY_TYPE;
 
+   SEL->AvgLe = 0.0;
    SEL->N_EL = 3 * N_FL;
    SEL->EL = (int **) SUMA_allocate2D (SEL->N_EL, 2, sizeof(int)); /* edge list */
    SEL->ELloc = (int *)SUMA_calloc(N_Node, sizeof(int));
@@ -4559,13 +4561,16 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
    #endif
    
    /* calculate the length of each edge */
+   SEL->AvgLe = 0.0;
    for (ie=0; ie < SEL->N_EL; ++ie) {
       in1 = 3 * SEL->EL[ie][0]; in2 = 3 * SEL->EL[ie][1];
       dx = (NodeList[in2] - NodeList[in1]);
       dy = (NodeList[in2+1] - NodeList[in1+1]);
       dz = (NodeList[in2+2] - NodeList[in1+2]);
       SEL->Le[ie] = (float) sqrt (  dx * dx + dy * dy + dz * dz );
+      SEL->AvgLe += SEL->Le[ie];
    }
+   SEL->AvgLe = SEL->AvgLe / (float)SEL->N_EL; /* This is an approximate average lenght, since some edges may counted more than others */
    
    /* free unsorted ELp */
    if (ELp) SUMA_free2D((char **)ELp, SEL->N_EL);
@@ -5785,7 +5790,7 @@ float * SUMA_PolySurf3 (float *NodeList, int N_Node, int *FaceSets, int N_FaceSe
    #define DBG_1
 #endif
 /*! function to calculate the curvature tensor at each node 
-   SC = SUMA_Surface_Curvature (NodeList, N_Node, NodeNormList, A, N_FaceSet, FN, SUMA_EDGE_LIST *SEL)
+   SC = SUMA_Surface_Curvature (NodeList, N_Node, NodeNormList, A, N_FaceSet, FN, SUMA_EDGE_LIST *SEL, char *odbg_name)
    
    \param NodeList (float *) N_Node x 3 vector containing the XYZ coordinates of the nodes
    \param N_Node (int)  number of nodes in NodeList
@@ -5794,6 +5799,7 @@ float * SUMA_PolySurf3 (float *NodeList, int N_Node, int *FaceSets, int N_FaceSe
    \param N_FaceSet (int) number of triangles making up the mesh
    \param FN (SUMA_NODE_FIRST_NEIGHB *) structure containing Node Neighbors
    \param SEL (SUMA_EDGE_LIST *) structure containing the Edge List
+   \param odbg_name (char *) a name to use for outputing the results. For debugging mostly. NULL if you want no output to disk.
    
    \ret SC (SUMA_SURFACE_CURVATURE *) structure containing the curvature info, see typedef of struct for more info
    
@@ -5806,7 +5812,9 @@ float * SUMA_PolySurf3 (float *NodeList, int N_Node, int *FaceSets, int N_FaceSe
 */
 
 
-SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float *NodeList, int N_Node, float *NodeNormList, float *A, int N_FaceSet, SUMA_NODE_FIRST_NEIGHB *FN, SUMA_EDGE_LIST *SEL)
+SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, float *NodeNormList, 
+                                                   float *A, int N_FaceSet, SUMA_NODE_FIRST_NEIGHB *FN, SUMA_EDGE_LIST *SEL,
+                                                   char *odbg_name)
 { 
    static char FuncName[] = {"SUMA_Surface_Curvature"};
    int i, N_Neighb, j, ji, Incident[MAX_INCIDENT_TRI], N_Incident, kk, ii, id, ND; 
@@ -6106,10 +6114,10 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float *NodeList, int N_Node, fl
    }/* for i */
 
    /* write out the results to a file (debugging only)*/
-   {
+   if (odbg_name) {
       FILE *fid;
-      fprintf(SUMA_STDOUT,"%s: Writing Kp1 & Kp2 to Curvs_c.txt ...", FuncName);
-      fid = fopen("Curvs_c.txt","w");
+      fprintf(SUMA_STDOUT,"%s: Writing Kp1 & Kp2 to %s ...", FuncName, odbg_name );
+      fid = fopen(odbg_name,"w");
       for (ii=0; ii < SC->N_Node; ++ii) {
          /*fprintf(fid,"%f %f\n", (SC->Kp1[ii]+SC->Kp2[ii])/2, SC->Kp1[ii]*SC->Kp2[ii]);*/
          fprintf(fid,"%f %f\n", SC->Kp1[ii], SC->Kp2[ii]);

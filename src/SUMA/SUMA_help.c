@@ -654,8 +654,11 @@ char * SUMA_help_message_Info(void)
       "        Cross hair's XYZ remain unchanged.\n"
       "        Does not update in other viewers\n"
       "        or in AFNI\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     L: Light's XYZ coordinates\n");
+   SS = SUMA_StringAppend_va (SS, 
+      "     L: Light's XYZ coordinates.\n"
+      "        Default setting is 0.0 0.0 %.1f \n", 1.0 * SUMA_INTITIAL_LIGHT0_SWITCH);
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
+      "     Ctrl+L: Dim all lights and colors by a factor of 0.8\n" );
    SS = SUMA_StringAppend (SS, 
       "     l: look at point\n");
    SS = SUMA_StringAppend (SS, 
@@ -737,6 +740,26 @@ char * SUMA_help_message_Info(void)
       "                          between 0 and 1.0\n"
       "                 8  cols: ox oy oz c0 c1 c2 c3 rd\n"
       "                 9  cols: ox oy oz c0 c1 c2 c3 rd st\n"
+      "          Type 3:Vectors (vx, vy, vz) at surface nodes \n"
+      "                 1st line must be '#node-based_vectors' (without quotes)\n"
+      "                 Remainder of file is N rows, each defining a \n"
+      "                 a vector at a particular node.\n"
+      "                 Column content depends on the number of columns\n"
+      "                 in the file:\n"
+      "                 3  cols: vx, vy, vz \n"
+      "                          node index 'n' is implicit equal to row index.\n"
+      "                          Vector 'v' is from coordinates of node 'n' to \n"
+      "                          coordinates of node 'n' + 'v'\n"
+      "                 4  cols: n, vx, vy, vz \n"
+      "                          Here the node index 'n' is explicit. You can\n"
+      "                          have multiple vectors per node, one on \n"
+      "                          each row.\n"
+      "                 5  cols: n, vx, vy, vz, gn\n"
+      "                          with gn being a vector gain factor\n"
+      "                 8  cols: n, vx, vy, vz, c0 c1 c2 c3\n"
+      "                          with with c0..3 being the RGBA values\n"
+      "                          between 0 and 1.0\n"
+      "                 9  cols: n, vx, vy, vz, c0 c1 c2 c3 gn\n"   
             );
    SS = SUMA_StringAppend (SS, 
       "     Alt+s: Switch mouse buttons 1 and 3.\n\n");

@@ -601,8 +601,9 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
       dotp = LS_type;
    } else if (strstr(sbuf,"#oriented_segments")) {
       dotp = OLS_type;
+   } else if (strstr(sbuf,"#node-based_vectors")) {
+      dotp = NBV_type; 
    } 
-   
    if (LocalHead) {
       fprintf(SUMA_STDERR,"%s: Searched header string:\n>>>%s<<<\ndotp = %d\n", FuncName, sbuf, dotp);
    }
@@ -620,11 +621,12 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
       if N_n > 0  SDO->n0 and n1 (GLfloat *) vector to 3*N_n elements to contain the XYZ of nodes n0 and n1.
       else SDO->n0 and n1 = NULL
    \param Label (char *) label of segment DO. Pass NULL for no labels
-
+   \param Parent_idcode_str (char *) Parent surface of SegmentDO.
+                                     For the moment, if not NULL this means the segment is NodeBased
    \returns SDO (SUMA_SegmentDO *) 
      
 */
-SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented)
+SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented, char *Parent_idcode_str)
 {
    static char FuncName[]={"SUMA_Alloc_SegmentDO"};
    SUMA_SegmentDO * SDO= NULL;
@@ -637,17 +639,31 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented)
          SUMA_RETURN (SDO);
    }
    if (N_n > 0) {
-      SDO->n0 = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
+      if (!Parent_idcode_str) {
+         SDO->NodeBased = 0;
+         SDO->NodeID = NULL;
+         SDO->Parent_idcode_str = NULL;
+         SDO->n0 = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
+      } else {
+         SDO->NodeBased = 1;
+         SDO->Parent_idcode_str = SUMA_copy_string(Parent_idcode_str);
+         SDO->NodeID = (int*) SUMA_calloc(N_n, sizeof(int));
+      }
       SDO->n1 = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
    
-      if (!SDO->n0 || !SDO->n1) {
+      if ( (!SDO->NodeBased && !SDO->n0) || (SDO->NodeBased && !SDO->NodeID) || !SDO->n1) {
          fprintf(stderr,"Error %s: Failed to allocate for SDO-n1 or SDO->n0\n", FuncName);
          if (SDO->n0) SUMA_free (SDO->n0);
          if (SDO->n1) SUMA_free (SDO->n1);
+         if (SDO->NodeID) SUMA_free(SDO->NodeID);
+         if (SDO->Parent_idcode_str) SUMA_free(SDO->Parent_idcode_str);
          if (SDO) SUMA_free (SDO);
          SUMA_RETURN (NULL);
       }
    } else {
+      SDO->NodeID = NULL;
+      SDO->NodeBased = 0;
+      SDO->Parent_idcode_str = NULL;
       SDO->n0 = NULL;
       SDO->n1 = NULL;
       SDO->N_n = 0;
@@ -689,6 +705,8 @@ void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO)
    
    if (!SDO) SUMA_RETURNe;
    
+   if (SDO->Parent_idcode_str) SUMA_free(SDO->Parent_idcode_str);
+   if (SDO->NodeID) SUMA_free(SDO->NodeID); 
    if (SDO->n0) SUMA_free(SDO->n0);
    if (SDO->n1) SUMA_free(SDO->n1);
    if (SDO->idcode_str) SUMA_free(SDO->idcode_str);
@@ -702,7 +720,161 @@ void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO)
    SUMA_RETURNe;
 }
 
-SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented)
+SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id)
+{
+   static char FuncName[]={"SUMA_ReadNBVecDO"};
+   SUMA_SegmentDO *SDO = NULL;
+   MRI_IMAGE * im = NULL;
+   float *far=NULL;
+   int itmp, itmp2, icol_thick = -1, icol_col=-1, icol_id = -1, icol_vec = -1;
+   int nrow=-1, ncol=-1;
+   char buf[30];
+   
+   SUMA_ENTRY;
+   
+   if (!s) {
+      SUMA_SLP_Err("NULL s");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (!parent_SO_id) {
+      SUMA_SLP_Err("NULL parent_SO_id");
+      SUMA_RETURN(NULL);
+   }
+   im = mri_read_1D (s);
+
+   if (!im) {
+      SUMA_SLP_Err("Failed to read 1D file");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (oriented) sprintf(buf,"Oriented Node-Based Vectors");
+   else sprintf(buf,"How can a vector not be oriented, fool! ");
+   
+   far = MRI_FLOAT_PTR(im);
+   ncol = im->nx;
+   nrow = im->ny;
+
+   if (!ncol) {
+      SUMA_SLP_Err("Empty file");
+      SUMA_RETURN(NULL);
+   }
+   
+   icol_col = -1;
+   icol_thick = -1;
+   icol_id = -1;
+   icol_vec = -1;
+   switch (nrow) {
+      case 3:
+         fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
+                              "vx vy vz\n", FuncName, buf, s);
+         icol_vec = 0;
+         break;
+      case 4:
+         fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
+                              "n vx vy vz\n", FuncName, buf, s);
+         icol_id = 0;
+         icol_vec = 1;
+         break;
+      case 5:
+         fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
+                              "n vx vy vz th\n", FuncName, buf, s);
+         icol_id = 0;
+         icol_vec = 1;
+         icol_thick = 4;
+         break;
+      case 8:
+         fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
+                              "n vx vy vz c0 c1 c2 c3\n", FuncName, buf, s);
+         
+         icol_id = 0;
+         icol_vec = 1;
+         icol_col = 4;
+         break;
+      case 9:
+         fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
+                              "n vx vy vz c0 c1 c2 c3 th\n", FuncName, buf, s);
+         
+         icol_id = 0;
+         icol_vec = 1;
+         icol_col = 4;
+         icol_thick = 8;
+         break;
+      default:
+         SUMA_SLP_Err("File must have\n"
+                   "3,4,5,8 or 9 columns.");
+         mri_free(im); im = NULL;   /* done with that baby */
+         SUMA_RETURN(NULL);
+   }
+
+   /* allocate for segments DO */
+   SDO = SUMA_Alloc_SegmentDO (ncol, s, oriented, parent_SO_id);
+   if (!SDO) {
+      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Allocate_SegmentDO.\n", FuncName);
+      SUMA_RETURN(NULL);
+   }
+
+   /* fill up SDO */
+   itmp = 0;
+   while (itmp < SDO->N_n) {
+      itmp2 = 3*itmp;
+      SDO->n1[itmp2]   = far[itmp+(icol_vec  )*ncol];
+      SDO->n1[itmp2+1] = far[itmp+(icol_vec+1)*ncol];
+      SDO->n1[itmp2+2] = far[itmp+(icol_vec+2)*ncol];
+      ++itmp;
+   } 
+   
+   if (icol_id >= 0) {
+      itmp = 0;
+      while (itmp < SDO->N_n) {
+         SDO->NodeID[itmp]   = far[itmp+(icol_id  )*ncol];
+         ++itmp;
+      }
+   } else {
+      itmp = 0;
+      while (itmp < SDO->N_n) {
+         SDO->NodeID[itmp]   = itmp;
+         ++itmp;
+      }
+   }
+   
+   if (icol_col > 0) {
+      SDO->colv = (GLfloat *)SUMA_malloc(4*sizeof(GLfloat)*SDO->N_n);
+      if (!SDO->colv) {
+         SUMA_SL_Crit("Failed in to allocate for colv.");
+         SUMA_RETURN(NULL);
+      }
+      /* fill up idividual colors */
+      itmp = 0;
+      while (itmp < SDO->N_n) {
+         itmp2 = 4*itmp;
+         SDO->colv[itmp2]     = far[itmp+(icol_col  )*ncol];
+         SDO->colv[itmp2+1]   = far[itmp+(icol_col+1)*ncol];
+         SDO->colv[itmp2+2]   = far[itmp+(icol_col+2)*ncol];
+         SDO->colv[itmp2+3]   = far[itmp+(icol_col+3)*ncol];
+         ++itmp;
+      } 
+   }
+   if (icol_thick > 0) {
+      SDO->thickv = (GLfloat *)SUMA_malloc(sizeof(GLfloat)*SDO->N_n);
+      if (!SDO->thickv) {
+         SUMA_SL_Crit("Failed in to allocate for colv.");
+         SUMA_RETURN(NULL);
+      }
+      /* fill up idividual thickness */
+      itmp = 0;
+      while (itmp < SDO->N_n) {
+         SDO->thickv[itmp]     = far[itmp+(icol_thick  )*ncol];
+         ++itmp;
+      } 
+   }
+   
+   mri_free(im); im = NULL; far = NULL;
+
+   SUMA_RETURN(SDO);
+}
+
+SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *parent_SO_id)
 {
    static char FuncName[]={"SUMA_ReadSegDO"};
    SUMA_SegmentDO *SDO = NULL;
@@ -769,7 +941,7 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented)
    }
 
    /* allocate for segments DO */
-   SDO = SUMA_Alloc_SegmentDO (ncol, s, oriented);
+   SDO = SUMA_Alloc_SegmentDO (ncol, s, oriented, NULL);
    if (!SDO) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Allocate_SegmentDO.\n", FuncName);
       SUMA_RETURN(NULL);
@@ -1155,7 +1327,7 @@ void SUMA_WorldAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
 
 SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO)
 {
-   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0}, comcol[4];
    int i, N_n3, i3;
    GLfloat rad = 3;
    static char FuncName[]={"SUMA_DrawSphereDO"};
@@ -1172,9 +1344,14 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO)
    glGetFloatv(GL_LINE_WIDTH, &origwidth);
    glLineWidth(SDO->LineWidth);
    
+   comcol[0] = SDO->CommonCol[0]; /* *SUMAg_SVv[0].dim_amb; Naahhhh */
+   comcol[1] = SDO->CommonCol[1]; /* *SUMAg_SVv[0].dim_amb;*/
+   comcol[2] = SDO->CommonCol[2]; /* *SUMAg_SVv[0].dim_amb;*/
+   comcol[3] = SDO->CommonCol[3]; /* *SUMAg_SVv[0].dim_amb;*/
+   
    if (!SDO->colv) {
-      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, SDO->CommonCol);
-      glMaterialfv(GL_FRONT, GL_EMISSION, SDO->CommonCol);
+      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, comcol);
+      glMaterialfv(GL_FRONT, GL_EMISSION, comcol);
    }
    if (!SDO->radv) rad = SDO->CommonRad;
    if (!SDO->stylev) {
@@ -1286,10 +1463,13 @@ void SUMA_free_SphereDO (SUMA_SphereDO * SDO)
 
 SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
 {
-   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-   int i, N_n3, i3;
-   float origwidth=0.0, rad = 0.0;
    static char FuncName[]={"SUMA_DrawSegmentDO"};
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+   int i, N_n3, i3, n3, n;
+   byte *msk=NULL;
+   float origwidth=0.0, rad = 0.0, gain = 1.0;
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -1298,8 +1478,23 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
       SUMA_RETURN (NOPE);
    }
    
+   if (SDO->NodeBased) { /* Locate the surface in question */
+      SUMA_LH("Node-based vectors");
+      if (!SDO->Parent_idcode_str) {
+         SUMA_SL_Err("Object's parent idcode_str not specified.");
+         SUMA_RETURN (NOPE);
+      }
+      SO = SUMA_findSOp_inDOv(SDO->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv); 
+      if (!SO) {
+         SUMA_SL_Err("Object's parent surface not found.");
+         SUMA_RETURN (NOPE);
+      }       
+   } else {
+      SUMA_LH("Segments ");
+   }
+   
    glGetFloatv(GL_LINE_WIDTH, &origwidth);
-   if (!SDO->thickv) glLineWidth(SDO->LineWidth);  
+   if (!SDO->thickv || SDO->NodeBased) glLineWidth(SDO->LineWidth);  
    
    switch (SDO->Stipple) {
       case SUMA_DASHED_LINE:
@@ -1313,38 +1508,64 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
          SUMA_RETURN(NOPE);
    }
    
-   if (!SDO->thickv) {
+   if (!SDO->thickv || SDO->NodeBased) {
       glBegin(GL_LINES);
       if (!SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol); /*turn on emissivity  */
       glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
       glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
 
-      i = 0;
-      N_n3 = 3*SDO->N_n;
-      while (i < N_n3) {
-         if (SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i/3)]));
-         glVertex3f(SDO->n0[i], SDO->n0[i+1], SDO->n0[i+2]);
-         glVertex3f(SDO->n1[i], SDO->n1[i+1], SDO->n1[i+2]); 
-         i += 3;
+      if (!SDO->NodeBased) {
+         i = 0;
+         N_n3 = 3*SDO->N_n;
+         while (i < N_n3) {
+            if (SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i/3)]));
+            glVertex3f(SDO->n0[i], SDO->n0[i+1], SDO->n0[i+2]);
+            glVertex3f(SDO->n1[i], SDO->n1[i+1], SDO->n1[i+2]); 
+            i += 3;
+         }
+      } else {
+         SUMA_LH("Drawing vectors ");
+         i = 0;
+         gain = 1.0;
+         while (i < SDO->N_n) {
+            n = SDO->NodeID[i]; n3 = 3*n;
+            if (LocalHead) fprintf(SUMA_STDERR,"%s: %d/%d, %d\n", FuncName, i, SDO->N_n, n);
+            if (n<SO->N_Node) {
+               i3 = 3*i;
+               if (SDO->thickv) {
+                  gain = SDO->thickv[i]; 
+               } else {
+                  /* gain = 1.0; no need, set above */  
+               }
+               if (SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i)]));
+               if (LocalHead) fprintf(SUMA_STDERR,"%s: SDO->n1 = [%f %f %f]\n", FuncName, SDO->n1[i3  ], SDO->n1[i3+1],SDO->n1[i3+2]); 
+               glVertex3f(SO->NodeList[n3], SO->NodeList[n3+1], SO->NodeList[n3+2]);
+               glVertex3f( SO->NodeList[n3]  +(gain * SDO->n1[i3  ]), 
+                           SO->NodeList[n3+1]+(gain * SDO->n1[i3+1]), 
+                           SO->NodeList[n3+2]+(gain * SDO->n1[i3+2])); 
+            }
+            i += 1;
+         }
       }
-
       glEnd();
    } else { /* slow slow slow */
       if (!SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol);
       glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
       glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
-      i = 0;
-      N_n3 = 3*SDO->N_n;
-      while (i < N_n3) {
-         if (SDO->thickv) glLineWidth(SDO->thickv[i/3]);   
-         glBegin(GL_LINES);
-         if (SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i/3)]));
-         glVertex3f(SDO->n0[i], SDO->n0[i+1], SDO->n0[i+2]);
-         glVertex3f(SDO->n1[i], SDO->n1[i+1], SDO->n1[i+2]); 
-         i += 3;
-         glEnd();
-      }
       
+      if (!SDO->NodeBased) {
+         i = 0;
+         N_n3 = 3*SDO->N_n;
+         while (i < N_n3) {
+            if (SDO->thickv) glLineWidth(SDO->thickv[i/3]);   
+            glBegin(GL_LINES);
+            if (SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i/3)]));
+            glVertex3f(SDO->n0[i], SDO->n0[i+1], SDO->n0[i+2]);
+            glVertex3f(SDO->n1[i], SDO->n1[i+1], SDO->n1[i+2]); 
+            i += 3;
+            glEnd();
+         }
+      }
    }
    
    switch (SDO->Stipple) {
@@ -1356,33 +1577,74 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
    }
    
    /* draw the bottom object */
+   SUMA_LH("Drawing bottom");
    if (SDO->botobj) {
       glLineWidth(0.5);
       if (!SDO->colv) {
          glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, SDO->LineCol);
       }
-      if (!SDO->thickv) rad = SDO->LineWidth*0.5*sv->FOV[sv->iState]/FOV_INITIAL;
+      
+      if (!SDO->NodeBased) {
+         if (!SDO->thickv) rad = SDO->LineWidth*0.5*sv->FOV[sv->iState]/FOV_INITIAL;
+      } else {
+         if (SO->EL) rad = SO->EL->AvgLe/4.0;
+         else rad = 1.0/4.0;
+      }
       gluQuadricDrawStyle (SDO->botobj, GLU_FILL); 
       gluQuadricNormals (SDO->botobj , GLU_SMOOTH);
 
-      for (i=0; i<SDO->N_n;++i) {
-         i3 = 3*i;
-         if (SDO->colv) {
-            glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, &(SDO->colv[i*4]));
-            glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[i*4]));
+      if (!SDO->NodeBased) {
+         for (i=0; i<SDO->N_n;++i) {
+            i3 = 3*i;
+            if (SDO->colv) {
+               glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, &(SDO->colv[i*4]));
+               glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[i*4]));
+            }
+            if (SDO->thickv) rad = SDO->thickv[i]*0.5*sv->FOV[sv->iState]/FOV_INITIAL;
+            /* fprintf(SUMA_STDERR,"thickv[i] = %f, FOV %f, FOV_INITIAL %f, radinit=%f, radcomp=%f\n", 
+                           SDO->thickv[i], sv->FOV[sv->iState], FOV_INITIAL,
+                           rad,  rad *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06)); */
+            glTranslatef (SDO->n0[i3], SDO->n0[i3+1], SDO->n0[i3+2]);
+            gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad, 0.005) /* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06) */ , 
+                      10, 10);
+            glTranslatef (-SDO->n0[i3], -SDO->n0[i3+1], -SDO->n0[i3+2]);
          }
-         if (SDO->thickv) rad = SDO->thickv[i]*0.5*sv->FOV[sv->iState]/FOV_INITIAL;
-         /* fprintf(SUMA_STDERR,"thickv[i] = %f, FOV %f, FOV_INITIAL %f, radinit=%f, radcomp=%f\n", 
-                        SDO->thickv[i], sv->FOV[sv->iState], FOV_INITIAL,
-                        rad,  rad *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06)); */
-         glTranslatef (SDO->n0[i3], SDO->n0[i3+1], SDO->n0[i3+2]);
-         gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad, 0.005) /* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06) */ , 
-                   10, 10);
-         glTranslatef (-SDO->n0[i3], -SDO->n0[i3+1], -SDO->n0[i3+2]);
+      } else { /* Node based vector */
+         /* create a mask for those spheres already drawn, multiple vectors per node possible...*/
+         msk = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));
+         if (!msk) { 
+            SUMA_SL_Crit("Failed to allocate!\n");
+            glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
+            goto GETOUT;
+         }
+         for (i=0; i<SDO->N_n;++i) {
+            i3 = 3*i;
+            n = SDO->NodeID[i]; n3 = 3*n;
+            if (LocalHead) fprintf(SUMA_STDERR,"%s: %d/%d, %d\n", FuncName, i, SDO->N_n, n);
+            if (n<SO->N_Node) {
+               if (!msk[n]) {
+                  if (SDO->colv) {
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, &(SDO->colv[i*4]));
+                     glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[i*4]));
+                  }
+
+                  glTranslatef (SO->NodeList[n3]  , SO->NodeList[n3+1]  , SO->NodeList[n3+2]  );
+                  gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad, 0.005) /* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06) */ , 
+                            10, 10);
+                  glTranslatef (-SO->NodeList[n3]  , -SO->NodeList[n3+1]  , -SO->NodeList[n3+2]  );
+                  msk[n] = 1;
+               } else {
+                  SUMA_LH("Sphere already drawn");
+               }
+            }
+         }
+         if (msk) SUMA_free(msk); msk = NULL;
       }
       glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
    }
 
+   GETOUT:
+   
    glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity */
    glLineWidth(origwidth);
      
@@ -2117,6 +2379,34 @@ SUMA_DRAWN_ROI **SUMA_Find_ROIrelatedtoSO (SUMA_SurfaceObject *SO, SUMA_DO* dov,
    *N_ROI = roi_cnt;
    
    SUMA_RETURN(ROIv);
+}
+
+/*! Create Node-based vectors for a particular surface */
+SUMA_Boolean SUMA_Draw_SO_NBV (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_Draw_SO_NBV"};
+   int i;
+   SUMA_SegmentDO *SDO = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   for (i=0; i < N_do; ++i) {
+      switch (dov[i].ObjectType) { /* case Object Type */
+         case NBV_type:
+            SDO = (SUMA_SegmentDO *)dov[i].OP;
+            if (SUMA_isNBVrelated (SDO, SO)) { /* draw it */
+               if (LocalHead) fprintf(SUMA_STDERR, "%s: Drawing vec field \n", FuncName);
+               if (!SUMA_DrawSegmentDO (SDO, sv)) {
+                  fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSegmentDO.\n", FuncName);
+               }
+            }
+         default:
+            break;
+      }
+   }
+
+   SUMA_RETURN(YUP);
 }
 
 /*! Create the ROIs for a particular surface */
@@ -3503,8 +3793,8 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          
          glDisable(GL_COLOR_MATERIAL);
          
-         SUMA_LH("ROIs");
          /* draw surface ROIs */
+         SUMA_LH("ROIs");
          if (!SUMA_Draw_SO_ROI (SurfObj, SUMAg_DOv, SUMAg_N_DOv, sv)) {
             fprintf (SUMA_STDERR, "Error %s: Failed in drawing ROI objects.\n", FuncName);
          }
@@ -3515,9 +3805,14 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                fprintf(stderr,"Error SUMA_DrawAxis: Unrecognized Stipple option\n");
             }
          }
+         /* Draw node-based vectors */
+         SUMA_LH("NBV");
+         if (!SUMA_Draw_SO_NBV (SurfObj, SUMAg_DOv, SUMAg_N_DOv, sv)) {
+            fprintf (SUMA_STDERR, "Error %s: Failed in drawing NBV objects.\n", FuncName);
+         }
          
-         SUMA_LH("Highlight");
          /* Draw Selected Node Highlight */
+         SUMA_LH("Highlight");
          if (SurfObj->ShowSelectedNode && SurfObj->SelectedNode >= 0) {
             if (LocalHead) fprintf(SUMA_STDOUT,"Drawing Node Selection \n");
             id = ND * SurfObj->SelectedNode;

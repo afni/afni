@@ -46,7 +46,13 @@
 #define SUMA_MAT_EMISSION_INIT    0.0, 0.0, 0.0, 1.0 /*!< Emissive color/light emanated from object.
                                                            and unaffected by light sources. 
                                                            It adds no light to other objects in the scene */
-#define SUMA_LMODEL_AMBIENT       1.0, 1.0, 1.0, 1.0 /*!< keep the ambient light high */
+
+#define SUMA_LMODEL_AMBIENT_COLOR_R   1.0       /*!< keep the ambient light high */
+#define SUMA_LMODEL_AMBIENT_COLOR_G   1.0
+#define SUMA_LMODEL_AMBIENT_COLOR_B   1.0
+#define SUMA_LMODEL_AMBIENT_COLOR_A   1.0
+#define SUMA_LMODEL_AMBIENT       SUMA_LMODEL_AMBIENT_COLOR_R, SUMA_LMODEL_AMBIENT_COLOR_G, SUMA_LMODEL_AMBIENT_COLOR_B,  SUMA_LMODEL_AMBIENT_COLOR_A /*!< keep the ambient light high */
+
 #define SUMA_RED_GL 1.0, 0.0, 1.0, 1.0 /*!< red color */
 #define SUMA_CLEAR_COLOR_R         0.0 /*!< clear color (viewer background) Red */
 #define SUMA_CLEAR_COLOR_G         0.0 /*!< clear color (viewer background) Green */
@@ -57,7 +63,11 @@
 #define SUMA_BACKFACE_CULL 0 /*!< 1/0 flag for culling backface facesets */
 #define SUMA_CHECK_WINDING 0 /*!< 1/0 flag for checking triangle winding */
 
-#define SUMA_LIGHT0_COLOR_INIT    1.0, 1.0, 1.0,  1.0 
+#define SUMA_LIGHT0_COLOR_R   1.0
+#define SUMA_LIGHT0_COLOR_G   1.0
+#define SUMA_LIGHT0_COLOR_B   1.0
+#define SUMA_LIGHT0_COLOR_A   1.0
+#define SUMA_LIGHT0_COLOR_INIT    SUMA_LIGHT0_COLOR_R, SUMA_LIGHT0_COLOR_G, SUMA_LIGHT0_COLOR_B,  SUMA_LIGHT0_COLOR_A 
 #define SUMA_INTITIAL_LIGHT0_SWITCH 1 /*!< -1 works well for SureFit Surfaces, 1 works well for iv and FreeSurfer surfaces */
 #define SUMA_STDERR stderr
 #define SUMA_STDOUT stdout
@@ -76,7 +86,7 @@
 #define SUMA_NODE_ALPHA 1 /*!< Node Color Intensity 1, max intensity 0 min intensity*/
 #define FOV_INITIAL 30.0  /*!< Leave this at 30 always, change defaults from .sumarc's SUMA_FOV_Original */
 #define FOV_MIN 0.001
-#define FOV_MAX 300
+#define FOV_MAX 179
 #define FOV_IN_FACT 1.05   /*!< Still used for colormap display, Obsolete for surface viewers, see sv->KeyZoomGain */
 #define FOV_OUT_FACT 0.95  /*!< Still used for colormap display, Obsolete for surface viewers, see sv->KeyZoomGain */
 #define MOUSE_ZOOM_FACT 30 /*!< The larger, the slower the gain on mouse movement */
@@ -142,11 +152,12 @@ typedef enum  { SUMA_FT_ERROR = -1, SUMA_FT_NOT_SPECIFIED,
                SUMA_OPENDX_MESH, 
                   SUMA_N_SO_FILE_TYPE} SUMA_SO_File_Type; /* add types always between SUMA_FT_NOT_SPECIFIED AND SUMA_N_SO_FILE_TYPE */
 typedef enum { SUMA_FF_NOT_SPECIFIED, SUMA_ASCII, SUMA_BINARY, SUMA_BINARY_BE, SUMA_BINARY_LE } SUMA_SO_File_Format;
-typedef enum { no_type, SO_type, AO_type, ROIdO_type, ROIO_type, GO_type, LS_type, OLS_type, SP_type} SUMA_DO_Types;   /*!< Displayable Object Types 
+typedef enum { no_type, SO_type, AO_type, ROIdO_type, ROIO_type, GO_type, LS_type, OLS_type, NBV_type, SP_type} SUMA_DO_Types;   /*!< Displayable Object Types 
                                                                                     S: surface, A: axis, G: grid, 
                                                                                     ROId: Region of interest drawn type,
                                                                                     LS_type: line segment
                                                                                     OLS_type: oriented line segment
+                                                                                    NBV_type: Node-Based vector 
                                                                                     SP_type: spherical markers*/
 typedef enum {SUMA_SCREEN, SUMA_LOCAL} SUMA_DO_CoordType; /*!< Coordinate system that Displayable object is attached to
                                                                   SCREEN is for a fixed system, LOCAL is for a mobile system,
@@ -829,7 +840,8 @@ typedef struct {
    
    int **Tri_limb; /*!< each row j of Tri_limb contains the indices into EL (and ELps) of the edges that make it up */
    float *Le; /*!< Vector N_EL elements long containing the length of each edge in EL */
-   
+   float AvgLe; /*!< Average of Le (internodal distance).
+                     This is an approximate average lenght, since some edges may counted more than others  */
 } SUMA_EDGE_LIST;
 
 /*! structure that contains array pointers from function SUMA_isinbox */
@@ -1278,7 +1290,15 @@ typedef struct {
    char *idcode_str;    /*!< unique idcode for DO */
    char *Label; /*!< ascii label for DO */ 
 
-   GLfloat *n0; /*!< vector containing XYZ of nodes 1 (3*N_n elements long)*/
+   int NodeBased; /*!< flag: 1 if segments are formed by vectors at surface nodes */
+   char *Parent_idcode_str; /*!< Parent surface's id 
+                                 (only used if NodeBased = 1
+                                 NULL if NodeBased)*/
+   int *NodeID; /*!< ID of the node at which the vector is represented
+                     NULL if NodeBased = 0 */
+
+   GLfloat *n0; /*!< vector containing XYZ of nodes 1 (3*N_n elements long)
+                     NULL if NodeBased*/
    GLfloat *n1; /*!< vector containing XYZ of nodes 2 (3*N_n elements long)*/
    GLUquadricObj *topobj; /*!< quadric object, representing n1 */
    GLUquadricObj *botobj; /*!< quadric object, representing n0 */
@@ -1490,6 +1510,13 @@ typedef struct {
 
    GLfloat light0_position[4]; /*!< Light 0 position: 1st 3 vals --> direction of light . Last value is 0 -->  directional light*/
    GLfloat light1_position[4]; /*!< Light 1 position: 1st 3 vals --> direction of light. Last value is 0 -->  directional light*/
+   GLfloat light0_color[4];   /*!< Light 0 color */
+   GLfloat lmodel_ambient[4]; /*!< ambient light model */
+   
+   GLfloat dim_spe;  /*!< Color dimming factors for light properties */
+   GLfloat dim_dif;
+   GLfloat dim_emi;
+   GLfloat dim_amb;
    
    GLfloat clear_color[4]; /*!< viewer background color */
       
