@@ -28,7 +28,7 @@ printf("%f)=%f\n",x[n-1],f) ;
 int main( int argc , char *argv[] )
 {
    int n , i , aa=1 , quiet=0 ;
-   double *x ;
+   double *x , cpu1,cpu2 ;
 
    if( argc < 2 ){ printf("test_powell [-q] n1 n2 ...\n"); exit(0); }
    if( strcmp(argv[aa],"-q") == 0 ){ quiet=1; aa++; }
@@ -37,13 +37,15 @@ int main( int argc , char *argv[] )
      n = (int)strtod(argv[aa],NULL) ; if( n < 1 ) continue ;
      x = (double *)malloc(sizeof(double)*n) ;
      for( i=0 ; i < n ; i++ ) x[i] = 0.327*cos(i+.372) ;
+     cpu1 = COX_cpu_time() ;
      i = powell_newuoa( n , x , 0.3 , 0.001 , 99999 , cfun ) ;
+     cpu2 = COX_cpu_time()-cpu1 ;
      if( quiet ){
-       printf("%d\n",i) ; fflush(stdout) ;
+       printf("%d %f\n",i,cpu2) ; fflush(stdout) ;
      } else {
        printf("powell_newuoa: i=%d x=",i) ;
        for( i=0 ; i < n ; i++ ) printf("%f ",x[i]) ;
-       printf("  f=%f\n",cfun(n,x)) ;
+       printf("  f=%f  cpu=%f\n",cfun(n,x),cpu2) ;
      }
      free(x) ;
    }

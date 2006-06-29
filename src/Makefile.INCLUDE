@@ -1991,6 +1991,10 @@ aiv:aiv.o
 	$(RM) $@
 	$(CC) -o aiv aiv.o $(LFLAGS) -lmrix -lcoxplot $(LLIBS) -lf2c
 
+test_powell:test_powell.o
+	$(RM) $@
+	$(CC) -o test_powell test_powell.o $(LFLAGS) $(LLIBS) -lf2c
+
 asnap:asnap.o
 	$(RM) $@
 	$(CC) -o asnap asnap.o $(LFLAGS) -lmrix -lcoxplot $(LLIBS) -lf2c
