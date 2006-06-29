@@ -45,7 +45,7 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 	complex *NEW_SIG, *newfft, *win_fft, *win_low, *win_high;  /*typedef'd by B Cox */
 	complex *restored_sig, *final_sig, sumcx, meanfinal;
 
-
+   static char msg[256] ;  /* RWCox */
 
 
 	/*************************************************************************************
@@ -116,7 +116,9 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 	**************************************************************************************/
 	if((low_fc >= Fs) || (low_fc == 0.0)) {
 		if ((low_fc >= Fs) && (!transform)) {
-			return "Lowpass filter is an all-pass filter since Fc > sampling frequency\n";
+         sprintf(msg,"Lowpass filter is all-pass since cutoff=%f > Fsample=%f (Mfft=%d)\n",
+                     low_fc , Fs , M ) ;
+			return msg ;
 		}
 		for(i=0;i<M;++i)
 		{
@@ -127,7 +129,9 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 	else if ( (low_fc > 0) && (low_fc < (Fs/(float)M) ) )
 	{
 		if (!transform) {
-			return "Lowpass filter is a no-pass filter since Fc is too small.\n";
+         sprintf(msg,"Lowpass filter is no-pass since cutoff=%f < Fsample=%f / Mfft=%d\n",
+                     low_fc , Fs , M ) ;
+         return msg ;
 		}
 
 		for(i=0;i<M;++i)
@@ -173,7 +177,9 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 	if (high_fc < Fs/(float)M) 
 	{
 		if ((!transform) && (high_fc!=0)){
-			return "Highpass filter is an all-pass filter since Fc is too small.\n";
+         sprintf(msg,"Highpass filter is all-pass since cutoff=%f < Fsample=%f / Mfft=%d\n",
+                     high_fc , Fs , M ) ;
+         return msg ;
 		}
 		for(i=0;i<M;++i)
 		{
@@ -184,7 +190,9 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 	else if (high_fc >= Fs) 
 	{
 		if (!transform) {
-			return "Highpass filter is an all-stop filter since Fc > sampling frequency.\n";
+         sprintf(msg,"Highpass filter is all-stop since cutoff=%f > Fsample=%f (Mfft=%d)\n",
+                     high_fc , Fs , M ) ;
+         return msg ;
 		}
 
 		for(i=0;i<M;++i)
