@@ -84,6 +84,7 @@ typedef struct
     float       f_pn_mm;                /* mm distance to add to pn      */
     char      * outfile_1D;             /* filename for ascii output     */
     char      * outfile_niml;           /* filename for NIML output      */
+    char      * segc_file;              /* filename for seg coors output */
     v2s_oob_t   oob;                    /* display info for oob nodes    */
     v2s_oob_t   oom;                    /* display info for oom nodes    */
 } v2s_opts_t;
