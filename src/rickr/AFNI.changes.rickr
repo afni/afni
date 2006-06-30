@@ -1567,3 +1567,7 @@
       - added NIML and NI_SURF_DSET write cases using THD_write_niml()
   * modified Makefile.INCLUDE: to add thd_niml.o to THD_OBJS
 
+30 Jun 2006:
+  * modified SUMA_3dVol2Surf.[ch], vol2surf.[ch], plug_vol2surf.c
+      - added -save_seg_coords option
+

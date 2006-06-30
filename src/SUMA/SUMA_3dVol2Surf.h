@@ -20,6 +20,7 @@ typedef struct
     char      * gpar_file;              /* AFNI grid parent filename    */
     char      * outfile_1D;             /* filename for ascii output    */
     char      * outfile_niml;           /* filename for NIML output     */
+    char      * seg_coords_file;        /* filename for segment coords  */
     char      * spec_file;              /* surface specification file   */
     char      * sv_file;                /* AFNI surface volume dataset  */
     char      * cmask_cmd;              /* 3dcalc style mask command    */

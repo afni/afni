@@ -78,6 +78,7 @@ char gv2s_history[] =
     "\n"
     "March 22, 2005 [rickr] - removed tabs\n"
     "March 28, 2006 [rickr] - fixed mode computation\n"
+    "June 30, 2006 [rickr] - segc_file functionality (-save_seg_coords)\n"
     "---------------------------------------------------------------------\n";
 
 #include "mrilib.h"
@@ -148,7 +149,7 @@ static int    set_all_surf_vals (v2s_results * sd, int node_ind, int vind,
 static int    set_surf_results(v2s_param_t *p, v2s_opts_t *sopt,v2s_results *sd,
                                range_3dmm_res * r3res, int node, int findex);
 static int    segment_imarr(range_3dmm_res *res,range_3dmm *R,v2s_opts_t *sopt,
-                            byte * cmask);
+                            byte * cmask, FILE * cfp, int nindex);
 static int    v2s_adjust_endpts(v2s_opts_t *sopt, THD_fvec3 *p1, THD_fvec3 *pn);
 static float  v2s_apply_filter(range_3dmm_res *rr, v2s_opts_t *sopt, int index,
                                int * findex);
@@ -386,12 +387,13 @@ ENTRY("compact_results");
 */
 static int dump_surf_3dt( v2s_opts_t * sopt, v2s_param_t * p, v2s_results * sd )
 {
-    range_3dmm_res r3mm_res;
-    range_3dmm     r3mm;
-    float          dist, min_dist, max_dist;
-    int            sub, subs, nindex, findex = 0;
-    int            oobc, oomc, max_index;
-    int            oob1, oob2;
+    range_3dmm_res   r3mm_res;
+    range_3dmm       r3mm;
+    float            dist, min_dist, max_dist;
+    FILE           * coord_fp = NULL;
+    int              sub, subs, nindex, findex = 0;
+    int              oobc, oomc, max_index;
+    int              oob1, oob2;
 
 ENTRY("dump_surf_3dt");
 
@@ -399,6 +401,14 @@ ENTRY("dump_surf_3dt");
     {
         fprintf(stderr, "** ds3 : bad params (%p,%p,%p)\n", sopt, p, sd );
         RETURN(-1);
+    }
+
+    /* possibly write to a coordinate output file   30 Jun 2006 [rickr] */
+    if ( sopt->segc_file )
+    {
+        coord_fp = fopen(sopt->segc_file, "w");
+        if ( !coord_fp ) /* complain, but continue */
+            fprintf(stderr,"** failed to open coord file '%s', continuing...\n",                    sopt->segc_file);
     }
 
     /* note the number of sub-bricks, unless the user has given just one */
@@ -460,7 +470,7 @@ ENTRY("dump_surf_3dt");
         if ( dist < min_dist ) min_dist = dist;
         if ( dist > max_dist ) max_dist = dist;
 
-        if ( segment_imarr( &r3mm_res, &r3mm, sopt, p->cmask ) != 0 )
+        if ( segment_imarr(&r3mm_res,&r3mm,sopt,p->cmask,coord_fp,nindex) != 0 )
             continue;
 
         if ( r3mm_res.ims.num == 0 )    /* any good voxels in the bunch? */
@@ -518,6 +528,9 @@ ENTRY("dump_surf_3dt");
         fprintf( stderr, "-d out-of-bounds, o-o-mask counts : %d, %d (of %d)\n",
                  oobc, oomc, sopt->last_node - sopt->first_node + 1);
     }
+
+    /* close any coord file */
+    if ( coord_fp ) fclose( coord_fp );
 
     /* now we can free the imarr and voxel lists */
     if ( r3mm_res.ims.nall > 0 )
@@ -652,7 +665,7 @@ ENTRY("set_all_surf_vals");
  ***********************************************************************
 */
 static int segment_imarr( range_3dmm_res *res, range_3dmm *R, v2s_opts_t *sopt,
-                          byte * cmask )
+                          byte * cmask, FILE * cfp, int nindex )
 {
     THD_fvec3 f3mm;
     THD_ivec3 i3ind;
@@ -757,8 +770,6 @@ ENTRY("segment_imarr");
 
         /* Huston, we have a good voxel... */
 
-        prev_ind = vindex;              /* note this for next time  */
-
         /* now for the big finish, get and insert the actual data */
 
         res->i3arr    [res->ims.num] = i3ind;   /* store the 3-D indices */
@@ -774,7 +785,20 @@ ENTRY("segment_imarr");
         if ( R->debug > 2 )
             fprintf(stderr, "-d seg step %2d, vindex %d, coords %f %f %f\n",
                     step,vindex,f3mm.xyz[0],f3mm.xyz[1],f3mm.xyz[2]);
+        if ( cfp ) /* then write voxel coordinates to output file */
+        {
+            f3mm = THD_3dmm_to_dicomm(R->dset, f3mm);  /* output in DICOM */
+            if ( prev_ind == -1 ) fprintf(cfp, "%8d", nindex);
+            fprintf(cfp, "    %9.3f %9.3f %9.3f",
+                    f3mm.xyz[0],f3mm.xyz[1],f3mm.xyz[2]);
+        }
+
+        prev_ind = vindex;              /* note this for next time  */
+
     }
+
+    /* maybe write eol to coord file */
+    if ( cfp && prev_ind != -1 ) fputc('\n', cfp);
 
     if ( R->debug > 1 )
         disp_range_3dmm_res( "+d i3mm_seg_imarr results: ", res );
@@ -1589,6 +1613,7 @@ ENTRY("disp_v2s_opts_t");
             "    f_p1_mm, f_pn_mm      = %f, %f\n"
             "    outfile_1D            = %s\n"
             "    outfile_niml          = %s\n"
+            "    segc_file             = %s\n"
             , sopt,
             sopt->map, sopt->gp_index, sopt->debug, sopt->dnode,
             sopt->no_head, sopt->skip_cols,
@@ -1597,7 +1622,8 @@ ENTRY("disp_v2s_opts_t");
             sopt->f_index, sopt->f_steps,
             sopt->f_p1_fr, sopt->f_pn_fr, sopt->f_p1_mm, sopt->f_pn_mm,
             CHECK_NULL_STR(sopt->outfile_1D),
-            CHECK_NULL_STR(sopt->outfile_niml)
+            CHECK_NULL_STR(sopt->outfile_niml),
+            CHECK_NULL_STR(sopt->segc_file)
             );
 
     RETURN(0);
@@ -2219,6 +2245,7 @@ ENTRY("fill_sopt_default");
     sopt->f_steps      = 1;
     sopt->outfile_1D   = NULL;
     sopt->outfile_niml = NULL;
+    sopt->segc_file    = NULL;
 
     RETURN(0);
 }
