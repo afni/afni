@@ -61,6 +61,7 @@ extern float cl1_solve_res( int, int, float *, float **, float *,int, float*,int
 extern int powell_newuoa( int ndim , double *x ,
                           double rstart , double rend ,
                           int maxcall , double (*ufunc)(int,double *) ) ;
+extern void powell_set_mfac( float mm , float aa ) ;
 
 extern char *approximate_number_string( double ) ;  /* 16 Jan 2004 */
 
