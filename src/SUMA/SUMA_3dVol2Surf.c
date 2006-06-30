@@ -207,9 +207,10 @@ static char g_history[] =
     "\n"
     "6.3a March 22, 2005 [rickr] - removed tabs\n"
     "6.4  June   2, 2005 [rickr] - added -skip_col_non_results option\n"
+    "6.5  June  30, 2006 [rickr] - added -save_seg_coords option\n"
     "---------------------------------------------------------------------\n";
 
-#define VERSION "version  6.4 (June 2, 2005)"
+#define VERSION "version  6.5 (June 30, 2006)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -824,6 +825,7 @@ ENTRY("set_smap_opts");
     sopt->f_pn_mm      = opts->f_pn_mm;
     sopt->outfile_1D   = opts->outfile_1D;
     sopt->outfile_niml = opts->outfile_niml;
+    sopt->segc_file    = opts->seg_coords_file;
     sopt->oob          = opts->oob;             /* out of bounds info */
     sopt->oom          = opts->oom;             /* out of bounds info */
 
@@ -1026,20 +1028,21 @@ ENTRY("init_options");
 
     /* clear out the options structure */
     memset( opts, 0, sizeof( opts_t) );
-    opts->gpar_file    = NULL;
-    opts->outfile_1D   = NULL;
-    opts->outfile_niml = NULL;
-    opts->spec_file    = NULL;
-    opts->sv_file      = NULL;
-    opts->cmask_cmd    = NULL;
-    opts->map_str      = NULL;
-    opts->snames[0]    = NULL;
-    opts->snames[1]    = NULL;
-    opts->f_index_str  = NULL;
+    opts->gpar_file       = NULL;
+    opts->outfile_1D      = NULL;
+    opts->outfile_niml    = NULL;
+    opts->seg_coords_file = NULL;
+    opts->spec_file       = NULL;
+    opts->sv_file         = NULL;
+    opts->cmask_cmd       = NULL;
+    opts->map_str         = NULL;
+    opts->snames[0]       = NULL;
+    opts->snames[1]       = NULL;
+    opts->f_index_str     = NULL;
 
-    opts->gp_index     = -1;            /* means none: use all       */
-    opts->norm_len     = 1.0;           /* init to 1.0 millimeter    */
-    opts->dnode        = -1;            /* init to something invalid */
+    opts->gp_index        = -1;            /* means none: use all       */
+    opts->norm_len        = 1.0;           /* init to 1.0 millimeter    */
+    opts->dnode           = -1;            /* init to something invalid */
 
     for ( ac = 1; ac < argc; ac++ )
     {
@@ -1310,6 +1313,17 @@ ENTRY("init_options");
         {
             opts->norm_dir = V2S_NORM_REVERSE;
         }
+        else if ( ! strncmp(argv[ac], "-save_seg_coords", 9) ) /* 30 Jun 2006 */
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -save_seg_coords OUTPUT_FILE\n\n",stderr);
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
+
+            opts->seg_coords_file = argv[++ac];
+        }
         else if ( ! strncmp(argv[ac], "-skip_col_non_results", 15) )
             opts->skip_cols |= (V2S_SKIP_ALL & ~V2S_SKIP_VALS);
         else if ( ! strncmp(argv[ac], "-skip_col_nodes", 13) )
@@ -1484,6 +1498,13 @@ ENTRY("check_outfile");
     {
         fprintf(stderr, "** output file '%s' already exists\n",
                 opts->outfile_niml);
+        RETURN(-1);
+    }
+
+    if ( THD_is_file(opts->seg_coords_file) )
+    {
+        fprintf(stderr, "** segment coords output file '%s' already exists\n",
+                opts->seg_coords_file);
         RETURN(-1);
     }
 
@@ -2364,6 +2385,15 @@ ENTRY("usage");
             "        Note : the output file should not yet exist.\n"
             "             : -out_1D or -out_niml must be used\n"
             "\n"
+            "    -save_seg_coords FILE  : save segment coordinates to FILE\n"
+            "\n"
+            "        e.g. -save_seg_coords seg.coords.1D\n"
+            "\n"
+            "        Each node that has output values computed along a valid\n"
+            "        segment (i.e. not out-of-bounds or out-of-mask) has its\n"
+            "        index written to this file, along with all applied\n"
+            "        segment coordinates.\n"
+            "\n"
             "    -skip_col_nodes        : do not output node column\n"
             "    -skip_col_1dindex      : do not output 1dindex column\n"
             "    -skip_col_i            : do not output i column\n"
@@ -2536,6 +2566,7 @@ ENTRY("disp_opts_t");
             "    gpar_file              = %s\n"
             "    outfile_1D             = %s\n"
             "    outfile_niml           = %s\n"
+            "    seg_coords_file        = %s\n"
             "    spec_file              = %s\n"
             "    sv_file                = %s\n"
             "    cmask_cmd              = %s\n"
@@ -2552,6 +2583,7 @@ ENTRY("disp_opts_t");
             , opts,
             CHECK_NULL_STR(opts->gpar_file), CHECK_NULL_STR(opts->outfile_1D),
             CHECK_NULL_STR(opts->outfile_niml),
+            CHECK_NULL_STR(opts->seg_coords_file),
             CHECK_NULL_STR(opts->spec_file), CHECK_NULL_STR(opts->sv_file),
             CHECK_NULL_STR(opts->cmask_cmd), CHECK_NULL_STR(opts->map_str),
             CHECK_NULL_STR(opts->snames[0]), CHECK_NULL_STR(opts->snames[1]),

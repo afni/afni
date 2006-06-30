@@ -370,6 +370,7 @@ ENTRY("PV2S_init_plugin_opts");
     g->vpo->sopt.dnode         = -1;
     g->vpo->sopt.outfile_1D    = NULL;
     g->vpo->sopt.outfile_niml  = NULL;
+    g->vpo->sopt.segc_file     = NULL;   /* 30 Jun 2006 */
 
     RETURN(0);
 }
