@@ -9,7 +9,7 @@ CCVOL  = cc -xO2 -Xa -w -DSOLARIS
 CCFAST = $(CC) -DUSE_SUNPERF -dalign -xlic_lib=sunperf
 CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
-IFLAGS = -I. -I/usr/dt/include -I/usr/openwin/include
+IFLAGS = -I. -I/usr/dt/include -I/usr/openwin/include -I/usr/openwin/share/include/X11
 LFLAGS = -s -L. -L/usr/dt/lib -L/usr/openwin/lib
 
 CCSVD  = cc -Xa
