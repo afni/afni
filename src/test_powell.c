@@ -10,7 +10,7 @@ double cfun( int n , double *x )
    double xs , f , ee ;
    int ii ;
 
-   xs = x[0] ; ee = efun(xs) ; f = ee*ee ;
+   xs = x[0]+0.777*x[n-1] ; ee = efun(xs) ; f = ee*ee ;
    for( ii=1 ; ii < n ; ii++ ){
      xs = 0.777*xs + x[ii] ;
      ee = efun(xs) ; f += ee*ee ;
@@ -30,8 +30,20 @@ int main( int argc , char *argv[] )
    int n , i , aa=1 , quiet=0 ;
    double *x , cpu1,cpu2 ;
 
-   if( argc < 2 ){ printf("test_powell [-q] n1 n2 ...\n"); exit(0); }
-   if( strcmp(argv[aa],"-q") == 0 ){ quiet=1; aa++; }
+   if( argc < 2 ){ printf("test_powell [-q] [-f m a] n1 n2 ...\n"); exit(0); }
+
+   while( aa < argc && argv[aa][0] == '-' ){
+     if( strcmp(argv[aa],"-q") == 0 ){ quiet=1; aa++; continue; }
+
+     if( strcmp(argv[aa],"-f") == 0 ){
+       float m , a ;
+       m = (float)strtod(argv[++aa],NULL) ;
+       a = (float)strtod(argv[++aa],NULL) ;
+       powell_set_mfac(m,a) ; aa++ ; continue ;
+     }
+
+     ERROR_exit("Unknown option %s",argv[aa]) ;
+   }
    
    for( ; aa < argc ; aa++ ){
      n = (int)strtod(argv[aa],NULL) ; if( n < 1 ) continue ;
