@@ -2357,35 +2357,75 @@ SUMA_DSET * SUMA_CreateDsetPointer (
 }    
 
 /*!
-   \brief inserts a dataset pointer into the DsetList
-   \param dset (SUMA_DSET *)
+   \brief inserts a dataset pointer into the DsetList, 
+   if *dset to be inserted has the same ID as a pre-existing one (old_dset) and replace is 1, then:
+      the contents of old_dset are freed
+      the contents of dset are copied into old_dset
+      the pointers of dset are set to null
+      *dset is freed
+      *dset is set to old_dset 
+   with those of the new one. The value of dsetp is set to the one found in the list.
+   
+   \param dset (SUMA_DSET **)
    \param DsetList (DList *): List of dset objects.
 */   
-int SUMA_InsertDsetPointer (SUMA_DSET *dset, DList *DsetList)
+int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
 {
    static char FuncName[]={"SUMA_InsertDsetPointer"};
    char *s=NULL, stmp[200];
+   SUMA_DSET *dprev=NULL, *dset=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
    
    if (!DsetList)  { SUMA_SL_Err("Need Dset List"); SUMA_RETURN(0); }
-   if (!dset) { SUMA_SL_Err("dset is NULL"); SUMA_RETURN(0); }
+   if (!dsetp) { SUMA_SL_Err("dsetp is NULL"); SUMA_RETURN(0); }
+   else dset = *dsetp;
+   
    if (!dset->dnel) { SUMA_SL_Err("dset->nel is NULL\nNothing to do"); SUMA_RETURN(0); }
 
    s= SDSET_ID(dset); if (!s) { SUMA_SL_Err("dset has no idcode.\n"); SUMA_RETURN(0); }
-   if (SUMA_FindDset (s,  DsetList)) {
-      sprintf(stmp, "Dset with similar idcode \n"
-                     "(%s)found in list.\n", s);
-      SUMA_SL_Err(stmp);
-      SUMA_RETURN(0);
-   }
-   
-   /* insert into list */
-   if (dlist_ins_next(DsetList, dlist_tail(DsetList), (void *)dset) < 0) {
-      SUMA_SL_Err("Failed to insert dset into list");
-      SUMA_FreeDset(dset); dset = NULL;
-      SUMA_RETURN(0);
+   if ((dprev = SUMA_FindDset (s,  DsetList))) {
+      SUMA_LH("Dset exists");
+      if (replace) {
+         SUMA_LH("Replacing");
+         sprintf(stmp,  "Dset with similar idcode (%s)\n"
+                        "found in list. Trying replacement.\n", s);
+         SUMA_SL_Note(stmp);
+         #ifdef OLD_DSET /* before ngr was used */
+         if (dprev->nel) NI_free_element(dprev->nel); dprev->nel = NULL; 
+         dprev->nel = dset->nel;
+         dset->nel = NULL;
+         #else
+         dprev->dnel = NULL; 
+         if (dprev->ngr) NI_free_element(dprev->ngr); dprev->ngr = NULL; 
+         dprev->ngr = dset->ngr;
+         dprev->dnel = dset->dnel;
+         /* set dset's pointers to null */
+         dset->ngr = NULL;
+         dset->dnel = NULL;
+         #endif
+         SUMA_free(dset);
+         /* now make the switch */
+         *dsetp = dprev;
+      } else {
+         SUMA_LH("Not Replacing");
+         sprintf(stmp,  "Dset with similar idcode (%s)\n"
+                        "found in list. \n"
+                        "Replacement option is turned off.\n"
+                        "Set 'SUMA_AllowDsetReplacement = YES'\n"
+                        "in ~/.sumarc to allow replacement.\n", s);
+         SUMA_SL_Err(stmp);
+         SUMA_RETURN(0);
+      }
+   } else {
+      SUMA_LH("New dset, inserting");
+      /* insert into list */
+      if (dlist_ins_next(DsetList, dlist_tail(DsetList), (void *)dset) < 0) {
+         SUMA_SL_Err("Failed to insert dset into list");
+         SUMA_FreeDset(dset); dset = NULL; *dsetp = NULL;
+         SUMA_RETURN(0);
+      }
    }
    
    SUMA_RETURN(1);

@@ -1774,6 +1774,19 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->scm = NULL;
    cf->DsetList = (DList *)SUMA_malloc(sizeof(DList));
    dlist_init (cf->DsetList, SUMA_FreeDset);
+   {
+      char *eee = getenv("SUMA_AllowDsetReplacement");
+      if (eee) {
+         if (strcmp(eee,"NO") == 0) cf->Allow_Dset_Replace = NOPE;
+         else if (strcmp(eee,"YES") == 0) cf->Allow_Dset_Replace = YUP;
+         else {
+            fprintf (SUMA_STDERR,   "Warning %s:\n"
+                                    "Bad value for environment variable SUMA_AllowDsetReplacement\n"
+                                    "Assuming default of NO", FuncName);
+            cf->Allow_Dset_Replace = NOPE;
+         }
+      } else cf->Allow_Dset_Replace = NOPE;
+   }
    
    cf->IgnoreVolreg = NOPE;
    cf->isGraphical = NOPE;
@@ -2218,6 +2231,8 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
    static char FuncName[]={"SUMA_CommonFieldsInfo"};
    int i;
    char *s=NULL;
+   SUMA_DSET *dset=NULL;
+   DListElmt *el=NULL;
    SUMA_STRING *SS=NULL;
    
    SUMA_ENTRY;
@@ -2249,6 +2264,28 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
       SS = SUMA_StringAppend_va(SS,"   InOut_Notify = %d\n", cf->InOut_Notify);
       SS = SUMA_StringAppend_va(SS,"   MemTrace = %d\n", cf->MemTrace);
    #endif
+   
+   /* add the displayable objects Info */
+   s = SUMA_DOv_Info(SUMAg_DOv, SUMAg_N_DOv, 0);
+   SS = SUMA_StringAppend_va(SS, "%s\n", s); SUMA_free(s); s = NULL;
+   
+   if (cf->DsetList) {
+      SS = SUMA_StringAppend_va(SS, "DsetList (Allow Replacement = %d):\n", cf->Allow_Dset_Replace);
+      el = NULL;
+      do { 
+         if (!el) el = dlist_head(cf->DsetList);
+         else el = dlist_next(el);
+         dset = (SUMA_DSET *)el->data;
+         if (!dset) {
+            SUMA_SLP_Err("Unexpected NULL dset element in list!\nPlease report this occurrence to ziad@nih.gov."); 
+         } else {   
+           s = SUMA_DsetInfo (dset,0);
+           SS = SUMA_StringAppend_va(SS, "\n%s\n", s); SUMA_free(s); s = NULL;    
+         } 
+      } while ( (el != dlist_tail(cf->DsetList))); 
+   } else {
+      SS = SUMA_StringAppend_va(SS, "NULL DsetList\n");
+   }
    
    /* add the colormap info */
    if (cf->scm) {

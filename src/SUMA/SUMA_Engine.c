@@ -2758,7 +2758,7 @@ int SUMA_GetEyeAxis (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
    for (i=0; i< sv->N_DO; ++i) {
       if (dov[sv->RegisteredDO[i]].ObjectType == AO_type) {
          AO = (SUMA_Axis *)(dov[sv->RegisteredDO[i]].OP);
-         if (strcmp(AO->Name, "Eye Axis") == 0) {
+         if (strcmp(AO->Label, "Eye Axis") == 0) {
             k = sv->RegisteredDO[i];
             ++cnt;
          }

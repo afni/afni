@@ -64,6 +64,7 @@ SUMA_ASSEMBLE_LIST_STRUCT *SUMA_FreeAssembleListStruct(SUMA_ASSEMBLE_LIST_STRUCT
 SUMA_ASSEMBLE_LIST_STRUCT *SUMA_CreateAssembleListStruct(void);
 SUMA_Boolean SUMA_DeleteROI (SUMA_DRAWN_ROI *ROI); 
 int SUMA_isTypicalSOforVolSurf (SUMA_SurfaceObject *SO);
+char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail);
 
 /*!
    \brief SUMA_IS_DRAW_ROI_SWITCH_ROI_SHADED(Shaded)

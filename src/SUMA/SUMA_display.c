@@ -296,14 +296,22 @@ void SUMA_LoadSegDO (char *s, void *csvp )
    }
    
    switch (dotp) {
+      case ONBV_type:
       case NBV_type:
          if (!(SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP)) {
             SUMA_SL_Err("No surface in focus to which the vector would be attached.\n");
             SUMA_RETURNe;
          }
-         if (!(SDO = SUMA_ReadNBVecDO(s, 1, SO->idcode_str))) {
-            SUMA_SL_Err("Failed to read segments file.\n");
-            SUMA_RETURNe;
+         if (dotp == NBV_type) {
+            if (!(SDO = SUMA_ReadNBVecDO(s, 0, SO->idcode_str))) {
+               SUMA_SL_Err("Failed to read segments file.\n");
+               SUMA_RETURNe;
+            }
+         } else {
+            if (!(SDO = SUMA_ReadNBVecDO(s, 1, SO->idcode_str))) {
+               SUMA_SL_Err("Failed to read segments file.\n");
+               SUMA_RETURNe;
+            }
          }
          VDO = (void *)SDO;
          break;
@@ -703,6 +711,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case ROIO_type:
                /* those are drawn by SUMA_DrawMesh */
                break;
+            case ONBV_type:
             case NBV_type:
             case OLS_type:
             case LS_type:
@@ -759,6 +768,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case ROIO_type:
                /* those are drawn by SUMA_DrawMesh */
                break;
+            case ONBV_type:
             case NBV_type:
                /* those are drawn by SUMA_DrawMesh */
                break;

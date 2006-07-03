@@ -443,19 +443,6 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
       
       /* XK_* are found in keysymdef.h */ 
       switch (keysym) { /* keysym */
-         case XK_r:
-            {
-               GLvoid *pixels;
-               SUMA_LH("Recording");
-               pixels = SUMA_grabPixels(1, SUMA_CMAP_WIDTH, SUMA_CMAP_HEIGHT);
-               if (pixels) {
-                 ISQ_snapsave (SUMA_CMAP_WIDTH, -SUMA_CMAP_HEIGHT, (unsigned char *)pixels, SO->SurfCont->cmp_ren->cmap_wid ); 
-                 SUMA_free(pixels);
-               }else {
-                  SUMA_SLP_Err("Failed to record image.");
-               }
-            }
-            break;
          case XK_h:
             if (Kev.state & ControlMask){
               if (!list) list = SUMA_CreateList();
@@ -467,6 +454,35 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
               if (!SUMA_Engine (&list)) {
                   fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
               }    
+            }
+            break;
+         case XK_f:
+            {
+               if (0) { /* needs work, don't feel like it for now */
+                  GLvoid *pixels;
+                  SUMA_LH("Flipping colormap");
+                  SUMA_Flip_Color_Map(SUMA_CmapOfPlane(SO->SurfCont->curColPlane));
+                  SUMA_SwitchColPlaneCmap(SO, SUMA_CmapOfPlane(SO->SurfCont->curColPlane));
+                  #if SUMA_SEPARATE_SURF_CONTROLLERS
+                     SUMA_UpdateColPlaneShellAsNeeded(SO);
+                  #endif
+
+                  /* update Lbl fields */
+                  SUMA_UpdateNodeLblField(SO);
+               }
+            }
+            break;
+         case XK_r:
+            {
+               GLvoid *pixels;
+               SUMA_LH("Recording");
+               pixels = SUMA_grabPixels(1, SUMA_CMAP_WIDTH, SUMA_CMAP_HEIGHT);
+               if (pixels) {
+                 ISQ_snapsave (SUMA_CMAP_WIDTH, -SUMA_CMAP_HEIGHT, (unsigned char *)pixels, SO->SurfCont->cmp_ren->cmap_wid ); 
+                 SUMA_free(pixels);
+               }else {
+                  SUMA_SLP_Err("Failed to record image.");
+               }
             }
             break;
          case XK_Z:
