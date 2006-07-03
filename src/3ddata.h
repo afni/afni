@@ -3338,6 +3338,7 @@ extern int    storage_mode_from_niml( void * ) ;
 
 extern int storage_mode_from_filename( char * fname );      /* 20 Apr 2006 */
 extern int has_known_non_afni_extension( char * fname ) ;   /*     [rickr] */
+extern char * find_filename_extension( char * fname );
 
 extern void THD_datablock_apply_atr( THD_3dim_dataset * ) ; /* 09 May 2005 */
 
