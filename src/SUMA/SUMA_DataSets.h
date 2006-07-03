@@ -7,7 +7,7 @@
    #define SUMA_IDCODE_LENGTH 50
 #endif
 
-#define SUMA_VERSION_VECTOR 20041229, 20040610, 20040116, \
+#define SUMA_VERSION_VECTOR 20060703, 20041229, 20040610, 20040116, \
                             20040106, -10000 /*!< modify this dude and you must update SUMA_New_Additions_perver 
                                        in SUMA_help.c. 
                                        Add to the left of the vector, leave the last value of -10000 untouched
@@ -807,7 +807,7 @@ SUMA_DSET * SUMA_CreateDsetPointer (
                               char *idcode_str,
                               char *domain_idcode_str,
                               int N_Alloc); 
-int SUMA_InsertDsetPointer (SUMA_DSET *dset, DList *DsetList);
+int SUMA_InsertDsetPointer (SUMA_DSET **dset, DList *DsetList, int replace);
 void * SUMA_GetCx(char *idcode_str, DList *DsetList, int ReturnDsetPointer) ;
 #if 0
 SUMA_DSET *SUMA_LinkToDset(SUMA_DSET *dset);

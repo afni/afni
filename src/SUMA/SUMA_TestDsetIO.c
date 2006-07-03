@@ -116,7 +116,7 @@ int main (int argc,char *argv[])
                                     ); /* DO NOT free dset, it is store in DsetList */
       #ifdef SUMA_COMPILED
       SUMA_LH("inserting dset pointer into list");
-      if (!SUMA_InsertDsetPointer(dset, SUMAg_CF->DsetList)) {
+      if (!SUMA_InsertDsetPointer(&dset, SUMAg_CF->DsetList,0)) {
          SUMA_SL_Err("Failed to insert dset into list");
          exit(1);
       }  
@@ -192,7 +192,7 @@ int main (int argc,char *argv[])
                                  ); /* DO NOT free dset, it is store in DsetList */
    #ifdef SUMA_COMPILED
    SUMA_LH("inserting dset pointer into list");
-   if (!SUMA_InsertDsetPointer(dset, SUMAg_CF->DsetList)) {
+   if (!SUMA_InsertDsetPointer(&dset, SUMAg_CF->DsetList,0)) {
       SUMA_SL_Err("Failed to insert dset into list");
       exit(1);
    }  
@@ -370,14 +370,14 @@ int main (int argc,char *argv[])
       
       #ifdef SUMA_COMPILED
       SUMA_LH("Inserting newly read element into list\n");
-      if (!SUMA_InsertDsetPointer(dset, SUMAg_CF->DsetList)) {
+      if (!SUMA_InsertDsetPointer(&dset, SUMAg_CF->DsetList, 0)) {
          char *newid = NULL;
          SUMA_SL_Err("Failed to insert dset into list");
          /* Now change the idcode of that baby */
          newid = UNIQ_hashcode(SDSET_ID(dset));
          NI_set_attribute(dset->dnel, "self_idcode", newid); SUMA_free(newid);
          SUMA_LH("Trying to insert dset with a new id ");
-         if (!SUMA_InsertDsetPointer(dset, SUMAg_CF->DsetList)) {
+         if (!SUMA_InsertDsetPointer(&dset, SUMAg_CF->DsetList, 0)) {
             SUMA_SL_Err("Failed to insert dset into list\nI failed to succeed, snif.");
             exit(1);
          }

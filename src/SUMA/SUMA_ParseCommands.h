@@ -333,14 +333,14 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
 
 */
 #define SUMA_S_Note(msg) {\
-   fprintf (SUMA_STDERR, "Notice %s:\n %s\n", FuncName, msg);  \
+   fprintf (SUMA_STDERR, "Notice %s (%s:%d):\n %s\n", FuncName, __FILE__, __LINE__, msg);  \
 }
 /*!
    \brief Macro that reports a notice to stderr and log 
 
 */
 #define SUMA_SL_Note(msg) {\
-   fprintf (SUMA_STDERR, "Notice %s:\n %s\n", FuncName, msg);  \
+   SUMA_S_Note(msg); \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Notice, SMA_Log); \
 }
 /*!
@@ -348,7 +348,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
 
 */
 #define SUMA_SLP_Note(msg) {\
-   fprintf (SUMA_STDERR, "Notice %s:\n %s\n", FuncName, msg);  \
+   SUMA_S_Note(msg); \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Notice, SMA_LogAndPopup); \
 }
 
@@ -371,7 +371,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
 
 */
 #define SUMA_SL_Text(msg) {\
-   fprintf (SUMA_STDERR, "%s\n", msg);  \
+   SUMA_S_Text(msg);  \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Text, SMA_Log); \
 }
 /*!
@@ -379,7 +379,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
 
 */
 #define SUMA_SLP_Text(msg) {\
-   fprintf (SUMA_STDERR, "%s\n", msg);  \
+   SUMA_S_Text(msg);  \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Text, SMA_LogAndPopup); \
 }
 
@@ -395,14 +395,14 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
 
 */
 #define SUMA_S_Warn(msg) {\
-   fprintf (SUMA_STDERR, "Warning %s:\n %s\n", FuncName, msg);  \
+   fprintf (SUMA_STDERR, "Warning %s (%s:%d):\n %s\n", FuncName, __FILE__, __LINE__, msg);  \
 }
 /*!
    \brief Macro that reports a warning to stderr and log 
 
 */
 #define SUMA_SL_Warn(msg) {\
-   fprintf (SUMA_STDERR, "Warning %s:\n %s\n", FuncName, msg);  \
+   SUMA_S_Warn(msg);  \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Warning, SMA_Log); \
 }
 /*!
@@ -410,7 +410,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
 
 */
 #define SUMA_SLP_Warn(msg) {\
-   fprintf (SUMA_STDERR, "Warning %s:\n %s\n", FuncName, msg);  \
+   SUMA_S_Warn(msg);  \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Warning, SMA_LogAndPopup); \
 }
 
@@ -426,14 +426,14 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
 
 */
 #define SUMA_S_Crit(msg) {\
-   fprintf (SUMA_STDERR, "Critical %s:\n %s\n", FuncName, msg);  \
+   fprintf (SUMA_STDERR, "Critical %s (%s:%d):\n %s\n", FuncName, __FILE__, __LINE__,msg);  \
 }
 /*!
    \brief Macro that reports a critical error to stderr and log 
 
 */
 #define SUMA_SL_Crit(msg) {\
-   fprintf (SUMA_STDERR, "Critical %s:\n %s\n", FuncName, msg);  \
+   SUMA_S_Crit(msg); \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Critical, SMA_Log); \
 }
 /*!
@@ -441,7 +441,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
 
 */
 #define SUMA_SLP_Crit(msg) {\
-   fprintf (SUMA_STDERR, "Critical %s:\n %s\n", FuncName, msg);  \
+   SUMA_S_Crit(msg); \
    SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Critical, SMA_LogAndPopup); \
 }
 

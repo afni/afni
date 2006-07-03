@@ -603,6 +603,8 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
       dotp = OLS_type;
    } else if (strstr(sbuf,"#node-based_vectors")) {
       dotp = NBV_type; 
+   } else if (strstr(sbuf,"#node-based_ball-vectors")) {
+      dotp = ONBV_type;
    } 
    if (LocalHead) {
       fprintf(SUMA_STDERR,"%s: Searched header string:\n>>>%s<<<\ndotp = %d\n", FuncName, sbuf, dotp);
@@ -630,7 +632,8 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented, char 
 {
    static char FuncName[]={"SUMA_Alloc_SegmentDO"};
    SUMA_SegmentDO * SDO= NULL;
-
+   char *hs = NULL;
+   
    SUMA_ENTRY;
    
    SDO = (SUMA_SegmentDO *) SUMA_malloc (sizeof (SUMA_SegmentDO));
@@ -669,9 +672,13 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented, char 
       SDO->N_n = 0;
    }
    
-   SDO->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));
-   UNIQ_idcode_fill(SDO->idcode_str);
-   
+   /* create a string to hash an idcode */
+   if (Label) hs = SUMA_copy_string(Label);
+   else hs = SUMA_copy_string("NULL_");
+   if (Parent_idcode_str) hs = SUMA_append_replace_string(hs,Parent_idcode_str,"_",1);
+   else hs = SUMA_append_replace_string(hs,"NULL","",1);
+   SDO->idcode_str = UNIQ_hashcode(hs);
+   SUMA_free(hs); hs = NULL;
    
    if (Label) {
       SDO->Label = (char *)SUMA_calloc (strlen(Label)+1, sizeof(char));
@@ -749,8 +756,9 @@ SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id)
    }
    
    if (oriented) sprintf(buf,"Oriented Node-Based Vectors");
-   else sprintf(buf,"How can a vector not be oriented, fool! ");
-   
+   else {
+      sprintf(buf,"Bottomless Node-Based Vector ");
+   }
    far = MRI_FLOAT_PTR(im);
    ncol = im->nx;
    nrow = im->ny;
@@ -1192,16 +1200,16 @@ SUMA_Axis* SUMA_Alloc_Axis (const char *Name)
       if (strlen(Name) > SUMA_MAX_LABEL_LENGTH-1) {
          fprintf(SUMA_STDERR, "Error %s: Name too long (> %d).\n",\
             FuncName, SUMA_MAX_LABEL_LENGTH);
-         Ax->Name = NULL;
+         Ax->Label = NULL;
          Ax->idcode_str = NULL;
       } else {
-         Ax->Name = (char *)SUMA_calloc (strlen(Name)+1, sizeof(char));
+         Ax->Label = (char *)SUMA_calloc (strlen(Name)+1, sizeof(char));
          Ax->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH+1, sizeof(char));
-         if (Ax->Name == NULL) {
+         if (Ax->Label == NULL) {
             fprintf(SUMA_STDERR,"Error %s: Failed to allocate for Ax->Name.\n", \
                FuncName);
          }
-         sprintf(Ax->Name, "%s", Name);
+         sprintf(Ax->Label, "%s", Name);
          UNIQ_idcode_fill(Ax->idcode_str); 
       }
       
@@ -1214,7 +1222,7 @@ void SUMA_Free_Axis (SUMA_Axis *Ax)
    
    SUMA_ENTRY;
 
-   if (Ax->Name != NULL) SUMA_free(Ax->Name);
+   if (Ax->Label != NULL) SUMA_free(Ax->Label);
    if (Ax->idcode_str != NULL) SUMA_free(Ax->idcode_str);
    if (Ax) SUMA_free(Ax);
    SUMA_RETURNe;
@@ -1224,6 +1232,7 @@ void SUMA_EyeAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *csv)
 {
    static char FuncName[]={"SUMA_EyeAxisStandard"};
    SUMA_Boolean LocalHead = NOPE;
+   char buf[200];
    
    SUMA_ENTRY;
 
@@ -1237,7 +1246,7 @@ void SUMA_EyeAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *csv)
 
 void SUMA_MeshAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceObject *cso)
 {
-   static char FuncName[]={"SUMA_EyeAxisStandard"};
+   static char FuncName[]={"SUMA_MeshAxisStandard"};
    
    SUMA_ENTRY;
 
@@ -2393,6 +2402,7 @@ SUMA_Boolean SUMA_Draw_SO_NBV (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, S
    
    for (i=0; i < N_do; ++i) {
       switch (dov[i].ObjectType) { /* case Object Type */
+         case ONBV_type:
          case NBV_type:
             SDO = (SUMA_SegmentDO *)dov[i].OP;
             if (SUMA_isNBVrelated (SDO, SO)) { /* draw it */
