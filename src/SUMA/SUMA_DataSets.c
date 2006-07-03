@@ -4862,7 +4862,7 @@ SUMA_DSET *SUMA_Load1DDset (char *oName, int verb)
    
    if (!oName) { SUMA_SL_Err("Null Name"); SUMA_RETURN(dset); }
    
-   SUMA_S_Note(oName);
+   /* SUMA_S_Note(oName); */
    /* remove [] if existing */
    nstrip = SUMA_copy_string(oName);
    for (i=0; i<strlen(nstrip); ++i) if (nstrip[i] == '[') { nstrip[i] = '\0'; break; }
