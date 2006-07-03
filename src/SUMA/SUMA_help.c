@@ -108,7 +108,7 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
    
    
    switch (ver) {
-      /* Must modify verv in SUMA_New_Additions when you touch this block */
+      /* Must modify SUMA_VERSION_VECTOR  in SUMA_DataSets.h when add a new case  */
       /*
       case XX:
          SS = SUMA_StringAppend_va(SS, 
@@ -120,7 +120,18 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "  + \n");
          break; 
       */
-      
+      case 20060703:
+         SS = SUMA_StringAppend_va(SS, 
+            "++ SUMA version %s\n", SUMA_ver2date(ver)); if (StampOnly) break;
+         SS = SUMA_StringAppend(SS, 
+            "New Programs:\n"
+            "  + \n"
+            "Modifications:\n"
+            "  + SUMA:\n"
+            "    o Addition of new Displayable Objects (DO)(ctrl+Alt+s)\n"
+            "    o Allow replacement of pre-loaded DO and Dsets\n"
+            );
+         break; 
       case 20041229:
          SS = SUMA_StringAppend_va(SS, 
             "++ SUMA version %s\n", SUMA_ver2date(ver)); if (StampOnly) break;
@@ -376,6 +387,18 @@ char * SUMA_sources_Info(void)
    "  http://www-sop.inria.fr/prisme/personnel/Thomas.Lewiner/JGT.pdf\n"
    "  Permission to use this translation in other programs must be obtained \n"
    "  from Mr. Lewiner.\n"
+   "\n"
+   "* 3d Edge Detection:\n"
+   "  The code for 3dEdge detection is from the library 3DEdge \n"
+   "  by Gregoire Malandain (gregoire.malandain@sophia.inria.fr)\n"
+   "  References for the algorithms:\n"
+   "  -  Optimal edge detection using recursive filtering\n"
+   "     R. Deriche, International Journal of Computer Vision,\n"
+   "     pp 167-187, 1987.\n"
+   "  -  Recursive filtering and edge tracking: two primary tools\n"
+   "     for 3-D edge detection, O. Monga, R. Deriche, G. Malandain\n"
+   "     and J.-P. Cocquerez, Image and Vision Computing 4:9, \n"
+   "     pp 203-214, August 1991.\n"
    "\n"
    "* QHull:\n"
    "                       Qhull, Copyright (c) 1993-2001 \n"
@@ -708,7 +731,7 @@ char * SUMA_help_message_Info(void)
       "                 the file.\n"
       "          Type 1:Segments between (x0,y0,z0) and (x1,y1,z1) \n"
       "                 1st line must be '#segments' (without quotes),\n"
-      "                 or '#oriented_segments'.\n"
+      "                 or '#oriented_segments' (slower to render).\n"
       "                 Remainder of file is N rows, each defining a \n"
       "                 segment (or a vector) between two points.\n"
       "                 Column content depends on the number of columns\n"
@@ -742,6 +765,7 @@ char * SUMA_help_message_Info(void)
       "                 9  cols: ox oy oz c0 c1 c2 c3 rd st\n"
       "          Type 3:Vectors (vx, vy, vz) at surface nodes \n"
       "                 1st line must be '#node-based_vectors' (without quotes)\n"
+      "                 or '#node-based_ball-vectors' (slower to render).\n"
       "                 Remainder of file is N rows, each defining a \n"
       "                 a vector at a particular node.\n"
       "                 Column content depends on the number of columns\n"

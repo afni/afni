@@ -491,8 +491,8 @@ int main (int argc,char *argv[])
 		SUMA_error_message (FuncName,"Error Adding DO", 1);
 		exit(1);
 	}
-	/*fprintf (SUMA_STDERR, "SUMAg_N_DOv = %d created\n", SUMAg_N_DOv);*/
-
+	/*fprintf (SUMA_STDERR, "SUMAg_N_DOv = %d created\n", SUMAg_N_DOv);
+   SUMA_Show_DOv(SUMAg_DOv, SUMAg_N_DOv, NULL);*/
 
 	/* Allocate space (and initialize) Surface Viewer Structure */
 	SUMAg_SVv = SUMA_Alloc_SurfaceViewer_Struct (SUMA_MAX_SURF_VIEWERS);

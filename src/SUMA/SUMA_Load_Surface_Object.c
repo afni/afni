@@ -2272,7 +2272,7 @@ SUMA_Boolean SUMA_PrepAddmappableSO(SUMA_SurfaceObject *SO, SUMA_DO *dov, int *N
             SUMA_SL_Err("Failed to find dset!");
             SUMA_RETURN (NOPE);
          }
-         NewColPlane = SUMA_CreateOverlayPointer (SO->N_Node, "Convexity", dset, SO->idcode_str);
+         NewColPlane = SUMA_CreateOverlayPointer (SO->N_Node, "Convexity", dset, SO->idcode_str, NULL);
          if (!NewColPlane) {
             fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
             SUMA_RETURN (NOPE);
@@ -2852,7 +2852,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
                                        SO->idcode_str,   /* that's the domain owner */
                                        SO->N_Node);
          SUMA_free(name_tmp); name_tmp = NULL;
-         if (!SUMA_InsertDsetPointer(dset, DsetList)) {
+         if (!SUMA_InsertDsetPointer(&dset, DsetList, 0)) {
             SUMA_SL_Err("Failed to insert dset into list");
             SUMA_RETURN(NOPE);
          }
