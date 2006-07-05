@@ -75,6 +75,8 @@ static char *elist[] = {
  "0029 1010" ,  /* Siemens addendum #1 */
  "0029 1020" ,  /* Siemens addendum #2 */
 
+ "0002 0010" ,  /* Transfer Syntax [RWC - 05 Jul 2006] */
+
 NULL } ;
 
 #define NUM_ELIST (sizeof(elist)/sizeof(char *)-1)
@@ -111,6 +113,8 @@ NULL } ;
 
 #define E_SIEMENS_1                  26    /* 31 Oct 2002 */
 #define E_SIEMENS_2                  27
+
+#define E_TRANSFER_SYNTAX            28    /* 05 Jul 2006 */
 
 /*---------------------------------------------------------------------------*/
 /* global set via 'to3d -assume_dicom_mosaic'            13 Mar 2006 [rickr] */
@@ -150,6 +154,9 @@ MRI_IMARR * mri_read_dicom( char *fname )
 
    char *sexi_start;   /* KRH 25 Jul 2003 */
    char *sexi_end;
+
+   int ts_endian = 1 ; /* 05 Jul 2006 - transfer syntax endian-ness
+                                      - 1 = little endian, 0 = big - RWCox */
 
 ENTRY("mri_read_dicom") ;
 
@@ -558,8 +565,30 @@ ENTRY("mri_read_dicom") ;
    INIT_IMARR(imar) ;
 
    /* DICOM files are stored in LSB first (little endian) mode */
+   /* 05 Jul 2006 - not necessarily: check transfer syntax - RWC */
 
-   RWC_set_endianosity() ; swap = !LITTLE_ENDIAN_ARCHITECTURE ;
+   RWC_set_endianosity() ;
+
+   if( epos[E_TRANSFER_SYNTAX] != NULL ){
+     ddd = strstr(epos[E_TRANSFER_SYNTAX],"//") ;
+     if( ddd != NULL ){
+       char ts[256]="\0" ;
+       sscanf(ddd+2,"%254s",ts) ;
+       if( strlen(ts) >= 17 && strncmp(ts,"1.2.840.10008.1.2",17)==0 ){
+         if( strncmp(ts,"1.2.840.10008.1.2.2",19) == 0 )
+           ts_endian = 0 ;  /* big endian */
+       } else {
+         static int nwarn=0 ;
+         if( nwarn < NWMAX )
+           WARNING_message("DICOM: unknown Transfer Syntax '%s' in file %s",ts,fname) ;
+         if( nwarn == NWMAX )
+           WARNING_message("DICOM: no more Transfer Syntax messages will be printed") ;
+         nwarn++ ;
+       }
+     }
+   }
+
+   swap = (ts_endian != LITTLE_ENDIAN_ARCHITECTURE) ;
 
    /* 28 Oct 2002: must allow for 2D mosaic mode */
 
