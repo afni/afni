@@ -5871,3 +5871,9 @@
 19 Jun 2006
  * Fixed flip_memplot() error in coxplot/plot_cox.c, where non-line elements
      were being flipped when they shouldn't be.
+
+02 Jul 2006
+ * Inserted Powell's NEWUOA code into AFNI libmri.a.
+
+05 Jul 2006
+ * Modified mri_read_dicom.c to deal with big-endian file transfer syntax.
