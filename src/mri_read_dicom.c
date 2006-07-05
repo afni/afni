@@ -157,6 +157,8 @@ MRI_IMARR * mri_read_dicom( char *fname )
 
    int ts_endian = 1 ; /* 05 Jul 2006 - transfer syntax endian-ness
                                       - 1 = little endian, 0 = big - RWCox */
+   int un16 = 0 ;      /* 05 Jul 2006 - is it 16 bit unsigned data? */
+   int ov16 = 0 ;      /*             - did 16 bit overflow occur? */
 
 ENTRY("mri_read_dicom") ;
 
@@ -219,7 +221,11 @@ ENTRY("mri_read_dicom") ;
    if( ddd == NULL ){ free(ppp); RETURN(NULL); }
    bpp = 0 ; sscanf(ddd+2,"%d",&bpp) ;
    switch( bpp ){
-      default: free(ppp); RETURN(NULL);    /* bad value */
+      default:
+        WARNING_message(
+          "DICOM file %s has illegal Bits Allocated = %d -- skipping",
+          fname , bpp ) ;
+        free(ppp); RETURN(NULL);    /* bad value */
       case  8: datum = MRI_byte ; break ;
       case 16: datum = MRI_short; break ;
       case 32: datum = MRI_int  ; break ;  /* probably not present in DICOM? */
@@ -536,6 +542,23 @@ ENTRY("mri_read_dicom") ;
 
    /* check if we might have 16 bit unsigned data that fills all bits */
 
+   if( bpp == 2 ){
+     if( epos[E_PIXEL_REPRESENTATION] != NULL ){
+       ddd = strstr(epos[E_PIXEL_REPRESENTATION],"//") ;
+       if( ddd != NULL ){
+         ii = 0 ; sscanf( ddd+2 , "%d" , &ii ) ;
+         if( ii == 0 ) un16 = 1 ;                /* unsigned */
+       }
+     }
+     if( un16 && epos[E_HIGH_BIT] != NULL ){
+       ddd = strstr(epos[E_HIGH_BIT],"//") ;
+       if( ddd != NULL ){
+         ii = 0 ; sscanf( ddd+2 , "%d" , &ii ) ;
+         if( ii < 15 ) un16 = 0 ;               /* but less than 16 bits */
+       }
+     }
+   }
+
 #if 0
    if( bpp == 2 ){
      if( epos[E_PIXEL_REPRESENTATION] != NULL ){
@@ -568,6 +591,25 @@ ENTRY("mri_read_dicom") ;
    /* 05 Jul 2006 - not necessarily: check transfer syntax - RWC */
 
    RWC_set_endianosity() ;
+
+   /* Transfer Syntax possibilities for the image data are:
+
+        "1.2.840.10008.1.2"       = implicit little endian (default)
+        "1.2.840.10008.1.2.1"     = explicit little endian
+        "1.2.840.10008.1.2.2"     = explicit big endian
+        "1.2.840.10008.1.2.4.70"  = lossless JPEG
+        "1.2.840.10008.1.2.4.57"  = another lossless JPEG
+        "1.2.840.10008.1.2.4.50"  = 8-bit lossy JPEG
+        "1.2.840.10008.1.2.4.51"  = 12-bit lossy JPEG
+        "1.2.840.10008.1.2.5"     = RLE compression
+        "1.2.840.10008.1.2.4.80"  = lossless JPEG-LS
+        "1.2.840.10008.1.2.4.81"  = near-lossless JPEG-LS
+        "1.2.840.10008.1.2.4.90"  = lossless JPEG-2000
+        "1.2.840.10008.1.2.4.91"  = lossy JPEG-2000
+        "1.2.840.10008.1.2.4.100" = MPEG-2
+        "1.2.840.10008.1.2.1.99"  = 'deflate' compression
+
+    Only the first 3 are supported herein, as of 05 Jul 2006 - RWCox */
 
    if( epos[E_TRANSFER_SYNTAX] != NULL ){
      ddd = strstr(epos[E_TRANSFER_SYNTAX],"//") ;
@@ -675,8 +717,9 @@ ENTRY("mri_read_dicom") ;
          if( swap ) im->was_swapped = 1 ;
 
          ADDTO_IMARR(imar,im) ;
-       }
-     }
+
+       } /* end of x sub-image loop */
+     } /* end of y sub-image loop */
      free(dar) ;  /* don't need no more; copied all data out of it now */
 
      /* truncate zero images out of tail of mosaic */
@@ -729,6 +772,21 @@ MCHECK ;
    } /* end of mosaic input mode */
 
    fclose(fp) ;     /* 10 Sep 2002: oopsie - forgot to close file */
+
+   /*-- 05 Jul 2006 - check for 16 bit overflow --*/
+
+   if( un16 ){
+     for( ii=0 ; !ov16 && ii < IMARR_COUNT(imar) ; ii++ ){
+       short *sar = MRI_SHORT_PTR( IMARR_SUBIM(imar,ii) ) ;
+       for( jj=0 ; jj < im->nvox ; jj++ ) if( sar[jj] < 0 ) break ;
+       if( jj < im->nvox ){
+         WARNING_message(
+          "DICOM file %s marked as unsigned 16-bit, but AFNI stores as signed",
+          fname ) ;
+         ov16 = 1 ;  /* mark as having found overflow */
+       }
+     }
+   }
 
    /*-- 23 Dec 2002: implement Rescale, if ordered --*/
 
