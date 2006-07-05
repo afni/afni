@@ -776,16 +776,14 @@ MCHECK ;
    /*-- 05 Jul 2006 - check for 16 bit overflow --*/
 
    if( un16 ){
-     for( ii=0 ; !ov16 && ii < IMARR_COUNT(imar) ; ii++ ){
+     for( ov16=ii=0 ; ii < IMARR_COUNT(imar) ; ii++ ){
        short *sar = MRI_SHORT_PTR( IMARR_SUBIM(imar,ii) ) ;
-       for( jj=0 ; jj < im->nvox ; jj++ ) if( sar[jj] < 0 ) break ;
-       if( jj < im->nvox ){
-         WARNING_message(
-          "DICOM file %s marked as unsigned 16-bit, but AFNI stores as signed",
-          fname ) ;
-         ov16 = 1 ;  /* mark as having found overflow */
-       }
+       for( jj=0 ; jj < im->nvox ; jj++ ) if( sar[jj] < 0 ) ov16++ ;
      }
+     if( ov16 )
+       WARNING_message(
+        "DICOM file %s: unsigned 16-bit; AFNI stores signed: %d pixels < 0" ,
+          fname , ov16 ) ;
    }
 
    /*-- 23 Dec 2002: implement Rescale, if ordered --*/
