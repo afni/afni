@@ -1,13 +1,15 @@
 #include "mrilib.h"
 
 /*==============================================================================*/
-/*========== The following functions are lifted from afni_fimfunc.c ============*/
-/*------------------------------------------------------------------------------
-   Rank-order a float array, with ties getting the average rank.
+/*========== The following functions were moved from afni_fimfunc.c -===========*/
+/*==============================================================================*/
+
+/*------------------------------------------------------------------------------*/
+/*! Rank-order a float array, with ties getting the average rank.
    The output overwrites the input.
 --------------------------------------------------------------------------------*/
 
-static void rank_order_float( int n , float *a )
+void rank_order_float( int n , float *a )
 {
    register int ii , ns , n1 , ib ;
    static int   nb = 0 ;
@@ -18,8 +20,8 @@ static void rank_order_float( int n , float *a )
    /*- handle special cases -*/
 
    if( a == NULL ){
-      if( b != NULL ){ free(b); free(c); b=NULL ; c=NULL; nb=0; }  /* free workspaces */
-      return ;
+     if( b != NULL ){ free(b); free(c); b=NULL ; c=NULL; nb=0; }  /* free workspaces */
+     return ;
    }
 
    if( n < 1 ) return ;                     /* meaningless input */
@@ -28,10 +30,10 @@ static void rank_order_float( int n , float *a )
    /*- make workspaces, if needed -*/
 
    if( nb < n ){
-      if( b != NULL ){ free(b); free(c); }
-      b  = (int   *) malloc(sizeof(int  )*n) ;
-      c  = (float *) malloc(sizeof(float)*n) ;
-      nb = n ;
+     if( b != NULL ){ free(b); free(c); }
+     b  = (int   *) malloc(sizeof(int  )*n) ;
+     c  = (float *) malloc(sizeof(float)*n) ;
+     nb = n ;
    }
 
    for( ii=0 ; ii < n ; ii++ ) c[ii] = b[ii] = ii ;
@@ -44,11 +46,11 @@ static void rank_order_float( int n , float *a )
 
    n1 = n-1 ;
    for( ii=0 ; ii < n1 ; ii++ ){
-      if( a[ii] == a[ii+1] ){                  /* handle ties */
-         cs = 2*ii+1 ; ns = 2 ; ib=ii ; ii++ ;
-         while( ii < n1 && a[ii] == a[ii+1] ){ ii++ ; ns++ ; cs += ii ; }
-         for( cs/=ns ; ib <= ii ; ib++ ) c[ib] = cs ;
-      }
+     if( a[ii] == a[ii+1] ){                  /* handle ties */
+       cs = 2*ii+1 ; ns = 2 ; ib=ii ; ii++ ;
+       while( ii < n1 && a[ii] == a[ii+1] ){ ii++ ; ns++ ; cs += ii ; }
+       for( cs/=ns ; ib <= ii ; ib++ ) c[ib] = cs ;
+     }
    }
 
    for( ii=0 ; ii < n ; ii++ ) a[b[ii]] = c[ii] ;
@@ -56,11 +58,11 @@ static void rank_order_float( int n , float *a )
    return ;
 }
 
-/*---------------------------------------------------------------------------
-   Rank orders a[], subtracts the mean rank, and returns the sum-of-squares
+/*---------------------------------------------------------------------------*/
+/*! Rank orders a[], subtracts the mean rank, and returns the sum-of-squares.
 -----------------------------------------------------------------------------*/
 
-static float spearman_rank_prepare( int n , float *a )
+float spearman_rank_prepare( int n , float *a )
 {
    register int ii ;
    register float rb , rs ;
@@ -69,16 +71,18 @@ static float spearman_rank_prepare( int n , float *a )
 
    rb = 0.5*(n-1) ; rs=0.0 ;
    for( ii=0 ; ii < n ; ii++ ){
-      a[ii] -= rb ;
-      rs    += a[ii]*a[ii] ;
+     a[ii] -= rb ;
+     rs    += a[ii]*a[ii] ;
    }
 
    return rs ;
 }
 
-/*------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+/*! Prepare for quadrant correlation with a[].
+-----------------------------------------------------------------------------*/
 
-static float quadrant_corr_prepare( int n , float *a )
+float quadrant_corr_prepare( int n , float *a )
 {
    register int ii ;
    register float rb , rs ;
@@ -87,23 +91,23 @@ static float quadrant_corr_prepare( int n , float *a )
 
    rb = 0.5*(n-1) ; rs=0.0 ;
    for( ii=0 ; ii < n ; ii++ ){
-      a[ii] = (a[ii] > rb) ? 1.0
-                           : (a[ii] < rb) ? -1.0 : 0.0 ;
-      rs    += a[ii]*a[ii] ;
+     a[ii] = (a[ii] > rb) ? 1.0
+                          : (a[ii] < rb) ? -1.0 : 0.0 ;
+     rs   += a[ii]*a[ii] ;
    }
 
    return rs ;
 }
 
-/*-----------------------------------------------------------------------------
-    To correlate x[] with r[], do
+/*-----------------------------------------------------------------------------*/
+/*! To Spearman (rank-order) correlate x[] with r[], first do
       rv = spearman_rank_prepare(n,r) ;
     then
       corr = spearman_rank_corr(n,x,rv,r) ;
-    Note that these 2 routines are destructive (r and x are replaced by ranks)
+    Note that these 2 routines are destructive (r and x are replaced by ranks).
 -------------------------------------------------------------------------------*/
 
-static float spearman_rank_corr( int n , float *x , float rv , float *r )
+float spearman_rank_corr( int n , float *x , float rv , float *r )
 {
    register int ii ;
    register float ss ; float xv ;
@@ -116,8 +120,14 @@ static float spearman_rank_corr( int n , float *x , float rv , float *r )
 }
 
 /*------------------------------------------------------------------------------*/
+/*! To do quadrant correlation of x[] with r[], first do
+      rv = quadrant_corr_prepare(n,r) ;
+    then
+      corr = quadrant_corr(n,x,rv,r) ;
+    Note that these 2 routines are destructive (r and x are modified).
+-------------------------------------------------------------------------------*/
 
-static float quadrant_corr( int n , float *x , float rv , float *r )
+float quadrant_corr( int n , float *x , float rv , float *r )
 {
    register int ii ;
    register float ss ; float xv ;
@@ -130,8 +140,11 @@ static float quadrant_corr( int n , float *x , float rv , float *r )
 }
 
 /*=============================================================================
-  Compute correlations, destructively
+  Compute correlations, destructively (i.e., mangling the input arrays)
 ===============================================================================*/
+
+/*--------------------------------------------------------------------------*/
+/*! Spearman rank-order correlation of x[] and y[] (x and y are modified).  */
 
 float THD_spearman_corr( int n , float *x , float *y )
 {
@@ -140,7 +153,8 @@ float THD_spearman_corr( int n , float *x , float *y )
    return spearman_rank_corr( n,y,xv,x ) ;
 }
 
-/*--------------------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+/*! Quadrant correlation of x[] and y[] (x and y are modified). */
 
 float THD_quadrant_corr( int n , float *x , float *y )
 {
@@ -149,15 +163,16 @@ float THD_quadrant_corr( int n , float *x , float *y )
    return quadrant_corr( n,y,xv,x ) ;
 }
 
-/*--------------------------------------------------------------------------*/
+/*----------------------------------------------------------------*/
+/*! Pearson correlation of x[] and y[] (x and y are NOT modified. */
 
-float THD_pearson_corr( int n, float *x , float *y )  /* not destructive */
+float THD_pearson_corr( int n, float *x , float *y )
 {
    float xv=0 , yv=0 , xy=0 ;
    int ii ;
 
    for( ii=0 ; ii < n ; ii++ ){
-      xv += x[ii]*x[ii] ; yv += y[ii]*y[ii] ; xy += x[ii]*y[ii] ;
+     xv += x[ii]*x[ii] ; yv += y[ii]*y[ii] ; xy += x[ii]*y[ii] ;
    }
 
    if( xv <= 0.0 || yv <= 0.0 ) return 0.0 ;
