@@ -4089,6 +4089,14 @@ extern float THD_spearman_corr( int,float *,float *) ;  /* 23 Aug 2001 */
 extern float THD_quadrant_corr( int,float *,float *) ;
 extern float THD_pearson_corr ( int,float *,float *) ;
 
+extern void  rank_order_float     ( int , float * );
+extern float spearman_rank_prepare( int , float * );
+extern float quadrant_corr_prepare( int , float * );
+extern float spearman_rank_corr   ( int , float * , float , float * );
+extern float quadrant_corr        ( int , float * , float , float * );
+
+/*------------------------------------------------------------------------*/
+
 extern THD_fvec3 THD_autonudge( THD_3dim_dataset *dsepi, int ivepi,
                                 THD_3dim_dataset *dsant, int ivant,
                                 float step,
