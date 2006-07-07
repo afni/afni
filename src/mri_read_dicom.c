@@ -181,7 +181,7 @@ ENTRY("mri_read_dicom") ;
    ppp = mri_dicom_header( fname ) ; /* print header to malloc()-ed string */
    if( ppp == NULL ){                /* didn't work; not a DICOM file? */
      if( AFNI_yesenv("AFNI_DICOM_VERBOSE") )
-       ERROR_message("file %s is not DICOM",fname) ;
+       ERROR_message("file %s is not interpretable as DICOM",fname) ;
      RETURN(NULL) ;
    }
 
@@ -234,7 +234,7 @@ ENTRY("mri_read_dicom") ;
        if( ts_endian < 0 ){
          static int nwarn=0 ;
          if( nwarn < NWMAX )
-           WARNING_message("unknown DICOM Transfer Syntax '%s' in file %s",ts,fname) ;
+           WARNING_message("DICOM file %s: unsupported Transfer Syntax '%s'",fname,ts) ;
          if( nwarn == NWMAX )
            WARNING_message("DICOM: no more Transfer Syntax messages will be printed") ;
          nwarn++ ;
@@ -273,7 +273,7 @@ ENTRY("mri_read_dicom") ;
        epos[E_COLUMNS]        == NULL ||
        epos[E_BITS_ALLOCATED] == NULL   ){
 
-     ERROR_message("DICOM file %s missing required fields",fname) ;
+     ERROR_message("DICOM file %s: missing mandatory fields",fname) ;
      free(ppp) ; RETURN(NULL);
    }
 
@@ -283,7 +283,7 @@ ENTRY("mri_read_dicom") ;
       ddd = strstr(epos[E_SAMPLES_PER_PIXEL],"//") ;
       ii  = 0 ; sscanf(ddd+2,"%d",&ii) ;
       if( ii != 1 ){
-        ERROR_message("DICOM file %s has %d samples per pixel -- too much!",
+        ERROR_message("DICOM file %s: %d samples per pixel -- too much!",
                       fname,ii) ;
         free(ppp) ; RETURN(NULL);
       }
@@ -294,7 +294,7 @@ ENTRY("mri_read_dicom") ;
    if( epos[E_PHOTOMETRIC_INTERPRETATION] != NULL ){
       ddd = strstr(epos[E_PHOTOMETRIC_INTERPRETATION],"MONOCHROME") ;
       if( ddd == NULL ){
-        ERROR_message("DICOM file %s is not MONOCHROME!",fname) ;
+        ERROR_message("DICOM file %s: not MONOCHROME!",fname) ;
         free(ppp) ; RETURN(NULL);
       }
    }
@@ -307,8 +307,7 @@ ENTRY("mri_read_dicom") ;
    switch( bpp ){
       default:
         ERROR_message(
-          "DICOM file %s has illegal Bits Allocated = %d -- skipping",
-          fname , bpp ) ;
+          "DICOM file %s: unsupported Bits Allocated = %d", fname , bpp ) ;
         free(ppp); RETURN(NULL);    /* bad value */
       case  8: datum = MRI_byte ; break ;
       case 16: datum = MRI_short; break ;
@@ -669,7 +668,7 @@ ENTRY("mri_read_dicom") ;
 
    fp = fopen( fname , "rb" ) ;
    if( fp == NULL ){
-     ERROR_message("can't open DICOM file %s",fname) ;
+     ERROR_message("DICOM file %s: can't open!?",fname) ;
      free(ppp) ; RETURN(NULL);
    }
    lseek( fileno(fp) , poff , SEEK_SET ) ;
