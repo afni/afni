@@ -208,7 +208,10 @@ int main( int argc , char *argv[] )
      if( verb ) fprintf(stderr,"+") ;
      qar = mri_read_file( gname[ii] ) ;  /* may have more than 1 2D image */
      if( qar == NULL || IMARR_COUNT(qar) < 1 ){
-       fprintf(stderr,"\n** Can't read file %s - skipping!",gname[ii]) ;
+       if( verb )
+         fprintf(stderr,"\n** Can't read file %s - skipping!",gname[ii]) ;
+       else
+         fprintf(stderr,"** AIV ERROR: Can't read file %s - skipping!\n",gname[ii]) ;
        continue ;
      } else if( verb ){
        fprintf(stderr,"%s",gname[ii]) ;
@@ -216,7 +219,7 @@ int main( int argc , char *argv[] )
 
      for( jj=0 ; jj < IMARR_COUNT(qar) ; jj++ ){
        im = IMARR_SUBIM(qar,jj) ;
-       if( im != NULL ) ADDTO_IMARR( MAIN_imar , im ) ;
+       if( im != NULL && im->nx > 1 && im->ny > 1 ) ADDTO_IMARR(MAIN_imar,im);
      }
      FREE_IMARR(qar) ;
    }
