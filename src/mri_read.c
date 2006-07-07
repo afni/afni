@@ -1061,7 +1061,7 @@ ENTRY("mri_read_file") ;
 
    } else if( check_dicom_magic_num( new_fname ) ) { /* 10 Aug 2004 */
 
-     newar = mri_read_dicom( new_fname );  tried_dicom=1 ;
+     newar = mri_read_dicom( new_fname );  tried_dicom=2 ;
 
    } else if( strstr(new_fname,".hdr") != NULL ||
               strstr(new_fname,".HDR") != NULL   ){  /* 05 Feb 2001 */
@@ -1146,14 +1146,14 @@ ENTRY("mri_read_file") ;
 
       /** if DICOM failed, try a 2D slice file, hope for the best **/
 
-      if( newar == NULL ){
+      if( newar == NULL && tried_dicom != 2 ){
         newim = mri_read( new_fname ) ;
         if( newim == NULL ){ free(new_fname); RETURN( NULL ); }  /* give up */
         INIT_IMARR(newar) ;
         ADDTO_IMARR(newar,newim) ;
       }
 
-      if ( (newar == NULL) && AFNI_yesenv("AFNI_TRY_DICOM_LAST")) {
+      if( newar == NULL && AFNI_yesenv("AFNI_TRY_DICOM_LAST") ){
         if( !tried_dicom ){
           newar = mri_read_dicom( new_fname ) ; tried_dicom = 1 ;
         }
@@ -1169,7 +1169,7 @@ ENTRY("mri_read_file") ;
      for( ii=0 ; ii < newar->num ; ii++ ){
        newim = IMARR_SUBIM(newar,ii) ;
        if( newim != NULL && newim->fname == NULL )
-          newim->fname = strdup(fname) ;
+         newim->fname = strdup(fname) ;
      }
    }
 
