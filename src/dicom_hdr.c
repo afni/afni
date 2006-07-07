@@ -84,7 +84,7 @@ STATUS("calling funct mri_dicom_header()") ;
      ppp = mri_dicom_header( argv[ii] ) ;
 STATUS("returned from mri_dicom_header()") ;
      if( ppp != NULL ){
-       off_t poff ; unsigned int plen ;
+       off_t poff ; int plen ;
        printf("%s",ppp) ; free(ppp) ;
        mri_dicom_pxlarr( &poff , &plen ) ;
        if( plen > 0 )

@@ -2205,7 +2205,8 @@ void B2SL_NAME( int nxx, int nyy, int nzz ,
 {
    int ystep = nxx , zstep = nxx*nyy ;
 
-  ENTRY("AFNI_br2sl") ;
+ENTRY("AFNI_br2sl") ;
+   if( bold == NULL || bslice == NULL ) EXRETURN ;
 
    switch( fixed_axis ){
 
