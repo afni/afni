@@ -1033,9 +1033,10 @@ ENTRY("mri_read_3D") ;
 
 MRI_IMARR * mri_read_file( char * fname )
 {
-   MRI_IMARR * newar=NULL ;
-   MRI_IMAGE * newim ;
-   char * new_fname ;
+   MRI_IMARR *newar=NULL ;
+   MRI_IMAGE *newim ;
+   char *new_fname ;
+   int tried_dicom=0 ;
 
 ENTRY("mri_read_file") ;
 
@@ -1060,7 +1061,7 @@ ENTRY("mri_read_file") ;
 
    } else if( check_dicom_magic_num( new_fname ) ) { /* 10 Aug 2004 */
 
-     newar = mri_read_dicom( new_fname );
+     newar = mri_read_dicom( new_fname );  tried_dicom=1 ;
 
    } else if( strstr(new_fname,".hdr") != NULL ||
               strstr(new_fname,".HDR") != NULL   ){  /* 05 Feb 2001 */
@@ -1138,7 +1139,9 @@ ENTRY("mri_read_file") ;
    if( newar == NULL ){
 
       if ( !AFNI_yesenv("AFNI_TRY_DICOM_LAST")) {
-        newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
+        if( !tried_dicom ){
+          newar = mri_read_dicom( new_fname ) ; tried_dicom = 1 ;
+        }
       }
 
       /** if DICOM failed, try a 2D slice file, hope for the best **/
@@ -1151,7 +1154,9 @@ ENTRY("mri_read_file") ;
       }
 
       if ( (newar == NULL) && AFNI_yesenv("AFNI_TRY_DICOM_LAST")) {
-        newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
+        if( !tried_dicom ){
+          newar = mri_read_dicom( new_fname ) ; tried_dicom = 1 ;
+        }
       }
    }
 
@@ -3247,9 +3252,10 @@ fprintf(stderr,"delayed input from file %s at offset %d\n",im->fname,im->foffset
 
 MRI_IMARR * mri_read_file_delay( char * fname )
 {
-   MRI_IMARR * newar=NULL ;
-   MRI_IMAGE * newim ;
-   char * new_fname ;
+   MRI_IMARR *newar=NULL ;
+   MRI_IMAGE *newim ;
+   char *new_fname ;
+   int tried_dicom=0 ;
 
    new_fname = imsized_fname( fname ) ;
    if( new_fname == NULL ) return NULL ;
@@ -3264,6 +3270,10 @@ MRI_IMARR * mri_read_file_delay( char * fname )
               new_fname[0] == '3' && new_fname[1] == 'A' && new_fname[3] == ':' ){
 
       newar = mri_read_3A( new_fname ) ;
+
+   } else if( check_dicom_magic_num( new_fname ) ) {
+
+     newar = mri_read_dicom( new_fname );  tried_dicom=1 ;
 
    } else if( strstr(new_fname,".hdr") != NULL ||
               strstr(new_fname,".HDR") != NULL   ){ /* 05 Feb 2001 - ANALYZE header */
@@ -3287,7 +3297,9 @@ MRI_IMARR * mri_read_file_delay( char * fname )
    /* 05 May 2003 added option to try DICOM last         KRH          */
 
    if ((newar == NULL) && !AFNI_yesenv("AFNI_TRY_DICOM_LAST")) {
-     newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
+     if( !tried_dicom ){
+       newar = mri_read_dicom( new_fname ) ; tried_dicom = 1 ;
+     }
    }
 
    /* failed again?  try mri_read() for 1 image */
@@ -3300,7 +3312,9 @@ MRI_IMARR * mri_read_file_delay( char * fname )
    }
 
    if ( (newar == NULL) && AFNI_yesenv("AFNI_TRY_DICOM_LAST")) {
-     newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
+     if( !tried_dicom ){
+       newar = mri_read_dicom( new_fname ) ; tried_dicom = 1 ;
+     }
    }
 
    free(new_fname) ;
