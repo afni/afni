@@ -612,7 +612,7 @@ extern void mri_free( MRI_IMAGE * ) ;
 extern void mri_fix_data_pointer( void * , MRI_IMAGE * ) ;
 
 extern char * mri_dicom_header( char * ) ;  /* 15 Jul 2002 */
-extern void   mri_dicom_pxlarr( off_t *, unsigned int * ) ;
+extern void   mri_dicom_pxlarr( off_t *, int * ) ;
 extern void   mri_dicom_noname( int ) ;
 extern void   mri_dicom_nohex ( int ) ;
 extern void   mri_dicom_setvm ( int ) ;     /* 28 Oct 2002 */

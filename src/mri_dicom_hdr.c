@@ -163,10 +163,10 @@ static int RWC_printf( char *fmt , ... )
 
 /****************************************************************/
 
-static off_t        pxl_off = 0 ;  /* store pixel array offset */
-static unsigned int pxl_len = 0 ;  /* and length in file */
+static off_t pxl_off = 0 ;  /* store pixel array offset */
+static int   pxl_len = 0 ;  /* and length in file */
 
-void mri_dicom_pxlarr( off_t *poff , unsigned int *plen )
+void mri_dicom_pxlarr( off_t *poff , int *plen )
 {
    *poff = pxl_off ; *plen = pxl_len ;
 }
@@ -6804,7 +6804,7 @@ readData(const char *name, unsigned char **ptr, int fd, U32 * size,
 		if ((*elementItem)->element.length != DCM_UNSPECIFIEDLENGTH){
 
                     pxl_off = lseek( fd , 0 , SEEK_CUR ) ;
-                    pxl_len = (*elementItem)->element.length ;
+                    pxl_len = (int)((*elementItem)->element.length) ;
 
                     (*elementItem)->element.data_offset = pxl_off ;   /* RWCox */
 
