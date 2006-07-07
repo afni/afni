@@ -1182,6 +1182,77 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
 #define METRIC_AGDV  7
 extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 
+/*--------------------------------------------------------------------*/
+/** July 2006: stuff for generic alignment functions: mri_genalign.c **/
+
+#define GA_MATCH_PEARSON_SCALAR     1
+#define GA_MATCH_SPEARMAN_SCALAR    2
+#define GA_MATCH_KULLBACK_SCALAR    3
+
+#define GA_SMOOTH_GAUSSIAN          1
+#define GA_SMOOTH_MEDIAN            2
+
+#define GA_KERNEL_GAUSSIAN          1
+#define GA_KERNEL_QUADRATIC         2
+#define GA_KERNEL_QUARTIC           3
+
+typedef struct {
+  int match_code  ;
+  int smooth_code ;
+  int interp_code ;
+
+  MRI_IMAGE *bsim ;
+  int dim_bvec    ;
+
+  MRI_IMAGE *ajim ;
+  int dim_avec    ;
+
+  int npt_match   ;
+  int   *im , *jm , *km ;
+  float *bvm ;
+
+  int kernel_code ;
+  int npt_sum ;
+  int   *is , *js , *ks ;
+  float *bvs ;
+
+  MRI_IMAGE *maskim ;
+} GA_setup ;
+
+#undef  IFREE
+#define IFREE(x) do{ if((x)!=NULL)free(x); }while(0)
+
+#undef  FREE_GA_setup
+#define FREE_GA_setup(st)                                                    \
+ do{ if( (st) != NULL ){                                                     \
+       mri_free((st)->bsim); mri_free((st)->ajim); mri_free((st)->maskim);   \
+       IFREE((st)->im); IFREE((st)->jm); IFREE((st)->km); IFREE((st)->bvm);  \
+       IFREE((st)->is); IFREE((st)->js); IFREE((st)->ks); IFREE((st)->bvs);  \
+       free((st)) ;                                                          \
+     }                                                                       \
+ } while(0)
+
+typedef struct {
+  int interp_code ;
+  int match_code  ;
+  int smooth_code ; float smooth_radius ;
+  int npt_match   ;
+  int kernel_code ; float kernel_radius ;
+  int npt_sum     ;
+} GA_params ;
+
+#undef  INIT_GA_params
+#define INIT_GA_params(gp)                           \
+ do{ gp.interp_code   = MRI_QUINTIC ;                \
+     gp.match_code    = GA_MATCH_PEARSON_SCALAR ;    \
+     gp.smooth_code   = GA_SMOOTH_GAUSSIAN ;         \
+     gp.smooth_radius = 1.0f ;                       \
+     gp.npt_match     = 333 ;                        \
+     gp.kernel_code   = GA_KERNEL_QUADRATIC ;        \
+     gp.kernel_radius = -0.05f ;                     \
+     gp.npt_sum       = 333 ;                        \
+ } while(0)
+
 /*------------------------------------------------------------------*/
 
 #endif /* _MCW_MRILIB_HEADER_ */
