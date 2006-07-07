@@ -1571,3 +1571,6 @@
   * modified SUMA_3dVol2Surf.[ch], vol2surf.[ch], plug_vol2surf.c
       - added -save_seg_coords option
 
+07 Jul 2006:
+  * modified @auto_tlrc: changed 3dMax to 3dBrickStat
+
