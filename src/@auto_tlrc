@@ -404,7 +404,7 @@ AUTO_TLRC_MODE:
          goto END
       endif
       #clip values to range of input
-      set range = `3dMax -min -max ${ns_pref}${anat_view}`
+      set range = `3dBrickStat -min -max ${ns_pref}${anat_view}`
       set min = `ccalc -eval "$range[1] - 0.0001"`
       set max = `ccalc -eval "$range[2] + 0.0001"`
       echo "Clipping $min $max ..."
