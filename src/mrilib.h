@@ -1203,6 +1203,8 @@ typedef struct {
 
   MRI_IMAGE *bsim ;
   int dim_bvec    ;
+  int   nmask     ;
+  byte *bmask     ;
 
   MRI_IMAGE *ajim ;
   int dim_avec    ;
@@ -1211,12 +1213,10 @@ typedef struct {
   int   *im , *jm , *km ;
   float *bvm ;
 
-  int kernel_code ;
+  int kernel_code ; float kernel_radius ;
   int npt_sum ;
   int   *is , *js , *ks ;
   float *bvs ;
-
-  MRI_IMAGE *maskim ;
 } GA_setup ;
 
 #undef  IFREE
@@ -1225,7 +1225,7 @@ typedef struct {
 #undef  FREE_GA_setup
 #define FREE_GA_setup(st)                                                    \
  do{ if( (st) != NULL ){                                                     \
-       mri_free((st)->bsim); mri_free((st)->ajim); mri_free((st)->maskim);   \
+       mri_free((st)->bsim); mri_free((st)->ajim); IFREE((st)->bmask);       \
        IFREE((st)->im); IFREE((st)->jm); IFREE((st)->km); IFREE((st)->bvm);  \
        IFREE((st)->is); IFREE((st)->js); IFREE((st)->ks); IFREE((st)->bvs);  \
        free((st)) ;                                                          \
