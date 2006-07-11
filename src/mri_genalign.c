@@ -1,5 +1,7 @@
 #include "mrilib.h"
 
+static GA_setup *stup = NULL ;
+
 /*---------------------------------------------------------------------------*/
 static int gcd( int m , int n )
 {
@@ -51,15 +53,44 @@ static MRI_IMAGE * GA_smooth( MRI_IMAGE *im , int meth , float rad )
 }
 /*---------------------------------------------------------------------------*/
 
-double GA_scalar_fitter( int npar , double *mpar )
+static void GA_get_warped_values( int npar , double *mpar , float *avm )
 {
-  double val=0.0 ;
-  return val ;
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static GA_setup *stup = NULL ;
+double GA_scalar_fitter( int npar , double *mpar )
+{
+  float val=0.0f ;
+  float *avm , *bvm ;
+
+  avm = (float *)malloc(stup->npt_match*sizeof(float)) ;
+  GA_get_warped_values( npar , mpar , avm ) ;
+  bvm = stup->bvm ;
+
+  switch( stup->match_code ){
+
+    default:
+    case GA_MATCH_PEARSON_SCALAR:
+      val = (double)THD_pearson_corr( stup->npt_match , avm , bvm ) ;
+      val = 1.0 - fabs(val) ;
+    break ;
+
+    case GA_MATCH_SPEARMAN_SCALAR:
+      val = (double)spearman_rank_corr( stup->npt_match, avm,
+                                        stup->bvstat   , bvm ) ;
+      val = 1.0 - fabs(val) ;
+    break ;
+
+    case GA_MATCH_KULLBACK_SCALAR:
+    break ;
+  }
+
+  return (double)val ;
+}
+
+/*---------------------------------------------------------------------------*/
 
 #undef  GOOD
 #define GOOD(i) (mask==NULL || mask[i])
@@ -93,6 +124,9 @@ ENTRY("mri_genalign_scalar") ;
    if( maskim != NULL && maskim->nvox != basim->nvox )
      ERREX("basim and maskim grids differ") ;
 
+   if( parm->wfunc_numpar < 1 || parm->wfunc == NULL )
+     ERREX("illegal wfunc") ;
+
    FREE_GA_setup(stup) ;
    stup = (GA_setup *)calloc(1,sizeof(GA_setup)) ;
 
@@ -102,8 +136,10 @@ ENTRY("mri_genalign_scalar") ;
    stup->kernel_code   = parm->kernel_code   ;
    stup->kernel_radius = parm->kernel_radius ;
    stup->npt_sum       = parm->npt_sum       ;
+   stup->wfunc_numpar  = parm->wfunc_numpar  ;
+   stup->wfunc         = parm->wfunc         ;
 
-   stup->dim_avec = stup->dim_bvec = 1 ;
+   stup->dim_avec = stup->dim_bvec = 1 ;  /* scalars */
 
    /** load images into setup struct, smoothing if so ordered **/
 
@@ -112,15 +148,17 @@ ENTRY("mri_genalign_scalar") ;
 
    nx = stup->bsim->nx; ny = stup->bsim->ny; nz = stup->bsim->nz; nxy = nx*ny;
 
-   if( parm->smooth_code > 0 ){
+   if( parm->smooth_code > 0 && parm->smooth_radius > 0.0f ){
      MRI_IMAGE *qim ;
      qim = GA_smooth( stup->bsim , parm->smooth_code , parm->smooth_radius ) ;
      if( qim != NULL ){ mri_free(stup->bsim) ; stup->bsim = qim ; }
    }
 
-   if( parm->smooth_code > 0 ){
+   if( parm->smooth_code > 0 && parm->smooth_radius > 0.0f ){
      MRI_IMAGE *qim ;
-     qim = GA_smooth( stup->ajim , parm->smooth_code , parm->smooth_radius ) ;
+     float nxa=stup->ajim->nx, nya=stup->ajim->ny, nza=stup->ajim->nz ;
+     float rad=cbrtf(nxa*nya*nza/(nx*ny*nz)) * parm->smooth_radius ;
+     qim = GA_smooth( stup->ajim , parm->smooth_code , rad ) ;
      if( qim != NULL ){ mri_free(stup->ajim) ; stup->ajim = qim ; }
    }
 
@@ -198,6 +236,8 @@ ENTRY("mri_genalign_scalar") ;
           ?  (stup->im[qq] + stup->jm[qq]*nx + stup->km[qq]*nxy) : qq ;
      stup->bvm[qq] = bsar[rr] ;
    }
+   if( stup->match_code == GA_MATCH_SPEARMAN_SCALAR )
+     stup->bvstat = spearman_rank_prepare( stup->npt_match , stup->bvm ) ;
 
 
    RETURN(NULL) ;
