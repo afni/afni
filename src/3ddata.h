@@ -3529,7 +3529,7 @@ extern int THD_write_minc( char *, THD_3dim_dataset * , int) ; /* 11 Apr 2002 */
 
 extern void THD_write_1D( char *, char *, THD_3dim_dataset *); /* 04 Mar 2003 */
 extern void THD_write_3D( char *, char *, THD_3dim_dataset *); /* 21 Mar 2003 */
-extern int  THD_write_niml( THD_3dim_dataset *, int);
+extern Boolean THD_write_niml( THD_3dim_dataset *, int);
 
 extern int  write_niml_file( char *, NI_group *);      /* 12 Jun 2006 [rickr] */
 
@@ -4127,11 +4127,13 @@ extern float THD_BN_rat (void);
 /* 09 May 2005: stuff for converting a dataset to from a NIML group.      */
 
 extern NI_group * THD_nimlize_dsetatr( THD_3dim_dataset *) ;
+extern NI_group * THD_dset_to_ni_surf_dset( THD_3dim_dataset * , int ) ;
 extern void       THD_dblkatr_from_niml( NI_group *, THD_datablock * ) ;
 extern void       THD_set_dataset_attributes( THD_3dim_dataset * ) ;
 
 extern THD_3dim_dataset * THD_niml_to_dataset( NI_group * , int ) ;
 extern int THD_add_bricks( THD_3dim_dataset * , void * ) ;
+extern int THD_add_sparse_data( THD_3dim_dataset * , NI_group * ) ;
 
 #define SBFLAG_INDEX    (1<<0)
 #define SBFLAG_FACTOR   (1<<1)

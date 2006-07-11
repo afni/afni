@@ -9,6 +9,7 @@
 static int ni_debug = 0;   /* for global debugging */
 void set_ni_debug( int debug ){ ni_debug = debug; }
 
+static char * loc_strndup(char *, int);
 static int nsd_string_atr_to_slist(char ***, int, int, ATR_string *);
 static int process_ni_sd_sparse_data(NI_group * ngr, THD_3dim_dataset * dset );
 static int process_ni_sd_attrs(THD_3dim_dataset * dset);
@@ -16,7 +17,6 @@ static int process_ni_sd_group_attrs(NI_group * ngr, THD_3dim_dataset * dset );
 
 /* list of AFNI_dataset group attributes to copy along */
 static char * ni_surf_dset_attrs[] = {
-                "dset_type",
                 "label",
                 "domain_parent_idcode",
                 "geometry_parent_idcode",
@@ -126,10 +126,28 @@ ENTRY("THD_load_niml");
                 fprintf(stderr,"** add bricks returned %d for '%s'\n",rv,fname);
                 RETURN(1);
             }
+            else if( rv < dblk->nvals ){
+                fprintf(stderr,"** loaded only %d bricks for '%s'\n",rv,fname);
+                RETURN(1);
+            }
             break;
         case STORAGE_BY_NI_SURF_DSET:
             if(ni_debug) fprintf(stderr,"-d loading NI_SURF_DSET '%s'\n",fname);
-fprintf(stderr,"** cannot yet load dataset '%s' of type NI_SURF_DSET\n",fname);
+            nel = read_niml_file(fname, 1);  /* read in data now */
+            if( !nel ){
+                fprintf(stderr,"** failed to load NI_SURF_DSET '%s'\n",fname);
+                RETURN(1);
+            }
+            rv = THD_add_sparse_data(dblk->parent, nel);
+            NI_free_element(nel);  /* in any case */
+            if( rv <= 0 ){
+                fprintf(stderr,"** add sdata returned %d for '%s'\n",rv,fname);
+                RETURN(1);
+            }
+            else if( rv < dblk->nvals ){
+                fprintf(stderr,"** loaded only %d vols for '%s'\n",rv,fname);
+                RETURN(1);
+            }
             break;
         default:
             fprintf(stderr,"** cannot load NIML dataset '%s' of mode %d\n",
@@ -155,9 +173,11 @@ fprintf(stderr,"** cannot yet load dataset '%s' of type NI_SURF_DSET\n",fname);
   ----------------------------------------------------------------------*/
 int storage_mode_from_niml( void * nini )
 {
-    int ni_type = NI_element_type( nini );
+    int ni_type;
 
 ENTRY("storage_mode_from_niml");
+
+    ni_type = NI_element_type( nini );
 
     if( ni_type == NI_ELEMENT_TYPE )                /* can only be 3D */
     {
@@ -225,8 +245,11 @@ ENTRY("read_niml_file");
     NI_stream_close(ns);
 
     /* possibly check the results */
-    if( !nel && ni_debug )
-        fprintf(stderr,"** RNF: failed to process '%s' as niml data\n",fname);
+    if( ni_debug )
+    {
+        if( !nel ) fprintf(stderr,"** RNF: failed to read '%s'\n",fname);
+        else       fprintf(stderr,"+d success reading niml file '%s'\n",fname);
+    }
 
     RETURN(nel);
 }
@@ -267,7 +290,10 @@ ENTRY("write_niml_file");
 }
 
 
-int THD_write_niml( THD_3dim_dataset * dset, int write_data )
+/*! Write out a NIML dataset (3D, NIML, NI_SURF_DSET).
+    Return True or False, based on success.
+*/
+Boolean THD_write_niml( THD_3dim_dataset * dset, int write_data )
 {
     NI_group * ngr;
     char     * prefix;
@@ -277,15 +303,14 @@ ENTRY("THD_write_niml");
     ni_debug = AFNI_yesenv("AFNI_NI_DEBUG");  /* maybe the user wants info */
     prefix   = DSET_PREFIX(dset);
 
-    if( !DSET_ONDISK(dset) || !prefix ){
-        fprintf(stderr,"** THD_write_niml: bad dset for '%s'\n",
-                prefix ? prefix : "NULL" );
-        RETURN(1);
+    if( !prefix ) {
+        if(ni_debug) fprintf(stderr,"** THD_write_niml: no dset prefix\n");
+        RETURN(False);
     }
 
     smode = storage_mode_from_filename(prefix);
     if( ni_debug )
-        fprintf(stderr,"** THD_write_niml: file %s, smode %d\n", prefix, smode);
+        fprintf(stderr,"-d THD_write_niml: file %s, smode %d\n", prefix, smode);
         
     switch(smode)
     {
@@ -298,7 +323,7 @@ ENTRY("THD_write_niml");
             else             ngr = THD_nimlize_dsetatr(dset);
             if( !ngr ){
                 fprintf(stderr,"** failed dset to niml on '%s'\n",prefix);
-                RETURN(1);
+                RETURN(False);
             }
             NI_rename_group(ngr, "AFNI_dataset");
             NI_set_attribute(ngr, "self_prefix", prefix);
@@ -306,23 +331,33 @@ ENTRY("THD_write_niml");
             NI_free_element(ngr); /* either way */
             if( rv ){
                 fprintf(stderr,"** write_niml_file failed for '%s'\n",prefix);
-                RETURN(1);
+                RETURN(False);
             }
             break;
 
         case STORAGE_BY_NI_SURF_DSET:
-fprintf(stderr,"** cannot yet write NI_SURF_DSET for file '%s'\n",prefix);
-RETURN(1);
+            ngr = THD_dset_to_ni_surf_dset(dset, write_data);
+            if( !ngr )
+            {
+                fprintf(stderr,"** failed dset to ni_SD on '%s'\n",prefix);
+                RETURN(False);
+            }
+            rv = write_niml_file(prefix, ngr);
+            NI_free_element(ngr); /* either way */
+            if( rv ){
+                fprintf(stderr,"** write_niml_file failed for '%s'\n",prefix);
+                RETURN(False);
+            }
             break;
 
         default:
             fprintf(stderr,"** invalid storage mode %d to write '%s'\n",
                     smode, prefix);
-            RETURN(1);
+            RETURN(False);
             break;
     }
 
-    RETURN(0);
+    RETURN(True);
 }
 
 
@@ -358,7 +393,7 @@ ENTRY("nsd_string_atr_to_slist");
         if( atr ) fprintf(stderr,"+d getting string attrs from %s\n",atr->name);
         else      fprintf(stderr,"+d setting default strings\n");
     }
-    *slist = (char **)NI_malloc(char *, llen*sizeof(char *));
+    *slist = (char **)malloc(llen * sizeof(char *));
 
     if( !atr ) done = 1;
 
@@ -388,14 +423,14 @@ ENTRY("nsd_string_atr_to_slist");
         {
             copy_len = posn - prev - 1;
             if( copy_len > THD_MAX_LABEL-1 ) copy_len = THD_MAX_LABEL-1;
-            (*slist)[sind] = NI_strdup_len(atr->ch+prev+1, copy_len);
+            (*slist)[sind] = loc_strndup(atr->ch+prev+1, copy_len);
             found++;
 
             if(ni_debug) fprintf(stderr,"-d #%d = %s\n",sind,(*slist)[sind]);
         }
         else
         {
-            (*slist)[sind] = (char *)NI_malloc(char, 10*sizeof(char));
+            (*slist)[sind] = (char *)malloc(10 * sizeof(char));
             sprintf((*slist)[sind], "#%d", sind);
         }
 
@@ -404,7 +439,7 @@ ENTRY("nsd_string_atr_to_slist");
 
     for( ; sind < llen; sind++ )
     {
-        (*slist)[sind] = (char *)NI_malloc(char, 10*sizeof(char));
+        (*slist)[sind] = (char *)malloc(10 * sizeof(char));
         sprintf((*slist)[sind], "#%d", sind);
     }
 
@@ -419,7 +454,7 @@ THD_3dim_dataset * THD_ni_surf_dset_to_afni(NI_group * ngr, int read_data)
     THD_3dim_dataset * dset = NULL;
     int                rv;
 
-ENTRY("THD_niml_dset_to_afni");
+ENTRY("THD_ni_surf_dset_to_afni");
 
     if( !ngr || NI_element_type(ngr) != NI_GROUP_TYPE ) RETURN(NULL);
 
@@ -449,11 +484,12 @@ static int process_ni_sd_sparse_data(NI_group * ngr, THD_3dim_dataset * dset )
     THD_diskptr   * dkptr;
     THD_ivec3       nxyz;
     NI_element    * nel = NULL;
+    void         ** elist = NULL;
     float           tr;
     char          * rhs, * cp;
-    int             ind, found, nvals;
+    int             ind, nvals;
 
-ENTRY("init_dblk_from_sparse_data");
+ENTRY("process_ni_sd_sparse_data");
 
     if( !ngr || !ISVALID_DSET(dset) )
     {
@@ -463,16 +499,11 @@ ENTRY("init_dblk_from_sparse_data");
     blk   = dset->dblk;
     dkptr = blk->diskptr;
 
-    found = 0;
-    for( ind = 0; ind < ngr->part_num; ind++ )
-    {
-        nel = (NI_element *)ngr->part[ind];
-        if( ngr->part_typ[ind] == NI_ELEMENT_TYPE &&
-            nel                                   &&
-            !strcmp(nel->name,"SPARSE_DATA")        ) { found = 1;  break; }
-    }
+    /* grab the first SPARSE_DATA element (should be only) */
+    nvals = NI_search_group_shallow(ngr, "SPARSE_DATA", &elist);
+    if( nvals > 0 ) { nel = (NI_element *)elist[0]; NI_free(elist); }
 
-    if(!found || nel->vec_num <= 0 || nel->vec_len <= 0)
+    if(!nel || nel->vec_num <= 0 || nel->vec_len <= 0)
     {
         if(ni_debug) fprintf(stderr,"** missing SPARSE_DATA element\n");
         RETURN(1);
@@ -482,7 +513,8 @@ ENTRY("init_dblk_from_sparse_data");
 
     if(ni_debug)fprintf(stderr,"-d found SPARSE_DATA in NI_SURF_DSET\n");
 
-    /* if we have ni_form="binary.{l,m}sbfirst", then add an attribute for it */
+    /* if we have ni_form="binary.{l,m}sbfirst", use it for the byte_order */
+    dkptr->byte_order = mri_short_order();
     rhs = NI_get_attribute(nel, "ni_form");
     if( rhs )
     {   int len = strlen(rhs);
@@ -495,6 +527,10 @@ ENTRY("init_dblk_from_sparse_data");
             else if(ni_debug) fprintf(stderr,"** unknown ni_form, '%s'\n", rhs);
         }
     }
+    if(ni_debug)
+        fprintf(stderr,"+d using byte order %s\n",
+                BYTE_ORDER_STRING(dkptr->byte_order));
+
 
     /* if the first column is of type NI_INT, assume it is a node list */
     ind = 0;
@@ -568,7 +604,7 @@ static int process_ni_sd_attrs(THD_3dim_dataset * dset)
     ATR_string    * atr_str;
     int             ind, nvals;
 
-ENTRY("THD_dblk_from_ni_sd_attr");
+ENTRY("process_ni_sd_attrs");
 
     /* orientation, grid and origin are meaningless, but apply defaults */
 
@@ -604,24 +640,9 @@ ENTRY("THD_dblk_from_ni_sd_attr");
 
 
 /*    - top level element
+  rcr - do this?
 statistics via "ni_stat" -> EDIT_STATUAUX4()
    -- */
-
-    /* set the byte order with the current CPU, unless we have an attribute */
-    dkptr->byte_order = mri_short_order();
-    atr_str = THD_find_string_atr(blk, ATRNAME_BYTEORDER);
-    if( atr_str && atr_str->nch > 0 )
-    {
-        if( !strncmp(atr_str->ch, LSB_FIRST_STRING, ORDER_LEN) )
-            dkptr->byte_order = LSB_FIRST;
-        else if( !strncmp(atr_str->ch, MSB_FIRST_STRING, ORDER_LEN) )
-            dkptr->byte_order = MSB_FIRST;
-        else if( ni_debug )
-            fprintf(stderr,"** found bad '%s' attribute\n",ATRNAME_BYTEORDER);
-    }
-    if(ni_debug)
-        fprintf(stderr,"+d using byte order %s\n",
-                BYTE_ORDER_STRING(dkptr->byte_order));
 
     /*--- init and fill any column labels ---*/
     atr_str = THD_find_string_atr(blk, "COLMS_LABS");
@@ -645,10 +666,28 @@ statistics via "ni_stat" -> EDIT_STATUAUX4()
                     np = NI_stat_numparam(scode);
                     THD_store_datablock_stataux(blk, ind, scode, np, parm);
                 }
-                XtFree(sar[ind]);
+                free(sar[ind]);
             }
-            XtFree(sar);
+            free(sar);
         }
+    }
+
+    /* verify whether we have a node list using COLMS_TYPE */
+    atr_str = THD_find_string_atr(blk , "COLMS_TYPE");
+    if( atr_str && atr_str->ch && ! strncmp(atr_str->ch,"Node_Index",10) )
+    {
+        if(ni_debug) fprintf(stderr,"-d COLMS_TYPE[0] is Node_Index\n");
+        if( blk->nnodes <= 0 )
+            fprintf(stderr,"** warning: Node_Index COLMS_TYPE without nodes\n");
+    }
+    else if( blk->nnodes > 0 )
+    {
+        fprintf(stderr,"** warning: have nnodes, but COLMS_TYPE[0] is '");
+        for( ind = 0;
+             ind < atr_str->nch && atr_str->ch[ind] && atr_str->ch[ind] != ';';
+             ind ++ )
+            fputc(atr_str->ch[ind], stderr);
+        fprintf(stderr,"'\n");
     }
 
     RETURN(0);
@@ -693,3 +732,189 @@ ENTRY("process_ni_sd_group_attrs");
     
     RETURN(0);
 }
+
+/*------------------------------------------------------------------------*/
+/*! Load data from the SPARSE_DATA NIML element.          3 Jul 2006 [rickr]
+ *
+ *  - Return value is the number of sub-bricks found.
+ *  - Data must be of type float.
+ *------------------------------------------------------------------------*/
+int THD_add_sparse_data(THD_3dim_dataset * dset, NI_group * ngr )
+{
+    THD_datablock  * blk;
+    NI_element     * nel = NULL;
+    float          * data;
+    void          ** elist = NULL;
+    int              nvals, ind, swap, offset = 0, len;
+
+ENTRY("THD_add_sparse_data");
+
+    if( !dset || !ngr ) RETURN(0);
+    blk = dset->dblk;
+    nvals = blk->nvals;
+
+    ind = NI_search_group_shallow(ngr, "SPARSE_DATA", &elist);
+    if( ind > 0 ) { nel = (NI_element *)elist[0]; NI_free(elist); }
+    if( !nel ) RETURN(0);
+
+    if( blk->nnodes > 0 ) offset = 1;  /* note index list */
+
+    /*-- verify sizes and types --*/
+    if( nel->vec_num != nvals + offset )
+    {
+        if(ni_debug)
+            fprintf(stderr,"** TASD: vec_num = %d, but nvals, off = %d, %d\n",
+                    nel->vec_num, nvals, offset);
+        RETURN(0);
+    }
+    if( nel->vec_len != DSET_NX(dset) )
+    {
+        if(ni_debug) fprintf(stderr,"** TASD: vec_len = %d, but NX = %d\n",
+                                    nel->vec_len, DSET_NX(dset));
+        RETURN(0);
+    }
+
+    if( blk->nnodes > 0 && nel->vec_typ[0] != NI_INT )
+    {
+        if(ni_debug) fprintf(stderr,"** have nnodes, but typ[0] not NI_INT\n");
+        RETURN(0);
+    }
+    for( ind = offset; ind < nel->vec_num; ind++ )
+        if( nel->vec_typ[ind] != NI_FLOAT )
+        {
+            if(ni_debug) fprintf(stderr,"** TASD: vec[%d] not float\n",ind);
+            RETURN(0);
+        }
+        else if( ! nel->vec[ind] )
+        {
+            if(ni_debug) fprintf(stderr,"** TASD: vec[%d] not filled!\n",ind);
+            RETURN(0);
+        }
+
+    /* check for necessary swapping */
+    swap = (blk->diskptr->byte_order != mri_short_order());
+    if(ni_debug && swap) fprintf(stderr,"+d will byte_swap data\n");
+    len = nel->vec_len;
+
+    /*-- we seem to have all of the data, now steal it (no copy) --*/
+    if( blk->nnodes > 0 )
+    {
+        if( !blk->node_list )
+        {
+            /* cannot steal pointer, because of NI_free() */
+            blk->node_list = (int *)malloc(blk->nnodes * sizeof(int));
+            memcpy(blk->node_list, nel->vec[0], blk->nnodes * sizeof(int));
+            if( swap ) nifti_swap_4bytes(blk->nnodes, blk->node_list);
+            NI_free(nel->vec[0]);  nel->vec[0] = NULL;
+        }
+    }
+    for( ind = 0; ind < nvals; ind++ )
+    {
+        data = (float *)malloc(len * sizeof(float));
+        if(!data){fprintf(stderr,"**ASD alloc fail: %d bytes\n",len);RETURN(0);}
+        memcpy(data, nel->vec[ind+offset], len * sizeof(float));
+        if( swap ) nifti_swap_4bytes(len, data);
+        mri_fix_data_pointer(data, DBLK_BRICK(blk,ind));
+        NI_free(nel->vec[ind+offset]);  nel->vec[ind+offset] = NULL;
+    }
+
+    RETURN(nvals);
+}
+
+/*! convert an AFNI dataset to a NIML group of type NI_SURF_DSET
+
+    - set group attributes from ni_surf_dset_attrs
+    - create SPARSE_DATA element, if requested
+    - create attributes for COLMS_RANGE, COLMS_LABS, COLMS_TYPE, COLMS_STATSYM
+    - apply HISTORY_NOTE
+    
+*/
+NI_group * THD_dset_to_ni_surf_dset( THD_3dim_dataset * dset, int set_data )
+{
+    THD_datablock * blk;
+    NI_element    * nel;
+    NI_group      * ngr;
+    int             ind, nx;
+
+ENTRY("THD_dset_to_ni_surf_dset");
+
+    if( !ISVALID_DSET(dset) ) RETURN(NULL);
+    blk = dset->dblk;
+    if( !blk ) RETURN(NULL);
+    nx = DSET_NX(dset);
+
+    if( blk->nnodes > 0 && blk->nnodes != nx ) {
+        fprintf(stderr,"** datablock nnodes differs from nx %d, %d\n",
+                blk->nnodes, nx);
+        RETURN(NULL);
+    } else if ( blk->nnodes > 0 && !blk->node_list ) {
+        fprintf(stderr,"** datablock has nnodes but no node_list\n");
+        RETURN(NULL);
+    }
+
+#if 0
+if(ni_debug)
+{
+  fprintf(stderr,"** ATTRIBUTES:\n");
+  for(ind=0; ind < dset->dblk->natr; ind++)
+    atr_print( dset->dblk->atr + ind, NULL, NULL, '\0', 1);
+
+  THD_set_dataset_attributes( dset ) ;
+
+  fprintf(stderr,"** ATTRIBUTES set:\n");
+  for(ind=0; ind < dset->dblk->natr; ind++)
+    atr_print( dset->dblk->atr + ind, NULL, NULL, '\0', 1);
+}
+#endif
+
+    /* rcr - missing ni_surf_dset_attrs[] - get from dset attrs? */
+
+
+    /* create group element */
+    ngr = NI_new_group_element();
+    NI_rename_group(ngr, "AFNI_dataset");
+    NI_set_attribute(ngr, "dset_type", "Node_Bucket");
+    NI_set_attribute(ngr, "self_idcode", dset->idcode.str);
+    NI_set_attribute(ngr, "filename", blk->diskptr->brick_name);
+
+    /* create SPARSE_DATA element */
+    if( set_data )
+    {
+        if(ni_debug) fprintf(stderr,"+d adding SPARSE_DATA element\n");
+        nel = NI_new_data_element("SPARSE_DATA", nx);
+
+        if( blk->nnodes > 0 && blk->node_list )
+            NI_add_column(nel, NI_INT, blk->node_list);
+
+        for( ind = 0; ind < blk->nvals; ind++ )
+            NI_add_column(nel, NI_FLOAT, DBLK_ARRAY(blk, ind));
+
+        /* if text is not requested, use binary */
+        if( ! AFNI_yesenv("AFNI_NIML_TEXT_DATA") )
+            nel->outmode = NI_BINARY_MODE;
+        NI_set_attribute(nel, "data_type", "Node_Bucket_data");
+
+        NI_add_to_group(ngr, nel);
+
+/* node_list must be copied in EDIT_empty_copy */
+    }
+
+    /* ... */
+
+    RETURN(ngr);
+}
+
+/*------------------------------------------------------------------------*/
+/*! Like strndup, relies on length, not nul            11 Jul 2006 [rickr]
+--------------------------------------------------------------------------*/
+static char * loc_strndup(char *str, int len)
+{
+   char *dup;
+   if( str == NULL || len < 0 ) return NULL;
+   dup = (char *)calloc(len+1, sizeof(char));
+   strncpy(dup,str,len);
+   dup[len] = '\0';
+   return dup;
+}
+
+
