@@ -807,7 +807,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
       break ;
    }
    
-   if( nx < 512) goto SMALLIMAGE;
+   if( nx < 512 ) goto SMALLIMAGE;
 
    /* In this function, for each value of kk (z index), we extract a
       2D (y,x) slice, with m-long buffers on each side in the y-direction.
@@ -1324,7 +1324,8 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
 
    if( sigmax > 0.0 && nx > 1 ){
      fir_m = (int) ceil( 2.5 * sigmax / dx ) ;  /* about the 5% level */
-     if( fir_m < 1 ) fir_m = 1 ;
+     if( fir_m < 1    ) fir_m = 1 ;
+     if( fir_m > nx/2 ) fir_m = nx/2 ;
      fir_wt = (float *)malloc(sizeof(float)*(fir_m+1)) ;
      fac = fir_wt[0] = 1.0f ;
      for( ii=1 ; ii <= fir_m ; ii++ ){
@@ -1341,7 +1342,8 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
 
    if( sigmay > 0.0 && ny > 1 ){
      fir_m = (int) ceil( 2.5 * sigmay / dy ) ;
-     if( fir_m < 1 ) fir_m = 1 ;
+     if( fir_m < 1    ) fir_m = 1 ;
+     if( fir_m > ny/2 ) fir_m = ny/2 ;
      fir_wt = (float *)malloc(sizeof(float)*(fir_m+1)) ;
      fac = fir_wt[0] = 1.0f ;
      for( ii=1 ; ii <= fir_m ; ii++ ){
@@ -1358,7 +1360,8 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
 
    if( sigmaz > 0.0 && nz > 1 ){
      fir_m = (int) ceil( 2.5 * sigmaz / dz ) ;
-     if( fir_m < 1 ) fir_m = 1 ;
+     if( fir_m < 1    ) fir_m = 1 ;
+     if( fir_m > nz/2 ) fir_m = nz/2 ;
      fir_wt = (float *)malloc(sizeof(float)*(fir_m+1)) ;
      fac = fir_wt[0] = 1.0f ;
      for( ii=1 ; ii <= fir_m ; ii++ ){

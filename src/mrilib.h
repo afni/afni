@@ -1189,12 +1189,20 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 #define GA_MATCH_SPEARMAN_SCALAR    2
 #define GA_MATCH_KULLBACK_SCALAR    3
 
+#define GA_MATCH_POINTS(g)   ( (g) == GA_MATCH_PEARSON_SCALAR ||   \
+                               (g) == GA_MATCH_SPEARMAN_SCALAR   )
+
 #define GA_SMOOTH_GAUSSIAN          1
 #define GA_SMOOTH_MEDIAN            2
 
 #define GA_KERNEL_GAUSSIAN          1
 #define GA_KERNEL_QUADRATIC         2
 #define GA_KERNEL_QUARTIC           3
+
+typedef GA_warpfunc( int,float *,
+                     int, float *,float *,float *, float *,float *,float * );
+
+typedef MRI_warp3D_param_def GA_param ;
 
 typedef struct {
   int match_code  ;
@@ -1212,11 +1220,16 @@ typedef struct {
   int npt_match   ;
   int   *im , *jm , *km ;
   float *bvm ;
+  float bvstat ;
 
   int kernel_code ; float kernel_radius ;
   int npt_sum ;
   int   *is , *js , *ks ;
   float *bvs ;
+
+  int          wfunc_numpar ;
+  GA_param    *wfunc_param ;
+  GA_warpfunc *wfunc ;
 } GA_setup ;
 
 #undef  IFREE
@@ -1239,6 +1252,10 @@ typedef struct {
   int npt_match   ;
   int kernel_code ; float kernel_radius ;
   int npt_sum     ;
+
+  int          wfunc_numpar ;
+  GA_param    *wfunc_param ;
+  GA_warpfunc *wfunc ;
 } GA_params ;
 
 #undef  INIT_GA_params
