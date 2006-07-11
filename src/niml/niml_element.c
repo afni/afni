@@ -1034,7 +1034,8 @@ int NI_search_group_shallow( NI_group *ngr , char *enam , void ***nipt )
      nini = ngr->part[ii] ;
      nm   = NI_element_name( nini ) ;
      if( nm != NULL && strcmp(nm,enam) == 0 ){
-       nelar = (void **) NI_realloc(nelar,void*,nn+1) ;
+                                  /* added *size  11 Jul 2006 [rickr] */
+       nelar = (void **) NI_realloc(nelar,void*,(nn+1)*sizeof(void *)) ;
        nelar[nn++] = nini ;
      }
    }
@@ -1075,14 +1076,14 @@ int NI_search_group_deep( NI_group *ngr , char *enam , void ***nipt )
      nini = ngr->part[ii] ;
      nm   = NI_element_name( nini ) ;
      if( nm != NULL && strcmp(nm,enam) == 0 ){
-       nelar = (void **) NI_realloc(nelar,void*,nn+1) ;
+       nelar = (void **) NI_realloc(nelar,void*,(nn+1)*sizeof(void *)) ;
        nelar[nn++] = nini ;
      }
      if( NI_element_type(nini) == NI_GROUP_TYPE ){  /* recursion */
        int nsub , jj ; void **esub ;
        nsub = NI_search_group_deep( nini , enam , &esub ) ;
        if( nsub > 0 ){
-         nelar = (void **) NI_realloc(nelar,void*,nn+nsub) ;
+         nelar = (void **) NI_realloc(nelar,void*,(nn+nsub)*sizeof(void *)) ;
          for( jj=0 ; jj < nsub ; jj++ ) nelar[nn++] = esub[jj] ;
          NI_free(esub) ;
        }

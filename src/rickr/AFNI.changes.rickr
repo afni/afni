@@ -1574,3 +1574,12 @@
 07 Jul 2006:
   * modified @auto_tlrc: changed 3dMax to 3dBrickStat
 
+11 Jul 2006:
+  * modified niml_element.c: fixed use of NI_realloc() in NI_search_group_*()
+  * modified 3ddata.h: changed THD_write_niml to Boolean, added prototypes
+        for THD_dset_to_ni_surf_dset() and THD_add_sparse_data()
+  * modified thd_writedset.c:
+      - don't let NI_SURF_DSET get written as 1D
+  * modified thd_niml.c:
+      - added load for NI_SURF_DSET
+      - added basic write for NI_SURF_DSET
