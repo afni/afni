@@ -1,5 +1,8 @@
 #include "mrilib.h"
 
+#undef  GOOD
+#define GOOD(i) (mask==NULL || mask[i])
+
 static GA_setup *stup = NULL ;
 
 /*---------------------------------------------------------------------------*/
@@ -26,13 +29,14 @@ static int find_relprime_random( int n )
    return dj ;
 }
 /*---------------------------------------------------------------------------*/
+
 static MRI_IMAGE * GA_smooth( MRI_IMAGE *im , int meth , float rad )
 {
    MRI_IMAGE *om=NULL ;
 
    ENTRY("GA_smooth") ;
 
-   if( im == NULL || rad <= 0.0f ) RETURN(NULL) ;
+   if( im == NULL || im->kind != MRI_float || rad <= 0.0f ) RETURN(NULL) ;
 
    switch( meth ){
      default:
@@ -45,16 +49,107 @@ static MRI_IMAGE * GA_smooth( MRI_IMAGE *im , int meth , float rad )
      break ;
 
      case GA_SMOOTH_MEDIAN:
+       if( rad < 1.01f ) rad = 1.01f ;
        om = mri_medianfilter( im , rad , NULL , 0 ) ;
      break ;
    }
 
    RETURN(om) ;
 }
+
 /*---------------------------------------------------------------------------*/
 
-static void GA_get_warped_values( int npar , double *mpar , float *avm )
+#undef  FAR
+#define FAR(i,j,k) far[(i)+(j)*nx+(k)*nxy]
+
+static void GA_interp_NN( MRI_IMAGE *fim ,
+                          int npp, float *ip, float *jp, float *kp, float *vv )
 {
+   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , ii,jj,kk , pp ;
+   float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
+   float *far = MRI_FLOAT_PTR(fim) ;
+
+   for( pp=0 ; pp < npp ; pp++ ){
+     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=0.0f; continue; }
+     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=0.0f; continue; }
+     zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ vv[pp]=0.0f; continue; }
+
+     ii = (int)(xx+0.5f) ; jj = (int)(yy+0.5f) ; kk = (int)(zz+0.5f) ;
+     vv[pp] = FAR(ii,jj,kk) ;
+   }
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+#undef  NPER
+#define NPER 1024
+
+static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
+{
+   int    npar , nfree , ii,jj,kk,qq,pp,npp,mm,nx,ny,nxy , *pma ;
+   float *wpar ;
+   float *imf , *jmf , *kmf ;
+   float *imw , *jmw , *kmw ;
+
+   npar  = stup->wfunc_numpar ;
+   nfree = stup->wfunc_numfree ;
+   pma   = stup->wfunc_pma ;
+   wpar  = (float *)malloc(sizeof(float)*npar) ;
+
+   for( ii=pp=0 ; ii < npar ; ii++ ){
+     wpar[ii] = ( stup->wfunc_param[ii].fixed )
+               ? stup->wfunc_param[ii].val_fixed
+               : (float)mpar[pp++] ;
+   }
+
+   if( stup->im == NULL ){
+     imf = (float *)malloc(sizeof(float)*NPER) ;
+     jmf = (float *)malloc(sizeof(float)*NPER) ;
+     kmf = (float *)malloc(sizeof(float)*NPER) ;
+   }
+   imw = (float *)malloc(sizeof(float)*NPER) ;
+   jmw = (float *)malloc(sizeof(float)*NPER) ;
+   kmw = (float *)malloc(sizeof(float)*NPER) ;
+
+   nx = stup->bsim->nx; ny = stup->bsim->ny; nxy = nx*ny;
+
+   for( pp=0 ; pp < stup->npt_match ; pp+=NPER ){
+     npp = MIN( NPER , stup->npt_match-pp ) ;
+     if( stup->im == NULL ){
+       for( qq=0 ; qq < npp ; qq++ ){
+         mm = pp+qq ;
+         ii = mm % nx; kk = mm / nxy; jj = (mm-kk*nxy) / nx;
+         imf[qq] = ii; jmf[qq] = jj; kmf[qq] = kk;
+       }
+     } else {
+       imf = stup->im + pp ;
+       jmf = stup->jm + pp ;
+       kmf = stup->km + pp ;
+     }
+     stup->wfunc( npar , wpar ,
+                  npp  , imf,jmf,kmf , imw,jmw,kmw ) ;
+
+     switch( stup->interp_code ){
+       case MRI_NN:
+         GA_interp_NN    ( stup->ajim , npp , imw,jmw,kmw , avm+pp ) ;
+       break ;
+       case MRI_LINEAR:
+         GA_interp_linear( stup->ajim , npp , imw,jmw,kmw , avm+pp ) ;
+       break ;
+       default:
+       case MRI_HEPTIC:
+         GA_interp_heptic( stup->ajim , npp , imw,jmw,kmw , avm+pp ) ;
+       break ;
+     }
+   }
+
+   free((void *)kmw); free((void *)jmw); free((void *)imw);
+   if( stup->im == NULL ){
+     free((void *)kmf); free((void *)jmf); free((void *)imf);
+   }
+   free((void *)wpar) ;
+
    return ;
 }
 
@@ -83,7 +178,7 @@ double GA_scalar_fitter( int npar , double *mpar )
       val = 1.0 - fabs(val) ;
     break ;
 
-    case GA_MATCH_KULLBACK_SCALAR:
+    case GA_MATCH_KULLBACK_SCALAR:   /* not yet implemented */
     break ;
   }
 
@@ -92,17 +187,16 @@ double GA_scalar_fitter( int npar , double *mpar )
 
 /*---------------------------------------------------------------------------*/
 
-#undef  GOOD
-#define GOOD(i) (mask==NULL || mask[i])
-
 #undef  ERREX
 #define ERREX(s) \
  do{ ERROR_message("mri_genalign_scalar: %s",(s)); RETURN(NULL); } while(0)
 
+/*---------------------------------------------------------------------------*/
+
 MRI_IMAGE * mri_genalign_scalar( MRI_IMAGE *basim  ,
                                  MRI_IMAGE *maskim ,
                                  MRI_IMAGE *targim ,
-                                 GA_params *parm    )
+                                 GA_parameters *parm    )
 {
    int nspad , qq , rr , nx,ny,nz,nxy , mm,ii,jj,kk ;
    int use_all=0 ;
@@ -124,8 +218,8 @@ ENTRY("mri_genalign_scalar") ;
    if( maskim != NULL && maskim->nvox != basim->nvox )
      ERREX("basim and maskim grids differ") ;
 
-   if( parm->wfunc_numpar < 1 || parm->wfunc == NULL )
-     ERREX("illegal wfunc") ;
+   if( parm->wfunc_numpar < 1 || parm->wfunc==NULL || parm->wfunc_param==NULL )
+     ERREX("illegal wfunc parameters") ;
 
    FREE_GA_setup(stup) ;
    stup = (GA_setup *)calloc(1,sizeof(GA_setup)) ;
@@ -140,6 +234,26 @@ ENTRY("mri_genalign_scalar") ;
    stup->wfunc         = parm->wfunc         ;
 
    stup->dim_avec = stup->dim_bvec = 1 ;  /* scalars */
+
+   /* copy parameter definitions */
+
+   { int nfree=stup->wfunc_numpar , pp , *pma ;
+
+     stup->wfunc_param = (GA_param *)malloc(sizeof(GA_param)*stup->wfunc_numpar);
+     for( pp=0 ; pp < stup->wfunc_numpar ; pp++ ){
+       stup->wfunc_param[pp] = parm->wfunc_param[pp] ;
+       if( stup->wfunc_param[pp].fixed ) nfree-- ;
+     }
+     if( nfree <= 0 ) ERREX("no free wfunc parameters") ;
+     stup->wfunc_numfree = nfree ;
+
+     /** pma[k] = external parameter index for the k-th free parameter **/
+
+     pma = (int *)malloc(sizeof(int) * nfree) ;
+     for( pp=ii=0 ; ii < stup->wfunc_numpar ; ii++ )
+       if( !stup->wfunc_param[ii].fixed ) pma[pp++] = ii ;
+     stup->wfunc_pma = pma ;
+   }
 
    /** load images into setup struct, smoothing if so ordered **/
 
@@ -196,9 +310,9 @@ ENTRY("mri_genalign_scalar") ;
 
      int nvox , pp ; byte *mask = stup->bmask ;
 
-     stup->im = (int *)malloc(sizeof(int)*stup->npt_match) ;
-     stup->jm = (int *)malloc(sizeof(int)*stup->npt_match) ;
-     stup->km = (int *)malloc(sizeof(int)*stup->npt_match) ;
+     stup->im = (float *)malloc(sizeof(float)*stup->npt_match) ;
+     stup->jm = (float *)malloc(sizeof(float)*stup->npt_match) ;
+     stup->km = (float *)malloc(sizeof(float)*stup->npt_match) ;
 
      for( mm=pp=0 ; pp < stup->npt_match ; mm++ ){
        if( GOOD(mm) ){
@@ -210,21 +324,26 @@ ENTRY("mri_genalign_scalar") ;
 
    } else {  /*--------------------- a subset of points ----------------------*/
 
-     int nvox,pp,dm ; byte *mask = stup->bmask ;
+     int nvox,pp,dm , *qm ; byte *mask = stup->bmask ;
 
      nvox = stup->bsim->nvox ;
      dm   = find_relprime_fixed(nvox) ;
-     stup->im = (int *)malloc(sizeof(int)*stup->npt_match) ;
-     stup->jm = (int *)malloc(sizeof(int)*stup->npt_match) ;
-     stup->km = (int *)malloc(sizeof(int)*stup->npt_match) ;
+     stup->im = (float *)malloc(sizeof(float)*stup->npt_match) ;
+     stup->jm = (float *)malloc(sizeof(float)*stup->npt_match) ;
+     stup->km = (float *)malloc(sizeof(float)*stup->npt_match) ;
+
+     qm = (int *)malloc(sizeof(int)*stup->npt_match) ;
      mm = (nx/2) + (ny/2)*nx + (nz/2)*nxy ;
-     for( pp=0 ; pp < stup->npt_match ; mm=(mm+dm)%nvox ){
-       if( GOOD(mm) ){
-         ii = mm % nx; kk = mm / nxy; jj = (mm-kk*nxy) / nx;
-         stup->im[pp] = ii; stup->jm[pp] = jj; stup->km[pp] = kk;
-         pp++ ;
-       }
+     for( pp=0 ; pp < stup->npt_match ; mm=(mm+dm)%nvox )
+       if( GOOD(mm) ) qm[pp++] = mm ;
+     qsort_int( stup->npt_match , qm ) ;
+
+     for( pp=0 ; pp < stup->npt_match ; pp++ ){
+       mm = qm[pp] ;
+       ii = mm % nx; kk = mm / nxy; jj = (mm-kk*nxy) / nx;
+       stup->im[pp] = ii; stup->jm[pp] = jj; stup->km[pp] = kk;
      }
+     free((void *)qm) ;
    }
 
    /*--- extract values from base image for matching ---*/
@@ -233,7 +352,7 @@ ENTRY("mri_genalign_scalar") ;
    stup->bvm = (float *)malloc(sizeof(float)*stup->npt_match) ;
    for( qq=0 ; qq < stup->npt_match ; qq++ ){
      rr = (stup->im != NULL)
-          ?  (stup->im[qq] + stup->jm[qq]*nx + stup->km[qq]*nxy) : qq ;
+          ?  (int)(stup->im[qq] + stup->jm[qq]*nx + stup->km[qq]*nxy) : qq ;
      stup->bvm[qq] = bsar[rr] ;
    }
    if( stup->match_code == GA_MATCH_SPEARMAN_SCALAR )
