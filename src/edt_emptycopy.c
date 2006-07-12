@@ -238,6 +238,8 @@ ENTRY("EDIT_empty_datablock") ;
    new_dblk->nvals          = 1 ;
    new_dblk->natr           = new_dblk->natr_alloc = 0 ;
    new_dblk->atr            = NULL ;
+   new_dblk->nnodes         = 0 ;       /* 12 July 2006 [rickr] */
+   new_dblk->node_list      = NULL ;
 
    new_dkptr = new_dblk->diskptr = myXtNew( THD_diskptr ) ;
 

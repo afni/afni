@@ -82,6 +82,18 @@ DQQ("copy statcode and stataux") ;
       }
    }
 
+   /* we may need to copy the node_list    12 Jul 2006 [rickr] */
+   if( DBLK_IS_NI_SURF_DSET(old_dblk) && old_dblk->nnodes > 0 &&
+                                         old_dblk->node_list ){
+DQQ("copy node_list") ;
+      iv = old_dblk->nnodes * sizeof(int) ;
+      new_dblk->node_list = (int *)XtMalloc(iv) ;
+      if( new_dblk->node_list ){
+         new_dblk->nnodes = old_dblk->nnodes ;
+         memcpy( new_dblk->node_list, old_dblk->node_list, iv ) ;
+      }
+   }
+
 DQQ("exit") ;
    return ;
 }
