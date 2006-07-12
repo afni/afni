@@ -1199,7 +1199,7 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 #define GA_KERNEL_QUADRATIC         2
 #define GA_KERNEL_QUARTIC           3
 
-typedef GA_warpfunc( int,float *,
+typedef GA_warpfunc( int, float *,
                      int, float *,float *,float *, float *,float *,float * );
 
 typedef MRI_warp3D_param_def GA_param ;
@@ -1218,7 +1218,7 @@ typedef struct {
   int dim_avec    ;
 
   int npt_match   ;
-  int   *im , *jm , *km ;
+  float *im , *jm , *km ;
   float *bvm ;
   float bvstat ;
 
@@ -1230,6 +1230,7 @@ typedef struct {
   int          wfunc_numpar ;
   GA_param    *wfunc_param ;
   GA_warpfunc *wfunc ;
+  int          wfunc_numfree , *wfunc_pma ;
 } GA_setup ;
 
 #undef  IFREE
@@ -1241,6 +1242,7 @@ typedef struct {
        mri_free((st)->bsim); mri_free((st)->ajim); IFREE((st)->bmask);       \
        IFREE((st)->im); IFREE((st)->jm); IFREE((st)->km); IFREE((st)->bvm);  \
        IFREE((st)->is); IFREE((st)->js); IFREE((st)->ks); IFREE((st)->bvs);  \
+       IFREE((st)->wfunc_param) ; IFREE((st)->wfunc_pma) ;                   \
        free((st)) ;                                                          \
      }                                                                       \
  } while(0)
@@ -1256,7 +1258,7 @@ typedef struct {
   int          wfunc_numpar ;
   GA_param    *wfunc_param ;
   GA_warpfunc *wfunc ;
-} GA_params ;
+} GA_parameters ;
 
 #undef  INIT_GA_params
 #define INIT_GA_params(gp)                           \
