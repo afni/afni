@@ -89,6 +89,11 @@ STATUS("free brick_ stuff") ;
 
    THD_delete_diskptr( dblk->diskptr ) ;
 
+   if( dblk->nnodes > 0 && dblk->node_list ){    /* Jul 12 2006 [rickr] */
+      myXtFree( dblk->node_list ) ;
+      dblk->nnodes = 0 ;
+   }
+
 STATUS("KILL_KILL") ;
    KILL_KILL( dblk->kl ) ;
 
@@ -116,6 +121,8 @@ ENTRY("THD_delete_3dim_dataset") ;
    if( DSET_IS_CTFMRI(dset)  ) kill_files = False ;
    if( DSET_IS_CTFSAM(dset)  ) kill_files = False ;
    if( DSET_IS_NIFTI(dset)   ) kill_files = False ;  /* 28 Aug 2003 */
+   if( DSET_IS_NIML(dset)    ) kill_files = False ;  /* 12 Jul 2006 [rickr */
+   if( DSET_IS_NI_SURF_DSET (dset) ) kill_files = False ;
 
    if( kill_files ){
       THD_diskptr *dkptr = dset->dblk->diskptr ;
