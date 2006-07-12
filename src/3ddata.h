@@ -466,8 +466,11 @@ typedef struct {
 } ATR_string ;
 
 #define ZBLOCK 126
+#define ZSBLOCK 59  /* kurukuru pa */
 extern void THD_zblock(int,char *) ;   /* replace zeros with ZBLOCKs */
 extern void THD_unzblock(int,char *) ; /* undo the above */
+extern void THD_zblock_ch(int,char *,char) ;   /* 12 Jul 2006 [rickr] */
+extern void THD_unzblock_ch(int,char *,char) ; /* undo the above      */
 
 /*! Union type to hold an arbitrary attribute. */
 

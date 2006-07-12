@@ -10,10 +10,13 @@ static int ni_debug = 0;   /* for global debugging */
 void set_ni_debug( int debug ){ ni_debug = debug; }
 
 static char * my_strndup(char *, int);
-static int nsd_string_atr_to_slist(char ***, int, int, ATR_string *);
-static int process_ni_sd_sparse_data(NI_group * ngr, THD_3dim_dataset * dset );
-static int process_ni_sd_attrs(THD_3dim_dataset * dset);
-static int process_ni_sd_group_attrs(NI_group * ngr, THD_3dim_dataset * dset );
+static int    nsd_add_sparse_data(NI_group *, THD_datablock *);
+static int    nsd_add_str_to_group(char *, char *, char *,
+                                   THD_datablock *, NI_group *);
+static int    nsd_string_atr_to_slist(char ***, int, int, ATR_string *);
+static int    process_ni_sd_sparse_data(NI_group *, THD_3dim_dataset *);
+static int    process_ni_sd_attrs(THD_3dim_dataset *);
+static int    process_ni_sd_group_attrs(NI_group *, THD_3dim_dataset *);
 
 /* list of AFNI_dataset group attributes to copy along */
 static char * ni_surf_dset_attrs[] = {
@@ -674,20 +677,23 @@ statistics via "ni_stat" -> EDIT_STATUAUX4()
 
     /* verify whether we have a node list using COLMS_TYPE */
     atr_str = THD_find_string_atr(blk , "COLMS_TYPE");
-    if( atr_str && atr_str->ch && ! strncmp(atr_str->ch,"Node_Index",10) )
+    if( atr_str && atr_str->ch )
     {
-        if(ni_debug) fprintf(stderr,"-d COLMS_TYPE[0] is Node_Index\n");
-        if( blk->nnodes <= 0 )
-            fprintf(stderr,"** warning: Node_Index COLMS_TYPE without nodes\n");
-    }
-    else if( blk->nnodes > 0 )
-    {
-        fprintf(stderr,"** warning: have nnodes, but COLMS_TYPE[0] is '");
-        for( ind = 0;
-             ind < atr_str->nch && atr_str->ch[ind] && atr_str->ch[ind] != ';';
-             ind ++ )
-            fputc(atr_str->ch[ind], stderr);
-        fprintf(stderr,"'\n");
+        if( ! strncmp(atr_str->ch,"Node_Index",10) )
+        {
+            if(ni_debug) fprintf(stderr,"-d COLMS_TYPE[0] is Node_Index\n");
+            if( blk->nnodes <= 0 )
+              fprintf(stderr,"** warning: Node_Index COLMS_TYPE w/out nodes\n");
+        }
+        else if( blk->nnodes > 0 )
+        {
+            fprintf(stderr,"** warning: have nnodes, but COLMS_TYPE[0] is '");
+            for( ind = 0; ind < atr_str->nch && atr_str->ch[ind]
+                                             && atr_str->ch[ind] != ';';
+                 ind ++ )
+                fputc(atr_str->ch[ind], stderr);
+            fprintf(stderr,"'\n");
+        }
     }
 
     RETURN(0);
@@ -852,23 +858,9 @@ ENTRY("THD_dset_to_ni_surf_dset");
         RETURN(NULL);
     }
 
-#if 0
-if(ni_debug)
-{
-  fprintf(stderr,"** ATTRIBUTES:\n");
-  for(ind=0; ind < dset->dblk->natr; ind++)
-    atr_print( dset->dblk->atr + ind, NULL, NULL, '\0', 1);
-
-  THD_set_dataset_attributes( dset ) ;
-
-  fprintf(stderr,"** ATTRIBUTES set:\n");
-  for(ind=0; ind < dset->dblk->natr; ind++)
-    atr_print( dset->dblk->atr + ind, NULL, NULL, '\0', 1);
-}
-#endif
+    THD_set_dataset_attributes(dset);  /* load attributes for processing */
 
     /* rcr - missing ni_surf_dset_attrs[] - get from dset attrs? */
-
 
     /* create group element */
     ngr = NI_new_group_element();
@@ -877,29 +869,101 @@ if(ni_debug)
     NI_set_attribute(ngr, "self_idcode", dset->idcode.str);
     NI_set_attribute(ngr, "filename", blk->diskptr->brick_name);
 
-    /* create SPARSE_DATA element */
-    if( set_data )
-    {
-        if(ni_debug) fprintf(stderr,"+d adding SPARSE_DATA element\n");
-        nel = NI_new_data_element("SPARSE_DATA", nx);
-
-        if( blk->nnodes > 0 && blk->node_list )
-            NI_add_column(nel, NI_INT, blk->node_list);
-
-        for( ind = 0; ind < blk->nvals; ind++ )
-            NI_add_column(nel, NI_FLOAT, DBLK_ARRAY(blk, ind));
-
-        /* if text is not requested, use binary */
-        if( ! AFNI_yesenv("AFNI_NIML_TEXT_DATA") )
-            nel->outmode = NI_BINARY_MODE;
-        NI_set_attribute(nel, "data_type", "Node_Bucket_data");
-
-        NI_add_to_group(ngr, nel);
-    }
+    nsd_add_str_to_group("BRICK_LABS", "COLMS_LABS", "Node Indices", blk, ngr);
+    nsd_add_str_to_group("BRICK_STATSYM", "COLMS_STATSYM", "none", blk, ngr);
+    nsd_add_str_to_group("HISTORY_NOTE", NULL, NULL, blk, ngr);
+    if( set_data ) nsd_add_sparse_data(ngr, blk); /* add SPARSE_DATA element */
 
     /* ... */
 
     RETURN(ngr);
+}
+
+
+/* - find the given attribute in the datablock
+   - create a new string from the atr string, and apply zblock and prefix
+   - put it in a data element
+   - add it to the group
+
+   aname  - AFNI attribute name
+   niname - NIML attribute name (if NULL, use aname)
+   prefix - prefix to add for node column (if NULL, ignore)
+   blk    - datablock
+   ngr    - NI_group to insert new element into
+
+   return 0 on success
+*/
+static int nsd_add_str_to_group(char * aname, char * niname, char * prefix,
+                                THD_datablock * blk, NI_group * ngr)
+{
+    ATR_string * atr;
+    NI_element * nel;
+    char       * dest, * slist[1];  /* add_column requires a list of strings */
+    int          plen, apply = 0;
+
+ENTRY("nsd_add_str_to_group");
+
+    /* check usage */
+    if( !aname || !blk || !ngr ) RETURN(1);
+
+    atr = THD_find_string_atr(blk, aname);
+    if( !atr ) RETURN(0);  /* nothing to add */
+
+    if(ni_debug){
+        fprintf(stderr, "-d adding '%s' atr: ", niname?niname:aname);
+        fwrite(atr->ch, sizeof(char), atr->nch, stderr);
+        fputc('\n', stderr);
+    }
+
+    /* should we add a prefix column? */
+    if( prefix && blk->nnodes > 0 && blk->node_list ) apply = 1;
+
+    /* create a new string */
+    plen = apply ? (strlen(prefix)+1) : 0;                /* +1 for separator */
+    dest = (char *)calloc(atr->nch+plen+1, sizeof(char)); /* +1 for last '\0' */
+
+    if( apply ) strcpy(dest, prefix);
+    memcpy(dest+plen, atr->ch, atr->nch);
+    if( prefix ) THD_zblock_ch(atr->nch+plen, dest, ZSBLOCK); /* only if list */
+    dest[atr->nch+plen] = '\0';
+
+    /* now add it to the group */
+    slist[0] = dest;
+    nel = NI_new_data_element("AFNI_atr", 1);
+    nel->outmode = NI_TEXT_MODE;
+    NI_set_attribute(nel, "atr_name", niname ? niname : aname);
+    NI_add_column(nel, NI_STRING, slist);
+    NI_add_to_group(ngr, nel);
+
+    free(dest); /* nuke local copy */
+
+    RETURN(0);
+}
+
+static int nsd_add_sparse_data(NI_group * ngr, THD_datablock * blk)
+{
+    NI_element * nel;
+    int          ind;
+
+ENTRY("nsd_add_sparse_data");
+
+    if(ni_debug) fprintf(stderr,"+d adding SPARSE_DATA element\n");
+    if( blk->nnodes <= 0 || !blk->node_list ) RETURN(0);
+
+    nel = NI_new_data_element("SPARSE_DATA", blk->nnodes);
+
+    NI_add_column(nel, NI_INT, blk->node_list);
+    for( ind = 0; ind < blk->nvals; ind++ )
+        NI_add_column(nel, NI_FLOAT, DBLK_ARRAY(blk, ind));
+
+    /* if text is not requested, use binary */
+    if( ! AFNI_yesenv("AFNI_NIML_TEXT_DATA") )
+        nel->outmode = NI_BINARY_MODE;
+    NI_set_attribute(nel, "data_type", "Node_Bucket_data");
+
+    NI_add_to_group(ngr, nel);
+
+    RETURN(0);
 }
 
 
@@ -915,4 +979,3 @@ static char * my_strndup(char *str, int len)
    dup[len] = '\0';
    return dup;
 }
-

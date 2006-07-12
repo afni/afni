@@ -33,3 +33,26 @@ void THD_unzblock( int nch , char *ch )
 
    ch[nch-1] = '\0' ;
 }
+
+/* same as zblock, but provide the replacement char,
+   and do not change zb to a special character       12 Jul 2006 [rickr] */
+void THD_zblock_ch( int nch , char *ch , char zb )
+{
+   int ii ;
+   if( nch <= 0 ) return ;
+
+   for( ii=0 ; ii < nch ; ii++ ){
+     if( ch[ii] == '\0'   ) ch[ii] = zb ;
+   }
+}
+
+void THD_unzblock_ch( int nch , char *ch , char zb )
+{
+   int ii ;
+   if( nch <= 0 ) return ;
+
+   for( ii=0 ; ii < nch ; ii++ )
+     if( ch[ii] == zb ) ch[ii] = '\0' ;
+
+   ch[nch-1] = '\0' ;
+}
