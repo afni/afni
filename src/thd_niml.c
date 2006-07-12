@@ -9,7 +9,7 @@
 static int ni_debug = 0;   /* for global debugging */
 void set_ni_debug( int debug ){ ni_debug = debug; }
 
-static char * loc_strndup(char *, int);
+static char * my_strndup(char *, int);
 static int nsd_string_atr_to_slist(char ***, int, int, ATR_string *);
 static int process_ni_sd_sparse_data(NI_group * ngr, THD_3dim_dataset * dset );
 static int process_ni_sd_attrs(THD_3dim_dataset * dset);
@@ -423,7 +423,7 @@ ENTRY("nsd_string_atr_to_slist");
         {
             copy_len = posn - prev - 1;
             if( copy_len > THD_MAX_LABEL-1 ) copy_len = THD_MAX_LABEL-1;
-            (*slist)[sind] = loc_strndup(atr->ch+prev+1, copy_len);
+            (*slist)[sind] = my_strndup(atr->ch+prev+1, copy_len);
             found++;
 
             if(ni_debug) fprintf(stderr,"-d #%d = %s\n",sind,(*slist)[sind]);
@@ -796,13 +796,13 @@ ENTRY("THD_add_sparse_data");
     if(ni_debug && swap) fprintf(stderr,"+d will byte_swap data\n");
     len = nel->vec_len;
 
-    /*-- we seem to have all of the data, now steal it (no copy) --*/
+    /*-- we seem to have all of the data, now copy it --*/
     if( blk->nnodes > 0 )
     {
         if( !blk->node_list )
         {
             /* cannot steal pointer, because of NI_free() */
-            blk->node_list = (int *)malloc(blk->nnodes * sizeof(int));
+            blk->node_list = (int *)XtMalloc(blk->nnodes * sizeof(int));
             memcpy(blk->node_list, nel->vec[0], blk->nnodes * sizeof(int));
             if( swap ) nifti_swap_4bytes(blk->nnodes, blk->node_list);
             NI_free(nel->vec[0]);  nel->vec[0] = NULL;
@@ -810,7 +810,7 @@ ENTRY("THD_add_sparse_data");
     }
     for( ind = 0; ind < nvals; ind++ )
     {
-        data = (float *)malloc(len * sizeof(float));
+        data = (float *)XtMalloc(len * sizeof(float));
         if(!data){fprintf(stderr,"**ASD alloc fail: %d bytes\n",len);RETURN(0);}
         memcpy(data, nel->vec[ind+offset], len * sizeof(float));
         if( swap ) nifti_swap_4bytes(len, data);
@@ -895,8 +895,6 @@ if(ni_debug)
         NI_set_attribute(nel, "data_type", "Node_Bucket_data");
 
         NI_add_to_group(ngr, nel);
-
-/* node_list must be copied in EDIT_empty_copy */
     }
 
     /* ... */
@@ -904,10 +902,11 @@ if(ni_debug)
     RETURN(ngr);
 }
 
+
 /*------------------------------------------------------------------------*/
 /*! Like strndup, relies on length, not nul            11 Jul 2006 [rickr]
 --------------------------------------------------------------------------*/
-static char * loc_strndup(char *str, int len)
+static char * my_strndup(char *str, int len)
 {
    char *dup;
    if( str == NULL || len < 0 ) return NULL;
@@ -916,5 +915,4 @@ static char * loc_strndup(char *str, int len)
    dup[len] = '\0';
    return dup;
 }
-
 

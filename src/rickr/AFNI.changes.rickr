@@ -1583,3 +1583,10 @@
   * modified thd_niml.c:
       - added load for NI_SURF_DSET
       - added basic write for NI_SURF_DSET
+
+12 Jul 2006:
+  * modified edt_emptycopy.c: init nnodes and node_list
+  * modified thd_auxdata.c: for NI_SURF_DSET, copy any nnodes and node_list
+  * modified thd_delete.c: free dblk->node_list
+  * modified thd_niml.c: use matching XtMalloc for dblk allocation
+
