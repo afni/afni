@@ -1588,5 +1588,9 @@
   * modified edt_emptycopy.c: init nnodes and node_list
   * modified thd_auxdata.c: for NI_SURF_DSET, copy any nnodes and node_list
   * modified thd_delete.c: free dblk->node_list
-  * modified thd_niml.c: use matching XtMalloc for dblk allocation
+  * modified thd_niml.c: (maybe good enough for SUMA now)
+      - write out more attributes
+      - use matching XtMalloc for dblk allocation
+  * modified 3ddata.h: added THD_[un]zblock_ch protos
+  * modified thd_zblock.c: added THD_zblock_ch() and THD_unzblock_ch()
 
