@@ -588,7 +588,7 @@ INLINE MRI_IMAGE *mri_warp3D_quintic(
          f_jm2_kp3, f_jm1_kp3, f_j00_kp3, f_jp1_kp3, f_jp2_kp3, f_jp3_kp3,
          f_km2    , f_km1    , f_k00    , f_kp1    , f_kp2    , f_kp3     ;
 
-ENTRY("mri_warp3D_quinitc") ;
+ENTRY("mri_warp3D_quintic") ;
 
    /*--- sanity check inputs ---*/
 
