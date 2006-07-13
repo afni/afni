@@ -1215,6 +1215,7 @@ typedef struct {
   byte *bmask     ;
 
   MRI_IMAGE *ajim ;
+  float ajbot,ajtop ;
   int dim_avec    ;
 
   int npt_match   ;
