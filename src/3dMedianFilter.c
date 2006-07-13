@@ -7,9 +7,9 @@ int main( int argc , char * argv[] )
    float irad=1.5 ;
    int nrep=1 ;
    char *prefix = "MedianFilter" ;
-   int iarg , verb=0 , do_mask=0 ;
+   int iarg , verb=0 , do_mask=0 , niter=1,pit ;
    THD_3dim_dataset *inset , *outset ;
-   MRI_IMAGE *imout ;
+   MRI_IMAGE *imout , *imin ;
    byte *mask=NULL ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -19,6 +19,7 @@ int main( int argc , char * argv[] )
              "\n"
              "Options:\n"
              "  -irad x    = Radius in voxels of spherical regions\n"
+             "  -iter n    = Iterate 'n' times [default=1]\n"
              "  -verb      = Be verbose during run\n"
              "  -prefix pp = Use 'pp' for prefix of output dataset\n"
              "  -automask  = Create a mask (a la 3dAutomask)\n"
@@ -39,6 +40,13 @@ int main( int argc , char * argv[] )
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
 
+      if( strcmp(argv[iarg],"-iter") == 0 ){
+        niter = (int)strtol( argv[++iarg], NULL , 10 ) ;
+        if( niter < 1 )
+          ERROR_exit("Illegal value after -iter!") ;
+        iarg++ ; continue ;
+      }
+
       if( strncmp(argv[iarg],"-automask",5) == 0 ){
         do_mask++ ; iarg++ ; continue ;
       }
@@ -48,41 +56,35 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[iarg],"-irad") == 0 ){
-         irad = strtod( argv[++iarg] , NULL ) ;
-         if( irad < 1.0 ){
-            fprintf(stderr,"*** Illegal value after -irad!\n"); exit(1);
-         }
-         iarg++ ; continue ;
+        irad = strtod( argv[++iarg] , NULL ) ;
+        if( irad < 1.0f )
+          ERROR_exit("Illegal value after -irad!\n");
+        iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-prefix") == 0 ){
-         prefix = argv[++iarg] ;
-         if( !THD_filename_ok(prefix) ){
-            fprintf(stderr,"*** Illegal value after -prefix!\n"); exit(1);
-         }
-         iarg++ ; continue ;
+        prefix = argv[++iarg] ;
+        if( !THD_filename_ok(prefix) )
+          ERROR_exit("Illegal value after -prefix!\n");
+        iarg++ ; continue ;
       }
 
-      fprintf(stderr,"*** Unknown option: %s\n",argv[iarg]); exit(1) ;
+      ERROR_exit("Unknown option: %s\n",argv[iarg]);
    }
 
-   if( iarg >= argc ){
-      fprintf(stderr,"*** No dataset name on command line?\n"); exit(1);
-   }
+   if( iarg >= argc )
+     ERROR_exit("No dataset name on command line?\n");
 
    /*-- read input --*/
 
    inset = THD_open_dataset( argv[iarg] ) ;
-   if( inset == NULL ){
-     fprintf(stderr,"**  ERROR: Can't open dataset %s\n",argv[iarg]); exit(1);
-   }
+   if( inset == NULL )
+     ERROR_exit("Can't open dataset %s\n",argv[iarg]);
    DSET_load( inset ) ;
-   if( !DSET_LOADED(inset) ){
-     fprintf(stderr,"** ERROR: can't load dataset %s\n",argv[iarg]); exit(1);
-   }
-   if( DSET_NVALS(inset) > 1 ){
-     fprintf(stderr,"++ WARNING: only processing sub-brick #0\n") ;
-   }
+   if( !DSET_LOADED(inset) )
+     ERROR_exit("Can't load dataset %s\n",argv[iarg]);
+   if( DSET_NVALS(inset) > 1 )
+     WARNING_message("Only processing sub-brick #0\n");
 
    if( do_mask ){
      THD_automask_verbose( verb ) ;
@@ -90,8 +92,14 @@ int main( int argc , char * argv[] )
      mask = THD_automask( inset ) ;
    }
 
-   imout = mri_medianfilter( DSET_BRICK(inset,0) , irad , mask , verb ) ;
-   free((void *)mask) ;
+   imin = mri_to_float( DSET_BRICK(inset,0) ) ;
+   if( imin == NULL ) ERROR_exit("Can't copy input dataset brick") ;
+   for( pit=0 ; pit < niter ; pit++ ){
+     imout = mri_medianfilter( imin , irad , mask , verb ) ;
+     mri_free(imin) ; imin = imout ;
+   }
+
+   if( mask != NULL ) free((void *)mask) ;
 
    outset = EDIT_empty_copy( inset )  ;
    EDIT_dset_items( outset ,
@@ -103,6 +111,6 @@ int main( int argc , char * argv[] )
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dMedianFilter" , argc,argv , outset ) ;
    DSET_write(outset) ;
-   fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(outset)) ;
+   WROTE_DSET(outset) ;
    exit(0) ;
 }
