@@ -492,111 +492,102 @@ double GA_scalar_fitter( int npar , double *mpar )
 
 #undef  ERREX
 #define ERREX(s) \
- do{ ERROR_message("mri_genalign_scalar: %s",(s)); RETURN(NULL); } while(0)
+ do{ ERROR_message("mri_genalign_scalar_setup: %s",(s)); EXRETURN; } while(0)
 
 /*---------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_genalign_scalar( MRI_IMAGE *basim  ,
-                                 MRI_IMAGE *maskim ,
-                                 MRI_IMAGE *targim ,
-                                 GA_parameters *parm    )
+void mri_genalign_scalar_setup( MRI_IMAGE *basim  , MRI_IMAGE *maskim ,
+                                MRI_IMAGE *targim , GA_setup  *stup    )
+
 {
-   int nspad , qq , rr , nx,ny,nz,nxy , mm,ii,jj,kk ;
+   int qq , rr , nx,ny,nz,nxy , mm,ii,jj,kk ;
    int use_all=0 ;
    float *bsar ;
-   double *wpar ;
 
-ENTRY("mri_genalign_scalar") ;
+ENTRY("mri_genalign_scalar_setup") ;
 
    /*-- basic checks of input for rationality --*/
 
-   if( basim  == NULL ) ERREX("basim is NULL") ;
-   if( targim == NULL ) ERREX("targim is NULL") ;
-   if( parm   == NULL ) ERREX("parm is NULL") ;
+   if( stup   == NULL )                       ERREX("stup is NULL") ;
+   if( basim  == NULL && stup->bsim == NULL ) ERREX("basim is NULL") ;
+   if( targim == NULL && stup->ajim == NULL ) ERREX("targim is NULL") ;
 
-   nspad = MRI_DIMENSIONALITY(basim) ;
-   if( nspad < 2 || nspad > 3 )
-     ERREX("basim dimensionality is not 2 or 3") ;
-   if( nspad != MRI_DIMENSIONALITY(targim) )
-     ERREX("basim & targim dimensionalities differ") ;
-   if( maskim != NULL && maskim->nvox != basim->nvox )
-     ERREX("basim and maskim grids differ") ;
+   if( basim != NULL ){
+     qq = MRI_DIMENSIONALITY(basim) ;
+     if( qq < 2 || qq > 3 )
+       ERREX("basim dimensionality is not 2 or 3") ;
+   } else {
+     qq = MRI_DIMENSIONALITY(stup->bsim) ;
+   }
 
-   if( parm->wfunc_numpar < 1 || parm->wfunc==NULL || parm->wfunc_param==NULL )
+   if( targim != NULL ){
+     if( qq != MRI_DIMENSIONALITY(targim) )
+       ERREX("basim & targim dimensionalities differ") ;
+   }
+
+   if( stup->wfunc_numpar < 1 || stup->wfunc==NULL || stup->wfunc_param==NULL )
      ERREX("illegal wfunc parameters") ;
-
-   FREE_GA_setup(stup) ;
-   stup = (GA_setup *)calloc(1,sizeof(GA_setup)) ;
-
-   stup->match_code    = parm->match_code    ;
-   stup->interp_code   = parm->interp_code   ;
-   stup->npt_match     = parm->npt_match     ;
-   stup->kernel_code   = parm->kernel_code   ;
-   stup->kernel_radius = parm->kernel_radius ;
-   stup->npt_sum       = parm->npt_sum       ;
-   stup->wfunc_numpar  = parm->wfunc_numpar  ;
-   stup->wfunc         = parm->wfunc         ;
 
    stup->dim_avec = stup->dim_bvec = 1 ;  /* scalars */
 
-   /* copy parameter definitions */
+   /** load new images into setup struct, smoothing if so ordered **/
 
-   { int nfree=stup->wfunc_numpar , pp , *pma ;
-
-     stup->wfunc_param = (GA_param *)malloc(sizeof(GA_param)*stup->wfunc_numpar);
-     for( pp=0 ; pp < stup->wfunc_numpar ; pp++ ){
-       stup->wfunc_param[pp] = parm->wfunc_param[pp] ;
-       if( stup->wfunc_param[pp].fixed ) nfree-- ;
+   if( basim != NULL ){
+     if( stup->bsim != NULL ) mri_free(stup->bsim) ;
+     stup->bsim = mri_to_float(basim ) ;
+     if( stup->smooth_code > 0 && stup->smooth_radius > 0.0f ){
+       MRI_IMAGE *qim ;
+       qim = GA_smooth( stup->bsim , stup->smooth_code , stup->smooth_radius ) ;
+       if( qim != NULL ){ mri_free(stup->bsim) ; stup->bsim = qim ; }
      }
-     if( nfree <= 0 ) ERREX("no free wfunc parameters") ;
-     stup->wfunc_numfree = nfree ;
-
-     /** pma[k] = external parameter index for the k-th free parameter **/
-
-     pma = (int *)malloc(sizeof(int) * nfree) ;
-     for( pp=ii=0 ; ii < stup->wfunc_numpar ; ii++ )
-       if( !stup->wfunc_param[ii].fixed ) pma[pp++] = ii ;
-     stup->wfunc_pma = pma ;
    }
-
-   /** load images into setup struct, smoothing if so ordered **/
-
-   stup->bsim = mri_to_float(basim ) ;
-   stup->ajim = mri_to_float(targim) ;
-
    nx = stup->bsim->nx; ny = stup->bsim->ny; nz = stup->bsim->nz; nxy = nx*ny;
 
-   if( parm->smooth_code > 0 && parm->smooth_radius > 0.0f ){
-     MRI_IMAGE *qim ;
-     qim = GA_smooth( stup->bsim , parm->smooth_code , parm->smooth_radius ) ;
-     if( qim != NULL ){ mri_free(stup->bsim) ; stup->bsim = qim ; }
+   if( targim != NULL ){
+     if( stup->ajim != NULL ) mri_free(stup->ajim) ;
+     stup->ajim = mri_to_float(targim) ;
+     if( stup->smooth_code > 0 && stup->smooth_radius > 0.0f ){
+       MRI_IMAGE *qim ;
+       float nxa=stup->ajim->nx, nya=stup->ajim->ny, nza=stup->ajim->nz ;
+       float rad=cbrtf(nxa*nya*nza/(nx*ny*nz)) * stup->smooth_radius ;
+       qim = GA_smooth( stup->ajim , stup->smooth_code , rad ) ;
+       if( qim != NULL ){ mri_free(stup->ajim) ; stup->ajim = qim ; }
+     }
    }
 
-   if( parm->smooth_code > 0 && parm->smooth_radius > 0.0f ){
-     MRI_IMAGE *qim ;
-     float nxa=stup->ajim->nx, nya=stup->ajim->ny, nza=stup->ajim->nz ;
-     float rad=cbrtf(nxa*nya*nza/(nx*ny*nz)) * parm->smooth_radius ;
-     qim = GA_smooth( stup->ajim , parm->smooth_code , rad ) ;
-     if( qim != NULL ){ mri_free(stup->ajim) ; stup->ajim = qim ; }
+   if( stup->interp_code != MRI_NN && stup->interp_code != MRI_LINEAR ){
+     stup->ajbot = (float)mri_min(stup->ajim) ;
+     stup->ajtop = (float)mri_max(stup->ajim) ;
    }
-   stup->ajbot = (float)mri_min(stup->ajim) ;
-   stup->ajtop = (float)mri_max(stup->ajim) ;
 
    /** load mask array **/
 
-   if( maskim != NULL ){
-     MRI_IMAGE *qim = mri_to_byte(maskim) ;
+   if( maskim != NULL ){              /*---- have new mask to load ----*/
+     MRI_IMAGE *qim ;
+
+     if( maskim->nvox != stup->bsim->nvox )
+       ERREX("basim and maskim grids differ") ;
+
+     if( stup->bmask != NULL ) free((void *)stup->bmask) ;
+     qim = mri_to_byte(maskim) ;
      stup->bmask = MRI_BYTE_PTR(qim) ;
-     mri_fix_data_pointer( NULL , qim ) ;
-     mri_free(qim) ;
+     mri_fix_data_pointer( NULL , qim ) ; mri_free(qim) ;
      stup->nmask = THD_countmask( maskim->nvox , stup->bmask ) ;
      if( stup->nmask < 99 ){
        WARNING_message("mri_genalign_scalar: illegal input mask") ;
-       free(stup->bmask) ; stup->bmask = NULL ; stup->nmask = 0 ;
+       free(stup->bmask) ;
+       stup->bmask = NULL ; stup->nmask = stup->nvox_mask = 0 ;
+     } else {
+       stup->nvox_mask = maskim->nvox ;
      }
-   } else {
+
+   } else if( stup->nmask > 0 ){  /*---- have old mask to check ----*/
+     if( stup->nvox_mask != stup->bsim->nvox )
+       ERREX("old mask and new base image differ in size") ;
+
+   } else {                           /*---- have no mask, new or old ----*/
      stup->bmask = NULL ;
-     stup->nmask = 0 ;
+     stup->nmask = stup->nvox_mask = 0 ;
    }
 
    /*-- extract matching points from base image --*/
@@ -614,8 +605,11 @@ ENTRY("mri_genalign_scalar") ;
 
    } else if( use_all == 2 ){  /*------------- all points in mask ------------*/
 
-     int nvox , pp ; byte *mask = stup->bmask ;
+     int nvox , pp ; byte *mask=stup->bmask ;
 
+     if( stup->im != NULL ){
+       free(stup->im) ; free(stup->jm) ; free(stup->km) ;
+     }
      stup->im = (float *)malloc(sizeof(float)*stup->npt_match) ;
      stup->jm = (float *)malloc(sizeof(float)*stup->npt_match) ;
      stup->km = (float *)malloc(sizeof(float)*stup->npt_match) ;
@@ -634,6 +628,9 @@ ENTRY("mri_genalign_scalar") ;
 
      nvox = stup->bsim->nvox ;
      dm   = find_relprime_fixed(nvox) ;
+     if( stup->im != NULL ){
+       free(stup->im) ; free(stup->jm) ; free(stup->km) ;
+     }
      stup->im = (float *)malloc(sizeof(float)*stup->npt_match) ;
      stup->jm = (float *)malloc(sizeof(float)*stup->npt_match) ;
      stup->km = (float *)malloc(sizeof(float)*stup->npt_match) ;
@@ -664,6 +661,7 @@ ENTRY("mri_genalign_scalar") ;
    if( stup->match_code == GA_MATCH_SPEARMAN_SCALAR )
      stup->bvstat = spearman_rank_prepare( stup->npt_match , stup->bvm ) ;
 
+#if 0
    /**----- can now optimize warping parameters -----**/
 
    wpar = (double *)malloc(sizeof(double)*stup->wfunc_numfree) ;
@@ -679,6 +677,7 @@ ENTRY("mri_genalign_scalar") ;
        parm->wfunc_param[qq].val_out = parm->wfunc_param[qq].val_fixed ;
      else
        parm->wfunc_param[qq].val_out = wpar[ii++] ;
+#endif
 
-   RETURN(NULL) ;
+   EXRETURN ;
 }
