@@ -470,6 +470,11 @@ void NI_add_column( NI_element *nel , int typ , void *arr )
    /* add 1 to the count of vectors */
 
    nel->vec_num = nn+1 ;
+
+   /* if element has "ni_type" attribute, adjust it   14 Jul 2006 [rickr] */
+   if( NI_get_attribute(nel, "ni_type") )
+      NI_set_ni_type_atr(nel) ;
+
    return ;
 }
 
@@ -538,6 +543,10 @@ void NI_add_column_stride( NI_element *nel, int typ, void *arr, int stride )
 
    for( ii=0 ; ii < nel->vec_len ; ii++ )
      NI_insert_value( nel , ii , nn , idat + (ii*stride*rt->size) ) ;
+
+   /* if element has "ni_type" attribute, adjust it   14 Jul 2006 [rickr] */
+   if( NI_get_attribute(nel, "ni_type") )
+      NI_set_ni_type_atr(nel) ;
 
    return ;
 }
@@ -1093,3 +1102,48 @@ int NI_search_group_deep( NI_group *ngr , char *enam , void ***nipt )
    if( nn > 0 ) *nipt = nelar ;
    return nn ;
 }
+
+/*-----------------------------------------------------------------------*/
+/*! add a ni_type attribute to the element            14 Jul 2006 [rickr]
+    (based on NI_write_element())
+-------------------------------------------------------------------------*/
+void NI_set_ni_type_atr( NI_element * nel )
+{
+   char * buf, * posn ;
+   int    ii, prev, count=0 ;
+
+   if( ! nel || nel->vec_num <= 0 ) return ;
+
+   /* make enough space for a list of buffers, and init. to empty */
+   /* -- use (length of "complex64" + 1), the "longest string"    */
+   buf = (char *)NI_malloc(char, (10 * nel->vec_num + 1) * sizeof(char)) ;
+   buf[0] = '\0' ;
+
+   for( prev=-1, ii=0; ii < nel->vec_num; ii++ ){
+      if( nel->vec_typ[ii] != prev ){   /* not the previous type */
+         if( prev >= 0 ){               /* apply previous type now */
+            posn = buf + strlen(buf);
+            if( count > 1 ) sprintf(posn, "%d*%s,", count, NI_type_name(prev));
+            else            sprintf(posn, "%s,",           NI_type_name(prev));
+         }
+         prev = nel->vec_typ[ii] ;   /* save new type code */
+         count = 1 ;                 /* have 1 such type   */
+
+      } else {                       /* same as previous type  */
+         count++ ;                   /* so increment its count */
+      }
+   }
+
+   /* now write the last type found */
+   posn = buf + strlen(buf) ;
+   if( count > 1 ) sprintf(posn, "%d*%s", count, NI_type_name(prev));
+   else            sprintf(posn, "%s",           NI_type_name(prev));
+
+   /* now add the string as an attribute, and nuke the old string */
+   NI_set_attribute(nel, "ni_type", buf) ;
+
+   NI_free(buf) ;
+
+   return ;
+}
+

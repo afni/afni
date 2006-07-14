@@ -1600,4 +1600,7 @@
       - replaced if(DSET_IS_NIFTI()) with if(IS_VALID_NON_AFNI_DSET())
   * modified 3drefit.c: same change as 3dNotes.c
   * modified 3dniml.c: pass dset to nsd_add_sparse_data for nx
+  * modified niml_element.c, niml.h
+      - added NI_set_ni_type_atr() and calls to it from NI_add_column() and
+        stride(), so if ni_type is already set, it is adjusted
 
