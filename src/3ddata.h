@@ -2365,6 +2365,23 @@ typedef struct THD_3dim_dataset {
                            ISVALID_DISKPTR((ds)->dblk->diskptr) &&               \
                            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_MPEG )
 
+/*! Determine if dataset is valid, but has a non-AFNI storage mode */
+
+#define IS_VALID_NON_AFNI_DSET(ds)                                           \
+        ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&                    \
+          ISVALID_DISKPTR((ds)->dblk->diskptr) &&                            \
+          ( (ds)->dblk->diskptr->storage_mode == STORAGE_BY_MINC         ||  \
+            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_ANALYZE      ||  \
+            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_CTFMRI       ||  \
+            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_CTFSAM       ||  \
+            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_1D           ||  \
+            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_3D           ||  \
+            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NIFTI        ||  \
+            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_MPEG         ||  \
+            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NIML         ||  \
+            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NI_SURF_DSET     \
+          ) )
+
 /*! Determine if AFNI is allowed to over-write dataset ds */
 
 #define DSET_WRITEABLE(ds)       \
