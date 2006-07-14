@@ -563,6 +563,7 @@ extern void NI_add_column_stride( NI_element *, int, void *, int ); /* 29 May 20
 extern void NI_fill_column_stride( NI_element *,int,void *,int,int);/* 23 Mar 2004 */
 extern void NI_insert_string( NI_element *, int,int, char *);       /* 19 Apr 2005 */
 extern void NI_alter_veclen( NI_element * , int ) ;                 /* 19 Apr 2005 */
+extern void NI_set_ni_type_atr( NI_element * ) ;       /* 14 Jul 2006 [rickr] */
 
 extern NI_group * NI_new_group_element(void) ;
 extern void NI_add_to_group( NI_group *, void * ) ;
