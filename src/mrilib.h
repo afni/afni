@@ -1205,33 +1205,37 @@ typedef GA_warpfunc( int, float *,
 typedef MRI_warp3D_param_def GA_param ;
 
 typedef struct {
-  int match_code  ;
-  int smooth_code ;
-  int interp_code ;
+  int match_code  ;            /* set by user */
+  int smooth_code ;            /* set by user */
+  float smooth_radius ;        /* set by user */
+  int interp_code ;            /* set by user */
 
   MRI_IMAGE *bsim ;
   int dim_bvec    ;
   int   nmask     ;
+  int   nvox_mask ;
   byte *bmask     ;
 
   MRI_IMAGE *ajim ;
   float ajbot,ajtop ;
   int dim_avec    ;
 
-  int npt_match   ;
-  float *im , *jm , *km ;
+  int npt_match   ;            /* set by user */
+  float *im, *jm, *km ;
   float *bvm ;
   float bvstat ;
 
-  int kernel_code ; float kernel_radius ;
-  int npt_sum ;
+  int kernel_code ;            /* set by user */
+  float kernel_radius ;        /* set by user */
+  int npt_sum ;                /* set by user */
   int   *is , *js , *ks ;
   float *bvs ;
 
-  int          wfunc_numpar ;
-  GA_param    *wfunc_param ;
-  GA_warpfunc *wfunc ;
-  int          wfunc_numfree , *wfunc_pma ;
+  int          wfunc_numpar ;  /* set by user */
+  GA_param    *wfunc_param ;   /* set by user */
+  GA_warpfunc *wfunc ;         /* set by user */
+  int          wfunc_numfree ;
+  int          *wfunc_pma ;
 } GA_setup ;
 
 #undef  IFREE
@@ -1246,31 +1250,6 @@ typedef struct {
        IFREE((st)->wfunc_param) ; IFREE((st)->wfunc_pma) ;                   \
        free((st)) ;                                                          \
      }                                                                       \
- } while(0)
-
-typedef struct {
-  int interp_code ;
-  int match_code  ;
-  int smooth_code ; float smooth_radius ;
-  int npt_match   ;
-  int kernel_code ; float kernel_radius ;
-  int npt_sum     ;
-
-  int          wfunc_numpar ;
-  GA_param    *wfunc_param ;
-  GA_warpfunc *wfunc ;
-} GA_parameters ;
-
-#undef  INIT_GA_params
-#define INIT_GA_params(gp)                           \
- do{ gp.interp_code   = MRI_QUINTIC ;                \
-     gp.match_code    = GA_MATCH_PEARSON_SCALAR ;    \
-     gp.smooth_code   = GA_SMOOTH_GAUSSIAN ;         \
-     gp.smooth_radius = 1.0f ;                       \
-     gp.npt_match     = 333 ;                        \
-     gp.kernel_code   = GA_KERNEL_QUADRATIC ;        \
-     gp.kernel_radius = -0.05f ;                     \
-     gp.npt_sum       = 333 ;                        \
  } while(0)
 
 /*------------------------------------------------------------------*/
