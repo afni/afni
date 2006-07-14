@@ -228,10 +228,12 @@ int main (int argc, char * argv[]) {
    if( DSET_IS_3D(dset)      ) Error_Exit("Cannot use .3D dataset") ;
    if( DSET_IS_CTFMRI(dset)  ) Error_Exit("Cannot use CTF dataset") ;
    if( DSET_IS_CTFSAM(dset)  ) Error_Exit("Cannot use CTF dataset") ;
-   if( DSET_IS_NIFTI(dset)   )  /* 21 Jun 2006 */
-      write_output = True;
+
+   /* any surviving non-AFNI dataset needs the data written out */
+   if( IS_VALID_NON_AFNI_DSET(dset) )    /* 13 Jul 2006 [rickr] */
+      write_output = True ;
    else
-      write_output = False;
+      write_output = False ;
          
    /* First, delete notes */
    do {

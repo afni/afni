@@ -1594,3 +1594,10 @@
   * modified 3ddata.h: added THD_[un]zblock_ch protos
   * modified thd_zblock.c: added THD_zblock_ch() and THD_unzblock_ch()
 
+14 Jul 2006:
+  * modified 3ddata.h: added IS_VALID_NON_AFNI_DSET() macro
+  * modified 3dNotes.c:
+      - replaced if(DSET_IS_NIFTI()) with if(IS_VALID_NON_AFNI_DSET())
+  * modified 3drefit.c: same change as 3dNotes.c
+  * modified 3dniml.c: pass dset to nsd_add_sparse_data for nx
+

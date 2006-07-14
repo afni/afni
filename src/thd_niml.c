@@ -10,7 +10,7 @@ static int ni_debug = 0;   /* for global debugging */
 void set_ni_debug( int debug ){ ni_debug = debug; }
 
 static char * my_strndup(char *, int);
-static int    nsd_add_sparse_data(NI_group *, THD_datablock *);
+static int    nsd_add_sparse_data(NI_group *, THD_3dim_dataset *);
 static int    nsd_add_str_to_group(char *, char *, char *,
                                    THD_datablock *, NI_group *);
 static int    nsd_string_atr_to_slist(char ***, int, int, ATR_string *);
@@ -872,7 +872,7 @@ ENTRY("THD_dset_to_ni_surf_dset");
     nsd_add_str_to_group("BRICK_LABS", "COLMS_LABS", "Node Indices", blk, ngr);
     nsd_add_str_to_group("BRICK_STATSYM", "COLMS_STATSYM", "none", blk, ngr);
     nsd_add_str_to_group("HISTORY_NOTE", NULL, NULL, blk, ngr);
-    if( set_data ) nsd_add_sparse_data(ngr, blk); /* add SPARSE_DATA element */
+    if( set_data ) nsd_add_sparse_data(ngr, dset); /* add SPARSE_DATA element */
 
     /* ... */
 
@@ -940,23 +940,36 @@ ENTRY("nsd_add_str_to_group");
     RETURN(0);
 }
 
-static int nsd_add_sparse_data(NI_group * ngr, THD_datablock * blk)
+static int nsd_add_sparse_data(NI_group * ngr, THD_3dim_dataset * dset)
 {
-    NI_element * nel;
-    int          ind;
+    NI_element    * nel;
+    THD_datablock * blk;
+    int             ind, nx;
 
 ENTRY("nsd_add_sparse_data");
 
+    blk = dset->dblk;
+    nx = DSET_NX(dset);
+
     if(ni_debug) fprintf(stderr,"+d adding SPARSE_DATA element\n");
-    if( blk->nnodes <= 0 || !blk->node_list ) RETURN(0);
 
-    nel = NI_new_data_element("SPARSE_DATA", blk->nnodes);
+    /* create initial element of length nx */
+    nel = NI_new_data_element("SPARSE_DATA", nx);
 
-    NI_add_column(nel, NI_INT, blk->node_list);
+    /* possibly add node_list */
+    if( blk->nnodes > 0 && blk->node_list )
+    {
+        NI_add_column(nel, NI_INT, blk->node_list);
+        if(ni_debug) fprintf(stderr,"+d adding node_list data\n");
+    }
+
+    if(ni_debug) fprintf(stderr,"+d adding %d data columns\n", blk->nvals);
+
+    /* insert data */
     for( ind = 0; ind < blk->nvals; ind++ )
         NI_add_column(nel, NI_FLOAT, DBLK_ARRAY(blk, ind));
 
-    /* if text is not requested, use binary */
+    /* if text is not requested, use binary for write */
     if( ! AFNI_yesenv("AFNI_NIML_TEXT_DATA") )
         nel->outmode = NI_BINARY_MODE;
     NI_set_attribute(nel, "data_type", "Node_Bucket_data");

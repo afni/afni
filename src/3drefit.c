@@ -1041,13 +1041,16 @@ int main( int argc , char * argv[] )
          ERROR_message("Can't process CTF dataset %s\n",argv[iarg]);
          continue ;
       }
-      if( DSET_IS_NIFTI(dset) ){
-         write_output = True ;     /* 20 Jun 2006 [rickr] */
-      }
       if( DSET_IS_MPEG(dset) ){
          ERROR_message("Can't process MPEG dataset %s\n",argv[iarg]);
          continue ;
       }
+
+      /* any surviving non-AFNI dataset needs the data written out */
+      if( IS_VALID_NON_AFNI_DSET(dset) ){
+         write_output = True ;     /* 13 Jul 2006 [rickr] */
+      }
+
       INFO_message("Processing AFNI dataset %s\n",argv[iarg]) ;
 
       tross_Make_History( "3drefit" , argc,argv, dset ) ;
