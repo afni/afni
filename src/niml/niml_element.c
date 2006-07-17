@@ -369,6 +369,45 @@ void NI_free_element( void *nini )
 }
 
 /*-----------------------------------------------------------------------*/
+/*! Expunge all data from element or group.           17 Jul 2006 [rickr]
+-------------------------------------------------------------------------*/
+
+void NI_free_element_data( void *nini )
+{
+   int ii , tt=NI_element_type(nini) ;
+
+   if( tt < 0 ) return ; /* bad input */
+
+   /*-- if element, nuke data --*/
+
+   if( tt == NI_ELEMENT_TYPE ){
+      NI_element *nel = (NI_element *)nini ;
+
+      if( nel->vec != NULL ){
+        for( ii=0 ; ii < nel->vec_num ; ii++ )
+           NI_free_column( NI_rowtype_find_code(nel->vec_typ[ii]) ,
+                           nel->vec_len , nel->vec[ii]             ) ;
+         NI_free( nel->vec ) ;
+         nel->vec = NULL ;
+      }
+
+   /*-- if group, recur --*/
+
+   } else if( tt == NI_GROUP_TYPE ){
+      NI_group *ngr = (NI_group *)nini ;
+
+      if( ngr->part != NULL ){
+        for( ii=0 ; ii < ngr->part_num ; ii++ )
+          NI_free_element_data( ngr->part[ii] ) ;     /* recursion */
+      }
+   }
+
+   /*-- no other cases for data --*/
+
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
 /*! Create a new data element.
 
     - name   = string name for header.

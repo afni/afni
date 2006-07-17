@@ -1605,6 +1605,9 @@
         stride(), so if ni_type is already set, it is adjusted
 
 17 Jul 2006:
-  * modified niml_element.c: fixed NI_set_ni_type_atr() to allow for type
-      name of arbitrary length, not just known types
+  * modified niml_element.c, niml.h:
+      - fixed NI_set_ni_type_atr() to allow for type name of arbitrary length,
+        not just known types
+      - added NI_free_element_data()
+  * modified thd_niml.c: added nsd_add_colms_type, to add column types for suma
 
