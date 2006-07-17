@@ -551,6 +551,7 @@ extern int NI_element_rowsize( NI_element * ) ;
 extern int NI_element_allsize( NI_element * ) ;
 
 extern void NI_free_element( void * ) ;
+extern void NI_free_element_data( void * ) ;  /* 17 Jul 2006 */
 extern int  NI_element_type( void * ) ;
 extern char * NI_element_name( void * ) ;  /* 18 Apr 2005 */
 

@@ -10,6 +10,7 @@ static int ni_debug = 0;   /* for global debugging */
 void set_ni_debug( int debug ){ ni_debug = debug; }
 
 static char * my_strndup(char *, int);
+static int    nsd_add_colms_type(THD_datablock *, NI_group *);
 static int    nsd_add_sparse_data(NI_group *, THD_3dim_dataset *);
 static int    nsd_add_str_to_group(char *, char *, char *,
                                    THD_datablock *, NI_group *);
@@ -42,13 +43,14 @@ ENTRY("THD_open_niml");
 
     ni_debug = AFNI_yesenv("AFNI_NI_DEBUG");  /* maybe the user wants info */
 
-    nel = read_niml_file(fname, 0);  /* do not read in data */
+    nel = read_niml_file(fname, 1);  /* we need data for node_indices */
     if( !nel ) RETURN(NULL);
 
     smode = storage_mode_from_niml(nel);
     switch( smode )
     {
         case STORAGE_BY_3D:
+            NI_free_element_data(nel);  /* nuke all data */
             dset = THD_niml_3D_to_dataset(nel, fname);
             if(ni_debug) fprintf(stderr,"-d opening 3D dataset '%s'\n",fname);
             if( !dset && ni_debug )
@@ -56,6 +58,7 @@ ENTRY("THD_open_niml");
         break;
 
         case STORAGE_BY_NIML:
+            NI_free_element_data(nel);  /* nuke all data */
             if(ni_debug) fprintf(stderr,"-d opening NIML dataset '%s'\n",fname);
             dset = THD_niml_to_dataset(nel, 1); /* no data */
             if( !dset && ni_debug )
@@ -72,6 +75,8 @@ ENTRY("THD_open_niml");
                 fprintf(stderr,"** THD_open_niml failed to open '%s'\n",fname);
         break;
     }
+
+    NI_free_element(nel);
 
     if( dset )
     {   
@@ -477,7 +482,8 @@ ENTRY("THD_ni_surf_dset_to_afni");
     - validate the SPARSE_DATA element, including types
         (possibly int for node list, and all float data)
     - check for byte_order in ni_form
-    - set nnodes in datablock (if first column is node_list)
+    - set nnodes and node_list in datablock (if first column is node_list)
+        - note that the image data is necessary for this
     - set nx and nvals
     - check for ni_timestep
 */
@@ -541,6 +547,11 @@ ENTRY("process_ni_sd_sparse_data");
     if( nel->vec_typ[0] == NI_INT )
     {
         blk->nnodes = nel->vec_len;
+        blk->node_list = (int *)XtMalloc(blk->nnodes * sizeof(int));
+        memcpy(blk->node_list, nel->vec[0], blk->nnodes * sizeof(int));
+        if( dkptr->byte_order != mri_short_order() )
+            nifti_swap_4bytes(blk->nnodes, blk->node_list);
+
         nvals--;
         ind ++;
         if(ni_debug) fprintf(stderr,"-d found node_list len %d\n",nel->vec_len);
@@ -744,6 +755,7 @@ ENTRY("process_ni_sd_group_attrs");
  *
  *  - Return value is the number of sub-bricks found.
  *  - Data must be of type float.
+ *  - Free NIML data as it is applied.
  *------------------------------------------------------------------------*/
 int THD_add_sparse_data(THD_3dim_dataset * dset, NI_group * ngr )
 {
@@ -802,18 +814,10 @@ ENTRY("THD_add_sparse_data");
     if(ni_debug && swap) fprintf(stderr,"+d will byte_swap data\n");
     len = nel->vec_len;
 
+    /* if there is a node list, we can free vector 0 */
+    if( blk->nnodes > 0 ){ NI_free(nel->vec[0]);  nel->vec[0] = NULL; }
+        
     /*-- we seem to have all of the data, now copy it --*/
-    if( blk->nnodes > 0 )
-    {
-        if( !blk->node_list )
-        {
-            /* cannot steal pointer, because of NI_free() */
-            blk->node_list = (int *)XtMalloc(blk->nnodes * sizeof(int));
-            memcpy(blk->node_list, nel->vec[0], blk->nnodes * sizeof(int));
-            if( swap ) nifti_swap_4bytes(blk->nnodes, blk->node_list);
-            NI_free(nel->vec[0]);  nel->vec[0] = NULL;
-        }
-    }
     for( ind = 0; ind < nvals; ind++ )
     {
         data = (float *)XtMalloc(len * sizeof(float));
@@ -838,9 +842,8 @@ ENTRY("THD_add_sparse_data");
 NI_group * THD_dset_to_ni_surf_dset( THD_3dim_dataset * dset, int set_data )
 {
     THD_datablock * blk;
-    NI_element    * nel;
     NI_group      * ngr;
-    int             ind, nx;
+    int             nx;
 
 ENTRY("THD_dset_to_ni_surf_dset");
 
@@ -870,13 +873,54 @@ ENTRY("THD_dset_to_ni_surf_dset");
     NI_set_attribute(ngr, "filename", blk->diskptr->brick_name);
 
     nsd_add_str_to_group("BRICK_LABS", "COLMS_LABS", "Node Indices", blk, ngr);
+    nsd_add_colms_type(blk, ngr);
     nsd_add_str_to_group("BRICK_STATSYM", "COLMS_STATSYM", "none", blk, ngr);
     nsd_add_str_to_group("HISTORY_NOTE", NULL, NULL, blk, ngr);
     if( set_data ) nsd_add_sparse_data(ngr, dset); /* add SPARSE_DATA element */
 
-    /* ... */
-
     RETURN(ngr);
+}
+
+
+/*! add a COLMS_TYPE attribute element
+
+   return 0 on success
+*/
+static int nsd_add_colms_type(THD_datablock * blk, NI_group * ngr)
+{
+    NI_element * nel;
+    char       * str, * slist[1];  /* add_column requires a list of strings */
+    int          c, plen, ni_list = 0;
+
+ENTRY("nsd_add_str_to_group");
+
+    /* check usage */
+    if( !blk || !ngr ) RETURN(1);
+
+    /* do we have a Node_Index column? */
+    if( blk->nnodes > 0 && blk->node_list ) ni_list = 1;
+
+    /* create a new string: "Node_Index;Generic_Float;Generic_Float;..." */
+    plen = ni_list*11 + 14*blk->nvals + 1;
+    str = (char *)malloc(plen * sizeof(char));
+    *str = '\0';
+
+    if( ni_list ) strcpy(str, "Node_Index;");
+    for( c = 0; c < blk->nvals; c++ )
+        strcat(str, "Generic_Float;");
+    if( *str ) str[strlen(str)-1] = '\0';  /* nuke trailing ';' */
+
+    /* now add it to the group */
+    slist[0] = str;
+    nel = NI_new_data_element("AFNI_atr", 1);
+    nel->outmode = NI_TEXT_MODE;
+    NI_set_attribute(nel, "atr_name", "COLMS_TYPE");
+    NI_add_column(nel, NI_STRING, slist);
+    NI_add_to_group(ngr, nel);
+
+    free(str); /* nuke local copy */
+
+    RETURN(0);
 }
 
 
@@ -939,6 +983,7 @@ ENTRY("nsd_add_str_to_group");
 
     RETURN(0);
 }
+
 
 static int nsd_add_sparse_data(NI_group * ngr, THD_3dim_dataset * dset)
 {
