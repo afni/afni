@@ -70,6 +70,12 @@ void Syntax(char *str)
     "  -ydel dimy      for the given axis (x,y,z); dimensions in mm.\n"
     "  -zdel dimz   ** WARNING: if you change a voxel dimension, you will\n"
     "                  probably have to change the origin as well.\n"
+    "  -keepcen        When changing a voxel dimension with -xdel (etc.),\n"
+    "                  also change the corresponding origin to keep the\n"
+    "                  center of the dataset at the same coordinate location.\n"
+    "  -xyzscale fac   Scale the size of the dataset voxels by the factor 'fac'.\n"
+    "                  This is equivalent to using -xdel, -ydel, -zdel, and\n"
+    "                  -keepcen together.\n"
     "\n"
     "  -TR time        Changes the TR time to a new value (see 'to3d -help').\n"
     "  -notoff         Removes the slice-dependent time-offsets.\n"
@@ -304,6 +310,8 @@ int main( int argc , char * argv[] )
    char *new_label2   = NULL ;       /* 21 Dec 2004 */
    int denote         = 0 ;          /* 08 Jul 2005 */
    Boolean write_output ;            /* 20 Jun 2006 [rickr] */
+   int keepcen        = 0 ;          /* 17 Jul 2006 [RWCox] */
+   float xyzscale     = 0.0f ;       /* 17 Jul 2006 */
 
    char str[256] ;
    int  iarg , ii ;
@@ -824,6 +832,21 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;  /* go to next arg */
       }
 
+      if( strncmp(argv[iarg],"-keepcen",7) == 0 ){  /* 17 Jul 2006 */
+        keepcen = 1 ;
+        iarg++ ; continue ;  /* go to next arg */
+      }
+
+      if( strncmp(argv[iarg],"-xyzscale",8) == 0 ){ /* 17 Jul 2006 */
+         if( iarg+1 >= argc ) Syntax("need an argument after -xyzscale!");
+         xyzscale = strtod( argv[++iarg] , NULL ) ;
+         if( xyzscale <= 0.0f ) Syntax("argument after -xyzscale must be positive!");
+         if( xyzscale == 1.0f )
+           WARNING_message(
+            "-xyzscale 1.0 really makes no sense, but if that's what you want" ) ;
+         new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
+      }
+
       /** -TR **/
 
       if( strncmp(argv[iarg],"-TR",3) == 0 ){
@@ -1128,6 +1151,13 @@ int main( int argc , char * argv[] )
          daxes->zzorient = zzor ;
       }
 
+      if( xyzscale ){  /* 17 Jul 2006 */
+        keepcen  = 1 ;
+        new_xdel = 1 ; xdel = fabs(daxes->xxdel) * xyzscale ;
+        new_ydel = 1 ; ydel = fabs(daxes->yydel) * xyzscale ;
+        new_zdel = 1 ; zdel = fabs(daxes->zzdel) * xyzscale ;
+      }
+
       if( !new_xorg ) xorg = fabs(daxes->xxorg) ;
       if( !new_yorg ) yorg = fabs(daxes->yyorg) ;
       if( !new_zorg ) zorg = fabs(daxes->zzorg) ;
@@ -1135,6 +1165,32 @@ int main( int argc , char * argv[] )
       if( !new_xdel ) xdel = fabs(daxes->xxdel) ;
       if( !new_ydel ) ydel = fabs(daxes->yydel) ;
       if( !new_zdel ) zdel = fabs(daxes->zzdel) ;
+
+      /* 17 Jul 2006 - deal with the '-keepcen' option */
+
+      if( keepcen && !new_xdel && !new_ydel && !new_zdel ){
+        WARNING_message("-keepcen needs at least one of -xdel, -ydel, -zdel") ;
+        keepcen = 0 ;
+      }
+      if( keepcen && (new_xorg || new_yorg || new_zorg || new_orient) ){
+        WARNING_message(
+         "-keepcen incompatible with explicit origin or orientation changes") ;
+        keepcen = 0 ;
+      }
+      if( keepcen ){
+        if( new_xdel ){
+          dxorg = 1 ; xorg = 0.5f*(daxes->nxx-1)*(fabs(daxes->xxdel)-xdel) ;
+          if( ORIENT_sign[daxes->xxorient] == '-' ) xorg = -xorg ;
+        }
+        if( new_ydel ){
+          dyorg = 1 ; yorg = 0.5f*(daxes->nyy-1)*(fabs(daxes->yydel)-ydel) ;
+          if( ORIENT_sign[daxes->yyorient] == '-' ) yorg = -yorg ;
+        }
+        if( new_zdel ){
+          dzorg = 1 ; zorg = 0.5f*(daxes->nzz-1)*(fabs(daxes->zzdel)-zdel) ;
+          if( ORIENT_sign[daxes->zzorient] == '-' ) zorg = -zorg ;
+        }
+      }
 
       if( cxorg ) xorg = 0.5 * (daxes->nxx - 1) * xdel ;
       if( cyorg ) yorg = 0.5 * (daxes->nyy - 1) * ydel ;
