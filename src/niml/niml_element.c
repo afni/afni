@@ -15,7 +15,7 @@
 NI_element * make_empty_data_element( header_stuff *hs )
 {
    NI_element *nel ;
-   int ii , qq ;
+   int ii ;
 
    if( hs == NULL || hs->name == NULL ) return NULL ;
 
@@ -197,7 +197,6 @@ NI_dpr("ENTER make_empty_data_element\n") ;
 NI_group * make_empty_group_element( header_stuff *hs )
 {
    NI_group *ngr ;
-   int ii , qq ;
 
    if( hs == NULL || hs->name == NULL ) return NULL ;
 
@@ -293,7 +292,7 @@ char * NI_element_name( void *nini )
 
 void NI_free_element( void *nini )
 {
-   int ii , tt=NI_element_type(nini) , jj ;
+   int ii , tt=NI_element_type(nini) ;
 
    if( tt < 0 ) return ; /* bad input */
 
@@ -543,10 +542,6 @@ void NI_add_column_stride( NI_element *nel, int typ, void *arr, int stride )
 
    for( ii=0 ; ii < nel->vec_len ; ii++ )
      NI_insert_value( nel , ii , nn , idat + (ii*stride*rt->size) ) ;
-
-   /* if element has "ni_type" attribute, adjust it   14 Jul 2006 [rickr] */
-   if( NI_get_attribute(nel, "ni_type") )
-      NI_set_ni_type_atr(nel) ;
 
    return ;
 }
@@ -1109,14 +1104,16 @@ int NI_search_group_deep( NI_group *ngr , char *enam , void ***nipt )
 -------------------------------------------------------------------------*/
 void NI_set_ni_type_atr( NI_element * nel )
 {
-   char * buf, * posn ;
+   char * buf ;  /* alloc in blocks of ~1K (bob noted names up to 255 chars) */
+   char * posn ;
    int    ii, prev, count=0 ;
+   int    req_len, total_len=1024 ;
 
    if( ! nel || nel->vec_num <= 0 ) return ;
 
    /* make enough space for a list of buffers, and init. to empty */
-   /* -- use (length of "complex64" + 1), the "longest string"    */
-   buf = (char *)NI_malloc(char, (10 * nel->vec_num + 1) * sizeof(char)) ;
+   /* -- NI_rowtype_define uses 255 as a max rowtype name length  */
+   buf = (char *)NI_malloc(char, total_len * sizeof(char)) ;
    buf[0] = '\0' ;
 
    for( prev=-1, ii=0; ii < nel->vec_num; ii++ ){
@@ -1128,6 +1125,12 @@ void NI_set_ni_type_atr( NI_element * nel )
          }
          prev = nel->vec_typ[ii] ;   /* save new type code */
          count = 1 ;                 /* have 1 such type   */
+
+         /* make sure there is enough space for the new code        */
+         /* (old, new, and space for "5280*")   17 Jul 2006 [rickr] */
+         req_len = strlen(buf) + strlen(NI_type_name(prev)) + 10 ;
+         if( total_len < req_len )
+            buf = (char *)NI_realloc(buf, char, (req_len+1024) * sizeof(char)) ;
 
       } else {                       /* same as previous type  */
          count++ ;                   /* so increment its count */

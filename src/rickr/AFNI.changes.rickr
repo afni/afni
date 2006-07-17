@@ -1604,3 +1604,7 @@
       - added NI_set_ni_type_atr() and calls to it from NI_add_column() and
         stride(), so if ni_type is already set, it is adjusted
 
+17 Jul 2006:
+  * modified niml_element.c: fixed NI_set_ni_type_atr() to allow for type
+      name of arbitrary length, not just known types
+
