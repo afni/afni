@@ -120,7 +120,6 @@ char * AFNI_get_friend(void)
 
 typedef struct { int mon,day; char *label; } mday ;
 
-
 /*! max # trivia elements allowed per date */
 
 #define NTMAX 9
@@ -725,6 +724,9 @@ char * AFNI_get_date_trivia(void)
    struct tm *lt ;
    int ii , ntar ;
    char *tar[NTMAX] ;
+   static char *monthlist[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" } ;
+   static char dmy[32] ;
 
    tt = time(NULL) ;         /* seconds since 01 Jan 1970 */
    lt = localtime( &tt ) ;   /* break into pieces */
@@ -777,5 +779,11 @@ char * AFNI_get_date_trivia(void)
 
    /* default trivia */
 
+#if 1
+   sprintf( dmy , "[%02d %s %d]" ,
+           lt->tm_mday , monthlist[lt->tm_mon] , lt->tm_year+1900 ) ;
+   return dmy ;
+#else
    return "[Elen sila lumenn' omentielvo]" ;
+#endif
 }
