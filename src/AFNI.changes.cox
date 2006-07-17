@@ -5878,3 +5878,6 @@
 05 Jul 2006
  * Modified mri_read_dicom.c to deal with big-endian file transfer syntax.
  * Also check for overflow in 16-bit unsigned integer DICOM images.
+
+17 Jul 2006
+ * Added options -keepcen and -xyzscale to 3drefit.c.
