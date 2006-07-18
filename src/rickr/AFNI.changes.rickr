@@ -1611,3 +1611,7 @@
       - added NI_free_element_data()
   * modified thd_niml.c: added nsd_add_colms_type, to add column types for suma
 
+18 Jul 2006:
+  * modified thd_niml.c:
+      - added COLMS_RANGE attribute element
+      - use AFNI_NI_DEBUG as an integer level (as usual)
