@@ -5881,3 +5881,6 @@
 
 17 Jul 2006
  * Added options -keepcen and -xyzscale to 3drefit.c.
+
+18 Jul 2006
+ * Fixed -xyzsave option in 3drefit.c to make multiple datasets match.
