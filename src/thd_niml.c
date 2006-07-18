@@ -203,7 +203,10 @@ ENTRY("storage_mode_from_niml");
         if( ! strcmp(nel->name, "AFNI_3D_dataset") )
             RETURN(STORAGE_BY_3D);
 
-        if(ni_debug) fprintf(stderr,"** SMFN: NI_element but not 3D\n");
+        /* cannot deal with simple niml "3dVol2Surf_dataset", yet */
+
+        if(ni_debug)
+            fprintf(stderr,"** SMFN: unknown NI_element %s\n", nel->name);
     }
     else if( ni_type == NI_GROUP_TYPE )             /* AFNI or SUMA */
     {
