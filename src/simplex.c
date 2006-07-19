@@ -695,21 +695,77 @@ void simplex_optimization
 
 }
 
+#if 0
+static vfp N_nmodel , N_smodel ;
+static int N_r , N_p , N_nabs, N_ts_length ;
+static float *N_min_nconstr , *N_max_nconstr ;
+static float *N_min_sconstr , *N_max_sconstr ;
+static float **N_x_array ;
+static float *N_ts_array , *N_par_rdcd ;
+static float *N_pv ;
 
+/*----------------------------------------------------------------------------*/
 
+double newfunc( int np , double *pv )
+{
+   double val ; int ii ;
+   for( ii=0 ; ii < np ; ii++ ) N_pv[ii] = (float)pv[ii] ;
+   val = (double) calc_sse( N_nmodel, N_smodel, N_r, N_p, N_nabs,
+                            N_min_nconstr, N_max_nconstr,
+                            N_min_sconstr, N_max_sconstr,
+                            N_par_rdcd, N_pv ,
+                            N_ts_length, N_x_array, N_ts_array ) ;
+   return val ;
+}
 
+/*----------------------------------------------------------------------------*/
+/*! Supposed to be a dropin replacement for simplex_optimization().
+------------------------------------------------------------------------------*/
 
+void newuoa_optimization
+(
+  vfp nmodel,             /* pointer to noise model */
+  vfp smodel,             /* pointer to signal model */
+  int r,                  /* number of parameters in the noise model */
+  int p,                  /* number of parameters in the signal model */
+  float * min_nconstr,    /* minimum parameter constraints for noise model */
+  float * max_nconstr,    /* maximum parameter constraints for noise model */
+  float * min_sconstr,    /* minimum parameter constraints for signal model */
+  float * max_sconstr,    /* maximum parameter constraints for signal model */
+  int nabs,               /* use absolute constraints for noise parameters */
+  int ts_length,          /* length of time series array */
+  float ** x_array,       /* independent variable matrix */
+  float * ts_array,       /* observed time series */
+  float * par_rdcd,       /* estimated parameters for the reduced model */
+  float * parameters,     /* estimated parameters */
+  float * sse             /* error sum of squares */
+)
+{
+  double *dv ; int ii ;
 
+  N_nmodel      = nmodel ;
+  N_smodel      = smodel ;
+  N_r           = r ;
+  N_p           = p ;
+  N_min_nconstr = min_nconstr ;
+  N_max_nconstr = max_nconstr ;
+  N_min_sconstr = min_sconstr ;
+  N_max_sconstr = max_sconstr ;
+  N_nabs        = nabs ;
+  N_ts_length   = ts_length ;
+  N_x_array     = x_array ;
+  N_ts_array    = ts_array ;
+  N_par_rdcd    = par_rdcd ;
+  N_pv          = (float *)malloc(sizeof(float)*(r+p)) ;
 
+  dv = (double *)malloc(sizeof(double)*(r+p)) ;
+  for( ii=0 ; ii < r+p ; ii++ ) dv[ii] = (double)parameters[ii] ;
 
+  powell_newuoa( r+p , dv , ? , ? , 6666 , newfunc ) ;
 
+  for( ii=0 ; ii < r+p ; ii++ ) parameters[ii] = (float)dv[ii] ;
+  *sse = (float)newfunc( r+p , dv ) ;
 
-
-
-
-
-
-
-
-
-
+  free((void *)dv) ; free((void *)N_pv) ; return ;
+}
+#endif
