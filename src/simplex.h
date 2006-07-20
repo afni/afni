@@ -247,7 +247,6 @@ void simplex_optimization
   float * sse             /* error sum of squares */
 );
 
-
 /*---------------------------------------------------------------------------*/
 
 
