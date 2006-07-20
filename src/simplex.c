@@ -89,7 +89,7 @@ float get_random_value(float a, float b)
   Allocate memory for simplex algorithm.
 */
 
-void allocate_arrays 
+void allocate_arrays
 (
   int dimension,              /* dimension of parameter space */
   float *** simplex,          /* the simplex itself */
@@ -108,12 +108,12 @@ void allocate_arrays
   *test1 = (float *) malloc (sizeof(float) * dimension);
   *test2 = (float *) malloc (sizeof(float) * dimension);
 
-  *response = (float *) malloc (sizeof(float) * (dimension+1));   
+  *response = (float *) malloc (sizeof(float) * (dimension+1));
   *simplex = (float **) malloc (sizeof(float *) * (dimension+1));
 
   for (i = 0;  i < dimension+1;  i++)
     (*simplex)[i] = (float *) malloc (sizeof(float) * dimension);
-       
+
 }
 
 
@@ -122,7 +122,7 @@ void allocate_arrays
   Set up initial values for the simplex vertices.
 */
 
-void initialize_simplex 
+void initialize_simplex
 (
   int dimension,          /* dimension of the full model */
   vfp nmodel,             /* pointer to noise model */
@@ -150,17 +150,17 @@ void initialize_simplex
 
 
   /*----- copy parameter vector into first vertex of simplex -----*/
-  for (i = 0;  i < dimension;  i++)    
+  for (i = 0;  i < dimension;  i++)
     simplex[0][i] = parameters[i];
 
-    
+
   /*----- set up initial step sizes -----*/
   for (i = 0;  i < r;  i++)
     step_size[i] = 0.1 * (max_nconstr[i] - min_nconstr[i]);
   for (i = r;  i < dimension;  i++)
     step_size[i] = 0.1 * (max_sconstr[i-r] - min_sconstr[i-r]);
 
-    
+
   /*----- choose random vectors for remaining vertices -----*/
   for (i = 1;  i < dimension+1;  i++)
     {
@@ -170,24 +170,24 @@ void initialize_simplex
 	  minval = simplex[0][j] - step_size[j];
 	  if (nabs)   /*--- absolute noise parameter constraints ---*/
 	    {
-	      if (minval < min_nconstr[j])  
+	      if (minval < min_nconstr[j])
 		minval = min_nconstr[j];
 	    }
 	  else        /*--- relative noise parameter constraints ---*/
 	    {
-	      if (minval < min_nconstr[j] + par_rdcd[j])  
+	      if (minval < min_nconstr[j] + par_rdcd[j])
 		minval = min_nconstr[j] + par_rdcd[j];
 	    }
 
 	  maxval = simplex[0][j] + step_size[j];
 	  if (nabs)   /*--- absolute noise parameter constraints ---*/
 	    {
-	      if (maxval > max_nconstr[j])  
+	      if (maxval > max_nconstr[j])
 		maxval = max_nconstr[j];
 	    }
 	  else        /*--- relative noise parameter constraints ---*/
 	    {
-	      if (maxval > max_nconstr[j] + par_rdcd[j])  
+	      if (maxval > max_nconstr[j] + par_rdcd[j])
 		maxval = max_nconstr[j] + par_rdcd[j];
 	    }
 	  simplex[i][j] = get_random_value (minval, maxval);
@@ -198,10 +198,10 @@ void initialize_simplex
       for (j = r;  j < dimension;  j++)
 	{
 	  minval = simplex[0][j] - step_size[j];
-	  if (minval < min_sconstr[j-r])  
+	  if (minval < min_sconstr[j-r])
 	    minval = min_sconstr[j-r];
 	  maxval = simplex[0][j] + step_size[j];
-	  if (maxval > max_sconstr[j-r])  
+	  if (maxval > max_sconstr[j-r])
 	    maxval = max_sconstr[j-r];
 	  simplex[i][j] = get_random_value (minval, maxval);
 	}
@@ -210,7 +210,7 @@ void initialize_simplex
 
   /*----- calculate and save sse for each vertex of simplex -----*/
   for (i = 0;  i < dimension+1;  i++)
-    response[i] = calc_sse(nmodel, smodel, r, p, nabs, 
+    response[i] = calc_sse(nmodel, smodel, r, p, nabs,
 			   min_nconstr, max_nconstr, min_sconstr, max_sconstr,
 			   par_rdcd, simplex[i], ts_length, x_array, ts_array);
 
@@ -219,11 +219,11 @@ void initialize_simplex
 
 /*---------------------------------------------------------------------------*/
 /*
-  Evaluate the vertices of the simplex.  Find indices of the best, worst, and 
+  Evaluate the vertices of the simplex.  Find indices of the best, worst, and
   next-to-worst vertices.
 */
 
-void eval_vertices 
+void eval_vertices
 (
  int dimension,            /* dimension of parameter space */
  float * response,         /* error sum of squares at each vertex */
@@ -253,7 +253,7 @@ void eval_vertices
     *next = 1;
   else
     *next = 0;
-  
+
   for (i = 0;  i < dimension+1;  i++)
     if ((i != *worst) && (response[i] > response[*next]))
       *next = i;
@@ -266,7 +266,7 @@ void eval_vertices
   the simplex (and keeping the best previous vertex).
 */
 
-void restart 
+void restart
 (
   int dimension,          /* dimension of the full model */
   vfp nmodel,             /* pointer to noise model */
@@ -295,7 +295,7 @@ void restart
 
 
   /* find the current best vertex */
-  eval_vertices (dimension, response, &worst, &next, &best); 
+  eval_vertices (dimension, response, &worst, &next, &best);
 
 
   /* set the first vertex to the current best */
@@ -317,24 +317,24 @@ void restart
 	  minval = simplex[0][j] - step_size[j];
 	  if (nabs)   /*--- absolute noise parameter constraints ---*/
 	    {
-	      if (minval < min_nconstr[j])  
+	      if (minval < min_nconstr[j])
 		minval = min_nconstr[j];
 	    }
 	  else        /*--- relative noise parameter constraints ---*/
 	    {
-	      if (minval < min_nconstr[j] + par_rdcd[j])  
+	      if (minval < min_nconstr[j] + par_rdcd[j])
 		minval = min_nconstr[j] + par_rdcd[j];
 	    }
 
 	  maxval = simplex[0][j] + step_size[j];
 	  if (nabs)
 	    {
-	      if (maxval > max_nconstr[j])  
+	      if (maxval > max_nconstr[j])
 		maxval = max_nconstr[j];
 	    }
 	  else
 	    {
-	      if (maxval > max_nconstr[j] + par_rdcd[j])  
+	      if (maxval > max_nconstr[j] + par_rdcd[j])
 		maxval = max_nconstr[j] + par_rdcd[j];
 	    }
 
@@ -346,19 +346,19 @@ void restart
       for (j = r;  j < dimension;  j++)
 	{
 	  minval = simplex[0][j] - step_size[j];
-	  if (minval < min_sconstr[j-r])  
+	  if (minval < min_sconstr[j-r])
 	    minval = min_sconstr[j-r];
 	  maxval = simplex[0][j] + step_size[j];
-	  if (maxval > max_sconstr[j-r])  
+	  if (maxval > max_sconstr[j-r])
 	    maxval = max_sconstr[j-r];
 	  simplex[i][j] = get_random_value (minval, maxval);
 	}
     }
 
-  
+
   /* initialize response for each vector */
   for (i = 0;  i < dimension+1;  i++)
-    response[i] = calc_sse (nmodel, smodel, r, p, nabs, 
+    response[i] = calc_sse (nmodel, smodel, r, p, nabs,
 			   min_nconstr, max_nconstr, min_sconstr, max_sconstr,
 			   par_rdcd, simplex[i], ts_length, x_array, ts_array);
 }
@@ -369,7 +369,7 @@ void restart
   Calculate the centroid of the simplex, ignoring the worst vertex.
 */
 
-void calc_centroid 
+void calc_centroid
 (
   int dimension,         /* dimension of parameter space */
   float ** simplex,      /* the simplex itself */
@@ -401,7 +401,7 @@ void calc_centroid
   Calculate the reflection of the worst vertex about the centroid.
 */
 
-void calc_reflection 
+void calc_reflection
 (
   int dimension,               /* dimension of parameter space */
   float ** simplex,            /* the simplex itself */
@@ -424,7 +424,7 @@ void calc_reflection
   Replace a vertex of the simplex.
 */
 
-void replace 
+void replace
 (
   int dimension,              /* dimension of parameter space */
   float ** simplex,           /* the simplex itself */
@@ -446,11 +446,11 @@ void replace
 
 /*---------------------------------------------------------------------------*/
 /*
-  Calculate the goodness of fit.  This is measured by the variation in 
+  Calculate the goodness of fit.  This is measured by the variation in
   responses at the different vertices relative to the average response.
 */
 
-float calc_good_fit 
+float calc_good_fit
 (
   int dimension,                   /* dimension of parameter space */
   float * response                 /* error sum of squares at each vertex */
@@ -486,7 +486,7 @@ float calc_good_fit
   Release memory required for simplex optimization.
 */
 
-void deallocate_arrays 
+void deallocate_arrays
 (
   int dimension,              /* dimension of parameter space */
   float *** simplex,          /* the simplex itself */
@@ -498,7 +498,7 @@ void deallocate_arrays
 )
 
 {
-  int iv;                     /* vertex index */   
+  int iv;                     /* vertex index */
 
 
   free (*centroid);    *centroid = NULL;
@@ -514,7 +514,7 @@ void deallocate_arrays
     }
 
   free (*simplex);     *simplex = NULL;
-       
+
 }
 
 
@@ -524,7 +524,7 @@ void deallocate_arrays
 */
 
 void simplex_optimization
-( 
+(
   vfp nmodel,             /* pointer to noise model */
   vfp smodel,             /* pointer to signal model */
   int r,                  /* number of parameters in the noise model */
@@ -557,10 +557,10 @@ void simplex_optimization
   float * test1      = NULL;    /* test vertex */
   float * test2      = NULL;    /* test vertex */
   float resp1, resp2;           /* error sum of squares for test vertex */
-  int i;                        /* vertex index */ 
+  int i;                        /* vertex index */
   int worst;                    /* index of worst vertex in simplex */
   int best;                     /* index of best vertex in simplex */
-  int next;                     /* index of next-to-worst vertex in simplex */ 
+  int next;                     /* index of next-to-worst vertex in simplex */
   int num_iter;                 /* number of simplex algorithm iterations */
   int num_restarts;             /* number of restarts of simplex algorithm */
   int done;                     /* boolean for search finished */
@@ -574,30 +574,30 @@ void simplex_optimization
   /*----- allocate memory -----*/
   allocate_arrays (dimension, &simplex, &centroid, &response, &step_size,
 		   &test1, &test2);
-  
+
   /*----- initialization for simplex algorithm -----*/
   initialize_simplex (dimension, nmodel, smodel, r, p, nabs,
-		      min_nconstr, max_nconstr, min_sconstr, max_sconstr, 
-		      par_rdcd, parameters, simplex, response, step_size, 
+		      min_nconstr, max_nconstr, min_sconstr, max_sconstr,
+		      par_rdcd, parameters, simplex, response, step_size,
 		      ts_length, x_array, ts_array);
 
   /* start loop to do simplex optimization */
   num_iter = 0;
   num_restarts = 0;
   done = 0;
-  
+
   while (!done)
     {
-      /*----- find the worst vertex and compute centroid of remaining simplex, 
+      /*----- find the worst vertex and compute centroid of remaining simplex,
 	discarding the worst vertex -----*/
       eval_vertices (dimension, response, &worst, &next, &best);
       calc_centroid (dimension, simplex, worst, centroid);
-      
+
       /*----- reflect the worst point through the centroid -----*/
-      calc_reflection (dimension, simplex, centroid, worst, 
+      calc_reflection (dimension, simplex, centroid, worst,
 		       REFLECTION_COEF, test1);
-      resp1 = calc_sse (nmodel, smodel, r, p, nabs, min_nconstr, max_nconstr, 
-			min_sconstr, max_sconstr, par_rdcd, test1, 
+      resp1 = calc_sse (nmodel, smodel, r, p, nabs, min_nconstr, max_nconstr,
+			min_sconstr, max_sconstr, par_rdcd, test1,
 			ts_length, x_array, ts_array);
 
 
@@ -606,15 +606,15 @@ void simplex_optimization
       if (resp1 < response[best])
 	{
 	  /*----- try expanding -----*/
-	  calc_reflection (dimension, simplex, centroid, worst, 
+	  calc_reflection (dimension, simplex, centroid, worst,
 			   EXPANSION_COEF, test2);
 
-	  resp2 = calc_sse (nmodel, smodel, r, p, nabs, 
-			    min_nconstr, max_nconstr, 
-			    min_sconstr, max_sconstr, par_rdcd, test2, 
+	  resp2 = calc_sse (nmodel, smodel, r, p, nabs,
+			    min_nconstr, max_nconstr,
+			    min_sconstr, max_sconstr, par_rdcd, test2,
 			    ts_length, x_array, ts_array);
 
-	  if (resp2 <= resp1)    /* keep expansion */     
+	  if (resp2 <= resp1)    /* keep expansion */
 	    replace (dimension, simplex, response, worst, test2, resp2);
 	  else                   /* keep reflection */
 	    replace (dimension, simplex, response, worst, test1, resp1);
@@ -622,25 +622,25 @@ void simplex_optimization
 
       else if (resp1 < response[next])
 	{
-	  /*----- new response is between the best and next worst 
+	  /*----- new response is between the best and next worst
 	    so keep reflection -----*/
-	  replace (dimension, simplex, response, worst, test1, resp1); 
+	  replace (dimension, simplex, response, worst, test1, resp1);
 	}
           else
 	{
 	  /*----- try contraction -----*/
 	  if (resp1 >= response[worst])
-	    calc_reflection (dimension, simplex, centroid, worst, 
+	    calc_reflection (dimension, simplex, centroid, worst,
 			     -CONTRACTION_COEF, test2);
 	  else
-	    calc_reflection (dimension, simplex, centroid, worst, 
+	    calc_reflection (dimension, simplex, centroid, worst,
 			     CONTRACTION_COEF, test2);
 
-	  resp2 = calc_sse (nmodel, smodel, r, p, nabs, 
-			    min_nconstr, max_nconstr, 
-			    min_sconstr, max_sconstr, par_rdcd, test2, 
+	  resp2 = calc_sse (nmodel, smodel, r, p, nabs,
+			    min_nconstr, max_nconstr,
+			    min_sconstr, max_sconstr, par_rdcd, test2,
 			    ts_length, x_array, ts_array);
-	  
+	
 	  /*---- test the contracted response against the worst response ----*/
 	  if (resp2 > response[worst])
 	    {
@@ -649,15 +649,15 @@ void simplex_optimization
 	      num_iter = 0;
 	      num_restarts += 1;
 	      restart (dimension, nmodel, smodel, r, p, nabs,
-		       min_nconstr, max_nconstr, min_sconstr, max_sconstr, 
-		       par_rdcd, simplex, response, step_size, 
+		       min_nconstr, max_nconstr, min_sconstr, max_sconstr,
+		       par_rdcd, simplex, response, step_size,
 		       ts_length, x_array, ts_array);
 	    }
 	  else       /*----- keep contraction -----*/
 	    replace (dimension, simplex, response, worst, test2, resp2);
 	}
 
-      /*----- test to determine when to stop.  
+      /*----- test to determine when to stop.
 	first, check the number of iterations -----*/
       num_iter += 1;    /*----- increment iteration counter -----*/
       if (num_iter >= MAX_ITERATIONS)
@@ -666,21 +666,21 @@ void simplex_optimization
 	  num_iter = 0;
 	  num_restarts += 1;
 	  restart (dimension, nmodel, smodel, r, p, nabs,
-		   min_nconstr, max_nconstr, min_sconstr, max_sconstr, 
-		   par_rdcd, simplex, response, step_size, 
+		   min_nconstr, max_nconstr, min_sconstr, max_sconstr,
+		   par_rdcd, simplex, response, step_size,
 		   ts_length, x_array, ts_array);
 	}
 
       /*----- limit the number of restarts -----*/
       if (num_restarts == MAX_RESTARTS)  done = 1;
 
-      /*----- compare relative standard deviation of vertex responses 
+      /*----- compare relative standard deviation of vertex responses
 	against a defined tolerance limit -----*/
       fit = calc_good_fit (dimension, response);
       if (fit <= TOLERANCE)  done = 1;
 
       /*----- if done, copy the best solution to the output array -----*/
-      if (done) 
+      if (done)
 	{
 	  eval_vertices (dimension, response, &worst, &next, &best);
 	  for (i = 0;  i < dimension;  i++)
@@ -689,27 +689,47 @@ void simplex_optimization
 	}
 
     }  /*----- while (!done) -----*/
- 
+
   deallocate_arrays (dimension, &simplex, &centroid, &response, &step_size,
 		     &test1, &test2);
 
 }
 
-#if 0
+/*----------------------------------------------------------------------------*/
+/******************************************************************************/
+/***** Powell's NEWUOA Method (instead of Nelder-Mead) - cf. powell_int.c *****/
+/******************************************************************************/
+/*----------------------------------------------------------------------------*/
+
+#ifdef ALLOW_NEWUOA         /* must be defined by including file */
+
+static int N_newuoa = 0 ;   /* indicates if NEWUOA method is to be used */
+
 static vfp N_nmodel , N_smodel ;
 static int N_r , N_p , N_nabs, N_ts_length ;
 static float *N_min_nconstr , *N_max_nconstr ;
 static float *N_min_sconstr , *N_max_sconstr ;
 static float **N_x_array ;
 static float *N_ts_array , *N_par_rdcd ;
+static float *N_pbot , *N_psiz ;
+
 static float *N_pv ;
 
 /*----------------------------------------------------------------------------*/
 
-double newfunc( int np , double *pv )
+double newfunc( int np , double *pv )  /* parameters are scaled to [0,1] */
 {
-   double val ; int ii ;
-   for( ii=0 ; ii < np ; ii++ ) N_pv[ii] = (float)pv[ii] ;
+   double val ; int ii ; float x,y ;
+
+   for( ii=0 ; ii < np ; ii++ ){
+     x = (float)pv[ii] ;
+     if( x < 0.0f || x > 1.0f )                     /* reduce periodically */
+       x = fabsf( x - 2.0f*floorf(0.5f*(x+1.0f)) ); /* to [0,1] range;     */
+     N_pv[ii] = N_pbot[ii] + N_psiz[ii] * x ;       /* scale to true value */
+   }
+
+   /* compute sum of squares between model fit and data */
+
    val = (double) calc_sse( N_nmodel, N_smodel, N_r, N_p, N_nabs,
                             N_min_nconstr, N_max_nconstr,
                             N_min_sconstr, N_max_sconstr,
@@ -756,16 +776,86 @@ void newuoa_optimization
   N_x_array     = x_array ;
   N_ts_array    = ts_array ;
   N_par_rdcd    = par_rdcd ;
-  N_pv          = (float *)malloc(sizeof(float)*(r+p)) ;
 
-  dv = (double *)malloc(sizeof(double)*(r+p)) ;
-  for( ii=0 ; ii < r+p ; ii++ ) dv[ii] = (double)parameters[ii] ;
+  N_pv          = (float *) malloc(sizeof(float) *(r+p)) ;
+  N_pbot        = (float *) malloc(sizeof(float) *(r+p)) ;
+  N_psiz        = (float *) malloc(sizeof(float) *(r+p)) ;
+  dv            = (double *)malloc(sizeof(double)*(r+p)) ;
 
-  powell_newuoa( r+p , dv , ? , ? , 6666 , newfunc ) ;
+  /* set N_pbot = min allowed values
+         N_psiz = max-min = size of allowed values range */
 
-  for( ii=0 ; ii < r+p ; ii++ ) parameters[ii] = (float)dv[ii] ;
+  if( nabs ){
+    for( ii=0 ; ii < r ; ii++ ){
+      N_pbot[ii] = min_nconstr[ii] ;
+      N_psiz[ii] = max_nconstr[ii] - min_nconstr[ii] ;
+    }
+  } else {
+    for( ii=0 ; ii < r ; ii++ ){
+      N_pbot[ii] = min_nconstr[ii] + par_rdcd[ii] ;
+      N_psiz[ii] = max_nconstr[ii] - min_nconstr[ii] ;
+    }
+  }
+  for( ii=0 ; ii < p ; ii++ ){
+    N_pbot[ii+r] = min_sconstr[ii] ;
+    N_psiz[ii+r] = max_sconstr[ii] - min_sconstr[ii] ;
+  }
+
+  /* scale all parameters into the range [0,1];
+     NEWUOA will operate on these, since it is scale-free */
+
+  for( ii=0 ; ii < r+p ; ii++ )
+    dv[ii] = (double) ((parameters[ii]-N_pbot[ii])/N_psiz[ii]) ;
+
+  powell_newuoa( r+p , dv , 0.06 , 0.0006 , 9999 , newfunc ) ;
+
   *sse = (float)newfunc( r+p , dv ) ;
 
-  free((void *)dv) ; free((void *)N_pv) ; return ;
+  for( ii=0 ; ii < r+p ; ii++ )
+    parameters[ii] = (float)( N_pbot[ii] + N_psiz[ii]*dv[ii] ) ;
+
+  free((void *)dv)     ;
+  free((void *)N_pbot) ;
+  free((void *)N_psiz) ;
+  free((void *)N_pv)   ;
+  return ;
 }
 #endif
+
+/*----------------------------------------------------------------------------*/
+/*! Chooses which optimization function to call.
+------------------------------------------------------------------------------*/
+
+void generic_optimization
+(
+  vfp nmodel,             /* pointer to noise model */
+  vfp smodel,             /* pointer to signal model */
+  int r,                  /* number of parameters in the noise model */
+  int p,                  /* number of parameters in the signal model */
+  float * min_nconstr,    /* minimum parameter constraints for noise model */
+  float * max_nconstr,    /* maximum parameter constraints for noise model */
+  float * min_sconstr,    /* minimum parameter constraints for signal model */
+  float * max_sconstr,    /* maximum parameter constraints for signal model */
+  int nabs,               /* use absolute constraints for noise parameters */
+  int ts_length,          /* length of time series array */
+  float ** x_array,       /* independent variable matrix */
+  float * ts_array,       /* observed time series */
+  float * par_rdcd,       /* estimated parameters for the reduced model */
+  float * parameters,     /* estimated parameters */
+  float * sse             /* error sum of squares */
+)
+{
+
+#ifdef ALLOW_NEWUOA
+   if( N_newuoa )
+     newuoa_optimization (nmodel, smodel, r, p,
+                          min_nconstr, max_nconstr, min_sconstr, max_sconstr,
+                          nabs, ts_length, x_array, ts_array, par_rdcd,
+                          parameters, sse );
+   else
+#endif
+     simplex_optimization(nmodel, smodel, r, p,
+                          min_nconstr, max_nconstr, min_sconstr, max_sconstr,
+                          nabs, ts_length, x_array, ts_array, par_rdcd,
+                          parameters, sse );
+}
