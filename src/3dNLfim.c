@@ -81,6 +81,9 @@
    Mod:      Removed options -aux_name and -aux_fval, and the globals
              require linking to afni, too.
    Date:     30 Jan 2006 [rickr]
+
+   Mod:      Added NEWUOA stuff (mostly to simplex.c, actually).
+   Date:     20 Jul 2006 [RWCox]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -88,9 +91,13 @@
 #define PROGRAM_NAME "3dNLfim"                       /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "19 June 1997"    /* date of initial program release */
-#define PROGRAM_LATEST  "07 May 2003"     /* date of latest program revision */
+#define PROGRAM_LATEST  "20 Jul 2006"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
+
+#define DEFAULT_NRAND 9999
+#define DEFAULT_NBEST    9
+#define DEFAULT_FDISP  999
 
 #include <stdio.h>
 #include <math.h>
@@ -132,12 +139,14 @@
 
 /*---------------------------------------------------------------------------*/
 
+#define ALLOW_NEWUOA   /* 20 Jul 2006 - Powell's NEWUOA method - RWCox */
+
 #include "matrix.h"
 #include "simplex.h"
 #include "NLfit.h"
 
 #include "matrix.c"
-#include "simplex.c"
+#include "simplex.c"   /* 20 Jul 2006 - now includes NEWUOA variables [N_*] */
 #include "NLfit.c"
 
 typedef struct NL_options
@@ -214,6 +223,13 @@ void display_help_menu()
      "[-fdisp fval]      display (to screen) results for those voxels       \n"
      "                     whose f-statistic is > fval                      \n"
      "[-voxel_count]     display (to screen) the current voxel index        \n"
+#ifdef ALLOW_NEWUOA
+     "                                                                      \n"
+     "[-NEWUOA]          use Powell's NEWUOA method instead of the          \n"
+     "                     Nelder-Mead simplex method to find the           \n"
+     "                     nonlinear least-squares solution.                \n"
+     "                     (This option is currently experimental only!)    \n"
+#endif
      "                                                                      \n"
      "                                                                      \n"
      "The following commands generate individual AFNI 2 sub-brick datasets: \n"
@@ -354,10 +370,10 @@ void initialize_options
   /*----- initialize default values -----*/
   *ignore = 3;
   *nabs = 0;
-  *nrand = 100;
-  *nbest = 5; 
+  *nrand = DEFAULT_NRAND;
+  *nbest = DEFAULT_NBEST; 
   *rms_min = 0.0;
-  *fdisp = 10.0;
+  *fdisp = DEFAULT_FDISP;
   *smodel = NULL;
   *nmodel = NULL;
   *r = -1;
@@ -694,7 +710,14 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
+#ifdef ALLOW_NEWUOA
+      /*-----  -NEWUOA  -----*/
+
+      if( strcmp(argv[nopt],"-NEWUOA") == 0 ){   /* 20 Jul 2006 */
+        N_newuoa = 1 ; nopt++ ; continue ;
+      }
+#endif
       
       /*-----   -nrand n  -----*/
       if (strcmp(argv[nopt], "-nrand") == 0)
@@ -3136,6 +3159,11 @@ int main
 
        /* split voxels between jobs evenly */
 
+       if( g_voxel_count ){
+         g_voxel_count = 0 ;
+         WARNING_message("-voxel_count disabled by -jobs") ;
+       }
+
        nper = nvox / proc_numjob ;  /* # voxels per job */
        if( mask_vol == NULL ){
          proc_vox_bot[0] = 0 ;
@@ -3205,10 +3233,8 @@ int main
 	if (mask_vol[iv] == 0)  continue;
 
       /*----- display progress for user (1-based) -----*/
-      if (g_voxel_count) {
+      if (g_voxel_count)
         fprintf(stderr,"\r++ voxel count: %8d (of %d)", iv+1, ixyz_top);
-        if(iv == ixyz_top-1) fputc('\n',stderr);
-      }
 
       /*----- read the time series for voxel iv -----*/
       read_ts_array (dset_time, iv, ts_length, ignore, ts_array);
@@ -3254,6 +3280,7 @@ int main
 		    tmax_vol, pmax_vol, area_vol, parea_vol,ncoef_vol, 
 		    scoef_vol, tncoef_vol, tscoef_vol, sfit_vol, snfit_vol);
     }
+    if(g_voxel_count) fputc('\n',stderr);
 
 
     /*-- if this is a child process, we're done.

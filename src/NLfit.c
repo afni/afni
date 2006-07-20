@@ -4,6 +4,8 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+#define UNROLL
+
 /*
   This file contains routines used by programs 3dNLfim, plug_nlfit, and
   3dTSgen for performing non-linear regression analysis of AFNI 3d+time 
@@ -35,12 +37,15 @@
 
   Mod:      Changes for output of R^2 (coefficient of multiple determination),
             and standard deviation of residuals from full model fit.
-	    Added global variable calc_tstats.
-	    Also, added screen display of p-values.
+	         Added global variable calc_tstats.
+	         Also, added screen display of p-values.
   Date:     10 May 2000
 
   Mod:      Add stuff for longjmp() return from NLfit_error().
   Date:     01 May 2003 - RWCox
+
+  Mod:      Add UNROLL to a couple loops that are executed a lot.
+  Mod:      20 Jul 2006 - RWCox
 
 */
 
@@ -573,8 +578,24 @@ void full_model
 #endif
 
   /*----- add signal and noise model time series -----*/
+
+#ifdef UNROLL
+  if( ts_length%2 ){   /* odd length */
+    yhat_array[0] += y_array[0];
+    for (it = 1;  it < ts_length;  it+=2){
+      yhat_array[it] += y_array[it];
+      yhat_array[it+1] += y_array[it+1];
+    }
+  } else {
+    for (it = 0;  it < ts_length;  it+=2){
+      yhat_array[it] += y_array[it];
+      yhat_array[it+1] += y_array[it+1];
+    }
+  }
+#else   /* don't UNROLL */
   for (it = 0;  it < ts_length;  it++)
     yhat_array[it] += y_array[it];
+#endif  /* UNROLL */
   
 
   /*----- deallocate memory -----*/
@@ -636,12 +657,32 @@ float calc_sse
   full_model (nmodel, smodel, vertex, vertex + r, ts_length, x_array, y_array);
 
   /*----- calculate error sum of squares -----*/
+#ifdef UNROLL
+  if( ts_length%2 ){   /* odd length */
+    float d2 ;
+    diff = ts_array[0] - y_array[0] ; sse = diff*diff ;
+    for( i=1 ; i < ts_length ; i+=2 ){
+      diff = ts_array[i]   - y_array[i];
+      d2   = ts_array[i+1] - y_array[i+1];
+      sse += diff*diff + d2*d2 ;
+    }
+  } else {               /* even length */
+    float d2 ;
+    sse = 0.0 ;
+    for( i=0 ; i < ts_length ; i+=2 ){
+      diff = ts_array[i]   - y_array[i];
+      d2   = ts_array[i+1] - y_array[i+1];
+      sse += diff*diff + d2*d2 ;
+    }
+  }
+#else   /* don't UNROLL */
   sse = 0.0;
   for (i = 0;  i < ts_length;  i++)
     {
       diff = ts_array[i] - y_array[i];
       sse += diff * diff;
     }
+#endif  /* UNROLL */
 
   /*----- release memory -----*/
   free (y_array);   y_array = NULL;
@@ -880,7 +921,7 @@ void calc_full_model
     nonlinear optimization -----*/
   for (iv = 0;  iv < nbest;  iv++)
     {
-      simplex_optimization (nmodel, smodel, r, p, 
+      generic_optimization (nmodel, smodel, r, p, 
 			    min_nconstr, max_nconstr, min_sconstr, max_sconstr,
 			    nabs, ts_length, x_array, ts_array, par_rdcd,
 			    parameters[iv], &sse[iv]);
