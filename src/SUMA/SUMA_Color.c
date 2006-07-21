@@ -6944,7 +6944,7 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    else if (SO->idcode_str) SUMA_SetParent_DsetToLoad(SO->idcode_str); 
    else SUMA_SetParent_DsetToLoad(NULL);  
 
-   dset = SUMA_LoadDset (filename, &form, 0); 
+   dset = SUMA_LoadDset_s (filename, &form, 0); 
    if (!dset) { SUMA_SLP_Err(  "Failed to load dataset.\n"
                                  "Make sure file exists\n"
                                  "and is of a supported\n"
