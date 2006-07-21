@@ -94,14 +94,9 @@ void noise_model
 
 {
   int it;                           /* time index */     
-  float fval;                       /* time series value at time t */  
+  float fval = gn[0] ;                       /* time series value at time t */  
 
 
-  for (it = 0;  it < ts_length;  it++)
-    {
-      fval = gn[0];
-      ts_array[it] = fval;
-    }
-  
+  for (it = 0;  it < ts_length;  it++) ts_array[it] = fval ;
 }
 

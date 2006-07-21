@@ -75,6 +75,7 @@ MODEL_interface * initialize_model ()
   return (mi);
 }
 
+#define UNROLL
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -101,12 +102,28 @@ void noise_model
   float fval;                       /* time series value at time t */  
 
 
+#ifdef UNROLL
+  { int ib = ts_length % 4 , nt = ts_length ;
+    float g0=gn[0] , g1=gn[1] ;
+    switch( ib ){
+      case 3: ts_array[2] = g1*x_array[2][1] + g0 ; /* fall thru */
+      case 2: ts_array[1] = g1*x_array[1][1] + g0 ; /* fall thru */
+      case 1: ts_array[0] = g1*x_array[0][1] + g0 ; break ;
+    }
+    for( it=ib ; it < nt ; it+=4 ){
+      ts_array[it  ] = g1*x_array[it  ][1] + g0 ;
+      ts_array[it+1] = g1*x_array[it+1][1] + g0 ;
+      ts_array[it+2] = g1*x_array[it+2][1] + g0 ;
+      ts_array[it+3] = g1*x_array[it+3][1] + g0 ;
+    }
+  }
+#else
   for (it = 0;  it < ts_length;  it++)
     {
       t = x_array[it][1];
       fval = gn[0] + gn[1]*t;
       ts_array[it] = fval;
     }
+#endif
   
 }
-
