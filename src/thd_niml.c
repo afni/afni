@@ -4,7 +4,7 @@
  *----------------------------------------------------------------------
 */
 #include "mrilib.h"
-#include "SUMA/SUMA_suma.h"
+#include "suma_suma.h"
 
 static int ni_debug = 0;   /* for global debugging */
 void set_ni_debug( int debug ){ ni_debug = debug; }
