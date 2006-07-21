@@ -239,7 +239,7 @@ int main (int argc,char *argv[])
       if (!prfx) {
          /* don't use iform because some 1Ds are NIML compatible and they get
          read-in as such unless you specifically order otherwise. */
-         prefix = SUMA_RemoveDsetExtension(argv[i], SUMA_NO_DSET_FORMAT);
+         prefix = SUMA_RemoveDsetExtension_s(argv[i], SUMA_NO_DSET_FORMAT);
       } else { 
          prefix = SUMA_copy_string(prfx); 
       }
@@ -247,7 +247,7 @@ int main (int argc,char *argv[])
       /* set a new ID for the dset */
       SUMA_NewDsetID (dset); 
       
-      NameOut = SUMA_WriteDset (prefix, dset, oform, 0, 0);
+      NameOut = SUMA_WriteDset_s (prefix, dset, oform, 0, 0);
       if (!NameOut) { SUMA_SL_Err("Failed to write dataset."); exit(1); } 
       if (prefix) SUMA_free(prefix); prefix = NULL;    
       if (dset) SUMA_FreeDset((void *)dset); dset = NULL;
