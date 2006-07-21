@@ -1075,6 +1075,7 @@ iochan_relay:iochan_relay.o
 	$(CC) -o 3dretroicor 3dretroicor.o retroicor.o $(LFLAGS) $(LLIBS)
 
 ### Test area for  surface datasets Placed here by ZSS for RickR
+#THE OLDE WAY, DISCARD WHEN READY
 SUMA_DataSets_NS.o: SUMA/SUMA_DataSets.c
 	$(RM) $@
 	$(CC) -c SUMA/SUMA_DataSets.c -o $@ -ISUMA/ $(INFLAGS) 
@@ -1082,12 +1083,25 @@ SUMA_DataSets_NS.o: SUMA/SUMA_DataSets.c
 SUMA_Algorithms_NS.o: SUMA/SUMA_Algorithms.c
 	$(RM) $@
 	$(CC) -c SUMA/SUMA_Algorithms.c -o $@ -ISUMA/ $(INFLAGS) 
-   
-TestDsetIO: SUMA/SUMA_TestDsetIO.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o
+
+TestDsetIO: SUMA/SUMA_TestDsetIO.c SUMA_Algorithms_NS.o SUMA_DataSets.o
 	$(RM) $@
-	$(CC) -o TestDsetIO SUMA/SUMA_TestDsetIO.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o \
+	$(CC) -o TestDsetIO SUMA/SUMA_TestDsetIO.c SUMA_DataSets.o SUMA_Algorithms_NS.o \
             -ISUMA/ $(INFLAGS) $(AFWARPOBJS) $(LFLAGS) -lrickr $(LLIBS)
 
+suma_datasets.o: suma_datasets.c
+	$(RM) $@
+	$(CC) -c suma_datasets.c -o $@ -ISUMA/ $(INFLAGS) 
+
+suma_algorithms.o: suma_algorithms.c
+	$(RM) $@
+	$(CC) -c suma_algorithms.c -o $@ -ISUMA/ $(INFLAGS) 
+
+testdsetio: SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_algorithms.o
+	$(RM) $@
+	$(CC) -o testdsetio SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_algorithms.o \
+            -ISUMA/ $(INFLAGS) $(AFWARPOBJS) $(LFLAGS) -lrickr $(LLIBS)
+    
 ### Sort of clean
 
 clean:
@@ -1379,12 +1393,14 @@ NETCDF_OBJS =  netcdf_attr.o   netcdf_dim.o   netcdf_error.o netcdf_libvers.o \
                netcdf_string.o netcdf_v1hpg.o netcdf_v2i.o   netcdf_var.o     \
                thd_mincread.o
 
+SUMA_OBJS = suma_datasets.o suma_algorithms.o
+
 libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS)                \
          $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)             \
-         niml.h mrilib.h 3ddata.h
+         $(SUMA_OBJS) niml.h mrilib.h 3ddata.h
 	$(RM) $@
 	$(AR) q libmri.a $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS) \
-		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)
+		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS) $(SUMA_OBJS)
 	$(RANLIB) libmri.a
 
 libmrix.a:$(IMOBJS) imseq.h display.h xim.h bbox.h xutil.h

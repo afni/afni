@@ -1375,7 +1375,7 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
       exit(1);
    }
    if (!Opt->out_prefix) {
-      Opt->out_prefix = SUMA_RemoveDsetExtension(Opt->in_name, SUMA_NO_DSET_FORMAT);
+      Opt->out_prefix = SUMA_RemoveDsetExtension_s(Opt->in_name, SUMA_NO_DSET_FORMAT);
    }
    
    if (Opt->SortMode == SUMA_SORT_CLUST_NOT_SET) { Opt->SortMode = SUMA_SORT_CLUST_BY_AREA; }
@@ -1566,7 +1566,7 @@ int main (int argc,char *argv[])
          SUMA_S_Err("NULL dset_roi");
          exit(1);
       }
-      NameOut = SUMA_WriteDset (ROIprefix, dset_roi, SUMA_ASCII_NIML, 0, 0);
+      NameOut = SUMA_WriteDset_s (ROIprefix, dset_roi, SUMA_ASCII_NIML, 0, 0);
       if (!NameOut) { SUMA_SL_Err("Failed to write dataset."); exit(1); } 
       SUMA_FreeDset((void *)dset_roi); dset_roi = NULL; 
       if (NameOut) SUMA_free(NameOut); NameOut = NULL;
@@ -1587,7 +1587,7 @@ int main (int argc,char *argv[])
          SUMA_S_Err("NULL dset_clust");
          exit(1);
       }
-      NameOut = SUMA_WriteDset (Clustprefix, dset_clust, SUMA_ASCII_NIML, 0, 0);
+      NameOut = SUMA_WriteDset_s (Clustprefix, dset_clust, SUMA_ASCII_NIML, 0, 0);
       if (!NameOut) { SUMA_SL_Err("Failed to write dataset."); exit(1); } 
       SUMA_FreeDset((void *)dset_clust); dset_clust = NULL; 
       if (NameOut) SUMA_free(NameOut); NameOut = NULL;

@@ -61,7 +61,7 @@ char *argv[];
 
 {
 FILE *stream;
-int  n, m,  i, j, k, k2;
+int  n=3, m=3,  i, j, k, k2;
 float **data, **matrix(), **symmat, **symmat2, *vector(), *evals, *interm;
 void free_matrix(), free_vector(), corcol(), covcol(), scpcol();
 void tred2(), tqli();

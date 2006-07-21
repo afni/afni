@@ -1,8 +1,6 @@
-/* It should be possible to compile this file without
-the SUMA_COMPILED being defined
-Without SUMA_COMPILED,  SUMA_DataSets_NS.o can be linked 
-from AFNI without trouble.
-See SUMA_Makefile_NoDev
+/* ZSS: July 21/06 This file should be used with SUMA_COMPILED defined
+suma_datasets.c is now in afni's directory and is in libmri.a
+
 */
 #include <stdlib.h>
 #include <stdio.h>

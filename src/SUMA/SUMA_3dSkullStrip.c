@@ -1589,7 +1589,7 @@ int main (int argc,char *argv[])
       } else {
          /* DEVELOPMENT ONLY! */
          int ncol, nrow;
-         float *far=SUMA_Load1D(Opt->UseThisBrain, &ncol, &nrow, 1, 0);
+         float *far=SUMA_Load1D_s(Opt->UseThisBrain, &ncol, &nrow, 1, 0);
          if (!far || nrow != SO->N_Node || ncol != 3) {
             fprintf(SUMA_STDERR,"Error %s: SO has %d nodes, your coord file has %d cols, %d rows.\n", FuncName, SO->N_Node, ncol, nrow);
             exit(1);
@@ -1861,7 +1861,7 @@ int main (int argc,char *argv[])
       } else {
          /* DEVELOPMENT ONLY! */
          int ncol, nrow;
-         float *far=SUMA_Load1D(Opt->UseThisBrainHull, &ncol, &nrow, 1, 0);
+         float *far=SUMA_Load1D_s(Opt->UseThisBrainHull, &ncol, &nrow, 1, 0);
          if (!far || nrow != SO->N_Node || ncol != 3) {
             fprintf(SUMA_STDERR,"Error %s: SO has %d nodes, your coord file has %d cols, %d rows.\n", FuncName, SO->N_Node, ncol, nrow);
             exit(1);
@@ -1934,7 +1934,7 @@ int main (int argc,char *argv[])
       } else {
          /* DEVELOPMENT ONLY! */
          int ncol, nrow;
-         float *far=SUMA_Load1D(Opt->UseThisSkullOuter, &ncol, &nrow, 1, 0);
+         float *far=SUMA_Load1D_s(Opt->UseThisSkullOuter, &ncol, &nrow, 1, 0);
          if (!far || nrow != SO->N_Node || ncol != 3) {
             fprintf(SUMA_STDERR,"Error %s: SO has %d nodes, your coord file has %d cols, %d rows.\n", FuncName, SO->N_Node, ncol, nrow);
             exit(1);
