@@ -163,7 +163,11 @@ int main (int argc,char *argv[])
          SUMA_SL_Err("History addition failed.");
          exit(1);
       }
-      OutName = SUMA_WriteDset ("SampleDset", dset, SUMA_ASCII_NIML, 1, 1); 
+      #ifdef SUMA_COMPILED
+      OutName = SUMA_WriteDset_s ("SampleDset", dset, SUMA_ASCII_NIML, 1, 1); 
+      #else
+      OutName = SUMA_WriteDset_ns ("SampleDset", dset, SUMA_ASCII_NIML, 1, 1); 
+      #endif
       if (!OutName) {
          SUMA_SL_Err("Write Failed.");
       } else { fprintf (stderr,"%s:\nDset written to %s\n", FuncName, OutName); 
@@ -261,23 +265,36 @@ int main (int argc,char *argv[])
             exit(1);
       }
       
+      
       SUMA_LH("Testing write ops before adding string columns ...");
       /* before adding a string column ... */
-      OutName = SUMA_WriteDset ("Test_write_all_num", dset, SUMA_1D, 1, 1); 
+      #ifdef SUMA_COMPILED
+      OutName = SUMA_WriteDset_s ("Test_write_all_num", dset, SUMA_1D, 1, 1); 
+      #else
+      OutName = SUMA_WriteDset_ns ("Test_write_all_num", dset, SUMA_1D, 1, 1); 
+      #endif
       if (!OutName) {
          SUMA_SL_Err("Write Failed.");
       } else { fprintf (stderr,"%s:\nDset written to %s\n", FuncName, OutName); 
          SUMA_free(OutName); OutName = NULL;
       }
       
-      OutName = SUMA_WriteDset ("Test_writebi_all_num", dset, SUMA_BINARY_NIML, 1, 1); 
+      #ifdef SUMA_COMPILED
+      OutName = SUMA_WriteDset_s ("Test_writebi_all_num", dset, SUMA_BINARY_NIML, 1, 1); 
+      #else
+      OutName = SUMA_WriteDset_ns ("Test_writebi_all_num", dset, SUMA_BINARY_NIML, 1, 1); 
+      #endif
       if (!OutName) {
          SUMA_SL_Err("Write Failed.");
       } else { fprintf (stderr,"%s:\nDset written to %s\n", FuncName, OutName); 
          SUMA_free(OutName); OutName = NULL; 
       }
 	   
-      OutName = SUMA_WriteDset ("Test_writeas_all_num", dset, SUMA_ASCII_NIML, 1, 1); 
+      #ifdef SUMA_COMPILED
+      OutName = SUMA_WriteDset_s ("Test_writeas_all_num", dset, SUMA_ASCII_NIML, 1, 1); 
+      #else
+      OutName = SUMA_WriteDset_ns ("Test_writeas_all_num", dset, SUMA_ASCII_NIML, 1, 1); 
+      #endif
       if (!OutName) {
          SUMA_SL_Err("Write Failed.");
       } else { fprintf (stderr,"%s:\nDset written to %s\n", FuncName, OutName); 
@@ -298,7 +315,11 @@ int main (int argc,char *argv[])
       if (!ndset) {
          SUMA_SL_Err("Failed in SUMA_MaskedCopyofDset");
       } else {
-         OutName = SUMA_WriteDset ("Test_writeas_MaskedCopy_num", ndset, SUMA_ASCII_NIML, 1, 1); 
+         #ifdef SUMA_COMPILED
+         OutName = SUMA_WriteDset_s ("Test_writeas_MaskedCopy_num", ndset, SUMA_ASCII_NIML, 1, 1); 
+         #else
+         OutName = SUMA_WriteDset_ns ("Test_writeas_MaskedCopy_num", ndset, SUMA_ASCII_NIML, 1, 1); 
+         #endif
          if (!OutName) {
             SUMA_SL_Err("Write Failed.");
          } else { fprintf (stderr,"%s:\nDset written to %s\n", FuncName, OutName); 
@@ -325,14 +346,23 @@ int main (int argc,char *argv[])
       }  
       /* after adding a string column ... */
       SUMA_LH("Writing datasets ...");
-      OutName = SUMA_WriteDset ("Test_writeas", dset, SUMA_ASCII_NIML, 1, 1); 
+      #ifdef SUMA_COMPILED
+      OutName = SUMA_WriteDset_s ("Test_writeas", dset, SUMA_ASCII_NIML, 1, 1); 
+      #else
+      OutName = SUMA_WriteDset_ns ("Test_writeas", dset, SUMA_ASCII_NIML, 1, 1); 
+      #endif
       if (!OutName) {
          SUMA_SL_Err("Write Failed.");
       } else { fprintf (stderr,"%s:\nDset written to %s\n", FuncName, OutName); 
          SUMA_free(OutName); OutName = NULL;
       }
       
-      OutName = SUMA_WriteDset ("Test_writebi", dset, SUMA_BINARY_NIML, 1, 1); 
+      #ifdef SUMA_COMPILED
+      OutName = SUMA_WriteDset_s ("Test_writebi", dset, SUMA_BINARY_NIML, 1, 1); 
+      #else
+      OutName = SUMA_WriteDset_ns ("Test_writebi", dset, SUMA_BINARY_NIML, 1, 1); 
+      #endif
+      
       if (!OutName) {
          SUMA_SL_Err("Write Failed.");
       } else { fprintf (stderr,"%s:\nDset written to %s\n", FuncName, OutName); 
@@ -340,7 +370,11 @@ int main (int argc,char *argv[])
       }
 	   
       SUMA_LH("Writing to 1D a dataset that is not all numbers.\nThis should fail.\n");
-      OutName = SUMA_WriteDset ("Test_write", dset, SUMA_1D, 1, 1); 
+      #ifdef SUMA_COMPILED
+      OutName = SUMA_WriteDset_s ("Test_write", dset, SUMA_1D, 1, 1); 
+      #else
+      OutName = SUMA_WriteDset_ns ("Test_write", dset, SUMA_1D, 1, 1); 
+      #endif
       if (!OutName) {
          SUMA_SL_Err("Write Failed.");
       } else { fprintf (stderr,"%s:\nDset written to %s\n", FuncName, OutName); 

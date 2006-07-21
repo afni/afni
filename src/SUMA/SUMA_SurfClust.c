@@ -1467,7 +1467,7 @@ int main (int argc,char *argv[])
    }   
    /* load the data */   
    iform = SUMA_NO_DSET_FORMAT;
-   dset = SUMA_LoadDset (Opt->in_name, &iform, 0); 
+   dset = SUMA_LoadDset_s (Opt->in_name, &iform, 0); 
    if (LocalHead) SUMA_ShowDset(dset, 0, NULL);
    if (!dset) { SUMA_S_Err(  "Failed to load dataset.\n"
                                  "Make sure file exists\n"

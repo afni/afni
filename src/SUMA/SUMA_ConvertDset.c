@@ -231,7 +231,7 @@ int main (int argc,char *argv[])
 
    for (i=i_input; i<i_input + 1; ++i) {
       if (LocalHead) fprintf(SUMA_STDERR,"%s:\n Reading %s...\n", FuncName, argv[i]); 
-      dset = SUMA_LoadDset (argv[i], &iform, 0); 
+      dset = SUMA_LoadDset_s (argv[i], &iform, 0); 
       if (!dset) { SUMA_SL_Err(  "Failed to load dataset.\n"
                                  "Make sure file exists\n"
                                  "and is of the specified\n"

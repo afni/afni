@@ -7372,7 +7372,7 @@ SUMA_SURFQUAL_OPTIONS *SUMA_SurfQual_ParseInput (char *argv[], int argc)
           exit (0);
 		}
 		
-      /* skip the options parsed in SUMA_ParseInput_basics */
+      /* skip the options parsed in SUMA_ParseInput_basics_s */
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       if (!brk && (strcmp(argv[kar], "-sphere") == 0)) {
