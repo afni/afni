@@ -14,8 +14,8 @@ static char * my_strndup(char *, int);
 static int    nsd_add_colms_range(NI_group *, THD_3dim_dataset *);
 static int    nsd_add_colms_type(THD_datablock *, NI_group *);
 static int    nsd_add_sparse_data(NI_group *, THD_3dim_dataset *);
-static int    nsd_add_str_to_group(char *, char *, char *,
-                                   THD_datablock *, NI_group *);
+static int    nsd_add_str_atr_to_group(char *, char *, char *,
+                                       THD_datablock *, NI_group *);
 static int    nsd_string_atr_to_slist(char ***, int, int, ATR_string *);
 static int    process_ni_sd_sparse_data(NI_group *, THD_3dim_dataset *);
 static int    process_ni_sd_attrs(THD_3dim_dataset *);
@@ -882,11 +882,11 @@ ENTRY("THD_dset_to_ni_surf_dset");
     NI_set_attribute(ngr, "self_idcode", dset->idcode.str);
     NI_set_attribute(ngr, "filename", blk->diskptr->brick_name);
 
-    nsd_add_str_to_group("BRICK_LABS", "COLMS_LABS", "Node Indices", blk, ngr);
+    nsd_add_str_atr_to_group("BRICK_LABS","COLMS_LABS","Node Indices",blk,ngr);
     nsd_add_colms_range(ngr, dset);
     nsd_add_colms_type(blk, ngr);
-    nsd_add_str_to_group("BRICK_STATSYM", "COLMS_STATSYM", "none", blk, ngr);
-    nsd_add_str_to_group("HISTORY_NOTE", NULL, NULL, blk, ngr);
+    nsd_add_str_atr_to_group("BRICK_STATSYM", "COLMS_STATSYM", "none",blk,ngr);
+    nsd_add_str_atr_to_group("HISTORY_NOTE", NULL, NULL, blk, ngr);
     if( set_data ) nsd_add_sparse_data(ngr, dset); /* add SPARSE_DATA element */
 
     RETURN(ngr);
@@ -903,7 +903,7 @@ static int nsd_add_colms_type(THD_datablock * blk, NI_group * ngr)
     char       * str, * slist[1];  /* add_column requires a list of strings */
     int          c, plen, ni_list = 0;
 
-ENTRY("nsd_add_str_to_group");
+ENTRY("nsd_add_colms_type");
 
     /* check usage */
     if( !blk || !ngr ) RETURN(1);
@@ -950,15 +950,15 @@ ENTRY("nsd_add_str_to_group");
 
    return 0 on success
 */
-static int nsd_add_str_to_group(char * aname, char * niname, char * prefix,
-                                THD_datablock * blk, NI_group * ngr)
+static int nsd_add_str_atr_to_group(char * aname, char * niname, char * prefix,
+                                    THD_datablock * blk, NI_group * ngr)
 {
     ATR_string * atr;
     NI_element * nel;
     char       * dest, * slist[1];  /* add_column requires a list of strings */
     int          plen, apply = 0;
 
-ENTRY("nsd_add_str_to_group");
+ENTRY("nsd_add_str_atr_to_group");
 
     /* check usage */
     if( !aname || !blk || !ngr ) RETURN(1);
