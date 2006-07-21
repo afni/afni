@@ -38,8 +38,8 @@
          }  \
          sprintf(m_str_min, "%s", MV_format_fval2(m_range[0], 7));   \
          sprintf(m_str_max, "%s", MV_format_fval2(m_range[1], 7));   \
-         sprintf(m_str_minloc, "%d", SUMA_GetNodeIndex_FromNodeRow(m_dset, m_loc[0], m_N_Node));   \
-         sprintf(m_str_maxloc, "%d", SUMA_GetNodeIndex_FromNodeRow(m_dset, m_loc[1], m_N_Node));   \
+         sprintf(m_str_minloc, "%d", SUMA_GetNodeIndex_FromNodeRow_s(m_dset, m_loc[0], m_N_Node));   \
+         sprintf(m_str_maxloc, "%d", SUMA_GetNodeIndex_FromNodeRow_s(m_dset, m_loc[1], m_N_Node));   \
       } else { \
          sprintf(m_str_min, "???");   \
          sprintf(m_str_max, "???");   \

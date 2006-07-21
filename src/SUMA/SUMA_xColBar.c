@@ -4400,7 +4400,7 @@ SUMA_Boolean SUMA_UpdateNodeValField(SUMA_SurfaceObject *SO)
    }
    
    /* 1- Where is this node in the data set ? */
-   Found = SUMA_GetNodeRow_FromNodeIndex(Sover->dset_link, SO->SelectedNode, SO->N_Node);
+   Found = SUMA_GetNodeRow_FromNodeIndex_s(Sover->dset_link, SO->SelectedNode, SO->N_Node);
    if (LocalHead) {
       fprintf(SUMA_STDERR,"%s: Node index %d is at row %d in dset.", FuncName, SO->SelectedNode, Found);
    }
