@@ -580,16 +580,17 @@ void full_model
   /*----- add signal and noise model time series -----*/
 
 #ifdef UNROLL
-  if( ts_length%2 ){   /* odd length */
-    yhat_array[0] += y_array[0];
-    for (it = 1;  it < ts_length;  it+=2){
-      yhat_array[it] += y_array[it];
-      yhat_array[it+1] += y_array[it+1];
+  { int ib = ts_length % 4 ;
+    switch( ib ){
+      case 3: yhat_array[2] += y_array[2]; /* fall thru */
+      case 2: yhat_array[1] += y_array[1]; /* fall thru */
+      case 1: yhat_array[0] += y_array[0]; break ;
     }
-  } else {
-    for (it = 0;  it < ts_length;  it+=2){
-      yhat_array[it] += y_array[it];
+    for (it=ib;  it < ts_length;  it+=4){
+      yhat_array[it]   += y_array[it];
       yhat_array[it+1] += y_array[it+1];
+      yhat_array[it+2] += y_array[it+2];
+      yhat_array[it+3] += y_array[it+3];
     }
   }
 #else   /* don't UNROLL */
@@ -658,21 +659,19 @@ float calc_sse
 
   /*----- calculate error sum of squares -----*/
 #ifdef UNROLL
-  if( ts_length%2 ){   /* odd length */
-    float d2 ;
-    diff = ts_array[0] - y_array[0] ; sse = diff*diff ;
-    for( i=1 ; i < ts_length ; i+=2 ){
-      diff = ts_array[i]   - y_array[i];
-      d2   = ts_array[i+1] - y_array[i+1];
-      sse += diff*diff + d2*d2 ;
+  { int ib = ts_length % 4 ; float d2,d3,d4 ;
+    sse = 0.0f ;
+    switch( ib ){
+      case 3: d4 = ts_array[2] - y_array[2] ; sse += d4*d4 ; /* fall thru */
+      case 2: d3 = ts_array[1] - y_array[1] ; sse += d3*d3 ; /* fall thru */
+      case 1: d2 = ts_array[0] - y_array[0] ; sse += d2*d2 ; break ;
     }
-  } else {               /* even length */
-    float d2 ;
-    sse = 0.0 ;
-    for( i=0 ; i < ts_length ; i+=2 ){
-      diff = ts_array[i]   - y_array[i];
+    for(i=ib ; i < ts_length ; i+=4){
+      diff = ts_array[i]   - y_array[i]  ;
       d2   = ts_array[i+1] - y_array[i+1];
-      sse += diff*diff + d2*d2 ;
+      d3   = ts_array[i+2] - y_array[i+2];
+      d4   = ts_array[i+3] - y_array[i+3];
+      sse += diff*diff + d2*d2 + d3*d3 + d4*d4;
     }
   }
 #else   /* don't UNROLL */
