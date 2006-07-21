@@ -97,7 +97,7 @@
 
 #define DEFAULT_NRAND 9999
 #define DEFAULT_NBEST    9
-#define DEFAULT_FDISP  999
+#define DEFAULT_FDISP  999.0
 
 #include <stdio.h>
 #include <math.h>
@@ -138,8 +138,6 @@
 #endif
 
 /*---------------------------------------------------------------------------*/
-
-#define ALLOW_NEWUOA   /* 20 Jul 2006 - Powell's NEWUOA method - RWCox */
 
 #include "matrix.h"
 #include "simplex.h"
@@ -216,23 +214,25 @@ void display_help_menu()
      "-nconstr k c d     constraints for kth noise parameter:               \n"
      "                      c+b[k] <= gn[k] <= d+b[k]                       \n"
      "[-nabs]            use absolute constraints for noise parameters:     \n"
-     "                      c <= gn[k] <= d                                 \n"
-     "[-nrand n]         n = number of random test points                   \n"
-     "[-nbest b]         b = find opt. soln. for b best test points         \n"
+     "                     c <= gn[k] <= d  [default=relative, as above]    \n"
+     "[-nrand n]         n = number of random test points [default=%d]      \n"
+     "[-nbest b]         b = use b best test points to start [default=%d]   \n"
      "[-rmsmin r]        r = minimum rms error to reject reduced model      \n"
      "[-fdisp fval]      display (to screen) results for those voxels       \n"
-     "                     whose f-statistic is > fval                      \n"
+     "                     whose f-statistic is > fval [default=%f]         \n"
      "[-voxel_count]     display (to screen) the current voxel index        \n"
-#ifdef ALLOW_NEWUOA
      "                                                                      \n"
-     "[-NEWUOA]          use Powell's NEWUOA method instead of the          \n"
+     "--- These options choose the least-square minimization algorithm ---  \n"
+     "                                                                      \n"
+     "[-SIMPLEX]         use Nelder-Mead simplex method [default]           \n"
+     "[-POWELL]          use Powell's NEWUOA method instead of the          \n"
      "                     Nelder-Mead simplex method to find the           \n"
-     "                     nonlinear least-squares solution.                \n"
-     "                     (This option is currently experimental only!)    \n"
-#endif
+     "                     nonlinear least-squares solution                 \n"
+     "                     [slower; usually more accurate, but not always!] \n"
+     "[-BOTH]            use both Powell's and Nelder-Mead method           \n"
+     "                     [slowest, but should be most accurate]           \n"
      "                                                                      \n"
-     "                                                                      \n"
-     "The following commands generate individual AFNI 2 sub-brick datasets: \n"
+     "--- These options generate individual AFNI 2 sub-brick datasets ---   \n"
      "                                                                      \n"
      "[-freg fname]      perform f-test for significance of the regression; \n"
      "                     output 'fift' is written to prefix filename fname\n"
@@ -267,8 +267,7 @@ void display_help_menu()
      "                     parameter gn[k]; output 'fitt' is written        \n"
      "                     to prefix filename fname                         \n"
      "                                                                      \n"
-     "                                                                      \n"
-     "The following commands generate one AFNI 'bucket' type dataset:       \n"
+     "--- These options generate one AFNI 'bucket' type dataset ---         \n"
      "                                                                      \n"
      "[-bucket n prefixname]   create one AFNI 'bucket' dataset containing  \n"
      "                           n sub-bricks; n=0 creates default output;  \n"
@@ -289,12 +288,13 @@ void display_help_menu()
      "[-brick m rsqr  label]     R^2 (coefficient of multiple determination)\n"
      "[-brick m fstat label]     F-stat for significance of the regression  \n"
      "                                                                      \n"
+     "     --- These options write time series fit for ---                  \n"
+     "     --- each voxel to an AFNI 3d+time dataset   ---                  \n"
      "                                                                      \n"
-     "The following commands write the time series fit for each voxel       \n"
-     "to an AFNI 3d+time dataset:                                           \n"
      "[-sfit fname]      fname = prefix for output 3d+time signal model fit \n"
      "[-snfit fname]     fname = prefix for output 3d+time signal+noise fit \n"
      "                                                                      \n"
+       , DEFAULT_NRAND , DEFAULT_NBEST , DEFAULT_FDISP
     );
 
 
@@ -711,13 +711,17 @@ void get_options
 	  continue;
 	}
 
-#ifdef ALLOW_NEWUOA
-      /*-----  -NEWUOA  -----*/
+      /*-----  -POWELL  -----*/
 
-      if( strcmp(argv[nopt],"-NEWUOA") == 0 ){   /* 20 Jul 2006 */
+      if( strcmp(argv[nopt],"-POWELL") == 0 ){   /* 20 Jul 2006 */
         N_newuoa = 1 ; nopt++ ; continue ;
       }
-#endif
+      if( strcmp(argv[nopt],"-SIMPLEX") == 0 ){
+        N_newuoa = 0 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-BOTH") == 0 ){
+        N_newuoa = 2 ; nopt++ ; continue ;
+      }
       
       /*-----   -nrand n  -----*/
       if (strcmp(argv[nopt], "-nrand") == 0)

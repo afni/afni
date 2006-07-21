@@ -701,8 +701,6 @@ void simplex_optimization
 /******************************************************************************/
 /*----------------------------------------------------------------------------*/
 
-#ifdef ALLOW_NEWUOA         /* must be defined by including file */
-
 static int N_newuoa = 0 ;   /* indicates if NEWUOA method is to be used */
 
 static vfp N_nmodel , N_smodel ;
@@ -736,6 +734,25 @@ double newfunc( int np , double *pv )  /* parameters are scaled to [0,1] */
                             N_par_rdcd, N_pv ,
                             N_ts_length, N_x_array, N_ts_array ) ;
    return val ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static double N_rstart=0.05 ;
+static double N_rend  =0.0005 ;
+static int    N_maxit =9999 ;
+
+static void set_newuoa_parm( double rs , double re , int mm )
+{
+   if( rs > re && re > 0.0 && mm > 9 ){
+     N_rstart = rs ;
+     N_rend   = re ;
+     N_maxit  = mm ;
+   } else {
+     N_rstart = 0.05 ;
+     N_rend   = 0.0005 ;
+     N_maxit  = 9999 ;
+   }
 }
 
 /*----------------------------------------------------------------------------*/
@@ -807,7 +824,7 @@ void newuoa_optimization
   for( ii=0 ; ii < r+p ; ii++ )
     dv[ii] = (double) ((parameters[ii]-N_pbot[ii])/N_psiz[ii]) ;
 
-  powell_newuoa( r+p , dv , 0.06 , 0.0006 , 9999 , newfunc ) ;
+  powell_newuoa( r+p , dv , N_rstart , N_rend , N_maxit , newfunc ) ;
 
   *sse = (float)newfunc( r+p , dv ) ;
 
@@ -820,10 +837,9 @@ void newuoa_optimization
   free((void *)N_pv)   ;
   return ;
 }
-#endif
 
 /*----------------------------------------------------------------------------*/
-/*! Chooses which optimization function to call.
+/*! Chooses which optimization function(s) to call.
 ------------------------------------------------------------------------------*/
 
 void generic_optimization
@@ -845,17 +861,52 @@ void generic_optimization
   float * sse             /* error sum of squares */
 )
 {
+   float *powv , *simv , spow=1.e+33 , ssim=1.e+33 ;
+   int dopow = (N_newuoa  > 0) ;
+   int dosim = (N_newuoa == 2 || N_newuoa == 0) ;
 
-#ifdef ALLOW_NEWUOA
-   if( N_newuoa )
-     newuoa_optimization (nmodel, smodel, r, p,
-                          min_nconstr, max_nconstr, min_sconstr, max_sconstr,
-                          nabs, ts_length, x_array, ts_array, par_rdcd,
-                          parameters, sse );
-   else
-#endif
+   if( dopow && dosim ){
+     powv = (float *)malloc(sizeof(float)*(r+p)) ;
+     simv = (float *)malloc(sizeof(float)*(r+p)) ;
+     memcpy(powv,parameters,sizeof(float)*(r+p)) ;
+     memcpy(simv,parameters,sizeof(float)*(r+p)) ;
+   } else {
+     powv = simv = parameters ;
+   }
+
+   if( dosim ){                               /* Simplex from same start pt */
      simplex_optimization(nmodel, smodel, r, p,
                           min_nconstr, max_nconstr, min_sconstr, max_sconstr,
                           nabs, ts_length, x_array, ts_array, par_rdcd,
-                          parameters, sse );
+                          simv, &ssim );
+
+     if( dopow ){
+       float *qv = (float *)malloc(sizeof(float)*(r+p)) , qs=1.e+33 ;
+       memcpy(qv,simv,sizeof(float)*(r+p)) ;
+       set_newuoa_parm( 0.05 , 0.001 , 666 ) ;   /* touchup with NEWUOA */
+       newuoa_optimization(nmodel, smodel, r, p,
+                           min_nconstr, max_nconstr, min_sconstr, max_sconstr,
+                           nabs, ts_length, x_array, ts_array, par_rdcd,
+                           qv, &qs );
+       if( qs < ssim ){
+         memcpy(simv,qv,sizeof(float)*(r+p)) ; ssim = qs ;
+       }
+       free((void*)qv) ;
+     }
+   }
+
+   if( dopow ){                               /* NEWUOA from same start pt */
+     set_newuoa_parm( 0.0 , 0.0 , 0 ) ;
+     newuoa_optimization (nmodel, smodel, r, p,
+                          min_nconstr, max_nconstr, min_sconstr, max_sconstr,
+                          nabs, ts_length, x_array, ts_array, par_rdcd,
+                          powv , &spow );
+   }
+
+   if( dopow && dosim ){
+     if( spow < ssim ) memcpy(parameters,powv,sizeof(float)*(r+p)) ;
+     else              memcpy(parameters,simv,sizeof(float)*(r+p)) ;
+     free((void *)simv); free((void *)powv);
+   }
+   *sse = (spow < ssim) ? spow : ssim ;
 }
