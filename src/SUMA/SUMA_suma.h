@@ -2,7 +2,7 @@
 #define SUMA_SUMA_SUMA_INCLUDED
 
 #include "../suma_suma.h"
-#include "SUMA_Datasets.h"
+#include "SUMA_DataSets.h"
 
 /* memory allocation section, SUMA_COMPILED-specific */
    #ifndef  DONT_USE_MCW_MALLOC
