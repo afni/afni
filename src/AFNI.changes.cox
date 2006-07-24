@@ -5887,3 +5887,6 @@
 
 21 Jul 2006
  * NEWUOA stuff into 3dNLfim.c and simplex.c.
+
+24 Jul 2006
+ * model_linplusort.c (Linear+Ort) for 3dNLfim.c.

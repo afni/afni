@@ -4737,6 +4737,7 @@ static vptr_func * forced_loads[] = {
    (vptr_func *) THD_average_timeseries , /* 03 Apr 2002 */
    (vptr_func *) cl1_solve ,              /* 07 Aug 2002 */
    (vptr_func *) new_Dtable ,             /* 20 Oct 2003 */
+   (vptr_func *) powell_newuoa ,          /* 24 Jul 2006 */
 #endif
 NULL } ;
 

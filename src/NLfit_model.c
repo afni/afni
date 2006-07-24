@@ -85,7 +85,7 @@ NLFIT_MODEL_array * NLFIT_get_all_MODELs( char * dname )
 
    for( ir=0 ; ir < rlist->num ; ir++ ){
       fname = rlist->ar[ir] ; if( fname == NULL ) continue ;
-      if (strstr(fname, "model") == NULL)  continue;
+      if (strstr(fname, "model_") == NULL)  continue;
 
       suff = strstr(fname,DYNAMIC_suffix) ;
       if( suff != NULL  &&  strlen(suff) == strlen(DYNAMIC_suffix)){
