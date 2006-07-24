@@ -738,7 +738,7 @@ double newfunc( int np , double *pv )  /* parameters are scaled to [0,1] */
 
 /*----------------------------------------------------------------------------*/
 
-static double N_rstart=0.05 ;
+static double N_rstart=0.04 ;
 static double N_rend  =0.0005 ;
 static int    N_maxit =9999 ;
 
@@ -749,7 +749,7 @@ static void set_newuoa_parm( double rs , double re , int mm )
      N_rend   = re ;
      N_maxit  = mm ;
    } else {
-     N_rstart = 0.05 ;
+     N_rstart = 0.04 ;
      N_rend   = 0.0005 ;
      N_maxit  = 9999 ;
    }
@@ -883,7 +883,7 @@ void generic_optimization
      if( dopow ){
        float *qv = (float *)malloc(sizeof(float)*(r+p)) , qs=1.e+33 ;
        memcpy(qv,simv,sizeof(float)*(r+p)) ;
-       set_newuoa_parm( 0.05 , 0.001 , 666 ) ;   /* touchup with NEWUOA */
+       set_newuoa_parm( 0.02 , 0.001 , 666 ) ;   /* touchup with NEWUOA */
        newuoa_optimization(nmodel, smodel, r, p,
                            min_nconstr, max_nconstr, min_sconstr, max_sconstr,
                            nabs, ts_length, x_array, ts_array, par_rdcd,

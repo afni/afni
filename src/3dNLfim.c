@@ -39,7 +39,7 @@
 
    Mod:      Added -sfit and -snfit options to write out the signal and
              the signal+noise model time series fit for each voxel 
-	     to a 3d+time dataset.
+             to a 3d+time dataset.
    Date:     08 July 1999
 
    Mod:      Added novar flag to eliminate unnecessary calculations.
@@ -54,7 +54,7 @@
 
    Mod:      Changes for output of R^2 (coefficient of multiple determination),
              and standard deviation of residuals from full model fit.
-	     Added global variable calc_tstats.
+             Added global variable calc_tstats.
              Also, added screen display of p-values.
    Date:     10 May 2000
 
@@ -91,7 +91,7 @@
 #define PROGRAM_NAME "3dNLfim"                       /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "19 June 1997"    /* date of initial program release */
-#define PROGRAM_LATEST  "20 Jul 2006"     /* date of latest program revision */
+#define PROGRAM_LATEST  "24 Jul 2006"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -553,6 +553,8 @@ void get_options
      DSET_UNMSEC( *dset_time ) ;  /* RWCox */
 
 	  THD_load_datablock ((*dset_time)->dblk);
+     if( !DSET_LOADED((*dset_time)) )
+       ERROR_exit("Can't load dataset %s",*input_filename) ;
 
 	  *nxyz =  (*dset_time)->dblk->diskptr->dimsizes[0]
 	    * (*dset_time)->dblk->diskptr->dimsizes[1]
@@ -1824,7 +1826,34 @@ void initialize_program
          }
         mri_free (flim);
      }
-  
+
+  /*--- 24 Jul 2006: special change to x_array[][2] for Linear+Ort [RWCox] ---*/
+
+   if( strcmp(*nname,"Linear+Ort") == 0 ){
+      char *fname ; MRI_IMAGE *fim ; int nx ; float *far ;
+      fname = my_getenv("AFNI_ORTMODEL_REF") ;
+      if( fname == NULL )
+        ERROR_exit("Linear+Ort model: 'AFNI_ORTMODEL_REF' not set") ;
+
+      fim = mri_read_1D(fname) ;
+      if( fim == NULL || fim->nx < 2 )
+        ERROR_exit(
+          "Linear+Ort model: can't read file AFNI_ORTMODEL_REF='%s'",fname) ;
+
+      nx = fim->nx ; far = MRI_FLOAT_PTR(fim) ;
+      if( nx != (*ts_length) || fim->ny > 1 )
+        WARNING_message(
+         "Linear+Ort model: AFNI_ORTMODEL_REF='%s' has nx=%d ny=%d; data length=%d",
+         fname , nx , fim->ny , *ts_length ) ;
+      else
+        INFO_message(
+          "Linear+Ort model: AFNI_ORTMODEL_REF='%s' loaded; length=%d" ,
+          fname , nx ) ;
+
+      for( it=0 ; it < (*ts_length);  it++)
+        (*x_array)[it][2] = (it < nx) ? far[it] : 0.0f ;
+   }
+
   /*----- allocate memory space for parameters -----*/
   dimension = (*r) + (*p);
   *par_rdcd = (float *) malloc (sizeof(float) * dimension);  

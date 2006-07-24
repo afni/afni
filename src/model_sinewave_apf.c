@@ -101,15 +101,30 @@ void signal_model
   int it;                           /* time index */     
   float t;                          /* time */
   float fval;                       /* time series value at time t */  
+  int ib = ts_length % 4 , nt = ts_length ;
+  float g0=gs[0] , g1=(PI/180.0)*gs[1] , g2=(2.0*PI)*gs[2] ;
 
-
+#if 0
   /*----- calculate time series corresponding to the given parameters -----*/
   for (it = 0;  it < ts_length;  it++)
     { 
       t = x_array[it][1];
-      fval = gs[0] * sin( 2.0*PI*gs[2]*t + (PI/180.0)*gs[1] );
+      fval = gs[0] * sinf( 2.0f*PI*gs[2]*t + (PI/180.0f)*gs[1] );
       ts_array[it] = fval;	
     }
+#else
+  switch( ib ){
+    case 3: ts_array[2] = g0*sinf(g2*x_array[2][1]+g1) ;  /* fall thru */
+    case 2: ts_array[1] = g0*sinf(g2*x_array[1][1]+g1) ;  /* fall thru */
+    case 1: ts_array[0] = g0*sinf(g2*x_array[0][1]+g1) ; break ;
+  }
+  for( it=ib ; it < nt ; it+=4 ){
+    ts_array[it  ] = g0*sinf(g2*x_array[it  ][1]+g1) ;
+    ts_array[it+1] = g0*sinf(g2*x_array[it+1][1]+g1) ;
+    ts_array[it+2] = g0*sinf(g2*x_array[it+2][1]+g1) ;
+    ts_array[it+3] = g0*sinf(g2*x_array[it+3][1]+g1) ;
+  }
+#endif
   
 }
 
