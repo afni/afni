@@ -62,24 +62,24 @@
 #if defined SUMA_COMPILED
    /* Undefine all that's been defined in suma_suma.h and is SUMA_COMPILED-specific */
    
-   #undef SUMA_STDERR stderr
-   #undef SUMA_STDOUT stdout
+   #undef SUMA_STDERR
+   #undef SUMA_STDOUT
    
-   #undef SUMA_SLP_Err SUMA_S_Err
-   #undef SUMA_SL_Err SUMA_S_Err
-   #undef SUMA_L_Err SUMA_S_Err
+   #undef SUMA_SLP_Err
+   #undef SUMA_SL_Err
+   #undef SUMA_L_Err
    
-   #undef SUMA_SLP_Note SUMA_S_Note
-   #undef SUMA_SL_Note SUMA_S_Note
-   #undef SUMA_L_Note SUMA_S_Note
+   #undef SUMA_SLP_Note
+   #undef SUMA_SL_Note
+   #undef SUMA_L_Note
    
-   #undef SUMA_SLP_Warn SUMA_S_Warn
-   #undef SUMA_SL_Warn SUMA_S_Warn
-   #undef SUMA_L_Warn SUMA_S_Warn
+   #undef SUMA_SLP_Warn
+   #undef SUMA_SL_Warn
+   #undef SUMA_L_Warn
    
-   #undef SUMA_SLP_Crit SUMA_S_Crit
-   #undef SUMA_SL_Crit SUMA_S_Crit
-   #undef SUMA_L_Crit SUMA_S_Crit
+   #undef SUMA_SLP_Crit
+   #undef SUMA_SL_Crit
+   #undef SUMA_L_Crit
    #undef SUMA_IGNORE_VOLREG 
    
    #undef SUMA_LH
