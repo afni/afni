@@ -47,6 +47,9 @@
   Mod:      Add UNROLL to a couple loops that are executed a lot.
   Mod:      20 Jul 2006 - RWCox
 
+  Mod:      Special initialization for new Linear+Ort noise model.
+  Mod:      24 Jul 2006 - RWCox
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -1435,15 +1438,96 @@ void report_results
   
 }
 
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+#ifdef LINEAR_REDUCTION
 
+static matrix XtXinvXt ;
 
+void LR_init_matrix( int ts_length , int r , float **x_array )
+{
+}
 
+/*---------------------------------------------------------------------------*/
+/*
+  Calculate the estimated time series using the full model.
+*/
 
+void LR_full_model
+(
+  vfp smodel,                 /* pointer to signal model */
+  float * gs,                 /* parameters for signal model */
+  int ts_length,              /* length of time series data */
+  float ** x_array,           /* independent variable matrix */
+  float * yhat_array          /* output estimated time series */
+)
 
+{
+  int it;                     /* time index */
+  float * y_array = NULL;     /* estimated signal time series */
+#ifdef SAVE_RAN
+  int use_model = ( RAN_sind < 0 || ts_length != OLD_ts_length ) ;
+#endif
 
+  /*----- generate time series corresponding to signal model -----*/
 
+#ifdef SAVE_RAN
+  if( use_model ){  /* don't use saved time series */
+#endif
+     y_array = (float *) malloc (sizeof(float) * (ts_length));
+     if (y_array == NULL)
+       NLfit_error ("Unable to allocate memory for y_array");
+#if 0
+     smodel (gs, ts_length, x_array, y_array);
+#else
+     AFNI_CALL_VOID_4ARG(smodel ,
+                         float *,gs , int,ts_length,
+                         float **,x_array , float *,y_array ) ;
+#endif
 
+#ifdef SAVE_RAN
+  } else            /* recall a saved time series */
+     y_array = RAN_sts + (ts_length*RAN_sind) ;
+#endif
 
+  /*----- generate time series corresponding to the noise model -----*/
+#if 0
+  nmodel (gn, ts_length, x_array, yhat_array);
+#else
+  AFNI_CALL_VOID_4ARG(nmodel ,
+                      float *,gn , int,ts_length,
+                      float **,x_array , float *,yhat_array ) ;
+#endif
 
+  /*----- add signal and noise model time series -----*/
 
+#ifdef UNROLL
+  { int ib = ts_length % 4 ;
+    switch( ib ){
+      case 3: yhat_array[2] += y_array[2]; /* fall thru */
+      case 2: yhat_array[1] += y_array[1]; /* fall thru */
+      case 1: yhat_array[0] += y_array[0]; break ;
+    }
+    for (it=ib;  it < ts_length;  it+=4){
+      yhat_array[it]   += y_array[it];
+      yhat_array[it+1] += y_array[it+1];
+      yhat_array[it+2] += y_array[it+2];
+      yhat_array[it+3] += y_array[it+3];
+    }
+  }
+#else   /* don't UNROLL */
+  for (it = 0;  it < ts_length;  it++)
+    yhat_array[it] += y_array[it];
+#endif  /* UNROLL */
+  
 
+  /*----- deallocate memory -----*/
+#ifdef SAVE_RAN
+  if( use_model )
+#endif
+    free (y_array) ;
+
+  y_array = NULL;  /* not really needed since this array is 'auto' */
+}
+#endif  /* LINEAR_REDUCTION */

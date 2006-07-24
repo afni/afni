@@ -95,7 +95,7 @@ void signal_model
 )
 
 {
-  const float FREQ = 0.125;         /* frequency of the sine wave */
+  const float FREQ = 0.125f;         /* frequency of the sine wave */
   int it;                           /* time index */     
   float t;                          /* time */
   float fval;                       /* time series value at time t */  
@@ -105,7 +105,7 @@ void signal_model
   for (it = 0;  it < ts_length;  it++)
     { 
       t = x_array[it][1];
-      fval = gs[0] * sin( 2.0*PI*FREQ*t + (PI/180.0)*gs[1] );
+      fval = gs[0] * sinf( 2.0f*PI*FREQ*t + (PI/180.0f)*gs[1] );
       ts_array[it] = fval;	
     }
   

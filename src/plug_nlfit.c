@@ -347,6 +347,42 @@ void initialize_program
          }
         mri_free (flim);
      }
+
+  /*--- 24 Jul 2006: special change to x_array[][2] for Linear+Ort [RWCox] ---*/
+   if( strcmp(*nname,"Linear+Ort") == 0 ){
+      char *fname=NULL; MRI_IMAGE *fim=NULL; int nx; float *far; static int nwarn=0;
+      fname = my_getenv("AFNI_ORTMODEL_REF") ;
+      if( fname == NULL ){
+        ERROR_message("Linear+Ort model: 'AFNI_ORTMODEL_REF' not set") ;
+        goto PLO_done ;
+      }
+    
+      fim = mri_read_1D(fname) ;
+      if( fim == NULL || fim->nx < 2 ){
+        ERROR_message(
+          "Linear+Ort model: can't read AFNI_ORTMODEL_REF='%s'",fname) ;
+        goto PLO_done ;
+      }
+
+      if( fim->ny > 1 && nwarn < 2 ){
+        WARNING_message(
+          "Linear+Ort model: file AFNI_ORTMODEL_REF='%s' has more than 1 column",
+          fname ) ;
+        nwarn++ ;
+      }
+
+      nx = fim->nx ; far = MRI_FLOAT_PTR(fim) ;
+      if( nx != ts_length && nwarn ){
+        WARNING_message("Linear+Ort: length(%s)=%d but length(dataset)=%d",
+                        fname , nx , ts_length ) ;
+        nwarn++ ;
+      }
+      for( it=0 ; it < ts_length;  it++)
+        (*x_array)[it][2] = (it < nx) ? far[it] : 0.0f ;
+
+     PLO_done: ; /* nada */
+   }
+
   
   dimension = (*r) + (*p);
 
