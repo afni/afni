@@ -839,6 +839,13 @@ void newuoa_optimization
 }
 
 /*----------------------------------------------------------------------------*/
+
+#define WIN_SIM 1
+#define WIN_POW 2
+#define WIN_STP 3
+static int opt_winner ;
+
+/*----------------------------------------------------------------------------*/
 /*! Chooses which optimization function(s) to call.
 ------------------------------------------------------------------------------*/
 
@@ -864,6 +871,7 @@ void generic_optimization
    float *powv , *simv , spow=1.e+33 , ssim=1.e+33 ;
    int dopow = (N_newuoa  > 0) ;
    int dosim = (N_newuoa == 2 || N_newuoa == 0) ;
+   int stp=0 ;
 
    if( dopow && dosim ){
      powv = (float *)malloc(sizeof(float)*(r+p)) ;
@@ -883,30 +891,34 @@ void generic_optimization
      if( dopow ){
        float *qv = (float *)malloc(sizeof(float)*(r+p)) , qs=1.e+33 ;
        memcpy(qv,simv,sizeof(float)*(r+p)) ;
-       set_newuoa_parm( 0.02 , 0.001 , 666 ) ;   /* touchup with NEWUOA */
+       set_newuoa_parm( 0.01 , 0.0009 , 666 ) ;   /* touchup with NEWUOA */
        newuoa_optimization(nmodel, smodel, r, p,
                            min_nconstr, max_nconstr, min_sconstr, max_sconstr,
                            nabs, ts_length, x_array, ts_array, par_rdcd,
                            qv, &qs );
        if( qs < ssim ){
-         memcpy(simv,qv,sizeof(float)*(r+p)) ; ssim = qs ;
+         memcpy(simv,qv,sizeof(float)*(r+p)) ; ssim = qs ; stp = 1 ;
        }
        free((void*)qv) ;
      }
    }
 
    if( dopow ){                               /* NEWUOA from same start pt */
-     set_newuoa_parm( 0.0 , 0.0 , 0 ) ;
+     set_newuoa_parm( 0.0 , 0.0 , 0 ) ;     /* default settings for NEWUOA */
      newuoa_optimization (nmodel, smodel, r, p,
                           min_nconstr, max_nconstr, min_sconstr, max_sconstr,
                           nabs, ts_length, x_array, ts_array, par_rdcd,
                           powv , &spow );
    }
 
+   opt_winner = 0 ;
    if( dopow && dosim ){
      if( spow < ssim ) memcpy(parameters,powv,sizeof(float)*(r+p)) ;
      else              memcpy(parameters,simv,sizeof(float)*(r+p)) ;
      free((void *)simv); free((void *)powv);
+
+     opt_winner = (spow < ssim) ? WIN_POW
+                                : (stp) ? WIN_STP : WIN_SIM ;
    }
    *sse = (spow < ssim) ? spow : ssim ;
 }
