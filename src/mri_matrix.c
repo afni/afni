@@ -899,7 +899,7 @@ char * mri_matrix_evalrpn_help(void)
     "\n"
     " STACK OPERATIONS\n"
     " -----------------\n"
-    " <number>   == push scalar value (1x1 matrix) on stack;\n"
+    " number     == push scalar value (1x1 matrix) on stack;\n"
     "                 a number starts with a digit or a minus sign\n"
     " =NAME      == save matrix on top of stack as 'NAME'\n"
     " NAME       == push NAME-ed matrix onto top of stack;\n"

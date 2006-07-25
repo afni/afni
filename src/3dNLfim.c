@@ -95,7 +95,7 @@
 
 /*---------------------------------------------------------------------------*/
 
-#define DEFAULT_NRAND 29999
+#define DEFAULT_NRAND 19999
 #define DEFAULT_NBEST     9
 #define DEFAULT_FDISP   999.0
 
@@ -128,7 +128,7 @@
   static int proc_vox_bot[PROC_MAX]   ; /* 1st voxel to use in each process */
   static int proc_vox_top[PROC_MAX]   ; /* last voxel (+1) in each process */
 
-  static int proc_ind                 ; /* index of THIS job */
+  static int proc_ind = 0             ; /* index of THIS job */
 
 #else   /* can't use multiple processes */
 
@@ -219,7 +219,7 @@ void display_help_menu()
      "[-nbest b]         b = use b best test points to start [default=%d]   \n"
      "[-rmsmin r]        r = minimum rms error to reject reduced model      \n"
      "[-fdisp fval]      display (to screen) results for those voxels       \n"
-     "                     whose f-statistic is > fval [default=%f]         \n"
+     "                     whose f-statistic is > fval [default=%.1f]       \n"
      "[-voxel_count]     display (to screen) the current voxel index        \n"
      "                                                                      \n"
      "--- These options choose the least-square minimization algorithm ---  \n"
@@ -783,7 +783,7 @@ void get_options
       if (strcmp(argv[nopt], "-voxel_count") == 0)
      {
        nopt++;
-          g_voxel_count = 1;
+       g_voxel_count = 1;
        continue;
      }
       
@@ -3170,6 +3170,10 @@ int main
 #endif
 #endif
 
+   INFO_message(
+     "At each voxel, will use %d best of %d random parameter sets",
+     nbest , nrand ) ;
+
    ixyz_bot = 0 ; ixyz_top = nxyz ;  /* RWCox */
 
 #ifdef PROC_MAX
@@ -3192,10 +3196,12 @@ int main
 
        /* split voxels between jobs evenly */
 
+#if 0
        if( g_voxel_count ){
          g_voxel_count = 0 ;
          WARNING_message("-voxel_count disabled by -jobs") ;
        }
+#endif
 
        nper = nvox / proc_numjob ;  /* # voxels per job */
        if( mask_vol == NULL ){
@@ -3266,7 +3272,7 @@ int main
      if (mask_vol[iv] == 0)  continue;
 
       /*----- display progress for user (1-based) -----*/
-      if (g_voxel_count)
+      if (g_voxel_count && proc_ind == 0 )
         fprintf(stderr,"\r++ voxel count: %8d (of %d)", iv+1, ixyz_top);
 
       /*----- read the time series for voxel iv -----*/
@@ -3378,6 +3384,11 @@ int main
                &tncoef_filename, &tscoef_filename, 
                &sfit_filename, &snfit_filename);
 
-  fprintf(stderr,"++ Program finished; elapsed time=%.3f\n",COX_clock_time()) ;
+  if( nwin_pow > 0 && (nwin_sim > 0 || nwin_stp > 0) )
+    INFO_message(
+     "# best via POWELL=%d; via SIMPLEX=%d; SIMPLEX then POWELL=%d",
+     nwin_pow , nwin_sim , nwin_stp ) ;
+
+  INFO_message("Program finished; elapsed time=%.3f\n",COX_clock_time()) ;
   exit (0);
 }
