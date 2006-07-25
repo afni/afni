@@ -264,9 +264,10 @@ void Syntax(char *str)
    printf(
     "\n"
     "The following options allow you to modify VOLREG fields:\n"
-    "  -vr_mat <val1> ... <val12>   Use these twelve values for VOLREG_MATVEC_index.\n"
-    "  [-vr_mat_ind <index>]        Index of VOLREG_MATVEC_index field to be modified. Optional, default index is 0.\n"
-    "                               Note: You can only modify one VOLREG_MATVEC_index at a time.\n"
+    "  -vr_mat val1 ... val12   Use these twelve values for VOLREG_MATVEC_index.\n"
+    "  [-vr_mat_ind <index>]    Index of VOLREG_MATVEC_index field to be modified.\n"
+    "                            Optional, default index is 0.\n"
+    "                            NB: You can only modify one VOLREG_MATVEC_index at a time\n"
     "  -vr_center_old <x> <y> <z>   Use these 3 values for VOLREG_CENTER_OLD.\n"
     "  -vr_center_base <x> <y> <z>  Use these 3 values for VOLREG_CENTER_BASE.\n"
     "\n"

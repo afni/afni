@@ -8,8 +8,8 @@
 
 /*
   This file contains routines used by programs 3dNLfim, plug_nlfit, and
-  3dTSgen for performing non-linear regression analysis of AFNI 3d+time 
-  data seta, and investigating various statistical properties of the data. 
+  3dTSgen for performing non-linear regression analysis of AFNI 3d+time
+  data seta, and investigating various statistical properties of the data.
 
   File:     NLfit.c
   Author:   B. Douglas Ward
@@ -37,8 +37,8 @@
 
   Mod:      Changes for output of R^2 (coefficient of multiple determination),
             and standard deviation of residuals from full model fit.
-	         Added global variable calc_tstats.
-	         Also, added screen display of p-values.
+            Added global variable calc_tstats.
+            Also, added screen display of p-values.
   Date:     10 May 2000
 
   Mod:      Add stuff for longjmp() return from NLfit_error().
@@ -80,12 +80,12 @@ void NLfit_error
 /*---------------------------------------------------------------------------*/
 /*
   Routine to initialize the signal model by defining the number of parameters
-  in the signal model, the default values for the minimum and maximum 
+  in the signal model, the default values for the minimum and maximum
   parameter constraints, and setting the pointer to the function which
   implements the signal model.
 */
 
-void initialize_signal_model 
+void initialize_signal_model
 (
   NLFIT_MODEL_array * model_array,       /* the array of SO models */
   char * sname,            /* name of signal model (user input) */
@@ -103,8 +103,8 @@ void initialize_signal_model
 
   index = -1;
   for (im = 0;  im < model_array->num;  im++)
-    if (strncmp(model_array->modar[im]->interface->label, 
-		sname, MAX_NAME_LENGTH) == 0)  index = im;
+    if (strncmp(model_array->modar[im]->interface->label,
+                sname, MAX_NAME_LENGTH) == 0)  index = im;
   if (index < 0)
     {
       sprintf (message, "Unable to locate signal model %s", sname);
@@ -118,28 +118,28 @@ void initialize_signal_model
     }
 
   *smodel = model_array->modar[index]->interface->call_func;
-  if (*smodel == NULL) 
+  if (*smodel == NULL)
     {
       sprintf (message, "Signal model %s not properly implemented", sname);
       NLfit_error (message);
     }
 
   *p = model_array->modar[index]->interface->params;
-  if ((*p < 0) || (*p > MAX_PARAMETERS)) 
+  if ((*p < 0) || (*p > MAX_PARAMETERS))
     {
-      sprintf (message, "Illegal number of parameters for signal model %s", 
-	       sname);
+      sprintf (message, "Illegal number of parameters for signal model %s",
+               sname);
       NLfit_error (message);
     }
 
   for (ip = 0;  ip < *p;  ip++)
     {
       strncpy (spname[ip], model_array->modar[index]->interface->plabel[ip],
-	       MAX_NAME_LENGTH);
-      min_sconstr[ip] = model_array->modar[index]->interface->min_constr[ip]; 
-      max_sconstr[ip] = model_array->modar[index]->interface->max_constr[ip]; 
+               MAX_NAME_LENGTH);
+      min_sconstr[ip] = model_array->modar[index]->interface->min_constr[ip];
+      max_sconstr[ip] = model_array->modar[index]->interface->max_constr[ip];
       if (min_sconstr[ip] > max_sconstr[ip])
-	NLfit_error("Must have signal parameter min cnstrnts <= max cnstrnts");
+      NLfit_error("Must have signal parameter min cnstrnts <= max cnstrnts");
     }
 
 }
@@ -148,12 +148,12 @@ void initialize_signal_model
 /*---------------------------------------------------------------------------*/
 /*
   Routine to initialize the noise model by defining the number of parameters
-  in the noise model, the default values for the minimum and maximum 
+  in the noise model, the default values for the minimum and maximum
   parameter constraints, and setting the pointer to the function which
   implements the noise model.
 */
 
-void initialize_noise_model 
+void initialize_noise_model
 (
   NLFIT_MODEL_array * model_array,       /* the array of SO models */
   char * nname,            /* name of noise model (user input) */
@@ -171,8 +171,8 @@ void initialize_noise_model
 
   index = -1;
   for (im = 0;  im < model_array->num;  im++)
-    if (strncmp(model_array->modar[im]->interface->label, 
-		nname, MAX_NAME_LENGTH) == 0)  index = im;
+    if (strncmp(model_array->modar[im]->interface->label,
+                nname, MAX_NAME_LENGTH) == 0)  index = im;
   if (index < 0)
     {
       sprintf (message, "Unable to locate noise model %s", nname);
@@ -181,35 +181,35 @@ void initialize_noise_model
 
   if (model_array->modar[index]->interface->model_type != MODEL_NOISE_TYPE)
     {
-      printf ("type = %d \n", 
-	      model_array->modar[index]->interface->model_type);
+      printf ("type = %d \n",
+              model_array->modar[index]->interface->model_type);
       sprintf (message, "%s has not been declared a noise model", nname);
       NLfit_error (message);
     }
 
   *nmodel = model_array->modar[index]->interface->call_func;
-  if (*nmodel == NULL) 
+  if (*nmodel == NULL)
     {
       sprintf (message, "Noise model %s not properly implemented", nname);
       NLfit_error (message);
     }
 
   *r = model_array->modar[index]->interface->params;
-  if ((*r < 0) || (*r > MAX_PARAMETERS)) 
+  if ((*r < 0) || (*r > MAX_PARAMETERS))
     {
-      sprintf (message, "Illegal number of parameters for noise model %s", 
-	       nname);
+      sprintf (message, "Illegal number of parameters for noise model %s",
+               nname);
       NLfit_error (message);
     }
 
   for (ip = 0;  ip < *r;  ip++)
     {
       strncpy (npname[ip], model_array->modar[index]->interface->plabel[ip],
-	       MAX_NAME_LENGTH);
-      min_nconstr[ip] = model_array->modar[index]->interface->min_constr[ip]; 
-      max_nconstr[ip] = model_array->modar[index]->interface->max_constr[ip]; 
+               MAX_NAME_LENGTH);
+      min_nconstr[ip] = model_array->modar[index]->interface->min_constr[ip];
+      max_nconstr[ip] = model_array->modar[index]->interface->max_constr[ip];
       if (min_nconstr[ip] > max_nconstr[ip])
-	NLfit_error("Must have noise parameter min cnstrnts <= max cnstrnts");
+       NLfit_error("Must have noise parameter min cnstrnts <= max cnstrnts");
     }
 
 }
@@ -220,14 +220,14 @@ void initialize_noise_model
   Routine to calculate the least squares linear regression.
 */
 
-void calc_linear_regression 
-( 
+void calc_linear_regression
+(
   matrix x,              /* matrix of constants */
   vector y,              /* observation vector */
   vector * b,            /* estimated regression coefficients */
   float * sse            /* error sum of squares */
 )
-  
+
 {
   matrix xt, xtx, xtxinv, xtxinvxt;     /* intermediate matrix results */
   vector yhat;                          /* estimate of observation vector */
@@ -275,9 +275,9 @@ void calc_linear_regression
   reduced model.
 */
 
-void calc_reduced_model 
-( 
-  int n,                 /* number of observations */        
+void calc_reduced_model
+(
+  int n,                 /* number of observations */
   int r,                 /* number of parameters in reduced model */
   float ** x_array,      /* data matrix */
   float * y_array,       /* observed time series */
@@ -318,7 +318,7 @@ void calc_reduced_model
   Routine to allocate memory required for calculation of the full model.
 */
 
-void initialize_full_model 
+void initialize_full_model
 (
   int dimension,            /* number of parameters in full model */
   int nbest,                /* keep nbest vectors from random search */
@@ -329,11 +329,11 @@ void initialize_full_model
 {
   int i;                    /* parameter vector index */
 
-  *sse = (float *) malloc (sizeof(float) * nbest);   
+  *sse = (float *) malloc (sizeof(float) * nbest);
   *parameters = (float **) malloc (sizeof(float *) * nbest);
   for (i = 0;  i < nbest;  i++)
     (*parameters)[i] = (float *) malloc (sizeof(float) * dimension);
-       
+
 }
 
 
@@ -342,7 +342,7 @@ void initialize_full_model
   Routine to determine if the parameter vector violates the constraints.
 */
 
-int calc_constraints 
+int calc_constraints
 (
   int r,                  /* number of parameters in the noise model */
   int p,                  /* number of parameters in the signal model */
@@ -363,14 +363,14 @@ int calc_constraints
   if (nabs)   /*--- absolute noise parameter constraints ---*/
     for (i = 0;  i < r;  i++)
       {
-	if (vertex[i] < min_nconstr[i])  return (1);
-	if (vertex[i] > max_nconstr[i])  return (1);
+       if (vertex[i] < min_nconstr[i])  return (1);
+       if (vertex[i] > max_nconstr[i])  return (1);
       }
   else        /*--- relative noise parameter constraints ---*/
     for (i = 0;  i < r;  i++)
       {
-	if (vertex[i] < min_nconstr[i] + b_array[i])  return (1);
-	if (vertex[i] > max_nconstr[i] + b_array[i])  return (1);
+       if (vertex[i] < min_nconstr[i] + b_array[i])  return (1);
+       if (vertex[i] > max_nconstr[i] + b_array[i])  return (1);
       }
 
   /*----- check signal model constraints -----*/
@@ -532,7 +532,7 @@ void RAN_setup
   Calculate the estimated time series using the full model.
 */
 
-void full_model 
+void full_model
 (
   vfp nmodel,                 /* pointer to noise model */
   vfp smodel,                 /* pointer to signal model */
@@ -600,7 +600,7 @@ void full_model
   for (it = 0;  it < ts_length;  it++)
     yhat_array[it] += y_array[it];
 #endif  /* UNROLL */
-  
+
 
   /*----- deallocate memory -----*/
 #ifdef SAVE_RAN
@@ -614,11 +614,11 @@ void full_model
 
 /*---------------------------------------------------------------------------*/
 /*
-  This routine calculates the error sum of squares corresponding to 
+  This routine calculates the error sum of squares corresponding to
   the given vector of parameters for the full model.
 */
 
-float calc_sse 
+float calc_sse
 (
   vfp nmodel,             /* pointer to noise model */
   vfp smodel,             /* pointer to signal model */
@@ -650,13 +650,13 @@ float calc_sse
   y_array = (float *) malloc (sizeof(float) * ts_length);
 
   /*----- apply constraints? -----*/
-  if (calc_constraints (r, p, nabs, b_array, min_nconstr, max_nconstr, 
-			min_sconstr, max_sconstr, vertex)) 
-    { 
+  if (calc_constraints (r, p, nabs, b_array, min_nconstr, max_nconstr,
+                        min_sconstr, max_sconstr, vertex))
+    {
       free (y_array);   y_array = NULL;
       return (BIG_NUMBER);
-    }    
-  
+    }
+
   /*----- create estimated time series using the full model parameters -----*/
   full_model (nmodel, smodel, vertex, vertex + r, ts_length, x_array, y_array);
 
@@ -699,7 +699,7 @@ float calc_sse
   Select and evaluate randomly chosen vectors in the parameter space.
 */
 
-void random_search 
+void random_search
 (
   vfp nmodel,             /* pointer to noise model */
   vfp smodel,             /* pointer to signal model */
@@ -742,7 +742,7 @@ void random_search
 #ifdef SAVE_RAN
    RAN_setup( nmodel , smodel , r , p , nabs ,
               min_nconstr, max_nconstr,
-              min_sconstr, max_sconstr, 
+              min_sconstr, max_sconstr,
               ts_length, x_array, nrand ) ;
 #endif
 
@@ -766,12 +766,12 @@ void random_search
 #else
       /*----- select random parameters -----*/
       if (nabs)   /*--- absolute noise parameter constraints ---*/
-	for (ip = 0;  ip < r;  ip++)
-	  par[ip] = get_random_value (min_nconstr[ip], max_nconstr[ip]);
-      else        /*--- relative noise parameter constraints ---*/
-	for (ip = 0;  ip < r;  ip++)
-	  par[ip] = get_random_value (min_nconstr[ip] + par_rdcd[ip], 
-				      max_nconstr[ip] + par_rdcd[ip]);
+       for (ip = 0;  ip < r;  ip++)
+         par[ip] = get_random_value (min_nconstr[ip], max_nconstr[ip]);
+       else        /*--- relative noise parameter constraints ---*/
+        for (ip = 0;  ip < r;  ip++)
+          par[ip] = get_random_value (min_nconstr[ip] + par_rdcd[ip],
+                                      max_nconstr[ip] + par_rdcd[ip]);
 #endif /* BEST_NOISE */
 
       /*** 27 July 1998: get the signal parameters from the saved set ***/
@@ -780,7 +780,7 @@ void random_search
          par[ip+r] = RAN_spar[ipt*p+ip] ;
 #else
       for (ip = 0;  ip < p;  ip++)
-	  par[ip+r] = get_random_value (min_sconstr[ip], max_sconstr[ip]);
+        par[ip+r] = get_random_value (min_sconstr[ip], max_sconstr[ip]);
 #endif
 
 
@@ -789,9 +789,9 @@ void random_search
       RAN_sind = ipt ;
 #endif
 
-      sse = calc_sse (nmodel, smodel, r, p, nabs, min_nconstr, max_nconstr, 
-		      min_sconstr, max_sconstr, par_rdcd, par, 
-		      ts_length, x_array, ts_array);
+      sse = calc_sse (nmodel, smodel, r, p, nabs, min_nconstr, max_nconstr,
+                      min_sconstr, max_sconstr, par_rdcd, par,
+                      ts_length, x_array, ts_array);
 
       /*----- save best random vectors -----*/
 
@@ -807,7 +807,7 @@ void random_search
 #define PUSH_BEST  /* 27 July 1998 -- RWCox */
 #ifdef  PUSH_BEST
       for (iv = 0;  iv < nbest;  iv++)
-	if (sse < response[iv]){
+       if (sse < response[iv]){
            int jv ;
            for( jv=nbest-1 ; jv > iv ; jv-- ){  /* the push-up code */
               response[jv] = response[jv-1] ;
@@ -822,13 +822,13 @@ void random_search
         }
 #else
       for (iv = 0;  iv < nbest;  iv++)          /* this is the old code */
-	if (sse < response[iv])
-	  {
-	    for (ip = 0;  ip < r+p;  ip++)
-	      parameters[iv][ip] = par[ip];
-	    response[iv] = sse;
-	    break;
-	  }
+       if (sse < response[iv])
+        {
+         for (ip = 0;  ip < r+p;  ip++)
+           parameters[iv][ip] = par[ip];
+         response[iv] = sse;
+         break;
+       }
 #endif
   } /* end of loop over random vectors */
 
@@ -850,16 +850,20 @@ void random_search
      }
    }
 #endif
- 
+
 }
 
+/*---------------------------------------------------------------------------*/
+static int nwin_sim = 0 ;  /* # best with pure simplex */
+static int nwin_pow = 0 ;  /* # best with Powell */
+static int nwin_stp = 0 ;  /* # best with simplex then Powell */
 
 /*---------------------------------------------------------------------------*/
 /*
   Estimate the parameters for the full model.
 */
 
-void calc_full_model 
+void calc_full_model
 (
   vfp nmodel,             /* pointer to noise model */
   vfp smodel,             /* pointer to signal model */
@@ -885,21 +889,20 @@ void calc_full_model
 
 {
   int iv;                        /* vector index */
-  int ip;                        /* parameter index */ 
+  int ip;                        /* parameter index */
   float ** parameters = NULL;    /* array of parameter vectors */
   float * sse = NULL;            /* array of sse's */
+  int winner , ivb ;
 
 
-  /*----- if this is the null signal model, 
-          or if rms error for reduced model is very small, 
-	  just use the reduced model -----*/
-  if ( (p < 1) || (sqrt(sse_rdcd/(ts_length - r)) < rms_min) ) 
+  /*----- if this is the null signal model,
+          or if rms error for reduced model is very small,
+          just use the reduced model -----*/
+  if ( (p < 1) || (sqrt(sse_rdcd/(ts_length - r)) < rms_min) )
     {
       *novar = 1;
-      for (ip = 0;  ip < r;  ip++)
-	par_full[ip] = par_rdcd[ip];
-      for (ip = r;  ip < r+p;  ip++)
-	par_full[ip] = 0.0;
+      for (ip = 0;  ip < r  ;  ip++) par_full[ip] = par_rdcd[ip];
+      for (ip = r;  ip < r+p;  ip++) par_full[ip] = 0.0;
       *sse_full = sse_rdcd;
       return;
     }
@@ -911,36 +914,37 @@ void calc_full_model
   srand48 (1234567);
 
   /*----- allocate memory for calculation of full model-----*/
-  initialize_full_model (r+p, nbest, &parameters, &sse); 
+  initialize_full_model (r+p, nbest, &parameters, &sse);
 
   /*----- evaluate randomly chosen vectors in the parameter space -----*/
   random_search (nmodel, smodel, r, p, nabs,
-		 min_nconstr, max_nconstr, min_sconstr, max_sconstr,
-		 ts_length, x_array, ts_array, par_rdcd, nrand, nbest, 
-		 parameters, sse);
-  
-  /*----- use the best random vectors as the starting points for 
+                 min_nconstr, max_nconstr, min_sconstr, max_sconstr,
+                 ts_length, x_array, ts_array, par_rdcd, nrand, nbest,
+                 parameters, sse);
+
+  /*----- use the best random vectors as the starting points for
     nonlinear optimization -----*/
+
+  winner = 0 ; ivb = 0 ; *sse_full = 1.0e+30 ;
   for (iv = 0;  iv < nbest;  iv++)
     {
-      generic_optimization (nmodel, smodel, r, p, 
-			    min_nconstr, max_nconstr, min_sconstr, max_sconstr,
-			    nabs, ts_length, x_array, ts_array, par_rdcd,
-			    parameters[iv], &sse[iv]);
+      generic_optimization (nmodel, smodel, r, p,
+                            min_nconstr, max_nconstr, min_sconstr, max_sconstr,
+                            nabs, ts_length, x_array, ts_array, par_rdcd,
+                            parameters[iv], &sse[iv]);
+      if( sse[iv] < *sse_full ){
+        ivb = iv; winner = opt_winner; *sse_full = sse[iv];
+      }
     }
 
-  /*----- save the best result from the nonlinear optimization -----*/      
-  *sse_full = 1.0e+30;
-  for (iv = 0;  iv < nbest;  iv++)
-    {
-      if (sse[iv] < *sse_full)
-	{
-	  *sse_full = sse[iv];
-	  for (ip = 0;  ip < r+p;  ip++)
-	    par_full[ip] = parameters[iv][ip];
-	}
-    }
+  /*----- save the best result from the nonlinear optimization -----*/
 
+  for( ip=0 ; ip < r+p ; ip++ ) par_full[ip] = parameters[ivb][ip] ;
+  switch( winner ){
+    case WIN_POW: nwin_pow++ ; break ;
+    case WIN_SIM: nwin_sim++ ; break ;
+    case WIN_STP: nwin_stp++ ; break ;
+  }
 
   /*----- release memory space -----*/
   for (iv = 0;  iv < nbest;  iv++)
@@ -948,7 +952,7 @@ void calc_full_model
       free (parameters[iv]);
       parameters[iv] = NULL;
     }
-  free (parameters);       parameters = NULL;     
+  free (parameters);       parameters = NULL;
   free (sse);              sse = NULL;
 
 }
@@ -960,7 +964,7 @@ void calc_full_model
   estimated parameter location.
 */
 
-void calc_partial_derivatives 
+void calc_partial_derivatives
 (
   vfp nmodel,             /* pointer to noise model */
   vfp smodel,             /* pointer to signal model */
@@ -979,7 +983,7 @@ void calc_partial_derivatives
 {
   const float EPSILON = 1.0e-10;
   int dimension;          /* dimension of full model */
-  int ip, jp;             /* parameter indices */ 
+  int ip, jp;             /* parameter indices */
   int it;                 /* time index */
   float delp;             /* delta parameter */
   float * par = NULL;            /* perturbed parameter array */
@@ -996,35 +1000,31 @@ void calc_partial_derivatives
   par = (float *) malloc (sizeof(float) * dimension);
 
   /*----- fitted time series at estimated parameter vector -----*/
-  full_model (nmodel, smodel, par_full, par_full + r, 
-	      ts_length, x_array, ts1_array);
+  full_model (nmodel, smodel, par_full, par_full + r,
+           ts_length, x_array, ts1_array);
 
   /*----- loop over parameters in model -----*/
   for (jp = 0;  jp < dimension;  jp++)
     {
       /*----- initialize parameters -----*/
-      for (ip = 0;  ip < dimension;  ip++)
-	par[ip] = par_full[ip];
+      for (ip = 0;  ip < dimension;  ip++) par[ip] = par_full[ip];
 
       /*----- add small increment to the jpth parameter -----*/
-      if (jp < r)
-	delp = (max_nconstr[jp] - min_nconstr[jp]) / 1000.0;
-      else
-	delp = (max_sconstr[jp-r] - min_sconstr[jp-r]) / 1000.0;
+      if (jp < r) delp = (max_nconstr[jp] - min_nconstr[jp]) / 1000.0;
+      else        delp = (max_sconstr[jp-r] - min_sconstr[jp-r]) / 1000.0;
       par[jp] += delp;
 
       /*----- fit time series for perturbed parameter -----*/
-      full_model (nmodel, smodel, par, par + r, 
-		  ts_length, x_array, ts2_array);
+      full_model (nmodel, smodel, par, par + r, ts_length, x_array, ts2_array);
 
       /*----- estimate partial derivative -----*/
       if (delp > EPSILON)
-	for (it = 0;  it < ts_length;  it++)
-	  d.elts[it][jp] = (ts2_array[it] - ts1_array[it]) / delp;
+       for (it = 0;  it < ts_length;  it++)
+         d.elts[it][jp] = (ts2_array[it] - ts1_array[it]) / delp;
       else
-	for (it = 0;  it < ts_length;  it++)
-	  d.elts[it][jp] = 0.0;
-      
+       for (it = 0;  it < ts_length;  it++)
+         d.elts[it][jp] = 0.0;
+
     }
 
   /*----- free memory -----*/
@@ -1032,7 +1032,7 @@ void calc_partial_derivatives
   free (ts2_array);  ts2_array = NULL;
   free (ts1_array);  ts1_array = NULL;
 
-}  
+}
 
 
 /*---------------------------------------------------------------------------*/
@@ -1040,7 +1040,7 @@ void calc_partial_derivatives
   Calculate the coefficient of multiple determination R^2.
 */
 
-float calc_rsqr 
+float calc_rsqr
 (
   float ssef,                 /* error sum of squares from full model */
   float sser                  /* error sum of squares from reduced model */
@@ -1074,7 +1074,7 @@ float calc_rsqr
   estimates.
 */
 
-void analyze_results 
+void analyze_results
 (
   vfp nmodel,             /* pointer to noise model */
   vfp smodel,             /* pointer to signal model */
@@ -1088,7 +1088,7 @@ void analyze_results
   int ts_length,          /* length of time series data */
   float ** x_array,       /* independent variable matrix */
   float * par_rdcd,       /* estimated parameters for the reduced model */
-  float sse_rdcd,         /* error sum of squares for the reduced model */ 
+  float sse_rdcd,         /* error sum of squares for the reduced model */
   float * par_full,       /* estimated parameters for the full model */
   float sse_full,         /* error sum of squares for the full model */
   float * rmsreg,         /* root-mean-square for the full regression model */
@@ -1135,10 +1135,7 @@ void analyze_results
 
   for (ip = 0;  ip < r;  ip++)
     if (min_nconstr[ip] == max_nconstr[ip])
-      {
-	df_rdcd++;
-	df_full++;
-      }
+      { df_rdcd++; df_full++; }
 
   for (ip = 0;  ip < p;  ip++)
     if (min_sconstr[ip] == max_sconstr[ip])
@@ -1206,63 +1203,52 @@ void analyze_results
   for (it = 1;  it < ts_length;  it++)
     {
       /*----- calculate signed maximum of signal, and
-	calculate max. percentage change of signal wrt baseline -----*/
+         calculate max. percentage change of signal wrt baseline -----*/
       if (fabs(y_array[it]) > fabs(*smax))
-	{
-	  *tmax = x_array[it][1];
-	  *smax = y_array[it];
-	  if (fabs(base_array[it]) > EPSILON)
-	    *pmax = 100.0 * y_array[it] / fabs(base_array[it]);
-	}
-      
+      {
+       *tmax = x_array[it][1];
+       *smax = y_array[it];
+       if (fabs(base_array[it]) > EPSILON)
+         *pmax = 100.0 * y_array[it] / fabs(base_array[it]);
+      }
+
       /*----- calculate area and percentage area under the signal -----*/
       y1 = y_array[it-1];   y2 = y_array[it];
       if ((y1 > 0.0) && (y2 > 0.0))
-	{
-	  *area += (y1 + y2) / 2.0;
-	  *parea += (y1 + y2) / 2.0;
-	}
+      {
+       *area += (y1 + y2) / 2.0;
+       *parea += (y1 + y2) / 2.0;
+      }
       else if ((y1 < 0.0) && (y2 < 0.0))
-	{
-	  *area -= (y1 + y2) / 2.0;
-	  *parea += (y1 + y2) / 2.0;
-	}
+      {
+       *area -= (y1 + y2) / 2.0;
+       *parea += (y1 + y2) / 2.0;
+      }
       else
-	{
-	  y3 = fabs(y1) + fabs(y2);
-	  if (y3 > EPSILON)
-	    {
-	      *area += (y1*y1 + y2*y2) / (2.0 * y3);
-	      if (y1 > y2)
-		*parea += (y1*y1 - y2*y2) / (2.0 * y3);
-	      else
-		*parea -= (y1*y1 - y2*y2) / (2.0 * y3);
-	    }
-	}
-      
+      {
+       y3 = fabs(y1) + fabs(y2);
+       if (y3 > EPSILON)
+       {
+           *area += (y1*y1 + y2*y2) / (2.0 * y3);
+           if (y1 > y2) *parea += (y1*y1 - y2*y2) / (2.0 * y3);
+           else         *parea -= (y1*y1 - y2*y2) / (2.0 * y3);
+       }
+     }
+
       y1 = base_array[it-1];   y2 = base_array[it];
       if ((y1 > 0.0) && (y2 > 0.0))
-	{
-	  barea += (y1 + y2) / 2.0;
-	}
+      { barea += (y1 + y2) / 2.0; }
       else if ((y1 < 0.0) && (y2 < 0.0))
-	{
-	  barea -= (y1 + y2) / 2.0;
-	}
+      { barea -= (y1 + y2) / 2.0; }
       else
-	{
-	  y3 = fabs(y1) + fabs(y2);
-	  if (y3 > EPSILON)
-	    {
-	      barea += (y1*y1 + y2*y2) / (2.0 * y3);
-	    }
-	}
-    }  /* it */
+      { y3 = fabs(y1) + fabs(y2);
+        if (y3 > EPSILON)
+        { barea += (y1*y1 + y2*y2) / (2.0 * y3); }
+      }
+   }  /* it */
 
-  if (barea > EPSILON)
-    *parea *= 100.0/barea;
-  else
-    *parea = 0.0;
+  if (barea > EPSILON) *parea *= 100.0/barea;
+  else                 *parea  = 0.0;
 
   free (base_array);   base_array = NULL;
   free (y_array);      y_array = NULL;
@@ -1279,48 +1265,48 @@ void analyze_results
       matrix_initialize (&dt);
       matrix_initialize (&dtd);
       matrix_initialize (&dtdinv);
-      
+
       /*----- calculate the matrix of partial derivatives D -----*/
       matrix_create (ts_length, dimension, &d);
-      calc_partial_derivatives (nmodel, smodel, r, p, 
-				min_nconstr, max_nconstr, 
-				min_sconstr, max_sconstr, 
-				ts_length, x_array, par_full, d);
-      
+      calc_partial_derivatives (nmodel, smodel, r, p,
+                               min_nconstr, max_nconstr,
+                               min_sconstr, max_sconstr,
+                               ts_length, x_array, par_full, d);
+
       /*----- calculate variance-covariance matrix -----*/
       matrix_transpose (d, &dt);
       matrix_multiply (dt, d, &dtd);
       ok = matrix_inverse (dtd, &dtdinv);
       if (ok)
-	for (ip = 0;  ip < dimension;  ip++)
-	  {
-	    stddev = sqrt((sse_full/(df_full)) * dtdinv.elts[ip][ip]);
-	    if (stddev > EPSILON)
-	      tpar_full[ip] = par_full[ip] / stddev;
-	    else
-	      tpar_full[ip] = 0.0;
-	  }
+       for (ip = 0;  ip < dimension;  ip++)
+       {
+         stddev = sqrt((sse_full/(df_full)) * dtdinv.elts[ip][ip]);
+         if (stddev > EPSILON)
+           tpar_full[ip] = par_full[ip] / stddev;
+         else
+           tpar_full[ip] = 0.0;
+       }
       else
-	for (ip = 0;  ip < dimension;  ip++)
-	  {
-	    tpar_full[ip] = 0.0;
-	  }
-      
-      
+       for (ip = 0;  ip < dimension;  ip++)
+       {
+         tpar_full[ip] = 0.0;
+       }
+
+
       /*----- dispose of matrices -----*/
       matrix_destroy (&dtdinv);
       matrix_destroy (&dtd);
-      matrix_destroy (&dt); 
+      matrix_destroy (&dt);
       matrix_destroy (&d);
 
-    }  /* if (calc_tstats) */    
+    }  /* if (calc_tstats) */
 
 }
 
 
 /*---------------------------------------------------------------------------*/
 /*
-  Convert F-value to p-value.  
+  Convert F-value to p-value.
   This routine was copied from: mri_stats.c
 */
 
@@ -1348,7 +1334,7 @@ double fstat_t2p( double ff , double dofnum , double dofden )
   Report results for this voxel.
 */
 
-void report_results 
+void report_results
 (
   char * nname,            /* name of noise model */
   char * sname,            /* name of signal model */
@@ -1383,31 +1369,31 @@ void report_results
 
   /*----- make this a 0 length string to start -----*/
   lbuf[0] = '\0';
-      
+
   /*----- write reduced model parameters -----*/
   sprintf (sbuf, "Reduced (%s) Model: \n", nname);
   strcat (lbuf, sbuf);
   for (ip = 0;  ip < r;  ip++)
     {
-      sprintf (sbuf, "b[%d]= %12.6f  %s \n", ip, par_rdcd[ip], npname[ip]); 
+      sprintf (sbuf, "b[%d]= %12.6f  %s \n", ip, par_rdcd[ip], npname[ip]);
       strcat (lbuf, sbuf);
     }
-    
-  /*----- write full model parameters -----*/  
+
+  /*----- write full model parameters -----*/
   sprintf (sbuf, "\nFull (%s + %s) Model: \n", nname, sname);
   strcat (lbuf, sbuf);
   for (ip = 0;  ip < r;  ip++)
     {
       sprintf (sbuf, "gn[%d]=%12.6f  %s \n", ip, par_full[ip], npname[ip]);
       strcat (lbuf, sbuf);
-	            
+
     }
   for (ip = 0;  ip < p;  ip++)
     {
       sprintf (sbuf, "gs[%d]=%12.6f  %s \n", ip, par_full[ip+r], spname[ip]);
-      strcat (lbuf, sbuf);            
+      strcat (lbuf, sbuf);
     }
-  
+
   sprintf (sbuf, "\nSignal Tmax  = %12.3f \n", tmax);
   strcat (lbuf, sbuf);
   sprintf (sbuf,   "Signal Smax  = %12.3f \n", smax);
@@ -1423,7 +1409,7 @@ void report_results
   strcat (lbuf, sbuf);
   sprintf (sbuf, "RMSE Full = %8.3f \n", sqrt(sse_full/(ts_length-r-p)));
   strcat (lbuf, sbuf);
-	    
+
   sprintf (sbuf, "\nR^2       = %7.3f \n", rsqr);
   strcat (lbuf, sbuf);
   sprintf (sbuf, "F[%2d,%3d] = %7.3f \n", p, ts_length-r-p, freg);
@@ -1431,11 +1417,11 @@ void report_results
   pvalue = fstat_t2p ( (double) freg, (double) p, (double) ts_length-r-p);
   sprintf (sbuf, "p-value   = %e  \n", pvalue);
   strcat (lbuf, sbuf);
- 
+
 
   /*----- send address of lbuf back in what label points to -----*/
   *label = lbuf;
-  
+
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1443,10 +1429,53 @@ void report_results
 /*---------------------------------------------------------------------------*/
 #ifdef LINEAR_REDUCTION
 
-static matrix XtXinvXt ;
+static int    LR_nrow=0 , LR_ncol=0 ;
+static float *LR_mat  = NULL ;
+static float *LR_pinv = NULL ;
 
-void LR_init_matrix( int ts_length , int r , float **x_array )
+#undef  LRx
+#undef  LRi
+#define LRx(i,j) LR_mat [(j)+(i)*LR_ncol]  /* i=0..LR_nrow-1 , j=0..LR_ncol-1 */
+#define LRi(i,j) LR_pinv[(j)+(i)*LR_nrow]  /* i=0..LR_ncol-1 , j=0..LR_nrow-1 */
+
+#undef  LRx_row
+#undef  LRi_row
+#define LRx_row(i) (LR_mat+(i)*LR_ncol)
+#define LRi_row(i) (LR_pinv+(i)*LR_nrow)
+
+void LR_clear_matrix(void)
 {
+  if( LR_mat != NULL ){ free(LR_mat ); LR_mat =NULL; }
+  if( LR_pinv!= NULL ){ free(LR_pinv); LR_pinv=NULL; }
+}
+
+void LR_setup_matrix( int ts_length , int r , float **x_array )
+{
+   int ii , jj ;
+   matrix XtXinvXt , X ;
+   double **Xpar , **Xar ;
+
+   if( ts_length < 1 || r < 1 || x_array == NULL ) return ;
+   matrix_initialize( &X ) ;
+   matrix_initialize( &XtXinvXt ) ;
+
+   array_to_matrix( ts_length, r, x_array, &X ) ;
+   matrix_psinv( X , NULL , &XtXinvXt ) ;
+   Xar = X.elts ; Xpar = XtXinvXt.elts ;
+
+   LR_clear_matrix() ;
+   LR_nrow = ts_length ; LR_ncol = r ;
+
+   LR_mat  = (float *)malloc(sizeof(float)*LR_nrow*LR_ncol) ;
+   LR_pinv = (float *)malloc(sizeof(float)*LR_nrow*LR_ncol) ;
+
+   for( ii=0 ; ii < LR_nrow ; ii++ )
+     for( jj=0 ; jj < LR_ncol ; jj++ ) LRx(ii,jj) = Xar[ii][jj] ;
+
+   for( ii=0 ; ii < LR_ncol ; ii++ )
+     for( jj=0 ; jj < LR_nrow ; jj++ ) LRi(ii,jj) = Xpar[ii][jj] ;
+
+   matrix_destroy(&X) ; matrix_destroy(&XtXinvXt) ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1459,13 +1488,16 @@ void LR_full_model
   vfp smodel,                 /* pointer to signal model */
   float * gs,                 /* parameters for signal model */
   int ts_length,              /* length of time series data */
+  int r ,                     /* col dimension of x_array */
   float ** x_array,           /* independent variable matrix */
+  float * ts_array ,          /* data time series */
   float * yhat_array          /* output estimated time series */
 )
 
 {
-  int it;                     /* time index */
-  float * y_array = NULL;     /* estimated signal time series */
+  int it, jj , ib=ts_length%4;
+  float * y_array = NULL;
+  float * d_array , *beta , sum , *rowp ;
 #ifdef SAVE_RAN
   int use_model = ( RAN_sind < 0 || ts_length != OLD_ts_length ) ;
 #endif
@@ -1490,6 +1522,37 @@ void LR_full_model
   } else            /* recall a saved time series */
      y_array = RAN_sts + (ts_length*RAN_sind) ;
 #endif
+
+  /*--- generate time series for noise model from signal model time series ---*/
+
+  if( LR_mat == NULL ) LR_setup_matrix( ts_length , r , x_array ) ;
+  d_array = (float *) malloc (sizeof(float) * (ts_length));
+  switch( ib ){
+    case 3: d_array[2] = ts_array[2] - y_array[2] ; /* fall thru */
+    case 2: d_array[1] = ts_array[1] - y_array[1] ; /* fall thru */
+    case 1: d_array[0] = ts_array[0] - y_array[0] ; /* fall thru */
+  }
+  for (it=ib;  it < ts_length;  it+=4){
+    d_array[it  ] = ts_array[it  ] - y_array[it  ] ;
+    d_array[it+1] = ts_array[it+1] - y_array[it+1] ;
+    d_array[it+2] = ts_array[it+2] - y_array[it+2] ;
+    d_array[it+3] = ts_array[it+3] - y_array[it+3] ;
+  }
+  beta = (float *)malloc(sizeof(float)*r) ;
+  for( jj=0 ; jj < r ; jj++ ){
+    sum = 0.0f ; rowp = LRp_row(jj) ;
+    switch( ib ){
+      case 3: sum += rowp[2] * d_array[2] ; /* fall thru */
+      case 2: sum += rowp[1] * d_array[1] ; /* fall thru */
+      case 1: sum += rowp[0] * d_array[0] ; break ;
+    }
+    for( it=ib ; it < ts_length ; it+=4 )
+      sum += rowp[it  ]*d_array[it  ] +
+             rowp[it+1]*d_array[it+1] +
+             rowp[it+2]*d_array[it+2] +
+             rowp[it+3]*d_array[it+3]  ;
+    beta[jj] = sum ;
+  }
 
   /*----- generate time series corresponding to the noise model -----*/
 #if 0
@@ -1520,7 +1583,7 @@ void LR_full_model
   for (it = 0;  it < ts_length;  it++)
     yhat_array[it] += y_array[it];
 #endif  /* UNROLL */
-  
+
 
   /*----- deallocate memory -----*/
 #ifdef SAVE_RAN

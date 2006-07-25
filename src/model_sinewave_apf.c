@@ -3,9 +3,9 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /*
-  This file contains routines to initialize and implement the 
+  This file contains routines to initialize and implement the
   sine wave (amplitude, phase, and frequency parameters) signal model.
 
   File:     model_sinewave_apf.c
@@ -19,12 +19,12 @@
 #include <math.h>
 #include "NLfit_model.h"
 
-void signal_model 
+void signal_model
 (
   float * gs,                /* parameters for signal model */
   int ts_length,             /* length of time series data */
   float ** x_array,          /* independent variable matrix */
-  float * ts_array           /* estimated signal model time series */  
+  float * ts_array           /* estimated signal model time series */
 );
 
 
@@ -46,7 +46,7 @@ MODEL_interface * initialize_model ()
   mi = (MODEL_interface *) XtMalloc (sizeof(MODEL_interface));
 
 
-  /*----- define interface for the sine wave model -----*/   
+  /*----- define interface for the sine wave model -----*/
 
   /*----- name of this model -----*/
   strcpy (mi->label, "SineWave_APF");
@@ -66,7 +66,7 @@ MODEL_interface * initialize_model ()
   mi->min_constr[0] =   -100.0;    mi->max_constr[0] =   100.0;
   mi->min_constr[1] =    -90.0;    mi->max_constr[1] =     0.00;
   mi->min_constr[2] =      0.1;    mi->max_constr[2] =     0.15;
-  
+
   /*----- function which implements the model -----*/
   mi->call_func = &signal_model;
 
@@ -89,25 +89,25 @@ MODEL_interface * initialize_model ()
 	gs[2] = frequency
 */
 
-void signal_model 
+void signal_model
 (
   float * gs,                /* parameters for signal model */
   int ts_length,             /* length of time series data */
   float ** x_array,          /* independent variable matrix */
-  float * ts_array           /* estimated signal model time series */  
+  float * ts_array           /* estimated signal model time series */
 )
 
 {
-  int it;                           /* time index */     
+  int it;                           /* time index */
   float t;                          /* time */
-  float fval;                       /* time series value at time t */  
+  float fval;                       /* time series value at time t */
   int ib = ts_length % 4 , nt = ts_length ;
   float g0=gs[0] , g1=(PI/180.0)*gs[1] , g2=(2.0*PI)*gs[2] ;
 
 #if 0
   /*----- calculate time series corresponding to the given parameters -----*/
   for (it = 0;  it < ts_length;  it++)
-    { 
+    {
       t = x_array[it][1];
       fval = gs[0] * sinf( 2.0f*PI*gs[2]*t + (PI/180.0f)*gs[1] );
       ts_array[it] = fval;	
@@ -125,9 +125,5 @@ void signal_model
     ts_array[it+3] = g0*sinf(g2*x_array[it+3][1]+g1) ;
   }
 #endif
-  
+
 }
-
-
-
-
