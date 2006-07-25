@@ -433,8 +433,9 @@ int new_zeropad_dset ( options_t * opts, THD_3dim_dataset ** dout )
 #endif   /* end chop of new_zeropad_dset() */
 
 /*----------------------------------------------------------------------*/
-int usage ( char * prog, int level )
+int usage ( char * progg, int level )
 {
+    char *prog = THD_trailname(progg,0) ;  /* 25 Jul 2006 - RWCox */
     if ( level == USE_SHORT )
     {
         fprintf( stderr,
