@@ -32,7 +32,7 @@ int main(argc, argv)
     "Usage: %s [-on #] [-off #] [-length #] [-cycles #]\n" , argv[0] ) ;
       fprintf( stderr ,
     "      [-init #] [-onkill #] [-offkill #] [-initkill #] [-name name]\n");
-      ERROR ;
+      exit(0) ;
    }
 
    narg = 1 ;
