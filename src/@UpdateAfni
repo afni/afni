@@ -20,7 +20,7 @@ goto END
 
 
 GetIt:	
-	echo "About to Update AFNI on $MacName.\012Hit enter to continue (ctrl+c to escape)..."
+	echo "About to Update AFNI on $MacName - Hit enter to continue (ctrl+c to escape)..."
 	set buf = $<
 	
 	#make sure target directories exist
@@ -161,18 +161,18 @@ NoDOCDir:
 	goto END
 
 USAGE:
-        echo "\012Usage: `basename $0`"
+        echo "Usage: `basename $0`"
         echo 'Updates AFNI on your computer using wget'
-		  echo '\012If you are using the program for the first time,'
+		  echo 'If you are using the program for the first time,'
 		  echo 'you must add some info about your computer into the script'
 		  echo 'You can easily do so by modifying the template in the block SETDESTIN.'
-		  echo "\012IMPORTANT: Rename this script once you modify it. Otherwise,  "
+		  echo "IMPORTANT: Rename this script once you modify it. Otherwise,  "
 		  echo "it will get overwritten whenever you update your AFNI distribution."
-		  echo "\012Before the update begins, executables from the current version"
+		  echo "Before the update begins, executables from the current version"
 		  echo 'are copied into $localBIN.bak directory'
-		  echo "\012For more info, see:"
+		  echo "For more info, see:"
 		  echo "http://afni.nimh.nih.gov/~cox/afni_wget.html"
-		  echo "\012Ziad Saad (ziad@nih.gov)\012LBC/NIMH/ National Institutes of Health, Bethesda Maryland\012"
+		  echo "Ziad Saad (ziad@nih.gov) SSCC/NIMH/NIH, Bethesda MD USA"
     	  goto END
 
 END:

@@ -312,8 +312,8 @@ int main( int argc , char * argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: Xphace im1 [im2]\n"
-             "Image mergerizing.\n"
-             "Image files are in PGM format.\n") ; exit(0) ;
+             "Interactive image mergerizing via FFTs.\n"
+             "Image files are in PGM or JPEG format.\n") ; exit(0) ;
    }
 
    mainENTRY("Xphace main") ; machdep() ;
