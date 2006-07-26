@@ -615,7 +615,7 @@ int             n_ess = 0;
    fprintf (stderr, "\n with no action and value one for action. More complicated functions are OK.");
    fprintf (stderr, "\n All values should be in the range -32768 to 32767. Any image can");
    fprintf (stderr, "\n be discarded from computation by placing value 33,000 or more");
-   fprintf (stderr, "\n in equivalent line. Plot file of center pixel, made by program FD (using <p>)");
+   fprintf (stderr, "\n in equivalent line. Plot file of center pixel, made by program FD (using 'p')");
    fprintf (stderr, "\n can be used as reference file too. AJ.");
    fprintf (stderr, "\n\n");
    exit(1);
