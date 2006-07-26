@@ -11,6 +11,9 @@ int main( int argc , char * argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dLRflip [-prefix ppp] dataset\n"
              "Flips the Left-to-Right rows of a dataset.\n"
+             "This is useful only in the case where you have\n"
+             "constructed a dataset with the L-R direction\n"
+             "incorrectly labeled.\n"
             ) ;
       exit(0) ;
    }
