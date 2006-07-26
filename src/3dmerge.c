@@ -538,8 +538,15 @@ DUMP1 ;
 void MRG_Syntax(void)
 {
    printf(
-    "Edit and/or merge 3D datasets to a single output dataset, using mean, max,\n"
-    " count, ... and optionally apply thresholding, clustering, filtering, masking\n"
+    "This program has 2 different functions:\n"
+    " (1) To edit 3D datasets in various ways (threshold, blur, cluster, ...);\n"
+    " (2) To merge multiple datasets in various ways (average, max, ...).\n"
+    "Either or both of these can be applied.  The 'editing' operations are\n"
+    "controlled by options that start with '-1', which indicates that they\n"
+    "apply to individual datasets (e.g., '-1blur_fwhm').  The 'merging' operations\n"
+    "are controlled by options that start with '-g', which indicate that they\n"
+    "apply to the entire group of input datasets (e.g., '-gmax').\n"
+    "\n"
     "Usage: 3dmerge [options] datasets ...\n\n"
    ) ;
 
@@ -818,8 +825,7 @@ int main( int argc , char * argv[] )
    int iv, iv_bot, iv_top;      /* dataset sub-brick indices    02 Feb 1998 */
 
    /*----- identify program -----*/
-   printf ("\n\nProgram %s \n", PROGRAM_NAME);
-   printf ("Last revision: %s \n\n", LAST_MOD_DATE);
+   printf ("Program %s \n", PROGRAM_NAME);
 
    /*** read input options ***/
 
