@@ -14,13 +14,16 @@ int main( int argc , char *argv[] )
 
    /*--- get help here or get help somewhere ---*/
 
-   if( argc < 2 ){
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: 3dSpatNorm [options] dataset\n"
             "\n"
             "Options:\n"
             "  -prefix ppp = Write output dataset using 'ppp' for the prefix.\n"
             "  -orig_space = Write output dataset using the same grid as dataset.\n"
             "  -verb       = Write out progress reports\n"
+            "--------------------------------------------------------------------\n"
+            "* This program is obsolete, and should not be used by most people. *\n"
+            "--------------------------------------------------------------------\n"
            ) ;
      exit(0) ;
    }
