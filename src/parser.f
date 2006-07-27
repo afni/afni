@@ -2815,11 +2815,11 @@ C
       DBI = 0.D+0
       RETURN
       END
-      REAL*8 FUNCTION  DGAMMA( X )
-      REAL*8 X
-      CALL QQQERR
-      DGAMMA = 0.D+0
-      RETURN
+ccc      REAL*8 FUNCTION  DGAMMA( X )
+ccc      REAL*8 X
+ccc      CALL QQQERR
+ccc      DGAMMA = 0.D+0
+ccc      RETURN
       END
       REAL*8 FUNCTION  DBESI0( X )
       REAL*8 X
