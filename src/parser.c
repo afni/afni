@@ -4230,18 +4230,15 @@ doublereal dbi_(doublereal *x, integer *i__)
     return ret_val;
 } /* dbi_ */
 
-doublereal dgamma_(doublereal *x)
+/* cc      REAL*8 FUNCTION  DGAMMA( X ) */
+/* cc      REAL*8 X */
+/* cc      CALL QQQERR */
+/* cc      DGAMMA = 0.D+0 */
+/* cc      RETURN */
+/* Main program */ MAIN__(void)
 {
-    /* System generated locals */
-    doublereal ret_val;
-
-    /* Local variables */
-    extern /* Subroutine */ int qqqerr_(void);
-
-    qqqerr_();
-    ret_val = 0.;
-    return ret_val;
-} /* dgamma_ */
+    return 0;
+} /* MAIN__ */
 
 doublereal dbesi0_(doublereal *x)
 {
