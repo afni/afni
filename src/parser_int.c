@@ -255,6 +255,12 @@ doublereal unif_( doublereal * x )  /* 04 Feb 2000 */
    return val ;
 }
 
+doublereal dgamma_( doublereal * x )
+{ double lg,g ;
+  lg = lgamma((double)(*x)); g = signgam*exp(lg);
+  return (doublereal)g ;
+}
+
 /********************************************************************/
 /*** Legendre Polynomials (0 <= mm <= 20 ; -1 <= xx < 1)          ***/
 
