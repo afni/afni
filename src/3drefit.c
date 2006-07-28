@@ -178,6 +178,7 @@ void Syntax(char *str)
     "                  to change such an attribute, you have to use the\n"
     "                  corresponding 3drefit option directly or use the \n"
     "                  -saveatr option.\n"
+    "\n"
     "                  If you are confused, try to understand this: \n"
     "                  Option -atrcopy was never intended to modify AFNI-\n"
     "                  specific attributes. Rather, it was meant to copy\n"
@@ -188,6 +189,9 @@ void Syntax(char *str)
     "                  take effect in the output, the option -saveatr was added.\n"
     "                  Contact Daniel Glen and/or Rick Reynolds for further \n"
     "                  clarification and any other needs you may have.\n"
+    "\n"
+    "                  Do NOT use -atrcopy or -atrstring with other modification\n"
+    "                  options.\n"
     "\n"
     "  -atrstring n 'x' Copy the string 'x' into the dataset(s) being\n"
     "                   modified, giving it the attribute name 'n'.\n"
@@ -345,6 +349,8 @@ int main( int argc , char * argv[] )
    int   num_atrcopy = 0 ;    /* 03 Aug 2005 */
    ATR_any **atrcopy = NULL ;
    int saveatr = 1;
+   int atrmod = 0;  /* if no ATR is modified, don't overwrite normal changes */
+                                                      /* 28 Jul 2006 [rickr] */
 
    /*-------------------------- help me if you can? --------------------------*/
 
@@ -388,7 +394,7 @@ int main( int argc , char * argv[] )
                                        sizeof(ATR_any *)*(num_atrcopy+1) ) ;
         atrcopy[num_atrcopy++] = THD_copy_atr( atr ) ;
         /* atr_print( atr, NULL , NULL, '\0', 1) ;  */
-        DSET_delete(qset) ; new_stuff++ ;
+        DSET_delete(qset) ; atrmod = 1;  /* replaced new_stuff   28 Jul 2006 rcr */
 
        atrcopy_done:
         iarg++ ; continue ;
@@ -419,7 +425,7 @@ int main( int argc , char * argv[] )
                                        sizeof(ATR_any *)*(num_atrcopy+1) ) ;
         atrcopy[num_atrcopy++] = (ATR_any *)atr ;
 
-        new_stuff++ ;
+        atrmod = 1;  /* replaced new_stuff++   28 Jul 2006 [rickr] */
        atrstring_done:
         iarg++ ; continue ;
       }
@@ -1030,7 +1036,12 @@ int main( int argc , char * argv[] )
 
    /*-- some checks for erroneous inputs --*/
 
-   if( new_stuff == 0 ) Syntax("No options given!?") ;
+   if( new_stuff == 0 && atrmod == 0 ) Syntax("No options given!?") ;
+   if( new_stuff == 1 && atrmod == 1 ){       /* 28 Jul 2006 [rickr] */
+      fprintf(stderr,"** Cannot use -atrcopy or -atrstring with other "
+                     "modification options.\n");
+      Syntax("Illegal attribute syntax.");
+   }
    if( iarg >= argc   ) Syntax("No datasets given!?") ;
 
    if( xyzscale != 0.0f &&
@@ -1517,7 +1528,8 @@ int main( int argc , char * argv[] )
       }
 
       /* Do we want to force new attributes into output ? ZSS Jun 06*/
-      if (saveatr)
+      /* (only if -atrcopy or -atrstring)       28 Jul 2006 [rickr] */
+      if ( saveatr && atrmod )
        THD_datablock_from_atr(dset->dblk , DSET_DIRNAME(dset) ,
                               dset->dblk->diskptr->header_name);
 
