@@ -1615,3 +1615,7 @@
   * modified thd_niml.c:
       - added COLMS_RANGE attribute element
       - use AFNI_NI_DEBUG as an integer level (as usual)
+
+28 Jul 2006:
+  * modified 3drefit.c: fixed saveatr use, and blocked atr mods with other mods
+
