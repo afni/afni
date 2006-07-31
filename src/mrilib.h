@@ -1202,7 +1202,16 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 typedef GA_warpfunc( int, float *,
                      int, float *,float *,float *, float *,float *,float * );
 
-typedef MRI_warp3D_param_def GA_param ;
+#if 0
+  typedef struct {
+    float min, max, ident, delta, toler ;
+    float val_init , val_out , val_fixed ;
+    int fixed ;
+    char name[32] ;
+  }  GA_param ;
+#else
+  typedef MRI_warp3D_param_def GA_param ;
+#endif
 
 typedef struct {
   int match_code  ;            /* set by user */
