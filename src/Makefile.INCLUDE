@@ -69,7 +69,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 1ddot 1dsvd        \
            3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat         \
            3dSpatNorm Imon fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive   \
-           nifti_tool nifti_stats nifti1_test whereami plugout_drive            \
+           nifti_tool             nifti1_test whereami plugout_drive            \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \
            3dTwotoComplex 3dInvFMRI 3dmatcalc                                   \
@@ -96,7 +96,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 3dUniformize    \
                   3dWarp nicat 3dSpatNorm 3dWarpDrive 3dretroicor ge_header         \
                   3dAFNItoRaw DTIStudioFibertoSegments im2niml 3dLocalstat 3dGetrow \
-                  Imon nifti_tool nifti_stats nifti1_test Dimon 3danisosmooth       \
+                  Imon nifti_tool             nifti1_test Dimon 3danisosmooth       \
                   3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc             \
                   $(EXTRAS)
 
@@ -136,7 +136,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @CheckForAfniDset @clip_volume @AfniOrient2RAImap @parse_afni_name      \
           @auto_align @auto_tlrc @FromRAI @ToRAI @AfniOrientSign @VolCenter       \
           @Center_Distance @fix_FSsphere @parse_name @align_partial_oblique       \
-          @np 3dMax @IsoMasks @SUMA_Make_Spec_Caret 
+          @np 3dMax @IsoMasks @SUMA_Make_Spec_Caret
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h       \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h        \
@@ -1078,11 +1078,11 @@ iochan_relay:iochan_relay.o
 #THE OLDE WAY, DISCARD WHEN READY
 SUMA_DataSets_NS.o: SUMA/SUMA_DataSets.c
 	$(RM) $@
-	$(CC) -c SUMA/SUMA_DataSets.c -o $@ -ISUMA/ $(INFLAGS) 
+	$(CC) -c SUMA/SUMA_DataSets.c -o $@ -ISUMA/ $(INFLAGS)
 
 SUMA_Algorithms_NS.o: SUMA/SUMA_Algorithms.c
 	$(RM) $@
-	$(CC) -c SUMA/SUMA_Algorithms.c -o $@ -ISUMA/ $(INFLAGS) 
+	$(CC) -c SUMA/SUMA_Algorithms.c -o $@ -ISUMA/ $(INFLAGS)
 
 TestDsetIO: SUMA/SUMA_TestDsetIO.c SUMA_Algorithms_NS.o SUMA_DataSets.o
 	$(RM) $@
@@ -1091,17 +1091,17 @@ TestDsetIO: SUMA/SUMA_TestDsetIO.c SUMA_Algorithms_NS.o SUMA_DataSets.o
 
 suma_datasets.o: suma_datasets.c
 	$(RM) $@
-	$(CC) -c suma_datasets.c -o $@ -ISUMA/ $(INFLAGS) 
+	$(CC) -c suma_datasets.c -o $@ -ISUMA/ $(INFLAGS)
 
 suma_algorithms.o: suma_algorithms.c
 	$(RM) $@
-	$(CC) -c suma_algorithms.c -o $@ -ISUMA/ $(INFLAGS) 
+	$(CC) -c suma_algorithms.c -o $@ -ISUMA/ $(INFLAGS)
 
 testdsetio: SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_algorithms.o
 	$(RM) $@
 	$(CC) -o testdsetio SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_algorithms.o \
             -ISUMA/ $(INFLAGS) $(AFWARPOBJS) $(LFLAGS) -lrickr $(LLIBS)
-    
+
 ### Sort of clean
 
 clean:
@@ -1369,7 +1369,8 @@ CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_addto_args.o multivector.o afni_environ.o cs_qmed.o          \
            cs_sort_fv.o cs_laguerre.o machdep.o cs_qhull.o afni_logger.o   \
            afni_suma.o vol2surf.o cl1.o nifti1_io.o znzlib.o cs_misc.o     \
-           list_struct.o nifti_statlib.o powell_int.o powell_newuoa.o
+           list_struct.o nifti_statlib.o powell_int.o powell_newuoa.o      \
+           nifti_stats.o
 
 EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
            eis_bandv.o eis_bisect.o eis_bqr.o eis_cbabk2.o eis_cbal.o      \
@@ -2033,13 +2034,13 @@ znzlib.o:nifti/znzlib/znzlib.c nifti/znzlib/znzlib.h
 	$(RM) $@
 	$(CC) -c nifti/znzlib/znzlib.c $(INFLAGS)
 
+nifti_stats.o:nifti/utils/nifti_stats.c
+	$(RM) $@
+	$(CC) -c nifti/utils/nifti_stats.c $(INFLAGS) -DOMIT_MAIN
+
 nifti_statlib.o:nifti/utils/nifti_stats.c nifti_statlib.c
 	$(RM) $@
 	$(CC) -c nifti_statlib.c -Inifti/utils $(INFLAGS)
-
-nifti_stats.o:nifti/utils/nifti_stats.c
-	$(RM) $@
-	$(CC) -c nifti/utils/nifti_stats.c $(INFLAGS)
 
 nifti_stats:nifti_stats.o
 	$(RM) $@

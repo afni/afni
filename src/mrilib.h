@@ -1262,5 +1262,15 @@ typedef struct {
  } while(0)
 
 /*------------------------------------------------------------------*/
+/* Prototypes for unctions in nifti_stats.c */
+
+extern int nifti_intent_code    ( char * ) ;
+extern double nifti_stat2cdf    ( double, int, double,double,double ) ;
+extern double nifti_stat2rcdf   ( double, int, double,double,double ) ;
+extern double nifti_cdf2stat    ( double, int, double,double,double ) ;
+extern double nifti_rcdf2stat   ( double, int, double,double,double ) ;
+extern double nifti_stat2zscore ( double, int, double,double,double ) ;
+extern double nifti_stat2hzscore( double, int, double,double,double ) ;
+/*------------------------------------------------------------------*/
 
 #endif /* _MCW_MRILIB_HEADER_ */

@@ -262,6 +262,28 @@ doublereal dgamma_( doublereal * x )
 }
 
 /********************************************************************/
+extern double nifti_cdf2stat(double,int,double,double,double) ;
+extern double nifti_stat2cdf(double,int,double,double,double) ;
+
+doublereal cdf2st_( doublereal *v  , doublereal *cod,
+                    doublereal *p1 , doublereal *p2 , doublereal *p3 )
+{
+   double r ;
+   r = nifti_cdf2stat( (double)(*v) , (int)(*cod) ,
+                       (double)(*p1) , (double)(*p2) , (double)(*p3) ) ;
+   return (doublereal)r ;
+}
+
+doublereal st2cdf_( doublereal *v  , doublereal *cod,
+                    doublereal *p1 , doublereal *p2 , doublereal *p3 )
+{
+   double r ;
+   r = nifti_stat2cdf( (double)(*v) , (int)(*cod) ,
+                       (double)(*p1) , (double)(*p2) , (double)(*p3) ) ;
+   return (doublereal)r ;
+}
+
+/********************************************************************/
 /*** Legendre Polynomials (0 <= mm <= 20 ; -1 <= xx < 1)          ***/
 
 doublereal legendre_( doublereal *mm , doublereal *xx )

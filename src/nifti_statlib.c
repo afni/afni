@@ -2,12 +2,6 @@
 /**** NOT FINISHED YET!!!! ****/
 /******************************/
 
-/****************************************************************************/
-/**** Get the actual statistcal calculation functions from nifti_stats.c ****/
-
-#define OMIT_MAIN
-#include "nifti_stats.c"
-
 /*--------------------------------------------------------------------------*/
 /*! Replacement for THD_stat_to_pval().
      - NIfTI correlation has 1 DOF param, AFNI has 3
