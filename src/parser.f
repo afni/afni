@@ -827,7 +827,7 @@ C
       REAL*8 DAI,DBI , DGAMMA ,
      X       DBESI0,DBESI1 , DBESJ0,DBESJ1 , DBESK0,DBESK1 ,
      X       DBESY0,DBESY1 ,
-     X       DERF,DERFC
+     X       DERF,DERFC , CDF2ST , ST2CDF
 C
 C  Statistics functions (01 Mar 1999 - see parser_int.c)
 C
@@ -1075,6 +1075,21 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'ZTONE' )THEN
             R8_EVAL(NEVAL) = ZTONE( R8_EVAL(NEVAL) )
 C.......................................................................
+         ELSEIF( CNCODE .EQ. 'CDF2STAT' )THEN
+            NEVAL = NEVAL - 4
+            R8_EVAL(NEVAL) = CDF2ST( R8_EVAL(NEVAL)   ,
+     X                               R8_EVAL(NEVAL+1) ,
+     X                               R8_EVAL(NEVAL+2) ,
+     X                               R8_EVAL(NEVAL+3) ,
+     X                               R8_EVAL(NEVAL+4)  )
+         ELSEIF( CNCODE .EQ. 'STAT2CDF' )THEN
+            NEVAL = NEVAL - 4
+            R8_EVAL(NEVAL) = ST2CDF( R8_EVAL(NEVAL)   ,
+     X                               R8_EVAL(NEVAL+1) ,
+     X                               R8_EVAL(NEVAL+2) ,
+     X                               R8_EVAL(NEVAL+3) ,
+     X                               R8_EVAL(NEVAL+4)  )
+C.......................................................................
          ELSEIF( CNCODE .EQ. 'NOTZERO' )THEN
             R8_EVAL(NEVAL) = BOOL( R8_EVAL(NEVAL) )
          ELSEIF( CNCODE .EQ. 'ISZERO' )THEN
@@ -1312,7 +1327,7 @@ C
       REAL*8 DAI,DBI , DGAMMA ,
      X       DBESI0,DBESI1 , DBESJ0,DBESJ1 , DBESK0,DBESK1 ,
      X       DBESY0,DBESY1 ,
-     X       DERF,DERFC
+     X       DERF,DERFC , CDF2ST , ST2CDF
 C
 C  Statistics functions (01 Mar 1999 - see parser_int.c)
 C
@@ -1852,6 +1867,25 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'ZTONE' )THEN
             DO IV=IVBOT,IVTOP
                R8_EVAL(IV-IBV,NEVAL) = ZTONE( R8_EVAL(IV-IBV,NEVAL) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'CDF2STAT' )THEN
+            NEVAL = NEVAL - 4
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = CDF2ST( R8_EVAL(IV-IBV,NEVAL)   ,
+     X                                        R8_EVAL(IV-IBV,NEVAL+1) ,
+     X                                        R8_EVAL(IV-IBV,NEVAL+2) ,
+     X                                        R8_EVAL(IV-IBV,NEVAL+3) ,
+     X                                        R8_EVAL(IV-IBV,NEVAL+4)  )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'STAT2CDF' )THEN
+            NEVAL = NEVAL - 4
+            DO IV=IVBOT,IVTOP
+              R8_EVAL(IV-IBV,NEVAL) = ST2CDF( R8_EVAL(IV-IBV,NEVAL)   ,
+     X                                        R8_EVAL(IV-IBV,NEVAL+1) ,
+     X                                        R8_EVAL(IV-IBV,NEVAL+2) ,
+     X                                        R8_EVAL(IV-IBV,NEVAL+3) ,
+     X                                        R8_EVAL(IV-IBV,NEVAL+4)  )
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'NOTZERO' )THEN

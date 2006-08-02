@@ -9,29 +9,29 @@
 
 static integer c__3 = 3;
 static integer c__1 = 1;
-static doublereal c_b384 = 0.;
-static doublereal c_b398 = 1.;
-static doublereal c_b399 = 2.;
-static doublereal c_b400 = 3.;
-static doublereal c_b401 = 4.;
-static doublereal c_b402 = 5.;
-static doublereal c_b403 = 6.;
-static doublereal c_b404 = 7.;
-static doublereal c_b405 = 8.;
-static doublereal c_b406 = 9.;
-static doublereal c_b407 = 10.;
-static doublereal c_b408 = 11.;
-static doublereal c_b409 = 12.;
+static doublereal c_b388 = 0.;
+static doublereal c_b402 = 1.;
+static doublereal c_b403 = 2.;
+static doublereal c_b404 = 3.;
+static doublereal c_b405 = 4.;
+static doublereal c_b406 = 5.;
+static doublereal c_b407 = 6.;
+static doublereal c_b408 = 7.;
+static doublereal c_b409 = 8.;
+static doublereal c_b410 = 9.;
+static doublereal c_b411 = 10.;
+static doublereal c_b412 = 11.;
+static doublereal c_b413 = 12.;
 
 /* Subroutine */ int parser_(char *c_expr__, logical *l_print__, integer *
 	num_code__, char *c_code__, ftnlen c_expr_len, ftnlen c_code_len)
 {
     /* Initialized data */
 
-    static integer n_funcargs__[99] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,
-	    2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,2,1,1,1,-1,
-	    4,4,4,2,2,2,3,3,3,1,1,1,2,2,2,3,3,3,3,3,3,3,3,3,2,2,2,1,-1,-1,2,1,
-	    1,1,1,-1,1,-1,-1,-1,1,1,2,1,1,-1,-1,-1,2 };
+    static integer n_funcargs__[101] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,
+	    1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,2,1,1,1,
+	    -1,4,4,4,2,2,2,3,3,3,1,1,1,2,2,2,3,3,3,3,3,3,3,3,3,2,2,2,1,-1,-1,
+	    2,1,1,1,1,-1,1,-1,-1,-1,1,1,2,1,1,-1,-1,-1,2,5,5 };
 
     /* Format strings */
     static char fmt_9001[] = "(\002 PARSER error\002,i4,\002: \002,a/1x,a/80"
@@ -615,7 +615,7 @@ L9000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*100] = "SIN                             " 
+    static char c_funcname__[32*102] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -669,7 +669,9 @@ L9000:
 	    "          " "ISPOSITIVE                      " "ISNEGATIVE      "
 	    "                " "MEAN                            " "STDEV     "
 	    "                      " "SEM                             " "PLEG"
-	    "                            " "DUMMY                           ";
+	    "                            " "CDF2STAT                        " 
+	    "STAT2CDF                        " "DUMMY                       "
+	    "    ";
 
     /* Builtin functions */
     /* Subroutine */ int s_copy(char *, char *, ftnlen, ftnlen);
@@ -764,7 +766,7 @@ L8000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*100] = "SIN                             " 
+    static char c_funcname__[32*102] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -818,7 +820,9 @@ L8000:
 	    "          " "ISPOSITIVE                      " "ISNEGATIVE      "
 	    "                " "MEAN                            " "STDEV     "
 	    "                      " "SEM                             " "PLEG"
-	    "                            " "DUMMY                           ";
+	    "                            " "CDF2STAT                        " 
+	    "STAT2CDF                        " "DUMMY                       "
+	    "    ";
 
     /* Format strings */
     static char fmt_5501[] = "(\002(F\002,i1,\002.0)\002)";
@@ -972,7 +976,7 @@ L120:
 */
 
 	ifunc = 1;
-	s_copy(c_funcname__ + 3168, c_id__, 32L, 32L);
+	s_copy(c_funcname__ + 3232, c_id__, 32L, 32L);
 L210:
 	if (! (s_cmp(c_id__, c_funcname__ + (ifunc - 1 << 5), 32L, 32L) != 0))
 		 {
@@ -981,7 +985,7 @@ L210:
 	++ifunc;
 	goto L210;
 L220:
-	if (ifunc <= 99) {
+	if (ifunc <= 101) {
 /* !it is a function */
 	    *ntype = 1008;
 	    *value = (doublereal) ifunc;
@@ -1257,7 +1261,10 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
 	    doublereal *), dbesj1_(doublereal *), dbesk0_(doublereal *), 
 	    dbesk1_(doublereal *);
 #define c8_val__ ((char *)equiv_0)
-    extern doublereal dbesy0_(doublereal *), dbesy1_(doublereal *);
+    extern doublereal cdf2st_(doublereal *, doublereal *, doublereal *, 
+	    doublereal *, doublereal *), dbesy0_(doublereal *), dbesy1_(
+	    doublereal *), st2cdf_(doublereal *, doublereal *, doublereal *, 
+	    doublereal *, doublereal *);
 #define r8_val__ (equiv_0)
     extern doublereal dgamma_(doublereal *), qg_(doublereal *);
     static char cncode[8];
@@ -1619,6 +1626,18 @@ L1000:
 	r8_eval__[neval - 1] = ztone_(&r8_eval__[neval - 1]);
 /* ...................................................................
 .... */
+    } else if (s_cmp(cncode, "CDF2STAT", 8L, 8L) == 0) {
+	neval += -4;
+	r8_eval__[neval - 1] = cdf2st_(&r8_eval__[neval - 1], &r8_eval__[
+		neval], &r8_eval__[neval + 1], &r8_eval__[neval + 2], &
+		r8_eval__[neval + 3]);
+    } else if (s_cmp(cncode, "STAT2CDF", 8L, 8L) == 0) {
+	neval += -4;
+	r8_eval__[neval - 1] = st2cdf_(&r8_eval__[neval - 1], &r8_eval__[
+		neval], &r8_eval__[neval + 1], &r8_eval__[neval + 2], &
+		r8_eval__[neval + 3]);
+/* ...................................................................
+.... */
     } else if (s_cmp(cncode, "NOTZERO", 8L, 7L) == 0) {
 	r8_eval__[neval - 1] = bool_(&r8_eval__[neval - 1]);
     } else if (s_cmp(cncode, "ISZERO", 8L, 6L) == 0) {
@@ -1891,7 +1910,10 @@ L8000:
 	    doublereal *), dbesj1_(doublereal *), dbesk0_(doublereal *), 
 	    dbesk1_(doublereal *);
 #define c8_val__ ((char *)equiv_0)
-    extern doublereal dbesy0_(doublereal *), dbesy1_(doublereal *);
+    extern doublereal cdf2st_(doublereal *, doublereal *, doublereal *, 
+	    doublereal *, doublereal *), dbesy0_(doublereal *), dbesy1_(
+	    doublereal *), st2cdf_(doublereal *, doublereal *, doublereal *, 
+	    doublereal *, doublereal *);
 #define r8_val__ (equiv_0)
     static integer jf;
     extern doublereal dgamma_(doublereal *);
@@ -2753,6 +2775,28 @@ L1000:
 	    }
 /* ...............................................................
 ........ */
+	} else if (s_cmp(cncode, "CDF2STAT", 8L, 8L) == 0) {
+	    neval += -4;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = cdf2st_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6) 
+			- 65], &r8_eval__[iv - ibv + (neval + 4 << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "STAT2CDF", 8L, 8L) == 0) {
+	    neval += -4;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = st2cdf_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6) 
+			- 65], &r8_eval__[iv - ibv + (neval + 4 << 6) - 65]);
+	    }
+/* ...............................................................
+........ */
 	} else if (s_cmp(cncode, "NOTZERO", 8L, 7L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3349,7 +3393,7 @@ doublereal iran_(doublereal *top)
 /*  Return an integer uniformly distributed among 0..TOP */
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
-    d__1 = (*top + 1.) * unif_(&c_b384);
+    d__1 = (*top + 1.) * unif_(&c_b388);
     ret_val = d_int(&d__1);
     return ret_val;
 } /* iran_ */
@@ -3374,7 +3418,7 @@ doublereal eran_(doublereal *top)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 L100:
-    u1 = unif_(&c_b384);
+    u1 = unif_(&c_b388);
     if (u1 <= 0.) {
 	goto L100;
     }
@@ -3402,7 +3446,7 @@ doublereal lran_(doublereal *top)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 L100:
-    u1 = unif_(&c_b384);
+    u1 = unif_(&c_b388);
     if (u1 <= 0. || u1 >= 1.) {
 	goto L100;
     }
@@ -3426,7 +3470,7 @@ doublereal uran_(doublereal *x)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    ret_val = *x * unif_(&c_b384);
+    ret_val = *x * unif_(&c_b388);
     return ret_val;
 } /* uran_ */
 
@@ -3458,11 +3502,11 @@ doublereal gran2_(doublereal *b, doublereal *s)
 
     if (ip == 0) {
 L100:
-	u1 = unif_(&c_b384);
+	u1 = unif_(&c_b388);
 	if (u1 <= 0.) {
 	    goto L100;
 	}
-	u2 = unif_(&c_b384);
+	u2 = unif_(&c_b388);
 	ret_val = *b + *s * sqrt(log(u1) * -2.) * sin(u2 * 6.2831853);
 	ip = 1;
     } else {
@@ -3487,10 +3531,10 @@ doublereal gran1_(doublereal *b, doublereal *s)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    g = unif_(&c_b398) - 6. + unif_(&c_b399) + unif_(&c_b400) + unif_(&c_b401)
-	     + unif_(&c_b402) + unif_(&c_b403) + unif_(&c_b404) + unif_(&
-	    c_b405) + unif_(&c_b406) + unif_(&c_b407) + unif_(&c_b408) + 
-	    unif_(&c_b409);
+    g = unif_(&c_b402) - 6. + unif_(&c_b403) + unif_(&c_b404) + unif_(&c_b405)
+	     + unif_(&c_b406) + unif_(&c_b407) + unif_(&c_b408) + unif_(&
+	    c_b409) + unif_(&c_b410) + unif_(&c_b411) + unif_(&c_b412) + 
+	    unif_(&c_b413);
     ret_val = *b + *s * g;
     return ret_val;
 } /* gran1_ */
@@ -3511,7 +3555,7 @@ doublereal gran_(doublereal *b, doublereal *s)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    uu = unif_(&c_b384);
+    uu = unif_(&c_b388);
     if (uu <= .5) {
 	ret_val = gran1_(b, s);
     } else {
