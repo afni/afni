@@ -1405,6 +1405,11 @@ void CALC_Syntax(void)
     " may wish to use program '3drefit' to modify the dataset statistical\n"
     " auxiliary parameters.)\n"
     "\n"
+    " The two functions below use the NIfTI-1 statistical codes to\n"
+    " map between statistical values and cumulative distribution values:\n"
+    "   cdf2stat(val,code,p1,p2,3)\n"
+    "   stat2cdf(val,code,p1,p2,3)\n"
+    "\n"
     " Computations are carried out in double precision before being\n"
     " truncated to the final output 'datum'.\n"
     "\n"
@@ -1577,7 +1582,7 @@ int main( int argc , char *argv[] )
 
       /* 30 April 1998: only malloc output space as it is needed */
 
-      buf[kt] = (float *) malloc(tempsiz);
+      buf[kt] = (float *)calloc(1,tempsiz);
       if( buf[kt] == NULL )
         ERROR_exit("Can't malloc output dataset sub-brick %d!\n",kt) ;
 
