@@ -1619,3 +1619,20 @@
 28 Jul 2006:
   * modified 3drefit.c: fixed saveatr use, and blocked atr mods with other mods
 
+03 Aug 2006: updates for writing niml files as NI_SURF_DSET
+  * modified thd_niml.c:
+      - added ni_globals struct to deal with debug and write_mode
+      - added and used set_ni_globs_from_env() for assigning those globals
+      - added set_sparse_data_attribs()
+      - added set/get access functions for globals debug and write_mode
+  * modified 3dvol2surf.c
+      - added v2s_write_outfile_NSD(), and use it instead of _niml()
+      - remove unused code in dump_surf_3dt()
+      - added static set_output_labels()
+      - allocate labels array in alloc_output_mem()
+      - free labels and labels array in free_v2s_results()
+  * modified 3dvol2surf.h: added labels and nlab to v2s_results struct
+  * modified SUMA_3dVol2Surf.c: use v2s_write_outfile_NSD, instead of _niml()
+  * modified 3ddata.h
+      - added protos for ni_globs functions and set_sparse_data_attribs()
+

@@ -325,7 +325,7 @@ ENTRY("write_output");
         rv = v2s_write_outfile_1D(sopt, sd, p->surf[0].label);
 
     if ( sd && !rv && sopt->outfile_niml )
-        rv = v2s_write_outfile_niml(sopt, sd, 1); /* request to free data */
+        rv = v2s_write_outfile_NSD(sd, sopt, p, 1); /* request to free data */
 
     free_v2s_results( sd );
     sd = NULL;

@@ -83,6 +83,7 @@ char gv2s_history[] =
 
 #include "mrilib.h"
 #include "vol2surf.h"
+#include "suma_suma.h"
 
 /*----------------------------------------------------------------------*/
 /* local typedefs                                                       */
@@ -146,6 +147,8 @@ static int    set_3dmm_bounds(THD_3dim_dataset *dset, THD_fvec3 *min,
                               THD_fvec3 *max);
 static int    set_all_surf_vals (v2s_results * sd, int node_ind, int vind,
                                  int i, int j, int k, float fval);
+static int    set_output_labels(v2s_results * sd, v2s_param_t * p,
+                                v2s_opts_t * sopt);
 static int    set_surf_results(v2s_param_t *p, v2s_opts_t *sopt,v2s_results *sd,
                                range_3dmm_res * r3res, int node, int findex);
 static int    segment_imarr(range_3dmm_res *res,range_3dmm *R,v2s_opts_t *sopt,
@@ -246,7 +249,7 @@ ENTRY("afni_vol2surf");
         if ( THD_is_file(sopt->outfile_niml) )
             fprintf(stderr,"** over-writing niml output file '%s'\n",
                     sopt->outfile_niml);
-        v2s_write_outfile_niml(sopt, res, 0);
+        v2s_write_outfile_NSD(res, sopt, &P, 0);
     }
 
     RETURN(res);
@@ -391,8 +394,8 @@ static int dump_surf_3dt( v2s_opts_t * sopt, v2s_param_t * p, v2s_results * sd )
     range_3dmm       r3mm;
     float            dist, min_dist, max_dist;
     FILE           * coord_fp = NULL;
-    int              sub, subs, nindex, findex = 0;
-    int              oobc, oomc, max_index;
+    int              sub, nindex, findex = 0;
+    int              oobc, oomc;
     int              oob1, oob2;
 
 ENTRY("dump_surf_3dt");
@@ -412,7 +415,6 @@ ENTRY("dump_surf_3dt");
     }
 
     /* note the number of sub-bricks, unless the user has given just one */
-    subs = sopt->gp_index >= 0 ? 1 : DSET_NVALS(p->gpar);
     init_range_structs( &r3mm, &r3mm_res );                 /* to empty */
     r3mm.dset = p->gpar;
     set_3dmm_bounds( p->gpar, &r3mm.dset_min, &r3mm.dset_max );
@@ -432,9 +434,6 @@ ENTRY("dump_surf_3dt");
 
     for ( nindex = sopt->first_node; nindex <= sopt->last_node; nindex++ )
     {
-        /* init default max for oob and oom cases */
-        max_index = p->over_steps ? sopt->f_steps : subs;
-
         init_seg_endpoints(sopt, p, &r3mm, nindex);    /* segment endpoints */
         v2s_adjust_endpts( sopt, &r3mm.p1, &r3mm.pn );
 
@@ -529,6 +528,9 @@ ENTRY("dump_surf_3dt");
                  oobc, oomc, sopt->last_node - sopt->first_node + 1);
     }
 
+    /* set up the labels before leaving */
+    set_output_labels(sd, p, sopt);
+
     /* close any coord file */
     if ( coord_fp ) fclose( coord_fp );
 
@@ -538,6 +540,54 @@ ENTRY("dump_surf_3dt");
         free(r3mm_res.ims.imarr);
         free(r3mm_res.i3arr);
         r3mm_res.ims.nall = 0;
+    }
+
+    RETURN(0);
+}
+
+
+/***********************************************************************
+ * copy labels to v2s_results struct
+ ***********************************************************************
+*/
+static int set_output_labels(v2s_results * sd, v2s_param_t * p,
+                             v2s_opts_t * sopt)
+{
+    int  c, nl;
+    char str[32];
+
+ENTRY("set_output_labels");
+
+    if(!sd->labels){ fprintf(stderr,"** SOL: NULL labels!\n"); RETURN(1); }
+
+    if( sopt->gp_index >= 0 || p->over_steps )  /* get one label */
+    {
+        if(sd->nlab != 1) fprintf(stderr,"** SOL: too many labels\n");
+        nl = sopt->gp_index >= 0 ? sopt->gp_index : 0;
+        if( !p->gpar->dblk->brick_lab || !p->gpar->dblk->brick_lab[nl] )
+        {
+            sprintf(str,"volume #%d\n",nl);
+            sd->labels[0] = strdup(str);
+        }
+        else
+            sd->labels[0] = strdup(p->gpar->dblk->brick_lab[nl]);
+    }
+    else /* use all sub-brick labels */
+    {
+        nl = DSET_NVALS(p->gpar);
+        if(sd->nlab != nl)
+            fprintf(stderr,"** SOL: %d labels != %d\n", sd->nlab, nl);
+        if(nl > sd->nlab) nl = sd->nlab;
+        for( c = 0; c < nl; c++ )
+        {
+            if( !p->gpar->dblk->brick_lab || !p->gpar->dblk->brick_lab[c] )
+            {
+                sprintf(str,"volume #%d\n",c);
+                sd->labels[c] = strdup(str);
+            }
+            else
+                sd->labels[c] = strdup(p->gpar->dblk->brick_lab[c]);
+        }
     }
 
     RETURN(0);
@@ -1364,8 +1414,9 @@ ENTRY("allocate_output_mem");
     }
 
     /* explicitly initialize all pointers with NULL */
-    sd->nodes = sd->volind = sd->i = sd->j = sd->k = sd->nvals = NULL;
-    sd->vals  = NULL;
+    sd->nodes  = sd->volind = sd->i = sd->j = sd->k = sd->nvals = NULL;
+    sd->vals   = NULL;
+    sd->labels = NULL;
  
     /* rcr - eventually, this may not apply */
     if ( sopt->first_node <  0      ) sopt->first_node = 0;
@@ -1389,6 +1440,16 @@ ENTRY("allocate_output_mem");
         free(sd);
         RETURN(NULL);
     }
+
+    /* allocate labels array */
+    if( sd->max_vals == 1 || p->over_steps )
+        { sd->nlab = 1;  sd->labels = (char **)malloc(sizeof(char *)); }
+    else
+    {
+        sd->nlab = sd->max_vals;
+        sd->labels = (char **)malloc(sd->nlab * sizeof(char *));
+    }
+    if(!sd->labels){ fprintf(stderr,"** AOM malloc failure\n"); rv = 1; }
 
     sd->memory   = 0;
 
@@ -1414,7 +1475,7 @@ ENTRY("allocate_output_mem");
 
     /* okay, this time let's allocate something... */
 
-    if ( ! (sopt->skip_cols & V2S_SKIP_NODES) )
+    if ( ! rv && ! (sopt->skip_cols & V2S_SKIP_NODES) )
         rv = alloc_ints(&sd->nodes, sd->nalloc, "nodes", sopt->debug);
 
     if ( ! rv && ! (sopt->skip_cols & V2S_SKIP_VOLIND) )
@@ -1872,29 +1933,38 @@ ENTRY("disp_v2s_plugin_opts");
 int free_v2s_results( v2s_results * sd )
 {
     int c;
-                                                                                
+
 ENTRY("free_v2s_results");
 
     if( ! sd ) RETURN(0);
-                                                                                
+
     if (sd->nodes)  { free(sd->nodes);   sd->nodes  = NULL; }
     if (sd->volind) { free(sd->volind);  sd->volind = NULL; }
     if (sd->i)      { free(sd->i);       sd->i      = NULL; }
     if (sd->j)      { free(sd->j);       sd->j      = NULL; }
     if (sd->k)      { free(sd->k);       sd->k      = NULL; }
     if (sd->nvals)  { free(sd->nvals);   sd->nvals  = NULL; }
-                                                                                
+
     if (sd->vals)
     {
         for ( c = 0; c < sd->max_vals; c++ )
             if ( sd->vals[c] ) { free(sd->vals[c]);  sd->vals[c] = NULL; }
-                                                                                
+
         free(sd->vals);
         sd->vals = NULL;
     }
 
+    if (sd->labels && sd->nlab > 0)
+    {
+        for ( c = 0; c < sd->nlab; c++ )
+            if ( sd->labels[c] ) { free(sd->labels[c]); sd->labels[c] = NULL; }
+
+        free(sd->labels);
+        sd->labels = NULL;
+    }
+
     free(sd);
-                                                                                
+
     RETURN(0);
 }
 
@@ -2299,7 +2369,8 @@ ENTRY("v2s_write_outfile_1D");
  *                              - free data pointers as we go
  *----------------------------------------------------------------------
 */
-int v2s_write_outfile_niml ( v2s_opts_t * sopt, v2s_results * sd, int free_vals){
+int v2s_write_outfile_niml ( v2s_opts_t * sopt, v2s_results * sd, int free_vals)
+{
     static char   v2s_name[] = "3dVol2Surf_dataset";
     NI_element  * nel = NULL;
     NI_stream     ns;
@@ -2342,6 +2413,60 @@ ENTRY("v2s_write_outfile_niml");
     NI_free_element( nel );
     NI_stream_close( ns );
     free(ni_name);
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * v2s_write_outfile_NSD        - write results to NI_SURF_DSET file
+ *----------------------------------------------------------------------
+*/
+int v2s_write_outfile_NSD(v2s_results *sd, v2s_opts_t * sopt, 
+                          v2s_param_t * p, int free_vals)
+{
+    SUMA_DSET  * sdset;
+    NI_element * nel;
+    void      ** elist = NULL;
+    char         * oname;
+    int          c, rv;
+
+ENTRY("v2s_write_outfile_NSD");
+
+    if ( !sd || !p || !sopt || !sopt->outfile_niml ) RETURN(1);
+
+    /* create an empty dataset without an idcode or domain string */
+    sdset = SUMA_CreateDsetPointer(sopt->outfile_niml, SUMA_NODE_BUCKET,
+                                   NULL, NULL, sd->nused);
+    /* add node indices */
+    rv = SUMA_AddDsetNelCol(sdset, "Node Indices", SUMA_NODE_INDEX,
+                            (void *)sd->nodes, NULL, 1);
+    if( !rv ){ fprintf(stderr,"** WO_NSD add nodes failure\n"); RETURN(1); }
+    for( c = 0; c < sd->max_vals; c++ )
+    {
+        rv = SUMA_AddDsetNelCol(sdset, sd->labels[c],
+                                SUMA_NODE_FLOAT, sd->vals[c],NULL,1);
+        if( !rv ){ fprintf(stderr,"** WO_NSD add col failure\n"); RETURN(1); }
+        if( free_vals ){ free(sd->vals[c]); sd->vals[c] = NULL; }
+    }
+
+    /* rcr - fix this? */
+    SUMA_AddNgrHist(sdset->ngr, "v2s_write_outfile_NSD", 0, NULL);
+
+    set_ni_globs_from_env();   /* init niml globals from environment */
+    set_ni_debug(sopt->debug);
+
+    /* find the data element and set the output format */
+    c = NI_search_group_shallow(sdset->ngr, "SPARSE_DATA", &elist);
+    if( c == 1 && (nel = (NI_element *)elist[0]) )
+        { free(elist); set_sparse_data_attribs(nel, p->gpar); }
+    else
+        fprintf(stderr, "** WO_NSD: missing SPARSE_DATA?\n");
+
+    oname = SUMA_WriteDset_ns(sopt->outfile_niml, sdset, SUMA_ASCII_NIML, 1,1);
+    if(sopt->debug && oname) fprintf(stderr,"+d wrote NI_SURF_DSET %s\n",oname);
+
+    SUMA_FreeDset(sdset);
 
     RETURN(0);
 }
