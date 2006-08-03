@@ -4155,6 +4155,15 @@ extern THD_3dim_dataset * THD_niml_to_dataset( NI_group * , int ) ;
 extern int THD_add_bricks( THD_3dim_dataset * , void * ) ;
 extern int THD_add_sparse_data( THD_3dim_dataset * , NI_group * ) ;
 
+extern int  get_ni_debug(void) ;                /* 3 Aug 2006 [rickr] */
+extern int  get_ni_write_mode(void) ;
+extern void set_ni_debug(int) ;
+extern void set_ni_write_mode(int) ;
+extern int  set_ni_globs_from_env(void) ;
+extern int  set_sparse_data_attribs(NI_element *, THD_3dim_dataset *) ;
+
+
+
 #define SBFLAG_INDEX    (1<<0)
 #define SBFLAG_FACTOR   (1<<1)
 #define SBFLAG_STATCODE (1<<2)

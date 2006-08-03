@@ -61,6 +61,8 @@ typedef struct
     int    * k;
     int    * nvals;
     float ** vals;
+    char  ** labels;
+    int      nlab;
 } v2s_results;
 
 typedef struct
@@ -125,6 +127,7 @@ int v2s_is_good_map     ( int map, int from_afni );
 int v2s_map_type        ( char * map_str );
 int v2s_vals_over_steps ( int map );
 int v2s_write_outfile_1D( v2s_opts_t * sopt, v2s_results * sd, char * label );
+int v2s_write_outfile_NSD( v2s_results *, v2s_opts_t *, v2s_param_t *, int);
 int v2s_write_outfile_niml( v2s_opts_t * sopt, v2s_results * sd, int free_vals);
 
 
