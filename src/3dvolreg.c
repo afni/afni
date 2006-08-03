@@ -57,6 +57,8 @@ static float VL_dph  = 0.03 ;  /* degrees */
 static float VL_del  = 0.70 ;  /* voxels */
 
 static int VL_rotcom = 0 ;     /* 04 Sep 2000: print out 3drotate commands? */
+static int VL_maxdisp= 0 ;     /* 03 Aug 2006: print out max displacment */
+static THD_fvec3 *VL_dispvec=NULL ;
 
 static THD_3dim_dataset *VL_rotpar_dset =NULL ,  /* 14 Feb 2001 */
                         *VL_gridpar_dset=NULL ;
@@ -422,6 +424,55 @@ int main( int argc , char *argv[] )
      mri_3dalign_edging(xf,yf,zf) ;
      if( VL_verbose )
         fprintf(stderr,"++ Edging: x=%d y=%d z=%d\n",xf,yf,zf) ;
+   }
+
+   /*--- 03 Aug 2006: create a set of vectors to look for maxdisp ---*/
+
+#undef  DSK
+#define DSK(i,j,k) dsk[(i)+(j)*nx+(k)*nxy]
+   INFO_message("VL_maxdisp=%d",VL_maxdisp) ;
+   if( VL_maxdisp ){
+     byte *dsk , *msk=NULL ;
+     if( VL_verbose ){
+       INFO_message("Creating mask for -maxdisp") ; THD_automask_verbose(0) ;
+     }
+     THD_automask_set_clipfrac(0.333f) ;
+     dsk = THD_automask( VL_dset ) ;
+     if( dsk != NULL ){
+       int ii,jj,kk , mm , nxy=nx*ny , nxyz=nxy*nz , ip,jp,kp , im,jm,km , nmsk=0 ;
+       THD_ivec3 iv ;
+       msk = (byte *)calloc(1,nxyz) ;
+       if( VL_verbose )
+         ININFO_message("Automask has %d voxels",THD_countmask(nxyz,dsk)) ;
+       for( mm=0 ; mm < nxyz ; mm++ ){
+         if( dsk[mm] == 0 ) continue ;
+         ii = mm % nx ; kk = mm / nxy ; jj = (mm%nxy) / nx ;
+         ip = ii+1 ; im = ii-1 ; if( ip >= nx || im < 0 ){ msk[mm]=1; nmsk++; continue; }
+         jp = jj+1 ; jm = jj-1 ; if( jp >= ny || jm < 0 ){ msk[mm]=1; nmsk++; continue; }
+         kp = kk+1 ; km = kk-1 ; if( kp >= nz || km < 0 ){ msk[mm]=1; nmsk++; continue; }
+         if( DSK(ip,jj,kk) && DSK(im,jj,kk) &&
+             DSK(ii,jp,kk) && DSK(ii,jm,kk) &&
+             DSK(ii,jj,kp) && DSK(ii,jj,km)   ) continue ;  /* skip */
+         msk[mm] = 1 ; nmsk++ ;
+       }
+       if( VL_verbose )
+         ININFO_message("%d voxels left in -maxdisp mask after erosion",nmsk) ;
+       free(dsk) ;
+       VL_maxdisp = nmsk ;
+       if( nmsk > 0 ){
+         int qq ;
+         VL_dispvec = (THD_fvec3 *)malloc(sizeof(THD_fvec3)*nmsk) ;
+         for( qq=mm=0 ; mm < nxyz ; mm++ ){
+           if( msk[mm] == 0 ) continue ;
+           ii = mm % nx ; kk = mm / nxy ; jj = (mm%nxy) / nx ;
+           iv.ijk[0] = ii ; iv.ijk[1] = jj ; iv.ijk[2] = kk ;
+           VL_dispvec[qq++] = THD_3dind_to_3dmm_no_wod( VL_dset , iv ) ;
+         }
+       }
+       free(msk) ;
+     } else {
+       VL_maxdisp = 0 ; WARNING_message("Can't create -maxdisp mask?!") ;
+     }
    }
 
    /*--- 11 Sep 2000: if in twopass mode, do the first pass ---*/
@@ -1344,6 +1395,10 @@ void VL_command_line(void)
 
    while( Iarg < Argc && Argv[Iarg][0] == '-' ){
 
+      if( strcmp(Argv[Iarg],"-maxdisp") == 0 ){  /* 03 Aug 2006 */
+        VL_maxdisp++ ; Iarg++ ; continue ;
+      }
+
       /** -sinit [22 Mar 2004] **/
 
       if( strcmp(Argv[Iarg],"-sinit") == 0 ){
@@ -1780,7 +1835,7 @@ void VL_command_line(void)
 
    /*** Open the dataset to be registered ***/
 
-   if( Iarg > Argc ){
+   if( Iarg >= Argc ){
       fprintf(stderr,"** Too few arguments!?  Last=%s\n",Argv[Argc-1]) ; exit(1) ;
    } else if( Iarg < Argc-1 ){
       fprintf(stderr,"** Too many arguments?!  Dataset=%s?\n",Argv[Iarg]) ; exit(1) ;

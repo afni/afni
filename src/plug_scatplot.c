@@ -388,7 +388,7 @@ char * SCAT_main( PLUGIN_interface *plint )
    }
 
    if( ybot >= ytop ){
-      sprintf( ylab , "%s[%d]" , DSET_FILECODE(ydset),ivy ) ;
+      sprintf( ylab , "\\noesc %s[%d]" , DSET_FILECODE(ydset),ivy ) ;
    } else {
       AV_fval_to_char(ybot,ab) ; AV_fval_to_char(ytop,bb) ;
       pab = ab ; if( *pab == ' ' ) pab++ ;
