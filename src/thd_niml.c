@@ -8,8 +8,9 @@
 
 /* globals to control I/O of niml data      3 Aug 2006 [rickr] */
 typedef struct {
-    int debug;           /* debug level */
-    int write_mode;      /* NI_TEXT_MODE or NI_BINARY_MODE */
+    int debug;           /* debug level      (AFNI_NI_DEBUG level)      */
+    int to_float;        /* convert to float (AFNI_NSD_TO_FLOAT == Y)   */
+    int write_mode;      /* NI_TEXT_MODE     (AFNI_NIML_TEXT_DATA == Y) */
 } ni_globals;
 static ni_globals gni = { 0, NI_BINARY_MODE };
 
@@ -33,13 +34,84 @@ static char * ni_surf_dset_attrs[] = {
                 "sorted_node_def"
                                      };
 
-#define LOC_GET_MIN_MAX_POSN(data,len,min,minp,max,maxp)                \
-        do { int ind;                                                   \
-             min=max=data[0];  minp=maxp= 0;                            \
-             for(ind = 1; ind < len; ind++)                             \
-                if(data[ind]<min){ min=data[ind]; minp=ind; }           \
-                else if(data[ind]>max){ max=data[ind]; maxp=ind; }      \
+#define NOTYPE_GET_MIN_MAX_POSN(data,len,min,minp,max,maxp)             \
+        do { int ii;                                                    \
+             min=max=data[0];  minp=maxp=0;                             \
+             for(ii = 1; ii < len; ii++)                                \
+                if(data[ii]<min){ min=data[ii]; minp=ii; }              \
+                else if(data[ii]>max){ max=data[ii]; maxp=ii; }         \
         } while (0)
+
+/* do not assume the dataset is of type MRI_float   4 Aug 2006 [rickr] */
+static int get_blk_min_max_posn(THD_datablock * blk, int ind, int len,
+                     float * fmin, int * imin, float * fmax, int * imax)
+{
+    float ffac = DBLK_BRICK_FACTOR(blk,ind);
+
+ENTRY("get_blk_min_max_posn");
+
+    if( ffac == 0.0 ) ffac = 1.0;
+
+    switch(DBLK_BRICK_TYPE(blk, ind)){
+        default:{
+            fprintf(stderr,"** GBMMP, bad dtype\n");
+            break;
+            *fmin = *fmax = 0.0;  *imin = *imax = 0;
+        }
+        case MRI_byte:
+        {
+            byte * data = DBLK_ARRAY(blk,ind);
+            byte   min, max;
+            int    minp, maxp;
+            NOTYPE_GET_MIN_MAX_POSN(data,len,min,minp,max,maxp);
+            *fmin = min*ffac;  *fmax = max*ffac;
+            *imin = minp;  *imax = maxp;
+            break;
+        }
+        case MRI_short:
+        {
+            short * data = DBLK_ARRAY(blk,ind);
+            short   min, max;
+            int     minp, maxp;
+            NOTYPE_GET_MIN_MAX_POSN(data,len,min,minp,max,maxp);
+            *fmin = min*ffac;  *fmax = max*ffac;
+            *imin = minp;  *imax = maxp;
+            break;
+        }
+        case MRI_int:
+        {
+            int * data = DBLK_ARRAY(blk,ind);
+            int   min, max;
+            int   minp, maxp;
+            NOTYPE_GET_MIN_MAX_POSN(data,len,min,minp,max,maxp);
+            *fmin = min*ffac;  *fmax = max*ffac;
+            *imin = minp;  *imax = maxp;
+            break;
+        }
+        case MRI_float:
+        {
+            float * data = DBLK_ARRAY(blk,ind);
+            float   min, max;
+            int     minp, maxp;
+            NOTYPE_GET_MIN_MAX_POSN(data,len,min,minp,max,maxp);
+            *fmin = min*ffac;  *fmax = max*ffac;
+            *imin = minp;  *imax = maxp;
+            break;
+        }
+        case MRI_double:
+        {
+            double * data = DBLK_ARRAY(blk,ind);
+            double   min, max;
+            int      minp, maxp;
+            NOTYPE_GET_MIN_MAX_POSN(data,len,min,minp,max,maxp);
+            *fmin = min*ffac;  *fmax = max*ffac;
+            *imin = minp;  *imax = maxp;
+            break;
+        }
+    }
+
+    RETURN(0);
+}
 
 /*----------------------------------------------------------------------*/
 /*! Open a NIML file as an AFNI dataset.
@@ -492,6 +564,7 @@ ENTRY("THD_ni_surf_dset_to_afni");
 }
 
 /* initialize the datablock using the SPARSE_DATA NI_SURF_DSET element
+   (going from NIML to AFNI)
 
     - validate the SPARSE_DATA element, including types
         (possibly int for node list, and all float data)
@@ -666,12 +739,6 @@ ENTRY("process_ni_sd_attrs");
 
     nvals = blk->nvals;
 
-
-/*    - top level element
-  rcr - do this?
-statistics via "ni_stat" -> EDIT_STATUAUX4()
-   -- */
-
     /*--- init and fill any column labels ---*/
     atr_str = THD_find_string_atr(blk, "COLMS_LABS");
     if( !atr_str ) atr_str = THD_find_string_atr(blk, ATRNAME_BRICK_LABS);
@@ -766,6 +833,7 @@ ENTRY("process_ni_sd_group_attrs");
 
 /*------------------------------------------------------------------------*/
 /*! Load data from the SPARSE_DATA NIML element.          3 Jul 2006 [rickr]
+ *  (adding it to the dataset block)
  *
  *  - Return value is the number of sub-bricks found.
  *  - Data must be of type float.
@@ -920,11 +988,12 @@ ENTRY("nsd_add_colms_type");
     str = (char *)malloc(plen * sizeof(char));
 
     /* insert first string */
+    c = 0;
     if( ni_list ) strcpy(str, "Node_Index");
-    else strcpy(str, "Generic_Float");
+    else {  c++;  strcpy(str, "Generic_Float");  }
 
     /* and then the rest */
-    for( c = 1; c < blk->nvals; c++ )
+    for( ; c < blk->nvals; c++ )
         strcat(str, ";Generic_Float");
 
     /* now add it to the group */
@@ -1004,12 +1073,15 @@ ENTRY("nsd_add_str_atr_to_group");
 }
 
 
-/* add a COLMS_RANGE attribute element to the group */
+/* add a COLMS_RANGE attribute element to the group 
+ * 
+ * do not assume that the data is of type float, though
+ * evaluate ranges as if it is
+ */
 static int nsd_add_colms_range(NI_group * ngr, THD_3dim_dataset * dset)
 {
     THD_datablock * blk;
     NI_element    * nel;
-    float         * data;
     float           fmin, fmax;
     char          * str, *slist[1];
     int             ind, nx, nodes;
@@ -1030,19 +1102,17 @@ ENTRY("nsd_add_colms_range");
     /* stick the nodes in the list */
     ind = 0;
     if( nodes ) {
-        LOC_GET_MIN_MAX_POSN(blk->node_list,blk->nnodes,imin,minp,imax,maxp);
+        NOTYPE_GET_MIN_MAX_POSN(blk->node_list,blk->nnodes,imin,minp,imax,maxp);
         sprintf(str, "%d %d %d %d", imin, imax, minp, maxp);
     } else { /* apply the first data column */
-        data = DBLK_ARRAY(blk, 0);
-        LOC_GET_MIN_MAX_POSN(data,blk->nnodes,fmin,minp,fmax,maxp);
+        get_blk_min_max_posn(blk, 0, nx, &fmin, &minp, &fmax, &maxp);
         loc_append_vals(str, &len, "", fmin, fmax, minp, maxp);
         ind++;
     }
 
     while( ind < blk->nvals )  /* keep appending the next set */
     {
-        data = DBLK_ARRAY(blk, ind);
-        LOC_GET_MIN_MAX_POSN(data,blk->nnodes,fmin,minp,fmax,maxp);
+        get_blk_min_max_posn(blk, ind, nx, &fmin, &minp, &fmax, &maxp);
         loc_append_vals(str, &len, ";", fmin, fmax, minp, maxp);
         ind++;
     }
@@ -1068,13 +1138,16 @@ ENTRY("nsd_add_colms_range");
 
 
 /*------------------------------------------------------------------------*/
-/*! Add SPARSE_DATA to the NIML group.
---------------------------------------------------------------------------*/
+/*! Add SPARSE_DATA from the AFNI dset to the NIML group.
+ *
+ *  If the datum is not float, convert it.
+ * -----------------------------------------------------------------------*/
 static int nsd_add_sparse_data(NI_group * ngr, THD_3dim_dataset * dset)
 {
     NI_element    * nel;
     THD_datablock * blk;
-    int             ind, nx;
+    float         * fdata = NULL;
+    int             ind, nx, c;
 
 ENTRY("nsd_add_sparse_data");
 
@@ -1082,6 +1155,28 @@ ENTRY("nsd_add_sparse_data");
     nx = DSET_NX(dset);
 
     if(gni.debug > 1) fprintf(stderr,"+d adding SPARSE_DATA element\n");
+
+    /* check whether we have all floats, of not prepare for conversion */
+    /*                                              4 Aug 2006 [rickr] */
+    for( ind = 0; ind < blk->nvals; ind++ )
+        if( DBLK_BRICK_TYPE(blk, ind) != MRI_float ) /* then allocate floats */
+        {
+            if( ! gni.to_float ){
+                fprintf(stderr,"** dset has non-floats and AFNI_NSD_TO_FLOAT\n"
+                               "   is NO, life has become unbearable...\n");
+                RETURN(1);
+            }
+
+            fdata = malloc(nx * sizeof(float));  /* create our float array */
+            if( !fdata ) { 
+                fprintf(stderr,"** NASD: failed to malloc conversion floats\n");
+                RETURN(1);
+            }
+            if(gni.debug)
+                fprintf(stderr,"+d converting NI_SURF_DSET to floats\n");
+
+            break;  /* and terminate the loop */
+        }
 
     /* create initial element of length nx */
     nel = NI_new_data_element("SPARSE_DATA", nx);
@@ -1093,11 +1188,27 @@ ENTRY("nsd_add_sparse_data");
         if(gni.debug > 1) fprintf(stderr,"+d adding node_list data\n");
     }
 
+
     if(gni.debug > 1) fprintf(stderr,"+d adding %d data columns\n", blk->nvals);
 
     /* insert data */
     for( ind = 0; ind < blk->nvals; ind++ )
-        NI_add_column(nel, NI_FLOAT, DBLK_ARRAY(blk, ind));
+    {
+        float fac;
+        if( DBLK_BRICK_TYPE(blk, ind) != MRI_float )
+        {
+            EDIT_convert_dtype(nx, DBLK_BRICK_TYPE(blk,ind),DBLK_ARRAY(blk,ind),
+                                   MRI_float, fdata, 0);
+            /* apply any factor */
+            fac = DBLK_BRICK_FACTOR(blk,ind); if( fac == 0.0 ) fac = 1.0;
+            if( fac != 1.0 ) for(c = 0; c < nx; c++) fdata[c] *= fac;
+
+            NI_add_column(nel, NI_FLOAT, fdata);  /* and add to element */
+        }
+        else NI_add_column(nel, NI_FLOAT, DBLK_ARRAY(blk, ind)); /* use dblk */
+    }
+
+    if( fdata ) free(fdata);  /* fly! (thud) be free! (thud) */
 
     NI_set_attribute(nel, "data_type", "Node_Bucket_data");
 
@@ -1185,15 +1296,21 @@ ENTRY("set_ni_globs_from_env");
 
     gni.debug = AFNI_numenv("AFNI_NI_DEBUG");  /* maybe the user wants info */
 
-    /* if text is not requested, use binary for write */
+    /* if having no conversion is desired, block it */
+    gni.to_float = AFNI_noenv("AFNI_NSD_TO_FLOAT") ? 0 : 1;
+
+    /* if text desired, use it for writing */
     gni.write_mode = AFNI_yesenv("AFNI_NIML_TEXT_DATA") ? NI_TEXT_MODE :
                                                           NI_BINARY_MODE;
 
     RETURN(0);
 }
 
-void set_ni_debug( int debug ){ gni.debug = debug; }
-int  get_ni_debug( void      ){ return gni.debug;  }
+void set_gni_debug( int debug ){ gni.debug = debug; }
+int  get_gni_debug( void      ){ return gni.debug;  }
 
-void set_ni_write_mode( int mode ){ gni.write_mode = mode; }
-int  get_ni_write_mode( void     ){ return gni.write_mode; }
+void set_gni_to_float( int flag ){ gni.to_float = flag; }      /* 4 Aug 2006 */
+int  get_gni_to_float( void     ){ return gni.to_float; }
+
+void set_gni_write_mode( int mode ){ gni.write_mode = mode; }
+int  get_gni_write_mode( void     ){ return gni.write_mode; }
