@@ -41,7 +41,7 @@ static int         VL_edperc=-1 ;
 
 static int         VL_coarse_del=10 ; /* 11 Dec 2000 */
 static int         VL_coarse_num=2  ;
-static int         VL_coarse_rot=0  ; /* 01 Dec 2005 */
+static int         VL_coarse_rot=1  ; /* 01 Dec 2005 */
 
 static THD_3dim_dataset *VL_dset = NULL ;
 static THD_3dim_dataset *VL_bset = NULL ;  /* 06 Feb 2001 */
@@ -1329,6 +1329,11 @@ void VL_syntax(void)
     "                                N.B.: This option has NO effect if the -weight\n"
     "                                  option is used.\n"
     "                                N.B.: The largest %% value allowed is 25%%.\n"
+    "                     -maxdisp = Print the maximum displaced for brain voxels.\n"
+    "                   -nomaxdisp = Do NOT calculate and print the maximum displacement\n"
+    "                                  for voxels in the brain (brain as defined by the\n"
+    "                                  same algorithm used in '3dAutomask -clfrac 0.33').\n"
+    "                                  [-maxdisp is turned on by default]\n"
     "                     -twopass = Do two passes of the registration algorithm:\n"
     "                                 (1) with smoothed base and data bricks, with\n"
     "                                     linear interpolation, to get a crude\n"
@@ -1377,9 +1382,8 @@ void VL_syntax(void)
     "                                   dataset.\n"
     "              -coarserot        Also do a coarse search in angle for the\n"
     "                                  starting point of the first pass.\n"
-    "                             N.B.: This option is experimental for now,\n"
-    "                                   but will become the default for -twopass\n"
-    "                                   in the future. [01 Dec 2005 -- RWCox]\n"
+    "              -nocoarserot      Don't search angles coarsely.\n"
+    "                                  [-coarserot is now the default - RWCox]\n"
 #if 0
     "              -wtrim          = Attempt to trim the intermediate volumes to\n"
     "                                  a smaller region (determined by the weight\n"
@@ -1427,11 +1431,12 @@ void VL_command_line(void)
 
    while( Iarg < Argc && Argv[Iarg][0] == '-' ){
 
-#if 0
       if( strcmp(Argv[Iarg],"-maxdisp") == 0 ){  /* 03 Aug 2006 */
-        VL_maxdisp++ ; Iarg++ ; continue ;
+        VL_maxdisp = 1 ; Iarg++ ; continue ;
       }
-#endif
+      if( strcmp(Argv[Iarg],"-nomaxdisp") == 0 ){
+        VL_maxdisp = 0 ; Iarg++ ; continue ;
+      }
 
       /** -sinit [22 Mar 2004] **/
 
@@ -1686,7 +1691,12 @@ void VL_command_line(void)
       }
 
       if( strcmp(Argv[Iarg],"-coarserot") == 0 ){  /* 01 Dec 2005 */
+         INFO_message("-coarserot is now the default") ;
          VL_coarse_rot = 1 ;
+         Iarg++ ; continue ;
+      }
+      if( strcmp(Argv[Iarg],"-nocoarserot") == 0 ){ /* 04 Aug 2006 */
+         VL_coarse_rot = 0 ;
          Iarg++ ; continue ;
       }
 
