@@ -1636,3 +1636,15 @@
   * modified 3ddata.h
       - added protos for ni_globs functions and set_sparse_data_attribs()
 
+04 Aug 2006: auto-convert NI_SURF_DSET to floats
+  * modified thd_niml.c:
+      - added to_float to ni_globals struct, for blocking conversion to floats
+      - changed  LOC_GET_MIN_MAX_POSN to NOTYPE_GET_MIN_MAX_POSN
+      - added get_blk_min_max_posn(), to deal with varrying input types
+      - fixed missing output column type when no node_list
+      - nsd_add_colms_range(): do not require input type to be float
+      - nsd_add_sparse_data(): convert output to floats, if necessary
+      - add gni.to_float accessor funcs and in set_ni_globs_from_env()
+  * modified vol2surf.c: changed set_ni_debug() to set_gni_debug()
+  * modified 3ddata.h: changed prototype names, and added to_float protos
+
