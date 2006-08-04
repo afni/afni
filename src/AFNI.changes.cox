@@ -5890,3 +5890,6 @@
 
 24 Jul 2006
  * model_linplusort.c (Linear+Ort) for 3dNLfim.c.
+
+04 Aug 2006
+ * Add max displacement to 3dvolreg.c.
