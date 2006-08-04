@@ -3,7 +3,10 @@
 #undef  GOOD
 #define GOOD(i) (mask==NULL || mask[i])
 
-static GA_setup *stup = NULL ;
+#undef  SMAGIC
+#define SMAGIC 208921148
+
+static GA_setup *gstup = NULL ;
 
 /*---------------------------------------------------------------------------*/
 static int gcd( int m , int n )    /* Euclid's Greatest Common Denominator */
@@ -390,21 +393,21 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
    float *imf , *jmf , *kmf ;
    float *imw , *jmw , *kmw ;
 
-   npar  = stup->wfunc_numpar ;
-   nfree = stup->wfunc_numfree ;
+   npar  = gstup->wfunc_numpar ;
+   nfree = gstup->wfunc_numfree ;
    wpar  = (float *)malloc(sizeof(float)*npar) ;
 
    /* load the warping parameters */
 
    for( ii=pp=0 ; ii < npar ; ii++ ){
-     wpar[ii] = ( stup->wfunc_param[ii].fixed )
-               ? stup->wfunc_param[ii].val_fixed
+     wpar[ii] = ( gstup->wfunc_param[ii].fixed )
+               ? gstup->wfunc_param[ii].val_fixed
                : (float)mpar[pp++] ;
    }
 
    /* create space for default control points, if none given */
 
-   if( stup->im == NULL ){
+   if( gstup->im == NULL ){
      imf = (float *)malloc(sizeof(float)*NPER) ;
      jmf = (float *)malloc(sizeof(float)*NPER) ;
      kmf = (float *)malloc(sizeof(float)*NPER) ;
@@ -416,49 +419,49 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
    jmw = (float *)malloc(sizeof(float)*NPER) ;
    kmw = (float *)malloc(sizeof(float)*NPER) ;
 
-   nx = stup->bsim->nx; ny = stup->bsim->ny; nxy = nx*ny;
+   nx = gstup->bsim->nx; ny = gstup->bsim->ny; nxy = nx*ny;
 
    /* do (up to) NPER points at a time */
 
-   for( pp=0 ; pp < stup->npt_match ; pp+=NPER ){
-     npp = MIN( NPER , stup->npt_match-pp ) ;  /* number to do */
-     if( stup->im == NULL ){
+   for( pp=0 ; pp < gstup->npt_match ; pp+=NPER ){
+     npp = MIN( NPER , gstup->npt_match-pp ) ;  /* number to do */
+     if( gstup->im == NULL ){
        for( qq=0 ; qq < npp ; qq++ ){  /* default control points */
          mm = pp+qq ;
          ii = mm % nx; kk = mm / nxy; jj = (mm-kk*nxy) / nx;
          imf[qq] = (float)ii; jmf[qq] = (float)jj; kmf[qq] = (float)kk;
        }
      } else {
-       imf = stup->im + pp ;  /* pointers to control points */
-       jmf = stup->jm + pp ;
-       kmf = stup->km + pp ;
+       imf = gstup->im->ar + pp ;  /* pointers to control points */
+       jmf = gstup->jm->ar + pp ;
+       kmf = gstup->km->ar + pp ;
      }
 
      /* warp control points */
 
-     stup->wfunc( npar , wpar ,
-                  npp  , imf,jmf,kmf , imw,jmw,kmw ) ;
+     gstup->wfunc( npar , wpar ,
+                   npp  , imf,jmf,kmf , imw,jmw,kmw ) ;
 
      /* interpolate target image at warped control points */
 
-     switch( stup->interp_code ){
+     switch( gstup->interp_code ){
        case MRI_NN:
-         GA_interp_NN( stup->ajim , npp , imw,jmw,kmw , avm+pp ) ;
+         GA_interp_NN( gstup->ajim , npp , imw,jmw,kmw , avm+pp ) ;
        break ;
 
        case MRI_LINEAR:
-         GA_interp_linear( stup->ajim , npp , imw,jmw,kmw , avm+pp ) ;
+         GA_interp_linear( gstup->ajim , npp , imw,jmw,kmw , avm+pp ) ;
        break ;
 
        case MRI_CUBIC:
          clip = 1 ;
-         GA_interp_cubic( stup->ajim , npp , imw,jmw,kmw , avm+pp ) ;
+         GA_interp_cubic( gstup->ajim , npp , imw,jmw,kmw , avm+pp ) ;
        break ;
 
        default:        /* for higher order methods not implemented herein */
        case MRI_QUINTIC:
          clip = 1 ;
-         GA_interp_quintic( stup->ajim , npp , imw,jmw,kmw , avm+pp ) ;
+         GA_interp_quintic( gstup->ajim , npp , imw,jmw,kmw , avm+pp ) ;
        break ;
      }
    }
@@ -466,7 +469,7 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
    /* free the enslaved memory */
 
    free((void *)kmw); free((void *)jmw); free((void *)imw);
-   if( stup->im == NULL ){
+   if( gstup->im == NULL ){
      free((void *)kmf); free((void *)jmf); free((void *)imf);
    }
    free((void *)wpar) ;
@@ -474,8 +477,8 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
    /* clip interpolated values to range of target image, if need be */
 
    if( clip ){
-     float bb=stup->ajbot , tt=stup->ajtop ;
-     for( pp=0 ; pp < stup->npt_match ; pp++ )
+     float bb=gstup->ajbot , tt=gstup->ajtop ;
+     for( pp=0 ; pp < gstup->npt_match ; pp++ )
             if( avm[pp] < bb ) avm[pp] = bb ;
        else if( avm[pp] > tt ) avm[pp] = tt ;
    }
@@ -493,21 +496,21 @@ double GA_scalar_fitter( int npar , double *mpar )
   float val=0.0f ;
   float *avm , *bvm ;
 
-  avm = (float *)malloc(stup->npt_match*sizeof(float)) ; /* target points at */
+  avm = (float *)malloc(gstup->npt_match*sizeof(float)) ; /* target points at */
   GA_get_warped_values( npar , mpar , avm ) ;             /* warped locations */
-  bvm = stup->bvm ;                                     /* base points */
+  bvm = gstup->bvm->ar ;                                  /* base points */
 
-  switch( stup->match_code ){
+  switch( gstup->match_code ){
 
     default:
     case GA_MATCH_PEARSON_SCALAR:
-      val = (double)THD_pearson_corr( stup->npt_match , avm , bvm ) ;
+      val = (double)THD_pearson_corr( gstup->npt_match , avm , bvm ) ;
       val = 1.0 - fabs(val) ;
     break ;
 
     case GA_MATCH_SPEARMAN_SCALAR:
-      val = (double)spearman_rank_corr( stup->npt_match, avm,
-                                        stup->bvstat   , bvm ) ;
+      val = (double)spearman_rank_corr( gstup->npt_match, avm,
+                                        gstup->bvstat   , bvm ) ;
       val = 1.0 - fabs(val) ;
     break ;
 
@@ -540,9 +543,8 @@ void mri_genalign_scalar_setup( MRI_IMAGE *basim  , MRI_IMAGE *maskim ,
 
 {
    int qq , rr , nx,ny,nz,nxy , mm,ii,jj,kk ;
-   int use_all=0 ;
+   int use_all=0 , need_pts=0 , nmatch ;
    float *bsar ;
-   double *wpar ;
 
 ENTRY("mri_genalign_scalar_setup") ;
 
@@ -551,7 +553,9 @@ ENTRY("mri_genalign_scalar_setup") ;
       - Must have new base image (basim) or have it previously stored in stup
       - Must have new target image (targim) or have previously stored version */
 
-   if( stup   == NULL )                       ERREX("stup is NULL") ;
+   if( stup == NULL ) ERREX("stup is NULL") ;
+   stup->setup = 0 ;  /* mark stup struct as not being ready yet */
+
    if( basim  == NULL && stup->bsim == NULL ) ERREX("basim is NULL") ;
    if( targim == NULL && stup->ajim == NULL ) ERREX("targim is NULL") ;
 
@@ -583,8 +587,9 @@ ENTRY("mri_genalign_scalar_setup") ;
    /** copy new images into setup struct, smoothing if so ordered **/
 
    if( basim != NULL ){
+     need_pts = 1 ;
      if( stup->bsim != NULL ) mri_free(stup->bsim) ;
-     stup->bsim = mri_to_float(basim ) ;
+     stup->bsim = mri_to_float(basim) ;
      if( stup->smooth_code > 0 && stup->smooth_radius > 0.0f ){
        MRI_IMAGE *qim ;
        qim = GA_smooth( stup->bsim , stup->smooth_code , stup->smooth_radius ) ;
@@ -617,6 +622,7 @@ ENTRY("mri_genalign_scalar_setup") ;
    if( maskim != NULL ){              /*---- have new mask to load ----*/
      MRI_IMAGE *qim ;
 
+     need_pts = 1 ;
      if( maskim->nvox != stup->bsim->nvox )
        ERREX("basim and maskim grids differ") ;
 
@@ -642,93 +648,126 @@ ENTRY("mri_genalign_scalar_setup") ;
      stup->nmask = stup->nvox_mask = 0 ;
    }
 
-   /*-- extract matching points from base image --*/
+   /*-- extract matching points from base image (maybe) --*/
 
    if( stup->npt_match <= 9 || stup->npt_match > stup->bsim->nvox ){
-     stup->npt_match = stup->bsim->nvox ; use_all = 1 ;
+     nmatch = stup->bsim->nvox ; use_all = 1 ;
    }
    if( stup->nmask > 0 && stup->npt_match > stup->nmask ){
-     stup->npt_match = stup->nmask ; use_all = 2 ;
+     nmatch = stup->nmask ; use_all = 2 ;
    }
 
-   if( use_all == 1 ){         /*------------- all points, no mask -----------*/
+   if( stup->im == NULL || stup->im->nar != nmatch || stup->npt_match != nmatch )
+     need_pts = 1 ;
 
-     if( stup->im != NULL ){
-       free(stup->im) ; free(stup->jm) ; free(stup->km) ;
-     }
-     stup->im = stup->jm = stup->km = NULL ;
+   if( need_pts ){
+     stup->npt_match = nmatch ;
 
-   } else if( use_all == 2 ){  /*------------- all points in mask ------------*/
+     if( use_all == 1 ){         /*------------- all points, no mask -----------*/
 
-     int nvox , pp ; byte *mask=stup->bmask ;
+       if( stup->im != NULL ){
+         KILL_floatvec(stup->im); KILL_floatvec(stup->jm); KILL_floatvec(stup->km);
+       }
+       stup->im = stup->jm = stup->km = NULL ;
 
-     if( stup->im != NULL ){
-       free(stup->im) ; free(stup->jm) ; free(stup->km) ;
-     }
-     stup->im = (float *)malloc(sizeof(float)*stup->npt_match) ;
-     stup->jm = (float *)malloc(sizeof(float)*stup->npt_match) ;
-     stup->km = (float *)malloc(sizeof(float)*stup->npt_match) ;
+     } else if( use_all == 2 ){  /*------------- all points in mask ------------*/
 
-     for( mm=pp=0 ; pp < stup->npt_match ; mm++ ){
-       if( GOOD(mm) ){
+       int nvox , pp ; byte *mask=stup->bmask ;
+
+       if( stup->im != NULL ){
+         KILL_floatvec(stup->im); KILL_floatvec(stup->jm); KILL_floatvec(stup->km);
+       }
+       MAKE_floatvec(stup->im,stup->npt_match) ;
+       MAKE_floatvec(stup->jm,stup->npt_match) ;
+       MAKE_floatvec(stup->km,stup->npt_match) ;
+
+       for( mm=pp=0 ; pp < stup->npt_match ; mm++ ){
+         if( GOOD(mm) ){
+           ii = mm % nx; kk = mm / nxy; jj = (mm-kk*nxy) / nx;
+           stup->im->ar[pp] = ii; stup->jm->ar[pp] = jj; stup->km->ar[pp] = kk;
+           pp++ ;
+         }
+       }
+
+     } else {  /*--------------------- a subset of points ----------------------*/
+
+       int nvox,pp,dm , *qm ; byte *mask = stup->bmask ;
+
+       nvox = stup->bsim->nvox ;
+       dm   = find_relprime_fixed(nvox) ;
+       if( stup->im != NULL ){
+         KILL_floatvec(stup->im); KILL_floatvec(stup->jm); KILL_floatvec(stup->km);
+       }
+       MAKE_floatvec(stup->im,stup->npt_match) ;
+       MAKE_floatvec(stup->jm,stup->npt_match) ;
+       MAKE_floatvec(stup->km,stup->npt_match) ;
+
+       qm = (int *)malloc(sizeof(int)*stup->npt_match) ;
+       mm = (nx/2) + (ny/2)*nx + (nz/2)*nxy ;
+       for( pp=0 ; pp < stup->npt_match ; mm=(mm+dm)%nvox )
+         if( GOOD(mm) ) qm[pp++] = mm ;
+       qsort_int( stup->npt_match , qm ) ;
+
+       for( pp=0 ; pp < stup->npt_match ; pp++ ){
+         mm = qm[pp] ;
          ii = mm % nx; kk = mm / nxy; jj = (mm-kk*nxy) / nx;
-         stup->im[pp] = ii; stup->jm[pp] = jj; stup->km[pp] = kk;
-         pp++ ;
+         stup->im->ar[pp] = ii; stup->jm->ar[pp] = jj; stup->km->ar[pp] = kk;
+       }
+       free((void *)qm) ;
+     }
+
+     /*------------- extract values from base image for matching -------------*/
+
+     bsar = MRI_FLOAT_PTR(stup->bsim) ;
+     MAKE_floatvec(stup->bvm,stup->npt_match) ;
+     if( stup->im == NULL ){
+       memcpy( stup->bvm->ar , bsar , sizeof(float)*stup->npt_match ) ;
+     } else {
+       for( qq=0 ; qq < stup->npt_match ; qq++ ){
+         rr = (int)(stup->im->ar[qq] + stup->jm->ar[qq]*nx + stup->km->ar[qq]*nxy) ;
+         stup->bvm->ar[qq] = bsar[rr] ;
        }
      }
+   } /* end of if(need_pts) */
 
-   } else {  /*--------------------- a subset of points ----------------------*/
-
-     int nvox,pp,dm , *qm ; byte *mask = stup->bmask ;
-
-     nvox = stup->bsim->nvox ;
-     dm   = find_relprime_fixed(nvox) ;
-     if( stup->im != NULL ){
-       free(stup->im) ; free(stup->jm) ; free(stup->km) ;
-     }
-     stup->im = (float *)malloc(sizeof(float)*stup->npt_match) ;
-     stup->jm = (float *)malloc(sizeof(float)*stup->npt_match) ;
-     stup->km = (float *)malloc(sizeof(float)*stup->npt_match) ;
-
-     qm = (int *)malloc(sizeof(int)*stup->npt_match) ;
-     mm = (nx/2) + (ny/2)*nx + (nz/2)*nxy ;
-     for( pp=0 ; pp < stup->npt_match ; mm=(mm+dm)%nvox )
-       if( GOOD(mm) ) qm[pp++] = mm ;
-     qsort_int( stup->npt_match , qm ) ;
-
-     for( pp=0 ; pp < stup->npt_match ; pp++ ){
-       mm = qm[pp] ;
-       ii = mm % nx; kk = mm / nxy; jj = (mm-kk*nxy) / nx;
-       stup->im[pp] = ii; stup->jm[pp] = jj; stup->km[pp] = kk;
-     }
-     free((void *)qm) ;
-   }
-
-   /*------------- extract values from base image for matching -------------*/
-
-   bsar = MRI_FLOAT_PTR(stup->bsim) ;
-   stup->bvm = (float *)malloc(sizeof(float)*stup->npt_match) ;
-   if( stup->im == NULL ){
-     memcpy( stup->bvm , bsar , sizeof(float)*stup->npt_match ) ;
-   } else {
-     for( qq=0 ; qq < stup->npt_match ; qq++ ){
-       rr = (int)(stup->im[qq] + stup->jm[qq]*nx + stup->km[qq]*nxy) ;
-       stup->bvm[qq] = bsar[rr] ;
-     }
-   }
    if( stup->match_code == GA_MATCH_SPEARMAN_SCALAR )
-     stup->bvstat = spearman_rank_prepare( stup->npt_match , stup->bvm ) ;
+     stup->bvstat = spearman_rank_prepare( stup->npt_match , stup->bvm->ar ) ;
 
-#if 0
-   /**----- can now optimize warping parameters -----**/
+   stup->setup = SMAGIC ;
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Optimize warping parameters.
+-----------------------------------------------------------------------------*/
+
+void mri_genalign_scalar_optim( GA_setup *stup )
+{
+   double *wpar ;
+   int ii , qq ;
+
+ENTRY("mri_genalign_scalar_optim") ;
+
+   if( stup == NULL || stup->setup != SMAGIC ){
+     ERROR_message("Illegal call to mri_genalign_scalar_optim()") ;
+     EXRETURN ;
+   }
+
+   /* copy initial warp parameters into local array wpar */
 
    wpar = (double *)malloc(sizeof(double)*stup->wfunc_numfree) ;
    for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ )
      if( !stup->wfunc_param[qq].fixed )
        wpar[ii++] = stup->wfunc_param[qq].val_init ;
 
+   gstup = stup ;  /* for global access */
+
+   /*** all the work takes place now ***/
+
    powell_newuoa( stup->wfunc_numfree , wpar ,
                   1.0 , 0.05 , 6666 , GA_scalar_fitter ) ;
+
+   /* copy output values of parameter back */
 
    for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ )
      if( stup->wfunc_param[qq].fixed )
@@ -737,7 +776,5 @@ ENTRY("mri_genalign_scalar_setup") ;
        stup->wfunc_param[qq].val_out = wpar[ii++] ;
 
    free((void *)wpar) ;
-#endif
-
    EXRETURN ;
 }
