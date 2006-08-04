@@ -1041,12 +1041,24 @@ typedef struct { int nar ; float *ar ; } floatvec ;
       free(fv);                                \
   } while(0)
 
+#define MAKE_floatvec(fv,n)                             \
+  do{ (fv) = (floatvec *)malloc(sizeof(floatvec)) ;     \
+      (fv)->nar = (n) ;                                 \
+      (fv)->ar  = (float *)calloc(sizeof(float),(n)) ;  \
+  } while(0)
+
 typedef struct { int nvec ; floatvec *fvar ; } floatvecvec ;
 
 typedef struct { int nar ; int *ar ; } intvec ;
-#define KILL_intvec(fv)                        \
-  do{ if( (fv)->ar != NULL ) free((fv)->ar);   \
-      free(fv);                                \
+#define KILL_intvec(iv)                        \
+  do{ if( (iv)->ar != NULL ) free((iv)->ar);   \
+      free(iv);                                \
+  } while(0)
+
+#define MAKE_intvec(iv,n)                           \
+  do{ (iv) = (intvec *)malloc(sizeof(intvec)) ;     \
+      (iv)->nar = (n) ;                             \
+      (iv)->ar  = (int *)calloc(sizeof(int),(n)) ;  \
   } while(0)
 
 typedef struct {
@@ -1230,21 +1242,22 @@ typedef struct {
   int dim_avec    ;
 
   int npt_match   ;            /* set by user */
-  float *im, *jm, *km ;
-  float *bvm ;
+  floatvec *im, *jm, *km , *bvm ;
   float bvstat ;
 
   int kernel_code ;            /* set by user */
   float kernel_radius ;        /* set by user */
   int npt_sum ;                /* set by user */
-  int   *is , *js , *ks ;
-  float *bvs ;
+  intvec *is, *js, *ks ;
+  floatvec *bvs ;
 
   int          wfunc_numpar ;  /* set by user */
   GA_param    *wfunc_param ;   /* set by user */
   GA_warpfunc *wfunc ;         /* set by user */
   int          wfunc_numfree ;
   int          *wfunc_pma ;
+
+  int          setup ;
 } GA_setup ;
 
 #undef  IFREE

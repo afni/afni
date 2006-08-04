@@ -62,6 +62,8 @@ static int VL_maxdisp= 1 ;     /* 03 Aug 2006: print out max displacment? */
 static THD_fvec3 *VL_dispvec=NULL ;
 static float VL_dmax = 0.0f ;
 static int   VL_dmaxi= 0 ;
+static char  VL_dmaxfile[256] = "\0" ;
+static float *VL_dmaxar  = NULL ;
 
 static THD_3dim_dataset *VL_rotpar_dset =NULL ,  /* 14 Feb 2001 */
                         *VL_gridpar_dset=NULL ;
@@ -433,7 +435,6 @@ int main( int argc , char *argv[] )
 
 #undef  DSK
 #define DSK(i,j,k) dsk[(i)+(j)*nx+(k)*nxy]
-   INFO_message("VL_maxdisp=%d",VL_maxdisp) ;
    if( VL_maxdisp ){
      byte *dsk , *msk=NULL ;
      if( VL_verbose ){
@@ -1039,6 +1040,14 @@ int main( int argc , char *argv[] )
 
      if( VL_maxdisp > 0 && VL_verbose )
        INFO_message("Max displacements (mm) for each sub-brick:") ;
+
+     if( VL_maxdisp > 0 ){
+       if( VL_verbose )
+         INFO_message("Max displacements (mm) for each sub-brick:") ;
+       if( VL_dmaxfile != NULL )
+         VL_dmaxar = (float *)calloc(sizeof(float),imcount) ;
+     }
+
      for( kim=0 ; kim < imcount ; kim++ ){
         sprintf(anam,"VOLREG_ROTCOM_%06d",kim) ;
         sprintf(sbuf,"-rotate %.4fI %.4fR %.4fA -ashift %.4fS %.4fL %.4fP" ,
@@ -1085,12 +1094,21 @@ int main( int argc , char *argv[] )
           }
           if( VL_dmax < dmax ){ VL_dmax = dmax ; VL_dmaxi = kim ; }
           if( VL_verbose ) fprintf(stderr," %.2f",dmax) ;
+          if( VL_dmaxfile != NULL ) VL_dmaxar[kim] = dmax ;
         }
      }
      if( VL_maxdisp > 0 ){
        if( VL_verbose ) fprintf(stderr,"\n") ;
-       INFO_message("Max displacement in automask = %.2f (mm) at sub-brick %d",VL_dmax,VL_dmaxi) ; 
+       INFO_message("Max displacement in automask = %.2f (mm) at sub-brick %d",VL_dmax,VL_dmaxi);
        free((void *)VL_dispvec) ;
+       if( VL_dmaxfile != NULL ){
+         FILE *fp ;
+         if( THD_is_file(VL_dmaxfile) ) WARNING_message("Overwriting file %s",VL_dmaxfile);
+         fp = fopen( VL_dmaxfile , "w" ) ;
+         fprintf(fp,"# maxdisp\n") ;
+         for( kim=0 ; kim < imcount ; kim++ ) fprintf(fp,"%.4f\n",VL_dmaxar[kim]) ;
+         fclose(fp) ;
+       }
      }
    }
 
@@ -1334,6 +1352,8 @@ void VL_syntax(void)
     "                                  for voxels in the brain (brain as defined by the\n"
     "                                  same algorithm used in '3dAutomask -clfrac 0.33').\n"
     "                                  [-maxdisp is turned on by default]\n"
+    "                -maxdisp1D ff = Do -maxdisp and write max displacement for each\n"
+    "                                  sub-brick into file 'ff'.\n"
     "                     -twopass = Do two passes of the registration algorithm:\n"
     "                                 (1) with smoothed base and data bricks, with\n"
     "                                     linear interpolation, to get a crude\n"
@@ -1436,6 +1456,10 @@ void VL_command_line(void)
       }
       if( strcmp(Argv[Iarg],"-nomaxdisp") == 0 ){
         VL_maxdisp = 0 ; Iarg++ ; continue ;
+      }
+      if( strcmp(Argv[Iarg],"-maxdisp1D") == 0 ){
+        VL_maxdisp = 1 ; strcpy(VL_dmaxfile,Argv[++Iarg]) ;
+        Iarg++ ; continue ;
       }
 
       /** -sinit [22 Mar 2004] **/
