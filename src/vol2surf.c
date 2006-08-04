@@ -2454,7 +2454,7 @@ ENTRY("v2s_write_outfile_NSD");
     SUMA_AddNgrHist(sdset->ngr, "v2s_write_outfile_NSD", 0, NULL);
 
     set_ni_globs_from_env();   /* init niml globals from environment */
-    set_ni_debug(sopt->debug);
+    set_gni_debug(sopt->debug);
 
     /* find the data element and set the output format */
     c = NI_search_group_shallow(sdset->ngr, "SPARSE_DATA", &elist);
