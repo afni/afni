@@ -57,8 +57,11 @@ static float VL_dph  = 0.03 ;  /* degrees */
 static float VL_del  = 0.70 ;  /* voxels */
 
 static int VL_rotcom = 0 ;     /* 04 Sep 2000: print out 3drotate commands? */
-static int VL_maxdisp= 0 ;     /* 03 Aug 2006: print out max displacment */
+
+static int VL_maxdisp= 1 ;     /* 03 Aug 2006: print out max displacment? */
 static THD_fvec3 *VL_dispvec=NULL ;
+static float VL_dmax = 0.0f ;
+static int   VL_dmaxi= 0 ;
 
 static THD_3dim_dataset *VL_rotpar_dset =NULL ,  /* 14 Feb 2001 */
                         *VL_gridpar_dset=NULL ;
@@ -439,7 +442,7 @@ int main( int argc , char *argv[] )
      THD_automask_set_clipfrac(0.333f) ;
      dsk = THD_automask( VL_dset ) ;
      if( dsk != NULL ){
-       int ii,jj,kk , mm , nxy=nx*ny , nxyz=nxy*nz , ip,jp,kp , im,jm,km , nmsk=0 ;
+       int ii,jj,kk, mm, nxy=nx*ny, nxyz=nxy*nz, ip,jp,kp, im,jm,km, nmsk=0 ;
        THD_ivec3 iv ;
        msk = (byte *)calloc(1,nxyz) ;
        if( VL_verbose )
@@ -447,9 +450,9 @@ int main( int argc , char *argv[] )
        for( mm=0 ; mm < nxyz ; mm++ ){
          if( dsk[mm] == 0 ) continue ;
          ii = mm % nx ; kk = mm / nxy ; jj = (mm%nxy) / nx ;
-         ip = ii+1 ; im = ii-1 ; if( ip >= nx || im < 0 ){ msk[mm]=1; nmsk++; continue; }
-         jp = jj+1 ; jm = jj-1 ; if( jp >= ny || jm < 0 ){ msk[mm]=1; nmsk++; continue; }
-         kp = kk+1 ; km = kk-1 ; if( kp >= nz || km < 0 ){ msk[mm]=1; nmsk++; continue; }
+         ip=ii+1; im=ii-1; if(ip>=nx || im<0){ msk[mm]=1; nmsk++; continue; }
+         jp=jj+1; jm=jj-1; if(jp>=ny || jm<0){ msk[mm]=1; nmsk++; continue; }
+         kp=kk+1; km=kk-1; if(kp>=nz || km<0){ msk[mm]=1; nmsk++; continue; }
          if( DSK(ip,jj,kk) && DSK(im,jj,kk) &&
              DSK(ii,jp,kk) && DSK(ii,jm,kk) &&
              DSK(ii,jj,kp) && DSK(ii,jj,km)   ) continue ;  /* skip */
@@ -1034,6 +1037,8 @@ int main( int argc , char *argv[] )
 
      /* each volume's transformation parameters, matrix, and vector */
 
+     if( VL_maxdisp > 0 && VL_verbose )
+       INFO_message("Max displacements (mm) for each sub-brick:") ;
      for( kim=0 ; kim < imcount ; kim++ ){
         sprintf(anam,"VOLREG_ROTCOM_%06d",kim) ;
         sprintf(sbuf,"-rotate %.4fI %.4fR %.4fA -ashift %.4fS %.4fL %.4fP" ,
@@ -1059,6 +1064,33 @@ int main( int argc , char *argv[] )
         matar[3] = dy[kim] ; matar[7] = dz[kim] ; matar[11] = dx[kim] ;
         sprintf(anam,"VOLREG_MATVEC_%06d",kim) ;
         THD_set_float_atr( new_dset->dblk , anam , 12 , matar ) ;
+
+        /* 04 Aug 2006: max displacement calculation */
+
+        if( VL_maxdisp > 0 ){
+          THD_dmat33 pp,ppt ; THD_dfvec3 dv,qv,vorg ;
+          int qq ; float dmax=0.0f , xo,yo,zo , ddd ;
+          LOAD_DFVEC3(tvec,matar[3],matar[7],matar[11]) ;
+          pp   = DBLE_mat_to_dicomm( VL_dset ) ;   /* convert rmat to dataset coord order */
+          ppt  = TRANSPOSE_DMAT(pp);
+          rmat = DMAT_MUL(ppt,rmat); rmat = DMAT_MUL(rmat,pp); tvec = DMATVEC(ppt,tvec);
+          xo = VL_dset->daxes->xxorg + 0.5*(VL_dset->daxes->nxx - 1)*VL_dset->daxes->xxdel ;
+          yo = VL_dset->daxes->yyorg + 0.5*(VL_dset->daxes->nyy - 1)*VL_dset->daxes->yydel ;
+          zo = VL_dset->daxes->zzorg + 0.5*(VL_dset->daxes->nzz - 1)*VL_dset->daxes->zzdel ;
+          LOAD_DFVEC3(vorg,xo,yo,zo) ;             /* rotation is around dataset center */
+          for( qq=0 ; qq < VL_maxdisp ; qq++ ){
+            FVEC3_TO_DFVEC3( VL_dispvec[qq] , dv );
+            qv = SUB_DFVEC3(dv,vorg); qv = DMATVEC_ADD(rmat,qv,tvec); qv = ADD_DFVEC3(qv,vorg);
+            qv = SUB_DFVEC3(dv,qv); ddd = SIZE_DFVEC3(qv); if( ddd > dmax ) dmax = ddd;
+          }
+          if( VL_dmax < dmax ){ VL_dmax = dmax ; VL_dmaxi = kim ; }
+          if( VL_verbose ) fprintf(stderr," %.2f",dmax) ;
+        }
+     }
+     if( VL_maxdisp > 0 ){
+       if( VL_verbose ) fprintf(stderr,"\n") ;
+       INFO_message("Max displacement in automask = %.2f (mm) at sub-brick %d",VL_dmax,VL_dmaxi) ; 
+       free((void *)VL_dispvec) ;
      }
    }
 
@@ -1395,9 +1427,11 @@ void VL_command_line(void)
 
    while( Iarg < Argc && Argv[Iarg][0] == '-' ){
 
+#if 0
       if( strcmp(Argv[Iarg],"-maxdisp") == 0 ){  /* 03 Aug 2006 */
         VL_maxdisp++ ; Iarg++ ; continue ;
       }
+#endif
 
       /** -sinit [22 Mar 2004] **/
 
