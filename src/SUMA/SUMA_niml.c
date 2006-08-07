@@ -1260,6 +1260,11 @@ NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO)
    NI_set_attribute (nel, "surface_label", SO->Label);
    NI_set_attribute (nel, "local_domain_parent_ID", SO->LocalDomainParentID);
    NI_set_attribute (nel, "local_domain_parent", SO->LocalDomainParent);
+   if (SO->SpecFile.FileName) NI_set_attribute (nel, "surface_specfile_name", SO->SpecFile.FileName);
+   else NI_set_attribute (nel, "surface_specfile_name", "Unknown");
+   if (SO->SpecFile.Path) NI_set_attribute (nel, "surface_specfile_path", SO->SpecFile.Path);
+   else NI_set_attribute (nel, "surface_specfile_path", "Unknown");
+   
    SUMA_RETURN (nel);
 }
 
@@ -1399,6 +1404,10 @@ NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO)
    NI_set_attribute (nel, "surface_label", SO->Label);
    NI_set_attribute (nel, "local_domain_parent_ID", SO->LocalDomainParentID);
    NI_set_attribute (nel, "local_domain_parent", SO->LocalDomainParent);
+   if (SO->SpecFile.FileName) NI_set_attribute (nel, "surface_specfile_name", SO->SpecFile.FileName);
+   else NI_set_attribute (nel, "surface_specfile_name", "Unknown");
+   if (SO->SpecFile.Path) NI_set_attribute (nel, "surface_specfile_path", SO->SpecFile.Path);
+   else NI_set_attribute (nel, "surface_specfile_path", "Unknown");
 
    SUMA_RETURN (nel);
 }
