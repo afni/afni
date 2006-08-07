@@ -381,6 +381,13 @@ static void GA_interp_quintic( MRI_IMAGE *fim ,
 
 /*---------------------------------------------------------------------------*/
 
+/* Macro to periodically reduce a variable into the range 0..1 */
+
+#undef  PRED01
+#define PRED01(x) fabsf( (x) - 2.0f*floorf(0.5f*((x)+1.0f)) )
+
+/* Max number of points to warp at a time */
+
 #undef  NPER
 #define NPER 1024
 
@@ -388,21 +395,25 @@ static void GA_interp_quintic( MRI_IMAGE *fim ,
 
 static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 {
-   int    npar , nfree , ii,jj,kk,qq,pp,npp,mm,nx,ny,nxy , clip=0 ;
-   float *wpar ;
+   int    npar , ii,jj,kk,qq,pp,npp,mm,nx,ny,nxy , clip=0 ;
+   float *wpar , v ;
    float *imf , *jmf , *kmf ;
    float *imw , *jmw , *kmw ;
+   MRI_IMAGE *aim ;
 
    npar  = gstup->wfunc_numpar ;
-   nfree = gstup->wfunc_numfree ;
    wpar  = (float *)malloc(sizeof(float)*npar) ;
 
    /* load the warping parameters */
 
    for( ii=pp=0 ; ii < npar ; ii++ ){
-     wpar[ii] = ( gstup->wfunc_param[ii].fixed )
-               ? gstup->wfunc_param[ii].val_fixed
-               : (float)mpar[pp++] ;
+     if( gstup->wfunc_param[ii].fixed ){
+       wpar[ii] = gstup->wfunc_param[ii].val_fixed ;
+     } else {
+       v = (float)mpar[pp++] ;
+       wpar[ii] = gstup->wfunc_param[ii].min
+                 +gstup->wfunc_param[ii].siz * PRED01(v) ;
+     }
    }
 
    /* create space for default control points, if none given */
@@ -444,24 +455,25 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 
      /* interpolate target image at warped control points */
 
+     aim = (gstup->ajims != NULL ) ? gstup->ajims : gstup->ajim ;
      switch( gstup->interp_code ){
        case MRI_NN:
-         GA_interp_NN( gstup->ajim , npp , imw,jmw,kmw , avm+pp ) ;
+         GA_interp_NN( aim , npp , imw,jmw,kmw , avm+pp ) ;
        break ;
 
        case MRI_LINEAR:
-         GA_interp_linear( gstup->ajim , npp , imw,jmw,kmw , avm+pp ) ;
+         GA_interp_linear( aim , npp , imw,jmw,kmw , avm+pp ) ;
        break ;
 
        case MRI_CUBIC:
          clip = 1 ;
-         GA_interp_cubic( gstup->ajim , npp , imw,jmw,kmw , avm+pp ) ;
+         GA_interp_cubic( aim , npp , imw,jmw,kmw , avm+pp ) ;
        break ;
 
        default:        /* for higher order methods not implemented herein */
        case MRI_QUINTIC:
          clip = 1 ;
-         GA_interp_quintic( gstup->ajim , npp , imw,jmw,kmw , avm+pp ) ;
+         GA_interp_quintic( aim , npp , imw,jmw,kmw , avm+pp ) ;
        break ;
      }
    }
@@ -543,7 +555,7 @@ void mri_genalign_scalar_setup( MRI_IMAGE *basim  , MRI_IMAGE *maskim ,
 
 {
    int qq , rr , nx,ny,nz,nxy , mm,ii,jj,kk ;
-   int use_all=0 , need_pts=0 , nmatch ;
+   int use_all=0 , need_pts=0 , nmatch , need_smooth,do_smooth ;
    float *bsar ;
 
 ENTRY("mri_genalign_scalar_setup") ;
@@ -577,37 +589,43 @@ ENTRY("mri_genalign_scalar_setup") ;
    if( stup->wfunc_numpar < 1 || stup->wfunc==NULL || stup->wfunc_param==NULL )
      ERREX("illegal wfunc parameters") ;
 
-   for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ )
-     if( !stup->wfunc_param[qq].fixed ) ii++ ;
-   if( ii == 0 ) ERREX("no free wfunc parameters?!") ;
-   stup->wfunc_numfree = ii ;
-
    stup->dim_avec = stup->dim_bvec = 1 ;  /* scalars */
 
-   /** copy new images into setup struct, smoothing if so ordered **/
+   /** copy new images into setup struct **/
 
    if( basim != NULL ){
-     need_pts = 1 ;
+     need_pts = 1 ;              /* will need to extract match points */
      if( stup->bsim != NULL ) mri_free(stup->bsim) ;
      stup->bsim = mri_to_float(basim) ;
-     if( stup->smooth_code > 0 && stup->smooth_radius > 0.0f ){
-       MRI_IMAGE *qim ;
-       qim = GA_smooth( stup->bsim , stup->smooth_code , stup->smooth_radius ) ;
-       if( qim != NULL ){ mri_free(stup->bsim) ; stup->bsim = qim ; }
-     }
    }
    nx = stup->bsim->nx; ny = stup->bsim->ny; nz = stup->bsim->nz; nxy = nx*ny;
 
    if( targim != NULL ){
      if( stup->ajim != NULL ) mri_free(stup->ajim) ;
      stup->ajim = mri_to_float(targim) ;
-     if( stup->smooth_code > 0 && stup->smooth_radius > 0.0f ){
-       MRI_IMAGE *qim ;
-       float nxa=stup->ajim->nx, nya=stup->ajim->ny, nza=stup->ajim->nz ;
-       float rad=cbrtf(nxa*nya*nza/(nx*ny*nz)) * stup->smooth_radius ;
-       qim = GA_smooth( stup->ajim , stup->smooth_code , rad ) ;
-       if( qim != NULL ){ mri_free(stup->ajim) ; stup->ajim = qim ; }
-     }
+   }
+
+   /* smooth and save target image if needed */
+
+   need_smooth = (stup->smooth_code > 0 && stup->smooth_radius > 0.0f) ;
+   do_smooth   = need_smooth && ( stup->smooth_code   != stup->old_sc ||
+                                  stup->smooth_radius != stup->old_sr   ) ;
+
+   if( !need_smooth ){
+     if( stup->ajims != NULL ){ mri_free(stup->ajims); stup->ajims = NULL; }
+     if( stup->bsims != NULL ){ mri_free(stup->bsims); stup->bsims = NULL; }
+     stup->old_sc = -1 ; stup->old_sr = -1.0f ;
+   }
+   if( do_smooth || (need_smooth && stup->bsims == NULL) ){
+     if( stup->bsims != NULL ) mri_free(stup->bsims);
+     stup->bsims = GA_smooth( stup->bsim , stup->smooth_code ,
+                                           stup->smooth_radius ) ;
+   }
+   if( do_smooth || (need_smooth && stup->ajims == NULL) ){
+     float nxa=stup->ajim->nx, nya=stup->ajim->ny, nza=stup->ajim->nz ;
+     float rad=cbrtf(nxa*nya*nza/(nx*ny*nz)) * stup->smooth_radius ;
+     if( stup->ajims != NULL ) mri_free(stup->ajims);
+     stup->ajims = GA_smooth( stup->ajim , stup->smooth_code , rad ) ;
    }
 
    /* get min and max values in target image (for clipping), if needed */
@@ -661,6 +679,8 @@ ENTRY("mri_genalign_scalar_setup") ;
      need_pts = 1 ;
 
    if( need_pts ){
+     MRI_IMAGE *bim ;
+
      stup->npt_match = nmatch ;
 
      if( use_all == 1 ){         /*------------- all points, no mask -----------*/
@@ -718,7 +738,8 @@ ENTRY("mri_genalign_scalar_setup") ;
 
      /*------------- extract values from base image for matching -------------*/
 
-     bsar = MRI_FLOAT_PTR(stup->bsim) ;
+     bim = (stup->bsims != NULL ) ? stup->bsim : stup->bsim ;
+     bsar = MRI_FLOAT_PTR(bim) ;
      MAKE_floatvec(stup->bvm,stup->npt_match) ;
      if( stup->im == NULL ){
        memcpy( stup->bvm->ar , bsar , sizeof(float)*stup->npt_match ) ;
@@ -728,53 +749,84 @@ ENTRY("mri_genalign_scalar_setup") ;
          stup->bvm->ar[qq] = bsar[rr] ;
        }
      }
-   } /* end of if(need_pts) */
 
-   if( stup->match_code == GA_MATCH_SPEARMAN_SCALAR )
-     stup->bvstat = spearman_rank_prepare( stup->npt_match , stup->bvm->ar ) ;
+     /* do match_code specific pre-processing of the extracted data */
+
+     switch( stup->match_code ){
+       case GA_MATCH_SPEARMAN_SCALAR:
+         stup->bvstat = spearman_rank_prepare( stup->npt_match, stup->bvm->ar );
+       break ;
+     }
+
+   } /* end of if(need_pts) */
 
    stup->setup = SMAGIC ;
    EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
-/*! Optimize warping parameters.
+/*! Optimize warping parameters, after doing setup.
 -----------------------------------------------------------------------------*/
 
-void mri_genalign_scalar_optim( GA_setup *stup )
+int mri_genalign_scalar_optim( GA_setup *stup ,
+                               double rstart, double rend, int nstep )
 {
    double *wpar ;
-   int ii , qq ;
+   int ii , qq , nfunc ;
 
 ENTRY("mri_genalign_scalar_optim") ;
 
    if( stup == NULL || stup->setup != SMAGIC ){
      ERROR_message("Illegal call to mri_genalign_scalar_optim()") ;
-     EXRETURN ;
+     RETURN(-1) ;
    }
 
-   /* copy initial warp parameters into local array wpar */
+   /* count free parameters to optimize over */
+
+   for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ )
+     if( !stup->wfunc_param[qq].fixed ) ii++ ;
+   if( ii == 0 ){
+     ERROR_message("No free parameters in mri_genalign_scalar_optim()?") ;
+     RETURN(-1) ;
+   }
+   stup->wfunc_numfree = ii ;
+   for( ii=0 ; ii < stup->wfunc_numpar ; qq++ )
+     stup->wfunc_param[ii].siz = stup->wfunc_param[ii].max
+                                -stup->wfunc_param[ii].min ;
+
+   /* copy initial warp parameters into local array wpar,
+      scaling to the range 0..1                          */
 
    wpar = (double *)malloc(sizeof(double)*stup->wfunc_numfree) ;
    for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ )
      if( !stup->wfunc_param[qq].fixed )
-       wpar[ii++] = stup->wfunc_param[qq].val_init ;
+      wpar[ii++] = ( stup->wfunc_param[qq].val_init
+                    -stup->wfunc_param[qq].min    ) / stup->wfunc_param[qq].siz;
 
    gstup = stup ;  /* for global access */
 
+   if( nstep <= 2*stup->wfunc_numfree+5 ) nstep = 6666 ;
+
+        if( rstart >  0.2 ) rstart = 0.2 ;
+   else if( rstart <= 0.0 ) rstart = 0.1 ;
+
+   if( rend > rstart || rend <= 0.0 ) rend = 0.0666 * rstart ;
+
    /*** all the work takes place now ***/
 
-   powell_newuoa( stup->wfunc_numfree , wpar ,
-                  1.0 , 0.05 , 6666 , GA_scalar_fitter ) ;
+   nfunc = powell_newuoa( stup->wfunc_numfree , wpar ,
+                          rstart , rend , nstep , GA_scalar_fitter ) ;
 
-   /* copy output values of parameter back */
+   /* copy+scale output values of parameter back */
 
    for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ )
      if( stup->wfunc_param[qq].fixed )
        stup->wfunc_param[qq].val_out = stup->wfunc_param[qq].val_fixed ;
      else
-       stup->wfunc_param[qq].val_out = wpar[ii++] ;
+       stup->wfunc_param[qq].val_out = stup->wfunc_param[qq].min
+                                      +stup->wfunc_param[qq].siz * wpar[ii++] ;
 
    free((void *)wpar) ;
-   EXRETURN ;
+
+   RETURN( (nfunc < nstep) ? 1 : 2 ) ;
 }
