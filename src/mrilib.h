@@ -1216,7 +1216,7 @@ typedef GA_warpfunc( int, float *,
 
 #if 0
   typedef struct {
-    float min, max, ident, delta, toler ;
+    float min, max, siz, ident, delta, toler ;
     float val_init , val_out , val_fixed ;
     int fixed ;
     char name[32] ;
@@ -1231,13 +1231,15 @@ typedef struct {
   float smooth_radius ;        /* set by user */
   int interp_code ;            /* set by user */
 
-  MRI_IMAGE *bsim ;
+  int old_sc ; float old_sr ;
+
+  MRI_IMAGE *bsim , *bsims ;
   int dim_bvec    ;
   int   nmask     ;
   int   nvox_mask ;
   byte *bmask     ;
 
-  MRI_IMAGE *ajim ;
+  MRI_IMAGE *ajim , *ajims ;
   float ajbot,ajtop ;
   int dim_avec    ;
 
