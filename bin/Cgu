@@ -1,0 +1,3 @@
+#!/bin/tcsh
+
+Cget |& grep ^U
