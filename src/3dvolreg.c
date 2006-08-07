@@ -1044,7 +1044,7 @@ int main( int argc , char *argv[] )
      if( VL_maxdisp > 0 ){
        if( VL_verbose )
          INFO_message("Max displacements (mm) for each sub-brick:") ;
-       if( VL_dmaxfile != NULL )
+       if( *VL_dmaxfile != '\0' )
          VL_dmaxar = (float *)calloc(sizeof(float),imcount) ;
      }
 
@@ -1094,14 +1094,14 @@ int main( int argc , char *argv[] )
           }
           if( VL_dmax < dmax ){ VL_dmax = dmax ; VL_dmaxi = kim ; }
           if( VL_verbose ) fprintf(stderr," %.2f",dmax) ;
-          if( VL_dmaxfile != NULL ) VL_dmaxar[kim] = dmax ;
+          if( VL_dmaxar != NULL ) VL_dmaxar[kim] = dmax ;
         }
      }
      if( VL_maxdisp > 0 ){
        if( VL_verbose ) fprintf(stderr,"\n") ;
        INFO_message("Max displacement in automask = %.2f (mm) at sub-brick %d",VL_dmax,VL_dmaxi);
        free((void *)VL_dispvec) ;
-       if( VL_dmaxfile != NULL ){
+       if( *VL_dmaxfile != '\0' && VL_dmaxar != NULL ){
          FILE *fp ;
          if( THD_is_file(VL_dmaxfile) ) WARNING_message("Overwriting file %s",VL_dmaxfile);
          fp = fopen( VL_dmaxfile , "w" ) ;
