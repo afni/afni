@@ -8,6 +8,14 @@
 
 static GA_setup *gstup = NULL ;
 
+#ifdef SOLARIS
+#define floorf floor
+#endif
+
+#if defined(SOLARIS) || defined(SGI)
+#define cbrtf  cbrt
+#endif
+
 /*---------------------------------------------------------------------------*/
 static int gcd( int m , int n )    /* Euclid's Greatest Common Denominator */
 {

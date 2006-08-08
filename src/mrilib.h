@@ -858,7 +858,8 @@ extern MRI_IMAGE * mri_transpose( MRI_IMAGE * ) ;
 
 extern MRI_IMAGE * mri_filt_fft( MRI_IMAGE * im , float,int,int,int ) ;
 
-extern MRI_IMAGE *mri_medianfilter( MRI_IMAGE *, float, byte *, int ) ;  /* 22 Feb 2005 */
+extern MRI_IMAGE *mri_medianfilter( MRI_IMAGE *, float, byte *, int ); /* 22 Feb 2005 */
+extern void mri_medianfilter_usedxyz( int i ) ;                       /* 08 Aug 2006 */
 
 extern MRI_IMAGE * mri_cat2D( int,int,int,void *,MRI_IMARR *) ;
 extern MRI_IMARR * mri_uncat2D( int , int , MRI_IMAGE * im ) ; /* 09 May 2000 */
@@ -1263,13 +1264,15 @@ typedef struct {
   float smooth_radius ;        /* set by user */
   int interp_code ;            /* set by user */
 
-  MRI_IMAGE *bsim ;
+  int old_sc ; float old_sr ;
+
+  MRI_IMAGE *bsim , *bsims ;
   int dim_bvec    ;
   int   nmask     ;
   int   nvox_mask ;
   byte *bmask     ;
 
-  MRI_IMAGE *ajim ;
+  MRI_IMAGE *ajim , *ajims ;
   float ajbot,ajtop ;
   int dim_avec    ;
 
