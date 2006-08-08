@@ -51,6 +51,10 @@
 #include <Xm/CascadeB.h>
 #include <Xm/Separator.h>
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 #ifndef LABEL_ARG
 #define LABEL_ARG(str) \
   XtVaTypedArg , XmNlabelString , XmRString , (str) , strlen(str)+1
@@ -699,4 +703,9 @@ extern void GRA_finalize_global_baseline_CB( Widget,
                                              XtPointer, MCW_choose_cbs * );
 
 /***-----------------------------------------------------------------------***/
+
+#ifdef  __cplusplus
+}
+#endif
+
 #endif

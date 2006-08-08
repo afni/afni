@@ -16,6 +16,10 @@
 
 #include "machdep.h"
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 /*---------------------------------------------------------------------------*/
 #ifdef DONT_USE_MCW_MALLOC
 
@@ -98,5 +102,9 @@ extern void   mcw_XtFree( char * ) ;
 #define myXtFree(xp)  (XtFree((char *)(xp)) , (xp)=NULL)
 #define myXtNew(type) ((type *) XtCalloc(1,(Cardinal) sizeof(type)))
 #define myfree(xp)    (free((xp)) , (xp)=NULL)
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _MCW_MALLOC_HEADER_ */

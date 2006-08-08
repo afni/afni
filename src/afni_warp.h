@@ -9,6 +9,10 @@
 
 #include "mrilib.h"
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 /** external routine for freeing memory in THD_load_datablock **/
 
 extern MRI_IMAGE * AFNI_dataset_slice( THD_3dim_dataset * , int,int,int,int ) ;
@@ -174,5 +178,9 @@ extern void B2SL_NAME( int nxx, int nyy, int nzz ,
 #undef  LMAP_ZNAME
 #undef  B2SL_NAME
 /********************************************************************/
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _AFNI_WARP_HEADER_ */

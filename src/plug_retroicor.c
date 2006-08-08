@@ -97,6 +97,9 @@ removed winsize ui --*/
    Set up the interface to the user
 ************************************************************************/
 
+/* from Greg Balls   7 Aug 2006 [rickr] */
+DEFINE_PLUGIN_PROTOTYPE
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
    PLUGIN_interface * plint ;

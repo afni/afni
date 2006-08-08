@@ -202,6 +202,10 @@ static char * tfont_hopefuls[] = {
 
 /*** prototypes ***/
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 extern void DC_yokify( Widget , MCW_DC * ) ; /* 14 Sep 1998 */
 
 extern MCW_DC * MCW_new_DC( Widget, int, int, char * c[], char * l[], double, int ) ;
@@ -269,5 +273,9 @@ extern int DC_parse_color( MCW_DC *, char *, float *,float *,float *) ; /* 21 Se
 
 extern rgbyte DC_spectrum_AJJ( double, double ) ;
 extern rgbyte DC_spectrum_ZSS( double, double ) ;
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _MCW_DISPLAY_HEADER_ */

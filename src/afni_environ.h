@@ -7,6 +7,10 @@
 #ifndef _AFNI_ENVIRON_HEADER_
 #define _AFNI_ENVIRON_HEADER_
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 extern void AFNI_process_environ( char * ) ;
 extern char * AFNI_suck_file( char * ) ;
 extern char * my_getenv( char * ) ;
@@ -29,5 +33,9 @@ extern int AFNI_setenv( char *cmd ) ;       /* 22 Jan 2003 */
 
 #define YESSISH(ss) ( (ss)!=NULL && ( (ss)[0]=='Y' || (ss)[0]=='y' ) )
 #define NOISH(ss)   ( (ss)!=NULL && ( (ss)[0]=='N' || (ss)[0]=='n' ) )
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _AFNI_ENVIRON_HEADER_ */

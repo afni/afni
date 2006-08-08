@@ -17,6 +17,10 @@
 
 /*--- prototypes ---*/
 
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
+
 extern void * new_MREN_renderer(void) ;
 extern void   destroy_MREN_renderer( void * ) ;
 
@@ -105,5 +109,9 @@ typedef struct {
 } MREN_stuff ;
 
 #define ISVALID_MREN(ah) ( (ah) != NULL && (ah)->type == MREN_TYPE )
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _MRI_RENDER_HEADER_ */

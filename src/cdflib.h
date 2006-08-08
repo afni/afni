@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <math.h>
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 extern double algdiv(double*,double*);
 extern double alngam(double*);
 extern double alnrel(double*);
@@ -95,4 +99,9 @@ extern long fifidint(double);
 extern long fifmod(long,long);
 extern void ftnstop(char*);
 extern int ipmpar(int*);
+
+#ifdef  __cplusplus
+}
+#endif
+
 #endif

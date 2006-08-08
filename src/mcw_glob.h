@@ -41,6 +41,10 @@
 
 /** prototypes for routines added by RWCox **/
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 extern void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout ) ;
 extern void MCW_free_expand( int gnum , char ** gout ) ;
 extern void MCW_warn_expand( int www ) ;                             /* 13 Jul 2001 */
@@ -73,6 +77,10 @@ typedef struct {
 
 int glob (const char *, int, int (*)(char *, int), glob_t *);
 void globfree (glob_t *);
+
+#ifdef  __cplusplus
+}
+#endif
 
 #include <string.h>
 

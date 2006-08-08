@@ -23,6 +23,10 @@
 #include "bbox.h"
 #include "xutil.h"
 
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
+
 void PBAR_click_CB( Widget , XtPointer , XtPointer ) ;
 void PBAR_set_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 void PBAR_resize_CB( Widget , XtPointer , XtPointer ) ;
@@ -110,5 +114,9 @@ void PBAR_set_bigmap( MCW_pbar * , char * ) ;               /* 03 Feb 2003 */
 char * PBAR_get_bigmap( MCW_pbar * ) ;                      /* 03 Feb 2003 */
 int PBAR_define_bigmap( char *cmd ) ;                       /* 07 Feb 2003 */
 void PBAR_flip( MCW_pbar * ) ;                              /* 07 Feb 2004 */
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif

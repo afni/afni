@@ -23,6 +23,10 @@
 #include <sys/times.h>
 #include <limits.h>
 
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
+
 /*****---------------------------------------------------*****/
 
 /* This is suppose to be defined in stddef.h, but
@@ -251,6 +255,10 @@ typedef struct {
 
 extern NI_procins * NI_rowtype_procins( NI_rowtype * ) ; /* 19 Apr 2005 */
 
+#ifdef  __cplusplus
+}
+#endif
+
 /*-----------------------------------------------------------------
   Stuff for shared memory transport between processes
 -------------------------------------------------------------------*/
@@ -321,6 +329,10 @@ extern NI_procins * NI_rowtype_procins( NI_rowtype * ) ; /* 19 Apr 2005 */
 
 #endif /* DONT_USE_SHM */
 /*-----------------------------------------------------------------*/
+
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
 
 /*! Size of NI_stream buffer. */
 
@@ -1207,5 +1219,9 @@ extern void   NI_convert_obj_to_elm( NI_objcontainer * ) ;
 extern void   NI_register_objconverters( char * ,
                                          NI_objconverter_func ,
                                          NI_objconverter_func  ) ;
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _NIML_HEADER_FILE */

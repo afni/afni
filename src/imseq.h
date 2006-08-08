@@ -39,6 +39,10 @@
 
 #include "coxplot.h"  /* 30 Dec 1998 */
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 /*** typedefs ***/
 
 #ifndef HAVE_GET_PTR_TYPEDEF
@@ -789,5 +793,9 @@ extern void mri_rgb_transform_nD( MRI_IMAGE *, int, generic_func * ) ;
 extern void ISQ_save_jpeg( MCW_imseq *seq , char *fname ) ; /* 28 Jul 2005 */
 
 extern void ISQ_setup_ppmto_filters(void); /* 11 May 2006 */
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _MCW_IMSEQ_HEADER_ */

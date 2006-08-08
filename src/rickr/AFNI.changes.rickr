@@ -1648,3 +1648,13 @@
   * modified vol2surf.c: changed set_ni_debug() to set_gni_debug()
   * modified 3ddata.h: changed prototype names, and added to_float protos
 
+08 Aug 2006: C++ compilation changes from Greg Balls
+  * modified niml/niml.h rickr/r_idisp.h rickr/r_new_resam_dset.h 3ddata.h
+        afni_environ.h afni_graph.h afni.h afni_pcor.h afni_setup.h afni_suma.h
+        afni_warp.h bbox.h cdflib.h coxplot.h cox_render.h cs.h debugtrace.h
+        display.h editvol.h imseq.h machdep.c machdep.h maxima.h mcw_glob.h
+        mcw_graf.h mcw_malloc.h mrilib.h mri_render.h multivector.h parser.h
+        pbar.h plug_permtest.c plug_retroicor.c retroicor.h thd_compress.h
+        thd_iochan.h thd_maker.h vol2surf.h xim.h xutil.h
+    (mostly adding #ifdef __cplusplus extern "C" { #endif, and closing set)
+

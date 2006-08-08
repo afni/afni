@@ -13,6 +13,10 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
+
 #define MAX_PARCODE 9999
 
 typedef struct {
@@ -34,8 +38,16 @@ extern void PARSER_mark_symbols( PARSER_code * pc , int * sl ) ;
 
 extern int PARSER_1deval( char *, int, float, float, float * ) ; /* 17 Nov 1999 */
 
+#ifdef  __cplusplus
+}
+#endif
+
 #ifdef NEED_PARSER_INTERNALS
 #include "f2c.h"
+
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
 
 extern int parser_(char *c_expr__, logical *l_print__,
                    integer * num_code__, char *c_code__,
@@ -65,6 +77,10 @@ extern doublereal derf_ ( doublereal * ) ;
 extern doublereal derfc_( doublereal * ) ;
 
 extern doublereal unif_( doublereal * ) ;
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* NEED_PARSER_INTERNALS */
 #endif /* _RWCOX_PARSER_HEADER_ */

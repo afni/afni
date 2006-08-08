@@ -908,14 +908,9 @@ static void orthogonalise(float *x, float *y, float *new_y, int n, double m, dou
   autocorrelate_finish() after the last call to autocorrelate_compute() to free
   ((*excl)-order), and for freeing *cov itself once the correlations are no
   longer needed.  Return 0 if successful, 1 if out of memory.*/
-static int autocorrelate_init(excl_0, n, order, excl, cov, var, n_incl)
-float *excl_0;
-int n,
-    order;
-char **excl;
-double **cov,
-	*var;
-int *n_incl;
+/*          K&R to ANSI from Greg Balls   7 Aug 2006 [rickr] */
+static int autocorrelate_init(float *excl_0, int n, int order, char **excl,
+                              double **cov, double *var, int *n_incl)
   {
   register int t, k;
   *cov = (double *)calloc(order, sizeof(**cov));
@@ -975,16 +970,20 @@ int *n_incl;
   voxel's time series into the numerator sums cov[0..order-1] and the
   denominator sum var for computing autocorrelation coefficients in an AR(order)
   model.*/
-static void autocorrelate_sum(ts, n, n_incl, order, excl, cov, var)
-float *ts;	/*detrended fMRI time series from one voxel*/
-int n,		/*length of ts[]*/
-    n_incl,	/*number of 0's in excl[0..n-1], or else n-order if no excl[]*/
-    order;	/*AR order - i.e., number of lags modelled in r[]*/
-char *excl;	/*excl[i]=0 <==> include ts[i] in autocorrelation computation*/
-double *cov,	/*cov[k-1] accumulates Sigma[(ts[i]-ts_avg)*(ts[i-k]-ts_avg)],*/
-		/*		       !excl[i] & !excl[i-k], order<=i<n*/
-	*var;	/**var accumulates Sigma[(ts[i]-ts_avg)^2],		*/
-		/*		   !excl[i] & !excl[i-k], order<=i<n	*/
+/*          K&R to ANSI from Greg Balls   7 Aug 2006 [rickr] */
+static void autocorrelate_sum(
+    float  *ts,	    /* detrended fMRI time series from one voxel */
+    int     n,	    /* length of ts[] */
+    int     n_incl, /* number of 0's in excl[0..n-1],  */
+                    /*     else n-order if no excl[] */
+    int     order,  /* AR order - i.e., number of lags modelled in r[]*/
+    char   *excl,   /* excl[i]=0 <==> include ts[i] in autocorrelation */
+                    /*     computation*/
+    double *cov,/*cov[k-1] accumulates Sigma[(ts[i]-ts_avg)*(ts[i-k]-ts_avg)],*/
+                /*		       !excl[i] & !excl[i-k], order<=i<n*/
+    double *var	/**  var accumulates Sigma[(ts[i]-ts_avg)^2],		*/
+		/*  		     !excl[i] & !excl[i-k], order<=i<n	*/
+)
   {
   register int t,	/*time index*/
 	k;		/*AR lag index*/
@@ -1030,11 +1029,9 @@ double *cov,	/*cov[k-1] accumulates Sigma[(ts[i]-ts_avg)*(ts[i-k]-ts_avg)],*/
   rounding errors), or physiologically implausible (|r| = 1 or r < 0).  If such
   values are found, eliminate them from the model by decreasing the model's
   order (*order).  Also, deallocate the storage used for excl[order..n-1].*/
-static void autocorrelate_finish(order, excl, cov, var)
-int *order;
-char *excl;
-double *cov,
-	var;
+static void autocorrelate_finish(int *order, char *excl, double *cov,
+                                 double var)
+/* int *order; char *excl; double *cov, var; */
   {
   register int k;
   if(excl != (char *)0)
@@ -1060,9 +1057,9 @@ double *cov,
   (n is assumed to be small enough so that LU decomposition wouldn't yield any
   substantial increase in speed.)  If m is singular, 1 is returned.  If m is
   non-singular, 0 is returned and the solutions are left in m[0..n-1][n].*/
-static int solve(m, n)
-double **m;
-int n;
+/*          K&R to ANSI from Greg Balls   7 Aug 2006 [rickr] */
+static int solve(double **m, int n)
+/* double **m; int n; */
   {
   register int i, j, k;
   int singular;
@@ -1122,9 +1119,10 @@ int n;
   AR(order) model ts[t] = r[0]*ts[t-1] + r[1]*ts[t-2] + ...
   + r[order-1]*ts[t-order] + e(t).  If a singular matrix is encountered,
   or if a memory allocation error arises, r[] is zeroed and 1 is returned.*/
-static int yule_walker(r, order)
-double *r;	/*r[0..order-1] are the autocorrelations for lags 1..order*/
-int order;
+/*          K&R to ANSI from Greg Balls   7 Aug 2006 [rickr] */
+static int yule_walker(
+    double *r, /* r[0..order-1] are the autocorrelations for lags 1..order */
+    int order )
   {
   register int i, k;
   int retval;
@@ -1190,12 +1188,13 @@ for(i=0; i!=order; i++){
 /*Apply the AR(order) autoregression coefficients reg[0..order-1] to whiten the
   coloured time series coloured[0..n-1].  Place the result in white[0..n-1].
   coloured[] and white[] must be distinct storage.*/
-static void whiten(coloured, white, n, reg, order)
-const float *coloured;		/*coloured[0..n-1] (source)*/
-float *white;			/*white[0..n-1] (destination)*/
-int n;
-double *reg;			/*reg[0..order-1] (AR(order) regression coeff.*/
-int order;
+/*          K&R to ANSI from Greg Balls   7 Aug 2006 [rickr] */
+static void whiten(
+    const float *coloured,	/*coloured[0..n-1] (source)*/
+    float *white,		/*white[0..n-1] (destination)*/
+    int n,
+    double *reg,		/*reg[0..order-1] (AR(order) regression coeff.*/
+    int order)
   {
   register int t, k;
   *white = *coloured;
@@ -1217,12 +1216,12 @@ int order;
 /*Apply the AR(order) autoregression coefficients reg[0..order-1] to colour
   the white time series white[0..n-1].  Place the result in coloured[0..n-1].
   coloured[] and white[] must be distinct storage.*/
-static void colour(coloured, white, n, reg, order)
-float *coloured;		/*coloured[0..n-1] (source)*/
-const float *white;		/*white[0..n-1] (destination)*/
-int n;
-double *reg;			/*reg[0..order-1] (AR(order) regression coeff.*/
-int order;
+static void colour(
+    float *coloured,	/*coloured[0..n-1] (source)*/
+    const float *white,	/*white[0..n-1] (destination)*/
+    int n,
+    double *reg,	/*reg[0..order-1] (AR(order) regression coeff.*/
+    int order)
   {
   register int t, k;
   *coloured = *white;
@@ -1243,10 +1242,11 @@ int order;
 
 /*Write vec[0..len-1] to the ASCII file whose name is filename_prefix
   concatenated with filename_suffix concatenated with ".1D".*/
-static int write_1D_file(vec, len, filename_prefix, filename_suffix)
-const double *vec;
-int len;
-const char *filename_prefix, *filename_suffix;
+static int write_1D_file(
+    const double *vec,
+    int len,
+    const char *filename_prefix,
+    const char *filename_suffix)
   {
   register int i, j;
   FILE *fp;

@@ -65,6 +65,10 @@
 #include <signal.h>
 #include <unistd.h>
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 #ifdef _DEBUGTRACE_MAIN_
    char * DBG_rout[DEBUG_MAX_DEPTH] = { "Bottom of Debug Stack" } ;
    int DBG_num   = 1 ;
@@ -216,9 +220,19 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 # define MCHECK /* nada */
 # define MPROBE /* nada */
 #endif
+
+#ifdef  __cplusplus
+}
+#endif
+
 /*---------------------------------------------------------------*/
 
 #include <stdarg.h>
+
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 extern void INFO_message   ( char *fmt , ... ) ;  /* 13 Jul 2005 */
 extern void ININFO_message ( char *fmt , ... ) ;
 extern void WARNING_message( char *fmt , ... ) ;
@@ -226,5 +240,8 @@ extern void ERROR_message  ( char *fmt , ... ) ;
 extern void ERROR_exit     ( char *fmt , ... ) ;
 #define FATAL_ERROR_message ERROR_exit
 
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _MCW_DEBUGTRACE_ */
