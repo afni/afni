@@ -1657,4 +1657,5 @@
         pbar.h plug_permtest.c plug_retroicor.c retroicor.h thd_compress.h
         thd_iochan.h thd_maker.h vol2surf.h xim.h xutil.h
     (mostly adding #ifdef __cplusplus extern "C" { #endif, and closing set)
+  * modified rickr/Makefile: removed ../ge4_header.o from file_tool dep list
 

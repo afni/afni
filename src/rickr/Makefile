@@ -29,7 +29,7 @@ clean:
 	$(CC) -o 3dresample 3dresample.o $(AFNI_WARP_OBJS)	\
 		 $(LFLAGS) -L.. -lrickr $(LLIBS) -lm
 
-file_tool: file_tool.o file_tool.h ../ge4_header.o
+file_tool: file_tool.o file_tool.h
 	$(RM) $@
 	$(CC) -o file_tool file_tool.o ../ge4_header.o -lm
 
