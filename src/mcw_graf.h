@@ -13,6 +13,10 @@
 
 #include "mcw_malloc.h"
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 #define MAX_GHANDS 16   /* maximum # of handles */
 
 #define GRAF_SIZE 128
@@ -127,5 +131,9 @@ extern void set_MCW_pasgraf( MCW_pasgraf * gp , byte * func ) ;
 extern void MCW_histo_bytes( int nb , byte * bar , int * har ) ;
 
 extern void PASGRAF_set_xyrange( MCW_pasgraf *gp , float xb,float xt, float yb,float yt ) ;
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _MCW_GRAFFF_HEADER_ */

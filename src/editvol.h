@@ -159,6 +159,10 @@ typedef struct {
 
 /*----------------------------------------------------------------------------*/
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 extern MCW_cluster_array * MCW_find_clusters( int,int,int , float,float,float ,
                                               int , void * , float ) ;
 
@@ -568,5 +572,9 @@ extern THD_3dim_dataset * THD_localstat( THD_3dim_dataset *, byte *,
 extern void THD_localstat_verb(int) ; 
 
 extern void SetSearchAboutMaskedVoxel(int v);
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _MCW_EDITVOL_ */

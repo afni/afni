@@ -10,6 +10,10 @@
 #include <ctype.h>
 #include "mrilib.h"
 
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
+
 #define MV_FLOAT  1
 #define MV_STRING 2
 
@@ -46,5 +50,9 @@ extern char * MV_format_fval( float ) ;  /* 12 July 01999 */
 extern char * MV_format_fval2( float, int ) ;  /* May 28 04, ZSS */
 
 #define MV_FREE(m) do{ multivector_free((m)); (m)=NULL; }while(0)
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _MULTIVECTOR_HEADER_ */

@@ -10,6 +10,10 @@
 
 #include "vecmat.h"   /* for THD_fvec3 type */
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 /*! Port number for talking to AFNI */
 
 #ifndef SUMA_TCP_PORT
@@ -212,5 +216,9 @@ extern THD_fvec3 THD_surefit_to_dicomm( struct THD_3dim_dataset *, THD_fvec3 ) ;
 extern void SUMA_import_surefit( SUMA_surface *, char *, struct THD_3dim_dataset * );
 
 extern void SUMA_destroy_vnlist( SUMA_vnlist *vnlist ) ;
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _SUMA_HEADER_FILE */

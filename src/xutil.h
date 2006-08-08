@@ -22,6 +22,10 @@
 #include "mcw_malloc.h"
 #include "afni_environ.h"
 
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
+
 #ifndef MAX
 #   define MAX(a,b) (((a)<(b)) ? (b) : (a))
 #   define MIN(a,b) (((a)>(b)) ? (b) : (a))
@@ -222,5 +226,8 @@ extern void RWC_XtPopdown( Widget ) ; /* 30 Jun 2003 */
 extern void AFNI_speak( char *string , int nofork ) ;   /* 24 Nov 2003 */
 extern void AFNI_speak_setvoice( char *vvv ) ;
 
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _MCW_XUTIL_HEADER_ */

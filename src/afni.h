@@ -126,6 +126,10 @@ static char * UNDERLAY_typestr[] =
 #include "AFNI_label.h"
 #define VERSION AFNI_VERSION_LABEL    /* 21 chars long */
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 #ifdef MAIN
 #define AFNI_about \
      "************************************************\n"  \
@@ -925,7 +929,16 @@ extern char * AFNI_get_date_trivia(void) ; /* 25 Nov 2002 */
 /*-----------------------------------------------------------------------------*/
 /*---------------------------- Global library data ----------------------------*/
 
+#ifdef  __cplusplus
+}
+#endif
+
 #include "afni_plugin.h"
+
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 #ifdef ALLOW_PLUGINS
 
    /*-- pseudo-plugin functions --*/
@@ -952,7 +965,15 @@ typedef struct {                 /* windows and widgets */
 
 /*-------------- Here there be global variables.  So shoot me. --------------*/
 
+#ifdef  __cplusplus
+}
+#endif
+
 #include "afni_setup.h"  /* 19 Dec 1997 */
+
+#ifdef  __cplusplus
+extern "C" {
+#endif
 
 typedef struct {
    MCW_DC * dc ;                                  /* display context for everyone */
@@ -1333,11 +1354,19 @@ extern void AFNI_update_all_surface_widgets( THD_session * ) ;
 
 extern void AFNI_disable_suma_overlay( int ) ;  /* 16 Jun 2003 */
 
+#ifdef  __cplusplus
+}
+#endif
+
 /*-------------------------------------------------------------------
   Include prototypes for actual data warping and slicing here.
 --------------------------------------------------------------------*/
 
 #include "afni_warp.h"
+
+#ifdef  __cplusplus
+extern "C" {
+#endif
 
 /*------------------------------------------------------------------*/
 
@@ -1793,6 +1822,10 @@ extern int   INIT_ovin_pos[NPANE_MAX+1][NPANE_MAX+1] ;
 
 extern float INIT_pval_sgn[NPANE_MAX+1][NPANE_MAX+1] ;
 extern int   INIT_ovin_sgn[NPANE_MAX+1][NPANE_MAX+1] ;
+#endif
+
+#ifdef  __cplusplus
+}
 #endif
 
 #endif /* _AFNI_HEADER_ */

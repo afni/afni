@@ -13,6 +13,10 @@
   CREN = COX Renderer, a set of routines for volume rendering 3D bricks.
 ==============================================================================*/
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 /*--- prototypes ---*/
 
 extern void * new_CREN_renderer(void) ;
@@ -72,5 +76,9 @@ typedef struct {
 } CREN_stuff ;
 
 #define ISVALID_CREN(ah) ( (ah) != NULL && (ah)->type == CREN_TYPE )
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _COX_RENDER_HEADER_ */

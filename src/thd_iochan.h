@@ -39,6 +39,10 @@
 # include <sys/shm.h>
 #endif
 
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
+
 #ifndef MIN
 #  define MIN(a,b) (((a)<(b)) ? (a) : (b))
 #endif
@@ -176,5 +180,9 @@ extern void     set_URL_progress( int ) ;
 
 extern void     set_HTTP_10( int ) ;            /* 24 Mar 2005 */
 extern void     set_HTTP_user_agent( char *) ;
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif

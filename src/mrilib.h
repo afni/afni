@@ -11,6 +11,10 @@
 
 #define COXEMAIL "rwcox@nih.gov"        /* or /dev/null, if you prefer */
 
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
+
 extern char MRILIB_orients[] ;          /* 12 Mar 2001 */
 extern float MRILIB_zoff ;              /* global variables from mri_read.c */
 extern float MRILIB_tr ;                /* 03 Dec 2001 */
@@ -32,6 +36,10 @@ extern int   use_MRILIB_slicespacing ;  /* 10 Jan 2004 */
 extern float MRILIB_slicespacing ;
 
 extern int   assume_dicom_mosaic ;   /* mri_read_dicom.c  13 Mar 2006 [rickr] */
+
+#ifdef  __cplusplus
+}
+#endif
 
 #include "nifti1_io.h"
 extern int use_MRILIB_dicom_matrix ;    /* 26 Jan 2006 */
@@ -555,6 +563,10 @@ static int MRI_mm ;
 
 /**** prototypes ****/
 
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
+
 #ifdef USE_MRI_DELAY
   extern void        mri_input_delay( MRI_IMAGE * ) ;
   extern void        mri_purge_delay( MRI_IMAGE * ) ;
@@ -958,9 +970,17 @@ extern void mri_draw_opacity( float ) ;
 
 /**********************************************************************/
 
+#ifdef  __cplusplus
+}
+#endif
+
 #include "coxplot.h"
 #undef min
 #undef max
+
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
 
 extern void set_memplot_RGB_box( int xbot, int ybot, int xtop, int ytop ) ;
 
@@ -975,9 +995,9 @@ extern void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata * mp ,
 **/
 
 #ifdef NO_GAMMA
-extern double gamma_12    ( double ) ;
+/* extern double gamma_12    ( double ) ;   these are static functions */
+/* extern double gamma_asympt( double ) ;           7 Aug 2006 [rickr] */
 extern double gamma       ( double ) ;
-extern double gamma_asympt( double ) ;
 #endif
 
 extern double lnbeta         ( double , double ) ;
@@ -1029,6 +1049,10 @@ extern double gamma_p2t   ( double qq , double sh , double sc ) ;
 extern double poisson_t2p ( double xx , double lambda ) ;
 extern double poisson_t2z ( double xx , double lambda ) ;
 extern double poisson_p2t ( double qq , double lambda ) ;
+
+#ifdef  __cplusplus
+}
+#endif
 
 /*----------------- Misc other types -------------------------------------*/
 
@@ -1094,6 +1118,10 @@ floatvecvec * SYM_expand_ranges( int nlast, int nrang, SYM_irange *rang, char *s
 #include "afni_environ.h"  /* 07 Jun 1999 addition */
 /*------------------------------------------------------------------------*/
 /*--- Functions in mri_matrix.c (matrix operations, stored as images) ----*/
+
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
 
 extern MRI_IMAGE * mri_matrix_mult     ( MRI_IMAGE *, MRI_IMAGE *);
 extern MRI_IMAGE * mri_matrix_multranA ( MRI_IMAGE *, MRI_IMAGE *);
@@ -1163,6 +1191,10 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
 # define RESTRICT /*nada*/
 #endif
 
+#ifdef  __cplusplus
+}
+#endif
+
 /*------------------------------------------------------------------*/
 
 #include "AFNI_label.h"
@@ -1216,7 +1248,7 @@ typedef GA_warpfunc( int, float *,
 
 #if 0
   typedef struct {
-    float min, max, siz, ident, delta, toler ;
+    float min, max, ident, delta, toler ;
     float val_init , val_out , val_fixed ;
     int fixed ;
     char name[32] ;
@@ -1231,15 +1263,13 @@ typedef struct {
   float smooth_radius ;        /* set by user */
   int interp_code ;            /* set by user */
 
-  int old_sc ; float old_sr ;
-
-  MRI_IMAGE *bsim , *bsims ;
+  MRI_IMAGE *bsim ;
   int dim_bvec    ;
   int   nmask     ;
   int   nvox_mask ;
   byte *bmask     ;
 
-  MRI_IMAGE *ajim , *ajims ;
+  MRI_IMAGE *ajim ;
   float ajbot,ajtop ;
   int dim_avec    ;
 

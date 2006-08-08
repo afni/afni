@@ -17,6 +17,10 @@
 #include "mrilib.h"
 #include "display.h"
 
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
+
 extern void MCW_kill_XImage( XImage * ) ;
 extern XImage * mri_to_XImage( MCW_DC * , MRI_IMAGE * ) ;
 extern XImage * resize_XImage( MCW_DC * , XImage * , int , int ) ;
@@ -31,5 +35,8 @@ extern XImage * rgb_to_XImage( MCW_DC * , MRI_IMAGE * ) ;
 extern void ISQ_snapfile( Widget w ) ;  /* 25 Jun 2003 */
 extern MRI_IMAGE * SNAP_grab_image( Widget , MCW_DC * ) ;
 
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _MCW_XIM_HEADER_ */

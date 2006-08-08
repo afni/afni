@@ -15,7 +15,15 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 extern void machdep() ;
+
+#ifdef  __cplusplus
+}
+#endif
 
 /*----------------------------------------------------------------------------
   Flags that can be used to work around bugs on some systems

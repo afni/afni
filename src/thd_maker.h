@@ -9,6 +9,10 @@
 
 #include "mrilib.h"
 
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
+
 #define FREEUP(x) do{if((x) != NULL){free((x)); (x)=NULL;}}while(0)
 
 extern THD_3dim_dataset *
@@ -31,5 +35,9 @@ extern THD_3dim_dataset *
                             int ignore , int detrend ,
                             int nbrik , generic_func * user_func ,
                             void * user_data ) ;
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif

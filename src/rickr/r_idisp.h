@@ -2,6 +2,10 @@
 #ifndef _R_IDISP_H_
 #define _R_IDISP_H_
 
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
+
 #define CHECK_NULL_STR(str) ( str ? str : "(nil)" )
 
 /*    --- 3ddata.h ---              */
@@ -35,5 +39,9 @@ int r_idisp_vec3i      ( char * info, int    * vec );
 int r_idisp_cren_stuff  ( char * info, CREN_stuff * cp );
 
 #endif /* _COX_RENDER_HEADER_ */
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _R_IDISP_H_ */

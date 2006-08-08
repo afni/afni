@@ -53,6 +53,10 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 #include "niml.h"          /* NIML */
 #include "afni_suma.h"     /* SUrface MApper */
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 /*! Enables compilation of the MINC dataset code. */
 
 #define ALLOW_MINC   /* 29 Oct 2001 */
@@ -3248,8 +3252,17 @@ typedef struct {
 
 #define ATRNAME_KEYWORDS       "DATASET_KEYWORDS"
 
+#ifdef  __cplusplus
+}
+#endif
+
 /************************************************************************/
 /******************* rest of prototypes *********************************/
+
+#include <stdarg.h>
+#ifdef  __cplusplus
+extern "C" {
+#endif
 
 #ifndef DONT_USE_SCANDIR
 #ifdef SCANDIR_WANTS_CONST
@@ -3895,7 +3908,7 @@ extern void mri_3dalign_initvals( float,float,float,float,float,float ) ;
   /*-- see mri_warp3D_align.c for these routines --*/
 
 typedef struct {
-  float min, max, siz, ident, delta, toler ;
+  float min, max, ident, delta, toler ;
   float val_init , val_out , val_fixed ;
   int fixed ;
   char name[32] ;
@@ -4057,7 +4070,6 @@ extern void   tross_Replace_History( THD_3dim_dataset * , char * ) ;
 
 extern char * tross_breakup_string( char *, int , int ) ;
 
-#include <stdarg.h>
 void tross_multi_Append_History( THD_3dim_dataset * , ... ) ;
 
 /*-----------------------------------------------------------------------*/
@@ -4175,5 +4187,9 @@ extern NI_group * THD_dataset_to_niml( THD_3dim_dataset * ) ;
 
 extern MRI_IMAGE  * niml_to_mri( NI_element * ) ;
 extern NI_element * mri_to_niml( MRI_IMAGE *  ) ;
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* _MCW_3DDATASET_ */
