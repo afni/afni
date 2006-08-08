@@ -17,6 +17,10 @@
 
 #include "mcw_malloc.h"
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 /***** Quicksort routines in various flavonoids *****/
 
 extern void qsort_floatint  ( int , float *  , int * ) ;
@@ -82,5 +86,9 @@ extern int compare_float (float *a, float *b );
 extern int compare_int (int *a, int *b );
 extern int compare_short (short *a, short *b );
 extern int compare_char (char *a, char *b );
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif

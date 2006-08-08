@@ -20,6 +20,10 @@
 
 #include "mcw_malloc.h"
 
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
+
 #define COMPRESS_NOFILE    -666
 #define COMPRESS_NONE      -1
 #define COMPRESS_GZIP       0
@@ -65,5 +69,9 @@ extern char * COMPRESS_filename( char * fname ) ; /* Feb 1998 */
 extern int COMPRESS_unlink( char * fname ) ;      /* Feb 1998 */
 
 extern char * COMPRESS_add_suffix( char * fname , int mode ) ; /* May 1998 */
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif

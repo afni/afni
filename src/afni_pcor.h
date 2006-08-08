@@ -24,6 +24,10 @@
 #include <math.h>
 #include "mrilib.h"
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 /*** some macros ***/
 
 /** combine two interpreted tokens into one using TWO_TWO **/
@@ -131,6 +135,10 @@ extern void update_PCOR_references(float *,PCOR_references *) ;
 extern void PCOR_update_short( short * , PCOR_references * , PCOR_voxel_corr * ) ;
 extern void PCOR_update_float( float * , PCOR_references * , PCOR_voxel_corr * ) ;
 extern void PCOR_update_byte ( byte  * , PCOR_references * , PCOR_voxel_corr * ) ;
+
+#ifdef  __cplusplus
+}
+#endif
 
 /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #endif

@@ -22,6 +22,10 @@
 
 #include "afni.h"
 
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
+
 #define RIC_HISTSIZE 100
 #define RIC_HISTFUDGE 0.0000001
 
@@ -179,5 +183,9 @@ int RIC_CalcCoeffAB(THD_3dim_dataset * dset, const MRI_IMAGE * phase,
 int RIC_CorrectDataset(THD_3dim_dataset * dset, const MRI_IMAGE * phase,
 		       const double * a, const double * b,
 		       int M, int ignore);
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif

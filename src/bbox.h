@@ -60,6 +60,10 @@ typedef struct {
 
 /*** prototypes ***/
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 extern MCW_bbox * new_MCW_bbox( Widget , int , char * lab[] , int , int ,
                                 XtCallbackProc , XtPointer ) ;
 
@@ -409,6 +413,10 @@ extern void AP_timer_CB( XtPointer , XtIntervalId * ) ;
                         XmNrightPosition  , 6 , NULL ) ;  \
          XtManageChild( ap->wform ) ;                     \
   } } while(0)
+#endif
+
+#ifdef  __cplusplus
+}
 #endif
 
 #endif /* _MCW_BBOX_HEADER_ */

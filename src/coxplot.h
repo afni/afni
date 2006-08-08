@@ -151,6 +151,10 @@ typedef struct {
 
 /*----- prototypes -----*/
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 extern MEM_plotdata * find_memplot( char * ) ;
 extern int            create_memplot( char * , float ) ;
 extern int            set_active_memplot( char * ) ;
@@ -303,10 +307,18 @@ extern void ps_setrgb( float , float , float ) ;           /* set color */
 extern void ps_setwidth( float ) ;                         /* set linewidth */
 extern void ps_rect( int,int,int,int) ;                    /* filled rectangle */
 
+#ifdef  __cplusplus
+}
+#endif
+
 /*-- routines from PLOTPAK, after running through f2c --*/
 
 #include "f2c.h"
 #undef complex
+
+#ifdef  __cplusplus
+extern "C" {
+#endif
 
 extern int color_(integer *ncol);
 extern int fcolor_( real *cr, real *cg, real *cb );
@@ -422,5 +434,9 @@ EXT struct {
     integer ndash;
     real xldash[8], xid;
 } zzdash_;
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif

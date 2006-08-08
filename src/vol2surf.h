@@ -1,6 +1,10 @@
 #ifndef _VOL2SURF_H_
 #define _VOL2SURF_H_
 
+#ifdef  __cplusplus
+extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
+#endif
+
 #define V2S_MAX_SURFS             2
 
 #define V2S_INDEX_VOXEL           0
@@ -142,5 +146,8 @@ int thd_mask_from_brick(THD_3dim_dataset * dset, int volume, float thresh,
     extern char              gv2s_history[];
 #endif
 
+#ifdef  __cplusplus
+}
+#endif
 
 #endif   /* _VOL2SURF_H_ */

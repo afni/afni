@@ -71,6 +71,10 @@ typedef struct {
 #define PALTAB_ARR_PSGN(name,qq,ww) ( (name)->par[(qq)]->psgn[(ww)] )
 #define PALTAB_ARR_PPOS(name,qq,ww) ( (name)->par[(qq)]->ppos[(ww)] )
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 extern int label_in_PALTAB( PBAR_palette_table * , char * ) ;
 extern void AFNI_process_setup( char * , int , MCW_DC * ) ;
 extern int check_PBAR_palette( PBAR_palette * ) ;
@@ -85,5 +89,9 @@ extern void AFNI_set_pbar_top_CB( Widget, XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_finalize_write_palette_CB( Widget, XtPointer, MCW_choose_cbs * );
 extern void AFNI_finalize_saveim_CB( Widget, XtPointer, MCW_choose_cbs * );
 extern void AFNI_palette_tran_CB( MCW_arrowval * , XtPointer ) ;
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif
