@@ -57,14 +57,19 @@ static MRI_IMAGE * GA_smooth( MRI_IMAGE *im , int meth , float rad )
      case GA_SMOOTH_GAUSSIAN:
        om = mri_to_float(im) ;
        FIR_blur_volume_3d( om->nx , om->ny , om->nz ,
-                           1.0f   , 1.0f   , 1.0f   ,
+                           om->dx , om->dy , om->dz ,
                            MRI_FLOAT_PTR(om) ,
                            rad , rad , rad           ) ;
      break ;
 
-     case GA_SMOOTH_MEDIAN:
-       if( rad < 1.01f ) rad = 1.01f ;
+     case GA_SMOOTH_MEDIAN:{
+       float d;
+       d = MIN(im->dx,im->dy) ; d = MIN(d,im->dz) ;
+       if( rad <= 1.01f*d ) rad = 1.01f*d ;
+       if( rad > 0.0f ){ mri_medianfilter_usedxyz(1);            }
+       else            { mri_medianfilter_usedxyz(0); rad=1.01f; }
        om = mri_medianfilter( im , rad , NULL , 0 ) ;
+     }
      break ;
    }
 
@@ -389,7 +394,17 @@ static void GA_interp_quintic( MRI_IMAGE *fim ,
 
 /*---------------------------------------------------------------------------*/
 
-/* Macro to periodically reduce a variable into the range 0..1 */
+/* Macro to periodically reduce a variable into the range 0..1:
+   for example: PRED01(1.2) == 0.8, PRED01(1.8) == 0.2, et cetera;
+   graphically
+               PRED01(x)|
+                        | /\      /\      /\      /\      /\
+                        |/  \    /  \    /  \    /  \    /
+                        |    \  /    \  /    \  /    \  /
+                        |     \/      \/      \/      \/
+                        +------------------------------------> x
+                          -3  -2  -1   0  +1  +2  +3  +4  +5
+*/
 
 #undef  PRED01
 #define PRED01(x) fabsf( (x) - 2.0f*floorf(0.5f*((x)+1.0f)) )
@@ -409,8 +424,8 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
    float *imw , *jmw , *kmw ;
    MRI_IMAGE *aim ;
 
-   npar  = gstup->wfunc_numpar ;
-   wpar  = (float *)malloc(sizeof(float)*npar) ;
+   npar = gstup->wfunc_numpar ;
+   wpar = (float *)malloc(sizeof(float)*npar) ;
 
    /* load the warping parameters */
 
@@ -450,16 +465,37 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
          ii = mm % nx; kk = mm / nxy; jj = (mm-kk*nxy) / nx;
          imf[qq] = (float)ii; jmf[qq] = (float)jj; kmf[qq] = (float)kk;
        }
+       if( gstup->bscali ){
+         float xo=gstup->bsim->xo , dx=gstup->bsim->dx ;
+         float yo=gstup->bsim->yo , dy=gstup->bsim->dy ;
+         float zo=gstup->bsim->zo , dz=gstup->bsim->dz ;
+         for( qq=0 ; qq < npp ; qq++ ){
+           imf[qq] = xo + imf[qq]*dx ;
+           jmf[qq] = yo + jmf[qq]*dy ;
+           kmf[qq] = zo + kmf[qq]*dz ;
+         }
+       }
      } else {
        imf = gstup->im->ar + pp ;  /* pointers to control points */
        jmf = gstup->jm->ar + pp ;
        kmf = gstup->km->ar + pp ;
      }
 
-     /* warp control points */
+     /* warp control points to new locations */
 
      gstup->wfunc( npar , wpar ,
                    npp  , imf,jmf,kmf , imw,jmw,kmw ) ;
+
+     if( gstup->ascali ){
+       float xo=gstup->ajim->xo , dxi=1.0f/gstup->ajim->dx ;
+       float yo=gstup->ajim->yo , dyi=1.0f/gstup->ajim->dy ;
+       float zo=gstup->ajim->zo , dzi=1.0f/gstup->ajim->dz ;
+       for( qq=0 ; qq < npp ; qq++ ){
+         imw[qq] = (imw[qq]-xo) * dxi ;
+         jmw[qq] = (jmw[qq]-yo) * dyi ;
+         kmw[qq] = (kmw[qq]-zo) * dzi ;
+       }
+     }
 
      /* interpolate target image at warped control points */
 
@@ -562,7 +598,7 @@ void mri_genalign_scalar_setup( MRI_IMAGE *basim  , MRI_IMAGE *maskim ,
                                 MRI_IMAGE *targim , GA_setup  *stup    )
 
 {
-   int qq , rr , nx,ny,nz,nxy , mm,ii,jj,kk ;
+   int qq , rr , nx,ny,nz,nxy , mm,ii,jj,kk , qdim ;
    int use_all=0 , need_pts=0 , nmatch , need_smooth,do_smooth ;
    float *bsar ;
 
@@ -582,15 +618,15 @@ ENTRY("mri_genalign_scalar_setup") ;
    /* check dimensionality of input images (2D or 3D) */
 
    if( basim != NULL ){
-     qq = MRI_DIMENSIONALITY(basim) ;
-     if( qq < 2 || qq > 3 )
+     qdim = MRI_DIMENSIONALITY(basim) ;
+     if( qdim < 2 || qdim > 3 )
        ERREX("basim dimensionality is not 2 or 3") ;
    } else {
-     qq = MRI_DIMENSIONALITY(stup->bsim) ;
+     qdim = MRI_DIMENSIONALITY(stup->bsim) ;
    }
 
    if( targim != NULL ){
-     if( qq != MRI_DIMENSIONALITY(targim) )
+     if( qdim != MRI_DIMENSIONALITY(targim) )
        ERREX("basim & targim dimensionalities differ") ;
    }
 
@@ -605,12 +641,28 @@ ENTRY("mri_genalign_scalar_setup") ;
      need_pts = 1 ;              /* will need to extract match points */
      if( stup->bsim != NULL ) mri_free(stup->bsim) ;
      stup->bsim = mri_to_float(basim) ;
+     if( stup->bsim->dx <= 0.0f ) stup->bsim->dx = 1.0f ;
+     if( stup->bsim->dy <= 0.0f ) stup->bsim->dy = 1.0f ;
+     if( stup->bsim->dz <= 0.0f ) stup->bsim->dz = 1.0f ;
+
+     stup->bscali = (stup->bsim->dx != 1.0f) || (stup->bsim->xo != 0.0f) ||
+                    (stup->bsim->dy != 1.0f) || (stup->bsim->yo != 0.0f)   ;
+     if( qdim == 3 && !stup->bscali )
+       stup->bscali = (stup->bsim->dz != 1.0f) || (stup->bsim->zo != 0.0f) ;
    }
    nx = stup->bsim->nx; ny = stup->bsim->ny; nz = stup->bsim->nz; nxy = nx*ny;
 
    if( targim != NULL ){
      if( stup->ajim != NULL ) mri_free(stup->ajim) ;
      stup->ajim = mri_to_float(targim) ;
+     if( stup->ajim->dx <= 0.0f ) stup->ajim->dx = 1.0f ;
+     if( stup->ajim->dy <= 0.0f ) stup->ajim->dy = 1.0f ;
+     if( stup->ajim->dz <= 0.0f ) stup->ajim->dz = 1.0f ;
+
+     stup->ascali = (stup->ajim->dx != 1.0f) || (stup->ajim->xo != 0.0f) ||
+                    (stup->ajim->dy != 1.0f) || (stup->ajim->yo != 0.0f)   ;
+     if( qdim == 3 && !stup->ascali )
+       stup->ascali = (stup->ajim->dz != 1.0f) || (stup->ajim->zo != 0.0f) ;
    }
 
    /* smooth and save target image if needed */
@@ -639,8 +691,13 @@ ENTRY("mri_genalign_scalar_setup") ;
    /* get min and max values in target image (for clipping), if needed */
 
    if( stup->interp_code != MRI_NN && stup->interp_code != MRI_LINEAR ){
-     stup->ajbot = (float)mri_min(stup->ajim) ;
-     stup->ajtop = (float)mri_max(stup->ajim) ;
+     if( stup->ajims == NULL ){
+       stup->ajbot = (float)mri_min(stup->ajim) ;
+       stup->ajtop = (float)mri_max(stup->ajim) ;
+     } else {
+       stup->ajbot = (float)mri_min(stup->ajims) ;
+       stup->ajtop = (float)mri_max(stup->ajims) ;
+     }
    }
 
    /** load mask array **/
@@ -756,6 +813,16 @@ ENTRY("mri_genalign_scalar_setup") ;
          rr = (int)(stup->im->ar[qq] + stup->jm->ar[qq]*nx + stup->km->ar[qq]*nxy) ;
          stup->bvm->ar[qq] = bsar[rr] ;
        }
+       if( stup->bscali ){
+         float xo=stup->bsim->xo , dx=stup->bsim->dx ;
+         float yo=stup->bsim->yo , dy=stup->bsim->dy ;
+         float zo=stup->bsim->zo , dz=stup->bsim->dz ;
+         for( qq=0 ; qq < stup->npt_match ; qq++ ){
+           stup->im->ar[qq] = xo + stup->im->ar[qq]*dx ;
+           stup->jm->ar[qq] = yo + stup->jm->ar[qq]*dy ;
+           stup->km->ar[qq] = zo + stup->km->ar[qq]*dz ;
+         }
+       }
      }
 
      /* do match_code specific pre-processing of the extracted data */
@@ -770,6 +837,34 @@ ENTRY("mri_genalign_scalar_setup") ;
 
    stup->setup = SMAGIC ;
    EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Setup parameters for optimizing.
+-----------------------------------------------------------------------------*/
+
+static void GA_param_setup( GA_setup *stup )
+{
+   int ii , qq ;
+
+   if( stup == NULL || stup->setup != SMAGIC ){
+     ERROR_message("Illegal call to GA_param_setup()") ;
+     return ;
+   }
+
+   /* count free parameters to optimize over */
+
+   for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ )
+     if( !stup->wfunc_param[qq].fixed ) ii++ ;
+
+   stup->wfunc_numfree = ii ;
+   if( ii == 0 ){
+     ERROR_message("No free parameters in GA_param_setup()?"); return;
+   }
+   for( ii=0 ; ii < stup->wfunc_numpar ; qq++ )
+     stup->wfunc_param[ii].siz = stup->wfunc_param[ii].max
+                                -stup->wfunc_param[ii].min ;
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -789,18 +884,8 @@ ENTRY("mri_genalign_scalar_optim") ;
      RETURN(-1) ;
    }
 
-   /* count free parameters to optimize over */
-
-   for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ )
-     if( !stup->wfunc_param[qq].fixed ) ii++ ;
-   if( ii == 0 ){
-     ERROR_message("No free parameters in mri_genalign_scalar_optim()?") ;
-     RETURN(-1) ;
-   }
-   stup->wfunc_numfree = ii ;
-   for( ii=0 ; ii < stup->wfunc_numpar ; qq++ )
-     stup->wfunc_param[ii].siz = stup->wfunc_param[ii].max
-                                -stup->wfunc_param[ii].min ;
+   GA_param_setup(stup) ;
+   if( stup->wfunc_numfree <= 0 ) RETURN(-2) ;
 
    /* copy initial warp parameters into local array wpar,
       scaling to the range 0..1                          */
@@ -837,4 +922,44 @@ ENTRY("mri_genalign_scalar_optim") ;
    free((void *)wpar) ;
 
    RETURN( (nfunc < nstep) ? 1 : 2 ) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Test some random starting points.  Sets val_init values in stup.
+-----------------------------------------------------------------------------*/
+
+void mri_genalign_scalar_ransetup( GA_setup *stup , int nrand )
+{
+   double *wpar , val , vbest=1.e+38 , *bpar ;
+   int ii , qq , nfunc ;
+
+ENTRY("mri_genalign_scalar_ransetup") ;
+
+   if( stup == NULL || stup->setup != SMAGIC || nrand < 1 ){
+     ERROR_message("Illegal call to mri_genalign_scalar_ransetup()") ;
+     EXRETURN ;
+   }
+
+   GA_param_setup(stup) ;
+   if( stup->wfunc_numfree <= 0 ) EXRETURN ;
+
+   wpar = (double *)malloc(sizeof(double)*stup->wfunc_numfree) ;
+   bpar = (double *)malloc(sizeof(double)*stup->wfunc_numfree) ;
+   gstup = stup ;
+
+   for( ii=0 ; ii < nrand ; ii++ ){
+     for( qq=0 ; qq < stup->wfunc_numfree ; qq++ ) wpar[qq] = drand48() ;
+     val = GA_scalar_fitter( stup->wfunc_numfree , wpar ) ;
+     if( val < vbest ){
+       vbest = val; memcpy( bpar, wpar, sizeof(double)*stup->wfunc_numfree );
+     }
+   }
+
+   for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ )
+     if( !stup->wfunc_param[qq].fixed )
+       stup->wfunc_param[qq].val_init = stup->wfunc_param[qq].min
+                                       +stup->wfunc_param[qq].siz * bpar[ii++];
+
+   free((void *)bpar) ; free((void *)wpar) ;
+   EXRETURN ;
 }
