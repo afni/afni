@@ -74,12 +74,12 @@ ENTRY("mri_new_7D_generic") ;
    newim->name = NULL ;
 
    newim->dx = newim->dy = newim->dz =
-   newim->dt = newim->du = newim->dv = 1.0 ;  /* default dimensions */
+   newim->dt = newim->du = newim->dv = 1.0f;  /* default dimensions */
 
-   newim->dw = -666.0 ;  /* 05 Feb 2001 - flag that dimensions aren't set */
+   newim->dw = -666.0f;  /* 05 Feb 2001 - flag that dimensions aren't set */
 
    newim->xo = newim->yo = newim->zo =
-   newim->to = newim->uo = newim->vo = newim->wo = 0.0 ;  /* default offsets */
+   newim->to = newim->uo = newim->vo = newim->wo = 0.0f;  /* default offsets */
 
    newim->was_swapped = 0 ;  /* 07 Mar 2002 - flag that bytes were swapped */
 

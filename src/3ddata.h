@@ -3908,7 +3908,7 @@ extern void mri_3dalign_initvals( float,float,float,float,float,float ) ;
   /*-- see mri_warp3D_align.c for these routines --*/
 
 typedef struct {
-  float min, max, ident, delta, toler ;
+  float min, max, siz, ident, delta, toler ;
   float val_init , val_out , val_fixed ;
   int fixed ;
   char name[32] ;

@@ -2,6 +2,9 @@
 
 #define SKIPVOX(i) ( mask != NULL && !mask[i] )
 
+static int use_dxyz = 0 ;
+void mri_medianfilter_usedxyz( int i ){ use_dxyz = i; }
+
 /*-----------------------------------------------------------------------*/
 /*! Compute the median filter of an input image.
     Output image is always in float format.
@@ -35,8 +38,12 @@ ENTRY("mri_medianfilter") ;
 
    /** build cluster of points for median-izing **/
 
-   if( irad < 1.01 ) irad = 1.01 ;
-   cl = MCW_build_mask( 1.0,1.0,1.0 , irad ) ;
+   if( use_dxyz ){
+     if( irad < 1.01 ) irad = 1.01 ;
+     cl = MCW_build_mask( 1.0,1.0,1.0 , irad ) ;
+   } else {
+     cl = MCW_build_mask( imin->dx,imin->dy,imin->dz , irad ) ;
+   }
 
    if( cl == NULL || cl->num_pt < 6 ){ KILL_CLUSTER(cl); RETURN(NULL); }
 
