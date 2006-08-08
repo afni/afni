@@ -713,6 +713,10 @@ static float *N_pbot , *N_psiz ;
 
 static float *N_pv ;
 
+#ifdef SOLARIS
+#define floorf floor
+#endif
+
 /*----------------------------------------------------------------------------*/
 
 double newfunc( int np , double *pv )  /* parameters are scaled to [0,1] */
