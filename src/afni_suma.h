@@ -132,6 +132,8 @@ typedef struct {
   char label[64] ;             /*!< Label for user interaction */
   char label_ldp[64] ;         /*!< Label of surface's local domain parent */
 
+  char spec_file[256] ;        /*!< suma spec file name  8 Aug 2006 [rickr] */
+
   SUMA_vvlist *vv ;            /*!< For ROIs from SUMA */
   SUMA_vnlist *vn ;            /*!< Voxel-to-node mapping, for overlays */
 } SUMA_surface ;

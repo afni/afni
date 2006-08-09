@@ -79,6 +79,11 @@ char gv2s_history[] =
     "March 22, 2005 [rickr] - removed tabs\n"
     "March 28, 2006 [rickr] - fixed mode computation\n"
     "June 30, 2006 [rickr] - segc_file functionality (-save_seg_coords)\n"
+    "\n"
+    "August 9, 2006 [rickr]\n"
+    "  - create argc, argv from options in v2s_make_command()\n"
+    "  - added loc_add_2_list() and v2s_free_cmd() for v2s_make_command()\n"
+    "  - added labels, thres index/value and surf vol dset to gv2s_plug_opts\n"
     "---------------------------------------------------------------------\n";
 
 #include "mrilib.h"
@@ -139,6 +144,7 @@ static int    float_list_slow_sort(float_list_t * f, int * ilist);
 static int    init_seg_endpoints(v2s_opts_t * sopt, v2s_param_t * p,
                                  range_3dmm * R, int node );
 static int    init_range_structs( range_3dmm * r3, range_3dmm_res * res3 );
+static int    loc_add_2_list( char *** list, int * nall, int * len, char * str);
 static double magnitude_f( float * p, int length );
 static int    print_header(FILE *outfp, char *surf, char *map, v2s_results *sd);
 static int    realloc_ints( int ** ptr, int length, char * dstr, int debug );
@@ -156,17 +162,24 @@ static int    segment_imarr(range_3dmm_res *res,range_3dmm *R,v2s_opts_t *sopt,
 static int    v2s_adjust_endpts(v2s_opts_t *sopt, THD_fvec3 *p1, THD_fvec3 *pn);
 static float  v2s_apply_filter(range_3dmm_res *rr, v2s_opts_t *sopt, int index,
                                int * findex);
+static int    v2s_free_cmd(v2s_opts_t * sopt);
 static int    v2s_map_needs_sort(int map);
 static int    validate_v2s_inputs(v2s_opts_t * sopt, v2s_param_t * p);
 
 /*----------------------------------------------------------------------*/
 /* globals to be accessed by plugin and in afni_suma.c                  */
-v2s_plugin_opts gv2s_plug_opts = {0, 0, 0, -1, -1, -1, -1};
+v2s_plugin_opts gv2s_plug_opts = {
+        0,0,0,                    /* ready, use0, use1     */
+        -1,-1,-1,-1,              /* s0A, s0B, s1A, s1B    */
+        -1,0.0,                   /* threshold index/value */
+        {NULL, NULL, NULL, NULL}, /* surface labels [4]    */
+        NULL                      /* surf vol dataset      */
+};
                             /* this must match v2s_map_nums enum */
 char * gv2s_map_names[] = { "none", "mask", "midpoint", "mask2", "ave",
                             "count", "min", "max", "max_abs", "seg_vals",
                             "median", "mode" };
-
+char gv2s_no_label[] = "undefined";
 
 /*----------------------------------------------------------------------
  * afni_vol2surf     - create v2s_results from gv2s_* afni globals
@@ -249,8 +262,11 @@ ENTRY("afni_vol2surf");
         if ( THD_is_file(sopt->outfile_niml) )
             fprintf(stderr,"** over-writing niml output file '%s'\n",
                     sopt->outfile_niml);
+        v2s_make_command(sopt, &P);
         v2s_write_outfile_NSD(res, sopt, &P, 0);
     }
+
+    if( sopt->cmd.fake ) v2s_free_cmd( sopt );
 
     RETURN(res);
 }
@@ -1675,6 +1691,7 @@ ENTRY("disp_v2s_opts_t");
             "    outfile_1D            = %s\n"
             "    outfile_niml          = %s\n"
             "    segc_file             = %s\n"
+            "    fake, argc, argv      = %d, %d, %p\n"
             , sopt,
             sopt->map, sopt->gp_index, sopt->debug, sopt->dnode,
             sopt->no_head, sopt->skip_cols,
@@ -1684,7 +1701,8 @@ ENTRY("disp_v2s_opts_t");
             sopt->f_p1_fr, sopt->f_pn_fr, sopt->f_p1_mm, sopt->f_pn_mm,
             CHECK_NULL_STR(sopt->outfile_1D),
             CHECK_NULL_STR(sopt->outfile_niml),
-            CHECK_NULL_STR(sopt->segc_file)
+            CHECK_NULL_STR(sopt->segc_file),
+            sopt->cmd.fake, sopt->cmd.argc, sopt->cmd.argv
             );
 
     RETURN(0);
@@ -1919,9 +1937,21 @@ ENTRY("disp_v2s_plugin_opts");
                     "    ready      = %d\n"
                     "    use0, use1 = %d, %d\n"
                     "    s0A, s0B   = %d, %d\n"
-                    "    s1A, s1B   = %d, %d\n",
+                    "    s1A, s1B   = %d, %d\n"
+                    "    gpt_index  = %d\n"
+                    "    gpt_thresh = %f\n"
+                    "    label[0,1] = %s, %s\n"
+                    "    label[2,3] = %s, %s\n"
+                    "    surf_vol   = %s\n",
                     d, d->ready, d->use0, d->use1,
-                    d->s0A, d->s0B, d->s1A, d->s1B );
+                    d->s0A, d->s0B, d->s1A, d->s1B,
+                    d->gpt_index, d->gpt_thresh,
+                    CHECK_NULL_STR(d->label[0]),
+                    CHECK_NULL_STR(d->label[1]),
+                    CHECK_NULL_STR(d->label[2]),
+                    CHECK_NULL_STR(d->label[3]),
+                    d->sv_dset ? DSET_FILECODE(d->sv_dset) : "NULL"
+           );
     RETURN(0);
 }
 
@@ -2317,6 +2347,10 @@ ENTRY("fill_sopt_default");
     sopt->outfile_niml = NULL;
     sopt->segc_file    = NULL;
 
+    sopt->cmd.fake     = 0;
+    sopt->cmd.argc     = 0;
+    sopt->cmd.argv     = NULL;
+
     RETURN(0);
 }
 
@@ -2450,8 +2484,10 @@ ENTRY("v2s_write_outfile_NSD");
         if( free_vals ){ free(sd->vals[c]); sd->vals[c] = NULL; }
     }
 
-    /* rcr - fix this? */
-    SUMA_AddNgrHist(sdset->ngr, "v2s_write_outfile_NSD", 0, NULL);
+    /* add history (rcr - may need to fake it) */
+    SUMA_AddNgrHist(sdset->ngr,
+                    sopt->cmd.fake ? "Vol2Surf_plugin" : "3dVol2Surf",
+                    sopt->cmd.argc, sopt->cmd.argv);
 
     set_ni_globs_from_env();   /* init niml globals from environment */
     set_gni_debug(sopt->debug);
@@ -2479,32 +2515,32 @@ ENTRY("v2s_write_outfile_NSD");
 static int print_header(FILE * outfp, char * surf, char * map, v2s_results * sd)
 {
     int val;
-                                                                                
+
 ENTRY("print_header");
-                                                                                
+
     fprintf( outfp, "# --------------------------------------------------\n" );
     fprintf( outfp, "# surface '%s', '%s' :\n", surf, map );
     fprintf( outfp, "#\n" );
-                                                                                
+
     /* keep old style, but don't presume all columns get used (v 6.0) :
      *     fprintf( outfp, "#    node     1dindex    i    j    k     vals" );
      *     fprintf( outfp, "#   ------    -------   ---  ---  ---    ----" );
      */
-                                                                                
+
     /* output column headers */
     fputc( '#', outfp );        /* still comment line */
-                                                                                
+
     if ( sd->nodes  ) fprintf(outfp, "    node ");
     if ( sd->volind ) fprintf(outfp, "    1dindex ");
     if ( sd->i      ) fprintf(outfp, "   i ");
     if ( sd->j      ) fprintf(outfp, "   j ");
     if ( sd->k      ) fprintf(outfp, "   k ");
     if ( sd->nvals  ) fprintf(outfp, "    vals");
-                                                                                
+
     for ( val = 0; val < sd->max_vals; val++ )
         fprintf( outfp, "       v%-2d  ", val );
     fputc( '\n', outfp );
-                                                                                
+
     fputc( '#', outfp );
     /* underline the column headers */
     if ( sd->nodes  ) fprintf(outfp, "   ------");
@@ -2513,13 +2549,214 @@ ENTRY("print_header");
     if ( sd->j      ) fprintf(outfp, "  ---");
     if ( sd->k      ) fprintf(outfp, "  ---");
     if ( sd->nvals  ) fprintf(outfp, "    ----");
-                                                                                
+
     fputs( "   ", outfp );
     for ( val = 0; val < sd->max_vals; val++ )
         fprintf( outfp, " --------   " );
     fputc( '\n', outfp );
-                                                                                
+
     RETURN(0);
 }
-                                                                                
+
+static int v2s_free_cmd(v2s_opts_t * sopt)
+{
+    int c;
+
+ENTRY("v2s_free_cmd");
+
+    if( ! sopt->cmd.fake ) RETURN(0);
+    if( sopt->cmd.argc <= 0 || !sopt->cmd.argv ) RETURN(0);
+
+    for( c = 0; c < sopt->cmd.argc; c++ )
+        if( sopt->cmd.argv[c] ) free(sopt->cmd.argv[c]);
+    free(sopt->cmd.argv);
+
+    sopt->cmd.fake = 0;
+    sopt->cmd.argc = 0;
+    sopt->cmd.argv = NULL;
+
+    RETURN(0);
+}
+
+/*----------------------------------------------------------------------
+ * create a command string from the passed structures 9 Aug 2006 [rickr]
+ *
+ * allocate and fill a string that might work as a command
+ *----------------------------------------------------------------------
+*/
+int v2s_make_command( v2s_opts_t * opt, v2s_param_t * p )
+{
+    char ** argv = NULL, str[512];
+    char  * dset_file = NULL, * sv_file = NULL;
+    int     argc = 0, acnall = 0;
+
+ENTRY("v2s_make_command");
+
+    /* set the sv and grid_parent filenames */
+    if(gv2s_plug_opts.sv_dset) sv_file = DSET_FILECODE(gv2s_plug_opts.sv_dset);
+    else                       sv_file = "UNKNOWN_SURF_VOL";
+    dset_file = DSET_FILECODE(p->gpar);
+
+    /* start setting options (3dVol2Surf may get replaced) */
+    loc_add_2_list(&argv, &acnall, &argc, "3dVol2surf");
+
+    loc_add_2_list(&argv, &acnall, &argc, "-spec");
+    if( p->surf[0].spec_file[0] )
+        loc_add_2_list(&argv, &acnall, &argc, p->surf[0].spec_file);
+    else
+        loc_add_2_list(&argv, &acnall, &argc, "NO_SPEC_FILE");
+
+    loc_add_2_list(&argv, &acnall, &argc, "-surf_A");
+    loc_add_2_list(&argv, &acnall, &argc, p->surf[0].label);
+    if( p->nsurf == 2 ){
+        loc_add_2_list(&argv, &acnall, &argc, "-surf_B");
+        loc_add_2_list(&argv, &acnall, &argc, p->surf[1].label);
+    }
+
+    loc_add_2_list(&argv, &acnall, &argc, "-sv");
+    loc_add_2_list(&argv, &acnall, &argc, sv_file);
+
+    loc_add_2_list(&argv, &acnall, &argc, "-grid_parent");
+    loc_add_2_list(&argv, &acnall, &argc, dset_file);
+    loc_add_2_list(&argv, &acnall, &argc, "-gp_index");
+    sprintf(str,"%d",opt->gp_index);
+    loc_add_2_list(&argv, &acnall, &argc, str);
+
+    loc_add_2_list(&argv, &acnall, &argc, "-map_func");
+    loc_add_2_list(&argv, &acnall, &argc, gv2s_map_names[opt->map]);
+
+    sprintf(str, "%d", opt->f_steps);
+    loc_add_2_list(&argv, &acnall, &argc, "-f_steps");
+    loc_add_2_list(&argv, &acnall, &argc, str);
+
+    loc_add_2_list(&argv, &acnall, &argc, "-f_index");
+    if( opt->f_index == V2S_INDEX_VOXEL )
+        loc_add_2_list(&argv, &acnall, &argc, "voxels");
+    else
+        loc_add_2_list(&argv, &acnall, &argc, "nodes");
+
+    if( gv2s_plug_opts.gpt_index >= 0 ){
+        loc_add_2_list(&argv, &acnall, &argc, "-cmask");
+        sprintf(str,"-a %s[%d] -expr astep(a,%f)+equals(a,%f)",
+                dset_file, gv2s_plug_opts.gpt_index, gv2s_plug_opts.gpt_thresh,
+                gv2s_plug_opts.gpt_thresh);
+        loc_add_2_list(&argv, &acnall, &argc, str);
+    }
+
+    if( opt->first_node > 0 ){
+        loc_add_2_list(&argv, &acnall, &argc, "-first_node");
+        sprintf(str,"%d",opt->first_node);
+        loc_add_2_list(&argv, &acnall, &argc, str);
+    }
+
+    if( opt->last_node > 0 && opt->last_node < p->surf[0].num_ixyz-1 ){
+        loc_add_2_list(&argv, &acnall, &argc, "-last_node");
+        sprintf(str,"%d",opt->last_node);
+        loc_add_2_list(&argv, &acnall, &argc, str);
+    }
+
+    if( opt->use_norms ){
+        loc_add_2_list(&argv, &acnall, &argc, "-use_norms");
+        if( opt->norm_len != 0.0 ){
+            loc_add_2_list(&argv, &acnall, &argc, "-norm_len");
+            loc_add_2_list(&argv, &acnall, &argc,MV_format_fval(opt->norm_len));
+        }
+    }
+
+    if( opt->f_p1_fr != 0 ){
+        loc_add_2_list(&argv, &acnall, &argc, "-f_p1_fr");
+        loc_add_2_list(&argv, &acnall, &argc,MV_format_fval(opt->f_p1_fr));
+    }
+
+    if( opt->f_pn_fr != 0 ){
+        loc_add_2_list(&argv, &acnall, &argc, "-f_pn_fr");
+        loc_add_2_list(&argv, &acnall, &argc,MV_format_fval(opt->f_pn_fr));
+    }
+
+    if( opt->f_p1_mm != 0 ){
+        loc_add_2_list(&argv, &acnall, &argc, "-f_p1_mm");
+        loc_add_2_list(&argv, &acnall, &argc,MV_format_fval(opt->f_p1_mm));
+    }
+
+    if( opt->f_pn_mm != 0 ){
+        loc_add_2_list(&argv, &acnall, &argc, "-f_pn_mm");
+        loc_add_2_list(&argv, &acnall, &argc,MV_format_fval(opt->f_pn_mm));
+    }
+
+    if( opt->oob.show && opt->oob.index > 0 ){
+        loc_add_2_list(&argv, &acnall, &argc, "-oob_index");
+        sprintf(str,"%d",opt->oob.index);
+        loc_add_2_list(&argv, &acnall, &argc, str);
+    }
+
+    if( opt->oob.show && opt->oob.value != 0.0 ){
+        loc_add_2_list(&argv, &acnall, &argc, "-oob_value");
+        loc_add_2_list(&argv, &acnall, &argc,MV_format_fval(opt->oob.value));
+    }
+
+    if( DSET_NVALS(p->gpar) > 1 )
+        loc_add_2_list(&argv, &acnall, &argc, "-skip_col_NSD_format");
+
+    if( opt->debug ){
+        loc_add_2_list(&argv, &acnall, &argc, "-debug");
+        sprintf(str,"%d",opt->debug);
+        loc_add_2_list(&argv, &acnall, &argc, str);
+    }
+
+    if( opt->dnode ){
+        loc_add_2_list(&argv, &acnall, &argc, "-dnode");
+        sprintf(str,"%d",opt->dnode);
+        loc_add_2_list(&argv, &acnall, &argc, str);
+    }
+
+    if( opt->segc_file ){
+        loc_add_2_list(&argv, &acnall, &argc, "-save_seg_coords");
+        loc_add_2_list(&argv, &acnall, &argc, opt->segc_file);
+    }
+
+    if( opt->outfile_1D ){
+        loc_add_2_list(&argv, &acnall, &argc, "-out_1D");
+        loc_add_2_list(&argv, &acnall, &argc, opt->outfile_1D);
+    }
+
+    if( opt->outfile_niml ){
+        loc_add_2_list(&argv, &acnall, &argc, "-out_niml");
+        loc_add_2_list(&argv, &acnall, &argc, opt->outfile_niml);
+    }
+
+    /* insert this into the cmd struct */
+    opt->cmd.fake = 1;
+    opt->cmd.argc = argc;
+    opt->cmd.argv = argv;
+
+    RETURN(0);
+}
+
+/*----------------------------------------------------------------------
+ * add 'str' to 'list' via strcpy
+ *
+ * if list is not long enough, realloc more pointers
+ *----------------------------------------------------------------------
+*/
+static int loc_add_2_list( char *** list, int * nall, int * len, char * str)
+{
+ENTRY("loc_add_2_list");
+    if( !list || !nall || !len || !str ) RETURN(-1);
+
+    if( *nall <  0 ) *nall = 0;
+    if( *nall == 0 ){ *list = NULL;  *nall = 0;  *len = 0; }  /* init */
+
+    if( *nall <= *len ) /* then allocate more memory */
+    {
+        *nall += 32;
+        *list = (char **)realloc(*list, *nall * sizeof(char *));
+        if(!*list){ fprintf(stderr,"** LA2L: cannot alloc list\n"); RETURN(1); }
+    }
+
+    /* add the string to the list */
+    (*list)[*len] = strdup(str);
+    (*len)++;
+
+    RETURN(0);
+}
 
