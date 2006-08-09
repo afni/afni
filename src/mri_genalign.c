@@ -1,12 +1,20 @@
 #include "mrilib.h"
 
+/* is a voxel 'good' to use? */
+
 #undef  GOOD
 #define GOOD(i) (mask==NULL || mask[i])
+
+/* mark for a good setup */
 
 #undef  SMAGIC
 #define SMAGIC 208921148
 
+/* global access to setup parameters */
+
 static GA_setup *gstup = NULL ;
+
+/* for stupid ancient compilers */
 
 #ifdef SOLARIS
 #define floorf floor
@@ -42,7 +50,8 @@ static int find_relprime_random( int n ) /* another one relatively prime to n */
 }
 #endif
 /*---------------------------------------------------------------------------*/
-/*! Smooth an image with a given method to a given radius. */
+/*! Smooth an image with a given method to a given radius.
+    Assumes the dx,dy,dz parameters in the image struct are correct! */
 
 static MRI_IMAGE * GA_smooth( MRI_IMAGE *im , int meth , float rad )
 {
@@ -55,19 +64,19 @@ static MRI_IMAGE * GA_smooth( MRI_IMAGE *im , int meth , float rad )
    switch( meth ){
      default:
      case GA_SMOOTH_GAUSSIAN:
-       om = mri_to_float(im) ;
+       om  = mri_to_float(im) ;
+       rad = FWHM_TO_SIGMA(rad) ;   /* convert rad from FWHM to st.dev. */
        FIR_blur_volume_3d( om->nx , om->ny , om->nz ,
                            om->dx , om->dy , om->dz ,
-                           MRI_FLOAT_PTR(om) ,
-                           rad , rad , rad           ) ;
+                           MRI_FLOAT_PTR(om) , rad,rad,rad ) ;
      break ;
 
      case GA_SMOOTH_MEDIAN:{
        float d;
        d = MIN(im->dx,im->dy) ; d = MIN(d,im->dz) ;
        if( rad <= 1.01f*d ) rad = 1.01f*d ;
-       if( rad > 0.0f ){ mri_medianfilter_usedxyz(1);            }
-       else            { mri_medianfilter_usedxyz(0); rad=1.01f; }
+       if( rad >  0.0f ){ mri_medianfilter_usedxyz(1);            }
+       else             { mri_medianfilter_usedxyz(0); rad=1.01f; }
        om = mri_medianfilter( im , rad , NULL , 0 ) ;
      }
      break ;
@@ -78,13 +87,18 @@ static MRI_IMAGE * GA_smooth( MRI_IMAGE *im , int meth , float rad )
 
 /*---------------------------------------------------------------------------*/
 
+/* for interpolation access to the (i,j,k) element of an array */
+
 #undef  FAR
 #define FAR(i,j,k) far[(i)+(j)*nx+(k)*nxy]
+
+/* clip value mm to range 0..nn */
 
 #undef  CLIP
 #define CLIP(mm,nn) if(mm < 0)mm=0; else if(mm > nn)mm=nn
 
-/*! Interpolate an image at npp points, using NN method. */
+/*---------------------------------------------------------------*/
+/*! Interpolate an image at npp (index) points, using NN method. */
 
 static void GA_interp_NN( MRI_IMAGE *fim ,
                           int npp, float *ip, float *jp, float *kp, float *vv )
@@ -105,7 +119,7 @@ static void GA_interp_NN( MRI_IMAGE *fim ,
 }
 
 /*---------------------------------------------------------------------------*/
-/*! Interpolate an image at npp points, using linear method. */
+/*! Interpolate an image at npp (index) points, using linear method. */
 
 static void GA_interp_linear( MRI_IMAGE *fim ,
                               int npp, float *ip, float *jp, float *kp, float *vv )
@@ -172,7 +186,8 @@ static void GA_interp_linear( MRI_IMAGE *fim ,
 #define P_P2(x)  ((x)*((x)+1)*((x)-1))
 #define P_FACTOR 4.62962963e-3            /* 1/216 = final scaling factor */
 
-/*! Interpolate an image at npp points, using cubic method. */
+/*------------------------------------------------------------------*/
+/*! Interpolate an image at npp (index) points, using cubic method. */
 
 static void GA_interp_cubic( MRI_IMAGE *fim ,
                              int npp, float *ip, float *jp, float *kp, float *vv )
@@ -272,7 +287,8 @@ static void GA_interp_cubic( MRI_IMAGE *fim ,
 #define Q_P2(x)  (x*(x*x-1.0)*(x+2.0)*(3.0-x)*0.041666667)
 #define Q_P3(x)  (x*(x*x-1.0)*(x*x-4.0)*0.008333333)
 
-/*! Interpolate an image at npp points, using quintic method. */
+/*--------------------------------------------------------------------*/
+/*! Interpolate an image at npp (index) points, using quintic method. */
 
 static void GA_interp_quintic( MRI_IMAGE *fim ,
                                int npp, float *ip, float *jp, float *kp, float *vv )
@@ -414,7 +430,8 @@ static void GA_interp_quintic( MRI_IMAGE *fim ,
 #undef  NPER
 #define NPER 1024
 
-/*! Interpolate target image to control points */
+/*----------------------------------------------*/
+/*! Interpolate target image to control points. */
 
 static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 {
@@ -427,14 +444,14 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
    npar = gstup->wfunc_numpar ;
    wpar = (float *)malloc(sizeof(float)*npar) ;
 
-   /* load the warping parameters */
+   /* load ALL the warping parameters */
 
    for( ii=pp=0 ; ii < npar ; ii++ ){
-     if( gstup->wfunc_param[ii].fixed ){
+     if( gstup->wfunc_param[ii].fixed ){              /* fixed param */
        wpar[ii] = gstup->wfunc_param[ii].val_fixed ;
-     } else {
+     } else {                                         /* variable param */
        v = (float)mpar[pp++] ;
-       wpar[ii] = gstup->wfunc_param[ii].min
+       wpar[ii] = gstup->wfunc_param[ii].min          /* scale to true range */
                  +gstup->wfunc_param[ii].siz * PRED01(v) ;
      }
    }
@@ -455,7 +472,11 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 
    nx = gstup->bsim->nx; ny = gstup->bsim->ny; nxy = nx*ny;
 
-   /* do (up to) NPER points at a time */
+   /* send parameters to warping function */
+
+   gstup->wfunc( npar , wpar , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
+
+   /*--- do (up to) NPER points at a time ---*/
 
    for( pp=0 ; pp < gstup->npt_match ; pp+=NPER ){
      npp = MIN( NPER , gstup->npt_match-pp ) ;  /* number to do */
@@ -470,9 +491,9 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
          float yo=gstup->bsim->yo , dy=gstup->bsim->dy ;
          float zo=gstup->bsim->zo , dz=gstup->bsim->dz ;
          for( qq=0 ; qq < npp ; qq++ ){
-           imf[qq] = xo + imf[qq]*dx ;
-           jmf[qq] = yo + jmf[qq]*dy ;
-           kmf[qq] = zo + kmf[qq]*dz ;
+           imf[qq] = xo + imf[qq]*dx ;   /* scale to spatial    */
+           jmf[qq] = yo + jmf[qq]*dy ;   /* coords from indexes */
+           kmf[qq] = zo + kmf[qq]*dz ;   /* in the bsim image   */
          }
        }
      } else {
@@ -483,7 +504,7 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 
      /* warp control points to new locations */
 
-     gstup->wfunc( npar , wpar ,
+     gstup->wfunc( npar , NULL ,
                    npp  , imf,jmf,kmf , imw,jmw,kmw ) ;
 
      if( gstup->ascali ){
@@ -491,15 +512,18 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
        float yo=gstup->ajim->yo , dyi=1.0f/gstup->ajim->dy ;
        float zo=gstup->ajim->zo , dzi=1.0f/gstup->ajim->dz ;
        for( qq=0 ; qq < npp ; qq++ ){
-         imw[qq] = (imw[qq]-xo) * dxi ;
-         jmw[qq] = (jmw[qq]-yo) * dyi ;
-         kmw[qq] = (kmw[qq]-zo) * dzi ;
+         imw[qq] = (imw[qq]-xo) * dxi ;  /* unscale from spatial */
+         jmw[qq] = (jmw[qq]-yo) * dyi ;  /* coords to indexes in */
+         kmw[qq] = (kmw[qq]-zo) * dzi ;  /* the ajim image       */
        }
      }
 
+     /* choose image from which to extract data:
+                                     --smoothed--   -unsmoothed- */
+     aim = (gstup->ajims != NULL ) ? gstup->ajims : gstup->ajim ;
+
      /* interpolate target image at warped control points */
 
-     aim = (gstup->ajims != NULL ) ? gstup->ajims : gstup->ajim ;
      switch( gstup->interp_code ){
        case MRI_NN:
          GA_interp_NN( aim , npp , imw,jmw,kmw , avm+pp ) ;
@@ -514,7 +538,7 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
          GA_interp_cubic( aim , npp , imw,jmw,kmw , avm+pp ) ;
        break ;
 
-       default:        /* for higher order methods not implemented herein */
+       default:        /* for higher order methods not implemented here */
        case MRI_QUINTIC:
          clip = 1 ;
          GA_interp_quintic( aim , npp , imw,jmw,kmw , avm+pp ) ;
@@ -544,7 +568,7 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 
 /*---------------------------------------------------------------------------*/
 /*! Fit metric for matching base and target image value pairs.
-    (Smaller is a better match.)  For use with NEWUOA.
+    (Smaller is a better match.)  For use as a NEWUOA optimization function.
 -----------------------------------------------------------------------------*/
 
 double GA_scalar_fitter( int npar , double *mpar )
@@ -554,7 +578,10 @@ double GA_scalar_fitter( int npar , double *mpar )
 
   avm = (float *)malloc(gstup->npt_match*sizeof(float)) ; /* target points at */
   GA_get_warped_values( npar , mpar , avm ) ;             /* warped locations */
+
   bvm = gstup->bvm->ar ;                                  /* base points */
+
+  /* compare the avm and bvm arrays in some way */
 
   switch( gstup->match_code ){
 
@@ -575,7 +602,7 @@ double GA_scalar_fitter( int npar , double *mpar )
     break ;
   }
 
-  free((void *)avm) ;
+  free((void *)avm) ;    /* toss the trash */
   return (double)val ;
 }
 
@@ -586,7 +613,7 @@ double GA_scalar_fitter( int npar , double *mpar )
  do{ ERROR_message("mri_genalign_scalar_setup: %s",(s)); EXRETURN; } while(0)
 
 /*---------------------------------------------------------------------------*/
-/*! Setup for alignment.
+/*! Setup for generic alignment of scalar images.
     - If this is a new alignment, images basim and targim must be input;
       maskim is optional.
     - If this is a continuation of a previously started alignment
@@ -624,6 +651,7 @@ ENTRY("mri_genalign_scalar_setup") ;
    } else {
      qdim = MRI_DIMENSIONALITY(stup->bsim) ;
    }
+   stup->abdim = qdim ;
 
    if( targim != NULL ){
      if( qdim != MRI_DIMENSIONALITY(targim) )
@@ -647,7 +675,7 @@ ENTRY("mri_genalign_scalar_setup") ;
 
      stup->bscali = (stup->bsim->dx != 1.0f) || (stup->bsim->xo != 0.0f) ||
                     (stup->bsim->dy != 1.0f) || (stup->bsim->yo != 0.0f)   ;
-     if( qdim == 3 && !stup->bscali )
+     if( stup->abdim == 3 && !stup->bscali )
        stup->bscali = (stup->bsim->dz != 1.0f) || (stup->bsim->zo != 0.0f) ;
    }
    nx = stup->bsim->nx; ny = stup->bsim->ny; nz = stup->bsim->nz; nxy = nx*ny;
@@ -661,7 +689,7 @@ ENTRY("mri_genalign_scalar_setup") ;
 
      stup->ascali = (stup->ajim->dx != 1.0f) || (stup->ajim->xo != 0.0f) ||
                     (stup->ajim->dy != 1.0f) || (stup->ajim->yo != 0.0f)   ;
-     if( qdim == 3 && !stup->ascali )
+     if( stup->abdim == 3 && !stup->ascali )
        stup->ascali = (stup->ajim->dz != 1.0f) || (stup->ajim->zo != 0.0f) ;
    }
 
@@ -962,4 +990,143 @@ ENTRY("mri_genalign_scalar_ransetup") ;
 
    free((void *)bpar) ; free((void *)wpar) ;
    EXRETURN ;
+}
+
+/*==========================================================================*/
+/*****------------------------ Warping functions -----------------------*****/
+/*--------------------------------------------------------------------------*/
+
+#include "vecmat.h"
+
+/*--------------------------------------------------------------------------*/
+/**************************** General affine warp ***************************/
+
+/*--------------------------------------------------------------------------*/
+/*! Compute a rotation matrix specified by 3 angles:
+      Q = R3 R2 R1, where Ri is rotation about axis axi by angle thi.
+----------------------------------------------------------------------------*/
+
+static THD_mat33 rot_matrix( int ax1, double th1,
+                             int ax2, double th2, int ax3, double th3  )
+{
+   THD_mat33 q , p ;
+   LOAD_ROT_MAT( q , th1 , ax1 ) ;
+   LOAD_ROT_MAT( p , th2 , ax2 ) ; q = MAT_MUL( p , q ) ;
+   LOAD_ROT_MAT( p , th3 , ax3 ) ; q = MAT_MUL( p , q ) ;
+   return q ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+#define D2R (PI/180.0)                /* angles are in degrees */
+
+#define MATORDER_SDU  1
+#define MATORDER_SUD  2
+#define MATORDER_DSU  3
+#define MATORDER_DUS  4
+#define MATORDER_USD  5
+#define MATORDER_UDS  6
+
+static int matorder = MATORDER_SDU ;
+static int dcode    = DELTA_AFTER  ;  /* cf. 3ddata.h */
+
+#define SMAT_UPPER    1
+#define SMAT_LOWER    2
+
+static int smat     = SMAT_LOWER ;
+
+/*--------------------------------------------------------------------------*/
+
+static THD_vecmat GA_setup_affine( int npar , float *parvec )
+{
+   THD_mat33 ss,dd,uu,aa,bb ;
+   THD_fvec3 vv ;
+   float     a,b,c ;
+   THD_vecmat mv_for ;
+
+   /* rotation */
+
+   a = b = c = 0.0f ;
+   if( npar >= 4 ) a = D2R*parvec[3] ;
+   if( npar >= 5 ) b = D2R*parvec[4] ;
+   if( npar >= 6 ) c = D2R*parvec[5] ;
+   if( a != 0.0f || b != 0.0f || c != 0.0f )
+     uu = rot_matrix( 2,a , 0,b , 1,c ) ;
+   else
+     LOAD_DIAG_MAT( uu , 1.0f,1.0f,1.0f ) ;
+
+   /* scaling */
+
+   a = b = c = 1.0f ;
+   if( npar >= 7 ){ a = parvec[6]; if( a <= 0.10f || a >= 10.0f ) a = 1.0f; }
+   if( npar >= 8 ){ b = parvec[7]; if( b <= 0.10f || b >= 10.0f ) b = 1.0f; }
+   if( npar >= 9 ){ c = parvec[8]; if( c <= 0.10f || c >= 10.0f ) c = 1.0f; }
+   LOAD_DIAG_MAT( dd , a,b,c ) ;
+
+   /* shear */
+
+   a = b = c = 0.0f ;
+   if( npar >= 10 ){ a = parvec[ 9]; if( fabsf(a) > 0.3333f ) a = 0.0f; }
+   if( npar >= 11 ){ b = parvec[10]; if( fabsf(b) > 0.3333f ) b = 0.0f; }
+   if( npar >= 12 ){ c = parvec[11]; if( fabsf(c) > 0.3333f ) c = 0.0f; }
+   switch( smat ){
+     default:
+     case SMAT_LOWER: LOAD_MAT( ss , 1.0 , 0.0 , 0.0 ,
+                                      a  , 1.0 , 0.0 ,
+                                      b  ,  c  , 1.0  ) ; break ;
+
+     case SMAT_UPPER: LOAD_MAT( ss , 1.0 ,  a  ,  b ,
+                                     0.0 , 1.0 ,  c ,
+                                     0.0 , 0.0 , 1.0  ) ; break ;
+   }
+
+   /* multiply them, as ordered */
+
+   switch( matorder ){
+     case MATORDER_SDU:  aa = MAT_MUL(ss,dd) ; bb = uu ; break ;
+     case MATORDER_SUD:  aa = MAT_MUL(ss,uu) ; bb = dd ; break ;
+     case MATORDER_DSU:  aa = MAT_MUL(dd,ss) ; bb = uu ; break ;
+     case MATORDER_DUS:  aa = MAT_MUL(dd,uu) ; bb = ss ; break ;
+     case MATORDER_USD:  aa = MAT_MUL(uu,ss) ; bb = dd ; break ;
+     case MATORDER_UDS:  aa = MAT_MUL(uu,dd) ; bb = ss ; break ;
+   }
+   mv_for.mm = MAT_MUL(aa,bb) ;
+
+   /* shifts */
+
+   a = b = c = 0.0f ;
+   if( npar >= 1 ) a = parvec[0] ;
+   if( npar >= 2 ) b = parvec[1] ;
+   if( npar >= 3 ) c = parvec[2] ;
+   LOAD_FVEC3( vv , a,b,c ) ;
+
+   switch( dcode ){
+     case DELTA_AFTER:  mv_for.vv = vv ;                       break ;
+     case DELTA_BEFORE: mv_for.vv = MATVEC( mv_for.mm , vv ) ; break ;
+   }
+
+   return mv_for ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! A wfunc function for affine transformations. */
+/*--------------------------------------------------------------------------*/
+
+void mri_genalign_affine( int npar , float *wpar ,
+                          int npt , float *xi, float *yi, float *zi ,
+                                    float *xo, float *yo, float *zo  )
+{
+   static THD_vecmat mv_for ;
+   THD_fvec3 v , w ;
+   int ii ;
+
+   if( npar > 0 && wpar != NULL ) mv_for = GA_setup_affine( npar , wpar ) ;
+   if( npt <= 0 || xi == NULL || xo == NULL ) return ;
+
+   for( ii=0 ; ii < npt ; ii++ ){
+     LOAD_FVEC3( v , xi[ii],yi[ii],zi[ii] ) ;
+     w = VECMAT_VEC( mv_for , v ) ;
+     UNLOAD_FVEC3( w , xo[ii],yo[ii],zo[ii] ) ;
+   }
+   return ;
 }
