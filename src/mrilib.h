@@ -1275,7 +1275,7 @@ typedef struct {
   MRI_IMAGE *ajim , *ajims ;
   float ajbot,ajtop ;
   int dim_avec    ;
-  int ascali, bscali ;
+  int ascali, bscali , abdim ;
 
   int npt_match   ;            /* set by user */
   floatvec *im, *jm, *km , *bvm ;

@@ -18,6 +18,7 @@ MRI_IMAGE *mri_medianfilter( MRI_IMAGE *imin, float irad, byte *mask, int verb )
    short *di , *dj , *dk ;
    int nd, ii,jj,kk, ip,jp,kp, nx,ny,nz, nxy, ijk, dd,nt,pjk, kd  ;
    MCW_cluster *cl ;
+   float dz ;
 
 ENTRY("mri_medianfilter") ;
 
@@ -40,9 +41,11 @@ ENTRY("mri_medianfilter") ;
 
    if( use_dxyz ){
      if( irad < 1.01 ) irad = 1.01 ;
-     cl = MCW_build_mask( 1.0,1.0,1.0 , irad ) ;
+     dz = (imin->nz == 1) ? 666.0f : 1.0f ;
+     cl = MCW_build_mask( 1.0f,1.0f,dz , irad ) ;
    } else {
-     cl = MCW_build_mask( imin->dx,imin->dy,imin->dz , irad ) ;
+     dz = (imin->nz == 1) ? 666.0f : imin->dz ;
+     cl = MCW_build_mask( imin->dx,imin->dy,dz , irad ) ;
    }
 
    if( cl == NULL || cl->num_pt < 6 ){ KILL_CLUSTER(cl); RETURN(NULL); }
