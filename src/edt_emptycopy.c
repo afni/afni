@@ -304,7 +304,8 @@ THD_marker_set * create_empty_marker_set(void)
 int okay_to_add_markers(THD_3dim_dataset * dset)
 {
    if( !dset )         return 0 ;
-   if( dset->markers ) return 0 ; /* already have some */
+
+/*    if( dset->markers ) return 0 ;  allow deletion   9 Aug 2006 [rickr] */
 
    /* test comes from 3drefit.c */
    if( dset->type           == HEAD_ANAT_TYPE     &&

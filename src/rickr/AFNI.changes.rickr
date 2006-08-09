@@ -1679,4 +1679,5 @@
       - added -skip_col_NSD_format option
   * modified SUMA_3dVol2Surf.h:
       - added argc, argv to set_smap_opts parameters
+  * modified edt_empty_copy.c: if they exist, let okay_to_add_markers() return 1
 
