@@ -1659,3 +1659,24 @@
     (mostly adding #ifdef __cplusplus extern "C" { #endif, and closing set)
   * modified rickr/Makefile: removed ../ge4_header.o from file_tool dep list
 
+09 Aug 2006: vol2surf creation of command history
+  * modified vol2surf.c:
+      - create argc, argv from options in v2s_make_command()
+      - added loc_add_2_list() and v2s_free_cmd() for v2s_make_command()
+      - added labels, thres index/value and surf vol dset to gv2s_plug_opts
+  * modified vol2surf.h:
+      - added v2s_cmt_t sturct, and into v2s_opts_t
+      - added gpt_index/thresh, label adn sv_dset to v2s_plugin_opts
+  * modified afni_niml.c: receive spec file name via surface_specfile_name atr
+  * modified afni_suma.h: added spec_file to SUMA_surface
+  * modified afni_vol2surf.c:
+      - store the surface volume dataset in the v2s_plugin_opts struct
+      - also store the index and threshold value of the threshold sub-brick
+  * modified plug_vol2surf.c:
+      - init surface labels, and set them given the user options
+  * modified SUMA_3dVol2Surf.c:
+      - store command-line arguments for history note
+      - added -skip_col_NSD_format option
+  * modified SUMA_3dVol2Surf.h:
+      - added argc, argv to set_smap_opts parameters
+

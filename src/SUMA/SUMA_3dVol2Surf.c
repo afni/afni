@@ -208,9 +208,12 @@ static char g_history[] =
     "6.3a March 22, 2005 [rickr] - removed tabs\n"
     "6.4  June   2, 2005 [rickr] - added -skip_col_non_results option\n"
     "6.5  June  30, 2006 [rickr] - added -save_seg_coords option\n"
+    "6.6  Aug 9, 2006 [rickr]\n"
+    "  - store command-line arguments for history note\n"
+    "  - added -skip_col_NSD_format option\n"
     "---------------------------------------------------------------------\n";
 
-#define VERSION "version  6.5 (June 30, 2006)"
+#define VERSION "version  6.6 (Aug 9, 2006)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -258,7 +261,7 @@ int main( int argc , char * argv[] )
     if ( ( ret_val = validate_options(&opts, &params) ) != 0 )
         return ret_val;
 
-    if ( (ret_val = set_smap_opts( &opts, &params, &sopt )) != 0 )
+    if ( (ret_val = set_smap_opts( &opts, &params, &sopt, argc, argv )) != 0 )
         return ret_val;
 
     /* initialize the spec ZSS Jan 9 06*/
@@ -777,7 +780,8 @@ ENTRY("get_mappable_surfs");
  *        -1 : error condition
  *----------------------------------------------------------------------
 */
-int set_smap_opts( opts_t * opts, v2s_param_t * p, v2s_opts_t * sopt )
+int set_smap_opts( opts_t * opts, v2s_param_t * p, v2s_opts_t * sopt,
+                   int argc, char * argv[] )
 {
     int nsurf = 1;
 
@@ -876,6 +880,9 @@ ENTRY("set_smap_opts");
     }
 
     p->over_steps = v2s_vals_over_steps(sopt->map);
+
+    /* include command options for history     7 Aug 2006 [rickr] */
+    sopt->cmd.fake = 0;  sopt->cmd.argc = argc;  sopt->cmd.argv = argv;
 
     if ( opts->debug > 0 )
         disp_v2s_opts_t( "++ smap opts set :", sopt );
@@ -1328,6 +1335,8 @@ ENTRY("init_options");
             opts->skip_cols |= (V2S_SKIP_ALL & ~V2S_SKIP_VALS);
         else if ( ! strncmp(argv[ac], "-skip_col_nodes", 13) )
             opts->skip_cols |= V2S_SKIP_NODES;
+        else if ( ! strncmp(argv[ac], "-skip_col_NSD_format", 13) )
+            opts->skip_cols = V2S_SKIP_ALL ^ V2S_SKIP_NODES; /* 8 Aug 2006 */
         else if ( ! strncmp(argv[ac], "-skip_col_1dindex", 12) )
             opts->skip_cols |= V2S_SKIP_VOLIND;
         else if ( ! strncmp(argv[ac], "-skip_col_i", 11) )
@@ -2369,7 +2378,7 @@ ENTRY("usage");
             "\n"
             "    -out_niml OUTPUT_FILE  : specify a niml file for the output\n"
             "\n"
-            "        e.g. -out_niml mask_values_over_dataset.niml\n"
+            "        e.g. -out_niml mask_values_over_dataset.niml.dset\n"
             "\n"
             "        The user may use this option to get output in the form\n"
             "        of a niml element, with binary data.  The output will\n"
@@ -2404,6 +2413,7 @@ ENTRY("usage");
             "                             (seems to make the most sense)\n"
             "    -skip_col_non_results  : skip everything but the results\n"
             "                             (i.e. only output result columns)\n"
+            "    -skip_col_NSD_format   : output only nodes and one result\n"
             "\n"
             "        These options are used to restrict output.  Each option\n"
             "        will prevent the program from writing that column of\n"

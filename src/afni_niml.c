@@ -10,7 +10,6 @@
  *   - AFNI_process_NIML_data() has been broken into many process_NIML_TYPE()
  *     functions.  Functionality has been added for local_domain_parents, such
  *     that surface data is sent per LDP, not per surface.
- *
  * 25 Oct 2004 [rickr]
  *   - use vol2surf for all surfaces now (so nvused is no longer computed)
  *   - in ldp_surf_list, added _ldp suffix and full_label_ldp for clarity
@@ -22,14 +21,14 @@
  *   - prepare for sending data to suma (but must still define new NIML type)
  *     can get data and global threshold from vol2surf
  *   - for users, try to track actual LDP label in full_label_ldp
- *
  * 04 Jan 2005 [rickr]
  *   - process_NIML_SUMA_ixyz: a new surface will replace the existing one
  *   - added g_show_as_popup, receive messages default to terminal
  *   - re-wrote receive messages, only to be shorter
- *
  * 11 Jan 2005 [rickr]
  *   - slist_choose_surfs(): do slist_check_user_surfs() for nsurf == 1
+ * 08 Aug 2006 [rickr]
+ *   - get spec_file name from suma via surface_specfile_name atr
  *----------------------------------------------------------------------*/
 
 /**************************************/
@@ -1395,6 +1394,16 @@ ENTRY("process_NIML_SUMA_ixyz");
    else
      MCW_strncpy(ag->label_ldp,idc,64) ;
 
+   /*-- 06 Aug 2006 [rickr]: get the spec file for this surface  --*/
+   /*   Note that ziad is sending both surface_specfile_name and   */
+   /*   surface_specfile_path.  We may prepend the path later.     */
+
+   idc = NI_get_attribute( nel , "surface_specfile_name" ) ;
+   if( idc == NULL )
+     strcpy(ag->spec_file,"NO_SPEC_FILE");
+   else
+     MCW_strncpy(ag->spec_file,idc,64) ;  /* THD_MAX_NAME for path, actually */
+
    /*-- set IDCODEs of surface and of its dataset --*/
 
    if( dset != NULL )
@@ -2149,7 +2158,7 @@ static void process_NIML_AFNI_dataset( NI_group *ngr , int ct_start )
    THD_3dim_dataset *dset , *old_dset ;
    THD_slist_find find ;
    THD_session *ss ;
-   int ii , vv , ww ;
+   int ii , vv ;
 
    int ct_read = 0, ct_tot = 0 ;
    char msg[1024] ;

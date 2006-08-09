@@ -13,11 +13,13 @@
  * 08 Oct 2004 [rickr]:
  *   - AFNI_vol2surf_func_overlay() has new params, surfA,surfB,use_defaults
  *   - pass use_defaults to afni_vol2surf()
- *
  * 25 Oct 2004 [rickr]:
  *   - accept Rdata and Rthr pointers, for optionally returning the data
  *     and global threshold
  *   - make threshold masks absolute
+ * 09 Aug 2006 [rickr]:
+ *  - set the surface volume dataset in the global v2s_plugin_opts struct
+ *  - also store the index and threshold value of the threshold sub-brick
  *----------------------------------------------------------------------
  */
 
@@ -51,6 +53,7 @@ int AFNI_vol2surf_func_overlay(Three_D_View *im3d, SUMA_irgba **map,
          int surfA, int surfB, int use_defaults, float ** Rdata, float * Rthr )
 {
     THD_3dim_dataset * oset;		/* overlay dataset */
+    THD_slist_find     find;
     THD_session      * ss;
     SUMA_surface     * sA, * sB;
     MRI_IMAGE        * im_oim;
@@ -97,6 +100,10 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
     sA = ss->su_surf[surfA];
     sB = ( surfB >= 0 ) ? ss->su_surf[surfB] : NULL;
 
+    /* store the surface volume pointer            9 Aug 2006 [rickr] */
+    find = PLUTO_dset_finder(sA->idcode_dset);
+    go->sv_dset = find.dset;
+
     if ( debug )
     {
 	fprintf(stderr,"++ v2s overlay: sa,sb = %d,%d\n", surfA, surfB);
@@ -126,6 +133,7 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
     if( !DSET_LOADED(oset) ) RETURN(-1);
 
     /*-------------------- mask from threshold --------------------*/
+    go->gpt_index = -1; go->gpt_thresh = 0.0;   /* init threshold options */
     cmask = NULL;
     if( im3d->vinfo->func_threshold > 0.0 )	/* then want a threshold */
     {
@@ -162,6 +170,9 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
 	}
 	else if ( debug > 1 )
 	    fprintf(stderr,"-- no threshold mask\n");
+
+        /* note mask options for v2s command output  9 Aug 2006 [rickr] */
+        if( cmask ) { go->gpt_index = tind; go->gpt_thresh = thresh; }
     }
 
     /*-------------------- vol2surf computation --------------------*/
