@@ -71,6 +71,13 @@ typedef struct
 
 typedef struct
 {
+    int     fake;                       /* were arguments faked? */
+    int     argc;                       /* argument list length  */
+    char ** argv;                       /* argument list         */
+} v2s_cmd_t;
+
+typedef struct
+{
     int         map;                    /* type of mapping from surfs    */
     int         gp_index;               /* grid parent sub-brick (or -1) */
     int         debug;                  /* for printing extra output     */
@@ -91,16 +98,21 @@ typedef struct
     char      * outfile_1D;             /* filename for ascii output     */
     char      * outfile_niml;           /* filename for NIML output      */
     char      * segc_file;              /* filename for seg coors output */
+    v2s_cmd_t   cmd;                    /* command info for history      */
     v2s_oob_t   oob;                    /* display info for oob nodes    */
     v2s_oob_t   oom;                    /* display info for oom nodes    */
 } v2s_opts_t;
 
 typedef struct
 {
-    int        ready, use0, use1;
-    int        s0A, s0B;
-    int        s1A, s1B;
-    v2s_opts_t sopt;
+    int                ready, use0, use1;
+    int                s0A, s0B;
+    int                s1A, s1B;
+    int                gpt_index;       /* grid_parent thres ind (init -1) */
+    float              gpt_thresh;      /* threshold value (symmetric)     */
+    char             * label[4];        /* labels for 2 pairs of surfaces  */
+    THD_3dim_dataset * sv_dset;         /* surface volume dataset          */
+    v2s_opts_t         sopt;
 } v2s_plugin_opts;
 
 /* computational parameters */
@@ -128,6 +140,7 @@ int disp_v2s_plugin_opts( char * mesg, v2s_plugin_opts * d );
 int disp_v2s_results    ( char * mesg, v2s_results * d );
 int free_v2s_results    ( v2s_results * sd );
 int v2s_is_good_map     ( int map, int from_afni );
+int v2s_make_command    ( v2s_opts_t * opt, v2s_param_t * p );
 int v2s_map_type        ( char * map_str );
 int v2s_vals_over_steps ( int map );
 int v2s_write_outfile_1D( v2s_opts_t * sopt, v2s_results * sd, char * label );
@@ -144,6 +157,7 @@ int thd_mask_from_brick(THD_3dim_dataset * dset, int volume, float thresh,
     extern v2s_plugin_opts   gv2s_plug_opts;
     extern char            * gv2s_map_names[];
     extern char              gv2s_history[];
+    extern char              gv2s_no_label[];
 #endif
 
 #ifdef  __cplusplus

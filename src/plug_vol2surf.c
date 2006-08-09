@@ -169,9 +169,10 @@ static char g_help[] =
     "     - process all parameters, but only complain if 'ready'\n"
     "     - always pass along debug/dnode\n"
     " \n"
-    "   1.5  11 December 2004 [rickr] - describe default behavior here\n"
-    "   1.5a 22 March 2005 [rickr] - removed all tabs\n"
-    "   1.6  28 March 2006 [rickr] - fixed mode computation\n"
+    "   1.5  11 Dec 2004 [rickr] - describe default behavior here\n"
+    "   1.5a 22 Mar 2005 [rickr] - removed all tabs\n"
+    "   1.6  28 Mar 2006 [rickr] - fixed mode computation\n"
+    "   1.7  09 Aug 2006 [rickr] - store surface labels for history note\n"
         ;
 
 #define P_MAP_NAMES_NVALS      12       /* should match enum for global maps */
@@ -358,13 +359,17 @@ static int PV2S_init_plugin_opts(pv2s_globals * g)
 ENTRY("PV2S_init_plugin_opts");
     memset(g->vpo, 0, sizeof(*g->vpo));
 
-    g->vpo->ready =  0;         /* flag as "not ready to go" */
-    g->vpo->use0  =  0;
-    g->vpo->use1  =  0;
-    g->vpo->s0A   = -1;
-    g->vpo->s0B   = -1;
-    g->vpo->s1A   = -1;
-    g->vpo->s1B   = -1;
+    g->vpo->ready    =  0;         /* flag as "not ready to go" */
+    g->vpo->use0     =  0;
+    g->vpo->use1     =  0;
+    g->vpo->s0A      = -1;
+    g->vpo->s0B      = -1;
+    g->vpo->s1A      = -1;
+    g->vpo->s1B      = -1;
+    g->vpo->label[0] = gv2s_no_label;    /* init surface labels as undefined */
+    g->vpo->label[0] = gv2s_no_label;    /*               7 Aug 2006 [rickr] */
+    g->vpo->label[0] = gv2s_no_label;
+    g->vpo->label[0] = gv2s_no_label;
 
     g->vpo->sopt.gp_index      = -1;
     g->vpo->sopt.dnode         = -1;
@@ -641,7 +646,12 @@ ENTRY("PV2S_process_args");
                             "--------------------------------" );
             RETURN(1);
         }
+        lvpo.label[0] = ss->su_surf[lvpo.s0A]->label_ldp;
+        if(lvpo.s0B >= 0) lvpo.label[1] = ss->su_surf[lvpo.s0B]->label_ldp;
     }
+    else
+        lvpo.label[0] = lvpo.label[1] = gv2s_no_label;    /* no labels */
+
     if ( lvpo.use1 )
     {
         if ( PV2S_check_surfaces(plint, lvpo.s1A, lvpo.s1B, mesg, sopt->debug) )
@@ -653,7 +663,11 @@ ENTRY("PV2S_process_args");
                             "--------------------------------" );
             RETURN(1);
         }
+        lvpo.label[2] = ss->su_surf[lvpo.s1A]->label_ldp;
+        if(lvpo.s1B >= 0) lvpo.label[3] = ss->su_surf[lvpo.s1B]->label_ldp;
     }
+    else
+        lvpo.label[2] = lvpo.label[3] = gv2s_no_label;    /* no labels */
 
     /* if the user wan't normals, they can only supply one surface per pair */
     if ( sopt->use_norms && ((lvpo.use0 && lvpo.s0B >= 0) ||
