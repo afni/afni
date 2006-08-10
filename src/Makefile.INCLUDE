@@ -138,6 +138,8 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @Center_Distance @fix_FSsphere @parse_name @align_partial_oblique       \
           @np 3dMax @IsoMasks @SUMA_Make_Spec_Caret
 
+PY_SCRIPTS = afni_base.py @DoPerRoi.py
+
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h       \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h        \
              thd_compress.h afni_warp.h coxplot.h f2c.h volpack.h mcw_malloc.h    \
@@ -1136,12 +1138,12 @@ backup:
 
 afni_src.tgz:
 	$(MKDIR) afni_src
-	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) ./afni_src
-	$(CP) -pr coxplot volpack moveup moveAFNI* cdflib eispack $(SCRIPTS) ./afni_src
-	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir mpegtoppm_dir   ./afni_src
-	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat ./afni_src
-	$(CP) -pr SUMA matlab rickr faces poems ni_test_? README.*           ./afni_src
-	chmod -R ugo+rw                                                      ./afni_src
+	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)               ./afni_src
+	$(CP) -pr coxplot volpack moveup moveAFNI* cdflib eispack $(SCRIPTS) $(PY_SCRIPTS) ./afni_src
+	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir mpegtoppm_dir                 ./afni_src
+	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat               ./afni_src
+	$(CP) -pr SUMA matlab rickr faces poems ni_test_? README.*                         ./afni_src
+	chmod -R ugo+rw                                                                    ./afni_src
 	$(TAR) cf - afni_src | $(GZIP) -9v > afni_src.tgz
 	$(RM) -r afni_src
 
@@ -1167,11 +1169,11 @@ afni_doc.tgz:
 
 install: $(INSTALLDIR) $(INSTALL_PREREQ)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
-	$(CP) $(SCRIPTS) $(INSTALLDIR)
+	$(CP) $(SCRIPTS) $(PY_SCRIPTS) $(INSTALLDIR)
 
 install_noplug: $(INSTALLDIR)
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
-	$(CP) $(SCRIPTS) $(INSTALLDIR)
+	$(CP) $(SCRIPTS) $(PY_SCRIPTS) $(INSTALLDIR)
 
 install_lib: $(LIBDIR)
 	$(CP) libmri.a libmrix.a libf2c.a libcoxplot.a libvolpack.a $(LIBHEADERS) $(LIBDIR)
@@ -1182,7 +1184,7 @@ install_exe: $(INSTALLDIR)
 	( for pp in $(PROGRAMS_EXE) ; do                               \
              qq=`basename $$pp .exe`; $(MV) $${qq}.exe $(INSTALLDIR) ; \
           done )
-	$(CP) $(SCRIPTS) $(INSTALLDIR)
+	$(CP) $(SCRIPTS) $(PY_SCRIPTS) $(INSTALLDIR)
 
 ###################################################################
 # some dependencies (not complete)
