@@ -1244,8 +1244,9 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 #define GA_KERNEL_QUADRATIC         2
 #define GA_KERNEL_QUARTIC           3
 
-typedef GA_warpfunc( int, float *,
-                     int, float *,float *,float *, float *,float *,float * );
+typedef void GA_warpfunc( int, float *,
+                          int, float *,float *,float *,
+                               float *,float *,float * );
 
 #if 0
   typedef struct {

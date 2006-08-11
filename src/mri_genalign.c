@@ -442,7 +442,7 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
    MRI_IMAGE *aim ;
 
    npar = gstup->wfunc_numpar ;
-   wpar = (float *)malloc(sizeof(float)*npar) ;
+   wpar = (float *)calloc(sizeof(float),npar) ;
 
    /* load ALL the warping parameters */
 
@@ -459,16 +459,16 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
    /* create space for default control points, if none given */
 
    if( gstup->im == NULL ){
-     imf = (float *)malloc(sizeof(float)*NPER) ;
-     jmf = (float *)malloc(sizeof(float)*NPER) ;
-     kmf = (float *)malloc(sizeof(float)*NPER) ;
+     imf = (float *)calloc(sizeof(float),NPER) ;
+     jmf = (float *)calloc(sizeof(float),NPER) ;
+     kmf = (float *)calloc(sizeof(float),NPER) ;
    }
 
    /* create space for warped control points */
 
-   imw = (float *)malloc(sizeof(float)*NPER) ;
-   jmw = (float *)malloc(sizeof(float)*NPER) ;
-   kmw = (float *)malloc(sizeof(float)*NPER) ;
+   imw = (float *)calloc(sizeof(float),NPER) ;
+   jmw = (float *)calloc(sizeof(float),NPER) ;
+   kmw = (float *)calloc(sizeof(float),NPER) ;
 
    nx = gstup->bsim->nx; ny = gstup->bsim->ny; nxy = nx*ny;
 
@@ -576,7 +576,7 @@ static double GA_scalar_fitter( int npar , double *mpar )
   float val=0.0f ;
   float *avm , *bvm ;
 
-  avm = (float *)malloc(gstup->npt_match*sizeof(float)) ; /* target points at */
+  avm = (float *)calloc(gstup->npt_match,sizeof(float)) ; /* target points at */
   GA_get_warped_values( npar , mpar , avm ) ;             /* warped locations */
 
   bvm = gstup->bvm->ar ;                                  /* base points */
@@ -587,6 +587,10 @@ static double GA_scalar_fitter( int npar , double *mpar )
 
     default:
     case GA_MATCH_PEARSON_SCALAR:
+{int i;
+ fprintf(stderr,"avm: "); for(i=0;i<9;i++)fprintf(stderr,"%g ",avm[i]); fprintf(stderr,"\n");
+ fprintf(stderr,"bvm: "); for(i=0;i<9;i++)fprintf(stderr,"%g ",bvm[i]); fprintf(stderr,"\n");
+}
       val = (double)THD_pearson_corr( gstup->npt_match , avm , bvm ) ;
       val = 1.0 - fabs(val) ;
     break ;
@@ -815,7 +819,7 @@ ENTRY("mri_genalign_scalar_setup") ;
        MAKE_floatvec(stup->jm,stup->npt_match) ;
        MAKE_floatvec(stup->km,stup->npt_match) ;
 
-       qm = (int *)malloc(sizeof(int)*stup->npt_match) ;
+       qm = (int *)calloc(sizeof(int),stup->npt_match) ;
        mm = (nx/2) + (ny/2)*nx + (nz/2)*nxy ;
        for( pp=0 ; pp < stup->npt_match ; mm=(mm+dm)%nvox )
          if( GOOD(mm) ) qm[pp++] = mm ;
@@ -875,9 +879,11 @@ static void GA_param_setup( GA_setup *stup )
 {
    int ii , qq ;
 
+ENTRY("GA_param_setup") ;
+
    if( stup == NULL || stup->setup != SMAGIC ){
      ERROR_message("Illegal call to GA_param_setup()") ;
-     return ;
+     EXRETURN ;
    }
 
    /* count free parameters to optimize over */
@@ -886,13 +892,14 @@ static void GA_param_setup( GA_setup *stup )
      if( !stup->wfunc_param[qq].fixed ) ii++ ;
 
    stup->wfunc_numfree = ii ;
+fprintf(stderr,"number of free parameters = %d\n",ii) ;
    if( ii == 0 ){
-     ERROR_message("No free parameters in GA_param_setup()?"); return;
+     ERROR_message("No free parameters in GA_param_setup()?"); EXRETURN;
    }
-   for( ii=0 ; ii < stup->wfunc_numpar ; qq++ )
+   for( ii=0 ; ii < stup->wfunc_numpar ; ii++ )
      stup->wfunc_param[ii].siz = stup->wfunc_param[ii].max
                                 -stup->wfunc_param[ii].min ;
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -918,7 +925,7 @@ ENTRY("mri_genalign_scalar_optim") ;
    /* copy initial warp parameters into local array wpar,
       scaling to the range 0..1                          */
 
-   wpar = (double *)malloc(sizeof(double)*stup->wfunc_numfree) ;
+   wpar = (double *)calloc(sizeof(double),stup->wfunc_numfree) ;
    for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ )
      if( !stup->wfunc_param[qq].fixed )
       wpar[ii++] = ( stup->wfunc_param[qq].val_init
@@ -971,13 +978,15 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    GA_param_setup(stup) ;
    if( stup->wfunc_numfree <= 0 ) EXRETURN ;
 
-   wpar = (double *)malloc(sizeof(double)*stup->wfunc_numfree) ;
-   bpar = (double *)malloc(sizeof(double)*stup->wfunc_numfree) ;
+   wpar = (double *)calloc(sizeof(double),stup->wfunc_numfree) ;
+   bpar = (double *)calloc(sizeof(double),stup->wfunc_numfree) ;
    gstup = stup ;
 
    for( ii=0 ; ii < nrand ; ii++ ){
      for( qq=0 ; qq < stup->wfunc_numfree ; qq++ ) wpar[qq] = drand48() ;
+fprintf(stderr,"ii=%d ",ii) ;
      val = GA_scalar_fitter( stup->wfunc_numfree , wpar ) ;
+fprintf(stderr,"val=%g\n",val) ;
      if( val < vbest ){
        vbest = val; memcpy( bpar, wpar, sizeof(double)*stup->wfunc_numfree );
      }
