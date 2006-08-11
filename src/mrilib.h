@@ -1310,8 +1310,17 @@ typedef struct {
      }                                                                       \
  } while(0)
 
+extern void mri_genalign_scalar_setup( MRI_IMAGE *, MRI_IMAGE *,
+                                       MRI_IMAGE *, GA_setup  * ) ;
+extern int mri_genalign_scalar_optim( GA_setup *, double, double, int) ;
+extern void mri_genalign_scalar_ransetup( GA_setup *, int ) ;
+extern void mri_genalign_affine_setup( int,int,int ) ;
+extern void mri_genalign_affine( int, float *,
+                                 int, float *, float *, float *,
+                                      float *, float *, float * ) ;
+
 /*------------------------------------------------------------------*/
-/* Prototypes for unctions in nifti_stats.c */
+/* Prototypes for functions in nifti_stats.c */
 
 extern int nifti_intent_code    ( char * ) ;
 extern double nifti_stat2cdf    ( double, int, double,double,double ) ;

@@ -571,7 +571,7 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
     (Smaller is a better match.)  For use as a NEWUOA optimization function.
 -----------------------------------------------------------------------------*/
 
-double GA_scalar_fitter( int npar , double *mpar )
+static double GA_scalar_fitter( int npar , double *mpar )
 {
   float val=0.0f ;
   float *avm , *bvm ;
@@ -1035,6 +1035,11 @@ static int dcode    = DELTA_AFTER  ;  /* cf. 3ddata.h */
 
 static int smat     = SMAT_LOWER ;
 
+void mri_genalign_affine_setup( int mmmm , int dddd , int ssss )
+{
+   matorder = mmmm ; dcode = dddd ; smat = ssss ; return ;
+}
+
 /*--------------------------------------------------------------------------*/
 
 static THD_vecmat GA_setup_affine( int npar , float *parvec )
@@ -1083,6 +1088,7 @@ static THD_vecmat GA_setup_affine( int npar , float *parvec )
    /* multiply them, as ordered */
 
    switch( matorder ){
+     default:
      case MATORDER_SDU:  aa = MAT_MUL(ss,dd) ; bb = uu ; break ;
      case MATORDER_SUD:  aa = MAT_MUL(ss,uu) ; bb = dd ; break ;
      case MATORDER_DSU:  aa = MAT_MUL(dd,ss) ; bb = uu ; break ;
@@ -1101,8 +1107,9 @@ static THD_vecmat GA_setup_affine( int npar , float *parvec )
    LOAD_FVEC3( vv , a,b,c ) ;
 
    switch( dcode ){
-     case DELTA_AFTER:  mv_for.vv = vv ;                       break ;
-     case DELTA_BEFORE: mv_for.vv = MATVEC( mv_for.mm , vv ) ; break ;
+     default:
+     case DELTA_AFTER:  mv_for.vv = vv ;                      break ;
+     case DELTA_BEFORE: mv_for.vv = MATVEC( mv_for.mm, vv ) ; break ;
    }
 
    return mv_for ;
@@ -1116,12 +1123,20 @@ void mri_genalign_affine( int npar , float *wpar ,
                           int npt , float *xi, float *yi, float *zi ,
                                     float *xo, float *yo, float *zo  )
 {
-   static THD_vecmat mv_for ;
+   static THD_vecmat mv_for ;  /* saved transformation matrix */
    THD_fvec3 v , w ;
    int ii ;
 
-   if( npar > 0 && wpar != NULL ) mv_for = GA_setup_affine( npar , wpar ) ;
+   /** new parameters ==> setup matrix */
+
+   if( npar > 0 && wpar != NULL )
+     mv_for = GA_setup_affine( npar , wpar ) ;
+
+   /* nothing to transform? */
+
    if( npt <= 0 || xi == NULL || xo == NULL ) return ;
+
+   /* mutiply matrix times input vectors */
 
    for( ii=0 ; ii < npt ; ii++ ){
      LOAD_FVEC3( v , xi[ii],yi[ii],zi[ii] ) ;

@@ -36,18 +36,24 @@ static double *sx    = NULL ;
 
 /*---------------------------------------------------------------------------*/
 
+/*! Pointer to user-supplied function. */
+
 static double (*userfun)( int n , double *x ) = NULL ;
+
+/*! Function called by newuoa_();
+    goal is to minimize this as a function of x[0..n-1] */
 
 int calfun_(integer *n, doublereal *x, doublereal *fun)
 {
    double val ;
+
    if( scalx ){            /* in this case, inputs x[] are in range 0..1,  */
      int ii ;              /* and need to be scaled to their 'true' values */
      for( ii=0 ; ii < *n ; ii++ )
        sx[ii] = sxmin[ii] + sxsiz[ii]*PRED01(x[ii]) ;
      val = userfun( (int)(*n) , sx ) ;
    } else {
-     val = userfun( (int)(*n) , (double *)x ) ;
+     val = userfun( (int)(*n) , (double *)x ) ;  /* unscaled x[] */
    }
    *fun = (doublereal)val ;
    return ;
@@ -91,6 +97,8 @@ int powell_newuoa( int ndim , double *x ,
    integer n , npt , icode , maxfun ;
    doublereal rhobeg , rhoend , *w ;
 
+   /* check inputs */
+
    if( ndim < 1                         ) return -2 ;
    if( x == NULL                        ) return -3 ;
    if( rstart < rend || rstart <= 1.e-4 ) return -4 ;
@@ -113,16 +121,19 @@ int powell_newuoa( int ndim , double *x ,
    userfun = ufunc ;
    scalx   = 0 ;
 
+   /* do the work: best params are put back into x[] */
+
    (void)newuoa_( &n , &npt , (doublereal *)x ,
                   &rhobeg , &rhoend , &maxfun , w , &icode ) ;
 
    free((void *)w) ;
-   return icode ;
+   return icode ;  /* number of function calls */
 }
 
 /*---------------------------------------------------------------------------*/
 /*! Similar to powell_newuoa(), but with constraints on the variables,
-    and (if nrand > 0) a random search for the starting point.
+    and (if nrand > 0) a random search for the starting point (the initial
+    point on input in x[] is also tested to see if it is 'best' for starting).
 -----------------------------------------------------------------------------*/
 
 int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
@@ -133,6 +144,8 @@ int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
    integer n , npt , icode , maxfun ;
    doublereal rhobeg , rhoend , *w ;
    int ii ; double *x01 ;
+
+   /* check inputs */
 
    if( ndim < 1                         ) return -2 ;
    if( x == NULL                        ) return -3 ;
@@ -157,24 +170,25 @@ int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
    userfun = ufunc ;
 
    /*-- To enforce constraints:
-        (a) scale each variable to be in the range 0..1, in x01[] array
+        (a) scale each variable to be in the range 0..1, in x01[] array;
         (b) in calfun_(), if an input variable drifts outside the 0..1
-            range, bring it back into that range with the PRED01() macro
-        (c) then scale that 0..1 value back up to the 'true' value
-            before calling ufunc to evaluate the objective function. -------*/
+            range, bring it back into that range with the PRED01() macro;
+        (c) then scale that 0..1 value back to the 'true' value
+            before calling ufunc() to evaluate objective function. -------*/
 
    scalx   = 1 ;
-   sxmin = (double *)malloc(sizeof(double)*ndim) ;
-   sxsiz = (double *)malloc(sizeof(double)*ndim) ;
+   sxmin = (double *)malloc(sizeof(double)*ndim) ;  /* copy of xbot */
+   sxsiz = (double *)malloc(sizeof(double)*ndim) ;  /* xtop - xbot */
    sx    = (double *)malloc(sizeof(double)*ndim) ;
-   x01   = (double *)malloc(sizeof(double)*ndim) ;
+   x01   = (double *)malloc(sizeof(double)*ndim) ;  /* scaled x[] */
    for( ii=0 ; ii < ndim ; ii++ ){
      sxmin[ii] = xbot[ii] ;
      sxsiz[ii] = xtop[ii] - xbot[ii]; if( sxsiz[ii] <= 0.0 ) sxsiz[ii] = 1.0;
      x01[ii]   = (x[ii] - sxmin[ii]) / sxsiz[ii] ;
+     x01[ii]   = PRED01(x01[ii]) ;           /* make sure is in range 0..1 */
    }
 
-   /*-- random search for the best starting point? --*/
+   /*-- do a random search for the best starting point? --*/
 
    if( nrand > 0 ){
      double *xbest , *xtest , fbest , ftest ; int qq ;
