@@ -710,6 +710,10 @@ strblast:strblast.o
 	$(RM) $@
 	$(CC) -o 3dWarpDrive 3dWarpDrive.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
+qm:qm.o
+	$(RM) $@
+	$(CC) -o qm qm.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 rotcom:rotcom.o
 	$(RM) $@
 	$(CC) -o rotcom rotcom.o $(LFLAGS) -lmri -lf2c $(LLIBS)
