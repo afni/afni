@@ -820,7 +820,7 @@ C
      X       LAND,LOR,LMOFN,MEDIAN , ZTONE , HMODE,LMODE,
      X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD ,
      X       MEAN , STDEV , SEM
-      REAL*8 ARGMAX,ARGNUM
+      REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN
 C
 C  External library functions
 C
@@ -1165,6 +1165,14 @@ C.......................................................................
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
             R8_EVAL(NEVAL) = ARGNUM( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'PAIRMAX' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            R8_EVAL(NEVAL) = PAIRMX( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'PAIRMIN' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            R8_EVAL(NEVAL) = PAIRMN( NTM , R8_EVAL(NEVAL) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
             NEVAL = NEVAL - 3
@@ -1320,7 +1328,7 @@ C
      X       LOR, LMOFN , MEDIAN , ZTONE , HMODE , LMODE ,
      X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD ,
      X       MEAN , STDEV , SEM
-      REAL*8 ARGMAX,ARGNUM
+      REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN
 C
 C  External library functions
 C
@@ -2042,6 +2050,24 @@ C.......................................................................
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = ARGNUM( NTM, SCOP )
             ENDDO
+         ELSEIF( CNCODE .EQ. 'PAIRMAX'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            DO IV=IVBOT,IVTOP
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = PAIRMX( NTM, SCOP )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'PAIRMN'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            DO IV=IVBOT,IVTOP
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = PAIRMN( NTM, SCOP )
+            ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
             NEVAL = NEVAL - 3
@@ -2542,7 +2568,7 @@ C
 C
 C
       SUBROUTINE BSORT(N,X)
-      REAL *8 X(N) , TMP
+      REAL*8 X(N) , TMP
       INTEGER N , I , IT
 C------------------------------------  Bubble sort
 50    IT = 0
@@ -2582,8 +2608,56 @@ C
 C
 C
 C
+      FUNCTION PAIRMX(N,X)
+      REAL*8 PAIRMX, X(N),TT,PP
+      INTEGER N,M,I
+C
+      IF( N .LE. 2 )THEN
+        PAIRMX = X(2)
+        RETURN
+      ENDIF
+C
+      M  = N/2
+      TT = X(1)
+      PP = X(M+1)
+      DO I=2,M
+        IF( X(I) .GT. TT )THEN
+          TT = X(I)
+          PP = X(M+I)
+        ENDIF
+      ENDDO
+      PAIRMX = PP
+      RETURN
+      END
+C
+C
+C
+      FUNCTION PAIRMN(N,X)
+      REAL*8 PAIRMN, X(N),BB,PP
+      INTEGER N,M,I
+C
+      IF( N .LE. 2 )THEN
+        PAIRMN = X(2)
+        RETURN
+      ENDIF
+C
+      M  = N/2
+      BB = X(1)
+      PP = X(M+1)
+      DO I=2,M
+        IF( X(I) .LT. BB )THEN
+          TT = X(I)
+          PP = X(M+I)
+        ENDIF
+      ENDDO
+      PAIRMN = PP
+      RETURN
+      END
+C
+C
+C
       FUNCTION MEAN(N,X)
-      REAL *8 MEAN , X(N) , TMP
+      REAL*8 MEAN , X(N) , TMP
       INTEGER N , IT
 C
       IF( N .EQ. 1 )THEN
@@ -2604,7 +2678,7 @@ C
 C
 C
       FUNCTION STDEV(N,X)
-      REAL *8 STDEV , X(N) , TMP , XBAR
+      REAL*8 STDEV , X(N) , TMP , XBAR
       INTEGER N , IT
 C
       IF( N .EQ. 1 )THEN
@@ -2627,7 +2701,7 @@ C
 C
 C
       FUNCTION SEM(N,X)
-      REAL *8 SEM , X(N) , STDEV
+      REAL*8 SEM , X(N) , STDEV
       INTEGER N
 C
       SEM = STDEV(N,X) / SQRT(N+0.000001D+0)
@@ -2637,7 +2711,7 @@ C
 C
 C
       FUNCTION MEDIAN(N,X)
-      REAL *8 MEDIAN , X(N) , TMP
+      REAL*8 MEDIAN , X(N) , TMP
       INTEGER N , IT
 C
       IF( N .EQ. 1 )THEN
@@ -2681,7 +2755,7 @@ C
 C
 C
       FUNCTION MAD(N,X)
-      REAL *8 MAD , X(N) , TMP , MEDIAN
+      REAL*8 MAD , X(N) , TMP , MEDIAN
       INTEGER N , IT
 C
       IF( N .EQ. 1 )THEN
@@ -2742,7 +2816,7 @@ C
 C
 C
       FUNCTION HMODE(N,X)
-      REAL *8 HMODE , VAL , VB , X(N)
+      REAL*8 HMODE , VAL , VB , X(N)
       INTEGER N , I , IV  , IB
 C
       IF( N .EQ. 1 )THEN
@@ -2775,7 +2849,7 @@ C
 C
 C
       FUNCTION LMODE(N,X)
-      REAL *8 LMODE , VAL , VB , X(N)
+      REAL*8 LMODE , VAL , VB , X(N)
       INTEGER N , I , IV  , IB
 C
       IF( N .EQ. 1 )THEN
