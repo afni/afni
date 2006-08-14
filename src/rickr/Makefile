@@ -4,7 +4,7 @@ RICKR_OBJS = r_idisp.o r_misc.o r_new_resam_dset.o
 RICKR_HDRS = r_idisp.h r_misc.h r_new_resam_dset.h
 RICKR_SRCS = r_idisp.c r_misc.c r_new_resam_dset.c
 
-IMON_OBJS  = l_mcw_glob.o realtime.o ../thd_iochan.o
+IMON_OBJS  = l_mcw_glob.o realtime.o
 
 AFNI_WARP_OBJS = ../afni_warp.o ../afni_slice_byte.o ../afni_slice_short.o  \
 		 ../afni_slice_float.o ../afni_slice_complex.o              \
@@ -35,11 +35,11 @@ file_tool: file_tool.o file_tool.h
 
 Imon: Imon.o $(IMON_OBJS) Imon.h realtime.h
 	$(RM) $@
-	$(CC) -o Imon Imon.o $(IMON_OBJS) $(LFLAGS) -L.. -lm $(EXTRA_LIBS_2)
+	$(CC) -o Imon Imon.o $(IMON_OBJS) ../thd_iochan.o $(LFLAGS) -L.. -lm $(EXTRA_LIBS_2)
 
-Dimon: Dimon.o dimon_afni.o mri_dicom_hdr.o $(IMON_OBJS)
+Dimon: Dimon.o dimon_afni.o mri_dicom_hdr.o ../thd_iochan.o $(IMON_OBJS)
 	$(RM) $@
-	$(CC) -o Dimon Dimon.o dimon_afni.o mri_dicom_hdr.o $(IMON_OBJS) $(LFLAGS) -L.. -lm $(EXTRA_LIBS_2)
+	$(CC) -o Dimon Dimon.o dimon_afni.o mri_dicom_hdr.o ../thd_iochan.o $(IMON_OBJS) $(LFLAGS) -L.. -lm $(EXTRA_LIBS_2)
 
 serial_helper: serial_helper.o
 	$(RM) $@
