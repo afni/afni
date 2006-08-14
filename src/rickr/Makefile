@@ -37,7 +37,7 @@ Imon: Imon.o $(IMON_OBJS) Imon.h realtime.h
 	$(RM) $@
 	$(CC) -o Imon Imon.o $(IMON_OBJS) ../thd_iochan.o $(LFLAGS) -L.. -lm $(EXTRA_LIBS_2)
 
-Dimon: Dimon.o dimon_afni.o mri_dicom_hdr.o ../thd_iochan.o $(IMON_OBJS)
+Dimon: Dimon.o dimon_afni.o mri_dicom_hdr.o $(IMON_OBJS)
 	$(RM) $@
 	$(CC) -o Dimon Dimon.o dimon_afni.o mri_dicom_hdr.o ../thd_iochan.o $(IMON_OBJS) $(LFLAGS) -L.. -lm $(EXTRA_LIBS_2)
 
