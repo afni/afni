@@ -88,10 +88,22 @@
    #undef SUMA_S_Err
    #undef SUMA_S_Crit
     
+   #ifdef SOLARIS
+	   #include <GLw/GLwDrawA.h>  /* OpenGL drawing area. */
+   #else
+      #ifdef SUMA_MOTIF_GLXAREA
+         #include <GL/GLwMDrawA.h> 
+      #else
+	      #include <GL/GLwDrawA.h>  /* OpenGL drawing area. */
+      #endif
+   #endif
    #include <GL/gl.h>
    #include <GL/glu.h>
    #include <GL/glx.h>
    #include <GLUT/GL/glut.h>
+   
+
+   
    /* SUMA specific includes*/
    #include "SUMA_define.h"   
    #include "SUMA_prototype.h"
