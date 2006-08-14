@@ -117,7 +117,7 @@ static void RWC_set_endianosity(void)
 
 /******************************************************************/
 /*** decide in DCM_OpenFile whether we have a 128 byte preamble ***/
-g_readpreamble = FALSE;                    /* 18 May 2006 [rickr] */
+int g_readpreamble = FALSE;                /* 18 May 2006 [rickr] */
 
 /****************************************************************/
 /***** Function and variables to replace printf() ***************/
