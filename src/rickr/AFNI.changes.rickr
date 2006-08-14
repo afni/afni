@@ -1681,3 +1681,8 @@
       - added argc, argv to set_smap_opts parameters
   * modified edt_empty_copy.c: if they exist, let okay_to_add_markers() return 1
 
+14 Aug 2006:
+  * modified mri_dicom_hdr.c, setting the type for g_readpreamble
+  * modified rickr/Makefile: remove dependancies on an ../*.o, so they are
+        not removed by the build process (they should not be made from rickr)
+
