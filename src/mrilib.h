@@ -1295,6 +1295,7 @@ typedef struct {
   int          *wfunc_pma ;
 
   int          setup ;
+  float        vbest ;
 } GA_setup ;
 
 #undef  IFREE
@@ -1319,6 +1320,7 @@ extern void mri_genalign_affine_setup( int,int,int ) ;
 extern void mri_genalign_affine( int, float *,
                                  int, float *, float *, float *,
                                       float *, float *, float * ) ;
+extern MRI_IMAGE * mri_genalign_scalar_warpim( GA_setup * ) ;
 
 /*------------------------------------------------------------------*/
 /* Prototypes for functions in nifti_stats.c */
