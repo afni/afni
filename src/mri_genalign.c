@@ -435,7 +435,7 @@ static void GA_interp_quintic( MRI_IMAGE *fim ,
 
 static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 {
-   int    npar , ii,jj,kk,qq,pp,npp,mm,nx,ny,nxy , clip=0 ;
+   int    npar , ii,jj,kk,qq,pp,npp,mm,nx,ny,nxy , clip=0 , npt ;
    float *wpar , v ;
    float *imf , *jmf , *kmf ;
    float *imw , *jmw , *kmw ;
@@ -444,24 +444,32 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
    npar = gstup->wfunc_numpar ;
    wpar = (float *)calloc(sizeof(float),npar) ;
 
-   /* load ALL the warping parameters */
+   /* load ALL the warping parameters, including the fixed values */
 
-   for( ii=pp=0 ; ii < npar ; ii++ ){
-     if( gstup->wfunc_param[ii].fixed ){              /* fixed param */
-       wpar[ii] = gstup->wfunc_param[ii].val_fixed ;
-     } else {                                         /* variable param */
-       v = (float)mpar[pp++] ;
-       wpar[ii] = gstup->wfunc_param[ii].min          /* scale to true range */
-                 +gstup->wfunc_param[ii].siz * PRED01(v) ;
+   if( mpar != NULL ){                              /* load from input array */
+     for( ii=pp=0 ; ii < npar ; ii++ ){
+       if( gstup->wfunc_param[ii].fixed ){                    /* fixed param */
+         wpar[ii] = gstup->wfunc_param[ii].val_fixed ;
+       } else {                                            /* variable param */
+         v = (float)mpar[pp++] ;
+         wpar[ii] = gstup->wfunc_param[ii].min        /* scale to true range */
+                   +gstup->wfunc_param[ii].siz * PRED01(v) ;
+       }
      }
+   } else {                                     /* load directly from struct */
+     for( ii=0 ; ii < gstup->wfunc_numpar ; ii++ )
+       wpar[ii] = gstup->wfunc_param[ii].val_out ;
    }
 
    /* create space for default control points, if none given */
 
-   if( gstup->im == NULL ){
+   if( mpar == NULL || gstup->im == NULL ){
      imf = (float *)calloc(sizeof(float),NPER) ;
      jmf = (float *)calloc(sizeof(float),NPER) ;
      kmf = (float *)calloc(sizeof(float),NPER) ;
+     npt = gstup->bsim->nvox ;
+   } else {
+     npt = gstup->npt_match ;
    }
 
    /* create space for warped control points */
@@ -478,9 +486,9 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 
    /*--- do (up to) NPER points at a time ---*/
 
-   for( pp=0 ; pp < gstup->npt_match ; pp+=NPER ){
-     npp = MIN( NPER , gstup->npt_match-pp ) ;  /* number to do */
-     if( gstup->im == NULL ){
+   for( pp=0 ; pp < npt ; pp+=NPER ){
+     npp = MIN( NPER , npt-pp ) ;  /* number to do */
+     if( mpar == NULL || gstup->im == NULL ){
        for( qq=0 ; qq < npp ; qq++ ){  /* default control points */
          mm = pp+qq ;
          ii = mm % nx; kk = mm / nxy; jj = (mm-kk*nxy) / nx;
@@ -520,7 +528,8 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 
      /* choose image from which to extract data:
                                      --smoothed--   -unsmoothed- */
-     aim = (gstup->ajims != NULL ) ? gstup->ajims : gstup->ajim ;
+     aim = (gstup->ajims != NULL && mpar != NULL ) ? gstup->ajims
+                                                   : gstup->ajim ;
 
      /* interpolate target image at warped control points */
 
@@ -549,7 +558,7 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
    /* free the enslaved memory */
 
    free((void *)kmw); free((void *)jmw); free((void *)imw);
-   if( gstup->im == NULL ){
+   if( mpar == NULL || gstup->im == NULL ){
      free((void *)kmf); free((void *)jmf); free((void *)imf);
    }
    free((void *)wpar) ;
@@ -558,7 +567,7 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 
    if( clip ){
      float bb=gstup->ajbot , tt=gstup->ajtop ;
-     for( pp=0 ; pp < gstup->npt_match ; pp++ )
+     for( pp=0 ; pp < npt ; pp++ )
             if( avm[pp] < bb ) avm[pp] = bb ;
        else if( avm[pp] > tt ) avm[pp] = tt ;
    }
@@ -587,10 +596,12 @@ static double GA_scalar_fitter( int npar , double *mpar )
 
     default:
     case GA_MATCH_PEARSON_SCALAR:
+#if 0
 {int i;
  fprintf(stderr,"avm: "); for(i=0;i<9;i++)fprintf(stderr,"%g ",avm[i]); fprintf(stderr,"\n");
  fprintf(stderr,"bvm: "); for(i=0;i<9;i++)fprintf(stderr,"%g ",bvm[i]); fprintf(stderr,"\n");
 }
+#endif
       val = (double)THD_pearson_corr( gstup->npt_match , avm , bvm ) ;
       val = 1.0 - fabs(val) ;
     break ;
@@ -765,6 +776,7 @@ ENTRY("mri_genalign_scalar_setup") ;
 
    /*-- extract matching points from base image (maybe) --*/
 
+   nmatch = stup->npt_match ;
    if( stup->npt_match <= 9 || stup->npt_match > stup->bsim->nvox ){
      nmatch = stup->bsim->nvox ; use_all = 1 ;
    }
@@ -892,7 +904,6 @@ ENTRY("GA_param_setup") ;
      if( !stup->wfunc_param[qq].fixed ) ii++ ;
 
    stup->wfunc_numfree = ii ;
-fprintf(stderr,"number of free parameters = %d\n",ii) ;
    if( ii == 0 ){
      ERROR_message("No free parameters in GA_param_setup()?"); EXRETURN;
    }
@@ -904,6 +915,8 @@ fprintf(stderr,"number of free parameters = %d\n",ii) ;
 
 /*---------------------------------------------------------------------------*/
 /*! Optimize warping parameters, after doing setup.
+    Return value is number of optimization functional calls
+    (if it reaches nstep, then final accuracy of rend was not reached).
 -----------------------------------------------------------------------------*/
 
 int mri_genalign_scalar_optim( GA_setup *stup ,
@@ -935,17 +948,19 @@ ENTRY("mri_genalign_scalar_optim") ;
 
    if( nstep <= 2*stup->wfunc_numfree+5 ) nstep = 6666 ;
 
-        if( rstart >  0.2 ) rstart = 0.2 ;
-   else if( rstart <= 0.0 ) rstart = 0.1 ;
+        if( rstart >  0.2 ) rstart = 0.2 ;  /* our parameters are */
+   else if( rstart <= 0.0 ) rstart = 0.1 ;  /* all in range 0..1 */
 
-   if( rend > rstart || rend <= 0.0 ) rend = 0.0666 * rstart ;
+   if( rend >= rstart || rend <= 0.0 ) rend = 0.0666 * rstart ;
 
    /*** all the work takes place now ***/
 
    nfunc = powell_newuoa( stup->wfunc_numfree , wpar ,
                           rstart , rend , nstep , GA_scalar_fitter ) ;
 
-   /* copy+scale output values of parameter back */
+   stup->vbest = GA_scalar_fitter( stup->wfunc_numfree , wpar ) ;
+
+   /* copy+scale output parameter values back to stup struct */
 
    for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ )
      if( stup->wfunc_param[qq].fixed )
@@ -956,7 +971,7 @@ ENTRY("mri_genalign_scalar_optim") ;
 
    free((void *)wpar) ;
 
-   RETURN( (nfunc < nstep) ? 1 : 2 ) ;
+   RETURN(nfunc) ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -965,7 +980,7 @@ ENTRY("mri_genalign_scalar_optim") ;
 
 void mri_genalign_scalar_ransetup( GA_setup *stup , int nrand )
 {
-   double *wpar , val , vbest=1.e+38 , *bpar ;
+   double *wpar , val , vbest , *bpar ;
    int ii , qq , nfunc ;
 
 ENTRY("mri_genalign_scalar_ransetup") ;
@@ -982,15 +997,22 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    bpar = (double *)calloc(sizeof(double),stup->wfunc_numfree) ;
    gstup = stup ;
 
+   /* try the middle of the range */
+
+   for( qq=0 ; qq < stup->wfunc_numfree ; qq++ ) wpar[qq] = 0.5 ;
+   vbest = GA_scalar_fitter( stup->wfunc_numfree , wpar ) ;
+   memcpy( bpar, wpar, sizeof(double)*stup->wfunc_numfree );
+
+   /* try some random places, keep the best one */
+
    for( ii=0 ; ii < nrand ; ii++ ){
      for( qq=0 ; qq < stup->wfunc_numfree ; qq++ ) wpar[qq] = drand48() ;
-fprintf(stderr,"ii=%d ",ii) ;
      val = GA_scalar_fitter( stup->wfunc_numfree , wpar ) ;
-fprintf(stderr,"val=%g\n",val) ;
      if( val < vbest ){
        vbest = val; memcpy( bpar, wpar, sizeof(double)*stup->wfunc_numfree );
      }
    }
+   stup->vbest = vbest ;  /* save for user's edification */
 
    for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ )
      if( !stup->wfunc_param[qq].fixed )
@@ -999,6 +1021,31 @@ fprintf(stderr,"val=%g\n",val) ;
 
    free((void *)bpar) ; free((void *)wpar) ;
    EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Warp the entire target image.  Will be in float format.
+-----------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_genalign_scalar_warpim( GA_setup *stup )
+{
+   MRI_IMAGE *wim ;
+   float     *war ;
+
+ENTRY("mri_genalign_scalar_warpim") ;
+
+   if( stup == NULL || stup->setup != SMAGIC || stup->ajim == NULL ){
+     ERROR_message("Illegal call to mri_genalign_scalar_warpim()") ;
+     RETURN(NULL) ;
+   }
+   gstup = stup ;
+
+   wim = mri_new_conforming( stup->bsim , MRI_float ) ;
+   war = MRI_FLOAT_PTR(wim) ;
+
+   GA_get_warped_values( 0 , NULL , war ) ;
+
+   RETURN(wim) ;
 }
 
 /*==========================================================================*/

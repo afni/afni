@@ -103,7 +103,7 @@ byte * mri_automask_image( MRI_IMAGE *im )
 
 ENTRY("mri_automask_image") ;
 
-   if( im == NULL ) return NULL ;
+   if( im == NULL )RETURN(NULL) ;
 
    if( im->kind != MRI_float ) medim = mri_to_float(im) ;
    else                        medim = im ;

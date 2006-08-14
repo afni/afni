@@ -5893,3 +5893,6 @@
 
 04 Aug 2006
  * Add max displacement to 3dvolreg.c.
+
+14 Aug 2006
+ * Add pairmax() to parser.f.
