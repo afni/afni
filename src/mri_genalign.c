@@ -1,5 +1,8 @@
 #include "mrilib.h"
 
+#undef  BIGVAL
+#define BIGVAL 1.e+38
+
 /* is a voxel 'good' to use? */
 
 #undef  GOOD
@@ -962,12 +965,16 @@ ENTRY("mri_genalign_scalar_optim") ;
 
    /* copy+scale output parameter values back to stup struct */
 
-   for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ )
-     if( stup->wfunc_param[qq].fixed )
+   for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
+     if( stup->wfunc_param[qq].fixed ){
        stup->wfunc_param[qq].val_out = stup->wfunc_param[qq].val_fixed ;
-     else
+     } else {
        stup->wfunc_param[qq].val_out = stup->wfunc_param[qq].min
-                                      +stup->wfunc_param[qq].siz * wpar[ii++] ;
+                                      +stup->wfunc_param[qq].siz
+                                       *PRED01(wpar[ii]) ;
+       ii++ ;
+     }
+   }
 
    free((void *)wpar) ;
 
@@ -980,47 +987,139 @@ ENTRY("mri_genalign_scalar_optim") ;
 
 void mri_genalign_scalar_ransetup( GA_setup *stup , int nrand )
 {
-   double *wpar , val , vbest , *bpar ;
-   int ii , qq , nfunc ;
+   double *wpar, *spar , val , vbest , *bpar ;
+   int ii , qq , twof , ss , nfr , icod ;
+#define NKEEP 9
+   double *kpar[NKEEP] , kval[NKEEP] ; int nk,kk,jj ;
+#define NCEN 5
+#if 0
+#define VTHR 0.19
+#endif
 
 ENTRY("mri_genalign_scalar_ransetup") ;
 
-   if( stup == NULL || stup->setup != SMAGIC || nrand < 1 ){
+   if( stup == NULL || stup->setup != SMAGIC ){
      ERROR_message("Illegal call to mri_genalign_scalar_ransetup()") ;
      EXRETURN ;
    }
+   if( nrand < NKEEP ) nrand = NKEEP ;
 
-   GA_param_setup(stup) ;
+   GA_param_setup(stup) ; gstup = stup ;
    if( stup->wfunc_numfree <= 0 ) EXRETURN ;
+   nfr = stup->wfunc_numfree ;
 
-   wpar = (double *)calloc(sizeof(double),stup->wfunc_numfree) ;
-   bpar = (double *)calloc(sizeof(double),stup->wfunc_numfree) ;
-   gstup = stup ;
+   icod = stup->interp_code ; stup->interp_code = MRI_NN ;
 
-   /* try the middle of the range */
+   wpar = (double *)calloc(sizeof(double),nfr) ;
+   spar = (double *)calloc(sizeof(double),nfr) ;
+   for( kk=0 ; kk < NKEEP ; kk++ )
+     kpar[kk] = (double *)calloc(sizeof(double),nfr) ;
 
-   for( qq=0 ; qq < stup->wfunc_numfree ; qq++ ) wpar[qq] = 0.5 ;
-   vbest = GA_scalar_fitter( stup->wfunc_numfree , wpar ) ;
-   memcpy( bpar, wpar, sizeof(double)*stup->wfunc_numfree );
+   /* try the middle of the allowed parameter range */
 
-   /* try some random places, keep the best one */
+   for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5 ;
+   val = GA_scalar_fitter( nfr , wpar ) ;
 
-   for( ii=0 ; ii < nrand ; ii++ ){
-     for( qq=0 ; qq < stup->wfunc_numfree ; qq++ ) wpar[qq] = drand48() ;
-     val = GA_scalar_fitter( stup->wfunc_numfree , wpar ) ;
-     if( val < vbest ){
-       vbest = val; memcpy( bpar, wpar, sizeof(double)*stup->wfunc_numfree );
+   memcpy(kpar[0],wpar,sizeof(double)*nfr) ;
+   kval[0] = val ;
+   for( kk=1 ; kk < NKEEP ; kk++ ) kval[kk] = BIGVAL ;
+
+   /* try some random places, keep the best NKEEP of them */
+
+   twof = 1 << nfr ;  /* 2^nfr */
+
+   for( ii=0 ; ii < nrand+NCEN ; ii++ ){
+     if( ii < NCEN ){                      /* nonrandom */
+       val = 0.5 + 0.5*(ii+1)/(NCEN+1.0) ;
+       for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = val ;
+     } else {
+#ifdef VTHR
+       do{ 
+         for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5*(1.0+drand48()) ;
+         for( kk=0 ; kk < NKEEP && kval[kk] < BIGVAL ; kk++ ){
+           vbest = 0.0 ;
+           for( qq=0 ; qq < nfr ; qq++ ){
+             val = fabs(wpar[qq]-kpar[kk][qq]); vbest = MAX(val,vbest);
+           }
+           if( vbest < VTHR ) break ;
+         }
+       } while( vbest < VTHR ) ;
+#else
+       for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5*(1.05+0.90*drand48()) ;
+#endif
      }
+     for( ss=0 ; ss < twof ; ss++ ){   /* try divers reflections */
+       for( qq=0 ; qq < nfr ; qq++ )
+         spar[qq] = (ss & (1<<qq)) ? 1.0-wpar[qq] : wpar[qq] ;
+       val = GA_scalar_fitter( nfr , spar ) ;
+       for( kk=0 ; kk < NKEEP ; kk++ ){
+         if( val < kval[kk] ){
+           for( jj=NKEEP-2 ; jj >= kk ; jj-- ){
+             memcpy( kpar[jj+1] , kpar[jj] , sizeof(double)*nfr ) ;
+             kval[jj+1] = kval[jj] ;
+           }
+           memcpy( kpar[kk] , spar , sizeof(double)*nfr ) ;
+           kval[kk] = val ;
+           break ;
+         }
+       }
+     }
+   }
+
+#if 1
+fprintf(stderr,"++ random kval:\n") ;
+for(kk=0;kk<NKEEP;kk++){
+ fprintf(stderr,"  %d %g:",kk,kval[kk]);
+ for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
+  if( !stup->wfunc_param[qq].fixed ){
+   val = stup->wfunc_param[qq].min+stup->wfunc_param[qq].siz*PRED01(kpar[kk][ii]);
+   fprintf(stderr," %.2f",val) ; ii++ ;
+  }
+ }
+ fprintf(stderr,"\n") ;
+}
+#endif
+
+   /* try a little optimization on each of these */
+
+   vbest = BIGVAL ; jj = 0 ; stup->interp_code = MRI_LINEAR ;
+   for( kk=0 ; kk < NKEEP ; kk++ ){
+     if( kval[kk] >= BIGVAL ) continue ;
+     (void)powell_newuoa( nfr , kpar[kk] ,
+                          0.05 , 0.005 , 7*nfr+6 , GA_scalar_fitter ) ;
+     kval[kk] = GA_scalar_fitter( nfr , kpar[kk] ) ;
+     if( kval[kk] < vbest ){ vbest = kval[kk]; jj = kk; }
    }
    stup->vbest = vbest ;  /* save for user's edification */
 
-   for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ )
-     if( !stup->wfunc_param[qq].fixed )
-       stup->wfunc_param[qq].val_init = stup->wfunc_param[qq].min
-                                       +stup->wfunc_param[qq].siz * bpar[ii++];
+#if 1
+fprintf(stderr,"++ better kval:\n") ;
+for(kk=0;kk<NKEEP;kk++){
+ fprintf(stderr," %c%d %g:",(kk==jj)?'*':'.',kk,kval[kk]);
+ for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
+  if( !stup->wfunc_param[qq].fixed ){
+   val = stup->wfunc_param[qq].min+stup->wfunc_param[qq].siz*PRED01(kpar[kk][ii]);
+   fprintf(stderr," %.2f",val) ; ii++ ;
+  }
+ }
+ fprintf(stderr,"\n") ;
+}
+#endif
 
-   free((void *)bpar) ; free((void *)wpar) ;
-   EXRETURN ;
+   bpar = kpar[jj] ;
+   for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
+     if( !stup->wfunc_param[qq].fixed ){
+       stup->wfunc_param[qq].val_init = stup->wfunc_param[qq].min
+                                       +stup->wfunc_param[qq].siz
+                                        *PRED01(bpar[ii]);
+       ii++ ;
+     }
+   }
+
+   free((void *)wpar) ; free((void *)spar) ;
+   for( kk=0 ; kk < NKEEP ; kk++ ) free((void *)kpar[kk]) ;
+
+   stup->interp_code = icod ; EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
