@@ -1,5 +1,8 @@
 #include "mrilib.h"
 #include <time.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 
 int main( int argc , char *argv[] )
 {
@@ -16,7 +19,7 @@ int main( int argc , char *argv[] )
    }
 
    mainENTRY("qm") ;
-   srand48((long)time(NULL)) ;
+   srand48((long)time(NULL)+(long)getpid()) ;
 
    while( iarg < argc && argv[iarg][0] == '-' ){
      if( strcmp(argv[iarg],"-rank") == 0 ){
@@ -48,7 +51,7 @@ int main( int argc , char *argv[] )
    nx = ima->nx ; ny = ima->ny ; nz = ima->nz ;
    if( mask ){
      maskar = mri_automask_image( ima ) ;
-     for( ii=0 ; ii < 3 ; ii++ ){
+     for( ii=0 ; ii < 5 ; ii++ ){
        THD_mask_dilate           ( nx,ny,nz , maskar, 3 ) ;
        THD_mask_fillin_completely( nx,ny,nz , maskar, 3 ) ;
      }
@@ -60,12 +63,16 @@ int main( int argc , char *argv[] )
      nmask = nx*ny*nz ;
    }
 
+   ima->xo = -ima->nx * ima->dx; imb->xo = -imb->nx * imb->dx;
+   ima->yo = -ima->ny * ima->dy; imb->yo = -imb->ny * imb->dy;
+   ima->zo = -ima->nz * ima->dz; imb->zo = -imb->nz * imb->dz;
+
    memset(&stup,0,sizeof(GA_setup)) ;
 
    stup.match_code    = meth ;
    stup.smooth_code   = sm ;
    stup.smooth_radius = rad ;
-   stup.interp_code   = MRI_LINEAR ;
+   stup.interp_code   = MRI_NN ;
    stup.npt_match     = nmask / 16 ;
 
    stup.wfunc         = mri_genalign_affine ;
@@ -100,9 +107,9 @@ int main( int argc , char *argv[] )
      stup.wfunc_param[2].fixed = 1 ;
      stup.wfunc_param[4].fixed = 1 ;
      stup.wfunc_param[5].fixed = 1 ;
-     nrand = 343 ;
+     nrand = 77 ;
    } else {
-     nrand = 729 ;
+     nrand = 21 ;
    }
 
    mri_genalign_scalar_setup( ima , maskim , imb , &stup ) ;
@@ -119,7 +126,8 @@ INFO_message("Start random setup") ;
    INFO_message("vbest = %g",stup.vbest) ;
 
 INFO_message("Start optimization") ;
-   stup.npt_match = nmask / 8 ;
+   stup.npt_match   = nmask / 8 ;
+   stup.interp_code = MRI_LINEAR ;
    mri_genalign_scalar_setup( ima , maskim , imb , &stup ) ;
    ii = mri_genalign_scalar_optim( &stup , 0.01 , 0.0001 , 6666 ) ;
    INFO_message("val_out:: %.2f %.2f %.2f  %.2f %.2f %.2f\n",
@@ -145,8 +153,8 @@ INFO_message("Restart optimization") ;
      stup.wfunc_param[3].val_init = stup.wfunc_param[3].val_out ;
      stup.wfunc_param[4].val_init = stup.wfunc_param[4].val_out ;
      stup.wfunc_param[5].val_init = stup.wfunc_param[5].val_out ;
-     ii = mri_genalign_scalar_optim( &stup , 0.01 , 0.0001 , 6666 ) ;
-     INFO_message("val_out:: %.2f %.2f %.2f  %.2f %.2f %.2f\n",
+     ii = mri_genalign_scalar_optim( &stup , 0.005 , 0.0001 , 6666 ) ;
+     INFO_message("val_fin:: %.2f %.2f %.2f  %.2f %.2f %.2f\n",
                   stup.wfunc_param[0].val_out ,
                   stup.wfunc_param[1].val_out ,
                   stup.wfunc_param[2].val_out ,
