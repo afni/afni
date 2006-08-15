@@ -1686,3 +1686,5 @@
   * modified rickr/Makefile: remove dependancies on an ../*.o, so they are
         not removed by the build process (they should not be made from rickr)
 
+15 Aug 2006: added Makefile.linux_xorg7
+
