@@ -1268,6 +1268,7 @@ typedef struct {
   int old_sc ; float old_sr ;
 
   MRI_IMAGE *bsim , *bsims ;
+  float bsbot,bstop ;
   int dim_bvec    ;
   int   nmask     ;
   int   nvox_mask ;

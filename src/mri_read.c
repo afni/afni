@@ -206,7 +206,7 @@ static void swap_2(void *ppp)
 MRI_IMAGE *mri_read( char *fname )
 {
    FILE      *imfile ;
-   MRI_IMAGE *im ;
+   MRI_IMAGE *im=NULL ;
    int       length , skip=0 , swap=0 ;
    void      *data ;
 
@@ -238,6 +238,24 @@ ENTRY("mri_read") ;
        strstr(fname,".PNG" ) != NULL   ){
 
      im = mri_read_stuff(fname) ; if( im != NULL ) RETURN(im) ;
+   }
+
+   /*-- 16 Aug 2006: AFNI dataset? --*/
+
+   if( strstr(fname,".HEAD") != NULL || strstr(fname,".nii") != NULL ){
+     THD_3dim_dataset *dset = THD_open_dataset(fname) ;
+     if( dset != NULL ){
+      if( DSET_NVALS(dset) == 1 ){
+       DSET_load(dset) ;
+       if( DSET_BRICK(dset,0) != NULL && DSET_ARRAY(dset,0) != NULL )
+         im = mri_copy( DSET_BRICK(dset,0) ) ;
+         im->dx = fabs(DSET_DX(dset)) ;
+         im->dy = fabs(DSET_DY(dset)) ;
+         im->dz = fabs(DSET_DZ(dset)) ;
+      }
+      DSET_delete(dset) ;
+      if( im != NULL ) RETURN(im) ;
+     }
    }
 
    /*-- check if file exists and is readable --*/
@@ -779,7 +797,6 @@ ENTRY("mri_try_7D") ;
    im    = mri_new_7D_generic( nx,ny,nz,nt,nu,nv,nw , imcode , TRUE ) ;
    RETURN( im );
 }
-
 
 /*********************************************************************/
 

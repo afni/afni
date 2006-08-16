@@ -4127,6 +4127,9 @@ extern float quadrant_corr_prepare( int , float * );
 extern float spearman_rank_corr   ( int , float * , float , float * );
 extern float quadrant_corr        ( int , float * , float , float * );
 
+extern float THD_mutual_info( int, float,float,float *,     /* 16 Aug 2006 */
+                                   float,float,float * ) ;
+
 /*------------------------------------------------------------------------*/
 
 extern THD_fvec3 THD_autonudge( THD_3dim_dataset *dsepi, int ivepi,

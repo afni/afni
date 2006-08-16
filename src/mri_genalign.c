@@ -615,8 +615,10 @@ static double GA_scalar_fitter( int npar , double *mpar )
       val = 1.0 - fabs(val) ;
     break ;
 
-    case GA_MATCH_KULLBACK_SCALAR:   /* not yet implemented */
-      ERROR_exit("Kullback-Liebler matching not implemented!") ;
+    case GA_MATCH_KULLBACK_SCALAR:
+      val = -THD_mutual_info( gstup->npt_match ,
+                              gstup->ajbot , gstup->ajtop , avm ,
+                              gstup->bsbot , gstup->bstop , bvm  ) ;
     break ;
   }
 
@@ -734,16 +736,22 @@ ENTRY("mri_genalign_scalar_setup") ;
      stup->ajims = GA_smooth( stup->ajim , stup->smooth_code , rad ) ;
    }
 
-   /* get min and max values in target image (for clipping), if needed */
+   /* get min and max values in base and target images */
 
-   if( stup->interp_code != MRI_NN && stup->interp_code != MRI_LINEAR ){
-     if( stup->ajims == NULL ){
-       stup->ajbot = (float)mri_min(stup->ajim) ;
-       stup->ajtop = (float)mri_max(stup->ajim) ;
-     } else {
-       stup->ajbot = (float)mri_min(stup->ajims) ;
-       stup->ajtop = (float)mri_max(stup->ajims) ;
-     }
+   if( stup->ajims == NULL ){
+     stup->ajbot = (float)mri_min(stup->ajim) ;
+     stup->ajtop = (float)mri_max(stup->ajim) ;
+   } else {
+     stup->ajbot = (float)mri_min(stup->ajims) ;
+     stup->ajtop = (float)mri_max(stup->ajims) ;
+   }
+
+   if( stup->bsims == NULL ){
+     stup->bsbot = (float)mri_min(stup->bsim) ;
+     stup->bstop = (float)mri_max(stup->bsim) ;
+   } else {
+     stup->bsbot = (float)mri_min(stup->bsims) ;
+     stup->bstop = (float)mri_max(stup->bsims) ;
    }
 
    /** load mask array **/
@@ -990,11 +998,7 @@ void mri_genalign_scalar_ransetup( GA_setup *stup , int nrand )
    double *wpar, *spar , val , vbest , *bpar ;
    int ii , qq , twof , ss , nfr , icod ;
 #define NKEEP 9
-   double *kpar[NKEEP] , kval[NKEEP] ; int nk,kk,jj ;
-#define NCEN 5
-#if 0
-#define VTHR 0.19
-#endif
+   double *kpar[NKEEP] , kval[NKEEP] ; int nk,kk,jj, ngrid,ngtot ;
 
 ENTRY("mri_genalign_scalar_ransetup") ;
 
@@ -1002,11 +1006,22 @@ ENTRY("mri_genalign_scalar_ransetup") ;
      ERROR_message("Illegal call to mri_genalign_scalar_ransetup()") ;
      EXRETURN ;
    }
-   if( nrand < NKEEP ) nrand = NKEEP ;
+   if( nrand < NKEEP ) nrand = 2*NKEEP ;
 
    GA_param_setup(stup) ; gstup = stup ;
    if( stup->wfunc_numfree <= 0 ) EXRETURN ;
+
    nfr = stup->wfunc_numfree ;
+   switch( nfr ){
+     case 1: ngrid = 9 ; break ;
+     case 2: ngrid = 5 ; break ;
+     case 3: ngrid = 3 ; break ;
+     case 4:
+     case 5:
+     case 6: ngrid = 2 ; break ;
+    default: ngrid = 1 ; break ;
+   }
+   for( ngtot=1,qq=0 ; qq < nfr ; qq++ ) ngtot *= ngrid ;
 
    icod = stup->interp_code ; stup->interp_code = MRI_NN ;
 
@@ -1028,26 +1043,16 @@ ENTRY("mri_genalign_scalar_ransetup") ;
 
    twof = 1 << nfr ;  /* 2^nfr */
 
-   for( ii=0 ; ii < nrand+NCEN ; ii++ ){
-     if( ii < NCEN ){                      /* nonrandom */
-       val = 0.5 + 0.5*(ii+1)/(NCEN+1.0) ;
-       for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = val ;
-     } else {
-#ifdef VTHR
-       do{ 
-         for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5*(1.0+drand48()) ;
-         for( kk=0 ; kk < NKEEP && kval[kk] < BIGVAL ; kk++ ){
-           vbest = 0.0 ;
-           for( qq=0 ; qq < nfr ; qq++ ){
-             val = fabs(wpar[qq]-kpar[kk][qq]); vbest = MAX(val,vbest);
-           }
-           if( vbest < VTHR ) break ;
-         }
-       } while( vbest < VTHR ) ;
-#else
+   for( ii=0 ; ii < nrand+ngtot ; ii++ ){
+     if( ii < ngtot ){                     /* grid points */
+       val = 0.5/(ngrid+1.0) ; ss = ii ;
+       for( qq=0 ; qq < nfr ; qq++ ){
+         kk = ss % ngrid; ss = ss / ngrid; wpar[kk] = 0.5+(kk+1)*val;
+       }
+     } else {                              /* random */
        for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5*(1.05+0.90*drand48()) ;
-#endif
      }
+
      for( ss=0 ; ss < twof ; ss++ ){   /* try divers reflections */
        for( qq=0 ; qq < nfr ; qq++ )
          spar[qq] = (ss & (1<<qq)) ? 1.0-wpar[qq] : wpar[qq] ;
@@ -1066,7 +1071,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
      }
    }
 
-#if 1
+#if 0
 fprintf(stderr,"++ random kval:\n") ;
 for(kk=0;kk<NKEEP;kk++){
  fprintf(stderr,"  %d %g:",kk,kval[kk]);
@@ -1092,7 +1097,7 @@ for(kk=0;kk<NKEEP;kk++){
    }
    stup->vbest = vbest ;  /* save for user's edification */
 
-#if 1
+#if 0
 fprintf(stderr,"++ better kval:\n") ;
 for(kk=0;kk<NKEEP;kk++){
  fprintf(stderr," %c%d %g:",(kk==jj)?'*':'.',kk,kval[kk]);
