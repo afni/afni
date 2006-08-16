@@ -116,7 +116,7 @@ float spearman_rank_corr( int n , float *x , float rv , float *r )
 
    for( ii=0,ss=0.0 ; ii < n ; ii++ ) ss += x[ii] * r[ii] ;
 
-   return ( ss/sqrt(rv*xv) ) ;
+   return ( ss/sqrtf(rv*xv) ) ;
 }
 
 /*------------------------------------------------------------------------------*/
@@ -136,7 +136,7 @@ float quadrant_corr( int n , float *x , float rv , float *r )
 
    for( ii=0,ss=0.0 ; ii < n ; ii++ ) ss += x[ii] * r[ii] ;
 
-   return ( ss/sqrt(rv*xv) ) ;
+   return ( ss/sqrtf(rv*xv) ) ;
 }
 
 /*=============================================================================
@@ -176,7 +176,7 @@ float THD_pearson_corr( int n, float *x , float *y )
    }
 
    if( xv <= 0.0 || yv <= 0.0 ) return 0.0 ;
-   return xy/sqrt(xv*yv) ;
+   return xy/sqrtf(xv*yv) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -194,4 +194,89 @@ float mri_spearman_corr( MRI_IMAGE *im , MRI_IMAGE *jm )
    gim = mri_to_float(jm) ; gar = mri_data_pointer(gim) ;
    cc  = THD_spearman_corr( fim->nvox , far , gar ) ;
    mri_free(gim) ; mri_free(fim) ; return cc ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Compute the mutual info between two vectors, sort of.  [16 Aug 2006]
+----------------------------------------------------------------------------*/
+
+float THD_mutual_info( int n , float xbot,float xtop,float *x ,
+                               float ybot,float ytop,float *y  )
+{
+   int nbin,nbp , ii,jj,kk ;
+   float xb,xi , yb,yi , xx,yy , x1,y1 , nbm , val ;
+   static int n_old=-1 , nbin_old=255 ;
+   static float *xc=NULL , *yc=NULL , *xyc=NULL ;
+
+   if( n <= 1 || x == NULL || y == NULL ){
+     if( xc  != NULL ){ free((void *)xc ); xc  = NULL; }
+     if( yc  != NULL ){ free((void *)yc ); yc  = NULL; }
+     if( xyc != NULL ){ free((void *)xyc); xyc = NULL; }
+   }
+
+   if( xbot >= xtop ){
+     xbot = ybot = x[0] ;
+     for( ii=0 ; ii < n ; ii++ )
+            if( x[ii] > xtop ) xtop = x[ii] ;
+       else if( x[ii] < xbot ) xbot = x[ii] ;
+     if( xbot >= xtop ) return 0.0f ;
+   }
+
+   if( ybot >= ytop ){
+     ybot = ybot = y[0] ;
+     for( ii=0 ; ii < n ; ii++ )
+            if( y[ii] > ytop ) ytop = y[ii] ;
+       else if( y[ii] < ybot ) ybot = y[ii] ;
+     if( ybot >= ytop ) return 0.0f ;
+   }
+
+   if( n = n_old ){
+     nbin = nbin_old ;
+   } else {
+     nbin = (int)sqrtf((float)n); if( nbin > 255 ) nbin = 255 ;
+     nbin_old = nbin ; n_old = n ;
+     if( xc  != NULL ){ free((void *)xc ); xc  = NULL; }
+     if( yc  != NULL ){ free((void *)yc ); yc  = NULL; }
+     if( xyc != NULL ){ free((void *)xyc); xyc = NULL; }
+   }
+   nbp = nbin+1 ; nbm = nbin-1 ;
+
+   if( xc  == NULL ) xc  = (float *)malloc(sizeof(float)*nbp) ;
+   if( yc  == NULL ) yc  = (float *)malloc(sizeof(float)*nbp) ;
+   if( xyc == NULL ) xyc = (float *)malloc(sizeof(float)*nbp*nbp) ;
+
+#undef  XYC
+#define XYC(p,q) xyc[(p)+(q)*nbp]
+
+   memset( xc  , 0 , sizeof(float)*nbin ) ;
+   memset( yc  , 0 , sizeof(float)*nbin ) ;
+   memset( xyc , 0 , sizeof(float)*nbin*nbin ) ;
+
+   xb = xbot ; xi = (nbin-0.0001)/(xtop-xbot) ;
+   yb = ybot ; yi = (nbin-0.0001)/(ytop-xbot) ;
+   for( ii=0 ; ii < n ; ii++ ){
+     xx = (x[ii]-xb)*xi ;
+     if( xx < 0.0f ) xx = 0.0f ; else if( xx > nbm ) xx = nbm ;
+     jj = (int)xx ; xx = xx - jj ; x1 = 1.0f-xx ;
+     yy = (y[ii]-yb)*yi ;
+     if( yy < 0.0f ) yy = 0.0f ; else if( yy > nbm ) yy = nbm ;
+     kk = (int)yy ; yy = yy - kk ; y1 = 1.0f-yy ;
+
+     xc[jj] += x1 ; xc[jj+1] += xx ;
+     yc[kk] += y1 ; yc[kk+1] += yy ;
+
+     XYC(jj  ,kk  ) += x1*y1 ;
+     XYC(jj+1,kk  ) += xx*y1 ;
+     XYC(jj  ,kk+1) += x1*yy ;
+     XYC(jj+1,kk+1) += xx*yy ;
+   }
+
+   val = 0.0f ;
+   for( ii=0 ; ii < nbp ; ii++ ){
+     for( jj=0 ; jj < nbp ; jj++ ){
+       if( XYC(ii,jj) > 0.0f )
+         val += XYC(ii,jj) * logf( XYC(ii,jj)/(xc[ii]*yc[jj]) ) ;
+     }
+   }
+   return val ;
 }
