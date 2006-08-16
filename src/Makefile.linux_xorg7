@@ -30,7 +30,7 @@ PLUGIN_LFLAGS = -shared
 PLUGIN_CC     = $(CC)
 PLFLAGS       = -rdynamic -L. -L/usr/X11R6/lib
 
-SHOWOFF = -DSHOWOFF=linux_gcc32
+SHOWOFF = -DSHOWOFF=linux_xorg7
 
 AR     = /usr/bin/ar
 RANLIB = /usr/bin/ranlib
@@ -45,7 +45,7 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = ./linux_gcc32
+INSTALLDIR = ./linux_xorg7
 LIBDIR = $(INSTALLDIR)
 
 #INSTALL_PREREQ = suma
