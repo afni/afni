@@ -1,5 +1,6 @@
-# This Makefile works on Linux.
-# This is for compiling with GCC 3.2, for a Pentium IV or above CPU.
+# This Makefile works on 32-bit Linux.
+# This is for compiling with on a system that uses Xorg, release 7.
+# (check the output of "Xorg -version")
 
 # CPROF = -pg -g
 USE_ZLIB = -DHAVE_ZLIB
