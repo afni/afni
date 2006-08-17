@@ -323,14 +323,14 @@ int main( int argc , char *argv[] )
          warp->type = WARP_AFFINE_TYPE ;
          warp->rig_bod.warp = lmap ;
 
+         /* corrected the output location for vv.xyz  17 Aug 2006 [rickr] */
          fprintf(stderr,"++ Using matrix-vector transformation below:\n"
                         "   [ %9.5f %9.5f %9.5f ]   [ %9.5f ]\n"
                         "   [ %9.5f %9.5f %9.5f ]   [ %9.5f ]\n"
                         "   [ %9.5f %9.5f %9.5f ]   [ %9.5f ]\n" ,
-           dvm.mm.mat[0][0] , dvm.mm.mat[0][1] , dvm.mm.mat[0][2] ,
-           dvm.mm.mat[1][0] , dvm.mm.mat[1][1] , dvm.mm.mat[1][2] ,
-           dvm.mm.mat[2][0] , dvm.mm.mat[2][1] , dvm.mm.mat[2][2] ,
-           dvm.vv.xyz[0]    , dvm.vv.xyz[1]    , dvm.vv.xyz[2]     ) ;
+       dvm.mm.mat[0][0] , dvm.mm.mat[0][1] , dvm.mm.mat[0][2] , dvm.vv.xyz[0] ,
+       dvm.mm.mat[1][0] , dvm.mm.mat[1][1] , dvm.mm.mat[1][2] , dvm.vv.xyz[1] ,
+       dvm.mm.mat[2][0] , dvm.mm.mat[2][1] , dvm.mm.mat[2][2] , dvm.vv.xyz[2]) ;
 
          iarg++ ; continue ;
       }
