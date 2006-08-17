@@ -1687,4 +1687,4 @@
         not removed by the build process (they should not be made from rickr)
 
 15 Aug 2006: added Makefile.linux_xorg7
-
+17 Aug 2006: fixed str in loc_append_vals()
