@@ -2129,6 +2129,7 @@ suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
+	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)' \
 	'RANLIB=$(RANLIB)' \
         'MAKE=$(MAKE)'     \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'		\
@@ -2144,6 +2145,7 @@ suma_gts_progs: libgts.a
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
+	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)' \
 	'RANLIB=$(RANLIB)' \
         'MAKE=$(MAKE)'     \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'		\
@@ -2159,6 +2161,7 @@ suma_all:libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a 
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
+	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)' \
 	'RANLIB=$(RANLIB)' \
         'MAKE=$(MAKE)'     \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'		\
@@ -2174,6 +2177,7 @@ suma_anew:libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
+	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)' \
 	'RANLIB=$(RANLIB)' \
         'MAKE=$(MAKE)'     \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'		\
@@ -2269,6 +2273,7 @@ suma_link:
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
+	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)' \
 	'RANLIB=$(RANLIB)' \
         'MAKE=$(MAKE)'     \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'\

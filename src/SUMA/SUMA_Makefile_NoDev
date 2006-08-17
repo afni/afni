@@ -331,7 +331,7 @@ SurfMesh: SUMA_coarsen.c libgts.a ${SUMAGTSLIB}
    	${CCOPT} ${WARNOPT} -o $@ SUMA_coarsen.c 	\
       ${SUMA_INPATH} ${SUMA_LINK_PATH} 		\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
-		libSUMAGTS.a ${SUMALIBLIST} -lglib ${AFNILIB} ${ZLIB}			\
+		libSUMAGTS.a ${SUMALIBLIST} -lglib${GLIB_VER} ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_LIB} libgts.a 
 
 3dSurfMask: SUMA_3dSurfMask.c
