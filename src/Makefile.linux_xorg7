@@ -76,6 +76,7 @@ LLIBS  = -lmri /usr/lib/libXm.a -lXft -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -l
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma (NO STATIC LINKING OF GL libs)
+SUMA_GLIB_VER = -2.0
 SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/usr/include/glib-1.2/ -I/usr/lib/glib/include -I/usr/include/glib-2.0/ -I/usr/lib/glib-2.0/include
 SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../
 #use -lGLw if you have libGLw.a or libGLw.so* or 

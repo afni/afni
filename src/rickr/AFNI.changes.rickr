@@ -1687,4 +1687,10 @@
         not removed by the build process (they should not be made from rickr)
 
 15 Aug 2006: added Makefile.linux_xorg7
-17 Aug 2006: fixed str in loc_append_vals()
+
+17 Aug 2006:
+  * modified thd_niml.c: fixed str in loc_append_vals()
+  * modified Makefile.linux_xorg7: set SUMA_GLIB_VER = -2.0
+  * modified Makefile.INCLUDE, passed any SUMA_GLIB_VER to SUMA builds
+  * modified SUMA_Makefile_NoDev, link glib via -lglib${SUMA_GLIB_VER}
+
