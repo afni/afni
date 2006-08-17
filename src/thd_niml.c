@@ -14,7 +14,7 @@ typedef struct {
 } ni_globals;
 static ni_globals gni = { 0, NI_BINARY_MODE };
 
-static int    loc_append_vals(char *, int *, char *, float, float, int, int);
+static int    loc_append_vals(char **, int *, char *, float, float, int, int);
 static char * my_strndup(char *, int);
 static int    nsd_add_colms_range(NI_group *, THD_3dim_dataset *);
 static int    nsd_add_colms_type(THD_datablock *, NI_group *);
@@ -1106,14 +1106,14 @@ ENTRY("nsd_add_colms_range");
         sprintf(str, "%d %d %d %d", imin, imax, minp, maxp);
     } else { /* apply the first data column */
         get_blk_min_max_posn(blk, 0, nx, &fmin, &minp, &fmax, &maxp);
-        loc_append_vals(str, &len, "", fmin, fmax, minp, maxp);
+        loc_append_vals(&str, &len, "", fmin, fmax, minp, maxp);
         ind++;
     }
 
     while( ind < blk->nvals )  /* keep appending the next set */
     {
         get_blk_min_max_posn(blk, ind, nx, &fmin, &minp, &fmax, &maxp);
-        loc_append_vals(str, &len, ";", fmin, fmax, minp, maxp);
+        loc_append_vals(&str, &len, ";", fmin, fmax, minp, maxp);
         ind++;
     }
 
@@ -1260,7 +1260,7 @@ static char * my_strndup(char *str, int len)
 
 /* append 2 floats and ints to str, subject to total length, len,
    and pre-pended with sep */
-static int loc_append_vals(char * str, int * len, char * sep,
+static int loc_append_vals(char ** str, int * len, char * sep,
                            float f1, float f2, int i1, int i2)
 {
     char lbuf[256], fs1[32];  /* for first call to MV_format_fval */
@@ -1268,7 +1268,7 @@ static int loc_append_vals(char * str, int * len, char * sep,
 
 ENTRY("loc_append_vals");
 
-    if( !str || !len || !sep ) RETURN(1);
+    if( !str || !*str || !len || !sep ) RETURN(1);
     if( strlen(sep) > 32 )     RETURN(1);
 
     /* first, just stuff them in a sufficient buffer */
@@ -1276,14 +1276,14 @@ ENTRY("loc_append_vals");
     strcpy(fs1, MV_format_fval(f1));
     sprintf(lbuf, "%s%s %s %d %d", sep, fs1, MV_format_fval(f2), i1, i2);
 
-    req = strlen(str) + strlen(lbuf) + 1;
+    req = strlen(*str) + strlen(lbuf) + 1;
     if( req > *len )
     {
         *len = req + 512;       /* include some extra space */
-        str = (char *)realloc(str, *len * sizeof(char));
+        *str = (char *)realloc(*str, *len * sizeof(char));
     }
 
-    strcat(str, lbuf); /* finally, copy the data in */
+    strcat(*str, lbuf); /* finally, copy the data in */
 
     RETURN(0);
 }
