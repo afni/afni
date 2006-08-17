@@ -1693,4 +1693,5 @@
   * modified Makefile.linux_xorg7: set SUMA_GLIB_VER = -2.0
   * modified Makefile.INCLUDE, passed any SUMA_GLIB_VER to SUMA builds
   * modified SUMA_Makefile_NoDev, link glib via -lglib${SUMA_GLIB_VER}
+  * modified Vecwarp.c: fixed matrix-vector screen output (req. by Tom Holroyd)
 
