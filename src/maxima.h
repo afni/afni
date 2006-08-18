@@ -100,6 +100,7 @@ typedef struct
     int			ngbr_style;		/* what to do with neighbors  */
     int			overwrite;		/* do we allow overwrite      */
     int			quiet;			/* no text output of results  */
+    int			coords_only;		/* only output coordinates    */
     int			true_max;		/* no neighbor equality       */
     int			dicom_coords;		/* no neighbor equality       */
     int			debug;  		/* debug level                */
