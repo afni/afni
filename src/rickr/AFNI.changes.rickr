@@ -1695,3 +1695,5 @@
   * modified SUMA_Makefile_NoDev, link glib via -lglib${SUMA_GLIB_VER}
   * modified Vecwarp.c: fixed matrix-vector screen output (req. by Tom Holroyd)
 
+18 Aug 2006: modified 3dmaxima.c, maxima.[ch]: added -coords_only option
+

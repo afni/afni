@@ -10,9 +10,10 @@ static char * g_history[] =
     "",
     "  1.0  06 Oct 2005 [rickr]  - initial release of 3dmaxima",
     "    - for now, no improvements over plug_maxima",
+    "  1.1  18 Aug 2006 [rickr]  - added -coords_only option",
 };
 
-#define MAXIMA_VERSION "1.0 (Ocbober 6, 2005)"
+#define MAXIMA_VERSION "1.1 (August 18, 2005)"
 
 static char * g_help[] =
 {
@@ -155,6 +156,8 @@ static char * g_help[] =
 "",
 "   -no_text              : [flag] do not display the extrma points as text",
 "",
+"   -coords_only          : [flag] only output coordinates (no text or vals)",
+"",
 "-----  Output Coords:  -----",
 "",
 "   -dset_coords          : [flag] display output in the dataset orientation",
@@ -264,7 +267,8 @@ static int process_args( int argc, char * argv[], r_afni_s * A, maxima_s * M )
     THD_3dim_dataset * dset = NULL;
     char             * outfile = NULL;
     float              cutoff = 0.0, min_dist = 0.0, out_rad = 0.0;
-    int                negatives = 0, quiet = 0, true_max = 0, opcnt = 0;
+    int                negatives = 0, quiet = 0, coords_only = 0;
+    int                true_max = 0, opcnt = 0;
     int                debug = 0, style = MAX_SORT_N_REMOVE_STYLE;
     int                sval_style = 0, dicom_coords = 1;
     int                ac;
@@ -303,6 +307,10 @@ ENTRY("process_args");
                         DSET_NVALS(dset));
                 RETURN(-1);
             }
+        }
+	else if( ! strncmp( argv[ac], "-coords_only", 7 ) )  /* 18 Aug 2006 */
+	{
+	    coords_only = 1;
         }
 	else if( ! strcmp( argv[ac], "-debug" ) )
         {
@@ -424,6 +432,7 @@ ENTRY("process_args");
     M->negatives    = negatives;
     M->ngbr_style   = style;
     M->quiet        = quiet;
+    M->coords_only  = coords_only;
     M->true_max     = true_max;
     M->dicom_coords = dicom_coords;
     M->debug        = debug;
