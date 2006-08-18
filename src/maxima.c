@@ -116,6 +116,7 @@ ENTRY("show_maxima_s");
         "ngbr_style    : %d\n"
         "overwrite     : %d\n"
         "quiet         : %d\n"
+        "coords_only   : %d\n"
         "true_max      : %d\n"
         "dicom_coords  : %d\n"
         "debug         : %d\n"
@@ -129,7 +130,7 @@ ENTRY("show_maxima_s");
         M->outfile, M->sval_style,
         M->cutoff, M->min_dist, M->out_rad,
         M->negatives, M->ngbr_style, M->overwrite,
-	M->quiet, M->true_max, M->dicom_coords, M->debug
+	M->quiet, M->coords_only, M->true_max, M->dicom_coords, M->debug
     );
 
     EXRETURN;
@@ -707,14 +708,17 @@ int display_coords( r_afni_s * A, maxima_s * M )
 
 ENTRY("display_coords");
 
-    printf( "---------------------------------------------\n" );
-    if ( M->dicom_coords )
-        printf( "RAI mm coordinates:\n\n" );
-    else
-        printf( "%c%c%c mm coordinates:\n\n",
-                ORIENT_typestr[M->dset->daxes->xxorient][0],
-                ORIENT_typestr[M->dset->daxes->yyorient][0],
-                ORIENT_typestr[M->dset->daxes->zzorient][0] );
+    if( !M->coords_only )  /* 18 Aug 2006 [rickr] */
+    {
+        printf( "---------------------------------------------\n" );
+        if ( M->dicom_coords )
+            printf( "RAI mm coordinates:\n\n" );
+        else
+            printf( "%c%c%c mm coordinates:\n\n",
+                    ORIENT_typestr[M->dset->daxes->xxorient][0],
+                    ORIENT_typestr[M->dset->daxes->yyorient][0],
+                    ORIENT_typestr[M->dset->daxes->zzorient][0] );
+    }
 
     for ( count = 0, iptr = P->plist; count < P->used; count++, iptr++ )
     {
@@ -726,30 +730,27 @@ ENTRY("display_coords");
         if ( M->dicom_coords )
             f3 = THD_3dmm_to_dicomm(M->dset, f3);
 
-	optr   = M->sdata  + *iptr;
-	mptr   = M->result + *iptr;
+	optr = M->sdata  + *iptr;
+	mptr = M->result + *iptr;
     
-	if ( factor == 1 )
-	{
-	    /* do dicom coordinates from ijk, if requested */
-	    printf( "(%7.2f  %7.2f  %7.2f) : val = %d\n",
-		    f3.xyz[0], f3.xyz[1], f3.xyz[2], *optr );
-	}
+	if ( M->coords_only )
+	    printf( "%7.2f  %7.2f  %7.2f\n", f3.xyz[0], f3.xyz[1], f3.xyz[2] );
 	else
-	{
-	    prod = *optr * factor;
-
+        {
+            prod = *optr * factor;
 	    printf( "(%7.2f  %7.2f  %7.2f) : val = %f\n",
 		    f3.xyz[0], f3.xyz[1], f3.xyz[2], prod );
-	}
+        }
     }
 
-    if ( P->used )
-	printf( "\nnumber of extrema = %d\n", P->used );
-    else
-	printf( "No extrema found.\n" );
-    printf( "---------------------------------------------\n" );
-
+    if( !M->coords_only )
+    {
+        if ( P->used )
+            printf( "\nnumber of extrema = %d\n", P->used );
+        else
+            printf( "No extrema found.\n" );
+        printf( "---------------------------------------------\n" );
+    }
 
     RETURN(1);
 }
@@ -838,6 +839,7 @@ ENTRY("init_maxima_s");
     M->ngbr_style   = MAX_SORT_N_REMOVE_STYLE;
     M->overwrite    = 0;
     M->quiet        = 0;
+    M->coords_only  = 0;
     M->true_max     = 0;
     M->debug        = 0;
 
