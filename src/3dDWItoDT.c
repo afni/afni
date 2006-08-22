@@ -14,6 +14,7 @@
 
 #define TINYNUMBER 1E-10
 #define SMALLNUMBER 1E-4
+#define HUGENUMBER 1E38
 #define MAX_CONVERGE_STEPS 10           /* default maximum steps */
 #define MAX_RWCONVERGE_STEPS 5
 
@@ -51,6 +52,10 @@ static int cumulative_flag = 0; /* calculate, display cumulative wts for gradien
 static int debug_briks = 0;     /* put Ed, Ed0 and Converge step sub-briks in output - user option */
 static int verbose = 0;         /* print out info every verbose number of voxels - user option */
 static int afnitalk_flag = 0;   /* show convergence in AFNI graph - user option */
+static int opt_method = 0;      /* use gradient descent instead of Powell's new optimize method*/
+static int Powell_npts = 1;     /* number of points in input dataset for Powell optimization function */
+static float *Powell_ts;        /* pointer to time-wise voxel data for Powell optimization function */
+static double Powell_J;
 
 static NI_stream_type * DWIstreamid = 0;     /* NIML stream ID */
 
@@ -84,6 +89,7 @@ static void DWI_AFNI_update_graph(double *Edgraph, double *dtau, int npts);
 static void vals_to_NIFTI(float *val);
 static void Save_Sep_DTdata(THD_3dim_dataset *, char *, int);
 static void Copy_dset_array(THD_3dim_dataset *, int,int,char *, int);
+static void ComputeDwithPowell(float *ts, float *val, int npts, int nbriks);
 
 int
 main (int argc, char *argv[])
@@ -146,10 +152,16 @@ main (int argc, char *argv[])
               "   -drive_afni nnnnn = show convergence graphs every nnnnn voxels that survive\n"
               "    to convergence loops. AFNI must have NIML communications on (afni -niml)\n\n"
               "   -sep_dsets = save tensor, eigenvalues,vectors,FA,MD in separate datasets\n\n"
+	      "   -opt mname =  if mname is 'powell', use Powell's 2004 method for optimization\n"
+	      "    if mname is 'gradient' use gradient descent method (default)\n"
+	      "    MJD Powell, \"The NEWUOA software for unconstrained optimization without\n"
+              "    derivatives\", Technical report DAMTP 2004/NA08, Cambridge University\n"
+              "    Numerical Analysis Group -- http://www.damtp.cam.ac.uk/user/na/reports.html\n\n"
               " Example:\n"
               "  3dDWItoDT -prefix rw01 -automask -reweight -max_iter 10 \\\n"
               "            -max_iter_rw 10 tensor25.1D grad02+orig.\n\n"
-	      " The output is a 6 sub-brick bucket dataset containing Dxx,Dxy,Dyy,Dxz,Dyz,Dzz.\n"
+	      " The output is a 6 sub-brick bucket dataset containing Dxx,Dxy,Dyy,Dxz,Dyz,Dzz\n"
+	      " (the lower triangular, row-wise elements of the tensor in symmetric matrix form)\n"
               " Additional sub-briks may be appended with the -eigs and -debug_briks options.\n"
 	      " These results are appropriate as the input to the 3dDTeig program.\n"
 	      "\n");
@@ -314,7 +326,8 @@ main (int argc, char *argv[])
 	  continue;
         }
 
-     if (strcmp (argv[nopt], "-debug_briks") == 0)
+     if ((strcmp (argv[nopt], "-debug_briks") == 0) ||
+         (strcmp (argv[nopt], "-debug_bricks") == 0))
         {
           debug_briks = 1;
           nopt++;
@@ -354,6 +367,28 @@ main (int argc, char *argv[])
 	  continue;
         }
 
+     if (strcmp (argv[nopt], "-opt") == 0)
+        {
+	  if (++nopt >= argc)
+	    {
+	      ERROR_exit("Error - opt should be followed by gradient or powell!");
+	    }
+	  if (strcmp(argv[nopt], "gradient") == 0)
+	    {
+	      opt_method = 0;
+	    }
+	  else if (strcmp(argv[nopt], "powell") == 0)
+	    {
+              opt_method = 1; /* use Powell's new optimize method instead of gradient descent*/
+	    }
+	  else
+	    {
+	      ERROR_exit("-opt method '%s' is not supported!",
+		       argv[nopt]);
+	    }
+          nopt++;
+	  continue;
+        }
 
 	ERROR_exit("Error - unknown option %s", argv[nopt]);
     }
@@ -657,14 +692,11 @@ char *prefix;
 int output_datum;
 {
    THD_3dim_dataset *out_dset;
-   MRI_IMAGE *data_im = NULL;
 
    int i, ierror;
-   MRI_IMARR *fim_array;
    MRI_IMAGE *fim;
    void *dataptr;
    float *fbuf;
-   void *out_ptr;
 
    ENTRY("Copy_dset_array");
 
@@ -895,7 +927,24 @@ DWItoDT_tsfunc (double tzero, double tdelta,
     EXRETURN;
   }
 
+  if(verbose&&(!(noisecall%verbose)))   /* show verbose messages every verbose=n voxels */
+     recordflag = 1;
+     else
+     recordflag = 0;
 
+  if(afnitalk_flag&&(!(noisecall%afnitalk_flag))) {  /* graph in AFNI convergence steps every afnitalk_flag=n voxels */
+     graphflag = 1;
+     graphpoint = 0;
+   }
+  else
+     graphflag = 0;
+
+  noisecall++;
+ 
+  if(opt_method==1) { /* need to use Powell optimize method instead */
+    ComputeDwithPowell(ts, val, npts, nbriks); /*compute D tensor */
+    goto Other_Bricks;    /* compute the other bricks for eigenvalues and debugging */
+  }
   converge_step = 0;    /* allow up to max_iter=MAX_CONVERGE_STEPS (10) deltatau steps */
   max_converge_step = max_iter;   /* 1st time through set limit of converge steps to user option */
   converge = 0;
@@ -922,21 +971,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
     EXRETURN;
   }
 
-  if(verbose&&(!(noisecall%verbose)))   /* show verbose messages every verbose=n voxels */
-     recordflag = 1;
-     else
-     recordflag = 0;
-
-  if(afnitalk_flag&&(!(noisecall%afnitalk_flag))) {  /* graph in AFNI convergence steps every afnitalk_flag=n voxels */
-     graphflag = 1;
-     graphpoint = 0;
-   }
-  else
-     graphflag = 0;
-
-  noisecall++;
-
-      ntrial = 0;
+     ntrial = 0;
 
       while ((converge_step < max_converge_step) && (converge!=1) && (ntrial < 10) )
         {
@@ -1075,7 +1110,8 @@ DWItoDT_tsfunc (double tzero, double tdelta,
   val[3] = Dmatrix.elts[1][1];
   val[4] = Dmatrix.elts[1][2];
   val[5] = Dmatrix.elts[2][2];
-
+  
+Other_Bricks:
   if(eigs_flag) {                            /* if user wants eigenvalues in output dataset */
     udmatrix_to_vector(Dmatrix, &Dvector);
     EIG_func();                              /* calculate eigenvalues, eigenvectors here */
@@ -1089,7 +1125,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
   /* testing information only */
   if(recordflag)
      INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f", ncall, converge_step, deltatau, ED);
-  if(debug_briks) {
+  if((debug_briks) && (opt_method==0) ){
     val[nbriks-4] = converge_step;
     val[nbriks-3] = ED;
     val[nbriks-1] = ComputeJ(ts, npts);            /* compute J value */;
@@ -2160,7 +2196,154 @@ static void vals_to_NIFTI(float *val)
 {
      float temp;
      
-     temp = val[2];              /* D tensor as lower diagonal for NIFTI standard */
+     temp = val[2];              /* D tensor as lower triangular for NIFTI standard */
      val[2] = val[3];
      val[3] = temp;
+}
+
+/* function called at each optimization step */
+double DT_Powell_optimize_fun(int n, double *x)
+{
+   /* n should always be 6 here */
+   /* returns J*exp(-b/a) - data values */
+   register int i;
+   double sum0, sum1, b1D1, b2D2, b4D4, wtexpbD, tempcalc, sumbD;
+   double *expbD, *expbDptr, *wtfactorptr;
+   register double *Rptr,*bptr;
+   double D0,D1,D2,D3,D4,D5;
+
+   sum0 = sum1 = 0.0;
+   expbD = malloc (Powell_npts * sizeof (double));
+   expbDptr = expbD;		/* temporary pointers for indexing */
+   wtfactorptr = wtfactor;
+   bptr = bmatrix;		/* npts of b vectors (nx6) */
+
+   D0 = x[0]*x[0];   /* D is used as upper triangular */
+   D1 = x[0]*x[1];
+   D2 = x[0]*x[3];
+   D3 = (x[1]*x[1])+(x[2]*x[2]);
+   D4 = (x[1]*x[3])+(x[2]*x[4]);
+   D5 = (x[3]*x[3]) + (x[4]*x[4]) + (x[5]*x[5]);
+
+
+   for (i = 0; i < Powell_npts; i++)
+     {
+       /* compute bq.D */
+       /* bq.D is large dot product of b and D at qth gradient */
+       /* large dot product for Hilbert algebra */
+       /* regular dot product is for Hilbert space (vectors only)- who knew? */
+       /* calculate explicitly rather than loop to save time */
+       b1D1 = *(bptr + 1) * D1;
+       b1D1 += b1D1;
+       b2D2 = *(bptr + 2) * D2;
+       b2D2 += b2D2;
+       b4D4 = *(bptr + 4) * D4;
+       b4D4 += b4D4;
+
+       sumbD = *bptr * D0 + b1D1 + b2D2 +	/* bxxDxx + 2bxyDxy +  2bxzDxz + */
+	 (*(bptr + 3) * D3) +	/* byyDyy + */
+	 b4D4 +			/* 2byzDyz + */
+	 (*(bptr + 5) * D5);	/* bzzDzz */
+
+       /*  exp (-bq.D) */
+       *expbDptr = exp (-sumbD);
+       wtexpbD = *(wtfactor + i) * *expbDptr;
+       sum0 += wtexpbD * Powell_ts[i];
+       sum1 += wtexpbD * *expbDptr;
+       expbDptr++;
+       wtfactorptr++;
+       bptr += 6;		/* increment to next vector of bmatrix */
+     }
+
+   Powell_J = sum0 / sum1;
+   /* Now compute error functional,E(D,J) and gradient of E with respect to D ,Ed or F in notes */
+   /* E(D,J)= 1/2 Sum[wq (J exp(-bq.D) - Iq)^2] */
+   sum0 = 0.0;
+   sigma = 0.0;			/* standard deviation of noise for weight factors */
+   expbDptr = expbD;
+   wtfactorptr = wtfactor;
+   Rptr = Rvector;		/* residuals calculated here - used in Wt.factor calculations */
+   for (i = 0; i < Powell_npts; i++)
+     {
+       *Rptr = tempcalc = (Powell_J * *expbDptr) - Powell_ts[i];
+       tempcalc = tempcalc * tempcalc;
+       sum0 += *wtfactorptr * tempcalc;	/* E(D,J) = Sum (wq temp^2) */
+       sigma += tempcalc;	/* standard deviation of noise for weight factors */
+       expbDptr++;
+       wtfactorptr++;
+       Rptr++;
+     }
+
+   /* sum0 is the error for this iteration */
+   ED = sum0 / 2;		/* this is the error for this iteration */
+
+   free (expbD);
+   return(sum0);
+}
+ 
+
+/*! compute using optimization method by Powell, 2004*/
+static void ComputeDwithPowell(float *ts, float *val, int npts, int nbriks) /*compute D tensor */
+/* ts is input time-wise voxel data, val is output tensor data, npts is number of time points */
+{
+/* assumes initial estimate for Dtensor already store in Dvector and Dmatrix above*/
+   ENTRY("ComputeDwithPowell");
+   double *x, tx;
+   int i, icalls;
+   
+   Powell_npts = npts;
+   Powell_ts = ts;
+
+    x = (double *)malloc(sizeof(double)*6) ;
+   
+   /* move data into lower triangular format  */
+   x[0] = sqrt(Dvector.elts[0]);
+   x[1] = Dvector.elts[1] / x[0];
+   x[2] = sqrt(Dvector.elts[3] - (x[1]*x[1]));
+   x[3] = Dvector.elts[2] / x[0];
+   x[4] = (Dvector.elts[4] - (x[1]*x[3]))/x[2];
+   x[5] = sqrt(Dvector.elts[5] - (x[3]*x[3])-(x[4]*x[4]));
+
+   if(debug_briks) {
+     DT_Powell_optimize_fun(6, x);     /*  calculate original error */
+     val[nbriks-2] = ED;                  /* store original error */
+   }
+
+   tx = TINYNUMBER;
+   for(i=0;i<6;i++) {          /* find the largest element of the initial D tensor */
+      if(x[i]>tx) tx = x[i];
+   }
+  
+   icalls = powell_newuoa( 6 , x , 0.1*tx , 0.001 * tx , 99999 , DT_Powell_optimize_fun ) ;
+
+   
+   if(reweight_flag) {
+      ComputeWtfactors (npts);       /* compute new weight factors */
+      tx = TINYNUMBER;
+      for(i=0;i<6;i++) {          /* find the largest element of the initial D tensor */
+         if(x[i]>tx) tx = x[i];
+      }
+      i = powell_newuoa( 6 , x , 0.1*tx , 0.001 * tx , 99999 , DT_Powell_optimize_fun ) ;
+    }
+    
+   val[0] = x[0]*x[0];   /* D is used as upper triangular */
+   val[1] = x[0]*x[1];
+   val[2] = x[0]*x[3];
+   val[3] = (x[1]*x[1])+(x[2]*x[2]);
+   val[4] = (x[1]*x[3])+(x[2]*x[4]);
+   val[5] = (x[3]*x[3]) + (x[4]*x[4]) + (x[5]*x[5]);
+
+   if(debug_briks) {
+      val[nbriks-4] = (float) icalls;
+      if(icalls<1) { 
+         printf("x values %12.9g %12.9g %12.9g %12.9g %12.9g %12.9g   tx %g\n", \
+	 x[0],x[1],x[2],x[3],x[4],x[5],tx );
+         DT_Powell_optimize_fun(6, x);     /* compute J value if not already computed */
+	 }
+      val[nbriks-3] = ED;
+      val[nbriks-1] = Powell_J;            /* compute J value */;
+   }
+   free(x);
+   
+   EXRETURN;
 }

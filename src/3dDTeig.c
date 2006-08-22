@@ -176,7 +176,6 @@ char *prefix;
 int output_datum;
 {
 /* takes base prefix and appends to it for eigvalues, eigvectors, FA, MD */
-   int nbriks;
    char nprefix[THD_MAX_PREFIX], tprefix[THD_MAX_PREFIX];
    char *ext, nullch; 
    
@@ -222,14 +221,11 @@ char *prefix;
 int output_datum;
 {
    THD_3dim_dataset *out_dset;
-   MRI_IMAGE *data_im = NULL;
 
    int i, ierror;
-   MRI_IMARR *fim_array;
    MRI_IMAGE *fim;
    void *dataptr;
    float *fbuf;
-   void *out_ptr;
 
    ENTRY("Copy_dset_array");
 

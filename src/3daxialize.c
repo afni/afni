@@ -12,11 +12,16 @@
 
 /*** 06 Mar 2000: allow sagittal and coronal as well ***/
 
+static Boolean write_output = False;  /* 08 Aug 2006 [dg] -force rewrite as in 3drefit by rickr */
+static Boolean NIFTI_mode = False;    /* saving NIFTI output */
+static int cmode = COMPRESS_NOFILE;   /* check compression mode for NIFTI separately */
+
+
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * old_dset , * new_dset ;
    FD_brick ** fbr , * brax ;
-   int iarg , a1,a2,a3 , aa1,aa2,aa3 , ival,kk,cmode,npix,dsiz,code ;
+   int iarg , a1,a2,a3 , aa1,aa2,aa3 , ival,kk,npix,dsiz,code ;
    THD_ivec3 iv_nxyz   , iv_xyzorient ;
    THD_fvec3 fv_xyzorg , fv_xyzdel ;
    float xyz_org[4] , xyz_del[4] , brfac_save ;
@@ -86,18 +91,15 @@ int main( int argc , char * argv[] )
          int xx,yy,zz ;
          MCW_strncpy(orients,argv[++iarg],4) ;
          if( strlen(orients) != 3 ){
-           fprintf(stderr,"** Bad code after -orient: not 3 characters long\n");
-           exit(1);
+           ERROR_exit("Bad code after -orient: not 3 characters long");
          }
          xx = ORCODE(orients[0]) ;
          yy = ORCODE(orients[1]) ; zz = ORCODE(orients[2]) ;
          if( xx < 0 || yy < 0 || zz < 0 ){
-           fprintf(stderr,"** Bad code after -orient: illegal characters\n");
-           exit(1);
+           ERROR_exit("Bad code after -orient: illegal characters");
          }
          if( !OR3OK(xx,yy,zz) ){
-           fprintf(stderr,"** Bad code after -orient: dependent axes\n");
-           exit(1);
+           ERROR_exit("Bad code after -orient: dependent axes");
          }
          axord = -1 ; iarg++ ; continue ;
       }
@@ -115,32 +117,44 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[iarg],"-prefix") == 0 ){
-         strcpy( new_prefix , argv[++iarg] ) ;
-         if( !THD_filename_ok(new_prefix) ){
-            fprintf(stderr,"** illegal new prefix: %s\n",new_prefix); exit(1);
+        iarg++ ;
+        if( iarg >= argc ){
+          ERROR_exit("Need argument after -prefix!") ;
+        }
+        MCW_strncpy( new_prefix , argv[iarg++] , THD_MAX_PREFIX ) ;
+	 
+        if( strstr(new_prefix,".nii") != NULL ) {  /* check for NIFTI mod - drg 08 Aug 2006 */
+            write_output = True;
+	    NIFTI_mode = True;
+            if( strstr(new_prefix,".nii.gz") != NULL ) {
+	       cmode = 0; /* force gzip compression  (actually zlib from nifti library)*/
+	    }   
+	}       
+        else if( !THD_filename_ok(new_prefix) ){
+            ERROR_exit("Illegal new prefix: %s",new_prefix);
          }
-         iarg++ ; continue ;
+        continue ;
       }
 
       if( strncmp(argv[iarg],"-verbose",5) == 0 ){
          verbose++ ; iarg++ ; continue ;
       }
 
-      fprintf(stderr,"** Unknown option: %s\n",argv[iarg]); exit(1);
+      ERROR_exit("Unknown option: %s",argv[iarg]);
    }
 
    /*- get input dataset -*/
 
    old_dset = THD_open_dataset( argv[iarg] ) ;
    if( old_dset == NULL ){
-      fprintf(stderr,"** can't open input dataset: %s\n",argv[iarg]) ; exit(1) ;
+      ERROR_exit("Can't open input dataset: %s",argv[iarg]) ;
    }
 
-   if( verbose ) printf("++ Loading input dataset %s\n",argv[iarg]) ;
+   if( verbose ) INFO_message("Loading input dataset %s",argv[iarg]) ;
 
    DSET_load(old_dset) ;
    if( !DSET_LOADED(old_dset) ){
-      fprintf(stderr,"** can't load input .BRIK: %s\n",argv[iarg]); exit(1);
+      ERROR_exit("Can't load input .BRIK: %s",argv[iarg]);
    }
 
    /*- setup output dataset -*/
@@ -152,7 +166,7 @@ int main( int argc , char * argv[] )
    } else {
       brax = THD_oriented_brick( old_dset , orients ) ;
       if( brax == NULL ){
-         fprintf(stderr,"** Can't use -orient code: %s\n",orients); exit(1);
+         ERROR_exit("Can't use -orient code: %s",orients);
       }
    }
 
@@ -207,6 +221,12 @@ int main( int argc , char * argv[] )
                (a2 > 0) ? xyz_org[aa2] : xyz_org[aa2]+(brax->n2-1)*xyz_del[aa2],
                (a3 > 0) ? xyz_org[aa3] : xyz_org[aa3]+(brax->n3-1)*xyz_del[aa3] );
 
+   /*-- open output BRIK file --*/
+   if ((cmode == COMPRESS_NOFILE)) { /* ignore compression for NIFTI - do in write
+   automatically later */
+      cmode = THD_get_write_compression() ; /* check env. variable for compression*/
+      }
+
    EDIT_dset_items( new_dset ,
                        ADN_nxyz      , iv_nxyz ,
                        ADN_xyzdel    , fv_xyzdel ,
@@ -223,14 +243,13 @@ int main( int argc , char * argv[] )
    new_dblk = new_dset->dblk ;
    old_dblk = old_dset->dblk ;
 
-   cmode = THD_get_write_compression() ;
    far   = COMPRESS_fopen_write( new_dblk->diskptr->brick_name, cmode ) ;
    npix  = brax->n1 * brax->n2 ;
 
    /*- get slices from input, write to disk -*/
 
    if( verbose ){
-      printf("++ Writing new dataset .BRIK"); fflush(stdout);
+      INFO_message("Writing new dataset .BRIK"); fflush(stdout);
       pim = brax->n3 / 5 ; if( pim <= 1 ) pim = 2 ;
    }
 
@@ -272,8 +291,8 @@ int main( int argc , char * argv[] )
    /*- do the output header -*/
 
    DSET_load( new_dset ) ; THD_load_statistics( new_dset ) ;
-   THD_write_3dim_dataset( NULL,NULL , new_dset , False ) ;
-   if( verbose ) fprintf(stderr,"++ Wrote new dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
-
+   THD_write_3dim_dataset(NULL,NULL,new_dset,write_output); /* (re)write output file */
+   if( verbose )
+      INFO_message("Wrote new dataset: %s",DSET_BRIKNAME(new_dset)) ;
    exit(0) ;
 }
