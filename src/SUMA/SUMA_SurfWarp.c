@@ -4,19 +4,842 @@
 #include "SUMA_SurfWarp.h"
 
 /******************* Begin optimizing functions here ************************************************/
+/* DON'T FORGET TO ADD FUNCTIONS TO THE SUMA_SURFWARP.H FILE!!! */
 
+SUMA_Boolean Set_up_Control_Curve( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve )
+{
+   static char FuncName[]={"Set_up_Control_Curve"};
+   int i = 0, j, k, i3, j3;
+   double arc_theta, arc_nrm[3], mag_arc_nrm;
+   double *dp = NULL, *dp2 = NULL;
+   
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_ENTRY;
+   
+   for (j=0; j<opt->N_ctrl_points; ++j) {
+      j3 = 3*j;
+   
+      /* Store intial location of control point. */
+      k=0; 
+      dp = mxvdp3(ControlCurve, i, j, k);
+      dp[0] = opt->CtrlPts_i[j3  ];
+      dp[1] = opt->CtrlPts_i[j3+1];
+      dp[2] = opt->CtrlPts_i[j3+2];
+      dp = NULL;
+     
+      /* Calculate and store intermediate steps of control point path. */
+      SUMA_ANGLE_DIST_NC((&(opt->CtrlPts_f[j3])), (&(opt->CtrlPts_i[j3])), arc_theta, arc_nrm);
+      arc_theta = arc_theta/opt->M_time_steps;
+      mag_arc_nrm = sqrt( SUMA_POW2(arc_nrm[0]) + SUMA_POW2(arc_nrm[1]) + SUMA_POW2(arc_nrm[2]) );
+      if(mag_arc_nrm > 0.0001) { 
+         arc_nrm[0] *= (1.0/mag_arc_nrm);
+         arc_nrm[1] *= (1.0/mag_arc_nrm);
+         arc_nrm[2] *= (1.0/mag_arc_nrm);
+      }
+      dp = mxvdp3(ControlCurve, i, j, k);
+      
+      for (k=1; k<opt->M_time_steps; ++k) {
+         dp2 = mxvdp3(ControlCurve, i, j, k);
+         SUMA_ROTATE_ABOUT_AXIS( (&(dp[0])), arc_nrm, arc_theta, (&(dp2[0])) );
+         if(LocalHead) fprintf(SUMA_STDERR, "Rotated to k=1 location: %f %f %f\n", dp2[0], dp2[1], dp2[2]);
+         dp = dp2;
+      }
+      dp = NULL; dp2 = NULL;
+      
+      /* Store final location of control point. */
+      k=opt->M_time_steps;
+      dp = mxvdp3(ControlCurve, i, j, k);
+      dp[0] = opt->CtrlPts_f[j3  ];
+      dp[1] = opt->CtrlPts_f[j3+1];
+      dp[2] = opt->CtrlPts_f[j3+2];
+      dp = NULL;
+   }
+   
+   SUMA_RETURN(YUP);
+}
 
+SUMA_Boolean Perturbations( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *MaxStep, SUMA_MX_VEC *Perturb_Vec )
+{
+   static char FuncName[]={"Perturb_Mag"};
+   int i, j, k, n=0, p;
+   double theta= 0.0, theta_2 = 0.0, nrm[3], p1[3], p1_mag, nrm_mag;
+   double *dp = NULL, *dp2 = NULL, *dp_m1 = NULL, *dp_m2 = NULL, *dp_p1 = NULL, *dp_p2 = NULL;   
+   
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_ENTRY;
+   
+   for (k=1; k<opt->M_time_steps; ++k) {  /* Compare the ith c.p. to all other c.p., at time k. */
+      for(i=0; i<opt->N_ctrl_points; ++i) { 
+         dp = mxvdp3(ControlCurve, n, i, k);  /* Pointer to control point of interest, at time k. */
+         if(LocalHead) fprintf(SUMA_STDERR, "Control Point(i=%d,k= %d) = %f %f %f\n", i, k, dp[0], dp[1], dp[2]); 
+         
+         /* Compare control point of interest to all other control points. */
+         for (j=0; j<opt->N_ctrl_points; ++j) {
+            dp2 = mxvdp3(ControlCurve, n, j, k);
+            if(LocalHead) fprintf(SUMA_STDERR, "Control Point(j=%d, k=%d) = %f %f %f\n", j, k, dp2[0], dp2[1], dp2[2]); 
+            
+            if( j<1 ) SUMA_ANGLE_DIST_NC((&(dp2[0])), (&(dp[0])), theta, nrm);
+            if(j>0) SUMA_ANGLE_DIST_NC((&(dp2[0])), (&(dp[0])), theta_2, nrm);
+            if(LocalHead) {
+               if(theta) fprintf(SUMA_STDERR, "Theta(i=%d,j=%d,k=%d) = %f\n", i, j, k, theta);
+               if(theta_2) fprintf(SUMA_STDERR, "Theta_2(i=%d,j=%d,k=%d) = %f\n", i, j, k, theta_2); 
+            }            
+            if(theta<0.000001) theta = theta_2;
+            else if(theta_2<0.000001) theta = theta; 
+            else if(theta_2 && theta) { 
+               if(theta_2 < theta) theta = theta_2;
+               else theta = theta;
+            }            
+            if(LocalHead) fprintf(SUMA_STDERR, "Theta_final(i=%d,j=%d,k=%d) = %f\n", i, j, k, theta);
+            theta_2 = 0.0;
+         }/* Now, theta is smallest angle between the ith cp and all j other cp, at time m. */
+   
+         /* Compare location  of control point at time k to location of that control point at time k-1. */
+         dp_m1 = mxvdp3(ControlCurve, n, i, k-1);
+         SUMA_ANGLE_DIST_NC((&(dp[0])), (&(dp_m1[0])), theta_2, nrm);
+         if(theta<0.000001) theta = theta_2;
+         else if(theta_2<0.000001) theta = theta; 
+         else if(theta_2 && theta) { 
+            if(theta_2 < theta) theta = theta_2;
+            else theta = theta;
+         }
+         nrm[0] = 0.0; nrm[1] = 0.0; nrm[2] = 0.0;        
+         
+         /* Compare location  of control point at time k to location of that control point at time k+1. */
+         dp_m2 = mxvdp3(ControlCurve, n, i, k+1);
+         SUMA_ANGLE_DIST_NC((&(dp_m2[0])), (&(dp[0])), theta_2, nrm);
+         if(theta<0.000001) theta = theta_2;
+         else if(theta_2<0.000001) theta = theta; 
+         else if(theta_2 && theta) { 
+            if(theta_2 < theta) theta = theta_2;
+            else theta = theta;
+         }            
+         if(LocalHead) fprintf(SUMA_STDERR, "Min Theta (i=%d, k=%d) = %f\n", i, k, theta);
+         
+         /* This is the theta that I need to store!!  There's one for every i and m. */
+         mxvd2(MaxStep, i, k) = theta;
+         
+         
+         /* Directed along the curve. */
+         dp_p1 = mxvdp4(Perturb_Vec, n, i, k, 0);
+         SUMA_MT_CROSS(p1, (&(nrm[0])), (&(dp[0])) );
+         p1_mag = sqrt( SUMA_POW2(p1[0]) + SUMA_POW2(p1[1]) + SUMA_POW2(p1[2]) );
+         if(p1_mag > 0.0001) { 
+            p1[0] *= (1.0/p1_mag);
+            p1[1] *= (1.0/p1_mag);
+            p1[2] *= (1.0/p1_mag);
+         }
+         if(LocalHead) fprintf( SUMA_STDERR, "Direction along curve - checking if unit vec. %f %f %f\n", p1[0], p1[1], p1[2]);
+         dp_p1[0] = (1.0/8.0)*theta*p1[0];
+         dp_p1[1] = (1.0/8.0)*theta*p1[1];
+         dp_p1[2] = (1.0/8.0)*theta*p1[2];
+         p1[0] = 0.0; p1[1] = 0.0; p1[2] = 0.0; 
+         if(LocalHead) {
+            fprintf( SUMA_STDERR, "Direction along curve - complete vector. %f %f %f\n", dp_p1[0], dp_p1[1], dp_p1[2]);    
+            fprintf(SUMA_STDERR, "Perturb_Vec_along_curve(i=%d, k=%d, p=0) = %f %f %f\n", i, k, 
+                              mxvd4(Perturb_Vec, 0, i, k, 0), mxvd4(Perturb_Vec, 1, i, k, 0), mxvd4(Perturb_Vec, 2, i, k, 0) );
+         }
+         
+         /* Directed transverse to the curve. */
+         dp_p2 = mxvdp4(Perturb_Vec, n, i, k, 1);
+         nrm_mag = sqrt( SUMA_POW2(nrm[0]) + SUMA_POW2(nrm[1]) + SUMA_POW2(nrm[2]) );
+         if(nrm_mag > 0.0001) { 
+            nrm[0] *= (1.0/nrm_mag);
+            nrm[1] *= (1.0/nrm_mag);
+            nrm[2] *= (1.0/nrm_mag);
+         }
+         if(LocalHead) fprintf( SUMA_STDERR, "Direction perpendicular to curve - checking if unit vec. %f %f %f\n", nrm[0], nrm[1], nrm[2]);
+         dp_p2[0] = (1.0/8.0)*theta*nrm[0];
+         dp_p2[1] = (1.0/8.0)*theta*nrm[1];
+         dp_p2[2] = (1.0/8.0)*theta*nrm[2];
+         
+         dp = dp2 = dp_m1 = dp_m2 = dp_p1 = dp_p2 = NULL;
+         theta = theta_2 = 0.0;
+         nrm[0] = 0.0; nrm[1] = 0.0; nrm[2] = 0.0;        
+         nrm_mag = p1_mag = 0.0;
+      }  
+   }
+  
+   SUMA_RETURN(YUP);
+}
 
+SUMA_Boolean Print_Matrix( MyCircleOpt *opt, matrix M ) /* Assumes # of rows and # of columns depend on # of control points. */
+{
+   static char FuncName[]={"Print_Matrix"};
+   int r, c, r3, c3, k;
+   
+   SUMA_Boolean LocalHead = NOPE;
 
+   SUMA_ENTRY;
+   
+   fprintf(SUMA_STDERR, "[\n");
+   for (r=0; r<opt->N_ctrl_points; ++r) {
+      for (k=0; k<3; ++k) {
+         for(c=0; c<opt->N_ctrl_points; ++c) { 
+            fprintf (SUMA_STDERR,"%11.8f   %11.8f   %11.8f   ", 
+                                    M.elts [ (3*r+k) ][ (3*c  ) ],
+                                    M.elts [ (3*r+k) ][ (3*c+1) ],
+                                    M.elts [ (3*r+k) ][ (3*c+2) ]);
+         }
+         fprintf(SUMA_STDERR,"\n");
+      }
+   }
+   fprintf(SUMA_STDERR, "];\n"); 
+  
+   SUMA_RETURN(YUP);
+}
 
+SUMA_Boolean Rotation_Matrix( MyCircleOpt *opt, vector X, matrix M )
+{
+   static char FuncName[]={"Rotation_Matrix"};
+   int r, c, r3, c3, k;
+   double Mcr[3][3], t_cr, nrm_cr[3], expand_cr; 
+   
+   SUMA_Boolean LocalHead = NOPE;
 
+   SUMA_ENTRY;
+   
+   for(r=0; r<opt->N_ctrl_points; ++r) {        /* r for row. */
+      for(c=0; c<opt->N_ctrl_points; ++c) {     /* c for column. */
+         r3 = 3*r; c3 = 3*c;                                      
+         
+         /* Create the rotation matrix. */
+         SUMA_3D_Rotation_Matrix( (&(X.elts[c3])), (&(X.elts[r3])), Mcr, t_cr, nrm_cr);
 
+         expand_cr = exp(-0.5*t_cr*t_cr);    
+
+         /* Assemble the matrix and include the expansion factor. */
+         M.elts[ (r3  ) ][ (c3  ) ] = expand_cr * Mcr[0][0];
+         M.elts[ (r3  ) ][ (c3+1) ] = expand_cr * Mcr[0][1];
+         M.elts[ (r3  ) ][ (c3+2) ] = expand_cr * Mcr[0][2];
+         M.elts[ (r3+1) ][ (c3  ) ] = expand_cr * Mcr[1][0];
+         M.elts[ (r3+1) ][ (c3+1) ] = expand_cr * Mcr[1][1];
+         M.elts[ (r3+1) ][ (c3+2) ] = expand_cr * Mcr[1][2];
+         M.elts[ (r3+2) ][ (c3  ) ] = expand_cr * Mcr[2][0];
+         M.elts[ (r3+2) ][ (c3+1) ] = expand_cr * Mcr[2][1];
+         M.elts[ (r3+2) ][ (c3+2) ] = expand_cr * Mcr[2][2];     
+      }
+   } 
+   
+   if(LocalHead) Print_Matrix(opt, M);
+   
+   SUMA_RETURN(YUP);
+}
+
+SUMA_Boolean Change_in_Energy( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Perturb_Vec, SUMA_MX_VEC *Del_S ) 
+{
+   static char FuncName[]={"Change_in_Energy"};
+   matrix Kern, Kern_p, delKern, KernI, delKernI, Xm_t, A, B;
+   matrix *nullptr = NULL;
+   vector Xm, Xm_mid, Xm_p, Pert, del_S1, del_S2, del_SF; 
+   int nr, nc, i, i3, q, m, p, r, c, k, j, j3; 
+   double mag_mid, mag_p;
+   double *Cp_list = NULL, *dp = NULL, *dp_m1 = NULL, *dp_q = NULL;
+   
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+ 
+   nr = 3 * opt->N_ctrl_points;  /* number of rows */
+   nc = 3 * opt->N_ctrl_points;  /* number of columns */
+  
+   vector_initialize(&Xm);
+   vector_create( (3*opt->N_ctrl_points), &Xm );
+   vector_initialize(&Xm_mid);
+   vector_create( (3*opt->N_ctrl_points), &Xm_mid );
+   vector_initialize(&Xm_p);
+   vector_create( (3*opt->N_ctrl_points), &Xm_p );
+   vector_initialize(&Pert);
+   vector_create( (3*opt->N_ctrl_points), &Pert );
+   
+   vector_initialize(&del_S1);
+   vector_create(1, &del_S1);
+   vector_initialize(&del_S2);
+   vector_create(1, &del_S2);
+   vector_initialize(&del_SF);
+   vector_create(1, &del_SF);
+   
+   if(LocalHead) fprintf( SUMA_STDERR, "%s: Finished allocating matrices and vectors.\n", FuncName);
+   
+   for(p=0; p<2; ++p) {
+      for(q=0; q<2; ++q) {
+         for(m=0; m<opt->M_time_steps; ++m) {
+            
+            if(LocalHead) fprintf(SUMA_STDERR, "WHAT'S GOING ON? q = %d, p = %d, m = %d\n", q, p, m);
+            
+            matrix_initialize(&Xm_t);
+            matrix_create(1, (3*opt->N_ctrl_points), &Xm_t); 
+            
+            /* Set vectors to zero, so can put in new values. */
+            for(i=0; i<3*opt->N_ctrl_points; ++i) { 
+               Xm.elts[i] = 0.0; 
+               Xm_mid.elts[i] = 0.0; 
+               Xm_p.elts[i] = 0.0; 
+               Xm_t.elts[0][i] = 0.0; 
+               Pert.elts[i] = 0.0;
+            }
+            
+            if(LocalHead) fprintf(SUMA_STDERR, "Control Point Locations:\n" );
+            for(i=0; i<opt->N_ctrl_points; ++i) {
+               i3 = 3*i;
+               dp = mxvdp3(ControlCurve, 0, i, m); 
+               dp_m1 = mxvdp3(ControlCurve, 0, i, m+1);
+               Xm_mid.elts[i3  ] = 0.5*(dp_m1[0] + dp[0]);
+               Xm_mid.elts[i3+1] = 0.5*(dp_m1[1] + dp[1]);
+               Xm_mid.elts[i3+2] = 0.5*(dp_m1[2] + dp[2]);
+               
+               /* Project onto the sphere. */
+               mag_mid = sqrt( SUMA_POW2(Xm_mid.elts[i3  ]) + SUMA_POW2(Xm_mid.elts[i3+1]) + SUMA_POW2(Xm_mid.elts[i3+2]));
+               if(mag_mid) {
+                  Xm_mid.elts[i3  ] = Xm_mid.elts[i3  ]/mag_mid;
+                  Xm_mid.elts[i3+1] = Xm_mid.elts[i3+1]/mag_mid;
+                  Xm_mid.elts[i3+2] = Xm_mid.elts[i3+2]/mag_mid;
+               }
+             
+               Xm.elts[i3  ] = (dp_m1[0] - dp[0]);
+               Xm.elts[i3+1] = (dp_m1[1] - dp[1]);
+               Xm.elts[i3+2] = (dp_m1[2] - dp[2]); 
+                  
+               /* Need transpose of Xm difference. This value is not projected to the sphere, I don't think. */
+               /* Subtracting two locations does not give a location that makes sense here. I think this comes from 
+                  the derivative estimation of the velocity. */
+               Xm_t.elts[0][i3  ] = (dp_m1[0] - dp[0]);
+               Xm_t.elts[0][i3+1] = (dp_m1[1] - dp[1]);
+               Xm_t.elts[0][i3+2] = (dp_m1[2] - dp[2]); 
+            
+               if(LocalHead) {
+                  fprintf(SUMA_STDERR, "dp = [%f; %f; %f];\n", dp[0], dp[1], dp[2]);
+                  fprintf(SUMA_STDERR, "dp_m1 = [%f; %f; %f];\n", dp_m1[0], dp_m1[1], dp_m1[2]);
+               }            
+            }
+         
+            /* Need to perturb one point at a time. */
+            for(i=0; i<opt->N_ctrl_points; ++i) { 
+               
+               if(LocalHead) fprintf(SUMA_STDERR, "BEGINNING OF LOOP, q=%d, p=%d, m=%d, i=%d\n", q, p, m, i);
+            
+               /* Create temporary matrices each time through loop. */
+               matrix_initialize(&Kern);      
+               matrix_create(nr, nc, &Kern);   
+               matrix_initialize(&Kern_p);      /* p for perturbation */
+               matrix_create(nr, nc, &Kern_p);   
+               matrix_initialize(&delKern);     /* del for delta */
+               matrix_create(nr, nc, &delKern);   
+               matrix_initialize(&KernI);       /* I for inverse */
+               matrix_create(nr, nc, &KernI);
+               matrix_initialize(&delKernI);
+               matrix_create(nr, nc, &delKernI);
+            
+               j3 = 3*j;
+               i3 = 3*i;
+               if(q == 0) dp_q = mxvdp4(Perturb_Vec, 0, i, m, p);      /* q=0 */
+               if(q == 1) dp_q = mxvdp4(Perturb_Vec, 0, i, m+1, p);    /* q=1 */
+               
+               for(j=0; j<3*opt->N_ctrl_points; ++j) {Pert.elts[j] = 0.0;}
+               /* Pert.elts is all zeros except for one perturbation vector.  Only three rows have values.  x-y-z */   
+               Pert.elts[i3  ] = 0.5*dp_q[0];
+               Pert.elts[i3+1] = 0.5*dp_q[1];   /* 0.5 used for calculations, will remove later */
+               Pert.elts[i3+2] = 0.5*dp_q[2];
+               
+               vector_add( Xm_mid, Pert, &Xm_p); 
+               
+               if(LocalHead) fprintf(SUMA_STDERR, "Perturbation Vector: [%f; %f; %f]\n", dp_q[0], dp_q[1], dp_q[2]);
+               
+               /* Project onto the sphere. */
+               for(j=0; j<opt->N_ctrl_points; ++j) {
+                  j3 = 3*j;  
+                  mag_p = sqrt( SUMA_POW2(Xm_p.elts[j3  ]) + SUMA_POW2(Xm_p.elts[j3+1]) + SUMA_POW2(Xm_p.elts[j3+2]));
+                  if(mag_p) {
+                     Xm_p.elts[j3  ] = Xm_p.elts[j3  ]/mag_p;
+                     Xm_p.elts[j3+1] = Xm_p.elts[j3+1]/mag_p;
+                     Xm_p.elts[j3+2] = Xm_p.elts[j3+2]/mag_p;
+                  }
+               }
+               
+               Pert.elts[i3  ] = dp_q[0];   /* Need perturbation vector for later that is not scaled by 0.5 */
+               Pert.elts[i3+1] = dp_q[1];
+               Pert.elts[i3+2] = dp_q[2];
+            
+               if(LocalHead) {
+                  fprintf(SUMA_STDERR, "Check outside of loop. m = %d\n", m);
+                  for(j=0; j<opt->N_ctrl_points; ++j) {
+                     j3 = 3*j;  
+                     fprintf(SUMA_STDERR, "Xm_mid(%d) = [%f;   %f;    %f]\n", j, Xm_mid.elts[j3  ], Xm_mid.elts[j3+1], Xm_mid.elts[j3+2]);
+                     fprintf(SUMA_STDERR, "Xm_p(%d) = [%f;   %f;    %f]\n", j, Xm_p.elts[i3  ], Xm_p.elts[j3+1], Xm_p.elts[i3+2]);
+                     fprintf(SUMA_STDERR, "Pert(%d) = [%f;   %f;    %f]\n", j, Pert.elts[j3  ], Pert.elts[j3+1], Pert.elts[j3+2]);
+                  }
+               }
+               
+               if(LocalHead){
+                  fprintf(SUMA_STDERR, "PERT.ELTS:\n");
+                  for(j=0; j<3*opt->N_ctrl_points; ++j) {fprintf(SUMA_STDERR, "%f\n", Pert.elts[j]);}
+               }
+
+               Rotation_Matrix(opt, Xm_mid, Kern);
+               matrix_psinv(Kern, nullptr, &KernI);
+               if(LocalHead) { fprintf(SUMA_STDERR, "\nKern = ");  Print_Matrix(opt, Kern); }
+   
+               Rotation_Matrix(opt, Xm_p, Kern_p);
+               if(LocalHead) { fprintf(SUMA_STDERR, "\nKern_p = ");  Print_Matrix(opt, Kern_p); }
+
+               /* Calculate delta K */
+               matrix_subtract(Kern_p, Kern, &delKern);
+
+               if(LocalHead) { fprintf(SUMA_STDERR, "\ndelKern = "); Print_Matrix(opt, delKern); }
+               if(LocalHead) { fprintf(SUMA_STDERR, "\nKernI = "); Print_Matrix(opt, KernI); }
+
+               /*****************************/
+               matrix_initialize(&A);
+               matrix_create(nr, nc, &A);
+               matrix_initialize(&B);
+               matrix_create(nr, nc, &B);
+               
+               /* Use K and delta K to calculate inverse delta K */
+               matrix_multiply(KernI, delKern, &A); 
+               matrix_multiply(A, KernI, &B);
+               matrix_scale(-1.0, B, &delKernI);
+
+               if(LocalHead) { fprintf(SUMA_STDERR, "\ndelKernI = "); Print_Matrix(opt, delKernI); }
+
+               matrix_destroy(&A);
+               matrix_destroy(&B);
+
+               /****************************/
+               /* Put it all together in the delta S equation. */        
+               matrix_initialize(&A);
+               matrix_create(1, (3*opt->N_ctrl_points), &A);
+               matrix_initialize(&B);
+               matrix_create(1, (3*opt->N_ctrl_points), &B);
+            
+               if(q == 1) matrix_scale(-2.0, Xm_t, &A);
+               if(q == 0) matrix_scale(+2.0, Xm_t, &A);
+               
+               matrix_multiply(A, KernI, &B);
+               vector_multiply(B, Pert, &del_S1);
+
+               if(LocalHead) {
+                  fprintf(SUMA_STDERR, "Xm_t = [\n");
+                  for(j=0; j<(3*opt->N_ctrl_points); ++j)  fprintf(SUMA_STDERR, "%f    ", (Xm_t.elts[0][j])); 
+                  fprintf(SUMA_STDERR, "\n];\n");
+                  fprintf(SUMA_STDERR, "del_S1 = %f\n", del_S1.elts[0]);
+               }
+
+               matrix_destroy(&A);
+               matrix_destroy(&B);
+
+               /****************************/
+               matrix_initialize(&B);
+               matrix_create(1, (3*opt->N_ctrl_points), &B);
+
+               matrix_multiply(Xm_t, delKernI, &B);
+               vector_multiply(B, Xm, &del_S2);
+
+               vector_add(del_S1, del_S2, &del_SF);
+
+               if(LocalHead) {
+                  fprintf(SUMA_STDERR, "Xm = [\n");
+                  for(j=0; j<(3*opt->N_ctrl_points); ++j)  fprintf(SUMA_STDERR, "%f;\n", (Xm.elts[j])); 
+                  fprintf(SUMA_STDERR, "\n];\n");
+                  fprintf(SUMA_STDERR, "del_S2 = %f\n", del_S2.elts[0]);
+                  fprintf(SUMA_STDERR, "del_SF = %f\n", del_SF.elts[0]);
+               }
+               
+               if(LocalHead) fprintf(SUMA_STDERR, "CHECK THE INDICIES!!!i = %d, m = %d, q = %d, p = %d\n", i, m, q, p);
+               mxvd4(Del_S, i, m, q, p) = del_SF.elts[0]; 
+               if(LocalHead) fprintf(SUMA_STDERR, "del_SF = %11.8f\n", del_SF.elts[0]);
+               matrix_destroy(&B);
+
+               /* Clean up */
+               del_S1.elts[0] = 0.0;  del_S2.elts[0] = 0.0;  del_SF.elts[0] = 0.0;  
+               
+               matrix_destroy(&Kern);
+               matrix_destroy(&KernI);
+               matrix_destroy(&Kern_p);
+               matrix_destroy(&delKern);
+               matrix_destroy(&delKernI);
+            }
+            matrix_destroy(&Xm_t); 
+         }   
+      }
+   }
+   if(LocalHead) fprintf( SUMA_STDERR, "%s: Finished del_S loop.\n", FuncName);
+ 
+   vector_destroy(&Xm);
+   vector_destroy(&Xm_mid);
+   vector_destroy(&Xm_p);
+   vector_destroy(&Pert);
+   vector_destroy(&del_S1);
+   vector_destroy(&del_S2);
+   vector_destroy(&del_SF);
+   
+   fprintf( SUMA_STDERR, "\n\n\n\n\n");
+   
+   SUMA_RETURN(YUP);
+}
+
+double S_energy( MyCircleOpt *opt, SUMA_MX_VEC *VecX )    /* Be very careful!  Order matters with index of VecX. */
+{
+   static char FuncName[]={"S_energy"};
+   int j, i, m, i3;
+   double *dp_m = NULL, *dp_m1 = NULL, S_grad = 0.0;
+   vector Xm, Xm_mid, Sm;
+   matrix *nullptr = NULL;
+   matrix Xm_t, Kern, KernI, A;
+
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   if(LocalHead) {
+      fprintf(SUMA_STDERR, "%s: Control Point Locations:\n", FuncName);
+      for(m=0; m<opt->M_time_steps; ++m) {   
+         for(j=0; j<opt->N_ctrl_points; ++j) { 
+            dp_m = mxvdp3(VecX, 0, j, m);
+            fprintf(SUMA_STDERR, "%s:  m=%d, i=%d, [%f; %f; %f];\n", FuncName, m, j, dp_m[0], dp_m[1], dp_m[2]);
+            dp_m = NULL;
+         }
+      }
+   }
+   
+   for(m=0; m<opt->M_time_steps; ++m) {  
+      vector_initialize(&Xm);
+      vector_create((3*opt->N_ctrl_points), &Xm);  
+      vector_initialize(&Xm_mid);
+      vector_create((3*opt->N_ctrl_points), &Xm_mid); 
+      matrix_initialize(&Xm_t);
+      matrix_create(1, (3*opt->N_ctrl_points), &Xm_t); 
+      matrix_initialize(&Kern);
+      matrix_create((3*opt->N_ctrl_points), (3*opt->N_ctrl_points), &Kern); 
+      matrix_initialize(&KernI);
+      matrix_create((3*opt->N_ctrl_points), (3*opt->N_ctrl_points), &KernI); 
+      matrix_initialize(&A);
+      matrix_create(1,(3*opt->N_ctrl_points), &A); 
+      vector_initialize(&Sm);
+      vector_create(1, &Sm);  
+   
+      for(j=0; j<3*opt->N_ctrl_points; ++j) { 
+         Xm.elts[j] = 0.0;
+         Xm_mid.elts[j] = 0.0;
+         Xm_t.elts[0][j] = 0.0;
+      }
+      
+      for(i=0; i<opt->N_ctrl_points; ++i) { 
+         i3 = 3*i;
+         dp_m = mxvdp3(VecX, 0, i, m);
+         dp_m1 = mxvdp3(VecX, 0, i, (m+1));
+         
+         Xm.elts[i3  ] = dp_m1[0] - dp_m[0];
+         Xm.elts[i3+1] = dp_m1[1] - dp_m[1];
+         Xm.elts[i3+2] = dp_m1[2] - dp_m[2];
+         
+         Xm_t.elts[0][i3  ] = dp_m1[0] - dp_m[0];     
+         Xm_t.elts[0][i3+1] = dp_m1[1] - dp_m[1];
+         Xm_t.elts[0][i3+2] = dp_m1[2] - dp_m[2];
+         
+         Xm_mid.elts[i3  ] = 0.5*(dp_m1[0] + dp_m[0]);
+         Xm_mid.elts[i3+1] = 0.5*(dp_m1[1] + dp_m[1]);
+         Xm_mid.elts[i3+2] = 0.5*(dp_m1[2] + dp_m[2]);
+      }
+      
+      if(LocalHead) {
+         fprintf(SUMA_STDERR, "\n %s:\n", FuncName);
+         fprintf(SUMA_STDERR, "Xm.elts = [\n");
+         for(j=0; j<3*opt->N_ctrl_points; ++j) fprintf(SUMA_STDERR, "%f\n", Xm.elts[j]);
+         fprintf(SUMA_STDERR, "]\n");
+         fprintf(SUMA_STDERR, "Xm_mid.elts = [\n");
+         for(j=0; j<3*opt->N_ctrl_points; ++j) fprintf(SUMA_STDERR, "%f\n", Xm_mid.elts[j]);
+         fprintf(SUMA_STDERR, "]\n");
+         fprintf(SUMA_STDERR, "Xm_t.elts = [\n");
+         for(j=0; j<3*opt->N_ctrl_points; ++j) fprintf(SUMA_STDERR, "%f  ", Xm_t.elts[0][j]);
+         fprintf(SUMA_STDERR, "]\n");
+      }
+               
+      Rotation_Matrix( opt, Xm_mid, Kern );
+      matrix_psinv(Kern, nullptr, &KernI);
+      
+      matrix_multiply(Xm_t, KernI, &A);
+      vector_multiply(A, Xm, &Sm);
+      
+      if(LocalHead) {
+         fprintf(SUMA_STDERR, "\n %s:\n", FuncName);
+         fprintf(SUMA_STDERR, "Kern = \n");
+         Print_Matrix(opt, Kern);
+         fprintf(SUMA_STDERR, "KernI = \n");
+         Print_Matrix(opt, KernI);
+         fprintf(SUMA_STDERR, "A = \n");
+         matrix_print(A);
+         fprintf(SUMA_STDERR, "Sm = %f\n", Sm.elts[0]); 
+      }  
+      
+      S_grad = S_grad + Sm.elts[0];  
+      
+      if(LocalHead) fprintf(SUMA_STDERR, "%s: S_grad = %f\n", FuncName, S_grad);   
+         
+      vector_destroy(&Xm);
+      matrix_destroy(&Xm_t);
+      matrix_destroy(&Kern);
+      matrix_destroy(&KernI);
+      matrix_destroy(&A);
+      vector_destroy(&Sm);
+      vector_destroy(&Xm_mid);
+   }
+   
+   SUMA_RETURN(S_grad);
+}
+
+double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *MaxStep, SUMA_MX_VEC *Perturb_Vec, SUMA_MX_VEC *Del_S, SUMA_MX_VEC *X_Lamda)
+{
+   
+   static char FuncName[]={"Find_Lamda"};
+   int m, i, p, j, nr, nc, m3, m2, r, c, i3, repeat = 0, descent_small = 0;
+   int C_N_dims = 3;
+   int C_dims[10] = { opt->N_ctrl_points, (opt->M_time_steps - 1), 2};  /* time steps, p */
+   double *dp_m0 = NULL, *dp_m1 = NULL, *dp = NULL;
+   double Sx, SxL, Lda = 0.0, mag_G, Theta_step, Theta_step_min;
+   vector Change, G;
+   matrix E, Et, EtE, EtEI, R;
+   matrix *nullptr = NULL;
+   
+   SUMA_Boolean LocalHead = YUP;
+
+   SUMA_ENTRY;
+   
+   vector_initialize(&Change);
+   vector_create( (2*opt->N_ctrl_points*(opt->M_time_steps-1)), &Change );
+   
+   /* Calculate Values for C vector. */
+   SUMA_MX_VEC *Change_S = NULL;
+   Change_S = SUMA_NewMxVec( SUMA_double, C_N_dims, C_dims, 1 );
+   
+   for(p=0; p<2; ++p) {
+      for(m=1; m<(opt->M_time_steps); ++m) {
+         for(i=0; i<opt->N_ctrl_points; ++i) {
+            dp_m0 = mxvdp4(Del_S, i, m, 0, p);
+            dp_m1 = mxvdp4(Del_S, i, (m-1), 1, p);
+
+            mxvd3(Change_S, i, m-1, p) = dp_m0[0] + dp_m1[0];
+            
+            if(LocalHead) { fprintf(SUMA_STDERR, "p=%d, m=%d, i=%d\n dp_m0 = %f, dp_m1 = %f\n C = %f\n", 
+                                                   p, m, i, dp_m0[0], dp_m1[0], mxvd3(Change_S, i, m-1, p)); }
+            dp_m0 = NULL; dp_m1 = NULL;
+         }
+      }  
+   }
+   fprintf(SUMA_STDERR, "Show Change_S:\n");
+   fprintf(SUMA_STDERR, "Problem Here? A\n");
+   
+   SUMA_ShowMxVec(Change_S, -1, NULL);
+   fprintf(SUMA_STDERR, "Problem Here? B\n");
+   
+   /* Fill vector C with the values. Index in order, m, i, p*/
+   /* BE CAREFUL, M=0 IS NOT THE ENDPOINT, IT IS ACTUALLY THE FIRST STEP WHICH WAS PREVIOUSLY CALLED M=1. */
+   j=0;
+   for(m=0; m<(opt->M_time_steps-1); ++m) {
+      for(i=0; i<opt->N_ctrl_points; ++i) {
+         for(p=0; p<2; ++p) {
+            Change.elts[j] = mxvd3(Change_S, i, m, p);
+            if(LocalHead) fprintf(SUMA_STDERR, "m=%d, i=%d, p=%d\n %f\n", m, i, p, Change.elts[j]); 
+            ++j;
+         }
+      }
+   }
+   
+   fprintf(SUMA_STDERR, "Problem Here? C\n");
+   
+   if(LocalHead) {
+      fprintf(SUMA_STDERR, "Change:\n");
+      for(j=0; j<(2*opt->N_ctrl_points*(opt->M_time_steps-1)); ++j) fprintf(SUMA_STDERR, "%f\n", Change.elts[j]);
+   }
+
+   fprintf(SUMA_STDERR, "Problem Here? D\n");
+   /* Form E matrices that store the perturbation vectors. */
+   nr = 3*opt->N_ctrl_points*(opt->M_time_steps-1);
+   nc = 2*opt->N_ctrl_points*(opt->M_time_steps-1);
+   matrix_initialize(&E);
+   matrix_create(nr, nc, &E);
+   
+   fprintf(SUMA_STDERR, "Problem Here? E\n");
+   
+   
+   for(r=0; r<nr; ++r) { for(c=0; c<nc; ++c) { E.elts[r][c] = 0.00; } }
+   
+   for(m=0; m<(opt->M_time_steps-1); ++m) {
+      for(i=0; i<opt->N_ctrl_points; ++i) {
+         for(p=0; p<2; ++p) {
+            i3 = 3*i;
+            m3 = 3*opt->N_ctrl_points*m; 
+            m2 = 2*opt->N_ctrl_points*m; 
+            dp = mxvdp4(Perturb_Vec, 0, i, (m+1), p);
+                        
+            E.elts[i3 + m3    ] [p + 2*i + m2] = dp[0];
+            E.elts[i3 + m3 + 1] [p + 2*i + m2] = dp[1];
+            E.elts[i3 + m3 + 2] [p + 2*i + m2] = dp[2];
+         
+            dp = NULL;
+         }
+      }
+   }
+   
+   if(LocalHead) { 
+      fprintf(SUMA_STDERR, "E = [\n");
+      matrix_print(E);
+      fprintf(SUMA_STDERR, "];\n");
+   }
+   
+   matrix_initialize(&Et);
+   matrix_create(nr, nc, &Et);
+   matrix_initialize(&EtE);
+   matrix_create(nr, nc, &EtE);
+   matrix_initialize(&EtEI);
+   matrix_create(nr, nc, &EtEI);
+   matrix_initialize(&R);
+   matrix_create(nr, nc, &R);
+   vector_initialize(&G);
+   vector_create(nr, &G);
+   
+   matrix_transpose(E, &Et);
+   matrix_multiply(Et, E, &EtE);
+   matrix_psinv(EtE, nullptr, &EtEI);
+   matrix_multiply(E, EtEI, &R);       /* A is temporary. */
+   vector_multiply(R, Change, &G);     /* G for gradient. */
+   
+   if(LocalHead) {
+      fprintf(SUMA_STDERR, "Et = [\n");
+      matrix_print(Et);
+      fprintf(SUMA_STDERR, "];\n");
+      fprintf(SUMA_STDERR, "EtE = [\n");
+      matrix_print(EtE);
+      fprintf(SUMA_STDERR, "];\n");
+      fprintf(SUMA_STDERR, "EtEI = [\n");
+      matrix_print(EtEI);
+      fprintf(SUMA_STDERR, "];\n");
+      fprintf(SUMA_STDERR, "R = [\n");
+      matrix_print(R);
+      fprintf(SUMA_STDERR, "];\n"); 
+   }
+   
+  
+   fprintf(SUMA_STDERR, "G = [\n");
+   for(j=0; j<nr; ++j) fprintf(SUMA_STDERR, "%f\n", G.elts[j]);
+   fprintf(SUMA_STDERR, "];\n");
+   
+   /* Need to make G be just the direction vectors. Want unit vectors! */
+   for(i=0; i< (opt->N_ctrl_points*(opt->M_time_steps-1)); ++i) {
+      i3 = 3*i;
+      mag_G = 0.0;
+      mag_G = sqrt(  SUMA_POW2(G.elts[i3  ]) + 
+                     SUMA_POW2(G.elts[i3+1]) + 
+                     SUMA_POW2(G.elts[i3+2]) );             
+
+      G.elts[i3  ] = G.elts[i3  ]/mag_G; 
+      G.elts[i3+1] = G.elts[i3+1]/mag_G;
+      G.elts[i3+2] = G.elts[i3+2]/mag_G;
+   }
+   
+   if(LocalHead){
+      fprintf(SUMA_STDERR, "G = [\n");
+      for(j=0; j<nr; ++j) fprintf(SUMA_STDERR, "%f\n", G.elts[j]);
+      fprintf(SUMA_STDERR, "];\n");
+   }
+
+   /* Find energy of sphere using unadjusted path. */
+   Sx = S_energy(opt, ControlCurve);
+   
+   /* Find smallest "maximum allowable step" so know how big lamda can be. */
+   fprintf(SUMA_STDERR, "*************THETA_STEP_MIN:\n");
+   Theta_step_min = mxvd2(MaxStep, 0, 1);
+   fprintf(SUMA_STDERR, "%f\n", Theta_step_min);
+   for(m=1; (m<opt->M_time_steps); ++m) {
+      for(i=0; i<opt->N_ctrl_points; ++i) {
+         
+         Theta_step = mxvd2(MaxStep, i, m);
+         fprintf(SUMA_STDERR, "%f\n", Theta_step);
+         if(Theta_step < Theta_step_min) Theta_step_min = Theta_step;
+      }
+   }
+   fprintf(SUMA_STDERR, "Final Theta_step_min: %f\n", Theta_step_min);
+   
+   /* Set the smallest "max allowable movement", Theta_step_min as the starting point for Lda. */
+   /* Now search for the largest Lda that gives lower energy than with an Lda of zero. */
+   
+   fprintf(SUMA_STDERR, "Final Theta_step_min: %f\n", Theta_step_min);
+   
+   Lda = Theta_step_min;
+   
+   do{
+   
+      /* Form list of path points with adjustment.  Perturbation magnitude, lamda, is what we are looking for. */
+      for(m=0; (m<opt->M_time_steps+1); ++m) {
+         for(i=0; i<opt->N_ctrl_points; ++i) {
+            i3 = 3*i;
+            m3 = 3*opt->N_ctrl_points*(m-1);  
+            dp = NULL;
+            dp = mxvdp3(ControlCurve, 0, i, m);
+
+            if(m<1) {    
+               mxvd3(X_Lamda, 0, i, m) = dp[0];
+               mxvd3(X_Lamda, 1, i, m) = dp[1];
+               mxvd3(X_Lamda, 2, i, m) = dp[2];  
+            } else if(m == opt->M_time_steps){
+               mxvd3(X_Lamda, 0, i, m) = dp[0];
+               mxvd3(X_Lamda, 1, i, m) = dp[1];
+               mxvd3(X_Lamda, 2, i, m) = dp[2];  
+            } else {
+               if(Lda == Theta_step_min) {
+                  fprintf(SUMA_STDERR, "ControlCurve(%d, %d) = [%f %f %f];\n", m, i, dp[0], dp[1], dp[2]);
+                  fprintf(SUMA_STDERR, "G.elts(%d, %d, %d) = [%f %f %f];\n", (i3 + m3), (i3 + m3 +1), (i3 + m3 +2), 
+                                                   G.elts[i3 + m3    ], G.elts[i3 + m3 + 1], G.elts[i3 + m3 + 2]); 
+               }  
+               mxvd3(X_Lamda, 0, i, m) = dp[0] - Lda*G.elts[i3 + m3    ];
+               mxvd3(X_Lamda, 1, i, m) = dp[1] - Lda*G.elts[i3 + m3 + 1];
+               mxvd3(X_Lamda, 2, i, m) = dp[2] - Lda*G.elts[i3 + m3 + 2];   
+            }
+            dp = NULL; 
+         } 
+      }
+ 
+      if(LocalHead) {
+         fprintf(SUMA_STDERR, "Show X_Lamda:\n");
+         SUMA_ShowMxVec(X_Lamda, -1, NULL);
+      }
+      
+      if(repeat<1) {
+         if(LocalHead) fprintf(SUMA_STDERR, "Lda before comparison: %f\n", Lda);
+       
+         /* Find energy of sphere with adjusted path. */
+         SxL = 0.0;
+         SxL = S_energy(opt, X_Lamda);
+         if( SxL < Sx ) repeat = 1; 
+        
+         if( SxL >= Sx ) { 
+            if(Lda>0.02) Lda = Lda - 0.005;
+            if(Lda<=0.02) Lda = Lda - 0.0001;
+            if(Lda<=0.0001) Lda = Lda - 0.00001;
+            if(Lda<=0.00001) Lda = Lda - 0.000001;
+            if(Lda<0.0000001) { Lda = 0.0; repeat = 1; }
+         }
+         if(LocalHead) fprintf(SUMA_STDERR, "SxL = %.12f, Sx = %.12f, Lda = %f\n", SxL, Sx, Lda);
+      }
+   } while(repeat < 1); 
+
+ 
+   Change_S = SUMA_FreeMxVec( Change_S );
+   vector_destroy(&Change);
+   matrix_destroy(&E);
+   matrix_destroy(&Et);
+   matrix_destroy(&EtE);
+   matrix_destroy(&EtEI);
+   matrix_destroy(&R);
+   vector_destroy(&G);
+   
+   SUMA_RETURN(Lda);
+}
 
 /*********************************************** Begin Mesh walking functions here ************************************************/
 
 SUMA_Boolean Debug_Weights( MyCircle *C, MyCircleOpt *opt, matrix M, matrix Mi, vector Vv) 
 {
-   static char FuncName[]={"FindSplineWeights"};
+   static char FuncName[]={"Debug_Weights"};
    static int matrix_ncall;
    int i, i3, j, j3, r, k, c, idm;
  
@@ -68,7 +891,7 @@ SUMA_Boolean Debug_Weights( MyCircle *C, MyCircleOpt *opt, matrix M, matrix Mi, 
          fprintf(output_matrix, "M = [\n");
             for (r=0; r<opt->N_ctrl_points; ++r) {
                for (k=0; k<(3+opt->N_ctrl_points); ++k) {
-                  for(c=0; c<opt->N_ctrl_points; ++c) { 
+                  for (c=0; c<opt->N_ctrl_points; ++c) { 
                      fprintf (output_matrix,"%11.8f   %11.8f   %11.8f   ", 
                                              M.elts [ ((3+opt->N_ctrl_points) * r+k) ][ (3*c  ) ],
                                              M.elts [ ((3+opt->N_ctrl_points) * r+k) ][ (3*c+1) ],
@@ -213,9 +1036,9 @@ SUMA_Boolean Debug_Weights( MyCircle *C, MyCircleOpt *opt, matrix M, matrix Mi, 
          fprintf (SUMA_STDERR,"Dot_Wv (%d) = %.24f \n"
                               "  W(%d) =  [%f;   %f;    %f]\n"
                               "  Control Point(%d) = [%f;   %f;    %f]\n", 
-                                 i, SUMA_MT_DOT( (&(opt->CtrlPts_i[3*i])), (&(C->Wv.elts[3*i])) ),
+                                 i, SUMA_MT_DOT( (&(opt->CtrlPts[3*i])), (&(C->Wv.elts[3*i])) ),
                                  i, C->Wv.elts[3*i], C->Wv.elts[3*i+1], C->Wv.elts[3*i+2],
-                                 i, opt->CtrlPts_i[3*i], opt->CtrlPts_i[3*i+1],  opt->CtrlPts_i[3*i+2]); 
+                                 i, opt->CtrlPts[3*i], opt->CtrlPts[3*i+1],  opt->CtrlPts[3*i+2]); 
       }
 
       /* Also send weights to output file for use in matlab. */
@@ -238,7 +1061,6 @@ SUMA_Boolean Debug_Weights( MyCircle *C, MyCircleOpt *opt, matrix M, matrix Mi, 
 }
 
 
-
 SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
 {
    static char FuncName[]={"FindSplineWeights"};
@@ -252,7 +1074,7 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
    double t_rc = 0.0, nrm_rc[3]={0.0,0.0,0.0};
    double tan_v[3]={0.0,0.0,0.0};  /* Meaning tangent velocity vector. Stores cross product when calculating given velocity. */
    double Vv_mag = 0.0, t_cr, expand_cr = 0.0; 
-   static matrix *nullptr = NULL;
+   matrix *nullptr = NULL;
    double I[3][3], sI[3][3];
    
    SUMA_Boolean LocalHead = NOPE;
@@ -295,14 +1117,14 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
       /* Distance between control point and desired destination of control point */ 
       /* nrm is the axis of rotation from intial control point location to final. */       
       /* BEWARE: USING _NC HERE, MEANING NO CENTER.  WILL THE CENTER ALWAYS BE THE ORIGIN? */
-      SUMA_ANGLE_DIST_NC((&(opt->CtrlPts_f[i3])), (&(opt->CtrlPts_i[i3])), opt->Dtheta[i], (&(opt->Nrm[i3])) );
+      SUMA_ANGLE_DIST_NC((&(opt->CtrlPts_f[i3])), (&(opt->CtrlPts[i3])), opt->Dtheta[i], (&(opt->Nrm[i3])) );
 
       if (LocalHead) {
          fprintf(SUMA_STDERR, "%s: Point %d, Dtheta = %.12f rad (%.12f deg)\n",
                                  FuncName, i, opt->Dtheta[i], SUMA_R2D(opt->Dtheta[i]));                            
       }
 
-      SUMA_MT_CROSS(tan_v, (&(opt->Nrm[i3])), (&(opt->CtrlPts_i[i3])) );
+      SUMA_MT_CROSS(tan_v, (&(opt->Nrm[i3])), (&(opt->CtrlPts[i3])) );
       
       /* Need to normalize because using the direction (unit vector) of this tangent vector in the velocity calculation. */
       tan_v_mag = sqrt( tan_v[0]*tan_v[0] + tan_v[1]*tan_v[1] + tan_v[2]*tan_v[2] );
@@ -316,7 +1138,7 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
                               "  Dot product( tan_v, control point) = %.12f\n"
                               "  Dtheta = %f\n", 
                               tan_v[0], tan_v[1], tan_v[2],
-                              SUMA_MT_DOT(tan_v, (&(opt->CtrlPts_i[i3])) ),
+                              SUMA_MT_DOT(tan_v, (&(opt->CtrlPts[i3])) ),
                               opt->Dtheta[i] ); } */
       
       Vv.elts[idm  ] = opt->Dtheta[i]*tan_v[0];
@@ -376,7 +1198,7 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
                c3 = 3*c; r3 = 3*r;
 
                /* Create the rotation matrix. */
-               SUMA_3D_Rotation_Matrix( (&(opt->CtrlPts_i[c3])), (&(opt->CtrlPts_i[r3])), Mcr, t_cr, nrm_cr);
+               SUMA_3D_Rotation_Matrix( (&(opt->CtrlPts[c3])), (&(opt->CtrlPts[r3])), Mcr, t_cr, nrm_cr);
           
                expand_cr = exp(-0.5*t_cr*t_cr);    
                
@@ -390,8 +1212,8 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
                                           "     alpha(%d, %d) = %.12f  \n"
                                           "     u (%d, %d) = [ %.12f    %.12f    %.12f ] \n"
                                           "     expansion = %f \n",
-                                          opt->CtrlPts_i[c3  ], opt->CtrlPts_i[c3+1], opt->CtrlPts_i[c3+2],
-                                          opt->CtrlPts_i[r3  ], opt->CtrlPts_i[r3+1], opt->CtrlPts_i[r3+2],                                
+                                          opt->CtrlPts[c3  ], opt->CtrlPts[c3+1], opt->CtrlPts[c3+2],
+                                          opt->CtrlPts[r3  ], opt->CtrlPts[r3+1], opt->CtrlPts[r3+2],                                
                                           r, c, t_cr, 
                                           r, c, nrm_cr[0], nrm_cr[1], nrm_cr[2],
                                           expand_cr ); } }
@@ -430,7 +1252,7 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
             c3 = 3*c; r3 = 3*r;
             
             /* Create the rotation matrix. */
-            SUMA_3D_Rotation_Matrix( (&(opt->CtrlPts_i[c3])), (&(opt->CtrlPts_i[r3])), Mcr, t_cr, nrm_cr );
+            SUMA_3D_Rotation_Matrix( (&(opt->CtrlPts[c3])), (&(opt->CtrlPts[r3])), Mcr, t_cr, nrm_cr );
             
             expand_cr = exp( -0.5*t_cr*t_cr ); 
             
@@ -444,8 +1266,8 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
                                        "     alpha(%d, %d) = %.12f  \n"
                                        "     u (%d, %d) = [ %.12f    %.12f    %.12f ] \n"
                                        "     expansion = %f \n",
-                                       opt->CtrlPts_i[c3  ], opt->CtrlPts_i[c3+1], opt->CtrlPts_i[c3+2],
-                                       opt->CtrlPts_i[r3  ], opt->CtrlPts_i[r3+1], opt->CtrlPts_i[r3+2],                                
+                                       opt->CtrlPts[c3  ], opt->CtrlPts[c3+1], opt->CtrlPts[c3+2],
+                                       opt->CtrlPts[r3  ], opt->CtrlPts[r3+1], opt->CtrlPts[r3+2],                                
                                        r, c, t_cr, 
                                        r, c, nrm_cr[0], nrm_cr[1], nrm_cr[2],
                                        expand_cr ); } }
@@ -463,15 +1285,15 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
             
             for(k=3; k < (3 + opt->N_ctrl_points); ++k) {
                if( k-3 == c && k-c == 3) {
-                  M.elts[ (row+k) ][ (c3  ) ] = (opt->CtrlPts_i[r3  ] * (expand_cr * Mcr[0][0]) )
-                                              + (opt->CtrlPts_i[r3+1] * (expand_cr * Mcr[1][0]) )
-                                              + (opt->CtrlPts_i[r3+2] * (expand_cr * Mcr[2][0]) ); 
-                  M.elts[ (row+k) ][ (c3+1) ] = (opt->CtrlPts_i[r3  ] * (expand_cr * Mcr[0][1]) )
-                                              + (opt->CtrlPts_i[r3+1] * (expand_cr * Mcr[1][1]) )
-                                              + (opt->CtrlPts_i[r3+2] * (expand_cr * Mcr[2][1]) );
-                  M.elts[ (row+k) ][ (c3+2) ] = (opt->CtrlPts_i[r3  ] * (expand_cr * Mcr[0][2]) )
-                                              + (opt->CtrlPts_i[r3+1] * (expand_cr * Mcr[1][2]) )
-                                              + (opt->CtrlPts_i[r3+2] * (expand_cr * Mcr[2][2]) ); } 
+                  M.elts[ (row+k) ][ (c3  ) ] = (opt->CtrlPts[r3  ] * (expand_cr * Mcr[0][0]) )
+                                              + (opt->CtrlPts[r3+1] * (expand_cr * Mcr[1][0]) )
+                                              + (opt->CtrlPts[r3+2] * (expand_cr * Mcr[2][0]) ); 
+                  M.elts[ (row+k) ][ (c3+1) ] = (opt->CtrlPts[r3  ] * (expand_cr * Mcr[0][1]) )
+                                              + (opt->CtrlPts[r3+1] * (expand_cr * Mcr[1][1]) )
+                                              + (opt->CtrlPts[r3+2] * (expand_cr * Mcr[2][1]) );
+                  M.elts[ (row+k) ][ (c3+2) ] = (opt->CtrlPts[r3  ] * (expand_cr * Mcr[0][2]) )
+                                              + (opt->CtrlPts[r3+1] * (expand_cr * Mcr[1][2]) )
+                                              + (opt->CtrlPts[r3+2] * (expand_cr * Mcr[2][2]) ); } 
                else {
                   M.elts[ (row+k) ][ (c3  ) ] = 0.0;
                   M.elts[ (row+k) ][ (c3+1) ] = 0.0;
@@ -490,9 +1312,9 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
    SUMA_LH("   Done."); 
 
    if( LocalHead ) Debug_Weights(C, opt, M, Mi, Vv);
-   fprintf(SUMA_STDERR, "Done printing inverse matrix.");
+   if( LocalHead) fprintf(SUMA_STDERR, "%s: Done printing inverse matrix.\n", FuncName);
 
-   SUMA_LH("Calculating weights...");
+   SUMA_LH("Calculating weights...\n");
    vector_initialize(&(C->Wv));
    vector_multiply(Mi, Vv, &(C->Wv));
    SUMA_LH("   Done."); 
@@ -514,9 +1336,9 @@ SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt)
    static char FuncName[]={"Velocity"};
    byte repeat;   
    int i, i3, j, j3, r;
-   static double v_alpha = 0.0, v_cr[3]={0.0,0.0,0.0}, v_expand, cr_mag; 
+   double v_alpha = 0.0, v_cr[3]={0.0,0.0,0.0}, v_expand, cr_mag; 
    vector Wr;  /*W rotated*/
-   static double v_M[3][3];
+   double v_M[3][3];
  
    SUMA_Boolean LocalHead = NOPE;
 
@@ -538,7 +1360,7 @@ SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt)
         
          #if 0
          /* Need to comment out when using SUMA_3D_Rotation_Matrix to calculate initial velocity field. */
-         SUMA_ANGLE_DIST_NC( (&(C->NewNodeList[i3])), (&(opt->CtrlPts_i[j3])), v_alpha, v_cr );
+         SUMA_ANGLE_DIST_NC( (&(C->NewNodeList[i3])), (&(opt->CtrlPts[j3])), v_alpha, v_cr );
         
          cr_mag = sqrt( v_cr[0]*v_cr[0] + v_cr[1]*v_cr[1] + v_cr[2]*v_cr[2]); 
          if (LocalHead) { 
@@ -556,7 +1378,7 @@ SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt)
          v_expand = exp( -0.5*v_alpha*v_alpha ); 
          #endif
         
-         SUMA_3D_Rotation_Matrix( (&(opt->CtrlPts_i[j3])), (&(C->NewNodeList[i3])), v_M, v_alpha, v_cr);
+         SUMA_3D_Rotation_Matrix( (&(opt->CtrlPts[j3])), (&(C->NewNodeList[i3])), v_M, v_alpha, v_cr);
          
          v_expand = exp( -0.5*v_alpha*v_alpha );   
        
@@ -572,7 +1394,7 @@ SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt)
                                     "     %.12f    %.12f    %.12f \n"
                                     "  Weight = %f %f %f\n", 
                                     v_alpha, v_expand,
-                                    opt->CtrlPts_i[j3  ], opt->CtrlPts_i[j3+1], opt->CtrlPts_i[j3+2],
+                                    opt->CtrlPts[j3  ], opt->CtrlPts[j3+1], opt->CtrlPts[j3+2],
                                     C->NewNodeList[i3  ], C->NewNodeList[i3+1], C->NewNodeList[i3+2],
                                     v_alpha, 
                                     v_cr[0], v_cr[1], v_cr[2],
@@ -671,10 +1493,10 @@ SUMA_Boolean Debug_Move( MyCircle *C, MyCircleOpt *opt, SUMA_SurfaceObject *SO, 
    int i, i3, j;
    char outfile[] = {"Coords_0.txt"}, outfile_speed[] = {"Plot_Speed0.txt"}, outfile_test[50]; 
    char outfile_segments[50], outfile_Vmag[50], outfile_tri_area[50];
-   static double sideA[3], sideB[3], sideC[3], height[3], side[3], t_area;
-   static int f, g, h, f3, g3, h3;
-   static double Vf_segment[3];
-   static float Point_at_Distance[2][3] = { {0.0, 0.0, 0.0},{ 0.0, 0.0, 0.0} }, V_Mag = 0.0;
+   double sideA[3], sideB[3], sideC[3], height[3], side[3], t_area;
+   int f, g, h, f3, g3, h3;
+   double Vf_segment[3];
+   float Point_at_Distance[2][3] = { {0.0, 0.0, 0.0},{ 0.0, 0.0, 0.0} }, V_Mag = 0.0;
    
    SUMA_Boolean LocalHead = NOPE;
 
@@ -837,7 +1659,7 @@ SUMA_Boolean Neighbor( MyCircle *C, MyCircleOpt *opt, SUMA_SurfaceObject *SO, in
    static char FuncName[]={"Neighbor"};
    char outfile_neighb[50];
    int k, i, j, s, i3, j3, s4;
-   static double distance = 0.0;
+   double distance = 0.0;
    int close_neighb = 0;
    
    SUMA_Boolean LocalHead = NOPE;
@@ -894,8 +1716,8 @@ SUMA_Boolean Neighbor( MyCircle *C, MyCircleOpt *opt, SUMA_SurfaceObject *SO, in
 SUMA_Boolean Calculate_Step (MyCircle *C, MyCircleOpt *opt, double dt) 
 {
    static char FuncName[]={"Calculate_Step"};
-   static int i, i3, s, s4;
-   static double um;
+   int i, i3, s, s4;
+   double um;
    
    SUMA_Boolean LocalHead = NOPE;
 
@@ -954,8 +1776,8 @@ SUMA_Boolean Calculate_Step (MyCircle *C, MyCircleOpt *opt, double dt)
 SUMA_Boolean Move_Points (MyCircle *C, MyCircleOpt *opt) 
 {
    static char FuncName[]={"Move_Points"};
-   static int i, i3, s, s4;
-   static double mv_mag, mv_alpha, mv_nrm[3], mv_nrm_mag, newnode_mag;
+   int i, i3, s, s4;
+   double mv_mag, mv_alpha, mv_nrm[3], mv_nrm_mag, newnode_mag;
    
    SUMA_Boolean LocalHead = NOPE;
 
