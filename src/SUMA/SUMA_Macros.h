@@ -277,6 +277,15 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 }
 
 /*!
+   Equation of a plane given its normal and a point
+   See also SUMA_Plane_Equation
+*/
+#define SUMA_PLANE_NORMAL_POINT(N, P, Eq) {   \
+   Eq[0] = N[0]; Eq[1] = N[1]; Eq[2] = N[2]; \
+   Eq[3] = -(Eq[0]*P[0] + Eq[1]*P[1] + Eq[2]*P[2]);   \
+}
+
+/*!
    determines the bounding box for a triangle 
 */
 #define SUMA_TRIANGLE_BOUNDING_BOX(n1, n2, n3, min_v, max_v){  \
@@ -287,6 +296,65 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    max_v[1] = SUMA_MAX_PAIR( (n1)[1], (n2)[1]); max_v[1] = SUMA_MAX_PAIR( (n3)[1], max_v[1]);   \
    max_v[2] = SUMA_MAX_PAIR( (n1)[2], (n2)[2]); max_v[2] = SUMA_MAX_PAIR( (n3)[2], max_v[2]);   \
 }   
+
+/*!
+   \brief find out if a point p on the line formed by points p0 and p1 is between p0 and p1
+   ans = SUMA_IS_POINT_IN_SEGMENT(p, p0, p1);
+   if ans then p is between p0 and p1
+   p, p0, p1 (float *) xyz of points
+   
+   - NOTE: macro does not check that three points are colinear (as they should be)!
+*/
+#define SUMA_IS_POINT_IN_SEGMENT(p, p0, p1)  (  (  (  \
+                                                      (p[0] >  p0[0] && p[0] <  p1[0]) ||   \
+                                                      (p[0] <  p0[0] && p[0] >  p1[0]) ||   \
+                                                      (SUMA_ABS(p[0] - p0[0]) < 0.00000001 || \
+                                                       SUMA_ABS(p[0] - p1[0]) < 0.00000001 ) \
+                                                   )\
+                                                   && \
+                                                   (  \
+                                                      (p[1] >  p0[1] && p[1] <  p1[1]) ||   \
+                                                      (p[1] <  p0[1] && p[1] >  p1[1]) ||   \
+                                                      (SUMA_ABS(p[1] - p0[1]) < 0.00000001 || \
+                                                       SUMA_ABS(p[1] - p1[1]) < 0.00000001 ) \
+                                                   )\
+                                                   && \
+                                                   (  \
+                                                      (p[2] >  p0[2] && p[2] <  p1[2]) ||   \
+                                                      (p[2] <  p0[2] && p[2] >  p1[2]) ||   \
+                                                      (SUMA_ABS(p[2] - p0[2]) < 0.00000001 || \
+                                                       SUMA_ABS(p[2] - p1[2]) < 0.00000001 ) \
+                                                   )\
+                                                   ) ? 1 : 0 )
+                                          
+/*!
+   \brief Intersection of a segment with a plane
+   \param p1 x y z of point 1
+   \param p2 x y z of point 2
+   \param Eq equation of plane
+   \param Hit: On exit: 1 segment interects plane
+                        0 segment does not intersect plane
+   \param pinter: On exit:  x y z of intersection point (0,0,0) if no intersection
+
+   Note: Macro is not efficient to use when intersection if between entire surface
+   and plane. For that use SUMA_Surf_Plane_Intersect 
+*/
+#define SUMA_SEGMENT_PLANE_INTERSECT(p1, p2, Eq, Hit, pinter) {   \
+   double m_p1, m_p2, m_u;   \
+   m_p1 = Eq[0] * p1[0] + Eq[1] * p1[1] + Eq[2] * p1[2] + Eq[3];  \
+   m_p2 = Eq[0] * p2[0] + Eq[1] * p2[1] + Eq[2] * p2[2] + Eq[3];  \
+   /* fprintf(SUMA_STDERR,"m_p1=%f, m_p2 = %f\n", m_p1, m_p2); */\
+   if ((SUMA_SIGN(m_p1)) != (SUMA_SIGN(m_p2)) ) {   \
+      Hit = 1; \
+      m_u = -m_p1 / (m_p2 - m_p1);  \
+      pinter[0] = p1[0] + m_u * ( p2[0] - p1[0] );   \
+      pinter[1] = p1[1] + m_u * ( p2[1] - p1[1] );   \
+      pinter[2] = p1[2] + m_u * ( p2[2] - p1[2] );   \
+   }  else {   \
+      Hit = 0; \
+      pinter[0] = pinter[1] = pinter[2] = 0.0;  \
+   }  \
+}
    
 #define SUMA_SET_GL_RENDER_MODE(m_PolyMode)  \
    {  \
@@ -369,7 +437,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 /*!
    A macro to find the third node forming a triangle
 */
-#define SUMA_THIRD_NODE(n1,n2,t,facelist,n3){  \
+#define SUMA_THIRD_TRIANGLE_NODE(n1,n2,t,facelist,n3){  \
    static int m_t3;  \
    m_t3 = 3 * t;  \
    n3 = -1; \
@@ -378,6 +446,27 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
       else ++m_t3;   \
    }   while (n3 < 0);  \
 }
+
+/*!
+   A macro to find the two other nodes forming a triangle
+*/
+#define SUMA_TWO_OTHER_TRIANGLE_NODES(n1,t,facelist,n2,n3){  \
+   static int m_t3;  \
+   m_t3 = 3 * t;  \
+   n2 = n3 = -1;  \
+   if (facelist[m_t3  ] == n1) {   \
+      n2 = facelist[m_t3+1];  \
+      n3 = facelist[m_t3+2];  \
+   } else if (facelist[m_t3+1] == n1) { \
+      n2 = facelist[m_t3  ];  \
+      n3 = facelist[m_t3+2];  \
+   } else if (facelist[m_t3+2] == n1) { \
+      n2 = facelist[m_t3  ];  \
+      n3 = facelist[m_t3+1];  \
+   } \
+}
+
+
    
 /*! 
    A macro version of SUMA_FindEdge
@@ -388,8 +477,21 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    you should initialize iseg to -1 before calling the macro
    
 */
-
+/* NEW VERSION: Bug found in previous one (_OLD), 
+   it is possible that m_eloc is -1 at initialization: m_eloc = m_EL->ELloc[m_n1]; 
+   see below for fix
+*/
 #define SUMA_FIND_EDGE(m_EL, m_n1, m_n2, m_iseg)  \
+{  int m_eloc = m_EL->ELloc[m_n1];   \
+   if (m_eloc >= 0) {  /* It is possible that m_n1 has m_EL->ELloc[m_n1] = -1, this happens when m_n1 is surrounded by nodes of lower indices */\
+      for (m_eloc=m_EL->ELloc[m_n1]; m_eloc<m_EL->N_EL; ++m_eloc) {  \
+         /* fprintf(stderr, "%d/%d\n", m_eloc, m_EL->N_EL); */\
+         if (m_EL->EL[m_eloc][0] != m_n1) break;   \
+         if (m_EL->EL[m_eloc][1] == m_n2) m_iseg = m_eloc;   \
+      }   \
+   }  \
+} 
+#define SUMA_FIND_EDGE_OLD(m_EL, m_n1, m_n2, m_iseg)  \
 {  int m_eloc ;   \
    m_eloc = m_EL->ELloc[m_n1];  \
    do {  \

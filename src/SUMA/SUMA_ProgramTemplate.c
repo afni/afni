@@ -32,7 +32,7 @@ void usage_PROGRAM_NAME (SUMA_GENERIC_ARGV_PARSE *ps)
 
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_PROGRAM_NAME_ParseInput(char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
-   static char FuncName[]={"SUMA_BrainWrap_ParseInput"}; 
+   static char FuncName[]={"SUMA_PROGRAM_NAME_ParseInput"}; 
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar;
    SUMA_Boolean brk;

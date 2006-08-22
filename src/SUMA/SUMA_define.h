@@ -152,14 +152,18 @@ typedef enum  { SUMA_FT_ERROR = -1, SUMA_FT_NOT_SPECIFIED,
                SUMA_OPENDX_MESH, 
                   SUMA_N_SO_FILE_TYPE} SUMA_SO_File_Type; /* add types always between SUMA_FT_NOT_SPECIFIED AND SUMA_N_SO_FILE_TYPE */
 typedef enum { SUMA_FF_NOT_SPECIFIED, SUMA_ASCII, SUMA_BINARY, SUMA_BINARY_BE, SUMA_BINARY_LE } SUMA_SO_File_Format;
-typedef enum { no_type, SO_type, AO_type, ROIdO_type, ROIO_type, GO_type, LS_type, OLS_type, NBV_type, ONBV_type, SP_type} SUMA_DO_Types;   /*!< Displayable Object Types 
+typedef enum { no_type, SO_type, AO_type, ROIdO_type, ROIO_type, 
+               GO_type, LS_type, OLS_type, NBV_type, ONBV_type, SP_type,
+               NBSP_type, PL_type} SUMA_DO_Types;   /*!< Displayable Object Types 
                                                                                     S: surface, A: axis, G: grid, 
                                                                                     ROId: Region of interest drawn type,
                                                                                     LS_type: line segment
                                                                                     OLS_type: oriented line segment
                                                                                     NBV_type: Node-Based vector (displayed as a line from node)
                                                                                     ONBV_type: NBV with a ball on the bottom (slower to render)
-                                                                                    SP_type: spherical markers*/
+                                                                                    SP_type: spherical markers
+                                                                                    NBSP_type: Node-Based spherical markers
+                                                                                    PL_type: planes*/
 typedef enum {SUMA_SCREEN, SUMA_LOCAL} SUMA_DO_CoordType; /*!< Coordinate system that Displayable object is attached to
                                                                   SCREEN is for a fixed system, LOCAL is for a mobile system,
                                                                   ie one that is rotated by the mouse movements */
@@ -1326,6 +1330,12 @@ typedef struct {
    char *idcode_str;    /*!< unique idcode for DO */
    char *Label; /*!< ascii label for DO */ 
 
+   int NodeBased; /*!< flag: 1 if segments are formed by vectors at surface nodes */
+   char *Parent_idcode_str; /*!< Parent surface's id 
+                                 (only used if NodeBased = 1
+                                 NULL if NodeBased)*/
+   int *NodeID; /*!< ID of the node at which the vector is represented
+                     NULL if NodeBased = 0 */
    GLfloat *cxyz; /*!< vector containing XYZ of centers (3*N_n elements long)*/
    GLUquadricObj *sphobj; /*!< quadric object, representing central sphere */
    int N_n; /*!< Number of spheres */
@@ -1340,6 +1350,43 @@ typedef struct {
    GLenum *stylev; /*!< Vector of sphere styles */
    
 }SUMA_SphereDO;
+
+typedef struct {
+   char *idcode_str;    /*!< unique idcode for DO */
+   char *Label; /*!< ascii label for DO */ 
+
+   int NodeBased; /*!< flag: 1 if segments are formed by vectors at surface nodes */
+   char *Parent_idcode_str; /*!< Parent surface's id 
+                                 (only used if NodeBased = 1
+                                 NULL if NodeBased)*/
+   int *NodeID; /*!< ID of the node at which the vector is represented
+                     NULL if NodeBased = 0 */
+ 
+} SUMA_NB_DO; /*!< generic struct for common fields to Node-Based DOs */
+
+/*!
+   Structure containg a bunch of planes 
+*/
+typedef struct {
+   char *idcode_str;    /*!< unique idcode for DO */
+   char *Label; /*!< ascii label for DO */ 
+
+   GLfloat *cxyz; /*!< vector containing XYZ of centers (3*N_n elements long)*/
+   GLfloat *pleq; /*!< plane equations 4*N_n elements long */
+   int N_n; /*!< Number of planes */
+   GLfloat LineWidth; /*!< LineWidth*/
+   GLfloat CommonBoxDims[3] ; /*!< common dimensions of box containing plane (centered on cxyz) */
+   GLfloat CommonCol[4]; /*!< common colors */
+   GLfloat *boxdimv; /*!< Vector of box dimensions radii, 3 elements per plane. NULL if using CommonBoxDims */
+   GLfloat *colv; /*!< Vector of plane colors, 4 elements per plane. NULL if using CommonCol */
+   GLfloat *NodeList;
+   GLint *FaceSetList;
+   GLfloat *nodecol;
+   GLfloat *NodeNormList;
+   int N_Node;
+   int N_FaceSet;
+   SUMA_RENDER_MODES PolyMode; /*!< polygon viewing mode, SRM_Fill, SRM_Line, SRM_Points */
+}SUMA_PlaneDO;
 
 /*! Structure containing the communication info and status with AFNI */
 typedef struct {
@@ -2133,6 +2180,8 @@ typedef struct {
    int *Neighb_ind;        /*!< N_Neighb x 1 vector containing  nodes neighboring node i */
    float *Neighb_dist;     /*!< N_Neighb x 1 vector containing node distances from node i. 
                                These are the shortes distances ON THE GRAPH. */
+   float *Neighb_PropLoc;  /*!< N_Neighb x 3 vector containing XYZ of estimated node propagation
+                                from one layer to the next. */
 } SUMA_OFFSET_STRUCT;      /*!< The structure returned by SUMA_FormNeighbOffset */
 
 typedef struct {

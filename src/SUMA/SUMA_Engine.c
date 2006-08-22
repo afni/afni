@@ -2971,7 +2971,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
                }
 
             } else { /* no node is close enough */
-               if (SO != SOmap) {
+               if (SO->AnatCorrect == NOPE && SO != SOmap) { /* used to be if (SO != SOmap) only */
                   SUMA_SL_Warn(  "No node was close enough\n"
                                  "to XYZmap, no linkage possible."   );
                   SUMA_free(XYZ);
@@ -2980,6 +2980,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
                   /* comes from inherrently mappable stuff, makes sense to leave XYZ */
                   SUMA_SL_Warn(  "No node was close enough\n"
                                  "to XYZmap, linking by coordinate."   );
+                  SUMA_COPY_VEC (XYZmap, XYZ, 3, float, float);
                   SUMA_RETURN (XYZ);
                }
             }

@@ -22,6 +22,8 @@ PARSE:
    set ss_opt = ''
    set dxyz_list = ( 1 1 1 )
    set clpbelow = ''
+   set maxite = ''
+   set accept_maxite = 0
    if ("$1" == '') goto HELP
 
    while ($cnt <= $Narg)
@@ -72,6 +74,17 @@ PARSE:
          else
             @ cnt ++
             set rmode = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-maxite") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need string after -maxite"
+            goto END
+         else
+            @ cnt ++
+            set maxite = "-maxite $argv[$cnt]"
             set donext = 0   
          endif   
       endif
@@ -188,6 +201,10 @@ PARSE:
          endif   
       endif
       
+      if ($donext && "$argv[$cnt]" == "-OK_maxite") then
+         set accept_maxite = 1
+         set donext = 0		
+      endif
       if ($donext && "$argv[$cnt]" == "-ncr") then
          set cropt = '';		
          set donext = 0		
@@ -434,7 +451,7 @@ AUTO_TLRC_MODE:
    set Converged = 0
    while ($Converged == 0 && $pass < 3)
       rm -f ${ns_pref}_WarpDrive.log >& /dev/null
-      3dWarpDrive ${spopt}  -twopass -${xform_type} -cubic  \
+      3dWarpDrive ${maxite} ${spopt}  -twopass -${xform_type} -cubic  \
                -final ${rmode} -base ${ref_pref_pad}${ref_view} -summ ${ns_pref}_WarpDrive.log \
                -prefix ${tmppref}_reg_warpdriveout -input ${rs_pref}${anat_view}
       if ( `@CheckForAfniDset ${tmppref}_reg_warpdriveout${anat_view}` != 2) then
@@ -474,9 +491,9 @@ AUTO_TLRC_MODE:
                echo ""
                echo "Script will stop ..."
                echo ""
-               goto END
                set pass = 3
                set Converged = 0
+               goto END
             endif
          else 
             if ($pass == 2) then
@@ -490,9 +507,9 @@ AUTO_TLRC_MODE:
                echo ""
                echo "Script will stop ..."
                echo ""
-               goto END
                set pass = 3
                set Converged = 0
+               goto END
             endif
          endif
       else
@@ -502,16 +519,43 @@ AUTO_TLRC_MODE:
             echo "Warping has converged."
             echo ""
          else
-            echo ""
-            echo "Warping used up maximum iterations"
-            echo "Convergence might not have"
-            echo "been reached. Trying registration"
-            echo "without shearing."
-            echo ""
-            set xform_type = 'shift_rotate_scale'
-            3drename ${tmppref}_reg_warpdriveout${anat_view} ${tmppref}_reg_warpdriveout_NoConvergence
-            set Converged = 0
-            set pass = 2
+            if ($pass == 1) then
+               echo ""
+               echo "Warping used up maximum iterations of $nitermax"
+               echo "Convergence might not have"
+               echo "been reached. "
+               echo "Doubling number of iterations"
+               echo ""
+               3drename ${tmppref}_reg_warpdriveout${anat_view} ${tmppref}_reg_warpdriveout_maxed_iters
+               set ans = `ccalc -form int "2 * $nitermax"`
+               set maxite = "-maxite $ans"
+               set Converged = 0
+               set pass = 2
+            else 
+               echo ""
+               echo "Warping used up maximum iterations"
+               echo "even after doubling number of iterations to $nitermax."
+               echo "Convergence might not have"
+               echo "been reached."
+               echo "Try rerunning the script with a transform"
+               echo "type of fewer parameters (-xform) or by using "
+               echo "an even higher number of iterations (-maxite)."
+               echo "You can also choose to continue with the"
+               echo "current result (dset: ${tmppref}_reg_warpdriveout${anat_view}"
+               echo "by using the option: -OK_maxite"
+               echo ""
+               set pass = 3
+               if ($accept_maxite == 1) then
+                  #doing nothing will proceed
+                  echo "Accepting result per user's choice."
+                  echo ""
+               else
+                  echo "Script will stop ..."
+                  echo ""
+                  set Converged = 0
+                  goto END
+               endif   
+            endif
          endif
       endif
    end
@@ -737,6 +781,15 @@ HELP:
       echo "                       It should not cause any harm, only good shall come of it."
       echo "                       -ncr is there however, should you choose NOT TO want coarserot"
       echo "                       used for some reason"
+      echo "      -maxite NITER  : Set the maximum number of iterations for 3dWarpDrive."
+      echo "                       Note that the script will try to increase the number"
+      echo "                       of iterations if needed. When the maximum number of"
+      echo "                       iterations is reached without meeting the convergence"
+      echo "                       criteria the script will double the number of iterations"
+      echo "                       and try again. If the second pass fails in the same manner"
+      echo "                       then the script will stop unless the user specifies the"
+      echo "                       -OK_maxite option."
+      echo "      -OK_maxite     : See -maxite option."
       echo ""                      
       echo "   Example:"
       echo "   `basename $0` -base TT_N27+tlrc. -input SubjectHighRes+orig."
