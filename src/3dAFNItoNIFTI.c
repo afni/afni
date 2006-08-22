@@ -5,7 +5,7 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset ;
    char *prefix=NULL , *fname ;
-   int narg=1 , flags=0 , ii , verb=0 , newid=1 , denote=0 , floatize=0 ;
+   int narg=1 , flags=0 , ii , verb=0 , newid=1 , denote=0 , floatize=0, cmode ;
    niftiwr_opts_t options ;
 
    PRINT_VERSION("3dAFNItoNIFTI");
@@ -171,7 +171,8 @@ int main( int argc , char *argv[] )
    /*--- Go Baby, Go! ---*/
 
 #ifdef HAVE_ZLIB                                            /* 21 Sep 2005 */
-     if( AFNI_yesenv("AFNI_AUTOGZIP")                  &&
+     cmode = THD_get_write_compression();
+     if( cmode==COMPRESS_GZIP                  &&
          STRING_HAS_SUFFIX(options.infile_name,".nii")   )
        strcat(options.infile_name,".gz") ;
 #else
@@ -183,6 +184,6 @@ int main( int argc , char *argv[] )
 #endif
 
    if( denote ) THD_anonymize_write(1) ; /* sets a flag for attribute output */
-   ii = THD_write_nifti( dset , options ) ; /* actually write the damn thing */
+   ii = THD_write_nifti( dset , options ) ; /* actually write the darn thing */
    exit(0) ;
 }
