@@ -23,7 +23,7 @@ void usage_path_optimize (SUMA_GENERIC_ARGV_PARSE *ps)
                "usage:\n"
                "  path_optimize [-ctrl CTRL_FILE] [-dom_dim DOM_DIM] [-dim DIM] [-N_sub N_SUB] [-N_step N_STEP]   \n"
                "             [-renew_weights] [-adjust] [-dot] [-neighb_adjust] [-neighb_check] [-sigma SIGMA] \n"
-               "             [-talk_pause] [-debug DEBUG] [-ouput OUTPUT]                                      \n"
+               "             [-talk_pause] [-debug DEBUG] [-ouput OUTPUT] [-M_time M_TIME]                     \n"
                "                                                                                               \n"
                "  -ctrl CTRLFILE:   Control nodes 1D file.                                                     \n"
                "                    Each row is for one node's intial and final XYZ.                           \n" 
@@ -51,7 +51,9 @@ void usage_path_optimize (SUMA_GENERIC_ARGV_PARSE *ps)
                "                    before completing the rest of the iterations.                              \n"
                "  -debug DEBUG:     Choose to turn debugging on.  Default is no debugging.                     \n"                        
                "  -output OUTPUT:   Name output file. Default OUTPUT is test_move.                             \n"
-               "                                                                                               \n"
+               "  -M_time M_TIME:   Choose number of time steps used in optimization.                          \n"
+               "                    If set M_time = 1, then no optimization performed.                         \n"
+               "                                                                                               \n" 
                "%s"
                "%s"
                "\n", sio,  s);
@@ -82,8 +84,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_path_optimize_ParseInput(char *argv[], in
    popt->N_ctrl_points = 1;
    popt->renew_weights = 0;
    popt->CtrlPts_iim = NULL;
+   popt->CtrlPts = NULL;
    popt->CtrlPts_i = NULL;
-   popt->CtrlPts_I = NULL;
    popt->CtrlPts_f = NULL;
    popt->Dtheta = NULL;
    popt->Nrm = NULL;    /* Access of rotation used in the spline weights function. */
@@ -95,6 +97,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_path_optimize_ParseInput(char *argv[], in
    popt->neighb_check = 0;
    popt->pause = 0;
    popt->sigma = 0.0;
+   popt->M_time_steps = 10;
    snprintf(popt->outfile, 499*sizeof(char),"test_move");
    kar = 1;
    brk = NOPE;
@@ -141,7 +144,6 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_path_optimize_ParseInput(char *argv[], in
          brk = 1;
       }
       
-      
       if (!brk && (strcmp(argv[kar], "-dom_dim") == 0)) {
          kar ++;
          if (kar >= argc)  
@@ -184,6 +186,22 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_path_optimize_ParseInput(char *argv[], in
          } 
          brk = 1;
       }
+      
+      if (!brk && (strcmp(argv[kar], "-M_time") == 0)) {
+         kar ++;
+         if (kar >= argc)  
+         {
+            fprintf (stderr, "need argument after -M_time \n");
+            exit (1);
+         }
+         popt->M_time_steps = atoi(argv[kar]);               
+         if (popt->M_time_steps <= 0 || popt->M_time_steps > 100) {
+            fprintf (stderr, "You are mad \n");
+            exit (1);
+         } 
+         brk = 1;
+      }
+  
       if (!brk && (strcmp(argv[kar], "-ctrl") == 0)) {
          kar ++;
          if (kar >= argc)  
@@ -295,10 +313,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_path_optimize_ParseInput(char *argv[], in
       }
       /* allocate for CtrlPoints and initialize them */
       popt->CtrlPts_iim = (int *)SUMA_malloc(popt->N_ctrl_points * sizeof (int));
-      popt->CtrlPts_i = (double *)SUMA_calloc(popt->N_ctrl_points * 3, sizeof (double)); /* initial (t=0) XYZ location of each node */
-      popt->CtrlPts_f = (double *)SUMA_calloc(popt->N_ctrl_points * 3, sizeof (double)); /* final   (t=1) XYZ location of each node */
-      popt->CtrlPts_I = (double *)SUMA_calloc(popt->N_ctrl_points * 3, sizeof (double)); /* renewed initial XYZ location of each node */
-     
+      popt->CtrlPts = (double *)SUMA_calloc(popt->N_ctrl_points * 3, sizeof (double));    /* renewed initial (t=0) XYZ location of each node */
+      popt->CtrlPts_f = (double *)SUMA_calloc(popt->N_ctrl_points * 3, sizeof (double));  /* final   (t=1) XYZ location of each node */
+      popt->CtrlPts_i = (double *)SUMA_calloc(popt->N_ctrl_points * 3, sizeof (double));  /* initial XYZ location of each node, never renewed */
+                                                                                          /* Cp_i used for error calculations at end. */
       /* column offsets */
       for (i=0; i<6; ++i) { co[i] = (i+shft)*popt->N_ctrl_points; }
       
@@ -306,9 +324,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_path_optimize_ParseInput(char *argv[], in
          i3 = 3*i;
          if (shft) popt->CtrlPts_iim[i] = (int)far[i];
          else popt->CtrlPts_iim[i] = -1;
-         popt->CtrlPts_I[i3  ] = far[i+co[0]];
-         popt->CtrlPts_I[i3+1] = far[i+co[1]];        
-         popt->CtrlPts_I[i3+2] = far[i+co[2]];
+         popt->CtrlPts_i[i3  ] = far[i+co[0]];
+         popt->CtrlPts_i[i3+1] = far[i+co[1]];        
+         popt->CtrlPts_i[i3+2] = far[i+co[2]];
          popt->CtrlPts_f[i3  ] = far[i+co[3]];
          popt->CtrlPts_f[i3+1] = far[i+co[4]];
          popt->CtrlPts_f[i3+2] = far[i+co[5]];
@@ -321,7 +339,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_path_optimize_ParseInput(char *argv[], in
             i3 = 3*i;
             fprintf(SUMA_STDERR, "%d   %.5f   %.5f   %.5f   %.5f   %.5f   %.5f   \n",
                                  popt->CtrlPts_iim[i],
-                                 popt->CtrlPts_I[i3  ], popt->CtrlPts_I[i3+1], popt->CtrlPts_I[i3+2],
+                                 popt->CtrlPts_i[i3  ], popt->CtrlPts_i[i3+1], popt->CtrlPts_i[i3+2],
                                  popt->CtrlPts_f[i3  ], popt->CtrlPts_f[i3+1], popt->CtrlPts_f[i3+2] );
          }
       }
@@ -355,22 +373,27 @@ The array manipulation code is inside a block tagged with:
 
 int main (int argc,char *argv[])
 {/* Main */    
-   static char FuncName[]={"path_optimize"}; 
-   char outfile_SphereQuality[50];
+   static char FuncName[]={"MAIN_path_optimize"}; 
+   char outfile_SphereQuality[50], outfile_PlotPath[50], outfile_PlotPathSeg[50], outfile_PathConnected[50];
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    MyCircleOpt myopt, *opt = NULL;
-   int i, i3, idm, j, j3, k, adj_factor = 10, s4;
+   int i, i3, idm, j, j3, k, adj_factor = 10, s4, p, m, opt_count = 0;
    double dt;    
    double oxyz[3]={0.0, 0.0, 0.0};
    double oda, faa, error, dtheta=0.0, nrmi[3]={0.0, 0.0, 0.0}, nrmf[3]={0.0, 0.0, 0.0};
    int niter=0, a_niter, first_bad_niter = 0;
    SUMA_SurfaceObject *SO = NULL;
-   void * SO_name;
+   void *SO_name;
    char *shist=NULL;
    int nbad;
    int too_close = 0, need_neighb_adjust = 0, need_more_adjustment = 0;
-   static double energy, energy_sum, time_elapsed;
+   double energy, energy_sum, time_elapsed;    /* DO THESE NEED TO BE STATIC VARIABLES?  
+                                                         DO I NEED THEM WHEN I RETURN TO THE FUNCTION?? */
+   double *dp = NULL, *dp_mi = NULL, *dp_mf = NULL, *dp_new = NULL; 
+   double Lda = 0.0;
+   
+    
    SUMA_Boolean exists;
       
    MyCircle *Ci = NULL;
@@ -381,6 +404,7 @@ int main (int argc,char *argv[])
 	SUMA_mainENTRY;
    SUMA_STANDALONE_INIT;
 
+#if 0
    /* ZSS Array demo starts here ... */
    /* Form a test array M of size 2x3x4x2 like so (created in matlab, indices start at 1 in matlab!) 
    M(:,:,1,1) = [ 1 2 3; 4 5 6]
@@ -422,11 +446,13 @@ int main (int argc,char *argv[])
       
       mxv = SUMA_NewMxVec(SUMA_double, 4, dims, 1); /* allocate for multiplexed vector structure, see function
                                                       help and code in SUMA_DataSets.c. The macros used below
-                                                      are defined in SUMA_DataSets.h */
+                                                      are defined in SUMA_DataSets.h */                                             
       SUMA_ShowMxVec (mxv, 1, NULL); /* show me the contents of mxv struct */                                                
       /* Since I have vr created from matlab, let us insert it into mxv and then access its content with 4 indices */
       for (n=0; n<mxv->N_vals; ++n) mxv->dv[n] = vr[n];  
       SUMA_ShowMxVec (mxv, 1, NULL); /* Now show me the contents of mxv struct */                                                
+      fprintf (stderr,"DIMS AS STORED IN MXV:%d %d %d %d\n"
+                      "NUMBER OF DIMS AS STORED IN MXV: %d\n", mxv->dims[0], mxv->dims[1], mxv->dims[2], mxv->dims[3], mxv->N_dims);
       
       /* Now, for some access tricks */
          /* Each time you use mutliple indices to access an element, the indices have to be combined to get at that element.
@@ -468,10 +494,11 @@ int main (int argc,char *argv[])
       /* all done, cleanup and exit */
       
       mxv = SUMA_FreeMxVec(mxv);
-      exit(0);
+      exit(0);  /*Used to stop the program here. */
    }   
    /* ZSS Array demo stops here ... */
-
+#endif  
+ 
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-o;-talk;");
@@ -483,7 +510,244 @@ int main (int argc,char *argv[])
    
    Opt = SUMA_path_optimize_ParseInput (argv, argc, ps, &myopt);
    opt = (MyCircleOpt *)Opt->popt;
+   
+/*******Begin Optimization Code************************/   
+      
+      int N_dims = 3;
+      int dims[10] = {3, opt->N_ctrl_points, (opt->M_time_steps + 1) };
+      SUMA_MX_VEC *ControlCurve = NULL;
+      ControlCurve = SUMA_NewMxVec( SUMA_double, N_dims, dims, 1 );
+   
+      /* Store max allowabe movement of the ith point at the mth time step. Need this later for limiting lamda. */
+      int M_N_dims = 2;
+      int M_dims[10] = {opt->N_ctrl_points, (opt->M_time_steps + 1) };
+      SUMA_MX_VEC *MaxStep = NULL;
+      MaxStep = SUMA_NewMxVec( SUMA_double, M_N_dims, M_dims, 1 );
+
+      /* Stores perturbation vectors with theta included. */
+      /* Need to store a zero perturbation vector for the end points.  
+            Include this vector for ease of loop calculations later. */
+      int Perturb_N_dims = 4; 
+      int Perturb_dims[12] = {3, opt->N_ctrl_points, (opt->M_time_steps+1), 2 };
+      SUMA_MX_VEC *Perturb_Vec = NULL;
+      Perturb_Vec = SUMA_NewMxVec( SUMA_double, Perturb_N_dims, Perturb_dims, 1 );
+      
+      int S_N_dims = 4;
+      int S_dims[20] = {opt->N_ctrl_points, opt->M_time_steps, 2, 2}; /* control point, time step, q, p */   
+                     /* q for which point perturbed, p for type of perturbation. */
+      SUMA_MX_VEC *Del_S = NULL;
+      Del_S = SUMA_NewMxVec( SUMA_double, S_N_dims, S_dims, 1 );
+      
+      /* Stores new path. */
+      int XL_N_dims = 3;
+      int XL_dims[10] = {3, opt->N_ctrl_points, (opt->M_time_steps+1) };
+      SUMA_MX_VEC *X_Lamda = NULL;
+      X_Lamda = SUMA_NewMxVec( SUMA_double, XL_N_dims, XL_dims, 1 );
+      
+      /* Find the initial control curve.  Calculated uing desired arc of travel and number of steps taken. */
+      Set_up_Control_Curve(opt, ControlCurve);
+   
+   do{
+      /* To see the values stored at ControlCurve. */ 
+      /* SUMA_ShowMxVec(ControlCurve, -1, NULL); */   
+      fprintf(SUMA_STDERR, "Control Curve:\n");
+      for(i=0; i<opt->N_ctrl_points; ++i) {
+         for (m=0; m<opt->M_time_steps+1; ++m) {
+            dp = mxvdp3(ControlCurve, 0, i, m);
+            fprintf(SUMA_STDERR, "%f %f %f\n", dp[0], dp[1], dp[2]);
+         }
+         fprintf(SUMA_STDERR, "\n");
+      }
+    
+      /* Store path as a sphere or segment file to be viewed in SUMA. */
+      FILE *PlotPath = NULL;
+      sprintf(outfile_PlotPath, "SUMA_path%d.1D.dset", opt_count); 
+      PlotPath = fopen (outfile_PlotPath, "w"); 
+      fprintf (PlotPath, "#spheres\n");
+      dp = NULL;
+      for(i=0; i<opt->N_ctrl_points; ++i) {
+         for (m=0; m<opt->M_time_steps+1; ++m) {
+            dp = mxvdp3(ControlCurve, 0, i, m);
+            if(i==0) fprintf (PlotPath, "%f   %f    %f   1.0  0.0  0.0  1.0  0.01  1\n", dp[0], dp[1], dp[2]);
+            if(i==1) fprintf (PlotPath, "%f   %f    %f   0.0  1.0  0.0  1.0  0.01  1\n", dp[0], dp[1], dp[2]);
+            if(i==2) fprintf (PlotPath, "%f   %f    %f   0.0  0.0  1.0  1.0  0.01  1\n", dp[0], dp[1], dp[2]);
+            if(i==3) fprintf (PlotPath, "%f   %f    %f   0.63 0.0 0.67  1.0  0.01  1\n", dp[0], dp[1], dp[2]);
+            dp = NULL;
+         }
+         fprintf (PlotPath,"\n");
+      }   
+
+      Perturbations( opt, ControlCurve, MaxStep, Perturb_Vec );
+
+      fprintf(SUMA_STDERR, "Max Allowable Movement:\n");
+      SUMA_ShowMxVec(MaxStep, -1, NULL);
+      /*SUMA_ShowMxVec(Perturb_Vec, -1, NULL);*/
+
+      fprintf(SUMA_STDERR, "%s: Perturbation Vectors:\n", FuncName);
+      for(p=0; p<2; ++p) {
+         for(k=0; k<(opt->M_time_steps+1); ++k) {
+            for(i=0; i<opt->N_ctrl_points; ++i) {
+               dp = NULL;
+               dp = mxvdp4(Perturb_Vec, 0, i, k, p);
+               fprintf(SUMA_STDERR, "%f   %f   %f\n", dp[0], dp[1], dp[2]);
+            }
+         }
+      }
+
+      fprintf( SUMA_STDERR, "%s: Called Change_in_Energy.\n", FuncName); 
+      Change_in_Energy(opt, ControlCurve, Perturb_Vec, Del_S);
+
+      /* fprintf(SUMA_STDERR, "Show Del_S:\n");
+         SUMA_ShowMxVec(Del_S, -1, NULL); */
+
+      /* THIS IS IT! This list, X_Lamda, contains the adjusted path, the new control point locations. */
+      Lda = Find_Lamda(opt, ControlCurve, MaxStep, Perturb_Vec, Del_S, X_Lamda);
+      fprintf(SUMA_STDERR, "Lamda = %f\n", Lda);
+
+      fprintf(SUMA_STDERR, "Show X_Lamda:\n");
+      SUMA_ShowMxVec(X_Lamda, -1, NULL); 
+      fprintf(SUMA_STDERR, "\n%s: Finished Creating Control Curve.\n", FuncName);
+
+      /* Add new path to sphere or segment file to be viewed in SUMA. */
+      dp = NULL;
+      for(i=0; i<opt->N_ctrl_points; ++i) {
+         for (m=0; m<opt->M_time_steps+1; ++m) {
+            dp = mxvdp3(X_Lamda, 0, i, m);
+            if(i==0) fprintf (PlotPath, "%f   %f    %f     0.95   0.231  0.607  1.0  0.01  2\n", dp[0], dp[1], dp[2]);
+            if(i==1) fprintf (PlotPath, "%f   %f    %f     0.0285 0.633  0.331  1.0  0.01  2\n", dp[0], dp[1], dp[2]);
+            if(i==2) fprintf (PlotPath, "%f   %f    %f     0.363  0.998  0.999  1.0  0.01  2\n", dp[0], dp[1], dp[2]);
+            if(i==3) fprintf (PlotPath, "%f   %f    %f     0.923  0.405  0.263  1.0  0.01  2\n", dp[0], dp[1], dp[2]);
+            dp = NULL;
+         }
+         fprintf (PlotPath,"\n");
+      }   
+      fclose (PlotPath); PlotPath = NULL; 
+      
+      FILE *PlotPathSeg = NULL;
+      sprintf(outfile_PlotPathSeg, "SUMA_PathSeg%d.1D.dset", opt_count); 
+      PlotPathSeg = fopen (outfile_PlotPathSeg, "w"); 
+      fprintf (PlotPathSeg, "#oriented_segments\n");
+      dp = NULL;
+      for(i=0; i<opt->N_ctrl_points; ++i) {
+         for (m=0; m<opt->M_time_steps+1; ++m) {
+            dp = mxvdp3(ControlCurve, 0, i, m);
+            dp_new = mxvdp3(X_Lamda, 0, i, m);
+            if(i==0) fprintf (PlotPathSeg, "%f   %f    %f    %f   %f    %f  1.0  0.0  0.0  1.0  2 \n", 
+                                       dp[0], dp[1], dp[2], dp_new[0], dp_new[1], dp_new[2]);
+            if(i==1) fprintf (PlotPathSeg, "%f   %f    %f   %f   %f    %f  0.0  1.0  0.0  1.0  2 \n", 
+                                       dp[0], dp[1], dp[2], dp_new[0], dp_new[1], dp_new[2]);
+            if(i==2) fprintf (PlotPathSeg, "%f   %f    %f   %f   %f    %f  0.0  0.0  1.0  1.0  2 \n", 
+                                       dp[0], dp[1], dp[2], dp_new[0], dp_new[1], dp_new[2]);
+            if(i==3) fprintf (PlotPathSeg, "%f   %f    %f   %f   %f    %f  0.63 0.0 0.67  1.0  2 \n", 
+                                       dp[0], dp[1], dp[2], dp_new[0], dp_new[1], dp_new[2]);
+            dp_new = NULL;
+         }
+         fprintf (PlotPathSeg,"\n");
+      }   
+      
+      fclose (PlotPathSeg); PlotPathSeg = NULL; 
+      
+      /* Send original control curve to connected path file to be viewed in SUMA. */
+      if(opt_count == 0) {
+         FILE *PathConnected = NULL;
+         PathConnected = fopen ("SUMA_PathConnected_Control.1D.dset", "w"); 
+         fprintf(PathConnected, "#oriented_segments\n");
+         for(i=0; i<opt->N_ctrl_points; ++i) {
+            for (m=0; m<opt->M_time_steps+1; ++m) {
+               if(m<opt->M_time_steps) {
+                  dp = mxvdp3(ControlCurve, 0, i, m);
+                  dp_new = mxvdp3(ControlCurve, 0, i, m+1);
+                  if(i==0) fprintf (PathConnected, "%f   %f    %f    %f   %f    %f  0.95   0.231  0.607  1.0  2 \n", 
+                                                dp[0], dp[1], dp[2], dp_new[0], dp_new[1], dp_new[2]);
+                  if(i==1) fprintf (PathConnected, "%f   %f    %f   %f   %f    %f  0.0285 0.633  0.331  1.0  2 \n", 
+                                                dp[0], dp[1], dp[2], dp_new[0], dp_new[1], dp_new[2]);
+                  if(i==2) fprintf (PathConnected, "%f   %f    %f   %f   %f    %f  0.363  0.998  0.999  1.0  2 \n", 
+                                                dp[0], dp[1], dp[2], dp_new[0], dp_new[1], dp_new[2]);
+                  if(i==3) fprintf (PathConnected, "%f   %f    %f   %f   %f    %f 0.923  0.405  0.263 1.0  2 \n", 
+                                                dp[0], dp[1], dp[2], dp_new[0], dp_new[1], dp_new[2]);
+               } else {
+                  dp = mxvdp3(ControlCurve, 0, i, m);
+                  if(i==0) fprintf (PathConnected, "%f   %f    %f    %f   %f    %f  0.95   0.231  0.607  1.0  2 \n", 
+                                                dp[0], dp[1], dp[2], dp[0], dp[1], dp[2]);
+                  if(i==1) fprintf (PathConnected, "%f   %f    %f   %f   %f    %f  0.0285 0.633  0.331  1.0  2 \n", 
+                                                dp[0], dp[1], dp[2], dp[0], dp[1], dp[2]);
+                  if(i==2) fprintf (PathConnected, "%f   %f    %f   %f   %f    %f  0.363  0.998  0.999  1.0  2 \n", 
+                                                dp[0], dp[1], dp[2], dp[0], dp[1], dp[2]);
+                  if(i==3) fprintf (PathConnected, "%f   %f    %f   %f   %f    %f  0.923  0.405  0.263  1.0  2 \n", 
+                                                dp[0], dp[1], dp[2], dp[0], dp[1], dp[2]);
+               }                            
+               dp = NULL; dp_new = NULL;          
+            }
+         }
+         fclose (PathConnected); PathConnected = NULL;
+      } 
+      
+      /* Set X_Lamda as new ControlCurve. When Changing Lda no longer helps, most recent ControlCurve is best path. */
+      /* Now repeat optimization.  Keep repeating until path no longer changes.  Stop when best Lda is 0. */
+      if( Lda>0.0) {    /* When Lda=0, no longer adjusting path.  Then want Control Curve to stay the same. */
+         for(i=0; i<opt->N_ctrl_points; ++i) {
+            for (m=0; m<opt->M_time_steps+1; ++m) {
+               dp = mxvdp3(ControlCurve, 0, i, m);
+
+               dp[0] = mxvd3(X_Lamda, 0, i, m);
+               dp[1] = mxvd3(X_Lamda, 1, i, m);
+               dp[2] = mxvd3(X_Lamda, 2, i, m);
+               dp = NULL;
+            }
+         }
+      }
+     
+      /* Send connected control curve to file to be viewed in SUMA.  Draws line between dots to connect the path. */
+      FILE *PathConnected = NULL;
+      sprintf(outfile_PathConnected, "SUMA_PathConnected_%d.1D.dset", opt_count); 
+      PathConnected = fopen (outfile_PathConnected, "w"); 
+      fprintf (PathConnected, "#oriented_segments\n");
+      dp = NULL;
+
+      for(i=0; i<opt->N_ctrl_points; ++i) {
+         for (m=0; m<opt->M_time_steps+1; ++m) {
+            if(m<opt->M_time_steps) {
+               dp = mxvdp3(ControlCurve, 0, i, m);
+               dp_new = mxvdp3(ControlCurve, 0, i, m+1);
+               if(i==0) fprintf (PathConnected, "%f   %f    %f    %f   %f    %f  1.0  0.0  0.0  1.0  2 \n", 
+                                             dp[0], dp[1], dp[2], dp_new[0], dp_new[1], dp_new[2]);
+               if(i==1) fprintf (PathConnected, "%f   %f    %f   %f   %f    %f  0.0  1.0  0.0  1.0  2 \n", 
+                                             dp[0], dp[1], dp[2], dp_new[0], dp_new[1], dp_new[2]);
+               if(i==2) fprintf (PathConnected, "%f   %f    %f   %f   %f    %f  0.0  0.0  1.0  1.0  2 \n", 
+                                             dp[0], dp[1], dp[2], dp_new[0], dp_new[1], dp_new[2]);
+               if(i==3) fprintf (PathConnected, "%f   %f    %f   %f   %f    %f  0.63 0.0  0.67  1.0  2 \n", 
+                                             dp[0], dp[1], dp[2], dp_new[0], dp_new[1], dp_new[2]);
+               
+            } else {
+               dp = mxvdp3(ControlCurve, 0, i, m);
+               if(i==0) fprintf (PathConnected, "%f   %f    %f    %f   %f    %f  1.0  0.0  0.0  1.0  2 \n", 
+                                             dp[0], dp[1], dp[2], dp[0], dp[1], dp[2]);
+               if(i==1) fprintf (PathConnected, "%f   %f    %f   %f   %f    %f  0.0  1.0  0.0  1.0  2 \n", 
+                                             dp[0], dp[1], dp[2], dp[0], dp[1], dp[2]);
+               if(i==2) fprintf (PathConnected, "%f   %f    %f   %f   %f    %f  0.0  0.0  1.0  1.0  2 \n", 
+                                             dp[0], dp[1], dp[2], dp[0], dp[1], dp[2]);
+               if(i==3) fprintf (PathConnected, "%f   %f    %f   %f   %f    %f  0.63 0.0  0.67  1.0  2 \n", 
+                                             dp[0], dp[1], dp[2], dp[0], dp[1], dp[2]);
+            }                            
+            dp = NULL; dp_new = NULL;                          
+         }
+      }
+      fclose (PathConnected); PathConnected = NULL;
+
+      ++opt_count;
+   } while ( Lda > 0.0);
+   
+   fprintf(SUMA_STDERR, "Final Control Curve:\n");
+   for(i=0; i<opt->N_ctrl_points; ++i) {
+      for (m=0; m<opt->M_time_steps+1; ++m) {
+         dp = mxvdp3(ControlCurve, 0, i, m);
+         fprintf(SUMA_STDERR, "%f %f %f\n", dp[0], dp[1], dp[2]);
+      }
+      fprintf(SUMA_STDERR, "\n");
+   }
   
+/********************************************************/    
+   
    if (opt->dbg_flag) { fprintf(stderr,"%s: About to allocate (N_sub = %d).\n", FuncName, opt->N_sub); }
    Ci = (MyCircle *)SUMA_malloc(sizeof (MyCircle)); 
    
@@ -506,7 +770,7 @@ int main (int argc,char *argv[])
    Ci->VelocityMagnitude = (double *)SUMA_malloc(Ci->N_Node * sizeof (double));
    Ci->NewNodeList = (double *)SUMA_malloc(Ci->N_Node * 3 * sizeof (double));
    Ci->Theta = (double *)SUMA_malloc(Ci->N_Node * 3 * sizeof (double));
-   
+ 
    if(opt->dot == 1) { fprintf( stderr, "USING DOT PRODUCT RESTRICTION.\n"); } 
    
    if (opt->dom_dim == 2) {
@@ -584,237 +848,307 @@ int main (int argc,char *argv[])
       }
    }
 
-   /* Initialize renewable initial control points (for error computations). */  
-   for (i = 0; i < 3*opt->N_ctrl_points; ++i) opt->CtrlPts_i[i] = opt->CtrlPts_I[i]; 
-   
+   /* To start, Nodelist comes from Icosahedron or circle creation above. */
    /* Initialize NewNodelist and Velocity Field. */
    for (i = 0; i < 3*Ci->N_Node; ++i) {
       Ci->NewNodeList[i] = 0.0;
       Ci->NewNodeList[i] = Ci->NodeList[i]; 
-      Ci->VelocityField[i] = 0.0; 
-   }  
-   
-   /* Calculate spline weights to fit velocity field. */   
-   if (!FindSplineWeights (Ci, opt)) {
-      SUMA_S_Err("Failed in FindSplineWeights");
-      exit(1);
-   }
-   
-   if (LocalHead) { fprintf(stderr,"%s: Calculating initial velocity field.\n", FuncName); }
-   
-	/* Calculate initial velocity field.*/
-   if (!Velocity(Ci, opt)) {
-      SUMA_S_Err("Failed while calculating velocity field");
-      exit(1);
    }
 
-   if( LocalHead ) {
-      fprintf(SUMA_STDERR, "MAIN: Calculated Initial Velocity Field at Control Points:\n"
-                           "V = [ \n"); 
-      for(i=0; i < opt->N_ctrl_points; ++i){ 
-         fprintf(SUMA_STDERR, "  %.20f;   %.20f;    %.20f;\n",
-                              Ci->VelocityField[3*opt->CtrlPts_iim[i]  ],
-                              Ci->VelocityField[3*opt->CtrlPts_iim[i]+1],
-                              Ci->VelocityField[3*opt->CtrlPts_iim[i]+2]);}  
-      fprintf(SUMA_STDERR, "];\n"); 
-   } 
-   
-   /* loop until time is 1 */
-   if (LocalHead) {
-      fprintf(SUMA_STDERR,"%s: About to enter main loop:\n"
-                          "adjust shorty     = %d\n", 
-                          FuncName, 
-                          opt->adjust );
-   } 
- 
-   if (opt->dbg_flag) {
-      if (opt->adjust == 0) fprintf(stderr,"%s: Moving the points, no adjustment. (N_Node = %d)\n", FuncName, Ci->N_Node); 
-      else fprintf(stderr,"%s: Moving the points, adjusted. (N_Node = %d)\n", FuncName, Ci->N_Node); 
-   }
-   
    /* For plotting energy over time.  Energy over the whole move, initial to final. */
    FILE *energy_graph = NULL;
    energy_graph = fopen("plot_energy.1D", "w");
-   
-   niter = 0;
-   a_niter = 0; 
-   do { 
-      
-      if(opt->neighb_adjust) {
-         if(a_niter) { dt = 1.0/(adj_factor*(opt->N_step - niter) - a_niter); }
-         else { dt = 1.0/(opt->N_step - niter); } 
-      }else { dt = 1.0/(opt->N_step - niter); }
-     
-      Debug_Move (Ci, opt, SO, dt, niter, a_niter, first_bad_niter);
-      
-      /* To create graphs like those at the end of the paper of energy of velocity over time, need to 
-            calculate the sum of the dot product of the velocity and the weights at each control point
-            and store this value to file along side a column with the time. */
-      /* WILL NEED TO ADD TO THIS SO WORKS WITH NEIGHBOR ADJUSTMENT.  NEEDS TO ALLOW FOR A_NITER.*/
-      energy_sum = 0.0;
-      for(i=0; i < opt->N_ctrl_points; ++i) {
-         j = opt->CtrlPts_iim[i];
-         j3 = 3*j;
-         i3 = 3*i;
-         energy = 0.0;
-         energy = SUMA_MT_DOT( (&(Ci->VelocityField[j3])), (&(Ci->Wv.elts[i3])) );
-         energy_sum += energy;  
-      }
-      time_elapsed = (niter); 
-      time_elapsed = time_elapsed/opt->N_step;
-      fprintf(energy_graph, "%11.8f  %11.8f\n", time_elapsed, energy_sum);
-   
-      /* Calculate step size and make adjustment. */
-      Calculate_Step (Ci, opt, dt);
-  
-      /* Check to see if Neighbors are too close. */
-      if(opt->neighb_check || opt->neighb_adjust) {
-         if(!a_niter){
-            too_close = 0.0;
-            too_close = Neighbor(Ci, opt, SO, niter, a_niter);
-            if(!need_neighb_adjust) need_neighb_adjust = too_close;
-         }
-      }  
-      
-      /* Adjust neighbors if they are too close. */
-      if(opt->neighb_adjust && !a_niter){ 
-         if(too_close){    /* Since nearest neighbor is too close for this step size, 
-                              adjust dt and recalculate stepping velocity. */
-                           /* Only allowing for dt to be shrunk once. If using a_niter to index, 
-                              don't let dt get any smaller. */
-            dt = 1.0/( adj_factor*(opt->N_step - niter) - a_niter );
-            fprintf(SUMA_STDERR, "%s: dt_adjusted = %f; niter = %d, a_niter = %d\n", FuncName, dt, niter, a_niter);
-            
-            /* Calculate step size and make adjustment. */
-            Calculate_Step (Ci, opt, dt);
-            
-            /* Recheck neighbor distances to see if adjustment was enough.  
-               Find one time when adjustment not enough, then stop checking. */
-            if(!need_more_adjustment) need_more_adjustment = Neighbor(Ci, opt, SO, niter, a_niter);
-            
-            if(LocalHead) {   
-               i = opt->CtrlPts_iim[0]; 
-               s4 = i*4;
-               fprintf(SUMA_STDERR, "%s:First control point:\n"
-                                    "  New Vf*dt = [%f; %f; %f], stepsize = %f\n", 
-                                    FuncName, Ci->Vf_Step[s4  ], Ci->Vf_Step[s4+1], Ci->Vf_Step[s4+2], Ci->Vf_Step[s4+3]);
-            }
-         }
-      }
-      
-      /* ONCE STEP SIZE IS SMALLER THAN DISTANCE TO NEAREST NODE, CAN CONTINUE WITH MOVE. */
-      if (LocalHead) {
-         i = opt->CtrlPts_iim[0];  /* Debug when node is 1st control point. */
-         i3 = i*3;
-         s4 = i*4;
-         fprintf(SUMA_STDERR, "********************************************\n");
-         if(opt->neighb_adjust){ fprintf(SUMA_STDERR,"Iter %d: (a_niter %d) debug for node %d\n", niter, a_niter, i); }
-         else{ fprintf(SUMA_STDERR,"Iter %d: debug for node %d\n", niter, i); }
-         if(too_close){ fprintf(SUMA_STDERR, "Consider adjusting dt because step size larger than distance to neighbor.\n"); }
-         fprintf(SUMA_STDERR, "dt = %f\n"
-                              "u        = [%.8f %.8f %.8f], um = %.8f\n"
-                              "udotrad  = [%.18f]\n" 
-                              "old[XYZ] = [%.8f %.8f %.8f]\n", 
-                              dt, 
-                              Ci->Vf_Step[s4  ], Ci->Vf_Step[s4+1], Ci->Vf_Step[s4+2], Ci->Vf_Step[s4+3],
-                              SUMA_MT_DOT( (&(Ci->Vf_Step[s4  ])),(&(Ci->NewNodeList[i3  ]))),
-                              Ci->NewNodeList[i3  ], Ci->NewNodeList[i3+1], Ci->NewNodeList[i3+2]);
-         oxyz[0] = Ci->NewNodeList[i3  ];
-         oxyz[1] = Ci->NewNodeList[i3+1];
-         oxyz[2] = Ci->NewNodeList[i3+2];
-      }
-      
-      /* Move the points! */
-      Move_Points(Ci, opt);
-           
-      /* Recalculate surface normals. */
-      if (ps->cs->talk_suma) {
-         for (i3=0; i3<3*SO->N_Node; ++i3) SO->NodeList[i3] = Ci->NewNodeList[i3];
-         SUMA_RECOMPUTE_NORMALS(SO); 
-         if (ps->cs->Send) {
-            if (!SUMA_SendToSuma (SO, ps->cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
-               SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
-            }
-         }
-      }
-      
-      /* Check Sphere Quality.  Since want to check at the end of each iteration, need to start at niter = 1. */
-      if(!first_bad_niter || niter < first_bad_niter+5){ 
-         if (opt->neighb_adjust) { 
-            fprintf(SUMA_STDERR, "\nNITER = %d, a_niter = %d", niter, a_niter);
-            sprintf(outfile_SphereQuality, "SphereQuality_%d_%d", niter, a_niter);
-         } else {         
-            fprintf(SUMA_STDERR, "\nNITER = %d", niter);
-            sprintf(outfile_SphereQuality, "SphereQuality_%d", niter);
-         } 
-         SO_name = SUMA_Prefix2SurfaceName (outfile_SphereQuality, NULL, NULL, SUMA_VEC, &exists); 
-         for (i3=0; i3<3*SO->N_Node; ++i3) SO->NodeList[i3] = Ci->NewNodeList[i3];
-         SUMA_RECOMPUTE_NORMALS(SO);
-         shist = SUMA_HistString (NULL, argc, argv, NULL);
-         nbad = SUMA_SphereQuality(SO, outfile_SphereQuality , shist);
-         if(nbad && !first_bad_niter){ first_bad_niter = niter; }
-         if (shist) SUMA_free(shist); shist = NULL;
-         SUMA_Save_Surface_Object(SO_name, SO, SUMA_VEC, SUMA_ASCII, NULL);
-      }
- 
-      /* Call spline weight function to recalculate spline weights for renew_weights option. */
-      if (opt->renew_weights) { 
-         if(LocalHead) {
-            fprintf( SUMA_STDERR, "%s: RENEW_WEIGHTS OPTION -- Check renewed control points: \n", FuncName ); }
-         for(i=0; i < opt->N_ctrl_points; ++i) {
-            i3 = 3*i;
-            opt->CtrlPts_i[i3  ] = Ci->NewNodeList[3*(opt->CtrlPts_iim[i])  ];
-            opt->CtrlPts_i[i3+1] = Ci->NewNodeList[3*(opt->CtrlPts_iim[i])+1];
-            opt->CtrlPts_i[i3+2] = Ci->NewNodeList[3*(opt->CtrlPts_iim[i])+2];
-            
-            Ci->Wv.elts[i3  ] = 0.0; 
-            Ci->Wv.elts[i3+1] = 0.0; 
-            Ci->Wv.elts[i3+2] = 0.0; 
-         if(opt->dbg_flag) {
-            fprintf( SUMA_STDERR, "%s: Control Point(%d) = [%11.8f;  %11.8f;   %11.8f] \n", FuncName, i, 
-                                    opt->CtrlPts_i[i3  ], opt->CtrlPts_i[i3+1], opt->CtrlPts_i[i3+2] ); }
-         }
-         FindSplineWeights(Ci, opt); 
-      } 
-        
-      /* Reset Velocity Field. */
+
+   for(m=0; m<opt->M_time_steps; ++m) {
+      first_bad_niter = 0; 
+      fprintf(SUMA_STDERR, "\n%s:Setting up for move. m = %d\n", FuncName, m);
+
       for (i = 0; i < 3*Ci->N_Node; ++i) Ci->VelocityField[i] = 0.0;  
       
-      Velocity(Ci, opt); 
-      
-      if(LocalHead) {
-         fprintf(SUMA_STDERR, "%s: VelocityField at Control Points: \n", FuncName);
-         for(j=0; j < opt->N_ctrl_points; ++j){ 
-            i = opt->CtrlPts_iim[j];
-            i3 = i*3;
-            fprintf(SUMA_STDERR, "Vf(%d) = [%f   %f    %f]\n"
-                                 "  Magnitude = %f \n"
-                                 "  Dot_v = %.12f \n",
-                                 i, Ci->VelocityField[i3  ], Ci->VelocityField[i3+1], Ci->VelocityField[i3+2], 
-                                 sqrt( Ci->VelocityField[i3  ]*Ci->VelocityField[i3  ] + 
-                                       Ci->VelocityField[i3+1]*Ci->VelocityField[i3+1] +
-                                       Ci->VelocityField[i3+2]*Ci->VelocityField[i3+2] ), 
-                                 SUMA_MT_DOT( (&(Ci->VelocityField[i3])), (&(Ci->NewNodeList[i3])) ) ); }  
+      if(Lda > 0.0 && opt->M_time_steps > 1) {
+         for(i=0; i<opt->N_ctrl_points; ++i) {
+            i3 = 3*i;
+            dp_mi = mxvdp3(X_Lamda, 0, i, m);    /* initial */
+            dp_mf = mxvdp3(X_Lamda, 0, i, m+1);  /* final */
+
+            opt->CtrlPts_i[i3  ] = dp_mi[0];
+            opt->CtrlPts_i[i3+1] = dp_mi[1];
+            opt->CtrlPts_i[i3+2] = dp_mi[2];
+
+            opt->CtrlPts_f[i3  ] = dp_mf[0];
+            opt->CtrlPts_f[i3+1] = dp_mf[1];
+            opt->CtrlPts_f[i3+2] = dp_mf[2];
+
+            dp_mi = NULL; dp_mf = NULL;
+         }        
+      } 
+      if(Lda == 0.0 || opt->M_time_steps < 2) {  /* When Lda = 0, use original path. Use ControlCurve. */
+         for(i=0; i<opt->N_ctrl_points; ++i) {
+            i3 = 3*i;
+            dp_mi = mxvdp3(ControlCurve, 0, i, m);    /* initial */
+            dp_mf = mxvdp3(ControlCurve, 0, i, m+1);  /* final */
+
+            opt->CtrlPts_i[i3  ] = dp_mi[0];
+            opt->CtrlPts_i[i3+1] = dp_mi[1];
+            opt->CtrlPts_i[i3+2] = dp_mi[2];
+
+            opt->CtrlPts_f[i3  ] = dp_mf[0];
+            opt->CtrlPts_f[i3+1] = dp_mf[1];
+            opt->CtrlPts_f[i3+2] = dp_mf[2];
+
+            dp_mi = NULL; dp_mf = NULL;
+         }        
       }
       
-      if(opt->neighb_adjust && too_close && a_niter < adj_factor-1) ++a_niter; 
-      else { ++niter; a_niter = 0; }
-   }  while( niter < opt->N_step );       
-   
+      fprintf(SUMA_STDERR, "Control Points! m=%d to m=%d\n", m, m+1);
+      for(i=0; i<opt->N_ctrl_points; ++i) {
+         i3 = 3*i;
+         fprintf(SUMA_STDERR, "[%f   %f    %f]  [%f   %f    %f] \n", 
+                              opt->CtrlPts_i[i3  ], opt->CtrlPts_i[i3+1], opt->CtrlPts_i[i3+2], 
+                              opt->CtrlPts_f[i3  ], opt->CtrlPts_f[i3+1], opt->CtrlPts_f[i3+2]);  
+      }  
+     
+      /* Initialize renewable initial control points (for error computations). */  
+      for (i = 0; i < 3*opt->N_ctrl_points; ++i) opt->CtrlPts[i] = opt->CtrlPts_i[i]; 
+
+      /* Calculate spline weights to fit velocity field. */   
+      if (!FindSplineWeights (Ci, opt)) {
+         SUMA_S_Err("Failed in FindSplineWeights");
+         exit(1);
+      }
+
+      /* Calculate initial velocity field.*/
+      if (LocalHead) { fprintf(stderr,"%s: Calculating initial velocity field.\n", FuncName); }
+      if (!Velocity(Ci, opt)) {
+         SUMA_S_Err("Failed while calculating velocity field");
+         exit(1);
+      }
+
+      if( LocalHead ) {
+         fprintf(SUMA_STDERR, "%s: Calculated Initial Velocity Field at Control Points:\n"
+                              "V = [ \n", FuncName); 
+         for(i=0; i < opt->N_ctrl_points; ++i){ 
+            fprintf(SUMA_STDERR, "  %.20f;   %.20f;    %.20f;\n",
+                                 Ci->VelocityField[3*opt->CtrlPts_iim[i]  ],
+                                 Ci->VelocityField[3*opt->CtrlPts_iim[i]+1],
+                                 Ci->VelocityField[3*opt->CtrlPts_iim[i]+2]);}  
+         fprintf(SUMA_STDERR, "];\n"); 
+      } 
+
+      /* loop until time is 1 */
+      if (LocalHead) {
+         fprintf(SUMA_STDERR,"%s: About to enter main loop:\n"
+                             "adjust shorty     = %d\n", 
+                             FuncName, 
+                             opt->adjust );
+      } 
+
+      if (opt->dbg_flag) {
+         if (opt->adjust == 0) fprintf(stderr,"%s: Moving the points, no adjustment. (N_Node = %d)\n", FuncName, Ci->N_Node); 
+         else fprintf(stderr,"%s: Moving the points, adjusted. (N_Node = %d)\n", FuncName, Ci->N_Node); 
+      }
+
+
+      niter = 0;
+      a_niter = 0; 
+      do { 
+
+         if(opt->neighb_adjust) {
+            if(a_niter) { dt = 1.0/(adj_factor*(opt->N_step - niter) - a_niter); }
+            else { dt = 1.0/(opt->N_step - niter); } 
+         }else { dt = 1.0/(opt->N_step - niter); }
+
+         if(LocalHead) { Debug_Move (Ci, opt, SO, dt, niter, a_niter, first_bad_niter);}
+
+         /* To create graphs like those at the end of the paper of energy of velocity over time, need to 
+               calculate the sum of the dot product of the velocity and the weights at each control point
+               and store this value to file along side a column with the time. */
+         /* WILL NEED TO ADD TO THIS SO WORKS WITH NEIGHBOR ADJUSTMENT.  NEEDS TO ALLOW FOR A_NITER.*/
+         energy_sum = 0.0;
+         for(i=0; i < opt->N_ctrl_points; ++i) {
+            j = opt->CtrlPts_iim[i];
+            j3 = 3*j;
+            i3 = 3*i;
+            energy = 0.0;
+            energy = SUMA_MT_DOT( (&(Ci->VelocityField[j3])), (&(Ci->Wv.elts[i3])) );
+            energy_sum += energy;  
+         }
+         time_elapsed = (niter); 
+         time_elapsed = time_elapsed/opt->N_step;
+         fprintf(energy_graph, "%11.8f  %11.8f\n", time_elapsed, energy_sum);
+
+         /* Calculate step size and make adjustment. */
+         Calculate_Step (Ci, opt, dt);
+
+         /* Check to see if Neighbors are too close. */
+         if(opt->neighb_check || opt->neighb_adjust) {
+            if(!a_niter){
+               too_close = 0.0;
+               too_close = Neighbor(Ci, opt, SO, niter, a_niter);
+               if(!need_neighb_adjust) need_neighb_adjust = too_close;
+            }
+         }  
+
+         /* Adjust neighbors if they are too close. */
+         if(opt->neighb_adjust && !a_niter){ 
+            if(too_close){    /* Since nearest neighbor is too close for this step size, 
+                                 adjust dt and recalculate stepping velocity. */
+                              /* Only allowing for dt to be shrunk once. If using a_niter to index, 
+                                 don't let dt get any smaller. */
+               dt = 1.0/( adj_factor*(opt->N_step - niter) - a_niter );
+               fprintf(SUMA_STDERR, "%s: dt_adjusted = %f; niter = %d, a_niter = %d\n", FuncName, dt, niter, a_niter);
+
+               /* Calculate step size and make adjustment. */
+               Calculate_Step (Ci, opt, dt);
+
+               /* Recheck neighbor distances to see if adjustment was enough.  
+                  Find one time when adjustment not enough, then stop checking. */
+               if(!need_more_adjustment) need_more_adjustment = Neighbor(Ci, opt, SO, niter, a_niter);
+
+               if(LocalHead) {   
+                  i = opt->CtrlPts_iim[0]; 
+                  s4 = i*4;
+                  fprintf(SUMA_STDERR, "%s:First control point:\n"
+                                       "  New Vf*dt = [%f; %f; %f], stepsize = %f\n", 
+                                       FuncName, Ci->Vf_Step[s4  ], Ci->Vf_Step[s4+1], Ci->Vf_Step[s4+2], Ci->Vf_Step[s4+3]);
+               }
+            }
+         }
+
+         /* ONCE STEP SIZE IS SMALLER THAN DISTANCE TO NEAREST NODE, CAN CONTINUE WITH MOVE. */
+         if (LocalHead) {
+            i = opt->CtrlPts_iim[0];  /* Debug when node is 1st control point. */
+            i3 = i*3;
+            s4 = i*4;
+            fprintf(SUMA_STDERR, "********************************************\n");
+            if(opt->neighb_adjust){ fprintf(SUMA_STDERR,"Iter %d: (a_niter %d) debug for node %d\n", niter, a_niter, i); }
+            else{ fprintf(SUMA_STDERR,"Iter %d: debug for node %d\n", niter, i); }
+            if(too_close){ fprintf(SUMA_STDERR, "Consider adjusting dt because step size larger than distance to neighbor.\n"); }
+            fprintf(SUMA_STDERR, "dt = %f\n"
+                                 "u        = [%.8f %.8f %.8f], um = %.8f\n"
+                                 "udotrad  = [%.18f]\n" 
+                                 "old[XYZ] = [%.8f %.8f %.8f]\n", 
+                                 dt, 
+                                 Ci->Vf_Step[s4  ], Ci->Vf_Step[s4+1], Ci->Vf_Step[s4+2], Ci->Vf_Step[s4+3],
+                                 SUMA_MT_DOT( (&(Ci->Vf_Step[s4  ])),(&(Ci->NewNodeList[i3  ]))),
+                                 Ci->NewNodeList[i3  ], Ci->NewNodeList[i3+1], Ci->NewNodeList[i3+2]);
+            oxyz[0] = Ci->NewNodeList[i3  ];
+            oxyz[1] = Ci->NewNodeList[i3+1];
+            oxyz[2] = Ci->NewNodeList[i3+2];
+         }
+
+         /* Move the points! */
+         Move_Points(Ci, opt);
+
+         /* Recalculate surface normals. */
+         if (ps->cs->talk_suma) {
+            for (i3=0; i3<3*SO->N_Node; ++i3) SO->NodeList[i3] = Ci->NewNodeList[i3];
+            SUMA_RECOMPUTE_NORMALS(SO); 
+            if (ps->cs->Send) {
+               if (!SUMA_SendToSuma (SO, ps->cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+                  SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+               }
+            }
+         }
+
+#if 0 
+         /* Check Sphere Quality.  Since want to check at the end of each iteration, need to start at niter = 1. */
+         if(!first_bad_niter || niter < first_bad_niter+5){ 
+            
+            fprintf(SUMA_STDERR, "\n%s: NITER = %d\n", FuncName, niter);
+            sprintf(outfile_SphereQuality, "SphereQuality_m%d_n%d", m, niter);
+             
+            SO_name = SUMA_Prefix2SurfaceName (outfile_SphereQuality, NULL, NULL, SUMA_VEC, &exists);
+            for (i3=0; i3<3*SO->N_Node; ++i3) SO->NodeList[i3] = Ci->NewNodeList[i3];
+            SUMA_RECOMPUTE_NORMALS(SO);
+            
+            shist = SUMA_HistString (FuncName, argc, argv, NULL);
+            nbad = SUMA_SphereQuality(SO, outfile_SphereQuality , shist);
+            if(nbad && !first_bad_niter){ first_bad_niter = niter; }
+            if (shist) SUMA_free(shist); shist = NULL;
+            SUMA_Save_Surface_Object(SO_name, SO, SUMA_VEC, SUMA_ASCII, NULL);
+         }
+#endif
+ 
+         
+         /* Call spline weight function to recalculate spline weights for renew_weights option. */
+         if (opt->renew_weights) { 
+            if(LocalHead) {
+               fprintf( SUMA_STDERR, "%s: RENEW_WEIGHTS OPTION -- Check renewed control points: \n", FuncName ); }
+            for(i=0; i < opt->N_ctrl_points; ++i) {
+               i3 = 3*i;
+               opt->CtrlPts[i3  ] = Ci->NewNodeList[3*(opt->CtrlPts_iim[i])  ];
+               opt->CtrlPts[i3+1] = Ci->NewNodeList[3*(opt->CtrlPts_iim[i])+1];
+               opt->CtrlPts[i3+2] = Ci->NewNodeList[3*(opt->CtrlPts_iim[i])+2];
+
+               Ci->Wv.elts[i3  ] = 0.0; 
+               Ci->Wv.elts[i3+1] = 0.0; 
+               Ci->Wv.elts[i3+2] = 0.0; 
+            if(opt->dbg_flag) {
+               fprintf( SUMA_STDERR, "%s: Control Point(%d) = [%11.8f;  %11.8f;   %11.8f] \n", FuncName, i, 
+                                       opt->CtrlPts[i3  ], opt->CtrlPts[i3+1], opt->CtrlPts[i3+2] ); }
+            }
+            FindSplineWeights(Ci, opt); 
+         } 
+
+         /* Reset Velocity Field. */
+         for (i = 0; i < 3*Ci->N_Node; ++i) Ci->VelocityField[i] = 0.0;  
+         
+         /* Recalculating velocity field for next step.  Same m here. */
+         Velocity(Ci, opt); 
+
+         if(LocalHead) {
+            fprintf(SUMA_STDERR, "%s: VelocityField at Control Points(m=%d): \n", FuncName, m);
+            for(j=0; j < opt->N_ctrl_points; ++j){ 
+               i = opt->CtrlPts_iim[j];
+               i3 = i*3;
+               fprintf(SUMA_STDERR, "Vf(%d) = [%f   %f    %f]\n"
+                                    "  Magnitude = %f \n"
+                                    "  Dot_v = %.12f \n",
+                                    i, Ci->VelocityField[i3  ], Ci->VelocityField[i3+1], Ci->VelocityField[i3+2], 
+                                    sqrt( Ci->VelocityField[i3  ]*Ci->VelocityField[i3  ] + 
+                                          Ci->VelocityField[i3+1]*Ci->VelocityField[i3+1] +
+                                          Ci->VelocityField[i3+2]*Ci->VelocityField[i3+2] ), 
+                                    SUMA_MT_DOT( (&(Ci->VelocityField[i3])), (&(Ci->NewNodeList[i3])) ) ); }  
+         }
+
+         if(opt->neighb_adjust && too_close && a_niter < adj_factor-1) ++a_niter; 
+         else { ++niter; a_niter = 0; }
+      }  while( niter < opt->N_step ); 
+      
+      
+      fprintf(SUMA_STDERR, "******End Do-Loop here.\n");
+      
+      /* Check Sphere Quality after each m time interval. */    
+      fprintf(SUMA_STDERR, "\n%s: Check Sphere Quality: m=%d to m=%d\n", FuncName, m, m+1);
+      sprintf(outfile_SphereQuality, "SphereQuality_m%d", m);
+        
+      SO_name = SUMA_Prefix2SurfaceName (outfile_SphereQuality, NULL, NULL, SUMA_VEC, &exists);
+      for (i3=0; i3<3*SO->N_Node; ++i3) SO->NodeList[i3] = Ci->NewNodeList[i3];
+      SUMA_RECOMPUTE_NORMALS(SO);
+      shist = SUMA_HistString (FuncName, argc, argv, NULL);
+      nbad = SUMA_SphereQuality(SO, outfile_SphereQuality , shist);
+      if(nbad && !first_bad_niter){ first_bad_niter = niter; }
+      if (shist) SUMA_free(shist); shist = NULL;
+      SUMA_Save_Surface_Object(SO_name, SO, SUMA_VEC, SUMA_ASCII, NULL);
+   }
+
+ 
+
    fclose(energy_graph); energy_graph = NULL;
     
    for (i=0; i<opt->N_ctrl_points; ++i) {
       i3 = 3 * i;
       fprintf(SUMA_STDERR,"%s: Angular error reports where control points coincide with nodes:\n"
-                          "Niter = %d, last dt used= %f\n"
+                          "Niter = %d\n"
                           "#Col. 0: Ctrl_Node\n"
                           "#Col. 1: Original Desired Angle \n"
                           "#Col. 2: Final Achieved Angle  \n"
                           "#Col. 3: Error (ODA-FAA) in rad.\n"
-                          "#Col. 4: Error (ODA-FAA) in deg.\n", FuncName, niter, dt);
+                          "#Col. 4: Error (ODA-FAA) in deg.\n", FuncName, niter);
       if (opt->CtrlPts_iim[i] >= 0) {
-         SUMA_ANGLE_DIST_NC( (&(opt->CtrlPts_f[i3])), (&(opt->CtrlPts_I[i3])), oda, nrmi); /* original desired angle */ 
-         SUMA_ANGLE_DIST_NC( (&(Ci->NewNodeList[3*opt->CtrlPts_iim[i]])), (&(opt->CtrlPts_I[i3])), faa, nrmf); /* final achieved angle */ 
+         SUMA_ANGLE_DIST_NC( (&(opt->CtrlPts_f[i3])), (&(opt->CtrlPts_i[i3])), oda, nrmi); /* original desired angle */ 
+         SUMA_ANGLE_DIST_NC( (&(Ci->NewNodeList[3*opt->CtrlPts_iim[i]])), (&(opt->CtrlPts_i[i3])), faa, nrmf); /* final achieved angle */ 
          error = abs(oda - faa);
          fprintf(SUMA_STDERR,"%d   %.5f   %.5f   %.15f   %.15f\n", opt->CtrlPts_iim[i], oda, faa, error, SUMA_R2D(error));
          if(need_neighb_adjust && opt->neighb_check){ 
@@ -827,6 +1161,7 @@ int main (int argc,char *argv[])
                                  "     original desired axis of rotation = %f    %f    %f \n"
                                  "     final achieved axis of rotation =   %f    %f    %f \n", 
                                  nrmi[0], nrmi[1], nrmi[2], nrmf[0], nrmf[1], nrmf[2]); */
+         fprintf(SUMA_STDERR, "Number of times optimization run = %d\n", opt_count);
       }
    }
    
@@ -872,20 +1207,26 @@ int main (int argc,char *argv[])
 
    /*Cleanup*/
    
+   ControlCurve = SUMA_FreeMxVec( ControlCurve );
+   MaxStep = SUMA_FreeMxVec( MaxStep );
+   Perturb_Vec = SUMA_FreeMxVec( Perturb_Vec );
+   Del_S = SUMA_FreeMxVec( Del_S );
+   X_Lamda = SUMA_FreeMxVec( X_Lamda );
    vector_destroy(&(Ci->Wv));
+   
    if (SO) SUMA_Free_Surface_Object(SO); SO = NULL;
    if (Ci->NodeList) SUMA_free(Ci->NodeList); Ci ->NodeList = NULL;
    if (Ci->VelocityField) SUMA_free(Ci->VelocityField); Ci ->VelocityField = NULL;
    if (Ci->VelocityMagnitude) SUMA_free(Ci->VelocityMagnitude); Ci ->VelocityMagnitude = NULL;
    if (Ci->NewNodeList) SUMA_free(Ci->NewNodeList); Ci ->NewNodeList = NULL; 
-   if (Ci->Theta) SUMA_free(Ci->Theta); Ci ->Theta = NULL;  
+   if (Ci->Theta) SUMA_free(Ci->Theta); Ci ->Theta = NULL; 
    if (Ci) SUMA_free(Ci); Ci = NULL;
    if (Opt->debug > 2) LocalHead = YUP;   /* What is this? */
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
    if (opt->CtrlPts_iim) SUMA_free(opt->CtrlPts_iim); opt->CtrlPts_iim = NULL;
+   if (opt->CtrlPts) SUMA_free(opt->CtrlPts); opt->CtrlPts = NULL;
    if (opt->CtrlPts_i) SUMA_free(opt->CtrlPts_i); opt->CtrlPts_i = NULL;
-   if (opt->CtrlPts_I) SUMA_free(opt->CtrlPts_I); opt->CtrlPts_I = NULL;
    if (opt->CtrlPts_f) SUMA_free(opt->CtrlPts_f); opt->CtrlPts_f = NULL;
    if (opt->Dtheta) SUMA_free(opt->Dtheta); opt->Dtheta = NULL;
    if (opt->Nrm) SUMA_free(opt->Nrm); opt->Nrm = NULL;

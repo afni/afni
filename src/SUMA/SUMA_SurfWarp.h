@@ -12,8 +12,8 @@ typedef struct
       int *CtrlPts_iim;    /* Index of a particular ctrl point in the mesh. It's not necessary
                               for calculations but useful for debugging. An index of -1 is used
                               if ctrl point does not overlap with a node */
-      double *CtrlPts_i;
-      double *CtrlPts_I;   /* Specified by user. Will not change. */
+      double *CtrlPts;
+      double *CtrlPts_i;   /* Specified by user. Will not change. */
       double *CtrlPts_f;
       double *Dtheta;
       double *Nrm;         /* Axis of rotation used for calculated velocity at the control points. */
@@ -29,6 +29,7 @@ typedef struct
       int pause;
       double sigma;        /* If using sigma option to calculate weights, need to find new way to
                               determine velocity field for the entire surface.  Old way won't work. */
+      int M_time_steps;    /* Number of internal time steps used in optimization.  M total steps used in Bob's equations. */
    } MyCircleOpt;
 
 typedef struct
@@ -52,6 +53,11 @@ SUMA_Boolean Debug_Move( MyCircle *C, MyCircleOpt *opt, SUMA_SurfaceObject *SO, 
 SUMA_Boolean Neighbor( MyCircle *C, MyCircleOpt *opt, SUMA_SurfaceObject *SO, int niter, int a_niter) ;
 SUMA_Boolean Calculate_Step (MyCircle *C, MyCircleOpt *opt, double dt) ;
 SUMA_Boolean Move_Points (MyCircle *C, MyCircleOpt *opt) ;
-
-
+SUMA_Boolean Set_up_Control_Curve( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve );
+SUMA_Boolean Perturbations( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *MaxStep, SUMA_MX_VEC *Perturb_Vec );
+SUMA_Boolean Print_Matrix( MyCircleOpt *opt, matrix M );
+SUMA_Boolean Rotation_Matrix( MyCircleOpt *opt, vector X, matrix M);
+SUMA_Boolean Change_in_Energy( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Perturb_Vec, SUMA_MX_VEC *Del_Sl );
+double S_energy( MyCircleOpt *opt, SUMA_MX_VEC *VecX );
+double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *MaxStep, SUMA_MX_VEC *Perturb_Vec, SUMA_MX_VEC *Del_S, SUMA_MX_VEC *X_Lamda );
 #endif

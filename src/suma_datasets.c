@@ -97,7 +97,7 @@ void WorkErrLog_ns(void)
       else if (!strcmp(el->macroname,"SL_Warn")) { SUMA_SL_Warn(el->msg); }
       else if (!strcmp(el->macroname,"SLP_Warn")) { SUMA_SLP_Warn(el->msg); }
       else if (!strcmp(el->macroname,"L_Note")) { SUMA_L_Note(el->msg); }
-      else if (!strcmp(el->macroname,"SL_Note")) { SUMA_SL_Note(el->msg); }
+      else if (!strcmp(el->macroname,"SL_Note")) { SUMA_L_Note(el->msg); }
       else if (!strcmp(el->macroname,"SLP_Note")) { SUMA_SLP_Note(el->msg); }
       else if (!strcmp(el->macroname,"L_Crit")) { SUMA_L_Crit(el->msg); }
       else if (!strcmp(el->macroname,"SL_Crit")) { SUMA_SL_Crit(el->msg); }
@@ -153,6 +153,7 @@ SUMA_MX_VEC *SUMA_NewMxVec(SUMA_VARTYPE tp, int N_dims, int *dims, byte first_di
    mxv->iv = NULL;
    mxv->fv = NULL;
    mxv->dv = NULL;
+   mxv->N_dims = N_dims;
    mxv->N_vals = dims[0]; 
    mxv->dims[0] = dims[0];
    for (i=1; i<N_dims; ++i) {
