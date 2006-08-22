@@ -83,6 +83,7 @@
    #undef SUMA_IGNORE_VOLREG 
    
    #undef SUMA_LH
+   #undef SUMA_LHv
    #undef SUMA_S_Warn
    #undef SUMA_S_Note
    #undef SUMA_S_Err
@@ -155,7 +156,8 @@
    #define SUMA_LH(msg) {\
       if (LocalHead) fprintf (SUMA_STDERR, "%s:\n %s\n", FuncName, msg);  \
    }
-   
+   #define SUMA_LH SUMA_LHv
+    
    #define SUMA_S_Warn(msg) {\
       fprintf (SUMA_STDERR, "Warning %s:\n %s\n", FuncName, msg);  \
    }

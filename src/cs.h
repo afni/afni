@@ -90,6 +90,11 @@ extern int compare_int (int *a, int *b );
 extern int compare_short (short *a, short *b );
 extern int compare_char (char *a, char *b );
 
+/***** pca calc *****/
+double covariance(float *data_mat, double *cov_mat, unsigned char * row_mask, int num_rows, int num_cols, int norm, int remove_mean, int be_quiet);
+void pca (float *data_mat, unsigned char * row_mask, int num_rows, int num_cols, int be_quiet);
+double pca_fast3 (float *data_mat, int num_rows, int be_quiet, double *pca_vec, double *pca_eig);
+
 #ifdef  __cplusplus
 }
 #endif

@@ -129,6 +129,7 @@
    #define SUMA_LH(msg) {\
       if (LocalHead) fprintf (SUMA_STDERR, "%s:\n %s\n", FuncName, msg);  \
    }
+   #define SUMA_LHv SUMA_LH
    
    #define SUMA_S_Warn(msg) {\
       fprintf (SUMA_STDERR, "Warning %s:\n %s\n", FuncName, msg);  \

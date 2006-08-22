@@ -597,6 +597,8 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
    /* check for tags */
    if (strstr(sbuf,"#spheres")) {
       dotp = SP_type;
+   } else if (strstr(sbuf,"#node-based_spheres")) {
+      dotp = NBSP_type;
    } else if (strstr(sbuf,"#segments")) {
       dotp = LS_type;
    } else if (strstr(sbuf,"#oriented_segments")) {
@@ -605,7 +607,9 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
       dotp = NBV_type; 
    } else if (strstr(sbuf,"#node-based_ball-vectors")) {
       dotp = ONBV_type;
-   } 
+   } else if (strstr(sbuf,"#planes")) {
+      dotp = PL_type;
+   }
    if (LocalHead) {
       fprintf(SUMA_STDERR,"%s: Searched header string:\n>>>%s<<<\ndotp = %d\n", FuncName, sbuf, dotp);
    }
@@ -649,6 +653,7 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented, char 
          SDO->n0 = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
       } else {
          SDO->NodeBased = 1;
+         SDO->n0 = NULL;
          SDO->Parent_idcode_str = SUMA_copy_string(Parent_idcode_str);
          SDO->NodeID = (int*) SUMA_calloc(N_n, sizeof(int));
       }
@@ -711,7 +716,6 @@ void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO)
    SUMA_ENTRY;
    
    if (!SDO) SUMA_RETURNe;
-   
    if (SDO->Parent_idcode_str) SUMA_free(SDO->Parent_idcode_str);
    if (SDO->NodeID) SUMA_free(SDO->NodeID); 
    if (SDO->n0) SUMA_free(SDO->n0);
@@ -1095,7 +1099,7 @@ SUMA_SphereDO * SUMA_ReadSphDO (char *s)
    }
 
    /* allocate for segments DO */
-   SDO = SUMA_Alloc_SphereDO (ncol, s);
+   SDO = SUMA_Alloc_SphereDO (ncol, s, NULL);
    if (!SDO) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Allocate_SphereDO.\n", FuncName);
       SUMA_RETURN(NULL);
@@ -1154,6 +1158,236 @@ SUMA_SphereDO * SUMA_ReadSphDO (char *s)
          ++itmp;
       } 
    }
+   mri_free(im); im = NULL; far = NULL;
+
+   SUMA_RETURN(SDO);
+}
+
+SUMA_SphereDO * SUMA_ReadNBSphDO (char *s, char *parent_SO_id)
+{
+   static char FuncName[]={"SUMA_ReadNBSphDO"};
+   SUMA_SphereDO *SDO = NULL;
+   MRI_IMAGE * im = NULL;
+   float *far=NULL;
+   int itmp, itmp2, icol_rad=-1, icol_style = -1, icol_col = -1, icol_id = -1;
+   int nrow=-1, ncol=-1;
+   
+   SUMA_ENTRY;
+      
+   if (!s) {
+      SUMA_SLP_Err("NULL s");
+      SUMA_RETURN(NULL);
+   }
+   if (!parent_SO_id) {
+      SUMA_SLP_Err("NULL parent_SO_id");
+      SUMA_RETURN(NULL);
+   }
+   im = mri_read_1D (s);
+
+   if (!im) {
+      SUMA_SLP_Err("Failed to read 1D file");
+      SUMA_RETURN(NULL);
+   }
+
+   far = MRI_FLOAT_PTR(im);
+   ncol = im->nx;
+   nrow = im->ny;
+
+   if (!ncol) {
+      SUMA_SLP_Err("Empty file");
+      SUMA_RETURN(NULL);
+   }
+   
+   icol_id = -1;
+   icol_col = -1;
+   icol_rad = -1;
+   icol_style = -1;
+   switch (nrow) {
+      case 1:
+         fprintf(SUMA_STDERR,"%s: Node-Based Sphere file %s's format:\n"
+                              "n\n", FuncName, s);
+         icol_id = 0;                     
+         break;
+      case 2:
+         fprintf(SUMA_STDERR,"%s: Node-Based Sphere file %s's format:\n"
+                              "n rd\n", FuncName, s);
+         icol_id = 0; 
+         icol_rad = 1;
+         break;
+      case 3:
+         fprintf(SUMA_STDERR,"%s: Node-Based Sphere file %s's format:\n"
+                              "n rd st\n", FuncName, s);
+         icol_id = 0; 
+         icol_rad = 1;
+         icol_style = 2;
+         break;
+      case 5:
+         fprintf(SUMA_STDERR,"%s: Node-Based Sphere file %s's format:\n"
+                              "n c0 c1 c2 c3\n", FuncName, s);
+         icol_id = 0; 
+         icol_col = 1;
+         break;
+      case 6:
+         fprintf(SUMA_STDERR,"%s: Node-Based Sphere file %s's format:\n"
+                              "n c0 c1 c2 c3 rd\n", FuncName, s);
+         icol_id = 0;
+         icol_col = 1;
+         icol_rad = 5;
+         break;
+      case 7:
+         fprintf(SUMA_STDERR,"%s: Node-Based Sphere file %s's format:\n"
+                              "n c0 c1 c2 c3 rd st\n", FuncName, s);
+         icol_id = 0;
+         icol_col = 1;
+         icol_rad = 5;
+         icol_style = 6;
+         break;
+      default:
+         SUMA_SLP_Err("Node-Based Sphere File must have\n"
+                   "1,2,3,5,6 or 7 columns.");
+         mri_free(im); im = NULL;   /* done with that baby */
+         SUMA_RETURN(NULL);
+   }
+
+   /* allocate for segments DO */
+   SDO = SUMA_Alloc_SphereDO (ncol, s, parent_SO_id);
+   if (!SDO) {
+      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Allocate_SphereDO.\n", FuncName);
+      SUMA_RETURN(NULL);
+   }
+
+   /* fill up SDO */
+   itmp = 0;
+   while (itmp < SDO->N_n) {
+      SDO->NodeID[itmp] = far[itmp +(icol_id  )*ncol];
+      ++itmp;
+   } 
+   
+   if (icol_col > 0) {
+      SDO->colv = (GLfloat *)SUMA_malloc(4*sizeof(GLfloat)*SDO->N_n);
+      if (!SDO->colv) {
+         SUMA_SL_Crit("Failed in to allocate for colv.");
+         SUMA_RETURN(NULL);
+      }
+      /* fill up idividual colors */
+      itmp = 0;
+      while (itmp < SDO->N_n) {
+         itmp2 = 4*itmp;
+         SDO->colv[itmp2]     = far[itmp+(icol_col  )*ncol];
+         SDO->colv[itmp2+1]   = far[itmp+(icol_col+1)*ncol];
+         SDO->colv[itmp2+2]   = far[itmp+(icol_col+2)*ncol];
+         SDO->colv[itmp2+3]   = far[itmp+(icol_col+3)*ncol];
+         ++itmp;
+      } 
+   }
+   if (icol_rad > 0) {
+      SDO->radv = (GLfloat *)SUMA_malloc(sizeof(GLfloat)*SDO->N_n);
+      if (!SDO->radv) {
+         SUMA_SL_Crit("Failed in to allocate for radv.");
+         SUMA_RETURN(NULL);
+      }
+      /* fill up idividual radius */
+      itmp = 0;
+      while (itmp < SDO->N_n) {
+         SDO->radv[itmp]     = far[itmp+(icol_rad  )*ncol];
+         ++itmp;
+      } 
+   }
+   if (icol_style > 0) {
+      SDO->stylev = (GLenum *)SUMA_malloc(sizeof(GLenum)*SDO->N_n);
+      if (!SDO->stylev) {
+         SUMA_SL_Crit("Failed in to allocate for radv.");
+         SUMA_RETURN(NULL);
+      }
+      /* fill up idividual style */
+      itmp = 0;
+      while (itmp < SDO->N_n) {
+         SDO->stylev[itmp]     = SUMA_SphereStyleConvert((int)far[itmp+(icol_style  )*ncol]);
+         ++itmp;
+      } 
+   }
+   mri_free(im); im = NULL; far = NULL;
+
+   SUMA_RETURN(SDO);
+}
+
+
+SUMA_PlaneDO * SUMA_ReadPlaneDO (char *s)
+{
+   static char FuncName[]={"SUMA_ReadPlaneDO"};
+   SUMA_PlaneDO *SDO = NULL;
+   MRI_IMAGE * im = NULL;
+   float *far=NULL;
+   int itmp, itmp2, icol_eq=-1, icol_cent = -1;
+   int nrow=-1, ncol=-1;
+   
+   SUMA_ENTRY;
+      
+   if (!s) {
+      SUMA_SLP_Err("NULL s");
+      SUMA_RETURN(NULL);
+   }
+   
+   im = mri_read_1D (s);
+
+   if (!im) {
+      SUMA_SLP_Err("Failed to read 1D file");
+      SUMA_RETURN(NULL);
+   }
+
+   far = MRI_FLOAT_PTR(im);
+   ncol = im->nx;
+   nrow = im->ny;
+
+   if (!ncol) {
+      SUMA_SLP_Err("Empty file");
+      SUMA_RETURN(NULL);
+   }
+   
+   icol_eq = -1;
+   icol_cent = -1;
+   switch (nrow) {
+      case 7:
+         fprintf(SUMA_STDERR,"%s: Plane file %s's format:\n"
+                              "a b c d cx cy cz\n", FuncName, s);
+         icol_eq = 0;
+         icol_cent = 4;
+         break;
+      default:
+         SUMA_SLP_Err(  "File must have\n"
+                        "7 columns.");
+         mri_free(im); im = NULL;   /* done with that baby */
+         SUMA_RETURN(NULL);
+   }
+
+   /* allocate for  DO */
+   SDO = SUMA_Alloc_PlaneDO (ncol, s);
+   if (!SDO) {
+      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Allocate_PlaneDO.\n", FuncName);
+      SUMA_RETURN(NULL);
+   }
+
+   /* fill up SDO */
+   /* fill up equations */
+   itmp = 0;
+   while (itmp < SDO->N_n) {
+      itmp2 = 4*itmp;
+      SDO->pleq[itmp2]     = far[itmp+(icol_eq  )*ncol];
+      SDO->pleq[itmp2+1]   = far[itmp+(icol_eq+1)*ncol];
+      SDO->pleq[itmp2+2]   = far[itmp+(icol_eq+2)*ncol];
+      SDO->pleq[itmp2+3]   = far[itmp+(icol_eq+3)*ncol];
+      ++itmp;
+   } 
+   /* fill up centers */
+   itmp = 0;
+   while (itmp < SDO->N_n) {
+      itmp2 = 3*itmp;
+      SDO->cxyz[itmp2]   = far[itmp+(icol_cent  )*ncol];
+      SDO->cxyz[itmp2+1] = far[itmp+(icol_cent+1)*ncol];
+      SDO->cxyz[itmp2+2] = far[itmp+(icol_cent+2)*ncol];
+      ++itmp;
+   } 
+   
    mri_free(im); im = NULL; far = NULL;
 
    SUMA_RETURN(SDO);
@@ -1334,13 +1568,14 @@ void SUMA_WorldAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
    SUMA_RETURNe;
 }
 
-SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO)
+SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv)
 {
-   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0}, comcol[4];
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0}, comcol[4], *cent=NULL;
    int i, N_n3, i3;
    GLfloat rad = 3;
    static char FuncName[]={"SUMA_DrawSphereDO"};
    float origwidth=0.0;
+   SUMA_SurfaceObject *SO = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1348,6 +1583,21 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO)
    if (!SDO) {
       fprintf(stderr,"Error %s: NULL pointer.\n", FuncName);
       SUMA_RETURN (NOPE);
+   }
+   
+   if (SDO->NodeBased) { /* Locate the surface in question */
+      SUMA_LH("Node-based spheres");
+      if (!SDO->Parent_idcode_str) {
+         SUMA_SL_Err("Object's parent idcode_str not specified.");
+         SUMA_RETURN (NOPE);
+      }
+      SO = SUMA_findSOp_inDOv(SDO->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv); 
+      if (!SO) {
+         SUMA_SL_Err("Object's parent surface not found.");
+         SUMA_RETURN (NOPE);
+      }       
+   } else {
+      SUMA_LH("Spheres ");
    }
    
    glGetFloatv(GL_LINE_WIDTH, &origwidth);
@@ -1381,10 +1631,15 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO)
          if (SDO->stylev[i] == GLU_FILL) gluQuadricNormals (SDO->sphobj , GLU_SMOOTH);
          else gluQuadricNormals (SDO->sphobj , GLU_NONE); 
       }
-      glTranslatef (SDO->cxyz[i3], SDO->cxyz[i3+1], SDO->cxyz[i3+2]);
+      if (SDO->NodeBased) {
+         cent = &(SO->NodeList[3*SDO->NodeID[i]]);
+      } else {
+         cent = &(SDO->cxyz[i3]);
+      }
+      glTranslatef (cent[0], cent[1], cent[2]);
       gluSphere(SDO->sphobj, rad/* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06)  User set values, not cool to play with dimensions! */, 
                 SDO->CommonSlices, SDO->CommonStacks);
-      glTranslatef (-SDO->cxyz[i3], -SDO->cxyz[i3+1], -SDO->cxyz[i3+2]);
+      glTranslatef (-cent[0], -cent[1], -cent[2]);
    }
    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
    glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
@@ -1394,10 +1649,11 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO)
    
 }
 
-SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label)
+SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label, char *Parent_idcode_str)
 {
    static char FuncName[]={"SUMA_Alloc_SphereDO"};
    SUMA_SphereDO* SDO;
+   char *hs = NULL;
    
    SUMA_ENTRY;
 
@@ -1408,21 +1664,45 @@ SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label)
    }
    
    if (N_n > 0) {
-      SDO->cxyz = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
-   
-      if (!SDO->cxyz) {
-         fprintf(stderr,"Error %s: Failed to allocate for SDO->cxyz\n", FuncName);
-         if (SDO) SUMA_free (SDO);
-         SUMA_RETURN (NULL);
-      }
+      if (!Parent_idcode_str) {
+         SDO->NodeBased = 0;
+         SDO->NodeID = NULL;
+         SDO->Parent_idcode_str = NULL;
+         SDO->cxyz = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
+
+         if (!SDO->cxyz) {
+            fprintf(stderr,"Error %s: Failed to allocate for SDO->cxyz\n", FuncName);
+            if (SDO) SUMA_free (SDO);
+            SUMA_RETURN (NULL);
+         }
+      } else {
+         SDO->NodeBased = 1;
+         SDO->Parent_idcode_str = SUMA_copy_string(Parent_idcode_str);
+         SDO->NodeID = (int*) SUMA_calloc(N_n, sizeof(int));
+         if (!SDO->NodeID) {
+            fprintf(stderr,"Error %s: Failed to allocate for SDO->NodeID\n", FuncName);
+            if (SDO) SUMA_free (SDO);
+            SUMA_RETURN (NULL);
+         }
+         SDO->cxyz = NULL;
+      } 
       SDO->N_n = N_n;
    } else {
       SDO->cxyz = NULL;
+      SDO->NodeBased = 0;
+      SDO->Parent_idcode_str = NULL;
+      SDO->NodeID = NULL;
       SDO->N_n = 0;
    }
    
-   SDO->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));
-   UNIQ_idcode_fill(SDO->idcode_str);
+   /* create a string to hash an idcode */
+   if (Label) hs = SUMA_copy_string(Label);
+   else hs = SUMA_copy_string("NULL_");
+   if (Parent_idcode_str) hs = SUMA_append_replace_string(hs,Parent_idcode_str,"_",1);
+   else hs = SUMA_append_replace_string(hs,"NULL","",1);
+   SDO->idcode_str = UNIQ_hashcode(hs);
+   SUMA_free(hs); hs = NULL;
+
    
    if (Label) {
       SDO->Label = (char *)SUMA_calloc (strlen(Label)+1, sizeof(char));
@@ -1456,6 +1736,8 @@ void SUMA_free_SphereDO (SUMA_SphereDO * SDO)
    
    if (!SDO) SUMA_RETURNe;
    
+   if (SDO->Parent_idcode_str) SUMA_free(SDO->Parent_idcode_str);
+   if (SDO->NodeID) SUMA_free(SDO->NodeID); 
    if (SDO->cxyz) SUMA_free(SDO->cxyz);
    if (SDO->idcode_str) SUMA_free(SDO->idcode_str);
    if (SDO->Label) SUMA_free(SDO->Label);
@@ -1469,6 +1751,301 @@ void SUMA_free_SphereDO (SUMA_SphereDO * SDO)
    SUMA_RETURNe;
 
 }
+
+SUMA_Boolean SUMA_CreatePlaneQuads(SUMA_PlaneDO *SDO)
+{
+   static char FuncName[]={"SUMA_CreatePlaneQuads"};
+   int i, j, N_n3, i3, n, k;
+   GLfloat *boxdimv, xlim[2], ylim[2], zlim[2], xtmp[4], ytmp[4], ztmp[4], eqn[3], *eq, a;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!SDO->boxdimv) boxdimv = SDO->CommonBoxDims;
+   else boxdimv = NULL;
+   
+   if (SDO->NodeList) SUMA_free(SDO->NodeList); SDO->NodeList=NULL;
+   if (SDO->FaceSetList) SUMA_free(SDO->FaceSetList); SDO->FaceSetList=NULL;    
+   if (SDO->nodecol) SUMA_free(SDO->nodecol); SDO->nodecol=NULL;    
+   if (SDO->NodeNormList) SUMA_free(SDO->NodeNormList); SDO->NodeNormList=NULL;    
+  
+   SDO->N_Node = 4*SDO->N_n;
+   SDO->NodeList = (GLfloat *)SUMA_calloc(SDO->N_Node*3, sizeof(GLfloat));
+   SDO->NodeNormList = (GLfloat *)SUMA_calloc(SDO->N_Node*3, sizeof(GLfloat));
+   SDO->N_FaceSet = SDO->N_n;
+   SDO->FaceSetList = (GLint *)SUMA_calloc(4*SDO->N_FaceSet, sizeof(GLint));
+   SDO->nodecol = (GLfloat *)SUMA_calloc(SDO->N_Node*4, sizeof(GLfloat));
+   if (!SDO->NodeList || !SDO->NodeNormList || !SDO->FaceSetList || !SDO->nodecol) {
+      SUMA_S_Crit("Failed to allocate");
+      SUMA_RETURN(NOPE);
+   }
+   
+   for (i=0; i<SDO->N_n;++i) {
+      i3 = 3*i; n = 4*i; 
+      if (SDO->boxdimv) boxdimv = &(SDO->boxdimv[i3]);
+      /* calcuate limits of box limiting plane */
+      xlim[0] = SDO->cxyz[0] - boxdimv[0]; 
+      xlim[1] = SDO->cxyz[0] + boxdimv[0];
+      ylim[0] = SDO->cxyz[1] - boxdimv[1]; 
+      ylim[1] = SDO->cxyz[1] + boxdimv[1];
+      zlim[0] = SDO->cxyz[2] - boxdimv[2]; 
+      zlim[1] = SDO->cxyz[2] + boxdimv[2];
+      
+      SUMA_LHv("Box dims:\n[%3.2f %3.2f]\n[%3.2f %3.2f]\n[%3.2f %3.2f]\n", 
+               xlim[0], xlim[1], ylim[0], ylim[1], zlim[0], zlim[1]);
+               
+	   /*using the limits, find the corrsponding 4 corners*/
+      eq = &(SDO->pleq[4*i]);
+      /* recalculate the plane's d parameter to go though center */
+      eq[3] = -(eq[0]*SDO->cxyz[0]+eq[1]*SDO->cxyz[1]+eq[2]*SDO->cxyz[2]);
+      if (eq[2] != 0.0f) {
+         ztmp[0] = (-eq[3] -eq[0]*xlim[0] - eq[1]*ylim[0]) / eq[2];      
+         ztmp[1] = (-eq[3] -eq[0]*xlim[1] - eq[1]*ylim[0]) / eq[2];      
+         ztmp[2] = (-eq[3] -eq[0]*xlim[1] - eq[1]*ylim[1]) / eq[2];      
+         ztmp[3] = (-eq[3] -eq[0]*xlim[0] - eq[1]*ylim[1]) / eq[2];      
+         SDO->NodeList[3*(n  )  ] = xlim[0]; SDO->NodeList[3*(n  )+1] = ylim[0]; SDO->NodeList[3*(n  )+2] = ztmp[0]; /* Point 0 */
+         SDO->NodeList[3*(n+1)  ] = xlim[1]; SDO->NodeList[3*(n+1)+1] = ylim[0]; SDO->NodeList[3*(n+1)+2] = ztmp[1]; /* Point 1 */
+         SDO->NodeList[3*(n+2)  ] = xlim[1]; SDO->NodeList[3*(n+2)+1] = ylim[1]; SDO->NodeList[3*(n+2)+2] = ztmp[2]; /* Point 2 */
+         SDO->NodeList[3*(n+3)  ] = xlim[0]; SDO->NodeList[3*(n+3)+1] = ylim[1]; SDO->NodeList[3*(n+3)+2] = ztmp[3]; /* Point 3 */
+      } else if (eq[1] != 0.0f) {
+         ytmp[0] = (-eq[3] -eq[0]*xlim[0] - eq[2]*zlim[0]) / eq[1];      
+         ytmp[1] = (-eq[3] -eq[0]*xlim[1] - eq[2]*zlim[0]) / eq[1];      
+         ytmp[2] = (-eq[3] -eq[0]*xlim[1] - eq[2]*zlim[1]) / eq[1];      
+         ytmp[3] = (-eq[3] -eq[0]*xlim[0] - eq[2]*zlim[1]) / eq[1];
+         SDO->NodeList[3*(n  )  ] = xlim[0]; SDO->NodeList[3*(n  )+1] = ytmp[0]; SDO->NodeList[3*(n  )+2] = zlim[0]; /* Point 0 */
+         SDO->NodeList[3*(n+1)  ] = xlim[1]; SDO->NodeList[3*(n+1)+1] = ytmp[1]; SDO->NodeList[3*(n+1)+2] = zlim[0]; /* Point 1 */
+         SDO->NodeList[3*(n+2)  ] = xlim[1]; SDO->NodeList[3*(n+2)+1] = ytmp[2]; SDO->NodeList[3*(n+2)+2] = zlim[1]; /* Point 2 */
+         SDO->NodeList[3*(n+3)  ] = xlim[0]; SDO->NodeList[3*(n+3)+1] = ytmp[3]; SDO->NodeList[3*(n+3)+2] = zlim[1]; /* Point 3 */
+      } else if (eq[0] != 0.0f) {
+         xtmp[0] = (-eq[3] -eq[1]*ylim[0] - eq[2]*zlim[0]) / eq[0];      
+         xtmp[1] = (-eq[3] -eq[1]*ylim[1] - eq[2]*zlim[0]) / eq[0];      
+         xtmp[2] = (-eq[3] -eq[1]*ylim[1] - eq[2]*zlim[1]) / eq[0];      
+         xtmp[3] = (-eq[3] -eq[1]*ylim[0] - eq[2]*zlim[1]) / eq[0];
+         SDO->NodeList[3*(n  )  ] = xtmp[0]; SDO->NodeList[3*(n  )+1] = ylim[0]; SDO->NodeList[3*(n  )+2] = zlim[0]; /* Point 0 */
+         SDO->NodeList[3*(n+1)  ] = xtmp[1]; SDO->NodeList[3*(n+1)+1] = ylim[1]; SDO->NodeList[3*(n+1)+2] = zlim[0]; /* Point 1 */
+         SDO->NodeList[3*(n+2)  ] = xtmp[2]; SDO->NodeList[3*(n+2)+1] = ylim[1]; SDO->NodeList[3*(n+2)+2] = zlim[1]; /* Point 2 */
+         SDO->NodeList[3*(n+3)  ] = xtmp[3]; SDO->NodeList[3*(n+3)+1] = ylim[0]; SDO->NodeList[3*(n+3)+2] = zlim[1]; /* Point 3 */
+      } else {
+         SUMA_S_Err("All zero plane?");
+      }
+      
+      SUMA_LHv("4 points:\n[%3.2f %3.2f %3.2f]\n[%3.2f %3.2f %3.2f]\n[%3.2f %3.2f %3.2f]\n[%3.2f %3.2f %3.2f]\n", 
+               SDO->NodeList[3*(n  )  ], SDO->NodeList[3*(n  )+1], SDO->NodeList[3*(n  )+2],
+               SDO->NodeList[3*(n+1)  ], SDO->NodeList[3*(n+1)+1], SDO->NodeList[3*(n+1)+2],
+               SDO->NodeList[3*(n+2)  ], SDO->NodeList[3*(n+2)+1], SDO->NodeList[3*(n+2)+2],
+               SDO->NodeList[3*(n+3)  ], SDO->NodeList[3*(n+3)+1], SDO->NodeList[3*(n+3)+2]
+               );
+      
+      /* Normals at each node */
+      SUMA_NORM_VEC(eq, 3, a);
+      if (a) {
+         eqn[0] = eq[0] / a; eqn[1] = eq[1] / a; eqn[2] = eq[2] / a; 
+      }else {
+         eqn[0] = eqn[1] = eqn[2] = 0.0;
+      }
+      
+      SDO->NodeNormList[3*(n  )  ] = eqn[0]; SDO->NodeNormList[3*(n  )+1] = eqn[1]; SDO->NodeNormList[3*(n  )+2] = eqn[2];
+      SDO->NodeNormList[3*(n+1)  ] = eqn[0]; SDO->NodeNormList[3*(n+1)+1] = eqn[1]; SDO->NodeNormList[3*(n+1)+2] = eqn[2];
+      SDO->NodeNormList[3*(n+2)  ] = eqn[0]; SDO->NodeNormList[3*(n+2)+1] = eqn[1]; SDO->NodeNormList[3*(n+2)+2] = eqn[2];
+      SDO->NodeNormList[3*(n+3)  ] = eqn[0]; SDO->NodeNormList[3*(n+3)+1] = eqn[1]; SDO->NodeNormList[3*(n+3)+2] = eqn[2];
+          
+      /* Each quad representing a plane would be formed by nodes n, n+1, n+2 and n+3 */
+      SDO->FaceSetList[4*i  ] = i  ; 
+      SDO->FaceSetList[4*i+1] = i+1; 
+      SDO->FaceSetList[4*i+2] = i+2; 
+      SDO->FaceSetList[4*i+3] = i+3; 
+      
+      /* form the stupid color vector */
+      if (!SDO->colv) {
+         for (k=0; k<4; ++k) {
+            SDO->nodecol[4*(n+k)  ] = SDO->CommonCol[0]; 
+            SDO->nodecol[4*(n+k)+1] = SDO->CommonCol[1];  
+            SDO->nodecol[4*(n+k)+2] = SDO->CommonCol[2]; 
+            SDO->nodecol[4*(n+k)+3] = SDO->CommonCol[3]; 
+         }
+      } else {
+         for (k=0; k<4; ++k) {
+            SDO->nodecol[4*(n+k)  ] = SDO->colv[4*i  ]; 
+            SDO->nodecol[4*(n+k)+1] = SDO->colv[4*i+1];  
+            SDO->nodecol[4*(n+k)+2] = SDO->colv[4*i+2]; 
+            SDO->nodecol[4*(n+k)+3] = SDO->colv[4*i+3]; 
+         }
+      }
+   }
+   SUMA_RETURN(YUP);
+}
+
+SUMA_Boolean SUMA_DrawPlaneDO (SUMA_PlaneDO *SDO, SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_DrawPlaneDO"};
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0}, comcol[4];
+   int i, N_n3, i3, rendmet;
+   GLfloat boxdimv[3] = {3.0, 3.0, 3.0};
+   float origwidth=0.0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SDO) {
+      fprintf(stderr,"Error %s: NULL pointer.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* check on rendering mode */
+   if (SDO->PolyMode != SRM_ViewerDefault) {
+     /* not the default, do the deed */
+     SUMA_SET_GL_RENDER_MODE(SDO->PolyMode); 
+   }
+   
+   glGetFloatv(GL_LINE_WIDTH, &origwidth);
+   glLineWidth(SDO->LineWidth);
+        
+   if (!SDO->NodeList) {
+      if (!SUMA_CreatePlaneQuads(SDO)) {
+         SUMA_S_Err("Failed to create plane nodes");
+         SUMA_RETURN(NOPE);
+      }
+   }
+   
+      
+   /* This allows each node to follow the color specified when it was drawn (in case you'll want to color corners differently someday) */ 
+   glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); 
+   glEnable(GL_COLOR_MATERIAL);
+         
+   /*Now setup various pointers*/
+   glEnableClientState (GL_COLOR_ARRAY);
+   glEnableClientState (GL_VERTEX_ARRAY);
+   glEnableClientState (GL_NORMAL_ARRAY);
+
+   glColorPointer (4, GL_FLOAT, 0, SDO->nodecol);
+   glVertexPointer (3, GL_FLOAT, 0, SDO->NodeList);
+   glNormalPointer (GL_FLOAT, 0, SDO->NodeNormList);
+   if (LocalHead) fprintf(stdout, "Ready to draw Elements %d\n", SDO->N_FaceSet); 
+      
+   rendmet = 0;
+   switch (rendmet) {
+      case 0:
+            glDrawElements (GL_QUADS, (GLsizei)SDO->N_FaceSet*4, GL_UNSIGNED_INT, SDO->FaceSetList);
+            break;
+      case 1:
+            glPointSize(4.0); /* keep outside of glBegin */
+            /* it is inefficient to draw points using the glar_FaceSetList because nodes are listed more 
+            than once. You are better off creating an index vector into glar_NodeList to place all the points, just once*/ 
+            glDrawElements (GL_POINTS, (GLsizei)SDO->N_FaceSet*4, GL_UNSIGNED_INT, SDO->FaceSetList);
+            break;
+   } /* switch RENDER_METHOD */
+
+
+   /*fprintf(stdout, "Disabling clients\n");*/
+   glDisableClientState (GL_COLOR_ARRAY);   
+   glDisableClientState (GL_VERTEX_ARRAY);
+   glDisableClientState (GL_NORMAL_ARRAY);   
+         
+   glDisable(GL_COLOR_MATERIAL);
+   
+   glLineWidth(origwidth);
+
+   /* reset viewer default rendering modes */
+   if (SDO->PolyMode != SRM_ViewerDefault) {
+     /* not the default, do the deed */
+     SUMA_SET_GL_RENDER_MODE(SDO->PolyMode); 
+   }  
+    
+   SUMA_RETURN (YUP);
+   
+}
+
+SUMA_PlaneDO * SUMA_Alloc_PlaneDO (int N_n, char *Label)
+{
+   static char FuncName[]={"SUMA_Alloc_PlaneDO"};
+   SUMA_PlaneDO* SDO;
+   char *hs=NULL;
+   
+   SUMA_ENTRY;
+
+   SDO = (SUMA_PlaneDO*)SUMA_malloc (sizeof (SUMA_PlaneDO));
+   if (SDO == NULL) {
+      fprintf(stderr,"SUMA_Alloc_PlaneDO Error: Failed to allocate SDO\n");
+      SUMA_RETURN (NULL);
+   }
+   
+   if (N_n > 0) {
+      SDO->cxyz = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
+   
+      if (!SDO->cxyz) {
+         fprintf(stderr,"Error %s: Failed to allocate for SDO->cxyz\n", FuncName);
+         if (SDO) SUMA_free (SDO);
+         SUMA_RETURN (NULL);
+      }
+      SDO->N_n = N_n;
+   } else {
+      SDO->cxyz = NULL;
+      SDO->N_n = 0;
+   }
+   
+   /* create a string to hash an idcode */
+   if (Label) hs = SUMA_copy_string(Label);
+   else hs = SUMA_copy_string("NULL_");
+   /*if (Parent_idcode_str) hs = SUMA_append_replace_string(hs,Parent_idcode_str,"_",1);
+   else hs = SUMA_append_replace_string(hs,"NULL","",1);*/
+   SDO->idcode_str = UNIQ_hashcode(hs);
+   SUMA_free(hs); hs = NULL;
+   
+   if (Label) {
+      SDO->Label = (char *)SUMA_calloc (strlen(Label)+1, sizeof(char));
+      SDO->Label = strcpy (SDO->Label, Label);
+   } else {
+      SDO->Label = NULL;
+   }
+   
+   /* create the ball object*/
+   SDO->pleq = (GLfloat*)SUMA_calloc(SDO->N_n*4, sizeof(GLfloat));
+   if (!SDO->cxyz) {
+         fprintf(stderr,"Error %s: Failed to allocate for SDO->pleq\n", FuncName);
+         SUMA_free_PlaneDO (SDO);
+         SUMA_RETURN (NULL);
+   }
+   
+   /* setup some default values */
+   SDO->LineWidth = 4.0;
+   SDO->CommonCol[0] = 1.0; SDO->CommonCol[1] = 1.0; SDO->CommonCol[2] = 1.0; SDO->CommonCol[3] = 1.0; 
+   SDO->CommonBoxDims[0] = SDO->CommonBoxDims[1] = SDO->CommonBoxDims[2] = 10.0;
+   SDO->boxdimv=NULL;
+   SDO->colv=NULL;
+   SDO->NodeList = NULL;
+   SDO->NodeNormList = NULL;
+   SDO->nodecol = NULL;
+   SDO->FaceSetList = NULL;
+   SDO->N_Node = 0;
+   SDO->N_FaceSet = 0;
+   SDO->PolyMode = SRM_ViewerDefault;
+   SUMA_RETURN (SDO);
+}
+
+void SUMA_free_PlaneDO (SUMA_PlaneDO * SDO)
+{
+   static char FuncName[]={"SUMA_free_PlaneDO"};
+
+   SUMA_ENTRY;
+   
+   if (!SDO) SUMA_RETURNe;
+   
+   if (SDO->cxyz) SUMA_free(SDO->cxyz);
+   if (SDO->idcode_str) SUMA_free(SDO->idcode_str);
+   if (SDO->Label) SUMA_free(SDO->Label);
+   if (SDO->pleq) SUMA_free(SDO->pleq);
+   if (SDO->boxdimv) SUMA_free(SDO->boxdimv);
+   if (SDO->colv) SUMA_free(SDO->colv);
+   if (SDO->NodeList) SUMA_free(SDO->NodeList);
+   if (SDO->NodeNormList) SUMA_free(SDO->NodeNormList);
+   if (SDO->nodecol) SUMA_free(SDO->nodecol);
+   if (SDO->FaceSetList) SUMA_free(SDO->FaceSetList);
+   if (SDO) SUMA_free(SDO);
+   
+   SUMA_RETURNe;
+
+}
+
 
 SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
 {
@@ -2390,6 +2967,34 @@ SUMA_DRAWN_ROI **SUMA_Find_ROIrelatedtoSO (SUMA_SurfaceObject *SO, SUMA_DO* dov,
    SUMA_RETURN(ROIv);
 }
 
+/*! Create Node-based spheres for a particular surface */
+SUMA_Boolean SUMA_Draw_SO_NBSP (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_Draw_SO_NBSP"};
+   int i;
+   SUMA_SphereDO *SDO = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   for (i=0; i < N_do; ++i) {
+      switch (dov[i].ObjectType) { /* case Object Type */
+         case NBSP_type:
+            SDO = (SUMA_SphereDO *)dov[i].OP;
+            if (SUMA_isNBDOrelated ((SUMA_NB_DO *)SDO, SO)) { /* draw it */
+               if (LocalHead) fprintf(SUMA_STDERR, "%s: Drawing spheres \n", FuncName);
+               if (!SUMA_DrawSphereDO (SDO, sv)) {
+                  fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSphereDO.\n", FuncName);
+               }
+            }
+         default:
+            break;
+      }
+   }
+
+   SUMA_RETURN(YUP);
+}
+
 /*! Create Node-based vectors for a particular surface */
 SUMA_Boolean SUMA_Draw_SO_NBV (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, SUMA_SurfaceViewer *sv)
 {
@@ -2405,7 +3010,7 @@ SUMA_Boolean SUMA_Draw_SO_NBV (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, S
          case ONBV_type:
          case NBV_type:
             SDO = (SUMA_SegmentDO *)dov[i].OP;
-            if (SUMA_isNBVrelated (SDO, SO)) { /* draw it */
+            if (SUMA_isNBDOrelated ((SUMA_NB_DO *)SDO, SO)) { /* draw it */
                if (LocalHead) fprintf(SUMA_STDERR, "%s: Drawing vec field \n", FuncName);
                if (!SUMA_DrawSegmentDO (SDO, sv)) {
                   fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSegmentDO.\n", FuncName);
@@ -3604,11 +4209,12 @@ void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM)
 #define TestTexture 0 /* needs TestImage to be active */
 /*! Create a tesselated mesh */
 void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
-{  static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+{  
+   static char FuncName[]={"SUMA_DrawMesh"};
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    GLfloat *colp = NULL;
    int i, ii, ND, id, ip, NP, PolyMode;
    SUMA_DRAWN_ROI *DrawnROI = NULL;
-   static char FuncName[]={"SUMA_DrawMesh"};
    static unsigned char *image=NULL;
    static GLuint texName;
    SUMA_Boolean LocalHead = NOPE;
@@ -3692,7 +4298,9 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                SUMA_SL_Err("Null Color Pointer.");
             }
          } else { 
-            glColorPointer (4, GL_FLOAT, 0, SUMA_GetColorList (sv, SurfObj->idcode_str));
+            glColorPointer (4, GL_FLOAT, 0, colp); /* ZSS: Used to be: 
+                                                   glColorPointer (4, GL_FLOAT, 0, SUMA_GetColorList (sv, SurfObj->idcode_str));
+                                                   A redundant call, to say the least! */
          }
          glVertexPointer (3, GL_FLOAT, 0, SurfObj->glar_NodeList);
          glNormalPointer (GL_FLOAT, 0, SurfObj->glar_NodeNormList);
@@ -3819,6 +4427,12 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          SUMA_LH("NBV");
          if (!SUMA_Draw_SO_NBV (SurfObj, SUMAg_DOv, SUMAg_N_DOv, sv)) {
             fprintf (SUMA_STDERR, "Error %s: Failed in drawing NBV objects.\n", FuncName);
+         }
+         
+         /* Draw node-based spheres */
+         SUMA_LH("NBV");
+         if (!SUMA_Draw_SO_NBSP (SurfObj, SUMAg_DOv, SUMAg_N_DOv, sv)) {
+            fprintf (SUMA_STDERR, "Error %s: Failed in drawing NBSP objects.\n", FuncName);
          }
          
          /* Draw Selected Node Highlight */

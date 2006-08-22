@@ -593,7 +593,7 @@ int main( int argc , char * argv[] )
 
    perc = (float *) malloc( sizeof(float) * PC_lprin_calc ) ;
 
-   printf("Num.  --Eigenvalue--  -Var.Fraction-  -Cumul.Fract.-\n") ;
+   printf("#Num.  --Eigenvalue--  -Var.Fraction-  -Cumul.Fract.-\n") ;
    for( jj=0 ; jj < PC_lprin_calc ; jj++ ){
       ll = PC_lprin_calc - 1-jj ;      /* reversed order of eigensolution! */
       perc[jj] = wout[ll]/atrace ;

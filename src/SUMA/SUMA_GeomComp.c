@@ -2518,7 +2518,7 @@ float ** SUMA_Taubin_Desbrun_Smooth_Weights (SUMA_SurfaceObject *SO, float *NewN
          
          cot1= cot2 = cij = 0.0;   
          /* find the third node from each of the triangles */
-         SUMA_THIRD_NODE(nj,n,inci[0],SO->FaceSetList,nk_1);
+         SUMA_THIRD_TRIANGLE_NODE(nj,n,inci[0],SO->FaceSetList,nk_1);
          /* find the cotangent of the opposing angles at nk_1 and nk_2 */
          /* form vectors */
          SUMA_UNIT_VEC((&(nl[3*nk_1])), (&(nl[3*n ])), U1, U1n);
@@ -2527,7 +2527,7 @@ float ** SUMA_Taubin_Desbrun_Smooth_Weights (SUMA_SurfaceObject *SO, float *NewN
          /* cotangent = dot / cross product*/
          if (Ucn > 0.00000000001) cot1 = SUMA_MT_DOT(U1,U2)/Ucn;
          if (N_inci > 1) {
-            SUMA_THIRD_NODE(nj,n,inci[1],SO->FaceSetList,nk_2);
+            SUMA_THIRD_TRIANGLE_NODE(nj,n,inci[1],SO->FaceSetList,nk_2);
             /* form vectors */
             SUMA_UNIT_VEC((&(nl[3*nk_2])), (&(nl[3*n ])), U1, U1n);
             SUMA_UNIT_VEC((&(nl[3*nk_2])), (&(nl[3*nj])), U2, U2n);
@@ -2952,6 +2952,14 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
    SUMA_RETURN(fout);
 }
 
+static int OffsetDebugNode = -1; /* debugging variable for Offset computing functions */
+void SUMA_Set_OffsetDebugNode (int d)
+{
+   OffsetDebugNode = d;
+   return;
+}
+
+
 /*!
    \brief a function to turn the often cumbersome SUMA_GET_OFFSET_STRUCT
    to a more friendly SUMA_OFFSET_STRUCT
@@ -3065,8 +3073,217 @@ char * SUMA_ShowOffset_ll_Info (DList *list, int detail)
 }
 
 /*!
+   For each node past layer 0, determine the propagation location prop_loc of that node. The 
+   propagation direction is given by the vector formed by vector: node-->prop_loc
+   Here's how the function works:
+   For each node njl in layer il, 
+      find nodes surrounding it and store njl and its neighbors in n_sur
+      calculate the 1st principal component of the matrix formed by the coordinates of these nodes
+      Form the plane that has the 1st principal component as a normal and that passes by njl
+      Intersect the plane with those triangles that are not in the previous layer (i.e. intersect with triangles going forward)
+      One triangle should intersect the plane and the intersection point (other than njl of course) is
+      called the propagation location of node njl. 
+*/
+#define LOC_DBG 1
+int SUMA_OffsetLayerPropagationLocation(SUMA_SurfaceObject *SO, SUMA_GET_OFFSET_STRUCT *OffS, float *PropLoc)
+{
+   static char FuncName[]={"SUMA_OffsetLayerPropagationLocation"};
+   int n_sur[50], iseg, njl, njjll, jjll, in_sur, hit, itgood, it, il0, nil0, n2, n3, i;
+   int N_Incident, N_IncidentMax=100, Incident[N_IncidentMax];
+   int noffs = 0, il, jl, ip;
+   float data_mat[50*3], *p1, *p2;
+   double trace, pc_vec[9], pc_eig[3], Eq[4], pinter[3], pc0[3];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (SO->NodeDim != 3) {
+      SUMA_S_Err("Need 3 dims for surf coords.");
+      SUMA_RETURN(0);
+   }
+   if (!SO->EL) {
+      SUMA_S_Err("Need SO->EL.");
+      SUMA_RETURN(0);
+   }
+   i = OffS->layers[0].NodesInLayer[0];
+   if (i==OffsetDebugNode) {
+      LocalHead = YUP;
+      SUMA_LHv("Debug mode for central node %d (must have LOC_DBG defined as 1): \n", i);
+   }
+   noffs = 0;
+   for (il=1; il<OffS->N_layers; ++il) { /* for each layer */  
+      for (jl=0; jl<OffS->layers[il].N_NodesInLayer; ++jl) { /* for each node in layer */
+         PropLoc[3*noffs  ] = PropLoc[3*noffs+1] = PropLoc[3*noffs+2] = 0.0 ;
+         njl = OffS->layers[il].NodesInLayer[jl];
+         in_sur = 0;
+         n_sur[in_sur] = njl; ++in_sur; 
+         /* SUMA_LHv("get nodes in layer %d, connected to node %d\n", il, njl); */
+         for (jjll=0; jjll<OffS->layers[il].N_NodesInLayer; ++jjll) {
+            njjll = OffS->layers[il].NodesInLayer[jjll];
+            if (njjll != njl) {
+               iseg = -1; 
+               /* SUMA_LHv("Looking for edge: %d %d\n", njjll, njl); */
+               if (njjll < njl) {SUMA_FIND_EDGE (SO->EL, njjll, njl, iseg);}
+               else {SUMA_FIND_EDGE (SO->EL, njl, njjll, iseg);}
+               /* SUMA_LHv("iseg is %d\n", iseg); */
+               if (iseg < 0) { 
+                  /* SUMA_LH("Segment not found."); */
+               } else {
+                  /* segment found, accept node in neighborhood */
+                  if (in_sur > 49) {
+                     SUMA_S_Crit("Hard limit exceeded! Fix it.");
+                     exit(1);
+                  }
+                  n_sur[in_sur] = njjll; ++in_sur;
+               }  
+            }
+         }
+         if (in_sur < 2) {
+            /* Node juts out with no nodes connected to it to meet the 
+            layer's distance criterion. This node is going nowhere*/
+            fprintf(SUMA_STDERR, "Warning %s: \n"
+                                 "in_sur is %d\n"
+                                 "Central node: %d\n"
+                                 "Layer %d, node %d.\n"
+                                 "%d nodes in this layer are:\n",
+                                 FuncName, in_sur, i, il, n_sur[0], OffS->layers[il].N_NodesInLayer); 
+            for (ip=0; ip<OffS->layers[il].N_NodesInLayer; ++ip) fprintf(SUMA_STDERR, "%d   ", OffS->layers[il].NodesInLayer[ip]);
+            fprintf(SUMA_STDERR, "\nPropLoc[%d] is set to 0s.\n", noffs);
+            goto NEW_OFFS;
+         } else if (in_sur == 2) {
+            /* Node has only one neighbor in layer. 
+            This happens when other neighboring nodes were part of the
+            previous layer. In this case, the direction of this node is towards its only
+            neighbor */
+            PropLoc[3*noffs+0] = SO->NodeList[3*n_sur[1]  ];
+            PropLoc[3*noffs+1] = SO->NodeList[3*n_sur[1]+1];
+            PropLoc[3*noffs+2] = SO->NodeList[3*n_sur[1]+2];
+            SUMA_LHv("Storing lazy hit (noffs=%d)\n"
+                     "PropLoc[%d]=%f %f %f\n", noffs, noffs, 
+                     PropLoc[3*noffs+0], PropLoc[3*noffs+1], PropLoc[3*noffs+2]); 
+            goto NEW_OFFS;
+         } else if (in_sur > 6) {
+            fprintf(SUMA_STDERR, "Warning %s: \n"
+                                 "in_sur is %d\n"
+                                 "Although it is common for it \n"
+                                 "to be slightly larger than 3.\n"
+                                 "the value observed seems excessive.\n"
+                                 "check mesh at nodes below\n"
+                                 "Central node: %d\n"
+                                 "Layer %d, node %d.\n",
+                                 FuncName, in_sur, i, il, n_sur[0]); 
+         } 
+         /* Now we have in n_sur, the indces of nodes that would enter the PCA */
+         for (ip=0; ip<in_sur; ++ip) { /* load the coords */
+               data_mat[ip  ] = SO->NodeList[3*n_sur[ip]  ];
+               data_mat[ip+3] = SO->NodeList[3*n_sur[ip]+1];
+               data_mat[ip+6] = SO->NodeList[3*n_sur[ip]+2];
+         }
+
+         #if LOC_DBG
+         SUMA_LHv("Calculating pca of nodes %d %d %d:\n"
+                  "[%f %f %f\n%f %f %f\n%f %f %f]\n",
+                  n_sur[0], n_sur[1], n_sur[2],
+                  SO->NodeList[3*n_sur[0]],SO->NodeList[3*n_sur[0]+1],SO->NodeList[3*n_sur[0]+2], 
+                  SO->NodeList[3*n_sur[1]],SO->NodeList[3*n_sur[1]+1],SO->NodeList[3*n_sur[1]+2], 
+                  SO->NodeList[3*n_sur[2]],SO->NodeList[3*n_sur[2]+1],SO->NodeList[3*n_sur[2]+2]); 
+         #endif
+                  
+         if ((trace = pca_fast3 (data_mat, in_sur, 1, pc_vec, pc_eig)) < 0) {
+            fprintf(SUMA_STDERR, "Warning %s:\n"
+                                 "Failed calculating PC at\n"
+                                 "Central node: %d\n"
+                                 "Layer %d, nodes for pca: %d %d %d\n",
+                                 FuncName, i, il, n_sur[0], n_sur[1], n_sur[2]);
+            goto NEW_OFFS;
+         } 
+         /* Have PC, will travel */
+         /* Find equation of plane passing by node n_sur[0] and having the PC for a normal */
+         pc0[0] = pc_vec[0]; pc0[1] = pc_vec[3]; pc0[2] = pc_vec[6];
+         p1 = &(SO->NodeList[3*n_sur[0]]);
+         SUMA_LHv("   Forming plane with normal [%f %f %f], passing by point [%f %f %f]\n", 
+            pc0[0], pc0[1], pc0[2], p1[0], p1[1], p1[2]); 
+         SUMA_PLANE_NORMAL_POINT(pc0, p1, Eq);
+         /* Then find the triangle that is      incident to node n_sur[0] 
+                                          AND   not part of the previous layer 
+                                          AND   intersects the plane Eq*/
+         N_Incident = N_IncidentMax; /* pass limit to SUMA_Get_NodeIncident */
+         if (!SUMA_Get_NodeIncident(n_sur[0], SO, Incident, &N_Incident)) {
+            SUMA_S_Err("Failed to get incident triangles.");
+            goto NEW_OFFS;
+         }
+         if (!N_Incident) {
+            SUMA_S_Err("No incident triangles");
+            goto NEW_OFFS;
+         }
+         /* of those triangles, which ones have a node in the previous layer? */
+         SUMA_LHv("   Searching for acceptable triangles out of a total of %d\n", N_Incident); 
+         itgood = 0;
+         for (it=0; it<N_Incident; ++it) {
+            hit = 0;
+            for (il0=0; il0<OffS->layers[il-1].N_NodesInLayer;++il0) {
+               nil0 = OffS->layers[il-1].NodesInLayer[il0];
+               if (  SO->FaceSetList[3*Incident[it]  ] == nil0 || 
+                     SO->FaceSetList[3*Incident[it]+1] == nil0 || 
+                     SO->FaceSetList[3*Incident[it]+2] == nil0) {
+                  hit = 1;
+                  break;
+               }
+            }
+            if (!hit) {
+               Incident[itgood] = Incident[it];
+               ++itgood;
+            }
+         } 
+         N_Incident = itgood;
+         if (LocalHead) {
+            fprintf (SUMA_STDERR,"%s:\n"
+                                 "    Which of remaining %d triangles intersect the plane [%.2f %.2f %.2f %.2f]\n"
+                                 "    Triangles:\n",
+                                 FuncName, N_Incident,Eq[0], Eq[1], Eq[2], Eq[3]); 
+            for (it=0; it<N_Incident; ++it) {
+               fprintf (SUMA_STDERR,"   %d", Incident[it]);
+            }
+            fprintf (SUMA_STDERR,"\n");
+         }
+         /* Now, which of these good triangles intersect the plane ?*/
+         hit = 0;
+         for (it=0; it<N_Incident; ++it) {
+            SUMA_LHv("      Checking Triangle %d\n", Incident[it]); 
+            SUMA_TWO_OTHER_TRIANGLE_NODES(n_sur[0],Incident[it],SO->FaceSetList,n2,n3);
+            if (n2 < 0 || n3 < 0) {
+               SUMA_S_Err("Failed to find other nodes in triangle");
+               goto NEW_OFFS;
+            } 
+            p1 = &(SO->NodeList[3*n2]);
+            p2 = &(SO->NodeList[3*n3]);
+            SUMA_LHv("Calling SUMA_SEGMENT_PLANE_INTERSECT, nodes of triangle are %d %d %d\n", n_sur[0], n2, n3); 
+            SUMA_SEGMENT_PLANE_INTERSECT(p1, p2, Eq, hit, pinter);
+            if (hit) {  /* OK, have hit, and the propagation direction */
+               PropLoc[3*noffs+0] = pinter[0];
+               PropLoc[3*noffs+1] = pinter[1];
+               PropLoc[3*noffs+2] = pinter[2];
+               SUMA_LHv("Storing hit (noffs=%d)\n"
+                        "PropLoc[%d]=%f %f %f\n", noffs, noffs, 
+                        PropLoc[3*noffs+0], PropLoc[3*noffs+1], PropLoc[3*noffs+2]);
+               break;
+            } 
+         }
+         if (!hit) {
+            SUMA_LHv("             Failed to get hit (noffs=%d)\n", noffs);
+         }
+         
+         NEW_OFFS:
+         SUMA_LHv("Done with noffs=%d\n", noffs); 
+         ++noffs;
+      }  /* for each node in layer */
+   }  /* for each layer */  
+   SUMA_RETURN(1);
+}
+
+/*!
    \brief creates a vector of node neighbors structures such that:
-   OffS = SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float OffsetLim);
+   OffS = SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float OffsetLim, const char *Opts);
    
    \param OffS (SUMA_OFFSET_STRUCT *) SO->Node x 1 vector of structures 
          OffS[i] is a structure containing node neighbors of node i
@@ -3075,13 +3292,21 @@ char * SUMA_ShowOffset_ll_Info (DList *list, int detail)
                                     nodes neighboring node i
          OffS[i].Neighb_dist (float *) OffS[i].N_Neighb x 1 vector containing 
                                     node distances from node i. 
-                                    These are the shortes distances ON THE GRAPH.
+                                    These are the shortest distances ON THE GRAPH.
                                     The distances might be larger than OffsetLim
                                     because the child function SUMA_getoffsets2
                                     does so.
+         OffS[i].Prop_Direc (float *) OffS[i].N_Neighb x 3 vector containing 
+                                    contour propagation directions at each node,
+                                    in layers 1 and above. This is only created
+                                    if Opts has "DoProp" in it.           
+                           
    \param OffsetLim (float) maximal inclusive neighbor distance. In reality, some 
                            nodes may be farther apart. But all nodes closer than 
                            OffsetLim to each node will be included
+   \param Opts (const char *) if contains the string "DoProp" then the function
+                              also calculates the propagation directions.
+                              Default is NULL, no extras.
    - NOTE: This function will chew up a lot of memory, real quick.
             An approximate equation for the size needed for OffS:
                (mean_N_Neighb_per_Node * 8 + 12) * SO->N_Node Bytes
@@ -3092,16 +3317,16 @@ char * SUMA_ShowOffset_ll_Info (DList *list, int detail)
          repeatedly for each node, as is done in this function.
          
 */
- 
-SUMA_OFFSET_STRUCT *SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float OffsetLim)
+
+SUMA_OFFSET_STRUCT *SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float OffsetLim, const char *opts)
 {
    static char FuncName[]={"SUMA_FormNeighbOffset"};
-   int i, ii, il, jl, noffs, ShowNode = 4;
+   int i, ii, il, jl, ip, noffs,  DoProp = 0;
    SUMA_GET_OFFSET_STRUCT *OffS = NULL;
    struct  timeval start_time;
    float etime_GetOffset, mean_N_Neighb, dist, dist_norm;   
    SUMA_OFFSET_STRUCT *OffS_out=NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURN(NULL); }
@@ -3109,6 +3334,12 @@ SUMA_OFFSET_STRUCT *SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float Offset
       SUMA_SL_Err("NULL SO->FN");
       SUMA_RETURN(NULL);
    }
+   
+   if (SUMA_iswordin(opts,"DoProp") == 1) {
+      SUMA_LH("Propagation Directions Will Be Computed");
+      DoProp = 1;
+   }
+
    OffS_out = (SUMA_OFFSET_STRUCT *)SUMA_malloc(SO->N_Node * sizeof(SUMA_OFFSET_STRUCT));
    
    SUMA_etime(&start_time,0);
@@ -3125,6 +3356,11 @@ SUMA_OFFSET_STRUCT *SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float Offset
       }
       OffS_out[i].Neighb_ind = (int *)SUMA_malloc(OffS_out[i].N_Neighb * sizeof(int));
       OffS_out[i].Neighb_dist = (float *)SUMA_malloc(OffS_out[i].N_Neighb * sizeof(float));
+      if (DoProp) {
+         OffS_out[i].Neighb_PropLoc = (float*)SUMA_malloc(OffS_out[i].N_Neighb * sizeof(float)*3);
+      } else {
+         OffS_out[i].Neighb_PropLoc = NULL;
+      }  
       mean_N_Neighb += OffS_out[i].N_Neighb;
       noffs = 0;
       for (il=1; il<OffS->N_layers; ++il) {
@@ -3142,9 +3378,17 @@ SUMA_OFFSET_STRUCT *SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float Offset
          }
       }
       
+      if (DoProp) {
+         SUMA_LH("Going to SUMA_OffsetLayerPropagationLocation\n");
+         if (!SUMA_OffsetLayerPropagationLocation(SO, OffS, OffS_out[i].Neighb_PropLoc)) {
+            SUMA_S_Err("Failed to calculation propagation location.");
+         }  
+         SUMA_LH("Done with SUMA_OffsetLayerPropagationLocation\n");
+      }
+      
       /* Show me the offsets for one node*/
       if (0) {
-         if (i == ShowNode) {
+         if (i == OffsetDebugNode) {
             FILE *fid=NULL;
             char *outname=NULL;
             outname = SUMA_Extension("SomethingOffset", ".1D", YUP);
@@ -3155,7 +3399,7 @@ SUMA_OFFSET_STRUCT *SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float Offset
             } else {
                fprintf (fid,"#Column 1 = Node index\n"
                             "#column 2 = Neighborhood layer\n"
-                            "#Column 3 = Distance from node %d\n", ShowNode);
+                            "#Column 3 = Distance from node %d\n", OffsetDebugNode);
                for (ii=0; ii<SO->N_Node; ++ii) {
                   if (OffS->LayerVect[ii] >= 0) {
                      fprintf(fid,"%d\t%d\t%f\n", ii, OffS->LayerVect[ii], OffS->OffVect[ii]);
@@ -3170,7 +3414,7 @@ SUMA_OFFSET_STRUCT *SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float Offset
          etime_GetOffset = SUMA_etime(&start_time,1);
          fprintf(SUMA_STDERR, "%s: Search to %f mm took %f seconds for %d nodes.\n"
                               "Projected completion time: %f minutes\n"
-                              "Projected memory need for structure %f MB", 
+                              "Projected memory need for structure %f MB\n", 
                               FuncName, OffsetLim, etime_GetOffset, i+1, 
                               etime_GetOffset * SO->N_Node / 60.0 / (i+1),
                               (mean_N_Neighb / (i+1) * 8 + 12)* SO->N_Node/1000000.0);
@@ -3207,6 +3451,7 @@ SUMA_OFFSET_STRUCT * SUMA_free_NeighbOffset (SUMA_SurfaceObject *SO, SUMA_OFFSET
       OffS_out[i].N_Neighb = 0;
       if (OffS_out[i].Neighb_dist) SUMA_free(OffS_out[i].Neighb_dist); OffS_out[i].Neighb_dist = NULL;
       if (OffS_out[i].Neighb_ind) SUMA_free(OffS_out[i].Neighb_ind); OffS_out[i].Neighb_ind = NULL;
+      if (OffS_out[i].Neighb_PropLoc) SUMA_free(OffS_out[i].Neighb_PropLoc); OffS_out[i].Neighb_PropLoc = NULL;
    }
    SUMA_free(OffS_out); 
    SUMA_RETURN(NULL);
@@ -3275,7 +3520,7 @@ float *SUMA_Offset_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float OffsetL
       }
    }
    SUMA_LH("Calculating OffS_out ...");
-   OffS_out = SUMA_FormNeighbOffset (SO, OffsetLim);
+   OffS_out = SUMA_FormNeighbOffset (SO, OffsetLim, NULL);
    fin_next = fin_orig;
    switch (d_order) {
       case SUMA_ROW_MAJOR:
@@ -5225,6 +5470,7 @@ Usage :
    
          If the three points are colinear, Eq = [0 0 0 0]
  
+   \sa SUMA_PLANE_NORMAL_POINT
 */
 float * SUMA_Plane_Equation (float * P1, float *P2, float *P3, float *usethisEq)
 {/*SUMA_Plane_Equation*/
@@ -5259,6 +5505,7 @@ float * SUMA_Plane_Equation (float * P1, float *P2, float *P3, float *usethisEq)
    SUMA_RETURN (Eq);
 }/*SUMA_Plane_Equation*/
 
+
 /*! 
  
 \brief Determines the intersection of a plane and a surface 
@@ -5276,6 +5523,7 @@ float * SUMA_Plane_Equation (float * P1, float *P2, float *P3, float *usethisEq)
      
  
 
+\sa SUMA_SEGMENT_PLANE_INTERSECT
 \sa an older matlab version in Surf_Plane_Intersect_2.m  
 \sa SUMA_PlaneEq
 \sa SUMA_Allocate_SPI

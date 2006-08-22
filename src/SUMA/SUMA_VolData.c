@@ -1405,6 +1405,23 @@ THD_fvec3 SUMA_THD_3dfind_to_3dmm( SUMA_SurfaceObject *SO,
    SUMA_RETURN(fv) ;
 }
 
+/*! 
+   Same as SUMA_THD_3dfind_to_3dmm, but without needing SO
+*/
+THD_fvec3 SUMA_THD_3dfind_to_3dmm_vp( SUMA_VOLPAR *vp, 
+                                       THD_fvec3 iv )
+{
+   static char FuncName[]={"SUMA_THD_3dfind_to_3dmm_vp"};
+   THD_fvec3     fv ;
+
+   SUMA_ENTRY;
+
+   fv.xyz[0] = vp->xorg + iv.xyz[0] * vp->dx ;
+   fv.xyz[1] = vp->yorg + iv.xyz[1] * vp->dy ;
+   fv.xyz[2] = vp->zorg + iv.xyz[2] * vp->dz ;
+   SUMA_RETURN(fv) ;
+}
+
 /*!------------------------------------------------------------------*/
 
 THD_fvec3 SUMA_THD_3dind_to_3dmm( SUMA_SurfaceObject *SO,
