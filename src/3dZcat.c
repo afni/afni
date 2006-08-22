@@ -1,4 +1,5 @@
 #include "mrilib.h"
+#include "thd.h"
 
 /*---------------------------------------------------------------------------
   This program catenates multiple 3D datasets in the slice direction.
@@ -25,6 +26,9 @@ static int                      ZCAT_frugal = 0 ;    /* 05 Apr 2006 */
 #define DSUB(id) DSET_IN_3DARR(ZCAT_dsar,(id))
 
 static char ZCAT_output_prefix[THD_MAX_PREFIX] = "zcat" ;
+static Boolean write_output = False;  /* 21 Jun 2006 [dg] -force rewrite as in 3drefit by rickr */
+static Boolean NIFTI_mode = False;    /* saving NIFTI output */
+static int cmode = COMPRESS_NOFILE;   /* check compression mode for NIFTI separately */
 
 /*--------------------------- prototypes ---------------------------*/
 
@@ -78,8 +82,14 @@ void ZCAT_read_opts( int argc , char * argv[] )
           fprintf(stderr,"** need argument after -prefix!\n") ; exit(1) ;
         }
         MCW_strncpy( ZCAT_output_prefix , argv[nopt++] , THD_MAX_PREFIX ) ;
-        if( strstr(ZCAT_output_prefix,".nii") != NULL )
-          ERROR_exit("Sorry: 3dZcat doesn't support NIfTI output!") ;
+	
+        if( strstr(ZCAT_output_prefix,".nii") != NULL ) {
+            write_output = True;
+	    NIFTI_mode = True;
+            if( strstr(ZCAT_output_prefix,".nii.gz") != NULL ) {
+	       cmode = 0; /* force gzip compression  (actually zlib from nifti library)*/
+	    }   
+	}       
         else if( !THD_filename_ok(ZCAT_output_prefix) )
           ERROR_exit("Illegal character in -prefix '%s'",ZCAT_output_prefix) ;
         continue ;
@@ -211,7 +221,7 @@ int main( int argc , char * argv[] )
    THD_ivec3 iv_nxyz ;
    float * fvol , *ffac ;
    void  * svol ;
-   int cmode , fscale ; FILE * far ;
+   int fscale ; FILE * far ;
 
    /*** read input options ***/
 
@@ -220,7 +230,7 @@ int main( int argc , char * argv[] )
    /*-- addto the arglist, if user wants to --*/
 
    { int new_argc ; char ** new_argv ;
-     addto_args( argc , argv , &new_argc , &new_argv ) ;
+     addto_args( argc , argv , &new_argc, &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
    }
 
@@ -266,6 +276,17 @@ int main( int argc , char * argv[] )
 
    if( ZCAT_datum < 0 ) ZCAT_datum = DSET_BRICK_TYPE(dset,0) ;
 
+   /*-- open output BRIK file --*/
+   if ((cmode == COMPRESS_NOFILE)) { /* ignore compression for NIFTI - do in write
+   automatically later */
+      cmode = THD_get_write_compression() ; /* check env. variable for compression*/
+#if 0
+      if(NIFTI_mode && (cmode!=0)) /* have to compress this NIFTI data, add .gz to prefix */
+         cmode = COMPRESS_NOFILE;
+         sprintf(ZCAT_output_prefix, "%s.gz", ZCAT_output_prefix);
+#endif
+      }
+
    EDIT_dset_items( new_dset ,
                       ADN_prefix    , ZCAT_output_prefix ,
                       ADN_type      , ZCAT_type ,
@@ -275,7 +296,6 @@ int main( int argc , char * argv[] )
                     ADN_none ) ;
 
    /* can't re-write existing dataset */
-
    if( THD_is_file(DSET_HEADNAME(new_dset)) ){
      fprintf(stderr,"** Fatal error: dataset %s already exists!\n",
              DSET_HEADNAME(new_dset) ) ;
@@ -292,9 +312,7 @@ int main( int argc , char * argv[] )
      }
    }
 
-   /*-- open output BRIK file --*/
-
-   cmode = THD_get_write_compression() ;
+   
    far = COMPRESS_fopen_write( DSET_BRIKNAME(new_dset) , cmode ) ;
    if( far == NULL ){
       fprintf(stderr,
@@ -468,10 +486,11 @@ int main( int argc , char * argv[] )
                       ADN_brick_fac,ffac ,
                     ADN_none ) ;
    free(ffac) ;                            /* don't need ffac no more */
+
    DSET_load(new_dset) ;                   /* read new dataset from disk */
    THD_load_statistics(new_dset) ;         /* compute sub-brick statistics */
-   DSET_write_header(new_dset) ;           /* write output HEAD */
-   fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
+   THD_write_3dim_dataset(NULL,NULL,new_dset,write_output); /* (re)write output file */
+   INFO_message("output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
 
    exit(0) ;                               /* stage left, pursued by a bear */
 }

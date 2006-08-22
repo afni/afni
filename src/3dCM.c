@@ -8,7 +8,6 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset *xset ;
    byte *mmm=NULL ; int nmask=0 , nvox_mask ;
    THD_fvec3 cmv , setv ;
-
    /*-- read command line arguments --*/
 
    if( argc < 2 || strncmp(argv[1],"-help",5) == 0 ){
@@ -39,6 +38,7 @@ int main( int argc , char * argv[] )
         yset = strtod( argv[++narg] , NULL ) ;
         zset = strtod( argv[++narg] , NULL ) ;
         LOAD_FVEC3(setv,xset,yset,zset) ; do_set = 1 ;
+        THD_set_write_compression(COMPRESS_NONE); /* do not alter compression*/
         narg++ ; continue ;
       }
 
@@ -118,11 +118,11 @@ int main( int argc , char * argv[] )
 
      cmv = THD_cmass( xset , 0 , mmm ) ;
      printf("%g  %g  %g\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
-     DSET_unload(xset) ;
+      DSET_unload(xset) ;
 
      if( do_set ){
        THD_fvec3 dv , ov ;
-       if( !DSET_IS_BRIK(xset) || DSET_IS_MASTERED(xset) ){
+       if(  DSET_IS_MASTERED(xset) ){
          fprintf(stderr,"+++ Can't modify CM of dataset %s\n",argv[narg]) ;
        } else {
          LOAD_FVEC3(ov,DSET_XORG(xset),DSET_YORG(xset),DSET_ZORG(xset)) ;
@@ -133,9 +133,17 @@ int main( int argc , char * argv[] )
          xset->daxes->xxorg = ov.xyz[0] ;
          xset->daxes->yyorg = ov.xyz[1] ;
          xset->daxes->zzorg = ov.xyz[2] ;
-         fprintf(stderr,"+++ Rewriting header %s\n",DSET_HEADNAME(xset)) ;
-         DSET_write_header( xset ) ;
-       }
+
+	 if(DSET_IS_BRIK(xset)) {
+           INFO_message("Rewriting header %s",DSET_HEADNAME(xset)) ;
+           DSET_write_header( xset ) ;
+	 }
+	 else {     /* for other dataset types like NIFTI, rewrite whole dset */
+	    DSET_load( xset ) ; THD_load_statistics( xset ) ;
+            THD_write_3dim_dataset(NULL,NULL,xset,1); /* rewrite output file */
+            INFO_message("Wrote new dataset: %s",DSET_BRIKNAME(xset)) ;
+	 }   
+      }
      }
      DSET_delete(xset) ;
   }
