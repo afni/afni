@@ -95,6 +95,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_toy_circle_ParseInput(char *argv[], int a
    popt->neighb_check = 0;
    popt->pause = 0;
    popt->sigma = 0.0;
+   popt->M_time_steps = 10;
    snprintf(popt->outfile, 499*sizeof(char),"test_move");
    kar = 1;
    brk = NOPE;
@@ -184,6 +185,22 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_toy_circle_ParseInput(char *argv[], int a
          } 
          brk = 1;
       }
+      
+      if (!brk && (strcmp(argv[kar], "-M_time") == 0)) {
+         kar ++;
+         if (kar >= argc)  
+         {
+            fprintf (stderr, "need argument after -M_time \n");
+            exit (1);
+         }
+         popt->M_time_steps = atoi(argv[kar]);               
+         if (popt->M_time_steps <= 0 || popt->M_time_steps > 100) {
+            fprintf (stderr, "You are mad \n");
+            exit (1);
+         } 
+         brk = 1;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-ctrl") == 0)) {
          kar ++;
          if (kar >= argc)  
