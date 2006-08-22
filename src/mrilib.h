@@ -1247,7 +1247,6 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 typedef void GA_warpfunc( int, float *,
                           int, float *,float *,float *,
                                float *,float *,float * );
-
 #if 0
   typedef struct {
     float min, max, ident, delta, toler ;

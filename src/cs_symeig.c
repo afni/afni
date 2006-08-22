@@ -476,3 +476,237 @@ void svd_double( int m , int n , double *a , double *s , double *u , double *v )
    if( v == NULL && vv != NULL ) free((void *)vv) ;
    return ;
 }
+
+/*--------------------------------------------------------------------*/
+
+#define DBG_PC 0
+/*!
+   Calculate the covariance matrix of data_mat based on code in 3dpc
+   
+   data_mat: Data matrix containg num_cols vectors that have num_rows elements.
+   cov_mat:  On output, cov_mat will contain the covariance matrix. Caller must
+             allocate num_cols x num_cols elements for it.
+   Both matrices are stored in column major order. M(i,j) = Mv(i+j*num_rows);
+   row_mask: mask vector num_rows long.
+            NULL for no masking.
+   num_rows, num_cols: 1st and 2nd dimensions of data_mat
+   norm: flag for normalizing covariance.
+         -1 no normalization, 
+         0, normalize by num_rows - 1, 
+         1, normalize by num_rows
+   remove_mean: 0  : do nothing
+                1  : remove the mean of each column in data_mat (like -dmean in 3dpc)
+                
+   To match matlab's cov function, you need to remove the mean of each column and set norm to 0 (default for matlab) or 1
+   
+   the function returns the trace of the covariance matrix if all went well.
+    a -1.0 in case of error.
+   
+*/
+double covariance(float *data_mat, double *cov_mat, unsigned char * row_mask, int num_rows, 
+               int num_cols, int norm, int remove_mean, int be_quiet) 
+{
+   double atrace, dsum, normval=0.0;
+   int idel, jj, nn, mm, ifirst, ilast, ii, PC_be_quiet, kk, nsum;
+      
+   if (norm == 0) normval = (double)num_rows  - 1.0;
+   else if (norm == 1) normval = (double)num_rows;
+   else if (norm == -1) normval = 0.0f;
+   else {
+     fprintf(stderr,"*** norm value of %d is not acceptable.\n", norm); return(-1.0);
+   } 
+   
+   if (remove_mean == 1) {
+      for( jj=0 ; jj < num_cols ; jj++ ){ /* for each column */
+         nsum = 0;
+         dsum = 0.0 ;
+         if( row_mask == NULL ){
+            for( kk=0 ; kk < num_rows ; kk++ ) dsum += data_mat[kk+jj*num_rows]   ;
+            dsum /= (double)num_rows;
+         } else {
+            for( kk=0 ; kk < num_rows ; kk++ )
+                       if( row_mask[kk] ) { dsum += data_mat[kk+jj*num_rows]   ; ++nsum; }
+            dsum /= (double)nsum;
+         }
+         if( row_mask == NULL ){
+            for( kk=0 ; kk < num_rows ; kk++ ) data_mat[kk+jj*num_rows] -= dsum  ;
+         } else {
+            for( kk=0 ; kk < num_rows ; kk++ )
+                       if( row_mask[kk] ) { data_mat[kk+jj*num_rows] -= dsum; }
+         }
+      }
+   }
+   
+   idel = 1 ;                           /* ii goes forward */
+   for( jj=0 ; jj < num_cols ; jj++ ){
+
+      ifirst = (idel==1) ?    0 : jj ;  /* back and forth in ii to   */
+      ilast  = (idel==1) ? jj+1 : -1 ;  /* maximize use of cache/RAM */
+
+      for( ii=ifirst ; ii != ilast ; ii += idel ){
+         dsum = 0.0 ;
+         if( row_mask == NULL ){
+            for( kk=0 ; kk < num_rows ; kk++ ) dsum += data_mat[kk+ii*num_rows] * data_mat[kk+jj*num_rows]   ;
+         } else {
+            for( kk=0 ; kk < num_rows ; kk++ )
+                       if( row_mask[kk] ) dsum += data_mat[kk+ii*num_rows] * data_mat[kk+jj*num_rows]   ;
+         }
+         if (normval > 1) cov_mat[ii+jj*num_cols] = cov_mat[jj+ii*num_cols] = dsum/normval ;
+         else cov_mat[ii+jj*num_cols] = cov_mat[jj+ii*num_cols] = dsum;
+      }
+
+      if( !be_quiet ){ printf("+"); fflush(stdout); }
+
+      idel = -idel ;                    /* reverse direction of ii */
+   }
+   if( !be_quiet ){ printf("\n"); fflush(stdout); }
+
+   /*-- check diagonal for OK-ness --**/
+
+   atrace = 0.0 ;
+   ii     = 0 ;
+   for( jj=0 ; jj < num_cols ; jj++ ){
+      if( cov_mat[jj+jj*num_cols] <= 0.0 ){
+         fprintf(stderr,"*** covariance diagonal (%d,%d) = %g\n",
+                 jj+1,jj+1,cov_mat[jj+jj*num_cols]) ;
+         ii++ ;
+      }
+      atrace += cov_mat[jj+jj*num_cols] ;
+   }
+   if( ii > 0 ){ fprintf(stderr, "*** Warning %d zero or negative covariance on diagonals!\n", ii); }
+
+   if( !be_quiet ){ printf("--- covariance trace = %g\n",atrace); fflush(stdout); }
+   
+   return(atrace);
+}
+/*!
+   Principal Component calculation by doing SVD on the 
+   covariance matrix of the data.
+    
+   Based on code in 3dpc
+   
+   data_mat is a matrix of M (num_cols) column vectors, each N (num_rows) elements 
+            long, and stored in a column major order. 
+   row_mask is a byte mask vector for data values to consider in data_mat
+            If row_mask[i] then row i is considered in the calculations
+            If NULL then all rows are considered.
+   num_rows is the length N of each column in data_mat
+   num_cols is the number of columns (M) (second dimension of data_mat)
+   be_quiet
+   
+   (HAVE YET TO MAKE THIS FUNCTION RETURN VALUES a la pca_fast3. I'll do it when
+   I'll need it ZSS)
+   
+*/
+void pca (float *data_mat, unsigned char * row_mask, int num_rows, int num_cols, int be_quiet) {
+   double *aa=NULL, atrace, *wout, sum, *perc;
+   int i, jj, ll, ii;
+   
+   /* calculate covariance matrix */
+   aa = (double *)malloc(sizeof(double)*num_cols*num_cols);
+   wout = (double*)malloc(sizeof(double)*num_cols);
+   atrace = covariance(data_mat, aa, row_mask, num_rows, num_cols, 0, 1, be_quiet);
+   
+   /* calculate eigenvalues and vectors to be held in aa */
+   symeig_double( num_cols , aa , wout ) ;
+   
+   /* print results for now */
+   sum = 0.0 ;
+   perc = (double *) malloc( sizeof(double) * num_cols) ;
+
+   fprintf(stderr, "deal: Num.  --Eigenvalue--  -Var.Fraction-  -Cumul.Fract.-\n") ;
+   for( jj=0 ; jj < num_cols ; jj++ ){
+      ll = num_cols - 1-jj ;      /* reversed order of eigensolution! */
+      perc[jj] = wout[ll]/atrace ;
+      sum     += perc[jj] ;
+      fprintf(stderr, "%4d  %14.7g  %14.7g  %14.7g\n",
+             jj+1 , wout[ll] , perc[jj] , sum ) ;
+   }
+   
+   /* now write the vectors */
+   for (ii=0; ii< num_cols; ++ii) {  /* for each row */
+      for( jj=0 ; jj < num_cols ; jj++ ){ /* for each column */
+         ll = num_cols - 1- jj ;      /* reversed order of eigensolution! */
+         fprintf(stderr, "%3.4f  ",
+              aa[ii+ll*num_cols] ) ;
+      }
+      fprintf(stderr, "\n"); fflush(stdout);
+   }
+   
+   free(perc); free(aa); free(wout);
+   return;
+}
+
+/*!
+   Principal Component calculation by doing SVD on the 
+   covariance matrix of the data.
+   
+   Optimized for matrices with 3 columns (x y z, typically) 
+   Based on code in 3dpc
+   
+   data_mat is a matrix of 3 column vectors, each N (num_rows) elements 
+            long, and stored in a column major order. 
+            x0, x1, x2, x3, ... , y0, y1, ... , z0, z1, ... ,zN-1 
+            
+   num_rows is the length N of each column in data_mat
+   be_quiet
+   pca_vec is a matrix of 3 column vectors corresponding to the 
+            eigen values in pca_eig. NOTE: Storage is still column 
+            major order, like data_mat
+   pca_eig is a vector of the 3 eigen values (sorted large to small)
+   
+   Function returns the trace of the covariance matrix
+*/
+
+double pca_fast3 (float *data_mat, int num_rows, int be_quiet, double *pca_mat, double *pca_eig) {
+   double aa[9], atrace, wout[9], sum, perc[9];
+   int i, jj, ll, ii, cnt;
+   
+   #if DBG_PC
+      fprintf(stderr, "data_mat=[ %f %f %f\n%f %f %f\n%f %f %f]\n",
+                        data_mat[0], data_mat[3], data_mat[6],
+                        data_mat[1], data_mat[4], data_mat[7],
+                        data_mat[2], data_mat[5], data_mat[8]);
+   #endif
+   /* calculate covariance */
+   atrace = covariance(data_mat, aa, NULL, num_rows, 3, 0, 1, be_quiet);
+   
+   /* calc eigs */
+   symeig_3( aa , wout, 1 ) ;
+   
+   /* now write the vectors */
+   /* print results for now */
+   sum = 0.0 ;
+   #if DBG_PC
+      fprintf(stderr, "deal3: Num.  --Eigenvalue--  -Var.Fraction-  -Cumul.Fract.-\n") ;
+   #endif
+   for( jj=0 ; jj < 3 ; jj++ ){
+      ll = 3 - 1-jj ;      /* reversed order of eigensolution! */
+      pca_eig[jj] = wout[ll];
+      #if DBG_PC
+         perc[jj] = wout[ll]/atrace ;
+         sum     += perc[jj] ;
+         fprintf(stderr, "%4d  %14.7g  %14.7g  %14.7g\n",
+                jj+1 , wout[ll] , perc[jj] , sum ) ;
+      #endif
+   }
+
+   cnt = 0;
+   for (ii=0; ii< 3; ++ii) {  /* for each row */
+      for( jj=2 ; jj > -1 ; jj-- ){ /* for each column (reversed order) */
+         ll = ii+jj*3;
+         #if DBG_PC
+            fprintf(stderr, "%3.4f  ",
+                 aa[ll] ) ;
+         #endif
+         pca_mat[cnt] = aa[ll];
+         ++cnt;
+      }
+     #if DBG_PC 
+      fprintf(stderr, "\n"); 
+     #endif
+   }
+   
+   return(atrace);
+   
+}

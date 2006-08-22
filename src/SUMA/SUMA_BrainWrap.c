@@ -472,6 +472,7 @@ int SUMA_Find_IminImax_Avg (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_ST
       travdir[0] = - istep * Opt->travstp * SO->NodeNormList[3*ni]; travdir[1] = -istep * Opt->travstp * SO->NodeNormList[3*ni+1]; travdir[2] = -istep * Opt->travstp * SO->NodeNormList[3*ni+2]; 
       
       /* find the set of triangles incident to node ni */
+      N_vtn = N_vtnmax; /* pass limit to SUMA_Get_NodeIncident */
       if (!SUMA_Get_NodeIncident(ni, SO, vtn, &N_vtn)) {
           SUMA_SL_Err("Failed to find incident triangles.\nDecidement, ca va tres mal.\n");
           SUMA_RETURN(NOPE);

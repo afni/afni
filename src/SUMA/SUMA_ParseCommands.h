@@ -121,6 +121,7 @@ typedef struct {
    char *UseThisBrainHull; /* do not free, argv[.] copy */
    char *UseThisSkullOuter; /* do not free, argv[.] copy */
    
+   int iopt;
 } SUMA_GENERIC_PROG_OPTIONS_STRUCT;
 
 #define SUMA_MAX_SURF_ON_COMMAND 100
@@ -453,6 +454,13 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
 */
 #define SUMA_LH(msg) {\
    if (LocalHead) fprintf (SUMA_STDERR, "%s (%s:%d):\n %s\n", FuncName, __FILE__, __LINE__,msg);  \
+}
+
+#define SUMA_LHv(msg, ...) {\
+   if (LocalHead) {  \
+      fprintf (SUMA_STDERR, "%s (%s:%d):\n ", FuncName, __FILE__, __LINE__);  \
+      fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+   }  \
 }
 
 

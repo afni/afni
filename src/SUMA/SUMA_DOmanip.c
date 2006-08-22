@@ -265,8 +265,12 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
       case no_type:
          fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, no free no_type\n");
          break;
+      case NBSP_type:
       case SP_type:
          SUMA_free_SphereDO ((SUMA_SphereDO *)dov->OP);
+         break;
+      case PL_type:
+         SUMA_free_PlaneDO ((SUMA_PlaneDO *)dov->OP);
          break;
          
    }   
@@ -630,6 +634,16 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
 
                }
                break;
+            case NBSP_type:
+               {
+                  SUMA_SphereDO *sdo=NULL;
+
+                  sdo = (SUMA_SphereDO *)dov[i].OP;
+                  SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tNode-Based Sphere Object\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
+                  SS = SUMA_StringAppend_va(SS,"\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
+
+               }
+               break;
             case SP_type:
                {
                   SUMA_SphereDO *sdo=NULL;
@@ -637,6 +651,16 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   sdo = (SUMA_SphereDO *)dov[i].OP;
                   SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tSphere Object\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
                   SS = SUMA_StringAppend_va(SS,"\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
+
+               }
+               break;
+            case PL_type:
+               {
+                  SUMA_PlaneDO *pdo=NULL;
+
+                  pdo = (SUMA_PlaneDO *)dov[i].OP;
+                  SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n\tPlane Object\n\tType: %d, Axis Attachment %d\n", i,dov[i].ObjectType, dov[i].CoordType);
+                  SS = SUMA_StringAppend_va(SS,"\tLabel: %s\n\tidcode: %s\n", pdo->Label, pdo->idcode_str);
 
                }
                break;
@@ -948,11 +972,34 @@ SUMA_SurfaceObject * SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
    
    SUMA_ENTRY;
 
+   if (!idcode) SUMA_RETURN(NULL);
+   
    for (i=0; i<N_dov; ++i) {
       if (dov[i].ObjectType == SO_type) {
          SO = (SUMA_SurfaceObject *)dov[i].OP;
          if (strcmp(idcode, SO->idcode_str)== 0) {
             SUMA_RETURN (SO);
+         }
+      }
+   }
+   SUMA_RETURN(NULL);
+}
+
+char *SUMA_find_SOLabel_from_idcode (char *idcode, SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]={"SUMA_find_SOLabel_from_idcode"};
+   SUMA_SurfaceObject *SO;
+   int i;
+   
+   SUMA_ENTRY;
+   
+   if (!idcode) SUMA_RETURN(NULL);
+   
+   for (i=0; i<N_dov; ++i) {
+      if (dov[i].ObjectType == SO_type) {
+         SO = (SUMA_SurfaceObject *)dov[i].OP;
+         if (strcmp(idcode, SO->idcode_str)== 0) {
+            SUMA_RETURN (SO->Label);
          }
       }
    }
@@ -1497,20 +1544,20 @@ SUMA_DRAWN_ROI * SUMA_FetchROI_InCreation (SUMA_SurfaceObject *SO, SUMA_DO * dov
 }
 
 /*!
-\brief Returns YUP if the surface: NBV->Parent_idcode_str is the same as SO->idcode_str.
+\brief Returns YUP if the surface: NBV(or NBSP)->Parent_idcode_str is the same as SO->idcode_str.
 NOPE otherwise
 
-ans = SUMA_isNBVrelated (NBV, SO);
+ans = SUMA_isNBDOrelated (NBDO, SO);
 
-\param NBV (SUMA_SegmentDO  *) pointer to NBV object
+\param NBV (SUMA_NB_DO * ) pointer to NBV/NBSP object
 \param SO (SUMA_SurfaceObject *) pointer to surface object
 \return ans (SUMA_Boolean) YUP/NOPE
 
 */
-SUMA_Boolean SUMA_isNBVrelated (SUMA_SegmentDO *SDO, SUMA_SurfaceObject *SO)
+SUMA_Boolean SUMA_isNBDOrelated (SUMA_NB_DO *SDO, SUMA_SurfaceObject *SO)
 {
-   static char FuncName[]={"SUMA_isNBVrelated"};
-   SUMA_SurfaceObject *SO_NBV = NULL;
+   static char FuncName[]={"SUMA_isNBDOrelated"};
+   SUMA_SurfaceObject *SO_NB = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1529,18 +1576,18 @@ SUMA_Boolean SUMA_isNBVrelated (SUMA_SegmentDO *SDO, SUMA_SurfaceObject *SO)
    }
    
    /* find the pointer to the surface having for an idcode_str: ROI->Parent_idcode_str */
-   SO_NBV = SUMA_findSOp_inDOv(SDO->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+   SO_NB = SUMA_findSOp_inDOv(SDO->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
    
-   if (!SO_NBV) {
+   if (!SO_NB) {
       SUMA_SL_Err("Could not find surface of SDO->Parent_idcode_str");
       SUMA_RETURN (NOPE);
    }
    
-   if ( SUMA_isRelated (SO, SO_NBV, 1)) { /*  relationship of the 1st order only */ 
+   if ( SUMA_isRelated (SO, SO_NB, 1)) { /*  relationship of the 1st order only */ 
       SUMA_RETURN (YUP);
    }
    
-   /* If you get here, you have SO_NBV so return happily */
+   /* If you get here, you have SO_NB so return happily */
    SUMA_RETURN (NOPE);
 }
 

@@ -315,6 +315,16 @@ void SUMA_LoadSegDO (char *s, void *csvp )
          }
          VDO = (void *)SDO;
          break;
+      case NBSP_type:
+         if (!(SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP)) {
+            SUMA_SL_Err("No surface in focus to which the spheres would be attached.\n");
+            SUMA_RETURNe;
+         }
+         if (!(VDO = (void*)SUMA_ReadNBSphDO(s, SO->idcode_str))) {
+            SUMA_SL_Err("Failed to read spheres file.\n");
+            SUMA_RETURNe;
+         }
+         break;
       case OLS_type:
          if (!(SDO = SUMA_ReadSegDO(s, 1, NULL))) {
             SUMA_SL_Err("Failed to read segments file.\n");
@@ -329,8 +339,15 @@ void SUMA_LoadSegDO (char *s, void *csvp )
          }
          VDO = (void *)SDO;
          break;
+      
       case SP_type:
          if (!(VDO = (void *)SUMA_ReadSphDO(s))) {
+            SUMA_SL_Err("Failed to read spheres file.\n");
+            SUMA_RETURNe;
+         }
+         break;
+      case PL_type:
+         if (!(VDO = (void *)SUMA_ReadPlaneDO(s))) {
             SUMA_SL_Err("Failed to read spheres file.\n");
             SUMA_RETURNe;
          }
@@ -691,6 +708,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case no_type:
                SUMA_SL_Err("Should not be doing this buidness");
                break;
+            case NBSP_type:
             case SP_type:
                SUMA_SL_Warn("Not ready yet!");
                break;
@@ -718,6 +736,9 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                if (!SUMA_DrawSegmentDO ((SUMA_SegmentDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
                   fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSegmentDO.\n", FuncName);
                }
+               break;
+            case PL_type:
+               SUMA_SL_Warn("Not ready yet!");
                break;
          }
       }
@@ -778,9 +799,17 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                   fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSegmentDO.\n", FuncName);
                }
                break;
+            case NBSP_type:
+               /* those are drawn by SUMA_DrawMesh */
+               break;
             case SP_type:
-               if (!SUMA_DrawSphereDO ((SUMA_SphereDO *)dov[csv->RegisteredDO[i]].OP)) {
+               if (!SUMA_DrawSphereDO ((SUMA_SphereDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
                   fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSphereDO.\n", FuncName);
+               }
+               break;
+            case PL_type:
+               if (!SUMA_DrawPlaneDO ((SUMA_PlaneDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
+                  fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawPlaneDO.\n", FuncName);
                }
                break;
             case no_type:

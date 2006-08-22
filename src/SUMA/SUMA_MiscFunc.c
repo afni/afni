@@ -3175,36 +3175,6 @@ void SUMA_Set_VoxIntersDbg(int v)
 }
 
 /*!
-   \brief find out if a point p on the line formed by points p0 and p1 is between p0 and p1
-   ans = SUMA_IS_POINT_IN_SEGMENT(p, p0, p1);
-   if ans then p is between p0 and p1
-   p, p0, p1 (float *) xyz of points
-   
-   - NOTE: macro does not check that three points are colinear (as they should be)!
-*/
-#define SUMA_IS_POINT_IN_SEGMENT(p, p0, p1)  (  (  (  \
-                                                      (p[0] >  p0[0] && p[0] <  p1[0]) ||   \
-                                                      (p[0] <  p0[0] && p[0] >  p1[0]) ||   \
-                                                      (SUMA_ABS(p[0] - p0[0]) < 0.00000001 || \
-                                                       SUMA_ABS(p[0] - p1[0]) < 0.00000001 ) \
-                                                   )\
-                                                   && \
-                                                   (  \
-                                                      (p[1] >  p0[1] && p[1] <  p1[1]) ||   \
-                                                      (p[1] <  p0[1] && p[1] >  p1[1]) ||   \
-                                                      (SUMA_ABS(p[1] - p0[1]) < 0.00000001 || \
-                                                       SUMA_ABS(p[1] - p1[1]) < 0.00000001 ) \
-                                                   )\
-                                                   && \
-                                                   (  \
-                                                      (p[2] >  p0[2] && p[2] <  p1[2]) ||   \
-                                                      (p[2] <  p0[2] && p[2] >  p1[2]) ||   \
-                                                      (SUMA_ABS(p[2] - p0[2]) < 0.00000001 || \
-                                                       SUMA_ABS(p[2] - p1[2]) < 0.00000001 ) \
-                                                   )\
-                                                   ) ? 1 : 0 )
-                                          
-/*!
    \brief does a voxel intersect a triangle ? (i.e. one of the edges intersects a triangle)
    \param center (float *) center of voxel 
    \param dxyz (float *) dimensions of voxel
@@ -4727,11 +4697,12 @@ int SUMA_FindEdgeInTri (SUMA_EDGE_LIST *EL, int n1, int n2, int Tri)
    \param n2 (int) index of node 2
    \return eloc (int) index into EL of first occurence of edge formed by nodes n1, n2
             -1 if no edge is found.
+   \sa SUMA_FIND_EDGE macro
 */
 int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2) 
 {
    static char FuncName[]={"SUMA_FindEdge"};
-   int eloc;
+   int eloc, done;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -4750,11 +4721,15 @@ int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2)
    }
    
    /* from there on, look for first occurence of n2 */
+   done = 0;
    do {
       /* if (LocalHead) fprintf (SUMA_STDERR,"%s: eloc %d, N_EL %d\n", FuncName, eloc, EL->N_EL);*/
       if (EL->EL[eloc][1] == n2) SUMA_RETURN (eloc);
       ++eloc;
-   } while (eloc < EL->N_EL && EL->EL[eloc][0] == n1); 
+      if (eloc < EL->N_EL) {
+         if (EL->EL[eloc][0] != n1) done = 1;
+      } else done = 1;
+   } while (!done); 
    
    /* not found */
    SUMA_RETURN (-1);
@@ -4766,7 +4741,9 @@ int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2)
    
    \param n1 (int) node 1
    \param SO (SUMA_SurfaceObject *) 
-   \param Incident (int *) a pre-allocated vector where incident triangle indices will be stored. MAKE SURE you allocate enough
+   \param Incident (int *) a pre-allocated vector where incident triangle indices will be stored. 
+                           MAKE SURE you allocate enough and when you call SUMA_Get_NodeIncident, 
+                           preset N_Incident to the maximum allowed.
    \param N_Incident (int *) pointer where the number of incident triangles is stored
    
    \ret ans (SUMA_Boolean) YUP/NOPE
@@ -4777,10 +4754,15 @@ int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2)
 SUMA_Boolean SUMA_Get_NodeIncident(int n1, SUMA_SurfaceObject *SO, int *Incident, int *N_Incident)
 {
    static char FuncName[] = {"SUMA_Get_NodeIncident"};
-   int i, n3, N_Neighb;
+   int i, n3, N_Neighb, N_max;
    
    SUMA_ENTRY;
    
+   N_max = *N_Incident; 
+   if (N_max < 1 || N_max > 1000) { /* aribtrary upper limit, can be increased if necessary...*/
+      SUMA_S_Err("Likely junk (< 0 or > 1000) sent in N_Incident!, Initialize properly");
+      SUMA_RETURN(NOPE);
+   } 
    *N_Incident = 0;
    
    N_Neighb = SO->FN->N_Neighb[n1];
@@ -4794,13 +4776,18 @@ SUMA_Boolean SUMA_Get_NodeIncident(int n1, SUMA_SurfaceObject *SO, int *Incident
    while ((i < N_Neighb )) { 
       if ( i+1 == N_Neighb) n3 = SO->FN->FirstNeighb[n1][0];
       else n3 = SO->FN->FirstNeighb[n1][i+1];
-      if ((Incident[*N_Incident] = SUMA_whichTri (SO->EL, n1, SO->FN->FirstNeighb[n1][i], n3, 1)) < 0) {
-         fprintf (SUMA_STDERR, "Error %s: Triangle formed by nodes %d %d %d not found.\n", 
-            FuncName, n1, SO->FN->FirstNeighb[n1][i], n3);
-         SUMA_RETURN(NOPE);
+      if (*N_Incident < N_max) { 
+         if ((Incident[*N_Incident] = SUMA_whichTri (SO->EL, n1, SO->FN->FirstNeighb[n1][i], n3, 1)) < 0) {
+            fprintf (SUMA_STDERR, "Error %s: Triangle formed by nodes %d %d %d not found.\n", 
+               FuncName, n1, SO->FN->FirstNeighb[n1][i], n3);
+            SUMA_RETURN(NOPE);
+         }
+         ++*N_Incident;
+         ++i;
+      } else {
+         SUMA_S_Err("More incident triangles than allocated for. Increase your limit.\n");
+         SUMA_RETURN(NOPE);  
       }
-      ++*N_Incident;
-      ++i;
    }
 
    SUMA_RETURN(YUP);   
