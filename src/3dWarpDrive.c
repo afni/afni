@@ -1393,6 +1393,26 @@ int main( int argc , char * argv[] )
        UNLOAD_FVEC3(mv_inv.vv,matar[3],matar[7],matar[11]) ;
        sprintf(anam,"WARPDRIVE_MATVEC_INV_%06d",kim) ;
        THD_set_float_atr( outset->dblk , anam , 12 , matar ) ;
+
+       /* redo with just the shift+rotation parameters [22 Aug 2006] */
+
+       for( kpar=0 ; kpar < 3           ; kpar++ ) parvec[kpar] = 0.0 ;
+       for( kpar=6 ; kpar < abas.nparam ; kpar++ ) parvec[kpar] = 0.0 ;
+       parset_affine() ;
+
+       UNLOAD_MAT(mv_for.mm,matar[0],matar[1],matar[2],
+                            matar[4],matar[5],matar[6],
+                            matar[8],matar[9],matar[10] ) ;
+       UNLOAD_FVEC3(mv_for.vv,matar[3],matar[7],matar[11]) ;
+       sprintf(anam,"WARPDRIVE_ROTMAT_FOR_%06d",kim) ;
+       THD_set_float_atr( outset->dblk , anam , 12 , matar ) ;
+
+       UNLOAD_MAT(mv_inv.mm,matar[0],matar[1],matar[2],
+                            matar[4],matar[5],matar[6],
+                            matar[8],matar[9],matar[10] ) ;
+       UNLOAD_FVEC3(mv_inv.vv,matar[3],matar[7],matar[11]) ;
+       sprintf(anam,"WARPDRIVE_ROTMAT_INV_%06d",kim) ;
+       THD_set_float_atr( outset->dblk , anam , 12 , matar ) ;
      }
    }
 
