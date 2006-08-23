@@ -88,6 +88,7 @@ char gv2s_history[] =
     "August 23, 2006 [rickr]\n"
     "  - in v2s_make_command(), change -skip_col_NSD to -outcols_afni_NSD\n"
     "  - in v2s_write_outfile_NSD(), only output node list if it exists\n"
+    "  - do not let set_sparse_data_attribs() set nodes_from_dset attrib\n"
     "---------------------------------------------------------------------\n";
 
 #include "mrilib.h"
@@ -2466,7 +2467,7 @@ int v2s_write_outfile_NSD(v2s_results *sd, v2s_opts_t * sopt,
     SUMA_DSET  * sdset;
     NI_element * nel;
     void      ** elist = NULL;
-    char         * oname;
+    char       * oname;
     int          c, rv;
 
 ENTRY("v2s_write_outfile_NSD");
@@ -2504,7 +2505,7 @@ ENTRY("v2s_write_outfile_NSD");
     /* find the data element and set the output format */
     c = NI_search_group_shallow(sdset->ngr, "SPARSE_DATA", &elist);
     if( c == 1 && (nel = (NI_element *)elist[0]) )
-        { free(elist); set_sparse_data_attribs(nel, p->gpar); }
+        { free(elist); set_sparse_data_attribs(nel, p->gpar, 0); }
     else
         fprintf(stderr, "** WO_NSD: missing SPARSE_DATA?\n");
 
