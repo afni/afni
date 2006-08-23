@@ -138,6 +138,13 @@ standards. Made help clearer for @DTI_studio_reposition.
  * fixed bug in edt_dsetitems.c that puts doubled .nii.nii or .nii.gz.nii.gz
  extensions on filenames in some cases
  * minor help changes in Draw Dataset plug-in (courtesy of Jill)
+ 23 Aug 2006
+ * Updates to support NIFTI and gzipped NIFTI files in 3dZcat, 3daxialize, 3dCM,
+ 3dNotes.Other changes in edt_dsetitems.c to support NIFTI format better.
+ * 3dDWItoDT supports Powell algorithm. 3dDTeig can read either old D tensor
+ order or new NIFTI standard D tensor order. It can also write out separate
+ files for eigenvalues, vectors, FA, MD (like 3dDWItoDT).
+ 
  
  
  
