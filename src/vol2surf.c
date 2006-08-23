@@ -66,7 +66,7 @@ char gv2s_history[] =
     "October 08, 2004 [rickr]\n"
     "  - added disp_v2s_plugin_opts()\n"
     "  - dealt with default v2s mapping of surface pairs\n"
-    "  - added fill_sopt_default()\n"
+    "  - added fill_sopt_afni_default()\n"
     "  - moved v2s_write_outfile_*() here, with print_header()\n"
     "  - in afni_vol2surf(), actually write output files\n"
     "\n"
@@ -84,6 +84,10 @@ char gv2s_history[] =
     "  - create argc, argv from options in v2s_make_command()\n"
     "  - added loc_add_2_list() and v2s_free_cmd() for v2s_make_command()\n"
     "  - added labels, thres index/value and surf vol dset to gv2s_plug_opts\n"
+    "\n"
+    "August 23, 2006 [rickr]\n"
+    "  - in v2s_make_command(), change -skip_col_NSD to -outcols_afni_NSD\n"
+    "  - in v2s_write_outfile_NSD(), only output node list if it exists\n"
     "---------------------------------------------------------------------\n";
 
 #include "mrilib.h"
@@ -136,7 +140,7 @@ static int    disp_range_3dmm_res( char * info, range_3dmm_res * dp );
 static int    disp_surf_vals( char * mesg, v2s_results * sd, int node );
 static int    dump_surf_3dt(v2s_opts_t *sopt, v2s_param_t *p, v2s_results *sd);
 static int    f3mm_out_of_bounds(THD_fvec3 *cp, THD_fvec3 *min, THD_fvec3 *max);
-static int    fill_sopt_default(v2s_opts_t * sopt, int nsurf );
+static int    fill_sopt_afni_default(v2s_opts_t * sopt, int nsurf );
 static int    float_list_alloc(float_list_t *f,int **ilist,int size,int trunc);
 static int    float_list_comp_mode(float_list_t *f, float *mode, int *nvals,
                                    int *index);
@@ -215,7 +219,7 @@ ENTRY("afni_vol2surf");
     if ( use_defaults )
     {
         sopt = &sopt_def;
-        fill_sopt_default(sopt, sB ? 2 : 1);  /* 1 or 2 surfaces */
+        fill_sopt_afni_default(sopt, sB ? 2 : 1);  /* 1 or 2 surfaces */
 
         /* but apply any debug options */
         sopt->debug = gv2s_plug_opts.sopt.debug;
@@ -2320,14 +2324,14 @@ ENTRY("v2s_good_map_index");
  * from afni, E_SMAP_SEG_VALS is not acceptable (only allow 1 output)
  *----------------------------------------------------------------------
 */
-static int fill_sopt_default(v2s_opts_t * sopt, int nsurf )
+static int fill_sopt_afni_default(v2s_opts_t * sopt, int nsurf )
 {
 
-ENTRY("fill_sopt_default");
+ENTRY("fill_sopt_afni_default");
 
     if ( !sopt || nsurf < 1 || nsurf > 2 )
     {
-        fprintf(stderr,"** fill_sopt_default: bad params (%p,%d)\n",sopt,nsurf);
+        fprintf(stderr,"** FSAD: bad params (%p,%d)\n",sopt,nsurf);
         RETURN(1);
     }
 
@@ -2472,10 +2476,15 @@ ENTRY("v2s_write_outfile_NSD");
     /* create an empty dataset without an idcode or domain string */
     sdset = SUMA_CreateDsetPointer(sopt->outfile_niml, SUMA_NODE_BUCKET,
                                    NULL, NULL, sd->nused);
-    /* add node indices */
-    rv = SUMA_AddDsetNelCol(sdset, "Node Indices", SUMA_NODE_INDEX,
-                            (void *)sd->nodes, NULL, 1);
-    if( !rv ){ fprintf(stderr,"** WO_NSD add nodes failure\n"); RETURN(1); }
+    /* add node indices, if they exist */
+    if( sd->nodes )
+    {
+        rv = SUMA_AddDsetNelCol(sdset, "Node Indices", SUMA_NODE_INDEX,
+                                (void *)sd->nodes, NULL, 1);
+        if( !rv ){ fprintf(stderr,"** WO_NSD add nodes failure\n"); RETURN(1); }
+        if( sopt->debug>1 ) fprintf(stderr,"+d adding node indices to NSD\n");
+    }
+
     for( c = 0; c < sd->max_vals; c++ )
     {
         rv = SUMA_AddDsetNelCol(sdset, sd->labels[c],
@@ -2695,7 +2704,7 @@ ENTRY("v2s_make_command");
     }
 
     if( DSET_NVALS(p->gpar) > 1 )
-        loc_add_2_list(&argv, &acnall, &argc, "-skip_col_NSD_format");
+        loc_add_2_list(&argv, &acnall, &argc, "-outcols_afni_NSD");
 
     if( opt->debug ){
         loc_add_2_list(&argv, &acnall, &argc, "-debug");
