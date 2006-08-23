@@ -109,6 +109,19 @@ int main( int argc , char *argv[] )
             "                     corresponding to each input column.\n"
             "                     These strings CANNOT start with the\n"
             "                     '-' character.\n"
+            "               N.B.: Each separate string after '-ynames'\n"
+            "                     is taken to be a new label, until the\n"
+            "                     end of the command line or until some\n"
+            "                     string starts with a '-'.  In particular,\n"
+            "                     This means you CANNOT do something like\n"
+            "                       1dplot -ynames a b c file.1D\n"
+            "                     since the input filename 'file.1D' will\n"
+            "                     be used as a label string, not a filename.\n"
+            "                     Instead, you must put another option between\n"
+            "                     the end of the '-ynames' label list, OR you\n"
+            "                     can put a single '-' at the end of the label\n"
+            "                     list to signal its end:\n"
+            "                       1dplot -ynames a b c - file.1D\n"
             "\n"
             " -volreg           = Makes the 'ynames' be the same as the\n"
             "                     6 labels used in plug_volreg for\n"
@@ -207,6 +220,7 @@ int main( int argc , char *argv[] )
         while( iarg < argc && argv[iarg][0] != '-' ){
            ynar[nyar++] = argv[iarg++] ;
         }
+        if( iarg < argc && strcmp(argv[iarg],"-") == 0 ) iarg++ ;
         continue ;
      }
 
