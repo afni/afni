@@ -989,6 +989,10 @@ afni_vcheck:afni_vcheck.o
 	$(RM) $@
 	$(CC) -o 1ddot 1ddot.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
+1dcorr:1dcorr.o
+	$(RM) $@
+	$(CC) -o 1dcorr 1dcorr.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 1dsvd:1dsvd.o
 	$(RM) $@
 	$(CC) -o 1dsvd 1dsvd.o $(LFLAGS) -lmri -lf2c $(LLIBS)

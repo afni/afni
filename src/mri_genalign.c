@@ -1,5 +1,7 @@
 #include "mrilib.h"
 
+#define DEBUG
+
 #undef  BIGVAL
 #define BIGVAL 1.e+38
 
@@ -616,9 +618,9 @@ static double GA_scalar_fitter( int npar , double *mpar )
     break ;
 
     case GA_MATCH_KULLBACK_SCALAR:
-      val = -THD_mutual_info( gstup->npt_match ,
-                              gstup->ajbot , gstup->ajtop , avm ,
-                              gstup->bsbot , gstup->bstop , bvm  ) ;
+      val = -THD_mutual_info_scl( gstup->npt_match ,
+                                  gstup->ajbot , gstup->ajtop , avm ,
+                                  gstup->bsbot , gstup->bstop , bvm  ) ;
     break ;
   }
 
@@ -1043,6 +1045,10 @@ ENTRY("mri_genalign_scalar_ransetup") ;
 
    twof = 1 << nfr ;  /* 2^nfr */
 
+#ifdef DEBUG
+   fprintf(stderr,"%d:",nrand+ngtot) ;
+#endif
+
    for( ii=0 ; ii < nrand+ngtot ; ii++ ){
      if( ii < ngtot ){                     /* grid points */
        val = 0.5/(ngrid+1.0) ; ss = ii ;
@@ -1052,6 +1058,10 @@ ENTRY("mri_genalign_scalar_ransetup") ;
      } else {                              /* random */
        for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5*(1.05+0.90*drand48()) ;
      }
+
+#ifdef DEBUG
+     fprintf(stderr,".") ;
+#endif
 
      for( ss=0 ; ss < twof ; ss++ ){   /* try divers reflections */
        for( qq=0 ; qq < nfr ; qq++ )
@@ -1065,13 +1075,17 @@ ENTRY("mri_genalign_scalar_ransetup") ;
            }
            memcpy( kpar[kk] , spar , sizeof(double)*nfr ) ;
            kval[kk] = val ;
+#ifdef DEBUG
+           if( kk == 0 ) fprintf(stderr,"*") ;
+#endif
            break ;
          }
        }
      }
    }
 
-#if 0
+#ifdef DEBUG
+fprintf(stderr,"\n") ;
 fprintf(stderr,"++ random kval:\n") ;
 for(kk=0;kk<NKEEP;kk++){
  fprintf(stderr,"  %d %g:",kk,kval[kk]);
@@ -1097,7 +1111,7 @@ for(kk=0;kk<NKEEP;kk++){
    }
    stup->vbest = vbest ;  /* save for user's edification */
 
-#if 0
+#ifdef DEBUG
 fprintf(stderr,"++ better kval:\n") ;
 for(kk=0;kk<NKEEP;kk++){
  fprintf(stderr," %c%d %g:",(kk==jj)?'*':'.',kk,kval[kk]);
