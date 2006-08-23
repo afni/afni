@@ -31,7 +31,7 @@ Boolean THD_write_3dim_dataset( char *new_sessname , char *new_prefixname ,
                                 THD_3dim_dataset *dset , Boolean write_brick )
 {
    THD_datablock *blk ;
-   int ii ;
+   int ii, cmode ;
    int is_nsd = 0 ;  /* is NI_SURF_DSET  03 Jul 2006 [rickr] */
    char *ppp ;  /* 06 Apr 2005 */
 
@@ -106,8 +106,12 @@ ENTRY("THD_write_3dim_dataset") ;
      /* allow user to order gzip-ed output via environment,
         OR complain if the file is ordered to be gzip-ed but can't be */
 
+
 #ifdef HAVE_ZLIB                                            /* 21 Sep 2005 */
-     if( AFNI_yesenv("AFNI_AUTOGZIP")                  &&
+     cmode = THD_get_write_compression() ; /* check env. variable for compression*/
+
+/*     AFNI_yesenv("AFNI_AUTOGZIP")    */ /* changed to compress base on AFNI_COMPRESSOR instead */
+     if( (cmode==COMPRESS_GZIP) &&
          STRING_HAS_SUFFIX(options.infile_name,".nii")   )
        strcat(options.infile_name,".gz") ;
 #else
