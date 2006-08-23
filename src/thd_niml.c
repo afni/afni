@@ -14,6 +14,7 @@ typedef struct {
 } ni_globals;
 static ni_globals gni = { 0, NI_BINARY_MODE };
 
+static int    are_sorted_ints(int *, int);
 static int    has_sorted_node_list(THD_3dim_dataset *);
 static int    loc_append_vals(char **, int *, char *, float, float, int, int);
 static char * my_strndup(char *, int);
@@ -1213,7 +1214,7 @@ ENTRY("nsd_add_sparse_data");
 
     NI_set_attribute(nel, "data_type", "Node_Bucket_data");
 
-    set_sparse_data_attribs(nel, dset);
+    set_sparse_data_attribs(nel, dset, 1);
 
     NI_add_to_group(ngr, nel);
 
@@ -1224,7 +1225,8 @@ ENTRY("nsd_add_sparse_data");
 /*------------------------------------------------------------------------*/
 /*! set element attribute specific to SPARSE DATA and the dataset 3 Aug 2006
 --------------------------------------------------------------------------*/
-int set_sparse_data_attribs(NI_element * nel, THD_3dim_dataset * dset)
+int set_sparse_data_attribs(NI_element * nel, THD_3dim_dataset * dset,
+                            int nodes_from_dset)
 {
     char str[32];
 
@@ -1243,11 +1245,14 @@ ENTRY("set_sparse_data_attribs");
     }
 
     /* set the sorted_node_def attribute  23 Aug 2006 [rickr] */
-    if( has_sorted_node_list(dset) ) strcpy(str, "Yes");
-    else                             strcpy(str, "No");
+    if( nodes_from_dset )
+    {
+        if( has_sorted_node_list(dset) ) strcpy(str, "Yes");
+        else                             strcpy(str, "No");
 
-    NI_set_attribute(nel, "sorted_node_def", str);
-    if(gni.debug > 1) fprintf(stderr,"+d setting sorted_node_def = %s\n", str);
+        NI_set_attribute(nel, "sorted_node_def", str);
+        if(gni.debug > 1) fprintf(stderr,"+d set sorted_node_def = %s\n", str);
+    }
 
     RETURN(0);
 }
@@ -1259,6 +1264,7 @@ ENTRY("set_sparse_data_attribs");
 static int has_sorted_node_list( THD_3dim_dataset * dset )
 {
 ENTRY("has_sorted_node_list");
+
     if( !ISVALID_DSET(dset) ){
         if( gni.debug > 1 ) fprintf(stderr,"** HSNL: invalid dset\n");
         RETURN(0);
@@ -1273,7 +1279,24 @@ ENTRY("has_sorted_node_list");
         RETURN(0);
     }
 
-    RETURN(1);  /* have nnodes and node_list */
+    RETURN(are_sorted_ints(dset->dblk->node_list, dset->dblk->nnodes));
+}
+
+
+/*------------------------------------------------------------------------*/
+/*! return whether the given list is sorted            23 Aug 2006 [rickr]
+--------------------------------------------------------------------------*/
+static int are_sorted_ints(int *list, int len)
+{
+    int c;
+
+ENTRY("are_sorted_ints");
+
+    if( !list || len <= 0 ) RETURN(0);
+    for( c = 0; c < len - 1; c++ )
+        if( list[c] > list[c+1] )
+            RETURN(0);
+    RETURN(1);
 }
 
 
