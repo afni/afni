@@ -224,7 +224,7 @@ void DT_read_opts( int argc , char * argv[] )
 #endif
 
    DT_nvector = IMARR_COUNT(DT_imar) ;
-   if( DT_nvector + DT_exnum == 0 && DT_polort <= 0 )
+   if( DT_nvector + DT_exnum == 0 && DT_polort < 0 )
      ERROR_exit("No detrending options ordered!") ;
 
 #ifdef ALLOW_BYSLICE
