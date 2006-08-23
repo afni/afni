@@ -202,8 +202,10 @@ void DT_read_opts( int argc , char * argv[] )
               INFO_message("Found expression symbol %s\n",sym) ;
           }
         }
-        if( qvar != 1 )
-          ERROR_exit("-expr '%s' should have exactly one symbol",DT_expr[DT_exnum]) ;
+        if( qvar > 1 )
+          ERROR_exit("-expr '%s' has too many symbols",DT_expr[DT_exnum]) ;
+        else if( qvar == 0 )
+          WARNING_message("-expr '%s' is constant",DT_expr[DT_exnum]) ;
         DT_exvar[DT_exnum] = kvar ;
         DT_exnum = nexp ; nopt++ ; continue ;
       }
