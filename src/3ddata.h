@@ -4177,7 +4177,7 @@ extern void set_gni_debug(int) ;
 extern void set_gni_to_float(int) ;
 extern void set_gni_write_mode(int) ;
 extern int  set_ni_globs_from_env(void) ;
-extern int  set_sparse_data_attribs(NI_element *, THD_3dim_dataset *) ;
+extern int  set_sparse_data_attribs(NI_element *, THD_3dim_dataset *, int) ;
 
 
 

@@ -1698,10 +1698,16 @@
 18 Aug 2006: modified 3dmaxima.c, maxima.[ch]: added -coords_only option
 
 23 Aug 2006:
-  * modified thd_niml.c: added sorted_node_def attr to SPARSE_DATA
+  * modified thd_niml.c:
+      - added sorted_node_def attr to SPARSE_DATA
+      - if set_sparse_data_attribs(), if nodes_from_dset, the set
+          sorted_node_def based on node_list in dset via has_sorted_node_list()
   * modified vol2surf.c:
       - use -outcols_afni_NSD in v2s_make_command
       - in v2s_write_outfile_NSD(), only output node list if it exists
+      - pass 0 as nodes_from_dset to has_sorted_node_list()
   * modified SUMA_3dVol2Surf.c (-> v6.7)
       - changed -skip_col_* options to -outcols_* options
       - added -outcols_afni_NSD option
+  * modified 3ddata.h: added nodes_from_dset to set_sparse_data_attribs()
+
