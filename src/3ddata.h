@@ -4121,14 +4121,23 @@ extern float THD_spearman_corr( int,float *,float *) ;  /* 23 Aug 2001 */
 extern float THD_quadrant_corr( int,float *,float *) ;
 extern float THD_pearson_corr ( int,float *,float *) ;
 
+extern float THD_spearman_corr_nd( int,float *,float *) ;  /* 23 Aug 2006 */
+extern float THD_quadrant_corr_nd( int,float *,float *) ;
+#define THD_pearson_corr_nd THD_pearson_corr
+
 extern void  rank_order_float     ( int , float * );
 extern float spearman_rank_prepare( int , float * );
 extern float quadrant_corr_prepare( int , float * );
 extern float spearman_rank_corr   ( int , float * , float , float * );
 extern float quadrant_corr        ( int , float * , float , float * );
 
-extern float THD_mutual_info( int, float,float,float *,     /* 16 Aug 2006 */
-                                   float,float,float * ) ;
+extern float THD_mutual_info_scl( int, float,float,float *,     /* 16 Aug 2006 */
+                                       float,float,float * ) ;
+extern float THD_mutual_info( int , float *, float *) ;
+
+extern float THD_corr_ratio_scl( int, float,float,float *,     /* 23 Aug 2006 */
+                                      float,float,float * ) ;
+extern float THD_corr_ratio( int , float *, float *) ;
 
 /*------------------------------------------------------------------------*/
 
