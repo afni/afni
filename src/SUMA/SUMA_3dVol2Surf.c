@@ -211,9 +211,14 @@ static char g_history[] =
     "6.6  Aug 9, 2006 [rickr]\n"
     "  - store command-line arguments for history note\n"
     "  - added -skip_col_NSD_format option\n"
+    "6.7  Aug 23, 2006 [rickr] - added/modified output column options\n"
+    "  - changed -skip_col_results     to -outcols_1_result\n"
+    "  - changed -skip_col_non_results to -outcols_results\n"
+    "  - changed -skip_col_NSD_format  to -outcols_NSD_format\n"
+    "  - added -outcols_afni_NSD option\n"
     "---------------------------------------------------------------------\n";
 
-#define VERSION "version  6.6 (Aug 9, 2006)"
+#define VERSION "version  6.7 (Aug 23, 2006)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -1331,12 +1336,16 @@ ENTRY("init_options");
 
             opts->seg_coords_file = argv[++ac];
         }
-        else if ( ! strncmp(argv[ac], "-skip_col_non_results", 15) )
+        /* added -outcols_* options  23 Aug 2006 [rickr] */
+        else if ( ! strncmp(argv[ac], "-outcols_afni_NSD", 13) )
+            opts->skip_cols = V2S_SKIP_ALL ^ V2S_SKIP_NODES;
+        else if ( ! strncmp(argv[ac], "-outcols_NSD_format", 12) )
+            opts->skip_cols = V2S_SKIP_ALL ^ V2S_SKIP_NODES ^ V2S_SKIP_VALS;
+        else if ( ! strncmp(argv[ac], "-skip_col_non_results", 15) ||
+                  ! strncmp(argv[ac], "-outcols_results", 12) )
             opts->skip_cols |= (V2S_SKIP_ALL & ~V2S_SKIP_VALS);
         else if ( ! strncmp(argv[ac], "-skip_col_nodes", 13) )
             opts->skip_cols |= V2S_SKIP_NODES;
-        else if ( ! strncmp(argv[ac], "-skip_col_NSD_format", 13) )
-            opts->skip_cols = V2S_SKIP_ALL ^ V2S_SKIP_NODES; /* 8 Aug 2006 */
         else if ( ! strncmp(argv[ac], "-skip_col_1dindex", 12) )
             opts->skip_cols |= V2S_SKIP_VOLIND;
         else if ( ! strncmp(argv[ac], "-skip_col_i", 11) )
@@ -1347,7 +1356,8 @@ ENTRY("init_options");
             opts->skip_cols |= V2S_SKIP_K;
         else if ( ! strncmp(argv[ac], "-skip_col_vals", 13) )
             opts->skip_cols |= V2S_SKIP_NVALS;
-        else if ( ! strncmp(argv[ac], "-skip_col_results", 13) )
+        else if ( ! strncmp(argv[ac], "-skip_col_results", 13) || 
+                  ! strncmp(argv[ac], "-outcols_1_result", 14) )
             opts->skip_cols |= V2S_SKIP_VALS;
         else if ( ! strncmp(argv[ac], "-spec", 3) )
         {
@@ -2243,20 +2253,7 @@ ENTRY("usage");
             "\n"
             "  ------------------------------\n"
             "\n"
-            "  general options:\n"
-            "\n"
-            "    -cmask MASK_COMMAND    : (optional) command for dataset mask\n"
-            "\n"
-            "        e.g. -cmask '-a fred_func+orig[2] -expr step(a-0.8)'\n"
-            "\n"
-            "        This option will produce a mask to be applied to the\n"
-            "        input AFNI dataset.  Note that this mask should form a\n"
-            "        single sub-brick.\n"
-            "\n"
-            "        This option follows the style of 3dmaskdump (since the\n"
-            "        code for it was, uh, borrowed from there (thanks Bob!)).\n"
-            "\n"
-            "        See '3dmaskdump -help' for more information.\n"
+            "  output options:\n"
             "\n"
             "    -debug LEVEL           :  (optional) verbose output\n"
             "\n"
@@ -2285,17 +2282,34 @@ ENTRY("usage");
             "        This option is used to print out status information \n"
             "        for node NODE_NUM.\n"
             "\n"
-            "    -gp_index SUB_BRICK    : choose grid_parent sub-brick\n"
+            "    -out_1D OUTPUT_FILE    : specify a 1D file for the output\n"
             "\n"
-            "        e.g. -gp_index 3\n"
+            "        e.g. -out_1D mask_values_over_dataset.1D\n"
             "\n"
-            "        This option allows the user to choose only a single\n"
-            "        sub-brick from the grid_parent dataset for computation.\n"
-            "        Note that this option is virtually useless when using\n"
-            "        the command-line, as the user can more directly do this\n"
-            "        via brick selectors, e.g. func+orig'[3]'.\n"
-            "        \n"
-            "        This option was written for the afni interface.\n"
+            "        This is where the user will specify which file they want\n"
+            "        the output to be written to.  In this case, the output\n"
+            "        will be in readable, column-formatted ASCII text.\n"
+            "\n"
+            "        Note : the output file should not yet exist.\n"
+            "             : -out_1D or -out_niml must be used\n"
+            "\n"
+            "    -out_niml OUTPUT_FILE  : specify a niml file for the output\n"
+            "\n"
+            "        e.g. -out_niml mask_values_over_dataset.niml.dset\n"
+            "\n"
+            "        The user may use this option to get output in the form\n"
+            "        of a niml element, with binary data.  The output will\n"
+            "        contain (binary) columns of the form:\n"
+            "\n"
+            "            node_index  value_0  value_1  value_2  ...\n"
+            "\n"
+            "        A major difference between 1D output and niml output is\n"
+            "        that the value_0 column number will be 6 in the 1D case,\n"
+            "        but will be 2 in the niml case.  The index columns will\n"
+            "        not be used for niml output.\n"
+            "\n"
+            "        Note : the output file should not yet exist.\n"
+            "             : -out_1D or -out_niml must be used\n"
             "\n"
             "    -help                  : show this help\n"
             "\n"
@@ -2365,34 +2379,18 @@ ENTRY("usage");
             "\n"
             "        This option is meaningless without a '-cmask' option.\n"
             "\n"
-            "    -out_1D OUTPUT_FILE    : specify a 1D file for the output\n"
+            "    -outcols_afni_NSD      : output nodes and one result column\n"
+            "    -outcols_1_result      : output only one result column\n"
+            "    -outcols_results       : output only all result columns\n"
+            "    -outcols_NSD_format    : output nodes and all results\n"
+            "                             (NI_SURF_DSET foramt)\n"
             "\n"
-            "        e.g. -out_1D mask_values_over_dataset.1D\n"
+            "        These options are used to restrict output.  They are\n"
+            "        simlilar to the -skip_col_* options, but are used to\n"
+            "        choose columns to output (they are for convenience, so\n"
+            "        the user need not apply many -skip_col options).\n"
             "\n"
-            "        This is where the user will specify which file they want\n"
-            "        the output to be written to.  In this case, the output\n"
-            "        will be in readable, column-formatted ASCII text.\n"
-            "\n"
-            "        Note : the output file should not yet exist.\n"
-            "             : -out_1D or -out_niml must be used\n"
-            "\n"
-            "    -out_niml OUTPUT_FILE  : specify a niml file for the output\n"
-            "\n"
-            "        e.g. -out_niml mask_values_over_dataset.niml.dset\n"
-            "\n"
-            "        The user may use this option to get output in the form\n"
-            "        of a niml element, with binary data.  The output will\n"
-            "        contain (binary) columns of the form:\n"
-            "\n"
-            "            node_index  value_0  value_1  value_2  ...\n"
-            "\n"
-            "        A major difference between 1D output and niml output is\n"
-            "        that the value_0 column number will be 6 in the 1D case,\n"
-            "        but will be 2 in the niml case.  The index columns will\n"
-            "        not be used for niml output.\n"
-            "\n"
-            "        Note : the output file should not yet exist.\n"
-            "             : -out_1D or -out_niml must be used\n"
+            "        see also: -skip_col_*\n"
             "\n"
             "    -save_seg_coords FILE  : save segment coordinates to FILE\n"
             "\n"
@@ -2409,11 +2407,6 @@ ENTRY("usage");
             "    -skip_col_j            : do not output j column\n"
             "    -skip_col_k            : do not output k column\n"
             "    -skip_col_vals         : do not output vals column\n"
-            "    -skip_col_results      : only output ONE result column\n"
-            "                             (seems to make the most sense)\n"
-            "    -skip_col_non_results  : skip everything but the results\n"
-            "                             (i.e. only output result columns)\n"
-            "    -skip_col_NSD_format   : output only nodes and one result\n"
             "\n"
             "        These options are used to restrict output.  Each option\n"
             "        will prevent the program from writing that column of\n"
@@ -2422,6 +2415,8 @@ ENTRY("usage");
             "        For now, the only effect that these options can have on\n"
             "        the niml output is by skipping nodes or results (all\n"
             "        other columns are skipped by default).\n"
+            "\n"
+            "        see also: -outcols_*\n"
             "\n"
             "    -v2s_hist              : show revision history for library\n"
             "\n"
@@ -2432,6 +2427,35 @@ ENTRY("usage");
             "    -version               : show version information\n"
             "\n"
             "        Show version and compile date.\n"
+            "\n"
+            "  ------------------------------\n"
+            "\n"
+            "  general options:\n"
+            "\n"
+            "    -cmask MASK_COMMAND    : (optional) command for dataset mask\n"
+            "\n"
+            "        e.g. -cmask '-a fred_func+orig[2] -expr step(a-0.8)'\n"
+            "\n"
+            "        This option will produce a mask to be applied to the\n"
+            "        input AFNI dataset.  Note that this mask should form a\n"
+            "        single sub-brick.\n"
+            "\n"
+            "        This option follows the style of 3dmaskdump (since the\n"
+            "        code for it was, uh, borrowed from there (thanks Bob!)).\n"
+            "\n"
+            "        See '3dmaskdump -help' for more information.\n"
+            "\n"
+            "    -gp_index SUB_BRICK    : choose grid_parent sub-brick\n"
+            "\n"
+            "        e.g. -gp_index 3\n"
+            "\n"
+            "        This option allows the user to choose only a single\n"
+            "        sub-brick from the grid_parent dataset for computation.\n"
+            "        Note that this option is virtually useless when using\n"
+            "        the command-line, as the user can more directly do this\n"
+            "        via brick selectors, e.g. func+orig'[3]'.\n"
+            "        \n"
+            "        This option was written for the afni interface.\n"
             "\n"
             "  --------------------------------------------------\n"
             "\n"

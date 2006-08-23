@@ -14,6 +14,7 @@ typedef struct {
 } ni_globals;
 static ni_globals gni = { 0, NI_BINARY_MODE };
 
+static int    has_sorted_node_list(THD_3dim_dataset *);
 static int    loc_append_vals(char **, int *, char *, float, float, int, int);
 static char * my_strndup(char *, int);
 static int    nsd_add_colms_range(NI_group *, THD_3dim_dataset *);
@@ -1225,24 +1226,55 @@ ENTRY("nsd_add_sparse_data");
 --------------------------------------------------------------------------*/
 int set_sparse_data_attribs(NI_element * nel, THD_3dim_dataset * dset)
 {
-    char ntt[32];
+    char str[32];
 
 ENTRY("set_sparse_data_attribs");
 
     if( !nel || !dset ) RETURN(1);
 
-    nel->outmode = gni.write_mode;       /* stored in globals */
+    nel->outmode = gni.write_mode; /* ASCII or BINARY mode (from globals) */
 
+    /* check for need of the ni_timestep attribute */
     if( DSET_NUM_TIMES(dset) > 1 )  /* then it is time dependent */
     {
-        strcpy(ntt, MV_format_fval(DSET_TIMESTEP(dset)));
-        NI_set_attribute(nel, "ni_timestep", ntt);
-        if(gni.debug > 1) fprintf(stderr,"+d setting ni_timestep = %s\n", ntt);
+        strcpy(str, MV_format_fval(DSET_TIMESTEP(dset)));
+        NI_set_attribute(nel, "ni_timestep", str);
+        if(gni.debug > 1) fprintf(stderr,"+d setting ni_timestep = %s\n", str);
     }
+
+    /* set the sorted_node_def attribute  23 Aug 2006 [rickr] */
+    if( has_sorted_node_list(dset) ) strcpy(str, "Yes");
+    else                             strcpy(str, "No");
+
+    NI_set_attribute(nel, "sorted_node_def", str);
+    if(gni.debug > 1) fprintf(stderr,"+d setting sorted_node_def = %s\n", str);
 
     RETURN(0);
 }
 
+
+/*------------------------------------------------------------------------*/
+/*! return whether dset has a sorted node_list         23 Aug 2006 [rickr]
+--------------------------------------------------------------------------*/
+static int has_sorted_node_list( THD_3dim_dataset * dset )
+{
+ENTRY("has_sorted_node_list");
+    if( !ISVALID_DSET(dset) ){
+        if( gni.debug > 1 ) fprintf(stderr,"** HSNL: invalid dset\n");
+        RETURN(0);
+    }
+    if( !ISVALID_DBLK(dset->dblk) ){
+        if( gni.debug > 1 ) fprintf(stderr,"** HSNL: invalid dblk\n");
+        RETURN(0);
+    }
+    if( dset->dblk->nnodes <= 0 || !dset->dblk->node_list ){
+        if(gni.debug>2) fprintf(stderr,"-d HSNL: nnodes = %d, node_list = %p\n",
+                                dset->dblk->nnodes, dset->dblk->node_list);
+        RETURN(0);
+    }
+
+    RETURN(1);  /* have nnodes and node_list */
+}
 
 
 /*------------------------------------------------------------------------*/
