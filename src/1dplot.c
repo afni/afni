@@ -176,6 +176,10 @@ int main( int argc , char *argv[] )
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
 
+     if( strcmp(argv[iarg],"-") == 0 ){  /* 23 Aug 2006: null option */
+       iarg++ ; continue ;
+     }
+
      if( strcmp(argv[iarg],"-xaxis") == 0 ){   /* 22 Jul 2003 */
        sscanf(argv[++iarg],"%f:%f:%d:%d",&xbot,&xtop,&nnax,&mmax) ;
        if( xbot >= xtop || nnax < 0 || mmax < 1 )
@@ -220,6 +224,7 @@ int main( int argc , char *argv[] )
         while( iarg < argc && argv[iarg][0] != '-' ){
            ynar[nyar++] = argv[iarg++] ;
         }
+        /* 23 Aug 2006: skip next arg if it is "-" */
         if( iarg < argc && strcmp(argv[iarg],"-") == 0 ) iarg++ ;
         continue ;
      }
