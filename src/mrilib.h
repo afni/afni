@@ -1261,10 +1261,13 @@ typedef void GA_warpfunc( int, float *,
 #endif
 
 typedef struct {
-  int match_code  ;            /* set by user */
-  int smooth_code ;            /* set by user */
-  float smooth_radius ;        /* set by user */
-  int interp_code ;            /* set by user */
+  int match_code  ;             /* set by user */
+  int smooth_code ;             /* set by user */
+  float smooth_radius ;         /* set by user */
+  int interp_code ;             /* set by user */
+  int use_cmat ;                /* set by user */
+  mat44 base_cmat , targ_cmat ; /* set by user */
+  mat44 base_imat , targ_imat ;
 
   int old_sc ; float old_sr ;
 
@@ -1323,6 +1326,8 @@ extern void mri_genalign_affine( int, float *,
                                  int, float *, float *, float *,
                                       float *, float *, float * ) ;
 extern MRI_IMAGE * mri_genalign_scalar_warpim( GA_setup * ) ;
+
+extern void GA_reset_fit_callback( void (*fc)(int,double*) ) ;
 
 /*------------------------------------------------------------------*/
 /* Prototypes for functions in nifti_stats.c */
