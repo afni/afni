@@ -784,7 +784,7 @@ ENTRY("process_ni_sd_attrs");
     atr_str = THD_find_string_atr(blk , "COLMS_TYPE");
     if( atr_str && atr_str->ch )
     {
-        if( ! strstr(atr_str->ch,"Node_Index") )
+        if( strstr(atr_str->ch,"Node_Index") )
         {
             if(gni.debug>1) fprintf(stderr,"-d COLMS_TYPE has Node_Index\n");
             if( blk->nnodes <= 0 )
