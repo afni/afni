@@ -172,7 +172,7 @@ float THD_spearman_corr_nd( int n , float *x , float *y )
    qx = (float *)malloc(sizeof(float)*n); memcpy(qx,x,sizeof(float)*n);
    qy = (float *)malloc(sizeof(float)*n); memcpy(qy,y,sizeof(float)*n);
    cv = THD_spearman_corr(n,qx,qy) ;
-   free((void *)qy); free((void *)qx); 
+   free((void *)qy); free((void *)qx);
    return cv ;
 }
 
@@ -195,7 +195,7 @@ float THD_quadrant_corr_nd( int n , float *x , float *y )
    qx = (float *)malloc(sizeof(float)*n); memcpy(qx,x,sizeof(float)*n);
    qy = (float *)malloc(sizeof(float)*n); memcpy(qy,y,sizeof(float)*n);
    cv = THD_quadrant_corr(n,qx,qy) ;
-   free((void *)qy); free((void *)qx); 
+   free((void *)qy); free((void *)qx);
    return cv ;
 }
 
@@ -232,6 +232,8 @@ float mri_spearman_corr( MRI_IMAGE *im , MRI_IMAGE *jm )
    mri_free(gim) ; mri_free(fim) ; return cc ;
 }
 
+/*--------------------------------------------------------------------------*/
+#define LINHIST   /* linear spread in histogram, below */
 /*--------------------------------------------------------------------------*/
 /*! Compute the mutual info between two vectors, sort of.  [16 Aug 2006]
 ----------------------------------------------------------------------------*/
@@ -301,7 +303,7 @@ float THD_mutual_info_scl( int n , float xbot,float xtop,float *x ,
      if( yy < 0.0f ) yy = 0.0f ; else if( yy > nbb ) yy = nbb ;
      kk = (int)yy ; yy = yy - kk ; y1 = 1.0f-yy ;
 
-#if 1
+#ifdef LINHIST
      xc[jj] += x1 ; xc[jj+1] += xx ;
      yc[kk] += y1 ; yc[kk+1] += yy ;
 
@@ -331,7 +333,6 @@ float THD_mutual_info( int n , float *x , float *y )
    return THD_mutual_info_scl( n , 1.0f,-1.0f , x, 1.0f,-1.0f , y ) ;
 }
 
-#if 0
 /*--------------------------------------------------------------------------*/
 /*! Compute the correlation ratio between two vectors, sort of.  [23 Aug 2006]
 ----------------------------------------------------------------------------*/
@@ -340,7 +341,7 @@ float THD_corr_ratio_scl( int n , float xbot,float xtop,float *x ,
                                   float ybot,float ytop,float *y  )
 {
    int nbin,nbp , ii,jj,kk ;
-   float xb,xi , yb,yi , xx,yy , x1,y1 , nbb , val ;
+   float xb,xi , yb,yi , xx,yy , x1,y1 , nbb , val , vv,mm,cyvar,uyvar ;
 
    static int n_old=-1 , nbin_old=255 ;
    static float *xc=NULL , *yc=NULL , *xyc=NULL ;
@@ -401,7 +402,7 @@ float THD_corr_ratio_scl( int n , float xbot,float xtop,float *x ,
      if( yy < 0.0f ) yy = 0.0f ; else if( yy > nbb ) yy = nbb ;
      kk = (int)yy ; yy = yy - kk ; y1 = 1.0f-yy ;
 
-#if 1
+#ifdef LINHIST
      xc[jj] += x1 ; xc[jj+1] += xx ;
      yc[kk] += y1 ; yc[kk+1] += yy ;
 
@@ -414,7 +415,22 @@ float THD_corr_ratio_scl( int n , float xbot,float xtop,float *x ,
 #endif
    }
 
-   return 0.0f ;
+   cyvar = 0.0f ;
+   for( ii=0 ; ii < nbp ; ii++ ){
+     if( xc[ii] > 0.0f ){
+       vv = mm = 0.0f ;
+       for( jj=0 ; jj < nbp ; jj++ ){
+         mm += (jj * XYC(ii,jj)) ; vv += jj * (jj * XYC(ii,jj)) ;
+       }
+       cyvar += (vv - mm*mm/xc[ii] ) ;
+     }
+   }
+   vv = mm = uyvar = 0.0f ;
+   for( jj=0 ; jj < nbp ; jj++ ){
+     mm += (jj * yc[jj]) ; vv += jj * (jj * yc[jj]) ;
+   }
+   uyvar = vv - mm*mm/n ;
+   val = 1.0f - cyvar/uyvar ; return val ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -423,4 +439,3 @@ float THD_corr_ratio( int n , float *x , float *y )
 {
    return THD_corr_ratio_scl( n , 1.0f,-1.0f , x, 1.0f,-1.0f , y ) ;
 }
-#endif
