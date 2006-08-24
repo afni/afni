@@ -44,14 +44,21 @@ void usage_ConverDset()
             "           niml_asc (or niml): for ASCII niml format.\n"
             "           niml_bi:            for BINARY niml format.\n"
             "           1D:                 for AFNI's 1D ascii format.\n"
+            "           1Dp:                like 1D but with no comments\n"
+            "                               or other 1D formatting gimmicks.\n"
+            "         For stderr and stdout output use one of:\n"
+            "           1D_stderr, 1D_stdout, niml_stderr, or niml_stdout\n"
             "     -input DSET: Input dataset to be converted.\n"
             "  Optional parameters:\n"
+            "     -node_index_1D INDEX.1D: Specify file containing node indices\n"
+            "                              Use this to provide node indices with \n"
+            "                              a .1D dset\n"
+            "     -node_select_1D MASK.1D: Specify the nodes you want to keep in the\n"
+            "                              output.\n" 
             "     -i_TYPE: TYPE of input datasets\n"
             "              where TYPE is one of:\n"
             "           niml: for niml data sets.\n"
             "           1D:   for AFNI's 1D ascii format.\n"
-            "           1Dp:  like 1D but with no comments\n"
-            "                 or other 1D formatting gimmicks.\n"
             "           dx: OpenDX format, expects to work on 1st\n"
             "               object only.\n"
             "           If no format is specified, the program will \n"
@@ -75,10 +82,13 @@ void usage_ConverDset()
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ConvertDset"};
-   int kar, brk, i_input, i;
+   int kar, brk, i_input, i, j, *Ti=NULL, *indexmap = NULL;
+   byte *Tb=NULL;
+   float *fv = NULL;
    SUMA_DSET_FORMAT iform, oform;
-   SUMA_DSET *dset = NULL;
+   SUMA_DSET *dset = NULL, *dseti=NULL, *dset_m = NULL;
    char *NameOut, *prfx = NULL, *prefix = NULL;
+   char *add_node_index = NULL, *node_mask = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_mainENTRY;
@@ -94,6 +104,8 @@ int main (int argc,char *argv[])
    oform = SUMA_NO_DSET_FORMAT;
    i_input = -1;
    prfx = NULL;
+   add_node_index = NULL;
+   node_mask = NULL;
    kar = 1;
    brk = NOPE;
    while (kar < argc) { /* loop accross command ine options */
@@ -155,6 +167,46 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-o_1d_stderr") == 0))
+      {
+         if (oform != SUMA_NO_DSET_FORMAT) {
+            SUMA_SL_Err("output type already specified.");
+            exit(1);
+         }
+         oform = SUMA_1D_STDERR;
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-o_1d_stdout") == 0))
+      {
+         if (oform != SUMA_NO_DSET_FORMAT) {
+            SUMA_SL_Err("output type already specified.");
+            exit(1);
+         }
+         oform = SUMA_1D_STDOUT;
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-o_niml_stderr") == 0))
+      {
+         if (oform != SUMA_NO_DSET_FORMAT) {
+            SUMA_SL_Err("output type already specified.");
+            exit(1);
+         }
+         oform = SUMA_NIML_STDERR;
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-o_niml_stdout") == 0))
+      {
+         if (oform != SUMA_NO_DSET_FORMAT) {
+            SUMA_SL_Err("output type already specified.");
+            exit(1);
+         }
+         oform = SUMA_NIML_STDOUT;
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-o_niml") == 0))
       {
          if (oform != SUMA_NO_DSET_FORMAT) {
@@ -203,6 +255,28 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-node_index_1d") == 0))
+      {
+         if (kar+1 >= argc) {
+            SUMA_SL_Err("Need argument after -node_index_1D");
+            exit(1);
+         }
+         ++kar;
+         add_node_index = argv[kar];
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-node_select_1d") == 0))
+      {
+         if (kar+1 >= argc) {
+            SUMA_SL_Err("Need argument after -node_select_1D");
+            exit(1);
+         }
+         ++kar;
+         node_mask = argv[kar];
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-prefix") == 0))
       {
          if (kar+1 >= argc) {
@@ -236,6 +310,61 @@ int main (int argc,char *argv[])
                                  "Make sure file exists\n"
                                  "and is of the specified\n"
                                  "format."); exit(1); }
+      if (add_node_index) { /* add a node index column */
+         iform = SUMA_1D;
+         if (!(dseti = SUMA_LoadDset_s (add_node_index, &iform, 0))) {
+            SUMA_S_Err("Failed to load node index dset");
+            exit(1);
+         } 
+         if (dseti->dnel->vec_num != 1) {
+            SUMA_S_Err("Bad node index source, only one column allowed");
+            exit(1);
+         }
+         if (dseti->dnel->vec_filled != dset->dnel->vec_filled) {
+            SUMA_S_Err("mismatch in number of values in index source and dataset");
+            exit(1);
+         } 
+         Ti = (int *) SUMA_calloc(dseti->dnel->vec_filled, sizeof(int));
+         fv = (float *)dseti->dnel->vec[0];
+         for (j=0; j<dseti->dnel->vec_filled; ++j) Ti[j] = (int)fv[j];
+         if (!SUMA_AddDsetNelCol (dset, "Node Index", SUMA_NODE_INDEX, (void *)Ti, NULL, 1)) {
+            SUMA_SL_Err("Failed to add column");
+            if (Ti) SUMA_free(Ti); Ti = NULL;
+            exit(1);
+         }
+         SUMA_free(Ti); Ti = NULL; 
+         SUMA_FreeDset(dseti); dseti = NULL;
+      }
+      
+
+      if (node_mask) { /* mask dataset */
+         iform = SUMA_1D;
+         if (!(dseti = SUMA_LoadDset_s (node_mask, &iform, 0))) {
+            SUMA_S_Err("Failed to load node_selection dset");
+            exit(1);
+         } 
+         if (dseti->dnel->vec_num != 1) {
+            SUMA_S_Err("Bad node index source, only one column allowed");
+            exit(1);
+         }
+         
+         Ti = (int *) SUMA_calloc(dseti->dnel->vec_filled, sizeof(int));
+         fv = (float *)dseti->dnel->vec[0];
+         for (j=0; j<dseti->dnel->vec_filled; ++j) Ti[j] = (int)fv[j];
+         
+         if (!(dset_m = SUMA_MaskedByNodeIndexCopyofDset(dset, Ti, dseti->dnel->vec_filled,  NULL, 1, 1))) {
+            SUMA_S_Err("Failed to mask dset by node indices");
+            exit(1);
+         }
+         
+         SUMA_free(Ti); Ti = NULL; 
+         SUMA_free(indexmap); indexmap = NULL;
+         SUMA_FreeDset(dseti); dseti = NULL;         
+         SUMA_FreeDset(dset); dset = NULL;
+         dset = dset_m;  dset_m = NULL;       
+      }
+
+      
       if (!prfx) {
          /* don't use iform because some 1Ds are NIML compatible and they get
          read-in as such unless you specifically order otherwise. */

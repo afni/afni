@@ -728,7 +728,7 @@ int SUMA_AddColAttr (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
    }
    /* save the type of the column */
    sprintf(Name, "TypeCol_%d", col_index);
-   NI_set_attribute ( nel, Name, SUMA_Col_Type_Name(ctp));
+   NI_set_attribute ( nel, Name, SUMA_Col_Type_Name(ctp));   
    
    sprintf(Attr, "AttrCol_%d", col_index);
    switch (ctp) {
@@ -1059,6 +1059,7 @@ int SUMA_AddDsetNelCol ( SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp, vo
                      void *col_attr, int stride)
 {
    static char FuncName[]={"SUMA_AddDsetNelCol"};
+   int *iv, is_sorted;
    NI_element *nelb=NULL;
    
    SUMA_ENTRY;
@@ -1093,6 +1094,18 @@ int SUMA_AddDsetNelCol ( SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp, vo
          break; 
    }
    
+   if (ctp == SUMA_NODE_INDEX) {
+      /* need to check for sortedness of list */
+      iv = (int *)col;
+      SUMA_IS_SORTED_UP(iv, dset->dnel->vec_filled, is_sorted);
+      iv = NULL;
+      if (is_sorted) {
+         NI_set_attribute(dset->dnel, "sorted_node_def", "Yes");   
+      } else {
+         NI_set_attribute(dset->dnel, "sorted_node_def", "No");   
+      }
+   }
+   
    /* set some generic attributes */
    SUMA_AddGenDsetColAttr (dset, ctp, col, stride, -1);
    /* add the attributes of that column */
@@ -1121,6 +1134,7 @@ int SUMA_AddNelCol ( NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
                      void *col_attr, int stride)
 {
    static char FuncName[]={"SUMA_AddNelCol"};
+   int *iv, is_sorted;
    SUMA_ENTRY;
    
    if (!SUMA_ALLOW_NEL_USE) SUMA_SL_Warn("Obsolete, use new version.");
@@ -1154,6 +1168,18 @@ int SUMA_AddNelCol ( NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
          break; 
    }
    
+   if (ctp == SUMA_NODE_INDEX) {
+      /* need to check for sortedness of list */
+      iv = (int *)col;
+      SUMA_IS_SORTED_UP(iv, nel->vec_filled, is_sorted)
+      iv = NULL;
+      if (is_sorted) {
+         NI_set_attribute(nel, "sorted_node_def", "Yes");   
+      } else {
+         NI_set_attribute(nel, "sorted_node_def", "No");   
+      }
+   }
+
    /* set some generic attributes */
    SUMA_allow_nel_use(1);
    SUMA_AddGenColAttr (nel, ctp, col, stride, -1);
@@ -1165,18 +1191,63 @@ int SUMA_AddNelCol ( NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
    SUMA_RETURN(1);
 }
 
+/*!
+   \brief See SUMA_MaskedCopyofDset, for all parameters not listed here.
+   SUMA_DSET * SUMA_MaskedByNodeIndexCopyofDset(SUMA_DSET *odset, 
+                                                int *indexlist, int N_indexlist, 
+                                                byte *colmask, int masked_only, int keep_node_index)
+   
+   \param indexlist (int *) a list of N_indexlist node indices to retain in output dset.
+   \param N_indexlist (int)
+   These two params are used instead of rowmask in SUMA_MaskedCopyofDset
+*/ 
+SUMA_DSET * SUMA_MaskedByNodeIndexCopyofDset(SUMA_DSET *odset, int *indexlist, int N_indexlist, byte *colmask, 
+                                             int masked_only, int keep_node_index)
+{
+   static char FuncName[]={"SUMA_MaskedByNodeIndexCopyofDset"};
+   SUMA_DSET *dset_m = NULL;
+   byte *Tb = NULL;
+   int *indexmap = NULL, j=0;
+   
+   SUMA_ENTRY;
+   
+   if (!(indexmap = SUMA_CreateNodeIndexToRowIndexMap(odset))) {
+      SUMA_S_Err("Failed to get indexmap");
+      SUMA_RETURN(NULL);
+   }
+    
+   Tb = (byte *) SUMA_calloc(odset->dnel->vec_len, sizeof(byte));
+   for (j=0; j<N_indexlist; ++j) {
+      if (indexlist[j] < odset->dnel->vec_filled) { 
+         Tb[indexmap[indexlist[j]]] = 1;
+      } else {
+         SUMA_S_Warn("Nodes in indexlist exceed odset->dnel->vec_filled\n"
+                     "Such nodes will be ignored but may indicate more serious trouble\n"
+                     "Warning will not be repeated in this call.");
+      }
+   }
+   SUMA_free(indexmap); indexmap = NULL;
+   if (!(dset_m = SUMA_MaskedCopyofDset(odset, Tb, colmask, masked_only, keep_node_index ))) {
+      SUMA_S_Err("Failed to mask dset by node indices");
+      SUMA_free(Tb); Tb = NULL;
+      SUMA_RETURN(NULL);
+   }
+   
+   SUMA_RETURN(dset_m);
+}
+ 
 /*! 
    \brief creates a new dataset that has a copy of each row in odset 
    wherever rowmask[irow] is not zero. 
    \param odset (SUMA_DSET *) input dataset
-   \param rowmask (int *) [nel->vec_len x 1] vector specifying which rows to preserve
+   \param rowmask (byte *) [nel->vec_len x 1] vector specifying which rows to preserve
                                              If rowmask[irow] is 1 then this row is copied
                                              into ndset. 
                                              If rowmask[irow] = 0 then the row is either
                                              skipped (see masked_only) or set to 0 in its entirety 
                                              (see keep_node_index for exception).
                                              If rowmask == NULL then all rows are copied
-   \param colmask (int *) [nel->vec_num x 1] vector specifying which volumns to operate on.
+   \param colmask (byte *) [nel->vec_num x 1] vector specifying which volumns to operate on.
                                              If colmask[icol] is 1 then values in this column 
                                              are copied. 
                                              If colmask == NULL then all columns are copied
@@ -1194,7 +1265,7 @@ int SUMA_AddNelCol ( NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
    - You might want to have a version that replaces columns in odset with the masked data
    as opposed to copying them. I think I do something like this with the drawn ROI dataset...
    
-   \sa SUMA_Copy_Part_Column
+   \sa SUMA_Copy_Part_Column, SUMA_MaskedByNodeIndexCopyofDset
 */  
 SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, byte *rowmask, byte *colmask, int masked_only, int keep_node_index)
 {
@@ -1373,7 +1444,7 @@ int SUMA_FillDsetNelCol (SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp, vo
                      void *col_attr, int stride) 
 {  
    static char FuncName[]={"SUMA_FillDsetNelCol"};
-   int icol = -1;
+   int icol = -1, is_sorted;
    int *iv, N_i;
    
    SUMA_ENTRY;
@@ -1406,13 +1477,26 @@ int SUMA_FillDsetNelCol (SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp, vo
          NI_fill_column_stride ( dset->dnel, NI_STRING, (char **)col, icol, stride );
          break;
       case SUMA_double:
-         NI_fill_column_stride ( dset->dnel, NI_DOUBLE, (double **)col, icol, stride );
+         NI_fill_column_stride ( dset->dnel, NI_DOUBLE, (double *)col, icol, stride );
          break;
       default:
          fprintf  (stderr,"Error %s: Bad column type.\n", FuncName);
          SUMA_RETURN(0);
          break; 
    }
+   
+   if (ctp == SUMA_NODE_INDEX) {
+      /* need to check for sortedness of list */
+      iv = (int *)col;
+      SUMA_IS_SORTED_UP(iv, dset->dnel->vec_filled, is_sorted)
+      iv = NULL;
+      if (is_sorted) {
+         NI_set_attribute(dset->dnel, "sorted_node_def", "Yes");   
+      } else {
+         NI_set_attribute(dset->dnel, "sorted_node_def", "No");   
+      }
+   }
+   
    /* set some generic attributes */
    SUMA_AddGenDsetColAttr (dset, ctp, col, stride, icol);
    /* add the attributes of that column */
@@ -1432,7 +1516,7 @@ int SUMA_FillNelCol (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
 {  
    static char FuncName[]={"SUMA_FillNelCol"};
    int icol = -1;
-   int *iv, N_i;
+   int *iv, N_i, is_sorted;
 
    SUMA_ENTRY;
 
@@ -1466,13 +1550,26 @@ int SUMA_FillNelCol (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
          NI_fill_column_stride ( nel, NI_STRING, (char **)col, icol, stride );
          break;
       case SUMA_double:
-         NI_fill_column_stride ( nel, NI_DOUBLE, (double **)col, icol, stride );
+         NI_fill_column_stride ( nel, NI_DOUBLE, (double *)col, icol, stride );
          break;
       default:
          fprintf  (stderr,"Error %s: Bad column type.\n", FuncName);
          SUMA_RETURN(0);
          break; 
    }
+   
+   if (ctp == SUMA_NODE_INDEX) {
+      /* need to check for sortedness of list */
+      iv = (int *)col;
+      SUMA_IS_SORTED_UP(iv, nel->vec_filled, is_sorted)
+      iv = NULL;
+      if (is_sorted) {
+         NI_set_attribute(nel, "sorted_node_def", "Yes");   
+      } else {
+         NI_set_attribute(nel, "sorted_node_def", "No");   
+      }
+   }
+   
    /* set some generic attributes */
    SUMA_AddGenColAttr (nel, ctp, col, stride, icol);
    /* add the attributes of that column */
@@ -2341,6 +2438,7 @@ SUMA_DSET *SUMA_UnlinkFromDset(SUMA_DSET *dset)
    SUMA_RETURN(NULL);
 }
 #endif
+
 SUMA_DSET * SUMA_NewDsetPointer(void)
 {
    static char FuncName[]={"SUMA_NewDsetPointer"};
@@ -2366,6 +2464,36 @@ SUMA_DSET * SUMA_NewDsetPointer(void)
    dset->LinkedPtrType = SUMA_LINKED_DSET_TYPE;
    SUMA_RETURN(dset);
 }
+
+/*!
+   \brief a function to put a ni_group (ngr) element into a SUMA_DSET pointer
+   To free dset along with the ngr in it use SUMA_FreeDset.
+   To preserve ngr:
+      ngr_keep = dset->ngr; dset->ngr = NULL; SUMA_Free(dset);
+*/
+SUMA_DSET * SUMA_ngr_2_dset(NI_group *nini)
+{
+   static char FuncName[]={"SUMA_ngr_2_dset"};
+   SUMA_DSET *dset=NULL;
+
+   SUMA_ENTRY;
+
+   if (!(dset = SUMA_NewDsetPointer())) {
+      SUMA_SL_Err("Failed to create dset pointer");
+      SUMA_RETURN(NULL);
+   }
+
+   dset->ngr = (NI_group *)nini; nini = NULL;
+   dset->dnel = SUMA_FindDsetDataElement(dset);
+   if (!dset->dnel) {
+      SUMA_SL_Warn("Failed to find dset data element");
+   }   
+
+   SUMA_RETURN(dset);
+}  
+
+
+
 /*!
    \brief Function to allocate and initialize a dataset and add 
    it to the list of data sets .
@@ -2388,6 +2516,7 @@ SUMA_DSET * SUMA_NewDsetPointer(void)
       
    \sa SUMA_AddNelCol
    \sa SUMA_InsertDsetPointer
+   \sa SUMA_NewDsetPointer
 */
 SUMA_DSET * SUMA_CreateDsetPointer (  
                               char *filename, SUMA_DSET_TYPE tp,
@@ -2434,9 +2563,7 @@ SUMA_DSET * SUMA_CreateDsetPointer (
 
    Label = SUMA_truncate_string(filename, 20); 
    NI_set_attribute(dset->ngr, "label", Label); SUMA_free(Label); Label = NULL;
-   
-   NI_set_attribute(dset->ngr, "sorted_node_def", "No");
-   
+      
    if (locid) SUMA_free(locid); locid = NULL;
    SUMA_RETURN(dset);
 }    
@@ -2744,6 +2871,41 @@ int * SUMA_GetNodeDef(SUMA_DSET *dset)
 }
 
 /*!
+   \brief Returns index (i) of the column containing NodeDef
+   (if it exists, in dset). 
+   To get the NodeDef pointer use:
+   if (i>=0) NodeDef = (int *)(dset->dnel->vec[i]);
+   
+*/
+int SUMA_GetNodeDefColIndex(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_GetNodeDef"};
+   int *iv, N_i, i = -1;
+   SUMA_Boolean LocalHead=NOPE;
+   
+   SUMA_ENTRY;
+   
+   i = -1;
+   
+   iv = SUMA_GetDsetColIndex (dset, SUMA_NODE_INDEX, &N_i);
+   if (!iv) {
+      SUMA_LH("No such column found.");
+      SUMA_RETURN(-1);
+   } else {
+      SUMA_LH("Column found.");
+      i = iv[0];
+      
+      if (N_i > 1) {
+         SUMA_SL_Warn("Found more than one node index vector.\nReturning first one found.\n");
+      }
+      SUMA_free(iv); iv = NULL;
+   }
+   
+   SUMA_RETURN(i); 
+}
+
+
+/*!
    \brief Look for datasets statifying the following:
       type SUMA_NODE_CONVEXITY 
       idcode_str for a geometry domain and a mesh domain
@@ -2979,6 +3141,35 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node, int N_Node)
    SUMA_RETURN(-1);
 }
 
+/*!
+   returns indexmap, such that indexmap[node] = row which means that
+   data for node 'node' is in row 'row' of the dset
+   if indexmap[node] = -1 then the node does not exist in the dset
+   free indexmap with SUMA_free
+*/
+int *SUMA_CreateNodeIndexToRowIndexMap(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_CreateNodeIndexToRowIndexMap"};
+   int *indexmap=NULL, j=0, *nip=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!(nip = SUMA_GetNodeDef(dset))) {
+      SUMA_S_Err("Failed to find node index column in dset");
+      SUMA_RETURN(indexmap);
+   }
+ 
+   /* find the mapping of a node index to a row */
+   indexmap = (int *)SUMA_calloc(dset->dnel->vec_len, sizeof(int));
+   if (!indexmap) {
+      SUMA_S_Crit("Failed to allocate");
+      SUMA_RETURN(NULL);
+   }
+   for (j=0; j<dset->dnel->vec_len; ++j)  indexmap[j] = -1;
+   for (j=0; j<dset->dnel->vec_filled; ++j) indexmap[nip[j]] = j; /* indexmap[node] hold the row in the dset that contains data for node */
+      
+   SUMA_RETURN(indexmap);
+}
 /*!
    \brief Returns the value from column ind, row ival
    The value is stored in a double variable 0.0  in case of error. 
@@ -3316,10 +3507,185 @@ float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly)
    
    SUMA_RETURN(V);
 }
+
+/*!
+   \brief Make the contents of a sparse node-based data column (vector)
+   into a full column.
+   \param vp (float **) pointer to the vector (v=*vp) containing values.
+                        when the function returns, v would be a full column,
+                        possibly a new vector altogether. Old sparse v 
+                        would get freed inside this function.
+   \param N_v (int) number of values in v
+   \param mask_val (float) value to assign in full vector for empty locations
+   \param bmp (byte **) if bmp != NULL then a mask is returned in *bmp that
+                        indicates which locations in returned v have values in them.
+   \param SO (SUMA_SurfaceObject *) 
+   \return  YUP: OK
+            NOPE: NOK 
+*/
+SUMA_Boolean SUMA_MakeSparseColumnFullSorted(float **vp, int N_v, float mask_val, byte **bmp, SUMA_DSET *dset, int N_Node)
+{
+   static char FuncName[]={"SUMA_MakeSparseColumnFull"};
+   float range[2], *v=NULL, *vn=NULL;
+   byte *bm = NULL;
+   int i, loc[2], *nip=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!vp || !*vp) {
+      SUMA_S_Err("NULL vp!");
+      SUMA_RETURN(NOPE);
+   }
+   
+   /* the column vector */
+   v = *vp; 
+   
+   /* get the node index column */
+   if (!(nip = SUMA_GetNodeDef(dset))) {
+      /* No node index column, check based on number of values */
+      if (N_v == N_Node) {
+         SUMA_LH("Fullness established based on number of nodes and values in v");
+         SUMA_RETURN(YUP);
+      } else {
+         SUMA_S_Err("Not full and cannot fill it");
+         SUMA_RETURN(NOPE);
+      }
+   } else {
+      /* make sure column range does not exceed N_Node */
+      if ((i = SUMA_GetNodeDefColIndex(dset)) < 0) {
+         SUMA_S_Err("Failed to get nodedef index");
+         SUMA_RETURN(NOPE);
+      }
+      if (!SUMA_GetDsetColRange(dset, i, range, loc)) {
+         SUMA_S_Err("Failed to get nodedef range");
+         SUMA_RETURN(NOPE);
+      }
+      if (range[0] < 0 || range[1] >= N_Node) {
+         SUMA_S_Err("Node index range is outside [0, N_Node[");
+         SUMA_RETURN(NOPE);
+      }
+      
+      /* have node index */
+      if (N_v != dset->dnel->vec_filled) {   /* oops, not good */
+         SUMA_S_Err("Number of values in v not equal to vec_filled.\nCannot proceed.");
+         SUMA_RETURN(NOPE);
+      }
+      
+      /* number of values is same as filled values, good, now proceed */
+      if (  dset->dnel->vec_filled == N_Node && 
+            nip[dset->dnel->vec_filled-1] == N_Node -1 &&
+            nip[dset->dnel->vec_filled-1-dset->dnel->vec_filled/2] == N_Node -1 -dset->dnel->vec_filled/2 &&
+            nip[dset->dnel->vec_filled-1-dset->dnel->vec_filled/3] == N_Node -1 -dset->dnel->vec_filled/3 &&
+            SDSET_IS_SORTED(dset)) {   /* likely a full column */
+         SUMA_LH("Fullness established by loose examination of node defintion column.");
+         SUMA_RETURN(YUP);   
+      }
+      /* if you get here then you do not have a full list or the list is not sorted*/
+      vn = (float *)SUMA_malloc(N_Node * sizeof(float));
+      if (bmp) {
+         if (!*bmp) {
+            SUMA_S_Err("*bmp must be NULL");
+            SUMA_RETURN(NOPE);
+         }
+         bm = (byte *)SUMA_calloc(N_Node, sizeof(byte));
+      } else bm = NULL;
+      
+      if (!vn || (bmp && !bm)) {
+         SUMA_S_Crit("Failed to allocate");
+         SUMA_RETURN(NOPE);
+      }
+      for (i=0; i<N_Node; ++i) {
+         vn[i] = mask_val; /* if (bm) bm[i] = 0; */
+      }
+      for (i=0; i<dset->dnel->vec_filled; ++i) {
+         vn[nip[i]] = v[i]; 
+         if (bm) bm[nip[i]] = 1;
+      }
+      
+      
+      /* Now free old v */
+      SUMA_free(v); v = NULL;
+      
+      /* stow away for return */
+      if (bmp) { *bmp = bm; bm = NULL; }  
+      *vp = vn; vn = NULL;
+      
+      SUMA_RETURN(YUP);
+   }
+   
+   /* Should not get here */
+   SUMA_RETURN(NOPE);
+}
+ 
+/*!
+   \brief Copies the contents of a float vector into a NI_element column 
+   SUMA_Float2DsetCol (dset,  ind,  V, FilledOnly);
+   
+   \param nel (NI_element *)
+   \param ind (int) index of column to be filled with values in V
+   \param V (float *) vector containing the column's contents (see number of values copied below).
+   \param FilledOnly (int) 0 = copy from index 0 to dset->dnel->vec_len
+                           1 = copy from index 0 to dset->dnel->vec_filled
+   
+   The values in V replace those in nel!
+   No new columns in nel are created.
+   
+   \sa SUMA_DsetCol2Float 
+*/
+int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind, float *V, int FilledOnly)
+{
+   static char FuncName[]={"SUMA_Float2DsetCol"};
+   int i = -1, N_read = -1, *iv = NULL, *nip=NULL;
+   float *fv = NULL;
+   SUMA_COL_TYPE ctp;
+   SUMA_VARTYPE vtp;
+   
+   SUMA_ENTRY;
+      
+   if (!dset) { SUMA_RETURN(0); }
+   
+   if (ind < 0 || ind > dset->dnel->vec_num - 1) {
+      SUMA_SL_Err("Bad index");
+      SUMA_RETURN(0);
+   }
+   
+   if (FilledOnly) {
+      N_read = dset->dnel->vec_filled;
+   } else {
+      N_read = dset->dnel->vec_len;
+   }
+   
+   ctp = SUMA_TypeOfDsetColNumb(dset, ind); 
+   vtp = SUMA_ColType2TypeCast (ctp) ;
+   nip = SUMA_GetNodeDef(dset);
+   switch (vtp) {
+      case SUMA_int:
+         iv = (int *)dset->dnel->vec[ind];
+         if (nip)  for (i=0; i<N_read; ++i) iv[i] = (int)V[nip[i]];
+         else for (i=0; i<N_read; ++i) iv[i] = (int)V[i];
+         break;
+      case SUMA_float:
+         fv = (float *)dset->dnel->vec[ind];
+         if (nip)  for (i=0; i<N_read; ++i) fv[i] = V[nip[i]];
+         else for (i=0; i<N_read; ++i) fv[i] = V[i];
+         break;
+      default:
+         SUMA_SL_Err("This type is not supported.\n");
+         SUMA_RETURN(0);
+         break;
+   }
+   
+   /* reset generic attributes */
+   SUMA_AddGenDsetColAttr (dset, ctp, dset->dnel->vec[ind], 1, ind);
+  
+   SUMA_RETURN(1);
+}
+
 /*!
    \brief Copies the contents of a NI_element column into
    a new float vector
-   V = SUMA_DsetCol2Float (nel,  ind,  FilledOnly);
+   V = SUMA_DsetCol2Float (dset,  ind,  FilledOnly);
    
    \param nel (NI_element *)
    \param ind (int) index of column to be copied
@@ -3329,6 +3695,7 @@ float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly)
                                of the column (up to nel->vec_filled)
    \return V (float *) vector (allocated by the function) containing
                      the column's contents.
+   \sa SUMA_Float2DsetCol
  */
 float * SUMA_DsetCol2Float (SUMA_DSET *dset, int ind, int FilledOnly)
 {
@@ -3373,7 +3740,7 @@ float * SUMA_DsetCol2Float (SUMA_DSET *dset, int ind, int FilledOnly)
          SUMA_RETURN(NULL);
          break;
    }
-   
+      
    SUMA_RETURN(V);
 }
 
@@ -3488,6 +3855,89 @@ SUMA_COL_TYPE SUMA_TypeOfDsetColNumb(SUMA_DSET *dset, int ind)
    SUMA_RETURN(ctp);
 }
 
+SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, int N_Node) 
+{
+   static char FuncName[]={"SUMA_AddNodeIndexColumn"};
+   float range[2];
+   int *iv=NULL, i, N_i;
+   float *T = NULL;
+   int *Ti = NULL;
+   SUMA_Boolean OKfirstCol = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
+       
+   SUMA_ENTRY;
+   
+   if (!dset) SUMA_RETURN(NOPE);
+   /* check for obvious insult */
+   if (dset->dnel->vec_len > N_Node) {
+      SUMA_SL_Err("more values in dset than nodes in surface.");
+      SUMA_RETURN(NOPE);
+   }
+   /* Check for Col Index*/
+   iv = SUMA_GetDsetColIndex (dset, SUMA_NODE_INDEX, &N_i);
+   if (!iv) {
+      SUMA_LH("No node index column");
+      /* would the first column work ? */
+      T = SUMA_DsetCol2Float (dset, 0, 0);
+      OKfirstCol = NOPE;
+      if (!T) { SUMA_LH("First column does not cut it"); OKfirstCol = NOPE;}
+      else {
+         Ti = (int *)SUMA_malloc(sizeof(int)*dset->dnel->vec_len);
+         SUMA_LH("Testing if node indices can be in 1st column...");
+         /* check if all values are ints and if they are within 0 and N_Node -1 */
+         i=0;
+         OKfirstCol = YUP;
+         while (i <dset->dnel->vec_len && OKfirstCol) {
+            Ti[i] = (int)T[i];
+            if ( (T[i] != Ti[i]) || (T[i] < 0) || (T[i] >= N_Node) ) OKfirstCol = NOPE;
+            ++i;
+         }
+         
+         if (!OKfirstCol) { 
+            SUMA_SLP_Note( "Assuming node indexing\n"
+                           "is explicit. \n"
+                           "1st row is for node 0\n"
+                           "2nd is for node 1, etc.\n" );
+            for (i=0; i <dset->dnel->vec_len; ++i) Ti[i]=i;
+            OKfirstCol = YUP;
+         }else{
+            char Name[500], Attr[500];
+            SUMA_SL_Note("Used column 0 as node indices.\nAdded a node index column nonetheless.");
+            /* You can't just change the label and the type of the 0th column to be SUMA_NODE_INDEX because
+            this column is float, not ints. Duplicate ahead...*/
+         }
+         
+      }
+      
+      if (!OKfirstCol) {
+         SUMA_LH("No node index could be created");
+         if (Ti) SUMA_free(Ti); Ti = NULL;
+         SUMA_RETURN(NOPE);
+      }
+      
+      /* Now add Ti to the dataset as a node index column ... */
+      /* if you change the column label's string ("Node Index (inferred)") 
+      make sure you change SUMA_isColumn_inferred accordingly */
+      if (!SUMA_AddDsetNelCol (dset, "Node Index (inferred)", SUMA_NODE_INDEX, (void *)Ti, NULL, 1)) {
+         SUMA_SL_Err("Failed to add column");
+         if (Ti) SUMA_free(Ti); Ti = NULL;
+         SUMA_RETURN(NOPE);
+      }
+      
+      /* all done */
+      SUMA_LH("Added the index column, ciao");
+      if (Ti) SUMA_free(Ti); Ti = NULL;
+      SUMA_RETURN(YUP);
+   } else {
+      SUMA_LH("Node index column found");
+      SUMA_free(iv); iv = NULL;
+      /* Nothing to do, return on a positive note */
+      SUMA_RETURN(YUP);      
+   } 
+   
+   SUMA_SL_Err("why are you here ?");
+   SUMA_RETURN(NOPE);
+}
 
 
 /*!
@@ -3670,6 +4120,24 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, i
             } else { 
               SUMA_LH("Writing NIML, BINARY..."); SUMA_LH(strmname); NEL_WRITE_BI (dset->ngr, strmname, flg); SUMA_LH("DONE.");
             }
+            if (!flg) {
+               SUMA_PushErrLog("SL_Err","Failed to write niml element", FuncName);
+            } else {
+               SUMA_LH("DONE.");
+            }
+         }
+         break;
+      case SUMA_NIML_STDERR:
+      case SUMA_NIML_STDOUT:
+         if (form == SUMA_NIML_STDOUT) { 
+           SUMA_LH("Writing NIML, STDOUT..."); SUMA_LH(strmname); NEL_WRITE_TX (dset->ngr, "stdout:", flg);  SUMA_LH("DONE.");
+         } else { 
+           SUMA_LH("Writing NIML, STDERR..."); SUMA_LH(strmname); NEL_WRITE_TX (dset->ngr, "stderr:", flg); SUMA_LH("DONE.");
+         }
+         if (!flg) {
+            SUMA_PushErrLog("SL_Err","Failed to write element", FuncName);
+         } else {
+            SUMA_LH("DONE.");
          }
          break;
       case SUMA_1D:
@@ -3703,6 +4171,22 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, i
                SUMA_LH("DONE.");
             }
          } 
+         break;
+      case SUMA_1D_STDOUT:
+         DSET_WRITE_1D (dset, "stdout:", flg);
+         if (!flg) {
+            SUMA_PushErrLog("SL_Err","Output file not written", FuncName);
+         } else {
+            SUMA_LH("DONE.");
+         }
+         break;
+      case SUMA_1D_STDERR:
+         DSET_WRITE_1D (dset, "stderr:", flg);
+         if (!flg) {
+            SUMA_PushErrLog("SL_Err","Output file not written", FuncName);
+         } else {
+            SUMA_LH("DONE.");
+         }
          break;
       case SUMA_NO_DSET_FORMAT:
          SUMA_PushErrLog("SLP_Err","Must specify output format", FuncName);
@@ -3787,6 +4271,12 @@ char *SUMA_RemoveDsetExtension_eng (char*Name, SUMA_DSET_FORMAT form)
          tmp  =  SUMA_Extension(Name, ".1D", YUP);
          noex = SUMA_Extension(tmp, ".1D.dset", YUP); SUMA_free(tmp); tmp = NULL; tmp = noex;
          noex = SUMA_Extension(tmp, ".niml.dset", YUP); SUMA_free(tmp); tmp = NULL;
+         break;
+      case SUMA_NIML_STDOUT:
+      case SUMA_NIML_STDERR:
+      case SUMA_1D_STDOUT:
+      case SUMA_1D_STDERR:
+         noex = SUMA_copy_string(Name);
          break;
       default:
          SUMA_PushErrLog("SLP_Err","Bad format specification", FuncName);
@@ -3983,11 +4473,9 @@ SUMA_DSET *SUMA_LoadNimlDset (char *Name, int verb)
       }
       #endif
    } else {
-      dset = SUMA_NewDsetPointer();
-      dset->ngr = (NI_group *)nini; nini = NULL;
-      dset->dnel = SUMA_FindDsetDataElement(dset);
-      if (!dset->dnel) {
-         SUMA_SL_Warn("Failed to find dset data element");
+      if (!(dset = SUMA_ngr_2_dset((NI_group *)nini))) {
+         SUMA_SL_Err("Failed to go from ngr to dset");
+         SUMA_RETURN(NULL);
       }
    }   
    /* done, clean up and out you go */
@@ -4524,6 +5012,46 @@ int SUMA_is_AllNumeric_dset(SUMA_DSET *dset)
    
    SUMA_RETURN(1);
 }
+
+/*!
+   \brief returns the indices of columns that are numeric
+   and likely considered as data
+   free returned pointer with SUMA_free
+*/
+int * SUMA_FindNumericDataDsetCols(SUMA_DSET *dset, int *N_icols)
+{
+   static char FuncName[]={"SUMA_FindNumericDataDsetCols"};
+   int *icols = NULL, i, ctp, vtp;
+   
+   SUMA_ENTRY;
+   
+   *N_icols = -1;
+   
+   if (!dset || !dset->dnel) SUMA_RETURN(NULL);
+   
+   icols = (int *)SUMA_calloc(dset->dnel->vec_num, sizeof(int));
+   if (!icols) {
+      SUMA_S_Err("Failed to allocate");
+      SUMA_RETURN(NULL);
+   }
+   
+   *N_icols = 0;
+   for (i=0; i<dset->dnel->vec_num; ++i) {
+      ctp = SUMA_TypeOfDsetColNumb(dset, i); 
+      if (  ctp == SUMA_NODE_INDEX ||
+            ctp == SUMA_NODE_ILABEL ||
+            ctp == SUMA_NODE_STRING ) 
+         continue;
+      vtp = SUMA_ColType2TypeCast(ctp) ;
+      if (vtp < SUMA_byte || vtp > SUMA_double) continue;
+      
+      icols[*N_icols] = i;
+      ++(*N_icols);
+   }
+   
+   SUMA_RETURN(icols);
+} 
+
 int SUMA_is_AllNumeric_ngr(NI_group *ngr) 
 {
    static char FuncName[]={"SUMA_is_AllNumeric_ngr"};
