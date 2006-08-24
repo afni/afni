@@ -491,6 +491,13 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 
    /*--- do (up to) NPER points at a time ---*/
 
+#undef  MX
+#undef  MY
+#undef  MZ
+#define MX(mat,x,y,z) mat[0][0]*x + mat[0][1]*y + mat[0][2]*z + mat[0][3]
+#define MY(mat,x,y,z) mat[1][0]*x + mat[1][1]*y + mat[1][2]*z + mat[1][3]
+#define MZ(mat,x,y,z) mat[2][0]*x + mat[2][1]*y + mat[2][2]*z + mat[2][3]
+
    for( pp=0 ; pp < npt ; pp+=NPER ){
      npp = MIN( NPER , npt-pp ) ;  /* number to do */
      if( mpar == NULL || gstup->im == NULL ){
@@ -499,7 +506,15 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
          ii = mm % nx; kk = mm / nxy; jj = (mm-kk*nxy) / nx;
          imf[qq] = (float)ii; jmf[qq] = (float)jj; kmf[qq] = (float)kk;
        }
-       if( gstup->bscali ){
+       if( gstup->use_cmat ){   /* 24 Aug 2006 */
+         float x,y,z ;
+         for( qq=0 ; qq < npp ; qq++ ){
+           x = imf[qq] ; y = jmf[qq] ; z = kmf[qq] ;
+           imf[qq] = MX(gstup->base_cmat.m , x,y,z ) ;
+           jmf[qq] = MY(gstup->base_cmat.m , x,y,z ) ;
+           kmf[qq] = MZ(gstup->base_cmat.m , x,y,z ) ;
+         }
+       } else if( gstup->bscali ){
          float xo=gstup->bsim->xo , dx=gstup->bsim->dx ;
          float yo=gstup->bsim->yo , dy=gstup->bsim->dy ;
          float zo=gstup->bsim->zo , dz=gstup->bsim->dz ;
@@ -520,7 +535,15 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
      gstup->wfunc( npar , NULL ,
                    npp  , imf,jmf,kmf , imw,jmw,kmw ) ;
 
-     if( gstup->ascali ){
+     if( gstup->use_cmat ){   /* 24 Aug 2006 */
+       float x,y,z ;
+       for( qq=0 ; qq < npp ; qq++ ){
+         x = imw[qq] ; y = jmw[qq] ; z = kmw[qq] ;
+         imw[qq] = MX(gstup->targ_imat.m , x,y,z ) ;
+         jmw[qq] = MY(gstup->targ_imat.m , x,y,z ) ;
+         kmw[qq] = MZ(gstup->targ_imat.m , x,y,z ) ;
+       }
+     } else if( gstup->ascali ){
        float xo=gstup->ajim->xo , dxi=1.0f/gstup->ajim->dx ;
        float yo=gstup->ajim->yo , dyi=1.0f/gstup->ajim->dy ;
        float zo=gstup->ajim->zo , dzi=1.0f/gstup->ajim->dz ;
@@ -581,6 +604,15 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 }
 
 /*---------------------------------------------------------------------------*/
+static float fit_vbest = BIGVAL ;
+static void (*fit_callback)(int,double *) = NULL ;
+
+void GA_reset_fit_callback( void (*fc)(int,double*) )
+{
+   fit_vbest = BIGVAL ; fit_callback = fc ; return ;
+}
+
+/*---------------------------------------------------------------------------*/
 /*! Fit metric for matching base and target image value pairs.
     (Smaller is a better match.)  For use as a NEWUOA optimization function.
 -----------------------------------------------------------------------------*/
@@ -600,30 +632,24 @@ static double GA_scalar_fitter( int npar , double *mpar )
   switch( gstup->match_code ){
 
     default:
-    case GA_MATCH_PEARSON_SCALAR:
-#if 0
-{int i;
- fprintf(stderr,"avm: "); for(i=0;i<9;i++)fprintf(stderr,"%g ",avm[i]); fprintf(stderr,"\n");
- fprintf(stderr,"bvm: "); for(i=0;i<9;i++)fprintf(stderr,"%g ",bvm[i]); fprintf(stderr,"\n");
-}
-#endif
+    case GA_MATCH_PEARSON_SCALAR:   /* Pearson correlation coefficient */
       val = (double)THD_pearson_corr( gstup->npt_match , avm , bvm ) ;
       val = 1.0 - fabs(val) ;
     break ;
 
-    case GA_MATCH_SPEARMAN_SCALAR:
+    case GA_MATCH_SPEARMAN_SCALAR:  /* rank-order (Spearman) correlation */
       val = (double)spearman_rank_corr( gstup->npt_match, avm,
                                         gstup->bvstat   , bvm ) ;
       val = 1.0 - fabs(val) ;
     break ;
 
-    case GA_MATCH_KULLBACK_SCALAR:
+    case GA_MATCH_KULLBACK_SCALAR:  /* AKA Mutual Information */
       val = -THD_mutual_info_scl( gstup->npt_match ,
                                   gstup->ajbot , gstup->ajtop , avm ,
                                   gstup->bsbot , gstup->bstop , bvm  ) ;
     break ;
 
-    case GA_MATCH_CORRATIO_SCALAR:
+    case GA_MATCH_CORRATIO_SCALAR:  /* Correlation Ratio */
       val = -THD_corr_ratio_scl( gstup->npt_match ,
                                  gstup->ajbot , gstup->ajtop , avm ,
                                  gstup->bsbot , gstup->bstop , bvm  ) ;
@@ -631,6 +657,11 @@ static double GA_scalar_fitter( int npar , double *mpar )
   }
 
   free((void *)avm) ;    /* toss the trash */
+
+  if( fit_callback != NULL && val < fit_vbest ){
+    fit_vbest = val ; fit_callback(npar,mpar) ;
+  }
+
   return (double)val ;
 }
 
@@ -701,6 +732,9 @@ ENTRY("mri_genalign_scalar_setup") ;
      if( stup->bsim->dy <= 0.0f ) stup->bsim->dy = 1.0f ;
      if( stup->bsim->dz <= 0.0f ) stup->bsim->dz = 1.0f ;
 
+     if( stup->use_cmat )   /* 24 Aug 2006 */
+       stup->base_imat = nifti_mat44_inverse( stup->base_cmat ) ;
+
      stup->bscali = (stup->bsim->dx != 1.0f) || (stup->bsim->xo != 0.0f) ||
                     (stup->bsim->dy != 1.0f) || (stup->bsim->yo != 0.0f)   ;
      if( stup->abdim == 3 && !stup->bscali )
@@ -714,6 +748,9 @@ ENTRY("mri_genalign_scalar_setup") ;
      if( stup->ajim->dx <= 0.0f ) stup->ajim->dx = 1.0f ;
      if( stup->ajim->dy <= 0.0f ) stup->ajim->dy = 1.0f ;
      if( stup->ajim->dz <= 0.0f ) stup->ajim->dz = 1.0f ;
+
+     if( stup->use_cmat )   /* 24 Aug 2006 */
+       stup->targ_imat = nifti_mat44_inverse( stup->targ_cmat ) ;
 
      stup->ascali = (stup->ajim->dx != 1.0f) || (stup->ajim->xo != 0.0f) ||
                     (stup->ajim->dy != 1.0f) || (stup->ajim->yo != 0.0f)   ;
@@ -876,7 +913,15 @@ ENTRY("mri_genalign_scalar_setup") ;
          rr = (int)(stup->im->ar[qq] + stup->jm->ar[qq]*nx + stup->km->ar[qq]*nxy) ;
          stup->bvm->ar[qq] = bsar[rr] ;
        }
-       if( stup->bscali ){
+       if( stup->use_cmat ){   /* 24 Aug 2006 */
+         float x,y,z ;
+         for( qq=0 ; qq < stup->npt_match ; qq++ ){
+           x = stup->im->ar[qq]; y = stup->jm->ar[qq]; z = stup->km->ar[qq];
+           stup->im->ar[qq] = MX(gstup->base_cmat.m , x,y,z ) ;
+           stup->jm->ar[qq] = MY(gstup->base_cmat.m , x,y,z ) ;
+           stup->km->ar[qq] = MZ(gstup->base_cmat.m , x,y,z ) ;
+         }
+       } else if( stup->bscali ){
          float xo=stup->bsim->xo , dx=stup->bsim->dx ;
          float yo=stup->bsim->yo , dy=stup->bsim->dy ;
          float zo=stup->bsim->zo , dz=stup->bsim->dz ;
@@ -1299,7 +1344,7 @@ static THD_vecmat GA_setup_affine( int npar , float *parvec )
 /*! A wfunc function for affine transformations. */
 /*--------------------------------------------------------------------------*/
 
-void mri_genalign_affine( int npar , float *wpar ,
+void mri_genalign_affine( int npar, float *wpar ,
                           int npt , float *xi, float *yi, float *zi ,
                                     float *xo, float *yo, float *zo  )
 {
