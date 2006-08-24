@@ -622,6 +622,12 @@ static double GA_scalar_fitter( int npar , double *mpar )
                                   gstup->ajbot , gstup->ajtop , avm ,
                                   gstup->bsbot , gstup->bstop , bvm  ) ;
     break ;
+
+    case GA_MATCH_CORRATIO_SCALAR:
+      val = -THD_corr_ratio_scl( gstup->npt_match ,
+                                 gstup->ajbot , gstup->ajtop , avm ,
+                                 gstup->bsbot , gstup->bstop , bvm  ) ;
+    break ;
   }
 
   free((void *)avm) ;    /* toss the trash */
