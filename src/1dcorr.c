@@ -1,11 +1,12 @@
 #include "mrilib.h"
 
-#define NCOR 4
+#define NCOR 5
 
-static char *cor_name[NCOR] = { "Pearson" , "Spearman" , "Quadrant" , "MutualInfo" } ;
+static char *cor_name[NCOR] = { "Pearson" , "Spearman" , "Quadrant" , "MutualInfo" , "CorrRatio" } ;
 typedef float (*cfun)(int,float *,float *) ;
 static cfun cor_func[NCOR] =
- { THD_pearson_corr , THD_spearman_corr_nd , THD_quadrant_corr_nd , THD_mutual_info } ;
+ { THD_pearson_corr , THD_spearman_corr_nd , THD_quadrant_corr_nd ,
+   THD_mutual_info  , THD_corr_ratio } ;
 
 int main( int argc , char *argv[] )
 {
@@ -82,7 +83,7 @@ int main( int argc , char *argv[] )
      printf("\n") ;
      for( kk=0 ; kk < nvec ; kk++ ){
        printf("%02d:",kk) ;
-       for( jj=0 ; jj <= kk ; jj++ ){
+       for( jj=0 ; jj < nvec ; jj++ ){
          sum = (cor_func[mm])( nx , tvec[kk] , tvec[jj] ) ;
          printf(" %12.3f",sum) ;
        }

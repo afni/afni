@@ -16,7 +16,7 @@ int main( int argc , char *argv[] )
    int npmax = 999999999 ;
 
    if( argc < 3 ){
-     printf("Usage: qm [-n nnn] [-q] [-mask] [-rank] [-mi] [-rad r] [-out f] [-med] base targ\n");
+     printf("Usage: qm [-n nnn] [-q] [-mask] [-rank] [-mi] [-cr] [-rad r] [-out f] [-med] base targ\n");
      exit(0);
    }
 
@@ -32,6 +32,9 @@ int main( int argc , char *argv[] )
      }
      if( strcmp(argv[iarg],"-rank") == 0 ){
        meth = GA_MATCH_SPEARMAN_SCALAR ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-cr") == 0 ){
+       meth = GA_MATCH_CORRATIO_SCALAR ; iarg++ ; continue ;
      }
      if( strcmp(argv[iarg],"-mi") == 0 ){
        meth = GA_MATCH_KULLBACK_SCALAR ; iarg++ ; continue ;
