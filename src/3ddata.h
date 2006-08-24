@@ -4188,6 +4188,7 @@ extern void set_gni_write_mode(int) ;
 extern int  set_ni_globs_from_env(void) ;
 extern int  set_sparse_data_attribs(NI_element *, THD_3dim_dataset *, int) ;
 
+extern int  suma_ngr_get_node_column(NI_group *) ;   /* 24 Aug 2006 */
 
 
 #define SBFLAG_INDEX    (1<<0)

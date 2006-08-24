@@ -1711,3 +1711,11 @@
       - added -outcols_afni_NSD option
   * modified 3ddata.h: added nodes_from_dset to set_sparse_data_attribs()
 
+23 Aug 2006: do not assume node index column is #0 in NI_SURF_DSET
+  * modified thd_niml.c:
+      - added sum_ngr_get_node_column()
+      - apply in process_ni_sd_sparse_data(), process_ni_sd_attrs() and
+          THD_add_sparse_data
+  * modified vol2surf.c: possibly free nodes during write_NSD
+  * modified 3ddata.h: added suma_ngr_get_node_column() prototype
+
