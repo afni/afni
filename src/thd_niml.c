@@ -585,7 +585,7 @@ static int process_ni_sd_sparse_data(NI_group * ngr, THD_3dim_dataset * dset )
     void         ** elist = NULL;
     float           tr;
     char          * rhs, * cp;
-    int             ind, nvals;
+    int             ind, nvals, node_col;
 
 ENTRY("process_ni_sd_sparse_data");
 
@@ -625,36 +625,47 @@ ENTRY("process_ni_sd_sparse_data");
             else if(gni.debug)fprintf(stderr,"** unknown ni_form, '%s'\n", rhs);
         }
     }
+
     if(gni.debug>1)
         fprintf(stderr,"+d using byte order %s\n",
                 BYTE_ORDER_STRING(dkptr->byte_order));
 
-
-    /* if the first column is of type NI_INT, assume it is a node list */
-    ind = 0;
-    nvals = nel->vec_num;    /* note the number of sub-bricks */
-    if( nel->vec_typ[0] == NI_INT )
+    /* don't assume node index column comes first   24 Aug 2006 [rickr] */
+    node_col = suma_ngr_get_node_column(ngr);
+    if(gni.debug>1)fprintf(stderr,"-- get_node_column returned %d\n",node_col);
+    for( ind = 0; ind < nel->vec_num; ind++ )
     {
-        blk->nnodes = nel->vec_len;
-        blk->node_list = (int *)XtMalloc(blk->nnodes * sizeof(int));
-        memcpy(blk->node_list, nel->vec[0], blk->nnodes * sizeof(int));
-        if( dkptr->byte_order != mri_short_order() )
-            nifti_swap_4bytes(blk->nnodes, blk->node_list);
+        if( ind == node_col )
+        {
+            if( nel->vec_typ[ind] == NI_INT )
+            {
+                blk->nnodes = nel->vec_len;
+                blk->node_list = (int *)XtMalloc(blk->nnodes * sizeof(int));
+                memcpy(blk->node_list, nel->vec[0], blk->nnodes * sizeof(int));
+                if( dkptr->byte_order != mri_short_order() )
+                    nifti_swap_4bytes(blk->nnodes, blk->node_list);
 
-        nvals--;
-        ind ++;
-        if(gni.debug>1) fprintf(stderr,"-d node_list len = %d\n",nel->vec_len);
-    }
-
-    /* and check that the rest of the columns are of type float */
-    for( ; ind < nel->vec_num; ind++ )
-        if( nel->vec_typ[ind] != NI_FLOAT )
+                if(gni.debug>1)
+                    fprintf(stderr,"-d node_list len = %d\n",nel->vec_len);
+            }
+            else
+            {
+                if(gni.debug) fprintf(stderr,"** node list is not int type\n");
+                RETURN(1);
+            }
+        }
+        else if( nel->vec_typ[ind] != NI_FLOAT )
         {
             if(gni.debug)
                 fprintf(stderr,"** NI_SURF_DSET has non-float type %d\n",
                         nel->vec_typ[ind]);
             RETURN(1);
         }
+    }
+
+    /* note the number of data columns */
+    nvals = nel->vec_num;
+    if( node_col >= 0 && node_col < nvals ) nvals--;
 
 
     /* also, verify that we have "data_type=Node_Bucket_data" */
@@ -773,21 +784,14 @@ ENTRY("process_ni_sd_attrs");
     atr_str = THD_find_string_atr(blk , "COLMS_TYPE");
     if( atr_str && atr_str->ch )
     {
-        if( ! strncmp(atr_str->ch,"Node_Index",10) )
+        if( ! strstr(atr_str->ch,"Node_Index") )
         {
-            if(gni.debug>1) fprintf(stderr,"-d COLMS_TYPE[0] is Node_Index\n");
+            if(gni.debug>1) fprintf(stderr,"-d COLMS_TYPE has Node_Index\n");
             if( blk->nnodes <= 0 )
               fprintf(stderr,"** warning: Node_Index COLMS_TYPE w/out nodes\n");
         }
         else if( blk->nnodes > 0 )
-        {
-            fprintf(stderr,"** warning: have nnodes, but COLMS_TYPE[0] is '");
-            for( ind = 0; ind < atr_str->nch && atr_str->ch[ind]
-                                             && atr_str->ch[ind] != ';';
-                 ind ++ )
-                fputc(atr_str->ch[ind], stderr);
-            fprintf(stderr,"'\n");
-        }
+            fprintf(stderr,"** warning: nnodes, but no COLMS_TYPE Node_Index");
     }
 
     RETURN(0);
@@ -820,7 +824,7 @@ ENTRY("process_ni_sd_group_attrs");
                 fprintf(stderr,"-d found group attr %s = %s\n",*aname,rhs);
             THD_set_string_atr(dset->dblk, *aname, rhs);
         }
-        else if(gni.debug>1)
+        else if(gni.debug>2)
                 fprintf(stderr,"-d did not find group attr %s\n",*aname);
     }
 
@@ -847,7 +851,8 @@ int THD_add_sparse_data(THD_3dim_dataset * dset, NI_group * ngr )
     NI_element     * nel = NULL;
     float          * data;
     void          ** elist = NULL;
-    int              nvals, ind, swap, offset = 0, len;
+    int              nvals, ind, sub, swap, len;
+    int              have_nodes, node_col;
 
 ENTRY("THD_add_sparse_data");
 
@@ -859,14 +864,16 @@ ENTRY("THD_add_sparse_data");
     if( ind > 0 ) { nel = (NI_element *)elist[0]; NI_free(elist); }
     if( !nel ) RETURN(0);
 
-    if( blk->nnodes > 0 ) offset = 1;  /* note index list */
+    node_col = suma_ngr_get_node_column(ngr);
+    if(gni.debug>1)fprintf(stderr,"-- get_node_column returned %d\n",node_col);
+    have_nodes = (node_col >= 0 && node_col < nel->vec_num) ? 1 : 0;
 
     /*-- verify sizes and types --*/
-    if( nel->vec_num != nvals + offset )
+    if( nel->vec_num != nvals + have_nodes )
     {
         if(gni.debug)
-            fprintf(stderr,"** TASD: vec_num = %d, but nvals, off = %d, %d\n",
-                    nel->vec_num, nvals, offset);
+            fprintf(stderr,"** TASD: vec_num = %d, but nvals, nodes = %d, %d\n",
+                    nel->vec_num, nvals, have_nodes);
         RETURN(0);
     }
     if( nel->vec_len != DSET_NX(dset) )
@@ -876,12 +883,15 @@ ENTRY("THD_add_sparse_data");
         RETURN(0);
     }
 
-    if( blk->nnodes > 0 && nel->vec_typ[0] != NI_INT )
+    if( blk->nnodes > 0 && (!have_nodes || nel->vec_typ[node_col] != NI_INT) )
     {
-        if(gni.debug) fprintf(stderr,"** have nnodes, but typ[0] not NI_INT\n");
+        if(gni.debug) fprintf(stderr,"** have nnodes, but typ not NI_INT\n");
         RETURN(0);
     }
-    for( ind = offset; ind < nel->vec_num; ind++ )
+    for( ind = 0; ind < nel->vec_num; ind++ )
+    {
+        if( ind == node_col ) continue;   /* skip any node column */
+
         if( nel->vec_typ[ind] != NI_FLOAT )
         {
             if(gni.debug) fprintf(stderr,"** TASD: vec[%d] not float\n",ind);
@@ -892,6 +902,7 @@ ENTRY("THD_add_sparse_data");
             if(gni.debug) fprintf(stderr,"** TASD: vec[%d] not filled!\n",ind);
             RETURN(0);
         }
+    }
 
     /* check for necessary swapping */
     swap = (blk->diskptr->byte_order != mri_short_order());
@@ -902,14 +913,23 @@ ENTRY("THD_add_sparse_data");
     if( blk->nnodes > 0 ){ NI_free(nel->vec[0]);  nel->vec[0] = NULL; }
         
     /*-- we seem to have all of the data, now copy it --*/
-    for( ind = 0; ind < nvals; ind++ )
+    sub = 0;
+    for( ind = 0; ind < nel->vec_num; ind++ )
     {
+        if( ind == node_col )   /* skip any node column, but free, first */
+        {
+            NI_free(nel->vec[ind]);
+            nel->vec[ind] = NULL;
+            continue;
+        }
+
         data = (float *)XtMalloc(len * sizeof(float));
         if(!data){fprintf(stderr,"**ASD alloc fail: %d bytes\n",len);RETURN(0);}
-        memcpy(data, nel->vec[ind+offset], len * sizeof(float));
+        memcpy(data, nel->vec[ind], len * sizeof(float));
         if( swap ) nifti_swap_4bytes(len, data);
-        mri_fix_data_pointer(data, DBLK_BRICK(blk,ind));
-        NI_free(nel->vec[ind+offset]);  nel->vec[ind+offset] = NULL;
+        mri_fix_data_pointer(data, DBLK_BRICK(blk,sub));
+        sub++;
+        NI_free(nel->vec[ind]);  nel->vec[ind] = NULL;
     }
 
     RETURN(nvals);
@@ -1342,6 +1362,32 @@ ENTRY("loc_append_vals");
 
     RETURN(0);
 }
+
+/* ----------------------------------------------------------------------
+ * get node index column via suma functions           24 Aug 2006 [rickr]
+ * return -1 on failure
+*/
+int suma_ngr_get_node_column(NI_group * ngr)
+{
+    SUMA_DSET * dset;
+    int         index;
+
+ENTRY("suma_ngr_get_node_column");
+
+    if( !ngr ) RETURN(-1);
+
+    /* create a SUMA_DSET and get the index */
+    dset = SUMA_ngr_2_dset(ngr);  if( !dset ) RETURN(-1);
+    index = SUMA_GetNodeDefColIndex(dset);
+
+    /* free the created SUMA_DSET */
+    dset->ngr = NULL;   /* don't let the group get free'd */
+    SUMA_FreeDset(dset);
+
+    if( index < 0 ) RETURN(-1);         /* be explicit with -1 */
+    else            RETURN(index);
+}
+
 
 /* ---------------------------------------------------------------------- */
 /* NIML globals access functions                       3 Aug 2006 [rickr] */

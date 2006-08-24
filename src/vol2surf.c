@@ -2483,6 +2483,8 @@ ENTRY("v2s_write_outfile_NSD");
         rv = SUMA_AddDsetNelCol(sdset, "Node Indices", SUMA_NODE_INDEX,
                                 (void *)sd->nodes, NULL, 1);
         if( !rv ){ fprintf(stderr,"** WO_NSD add nodes failure\n"); RETURN(1); }
+
+        if( free_vals ){ free(sd->nodes); sd->nodes = NULL; }
         if( sopt->debug>1 ) fprintf(stderr,"+d adding node indices to NSD\n");
     }
 
