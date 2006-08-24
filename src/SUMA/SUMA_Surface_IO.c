@@ -6858,7 +6858,7 @@ SUMA_FORM_AFNI_DSET_STRUCT *SUMA_New_FormAfniDset_Opt(void)
    Opt->fval=0.0;
    Opt->mmask=NULL;
    Opt->full_list = 0;
-   
+   Opt->exists = -1;
    SUMA_RETURN(Opt);
 }
 
@@ -6915,6 +6915,11 @@ SUMA_FORM_AFNI_DSET_STRUCT *SUMA_Free_FormAfniDset_Opt(SUMA_FORM_AFNI_DSET_STRUC
       full_list: 1 = full list, coordinates are inferred from 1D index of array.
                      N_vals == dimen_ii*dimen_jj*dimen_kk. Requires NodeList == NULL
                  0 = not a full list NodeList != NULL
+      exists: A flag that indicates upon returning from this function whether the 
+               dset's name exists already or not.
+               -1: untested
+               1: exists
+               0: Does not exist
    - See  SUMA_Free_FormAfniDset_Opt for freeing Opt and its contents
    
    \return dset (THD_3dim_dataset *) output dset.
@@ -6936,7 +6941,7 @@ THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals, int N_vals, S
    short *sbr=NULL, fval_short, dval_short;
    char *orcode=NULL;
    float xxdown =0.0,xxup=0.0 , yydown=0.0,yyup=0.0 , zzdown=0.0,zzup=0.0 ;
-   
+   SUMA_Boolean LocalHead = NOPE;
    THD_3dim_dataset *dset=NULL, *mset=NULL, *maskset=NULL;
 
    /* check for badiosity */
@@ -7082,9 +7087,12 @@ THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals, int N_vals, S
    }
 
    if( THD_is_file(DSET_HEADNAME(dset)) ) {
-      SUMA_SL_Err("Output dataset already exists -- can't overwrite") ;
-      exit(1);
+      SUMA_LHv("Note Output dataset %s already exists \n", DSET_HEADNAME(dset)) ;
+      Opt->exists = 1;
+   } else {
+      Opt->exists = 0;
    }
+   
    /*-- make empty brick array for dataset --*/
 
    EDIT_substitute_brick( dset , 0 , Opt->datum , NULL ) ;  /* will make array */
@@ -7104,6 +7112,7 @@ THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals, int N_vals, S
      SUMA_SL_Err("mask dataset doesn't match dimension of output dataset") ;
      if (mset) {  DSET_delete(mset); mset = NULL; }
      if (maskset) {  DSET_delete(maskset); maskset = NULL; }
+     DSET_delete(dset); dset = NULL;
      SUMA_RETURN(NULL);
    }
 

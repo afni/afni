@@ -3,6 +3,79 @@
 
 extern SUMA_CommonFields *SUMAg_CF; 
 
+/*!
+   \brief Find the closest node on the surface to a voxel in the volume (as defined in vp)
+   \param SO (SUMA_SurfaceObject *)
+      SO->NodeList is expected to be in dicomm (RAI) units
+   \param vp (SUMA_VOLPAR *) Volume grid of Nvox voxels.
+   \param closest_node (int *) Vector of Nvox elements. To contain the nodes closest to each voxel
+   \param closest_dist (float *) Vector of Nvox elements. 
+                                 To contain the distance between node and voxel centroid
+                                 Pass NULL if you do not care for this info.
+   \param vox_mask (byte *) Mask of voxels to process (NULL if you want to process all)
+   \param verb (int): 0 be quiet
+                    > 1 talk
+   
+*/
+int SUMA_ClosestNodeToVoxels(SUMA_SurfaceObject *SO, SUMA_VOLPAR *vp, int *closest_node, float *closest_dist, byte *vox_mask, int verb) 
+{
+   static char FuncName[]={"SUMA_ClosestNodeToVoxels"};
+   float *p=NULL;
+   float d, dxyz;
+   int i, j, k, n, nij, ijk, cnt = 0;
+   THD_fvec3     fv , iv;
+   
+   SUMA_ENTRY;
+   
+   if (!SO || !vp || !closest_node) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(0);
+   }
+   
+   if (verb) {
+      fprintf(SUMA_STDERR,"%s: Have %d nodes in surface\n%dx%dx%d (%d) voxels in volume.\n", 
+                  FuncName, SO->N_Node, vp->nx, vp->ny, vp->nz, vp->nx * vp->ny * vp->nz);
+   }
+   /* Now for each voxel, find the closest node (SLOW implementation) */
+   cnt = 0;
+   nij = vp->nx*vp->ny;
+   for (i=0;i<vp->nx; ++i) {  
+      for (j=0;j<vp->ny; ++j) {
+         for (k=0;k<vp->nz; ++k) {
+            ijk = SUMA_3D_2_1D_index(i,j,k,vp->nx,nij);
+            /* fprintf(SUMA_STDERR," %4d %4d %4d,  ijk: %d\n", i, j, k, ijk); */            
+            closest_node[ijk] = -1;
+            if (closest_dist) closest_dist[ijk] = -1.0;
+            if (!vox_mask || (vox_mask && vox_mask[ijk])) {
+               iv.xyz[0] = (float)i; iv.xyz[1] = (float)j; iv.xyz[2] = (float)k;    
+               fv = SUMA_THD_3dfind_to_3dmm_vp(vp, iv);
+               iv = SUMA_THD_3dmm_to_dicomm(vp->xxorient, vp->yyorient, vp->zzorient,  fv);
+               dxyz = 1023734552736672366372.0;
+               for (n=0; n<SO->N_Node; ++n) {
+                  p = &(SO->NodeList[SO->NodeDim*n]);
+                  SUMA_SEG_LENGTH_SQ(p, iv.xyz, d);
+                  if (d < dxyz) {
+                     dxyz = d; closest_node[ijk] = n; 
+                     if (closest_dist) closest_dist[ijk] = (float)d;
+                  }
+               }
+               if (closest_dist) { if (closest_dist[ijk] >= 0.0f) closest_dist[ijk] = (float)sqrt(closest_dist[ijk]); }
+               if (verb) {
+                  ++cnt;
+                  if (!(cnt % 1000)) {
+                     fprintf(SUMA_STDERR,". @ %4d %4d %4d   (%3.2f%%)\n", 
+                              i, j, k, (float)cnt/(float)(vp->nx * vp->ny * vp->nz)*100.0); fflush(SUMA_STDERR);
+                  }
+               }
+            }
+         }
+      }
+   } 
+   
+   SUMA_RETURN(1);
+}
+
+
 /*! a copy of THD_handedness from ../thd_rotangles.c
 Dunno why the original was giving me pain linking ... */
 int SUMA_THD_handedness( THD_3dim_dataset * dset )

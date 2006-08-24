@@ -3854,6 +3854,176 @@ float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                
    SUMA_RETURN(fout);
 }
+
+
+/*!
+   \brief A version of SUMA_Chung_Smooth that works on SUMA_DSET rather than
+   a float array.
+*/
+SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt, 
+                           int N_iter, float FWHM, SUMA_DSET *dset, 
+                           SUMA_COMM_STRUCT *cs, byte *nmask)
+{
+   static char FuncName[]={"SUMA_Chung_Smooth_dset"};
+   float *fout_final = NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, *fin_next = NULL, *fin_orig = NULL;
+   float delta_time, fp, dfp, fpj, minfn=0.0, maxfn=0.0;
+   int n , k, j, niter, jj, *icols=NULL, N_icols;
+   byte *bfull=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+
+   if (N_iter % 2) {
+      SUMA_SL_Err("N_iter must be an even number\n");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (!SO || !wgt || !dset) {
+      SUMA_SL_Err("NULL SO or wgt or fin_orig\n");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (!SO->FN) {
+      SUMA_SL_Err("NULL SO->FN\n");
+      SUMA_RETURN(NOPE);
+   }
+    
+   /* what columns can we process ?*/
+   icols = SUMA_FindNumericDataDsetCols(dset, &N_icols);
+         
+   if (N_icols <= 0) {
+      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_RETURN(NOPE);   
+   }
+   
+   /* allocate for buffer and output */
+   fbuf = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
+   fout_final = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
+   if (!fbuf || !fout_final) {
+      SUMA_SL_Crit("Failed to allocate for fbuf and fout_final\n");
+      SUMA_RETURN(NOPE);
+   }
+   
+   delta_time= (FWHM * FWHM)/(16*N_iter*log(2));
+   
+   /* Begin filtering operation for each column */
+   for (k=0; k < N_icols; ++k) {
+      /* get a float copy of the data column */
+      fin_orig = SUMA_DsetCol2Float (dset, icols[k], 1);
+      if (!fin_orig) {
+         SUMA_SL_Crit("Failed to get copy of column. Woe to thee!");
+         SUMA_RETURN(NOPE);
+      }
+      /* make sure column is not sparse, one value per node */
+      if (k==0) {
+         bfull = NULL;
+         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, dset->dnel->vec_filled, 0.0, &bfull, dset, SO->N_Node)) {
+            SUMA_S_Err("Failed to get full column vector");
+            SUMA_RETURN(NOPE);
+         }
+         if (bfull) {
+            /* something was filled in good old SUMA_MakeSparseColumnFullSorted */
+            if (nmask) {   /* combine bfull with nmask */
+               for (jj=0; jj < SO->N_Node; ++jj) { if (nmask[jj] && !bfull[jj]) nmask[jj] = 0; }   
+            } else { nmask = bfull; }
+         } 
+      } else {
+         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, dset->dnel->vec_filled, 0.0, NULL, dset, SO->N_Node)) {
+            SUMA_S_Err("Failed to get full column vector");
+            SUMA_RETURN(NOPE);
+         }
+         /* no need for reworking nmask and bfull for each column...*/
+      }
+           
+      if (cs->Send) { /* send the first monster */
+         if (!SUMA_SendToSuma (SO, cs, (void *)fin_orig, SUMA_NODE_RGBAb, 1)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+         }
+      }
+      
+      /* filter this column for each of the iterations */
+      for (niter=0; niter < N_iter; ++niter) {
+         if ( niter % 2 ) { /* odd */
+            fin = fin_next; /* input from previous output buffer */
+            fout = fout_final; /* results go into final vector */
+            fin_next = fout_final; /* in the next iteration, the input is from fout_final */
+         } else { /* even */
+            /* input data is in fin_new */
+            fin = fin_next;
+            fout = fbuf; /* results go into buffer */
+            fin_next = fbuf; /* in the next iteration, the input is from the buffer */
+         }
+         /* filter iteration for each node in data column k*/
+         for (n=0; n < SO->N_Node; ++n) {
+            fp = fin[n]; /* kth value at node n */
+            dfp = 0.0;
+            if (!nmask) {
+               if (SO->FN->N_Neighb[n]) minfn = maxfn = fin[SO->FN->FirstNeighb[n][0]];
+               for (j=0; j < SO->FN->N_Neighb[n]; ++j) {
+                  fpj = fin[SO->FN->FirstNeighb[n][j]]; /* value at jth neighbor of n */
+                  if (fpj < minfn) minfn = fpj;
+                  if (fpj > maxfn) maxfn = fpj;
+                  dfp += wgt[n][j] * (fpj - fp); 
+               }/* for j*/
+               fout[n] = fin[n] + delta_time * dfp;
+               if (fout[n] < minfn) fout[n] = minfn;
+               if (fout[n] > maxfn) fout[n] = maxfn;
+            } else { /* masking potential */
+               if (nmask[n]) {
+                  if (SO->FN->N_Neighb[n]) {
+                     jj = 0;
+                     #if 0 /* only use nodes in mask as neighbors */
+                        do {
+                           minfn = maxfn = fin[SO->FN->FirstNeighb[n][jj]]; ++jj;
+                        } while (!nmask[SO->FN->FirstNeighb[n][jj]] && jj < SO->FN->N_Neighb[n]);
+                     #else
+                        minfn = maxfn = fin[SO->FN->FirstNeighb[n][jj]];
+                     #endif
+                  }
+                  for (j=0; j < SO->FN->N_Neighb[n]; ++j) {
+                     #if 0 /* only use nodes in mask as neighbors */
+                     if (nmask[SO->FN->FirstNeighb[n][j]])
+                     #endif
+                     {
+                        fpj = fin[SO->FN->FirstNeighb[n][j]]; /* value at jth neighbor of n */
+                        if (fpj < minfn) minfn = fpj;
+                        if (fpj > maxfn) maxfn = fpj;
+                        dfp += wgt[n][j] * (fpj - fp);
+                     } 
+                  }/* for j*/
+                  fout[n] = fin[n] + delta_time * dfp;
+                  if (fout[n] < minfn) fout[n] = minfn;
+                  if (fout[n] > maxfn) fout[n] = maxfn;
+               } else {
+                  fout[n] = fin[n];
+               }
+            }
+         }/* for n */ 
+
+         if (cs->Send) {
+            if (!SUMA_SendToSuma (SO, cs, (void *)fout, SUMA_NODE_RGBAb, 1)) {
+               SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+            }
+         }
+
+      } /* for niter */
+      
+      SUMA_free(fin_orig); fin_orig = NULL;
+      
+      /* Now we need to shove the filtered data back into the dset */
+      if (!SUMA_Float2DsetCol (dset, icols[k], fout_final, SO->N_Node)) {
+         SUMA_S_Err("Failed to update dset's values");
+         SUMA_RETURN(NOPE);      
+      }
+      
+   } /* for each col */
+   if (bfull == nmask) { if (nmask) SUMA_free(nmask); nmask = NULL; bfull = NULL; }
+   if (fbuf) SUMA_free(fbuf); fbuf = NULL;
+   if (fout_final) SUMA_free(fout_final); fout_final = NULL;
+   
+   SUMA_RETURN(YUP);
+}
+
 /*!
    \brief Filter data defined on the surface using M.K. Chung et al.'s 2005 method 
     [1] Chung, M.K., Robbins,S., Dalton, K.M., Davidson, R.J., Evans, A.C. (2004) 

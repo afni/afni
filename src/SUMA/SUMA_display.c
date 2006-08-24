@@ -237,6 +237,58 @@ SUMA_handleRedisplay(XtPointer closure)
 }
 
 /*!
+   \brief, set culling for viewer:
+   action takes one of: "Apply" or "Restore": Settings based on sv->BF_Cull
+                                             With Apply, you get a notice on the screen,
+                                             use it sparingly
+                        "Off" or "Hold": Turn off culling, regardless of sv->BF_Cull
+                        "Front": Turn on front face culling, regardless of sv->BF_Cull
+                        "Back": Turn on back face culling, regardless of sv->BF_Cull
+*/
+void SUMA_CullOption(SUMA_SurfaceViewer *sv, const char *action)
+{
+   static char FuncName[]={"SUMA_CullOption"};
+   char ac;
+   
+   SUMA_ENTRY;
+   
+   if (!action) {
+      SUMA_S_Err("NULL action!");
+      SUMA_RETURNe;
+   }
+   
+   ac = SUMA_TO_LOWER_C(action[0]);
+   
+   if (ac == 'o' || ac == 'h') {
+      glDisable(GL_CULL_FACE);   
+   } else if ( ac == 'b') {
+      glCullFace (GL_BACK);
+      glEnable (GL_CULL_FACE);
+   } else if ( ac == 'f') {
+      glCullFace (GL_FRONT);
+      glEnable (GL_CULL_FACE);
+   } else if ( ac == 'a' || ac == 'r') {   
+      switch (sv->BF_Cull) {
+         case 0:
+            glDisable(GL_CULL_FACE);
+            if (ac == 'a') { SUMA_SLP_Note ("Culling disabled."); }
+            break;
+         case 1:
+            glCullFace (GL_BACK);
+            glEnable (GL_CULL_FACE);
+            if (ac == 'a') { SUMA_SLP_Note ("BackFace Culling enabled."); }
+            break;
+         case 2:
+            glCullFace (GL_FRONT);
+            glEnable (GL_CULL_FACE);
+            if (ac == 'a') { SUMA_SLP_Note ("FrontFace Culling enabled."); }
+            break;
+      }
+   }
+
+   SUMA_RETURNe;
+}
+/*!
 
 Only w is used consistently, the other input varaibles may be null at times
 always send GLXAREA widget in w otherwise you won't know what pointer to use with 
