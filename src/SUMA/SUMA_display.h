@@ -130,6 +130,7 @@ sets the select color of the widget to its foreground color */
 #define SUMA_MARGIN  1
 
 String *SUMA_get_fallbackResources ();         
+void SUMA_CullOption(SUMA_SurfaceViewer *, const char *action);
 Boolean SUMA_handleRedisplay (XtPointer w);
 void SUMA_postRedisplay(Widget w, XtPointer clientData, XtPointer call);
 GLenum SUMA_index_to_clip_plane(int iplane) ;

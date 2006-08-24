@@ -1897,6 +1897,8 @@ SUMA_Boolean SUMA_DrawPlaneDO (SUMA_PlaneDO *SDO, SUMA_SurfaceViewer *sv)
      SUMA_SET_GL_RENDER_MODE(SDO->PolyMode); 
    }
    
+   SUMA_CullOption(sv, "Hold");
+   
    glGetFloatv(GL_LINE_WIDTH, &origwidth);
    glLineWidth(SDO->LineWidth);
         
@@ -1950,7 +1952,9 @@ SUMA_Boolean SUMA_DrawPlaneDO (SUMA_PlaneDO *SDO, SUMA_SurfaceViewer *sv)
      /* not the default, do the deed */
      SUMA_SET_GL_RENDER_MODE(SDO->PolyMode); 
    }  
-    
+
+   SUMA_CullOption(sv, "Restore");
+  
    SUMA_RETURN (YUP);
    
 }

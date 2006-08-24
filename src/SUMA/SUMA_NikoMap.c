@@ -19,7 +19,7 @@ void usage_NikoMap (SUMA_GENERIC_ARGV_PARSE *ps)
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
-               "Usage: 3dSurfMask <-i_TYPE SURFACE> <-prefix PREFIX>\n"
+               "Usage: NikoMap  <-i_TYPE SURFACE> <-prefix PREFIX>\n"
                "                <-grid_parent GRID_VOL> [-sv SURF_VOL] \n"
                " \n"
                "  Mandatory Parameters:\n"
@@ -27,9 +27,44 @@ void usage_NikoMap (SUMA_GENERIC_ARGV_PARSE *ps)
                "             You can also use -t* and -spec and -surf\n"
                "             methods to input surfaces. See below\n"
                "             for more details.\n"
-               "     -prefix PREFIX: Prefix of output dataset.\n"
+               "     -prefix PREFIX: Prefix of output datasets.\n"
                "     -grid_parent GRID_VOL: Specifies the grid for the\n"
-               "                  output volume."
+               "                  FMRI data volume."
+               "   Patch options:\n"
+               "     -patch_grow: Create surface patch growing data.\n"
+               "     -grow_dist D: Grow patch up to Dmm away from each node.\n"
+               "                   Distance is the shortest along the edges of \n"
+               "                    the surface.\n"
+               "    *** With these options you will get a file called:\n"
+               "     PREFIX_pg.1D.dset with each row containing:\n"
+               "     <node index (n)> <number of neighbors of n (Kn)> followed by\n"
+               "     Kn sets of: \n"
+               "     <neighbor node index (m)> <distance of m to n> \n"
+               "     <X Y Z of estimated propagation location of m>\n"
+               "     The last three parameters represent the estimated\n"
+               "     location of m in the next contour (layer) of neighbors\n"
+               "     of n\n"
+               "\n"
+               "   Volume-->Surface options:\n"
+               "     -closest_node: Create a file that outputs the closest\n"
+               "                    node for each voxel in GRID_VOL.\n"
+               "    *** With this option you'll get a file called:\n"
+               "     PREFIX_cn.1D.dset with each row containing:\n"
+               "     <Voxel 1D index (v)> <I J K of v> <closest node n> <distance of n to v>\n"
+               "\n"
+               "   Optional Options:\n"
+               "   -debug BUG: Debug level\n"
+               "   -node_debug NODE_DBG: Output lots of info for a particular node.\n"
+               "                         This option also produces a file called\n"
+               "                         PREFIX_pd_dbg_node_NODE_DBG.1D.dset\n"
+               "\n"
+               "   Sample command:\n"
+               "   NikoMap -i_ply rs_acpc_tal_LH_GM_half.ply      \\\n"
+               "           -sv rs_acpc_tal+tlrc. -prefix output   \\\n"
+               "           -grid_parent coarse+tlrc.              \\\n"
+               "           -closest_node                          \\\n"
+               "           -patch_grow -grow_dist 7.5             \\\n"
+               "           -debug 3 -node_debug 4                 \\\n"
                " \n"
                "%s"
                "%s"
@@ -153,66 +188,6 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_NikoMap_ParseInput(char *argv[], int argc
    SUMA_RETURN(Opt);
 }
 
-/*!
-   SO->NodeList is expected to be in dicomm (RAI) units
-*/
-int SUMA_ClosestNodeToVoxels(SUMA_SurfaceObject *SO, SUMA_VOLPAR *vp, int *closest_node, float *closest_dist, byte *vox_mask, int verb) 
-{
-   static char FuncName[]={"SUMA_ClosestNodeToVoxels"};
-   float *p=NULL;
-   float d, dxyz;
-   int i, j, k, n, nij, ijk, cnt = 0;
-   THD_fvec3     fv , iv;
-   
-   SUMA_ENTRY;
-   
-   if (!SO || !vp || !closest_node) {
-      SUMA_S_Err("NULL input");
-      SUMA_RETURN(0);
-   }
-   
-   if (verb) {
-      fprintf(SUMA_STDERR,"%s: Have %d nodes in surface\n%dx%dx%d (%d) voxels in volume.\n", 
-                  FuncName, SO->N_Node, vp->nx, vp->ny, vp->nz, vp->nx * vp->ny * vp->nz);
-   }
-   /* Now for each voxel, find the closest node (SLOW implementation) */
-   cnt = 0;
-   nij = vp->nx*vp->ny;
-   for (i=0;i<vp->nx; ++i) {  
-      for (j=0;j<vp->ny; ++j) {
-         for (k=0;k<vp->nz; ++k) {
-            ijk = SUMA_3D_2_1D_index(i,j,k,vp->nx,nij);
-            /* fprintf(SUMA_STDERR," %4d %4d %4d,  ijk: %d\n", i, j, k, ijk); */
-            if (!vox_mask || (vox_mask && vox_mask[ijk])) {
-               iv.xyz[0] = (float)i; iv.xyz[1] = (float)j; iv.xyz[2] = (float)k;    
-               fv = SUMA_THD_3dfind_to_3dmm_vp(vp, iv);
-               iv = SUMA_THD_3dmm_to_dicomm(vp->xxorient, vp->yyorient, vp->zzorient,  fv);
-               dxyz = 1023734552736672366372.0;
-               closest_node[ijk] = -1;
-               if (closest_dist) closest_dist[ijk] = -1.0;
-               for (n=0; n<SO->N_Node; ++n) {
-                  p = &(SO->NodeList[SO->NodeDim*n]);
-                  SUMA_SEG_LENGTH_SQ(p, iv.xyz, d);
-                  if (d < dxyz) {
-                     dxyz = d; closest_node[ijk] = n; 
-                     if (closest_dist) closest_dist[ijk] = (float)d;
-                  }
-               }
-               if (closest_dist) { if (closest_dist[ijk] >= 0.0f) closest_dist[ijk] = (float)sqrt(closest_dist[ijk]); }
-               if (verb) {
-                  ++cnt;
-                  if (!(cnt % 1000)) {
-                     fprintf(SUMA_STDERR,". @ %4d %4d %4d   (%3.2f%%)\n", 
-                              i, j, k, (float)cnt/(float)(vp->nx * vp->ny * vp->nz)*100.0); fflush(SUMA_STDERR);
-                  }
-               }
-            }
-         }
-      }
-   } 
-   
-   SUMA_RETURN(1);
-}
 
 int main (int argc,char *argv[])
 {/* Main */    
@@ -420,11 +395,27 @@ int main (int argc,char *argv[])
             SUMA_S_Err("Failed to open file for output");
             exit(1);
          }
-         fprintf(fout_dbg,  
-                  "#Col. 0 Node n's index \n"
-                  "#Col. 1 Graph distance from the first node in Col. 0 \n"
-                  "#History:%s\n", histnote);
-         fprintf(fout_dbg,"%8d   0.0\n", Opt->NodeDbg);
+         if (Opt->NodeDbg >= 0) {
+            fprintf(fout_dbg,
+                     "#The first row is special, it is used to indicate\n"
+                     "#the index of node n (%d) about which the patch is grown.\n"
+                     "#Col. 0 Node m's index (m is the node neighboring n)\n"
+                     "#Col. 1 Graph distance (along surface edges) from n to m \n"
+                     "#Col. 2..4 Propagation location of node m\n"
+                     "#          this is the projected location of node m\n"
+                     "#          if the contour was stretched to the next \n"
+                     "#          neighborhood layer.\n"
+                     "#History:%s\n", Opt->NodeDbg, histnote);
+            fprintf(fout_dbg,"%8d 0.0 -1.0 -1.0 -1.0\n", Opt->NodeDbg);  
+         } else {
+            fprintf(fout_dbg,  
+                     "#The first row is special, it is used to indicate\n"
+                     "#the index of node n (%d) about which the patch is grown.\n"
+                     "#Col. 0 Node m's index (m is the node neighboring n)\n"
+                     "#Col. 1 Graph distance (along surface edges) from n to m \n"
+                     "#History:%s\n", Opt->NodeDbg, histnote);
+            fprintf(fout_dbg,"%8d 0.0\n", Opt->NodeDbg);
+         }
       }
       
       if (!SO->FN) {
@@ -440,19 +431,23 @@ int main (int argc,char *argv[])
       OffS_out = SUMA_FormNeighbOffset (SO, Opt->r, OptS);
       SUMA_LH("Writing OffS_out ... ");
       for (i=0; i < SO->N_Node; ++i) {
-         fprintf(fout,"%8d   %3d   ", i, OffS_out[i].N_Neighb); /* node index */
+         fprintf(fout,"%d %d ", i, OffS_out[i].N_Neighb); /* node index */
          if (OffS_out[i].Neighb_PropLoc) {
             for (il=0; il<OffS_out[i].N_Neighb; ++il) {
-               fprintf(fout,"%8d   %3.3f   %4.2f %4.2f %4.2f      ",
-                  OffS_out[i].Neighb_ind[il], OffS_out[i].Neighb_dist[il],
-                     OffS_out[i].Neighb_PropLoc[3*il], 
-                     OffS_out[i].Neighb_PropLoc[3*il+1], 
-                     OffS_out[i].Neighb_PropLoc[3*il+2]);
+               if (OffS_out[i].Neighb_dist[il] <= Opt->r) {
+                  fprintf(fout,"%d %.2f %.2f %.2f %.2f ",
+                     OffS_out[i].Neighb_ind[il], OffS_out[i].Neighb_dist[il],
+                        OffS_out[i].Neighb_PropLoc[3*il], 
+                        OffS_out[i].Neighb_PropLoc[3*il+1], 
+                        OffS_out[i].Neighb_PropLoc[3*il+2]);
+               }
             }
          } else {
             for (il=0; il<OffS_out[i].N_Neighb; ++il) {
-               fprintf(fout,"%8d   %3.3f   ",
-                  OffS_out[i].Neighb_ind[il], OffS_out[i].Neighb_dist[il]);
+               if (OffS_out[i].Neighb_dist[il] <= Opt->r) {
+                  fprintf(fout,"%d %.2f",
+                     OffS_out[i].Neighb_ind[il], OffS_out[i].Neighb_dist[il]);
+               }
             }
          }
          fprintf(fout,"\n");
