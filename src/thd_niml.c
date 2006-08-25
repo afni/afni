@@ -11,8 +11,16 @@ typedef struct {
     int debug;           /* debug level      (AFNI_NI_DEBUG level)      */
     int to_float;        /* convert to float (AFNI_NSD_TO_FLOAT == Y)   */
     int write_mode;      /* NI_TEXT_MODE     (AFNI_NIML_TEXT_DATA == Y) */
+
+    int node_col;        /* store node column on input of NI_SURF_DSET  */
 } ni_globals;
-static ni_globals gni = { 0, NI_BINARY_MODE };
+static ni_globals gni =         /* default values for globals   */
+{
+        0,                      /* debug                        */
+        0,                      /* to_float                     */
+        NI_BINARY_MODE,         /* write_mode                   */
+        -1,                     /* node_col ( < 0 means none )  */
+};
 
 static int    are_sorted_ints(int *, int);
 static int    has_sorted_node_list(THD_3dim_dataset *);
@@ -464,7 +472,7 @@ ENTRY("THD_write_niml");
 
         slist           pointer to string list - will be allocated
         llen            length of list to be set
-        slip            number of initial entries to skip (prob 0 or 1)
+        skip            index of entry to skip (if >= 0)
         atr             string attribute to get list from
                         (if NULL, strings will get default "#%d")
 
@@ -473,8 +481,8 @@ ENTRY("THD_write_niml");
 static int nsd_string_atr_to_slist(char *** slist, int llen, int skip,
                                    ATR_string * atr)
 {
-    int sind, posn, prev, copy_len;
-    int done = 0, found = 0;
+    int sind, lind, posn, prev, copy_len;
+    int found = 0;
 
 ENTRY("nsd_string_atr_to_slist");
 
@@ -484,29 +492,31 @@ ENTRY("nsd_string_atr_to_slist");
         RETURN(0);
     }
 
+    if( !atr )      /* we're outta here */
+    {
+        *slist = NULL;
+        if(gni.debug > 1) fprintf(stderr,"NSATS: no attribute to parse\n");
+        RETURN(0); 
+    }
+
     if(gni.debug > 1)
     {
         if( atr ) fprintf(stderr,"+d getting string attrs from %s\n",atr->name);
         else      fprintf(stderr,"+d setting default strings\n");
+
+        if( skip >= 0 && skip < llen )
+            fprintf(stderr,"-d NSATS: will skip list element #%d\n", skip);
+        else
+            fprintf(stderr,"-d NSATS: not skipping any list element\n");
     }
+
+    /* allocate memory for the list */
     *slist = (char **)malloc(llen * sizeof(char *));
 
-    if( !atr ) done = 1;
-
-    /* first, skip the given number of strings */
     posn = -1;
-    for( sind = 0; !done && sind < skip; sind++ )
-    {
-        for( posn++;
-             posn < atr->nch && atr->ch[posn] && atr->ch[posn] != ';' ;
-             posn++ )
-            ;  /* just search */
-
-        /* have we exhausted the entire list? */
-        if( posn >= atr->nch || atr->ch[posn] == '\0' ) done = 1;
-    }
-
-    for( sind = 0; !done && sind < llen; sind++ )
+    /* sind = search index, lind = list index                        */
+    /* (so sind == lind, unless 'skip' happens; then sind == lind+1) */
+    for( sind = 0, lind = 0; lind < llen; sind++ )
     {
         /* find end of next string (end with nul or ';') */
         prev = posn;
@@ -515,28 +525,33 @@ ENTRY("nsd_string_atr_to_slist");
              posn++ )
             ;  /* just search */
 
+        if( sind == skip ) continue;    /* then skip this element */
+
         if( posn > prev+1 ) /* then we have found some */
         {
             copy_len = posn - prev - 1;
             if( copy_len > THD_MAX_LABEL-1 ) copy_len = THD_MAX_LABEL-1;
-            (*slist)[sind] = my_strndup(atr->ch+prev+1, copy_len);
+            (*slist)[lind] = my_strndup(atr->ch+prev+1, copy_len);
             found++;
 
-            if(gni.debug>1) fprintf(stderr,"-d #%d = %s\n",sind,(*slist)[sind]);
+            if(gni.debug>1)
+                fprintf(stderr,"-d string %d = %s\n",lind,(*slist)[lind]);
         }
         else
         {
-            (*slist)[sind] = (char *)malloc(10 * sizeof(char));
-            sprintf((*slist)[sind], "#%d", sind);
+            (*slist)[lind] = (char *)malloc(10 * sizeof(char));
+            sprintf((*slist)[lind], "#%d", lind);
         }
+
+        lind++; /* we have applied another list entry */
 
         if( posn >= atr->nch ) break;  /* found everything available */
     }
 
-    for( ; sind < llen; sind++ )
+    for( ; lind < llen; lind++ )
     {
-        (*slist)[sind] = (char *)malloc(10 * sizeof(char));
-        sprintf((*slist)[sind], "#%d", sind);
+        (*slist)[lind] = (char *)malloc(10 * sizeof(char));
+        sprintf((*slist)[lind], "#%d", lind);
     }
 
     if(gni.debug>1) fprintf(stderr,"-d found %d of %d strings\n", found, llen);
@@ -585,7 +600,7 @@ static int process_ni_sd_sparse_data(NI_group * ngr, THD_3dim_dataset * dset )
     void         ** elist = NULL;
     float           tr;
     char          * rhs, * cp;
-    int             ind, nvals, node_col;
+    int             ind, nvals;
 
 ENTRY("process_ni_sd_sparse_data");
 
@@ -630,18 +645,27 @@ ENTRY("process_ni_sd_sparse_data");
         fprintf(stderr,"+d using byte order %s\n",
                 BYTE_ORDER_STRING(dkptr->byte_order));
 
+    /* verify that we have "data_type=Node_Bucket_data" */
+    rhs = NI_get_attribute(nel, "data_type");
+    if( !rhs || strcmp(rhs, "Node_Bucket_data") )
+    {
+        if(gni.debug)
+          fprintf(stderr,"** SPARSE_DATA without data_type Node_Bucket_data\n");
+        RETURN(1);
+    }
+
     /* don't assume node index column comes first   24 Aug 2006 [rickr] */
-    node_col = suma_ngr_get_node_column(ngr);
-    if(gni.debug>1)fprintf(stderr,"-- get_node_column returned %d\n",node_col);
+    gni.node_col = suma_ngr_get_node_column(ngr);
+    if(gni.debug>1)fprintf(stderr,"-- node column is %d\n",gni.node_col);
     for( ind = 0; ind < nel->vec_num; ind++ )
     {
-        if( ind == node_col )
+        if( ind == gni.node_col )
         {
             if( nel->vec_typ[ind] == NI_INT )
             {
                 blk->nnodes = nel->vec_len;
                 blk->node_list = (int *)XtMalloc(blk->nnodes * sizeof(int));
-                memcpy(blk->node_list, nel->vec[0], blk->nnodes * sizeof(int));
+                memcpy(blk->node_list, nel->vec[ind], blk->nnodes*sizeof(int));
                 if( dkptr->byte_order != mri_short_order() )
                     nifti_swap_4bytes(blk->nnodes, blk->node_list);
 
@@ -665,17 +689,7 @@ ENTRY("process_ni_sd_sparse_data");
 
     /* note the number of data columns */
     nvals = nel->vec_num;
-    if( node_col >= 0 && node_col < nvals ) nvals--;
-
-
-    /* also, verify that we have "data_type=Node_Bucket_data" */
-    rhs = NI_get_attribute(nel, "data_type");
-    if( !rhs || strcmp(rhs, "Node_Bucket_data") )
-    {
-        if(gni.debug)
-          fprintf(stderr,"** SPARSE_DATA without data_type Node_Bucket_data\n");
-        RETURN(1);
-    }
+    if( gni.node_col >= 0 && gni.node_col < nvals ) nvals--;
 
     /* now set nx, nvals, and datum */
     nxyz.ijk[0] = nel->vec_len;   nxyz.ijk[1] = nxyz.ijk[2] = 1;
@@ -755,7 +769,7 @@ ENTRY("process_ni_sd_attrs");
     /*--- init and fill any column labels ---*/
     atr_str = THD_find_string_atr(blk, "COLMS_LABS");
     if( !atr_str ) atr_str = THD_find_string_atr(blk, ATRNAME_BRICK_LABS);
-    nsd_string_atr_to_slist(&blk->brick_lab, nvals, 1, atr_str);
+    nsd_string_atr_to_slist(&blk->brick_lab, nvals, gni.node_col, atr_str);
 
     /*--- init and fill any statistic symbols ---*/
     atr_str = THD_find_string_atr(blk , "COLMS_STATSYM");
@@ -763,7 +777,7 @@ ENTRY("process_ni_sd_attrs");
     if(  atr_str ) /* only do this if we have some codes */
     {
         char **sar ; int scode,np ; float parm[3];
-        np = nsd_string_atr_to_slist(&sar, nvals, 1, atr_str);
+        np = nsd_string_atr_to_slist(&sar, nvals, gni.node_col, atr_str);
         if( sar )
         {
             for( ind = 0; ind < nvals; ind++ )
@@ -852,7 +866,7 @@ int THD_add_sparse_data(THD_3dim_dataset * dset, NI_group * ngr )
     float          * data;
     void          ** elist = NULL;
     int              nvals, ind, sub, swap, len;
-    int              have_nodes, node_col;
+    int              have_nodes;
 
 ENTRY("THD_add_sparse_data");
 
@@ -864,9 +878,9 @@ ENTRY("THD_add_sparse_data");
     if( ind > 0 ) { nel = (NI_element *)elist[0]; NI_free(elist); }
     if( !nel ) RETURN(0);
 
-    node_col = suma_ngr_get_node_column(ngr);
-    if(gni.debug>1)fprintf(stderr,"-- get_node_column returned %d\n",node_col);
-    have_nodes = (node_col >= 0 && node_col < nel->vec_num) ? 1 : 0;
+    gni.node_col = suma_ngr_get_node_column(ngr);
+    if(gni.debug>1)fprintf(stderr,"-- TASD: node column is %d\n",gni.node_col);
+    have_nodes = (gni.node_col >= 0 && gni.node_col < nel->vec_num) ? 1 : 0;
 
     /*-- verify sizes and types --*/
     if( nel->vec_num != nvals + have_nodes )
@@ -883,14 +897,14 @@ ENTRY("THD_add_sparse_data");
         RETURN(0);
     }
 
-    if( blk->nnodes > 0 && (!have_nodes || nel->vec_typ[node_col] != NI_INT) )
+    if( blk->nnodes>0 && (!have_nodes || nel->vec_typ[gni.node_col] != NI_INT) )
     {
         if(gni.debug) fprintf(stderr,"** have nnodes, but typ not NI_INT\n");
         RETURN(0);
     }
     for( ind = 0; ind < nel->vec_num; ind++ )
     {
-        if( ind == node_col ) continue;   /* skip any node column */
+        if( ind == gni.node_col ) continue;   /* skip any node column */
 
         if( nel->vec_typ[ind] != NI_FLOAT )
         {
@@ -909,14 +923,18 @@ ENTRY("THD_add_sparse_data");
     if(gni.debug>1 && swap) fprintf(stderr,"+d will byte_swap data\n");
     len = nel->vec_len;
 
-    /* if there is a node list, we can free vector 0 */
-    if( blk->nnodes > 0 ){ NI_free(nel->vec[0]);  nel->vec[0] = NULL; }
+    /* if there is a node list, we can free the node column */
+    if( blk->nnodes > 0 && gni.node_col >= 0 && gni.node_col < nel->vec_num )
+    {
+        NI_free(nel->vec[gni.node_col]);
+        nel->vec[gni.node_col] = NULL;
+    }
         
     /*-- we seem to have all of the data, now copy it --*/
     sub = 0;
     for( ind = 0; ind < nel->vec_num; ind++ )
     {
-        if( ind == node_col )   /* skip any node column, but free, first */
+        if( ind == gni.node_col )   /* skip any node column, but free, first */
         {
             NI_free(nel->vec[ind]);
             nel->vec[ind] = NULL;
