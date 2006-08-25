@@ -1719,3 +1719,10 @@
   * modified vol2surf.c: possibly free nodes during write_NSD
   * modified 3ddata.h: added suma_ngr_get_node_column() prototype
 
+25 Aug 2006:
+  * modified thd_niml.c
+      - added node_col to ni_globals, and hold the niml node column index
+      - modified nsd_string_atr_to_slist() to skip a given index
+      - apply node_col to process_ni_sparse_data() and process_ni_sd_attrs()
+      - modifed THD_add_sparse_data() to omit gni.node_col, not col 0
+
