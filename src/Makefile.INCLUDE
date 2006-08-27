@@ -714,6 +714,10 @@ qm:qm.o
 	$(RM) $@
 	$(CC) -o qm qm.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
+3dAllineate:3dAllineate.o
+	$(RM) $@
+	$(CC) -o 3dAllineate 3dAllineate.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 rotcom:rotcom.o
 	$(RM) $@
 	$(CC) -o rotcom rotcom.o $(LFLAGS) -lmri -lf2c $(LLIBS)

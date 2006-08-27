@@ -3,18 +3,44 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#define MAXPAR 99
+typedef struct { int np; float vb,vt ; } param_opt ;
+
+/*-------------------------------------------------------------------------*/
+
 int main( int argc , char *argv[] )
 {
-   MRI_IMAGE *ima , *imb ;
+   THD_3dim_dataset *dset_out ;
+   MRI_IMAGE *im_base , *im_targ , *im_out ;
    GA_setup stup ;
-   float xxx,yyy,zzz ; int ii , iarg=1 ;
-   int meth=GA_MATCH_PEARSON_SCALAR ;
-   float rad=0.0f ; int sm=GA_SMOOTH_GAUSSIAN , mask=0 , twopass=0 , verb=1 ;
-   char *fout=NULL ;
-   MRI_IMAGE *maskim=NULL ; byte *maskar=NULL ; int nx,ny,nz , nrand,nmask=0 ;
-   int npmax = 999999999 ;
+   int iarg=1 , ii,kk ;
+   int nx_base,ny_base,nz_base , nx_targ,ny_targ,nz_targ ;
 
-   /** Help the pitifully ignorant user? **/
+   /*----- input parameters, to be filled in from the options -----*/
+
+   THD_3dim_dataset *dset_base = NULL ;                      /* XX */
+   THD_3dim_dataset *dset_targ = NULL ;                      /* XX */
+   THD_3dim_dataset *dset_wt   = NULL ;
+   THD_3dim_dataset *dset_mast = NULL ;
+   float dxyz_mast             = 0.0f ;
+   int meth_code               = GA_MATCH_CORRATIO_SCALAR ;  /* XX */
+   int sm_code                 = GA_SMOOTH_GAUSSIAN ;        /* XX */
+   float sm_rad                = 0.0f ;                      /* XX */
+   int twopass                 = 0 ;                         /* XX */
+   int verb                    = 0 ;                         /* XX */
+   char *prefix                = NULL ;                      /* XX */
+   char *fname_1D              = NULL ;                      /* XX */
+   int interp_code             = MRI_LINEAR ;                /* XX */
+   int npt_match               = 0 ;                         /* XX */
+   int final_interp            = -1 ;                        /* XX */
+   int auto_weight             = 0 ;
+   int warp_code               = 0 ;
+   int nparopt                 = 0 ;
+   int   use_matini            = 0 ;
+   param_opt paropt[MAXPAR] ;
+   mat44 matini ;
+
+   /**----- Help the pitifully ignorant user? -----**/
 
    if( argc < 3 ){
      printf(
@@ -38,8 +64,18 @@ int main( int argc , char *argv[] )
        "   *OR*        (or -input) option is given, then the target dataset\n"
        " -input ttt    is the last argument on the command line.\n"
        "\n"
+       "  ** NOTA BENE: The base and target dataset do NOT have to be defined\n"
+       "  **            on the same grids; the alignment process uses the\n"
+       "  **            coordinate systems defined in the dataset headers to\n"
+       "  **            make the match between spatial locations.\n"
+       "\n"
        " -prefix ppp = Output the resulting dataset to file 'ppp'.  If this\n"
-       "               option is NOT given, no dataset will be output!\n"
+       "   *OR*        option is NOT given, no dataset will be output!  The\n"
+       " -out ppp      transformation to align the target to the base will\n"
+       "               be estimated, but not applied.\n"
+       "\n"
+       " -1Dfile fff = Save the warp parameters in ASCII (.1D) format into\n"
+       "               file 'fff'.\n"
        "\n"
        " -cost ccc   = Defines the 'cost' function that defines the matching\n"
        "               between the target and the base; 'ccc' is one of\n"
@@ -83,6 +119,8 @@ int main( int argc , char *argv[] )
        " -weight www = Set the weighting for each voxel in the base dataset;\n"
        "               larger weights mean that voxel counts more in the cost\n"
        "               function.  [Default == all voxels weighted equally.]\n"
+       " -autoweight = Compute a weight function using the 3dAutomask algorithm\n"
+       "               plus some blurring.\n"
        "\n"
        " -warp xxx   = Set the warp type to 'xxx', which is one of\n"
        "                 shift_only         = 3 parameters\n"
@@ -92,9 +130,10 @@ int main( int argc , char *argv[] )
        "\n"
        " -parfix n v   = Fix parameter #n to be exactly at value 'v'.\n"
        " -parang n b t = Allow parameter #n to range only between 'b' and 't'.\n"
+       "                 If not given, default ranges are used.\n"
        " -parini n v   = Initialize parameter #n to value 'v', but then\n"
        "                 allow the algorithm to adjust it.\n"
-       " -matini mmm   = Initialize affine transformation matrix to 'mmm',\n"
+       " -matini mmm   = Initialize 3x4 affine transformation matrix to 'mmm',\n"
        "                 which is either a .1D file or an expression in\n"
        "                 the syntax of program 1dmatcalc.  Using this option\n"
        "                 is like using '-parini' on all the matrix parameters.\n"
@@ -109,7 +148,7 @@ int main( int argc , char *argv[] )
      exit(0);
    }
 
-   /** bookkeeping **/
+   /** bookkeeping and advertizing **/
 
    mainENTRY("3dAllineate"); machdep();
    AFNI_logger("3dAllineate",argc,argv);
@@ -120,39 +159,132 @@ int main( int argc , char *argv[] )
    /** process command line options **/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
-     if( strcmp(argv[iarg],"-n") == 0 ){
-       npmax = (int)strtod(argv[++iarg],NULL); iarg++; continue ;
+
+     if( strncmp(argv[iarg],"-verb",5) == 0 ){
+       verb++ ; iarg++ ; continue ;
      }
-     if( strcmp(argv[iarg],"-q") == 0 ){
-       verb = 0 ; iarg++ ; continue ;
+
+     if( strncmp(argv[iarg],"-sp",3) == 0 ){
+       meth_code = GA_MATCH_SPEARMAN_SCALAR ; iarg++ ; continue ;
      }
-     if( strcmp(argv[iarg],"-rank") == 0 ){
-       meth = GA_MATCH_SPEARMAN_SCALAR ; iarg++ ; continue ;
+     if( strcmp(argv[iarg],"-cr") == 0 || strncmp(argv[iarg],"-corratio",5) == 0 ){
+       meth_code = GA_MATCH_CORRATIO_SCALAR ; iarg++ ; continue ;
      }
-     if( strcmp(argv[iarg],"-cr") == 0 ){
-       meth = GA_MATCH_CORRATIO_SCALAR ; iarg++ ; continue ;
+     if( strcmp(argv[iarg],"-mi") == 0 || strncmp(argv[iarg],"-mutualinfo",5) ){
+       meth_code = GA_MATCH_KULLBACK_SCALAR ; iarg++ ; continue ;
      }
-     if( strcmp(argv[iarg],"-mi") == 0 ){
-       meth = GA_MATCH_KULLBACK_SCALAR ; iarg++ ; continue ;
+     if( strcmp(argv[iarg],"-ls") == 0 || strncmp(argv[iarg],"-leastsq",5) ){
+       meth_code = GA_MATCH_PEARSON_SCALAR ; iarg++ ; continue ;
      }
-     if( strcmp(argv[iarg],"-rad") == 0 ){
-       rad = (float)strtod(argv[++iarg],NULL) ; iarg++ ; continue ;
+     if( strncmp(argv[iarg],"-cost",4) == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '-cost'!") ;
+       if( strncmp(argv[iarg],"sp",2) == 0 )
+         meth_code = GA_MATCH_SPEARMAN_SCALAR ;
+       else if( strcmp(argv[iarg],"cr") == 0 || strncmp(argv[iarg],"corratio",4) == 0 )
+         meth_code = GA_MATCH_CORRATIO_SCALAR ;
+       else if( strcmp(argv[iarg],"mi") == 0 || strncmp(argv[iarg],"mutualinfo",4) )
+         meth_code = GA_MATCH_KULLBACK_SCALAR ;
+       else if( strcmp(argv[iarg],"ls") == 0 || strncmp(argv[iarg],"leastsq",4) )
+         meth_code = GA_MATCH_PEARSON_SCALAR ;
+       else
+         ERROR_exit("Unknown code '%s' after -cost!",argv[iarg]) ;
+       iarg++ ; continue ;
      }
-     if( strcmp(argv[iarg],"-out") == 0 ){
-       fout = argv[++iarg] ; iarg++ ; continue ;
+
+     if( strcmp(argv[iarg],"-base") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '-base'!") ;
+       dset_base = THD_open_dataset( argv[iarg] ) ;
+       if( dset_base == NULL ) ERROR_exit("can't open -base dataset '%s'",argv[iarg]);
+       iarg++ ; continue ;
      }
-     if( strcmp(argv[iarg],"-med") == 0 ){
-       sm = GA_SMOOTH_MEDIAN ; iarg++ ; continue ;
+
+     if( strncmp(argv[iarg],"-target",5) == 0 || strncmp(argv[iarg],"-input",3) == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       dset_targ = THD_open_dataset( argv[iarg] ) ;
+       if( dset_targ == NULL )
+         ERROR_exit("can't open -%s dataset '%s'",argv[iarg-1],argv[iarg]);
+       iarg++ ; continue ;
      }
-     if( strcmp(argv[iarg],"-mask") == 0 ){
-       mask = 1 ; iarg++ ; continue ;
+
+     if( strncmp(argv[iarg],"-median",4) == 0 ){        /* not documented */
+       sm_code = GA_SMOOTH_MEDIAN ; iarg++ ; continue ;
      }
-     if( strcmp(argv[iarg],"-two") == 0 ){
+
+     if( stnrcmp(argv[iarg],"-twoblur",5) == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       sm_rad = (float)strtod(argv[iarg],NULL) ; twopass = 1 ; iarg++ ; continue ;
+     }
+
+     if( strncmp(argv[iarg],"-twopass",5) == 0 ){
        twopass = 1 ; iarg++ ; continue ;
      }
 
-     ERROR_exit("Illegal option '%s'",argv[iarg]) ;
+     if( strncmp(argv[iarg],"-output",4) == 0 || strncmp(argv[iarg],"-prefix",5) == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       if( !THD_filename_ok(argv[iarg]) )
+         ERROR_exit("badly formed filename: '%s' '%s'",argv[iarg-1],argv[iarg]) ;
+       prefix = argv[iarg] ; iarg++ ; continue ;
+     }
+
+     if( strncmp(argv[iarg],"-1Dfile",4) == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       if( !THD_filename_ok(argv[iarg]) )
+         ERROR_exit("badly formed filename: '%s' '%s'",argv[iarg-1],argv[iarg]) ;
+       fname_1D = argv[iarg] ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-NN") == 0 || strncmp(argv[iarg],"-nearest",5) == 0 ){
+       interp_code = MRI_NN ; iarg++ ; continue ;
+     }
+     if( strncmp(argv[iarg],"-linear",4) == 0 || strncmp(argv[iarg],"-trilinear",6) == 0 ){
+       interp_code = MRI_LINEAR ; iarg++ ; continue ;
+     }
+     if( strncmp(argv[iarg],"-cubic",4) == 0 || strncmp(argv[iarg],"-tricubic",6) == 0 ){
+       interp_code = MRI_CUBIC ; iarg++ ; continue ;
+     }
+     if( strncmp(argv[iarg],"-quintic",4)==0 || strncmp(argv[iarg],"-triquintic",6)==0 ){
+       interp_code = MRI_QUINTIC ; iarg++ ; continue ;
+     }
+     if( strncmp(argv[iarg],"-interp",5) == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       if( strcmp(argv[iarg],"NN") == 0 || strncmp(argv[iarg],"nearest",4) == 0 )
+         interp_code = MRI_NN ;
+       if( strncmp(argv[iarg],"linear",3) == 0 || strncmp(argv[iarg],"trilinear",5) == 0 )
+         interp_code = MRI_LINEAR ;
+       if( strncmp(argv[iarg],"cubic",3) == 0 || strncmp(argv[iarg],"tricubic",5) == 0 )
+         interp_code = MRI_CUBIC ;
+       if( strncmp(argv[iarg],"quintic",3)==0 || strncmp(argv[iarg],"triquintic",5)==0 )
+         interp_code = MRI_QUINTIC ;
+       else
+         ERROR_exit("Unknown code '%s' after '%s'!",argv[iarg],argv[iarg-1]) ;
+       iarg++ ; continue ;
+     }
+     if( strncmp(argv[iarg],"-final",5) == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       if( strcmp(argv[iarg],"NN") == 0 || strncmp(argv[iarg],"nearest",4) == 0 )
+         final_interp = MRI_NN ;
+       if( strncmp(argv[iarg],"linear",3) == 0 || strncmp(argv[iarg],"trilinear",5) == 0 )
+         final_interp = MRI_LINEAR ;
+       if( strncmp(argv[iarg],"cubic",3) == 0 || strncmp(argv[iarg],"tricubic",5) == 0 )
+         final_interp = MRI_CUBIC ;
+       if( strncmp(argv[iarg],"quintic",3)==0 || strncmp(argv[iarg],"triquintic",5)==0 )
+         final_interp = MRI_QUINTIC ;
+       else
+         ERROR_exit("Unknown code '%s' after '%s'!",argv[iarg],argv[iarg-1]) ;
+       iarg++ ; continue ;
+     }
+
+     if( strncmp(argv[iarg],"-nmatch",5) == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       npt_match = (int)strtod(argv[iarg],NULL) ;
+       iarg++ ; continue ;
+     }
+
+
+     ERROR_exit("Unknown and Illegal option '%s'",argv[iarg]) ;
    }
+
+   /*--- check inputs for validity, consistency, and moral fibre ---*/
 
    if( iarg > argc-2 ) ERROR_exit("need 2 image args!?") ;
    ima = mri_read( argv[iarg++] ); if( ima == NULL ) ERROR_exit("bad base");
