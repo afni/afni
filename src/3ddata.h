@@ -1451,6 +1451,14 @@ extern mat44 THD_mat44_mul( mat44 A , mat44 B ) ;      /* matrix multiply */
                  AA.m[1][0],AA.m[1][1],AA.m[1][2],0.0f,  \
                  AA.m[2][0],AA.m[2][1],AA.m[2][2],0.0f )
 
+/* cf. vecmat.h */
+
+#undef  VECMAT_TO_MAT44
+#define VECMAT_TO_MAT44(vm,AA)                                                \
+ LOAD_MAT44(AA,vm.mm.mat[0][0],vm.mm.mat[0][1],vm.mm.mat[0][2],vm.vv.xyz[0],  \
+               vm.mm.mat[1][0],vm.mm.mat[1][1],vm.mm.mat[1][2],vm.vv.xyz[1],  \
+               vm.mm.mat[2][0],vm.mm.mat[2][1],vm.mm.mat[2][2],vm.vv.xyz[2] )
+
 /* apply a mat44 matrix to a 3 vector (x,y,z) to produce (a,b,c) */
 
 #undef  MAT44_VEC
