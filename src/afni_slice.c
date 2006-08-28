@@ -14,7 +14,7 @@
    the file with the preprocessor symbol DTYPE set to one of
    the following types:
 
-      byte short int float double complex rgbyte
+      byte short int float double complex rgbyte rgba
 
       cc -c -DDTYPE=short afni_slice.c
       mv -f afni_slice.o afni_slice_short.o
@@ -63,6 +63,12 @@
 #define FMAD2_rgbyte(a,d1,bb,d2,e) ( (e).r = (a)*(d1).r + (bb)*(d2).r, \
                                      (e).g = (a)*(d1).g + (bb)*(d2).g, \
                                      (e).b = (a)*(d1).b + (bb)*(d2).b   )
+
+#define FMAD2_rgba(p,d1,bb,d2,e) ( (e).r = (p)*(d1).r + (bb)*(d2).r, \
+                                   (e).g = (p)*(d1).g + (bb)*(d2).g, \
+                                   (e).b = (p)*(d1).b + (bb)*(d2).b, \
+                                   (e).b = (p)*(d1).b + (bb)*(d2).a   )
+
 #define FMAD2 TWO_TWO(FMAD2_,DTYPE)
 
 /** macros for e = a*d1 + b*d2 + c*d3 + d*d3 (a-d floats; d1-d4 DTYPEs) **/
@@ -82,18 +88,27 @@
                (e).g = (a)*(d1).g + (bb)*(d2).g + (c)*(d3).g + (d)*(d4).g, \
                (e).b = (a)*(d1).b + (bb)*(d2).b + (c)*(d3).b + (d)*(d4).b   )
 
+#define FMAD4_rgba(p,d1,bb,d2,c,d3,d,d4,e)                                 \
+             ( (e).r = (p)*(d1).r + (bb)*(d2).r + (c)*(d3).r + (d)*(d4).r, \
+               (e).g = (p)*(d1).g + (bb)*(d2).g + (c)*(d3).g + (d)*(d4).g, \
+               (e).b = (p)*(d1).b + (bb)*(d2).b + (c)*(d3).b + (d)*(d4).b, \
+               (e).a = (p)*(d1).a + (bb)*(d2).a + (c)*(d3).a + (d)*(d4).a   )
+
 #define FMAD4 TWO_TWO(FMAD4_,DTYPE)
 
 /** macros to multiply float a times DTYPE b and store the result in b again **/
 
-#define FSCAL_short(a,b)           (b)*=(a)
-#define FSCAL_float                FSCAL_short
-#define FSCAL_byte                 FSCAL_short
-#define FSCAL_int                  FSCAL_short
-#define FSCAL_double               FSCAL_short
-#define FSCAL_complex(a,b)         ( (b).r *= (a) , (b).i *= (a) )
+#define FSCAL_short(a,b)    (b)*=(a)
+#define FSCAL_float         FSCAL_short
+#define FSCAL_byte          FSCAL_short
+#define FSCAL_int           FSCAL_short
+#define FSCAL_double        FSCAL_short
+#define FSCAL_complex(a,b)  ( (b).r *= (a) , (b).i *= (a) )
 
-#define FSCAL_rgbyte(a,bb)         ( (bb).r*= (a) , (bb).g*= (a) , (bb).b*= (a) )
+#define FSCAL_rgbyte(a,bb)  ( (bb).r*= (a) , (bb).g*= (a) , (bb).b*= (a) )
+
+#define FSCAL_rgba(p,bb)    ( (bb).r*=(p), (bb).g*=(p), (bb).b*=(p), (bb).a*=(p) )
+
 #define FSCAL TWO_TWO(FSCAL_,DTYPE)
 
 /** macros for assigning final result from INTYPE a to DTYPE b **/
@@ -119,6 +134,7 @@
 #define FINAL_double               FINAL_float
 #define FINAL_complex              FINAL_float
 #define FINAL_rgbyte               FINAL_float
+#define FINAL_rgba                 FINAL_float
 #define FINAL TWO_TWO(FINAL_,DTYPE)
 
 /** macros for putting a zero into DTYPE b **/
@@ -130,21 +146,23 @@
 #define FZERO_double               FZERO_float
 #define FZERO_complex(b)           ( (b).r = 0.0 , (b).i = 0.0 )
 #define FZERO_rgbyte(bb)           ( (bb).r=(bb).g=(bb).g = 0 )
+#define FZERO_rgba(bb)             ( (bb).r=(bb).g=(bb).g=(bb).a = 0 )
 #define FZERO TWO_TWO(FZERO_,DTYPE)
 
 /** macros for a zero value **/
 
-static complex complex_zero = { 0.0,0.0 } ;
-
+static complex complex_zero = { 0.0f,0.0f } ;
 static rgbyte  rgbyte_zero  = { 0,0,0 } ;
+static rgba    rgba_zero    = { 0,0,0,0 } ;
 
 #define ZERO_short    0
 #define ZERO_byte     0
 #define ZERO_int      0
-#define ZERO_float    0.0
+#define ZERO_float    0.0f
 #define ZERO_double   0.0
 #define ZERO_complex  complex_zero
 #define ZERO_rgbyte   rgbyte_zero
+#define ZERO_rgba     rgba_zero
 #define ZERO          TWO_TWO(ZERO_,DTYPE)
 
 /** macros for intermediate interpolants data type **/
@@ -156,6 +174,7 @@ static rgbyte  rgbyte_zero  = { 0,0,0 } ;
 #define INTYPE_double   double
 #define INTYPE_complex  complex
 #define INTYPE_rgbyte   rgbyte
+#define INTYPE_rgba     rgba
 #define INTYPE TWO_TWO(INTYPE_,DTYPE)
 
 /**-------------------------------------------------------------------------**/
