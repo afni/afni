@@ -898,6 +898,11 @@ afni_slice_rgbyte.o:3ddata.h afni_slice.c afni_warp.h
 	$(CC) -c -DDTYPE=rgbyte afni_slice.c $(INFLAGS)
 	$(MV) afni_slice.o afni_slice_rgbyte.o
 
+afni_slice_rgba.o:3ddata.h afni_slice.c afni_warp.h
+	$(RM) $@
+	$(CC) -c -DDTYPE=rgba afni_slice.c $(INFLAGS)
+	$(MV) afni_slice.o afni_slice_rgba.o
+
 afni_pcor_byte.o:afni_pcor.h afni_pcor_update.c
 	$(RM) $@
 	$(CC) -c -DDTYPE=byte afni_pcor_update.c $(INFLAGS)

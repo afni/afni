@@ -491,13 +491,6 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 
    /*--- do (up to) NPER points at a time ---*/
 
-#undef  MX
-#undef  MY
-#undef  MZ
-#define MX(mat,x,y,z) mat[0][0]*x + mat[0][1]*y + mat[0][2]*z + mat[0][3]
-#define MY(mat,x,y,z) mat[1][0]*x + mat[1][1]*y + mat[1][2]*z + mat[1][3]
-#define MZ(mat,x,y,z) mat[2][0]*x + mat[2][1]*y + mat[2][2]*z + mat[2][3]
-
    for( pp=0 ; pp < npt ; pp+=NPER ){
      npp = MIN( NPER , npt-pp ) ;  /* number to do */
      if( mpar == NULL || gstup->im == NULL ){
@@ -510,9 +503,8 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
          float x,y,z ;
          for( qq=0 ; qq < npp ; qq++ ){
            x = imf[qq] ; y = jmf[qq] ; z = kmf[qq] ;
-           imf[qq] = MX(gstup->base_cmat.m , x,y,z ) ;
-           jmf[qq] = MY(gstup->base_cmat.m , x,y,z ) ;
-           kmf[qq] = MZ(gstup->base_cmat.m , x,y,z ) ;
+           MAT44_VEC( gstup->base_cmat , x,y,z ,
+                      imf[qq] , jmf[qq] , kmf[qq] ) ;
          }
        } else if( gstup->bscali ){
          float xo=gstup->bsim->xo , dx=gstup->bsim->dx ;
@@ -539,9 +531,8 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
        float x,y,z ;
        for( qq=0 ; qq < npp ; qq++ ){
          x = imw[qq] ; y = jmw[qq] ; z = kmw[qq] ;
-         imw[qq] = MX(gstup->targ_imat.m , x,y,z ) ;
-         jmw[qq] = MY(gstup->targ_imat.m , x,y,z ) ;
-         kmw[qq] = MZ(gstup->targ_imat.m , x,y,z ) ;
+         MAT44_VEC( gstup->targ_imat , x,y,z ,
+                    imw[qq] , jmw[qq] , kmw[qq] ) ;
        }
      } else if( gstup->ascali ){
        float xo=gstup->ajim->xo , dxi=1.0f/gstup->ajim->dx ;
@@ -917,9 +908,8 @@ ENTRY("mri_genalign_scalar_setup") ;
          float x,y,z ;
          for( qq=0 ; qq < stup->npt_match ; qq++ ){
            x = stup->im->ar[qq]; y = stup->jm->ar[qq]; z = stup->km->ar[qq];
-           stup->im->ar[qq] = MX(gstup->base_cmat.m , x,y,z ) ;
-           stup->jm->ar[qq] = MY(gstup->base_cmat.m , x,y,z ) ;
-           stup->km->ar[qq] = MZ(gstup->base_cmat.m , x,y,z ) ;
+           MAT44_VEC( gstup->base_cmat , x,y,z ,
+                      stup->im->ar[qq] , stup->jm->ar[qq] , stup->km->ar[qq] ) ;
          }
        } else if( stup->bscali ){
          float xo=stup->bsim->xo , dx=stup->bsim->dx ;

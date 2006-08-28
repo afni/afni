@@ -1230,11 +1230,11 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 /*--------------------------------------------------------------------*/
 /** July 2006: stuff for generic alignment functions: mri_genalign.c **/
 
-#define GA_MATCH_PEARSON_SCALAR     1
-#define GA_MATCH_SPEARMAN_SCALAR    2
-#define GA_MATCH_KULLBACK_SCALAR    3
+#define GA_MATCH_PEARSON_SCALAR     1  /* least squares, more-or-less */
+#define GA_MATCH_SPEARMAN_SCALAR    2  /* rank-order correlation */
+#define GA_MATCH_KULLBACK_SCALAR    3  /* Mutual Info */
 #define GA_MATCH_MUTINFO_SCALAR     3
-#define GA_MATCH_CORRATIO_SCALAR    4
+#define GA_MATCH_CORRATIO_SCALAR    4  /* Correlation Ratio */
 
 #define GA_MATCH_POINTS(g)   ( (g) == GA_MATCH_PEARSON_SCALAR ||   \
                                (g) == GA_MATCH_SPEARMAN_SCALAR   )
@@ -1287,6 +1287,7 @@ typedef struct {
   floatvec *im, *jm, *km , *bvm ;
   float bvstat ;
 
+                             /*** NOT USED YET ***/
   int kernel_code ;            /* set by user */
   float kernel_radius ;        /* set by user */
   int npt_sum ;                /* set by user */
@@ -1306,6 +1307,7 @@ typedef struct {
 #undef  IFREE
 #define IFREE(x) do{ if((x)!=NULL)free(x); }while(0)
 
+#if 0
 #undef  FREE_GA_setup
 #define FREE_GA_setup(st)                                                    \
  do{ if( (st) != NULL ){                                                     \
@@ -1316,6 +1318,7 @@ typedef struct {
        free((st)) ;                                                          \
      }                                                                       \
  } while(0)
+#endif
 
 extern void mri_genalign_scalar_setup( MRI_IMAGE *, MRI_IMAGE *,
                                        MRI_IMAGE *, GA_setup  * ) ;
