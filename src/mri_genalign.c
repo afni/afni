@@ -1174,6 +1174,7 @@ for(kk=0;kk<NKEEP;kk++){
                                         *PRED01(bpar[ii]);
        ii++ ;
      }
+     stup->wfunc_param[qq].val_out = stup->wfunc_param[qq].val_init ;
    }
 
    free((void *)wpar) ; free((void *)spar) ;
