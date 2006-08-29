@@ -1061,6 +1061,7 @@ int SUMA_AddDsetNelCol ( SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp, vo
    static char FuncName[]={"SUMA_AddDsetNelCol"};
    int *iv, is_sorted;
    NI_element *nelb=NULL;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -1071,7 +1072,6 @@ int SUMA_AddDsetNelCol ( SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp, vo
       without filling it up */
       /* SUMA_SL_Err("Null Col"); SUMA_RETURN(0); */
    }
-   
    switch (SUMA_ColType2TypeCast(ctp)) {
       case SUMA_int:
          NI_add_column_stride ( dset->dnel, NI_INT, (int *)col, stride);
@@ -1094,18 +1094,22 @@ int SUMA_AddDsetNelCol ( SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp, vo
          break; 
    }
    
-   if (ctp == SUMA_NODE_INDEX) {
-      /* need to check for sortedness of list */
-      iv = (int *)col;
-      SUMA_IS_SORTED_UP(iv, dset->dnel->vec_filled, is_sorted);
-      iv = NULL;
-      if (is_sorted) {
-         NI_set_attribute(dset->dnel, "sorted_node_def", "Yes");   
+   if (ctp == SUMA_NODE_INDEX && col) {
+      if (col) {
+         /* need to check for sortedness of list */
+         iv = (int *)col;
+         SUMA_IS_SORTED_UP(iv, dset->dnel->vec_filled, is_sorted)
+         iv = NULL;
+         if (is_sorted) {
+            NI_set_attribute(dset->dnel, "sorted_node_def", "Yes");   
+         } else {
+            NI_set_attribute(dset->dnel, "sorted_node_def", "No");   
+         }
       } else {
-         NI_set_attribute(dset->dnel, "sorted_node_def", "No");   
+         NI_set_attribute(dset->dnel, "sorted_node_def", "No");  
       }
    }
-   
+
    /* set some generic attributes */
    SUMA_AddGenDsetColAttr (dset, ctp, col, stride, -1);
    /* add the attributes of that column */
@@ -1169,14 +1173,18 @@ int SUMA_AddNelCol ( NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
    }
    
    if (ctp == SUMA_NODE_INDEX) {
-      /* need to check for sortedness of list */
-      iv = (int *)col;
-      SUMA_IS_SORTED_UP(iv, nel->vec_filled, is_sorted)
-      iv = NULL;
-      if (is_sorted) {
-         NI_set_attribute(nel, "sorted_node_def", "Yes");   
+      if (col) {
+         /* need to check for sortedness of list */
+         iv = (int *)col;
+         SUMA_IS_SORTED_UP(iv, nel->vec_filled, is_sorted)
+         iv = NULL;
+         if (is_sorted) {
+            NI_set_attribute(nel, "sorted_node_def", "Yes");   
+         } else {
+            NI_set_attribute(nel, "sorted_node_def", "No");   
+         }
       } else {
-         NI_set_attribute(nel, "sorted_node_def", "No");   
+         NI_set_attribute(nel, "sorted_node_def", "No");  
       }
    }
 
@@ -1486,14 +1494,18 @@ int SUMA_FillDsetNelCol (SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp, vo
    }
    
    if (ctp == SUMA_NODE_INDEX) {
-      /* need to check for sortedness of list */
-      iv = (int *)col;
-      SUMA_IS_SORTED_UP(iv, dset->dnel->vec_filled, is_sorted)
-      iv = NULL;
-      if (is_sorted) {
-         NI_set_attribute(dset->dnel, "sorted_node_def", "Yes");   
+      if (col) {
+         /* need to check for sortedness of list */
+         iv = (int *)col;
+         SUMA_IS_SORTED_UP(iv, dset->dnel->vec_filled, is_sorted)
+         iv = NULL;
+         if (is_sorted) {
+            NI_set_attribute(dset->dnel, "sorted_node_def", "Yes");   
+         } else {
+            NI_set_attribute(dset->dnel, "sorted_node_def", "No");   
+         }
       } else {
-         NI_set_attribute(dset->dnel, "sorted_node_def", "No");   
+         NI_set_attribute(dset->dnel, "sorted_node_def", "No");  
       }
    }
    
@@ -1559,14 +1571,18 @@ int SUMA_FillNelCol (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
    }
    
    if (ctp == SUMA_NODE_INDEX) {
-      /* need to check for sortedness of list */
-      iv = (int *)col;
-      SUMA_IS_SORTED_UP(iv, nel->vec_filled, is_sorted)
-      iv = NULL;
-      if (is_sorted) {
-         NI_set_attribute(nel, "sorted_node_def", "Yes");   
+      if (col) {
+         /* need to check for sortedness of list */
+         iv = (int *)col;
+         SUMA_IS_SORTED_UP(iv, nel->vec_filled, is_sorted)
+         iv = NULL;
+         if (is_sorted) {
+            NI_set_attribute(nel, "sorted_node_def", "Yes");   
+         } else {
+            NI_set_attribute(nel, "sorted_node_def", "No");   
+         }
       } else {
-         NI_set_attribute(nel, "sorted_node_def", "No");   
+         NI_set_attribute(nel, "sorted_node_def", "No");  
       }
    }
    
