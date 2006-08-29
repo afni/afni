@@ -489,9 +489,9 @@ ENTRY("THD_mask_clust") ;
    kbest = AFMALL(short, sizeof(short)) ;
 
    /*--- scan through array, find nonzero point, build a cluster, ... ---*/
-   if (verb) 
-      fprintf(stderr,"++ THD_mask_clust: building cluster ...\n");
-      
+   if(verb)
+     fprintf(stderr,"++ THD_mask_clust: building cluster ...\n");
+
    ijk_last = 0 ; if( dall < DALL ) dall = DALL ;
    while(1) {
      /* find next nonzero point */
@@ -502,7 +502,7 @@ ENTRY("THD_mask_clust") ;
      ijk_last = ijk+1 ;         /* start here next time */
 
      /* init current cluster list with this point */
-         
+
      mmm[ijk] = 0 ;                                /* clear found point */
      nall = DALL ;                                 /* # allocated pts */
      nnow = 1 ;                                    /* # pts in cluster */
@@ -630,22 +630,22 @@ fprintf(stderr,"%s", (num<17) ? "o" : "x") ;
    if(redilate) {
       STATUS("marking to redilate") ;
       for( kk=0 ; kk < nz ; kk++ ){
-       kz = kk*nxy ; km = kz-nxy ; kp = kz+nxy ;
-       if( kk == 0    ) km = kz ;
-       if( kk == nz-1 ) kp = kz ;
+        kz = kk*nxy ; km = kz-nxy ; kp = kz+nxy ;
+        if( kk == 0    ) km = kz ;
+        if( kk == nz-1 ) kp = kz ;
 
-       for( jj=0 ; jj < ny ; jj++ ){
-	jy = jj*nx ; jm = jy-nx ; jp = jy+nx ;
-	if( jj == 0    ) jm = jy ;
-	if( jj == ny-1 ) jp = jy ;
+        for( jj=0 ; jj < ny ; jj++ ){
+          jy = jj*nx ; jm = jy-nx ; jp = jy+nx ;
+          if( jj == 0    ) jm = jy ;
+          if( jj == ny-1 ) jp = jy ;
 
-	for( ii=0 ; ii < nx ; ii++ ){
-	  if( nnn[ii+jy+kz] ){           /* was eroded */
-            im = ii-1 ; ip = ii+1 ;
-            if( ii == 0    ) im = 0 ;
-            if( ii == nx-1 ) ip = ii ;
-            nnn[ii+jy+kz] =              /* see if has any nbhrs */
-        	  mmm[im+jy+km]
+          for( ii=0 ; ii < nx ; ii++ ){
+            if( nnn[ii+jy+kz] ){           /* was eroded */
+              im = ii-1 ; ip = ii+1 ;
+              if( ii == 0    ) im = 0 ;
+              if( ii == nx-1 ) ip = ii ;
+              nnn[ii+jy+kz] =              /* see if has any nbhrs */
+                  mmm[im+jy+km]
                || mmm[ii+jm+km] || mmm[ii+jy+km] || mmm[ii+jp+km]
                || mmm[ip+jy+km]
                || mmm[im+jm+kz] || mmm[im+jy+kz] || mmm[im+jp+kz]
@@ -654,19 +654,18 @@ fprintf(stderr,"%s", (num<17) ? "o" : "x") ;
                || mmm[im+jy+kp]
                || mmm[ii+jm+kp] || mmm[ii+jy+kp] || mmm[ii+jp+kp]
                || mmm[ip+jy+kp] ;
-	  }
-        } 
-      }  
-    }
+            }
+      }}} /* end of ii,jj,kk loops */
 
       /* actually do the dilation */
 
       STATUS("redilating") ;
       for( jj=ii=0 ; ii < nxyz ; ii++ )
-	if( nnn[ii] ){ mmm[ii] = 1 ; jj++ ; }
+        if( nnn[ii] ){ mmm[ii] = 1 ; jj++ ; }
 
       if( verb && jj > 0 ) ININFO_message("Restored %d eroded voxels\n",jj) ;
-   }
+
+   } /* end of redilate */
 
    free(nnn) ; EXRETURN ;
 }
