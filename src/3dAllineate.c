@@ -27,7 +27,7 @@ int main( int argc , char *argv[] )
    int   nx_base,ny_base,nz_base , nx_targ,ny_targ,nz_targ ;
    float dx_base,dy_base,dz_base , dx_targ,dy_targ,dz_targ ;
    int nvox_base ;
-   float v1,v2 ;
+   float v1,v2 , xxx,yyy,zzz ;
 
    /*----- input parameters, to be filled in from the options -----*/
 
@@ -150,6 +150,9 @@ int main( int argc , char *argv[] )
        "                 allow the algorithm to adjust it.\n"
        "         **N.B.: Multiple '-par...' options can be used, to constrain\n"
        "                 multiple parameters.\n"
+       "         **N.B.: -parini has no effect if -twopass is used, since\n"
+       "                 the -twopass algorithm carries out its own search\n"
+       "                 for initial parameters.\n"
        "\n"
        " -matini mmm   = Initialize 3x4 affine transformation matrix to 'mmm',\n"
        "                 which is either a .1D file or an expression in the\n"
@@ -169,10 +172,10 @@ int main( int argc , char *argv[] )
       "---------------------------------\n"
       "AFFINE TRANSFORMATION PARAMETERS:\n"
       "---------------------------------\n"
-      "The 3x3 spatial transformation matrix is calculated as [S][D][U],
-      "where [S] is the shear matrix,
-      "      [D] is the scaling matrix, and
-      "      [U] is the rotation (proper orthogonal) matrix.
+      "The 3x3 spatial transformation matrix is calculated as [S][D][U],\n"
+      "where [S] is the shear matrix,\n"
+      "      [D] is the scaling matrix, and\n"
+      "      [U] is the rotation (proper orthogonal) matrix.\n"
       "Thes matrices are specified in DICOM-ordered (x=-R+L,y=-A+P,z=-I+S)\n"
       "coordinates as:\n"
       "\n"
@@ -577,9 +580,9 @@ int main( int argc , char *argv[] )
 
    /* check for base:target dimensionality mismatch */
 
-   if( nz_base > 1 && nz_targ == 1 )
+   if( nz_base >  1 && nz_targ == 1 )
      ERROR_exit("Can't register 2D target into 3D base!") ;
-   if nz_base == 1 && nz_targ > 1 )
+   if( nz_base == 1 && nz_targ >  1 )
      ERROR_exit("Can't register 3D target into 2D base!") ;
 
    /* load weight dataset if defined */
@@ -629,12 +632,12 @@ int main( int argc , char *argv[] )
 
    stup.use_cmat  = 1 ;
    if( !ISVALID_MAT44(dset_targ->daxes->ijk_to_dicom) )
-     THD_daxes_to_mat44(dset_targ) ;
+     THD_daxes_to_mat44(dset_targ->daxes) ;
    stup.targ_cmat = dset_targ->daxes->ijk_to_dicom ;
 
    if( dset_base != NULL ){
      if( !ISVALID_MAT44(dset_base->daxes->ijk_to_dicom) )
-     THD_daxes_to_mat44(dset_base) ;
+     THD_daxes_to_mat44(dset_base->daxes) ;
      stup.base_cmat = dset_base->daxes->ijk_to_dicom ;
    } else {
      stup.base_cmat = stup.targ_cmat ;
@@ -719,7 +722,7 @@ int main( int argc , char *argv[] )
 
      if( twopass ){
        if( verb ) INFO_message("===== Start coarse pass #%d =====",kk) ;
-       stup.interp_code   = MRI_linear ;
+       stup.interp_code   = MRI_LINEAR ;
        stup.smooth_code   = sm_code ;
        stup.smooth_radius = (sm_rad == 0.0f) ? 11.111f : sm_rad ;
        stup.npt_match     = nmask / 20 ;
@@ -728,13 +731,12 @@ int main( int argc , char *argv[] )
 
        mri_genalign_scalar_setup( im_base , im_mask , im_targ , &stup ) ;
 
-       nrand = 73 ;
        if( verb ) ININFO_message("Look for start params") ;
 
        for( jj=7 ; jj < stup.wfunc_numpar ; jj++ )
          if( !stup.wfunc_param[ii].fixed ) stup.wfunc_param[ii].fixed = 1 ;
 
-       mri_genalign_scalar_ransetup( &stup , nrand ) ;
+       mri_genalign_scalar_ransetup( &stup , 77 ) ;
 
        for( jj=7 ; jj < stup.wfunc_numpar ; jj++ )
          if( stup.wfunc_param[ii].fixed == 1 ) stup.wfunc_param[ii].fixed = 0 ;
@@ -744,7 +746,7 @@ int main( int argc , char *argv[] )
        stup.npt_match = nmask / 10 ;
             if( stup.npt_match < 666       ) stup.npt_match = 666 ;
        else if( stup.npt_match > npt_match ) stup.npt_match = npt_match ;
-       mri_genalign_scalar_setup( ima , maskim , imb , &stup ) ;
+       mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
        ii = mri_genalign_scalar_optim( &stup , 0.04 , 0.0001 , 6666 ) ;
 
        if( verb ) ININFO_message("Optimization took %d trials",ii) ;
@@ -775,40 +777,39 @@ int main( int argc , char *argv[] )
 MRI_IMAGE * mri_weightize( MRI_IMAGE *im )
 {
    float *wf,clip,clip2 ;
-   int xfade,yfade,zfade , nx,nxy,nxyz , ii,jj,kk ;
+   int xfade,yfade,zfade , nx,ny,nz,nxy,nxyz , ii,jj,kk,ff ;
    byte *mmm ;
    MRI_IMAGE *qim , *wim ;
 
    /* copy input image */
 
    qim = mri_to_float(im) ; wf = MRI_FLOAT_PTR(qim) ;
-   nx = qim->nx ; nxy = qim->ny * nx ; nxyz = nxy * qim->nz ;
+   nx = qim->nx; ny = qim->ny; nz = qim->nz; nxy = nx*ny; nxyz = nxy*nz;
    for( ii=0 ; ii < nxyz ; ii++ ) wf[ii] = fabs(wf[ii]) ;
 
-   /* zero out along the edges */
+   /*-- zero out along the edges --*/
 #undef  WW
 #define WW(i,j,k) wf[(i)+(j)*nx+(k)*nxy]
 
-   xfade = (int)(0.05*qim->nx+3.0) ;
-   yfade = (int)(0.05*qim->ny+3.0) ;
-   zfade = (int)(0.05*qim->nz+3.0) ;
+   xfade = (int)(0.05*qim->nx+3.0) ;                 /* number of points */
+   yfade = (int)(0.05*qim->ny+3.0) ;                 /* along each face */
+   zfade = (int)(0.05*qim->nz+3.0) ;                 /* to set to zero */
    if( 4*xfade >= qim->nx ) xfade = (qim->nx-1)/4 ;
    if( 4*yfade >= qim->ny ) yfade = (qim->ny-1)/4 ;
    if( 3*zfade >= qim->nz ) zfade = (qim->nz-1)/4 ;
    for( jj=0 ; jj < ny ; jj++ )
     for( ii=0 ; ii < nx ; ii++ )
-     for( ff=0 ; ff < zfade ; ff++ )
-       WW(ii,jj,ff) = WW(ii,jj,nz-1-ff) = 0.0f ;
+     for( ff=0 ; ff < zfade ; ff++ ) WW(ii,jj,ff) = WW(ii,jj,nz-1-ff) = 0.0f;
    for( kk=0 ; kk < nz ; kk++ )
     for( jj=0 ; jj < ny ; jj++ )
-     for( ff=0 ; ff < xfade ; ff++ )
-       WW(ff,jj,kk) = WW(nx-1-ff,jj,kk) = 0.0f ;
+     for( ff=0 ; ff < xfade ; ff++ ) WW(ff,jj,kk) = WW(nx-1-ff,jj,kk) = 0.0f;
    for( kk=0 ; kk < nz ; kk++ )
     for( ii=0 ; ii < nx ; ii++ )
-     for( ff=0 ; ff < yfade ; ff++ )
-      WW(ii,ff,kk) = WW(ii,ny-1-ff,kk) = 0.0f ;
+     for( ff=0 ; ff < yfade ; ff++ ) WW(ii,ff,kk) = WW(ii,ny-1-ff,kk) = 0.0f;
 
-   /* blur a little */
+   /*-- blur a little: median then Gaussian;
+          the idea is that the median filter smashes big spikes,
+          then the Gaussian filter does some general smoothing.  --*/
 
    mmm = (byte *)malloc( sizeof(byte)*nxyz ) ;
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] > 0.0f) ; /* mask */
@@ -816,17 +817,15 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im )
    mri_free(qim) ; wf = MRI_FLOAT_PTR(wim) ;
 
    FIR_blur_volume_3d( wim->nx , wim->ny , wim->nz ,
-                       1.0f , 1.0f , 1.0f , MRI_float , wf ,
+                       1.0f , 1.0f , 1.0f ,  wf ,
                        3.0f , 3.0f , 3.0f ) ;
 
-   /* clip off small values */
+   /*-- clip off small values, and
+        keep only the largest cluster of supra threshold voxels --*/
 
    clip  = 0.05f * mri_max(wim) ;
-   clip2 = 0.50f * THD_cliplevel(wim,0.4f) ;
+   clip2 = 0.33f * THD_cliplevel(wim,0.33f) ;
    clip  = MAX(clip,clip2) ;
-
-   /* keep only the largest cluster of supra threshold voxels */
-
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] >= clip) ;
    THD_mask_clust( nx,ny,nz, mmm ) ;
    THD_mask_erode( nx,ny,nz, mmm, 1 ) ;  /* cf. thd_automask.c */
