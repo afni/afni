@@ -23,7 +23,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset_out ;
    MRI_IMAGE *im_base , *im_targ , *im_out , *im_weig=NULL , *im_mask=NULL ;
    GA_setup stup ;
-   int iarg=1 , ii,jj,kk , nmask=0 ;
+   int iarg , ii,jj,kk , nmask=0 ;
    int   nx_base,ny_base,nz_base , nx_targ,ny_targ,nz_targ ;
    float dx_base,dy_base,dz_base , dx_targ,dy_targ,dz_targ ;
    int nvox_base ;
@@ -227,7 +227,10 @@ int main( int argc , char *argv[] )
 
    /**--- process command line options ---**/
 
+   iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+INFO_message("Processing argument #%d '%s'",iarg,argv[iarg]) ;
 
      /*-----*/
 
@@ -305,10 +308,10 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-cr") == 0 || strncmp(argv[iarg],"-corratio",5) == 0 ){
        meth_code = GA_MATCH_CORRATIO_SCALAR ; iarg++ ; continue ;
      }
-     if( strcmp(argv[iarg],"-mi") == 0 || strncmp(argv[iarg],"-mutualinfo",5) ){
+     if( strcmp(argv[iarg],"-mi") == 0 || strncmp(argv[iarg],"-mutualinfo",5) == 0 ){
        meth_code = GA_MATCH_KULLBACK_SCALAR ; iarg++ ; continue ;
      }
-     if( strcmp(argv[iarg],"-ls") == 0 || strncmp(argv[iarg],"-leastsq",5) ){
+     if( strcmp(argv[iarg],"-ls") == 0 || strncmp(argv[iarg],"-leastsq",5) == 0 ){
        meth_code = GA_MATCH_PEARSON_SCALAR ; iarg++ ; continue ;
      }
      if( strncmp(argv[iarg],"-cost",4) == 0 ){
@@ -317,9 +320,9 @@ int main( int argc , char *argv[] )
          meth_code = GA_MATCH_SPEARMAN_SCALAR ;
        else if( strcmp(argv[iarg],"cr") == 0 || strncmp(argv[iarg],"corratio",4) == 0 )
          meth_code = GA_MATCH_CORRATIO_SCALAR ;
-       else if( strcmp(argv[iarg],"mi") == 0 || strncmp(argv[iarg],"mutualinfo",4) )
+       else if( strcmp(argv[iarg],"mi") == 0 || strncmp(argv[iarg],"mutualinfo",4) == 0 )
          meth_code = GA_MATCH_KULLBACK_SCALAR ;
-       else if( strcmp(argv[iarg],"ls") == 0 || strncmp(argv[iarg],"leastsq",4) )
+       else if( strcmp(argv[iarg],"ls") == 0 || strncmp(argv[iarg],"leastsq",4) == 0 )
          meth_code = GA_MATCH_PEARSON_SCALAR ;
        else
          ERROR_exit("Unknown code '%s' after -cost!",argv[iarg]) ;
@@ -333,6 +336,7 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("no argument after '-base'!") ;
        dset_base = THD_open_dataset( argv[iarg] ) ;
        if( dset_base == NULL ) ERROR_exit("can't open -base dataset '%s'",argv[iarg]);
+INFO_message("Opened -base %s",argv[iarg]) ;
        iarg++ ; continue ;
      }
 
@@ -344,6 +348,7 @@ int main( int argc , char *argv[] )
        dset_targ = THD_open_dataset( argv[iarg] ) ;
        if( dset_targ == NULL )
          ERROR_exit("can't open -%s dataset '%s'",argv[iarg-1],argv[iarg]);
+INFO_message("Opened -targ %s",argv[iarg]) ;
        iarg++ ; continue ;
      }
 
@@ -355,7 +360,7 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( stnrcmp(argv[iarg],"-twoblur",5) == 0 ){
+     if( strncmp(argv[iarg],"-twoblur",5) == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        sm_rad = (float)strtod(argv[iarg],NULL) ; twopass = 1 ; iarg++ ; continue ;
      }
@@ -539,10 +544,8 @@ int main( int argc , char *argv[] )
        WARNING_message("No -base dataset: using sub-brick #0 of target") ;
    }
 
-   if( prefix == NULL ){
-     prefix = "allineated" ;
-     WARNING_message("Using default output prefix = '%s'",prefix) ;
-   }
+   if( prefix == NULL )
+     WARNING_message("No output dataset will be calculated!") ;
 
    if( final_interp < 0 ) final_interp = interp_code ;
 
@@ -553,7 +556,7 @@ int main( int argc , char *argv[] )
    /* target must be present */
 
    DSET_load(dset_targ) ;
-   if( !DSET_loaded(dset_targ) ) ERROR_exit("Can't load target dataset") ;
+   if( !DSET_LOADED(dset_targ) ) ERROR_exit("Can't load target dataset") ;
    nx_targ = DSET_NX(dset_targ) ; dx_targ = fabs(DSET_DX(dset_targ)) ;
    ny_targ = DSET_NY(dset_targ) ; dy_targ = fabs(DSET_DY(dset_targ)) ;
    nz_targ = DSET_NZ(dset_targ) ; dz_targ = fabs(DSET_DZ(dset_targ)) ;
@@ -562,7 +565,7 @@ int main( int argc , char *argv[] )
 
    if( dset_base != NULL ){
      DSET_load(dset_base) ;
-     if( !DSET_loaded(dset_base) ) ERROR_exit("Can't load base dataset") ;
+     if( !DSET_LOADED(dset_base) ) ERROR_exit("Can't load base dataset") ;
      im_base = mri_scale_to_float( DSET_BRICK_FACTOR(dset_base,0) ,
                                    DSET_BRICK(dset_base,0)         ) ;
      DSET_unload(dset_base) ;
@@ -589,7 +592,7 @@ int main( int argc , char *argv[] )
 
    if( dset_weig != NULL ){
      DSET_load(dset_weig) ;
-     if( !DSET_loaded(dset_weig) ) ERROR_exit("Can't load weight dataset") ;
+     if( !DSET_LOADED(dset_weig) ) ERROR_exit("Can't load weight dataset") ;
      im_weig = mri_scale_to_float( DSET_BRICK_FACTOR(dset_weig,0) ,
                                    DSET_BRICK(dset_weig,0)         ) ;
      DSET_unload(dset_weig) ;
@@ -718,10 +721,22 @@ int main( int argc , char *argv[] )
 
    /*** start alignment process ***/
 
+#undef  PARDUMP
+#define PARDUMP(ss) do{ fprintf(stderr," + %s Parameters =",ss) ;                 \
+                        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )               \
+                          fprintf(stderr," %.2f",stup.wfunc_param[jj].val_out) ;  \
+                        fprintf(stderr,"\n") ;                                    \
+                    } while(0)
+
    for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
 
+     im_targ = mri_scale_to_float( DSET_BRICK_FACTOR(dset_targ,kk) ,
+                                   DSET_BRICK(dset_targ,kk)         ) ;
+     DSET_unload_one(dset_targ,kk) ;
+
+     if( verb ) INFO_message("===== Start on sub-brick #%d =====",kk) ;
      if( twopass ){
-       if( verb ) INFO_message("===== Start coarse pass #%d =====",kk) ;
+       if( verb ) INFO_message("Start coarse pass") ;
        stup.interp_code   = MRI_LINEAR ;
        stup.smooth_code   = sm_code ;
        stup.smooth_radius = (sm_rad == 0.0f) ? 11.111f : sm_rad ;
@@ -731,31 +746,38 @@ int main( int argc , char *argv[] )
 
        mri_genalign_scalar_setup( im_base , im_mask , im_targ , &stup ) ;
 
-       if( verb ) ININFO_message("Look for start params") ;
+       if( verb ) ININFO_message("- Look for coarse starting parameters") ;
+
+       /* startup search only allows rotations and shifts, so freeze all others */
 
        for( jj=7 ; jj < stup.wfunc_numpar ; jj++ )
          if( !stup.wfunc_param[ii].fixed ) stup.wfunc_param[ii].fixed = 1 ;
 
        mri_genalign_scalar_ransetup( &stup , 77 ) ;
 
+       if( verb > 1 ) PARDUMP("Starting") ;
+
+       /* unfreeze those that were temporarily frozen above */
+
        for( jj=7 ; jj < stup.wfunc_numpar ; jj++ )
          if( stup.wfunc_param[ii].fixed == 1 ) stup.wfunc_param[ii].fixed = 0 ;
 
-       if( verb ) ININFO_message("Start optimization") ;
+       if( verb ) ININFO_message("- Start coarse optimization") ;
 
        stup.npt_match = nmask / 10 ;
             if( stup.npt_match < 666       ) stup.npt_match = 666 ;
        else if( stup.npt_match > npt_match ) stup.npt_match = npt_match ;
        mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
-       ii = mri_genalign_scalar_optim( &stup , 0.04 , 0.0001 , 6666 ) ;
+       ii = mri_genalign_scalar_optim( &stup , 0.04 , 0.002 , 6666 ) ;
 
-       if( verb ) ININFO_message("Optimization took %d trials",ii) ;
+       if( verb ) ININFO_message("- Coarse optimization took %d trials",ii) ;
+       if( verb > 1 ) PARDUMP("Final Coarse") ;
 
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
          stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out ;
      }
 
-     if( verb ) INFO_message("..... Start fine optimization #%d .....",kk) ;
+     if( verb ) ININFO_message("Start fine pass") ;
      stup.smooth_code   = 0  ;
      stup.smooth_radius = 0.0f ;
      stup.interp_code   = interp_code ;
@@ -764,7 +786,11 @@ int main( int argc , char *argv[] )
 
      ii = mri_genalign_scalar_optim( &stup , 0.01 , 0.0001 , 6666 ) ;
 
-     if( verb ) ININFO_message("Optimization took %d trials",ii) ;
+     if( verb ) ININFO_message("- Fine Optimization took %d trials",ii) ;
+
+     if( verb > 1 ) PARDUMP("Final Fine") ;
+
+     mri_free(im_targ) ;
    }
 
    exit(0) ;
