@@ -8,19 +8,20 @@
 
 /* globals to control I/O of niml data      3 Aug 2006 [rickr] */
 typedef struct {
+    int add_nodes;       /* add to output    (AFNI_NSD_ADD_NODES == Y)  */
     int debug;           /* debug level      (AFNI_NI_DEBUG level)      */
     int to_float;        /* convert to float (AFNI_NSD_TO_FLOAT == Y)   */
     int write_mode;      /* NI_TEXT_MODE     (AFNI_NIML_TEXT_DATA == Y) */
 } ni_globals;
 static ni_globals gni =         /* default values for globals   */
 {
+        0,                      /* add_nodes                    */
         0,                      /* debug                        */
         0,                      /* to_float                     */
         NI_BINARY_MODE          /* write_mode                   */
 };
 
 static int    are_sorted_ints(int *, int);
-static int    has_sorted_node_list(THD_3dim_dataset *);
 static int    loc_append_vals(char **, int *, char *, float, float, int, int);
 static char * my_strndup(char *, int);
 static int    nsd_add_colms_range(NI_group *, THD_3dim_dataset *);
@@ -1145,6 +1146,8 @@ ENTRY("nsd_add_colms_range");
 /*! Add the INDEX_LIST attribute element from the AFNI dset to the
     NIML group.
  *
+ *  If dset has no node_list, the user may still want it filled to a
+ *    default list, based on AFNI_NSD_ADD_NODES (gni.add_nodes).
  *  If the datum is not float, convert it.
  * -----------------------------------------------------------------------*/
 static int nsd_fill_index_list(NI_group * ngr, THD_3dim_dataset * dset)
@@ -1152,17 +1155,39 @@ static int nsd_fill_index_list(NI_group * ngr, THD_3dim_dataset * dset)
     NI_element    * nel;
     THD_datablock * blk;
     char            str[4];
-    int             nx;
+    int           * node_list, * new_list = NULL;
+    int             c, nx;
 
 ENTRY("nsd_fill_index_list");
 
     blk = dset->dblk;
     nx = DSET_NX(dset);
 
-    if( blk->nnodes <= 0 || ! blk->node_list )
+    node_list = blk->node_list;
+    if( blk->nnodes <= 0 || ! blk->node_list )  /* no node list */
     {
-        if(gni.debug) fprintf(stderr,"-d no INDEX_LIST to add\n");
-        RETURN(0);
+        if( gni.add_nodes )  /* create a default list   30 Aug 2006 [rickr] */
+        {
+            if(gni.debug) fprintf(stderr,"+d creating default INDEX_LIST\n");
+            new_list = (int *)malloc(nx * sizeof(int));
+            if( !new_list ){
+                fprintf(stderr,"** NFIL: failed to alloc %d nodes\n",nx);
+                RETURN(1);
+            }
+            for( c = 0; c < nx; c++ ) new_list[c] = c;
+            node_list = new_list;
+        }
+        else
+        {
+            if(gni.debug) fprintf(stderr,"-d no INDEX_LIST to add\n");
+            RETURN(0);
+        }
+    }
+    else if( blk->nnodes != nx )
+    {
+        fprintf(stderr,"** node list len (%d) != NX (%d), skipping nodes\n",
+                blk->nnodes, nx);
+        RETURN(1);
     }
 
     if(gni.debug) fprintf(stderr,"+d adding INDEX_LIST, len %d\n", nx);
@@ -1171,13 +1196,17 @@ ENTRY("nsd_fill_index_list");
 
     nel->outmode = gni.write_mode; /* ASCII or BINARY mode (from globals) */
 
-    if( has_sorted_node_list(dset) ) strcpy(str, "Yes");
-    else                             strcpy(str, "No");
+    if( are_sorted_ints(node_list, nx)) strcpy(str, "Yes");
+    else                                strcpy(str, "No");
 
     NI_set_attribute(nel, "sorted_node_def", str);
     if(gni.debug > 1) fprintf(stderr,"+d set sorted_node_def = %s\n", str);
 
-    NI_add_column(nel, NI_INT, blk->node_list);  /* copy data */
+    NI_add_column(nel, NI_INT, node_list);
+
+    if( new_list ) free(new_list);    /* lose any new list */
+
+    NI_add_to_group(ngr, nel);
 
     RETURN(0);
 }
@@ -1284,31 +1313,6 @@ ENTRY("set_sparse_data_attribs");
 
 
 /*------------------------------------------------------------------------*/
-/*! return whether dset has a sorted node_list         23 Aug 2006 [rickr]
---------------------------------------------------------------------------*/
-static int has_sorted_node_list( THD_3dim_dataset * dset )
-{
-ENTRY("has_sorted_node_list");
-
-    if( !ISVALID_DSET(dset) ){
-        if( gni.debug > 1 ) fprintf(stderr,"** HSNL: invalid dset\n");
-        RETURN(0);
-    }
-    if( !ISVALID_DBLK(dset->dblk) ){
-        if( gni.debug > 1 ) fprintf(stderr,"** HSNL: invalid dblk\n");
-        RETURN(0);
-    }
-    if( dset->dblk->nnodes <= 0 || !dset->dblk->node_list ){
-        if(gni.debug>2) fprintf(stderr,"-d HSNL: nnodes = %d, node_list = %p\n",
-                                dset->dblk->nnodes, dset->dblk->node_list);
-        RETURN(0);
-    }
-
-    RETURN(are_sorted_ints(dset->dblk->node_list, dset->dblk->nnodes));
-}
-
-
-/*------------------------------------------------------------------------*/
 /*! return whether the given list is sorted            23 Aug 2006 [rickr]
 --------------------------------------------------------------------------*/
 static int are_sorted_ints(int *list, int len)
@@ -1407,6 +1411,9 @@ int set_ni_globs_from_env(void)
 {
 ENTRY("set_ni_globs_from_env");
 
+    /* if datasets don't have nodes, the user may want to add a default list */
+    gni.add_nodes = AFNI_yesenv("AFNI_NSD_ADD_NODES");        /* 30 Aug 2006 */
+
     gni.debug = AFNI_numenv("AFNI_NI_DEBUG");  /* maybe the user wants info */
 
     /* if having no conversion is desired, block it */
@@ -1418,6 +1425,9 @@ ENTRY("set_ni_globs_from_env");
 
     RETURN(0);
 }
+
+void set_gni_add_nodes( int add_nodes ){ gni.add_nodes = add_nodes; }
+int  get_gni_add_nodes( void          ){ return gni.add_nodes;  }
 
 void set_gni_debug( int debug ){ gni.debug = debug; }
 int  get_gni_debug( void      ){ return gni.debug;  }
