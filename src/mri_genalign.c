@@ -1,7 +1,5 @@
 #include "mrilib.h"
 
-#define DEBUG
-
 #undef  BIGVAL
 #define BIGVAL 1.e+38
 
@@ -28,6 +26,10 @@ static GA_setup *gstup = NULL ;
 #if defined(SOLARIS) || defined(SGI)
 #define cbrtf  cbrt
 #endif
+
+/*---------------------------------------------------------------------------*/
+static int verb = 0 ;
+void mri_genalign_verbose(int v){ verb = v ; }
 
 /*---------------------------------------------------------------------------*/
 static int gcd( int m , int n )    /* Euclid's Greatest Common Denominator */
@@ -641,9 +643,10 @@ static double GA_scalar_fitter( int npar , double *mpar )
     break ;
 
     case GA_MATCH_CORRATIO_SCALAR:  /* Correlation Ratio */
-      val = -THD_corr_ratio_scl( gstup->npt_match ,
-                                 gstup->ajbot , gstup->ajtop , avm ,
-                                 gstup->bsbot , gstup->bstop , bvm  ) ;
+      val = THD_corr_ratio_scl( gstup->npt_match ,
+                                gstup->ajbot , gstup->ajtop , avm ,
+                                gstup->bsbot , gstup->bstop , bvm  ) ;
+      val = 1.0 - fabs(val) ;
     break ;
   }
 
@@ -718,13 +721,16 @@ ENTRY("mri_genalign_scalar_setup") ;
    if( basim != NULL ){
      need_pts = 1 ;              /* will need to extract match points */
      if( stup->bsim != NULL ) mri_free(stup->bsim) ;
+     STATUS("copy basim") ;
      stup->bsim = mri_to_float(basim) ;
      if( stup->bsim->dx <= 0.0f ) stup->bsim->dx = 1.0f ;
      if( stup->bsim->dy <= 0.0f ) stup->bsim->dy = 1.0f ;
      if( stup->bsim->dz <= 0.0f ) stup->bsim->dz = 1.0f ;
 
-     if( stup->use_cmat )   /* 24 Aug 2006 */
+     if( stup->use_cmat ){   /* 24 Aug 2006 */
+       STATUS("invert base_cmat") ;
        stup->base_imat = nifti_mat44_inverse( stup->base_cmat ) ;
+     }
 
      stup->bscali = (stup->bsim->dx != 1.0f) || (stup->bsim->xo != 0.0f) ||
                     (stup->bsim->dy != 1.0f) || (stup->bsim->yo != 0.0f)   ;
@@ -735,13 +741,16 @@ ENTRY("mri_genalign_scalar_setup") ;
 
    if( targim != NULL ){
      if( stup->ajim != NULL ) mri_free(stup->ajim) ;
+     STATUS("copy targim") ;
      stup->ajim = mri_to_float(targim) ;
      if( stup->ajim->dx <= 0.0f ) stup->ajim->dx = 1.0f ;
      if( stup->ajim->dy <= 0.0f ) stup->ajim->dy = 1.0f ;
      if( stup->ajim->dz <= 0.0f ) stup->ajim->dz = 1.0f ;
 
-     if( stup->use_cmat )   /* 24 Aug 2006 */
+     if( stup->use_cmat ){  /* 24 Aug 2006 */
+       STATUS("invert targ_cmat") ;
        stup->targ_imat = nifti_mat44_inverse( stup->targ_cmat ) ;
+     }
 
      stup->ascali = (stup->ajim->dx != 1.0f) || (stup->ajim->xo != 0.0f) ||
                     (stup->ajim->dy != 1.0f) || (stup->ajim->yo != 0.0f)   ;
@@ -762,6 +771,7 @@ ENTRY("mri_genalign_scalar_setup") ;
    }
    if( do_smooth || (need_smooth && stup->bsims == NULL) ){
      if( stup->bsims != NULL ) mri_free(stup->bsims);
+     STATUS("smooth basim") ;
      stup->bsims = GA_smooth( stup->bsim , stup->smooth_code ,
                                            stup->smooth_radius ) ;
    }
@@ -769,6 +779,7 @@ ENTRY("mri_genalign_scalar_setup") ;
      float nxa=stup->ajim->nx, nya=stup->ajim->ny, nza=stup->ajim->nz ;
      float rad=cbrtf(nxa*nya*nza/(nx*ny*nz)) * stup->smooth_radius ;
      if( stup->ajims != NULL ) mri_free(stup->ajims);
+     STATUS("smooth targim") ;
      stup->ajims = GA_smooth( stup->ajim , stup->smooth_code , rad ) ;
    }
 
@@ -799,6 +810,7 @@ ENTRY("mri_genalign_scalar_setup") ;
      if( maskim->nvox != stup->bsim->nvox )
        ERREX("basim and maskim grids differ") ;
 
+     STATUS("making mask") ;
      if( stup->bmask != NULL ) free((void *)stup->bmask) ;
      qim = mri_to_byte(maskim) ;
      stup->bmask = MRI_BYTE_PTR(qim) ;
@@ -841,6 +853,7 @@ ENTRY("mri_genalign_scalar_setup") ;
 
      if( use_all == 1 ){         /*------------- all points, no mask -----------*/
 
+       STATUS("using all points, no mask") ;
        if( stup->im != NULL ){
          KILL_floatvec(stup->im); KILL_floatvec(stup->jm); KILL_floatvec(stup->km);
        }
@@ -850,6 +863,7 @@ ENTRY("mri_genalign_scalar_setup") ;
 
        int nvox , pp ; byte *mask=stup->bmask ;
 
+       STATUS("using all points, with mask") ;
        if( stup->im != NULL ){
          KILL_floatvec(stup->im); KILL_floatvec(stup->jm); KILL_floatvec(stup->km);
        }
@@ -869,6 +883,7 @@ ENTRY("mri_genalign_scalar_setup") ;
 
        int nvox,pp,dm , *qm ; byte *mask = stup->bmask ;
 
+       STATUS("using some points") ;
        nvox = stup->bsim->nvox ;
        dm   = find_relprime_fixed(nvox) ;
        if( stup->im != NULL ){
@@ -898,23 +913,27 @@ ENTRY("mri_genalign_scalar_setup") ;
      bsar = MRI_FLOAT_PTR(bim) ;
      MAKE_floatvec(stup->bvm,stup->npt_match) ;
      if( stup->im == NULL ){
+       STATUS("extracting all base image values") ;
        memcpy( stup->bvm->ar , bsar , sizeof(float)*stup->npt_match ) ;
      } else {
+       STATUS("extracting some base image values") ;
        for( qq=0 ; qq < stup->npt_match ; qq++ ){
          rr = (int)(stup->im->ar[qq] + stup->jm->ar[qq]*nx + stup->km->ar[qq]*nxy) ;
          stup->bvm->ar[qq] = bsar[rr] ;
        }
        if( stup->use_cmat ){   /* 24 Aug 2006 */
          float x,y,z ;
+         STATUS("applying base_cmat") ;
          for( qq=0 ; qq < stup->npt_match ; qq++ ){
            x = stup->im->ar[qq]; y = stup->jm->ar[qq]; z = stup->km->ar[qq];
-           MAT44_VEC( gstup->base_cmat , x,y,z ,
+           MAT44_VEC( stup->base_cmat , x,y,z ,
                       stup->im->ar[qq] , stup->jm->ar[qq] , stup->km->ar[qq] ) ;
          }
        } else if( stup->bscali ){
          float xo=stup->bsim->xo , dx=stup->bsim->dx ;
          float yo=stup->bsim->yo , dy=stup->bsim->dy ;
          float zo=stup->bsim->zo , dz=stup->bsim->dz ;
+         STATUS("applying bscali") ;
          for( qq=0 ; qq < stup->npt_match ; qq++ ){
            stup->im->ar[qq] = xo + stup->im->ar[qq]*dx ;
            stup->jm->ar[qq] = yo + stup->jm->ar[qq]*dy ;
@@ -927,6 +946,7 @@ ENTRY("mri_genalign_scalar_setup") ;
 
      switch( stup->match_code ){
        case GA_MATCH_SPEARMAN_SCALAR:
+         STATUS("doing spearman_rank_prepare") ;
          stup->bvstat = spearman_rank_prepare( stup->npt_match, stup->bvm->ar );
        break ;
      }
@@ -961,9 +981,21 @@ ENTRY("GA_param_setup") ;
    if( ii == 0 ){
      ERROR_message("No free parameters in GA_param_setup()?"); EXRETURN;
    }
-   for( ii=0 ; ii < stup->wfunc_numpar ; ii++ )
-     stup->wfunc_param[ii].siz = stup->wfunc_param[ii].max
-                                -stup->wfunc_param[ii].min ;
+   for( qq=0 ; qq < stup->wfunc_numpar ; qq++ )
+     stup->wfunc_param[qq].siz = stup->wfunc_param[qq].max
+                                -stup->wfunc_param[qq].min ;
+
+#if 0
+   if( verb ){
+     fprintf(stderr," + %d free parameters:\n",stup->wfunc_numfree) ;
+     for( qq=0 ; qq < stup->wfunc_numpar ; qq++ )
+       fprintf(stderr,"  #%d = %s [%.2f..%.2f] (fixed=%d)\n",
+               qq , stup->wfunc_param[qq].name ,
+               stup->wfunc_param[qq].min , stup->wfunc_param[qq].max ,
+               stup->wfunc_param[qq].fixed ) ;
+   }
+#endif
+
    EXRETURN ;
 }
 
@@ -1000,7 +1032,7 @@ ENTRY("mri_genalign_scalar_optim") ;
 
    gstup = stup ;  /* for global access */
 
-   if( nstep <= 2*stup->wfunc_numfree+5 ) nstep = 6666 ;
+   if( nstep <= 4*stup->wfunc_numfree+5 ) nstep = 6666 ;
 
         if( rstart >  0.2 ) rstart = 0.2 ;  /* our parameters are */
    else if( rstart <= 0.0 ) rstart = 0.1 ;  /* all in range 0..1 */
@@ -1086,9 +1118,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
 
    twof = 1 << nfr ;  /* 2^nfr */
 
-#ifdef DEBUG
-   fprintf(stderr,"%d:",nrand+ngtot) ;
-#endif
+   if( verb ) fprintf(stderr," + Scanning %d:",nrand+ngtot) ;
 
    for( ii=0 ; ii < nrand+ngtot ; ii++ ){
      if( ii < ngtot ){                     /* grid points */
@@ -1099,10 +1129,6 @@ ENTRY("mri_genalign_scalar_ransetup") ;
      } else {                              /* random */
        for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5*(1.05+0.90*drand48()) ;
      }
-
-#ifdef DEBUG
-     fprintf(stderr,".") ;
-#endif
 
      for( ss=0 ; ss < twof ; ss++ ){   /* try divers reflections */
        for( qq=0 ; qq < nfr ; qq++ )
@@ -1116,29 +1142,27 @@ ENTRY("mri_genalign_scalar_ransetup") ;
            }
            memcpy( kpar[kk] , spar , sizeof(double)*nfr ) ;
            kval[kk] = val ;
-#ifdef DEBUG
-           if( kk == 0 ) fprintf(stderr,"*") ;
-#endif
+           if( verb && kk == 0 ) fprintf(stderr,"*") ;
            break ;
          }
        }
      }
    }
 
-#ifdef DEBUG
-fprintf(stderr,"\n") ;
-fprintf(stderr,"++ random kval:\n") ;
-for(kk=0;kk<NKEEP;kk++){
- fprintf(stderr,"  %d %g:",kk,kval[kk]);
- for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
-  if( !stup->wfunc_param[qq].fixed ){
-   val = stup->wfunc_param[qq].min+stup->wfunc_param[qq].siz*PRED01(kpar[kk][ii]);
-   fprintf(stderr," %.2f",val) ; ii++ ;
-  }
- }
- fprintf(stderr,"\n") ;
-}
-#endif
+   if( verb ){
+     fprintf(stderr,"\n") ;
+     fprintf(stderr," + random kval:\n") ;
+     for(kk=0;kk<NKEEP;kk++){
+      fprintf(stderr,"   %d v=%g:",kk,kval[kk]);
+      for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
+       if( !stup->wfunc_param[qq].fixed ){
+        val = stup->wfunc_param[qq].min+stup->wfunc_param[qq].siz*PRED01(kpar[kk][ii]);
+        fprintf(stderr," %.2f",val) ; ii++ ;
+       }
+      }
+      fprintf(stderr,"\n") ;
+     }
+   }
 
    /* try a little optimization on each of these */
 
@@ -1146,25 +1170,25 @@ for(kk=0;kk<NKEEP;kk++){
    for( kk=0 ; kk < NKEEP ; kk++ ){
      if( kval[kk] >= BIGVAL ) continue ;
      (void)powell_newuoa( nfr , kpar[kk] ,
-                          0.05 , 0.005 , 7*nfr+6 , GA_scalar_fitter ) ;
+                          0.05 , 0.005 , 9*nfr+7 , GA_scalar_fitter ) ;
      kval[kk] = GA_scalar_fitter( nfr , kpar[kk] ) ;
      if( kval[kk] < vbest ){ vbest = kval[kk]; jj = kk; }
    }
    stup->vbest = vbest ;  /* save for user's edification */
 
-#ifdef DEBUG
-fprintf(stderr,"++ better kval:\n") ;
-for(kk=0;kk<NKEEP;kk++){
- fprintf(stderr," %c%d %g:",(kk==jj)?'*':'.',kk,kval[kk]);
- for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
-  if( !stup->wfunc_param[qq].fixed ){
-   val = stup->wfunc_param[qq].min+stup->wfunc_param[qq].siz*PRED01(kpar[kk][ii]);
-   fprintf(stderr," %.2f",val) ; ii++ ;
-  }
- }
- fprintf(stderr,"\n") ;
-}
-#endif
+   if( verb ){
+     fprintf(stderr," + better kval:\n") ;
+     for(kk=0;kk<NKEEP;kk++){
+      fprintf(stderr,"  %c%d %g:",(kk==jj)?'*':' ',kk,kval[kk]);
+      for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
+       if( !stup->wfunc_param[qq].fixed ){
+        val = stup->wfunc_param[qq].min+stup->wfunc_param[qq].siz*PRED01(kpar[kk][ii]);
+        fprintf(stderr," %.2f",val) ; ii++ ;
+       }
+      }
+      fprintf(stderr,"\n") ;
+     }
+   }
 
    bpar = kpar[jj] ;
    for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){

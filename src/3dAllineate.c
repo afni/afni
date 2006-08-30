@@ -20,7 +20,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im ) ;  /* prototype: function at end */
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *dset_out ;
+   THD_3dim_dataset *dset_out=NULL ;
    MRI_IMAGE *im_base , *im_targ , *im_out , *im_weig=NULL , *im_mask=NULL ;
    GA_setup stup ;
    int iarg , ii,jj,kk , nmask=0 ;
@@ -37,7 +37,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset_weig = NULL ;
    int auto_weight             = 0 ;
    float dxyz_mast             = 0.0f ;
-   int meth_code               = GA_MATCH_CORRATIO_SCALAR ;
+   int meth_code               = GA_MATCH_KULLBACK_SCALAR ;
    int sm_code                 = GA_SMOOTH_GAUSSIAN ;
    float sm_rad                = 0.0f ;
    int twopass                 = 0 ;
@@ -97,7 +97,7 @@ int main( int argc , char *argv[] )
        "               You can also specify the cost function using an option\n"
        "               of the form '-mi' rather than '-cost mi', if you like\n"
        "               to keep things terse and cryptic (as I do).\n"
-       "               [Default == 'corratio'.]\n"
+       "               [Default == 'mutualinfo'.]\n"
        "\n"
        " -interp iii = Defines interpolation method to use during matching\n"
        "               process, where 'iii' is one of\n"
@@ -230,8 +230,6 @@ int main( int argc , char *argv[] )
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
 
-INFO_message("Processing argument #%d '%s'",iarg,argv[iarg]) ;
-
      /*-----*/
 
      if( strcmp(argv[iarg],"-matini") == 0 ){
@@ -256,6 +254,7 @@ INFO_message("Processing argument #%d '%s'",iarg,argv[iarg]) ;
 
      /*-----*/
 
+#if 0
      if( strcmp(argv[iarg],"-dxyz") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        dxyz_mast = (float)strtod(argv[iarg],NULL) ;
@@ -263,9 +262,11 @@ INFO_message("Processing argument #%d '%s'",iarg,argv[iarg]) ;
          ERROR_exit("Illegal value '%s' after -dxyz",argv[iarg]) ;
        iarg++ ; continue ;
      }
+#endif
 
      /*-----*/
 
+#if 0
      if( strncmp(argv[iarg],"-master",5) == 0 ){
        if( dset_mast != NULL ) ERROR_exit("Can't have multiple %s options!",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
@@ -273,6 +274,7 @@ INFO_message("Processing argument #%d '%s'",iarg,argv[iarg]) ;
        if( dset_mast == NULL ) ERROR_exit("can't open -master dataset '%s'",argv[iarg]);
        iarg++ ; continue ;
      }
+#endif
 
      /*-----*/
 
@@ -285,9 +287,11 @@ INFO_message("Processing argument #%d '%s'",iarg,argv[iarg]) ;
        if( dset_weig == NULL ) ERROR_exit("can't open -weight dataset '%s'",argv[iarg]);
        iarg++ ; continue ;
      }
+#endif
 
      /*-----*/
 
+#if 0
      if( strncmp(argv[iarg],"-autoweight",6) == 0 ){
        if( dset_weig != NULL ) ERROR_exit("Can't use -autoweight AND -weight!") ;
        auto_weight = 1 ; iarg++ ; continue ;
@@ -336,7 +340,6 @@ INFO_message("Processing argument #%d '%s'",iarg,argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '-base'!") ;
        dset_base = THD_open_dataset( argv[iarg] ) ;
        if( dset_base == NULL ) ERROR_exit("can't open -base dataset '%s'",argv[iarg]);
-INFO_message("Opened -base %s",argv[iarg]) ;
        iarg++ ; continue ;
      }
 
@@ -348,7 +351,6 @@ INFO_message("Opened -base %s",argv[iarg]) ;
        dset_targ = THD_open_dataset( argv[iarg] ) ;
        if( dset_targ == NULL )
          ERROR_exit("can't open -%s dataset '%s'",argv[iarg-1],argv[iarg]);
-INFO_message("Opened -targ %s",argv[iarg]) ;
        iarg++ ; continue ;
      }
 
@@ -544,9 +546,6 @@ INFO_message("Opened -targ %s",argv[iarg]) ;
        WARNING_message("No -base dataset: using sub-brick #0 of target") ;
    }
 
-   if( prefix == NULL )
-     WARNING_message("No output dataset will be calculated!") ;
-
    if( final_interp < 0 ) final_interp = interp_code ;
 
    /*--- load input datasets ---*/
@@ -670,8 +669,8 @@ INFO_message("Opened -targ %s",argv[iarg]) ;
  } while(0)
 
    xxx = 0.333 * nx_base * dx_base ;
-   yyy = 0.444 * ny_base * dy_base ;
-   zzz = 0.444 * nz_base * dz_base ;
+   yyy = 0.333 * ny_base * dy_base ;
+   zzz = 0.333 * nz_base * dz_base ;
 
    DEFPAR( 0, "x-shift" , -xxx , xxx , 0.0 , 0.0 , 0.0 ) ;
    DEFPAR( 1, "y-shift" , -yyy , yyy , 0.0 , 0.0 , 0.0 ) ;
@@ -681,13 +680,13 @@ INFO_message("Opened -targ %s",argv[iarg]) ;
    DEFPAR( 4, "x-angle" , -30.0 , 30.0 , 0.0 , 0.0 , 0.0 ) ;
    DEFPAR( 5, "y-angle" , -30.0 , 30.0 , 0.0 , 0.0 , 0.0 ) ;
 
-   DEFPAR( 6, "x-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;  /* identity */
-   DEFPAR( 7, "y-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;  /*  == 1.0 */
-   DEFPAR( 8, "z-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;
+   DEFPAR( 6, "x-scale" , 0.833 , 1.20 , 1.0 , 0.0 , 0.0 ) ;  /* identity */
+   DEFPAR( 7, "y-scale" , 0.833 , 1.20 , 1.0 , 0.0 , 0.0 ) ;  /*  == 1.0 */
+   DEFPAR( 8, "z-scale" , 0.833 , 1.20 , 1.0 , 0.0 , 0.0 ) ;
 
-   DEFPAR(  9, "y/x-shear" , -0.1666 , 0.1666 , 0.0 , 0.0 , 0.0 ) ;
-   DEFPAR( 10, "z/x-shear" , -0.1666 , 0.1666 , 0.0 , 0.0 , 0.0 ) ;
-   DEFPAR( 11, "z/y-shear" , -0.1666 , 0.1666 , 0.0 , 0.0 , 0.0 ) ;
+   DEFPAR(  9, "y/x-shear" , -0.1111 , 0.1111 , 0.0 , 0.0 , 0.0 ) ;
+   DEFPAR( 10, "z/x-shear" , -0.1111 , 0.1111 , 0.0 , 0.0 , 0.0 ) ;
+   DEFPAR( 11, "z/y-shear" , -0.1111 , 0.1111 , 0.0 , 0.0 , 0.0 ) ;
 
    if( im_base->nz == 1 ){             /* 2D images */
      stup.wfunc_param[ 2].fixed = 2 ;  /* fixed==2 means cannot be un-fixed */
@@ -696,6 +695,7 @@ INFO_message("Opened -targ %s",argv[iarg]) ;
      stup.wfunc_param[ 8].fixed = 2 ;
      stup.wfunc_param[10].fixed = 2 ;
      stup.wfunc_param[11].fixed = 2 ;
+     if( verb ) INFO_message("2D input ==> froze z parameters") ;
    }
 
    for( ii=0 ; ii < nparopt ; ii++ ){
@@ -719,6 +719,23 @@ INFO_message("Opened -targ %s",argv[iarg]) ;
      }
    }
 
+   /*** create shell of output dataset ***/
+
+   if( prefix == NULL ){
+     WARNING_message("No output dataset will be calculated!") ;
+   } else {
+     dset_out = EDIT_empty_copy( (dset_base!=NULL) ? dset_base : dset_targ ) ;
+     EDIT_dset_items( dset_out ,
+                        ADN_prefix    , prefix ,
+                        ADN_nvals     , DSET_NVALS(dset_targ) ,
+                        ADN_datum_all , MRI_float ,
+                      ADN_none ) ;
+     for( kk=0 ; kk < DSET_NVALS(dset_out) ; kk++ )
+       EDIT_BRICK_FACTOR(dset_out,kk,0.0);
+     tross_Copy_History( dset_targ , dset_out ) ;
+     tross_Make_History( "3dAllineate" , argc,argv , dset_out ) ;
+   }
+
    /*** start alignment process ***/
 
 #undef  PARDUMP
@@ -727,6 +744,8 @@ INFO_message("Opened -targ %s",argv[iarg]) ;
                           fprintf(stderr," %.2f",stup.wfunc_param[jj].val_out) ;  \
                         fprintf(stderr,"\n") ;                                    \
                     } while(0)
+
+   if( verb > 1 ) mri_genalign_verbose(verb) ;
 
    for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
 
@@ -741,8 +760,8 @@ INFO_message("Opened -targ %s",argv[iarg]) ;
        stup.smooth_code   = sm_code ;
        stup.smooth_radius = (sm_rad == 0.0f) ? 11.111f : sm_rad ;
        stup.npt_match     = nmask / 20 ;
-            if( stup.npt_match < 666       ) stup.npt_match = 666 ;
-       else if( stup.npt_match > npt_match ) stup.npt_match = npt_match ;
+            if( stup.npt_match <   666 ) stup.npt_match =   666 ;
+       else if( stup.npt_match > 22222 ) stup.npt_match = 22222 ;
 
        mri_genalign_scalar_setup( im_base , im_mask , im_targ , &stup ) ;
 
@@ -750,17 +769,17 @@ INFO_message("Opened -targ %s",argv[iarg]) ;
 
        /* startup search only allows rotations and shifts, so freeze all others */
 
-       for( jj=7 ; jj < stup.wfunc_numpar ; jj++ )
-         if( !stup.wfunc_param[ii].fixed ) stup.wfunc_param[ii].fixed = 1 ;
+       for( jj=6 ; jj < stup.wfunc_numpar ; jj++ )
+         if( !stup.wfunc_param[jj].fixed ) stup.wfunc_param[jj].fixed = 1 ;
 
-       mri_genalign_scalar_ransetup( &stup , 77 ) ;
+       mri_genalign_scalar_ransetup( &stup , 61 ) ;
 
        if( verb > 1 ) PARDUMP("Starting") ;
 
        /* unfreeze those that were temporarily frozen above */
 
-       for( jj=7 ; jj < stup.wfunc_numpar ; jj++ )
-         if( stup.wfunc_param[ii].fixed == 1 ) stup.wfunc_param[ii].fixed = 0 ;
+       for( jj=6 ; jj < stup.wfunc_numpar ; jj++ )
+         if( stup.wfunc_param[jj].fixed == 1 ) stup.wfunc_param[jj].fixed = 0 ;
 
        if( verb ) ININFO_message("- Start coarse optimization") ;
 
@@ -791,7 +810,15 @@ INFO_message("Opened -targ %s",argv[iarg]) ;
      if( verb > 1 ) PARDUMP("Final Fine") ;
 
      mri_free(im_targ) ;
+
+     if( dset_out != NULL ){
+       im_targ = mri_genalign_scalar_warpim( &stup ) ;
+       EDIT_substitute_brick( dset_out, kk, MRI_float, MRI_FLOAT_PTR(im_targ) );
+       mri_clear_data_pointer(im_targ) ; mri_free(im_targ) ;
+     }
    }
+
+   if( dset_out != NULL ){ DSET_write(dset_out); WROTE_DSET(dset_out); }
 
    exit(0) ;
 }
