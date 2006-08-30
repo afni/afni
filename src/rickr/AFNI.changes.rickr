@@ -1741,4 +1741,5 @@
       - modified new nsd_fill_index_list():
           add default list when AFNI_NSD_ADD_NODES is set
   * modified 3ddata.h: lose suma_ngr_get_node_column(), add NI_get_byte_order()
+  * added Makefile.linux_xorg7_64 (compiled on radagast)
 
