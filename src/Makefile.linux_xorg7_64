@@ -1,0 +1,92 @@
+# This Makefile works on Linux.
+# This is for compiling with xorg7, on a 64-bit CPU.
+
+# CPROF = -pg -g
+USE_ZLIB = -DHAVE_ZLIB
+LZLIB    = -lz
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF)
+
+CC     = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
+CCVOL  = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA)
+CCFAST = /usr/bin/gcc -O3 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA)
+
+# The following line includes compiling for the SSE operations.
+# However, I found that it actually makes things worse in some test code.
+# Your mileage may vary.
+
+# CCFAST = /usr/bin/gcc -O3 -march=i686 -ffast-math -mmmx -msse -mfpmath=sse -DLINUX2 $(CEXTRA)
+
+CCMIN  = /usr/bin/gcc -m64 $(CPROF)
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I. -I/usr/include
+LFLAGS = -L. -L/usr/lib64
+
+CCSVD  = /usr/bin/gcc -O0 -m64 -fPIC
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -shared -fPIC
+PLUGIN_CC     = $(CC)
+# PLFLAGS       = -rdynamic -L. -L/usr/lib
+PLFLAGS       = -rdynamic -L. -L/usr/lib64
+
+SHOWOFF = -DSHOWOFF=linux_xorg7_64
+
+AR     = /usr/bin/ar
+RANLIB = /usr/bin/ranlib
+TAR    = /bin/tar
+MKDIR  = /bin/mkdir
+GZIP   = /bin/gzip
+LD     = /usr/bin/gcc $(CPROF)
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./linux_xorg7_64
+LIBDIR = $(INSTALLDIR)
+
+#INSTALL_PREREQ = suma
+INSTALL_PREREQ = suma_gts
+
+# for dynamic linking
+
+# LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm  -ldl -lc
+
+# for static linking to Motif, dynamic to all else
+
+LLIBS  = -lmri /usr/lib64/libXm.a -lXft -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -lpng -ljpeg $(LZLIB) -lm  -ldl -lc
+
+# for static linking, as far as possible
+
+# LLIBS = -lmri -ldl               \
+#         /usr/lib/libXm.a   \
+#        /usr/lib/libXpm.a  \
+#        /usr/lib/libXext.a \
+#        /usr/lib/libXmu.a  \
+#        /usr/lib/libXt.a   \
+#        /usr/lib/libSM.a   \
+#        /usr/lib/libICE.a  \
+#        /usr/lib/libX11.a  \
+#        /usr/lib/libm.a          \
+#        /usr/lib/libc.a
+
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# For suma (NO STATIC LINKING OF GL libs)
+SUMA_GLIB_VER = -2.0
+SUMA_INCLUDE_PATH = -I/usr/include -I. -I.. -I../niml -Igts/src -I/usr/include/glib-1.2 -I/usr/include/glib-2.0 -I/usr/lib64/glib-2.0/include
+SUMA_LINK_PATH = -L/usr/lib64 -L..
+#use -lGLw if you have libGLw.a or libGLw.so* or 
+#  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
+SUMA_LINK_LIB = -lXm -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 $(LZLIB) -lm 
+SUMA_MAKEFILE_NAME = SUMA_Makefile
+SUMA_BIN_ARCHIVE = SUMA_Linux.tar
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+###############################################################
+
+MAKE = make
+include Makefile.INCLUDE
