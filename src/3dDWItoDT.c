@@ -2287,9 +2287,10 @@ static void ComputeDwithPowell(float *ts, float *val, int npts, int nbriks) /*co
 /* ts is input time-wise voxel data, val is output tensor data, npts is number of time points */
 {
 /* assumes initial estimate for Dtensor already store in Dvector and Dmatrix above*/
-   ENTRY("ComputeDwithPowell");
    double *x, tx;
    int i, icalls;
+
+   ENTRY("ComputeDwithPowell");
    
    Powell_npts = npts;
    Powell_ts = ts;
