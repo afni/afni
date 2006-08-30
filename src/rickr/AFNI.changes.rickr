@@ -1738,5 +1738,7 @@
       - added NI_get_byte_order(), to process "ni_form" attribute
       - removed suma_ngr_get_node_column()
       - removed node_col from ni_globals
+      - modified new nsd_fill_index_list():
+          add default list when AFNI_NSD_ADD_NODES is set
   * modified 3ddata.h: lose suma_ngr_get_node_column(), add NI_get_byte_order()
 
