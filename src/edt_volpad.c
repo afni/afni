@@ -13,11 +13,11 @@
 void * EDIT_volpad( int nxbot , int nxtop ,
                     int nybot , int nytop ,
                     int nzbot , int nztop ,
-                    int nx, int ny, int nz, int ftype, void * fim )
+                    int nx, int ny, int nz, int ftype, void *fim )
 {
    int nxold,nyold,nzold , nxnew,nynew,nznew , nxyold,nxynew ;
    int ii,jj,kk , iv , iibot,iitop , jjbot,jjtop , kkbot,kktop ;
-   void * vnew ;
+   void *vnew ;
 
 ENTRY("EDIT_volpad") ;
 
@@ -75,7 +75,7 @@ ENTRY("EDIT_volpad") ;
       RETURN(NULL) ;
 
       case MRI_byte:{
-         byte * bnew = (byte *) vnew, * bold = (byte *) fim ;
+         byte *bnew = (byte *) vnew, *bold = (byte *) fim ;
          for( kk=kkbot ; kk < kktop ; kk++ )
             for( jj=jjbot ; jj < jjtop ; jj++ )
                for( ii=iibot ; ii < iitop ; ii++ )
@@ -84,7 +84,7 @@ ENTRY("EDIT_volpad") ;
       break ;
 
       case MRI_rgb:{
-         byte * bnew = (byte *) vnew, * bold = (byte *) fim ;
+         byte *bnew = (byte *) vnew, *bold = (byte *) fim ;
          for( kk=kkbot ; kk < kktop ; kk++ )
             for( jj=jjbot ; jj < jjtop ; jj++ )
                for( ii=iibot ; ii < iitop ; ii++ ){
@@ -96,7 +96,7 @@ ENTRY("EDIT_volpad") ;
       break ;
 
       case MRI_short:{
-         short * bnew = (short *) vnew, * bold = (short *) fim ;
+         short *bnew = (short *) vnew, *bold = (short *) fim ;
          for( kk=kkbot ; kk < kktop ; kk++ )
             for( jj=jjbot ; jj < jjtop ; jj++ )
                for( ii=iibot ; ii < iitop ; ii++ )
@@ -105,7 +105,7 @@ ENTRY("EDIT_volpad") ;
       break ;
 
       case MRI_int:{
-         int * bnew = (int *) vnew, * bold = (int *) fim ;
+         int *bnew = (int *) vnew, *bold = (int *) fim ;
          for( kk=kkbot ; kk < kktop ; kk++ )
             for( jj=jjbot ; jj < jjtop ; jj++ )
                for( ii=iibot ; ii < iitop ; ii++ )
@@ -114,7 +114,7 @@ ENTRY("EDIT_volpad") ;
       break ;
 
       case MRI_float:{
-         float * bnew = (float *) vnew, * bold = (float *) fim ;
+         float *bnew = (float *) vnew, *bold = (float *) fim ;
          for( kk=kkbot ; kk < kktop ; kk++ )
             for( jj=jjbot ; jj < jjtop ; jj++ )
                for( ii=iibot ; ii < iitop ; ii++ )
@@ -123,7 +123,7 @@ ENTRY("EDIT_volpad") ;
       break ;
 
       case MRI_double:{
-         double * bnew = (double *) vnew, * bold = (double *) fim ;
+         double *bnew = (double *) vnew, *bold = (double *) fim ;
          for( kk=kkbot ; kk < kktop ; kk++ )
             for( jj=jjbot ; jj < jjtop ; jj++ )
                for( ii=iibot ; ii < iitop ; ii++ )
@@ -132,7 +132,7 @@ ENTRY("EDIT_volpad") ;
       break ;
 
       case MRI_complex:{
-         complex * bnew = (complex *) vnew, * bold = (complex *) fim ;
+         complex *bnew = (complex *) vnew, *bold = (complex *) fim ;
          for( kk=kkbot ; kk < kktop ; kk++ )
             for( jj=jjbot ; jj < jjtop ; jj++ )
                for( ii=iibot ; ii < iitop ; ii++ )
@@ -151,10 +151,10 @@ ENTRY("EDIT_volpad") ;
 
 MRI_IMAGE * mri_zeropad_3D( int nxbot , int nxtop ,
                             int nybot , int nytop ,
-                            int nzbot , int nztop , MRI_IMAGE * im )
+                            int nzbot , int nztop , MRI_IMAGE *im )
 {
-   MRI_IMAGE * jm ;
-   void * var ;
+   MRI_IMAGE *jm ;
+   void *var ;
 
 ENTRY("mri_zeropad_3D") ;
 
