@@ -580,6 +580,19 @@ int main( int argc , char *argv[] )
    ny_base = im_base->ny ;
    nz_base = im_base->nz ; nvox_base = nx_base*ny_base*nz_base ;
 
+   /* find the autobbox */
+   if( verb ){
+     float cv , *qar  ; MRI_IMAGE *qim ;
+     int xm,xp , ym,yp , zm,zp ;
+     cv = 0.33f * THD_cliplevel(im_base,0.33f) ;
+     qim = mri_copy(im_base); qar = MRI_FLOAT_PTR(qim);
+     for( ii=0 ; ii < qim->nvox ; ii++ ) if( qar[ii] < cv ) qar[ii] = 0.0f ;
+     MRI_autobbox( qim, &xm,&xp, &ym,&yp, &zm,&zp ) ; mri_free(qim) ;
+     INFO_message("autobbox: xbot=%3d xtop=%3d nx=%3d",xm,xp,im_base->nx) ;
+     INFO_message("        : ybot=%3d ytop=%3d ny=%3d",ym,yp,im_base->ny) ;
+     INFO_message("        : zbot=%3d ztop=%3d nz=%3d",zm,zp,im_base->nz) ;
+   }
+
    /* check for base:target dimensionality mismatch */
 
    if( nz_base >  1 && nz_targ == 1 )
