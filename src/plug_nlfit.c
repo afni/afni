@@ -607,6 +607,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                                 helpstring ,
                                 PLUGIN_CALL_VIA_MENU , NL_main ) ;
 
+   N_newuoa = 2 ;  /* 31 Aug 2006 - RWCox */
+
    PLUTO_add_hint( plint , "Control NLfit and NLerr Functions" ) ;
 
    global_plint = plint ;  /* make global copy */
