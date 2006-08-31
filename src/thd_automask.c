@@ -791,49 +791,49 @@ ENTRY("MRI_autobbox") ;
 
    if( xm != NULL ){
      for( ii=0 ; ii < nx ; ii++ )
-       for( kk=0 ; kk < nz ; kk++ )
-         for( jj=0 ; jj < ny ; jj++ )
-           if( mmm[ii+jj*nx+kk*nxy] ) goto CP5 ;
+      for( kk=0 ; kk < nz ; kk++ )
+       for( jj=0 ; jj < ny ; jj++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP5 ;
      CP5: *xm = ii ;
    }
 
    if( xp != NULL ){
      for( ii=nx-1 ; ii >= 0 ; ii-- )
-       for( kk=0 ; kk < nz ; kk++ )
-         for( jj=0 ; jj < ny ; jj++ )
-           if( mmm[ii+jj*nx+kk*nxy] ) goto CP6 ;
+      for( kk=0 ; kk < nz ; kk++ )
+       for( jj=0 ; jj < ny ; jj++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP6 ;
      CP6: *xp = ii ;
    }
 
    if( ym != NULL ){
      for( jj=0 ; jj < ny ; jj++ )
-       for( kk=0 ; kk < nz ; kk++ )
-         for( ii=0 ; ii < nx ; ii++ )
-           if( mmm[ii+jj*nx+kk*nxy] ) goto CP3 ;
+      for( kk=0 ; kk < nz ; kk++ )
+       for( ii=0 ; ii < nx ; ii++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP3 ;
      CP3: *ym = jj ;
    }
 
    if( yp != NULL ){
      for( jj=ny-1 ; jj >= 0 ; jj-- )
-       for( kk=0 ; kk < nz ; kk++ )
-         for( ii=0 ; ii < nx ; ii++ )
-           if( mmm[ii+jj*nx+kk*nxy] ) goto CP4 ;
+      for( kk=0 ; kk < nz ; kk++ )
+       for( ii=0 ; ii < nx ; ii++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP4 ;
      CP4: *yp = jj ;
    }
 
    if( zm != NULL ){
      for( kk=0 ; kk < nz ; kk++ )
-       for( jj=0 ; jj < ny ; jj++ )
-         for( ii=0 ; ii < nx ; ii++ )
-           if( mmm[ii+jj*nx+kk*nxy] ) goto CP1 ;
+      for( jj=0 ; jj < ny ; jj++ )
+       for( ii=0 ; ii < nx ; ii++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP1 ;
      CP1: *zm = kk ;
    }
 
    if( zp != NULL ){
      for( kk=nz-1 ; kk >= 0 ; kk-- )
-       for( jj=0 ; jj < ny ; jj++ )
-         for( ii=0 ; ii < nx ; ii++ )
-           if( mmm[ii+jj*nx+kk*nxy] ) goto CP2 ;
+      for( jj=0 ; jj < ny ; jj++ )
+       for( ii=0 ; ii < nx ; ii++ )
+        if( mmm[ii+jj*nx+kk*nxy] ) goto CP2 ;
      CP2: *zp = kk ;
    }
 
