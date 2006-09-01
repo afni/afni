@@ -77,8 +77,8 @@ int main (int argc,char *argv[])
   char *fout = NULL, *fname=NULL;
   SUMA_Boolean KeepMTI = YUP, Partial = NOPE, SkipConsistent = NOPE;
 
-  SUMA_mainENTRY;
   SUMA_STANDALONE_INIT;
+  SUMA_mainENTRY;
   
   if (argc < 7) {
     cmp_surf_usage();

@@ -230,7 +230,7 @@ SUMA_MEMTRACE_STRUCT * SUMA_Create_MemTrace (void) {
  
    #ifdef USE_SUMA_MALLOC
    SUMA_SL_Err("NO LONGER SUPPORTED");
-   SUMA_RETURN(NULL);
+   return(NULL);
    /* you cannot use SUMAg_CF here because the function that allocates for SUMAg_CF calls that one */
    
    /* DO NOT USE SUMA_malloc function here ! */
@@ -5567,6 +5567,8 @@ SUMA_Boolean SUMA_TriNorm (float *n0, float *n1, float *n2, float *norm)
    static char FuncName[]={"SUMA_TriNorm"};
    int i;
    float d1[3], d2[3], d;
+   
+   SUMA_ENTRY;
    
    for (i=0; i<3; ++i) {
          d1[i] = n0[i] - n1[i];

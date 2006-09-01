@@ -55,9 +55,9 @@ int main (int argc,char *argv[])
    SUMA_DSET * dset = NULL, *ndset=NULL;
    SUMA_Boolean LocalHead = YUP;
    
+   SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
    
-   SUMA_STANDALONE_INIT;
 	
    LocalHead = YUP; /* turn on debugging */
    SUMA_LH("Creating Data ...");
@@ -420,7 +420,7 @@ int main (int argc,char *argv[])
       #endif
            
       /* show me the whole thing. Don't do this for an enormous nel */
-         /* SUMA_ShowNel(dset->nel); */
+         /* SUMA_ShowNel((void*)dset->nel); */
          
       
       /* I want the pointer to the green column but do not know its index */
@@ -439,7 +439,7 @@ int main (int argc,char *argv[])
                   fprintf (stderr,"\tReporting values at index %d\n", iv[0]);
                   fp = (float *)dset->dnel->vec[iv[0]]; /* I know we only have one 
                                                    such col. here */
-                  for (j=0; j < dset->dnel->vec_len; ++j) {
+                  for (j=0; j < SDSET_VECLEN(dset); ++j) {
                      fprintf (stderr,"%f, ", fp[j]);
                   }
                   SUMA_free(iv); iv = NULL;

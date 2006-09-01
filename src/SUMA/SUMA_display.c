@@ -1104,6 +1104,8 @@ SUMA_expose(Widget w,
   SUMA_SurfaceViewer *sv;
   SUMA_Boolean LocalHead = NOPE;
   
+  SUMA_ENTRY;
+  
    SUMA_LH("Called");
   /*glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);*/ /* No need for that, done in display */
   
@@ -1120,7 +1122,8 @@ SUMA_expose(Widget w,
    /* When using multiple viewers, you must reset the OpenGL state variables or risk having abrupt changes with the first click */
    sv->ResetGLStateVariables = YUP;
    SUMA_postRedisplay(w, NULL, NULL);
-
+   
+   SUMA_RETURNe;
 }
 
 void

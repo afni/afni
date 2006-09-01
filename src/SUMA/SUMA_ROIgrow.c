@@ -226,8 +226,8 @@ int main (int argc,char *argv[])
    SUMA_SurfaceObject *SO = NULL;
    SUMA_Boolean LocalHead = NOPE;
 
-	SUMA_mainENTRY;
    SUMA_STANDALONE_INIT;
+	SUMA_mainENTRY;
 
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);

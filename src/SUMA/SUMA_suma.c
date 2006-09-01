@@ -245,12 +245,9 @@ int main (int argc,char *argv[])
    SUMA_Boolean LocalHead = NOPE;
    
     
+   SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
    
-	/* allocate space for CommonFields structure */
-	if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
-   SUMA_STANDALONE_INIT;
-   if (LocalHead) fprintf (SUMA_STDERR,"%s: SUMA_Create_CommonFields Done.\n", FuncName);
 	SUMAg_CF->isGraphical = YUP;
 
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;");

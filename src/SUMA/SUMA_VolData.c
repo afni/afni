@@ -134,6 +134,8 @@ SUMA_Boolean SUMA_AfniExistsView(int exists, char *view)
    static char FuncName[]={"SUMA_AfniExistsView"};
    SUMA_Boolean ans = NOPE;
    
+   SUMA_ENTRY;
+   
    if (!exists) SUMA_RETURN(ans);
    
    if (strcmp(view,"+orig") == 0) {
@@ -187,6 +189,8 @@ SUMA_Boolean SUMA_AfniExists(char *prefix, char *c2view)
    char *head=NULL;
    SUMA_Boolean ans = NOPE;
    SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
    
    ans = NOPE;
 
@@ -2164,6 +2168,8 @@ SUMA_Boolean SUMA_AFNItlrc_toMNI(float *NodeList, int N_Node, char *Coord)
    int i, i3;
    float mx = 0.0,my = 0.0,mz  = 0.0, tx = 0.0,ty = 0.0,tz = 0.0 ;
    SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
    
    if (strcmp(Coord,"RAI") == 0) DoFlip = NOPE;
    else if (strcmp(Coord,"LPI") == 0) DoFlip = YUP;

@@ -1775,6 +1775,8 @@ void SUMA_Search_Min_Dist(  float* pt, float* nodeList, int* seg, float restr, f
    float tempD;
    int j, k;
 
+   SUMA_ENTRY;
+   
    if ( !dist[0] || !dist[1] || !dist[2] ) {
       tempD = 3*pow(restr,2); 
       dist[0] = tempD;  dist[1] = tempD;  dist[2] = tempD;
@@ -2392,6 +2394,8 @@ int main (int argc, char *argv[])
    char surfFileNm[1000], outSpecFileNm[1000];
    SUMA_SpecSurfInfo *surfaces;
 
+   SUMA_mainENTRY;
+   
    /* allocate space for CommonFields structure */
    if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
    
@@ -2617,7 +2621,8 @@ int main (int argc, char *argv[])
    SUMA_SurfaceObject *morph_SO=NULL;
    SUMA_Boolean brk, LocalHead = NOPE, writeFile;
 
-
+   SUMA_mainENTRY;
+   
    /* allocate space for CommonFields structure */
    if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
    
@@ -3061,12 +3066,12 @@ int main (int argc, char *argv[])
 
    FILE *tmpFile=NULL;
     
+   SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
    
    /* allocate space for CommonFields structure */
    if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
    
-   SUMA_STANDALONE_INIT;
    #if 0
    SUMAg_CF = SUMA_Create_CommonFields ();
    if (SUMAg_CF == NULL) {
@@ -4344,6 +4349,7 @@ float * SUMA_assignColors( float *vals, float *cols, int numVal, int numCol, flo
    static char FuncName[]={"SUMA_assignColors"};
 
    SUMA_ENTRY;
+   
    valCol = SUMA_calloc( 3*numVal, sizeof(float));
    valDiv = SUMA_calloc( numCol, sizeof(float));
  
@@ -4398,7 +4404,7 @@ float * SUMA_assignColors( float *vals, float *cols, int numVal, int numCol, flo
 
    SUMA_free(valDiv);
    
-   return valCol;
+   SUMA_RETURN(valCol);
 }
 
 /*!
