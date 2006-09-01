@@ -952,6 +952,15 @@ N.B.: At this moment (26 Jan 2001), only the AFNI program itself is
       this purpose.  The goal is to make it easier to find bugs, and
       localize crashes.
 
+-------------------------
+Variable: AFNI_TRACE_FILE
+-------------------------
+If this variable is set, then the output from the AFNI function tracing
+macros will be written to a file with that name, rather than to stdout.
+This variable cannot be set in .afnirc; the intention is to provide a
+way to get 'clean' tracing output (not mixed up with other program junk)
+that can be fed to Ziad Saad's AnalyzeTrace function.
+
 ------------------------
 Variable: AFNI_ROTA_ZPAD
 ------------------------

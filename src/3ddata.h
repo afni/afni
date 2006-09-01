@@ -1495,6 +1495,17 @@ extern mat44 THD_mat44_mul( mat44 A , mat44 B ) ;      /* matrix multiply */
       AA.m[1][0], AA.m[1][1], AA.m[1][2], AA.m[1][3],  \
       AA.m[2][0], AA.m[2][1], AA.m[2][2], AA.m[2][3] )
 
+/* modify the last column of a mat44 struct so that the
+   same spatial coords apply to an image with pp,qq,rr
+   elements added at the lower edges [01 Sep 2006 - RWCox] */
+
+#undef  MAT44_EXTEND_IJK
+#define MAT44_EXTEND_IJK(AA,pp,qq,rr)                              \
+ ( AA.m[0][3] += AA.m[0][0]*(pp)+AA.m[0][1]*(qq)+AA.m[0][2]*(rr) , \
+   AA.m[1][3] += AA.m[1][0]*(pp)+AA.m[1][1]*(qq)+AA.m[1][2]*(rr) , \
+   AA.m[2][3] += AA.m[2][0]*(pp)+AA.m[2][1]*(qq)+AA.m[2][2]*(rr)  )
+
+
 /*---------------------------------------------------------------------*/
 /*--- data structure for information about time axis of 3D dataset ----*/
 
