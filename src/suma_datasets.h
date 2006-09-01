@@ -4,8 +4,9 @@
 #define MAX_ERRLOG_MSG 1000
 #define MAX_ERRLOG_FUNCNAME 200
 
-#define SUMA_DUMP_TRACE { /* taken from dbtrace.h */\
+#define SUMA_DUMP_TRACE(head) { /* taken from dbtrace.h */\
    int m_ii;   \
+   if (head) { SUMA_S_Note(head);} else {SUMA_S_Note("Dumping Trace:");}   \
    if( DBG_num >= 0 ){  \
       for( m_ii=DBG_num-1; m_ii >= 0 ; m_ii-- ) \
          fprintf(stderr,"%*.*s%s\n",m_ii+1,m_ii+1," ",DBG_rout[m_ii]) ; \

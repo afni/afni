@@ -909,7 +909,7 @@ void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call)
 
 void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data, XtPointer client_data)
 {
-   static char FuncName[]={"SUMA_cb_SymIrange_tb_toggled"};
+   static char FuncName[]={"SUMA_cb_ShowZero_tb_toggled"};
    SUMA_SurfaceObject *SO = NULL;
    SUMA_TABLE_FIELD *TF=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -920,7 +920,8 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data, XtPointer client_dat
    
    SO = (SUMA_SurfaceObject *)data;
    
-   if (!SO->SurfCont->curColPlane) SUMA_RETURNe;
+   if (!SO || !SO->SurfCont) { SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+   if (!SO->SurfCont->curColPlane || !SO->SurfCont->curColPlane->OptScl )  { SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; }
    
    SO->SurfCont->curColPlane->OptScl->MaskZero = !SO->SurfCont->curColPlane->OptScl->MaskZero;
    
@@ -935,7 +936,7 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data, XtPointer client_dat
  
    SUMA_UpdateNodeLblField(SO);
    
-
+   SUMA_RETURNe;
 }
  
 
@@ -952,7 +953,8 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data, XtPointer client_da
    
    SO = (SUMA_SurfaceObject *)data;
    
-   if (!SO->SurfCont->curColPlane) SUMA_RETURNe;
+   if (!SO || !SO->SurfCont) { SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+   if (!SO->SurfCont->curColPlane) { SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; }
    
    SO->SurfCont->curColPlane->SymIrange = !SO->SurfCont->curColPlane->SymIrange;
    

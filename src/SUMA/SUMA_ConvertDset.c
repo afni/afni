@@ -89,7 +89,7 @@ int main (int argc,char *argv[])
    SUMA_DSET *dset = NULL, *dseti=NULL, *dset_m = NULL;
    char *NameOut, *prfx = NULL, *prefix = NULL;
    char *add_node_index = NULL, *node_mask = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
@@ -318,7 +318,7 @@ int main (int argc,char *argv[])
       if (!dset->inel || !SDSET_NODEINDLEN(dset)) { 
          SUMA_SL_Err("Bad dset->inel\nOld niml dset?"); 
          SUMA_ShowDset(dset,0, NULL); 
-         SUMA_DUMP_TRACE;
+         SUMA_DUMP_TRACE("Bad dset->inel, dumping trace for debug:");
          SUMA_FreeDset(dset); dset = NULL; 
          SUMA_RETURN(1); 
       }

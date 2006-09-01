@@ -80,11 +80,13 @@ int SUMA_ClosestNodeToVoxels(SUMA_SurfaceObject *SO, SUMA_VOLPAR *vp, int *close
 Dunno why the original was giving me pain linking ... */
 int SUMA_THD_handedness( THD_3dim_dataset * dset )
 {
+   static char FuncName[]={"SUMA_THD_handedness"};
    THD_dataxes * dax ;
    THD_mat33 q ;
    int col ;
    float val ;
 
+   SUMA_ENTRY;
 
    if( !ISVALID_DSET(dset) ) SUMA_RETURN(1) ;
 
@@ -1879,6 +1881,8 @@ int SUMA_flip_orient(int xxorient)
          fprintf(SUMA_STDERR, "SUMA_opposite_orient: illegal zzorient code.\n ") ;
          SUMA_RETURN(-1);
    }
+   
+   SUMA_RETURN(-1);
    
 }
 
