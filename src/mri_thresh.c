@@ -26,7 +26,12 @@ ENTRY("mri_threshold") ;
 
    switch( thrim->kind ){
 
-      default: EXRETURN ;  /* don't know how to use this type of threshold image */
+      default:{                                  /* stoopid, but works */
+        MRI_IMAGE *qim = mri_to_float(thrim) ;
+        mri_threshold( thbot,thtop , qim , im ) ;
+        mri_free(qim) ;
+        EXRETURN ;
+      }
 
       case MRI_byte:{      /* 20 Dec 2004: very stupid way to do bytes */
         MRI_IMAGE *qim = mri_to_short(1.0,thrim) ;

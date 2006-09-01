@@ -854,6 +854,8 @@ extern MRI_IMAGE * mri_sobel( int , int , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_sharpen( float , int , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_transpose( MRI_IMAGE * ) ;
 
+extern MRI_IMAGE * mri_clusterize( float,float, MRI_IMAGE *, float, MRI_IMAGE * );
+
 #define FILT_FFT_WRAPAROUND  1
 
 extern MRI_IMAGE * mri_filt_fft( MRI_IMAGE * im , float,int,int,int ) ;

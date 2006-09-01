@@ -1030,6 +1030,15 @@ extern void THD_delete_diskptr( THD_diskptr * ) ;
 #  define MMAP_THRESHOLD 999999
 #endif
 
+#define VEDIT_CLUST  1   /* param= ithr,thr,rmm,vmul */
+
+#define VEDIT_LASTCODE 1
+
+typedef struct {
+  int code , ival ;
+  float param[9] ;
+} VEDIT_settings ;
+
 /*!  All subvolumes are stored in an array of MRI_IMAGE (the "brick").
      - If mmap is used, then the whole external file is mmap()-ed in one
        block and the data pointers for each image computed from this base.
@@ -1085,6 +1094,10 @@ typedef struct {
 
       char shm_idcode[32] ;   /*!< Idcode for shared memory buffer, if any [02 May 2003]. */
       int  shm_idint ;        /*!< Integer id for shared memory buffer. */
+
+      VEDIT_settings vedset ; /*!< Volume edit-on-the-fly settings */
+      MRI_IMAGE *vedim ;      /*!< Volume edit-on-the-fly result */
+
 } THD_datablock ;
 
 /*! Force bricks to be allocated with malloc(). */

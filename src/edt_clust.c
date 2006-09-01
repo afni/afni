@@ -113,18 +113,18 @@ printf("  starting cluster at ijk=%d\n",ijk) ;
       switch( ftype ){
          case MRI_short:
             for( icl=0 ; icl < clust->num_pt ; icl++ ){
-     	       ic = clust->i[icl];
-	       jc = clust->j[icl];
-	       kc = clust->k[icl];
+             ic = clust->i[icl];
+             jc = clust->j[icl];
+             kc = clust->k[icl];
 
-               for( jma=0 ; jma < mnum ; jma++ ){
+             for( jma=0 ; jma < mnum ; jma++ ){
                   im = ic + mask->i[jma];
-		  jm = jc + mask->j[jma];
-		  km = kc + mask->k[jma];
+                  jm = jc + mask->j[jma];
+                  km = kc + mask->k[jma];
                   if( im < 0 || im >= nx ||
                       jm < 0 || jm >= ny || km < 0 || km >= nz ) continue ;
 
-		  ijkma = THREE_TO_IJK (im, jm, km, nx, nxy);
+                  ijkma = THREE_TO_IJK (im, jm, km, nx, nxy);
                   if( ijkma < ijk_last || ijkma >= nxyz || sfar[ijkma] == 0 ) continue ;
 
                   ADDTO_CLUSTER( clust , im, jm, km, sfar[ijkma] ) ;
@@ -135,18 +135,18 @@ printf("  starting cluster at ijk=%d\n",ijk) ;
 
          case MRI_byte:
             for( icl=0 ; icl < clust->num_pt ; icl++ ){
- 	       ic = clust->i[icl];
-	       jc = clust->j[icl];
-	       kc = clust->k[icl];
+              ic = clust->i[icl];
+              jc = clust->j[icl];
+              kc = clust->k[icl];
 
                for( jma=0 ; jma < mnum ; jma++ ){
-		  im = ic + mask->i[jma];
-		  jm = jc + mask->j[jma];
-		  km = kc + mask->k[jma];
+                 im = ic + mask->i[jma];
+                 jm = jc + mask->j[jma];
+                 km = kc + mask->k[jma];
                   if( im < 0 || im >= nx ||
                       jm < 0 || jm >= ny || km < 0 || km >= nz ) continue ;
 
-		  ijkma = THREE_TO_IJK (im, jm, km, nx, nxy);
+                  ijkma = THREE_TO_IJK (im, jm, km, nx, nxy);
                   if( ijkma < ijk_last || ijkma >= nxyz || bfar[ijkma] == 0 ) continue ;
 
                   ADDTO_CLUSTER( clust , im, jm, km, bfar[ijkma] ) ;
@@ -157,21 +157,21 @@ printf("  starting cluster at ijk=%d\n",ijk) ;
 
          case MRI_float:
             for( icl=0 ; icl < clust->num_pt ; icl++ ){
-	       ic = clust->i[icl];
-	       jc = clust->j[icl];
-	       kc = clust->k[icl];
+              ic = clust->i[icl];
+              jc = clust->j[icl];
+              kc = clust->k[icl];
 
                for( jma=0 ; jma < mnum ; jma++ ){
-		  im = ic + mask->i[jma];
-		  jm = jc + mask->j[jma];
-		  km = kc + mask->k[jma];
-		  if( im < 0 || im >= nx ||
-		      jm < 0 || jm >= ny || km < 0 || km >= nz ) continue ;
+                 im = ic + mask->i[jma];
+                 jm = jc + mask->j[jma];
+                 km = kc + mask->k[jma];
+                 if( im < 0 || im >= nx ||
+                     jm < 0 || jm >= ny || km < 0 || km >= nz ) continue ;
 
-		  ijkma = THREE_TO_IJK (im, jm, km, nx, nxy);
+                 ijkma = THREE_TO_IJK (im, jm, km, nx, nxy);
                   if( ijkma < ijk_last || ijkma >= nxyz || ffar[ijkma] == 0.0 ) continue ;
 
-		  ADDTO_CLUSTER( clust , im, jm, km, ffar[ijkma] ) ;
+                 ADDTO_CLUSTER( clust , im, jm, km, ffar[ijkma] ) ;
                   ffar[ijkma] = 0.0 ;
                }
             }
@@ -216,31 +216,31 @@ ENTRY("MCW_cluster_to_vol") ;
       case MRI_short:
          sfar = (short *) fim ;
          for( icl=0 ; icl < clust->num_pt ; icl++ )
-	   {
-	     ijk = THREE_TO_IJK (clust->i[icl], clust->j[icl], clust->k[icl],
-				 nx, nxy);
-	     sfar[ijk] = clust->mag[icl] ;
-	   }
+         {
+          ijk = THREE_TO_IJK (clust->i[icl], clust->j[icl], clust->k[icl],
+                              nx, nxy);
+          sfar[ijk] = clust->mag[icl] ;
+         }
       EXRETURN ;
 
       case MRI_byte:
          bfar = (byte *) fim ;
          for( icl=0 ; icl < clust->num_pt ; icl++ )
-	   {
-	     ijk = THREE_TO_IJK (clust->i[icl], clust->j[icl], clust->k[icl],
-				 nx, nxy);
-	     bfar[ijk] = clust->mag[icl] ;
-	   }
+         {
+            ijk = THREE_TO_IJK (clust->i[icl], clust->j[icl], clust->k[icl],
+                                nx, nxy);
+            bfar[ijk] = clust->mag[icl] ;
+         }
       EXRETURN ;
 
       case MRI_float:
          ffar = (float *) fim ;
          for( icl=0 ; icl < clust->num_pt ; icl++ )
-	   {
-	     ijk = THREE_TO_IJK (clust->i[icl], clust->j[icl], clust->k[icl],
-				 nx, nxy);
-	     ffar[ijk] = clust->mag[icl] ;
-	   }
+         {
+          ijk = THREE_TO_IJK (clust->i[icl], clust->j[icl], clust->k[icl],
+                              nx, nxy);
+          ffar[ijk] = clust->mag[icl] ;
+         }
       EXRETURN ;
    }
 
