@@ -50,6 +50,7 @@
 
 # define MCHECK                           \
    do{ char * mc = MCW_MALLOC_status ;    \
+        if( DBG_fp==NULL ) DBG_fp=stdout; \
         if( mc != NULL ) fprintf(DBG_fp,"** Memory usage: %s\n",mc) ; } while(0)
 
 # define MPROBE do{ if( !DBG_trace ) (void)MCW_MALLOC_status ; } while(0)
@@ -73,7 +74,7 @@ extern "C" {
    char * DBG_rout[DEBUG_MAX_DEPTH] = { "Bottom of Debug Stack" } ;
    int DBG_num   = 1 ;
    int DBG_trace = 0 ;   /* turn off at start (cf. mainENTRY) */
-   FILE *DBG_fp  = stdout ;  /* 01 Sep 2006 */
+   FILE *DBG_fp  = NULL ;    /* 01 Sep 2006 */
 
    char * DBG_labels[3] = { "Trace=OFF " , "Trace=LOW " , "Trace=HIGH" } ;
 
@@ -145,17 +146,19 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 
 #define ENTRY(rout) do{ static char * rrr = (rout) ;  DBG_rout[DBG_num++] = rrr ; \
                         if( DBG_trace ){                                         \
-                          fprintf(DBG_fp,                                       \
-                                  "%*.*s%s [%d]: ENTRY (file=%s line=%d)\n",   \
-                                  DBG_num,DBG_num,DBG_LEADER_IN,rrr,DBG_num,  \
-                                  __FILE__ , __LINE__ ) ;                    \
-                          MCHECK ; fflush(DBG_fp) ; }                       \
-                        last_status[0] = '\0' ;                            \
+                          if( DBG_fp == NULL ) DBG_fp = stdout ;                \
+                          fprintf(DBG_fp,                                      \
+                                  "%*.*s%s [%d]: ENTRY (file=%s line=%d)\n",  \
+                                  DBG_num,DBG_num,DBG_LEADER_IN,rrr,DBG_num, \
+                                  __FILE__ , __LINE__ ) ;                   \
+                          MCHECK ; fflush(DBG_fp) ; }                      \
+                        last_status[0] = '\0' ;                           \
                     } while(0)
 
 #define DBROUT      DBG_rout[DBG_num-1]
 
-#define DBEXIT      do{ if( DBG_trace ){                                      \
+#define DBEXIT      do{ if( DBG_trace ){                                     \
+                          if( DBG_fp == NULL ) DBG_fp = stdout ;              \
                           fprintf(DBG_fp,                                      \
                                   "%*.*s%s [%d]: EXIT (file=%s line=%d)\n",     \
                                   DBG_num,DBG_num,DBG_LEADER_OUT,DBROUT,DBG_num, \
@@ -167,18 +170,19 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 
 /*! This macro is only to be used inside main(). */
 
-#define mainENTRY(rout)                                                  \
-  do{ char *e=getenv("AFNI_TRACE");                                       \
-      if( e != NULL ) DBG_trace = (*e=='y') ? 1 : (*e=='Y') ? 2 : 0 ;      \
-      e = getenv("AFNI_TRACE_FILE") ;                                       \
-      if( e != NULL ){ DBG_fp=fopen(e,"w"); if(DBG_fp==NULL)DBG_fp=stdout; } \
+#define mainENTRY(rout)                                               \
+  do{ char *e=getenv("AFNI_TRACE");                                   \
+      if( e != NULL ) DBG_trace = (*e=='y') ? 1 : (*e=='Y') ? 2 : 0 ; \
+      e = getenv("AFNI_TRACE_FILE") ;                                 \
+      if( e != NULL ) DBG_fp=fopen(e,"w") ;                           \
+      if( DBG_fp==NULL ) DBG_fp=stdout;                               \
       DBG_SIGNALS ; ENTRY(rout) ; } while(0)
 
 #define PRINT_TRACING (DBG_trace > 1)
 
 #define STATUS(str)                                                      \
   do{ if(PRINT_TRACING){                                                  \
-        MCHECK ;                                                           \
+        MCHECK ; if( DBG_fp==NULL ) DBG_fp=stdout;                         \
         fprintf(DBG_fp,"%*.*s%s -- %s\n",DBG_num,DBG_num," ",DBROUT,(str)); \
         fflush(DBG_fp) ; }                                                   \
       strncpy(last_status,str,1023); last_status[1023]='\0';                  \
