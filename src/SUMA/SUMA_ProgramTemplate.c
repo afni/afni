@@ -103,7 +103,6 @@ int main (int argc,char *argv[])
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    
-   SUMA_DUMP_TRACE;
    exit(0);
    
 } 

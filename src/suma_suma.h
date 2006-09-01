@@ -48,6 +48,7 @@
    #include "SUMA/SUMA_Macros.h"  
    #include "SUMA/SUMA_StringParse.h"
    #define SUMA_ENTRY ENTRY(FuncName)
+   #define SUMA_ENTRY_LH ENTRY(FuncName); do { if (LocalHead) { SUMA_DUMP_TRACE("dumping trace at top function entry"); } } while (0)
    #define SUMA_RETURN  RETURN 
    #define SUMA_RETURNe EXRETURN 
    #define SUMA_mainENTRY mainENTRY(FuncName)

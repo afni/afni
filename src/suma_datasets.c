@@ -984,7 +984,12 @@ int SUMA_AddGenDsetNodeIndexColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp, void *c
    
    SUMA_ENTRY;
 
-   if (!dset || !dset->inel || SDSET_NODEINDLEN(dset) < 1) { SUMA_SL_Err("Null input"); SUMA_ShowNel(dset->inel); SUMA_DUMP_TRACE; SUMA_RETURN(0); } 
+   if (!dset || !dset->inel || SDSET_NODEINDLEN(dset) < 1) { 
+      SUMA_SL_Err("Null input"); 
+      SUMA_ShowNel(dset->inel); 
+      SUMA_DUMP_TRACE("Bad dset->inel, dumping trace for debug:"); 
+      SUMA_RETURN(0); 
+   } 
    
    if (!col) { 
       SUMA_LH("No data");
@@ -1283,7 +1288,11 @@ int SUMA_AddDsetNelIndexCol ( SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ct
    SUMA_ENTRY;
    
    
-   if (!dset || !dset->inel || !SDSET_NODEINDLEN(dset)) { SUMA_SL_Err("Null input"); SUMA_DUMP_TRACE; exit(1); SUMA_RETURN(0); }
+   if (!dset || !dset->inel || !SDSET_NODEINDLEN(dset)) { 
+      SUMA_SL_Err("Null input"); 
+      SUMA_DUMP_TRACE("Bad dset->inel, dumping trace for debug:"); 
+      SUMA_RETURN(0); 
+   }
    if (!col) { 
       /* Do not complain, that is not a bad thing.
       People can use this to allocate for a column
@@ -3005,7 +3014,7 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
    
    if (!DsetList)  { SUMA_SL_Err("Need Dset List"); SUMA_RETURN(0); }
    if (!dsetp) { SUMA_SL_Err("dsetp is NULL"); SUMA_RETURN(0); }
-   else dset = *dsetp;
+   else dset = *dsetp;  /* dset is the new pointer */
    
    if (!dset->dnel) { SUMA_SL_Err("dset->nel is NULL\nNothing to do"); SUMA_RETURN(0); }
 
@@ -3034,7 +3043,7 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
          dset->inel = NULL;
          #endif
          SUMA_free(dset);
-         /* now make the switch */
+         /* now make the switch so that on return, dset becomes the previous dset*/
          *dsetp = dprev;
       } else {
          SUMA_LH("Not Replacing");
@@ -4695,7 +4704,7 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, i
    static char FuncName[]={"SUMA_WriteDset_eng"};
    char *PrefOut = NULL, *NameOut = NULL, *strmname=NULL, stmp[500], *eee=NULL;
    int flg = 0, exists = 0;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -5160,7 +5169,7 @@ SUMA_DSET *SUMA_LoadNimlDset (char *Name, int verb)
    if (!dset->inel || !SDSET_NODEINDLEN(dset)) { 
       SUMA_SL_Err("Bad dset->inel\nOld niml dset?"); 
       SUMA_ShowDset(dset,0, NULL); 
-      SUMA_DUMP_TRACE;
+      SUMA_DUMP_TRACE("Bad dset->inel, dumping trace for debug:");
       SUMA_FreeDset(dset); dset = NULL; 
       SUMA_RETURN(dset); 
    }
