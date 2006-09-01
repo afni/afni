@@ -4739,6 +4739,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name, SUMA_D
    /* Sover->ColMat = (float **) SUMA_allocate2D(Sover->N_Alloc, 3, sizeof(float)); NO MORE 2D ! Mar 17 04*/
    Sover->ColVec = (float *)SUMA_calloc(N_Alloc*3, sizeof(float));
    Sover->LocalOpacity = (float *)SUMA_calloc(N_Alloc, sizeof(float));
+   Sover->LocalOpacity[0] = -1.0; /* flag indicating local facts have not been initialized */
    
    if (!Sover->ColVec || !Sover->LocalOpacity || !Sover->NodeDef) {
       fprintf (SUMA_STDERR,"Error %s: Could not allocate for Sover fields.\n", FuncName);
@@ -4748,7 +4749,6 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name, SUMA_D
    
    if (!Recycle) {
       Sover->GlobalOpacity = -1.0; /* no factor applied */
-      Sover->LocalOpacity[0] = -1.0; /* flag indicating local facts have not been initialized */
       Sover->Show = NOPE;
       Sover->PlaneOrder = -1; /* No order is specified */
       Sover->isBackGrnd = 0; /* no brightness modulation effects */
@@ -6103,7 +6103,7 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, S
    SUMA_SurfaceObject *SO2 = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
-   SUMA_ENTRY; 
+   SUMA_ENTRY_LH; 
    
    if (!Overlay) {
       SUMA_S_Err("You sent me NULLS!");

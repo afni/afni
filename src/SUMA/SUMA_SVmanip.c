@@ -540,6 +540,11 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO)
       }
    }
    
+   if (sv->N_ColList >= SUMA_MAX_DISPLAYABLE_OBJECTS) {
+      SUMA_SL_Crit("sv->N_ColList >= SUMA_MAX_DISPLAYABLE_OBJECTS");
+      SUMA_RETURN (NOPE);
+   }
+   
    /* create the ColList struct */
    if (sv->ColList[sv->N_ColList].glar_ColorList) {
       fprintf (SUMA_STDERR,"Error %s: glar_ColorList is not NULL. Cannot reallocate.\n", FuncName);
@@ -591,13 +596,15 @@ GLfloat * SUMA_GetColorList (SUMA_SurfaceViewer *sv, char *DO_idstr)
    int i;
    GLfloat * glar_ColorList = NULL;
    SUMA_Boolean Found = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
    
-   SUMA_ENTRY;
+   SUMA_ENTRY_LH;
    
    if (!DO_idstr) {
       fprintf (SUMA_STDERR,"Error %s: DO_idstr is NULL, this should not be.\n", FuncName);
       SUMA_RETURN (NULL);
    }
+   
    
    /* find the culprit */
    Found = NOPE;

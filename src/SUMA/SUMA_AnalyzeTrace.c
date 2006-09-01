@@ -276,9 +276,13 @@ char *SUMA_NextEntry(char *ss, int *level, int *io, char *func, char *file, int 
 
 int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
    static char FuncName[]={"SUMA_AnalyzeTraceFunc"};
-   char *fl = NULL, *flc = NULL, *fls = NULL, *flo = NULL, *fln = NULL, *fle = NULL, func[100], file[100];
-   int level, cur_level, io, nread, its, line, error;
+   char *fl = NULL, *flc = NULL, *fls = NULL, *flo = NULL, 
+         *fln = NULL, *fle = NULL, func[100],  file[100],
+         *comp_fl=NULL, stmp[300];
+   int level, cur_level, io, nread, its, line, error, cnt, N_comp_fl, Nrep;
    SUMA_TRACE_STRUCT TS[100];
+   SUMA_Boolean Res = NOPE;
+   FILE *fff=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -296,11 +300,18 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
 
    if (LocalHead) fprintf(SUMA_STDERR,"%s: Read in %d chars\n", FuncName, nread);
    
+   if (0) { /* not ready yet */
+      comp_fl = (char *)SUMA_calloc(nread, sizeof(char));
+      N_comp_fl = 0;
+   }
+   
    fle = fl+nread; /* end of string */
    fls = flc+50; /* set current stop location */
     
    /* go to first entry */
    cur_level = 0;
+   func[0] = '\0';
+   Nrep = 0;
    fln = fl;
    do {
       flc = fln; /* set current location */
@@ -308,7 +319,8 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
       if (fln == flc) {
          SUMA_S_Note("\nDone Checking.\nTrace Looks OK (exit() calls are not popped off the stack).\n");
          SUMA_ShowTraceStack(TS, its);
-         SUMA_RETURN(YUP);
+         Res = YUP;
+         goto GETOUT;
       }
       if (cur_level == 0) {
          /* first time */
@@ -324,7 +336,8 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                fprintf(SUMA_STDERR, "Entering level %d from current level of %d!\n", level, cur_level);
                /* Show me the trace */
                SUMA_ShowTraceStack(TS, its);
-               SUMA_RETURN(NOPE);
+               Res = NOPE;
+               goto GETOUT;
             } else {
                cur_level = level;
                snprintf(TS[its].func, 99*sizeof(char),  "%s", func);
@@ -348,14 +361,16 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                   /* Show me the trace */
                   SUMA_ShowTraceStack(TS, its);
                   SUMA_ShowFromTo(flc, fln, NULL);
-                  SUMA_RETURN(NOPE);
+                  Res = NOPE;
+                  goto GETOUT;
             } 
             if (level != cur_level) {
                fprintf(SUMA_STDERR, "Leaving level %d from current level of %d!\n", level, cur_level);
                /* Show me the trace */
                SUMA_ShowTraceStack(TS, its);
                SUMA_ShowFromTo(flc, fln, NULL);
-               SUMA_RETURN(NOPE);
+               Res = NOPE;
+               goto GETOUT;
             } else {
                /* make sure func at leaving is same as one entering */
                if (strcmp(func, TS[its-1].func) != 0) {
@@ -363,7 +378,8 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                   /* Show me the trace */
                   SUMA_ShowTraceStack(TS, its);
                   SUMA_ShowFromTo(flc, fln, NULL);
-                  SUMA_RETURN(NOPE);
+                  Res = NOPE;
+                  goto GETOUT;
                }  
                /* make sure file at leaving is same as one entering */
                if (strcmp(file, TS[its-1].file) != 0) {
@@ -372,7 +388,8 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                   /* Show me the trace */
                   SUMA_ShowTraceStack(TS, its);
                   SUMA_ShowFromTo(flc, fln, NULL);
-                  SUMA_RETURN(NOPE);
+                  Res = NOPE;
+                  goto GETOUT;
                }
                /* make sure  leaving after entrance*/
                if (line < TS[its-1].line) {
@@ -383,7 +400,8 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                   /* Show me the trace */
                   SUMA_ShowTraceStack(TS, its);
                   SUMA_ShowFromTo(flc, fln, NULL);
-                  SUMA_RETURN(NOPE);
+                  Res = NOPE;
+                  goto GETOUT;
                }
                if (line - TS[its-1].line > Opt->N_it) {
                   fprintf(SUMA_STDERR, "Note: Leaving purported function (%s) at line %d more than %d lines from entry line %d, its = %d!\n",
@@ -414,7 +432,19 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
       }
    } while (fln > flc);
    
-   SUMA_RETURN(YUP);
+   GETOUT:
+   /* seal comp_fl and write to disk */
+   if (0){
+      comp_fl[N_comp_fl] = '\0'; 
+      fopen("CompactTrace","w");
+      fprintf(fff,"%s",comp_fl);
+      SUMA_free(comp_fl); comp_fl = NULL;
+      fclose(fff); fff = NULL;
+   }
+   
+   SUMA_free(fl); fl = NULL;
+   
+   SUMA_RETURN(Res);
    
 }
 
