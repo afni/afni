@@ -142,6 +142,16 @@ void SUMA_ShowTraceStack(SUMA_TRACE_STRUCT *TS, int its) {
    return;
 }
 
+int SUMA_LineNumbersFromTo(char *f, char *t){
+   int N_line = 0;
+   
+   while (f<t) {
+      if (SUMA_IS_LINE_END(*f)) ++N_line;
+      ++f;
+   }
+   return(N_line);   
+}
+
 void SUMA_ShowFromTo(char *f, char *t, char *head){
    if (head) {
       fprintf(SUMA_STDERR, "%s", head);
@@ -255,15 +265,61 @@ char *SUMA_NextEntry(char *ss, int *level, int *io, char *func, char *file, int 
                            "level: %d\n", FuncName, func, file, *line, *io, *level);
                           
    }
-   /* skip the muck until next + or - that is preceeded by new line*/
+   #if 0
+   /* skip the muck until next + or - that is preceeded by new line or followed by ENTRY or EXIT on the same line*/
    ss = ss_level;
    while (*ss != '\0') {
       if (*ss == '+' || *ss == '-') {
          if (SUMA_IS_LINE_END(*(ss-1))) break;
+         else if (0) {
+            char *pti=ss, *pt=ss; int fnd = 0;
+            while (!SUMA_IS_LINE_END(*pt) && *pt != '\0') ++pt;
+            SUMA_ADVANCE_PAST(pti, pt, "ENTRY", fnd, 1); 
+            if (!fnd) SUMA_ADVANCE_PAST(pti, pt, "EXIT", fnd, 1);
+            if (fnd) break;
+         }
       }
       /* fprintf(SUMA_STDERR,"%c   ", *ss); */ 
       ++ss;
    }
+   #else
+   /* skip the muck until next + or - that is followed with no sign reversal by ENTRY or EXIT on the same line */
+   ss = ss_level;
+   while (*ss != '\0') {
+      if (*ss == '+' || *ss == '-') { /* pluging in */
+         char *pti=ss, *pt=ss, sgn=*ss, *pti_retry; int fnd = 0, lll, good;
+         while (!SUMA_IS_LINE_END(*pt) && *pt != '\0') ++pt;   /* move till end of line */
+         SUMA_ADVANCE_PAST(pti, pt, "ENTRY", fnd, 1);             /* find entry? */
+         if (!fnd) SUMA_ADVANCE_PAST(pti, pt, "EXIT", fnd, 1);    /* or EXIT ? */
+         if (fnd) { /* ENTRY or EXIT found on line, make sure there is no other sign ahead */
+            while(*pti != '[') --pti;  /* Now back from ENTRY of EXIT until square bracket is met */   
+            SUMA_ADVANCE_PAST_INT(pti, lll, fnd); /* Now read the level */
+            good = 0;
+            do {
+               while(pti > ss_init && *pti != '+' && *pti != '-') --pti; /* go back to first sign */
+               if (pti < ss_init) {
+                  SUMA_S_Err("Parsing error, number of consecutive + or - does not match level");
+                  SUMA_RETURN(ss_init);
+               }
+               pti_retry = pti-1; /* store location to continue from if sign is bad news */
+               /*fprintf(SUMA_STDERR,"Level %d, *pti = %c, *(pti-lll+1)=%c\n", lll, *pti, *(pti-lll+1)); */
+               if (*(pti-lll+1) == *pti) { ; /* if the sign level characters back the same, then accept it */
+                  ss = pti = pti-lll; /* put ss at beginning of sign and get out */
+                  good = 1;
+                  break;
+               } else { /* sign we went back to is bad, go beyond it */
+                  pti = pti_retry; 
+                  good = 0;  
+               }
+            } while (!good);
+            if (good) break; /* from outer while*/
+         }        
+      }
+      /* fprintf(SUMA_STDERR,"%c   ", *ss); */
+      ++ss;
+   }
+   #endif
+   
    /* scan for errors */
    ctmp = *ss; *ss = '\0';
    if (strstr(ss_init,"Error")) *error = 1;
@@ -332,10 +388,15 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
       }
       if (level > 0) {
          if (io == 1) { /* entry, make sure it is more than current level */
+            if (LocalHead) {
+               fprintf(SUMA_STDERR, "DBG: Entering %s, level %d, io %d\n", func, level, io); 
+            }
             if (level != cur_level + 1) {
                fprintf(SUMA_STDERR, "Entering level %d from current level of %d!\n", level, cur_level);
                /* Show me the trace */
                SUMA_ShowTraceStack(TS, its);
+               sprintf(stmp,"Chunk in question at %s:%d\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
+               SUMA_ShowFromTo(flc, fln, stmp);
                Res = NOPE;
                goto GETOUT;
             } else {
@@ -348,19 +409,24 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                TS[its].line = line;
                ++its;
                if (error) {
-                  SUMA_ShowFromTo(flc, fln, "\n"
-                                       "Encountered error here in this chunk:\n"
-                                       "-------------------------------------\n");
+                  sprintf(stmp,"\n"
+                               "Encountered error here in this chunk: %s:%d\n"
+                               "-------------------------------------\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
+                  SUMA_ShowFromTo(flc, fln, stmp);
                   SUMA_ShowTraceStack(TS, its);
                   fprintf(SUMA_STDERR, "\n\n");
                }
             }
          } else if (io == -1) { /* exit, make sure level is current and function is same */
+             if (LocalHead) {
+               fprintf(SUMA_STDERR, "DBG: Leaving %s, level %d, io %d\n", func, level, io); 
+            }
             if (its < 1) {
                   fprintf(SUMA_STDERR, "Leaving function %s but with its = %d!\n", func, its); 
                   /* Show me the trace */
                   SUMA_ShowTraceStack(TS, its);
-                  SUMA_ShowFromTo(flc, fln, NULL);
+                  sprintf(stmp,"Chunk in question at %s:%d\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
+                  SUMA_ShowFromTo(flc, fln, stmp);
                   Res = NOPE;
                   goto GETOUT;
             } 
@@ -368,7 +434,8 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                fprintf(SUMA_STDERR, "Leaving level %d from current level of %d!\n", level, cur_level);
                /* Show me the trace */
                SUMA_ShowTraceStack(TS, its);
-               SUMA_ShowFromTo(flc, fln, NULL);
+               sprintf(stmp,"Chunk in question at %s:%d\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
+               SUMA_ShowFromTo(flc, fln, stmp);
                Res = NOPE;
                goto GETOUT;
             } else {
@@ -377,7 +444,8 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                   fprintf(SUMA_STDERR, "Leaving func %s from level current func %s, its = %d!\n", func, TS[its-1].func, its-1); 
                   /* Show me the trace */
                   SUMA_ShowTraceStack(TS, its);
-                  SUMA_ShowFromTo(flc, fln, NULL);
+                  sprintf(stmp,"Chunk in question at %s:%d\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
+                  SUMA_ShowFromTo(flc, fln, stmp);
                   Res = NOPE;
                   goto GETOUT;
                }  
@@ -387,7 +455,8 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                                         func, file, TS[its-1].func, its-1); 
                   /* Show me the trace */
                   SUMA_ShowTraceStack(TS, its);
-                  SUMA_ShowFromTo(flc, fln, NULL);
+                  sprintf(stmp,"Chunk in question at %s:%d\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
+                  SUMA_ShowFromTo(flc, fln, stmp);
                   Res = NOPE;
                   goto GETOUT;
                }
@@ -399,7 +468,8 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                                         file, line); 
                   /* Show me the trace */
                   SUMA_ShowTraceStack(TS, its);
-                  SUMA_ShowFromTo(flc, fln, NULL);
+                  sprintf(stmp,"Chunk in question at %s:%d\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
+                  SUMA_ShowFromTo(flc, fln, stmp);
                   Res = NOPE;
                   goto GETOUT;
                }
@@ -408,7 +478,8 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                                         func, line, Opt->N_it, TS[its-1].line, its-1); 
                   /* Show me the trace */
                   SUMA_ShowTraceStack(TS, its);
-                  SUMA_ShowFromTo(flc, fln, NULL);
+                  sprintf(stmp,"Chunk in question at %s:%d\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
+                  SUMA_ShowFromTo(flc, fln, stmp);
                }
                {
                   /* OK, cleanup last its*/
@@ -418,9 +489,10 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                   TS[its].io = 0;
                   cur_level = level - 1;
                   if (error) {
-                     SUMA_ShowFromTo(flc, fln, "\n"
-                                          "Encountered error here in this chunk:\n"
-                                          "-------------------------------------\n");
+                     sprintf(stmp,  "\n"
+                                    "Encountered error here in this chunk: %s:%d\n"
+                                    "-------------------------------------\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
+                     SUMA_ShowFromTo(flc, fln, stmp);
                      SUMA_ShowTraceStack(TS, its);
                      fprintf(SUMA_STDERR, "\n\n");
                   }
@@ -449,11 +521,19 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
 }
 
 char *SUMA_NextFunc(char *ss, char *sslim, int *io, char *func, char *file, int *line, int *error) {
-   char *key[] = { "static", "char", "FuncName", "=", "{" , "}", ";", NULL};
+   #if 0 /* static is not mandatory */
+   char *key[] = { "static", "char", "FuncName", "=", "{" , "}", ";", NULL}; 
    int max_gap[] = {  -1,     5,       5,         5,    5,   -1, 20, -1 };  
    /* this comment with SUMA_ENTRY  is placed here to avoid having the program trip on the next line
    Leave key as the first line .
    Same for this one SUMA_RETURN */
+   #else /* static is not mandatory */
+   char *key[] = { "char", "FuncName", "=", "{" , "}", ";", NULL};  
+   int max_gap[] = {  -1,     5,         5,    5,   -1, 20, -1 };  
+   /* this comment with SUMA_ENTRY  is placed here to avoid having the program trip on the next line
+   Leave key as the first line .
+   Same for this one SUMA_RETURN */
+   #endif
    static char FuncName[]={"SUMA_NextFunc"}; 
    char *ss_tmp = NULL;
    int cnt = 0, found = 0, ok=0;
@@ -565,7 +645,7 @@ int SUMA_AnalyzeSumaFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
    fln = SUMA_NextFunc(flc, fle, &io, func, file, &line, &error);
    do {
       flc = fln; /* set current location */
-      fprintf(SUMA_STDERR,"Analyzing function %s, ", func);
+      fprintf(SUMA_STDERR,"Analyzing function %s in %s:%d, ", func, fname, SUMA_LineNumbersFromTo(fl, flc));
       fln = SUMA_NextFunc(flc, fle, &io, func, file, &line, &error) ;
       fprintf(SUMA_STDERR,"(next function %s): ", func); 
       if (fln == flc) {
