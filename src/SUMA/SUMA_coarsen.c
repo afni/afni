@@ -186,9 +186,9 @@ int main (int argc,char *argv[])
    int N_Spec=0;
    SUMA_Boolean LocalHead = NOPE;
 
+   SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
 
-   SUMA_STANDALONE_INIT;
 
 
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;-o;");

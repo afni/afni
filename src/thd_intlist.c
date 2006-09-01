@@ -15,9 +15,9 @@ void MCW_intlist_allow_negative( int iii )   /* 22 Nov 1999 */
    allow_negative = iii ; return ;
 }
 
-/*! Stopping criterion for MCW_get_intlist() */
+/*! Stopping criterion for MCW_get_intlist()          ZSS, Aug 06: Added '#' to ISEND */
 
-#define ISEND(c) ( (c)==']' || (c)=='}' || (c)=='\0' )
+#define ISEND(c) ( (c)==']' || (c)=='}' || (c)=='#' || (c)=='\0' )
 
 /*-----------------------------------------------------------------*/
 /*! Get an integer list in the range 0..(nvals-1), from the
@@ -28,8 +28,8 @@ void MCW_intlist_allow_negative( int iii )   /* 22 Nov 1999 */
    wrong, and the caller must deal with that.
 
    Syntax of input string:
-     - initial '{' or '[' is skipped, if present
-     - ends when '}' or ']' or end of string is found
+     - initial '{' or '['  or '#' is skipped, if present
+     - ends when '}' or ']' or '#' or end of string is found
      - contains entries separated by commas
      - entries have one of these forms:
        - a single number
@@ -51,26 +51,24 @@ int * MCW_get_intlist( int nvals , char *str )
    char *cpt ;
 
    /* Meaningless input? */
-
    if( nvals < 1 ) return NULL ;
 
    /* No selection list? */
 
    if( str == NULL || str[0] == '\0' ) return NULL ;
 
-   /* skip initial '[' or '{' */
+   /* skip initial '[' or '{' or '#'*/
 
    subv    = (int *) malloc( sizeof(int) * 2 ) ;
    subv[0] = nout = 0 ;
 
    ipos = 0 ;
-   if( str[ipos] == '[' || str[ipos] == '{' ) ipos++ ;
+   if( str[ipos] == '[' || str[ipos] == '{' || str[ipos] == '#') ipos++ ;
 
    /*** loop through each sub-selector until end of input ***/
 
    slen = strlen(str) ;
    while( ipos < slen && !ISEND(str[ipos]) ){
-
       while( isspace(str[ipos]) ) ipos++ ;   /* skip blanks */
       if( ISEND(str[ipos]) ) break ;         /* done */
 

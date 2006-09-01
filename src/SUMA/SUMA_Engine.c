@@ -140,7 +140,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SUMA_LH(stmp);
                NI_set_attribute ( nel, "ni_object", stmp);
                
-               /* SUMA_ShowNel(nel); */
+               /* SUMA_ShowNel((void*)nel); */
                
                if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel, NI_BINARY_MODE ) < 0) {
                   SUMA_SLP_Err("Failed to send CMAP to afni");
@@ -161,7 +161,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                stmp = SUMA_append_replace_string(stmp, sbuf, "", 1);
                NI_set_attribute ( nel, "ni_object", stmp);
                
-               /* SUMA_ShowNel(nel); */
+               /* SUMA_ShowNel((void*)nel); */
                
                if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel, NI_BINARY_MODE ) < 0) {
                   SUMA_SLP_Err("Failed to send CMAP to afni");

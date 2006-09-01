@@ -1303,6 +1303,8 @@ int main (int argc,char *argv[])
    char SF_name[200];
 	SUMA_SureFit_struct *SF;
 	
+   SUMA_mainENTRY;
+   
 	/* allocate space for CommonFields structure */
 	SUMAg_CF = SUMA_Create_CommonFields ();
 	if (SUMAg_CF == NULL) {
@@ -4011,8 +4013,8 @@ int main (int argc,char *argv[])
    SUMA_Boolean exists;
    SUMA_Boolean LocalHead = NOPE;
    
-	SUMA_mainENTRY;
    SUMA_STANDALONE_INIT;
+	SUMA_mainENTRY;
 	
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
@@ -5636,7 +5638,8 @@ SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent
    
    /* make it easy */
    dset->dnel = SUMA_FindDsetDataElement(dset);
-
+   dset->inel = SUMA_FindDsetNodeIndexElement(dset);
+   
    SUMA_LH("cleanup ...");
    if (NodesTotal) SUMA_free(NodesTotal); NodesTotal = NULL;
    if (LabelsTotal) SUMA_free(LabelsTotal); LabelsTotal = NULL;
@@ -5894,8 +5897,8 @@ int main (int argc,char *argv[])
 	SUMA_Boolean AddThis = NOPE;
    SUMA_Boolean LocalHead = NOPE;
 	
-   SUMA_mainENTRY;
    SUMA_STANDALONE_INIT;
+   SUMA_mainENTRY;
 	
    if (argc < 4) {
       usage_ROI2dataset_Main ();
@@ -6944,6 +6947,8 @@ THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals, int N_vals, S
    SUMA_Boolean LocalHead = NOPE;
    THD_3dim_dataset *dset=NULL, *mset=NULL, *maskset=NULL;
 
+   SUMA_ENTRY;
+   
    /* check for badiosity */
    if( Opt->do_ijk == 0 && Opt->master == NULL ) {
       SUMA_SL_Err("Can't use mm coords without master.") ;

@@ -47,6 +47,8 @@ unsigned char *SUMA_read_ppm(char *fname, int *width, int *height, int verb)
    int ir, ic, i1d, i1df, imx, i1d3, i1d4;
    SUMA_Boolean LocalHead = NOPE;
    
+   SUMA_ENTRY;
+   
    if (!fname) { if (verb) SUMA_SL_Err("NULL fname");  SUMA_RETURN(imar); }
    im = mri_read_ppm( fname ) ;
    if (!im) { 
@@ -4884,9 +4886,9 @@ int main (int argc,char *argv[])
 
    SUMA_Boolean LocalHead = NOPE;
    
+   SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
    
-   SUMA_STANDALONE_INIT;
    
    if (!SUMAg_CF->scm) {   
       SUMAg_CF->scm = SUMA_Build_Color_maps();

@@ -1563,6 +1563,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
 }
 
 /*! allocate and intialize SUMA_CommonFields 
+   No fancy allocation, No fancy macros.
 \sa SUMA_Free_CommonFields
 */
 SUMA_CommonFields * SUMA_Create_CommonFields ()
@@ -1572,7 +1573,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    int i, portn = -1, n, portn2;
    char *eee=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+      
    /* This is the function that creates the debugging flags, do not use them here */
    cf = NULL;
    
@@ -1582,7 +1583,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    
    if (cf == NULL) {
       fprintf(SUMA_STDERR,"Error %s: Failed to allocate.\n", FuncName);
-      SUMA_RETURN (cf);
+      return (cf);
    }
    
    cf->Dev = NOPE;
@@ -2139,7 +2140,7 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    #endif
    
    /* if (cf) free(cf); */ /* don't free this stupid pointer since it is used
-                        when main returns with SUMA_RETURN. 
+                        when main returns with SUMA_ RETURN (typo on purpose to avoid upsetting AnalyzeTrace. 
                         It is not quite a leak since the OS will clean it up
                         after exit Thu Apr  8 2004*/
    

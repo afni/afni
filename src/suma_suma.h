@@ -46,10 +46,10 @@
    #include "suma_algorithms.h"
    #include "suma_datasets.h"
    #include "SUMA/SUMA_Macros.h"  
-   #include "SUMA/SUMA_StringParse.h"  
+   #include "SUMA/SUMA_StringParse.h"
    #define SUMA_ENTRY ENTRY(FuncName)
-   #define SUMA_RETURN RETURN
-   #define SUMA_RETURNe EXRETURN
+   #define SUMA_RETURN  RETURN 
+   #define SUMA_RETURNe EXRETURN 
    #define SUMA_mainENTRY mainENTRY(FuncName)
    
    #include "mcw_malloc.h"

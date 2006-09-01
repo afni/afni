@@ -294,6 +294,8 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    SUMA_Boolean *PatchNodeMask=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
+   SUMA_ENTRY;
+   
    /* Calculate Min, Max, Mean */
    
    SUMA_MIN_MAX_SUM_VECMAT_COL (SO->NodeList, SO->N_Node, SO->NodeDim, SO->MinDims, SO->MaxDims, SO->Center);
@@ -2917,6 +2919,7 @@ void usage_SUMA_inspec()
 {
    static char FuncName[]={"usage_SUMA_inspec"};
    char * s = NULL;
+      
    printf ( "\n"
             "Usage: inspec <-spec specfile> [-detail d] [-h/-help]\n"
             "Outputs information found from specfile.\n" 
@@ -2927,14 +2930,17 @@ void usage_SUMA_inspec()
    s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
    printf ( "      Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n     Dec 2 03\n"
             "\n");   
+   return;
 }
 int main (int argc,char *argv[])
 {/* Main */
-   char FuncName[]={"inspec"};
+   static char FuncName[]={"inspec"};
    int detail, kar;
    char *spec_name;
    SUMA_SurfSpecFile Spec;   
    SUMA_Boolean brk;
+   
+   SUMA_mainENTRY;
    
 	/* allocate space for CommonFields structure */
 	SUMAg_CF = SUMA_Create_CommonFields ();
@@ -3065,11 +3071,13 @@ void usage_SUMA_quickspec()
             "\n");
      s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
      printf("      Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n\t\t Tue Dec 30\n"
-            "\n");   
+            "\n");
+    return;   
 }
+
 int main (int argc,char *argv[])
 {/* Main */
-   char FuncName[]={"quickspec"};
+   static char FuncName[]={"quickspec"};
    int detail, kar, i, N_surf, N_name, idefstate;
    FILE *fid = NULL;
    char *spec_name, stmp[500], *Unique_st;
@@ -3077,6 +3085,8 @@ int main (int argc,char *argv[])
    char  *State[SUMA_MAX_N_SURFACE_SPEC],
          *Name_coord[SUMA_MAX_N_SURFACE_SPEC], *Name_topo[SUMA_MAX_N_SURFACE_SPEC];
    SUMA_Boolean brk;
+   
+   SUMA_mainENTRY;
    
 	/* allocate space for CommonFields structure */
 	SUMAg_CF = SUMA_Create_CommonFields ();

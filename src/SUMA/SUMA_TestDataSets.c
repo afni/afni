@@ -38,9 +38,9 @@ int main (int argc,char *argv[])
     
    /* Example 1: 5 nodes, 3 floats per node */
    
+   SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
    
-   SUMA_STANDALONE_INIT;
    
 	/* Work the options */
 	kar = 1;
@@ -244,7 +244,7 @@ int main (int argc,char *argv[])
          NI_stream_close( ns ) ;
          
       /* show me the whole thing. Don't do this for an enormous nel */
-         SUMA_ShowNel(nel);
+         SUMA_ShowNel((void*)nel);
          
       /* What type is it ? */
          fprintf (stderr,"\tNel type: %s (%d)\n",  

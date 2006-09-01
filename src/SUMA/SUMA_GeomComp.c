@@ -236,6 +236,7 @@ SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle(   SUMA_SurfaceObject *SO, SUMA_VOL
    nx = VolPar->nx; ny = VolPar->ny; nz = VolPar->nz; nxy = nx * ny; nxyz = nx * ny * nz;
    
    if (LocalHead) {
+      SUMA_LH("Debug mode, writing file: SUMA_GetVoxelsIntersectingTriangle.1D");
       fp = fopen("SUMA_GetVoxelsIntersectingTriangle.1D","w");
       if (fp) fprintf(fp, "# Voxels from %s that intersect the triangles \n", VolPar->filecode);
    }   
@@ -872,6 +873,8 @@ SUMA_Boolean SUMA_AddNodeToLayer (int n, int LayInd, SUMA_GET_OFFSET_STRUCT *Off
    static char FuncName[]={"SUMA_AddNodeToLayer"};
    static SUMA_Boolean LocalHead = NOPE;
    
+   SUMA_ENTRY;
+   
    /* is this a new layer */
    if (LayInd > OffS->N_layers) { /* error */
       SUMA_SL_Err("LayInd > OffS->N_layers. This should not be!");
@@ -947,6 +950,8 @@ SUMA_Boolean SUMA_Recycle_getoffsets (SUMA_GET_OFFSET_STRUCT *OffS)
    static char FuncName[]={"SUMA_Recycle_getoffsets"};
    int i, j;
    static SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
    
    for (i=0; i < OffS->N_layers; ++i) {
       /* reset the layer index of used nodes in LayerVect */
@@ -3326,7 +3331,7 @@ SUMA_OFFSET_STRUCT *SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float Offset
    struct  timeval start_time;
    float etime_GetOffset, mean_N_Neighb, dist, dist_norm;   
    SUMA_OFFSET_STRUCT *OffS_out=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURN(NULL); }
@@ -3859,6 +3864,8 @@ float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt,
 /*!
    \brief A version of SUMA_Chung_Smooth that works on SUMA_DSET rather than
    a float array.
+   NOTE: dset is changed on output (blurred values) but idcode
+   remains unchanged
 */
 SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt, 
                            int N_iter, float FWHM, SUMA_DSET *dset, 
@@ -3867,9 +3874,9 @@ SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt,
    static char FuncName[]={"SUMA_Chung_Smooth_dset"};
    float *fout_final = NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, *fin_next = NULL, *fin_orig = NULL;
    float delta_time, fp, dfp, fpj, minfn=0.0, maxfn=0.0;
-   int n , k, j, niter, jj, *icols=NULL, N_icols;
+   int n , k, j, niter, jj, *icols=NULL, N_icols, N_nmask;
    byte *bfull=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
@@ -3879,7 +3886,7 @@ SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt,
    }
    
    if (!SO || !wgt || !dset) {
-      SUMA_SL_Err("NULL SO or wgt or fin_orig\n");
+      SUMA_SL_Err("NULL SO or wgt or dset\n");
       SUMA_RETURN(NOPE);
    }
    
@@ -3904,6 +3911,10 @@ SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt,
       SUMA_RETURN(NOPE);
    }
    
+   if (cs->Send && N_icols > 1) {
+      SUMA_S_Warn("Only 1st data column will be sent to SUMA in talk_mode.");
+   }
+   
    delta_time= (FWHM * FWHM)/(16*N_iter*log(2));
    
    /* Begin filtering operation for each column */
@@ -3916,33 +3927,47 @@ SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt,
       }
       /* make sure column is not sparse, one value per node */
       if (k==0) {
+         SUMA_LH( "Special case k = 0, going to SUMA_MakeSparseColumnFullSorted");
          bfull = NULL;
-         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, dset->dnel->vec_filled, 0.0, &bfull, dset, SO->N_Node)) {
+         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(dset), 0.0, &bfull, dset, SO->N_Node)) {
             SUMA_S_Err("Failed to get full column vector");
             SUMA_RETURN(NOPE);
          }
          if (bfull) {
+            SUMA_LH( "Something was filled in SUMA_MakeSparseColumnFullSorted\n" );
             /* something was filled in good old SUMA_MakeSparseColumnFullSorted */
             if (nmask) {   /* combine bfull with nmask */
+               SUMA_LH( "Merging masks\n" );
                for (jj=0; jj < SO->N_Node; ++jj) { if (nmask[jj] && !bfull[jj]) nmask[jj] = 0; }   
             } else { nmask = bfull; }
          } 
+         if (nmask) {
+            N_nmask = 0;
+            for (n=0; n<SO->N_Node; ++n) { if (nmask[n]) ++ N_nmask; }
+            SUMA_LHv("Blurring with node mask (%d nodes in mask)\n", N_nmask);
+            if (!N_nmask) {
+               SUMA_S_Warn("Empty mask, nothing to do");
+               goto CLEANUP;
+            }
+         }
       } else {
-         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, dset->dnel->vec_filled, 0.0, NULL, dset, SO->N_Node)) {
+         SUMA_LH( "going to SUMA_MakeSparseColumnFullSorted");
+         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(dset), 0.0, NULL, dset, SO->N_Node)) {
             SUMA_S_Err("Failed to get full column vector");
             SUMA_RETURN(NOPE);
          }
          /* no need for reworking nmask and bfull for each column...*/
       }
            
-      if (cs->Send) { /* send the first monster */
+      if (cs->Send && k == 0) { /* send the first monster */
          if (!SUMA_SendToSuma (SO, cs, (void *)fin_orig, SUMA_NODE_RGBAb, 1)) {
             SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
          }
       }
-      
       /* filter this column for each of the iterations */
+      fin_next = fin_orig;
       for (niter=0; niter < N_iter; ++niter) {
+         SUMA_LHv("niter %d\n", niter);
          if ( niter % 2 ) { /* odd */
             fin = fin_next; /* input from previous output buffer */
             fout = fout_final; /* results go into final vector */
@@ -3954,10 +3979,11 @@ SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt,
             fin_next = fbuf; /* in the next iteration, the input is from the buffer */
          }
          /* filter iteration for each node in data column k*/
-         for (n=0; n < SO->N_Node; ++n) {
-            fp = fin[n]; /* kth value at node n */
-            dfp = 0.0;
-            if (!nmask) {
+         if (!nmask) {
+            for (n=0; n < SO->N_Node; ++n) {
+               /*SUMA_LHv("node %d\n", n);*/
+               fp = fin[n]; /* kth value at node n */
+               dfp = 0.0;
                if (SO->FN->N_Neighb[n]) minfn = maxfn = fin[SO->FN->FirstNeighb[n][0]];
                for (j=0; j < SO->FN->N_Neighb[n]; ++j) {
                   fpj = fin[SO->FN->FirstNeighb[n][j]]; /* value at jth neighbor of n */
@@ -3968,7 +3994,12 @@ SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt,
                fout[n] = fin[n] + delta_time * dfp;
                if (fout[n] < minfn) fout[n] = minfn;
                if (fout[n] > maxfn) fout[n] = maxfn;
-            } else { /* masking potential */
+            }/* for n */ 
+         } else {  /* masking potential */
+            for (n=0; n < SO->N_Node; ++n) {
+               /*SUMA_LHv("node %d\n", n);*/
+               fp = fin[n]; /* kth value at node n */
+               dfp = 0.0;
                if (nmask[n]) {
                   if (SO->FN->N_Neighb[n]) {
                      jj = 0;
@@ -3997,10 +4028,10 @@ SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt,
                } else {
                   fout[n] = fin[n];
                }
-            }
-         }/* for n */ 
-
-         if (cs->Send) {
+            }/* for n */ 
+         } /* masking potential */
+         
+         if (cs->Send && k == 0) {
             if (!SUMA_SendToSuma (SO, cs, (void *)fout, SUMA_NODE_RGBAb, 1)) {
                SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
             }
@@ -4008,7 +4039,7 @@ SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt,
 
       } /* for niter */
       
-      SUMA_free(fin_orig); fin_orig = NULL;
+      if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL;
       
       /* Now we need to shove the filtered data back into the dset */
       if (!SUMA_Float2DsetCol (dset, icols[k], fout_final, SO->N_Node)) {
@@ -4017,6 +4048,9 @@ SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt,
       }
       
    } /* for each col */
+   
+   CLEANUP:
+   if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL; /* just in case, this one's still alive from a GOTO */
    if (bfull == nmask) { if (nmask) SUMA_free(nmask); nmask = NULL; bfull = NULL; }
    if (fbuf) SUMA_free(fbuf); fbuf = NULL;
    if (fout_final) SUMA_free(fout_final); fout_final = NULL;
@@ -4195,6 +4229,180 @@ float * SUMA_Chung_Smooth_05 (SUMA_SurfaceObject *SO, float **wgt,
    SUMA_RETURN(fout);
 }
 
+/*!
+   A version of SUMA_Chung_Smooth_05 that works with SUMA_DSETs 
+   NOTE: dset is changed on output (blurred values) but idcode
+   remains unchanged
+*/
+SUMA_Boolean SUMA_Chung_Smooth_05_dset (SUMA_SurfaceObject *SO, float **wgt, 
+                           int N_iter, float FWHM, SUMA_DSET *dset, 
+                           SUMA_COMM_STRUCT *cs, byte *nmask)
+{
+   static char FuncName[]={"SUMA_Chung_Smooth_05_dset"};
+   float *fout_final = NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, *fin_next = NULL, *fin_orig = NULL;
+   float delta_time, fp, dfp, fpj, minfn=0.0, maxfn=0.0;
+   int n , k, j, niter, jj, *icols=NULL, N_icols, N_nmask;
+   byte *bfull=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (N_iter % 2) {
+      SUMA_SL_Err("N_iter must be an even number\n");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (!SO || !wgt || !dset) {
+      SUMA_SL_Err("NULL SO or wgt or dset\n");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (!SO->FN) {
+      SUMA_SL_Err("NULL SO->FN\n");
+      SUMA_RETURN(NOPE);
+   }
+    
+   /* what columns can we process ?*/
+   icols = SUMA_FindNumericDataDsetCols(dset, &N_icols);
+         
+   if (N_icols <= 0) {
+      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_RETURN(NOPE);   
+   }
+   
+   /* allocate for buffer and output */
+   fbuf = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
+   fout_final = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
+   if (!fbuf || !fout_final) {
+      SUMA_SL_Crit("Failed to allocate for fbuf and fout_final\n");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (cs->Send && N_icols > 1) {
+      SUMA_S_Warn("Only 1st data column will be sent to SUMA in talk_mode.");
+   }
+   
+   delta_time= (FWHM * FWHM)/(16*N_iter*log(2));
+   
+   /* Begin filtering operation for each column */
+   for (k=0; k < N_icols; ++k) {
+      /* get a float copy of the data column */
+      fin_orig = SUMA_DsetCol2Float (dset, icols[k], 1);
+      if (!fin_orig) {
+         SUMA_SL_Crit("Failed to get copy of column. Woe to thee!");
+         SUMA_RETURN(NOPE);
+      }
+      /* make sure column is not sparse, one value per node */
+      if (k==0) {
+         SUMA_LH( "Special case k = 0, going to SUMA_MakeSparseColumnFullSorted");
+         bfull = NULL;
+         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(dset), 0.0, &bfull, dset, SO->N_Node)) {
+            SUMA_S_Err("Failed to get full column vector");
+            SUMA_RETURN(NOPE);
+         }
+         if (bfull) {
+            SUMA_LH( "Something was filled in SUMA_MakeSparseColumnFullSorted\n" );
+            /* something was filled in good old SUMA_MakeSparseColumnFullSorted */
+            if (nmask) {   /* combine bfull with nmask */
+               SUMA_LH( "Merging masks\n" );
+               for (jj=0; jj < SO->N_Node; ++jj) { if (nmask[jj] && !bfull[jj]) nmask[jj] = 0; }   
+            } else { nmask = bfull; }
+         } 
+         if (nmask) {
+            N_nmask = 0;
+            for (n=0; n<SO->N_Node; ++n) { if (nmask[n]) ++ N_nmask; }
+            SUMA_LHv("Blurring with node mask (%d nodes in mask)\n", N_nmask);
+            if (!N_nmask) {
+               SUMA_S_Warn("Empty mask, nothing to do");
+               goto CLEANUP;
+            }
+         }
+      } else {
+         SUMA_LH( "going to SUMA_MakeSparseColumnFullSorted");
+         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(dset), 0.0, NULL, dset, SO->N_Node)) {
+            SUMA_S_Err("Failed to get full column vector");
+            SUMA_RETURN(NOPE);
+         }
+         /* no need for reworking nmask and bfull for each column...*/
+      }
+           
+      if (cs->Send && k == 0) { /* send the first monster */
+         if (!SUMA_SendToSuma (SO, cs, (void *)fin_orig, SUMA_NODE_RGBAb, 1)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+         }
+      }
+
+      /* filter this column for each of the iterations */
+      fin_next = fin_orig;
+      for (niter=0; niter < N_iter; ++niter) {
+         SUMA_LHv("niter %d\n", niter);
+         if ( niter % 2 ) { /* odd */
+            fin = fin_next; /* input from previous output buffer */
+            fout = fout_final; /* results go into final vector */
+            fin_next = fout_final; /* in the next iteration, the input is from fout_final */
+         } else { /* even */
+            /* input data is in fin_new */
+            fin = fin_next;
+            fout = fbuf; /* results go into buffer */
+            fin_next = fbuf; /* in the next iteration, the input is from the buffer */
+         }
+         /* filter iteration for each node in data column k*/
+         if (!nmask) {
+            for (n=0; n < SO->N_Node; ++n) {
+               /*SUMA_LHv("node %d\n", n);*/
+               fp = fin[n]; /* kth value at node n */
+               dfp = 0.0;
+               for (j=0; j < SO->FN->N_Neighb[n]; ++j) {
+                  fpj = fin[SO->FN->FirstNeighb[n][j]]; /* value at jth neighbor of n */
+                  dfp += wgt[n][j+1] * (fpj); 
+               }/* for j*/
+               fout[n] = fin[n] * wgt[n][0] +  dfp;
+            }/* for n */ 
+         } else {  /* masking potential */
+            for (n=0; n < SO->N_Node; ++n) {
+               /*SUMA_LHv("node %d\n", n);*/
+               fp = fin[n]; /* kth value at node n */
+               dfp = 0.0;
+               if (nmask[n]) {
+                  for (j=0; j < SO->FN->N_Neighb[n]; ++j) {
+                     {
+                        fpj = fin[SO->FN->FirstNeighb[n][j]]; /* value at jth neighbor of n */
+                        dfp += wgt[n][j+1] * fpj;
+                     } 
+                  }/* for j*/
+                  fout[n] = fin[n] * wgt[n][0] +  dfp;
+               } else {
+                  fout[n] = fin[n];
+               }
+            }/* for n */ 
+         } /* masking potential */
+         
+         if (cs->Send && k == 0) {
+            if (!SUMA_SendToSuma (SO, cs, (void *)fout, SUMA_NODE_RGBAb, 1)) {
+               SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+            }
+         }
+
+      } /* for niter */
+      
+      if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL;
+      
+      /* Now we need to shove the filtered data back into the dset */
+      if (!SUMA_Float2DsetCol (dset, icols[k], fout_final, SO->N_Node)) {
+         SUMA_S_Err("Failed to update dset's values");
+         SUMA_RETURN(NOPE);      
+      }
+      
+   } /* for each col */
+   
+   CLEANUP:
+   if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL; /* just in case, this one's still alive from a GOTO */
+   if (bfull == nmask) { if (nmask) SUMA_free(nmask); nmask = NULL; bfull = NULL; }
+   if (fbuf) SUMA_free(fbuf); fbuf = NULL;
+   if (fout_final) SUMA_free(fout_final); fout_final = NULL;
+   
+   SUMA_RETURN(YUP);
+}
 
 
 #ifdef SUMA_getPatch_STANDALONE
@@ -4498,9 +4706,9 @@ int main (int argc,char *argv[])
    SUMA_SO_File_Type typetmp;
    SUMA_Boolean LocalHead = NOPE;
 	
+   SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
    
-   SUMA_STANDALONE_INIT;
    
    
 	/* Allocate space for DO structure */
@@ -6431,7 +6639,7 @@ SUMA_Boolean SUMA_Mark_Tri (SUMA_EDGE_LIST  *EL, int E1, int iBranch, int *TriBr
    SUMA_Boolean LocalHead = NOPE;
    
    /* this is a recursive function, you don't want to log every time it is called */
-   /* SUMA_ENTRY;    */
+   /* SUMA_EN TRY;  *//* syntax (space) error on purpose, to avoid upsetting AnalyzeTrace on this file  */
    
    ++In;
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Entered #%d.\n", FuncName, In);
@@ -7881,9 +8089,9 @@ int main (int argc,char *argv[])
    SUMA_Boolean DoConv = NOPE, DoSphQ = NOPE, DoSelfInt = NOPE;   
    SUMA_Boolean LocalHead = NOPE;
 	
+   SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
    
-   SUMA_STANDALONE_INIT;
    
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);

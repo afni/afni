@@ -3489,6 +3489,8 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_datase
    int nxyz = DSET_NX(inset)*DSET_NY(inset)*DSET_NZ(inset);
    int fscale=0 , gscale=0 , nscale=0 ;
    
+   SUMA_ENTRY;
+   
    recursiveFilterType filterType = ALPHA_DERICHE;
 
    /*-- Edge detect  --*/
@@ -3518,7 +3520,7 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_datase
 				         filterCoefs,
 				         filterType ) == 0 ) {
           fprintf( stderr, "ERROR: gradient extraction failed.\n" );
-          exit( 1 );
+          SUMA_RETURN(0);
         }
 
      }
@@ -3538,7 +3540,7 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_datase
 				         filterCoefs,
 				         filterType ) == 0 ) {
           fprintf( SUMA_STDERR, "ERROR: gradient extraction failed.\n" );
-          exit( 1 );
+          SUMA_RETURN(0);
          }
       }
       break ;
@@ -3557,7 +3559,7 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_datase
 				         filterCoefs,
 				         filterType ) == 0 ) {
           fprintf(SUMA_STDERR , "ERROR: gradient extraction failed.\n" );
-          exit( 1 );
+          SUMA_RETURN(0);
          }
       }
       break ;
