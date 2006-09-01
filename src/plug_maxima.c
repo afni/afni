@@ -286,7 +286,7 @@ char * MAXIMA_main( PLUGIN_interface * plint )
         if ( ( dset = EDIT_empty_copy( M.dset ) ) == NULL )
         {
             rERROR( "Error: wr_00\n" "Failed to copy dataset." );
-            RETURN(0);
+            return(0);
         }
 
         { /* add dataset history */
@@ -303,7 +303,7 @@ char * MAXIMA_main( PLUGIN_interface * plint )
         if ( PLUTO_add_dset( plint, dset, DSET_ACTION_MAKE_CURRENT ) )
         {
             rERROR( "Error: wr_10\n" "Failed to make current dataset." );
-            RETURN(0);
+            return(0);
         }
         else
             DSET_unload( M.dset );

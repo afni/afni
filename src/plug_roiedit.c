@@ -464,8 +464,7 @@ r_main_mk_main_shell( void )
 {
     ENTRY("r_main_mk_main_shell");
 #ifdef R_LOG_INFO_D
-    if ( ! r_open_log_file( ) )
-	return 0;
+    if ( ! r_open_log_file( ) ) EXRETURN ;
 #endif
 
     r_wtgr_mk_main_shell  ( &gRX );
