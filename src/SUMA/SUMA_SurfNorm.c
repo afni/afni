@@ -525,6 +525,8 @@ int main (int argc,char *argv[])
    float *NodeList;
    SUMA_Boolean LocalHead = NOPE;
    
+   SUMA_mainENTRY;
+   
    /* allocate space for CommonFields structure */
    if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
    

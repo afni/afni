@@ -401,8 +401,8 @@ int main (int argc,char *argv[])
    
    SUMA_Boolean LocalHead = NOPE;
 
-	SUMA_mainENTRY;
    SUMA_STANDALONE_INIT;
+	SUMA_mainENTRY;
 
 #if 0
    /* ZSS Array demo starts here ... */

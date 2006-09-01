@@ -2481,6 +2481,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    int i;
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt = NULL;
    
+   SUMA_ENTRY;
+   
    Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)SUMA_malloc(sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
    Opt->SpatNormDxyz = 0.0;
    Opt->spec_file = NULL;
@@ -2497,6 +2499,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    Opt->sv_name = NULL;
    Opt->N_surf = -1;
    Opt->in_name = NULL;
+   for (i=0; i<SUMA_GENERIC_PROG_MAX_IN_NAME; ++i) { Opt->in_namev[i] = NULL; }
+   Opt->n_in_namev = 0;
    Opt->cmask = NULL;
    Opt->MaskMode = SUMA_ISO_UNDEFINED;
    for (i=0; i<SUMA_GENERIC_PROG_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }

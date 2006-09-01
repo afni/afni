@@ -3,6 +3,7 @@
 
 /* structures to be used by most command line programs */
 #define SUMA_GENERIC_PROG_MAX_SURF 10  /*!< Maximum number of surfaces allowed*/
+#define SUMA_GENERIC_PROG_MAX_IN_NAME 500 /*!< Maximum number of input dsets allowed*/
 typedef struct {
    SUMA_SO_File_Type iType;
    char *sv_name;
@@ -10,6 +11,8 @@ typedef struct {
    int N_surf;
    char *spec_file;
    char *in_name;
+   char *in_namev[SUMA_GENERIC_PROG_MAX_IN_NAME]; /* a whole bunch of input files */
+   int n_in_namev;
    char *surftype;
    char *out_prefix;   /* this one's dynamically allocated so you'll have to free it yourself */
    char *out_vol_prefix; /* this one's dynamically allocated so you'll have to free it yourself */

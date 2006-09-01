@@ -89,11 +89,11 @@ int main (int argc,char *argv[])
    SUMA_DSET *dset = NULL, *dseti=NULL, *dset_m = NULL;
    char *NameOut, *prfx = NULL, *prefix = NULL;
    char *add_node_index = NULL, *node_mask = NULL;
-   SUMA_Boolean LocalHead = NOPE;
-   
-   SUMA_mainENTRY;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_STANDALONE_INIT;
+   SUMA_mainENTRY;
+   
 
    if (argc < 3) {
       usage_ConverDset  ();
@@ -214,7 +214,7 @@ int main (int argc,char *argv[])
             exit(1);
          }
          
-         oform = SUMA_ASCII_NIML;
+         oform = SUMA_NIML;
          brk = YUP;
       }
       
@@ -310,23 +310,36 @@ int main (int argc,char *argv[])
                                  "Make sure file exists\n"
                                  "and is of the specified\n"
                                  "format."); exit(1); }
+      if (LocalHead) {
+         fprintf(SUMA_STDERR,"%s:\n Read dset of format %s\n", FuncName, SUMA_Dset_Format_Name(iform));
+         SUMA_ShowDset(dset, 0, NULL);
+      }
+      /* make sure inel is initialized*/
+      if (!dset->inel || !SDSET_NODEINDLEN(dset)) { 
+         SUMA_SL_Err("Bad dset->inel\nOld niml dset?"); 
+         SUMA_ShowDset(dset,0, NULL); 
+         SUMA_DUMP_TRACE;
+         SUMA_FreeDset(dset); dset = NULL; 
+         SUMA_RETURN(1); 
+      }
+
       if (add_node_index) { /* add a node index column */
          iform = SUMA_1D;
          if (!(dseti = SUMA_LoadDset_s (add_node_index, &iform, 0))) {
             SUMA_S_Err("Failed to load node index dset");
             exit(1);
          } 
-         if (dseti->dnel->vec_num != 1) {
+         if (SDSET_VECNUM(dseti) != 1) {
             SUMA_S_Err("Bad node index source, only one column allowed");
             exit(1);
          }
-         if (dseti->dnel->vec_filled != dset->dnel->vec_filled) {
+         if (SDSET_VECFILLED(dseti) != SDSET_VECFILLED(dset)) {
             SUMA_S_Err("mismatch in number of values in index source and dataset");
             exit(1);
          } 
-         Ti = (int *) SUMA_calloc(dseti->dnel->vec_filled, sizeof(int));
+         Ti = (int *) SUMA_calloc(SDSET_VECFILLED(dseti), sizeof(int));
          fv = (float *)dseti->dnel->vec[0];
-         for (j=0; j<dseti->dnel->vec_filled; ++j) Ti[j] = (int)fv[j];
+         for (j=0; j<SDSET_VECFILLED(dseti); ++j) Ti[j] = (int)fv[j];
          if (!SUMA_AddDsetNelCol (dset, "Node Index", SUMA_NODE_INDEX, (void *)Ti, NULL, 1)) {
             SUMA_SL_Err("Failed to add column");
             if (Ti) SUMA_free(Ti); Ti = NULL;
@@ -343,16 +356,16 @@ int main (int argc,char *argv[])
             SUMA_S_Err("Failed to load node_selection dset");
             exit(1);
          } 
-         if (dseti->dnel->vec_num != 1) {
+         if (SDSET_VECNUM(dseti) != 1) {
             SUMA_S_Err("Bad node index source, only one column allowed");
             exit(1);
          }
          
-         Ti = (int *) SUMA_calloc(dseti->dnel->vec_filled, sizeof(int));
+         Ti = (int *) SUMA_calloc(SDSET_VECFILLED(dseti), sizeof(int));
          fv = (float *)dseti->dnel->vec[0];
-         for (j=0; j<dseti->dnel->vec_filled; ++j) Ti[j] = (int)fv[j];
+         for (j=0; j<SDSET_VECFILLED(dseti); ++j) Ti[j] = (int)fv[j];
          
-         if (!(dset_m = SUMA_MaskedByNodeIndexCopyofDset(dset, Ti, dseti->dnel->vec_filled,  NULL, 1, 1))) {
+         if (!(dset_m = SUMA_MaskedByNodeIndexCopyofDset(dset, Ti, SDSET_VECFILLED(dseti),  NULL, 1, 0))) {
             SUMA_S_Err("Failed to mask dset by node indices");
             exit(1);
          }
@@ -374,8 +387,8 @@ int main (int argc,char *argv[])
       }
       
       /* set a new ID for the dset */
-      SUMA_NewDsetID (dset); 
-      
+      SUMA_NEWDSET_ID_LABEL_HIST(dset, prefix) ;
+
       NameOut = SUMA_WriteDset_s (prefix, dset, oform, 0, 0);
       if (!NameOut) { SUMA_SL_Err("Failed to write dataset."); exit(1); } 
       if (prefix) SUMA_free(prefix); prefix = NULL;    

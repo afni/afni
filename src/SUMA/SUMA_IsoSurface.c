@@ -638,8 +638,8 @@ int main (int argc,char *argv[])
    SUMA_Boolean LocalHead = NOPE;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
 
-	SUMA_mainENTRY;
    SUMA_STANDALONE_INIT;
+	SUMA_mainENTRY;
    
    
    /* Allocate space for DO structure */

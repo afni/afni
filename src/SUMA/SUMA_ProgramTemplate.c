@@ -82,9 +82,9 @@ int main (int argc,char *argv[])
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean LocalHead = NOPE;
-
-	SUMA_mainENTRY;
+   
    SUMA_STANDALONE_INIT;
+	SUMA_mainENTRY;
 
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
@@ -102,6 +102,8 @@ int main (int argc,char *argv[])
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+   
+   SUMA_DUMP_TRACE;
    exit(0);
    
 } 

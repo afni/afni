@@ -86,6 +86,7 @@ char *SUMA_M2M_node_Info (SUMA_M2M_STRUCT *M2M, int node)
    SUMA_STRING *SS = NULL;
    int i, found, j;
    
+   SUMA_ENTRY;
 
    SS = SUMA_StringAppend(NULL, NULL);
       

@@ -2,11 +2,15 @@
 #define SUMA_STRING_PARSE_INCLUDED
 
 /* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Begin string parsing macros <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< */
+#define SUMA_IS_DIGIT(c) ( ((c) < '0' || (c) > '9') ? 0 : 1 )
+ 
 /*! a macro version of C's isspace
    returns 1 if charater is considered a blank
    \sa SUMA_SKIP_BLANK
 */
 #define SUMA_IS_BLANK(c) ( ((c) == ' ' || (c) == '\t' || (c) == '\n' || (c) == '\v' || (c) == '\f' || (c) == '\r') ? 1 : 0 )
+#define SUMA_IS_LINE_END(c) ( ((c) == '\n' || (c) == '\f' || (c) == '\r') ? 1 : 0 )
+
 /*!
    \brief advances pointer to next non-space, see isspace function for characters I check for.
    op must be NULL terminated, if eop is NULL
@@ -64,7 +68,7 @@
 /*!
    \brief advance pointer past a string
    \param op (char *) pointer to char array
-   \param eop (char *) DO not search op past eop (NULL ok if op is NULL terminated)
+   \param eop (char *) DO not search op past eop or '\0' in op
                DO NOT CALL THE MACRO WITH eop SET TO (op+Nchars), i.e. do not do this:
                SUMA_ADVANCE_PAST(op,(op+5),attr,Found,Word); to check only 5 chars ahead
                if you do so, a part of the if condition (op < eop) will always evaluate to 
@@ -101,8 +105,59 @@
    /* fprintf(SUMA_STDERR,"%s: Searched %d chars.\n", FuncName, op-m_bop);  */\
    if (Found != m_natr) { Found = 0; op = m_bop; }/* reset pointer to origin */ \
 }
+
 /*!
-   \brief advance pointer past a next number
+   Like SUMA_ADVANCE_PAST, but uses a NULL-terminated list of words rather than just one word
+   char *key_list[] = { "static", "char", "FuncName", "=", "{" , "}", ";", NULL};
+   int  *gap_list[] = {    -1   ,  5    ,  5        ,  5 , 2   , -1 ,  20, -1 };
+   Find a sequence of keys where key_list[i] is present and follows key_list[i-1] by 
+   less than gap_list[i] (if gap_list[i] is >= 0) 
+   If the sequence is not found then:
+   nFound = 0 and op is unchanged and op_beg is NULL
+   else op is set past the sequence of strings, and op_beg is set to the beginning
+   of the string sequence
+*/
+#define SUMA_ADVANCE_PAST_SEQUENCE(op, eop, op_beg, key_list, gap, nFound, Word) {   \
+   char *m_op_func , *m_op_prev; \
+   int m_good, m_found, m_d;   \
+   nFound = 0;  \
+   m_found = 0;   \
+   m_good = 1;  \
+   m_op_func = m_op_prev = op;   \
+   while (key_list[nFound] && m_good) {  \
+      /* if (LocalHead) fprintf(SUMA_STDERR,"key[%d]=%s ", nFound, key_list[nFound]); */\
+      m_op_prev = m_op_func;  \
+      SUMA_ADVANCE_PAST(m_op_func, eop, key_list[nFound], m_found, Word);   \
+      if (m_found > 0) { /* key found */\
+         /* if (LocalHead) fprintf(SUMA_STDERR," Found "); */\
+         if (!nFound || gap[nFound] < 0 || m_op_func - m_op_prev - strlen(key_list[nFound]) < gap[nFound]) { /* inside limit */  \
+            /* if (LocalHead) fprintf(SUMA_STDERR," in gap "); */\
+            if (!nFound) op_beg = m_op_func - strlen(key_list[0]);   \
+            ++nFound; \
+         } else { /* outside gap */ \
+            /* if (LocalHead) fprintf(SUMA_STDERR," out of gap (%d, Augment by %d) ", m_op_func - m_op_prev, (int)strlen(key_list[0])); */\
+            nFound = 0;                               /* reset search */   \
+            m_op_func = op_beg + strlen(key_list[0]); /* at after first key */   \
+            op_beg = m_op_func;  \
+         }  \
+      } else {    \
+         { /* nothing here */   \
+            m_good = 0;  \
+         }  \
+      }  \
+   }  \
+   if (!m_good) {  \
+      /* SUMA_LH("Done."); */\
+      nFound = 0;  \
+      op_beg = NULL; \
+   } else { \
+      op = m_op_func;   \
+   }  \
+}
+
+/*!
+   \brief advance pointer past the next number
+         Number has to start at op
    \param op (char *) pointer to char array (NULL terminated)
    \param num (double) output of strtod function
    \Found (int)   0 --> Not found, op is not changed
@@ -113,6 +168,30 @@
    char *m_ope=NULL;    \
    Found = 0;  \
    num = strtod(op, &m_ope); \
+   if (m_ope > op) { /* something found */ \
+      Found = 1; \
+      op = m_ope; \
+   } else { /* just to be safe */\
+      num = 0;\
+   }  \
+}
+
+/*!
+   \brief advance pointer past the next integer. 
+            Unlike SUMA_ADVANCE_PAST_NUM, 
+            integer does not have to start at op 
+   \param op (char *) pointer to char array (NULL terminated)
+   \param num (int) output of (int) strtod function
+   \Found (int)   0 --> Not found, op is not changed
+                  1 --> Found, op is set just past the location after number
+*/
+
+#define SUMA_ADVANCE_PAST_INT(op, num, Found){\
+   char *m_ope=NULL;    \
+   Found = 0;  \
+   m_ope = op; \
+   while (!SUMA_IS_DIGIT(*m_ope)) ++m_ope; /* skip till digit */\
+   num = (int)strtod(m_ope, &m_ope); \
    if (m_ope > op) { /* something found */ \
       Found = 1; \
       op = m_ope; \

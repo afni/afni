@@ -16,11 +16,16 @@ void usage_SurfDsetInfo (SUMA_GENERIC_ARGV_PARSE *ps)
       static char FuncName[]={"usage_SurfDsetInfo"};
       char * s = NULL, *sio=NULL, *st = NULL, *sts = NULL;
       int i;
+      
+      SUMA_ENTRY;
+      
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
-               "Usage: SurfDsetInfo -input DSET\n"
-               " \n"
+               "Usage: SurfDsetInfo [options] -input DSET1 -input DSET2 \n"
+               "   or: SurfDsetInfo [options] DSET1 DSET2 ... \n"
+               "   Optional Params:\n"
+               "      -debug DBG: if DBG = 2, show dset in its entirety in NIML form.\n"
                "%s"
                "%s"
                "\n", sio,  s);
@@ -68,17 +73,28 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDsetInfo_ParseInput(char *argv[], int
       {
          if (kar+1 >= argc)
          {
-            fprintf (SUMA_STDERR, "need a number after -input \n");
+            fprintf (SUMA_STDERR, "need surface dset after -input \n");
             exit (1);
          }
-         
-         Opt->in_name = argv[++kar];
+         if (Opt->n_in_namev < SUMA_GENERIC_PROG_MAX_IN_NAME) {
+            Opt->in_namev[Opt->n_in_namev] = argv[++kar];
+            ++Opt->n_in_namev; 
+         } else {
+               SUMA_S_Err("Too many input dsets on command line");
+         }
          brk = YUP;
       }
       
       if (!brk && !ps->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
-			exit (1);
+			/* Assume the rest is input data */
+			while (kar < argc) {
+            if (Opt->n_in_namev < SUMA_GENERIC_PROG_MAX_IN_NAME) {
+               Opt->in_namev[Opt->n_in_namev] = argv[kar];
+               ++Opt->n_in_namev; ++kar;
+            } else {
+               SUMA_S_Err("Too many input dsets on command line");
+            }
+         }
 		} else {	
 			brk = NOPE;
 			kar ++;
@@ -96,10 +112,11 @@ int main (int argc,char *argv[])
    SUMA_DSET *dset=NULL;
    SUMA_PARSED_NAME *NewName = NULL;
    SUMA_DSET_FORMAT iform = SUMA_NO_DSET_FORMAT;
+   int i;
    SUMA_Boolean LocalHead = NOPE;
 
-	SUMA_mainENTRY;
    SUMA_STANDALONE_INIT;
+	SUMA_mainENTRY;
 
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
@@ -114,21 +131,30 @@ int main (int argc,char *argv[])
 
    if (Opt->debug > 2) LocalHead = YUP;
    
-   if (!(NewName = SUMA_ParseFname(Opt->in_name))) {
-      SUMA_S_Err("Name parsing error");
-      exit(1);
+   for (i=0; i<Opt->n_in_namev; ++i) {
+      fprintf(SUMA_STDOUT, "\n"
+                           "Info for dset: %s\n"
+                           "--------------\n",
+                            Opt->in_namev[i]);
+      
+      if (!(NewName = SUMA_ParseFname(Opt->in_namev[i]))) {
+         SUMA_S_Err("Name parsing error");
+         exit(1);
+      }
+
+
+      if (!(dset = SUMA_LoadDset_s (NewName->FileName, &iform, 0))) {
+         SUMA_S_Err("Failed reading dset");
+         exit(1);
+      }
+
+      if (Opt->debug < 2) SUMA_ShowDset(dset, 0, NULL);
+      else {
+         SUMA_ShowNel((void*)dset->ngr);
+      }
+      if (dset) SUMA_FreeDset(dset); dset = NULL;
+      if (NewName) SUMA_Free_Parsed_Name(NewName); NewName = NULL;
    }
-   
-   
-   if (!(dset = SUMA_LoadDset_s (NewName->FileName, &iform, 0))) {
-      SUMA_S_Err("Failed reading dset");
-      exit(1);
-   }
-   
-   SUMA_ShowDset(dset, 0, NULL);
-   
-   if (dset) SUMA_FreeDset(dset); dset = NULL;
-   if (NewName) SUMA_Free_Parsed_Name(NewName); NewName = NULL;
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);

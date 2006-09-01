@@ -645,20 +645,20 @@ SUMA_DSET *SUMA_MaskDsetByClustList(SUMA_DSET *idset, SUMA_SurfaceObject *SO, DL
    if (LocalHead) fprintf(SUMA_STDERR,"%s:\n%d nodes in cluster list.\n", FuncName, cnt);
    
    /* now form a rowmask vector to parallel rows in idset */
-   rowmask = (byte *)SUMA_calloc(idset->dnel->vec_len, sizeof(byte));
-   colmask = (byte *)SUMA_calloc(idset->dnel->vec_num, sizeof(byte));
+   rowmask = (byte *)SUMA_calloc(SDSET_VECLEN(idset), sizeof(byte));
+   colmask = (byte *)SUMA_calloc(SDSET_VECNUM(idset), sizeof(byte));
    
    /* get the node index column in idset */
    ni = SUMA_GetNodeDef(idset);
-   N_ni = SDEST_VECLEN(idset);
+   N_ni = SDSET_VECLEN(idset);
    if (!ni) {
       SUMA_SL_Err("Failed to find node index column");
       SUMA_RETURN(NULL);
    }
    /* now, fill rowmask */
-   for (i=0; i<idset->dnel->vec_len; ++i) { if (ismask[ni[i]]) { rowmask[i]=1; if(LocalHead) fprintf (SUMA_STDERR,"%d,%d\t", ni[i], i); } }
+   for (i=0; i<SDSET_VECLEN(idset); ++i) { if (ismask[ni[i]]) { rowmask[i]=1; if(LocalHead) fprintf (SUMA_STDERR,"%d,%d\t", ni[i], i); } }
    /* fill colmask*/
-   for (i=0; i<idset->dnel->vec_num; ++i) { 
+   for (i=0; i<SDSET_VECNUM(idset); ++i) { 
       if (SUMA_isDsetColumn_inferred(idset, i)) {
          colmask[i]=0;
          if (LocalHead) fprintf(SUMA_STDERR,"%s: Column %d will not be written because it is inferred.\n", FuncName, i);
@@ -1413,8 +1413,8 @@ int main (int argc,char *argv[])
    char *ClustOutName = NULL, *params=NULL, stmp[200];
    SUMA_Boolean LocalHead = NOPE;
    
-	SUMA_mainENTRY;
    SUMA_STANDALONE_INIT;
+	SUMA_mainENTRY;
    
    
    /* Allocate space for DO structure */
@@ -1480,7 +1480,7 @@ int main (int argc,char *argv[])
    }
    /* get the node index column */
    nip = SUMA_GetNodeDef(dset);
-   N_ni = SDEST_VECLEN(dset);
+   N_ni = SDSET_VECLEN(dset);
    if (!nip) {
       SUMA_S_Err("Failed to find node index column");
       exit(1);
