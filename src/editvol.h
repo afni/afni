@@ -29,7 +29,7 @@
 #define myXtNew(type) ((type *) XtCalloc(1,(unsigned) sizeof(type)))
 #endif
 
-#define INC_CLUSTER 8
+#define INC_CLUSTER 32
 
 /*! In a cluster struct, the (i,j,k) indexes for each voxel
     are stored in a single integer ijk (to save space).
