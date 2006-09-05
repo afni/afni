@@ -6,9 +6,9 @@
 #
 #
 #   
-#   Part of FSL - FMRIB's Software Library
+#   The fslio.tcl file was originally part of FSL - FMRIB's Software Library
 #   http://www.fmrib.ox.ac.uk/fsl
-#   fsl@fmrib.ox.ac.uk
+#   fslio.tcl has now been placed in the public domain.
 #   
 #   Developed at FMRIB (Oxford Centre for Functional Magnetic Resonance
 #   Imaging of the Brain), Department of Clinical Neurology, Oxford

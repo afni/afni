@@ -12,9 +12,9 @@
 
     
 /*
-    Part of FSL - FMRIB's Software Library
+    The fslio.h file was originally part of FSL - FMRIB's Software Library
     http://www.fmrib.ox.ac.uk/fsl
-    fsl@fmrib.ox.ac.uk
+    fslio.h has now been placed in the public domain.
    
     Developed at FMRIB (Oxford Centre for Functional Magnetic Resonance
     Imaging of the Brain), Department of Clinical Neurology, Oxford
@@ -243,12 +243,6 @@ size_t FslReadTimeSeries(FSLIO *fslio, void *buffer, short xVox, short yVox, sho
 mat33 mat44_to_mat33(mat44 x);
 
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
-
 
 /* added by KF pending discussion w/ Mark */
 typedef unsigned char   THIS_UINT8; 
@@ -269,6 +263,12 @@ int  convertBufferToScaledDouble(double *outbuf, void *inbuf, long len, float sl
 double ****d4matrix(int th, int zh,  int yh, int xh);
 double ***d3matrix(int zh,  int yh, int xh);
 
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
 
 
 
