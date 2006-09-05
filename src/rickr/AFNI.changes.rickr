@@ -1743,3 +1743,8 @@
   * modified 3ddata.h: lose suma_ngr_get_node_column(), add NI_get_byte_order()
   * added Makefile.linux_xorg7_64 (compiled on radagast)
 
+05 Sep 2006:
+  * modified nifti1_io.c, added nifti_set_skip_blank_ext
+  * merged many fslio NIfTI changes by Kate Fissell for niftilib-0.4
+  * modified thd_niml.c: removed warning about missing Node_Index column type
+
