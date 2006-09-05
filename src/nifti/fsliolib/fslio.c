@@ -9,9 +9,9 @@
     
 /*
 
-    Part of FSL - FMRIB's Software Library
+    The fslio.c file was originally part of FSL - FMRIB's Software Library
     http://www.fmrib.ox.ac.uk/fsl
-    fsl@fmrib.ox.ac.uk
+    fslio.c has now been placed in the public domain.
    
     Developed at FMRIB (Oxford Centre for Functional Magnetic Resonance
     Imaging of the Brain), Department of Clinical Neurology, Oxford
@@ -349,6 +349,7 @@ void FslGetHdrImgNames(const char* filename, const FSLIO* fslio,
 
   fprintf(stderr,"Error: Unrecognised filetype (%d)\n",FslGetFileType(fslio));
   free(basename);
+  
   /* Failure */
   *hdrname = NULL;
   *imgname = NULL;
@@ -2156,6 +2157,8 @@ double ***FslGetVolumeAsScaledDouble(FSLIO *fslio, int vol)
 
     /** cvt disk buffer to scaled double buffer  */
     ret = convertBufferToScaledDouble(newbuf[0][0], diskbuf, (long)(xx*yy*zz), slope, inter, fslio->niftiptr->datatype);
+
+    free(diskbuf);
 
     if (ret == 0)
         return(newbuf);

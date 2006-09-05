@@ -288,12 +288,15 @@ static char * gni_history[] =
   "1.20 27 Jun 2006 [rickr]\n",
   "   - nifti_findhdrname(): fixed assign of efirst to match stated logic\n"
   "     (problem found by Atle Bjørnerud)\n"
+  "1.21 5 Sep 2006 [rickr] update for nifticlib-0.4 release\n",
+  "   - was reminded to actually add nifti_set_skip_blank_ext()\n"
+  "   - init g_opts.skip_blank_ext to 0\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.20 Jun, 2006)";
+static char gni_version[] = "nifti library version 1.21  5 Sep, 2006)";
 
 /*! global nifti options structure */
-static nifti_global_options g_opts = { 1 };
+static nifti_global_options g_opts = { 1, 0 };
 
 /*---------------------------------------------------------------------------*/
 /* prototypes for internal functions - not part of exported library          */
@@ -2342,6 +2345,15 @@ void nifti_set_debug_level( int level )
     g_opts.debug = level;
 }
 
+/*----------------------------------------------------------------------*/
+/*! set nifti's global skip_blank_ext flag            5 Sep 2006 [rickr]
+
+    explicitly set to 0 or 1
+*//*--------------------------------------------------------------------*/
+void nifti_set_skip_blank_ext( int skip )
+{
+    g_opts.skip_blank_ext = skip ? 1 : 0;
+}
 
 /*----------------------------------------------------------------------*/
 /*! check current directory for existing header file
