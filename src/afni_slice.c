@@ -43,6 +43,9 @@
 #define LMAP_ZNAME TWO_TWO(AFNI_lmap_to_zslice_,DTYPE)
 #define B2SL_NAME  TWO_TWO(AFNI_br2sl_,DTYPE)
 
+#define XSTRING(qqq) STRING(qqq)
+#define STRING(nnn)  #nnn
+
 /*******************************************************************
      To add a new DTYPE, you must add definitions in mrilib.h,
      and define the following macros for the new type:
@@ -333,7 +336,11 @@ void LMAP_XNAME( THD_linear_mapping * map , int resam_mode ,
    int out_ind , jstep , kstep ;
    int nxold,nyold,nzold , nxnew,nynew,nznew ;
 
+#if 0
   ENTRY("AFNI_lmap_to_xslice") ;
+#else
+  ENTRY( XSTRING(LMAP_XNAME) ) ;
+#endif
 
    /*--- set up ranges ---*/
 
@@ -979,7 +986,11 @@ void LMAP_YNAME( THD_linear_mapping * map , int resam_mode ,
    int out_ind , jstep , kstep ;
    int nxold,nyold,nzold , nxnew,nynew,nznew ;
 
+#if 0
   ENTRY("AFNI_lmap_to_yslice") ;
+#else
+  ENTRY( XSTRING(LMAP_YNAME) ) ;
+#endif
 
    /*--- set up ranges ---*/
 
@@ -1604,7 +1615,11 @@ void LMAP_ZNAME( THD_linear_mapping * map , int resam_mode ,
    int out_ind , jstep , kstep ;
    int nxold,nyold,nzold , nxnew,nynew,nznew ;
 
+#if 0
   ENTRY("AFNI_lmap_to_zslice") ;
+#else
+  ENTRY( XSTRING(LMAP_ZNAME) ) ;
+#endif
 
    /*--- set up ranges ---*/
 
@@ -2224,7 +2239,12 @@ void B2SL_NAME( int nxx, int nyy, int nzz ,
 {
    int ystep = nxx , zstep = nxx*nyy ;
 
-ENTRY("AFNI_br2sl") ;
+#if 0
+   ENTRY("AFNI_br2sl") ;
+#else
+   ENTRY(XSTRING(B2SL_NAME)) ;
+#endif
+
    if( bold == NULL || bslice == NULL ) EXRETURN ;
 
    switch( fixed_axis ){

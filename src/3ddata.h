@@ -1030,14 +1030,32 @@ extern void THD_delete_diskptr( THD_diskptr * ) ;
 #  define MMAP_THRESHOLD 999999
 #endif
 
-#define VEDIT_CLUST  1   /* param= ithr,thr,rmm,vmul */
-
-#define VEDIT_LASTCODE 1
+/*------------------------------------------------------------------*/
+/* Stuff for volume-editing on demand.  [05 Sep 2006] */
 
 typedef struct {
   int code , ival ;
   float param[9] ;
 } VEDIT_settings ;
+
+#define VEDIT_CLUST  1   /* param= ithr,thr,rmm,vmul */
+#define VEDIT_LASTCODE 1
+
+#define VEDIT_IVAL(vv)      ((vv).ival)
+#define DBLK_VEDIT_IVAL(db) VEDIT_IVAL((db)->vedset)
+#define DSET_VEDIT_IVAL(ds) DBLK_VEDIT_IVAL((ds)->dblk)
+
+#define VEDIT_CODE(vv)      ((vv).code)
+#define DBLK_VEDIT_CODE(db) VEDIT_CODE((db)->vedset)
+#define DSET_VEDIT_CODE(ds) DBLK_VEDIT_CODE((ds)->dblk)
+
+#define VEDIT_good(vv)      \
+   ( (vv).code>0 && (vv).code<=VEDIT_LASTCODE )
+#define DBLK_VEDIT_good(db)                                \
+   ( VEDIT_good((db)->vedset) && (db)->vedset.ival >= 0 && \
+                                 (db)->vedset.ival < (db)->nvals )
+#define DSET_VEDIT_good(ds) DBLK_VEDIT_good((ds)->dblk)
+/*------------------------------------------------------------------*/
 
 /*!  All subvolumes are stored in an array of MRI_IMAGE (the "brick").
      - If mmap is used, then the whole external file is mmap()-ed in one
@@ -3534,7 +3552,13 @@ extern THD_3dim_dataset * THD_copy_dset_subs( THD_3dim_dataset * , int * ) ;
    "example\n"                                                                \
    "   -a '1D:5@0,10@1,5@0,10@1,5@0'\n"                                       \
    "specifies that variable 'a' be assigned to a 1D time series of 35,\n"     \
-   "alternating in blocks between values 0 and value 1.\n"
+   "alternating in blocks between values 0 and value 1.\n"                    \
+   "\n"                                                                       \
+   "Finally, you can force most AFNI programs to tranpose a 1D file on\n"     \
+   "input by appending a single ' character at the end of the filename.\n"    \
+   "N.B.: Since the ' character is also special to the shell, you'll\n"       \
+   "      probably have to put a \\ character before it. Examples:\n"         \
+   "       1dcat 1D:3,4,5   and   1dcat 1D:3,4,5\\'\n"
 
 extern void THD_delete_3dim_dataset( THD_3dim_dataset * , Boolean ) ;
 extern THD_3dim_dataset * THD_3dim_from_block( THD_datablock * ) ;
@@ -4057,6 +4081,8 @@ extern void   ENTROPY_accumulate(int , void *) ;
 extern double ENTROPY_compute   (void) ;
 extern double ENTROPY_dataset   (THD_3dim_dataset *) ;
 extern double ENTROPY_datablock (THD_datablock *) ;
+
+extern void AFNI_vedit( THD_3dim_dataset *dset , VEDIT_settings vednew ) ;
 
 /*--------------------------------------------------------------------------*/
 

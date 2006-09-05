@@ -78,6 +78,8 @@ ENTRY("THD_init_one_datablock") ;
    dblk->master_ival  = NULL ;
    dblk->master_bytes = NULL ;
 
+   dblk->vedim = NULL ; /* 05 Sep 2006 */
+
    dblk->master_bot = 1.0 ;     /* 21 Feb 2001 */
    dblk->master_top = 0.0 ;
 

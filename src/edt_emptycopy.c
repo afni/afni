@@ -130,6 +130,8 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
    new_dblk->atr         = NULL ;
    new_dblk->parent      = (XtPointer) new_dset ;
 
+   new_dblk->vedim = NULL ; /* 05 Sep 2006 */
+
    DBLK_unlock(new_dblk) ;  /* Feb 1998 */
 
    new_dblk->brick_fac   = NULL ;
@@ -240,6 +242,8 @@ ENTRY("EDIT_empty_datablock") ;
    new_dblk->atr            = NULL ;
    new_dblk->nnodes         = 0 ;       /* 12 July 2006 [rickr] */
    new_dblk->node_list      = NULL ;
+
+   new_dblk->vedim = NULL ; /* 05 Sep 2006 */
 
    new_dkptr = new_dblk->diskptr = myXtNew( THD_diskptr ) ;
 

@@ -85,7 +85,7 @@ DEFINE_PLUGIN_PROTOTYPE
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
 
-ENTRY("PLUGIN_init - Dataset#2") ;
+ENTRY("PLUGIN_init:Dataset#2") ;
 
    if( ncall > 0 ) RETURN( NULL ) ;  /* only one interface */
 

@@ -9,7 +9,7 @@
 
 /*-------------------------------------------------------------------------*/
 
-int label_in_PALTAB( PBAR_palette_table * pt , char * lab )
+int label_in_PALTAB( PBAR_palette_table *pt , char *lab )
 {
    int ii ;
    if( pt == NULL || PALTAB_NUM(pt) == 0 || lab == NULL || lab[0] == '\0' )
@@ -55,10 +55,10 @@ int label_in_PALTAB( PBAR_palette_table * pt , char * lab )
 
 #define NSBUF 256
 
-void AFNI_process_setup( char * fname , int mode , MCW_DC * dc )
+void AFNI_process_setup( char *fname , int mode , MCW_DC *dc )
 {
-   int    nbuf , nused , ii ;
-   char * fbuf , * fptr ;
+   int   nbuf , nused , ii ;
+   char *fbuf , *fptr ;
    char str[NSBUF] , left[NSBUF] , middle[NSBUF] , right[NSBUF] ;
 
 ENTRY("AFNI_process_setup") ;
@@ -339,7 +339,7 @@ if(PRINT_TRACING)
 
 /*-----------------------------------------------------------------*/
 
-int check_PBAR_palette( PBAR_palette * pp )
+int check_PBAR_palette( PBAR_palette *pp )
 {
    int ii , nn ;
 
@@ -373,11 +373,11 @@ ENTRY("check_PBAR_palette") ;
 char * dump_PBAR_palette_table( int verb )
 {
    int ii , jj , nn , nsss,nuuu , nbuf , kk ;
-   char * sss ;
+   char *sss ;
    static char buf[2048] ;
    char s1[32] , s2[32] ;
-   PBAR_palette * pp ;
-   MCW_DC * dc = GLOBAL_library.dc ;
+   PBAR_palette *pp ;
+   MCW_DC *dc = GLOBAL_library.dc ;
 
 ENTRY("dump_PBAR_palette_table") ;
 
@@ -524,7 +524,7 @@ ENTRY("load_PBAR_palette_array") ;
 
 /*--------------------------------------------------------------*/
 
-char * AFNI_palette_label_CB( MCW_arrowval * av , XtPointer cd )
+char * AFNI_palette_label_CB( MCW_arrowval *av , XtPointer cd )
 {
    static char blab[32] ;
 
@@ -1010,6 +1010,121 @@ ENTRY("AFNI_palette_tran_CB") ;
 
    if( im3d->vinfo->func_visible )
       AFNI_redisplay_func( im3d ) ;
+
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------
+  Callbacks for all actions in the thr_label popup
+-----------------------------------------------------------------*/
+
+static char *thrbutlab[] = { " Clear Edit" ,
+                             " Clusterize"  } ;
+#define NTHRBUT (sizeof(thrbutlab)/sizeof(char *))
+
+static void set_vedit_label( Three_D_View *im3d , int ll )
+{
+   char lab[64] ;
+   if( !IM3D_OPEN(im3d) ) return ;
+
+   strcpy(lab,thrbutlab[0]); if( ll==0 ) lab[0] = '*' ;
+   MCW_set_widget_label( im3d->vwid->func->thr_clear_pb , lab ) ;
+
+   strcpy(lab,thrbutlab[1]); if( ll==1 ) lab[0] = '*' ;
+   MCW_set_widget_label( im3d->vwid->func->thr_cluster_pb , lab ) ;
+
+   return ;
+}
+
+/*---------------------------------------------------------------*/
+
+static void AFNI_cluster_choose_CB( Widget wc, XtPointer cd, MCW_choose_cbs *cbs )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   float *vec = (float *)(cbs->cval) , rmm,vmul ;
+
+ENTRY("AFNI_cluster_choose_CB") ;
+
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+
+   rmm = vec[0] ; vmul = vec[1] ;
+   if( vmul <= 0.0 ){
+     im3d->vedset.code = 0 ;
+     AFNI_vedit_clear( im3d->fim_now ) ;
+     set_vedit_label(im3d,0) ;
+   } else {
+     im3d->vedset.code = VEDIT_CLUST ;
+     im3d->vedset.param[2] = rmm ;
+     im3d->vedset.param[3] = vmul ;
+     set_vedit_label(im3d,1) ;
+   }
+   if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------*/
+
+void AFNI_thr_CB( Widget w , XtPointer cd , XtPointer cbs )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+
+ENTRY("AFNI_thr_CB") ;
+
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+
+   /*--- Clear editing ---*/
+
+   if( w == im3d->vwid->func->thr_clear_pb ){
+     im3d->vedset.code = 0 ;
+     AFNI_vedit_clear( im3d->fim_now ) ;
+     set_vedit_label(im3d,0) ;
+     if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
+     EXRETURN ;
+   }
+
+   if( w == im3d->vwid->func->thr_cluster_pb ){
+     char *lvec[2] = { "rmm " , "vmul" } ;
+     int   ivec[2] ;
+     if( im3d->vedset.code == VEDIT_CLUST ){
+       ivec[0] = im3d->vedset.param[2] ; if( ivec[0] <= 0 ) ivec[0] = 5 ;
+       ivec[1] = im3d->vedset.param[3] ; if( ivec[1] <= 0 ) ivec[1] = 200 ;
+     } else {
+       ivec[0] = 5 ; ivec[1] = 200 ;
+     }
+     MCW_choose_vector( im3d->vwid->func->thr_label ,
+                       "Clusterize Parameters" ,
+                        2 , lvec,ivec ,
+                        AFNI_cluster_choose_CB , (XtPointer)im3d ) ;
+     EXRETURN ;
+   }
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------
+  Event handler to find #3 button press for thr_label popup
+-------------------------------------------------------------------*/
+
+void AFNI_thr_EV( Widget w , XtPointer cd ,
+                  XEvent *ev , Boolean *continue_to_dispatch )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+
+ENTRY("AFNI_thr_EV") ;
+
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+
+   switch( ev->type ){
+      case ButtonPress:{
+         XButtonEvent *event = (XButtonEvent *) ev ;
+         im3d->vwid->butx = event->x_root ;  /* 17 May 2005 */
+         im3d->vwid->buty = event->y_root ;
+         event->button    = Button3 ;                           /* fakeout */
+         XmMenuPosition( im3d->vwid->func->thr_menu , event ) ; /* where */
+         XtManageChild ( im3d->vwid->func->thr_menu ) ;         /* popup */
+      }
+      break ;
+   }
 
    EXRETURN ;
 }

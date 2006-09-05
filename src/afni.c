@@ -3031,6 +3031,8 @@ ENTRY("AFNI_read_images") ;
    dset->dblk->diskptr->storage_mode = STORAGE_UNDEFINED ;
    dset->dblk->diskptr->byte_order   = THD_get_write_order() ;  /* 25 April 1998 */
 
+   dset->dblk->vedim = NULL ;  /* 05 Sep 2006 */
+
    EMPTY_STRING(dset->dblk->diskptr->prefix) ;
    EMPTY_STRING(dset->dblk->diskptr->viewcode) ;
    EMPTY_STRING(dset->dblk->diskptr->filecode) ;
@@ -5290,15 +5292,17 @@ ENTRY("AFNI_viewbut_EV") ;
 
 /*------------------------------------------------------------------------*/
 
-void AFNI_redisplay_func( Three_D_View * im3d )  /* 05 Mar 2002 */
+void AFNI_redisplay_func( Three_D_View *im3d )  /* 05 Mar 2002 */
 {
-   AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
-   AFNI_process_funcdisplay( im3d ) ;
+   if( IM3D_OPEN(im3d) && IM3D_IMAGIZED(im3d) ){
+     AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+     AFNI_process_funcdisplay( im3d ) ;
+   }
 }
 
 /*------------------------------------------------------------------------*/
 
-void AFNI_do_bkgd_lab( Three_D_View * im3d )
+void AFNI_do_bkgd_lab( Three_D_View *im3d )
 {
    char str[256] ;
 
@@ -5461,6 +5465,25 @@ DUMP_IVEC3("  new_id",new_id) ;
    if( do_lock || isq_driver==isqDR_display )
       im3d->vinfo->anat_val[0] = '\0';
    if( !AFNI_noenv( "AFNI_VALUE_LABEL") ) AFNI_do_bkgd_lab( im3d ) ;
+
+   /*--- 05 Sep 2006: volume edit on demand? ---*/
+
+   if( IM3D_IMAGIZED(im3d) ){
+     if( VEDIT_good(im3d->vedset) ){
+       switch( VEDIT_CODE(im3d->vedset) ){
+         case VEDIT_CLUST:
+           im3d->vedset.ival     = im3d->vinfo->fim_index ;
+           im3d->vedset.param[0] = (float)im3d->vinfo->thr_index ;
+           im3d->vedset.param[1] = im3d->vinfo->func_threshold
+                                  *im3d->vinfo->func_thresh_top ;
+         break ;
+       }
+       AFNI_vedit( im3d->fim_now , im3d->vedset ) ;
+     } else {
+       AFNI_vedit_clear( im3d->fim_now ) ;
+     }
+     AFNI_set_thr_pval(im3d) ;
+   }
 
    /*--- redraw images now ---*/
 
@@ -6640,6 +6663,8 @@ if(PRINT_TRACING)
 
    new_anat = GLOBAL_library.sslist->ssar[sss]->dsset[aaa][vvv] ;
    new_func = GLOBAL_library.sslist->ssar[sss]->dsset[fff][vvv] ;
+
+   AFNI_vedit_clear( im3d->fim_now ) ;  /* 05 Sep 2006 */
 
    /*----------------------------------------------*/
    /*--- if the old dataset has markers and the
@@ -9565,6 +9590,8 @@ STATUS("init new_dblk") ;
    new_dblk->master_nvals = 0 ;     /* 11 Jan 1999 */
    new_dblk->master_ival  = NULL ;
    new_dblk->master_bytes = NULL ;
+
+   new_dblk->vedim = NULL ;  /* 05 Sep 2006 */
 
    DSET_unlock(new_dset) ;
 
