@@ -150,30 +150,45 @@ SUMA_SurfaceObject **SUMA_GimmeSomeSOs(int *N_SOv)
    static char FuncName[]={"SUMA_GimmeSomeSOs"};
    SUMA_SurfaceObject **SOv=NULL;
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;
-   char sid[100]; 
-   int i, N_i;
+   char sid[100];
+   int i, N_i, *ilist=NULL;
+   float *vlist=NULL; 
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)SUMA_malloc(sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
 
-   N_i = 1; /* just one for now */
+   N_i = 10; 
+   vlist = (float*)SUMA_calloc(N_i, sizeof(float));
+   srand((unsigned int)time(NULL));
+   for (i=0; i<N_i; ++i) {
+      vlist[i] = rand();
+   }
+   ilist = SUMA_z_qsort(vlist, N_i);
+   /* remove six fro ilist, bad surface ... */
+   for (i=0; i<N_i; ++i) if (ilist[i] == 6) ilist[i] = ilist[N_i-1];
+   N_i = N_i - 1; /* remove last one since it replace 6 */
    *N_SOv = N_i; 
    SOv = (SUMA_SurfaceObject **) SUMA_calloc(*N_SOv, sizeof(SUMA_SurfaceObject *));
    
    for (i=0; i<N_i; ++i) {
+      #if 0 /* random indices created above */
       srand((unsigned int)time(NULL));
       do {
          Opt->obj_type = rand() % 10;
       } while (Opt->obj_type == 6);  /* six sucks! */
+      #else
+      Opt->obj_type = ilist[i];
+      #endif
       Opt->obj_type_res = 64;
       Opt->debug = 0;
-      sprintf(sid, "surf_%d", Opt->obj_type);
       SOv[i] = SUMA_MarchingCubesSurface(Opt);
       /* assign its Group and State and Side and few other things, must look like surfaces loaded with SUMA_Load_Spec_Surf*/
       SOv[i]->Group = SUMA_copy_string(SUMA_DEF_GROUP_NAME); /* change this in sync with string in macro SUMA_BLANK_NEW_SPEC_SURF*/
-      SOv[i]->State = SUMA_copy_string(SUMA_DEF_STATE_NAME);
+      sprintf(sid, "%s_%d", SUMA_DEF_STATE_NAME, Opt->obj_type);
+      SOv[i]->State = SUMA_copy_string(sid);
+      sprintf(sid, "surf_%d", Opt->obj_type);
       SOv[i]->Label = SUMA_copy_string(sid);
       SOv[i]->EmbedDim = 3;
       SOv[i]->AnatCorrect = YUP;
@@ -190,7 +205,9 @@ SUMA_SurfaceObject **SUMA_GimmeSomeSOs(int *N_SOv)
    }
   
    if (Opt) SUMA_free(Opt);
-
+   if (ilist) SUMA_free(ilist);
+   if (vlist) SUMA_free(vlist);
+   
    SUMA_RETURN(SOv);
 }
 

@@ -1739,6 +1739,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             sv->light0_position[0] *= -1;
             sv->light0_position[1] *= -1;
             sv->light0_position[2] *= -1;
+            sv->lit_for *= -1;
             glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
             break;
          
@@ -2219,6 +2220,11 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
       SUMA_EyeAxisStandard (EyeAxis, sv);
    }
    
+   /* do the light business */
+   if (!SUMA_SetViewerLightsForSO(sv, (SUMA_SurfaceObject *)(dov[sv->Focus_SO_ID].OP))) {
+      SUMA_S_Warn("Failed to set viewer lights.\nUse 'F' key to flip lights in SUMA\nif necessary.");
+   }
+   
    /* do the axis setup */
    SUMA_WorldAxisStandard (sv->WAx, sv);
 
@@ -2592,6 +2598,11 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 
    /* do the axis setup */
    SUMA_WorldAxisStandard (sv->WAx, sv);
+
+   /* do the light business */
+   if (!SUMA_SetViewerLightsForSO(sv, (SUMA_SurfaceObject *)(dov[sv->Focus_SO_ID].OP))) {
+      SUMA_S_Warn("Failed to set viewer lights.\nUse 'F' key to flip lights in SUMA\nif necessary.");
+   }
     
    /* Home call baby */
    if (!list) list = SUMA_CreateList();

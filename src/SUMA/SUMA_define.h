@@ -1564,6 +1564,7 @@ typedef struct {
                            a good setting is such that SUMA_BACKGROUND_ATTENUATION_FACTOR * SUMA_DIM_AFNI_COLOR_FACTOR = 1
                             Watch for saturation effects!  */
 
+   int lit_for;   /*! 1 = lit for surfaces of normdir = 1, -1 for normdir = -1, 0 for not set. */
    GLfloat light0_position[4]; /*!< Light 0 position: 1st 3 vals --> direction of light . Last value is 0 -->  directional light*/
    GLfloat light1_position[4]; /*!< Light 1 position: 1st 3 vals --> direction of light. Last value is 0 -->  directional light*/
    GLfloat light0_color[4];   /*!< Light 0 color */
