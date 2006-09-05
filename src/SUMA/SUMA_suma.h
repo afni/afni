@@ -67,6 +67,7 @@
    
    #undef SUMA_SLP_Err
    #undef SUMA_SL_Err
+   #undef SUMA_SL_Errv
    #undef SUMA_L_Err
    
    #undef SUMA_SLP_Note
@@ -87,6 +88,7 @@
    #undef SUMA_S_Warn
    #undef SUMA_S_Note
    #undef SUMA_S_Err
+   #undef SUMA_S_Errv
    #undef SUMA_S_Crit
     
    #ifdef SOLARIS
@@ -138,6 +140,7 @@
    
    #define SUMA_SLP_Err SUMA_S_Err
    #define SUMA_SL_Err SUMA_S_Err
+   #define SUMA_SL_Errv SUMA_S_Err
    #define SUMA_L_Err SUMA_S_Err
    
    #define SUMA_SLP_Note SUMA_S_Note
@@ -169,6 +172,7 @@
    #define SUMA_S_Err(msg) {\
       fprintf (SUMA_STDERR, "Error %s:\n %s\n", FuncName, msg);  \
    }
+   #define SUMA_S_Errv SUMA_S_Err
    
    #define SUMA_S_Crit(msg) {\
       fprintf (SUMA_STDERR, "Critical error %s:\n %s\n", FuncName, msg);  \
