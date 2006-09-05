@@ -2392,7 +2392,6 @@ STATUS("making func->rowcol") ;
       "Motif library for this computer system."
    ) ;
 #else
-#endif
    MCW_register_help( func->thr_label ,
       "Shows the type of threshold\n"
       "statistic that is available\n"
@@ -2409,6 +2408,67 @@ STATUS("making func->rowcol") ;
       FUNC_PT_LABEL  " = " FUNC_PT_DESCRIPTOR  "\n"
    ) ;
    MCW_register_hint( func->thr_label , "Type of threshold statistic" ) ;
+#endif
+
+   /**-- 05 Sep 2006: menu hidden on the thr_label --**/
+
+#ifdef BAD_BUTTON3_POPUPS
+   func->thr_menu = XmCreatePopupMenu( func->thr_rowcol, "menu", NULL, 0 ) ;
+#else
+   func->thr_menu = XmCreatePopupMenu( func->thr_label , "menu", NULL, 0 ) ;
+#endif
+
+   SAVEUNDERIZE(XtParent(func->thr_menu)) ;
+   VISIBILIZE_WHEN_MAPPED(func->thr_menu) ;
+
+   XtInsertEventHandler( func->thr_label ,       /* handle events in label */
+
+                               0
+                             | ButtonPressMask   /* button presses */
+                            ,
+                            FALSE ,              /* nonmaskable events? */
+                            AFNI_thr_EV ,        /* handler */
+                            (XtPointer) im3d ,   /* client data */
+                            XtListTail           /* last in queue */
+                          ) ;
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmLabelWidgetClass , func->thr_menu ,
+               LABEL_ARG("-Volume Edit-") ,
+               XmNrecomputeSize , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , func->thr_menu ,
+             XmNseparatorType , XmSINGLE_LINE , NULL ) ;
+
+   func->thr_clear_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->thr_menu ,
+            LABEL_ARG("*Clear Edit") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->thr_clear_pb , XmNactivateCallback ,
+                  AFNI_thr_CB , im3d ) ;
+   MCW_register_hint( func->thr_clear_pb , "Turn off Volume Edit" ) ;
+   im3d->vedset.code = 0 ;
+
+   func->thr_cluster_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->thr_menu ,
+            LABEL_ARG(" Clusterize") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->thr_cluster_pb , XmNactivateCallback ,
+                  AFNI_thr_CB , im3d ) ;
+   MCW_register_hint( func->thr_cluster_pb , "Cluster edit overlay" ) ;
+
+   /*---- end of thr_menu creation ----*/
 
    FIX_SCALE_VALUE(im3d) ;
 
@@ -2516,6 +2576,19 @@ STATUS("making func->rowcol") ;
          "   be interpreted as 1.2 x 10^(-7).\n"
          "* This is the significance PER VOXEL." ) ;
    MCW_register_hint( func->thr_pval_label , "Nominal p-value per voxel" ) ;
+
+   /* 05 Sep 2006: duplicate popup from thr_label */
+
+   XtInsertEventHandler( func->thr_pval_label ,  /* handle events in label */
+
+                               0
+                             | ButtonPressMask   /* button presses */
+                            ,
+                            FALSE ,              /* nonmaskable events? */
+                            AFNI_thr_EV ,        /* handler */
+                            (XtPointer) im3d ,   /* client data */
+                            XtListTail           /* last in queue */
+                          ) ;
 
    /** Jul 1997: optmenu to choose top value for scale **/
 
@@ -4882,6 +4955,8 @@ ENTRY("AFNI_initialize_controller") ;
 
    WAIT_for_window( im3d->vwid->top_shell ) ;
 
+   POPUP_cursorize( im3d->vwid->func->thr_label ) ;       /* 05 Sep 2006 */
+   POPUP_cursorize( im3d->vwid->func->thr_pval_label ) ;  /* 05 Sep 2006 */
    POPUP_cursorize( im3d->vwid->func->inten_label ) ;
    POPUP_cursorize( im3d->vwid->picture ) ;
    POPUP_cursorize( imag->crosshair_label ) ;

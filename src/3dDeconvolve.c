@@ -2347,12 +2347,18 @@ ENTRY("read_input_data") ;
       qar   = (float *)calloc(sizeof(float),nx*ny) ;
 
       if( nx == 1 ){                     /* 1 column = global times */
+        int nbad=0 ;
+        INFO_message("-stim_times %d using global times",is+1) ;
         tmax = (nt-1)*basis_TR ;         /* max allowed time offset */
         for( ii=0 ; ii < nx*ny ; ii++ ){
           tt = tar[ii] ;
           if( tt >= 0.0f && tt <= tmax ) qar[ngood++] = tt/basis_TR ;
+          if( tt >= basis_filler ) nbad++ ;
         }
+        if( nbad )
+          WARNING_message("-stim_times %d has %d '*' fillers?",is+1,nbad) ;
       } else {                           /* multicol => 1 row per block */
+        INFO_message("-stim_times %d using local times",is+1) ;
         if( ny != nbl ){                 /* times are relative to block */
           fprintf(stderr,
                   "** WARNING: '-stim_times %d' file '%s' has %d rows,"

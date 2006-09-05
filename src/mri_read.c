@@ -2114,22 +2114,29 @@ ENTRY("mri_read_ascii") ;
 
   This function builds on mri_read_ascii() in two ways:
     - the input is transposed to rows (so that a 1x100 file becomes a 100x1 image)
-    - column selectors are allowed in fname
+    - column selectors [..] and row selectors {..} are allowed in fname
+    - if fname ends in a ' character, file will be NOT be transposed
 */
 
-MRI_IMAGE * mri_read_1D( char * fname )
+MRI_IMAGE * mri_read_1D( char *fname )
 {
    MRI_IMAGE *inim , *outim , *flim ;
-   char dname[512] , *cpt , *dpt ;
+   char dname[1024] , *cpt , *dpt ;
    int ii,jj,nx,ny,nts , *ivlist , *ivl , *sslist ;
    float *far , *oar ;
+   int flip ;  /* 05 Sep 2006 */
 
 ENTRY("mri_read_1D") ;
 
    if( fname == NULL || fname[0] == '\0' || strlen(fname) > 511 ) RETURN(NULL) ;
 
-   if( strncmp(fname,"1D:",3) == 0 ){       /* 28 Apr 2003 */
-     outim = mri_1D_fromstring( fname+3 ) ; RETURN(outim) ;
+   strcpy(dname,fname); ii = strlen(dname);  /* 05 Sep 2006 */
+   flip = (dname[ii-1] == '\''); if( flip ) dname[ii-1] = '\0';
+
+   if( strncmp(dname,"1D:",3) == 0 ){       /* 28 Apr 2003 */
+     outim = mri_1D_fromstring( dname+3 ) ;
+     if( flip ){ inim=mri_transpose(outim); mri_free(outim); outim=inim; }
+     RETURN(outim) ;
    }
 
    /*-- split filename and subvector list --*/
@@ -2141,7 +2148,6 @@ ENTRY("mri_read_1D") ;
       ERROR_message("Illegal filename in mri_read_1D('%s')\n",fname) ;
       RETURN(NULL) ;
    } else {                             /* got a subvector list */
-      strcpy( dname , fname ) ;
       if( cpt != NULL ){ ii = cpt-fname; dname[ii] = '\0'; }
       if( dpt != NULL ){ ii = dpt-fname; dname[ii] = '\0'; }
    }
@@ -2206,8 +2212,9 @@ ENTRY("mri_read_1D") ;
      mri_free(flim); free(sslist); flim = outim;
    }
 
-   mri_add_name(fname,flim) ;
-   RETURN(flim) ;
+   if( flip ){ inim=mri_transpose(flim); mri_free(flim); flim=inim; }
+
+   mri_add_name(fname,flim) ; RETURN(flim) ;
 }
 
 /*-----------------------------------------------------------------------------------*/

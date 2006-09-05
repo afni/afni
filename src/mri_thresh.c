@@ -45,6 +45,8 @@ ENTRY("mri_threshold") ;
          register short *thar = MRI_SHORT_PTR(thrim) ;
          th1 = SHORTIZE(thbot) ; th2 = SHORTIZE(thtop) ;
 
+         if( thar == NULL ) EXRETURN ;
+
          switch( im->kind ){
 
             default: EXRETURN ;  /* unknown type of data image */
@@ -58,6 +60,7 @@ ENTRY("mri_threshold") ;
 
             case MRI_rgb:{                             /* 20 Dec 2004 */
                register byte *ar = MRI_RGB_PTR(im) ;
+               if( ar == NULL ) EXRETURN ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ){
                     ar[3*ii] = ar[3*ii+1] = ar[3*ii+2] = 0 ;
@@ -67,6 +70,7 @@ ENTRY("mri_threshold") ;
 
             case MRI_short:{
                register short *ar = MRI_SHORT_PTR(im) ;
+               if( ar == NULL ) EXRETURN ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0 ;
                EXRETURN ;
@@ -81,6 +85,7 @@ ENTRY("mri_threshold") ;
 
             case MRI_float:{
                register float *ar = MRI_FLOAT_PTR(im) ;
+               if( ar == NULL ) EXRETURN ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0.0f ;
                EXRETURN ;
@@ -107,12 +112,15 @@ ENTRY("mri_threshold") ;
          register float *thar = MRI_FLOAT_PTR(thrim) ;
          th1 = thbot ; th2 = thtop ;
 
+         if( thar == NULL ) EXRETURN ;
+
          switch( im->kind ){
 
             default: EXRETURN ;
 
             case MRI_byte:{
                register byte *ar = MRI_BYTE_PTR(im) ;
+               if( ar == NULL ) EXRETURN ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0 ;
                EXRETURN ;
@@ -129,6 +137,7 @@ ENTRY("mri_threshold") ;
 
             case MRI_short:{
                register short *ar = MRI_SHORT_PTR(im) ;
+               if( ar == NULL ) EXRETURN ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0 ;
                EXRETURN ;
@@ -143,6 +152,7 @@ ENTRY("mri_threshold") ;
 
             case MRI_float:{
                register float *ar = MRI_FLOAT_PTR(im) ;
+               if( ar == NULL ) EXRETURN ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0.0f ;
                EXRETURN ;

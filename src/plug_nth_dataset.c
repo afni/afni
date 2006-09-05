@@ -106,7 +106,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 {
    int id ;
 
-ENTRY("PLUGIN_init - Dataset#N") ;
+ENTRY("PLUGIN_init:Dataset#N") ;
 
    if( ncall > 0 ) RETURN( NULL );  /* only one interface */
 

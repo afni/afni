@@ -4464,6 +4464,8 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
    dblk->brick_fac   = NULL ;
    dblk->brick_bytes = NULL ;
 
+   dblk->vedim = NULL ; /* 05 Sep 2006 */
+
    THD_init_datablock_brick( dblk , argopt.datum_all , NULL ) ;
    THD_null_datablock_auxdata( dblk ) ;
 

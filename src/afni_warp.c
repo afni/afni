@@ -26,16 +26,16 @@
       nxx * nyy for fixed_axis = 3
 --------------------------------------------------------------------------*/
 
-MRI_IMAGE * AFNI_dataset_slice( THD_3dim_dataset * dset ,
+MRI_IMAGE * AFNI_dataset_slice( THD_3dim_dataset *dset ,
                                 int fixed_axis , int fixed_index ,
                                 int ival , int resam_mode )
 {
-   MRI_IMAGE * newim ;
-   void * sar , * bar ;
+   MRI_IMAGE *newim ;
+   void *sar , *bar ;
    int nxx,nyy,nzz ;
    MRI_TYPE typ ;
-   THD_dataxes * daxes ;
-   THD_3dim_dataset * parent_dset ;
+   THD_dataxes *daxes ;
+   THD_3dim_dataset *parent_dset ;
    THD_warp parent_to_child_warp ;
 
 ENTRY("AFNI_dataset_slice") ;
@@ -123,7 +123,12 @@ if(PRINT_TRACING)
 
    if( !dset->wod_flag && DSET_INMEMORY(dset) ){
 
-      bar = DSET_ARRAY(dset,ival) ;  /* pointer to data brick array */
+      if( DSET_VEDIT_IVAL(dset) == ival && dset->dblk->vedim != NULL && dset->dblk->vedim->kind == typ ){
+        STATUS("substituting vedim") ;
+        bar = mri_data_pointer(dset->dblk->vedim) ;
+        if( bar == NULL ) ERROR_message("vedim bar is NULL?!") ;
+      } else
+        bar = DSET_ARRAY(dset,ival) ;  /* pointer to data brick array */
 
       if( bar == NULL ){  /* if data needs to be loaded from disk */
          (void) THD_load_datablock( dset->dblk ) ;
@@ -248,9 +253,14 @@ STATUS("setting parent_dset to self, and parent_to_child_warp to identity") ;
       }
    }
 
-   bar = DSET_ARRAY(parent_dset,ival) ;
+   if( DSET_VEDIT_IVAL(parent_dset) == ival && parent_dset->dblk->vedim != NULL && parent_dset->dblk->vedim->kind == typ ){
+     STATUS("substituting vedim") ;
+     bar = mri_data_pointer(parent_dset->dblk->vedim) ;
+     if( bar == NULL ) ERROR_message("vedim bar is NULL?!") ;
+   } else
+     bar = DSET_ARRAY(parent_dset,ival) ;
 
-STATUS("warp-on-demand") ;
+   STATUS("warp-on-demand") ;
 
    /******************************************************************/
    /*** Select warp routine based on data type and slice direction ***/

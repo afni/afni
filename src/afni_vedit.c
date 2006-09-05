@@ -1,6 +1,9 @@
 #include "mrilib.h"
 
 /*---------------------------------------------------------------------------*/
+/*! Volume edit on demand: produce a new volume for display based on the
+    parameters stored in dset->dblk->vedset.  [05 Sep 2006]
+-----------------------------------------------------------------------------*/
 
 void AFNI_vedit( THD_3dim_dataset *dset , VEDIT_settings vednew )
 {
@@ -46,6 +49,9 @@ ENTRY("AFNI_vedit") ;
      dim = DBLK_BRICK(dblk,ival) ;
      if( dim == NULL ) EXRETURN ;
    }
+   dim->dx = fabs(DSET_DX(dset));
+   dim->dy = fabs(DSET_DY(dset));
+   dim->dz = fabs(DSET_DZ(dset));
 
    /* edit volume into the temporary result instead */
 
@@ -58,10 +64,11 @@ ENTRY("AFNI_vedit") ;
        if( ithr >= 0 && ithr < DSET_NVALS(dset) )
          tim = DBLK_BRICK(dblk,ithr) ;
        thr  = vednew.param[1] ;
+       if( DSET_BRICK_FACTOR(dset,ithr) > 0.0f )
+         thr /= DSET_BRICK_FACTOR(dset,ithr) ;
        rmm  = vednew.param[2] ;
        vmul = vednew.param[3] ;
-       dblk->vedim = mri_clusterize( vednew.param[2], vednew.param[3], dim,
-                                                      vednew.param[1], tim  );
+       dblk->vedim = mri_clusterize( rmm, vmul, dim, thr, tim  );
      }
      break ;
 
