@@ -35,6 +35,10 @@ void usage_AnalyzeTrace (SUMA_GENERIC_ARGV_PARSE *ps)
                "       Note: The file for this program has special strings (in comments at times)\n"
                "            to avoid false alarms when processing it.\n"
                "            \n"
+               "   -max_err MAX_ERR: Stop after encountering MAX_ERR errors\n"
+               "                     reported in log. Default is 5.\n"
+               "                     Error key terms are:\n"
+               "                     'Error', 'error', 'corruption'\n"
                "\n"
                "%s"
                "%s"
@@ -58,6 +62,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_AnalyzeTrace_ParseInput(char *argv[], int
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
    Opt->N_it = 10000000;
    Opt->obj_type = 0;
+   Opt->N_XYZ = 5;
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -78,6 +83,18 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_AnalyzeTrace_ParseInput(char *argv[], int
          }
          
          Opt->debug = atoi(argv[++kar]);
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-max_err") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a number after -max_err \n");
+            exit (1);
+         }
+         
+         Opt->N_XYZ = atoi(argv[++kar]);
          brk = YUP;
       }
       
@@ -126,10 +143,15 @@ typedef struct {
    int io;
 } SUMA_TRACE_STRUCT;
 
-void SUMA_ShowTraceStack(SUMA_TRACE_STRUCT *TS, int its) {
+void SUMA_ShowTraceStack(SUMA_TRACE_STRUCT *TS, int its, char *head) {
    int i, j;
-   fprintf(SUMA_STDERR, "Current Stack:\n"
-                        "--------------\n");
+   
+   if (head) {
+      fprintf(SUMA_STDERR, "%s", head);
+   } else {
+      fprintf(SUMA_STDERR, "Current Stack:\n"
+                           "--------------\n");
+   }
    for (i=0; i<its; ++i) {
       for (j=0; j<i; ++j) { fprintf(SUMA_STDERR, "  "); }
       fprintf(SUMA_STDERR, "func %s: file %s: line %d: level %d: io %d\n", TS[i].func, TS[i].file, TS[i].line, TS[i].level, TS[i].io);
@@ -323,6 +345,8 @@ char *SUMA_NextEntry(char *ss, int *level, int *io, char *func, char *file, int 
    /* scan for errors */
    ctmp = *ss; *ss = '\0';
    if (strstr(ss_init,"Error")) *error = 1;
+   else if (strstr(ss_init,"error")) *error = 1;
+   else if (strstr(ss_init,"corruption")) *error = 1;
    else *error = 0;
    
    *ss = ctmp;
@@ -335,7 +359,7 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
    char *fl = NULL, *flc = NULL, *fls = NULL, *flo = NULL, 
          *fln = NULL, *fle = NULL, func[100],  file[100],
          *comp_fl=NULL, stmp[300];
-   int level, cur_level, io, nread, its, line, error, cnt, N_comp_fl, Nrep;
+   int level, cur_level, io, nread, its, line, error, cnt, N_comp_fl, Nrep, N_error = 0;
    SUMA_TRACE_STRUCT TS[100];
    SUMA_Boolean Res = NOPE;
    FILE *fff=NULL;
@@ -373,8 +397,8 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
       flc = fln; /* set current location */
       fln = SUMA_NextEntry(flc, &level, &io, func, file, &line, &error) ;
       if (fln == flc) {
-         SUMA_S_Note("\nDone Checking.\nTrace Looks OK (exit() calls are not popped off the stack).\n");
-         SUMA_ShowTraceStack(TS, its);
+         SUMA_S_Note("\nDone Checking.\nTrace looks OK (Note that exit() calls are not popped off the stack).\n");
+         SUMA_ShowTraceStack(TS, its, "Stack at Exit:\n");
          Res = YUP;
          goto GETOUT;
       }
@@ -394,7 +418,7 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
             if (level != cur_level + 1) {
                fprintf(SUMA_STDERR, "Entering level %d from current level of %d!\n", level, cur_level);
                /* Show me the trace */
-               SUMA_ShowTraceStack(TS, its);
+               SUMA_ShowTraceStack(TS, its, "Stack at entry level error:\n");
                sprintf(stmp,"Chunk in question at %s:%d\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
                SUMA_ShowFromTo(flc, fln, stmp);
                Res = NOPE;
@@ -410,11 +434,18 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                ++its;
                if (error) {
                   sprintf(stmp,"\n"
-                               "Encountered error here in this chunk: %s:%d\n"
-                               "-------------------------------------\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
+                               "Encountered %d%s error here in this chunk: %s:%d\n"
+                               "----------------------------------------\n", 
+                               N_error+1, SUMA_COUNTER_SUFFIX((N_error+1)), fname, SUMA_LineNumbersFromTo(fl, flc)+2);
                   SUMA_ShowFromTo(flc, fln, stmp);
-                  SUMA_ShowTraceStack(TS, its);
+                  SUMA_ShowTraceStack(TS, its,"Stack at error reported in log:\n");
                   fprintf(SUMA_STDERR, "\n\n");
+                  ++N_error;
+                  if (N_error >= Opt->N_XYZ) {
+                     fprintf(SUMA_STDERR, "Analysis terminated.\nMaximum error limit of %d reached.\n", Opt->N_XYZ);
+                     Res = NOPE;
+                     goto GETOUT;
+                  }
                }
             }
          } else if (io == -1) { /* exit, make sure level is current and function is same */
@@ -424,7 +455,7 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
             if (its < 1) {
                   fprintf(SUMA_STDERR, "Leaving function %s but with its = %d!\n", func, its); 
                   /* Show me the trace */
-                  SUMA_ShowTraceStack(TS, its);
+                  SUMA_ShowTraceStack(TS, its, "Stack at exit index error:\n");
                   sprintf(stmp,"Chunk in question at %s:%d\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
                   SUMA_ShowFromTo(flc, fln, stmp);
                   Res = NOPE;
@@ -433,7 +464,7 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
             if (level != cur_level) {
                fprintf(SUMA_STDERR, "Leaving level %d from current level of %d!\n", level, cur_level);
                /* Show me the trace */
-               SUMA_ShowTraceStack(TS, its);
+               SUMA_ShowTraceStack(TS, its, "Stack at exit level error:\n");
                sprintf(stmp,"Chunk in question at %s:%d\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
                SUMA_ShowFromTo(flc, fln, stmp);
                Res = NOPE;
@@ -443,7 +474,7 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                if (strcmp(func, TS[its-1].func) != 0) {
                   fprintf(SUMA_STDERR, "Leaving func %s from level current func %s, its = %d!\n", func, TS[its-1].func, its-1); 
                   /* Show me the trace */
-                  SUMA_ShowTraceStack(TS, its);
+                  SUMA_ShowTraceStack(TS, its, "Stack at function discrepancy error:\n");
                   sprintf(stmp,"Chunk in question at %s:%d\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
                   SUMA_ShowFromTo(flc, fln, stmp);
                   Res = NOPE;
@@ -454,7 +485,7 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                   fprintf(SUMA_STDERR, "Leaving purported function (%s) from file %s which is different from entry file %s, its = %d!\n",
                                         func, file, TS[its-1].func, its-1); 
                   /* Show me the trace */
-                  SUMA_ShowTraceStack(TS, its);
+                  SUMA_ShowTraceStack(TS, its, "Stack at file discrepancy error:\n");
                   sprintf(stmp,"Chunk in question at %s:%d\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
                   SUMA_ShowFromTo(flc, fln, stmp);
                   Res = NOPE;
@@ -467,7 +498,7 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                                         func, line, TS[its-1].line, its-1,
                                         file, line); 
                   /* Show me the trace */
-                  SUMA_ShowTraceStack(TS, its);
+                  SUMA_ShowTraceStack(TS, its, "Stack at line absurdity error:\n");
                   sprintf(stmp,"Chunk in question at %s:%d\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
                   SUMA_ShowFromTo(flc, fln, stmp);
                   Res = NOPE;
@@ -477,7 +508,7 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                   fprintf(SUMA_STDERR, "Note: Leaving purported function (%s) at line %d more than %d lines from entry line %d, its = %d!\n",
                                         func, line, Opt->N_it, TS[its-1].line, its-1); 
                   /* Show me the trace */
-                  SUMA_ShowTraceStack(TS, its);
+                  SUMA_ShowTraceStack(TS, its, "Stack at function largesse warning:\n");
                   sprintf(stmp,"Chunk in question at %s:%d\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
                   SUMA_ShowFromTo(flc, fln, stmp);
                }
@@ -490,11 +521,18 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
                   cur_level = level - 1;
                   if (error) {
                      sprintf(stmp,  "\n"
-                                    "Encountered error here in this chunk: %s:%d\n"
-                                    "-------------------------------------\n", fname, SUMA_LineNumbersFromTo(fl, flc)+2);
+                                    "Encountered %d%s error here in this chunk: %s:%d\n"
+                                    "-----------------------------------------\n", 
+                                    N_error+1, SUMA_COUNTER_SUFFIX((N_error+1)), fname, SUMA_LineNumbersFromTo(fl, flc)+2);
                      SUMA_ShowFromTo(flc, fln, stmp);
-                     SUMA_ShowTraceStack(TS, its);
+                     SUMA_ShowTraceStack(TS, its, "Stack at error reported in log:\n");
                      fprintf(SUMA_STDERR, "\n\n");
+                     ++N_error;
+                     if (N_error >= Opt->N_XYZ) {
+                        fprintf(SUMA_STDERR, "Analysis terminated.\nMaximum error limit of %d reached.\n", Opt->N_XYZ);
+                        Res = NOPE;
+                        goto GETOUT;
+                     }
                   }
                }
             }

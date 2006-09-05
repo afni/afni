@@ -15,12 +15,14 @@ SUMA_NEW_SO_OPT *SUMA_NewNewSOOpt(void)
    
    nsoopt = (SUMA_NEW_SO_OPT *) SUMA_malloc(sizeof(SUMA_NEW_SO_OPT));
    nsoopt->idcode_str = NULL;
+   nsoopt->LocalDomainParent = SUMA_copy_string("SAME");
    nsoopt->LocalDomainParentID = NULL;
    nsoopt->FileFormat = SUMA_ASCII;
    nsoopt->FileType = SUMA_FT_NOT_SPECIFIED;
    nsoopt->DoMetrics = YUP;
    nsoopt->DoNormals = YUP;
    nsoopt->DoCenter = YUP;
+   nsoopt->LargestBoxSize = -1.0;
    SUMA_RETURN(nsoopt);
 }
 
@@ -32,6 +34,7 @@ SUMA_NEW_SO_OPT *SUMA_FreeNewSOOpt(SUMA_NEW_SO_OPT *nsopt)
    if (!nsopt) SUMA_RETURN(NULL);
    if (nsopt->idcode_str) SUMA_free(nsopt->idcode_str);
    if (nsopt->LocalDomainParentID) SUMA_free(nsopt->LocalDomainParentID);
+   if (nsopt->LocalDomainParent) SUMA_free(nsopt->LocalDomainParent);
    SUMA_RETURN(NULL);
 }
 
@@ -79,6 +82,13 @@ SUMA_SurfaceObject *SUMA_NewSO(float **NodeList, int N_Node, int **FaceSetList, 
       SUMA_LH("Skipping Center deal")
    }
    
+   if (nsoopt->LargestBoxSize > 0.0) {
+      SUMA_LH("BoxSize deal")
+      SUMA_LARGEST_SIZE_SCALE(SO, nsoopt->LargestBoxSize);
+   } else {
+      SUMA_LH("Skipping Center deal")
+   }
+   
    SUMA_LH("FaceSetList");
    SO->FaceSetDim = 3;
    SO->FaceSetList = *FaceSetList; *FaceSetList = NULL;  /* keeps user from freeing afterwards ... */
@@ -103,13 +113,17 @@ SUMA_SurfaceObject *SUMA_NewSO(float **NodeList, int N_Node, int **FaceSetList, 
    if (nsoopt->idcode_str) sprintf(SO->idcode_str, "%s", nsoopt->idcode_str);
    else UNIQ_idcode_fill (SO->idcode_str);
    if (nsoopt->LocalDomainParentID) SO->LocalDomainParentID = SUMA_copy_string(nsoopt->LocalDomainParentID);
-   SO->LocalDomainParentID = SUMA_copy_string(SO->idcode_str);
+   else SO->LocalDomainParentID = SUMA_copy_string(SO->idcode_str);
+   if (nsoopt->LocalDomainParent) SO->LocalDomainParent = SUMA_copy_string(nsoopt->LocalDomainParent);
+   else SO->LocalDomainParent = SUMA_copy_string("SAME");
    
    /* the stupid copies */
    SO->glar_NodeList = (GLfloat *)SO->NodeList;
    SO->glar_FaceSetList = (GLint *) SO->FaceSetList;
    SO->glar_NodeNormList = (GLfloat *) SO->NodeNormList; 
    SO->glar_FaceNormList = (GLfloat *) SO->FaceNormList; 
+   
+   if (LocalHead) SUMA_Print_Surface_Object(SO, NULL);
    
    if (nsooptu != nsoopt) {
       nsoopt=SUMA_FreeNewSOOpt(nsoopt); 

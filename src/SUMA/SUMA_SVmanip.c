@@ -206,6 +206,8 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->light0_position[1] = 0.0;
       
       SV->light0_position[2] = 1.0 * SUMA_INTITIAL_LIGHT0_SWITCH; 
+      SV->lit_for = SUMA_INTITIAL_LIGHT0_SWITCH;
+
       SV->light0_position[3] = 0.0;
 
       SV->light1_position[0] = 1.0;
@@ -1070,7 +1072,9 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend_va(SS,"   ViewCenterOrig = [%f %f %f]\n", SV->GVS[SV->StdView].ViewCenterOrig[0], SV->GVS[SV->StdView].ViewCenterOrig[1], SV->GVS[SV->StdView].ViewCenterOrig[2]);
    SS = SUMA_StringAppend_va(SS,"   ViewCamUp = [%f %f %f]\n", SV->GVS[SV->StdView].ViewCamUp[0], SV->GVS[SV->StdView].ViewCamUp[1], SV->GVS[SV->StdView].ViewCamUp[2]);
    SS = SUMA_StringAppend_va(SS,"   RotaCenter = [%f %f %f]\n", SV->GVS[SV->StdView].RotaCenter[0], SV->GVS[SV->StdView].RotaCenter[1], SV->GVS[SV->StdView].RotaCenter[2]);
-   SS = SUMA_StringAppend_va(SS,"   light0_position = [%f %f %f %f]\n", SV->light0_position[0], SV->light0_position[1], SV->light0_position[2], SV->light0_position[3]);
+   SS = SUMA_StringAppend_va(SS,"   light0_position = [%f %f %f %f] (lit for %d)\n", 
+                                             SV->light0_position[0], SV->light0_position[1], 
+                                             SV->light0_position[2], SV->light0_position[3], SV->lit_for);
    SS = SUMA_StringAppend_va(SS,"   light1_position = [%f %f %f %f]\n", SV->light1_position[0], SV->light1_position[1], SV->light1_position[2], SV->light1_position[3]);
    SS = SUMA_StringAppend_va(SS,"   ZoomCompensate = %f\n", SV->ZoomCompensate);
    SS = SUMA_StringAppend_va(SS,"   WindWidth = %d\n", SV->WindWidth);
@@ -2398,6 +2402,45 @@ SUMA_Boolean SUMA_AdoptGroup(SUMA_SurfaceViewer *csv, char *group)
    SUMA_RETURN(YUP);
 }
 
+SUMA_Boolean SUMA_SetViewerLightsForSO(SUMA_SurfaceViewer *cSV, SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_SetViewerLightsForSO"};
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!cSV || !SO) SUMA_RETURN(NOPE);
+
+   if (cSV->lit_for == 0) { /* olde way */
+      /* if surface is SureFit , flip lights */
+      if (SO->normdir == 0 && (SO->FileType == SUMA_SUREFIT || SO->FileType == SUMA_OPENDX_MESH || SO->FileType == SUMA_BRAIN_VOYAGER)) {
+         SUMA_LH("Flippo for safety");
+         cSV->light0_position[0] *= -1;
+         cSV->light0_position[1] *= -1;      
+         cSV->light0_position[2] *= -1;
+         glLightfv(GL_LIGHT0, GL_POSITION, cSV->light0_position);
+      } else if (SO->normdir == -1) {
+         SUMA_LH("Flippo for safety");
+         cSV->light0_position[0] *= -1;
+         cSV->light0_position[1] *= -1;      
+         cSV->light0_position[2] *= -1;
+         glLightfv(GL_LIGHT0, GL_POSITION, cSV->light0_position);
+      }
+   } else {
+      SUMA_LHv("Auto Flippo for safety, %d, %d\n", cSV->lit_for , SO->normdir);
+      if (cSV->lit_for * SO->normdir < 0) {
+         cSV->light0_position[0] *= -1;
+         cSV->light0_position[1] *= -1;      
+         cSV->light0_position[2] *= -1;
+         cSV->lit_for *= -1;
+         glLightfv(GL_LIGHT0, GL_POSITION, cSV->light0_position);
+      }
+   } 
+
+   SUMA_RETURN(YUP);
+}
+   
+
 /*!
 ans = SUMA_SetupSVforDOs (Spec, DOv, N_DOv, cSV, vo);
 
@@ -2566,17 +2609,8 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
       SUMA_RETURN(NOPE);
    }
    
-   /* if surface is SureFit , flip lights */
-   if (SO->normdir == 0 && (SO->FileType == SUMA_SUREFIT || SO->FileType == SUMA_OPENDX_MESH || SO->FileType == SUMA_BRAIN_VOYAGER)) {
-      SUMA_LH("Flippo for safety");
-      cSV->light0_position[0] *= -1;
-      cSV->light0_position[1] *= -1;      
-      cSV->light0_position[2] *= -1;
-   } else if (SO->normdir == -1) {
-      SUMA_LH("Flippo for safety");
-      cSV->light0_position[0] *= -1;
-      cSV->light0_position[1] *= -1;      
-      cSV->light0_position[2] *= -1;
+   if (!SUMA_SetViewerLightsForSO(cSV, SO)) {
+      SUMA_S_Warn("Failed to set viewer lights.\nUse 'F' key to flip lights in SUMA\nif necessary.");
    }
    
    /* do the axis setup */

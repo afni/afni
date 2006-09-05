@@ -150,8 +150,15 @@ SUMA_SurfaceObject *SUMA_MarchingCubesSurface(SUMA_GENERIC_PROG_OPTIONS_STRUCT *
    
 
    nsoopt = SUMA_NewNewSOOpt();
+   nsoopt->LargestBoxSize = 100;
    SO = SUMA_NewSO(&NodeList, mcp->nverts, &FaceSetList, mcp->ntrigs, nsoopt);
-
+   if (Opt->obj_type < 0) {
+      /* not sure if anything needs to be done here ...*/
+   } else {
+      if (Opt->obj_type == 0) SO->normdir = 1;
+      else SO->normdir = -1;
+   }
+   
    if (Opt->debug) {
       fprintf(SUMA_STDERR,"%s:\nCleaning mcp...\n", FuncName);
    }

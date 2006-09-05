@@ -425,6 +425,32 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    SUMA_MAX_VEC (SO->MaxDims, 3, SO->aMaxDims);    \
 }
 
+/*!
+   A macro to scale the surface so that the largest bounding box size is SZ  
+*/
+#define SUMA_LARGEST_SIZE_SCALE(SO, SZ){  \
+   float m_lg , m_lg1 , m_lg2 ;   \
+   double scl = 1.0; \
+   int m_i_mx, m_i, m_itop;  \
+   m_i_mx = 0; \
+   m_lg  = SO->MaxDims[0] - SO->Center[0]; \
+   m_lg1 = SO->MaxDims[1] - SO->Center[1], \
+   m_lg2 = SO->MaxDims[2] - SO->Center[2];   \
+   m_itop = SO->NodeDim * SO->N_Node;  \
+   if (m_lg < m_lg1) { m_lg = m_lg1; m_i_mx = 1; } \
+   if (m_lg < m_lg2) { m_lg = m_lg2; m_i_mx = 2; } \
+   if (m_lg > 0.0) { \
+      scl = (double)SZ / 2.0 / (double)m_lg;   \
+      for (m_i=0; m_i < m_itop; ++m_i) { SO->NodeList[m_i] = (float)(scl*(double)SO->NodeList[m_i]); }   \
+      for (m_i=0; m_i < 3; ++m_i) { \
+         SO->MinDims[m_i] = (float)(scl*(double)SO->MinDims[m_i]);   \
+         SO->MaxDims[m_i] = (float)(scl*(double)SO->MaxDims[m_i]);   \
+      }  \
+      SO->aMinDims = (float)(scl*(double)SO->aMinDims);  \
+      SO->aMaxDims = (float)(scl*(double)SO->aMaxDims);  \
+   }\
+}
+
 /*! calculate the centroid of a triangular faceset */
 #define SUMA_FACE_CENTROID(SO, ifc, c){   \
    static int m_n1, m_n2, m_n3;  \
