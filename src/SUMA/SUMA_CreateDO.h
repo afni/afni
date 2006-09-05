@@ -2,12 +2,14 @@
 #define SUMA_CREATEDO_INCLUDED
 typedef struct {
    char *idcode_str; /* copied by value */
+   char *LocalDomainParent; /* copied by value */
    char *LocalDomainParentID;  /* copied by value */
    SUMA_SO_File_Format FileFormat; /*defaults to  SUMA_ASCII*/
    SUMA_SO_File_Type FileType; /*defaults to SUMA_FT_NOT_SPECIFIED*/
    byte DoNormals; /* calculate normals ?*/
    byte DoMetrics; /* calculate metrics? */
    byte DoCenter; /* calculate center ? */
+   float LargestBoxSize;
 } SUMA_NEW_SO_OPT; 
 
 SUMA_NEW_SO_OPT *SUMA_NewNewSOOpt(void);

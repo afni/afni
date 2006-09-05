@@ -6357,6 +6357,7 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
          /* find the columns you need to fill. You can't use SUMA_FillNelCol directly because
          columns (vectors) are of different types */
          if (!(Nv = SUMA_GetNodeDef(dset))) { SUMA_SL_Err("Failed to find node indices."); SUMA_RETURN(NOPE); }
+         if (LocalHead) SUMA_ShowDset(dset, 0, NULL);
          iv = SUMA_GetDsetColIndex (dset, SUMA_NODE_R, &N_i);
          if (N_i != 1) { SUMA_SL_Err("Failed to find one column."); SUMA_free(iv); SUMA_RETURN(NOPE); }
          Rv = (float *)dset->dnel->vec[iv[0]];SUMA_free(iv); iv = NULL; 

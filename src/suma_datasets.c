@@ -3306,11 +3306,12 @@ int * SUMA_GetNodeDef(SUMA_DSET *dset)
    } else {
       SUMA_LH("Node Def Column found.");
       /* a healthy check */
-      if (  SDSET_VECLEN(dset) != SDSET_NODEINDLEN(dset) ||
-            SDSET_VECFILLED(dset) != SDSET_NODEINDFILLED(dset) ) {
-         SUMA_SL_Err(   "Discrepancy in veclen and/or \n"
-                        "vecfilled between node indices \n"
-                        "and dset data!");
+      if (  SDSET_VECLEN(dset) > SDSET_NODEINDLEN(dset) ||              /* The SDSET_VECFILLED(dset) < SDSET_NODEINDFILLED(dset) */
+            SDSET_VECFILLED(dset) > SDSET_NODEINDFILLED(dset) ) {       /* can occur when drawing ROI as the node index column */
+         SUMA_SL_Err(   "Veclen and/or vecfilled for\n"                 /* is created to be as large as the number of nodes in the */
+                        "node indices is less \n"                       /* surface but the number of columns for the RGB data grows */
+                        "than that of dset data!");                     /* with each drawing stroke. */
+         SUMA_DUMP_TRACE("Discrepancy in veclen, dumping trace:\n");
       }
    }
    
