@@ -96,7 +96,7 @@ SUMA_SurfaceObject *SUMA_NewSO(float **NodeList, int N_Node, int **FaceSetList, 
    
    if (nsoopt->DoMetrics) {
       SUMA_LH("Metrics");
-      if (!SUMA_SurfaceMetrics(SO, "EdgeList, MemberFace", NULL)) {
+      if (!SUMA_SurfaceMetrics_eng(SO, "EdgeList, MemberFace", NULL, 0, SUMAg_CF->DsetList)) {
          SUMA_SL_Warn("Failed to compute metrics\nReturing with whatever is salvageable");
       }
    } else {
