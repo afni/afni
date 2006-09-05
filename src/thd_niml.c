@@ -809,21 +809,6 @@ ENTRY("process_NSD_attrs");
         }
     }
 
-    /* verify whether we have a node list using COLMS_TYPE */
-    /* rcr index - unnecessary */
-    atr_str = THD_find_string_atr(blk , "COLMS_TYPE");
-    if( atr_str && atr_str->ch )
-    {
-        if( strstr(atr_str->ch,"Node_Index") )
-        {
-            if(gni.debug>1) fprintf(stderr,"-d COLMS_TYPE has Node_Index\n");
-            if( blk->nnodes <= 0 )
-              fprintf(stderr,"** warning: Node_Index COLMS_TYPE w/out nodes\n");
-        }
-        else if( blk->nnodes > 0 )
-            fprintf(stderr,"** warning: nnodes, but no COLMS_TYPE Node_Index");
-    }
-
     RETURN(0);
 }
 
