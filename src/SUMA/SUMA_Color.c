@@ -2565,7 +2565,7 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V,
                }
             }
       } else { /* all values are equal, use the middle color in the colormap */
-         fprintf (SUMA_STDOUT,"Warning %s: Node value range is 0, using middle color in colormap.\n", FuncName);
+         if (LocalHead) fprintf (SUMA_STDOUT,"Warning %s: Node value range is 0, using middle color in colormap.\n", FuncName);
          i0 = (ColMap->N_Col - 1)/2;
          for (i=0; i < N_V; ++i) {
             i3 = 3*i;
@@ -2879,7 +2879,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
             }
          }
       }else { /* all values are equal, use the middle color in the colormap */
-         fprintf (SUMA_STDOUT,"Warning %s: Node value range is 0, using middle color in colormap.\n", FuncName);
+         if (LocalHead) fprintf (SUMA_STDOUT,"Warning %s: Node value range is 0, using middle color in colormap.\n", FuncName);
          i0 = (ColMap->N_Col - 1)/2;
          for (i=0; i < N_V; ++i) {
             i3 = 3 * i;

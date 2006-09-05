@@ -308,6 +308,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
 #define SUMA_S_Err(msg) {\
    fprintf (SUMA_STDERR, "Error %s (%s:%d):\n %s\n", FuncName, __FILE__ , __LINE__, msg);  \
 }
+#define SUMA_S_Errv(msg, ...) {\
+   fprintf (SUMA_STDERR, "Error %s (%s:%d):\n", FuncName, __FILE__ , __LINE__);  \
+   fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+}
+
 /*!
    \brief Macro that reports an error to stderr and log 
 
@@ -316,6 +321,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
    SUMA_S_Err(msg);  \
    SUMA_L_Err(msg); \
 }
+#define SUMA_SL_Errv(msg, ...) {\
+   SUMA_S_Errv(msg, __VA_ARGS__);  \
+   SUMA_L_Err(msg); \
+}
+
 /*!
    \brief Macro that reports an error to stderr and log and popup
 
