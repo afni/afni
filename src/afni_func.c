@@ -237,6 +237,8 @@ if(PRINT_TRACING)
          else           sprintf( buf , "%1d.-%2d"  , (int)rint(pval), dec ) ;
       }
    }
+   if( im3d->vedset.code > 0 && im3d->fim_now->dblk->vedim != NULL ) /* 05 Sep 2006 */
+     strcat(buf,"*") ;
    MCW_set_widget_label( im3d->vwid->func->thr_pval_label , buf ) ;
    EXRETURN ;
 }
@@ -555,10 +557,12 @@ if(PRINT_TRACING)
    new_dset->dblk->atr         = NULL ;
    new_dset->dblk->parent      = (XtPointer) new_dset ;
 
+   new_dset->dblk->vedim = NULL ;  /* 05 Sep 2006 */
+
    if( data_parent->dblk->brick_lab == NULL ){
-      THD_init_datablock_labels( new_dset->dblk ) ; /* 30 Nov 1997 */
+     THD_init_datablock_labels( new_dset->dblk ) ; /* 30 Nov 1997 */
    } else {
-      THD_copy_datablock_auxdata( data_parent->dblk , new_dset->dblk ) ;
+     THD_copy_datablock_auxdata( data_parent->dblk , new_dset->dblk ) ;
    }
 
    DSET_unlock(new_dset) ;  /* Feb 1998 */

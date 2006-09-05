@@ -57,8 +57,10 @@ ENTRY("THD_open_1D") ;
 
    lpn = strlen(pathname) ; pn = strdup(pathname) ;
 
+#if 0
    flip = (pn[lpn-1] == '\'') ;     /* 12 Jul 2005: allow for tranposing input */
    if( flip ) pn[lpn-1] = '\0' ;
+#endif
 
    flim = mri_read_1D(pn) ;
    if( flim == NULL ){

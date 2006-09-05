@@ -473,6 +473,8 @@ typedef struct {
       Widget thr_rowcol , thr_label , thr_scale , thr_pval_label ;
       MCW_arrowval * thr_top_av ;
 
+      Widget thr_menu , thr_clear_pb , thr_cluster_pb ;  /* 05 Sep 2006 */
+
       Widget inten_rowcol , inten_label ;
       MCW_pbar     * inten_pbar ;
       MCW_arrowval * inten_av ;
@@ -853,7 +855,15 @@ typedef struct {
       THD_warp * fim_selfwarp ;                 /* 27 Aug 2002 */
 
       int dummied ;                             /* 27 Jan 2004 */
+
+      VEDIT_settings vedset ;                   /* 05 Sep 2006 */
 } Three_D_View ;
+
+#define IM3D_IMAGIZED(iq) \
+ ( (iq)->s123 != NULL || (iq)->s231 != NULL || (iq)->s312 != NULL )
+
+#define IM3D_GRAPHIZED(iq) \
+ ( (iq)->g123 != NULL || (iq)->g231 != NULL || (iq)->g312 != NULL )
 
 /* 02 Nov 1996: macro to load current viewing data into current datasets */
 
