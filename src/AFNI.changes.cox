@@ -5899,3 +5899,8 @@
 
 22 Aug 2006
  * Add WARPDRIVE_ROTMAT_* attribute outputs to 3dWarpDrive.c.
+
+05 Sep 2006
+ * Mod mri_read_1D() so that ending filename in ' character causes
+   transposition.  Removed this feature from thd_1Ddset.c to match.
+ * Changes to AFNI to allow on-the-fly cluster editing.

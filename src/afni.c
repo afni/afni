@@ -5470,9 +5470,9 @@ DUMP_IVEC3("  new_id",new_id) ;
 
    if( IM3D_IMAGIZED(im3d) ){
      if( VEDIT_good(im3d->vedset) ){
+       im3d->vedset.ival = im3d->vinfo->fim_index ;
        switch( VEDIT_CODE(im3d->vedset) ){
          case VEDIT_CLUST:
-           im3d->vedset.ival     = im3d->vinfo->fim_index ;
            im3d->vedset.param[0] = (float)im3d->vinfo->thr_index ;
            im3d->vedset.param[1] = im3d->vinfo->func_threshold
                                   *im3d->vinfo->func_thresh_top ;
@@ -5482,7 +5482,7 @@ DUMP_IVEC3("  new_id",new_id) ;
      } else {
        AFNI_vedit_clear( im3d->fim_now ) ;
      }
-     AFNI_set_thr_pval(im3d) ;
+     AFNI_set_thr_pval(im3d) ;  /* for the * marker */
    }
 
    /*--- redraw images now ---*/

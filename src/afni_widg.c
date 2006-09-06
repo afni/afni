@@ -2454,7 +2454,7 @@ STATUS("making func->rowcol") ;
    XtAddCallback( func->thr_clear_pb , XmNactivateCallback ,
                   AFNI_thr_CB , im3d ) ;
    MCW_register_hint( func->thr_clear_pb , "Turn off Volume Edit" ) ;
-   im3d->vedset.code = 0 ;
+   im3d->vedset.code = 0 ; im3d->vedset.ival = -1 ;
 
    func->thr_cluster_pb =
       XtVaCreateManagedWidget(
