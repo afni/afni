@@ -1,7 +1,11 @@
 function [Cs] = rgbdectohex (Mrgb,strg)
 %
-%  [Cs] = rgbdectohex (Mrgb,[string])
+%  Mode 1:
+%        [Cs] = rgbdectohex (Mrgb,[string])
+%  Mode 2:
+%        rgbdectohex 
 %
+% Mode 1:
 %This function takes as an input the rgb matrix Mrgb (size is Nx3)
 % where each row represents the rgb gun values of a color.
 % gun values should be integers between 0 and 255
@@ -38,6 +42,9 @@ function [Cs] = rgbdectohex (Mrgb,strg)
 %  that tells AFNI (TellAfni(Cs)) to load the newly created colorscale and switch to it.
 %  The colorscale is named string if one is supplied.  
 %
+% Mode 2:
+% Interactive mode for showing RGB colors. Enter RGB values to see color.
+%
 % see also MakeColorMap, TellAfni, ROIcmap
 %
 %		Ziad Saad Nov 26 97/  Dec 4 97/ Jan 06
@@ -48,6 +55,16 @@ if (nargin == 2),
 	son = 1;
 else
 	son = 0;
+end
+
+if (nargin == 0),
+   while (1),
+      strgb = input ('Enter rgb values (nothing to exit):','s');
+      if (isempty(strgb)) return; end
+      Mrgb = str2num(strgb);
+      ShowRGBcol(Mrgb);
+      fprintf(1,'        Color: %s\n', RGBtoXhex(Mrgb, 0));
+   end
 end
 
 if (size (Mrgb,2) ~= 3)
@@ -72,25 +89,10 @@ if (min(Mrgb(:)) < 0 | max(Mrgb(:)) > 255),
    return;
 end
 
-figure (1);
-colormap (Mrgb./255);
-subplot 211;
-image ([1:1:length(Mrgb(:,1))]);
-%subplot 212;
-%pie (ones(1,length(Mrgb(:,1))));
+ShowRGBcol(Mrgb);
 
 for (i=1:1:size(Mrgb,1)),
-		s1 = pad_strn (lower(dec2hex(Mrgb(i,1))),'0',2,1);
-		s2 = pad_strn (lower(dec2hex(Mrgb(i,2))),'0',2,1);
-		s3 = pad_strn (lower(dec2hex(Mrgb(i,3))),'0',2,1);
-	
-		if (son == 1),
-			cst = sprintf ('%g',i);
-			cpd = pad_strn (cst,'0',2,1);
-			fprintf (1,'%s%s:\t#%s%s%s\n',strg,cpd,s1,s2,s3);	
-		else
-			fprintf (1,'#%s%s%s\n',s1,s2,s3);
-		end
+		fprintf(1,'%s\n',RGBtoXhex(Mrgb(i,:), son));
 end %i
 
 chc = input ('Wanna write this to disk ? (y/n)','s');
@@ -169,4 +171,30 @@ if (nargout),
    Cs(2) = NewCs('SET_PBAR_ALL', '' , '+99', sprintf('1.0 %s', strg));
 end
 
+return;
+
+function ShowRGBcol(Mrgb)
+figure (1);
+colormap (Mrgb./255);
+subplot 211;
+image ([1:1:length(Mrgb(:,1))]);
+title(sprintf('X11 Color in Hex: %s', RGBtoXhex(Mrgb, 0)));
+
+%subplot 212;
+%pie (ones(1,length(Mrgb(:,1))));
+
+return;
+
+function sret = RGBtoXhex(rgb, son),
+      s1 = pad_strn (lower(dec2hex(rgb(1))),'0',2,1);
+		s2 = pad_strn (lower(dec2hex(rgb(2))),'0',2,1);
+		s3 = pad_strn (lower(dec2hex(rgb(3))),'0',2,1);
+	
+		if (son == 1),
+			cst = sprintf ('%g',i);
+			cpd = pad_strn (cst,'0',2,1);
+			sret = sprintf ('%s%s:\t#%s%s%s',strg,cpd,s1,s2,s3);	
+		else
+			sret = sprintf ('#%s%s%s',s1,s2,s3);
+		end
 return;

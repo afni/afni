@@ -1873,6 +1873,8 @@ int SUMA_isTypicalSOforVolSurf (SUMA_SurfaceObject *SO)
    SUMA_ENTRY;
    
    switch (SO->FileType) {
+      case SUMA_PLY:
+      case SUMA_VEC:
       case SUMA_FREE_SURFER: 
          if (SUMA_iswordin (SO->Name.FileName, "smoothwm")) SUMA_RETURN(-1);
          else if (SUMA_iswordin (SO->Name.FileName, "pial")) SUMA_RETURN(1);
