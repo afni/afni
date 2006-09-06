@@ -5904,3 +5904,7 @@
  * Mod mri_read_1D() so that ending filename in ' character causes
    transposition.  Removed this feature from thd_1Ddset.c to match.
  * Changes to AFNI to allow on-the-fly cluster editing.
+
+06 Sep 2006
+ * Changes to let Ziad/SUMA initialize colors for surfaces.
+ * Check input datasets for the Mike Beauchamp syndrome.

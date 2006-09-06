@@ -892,6 +892,8 @@ extern void AFNI_purge_dsets(int) ;
 extern void AFNI_purge_unused_dsets(void) ;
 extern int AFNI_controller_index( Three_D_View * ) ;
 
+extern void AFNI_inconstancy_error( Widget , char * ) ; /* 06 Sep 2006 */
+
 extern Three_D_View * AFNI_find_open_controller(void) ; /* 05 Mar 2002 */
 extern void AFNI_popup_message( char * ) ;
 
@@ -1361,6 +1363,8 @@ extern void AFNI_init_niml( void ) ; /* 28 Feb 2002 */
 extern void AFNI_choose_surface_CB( Widget , XtPointer , XtPointer ) ; /* 19 Aug 2002 */
 extern void AFNI_update_surface_widgets( Three_D_View * ) ;
 extern void AFNI_update_all_surface_widgets( THD_session * ) ;
+
+extern void AFNI_init_swid_color( int, char *, char * ) ;  /* 06 Sep 2006 */
 
 extern void AFNI_disable_suma_overlay( int ) ;  /* 16 Jun 2003 */
 

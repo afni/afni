@@ -710,6 +710,10 @@ int DC_find_closest_overlay_color( MCW_DC *dc , char *cname )
 
    if( dc == NULL || cname == NULL || *cname == '\0' ) return -1 ;
 
+#if 0
+   if( strcmp(cname,"none") == 0 ) return -1 ;
+#endif
+
    ii = DC_find_overlay_color( dc , cname ) ;
    if( ii >= 0 ) return ii ;
 

@@ -1865,6 +1865,10 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    MCW_help_CB(NULL,NULL,NULL) ;
 
+   /* tell user if any mixed-type datasets transpired [06 Sep 2006] */
+
+   AFNI_inconstancy_error( im3d->vwid->imag->crosshair_label , NULL ) ;
+
    /* NIML listening on [moved here 17 Mar 2002] */
 
    if( MAIN_im3d->type == AFNI_3DDATA_VIEW && GLOBAL_argopt.yes_niml ){
@@ -3832,6 +3836,47 @@ STATUS("graCR_pickort") ;
   EXRETURN ;
 }
 
+/*----------------------------------------------------------------------*/
+/*! Report on datasets with mixed type sub-bricks,
+    as they tend to cause problems. */
+
+void AFNI_inconstancy_error( Widget wp , char *str )
+{
+   static int    nbad = 0 ;
+   static char **sbad = NULL ;
+
+ENTRY("AFNI_inconstancy_error") ;
+
+   if( str == NULL ){
+     char *msg ; int ii,nn ;
+     STATUS("NULL entry") ;
+     if( nbad == 0 || sbad == NULL ) EXRETURN ;
+     if( wp == NULL ){
+       Three_D_View *im3d=AFNI_find_open_controller() ;
+       wp = im3d->vwid->picture ;
+     }
+     XBell(XtDisplay(wp),100) ;
+     STATUS("creating message") ;
+     for(ii=nn=0;ii<nbad;ii++) nn += strlen(sbad[ii]) ;
+     nn += 255+4*nbad ; msg = malloc(nn) ;
+     sprintf(msg,"\n====== Datasets With Inconstant Data Types =====\n\n");
+     for(ii=0;ii<nbad;ii++) sprintf(msg+strlen(msg)," %s\n",sbad[ii]) ;
+     sprintf(msg+strlen(msg),
+            "\n===== This is known as the Mike Beauchamp syndrome =====\n"
+              "-- Sometimes, funky things happen with these datasets --\n" ) ;
+     (void)new_MCW_textwin( wp , msg , TEXT_READONLY ) ;
+     free((void *)msg) ;
+     for(ii=0;ii<nbad;ii++)free((void *)sbad[ii]);
+     free((void *)sbad) ; nbad=0 ; sbad=NULL ;
+     EXRETURN ;
+   } else {
+     STATUS(str) ;
+     sbad = (char **)realloc((void *)sbad,sizeof(char *)*(nbad+1)) ;
+     sbad[nbad++] = strdup(str) ;
+   }
+   EXRETURN ;
+}
+
 /*----------------------------------------------------------------------
    read the files specified on the command line
    and create the data structures
@@ -3923,6 +3968,8 @@ ENTRY("AFNI_read_inputs") ;
 
       eee = getenv( "AFNI_GLOBAL_SESSION" ) ;   /* where it's supposed to be */
       if( eee != NULL ){
+         THD_3dim_dataset *dset ;
+         STATUS("reading global session") ;
          gss =
           GLOBAL_library.session = THD_init_session( eee ); /* try to read datasets */
 
@@ -3930,8 +3977,13 @@ ENTRY("AFNI_read_inputs") ;
             gss->parent = NULL ;                          /* parentize them */
             for( qd=0 ; qd < gss->num_dsset ; qd++ )
               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
-                PARENTIZE( gss->dsset[qd][vv] , NULL ) ;
-                DSET_MARK_FOR_IMMORTALITY( gss->dsset[qd][vv] ) ;
+                dset = gss->dsset[qd][vv] ;
+                if( dset != NULL ){
+                  PARENTIZE( dset , NULL ) ;
+                  DSET_MARK_FOR_IMMORTALITY( dset ) ;
+                  if( !DSET_datum_constant(dset) )
+                    AFNI_inconstancy_error(NULL,DSET_BRIKNAME(dset)) ;
+                }
               }
          } else {
            sprintf(str,"\n*** No datasets in AFNI_GLOBAL_SESSION=%s",eee) ;
@@ -4019,6 +4071,8 @@ if(PRINT_TRACING)
              if( dset != NULL ){
                dss->dsset[qd][dset->view_type] = dset ;
                dss->num_dsset ++ ;
+               if( !DSET_datum_constant(dset) )
+                 AFNI_inconstancy_error(NULL,DSET_BRIKNAME(dset)) ;
              } else {
                fprintf(stderr,
                        "\n** Couldn't open %s as session OR as dataset!" ,
@@ -4028,13 +4082,20 @@ if(PRINT_TRACING)
          }
 
          if( new_ss != NULL && new_ss->num_dsset > 0 ){ /* got something? */
+            THD_3dim_dataset *dset ;
 
             /* set parent pointers */
 
             new_ss->parent = NULL ;
-            for( qd=0 ; qd < new_ss->num_dsset ; qd++ )
-              for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-                PARENTIZE( new_ss->dsset[qd][vv] , NULL ) ;
+            for( qd=0 ; qd < new_ss->num_dsset ; qd++ ){
+              for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
+                dset = new_ss->dsset[qd][vv] ;
+                if( dset != NULL ){
+                  PARENTIZE( dset , NULL ) ;
+                  if( !DSET_datum_constant(dset) )
+                    AFNI_inconstancy_error(NULL,DSET_BRIKNAME(dset)) ;
+                }
+            } }
 
             /* put the new session into place in the list of sessions */
 
