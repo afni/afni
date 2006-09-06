@@ -1930,6 +1930,10 @@ typedef struct {
                      the values shown on the right of the colorbar in 
                      AFNI.
                      This field is NULL if the map is linear*/
+   float top_frac; /* Not all afni maps end with 1 as the top fraction.
+                      For equivalent mapping in AFNI, the range needs 
+                      to be multiplied by this factor, set to 0 if not 
+                      in use */ 
    int Sgn; /*!         +1  colormap is positive ranging (a la afni)  
                          0  field is not set
                          -1 colormap is negative ranging (a la afni)*/

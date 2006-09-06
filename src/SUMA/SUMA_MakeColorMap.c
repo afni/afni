@@ -1,7 +1,5 @@
-/*USE This sample to start writing standalone programs.
-Change PROGRAM_NAME to the program name of your choosing.
-*/
 #include "SUMA_suma.h"
+
 
 SUMA_SurfaceViewer *SUMAg_cSV = NULL; /*!< Global pointer to current Surface Viewer structure*/
 SUMA_SurfaceViewer *SUMAg_SVv = NULL; /*!< Global pointer to the vector containing the various Surface Viewer Structures 

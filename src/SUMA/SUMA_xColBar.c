@@ -3501,7 +3501,7 @@ SUMA_Boolean SUMA_CmapSelectList(SUMA_SurfaceObject *SO, int refresh, int bringu
 SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_SurfaceObject *SO, char *str)
 {
    static char FuncName[]={"SUMA_SetCmapMenuChoice"};
-   int i, Nbutt = 0;
+   int i, Nbutt = 0, nstr=0, nf=0;
    Widget whist, *w = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -3509,7 +3509,10 @@ SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_SurfaceObject *SO, char *str)
    
    w = SO->SurfCont->SwitchCmapMenu;
    if (!w) SUMA_RETURN(NOPE);
-   
+   if (!str) {
+      SUMA_S_Err("NULL str");
+      SUMA_RETURN(NOPE);
+   }
    /* what's your history joe ? */
    XtVaGetValues(  w[0], XmNmenuHistory , &whist , NULL ) ;  
    if (!whist) {
@@ -3521,11 +3524,16 @@ SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_SurfaceObject *SO, char *str)
       fprintf (SUMA_STDERR,"%s: The history is NAMED: %s (%d buttons total)\n", FuncName, XtName(whist), Nbutt);
    } 
       
-
+   nstr = strlen(str);
    /* Now search the widgets in w for a widget labeled str */
    for (i=0; i< SO->SurfCont->N_CmapMenu; ++i) {
-      if (LocalHead) fprintf (SUMA_STDERR,"I have %s\n", XtName(w[i]));
-      if (strcmp(str, XtName(w[i])) == 0) {
+      if (LocalHead) fprintf (SUMA_STDERR,"I have %s, want %s\n", XtName(w[i]), str);
+      if (nstr > strlen(XtName(w[i]))) { /* name in list got trunctated ...*/
+         nf = strncmp(str, XtName(w[i]), strlen(XtName(w[i])));
+      } else {
+         nf = strcmp(str, XtName(w[i]));
+      }
+      if (nf == 0) {
          SUMA_LH("Match!");
          XtVaSetValues(  w[0], XmNmenuHistory , w[i] , NULL ) ;  
          SUMA_RETURN(YUP);

@@ -1,7 +1,5 @@
-/*USE This sample to start writing standalone programs.
-Change ScaleToMap to the program name of your choosing.
-*/
 #include "SUMA_suma.h"
+
 
 SUMA_SurfaceViewer *SUMAg_cSV = NULL; /*!< Global pointer to current Surface Viewer structure*/
 SUMA_SurfaceViewer *SUMAg_SVv = NULL; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
@@ -213,6 +211,7 @@ int main (int argc,char *argv[])
    SUMA_INOUT_NOTIFY_OFF;
    #else
    SUMA_STANDALONE_INIT;
+   SUMAg_CF->isGraphical = YUP;
    #endif
    SUMA_mainENTRY;
    

@@ -68,6 +68,11 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps)
           sb = SUMA_help_basics();
           sio  = SUMA_help_IO_Args(ps);
           printf ("\nUsage:  \n"
+                  " Mode 0: Just type suma to see some toy surface and play\n"
+                  "         with the interface. Some surfaces are generated\n"
+                  "         using T. Lewiner's MarchingCubes library. \n"
+                  "         Use '.' and ',' keys to cycle through surfaces.\n"
+                  "\n"
                   " Mode 1: Using a spec file to specify surfaces\n"
                   "                suma -spec <Spec file> \n"
                   "                     [-sv <SurfVol>] [-ah AfniHost]\n"

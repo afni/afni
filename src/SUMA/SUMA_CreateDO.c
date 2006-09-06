@@ -276,9 +276,9 @@ SUMA_SurfaceObject *SUMA_Cmap_To_SO (SUMA_COLOR_MAP *Cmap, float orig[3], float 
       if (Cmap->frac) {
          if (LocalHead) fprintf (SUMA_STDERR, "%s: icol %d, frac=%f\n", FuncName, i,  Cmap->frac[i]);
          if (Cmap->Sgn >= 0) {
-            hp[i+1] = Cmap->frac[i] * (topright[1] - orig[1]);
+            hp[i+1] = Cmap->frac[i]/Cmap->frac[Cmap->N_Col-1] * (topright[1] - orig[1]);
          } else {
-            hp[i+1] = (1.0 +Cmap->frac[i]) / 2.0 * (topright[1] - orig[1]);
+            hp[i+1] = (1.0 +Cmap->frac[i]/Cmap->frac[Cmap->N_Col-1]) / 2.0 * (topright[1] - orig[1]);
          }
       } else hp[i+1] = hp[i]+dh;
    }

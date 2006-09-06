@@ -125,11 +125,13 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "++ SUMA version %s\n", SUMA_ver2date(ver)); if (StampOnly) break;
          SS = SUMA_StringAppend(SS, 
             "New Programs:\n"
-            "  + \n"
+            "  + SurfDsetInfo: Program to display surface dataset information.\n"
+            "  + AnalyzeTrace: Program to analyze the output of -trace option.\n"
             "Modifications:\n"
             "  + SUMA:\n"
             "    o Addition of new Displayable Objects (DO)(ctrl+Alt+s)\n"
             "    o Allow replacement of pre-loaded DO and Dsets\n"
+            "    o Support for .niml.dset as format for surface-based anlysis\n"
             );
          break; 
       case 20041229:
@@ -1052,6 +1054,7 @@ char *SUMA_All_Programs(void )
          "  3dSurf2Vol\n"
          "  3dSurfMask\n"
          "  3dVol2Surf\n"
+         "  AnalyzeTrace\n"
          "  CompareSurfaces\n"
          "  ConvertSurface\n"
          "  ConvexHull\n"
@@ -1068,6 +1071,7 @@ char *SUMA_All_Programs(void )
          "  SUMA_glxdino\n"
          "  SurfaceMetrics\n"
          "  SurfClust\n"
+         "  SurfDsetInfo\n"
          "  SurfMeasures\n"
          "  SurfMesh\n"
          "  SurfPatch\n"
