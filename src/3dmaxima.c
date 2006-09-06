@@ -115,7 +115,7 @@ static char * g_help[] =
 "   If extrema are not as far apart as is specified by the '-min_dist'",
 "   option, the neighbor style options specify how to handle the points.",
 "",
-"   -n_style_sort         : [flag] use 'Sort-n-Remove' sytle (default)",
+"   -n_style_sort         : [flag] use 'Sort-n-Remove' style (default)",
 "",
 "       The extrema are sorted by magnitude.  For each extrema (which has",
 "       not previously removed), all less significant extrema neighbors",
@@ -221,7 +221,7 @@ int main( int argc, char * argv[] )
     maxima_s           M;
     int                rv;
 
-    mainENTRY("3dcalc main"); machdep() ;
+    mainENTRY("3dmaxima main"); machdep() ;
     if (( rv = process_args( argc, argv, &A, &M )) != 0 )
 	return(rv > 0);
 
