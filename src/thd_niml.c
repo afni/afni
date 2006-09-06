@@ -737,7 +737,7 @@ ENTRY("process_NSD_sparse_data");
     RETURN(0);
 }
 
-/* apply known NI_SURF_DSET attributes */
+/* apply known NI_SURF_DSET attributes  (niml -> afni) */
 static int process_NSD_attrs(THD_3dim_dataset * dset)
 {
     THD_datablock * blk;
@@ -1056,6 +1056,7 @@ ENTRY("nsd_add_str_atr_to_group");
     /* create a new string */
     dest = (char *)calloc(atr->nch+1, sizeof(char)); /* +1 for last '\0' */
     memcpy(dest, atr->ch, atr->nch);
+    THD_zblock_ch(atr->nch, dest, ZSBLOCK);  /* swap out nul chars */
     dest[atr->nch] = '\0';
 
     /* now add it to the group */
