@@ -154,9 +154,9 @@ SUMA_ParseName: SUMA_StripPath.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED -DSUMA_ParseName_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_StripPath.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
  
-ConvertSurface: SUMA_Surface_IO.c
+ConvertSurface: SUMA_ConvertSurface.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_ConvertSurface_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Surface_IO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_ConvertSurface_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_ConvertSurface.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfaceMetrics: SUMA_SurfaceMetrics.c
 	$(RM) $@
@@ -198,9 +198,9 @@ ConvertDset: SUMA_ConvertDset.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_ConvertDset.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
-ROI2dataset: SUMA_Surface_IO.c
+ROI2dataset: SUMA_ROI2dataset.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_ROI2dataset_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Surface_IO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_ROI2dataset_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_ROI2dataset.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfSmooth: SUMA_GeomComp.c SUMA_SurfSmooth.c
 	$(RM) $@
@@ -274,18 +274,18 @@ SurfMeasures: SUMA_SurfMeasures.c
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_LIB}
 
-FScurv_to_1D: SUMA_Surface_IO.c
+FScurv_to_1D: SUMA_FScurv_to_1D.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED -DSUMA_FScurv_to_1D_STAND_ALONE	\
-   	${CCOPT} ${WARNOPT} -o $@ SUMA_Surface_IO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+   	${CCOPT} ${WARNOPT} -o $@ SUMA_FScurv_to_1D.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_LIB}
 
-FSread_annot: SUMA_Surface_IO.c
+FSread_annot: SUMA_FSread_annot.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED -DSUMA_FSread_annot_STAND_ALONE	\
-   	${CCOPT} ${WARNOPT} -o $@ SUMA_Surface_IO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 		\
+   	${CCOPT} ${WARNOPT} -o $@ SUMA_FSread_annot.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 		\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_LIB}
