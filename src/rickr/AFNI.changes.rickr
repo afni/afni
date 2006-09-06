@@ -1748,5 +1748,7 @@
   * merged many fslio NIfTI changes by Kate Fissell for niftilib-0.4
   * modified thd_niml.c: removed warning about missing Node_Index column type
 
-06 Sep 2006: modified vol2surf.c: use NI_free after NI_search_group_shallow
+06 Sep 2006:
+  * modified vol2surf.c: use NI_free after NI_search_group_shallow
+  * modified thd_niml.c: in nsd_add_str_atr_to_group() swap out nul chars
 
