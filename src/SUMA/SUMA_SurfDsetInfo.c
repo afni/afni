@@ -25,7 +25,7 @@ void usage_SurfDsetInfo (SUMA_GENERIC_ARGV_PARSE *ps)
                "Usage: SurfDsetInfo [options] -input DSET1 -input DSET2 \n"
                "   or: SurfDsetInfo [options] DSET1 DSET2 ... \n"
                "   Optional Params:\n"
-               "      -debug DBG: if DBG = 2, show dset in its entirety in NIML form.\n"
+               "      -debug DBG: if DBG = 2, show dset->ngr in its entirety in NIML form.\n"
                "%s"
                "%s"
                "\n", sio,  s);
@@ -120,7 +120,7 @@ int main (int argc,char *argv[])
 
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-talk;");
+   ps = SUMA_Parse_IO_Args(argc, argv, "");
    
    if (argc < 2) {
       usage_SurfDsetInfo(ps);
@@ -148,7 +148,7 @@ int main (int argc,char *argv[])
          exit(1);
       }
 
-      if (Opt->debug < 2) SUMA_ShowDset(dset, 0, NULL);
+      if (Opt->debug < 2) SUMA_ShowDset(dset, 0, SUMA_STDOUT);
       else {
          SUMA_ShowNel((void*)dset->ngr);
       }
