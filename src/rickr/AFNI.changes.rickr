@@ -1751,4 +1751,5 @@
 06 Sep 2006:
   * modified vol2surf.c: use NI_free after NI_search_group_shallow
   * modified thd_niml.c: in nsd_add_str_atr_to_group() swap out nul chars
+  * merged small nifti/README change
 
