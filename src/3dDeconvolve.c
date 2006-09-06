@@ -2356,7 +2356,9 @@ ENTRY("read_input_data") ;
           if( tt >= basis_filler ) nbad++ ;
         }
         if( nbad )
-          WARNING_message("-stim_times %d has %d '*' fillers?",is+1,nbad) ;
+          WARNING_message(
+           "-stim_times (GLOBAL) %d has %d '*' fillers; do you want LOCAL times?",
+           is+1,nbad) ;
       } else {                           /* multicol => 1 row per block */
         INFO_message("-stim_times %d using local times",is+1) ;
         if( ny != nbl ){                 /* times are relative to block */
