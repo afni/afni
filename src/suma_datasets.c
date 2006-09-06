@@ -556,6 +556,7 @@ NI_element *SUMA_FindNgrDataElement(NI_group *ngr, char *nelname, char *typename
    static char FuncName[]={"SUMA_FindNgrDataElement"};
    NI_element *nel = NULL;
    char *rs=NULL;
+   static int nwarn = 0;
    int ip;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -579,6 +580,20 @@ NI_element *SUMA_FindNgrDataElement(NI_group *ngr, char *nelname, char *typename
                rs = NI_get_attribute(nel, "data_type");
                if (rs) { 
                   if (!strcmp(typename, rs)) SUMA_RETURN(nel);   
+               } else {
+                  if (!(nwarn % 25)) {
+                     fprintf(SUMA_STDERR, "Notice %s:\n"
+                                          "NIML Dset's index column named %s \n"
+                                          "is without any data_type attribute.\n"
+                                          "Could not verify that element's \n"
+                                          "   data_type = %s .\n"
+                                          "Ignore notice for dsets created by AFNI.\n"
+                                          "Notice is shown intermittently in \n"
+                                          "SUMA GUI mode.\n", FuncName, nel->name, typename);
+                     nwarn = 0;
+                  }
+                  ++nwarn;
+                  SUMA_RETURN(nel); 
                }
             }
             /* cancel plans if you get here */
