@@ -1271,6 +1271,7 @@ static int process_NIML_SUMA_ixyz( NI_element * nel, int ct_start )
    int nss = GLOBAL_library.sslist->num_sess ;
    int ct_read = 0, ct_tot = 0 ;
    char msg[1024] ;
+   char *scon_tog , *scon_box , *scon_lin , *scon_plm ;
 
 ENTRY("process_NIML_SUMA_ixyz");
 
@@ -1408,6 +1409,18 @@ ENTRY("process_NIML_SUMA_ixyz");
 
    if( dset != NULL )
      MCW_strncpy( ag->idcode_dset , dset->idcode.str , 32 ) ;
+
+   /*-- 06 Sep 2006: set Ziad's stupid colors --*/
+
+   scon_box = NI_get_attribute( nel , "afni_surface_controls_nodes"     ) ;
+   scon_lin = NI_get_attribute( nel , "afni_surface_controls_lines"     ) ;
+#if 0
+   scon_tog = NI_get_attribute( nel , "afni_surface_controls_toggle"    ) ;
+   scon_plm = NI_get_attribute( nel , "afni_surface_controls_plusminus" ) ;
+#endif
+
+   if( scon_box != NULL || scon_lin != NULL )
+     AFNI_init_swid_color( surf_num , scon_box , scon_lin ) ;
 
    /*-- pointers to the data columns in the NI_element --*/
 

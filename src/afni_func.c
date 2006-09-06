@@ -2623,14 +2623,22 @@ STATUS("too many sessions") ;
                       /** (The following is from AFNI_read_inputs) **/
                int qd , vv ;
                char str[356] ;  /* for messages */
+               THD_3dim_dataset *dset ;
 
 STATUS("processing new session") ;
 
                new_ss->parent = NULL ;
 
-               for( qd=0 ; qd < new_ss->num_dsset ; qd++ )       /* parentize */
-                  for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-                     PARENTIZE( new_ss->dsset[qd][vv] , NULL ) ;
+               for( qd=0 ; qd < new_ss->num_dsset ; qd++ ){      /* parentize */
+                 for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
+                   dset = new_ss->dsset[qd][vv] ;
+                   if( dset != NULL ){
+                     PARENTIZE( dset , NULL ) ;
+                     if( !DSET_datum_constant(dset) )
+                       AFNI_inconstancy_error(NULL,DSET_BRIKNAME(dset)) ;
+                   }
+               } }
+               AFNI_inconstancy_error(im3d->vwid->imag->crosshair_label, NULL );
 
                /* 20 Dec 2001: if have global datasets, put them in here */
 
