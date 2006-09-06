@@ -1014,9 +1014,11 @@ ENTRY("AFNI_palette_tran_CB") ;
    EXRETURN ;
 }
 
-/*---------------------------------------------------------------
-  Callbacks for all actions in the thr_label popup
------------------------------------------------------------------*/
+/*****************************************************************************/
+/*************  Functions for all actions in the thr_label popup *************/
+
+/*---------------------------------------------------------------------*/
+/* Put a '*' next to the active item in the vedit list on the menu.    */
 
 static char *thrbutlab[] = { " Clear Edit" ,
                              " Clusterize"  } ;
@@ -1037,6 +1039,7 @@ static void set_vedit_label( Three_D_View *im3d , int ll )
 }
 
 /*---------------------------------------------------------------*/
+/* Callback from the clusterize parameter chooser.               */
 
 static void AFNI_cluster_choose_CB( Widget wc, XtPointer cd, MCW_choose_cbs *cbs )
 {
@@ -1053,7 +1056,7 @@ ENTRY("AFNI_cluster_choose_CB") ;
      AFNI_vedit_clear( im3d->fim_now ) ;
      set_vedit_label(im3d,0) ;
    } else {
-     im3d->vedset.code = VEDIT_CLUST ;
+     im3d->vedset.code     = VEDIT_CLUST ;
      im3d->vedset.param[2] = rmm ;
      im3d->vedset.param[3] = vmul ;
      set_vedit_label(im3d,1) ;
@@ -1063,6 +1066,7 @@ ENTRY("AFNI_cluster_choose_CB") ;
 }
 
 /*---------------------------------------------------------------*/
+/* Callback for items on the thr_label menu itself.              */
 
 void AFNI_thr_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
@@ -1082,6 +1086,8 @@ ENTRY("AFNI_thr_CB") ;
      EXRETURN ;
    }
 
+   /*--- Get clusterizing parameters ---*/
+
    if( w == im3d->vwid->func->thr_cluster_pb ){
      char *lvec[2] = { "rmm " , "vmul" } ;
      int   ivec[2] ;
@@ -1098,11 +1104,12 @@ ENTRY("AFNI_thr_CB") ;
      EXRETURN ;
    }
 
-   EXRETURN ;
+   EXRETURN ;  /* should be unreachable */
 }
 
 /*-----------------------------------------------------------------
-  Event handler to find #3 button press for thr_label popup
+  Event handler to find #3 button press for thr_label popup;
+  just pops up the menu for the user's gratification.
 -------------------------------------------------------------------*/
 
 void AFNI_thr_EV( Widget w , XtPointer cd ,

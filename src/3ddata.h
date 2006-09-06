@@ -1049,10 +1049,10 @@ typedef struct {
 #define DBLK_VEDIT_CODE(db) VEDIT_CODE((db)->vedset)
 #define DSET_VEDIT_CODE(ds) DBLK_VEDIT_CODE((ds)->dblk)
 
-#define VEDIT_good(vv)      \
+#define VEDIT_good(vv)                                            \
    ( (vv).code>0 && (vv).code<=VEDIT_LASTCODE )
-#define DBLK_VEDIT_good(db)                                \
-   ( VEDIT_good((db)->vedset) && (db)->vedset.ival >= 0 && \
+#define DBLK_VEDIT_good(db)                                       \
+   ( VEDIT_good((db)->vedset) && (db)->vedset.ival >= 0 &&        \
                                  (db)->vedset.ival < (db)->nvals )
 #define DSET_VEDIT_good(ds) DBLK_VEDIT_good((ds)->dblk)
 /*------------------------------------------------------------------*/
