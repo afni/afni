@@ -1018,6 +1018,39 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            fprintf(SUMA_STDERR,"Error %s: SUMA_makeNI_SurfIXYZ failed\n", FuncName);
                            break;
                         }
+                        /* set up some defaults color (see matlab's rgbdectohex for visual aid) info for AFNI interface */
+                        switch(ii) {
+                           case 0: /* typically wm left*/
+                              NI_set_attribute(nel,"afni_surface_controls_toggle", "on");
+                              NI_set_attribute(nel,"afni_surface_controls_nodes","none");
+                              NI_set_attribute(nel,"afni_surface_controls_lines","#00ff00"); /* green 0 255 0 */
+                              NI_set_attribute(nel,"afni_surface_controls_plusminus","none");
+                              break;
+                           case 1: /* typically pial left */
+                              NI_set_attribute(nel,"afni_surface_controls_toggle", "on");
+                              NI_set_attribute(nel,"afni_surface_controls_nodes","none");
+                              NI_set_attribute(nel,"afni_surface_controls_lines","#0000ff");  /* 0 0  225  blue */  
+                              NI_set_attribute(nel,"afni_surface_controls_plusminus","none");
+                              break;
+                           case 2: /* typically wm right */
+                              NI_set_attribute(nel,"afni_surface_controls_toggle", "on");
+                              NI_set_attribute(nel,"afni_surface_controls_nodes","none");
+                              NI_set_attribute(nel,"afni_surface_controls_lines","#ffff00");   /* green 0 255 0*/ 
+                              NI_set_attribute(nel,"afni_surface_controls_plusminus","none");
+                              break;
+                           case 4: /* typically pial right */
+                              NI_set_attribute(nel,"afni_surface_controls_toggle", "on");
+                              NI_set_attribute(nel,"afni_surface_controls_nodes","none");
+                              NI_set_attribute(nel,"afni_surface_controls_lines","#ff0000");  /* red 255 0 0 */
+                              NI_set_attribute(nel,"afni_surface_controls_plusminus","none");
+                              break;
+                           default: /* hot pink */
+                              NI_set_attribute(nel,"afni_surface_controls_toggle", "on");
+                              NI_set_attribute(nel,"afni_surface_controls_nodes","none");
+                              NI_set_attribute(nel,"afni_surface_controls_lines","#ff69b4");  /* hot pink 255 105 180 */
+                              NI_set_attribute(nel,"afni_surface_controls_plusminus","none");
+                              break;
+                        }
                         /* send surface nel */
                         if (LocalHead) fprintf(SUMA_STDERR,"%s: Sending SURF_iXYZ nel...\n ", FuncName) ;
                         nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_BINARY_MODE ) ;
@@ -3108,16 +3141,16 @@ int *SUMA_FormSOListToSendToAFNI(SUMA_DO *dov, int N_dov, int *N_Send)
             if (SO->AnatCorrect && !SO->SentToAfni && SO->VolPar) {
                switch (s) {
                   case 0:
-                     if (SO->Side == SUMA_LEFT && SUMA_isTypicalSOforVolSurf(SO) ==  -1) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
+                     if (!is_listed[ii] && SO->Side == SUMA_LEFT && SUMA_isTypicalSOforVolSurf(SO) ==  -1) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
                      break;
                   case 1:
-                     if (SO->Side == SUMA_LEFT && SUMA_isTypicalSOforVolSurf(SO) ==   1) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
+                     if (!is_listed[ii] && SO->Side == SUMA_LEFT && SUMA_isTypicalSOforVolSurf(SO) ==   1) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
                      break;
                   case 2:
-                     if (SO->Side == SUMA_RIGHT && SUMA_isTypicalSOforVolSurf(SO) == -1) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
+                     if (!is_listed[ii] && SO->Side == SUMA_RIGHT && SUMA_isTypicalSOforVolSurf(SO) == -1) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
                      break;
                   case 3:
-                     if (SO->Side == SUMA_RIGHT && SUMA_isTypicalSOforVolSurf(SO) ==  1) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
+                     if (!is_listed[ii] && SO->Side == SUMA_RIGHT && SUMA_isTypicalSOforVolSurf(SO) ==  1) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
                      break;
                   default:
                      if (!is_listed[ii]) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
