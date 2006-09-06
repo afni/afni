@@ -347,6 +347,7 @@ char *SUMA_NextEntry(char *ss, int *level, int *io, char *func, char *file, int 
    if (strstr(ss_init,"Error")) *error = 1;
    else if (strstr(ss_init,"error")) *error = 1;
    else if (strstr(ss_init,"corruption")) *error = 1;
+   else if (strstr(ss_init,"Deallocation") && strstr(ss_init,"pointer") && strstr(ss_init,"not") && strstr(ss_init,"malloced")) *error = 1;
    else *error = 0;
    
    *ss = ctmp;
