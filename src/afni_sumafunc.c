@@ -441,6 +441,40 @@ ENTRY("AFNI_find_closest_node") ;
 /*---------------------------------------------------------------------------*/
 /*-------- Stuff below here is for surface control panel [19 Aug 2002] ------*/
 
+static int  swid_ncol   = 0 ;     /* 06 Sep 2006 */
+static int *swid_boxcol = NULL ;
+static int *swid_lincol = NULL ;
+
+/*---------------------------------------------------------------------------*/
+/*! Set initial colors for surface menu items,
+    for use later when the surface menus are actually created. */
+
+void AFNI_init_swid_color( int ss , char *bcol , char *lcol )  /* 06 Sep 2006 */
+{
+   int lin_col , box_col ;
+
+   if( ss < 0 ) return ;
+
+   box_col = DC_find_closest_overlay_color( GLOBAL_library.dc , bcol ) ;
+   if( box_col < 0 ) box_col = 0 ;  /* == "none" */
+
+   lin_col = DC_find_closest_overlay_color( GLOBAL_library.dc , lcol ) ;
+   if( lin_col < 0 ) lin_col = MIN(6,GLOBAL_library.dc->ovc->ncol_ov-1) ;
+
+   if( ss >= swid_ncol ){
+     swid_boxcol = (int *)realloc( (void *)swid_boxcol, sizeof(int)*(ss+1) ) ;
+     swid_lincol = (int *)realloc( (void *)swid_lincol, sizeof(int)*(ss+1) ) ;
+     memset( swid_boxcol+swid_ncol , 0 , sizeof(int)*(ss+1-swid_ncol) ) ;
+     memset( swid_lincol+swid_ncol , 0 , sizeof(int)*(ss+1-swid_ncol) ) ;
+     swid_ncol = ss+1 ;
+   }
+   swid_boxcol[ss] = box_col ;
+   swid_lincol[ss] = lin_col ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
 static void AFNI_surf_done_CB( Widget,XtPointer,XtPointer ) ;
 static void AFNI_surf_redraw_CB( MCW_arrowval *,XtPointer ) ;
 static AFNI_make_surface_widgets( Three_D_View *, int ) ;
@@ -516,7 +550,7 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
    Widget ww , rc ;
    XmString xstr ;
    char str[32] , *eee ;
-   int ii , line_col, box_col ;
+   int ii , line_col, box_col , lincol_default , boxcol_default ;
 
    im3d->vwid->view->swid = swid = myXtNew( AFNI_surface_widgets ) ;
 
@@ -662,7 +696,11 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
    box_col = DC_find_closest_overlay_color( im3d->dc, eee ) ;
    if( box_col < 0 ) box_col = 0 ;
 
+   lincol_default = line_col ; boxcol_default = box_col ;  /* 06 Sep 2006 */
+
    for( ii=0 ; ii < num ; ii++ ){
+     if( ii < swid_ncol ){ line_col = swid_lincol[ii]; box_col = swid_boxcol[ii]; }
+     else                { line_col = lincol_default ; box_col = boxcol_default ; }
      MAKE_SURF_ROW(ii) ;
    }
 
@@ -710,7 +748,6 @@ ENTRY("AFNI_update_surface_widgets") ;
      swid->surf_node_av = (MCW_arrowval **) XtRealloc( (char *)swid->surf_node_av,num*sizeof(MCW_arrowval *) );
      swid->surf_line_av = (MCW_arrowval **) XtRealloc( (char *)swid->surf_line_av,num*sizeof(MCW_arrowval *) );
      swid->surf_ledg_av = (MCW_arrowval **) XtRealloc( (char *)swid->surf_line_av,num*sizeof(MCW_arrowval *) );
-
 
      eee = getenv( "AFNI_SUMA_LINECOLOR" ) ;
      line_col = DC_find_closest_overlay_color( im3d->dc, eee ) ;
