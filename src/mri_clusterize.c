@@ -15,7 +15,7 @@ MRI_IMAGE * mri_clusterize( float rmm , float vmul , MRI_IMAGE *bim ,
 
 ENTRY("mri_clusterize") ;
 
-   if( bim == NULL ) RETURN(NULL) ;  /* stupid user */
+   if( bim == NULL || mri_data_pointer(bim) == NULL ) RETURN(NULL) ;
 
    nx = bim->nx; ny = bim->ny; nz = bim->nz;
    dx = bim->dx; dy = bim->dy; dz = bim->dz;
@@ -30,6 +30,7 @@ ENTRY("mri_clusterize") ;
    /* create copy of input image (this will be edited below) */
 
    cim = mri_copy(bim) ; car = mri_data_pointer(cim) ;
+   if( car == NULL ){ mri_free(cim) ; RETURN(NULL) ; }
 
    /* threshold it, if so ordered (note that tim==bim is legal) */
 

@@ -22,7 +22,7 @@ ENTRY("AFNI_vedit") ;
 
    if( vednew.code <= 0 || vednew.code > VEDIT_LASTCODE ){
      if( dblk->vedim != NULL ){ mri_free(dblk->vedim); dblk->vedim=NULL; }
-     dblk->vedset.code = 0 ;
+     dblk->vedset.code = 0 ; dblk->vedset.ival = -1 ;
      EXRETURN ;
    }
 
@@ -31,7 +31,9 @@ ENTRY("AFNI_vedit") ;
       otherwise, we clear out the existing results so they can be replaced. */
 
    if( dblk->vedim != NULL ){
-     if( memcmp(&dblk->vedset,&vednew,sizeof(VEDIT_settings)) == 0 ) EXRETURN ;
+     if( memcmp(&dblk->vedset,&vednew,sizeof(VEDIT_settings)) == 0 ){
+       EXRETURN ;
+     }
      mri_free(dblk->vedim); dblk->vedim=NULL;
    }
 
@@ -44,10 +46,10 @@ ENTRY("AFNI_vedit") ;
    ival = vednew.ival ;
    if( ival < 0 || ival > DSET_NVALS(dset) ) EXRETURN ;
    dim = DBLK_BRICK(dblk,ival) ;
-   if( dim == NULL ){
+   if( dim == NULL || mri_data_pointer(dim) == NULL ){
      DSET_load(dset) ;
      dim = DBLK_BRICK(dblk,ival) ;
-     if( dim == NULL ) EXRETURN ;
+     if( dim == NULL || mri_data_pointer(dim) == NULL ) EXRETURN ;
    }
    dim->dx = fabs(DSET_DX(dset));
    dim->dy = fabs(DSET_DY(dset));
@@ -66,8 +68,7 @@ ENTRY("AFNI_vedit") ;
        thr  = vednew.param[1] ;
        if( DSET_BRICK_FACTOR(dset,ithr) > 0.0f )
          thr /= DSET_BRICK_FACTOR(dset,ithr) ;
-       rmm  = vednew.param[2] ;
-       vmul = vednew.param[3] ;
+       rmm  = vednew.param[2] ; vmul = vednew.param[3] ;
        dblk->vedim = mri_clusterize( rmm, vmul, dim, thr, tim  );
      }
      break ;

@@ -123,8 +123,9 @@ if(PRINT_TRACING)
 
    if( !dset->wod_flag && DSET_INMEMORY(dset) ){
 
-      if( DSET_VEDIT_IVAL(dset) == ival && dset->dblk->vedim != NULL && dset->dblk->vedim->kind == typ ){
-        STATUS("substituting vedim") ;
+      if( DSET_VEDIT_IVAL(dset) == ival && dset->dblk->vedim != NULL  &&
+                                           dset->dblk->vedim->kind == typ ){
+        STATUS("substituting vedim in dset") ;
         bar = mri_data_pointer(dset->dblk->vedim) ;
         if( bar == NULL ) ERROR_message("vedim bar is NULL?!") ;
       } else
@@ -253,10 +254,11 @@ STATUS("setting parent_dset to self, and parent_to_child_warp to identity") ;
       }
    }
 
-   if( DSET_VEDIT_IVAL(parent_dset) == ival && parent_dset->dblk->vedim != NULL && parent_dset->dblk->vedim->kind == typ ){
-     STATUS("substituting vedim") ;
+   if( DSET_VEDIT_IVAL(parent_dset) == ival && parent_dset->dblk->vedim != NULL  &&
+                                               parent_dset->dblk->vedim->kind == typ ){
+     STATUS("substituting vedim in parent_dset") ;
      bar = mri_data_pointer(parent_dset->dblk->vedim) ;
-     if( bar == NULL ) ERROR_message("vedim bar is NULL?!") ;
+     if( bar == NULL ) ERROR_message("vedim bar is NULL!?") ;
    } else
      bar = DSET_ARRAY(parent_dset,ival) ;
 
