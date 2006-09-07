@@ -1867,7 +1867,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    /* tell user if any mixed-type datasets transpired [06 Sep 2006] */
 
-   AFNI_inconstancy_error( im3d->vwid->imag->crosshair_label , NULL ) ;
+   AFNI_inconstancy_check( im3d , NULL ) ;
 
    /* NIML listening on [moved here 17 Mar 2002] */
 
@@ -3840,37 +3840,36 @@ STATUS("graCR_pickort") ;
 /*! Report on datasets with mixed type sub-bricks,
     as they tend to cause problems. */
 
-void AFNI_inconstancy_error( Widget wp , char *str )
+void AFNI_inconstancy_check( Three_D_View *im3d , THD_3dim_dataset *dset )
 {
    static int    nbad = 0 ;
    static char **sbad = NULL ;
 
-ENTRY("AFNI_inconstancy_error") ;
+ENTRY("AFNI_inconstancy_check") ;
 
-   if( str == NULL ){
-     char *msg ; int ii,nn ;
-     STATUS("NULL entry") ;
-     if( nbad == 0 || sbad == NULL ) EXRETURN ;
-     if( wp == NULL ){
-       Three_D_View *im3d=AFNI_find_open_controller() ;
-       wp = im3d->vwid->picture ;
-     }
+   if( dset == NULL ){
+     char *msg ; int ii,nn ; Widget wp ;
+     if( nbad == 0 || sbad == NULL ) EXRETURN ; /* nothing to report */
+     if( !IM3D_OPEN(im3d) ) im3d =AFNI_find_open_controller();
+     wp = im3d->vwid->imag->crosshair_label ;
      XBell(XtDisplay(wp),100) ;
-     STATUS("creating message") ;
+     STATUS("creating inconstancy message") ;
      for(ii=nn=0;ii<nbad;ii++) nn += strlen(sbad[ii]) ;
      nn += 255+4*nbad ; msg = malloc(nn) ;
-     sprintf(msg,"\n====== Datasets With Inconstant Data Types =====\n\n");
+     sprintf(msg,
+            "\n========== Datasets With Inconstant Data Types =========\n\n");
      for(ii=0;ii<nbad;ii++) sprintf(msg+strlen(msg)," %s\n",sbad[ii]) ;
      sprintf(msg+strlen(msg),
-            "\n===== This is known as the Mike Beauchamp syndrome =====\n"
-              "-- Sometimes, funky things happen with these datasets --\n" ) ;
+            "\n===== This is known as the Mike Beauchamp SINdrome =====\n"
+              "===== Funky things may happen with these datasets! =====\n" ) ;
      (void)new_MCW_textwin( wp , msg , TEXT_READONLY ) ;
      free((void *)msg) ;
      for(ii=0;ii<nbad;ii++)free((void *)sbad[ii]);
      free((void *)sbad) ; nbad=0 ; sbad=NULL ;
+     XBell(XtDisplay(wp),100) ;
      EXRETURN ;
-   } else {
-     STATUS(str) ;
+   } else if( ISVALID_DSET(dset) && !DSET_datum_constant(dset) ){
+     char *str = DSET_BRIKNAME(dset) ;
      sbad = (char **)realloc((void *)sbad,sizeof(char *)*(nbad+1)) ;
      sbad[nbad++] = strdup(str) ;
    }
@@ -3981,8 +3980,7 @@ ENTRY("AFNI_read_inputs") ;
                 if( dset != NULL ){
                   PARENTIZE( dset , NULL ) ;
                   DSET_MARK_FOR_IMMORTALITY( dset ) ;
-                  if( !DSET_datum_constant(dset) )
-                    AFNI_inconstancy_error(NULL,DSET_BRIKNAME(dset)) ;
+                  AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
                 }
               }
          } else {
@@ -4071,8 +4069,7 @@ if(PRINT_TRACING)
              if( dset != NULL ){
                dss->dsset[qd][dset->view_type] = dset ;
                dss->num_dsset ++ ;
-               if( !DSET_datum_constant(dset) )
-                 AFNI_inconstancy_error(NULL,DSET_BRIKNAME(dset)) ;
+               AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
              } else {
                fprintf(stderr,
                        "\n** Couldn't open %s as session OR as dataset!" ,
@@ -4092,8 +4089,7 @@ if(PRINT_TRACING)
                 dset = new_ss->dsset[qd][vv] ;
                 if( dset != NULL ){
                   PARENTIZE( dset , NULL ) ;
-                  if( !DSET_datum_constant(dset) )
-                    AFNI_inconstancy_error(NULL,DSET_BRIKNAME(dset)) ;
+                  AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
                 }
             } }
 
@@ -4431,10 +4427,10 @@ STATUS("making descendant datasets") ;
 
       int nds = argc - GLOBAL_argopt.first_file_arg ;
       char str[256] ;
-      THD_3dim_dataset * dset ;
-      XtPointer_array * dsar ;
-      MRI_IMARR * webtsar ;        /* 26 Mar 2001 */
-      THD_session * new_ss ;
+      THD_3dim_dataset *dset ;
+      XtPointer_array *dsar ;
+      MRI_IMARR *webtsar ;        /* 26 Mar 2001 */
+      THD_session *new_ss ;
       int ii,nerr=0,vv,nn , dd ;
 
       if( nds <= 0 ){
@@ -4472,8 +4468,8 @@ STATUS("reading commandline dsets") ;
 
             dsar = THD_fetch_many_datasets( argv[ii] ) ;
             if( dsar == NULL || dsar->num == 0 ){
-               fprintf(stderr,"\a\n*** Can't read datasets from %s\n",argv[ii]) ;
-               nerr++ ; continue ; /* next ii */
+              fprintf(stderr,"\a\n*** Can't read datasets from %s\n",argv[ii]) ;
+              nerr++ ; continue ; /* next ii */
             }
 
          } else { /** read from one file (local or Web), make a small array **/
@@ -4483,10 +4479,11 @@ STATUS("reading commandline dsets") ;
                fprintf(stderr,"\a\n*** Can't read dataset %s\n",argv[ii]) ;
                nerr++ ; continue ; /* next ii */
             }
-            INIT_XTARR(dsar) ; ADDTO_XTARR(dsar,dset) ; XTARR_IC(dsar,0) = IC_DSET ;
+            INIT_XTARR(dsar) ; ADDTO_XTARR(dsar,dset) ;
+            XTARR_IC(dsar,0) = IC_DSET ;
          }
 
-         for( dd=0 ; dd < dsar->num ; dd++ ){  /* loop over all entries in array */
+         for( dd=0 ; dd < dsar->num ; dd++ ){  /* over all entries in array */
 
             /* 26 Mar 2001: might get some 1D files, too */
 
@@ -4496,7 +4493,7 @@ STATUS("reading commandline dsets") ;
                continue ;              /* next one */
             }
             if( XTARR_IC(dsar,dd) != IC_DSET ){
-               fprintf(stderr,"\n** Unknown filetype returned from %s\n",argv[ii]) ;
+              fprintf(stderr,"\n** Unknown filetype returned from %s\n",argv[ii]) ;
                nerr++ ; continue ;   /* bad */
             }
 
@@ -4504,6 +4501,7 @@ STATUS("reading commandline dsets") ;
 
             dset = (THD_3dim_dataset *) XTARR_XT(dsar,dd) ;
             if( !ISVALID_DSET(dset) ) continue ;            /* bad */
+            AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
             nds++ ;   /* increment count of dataset */
             REFRESH ;
             vv = dset->view_type ;

@@ -892,7 +892,7 @@ extern void AFNI_purge_dsets(int) ;
 extern void AFNI_purge_unused_dsets(void) ;
 extern int AFNI_controller_index( Three_D_View * ) ;
 
-extern void AFNI_inconstancy_error( Widget , char * ) ; /* 06 Sep 2006 */
+extern void AFNI_inconstancy_check( Three_D_View *, THD_3dim_dataset * ); /* 06 Sep 2006 */
 
 extern Three_D_View * AFNI_find_open_controller(void) ; /* 05 Mar 2002 */
 extern void AFNI_popup_message( char * ) ;
