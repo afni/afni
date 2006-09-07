@@ -446,10 +446,68 @@ static int *swid_boxcol = NULL ;
 static int *swid_lincol = NULL ;
 
 /*---------------------------------------------------------------------------*/
+/*! Get an initial color for surface things. */
+
+void AFNI_get_suma_color( int ss , rgbyte *bcolor , rgbyte *lcolor )
+{
+   Three_D_View *im3d = AFNI_find_open_controller() ;
+
+   if( bcolor == NULL || lcolor == NULL ) return ;
+
+   if( ss >= 0 && ss < swid_ncol ){
+     int bb , ll ;
+     bb = swid_boxcol[ss] ; ll = swid_lincol[ss] ;
+     if( bb > 0 ){
+       bcolor->r = DCOV_REDBYTE  (im3d->dc,bb) ;
+       bcolor->g = DCOV_GREENBYTE(im3d->dc,bb) ;
+       bcolor->b = DCOV_BLUEBYTE (im3d->dc,bb) ;
+     } else {
+       bcolor->r = bcolor->g = bcolor->b = 1 ;
+     }
+     if( ll > 0 ){
+       lcolor->r = DCOV_REDBYTE  (im3d->dc,ll) ;
+       lcolor->g = DCOV_GREENBYTE(im3d->dc,ll) ;
+       lcolor->b = DCOV_BLUEBYTE (im3d->dc,ll) ;
+     } else {
+       lcolor->r = lcolor->g = lcolor->b = 1 ;
+     }
+   } else {
+     char *eee ; float rr,gg,bb ;
+     eee = getenv("AFNI_SUMA_BOXCOLOR") ;
+     if( eee != NULL ){
+       if( strcmp(eee,"none") == 0 || strcmp(eee,"skip") == 0 ){
+         bcolor->r = bcolor->g = bcolor->b = 1 ;
+       } else {
+         DC_parse_color( im3d->dc , eee , &rr,&gg,&bb ) ;
+         bcolor->r = (byte)(rr*255.666f) ;
+         bcolor->g = (byte)(gg*255.666f) ;
+         bcolor->b = (byte)(bb*255.666f) ;
+       }
+     } else {
+       bcolor->r = 254 ; bcolor->g = bcolor->b = 0 ;
+     }
+     eee = getenv("AFNI_SUMA_LINECOLOR") ;
+     if( eee != NULL ){
+       if( strcmp(eee,"none") == 0 || strcmp(eee,"skip") == 0 ){
+         lcolor->r = lcolor->g = lcolor->b = 1 ;
+       } else {
+         DC_parse_color( im3d->dc , eee , &rr,&gg,&bb ) ;
+         lcolor->r = (byte)(rr*255.666f) ;
+         lcolor->g = (byte)(gg*255.666f) ;
+         lcolor->b = (byte)(bb*255.666f) ;
+       }
+     } else {
+       lcolor->r = 100 ; lcolor->g = 0 ; lcolor->b = 199 ;
+     }
+   }
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
 /*! Set initial colors for surface menu items,
     for use later when the surface menus are actually created. */
 
-void AFNI_init_swid_color( int ss , char *bcol , char *lcol )  /* 06 Sep 2006 */
+void AFNI_init_suma_color( int ss , char *bcol , char *lcol )  /* 06 Sep 2006 */
 {
    int lin_col , box_col ;
 
