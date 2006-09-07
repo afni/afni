@@ -2634,11 +2634,10 @@ STATUS("processing new session") ;
                    dset = new_ss->dsset[qd][vv] ;
                    if( dset != NULL ){
                      PARENTIZE( dset , NULL ) ;
-                     if( !DSET_datum_constant(dset) )
-                       AFNI_inconstancy_error(NULL,DSET_BRIKNAME(dset)) ;
+                     AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
                    }
                } }
-               AFNI_inconstancy_error(im3d->vwid->imag->crosshair_label, NULL );
+               AFNI_inconstancy_check(im3d,NULL); /* 06 Sep 2006 */
 
                /* 20 Dec 2001: if have global datasets, put them in here */
 
@@ -2889,12 +2888,12 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
       dset = THD_fetch_dataset( cbs->cval ) ;
       SHOW_AFNI_READY ;
       if( dset == NULL ){
-         (void) MCW_popup_message( im3d->vwid->dmode->read_Web_pb ,
-                                     " \n"
-                                     "** Can't get a dataset **\n"
-                                     "** from that URL!      **\n " ,
-                                   MCW_USER_KILL | MCW_TIMER_KILL      ) ;
-         XBell( XtDisplay(w) , 100 ) ; EXRETURN ;
+        (void) MCW_popup_message( im3d->vwid->dmode->read_Web_pb ,
+                                   " \n"
+                                   "** Can't get a dataset **\n"
+                                   "** from that URL!      **\n " ,
+                                  MCW_USER_KILL | MCW_TIMER_KILL      ) ;
+        XBell( XtDisplay(w) , 100 ) ; EXRETURN ;
       }
       INIT_XTARR(dsar) ; ADDTO_XTARR(dsar,dset) ; XTARR_IC(dsar,0) = IC_DSET ;
    }
@@ -2911,6 +2910,7 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
 
       dset = (THD_3dim_dataset *) XTARR_XT(dsar,dd) ;
       if( !ISVALID_DSET(dset) ) continue ;             /* bad */
+      AFNI_inconstancy_check(NULL,dset) ;      /* 06 Sep 2006 */
       vv = dset->view_type ;
       nn = ss->num_dsset ;
       if( nn >= THD_MAX_SESSION_SIZE ){
@@ -2924,6 +2924,7 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
    } /* end of loop over dd=datasets in dsar */
 
    FREE_XTARR(dsar) ;
+   AFNI_inconstancy_check(im3d,NULL); /* 06 Sep 2006 */
 
    /*-- popup a message saying what happened --*/
 
@@ -2945,18 +2946,19 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
    if( na >= 0 ) im3d->vinfo->anat_num = na ; /* 1st new anat in current view */
    if( nf >= 0 ) im3d->vinfo->func_num = nf ; /* 1st new func in current view */
 
-   if( GLOBAL_library.have_dummy_dataset ){
-      UNDUMMYIZE ;
-      if( na < 0 && ss->num_dsset > 1 ){
-         im3d->vinfo->anat_num = 1 ;
-         for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
-            if( ISVALID_DSET(ss->dsset[1][vv]) ){ im3d->vinfo->view_type = vv; break; }
-         }
-      } else if( na < 0 ){                         /* should be impossible */
-         (void) MCW_popup_message( im3d->vwid->dmode->read_Web_pb ,
-                                   " \n** No datasets available **\n " ,
-                                   MCW_USER_KILL | MCW_TIMER_KILL ) ;
-      }
+   if( GLOBAL_library.have_dummy_dataset ){   /* switch away from dummy dataset */
+     UNDUMMYIZE ;
+     if( na < 0 && ss->num_dsset > 1 ){
+       im3d->vinfo->anat_num = 1 ;
+       im3d->vinfo->func_num = 1 ;            /* 07 Sep 2006 (oops) */
+       for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
+         if( ISVALID_DSET(ss->dsset[1][vv]) ){ im3d->vinfo->view_type = vv; break; }
+       }
+     } else if( na < 0 ){                         /* should be impossible */
+       (void) MCW_popup_message( im3d->vwid->dmode->read_Web_pb ,
+                                 " \n** No datasets available **\n " ,
+                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
+     }
    }
 
    AFNI_initialize_view( NULL , im3d ) ;
@@ -3072,6 +3074,7 @@ static int AFNI_rescan_session_OLD( int sss )  /* the old way */
    MCW_idcode     anat_idcode[MAX_CONTROLLERS] ,
                   func_idcode[MAX_CONTROLLERS] ;
    THD_slist_find find ;
+   THD_3dim_dataset *dset ;
 
 ENTRY("AFNI_rescan_session_OLD") ;
 { char str[256]; sprintf(str,"session index %d\n",sss); STATUS(str); }
@@ -3158,9 +3161,15 @@ STATUS(old_ss->sessname) ;
 STATUS("PARENTIZE-ing datasets in new session") ;
 
    new_ss->parent = NULL ;
-   for( ii=0 ; ii < new_ss->num_dsset ; ii++ )
-      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+   for( ii=0 ; ii < new_ss->num_dsset ; ii++ ){
+     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
+       dset = new_ss->dsset[ii][vv] ;
+       if( dset != NULL ){
          PARENTIZE( new_ss->dsset[ii][vv] , NULL ) ;
+         AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
+       }
+   } }
+   AFNI_inconstancy_check(NULL,NULL);
 
    /* put the new session into place in the list of sessions */
 
@@ -3334,13 +3343,15 @@ STATUS(old_ss->sessname) ;
      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )     /* see if row is empty */
        if( new_ss->dsset[ii][vv] != NULL ) break ;
      if( vv > LAST_VIEW_TYPE ) continue ;          /* empty row ==> skip  */
+     AFNI_inconstancy_check(NULL,new_ss->dsset[ii][vv]) ;  /* 06 Sep 2006 */
      nr = old_ss->num_dsset ;                      /* next row in old_ss  */
      if( nr >= THD_MAX_SESSION_SIZE ) break ;      /* old session is full */
      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )     /* copy new row to old */
        old_ss->dsset[nr][vv] = new_ss->dsset[ii][vv];
-     old_ss->num_dsset ++ ;  na_new++ ;            /* 1 more row in old   */
+     old_ss->num_dsset++ ;  na_new++ ;             /* 1 more row in old   */
    }
    if( na_new == 0 ) RETURN(0) ;                   /* 10 Nov 2005 */
+   AFNI_inconstancy_check(NULL,NULL);              /* 06 Sep 2006 */
 
    /*-- 15 Jan 2003: purge all datasets from memory (for Hauke Heekeren) --*/
 
