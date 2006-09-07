@@ -2162,20 +2162,21 @@ STATUS("defining surface drawing parameters") ;
 
       } else {                                   /* the old way    */
                                                  /* to set colors:  */
-        eee = getenv("AFNI_SUMA_BOXCOLOR") ;     /* from environment */
-        if( eee != NULL ){
-          if( strcmp(eee,"none") == 0 || strcmp(eee,"skip") == 0 )
-            skip_boxes = 1 ;                  /* don't do boxes */
-          else
-            DC_parse_color( im3d->dc , eee , &rr_box,&gg_box,&bb_box ) ;
+        rgbyte bcolor , lcolor ;                 /* from environment */
+        AFNI_get_suma_color( ks , &bcolor , &lcolor ) ;
+        if( bcolor.r == 1 && bcolor.g == 1 && bcolor.b == 1 ){
+          skip_boxes = 1 ;                  /* don't do boxes */
+        } else {
+          rr_box = bcolor.r / 255.0f ;
+          gg_box = bcolor.g / 255.0f ;
+          bb_box = bcolor.b / 255.0f ;
         }
-
-        eee = getenv("AFNI_SUMA_LINECOLOR") ;
-        if( eee != NULL ){
-          if( (strcmp(eee,"none")==0 || strcmp(eee,"skip")==0) )
-            skip_lines = 1 ;
-          else
-            DC_parse_color( im3d->dc , eee , &rr_lin,&gg_lin,&bb_lin ) ;
+        if( lcolor.r == 1 && lcolor.g == 1 && lcolor.b == 1 ){
+          skip_lines = 1 ;                  /* don't do lines */
+        } else {
+          rr_lin = lcolor.r / 255.0f ;
+          gg_lin = lcolor.g / 255.0f ;
+          bb_lin = lcolor.b / 255.0f ;
         }
 
         eee = getenv("AFNI_SUMA_BOXSIZE") ;  /* maybe set boxsize? */

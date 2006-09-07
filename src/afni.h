@@ -1364,7 +1364,8 @@ extern void AFNI_choose_surface_CB( Widget , XtPointer , XtPointer ) ; /* 19 Aug
 extern void AFNI_update_surface_widgets( Three_D_View * ) ;
 extern void AFNI_update_all_surface_widgets( THD_session * ) ;
 
-extern void AFNI_init_swid_color( int, char *, char * ) ;  /* 06 Sep 2006 */
+extern void AFNI_init_suma_color( int, char *, char * ) ;   /* 06 Sep 2006 */
+extern void AFNI_get_suma_color( int, rgbyte *, rgbyte * ); /* 07 Sep 2006 */
 
 extern void AFNI_disable_suma_overlay( int ) ;  /* 16 Jun 2003 */
 
