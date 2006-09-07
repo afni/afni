@@ -3489,9 +3489,9 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_datase
    int nxyz = DSET_NX(inset)*DSET_NY(inset)*DSET_NZ(inset);
    int fscale=0 , gscale=0 , nscale=0 ;
    
-   SUMA_ENTRY;
+   recursiveFilterType filterType = ALPHA_DERICHE;  /* BAD BOY ZIAD */
    
-   recursiveFilterType filterType = ALPHA_DERICHE;
+   SUMA_ENTRY;
 
    /*-- Edge detect  --*/
    indims[0] = DSET_NX(inset);
