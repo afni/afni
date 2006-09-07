@@ -1420,7 +1420,7 @@ ENTRY("process_NIML_SUMA_ixyz");
 #endif
 
    if( scon_box != NULL || scon_lin != NULL )
-     AFNI_init_swid_color( surf_num , scon_box , scon_lin ) ;
+     AFNI_init_suma_color( surf_num , scon_box , scon_lin ) ;
 
    /*-- pointers to the data columns in the NI_element --*/
 
