@@ -4,6 +4,7 @@
 #define MAX_ERRLOG_MSG 1000
 #define MAX_ERRLOG_FUNCNAME 200
 
+#ifdef USE_TRACING
 #define SUMA_DUMP_TRACE(head) { /* taken from dbtrace.h */\
    int m_ii;   \
    if (head) { SUMA_S_Note(head);} else {SUMA_S_Note("Dumping Trace:");}   \
@@ -14,6 +15,9 @@
       fprintf(stderr,"[No debug tracing stack: DBG_num=%d]\n",DBG_num) ;   \
    }  \
 }
+#else
+#define SUMA_DUMP_TRACE(x) /* nada */
+#endif
 
 typedef struct {
     char macroname[100];
