@@ -6548,7 +6548,7 @@ char *SUMA_help_talk()
    Those defaults are common to all apps 
    
 */
-static int Domemtrace=0, Doiotrace=0;
+static int Domemtrace=0, Doiotrace=0, IgnoreXforms=0;
 int get_Domemtrace(void) {
    return (Domemtrace);
 }
@@ -6563,6 +6563,15 @@ void set_Doiotrace(int s) {
    Doiotrace = s;
    return;
 }
+int get_IgnoreXforms(void) {
+   return (IgnoreXforms);
+}
+void set_IgnoreXforms(int s) {
+   IgnoreXforms = s;
+   return;
+}
+
+
 /*!
    No fancy macros and allocation here please
 */
@@ -6608,7 +6617,7 @@ int SUMA_ParseInput_basics_eng (char *argv[], int argc)
 		}
       
       if (!brk && (strcmp(argv[kar], "-novolreg") == 0 || strcmp(argv[kar], "-noxform") == 0)) {
-			SUMA_IGNORE_VOLREG;
+			set_IgnoreXforms(1);
          brk = 1;
 		}
       

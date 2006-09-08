@@ -59,6 +59,7 @@ typedef struct UN_options
   int nbin;           /* #bins for pdf estimation */
   int npar;           /* #parameters for field polynomial */
   int niter;          /* #number of iterations */
+  THD_3dim_dataset * new_dset;   /* output afni data set pointer */
 } UN_options;
 
 
@@ -153,7 +154,7 @@ void initialize_options
   option_data->nbin = 250;      /* #bins for pdf estimation */
   option_data->npar = 35;       /* #parameters for field polynomial */
   option_data->niter = 5;       /* #number of iterations  */
-
+  option_data->new_dset = NULL;
 }
 
 
@@ -422,6 +423,36 @@ void verify_inputs
 )
 
 {
+  char *filename;
+  int ierror;
+  
+  filename = option_data->prefix_filename;
+  /*-- make an empty copy of this dataset, for eventual output --*/
+  option_data->new_dset =  EDIT_empty_copy( anat_dset ) ;
+
+  /* check if output name is OK */
+  ierror = EDIT_dset_items( option_data->new_dset ,
+			    ADN_prefix , filename ,
+			    ADN_label1 , filename ,
+			    ADN_self_name , filename ,
+			    ADN_none ) ;
+  if( ierror > 0 ){
+    fprintf(stderr,
+	    "*** %d errors in attempting to create output dataset!\n", 
+	    ierror ) ;
+    exit(1) ;
+  }
+
+
+  if( THD_is_file(option_data->new_dset->dblk->diskptr->header_name) ){
+    fprintf(stderr,
+	    "*** Output dataset file %s already exists--cannot continue!\a\n",
+	    option_data->new_dset->dblk->diskptr->header_name ) ;
+    exit(1) ;
+  }
+
+
+
 }
 
 
@@ -1106,7 +1137,6 @@ void write_afni_data
 {
   int nxyz;                           /* number of voxels */
   int ii;                             /* voxel index */
-  THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
   int ierror;                         /* number of errors in editing data */
   int ibuf[32];                       /* integer buffer */
   float fbuf[MAX_STAT_AUX];           /* float buffer */
@@ -1117,18 +1147,14 @@ void write_afni_data
 
 
   /*----- initialize local variables -----*/
-  filename = option_data->prefix_filename;
   nxyz = DSET_NX(anat_dset) * DSET_NY(anat_dset) * DSET_NZ(anat_dset);
 
   
-  /*-- make an empty copy of this dataset, for eventual output --*/
-  new_dset = EDIT_empty_copy( anat_dset ) ;
-
 
   /*----- Record history of dataset -----*/
-  tross_Copy_History( anat_dset , new_dset ) ;
+  tross_Copy_History( anat_dset , option_data->new_dset ) ;
   if( commandline != NULL )
-     tross_Append_History( new_dset , commandline ) ;
+     tross_Append_History( option_data->new_dset , commandline ) ;
 
   
   /*----- deallocate memory -----*/   
@@ -1158,10 +1184,7 @@ void write_afni_data
   /*-- we now return control to your regular programming --*/ 
   ibuf[0] = output_datum ;
   
-  ierror = EDIT_dset_items( new_dset ,
-			    ADN_prefix , filename ,
-			    ADN_label1 , filename ,
-			    ADN_self_name , filename ,
+  ierror = EDIT_dset_items( option_data->new_dset ,
 			    ADN_datum_array , ibuf ,
 			    ADN_malloc_type, DATABLOCK_MEM_MALLOC ,  
 			    ADN_none ) ;
@@ -1175,10 +1198,10 @@ void write_afni_data
   }
 
 
-  if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
+  if( THD_is_file(option_data->new_dset->dblk->diskptr->header_name) ){
     fprintf(stderr,
 	    "*** Output dataset file %s already exists--cannot continue!\a\n",
-	    new_dset->dblk->diskptr->header_name ) ;
+	    option_data->new_dset->dblk->diskptr->header_name ) ;
     exit(1) ;
   }
   
@@ -1186,9 +1209,9 @@ void write_afni_data
   /*----- attach bricks to new data set -----*/
 
   if( output_datum == MRI_short )
-    mri_fix_data_pointer (sfim, DSET_BRICK(new_dset,0)); 
+    mri_fix_data_pointer (sfim, DSET_BRICK(option_data->new_dset,0)); 
   else if( output_datum == MRI_byte )
-    mri_fix_data_pointer (bfim, DSET_BRICK(new_dset,0));    /* 16 Apr 2003 */
+    mri_fix_data_pointer (bfim, DSET_BRICK(option_data->new_dset,0));    /* 16 Apr 2003 */
 
   fimfac = 1.0;
 
@@ -1196,21 +1219,21 @@ void write_afni_data
   if (!quiet)
     {
       printf ("\nWriting anatomical dataset: ");
-      printf("%s\n", DSET_BRIKNAME(new_dset) ) ;
+      printf("%s\n", DSET_BRIKNAME(option_data->new_dset) ) ;
       printf("data type = %s\n",MRI_TYPE_name[output_datum]) ;
     }
 
 
   for( ii=0 ; ii < MAX_STAT_AUX ; ii++ ) fbuf[ii] = 0.0 ;
-  (void) EDIT_dset_items( new_dset , ADN_stat_aux , fbuf , ADN_none ) ;
+  (void) EDIT_dset_items( option_data->new_dset , ADN_stat_aux , fbuf , ADN_none ) ;
   fbuf[0] = (output_datum == MRI_short && fimfac != 1.0 ) ? fimfac : 0.0 ;
-  (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
-  THD_load_statistics( new_dset ) ;
-  THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
+  (void) EDIT_dset_items( option_data->new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
+  THD_load_statistics( option_data->new_dset ) ;
+  THD_write_3dim_dataset( NULL,NULL , option_data->new_dset , True ) ;
 
   
   /*----- deallocate memory -----*/   
-  THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
+  THD_delete_3dim_dataset( option_data->new_dset , False ) ; option_data->new_dset = NULL ;
   
 }
 

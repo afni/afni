@@ -1,16 +1,109 @@
 #!/usr/bin/python
 import os, sys, glob, operator, string, afni_base
 
+class afni_name:
+   def __init__(self, name=""):
+      res = parse_afni_name(name)
+      self.path = res['path']
+      self.prefix = res['prefix']
+      self.view = res['view']
+      self.extension = res['extension']
+      self.type = res['type']
+      return
+   def p(self):
+      return os.path.abspath(self.path)
+   def ppve(self):
+      s = "%s/%s%s%s" % (os.path.abspath(self.path), self.prefix, self.view, self.extension)
+      return s
+   def ppv(self):
+      s = "%s/%s%s" % (os.path.abspath(self.path), self.prefix, self.view)
+      return s
+   def pp(self):
+      return "%s/%s" % (os.path.abspath(self.path), self.prefix)
+   def pv(self):
+      return "%s%s" % (self.prefix, self.view)
+   def exist(self):
+      if os.path.isfile("%s.HEAD" % self.ppv()) and \
+         (os.path.isfile("%s.BRIK" % self.ppv()) or os.path.isfile("%s.BRIK.gz" % self.ppv())):
+         return 1
+      else:
+         return 0
+   def delete(self): #delete files on disk!
+      if os.path.isfile("%s.HEAD" % self.ppv()):
+         shell_exec("rm %s.HEAD" % self.ppv())
+      if os.path.isfile("%s.BRIK" % self.ppv()):
+         shell_exec("rm %s.BRIK" % self.ppv())
+      if os.path.isfile("%s.BRIK.gz" % self.ppv()):
+         shell_exec("rm %s.BRIK.gz" % self.ppv())
+      return
+   def move_to_dir(self, path=""):
+      self.show()
+      print path
+      if os.path.isdir(path):
+         self.new_path(path)
+         sv = shell_com("mv %s %s %s %s/" % (self.head(), self.brick(), self.brickgz(), path))
+         if ( not self.exist() ):
+            print "Error: Move failed"
+            return 0
+      else:
+         return 0
+      return 1
+   def head(self):
+      return "%s.HEAD" % self.ppv()
+   def brick(self):
+      return "%s.BRIK" % self.ppv()      
+   def brickgz(self):
+      return "%s.BRIK.gz" % self.ppv() 
+   def new_path(self,path=""):
+      #give name a new path
+      if len(path) == 0:
+         self.path = "./"
+      else:
+         if path[-1] == '/':
+            self.path = path
+         else:
+            self.path = "%s/" % path
+   def new_prefix(self, prefix=""):
+      self.prefix = prefix
+   def new_view(self,view=""):
+      self.view = view
+   def show(self):
+      print "AFNI filename:"
+      print "   name    : %s" % self.ppve()
+      print "   path    : %s" % self.path
+      print "   prefix  : %s" % self.prefix   
+      print "   view    : %s" % self.view
+      print "   exten.  : %s" % self.extension
+      print "   type    : %s" % self.type
+      print "   On Disk : %d" % self.exist()
+   def new(self,new_pref='', new_view=''):  
+      #return a copy of class member with new_prefix and new_view if needed
+      an = afni_name()
+      an.path = self.path
+      if len(new_pref):
+         an.prefix = new_pref
+      else:
+         an.prefix = self.prefix
+      if len(new_view):
+         an.view = new_view
+      else:
+         an.view = self.view
+      an.extension = self.extension
+      an.type = self.type
+      return an
+               
 class comopt:
-   def __init__(self, name, npar, defpar):
+   def __init__(self, name, npar, defpar, acplist=[]):
       self.name = name
       self.i_name = -1      #index of option name in argv
       self.n_exp = npar     #Number of expected params, 0 if no params, 
                             #-1 if any number > 0 is OK.
                             #N if exactly N numbers are expected 
-      self.n_found = -1     #Number of parameters found afte parsing
+      self.n_found = -1     #Number of parameters found after parsing
+                            # 0 means option was on command line but had no parameters
       self.parlist = None     #parameter strings list following option 
       self.deflist = defpar #default parameter list,if any
+      self.acceptlist = acplist #acceptable values if any
       return 
    def test(self):
       if (len(self.deflist) != 0 and self.parlist == None):  #some checks possible, parlist not set yet
@@ -36,6 +129,64 @@ class comopt:
                         % (self.name, -self.n_exp, len(self.parlist))
                return None 
       return 1
+
+class shell_com:
+   def __init__(self, com, eo="echo"):
+      self.com = com #command
+      self.dir = os.getcwd()
+      self.exc = 0      #command not executed yet
+      self.so = ''
+      self.se = ''
+      if eo == "echo":
+         self.run()
+         self.out()
+      elif eo == "dry_run":
+         self.out()
+      return
+   def run(self):
+      so, se = shell_exec(self.com, "")
+      self.so = so
+      self.se = se
+      self.exc = 1
+   def stdout(self):
+      if (len(self.so)):
+         print "++++++++++ stdout:" 
+         for ln in self.so:
+            print "   %s" % ln
+   def stderr(self):   
+      if (len(self.se)):
+            print "---------- stderr:" 
+            for ln in self.se:
+               print "   %s" % ln
+   def out(self):
+      print "#Command output:\n   cd %s\n   %s" % (self.dir, self.com)
+      if self.exc:
+         self.stdout()
+         self.stderr()
+      else:
+         print "#............. not executed."
+   def val(self, i):
+      if not self.exc:
+         print "Command not executed"
+         return None
+      elif len(self.so) == 0:
+         print "Empty output."
+         return None
+      elif len(self.so) <= i:
+         print "Index %d larger than number of elements (%d) in output " % (i, len(self.so))
+         return None
+      else:
+         return self.so[i]
+              
+
+#transform a list of afni names to one string for shell script usage
+def anlist(vlst):
+   namelst = []
+   for an in vlst:
+      namelst.append(an.ppv())    
+   return string.join(namelst,' ')
+
+
 #parse options, put into dictionary
 def getopts(argv):
    opts = {}
@@ -54,6 +205,7 @@ def show_opts2(opts):
    print opts
    for key in opts.keys():
       print "Option Name: %s" % key
+      print "       Found: %d" % opts[key].n_found
       print "       User Parameter List: %s" % opts[key].parlist
       print "       Default Parameter List: %s\n" % opts[key].deflist
    return
@@ -95,6 +247,7 @@ def getopts2(argv,oplist):
    #find those options in oplist
    for op in oplist:
       if op.name in argv:
+         op.n_found = 0          #found that argument
          op.iname = argv.index(op.name)   #copy index into list
          argv.remove(op.name)             #remove this option from list
          op.parlist = []
@@ -102,8 +255,13 @@ def getopts2(argv,oplist):
             while ((op.n_exp < 0 and op.iname < len(argv)) or \
                (op.n_exp > 0 and len(op.parlist) < op.n_exp and len(argv) > 0)) and \
                argv[op.iname] not in optnames:
+               if len(op.acceptlist):
+                  if argv[op.iname] not in op.acceptlist:
+                     print "Error: parameter value %s for %s is not acceptable\nChoose from %s" % \
+                           (argv[op.iname], op.name, string.join(op.acceptlist, ' , '))
                op.parlist.append(argv[op.iname]) #string added
                argv.remove(argv[op.iname])             #remove this string from list          
+            op.n_found = len(op.parlist)
                
       else : #No option in argv, just copy option
          op.parlist = op.deflist
@@ -156,9 +314,9 @@ def strip_extension(name, extlist):
                res[0] = name[:-xle]
                res[1] = extlist[0]
                return res
-         else:
+         #else:
             #nada
-            print name
+            #print name
          #Go to next element
          extlist = extlist[1:]
    else: #Nothing specified, work the dot
@@ -189,10 +347,12 @@ def parse_afni_name(name):
       pr = rni[0]
       tp = 'NIFTI'
    else: 
-      rni = strip_extension(fn,['.HEAD','.BRIK','.BRIK.gz','.1D', '.'])
+      rni = strip_extension(fn,['.HEAD','.BRIK','.BRIK.gz','.1D', '.','.1D.dset', '.niml.dset'])
       ex = rni[1]
-      if (ex == '.1D'):
+      if (ex == '.1D' or ex == '.1D.dset'):
          tp = "1D"
+      elif (ex == '.niml.dset'):
+         tp = "NIML"
       else:
          tp = 'BRIK'
       if (ex == '.'):
@@ -201,7 +361,9 @@ def parse_afni_name(name):
       vi = rni[1]
       pr = rni[0]
    #Build the dictionary result
-   res['path'] = rp
+   if len(rp) == 0:
+      rp = '.'
+   res['path'] = "%s/" % rp
    res['prefix'] = pr
    res['view'] = vi
    res['extension'] = ex
@@ -224,13 +386,27 @@ def afni_view(names):
    return pref
 
 #exectute a shell command and return results in so (stdout) and se (stderr)
-def shell_exec(s):
-   #find out where afni modules are and add them
+def shell_exec(s,opt=""):
+   if opt == "dry_run":
+      print "In %s, would execute:\n%s" % (os.getcwd(), s)
+      return "", ""
+   elif opt == "echo":
+      print "In %s, about to execute:\n%s" % (os.getcwd(), s)
+   
    i,o,e = os.popen3(s,'r') #captures stdout in o,  stderr in e and stdin in i      
    so = o.readlines()
    se = e.readlines()
    o.close
    e.close                     
+   if (len(so) and opt == "echo"):
+      print "++++++++++ stdout:" 
+      for ln in so:
+         print "   %s" % ln
+   if (len(se) and opt == "echo"):
+      print "---------- stderr:" 
+      for ln in se:
+         print "   %s" % ln
+      
    return so, se
 
 #generic unique function, from:  http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/52560/index_txt
