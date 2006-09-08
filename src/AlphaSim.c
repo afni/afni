@@ -314,7 +314,7 @@ void get_options (int argc, char ** argv,
 
 	  for( ii=mc=0 ; ii < mask_nvox ; ii++ )  if (mask_vol[ii])  mc++ ;
 	  if (mc == 0)  AlphaSim_error ("mask is all zeros!") ;
-	  printf("--- %d voxels in mask\n",mc) ;
+	  if( *quiet < 2 ) printf("++ %d voxels in mask\n",mc) ;
 	  mask_ngood = mc;
 	  nopt++ ; continue ;
 	}
@@ -560,15 +560,6 @@ void get_options (int argc, char ** argv,
 	}
 
 
-      /*-----   -quiet q  -----*/
-      if (strncmp(argv[nopt], "-quiet", 6) == 0)
-	{
-	  *quiet = 1;
-	  nopt++;
-	  continue;
-	}
-
-
       /*-----   -out filename   -----*/
       if (strncmp(argv[nopt], "-out", 4) == 0)
 	{
@@ -588,6 +579,14 @@ void get_options (int argc, char ** argv,
 	  if (nopt >= argc)
              AlphaSim_error ("need argument after -max_clust_size ");
 	  g_max_cluster_size = atoi( argv[nopt] );
+	  nopt++;
+	  continue;
+	}
+
+      /*-----   -quiet q  -----*/
+      if (strncmp(argv[nopt], "-quiet", 2) == 0)
+	{
+	  (*quiet)++;
 	  nopt++;
 	  continue;
 	}
@@ -1213,8 +1212,7 @@ void identify_clusters (int nx,  int ny,  int nz,
   /*----- record cluster sizes -----*/
   if ((clar == NULL) || (clar->num_clu == 0))
     {
-      if (!quiet)  
-	printf ("NumCl=%4d  MaxClSz=%4d\n", 0, 0);
+      if (!quiet) printf ("NumCl=%4d  MaxClSz=%4d\n", 0, 0);
       if (clar != NULL)  DESTROY_CLARR(clar);
     }  
   else
@@ -1261,7 +1259,7 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
 		     int egfw, float avgsx, float avgsy, float avgsz,
 		     int power, int ax, int ay, int az, float zsep,
 		     float rmm, float pthr, int niter, char * outfilename,
-		     long * freq_table,  long * max_table)
+		     long * freq_table,  long * max_table, int quiet)
 {
   const float EPSILON = 1.0e-6;
   int i, j;
@@ -1345,53 +1343,53 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
     }
 
   /*----- print out the results -----*/
-  fprintf (fout, "\n\n");
-  fprintf (fout, "Program:          %s \n", PROGRAM_NAME);
-  fprintf (fout, "Author:           %s \n", PROGRAM_AUTHOR); 
-  fprintf (fout, "Initial Release:  %s \n", PROGRAM_INITIAL);
-  fprintf (fout, "Latest Revision:  %s \n", PROGRAM_LATEST);
-  fprintf (fout, "\n");
+  if(quiet<2)fprintf (fout, "\n\n");
+  if(quiet<2)fprintf (fout, "Program:          %s \n", PROGRAM_NAME);
+  if(quiet<2)fprintf (fout, "Author:           %s \n", PROGRAM_AUTHOR); 
+  if(quiet<2)fprintf (fout, "Initial Release:  %s \n", PROGRAM_INITIAL);
+  if(quiet<2)fprintf (fout, "Latest Revision:  %s \n", PROGRAM_LATEST);
+  if(quiet<2)fprintf (fout, "\n");
 
-  fprintf (fout, "Data set dimensions: \n");
-  fprintf (fout, "nx = %5d   ny = %5d   nz = %5d   (voxels)\n",  nx, ny, nz);
-  fprintf (fout, "dx = %5.2f   dy = %5.2f   dz = %5.2f   (mm)\n", dx, dy, dz);
+  if(quiet<2)fprintf (fout, "Data set dimensions: \n");
+  if(quiet<2)fprintf (fout, "nx = %5d   ny = %5d   nz = %5d   (voxels)\n",  nx, ny, nz);
+  if(quiet<2)fprintf (fout, "dx = %5.2f   dy = %5.2f   dz = %5.2f   (mm)\n", dx, dy, dz);
 
   if (mask_vol)
-    fprintf (fout, "\nMask filename = %s \n", mask_filename);
+    if(quiet<2)fprintf (fout, "\nMask filename = %s \n", mask_filename);
   if (mask_vol && !power)
-    fprintf (fout, "Voxels in mask = %5d \n", mask_ngood);
+    if(quiet<2)fprintf (fout, "Voxels in mask = %5d \n", mask_ngood);
 
-  fprintf (fout, "\nGaussian filter widths: \n");
-  fprintf (fout, "sigmax = %5.2f   FWHMx = %5.2f \n", 
+  if(quiet<2)fprintf (fout, "\nGaussian filter widths: \n");
+  if(quiet<2)fprintf (fout, "sigmax = %5.2f   FWHMx = %5.2f \n", 
 	   sigmax, sigmax * 2.0*sqrt(2.0*log(2.0)));
-  fprintf (fout, "sigmay = %5.2f   FWHMy = %5.2f \n", 
+  if(quiet<2)fprintf (fout, "sigmay = %5.2f   FWHMy = %5.2f \n", 
 	   sigmay, sigmay * 2.0*sqrt(2.0*log(2.0)));
-  fprintf (fout, "sigmaz = %5.2f   FWHMz = %5.2f \n\n", 
+  if(quiet<2)fprintf (fout, "sigmaz = %5.2f   FWHMz = %5.2f \n\n", 
 	   sigmaz, sigmaz * 2.0*sqrt(2.0*log(2.0)));
 
   if (egfw)
     {
-      fprintf (fout, "Estimated Gaussian filter widths: \n");
-      fprintf (fout, "Ave sx = %f   Ave sy = %f   Ave sz = %f \n\n", 
+      if(quiet<2)fprintf (fout, "Estimated Gaussian filter widths: \n");
+      if(quiet<2)fprintf (fout, "Ave sx = %f   Ave sy = %f   Ave sz = %f \n\n", 
 	       avgsx, avgsy, avgsz);
     }
 
   if (power)
     {
-      fprintf (fout, "Activation Region for Power Calculations: \n");
-      fprintf (fout, "ax = %5d   ay = %5d   az = %5d   (voxels) \n", 
+      if(quiet<2)fprintf (fout, "Activation Region for Power Calculations: \n");
+      if(quiet<2)fprintf (fout, "ax = %5d   ay = %5d   az = %5d   (voxels) \n", 
 	       ax, ay, az);
-      fprintf (fout, "z separation = %f \n\n", zsep);
+      if(quiet<2)fprintf (fout, "z separation = %f \n\n", zsep);
     }
 
-  fprintf (fout, "Cluster connection radius: rmm = %5.2f \n\n", rmm);
-  fprintf (fout, "Threshold probability: pthr = %e \n\n", pthr);
-  fprintf (fout, "Number of Monte Carlo iterations = %5d \n\n", niter);
+  if(quiet<2)fprintf (fout, "Cluster connection radius: rmm = %5.2f \n\n", rmm);
+  if(quiet<2)fprintf (fout, "Threshold probability: pthr = %e \n\n", pthr);
+  if(quiet<2)fprintf (fout, "Number of Monte Carlo iterations = %5d \n\n", niter);
   if (!power)
-    fprintf (fout, "Cl Size     Frequency    Cum Prop     p/Voxel"
+    if(quiet<2)fprintf (fout, "Cl Size     Frequency    Cum Prop     p/Voxel"
 	     "   Max Freq       Alpha\n");
   else
-    fprintf (fout, "Cl Size     Frequency    Cum Prop     p/Voxel"
+    if(quiet<2)fprintf (fout, "Cl Size     Frequency    Cum Prop     p/Voxel"
 	     "   Max Freq       Power\n");    
   for (i = 1;  i < g_max_cluster_size;  i++)
     if (alpha_table[i] < EPSILON)
@@ -1545,7 +1543,7 @@ int main (int argc, char ** argv)
   /*----- generate requested output -----*/
   output_results (nx, ny, nz, dx, dy, dz, filter, sigmax, sigmay, sigmaz,
 		  egfw, avgsx, avgsy, avgsz, power, ax, ay, az, zsep, 
-		  rmm, pthr, niter, outfilename, freq_table, max_table);
+		  rmm, pthr, niter, outfilename, freq_table, max_table,quiet);
 
 
   /*----- terminate program -----*/
