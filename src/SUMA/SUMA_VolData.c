@@ -1164,9 +1164,13 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
    
    SUMA_ENTRY;
 
-   if (SUMAg_CF->IgnoreVolreg) {
+   if (get_IgnoreXforms()) {
       SUMA_SL_Note("Ignoring any Volreg, TagAlign, Rotate or WarpDrive transforms present in Surface Volume.\n");
+      SUMAg_CF->IgnoreVolreg = YUP;
       SO->VOLREG_APPLIED = NOPE;
+      SO->WARPDRIVE_APPLIED = NOPE;
+      SO->ROTATE_APPLIED   = NOPE;
+      SO->TAGALIGN_APPLIED  = NOPE;
       SUMA_RETURN (YUP);
    }
    
