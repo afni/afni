@@ -37,11 +37,11 @@ class afni_name:
          shell_exec("rm %s.BRIK.gz" % self.ppv())
       return
    def move_to_dir(self, path=""):
-      self.show()
-      print path
+      #self.show()
+      #print path
       if os.path.isdir(path):
-         self.new_path(path)
          sv = shell_com("mv %s %s %s %s/" % (self.head(), self.brick(), self.brickgz(), path))
+         self.new_path(path)
          if ( not self.exist() ):
             print "Error: Move failed"
             return 0
@@ -138,9 +138,11 @@ class shell_com:
       self.so = ''
       self.se = ''
       if eo == "echo":
+         print "#Now running:\n   cd %s\n   %s" % (self.dir, self.com)
          self.run()
          self.out()
       elif eo == "dry_run":
+         print "#Would be running:\n   cd %s\n   %s" % (self.dir, self.com)
          self.out()
       return
    def run(self):
@@ -159,7 +161,6 @@ class shell_com:
             for ln in self.se:
                print "   %s" % ln
    def out(self):
-      print "#Command output:\n   cd %s\n   %s" % (self.dir, self.com)
       if self.exc:
          self.stdout()
          self.stderr()
