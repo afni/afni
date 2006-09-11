@@ -435,7 +435,7 @@ static void GA_interp_quintic( MRI_IMAGE *fim ,
 /* Max number of points to warp at a time */
 
 #undef  NPER
-#define NPER 1024
+#define NPER 4096
 
 /*----------------------------------------------*/
 /*! Interpolate target image to control points. */
@@ -1238,7 +1238,7 @@ ENTRY("mri_genalign_scalar_warpim") ;
 
 #include "vecmat.h"
 
-/*--------------------------------------------------------------------------*/
+/****************************************************************************/
 /**************************** General affine warp ***************************/
 
 /*--------------------------------------------------------------------------*/

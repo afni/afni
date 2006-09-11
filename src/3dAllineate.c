@@ -681,9 +681,11 @@ int main( int argc , char *argv[] )
      stup.wfunc_param[p].fixed = 0 ;              \
  } while(0)
 
-   xxx = 0.333 * nx_base * dx_base ;
+   xxx = 0.333 * nx_base * dx_base ;  /* range of shifts allowed */
    yyy = 0.333 * ny_base * dy_base ;
    zzz = 0.333 * nz_base * dz_base ;
+
+   /* we define all affine parameters, though not all may be used */
 
    DEFPAR( 0, "x-shift" , -xxx , xxx , 0.0 , 0.0 , 0.0 ) ;
    DEFPAR( 1, "y-shift" , -yyy , yyy , 0.0 , 0.0 , 0.0 ) ;
@@ -708,8 +710,10 @@ int main( int argc , char *argv[] )
      stup.wfunc_param[ 8].fixed = 2 ;
      stup.wfunc_param[10].fixed = 2 ;
      stup.wfunc_param[11].fixed = 2 ;
-     if( verb ) INFO_message("2D input ==> froze z parameters") ;
+     if( verb ) INFO_message("2D input ==> froze z-parameters") ;
    }
+
+   /* apply any parameter-altering user commands */
 
    for( ii=0 ; ii < nparopt ; ii++ ){
      jj = paropt[ii].np ;
@@ -762,11 +766,16 @@ int main( int argc , char *argv[] )
 
    for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
 
+     /* make copy of target brick */
+
      im_targ = mri_scale_to_float( DSET_BRICK_FACTOR(dset_targ,kk) ,
                                    DSET_BRICK(dset_targ,kk)         ) ;
      DSET_unload_one(dset_targ,kk) ;
 
      if( verb ) INFO_message("===== Start on sub-brick #%d =====",kk) ;
+
+     /* do coarse resolution pass? */
+
      if( twopass ){
        if( verb ) INFO_message("Start coarse pass") ;
        stup.interp_code   = MRI_LINEAR ;
@@ -808,6 +817,8 @@ int main( int argc , char *argv[] )
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
          stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out ;
      }
+
+     /* do final resolution pass */
 
      if( verb ) ININFO_message("Start fine pass") ;
      stup.smooth_code   = 0  ;
