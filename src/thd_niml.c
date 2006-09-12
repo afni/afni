@@ -176,9 +176,8 @@ ENTRY("THD_open_niml");
     if( dset )
     {   
         char * pp = THD_trailname(fname, 0);
-        EDIT_dset_items(dset, ADN_prefix,pp,ADN_none);
-                /* rcr - is this still necessary? */
-        NI_strncpy(dset->dblk->diskptr->brick_name,pp,THD_MAX_NAME);
+        EDIT_dset_items(dset, ADN_prefix, pp, ADN_none);
+        NI_strncpy(dset->dblk->diskptr->brick_name, fname, THD_MAX_NAME);
         THD_set_storage_mode(dset, smode);
         if(gni.debug > 1) fprintf(stderr,"+d success for dataset '%s'\n",fname);
     }
