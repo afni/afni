@@ -1218,7 +1218,8 @@ MRI_IMAGE * mri_genalign_scalar_warpim( GA_setup *stup )
 
 ENTRY("mri_genalign_scalar_warpim") ;
 
-   if( stup == NULL || stup->setup != SMAGIC || stup->ajim == NULL ){
+   if( stup       == NULL || stup->setup != SMAGIC ||
+       stup->ajim == NULL || stup->bsim  == NULL     ){
      ERROR_message("Illegal call to mri_genalign_scalar_warpim()") ;
      RETURN(NULL) ;
    }

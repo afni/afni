@@ -21,13 +21,14 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im ) ;  /* prototype: function at end */
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset_out=NULL ;
-   MRI_IMAGE *im_base , *im_targ , *im_out , *im_weig=NULL , *im_mask=NULL ;
+   MRI_IMAGE *im_base, *im_targ, *im_out, *im_weig=NULL, *im_mask=NULL, *qim ;
    GA_setup stup ;
    int iarg , ii,jj,kk , nmask=0 ;
    int   nx_base,ny_base,nz_base , nx_targ,ny_targ,nz_targ ;
    float dx_base,dy_base,dz_base , dx_targ,dy_targ,dz_targ ;
    int nvox_base ;
    float v1,v2 , xxx,yyy,zzz ;
+   int pad_xm=0,pad_xp=0 , pad_ym=0,pad_yp=0 , pad_zm=0,pad_zp=0 ;
 
    /*----- input parameters, to be filled in from the options -----*/
 
@@ -42,6 +43,7 @@ int main( int argc , char *argv[] )
    float sm_rad                = 0.0f ;
    int twopass                 = 0 ;
    int verb                    = 0 ;
+   int zeropad                 = 1 ;
    char *prefix                = NULL ;
    char *fname_1D              = NULL ;
    int interp_code             = MRI_LINEAR ;
@@ -118,10 +120,14 @@ int main( int argc , char *argv[] )
        "               voxels will be used.\n"
        "               [Default == smaller of 20%% of voxels and 66,666.]\n"
        "\n"
+       " -nopad      = Do not use zero-padding on the base brick.\n"
+       "                 [Default == zero-pad, if needed]\n"
+       "\n"
        " -final iii  = Defines the interpolation mode used to create the\n"
-       "               output dataset.  [Default == whatever '-interp' used.]\n"
+       "               output dataset.  [Default == whatever '-interp' says.]\n"
        "\n"
        " -verb       = Print out verbose progress reports.\n"
+       "                 [Repeating '-verb' will give more detailed reports.]\n"
        "\n"
        " -twopass    = Use a two pass alignment strategy, first searching\n"
        "               for a large rotation+shift and then refining the\n"
@@ -249,6 +255,8 @@ int main( int argc , char *argv[] )
        else if( matini->nx > 3 || matini->ny > 4 )
          WARNING_message("-matini matrix has nx=%d and ny=%d (should be 3x4)",
                     matini->nx,matini->ny) ;
+
+       WARNING_message("-matini is not yet implemented!") ;
        iarg++ ; continue ;
      }
 
@@ -302,6 +310,12 @@ int main( int argc , char *argv[] )
 
      if( strncmp(argv[iarg],"-verb",5) == 0 ){
        verb++ ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strncmp(argv[iarg],"-nopad",5) == 0 ){
+       zeropad = 0 ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -541,7 +555,7 @@ int main( int argc , char *argv[] )
 
    if( dset_base == NULL ){
      if( DSET_NVALS(dset_targ) == 1 )
-       ERROR_exit("No -base dataset and target has only 1 sub-brick") ;
+       ERROR_exit("No -base dataset AND target has only 1 sub-brick") ;
      else
        WARNING_message("No -base dataset: using sub-brick #0 of target") ;
    }
@@ -580,17 +594,49 @@ int main( int argc , char *argv[] )
    ny_base = im_base->ny ;
    nz_base = im_base->nz ; nvox_base = nx_base*ny_base*nz_base ;
 
-   /* find the autobbox */
-   if( verb ){
-     float cv , *qar  ; MRI_IMAGE *qim ;
-     int xm,xp , ym,yp , zm,zp ;
+   /* find the autobbox, and setup zero-padding */
+
+#undef  MPAD
+#define MPAD 2     /* max #slices to zeropad */
+   if( zeropad ){
+     float cv , *qar  ;
      cv = 0.33f * THD_cliplevel(im_base,0.33f) ;
      qim = mri_copy(im_base); qar = MRI_FLOAT_PTR(qim);
      for( ii=0 ; ii < qim->nvox ; ii++ ) if( qar[ii] < cv ) qar[ii] = 0.0f ;
-     MRI_autobbox( qim, &xm,&xp, &ym,&yp, &zm,&zp ) ; mri_free(qim) ;
-     INFO_message("autobbox: xbot=%3d xtop=%3d nx=%3d",xm,xp,im_base->nx) ;
-     INFO_message("        : ybot=%3d ytop=%3d ny=%3d",ym,yp,im_base->ny) ;
-     INFO_message("        : zbot=%3d ztop=%3d nz=%3d",zm,zp,im_base->nz) ;
+     MRI_autobbox( qim, &pad_xm,&pad_xp, &pad_ym,&pad_yp, &pad_zm,&pad_zp ) ;
+     mri_free(qim) ;
+#if 0
+     if( verb ){
+       INFO_message("bbox: xbot=%3d xtop=%3d nx=%3d",pad_xm,pad_xp,nx_base);
+       INFO_message("    : ybot=%3d ytop=%3d ny=%3d",pad_ym,pad_yp,ny_base);
+      if( nz_base > 1 )
+       INFO_message("    : zbot=%3d ztop=%3d nz=%3d",pad_zm,pad_zp,nz_base);
+     }
+#endif
+     pad_xm = MPAD - pad_xm               ; if( pad_xm < 0 ) pad_xm = 0 ;
+     pad_ym = MPAD - pad_ym               ; if( pad_ym < 0 ) pad_ym = 0 ;
+     pad_zm = MPAD - pad_zm               ; if( pad_zm < 0 ) pad_zm = 0 ;
+     pad_xp = MPAD - (nx_base-1 - pad_xp) ; if( pad_xp < 0 ) pad_xp = 0 ;
+     pad_yp = MPAD - (ny_base-1 - pad_yp) ; if( pad_yp < 0 ) pad_yp = 0 ;
+     pad_zp = MPAD - (nz_base-1 - pad_zp) ; if( pad_zp < 0 ) pad_zp = 0 ;
+     if( nz_base == 1 ){ pad_zm = pad_zp = 0 ; }  /* don't z-pad 2D image! */
+     if( verb ){
+       INFO_message("zpad: xbot=%d xtop=%d",pad_xm,pad_xp) ;
+       INFO_message("    : ybot=%d ytop=%d",pad_ym,pad_yp) ;
+      if( nz_base > 1 )
+       INFO_message("    : zbot=%d ztop=%d",pad_zm,pad_zp) ;
+     }
+
+     zeropad = (pad_xm > 0 || pad_xp > 0 ||
+                pad_ym > 0 || pad_yp > 0 || pad_zm > 0 || pad_zp > 0) ;
+     if( zeropad ){
+       qim = mri_zeropad_3D( pad_xm,pad_xp , pad_ym,pad_yp ,
+                                             pad_zm,pad_zp , im_base ) ;
+       mri_free(im_base) ; im_base = qim ;
+       nx_base = im_base->nx ;
+       ny_base = im_base->ny ;
+       nz_base = im_base->nz ; nvox_base = nx_base*ny_base*nz_base ;
+     }
    }
 
    /* check for base:target dimensionality mismatch */
@@ -608,6 +654,12 @@ int main( int argc , char *argv[] )
      im_weig = mri_scale_to_float( DSET_BRICK_FACTOR(dset_weig,0) ,
                                    DSET_BRICK(dset_weig,0)         ) ;
      DSET_unload(dset_weig) ;
+
+     if( zeropad ){
+       qim = mri_zeropad_3D( pad_xm,pad_xp , pad_ym,pad_yp ,
+                                             pad_zm,pad_zp , im_weig ) ;
+       mri_free(im_weig) ; im_weig = qim ;
+     }
 
    } else if( auto_weight ){  /* manufacture weight from the base */
      if( verb ) INFO_message("Computing -autoweight") ;
@@ -703,7 +755,7 @@ int main( int argc , char *argv[] )
    DEFPAR( 10, "z/x-shear" , -0.1111 , 0.1111 , 0.0 , 0.0 , 0.0 ) ;
    DEFPAR( 11, "z/y-shear" , -0.1111 , 0.1111 , 0.0 , 0.0 , 0.0 ) ;
 
-   if( im_base->nz == 1 ){             /* 2D images */
+   if( nz_base == 1 ){                 /* 2D images */
      stup.wfunc_param[ 2].fixed = 2 ;  /* fixed==2 means cannot be un-fixed */
      stup.wfunc_param[ 4].fixed = 2 ;  /* fixed==1 is 'temporarily fixed'   */
      stup.wfunc_param[ 5].fixed = 2 ;
@@ -825,7 +877,10 @@ int main( int argc , char *argv[] )
      stup.smooth_radius = 0.0f ;
      stup.interp_code   = interp_code ;
      stup.npt_match     = npt_match ;
-     mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;
+     if( twopass )
+       mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;
+     else
+       mri_genalign_scalar_setup( im_base , im_mask , im_targ , &stup ) ;
 
      ii = mri_genalign_scalar_optim( &stup , 0.01 , 0.0001 , 6666 ) ;
 
@@ -837,6 +892,13 @@ int main( int argc , char *argv[] )
 
      if( dset_out != NULL ){
        im_targ = mri_genalign_scalar_warpim( &stup ) ;
+
+       if( zeropad ){
+         qim = mri_zeropad_3D( -pad_xm,-pad_xp , -pad_ym,-pad_yp ,
+                                                 -pad_zm,-pad_zp , im_targ ) ;
+         mri_free(im_targ) ; im_targ = qim ;
+       }
+
        EDIT_substitute_brick( dset_out, kk, MRI_float, MRI_FLOAT_PTR(im_targ) );
        mri_clear_data_pointer(im_targ) ; mri_free(im_targ) ;
      }

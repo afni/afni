@@ -2,7 +2,10 @@
 
 #define USE_FILLIN
 
-#undef DEBUG
+#undef  DEBUG
+
+#undef  ASSIF
+#define ASSIF(p,v) if( p!= NULL ) *p = v
 
 static int verb = 0 ;                            /* 28 Oct 2003 */
 void THD_automask_verbose( int v ){ verb = v ; }
@@ -794,7 +797,7 @@ ENTRY("MRI_autobbox") ;
       for( kk=0 ; kk < nz ; kk++ )
        for( jj=0 ; jj < ny ; jj++ )
         if( mmm[ii+jj*nx+kk*nxy] ) goto CP5 ;
-     CP5: *xm = ii ;
+     CP5: ASSIF(xm,ii) ;
    }
 
    if( xp != NULL ){
@@ -802,7 +805,7 @@ ENTRY("MRI_autobbox") ;
       for( kk=0 ; kk < nz ; kk++ )
        for( jj=0 ; jj < ny ; jj++ )
         if( mmm[ii+jj*nx+kk*nxy] ) goto CP6 ;
-     CP6: *xp = ii ;
+     CP6: ASSIF(xp,ii) ;
    }
 
    if( ym != NULL ){
@@ -810,7 +813,7 @@ ENTRY("MRI_autobbox") ;
       for( kk=0 ; kk < nz ; kk++ )
        for( ii=0 ; ii < nx ; ii++ )
         if( mmm[ii+jj*nx+kk*nxy] ) goto CP3 ;
-     CP3: *ym = jj ;
+     CP3: ASSIF(ym,jj) ;
    }
 
    if( yp != NULL ){
@@ -818,7 +821,7 @@ ENTRY("MRI_autobbox") ;
       for( kk=0 ; kk < nz ; kk++ )
        for( ii=0 ; ii < nx ; ii++ )
         if( mmm[ii+jj*nx+kk*nxy] ) goto CP4 ;
-     CP4: *yp = jj ;
+     CP4: ASSIF(yp,jj) ;
    }
 
    if( zm != NULL ){
@@ -826,7 +829,7 @@ ENTRY("MRI_autobbox") ;
       for( jj=0 ; jj < ny ; jj++ )
        for( ii=0 ; ii < nx ; ii++ )
         if( mmm[ii+jj*nx+kk*nxy] ) goto CP1 ;
-     CP1: *zm = kk ;
+     CP1: ASSIF(zm,kk) ;
    }
 
    if( zp != NULL ){
@@ -834,7 +837,7 @@ ENTRY("MRI_autobbox") ;
       for( jj=0 ; jj < ny ; jj++ )
        for( ii=0 ; ii < nx ; ii++ )
         if( mmm[ii+jj*nx+kk*nxy] ) goto CP2 ;
-     CP2: *zp = kk ;
+     CP2: ASSIF(zp,kk) ;
    }
 
    free(mmm) ; EXRETURN ;
