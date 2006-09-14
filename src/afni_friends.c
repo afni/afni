@@ -491,6 +491,7 @@ static mday holiday[] = {
    {SEP, 3,"Qatar Independence Day"                                  } ,
    {SEP, 3,"San Marino Anniversary of Founding"                      } ,
    {SEP, 3,"Anniversary of Treaty of Paris, 1783"                    } ,
+   {SEP, 4,"First hard disk's birthday"                              } ,
    {SEP, 6,"Swaziland Independence Day"                              } ,
    {SEP, 7,"Queen Elizabeth I's birthday"                            } ,
    {SEP, 7,"Brazil Independence Day"                                 } ,
