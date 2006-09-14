@@ -1586,12 +1586,21 @@ SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_
    SUMA_LH("Searching for colortables");
    while (!feof(fl)) {
       SUMA_READ_INT (&tg, bs, fl, ex);
+      SUMA_LHv("tg = %d (%d is FS_ANNOT_TAG_COLORTABLE)\n", tg,  SUMA_FS_ANNOT_TAG_COLORTABLE);
       if (tg == SUMA_FS_ANNOT_TAG_COLORTABLE) {
+         if (ct) {
+            SUMA_S_Warn("Already have a color table\n"
+                        "ignoring second one in file.\n"
+                        "If you want it, post a message to\n"
+                        "AFNI's message board\n");
+            break;
+         }
          SUMA_LH("Found color table");
          SUMA_READ_INT (&nbins, bs, fl, ex);
          SUMA_READ_INT (&len, bs, fl, ex);
          ct = SUMA_CreateFS_ColorTable(nbins, len);
          fread(ct->fname, sizeof(char), len, fl) ;
+         SUMA_LHv("fname: %s\n", ct->fname);
          for (i = 0 ; i < nbins ; i++)
          {
                 cte = &ct->bins[i] ;
@@ -1605,9 +1614,16 @@ SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_
                 SUMA_READ_INT (&(cte->g), bs, fl, ex);
                 SUMA_READ_INT (&(cte->b), bs, fl, ex);
                 SUMA_READ_INT (&(cte->flag), bs, fl, ex);
+                SUMA_LHv("name: %s, r,g,b,f = %d %d %d %d\n", 
+                     cte->name, cte->r, cte->g, cte->b, cte->flag);
          }
          
       }
+      /* reset flag values, on mac for some reason feof seems to fail even if on 
+         linux say feof(fl) would return true at that point. When that happens,
+         tg keeps its last value and a new colortable of junk gets built
+         */
+      tg = -1;  nbins = -1;
    }             
    
    if (fc) { /* write the colormap to a file */
@@ -1627,9 +1643,9 @@ SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_
                j = 0;
                imap = -1;
                while (j < ct->nbins && imap < 0) {
-                  if (  ct->bins[j].r == rv[i] &&
-                        ct->bins[j].b == bv[i] &&
-                        ct->bins[j].g == gv[i]  ) {
+                  if (  SUMA_ABS(ct->bins[j].r - rv[i]) < SUMA_EPSILON  &&
+                        SUMA_ABS(ct->bins[j].b - bv[i]) < SUMA_EPSILON &&
+                        SUMA_ABS(ct->bins[j].g - gv[i]) < SUMA_EPSILON  ) {
                      imap = j;
                   }
                   ++j;
