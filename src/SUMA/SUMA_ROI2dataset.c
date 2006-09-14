@@ -251,6 +251,7 @@ int main (int argc,char *argv[])
          exit(1);
       } 
       
+      SUMA_LH("Copying temporary ROIv into the main ROIv ");
       /* copy temporary ROIv into the main ROIv */
       ROIv = (SUMA_DRAWN_ROI **)SUMA_realloc(ROIv, (N_ROIv + N_tROI) * sizeof(SUMA_DRAWN_ROI*));
       if (!ROIv) {
@@ -259,10 +260,12 @@ int main (int argc,char *argv[])
       }
 
       /* Now go throught the ROIs and load them if possible into ROIv */
+      SUMA_LHv("Cycling over %d rois %s\n", N_tROI, tROIv[ii]->Parent_idcode_str);
       for (ii=0; ii < N_tROI; ++ii) {
          if (!Parent_idcode_str) {
             /* try to find out what the Parent_idcode_str is */
-            if (strcmp(tROIv[ii]->Parent_idcode_str, dummy_idcode_str)) {
+            if (tROIv[ii]->Parent_idcode_str && dummy_idcode_str &&  
+               strcmp(tROIv[ii]->Parent_idcode_str, dummy_idcode_str)) {
                fprintf (SUMA_STDERR,"%s: Adopting Parent_idcode_str (%s) in ROI %s\n",
                                   FuncName, tROIv[ii]->Parent_idcode_str, tROIv[ii]->Label);
                /* good, use it as the Parent_idcode_str for all upcoming ROIs */
@@ -271,10 +274,12 @@ int main (int argc,char *argv[])
          } 
          
          AddThis = NOPE;
-         if (!strcmp(tROIv[ii]->Parent_idcode_str, dummy_idcode_str)) {
+         if (tROIv[ii]->Parent_idcode_str && dummy_idcode_str &&  
+            !strcmp(tROIv[ii]->Parent_idcode_str, dummy_idcode_str)) {
             AddThis = YUP;
          } else {
-            if (strcmp(tROIv[ii]->Parent_idcode_str, Parent_idcode_str)) {
+            if (tROIv[ii]->Parent_idcode_str && dummy_idcode_str &&  
+               strcmp(tROIv[ii]->Parent_idcode_str, Parent_idcode_str)) {
                fprintf (SUMA_STDERR,"Warning %s:\n Ignoring ROI labeled %s\n"
                                     "because of Parent_idcode_str mismatch.\n", 
                                     FuncName, tROIv[ii]->Label); 
