@@ -1753,6 +1753,6 @@
   * modified thd_niml.c: in nsd_add_str_atr_to_group() swap out nul chars
   * merged small nifti/README change
 
-12 Sep 2006:
-  * modified thd_niml.c:THD_open_niml(): set brick_name to fname, not prefix
+12 Sep 2006: modified thd_niml.c:THD_open_niml(): set brick_name to fname
+15 Sep 2006: modified 3ddata.h: added AFNI_vedit_clear proto (for Greg Balls)
 
