@@ -40,7 +40,12 @@ class afni_name:
       #self.show()
       #print path
       if os.path.isdir(path):
-         sv = shell_com("mv %s %s %s %s/" % (self.head(), self.brick(), self.brickgz(), path))
+         if os.path.isfile("%s.HEAD" % self.ppv()):
+            sv = shell_com("mv %s %s/" % (self.head(), path))
+         if os.path.isfile("%s.BRIK" % self.ppv()):           
+            sv = shell_com("mv %s %s/" % (self.brick(), path))
+         if os.path.isfile("%s.BRIK.gz" % self.ppv()):
+            sv = shell_com("mv %s %s/" % (self.brickgz(), path))
          self.new_path(path)
          if ( not self.exist() ):
             print "Error: Move failed"
@@ -139,10 +144,12 @@ class shell_com:
       self.se = ''
       if eo == "echo":
          print "#Now running:\n   cd %s\n   %s" % (self.dir, self.com)
+         sys.stdout.flush()
          self.run()
          self.out()
       elif eo == "dry_run":
          print "#Would be running:\n   cd %s\n   %s" % (self.dir, self.com)
+         sys.stdout.flush()
          self.out()
       return
    def run(self):
@@ -153,11 +160,14 @@ class shell_com:
    def stdout(self):
       if (len(self.so)):
          print "++++++++++ stdout:" 
+         sys.stdout.flush()
          for ln in self.so:
             print "   %s" % ln
+            sys.stdout.flush()
    def stderr(self):   
       if (len(self.se)):
             print "---------- stderr:" 
+            sys.stdout.flush()
             for ln in self.se:
                print "   %s" % ln
    def out(self):
@@ -166,6 +176,7 @@ class shell_com:
          self.stderr()
       else:
          print "#............. not executed."
+         sys.stdout.flush()
    def val(self, i):
       if not self.exc:
          print "Command not executed"
@@ -181,10 +192,14 @@ class shell_com:
               
 
 #transform a list of afni names to one string for shell script usage
-def anlist(vlst):
+def anlist(vlst, sb=''):
    namelst = []
+   if len(sb):
+      sbs = "'%s'" % sb
+   else:
+      sbs = ''
    for an in vlst:
-      namelst.append(an.ppv())    
+      namelst.append("%s%s" % (an.ppv(), sbs))    
    return string.join(namelst,' ')
 
 
