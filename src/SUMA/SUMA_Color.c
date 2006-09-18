@@ -4931,7 +4931,7 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, S
    static char FuncName[]={"SUMA_AddNewPlane"};
    DList *ForeList=NULL, *BackList = NULL;
    SUMA_OVERLAY_LIST_DATUM *OvD=NULL;
-   int junk=0, i, OverInd;
+   int junk=0, i, OverInd, kin = 1;
    SUMA_SurfaceObject *SO2 = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -5005,6 +5005,14 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, S
    dlist_destroy(BackList); SUMA_free(BackList);
 
    /* Now register plane with surfaces deserving it*/
+   if (AFNI_yesenv("SUMA_ShareGrandChildrenOverlays")) {
+      SUMA_S_Warn("Option needs polishing before\n"
+                  "public usage. Nothing is done\n"
+                  "to reflect changes to overlay coloring\n"
+                  "from one group of LocalDom. to another\n"
+                  "that share the same DomainGrandParentID\n");
+      kin = 2;
+   } else kin = 1; 
    if (dov) {
       SUMA_LH("Registering plane with surfaces deserving it");
       /* Now that you have the color overlay plane set, go about all the surfaces, searching for ones related to SO 
@@ -5012,7 +5020,7 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, S
       for (i=0; i < N_dov; ++i) {
          if (SUMA_isSO(dov[i])) { 
             SO2 = (SUMA_SurfaceObject *)dov[i].OP;
-            if (SUMA_isRelated(SO, SO2, 1) && SO != SO2) { /* only 1st order kinship allowed */
+            if (SUMA_isRelated(SO, SO2, kin) && SO != SO2) { /* only 1st order kinship allowed */
                /* surfaces related and not identical, check on colorplanes */
                if (!SUMA_Fetch_OverlayPointer (SO2->Overlays, SO2->N_Overlays, Overlay->Name, &OverInd)) {
                   /* color plane not found, link to that of SO */
