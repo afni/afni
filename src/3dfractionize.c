@@ -115,7 +115,7 @@ int main( int argc , char * argv[] )
              "                        since a separate loop is made through the\n"
              "                        input dataset for each distinct value found.\n"
              "                   ** Combining this with the -warp option does NOT\n"
-             "                        make a general +trlc to +orig transformer!\n"
+             "                        make a general +tlrc to +orig transformer!\n"
              "                        This is because for any value to survive the\n"
              "                        vote, its fraction in the output voxel must be\n"
              "                        >= clip fraction, regardless of other values\n"
