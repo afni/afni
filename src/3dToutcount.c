@@ -152,7 +152,7 @@ int main( int argc , char *argv[] )
    if( !ISVALID_DSET(dset) ){
       fprintf(stderr,"** Can't open dataset %s\n",argv[iarg]); exit(1);
    }
-   nvals = DSET_NUM_TIMES(dset) ;
+   nvals = DSET_NVALS(dset) ;
    if( nvals < 5 ){
       fprintf(stderr,"** Can't use dataset with < 5 time points per voxel!\n") ;
       exit(1) ;

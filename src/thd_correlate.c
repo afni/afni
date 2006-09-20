@@ -204,14 +204,32 @@ float THD_quadrant_corr_nd( int n , float *x , float *y )
 
 float THD_pearson_corr( int n, float *x , float *y )
 {
-   float xv=0 , yv=0 , xy=0 ;
+   float xv=0.0f , yv=0.0f , xy=0.0f ;
    int ii ;
 
    for( ii=0 ; ii < n ; ii++ ){
      xv += x[ii]*x[ii] ; yv += y[ii]*y[ii] ; xy += x[ii]*y[ii] ;
    }
 
-   if( xv <= 0.0 || yv <= 0.0 ) return 0.0 ;
+   if( xv <= 0.0f || yv <= 0.0f ) return 0.0f ;
+   return xy/sqrtf(xv*yv) ;
+}
+
+/*----------------------------------------------------------------*/
+
+float THD_pearson_corr_wt( int n, float *x , float *y , float *wt )
+{
+   float xv=0.0f , yv=0.0f , xy=0.0f ;
+   int ii ;
+
+   if( wt == NULL ) return THD_pearson_corr(n,x,y) ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+     xv += wt[ii]*x[ii]*x[ii] ; yv += wt[ii]*y[ii]*y[ii] ;
+     xy += wt[ii]*x[ii]*y[ii] ;
+   }
+
+   if( xv <= 0.0f || yv <= 0.0f ) return 0.0f ;
    return xy/sqrtf(xv*yv) ;
 }
 
@@ -232,26 +250,45 @@ float mri_spearman_corr( MRI_IMAGE *im , MRI_IMAGE *jm )
    mri_free(gim) ; mri_free(fim) ; return cc ;
 }
 
+/****************************************************************************/
+/*** Histogram-based measurements of dependence between two float arrays. ***/
 /*--------------------------------------------------------------------------*/
-#define LINHIST   /* linear spread in histogram, below */
+#define LINHIST                           /* do linear spread in histogram  */
+#undef  WW
+#define WW(i) ((w==NULL) ? 1.0f : w[i])   /* weight function for i'th datum */
+
+static int n_old=-1 , nbin_old=255 ;
+static float *xc=NULL , *yc=NULL , *xyc=NULL , nww=0.0f ;
+static int nbin , nbp ;
+
+#undef  XYC
+#define XYC(p,q) xyc[(p)+(q)*nbp]
+
 /*--------------------------------------------------------------------------*/
-/*! Compute the mutual info between two vectors, sort of.  [16 Aug 2006]
+/*! Build 2D histogram of x[0..n-1] and y[0..n-1], each point optionally
+    weighted by w[0..n-1].
+    Used in the histogram-based measures of dependence between x[] and y[i].
+    If something is bad on input, nbin is set to 0.  Otherwise, these global
+    variables are set:
+      - nbin = # of bins
+      - nbp  = nbin+1
+      - nww  = sum of the weights (will be n if w==NULL)
+      - xc   = marginal histogram of x[], for xc[0..nbin]
+      - yc   = marginal histogram of y[], for yc[0..nbin]
+      - xyc  = joint histogram of (x[],y[]), for XYC(0..nbin,0..nbin)
 ----------------------------------------------------------------------------*/
 
-float THD_mutual_info_scl( int n , float xbot,float xtop,float *x ,
-                                   float ybot,float ytop,float *y  )
+static void build_2Dhist( int n , float xbot,float xtop,float *x ,
+                                  float ybot,float ytop,float *y , float *w )
 {
-   int nbin,nbp , ii,jj,kk ;
-   float xb,xi , yb,yi , xx,yy , x1,y1 , nbb , val ;
+   register int ii,jj,kk ;
+   float xb,xi , yb,yi , xx,yy , x1,y1 , nbb , val , ww ;
 
-   static int n_old=-1 , nbin_old=255 ;
-   static float *xc=NULL , *yc=NULL , *xyc=NULL ;
-
-   if( n <= 1 || x == NULL || y == NULL ){
+   if( n <= 1 || x == NULL || y == NULL ){     /* clear the arrays */
      if( xc  != NULL ){ free((void *)xc ); xc  = NULL; }
      if( yc  != NULL ){ free((void *)yc ); yc  = NULL; }
      if( xyc != NULL ){ free((void *)xyc); xyc = NULL; }
-     return 0.0f ;
+     nbin = 0 ; return ;
    }
 
    if( xbot >= xtop ){
@@ -259,7 +296,7 @@ float THD_mutual_info_scl( int n , float xbot,float xtop,float *x ,
      for( ii=0 ; ii < n ; ii++ )
             if( x[ii] > xtop ) xtop = x[ii] ;
        else if( x[ii] < xbot ) xbot = x[ii] ;
-     if( xbot >= xtop ) return 0.0f ;
+     if( xbot >= xtop ){ nbin = 0 ; return ; }
    }
 
    if( ybot >= ytop ){
@@ -267,12 +304,12 @@ float THD_mutual_info_scl( int n , float xbot,float xtop,float *x ,
      for( ii=0 ; ii < n ; ii++ )
             if( y[ii] > ytop ) ytop = y[ii] ;
        else if( y[ii] < ybot ) ybot = y[ii] ;
-     if( ybot >= ytop ) return 0.0f ;
+     if( ybot >= ytop ){ nbin = 0 ; return ; }
    }
 
-   if( n == n_old ){
+   if( n == n_old ){               /* can keep old arrays */
      nbin = nbin_old ;
-   } else {
+   } else {                        /* need null arrays */
      nbin = (int)cbrtf((float)n);
      if( nbin > 255 ) nbin = 255; else if( nbin < 3 ) nbin = 3;
      nbin_old = nbin ; n_old = n ;
@@ -286,15 +323,12 @@ float THD_mutual_info_scl( int n , float xbot,float xtop,float *x ,
    if( yc  == NULL ) yc  = (float *)malloc(sizeof(float)*nbp) ;
    if( xyc == NULL ) xyc = (float *)malloc(sizeof(float)*nbp*nbp) ;
 
-#undef  XYC
-#define XYC(p,q) xyc[(p)+(q)*nbp]
-
-   memset( xc  , 0 , sizeof(float)*nbp ) ;
-   memset( yc  , 0 , sizeof(float)*nbp ) ;
+   memset( xc  , 0 , sizeof(float)*nbp     ) ;
+   memset( yc  , 0 , sizeof(float)*nbp     ) ;
    memset( xyc , 0 , sizeof(float)*nbp*nbp ) ;
 
    xb = xbot ; xi = nbb/(xtop-xbot) ;
-   yb = ybot ; yi = nbb/(ytop-xbot) ;
+   yb = ybot ; yi = nbb/(ytop-xbot) ; nww = 0.0f ;
    for( ii=0 ; ii < n ; ii++ ){
      xx = (x[ii]-xb)*xi ;
      if( xx < 0.0f ) xx = 0.0f ; else if( xx > nbb ) xx = nbb ;
@@ -302,35 +336,56 @@ float THD_mutual_info_scl( int n , float xbot,float xtop,float *x ,
      yy = (y[ii]-yb)*yi ;
      if( yy < 0.0f ) yy = 0.0f ; else if( yy > nbb ) yy = nbb ;
      kk = (int)yy ; yy = yy - kk ; y1 = 1.0f-yy ;
+     ww = WW(ii) ; nww += ww ;
 
 #ifdef LINHIST
-     xc[jj] += x1 ; xc[jj+1] += xx ;
-     yc[kk] += y1 ; yc[kk+1] += yy ;
+     xc[jj] +=  x1*ww ; xc[jj+1] +=  xx*ww ;
+     yc[kk] += (y1*ww); yc[kk+1] += (yy*ww);
 
-     XYC(jj  ,kk  ) += x1*y1 ;
-     XYC(jj+1,kk  ) += xx*y1 ;
-     XYC(jj  ,kk+1) += x1*yy ;
-     XYC(jj+1,kk+1) += xx*yy ;
+     XYC(jj  ,kk  ) += x1*(y1*ww) ;
+     XYC(jj+1,kk  ) += xx*(y1*ww) ;
+     XYC(jj  ,kk+1) += x1*(yy*ww) ;
+     XYC(jj+1,kk+1) += xx*(yy*ww) ;
 #else
-     xc[jj]++ ; yc[kk]++ ; XYC(jj,kk)++ ;
+     xc[jj] += ww ; yc[kk] += ww ; XYC(jj,kk) += ww ;
 #endif
    }
 
-   val = 0.0f ; nbb = n ;
-   for( ii=0 ; ii < nbp ; ii++ ){
-     for( jj=0 ; jj < nbp ; jj++ ){
-       if( XYC(ii,jj) > 0.0f )
-         val += XYC(ii,jj) * logf( nbb*XYC(ii,jj)/(xc[ii]*yc[jj]) ) ;
-     }
-   }
-   return (1.4427*val/nbb) ;  /* units are bits, just for fun */
+   return ;
 }
 
 /*--------------------------------------------------------------------------*/
+/*! Compute the mutual info between two vectors, sort of.  [16 Aug 2006]
+----------------------------------------------------------------------------*/
+
+float THD_mutual_info_scl( int n , float xbot,float xtop,float *x ,
+                                   float ybot,float ytop,float *y , float *w )
+{
+   register int ii,jj ;
+   register float val ;
+
+   /*-- build 2D histogram --*/
+
+   build_2Dhist( n,xbot,xtop,x,ybot,ytop,y,w ) ;
+   if( nbin <= 0 ) return 0.0f ;  /* something bad happened! */
+
+   /*-- compute MI from histogram --*/
+
+   val = 0.0f ;
+   for( ii=0 ; ii < nbp ; ii++ ){
+    for( jj=0 ; jj < nbp ; jj++ ){
+     if( XYC(ii,jj) > 0.0f )
+      val += XYC(ii,jj) * logf( nww*XYC(ii,jj)/(xc[ii]*yc[jj]) ) ;
+   }}
+   return (1.4427*val/nww) ;  /* units are bits, just for fun */
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Compute MI of x[] and y[i], with autoscaling. */
 
 float THD_mutual_info( int n , float *x , float *y )
 {
-   return THD_mutual_info_scl( n , 1.0f,-1.0f , x, 1.0f,-1.0f , y ) ;
+   return THD_mutual_info_scl( n , 1.0f,-1.0f , x, 1.0f,-1.0f , y , NULL ) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -338,87 +393,23 @@ float THD_mutual_info( int n , float *x , float *y )
 ----------------------------------------------------------------------------*/
 
 float THD_corr_ratio_scl( int n , float xbot,float xtop,float *x ,
-                                  float ybot,float ytop,float *y  )
+                                  float ybot,float ytop,float *y , float *w )
 {
-   int nbin,nbp , ii,jj,kk ;
-   float xb,xi , yb,yi , xx,yy , x1,y1 , nbb , val , vv,mm,cyvar,uyvar ;
+   register int ii,jj ;
+   register float vv,mm ;
+   float    val , cyvar , uyvar ;
 
-   static int n_old=-1 , nbin_old=255 ;
-   static float *xc=NULL , *yc=NULL , *xyc=NULL ;
+   /*-- build 2D histogram --*/
 
-   if( n <= 1 || x == NULL || y == NULL ){
-     if( xc  != NULL ){ free((void *)xc ); xc  = NULL; }
-     if( yc  != NULL ){ free((void *)yc ); yc  = NULL; }
-     if( xyc != NULL ){ free((void *)xyc); xyc = NULL; }
-     return 0.0f ;
-   }
+   build_2Dhist( n,xbot,xtop,x,ybot,ytop,y,w ) ;
+   if( nbin <= 0 ) return 0.0f ;  /* something bad happened! */
 
-   if( xbot >= xtop ){
-     xbot = ybot = x[0] ;
-     for( ii=0 ; ii < n ; ii++ )
-            if( x[ii] > xtop ) xtop = x[ii] ;
-       else if( x[ii] < xbot ) xbot = x[ii] ;
-     if( xbot >= xtop ) return 0.0f ;
-   }
-
-   if( ybot >= ytop ){
-     ybot = ybot = y[0] ;
-     for( ii=0 ; ii < n ; ii++ )
-            if( y[ii] > ytop ) ytop = y[ii] ;
-       else if( y[ii] < ybot ) ybot = y[ii] ;
-     if( ybot >= ytop ) return 0.0f ;
-   }
-
-   if( n == n_old ){
-     nbin = nbin_old ;
-   } else {
-     nbin = (int)cbrtf((float)n);
-     if( nbin > 255 ) nbin = 255; else if( nbin < 3 ) nbin = 3;
-     nbin_old = nbin ; n_old = n ;
-     if( xc  != NULL ){ free((void *)xc ); xc  = NULL; }
-     if( yc  != NULL ){ free((void *)yc ); yc  = NULL; }
-     if( xyc != NULL ){ free((void *)xyc); xyc = NULL; }
-   }
-   nbp = nbin+1 ; nbb = nbin-0.001f ;
-
-   if( xc  == NULL ) xc  = (float *)malloc(sizeof(float)*nbp) ;
-   if( yc  == NULL ) yc  = (float *)malloc(sizeof(float)*nbp) ;
-   if( xyc == NULL ) xyc = (float *)malloc(sizeof(float)*nbp*nbp) ;
-
-#undef  XYC
-#define XYC(p,q) xyc[(p)+(q)*nbp]
-
-   memset( xc  , 0 , sizeof(float)*nbp ) ;
-   memset( yc  , 0 , sizeof(float)*nbp ) ;
-   memset( xyc , 0 , sizeof(float)*nbp*nbp ) ;
-
-   xb = xbot ; xi = nbb/(xtop-xbot) ;
-   yb = ybot ; yi = nbb/(ytop-xbot) ;
-   for( ii=0 ; ii < n ; ii++ ){
-     xx = (x[ii]-xb)*xi ;
-     if( xx < 0.0f ) xx = 0.0f ; else if( xx > nbb ) xx = nbb ;
-     jj = (int)xx ; xx = xx - jj ; x1 = 1.0f-xx ;
-     yy = (y[ii]-yb)*yi ;
-     if( yy < 0.0f ) yy = 0.0f ; else if( yy > nbb ) yy = nbb ;
-     kk = (int)yy ; yy = yy - kk ; y1 = 1.0f-yy ;
-
-#ifdef LINHIST
-     xc[jj] += x1 ; xc[jj+1] += xx ;
-     yc[kk] += y1 ; yc[kk+1] += yy ;
-
-     XYC(jj  ,kk  ) += x1*y1 ;
-     XYC(jj+1,kk  ) += xx*y1 ;
-     XYC(jj  ,kk+1) += x1*yy ;
-     XYC(jj+1,kk+1) += xx*yy ;
-#else
-     xc[jj]++ ; yc[kk]++ ; XYC(jj,kk)++ ;
-#endif
-   }
+   /*-- compute CR from histogram --*/
 
    cyvar = 0.0f ;
    for( ii=0 ; ii < nbp ; ii++ ){
      if( xc[ii] > 0.0f ){
-       vv = mm = 0.0f ;
+       vv = mm = 0.0f ;               /* mm=E(y|x)  vv=E(y^2|x) */
        for( jj=0 ; jj < nbp ; jj++ ){
          mm += (jj * XYC(ii,jj)) ; vv += jj * (jj * XYC(ii,jj)) ;
        }
@@ -429,13 +420,14 @@ float THD_corr_ratio_scl( int n , float xbot,float xtop,float *x ,
    for( jj=0 ; jj < nbp ; jj++ ){
      mm += (jj * yc[jj]) ; vv += jj * (jj * yc[jj]) ;
    }
-   uyvar = vv - mm*mm/n ;
+   uyvar = vv - mm*mm/nww ;
    val = 1.0f - cyvar/uyvar ; return val ;
 }
 
 /*--------------------------------------------------------------------------*/
+/*! Compute CR of x[] and y[], using autoscaling. */
 
 float THD_corr_ratio( int n , float *x , float *y )
 {
-   return THD_corr_ratio_scl( n , 1.0f,-1.0f , x, 1.0f,-1.0f , y ) ;
+   return THD_corr_ratio_scl( n , 1.0f,-1.0f , x, 1.0f,-1.0f , y , NULL ) ;
 }
