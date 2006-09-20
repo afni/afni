@@ -5,6 +5,8 @@
 #include <cs.h>
 #include "f2c.h"
 #include <time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 /****************************/
 /** cf. powell_newuoa.[fc] **/
@@ -66,8 +68,8 @@ static float afac = 3.0f ;   /* sample points is 2*n+3 */
 
 void powell_set_mfac( float mm , float aa )
 {
-  if( mm >= 2.0f ) mfac = mm ;
-  if( aa >= 0.0f ) afac = aa ;
+  if( mm >= 1.0f ){ mfac = mm   ; afac = aa   ; }  /* set */
+  else            { mfac = 2.0f ; afac = 3.0f ; }  /* reset */
 }
 
 /*---------------------------------------------------------------------------*/
@@ -87,7 +89,7 @@ void powell_set_mfac( float mm , float aa )
     derivatives", Technical report DAMTP 2004/NA08, Cambridge University
     Numerical Analysis Group -- http://www.damtp.cam.ac.uk/user/na/reports.html
 
-    For constrained optimization (via trickery), see powell_newuoa_int().
+    For constrained optimization (via trickery), see powell_newuoa_con().
 ------------------------------------------------------------------------------*/
 
 int powell_newuoa( int ndim , double *x ,
@@ -108,8 +110,8 @@ int powell_newuoa( int ndim , double *x ,
    if( maxcall <  10+5*ndim ) maxcall = 10+5*ndim ;
 
    n      = ndim ;
-   npt    = (int)(mfac*n+afac) ;
-   icode  = (n+1)*(n+2)/2 ; if( npt > icode ) npt = icode ;
+   npt    = (int)(mfac*n+afac) ; if( npt < n+2   ) npt = n+2 ;
+   icode  = (n+1)*(n+2)/2      ; if( npt > icode ) npt = icode ;
    maxfun = maxcall ;
 
    rhobeg = (doublereal)rstart ;
@@ -157,8 +159,8 @@ int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
    if( maxcall <  10+5*ndim ) maxcall = 10+5*ndim ;
 
    n      = ndim ;
-   npt    = (int)(mfac*n+afac) ;
-   icode  = (n+1)*(n+2)/2 ; if( npt > icode ) npt = icode ;
+   npt    = (int)(mfac*n+afac) ; if( npt < n+2   ) npt = n+2 ;
+   icode  = (n+1)*(n+2)/2      ; if( npt > icode ) npt = icode ;
    maxfun = maxcall ;
 
    rhobeg = (doublereal)rstart ;
@@ -193,7 +195,7 @@ int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
    if( nrand > 0 ){
      double *xbest , *xtest , fbest , ftest ; int qq ;
      static int seed=1 ;
-     if( seed ){ srand48((long)time(NULL)); seed=0; }
+     if( seed ){ srand48((long)time(NULL)+(long)getpid()); seed=0; }
      xbest = (double *)malloc(sizeof(double)*ndim) ;
      xtest = (double *)malloc(sizeof(double)*ndim) ;
      memcpy(xbest,x01,sizeof(double)*ndim) ;
