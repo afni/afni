@@ -3963,10 +3963,13 @@ extern void mri_3dalign_initvals( float,float,float,float,float,float ) ;
 
   /*-- see mri_warp3D_align.c for these routines --*/
 
+#undef  PARAM_MAXTRIAL
+#define PARAM_MAXTRIAL 5
 typedef struct {
   float min, max, siz, ident, delta, toler ;
-  float val_init , val_out , val_fixed ;
+  float val_init , val_out , val_fixed , val_pinit ;
   int fixed ;
+  float val_trial[PARAM_MAXTRIAL] ;
   char name[32] ;
 } MRI_warp3D_param_def ;
 
@@ -4180,6 +4183,8 @@ extern float THD_spearman_corr( int,float *,float *) ;  /* 23 Aug 2001 */
 extern float THD_quadrant_corr( int,float *,float *) ;
 extern float THD_pearson_corr ( int,float *,float *) ;
 
+extern float THD_pearson_corr_wt( int,float *,float *,float *) ; /* 13 Sep 2006 */
+
 extern float THD_spearman_corr_nd( int,float *,float *) ;  /* 23 Aug 2006 */
 extern float THD_quadrant_corr_nd( int,float *,float *) ;
 #define THD_pearson_corr_nd THD_pearson_corr
@@ -4191,12 +4196,12 @@ extern float spearman_rank_corr   ( int , float * , float , float * );
 extern float quadrant_corr        ( int , float * , float , float * );
 
 extern float THD_mutual_info_scl( int, float,float,float *,     /* 16 Aug 2006 */
-                                       float,float,float * ) ;
-extern float THD_mutual_info( int , float *, float *) ;
+                                       float,float,float *, float * ) ;
+extern float THD_mutual_info( int , float *, float * ) ;
 
 extern float THD_corr_ratio_scl( int, float,float,float *,     /* 23 Aug 2006 */
-                                      float,float,float * ) ;
-extern float THD_corr_ratio( int , float *, float *) ;
+                                      float,float,float *, float * ) ;
+extern float THD_corr_ratio( int , float *, float * ) ;
 
 /*------------------------------------------------------------------------*/
 

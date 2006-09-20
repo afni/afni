@@ -170,9 +170,9 @@ ENTRY("mri_zeropad_3D") ;
 
    /* put padded data into new image */
 
-   jm = mri_new_vol_empty( im->nx+nxbot+nybot ,
-                           im->ny+nybot+nytop ,
-                           im->nz+nzbot+nztop , im->kind ) ;
+   jm = mri_new_vol_empty( im->nx + nxbot + nxtop ,
+                           im->ny + nybot + nytop ,
+                           im->nz + nzbot + nztop , im->kind ) ;
    MRI_COPY_AUX(jm,im) ;
    mri_fix_data_pointer( var , jm ) ;
    RETURN( jm );

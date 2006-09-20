@@ -1,9 +1,16 @@
+/**** TO DO:
+             -1Dapply
+             -matini
+             center of mass: use to set center of range?
+             dset_master, dxyz?
+****/
+
 #include "mrilib.h"
 #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
 
-#define MAXPAR   99
+#define MAXPAR   199
 #define PARC_FIX 1
 #define PARC_INI 2
 #define PARC_RAN 3
@@ -14,7 +21,7 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 #define WARP_SCALE    3
 #define WARP_AFFINE   4
 
-MRI_IMAGE * mri_weightize( MRI_IMAGE *im ) ;  /* prototype: function at end */
+MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod ) ;  /* prototype */
 
 /*---------------------------------------------------------------------------*/
 
@@ -23,12 +30,19 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset_out=NULL ;
    MRI_IMAGE *im_base, *im_targ, *im_out, *im_weig=NULL, *im_mask=NULL, *qim ;
    GA_setup stup ;
-   int iarg , ii,jj,kk , nmask=0 ;
-   int   nx_base,ny_base,nz_base , nx_targ,ny_targ,nz_targ ;
+   int iarg , ii,jj,kk , nmask=0 , nfunc ;
+   int   nx_base,ny_base,nz_base , nx_targ,ny_targ,nz_targ , nxy_base ;
    float dx_base,dy_base,dz_base , dx_targ,dy_targ,dz_targ ;
    int nvox_base ;
-   float v1,v2 , xxx,yyy,zzz ;
+   float v1,v2 , xxx,yyy,zzz,siz ;
    int pad_xm=0,pad_xp=0 , pad_ym=0,pad_yp=0 , pad_zm=0,pad_zp=0 ;
+   float tfparm[PARAM_MAXTRIAL][MAXPAR]; int tfdone=0;  /* stuff for -twofirst */
+   int skip_first=0 , didtwo , targ_kind ;
+   double ctim , rad , conv_rad ;
+   float **parsave=NULL ;
+   MRI_IMAGE *apply_im = NULL ;
+   float *apply_far    = NULL ;
+   int apply_nx, apply_ny ;
 
    /*----- input parameters, to be filled in from the options -----*/
 
@@ -41,18 +55,27 @@ int main( int argc , char *argv[] )
    int meth_code               = GA_MATCH_KULLBACK_SCALAR ;
    int sm_code                 = GA_SMOOTH_GAUSSIAN ;
    float sm_rad                = 0.0f ;
-   int twopass                 = 0 ;
-   int verb                    = 0 ;
-   int zeropad                 = 1 ;
-   char *prefix                = NULL ;
-   char *fname_1D              = NULL ;
-   int interp_code             = MRI_LINEAR ;
-   int npt_match               = -666 ;
+   float fine_rad              = 0.0f ;
+   int floatize                = 0 ;            /* off by default */
+   int twopass                 = 1 ;            /* on by default */
+   int twofirst                = 0 ;            /* off by default */
+   int verb                    = 0 ;            /* off by default */
+   int zeropad                 = 1 ;            /* on by default */
+   char *prefix                = NULL ;         /* off by default */
+   char *wtprefix              = NULL ;         /* off by default */
+   char *fname_1D              = NULL ;         /* off by default */
+   char *apply_1D              = NULL ;         /* off by default */
+   int interp_code             = MRI_CUBIC ;
+   int npt_match               = -9 ;
    int final_interp            = -1 ;
    int warp_code               = WARP_AFFINE ;
    int nparopt                 = 0 ;
    MRI_IMAGE *matini           = NULL ;
+   int tbest                   = 4 ;            /* default=try best 4 */
    param_opt paropt[MAXPAR] ;
+   float powell_mm             = 0.0f ;
+   float powell_aa             = 0.0f ;
+   float conv_mm               = 0.05 ;         /* millimeters */
 
    /**----- Help the pitifully ignorant user? -----**/
 
@@ -65,30 +88,44 @@ int main( int argc , char *argv[] )
        " + How the matching between the target and the base is computed.\n"
        " + How the resliced target is interpolated to the base space.\n"
        " + The complexity of the spatial transformation ('warp') used.\n"
-       " + And many technical options to control the process.\n"
+       " + And many technical options to control the process in detail,\n"
+       "    if you know what you are doing.\n"
        "\n"
        "OPTIONS:\n"
        "=======\n"
        " -base bbb   = Set the base dataset to be the #0 sub-brick of 'bbb'.\n"
        "               If no -base option is given, then the base volume is\n"
        "               taken to be the #0 sub-brick of the target dataset.\n"
+       "               (Base must be stored as floats, shorts, or bytes.)\n"
        "\n"
        " -target ttt = Read the target dataset from 'ttt'.  If no -target\n"
        "   *OR*        (or -input) option is given, then the target dataset\n"
        " -input ttt    is the last argument on the command line.\n"
+       "               (Target must be stored as floats, shorts, or bytes.)\n"
        "\n"
-       "  ** NOTA BENE: The base and target dataset do NOT have to be defined\n"
-       "  **            on the same grids; the alignment process uses the\n"
-       "  **            coordinate systems defined in the dataset headers to\n"
-       "  **            make the match between spatial locations.\n"
+       " * NOTA BENE: The base and target dataset do NOT have to be defined *\n"
+       " *            on the same grids; the alignment process uses the     *\n"
+       " *            coordinate systems defined in the dataset headers to  *\n"
+       " *            make the match between spatial locations.             *\n"
        "\n"
        " -prefix ppp = Output the resulting dataset to file 'ppp'.  If this\n"
        "   *OR*        option is NOT given, no dataset will be output!  The\n"
        " -out ppp      transformation to align the target to the base will\n"
-       "               be estimated, but not applied.\n"
+       "               be estimated, but not applied.  (By default, the new\n"
+       "               dataset is computed on the grid of the base dataset,\n"
+       "               and it will be stored in float format.)\n"
+       "\n"
+       " -floatize   = Write result dataset as floats.  Internal calculations\n"
+       "               are all done on float copies of the input datasets.\n"
+       "               [Default=convert output dataset to data format of]\n"
+       "               [        target dataset, without any scale factor]\n"
        "\n"
        " -1Dfile fff = Save the warp parameters in ASCII (.1D) format into\n"
-       "               file 'fff'.\n"
+       "               file 'fff' (1 row per sub-brick in target).\n"
+       "\n"
+       " -1Dapply aa = Read warp parameters from file 'aa', apply them to the\n"
+       "               target dataset, and produce a new dataset.\n"
+       "               (Must also use the '-prefix' option for this to work!)\n"
        "\n"
        " -cost ccc   = Defines the 'cost' function that defines the matching\n"
        "               between the target and the base; 'ccc' is one of\n"
@@ -103,12 +140,12 @@ int main( int argc , char *argv[] )
        "\n"
        " -interp iii = Defines interpolation method to use during matching\n"
        "               process, where 'iii' is one of\n"
-       "                 NN      *OR* nearestneighbour\n"
+       "                 NN      *OR* nearestneighbour *OR nearestneighbor\n"
        "                 linear  *OR* trilinear\n"
        "                 cubic   *OR* tricubic\n"
        "                 quintic *OR* triquintic\n"
        "               Using '-NN' instead of '-interp NN' is allowed (e.g.).\n"
-       "               [Default == 'linear'.]\n"
+       "               [Default == 'cubic'.]\n"
        "\n"
        "TECHNICAL OPTIONS (used for fine control of the program):\n"
        "=================\n"
@@ -118,36 +155,61 @@ int main( int argc , char *argv[] )
        "               nnn is too small.  If you end the 'nnn' value with the\n"
        "               '%%' character, then that percentage of the base's\n"
        "               voxels will be used.\n"
-       "               [Default == smaller of 20%% of voxels and 66,666.]\n"
+       "               [Default == 9%% of voxels in weight mask]\n"
        "\n"
-       " -nopad      = Do not use zero-padding on the base brick.\n"
-       "                 [Default == zero-pad, if needed]\n"
+       " -nopad      = Do not use zero-padding on the base image.\n"
+       "               [Default == zero-pad, if needed; -verb shows how much]\n"
        "\n"
        " -final iii  = Defines the interpolation mode used to create the\n"
        "               output dataset.  [Default == whatever '-interp' says.]\n"
        "\n"
-       " -verb       = Print out verbose progress reports.\n"
-       "                 [Repeating '-verb' will give more detailed reports.]\n"
+       " -conv ccc   = Convergence test is set to 'ccc' millimeters.\n"
+       "               [Default == 0.05 mm]\n"
        "\n"
+       " -verb       = Print out verbose progress reports.\n"
+       "               [Using '-verb' twice will give more detailed reports.]\n"
+       "\n"
+       " -onepass    = Use only the refining pass -- do not try a coarse\n"
+       "               resolution pass first.  Useful if you know that only\n"
+       "               small amounts of image alignment are needed.\n"
+       "               [The default is to use both passes.]\n"
        " -twopass    = Use a two pass alignment strategy, first searching\n"
        "               for a large rotation+shift and then refining the\n"
-       "               alignment.  [Default == use only the refining pass.]\n"
+       "               alignment.  [This is the default method.]\n"
        " -twoblur rr = Set the blurring radius for the first pass to 'rr'\n"
-       "               millimeters.  [Default == 5%% of dataset size.]\n"
-#if 0
+       "               millimeters.  [Default == 11 mm]\n"
+       " -twofirst   = Use -twopass on the first image to be registered, and\n"
+       "               then on all subsequent images, use the results from\n"
+       "               the first image's coarse pass to start the fine pass.\n"
+       "               (Useful when there may be large motions between the\n"
+       "                target and the base, but only small motions within\n"
+       "                the target dataset itself; since the coarse pass can\n"
+       "                be slow, doing it only once makes sense in this case.\n"
+       " -twobest bb = In the coarse pass, use the best 'bb' set of initial\n"
+       "               points to search for the starting point for the fine\n"
+       "               pass.  If bb==0, then no search is made for the best\n"
+       "               starting point, and the identity transformation is\n"
+       "               used as the starting point.  [Default=4; min=0 max=5]\n"
+       " -fineblur x = Set the blurring radius to use in the fine resolution\n"
+       "               pass to 'x' mm.  [Default == 0 mm]\n"
        "\n"
        " -weight www = Set the weighting for each voxel in the base dataset;\n"
        "               larger weights mean that voxel counts more in the cost\n"
        "               function.  [Default == all voxels weighted equally.]\n"
-       " -autoweight = Compute a weight function using the 3dAutomask algorithm\n"
-       "               plus some blurring.\n"
-#endif
+       "       **N.B.: The weight dataset must be defined on the same grid as\n"
+       "               the base dataset.\n"
+       " -autoweight = Compute a weight function using the 3dAutomask\n"
+       "               algorithm plus some blurring of the base image.\n"
+       " -automask   = Compute a mask function, which is like -autoweight,\n"
+       "               but the weight for a voxel is either 0 or 1.\n"
        "\n"
        " -warp xxx   = Set the warp type to 'xxx', which is one of\n"
        "                 shift_only         *OR* sho =  3 parameters\n"
        "                 shift_rotate       *OR* shr =  6 parameters\n"
        "                 shift_rotate_scale *OR* srs =  9 parameters\n"
        "                 affine_general     *OR* aff = 12 parameters\n"
+       "               [Default = affine_general, which includes image]\n"
+       "               [      shifts, rotations, scaling, and shearing]\n"
        "\n"
        " -parfix n v   = Fix parameter #n to be exactly at value 'v'.\n"
        " -parang n b t = Allow parameter #n to range only between 'b' and 't'.\n"
@@ -160,6 +222,17 @@ int main( int argc , char *argv[] )
        "                 the -twopass algorithm carries out its own search\n"
        "                 for initial parameters.\n"
        "\n"
+       " -maxrot dd    = Allow maximum rotation of 'dd' degrees.  Equivalent\n"
+       "                 to '-parfix 4 -dd dd -parang 5 -dd dd -parang 6 -dd dd'\n"
+       "                 [Default=30 degrees]\n"
+       " -maxshf dd    = Allow maximum shift of 'dd' millimeters.  Equivalent\n"
+       "                 to '-parang 1 -dd dd -parang 2 -dd dd -paran2 6 -dd dd'\n"
+       "                 [Default=33%% of the size of the base image]\n"
+       " -maxscl dd    = Allow maximum scaling factor to be 'dd'.  Equivalent\n"
+       "                 to '-parang 7 1/dd dd -parang 8 1/dd dd -paran2 9 1/dd dd'\n"
+       "                 [Default=1.2=image can go up or down 20%% in size]\n"
+#if 0
+       "\n"
        " -matini mmm   = Initialize 3x4 affine transformation matrix to 'mmm',\n"
        "                 which is either a .1D file or an expression in the\n"
        "                 syntax of program 1dmatcalc.  Using this option is\n"
@@ -171,13 +244,14 @@ int main( int argc , char *argv[] )
        " -dxyz del   = Write the output dataset using grid spacings of\n"
        "               'del' mm.  If this option is NOT given, then the\n"
        "               grid spacings in the master dataset will be used.\n"
+#endif
      ) ;
 
      printf(
       "\n"
-      "---------------------------------\n"
-      "AFFINE TRANSFORMATION PARAMETERS:\n"
-      "---------------------------------\n"
+      "----------------------------------------------\n"
+      "DEFINITION OF AFFINE TRANSFORMATION PARAMETERS\n"
+      "----------------------------------------------\n"
       "The 3x3 spatial transformation matrix is calculated as [S][D][U],\n"
       "where [S] is the shear matrix,\n"
       "      [D] is the scaling matrix, and\n"
@@ -198,8 +272,8 @@ int main( int argc , char *argv[] )
       "\n"
       " The goal of the program is to find the warp parameters such that\n"
       "   I([x]_warped) 'is similar to' J([x]_in)\n"
-      " as closely as possible in some sense, where J(x) is the base\n"
-      " image, and I(x) is the target image.\n"
+      " as closely as possible in some sense of 'similar', where J(x) is the\n"
+      " base image, and I(x) is the target image.\n"
       "\n"
       " Using '-parfix', you can specify that some of these parameters\n"
       " are fixed.  For example, '-shift_rotate_scale' is equivalent\n"
@@ -229,7 +303,7 @@ int main( int argc , char *argv[] )
    AFNI_logger("3dAllineate",argc,argv);
    PRINT_VERSION("3dAllineate"); AUTHOR("RW Cox");
    THD_check_AFNI_version("3dAllineate");
-   srand48((long)time(NULL)+(long)getpid()) ;
+   srand48((long)time(NULL)+(long)getpid()) ;  /* for ransetup in -twopass */
 
    /**--- process command line options ---**/
 
@@ -286,30 +360,67 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-#if 0
+     if( strcmp(argv[iarg],"-seed") == 0 ){   /* not in -help */
+       long seed ;
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       seed = (long)strtod(argv[iarg],NULL) ; srand48(seed) ;
+       iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcmp(argv[iarg],"-powell") == 0 ){  /* not in -help */
+       if( ++iarg >= argc-1 ) ERROR_exit("no arguments after '%s'!",argv[iarg-1]) ;
+       powell_mm = (float)strtod(argv[iarg++],NULL) ;
+       powell_aa = (float)strtod(argv[iarg++],NULL) ;
+       continue ;
+     }
+
+    /*-----*/
+
      if( strncmp(argv[iarg],"-weight",5) == 0 ){
-       if( auto_weight ) ERROR_exit("Can't use -autoweight AND -weight!") ;
+       if( auto_weight ) ERROR_exit("Can't use -autoweight/mask AND -weight!") ;
        if( dset_weig != NULL ) ERROR_exit("Can't have multiple %s options!",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        dset_weig = THD_open_dataset( argv[iarg] ) ;
        if( dset_weig == NULL ) ERROR_exit("can't open -weight dataset '%s'",argv[iarg]);
        iarg++ ; continue ;
      }
-#endif
 
      /*-----*/
 
-#if 0
      if( strncmp(argv[iarg],"-autoweight",6) == 0 ){
        if( dset_weig != NULL ) ERROR_exit("Can't use -autoweight AND -weight!") ;
        auto_weight = 1 ; iarg++ ; continue ;
      }
-#endif
+
+     if( strncmp(argv[iarg],"-automask",6) == 0 ){
+       if( dset_weig != NULL ) ERROR_exit("Can't use -automask AND -weight!") ;
+       auto_weight = 2 ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strncmp(argv[iarg],"-wtprefix",5) == 0 ){  /* not in -help */
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       if( !THD_filename_ok(argv[iarg]) )
+         ERROR_exit("badly formed filename: '%s' '%s'",argv[iarg-1],argv[iarg]) ;
+       wtprefix = argv[iarg] ; iarg++ ; continue ;
+     }
 
      /*-----*/
 
      if( strncmp(argv[iarg],"-verb",5) == 0 ){
        verb++ ; iarg++ ; continue ;
+     }
+     if( strncmp(argv[iarg],"-VERB",5) == 0 ){  /* not in -help */
+       verb+=2 ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strncmp(argv[iarg],"-floatize",5) == 0 ){
+       floatize++ ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -354,6 +465,10 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("no argument after '-base'!") ;
        dset_base = THD_open_dataset( argv[iarg] ) ;
        if( dset_base == NULL ) ERROR_exit("can't open -base dataset '%s'",argv[iarg]);
+       ii = (int)DSET_BRICK_TYPE(dset_base,0) ;
+       if( ii != MRI_float && ii != MRI_short && ii != MRI_byte )
+         ERROR_exit("base dataset %s has non-scalar data type '%s'",
+                    DSET_BRIKNAME(dset_base) , MRI_TYPE_name[ii] ) ;
        iarg++ ; continue ;
      }
 
@@ -370,21 +485,47 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strncmp(argv[iarg],"-median",4) == 0 ){        /* not documented */
+     if( strncmp(argv[iarg],"-median",4) == 0 ){        /* not in -help */
        sm_code = GA_SMOOTH_MEDIAN ; iarg++ ; continue ;
      }
 
      /*-----*/
 
-     if( strncmp(argv[iarg],"-twoblur",5) == 0 ){
+     if( strncmp(argv[iarg],"-twoblur",7) == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        sm_rad = (float)strtod(argv[iarg],NULL) ; twopass = 1 ; iarg++ ; continue ;
      }
 
+     if( strncmp(argv[iarg],"-fineblur",7) == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       fine_rad = (float)strtod(argv[iarg],NULL) ; iarg++ ; continue ;
+     }
+
      /*-----*/
 
+     if( strncmp(argv[iarg],"-twobest",7) == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       tbest = (int)strtod(argv[iarg],NULL) ; twopass = 1 ;
+       if( tbest < 0 ){
+         WARNING_message("-twobest %d is illegal: replacing with 0",tbest) ;
+         tbest = 0 ;
+       } else if( tbest > PARAM_MAXTRIAL ){
+         WARNING_message("-twobest %d is illegal: replacing with %d",tbest,PARAM_MAXTRIAL) ;
+         tbest = PARAM_MAXTRIAL ;
+       }
+       iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strncmp(argv[iarg],"-onepass",5) == 0 ){
+       twopass = 0 ; iarg++ ; continue ;
+     }
      if( strncmp(argv[iarg],"-twopass",5) == 0 ){
        twopass = 1 ; iarg++ ; continue ;
+     }
+     if( strncmp(argv[iarg],"-twofirst",5) == 0 ){
+       twofirst = twopass = 1 ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -399,13 +540,31 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strncmp(argv[iarg],"-1Dfile",4) == 0 ){
-       if( fname_1D != NULL ) ERROR_exit("Can't have multiple %s options!",argv[iarg]) ;
+     if( strncmp(argv[iarg],"-1Dfile",5) == 0 ){
+       if( fname_1D != NULL ) ERROR_exit("Can't have multiple %s options!",argv[iarg]);
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        if( !THD_filename_ok(argv[iarg]) )
-         ERROR_exit("badly formed filename: '%s' '%s'",argv[iarg-1],argv[iarg]) ;
+         ERROR_exit("badly formed filename: %s '%s'",argv[iarg-1],argv[iarg]) ;
        fname_1D = argv[iarg] ; iarg++ ; continue ;
      }
+
+     /*-----*/
+
+     if( strncmp(argv[iarg],"-1Dapply",5) == 0 ){
+       if( apply_1D != NULL ) ERROR_exit("Can't have multiple %s options!",argv[iarg]);
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       if( !THD_filename_ok(argv[iarg]) )
+         ERROR_exit("badly formed filename: %s '%s'",argv[iarg-1],argv[iarg]) ;
+       apply_1D = argv[iarg] ; qim = mri_read_1D(apply_1D) ;
+       if( qim == NULL ) ERROR_exit("Can't read -1Dapply '%s'",apply_1D) ;
+       apply_im  = mri_transpose(qim); mri_free(qim);
+       apply_far = MRI_FLOAT_PTR(apply_im) ;
+       apply_nx  = apply_im->nx ;  /* # of values per row */
+       apply_ny  = apply_im->ny ;  /* number of rows */
+       iarg++ ; continue ;
+     }
+#undef  APL
+#define APL(i,j) apply_far[(i)+(j)*apply_nx] /* i=param index, j=row index */
 
      /*-----*/
 
@@ -448,6 +607,19 @@ int main( int argc , char *argv[] )
        else
          ERROR_exit("Unknown code '%s' after '%s'!",argv[iarg],argv[iarg-1]) ;
        iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strncmp(argv[iarg],"-converge",5) == 0 ){
+       float vv ;
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       vv = (float)strtod(argv[iarg],NULL) ;
+       if( vv <= 0.0f || vv > 6.66f ){
+         vv = 0.03f ;
+         WARNING_message("-conv '%s' is out of range",argv[iarg]) ;
+       }
+       conv_mm = vv ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -526,6 +698,75 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
+     if( strcmp(argv[iarg],"-maxrot") == 0 ){
+       float vv ;
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       if( nparopt+2 >= MAXPAR ) ERROR_exit("too many -par... options!") ;
+       vv = (float)strtod(argv[iarg],NULL) ;
+       if( vv <= 0.0f || vv > 90.0f ) ERROR_exit("-maxrot %f is illegal!",vv) ;
+       paropt[nparopt].np   = 3 ;
+       paropt[nparopt].code = PARC_RAN ;
+       paropt[nparopt].vb   = -vv ;
+       paropt[nparopt].vt   =  vv ; nparopt++ ;
+       paropt[nparopt].np   = 4 ;
+       paropt[nparopt].code = PARC_RAN ;
+       paropt[nparopt].vb   = -vv ;
+       paropt[nparopt].vt   =  vv ; nparopt++ ;
+       paropt[nparopt].np   = 5 ;
+       paropt[nparopt].code = PARC_RAN ;
+       paropt[nparopt].vb   = -vv ;
+       paropt[nparopt].vt   =  vv ; nparopt++ ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcmp(argv[iarg],"-maxscl") == 0 ){
+       float vv , vvi ;
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       if( nparopt+2 >= MAXPAR ) ERROR_exit("too many -par... options!") ;
+       vv = (float)strtod(argv[iarg],NULL) ;
+       if( vv == 1.0f || vv > 2.0f || vv < 0.5f )
+         ERROR_exit("-maxscl %f is illegal!",vv) ;
+       if( vv > 1.0f ){ vvi = 1.0f/vvi; }
+       else           { vvi = vv ; vv = 1.0f/vvi ; }
+       paropt[nparopt].np   = 6 ;
+       paropt[nparopt].code = PARC_RAN ;
+       paropt[nparopt].vb   = vvi ;
+       paropt[nparopt].vt   =  vv ; nparopt++ ;
+       paropt[nparopt].np   = 7 ;
+       paropt[nparopt].code = PARC_RAN ;
+       paropt[nparopt].vb   = vvi ;
+       paropt[nparopt].vt   =  vv ; nparopt++ ;
+       paropt[nparopt].np   = 8 ;
+       paropt[nparopt].code = PARC_RAN ;
+       paropt[nparopt].vb   = vvi ;
+       paropt[nparopt].vt   =  vv ; nparopt++ ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcmp(argv[iarg],"-maxshf") == 0 ){
+       float vv ;
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       if( nparopt+2 >= MAXPAR ) ERROR_exit("too many -par... options!") ;
+       vv = (float)strtod(argv[iarg],NULL) ;
+       if( vv <= 0.0f ) ERROR_exit("-maxshf %f is illegal!",vv) ;
+       paropt[nparopt].np   = 0 ;
+       paropt[nparopt].code = PARC_RAN ;
+       paropt[nparopt].vb   = -vv ;
+       paropt[nparopt].vt   =  vv ; nparopt++ ;
+       paropt[nparopt].np   = 1 ;
+       paropt[nparopt].code = PARC_RAN ;
+       paropt[nparopt].vb   = -vv ;
+       paropt[nparopt].vt   =  vv ; nparopt++ ;
+       paropt[nparopt].np   = 2 ;
+       paropt[nparopt].code = PARC_RAN ;
+       paropt[nparopt].vb   = -vv ;
+       paropt[nparopt].vt   =  vv ; nparopt++ ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
      if( strcmp(argv[iarg],"-parini") == 0 ){
        if( ++iarg >= argc-1 ) ERROR_exit("need 2 arguments after '%s'!",argv[iarg-1]) ;
        if( nparopt >= MAXPAR ) ERROR_exit("too many -par... options!") ;
@@ -543,7 +784,10 @@ int main( int argc , char *argv[] )
      ERROR_exit("Unknown and Illegal option '%s'",argv[iarg]) ;
    }
 
+   /*---------------------------------------------------------------*/
    /*--- check inputs for validity, consistency, and moral fibre ---*/
+
+   /* open target from last argument, if not already open */
 
    if( dset_targ == NULL ){
      if( iarg >= argc )
@@ -553,26 +797,50 @@ int main( int argc , char *argv[] )
        ERROR_exit("Can't open target dataset '%s'",argv[iarg]) ;
    }
 
-   if( dset_base == NULL ){
-     if( DSET_NVALS(dset_targ) == 1 )
-       ERROR_exit("No -base dataset AND target has only 1 sub-brick") ;
-     else
-       WARNING_message("No -base dataset: using sub-brick #0 of target") ;
+   /* check target data type */
+
+   targ_kind = (int)DSET_BRICK_TYPE(dset_targ,0) ;
+   if( targ_kind != MRI_float && targ_kind != MRI_short && targ_kind != MRI_byte )
+     ERROR_exit("target dataset %s has non-scalar data type '%s'",
+                DSET_BRIKNAME(dset_targ) , MRI_TYPE_name[targ_kind] ) ;
+   if( !DSET_datum_constant(dset_targ) )
+     WARNING_message("target dataset %s does not have constant data type!",
+                     DSET_BRIKNAME(dset_targ)) ;
+
+   /*-- if applying a set of parameters, some options are turned off --*/
+
+   if( apply_1D != NULL ){
+     if( prefix == NULL ) ERROR_exit("-1Dapply also needs -prefix!") ;
+     wtprefix = fname_1D = NULL ; zeropad = 0 ; auto_weight = 0 ;
+     if( dset_weig != NULL ){ DSET_delete(dset_weig); dset_weig=NULL; }
    }
 
-   if( final_interp < 0 ) final_interp = interp_code ;
+   /* if no base input, target should have more than 1 sub-brick */
+
+   if( dset_base == NULL && apply_1D == NULL ){
+     if( DSET_NVALS(dset_targ) == 1 )
+       ERROR_exit("No base dataset AND target dataset has only 1 sub-brick") ;
+
+     WARNING_message("No -base dataset: using sub-brick #0 of target") ;
+     skip_first = 1 ;  /* don't register sub-brick #0 of targ */
+   }
+
+   if( final_interp < 0 ) final_interp = interp_code ;  /* default */
 
    /*--- load input datasets ---*/
 
    if( verb ) INFO_message("Loading datasets") ;
 
-   /* target must be present */
+   /* target MUST be present */
 
    DSET_load(dset_targ) ;
    if( !DSET_LOADED(dset_targ) ) ERROR_exit("Can't load target dataset") ;
-   nx_targ = DSET_NX(dset_targ) ; dx_targ = fabs(DSET_DX(dset_targ)) ;
-   ny_targ = DSET_NY(dset_targ) ; dy_targ = fabs(DSET_DY(dset_targ)) ;
-   nz_targ = DSET_NZ(dset_targ) ; dz_targ = fabs(DSET_DZ(dset_targ)) ;
+   nx_targ = DSET_NX(dset_targ) ; dx_targ = fabsf(DSET_DX(dset_targ)) ;
+   ny_targ = DSET_NY(dset_targ) ; dy_targ = fabsf(DSET_DY(dset_targ)) ;
+   nz_targ = DSET_NZ(dset_targ) ; dz_targ = fabsf(DSET_DZ(dset_targ)) ;
+
+   if( nx_targ < 2 || ny_targ < 2 )
+     ERROR_exit("Target dataset has nx=%d ny=%d ???",nx_targ,ny_targ) ;
 
    /* load base if defined */
 
@@ -582,27 +850,32 @@ int main( int argc , char *argv[] )
      im_base = mri_scale_to_float( DSET_BRICK_FACTOR(dset_base,0) ,
                                    DSET_BRICK(dset_base,0)         ) ;
      DSET_unload(dset_base) ;
-     dx_base = fabs(DSET_DX(dset_base)) ;
-     dy_base = fabs(DSET_DY(dset_base)) ;
-     dz_base = fabs(DSET_DZ(dset_base)) ;
+     dx_base = fabsf(DSET_DX(dset_base)) ;
+     dy_base = fabsf(DSET_DY(dset_base)) ;
+     dz_base = fabsf(DSET_DZ(dset_base)) ;
+     if( im_base->nx < 2 || im_base->ny < 2 )
+       ERROR_exit("Base dataset has nx=%d ny=%d ???",nx_base,ny_base) ;
    } else {
      im_base = mri_scale_to_float( DSET_BRICK_FACTOR(dset_targ,0) ,
                                    DSET_BRICK(dset_targ,0)         ) ;
      dx_base = dx_targ; dy_base = dy_targ; dz_base = dz_targ;
    }
    nx_base = im_base->nx ;
-   ny_base = im_base->ny ;
-   nz_base = im_base->nz ; nvox_base = nx_base*ny_base*nz_base ;
+   ny_base = im_base->ny ; nxy_base  = nx_base *ny_base ;
+   nz_base = im_base->nz ; nvox_base = nxy_base*nz_base ;
 
    /* find the autobbox, and setup zero-padding */
 
 #undef  MPAD
-#define MPAD 2     /* max #slices to zeropad */
+#define MPAD 4     /* max #slices to zeropad */
    if( zeropad ){
      float cv , *qar  ;
-     cv = 0.33f * THD_cliplevel(im_base,0.33f) ;
+     cv = 0.33f * THD_cliplevel(im_base,0.33f) ;       /* set threshold */
      qim = mri_copy(im_base); qar = MRI_FLOAT_PTR(qim);
      for( ii=0 ; ii < qim->nvox ; ii++ ) if( qar[ii] < cv ) qar[ii] = 0.0f ;
+
+     /* find edges of box that contain supra-threshold contents */
+
      MRI_autobbox( qim, &pad_xm,&pad_xp, &pad_ym,&pad_yp, &pad_zm,&pad_zp ) ;
      mri_free(qim) ;
 #if 0
@@ -613,6 +886,9 @@ int main( int argc , char *argv[] )
        INFO_message("    : zbot=%3d ztop=%3d nz=%3d",pad_zm,pad_zp,nz_base);
      }
 #endif
+
+     /* compute padding so that at least MPAD all-zero slices on each face */
+
      pad_xm = MPAD - pad_xm               ; if( pad_xm < 0 ) pad_xm = 0 ;
      pad_ym = MPAD - pad_ym               ; if( pad_ym < 0 ) pad_ym = 0 ;
      pad_zm = MPAD - pad_zm               ; if( pad_zm < 0 ) pad_zm = 0 ;
@@ -620,22 +896,32 @@ int main( int argc , char *argv[] )
      pad_yp = MPAD - (ny_base-1 - pad_yp) ; if( pad_yp < 0 ) pad_yp = 0 ;
      pad_zp = MPAD - (nz_base-1 - pad_zp) ; if( pad_zp < 0 ) pad_zp = 0 ;
      if( nz_base == 1 ){ pad_zm = pad_zp = 0 ; }  /* don't z-pad 2D image! */
-     if( verb ){
-       INFO_message("zpad: xbot=%d xtop=%d",pad_xm,pad_xp) ;
-       INFO_message("    : ybot=%d ytop=%d",pad_ym,pad_yp) ;
-      if( nz_base > 1 )
-       INFO_message("    : zbot=%d ztop=%d",pad_zm,pad_zp) ;
-     }
 
      zeropad = (pad_xm > 0 || pad_xp > 0 ||
                 pad_ym > 0 || pad_yp > 0 || pad_zm > 0 || pad_zp > 0) ;
+
+     if( verb ){
+       if( zeropad ){
+         if( pad_xm > 0 || pad_xp > 0 )
+           INFO_message("zero-pad: xbot=%d xtop=%d",pad_xm,pad_xp) ;
+         if( pad_ym > 0 || pad_yp > 0 )
+           INFO_message("zero-pad: ybot=%d ytop=%d",pad_ym,pad_yp) ;
+         if( pad_zm > 0 || pad_zp > 0 )
+           INFO_message("zero-pad: zbot=%d ztop=%d",pad_zm,pad_zp) ;
+       } else {
+         INFO_message("zero-pad: not needed") ;
+       }
+     }
+
+     /* zeropad the base image at this point in spacetime? */
+
      if( zeropad ){
        qim = mri_zeropad_3D( pad_xm,pad_xp , pad_ym,pad_yp ,
                                              pad_zm,pad_zp , im_base ) ;
        mri_free(im_base) ; im_base = qim ;
        nx_base = im_base->nx ;
-       ny_base = im_base->ny ;
-       nz_base = im_base->nz ; nvox_base = nx_base*ny_base*nz_base ;
+       ny_base = im_base->ny ; nxy_base  = nx_base *ny_base ;
+       nz_base = im_base->nz ; nvox_base = nxy_base*nz_base ;
      }
    }
 
@@ -644,7 +930,7 @@ int main( int argc , char *argv[] )
    if( nz_base >  1 && nz_targ == 1 )
      ERROR_exit("Can't register 2D target into 3D base!") ;
    if( nz_base == 1 && nz_targ >  1 )
-     ERROR_exit("Can't register 3D target into 2D base!") ;
+     ERROR_exit("Can't register 3D target onto 2D base!") ;
 
    /* load weight dataset if defined */
 
@@ -655,16 +941,25 @@ int main( int argc , char *argv[] )
                                    DSET_BRICK(dset_weig,0)         ) ;
      DSET_unload(dset_weig) ;
 
+     /* zeropad weight to match base? */
+
      if( zeropad ){
        qim = mri_zeropad_3D( pad_xm,pad_xp , pad_ym,pad_yp ,
                                              pad_zm,pad_zp , im_weig ) ;
        mri_free(im_weig) ; im_weig = qim ;
      }
+     if( im_weig->nx != nx_base ||
+         im_weig->ny != ny_base || im_weig->nz != nz_base )
+       ERROR_exit("-weight and base volumes don't match!") ;
 
    } else if( auto_weight ){  /* manufacture weight from the base */
      if( verb ) INFO_message("Computing -autoweight") ;
-     im_weig = mri_weightize( im_base ) ;
+     if( verb > 1 ) ctim = COX_cpu_time() ;
+     im_weig = mri_weightize( im_base , auto_weight ) ;
+     if( verb > 1 ) ININFO_message("-autoweight CPU time = %.1f s",COX_cpu_time()-ctim) ;
    }
+
+   /* also, make a mask from the weight */
 
    if( im_weig != NULL ){
      float *wf = MRI_FLOAT_PTR(im_weig) ;
@@ -673,9 +968,35 @@ int main( int argc , char *argv[] )
      mf = MRI_BYTE_PTR(im_mask) ;
      for( ii=0 ; ii < im_mask->nvox ; ii++ ) mf[ii] = (wf[ii] > 0.0f) ;
      nmask = THD_countmask(im_mask->nvox,mf) ;
-     if( verb ) INFO_message("%d voxels in weight mask",nmask) ;
+     if( verb ) INFO_message("%d voxels [%.1f%%] in weight mask",
+                             nmask, 100.0*nmask/(float)im_mask->nvox ) ;
    } else {
-     nmask = nvox_base ;
+     nmask = nvox_base ;  /* the universal 'mask' */
+   }
+
+   if( im_weig != NULL &&
+       meth_code == GA_MATCH_SPEARMAN_SCALAR && auto_weight != 2 )
+     WARNING_message("Spearman cost function can't be weighted, only masked") ;
+
+   /* save weight? */
+
+   if( wtprefix != NULL && im_weig != NULL ){
+     THD_3dim_dataset *wset ;
+     wset = EDIT_empty_copy( (dset_base!=NULL) ? dset_base : dset_targ ) ;
+     EDIT_dset_items( wset ,
+                        ADN_prefix    , wtprefix ,
+                        ADN_nvals     , 1 ,
+                        ADN_ntt       , 0 ,
+                        ADN_datum_all , MRI_float ,
+                      ADN_none ) ;
+     EDIT_BRICK_FACTOR(wset,0,0.0);
+     if( zeropad ) qim = mri_zeropad_3D( -pad_xm,-pad_xp , -pad_ym,-pad_yp ,
+                                         -pad_zm,-pad_zp , im_weig ) ;
+     else          qim = mri_copy(im_weig) ;
+     EDIT_substitute_brick( wset, 00, MRI_float, MRI_FLOAT_PTR(qim) );
+     mri_clear_data_pointer(qim) ; mri_free(qim) ;
+     DSET_write(wset); if( verb ) WROTE_DSET(wset);
+     DSET_delete(wset) ;
    }
 
    /* number of points to use for matching */
@@ -689,13 +1010,13 @@ int main( int argc , char *argv[] )
    if( npt_match < 666 ) npt_match = 666 ;
    if( verb ) INFO_message("Number of points for matching = %d",npt_match) ;
 
-   /*--- setup alignment structure parameters ---*/
+   /*------ setup alignment structure parameters ------*/
 
    memset(&stup,0,sizeof(GA_setup)) ;
 
    stup.match_code = meth_code ;
 
-   /* spatial coordinates */
+   /* spatial coordinates: 'cmat' transforms from ijk to xyz */
 
    stup.use_cmat  = 1 ;
    if( !ISVALID_MAT44(dset_targ->daxes->ijk_to_dicom) )
@@ -710,9 +1031,14 @@ int main( int argc , char *argv[] )
      stup.base_cmat = stup.targ_cmat ;
    }
 
-   /* actual warp parameters */
+   /* modify base_cmat to allow for zeropad? */
 
-   stup.wfunc       = mri_genalign_affine ;
+   if( pad_xm > 0 || pad_ym > 0 || pad_zm > 0 )
+     MAT44_EXTEND_IJK( stup.base_cmat , pad_xm,pad_ym,pad_zm ) ;
+
+   /* define warp parameters and function */
+
+   stup.wfunc       = mri_genalign_affine ;  /* warping function */
    stup.wfunc_param = (GA_param *)calloc(12,sizeof(GA_param)) ;
 
    switch( warp_code ){
@@ -722,6 +1048,13 @@ int main( int argc , char *argv[] )
      case WARP_AFFINE:  stup.wfunc_numpar = 12 ;
    }
 
+   if( apply_1D != NULL && apply_nx < stup.wfunc_numpar )
+     ERROR_exit("-1Dapply '%s': %d is not enough parameters per row",
+                apply_1D,apply_nx);
+   if( apply_1D != NULL && apply_ny < DSET_NVALS(dset_targ) )
+     ERROR_exit("-1Dapply '%s': %d is not enough columns",
+                apply_1D,apply_ny);
+
 #define DEFPAR(p,nm,bb,tt,id,dd,ll)               \
  do{ stup.wfunc_param[p].min      = (bb) ;        \
      stup.wfunc_param[p].max      = (tt) ;        \
@@ -729,15 +1062,17 @@ int main( int argc , char *argv[] )
      stup.wfunc_param[p].toler    = (ll) ;        \
      stup.wfunc_param[p].ident    = (id) ;        \
      stup.wfunc_param[p].val_init = (id) ;        \
+     stup.wfunc_param[p].val_pinit= (id) ;        \
+     stup.wfunc_param[p].val_fixed= (id) ;        \
      strcpy( stup.wfunc_param[p].name , (nm) ) ;  \
-     stup.wfunc_param[p].fixed = 0 ;              \
+     stup.wfunc_param[p].fixed  = 0 ;             \
  } while(0)
 
-   xxx = 0.333 * nx_base * dx_base ;  /* range of shifts allowed */
-   yyy = 0.333 * ny_base * dy_base ;
-   zzz = 0.333 * nz_base * dz_base ;
+   xxx = 0.333 * (nx_base-1) * dx_base ;  /* range of shifts allowed */
+   yyy = 0.333 * (ny_base-1) * dy_base ;
+   zzz = 0.333 * (nz_base-1) * dz_base ;
 
-   /* we define all affine parameters, though not all may be used */
+   /* we define all 12 affine parameters, though not all may be used */
 
    DEFPAR( 0, "x-shift" , -xxx , xxx , 0.0 , 0.0 , 0.0 ) ;
    DEFPAR( 1, "y-shift" , -yyy , yyy , 0.0 , 0.0 , 0.0 ) ;
@@ -774,10 +1109,12 @@ int main( int argc , char *argv[] )
          WARNING_message("Can't alter parameter #%d: it is fixed!",jj+1) ;
        } else {
          switch( paropt[ii].code ){
-           case PARC_FIX: stup.wfunc_param[jj].fixed     = 2 ;
+           case PARC_FIX: stup.wfunc_param[jj].fixed     = 2 ; /* permanent fix */
                           stup.wfunc_param[jj].val_fixed = paropt[ii].vb; break;
            case PARC_INI: stup.wfunc_param[jj].fixed     = 0 ;
-                          stup.wfunc_param[jj].val_init  = paropt[ii].vb; break;
+                          stup.wfunc_param[jj].val_fixed =
+                          stup.wfunc_param[jj].val_init  =
+                          stup.wfunc_param[jj].val_pinit = paropt[ii].vb; break;
            case PARC_RAN: stup.wfunc_param[jj].fixed     = 0 ;
                           stup.wfunc_param[jj].min       = paropt[ii].vb;
                           stup.wfunc_param[jj].max       = paropt[ii].vt; break;
@@ -788,10 +1125,47 @@ int main( int argc , char *argv[] )
      }
    }
 
+   /* check to see if we have free parameters so we can actually do something */
+
+   for( ii=jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+     if( !stup.wfunc_param[jj].fixed ) ii++ ;
+   if( ii == 0 ) ERROR_exit("No free parameters for aligning datasets?!!") ;
+
+   /* should have some free parameters in the first 6 if using twopass */
+
+   if( twopass ){
+     for( ii=jj=0 ; jj < stup.wfunc_numpar && jj < 6 ; jj++ )
+       if( !stup.wfunc_param[jj].fixed ) ii++ ;
+     if( ii == 0 ){
+       WARNING_message("Disabling twopass because no free parameters!?");
+       twopass = 0 ;
+     }
+   }
+
+   /** set convergence radius for parameter search **/
+
+   xxx = 0.5f * (nx_base-1) * dx_base ;
+   yyy = 0.5f * (ny_base-1) * dy_base ;
+   zzz = 0.5f * (nz_base-1) * dz_base ;
+   xxx = (nz_base > 1 ) ? cbrt(xxx*yyy*zzz) : sqrt(xxx*yyy) ;
+   zzz = 1.e+33 ;
+   for( jj=0 ; jj < 6 && jj < stup.wfunc_numpar ; jj++ ){
+     if( stup.wfunc_param[jj].fixed ) continue ;
+     siz = stup.wfunc_param[jj].max - stup.wfunc_param[jj].min ;
+     if( siz <= 0.0f ) continue ;
+     if( jj < 3 ){  /* shift param */
+       yyy = conv_mm / siz ; zzz = MIN(yyy,zzz) ;
+     } else {       /* rotation param */
+       yyy = 57.3f * conv_mm / (xxx*siz) ; zzz = MIN(yyy,zzz) ;
+     }
+   }
+   conv_rad = MIN(zzz,0.001) ; conv_rad = MAX(conv_rad,0.00001) ;
+   if( verb > 1 ) INFO_message("convergence radius = %.6f",conv_rad) ;
+
    /*** create shell of output dataset ***/
 
    if( prefix == NULL ){
-     WARNING_message("No output dataset will be calculated!") ;
+     WARNING_message("No output dataset will be calculated!?") ;
    } else {
      dset_out = EDIT_empty_copy( (dset_base!=NULL) ? dset_base : dset_targ ) ;
      EDIT_dset_items( dset_out ,
@@ -799,6 +1173,13 @@ int main( int argc , char *argv[] )
                         ADN_nvals     , DSET_NVALS(dset_targ) ,
                         ADN_datum_all , MRI_float ,
                       ADN_none ) ;
+     if( DSET_NUM_TIMES(dset_targ) > 1 )
+       EDIT_dset_items( dset_out , ADN_ntt , DSET_NVALS(dset_targ) , ADN_none ) ;
+     else
+       EDIT_dset_items( dset_out ,
+                          ADN_func_type , ISANAT(dset_out) ? ANAT_BUCK_TYPE
+                                                           : FUNC_BUCK_TYPE ,
+                        ADN_none ) ;
      for( kk=0 ; kk < DSET_NVALS(dset_out) ; kk++ )
        EDIT_BRICK_FACTOR(dset_out,kk,0.0);
      tross_Copy_History( dset_targ , dset_out ) ;
@@ -808,123 +1189,274 @@ int main( int argc , char *argv[] )
    /*** start alignment process ***/
 
 #undef  PARDUMP
-#define PARDUMP(ss) do{ fprintf(stderr," + %s Parameters =",ss) ;                 \
-                        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )               \
-                          fprintf(stderr," %.2f",stup.wfunc_param[jj].val_out) ;  \
-                        fprintf(stderr,"\n") ;                                    \
-                    } while(0)
+#define PARDUMP(ss,xxx) do{ fprintf(stderr," + %s Parameters =",ss) ;                 \
+                            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )               \
+                              fprintf(stderr," %.2f",stup.wfunc_param[jj].xxx) ;  \
+                            fprintf(stderr,"\n") ;                                    \
+                        } while(0)
+#undef  PAROUT
+#define PAROUT(ss) PARDUMP(ss,val_out)
+#undef  PARINI
+#define PARINI(ss) PARDUMP(ss,val_init)
 
-   if( verb > 1 ) mri_genalign_verbose(verb) ;
+   if( verb > 1 ) mri_genalign_verbose(verb-1) ;
+
+   parsave = (float **)malloc(sizeof(float *)*DSET_NVALS(dset_targ)) ;
 
    for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
 
+     if( kk == 0 && skip_first ){  /* skip first image since it == im_base **/
+       if( verb )
+         INFO_message("===== Skip sub-brick #0: it's also base image =====") ;
+       DSET_unload_one(dset_targ,0) ;
+       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )   /* for -1Dfile output */
+         stup.wfunc_param[jj].val_out = stup.wfunc_param[jj].ident ;
+       goto WRAP_IT_UP ;
+     }
+
      /* make copy of target brick */
+
+     if( verb ) INFO_message("===== Start on sub-brick #%d =====",kk) ;
 
      im_targ = mri_scale_to_float( DSET_BRICK_FACTOR(dset_targ,kk) ,
                                    DSET_BRICK(dset_targ,kk)         ) ;
      DSET_unload_one(dset_targ,kk) ;
 
-     if( verb ) INFO_message("===== Start on sub-brick #%d =====",kk) ;
+     if( apply_1D != NULL ){
+       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+         stup.wfunc_param[jj].val_out = APL(jj,kk) ;
+       stup.interp_code   = final_interp ;
+       stup.smooth_code   = 0 ;
+       stup.npt_match     = 11 ;
+       mri_genalign_scalar_setup( im_base , NULL , im_targ , &stup ) ;
+       goto WRAP_IT_UP ;
+     }
+
+     for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+       stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_pinit ;
 
      /* do coarse resolution pass? */
 
-     if( twopass ){
+     didtwo = 0 ;
+     if( twopass && (!twofirst || !tfdone) ){
+       int tb , ib , ccode ;
        if( verb ) INFO_message("Start coarse pass") ;
-       stup.interp_code   = MRI_LINEAR ;
+       ccode              = (interp_code == MRI_NN) ? MRI_NN : MRI_LINEAR ;
+       stup.interp_code   = ccode ;
        stup.smooth_code   = sm_code ;
        stup.smooth_radius = (sm_rad == 0.0f) ? 11.111f : sm_rad ;
        stup.npt_match     = nmask / 20 ;
             if( stup.npt_match <   666 ) stup.npt_match =   666 ;
        else if( stup.npt_match > 22222 ) stup.npt_match = 22222 ;
 
-       mri_genalign_scalar_setup( im_base , im_mask , im_targ , &stup ) ;
+       mri_genalign_scalar_setup( im_base , im_weig , im_targ , &stup ) ;
 
-       if( verb ) ININFO_message("- Look for coarse starting parameters") ;
+       if( tbest > 0 ){ /*- search for coarse start parameters, then optimize them -*/
 
-       /* startup search only allows rotations and shifts, so freeze all others */
+         if( verb ) ININFO_message("- Search for coarse starting parameters") ;
 
-       for( jj=6 ; jj < stup.wfunc_numpar ; jj++ )
-         if( !stup.wfunc_param[jj].fixed ) stup.wfunc_param[jj].fixed = 1 ;
+         /* startup search only allows rotations and shifts, so freeze all others */
 
-       mri_genalign_scalar_ransetup( &stup , 61 ) ;
+         for( jj=6 ; jj < stup.wfunc_numpar ; jj++ )
+           if( !stup.wfunc_param[jj].fixed ) stup.wfunc_param[jj].fixed = 1 ;
 
-       if( verb > 1 ) PARDUMP("Starting") ;
+         /* do the startup parameter search;
+            saves best params in val_init (and val_out), plus a few more in val_trial */
 
-       /* unfreeze those that were temporarily frozen above */
+         if( verb > 1 ) ctim = COX_cpu_time() ;
+         mri_genalign_scalar_ransetup( &stup , 31 ) ;
+         if( verb > 1 ) ININFO_message("- Coarse search CPU time = %.1f s",COX_cpu_time()-ctim) ;
 
-       for( jj=6 ; jj < stup.wfunc_numpar ; jj++ )
-         if( stup.wfunc_param[jj].fixed == 1 ) stup.wfunc_param[jj].fixed = 0 ;
+         /* unfreeze those that were temporarily frozen above */
 
-       if( verb ) ININFO_message("- Start coarse optimization") ;
+         for( jj=6 ; jj < stup.wfunc_numpar ; jj++ )
+           if( stup.wfunc_param[jj].fixed == 1 ) stup.wfunc_param[jj].fixed = 0 ;
 
-       stup.npt_match = nmask / 10 ;
-            if( stup.npt_match < 666       ) stup.npt_match = 666 ;
-       else if( stup.npt_match > npt_match ) stup.npt_match = npt_match ;
-       mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
-       ii = mri_genalign_scalar_optim( &stup , 0.04 , 0.002 , 6666 ) ;
+         stup.npt_match = nmask / 10 ;
+              if( stup.npt_match < 666   ) stup.npt_match = 666 ;
+         else if( stup.npt_match > 66666 ) stup.npt_match = 66666 ;
+         stup.smooth_radius *= 0.666 ;
+         mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
 
-       if( verb ) ININFO_message("- Coarse optimization took %d trials",ii) ;
-       if( verb > 1 ) PARDUMP("Final Coarse") ;
+         tb = MIN(tbest,stup.wfunc_ntrial) ; nfunc=0 ;
+         if( verb ) ININFO_message("- Start %d coarse optimizations",tb) ;
+         if( verb > 1 ) ctim = COX_cpu_time() ;
+         for( ib=0 ; ib < tb ; ib++ ){                  /* loop over trials */
+           for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* load parameters */
+             stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_trial[ib] ;
+           nfunc += mri_genalign_scalar_optim( &stup , 0.04 , 0.008 , 6666 ) ;
+           for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* save best params */
+             tfparm[ib][jj] = stup.wfunc_param[jj].val_out ;
+           if( verb > 1 ) ININFO_message("- #%d has cost=%f",ib+1,stup.vbest) ;
+         }
+         if( verb > 1 ) ININFO_message("- Coarse CPU time = %.1f s; funcs = %d",COX_cpu_time()-ctim,nfunc) ;
+         tfdone = tb ;
 
-       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
-         stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out ;
-     }
+       } else { /*- just optimize at coarse setup from default initial parameters -*/
+
+         if( verb     ) ININFO_message("- Start coarse optimization") ;
+         if( verb > 1 ) ctim = COX_cpu_time() ;
+         nfunc = mri_genalign_scalar_optim( &stup , 0.05 , 0.009 , 6666 ) ;
+         stup.npt_match = nmask / 10 ;
+              if( stup.npt_match < 666   ) stup.npt_match = 666 ;
+         else if( stup.npt_match > 66666 ) stup.npt_match = 66666 ;
+         stup.smooth_radius *= 0.666 ;
+         mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
+         nfunc += mri_genalign_scalar_optim( &stup , 0.04 , 0.005 , 6666 ) ;
+         if( verb > 1 ) ININFO_message("- Coarse CPU time = %.1f s; funcs = %d",COX_cpu_time()-ctim,nfunc) ;
+         if( verb     ) ININFO_message("- Coarse optimization:  best cost=%f",stup.vbest) ;
+
+         for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* save best params */
+           tfparm[0][jj] = stup.wfunc_param[jj].val_out ;
+         tfdone = 1 ;
+       }
+
+       didtwo = 1 ;   /* mark that we did the first pass */
+     } /* end of twopass-ization */
 
      /* do final resolution pass */
 
-     if( verb ) ININFO_message("Start fine pass") ;
-     stup.smooth_code   = 0  ;
-     stup.smooth_radius = 0.0f ;
+     if( verb ) INFO_message("Fine pass begins") ;
      stup.interp_code   = interp_code ;
+     stup.smooth_code   = (fine_rad > 0.0f) ? sm_code : 0 ;
+     stup.smooth_radius = fine_rad ;
      stup.npt_match     = npt_match ;
-     if( twopass )
-       mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;
+     if( didtwo )
+       mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;  /* simplified re-setup */
      else
        mri_genalign_scalar_setup( im_base , im_mask , im_targ , &stup ) ;
 
-     ii = mri_genalign_scalar_optim( &stup , 0.01 , 0.0001 , 6666 ) ;
+     /* choose initial parameters */
 
-     if( verb ) ININFO_message("- Fine Optimization took %d trials",ii) ;
+     if( tfdone ){
+       int kb=0 ;
+       if( tfdone > 1 ){
+         float cost , cbest=1.e+33 ; int ib ;
+         for( ib=0 ; ib < tfdone ; ib++ ){
+           for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+             stup.wfunc_param[jj].val_init = tfparm[ib][jj] ;
+           cost = mri_genalign_scalar_cost( &stup ) ;
+           if( verb > 1 ) ININFO_message("- cost(#%d)=%f %c",ib+1,cost,(cost<cbest)?'*':' ') ;
+           if( cost < cbest ){ cbest=cost ; kb=ib ; }
+         }
+       }
+       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+         stup.wfunc_param[jj].val_init = tfparm[kb][jj] ;
+     }
 
-     if( verb > 1 ) PARDUMP("Final Fine") ;
+     if( verb > 1 ){
+       PARINI("- Initial fine") ;
+       if( tfdone < 2 ){
+         float cost = mri_genalign_scalar_cost( &stup ) ;
+         ININFO_message("- Initial cost = %f",cost) ;
+       }
+       ctim = COX_cpu_time() ;
+     }
+     if( verb > 2 ){ GA_do_dots(1); }
+     if( powell_mm > 0.0f ) powell_set_mfac( powell_mm , powell_aa ) ;
+     nfunc = 0 ; rad = (tfdone) ? 0.02 : 0.04 ;
+     if( MRI_HIGHORDER(interp_code) ){
+       stup.interp_code = MRI_LINEAR ;
+       nfunc = mri_genalign_scalar_optim( &stup, rad, 0.002, 6666 );
+       if( nfunc < 6666 ) rad *= 0.666 ;
+       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+         stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out ;
+       stup.interp_code = interp_code ;
+       if( verb > 1 ){
+         float cost = mri_genalign_scalar_cost( &stup ) ;
+         PARINI("- Intrmed fine") ;
+         ININFO_message("- Intrmed cost = %f",cost) ;
+       }
+     }
+     stup.interp_code = interp_code ;
+     nfunc += mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
+     if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ;
+     if( verb > 2 ){ printf("\n"); GA_do_dots(0); }
+     if( verb > 1 ) ININFO_message("- Fine optimization CPU time = %.1f s",COX_cpu_time()-ctim) ;
+     if( verb ) ININFO_message("- Fine Optimization took %d trials; final cost=%f",nfunc,stup.vbest) ;
+
+     if( verb > 1 ) PAROUT("Final fine fit") ;
 
      mri_free(im_targ) ;
 
-     if( dset_out != NULL ){
-       im_targ = mri_genalign_scalar_warpim( &stup ) ;
+   WRAP_IT_UP:                   /** get read to write output **/
 
-       if( zeropad ){
+     if( parsave != NULL ){
+       parsave[kk] = (float *)malloc(sizeof(float)*stup.wfunc_numpar) ;
+       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+         parsave[kk][jj] = stup.wfunc_param[jj].val_out ;
+     }
+
+     if( dset_out != NULL ){
+       if( kk == 0 && skip_first ){             /* didn't register this one! */
+         im_targ = mri_copy( im_base ) ;
+       } else {
+         stup.interp_code = final_interp ;
+         im_targ = mri_genalign_scalar_warpim( &stup ) ;  /* matches im_base */
+       }
+
+       if( zeropad ){                  /* crop this if we had padded im_base */
          qim = mri_zeropad_3D( -pad_xm,-pad_xp , -pad_ym,-pad_yp ,
                                                  -pad_zm,-pad_zp , im_targ ) ;
          mri_free(im_targ) ; im_targ = qim ;
        }
 
-       EDIT_substitute_brick( dset_out, kk, MRI_float, MRI_FLOAT_PTR(im_targ) );
+       if( floatize || targ_kind == MRI_float ){
+         EDIT_substitute_brick( dset_out, kk, MRI_float, MRI_FLOAT_PTR(im_targ) );
+       } else {
+         EDIT_substscale_brick( dset_out, kk, MRI_float, MRI_FLOAT_PTR(im_targ) ,
+                                              targ_kind, 1.0f ) ;
+       }
        mri_clear_data_pointer(im_targ) ; mri_free(im_targ) ;
      }
    }
 
    if( dset_out != NULL ){ DSET_write(dset_out); WROTE_DSET(dset_out); }
 
+   /*--- save parameters to a file, if desired ---*/
+
+   if( parsave != NULL && fname_1D != NULL ){
+     FILE *fp ;
+     fp = (strcmp(fname_1D,"-") == 0) ?  stdout
+                                      : fopen(fname_1D,"w") ;
+     if( fp == NULL ) ERROR_exit("Can't open -1Dfile %s for output!?",fname_1D);
+     fprintf(fp,"# 3dAllineate parameters:\n") ;
+     fprintf(fp,"#") ;
+     for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+       fprintf(fp," %s",stup.wfunc_param[jj].name) ;
+     fprintf(fp,"\n") ;
+     for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
+       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+         fprintf(fp," %.5f",parsave[kk][jj]) ;
+     }
+     if( fp != stdout ){
+       fclose(fp) ; if( verb ) INFO_message("Wrote -1Dfile %s",fname_1D) ;
+     }
+   }
+
+   /*---------- FREE AT LAST, FREE AT LAST ----------*/
+
+   if( verb ) INFO_message("total CPU time = %.1f sec\n",COX_cpu_time()) ;
    exit(0) ;
 }
 
 /*---------------------------------------------------------------------------*/
 /*! Turn an input image into a weighting factor (for -autoweight).
+    If acod == 2, then make a binary mask at the end.
 -----------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_weightize( MRI_IMAGE *im )
+MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod )
 {
    float *wf,clip,clip2 ;
    int xfade,yfade,zfade , nx,ny,nz,nxy,nxyz , ii,jj,kk,ff ;
    byte *mmm ;
    MRI_IMAGE *qim , *wim ;
 
-   /* copy input image */
+   /*-- copy input image --*/
 
    qim = mri_to_float(im) ; wf = MRI_FLOAT_PTR(qim) ;
    nx = qim->nx; ny = qim->ny; nz = qim->nz; nxy = nx*ny; nxyz = nxy*nz;
-   for( ii=0 ; ii < nxyz ; ii++ ) wf[ii] = fabs(wf[ii]) ;
+   for( ii=0 ; ii < nxyz ; ii++ ) wf[ii] = fabsf(wf[ii]) ;
 
    /*-- zero out along the edges --*/
 #undef  WW
@@ -933,9 +1465,9 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im )
    xfade = (int)(0.05*qim->nx+3.0) ;                 /* number of points */
    yfade = (int)(0.05*qim->ny+3.0) ;                 /* along each face */
    zfade = (int)(0.05*qim->nz+3.0) ;                 /* to set to zero */
-   if( 4*xfade >= qim->nx ) xfade = (qim->nx-1)/4 ;
-   if( 4*yfade >= qim->ny ) yfade = (qim->ny-1)/4 ;
-   if( 3*zfade >= qim->nz ) zfade = (qim->nz-1)/4 ;
+   if( 5*xfade >= qim->nx ) xfade = (qim->nx-1)/5 ;
+   if( 5*yfade >= qim->ny ) yfade = (qim->ny-1)/5 ;
+   if( 5*zfade >= qim->nz ) zfade = (qim->nz-1)/5 ;
    for( jj=0 ; jj < ny ; jj++ )
     for( ii=0 ; ii < nx ; ii++ )
      for( ff=0 ; ff < zfade ; ff++ ) WW(ii,jj,ff) = WW(ii,jj,nz-1-ff) = 0.0f;
@@ -946,13 +1478,18 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im )
     for( ii=0 ; ii < nx ; ii++ )
      for( ff=0 ; ff < yfade ; ff++ ) WW(ii,ff,kk) = WW(ii,ny-1-ff,kk) = 0.0f;
 
+   /*-- squash super-large values down to reasonability --*/
+
+   clip = 3.0f * THD_cliplevel(qim,0.5f) ;
+   for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] > clip ) wf[ii] = clip ;
+
    /*-- blur a little: median then Gaussian;
           the idea is that the median filter smashes big spikes,
           then the Gaussian filter does some general smoothing.  --*/
 
    mmm = (byte *)malloc( sizeof(byte)*nxyz ) ;
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] > 0.0f) ; /* mask */
-   wim = mri_medianfilter( qim , 1.415 , mmm , 0 ) ;
+   wim = mri_medianfilter( qim , 2.25 , mmm , 0 ) ;  /* 2.25 is about sqrt(5) */
    mri_free(qim) ; wf = MRI_FLOAT_PTR(wim) ;
 
    FIR_blur_volume_3d( wim->nx , wim->ny , wim->nz ,
@@ -971,6 +1508,12 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im )
    THD_mask_clust( nx,ny,nz, mmm ) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( !mmm[ii] ) wf[ii] = 0.0f ;
    free((void *)mmm) ;
+
+   /*-- binarize? --*/
+
+   if( acod == 2 ){
+     for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] != 0.0f ) wf[ii] = 1.0f ;
+   }
 
    return wim ;
 }

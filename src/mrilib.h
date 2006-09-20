@@ -536,6 +536,8 @@ static int MRI_mm ;
 
 #define MRI_FOURIER_NOPAD (66)  /* 13 May 2003 */
 
+#define MRI_HIGHORDER(x) ((x) != MRI_NN && (x) != MRI_LINEAR)
+
 #define SQR(x)   ((x)*(x))
 #define CSQR(z)  (SQR(z.r)+SQR(z.i))
 #define CABS(z)  sqrt(CSQR(z))
@@ -1252,10 +1254,12 @@ typedef void GA_warpfunc( int, float *,
                           int, float *,float *,float *,
                                float *,float *,float * );
 #if 0
+# define PARAM_MAXTRIAL 5
   typedef struct {
     float min, max, ident, delta, toler ;
-    float val_init , val_out , val_fixed ;
+    float val_init , val_out , val_fixed , val_pinit ;
     int fixed ;
+    float val_trial[PARAM_MAXTRIAL] ;
     char name[32] ;
   }  GA_param ;
 #else
@@ -1279,6 +1283,7 @@ typedef struct {
   int   nmask     ;
   int   nvox_mask ;
   byte *bmask     ;
+  MRI_IMAGE *bwght ;
 
   MRI_IMAGE *ajim , *ajims ;
   float ajbot,ajtop ;
@@ -1286,7 +1291,7 @@ typedef struct {
   int ascali, bscali , abdim ;
 
   int npt_match   ;            /* set by user */
-  floatvec *im, *jm, *km , *bvm ;
+  floatvec *im, *jm, *km , *bvm , *wvm ;
   float bvstat ;
 
                              /*** NOT USED YET ***/
@@ -1300,7 +1305,8 @@ typedef struct {
   GA_param    *wfunc_param ;   /* set by user */
   GA_warpfunc *wfunc ;         /* set by user */
   int          wfunc_numfree ;
-  int          *wfunc_pma ;
+  int         *wfunc_pma ;
+  int          wfunc_ntrial ;
 
   int          setup ;
   float        vbest ;
@@ -1334,6 +1340,8 @@ extern MRI_IMAGE * mri_genalign_scalar_warpim( GA_setup * ) ;
 extern void mri_genalign_verbose(int) ;
 
 extern void GA_reset_fit_callback( void (*fc)(int,double*) ) ;
+extern void GA_do_dots(int) ;
+extern float mri_genalign_scalar_cost( GA_setup * ) ;
 
 /*------------------------------------------------------------------*/
 /* Prototypes for functions in nifti_stats.c */

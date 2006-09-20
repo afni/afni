@@ -22,7 +22,7 @@ MRI_IMAGE *mri_medianfilter( MRI_IMAGE *imin, float irad, byte *mask, int verb )
 
 ENTRY("mri_medianfilter") ;
 
-   if( imin == NULL || irad < 1.0 ) RETURN(NULL) ;
+   if( imin == NULL || irad <= 0.0f ) RETURN(NULL) ;
 
    /** if not a good input data type, floatize and try again **/
 
@@ -40,11 +40,16 @@ ENTRY("mri_medianfilter") ;
    /** build cluster of points for median-izing **/
 
    if( use_dxyz ){
-     if( irad < 1.01 ) irad = 1.01 ;
+     if( irad < 1.01f ) irad = 1.01f ;
      dz = (imin->nz == 1) ? 666.0f : 1.0f ;
      cl = MCW_build_mask( 1.0f,1.0f,dz , irad ) ;
    } else {
+     float dm ;
      dz = (imin->nz == 1) ? 666.0f : imin->dz ;
+     dm = MIN(imin->dx,imin->dy) ;
+     if( imin->nz == 1 ){ dz = 666.0f ; }
+     else               { dz = imin->dz ; dm = MIN(dm,dz) ; }
+     dm *= 1.01f ; if( irad < dm ) irad = dm ;
      cl = MCW_build_mask( imin->dx,imin->dy,dz , irad ) ;
    }
 

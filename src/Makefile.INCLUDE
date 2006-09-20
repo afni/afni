@@ -69,7 +69,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 1ddot 1dsvd        \
            3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat         \
            3dSpatNorm Imon fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive   \
-           nifti_tool             nifti1_test whereami plugout_drive            \
+           nifti_tool 3dAllineate nifti1_test whereami plugout_drive            \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \
            3dTwotoComplex 3dInvFMRI 3dmatcalc                                   \
@@ -96,7 +96,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 3dUniformize    \
                   3dWarp nicat 3dSpatNorm 3dWarpDrive 3dretroicor ge_header         \
                   3dAFNItoRaw DTIStudioFibertoSegments im2niml 3dLocalstat 3dGetrow \
-                  Imon nifti_tool             nifti1_test Dimon 3danisosmooth       \
+                  Imon nifti_tool 3dAllineate nifti1_test Dimon 3danisosmooth       \
                   3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc             \
                   $(EXTRAS)
 
@@ -127,7 +127,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                dicom_to_raw rotcom 3dDeconvolve_f 3dUniformize 3dWarp 3dWarpDrive \
                file_tool.exe Imon.exe 3dresample.exe serial_helper.exe im2niml    \
                nifti_tool.exe 3dAFNItoRaw DTIStudioFibertoSegments Dimon.exe      \
-               3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc
+               3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAllineate
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -716,7 +716,7 @@ qm:qm.o
 
 3dAllineate:3dAllineate.o
 	$(RM) $@
-	$(CC) -o 3dAllineate 3dAllineate.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+	$(CCFAST) -o 3dAllineate 3dAllineate.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 rotcom:rotcom.o
 	$(RM) $@
@@ -1244,6 +1244,10 @@ afni_suma.o:afni_suma.c afni_suma.h cs_sort_template.h
 csfft.o:csfft.c
 	$(RM) $@
 	$(CCFAST) -c csfft.c $(INFLAGS)
+
+mri_genalign.o:mri_genalign.c
+	$(RM) $@
+	$(CCFAST) -c mri_genalign.c $(INFLAGS)
 
 cl1.o:cl1.c
 	$(RM) $@
