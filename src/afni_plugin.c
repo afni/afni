@@ -4593,7 +4593,9 @@ ENTRY("PLUTO_4D_to_typed_fbuc") ;
    RETURN(new_dset) ;
 }
 
-void PLUTO_report( PLUGIN_interface * plint , char * str )
+/*----------------------------------------------------------------------------*/
+
+void PLUTO_report( PLUGIN_interface *plint , char *str )
 {
    if( plint == NULL || str == NULL || !AFNI_VERBOSE ) return ;
    printf("\n%15.15s= %s" , plint->label , str ) ; fflush(stdout) ;

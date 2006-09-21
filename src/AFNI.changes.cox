@@ -5915,3 +5915,4 @@
 
 21 Sep 2006
  * Put 3dAllineate into the distribution.  But is not finished.
+ * Modified plug_nlfit.c to allow AFNI_NLFIM_METHOD to select optimizer.

@@ -607,7 +607,21 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                                 helpstring ,
                                 PLUGIN_CALL_VIA_MENU , NL_main ) ;
 
-   N_newuoa = 2 ;  /* 31 Aug 2006 - RWCox */
+   { char *eee = getenv("AFNI_NLFIM_METHOD") , str[94] ;
+     if( eee == NULL || strcasecmp(eee,"simplex") == 0 )
+       N_newuoa = 0 ;
+     else if( strcasecmp(eee,"powell") == 0 )
+       N_newuoa = 1 ;
+     else if( strcasecmp(eee,"both") == 0 )
+       N_newuoa = 2 ;
+     else
+       N_newuoa = 0 ;
+
+     sprintf(str,"Optimizer (AFNI_NLFIM_METHOD) is %s" ,
+             (N_newuoa==0) ? "SIMPLEX"
+            :(N_newuoa==1) ? "POWELL" : "BOTH (SIMPLEX+POWELL)" ) ;
+     PLUTO_report(plint,str) ;
+   }
 
    PLUTO_add_hint( plint , "Control NLfit and NLerr Functions" ) ;
 
