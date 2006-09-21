@@ -144,20 +144,9 @@ static THD_mat33 rot_matrix( int ax1, double th1,
 
 #define D2R (PI/180.0)                /* angles are in degrees */
 
-#define MATORDER_SDU  1
-#define MATORDER_SUD  2
-#define MATORDER_DSU  3
-#define MATORDER_DUS  4
-#define MATORDER_USD  5
-#define MATORDER_UDS  6
-
-static int matorder = MATORDER_SDU ;
-static int dcode    = DELTA_AFTER  ;  /* cf. 3ddata.h */
-
-#define SMAT_UPPER    1
-#define SMAT_LOWER    2
-
+static int matorder = MATORDER_SDU ;  /* cf. mrilib.h */
 static int smat     = SMAT_LOWER ;
+static int dcode    = DELTA_AFTER  ;  /* cf. 3ddata.h */
 
 void parset_affine(void)
 {

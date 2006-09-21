@@ -49,7 +49,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset_targ = NULL ;
    THD_3dim_dataset *dset_mast = NULL ;
    THD_3dim_dataset *dset_weig = NULL ;
-   int auto_weight             = 0 ;
+   int auto_weight             = 1 ;            /* on by default */
    float dxyz_mast             = 0.0f ;
    int meth_code               = GA_MATCH_KULLBACK_SCALAR ;
    int sm_code                 = GA_SMOOTH_GAUSSIAN ;
@@ -75,6 +75,10 @@ int main( int argc , char *argv[] )
    float powell_mm             = 0.0f ;
    float powell_aa             = 0.0f ;
    float conv_mm               = 0.05 ;         /* millimeters */
+   int matorder                = MATORDER_SDU ; /* matrix mult order */
+   int smat                    = SMAT_LOWER ;   /* shear matrix triangle */
+   int dcode                   = DELTA_AFTER ;  /* shift after */
+
 
    /**----- Help the pitifully ignorant user? -----**/
 
@@ -192,15 +196,20 @@ int main( int argc , char *argv[] )
        " -fineblur x = Set the blurring radius to use in the fine resolution\n"
        "               pass to 'x' mm.  [Default == 0 mm]\n"
        "\n"
-       " -weight www = Set the weighting for each voxel in the base dataset;\n"
-       "               larger weights mean that voxel counts more in the cost\n"
-       "               function.  [Default == all voxels weighted equally.]\n"
-       "       **N.B.: The weight dataset must be defined on the same grid as\n"
-       "               the base dataset.\n"
        " -autoweight = Compute a weight function using the 3dAutomask\n"
        "               algorithm plus some blurring of the base image.\n"
+       "               [This is the default mode of operation.]\n"
        " -automask   = Compute a mask function, which is like -autoweight,\n"
        "               but the weight for a voxel is either 0 or 1.\n"
+       " -noauto     = Don't compute the autoweight; if -weight is not given,\n"
+       "               then every voxel will be counted equally.\n"
+       " -weight www = Set the weighting for each voxel in the base dataset;\n"
+       "               larger weights mean that voxel counts more in the cost\n"
+       "               function.\n"
+       "       **N.B.: The weight dataset must be defined on the same grid as\n"
+       "               the base dataset.\n"
+       " -wtprefix p = Write the weight volume to disk as a dataset with\n"
+       "               prefix name 'p'.\n"
        "\n"
        " -warp xxx   = Set the warp type to 'xxx', which is one of\n"
        "                 shift_only         *OR* sho =  3 parameters\n"
@@ -283,10 +292,30 @@ int main( int argc , char *argv[] )
 
      printf(
       "\n"
-      "--------------------------\n"
-      "  RWCox - September 2006\n"
-      "--------------------------\n"
-      "-- From Webster's Dictionary: Allineate == 'to align'\n\n"
+      "*********** CHANGING THE ORDER OF MATRIX APPLICATION ***********\n"
+      "\n"
+      "  -SDU or -SUD }= Set the order of the matrix multiplication\n"
+      "  -DSU or -DUS }= for the affine transformations:\n"
+      "  -USD or -UDS }=   S = triangular shear (params #10-12)\n"
+      "                    D = diagonal scaling matrix (params #7-9)\n"
+      "                    U = rotation matrix (params #4-6)\n"
+      "                  Default order is '-SDU', which means that\n"
+      "                  the U matrix is applied first, then the\n"
+      "                  D matrix, then the S matrix.\n"
+      "\n"
+      "  -Supper      }= Set the S matrix to be upper or lower\n"
+      "  -Slower      }= triangular [Default=lower triangular]\n"
+      "\n"
+      "  -ashift OR   }= Apply the shift parameters (#1-3) after OR\n"
+      "  -bshift      }= before the matrix transformation. [Default=after]\n"
+     ) ;
+
+     printf(
+      "\n"
+      "================================================\n"
+      "  RWCox - September 2006 - Live Long and Prosper\n"
+      "================================================\n"
+      "** From Webster's Dictionary: Allineate == 'to align' **\n\n"
      ) ;
 
      exit(0);
@@ -300,7 +329,7 @@ int main( int argc , char *argv[] )
 
    mainENTRY("3dAllineate"); machdep();
    AFNI_logger("3dAllineate",argc,argv);
-   PRINT_VERSION("3dAllineate"); AUTHOR("RW Cox");
+   PRINT_VERSION("3dAllineate"); AUTHOR("Emperor Zhark");
    THD_check_AFNI_version("3dAllineate");
    srand48((long)time(NULL)+(long)getpid()) ;  /* for ransetup in -twopass */
 
@@ -378,7 +407,7 @@ int main( int argc , char *argv[] )
     /*-----*/
 
      if( strncmp(argv[iarg],"-weight",5) == 0 ){
-       if( auto_weight ) ERROR_exit("Can't use -autoweight/mask AND -weight!") ;
+       auto_weight = 0 ;
        if( dset_weig != NULL ) ERROR_exit("Can't have multiple %s options!",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        dset_weig = THD_open_dataset( argv[iarg] ) ;
@@ -398,9 +427,13 @@ int main( int argc , char *argv[] )
        auto_weight = 2 ; iarg++ ; continue ;
      }
 
+     if( strncmp(argv[iarg],"-noauto",6) == 0 ){
+       auto_weight = 0 ; iarg++ ; continue ;
+     }
+
      /*-----*/
 
-     if( strncmp(argv[iarg],"-wtprefix",5) == 0 ){  /* not in -help */
+     if( strncmp(argv[iarg],"-wtprefix",5) == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        if( !THD_filename_ok(argv[iarg]) )
          ERROR_exit("badly formed filename: '%s' '%s'",argv[iarg-1],argv[iarg]) ;
@@ -614,8 +647,8 @@ int main( int argc , char *argv[] )
        float vv ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        vv = (float)strtod(argv[iarg],NULL) ;
-       if( vv <= 0.0f || vv > 6.66f ){
-         vv = 0.03f ;
+       if( vv <= 0.001f || vv > 6.66f ){
+         vv = 0.05f ;
          WARNING_message("-conv '%s' is out of range",argv[iarg]) ;
        }
        conv_mm = vv ; iarg++ ; continue ;
@@ -776,6 +809,39 @@ int main( int argc , char *argv[] )
        paropt[nparopt].code = PARC_INI ;
        paropt[nparopt].vb   = v1 ;
        nparopt++ ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcmp(argv[iarg],"-SDU") == 0 ){
+       matorder = MATORDER_SDU ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-SUD") == 0 ){
+       matorder = MATORDER_SUD ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-DSU") == 0 ){
+       matorder = MATORDER_DSU ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-DUS") == 0 ){
+       matorder = MATORDER_DUS ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-USD") == 0 ){
+       matorder = MATORDER_USD ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-UDS") == 0 ){
+       matorder = MATORDER_UDS ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-ashift") == 0 ){
+       dcode = DELTA_AFTER     ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-bshift") == 0 ){
+       dcode = DELTA_BEFORE    ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-Slower") == 0 ){
+       smat  = SMAT_LOWER      ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-Supper") == 0 ){
+       smat  = SMAT_UPPER      ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -1037,14 +1103,16 @@ int main( int argc , char *argv[] )
 
    /* define warp parameters and function */
 
+   mri_genalign_affine_setup( matorder , dcode , smat ) ;
+
    stup.wfunc       = mri_genalign_affine ;  /* warping function */
    stup.wfunc_param = (GA_param *)calloc(12,sizeof(GA_param)) ;
 
    switch( warp_code ){
-     case WARP_SHIFT:   stup.wfunc_numpar =  3 ;
-     case WARP_ROTATE:  stup.wfunc_numpar =  6 ;
-     case WARP_SCALE:   stup.wfunc_numpar =  9 ;
-     case WARP_AFFINE:  stup.wfunc_numpar = 12 ;
+     case WARP_SHIFT:   stup.wfunc_numpar =  3 ; break ;
+     case WARP_ROTATE:  stup.wfunc_numpar =  6 ; break ;
+     case WARP_SCALE:   stup.wfunc_numpar =  9 ; break ;
+     case WARP_AFFINE:  stup.wfunc_numpar = 12 ; break ;
    }
 
    if( apply_1D != NULL && apply_nx < stup.wfunc_numpar )
@@ -1110,10 +1178,12 @@ int main( int argc , char *argv[] )
          switch( paropt[ii].code ){
            case PARC_FIX: stup.wfunc_param[jj].fixed     = 2 ; /* permanent fix */
                           stup.wfunc_param[jj].val_fixed = paropt[ii].vb; break;
+
            case PARC_INI: stup.wfunc_param[jj].fixed     = 0 ;
                           stup.wfunc_param[jj].val_fixed =
                           stup.wfunc_param[jj].val_init  =
                           stup.wfunc_param[jj].val_pinit = paropt[ii].vb; break;
+
            case PARC_RAN: stup.wfunc_param[jj].fixed     = 0 ;
                           stup.wfunc_param[jj].min       = paropt[ii].vb;
                           stup.wfunc_param[jj].max       = paropt[ii].vt; break;
