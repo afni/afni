@@ -1532,9 +1532,9 @@ extern mat44 THD_mat44_mul( mat44 A , mat44 B ) ;      /* matrix multiply */
 
 #undef  MAT44_EXTEND_IJK
 #define MAT44_EXTEND_IJK(AA,pp,qq,rr)                              \
- ( AA.m[0][3] += AA.m[0][0]*(pp)+AA.m[0][1]*(qq)+AA.m[0][2]*(rr) , \
-   AA.m[1][3] += AA.m[1][0]*(pp)+AA.m[1][1]*(qq)+AA.m[1][2]*(rr) , \
-   AA.m[2][3] += AA.m[2][0]*(pp)+AA.m[2][1]*(qq)+AA.m[2][2]*(rr)  )
+ ( AA.m[0][3] -= AA.m[0][0]*(pp)+AA.m[0][1]*(qq)+AA.m[0][2]*(rr) , \
+   AA.m[1][3] -= AA.m[1][0]*(pp)+AA.m[1][1]*(qq)+AA.m[1][2]*(rr) , \
+   AA.m[2][3] -= AA.m[2][0]*(pp)+AA.m[2][1]*(qq)+AA.m[2][2]*(rr)  )
 
 
 /*---------------------------------------------------------------------*/
@@ -3790,6 +3790,7 @@ extern void THD_autobbox( THD_3dim_dataset * ,             /* 06 Jun 2002 */
                           int *, int * , int *, int * , int *, int * ) ;
 extern void MRI_autobbox( MRI_IMAGE * ,
                           int *, int * , int *, int * , int *, int * ) ;
+extern void MRI_autobbox_clust( int ) ;                    /* 20 Sep 2006 */
 
 extern void THD_automask_set_clipfrac( float f ) ;         /* 20 Mar 2006 */
 
