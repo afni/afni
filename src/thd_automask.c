@@ -758,6 +758,9 @@ ENTRY("THD_autobbox") ;
 
 /*------------------------------------------------------------------------*/
 
+static int bbox_clust=1 ;
+void MRI_autobbox_clust( int c ){ bbox_clust = c; }
+
 void MRI_autobbox( MRI_IMAGE *qim ,
                    int *xm, int *xp , int *ym, int *yp , int *zm, int *zp )
 {
@@ -785,9 +788,11 @@ ENTRY("MRI_autobbox") ;
 
    nx = qim->nx; ny = qim->ny; nz = qim->nz; nxy = nx*ny;
 
-   THD_mask_clust( nx,ny,nz, mmm ) ;
-   THD_mask_erode( nx,ny,nz, mmm, 1 ) ;
-   THD_mask_clust( nx,ny,nz, mmm ) ;
+   if( bbox_clust ){
+     THD_mask_clust( nx,ny,nz, mmm ) ;
+     THD_mask_erode( nx,ny,nz, mmm, 1 ) ;
+     THD_mask_clust( nx,ny,nz, mmm ) ;
+   }
 
    /* For each plane direction,
       find the first and last index that have nonzero voxels in that plane */
