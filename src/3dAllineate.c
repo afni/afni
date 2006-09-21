@@ -1,5 +1,4 @@
 /**** TO DO:
-             -1Dapply
              -matini
              center of mass: use to set center of range?
              dset_master, dxyz?
@@ -1068,9 +1067,9 @@ int main( int argc , char *argv[] )
      stup.wfunc_param[p].fixed  = 0 ;             \
  } while(0)
 
-   xxx = 0.333 * (nx_base-1) * dx_base ;  /* range of shifts allowed */
-   yyy = 0.333 * (ny_base-1) * dy_base ;
-   zzz = 0.333 * (nz_base-1) * dz_base ;
+   xxx = 0.321 * (nx_base-1) * dx_base ;  /* range of shifts allowed */
+   yyy = 0.321 * (ny_base-1) * dy_base ;
+   zzz = 0.321 * (nz_base-1) * dz_base ;
 
    /* we define all 12 affine parameters, though not all may be used */
 
@@ -1144,20 +1143,33 @@ int main( int argc , char *argv[] )
 
    /** set convergence radius for parameter search **/
 
-   xxx = 0.5f * (nx_base-1) * dx_base ;
-   yyy = 0.5f * (ny_base-1) * dy_base ;
-   zzz = 0.5f * (nz_base-1) * dz_base ;
-   xxx = (nz_base > 1 ) ? cbrt(xxx*yyy*zzz) : sqrt(xxx*yyy) ;
+   if( im_weig == NULL ){
+     xxx = 0.5f * (nx_base-1) * dx_base ;
+     yyy = 0.5f * (ny_base-1) * dy_base ;
+     zzz = 0.5f * (nz_base-1) * dz_base ;
+   } else {
+     int xm,xp , ym,yp , zm,zp ;
+     MRI_autobbox_clust(0) ;
+     MRI_autobbox( im_weig , &xm,&xp , &ym,&yp , &zm,&zp ) ;
+     MRI_autobbox_clust(1) ;
+#if 0
+     fprintf(stderr,"xm,xp,nx=%d,%d,%d\n",xm,xp,nx_base) ;
+     fprintf(stderr,"ym,yp,ny=%d,%d,%d\n",ym,yp,ny_base) ;
+     fprintf(stderr,"zm,zp,nz=%d,%d,%d\n",zm,zp,nz_base) ;
+#endif
+     xxx = 0.5f * (xp-xm) * dx_base ;
+     yyy = 0.5f * (yp-ym) * dy_base ;
+     zzz = 0.5f * (zp-zm) * dz_base ;
+   }
+   xxx = (nz_base > 1) ? cbrt(xxx*yyy*zzz) : sqrt(xxx*yyy) ;
    zzz = 1.e+33 ;
    for( jj=0 ; jj < 6 && jj < stup.wfunc_numpar ; jj++ ){
      if( stup.wfunc_param[jj].fixed ) continue ;
      siz = stup.wfunc_param[jj].max - stup.wfunc_param[jj].min ;
      if( siz <= 0.0f ) continue ;
-     if( jj < 3 ){  /* shift param */
-       yyy = conv_mm / siz ; zzz = MIN(yyy,zzz) ;
-     } else {       /* rotation param */
-       yyy = 57.3f * conv_mm / (xxx*siz) ; zzz = MIN(yyy,zzz) ;
-     }
+     if( jj < 3 ) yyy = conv_mm / siz ;               /* shift */
+     else         yyy = 57.3f * conv_mm / (xxx*siz) ; /* angle */
+     zzz = MIN(zzz,yyy) ;
    }
    conv_rad = MIN(zzz,0.001) ; conv_rad = MAX(conv_rad,0.00001) ;
    if( verb > 1 ) INFO_message("convergence radius = %.6f",conv_rad) ;
