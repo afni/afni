@@ -5912,3 +5912,6 @@
 08 Sep 2006
  * Cosmetic changes to AlphaSim to make '-quiet -quiet' turn off all
    stdout printing except numerical table at end.
+
+21 Sep 2006
+ * Put 3dAllineate into the distribution.  But is not finished.

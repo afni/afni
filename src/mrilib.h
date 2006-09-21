@@ -1332,7 +1332,6 @@ extern void mri_genalign_scalar_setup( MRI_IMAGE *, MRI_IMAGE *,
                                        MRI_IMAGE *, GA_setup  * ) ;
 extern int mri_genalign_scalar_optim( GA_setup *, double, double, int) ;
 extern void mri_genalign_scalar_ransetup( GA_setup *, int ) ;
-extern void mri_genalign_affine_setup( int,int,int ) ;
 extern void mri_genalign_affine( int, float *,
                                  int, float *, float *, float *,
                                       float *, float *, float * ) ;
@@ -1342,6 +1341,18 @@ extern void mri_genalign_verbose(int) ;
 extern void GA_reset_fit_callback( void (*fc)(int,double*) ) ;
 extern void GA_do_dots(int) ;
 extern float mri_genalign_scalar_cost( GA_setup * ) ;
+
+#define MATORDER_SDU  1  /* matrix multiplication order: */
+#define MATORDER_SUD  2  /* S = shear matrix             */
+#define MATORDER_DSU  3  /* D = diagonal scaling matrix  */
+#define MATORDER_DUS  4  /* U = rotation matrix          */
+#define MATORDER_USD  5
+#define MATORDER_UDS  6
+
+#define SMAT_UPPER    1  /* shear matrix is upper */
+#define SMAT_LOWER    2  /* or lower triangular  */
+
+extern void mri_genalign_affine_setup( int,int,int ) ;
 
 /*------------------------------------------------------------------*/
 /* Prototypes for functions in nifti_stats.c */
