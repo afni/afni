@@ -2229,6 +2229,15 @@ This variable determines the compression quality of JPEG files saved in
 the AFNI GUI and 3dDeconvolve. Its value can be set to an integer from 
 1 to 100. If not set, the default value is 95%.
 
+---------------------------
+Variable: AFNI_NLFIM_METHOD
+---------------------------
+Can be used to set the optimization method using in the NLfit plugin
+(not in 3dNLfim).  The methods available are
+  SIMPLEX (the default)
+  POWELL  (the NEWUOA method)
+  BOTH    (use both methods, choose the 'best' result)
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
