@@ -1066,9 +1066,10 @@ typedef struct { int i,j,k; } int_triple ;
 
 typedef struct { int nar ; float *ar ; } floatvec ;
 #define KILL_floatvec(fv)                      \
-  do{ if( (fv)->ar != NULL ) free((fv)->ar);   \
-      free(fv);                                \
-  } while(0)
+  do{ if( (fv) != NULL ){                      \
+        if( (fv)->ar != NULL ) free((fv)->ar); \
+        free(fv);                              \
+  }} while(0)
 
 #define MAKE_floatvec(fv,n)                             \
   do{ (fv) = (floatvec *)malloc(sizeof(floatvec)) ;     \
@@ -1080,9 +1081,10 @@ typedef struct { int nvec ; floatvec *fvar ; } floatvecvec ;
 
 typedef struct { int nar ; int *ar ; } intvec ;
 #define KILL_intvec(iv)                        \
-  do{ if( (iv)->ar != NULL ) free((iv)->ar);   \
-      free(iv);                                \
-  } while(0)
+  do{ if( (iv) != NULL ){                      \
+        if( (iv)->ar != NULL ) free((iv)->ar); \
+        free(iv);                              \
+  } } while(0)
 
 #define MAKE_intvec(iv,n)                           \
   do{ (iv) = (intvec *)malloc(sizeof(intvec)) ;     \
@@ -1315,18 +1317,16 @@ typedef struct {
 #undef  IFREE
 #define IFREE(x) do{ if((x)!=NULL)free(x); }while(0)
 
-#if 0
 #undef  FREE_GA_setup
-#define FREE_GA_setup(st)                                                    \
- do{ if( (st) != NULL ){                                                     \
-       mri_free((st)->bsim); mri_free((st)->ajim); IFREE((st)->bmask);       \
-       IFREE((st)->im); IFREE((st)->jm); IFREE((st)->km); IFREE((st)->bvm);  \
-       IFREE((st)->is); IFREE((st)->js); IFREE((st)->ks); IFREE((st)->bvs);  \
-       IFREE((st)->wfunc_param) ; IFREE((st)->wfunc_pma) ;                   \
-       free((st)) ;                                                          \
-     }                                                                       \
+#define FREE_GA_setup(st)                                                   \
+ do{ if( (st) != NULL ){                                                    \
+       mri_free((st)->bsim); mri_free((st)->ajim); IFREE((st)->bmask);      \
+       mri_free((st)->bsims);mri_free((st)->ajims);mri_free((st)->bwght);   \
+       KILL_floatvec((st)->im); KILL_floatvec((st)->jm);                    \
+       KILL_floatvec((st)->km); KILL_floatvec((st)->bvm);                   \
+       KILL_floatvec((st)->wvm); IFREE((st)->wfunc_param) ;                 \
+     }                                                                      \
  } while(0)
-#endif
 
 extern void mri_genalign_scalar_setup( MRI_IMAGE *, MRI_IMAGE *,
                                        MRI_IMAGE *, GA_setup  * ) ;
