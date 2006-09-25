@@ -1241,6 +1241,8 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 #define GA_MATCH_KULLBACK_SCALAR    3  /* Mutual Info */
 #define GA_MATCH_MUTINFO_SCALAR     3
 #define GA_MATCH_CORRATIO_SCALAR    4  /* Correlation Ratio */
+#define GA_MATCH_NORMUTIN_SCALAR    5  /* Normalized Mutual Info */
+#define GA_MATCH_JOINTENT_SCALAR    6  /* Joint Entropy */
 
 #define GA_MATCH_POINTS(g)   ( (g) == GA_MATCH_PEARSON_SCALAR ||   \
                                (g) == GA_MATCH_SPEARMAN_SCALAR   )
