@@ -1399,7 +1399,7 @@ int SUMA_WhichState (char *state, SUMA_SurfaceViewer *csv, char *ForceGroup)
                                  i, csv->VSv[i].Name);
                                  
          if (!csv->VSv[i].Name || !state) {
-            SUMA_SL_Err("Null Name or State \n");
+            SUMA_LH("Null Name or State \n");
             SUMA_RETURN (-1);
          }
          if (strcmp(csv->VSv[i].Name, state) == 0) {
@@ -1415,7 +1415,7 @@ int SUMA_WhichState (char *state, SUMA_SurfaceViewer *csv, char *ForceGroup)
          if (LocalHead) fprintf(SUMA_STDERR,"   %d? %s, %s ...\n", 
                                  i, csv->VSv[i].Name, csv->VSv[i].Group);
          if (!csv->VSv[i].Name || !state || !csv->CurGroupName) {
-            SUMA_SL_Err("Null Name or State or CurGroupName.\n");
+            SUMA_LH("Null Name or State or CurGroupName.\n");
             SUMA_RETURN (-1);
          }
          if (strcmp(csv->VSv[i].Name, state) == 0 && strcmp(csv->VSv[i].Group, ForceGroup) == 0 ) {
@@ -2387,7 +2387,7 @@ SUMA_Boolean SUMA_AdoptSurfGroup(SUMA_SurfaceViewer *csv, SUMA_SurfaceObject *SO
 */
 SUMA_Boolean SUMA_AdoptGroup(SUMA_SurfaceViewer *csv, char *group)
 {
-   static char FuncName[]={"SUMA_AdoptSurfGroup"};
+   static char FuncName[]={"SUMA_AdoptGroup"};
 
    SUMA_ENTRY;
 
@@ -2466,7 +2466,7 @@ if surface is SureFit, flip lights
 SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv, SUMA_SurfaceViewer *cSV, int viewopt)
 {
    static char FuncName[] = {"SUMA_SetupSVforDOs"};
-   int kar;
+   int kar, ws;
    SUMA_SurfaceObject *SO;
    SUMA_Axis *EyeAxis;
    int EyeAxis_ID;
@@ -2527,21 +2527,36 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
       } 
       SUMA_LH("Done.");
 
-   /* register all SOs of the first state */   
-      if (LocalHead) {
-         fprintf(SUMA_STDERR,"%s: Registering All SO of the first group ...\n", FuncName);
-         fprintf(SUMA_STDERR,"%s: cSV->VSv[0].N_MembSOs = %d\n", FuncName, cSV->VSv[0].N_MembSOs);
-      }
-      cSV->State = cSV->VSv[0].Name;
-      cSV->iState = 0;
-      for (kar=0; kar < cSV->VSv[0].N_MembSOs; ++ kar) {
-          if (LocalHead) fprintf(SUMA_STDERR," About to register DOv[%d] ...\n", cSV->VSv[0].MembSOs[kar]);
-            if (!SUMA_RegisterDO(cSV->VSv[0].MembSOs[kar], cSV)) {
-               SUMA_error_message (FuncName,"Failed to register DO", 1);
-               SUMA_RETURN(NOPE);
-            }
-      }
-      
+      /* register all SOs of the first state if no state is current
+         or register all surfaces if they are of the current state and group
+         (it is possible that no new surfaces are registered, but overhead is tiny)
+         
+         The logic fails when you load two different groups with the one surface in each having the same
+         state as in the other.
+         {G1, SO->State='a'} {G2, SO->State='a'} in that case both surfaces will show up at the same
+         time when first loaded. You'll need to switch groups before you see just the one surface from that group.
+         
+         For now, I don't care to set this up properly since no one uses multi-group business.
+      */   
+      ws =  SUMA_WhichState (cSV->State, cSV, cSV->CurGroupName) ;
+      if ( ws < 0) { /* first kiss */ ws = 0; }
+      {   
+         if (LocalHead) {
+            fprintf(SUMA_STDERR,"%s: Registering All SO of the %dth state ...\n", FuncName, ws);
+            fprintf(SUMA_STDERR,"%s: cSV->VSv[%d].N_MembSOs = %d\n", FuncName, ws, cSV->VSv[ws].N_MembSOs);
+         }
+         cSV->State = cSV->VSv[ws].Name;
+         cSV->iState = ws;
+         for (kar=0; kar < cSV->VSv[ws].N_MembSOs; ++ kar) {
+             if (LocalHead) fprintf(SUMA_STDERR," About to register DOv[%d] ...\n", cSV->VSv[ws].MembSOs[kar]);
+             SO = (SUMA_SurfaceObject *)DOv[cSV->VSv[ws].MembSOs[kar]].OP;
+             SUMA_LHv("SO->Group %s, cSV->CurGroupName %s\n", SO->Group, cSV->CurGroupName); 
+               if (!SUMA_RegisterDO(cSV->VSv[ws].MembSOs[kar], cSV)) {
+                  SUMA_error_message (FuncName,"Failed to register DO", 1);
+                  SUMA_RETURN(NOPE);
+               }
+         }
+      } 
       
    if (LocalHead)   fprintf(SUMA_STDERR,"%s: Done.\n", FuncName);
 
@@ -2601,7 +2616,7 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
 
 
    /* Set the index Current SO pointer to the first surface object read of the first state, tiz NOT (Fri Jan 31 15:18:49 EST 2003) a surface of course*/
-   cSV->Focus_SO_ID = cSV->VSv[0].MembSOs[0];
+   cSV->Focus_SO_ID = cSV->VSv[ws].MembSOs[0];
    /*set the GroupName info of the viewer correctly */
    SO = (SUMA_SurfaceObject *)(DOv[cSV->Focus_SO_ID].OP);
    if (!SUMA_AdoptSurfGroup(cSV,SO)) {

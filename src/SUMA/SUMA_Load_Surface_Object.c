@@ -2264,8 +2264,12 @@ SUMA_Boolean SUMA_PrepAddmappableSO(SUMA_SurfaceObject *SO, SUMA_DO *dov, int *N
       #endif
 
       /* create the surface controller */
-      SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str);
-
+      if (!SO->SurfCont) {
+         SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str);
+      } else {
+         SUMA_S_Note("Surface Controller Exists Already.");
+      }
+      
       {
          SUMA_DSET *dset=NULL;/* create the color plane for Convexity*/
 
@@ -2535,14 +2539,26 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
                if (SOinh) {
                   #if SUMA_SEPARATE_SURF_CONTROLLERS
                   /* leave controllers separate */ 
-                  SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str); 
+                  if (!SO->SurfCont) {
+                     SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str); 
+                  } else {
+                     SUMA_S_Note("Surface Controller Exists Already (b)\n");
+                  }
                   #else
                   /* create a link to the surface controller pointer */
-                  SO->SurfCont = (SUMA_X_SurfCont*)SUMA_LinkToPointer((void *)SOinh->SurfCont);
+                  if (!SO->SurfCont) {
+                     SO->SurfCont = (SUMA_X_SurfCont*)SUMA_LinkToPointer((void *)SOinh->SurfCont);
+                  } else {
+                     SUMA_S_Note("Surface Controller Exists Already (c)\n");
+                  }
                   #endif
                } else {
                   /* brand new one */
-                  SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str);
+                  if (!SO->SurfCont) {
+                     SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str);
+                  } else {
+                     SUMA_S_Note("Surface Controller Exists Already (d)\n");
+                  }
                }
 
                
@@ -3969,7 +3985,7 @@ void SUMA_Show_IO_args(SUMA_GENERIC_ARGV_PARSE *ps)
          fprintf(SUMA_STDERR,"Talking to SUMA requested.\n");
       }
    } 
-   fprintf(SUMA_STDERR,"%d arguments on command line:\n", ps->N_args);
+   fprintf(SUMA_STDERR,"%d arguments on command line (+checked, -not checked):\n", ps->N_args);
    for (i=0; i<ps->N_args; ++i) {
       if (ps->arg_checked[i]) fprintf(SUMA_STDERR," %d+   ",i);
       else fprintf(SUMA_STDERR," %d-   ",i);

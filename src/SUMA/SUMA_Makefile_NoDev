@@ -206,13 +206,13 @@ SurfSmooth: SUMA_GeomComp.c SUMA_SurfSmooth.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED -DSUMA_SurfSmooth_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_SurfSmooth.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
-SurfPatch: SUMA_GeomComp.c
+SurfPatch: SUMA_SurfPatch.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_getPatch_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_GeomComp.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_getPatch_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_SurfPatch.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
-SurfQual: SUMA_GeomComp.c
+SurfQual: SUMA_SurfQual.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_SurfQual_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_GeomComp.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_SurfQual_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_SurfQual.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SUMA_Homer: SUMA_Homer.c
 	$(RM) $@
@@ -364,6 +364,12 @@ AnalyzeTrace: SUMA_AnalyzeTrace.c
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
+DriveSuma: SUMA_DriveSuma.c
+	$(RM) $@
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_DriveSuma.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
+		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+
 SurfDsetInfo: SUMA_SurfDsetInfo.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SurfDsetInfo.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
@@ -486,6 +492,7 @@ install:
 	@if [ -f NikoMap ]; then mv NikoMap ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SurfDsetInfo ]; then mv SurfDsetInfo ${INSTALLDIR_SUMA}; fi;
 	@if [ -f AnalyzeTrace ]; then mv AnalyzeTrace ${INSTALLDIR_SUMA}; fi;
+	@if [ -f DriveSuma ]; then mv DriveSuma ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SumaProgramTemplate ]; then mv SumaProgramTemplate ${INSTALLDIR_SUMA}; fi;
 
 packbins:
@@ -537,6 +544,7 @@ packbins:
 	@if [ -f NikoMap ]; then $(CP) -p NikoMap SUMA_bin/; fi;
 	@if [ -f SurfDsetInfo ]; then $(CP) -p SurfDsetInfo SUMA_bin/; fi;
 	@if [ -f AnalyzeTrace ]; then $(CP) -p AnalyzeTrace SUMA_bin/; fi;
+	@if [ -f DriveSuma ]; then $(CP) -p DriveSuma SUMA_bin/; fi;
 	@if [ -f SumaProgramTemplate ]; then $(CP) -p SumaProgramTemplate SUMA_bin/; fi;
 
 	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
@@ -553,7 +561,7 @@ standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
 	ROI2dataset SurfSmooth SurfPatch SurfQual inspec quickspec FScurv_to_1D FSread_annot	\
    SUMA_TestDsetIO ConvertDset ShowCmap SurfClust IsoSurface 3dSkullStrip \
    3dCRUISEtoAFNI	3dBRAIN_VOYAGERtoAFNI 3dSurfMask SurfToSurf ROIgrow\
-   NikoMap SurfDsetInfo AnalyzeTrace SumaProgramTemplate 
+   NikoMap SurfDsetInfo AnalyzeTrace DriveSuma SumaProgramTemplate 
    
  
 anew: clean libSUMA.a mainobj suma standalones packbins install 
