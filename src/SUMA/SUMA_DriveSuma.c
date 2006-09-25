@@ -111,8 +111,9 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
    int argtc = 0;
    SUMA_SurfSpecFile *Spec = NULL;
    int *isin=NULL;
-   int  i = -1, ii, jj, kk, il, N_Spec=0;
-   SUMA_Boolean LocalHead = YUP;
+   int  i = -1, ii, jj, kk, il, N_Spec=0, kar=0;
+   SUMA_Boolean brk = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -131,11 +132,14 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
       SUMA_GET_BETWEEN_BLANKS(com, NULL, pos);
       tp=NULL;SUMA_COPY_TO_STRING(com, pos, tp); com = pos;
       SUMA_LHv("Adding >>>%s<<<\n", tp);
-      argt = (char **)SUMA_realloc(argt, sizeof(char *)*(argtc+1)); argt[argtc] = tp; tp = NULL; ++argtc;
+      argt = (char **)SUMA_realloc(argt, sizeof(char *)*(argtc+1)); 
+      argt[argtc] = tp; tp = NULL; 
+      ++argtc;
    }
    /* now parse these fake options */
    pst = SUMA_Parse_IO_Args(argtc, argt, "-i;-t;-spec;-sv;");
    if (LocalHead) SUMA_Show_IO_args(pst);
+   
    
    if (pst->s_N_surfnames + pst->i_N_surfnames + pst->t_N_surfnames != 1) {
       SUMA_S_Err("Multiple surface specifications used. Only one surface allowed.");
@@ -161,13 +165,48 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
                               FuncName );
          exit(1);
       
-   }   
+   }
+
+   /* now search for some extra options */
+   kar = 1;
+   brk = NOPE;
+	while (kar < argtc) { /* loop accross command ine options */
+		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      if (!brk && (strcmp(argt[kar], "-label") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a label after -label \n");
+            exit (1);
+         }
+         
+         if (SO->Label) SUMA_free(SO->Label);
+         SO->Label = SUMA_copy_string(argt[++kar]);
+         brk = YUP;
+      }
+      
+      
+      if (!brk && !pst->arg_checked[kar]) {
+			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n",
+               FuncName, argt[kar]);
+			exit (1);
+		} else {	
+			brk = NOPE;
+			kar ++;
+		}
+   }
+
    /* fix the trimmings */
    if (!SO->State) {SO->State = SUMA_copy_string("DC"); }
    if (!SO->Group) {SO->Group = SUMA_copy_string("DS"); }
    if (!SO->Label) {SO->Label = SUMA_copy_string("Benedictus"); }
-   if (SO->Label) { if (SO->idcode_str) SUMA_free(SO->idcode_str); SO->idcode_str = NULL; SUMA_NEW_ID(SO->idcode_str, SO->Label); }
+   if (SO->Label) { 
+      if (SO->idcode_str) SUMA_free(SO->idcode_str); 
+      SO->idcode_str = NULL; SUMA_NEW_ID(SO->idcode_str, SO->Label); }
 
+   if (LocalHead) {
+      SUMA_Print_Surface_Object(SO, NULL);
+   }
    /* clean up */
    if (argt) {
       for (i=0; i<argtc; ++i) if (argt[i]) SUMA_free(argt[i]); 
@@ -189,6 +228,7 @@ SUMA_Boolean SUMA_ProcessCommand(char *com, SUMA_GENERIC_ARGV_PARSE *ps)
 {
    static char FuncName[]={"SUMA_ProcessCommand"};
    int i;
+   float *far=NULL;
    char *act, *pos, *stp;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_SO_File_Type tp = SUMA_FT_NOT_SPECIFIED;
@@ -210,6 +250,23 @@ SUMA_Boolean SUMA_ProcessCommand(char *com, SUMA_GENERIC_ARGV_PARSE *ps)
       SO = SUMA_ShowSurfComToSO(com);
       SUMA_LHv("Sending Surface %s\n", SO->Label); /* send the surface */
       SUMA_SendSumaNewSurface(SO, ps->cs);
+   } else if (strcmp((act), "node_xyz") == 0) {
+      SUMA_GET_BETWEEN_BLANKS(com, NULL, pos);
+      f1d = NULL;
+      SUMA_COPY_TO_STRING(com, pos, f1d); com = pos;
+      far=SUMA_Load1D_s(f1d, &ncol, &nrow, 1, 0);
+
+      SUMA_LH("Sending XYZ \n"); /* send the coords after creating dummy SO */
+      SO->N_Node = nrow;
+      SO->N_NodeDim = ncol; 
+      SO->Label = Get label from -surf_label option
+      SO->IDcode = form idcode from surf_label
+      if (!SUMA_SendToSuma (SO, cs, (void *)far, SUMA_NODE_XYZ, 1)) {
+         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+      }
+      free(far); far = NULL;
+      SUMA_free(f1d); f1d = NULL;
+      SUMA_Free_Surface_Object(SO); SO = NULL;
    } else {
       fprintf(SUMA_STDERR, "Error %s: Action %s not supported.", FuncName, act);
       ans = NOPE;
@@ -227,7 +284,7 @@ int main (int argc,char *argv[])
    float ctr[3] = { 0.0, 0.0, 0.0};
    int cnt=0, i=0;
    SUMA_SurfaceObject *SO=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;

@@ -5847,6 +5847,9 @@ NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee)
       NI_set_attribute(ngr, "Standard_Space", SUMA_EMPTY_ATTR);
    }
    
+   sprintf(stmp,"%d", SO->normdir);
+   NI_set_attribute(ngr, "Node_Normal_Direction", stmp);
+   
    if (!nlee || SUMA_iswordin(optlist,"FaceSetList")) {
       if (SO->facesetlist_idcode_str) {
          NI_set_attribute(ngr, "Mesh_Element_ID", SO->facesetlist_idcode_str);
@@ -6118,7 +6121,9 @@ SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr)
    tmp = NI_get_attribute(ngr, "SUMA_Afni_Parent_Vol_ID");
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->parent_vol_idcode_str = SUMA_copy_string(tmp); 
       
-   
+   tmp = NI_get_attribute(ngr, "Node_Normal_Direction");
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->normdir = atoi(tmp);
+
    /** END ATTRIBUTES specific to Surfaces**/ 
    
    /* now read the elements in this group */

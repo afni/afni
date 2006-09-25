@@ -18,7 +18,7 @@ void usage_SUMA_getPatch ()
       printf ( "\nUsage:\n"
                "  SurfPatch <-spec SpecFile> <-surf_A insurf> <-surf_B insurf> ...\n"
                "            <-input nodefile inode ilabel> <-prefix outpref>  \n"
-               "            [-hits min_hits] [-masklabel msk] [-vol]\n"
+               "            [-hits min_hits] [-masklabel msk] [-vol] [-patch2surf]\n"
                "\n"
                "Usage 1:\n"
                "  The program creates a patch of surface formed by nodes \n"
@@ -69,6 +69,8 @@ void usage_SUMA_getPatch ()
                "                     and whish to create a patch from one out of many ROIs\n"
                "                     in that file. This option must be used with ilabel \n"
                "                     specified (not = -1)\n"
+               "     -patch2surf: Turn surface patch into a surface where only nodes used in\n"
+               "                  forming the mesh are preserved.\n"
                "\n"
                "Usage 2:\n"
                "  The program can also be used to calculate the volume between the same patch\n"
@@ -101,6 +103,7 @@ typedef struct {
    int DoVol;
    int VolOnly;
    float coordgain;
+   SUMA_Boolean Do_p2s;
 } SUMA_GETPATCH_OPTIONS;
 
 /*!
@@ -140,6 +143,7 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
    Opt->DoVol = 0;
    Opt->VolOnly = 0;
    Opt->coordgain = 0.0;
+   Opt->Do_p2s = NOPE;
    Opt->oType = SUMA_FT_NOT_SPECIFIED;
    for (i=0; i<SURFPATCH_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
 	brk = NOPE;
@@ -192,6 +196,11 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
 			Opt->thislabel = atoi(argv[kar]);
 			brk = YUP;
 		}
+      
+      if (!brk && (strcmp(argv[kar], "-patch2surf") == 0)) {
+         Opt->Do_p2s = YUP;
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-vol") == 0)) {
 			Opt->DoVol = 1;
@@ -297,7 +306,7 @@ int main (int argc,char *argv[])
    float *far=NULL;
    MRI_IMAGE *im = NULL;
    int SO_read = -1;
-   int *NodePatch=NULL, N_NodePatch=-1, *FaceSetList=NULL , N_FaceSet = -1;          
+   int *NodePatch=NULL, N_NodePatch=-1, *FaceSetList=NULL , N_FaceSet = -1, N_Node = -1;          
    int i, inodeoff=-1, ilabeloff=-1, nvec, ncol, cnt;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_PATCH *ptch = NULL; 
@@ -306,6 +315,8 @@ int main (int argc,char *argv[])
    void *SO_name = NULL;
    SUMA_Boolean exists = NOPE;
    SUMA_SO_File_Type typetmp;
+   SUMA_SurfaceObject *SOnew = NULL;
+   float *NodeList = NULL;
    SUMA_Boolean LocalHead = NOPE;
 	
    SUMA_STANDALONE_INIT;
@@ -481,11 +492,26 @@ int main (int argc,char *argv[])
          /* save the original pointers to the facesets and their number */
          FaceSetList = SO->FaceSetList;
          N_FaceSet = SO->N_FaceSet;
+         NodeList = SO->NodeList;
+         N_Node = SO->N_Node;
          
          /* replace with Patch */
          SO->FaceSetList = ptch->FaceSetList;
          SO->N_FaceSet = ptch->N_FaceSet; 
          
+         if (Opt->Do_p2s) {
+            if (LocalHead) fprintf (SUMA_STDERR,"%s: Changing patch to surface...\n", FuncName);
+            SOnew = SUMA_Patch2Surf(SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet, 3);
+            if (!SOnew) {
+               SUMA_S_Err("Failed to change patch to surface.");
+               exit(1);
+            }
+            SO->FaceSetList = SOnew->FaceSetList;
+            SO->N_FaceSet = SOnew->N_FaceSet;
+            SO->N_Node = SOnew->N_Node;
+            SO->NodeList = SOnew->NodeList;
+         } 
+
          if (SO->N_FaceSet <= 0) {
             SUMA_S_Warn("The patch is empty.\n Non existing surface not written to disk.\n");
          } else {
@@ -499,12 +525,19 @@ int main (int argc,char *argv[])
                   exit (1);
             }
          }
+         
          /* bring SO back to shape */
          SO->FileType = typetmp;
          SO->FaceSetList = FaceSetList; FaceSetList = NULL;
          SO->N_FaceSet = N_FaceSet; N_FaceSet = -1;
+         SO->NodeList = NodeList; NodeList = NULL;
+         SO->N_Node = N_Node; N_Node = -1;
+         
          if (SO_name) SUMA_free(SO_name); SO_name = NULL;
          if (ptch) SUMA_freePatch(ptch); ptch = NULL;
+         if (SOnew) SUMA_Free_Surface_Object(SOnew); SOnew = NULL; /* get rid of old surface object */
+            
+
       }
    } 
    

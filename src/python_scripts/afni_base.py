@@ -502,3 +502,52 @@ def GetFiles(wild):
    an = reduce(operator.add, map(glob.glob, wild))
    #print "Expanded is: %s" % an
    return an
+
+def PrintIndexedList(l):
+   cnt = 0
+   for il in l:
+      print "%d-  %s" % (cnt, il)
+      cnt += 1
+   print ""
+
+def match(txt, l):
+   lm = []
+   for il in l:
+      fnd = il.find(txt)
+      if  fnd >= 0:
+         lm.append(il)
+   return lm
+
+def unique_match(txt, l):
+   lm = match(txt,l)
+   if len(lm) == 1:
+      return lm[0]
+   else:
+      return None
+
+      
+def GetSelectionFromList(l, prmpt = ""):
+   PrintIndexedList(l)
+   if len(prmpt)==0:
+      prmpt = 'Enter Selection by number or name: '
+   cnt = 0
+   while cnt < 10:
+      name = raw_input(prmpt)
+      if not name:
+         return None
+      if name.isdigit():
+         if int(name) < len(l) and int(name) >= 0:
+            return l[int(name)]
+         else:
+            print "Input error: number must be between 0 and %d" % (len(l)-1)
+      else:
+         if name in l:
+            return name
+         nameg = unique_match(name, l)
+         if nameg:
+            return nameg
+         else:
+            print "Input error: selection %s has %d matches in list." % ( name, len(match(name, l)))
+      cnt += 1
+   print "Vous ne comprenez pas l'anglais?"
+   print "Ciao"            

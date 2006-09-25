@@ -112,7 +112,6 @@
    
    #define SUMA_SLP_Err SUMA_S_Err
    #define SUMA_SL_Err SUMA_S_Err
-   #define SUMA_SL_Errv SUMA_S_Err
    #define SUMA_L_Err SUMA_S_Err
    
    #define SUMA_SLP_Note SUMA_S_Note
@@ -139,6 +138,7 @@
    #define SUMA_S_Note(msg) {\
       fprintf (SUMA_STDERR, "Notice %s:\n %s\n", FuncName, msg);  \
    }
+   #define SUMA_S_Notev SUMA_S_Note
    
    #define SUMA_S_Err(msg) {\
       fprintf (SUMA_STDERR, "Error %s:\n %s\n", FuncName, msg);  \

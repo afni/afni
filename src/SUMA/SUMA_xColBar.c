@@ -3507,8 +3507,12 @@ SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_SurfaceObject *SO, char *str)
    
    SUMA_ENTRY;
    
+   SUMA_LHv("So(%p), SurfCont(%p), SwitchCmapMenu(%p)\n", SO, SO->SurfCont, SO->SurfCont->SwitchCmapMenu);
    w = SO->SurfCont->SwitchCmapMenu;
-   if (!w) SUMA_RETURN(NOPE);
+   if (!w) {
+      SUMA_LH("NULL w");
+      SUMA_RETURN(NOPE);
+   }
    if (!str) {
       SUMA_S_Err("NULL str");
       SUMA_RETURN(NOPE);

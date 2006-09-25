@@ -2356,7 +2356,8 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
    curstateID = SUMA_WhichState(sv->State, sv, sv->CurGroupName);
    
    /* unregister all the surfaces for the current view */
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Unregistering state %d\n", FuncName, curstateID);
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Unregistering state %d (%s), sv(%p)->State = %s\n", 
+                  FuncName, curstateID, sv->VSv[curstateID].Name, sv, sv->State);
    for (i=0; i<sv->VSv[curstateID].N_MembSOs; ++i) {
       if (!SUMA_UnRegisterDO(sv->VSv[curstateID].MembSOs[i], sv)) {
          fprintf(SUMA_STDERR,"Error %s: Failed to UnRegisterDO.\n", FuncName);
@@ -2376,7 +2377,8 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
    }
    
    /* register all the surfaces from the next view */
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Registering DOv of state %d...\n", FuncName, nxtstateID);
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Registering DOv of state %d (%s)...\n", 
+            FuncName, nxtstateID, sv->VSv[nxtstateID].Name);
    for (i=0; i<sv->VSv[nxtstateID].N_MembSOs; ++i) {
       if (!SUMA_RegisterDO(sv->VSv[nxtstateID].MembSOs[i], sv)) {
          fprintf(SUMA_STDERR,"Error %s: Failed to RegisterDO.\n", FuncName);
