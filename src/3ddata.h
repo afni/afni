@@ -4196,13 +4196,21 @@ extern float quadrant_corr_prepare( int , float * );
 extern float spearman_rank_corr   ( int , float * , float , float * );
 extern float quadrant_corr        ( int , float * , float , float * );
 
-extern float THD_mutual_info_scl( int, float,float,float *,     /* 16 Aug 2006 */
+extern float THD_mutual_info_scl( int, float,float,float *,    /* 16 Aug 2006 */
                                        float,float,float *, float * ) ;
 extern float THD_mutual_info( int , float *, float * ) ;
 
 extern float THD_corr_ratio_scl( int, float,float,float *,     /* 23 Aug 2006 */
                                       float,float,float *, float * ) ;
 extern float THD_corr_ratio( int , float *, float * ) ;
+
+extern float THD_norm_mutinf_scl( int, float,float,float *,    /* 25 Sep 2006 */
+                                       float,float,float *, float * ) ;
+extern float THD_norm_mutinf( int , float *, float * ) ;
+
+extern float THD_jointentrop_scl( int, float,float,float *,    /* 25 Sep 2006 */
+                                       float,float,float *, float * ) ;
+extern float THD_jointentrop( int , float *, float * ) ;
 
 /*------------------------------------------------------------------------*/
 

@@ -647,6 +647,18 @@ static double GA_scalar_fitter( int npar , double *mpar )
                                   gstup->bsbot , gstup->bstop , bvm , wvm ) ;
     break ;
 
+    case GA_MATCH_NORMUTIN_SCALAR:  /* Normalized Mutual Information */
+      val = THD_norm_mutinf_scl( gstup->npt_match ,
+                                 gstup->ajbot , gstup->ajtop , avm ,
+                                 gstup->bsbot , gstup->bstop , bvm , wvm ) ;
+    break ;
+
+    case GA_MATCH_JOINTENT_SCALAR:  /* Joint Entropy */
+      val = THD_jointentrop_scl( gstup->npt_match ,
+                                 gstup->ajbot , gstup->ajtop , avm ,
+                                 gstup->bsbot , gstup->bstop , bvm , wvm ) ;
+    break ;
+
     case GA_MATCH_CORRATIO_SCALAR:  /* Correlation Ratio */
       val = THD_corr_ratio_scl( gstup->npt_match ,
                                 gstup->ajbot , gstup->ajtop , avm ,

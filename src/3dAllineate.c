@@ -22,6 +22,26 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 
 MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod ) ;  /* prototype */
 
+#define NMETH 6
+static int meth_visible[NMETH] =          /* 1 = show in -help; 0 = don't show */
+  { 1 , 0 , 1 , 1 , 1 , 0 } ;
+
+static int meth_noweight[NMETH] =         /* 1 = don't allow weights, just masks */
+  { 0 , 1 , 0 , 0 , 1 , 1 } ;
+
+static char *meth_shortname[NMETH] =
+  { "ls" , "sp" , "mi" , "cr" , "nmi" , "je" } ;
+
+static char *meth_longname[NMETH] =
+  { "leastsq"         , "spearman"     ,
+    "mutualinfo"      , "corratio"     ,
+    "norm_mutualinfo" , "jointentropy"  } ;
+
+static char *meth_username[NMETH] =
+  { "Least Squares [Pearson Correlation]"   , "Spearman [rank] Correlation" ,
+    "Mutual Information [H(b)+H(t)-H(b,t)]" , "Correlation Ratio"           ,
+    "Normalized MI [H(b,t)/(H(b)+H(t))]"    , "Joint Entropy [H(b,t)]"       };
+
 /*---------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
@@ -130,18 +150,25 @@ int main( int argc , char *argv[] )
        "\n"
        " -1Dapply aa = Read warp parameters from file 'aa', apply them to the\n"
        "               target dataset, and produce a new dataset.\n"
-       "               (Must also use the '-prefix' option for this to work!)\n"
+       "               (Must also use the '-prefix' option for this to work! )\n"
+       "               (In this mode of operation, there is no optimization  )\n"
+       "               (of the cost function by changing the warp parameters;)\n"
+       "               (previously computed parameters are applied directly. )\n"
        "\n"
        " -cost ccc   = Defines the 'cost' function that defines the matching\n"
        "               between the target and the base; 'ccc' is one of\n"
-       "                 mi *OR* mutualinfo  = Mutual Information\n"
-       "                 cr *OR* corratio    = Correlation Ratio\n"
-       "                 ls *OR* leastsq     = Least Squares\n"
-       "                 sp *OR* spearman    = Spearman (rank) Correlation\n"
+      ) ;
+
+      for( ii=0 ; ii < NMETH ; ii++ )
+        if( meth_visible[ii] )
+          printf( "                %-4s *OR*  %-16s= %s\n" ,
+                  meth_shortname[ii] , meth_longname[ii] , meth_username[ii] ) ;
+
+      printf(
        "               You can also specify the cost function using an option\n"
        "               of the form '-mi' rather than '-cost mi', if you like\n"
        "               to keep things terse and cryptic (as I do).\n"
-       "               [Default == 'mutualinfo'.]\n"
+       "               [Default == 'mi'.]\n"
        "\n"
        " -interp iii = Defines interpolation method to use during matching\n"
        "               process, where 'iii' is one of\n"
@@ -479,33 +506,40 @@ int main( int argc , char *argv[] )
        zeropad = 0 ; iarg++ ; continue ;
      }
 
-     /*-----*/
+     /*----- Check the various cost options -----*/
 
-     if( strncmp(argv[iarg],"-sp",3) == 0 ){
-       meth_code = GA_MATCH_SPEARMAN_SCALAR ; iarg++ ; continue ;
+     for( jj=-1,ii=0 ; ii < NMETH ; ii++ ){
+       if( strcmp(argv[iarg]+1,meth_shortname[ii]) == 0 ){
+         meth_code = jj = ii ; break ;
+       }
      }
-     if( strcmp(argv[iarg],"-cr") == 0 || strncmp(argv[iarg],"-corratio",5) == 0 ){
-       meth_code = GA_MATCH_CORRATIO_SCALAR ; iarg++ ; continue ;
+     if( jj >= 0 ){ iarg++ ; continue ; }
+
+     for( jj=-1,ii=0 ; ii < NMETH ; ii++ ){
+       if( strncmp(argv[iarg]+1,meth_longname[ii],7) == 0 ){
+         meth_code = jj = ii ; break ;
+       }
      }
-     if( strcmp(argv[iarg],"-mi") == 0 || strncmp(argv[iarg],"-mutualinfo",5) == 0 ){
-       meth_code = GA_MATCH_KULLBACK_SCALAR ; iarg++ ; continue ;
-     }
-     if( strcmp(argv[iarg],"-ls") == 0 || strncmp(argv[iarg],"-leastsq",5) == 0 ){
-       meth_code = GA_MATCH_PEARSON_SCALAR ; iarg++ ; continue ;
-     }
+     if( jj >= 0 ){ iarg++ ; continue ; }
+
      if( strncmp(argv[iarg],"-cost",4) == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '-cost'!") ;
-       if( strncmp(argv[iarg],"sp",2) == 0 )
-         meth_code = GA_MATCH_SPEARMAN_SCALAR ;
-       else if( strcmp(argv[iarg],"cr") == 0 || strncmp(argv[iarg],"corratio",4) == 0 )
-         meth_code = GA_MATCH_CORRATIO_SCALAR ;
-       else if( strcmp(argv[iarg],"mi") == 0 || strncmp(argv[iarg],"mutualinfo",4) == 0 )
-         meth_code = GA_MATCH_KULLBACK_SCALAR ;
-       else if( strcmp(argv[iarg],"ls") == 0 || strncmp(argv[iarg],"leastsq",4) == 0 )
-         meth_code = GA_MATCH_PEARSON_SCALAR ;
-       else
-         ERROR_exit("Unknown code '%s' after -cost!",argv[iarg]) ;
-       iarg++ ; continue ;
+
+       for( jj=-1,ii=0 ; ii < NMETH ; ii++ ){
+         if( strcmp(argv[iarg],meth_shortname[ii]) == 0 ){
+           meth_code = jj = ii ; break ;
+         }
+       }
+       if( jj >=0 ){ iarg++ ; continue ; }
+
+       for( jj=-1,ii=0 ; ii < NMETH ; ii++ ){
+         if( strncmp(argv[iarg],meth_longname[ii],7) == 0 ){
+           meth_code = jj = ii ; break ;
+         }
+       }
+       if( jj >=0 ){ iarg++ ; continue ; }
+
+       ERROR_exit("Unknown code '%s' after -cost!",argv[iarg]) ;
      }
 
      /*-----*/
@@ -986,13 +1020,13 @@ int main( int argc , char *argv[] )
      if( verb ){
        if( zeropad ){
          if( pad_xm > 0 || pad_xp > 0 )
-           INFO_message("zero-pad: xbot=%d xtop=%d",pad_xm,pad_xp) ;
+           INFO_message("Zero-pad: xbot=%d xtop=%d",pad_xm,pad_xp) ;
          if( pad_ym > 0 || pad_yp > 0 )
            INFO_message("zero-pad: ybot=%d ytop=%d",pad_ym,pad_yp) ;
          if( pad_zm > 0 || pad_zp > 0 )
            INFO_message("zero-pad: zbot=%d ztop=%d",pad_zm,pad_zp) ;
        } else {
-         INFO_message("zero-pad: not needed") ;
+         INFO_message("Zero-pad: not needed") ;
        }
      }
 
@@ -1036,13 +1070,18 @@ int main( int argc , char *argv[] )
        ERROR_exit("-weight and base volumes don't match!") ;
 
    } else if( auto_weight ){  /* manufacture weight from the base */
-     if( verb == 1 ) INFO_message("Computing -autoweight") ;
-     else if( verb > 1 ) ctim = COX_cpu_time() ;
+     if( meth_noweight[meth_code] && auto_weight == 1 ){
+       if( verb ) WARNING_message("Selected cost function uses -automask") ;
+       auto_weight = 2 ;
+     } else if( verb == 1 ){
+       INFO_message("Computing -autoweight") ;
+     }
+     if( verb > 1 ) ctim = COX_cpu_time() ;
      im_weig = mri_weightize( im_base , auto_weight ) ;
      if( verb > 1 ) INFO_message("-autoweight CPU time = %.1f s",COX_cpu_time()-ctim) ;
    }
 
-   /* also, make a mask from the weight */
+   /* also, make a mask from the weight (not used much, yet) */
 
    if( im_weig != NULL ){
      float *wf = MRI_FLOAT_PTR(im_weig) ;
@@ -1056,10 +1095,6 @@ int main( int argc , char *argv[] )
    } else {
      nmask = nvox_base ;  /* the universal 'mask' */
    }
-
-   if( im_weig != NULL &&
-       meth_code == GA_MATCH_SPEARMAN_SCALAR && auto_weight != 2 )
-     WARNING_message("Spearman cost function can't be weighted, only masked") ;
 
    /* save weight? */
 
@@ -1260,7 +1295,7 @@ int main( int argc , char *argv[] )
      zzz = MIN(zzz,yyy) ;
    }
    conv_rad = MIN(zzz,0.001) ; conv_rad = MAX(conv_rad,0.00001) ;
-   if( verb > 1 ) INFO_message("convergence radius = %.6f",conv_rad) ;
+   if( verb > 1 ) INFO_message("Normalized convergence radius = %.6f",conv_rad) ;
 
    /*** create shell of output dataset ***/
 
@@ -1298,6 +1333,10 @@ int main( int argc , char *argv[] )
 #define PAROUT(ss) PARDUMP(ss,val_out)
 #undef  PARINI
 #define PARINI(ss) PARDUMP(ss,val_init)
+
+   if( verb && apply_1D == NULL )
+     INFO_message("======== Starting Allineation: cost function = %s =======",
+                  meth_username[meth_code] ) ;
 
    if( verb > 1 ) mri_genalign_verbose(verb-1) ;
 
@@ -1450,7 +1489,7 @@ int main( int argc , char *argv[] )
      if( didtwo )
        mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;  /* simple re-setup */
      else
-       mri_genalign_scalar_setup( im_base , im_mask , im_targ , &stup ) ;
+       mri_genalign_scalar_setup( im_base , im_weig , im_targ , &stup ) ;
 
      /* choose initial parameters, based on inter_code cost function */
 

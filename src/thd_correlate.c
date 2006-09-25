@@ -367,7 +367,7 @@ float THD_mutual_info_scl( int n , float xbot,float xtop,float *x ,
    /*-- build 2D histogram --*/
 
    build_2Dhist( n,xbot,xtop,x,ybot,ytop,y,w ) ;
-   if( nbin <= 0 ) return 0.0f ;  /* something bad happened! */
+   if( nbin <= 0 || nww <= 0 ) return 0.0f ;  /* something bad happened! */
 
    /*-- compute MI from histogram --*/
 
@@ -377,7 +377,7 @@ float THD_mutual_info_scl( int n , float xbot,float xtop,float *x ,
      if( XYC(ii,jj) > 0.0f )
       val += XYC(ii,jj) * logf( nww*XYC(ii,jj)/(xc[ii]*yc[jj]) ) ;
    }}
-   return (1.4427*val/nww) ;  /* units are bits, just for fun */
+   return (1.4427f*val/nww) ;  /* units are bits, just for fun */
 }
 
 /*--------------------------------------------------------------------------*/
@@ -385,7 +385,80 @@ float THD_mutual_info_scl( int n , float xbot,float xtop,float *x ,
 
 float THD_mutual_info( int n , float *x , float *y )
 {
-   return THD_mutual_info_scl( n , 1.0f,-1.0f , x, 1.0f,-1.0f , y , NULL ) ;
+   return THD_mutual_info_scl( n, 1.0f,-1.0f, x, 1.0f,-1.0f, y, NULL ) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Compute the normalized mutual info between two vectors, sort of.
+    Actually, returns H(x,y) / [ H(x)+H(y) ], which should be small if
+    x and y are redundant and should be large if they are independent.
+----------------------------------------------------------------------------*/
+
+float THD_norm_mutinf_scl( int n , float xbot,float xtop,float *x ,
+                                   float ybot,float ytop,float *y , float *w )
+{
+   register int ii,jj ;
+   register float numer , denom ;
+
+   /*-- build 2D histogram --*/
+
+   build_2Dhist( n,xbot,xtop,x,ybot,ytop,y,w ) ;
+   if( nbin <= 0 || nww <= 0 ) return 0.0f ;  /* something bad happened! */
+
+   /*-- compute NMI from histogram --*/
+
+   denom = numer = 0.0f ;
+   for( ii=0 ; ii < nbp ; ii++ ){
+     if( xc[ii] > 0.0f ) denom += xc[ii] * logf( xc[ii] / nww ) ;
+     if( yc[ii] > 0.0f ) denom += yc[ii] * logf( yc[ii] / nww ) ;
+     for( jj=0 ; jj < nbp ; jj++ ){
+       if( XYC(ii,jj) > 0.0f ) numer += XYC(ii,jj) * logf( XYC(ii,jj) / nww );
+     }
+   }
+   if( denom != 0.0f ) denom = numer / denom ;
+   return denom ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Compute NMI of x[] & y[i], with autoscaling: cf. THD_norm_mutinf_scl(). */
+
+float THD_norm_mutinf( int n , float *x , float *y )
+{
+   return THD_norm_mutinf_scl( n, 1.0f,-1.0f, x, 1.0f,-1.0f, y, NULL ) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Compute the joint entropy between two vectors, sort of.
+----------------------------------------------------------------------------*/
+
+float THD_jointentrop_scl( int n , float xbot,float xtop,float *x ,
+                                   float ybot,float ytop,float *y , float *w )
+{
+   register int ii,jj ;
+   register float val ;
+
+   /*-- build 2D histogram --*/
+
+   build_2Dhist( n,xbot,xtop,x,ybot,ytop,y,w ) ;
+   if( nbin <= 0 || nww <= 0 ) return 0.0f ;  /* something bad happened! */
+
+   /*-- compute MI from histogram --*/
+
+   val = 0.0f ;
+   for( ii=0 ; ii < nbp ; ii++ ){
+    for( jj=0 ; jj < nbp ; jj++ ){
+     if( XYC(ii,jj) > 0.0f )
+      val -= XYC(ii,jj) * logf( XYC(ii,jj)/nww ) ;
+   }}
+   return (1.4427f*val/nww) ;  /* units are bits, just for fun */
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Compute MI of x[] and y[i], with autoscaling. */
+
+float THD_jointentrop( int n , float *x , float *y )
+{
+   return THD_mutual_info_scl( n, 1.0f,-1.0f, x, 1.0f,-1.0f, y, NULL ) ;
 }
 
 /*--------------------------------------------------------------------------*/
