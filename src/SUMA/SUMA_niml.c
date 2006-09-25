@@ -908,7 +908,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 		      }
 	      }
 
-         /* do not switch or redisplay yet, all you have is garbage for geometry ... */
          if (!SUMA_FreeSpecFields(Spec)) {
             SUMA_S_Err("Failed to free spec fields");
          }
@@ -928,6 +927,17 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                SUMA_SL_Err("Failed to switch states!");
                SUMA_RETURN(NOPE);
             }
+         }
+
+         /* file a redisplay request (in the past, when surface was sent in chunks, redisplay was
+         held until geometry was received, now that a whole surface can be sent at once, redisplay
+         is appropriate here ZSS Sept. 06*/
+         if (LocalHead) fprintf(SUMA_STDERR, "%s: Redisplaying all visible...\n", FuncName);
+         if (!list) list = SUMA_CreateList();
+         SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaFromAny, sv);
+         if (!SUMA_Engine (&list)) {
+            fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            SUMA_RETURN(NOPE);
          }
 
          /* do we need to notify AFNI ? */
@@ -1245,10 +1255,9 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          }
 
          if (!SO) { 
-            SUMA_LH("A brand new surface.");
             BrandNew = YUP;
          } else {
-            SUMA_LH("A refit of an existing surface.");
+            SUMA_LHv("A refit of an existing surface. SO->SurfCont = %p\n", SO->SurfCont);
             BrandNew = NOPE;
             if (SOn->N_Node != SO->N_Node) {
                fprintf(SUMA_STDERR,"Error %s: Mismatch in number of nodes between new mesh and pre-existing one (%d vs %d)\n", FuncName, SO->N_Node, SO->N_Node);
@@ -1265,6 +1274,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             SUMA_Free_Surface_Object(SOn); SOn = NULL; /* alas, not needed no more. 
                                                    Perhaps you should consider eliminating SO's EdgeLists, area vectors and the like,
                                                    You should also perhaps update VolPar with SOn's... */
+            SUMA_LHv("Refit done, SO->SurfCont = %p\n", SO->SurfCont);
          }
 
          /* add this surface to DOv */
@@ -1273,6 +1283,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
                SUMA_RETURN(NOPE);
             }
+            SUMA_LHv("A brand new surface. SO->SurfCont = %p\n", SOn->SurfCont);
          }
 
          /* don't free nel, it's freed later on */
@@ -2328,7 +2339,8 @@ SUMA_Boolean SUMA_SendSumaNewSurface(SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *c
          SUMA_RETURN(NOPE);
       }
       
-      /* now send the command to register the new surface with viewers*/
+      /* now send the command to register the new surface with viewers
+         This now also causes a redisplay*/
       if (!SUMA_SendToSuma (SO, cs, NULL, SUMA_PREP_NEW_SURFACE, 1)) {
          SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
          cs->Send = NOPE;

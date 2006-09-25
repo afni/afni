@@ -125,6 +125,9 @@ typedef struct {
    char *UseThisSkullOuter; /* do not free, argv[.] copy */
    
    int iopt;
+   
+   char **com;
+   int N_com;
 } SUMA_GENERIC_PROG_OPTIONS_STRUCT;
 
 #define SUMA_MAX_SURF_ON_COMMAND 100
@@ -321,10 +324,6 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
    SUMA_S_Err(msg);  \
    SUMA_L_Err(msg); \
 }
-#define SUMA_SL_Errv(msg, ...) {\
-   SUMA_S_Errv(msg, __VA_ARGS__);  \
-   SUMA_L_Err(msg); \
-}
 
 /*!
    \brief Macro that reports an error to stderr and log and popup
@@ -349,14 +348,20 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
 #define SUMA_S_Note(msg) {\
    fprintf (SUMA_STDERR, "Notice %s (%s:%d):\n %s\n", FuncName, __FILE__, __LINE__, msg);  \
 }
+#define SUMA_S_Notev(msg, ...) {\
+   fprintf (SUMA_STDERR, "Notice %s (%s:%d):\n", FuncName, __FILE__ , __LINE__);  \
+   fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+}
+
 /*!
    \brief Macro that reports a notice to stderr and log 
 
 */
 #define SUMA_SL_Note(msg) {\
    SUMA_S_Note(msg); \
-   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Notice, SMA_Log); \
+   SUMA_L_Note(msg);  \
 }
+
 /*!
    \brief Macro that reports a notice to stderr and log and popup
 

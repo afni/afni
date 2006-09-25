@@ -444,10 +444,10 @@ SUMA_SO_File_Type SUMA_SurfaceTypeCode (char *cd)
    if (!cd) { SUMA_RETURN(SUMA_FT_ERROR); }
    
    if (!strcmp(cd, "NotSpecified")) { SUMA_RETURN(SUMA_FT_NOT_SPECIFIED ); }
-   if (!strcmp(cd, "FreeSurfer") || !strcmp(cd, "FS")) { SUMA_RETURN( SUMA_FREE_SURFER); }
-   if (!strcmp(cd, "SureFit") || !strcmp(cd, "SF")) { SUMA_RETURN( SUMA_SUREFIT); }
-   if (!strcmp(cd, "GenericInventor") || !strcmp(cd, "INV")) { SUMA_RETURN(SUMA_INVENTOR_GENERIC ); }
-   if (!strcmp(cd, "Ply") || !strcmp(cd, "PLY")) { SUMA_RETURN( SUMA_PLY); }
+   if (!strcmp(cd, "FreeSurfer") || !strcmp(cd, "FS") || !strcmp(cd, "fs")) { SUMA_RETURN( SUMA_FREE_SURFER); }
+   if (!strcmp(cd, "SureFit") || !strcmp(cd, "SF") || !strcmp(cd, "sf")) { SUMA_RETURN( SUMA_SUREFIT); }
+   if (!strcmp(cd, "GenericInventor") || !strcmp(cd, "INV") || !strcmp(cd, "inv")) { SUMA_RETURN(SUMA_INVENTOR_GENERIC ); }
+   if (!strcmp(cd, "Ply") || !strcmp(cd, "PLY") || !strcmp(cd, "ply")) { SUMA_RETURN( SUMA_PLY); }
    if (!strcmp(cd, "DX") || !strcmp(cd, "dx") || !strcmp(cd, "OpenDX") || !strcmp(cd, "opendx")) { SUMA_RETURN( SUMA_OPENDX_MESH); }
    if (!strcmp(cd, "BrainVoyager") || !strcmp(cd, "BV") || !strcmp(cd, "bv")) { SUMA_RETURN( SUMA_BRAIN_VOYAGER); }
    if (!strcmp(cd, "1D") || !strcmp(cd, "VEC") || !strcmp(cd, "1d")) { SUMA_RETURN(SUMA_VEC ); }
@@ -2593,13 +2593,15 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    Opt->UseThisBrainHull = NULL; /* do not free, argv[.] copy */
    Opt->UseThisSkullOuter = NULL; /* do not free, argv[.] copy */
    
+   Opt->com = NULL;
+   Opt->N_com = 0;
    SUMA_RETURN(Opt);
 }
    
 SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt)
 {
    static char FuncName[]={"SUMA_Free_Generic_Prog_Options_Struct"};
-   
+   int i;
    SUMA_ENTRY;
    
    if (!Opt) SUMA_RETURN(NULL);
@@ -2630,6 +2632,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
    if (Opt->Brain_Hull)  SUMA_free(Opt->Brain_Hull); Opt->Brain_Hull= NULL;
    if (Opt->Skull_Outer)  SUMA_free(Opt->Skull_Outer); Opt->Skull_Outer= NULL;
    if (Opt->Skull_Inner)  SUMA_free(Opt->Skull_Inner); Opt->Skull_Inner= NULL;
+   if (Opt->com) {
+      for (i=0; i<Opt->N_com; ++i) if (Opt->com[i]) SUMA_free(Opt->com[i]);
+      SUMA_free(Opt->com);
+   }
    if (Opt) SUMA_free(Opt);
 
    SUMA_RETURN(NULL);
@@ -2883,6 +2889,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
    int i, kar, ind, N_name;
    SUMA_Boolean brk = NOPE;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -3090,6 +3097,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 	      }  
       }
       if (ps->accept_i) {
+         SUMA_LHv("accept_i %d (argv[%d]=%s)\n", ps->accept_i, kar, argv[kar]);
          if (!brk && ( (strcmp(argv[kar], "-i_bv") == 0) || (strcmp(argv[kar], "-i_BV") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
