@@ -2034,6 +2034,7 @@ typedef enum { SUMA_AFNI_STREAM_INDEX = 0, /*!< Index of SUMA<-->AFNI stream , a
                SUMA_GENERIC_LISTEN_LINE, /*!< Using socket  SUMA_TCP_LISTEN_PORT0, generic suma listen line*/
                SUMA_GEOMCOMP_LINE, /*!<  Using socket  SUMA_TCP_LISTEN_PORT0 + 1*/
                SUMA_BRAINWRAP_LINE, /*!<  Using socket SUMA_TCP_LISTEN_PORT0 + 2*/
+               SUMA_DRIVESUMA_LINE, /*!<  Using socket SUMA_TCP_LISTEN_PORT0 + 3*/
                SUMA_MAX_STREAMS /*!< Maximum number of streams, KEEP AT END */
             } SUMA_STREAM_INDICES;
             
