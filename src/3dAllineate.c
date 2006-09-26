@@ -22,25 +22,30 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 
 MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod ) ;  /* prototype */
 
-#define NMETH 6
+#undef  NMETH
+#define NMETH GA_MATCH_METHNUM_SCALAR
+
 static int meth_visible[NMETH] =          /* 1 = show in -help; 0 = don't show */
   { 1 , 0 , 1 , 1 , 1 , 0 } ;
 
 static int meth_noweight[NMETH] =         /* 1 = don't allow weights, just masks */
   { 0 , 1 , 0 , 0 , 1 , 1 } ;
 
-static char *meth_shortname[NMETH] =
+static char *meth_shortname[NMETH] =      /* short names for terse cryptic users */
   { "ls" , "sp" , "mi" , "cr" , "nmi" , "je" } ;
 
-static char *meth_longname[NMETH] =
+static char *meth_longname[NMETH] =       /* long names for prolix users */
   { "leastsq"         , "spearman"     ,
     "mutualinfo"      , "corratio"     ,
     "norm_mutualinfo" , "jointentropy"  } ;
 
-static char *meth_username[NMETH] =
-  { "Least Squares [Pearson Correlation]"   , "Spearman [rank] Correlation" ,
-    "Mutual Information [H(b)+H(t)-H(b,t)]" , "Correlation Ratio"           ,
-    "Normalized MI [H(b,t)/(H(b)+H(t))]"    , "Joint Entropy [H(b,t)]"       };
+static char *meth_username[NMETH] =       /* descriptive names */
+  { "Least Squares [Pearson Correlation]"   ,
+    "Spearman [rank] Correlation"           ,
+    "Mutual Information [H(b)+H(t)-H(b,t)]" ,
+    "Correlation Ratio"                     ,
+    "Normalized MI [H(b,t)/(H(b)+H(t))]"    ,
+    "Joint Entropy [H(b,t)]"                 };
 
 /*---------------------------------------------------------------------------*/
 
@@ -71,7 +76,8 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset_targ = NULL ;
    THD_3dim_dataset *dset_mast = NULL ;
    THD_3dim_dataset *dset_weig = NULL ;
-   int auto_weight             = 1 ;            /* on by default */
+   int auto_weight             = 2 ;            /* on by default */
+   char *auto_string           = "-automask" ;
    float dxyz_mast             = 0.0f ;
    int meth_code               = GA_MATCH_KULLBACK_SCALAR ;
    int sm_code                 = GA_SMOOTH_GAUSSIAN ;
@@ -242,18 +248,18 @@ int main( int argc , char *argv[] )
        "\n"
        " -autoweight = Compute a weight function using the 3dAutomask\n"
        "               algorithm plus some blurring of the base image.\n"
-       "               [This is the default mode of operation.]\n"
        " -automask   = Compute a mask function, which is like -autoweight,\n"
        "               but the weight for a voxel is either 0 or 1.\n"
-       " -noauto     = Don't compute the autoweight; if -weight is not given,\n"
-       "               then every voxel will be counted equally.\n"
+       "               [This is the default mode of operation.]\n"
+       " -noauto     = Don't compute the autoweight/mask; if -weight is not\n"
+       "               used, then every voxel will be counted equally.\n"
        " -weight www = Set the weighting for each voxel in the base dataset;\n"
        "               larger weights mean that voxel counts more in the cost\n"
        "               function.\n"
        "       **N.B.: The weight dataset must be defined on the same grid as\n"
        "               the base dataset.\n"
        " -wtprefix p = Write the weight volume to disk as a dataset with\n"
-       "               prefix name 'p'.  Combined with '-autoweight', this option\n"
+       "               prefix name 'p'.  Used with '-autoweight/mask', this option\n"
        "               lets you see what voxels were important in the allineation.\n"
        "\n"
        " -warp xxx   = Set the warp type to 'xxx', which is one of\n"
@@ -464,12 +470,12 @@ int main( int argc , char *argv[] )
 
      if( strncmp(argv[iarg],"-autoweight",6) == 0 ){
        if( dset_weig != NULL ) ERROR_exit("Can't use -autoweight AND -weight!") ;
-       auto_weight = 1 ; iarg++ ; continue ;
+       auto_weight = 1 ; auto_string = "-autoweight" ; iarg++ ; continue ;
      }
 
      if( strncmp(argv[iarg],"-automask",6) == 0 ){
        if( dset_weig != NULL ) ERROR_exit("Can't use -automask AND -weight!") ;
-       auto_weight = 2 ; iarg++ ; continue ;
+       auto_weight = 2 ; auto_string = "-automask" ; iarg++ ; continue ;
      }
 
      if( strncmp(argv[iarg],"-noauto",6) == 0 ){
@@ -508,33 +514,33 @@ int main( int argc , char *argv[] )
 
      /*----- Check the various cost options -----*/
 
-     for( jj=-1,ii=0 ; ii < NMETH ; ii++ ){
+     for( jj=ii=0 ; ii < NMETH ; ii++ ){
        if( strcmp(argv[iarg]+1,meth_shortname[ii]) == 0 ){
-         meth_code = jj = ii ; break ;
+         meth_code = jj = ii+1 ; break ;
        }
      }
-     if( jj >= 0 ){ iarg++ ; continue ; }
+     if( jj > 0 ){ iarg++ ; continue ; }
 
-     for( jj=-1,ii=0 ; ii < NMETH ; ii++ ){
+     for( jj=ii=0 ; ii < NMETH ; ii++ ){
        if( strncmp(argv[iarg]+1,meth_longname[ii],7) == 0 ){
-         meth_code = jj = ii ; break ;
+         meth_code = jj = ii+1 ; break ;
        }
      }
-     if( jj >= 0 ){ iarg++ ; continue ; }
+     if( jj > 0 ){ iarg++ ; continue ; }
 
      if( strncmp(argv[iarg],"-cost",4) == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '-cost'!") ;
 
-       for( jj=-1,ii=0 ; ii < NMETH ; ii++ ){
+       for( jj=ii=0 ; ii < NMETH ; ii++ ){
          if( strcmp(argv[iarg],meth_shortname[ii]) == 0 ){
-           meth_code = jj = ii ; break ;
+           meth_code = jj = ii+1 ; break ;
          }
        }
-       if( jj >=0 ){ iarg++ ; continue ; }
+       if( jj > 0 ){ iarg++ ; continue ; }
 
-       for( jj=-1,ii=0 ; ii < NMETH ; ii++ ){
+       for( jj=ii=0 ; ii < NMETH ; ii++ ){
          if( strncmp(argv[iarg],meth_longname[ii],7) == 0 ){
-           meth_code = jj = ii ; break ;
+           meth_code = jj = ii+1 ; break ;
          }
        }
        if( jj >=0 ){ iarg++ ; continue ; }
@@ -1074,11 +1080,12 @@ int main( int argc , char *argv[] )
        if( verb ) WARNING_message("Selected cost function uses -automask") ;
        auto_weight = 2 ;
      } else if( verb == 1 ){
-       INFO_message("Computing -autoweight") ;
+       INFO_message("Computing %s",auto_string) ;
      }
      if( verb > 1 ) ctim = COX_cpu_time() ;
      im_weig = mri_weightize( im_base , auto_weight ) ;
-     if( verb > 1 ) INFO_message("-autoweight CPU time = %.1f s",COX_cpu_time()-ctim) ;
+     if( verb > 1 ) INFO_message("%s CPU time = %.1f s" ,
+                                 auto_string , COX_cpu_time()-ctim ) ;
    }
 
    /* also, make a mask from the weight (not used much, yet) */
