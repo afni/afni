@@ -19,8 +19,79 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
-               "Usage: A template code for writing SUMA programs.\n"
+               "Usage: A program to drive suma from command line.\n"
+               "       DriveSuma [options] -com COM1 -com COM2 ...\n"
+               "Mandatory parameters:\n"
+               "---------------------\n"
+               "   -com COM: Command to be sent to SUMA.\n"
+               "             At least one command must be used\n"
+               "             and various commands can follow in\n"
+               "             succession.\n"
+               "        COM is the command string and consists\n"
+               "            of at least an action ACT. Some actions\n"
+               "            require additional parameters to follow\n"
+               "            ACT. \n"
+               " Example Commands:\n"
+               " -----------------\n"
+               " 1) DriveSuma -com show_surf -label s1 -i_fs   CreateIco_surf.asc \\\n"
+               "              -com node_xyz  -label s1 -xyz_1D new_coords.1D \n"
+               "    The first command will send a new surface called \n"
+               "    CreateIco_surf.asc to SUMA and labels it as s1\n"
+               "    for future reference.\n"
+               "    The second command will send new coordiates to replace\n"
+               "    the current ones in s1\n"
+               "\n"    
+               "    Note that the execution of the two commands may be too \n"
+               "    fast to observe. You might want to turn the recorder on\n"
+               "    in SUMA (with 'R') and watch a video of the effect of the\n"
+               "    various commands. Also, you can run the two commands with\n"
+               "    separate calls to DriveSuma:\n"
+               "    DriveSuma -com show_surf -label s1 -i_fs   CreateIco_surf.asc \n"
+               "    DriveSuma -com node_xyz  -label s1 -xyz_1D nz.1D \n"
+               "\n"
+               " Actions (ACT) and their parameters:\n"
+               " -----------------------------------\n"
+               "     show_surf: Send to, and display surface in, SUMA.\n"
+               "                This action needs the following parameters:\n"
+               "        -label LABEL: A label (identifier) to assign to the surface\n"
+               "        -i_TYPE SURF: Name of surface file, see surface I/O options\n"
+               "                      below for details.\n"
+               "     node_xyz: Assign new coordinates to surface in SUMA\n"
+               "               This action needs the following parameters:\n"
+               "        -label LABEL: A label (identifier) to assign to the surface\n"
+               "        -xyz_1D COORDS.1D: A 1D formatted file containing a new \n"
+               "                           coordinate for each of the nodes forming\n"
+               "                           the surface. COORDS.1D must have three columns.\n"
+               "                           Column selectors can be used here as they are in \n"
+               "                           AFNI.\n"              
+               " Example, soup to nuts:\n"
+               " ----------------------\n"
+               " Cut and paste the block below into a new file called temp_demo\n"
                " \n"
+               " echo 'Create toy surface, get its coordinates and modify them a little'\n"
+               " CreateIcosahedron -prefix demo\n"
+               " SurfaceMetrics -coords -spec demo.spec -surf_A demo_surf -prefix demo\n"
+               " 1deval -a demo.coord.1D.dset'[1]' -expr 'a*0.8' > tmp.x && 1dcat  tmp.x demo.coord.1D.dset'[2..3]' > demo.newcoord.1D.dset\n"
+               " echo 'Next, hit enter to run suma and then start recorder'\n"
+               " echo 'in SUMA with R key. Once you have started the recorder,'\n"
+               " echo 'hit enter again to run DriveSuma command.'  && set tmp = $<\n"
+               " suma -niml &\n"
+               " set tmp = $< && echo 'Once you have started the recorder in SUMA (R), hit enter to send surface' && set tmp = $<\n"
+               " DriveSuma -com show_surf -label s1 -i_fs demo_surf.asc \n"
+               " echo 'Hit enter to send to SUMA the next command' && set tmp = $<\n"
+               " DriveSuma -com node_xyz -label s1 -xyz_1D demo.newcoord.1D.dset\n"
+               "\n"
+               " Execute the sequence with:\n"
+               " tcsh temp_demo\n"
+               "\n"
+               "Options:\n"
+               "--------\n"
+               "   -C_demo: execute a preset number of commands\n"
+               "            which are meant to illustrate how one\n"
+               "            can communicate with SUMA from one's \n"
+               "            own C code. Naturally, you'll need to\n"
+               "            look at the source code file SUMA_DriveSuma.c\n"
+               "\n"
                "%s"
                "%s"
                "\n", sio,  s);
@@ -43,6 +114,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(char *argv[], int ar
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
    Opt->com = NULL;
    Opt->N_com = 0;
+   Opt->b1 = 0;
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -64,6 +136,12 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(char *argv[], int ar
          
          Opt->debug = atoi(argv[++kar]);
          brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-C_demo") == 0))
+      {
+         Opt->b1 = 1;
+         brk = YUP;  
       }
       
       if (!brk && (strcmp(argv[kar], "-com") == 0))
@@ -89,6 +167,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(char *argv[], int ar
          ++Opt->N_com;
          brk = YUP;
       }
+      
       
       if (!brk && !ps->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
@@ -418,7 +497,7 @@ int main (int argc,char *argv[])
 
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-   ps = SUMA_Parse_IO_Args(argc, argv, "-talk;");
+   ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;");
    /* force talk option whether users specify it or not */
    ps->cs->talk_suma = 1;
    if (ps->cs->rps > 0) { ps->cs->nelps = (float)ps->cs->talk_suma * ps->cs->rps; }
@@ -435,8 +514,8 @@ int main (int argc,char *argv[])
    
    /* open communication */
    SUMA_LH("Talking to suma");
-   ps->cs->istream = SUMA_BRAINWRAP_LINE;
-   ps->cs->afni_istream = SUMA_AFNI_STREAM_INDEX2;
+   ps->cs->istream = SUMA_DRIVESUMA_LINE;
+   ps->cs->afni_istream = SUMA_AFNI_STREAM_INDEX2; /* not used yet */
    ps->cs->kth = 1; /* make sure all surfaces get sent */
    if (!SUMA_SendToSuma (NULL, ps->cs, NULL, SUMA_NO_DSET_TYPE, 0)) {
       SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
@@ -446,33 +525,28 @@ int main (int argc,char *argv[])
    } 
 
    
-   #if 0 /* sample code for Ben Singer */
+   if (Opt->b1) { /* sample code for Ben Singer */
       /* create a surface of sorts, set up a few attributes */
       SO = SUMA_CreateIcosahedron (50.0, 12, ctr, "n", 1);
       if (!SO) { SUMA_S_Err("Failed to create Icosahedron"); exit(1); }
       if (!SO->State) {SO->State = SUMA_copy_string("DC"); }
       if (!SO->Group) {SO->Group = SUMA_copy_string("DS"); }
-      if (!SO->Label) {SO->Label = SUMA_copy_string("Benedictus"); }
-      if (SO->Label) { if (SO->idcode_str) SUMA_free(SO->idcode_str); SO->idcode_str = NULL; SUMA_NEW_ID(SO->idcode_str, SO->Label); }
-
+      if (!SO->Label) {SO->Label = SUMA_copy_string("IcoSurf"); }
+      if (SO->Label) { 
+         if (SO->idcode_str) SUMA_free(SO->idcode_str); 
+         SO->idcode_str = NULL; SUMA_NEW_ID(SO->idcode_str, SO->Label); 
+      }
+      SO->normdir = 1;
       if (ps->cs->talk_suma) {   /* strcutre setup during program default options parsing */
-         #if 0
-         if (!SUMA_SendToAfni (ps->cs, NULL,  0)) {
-            SUMA_SL_Err("Failed to initialize SUMA_SendToAfni");
-            ps->cs->afni_Send = NOPE;
-            ps->cs->Send = NOPE;
-         } 
-         #endif
             SUMA_LH("Sending Ico"); /* send the surface */
             SUMA_SendSumaNewSurface(SO, ps->cs);
-
       }
    
       SUMA_LH("An example for modifying mesh and redisplaying");
       cnt = 0;
       while (cnt < 20) {
          /* Do some mesh action */
-         for (i=0; i<SO->N_Node*SO->NodeDim; ++i) SO->NodeList[i] *= 0.8;
+         for (i=0; i<SO->N_Node*SO->NodeDim; ++i) SO->NodeList[i] *= 0.9;
             /* recalculate surface normals */
             SUMA_RECOMPUTE_NORMALS(SO); 
             if (ps->cs->Send) {
@@ -482,19 +556,18 @@ int main (int argc,char *argv[])
             }
          ++cnt;
       }
-   #else
-   /* interpret command line commands */
-   for (i=0; i<Opt->N_com; ++i) {
-      if (LocalHead) {
-         SUMA_LH("Have the following commands");
-         fprintf(SUMA_STDERR,"Command %d: %s\n", i, Opt->com[i]);
+   } else {
+      /* interpret command line commands */
+      for (i=0; i<Opt->N_com; ++i) {
+         if (LocalHead) {
+            SUMA_LH("Have the following commands");
+            fprintf(SUMA_STDERR,"Command %d: %s\n", i, Opt->com[i]);
+         }
+         if (!SUMA_ProcessCommand(Opt->com[i], ps)) {
+            fprintf(SUMA_STDERR,"Warning %s: Failed in processing command\n%s\n", FuncName, Opt->com[i]); 
+         }   
       }
-      if (!SUMA_ProcessCommand(Opt->com[i], ps)) {
-         fprintf(SUMA_STDERR,"Warning %s: Failed in processing command\n%s\n", FuncName, Opt->com[i]); 
-      }   
    }
-
-   #endif
    
    SUMA_LH("Freedom");
    /* you don't want to exit rapidly because the SUMA might not be done processing the last elements*/
