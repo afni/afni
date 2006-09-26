@@ -26,18 +26,19 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod ) ;  /* prototype */
 #define NMETH GA_MATCH_METHNUM_SCALAR
 
 static int meth_visible[NMETH] =          /* 1 = show in -help; 0 = don't show */
-  { 1 , 0 , 1 , 1 , 1 , 0 } ;
+  { 1 , 0 , 1 , 1 , 1 , 0 , 1 } ;
 
 static int meth_noweight[NMETH] =         /* 1 = don't allow weights, just masks */
-  { 0 , 1 , 0 , 0 , 1 , 1 } ;
+  { 0 , 1 , 0 , 0 , 1 , 1 , 1 } ;
 
 static char *meth_shortname[NMETH] =      /* short names for terse cryptic users */
-  { "ls" , "sp" , "mi" , "cr" , "nmi" , "je" } ;
+  { "ls" , "sp" , "mi" , "cr" , "nmi" , "je" , "hel" } ;
 
 static char *meth_longname[NMETH] =       /* long names for prolix users */
   { "leastsq"         , "spearman"     ,
     "mutualinfo"      , "corratio"     ,
-    "norm_mutualinfo" , "jointentropy"  } ;
+    "norm_mutualinfo" , "jointentropy" ,
+    "hellinger"                         } ;
 
 static char *meth_username[NMETH] =       /* descriptive names */
   { "Least Squares [Pearson Correlation]"   ,
@@ -45,7 +46,8 @@ static char *meth_username[NMETH] =       /* descriptive names */
     "Mutual Information [H(b)+H(t)-H(b,t)]" ,
     "Correlation Ratio"                     ,
     "Normalized MI [H(b,t)/(H(b)+H(t))]"    ,
-    "Joint Entropy [H(b,t)]"                 };
+    "Joint Entropy [H(b,t)]"                ,
+    "Hellinger metric"                       } ;
 
 /*---------------------------------------------------------------------------*/
 
@@ -69,6 +71,8 @@ int main( int argc , char *argv[] )
    float *apply_far    = NULL ;
    int apply_nx, apply_ny ;
    float cost, cost_ini ;
+   mat44 cmat_bout , cmat_tout ;
+   int   nxout,nyout,nzout , use_out=0 ;
 
    /*----- input parameters, to be filled in from the options -----*/
 
@@ -296,10 +300,12 @@ int main( int argc , char *argv[] )
        "                 which is either a .1D file or an expression in the\n"
        "                 syntax of program 1dmatcalc.  Using this option is\n"
        "                 like using '-parini' on all affine matrix parameters.\n"
+#endif
        "\n"
        " -master mmm = Write the output dataset on the same grid as dataset\n"
        "               'mmm'.  If this option is NOT given, the base dataset\n"
        "               is the master.\n"
+#if 0
        " -dxyz del   = Write the output dataset using grid spacings of\n"
        "               'del' mm.  If this option is NOT given, then the\n"
        "               grid spacings in the master dataset will be used.\n"
@@ -415,7 +421,6 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-#if 0
      if( strcmp(argv[iarg],"-dxyz") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        dxyz_mast = (float)strtod(argv[iarg],NULL) ;
@@ -423,11 +428,9 @@ int main( int argc , char *argv[] )
          ERROR_exit("Illegal value '%s' after -dxyz",argv[iarg]) ;
        iarg++ ; continue ;
      }
-#endif
 
      /*-----*/
 
-#if 0
      if( strncmp(argv[iarg],"-master",5) == 0 ){
        if( dset_mast != NULL ) ERROR_exit("Can't have multiple %s options!",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
@@ -435,7 +438,6 @@ int main( int argc , char *argv[] )
        if( dset_mast == NULL ) ERROR_exit("can't open -master dataset '%s'",argv[iarg]);
        iarg++ ; continue ;
      }
-#endif
 
      /*-----*/
 
@@ -1076,8 +1078,8 @@ int main( int argc , char *argv[] )
        ERROR_exit("-weight and base volumes don't match!") ;
 
    } else if( auto_weight ){  /* manufacture weight from the base */
-     if( meth_noweight[meth_code] && auto_weight == 1 ){
-       if( verb ) WARNING_message("Selected cost function uses -automask") ;
+     if( meth_noweight[meth_code-1] && auto_weight == 1 ){
+       if( verb ) WARNING_message("Selected cost function uses -automask NOT -autoweight") ;
        auto_weight = 2 ;
      } else if( verb == 1 ){
        INFO_message("Computing %s",auto_string) ;
@@ -1150,7 +1152,7 @@ int main( int argc , char *argv[] )
 
    if( dset_base != NULL ){
      if( !ISVALID_MAT44(dset_base->daxes->ijk_to_dicom) )
-     THD_daxes_to_mat44(dset_base->daxes) ;
+       THD_daxes_to_mat44(dset_base->daxes) ;
      stup.base_cmat = dset_base->daxes->ijk_to_dicom ;
    } else {
      stup.base_cmat = stup.targ_cmat ;
@@ -1309,7 +1311,9 @@ int main( int argc , char *argv[] )
    if( prefix == NULL ){
      WARNING_message("No output dataset will be calculated!?") ;
    } else {
-     dset_out = EDIT_empty_copy( (dset_base!=NULL) ? dset_base : dset_targ ) ;
+     if( dset_mast != NULL )      dset_out = EDIT_empty_copy( dset_mast ) ;
+     else if( dset_base != NULL ) dset_out = EDIT_empty_copy( dset_base ) ;
+     else                         dset_out = EDIT_empty_copy( dset_targ ) ;
      EDIT_dset_items( dset_out ,
                         ADN_prefix    , prefix ,
                         ADN_nvals     , DSET_NVALS(dset_targ) ,
@@ -1326,6 +1330,15 @@ int main( int argc , char *argv[] )
        EDIT_BRICK_FACTOR(dset_out,kk,0.0);
      tross_Copy_History( dset_targ , dset_out ) ;
      tross_Make_History( "3dAllineate" , argc,argv , dset_out ) ;
+
+     if( dset_mast != NULL ){
+       THD_daxes_to_mat44(dset_out->daxes) ;
+       cmat_tout = dset_targ->daxes->ijk_to_dicom ;
+       cmat_bout = dset_out ->daxes->ijk_to_dicom ;
+       nxout = DSET_NX(dset_out) ;
+       nyout = DSET_NY(dset_out) ;
+       nzout = DSET_NZ(dset_out) ; use_out = 1 ;
+     }
    }
 
    /***----- start alignment process -----***/
@@ -1573,37 +1586,46 @@ int main( int argc , char *argv[] )
 
      /* save parameters for the historical record */
 
-     if( parsave != NULL ){
-       parsave[kk] = (float *)malloc(sizeof(float)*stup.wfunc_numpar) ;
-       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
-         parsave[kk][jj] = stup.wfunc_param[jj].val_out ;
-     }
+     parsave[kk] = (float *)malloc(sizeof(float)*stup.wfunc_numpar) ;
+     for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+       parsave[kk][jj] = stup.wfunc_param[jj].val_out ;
 
      /** store warped volume into the output dataset **/
 
      if( dset_out != NULL ){
-       if( kk == 0 && skip_first ){             /* didn't register this one! */
-         im_targ = mri_copy( im_base ) ;
-       } else {
-         stup.interp_code = final_interp ;
-         im_targ = mri_genalign_scalar_warpim( &stup ) ;  /* matches im_base */
-       }
 
-       if( zeropad ){                  /* crop this if we had padded im_base */
-         qim = mri_zeropad_3D( -pad_xm,-pad_xp , -pad_ym,-pad_yp ,
-                                                 -pad_zm,-pad_zp , im_targ ) ;
-         mri_free(im_targ) ; im_targ = qim ;
+       if( !use_out ){   /* output on base image grid */
+
+         if( kk == 0 && skip_first ){           /* didn't register this one! */
+           im_targ = mri_copy( im_base ) ;
+         } else {
+           stup.interp_code = final_interp ;
+           im_targ = mri_genalign_scalar_warpim( &stup ); /* matches im_base */
+         }
+         if( zeropad ){                /* crop this if we had padded im_base */
+           qim = mri_zeropad_3D( -pad_xm,-pad_xp , -pad_ym,-pad_yp ,
+                                                   -pad_zm,-pad_zp , im_targ );
+           mri_free(im_targ) ; im_targ = qim ;
+         }
+
+       } else {          /* output on some other grid */
+
+         im_targ = mri_genalign_scalar_warpone(
+                               stup.wfunc_numpar , parsave[kk] , stup.wfunc ,
+                               stup.ajim , cmat_bout , cmat_tout ,
+                               nxout , nyout , nzout , final_interp ) ;
        }
 
        /* save without scaling factor */
 
        if( floatize || targ_kind == MRI_float ){
-         EDIT_substitute_brick( dset_out, kk, MRI_float, MRI_FLOAT_PTR(im_targ) );
+         EDIT_substitute_brick( dset_out,kk,MRI_float, MRI_FLOAT_PTR(im_targ) );
+         mri_clear_data_pointer(im_targ) ;  /* data in im_targ saved directly */
        } else {
-         EDIT_substscale_brick( dset_out, kk, MRI_float, MRI_FLOAT_PTR(im_targ) ,
-                                              targ_kind, 1.0f ) ;
+         EDIT_substscale_brick( dset_out,kk,MRI_float, MRI_FLOAT_PTR(im_targ) ,
+                                            targ_kind, 1.0f ) ;
        }
-       mri_clear_data_pointer(im_targ) ; mri_free(im_targ) ; im_targ = NULL ;
+       mri_free(im_targ) ; im_targ = NULL ;
      }
 
    } /* end of loop over target sub-bricks */
@@ -1617,7 +1639,7 @@ int main( int argc , char *argv[] )
 
    /*--- save parameters to a file, if desired ---*/
 
-   if( parsave != NULL && fname_1D != NULL ){
+   if( fname_1D != NULL ){
      FILE *fp ;
      fp = (strcmp(fname_1D,"-") == 0) ?  stdout
                                       : fopen(fname_1D,"w") ;
@@ -1630,9 +1652,7 @@ int main( int argc , char *argv[] )
      for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
          fprintf(fp," %.5f",parsave[kk][jj]) ;
-       free((void *)parsave[kk]) ;
      }
-     free((void *)parsave) ;
      if( fp != stdout ){
        fclose(fp) ; if( verb ) INFO_message("Wrote -1Dfile %s",fname_1D) ;
      }
@@ -1641,6 +1661,8 @@ int main( int argc , char *argv[] )
    /*---------- FREE AT LAST, FREE AT LAST ----------*/
 
    FREE_GA_setup(&stup) ;
+   for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ) free((void *)parsave[kk]) ;
+   free((void *)parsave) ;
 
    if( verb ) INFO_message("total CPU time = %.1f sec\n",COX_cpu_time()) ;
    exit(0) ;
