@@ -4212,6 +4212,10 @@ extern float THD_jointentrop_scl( int, float,float,float *,    /* 25 Sep 2006 */
                                        float,float,float *, float * ) ;
 extern float THD_jointentrop( int , float *, float * ) ;
 
+extern float THD_hellinger_scl( int, float,float,float *,      /* 26 Sep 2006 */
+                                     float,float,float *, float * ) ;
+extern float THD_hellinger( int , float *, float * ) ;
+
 /*------------------------------------------------------------------------*/
 
 extern THD_fvec3 THD_autonudge( THD_3dim_dataset *dsepi, int ivepi,

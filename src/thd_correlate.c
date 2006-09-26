@@ -276,13 +276,14 @@ static int nbin , nbp ;
       - xc   = marginal histogram of x[], for xc[0..nbin]
       - yc   = marginal histogram of y[], for yc[0..nbin]
       - xyc  = joint histogram of (x[],y[]), for XYC(0..nbin,0..nbin)
+      - The histograms are normalized (by 1/nww) to have sum==1.
 ----------------------------------------------------------------------------*/
 
 static void build_2Dhist( int n , float xbot,float xtop,float *x ,
                                   float ybot,float ytop,float *y , float *w )
 {
    register int ii,jj,kk ;
-   float xb,xi , yb,yi , xx,yy , x1,y1 , nbb , val , ww ;
+   float xb,xi , yb,yi , xx,yy , x1,y1 , nbb , ww ;
 
    if( n <= 1 || x == NULL || y == NULL ){     /* clear the arrays */
      if( xc  != NULL ){ free((void *)xc ); xc  = NULL; }
@@ -351,6 +352,16 @@ static void build_2Dhist( int n , float xbot,float xtop,float *x ,
 #endif
    }
 
+   /** 26 Sep 2006: scale histogram to have sum==1 **/
+
+   if( nww > 0.0f ){
+     register float ni ; register int nbq ;
+     ni = 1.0f / nww ;
+     for( ii=0 ; ii < nbp ; ii++ ){ xc[ii]  *= ni; yc[ii] *= ni; }
+     nbq = nbp*nbp ;
+     for( ii=0 ; ii < nbq ; ii++ ){ xyc[ii] *= ni; }
+   }
+
    return ;
 }
 
@@ -375,9 +386,9 @@ float THD_mutual_info_scl( int n , float xbot,float xtop,float *x ,
    for( ii=0 ; ii < nbp ; ii++ ){
     for( jj=0 ; jj < nbp ; jj++ ){
      if( XYC(ii,jj) > 0.0f )
-      val += XYC(ii,jj) * logf( nww*XYC(ii,jj)/(xc[ii]*yc[jj]) ) ;
+      val += XYC(ii,jj) * logf( XYC(ii,jj)/(xc[ii]*yc[jj]) ) ;
    }}
-   return (1.4427f*val/nww) ;  /* units are bits, just for fun */
+   return (1.4427f*val) ;  /* units are bits, just for fun */
 }
 
 /*--------------------------------------------------------------------------*/
@@ -409,10 +420,10 @@ float THD_norm_mutinf_scl( int n , float xbot,float xtop,float *x ,
 
    denom = numer = 0.0f ;
    for( ii=0 ; ii < nbp ; ii++ ){
-     if( xc[ii] > 0.0f ) denom += xc[ii] * logf( xc[ii] / nww ) ;
-     if( yc[ii] > 0.0f ) denom += yc[ii] * logf( yc[ii] / nww ) ;
+     if( xc[ii] > 0.0f ) denom += xc[ii] * logf( xc[ii] ) ;
+     if( yc[ii] > 0.0f ) denom += yc[ii] * logf( yc[ii] ) ;
      for( jj=0 ; jj < nbp ; jj++ ){
-       if( XYC(ii,jj) > 0.0f ) numer += XYC(ii,jj) * logf( XYC(ii,jj) / nww );
+       if( XYC(ii,jj) > 0.0f ) numer += XYC(ii,jj) * logf( XYC(ii,jj) );
      }
    }
    if( denom != 0.0f ) denom = numer / denom ;
@@ -448,9 +459,9 @@ float THD_jointentrop_scl( int n , float xbot,float xtop,float *x ,
    for( ii=0 ; ii < nbp ; ii++ ){
     for( jj=0 ; jj < nbp ; jj++ ){
      if( XYC(ii,jj) > 0.0f )
-      val -= XYC(ii,jj) * logf( XYC(ii,jj)/nww ) ;
+      val -= XYC(ii,jj) * logf( XYC(ii,jj) ) ;
    }}
-   return (1.4427f*val/nww) ;  /* units are bits, just for fun */
+   return (1.4427f*val) ;  /* units are bits, just for fun */
 }
 
 /*--------------------------------------------------------------------------*/
@@ -493,7 +504,7 @@ float THD_corr_ratio_scl( int n , float xbot,float xtop,float *x ,
    for( jj=0 ; jj < nbp ; jj++ ){
      mm += (jj * yc[jj]) ; vv += jj * (jj * yc[jj]) ;
    }
-   uyvar = vv - mm*mm/nww ;
+   uyvar = vv - mm*mm ;
    val = 1.0f - cyvar/uyvar ; return val ;
 }
 
@@ -503,4 +514,38 @@ float THD_corr_ratio_scl( int n , float xbot,float xtop,float *x ,
 float THD_corr_ratio( int n , float *x , float *y )
 {
    return THD_corr_ratio_scl( n , 1.0f,-1.0f , x, 1.0f,-1.0f , y , NULL ) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Compute the Hellinger metric between two vectors, sort of.
+----------------------------------------------------------------------------*/
+
+float THD_hellinger_scl( int n , float xbot,float xtop,float *x ,
+                                 float ybot,float ytop,float *y , float *w )
+{
+   register int ii,jj ;
+   register float val , pq ;
+
+   /*-- build 2D histogram --*/
+
+   build_2Dhist( n,xbot,xtop,x,ybot,ytop,y,w ) ;
+   if( nbin <= 0 || nww <= 0 ) return 0.0f ;  /* something bad happened! */
+
+   /*-- compute metric from histogram --*/
+
+   val = 0.0f ;
+   for( ii=0 ; ii < nbp ; ii++ ){
+    for( jj=0 ; jj < nbp ; jj++ ){
+     pq = XYC(ii,jj) ;
+     if( pq > 0.0f ) val += sqrtf( pq * xc[ii] * yc[jj] ) ;
+   }}
+   return (1.0f-val) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Compute Hellinger metric between x[] and y[i], with autoscaling. */
+
+float THD_hellinger( int n , float *x , float *y )
+{
+   return THD_mutual_info_scl( n, 1.0f,-1.0f, x, 1.0f,-1.0f, y, NULL ) ;
 }

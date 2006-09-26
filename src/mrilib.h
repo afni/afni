@@ -1245,8 +1245,9 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 #define GA_MATCH_CORRATIO_SCALAR    4  /* Correlation Ratio */
 #define GA_MATCH_NORMUTIN_SCALAR    5  /* Normalized Mutual Info */
 #define GA_MATCH_JOINTENT_SCALAR    6  /* Joint Entropy */
+#define GA_MATCH_HELLINGER_SCALAR   7  /* Hellinger metric */
 
-#define GA_MATCH_METHNUM_SCALAR     6  /* Largest value in sequence above */
+#define GA_MATCH_METHNUM_SCALAR     7  /* Largest value in sequence above */
 
  /* methods for smoothing images */
 
@@ -1364,6 +1365,12 @@ extern float mri_genalign_scalar_cost( GA_setup * ) ;
 #define SMAT_LOWER    2  /* or lower triangular  */
 
 extern void mri_genalign_affine_setup( int,int,int ) ;
+
+extern MRI_IMAGE * mri_genalign_scalar_warpone(      /* 26 Sep 2006 */
+                    int npar, float *wpar, GA_warpfunc *wfunc,
+                    MRI_IMAGE *imtarg ,
+                    mat44 cmat_base , mat44 cmat_targ ,
+                    int nnx , int nny , int nnz , int icode ) ;
 
 /*------------------------------------------------------------------*/
 /* Prototypes for functions in nifti_stats.c */

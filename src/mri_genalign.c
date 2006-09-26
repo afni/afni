@@ -665,6 +665,12 @@ static double GA_scalar_fitter( int npar , double *mpar )
                                 gstup->bsbot , gstup->bstop , bvm , wvm ) ;
       val = 1.0 - fabs(val) ;
     break ;
+
+    case GA_MATCH_HELLINGER_SCALAR: /* Hellinger metric */
+      val = -THD_hellinger_scl( gstup->npt_match ,
+                                gstup->ajbot , gstup->ajtop , avm ,
+                                gstup->bsbot , gstup->bstop , bvm , wvm ) ;
+    break ;
   }
 
   free((void *)avm) ;    /* toss the trash */
@@ -1242,7 +1248,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
 
    if( verb ){                    /* print table of results? */
      fprintf(stderr,"\n") ;
-     fprintf(stderr," + - random kval:\n") ;
+     fprintf(stderr," + - best random kval:\n") ;
      for(kk=0;kk<NKEEP;kk++){
       fprintf(stderr,"   %2d v=%g:",kk,kval[kk]);
       for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
@@ -1273,7 +1279,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    /* at this point, smallest error is vbest and best index in kpar is jj */
 
    if( verb ){                    /* print out optimized results? */
-     fprintf(stderr," + - better kval:\n") ;
+     fprintf(stderr," + - optimized random kval:\n") ;
      for(kk=0;kk<NKEEP;kk++){
       fprintf(stderr,"  %c%2d %g:",(kk==jj)?'*':' ',kk,kval[kk]);
       for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
@@ -1349,7 +1355,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/*! Warp the entire target image.  Will be in float format.
+/*! Warp the entire target image to base coords.  Will be in float format.
 -----------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_genalign_scalar_warpim( GA_setup *stup )
@@ -1370,6 +1376,133 @@ ENTRY("mri_genalign_scalar_warpim") ;
    war = MRI_FLOAT_PTR(wim) ;
 
    GA_get_warped_values( 0 , NULL , war ) ;
+
+   RETURN(wim) ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! Warp an image to base coords, on an nnx X nny X nnz grid.
+     - The mapping between ijk and base xyz coords is given by cmat_base.
+     - The warping between base xyz and target xyz is given by the
+       wfunc, which has npar parameters stored in wpar.
+     - The mapping between ijk and target xyz is given by cmat_targ.
+     - The interpolation method is in icode.
+     - Output is in float format, no matter what input data format was.
+     - Generalized from GA_get_warped_values() -- RWCox - 26 Sep 2006.
+---------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_genalign_scalar_warpone( int npar, float *wpar, GA_warpfunc *wfunc,
+                                         MRI_IMAGE *imtarg ,
+                                         mat44 cmat_base , mat44 cmat_targ ,
+                                         int nnx , int nny , int nnz , int icode )
+{
+   int   ii,jj,kk,qq,pp,npp,mm,nx,ny,nxy,nz , npt ;
+   float x,y,z ;
+   float *imf , *jmf , *kmf ;
+   float *imw , *jmw , *kmw ;
+   MRI_IMAGE *wim , *inim ;
+   float     *war , *inar ;
+   mat44 imat_targ ;
+
+ENTRY("mri_genalign_scalar_warpone") ;
+
+   if( wfunc == NULL || imtarg == NULL ) RETURN(NULL) ;
+
+   /* send parameters to warping function */
+
+   wfunc( npar , wpar , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
+
+   /* create float copy of input image, if needed */
+
+   if( imtarg->kind == MRI_float ) inim = imtarg ;
+   else                            inim = mri_to_float(imtarg) ;
+   inar = MRI_FLOAT_PTR(inim) ;
+
+   /* dimensions of output image */
+
+   nx = nnx ; ny = nny ; nz = nnz ; nxy = nx*ny ; npt = nxy * nz ;
+   wim = mri_new_vol( nx,ny,nz , MRI_float ) ;
+   war = MRI_FLOAT_PTR(wim) ;
+
+   /* xyz coordinates in base image to be warped to target coords */
+
+   imf = (float *)calloc(sizeof(float),NPER) ;
+   jmf = (float *)calloc(sizeof(float),NPER) ;
+   kmf = (float *)calloc(sizeof(float),NPER) ;
+
+   /* xyz coordinates after warping */
+
+   imw = (float *)calloc(sizeof(float),NPER) ;
+   jmw = (float *)calloc(sizeof(float),NPER) ;
+   kmw = (float *)calloc(sizeof(float),NPER) ;
+
+   /* map to take warped xyz to target image ijk for interpolation */
+
+   imat_targ = nifti_mat44_inverse( cmat_targ ) ;
+
+   /*--- do (up to) NPER points at a time ---*/
+
+   for( pp=0 ; pp < npt ; pp+=NPER ){
+     npp = MIN( NPER , npt-pp ) ;      /* number to do */
+
+     /* get base xyz coords */
+
+     for( qq=0 ; qq < npp ; qq++ ){
+       mm = pp+qq ;
+       ii = mm % nx; kk = mm / nxy; jj = (mm-kk*nxy) / nx;
+       x = (float)ii; y = (float)jj; z = (float)kk;
+       MAT44_VEC( cmat_base , x,y,z , imf[qq] , jmf[qq] , kmf[qq] ) ;
+     }
+
+     /* warp base points to new locations */
+
+     wfunc( npar , NULL , npp  , imf,jmf,kmf , imw,jmw,kmw ) ;
+
+     /* convert back to target image ijk values */
+
+     for( qq=0 ; qq < npp ; qq++ ){
+       x = imw[qq] ; y = jmw[qq] ; z = kmw[qq] ;
+       MAT44_VEC( imat_targ , x,y,z ,
+                  imw[qq] , jmw[qq] , kmw[qq] ) ;
+     }
+
+     /* interpolate target image at warped points */
+
+     switch( icode ){
+       case MRI_NN:
+         GA_interp_NN( inim , npp , imw,jmw,kmw , war+pp ) ;
+       break ;
+
+       case MRI_LINEAR:
+         GA_interp_linear( inim , npp , imw,jmw,kmw , war+pp ) ;
+       break ;
+
+       case MRI_CUBIC:
+         GA_interp_cubic( inim , npp , imw,jmw,kmw , war+pp ) ;
+       break ;
+
+       default:        /* for higher order methods not implemented here */
+       case MRI_QUINTIC:
+         GA_interp_quintic( inim , npp , imw,jmw,kmw , war+pp ) ;
+       break ;
+     }
+   }
+
+   /* clip interpolated values to range of target image, if need be */
+
+   if( MRI_HIGHORDER(icode) ){
+     float bb=war[0] , tt=war[0] ;
+     for( pp=1 ; pp < npt ; pp++ ) if( inar[pp] < bb ) bb = inar[pp] ;
+                              else if( inar[pp] > tt ) tt = inar[pp] ;
+     for( pp=0 ; pp < npt ; pp++ ) if( war[pp]  < bb ) war[pp] = bb ;
+                              else if( war[pp]  > tt ) war[pp] = tt ;
+   }
+
+   /* free the enslaved memory */
+
+   free((void *)kmw); free((void *)jmw); free((void *)imw);
+   free((void *)kmf); free((void *)jmf); free((void *)imf);
+   if( inim != imtarg ) mri_free(inim) ;
 
    RETURN(wim) ;
 }

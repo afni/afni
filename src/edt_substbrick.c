@@ -132,7 +132,7 @@ ENTRY("EDIT_substscale_brick") ;
          isin = is_integral_data( nvox , MRI_float , far ) ;
          fac = (isin && top <= 255.0f) ? 1.0f : 255.0f / top ;
        } else {
-         WARNING_message("EDIT_substscale_brick: no positive inputs for -> byte?") ;
+         WARNING_message("EDIT_substscale_brick: no positive data for -> byte");
          fac = 1.0f ;
        }
      }
