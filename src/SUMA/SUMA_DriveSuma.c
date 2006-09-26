@@ -102,20 +102,37 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(char *argv[], int ar
    SUMA_RETURN(Opt);
 }
 
-SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
+char ** SUMA_free_com_argv(char **argt, int *argtc)
 {
-   static char FuncName[]={"SUMA_ShowSurfComToSO"};
-   SUMA_SurfaceObject *SO = NULL;
-   SUMA_GENERIC_ARGV_PARSE *pst=NULL;
-   char **argt=NULL, *pos, *tp=NULL;
-   int argtc = 0;
-   SUMA_SurfSpecFile *Spec = NULL;
-   int *isin=NULL;
-   int  i = -1, ii, jj, kk, il, N_Spec=0, kar=0;
-   SUMA_Boolean brk = NOPE;
-   SUMA_Boolean LocalHead = NOPE;
+   static char FuncName[]={"SUMA_free_com_argv"};
+   int i;
    
    SUMA_ENTRY;
+   
+   if (argt) {
+      for (i=0; i<*argtc; ++i) if (argt[i]) SUMA_free(argt[i]); 
+      SUMA_free(argt); argt = NULL;
+   }
+   
+   *argtc = -1;
+   SUMA_RETURN(NULL);
+}
+
+/*!
+   \brief char ** SUMA_com2argv(char *com, int *argtcp)
+   Turn a command into an argv, argc duo
+   Free argv with SUMA_free_com_argv
+*/
+char ** SUMA_com2argv(char *com, int *argtcp) 
+{
+   static char FuncName[]={"SUMA_com2argv"};
+   char **argt=NULL, *pos, *tp=NULL;
+   int argtc = 0;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   *argtcp = -1;
    
    /* change com to a bunch of arguments */
    /* get the type */
@@ -136,6 +153,29 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
       argt[argtc] = tp; tp = NULL; 
       ++argtc;
    }
+   
+   *argtcp = argtc;
+   SUMA_RETURN(argt);
+}
+
+SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
+{
+   static char FuncName[]={"SUMA_ShowSurfComToSO"};
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_GENERIC_ARGV_PARSE *pst=NULL;
+   char **argt=NULL, *pos, *tp=NULL;
+   int argtc = 0;
+   SUMA_SurfSpecFile *Spec = NULL;
+   int *isin=NULL;
+   int  i = -1, ii, jj, kk, il, N_Spec=0, kar=0;
+   SUMA_Boolean brk = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   /* change com to a bunch of arguments */
+   argt = SUMA_com2argv(com, &argtc); 
+
    /* now parse these fake options */
    pst = SUMA_Parse_IO_Args(argtc, argt, "-i;-t;-spec;-sv;");
    if (LocalHead) SUMA_Show_IO_args(pst);
@@ -208,10 +248,107 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
       SUMA_Print_Surface_Object(SO, NULL);
    }
    /* clean up */
-   if (argt) {
-      for (i=0; i<argtc; ++i) if (argt[i]) SUMA_free(argt[i]); 
-      SUMA_free(argt); argt = NULL; argtc = 0;
+   argt = SUMA_free_com_argv(argt, &argtc);
+   
+   if (pst) SUMA_FreeGenericArgParse(pst); pst = NULL;
+   if (N_Spec) {
+      int k=0; 
+      for (k=0; k<N_Spec; ++k) {
+         if (!SUMA_FreeSpecFields(&(Spec[k]))) { SUMA_S_Err("Failed to free spec fields"); } 
+      }
+      SUMA_free(Spec); Spec = NULL; N_Spec = 0;
    }
+   
+   SUMA_RETURN(SO);
+}
+
+
+SUMA_SurfaceObject *SUMA_NodeXYZComToSO(char *com)
+{
+   static char FuncName[]={"SUMA_NodeXYZComToSO"};
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_GENERIC_ARGV_PARSE *pst=NULL;
+   char **argt=NULL, *pos, *tp=NULL;
+   int argtc = 0;
+   SUMA_SurfSpecFile *Spec = NULL;
+   int *isin=NULL;
+   int  i = -1, ii, jj, kk, il, N_Spec=0, kar=0;
+   SUMA_Boolean brk = NOPE;
+   char *f1d = NULL;
+   float *far = NULL;
+   int ncol, nrow;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   /* change com to a bunch of arguments */
+   argt = SUMA_com2argv(com, &argtc); 
+   
+   /* now parse these fake options (have to do it, in case you need it later)*/
+   pst = SUMA_Parse_IO_Args(argtc, argt, "-i;-t;-spec;-sv;");
+   if (LocalHead) SUMA_Show_IO_args(pst);
+
+   /* a necessary receptacle */
+   SO = SUMA_Alloc_SurfObject_Struct(1);  
+   
+   /* parse 'em */
+   kar = 1;
+   brk = NOPE;
+	while (kar < argtc) { /* loop accross command ine options */
+		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      if (!brk && (strcmp(argt[kar], "-label") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a label after -label \n");
+            exit (1);
+         }
+         
+         if (SO->Label) SUMA_free(SO->Label);
+         SO->Label = SUMA_copy_string(argt[++kar]);
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-xyz_1D") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a 1D file after -xyz_1D \n");
+            exit (1);
+         }
+         
+         far=SUMA_Load1D_s(argt[++kar], &ncol, &nrow, 1, 0);
+         SO->N_Node = nrow;
+         SO->NodeDim = ncol;
+         SO->NodeList = (float *)SUMA_calloc(nrow*ncol, sizeof(float));
+         memcpy((void *)SO->NodeList, (void *)far, nrow*ncol * sizeof(float));
+         free(far); far = NULL;
+         brk = YUP;
+      }
+      if (!brk && !pst->arg_checked[kar]) {
+			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n",
+               FuncName, argt[kar]);
+			exit (1);
+		} else {	
+			brk = NOPE;
+			kar ++;
+		}
+   }
+
+   /* fix the trimmings */
+   if (!SO->State) {SO->State = SUMA_copy_string("DC"); }
+   if (!SO->Group) {SO->Group = SUMA_copy_string("DS"); }
+   if (!SO->Label) {SO->Label = SUMA_copy_string("Benedictus"); }
+   if (SO->Label) { 
+      if (SO->idcode_str) SUMA_free(SO->idcode_str); 
+      SO->idcode_str = NULL; SUMA_NEW_ID(SO->idcode_str, SO->Label); 
+   }
+
+   if (LocalHead) {
+      SUMA_Print_Surface_Object(SO, NULL);
+   }
+   /* clean up */
+   argt = SUMA_free_com_argv(argt, &argtc);
    if (pst) SUMA_FreeGenericArgParse(pst); pst = NULL;
    if (N_Spec) {
       int k=0; 
@@ -251,27 +388,17 @@ SUMA_Boolean SUMA_ProcessCommand(char *com, SUMA_GENERIC_ARGV_PARSE *ps)
       SUMA_LHv("Sending Surface %s\n", SO->Label); /* send the surface */
       SUMA_SendSumaNewSurface(SO, ps->cs);
    } else if (strcmp((act), "node_xyz") == 0) {
-      SUMA_GET_BETWEEN_BLANKS(com, NULL, pos);
-      f1d = NULL;
-      SUMA_COPY_TO_STRING(com, pos, f1d); com = pos;
-      far=SUMA_Load1D_s(f1d, &ncol, &nrow, 1, 0);
-
-      SUMA_LH("Sending XYZ \n"); /* send the coords after creating dummy SO */
-      SO->N_Node = nrow;
-      SO->N_NodeDim = ncol; 
-      SO->Label = Get label from -surf_label option
-      SO->IDcode = form idcode from surf_label
-      if (!SUMA_SendToSuma (SO, cs, (void *)far, SUMA_NODE_XYZ, 1)) {
+      SO = SUMA_NodeXYZComToSO(com);
+      SUMA_LHv("Sending XYZ to %s", SO->Label);
+      if (!SUMA_SendToSuma (SO, ps->cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
-      free(far); far = NULL;
-      SUMA_free(f1d); f1d = NULL;
-      SUMA_Free_Surface_Object(SO); SO = NULL;
    } else {
-      fprintf(SUMA_STDERR, "Error %s: Action %s not supported.", FuncName, act);
+      fprintf(SUMA_STDERR, "Error %s: Action %s not supported.\n", FuncName, act);
       ans = NOPE;
    }
    
+   if (SO) SUMA_Free_Surface_Object(SO); SO = NULL;
    if (act) SUMA_free(act);
    SUMA_RETURN(ans);
 }
