@@ -1343,7 +1343,7 @@ int main( int argc , char *argv[] )
 
    if( verb && apply_1D == NULL )
      INFO_message("======== Starting Allineation: cost function = %s =======",
-                  meth_username[meth_code] ) ;
+                  meth_username[meth_code-1] ) ;
 
    if( verb > 1 ) mri_genalign_verbose(verb-1) ;
 
