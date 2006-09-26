@@ -1236,6 +1236,8 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 /*--------------------------------------------------------------------*/
 /** July 2006: stuff for generic alignment functions: mri_genalign.c **/
 
+ /* methods for matching scalar-valued images */
+
 #define GA_MATCH_PEARSON_SCALAR     1  /* least squares, more-or-less */
 #define GA_MATCH_SPEARMAN_SCALAR    2  /* rank-order correlation */
 #define GA_MATCH_KULLBACK_SCALAR    3  /* Mutual Info */
@@ -1244,15 +1246,20 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 #define GA_MATCH_NORMUTIN_SCALAR    5  /* Normalized Mutual Info */
 #define GA_MATCH_JOINTENT_SCALAR    6  /* Joint Entropy */
 
-#define GA_MATCH_POINTS(g)   ( (g) == GA_MATCH_PEARSON_SCALAR ||   \
-                               (g) == GA_MATCH_SPEARMAN_SCALAR   )
+#define GA_MATCH_METHNUM_SCALAR     6  /* Largest value in sequence above */
+
+ /* methods for smoothing images */
 
 #define GA_SMOOTH_GAUSSIAN          1
 #define GA_SMOOTH_MEDIAN            2
 
+ /* kernels for histogram estimation */
+
 #define GA_KERNEL_GAUSSIAN          1
 #define GA_KERNEL_QUADRATIC         2
 #define GA_KERNEL_QUARTIC           3
+
+ /* prototype/typedef for a spatial warping function */
 
 typedef void GA_warpfunc( int, float *,
                           int, float *,float *,float *,
@@ -1267,8 +1274,10 @@ typedef void GA_warpfunc( int, float *,
     char name[32] ;
   }  GA_param ;
 #else
-  typedef MRI_warp3D_param_def GA_param ;
+  typedef MRI_warp3D_param_def GA_param ;  /* cf. 3ddata.h */
 #endif
+
+ /* struct to control mri_genalign.c optimization */
 
 typedef struct {
   int match_code  ;             /* set by user */
