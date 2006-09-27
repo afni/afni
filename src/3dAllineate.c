@@ -1607,7 +1607,6 @@ int main( int argc , char *argv[] )
        float pini[MAXPAR] ;
        stup.interp_code = MRI_LINEAR ;
        nfunc = mri_genalign_scalar_optim( &stup, rad, 0.002, 6666 );
-       if( nfunc < 6666 ) rad *= 0.333 ;
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
          pini[jj] = stup.wfunc_param[jj].val_init ;
          stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out ;
@@ -1624,6 +1623,7 @@ int main( int argc , char *argv[] )
            PARINI("- Intrmed fine") ;
            ININFO_message("- Intrmed cost = %f",cost) ;
          }
+         if( nfunc < 6666 ) rad *= 0.222 ;
        }
      }
 
