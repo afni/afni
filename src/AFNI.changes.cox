@@ -5916,3 +5916,9 @@
 21 Sep 2006
  * Put 3dAllineate into the distribution.  But is not finished.
  * Modified plug_nlfit.c to allow AFNI_NLFIM_METHOD to select optimizer.
+
+27 Sep 2006
+ * Modified correlation ratio in thd_correlate.c to use both Var(y|x) and
+     Var(x|y) for symmetry between base and target.  Seems to make
+     registration work better.
+ * Added -check and -master options to 3dAllineate.c.

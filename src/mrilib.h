@@ -1265,18 +1265,8 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 typedef void GA_warpfunc( int, float *,
                           int, float *,float *,float *,
                                float *,float *,float * );
-#if 0
-# define PARAM_MAXTRIAL 5
-  typedef struct {
-    float min, max, ident, delta, toler ;
-    float val_init , val_out , val_fixed , val_pinit ;
-    int fixed ;
-    float val_trial[PARAM_MAXTRIAL] ;
-    char name[32] ;
-  }  GA_param ;
-#else
-  typedef MRI_warp3D_param_def GA_param ;  /* cf. 3ddata.h */
-#endif
+
+typedef MRI_warp3D_param_def GA_param ;  /* cf. 3ddata.h */
 
  /* struct to control mri_genalign.c optimization */
 

@@ -481,7 +481,7 @@ float THD_corr_ratio_scl( int n , float xbot,float xtop,float *x ,
 {
    register int ii,jj ;
    register float vv,mm ;
-   float    val , cyvar , uyvar ;
+   float    val , cyvar , uyvar , yrat,xrat ;
 
    /*-- build 2D histogram --*/
 
@@ -494,18 +494,39 @@ float THD_corr_ratio_scl( int n , float xbot,float xtop,float *x ,
    for( ii=0 ; ii < nbp ; ii++ ){
      if( xc[ii] > 0.0f ){
        vv = mm = 0.0f ;               /* mm=E(y|x)  vv=E(y^2|x) */
-       for( jj=0 ; jj < nbp ; jj++ ){
+       for( jj=1 ; jj < nbp ; jj++ ){
          mm += (jj * XYC(ii,jj)) ; vv += jj * (jj * XYC(ii,jj)) ;
        }
-       cyvar += (vv - mm*mm/xc[ii] ) ;
+       cyvar += (vv - mm*mm/xc[ii] ) ; /* Var(y|x) */
      }
    }
    vv = mm = uyvar = 0.0f ;
-   for( jj=0 ; jj < nbp ; jj++ ){
+   for( jj=1 ; jj < nbp ; jj++ ){     /* mm=E(y)  vv=E(y^2) */
      mm += (jj * yc[jj]) ; vv += jj * (jj * yc[jj]) ;
    }
-   uyvar = vv - mm*mm ;
-   val = 1.0f - cyvar/uyvar ; return val ;
+   uyvar = vv - mm*mm ;               /* Var(y) */
+   yrat  = cyvar / uyvar ;            /* Var(y|x) / Var(y) */
+#if 0
+   return (1.0f-yrat) ;
+#else
+   cyvar = 0.0f ;
+   for( jj=0 ; jj < nbp ; jj++ ){
+     if( yc[jj] > 0.0f ){
+       vv = mm = 0.0f ;               /* mm=E(x|y)  vv=E(x^2|y) */
+       for( ii=1 ; ii < nbp ; ii++ ){
+         mm += (ii * XYC(ii,jj)) ; vv += ii * (ii * XYC(ii,jj)) ;
+       }
+       cyvar += (vv - mm*mm/yc[jj] ) ; /* Var(x|y) */
+     }
+   }
+   vv = mm = uyvar = 0.0f ;
+   for( ii=1 ; ii < nbp ; ii++ ){     /* mm=E(x)  vv=E(x^2) */
+     mm += (ii * xc[ii]) ; vv += ii * (ii * xc[ii]) ;
+   }
+   uyvar = vv - mm*mm ;               /* Var(x) */
+   xrat  = cyvar / uyvar ;            /* Var(x|y) / Var(x) */
+   return (1.0f - xrat*yrat) ;
+#endif
 }
 
 /*--------------------------------------------------------------------------*/
