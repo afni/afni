@@ -1,7 +1,7 @@
 /**** TO DO:
              -matini
+             -dxyz
              center of mass: use to set center of range?
-             dset_master, dxyz?
 ****/
 
 #include "mrilib.h"
@@ -110,6 +110,7 @@ int main( int argc , char *argv[] )
    int matorder                = MATORDER_SDU ; /* matrix mult order */
    int smat                    = SMAT_LOWER ;   /* shear matrix triangle */
    int dcode                   = DELTA_AFTER ;  /* shift after */
+   int meth_check              = -1 ;           /* don't do it */
 
 
    /**----- Help the pitifully ignorant user? -----**/
@@ -205,11 +206,21 @@ int main( int argc , char *argv[] )
        " -final iii  = Defines the interpolation mode used to create the\n"
        "               output dataset.  [Default == whatever '-interp' says.]\n"
        "\n"
-       " -conv ccc   = Convergence test is set to 'ccc' millimeters.\n"
+       " -conv mmm   = Convergence test is set to 'mmm' millimeters.\n"
        "               [Default == 0.05 mm]\n"
        "\n"
        " -verb       = Print out verbose progress reports.\n"
-       "               [Using '-verb' twice will give more detailed reports.]\n"
+       "               [Using '-VERB' will give even more prolix reports.]\n"
+       "\n"
+       " -check kkk  = After cost function optimization is done, start at the\n"
+       "               final parameters and RE-optimize using the new cost\n"
+       "               function 'kkk'.  If the results are too different, a\n"
+       "               warning message will be printed.  In any case, the\n"
+       "               final parameters from the original optimization will be\n"
+       "               used to create the output dataset. Using -check\n"
+       "               increases the CPU time, but can help you feel sure\n"
+       "               that the alignment process did not go wild and crazy.\n"
+       "               [Default == no check == don't worry, be happy!]\n"
        "\n"
        " ** PARAMETERS THAT AFFECT THE COST OPTIMIZATION STRATEGY **\n"
        " -onepass    = Use only the refining pass -- do not try a coarse\n"
@@ -252,6 +263,9 @@ int main( int argc , char *argv[] )
        "\n"
        " -autoweight = Compute a weight function using the 3dAutomask\n"
        "               algorithm plus some blurring of the base image.\n"
+       "       **N.B.: Some cost functions do not allow -autoweight, and\n"
+       "               will use -automask instead.  A warning message\n"
+       "               will be printed if you run into this situation.\n"
        " -automask   = Compute a mask function, which is like -autoweight,\n"
        "               but the weight for a voxel is either 0 or 1.\n"
        "               [This is the default mode of operation.]\n"
@@ -305,6 +319,10 @@ int main( int argc , char *argv[] )
        " -master mmm = Write the output dataset on the same grid as dataset\n"
        "               'mmm'.  If this option is NOT given, the base dataset\n"
        "               is the master.\n"
+       "       **N.B.: 3dAllineate transforms the target dataset to be 'similar'\n"
+       "               to the base image.  Therefore, the coordinate system\n"
+       "               of the master dataset is interpreted as being in the\n"
+       "               reference system of the base image.\n"
 #if 0
        " -dxyz del   = Write the output dataset using grid spacings of\n"
        "               'del' mm.  If this option is NOT given, then the\n"
@@ -516,6 +534,8 @@ int main( int argc , char *argv[] )
 
      /*----- Check the various cost options -----*/
 
+     /** -shortname **/
+
      for( jj=ii=0 ; ii < NMETH ; ii++ ){
        if( strcmp(argv[iarg]+1,meth_shortname[ii]) == 0 ){
          meth_code = jj = ii+1 ; break ;
@@ -523,12 +543,16 @@ int main( int argc , char *argv[] )
      }
      if( jj > 0 ){ iarg++ ; continue ; }
 
+     /** -longname **/
+
      for( jj=ii=0 ; ii < NMETH ; ii++ ){
        if( strncmp(argv[iarg]+1,meth_longname[ii],7) == 0 ){
          meth_code = jj = ii+1 ; break ;
        }
      }
      if( jj > 0 ){ iarg++ ; continue ; }
+
+     /** -cost shortname  *OR*  -cost longname **/
 
      if( strncmp(argv[iarg],"-cost",4) == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '-cost'!") ;
@@ -548,6 +572,29 @@ int main( int argc , char *argv[] )
        if( jj >=0 ){ iarg++ ; continue ; }
 
        ERROR_exit("Unknown code '%s' after -cost!",argv[iarg]) ;
+     }
+
+     /*----- -check costname -----*/
+
+     if( strncmp(argv[iarg],"-check",4) == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '-check'!") ;
+
+       for( jj=ii=0 ; ii < NMETH ; ii++ ){
+         if( strcmp(argv[iarg],meth_shortname[ii]) == 0 ){
+           meth_check = jj = ii+1 ; break ;
+         }
+       }
+       if( jj > 0 ){ iarg++ ; continue ; }
+
+       for( jj=ii=0 ; ii < NMETH ; ii++ ){
+         if( strncmp(argv[iarg],meth_longname[ii],7) == 0 ){
+           meth_check = jj = ii+1 ; break ;
+         }
+       }
+       if( jj >=0 ){ iarg++ ; continue ; }
+
+       WARNING_message("Unknown code '%s' after -check!",argv[iarg]) ;
+       meth_check = -1 ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -912,6 +959,11 @@ int main( int argc , char *argv[] )
    /*---------------------------------------------------------------*/
    /*--- check inputs for validity, consistency, and moral fibre ---*/
 
+   if( meth_check == meth_code ){
+     WARNING_message("-check and -cost are the same?!") ;
+     meth_check = -1 ;
+   }
+
    /* open target from last argument, if not already open */
 
    if( dset_targ == NULL ){
@@ -1079,7 +1131,8 @@ int main( int argc , char *argv[] )
 
    } else if( auto_weight ){  /* manufacture weight from the base */
      if( meth_noweight[meth_code-1] && auto_weight == 1 ){
-       if( verb ) WARNING_message("Selected cost function uses -automask NOT -autoweight") ;
+       WARNING_message("Cost function '%s' uses -automask NOT -autoweight",
+                       meth_longname[meth_code-1] ) ;
        auto_weight = 2 ;
      } else if( verb == 1 ){
        INFO_message("Computing %s",auto_string) ;
@@ -1311,9 +1364,17 @@ int main( int argc , char *argv[] )
    if( prefix == NULL ){
      WARNING_message("No output dataset will be calculated!?") ;
    } else {
+#if 0
      if( dset_mast != NULL )      dset_out = EDIT_empty_copy( dset_mast ) ;
      else if( dset_base != NULL ) dset_out = EDIT_empty_copy( dset_base ) ;
      else                         dset_out = EDIT_empty_copy( dset_targ ) ;
+#else
+     if( dset_mast == NULL ){
+       if( dset_base != NULL ) dset_mast = dset_base ;
+       else                    dset_mast = dset_targ ;
+     }
+     dset_out = EDIT_empty_copy( dset_mast ) ;
+#endif
      EDIT_dset_items( dset_out ,
                         ADN_prefix    , prefix ,
                         ADN_nvals     , DSET_NVALS(dset_targ) ,
@@ -1579,6 +1640,47 @@ int main( int argc , char *argv[] )
      if( verb > 1 ) PAROUT("Final fine fit") ;
 
      mri_free(im_targ) ; im_targ = NULL ;
+
+     /*--- 27 Sep 2006: check if results are stable when
+                       we optimize a different cost function ---*/
+
+     if( meth_check > 0 ){
+       float pval[MAXPAR] , pdist , dmax ; int jmax,jtop ;
+       if( verb > 1 ){
+         ININFO_message("- Starting check vs %s",meth_longname[meth_check-1]) ;
+         ctim = COX_cpu_time() ;
+       }
+       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ) /* save output params */
+         stup.wfunc_param[jj].val_init = pval[jj] = stup.wfunc_param[jj].val_out;
+
+       stup.match_code = meth_check ;
+       nfunc = mri_genalign_scalar_optim( &stup, 22.2*conv_rad, conv_rad,666 );
+       stup.match_code = meth_code ;
+
+       /* compute distance between 2 output parameter sets */
+
+       jtop = MIN( 9 , stup.wfunc_numpar ) ;
+       for( dmax=0.0f,jj=0 ; jj < jtop ; jj++ ){
+         if( !stup.wfunc_param[jj].fixed ){
+           pdist = fabsf( stup.wfunc_param[jj].val_out - pval[jj] )
+                  /(stup.wfunc_param[jj].max-stup.wfunc_param[jj].min) ;
+           if( pdist > dmax ){ dmax = pdist ; jmax = jj ; }
+         }
+       }
+
+       if( verb > 1 ){
+         ININFO_message("- Check CPU time=%.1f s; trials=%d; dmax=%f jmax=%d",
+                        COX_cpu_time()-ctim , nfunc , dmax , jmax ) ;
+         PAROUT("Check fit") ;
+       }
+       if( dmax > 20.0*conv_rad )
+         WARNING_message(
+           "Check vs %s: max parameter discrepancy=%.4f%%! tolerance=%.4f%%",
+           meth_longname[meth_check-1] , 100.0*dmax , 2000.0*conv_rad ) ;
+
+       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+         stup.wfunc_param[jj].val_out = pval[jj] ;  /* restore previous param */
+     }
 
      /*--- at this point, val_out contains alignment parameters ---*/
 
