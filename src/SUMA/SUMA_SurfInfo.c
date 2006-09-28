@@ -65,6 +65,18 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfInfo_ParseInput(char *argv[], int arg
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-detail") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a number after -detail \n");
+            exit (1);
+         }
+         
+         Opt->b1 = (byte)atoi(argv[++kar]);
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-input") == 0))
       {
          if (kar+1 >= argc)
@@ -107,6 +119,7 @@ int main (int argc,char *argv[])
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_SurfSpecFile *Spec = NULL;
    int i, N_Spec;
+   SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_STANDALONE_INIT;
@@ -140,6 +153,7 @@ int main (int argc,char *argv[])
       exit(1);
    }
 
+   SUMA_LH("Loading surface...");
    SO = SUMA_Load_Spec_Surf(Spec, 0, ps->sv[0], Opt->debug);
    if (!SO) {
          fprintf (SUMA_STDERR,"Error %s:\n"
@@ -149,7 +163,13 @@ int main (int argc,char *argv[])
          exit(1);
       
    }   
-   
+   if (Opt->b1) {
+      SUMA_LH("Calculating all metrics, be patient...");
+      /* calc trimmings */
+      if (!SUMA_SurfaceMetrics(SO, "Convexity|EdgeList|PolyArea|Curvature|EdgeList|MemberFace|CheckWind", NULL)) {
+         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
+      }
+   }
    SUMA_Print_Surface_Object(SO, stdout);
    
    if (SO) SUMA_Free_Surface_Object(SO); SO = NULL;

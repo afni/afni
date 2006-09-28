@@ -621,7 +621,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             {
      		      SUMA_SurfSpecFile Spec;   
                char *VolParName = NULL, *specfilename = NULL;
-               
+
                VolParName = (char *)EngineData->vp;
                specfilename = EngineData->cp;
                
@@ -663,9 +663,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
                
 	            /* Register the surfaces in Spec file with the surface viewer and perform setups */
-	            if (LocalHead) fprintf (SUMA_STDERR, "%s: Registering surfaces with surface viewers ...\n", FuncName);
                
                for (ii = 0; ii < EngineData->i; ++ii) {
+	               if (LocalHead) fprintf (SUMA_STDERR, "%s: Registering surfaces with surface viewer %d/%d ...\n", FuncName, ii, EngineData->i);
                   if (!SUMA_SetupSVforDOs (Spec, SUMAg_DOv, SUMAg_N_DOv, &(SUMAg_SVv[EngineData->iv15[ii]]), 0)) {
 			            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SetupSVforDOs function.\n", FuncName);
 			            exit(1);
