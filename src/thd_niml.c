@@ -388,6 +388,8 @@ ENTRY("write_niml_file");
         RETURN(1);
     }
 
+    NI_stream_close(ns); /* close the stream */
+
     RETURN(0);
 }
 
