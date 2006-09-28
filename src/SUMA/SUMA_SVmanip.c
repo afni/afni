@@ -2538,7 +2538,11 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
          
          For now, I don't care to set this up properly since no one uses multi-group business.
       */   
-      ws =  SUMA_WhichState (cSV->State, cSV, cSV->CurGroupName) ;
+      if (cSV->State) { 
+         ws =  SUMA_WhichState (cSV->State, cSV, cSV->CurGroupName) ;
+      } else {
+         ws = -1;
+      }
       if ( ws < 0) { /* first kiss */ ws = 0; }
       {   
          if (LocalHead) {
