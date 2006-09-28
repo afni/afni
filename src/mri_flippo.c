@@ -16,9 +16,9 @@
    output point to the same place!
 ---------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_flippo( int rot , int mirror , MRI_IMAGE * im )
+MRI_IMAGE * mri_flippo( int rot , int mirror , MRI_IMAGE *im )
 {
-   MRI_IMAGE * flim ;
+   MRI_IMAGE *flim ;
    int nx,ny , fopt , nxout,nyout ;
    register int d1,d2,s1,s2,e1,e2,jb , i1,i2 ;
    float new_dx , new_dy ;

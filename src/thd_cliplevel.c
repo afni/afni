@@ -1,5 +1,15 @@
 #include "mrilib.h"
 
+/*--------------------------------------------------------------------------*/
+
+float mri_topclip( MRI_IMAGE *im )  /* 28 Sep 2006 */
+{
+   float cv , dv ;
+   cv = 3.33f * THD_cliplevel( im , 0.666f ) ;
+   dv = (float)mri_max( im ) ;
+   cv = MIN(cv,dv) ; return cv ;
+}
+
 /*--------------------------------------------------------------------------
    12 Aug 2001: compare with 3dClipLevel.c
    - compute a clipping level for an image, to eliminate non-brain voxels
