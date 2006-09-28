@@ -19,9 +19,12 @@ void usage_SurfInfo (SUMA_GENERIC_ARGV_PARSE *ps)
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
-               "Usage: SurfInfo [options] -input DSET1 -input DSET2 \n"
-               "   or: SurfInfo [options] DSET1 DSET2 ... \n"
+               "Usage: SurfInfo [options] <surface> \n"
+               "   surface: A surface specified in any of the methods \n"
+               "            shown below.\n"
                "   Optional Params:\n"
+               "     -detail DETAIL: 1 = calculate surface metrics.\n"
+               "     -debug DEBUG: Debugging level (2 turns LocalHead ON)\n"
                "%s"
                "%s"
                "\n", sio,  s);
@@ -166,7 +169,7 @@ int main (int argc,char *argv[])
    if (Opt->b1) {
       SUMA_LH("Calculating all metrics, be patient...");
       /* calc trimmings */
-      if (!SUMA_SurfaceMetrics(SO, "Convexity|EdgeList|PolyArea|Curvature|EdgeList|MemberFace|CheckWind", NULL)) {
+      if (!SUMA_SurfaceMetrics_eng(SO, "Convexity|EdgeList|PolyArea|Curvature|EdgeList|MemberFace|CheckWind", NULL, Opt->debug, SUMAg_CF->DsetList)) {
          fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
       }
    }

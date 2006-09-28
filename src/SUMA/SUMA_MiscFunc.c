@@ -5803,7 +5803,7 @@ float * SUMA_PolySurf3 (float *NodeList, int N_Node, int *FaceSets, int N_FaceSe
 
 SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, float *NodeNormList, 
                                                    float *A, int N_FaceSet, SUMA_NODE_FIRST_NEIGHB *FN, SUMA_EDGE_LIST *SEL,
-                                                   char *odbg_name)
+                                                   char *odbg_name, int verb)
 { 
    static char FuncName[] = {"SUMA_Surface_Curvature"};
    int i, N_Neighb, j, ji, Incident[MAX_INCIDENT_TRI], N_Incident, kk, ii, id, ND; 
@@ -5876,14 +5876,14 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
    SC->N_SkipNode = 0;
    SC->N_Node = N_Node;
    
-   fprintf (SUMA_STDERR, "%s: Beginning curvature computations:\n", FuncName);
+   if (verb) fprintf (SUMA_STDERR, "%s: Beginning curvature computations:\n", FuncName);
    
    ND = 3;
    SC->N_SkipNode = 0;
    for (i=0; i < N_Node; ++i) { /* for i */
       #ifdef DBG_1
          if (!(i%10000)) {
-            fprintf (SUMA_STDERR, "%s: [%d]/[%d] %.2f/100%% completed\n", FuncName, i, N_Node, (float)i / N_Node * 100);
+            if (verb) fprintf (SUMA_STDERR, "%s: [%d]/[%d] %.2f/100%% completed\n", FuncName, i, N_Node, (float)i / N_Node * 100);
          }
       #endif
       SkipNode[i] = NOPE;
@@ -5894,7 +5894,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
       Nit[0][0] = NodeNormList[id]; Nit[0][1] = NodeNormList[id+1]; Nit[0][2] = NodeNormList[id+2]; /* transpose of Ni */ 
       vi[0] = NodeList[id]; vi[1] = NodeList[id+1]; vi[2] = NodeList[id+2];  /* node coordinate vector */ 
       #ifdef DBG_2
-         fprintf (SUMA_STDERR, "%s: Looping over neighbors, i = %d\n", FuncName, i);
+         if (verb > 1) fprintf (SUMA_STDERR, "%s: Looping over neighbors, i = %d\n", FuncName, i);
       #endif
       j=0;
       sWij = 0.0;
@@ -5905,7 +5905,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
          
          /* calculate Tij */
          #ifdef DBG_2
-            fprintf (SUMA_STDERR, "%s: Mat Op j=%d\n", FuncName, j);
+            if (verb > 1) fprintf (SUMA_STDERR, "%s: Mat Op j=%d\n", FuncName, j);
          #endif
          
          /* fa33 = Ni*Ni' */
@@ -5924,7 +5924,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
          /* Calculate Tij at this j, a 3x1 vector unit length normalized projection projection of vj-vi onto the plane perp. to Ni */
          NumNorm = (float)sqrt(Num[0]*Num[0] + Num[1]*Num[1] + Num[2]*Num[2]);
          if (NumNorm == 0) {
-            fprintf (SUMA_STDERR, "Warning %s: NumNorm = 0 for node %d.\n", FuncName, i); 
+            if (verb) fprintf (SUMA_STDERR, "Warning %s: NumNorm = 0 for node %d.\n", FuncName, i); 
             SkipNode[i] = YUP;
             SC->N_SkipNode++;
             break;
@@ -5935,7 +5935,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
          Tij[j][2] = Num[2] / NumNorm;
          
          #ifdef DBG_2
-            fprintf(SUMA_STDOUT,"%s: i,j, ji =%d,%d, %d Ni = %f %f %f\n Tij(%d,:) = %f %f %f.\n", \
+            if (verb > 1) fprintf(SUMA_STDOUT,"%s: i,j, ji =%d,%d, %d Ni = %f %f %f\n Tij(%d,:) = %f %f %f.\n", \
                FuncName, i, j, ji,Ni[0][0], Ni[1][0], Ni[2][0], j, Tij[j][0], Tij[j][1], Tij[j][2]);
          #endif
           
@@ -5950,7 +5950,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
          
          Kij[j] = 2 * num / denum;
          #ifdef DBG_2
-            fprintf(SUMA_STDOUT,"%s: Kij[%d] = %f\n", FuncName, j, Kij[j]);
+            if (verb > 1) fprintf(SUMA_STDOUT,"%s: Kij[%d] = %f\n", FuncName, j, Kij[j]);
          #endif
          
          /* calculate the weights for integration, Wij */
@@ -5979,16 +5979,18 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
             }
 
             #ifdef DBG_2
-               fprintf (SUMA_STDERR,"%s: Incidents ...\n", FuncName);
-               for (kk=0; kk < N_Incident; ++kk) {
-                  fprintf (SUMA_STDERR,"\t %d", Incident[kk]);
+               if (verb > 1) {
+                  fprintf (SUMA_STDERR,"%s: Incidents ...\n", FuncName);
+                  for (kk=0; kk < N_Incident; ++kk) {
+                     fprintf (SUMA_STDERR,"\t %d", Incident[kk]);
+                  }
+                  fprintf (SUMA_STDERR,"\n");
                }
-               fprintf (SUMA_STDERR,"\n");
             #endif
 
             if (N_Incident != 2 && N_Incident != 1)
             {
-               fprintf (SUMA_STDERR,"Warning %s: Unexpected N_Incident = %d at i,j = %d,%d\n", FuncName, N_Incident, i, j);
+               if (verb) fprintf (SUMA_STDERR,"Warning %s: Unexpected N_Incident = %d at i,j = %d,%d\n", FuncName, N_Incident, i, j);
                SkipNode[i] = YUP;
                ++SC->N_SkipNode;
                break;
@@ -5999,7 +6001,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
             }
             sWij += Wij[j];
             if (Wij[j] == 0.0) {
-               fprintf (SUMA_STDERR,"Warning %s: Null Wij[%d] at i,j=%d,%d\n", FuncName, j, i, j);
+               if (verb) fprintf (SUMA_STDERR,"Warning %s: Null Wij[%d] at i,j=%d,%d\n", FuncName, j, i, j);
                SkipNode[i] = YUP;
                ++SC->N_SkipNode;
                break; 
@@ -6011,14 +6013,14 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
       if (!SkipNode[i]) {
             /* make the sum of the weights be equal to 1*/
             #ifdef DBG_2   
-               fprintf (SUMA_STDERR,"%s: Wij:\n", FuncName);
+               if (verb > 1) fprintf (SUMA_STDERR,"%s: Wij:\n", FuncName);
             #endif
             for (ii=0; ii < N_Neighb; ++ii) {
                Wij[ii] /= sWij; 
                /*   fprintf (SUMA_STDERR,"Wij[%d]=%f\t", ii, Wij[ii]);*/
             }
             #ifdef DBG_2   
-               fprintf (SUMA_STDERR,"\n");
+               if (verb > 1) fprintf (SUMA_STDERR,"\n");
             #endif
             /* calculate Mi */
             Mi[0][0] = Mi[1][0] = Mi[2][0] = Mi[0][1] = Mi[1][1] = Mi[2][1] = Mi[0][2] = Mi[1][2] = Mi[2][2] = 0.0;
@@ -6035,7 +6037,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
                }
             }
             #ifdef DBG_2   
-               SUMA_disp_mat (Mi, 3, 3, 1);
+               if (verb > 1) SUMA_disp_mat (Mi, 3, 3, 1);
             #endif
             /* calculate Householder of Ni */
             Ntmp[0] = Ni[0][0]; Ntmp[1] = Ni[1][0]; Ntmp[2] = Ni[2][0];
@@ -6049,15 +6051,17 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
                T2e[0] = Q[0][2]; T2e[1] = Q[1][2]; T2e[2] = Q[2][2];  /* T tilda 1, T tilda2 */
                SUMA_TRANSP_MAT (Q, Qt, 3, 3, float, float);
                #ifdef DBG_2   
-                  SUMA_disp_mat (Q, 3, 3, 1);
-                  SUMA_disp_mat (Qt, 3, 3, 1);
+                  if (verb > 1) {
+                     SUMA_disp_mat (Q, 3, 3, 1);
+                     SUMA_disp_mat (Qt, 3, 3, 1);
+                  }
                #endif
                
                /* Mi (aka fb33) = Q' * Mi * Q; Mi should become a 3x3 with 2x2  non zero minor in lower right */
                SUMA_MULT_MAT (Qt, Mi, fa33, 3, 3, 3, float, float, float);
                SUMA_MULT_MAT (fa33, Q, Mi, 3, 3, 3, float, float, float);
                #ifdef DBG_2   
-                  SUMA_disp_mat (Mi, 3, 3, 1);
+                  if (verb > 1) SUMA_disp_mat (Mi, 3, 3, 1);
                #endif
                mMi[0][0] = Mi[1][1]; mMi[0][1] = Mi[1][2];
                mMi[1][0] = Mi[2][1]; mMi[1][1] = Mi[2][2]; 
@@ -6071,7 +6075,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
                fa22[1][0] = -s; fa22[1][1] = c; 
                SUMA_MULT_MAT(fa22, mMi, mMir, 2, 2, 2, float, float, float);
                #ifdef DBG_2   
-                  fprintf (SUMA_STDERR,"%s: mg = %f, c = %f, s = %f\n", FuncName,  mg, c, s);
+                  if (verb > 1) fprintf (SUMA_STDERR,"%s: mg = %f, c = %f, s = %f\n", FuncName,  mg, c, s);
                #endif   
                /* calculate the principal directions */
                SC->T1[i][0] = c * T1e[0] - s * T2e[0];               
@@ -6086,12 +6090,12 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
                SC->Kp1[i] = 3 * mMir[0][0] - mMir[1][1];
                SC->Kp2[i] = 3 * mMir[1][1] - mMir[0][0];
                #ifdef DBG_2   
-                  fprintf (SUMA_STDERR,"%s: SC->Kp1[i] = %f, SC->Kp2[i] = %f, mKp[i] = %f\n", FuncName,  SC->Kp1[i], SC->Kp2[i], (SC->Kp1[i]+SC->Kp2[i])/2);
+                  if (verb > 1) fprintf (SUMA_STDERR,"%s: SC->Kp1[i] = %f, SC->Kp2[i] = %f, mKp[i] = %f\n", FuncName,  SC->Kp1[i], SC->Kp2[i], (SC->Kp1[i]+SC->Kp2[i])/2);
                #endif   
             }
             
          #ifdef DBG_3
-            SUMA_PAUSE_PROMPT("Done with node, waiting to move to next");
+            if (verb > 2) SUMA_PAUSE_PROMPT("Done with node, waiting to move to next");
          #endif
          
       } /* not skipped (yet)*/
@@ -6134,7 +6138,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
    if (Qt) SUMA_free2D((char **)Qt, 3);
    if (Mi) SUMA_free2D((char **)Mi, 3);
    
-   fprintf (SUMA_STDERR, "%s: Done with curvature computations.\n", FuncName);
+   if (verb) fprintf (SUMA_STDERR, "%s: Done with curvature computations.\n", FuncName);
 
    SUMA_RETURN (SC);
 }
