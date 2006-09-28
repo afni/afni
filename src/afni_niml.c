@@ -1482,6 +1482,9 @@ ENTRY("process_NIML_SUMA_ixyz");
 
    /* 16 Jun 2003: if need be, switch sessions and anatomy */
 
+/* --- do not jump now, suma may send more data   28 Sep 2006 [rickr] --- */
+/*     (suma will send a 'switch underlay' command when ready)            */
+#if 0
    if( dset != NULL && find.sess_index != im3d->vinfo->sess_num ){
      cbs.ival = find.sess_index ;
      AFNI_finalize_dataset_CB( im3d->vwid->view->choose_sess_pb ,
@@ -1494,6 +1497,8 @@ ENTRY("process_NIML_SUMA_ixyz");
                                (XtPointer) im3d ,  &cbs          ) ;
    }
 #endif
+
+#endif  /*---  28 Sep 2006 --- */
 
    SHOW_MESSAGE(msg) ;
 
