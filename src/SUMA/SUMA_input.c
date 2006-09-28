@@ -1059,7 +1059,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         break;
                      }
                   }
-                  SO->SC = SUMA_Surface_Curvature (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->PolyArea, SO->N_FaceSet, SO->FN, SO->EL, "Curvs_c.txt");
+                  SO->SC = SUMA_Surface_Curvature (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->PolyArea, SO->N_FaceSet, SO->FN, SO->EL, "Curvs_c.txt", 1);
                   if (SO->SC == NULL) {
                         fprintf(stderr,"Error %s: Failed in SUMA_Surface_Curvature\n", FuncName);
                         break;
