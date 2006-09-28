@@ -1499,8 +1499,8 @@ ENTRY("mri_genalign_scalar_warpone") ;
    /* clip interpolated values to range of target image, if need be */
 
    if( MRI_HIGHORDER(icode) ){
-     float bb=war[0] , tt=war[0] ;
-     for( pp=1 ; pp < npt ; pp++ ) if( inar[pp] < bb ) bb = inar[pp] ;
+     float bb=inar[0] , tt=inar[0] ; int nin=inim->nvox ;
+     for( pp=1 ; pp < nin ; pp++ ) if( inar[pp] < bb ) bb = inar[pp] ;
                               else if( inar[pp] > tt ) tt = inar[pp] ;
      for( pp=0 ; pp < npt ; pp++ ) if( war[pp]  < bb ) war[pp] = bb ;
                               else if( war[pp]  > tt ) war[pp] = tt ;
