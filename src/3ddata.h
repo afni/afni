@@ -3807,6 +3807,7 @@ extern int THD_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth ) ;
 extern void THD_mask_dilate( int, int, int, byte *, int ) ;  /* 30 Aug 2002 */
 
 extern float THD_cliplevel( MRI_IMAGE * , float ) ;          /* 12 Aug 2001 */
+extern float mri_topclip( MRI_IMAGE * ) ;                    /* 28 Sep 2006 */
 extern MRI_IMAGE * THD_median_brick( THD_3dim_dataset * ) ;  /* 12 Aug 2001 */
 extern MRI_IMAGE * THD_mean_brick  ( THD_3dim_dataset * ) ;  /* 15 Apr 2005 */
 extern MRI_IMAGE * THD_rms_brick   ( THD_3dim_dataset * ) ;  /* 15 Apr 2005 */
@@ -4215,6 +4216,8 @@ extern float THD_jointentrop( int , float *, float * ) ;
 extern float THD_hellinger_scl( int, float,float,float *,      /* 26 Sep 2006 */
                                      float,float,float *, float * ) ;
 extern float THD_hellinger( int , float *, float * ) ;
+
+extern int retrieve_2Dhist( float **xyhist ) ; /* 28 Sep 2006 */
 
 /*------------------------------------------------------------------------*/
 

@@ -643,33 +643,33 @@ static double GA_scalar_fitter( int npar , double *mpar )
 
     case GA_MATCH_KULLBACK_SCALAR:  /* AKA Mutual Information */
       val = -THD_mutual_info_scl( gstup->npt_match ,
-                                  gstup->ajbot , gstup->ajtop , avm ,
-                                  gstup->bsbot , gstup->bstop , bvm , wvm ) ;
+                                  gstup->ajbot , gstup->ajclip , avm ,
+                                  gstup->bsbot , gstup->bsclip , bvm , wvm ) ;
     break ;
 
     case GA_MATCH_NORMUTIN_SCALAR:  /* Normalized Mutual Information */
       val = THD_norm_mutinf_scl( gstup->npt_match ,
-                                 gstup->ajbot , gstup->ajtop , avm ,
-                                 gstup->bsbot , gstup->bstop , bvm , wvm ) ;
+                                 gstup->ajbot , gstup->ajclip , avm ,
+                                 gstup->bsbot , gstup->bsclip , bvm , wvm ) ;
     break ;
 
     case GA_MATCH_JOINTENT_SCALAR:  /* Joint Entropy */
       val = THD_jointentrop_scl( gstup->npt_match ,
-                                 gstup->ajbot , gstup->ajtop , avm ,
-                                 gstup->bsbot , gstup->bstop , bvm , wvm ) ;
+                                 gstup->ajbot , gstup->ajclip , avm ,
+                                 gstup->bsbot , gstup->bsclip , bvm , wvm ) ;
     break ;
 
     case GA_MATCH_CORRATIO_SCALAR:  /* Correlation Ratio */
       val = THD_corr_ratio_scl( gstup->npt_match ,
-                                gstup->ajbot , gstup->ajtop , avm ,
-                                gstup->bsbot , gstup->bstop , bvm , wvm ) ;
+                                gstup->ajbot , gstup->ajclip , avm ,
+                                gstup->bsbot , gstup->bsclip , bvm , wvm ) ;
       val = 1.0 - fabs(val) ;
     break ;
 
     case GA_MATCH_HELLINGER_SCALAR: /* Hellinger metric */
       val = -THD_hellinger_scl( gstup->npt_match ,
-                                gstup->ajbot , gstup->ajtop , avm ,
-                                gstup->bsbot , gstup->bstop , bvm , wvm ) ;
+                                gstup->ajbot , gstup->ajclip , avm ,
+                                gstup->bsbot , gstup->bsclip , bvm , wvm ) ;
     break ;
   }
 
@@ -816,17 +816,25 @@ ENTRY("mri_genalign_scalar_setup") ;
    if( stup->ajims == NULL ){
      stup->ajbot = (float)mri_min(stup->ajim) ;
      stup->ajtop = (float)mri_max(stup->ajim) ;
+     if( stup->ajbot >= 0.0f ) stup->ajclip = mri_topclip(stup->ajim) ;
+     else                      stup->ajclip = stup->ajtop ;
    } else {
      stup->ajbot = (float)mri_min(stup->ajims) ;
      stup->ajtop = (float)mri_max(stup->ajims) ;
+     if( stup->ajbot >= 0.0f ) stup->ajclip = mri_topclip(stup->ajims) ;
+     else                      stup->ajclip = stup->ajtop ;
    }
 
    if( stup->bsims == NULL ){
      stup->bsbot = (float)mri_min(stup->bsim) ;
      stup->bstop = (float)mri_max(stup->bsim) ;
+     if( stup->bsbot >= 0.0f ) stup->bsclip = mri_topclip(stup->bsim) ;
+     else                      stup->bsclip = stup->bstop ;
    } else {
      stup->bsbot = (float)mri_min(stup->bsims) ;
      stup->bstop = (float)mri_max(stup->bsims) ;
+     if( stup->bsbot >= 0.0f ) stup->bsclip = mri_topclip(stup->bsims) ;
+     else                      stup->bsclip = stup->bstop ;
    }
 
    /** load weight and mask arrays **/

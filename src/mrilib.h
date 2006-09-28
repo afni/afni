@@ -1282,7 +1282,7 @@ typedef struct {
   int old_sc ; float old_sr ;
 
   MRI_IMAGE *bsim , *bsims ;
-  float bsbot,bstop ;
+  float bsbot,bstop , bsclip ;
   int dim_bvec    ;
   int   nmask     ;
   int   nvox_mask ;
@@ -1290,7 +1290,7 @@ typedef struct {
   MRI_IMAGE *bwght ;
 
   MRI_IMAGE *ajim , *ajims ;
-  float ajbot,ajtop ;
+  float ajbot,ajtop , ajclip ;
   int dim_avec    ;
   int ascali, bscali , abdim ;
 
