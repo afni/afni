@@ -111,11 +111,12 @@ int main( int argc , char *argv[] )
    int smat                    = SMAT_LOWER ;   /* shear matrix triangle */
    int dcode                   = DELTA_AFTER ;  /* shift after */
    int meth_check              = -1 ;           /* don't do it */
+   char *save_hist             = NULL ;         /* don't save it */
 
+   /**----------------------------------------------------------------------*/
+   /**----------------- Help the pitifully ignorant user? -----------------**/
 
-   /**----- Help the pitifully ignorant user? -----**/
-
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
+   if( argc < 2 || strcmp(argv[1],"-help")==0 || strcmp(argv[1],"-HELP")==0 ){
      printf(
        "Usage: 3dAllineate [options] targetdataset\n"
        "\n"
@@ -385,6 +386,21 @@ int main( int argc , char *argv[] )
       "  -bshift      }= before the matrix transformation. [Default=after]\n"
      ) ;
 
+     if( strcmp(argv[1],"-HELP")==0 )  /** for stuff not in -help **/
+       printf(
+        "\n"
+        "TOP SECRET HIDDEN OPTIONS\n"
+        "=========================\n"
+        " -savehist sss  = Save start and final 2D histograms as PGM\n"
+        "                  files, with prefix 'sss' (cost: cr mi nmi hel).\n"
+        " -seed iii      = Set random number seed (for coarse startup)\n"
+        "                  to 'iii', instead of some job-specific value.\n"
+        " -powell m a    = Set the NEWUOA dimensional parameters to\n"
+        "                  'm' and 'a' (cf. powelll_int.c).\n"
+        " -median        = Smooth (in coarse step) with median filter\n"
+        "                  instead of Gaussian blur.\n"
+       ) ;
+
      printf(
       "\n"
       "================================================\n"
@@ -513,10 +529,19 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
+     if( strcmp(argv[iarg],"-savehist") == 0 ){  /* not in -help */
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       if( !THD_filename_ok(argv[iarg]) )
+         ERROR_exit("badly formed filename: '%s' '%s'",argv[iarg-1],argv[iarg]) ;
+       save_hist = argv[iarg] ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
      if( strncmp(argv[iarg],"-verb",5) == 0 ){
        verb++ ; iarg++ ; continue ;
      }
-     if( strncmp(argv[iarg],"-VERB",5) == 0 ){  /* not in -help */
+     if( strncmp(argv[iarg],"-VERB",5) == 0 ){
        verb+=2 ; iarg++ ; continue ;
      }
 
@@ -1480,6 +1505,22 @@ int main( int argc , char *argv[] )
 
        mri_genalign_scalar_setup( im_base , im_weig , im_targ , &stup ) ;
 
+       if( save_hist != NULL ){  /* Save start 2D histogram: 28 Sep 2006 */
+         int nbin ; float *xyc ;
+         (void)mri_genalign_scalar_cost( &stup ) ;
+         nbin = retrieve_2Dhist( &xyc ) ;
+         if( nbin > 0 && xyc != NULL ){
+           char fname[256] ; MRI_IMAGE *fim ; double ftop ;
+           fim = mri_new(nbin,nbin,MRI_float); mri_fix_data_pointer(xyc,fim);
+           ftop = mri_max(fim) ; qim = mri_to_byte_scl(255.4/ftop,0.0,fim) ;
+           mri_clear_data_pointer(fim); mri_free(fim);
+           fim = mri_flippo(MRI_ROT_90,0,qim); mri_free(qim);
+           sprintf(fname,"%s_start_%04d.pgm",save_hist,kk) ;
+           mri_write_pnm(fname,fim); mri_free(fim);
+           if( verb > 1 ) ININFO_message("- Saved histogram to %s",fname) ;
+         }
+       }
+
        /*- search for coarse start parameters, then optimize them? -*/
 
        if( tbest > 0 ){  /* default tbest==4 */
@@ -1632,12 +1673,30 @@ int main( int argc , char *argv[] )
      nfunc += mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
      if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ;
      if( verb > 2 ){ printf("\n"); GA_do_dots(0); }
-     if( verb > 1 ) ININFO_message("- Fine optimization CPU time = %.1f s",
+     if( verb > 1 ) ININFO_message("- Fine CPU time = %.1f s",
                                    COX_cpu_time()-ctim) ;
      if( verb ) ININFO_message("- Fine Optimization took %d trials; final cost=%f",
                                nfunc,stup.vbest) ;
 
      if( verb > 1 ) PAROUT("Final fine fit") ;
+
+     if( save_hist != NULL ){  /* Save final 2D histogram: 28 Sep 2006 */
+       int nbin ; float *xyc ;
+       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+         stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
+       (void)mri_genalign_scalar_cost( &stup ) ;
+       nbin = retrieve_2Dhist( &xyc ) ;
+       if( nbin > 0 && xyc != NULL ){
+         char fname[256] ; MRI_IMAGE *fim ; double ftop ;
+         fim = mri_new(nbin,nbin,MRI_float); mri_fix_data_pointer(xyc,fim);
+         ftop = mri_max(fim) ; qim = mri_to_byte_scl(255.4/ftop,0.0,fim) ;
+         mri_clear_data_pointer(fim); mri_free(fim);
+         fim = mri_flippo(MRI_ROT_90,0,qim); mri_free(qim);
+         sprintf(fname,"%s_final_%04d.pgm",save_hist,kk) ;
+         mri_write_pnm(fname,fim); mri_free(fim);
+         if( verb > 1 ) ININFO_message("- Saved histogram to %s",fname) ;
+       }
+     }
 
      mri_free(im_targ) ; im_targ = NULL ;
 

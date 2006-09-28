@@ -259,10 +259,20 @@ float mri_spearman_corr( MRI_IMAGE *im , MRI_IMAGE *jm )
 
 static int n_old=-1 , nbin_old=255 ;
 static float *xc=NULL , *yc=NULL , *xyc=NULL , nww=0.0f ;
-static int nbin , nbp ;
+static int nbin=0 , nbp=0 ;
 
 #undef  XYC
 #define XYC(p,q) xyc[(p)+(q)*nbp]
+
+/*--------------------------------------------------------------------------*/
+/*! Retrieve the 2D histogram built previously in build_2Dhist().
+----------------------------------------------------------------------------*/
+
+int retrieve_2Dhist( float **xyhist )
+{
+   if( xyhist == NULL ) return 0 ;
+   *xyhist = xyc ; return nbp ;
+}
 
 /*--------------------------------------------------------------------------*/
 /*! Build 2D histogram of x[0..n-1] and y[0..n-1], each point optionally
