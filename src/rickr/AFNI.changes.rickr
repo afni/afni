@@ -1755,5 +1755,6 @@
 
 12 Sep 2006: modified thd_niml.c:THD_open_niml(): set brick_name to fname
 15 Sep 2006: modified 3ddata.h: added AFNI_vedit_clear proto (for Greg Balls)
-28 Sep 2006: modified thd_niml.c:close niml stream in write_niml_file()
-
+28 Sep 2006:
+  * modified thd_niml.c:close niml stream in write_niml_file()
+  * modified afni_niml.c:no AFNI_finalize_dataset_CB from process_NIML_SUMA_ixyz
