@@ -89,16 +89,16 @@ int main( int argc , char *argv[] )
    float fine_rad              = 0.0f ;
    int floatize                = 0 ;            /* off by default */
    int twopass                 = 1 ;            /* on by default */
-   int twofirst                = 0 ;            /* off by default */
+   int twofirst                = 1 ;            /* on by default */
    int verb                    = 0 ;            /* off by default */
    int zeropad                 = 1 ;            /* on by default */
    char *prefix                = NULL ;         /* off by default */
    char *wtprefix              = NULL ;         /* off by default */
    char *fname_1D              = NULL ;         /* off by default */
    char *apply_1D              = NULL ;         /* off by default */
-   int interp_code             = MRI_CUBIC ;
-   int npt_match               = -9 ;
-   int final_interp            = -1 ;
+   int interp_code             = MRI_LINEAR ;
+   int npt_match               = -9 ;           /* 9%, that is */
+   int final_interp            = MRI_CUBIC ;
    int warp_code               = WARP_AFFINE ;
    int nparopt                 = 0 ;
    MRI_IMAGE *matini           = NULL ;
@@ -112,18 +112,20 @@ int main( int argc , char *argv[] )
    int dcode                   = DELTA_AFTER ;  /* shift after */
    int meth_check              = -1 ;           /* don't do it */
    char *save_hist             = NULL ;         /* don't save it */
+   long seed                   = 7654321 ;      /* random? */
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
 
-   if( argc < 2 || strcmp(argv[1],"-help")==0 || strcmp(argv[1],"-HELP")==0 ){
+   if( argc < 2 || strcmp(argv[1],"-help")==0 ||
+                   strcmp(argv[1],"-HELP")==0 || strcmp(argv[1],"-POMOC")==0 ){
      printf(
-       "Usage: 3dAllineate [options] targetdataset\n"
+       "Usage: 3dAllineate [options] sourcedataset\n"
        "\n"
-       "Program to align one dataset (the 'target') to a base dataset.\n"
+       "Program to align one dataset (the 'source') to a base dataset.\n"
        "Options are available to control:\n"
-       " + How the matching between the target and the base is computed.\n"
-       " + How the resliced target is interpolated to the base space.\n"
+       " + How the matching between the source and the base is computed.\n"
+       " + How the resliced source is interpolated to the base space.\n"
        " + The complexity of the spatial transformation ('warp') used.\n"
        " + And many technical options to control the process in detail,\n"
        "    if you know what you are doing.\n"
@@ -132,22 +134,22 @@ int main( int argc , char *argv[] )
        "=======\n"
        " -base bbb   = Set the base dataset to be the #0 sub-brick of 'bbb'.\n"
        "               If no -base option is given, then the base volume is\n"
-       "               taken to be the #0 sub-brick of the target dataset.\n"
+       "               taken to be the #0 sub-brick of the source dataset.\n"
        "               (Base must be stored as floats, shorts, or bytes.)\n"
        "\n"
-       " -target ttt = Read the target dataset from 'ttt'.  If no -target\n"
-       "   *OR*        (or -input) option is given, then the target dataset\n"
+       " -source ttt = Read the source dataset from 'ttt'.  If no -source\n"
+       "   *OR*        (or -input) option is given, then the source dataset\n"
        " -input ttt    is the last argument on the command line.\n"
        "               (Target must be stored as floats, shorts, or bytes.)\n"
        "\n"
-       " * NOTA BENE: The base and target dataset do NOT have to be defined *\n"
+       " * NOTA BENE: The base and source dataset do NOT have to be defined *\n"
        " *            on the same grids; the alignment process uses the     *\n"
        " *            coordinate systems defined in the dataset headers to  *\n"
        " *            make the match between spatial locations.             *\n"
        "\n"
        " -prefix ppp = Output the resulting dataset to file 'ppp'.  If this\n"
        "   *OR*        option is NOT given, no dataset will be output!  The\n"
-       " -out ppp      transformation to align the target to the base will\n"
+       " -out ppp      transformation to align the source to the base will\n"
        "               be estimated, but not applied.  (By default, the new\n"
        "               dataset is computed on the grid of the base dataset,\n"
        "               and it will be stored in float format.)\n"
@@ -155,20 +157,20 @@ int main( int argc , char *argv[] )
        " -floatize   = Write result dataset as floats.  Internal calculations\n"
        "               are all done on float copies of the input datasets.\n"
        "               [Default=convert output dataset to data format of]\n"
-       "               [        target dataset, without any scale factor]\n"
+       "               [        source dataset, without any scale factor]\n"
        "\n"
        " -1Dfile fff = Save the warp parameters in ASCII (.1D) format into\n"
-       "               file 'fff' (1 row per sub-brick in target).\n"
+       "               file 'fff' (1 row per sub-brick in source).\n"
        "\n"
        " -1Dapply aa = Read warp parameters from file 'aa', apply them to the\n"
-       "               target dataset, and produce a new dataset.\n"
+       "               source dataset, and produce a new dataset.\n"
        "               (Must also use the '-prefix' option for this to work! )\n"
        "               (In this mode of operation, there is no optimization  )\n"
        "               (of the cost function by changing the warp parameters;)\n"
        "               (previously computed parameters are applied directly. )\n"
        "\n"
        " -cost ccc   = Defines the 'cost' function that defines the matching\n"
-       "               between the target and the base; 'ccc' is one of\n"
+       "               between the source and the base; 'ccc' is one of\n"
       ) ;
 
       for( ii=0 ; ii < NMETH ; ii++ )
@@ -189,7 +191,13 @@ int main( int argc , char *argv[] )
        "                 cubic   *OR* tricubic\n"
        "                 quintic *OR* triquintic\n"
        "               Using '-NN' instead of '-interp NN' is allowed (e.g.).\n"
-       "               [Default == 'cubic'.]\n"
+       "               Note that using cubic or quintic interpolation during\n"
+       "               the matching process will slow the program down a lot.\n"
+       "               Use '-final' to affect the interpolation method used\n"
+       "               to produce the output dataset.  [Default == 'linear'.]\n"
+       "\n"
+       " -final iii  = Defines the interpolation mode used to create the\n"
+       "               output dataset.  [Default == 'cubic']\n"
        "\n"
        "TECHNICAL OPTIONS (used for fine control of the program):\n"
        "=================\n"
@@ -199,13 +207,10 @@ int main( int argc , char *argv[] )
        "               nnn is too small.  If you end the 'nnn' value with the\n"
        "               '%%' character, then that percentage of the base's\n"
        "               voxels will be used.\n"
-       "               [Default == 9%% of voxels in weight mask]\n"
+       "               [Default == 9%% of voxels in the weight mask]\n"
        "\n"
        " -nopad      = Do not use zero-padding on the base image.\n"
        "               [Default == zero-pad, if needed; -verb shows how much]\n"
-       "\n"
-       " -final iii  = Defines the interpolation mode used to create the\n"
-       "               output dataset.  [Default == whatever '-interp' says.]\n"
        "\n"
        " -conv mmm   = Convergence test is set to 'mmm' millimeters.\n"
        "               [Default == 0.05 mm]\n"
@@ -230,16 +235,17 @@ int main( int argc , char *argv[] )
        "               [The default is to use both passes.]\n"
        " -twopass    = Use a two pass alignment strategy, first searching\n"
        "               for a large rotation+shift and then refining the\n"
-       "               alignment.  [This is the default method.]\n"
+       "               alignment.  [Two passes are used by default.]\n"
        " -twoblur rr = Set the blurring radius for the first pass to 'rr'\n"
        "               millimeters.  [Default == 11 mm]\n"
        " -twofirst   = Use -twopass on the first image to be registered, and\n"
        "               then on all subsequent images, use the results from\n"
        "               the first image's coarse pass to start the fine pass.\n"
-       "               (Useful when there may be large motions between the\n"
-       "                target and the base, but only small motions within\n"
-       "                the target dataset itself; since the coarse pass can\n"
-       "                be slow, doing it only once makes sense in this case.\n"
+       "               (Useful when there may be large motions between the   )\n"
+       "               (source and the base, but only small motions within   )\n"
+       "               (the source dataset itself; since the coarse pass can )\n"
+       "               (be slow, doing it only once makes sense in this case.)\n"
+       "               [-twofirst is on by default; '-twopass' turns it off.]\n"
        " -twobest bb = In the coarse pass, use the best 'bb' set of initial\n"
        "               points to search for the starting point for the fine\n"
        "               pass.  If bb==0, then no search is made for the best\n"
@@ -255,10 +261,10 @@ int main( int argc , char *argv[] )
        "                 '-twobest' parameter is to search for large initial\n"
        "                 rotations/shifts with which to start the coarse\n"
        "                 optimization round.\n"
-       "               * If you have multiple sub-bricks in the target dataset,\n"
+       "               * If you have multiple sub-bricks in the source dataset,\n"
        "                 then '-twofirst' makes sense if you don't expect large\n"
-       "                 movements WITHIN the target, but expect large movements\n"
-       "                 between the target and base.\n"
+       "                 movements WITHIN the source, but expect large movements\n"
+       "                 between the source and base.\n"
        "               * '-fineblur' is experimental, and if you use it, the\n"
        "                 value should probably be small (1 mm?).\n"
        "\n"
@@ -320,7 +326,7 @@ int main( int argc , char *argv[] )
        " -master mmm = Write the output dataset on the same grid as dataset\n"
        "               'mmm'.  If this option is NOT given, the base dataset\n"
        "               is the master.\n"
-       "       **N.B.: 3dAllineate transforms the target dataset to be 'similar'\n"
+       "       **N.B.: 3dAllineate transforms the source dataset to be 'similar'\n"
        "               to the base image.  Therefore, the coordinate system\n"
        "               of the master dataset is interpreted as being in the\n"
        "               reference system of the base image.\n"
@@ -357,7 +363,7 @@ int main( int argc , char *argv[] )
       " The goal of the program is to find the warp parameters such that\n"
       "   I([x]_warped) 'is similar to' J([x]_in)\n"
       " as closely as possible in some sense of 'similar', where J(x) is the\n"
-      " base image, and I(x) is the target image.\n"
+      " base image, and I(x) is the source image.\n"
       "\n"
       " Using '-parfix', you can specify that some of these parameters\n"
       " are fixed.  For example, '-shift_rotate_scale' is equivalent\n"
@@ -386,21 +392,6 @@ int main( int argc , char *argv[] )
       "  -bshift      }= before the matrix transformation. [Default=after]\n"
      ) ;
 
-     if( strcmp(argv[1],"-HELP")==0 )  /** for stuff not in -help **/
-       printf(
-        "\n"
-        "TOP SECRET HIDDEN OPTIONS\n"
-        "=========================\n"
-        " -savehist sss  = Save start and final 2D histograms as PGM\n"
-        "                  files, with prefix 'sss' (cost: cr mi nmi hel).\n"
-        " -seed iii      = Set random number seed (for coarse startup)\n"
-        "                  to 'iii', instead of some job-specific value.\n"
-        " -powell m a    = Set the NEWUOA dimensional parameters to\n"
-        "                  'm' and 'a' (cf. powelll_int.c).\n"
-        " -median        = Smooth (in coarse step) with median filter\n"
-        "                  instead of Gaussian blur.\n"
-       ) ;
-
      printf(
       "\n"
       "================================================\n"
@@ -408,6 +399,23 @@ int main( int argc , char *argv[] )
       "================================================\n"
       "** From Webster's Dictionary: Allineate == 'to align' **\n\n"
      ) ;
+
+     if( strcmp(argv[1],"-HELP")==0 || strcmp(argv[1],"-POMOC")==0 ){
+       printf(
+        "\n"
+        "===========================================\n"
+        "TOP SECRET HIDDEN OPTIONS (-HELP or -POMOC)\n"
+        "===========================================\n"
+        " -savehist sss = Save start and final 2D histograms as PGM\n"
+        "                 files, with prefix 'sss' (cost: cr mi nmi hel).\n"
+        " -seed iii     = Set random number seed (for coarse startup search)\n"
+        "                 to 'iii'.\n"
+        "                 [Default==7654321; if iii==0, a unique value is used]\n"
+        " -median       = Smooth with median filter instead of Gaussian blur.\n"
+        " -powell m a   = Set the NEWUOA dimensional parameters to\n"
+        "                 'm' and 'a' (cf. powell_int.c).\n"
+       ) ;
+     }
 
      exit(0);
    }
@@ -422,7 +430,6 @@ int main( int argc , char *argv[] )
    AFNI_logger("3dAllineate",argc,argv);
    PRINT_VERSION("3dAllineate"); AUTHOR("Emperor Zhark");
    THD_check_AFNI_version("3dAllineate");
-   srand48((long)time(NULL)+(long)getpid()) ;  /* for ransetup in -twopass */
 
    /**--- process command line options ---**/
 
@@ -476,10 +483,8 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strcmp(argv[iarg],"-seed") == 0 ){   /* not in -help */
-       long seed ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
-       seed = (long)strtod(argv[iarg],NULL) ; srand48(seed) ;
-       iarg++ ; continue ;
+       seed = (long)strtod(argv[iarg],NULL) ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -638,7 +643,9 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strncmp(argv[iarg],"-target",5) == 0 || strncmp(argv[iarg],"-input",3) == 0 ){
+     if( strncmp(argv[iarg],"-source",5) == 0 ||
+         strncmp(argv[iarg],"-input" ,4) == 0 ||
+         strncmp(argv[iarg],"-target",5) == 0   ){
        if( dset_targ != NULL ) ERROR_exit("Can't have multiple %s options!",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        dset_targ = THD_open_dataset( argv[iarg] ) ;
@@ -683,10 +690,10 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strncmp(argv[iarg],"-onepass",5) == 0 ){
-       twopass = 0 ; iarg++ ; continue ;
+       twopass = twofirst = 0 ; iarg++ ; continue ;
      }
      if( strncmp(argv[iarg],"-twopass",5) == 0 ){
-       twopass = 1 ; iarg++ ; continue ;
+       twopass = 1 ; twofirst = 0 ; iarg++ ; continue ;
      }
      if( strncmp(argv[iarg],"-twofirst",5) == 0 ){
        twofirst = twopass = 1 ; iarg++ ; continue ;
@@ -984,6 +991,9 @@ int main( int argc , char *argv[] )
    /*---------------------------------------------------------------*/
    /*--- check inputs for validity, consistency, and moral fibre ---*/
 
+   if( seed == 0 ) seed = (long)time(NULL)+(long)getpid() ;
+   srand48(seed) ;
+
    if( meth_check == meth_code ){
      WARNING_message("-check and -cost are the same?!") ;
      meth_check = -1 ;
@@ -993,20 +1003,20 @@ int main( int argc , char *argv[] )
 
    if( dset_targ == NULL ){
      if( iarg >= argc )
-       ERROR_exit("no target datset on command line!?") ;
+       ERROR_exit("no source datset on command line!?") ;
      dset_targ = THD_open_dataset( argv[iarg] ) ;
      if( dset_targ == NULL )
-       ERROR_exit("Can't open target dataset '%s'",argv[iarg]) ;
+       ERROR_exit("Can't open source dataset '%s'",argv[iarg]) ;
    }
 
    /* check target data type */
 
    targ_kind = (int)DSET_BRICK_TYPE(dset_targ,0) ;
    if( targ_kind != MRI_float && targ_kind != MRI_short && targ_kind != MRI_byte )
-     ERROR_exit("target dataset %s has non-scalar data type '%s'",
+     ERROR_exit("source dataset %s has non-scalar data type '%s'",
                 DSET_BRIKNAME(dset_targ) , MRI_TYPE_name[targ_kind] ) ;
    if( !DSET_datum_constant(dset_targ) )
-     WARNING_message("target dataset %s does not have constant data type!",
+     WARNING_message("source dataset %s does not have constant data type!",
                      DSET_BRIKNAME(dset_targ)) ;
 
    /*-- if applying a set of parameters, some options are turned off --*/
@@ -1021,9 +1031,9 @@ int main( int argc , char *argv[] )
 
    if( dset_base == NULL && apply_1D == NULL ){
      if( DSET_NVALS(dset_targ) == 1 )
-       ERROR_exit("No base dataset AND target dataset has only 1 sub-brick") ;
+       ERROR_exit("No base dataset AND source dataset has only 1 sub-brick") ;
 
-     WARNING_message("No -base dataset: using sub-brick #0 of target") ;
+     WARNING_message("No -base dataset: using sub-brick #0 of source") ;
      skip_first = 1 ;  /* don't register sub-brick #0 of targ */
    }
 
@@ -1036,7 +1046,7 @@ int main( int argc , char *argv[] )
    /* target MUST be present */
 
    DSET_load(dset_targ) ;
-   if( !DSET_LOADED(dset_targ) ) ERROR_exit("Can't load target dataset") ;
+   if( !DSET_LOADED(dset_targ) ) ERROR_exit("Can't load source dataset") ;
    nx_targ = DSET_NX(dset_targ) ; dx_targ = fabsf(DSET_DX(dset_targ)) ;
    ny_targ = DSET_NY(dset_targ) ; dy_targ = fabsf(DSET_DY(dset_targ)) ;
    nz_targ = DSET_NZ(dset_targ) ; dz_targ = fabsf(DSET_DZ(dset_targ)) ;
@@ -1130,9 +1140,9 @@ int main( int argc , char *argv[] )
    /* check for base:target dimensionality mismatch */
 
    if( nz_base >  1 && nz_targ == 1 )
-     ERROR_exit("Can't register 2D target into 3D base!") ;
+     ERROR_exit("Can't register 2D source into 3D base!") ;
    if( nz_base == 1 && nz_targ >  1 )
-     ERROR_exit("Can't register 3D target onto 2D base!") ;
+     ERROR_exit("Can't register 3D source onto 2D base!") ;
 
    /* load weight dataset if defined */
 
