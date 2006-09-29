@@ -766,7 +766,7 @@ ENTRY("mri_genalign_scalar_setup") ;
 
    if( targim != NULL ){
      if( stup->ajim != NULL ) mri_free(stup->ajim) ;
-     if( verb > 1 ) ININFO_message("- copying target image") ;
+     if( verb > 1 ) ININFO_message("- copying source image") ;
      stup->ajim = mri_to_float(targim) ;
      if( stup->ajim->dx <= 0.0f ) stup->ajim->dx = 1.0f ;
      if( stup->ajim->dy <= 0.0f ) stup->ajim->dy = 1.0f ;
@@ -807,7 +807,7 @@ ENTRY("mri_genalign_scalar_setup") ;
      float nxa=stup->ajim->nx, nya=stup->ajim->ny, nza=stup->ajim->nz ;
      float rad=cbrtf(nxa*nya*nza/(nx*ny*nz)) * stup->smooth_radius ;
      if( stup->ajims != NULL ) mri_free(stup->ajims);
-     if( verb > 1 ) ININFO_message("- Smoothing target; radius=%.2f",stup->smooth_radius) ;
+     if( verb > 1 ) ININFO_message("- Smoothing source; radius=%.2f",stup->smooth_radius) ;
      stup->ajims = GA_smooth( stup->ajim , stup->smooth_code , rad ) ;
    }
 
