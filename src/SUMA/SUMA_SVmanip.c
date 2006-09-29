@@ -392,6 +392,8 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->Focus_SO_ID = -1;
       SV->Focus_DO_ID = -1;
       
+      SV->State = NULL;
+      SV->iState = -1;
       SV->VSv = NULL;
       SV->N_VSv = 0;
       SV->LastNonMapStateID = -1;
