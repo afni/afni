@@ -2868,6 +2868,19 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
       SUMA_RETURN(DrawnROI);
    }
    
+   if (BsA == SUMA_BSA_FillArea) {   /*  ZSS Sept 29 06 */
+      SUMA_OVERLAYS *Overlay=NULL;
+      int junk;
+      /* If you're drawing, and have just filled an area, better pop the dset to the top so it is visible */
+      if (!(Overlay = SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays, DrawnROI->ColPlaneName, &junk))) {
+         SUMA_S_Err("Unexpected! Could not find overlay pointer");
+      } else {
+         /* if the current col plane is not the same as this one, do the switching please */
+         SUMA_InitializeColPlaneShell(SO, Overlay);
+         SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
+      }
+   }
+
    SUMA_RETURN(DrawnROI);
 }
 
