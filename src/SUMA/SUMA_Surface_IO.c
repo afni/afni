@@ -3608,7 +3608,7 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
    int i, N_ROI;
    SUMA_SurfaceObject *SO=NULL;
    
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
 
