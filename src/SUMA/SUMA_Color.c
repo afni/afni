@@ -6411,20 +6411,27 @@ SUMA_Boolean SUMA_SetConvexityPlaneDefaults(SUMA_SurfaceObject *SO, DList *DsetL
       SUMA_RETURN(NOPE);
    }
    
-   /* decide on the color map */
-   eee = getenv("SUMA_ConvColorMap");
-   if (eee) {
-      icmap = SUMA_Find_ColorMap ( eee, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
-      if (icmap < 0) {
-         SUMA_SL_Err("Colormap specified in\n"
-                     "environment variable SUMA_ConvColorMap\n"
-                     "was not found. Using ngray20.\n");
-         SUMA_STRING_REPLACE(ConvPlane->cmapname, "ngray20");
-     } else {
-         SUMA_STRING_REPLACE(ConvPlane->cmapname, eee);
-     }
+   if (SO->Group && strcmp(SO->Group,SUMA_DEF_TOY_GROUP_NAME) == 0) {
+      SUMA_LH("Adriano");
+      /* fun times, gimme a random colormap */
+      icmap = rand()%SUMAg_CF->scm->N_maps;
+      SUMA_STRING_REPLACE(ConvPlane->cmapname, SUMAg_CF->scm->CMv[icmap]->Name);
    } else {
-      SUMA_STRING_REPLACE(ConvPlane->cmapname, "ngray20");
+      /* decide on the color map */
+      eee = getenv("SUMA_ConvColorMap");
+      if (eee) {
+         icmap = SUMA_Find_ColorMap ( eee, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
+         if (icmap < 0) {
+            SUMA_SL_Err("Colormap specified in\n"
+                        "environment variable SUMA_ConvColorMap\n"
+                        "was not found. Using ngray20.\n");
+            SUMA_STRING_REPLACE(ConvPlane->cmapname, "ngray20");
+        } else {
+            SUMA_STRING_REPLACE(ConvPlane->cmapname, eee);
+        }
+      } else {
+         SUMA_STRING_REPLACE(ConvPlane->cmapname, "ngray20");
+      }
    } 
 
    SUMA_LH("Deciding on brightness factor");   

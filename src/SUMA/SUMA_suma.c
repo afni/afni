@@ -189,7 +189,7 @@ SUMA_SurfaceObject **SUMA_GimmeSomeSOs(int *N_SOv)
          ++*N_SOv; SOv = (SUMA_SurfaceObject **) SUMA_realloc(SOv, (*N_SOv)*sizeof(SUMA_SurfaceObject *));
          SOv[i] = SUMA_MarchingCubesSurface(Opt);
          /* assign its Group and State and Side and few other things, must look like surfaces loaded with SUMA_Load_Spec_Surf*/
-         SOv[i]->Group = SUMA_copy_string(SUMA_DEF_GROUP_NAME); /* change this in sync with string in macro SUMA_BLANK_NEW_SPEC_SURF*/
+         SOv[i]->Group = SUMA_copy_string(SUMA_DEF_TOY_GROUP_NAME); /* change this in sync with string in macro SUMA_BLANK_NEW_SPEC_SURF*/
          sprintf(sid, "%s_%d", SUMA_DEF_STATE_NAME, Opt->obj_type);
          SOv[i]->State = SUMA_copy_string(sid);
          sprintf(sid, "surf_%d", Opt->obj_type);
@@ -213,7 +213,7 @@ SUMA_SurfaceObject **SUMA_GimmeSomeSOs(int *N_SOv)
             ++*N_SOv; SOv = (SUMA_SurfaceObject **) SUMA_realloc(SOv, (*N_SOv)*sizeof(SUMA_SurfaceObject *));
             SOv[i] = SUMA_HJS_Surface(nhjs);
             /* assign its Group and State and Side and few other things, must look like surfaces loaded with SUMA_Load_Spec_Surf*/
-            SOv[i]->Group = SUMA_copy_string(SUMA_DEF_GROUP_NAME); /* change this in sync with string in macro SUMA_BLANK_NEW_SPEC_SURF*/
+            SOv[i]->Group = SUMA_copy_string(SUMA_DEF_TOY_GROUP_NAME); /* change this in sync with string in macro SUMA_BLANK_NEW_SPEC_SURF*/
             sprintf(sid, "H.J.S.");
             SOv[i]->State = SUMA_copy_string(sid);
             sprintf(sid, "H.J.S._%d", nhjs);

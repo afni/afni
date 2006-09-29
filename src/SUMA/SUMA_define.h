@@ -2,6 +2,7 @@
 #define SUMA_DEFINE_INCLUDED
 
 #define SUMA_DEF_GROUP_NAME "DefGroup"
+#define SUMA_DEF_TOY_GROUP_NAME "DeDe"
 #define SUMA_DEF_STATE_NAME "Default_state"
 
 #define SUMA_SUMA_NIML_DEBUG 0
