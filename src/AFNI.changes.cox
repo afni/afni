@@ -5922,3 +5922,10 @@
      Var(x|y) for symmetry between base and target.  Seems to make
      registration work better.
  * Added -check and -master options to 3dAllineate.c.
+
+28 Sep 2006
+ * End of Res Publica Americana.
+
+29 Sep 2006
+ * 3dAllineate.c edited to make -linear the default interpolation during
+     alignment process, and -cubic for the output dataset.
