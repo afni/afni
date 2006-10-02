@@ -1353,6 +1353,9 @@ extern float mri_genalign_scalar_cost( GA_setup * ) ;
 
 #define SMAT_UPPER    1  /* shear matrix is upper */
 #define SMAT_LOWER    2  /* or lower triangular  */
+#define SMAT_XXX      3  /* x-axis only shears  */
+#define SMAT_YYY      4  /* y-axis only shears  */
+#define SMAT_ZZZ      5  /* z-axis only shears  */
 
 extern void mri_genalign_affine_setup( int,int,int ) ;
 

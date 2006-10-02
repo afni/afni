@@ -1598,6 +1598,18 @@ static THD_vecmat GA_setup_affine( int npar , float *parvec )
      case SMAT_UPPER: LOAD_MAT( ss , 1.0 ,  a  ,  b ,
                                      0.0 , 1.0 ,  c ,
                                      0.0 , 0.0 , 1.0  ) ; break ;
+
+     case SMAT_XXX:   LOAD_MAT( ss , 1.0 ,  a  ,  b ,
+                                     0.0 , 1.0 , 0.0,
+                                     0.0 , 0.0 , 1.0  ) ; break ;
+
+     case SMAT_YYY:   LOAD_MAT( ss , 1.0 , 0.0 , 0.0,
+                                      a  , 1.0 ,  b ,
+                                     0.0 , 0.0 , 1.0  ) ; break ;
+
+     case SMAT_ZZZ:   LOAD_MAT( ss , 1.0 , 0.0 , 0.0,
+                                     0.0 , 1.0 , 0.0,
+                                      a  ,  b  , 1.0  ) ; break ;
    }
 
    /* multiply them, as ordered */
