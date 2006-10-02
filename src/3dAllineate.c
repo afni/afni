@@ -113,6 +113,8 @@ int main( int argc , char *argv[] )
    int meth_check              = -1 ;           /* don't do it */
    char *save_hist             = NULL ;         /* don't save it */
    long seed                   = 7654321 ;      /* random? */
+   int targ_ijk                = 0 ;            /* off by default */
+   int XYZ_warp                = 0 ;            /* off by default */
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -276,7 +278,7 @@ int main( int argc , char *argv[] )
        " -automask   = Compute a mask function, which is like -autoweight,\n"
        "               but the weight for a voxel is either 0 or 1.\n"
        "               [This is the default mode of operation.]\n"
-       " -noauto     = Don't compute the autoweight/mask; if -weight is not\n"
+       " -nomask     = Don't compute the autoweight/mask; if -weight is not\n"
        "               used, then every voxel will be counted equally.\n"
        " -weight www = Set the weighting for each voxel in the base dataset;\n"
        "               larger weights mean that voxel counts more in the cost\n"
@@ -400,7 +402,8 @@ int main( int argc , char *argv[] )
       "** From Webster's Dictionary: Allineate == 'to align' **\n\n"
      ) ;
 
-     if( strcmp(argv[1],"-HELP")==0 || strcmp(argv[1],"-POMOC")==0 ){
+     if( argc > 1 &&
+        (strcmp(argv[1],"-HELP")==0 || strcmp(argv[1],"-POMOC")==0) ){
        printf(
         "\n"
         "===========================================\n"
@@ -414,6 +417,19 @@ int main( int argc , char *argv[] )
         " -median       = Smooth with median filter instead of Gaussian blur.\n"
         " -powell m a   = Set the NEWUOA dimensional parameters to\n"
         "                 'm' and 'a' (cf. powell_int.c).\n"
+        " -target ttt   = Same as '-source ttt'.  In the earliest versions,\n"
+        "                 what I now call the 'source' dataset was called the\n"
+        "                 'target' dataset:\n"
+        "                    Try to remember the kind of September (2006)\n"
+        "                    When life was slow and oh so mellow\n"
+        "                    Try to remember the kind of September\n"
+        "                    When grass was green and source was target.\n"
+        " -targijk      = Align source xyz axes with ijk indexes, rather than\n"
+        "                 using coordinates in target header.\n"
+        " -Xwarp       =} Change the warp/matrix order so that only the x-, y-, or z-\n"
+        " -Ywarp       =} axis is stretched & sheared.  Useful for EPI, in conjunction\n"
+        " -Zwarp       =} with '-targijk', where 'X', 'Y', or 'Z' corresponds to the\n"
+        "                 phase encoding direction.\n"
        ) ;
      }
 
@@ -472,7 +488,7 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strncmp(argv[iarg],"-master",5) == 0 ){
+     if( strncmp(argv[iarg],"-master",6) == 0 ){
        if( dset_mast != NULL ) ERROR_exit("Can't have multiple %s options!",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        dset_mast = THD_open_dataset( argv[iarg] ) ;
@@ -498,7 +514,7 @@ int main( int argc , char *argv[] )
 
     /*-----*/
 
-     if( strncmp(argv[iarg],"-weight",5) == 0 ){
+     if( strncmp(argv[iarg],"-weight",6) == 0 ){
        auto_weight = 0 ;
        if( dset_weig != NULL ) ERROR_exit("Can't have multiple %s options!",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
@@ -509,23 +525,24 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strncmp(argv[iarg],"-autoweight",6) == 0 ){
+     if( strncmp(argv[iarg],"-autoweight",8) == 0 ){
        if( dset_weig != NULL ) ERROR_exit("Can't use -autoweight AND -weight!") ;
        auto_weight = 1 ; auto_string = "-autoweight" ; iarg++ ; continue ;
      }
 
-     if( strncmp(argv[iarg],"-automask",6) == 0 ){
+     if( strncmp(argv[iarg],"-automask",8) == 0 ){
        if( dset_weig != NULL ) ERROR_exit("Can't use -automask AND -weight!") ;
        auto_weight = 2 ; auto_string = "-automask" ; iarg++ ; continue ;
      }
 
-     if( strncmp(argv[iarg],"-noauto",6) == 0 ){
+     if( strncmp(argv[iarg],"-noauto",6) == 0 ||
+         strncmp(argv[iarg],"-nomask",6) == 0   ){
        auto_weight = 0 ; iarg++ ; continue ;
      }
 
      /*-----*/
 
-     if( strncmp(argv[iarg],"-wtprefix",5) == 0 ){
+     if( strncmp(argv[iarg],"-wtprefix",6) == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        if( !THD_filename_ok(argv[iarg]) )
          ERROR_exit("badly formed filename: '%s' '%s'",argv[iarg-1],argv[iarg]) ;
@@ -552,7 +569,13 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strncmp(argv[iarg],"-floatize",5) == 0 ){
+     if( strcmp(argv[iarg],"-targijk") == 0 ){  /* 02 Oct 2006 */
+       targ_ijk = 1 ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strncmp(argv[iarg],"-floatize",6) == 0 ){
        floatize++ ; iarg++ ; continue ;
      }
 
@@ -606,7 +629,7 @@ int main( int argc , char *argv[] )
 
      /*----- -check costname -----*/
 
-     if( strncmp(argv[iarg],"-check",4) == 0 ){
+     if( strncmp(argv[iarg],"-check",5) == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '-check'!") ;
 
        for( jj=ii=0 ; ii < NMETH ; ii++ ){
@@ -643,9 +666,9 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strncmp(argv[iarg],"-source",5) == 0 ||
-         strncmp(argv[iarg],"-input" ,4) == 0 ||
-         strncmp(argv[iarg],"-target",5) == 0   ){
+     if( strncmp(argv[iarg],"-source",6) == 0 ||
+         strncmp(argv[iarg],"-input" ,5) == 0 ||
+         strncmp(argv[iarg],"-target",7) == 0   ){
        if( dset_targ != NULL ) ERROR_exit("Can't have multiple %s options!",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        dset_targ = THD_open_dataset( argv[iarg] ) ;
@@ -656,7 +679,7 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strncmp(argv[iarg],"-median",4) == 0 ){        /* not in -help */
+     if( strncmp(argv[iarg],"-median",5) == 0 ){        /* not in -help */
        sm_code = GA_SMOOTH_MEDIAN ; iarg++ ; continue ;
      }
 
@@ -667,7 +690,7 @@ int main( int argc , char *argv[] )
        sm_rad = (float)strtod(argv[iarg],NULL) ; twopass = 1 ; iarg++ ; continue ;
      }
 
-     if( strncmp(argv[iarg],"-fineblur",7) == 0 ){
+     if( strncmp(argv[iarg],"-fineblur",8) == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        fine_rad = (float)strtod(argv[iarg],NULL) ; iarg++ ; continue ;
      }
@@ -689,19 +712,19 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strncmp(argv[iarg],"-onepass",5) == 0 ){
+     if( strncmp(argv[iarg],"-onepass",6) == 0 ){
        twopass = twofirst = 0 ; iarg++ ; continue ;
      }
-     if( strncmp(argv[iarg],"-twopass",5) == 0 ){
+     if( strncmp(argv[iarg],"-twopass",6) == 0 ){
        twopass = 1 ; twofirst = 0 ; iarg++ ; continue ;
      }
-     if( strncmp(argv[iarg],"-twofirst",5) == 0 ){
+     if( strncmp(argv[iarg],"-twofirst",6) == 0 ){
        twofirst = twopass = 1 ; iarg++ ; continue ;
      }
 
      /*-----*/
 
-     if( strncmp(argv[iarg],"-output",4) == 0 || strncmp(argv[iarg],"-prefix",5) == 0 ){
+     if( strncmp(argv[iarg],"-output",5) == 0 || strncmp(argv[iarg],"-prefix",5) == 0 ){
        if( prefix != NULL ) ERROR_exit("Can't have multiple %s options!",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        if( !THD_filename_ok(argv[iarg]) )
@@ -739,7 +762,7 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strcmp(argv[iarg],"-NN") == 0 || strncmp(argv[iarg],"-nearest",5) == 0 ){
+     if( strcmp(argv[iarg],"-NN") == 0 || strncmp(argv[iarg],"-nearest",6) == 0 ){
        interp_code = MRI_NN ; iarg++ ; continue ;
      }
      if( strncmp(argv[iarg],"-linear",4)==0 || strncmp(argv[iarg],"-trilinear",6)==0 ){
@@ -753,7 +776,7 @@ int main( int argc , char *argv[] )
      }
      if( strncmp(argv[iarg],"-interp",5)==0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
-       if( strcmp(argv[iarg],"NN")==0 || strncmp(argv[iarg],"nearest",4)==0 )
+       if( strcmp(argv[iarg],"NN")==0 || strncmp(argv[iarg],"nearest",5)==0 )
          interp_code = MRI_NN ;
        if( strncmp(argv[iarg],"linear",3)==0 || strncmp(argv[iarg],"trilinear",5)==0 )
          interp_code = MRI_LINEAR ;
@@ -767,7 +790,7 @@ int main( int argc , char *argv[] )
      }
      if( strncmp(argv[iarg],"-final",5) == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
-       if( strcmp(argv[iarg],"NN") == 0 || strncmp(argv[iarg],"nearest",4) == 0 )
+       if( strcmp(argv[iarg],"NN") == 0 || strncmp(argv[iarg],"nearest",5) == 0 )
          final_interp = MRI_NN ;
        if( strncmp(argv[iarg],"linear",3) == 0 || strncmp(argv[iarg],"trilinear",5) == 0 )
          final_interp = MRI_LINEAR ;
@@ -801,7 +824,8 @@ int main( int argc , char *argv[] )
        npt_match = (int)strtod(argv[iarg],&cpt) ;
        if( npt_match <= 0 )
          ERROR_exit("Illegal value '%s' after '%s'!",argv[iarg],argv[iarg-1]) ;
-       if( *cpt == '%' ) npt_match = -npt_match ;  /* signal for % */
+       if( *cpt == '%' || npt_match <= 100 )
+         npt_match = -npt_match ;  /* signal for % */
        iarg++ ; continue ;
      }
 
@@ -948,6 +972,68 @@ int main( int argc , char *argv[] )
        paropt[nparopt].code = PARC_INI ;
        paropt[nparopt].vb   = v1 ;
        nparopt++ ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcmp(argv[iarg],"-Xwarp") == 0 ){  /* 02 Oct 2006 */
+       if( XYZ_warp > 0 ) ERROR_exit("only one use of -[XYZ]warp is allowed");
+       matorder = MATORDER_USD ;       /* rotation after shear and scale */
+
+       paropt[nparopt].np   = 7 ;      /* fix y-scale to 1 */
+       paropt[nparopt].code = PARC_FIX ;
+       paropt[nparopt].vb   = 1.0 ; nparopt++ ;
+
+       paropt[nparopt].np   = 8 ;      /* fix z-scale to 1 */
+       paropt[nparopt].code = PARC_FIX ;
+       paropt[nparopt].vb   = 1.0 ; nparopt++ ;
+
+       paropt[nparopt].np   = 11 ;      /* fix last shear to 0 */
+       paropt[nparopt].code = PARC_FIX ;
+       paropt[nparopt].vb   = 0.0 ; nparopt++ ;
+
+       smat = SMAT_XXX ;                /* fix shear matrix to x-only */
+       XYZ_warp = 1 ;iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-Ywarp") == 0 ){  /* 02 Oct 2006 */
+       if( XYZ_warp > 0 ) ERROR_exit("only one use of -[XYZ]warp is allowed");
+       matorder = MATORDER_USD ;       /* rotation after shear and scale */
+
+       paropt[nparopt].np   = 6 ;      /* fix x-scale to 1 */
+       paropt[nparopt].code = PARC_FIX ;
+       paropt[nparopt].vb   = 1.0 ; nparopt++ ;
+
+       paropt[nparopt].np   = 8 ;      /* fix z-scale to 1 */
+       paropt[nparopt].code = PARC_FIX ;
+       paropt[nparopt].vb   = 1.0 ; nparopt++ ;
+
+       paropt[nparopt].np   = 11 ;      /* fix last shear to 0 */
+       paropt[nparopt].code = PARC_FIX ;
+       paropt[nparopt].vb   = 0.0 ; nparopt++ ;
+
+       smat = SMAT_YYY ;                /* fix shear matrix to y-only */
+       XYZ_warp = 2 ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-Zwarp") == 0 ){  /* 02 Oct 2006 */
+       if( XYZ_warp > 0 ) ERROR_exit("only one use of -[XYZ]warp is allowed");
+       matorder = MATORDER_USD ;       /* rotation after shear and scale */
+
+       paropt[nparopt].np   = 6 ;      /* fix x-scale to 1 */
+       paropt[nparopt].code = PARC_FIX ;
+       paropt[nparopt].vb   = 1.0 ; nparopt++ ;
+
+       paropt[nparopt].np   = 7 ;      /* fix y-scale to 1 */
+       paropt[nparopt].code = PARC_FIX ;
+       paropt[nparopt].vb   = 1.0 ; nparopt++ ;
+
+       paropt[nparopt].np   = 11 ;      /* fix last shear to 0 */
+       paropt[nparopt].code = PARC_FIX ;
+       paropt[nparopt].vb   = 0.0 ; nparopt++ ;
+
+       smat = SMAT_ZZZ ;                /* fix shear matrix to x-only */
+       XYZ_warp = 3 ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -1234,9 +1320,29 @@ int main( int argc , char *argv[] )
    /* spatial coordinates: 'cmat' transforms from ijk to xyz */
 
    stup.use_cmat  = 1 ;
-   if( !ISVALID_MAT44(dset_targ->daxes->ijk_to_dicom) )
-     THD_daxes_to_mat44(dset_targ->daxes) ;
-   stup.targ_cmat = dset_targ->daxes->ijk_to_dicom ;
+
+   if( !targ_ijk ){  /* use header coordinates as target's xyz */
+
+     if( !ISVALID_MAT44(dset_targ->daxes->ijk_to_dicom) )
+       THD_daxes_to_mat44(dset_targ->daxes) ;
+     stup.targ_cmat = dset_targ->daxes->ijk_to_dicom ;
+
+   } else {  /* use ijk as xyz, scaled by dx,dy,dz of course [02 Oct 2006] */
+
+     float xd,yd,zd , xc,yc,zc ;
+     xd = DSET_DX(dset_targ) ; xc = (nx_targ-1)*0.5*xd ;
+     yd = DSET_DY(dset_targ) ; yc = (ny_targ-1)*0.5*yd ;
+     zd = DSET_DZ(dset_targ) ; zc = (nz_targ-1)*0.5*zd ;
+
+     LOAD_MAT44( stup.targ_cmat , xd  , 0.0f , 0.0f , xc ,
+                                 0.0f ,  yd  , 0.0f , yc ,
+                                 0.0f , 0.0f ,  zd  , zc  ) ;
+   }
+#if 0
+   DUMP_MAT44("targ_cmat",stup.targ_cmat) ;
+#endif
+
+   /* base coordinates are drawn from it's header, or are same as target */
 
    if( dset_base != NULL ){
      if( !ISVALID_MAT44(dset_base->daxes->ijk_to_dicom) )
@@ -1322,22 +1428,38 @@ int main( int argc , char *argv[] )
    for( ii=0 ; ii < nparopt ; ii++ ){
      jj = paropt[ii].np ;
      if( jj < stup.wfunc_numpar ){
-       if( stup.wfunc_param[jj].fixed ){
-         WARNING_message("Can't alter parameter #%d: it is fixed!",jj+1) ;
-       } else {
-         switch( paropt[ii].code ){
-           case PARC_FIX: stup.wfunc_param[jj].fixed     = 2 ; /* permanent fix */
-                          stup.wfunc_param[jj].val_fixed = paropt[ii].vb; break;
+       if( stup.wfunc_param[jj].fixed )
+         WARNING_message("Altering fixed param#%d [%s]" ,
+                          jj+1 , stup.wfunc_param[jj].name ) ;
 
-           case PARC_INI: stup.wfunc_param[jj].fixed     = 0 ;
-                          stup.wfunc_param[jj].val_fixed =
-                          stup.wfunc_param[jj].val_init  =
-                          stup.wfunc_param[jj].val_pinit = paropt[ii].vb; break;
+       switch( paropt[ii].code ){
+         case PARC_FIX: stup.wfunc_param[jj].fixed     = 2 ; /* permanent fix */
+                        stup.wfunc_param[jj].val_fixed = paropt[ii].vb;
+         if( verb > 1 )
+           ININFO_message("Fix param#%d [%s] = %f",
+                          jj+1 , stup.wfunc_param[jj].name ,
+                                 stup.wfunc_param[jj].val_fixed ) ;
+         break;
 
-           case PARC_RAN: stup.wfunc_param[jj].fixed     = 0 ;
-                          stup.wfunc_param[jj].min       = paropt[ii].vb;
-                          stup.wfunc_param[jj].max       = paropt[ii].vt; break;
-         }
+         case PARC_INI: stup.wfunc_param[jj].fixed     = 0 ;
+                        stup.wfunc_param[jj].val_fixed =
+                        stup.wfunc_param[jj].val_init  =
+                        stup.wfunc_param[jj].val_pinit = paropt[ii].vb;
+         if( verb > 1 )
+           ININFO_message("Init param#%d [%s] = %f",
+                          jj+1 , stup.wfunc_param[jj].name ,
+                                 stup.wfunc_param[jj].val_pinit ) ;
+         break;
+
+         case PARC_RAN: stup.wfunc_param[jj].fixed     = 0 ;
+                        stup.wfunc_param[jj].min       = paropt[ii].vb;
+                        stup.wfunc_param[jj].max       = paropt[ii].vt;
+         if( verb > 1 )
+           ININFO_message("Range param#%d [%s] = %f .. %f",
+                          jj+1 , stup.wfunc_param[jj].name ,
+                                 stup.wfunc_param[jj].min  ,
+                                 stup.wfunc_param[jj].max   ) ;
+         break;
        }
      } else {
        WARNING_message("Can't alter parameter #%d: out of range!",jj+1) ;
@@ -1349,6 +1471,7 @@ int main( int argc , char *argv[] )
    for( ii=jj=0 ; jj < stup.wfunc_numpar ; jj++ )
      if( !stup.wfunc_param[jj].fixed ) ii++ ;
    if( ii == 0 ) ERROR_exit("No free parameters for aligning datasets?!!") ;
+   if( verb > 1 ) ININFO_message("%d free parameters",ii) ;
 
    /* should have some free parameters in the first 6 if using twopass */
 
