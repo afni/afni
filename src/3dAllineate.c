@@ -49,6 +49,9 @@ static char *meth_username[NMETH] =       /* descriptive names */
     "Joint Entropy [H(b,t)]"                ,
     "Hellinger metric"                       } ;
 
+static float wt_medsmooth = 2.25f ;
+static float wt_gausmooth = 3.00f ;
+
 /*---------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
@@ -69,7 +72,7 @@ int main( int argc , char *argv[] )
    float **parsave=NULL ;
    MRI_IMAGE *apply_im = NULL ;
    float *apply_far    = NULL ;
-   int apply_nx, apply_ny ;
+   int apply_nx, apply_ny , nparam_free ;
    float cost, cost_ini ;
    mat44 cmat_bout , cmat_tout ;
    int   nxout,nyout,nzout , use_out=0 ;
@@ -115,6 +118,8 @@ int main( int argc , char *argv[] )
    long seed                   = 7654321 ;      /* random? */
    int targ_ijk                = 0 ;            /* off by default */
    int XYZ_warp                = 0 ;            /* off by default */
+   double hist_pow             = 0.0 ;
+   int hist_nbin               = 0 ;
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -424,12 +429,21 @@ int main( int argc , char *argv[] )
         "                    When life was slow and oh so mellow\n"
         "                    Try to remember the kind of September\n"
         "                    When grass was green and source was target.\n"
+#if 0
         " -targijk      = Align source xyz axes with ijk indexes, rather than\n"
         "                 using coordinates in target header.\n"
-        " -Xwarp       =} Change the warp/matrix order so that only the x-, y-, or z-\n"
-        " -Ywarp       =} axis is stretched & sheared.  Useful for EPI, in conjunction\n"
-        " -Zwarp       =} with '-targijk', where 'X', 'Y', or 'Z' corresponds to the\n"
-        "                 phase encoding direction.\n"
+#endif
+        " -Xwarp       =} Change the warp/matrix setup so that only the x-, y-, or z-\n"
+        " -Ywarp       =} axis is stretched & sheared.  Useful for EPI, where 'X',\n"
+        " -Zwarp       =} 'Y', or 'Z' corresponds to the phase encoding direction.\n"
+        " -histpow pp   = By default, the number of bins in the histogram used\n"
+        "                 for calculating the Hellinger, Mutual Information, and\n"
+        "                 Correlation Ratio statistics is n^(1/3), where n is\n"
+        "                 the number of data points.  You can change that exponent\n"
+        "                 to 'pp' with this option.\n"
+        " -histbin nn   = Or you can just set the number of bins directly to 'nn'.\n"
+        " -wtmrad  mm   = Set autoweight/mask median filter radius to 'mm' voxels.\n"
+        " -wtgrad  gg   = Set autoweight/mask Gaussian filter radius to 'gg' voxels.\n"
        ) ;
      }
 
@@ -498,14 +512,14 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strcmp(argv[iarg],"-seed") == 0 ){   /* not in -help */
+     if( strcmp(argv[iarg],"-seed") == 0 ){   /* SECRET OPTION */
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        seed = (long)strtod(argv[iarg],NULL) ; iarg++ ; continue ;
      }
 
      /*-----*/
 
-     if( strcmp(argv[iarg],"-powell") == 0 ){  /* not in -help */
+     if( strcmp(argv[iarg],"-powell") == 0 ){  /* SECRET OPTION */
        if( ++iarg >= argc-1 ) ERROR_exit("no arguments after '%s'!",argv[iarg-1]) ;
        powell_mm = (float)strtod(argv[iarg++],NULL) ;
        powell_aa = (float)strtod(argv[iarg++],NULL) ;
@@ -551,11 +565,39 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strcmp(argv[iarg],"-savehist") == 0 ){  /* not in -help */
+     if( strcmp(argv[iarg],"-savehist") == 0 ){  /* SECRET OPTION */
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        if( !THD_filename_ok(argv[iarg]) )
          ERROR_exit("badly formed filename: '%s' '%s'",argv[iarg-1],argv[iarg]) ;
        save_hist = argv[iarg] ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcmp(argv[iarg],"-histpow") == 0 ){   /* SECRET OPTION */
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       hist_pow = strtod(argv[iarg],NULL) ;
+       set_2Dhist_hpower(hist_pow) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-histbin") == 0 ){   /* SECRET OPTION */
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       hist_nbin = (int)strtod(argv[iarg],NULL) ;
+       set_2Dhist_hbin( hist_nbin ) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-wtmrad") == 0 ){   /* SECRET OPTION */
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       wt_medsmooth = (float)strtod(argv[iarg],NULL) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-wtgrad") == 0 ){   /* SECRET OPTION */
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       wt_gausmooth = (float)strtod(argv[iarg],NULL) ;
+       iarg++ ; continue ;
      }
 
      /*-----*/
@@ -569,9 +611,11 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
+#if 0
      if( strcmp(argv[iarg],"-targijk") == 0 ){  /* 02 Oct 2006 */
        targ_ijk = 1 ; iarg++ ; continue ;
      }
+#endif
 
      /*-----*/
 
@@ -679,7 +723,7 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strncmp(argv[iarg],"-median",5) == 0 ){        /* not in -help */
+     if( strncmp(argv[iarg],"-median",5) == 0 ){        /* SECRET OPTION */
        sm_code = GA_SMOOTH_MEDIAN ; iarg++ ; continue ;
      }
 
@@ -972,6 +1016,37 @@ int main( int argc , char *argv[] )
        paropt[nparopt].code = PARC_INI ;
        paropt[nparopt].vb   = v1 ;
        nparopt++ ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcmp(argv[iarg],"-EPI") == 0 ){  /* 03 Oct 2006 */
+       int fe=-1 , pe=-1 , se=-1 ;
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]);
+       if( strlen(argv[iarg]) < 3 ) ERROR_exit("Too short -EPI '%s'",argv[iarg]);
+       switch( argv[iarg][0] ){
+         default: ERROR_exit("Illegal -EPI f code '%c'" , argv[iarg][0] );
+         case 'i': case 'I': case 'x': case 'X': case '1':  fe = 0; break;
+         case 'j': case 'J': case 'y': case 'Y': case '2':  fe = 1; break;
+         case 'k': case 'K': case 'z': case 'Z': case '3':  fe = 2; break;
+       }
+       switch( argv[iarg][1] ){
+         default: ERROR_exit("Illegal -EPI p code '%c'" , argv[iarg][1] );
+         case 'i': case 'I': case 'x': case 'X': case '1':  pe = 0; break;
+         case 'j': case 'J': case 'y': case 'Y': case '2':  pe = 1; break;
+         case 'k': case 'K': case 'z': case 'Z': case '3':  pe = 2; break;
+       }
+       switch( argv[iarg][2] ){
+         default: ERROR_exit("Illegal -EPI s code '%c'" , argv[iarg][2] );
+         case 'i': case 'I': case 'x': case 'X': case '1':  se = 0; break;
+         case 'j': case 'J': case 'y': case 'Y': case '2':  se = 1; break;
+         case 'k': case 'K': case 'z': case 'Z': case '3':  se = 2; break;
+       }
+       if( fe+pe+se != 6 ) ERROR_exit("Illegal EPI fps codes '%s'",argv[iarg]);
+
+       /* fix out-of-slice movement and scaling */
+
+       iarg++ ; continue ;
      }
 
      /*-----*/
@@ -1471,6 +1546,7 @@ int main( int argc , char *argv[] )
    for( ii=jj=0 ; jj < stup.wfunc_numpar ; jj++ )
      if( !stup.wfunc_param[jj].fixed ) ii++ ;
    if( ii == 0 ) ERROR_exit("No free parameters for aligning datasets?!!") ;
+   nparam_free = ii ;
    if( verb > 1 ) ININFO_message("%d free parameters",ii) ;
 
    /* should have some free parameters in the first 6 if using twopass */
@@ -1660,10 +1736,16 @@ int main( int argc , char *argv[] )
 
          if( verb ) ININFO_message("- Search for coarse starting parameters") ;
 
-         /* startup search only allows rotations and shifts, so freeze all others */
+         /* startup search only allows up to 6 parameters, so freeze excess */
 
-         for( jj=6 ; jj < stup.wfunc_numpar ; jj++ )
-           if( !stup.wfunc_param[jj].fixed ) stup.wfunc_param[jj].fixed = 1 ;
+         if( nparam_free > 6 ){
+           for( ii=jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
+             if( !stup.wfunc_param[jj].fixed ){
+               ii++ ;  /* number free so far */
+               if( ii > 6 ) stup.wfunc_param[jj].fixed = 1 ;  /* temp freeze */
+             }
+           }
+         }
 
          /* do the startup parameter search;
             saves best params in val_init (and val_out), plus a few more in val_trial */
@@ -1674,7 +1756,7 @@ int main( int argc , char *argv[] )
 
          /* unfreeze those that were temporarily frozen above */
 
-         for( jj=6 ; jj < stup.wfunc_numpar ; jj++ )
+         for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
            if( stup.wfunc_param[jj].fixed == 1 ) stup.wfunc_param[jj].fixed = 0 ;
 
          stup.npt_match = nmask / 10 ;
@@ -2011,12 +2093,14 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod )
 
    mmm = (byte *)malloc( sizeof(byte)*nxyz ) ;
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] > 0.0f) ; /* mask */
-   wim = mri_medianfilter( qim , 2.25 , mmm , 0 ) ;  /* 2.25 is about sqrt(5) */
+   if( wt_medsmooth > 0.0f )
+     wim = mri_medianfilter( qim , wt_medsmooth , mmm , 0 ) ;
    mri_free(qim) ; wf = MRI_FLOAT_PTR(wim) ;
 
-   FIR_blur_volume_3d( wim->nx , wim->ny , wim->nz ,
-                       1.0f , 1.0f , 1.0f ,  wf ,
-                       3.0f , 3.0f , 3.0f ) ;
+   if( wt_gausmooth > 0.0f )
+     FIR_blur_volume_3d( wim->nx , wim->ny , wim->nz ,
+                         1.0f , 1.0f , 1.0f ,  wf ,
+                         wt_gausmooth , wt_gausmooth , wt_gausmooth ) ;
 
    /*-- clip off small values, and
         keep only the largest cluster of supra threshold voxels --*/
