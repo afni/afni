@@ -23,10 +23,6 @@ static GA_setup *gstup = NULL ;
 #define floorf floor
 #endif
 
-#if defined(SOLARIS) || defined(SGI)
-#define cbrtf  cbrt
-#endif
-
 /*---------------------------------------------------------------------------*/
 static int verb = 0 ;
 void mri_genalign_verbose(int v){ verb = v ; }
@@ -804,10 +800,11 @@ ENTRY("mri_genalign_scalar_setup") ;
                                            stup->smooth_radius ) ;
    }
    if( do_smooth || (need_smooth && stup->ajims == NULL) ){
-     float nxa=stup->ajim->nx, nya=stup->ajim->ny, nza=stup->ajim->nz ;
-     float rad=cbrtf(nxa*nya*nza/(nx*ny*nz)) * stup->smooth_radius ;
+     double nxa=stup->ajim->nx, nya=stup->ajim->ny, nza=stup->ajim->nz ;
+     float rad=cbrt(nxa*nya*nza/(nx*ny*nz)) * stup->smooth_radius ;
      if( stup->ajims != NULL ) mri_free(stup->ajims);
-     if( verb > 1 ) ININFO_message("- Smoothing source; radius=%.2f",stup->smooth_radius) ;
+     if( verb > 1 )
+       ININFO_message("- Smoothing source; radius=%.2f",stup->smooth_radius);
      stup->ajims = GA_smooth( stup->ajim , stup->smooth_code , rad ) ;
    }
 

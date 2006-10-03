@@ -5,11 +5,6 @@
 # define logf  log
 #endif
 
-#if defined(SOLARIS) || defined(SGI)
-# define cbrtf  cbrt
-#endif
-
-
 /*==============================================================================*/
 /*========== The following functions were moved from afni_fimfunc.c -===========*/
 /*==============================================================================*/
@@ -265,13 +260,41 @@ static int nbin=0 , nbp=0 ;
 #define XYC(p,q) xyc[(p)+(q)*nbp]
 
 /*--------------------------------------------------------------------------*/
+
+static double hpow = 0.33333333333 ;
+void set_2Dhist_hpower( double hh )
+{
+  hpow = (hh > 0.0 && hh < 1.0) ? hh : 0.33333333333 ;
+  clear_2Dhist() ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+static int nhbin = 0 ;
+void set_2Dhist_hbin( int nn ){ nhbin = nn; clear_2Dhist(); }
+
+/*--------------------------------------------------------------------------*/
 /*! Retrieve the 2D histogram built previously in build_2Dhist().
+    - Return value is the number of bins in each direction (may be 0).
+    - *xyhist is points to internal 2D array (may be NULL).
 ----------------------------------------------------------------------------*/
 
 int retrieve_2Dhist( float **xyhist )
 {
    if( xyhist == NULL ) return 0 ;
    *xyhist = xyc ; return nbp ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Clear the internal 2D histogram.
+----------------------------------------------------------------------------*/
+
+void clear_2Dhist(void)
+{
+   if( xc  != NULL ){ free((void *)xc ); xc  = NULL; }
+   if( yc  != NULL ){ free((void *)yc ); yc  = NULL; }
+   if( xyc != NULL ){ free((void *)xyc); xyc = NULL; }
+   nbin = nbp = 0 ; n_old = -1 ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -287,41 +310,47 @@ int retrieve_2Dhist( float **xyhist )
       - yc   = marginal histogram of y[], for yc[0..nbin]
       - xyc  = joint histogram of (x[],y[]), for XYC(0..nbin,0..nbin)
       - The histograms are normalized (by 1/nww) to have sum==1.
+      - Histogram can be retrieved by retrieve_2Dhist() and can be
+        erased by clear_2Dhist().
+      - Default number of bins in each direction is n^(1/3), but the
+        exponent can be changed with set_2Dhist_hpower(), or you can
+        set the number of bins to be a fixed value with set_2Dhist_hbin().
 ----------------------------------------------------------------------------*/
 
-static void build_2Dhist( int n , float xbot,float xtop,float *x ,
-                                  float ybot,float ytop,float *y , float *w )
+void build_2Dhist( int n , float xbot,float xtop,float *x ,
+                           float ybot,float ytop,float *y , float *w )
 {
    register int ii,jj,kk ;
    float xb,xi , yb,yi , xx,yy , x1,y1 , nbb , ww ;
 
-   if( n <= 1 || x == NULL || y == NULL ){     /* clear the arrays */
-     if( xc  != NULL ){ free((void *)xc ); xc  = NULL; }
-     if( yc  != NULL ){ free((void *)yc ); yc  = NULL; }
-     if( xyc != NULL ){ free((void *)xyc); xyc = NULL; }
-     nbin = 0 ; return ;
-   }
+   /* bad inputs? */
+
+   if( n <= 1 || x == NULL || y == NULL ){ clear_2Dhist(); return; }
+
+   /* get the min..max range for x data? */
 
    if( xbot >= xtop ){
      xbot = ybot = x[0] ;
      for( ii=0 ; ii < n ; ii++ )
             if( x[ii] > xtop ) xtop = x[ii] ;
        else if( x[ii] < xbot ) xbot = x[ii] ;
-     if( xbot >= xtop ){ nbin = 0 ; return ; }
+     if( xbot >= xtop ){ clear_2Dhist(); return; }
    }
+
+   /* get the min..max range for y data? */
 
    if( ybot >= ytop ){
      ybot = ybot = y[0] ;
      for( ii=0 ; ii < n ; ii++ )
             if( y[ii] > ytop ) ytop = y[ii] ;
        else if( y[ii] < ybot ) ybot = y[ii] ;
-     if( ybot >= ytop ){ nbin = 0 ; return ; }
+     if( ybot >= ytop ){ clear_2Dhist(); return; }
    }
 
    if( n == n_old ){               /* can keep old arrays */
      nbin = nbin_old ;
-   } else {                        /* need null arrays */
-     nbin = (int)cbrtf((float)n);
+   } else {                        /* need new arrays */
+     nbin = (nhbin > 2) ? nhbin : (int)pow((double)n,hpow) ;
      if( nbin > 255 ) nbin = 255; else if( nbin < 3 ) nbin = 3;
      nbin_old = nbin ; n_old = n ;
      if( xc  != NULL ){ free((void *)xc ); xc  = NULL; }
