@@ -153,7 +153,7 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps)
 SUMA_SurfaceObject **SUMA_GimmeSomeSOs(int *N_SOv) 
 {
    static char FuncName[]={"SUMA_GimmeSomeSOs"};
-   SUMA_SurfaceObject **SOv=NULL;
+   SUMA_SurfaceObject **SOv=NULL, *SO=NULL;
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;
    char sid[100];
    int i, N_k, k, *ilist=NULL, nhjs;
@@ -174,68 +174,76 @@ SUMA_SurfaceObject **SUMA_GimmeSomeSOs(int *N_SOv)
       vlist[i] = rand();
    }
    ilist = SUMA_z_qsort(vlist, N_k);
+   
    /* remove six from ilist, bad surface ... */
    for (i=0; i<N_k; ++i) if (ilist[i] == 6) ilist[i] = ilist[N_k-1];
    N_k = N_k - 1; /* remove last one since it replaced 6 */
    
    nhjs=0;
    *N_SOv = 0; 
-   i=0; 
+   i=-1;
+   /* ilist[0] = 0; N_k = 1; */
+   ilist[0]=1;    ilist[1]=4;    ilist[2]=8;    ilist[3]=2;    ilist[4]=10;
+       ilist[5]=5;    ilist[6]=0;    ilist[7]=9;    ilist[8]=3;    ilist[9]=7;
    for (k=0; k<N_k; ++k) {
+      fprintf(SUMA_STDERR,"ilist[%d]=%d    ", k, ilist[k]);
       if (ilist[k] <= 9) { /* 0 to 9 is code for MarchingCubesSurfaces */
          Opt->obj_type = ilist[k];
          Opt->obj_type_res = 64;
-         Opt->debug = 0;
-         ++*N_SOv; SOv = (SUMA_SurfaceObject **) SUMA_realloc(SOv, (*N_SOv)*sizeof(SUMA_SurfaceObject *));
-         SOv[i] = SUMA_MarchingCubesSurface(Opt);
-         /* assign its Group and State and Side and few other things, must look like surfaces loaded with SUMA_Load_Spec_Surf*/
-         SOv[i]->Group = SUMA_copy_string(SUMA_DEF_TOY_GROUP_NAME); /* change this in sync with string in macro SUMA_BLANK_NEW_SPEC_SURF*/
-         sprintf(sid, "%s_%d", SUMA_DEF_STATE_NAME, Opt->obj_type);
-         SOv[i]->State = SUMA_copy_string(sid);
-         sprintf(sid, "surf_%d", Opt->obj_type);
-         SOv[i]->Label = SUMA_copy_string(sid);
-         SOv[i]->EmbedDim = 3;
-         SOv[i]->AnatCorrect = YUP;
-         /* make this surface friendly for suma */
-         if (!SUMA_PrepSO_GeomProp_GL(SOv[i])) {
-            SUMA_S_Err("Failed in SUMA_PrepSO_GeomProp_GL");
-            SUMA_RETURN(NULL);
-         }
-         /* Add this surface to SUMA's displayable objects */
-         if (!SUMA_PrepAddmappableSO(SOv[i], SUMAg_DOv, &(SUMAg_N_DOv), 0, SUMAg_CF->DsetList)) {
-            SUMA_S_Err("Failed to add mappable SOs ");
-            SUMA_RETURN(NULL);
-         }
-         ++i; 
-      } else if (ilist[k] == 10) {  /* 10 is code for HJS */
-         /* HJS's turn */
-         for (nhjs=0; nhjs < 19; ++nhjs) { 
+         Opt->debug =0;
+         Opt->in_vol =0;
+         Opt->mcdatav= NULL;
+         if ((SO = SUMA_MarchingCubesSurface(Opt))) {
             ++*N_SOv; SOv = (SUMA_SurfaceObject **) SUMA_realloc(SOv, (*N_SOv)*sizeof(SUMA_SurfaceObject *));
-            SOv[i] = SUMA_HJS_Surface(nhjs);
+            SOv[*N_SOv-1]=SO;
             /* assign its Group and State and Side and few other things, must look like surfaces loaded with SUMA_Load_Spec_Surf*/
-            SOv[i]->Group = SUMA_copy_string(SUMA_DEF_TOY_GROUP_NAME); /* change this in sync with string in macro SUMA_BLANK_NEW_SPEC_SURF*/
-            sprintf(sid, "H.J.S.");
-            SOv[i]->State = SUMA_copy_string(sid);
-            sprintf(sid, "H.J.S._%d", nhjs);
-            SOv[i]->Label = SUMA_copy_string(sid);
-            SOv[i]->EmbedDim = 3;
-            SOv[i]->AnatCorrect = YUP;
+            SOv[*N_SOv-1]->Group = SUMA_copy_string(SUMA_DEF_TOY_GROUP_NAME); /* change this in sync with string in macro SUMA_BLANK_NEW_SPEC_SURF*/
+            sprintf(sid, "%s_%d", SUMA_DEF_STATE_NAME, Opt->obj_type);
+            SOv[*N_SOv-1]->State = SUMA_copy_string(sid);
+            sprintf(sid, "surf_%d", Opt->obj_type);
+            SOv[*N_SOv-1]->Label = SUMA_copy_string(sid);
+            SOv[*N_SOv-1]->EmbedDim = 3;
+            SOv[*N_SOv-1]->AnatCorrect = YUP;
             /* make this surface friendly for suma */
-            if (!SUMA_PrepSO_GeomProp_GL(SOv[i])) {
+            if (!SUMA_PrepSO_GeomProp_GL(SOv[*N_SOv-1])) {
                SUMA_S_Err("Failed in SUMA_PrepSO_GeomProp_GL");
                SUMA_RETURN(NULL);
             }
             /* Add this surface to SUMA's displayable objects */
-            if (!SUMA_PrepAddmappableSO(SOv[i], SUMAg_DOv, &(SUMAg_N_DOv), 0, SUMAg_CF->DsetList)) {
+            if (!SUMA_PrepAddmappableSO(SOv[*N_SOv-1], SUMAg_DOv, &(SUMAg_N_DOv), 0, SUMAg_CF->DsetList)) {
                SUMA_S_Err("Failed to add mappable SOs ");
                SUMA_RETURN(NULL);
             }
-            ++i; 
+         }
+      } else if (ilist[k] == 10) {  /* 10 is code for HJS */
+         /* HJS's turn */
+         for (nhjs=0; nhjs < 19; ++nhjs) { 
+            ++*N_SOv; SOv = (SUMA_SurfaceObject **) SUMA_realloc(SOv, (*N_SOv)*sizeof(SUMA_SurfaceObject *));
+            SOv[*N_SOv-1] = SUMA_HJS_Surface(nhjs);
+            /* assign its Group and State and Side and few other things, must look like surfaces loaded with SUMA_Load_Spec_Surf*/
+            SOv[*N_SOv-1]->Group = SUMA_copy_string(SUMA_DEF_TOY_GROUP_NAME); /* change this in sync with string in macro SUMA_BLANK_NEW_SPEC_SURF*/
+            sprintf(sid, "H.J.S.");
+            SOv[*N_SOv-1]->State = SUMA_copy_string(sid);
+            sprintf(sid, "H.J.S._%d", nhjs);
+            SOv[*N_SOv-1]->Label = SUMA_copy_string(sid);
+            SOv[*N_SOv-1]->EmbedDim = 3;
+            SOv[*N_SOv-1]->AnatCorrect = YUP;
+            /* make this surface friendly for suma */
+            if (!SUMA_PrepSO_GeomProp_GL(SOv[*N_SOv-1])) {
+               SUMA_S_Err("Failed in SUMA_PrepSO_GeomProp_GL");
+               SUMA_RETURN(NULL);
+            }
+            /* Add this surface to SUMA's displayable objects */
+            if (!SUMA_PrepAddmappableSO(SOv[*N_SOv-1], SUMAg_DOv, &(SUMAg_N_DOv), 0, SUMAg_CF->DsetList)) {
+               SUMA_S_Err("Failed to add mappable SOs ");
+               SUMA_RETURN(NULL);
+            }
          }
       } else {
          SUMA_S_Errv("Bad ilist number: ilist[%d]=%d\n", k, ilist[k]);
          break;
       }
+      if (LocalHead) SUMA_Print_Surface_Object(SOv[*N_SOv-1], stderr);
    }
   
    if (Opt) SUMA_free(Opt);
