@@ -869,9 +869,15 @@ char **SUMA_allocate2D (int rows,int cols,int element_size)
    int i;
    char **A;
    static char FuncName[]={"SUMA_allocate2D"};
-
+   SUMA_Boolean LocalHead = NOPE;
+   
    SUMA_ENTRY;
    
+   if (rows <= 0 || cols < 0) {
+      SUMA_S_Errv("Allocate2D with rows = %d and cols = %d!\n", rows, cols);
+      SUMA_RETURN(NULL);
+   }
+   SUMA_LHv("nrows = %d, ncols = %d\n", rows, cols);
    #ifdef USE_SUMA_MALLOC
       SUMA_SL_Err("NO LONGER SUPPORTED");
       SUMA_RETURN(NULL);
@@ -4310,10 +4316,10 @@ void SUMA_Show_Edge_List (SUMA_EDGE_LIST *EL, FILE *Out)
    else fprintf(Out,"IDcode: NULL\n");
    
    fprintf(Out,"Average InterNodal Distance: %f\n", EL->AvgLe);
-   fprintf(Out,"i-\t[EL[i][0] EL[i][1]]\t[ELps[i][0] ELps[i][1] ELps[i][2] ELps[i][3]]\tLe[i]\n");
+   fprintf(Out,"i-\t[EL[i][0] EL[i][1]]\t[ELps[i][0] ELps[i][1] ELps[i][2]]\tLe[i]\n");
    for (i=0; i < EL->N_EL; ++i) {
-      fprintf(Out,"%d-\t[%d %d]\t[%d %d %d %d]\t%f\n", 
-               i, EL->EL[i][0], EL->EL[i][1], EL->ELps[i][0], EL->ELps[i][1], EL->ELps[i][2], EL->ELps[i][3], EL->Le[i]);
+      fprintf(Out,"%d-\t[%d %d]\t[%d %d %d]\t%f\n", 
+               i, EL->EL[i][0], EL->EL[i][1], EL->ELps[i][0], EL->ELps[i][1], EL->ELps[i][2], EL->Le[i]);
    
    }
    fprintf(Out,"\nTriLimb contents:\n");
@@ -4415,16 +4421,20 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
       SUMA_RETURN(NULL);
    }
    /* allocate and form the List of edges */
+   SUMA_LH("New SEL next");
    SEL = (SUMA_EDGE_LIST *) SUMA_malloc(sizeof(SUMA_EDGE_LIST));
+   SUMA_LH("New ID next");
    SEL->idcode_str = NULL;
    SUMA_NEW_ID(SEL->idcode_str, NULL); 
    SEL->N_links = 0;
+   SUMA_LH("Ownerid next");
    if (ownerid) sprintf(SEL->owner_id, "%s", ownerid);
    else SEL->owner_id[0] = '\0';
    SEL->LinkedPtrType = SUMA_LINKED_OVERLAY_TYPE;
 
    SEL->AvgLe = 0.0;
    SEL->N_EL = 3 * N_FL;
+   SUMA_LHv("N-EL = %d\n", SEL->N_EL);
    SEL->EL = (int **) SUMA_allocate2D (SEL->N_EL, 2, sizeof(int)); /* edge list */
    SEL->ELloc = (int *)SUMA_calloc(N_Node, sizeof(int));
    SEL->Le = (float *) SUMA_calloc (SEL->N_EL, sizeof(float)); /* length of each edge */
@@ -4444,7 +4454,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
    }
 
    /* form the edge list */
-   SUMA_LH("Forming Edge List...\n");
+   SUMA_LH("Forming Edge List...\n"); 
    for (i=0; i< N_FL; ++i) {/* begin, form edge list */
       /* first edge, 0->1*/
       ie = 3*i;
@@ -4498,7 +4508,6 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
    }/* end, form edge list */
    SUMA_LH("Edge list done.");
    
-   if (LocalHead) SUMA_Show_Edge_List(SEL,NULL);
    
    #if 0
       fprintf(SUMA_STDERR,"%s: Node1 Node2 | FlipVal Triangle\n", FuncName); 
@@ -4647,6 +4656,8 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
    
    if (iTri_limb) SUMA_free(iTri_limb); /* Thanks B. Argall */
    SUMA_LH("Done with storage, returning...\n");
+
+   if (LocalHead) SUMA_Show_Edge_List(SEL,stderr);
    
    SUMA_RETURN (SEL);
 }
@@ -5429,8 +5440,16 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node,
       n1 = el->EL[j][0];
       n2 = el->EL[j][1];
       
-      if (FN->N_Neighb[n1] > SUMA_MAX_NUMBER_NODE_NEIGHB || FN->N_Neighb[n2] > SUMA_MAX_NUMBER_NODE_NEIGHB) {
-         fprintf(SUMA_STDERR, "Critical Error %s\a: Maximum number of node neighbors for node %d or node %d exceeds %d (SUMA_MAX_NUMBER_NODE_NEIGHB)\n SUMA will try to launch but some functions may not work properly.\n", FuncName, n1, n2, SUMA_MAX_NUMBER_NODE_NEIGHB);
+      if (  n1 < 0 || n2 < 0 || 
+            FN->N_Neighb[n1] > SUMA_MAX_NUMBER_NODE_NEIGHB || 
+            FN->N_Neighb[n2] > SUMA_MAX_NUMBER_NODE_NEIGHB) {
+         fprintf(SUMA_STDERR, 
+            "Critical Error %s\a:"
+            "Bad node index! %d and/or %d\n"
+            "Maximum number of node neighbors for node %d or node %d exceeds %d"
+            " (SUMA_MAX_NUMBER_NODE_NEIGHB)\n "
+            "SUMA will try to launch but some functions may not work properly.\n", 
+            FuncName, n1, n2, n1, n2, SUMA_MAX_NUMBER_NODE_NEIGHB);
       }else {
          /*register the neighbors for both nodes*/
          FN->NodeId[n1] = n1; /* this field may come in handy when operations need to be performed on subsets of the nodes making up the surface */

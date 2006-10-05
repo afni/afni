@@ -37,6 +37,7 @@ typedef struct
 } Triangle ;
 
 //MarchingCubes structure
+#define N_MAX  15
 typedef struct
 {
   int      originalMC ;
@@ -52,7 +53,7 @@ typedef struct
 
   int      i, j, k  ;                      // counters
   float    cube[8]  ;                      // vertex values
-  int      N[15]    ;                      // case counters
+  int      N[N_MAX]    ;                      // case counters
   uchar    lut_entry;                      // cube configuration
   uchar    _case ,config,subconfig ;     // case and config entry   
 }MCB;

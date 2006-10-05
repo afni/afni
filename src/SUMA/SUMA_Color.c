@@ -119,11 +119,15 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_
       }
    }
    if (!SkipLast) {
-      M[im][0] = Fiducials[Ngap][0];
-      M[im][1] = Fiducials[Ngap][1];
-      M[im][2] = Fiducials[Ngap][2];
+      if (im >= Ncols) {
+         SUMA_S_Crit("Unexpected logic error");
+      } else {
+         M[im][0] = Fiducials[Ngap][0];
+         M[im][1] = Fiducials[Ngap][1];
+         M[im][2] = Fiducials[Ngap][2];
+      }
    }
-   
+
    /* package the resutls */
    SM = (SUMA_COLOR_MAP *)SUMA_malloc(sizeof(SUMA_COLOR_MAP));
    if (SM == NULL) {
@@ -6414,8 +6418,14 @@ SUMA_Boolean SUMA_SetConvexityPlaneDefaults(SUMA_SurfaceObject *SO, DList *DsetL
    if (SO->Group && strcmp(SO->Group,SUMA_DEF_TOY_GROUP_NAME) == 0) {
       SUMA_LH("Adriano");
       /* fun times, gimme a random colormap */
-      icmap = rand()%SUMAg_CF->scm->N_maps;
+      if (0) {
+      /* icmap = rand()%SUMAg_CF->scm->N_maps; */
+      icmap = 10;
       SUMA_STRING_REPLACE(ConvPlane->cmapname, SUMAg_CF->scm->CMv[icmap]->Name);
+      /* SUMA_S_Notev("Cmap %s\n", ConvPlane->cmapname); */
+      } else { /* CAUSES CRASH! (also other 20 maps...)*/
+         SUMA_STRING_REPLACE(ConvPlane->cmapname, "rgybr20");
+      }
    } else {
       /* decide on the color map */
       eee = getenv("SUMA_ConvColorMap");

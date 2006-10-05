@@ -84,6 +84,7 @@ MCB *MarchingCubes( int size_x, int size_y , int size_z  )
   mcb->Ntrigs  =  0;
   mcb->vertices = ( Vertex *)NULL;
   mcb->triangles =(Triangle*)NULL;
+  mcb->_case = 0;
   return(mcb);
 }
 //_____________________________________________________________________________
@@ -465,6 +466,13 @@ void process_cube( MCB *mcb)
 //-----------------------------------------------------------------------------
 {
   int   v12 = -1 ;
+  /* print_cube(mcb) ; 
+  fprintf (stderr,"_case=%d\n", mcb->_case);
+  fprintf (stderr,"N=%d\n", mcb->N[mcb->_case]);*/
+  if (mcb->_case >= N_MAX) {
+   fprintf (stderr,"Unexpected _case value of %d\nResetting to 0.\n",mcb->_case);
+   mcb->_case = 0; 
+  }
   mcb->N[mcb->_case]++ ;
 
   if( mcb->originalMC )

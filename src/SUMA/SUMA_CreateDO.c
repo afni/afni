@@ -35,6 +35,8 @@ SUMA_NEW_SO_OPT *SUMA_FreeNewSOOpt(SUMA_NEW_SO_OPT *nsopt)
    if (nsopt->idcode_str) SUMA_free(nsopt->idcode_str);
    if (nsopt->LocalDomainParentID) SUMA_free(nsopt->LocalDomainParentID);
    if (nsopt->LocalDomainParent) SUMA_free(nsopt->LocalDomainParent);
+   SUMA_free(nsopt);
+   
    SUMA_RETURN(NULL);
 }
 
@@ -118,6 +120,9 @@ SUMA_SurfaceObject *SUMA_NewSO(float **NodeList, int N_Node, int **FaceSetList, 
    else SO->LocalDomainParent = SUMA_copy_string("SAME");
    
    /* the stupid copies */
+   if (sizeof(GLfloat) != sizeof(float)) { SUMA_SL_Crit("GLfloat and float have differing sizes!\n"); SUMA_RETURN(NOPE); }
+   if (sizeof(GLint) != sizeof(int)) { SUMA_SL_Crit("GLint and int have differing sizes!\n"); SUMA_RETURN(NOPE); }
+
    SO->glar_NodeList = (GLfloat *)SO->NodeList;
    SO->glar_FaceSetList = (GLint *) SO->FaceSetList;
    SO->glar_NodeNormList = (GLfloat *) SO->NodeNormList; 
@@ -5155,6 +5160,8 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].FileType = SUMA_FT_NOT_SPECIFIED;
       SO[i].FileFormat = SUMA_FF_NOT_SPECIFIED;
       SO[i].NodeMarker = NULL;
+      SO[i].SelectedNode = -1;
+      SO[i].ShowSelectedNode = NOPE;
       SO[i].Name_NodeParent = NULL;
       SO[i].Label = NULL;
       SO[i].EmbedDim = 3;
@@ -5163,13 +5170,25 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].MinDims[0] = SO[i].MinDims[1] = SO[i].MinDims[2] = 0.0;       
       SO[i].aMinDims = 0.0;     
       SO[i].aMaxDims = 0.0;
+      SO[i].ViewCenterWeight = -1;
+      SO[i].RotationWeight = -1;
+      SO[i].patchaMaxDims = 0.0;
+      SO[i].patchaMinDims = 0.0;
+      SO[i].patchMinDims[0] = SO[i].patchMinDims[1] = SO[i].patchMinDims[2] = 0.0;
+      SO[i].patchMaxDims[0] = SO[i].patchMaxDims[1] = SO[i].patchMaxDims[2] = 0.0;
+      SO[i].patchCenter[0] = SO[i].patchCenter[1] = SO[i].patchCenter[2] = 0.0;
+      SO[i].N_patchNode = 0;
       SO[i].MF = NULL;
       SO[i].FN = NULL;
       SO[i].EL = NULL;
       SO[i].PolyArea = NULL;
       SO[i].SC = NULL;
       SO[i].VolPar = NULL;
+      SO[i].NodeDim = 0;
+      SO[i].N_Node = 0;
       SO[i].NodeList = NULL; 
+      SO[i].FaceSetDim = 0;
+      SO[i].N_FaceSet = 0;
       SO[i].FaceSetList = NULL; 
       SO[i].FaceNormList = NULL; 
       SO[i].NodeNormList = NULL;
@@ -5188,9 +5207,12 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].SentToAfni = NOPE;
       
       SO[i].MeshAxis = NULL;
+      SO[i].ShowMeshAxis = -1;
       SO[i].State = NULL;
       SO[i].Group = NULL;
       SO[i].FaceSetMarker = NULL;
+      SO[i].SelectedFaceSet = -1;
+      SO[i].ShowSelectedFaceSet = -1;
       SO[i].idcode_str = NULL;
       SO[i].facesetlist_idcode_str = NULL;
       SO[i].nodelist_idcode_str = NULL;
@@ -5222,7 +5244,6 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].LocalDomainParentID = NULL;
       SO[i].LocalCurvatureParentID = NULL;
       SO[i].PermCol = NULL;
-      
       SO[i].Group_idcode_str = NULL;
       SO[i].ModelName = NULL;
       SO[i].OriginatorLabel = NULL;
