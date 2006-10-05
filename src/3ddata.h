@@ -1425,12 +1425,18 @@ extern mat44 THD_resample_mat44( mat44 , int,int,int ,
       mat33 nifti_mat33_mul    ( mat33 A, mat33 B ) ;  == matrix multiply
 *******/
 
-/******* Not in nifti1_io.c, due to some oversight *******/
+/******* Function below is not in nifti1_io.c, due to some oversight ******/
 
 extern mat44 THD_mat44_mul( mat44 A , mat44 B ) ;      /* matrix multiply */
 
+#undef  MAT44_MUL
+#define MAT44_MUL THD_mat44_mul
+
+#undef  MAT44_INV
+#define MAT44_INV nifti_mat44_inverse
+
 #undef  ISVALID_MAT44
-#define ISVALID_MAT44(AA) (AA.m[3][3] != 0.0f)
+#define ISVALID_MAT44(AA) ((AA).m[3][3] != 0.0f)
 
 /* load the top 3 rows of a mat44 matrix,
    and set the 4th row to [ 0 0 0 1], as required */
@@ -1441,6 +1447,16 @@ extern mat44 THD_mat44_mul( mat44 A , mat44 B ) ;      /* matrix multiply */
     AA.m[1][0]=a21 , AA.m[1][1]=a22 , AA.m[1][2]=a23 , AA.m[1][3]=a24 ,   \
     AA.m[2][0]=a31 , AA.m[2][1]=a32 , AA.m[2][2]=a33 , AA.m[2][3]=a34 ,   \
     AA.m[3][0]=AA.m[3][1]=AA.m[3][2]=0.0f , AA.m[3][3]=1.0f            )
+
+#undef  LOAD_DIAG_MAT44
+#define LOAD_DIAG_MAT44(AA,a,b,c)                                         \
+  LOAD_MAT44( AA , (a),0,0,0 , 0,(b),0,0 , 0,0,(c),0 )
+
+#undef  ZERO_MAT44
+#define ZERO_MAT44(AA) LOAD_DIAG_MAT44(AA,0.0,0.0,0.0)
+
+#undef  LOAD_MAT44_VEC
+#define LOAD_MAT44_VEC(AA,x,y,z) ( AA.m[0][3]=x , AA.m[1][3]=y , AA.m[2][3]=z )
 
 #undef  UNLOAD_MAT44
 #define UNLOAD_MAT44(AA,a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34)  \
@@ -1536,6 +1552,53 @@ extern mat44 THD_mat44_mul( mat44 A , mat44 B ) ;      /* matrix multiply */
    AA.m[1][3] -= AA.m[1][0]*(pp)+AA.m[1][1]*(qq)+AA.m[1][2]*(rr) , \
    AA.m[2][3] -= AA.m[2][0]*(pp)+AA.m[2][1]*(qq)+AA.m[2][2]*(rr)  )
 
+/* elementary rotation matrices:
+   rotate about axis #ff, from axis #aa toward #bb,
+   where ff, aa, and bb are a permutation of {0,1,2} */
+
+#undef  LOAD_ROTGEN_MAT44
+#define LOAD_ROTGEN_MAT44(AA,th,ff,aa,bb)                             \
+ ( AA.m[aa][aa] = AA.m[bb][bb] = cos((th)) ,                          \
+   AA.m[aa][bb] = sin((th)) ,                                         \
+   AA.m[bb][aa] = -AA.m[aa][bb] ,                                     \
+   AA.m[ff][ff] = 1.0f ,                                              \
+   AA.m[aa][ff] = AA.m[bb][ff] = AA.m[ff][aa] = AA.m[ff][bb] = 0.0f , \
+   AA.m[0][3]   = AA.m[1][3]   = AA.m[2][3]   =                       \
+   AA.m[3][0]   = AA.m[3][1]   = AA.m[3][2]   = 0.0f , AA.m[3][3]=1.0f  )
+
+
+/* rotations about x,y,z axes, respectively */
+
+#undef  LOAD_ROTX_MAT44
+#undef  LOAD_ROTY_MAT44
+#undef  LOAD_ROTZ_MAT44
+#define LOAD_ROTX_MAT44(A,th) LOAD_ROTGEN_MAT44(A,th,0,1,2)
+#define LOAD_ROTY_MAT44(A,th) LOAD_ROTGEN_MAT44(A,th,1,2,0)
+#define LOAD_ROTZ_MAT44(A,th) LOAD_ROTGEN_MAT44(A,th,2,0,1)
+
+/* rotation about axis #i, for i=0,1,2 (x,y,z) */
+
+#undef  LOAD_ROT_MAT44
+#define LOAD_ROT_MAT44(A,th,i)                    \
+  do{ switch( (i) ){                              \
+        case 0: LOAD_ROTX_MAT44(A,th)   ; break ; \
+        case 1: LOAD_ROTY_MAT44(A,th)   ; break ; \
+        case 2: LOAD_ROTZ_MAT44(A,th)   ; break ; \
+       default: LOAD_DIAG_MAT44(A,1,1,1); break ; \
+      } } while(0)
+
+/* determinant (could be used on a mat44 or mat33 struct) */
+
+#undef  MAT44_DET
+#define MAT44_DET(AA)                                                   \
+ (  AA.m[0][0]*AA.m[1][1]*AA.m[2][2] - AA.m[0][0]*AA.m[1][2]*AA.m[2][1] \
+  - AA.m[1][0]*AA.m[0][1]*AA.m[2][2] + AA.m[1][0]*AA.m[0][2]*AA.m[2][1] \
+  + AA.m[2][0]*AA.m[0][1]*AA.m[1][2] - AA.m[2][0]*AA.m[0][2]*AA.m[1][1]   )
+
+/* trace */
+
+#undef  MAT44_TRACE
+#define MAT44_TRACE(AA) ( AA.m[0][0] + AA.m[1][1] + AA.m[2][2] )
 
 /*---------------------------------------------------------------------*/
 /*--- data structure for information about time axis of 3D dataset ----*/
