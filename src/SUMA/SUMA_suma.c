@@ -182,11 +182,12 @@ SUMA_SurfaceObject **SUMA_GimmeSomeSOs(int *N_SOv)
    nhjs=0;
    *N_SOv = 0; 
    i=-1;
-   /* ilist[0] = 0; N_k = 1; */
-   ilist[0]=1;    ilist[1]=4;    ilist[2]=8;    ilist[3]=2;    ilist[4]=10;
-       ilist[5]=5;    ilist[6]=0;    ilist[7]=9;    ilist[8]=3;    ilist[9]=7;
+   /*       Sequence below, coupled with the use of rygbr20 colormap was necessary in reproducing a crash 
+            Crash was likely cause by uninitialized mcb->_case in MarchingCubes.c               ZSS: Oct 06 
+      ilist[0]=1;    ilist[1]=4;    ilist[2]=8;    ilist[3]=2;    ilist[4]=10;
+       ilist[5]=5;    ilist[6]=0;    ilist[7]=9;    ilist[8]=3;    ilist[9]=7; */
    for (k=0; k<N_k; ++k) {
-      fprintf(SUMA_STDERR,"ilist[%d]=%d    ", k, ilist[k]);
+      if (LocalHead) fprintf(SUMA_STDERR,"ilist[%d]=%d    ", k, ilist[k]);
       if (ilist[k] <= 9) { /* 0 to 9 is code for MarchingCubesSurfaces */
          Opt->obj_type = ilist[k];
          Opt->obj_type_res = 64;

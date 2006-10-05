@@ -6418,12 +6418,12 @@ SUMA_Boolean SUMA_SetConvexityPlaneDefaults(SUMA_SurfaceObject *SO, DList *DsetL
    if (SO->Group && strcmp(SO->Group,SUMA_DEF_TOY_GROUP_NAME) == 0) {
       SUMA_LH("Adriano");
       /* fun times, gimme a random colormap */
-      if (0) {
-      /* icmap = rand()%SUMAg_CF->scm->N_maps; */
-      icmap = 10;
-      SUMA_STRING_REPLACE(ConvPlane->cmapname, SUMAg_CF->scm->CMv[icmap]->Name);
-      /* SUMA_S_Notev("Cmap %s\n", ConvPlane->cmapname); */
-      } else { /* CAUSES CRASH! (also other 20 maps...)*/
+      if (1) {
+         icmap = rand()%SUMAg_CF->scm->N_maps; 
+         SUMA_STRING_REPLACE(ConvPlane->cmapname, SUMAg_CF->scm->CMv[icmap]->Name);
+         /* SUMA_S_Notev("Cmap %s\n", ConvPlane->cmapname); */
+      } else { /* Used here to force crash on linux, bug should now be fixed
+                  See comment in SUMA_GimmeSomeSOs (also other 20 maps...)*/
          SUMA_STRING_REPLACE(ConvPlane->cmapname, "rgybr20");
       }
    } else {

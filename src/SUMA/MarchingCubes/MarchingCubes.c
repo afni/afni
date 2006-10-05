@@ -84,7 +84,7 @@ MCB *MarchingCubes( int size_x, int size_y , int size_z  )
   mcb->Ntrigs  =  0;
   mcb->vertices = ( Vertex *)NULL;
   mcb->triangles =(Triangle*)NULL;
-  mcb->_case = 0;
+  mcb->_case = 0;             /* Was uninitialized and causing weird crashes on linux! ZSS: Oct 06 */
   return(mcb);
 }
 //_____________________________________________________________________________
