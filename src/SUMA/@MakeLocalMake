@@ -45,7 +45,7 @@ if ( ! -f $mo) then
 endif
 
 #append the install dir and suma include
-echo "INSTALLDIR_SUMA = INSTALLDIR" >> $mo
+echo 'INSTALLDIR_SUMA = $(INSTALLDIR)' >> $mo
 echo "include SUMA_Makefile_NoDev" >> $mo
 
 if ( -f Makefile) then

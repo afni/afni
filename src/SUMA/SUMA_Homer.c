@@ -1,6 +1,7 @@
 #include "SUMA_suma.h"
 
 #include "SUMA_Homer.h"
+#include "SUMA_head_01.h"
 
 #if defined SUMA_Homer_STAND_ALONE
 #define STAND_ALONE 
@@ -296,6 +297,29 @@ SUMA_SurfaceObject *SUMA_HJS_Surface(int ipart)
    nsoopt = SUMA_NewNewSOOpt();
    SO = SUMA_NewSO(&NodeList, N_Node, &FaceSetList, N_FaceSet, nsoopt);
    SO->normdir = -1;
+   
+   nsoopt=SUMA_FreeNewSOOpt(nsoopt); 
+   
+   SUMA_RETURN(SO);
+}
+
+SUMA_SurfaceObject *SUMA_head_01_surface(void)
+{
+   static char FuncName[]={"SUMA_head_01_surface"};
+   int *FaceSetList=NULL;
+   float *NodeList=NULL;
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_NEW_SO_OPT *nsoopt = NULL;
+
+   /* create a surface */
+   nsoopt = SUMA_NewNewSOOpt();
+   NodeList = (float *)SUMA_malloc(d1_head_01_1D_coord*d2_head_01_1D_coord*sizeof(float));
+   memcpy(NodeList, head_01_1D_coord, d1_head_01_1D_coord*d2_head_01_1D_coord*sizeof(float));
+   FaceSetList = (int *)SUMA_malloc(d1_head_01_1D_topo*d2_head_01_1D_topo*sizeof(int));
+   memcpy(FaceSetList, head_01_1D_topo, d1_head_01_1D_topo*d2_head_01_1D_topo*sizeof(int));
+   
+   SO = SUMA_NewSO(&NodeList, d1_head_01_1D_coord, &FaceSetList, d1_head_01_1D_topo, nsoopt);
+   SO->normdir = 1;
    
    nsoopt=SUMA_FreeNewSOOpt(nsoopt); 
    

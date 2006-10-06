@@ -164,9 +164,10 @@ SUMA_SurfaceObject **SUMA_GimmeSomeSOs(int *N_SOv)
    
    Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)SUMA_malloc(sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
 
-   N_k = 11; /* Think of this number as the number of states, rather than individual surfaces
+   N_k = 12; /* Think of this number as the number of states, rather than individual surfaces
                10 from isosurface (actually 9, number 6 is removed), 
                1 from HJS collection
+               1 from head collection
             */ 
    vlist = (float*)SUMA_calloc(N_k, sizeof(float));
    srand((unsigned int)time(NULL));
@@ -227,6 +228,27 @@ SUMA_SurfaceObject **SUMA_GimmeSomeSOs(int *N_SOv)
             SOv[*N_SOv-1]->State = SUMA_copy_string(sid);
             sprintf(sid, "H.J.S._%d", nhjs);
             SOv[*N_SOv-1]->Label = SUMA_copy_string(sid);
+            SOv[*N_SOv-1]->EmbedDim = 3;
+            SOv[*N_SOv-1]->AnatCorrect = YUP;
+            /* make this surface friendly for suma */
+            if (!SUMA_PrepSO_GeomProp_GL(SOv[*N_SOv-1])) {
+               SUMA_S_Err("Failed in SUMA_PrepSO_GeomProp_GL");
+               SUMA_RETURN(NULL);
+            }
+            /* Add this surface to SUMA's displayable objects */
+            if (!SUMA_PrepAddmappableSO(SOv[*N_SOv-1], SUMAg_DOv, &(SUMAg_N_DOv), 0, SUMAg_CF->DsetList)) {
+               SUMA_S_Err("Failed to add mappable SOs ");
+               SUMA_RETURN(NULL);
+            }
+         }
+      } else if (ilist[k] == 11) {  /* 11 is code for head */
+         if ((SO = SUMA_head_01_surface())) {
+            ++*N_SOv; SOv = (SUMA_SurfaceObject **) SUMA_realloc(SOv, (*N_SOv)*sizeof(SUMA_SurfaceObject *));
+            SOv[*N_SOv-1]=SO;
+            /* assign its Group and State and Side and few other things, must look like surfaces loaded with SUMA_Load_Spec_Surf*/
+            SOv[*N_SOv-1]->Group = SUMA_copy_string(SUMA_DEF_TOY_GROUP_NAME); /* change this in sync with string in macro SUMA_BLANK_NEW_SPEC_SURF*/
+            SOv[*N_SOv-1]->State = SUMA_copy_string("head_01");
+            SOv[*N_SOv-1]->Label = SUMA_copy_string("La_Tete");
             SOv[*N_SOv-1]->EmbedDim = 3;
             SOv[*N_SOv-1]->AnatCorrect = YUP;
             /* make this surface friendly for suma */
