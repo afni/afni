@@ -11,13 +11,13 @@
 /* mark for a good setup */
 
 #undef  SMAGIC
-#define SMAGIC 208921148  /* Zip Code for AFNI Group at NIMH */
+#define SMAGIC 208921148  /* Zip+4 Code for AFNI Group at NIMH */
 
 /* global access to setup parameters */
 
 static GA_setup *gstup = NULL ;
 
-/* for stupid ancient compilers */
+/* for stupid primitive compilers */
 
 #ifdef SOLARIS
 #define floorf floor
@@ -272,7 +272,6 @@ static void GA_interp_cubic( MRI_IMAGE *fim ,
    return ;
 }
 
-
 /*---------------------------------------------------------------------------*/
 
 /* define quintic interpolation polynomials (Lagrange) */
@@ -433,8 +432,12 @@ static void GA_interp_quintic( MRI_IMAGE *fim ,
 #undef  NPER
 #define NPER 4096
 
-/*----------------------------------------------*/
-/*! Interpolate target image to control points. */
+/*--------------------------------------------------------------------*/
+/*! Interpolate target image to control points in base image space.
+    - Results go into avm, which must be pre-allocated.
+    - If mpar==NULL, then warp parameters are all taken from gstup and
+      the results are calculated at ALL points in the base image.
+----------------------------------------------------------------------*/
 
 static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 {
@@ -464,7 +467,7 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
        wpar[ii] = gstup->wfunc_param[ii].val_out ;
    }
 
-   /* create space for default control points, if none given */
+   /* create space for unwarped indexes, if none given */
 
    if( mpar == NULL || gstup->im == NULL ){
      imf = (float *)calloc(sizeof(float),NPER) ;
@@ -475,7 +478,7 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
      npt = gstup->npt_match ;
    }
 
-   /* create space for warped control points */
+   /* create space for indexes of warped control points */
 
    imw = (float *)calloc(sizeof(float),NPER) ;
    jmw = (float *)calloc(sizeof(float),NPER) ;
@@ -483,36 +486,21 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 
    nx = gstup->bsim->nx; ny = gstup->bsim->ny; nxy = nx*ny;
 
-   /* send parameters to warping function */
+   /* send parameters to warping function for its setup */
 
    gstup->wfunc( npar , wpar , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
 
    /*--- do (up to) NPER points at a time ---*/
 
    for( pp=0 ; pp < npt ; pp+=NPER ){
-     npp = MIN( NPER , npt-pp ) ;  /* number to do */
-     if( mpar == NULL || gstup->im == NULL ){
-       for( qq=0 ; qq < npp ; qq++ ){  /* default control points */
+
+     npp = MIN( NPER , npt-pp ) ;  /* number to do in this iteration */
+
+     if( mpar == NULL || gstup->im == NULL ){  /* do all points */
+       for( qq=0 ; qq < npp ; qq++ ){
          mm = pp+qq ;
          ii = mm % nx; kk = mm / nxy; jj = (mm-kk*nxy) / nx;
          imf[qq] = (float)ii; jmf[qq] = (float)jj; kmf[qq] = (float)kk;
-       }
-       if( gstup->use_cmat ){   /* 24 Aug 2006 */
-         float x,y,z ;
-         for( qq=0 ; qq < npp ; qq++ ){
-           x = imf[qq] ; y = jmf[qq] ; z = kmf[qq] ;
-           MAT44_VEC( gstup->base_cmat , x,y,z ,
-                      imf[qq] , jmf[qq] , kmf[qq] ) ;
-         }
-       } else if( gstup->bscali ){
-         float xo=gstup->bsim->xo , dx=gstup->bsim->dx ;
-         float yo=gstup->bsim->yo , dy=gstup->bsim->dy ;
-         float zo=gstup->bsim->zo , dz=gstup->bsim->dz ;
-         for( qq=0 ; qq < npp ; qq++ ){
-           imf[qq] = xo + imf[qq]*dx ;   /* scale to spatial    */
-           jmf[qq] = yo + jmf[qq]*dy ;   /* coords from indexes */
-           kmf[qq] = zo + kmf[qq]*dz ;   /* in the bsim image   */
-         }
        }
      } else {
        imf = gstup->im->ar + pp ;  /* pointers to control points */
@@ -520,35 +508,18 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
        kmf = gstup->km->ar + pp ;
      }
 
-     /* warp control points to new locations */
+     /****-- warp control points to new locations ---****/
+     /**** (warp does index-to-index transformation) ****/
 
      gstup->wfunc( npar , NULL ,
                    npp  , imf,jmf,kmf , imw,jmw,kmw ) ;
 
-     if( gstup->use_cmat ){   /* 24 Aug 2006 */
-       float x,y,z ;
-       for( qq=0 ; qq < npp ; qq++ ){
-         x = imw[qq] ; y = jmw[qq] ; z = kmw[qq] ;
-         MAT44_VEC( gstup->targ_imat , x,y,z ,
-                    imw[qq] , jmw[qq] , kmw[qq] ) ;
-       }
-     } else if( gstup->ascali ){
-       float xo=gstup->ajim->xo , dxi=1.0f/gstup->ajim->dx ;
-       float yo=gstup->ajim->yo , dyi=1.0f/gstup->ajim->dy ;
-       float zo=gstup->ajim->zo , dzi=1.0f/gstup->ajim->dz ;
-       for( qq=0 ; qq < npp ; qq++ ){
-         imw[qq] = (imw[qq]-xo) * dxi ;  /* unscale from spatial */
-         jmw[qq] = (jmw[qq]-yo) * dyi ;  /* coords to indexes in */
-         kmw[qq] = (kmw[qq]-zo) * dzi ;  /* the ajim image       */
-       }
-     }
+     /* choose image from which to extract data */
 
-     /* choose image from which to extract data:
-                                     --smoothed--   -unsmoothed- */
-     aim = (gstup->ajims != NULL && mpar != NULL ) ? gstup->ajims
-                                                   : gstup->ajim ;
+     aim = (gstup->ajims != NULL && mpar != NULL ) ? gstup->ajims /* smoothed */
+                                                   : gstup->ajim; /* unsmooth */
 
-     /* interpolate target image at warped control points */
+     /* interpolate target image at warped points */
 
      switch( gstup->interp_code ){
        case MRI_NN:
@@ -570,7 +541,8 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
          GA_interp_quintic( aim , npp , imw,jmw,kmw , avm+pp ) ;
        break ;
      }
-   }
+
+   } /* end of loop over matching points */
 
    /* free the enslaved memory */
 
@@ -593,10 +565,15 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 }
 
 /*---------------------------------------------------------------------------*/
+/* Stuff for calling a user-supplied function every time the cost
+   function is smaller than the previous minimal value (vbest).
+   GA_fitter_dotter() is a simple example.
+-----------------------------------------------------------------------------*/
+
 static float fit_vbest = BIGVAL ;
 static void (*fit_callback)(int,double *) = NULL ;
 
-void GA_reset_fit_callback( void (*fc)(int,double*) )
+void GA_reset_fit_callback( void (*fc)(int,double*) )  /* user func is fc */
 {
    fit_vbest = BIGVAL ; fit_callback = fc ; return ;
 }
@@ -671,14 +648,15 @@ static double GA_scalar_fitter( int npar , double *mpar )
 
   free((void *)avm) ;    /* toss the trash */
 
-  if( fit_callback != NULL && val < fit_vbest ){
-    fit_vbest = val ; fit_callback(npar,mpar) ;
+  if( fit_callback != NULL && val < fit_vbest ){  /* call user-supplied */
+    fit_vbest = val ; fit_callback(npar,mpar) ;   /* function if cost shrinks */
   }
 
   return (double)val ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Macro for exiting mri_genalign_scalar_setup() with extreme prejudice.     */
 
 #undef  ERREX
 #define ERREX(s) \
@@ -691,6 +669,7 @@ static double GA_scalar_fitter( int npar , double *mpar )
     - If this is a continuation of a previously started alignment
       with modified parameters (e.g., smoothing method/radius), then image
       copies are already stored in stup and don't need to be resupplied.
+    - cf. 3dAllineate.c for use of this function!
 -----------------------------------------------------------------------------*/
 
 void mri_genalign_scalar_setup( MRI_IMAGE *basim  , MRI_IMAGE *wghtim ,
@@ -748,15 +727,15 @@ ENTRY("mri_genalign_scalar_setup") ;
      if( stup->bsim->dy <= 0.0f ) stup->bsim->dy = 1.0f ;
      if( stup->bsim->dz <= 0.0f ) stup->bsim->dz = 1.0f ;
 
-     if( stup->use_cmat ){   /* 24 Aug 2006 */
-       STATUS("invert base_cmat") ;
-       stup->base_imat = nifti_mat44_inverse( stup->base_cmat ) ;
+     if( !ISVALID_MAT44(stup->base_cmat) ){
+       LOAD_DIAG_MAT44( stup->base_cmat ,
+                        stup->bsim->dx , stup->bsim->dy , stup->bsim->dz ) ;
+       LOAD_MAT44_VEC( stup->base_cmat ,
+                       -(stup->bsim->nx-1)*0.5f*stup->bsim->dx ,
+                       -(stup->bsim->ny-1)*0.5f*stup->bsim->dy ,
+                       -(stup->bsim->nz-1)*0.5f*stup->bsim->dz  ) ;
      }
-
-     stup->bscali = (stup->bsim->dx != 1.0f) || (stup->bsim->xo != 0.0f) ||
-                    (stup->bsim->dy != 1.0f) || (stup->bsim->yo != 0.0f)   ;
-     if( stup->abdim == 3 && !stup->bscali )
-       stup->bscali = (stup->bsim->dz != 1.0f) || (stup->bsim->zo != 0.0f) ;
+     stup->base_imat = MAT44_INV( stup->base_cmat ) ;
    }
    nx = stup->bsim->nx; ny = stup->bsim->ny; nz = stup->bsim->nz; nxy = nx*ny;
 
@@ -768,15 +747,15 @@ ENTRY("mri_genalign_scalar_setup") ;
      if( stup->ajim->dy <= 0.0f ) stup->ajim->dy = 1.0f ;
      if( stup->ajim->dz <= 0.0f ) stup->ajim->dz = 1.0f ;
 
-     if( stup->use_cmat ){  /* 24 Aug 2006 */
-       STATUS("invert targ_cmat") ;
-       stup->targ_imat = nifti_mat44_inverse( stup->targ_cmat ) ;
+     if( !ISVALID_MAT44(stup->targ_cmat) ){
+       LOAD_DIAG_MAT44( stup->targ_cmat ,
+                        stup->ajim->dx , stup->ajim->dy , stup->ajim->dz ) ;
+       LOAD_MAT44_VEC( stup->targ_cmat ,
+                       -(stup->ajim->nx-1)*0.5f*stup->ajim->dx ,
+                       -(stup->ajim->ny-1)*0.5f*stup->ajim->dy ,
+                       -(stup->ajim->nz-1)*0.5f*stup->ajim->dz  ) ;
      }
-
-     stup->ascali = (stup->ajim->dx != 1.0f) || (stup->ajim->xo != 0.0f) ||
-                    (stup->ajim->dy != 1.0f) || (stup->ajim->yo != 0.0f)   ;
-     if( stup->abdim == 3 && !stup->ascali )
-       stup->ascali = (stup->ajim->dz != 1.0f) || (stup->ajim->zo != 0.0f) ;
+     stup->targ_imat = MAT44_INV( stup->targ_cmat ) ;
    }
 
    /* smooth and save target image if needed */
@@ -976,25 +955,6 @@ ENTRY("mri_genalign_scalar_setup") ;
          for( qq=0 ; qq < stup->npt_match ; qq++ ){
            rr = (int)(stup->im->ar[qq] + stup->jm->ar[qq]*nx + stup->km->ar[qq]*nxy) ;
            stup->wvm->ar[qq] = bsar[rr] ;
-         }
-       }
-       if( stup->use_cmat ){   /* 24 Aug 2006 */
-         float x,y,z ;
-         STATUS("applying base_cmat") ;
-         for( qq=0 ; qq < stup->npt_match ; qq++ ){
-           x = stup->im->ar[qq]; y = stup->jm->ar[qq]; z = stup->km->ar[qq];
-           MAT44_VEC( stup->base_cmat , x,y,z ,
-                      stup->im->ar[qq] , stup->jm->ar[qq] , stup->km->ar[qq] ) ;
-         }
-       } else if( stup->bscali ){
-         float xo=stup->bsim->xo , dx=stup->bsim->dx ;
-         float yo=stup->bsim->yo , dy=stup->bsim->dy ;
-         float zo=stup->bsim->zo , dz=stup->bsim->dz ;
-         STATUS("applying bscali") ;
-         for( qq=0 ; qq < stup->npt_match ; qq++ ){
-           stup->im->ar[qq] = xo + stup->im->ar[qq]*dx ;
-           stup->jm->ar[qq] = yo + stup->jm->ar[qq]*dy ;
-           stup->km->ar[qq] = zo + stup->km->ar[qq]*dz ;
          }
        }
      }
@@ -1387,10 +1347,11 @@ ENTRY("mri_genalign_scalar_warpim") ;
 
 /*-------------------------------------------------------------------------*/
 /*! Warp an image to base coords, on an nnx X nny X nnz grid.
-     - The mapping between ijk and base xyz coords is given by cmat_base.
+     - The mapping between ijk and base xyz coords, and
+       the mapping between target xyz and ijk coords must have
+       been set in mri_genalign_affine_set_befafter() before calling this!
      - The warping between base xyz and target xyz is given by the
        wfunc, which has npar parameters stored in wpar.
-     - The mapping between ijk and target xyz is given by cmat_targ.
      - The interpolation method is in icode.
      - Output is in float format, no matter what input data format was.
      - Generalized from GA_get_warped_values() -- RWCox - 26 Sep 2006.
@@ -1398,7 +1359,6 @@ ENTRY("mri_genalign_scalar_warpim") ;
 
 MRI_IMAGE * mri_genalign_scalar_warpone( int npar, float *wpar, GA_warpfunc *wfunc,
                                          MRI_IMAGE *imtarg ,
-                                         mat44 cmat_base , mat44 cmat_targ ,
                                          int nnx , int nny , int nnz , int icode )
 {
    int   ii,jj,kk,qq,pp,npp,mm,nx,ny,nxy,nz , npt ;
@@ -1407,13 +1367,12 @@ MRI_IMAGE * mri_genalign_scalar_warpone( int npar, float *wpar, GA_warpfunc *wfu
    float *imw , *jmw , *kmw ;
    MRI_IMAGE *wim , *inim ;
    float     *war , *inar ;
-   mat44 imat_targ ;
 
 ENTRY("mri_genalign_scalar_warpone") ;
 
    if( wfunc == NULL || imtarg == NULL ) RETURN(NULL) ;
 
-   /* send parameters to warping function */
+   /* send parameters to warping function, for setup */
 
    wfunc( npar , wpar , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
 
@@ -1429,47 +1388,34 @@ ENTRY("mri_genalign_scalar_warpone") ;
    wim = mri_new_vol( nx,ny,nz , MRI_float ) ;
    war = MRI_FLOAT_PTR(wim) ;
 
-   /* xyz coordinates in base image to be warped to target coords */
+   /* ijk coordinates in base image to be warped to target ijk */
 
    imf = (float *)calloc(sizeof(float),NPER) ;
    jmf = (float *)calloc(sizeof(float),NPER) ;
    kmf = (float *)calloc(sizeof(float),NPER) ;
 
-   /* xyz coordinates after warping */
+   /* ijk coordinates after warping */
 
    imw = (float *)calloc(sizeof(float),NPER) ;
    jmw = (float *)calloc(sizeof(float),NPER) ;
    kmw = (float *)calloc(sizeof(float),NPER) ;
-
-   /* map to take warped xyz to target image ijk for interpolation */
-
-   imat_targ = nifti_mat44_inverse( cmat_targ ) ;
 
    /*--- do (up to) NPER points at a time ---*/
 
    for( pp=0 ; pp < npt ; pp+=NPER ){
      npp = MIN( NPER , npt-pp ) ;      /* number to do */
 
-     /* get base xyz coords */
+     /* get base ijk coords */
 
      for( qq=0 ; qq < npp ; qq++ ){
        mm = pp+qq ;
        ii = mm % nx; kk = mm / nxy; jj = (mm-kk*nxy) / nx;
-       x = (float)ii; y = (float)jj; z = (float)kk;
-       MAT44_VEC( cmat_base , x,y,z , imf[qq] , jmf[qq] , kmf[qq] ) ;
+       imf[qq] = (float)ii; jmf[qq] = (float)jj; kmf[qq] = (float)kk;
      }
 
-     /* warp base points to new locations */
+     /**** warp base points to new locations ****/
 
      wfunc( npar , NULL , npp  , imf,jmf,kmf , imw,jmw,kmw ) ;
-
-     /* convert back to target image ijk values */
-
-     for( qq=0 ; qq < npp ; qq++ ){
-       x = imw[qq] ; y = jmw[qq] ; z = kmw[qq] ;
-       MAT44_VEC( imat_targ , x,y,z ,
-                  imw[qq] , jmw[qq] , kmw[qq] ) ;
-     }
 
      /* interpolate target image at warped points */
 
@@ -1521,20 +1467,7 @@ ENTRY("mri_genalign_scalar_warpone") ;
 /****************************************************************************/
 /**************************** General affine warp ***************************/
 
-/*--------------------------------------------------------------------------*/
-/*! Compute a rotation matrix specified by 3 angles:
-      Q = R3 R2 R1, where Ri is rotation about axis axi by angle thi.
-----------------------------------------------------------------------------*/
-
-static THD_mat33 rot_matrix( int ax1, double th1,
-                             int ax2, double th2, int ax3, double th3  )
-{
-   THD_mat33 q , p ;
-   LOAD_ROT_MAT( q , th1 , ax1 ) ;
-   LOAD_ROT_MAT( p , th2 , ax2 ) ; q = MAT_MUL( p , q ) ;
-   LOAD_ROT_MAT( p , th3 , ax3 ) ; q = MAT_MUL( p , q ) ;
-   return q ;
-}
+/***** 04 Oct 2006: Modify to use mat44 instead of vecmat stuff, mostly *****/
 
 /*--------------------------------------------------------------------------*/
 
@@ -1554,14 +1487,57 @@ void mri_genalign_affine_setup( int mmmm , int dddd , int ssss )
 
 /*--------------------------------------------------------------------------*/
 
-static THD_vecmat GA_setup_affine( int npar , float *parvec )
-{
-   THD_mat33 ss,dd,uu,aa,bb ;
-   THD_fvec3 vv ;
-   float     a,b,c ;
-   THD_vecmat mv_for ;
+static int   aff_use_before=0 , aff_use_after=0 ;
+static mat44 aff_before       , aff_after       ;
 
-   /* rotation */
+void mri_genalign_affine_set_befafter( mat44 *ab , mat44 *af )
+{
+   if( ab == NULL || !ISVALID_MAT44(*ab) ){
+     aff_use_before = 0 ;
+   } else {
+     aff_use_before = 1 ; aff_before = *ab ;
+   }
+
+   if( af == NULL || !ISVALID_MAT44(*af) ){
+     aff_use_after = 0 ;
+   } else {
+     aff_use_after = 1 ; aff_after = *af ;
+   }
+   return ;
+}
+
+void mri_genalign_affine_get_befafter( mat44 *ab , mat44 *af )
+{
+   if( ab != NULL ) *ab = aff_before ;
+   if( af != NULL ) *af = aff_after  ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Compute a rotation matrix specified by 3 angles:
+      Q = R3 R2 R1, where Ri is rotation about axis axi by angle thi.
+----------------------------------------------------------------------------*/
+
+static mat44 rot_matrix( int ax1, double th1,
+                         int ax2, double th2, int ax3, double th3  )
+{
+   mat44 q , p ;
+
+   LOAD_ROT_MAT44( q , th1 , ax1 ) ;
+   LOAD_ROT_MAT44( p , th2 , ax2 ) ; q = MAT44_MUL( p , q ) ;
+   LOAD_ROT_MAT44( p , th3 , ax3 ) ; q = MAT44_MUL( p , q ) ;
+
+   return q ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+static mat44 GA_setup_affine( int npar , float *parvec )
+{
+   mat44 ss,dd,uu,aa,bb , gam ;
+   THD_fvec3 vv ;
+   float     a,b,c , p,q,r ;
+
+   /* uu = rotation */
 
    a = b = c = 0.0f ;
    if( npar >= 4 ) a = D2R*parvec[3] ;
@@ -1570,17 +1546,17 @@ static THD_vecmat GA_setup_affine( int npar , float *parvec )
    if( a != 0.0f || b != 0.0f || c != 0.0f )
      uu = rot_matrix( 2,a , 0,b , 1,c ) ;
    else
-     LOAD_DIAG_MAT( uu , 1.0f,1.0f,1.0f ) ;
+     LOAD_DIAG_MAT44( uu , 1.0f,1.0f,1.0f ) ;
 
-   /* scaling */
+   /* dd = scaling */
 
    a = b = c = 1.0f ;
    if( npar >= 7 ){ a = parvec[6]; if( a <= 0.10f || a >= 10.0f ) a = 1.0f; }
    if( npar >= 8 ){ b = parvec[7]; if( b <= 0.10f || b >= 10.0f ) b = 1.0f; }
    if( npar >= 9 ){ c = parvec[8]; if( c <= 0.10f || c >= 10.0f ) c = 1.0f; }
-   LOAD_DIAG_MAT( dd , a,b,c ) ;
+   LOAD_DIAG_MAT44( dd , a,b,c ) ;
 
-   /* shear */
+   /* ss = shear */
 
    a = b = c = 0.0f ;
    if( npar >= 10 ){ a = parvec[ 9]; if( fabsf(a) > 0.3333f ) a = 0.0f; }
@@ -1588,39 +1564,39 @@ static THD_vecmat GA_setup_affine( int npar , float *parvec )
    if( npar >= 12 ){ c = parvec[11]; if( fabsf(c) > 0.3333f ) c = 0.0f; }
    switch( smat ){
      default:
-     case SMAT_LOWER: LOAD_MAT( ss , 1.0 , 0.0 , 0.0 ,
-                                      a  , 1.0 , 0.0 ,
-                                      b  ,  c  , 1.0  ) ; break ;
+     case SMAT_LOWER: LOAD_MAT44( ss , 1.0 , 0.0 , 0.0 , 0.0,
+                                        a  , 1.0 , 0.0 , 0.0,
+                                        b  ,  c  , 1.0 , 0.0 ) ; break ;
 
-     case SMAT_UPPER: LOAD_MAT( ss , 1.0 ,  a  ,  b ,
-                                     0.0 , 1.0 ,  c ,
-                                     0.0 , 0.0 , 1.0  ) ; break ;
+     case SMAT_UPPER: LOAD_MAT44( ss , 1.0 ,  a  ,  b , 0.0 ,
+                                       0.0 , 1.0 ,  c , 0.0 ,
+                                       0.0 , 0.0 , 1.0, 0.0  ) ; break ;
 
-     case SMAT_XXX:   LOAD_MAT( ss , 1.0 ,  a  ,  b ,
-                                     0.0 , 1.0 , 0.0,
-                                     0.0 , 0.0 , 1.0  ) ; break ;
+     case SMAT_XXX:   LOAD_MAT44( ss , 1.0 ,  a  ,  b , 0.0 ,
+                                       0.0 , 1.0 , 0.0, 0.0 ,
+                                       0.0 , 0.0 , 1.0, 0.0  ) ; break ;
 
-     case SMAT_YYY:   LOAD_MAT( ss , 1.0 , 0.0 , 0.0,
-                                      a  , 1.0 ,  b ,
-                                     0.0 , 0.0 , 1.0  ) ; break ;
+     case SMAT_YYY:   LOAD_MAT44( ss , 1.0 , 0.0 , 0.0, 0.0 ,
+                                        a  , 1.0 ,  b , 0.0 ,
+                                       0.0 , 0.0 , 1.0, 0.0  ) ; break ;
 
-     case SMAT_ZZZ:   LOAD_MAT( ss , 1.0 , 0.0 , 0.0,
-                                     0.0 , 1.0 , 0.0,
-                                      a  ,  b  , 1.0  ) ; break ;
+     case SMAT_ZZZ:   LOAD_MAT44( ss , 1.0 , 0.0 , 0.0, 0.0 ,
+                                       0.0 , 1.0 , 0.0, 0.0 ,
+                                        a  ,  b  , 1.0, 0.0  ) ; break ;
    }
 
    /* multiply them, as ordered */
 
    switch( matorder ){
      default:
-     case MATORDER_SDU:  aa = MAT_MUL(ss,dd) ; bb = uu ; break ;
-     case MATORDER_SUD:  aa = MAT_MUL(ss,uu) ; bb = dd ; break ;
-     case MATORDER_DSU:  aa = MAT_MUL(dd,ss) ; bb = uu ; break ;
-     case MATORDER_DUS:  aa = MAT_MUL(dd,uu) ; bb = ss ; break ;
-     case MATORDER_USD:  aa = MAT_MUL(uu,ss) ; bb = dd ; break ;
-     case MATORDER_UDS:  aa = MAT_MUL(uu,dd) ; bb = ss ; break ;
+     case MATORDER_SDU:  aa = MAT44_MUL(ss,dd) ; bb = uu ; break ;
+     case MATORDER_SUD:  aa = MAT44_MUL(ss,uu) ; bb = dd ; break ;
+     case MATORDER_DSU:  aa = MAT44_MUL(dd,ss) ; bb = uu ; break ;
+     case MATORDER_DUS:  aa = MAT44_MUL(dd,uu) ; bb = ss ; break ;
+     case MATORDER_USD:  aa = MAT44_MUL(uu,ss) ; bb = dd ; break ;
+     case MATORDER_UDS:  aa = MAT44_MUL(uu,dd) ; bb = ss ; break ;
    }
-   mv_for.mm = MAT_MUL(aa,bb) ;
+   gam = MAT44_MUL(aa,bb) ;
 
    /* shifts */
 
@@ -1628,15 +1604,19 @@ static THD_vecmat GA_setup_affine( int npar , float *parvec )
    if( npar >= 1 ) a = parvec[0] ;
    if( npar >= 2 ) b = parvec[1] ;
    if( npar >= 3 ) c = parvec[2] ;
-   LOAD_FVEC3( vv , a,b,c ) ;
 
-   switch( dcode ){
-     default:
-     case DELTA_AFTER:  mv_for.vv = vv ;                      break ;
-     case DELTA_BEFORE: mv_for.vv = MATVEC( mv_for.mm, vv ) ; break ;
+   if( dcode == DELTA_BEFORE ){
+     MAT44_VEC( gam , a,b,c , p,q,r ) ;
+     a = p ; b = q ; c = r ;
    }
+   LOAD_MAT44_VEC( gam , a,b,c ) ;
 
-   return mv_for ;
+   /* before and after transformations? */
+
+   if( aff_use_before ) gam = MAT44_MUL( gam , aff_before ) ;
+   if( aff_use_after  ) gam = MAT44_MUL( aff_after , gam  ) ;
+
+   return gam ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -1647,14 +1627,14 @@ void mri_genalign_affine( int npar, float *wpar ,
                           int npt , float *xi, float *yi, float *zi ,
                                     float *xo, float *yo, float *zo  )
 {
-   static THD_vecmat mv_for ;  /* saved transformation matrix */
+   static mat44 gam ;  /* saved general affine matrix */
    THD_fvec3 v , w ;
    int ii ;
 
    /** new parameters ==> setup matrix */
 
    if( npar > 0 && wpar != NULL )
-     mv_for = GA_setup_affine( npar , wpar ) ;
+     gam = GA_setup_affine( npar , wpar ) ;
 
    /* nothing to transform? */
 
@@ -1662,10 +1642,8 @@ void mri_genalign_affine( int npar, float *wpar ,
 
    /* mutiply matrix times input vectors */
 
-   for( ii=0 ; ii < npt ; ii++ ){
-     LOAD_FVEC3( v , xi[ii],yi[ii],zi[ii] ) ;
-     w = VECMAT_VEC( mv_for , v ) ;
-     UNLOAD_FVEC3( w , xo[ii],yo[ii],zo[ii] ) ;
-   }
+   for( ii=0 ; ii < npt ; ii++ )
+     MAT44_VEC( gam , xi[ii],yi[ii],zi[ii] , xo[ii],yo[ii],zo[ii] ) ;
+
    return ;
 }

@@ -1275,7 +1275,6 @@ typedef struct {
   int smooth_code ;             /* set by user */
   float smooth_radius ;         /* set by user */
   int interp_code ;             /* set by user */
-  int use_cmat ;                /* set by user */
   mat44 base_cmat , targ_cmat ; /* set by user */
   mat44 base_imat , targ_imat ;
 
@@ -1291,8 +1290,7 @@ typedef struct {
 
   MRI_IMAGE *ajim , *ajims ;
   float ajbot,ajtop , ajclip ;
-  int dim_avec    ;
-  int ascali, bscali , abdim ;
+  int dim_avec , abdim ;
 
   int npt_match   ;            /* set by user */
   floatvec *im, *jm, *km , *bvm , *wvm ;
@@ -1358,11 +1356,12 @@ extern float mri_genalign_scalar_cost( GA_setup * ) ;
 #define SMAT_ZZZ      5  /* z-axis only shears  */
 
 extern void mri_genalign_affine_setup( int,int,int ) ;
+extern void mri_genalign_affine_set_befafter( mat44 *, mat44 * ) ;
+extern void mri_genalign_affine_get_befafter( mat44 *, mat44 * ) ;
 
 extern MRI_IMAGE * mri_genalign_scalar_warpone(      /* 26 Sep 2006 */
                     int npar, float *wpar, GA_warpfunc *wfunc,
                     MRI_IMAGE *imtarg ,
-                    mat44 cmat_base , mat44 cmat_targ ,
                     int nnx , int nny , int nnz , int icode ) ;
 
 /*------------------------------------------------------------------*/
