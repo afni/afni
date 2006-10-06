@@ -1,9 +1,15 @@
-/**** TO DO:
-             -matini
-             -dxyz
-             center of mass: use to set center of range?
+/**** TO DO (someday, maybe):
+        -matini
+         -dxyz
+         center of mass: use to set center of range?
 ****/
 
+/****** N.B.: What used to be 'target' is now 'source' to users,
+              but remains as 'target' in the code and comments.  ******/
+
+/****** N.B.: See the note about coordinates at the end of this file! ******/
+
+/*----------------------------------------------------------------------------*/
 #include "mrilib.h"
 #include <time.h>
 #include <sys/types.h>
@@ -20,27 +26,35 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 #define WARP_SCALE    3
 #define WARP_AFFINE   4
 
-MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod ) ;  /* prototype */
+static float wt_medsmooth = 2.25f ;   /* for mri_weightize() */
+static float wt_gausmooth = 4.50f ;
 
+MRI_IMAGE * mri_weightize( MRI_IMAGE *, int ) ;  /* prototype */
+
+void AL_setup_warp_coords( int,int,int,int ,
+                           int *, float *, mat44,
+                           int *, float *, mat44 ) ; /* prototype */
+
+/*----------------------------------------------------------------------------*/
 #undef  NMETH
-#define NMETH GA_MATCH_METHNUM_SCALAR
+#define NMETH GA_MATCH_METHNUM_SCALAR  /* cf. mrilib.h */
 
-static int meth_visible[NMETH] =          /* 1 = show in -help; 0 = don't show */
+static int meth_visible[NMETH] =       /* 1 = show in -help; 0 = don't show */
   { 1 , 0 , 1 , 1 , 1 , 0 , 1 } ;
 
-static int meth_noweight[NMETH] =         /* 1 = don't allow weights, just masks */
+static int meth_noweight[NMETH] =      /* 1 = don't allow weights, just masks */
   { 0 , 1 , 0 , 0 , 1 , 1 , 1 } ;
 
-static char *meth_shortname[NMETH] =      /* short names for terse cryptic users */
+static char *meth_shortname[NMETH] =   /* short names for terse cryptic users */
   { "ls" , "sp" , "mi" , "cr" , "nmi" , "je" , "hel" } ;
 
-static char *meth_longname[NMETH] =       /* long names for prolix users */
+static char *meth_longname[NMETH] =    /* long names for prolix users */
   { "leastsq"         , "spearman"     ,
     "mutualinfo"      , "corratio"     ,
     "norm_mutualinfo" , "jointentropy" ,
     "hellinger"                         } ;
 
-static char *meth_username[NMETH] =       /* descriptive names */
+static char *meth_username[NMETH] =    /* descriptive names */
   { "Least Squares [Pearson Correlation]"   ,
     "Spearman [rank] Correlation"           ,
     "Mutual Information [H(b)+H(t)-H(b,t)]" ,
@@ -48,10 +62,6 @@ static char *meth_username[NMETH] =       /* descriptive names */
     "Normalized MI [H(b,t)/(H(b)+H(t))]"    ,
     "Joint Entropy [H(b,t)]"                ,
     "Hellinger metric"                       } ;
-
-static float wt_medsmooth = 2.25f ;
-static float wt_gausmooth = 3.00f ;
-
 /*---------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
@@ -62,6 +72,8 @@ int main( int argc , char *argv[] )
    int iarg , ii,jj,kk , nmask=0 , nfunc ;
    int   nx_base,ny_base,nz_base , nx_targ,ny_targ,nz_targ , nxy_base ;
    float dx_base,dy_base,dz_base , dx_targ,dy_targ,dz_targ ;
+   int   nxyz_base[3] , nxyz_targ[3] , nxyz_dout[3] ;
+   float dxyz_base[3] , dxyz_targ[3] , dxyz_dout[3] ;
    int nvox_base ;
    float v1,v2 , xxx,yyy,zzz,siz ;
    int pad_xm=0,pad_xp=0 , pad_ym=0,pad_yp=0 , pad_zm=0,pad_zp=0 ;
@@ -75,7 +87,8 @@ int main( int argc , char *argv[] )
    int apply_nx, apply_ny , nparam_free ;
    float cost, cost_ini ;
    mat44 cmat_bout , cmat_tout ;
-   int   nxout,nyout,nzout , use_out=0 ;
+   int   nxout,nyout,nzout ;
+   float dxout,dyout,dzout ;
 
    /*----- input parameters, to be filled in from the options -----*/
 
@@ -85,7 +98,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset_weig = NULL ;
    int auto_weight             = 2 ;            /* on by default */
    char *auto_string           = "-automask" ;
-   float dxyz_mast             = 0.0f ;
+   float dxyz_mast             = 0.0f ;         /* not implemented */
    int meth_code               = GA_MATCH_KULLBACK_SCALAR ;
    int sm_code                 = GA_SMOOTH_GAUSSIAN ;
    float sm_rad                = 0.0f ;
@@ -116,10 +129,13 @@ int main( int argc , char *argv[] )
    int meth_check              = -1 ;           /* don't do it */
    char *save_hist             = NULL ;         /* don't save it */
    long seed                   = 7654321 ;      /* random? */
-   int targ_ijk                = 0 ;            /* off by default */
    int XYZ_warp                = 0 ;            /* off by default */
    double hist_pow             = 0.0 ;
    int hist_nbin               = 0 ;
+   int epi_fe                  = -1 ;            /* off by default */
+   int epi_pe                  = -1 ;
+   int epi_se                  = -1 ;
+   int epi_targ                = -1 ;
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -302,6 +318,11 @@ int main( int argc , char *argv[] )
        "               [Default = affine_general, which includes image]\n"
        "               [      shifts, rotations, scaling, and shearing]\n"
        "\n"
+       " -EPI        = Treat the source dataset as being composed of warped\n"
+       "               EPI slices, and the base as comprising anatomically\n"
+       "               'true' images.  Only phase-encoding direction image\n"
+       "               shearing and scaling will be allowed with this option.\n"
+       "\n"
        " -parfix n v   = Fix parameter #n to be exactly at value 'v'.\n"
        " -parang n b t = Allow parameter #n to range only between 'b' and 't'.\n"
        "                 If not given, default ranges are used.\n"
@@ -365,18 +386,40 @@ int main( int argc , char *argv[] )
       "  [S] = [ param#10    1     0 ]   OR   [ 0    1     param#12 ]\n"
       "        [ param#11 param#12 1 ]        [ 0    0        1     ]\n"
       "\n"
-      " The shift vector comprises parameters #1, #2, and #3.\n"
+      "The shift vector comprises parameters #1, #2, and #3.\n"
       "\n"
-      " The goal of the program is to find the warp parameters such that\n"
+      "The goal of the program is to find the warp parameters such that\n"
       "   I([x]_warped) 'is similar to' J([x]_in)\n"
-      " as closely as possible in some sense of 'similar', where J(x) is the\n"
-      " base image, and I(x) is the source image.\n"
+      "as closely as possible in some sense of 'similar', where J(x) is the\n"
+      "base image, and I(x) is the source image.\n"
       "\n"
-      " Using '-parfix', you can specify that some of these parameters\n"
-      " are fixed.  For example, '-shift_rotate_scale' is equivalent\n"
-      " '-affine_general -parfix 10 0 -parfix 11 0 -parfix 12 0'.\n"
-      " Don't even think of using the '-parfix' option unless you grok\n"
-      " this example!\n"
+      "Using '-parfix', you can specify that some of these parameters\n"
+      "are fixed.  For example, '-shift_rotate_scale' is equivalent\n"
+      "'-affine_general -parfix 10 0 -parfix 11 0 -parfix 12 0'.\n"
+      "Don't even think of using the '-parfix' option unless you grok\n"
+      "this example!\n"
+      "\n"
+      "----------- Special Note for the '-EPI' Option's Coordinates -----------\n"
+      "In this case, the parameters above are with reference to coordinates\n"
+      "  x = frequency encoding direction (by default, first axis of dataset)\n"
+      "  y = phase encoding direction     (by default, second axis of dataset)\n"
+      "  z = slice encoding direction     (by default, third axis of dataset)\n"
+      "This option lets you freeze some of the warping parameters in ways that\n"
+      "make physical sense, considering how the echo-planar images are acquired.\n"
+      "The x- and z-scaling parameters are disabled, and shears will only affect\n"
+      "the y-axis.  Thus, there will be only 9 free parameters when '-EPI' is\n"
+      "used.  If desired, you can use a '-parang' option to allow the scaling\n"
+      "fixed parameters to vary:\n"
+      "  -parang 7 0.833 1.20     to allow x-scaling\n"
+      "  -parang 9 0.833 1.20     to allow z-scaling\n"
+      "You could also fix some of the other parameters, if that makes sense\n"
+      "in your situation; for example, to disable out of slice rotations:\n"
+      "  -parfix 5 0  -parfix 6 0\n"
+      "NOTE WELL: If you use '-EPI', then the output warp parameters apply\n"
+      "           to the (freq,phase,slice) xyz coordinates, NOT to the DICOM\n"
+      "           xyz coordinates, so equivalent transformations will be\n"
+      "           expressed with different sets of parameters entirely\n"
+      "           than if you don't use '-EPI'!\n"
      ) ;
 
      printf(
@@ -436,6 +479,7 @@ int main( int argc , char *argv[] )
         " -Xwarp       =} Change the warp/matrix setup so that only the x-, y-, or z-\n"
         " -Ywarp       =} axis is stretched & sheared.  Useful for EPI, where 'X',\n"
         " -Zwarp       =} 'Y', or 'Z' corresponds to the phase encoding direction.\n"
+        " -FPS fps      = Generalizes -EPI to arbitrary permutation of directions.\n"
         " -histpow pp   = By default, the number of bins in the histogram used\n"
         "                 for calculating the Hellinger, Mutual Information, and\n"
         "                 Correlation Ratio statistics is n^(1/3), where n is\n"
@@ -611,14 +655,6 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-#if 0
-     if( strcmp(argv[iarg],"-targijk") == 0 ){  /* 02 Oct 2006 */
-       targ_ijk = 1 ; iarg++ ; continue ;
-     }
-#endif
-
-     /*-----*/
-
      if( strncmp(argv[iarg],"-floatize",6) == 0 ){
        floatize++ ; iarg++ ; continue ;
      }
@@ -651,7 +687,7 @@ int main( int argc , char *argv[] )
 
      /** -cost shortname  *OR*  -cost longname **/
 
-     if( strncmp(argv[iarg],"-cost",4) == 0 ){
+     if( strcmp(argv[iarg],"-cost") == 0 || strcmp(argv[iarg],"-meth") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '-cost'!") ;
 
        for( jj=ii=0 ; ii < NMETH ; ii++ ){
@@ -1020,31 +1056,75 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strcmp(argv[iarg],"-EPI") == 0 ){  /* 03 Oct 2006 */
-       int fe=-1 , pe=-1 , se=-1 ;
-       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]);
-       if( strlen(argv[iarg]) < 3 ) ERROR_exit("Too short -EPI '%s'",argv[iarg]);
-       switch( argv[iarg][0] ){
-         default: ERROR_exit("Illegal -EPI f code '%c'" , argv[iarg][0] );
-         case 'i': case 'I': case 'x': case 'X': case '1':  fe = 0; break;
-         case 'j': case 'J': case 'y': case 'Y': case '2':  fe = 1; break;
-         case 'k': case 'K': case 'z': case 'Z': case '3':  fe = 2; break;
-       }
-       switch( argv[iarg][1] ){
-         default: ERROR_exit("Illegal -EPI p code '%c'" , argv[iarg][1] );
-         case 'i': case 'I': case 'x': case 'X': case '1':  pe = 0; break;
-         case 'j': case 'J': case 'y': case 'Y': case '2':  pe = 1; break;
-         case 'k': case 'K': case 'z': case 'Z': case '3':  pe = 2; break;
-       }
-       switch( argv[iarg][2] ){
-         default: ERROR_exit("Illegal -EPI s code '%c'" , argv[iarg][2] );
-         case 'i': case 'I': case 'x': case 'X': case '1':  se = 0; break;
-         case 'j': case 'J': case 'y': case 'Y': case '2':  se = 1; break;
-         case 'k': case 'K': case 'z': case 'Z': case '3':  se = 2; break;
-       }
-       if( fe+pe+se != 6 ) ERROR_exit("Illegal EPI fps codes '%s'",argv[iarg]);
+     if( strncmp(argv[iarg],"-FPS",4)==0 || strncmp(argv[iarg],"-EPI",4)==0 ){
+       int fe=-1 , pe=-1 , se=-1 ; char *fps , *aaa=argv[iarg] ;
 
-       /* fix out-of-slice movement and scaling */
+       if( epi_targ >= 0 )
+         ERROR_exit("Can't have multiple '%4.4s' options!",aaa) ;
+
+       /* is the EPI dataset the target (default) or base? */
+
+       epi_targ = (aaa[4] != '\0' && toupper(aaa[4]) == 'B') ? 0 : 1 ;
+
+       if( aaa[1] == 'F' ){   /* -FPS code */
+         if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]);
+         fps = argv[iarg] ;
+         if( strlen(fps) < 3 ) ERROR_exit("Too short %4.4s codes '%s'",aaa,fps);
+       } else {
+         fps = "123" ;        /* -EPI */
+       }
+
+       /* decode the FPS directions, so that
+            epi_fe = freq encode direction = 0 or 1 or 2
+            epi_pe = phase encode direction
+            epi_se = slice encode direction */
+
+       switch( fps[0] ){
+         default: ERROR_exit("Illegal %4.4s f code '%c'" , aaa,fps[0] );
+         case 'i': case 'I': case 'x': case 'X': case '1':  fe = 1; break;
+         case 'j': case 'J': case 'y': case 'Y': case '2':  fe = 2; break;
+         case 'k': case 'K': case 'z': case 'Z': case '3':  fe = 3; break;
+       }
+       switch( fps[1] ){
+         default: ERROR_exit("Illegal %4.4s p code '%c'" , aaa,fps[1] );
+         case 'i': case 'I': case 'x': case 'X': case '1':  pe = 1; break;
+         case 'j': case 'J': case 'y': case 'Y': case '2':  pe = 2; break;
+         case 'k': case 'K': case 'z': case 'Z': case '3':  pe = 3; break;
+       }
+       switch( fps[2] ){
+         default: ERROR_exit("Illegal %4.4s s code '%c'" , aaa,fps[2] );
+         case 'i': case 'I': case 'x': case 'X': case '1':  se = 1; break;
+         case 'j': case 'J': case 'y': case 'Y': case '2':  se = 2; break;
+         case 'k': case 'K': case 'z': case 'Z': case '3':  se = 3; break;
+       }
+       if( fe+pe+se != 6 ) ERROR_exit("Illegal %4.4s combination '%s'",aaa,fps);
+
+       epi_fe = fe-1 ; epi_pe = pe-1 ; epi_se = se-1 ;  /* process later */
+
+       if( verb > 1 )
+         INFO_message("epi_targ=%d  fe=%d pe=%d se=%d",
+                      epi_targ,epi_fe,epi_pe,epi_se ) ;
+
+       /* restrict some transformation parameters */
+
+       smat = SMAT_YYY ;               /* shear only in y (PE) direction */
+
+       /* matrix order depends on if we are restricting transformation
+          parameters in the base image or in the target image coordinates */
+
+       matorder = (epi_targ) ? MATORDER_SDU : MATORDER_USD ;
+
+       paropt[nparopt].np   = 6 ;      /* fix x-scale to 1 */
+       paropt[nparopt].code = PARC_FIX ;
+       paropt[nparopt].vb   = 1.0 ; nparopt++ ;
+
+       paropt[nparopt].np   = 8 ;      /* fix z-scale to 1 */
+       paropt[nparopt].code = PARC_FIX ;
+       paropt[nparopt].vb   = 1.0 ; nparopt++ ;
+
+       paropt[nparopt].np   = 11 ;      /* fix last shear to 0 */
+       paropt[nparopt].code = PARC_FIX ;
+       paropt[nparopt].vb   = 0.0 ; nparopt++ ;
 
        iarg++ ; continue ;
      }
@@ -1212,6 +1292,9 @@ int main( int argc , char *argv[] )
    ny_targ = DSET_NY(dset_targ) ; dy_targ = fabsf(DSET_DY(dset_targ)) ;
    nz_targ = DSET_NZ(dset_targ) ; dz_targ = fabsf(DSET_DZ(dset_targ)) ;
 
+   nxyz_targ[0] = nx_targ; nxyz_targ[1] = ny_targ; nxyz_targ[2] = nz_targ;
+   dxyz_targ[0] = dx_targ; dxyz_targ[1] = dy_targ; dxyz_targ[2] = dz_targ;
+
    if( nx_targ < 2 || ny_targ < 2 )
      ERROR_exit("Target dataset has nx=%d ny=%d ???",nx_targ,ny_targ) ;
 
@@ -1297,6 +1380,9 @@ int main( int argc , char *argv[] )
        nz_base = im_base->nz ; nvox_base = nxy_base*nz_base ;
      }
    }
+
+   nxyz_base[0] = nx_base; nxyz_base[1] = ny_base; nxyz_base[2] = nz_base;
+   dxyz_base[0] = dx_base; dxyz_base[1] = dy_base; dxyz_base[2] = dz_base;
 
    /* check for base:target dimensionality mismatch */
 
@@ -1394,28 +1480,9 @@ int main( int argc , char *argv[] )
 
    /* spatial coordinates: 'cmat' transforms from ijk to xyz */
 
-   stup.use_cmat  = 1 ;
-
-   if( !targ_ijk ){  /* use header coordinates as target's xyz */
-
-     if( !ISVALID_MAT44(dset_targ->daxes->ijk_to_dicom) )
-       THD_daxes_to_mat44(dset_targ->daxes) ;
-     stup.targ_cmat = dset_targ->daxes->ijk_to_dicom ;
-
-   } else {  /* use ijk as xyz, scaled by dx,dy,dz of course [02 Oct 2006] */
-
-     float xd,yd,zd , xc,yc,zc ;
-     xd = DSET_DX(dset_targ) ; xc = (nx_targ-1)*0.5*xd ;
-     yd = DSET_DY(dset_targ) ; yc = (ny_targ-1)*0.5*yd ;
-     zd = DSET_DZ(dset_targ) ; zc = (nz_targ-1)*0.5*zd ;
-
-     LOAD_MAT44( stup.targ_cmat , xd  , 0.0f , 0.0f , xc ,
-                                 0.0f ,  yd  , 0.0f , yc ,
-                                 0.0f , 0.0f ,  zd  , zc  ) ;
-   }
-#if 0
-   DUMP_MAT44("targ_cmat",stup.targ_cmat) ;
-#endif
+   if( !ISVALID_MAT44(dset_targ->daxes->ijk_to_dicom) )
+     THD_daxes_to_mat44(dset_targ->daxes) ;
+   stup.targ_cmat = dset_targ->daxes->ijk_to_dicom ;
 
    /* base coordinates are drawn from it's header, or are same as target */
 
@@ -1423,6 +1490,9 @@ int main( int argc , char *argv[] )
      if( !ISVALID_MAT44(dset_base->daxes->ijk_to_dicom) )
        THD_daxes_to_mat44(dset_base->daxes) ;
      stup.base_cmat = dset_base->daxes->ijk_to_dicom ;
+
+     if( MAT44_DET(stup.base_cmat) * MAT44_DET(stup.targ_cmat) < 0.0f )
+       WARNING_message("base and source datasets have different handedness!") ;
    } else {
      stup.base_cmat = stup.targ_cmat ;
    }
@@ -1432,7 +1502,13 @@ int main( int argc , char *argv[] )
    if( pad_xm > 0 || pad_ym > 0 || pad_zm > 0 )
      MAT44_EXTEND_IJK( stup.base_cmat , pad_xm,pad_ym,pad_zm ) ;
 
-   /* define warp parameters and function */
+   /*---------- define warp 'before' and 'after' matrices ----------*/
+
+   AL_setup_warp_coords( epi_targ,epi_fe,epi_pe,epi_se,
+                         nxyz_base, dxyz_base, stup.base_cmat,
+                         nxyz_targ, dxyz_targ, stup.targ_cmat ) ;
+
+   /*---------- define warp parameters and function ----------*/
 
    mri_genalign_affine_setup( matorder , dcode , smat ) ;
 
@@ -1596,19 +1672,16 @@ int main( int argc , char *argv[] )
    /*** create shell of output dataset ***/
 
    if( prefix == NULL ){
-     WARNING_message("No output dataset will be calculated!?") ;
+     WARNING_message("No output dataset will be calculated") ;
    } else {
-#if 0
-     if( dset_mast != NULL )      dset_out = EDIT_empty_copy( dset_mast ) ;
-     else if( dset_base != NULL ) dset_out = EDIT_empty_copy( dset_base ) ;
-     else                         dset_out = EDIT_empty_copy( dset_targ ) ;
-#else
      if( dset_mast == NULL ){
        if( dset_base != NULL ) dset_mast = dset_base ;
        else                    dset_mast = dset_targ ;
      }
+     if( !ISVALID_MAT44(dset_mast->daxes->ijk_to_dicom) )
+       THD_daxes_to_mat44(dset_mast->daxes) ;
+
      dset_out = EDIT_empty_copy( dset_mast ) ;
-#endif
      EDIT_dset_items( dset_out ,
                         ADN_prefix    , prefix ,
                         ADN_nvals     , DSET_NVALS(dset_targ) ,
@@ -1626,14 +1699,14 @@ int main( int argc , char *argv[] )
      tross_Copy_History( dset_targ , dset_out ) ;
      tross_Make_History( "3dAllineate" , argc,argv , dset_out ) ;
 
-     if( dset_mast != NULL ){
-       THD_daxes_to_mat44(dset_out->daxes) ;
-       cmat_tout = dset_targ->daxes->ijk_to_dicom ;
-       cmat_bout = dset_out ->daxes->ijk_to_dicom ;
-       nxout = DSET_NX(dset_out) ;
-       nyout = DSET_NY(dset_out) ;
-       nzout = DSET_NZ(dset_out) ; use_out = 1 ;
-     }
+     THD_daxes_to_mat44(dset_out->daxes) ;
+     cmat_tout = dset_targ->daxes->ijk_to_dicom ;
+     cmat_bout = dset_out ->daxes->ijk_to_dicom ;
+     nxout = DSET_NX(dset_out) ; dxout = fabsf(DSET_DX(dset_out)) ;
+     nyout = DSET_NY(dset_out) ; dyout = fabsf(DSET_DY(dset_out)) ;
+     nzout = DSET_NZ(dset_out) ; dzout = fabsf(DSET_DZ(dset_out)) ;
+     nxyz_dout[0] = nxout; nxyz_dout[1] = nyout; nxyz_dout[2] = nzout;
+     dxyz_dout[0] = dxout; dxyz_dout[1] = dyout; dxyz_dout[2] = dzout;
    }
 
    /***----- start alignment process -----***/
@@ -1650,12 +1723,15 @@ int main( int argc , char *argv[] )
 #define PARINI(ss) PARDUMP(ss,val_init)
 
    if( verb && apply_1D == NULL )
-     INFO_message("======== Starting Allineation: cost function = %s =======",
+     INFO_message("======== Starting Allineation: %s =======",
                   meth_username[meth_code-1] ) ;
+   else
+     INFO_message("======== Starting to process %d sub-bricks ========",
+                  DSET_NVALS(dset_targ) ) ;
 
    if( verb > 1 ) mri_genalign_verbose(verb-1) ;
 
-   /* array in which to save parameters */
+   /* array in which to save parameters for later waterboarding */
 
    parsave = (float **)malloc(sizeof(float *)*DSET_NVALS(dset_targ)) ;
 
@@ -1690,6 +1766,7 @@ int main( int argc , char *argv[] )
        stup.smooth_code   = 0 ;
        stup.npt_match     = 11 ;
        mri_genalign_scalar_setup( im_base , NULL , im_targ , &stup ) ;
+       mri_free(im_targ) ; im_targ = NULL ;
        goto WRAP_IT_UP_BABY ;
      }
 
@@ -1697,6 +1774,12 @@ int main( int argc , char *argv[] )
 
      for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
        stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_pinit ;
+
+     /* initialize coordinate systems */
+
+     AL_setup_warp_coords( epi_targ,epi_fe,epi_pe,epi_se,
+                           nxyz_base, dxyz_base, stup.base_cmat,
+                           nxyz_targ, dxyz_targ, stup.targ_cmat ) ;
 
      /*--- do coarse resolution pass? ---*/
 
@@ -1970,27 +2053,14 @@ int main( int argc , char *argv[] )
 
      if( dset_out != NULL ){
 
-       if( !use_out ){   /* output on base image grid */
+       AL_setup_warp_coords( epi_targ,epi_fe,epi_pe,epi_se,
+                             nxyz_dout, dxyz_dout, cmat_bout,
+                             nxyz_targ, dxyz_targ, cmat_tout ) ;
 
-         if( kk == 0 && skip_first ){           /* didn't register this one! */
-           im_targ = mri_copy( im_base ) ;
-         } else {
-           stup.interp_code = final_interp ;
-           im_targ = mri_genalign_scalar_warpim( &stup ); /* matches im_base */
-         }
-         if( zeropad ){                /* crop this if we had padded im_base */
-           qim = mri_zeropad_3D( -pad_xm,-pad_xp , -pad_ym,-pad_yp ,
-                                                   -pad_zm,-pad_zp , im_targ );
-           mri_free(im_targ) ; im_targ = qim ;
-         }
-
-       } else {          /* output on some other grid */
-
-         im_targ = mri_genalign_scalar_warpone(
-                               stup.wfunc_numpar , parsave[kk] , stup.wfunc ,
-                               stup.ajim , cmat_bout , cmat_tout ,
-                               nxout , nyout , nzout , final_interp ) ;
-       }
+       im_targ = mri_genalign_scalar_warpone(
+                             stup.wfunc_numpar , parsave[kk] , stup.wfunc ,
+                             stup.ajim ,
+                             nxout , nyout , nzout , final_interp ) ;
 
        /* save without scaling factor */
 
@@ -2123,3 +2193,195 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod )
 
    return wim ;
 }
+
+/*---------------------------------------------------------------------------*/
+/*! Setup before and after index-to-coordinate matrices in the warp func.
+    See the notes at the end of this file for the gruesome details.
+-----------------------------------------------------------------------------*/
+
+void AL_setup_warp_coords( int epi_targ , int epi_fe, int epi_pe, int epi_se,
+                           int *nxyz_base, float *dxyz_base, mat44 base_cmat,
+                           int *nxyz_targ, float *dxyz_targ, mat44 targ_cmat )
+{
+   mat44 cmat_before , imat_after , gmat,tmat,qmat ;
+   float *dijk ; int *nijk ;
+
+   if( epi_targ < 0 ){            /*---------- no EPI info given ----------*/
+
+     /* [it] = inv[Ct] [S] [D] [U] [Cb]     [ib]
+               ------- ----------- --------
+               [after] [transform] [before]      */
+
+     imat_after  = MAT44_INV(targ_cmat) ;  /* xyz -> ijk for target */
+     cmat_before = base_cmat ;             /* ijk -> xyz for base */
+
+   } else if( epi_targ == 1 ){  /*---------- target is EPI --------------*/
+
+     dijk = dxyz_targ ; nijk = nxyz_targ ;
+
+     /* -FPS kij should have           [ 0  0  dk -mk ]
+                              [gmat] = [ di 0  0  -mi ]
+                                       [ 0  dj 0  -mj ]
+                                       [ 0  0  0   1  ]
+        In this example, epi_fe=2, epi_pe=0, epi_se=1   */
+
+     ZERO_MAT44(gmat) ;
+     gmat.m[0][epi_fe] = dijk[epi_fe] ;
+     gmat.m[1][epi_pe] = dijk[epi_pe] ;
+     gmat.m[2][epi_se] = dijk[epi_se] ;
+     gmat.m[0][3]      = -0.5f * dijk[epi_fe] * (nijk[epi_fe]-1) ;
+     gmat.m[1][3]      = -0.5f * dijk[epi_pe] * (nijk[epi_pe]-1) ;
+     gmat.m[2][3]      = -0.5f * dijk[epi_se] * (nijk[epi_se]-1) ;
+
+     /* [it] = inv[Gt] [S] [D] [U] inv[Rt] [Cb] [ib]
+               ------- ----------- ------------
+               [after] [transform] [before]        where [Ct] = [Rt] [Gt] */
+
+     imat_after  = MAT44_INV(gmat) ;
+     tmat        = MAT44_INV(targ_cmat) ;       /* inv[Ct] */
+     qmat        = MAT44_MUL(tmat,base_cmat) ;  /* inv[Ct] [Cb] */
+     cmat_before = MAT44_MUL(gmat,qmat) ;       /* [G] inv[Ct] [Cb] */
+
+   } else {                     /*---------- base is EPI ----------------*/
+
+     dijk = dxyz_base ; nijk = nxyz_base ;
+
+     ZERO_MAT44(gmat) ;
+     gmat.m[0][epi_fe] = dijk[epi_fe] ;
+     gmat.m[1][epi_pe] = dijk[epi_pe] ;
+     gmat.m[2][epi_se] = dijk[epi_se] ;
+     gmat.m[0][3]      = -0.5f * dijk[epi_fe] * (nijk[epi_fe]-1) ;
+     gmat.m[1][3]      = -0.5f * dijk[epi_pe] * (nijk[epi_pe]-1) ;
+     gmat.m[2][3]      = -0.5f * dijk[epi_se] * (nijk[epi_se]-1) ;
+
+     /*  [it] = inv[Ct] [Rb] [U] [S] [D] [Gb]     [ib]
+                ------------ ----------- --------
+                [after]      [transform] [before]  where [Cb] = [Rb] [Gb] */
+
+     cmat_before = gmat ;                       /* [Gb] */
+     qmat        = MAT44_INV(gmat) ;            /* inv[Gb] */
+     qmat        = MAT44_MUL(base_cmat,qmat) ;  /* [Cb] inv[Gb] = [Rb] */
+     tmat        = MAT44_INV(targ_cmat) ;       /* inv[Ct] */
+     imat_after  = MAT44_MUL(tmat,qmat) ;       /* inv[Ct] [Rb] */
+   }
+
+   /*-- actually let the warping function 'know' about these matrices --*/
+
+   mri_genalign_affine_set_befafter( &cmat_before , &imat_after ) ;
+
+   return ;
+}
+
+/******************************************************************************
+
+       ==============================================================
+     ===== Notes on Coordinates and Indexes - RWCox - 05 Oct 2006 =====
+       ==============================================================
+
+The base and target datasets each have their own coordinate systems and
+indexes.  We use 4x4 matrices to represent affine transformations, and
+4-vectors to represent coordinates and indexes.  (The last row of a 4x4
+matrix is [0 0 0 1] and the last element of a 4-vector is always 1.)
+The index-to-coordinate transformations for base and target are given by
+
+  [xb] = [Cb] [ib]
+  [xt] = [Ct] [it]
+
+where [Cb] and [Ct] are the dset->daxes->ijk_to_dicom matrices in the
+datasets' header.
+
+The 4x4 affine transformation matrix is not directly parametrized by its 12
+non-trivial elements.  To give control over and meaning to the parameters,
+the matrix is instead modeled as
+
+  [T] = [S] [D] [U]
+
+where [S] is a shear matrix, [D] is a diagonal scaling matrix, and [U] is
+a proper orthogonal matrix.  If we wish to restrict the transformation [T]
+to rigid body movement, for example, then we can fix the [S] and [D]
+matrices to be the identity.
+
+N.B.: The shift matrix [H] can be inserted before or after the [S][D][U]
+product, as desired, so we'd really have [H][S][D][U] for dcode==DELTA_AFTER
+and [S][D][U][H] for dcode==DELTA_BEFORE.  [H] must be a matrix of the form
+   [ 1 0 0 a ]
+   [ 0 1 0 b ]
+   [ 0 0 1 c ]
+   [ 0 0 0 1 ]
+where {a,b,c} are the shifts.
+
+For EPI data, we may want to restrict the transformation parameters so as
+to treat the phase-encoding direction differently than the frequency- and
+slice-encoding directions.  However, the matrices as described above mean
+that the [T] matrix components apply to DICOM coordinates, which may not
+be aligned with the FPS directions in the image.  In such a case, putting
+restrictions on the [T] parameters will not translate in a simple way into
+FPS coordinates.
+
+The solution is to break the transformation from indexes to spatial
+coordinates into two pieces.  Let [C] = [R] [G], where [C] is an index-to
+space matrix, [G] is a matrix that transforms indexes to FPS coordinates,
+and [R] is "what's left" (should be a rotation matrix, possibly with
+det[R]=-1).  A sample [G] is
+
+        [ 0  0  dk -mk ]
+  [G] = [ di 0  0  -mi ]
+        [ 0  dj 0  -mj ]
+        [ 0  0  0   1  ]
+
+where the dataset is stored with '-FPS kij':
+  i=P (phase-encoding), j=S (slice-encoding), and k=F (frequency-encoding);
+  d{i,j,k} is the grid spacing along the respective dimensions; and
+  m{i,j,k} is the coordinate at the volume center: e.g., mi=0.5*di*(ni-1).
+(Here, 'i' refers to the first index in the dataset, etc.)
+
+If we break up [Ct] this way, then the transformation is
+
+  [xt] = [S] [D] [U] [xb], or
+  [xb] = inv[U] inv[D] inv[S] [xt]
+       = inv[U] inv[D] inv[S] [Rt] [Gt] [it]
+
+and inv[T] is applied to the DICOM ordered coordinates in [Rt] [Gt] [it].
+If we want to apply inv[T] to the FPS ordered coordinates, then we change
+the last equation above to
+
+  [xb] = [Rt] inv[U] inv[D] inv[S] [Gt] [it]
+
+where inv[T] is now applied to coordinates where xyz=FPS.  Now, restricting
+the parameters in [T] applies directly to FPS coordinates (e.g., fix the
+scaling factor in [D] along the z-axis to 1, and then there will be no
+stretching/shrinking of the data along the slice-encoding direction).  The
+final multiplication by [Rt] rotates the inv[T]-transformed FPS coordinates
+to DICOM order.
+
+So, if the target dataset is the EPI dataset, then the transformation from
+[ib] to [it] is expressed at
+
+  [it] = inv[Gt] [S] [D] [U] inv[Rt] [Cb] [ib]
+         ------- ----------- ------------
+         [after] [transform] [before]
+
+where the [transform] matrix is what the parameter searching is all about,
+and the [before] and [after] matrices are fixed.
+
+If the base dataset is the EPI dataset, on the other hand, then the index-
+to-index transformation (what is really needed, after all) is
+
+  [it] = inv[Ct] [Rb] [U] [D] [S] [Gb]     [ib]
+         ------------ ----------- --------
+         [after]      [transform] [before]
+
+In the 'normal' case, where either (a) we are going to allow full transform
+generality, or (b) no particular distortions of the image are to be specially
+allowed for, then we simply have
+
+  [it] = inv[Ct] [S] [D] [U] [Cb]     [ib]
+         ------- ----------- --------
+         [after] [transform] [before]
+
+All of these cases are possible.  They will be especially important if/when
+nonlinear warping is allowed in place of the simple [S][D][U] transformation,
+the user needs to restrict the warping to occur only in the P-direction, and
+the data slices are oblique.
+
+******************************************************************************/
