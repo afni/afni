@@ -1000,6 +1000,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* expects ivec in EngineData and a string in s saying what is to be sent, a flag in i 1=report transmission, 0 = be quiet*/
             { int nels_sent, N_Send, *SendList;
               char *stmp = NULL; 
+              static char LastPrefix[THD_MAX_PREFIX+1] = {"nuda"};
                if (EngineData->ivec_Dest != NextComCode || EngineData->s_Dest != NextComCode || EngineData->i_Dest != NextComCode) {
                   fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
                   break;
@@ -1128,16 +1129,19 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  Kudos to Rick R. for having figured the Ladies' bug source */
                   SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SendList[N_Send-1]].OP);
                   if (SO->VolPar && SO->VolPar->filecode) {
-                     nel = NI_new_data_element("ni_do", 0);
-                     NI_set_attribute ( nel, "ni_verb", "DRIVE_AFNI");
-                     stmp = SUMA_append_string("SWITCH_UNDERLAY A.", SO->VolPar->prefix);
-                     NI_set_attribute ( nel, "ni_object", stmp);
-                     fprintf(SUMA_STDERR,"%s: Sending switch underlay command to (%s)...\n", FuncName, stmp);
-                     if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel, NI_BINARY_MODE ) < 0) {
-                        SUMA_SLP_Err("Failed to send SWITCH_ANATOMY to afni");
+                     if (strcmp(LastPrefix, SO->VolPar->prefix)) {
+                        nel = NI_new_data_element("ni_do", 0);
+                        NI_set_attribute ( nel, "ni_verb", "DRIVE_AFNI");
+                        stmp = SUMA_append_string("SWITCH_UNDERLAY A.", SO->VolPar->prefix);
+                        NI_set_attribute ( nel, "ni_object", stmp);
+                        fprintf(SUMA_STDERR,"%s: Sending switch underlay command to (%s)...\n", FuncName, stmp);
+                        if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel, NI_BINARY_MODE ) < 0) {
+                           SUMA_SLP_Err("Failed to send SWITCH_ANATOMY to afni");
+                        }
+                        NI_free_element(nel) ; nel = NULL;
+                        if (stmp) SUMA_free(stmp); stmp = NULL;
+                        snprintf(LastPrefix, THD_MAX_PREFIX, "%s", SO->VolPar->prefix);
                      }
-                     NI_free_element(nel) ; nel = NULL;
-                     if (stmp) SUMA_free(stmp); stmp = NULL;
                   } 
                   
                }

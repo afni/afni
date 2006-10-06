@@ -945,6 +945,7 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    SO->N_FaceSet = numTri;
    SO->NodeDim = 3;
    SO->FaceSetDim = 3;
+   SO->normdir = 1;
    SO->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));   
    UNIQ_idcode_fill (SO->idcode_str);
    
