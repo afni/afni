@@ -6385,7 +6385,8 @@ float * SUMA_Convexity_Engine (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_N
          /* as a measure of curvature, compute the sum of signed distances of negihbors to tangent plane at i.
          use distances normalized by length of segment ij to account for differences in segment length */
           
-         C[i] -= d/dij; /* used to be C[i] += d/dij; prior to May 06 04 */
+         if (dij > SUMA_EPSILON) C[i] -= d/dij; /* used to be C[i] += d/dij; prior to May 06 04 */
+         else C[i] = 0.0;
          
          if (DetailFile) fprintf(fid,"%f\t%f\t%f\t", d, dij, d/dij);
          
