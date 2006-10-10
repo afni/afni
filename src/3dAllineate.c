@@ -99,23 +99,24 @@ int main( int argc , char *argv[] )
    int auto_weight             = 2 ;            /* on by default */
    char *auto_string           = "-automask" ;
    float dxyz_mast             = 0.0f ;         /* not implemented */
-   int meth_code               = GA_MATCH_KULLBACK_SCALAR ;
+   int meth_code               = GA_MATCH_HELLINGER_SCALAR ;
    int sm_code                 = GA_SMOOTH_GAUSSIAN ;
    float sm_rad                = 0.0f ;
    float fine_rad              = 0.0f ;
    int floatize                = 0 ;            /* off by default */
    int twopass                 = 1 ;            /* on by default */
    int twofirst                = 1 ;            /* on by default */
-   int verb                    = 0 ;            /* off by default */
+   int verb                    = 1 ;            /* on by default */
    int zeropad                 = 1 ;            /* on by default */
    char *prefix                = NULL ;         /* off by default */
    char *wtprefix              = NULL ;         /* off by default */
    char *fname_1D              = NULL ;         /* off by default */
    char *apply_1D              = NULL ;         /* off by default */
    int interp_code             = MRI_LINEAR ;
-   int npt_match               = -9 ;           /* 9%, that is */
+   int npt_match               = -33 ;          /* 33%, that is */
    int final_interp            = MRI_CUBIC ;
    int warp_code               = WARP_AFFINE ;
+   int warp_freeze             = 0 ;            /* off by default */
    int nparopt                 = 0 ;
    MRI_IMAGE *matini           = NULL ;
    int tbest                   = 4 ;            /* default=try best 4 */
@@ -205,7 +206,7 @@ int main( int argc , char *argv[] )
        "               You can also specify the cost function using an option\n"
        "               of the form '-mi' rather than '-cost mi', if you like\n"
        "               to keep things terse and cryptic (as I do).\n"
-       "               [Default == 'mi'.]\n"
+       "               [Default == '-hel'.]\n"
        "\n"
        " -interp iii = Defines interpolation method to use during matching\n"
        "               process, where 'iii' is one of\n"
@@ -230,7 +231,7 @@ int main( int argc , char *argv[] )
        "               nnn is too small.  If you end the 'nnn' value with the\n"
        "               '%%' character, then that percentage of the base's\n"
        "               voxels will be used.\n"
-       "               [Default == 9%% of voxels in the weight mask]\n"
+       "               [Default == 33%% of voxels in the weight mask]\n"
        "\n"
        " -nopad      = Do not use zero-padding on the base image.\n"
        "               [Default == zero-pad, if needed; -verb shows how much]\n"
@@ -240,6 +241,7 @@ int main( int argc , char *argv[] )
        "\n"
        " -verb       = Print out verbose progress reports.\n"
        "               [Using '-VERB' will give even more prolix reports.]\n"
+       " -quiet      = Don't print out verbose stuff.\n"
        "\n"
        " -check kkk  = After cost function optimization is done, start at the\n"
        "               final parameters and RE-optimize using the new cost\n"
@@ -318,10 +320,26 @@ int main( int argc , char *argv[] )
        "               [Default = affine_general, which includes image]\n"
        "               [      shifts, rotations, scaling, and shearing]\n"
        "\n"
+       " -warpfreeze = Freeze the non-rigid body parameters (those past #6)\n"
+       "               after doing the first sub-brick.  Subsequent volumes\n"
+       "               will have the same spatial distortions as sub-brick #0,\n"
+       "               plus rigid body motions only.\n"
+       "\n"
        " -EPI        = Treat the source dataset as being composed of warped\n"
        "               EPI slices, and the base as comprising anatomically\n"
        "               'true' images.  Only phase-encoding direction image\n"
        "               shearing and scaling will be allowed with this option.\n"
+       "       **N.B.: For most people, the base dataset will be a 3dSkullStrip-ed\n"
+       "               T1-weighted anatomy (MPRAGE or SPGR).  If you don't remove\n"
+       "               the skull first, the EPI images (which have little skull\n"
+       "               visible due to fat-suppression) might expand to fit EPI\n"
+       "               brain over T1-weighted skull.\n"
+       "       **N.B.: Usually, EPI datasets don't have as complete slice coverage\n"
+       "               of the brain as do T1-weighted datasets.  If you don't use\n"
+       "               some option (like '-EPI') to suppress scaling in the slice-\n"
+       "               direction, the EPI dataset is likely to stretch the slice\n"
+       "               thicknesss to better 'match' the T1-weighted brain coverage.\n"
+       "       **N.B.: '-EPI' turns on '-warpfreeze'.\n"
        "\n"
        " -parfix n v   = Fix parameter #n to be exactly at value 'v'.\n"
        " -parang n b t = Allow parameter #n to range only between 'b' and 't'.\n"
@@ -405,11 +423,11 @@ int main( int argc , char *argv[] )
       "  y = phase encoding direction     (by default, second axis of dataset)\n"
       "  z = slice encoding direction     (by default, third axis of dataset)\n"
       "This option lets you freeze some of the warping parameters in ways that\n"
-      "make physical sense, considering how the echo-planar images are acquired.\n"
+      "make physical sense, considering how echo-planar images are acquired.\n"
       "The x- and z-scaling parameters are disabled, and shears will only affect\n"
       "the y-axis.  Thus, there will be only 9 free parameters when '-EPI' is\n"
       "used.  If desired, you can use a '-parang' option to allow the scaling\n"
-      "fixed parameters to vary:\n"
+      "fixed parameters to vary (put these after the '-EPI' option):\n"
       "  -parang 7 0.833 1.20     to allow x-scaling\n"
       "  -parang 9 0.833 1.20     to allow z-scaling\n"
       "You could also fix some of the other parameters, if that makes sense\n"
@@ -646,11 +664,14 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strncmp(argv[iarg],"-verb",5) == 0 ){
+     if( strcmp(argv[iarg],"-verb") == 0 ){
        verb++ ; iarg++ ; continue ;
      }
-     if( strncmp(argv[iarg],"-VERB",5) == 0 ){
+     if( strcmp(argv[iarg],"-VERB") == 0 ){
        verb+=2 ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-quiet") == 0 ){  /* 10 Oct 2006 */
+       verb=0 ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -1102,12 +1123,13 @@ int main( int argc , char *argv[] )
        epi_fe = fe-1 ; epi_pe = pe-1 ; epi_se = se-1 ;  /* process later */
 
        if( verb > 1 )
-         INFO_message("epi_targ=%d  fe=%d pe=%d se=%d",
+         INFO_message("EPI parameters: targ=%d  fe=%d pe=%d se=%d",
                       epi_targ,epi_fe,epi_pe,epi_se ) ;
 
        /* restrict some transformation parameters */
 
        smat = SMAT_YYY ;               /* shear only in y (PE) direction */
+       warp_freeze = 1 ;               /* 10 Oct 2006 */
 
        /* matrix order depends on if we are restricting transformation
           parameters in the base image or in the target image coordinates */
@@ -1239,6 +1261,8 @@ int main( int argc , char *argv[] )
      WARNING_message("-check and -cost are the same?!") ;
      meth_check = -1 ;
    }
+
+   if( warp_freeze ) twofirst = 1 ;  /* 10 Oct 2006 */
 
    /* open target from last argument, if not already open */
 
@@ -1688,7 +1712,12 @@ int main( int argc , char *argv[] )
                         ADN_datum_all , MRI_float ,
                       ADN_none ) ;
      if( DSET_NUM_TIMES(dset_targ) > 1 )
-       EDIT_dset_items( dset_out , ADN_ntt , DSET_NVALS(dset_targ) , ADN_none ) ;
+       EDIT_dset_items( dset_out ,
+                          ADN_ntt   , DSET_NVALS(dset_targ) ,
+                          ADN_ttdel , DSET_TR(dset_targ) ,
+                          ADN_tunits, UNITS_SEC_TYPE ,
+                          ADN_nsl   , 0 ,
+                        ADN_none ) ;
      else
        EDIT_dset_items( dset_out ,
                           ADN_func_type , ISANAT(dset_out) ? ANAT_BUCK_TYPE
@@ -2039,6 +2068,20 @@ int main( int argc , char *argv[] )
          stup.wfunc_param[jj].val_out = pval[jj] ;  /* restore previous param */
      }
 
+     /*- freeze warp-ing parameters (those after #0..5) for later rounds */
+
+     if( warp_freeze ){                          /* 10 Oct 2006 */
+       for( jj=6 ; jj < stup.wfunc_numpar ; jj++ ){
+         if( !stup.wfunc_param[jj].fixed ){
+           if( verb > 1 ) INFO_message("Freezing parameter #%d [%s] = %.5f",
+                                       jj+1 , stup.wfunc_param[jj].name ,
+                                              stup.wfunc_param[jj].val_out ) ;
+           stup.wfunc_param[jj].fixed = 2 ;
+           stup.wfunc_param[jj].val_fixed = stup.wfunc_param[jj].val_out ;
+         }
+       }
+     }
+
      /*--- at this point, val_out contains alignment parameters ---*/
 
    WRAP_IT_UP_BABY:
@@ -2098,6 +2141,7 @@ int main( int argc , char *argv[] )
      for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
          fprintf(fp," %.5f",parsave[kk][jj]) ;
+       fprintf(fp,"\n") ;                           /* oops */
      }
      if( fp != stdout ){
        fclose(fp) ; if( verb ) INFO_message("Wrote -1Dfile %s",fname_1D) ;
