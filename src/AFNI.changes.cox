@@ -5929,3 +5929,9 @@
 29 Sep 2006
  * 3dAllineate.c edited to make -linear the default interpolation during
      alignment process, and -cubic for the output dataset.
+
+10 Oct 2006
+ * Modified 3dClipLevel.c to allow float input datasets.
+ * Modified 3drefit.c to make '-TR' option add a timeaxis to a non-3D+time
+     dataset.
+ * More changes to 3dAllineate.c.

@@ -718,6 +718,10 @@ qm:qm.o
 	$(RM) $@
 	$(CCFAST) -o 3dAllineate 3dAllineate.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
+3dAcost:3dAcost.o
+	$(RM) $@
+	$(CCFAST) -o 3dAcost 3dAcost.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 rotcom:rotcom.o
 	$(RM) $@
 	$(CC) -o rotcom rotcom.o $(LFLAGS) -lmri -lf2c $(LLIBS)
