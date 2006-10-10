@@ -21,12 +21,19 @@ int main( int argc , char * argv[] )
              "                 will be averaged from 'dataset'.  Note\n"
              "                 that the mask dataset and the input dataset\n"
              "                 must have the same number of voxels.\n"
+             " -histpow p    Set histogram power to 'p'.\n"
             ) ;
       exit(0) ;
    }
 
    narg = 1 ;
    while( narg < argc && argv[narg][0] == '-' ){
+
+      if( strcmp(argv[narg],"-histpow") == 0 ){
+        double hist_pow = strtod(argv[++narg],NULL) ;
+        set_2Dhist_hpower(hist_pow) ;
+        narg++ ; continue ;
+      }
 
       if( strncmp(argv[narg],"-mask",5) == 0 ){
          if( mask_dset != NULL ){
@@ -95,20 +102,20 @@ int main( int argc , char * argv[] )
 
    val = THD_pearson_corr_wt( nvox , xar , yar , war ) ;
    val = 1.0 - fabs(val) ;
-   printf("1-Correlation     = %.5f\n",val) ;
+   printf("1-Correlation     = %+.5f\n",val) ;
 
    val = -THD_mutual_info_scl( nvox , 0.0,0.0,xar , 0.0,0.0,yar , war ) ;
-   printf("-Mutual Info      = %.5f\n",val ) ;
+   printf("-Mutual Info      = %+.5f\n",val ) ;
 
-   val = -THD_norm_mutinf_scl( nvox , 0.0,0.0,xar , 0.0,0.0,yar , war ) ;
-   printf("Norm Mutual Info  = %.5f\n",val ) ;
+   val = THD_norm_mutinf_scl( nvox , 0.0,0.0,xar , 0.0,0.0,yar , war ) ;
+   printf("Norm Mutual Info  = %+.5f\n",val ) ;
 
    val = THD_corr_ratio_scl( nvox , 0.0,0.0,xar , 0.0,0.0,yar , war ) ;
    val = 1.0 - fabs(val) ;
-   printf("1-Correl ratio    = %.5f\n",val) ;
+   printf("1-Correl ratio    = %+.5f\n",val) ;
 
    val = -THD_hellinger_scl( nvox , 0.0,0.0,xar , 0.0,0.0,yar , war ) ;
-   printf("-Hellinger metric = %.5f\n",val) ;
+   printf("-Hellinger metric = %+.5f\n",val) ;
 
    exit(0) ;
 }

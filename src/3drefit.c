@@ -86,7 +86,9 @@ void Syntax(char *str)
     "  -notoff         Removes the slice-dependent time-offsets.\n"
     "  -Torg ttt       Set the time origin of the dataset to value 'ttt'.\n"
     "                  (Time origins are set to 0 in to3d.)\n"
-    "               ** WARNING: these 3 options apply only to 3D+time datasets.\n"
+    "               ** WARNING: These 3 options apply only to 3D+time datasets.\n"
+    "                   **N.B.: Using '-TR' on a dataset without a time axis\n"
+    "                           will add a time axis to the dataset.\n"
     "\n"
     "  -newid          Changes the ID code of this dataset as well.\n"
     "\n"
@@ -1305,7 +1307,17 @@ int main( int argc , char * argv[] )
 
       if( new_TR ){
          if( dset->taxis == NULL ){
-            WARNING_message("Can't process -TR for this dataset!\n") ;
+            if( DSET_NVALS(dset) < 2 ){
+              WARNING_message("Can't process -TR for this dataset!") ;
+            } else {
+              WARNING_message("Adding time axis to this dataset") ;
+              EDIT_dset_items( dset ,
+                                 ADN_ntt   , DSET_NVALS(dset) ,
+                                 ADN_ttdel , TR ,
+                                 ADN_tunits, UNITS_SEC_TYPE ,
+                                 ADN_nsl   , 0 ,
+                               ADN_none ) ;
+            }
          } else {
             float frac = TR / dset->taxis->ttdel ;
             int ii ;
