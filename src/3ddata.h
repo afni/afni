@@ -4267,6 +4267,10 @@ extern float THD_mutual_info( int , float *, float * ) ;
 extern float THD_corr_ratio_scl( int, float,float,float *,     /* 23 Aug 2006 */
                                       float,float,float *, float * ) ;
 extern float THD_corr_ratio( int , float *, float * ) ;
+extern void  THD_corr_ratio_mode( int ) ;                      /* 11 Oct 2006 */
+#define THD_corr_ratio_sym_not THD_corr_ratio_mode(0)
+#define THD_corr_ratio_sym_mul THD_corr_ratio_mode(1)
+#define THD_corr_ratio_sym_add THD_corr_ratio_mode(2)
 
 extern float THD_norm_mutinf_scl( int, float,float,float *,    /* 25 Sep 2006 */
                                        float,float,float *, float * ) ;

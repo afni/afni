@@ -1242,12 +1242,14 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 #define GA_MATCH_SPEARMAN_SCALAR    2  /* rank-order correlation */
 #define GA_MATCH_KULLBACK_SCALAR    3  /* Mutual Info */
 #define GA_MATCH_MUTINFO_SCALAR     3
-#define GA_MATCH_CORRATIO_SCALAR    4  /* Correlation Ratio */
+#define GA_MATCH_CORRATIO_SCALAR    4  /* Correlation Ratio: Sym Mul */
 #define GA_MATCH_NORMUTIN_SCALAR    5  /* Normalized Mutual Info */
 #define GA_MATCH_JOINTENT_SCALAR    6  /* Joint Entropy */
 #define GA_MATCH_HELLINGER_SCALAR   7  /* Hellinger metric */
+#define GA_MATCH_CRAT_SADD_SCALAR   8  /* Correlation Ratio: Sym Add */
+#define GA_MATCH_CRAT_USYM_SCALAR   9  /* Correlation Ratio: Unsym */
 
-#define GA_MATCH_METHNUM_SCALAR     7  /* Largest value in sequence above */
+#define GA_MATCH_METHNUM_SCALAR     9  /* Largest value in sequence above */
 
  /* methods for smoothing images */
 

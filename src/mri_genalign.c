@@ -632,7 +632,12 @@ static double GA_scalar_fitter( int npar , double *mpar )
                                  gstup->bsbot , gstup->bsclip , bvm , wvm ) ;
     break ;
 
-    case GA_MATCH_CORRATIO_SCALAR:  /* Correlation Ratio */
+    case GA_MATCH_CRAT_USYM_SCALAR: /* Correlation ratio (various flavors) */
+    case GA_MATCH_CRAT_SADD_SCALAR:
+    case GA_MATCH_CORRATIO_SCALAR:
+           if( gstup->match_code==GA_MATCH_CRAT_USYM_SCALAR )THD_corr_ratio_sym_not;
+      else if( gstup->match_code==GA_MATCH_CRAT_SADD_SCALAR )THD_corr_ratio_sym_add;
+      else                                                   THD_corr_ratio_sym_mul;
       val = THD_corr_ratio_scl( gstup->npt_match ,
                                 gstup->ajbot , gstup->ajclip , avm ,
                                 gstup->bsbot , gstup->bsclip , bvm , wvm ) ;
@@ -1374,6 +1379,12 @@ ENTRY("mri_genalign_scalar_warpone") ;
 
    /* send parameters to warping function, for setup */
 
+   if( verb > 1 ){
+     fprintf(stderr,"++ image warp: parameters =") ;
+     for( ii=0 ; ii < npar ; ii++ ) fprintf(stderr," %.4f",wpar[ii]) ;
+     fprintf(stderr,"\n") ;
+   }
+
    wfunc( npar , wpar , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
 
    /* create float copy of input image, if needed */
@@ -1488,7 +1499,7 @@ void mri_genalign_affine_setup( int mmmm , int dddd , int ssss )
 /*--------------------------------------------------------------------------*/
 
 static int   aff_use_before=0 , aff_use_after=0 ;
-static mat44 aff_before       , aff_after       ;
+static mat44 aff_before       , aff_after       , aff_gam ;
 
 void mri_genalign_affine_set_befafter( mat44 *ab , mat44 *af )
 {
@@ -1616,6 +1627,14 @@ static mat44 GA_setup_affine( int npar , float *parvec )
    if( aff_use_before ) gam = MAT44_MUL( gam , aff_before ) ;
    if( aff_use_after  ) gam = MAT44_MUL( aff_after , gam  ) ;
 
+#if 0
+   if( verb > 1 ){
+     if( aff_use_before ) DUMP_MAT44("before",aff_before) ;
+     if( aff_use_after  ) DUMP_MAT44("after ",aff_after ) ;
+                          DUMP_MAT44("gam   ",gam       ) ;
+   }
+#endif
+
    return gam ;
 }
 
@@ -1633,8 +1652,9 @@ void mri_genalign_affine( int npar, float *wpar ,
 
    /** new parameters ==> setup matrix */
 
-   if( npar > 0 && wpar != NULL )
-     gam = GA_setup_affine( npar , wpar ) ;
+   if( npar > 0 && wpar != NULL ){
+     gam = GA_setup_affine( npar , wpar ) ; aff_gam = gam ;
+   }
 
    /* nothing to transform? */
 
