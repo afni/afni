@@ -512,6 +512,13 @@ float THD_jointentrop( int n , float *x , float *y )
 }
 
 /*--------------------------------------------------------------------------*/
+/* Decide if THD_corr_ratio_scl() computes symmetric or unsymmetric.        */
+
+static int cr_mode = 1 ;  /* 0=unsym  1=sym mult  2=sym add */
+
+void THD_corr_ratio_mode( int mm ){ cr_mode = mm ; }
+
+/*--------------------------------------------------------------------------*/
 /*! Compute the correlation ratio between two vectors, sort of.  [23 Aug 2006]
 ----------------------------------------------------------------------------*/
 
@@ -527,7 +534,7 @@ float THD_corr_ratio_scl( int n , float xbot,float xtop,float *x ,
    build_2Dhist( n,xbot,xtop,x,ybot,ytop,y,w ) ;
    if( nbin <= 0 ) return 0.0f ;  /* something bad happened! */
 
-   /*-- compute CR from histogram --*/
+   /*-- compute CR(y|x) from histogram --*/
 
    cyvar = 0.0f ;
    for( ii=0 ; ii < nbp ; ii++ ){
@@ -545,9 +552,11 @@ float THD_corr_ratio_scl( int n , float xbot,float xtop,float *x ,
    }
    uyvar = vv - mm*mm ;               /* Var(y) */
    yrat  = cyvar / uyvar ;            /* Var(y|x) / Var(y) */
-#if 0
-   return (1.0f-yrat) ;
-#else
+
+   if( cr_mode == 0 ) return (1.0f-yrat) ;   /** unsymmetric **/
+
+   /** compute CR(x|y) also, for symmetrization **/
+
    cyvar = 0.0f ;
    for( jj=0 ; jj < nbp ; jj++ ){
      if( yc[jj] > 0.0f ){
@@ -564,8 +573,10 @@ float THD_corr_ratio_scl( int n , float xbot,float xtop,float *x ,
    }
    uyvar = vv - mm*mm ;               /* Var(x) */
    xrat  = cyvar / uyvar ;            /* Var(x|y) / Var(x) */
-   return (1.0f - xrat*yrat) ;
-#endif
+
+   if( cr_mode == 2 ) return (1.0f - 0.5f*(xrat+yrat)) ; /** additive **/
+
+   return (1.0f - xrat*yrat) ;                           /** multiplicative **/
 }
 
 /*--------------------------------------------------------------------------*/
