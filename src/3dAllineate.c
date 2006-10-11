@@ -40,28 +40,31 @@ void AL_setup_warp_coords( int,int,int,int ,
 #define NMETH GA_MATCH_METHNUM_SCALAR  /* cf. mrilib.h */
 
 static int meth_visible[NMETH] =       /* 1 = show in -help; 0 = don't show */
-  { 1 , 0 , 1 , 1 , 1 , 0 , 1 } ;
+  { 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1 } ;
 
 static int meth_noweight[NMETH] =      /* 1 = don't allow weights, just masks */
-  { 0 , 1 , 0 , 0 , 1 , 1 , 1 } ;
+  { 0 , 1 , 0 , 0 , 1 , 1 , 1 , 0 , 0 } ;
 
 static char *meth_shortname[NMETH] =   /* short names for terse cryptic users */
-  { "ls" , "sp" , "mi" , "cr" , "nmi" , "je" , "hel" } ;
+  { "ls" , "sp" , "mi" , "cr" , "nmi" , "je" , "hel" , "crA" , "crU" } ;
 
 static char *meth_longname[NMETH] =    /* long names for prolix users */
   { "leastsq"         , "spearman"     ,
     "mutualinfo"      , "corratio"     ,
     "norm_mutualinfo" , "jointentropy" ,
-    "hellinger"                         } ;
+    "hellinger"       ,
+    "corratio_add"    , "corratio_uns"  } ;
 
 static char *meth_username[NMETH] =    /* descriptive names */
   { "Least Squares [Pearson Correlation]"   ,
     "Spearman [rank] Correlation"           ,
     "Mutual Information [H(b)+H(t)-H(b,t)]" ,
-    "Correlation Ratio"                     ,
+    "Correlation Ratio (Sym *)"             ,
     "Normalized MI [H(b,t)/(H(b)+H(t))]"    ,
     "Joint Entropy [H(b,t)]"                ,
-    "Hellinger metric"                       } ;
+    "Hellinger metric"                      ,
+    "Correlation Ratio (Sym +)"             ,
+    "Correlation Ratio (Unsym)"              } ;
 /*---------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
@@ -879,10 +882,13 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        if( strcmp(argv[iarg],"NN")==0 || strncmp(argv[iarg],"nearest",5)==0 )
          interp_code = MRI_NN ;
+       else
        if( strncmp(argv[iarg],"linear",3)==0 || strncmp(argv[iarg],"trilinear",5)==0 )
          interp_code = MRI_LINEAR ;
+       else
        if( strncmp(argv[iarg],"cubic",3)==0 || strncmp(argv[iarg],"tricubic",5)==0 )
          interp_code = MRI_CUBIC ;
+       else
        if( strncmp(argv[iarg],"quintic",3)==0 || strncmp(argv[iarg],"triquintic",5)==0 )
          interp_code = MRI_QUINTIC ;
        else
@@ -893,10 +899,13 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        if( strcmp(argv[iarg],"NN") == 0 || strncmp(argv[iarg],"nearest",5) == 0 )
          final_interp = MRI_NN ;
+       else
        if( strncmp(argv[iarg],"linear",3) == 0 || strncmp(argv[iarg],"trilinear",5) == 0 )
          final_interp = MRI_LINEAR ;
+       else
        if( strncmp(argv[iarg],"cubic",3) == 0 || strncmp(argv[iarg],"tricubic",5) == 0 )
          final_interp = MRI_CUBIC ;
+       else
        if( strncmp(argv[iarg],"quintic",3)==0 || strncmp(argv[iarg],"triquintic",5)==0 )
          final_interp = MRI_QUINTIC ;
        else
@@ -1743,7 +1752,7 @@ int main( int argc , char *argv[] )
 #undef  PARDUMP
 #define PARDUMP(ss,xxx) do{ fprintf(stderr," + %s Parameters =",ss) ;                 \
                             for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )               \
-                              fprintf(stderr," %.2f",stup.wfunc_param[jj].xxx) ;  \
+                              fprintf(stderr," %.4f",stup.wfunc_param[jj].xxx) ;  \
                             fprintf(stderr,"\n") ;                                    \
                         } while(0)
 #undef  PAROUT

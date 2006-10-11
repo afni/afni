@@ -5,7 +5,7 @@
 float mri_topclip( MRI_IMAGE *im )  /* 28 Sep 2006 */
 {
    float cv , dv ;
-   cv = 3.33f * THD_cliplevel( im , 0.666f ) ;
+   cv = 3.11f * THD_cliplevel( im , 0.511f ) ;
    dv = (float)mri_max( im ) ;
    cv = MIN(cv,dv) ; return cv ;
 }

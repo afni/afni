@@ -5935,3 +5935,4 @@
  * Modified 3drefit.c to make '-TR' option add a timeaxis to a non-3D+time
      dataset.
  * More changes to 3dAllineate.c.
+ * Program 3dAcost.c to calculate 3dAllineate costs on 2 bricks.

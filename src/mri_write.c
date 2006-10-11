@@ -193,7 +193,7 @@ ENTRY("mri_write_pnm") ;
    if( im->nz > 1 ) RETURN( 0 );
    if( im->kind != MRI_byte && im->kind != MRI_rgb ) RETURN( 0 );
 
-   if( STRING_HAS_SUFFIX(fname,".jpg") ){   /* 15 Apr 2005 */
+   if( STRING_HAS_SUFFIX(fname,".jpg") ){   /* 15 Apr 2005: quick hack */
      RETURN( mri_write_jpg(fname,im) ) ;
    }
 
@@ -201,7 +201,7 @@ ENTRY("mri_write_pnm") ;
      imfile = fopen( fname , "r" ) ;
      if( imfile != NULL ){
        fclose( imfile ) ;
-       fprintf(stderr,"(FAILED) attempt to overwrite file %s\n",fname) ;
+       ERROR_message("(FAILED) attempt to overwrite image file %s",fname) ;
        RETURN( 0 );
      }
    }
@@ -212,8 +212,8 @@ ENTRY("mri_write_pnm") ;
      imfile = stdout ;     /* 18 Apr 2005: write to stdout */
 
    if( imfile == NULL ){
-      fprintf( stderr , "couldn't open for output file %s\n" , fname ) ;
-      RETURN( 0 );
+     ERROR_message("Couldn't open image file %s for writing" , fname ) ;
+     RETURN( 0 );
    }
 
    switch( im->kind ){
@@ -382,7 +382,7 @@ int mri_write_jpg( char *fname , MRI_IMAGE *im )  /* 15 Apr 2005 */
    char *pg , *jpfilt, *eee ;
    FILE *fp ;
    int jpeg_compress;
-   
+
    if( fname == NULL || *fname == '\0' || im == NULL ) return 0 ;
    if( im->kind != MRI_rgb && im->kind != MRI_byte   ) return 0 ;
 
@@ -396,8 +396,7 @@ int mri_write_jpg( char *fname , MRI_IMAGE *im )  /* 15 Apr 2005 */
          jpeg_compress = 95;
     }
    else jpeg_compress = 95;
-   
-      
+
    jpfilt = (char *)malloc( sizeof(char)*(strlen(pg)+strlen(fname)+32) ) ;
 
    sprintf( jpfilt , "%s -quality %d > %s" , pg , jpeg_compress, fname ) ;
