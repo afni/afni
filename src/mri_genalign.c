@@ -638,9 +638,18 @@ static double GA_scalar_fitter( int npar , double *mpar )
            if( gstup->match_code==GA_MATCH_CRAT_USYM_SCALAR )THD_corr_ratio_sym_not;
       else if( gstup->match_code==GA_MATCH_CRAT_SADD_SCALAR )THD_corr_ratio_sym_add;
       else                                                   THD_corr_ratio_sym_mul;
+
+#if 0
+      if( verb > 8 )
+       INFO_message("THD_corr_ratio_scl(%d,%g,%g,bvm,%g,%g,bvm,wvm)",
+                     gstup->npt_match ,
+                     gstup->bsbot , gstup->bsclip ,
+                     gstup->ajbot , gstup->ajclip  ) ;
+#endif
+
       val = THD_corr_ratio_scl( gstup->npt_match ,
-                                gstup->ajbot , gstup->ajclip , avm ,
-                                gstup->bsbot , gstup->bsclip , bvm , wvm ) ;
+                                gstup->bsbot , gstup->bsclip , bvm ,
+                                gstup->ajbot , gstup->ajclip , avm , wvm ) ;
       val = 1.0 - fabs(val) ;
     break ;
 
