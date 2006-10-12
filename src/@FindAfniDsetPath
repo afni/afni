@@ -1,0 +1,52 @@
+#!/bin/csh -f
+
+# Jason W. Bacon
+# Medical College of Wisconsin
+# Sep 27, 2006
+#
+# Search $AFNI_GLOBAL_SESSION, $AFNI_PLUGINPATH, and afni bin directory
+# (in that order) for named dataset.  If found, echo the first valid path
+# discovered and return zero status.  If not found, return non-zero status.
+#
+# Change log:
+
+if ( $#argv != 1 ) then
+    echo "Usage: $0 <name>"
+    exit 1
+endif
+
+set ref_in = $1
+set dataset_path = './'
+
+if ( $?AFNI_GLOBAL_SESSION ) then
+    set dataset_path = (${dataset_path} `echo $AFNI_GLOBAL_SESSION | tr ':' ' '`)
+endif
+
+if ( $?AFNI_PLUGINPATH ) then
+    set dataset_path = (${dataset_path} `echo $AFNI_PLUGINPATH | tr ':' ' '`)
+endif
+
+foreach dir (${dataset_path})
+    if ( `@CheckForAfniDset ${dir}/${ref_in}` == 2 ) then
+	echo $dir
+	exit 0
+    endif
+end
+
+# Check afni bin directory, for compatibility with older installations
+# that installed atlas datasets there.
+set wa = `which afni`
+if ( $status != 0) then
+   exit 1
+endif
+set ref_path = "$wa:h"
+if ( "$ref_path" == "$wa" ) then
+   exit 1
+endif
+if ( `@CheckForAfniDset ${ref_path}/${ref_in}` ) then
+    echo ${ref_path}
+    exit 0
+else
+    exit 1
+endif
+
