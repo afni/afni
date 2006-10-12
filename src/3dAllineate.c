@@ -72,7 +72,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset_out=NULL ;
    MRI_IMAGE *im_base, *im_targ, *im_weig=NULL, *im_mask=NULL, *qim ;
    GA_setup stup ;
-   int iarg , ii,jj,kk , nmask=0 , nfunc ;
+   int iarg , ii,jj,kk , nmask=0 , nfunc , rr ;
    int   nx_base,ny_base,nz_base , nx_targ,ny_targ,nz_targ , nxy_base ;
    float dx_base,dy_base,dz_base , dx_targ,dy_targ,dz_targ ;
    int   nxyz_base[3] , nxyz_targ[3] , nxyz_dout[3] ;
@@ -1831,7 +1831,7 @@ int main( int argc , char *argv[] )
        stup.smooth_radius = (sm_rad == 0.0f) ? 11.111f : sm_rad ;
        stup.npt_match     = nmask / 20 ;
             if( stup.npt_match <   666 ) stup.npt_match =   666 ;
-       else if( stup.npt_match > 22222 ) stup.npt_match = 22222 ;
+       else if( stup.npt_match > 22222 ) stup.npt_match = 23456 ;
 
        mri_genalign_scalar_setup( im_base , im_weig , im_targ , &stup ) ;
 
@@ -1880,24 +1880,33 @@ int main( int argc , char *argv[] )
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
            if( stup.wfunc_param[jj].fixed == 1 ) stup.wfunc_param[jj].fixed = 0 ;
 
-         stup.npt_match = nmask / 10 ;
+         stup.npt_match = nmask / 7 ;
               if( stup.npt_match < 666   ) stup.npt_match = 666 ;
-         else if( stup.npt_match > 55555 ) stup.npt_match = 55555 ;
-         stup.smooth_radius *= 0.666 ;
-         mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
+         else if( stup.npt_match > 99999 ) stup.npt_match = 99999 ;
 
          /* now optimize the tbest values saved already */
 
          tb = MIN(tbest,stup.wfunc_ntrial) ; nfunc=0 ;
          if( verb ) ININFO_message("- Start %d coarse optimizations",tb) ;
          if( verb > 1 ) ctim = COX_cpu_time() ;
-         for( ib=0 ; ib < tb ; ib++ ){                  /* loop over trials */
-           for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* load parameters */
-             stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_trial[ib] ;
-           nfunc += mri_genalign_scalar_optim( &stup , 0.04 , 0.008 , 6666 ) ;
-           for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* save best params */
-             tfparm[ib][jj] = stup.wfunc_param[jj].val_out ;
-           if( verb > 1 ) ININFO_message("- #%d has cost=%f",ib+1,stup.vbest) ;
+
+         for( ib=0 ; ib < tb ; ib++ )
+           for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+             tfparm[ib][jj] = stup.wfunc_param[jj].val_trial[ib] ;
+
+         rad = 0.04 ;
+         for( rr=0 ; rr < 2 ; rr++ , rad*=0.333 ){
+           stup.smooth_radius *= 0.555 ;
+           mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
+
+           for( ib=0 ; ib < tb ; ib++ ){                  /* loop over trials */
+             for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* load parameters */
+               stup.wfunc_param[jj].val_init = tfparm[ib][jj] ;
+             nfunc += mri_genalign_scalar_optim( &stup , rad , 0.1*rad , 6666 ) ;
+             for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* save best params */
+               tfparm[ib][jj] = stup.wfunc_param[jj].val_out ;
+             if( verb > 1 ) ININFO_message("- #%d has cost=%f",ib+1,stup.vbest) ;
+           }
          }
          if( verb > 1 ) ININFO_message("- Coarse CPU time = %.1f s; funcs = %d",
                                        COX_cpu_time()-ctim,nfunc ) ;
@@ -1949,7 +1958,7 @@ int main( int argc , char *argv[] )
      else
        mri_genalign_scalar_setup( im_base , im_weig , im_targ , &stup ) ;
 
-     /* choose initial parameters, based on inter_code cost function */
+     /* choose initial parameters, based on interp_code cost function */
 
      if( tfdone ){                           /* find best in tfparm array */
        int kb=0 , ib ; float cbest=1.e+33 ;
@@ -1976,7 +1985,7 @@ int main( int argc , char *argv[] )
      if( verb > 2 ){ GA_do_dots(1); }
 
      if( powell_mm > 0.0f ) powell_set_mfac( powell_mm , powell_aa ) ;
-     nfunc = 0 ; rad = (tfdone) ? 0.02 : 0.04 ;
+     nfunc = 0 ; rad = (tfdone) ? 0.01 : 0.04 ;
 
      /* start with some optimization with linear interp, for speed? */
 
@@ -2015,6 +2024,15 @@ int main( int argc , char *argv[] )
                                nfunc,stup.vbest) ;
 
      if( verb > 1 ) PAROUT("Final fine fit") ;
+
+#if 0
+     for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+       stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out ;
+     mri_genalign_verbose(9) ;
+     cost = mri_genalign_scalar_cost( &stup ) ;
+     INFO_message("Recomputed final cost = %g",cost) ;
+     if( verb > 1 ) mri_genalign_verbose(verb-1) ;
+#endif
 
      if( save_hist != NULL ){  /* Save final 2D histogram: 28 Sep 2006 */
        int nbin ; float *xyc ;
