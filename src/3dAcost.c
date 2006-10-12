@@ -207,6 +207,11 @@ int main( int argc , char * argv[] )
    val = THD_norm_mutinf_scl( nvox , xbot,xtop,xar , ybot,ytop,yar , war ) ;
    printf("Norm Mutual Info  = %+.5f\n",val ) ;
 
+#if 0
+   INFO_message("THD_corr_ratio_scl(%d,%g,%g,xar,%g,%g,yar,war)",
+                 nvox , xbot,xtop , ybot,ytop ) ;
+#endif
+
    THD_corr_ratio_sym_mul ;
    val = THD_corr_ratio_scl( nvox , xbot,xtop,xar , ybot,ytop,yar , war ) ;
    val = 1.0 - fabs(val) ;
