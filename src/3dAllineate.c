@@ -29,6 +29,8 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 static float wt_medsmooth = 2.25f ;   /* for mri_weightize() */
 static float wt_gausmooth = 4.50f ;
 
+static int verb           = 1 ;       /* somewhat on by default */
+
 MRI_IMAGE * mri_weightize( MRI_IMAGE *, int ) ;  /* prototype */
 
 void AL_setup_warp_coords( int,int,int,int ,
@@ -46,11 +48,11 @@ static int meth_noweight[NMETH] =      /* 1 = don't allow weights, just masks */
   { 0 , 1 , 0 , 0 , 1 , 1 , 1 , 0 , 0 } ;
 
 static char *meth_shortname[NMETH] =   /* short names for terse cryptic users */
-  { "ls" , "sp" , "mi" , "cr" , "nmi" , "je" , "hel" , "crA" , "crU" } ;
+  { "ls" , "sp" , "mi" , "crM" , "nmi" , "je" , "hel" , "crA" , "crU" } ;
 
 static char *meth_longname[NMETH] =    /* long names for prolix users */
   { "leastsq"         , "spearman"     ,
-    "mutualinfo"      , "corratio"     ,
+    "mutualinfo"      , "corratio_mul" ,
     "norm_mutualinfo" , "jointentropy" ,
     "hellinger"       ,
     "corratio_add"    , "corratio_uns"  } ;
@@ -99,8 +101,8 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset_targ = NULL ;
    THD_3dim_dataset *dset_mast = NULL ;
    THD_3dim_dataset *dset_weig = NULL ;
-   int auto_weight             = 2 ;            /* on by default */
-   char *auto_string           = "-automask" ;
+   int auto_weight             = 3 ;            /* -autobbox == default */
+   char *auto_string           = "-autobox" ;
    float dxyz_mast             = 0.0f ;         /* not implemented */
    int meth_code               = GA_MATCH_HELLINGER_SCALAR ;
    int sm_code                 = GA_SMOOTH_GAUSSIAN ;
@@ -109,14 +111,13 @@ int main( int argc , char *argv[] )
    int floatize                = 0 ;            /* off by default */
    int twopass                 = 1 ;            /* on by default */
    int twofirst                = 1 ;            /* on by default */
-   int verb                    = 1 ;            /* on by default */
    int zeropad                 = 1 ;            /* on by default */
    char *prefix                = NULL ;         /* off by default */
    char *wtprefix              = NULL ;         /* off by default */
    char *fname_1D              = NULL ;         /* off by default */
    char *apply_1D              = NULL ;         /* off by default */
    int interp_code             = MRI_LINEAR ;
-   int npt_match               = -33 ;          /* 33%, that is */
+   int npt_match               = -47 ;          /* 47%, that is */
    int final_interp            = MRI_CUBIC ;
    int warp_code               = WARP_AFFINE ;
    int warp_freeze             = 0 ;            /* off by default */
@@ -234,7 +235,7 @@ int main( int argc , char *argv[] )
        "               nnn is too small.  If you end the 'nnn' value with the\n"
        "               '%%' character, then that percentage of the base's\n"
        "               voxels will be used.\n"
-       "               [Default == 33%% of voxels in the weight mask]\n"
+       "               [Default == 47%% of voxels in the weight mask]\n"
        "\n"
        " -nopad      = Do not use zero-padding on the base image.\n"
        "               [Default == zero-pad, if needed; -verb shows how much]\n"
@@ -303,6 +304,8 @@ int main( int argc , char *argv[] )
        "               will be printed if you run into this situation.\n"
        " -automask   = Compute a mask function, which is like -autoweight,\n"
        "               but the weight for a voxel is either 0 or 1.\n"
+       " -autobox    = Expand the -automask function to enclose a rectangular\n"
+       "               box that holds the irregular mask.\n"
        "               [This is the default mode of operation.]\n"
        " -nomask     = Don't compute the autoweight/mask; if -weight is not\n"
        "               used, then every voxel will be counted equally.\n"
@@ -617,6 +620,10 @@ int main( int argc , char *argv[] )
      if( strncmp(argv[iarg],"-noauto",6) == 0 ||
          strncmp(argv[iarg],"-nomask",6) == 0   ){
        auto_weight = 0 ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-autobox") == 0 ){
+       auto_weight = 3 ; auto_string = "-autobox" ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -1449,7 +1456,7 @@ int main( int argc , char *argv[] )
        WARNING_message("Cost function '%s' uses -automask NOT -autoweight",
                        meth_longname[meth_code-1] ) ;
        auto_weight = 2 ;
-     } else if( verb == 1 ){
+     } else if( verb >= 1 ){
        INFO_message("Computing %s",auto_string) ;
      }
      if( verb > 1 ) ctim = COX_cpu_time() ;
@@ -1825,13 +1832,15 @@ int main( int argc , char *argv[] )
      if( twopass && (!twofirst || !tfdone) ){
        int tb , ib , ccode ;
        if( verb ) INFO_message("Start coarse pass") ;
-       ccode              = (interp_code == MRI_NN) ? MRI_NN : MRI_LINEAR ;
-       stup.interp_code   = ccode ;
-       stup.smooth_code   = sm_code ;
-       stup.smooth_radius = (sm_rad == 0.0f) ? 11.111f : sm_rad ;
-       stup.npt_match     = nmask / 20 ;
+       ccode            = (interp_code == MRI_NN) ? MRI_NN : MRI_LINEAR ;
+       stup.interp_code = ccode ;
+       stup.npt_match   = nmask / 20 ;
             if( stup.npt_match <   666 ) stup.npt_match =   666 ;
        else if( stup.npt_match > 22222 ) stup.npt_match = 23456 ;
+
+       stup.smooth_code        = sm_code ;
+       stup.smooth_radius_base =
+        stup.smooth_radius_targ = (sm_rad == 0.0f) ? 11.111f : sm_rad ;
 
        mri_genalign_scalar_setup( im_base , im_weig , im_targ , &stup ) ;
 
@@ -1894,9 +1903,10 @@ int main( int argc , char *argv[] )
            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
              tfparm[ib][jj] = stup.wfunc_param[jj].val_trial[ib] ;
 
-         rad = 0.04 ;
-         for( rr=0 ; rr < 2 ; rr++ , rad*=0.333 ){
-           stup.smooth_radius *= 0.555 ;
+         rad = 0.0345 ;
+         for( rr=0 ; rr < 2 ; rr++ , rad*=0.234 ){ /* refine w/ less smooth */
+           stup.smooth_radius_base *= 0.567 ;
+           stup.smooth_radius_targ *= 0.567 ;
            mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
 
            for( ib=0 ; ib < tb ; ib++ ){                  /* loop over trials */
@@ -1919,13 +1929,14 @@ int main( int argc , char *argv[] )
 
          if( verb     ) ININFO_message("- Start coarse optimization") ;
          if( verb > 1 ) ctim = COX_cpu_time() ;
-         nfunc = mri_genalign_scalar_optim( &stup , 0.05 , 0.009 , 6666 ) ;
+         nfunc = mri_genalign_scalar_optim( &stup , 0.05 , 0.005 , 6666 ) ;
          stup.npt_match = nmask / 10 ;
               if( stup.npt_match < 666   ) stup.npt_match = 666 ;
          else if( stup.npt_match > 55555 ) stup.npt_match = 55555 ;
-         stup.smooth_radius *= 0.666 ;
+         stup.smooth_radius_base *= 0.666 ;
+         stup.smooth_radius_targ *= 0.666 ;
          mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
-         nfunc += mri_genalign_scalar_optim( &stup , 0.04 , 0.005 , 6666 ) ;
+         nfunc += mri_genalign_scalar_optim( &stup , 0.02 , 0.002 , 6666 ) ;
          if( verb > 1 ) ININFO_message("- Coarse CPU time = %.1f s; funcs = %d",
                                        COX_cpu_time()-ctim,nfunc) ;
          if( verb     ) ININFO_message("- Coarse optimization:  best cost=%f",
@@ -1949,10 +1960,18 @@ int main( int argc , char *argv[] )
      /*--- do final resolution pass ---*/
 
      if( verb ) INFO_message("Fine pass begins") ;
-     stup.interp_code   = interp_code ;
-     stup.smooth_code   = (fine_rad > 0.0f) ? sm_code : 0 ;
-     stup.smooth_radius = fine_rad ;
-     stup.npt_match     = npt_match ;
+     stup.interp_code = interp_code ;
+     stup.smooth_code = sm_code ;
+     if( fine_rad > 0.0f ){
+       stup.smooth_radius_base = stup.smooth_radius_targ = fine_rad ;
+     } else {
+       float br=cbrt(dx_base*dy_base*dz_base) ;  /* base voxel size */
+       float tr=cbrt(dx_targ*dy_targ*dz_targ) ;  /* targ voxel size */
+       stup.smooth_radius_targ = 0.0f ;
+       stup.smooth_radius_base = (tr <= 1.1f*br) ? 0.0f
+                                                 : sqrt(tr*tr-br*br) ;
+     }
+     stup.npt_match = npt_match ;
      if( didtwo )
        mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;  /* simple re-setup */
      else
@@ -1982,10 +2001,15 @@ int main( int argc , char *argv[] )
        ININFO_message("- Initial cost = %f",cost_ini) ;
        ctim = COX_cpu_time() ;
      }
-     if( verb > 2 ){ GA_do_dots(1); }
 
      if( powell_mm > 0.0f ) powell_set_mfac( powell_mm , powell_aa ) ;
-     nfunc = 0 ; rad = (tfdone) ? 0.01 : 0.04 ;
+     nfunc = 0 ;
+     switch( tfdone ){
+        case 0: rad = 0.0345 ; break ;
+        case 1:
+        case 2: rad = 0.0123 ; break ;
+       default: rad = 0.0066 ; break ;
+     }
 
      /* start with some optimization with linear interp, for speed? */
 
@@ -2014,6 +2038,11 @@ int main( int argc , char *argv[] )
      }
 
      /* now do the final final optimization, with the correct interp mode */
+#if 0
+     if( verb > 2 ){ GA_do_dots(1); }
+#else
+     if( verb > 2 ){ GA_do_cost(1); }
+#endif
 
      nfunc += mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
      if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ;
@@ -2213,6 +2242,8 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod )
    if( 5*xfade >= qim->nx ) xfade = (qim->nx-1)/5 ;
    if( 5*yfade >= qim->ny ) yfade = (qim->ny-1)/5 ;
    if( 5*zfade >= qim->nz ) zfade = (qim->nz-1)/5 ;
+   if( verb > 1 )
+     ININFO_message("Weightize: xfade=%d yfade=%d zfade=%d",xfade,yfade,zfade);
    for( jj=0 ; jj < ny ; jj++ )
     for( ii=0 ; ii < nx ; ii++ )
      for( ff=0 ; ff < zfade ; ff++ ) WW(ii,jj,ff) = WW(ii,jj,nz-1-ff) = 0.0f;
@@ -2226,18 +2257,21 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod )
    /*-- squash super-large values down to reasonability --*/
 
    clip = 3.0f * THD_cliplevel(qim,0.5f) ;
+   if( verb > 1 ) ININFO_message("Weightize: top clip=%g",clip) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] > clip ) wf[ii] = clip ;
 
    /*-- blur a little: median then Gaussian;
-          the idea is that the median filter smashes big spikes,
+          the idea is that the median filter smashes localized spikes,
           then the Gaussian filter does some general smoothing.  --*/
 
    mmm = (byte *)malloc( sizeof(byte)*nxyz ) ;
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] > 0.0f) ; /* mask */
-   if( wt_medsmooth > 0.0f )
-     wim = mri_medianfilter( qim , wt_medsmooth , mmm , 0 ) ;
-   mri_free(qim) ; wf = MRI_FLOAT_PTR(wim) ;
-
+   if( wt_medsmooth > 0.0f ){
+     wim = mri_medianfilter( qim , wt_medsmooth , mmm , 0 ) ; mri_free(qim) ;
+   } else {
+     wim = qim ;
+   }
+   wf = MRI_FLOAT_PTR(wim) ;
    if( wt_gausmooth > 0.0f )
      FIR_blur_volume_3d( wim->nx , wim->ny , wim->nz ,
                          1.0f , 1.0f , 1.0f ,  wf ,
@@ -2249,6 +2283,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod )
    clip  = 0.05f * mri_max(wim) ;
    clip2 = 0.33f * THD_cliplevel(wim,0.33f) ;
    clip  = MAX(clip,clip2) ;
+   if( verb > 1 ) ININFO_message("Weightize: bot clip=%g",clip) ;
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] >= clip) ;
    THD_mask_clust( nx,ny,nz, mmm ) ;
    THD_mask_erode( nx,ny,nz, mmm, 1 ) ;  /* cf. thd_automask.c */
@@ -2258,8 +2293,27 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod )
 
    /*-- binarize? --*/
 
-   if( acod == 2 ){
+#undef  BPAD
+#define BPAD 4
+   if( acod == 2 || acod == 3 ){
+     if( verb > 1 ) ININFO_message("Weightize: binarizing") ;
      for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] != 0.0f ) wf[ii] = 1.0f ;
+     if( acod == 3 ){  /* boxize */
+       int xm,xp , ym,yp , zm,zp ;
+       MRI_autobbox_clust(0) ;
+       MRI_autobbox( wim , &xm,&xp , &ym,&yp , &zm,&zp ) ;
+       xm -= BPAD ; if( xm < 0    ) xm = 0 ;
+       ym -= BPAD ; if( ym < 0    ) ym = 0 ;
+       zm -= BPAD ; if( zm < 0    ) zm = 0 ;
+       xp += BPAD ; if( xp > nx-1 ) xp = nx-1 ;
+       yp += BPAD ; if( yp > ny-1 ) yp = ny-1 ;
+       zp += BPAD ; if( zp > nz-1 ) zp = nz-1 ;
+       if( verb > 1 ) ININFO_message("Weightize: box=%d..%d X %d..%d X %d..%d",
+                                     xm,xp , ym,yp , zm,zp ) ;
+       for( kk=zm ; kk <= zp ; kk++ )
+        for( jj=ym ; jj <= yp ; jj++ )
+          for( ii=xm ; ii <= xp ; ii++ ) WW(ii,jj,kk) = 1.0f ;
+     }
    }
 
    return wim ;

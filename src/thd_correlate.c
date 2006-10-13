@@ -550,8 +550,9 @@ float THD_corr_ratio_scl( int n , float xbot,float xtop,float *x ,
    for( jj=1 ; jj < nbp ; jj++ ){     /* mm=E(y)  vv=E(y^2) */
      mm += (jj * yc[jj]) ; vv += jj * (jj * yc[jj]) ;
    }
-   uyvar = vv - mm*mm ;               /* Var(y) */
-   yrat  = cyvar / uyvar ;            /* Var(y|x) / Var(y) */
+   uyvar = vv - mm*mm ;                  /* Var(y) */
+   yrat  = (uyvar > 0.0f) ? cyvar/uyvar  /* Var(y|x) / Var(y) */
+                          : 1.0f ;
 
    if( cr_mode == 0 ) return (1.0f-yrat) ;   /** unsymmetric **/
 
@@ -571,8 +572,9 @@ float THD_corr_ratio_scl( int n , float xbot,float xtop,float *x ,
    for( ii=1 ; ii < nbp ; ii++ ){     /* mm=E(x)  vv=E(x^2) */
      mm += (ii * xc[ii]) ; vv += ii * (ii * xc[ii]) ;
    }
-   uyvar = vv - mm*mm ;               /* Var(x) */
-   xrat  = cyvar / uyvar ;            /* Var(x|y) / Var(x) */
+   uyvar = vv - mm*mm ;                 /* Var(x) */
+   xrat  = (uyvar > 0.0f) ? cyvar/uyvar /* Var(x|y) / Var(x) */
+                          : 1.0f ;
 
    if( cr_mode == 2 ) return (1.0f - 0.5f*(xrat+yrat)) ; /** additive **/
 
