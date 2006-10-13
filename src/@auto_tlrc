@@ -4,6 +4,7 @@ PARSE:
    echo "Parsing ..."
    set Narg = $#
    
+   set ok_notice = 0
    set pd_default = 40
    set cnt = 1
    set tmppref = '__ats_tmp_'
@@ -209,6 +210,10 @@ PARSE:
          set cropt = '';		
          set donext = 0		
       endif
+      if ($donext && "$argv[$cnt]" == "-ok_notice") then
+         set ok_notice = 1;		
+         set donext = 0		
+      endif
       if ($donext && "$argv[$cnt]" == "-no_ss") then
          set RemoveSkull = 0;      
          set donext = 0      
@@ -315,6 +320,27 @@ if ( `@CheckForAfniDset ${ref_in}` != 2 ) then
    echo "Error: Template dset ${ref_in} not found."
    goto END
 endif
+set ttt_pref = "`@GetAfniPrefix ${ref_in}`"
+if ("$ttt_pref" == "TT_avg152EPI") then
+   echo ""
+   echo "Error:"
+   echo "Template TT_avg152EPI+tlrc should no longer be used."
+   echo "For an equivalent template in MNI space use MNI_EPI+tlrc"
+   echo "For an equivalent template in TLRC space use TT_EPI+tlrc"
+   echo ""
+   goto END
+endif
+
+if ("$ttt_pref" == "TT_avg152T1" || "$ttt_pref" == "TT_avg152EPI") then
+   if ("$ttt_pref" == "TT_avg152T1") then
+      set alternate = "MNI_avg152T1"
+   else
+      set alternate = "MNI_EPI"
+   endif
+   goto WARN_notice
+endif
+OK_notice:
+
 if ( `@CheckForAfniDset ${anat_in}` != 2 ) then
    echo "Error: Anatomical dset ${anat_in} not found."
    goto END
@@ -669,14 +695,9 @@ if ( "$ref_path" == "$ref_in" ) then
       echo "Template dset ${ref_in} found."
       goto SET_REF_PATH_RETURN
    endif
-   #search where afni is
-   set wa = `which afni`
-   if ( $status != 0) then
-      echo "Error: afni not located"
-      goto END
-   endif
-   set ref_path = "$wa:h"
-   if ( "$ref_path" == "$wa" ) then
+   
+   set ref_path = `@FindAfniDsetPath $ref_in`
+   if ( "$ref_path" == '' ) then
       set ref_path = "."
       echo "Error: Template $ref_in could not be located"
       goto END
@@ -718,6 +739,9 @@ HELP:
       echo "                                         Skull Stripped. (www.loni.ucla.edu)"
       echo "                        TT_avg152T1+tlrc --> Average volume of 152 normal brains."
       echo "                                         Skull Stripped.(www.bic.mni.mcgill.ca)"
+      echo "                        TT_EPI+tlrc --> EPI template from spm2, masked as TT_avg152T1"
+      echo "                                        TT_avg152 and TT_EPI volume sources are from"
+      echo "                                        SPM's distribution. (www.fil.ion.ucl.ac.uk/spm/)"
       echo ""
       echo "                        If you do not specify a path for the template, the script"
       echo "                        will attempt to locate the template AFNI's binaries directory."
@@ -907,4 +931,46 @@ HELP:
       goto END
    endif
 
+WARN_notice:
+   #Check if templates are new
+   set info = `3dinfo $ref_in`
+   set vvv = `echo "$info" | grep 'Dataset in' | grep 'coordinate space'`
+   if ("$vvv" == "") then
+      set vers_str = "Old version of TT_avg152 template found."
+      echo ""
+      echo "Error:"
+      echo "It looks like your version of template $ref_pref_nopad is old and in MNI space."
+      echo "Please download new corrected version of this template and of ${alternate}+tlrc "
+      echo "to work with this version of `basename $0` ."
+      echo "New template versions are available from http://afni.nimh.nih.gov/pub/dist/tgz" 
+      echo ""
+      goto END
+   else
+      set vers_str = "Corrected version of TT_avg152 template found."
+      echo ""
+      echo $vers_str
+      echo ""
+      set ap = "`@FindAfniDsetPath ${alternate}+tlrc`"
+      if ("$ap" == "") then
+         echo ""
+         echo "${alternate}+tlrc not found. I recommend you download it in case you"
+         echo "want to reuse the older (MNI space) version of $ttt_pref"
+         echo "Old version is now available here: http://afni.nimh.nih.gov/pub/dist/tgz"
+         echo ""
+      endif
+   endif
+   if ($ok_notice != 1) then
+      echo ""
+      echo "Warning:"
+      echo "Because of the error in older versions of TT_avg152 template, this script"
+      echo "requires that you use the flag -ok_notice to proceed."
+      echo "Before proceeding, DO check the error message at:"
+      echo "   http://afni.nimh.nih.gov/afni/MOTD/MOTD_2006_10_12.txt " 
+      echo "To produce results using the old version of the template, use template ${alternate}+tlrc ."
+      echo ""
+      goto END
+   else 
+      goto OK_notice
+   endif
+   
 END:

@@ -136,7 +136,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @CheckForAfniDset @clip_volume @AfniOrient2RAImap @parse_afni_name      \
           @auto_align @auto_tlrc @FromRAI @ToRAI @AfniOrientSign @VolCenter       \
           @Center_Distance @fix_FSsphere @parse_name @align_partial_oblique       \
-          @np 3dMax @IsoMasks @SUMA_Make_Spec_Caret
+          @np 3dMax @IsoMasks @SUMA_Make_Spec_Caret @FindAfniDsetPath
 
 PY_DIR = python_scripts
 PY_SCRIPTS = afni_base.py @DoPerRoi.py

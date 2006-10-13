@@ -908,7 +908,7 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami, ATLAS_COORD ac, WAMI_SORT_MODES
          acv[AFNI_TLRC_SPC].space = AFNI_TLRC_SPC;
          break;
       case MNI_SPC:
-         t = THD_mnia_to_tta_N27(m);
+         t = THD_mni_to_tta_N27(m);
          if (t.xyz[0] < -500) { ERROR_message("Failed in xforming the data"); }
          acv[AFNI_TLRC_SPC].x = t.xyz[0];
          acv[AFNI_TLRC_SPC].y = t.xyz[1];
@@ -943,6 +943,7 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami, ATLAS_COORD ac, WAMI_SORT_MODES
       sprintf(ylab[1],"%4.0f mm [%c]",t.xyz[1],(t.xyz[1]>=0.0)?'A':'P') ;
       sprintf(zlab[1],"%4.0f mm [%c]",t.xyz[2],(t.xyz[2]< 0.0)?'I':'S') ;
       sprintf(clab[1],"{MNI Brain}");
+      t = THD_mni_to_tta(m); 
       /* good olde MNI_Anatomical, a la Zilles */
       LOAD_FVEC3(m,ac.x,ac.y,ac.z);
       t = THD_tta_to_mnia_N27(m);
