@@ -1275,12 +1275,13 @@ typedef MRI_warp3D_param_def GA_param ;  /* cf. 3ddata.h */
 typedef struct {
   int match_code  ;             /* set by user */
   int smooth_code ;             /* set by user */
-  float smooth_radius ;         /* set by user */
+  float smooth_radius_base ;    /* set by user */
+  float smooth_radius_targ ;    /* set by user */
   int interp_code ;             /* set by user */
   mat44 base_cmat , targ_cmat ; /* set by user */
   mat44 base_imat , targ_imat ;
 
-  int old_sc ; float old_sr ;
+  int old_sc ; float old_sr_base , old_sr_targ ;
 
   MRI_IMAGE *bsim , *bsims ;
   float bsbot,bstop , bsclip ;
@@ -1342,6 +1343,7 @@ extern void mri_genalign_verbose(int) ;
 
 extern void GA_reset_fit_callback( void (*fc)(int,double*) ) ;
 extern void GA_do_dots(int) ;
+extern void GA_do_cost(int) ;
 extern float mri_genalign_scalar_cost( GA_setup * ) ;
 
 #define MATORDER_SDU  1  /* matrix multiplication order: */
