@@ -1032,12 +1032,12 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTION
       }
       if (Stage == 1) { /* if the surface is still growing, keep going */
          if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("About to be in stage 1"); }
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: \n In stage 1\n", FuncName);
+         if (Opt->debug) fprintf (SUMA_STDERR,"%s: \n In stage 1\n", FuncName);
          if (MaxExp > 0.5) {
             /* Now, if you still have expansion, continue */
             if (!pastarea) { /* first time around, calculate area */
                pastarea = SUMA_Mesh_Area(SO, NULL, -1);
-               if (LocalHead) fprintf (SUMA_STDERR,"%s: \n Stage1: pastarea = %f\n", FuncName, pastarea);
+               if (Opt->debug) fprintf (SUMA_STDERR,"%s: \n Stage1: pastarea = %f\n", FuncName, pastarea);
                keepgoing = 1;
             }else {
                curarea = SUMA_Mesh_Area(SO, NULL, -1);
@@ -1051,14 +1051,14 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTION
             }
             if (keepgoing) {
                it0 = nit; nit = nit + (int)(Opt->N_it/2.5);
-               if (LocalHead) fprintf (SUMA_STDERR,"%s: \n Stage1: MaxExp = %f, darea = %f, going for more...\n", FuncName, MaxExp, darea);
+               if (Opt->debug) fprintf (SUMA_STDERR,"%s: \n Stage1: MaxExp = %f, darea = %f, going for more...\n", FuncName, MaxExp, darea);
                Done = 0;
             } else {
-               if (LocalHead) fprintf (SUMA_STDERR,"%s: \n Stage1: satiated, small area differential.\n", FuncName);
+               if (Opt->debug) fprintf (SUMA_STDERR,"%s: \n Stage1: satiated, small area differential.\n", FuncName);
                ++Stage;
             }
          } else {
-            if (LocalHead) fprintf (SUMA_STDERR,"%s: \n Stage1: satiated, low MaxExp\n", FuncName);
+            if (Opt->debug) fprintf (SUMA_STDERR,"%s: \n Stage1: satiated, low MaxExp\n", FuncName);
             ++Stage;
          }
       }
@@ -1073,7 +1073,7 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTION
                ++Stage;
             } else {
                   /* reduce tightness where expansion is needed */
-                  if (LocalHead) {
+                  if (Opt->debug) {
                      fprintf(SUMA_STDERR,"%s:\n reducing tightness, applying touchup with Stage2Type = %d\n", FuncName, Stage2Type);
                   }
                   for (in=0; in<SO->N_Node; ++in) {
@@ -1113,16 +1113,16 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTION
 
          if (!past_N_troub) { 
             past_N_troub = N_troub; 
-            if (LocalHead) fprintf (SUMA_STDERR,"%s: \n Stage %d, type %d: %d troubled nodes, going for more...\n", FuncName, Stage, Stage2Type, N_troub);
+            if (Opt->debug) fprintf (SUMA_STDERR,"%s: \n Stage %d, type %d: %d troubled nodes, going for more...\n", FuncName, Stage, Stage2Type, N_troub);
          } else {
             float dtroub;
             dtroub = (float)(past_N_troub - N_troub)/(float)past_N_troub;
-            if (LocalHead) fprintf (SUMA_STDERR,"%s: \n Stage %d, type %d: %f change in troubled nodes.\n", FuncName, Stage, Stage2Type, dtroub);
+            if (Opt->debug) fprintf (SUMA_STDERR,"%s: \n Stage %d, type %d: %f change in troubled nodes.\n", FuncName, Stage, Stage2Type, dtroub);
             if (dtroub > 0.01) {
-               if (LocalHead) fprintf (SUMA_STDERR,"%s: \n Continuing with Stage.\n", FuncName);
+               if (Opt->debug) fprintf (SUMA_STDERR,"%s: \n Continuing with Stage.\n", FuncName);
                Done = 0; /* continue */
             } else {
-               if (LocalHead) fprintf (SUMA_STDERR,"%s: \n Stage converged. Moving to new Stage or Type.\n", FuncName);
+               if (Opt->debug) fprintf (SUMA_STDERR,"%s: \n Stage converged. Moving to new Stage or Type.\n", FuncName);
                ++Stage; /* go to next stage */
             }
             past_N_troub = N_troub;
