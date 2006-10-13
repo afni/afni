@@ -578,9 +578,16 @@ void GA_reset_fit_callback( void (*fc)(int,double*) )  /* user func is fc */
    fit_vbest = BIGVAL ; fit_callback = fc ; return ;
 }
 
-void GA_fitter_dotter(int n, double *mpar ){ printf("."); fflush(stdout); }
+void GA_fitter_dotter(int n, double *mpar){ printf("."); fflush(stdout); }
 
 void GA_do_dots(int x){ GA_reset_fit_callback( (x)?GA_fitter_dotter:NULL ); }
+
+/*---------------------------------------------------------------------------*/
+void GA_fitter_coster(int n, double *mpar){
+  printf(" + Cost=%g\r",fit_vbest); fflush(stdout);
+}
+
+void GA_do_cost(int x){ GA_reset_fit_callback( (x)?GA_fitter_coster:NULL ); }
 
 /*---------------------------------------------------------------------------*/
 /*! Fit metric for matching base and target image value pairs.
@@ -691,7 +698,9 @@ void mri_genalign_scalar_setup( MRI_IMAGE *basim  , MRI_IMAGE *wghtim ,
 
 {
    int qq , rr , nx,ny,nz,nxy , mm,ii,jj,kk , qdim ;
-   int use_all=0 , need_pts=0 , nmatch , need_smooth,do_smooth ;
+   int use_all=0 , need_pts=0 , nmatch ;
+   int need_smooth_base , do_smooth_base ;
+   int need_smooth_targ , do_smooth_targ ;
    float *bsar ;
 
 ENTRY("mri_genalign_scalar_setup") ;
@@ -772,33 +781,43 @@ ENTRY("mri_genalign_scalar_setup") ;
      stup->targ_imat = MAT44_INV( stup->targ_cmat ) ;
    }
 
-   /* smooth and save target image if needed */
+   /* smooth images if needed
+      13 Oct 2006: separate smoothing radii for base and target */
 
-   need_smooth = (stup->smooth_code > 0 && stup->smooth_radius > 0.0f) ;
-   do_smooth   = need_smooth && ( stup->smooth_code   != stup->old_sc ||
-                                  stup->smooth_radius != stup->old_sr   ) ;
-   stup->old_sc = stup->smooth_code   ;
-   stup->old_sr = stup->smooth_radius ;
+   need_smooth_base = (stup->smooth_code > 0 && stup->smooth_radius_base > 0.0f);
+   need_smooth_targ = (stup->smooth_code > 0 && stup->smooth_radius_targ > 0.0f);
+   do_smooth_base   = need_smooth_base &&
+                     ( stup->smooth_code        != stup->old_sc     ||
+                       stup->smooth_radius_base != stup->old_sr_base  ) ;
+   do_smooth_targ   = need_smooth_targ &&
+                     ( stup->smooth_code        != stup->old_sc     ||
+                       stup->smooth_radius_targ != stup->old_sr_targ  ) ;
+   stup->old_sc      = stup->smooth_code   ;
+   stup->old_sr_base = stup->smooth_radius_base ;
+   stup->old_sr_targ = stup->smooth_radius_targ ;
 
-   if( !need_smooth ){
-     if( stup->ajims != NULL ){ mri_free(stup->ajims); stup->ajims = NULL; }
+   if( !need_smooth_base ){
      if( stup->bsims != NULL ){ mri_free(stup->bsims); stup->bsims = NULL; }
-     stup->old_sc = -1 ; stup->old_sr = -1.0f ;
-     if( verb > 1 ) ININFO_message("- Smoothing disabled") ;
+     stup->old_sr_base = -1.0f ;
    }
-   if( do_smooth || (need_smooth && stup->bsims == NULL) ){
+   if( !need_smooth_targ ){
+     if( stup->ajims != NULL ){ mri_free(stup->ajims); stup->ajims = NULL; }
+     stup->old_sr_base = -1.0f ;
+   }
+   if( do_smooth_base || (need_smooth_base && stup->bsims == NULL) ){
      if( stup->bsims != NULL ) mri_free(stup->bsims);
-     if( verb > 1 ) ININFO_message("- Smoothing base; radius=%.2f",stup->smooth_radius) ;
+     if( verb > 1 )
+       ININFO_message("- Smoothing base; radius=%.2f",stup->smooth_radius_base);
      stup->bsims = GA_smooth( stup->bsim , stup->smooth_code ,
-                                           stup->smooth_radius ) ;
+                                           stup->smooth_radius_base ) ;
    }
-   if( do_smooth || (need_smooth && stup->ajims == NULL) ){
+   if( do_smooth_targ || (need_smooth_targ && stup->ajims == NULL) ){
      double nxa=stup->ajim->nx, nya=stup->ajim->ny, nza=stup->ajim->nz ;
-     float rad=cbrt(nxa*nya*nza/(nx*ny*nz)) * stup->smooth_radius ;
      if( stup->ajims != NULL ) mri_free(stup->ajims);
      if( verb > 1 )
-       ININFO_message("- Smoothing source; radius=%.2f",stup->smooth_radius);
-     stup->ajims = GA_smooth( stup->ajim , stup->smooth_code , rad ) ;
+       ININFO_message("- Smoothing source; radius=%.2f",stup->smooth_radius_targ);
+     stup->ajims = GA_smooth( stup->ajim , stup->smooth_code ,
+                                           stup->smooth_radius_targ ) ;
    }
 
    /* get min and max values in base and target images */
