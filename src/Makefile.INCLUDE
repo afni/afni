@@ -1709,6 +1709,10 @@ serial_helper.exe: rickr/serial_helper.c
 		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
 	$(MV) serial_helper.exe .. ; )
 
+serial_writer: rickr/serial_writer.c
+	$(RM) $@
+	$(CCMIN) -o serial_writer rickr/serial_writer.c
+
 #######
 # rendering library
 
