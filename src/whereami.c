@@ -110,11 +110,15 @@ void whereami_usage(void)
                "           whereami -coord_file out.1D'[1,2,3]' -tab\n"
                "               NOTE: You cannot use -coord_file AND specify x,y,z on\n"
                "                     command line.\n" 
-               " -lpi/-spm: Input coordinates are in LPI or SPM format. \n"
-               " -rai/-dicom: Input coordinates are in RAI or DICOM format.\n"
-               " NOTE: The default format for input coordinates is set by AFNI_ORIENT\n"
-               "       environment variable. If it is not set, then the default is \n"
-               "       RAI/DICOM\n"
+               " -lpi/-spm: Input coordinates' orientation is in LPI or SPM format. \n"
+               " -rai/-dicom: Input coordinates' orientation is in RAI or DICOM format.\n"
+               " NOTE: The default format for input coordinates' orientation is set by \n"
+               "       AFNI_ORIENT environment variable. If it is not set, then the default \n"
+               "       is RAI/DICOM\n"
+               " -space SPC: Space of input coordinates.\n"
+               "       SPC can be either MNI or TLRC which is the default.\n"
+               "       If SPC is the MNI space, the x,y,z coordinates are transformed to\n"
+               "       TLRC space prior to whereami query.\n"
                " -classic: Classic output format (output_format = 0).\n"
                " -tab: Tab delimited output (output_format = 1). \n"
                "       Useful for spreadsheeting.\n"
@@ -330,7 +334,7 @@ void whereami_usage(void)
 }
 int main(int argc, char **argv)
 {
-   float x, y, z, xi, yi, zi;
+   float x, y, z, xi, yi, zi, tx, ty, tz;
    char *string, *fstring, atlas_name[256], *sfp=NULL, *shar = NULL;
    int output = 0;
    int first = 1, num = 0;
@@ -347,11 +351,12 @@ int main(int argc, char **argv)
    ATLAS_SEARCH *as=NULL;
    char *mskpref= NULL, *bmsk = NULL;
    byte *cmask=NULL ; int ncmask=0 ;
-   int dobin = 0, N_areas;
+   int dobin = 0, N_areas, mni;
    char *coord_file=NULL;
    float *coord_list = NULL, rad;
+   THD_fvec3 tv, m;
    
-   
+   mni = -1;
    dobin = 0;
    ncmask=0 ;
    cmask=NULL ;
@@ -408,6 +413,22 @@ int main(int argc, char **argv)
          }
          if (strcmp(argv[iarg],"-old") == 0 ) { 
             OldMethod = 1; 
+            ++iarg;
+            continue; 
+         }
+         if (strcmp(argv[iarg],"-space") == 0) { 
+            ++iarg;
+            if (iarg >= argc) {
+               fprintf(stderr,"** Error: Need parameter after -space\n"); return(1);
+            }
+            if (strcmp(argv[iarg],"MNI") == 0 || strcmp(argv[iarg],"mni") == 0) {
+               mni = 1; 
+            } else if (strcmp(argv[iarg],"TLRC") == 0 || strcmp(argv[iarg],"tlrc") == 0) {
+               mni = 0; 
+            } else {
+               fprintf(stderr,"** Error: %s is invalid. Must use either MNI or TLRC\n", argv[iarg]);
+               return(1);
+            }
             ++iarg;
             continue; 
          }
@@ -632,21 +653,33 @@ int main(int argc, char **argv)
       /* try to set based on AFNI_ORIENT */
       THD_coorder_fill (my_getenv("AFNI_ORIENT"), &cord);
       if (strcmp(cord.orcode,"RAI") == 0) {
-         fprintf(stdout,"++ Input coordinates set by default rules to %s\n", cord.orcode); 
+         fprintf(stdout,"++ Input coordinates orientation set by default rules to %s\n", cord.orcode); 
       }else if (strcmp(cord.orcode,"LPI") == 0) {
-         fprintf(stdout,"++ Input coordinates set by default rules to %s\n", cord.orcode); 
+         fprintf(stdout,"++ Input coordinates orientation set by default rules to %s\n", cord.orcode); 
       }else {
-         fprintf(stderr,"** Error: Only RAI or LPI allowed\n"
+         fprintf(stderr,"** Error: Only RAI or LPI orientations allowed\n"
                         "default setting returned %s\n"
                         "You need to override AFNI_ORIENT \n"
                         "and use either -lpi or -rai\n", cord.orcode);
          return 1;
       }
    } else {
-      if (dicom == 1) fprintf(stdout,"++ Input coordinates set by user to %s\n", "RAI"); 
-      else if (dicom == 0) fprintf(stdout,"++ Input coordinates set by user to %s\n", "LPI");
+      if (dicom == 1) fprintf(stdout,"++ Input coordinates orientation set by user to %s\n", "RAI"); 
+      else if (dicom == 0) fprintf(stdout,"++ Input coordinates orientation set by user to %s\n", "LPI");
       else { fprintf(stderr,"** Error: Should not happen!\n"); return(1); } 
    }
+   
+   if (mni == -1) {
+      fprintf(stdout,"++ Input coordinates space set by default rules to TLRC\n");
+      mni = 0;
+   } else if (mni == 0) {
+      fprintf(stdout,"++ Input coordinates space set by user to TLRC\n");
+   } else if (mni == 1) {
+      fprintf(stdout,"++ Input coordinates space set by user to MNI\n");
+   } else {
+      fprintf(stderr,"** Error: Should not happen!\n"); return(1);
+   }
+   
    
    if (N_atlaslist == 0) {
       /* use all */
@@ -660,7 +693,6 @@ int main(int argc, char **argv)
       whereami_usage();
       return 1;
    }
-   
    
    if (LocalHead) Set_Show_Atlas_Mode(LocalHead);
 
@@ -986,7 +1018,19 @@ int main(int argc, char **argv)
          y = -y; 
       }
 
-
+      /* coords here are now in RAI */
+      
+      if (mni == 1) { /* go from mni to tlrc */
+         LOAD_FVEC3( tv , -x, -y, z ) ;   /* next call expects input in MNI, LPI*/
+         m = THD_mni_to_tta( tv );  /* m units are in RAI */
+         if (ixyz == 0) {
+            fprintf(stdout,"++ Input coordinates being transformed from MNI  RAI ([%.2f %.2f %.2f]) \n"
+                           "                                         to TLRC RAI ([%.2f %.2f %.2f]).\n", 
+                                                               x, y, z, m.xyz[0],  m.xyz[1], m.xyz[2]);
+         }
+         x = m.xyz[0]; y = m.xyz[1]; z = m.xyz[2];
+      }
+      
       if (OldMethod) {
         string = TT_whereami_old(x,y,z);
         if (string == NULL ) {                              /* 30 Apr 2005 [rickr] */
