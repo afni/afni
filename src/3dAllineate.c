@@ -73,6 +73,7 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset_out=NULL ;
    MRI_IMAGE *im_base, *im_targ, *im_weig=NULL, *im_mask=NULL, *qim ;
+   MRI_IMAGE *im_bset, *im_wset ;
    GA_setup stup ;
    int iarg , ii,jj,kk , nmask=0 , nfunc , rr ;
    int   nx_base,ny_base,nz_base , nx_targ,ny_targ,nz_targ , nxy_base ;
@@ -1782,6 +1783,8 @@ int main( int argc , char *argv[] )
 
    /*--- loop over target sub-bricks ---*/
 
+   im_bset = im_base ;  /* base image for first loop */
+
    for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
 
      if( kk == 0 && skip_first ){  /* skip first image since it == im_base */
@@ -1810,7 +1813,8 @@ int main( int argc , char *argv[] )
        stup.interp_code   = final_interp ;
        stup.smooth_code   = 0 ;
        stup.npt_match     = 11 ;
-       mri_genalign_scalar_setup( im_base , NULL , im_targ , &stup ) ;
+       mri_genalign_scalar_setup( im_bset , NULL , im_targ , &stup ) ;
+       im_bset = NULL ;
        mri_free(im_targ) ; im_targ = NULL ;
        goto WRAP_IT_UP_BABY ;
      }
@@ -1842,7 +1846,8 @@ int main( int argc , char *argv[] )
        stup.smooth_radius_base =
         stup.smooth_radius_targ = (sm_rad == 0.0f) ? 11.111f : sm_rad ;
 
-       mri_genalign_scalar_setup( im_base , im_weig , im_targ , &stup ) ;
+       mri_genalign_scalar_setup( im_bset , im_wset , im_targ , &stup ) ;
+       im_bset = NULL ; im_wset = NULL ;
 
        if( save_hist != NULL ){  /* Save start 2D histogram: 28 Sep 2006 */
          int nbin ; float *xyc ;
@@ -1974,8 +1979,10 @@ int main( int argc , char *argv[] )
      stup.npt_match = npt_match ;
      if( didtwo )
        mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;  /* simple re-setup */
-     else
-       mri_genalign_scalar_setup( im_base , im_weig , im_targ , &stup ) ;
+     else {
+       mri_genalign_scalar_setup( im_bset , im_wset , im_targ , &stup ) ;
+       im_bset = NULL ; im_wset = NULL ;
+     }
 
      /* choose initial parameters, based on interp_code cost function */
 
@@ -2013,15 +2020,19 @@ int main( int argc , char *argv[] )
 
      /* start with some optimization with linear interp, for speed? */
 
-     if( MRI_HIGHORDER(interp_code) ){
+     if( MRI_HIGHORDER(interp_code) || npt_match > 999999 ){
        float pini[MAXPAR] ;
        stup.interp_code = MRI_LINEAR ;
-       nfunc = mri_genalign_scalar_optim( &stup, rad, 0.002, 6666 );
+       stup.npt_match   = MIN(499999,npt_match) ;
+       mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;
+       nfunc = mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 6666 );
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
          pini[jj] = stup.wfunc_param[jj].val_init ;
          stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out ;
        }
-       stup.interp_code = interp_code ;           /* compute cost using      */
+       stup.interp_code = interp_code ;
+       stup.npt_match   = npt_match ;
+       mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;
        cost = mri_genalign_scalar_cost( &stup ) ; /* interp_code, not LINEAR */
        if( cost > cost_ini ){   /* should not happen, but it could since  */
          if( verb > 1 )         /* LINEAR cost optimized above isn't same */
@@ -2126,7 +2137,7 @@ int main( int argc , char *argv[] )
 
      /*- freeze warp-ing parameters (those after #0..5) for later rounds */
 
-     if( warp_freeze ){                          /* 10 Oct 2006 */
+     if( warp_freeze && DSET_NVALS(dset_targ) > 1 ){  /* 10 Oct 2006 */
        for( jj=6 ; jj < stup.wfunc_numpar ; jj++ ){
          if( !stup.wfunc_param[jj].fixed ){
            if( verb > 1 ) INFO_message("Freezing parameter #%d [%s] = %.5f",
@@ -2291,7 +2302,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod )
    for( ii=0 ; ii < nxyz ; ii++ ) if( !mmm[ii] ) wf[ii] = 0.0f ;
    free((void *)mmm) ;
 
-   /*-- binarize? --*/
+   /*-- binarize (acod==2)?  boxize (acod==3)? --*/
 
 #undef  BPAD
 #define BPAD 4
@@ -2302,17 +2313,17 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod )
        int xm,xp , ym,yp , zm,zp ;
        MRI_autobbox_clust(0) ;
        MRI_autobbox( wim , &xm,&xp , &ym,&yp , &zm,&zp ) ;
-       xm -= BPAD ; if( xm < 0    ) xm = 0 ;
-       ym -= BPAD ; if( ym < 0    ) ym = 0 ;
-       zm -= BPAD ; if( zm < 0    ) zm = 0 ;
-       xp += BPAD ; if( xp > nx-1 ) xp = nx-1 ;
-       yp += BPAD ; if( yp > ny-1 ) yp = ny-1 ;
-       zp += BPAD ; if( zp > nz-1 ) zp = nz-1 ;
+       xm -= BPAD ; if( xm < 1    ) xm = 1 ;
+       ym -= BPAD ; if( ym < 1    ) ym = 1 ;
+       zm -= BPAD ; if( zm < 1    ) zm = 1 ;
+       xp += BPAD ; if( xp > nx-2 ) xp = nx-2 ;
+       yp += BPAD ; if( yp > ny-2 ) yp = ny-2 ;
+       zp += BPAD ; if( zp > nz-2 ) zp = nz-2 ;
        if( verb > 1 ) ININFO_message("Weightize: box=%d..%d X %d..%d X %d..%d",
                                      xm,xp , ym,yp , zm,zp ) ;
        for( kk=zm ; kk <= zp ; kk++ )
         for( jj=ym ; jj <= yp ; jj++ )
-          for( ii=xm ; ii <= xp ; ii++ ) WW(ii,jj,kk) = 1.0f ;
+         for( ii=xm ; ii <= xp ; ii++ ) WW(ii,jj,kk) = 1.0f ;
      }
    }
 

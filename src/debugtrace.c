@@ -25,7 +25,7 @@ static void output_message( char *prefix , char *fmt , va_list vararg_ptr )
    if( msg[ll-1] != '\n' ){ msg[ll] = '\n' ; msg[ll+1] = '\0' ; }
    fputs(msg,stderr) ; free(msg) ;  /* 03 Mar 2006: forgot the free! */
    if( ifmt != fmt ) free(ifmt) ;
-   return ;
+   fflush(stdout) ; fflush(stderr) ; return ;
 }
 
 /*--------------------------------------------------------------------------*/
