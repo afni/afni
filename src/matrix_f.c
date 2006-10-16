@@ -19,7 +19,7 @@
 
   Mod:      Added routines matrix_file_write and matrix_file_read.
   Date:     02 July 1999
-	
+
   Mod:      Added routine for calculating square root of matrix.
   Date:     30 September 1999
 
@@ -42,12 +42,12 @@
             up calculations (including vector_create_noinit) -- RWCox.
   Date:     28 Dec 2001
 
-  Mod:      Allow matrices and vectors with zero rows and columns. 
+  Mod:      Allow matrices and vectors with zero rows and columns.
   Date:     26 February 2002
 
-  Mod:      Corrected errors in vector_multiply and vector_multiply_subtract 
-            routines that would produce segmentation fault for certain input 
-	    matrices.
+  Mod:      Corrected errors in vector_multiply and vector_multiply_subtract
+            routines that would produce segmentation fault for certain input
+            matrices.
   Date:     18 March 2003
 
   Mod:      Added UNROLL_VECMUL stuff from matrix.c to this file as well.
@@ -324,7 +324,7 @@ void matrix_enter (matrix * m)
 */
 
 void matrix_file_read (char *filename, int rows, int cols,  matrix *m,
-		       int error_exit)
+                       int error_exit)
 {
   int i, j;
 
@@ -339,20 +339,20 @@ void matrix_file_read (char *filename, int rows, int cols,  matrix *m,
 
 
   /*----- Read the matrix file -----*/
-  flim = mri_read_1D (filename); 
+  flim = mri_read_1D (filename);
   if (flim == NULL)
     if (error_exit)
       {
-	sprintf (message,  "Unable to read matrix from file: %s",  filename);
-	matrix_error (message);
+       sprintf (message,  "Unable to read matrix from file: %s",  filename);
+       matrix_error (message);
       }
     else
       {
-	matrix_destroy (m);
-	return;
+       matrix_destroy (m);
+       return;
       }
 
-  
+
   /*----- Set pointer to data  -----*/
   far = MRI_FLOAT_PTR(flim);
 
@@ -361,26 +361,23 @@ void matrix_file_read (char *filename, int rows, int cols,  matrix *m,
   if ( (rows != flim->nx) || (cols != flim->ny) )
     if (error_exit)
       {
-	sprintf (message, 
-		 "In matrix file: %s   Expected: %d x %d   Actual: %d x %d",
-		 filename, rows, cols, flim->nx, flim->ny);
-	matrix_error (message);
+       sprintf (message,
+       "In matrix file: %s   Expected: %d x %d   Actual: %d x %d",
+       filename, rows, cols, flim->nx, flim->ny);
+       matrix_error (message);
       }
     else
       {
-	matrix_destroy (m);
-	return;
+       matrix_destroy (m);
+       return;
       }
-  
 
   matrix_create (rows, cols, m);
-
 
   /*----- Copy data from image structure to matrix structure -----*/
   for (i = 0;  i < rows;  i++)
     for (j = 0;  j < cols;  j++)
       m->elts[i][j] = far[i + j*rows];
-
 
   mri_free (flim);  flim = NULL;
 
@@ -489,10 +486,8 @@ void matrix_identity (int n, matrix * m)
 
   for (i = 0;  i < n;  i++)
     for (j = 0;  j < n;  j++)
-      if (i == j)
-	m->elts[i][j] = 1.0;
-      else
-	m->elts[i][j] = 0.0;
+      if (i == j) m->elts[i][j] = 1.0;
+      else        m->elts[i][j] = 0.0;
 }
 
 
@@ -567,8 +562,8 @@ void matrix_multiply (matrix a, matrix b, matrix * c)
     for (j = 0;  j < cols;  j++)
       {
         sum = 0.0 ;
-	for (k = 0;  k < a.cols;  k++)
-	  sum += a.elts[i][k] * b.elts[k][j];
+        for (k = 0;  k < a.cols;  k++)
+          sum += a.elts[i][k] * b.elts[k][j];
         c->elts[i][j] = sum;
       }
 }
@@ -614,10 +609,10 @@ void matrix_transpose (matrix a, matrix * t)
       t->elts[i][j] = a.elts[j][i];
 }
 
- 
+
 /*---------------------------------------------------------------------------*/
 /*!
-  Use Gaussian elimination to calculate inverse of matrix a.  Result is 
+  Use Gaussian elimination to calculate inverse of matrix a.  Result is
   matrix ainv.
 */
 
@@ -633,7 +628,7 @@ int matrix_inverse (matrix a, matrix * ainv)
   matrix_initialize (&tmp);
 
 
-  if (a.rows != a.cols) 
+  if (a.rows != a.cols)
     matrix_error ("Illegal dimensions for matrix inversion");
 
 
@@ -645,41 +640,40 @@ int matrix_inverse (matrix a, matrix * ainv)
     {
       fmax = fabs(tmp.elts[i][i]);
       for (j = i+1;  j < n;  j++)
-	if (fabs(tmp.elts[j][i]) > fmax)
-	  {
-	    fmax = fabs(tmp.elts[j][i]);
-	    p = tmp.elts[i];
-	    tmp.elts[i] = tmp.elts[j];
-	    tmp.elts[j] = p;
-	    p = ainv->elts[i];
-	    ainv->elts[i] = ainv->elts[j];
-	    ainv->elts[j] = p;
-	  }
+       if (fabs(tmp.elts[j][i]) > fmax)
+       {
+         fmax = fabs(tmp.elts[j][i]);
+         p = tmp.elts[i];
+         tmp.elts[i] = tmp.elts[j];
+         tmp.elts[j] = p;
+         p = ainv->elts[i];
+         ainv->elts[i] = ainv->elts[j];
+         ainv->elts[j] = p;
+       }
 
       if (fmax < epsilon)
-	{
-	  matrix_destroy (&tmp);
-	  return (0);
-	}
-	
+      {
+        matrix_destroy (&tmp);
+        return (0);
+      }
 
       fval = 1.0 / tmp.elts[i][i];   /* RWCox: change division by this to */
       for (j = 0;  j < n;  j++)      /*        multiplication by 1.0/this */
-	{
-	  tmp.elts[i][j]   *= fval;
-	  ainv->elts[i][j] *= fval;
-	}
+      {
+        tmp.elts[i][j]   *= fval;
+        ainv->elts[i][j] *= fval;
+      }
       for (ii = 0;  ii < n;  ii++)
-	if (ii != i)
-	  {
-	    fval = tmp.elts[ii][i];
-	    for (j = 0;  j < n;  j++)
-	      {
-		tmp.elts[ii][j] -= fval*tmp.elts[i][j];
-		ainv->elts[ii][j] -= fval*ainv->elts[i][j];
-	      }
-	  }
-	
+       if (ii != i)
+       {
+         fval = tmp.elts[ii][i];
+         for (j = 0;  j < n;  j++)
+         {
+           tmp.elts[ii][j] -= fval*tmp.elts[i][j];
+           ainv->elts[ii][j] -= fval*ainv->elts[i][j];
+         }
+       }
+
     }
   matrix_destroy (&tmp);
   return (1);
@@ -726,10 +720,9 @@ int matrix_inverse_dsc (matrix a, matrix * ainv)  /* 15 Jul 2004 - RWCox */
   return (mir);
 }
 
- 
 /*---------------------------------------------------------------------------*/
 /*!
-  Calculate square root of symmetric positive definite matrix a.  
+  Calculate square root of symmetric positive definite matrix a.
   Result is matrix s.
 */
 
@@ -750,7 +743,7 @@ int matrix_sqrt (matrix a, matrix * s)
   matrix_initialize (&error);
 
 
-  if (a.rows != a.cols) 
+  if (a.rows != a.cols)
     matrix_error ("Illegal dimensions for matrix square root");
 
 
@@ -771,8 +764,8 @@ int matrix_sqrt (matrix a, matrix * s)
       matrix_subtract (a, xtemp, &error);
       sse = 0.0;
       for (i = 0;  i < n;  i++)
-	for (j = 0;  j < n;  j++)
-	  sse += error.elts[i][j] * error.elts[i][j] ;
+        for (j = 0;  j < n;  j++)
+          sse += error.elts[i][j] * error.elts[i][j] ;
 
       if (sse >= psse) break;
 
@@ -827,7 +820,7 @@ void vector_create (int dim, vector * v)
   register int i;
 
   vector_destroy (v);
-  
+
   if (dim < 0)  matrix_error ("Illegal dimensions for new vector");
 
   v->dim = dim;
@@ -844,7 +837,7 @@ static void vector_create_noinit(int dim, vector * v)  /* 28 Dec 2001: RWCox */
   register int i;
 
   vector_destroy (v);
- 
+
   if (dim < 0)  matrix_error ("Illegal dimensions for new vector");
 
   v->dim = dim;
@@ -867,7 +860,7 @@ void vector_print (vector v)
   for (i = 0;  i < v.dim;  i++)
     printf ("  %10.4g \n", v.elts[i]);
   printf (" \n"); fflush(stdout);
-    
+
 }
 
 
@@ -951,7 +944,7 @@ void column_to_vector (matrix m, int c, vector * v)
 void vector_to_array (vector v, float * f)
 {
   register int i;
- 
+
   for (i = 0;  i < v.dim;  i++)
     f[i] = v.elts[i];
 }
@@ -1005,6 +998,8 @@ void vector_subtract (vector a, vector b, vector * c)
 }
 
 #define UNROLL_VECMUL  /* RWCox */
+#undef  P
+#define P(z) aa[z]*bb[z]  /* elementary product */
 
 /*---------------------------------------------------------------------------*/
 /*!
@@ -1048,42 +1043,38 @@ void vector_multiply (matrix a, vector b, vector * c)
 #else
 
 #ifdef UNROLL_VECMUL
-  switch( cols%4 ){
+  switch( cols%4 ){    /* unroll inner loop by 4 */
     case 0:
      for (i = 0;  i < rows;  i++){
-        sum = 0.0 ; aa = a.elts[i] ;
-        for (j = 0;  j < cols;  j+=4 )
-          sum += aa[j]*bb[j]+aa[j+1]*bb[j+1]+aa[j+2]*bb[j+2]+aa[j+3]*bb[j+3];
-        c->elts[i] = sum ;
+       sum = 0.0 ; aa = a.elts[i] ;
+       for (j = 0;  j < cols;  j+=4 ) sum += P(j) + P(j+1) + P(j+2) + P(j+3);
+       c->elts[i] = sum ;
      }
     break ;
     case 1:
      for (i = 0;  i < rows;  i++){
-        aa = a.elts[i] ; sum = aa[0]*bb[0] ;
-        for (j = 1;  j < cols;  j+=4 )
-          sum += aa[j]*bb[j]+aa[j+1]*bb[j+1]+aa[j+2]*bb[j+2]+aa[j+3]*bb[j+3];
-        c->elts[i] = sum ;
+       aa = a.elts[i] ; sum = P(0) ;
+       for (j = 1;  j < cols;  j+=4 ) sum += P(j) + P(j+1) + P(j+2) + P(j+3);
+       c->elts[i] = sum ;
      }
     break ;
     case 2:
      for (i = 0;  i < rows;  i++){
-        aa = a.elts[i] ; sum = aa[0]*bb[0]+aa[1]*bb[1] ;
-        for (j = 2;  j < cols;  j+=4 )
-          sum += aa[j]*bb[j]+aa[j+1]*bb[j+1]+aa[j+2]*bb[j+2]+aa[j+3]*bb[j+3];
-        c->elts[i] = sum ;
+       aa = a.elts[i] ; sum = P(0)+P(1) ;
+       for (j = 2;  j < cols;  j+=4 ) sum += P(j) + P(j+1) + P(j+2) + P(j+3);
+       c->elts[i] = sum ;
      }
     break ;
     case 3:
      for (i = 0;  i < rows;  i++){
-        aa = a.elts[i] ; sum = aa[0]*bb[0]+aa[1]*bb[1]+aa[2]*bb[2] ;
-        for (j = 3;  j < cols;  j+=4 )
-          sum += aa[j]*bb[j]+aa[j+1]*bb[j+1]+aa[j+2]*bb[j+2]+aa[j+3]*bb[j+3];
-        c->elts[i] = sum ;
+       aa = a.elts[i] ; sum = P(0)+P(1)+P(2) ;
+       for (j = 3;  j < cols;  j+=4 ) sum += P(j) + P(j+1) + P(j+2) + P(j+3);
+       c->elts[i] = sum ;
      }
     break ;
   }
 #else
-    for (i = 0;  i < rows;  i++){
+    for (i = 0;  i < rows;  i++){         /** the simplest C code **/
         sum = 0.0f ; aa = a.elts[i] ;
         for (j = 0;  j < cols;  j++ ) sum += aa[j]*bb[j] ;
         c->elts[i] = sum ;
@@ -1145,42 +1136,38 @@ float  vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
 #else
 
 #ifdef UNROLL_VECMUL
-  switch( cols%4 ){
+  switch( cols%4 ){   /* unroll inner loop by 4 */
     case 0:
      for (i = 0;  i < rows;  i++){
-        aa = a.elts[i] ; sum = c.elts[i] ;
-        for (j = 0;  j < cols;  j+=4 )
-          sum -= aa[j]*bb[j]+aa[j+1]*bb[j+1]+aa[j+2]*bb[j+2]+aa[j+3]*bb[j+3];
-        d->elts[i] = sum ; qsum += sum*sum ;
+       aa = a.elts[i] ; sum = c.elts[i] ;
+       for (j = 0;  j < cols;  j+=4 ) sum -= P(j) + P(j+1) + P(j+2) + P(j+3);
+       d->elts[i] = sum ; qsum += sum*sum ;
      }
     break ;
     case 1:
      for (i = 0;  i < rows;  i++){
-        aa = a.elts[i] ; sum = c.elts[i]-aa[0]*bb[0] ;
-        for (j = 1;  j < cols;  j+=4 )
-          sum -= aa[j]*bb[j]+aa[j+1]*bb[j+1]+aa[j+2]*bb[j+2]+aa[j+3]*bb[j+3];
-        d->elts[i] = sum ; qsum += sum*sum ;
+       aa = a.elts[i] ; sum = c.elts[i]-P(0) ;
+       for (j = 1;  j < cols;  j+=4 ) sum -= P(j) + P(j+1) + P(j+2) + P(j+3);
+       d->elts[i] = sum ; qsum += sum*sum ;
      }
     break ;
     case 2:
      for (i = 0;  i < rows;  i++){
-        aa = a.elts[i] ; sum = c.elts[i]-aa[0]*bb[0]-aa[1]*bb[1] ;
-        for (j = 2;  j < cols;  j+=4 )
-          sum -= aa[j]*bb[j]+aa[j+1]*bb[j+1]+aa[j+2]*bb[j+2]+aa[j+3]*bb[j+3];
-        d->elts[i] = sum ; qsum += sum*sum ;
+       aa = a.elts[i] ; sum = c.elts[i]-P(0)-P(1) ;
+       for (j = 2;  j < cols;  j+=4 ) sum -= P(j) + P(j+1) + P(j+2) + P(j+3);
+       d->elts[i] = sum ; qsum += sum*sum ;
      }
     break ;
     case 3:
      for (i = 0;  i < rows;  i++){
-        aa = a.elts[i] ; sum = c.elts[i]-aa[0]*bb[0]-aa[1]*bb[1]-aa[2]*bb[2] ;
-        for (j = 3;  j < cols;  j+=4 )
-          sum -= aa[j]*bb[j]+aa[j+1]*bb[j+1]+aa[j+2]*bb[j+2]+aa[j+3]*bb[j+3];
-        d->elts[i] = sum ; qsum += sum*sum ;
+       aa = a.elts[i] ; sum = c.elts[i]-P(0)-P(1)-P(2) ;
+       for (j = 3;  j < cols;  j+=4 ) sum -= P(j) + P(j+1) + P(j+2) + P(j+3);
+       d->elts[i] = sum ; qsum += sum*sum ;
      }
     break ;
   }
 #else
-  for (i = 0;  i < rows;  i++){
+  for (i = 0;  i < rows;  i++){         /** the simplest C code **/
     aa = a.elts[i] ; sum = c.elts[i] ;
     for (j = 0;  j < cols;  j++) sum -= aa[j] * bb[j] ;
     d->elts[i] = sum ; qsum += sum*sum ;
@@ -1399,7 +1386,7 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
 
    /* compute SVD of scaled matrix */
 
-   svd_double( m , n , amat , sval , umat , vmat ) ; 
+   svd_double( m , n , amat , sval , umat , vmat ) ;
 
    free((void *)amat) ;  /* done with this */
 
