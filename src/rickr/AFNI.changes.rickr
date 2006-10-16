@@ -1758,3 +1758,7 @@
 28 Sep 2006:
   * modified thd_niml.c:close niml stream in write_niml_file()
   * modified afni_niml.c:no AFNI_finalize_dataset_CB from process_NIML_SUMA_ixyz
+
+12 Oct 2006: added serial_writer.c program for rasmus
+16 Oct 2006: modified serial_writer.c: added -ms_sleep, -nblocks and -swap
+
