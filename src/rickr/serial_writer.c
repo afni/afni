@@ -1,4 +1,4 @@
-#define VERSION "0.1 (October 12, 2006)"
+#define VERSION "1.0 (October 16, 2006)"
 
 /*----------------------------------------------------------------------
  * serial_writer.c    - pass some data to a serial port
@@ -13,8 +13,8 @@ static char g_history[] =
  "----------------------------------------------------------------------\n"
  " history:\n"
  "\n"
- " 0.1  October 12, 2006  [rickr]\n"
- "    - initial program\n"
+ " 0.1  October 12, 2006  [rickr] - initial program\n"
+ " 1.0  October 16, 2006  [rickr] - added -ms_sleep, -nblocks and -swap\n"
  "----------------------------------------------------------------------\n";
 
 
@@ -38,6 +38,9 @@ typedef struct{
     char  * in_fname;       /* input filename (stdin if NULL) */
     int     make_data;      /* create data */
     int     block_len;      /* length of writing block */
+    int     nblocks;        /* number of blocks to write (0 for inf) */
+    int     swap;           /* swap 'n' bytes (0 to do no swap) */
+    int     ms_sleep;       /* sleep this number of ms betweeen blocks */
     int     debug;
 } opts_t;
 
@@ -46,7 +49,7 @@ typedef struct{
     int     infd;           /* 0 if stdin */
 } control_t;
 
-opts_t    gopts  = { NULL, NULL, 0, 1024, 0 };
+opts_t    gopts  = { NULL, NULL, 0, 12, 0, 0, 0, 0 };
 control_t gcontr = { -1, 0 };  /* uninit, stdin */
 
 #define SW_USE_SHORT 1
@@ -61,14 +64,17 @@ int  close_ports( void );
 int  disp_hex_bytes( char * mesg, char * data, int len );
 int  disp_opts_t( char * info, opts_t * O );
 int  get_opts   (opts_t *opt, int argc, char *argv[]);
+int  ms_sleep( int ms );
 int  open_serial(opts_t *opt, control_t * contr);
 int  send_serial(opts_t * opt, control_t * contr, char * data, int len);
 int  set_data   ( opts_t * opts, control_t * contr, char * data );
+int  swap_2( char * data, int nshort );
+int  swap_4( char * data, int nint );
 int  usage      ( char * prog, int level );
 
 int main(int argc, char *argv[])
 {
-    int  rv, len, done = 0;
+    int  rv, len, nblocks, done = 0;
     char * data = NULL;
 
     if ( (rv = get_opts(&gopts, argc, argv)) != 0 )
@@ -99,19 +105,27 @@ int main(int argc, char *argv[])
                 gopts.block_len);
         return 1;
     }
+
+    if( gopts.swap == 2 ) swap_2(data, gopts.block_len/2);
+    else if( gopts.swap == 4 ) swap_4(data, gopts.block_len/4);
     
     if( (rv = open_serial(&gopts, &gcontr)) != 0 )
         return rv;
 
-    while(! done) 
+    nblocks = 0;
+    while(! done && (gopts.nblocks <= 0 || nblocks < gopts.nblocks) ) 
     {
         len = set_data(&gopts, &gcontr, data);
         if( len > 0 ) done = send_serial(&gopts, &gcontr, data, len);
         else          done = 1;
+        nblocks++;
+	if( gopts.ms_sleep ) ms_sleep(gopts.ms_sleep);
     } 
 
     free(data);
     close_ports();
+
+    if(gopts.debug) fprintf(stderr,"-d wrote %d blocks of data\n",nblocks);
 
     return 0;
 }
@@ -123,15 +137,16 @@ int main(int argc, char *argv[])
  */
 int set_data( opts_t * opts, control_t * contr, char * data )
 {
-    static int counter = 0;
-    int        c, * ip;
+    static short   counter = 0, size = sizeof(counter);
+    short        * sp;
+    int            c;
 
     if ( opts->make_data )
     {
-        int ints = opts->block_len / 4;
-        if( opts->block_len % 4 )
+        int ints = opts->block_len / size;
+        if( opts->block_len % size )
         {
-            fprintf(stderr,"** block_len should be multiple of 4\n");
+            fprintf(stderr,"** block_len should be multiple of %d\n",size);
             return -1;
         }
 
@@ -139,9 +154,9 @@ int set_data( opts_t * opts, control_t * contr, char * data )
             fprintf(stderr,"-d setting %d ints from %8d to %8d\n",
                 ints, counter, counter+ints-1);
         
-        ip = (int *)data;
+        sp = (short *)data;
         for( c = 0; c < ints; c++ )
-            *ip++ = counter++;
+            *sp++ = counter++;
 
         return opts->block_len;
     }
@@ -241,10 +256,35 @@ int get_opts(opts_t *opt, int argc, char *argv[])
         {
             opt->make_data = 1;
         }
+        else if ( !strncmp(argv[ac], "-ms_sleep", 9) )
+        {
+            CHECK_ARG_COUNT(ac, "opt use: -ms_sleep MS_TO_SLEEP\n");
+            opt->ms_sleep = atoi(argv[++ac]);
+            if( opt->ms_sleep <= 0 )
+            {
+                fprintf(stderr,"** -ms_sleep MS_TO_SLEEP must be positive\n");
+                return -1;
+            }
+        }
+        else if ( !strncmp(argv[ac], "-nblocks", 7) )
+        {
+            CHECK_ARG_COUNT(ac, "opt use: -nblocks NUM_BLOCKS\n");
+            opt->nblocks = atoi(argv[++ac]);
+            if( opt->nblocks <= 0 )
+            {
+                fprintf(stderr,"** -nblocks NUM_BLOCKS needs to be positive\n");
+                return -1;
+            }
+        }
         else if ( !strncmp(argv[ac], "-serial_port", 7) )
         {
             CHECK_ARG_COUNT(ac, "opt use: -serial_port SERIAL_FILENAME\n");
             opt->sport_fname = argv[++ac];
+        }
+        else if ( !strncmp(argv[ac], "-swap", 5) )
+        {
+            CHECK_ARG_COUNT(ac, "opt use: -swap NUM_BYTES\n");
+            opt->swap = atoi(argv[++ac]);
         }
         else
         {
@@ -255,6 +295,13 @@ int get_opts(opts_t *opt, int argc, char *argv[])
 
     if ( opt->debug > 1 )
         disp_opts_t( "options read: ", opt );
+
+    if ( opt->swap != 0 && opt->swap != 2 && opt->swap != 4 )
+    {
+        fprintf(stderr,"** invalid -swap '%d', must be one of 0, 2 or 4\n",
+                opt->swap);
+        return 1;
+    }
 
     return 0;
 }
@@ -304,6 +351,9 @@ int usage( char * prog, int level )
             "------------------------------------------------------------\n"
             "  I/O options:\n"
             "\n"
+            "    -block_len LEN        : specify the length of a block\n"
+            "                          : -block_len 64\n"
+            "\n"
             "    -infile FILENAME      : specify name of file for input\n"
             "                          : -infile my_data\n"
             "\n"
@@ -315,6 +365,20 @@ int usage( char * prog, int level )
             "        Create data, instead of getting it from a file.\n"
             "        Currently, this will output increasing 4 byte ints.\n"
             "\n"
+            "    -ms_sleep MS_TO_SLEEP : sleep between blocks\n"
+            "\n"
+            "        Sleep for this number of miliseconds between each\n"
+            "        block of data.\n"
+            "\n"
+            "    -swap NUM_BYTES       : specify the number of bytes to swap\n"
+            "                          : -swap 2\n"
+            "\n"
+            "        Swap bytes before sending.  NUM_BYTES can be either\n"
+            "        2 or 4 (or 0, for no swapping).\n"
+            "\n"
+            "\n"
+            "    -nblocks NUM_BLOCKS   : specify the number of blocks\n"
+            "                          : -nblocks 1024\n"
             "------------------------------------------------------------\n"
             "  required output port:\n"
             "\n"
@@ -382,16 +446,17 @@ int open_serial(opts_t *opt, control_t * contr)
     /* get the current options for the port */
     tcgetattr(contr->spfd, &topt);
 
-    /* set the baud rates to 9600 */
-    cfsetispeed(&topt, B9600);
-    cfsetospeed(&topt, B9600);
+    /* set the baud rates to 9600 (fim scanner is 115200) */
+    cfsetispeed(&topt, B115200);
+    cfsetospeed(&topt, B115200);
 
     /* enable the receiver and set local mode */
     topt.c_cflag |= (CLOCAL | CREAD );
         
     /* set 8 bit N parity */
     topt.c_cflag &= ~PARENB;
-    topt.c_cflag &= ~CSTOPB;
+    /* topt.c_cflag &= ~CSTOPB; */
+    topt.c_cflag |= CSTOPB;		/* fim */
     topt.c_cflag &= ~CSIZE;
     topt.c_cflag |= CS8;
 
@@ -463,6 +528,44 @@ int disp_hex_bytes( char * mesg, char * data, int len )
 
     if( mesg || len > 0 ) fputc('\n', stderr);
 
+    return 0;
+}
+
+int ms_sleep( int ms )
+{
+    struct timeval tv;
+    if( ms <= 0 ) return 0;
+    tv.tv_sec = ms / 1000;
+    tv.tv_usec = (ms%1000)*1000 ;
+    select( 1 , NULL,NULL,NULL , &tv ) ;
+    return 0;
+}
+
+int swap_2( char * data, int nshort )
+{
+    int  count;
+    char c, *cp = data;
+
+    for( count = 0; count < nshort; count++)
+    {
+        c = *cp; cp[0] = cp[1]; cp[1] = c;
+	cp += 2;
+    }
+    return 0;
+}
+
+
+int swap_4( char * data, int nint )
+{
+    int  count;
+    char c, *cp = data;
+
+    for( count = 0; count < nint; count++)
+    {
+        c = cp[0]; cp[0] = cp[3]; cp[3] = c;
+        c = cp[1]; cp[1] = cp[2]; cp[2] = c;
+	cp += 4;
+    }
     return 0;
 }
 
