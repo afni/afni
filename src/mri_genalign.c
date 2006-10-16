@@ -759,6 +759,7 @@ ENTRY("mri_genalign_scalar_setup") ;
                        -(stup->bsim->nz-1)*0.5f*stup->bsim->dz  ) ;
      }
      stup->base_imat = MAT44_INV( stup->base_cmat ) ;
+     if( stup->bsims != NULL ){ mri_free(stup->bsims); stup->bsims = NULL; }
    }
    nx = stup->bsim->nx; ny = stup->bsim->ny; nz = stup->bsim->nz; nxy = nx*ny;
 
@@ -779,6 +780,7 @@ ENTRY("mri_genalign_scalar_setup") ;
                        -(stup->ajim->nz-1)*0.5f*stup->ajim->dz  ) ;
      }
      stup->targ_imat = MAT44_INV( stup->targ_cmat ) ;
+     if( stup->ajims != NULL ){ mri_free(stup->ajims); stup->ajims = NULL; }
    }
 
    /* smooth images if needed
@@ -787,11 +789,13 @@ ENTRY("mri_genalign_scalar_setup") ;
    need_smooth_base = (stup->smooth_code > 0 && stup->smooth_radius_base > 0.0f);
    need_smooth_targ = (stup->smooth_code > 0 && stup->smooth_radius_targ > 0.0f);
    do_smooth_base   = need_smooth_base &&
-                     ( stup->smooth_code        != stup->old_sc     ||
-                       stup->smooth_radius_base != stup->old_sr_base  ) ;
+                     ( stup->smooth_code        != stup->old_sc      ||
+                       stup->smooth_radius_base != stup->old_sr_base ||
+                       stup->bsims              == NULL                ) ;
    do_smooth_targ   = need_smooth_targ &&
-                     ( stup->smooth_code        != stup->old_sc     ||
-                       stup->smooth_radius_targ != stup->old_sr_targ  ) ;
+                     ( stup->smooth_code        != stup->old_sc      ||
+                       stup->smooth_radius_targ != stup->old_sr_targ ||
+                       stup->ajims              == NULL                ) ;
    stup->old_sc      = stup->smooth_code   ;
    stup->old_sr_base = stup->smooth_radius_base ;
    stup->old_sr_targ = stup->smooth_radius_targ ;
@@ -802,17 +806,16 @@ ENTRY("mri_genalign_scalar_setup") ;
    }
    if( !need_smooth_targ ){
      if( stup->ajims != NULL ){ mri_free(stup->ajims); stup->ajims = NULL; }
-     stup->old_sr_base = -1.0f ;
+     stup->old_sr_targ = -1.0f ;
    }
-   if( do_smooth_base || (need_smooth_base && stup->bsims == NULL) ){
+   if( do_smooth_base ){
      if( stup->bsims != NULL ) mri_free(stup->bsims);
      if( verb > 1 )
        ININFO_message("- Smoothing base; radius=%.2f",stup->smooth_radius_base);
      stup->bsims = GA_smooth( stup->bsim , stup->smooth_code ,
                                            stup->smooth_radius_base ) ;
    }
-   if( do_smooth_targ || (need_smooth_targ && stup->ajims == NULL) ){
-     double nxa=stup->ajim->nx, nya=stup->ajim->ny, nza=stup->ajim->nz ;
+   if( do_smooth_targ ){
      if( stup->ajims != NULL ) mri_free(stup->ajims);
      if( verb > 1 )
        ININFO_message("- Smoothing source; radius=%.2f",stup->smooth_radius_targ);
