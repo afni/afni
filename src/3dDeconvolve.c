@@ -762,7 +762,7 @@ void display_help_menu()
             "             program up considerably.  On a single CPU\n"
             "             machine, using this option is silly.\n"
             "             J should be a number from 1 up to the\n"
-            "             number of CPU sharing memory on the system.\n"
+            "             number of CPUs sharing memory on the system.\n"
             "             J=1 is normal (single process) operation.\n"
             "             The maximum allowed value of J is %d.\n"
             "         * For more information on parallelizing, see\n"
