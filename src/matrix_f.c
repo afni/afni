@@ -997,22 +997,22 @@ void vector_subtract (vector a, vector b, vector * c)
 #endif
 }
 
-#define UNROLL_VECMUL  /* RWCox */
+#define UNROLL_VECMUL     /* RWCox */
 #undef  P
-#define P(z) aa[z]*bb[z]  /* elementary product */
+#define P(z) aa[z]*bb[z]  /* elementary product [16 Oct 2006] */
 
 /*---------------------------------------------------------------------------*/
 /*!
   Right multiply matrix a by vector b.  Result is vector c.
 */
-void vector_multiply (matrix a, vector b, vector * c)
+void vector_multiply (matrix a, vector b, vector *c)
 {
   register int rows, cols;
   register int i, j;
   register float  sum ;
-  register float  *bb ;
+  register float  *bb , *cc ;
 #ifdef DOTP
-  register float **aa , *cc ;
+  float **aa ;
 #else
   register float *aa ;
 #endif
@@ -1030,7 +1030,7 @@ void vector_multiply (matrix a, vector b, vector * c)
     return ;
   }
 
-  bb = b.elts ;
+  bb = b.elts ; cc = c->elts ;
 
 #ifdef DOTP
   aa = a.elts ; cc = c->elts ;
@@ -1048,28 +1048,28 @@ void vector_multiply (matrix a, vector b, vector * c)
      for (i = 0;  i < rows;  i++){
        sum = 0.0 ; aa = a.elts[i] ;
        for (j = 0;  j < cols;  j+=4 ) sum += P(j) + P(j+1) + P(j+2) + P(j+3);
-       c->elts[i] = sum ;
+       cc[i] = sum ;
      }
     break ;
     case 1:
      for (i = 0;  i < rows;  i++){
        aa = a.elts[i] ; sum = P(0) ;
        for (j = 1;  j < cols;  j+=4 ) sum += P(j) + P(j+1) + P(j+2) + P(j+3);
-       c->elts[i] = sum ;
+       cc[i] = sum ;
      }
     break ;
     case 2:
      for (i = 0;  i < rows;  i++){
        aa = a.elts[i] ; sum = P(0)+P(1) ;
        for (j = 2;  j < cols;  j+=4 ) sum += P(j) + P(j+1) + P(j+2) + P(j+3);
-       c->elts[i] = sum ;
+       cc[i] = sum ;
      }
     break ;
     case 3:
      for (i = 0;  i < rows;  i++){
        aa = a.elts[i] ; sum = P(0)+P(1)+P(2) ;
        for (j = 3;  j < cols;  j+=4 ) sum += P(j) + P(j+1) + P(j+2) + P(j+3);
-       c->elts[i] = sum ;
+       cc[i] = sum ;
      }
     break ;
   }
@@ -1077,7 +1077,7 @@ void vector_multiply (matrix a, vector b, vector * c)
     for (i = 0;  i < rows;  i++){         /** the simplest C code **/
         sum = 0.0f ; aa = a.elts[i] ;
         for (j = 0;  j < cols;  j++ ) sum += aa[j]*bb[j] ;
-        c->elts[i] = sum ;
+        cc[i] = sum ;
     }
 #endif /* UNROLL_VECMUL */
 
@@ -1095,9 +1095,9 @@ float  vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
 {
   register int rows, cols;
   register int i, j;
-  register float  *bb ;
+  register float  *bb , *dd,*cc  ;
 #ifdef DOTP
-  float qsum,sum , **aa , *dd,*cc,*ee ;
+  float qsum,sum , **aa , *ee ;
 #else
   register float qsum,sum, *aa ;
 #endif
@@ -1119,10 +1119,10 @@ float  vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
     return qsum ;
   }
 
-  qsum = 0.0f ; bb = b.elts ;
+  qsum = 0.0f ; bb = b.elts ; dd = d->elts ; cc = c.elts ;
 
 #ifdef DOTP
-  aa = a.elts ; dd = d->elts ; cc = c.elts ;
+  aa = a.elts ;
   ee = (float *)malloc(sizeof(float)*rows) ;
   i  = rows%2 ;
   if( i == 1 ) DOTP(cols,aa[0],bb,ee) ;
@@ -1139,38 +1139,38 @@ float  vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
   switch( cols%4 ){   /* unroll inner loop by 4 */
     case 0:
      for (i = 0;  i < rows;  i++){
-       aa = a.elts[i] ; sum = c.elts[i] ;
+       aa = a.elts[i] ; sum = cc[i] ;
        for (j = 0;  j < cols;  j+=4 ) sum -= P(j) + P(j+1) + P(j+2) + P(j+3);
-       d->elts[i] = sum ; qsum += sum*sum ;
+       dd[i] = sum ; qsum += sum*sum ;
      }
     break ;
     case 1:
      for (i = 0;  i < rows;  i++){
-       aa = a.elts[i] ; sum = c.elts[i]-P(0) ;
+       aa = a.elts[i] ; sum = cc[i]-P(0) ;
        for (j = 1;  j < cols;  j+=4 ) sum -= P(j) + P(j+1) + P(j+2) + P(j+3);
-       d->elts[i] = sum ; qsum += sum*sum ;
+       dd[i] = sum ; qsum += sum*sum ;
      }
     break ;
     case 2:
      for (i = 0;  i < rows;  i++){
-       aa = a.elts[i] ; sum = c.elts[i]-P(0)-P(1) ;
+       aa = a.elts[i] ; sum = cc[i]-P(0)-P(1) ;
        for (j = 2;  j < cols;  j+=4 ) sum -= P(j) + P(j+1) + P(j+2) + P(j+3);
-       d->elts[i] = sum ; qsum += sum*sum ;
+       dd[i] = sum ; qsum += sum*sum ;
      }
     break ;
     case 3:
      for (i = 0;  i < rows;  i++){
-       aa = a.elts[i] ; sum = c.elts[i]-P(0)-P(1)-P(2) ;
+       aa = a.elts[i] ; sum = cc[i]-P(0)-P(1)-P(2) ;
        for (j = 3;  j < cols;  j+=4 ) sum -= P(j) + P(j+1) + P(j+2) + P(j+3);
-       d->elts[i] = sum ; qsum += sum*sum ;
+       dd[i] = sum ; qsum += sum*sum ;
      }
     break ;
   }
 #else
   for (i = 0;  i < rows;  i++){         /** the simplest C code **/
-    aa = a.elts[i] ; sum = c.elts[i] ;
+    aa = a.elts[i] ; sum = cc[i] ;
     for (j = 0;  j < cols;  j++) sum -= aa[j] * bb[j] ;
-    d->elts[i] = sum ; qsum += sum*sum ;
+    dd[i] = sum ; qsum += sum*sum ;
   }
 #endif /* UNROLL_VECMUL */
 

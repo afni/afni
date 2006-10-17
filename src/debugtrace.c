@@ -82,3 +82,26 @@ void ERROR_exit( char *fmt , ... )
    va_end( vararg_ptr ) ;
    exit(1) ;
 }
+
+/*--------------------------------------------------------------------------*/
+
+#if 0
+#ifdef USE_TRACING
+void STATUS_message( char *fmt , ... )
+{
+   char *msg ; int ll ;
+   va_list vararg_ptr ;
+   va_start( vararg_ptr , fmt ) ;
+   ll = strlen(fmt) ; if( ll < 128 ) ll = 128 ;
+   msg = malloc(sizeof(char)*16*ll+1) ; msg[0] = '\0' ;
+   sprintf(msg,"%*.*s%s -- ",DBG_num,DBG_num," ",DBROUT) ;
+   ll = strlen(msg) ;
+   vsprintf(msg+ll,fmt,vararg_ptr) ; ll = strlen(msg) ;
+   if( msg[ll-1] != '\n' ){ msg[ll] = '\n'; msg[ll+1] = '\0'; }
+   if( DBG_fp==NULL ) DBG_fp=stdout;
+   fputs(msg,DBG_fp) ;
+   strncpy(last_status,msg,1023); last_status[1023]='\0';
+   free(msg) ; va_end( vararg_ptr ) ; return ;
+}
+#endif
+#endif

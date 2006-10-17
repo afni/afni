@@ -220,9 +220,13 @@ STATUS("setting parent_to_child_warp to identity") ;
 if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"setting parent_dset to stored warp_parent=%p  this dset=%p",
-          (void *) dset->warp_parent , (void *) dset ) ; STATUS(str) ; }
+          (void *)dset->warp_parent , (void *)dset ) ; STATUS(str) ;
+  sprintf(str,"parent_dset=%s  this=%s",
+          DSET_BRICKNAME(dset->warp_parent) , DSET_BRICKNAME(dset) ) ;
+  STATUS(str) ; }
 
       parent_dset = dset->warp_parent ;
+      DSET_load(parent_dset) ;          /* 17 Oct 2006 */
    } else {
 STATUS("setting parent_dset to self, and parent_to_child_warp to identity") ;
       parent_dset = dset ;                    /* self-parenting */

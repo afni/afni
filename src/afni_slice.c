@@ -4,6 +4,8 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+#define SL_DEBUG  /* 17 Oct 2006 */
+
 #undef MAIN
 
 /*********************************************************************
@@ -350,9 +352,28 @@ void LMAP_XNAME( THD_linear_mapping * map , int resam_mode ,
 
    if( xi_fix < xi_bot || xi_fix > xi_top ) EXRETURN ;  /* map doesn't apply! */
 
+   if( bold==NULL || bslice == NULL ){ STATUS("NULL pointers?!"); EXRETURN; }
+
+#ifdef SL_DEBUG
+if(PRINT_TRACING)
+{ char str[256];
+  sprintf(str,"xi_bot=%d xi_fix=%d xi_top=%d",xi_bot,xi_fix,xi_top);
+  STATUS(str) ;
+  sprintf(str,"yj_bot=%d yj_top=%d zk_bot=%d zk_top=%d",
+          yj_bot,yj_top,zk_bot,zk_top) ; STATUS(str) ;
+}
+#endif
+
    nxold = old_daxes->nxx ;  nxnew = new_daxes->nxx ;
    nyold = old_daxes->nyy ;  nynew = new_daxes->nyy ;
    nzold = old_daxes->nzz ;  nznew = new_daxes->nzz ;
+
+#ifdef SL_DEBUG
+if(PRINT_TRACING)
+{ char str[256];
+  sprintf(str,"OLD: nx=%d ny=%d nz=%d  NEW: nx=%d ny=%d nz=%d",
+          nxold,nyold,nzold , nxnew,nynew,nznew ) ; STATUS(str); }
+#endif
 
    jstep = nxold ;
    kstep = nxold * nyold ;
@@ -387,6 +408,12 @@ void LMAP_XNAME( THD_linear_mapping * map , int resam_mode ,
    fyj_top = nyold - 0.51 ;  fyj_bot = -0.49 ;
    fzk_top = nzold - 0.51 ;  fzk_bot = -0.49 ;
 
+#ifdef SL_DEBUG
+if(PRINT_TRACING)
+{ char str[256] ;
+  sprintf(str,"switch(resam_mode=%d)",resam_mode); STATUS(str); }
+#endif
+
    switch( resam_mode ){
 
       default:
@@ -396,7 +423,8 @@ void LMAP_XNAME( THD_linear_mapping * map , int resam_mode ,
          float fxi_tmp , fyj_tmp , fzk_tmp ;
          int any_outside , all_outside ;
 
-#ifdef AFNI_DEBUG
+#ifdef SL_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"NN inner dxyz=%g %g %g  outer dxyz=%g %g %g",
           dfxi_inner,dfyj_inner,dfzk_inner,
@@ -436,7 +464,8 @@ void LMAP_XNAME( THD_linear_mapping * map , int resam_mode ,
                                         (fyj_max < fyj_bot) || (fyj_min > fyj_top) ||
                                         (fzk_max < fzk_bot) || (fzk_min > fzk_top)
                                      : 0 ;
-#ifdef AFNI_DEBUG
+#ifdef SL_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"fxi_bot=%g  fxi_top=%g  fxi_min=%g  fxi_max=%g",fxi_bot,fxi_top,fxi_min,fxi_max);
   STATUS(str) ;
@@ -506,7 +535,8 @@ STATUS("NN resample has all outside") ;
             else                                                     /* treatment if outer */
                thz = NONE_ZERO ;                                     /* axes are special   */
 
-#ifdef AFNI_DEBUG
+#ifdef SL_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   if( any_outside ) sprintf(str,"NN resample has some outside: thz = %d",thz) ;
   else              sprintf(str,"NN resample has all inside: thz = %d",thz) ;
@@ -544,6 +574,11 @@ STATUS("beginning NN outer loop") ;
             /*** outer loop ***/
 
             for( OUD=OUD_bot ; OUD <= OUD_top ; OUD++ ){
+
+#ifdef SL_DEBUG
+if(PRINT_TRACING){
+ char str[256] ; sprintf(str,"index=%d",OUD_bot); STATUS(str); }
+#endif
 
                fxi_old = (fxi_base += dfxi_outer) ;  /* floating indexes in  */
                fyj_old = (fyj_base += dfyj_outer) ;  /* input brick at start */
@@ -1046,7 +1081,8 @@ void LMAP_YNAME( THD_linear_mapping * map , int resam_mode ,
          float fxi_tmp , fyj_tmp , fzk_tmp ;
          int any_outside , all_outside ;
 
-#ifdef AFNI_DEBUG
+#ifdef SL_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"NN inner dxyz=%g %g %g  outer dxyz=%g %g %g",
           dfxi_inner,dfyj_inner,dfzk_inner,
@@ -1087,7 +1123,8 @@ void LMAP_YNAME( THD_linear_mapping * map , int resam_mode ,
                                         (fzk_max < fzk_bot) || (fzk_min > fzk_top)
                                      : 0 ;
 
-#ifdef AFNI_DEBUG
+#ifdef SL_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"fxi_bot=%g  fxi_top=%g  fxi_min=%g  fxi_max=%g",fxi_bot,fxi_top,fxi_min,fxi_max);
   STATUS(str) ;
@@ -1157,7 +1194,8 @@ STATUS("NN resample has all outside") ;
             else                                                     /* treatment if outer */
                thz = NONE_ZERO ;                                     /* axes are special   */
 
-#ifdef AFNI_DEBUG
+#ifdef SL_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   if( any_outside ) sprintf(str,"NN resample has some outside: thz = %d",thz) ;
   else              sprintf(str,"NN resample has all inside: thz = %d",thz) ;
@@ -1675,7 +1713,8 @@ void LMAP_ZNAME( THD_linear_mapping * map , int resam_mode ,
          float fxi_tmp , fyj_tmp , fzk_tmp ;
          int any_outside , all_outside ;
 
-#ifdef AFNI_DEBUG
+#ifdef SL_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"NN inner dxyz=%g %g %g  outer dxyz=%g %g %g",
           dfxi_inner,dfyj_inner,dfzk_inner,
@@ -1716,7 +1755,8 @@ void LMAP_ZNAME( THD_linear_mapping * map , int resam_mode ,
                                         (fzk_max < fzk_bot) || (fzk_min > fzk_top)
                                      : 0 ;
 
-#ifdef AFNI_DEBUG
+#ifdef SL_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"fxi_bot=%g  fxi_top=%g  fxi_min=%g  fxi_max=%g",fxi_bot,fxi_top,fxi_min,fxi_max);
   STATUS(str) ;
@@ -1786,7 +1826,8 @@ STATUS("NN resample has all outside") ;
             else                                                     /* treatment if outer */
                thz = NONE_ZERO ;                                     /* axes are special   */
 
-#ifdef AFNI_DEBUG
+#ifdef SL_DEBUG
+if(PRINT_TRACING)
 { char str[256] ;
   if( any_outside ) sprintf(str,"NN resample has some outside: thz = %d",thz) ;
   else              sprintf(str,"NN resample has all inside: thz = %d",thz) ;
