@@ -677,6 +677,18 @@ static double GA_scalar_fitter( int npar , double *mpar )
 }
 
 /*---------------------------------------------------------------------------*/
+
+void mri_genalign_scalar_clrwght( GA_setup *stup )  /* 18 Oct 2006 */
+{
+  if( stup != NULL ){
+    if( stup->bwght != NULL ) mri_free(stup->bwght) ;
+    if( stup->bmask != NULL ) free((void *)stup->bmask) ;
+    stup->nmask = stup->nvox_mask = 0 ;
+    stup->bwght = NULL ; stup->bmask = NULL ;
+  }
+}
+
+/*---------------------------------------------------------------------------*/
 /* Macro for exiting mri_genalign_scalar_setup() with extreme prejudice.     */
 
 #undef  ERREX
@@ -885,15 +897,20 @@ ENTRY("mri_genalign_scalar_setup") ;
      }
 
    } else if( stup->nmask > 0 ){  /*---- have old mask to check ----*/
-     if( stup->nvox_mask != stup->bsim->nvox )
-       ERREX("old mask and new base image differ in size") ;
 
-     if( verb > 1 ) ININFO_message("- retaining old weight image") ;
+     if( stup->nvox_mask != stup->bsim->nvox ){
+       WARNING_message("old mask and new base image differ in size") ;
+       if( stup->bwght != NULL ) mri_free(stup->bwght) ;
+       if( stup->bmask != NULL ) free((void *)stup->bmask) ;
+       stup->nmask = stup->nvox_mask = 0 ;
+       stup->bmask = NULL ; stup->bwght = NULL ;
+     } else if( verb > 1 )
+       ININFO_message("- retaining old weight image") ;
 
    } else {                           /*---- have no mask, new or old ----*/
      stup->bmask = NULL ;
-     stup->nmask = stup->nvox_mask = 0 ;
      stup->bwght = NULL ;
+     stup->nmask = stup->nvox_mask = 0 ;
      if( verb > 1 ) ININFO_message("- no weight image") ;
    }
 

@@ -142,6 +142,8 @@ int main( int argc , char *argv[] )
    int epi_pe                  = -1 ;
    int epi_se                  = -1 ;
    int epi_targ                = -1 ;
+   int replace_base            = 0 ;             /* off by default */
+   int replace_meth            = 0 ;             /* off by default */
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -331,6 +333,10 @@ int main( int argc , char *argv[] )
        "               after doing the first sub-brick.  Subsequent volumes\n"
        "               will have the same spatial distortions as sub-brick #0,\n"
        "               plus rigid body motions only.\n"
+       " -replacebase= If the source has more than one sub-brick, and this\n"
+       "               option is turned on, then after the #0 sub-brick is\n"
+       "               aligned to the base, the aligned #0 sub-brick is used\n"
+       "               as the base image for subsequent source sub-bricks.\n"
        "\n"
        " -EPI        = Treat the source dataset as being composed of warped\n"
        "               EPI slices, and the base as comprising anatomically\n"
@@ -346,7 +352,7 @@ int main( int argc , char *argv[] )
        "               some option (like '-EPI') to suppress scaling in the slice-\n"
        "               direction, the EPI dataset is likely to stretch the slice\n"
        "               thicknesss to better 'match' the T1-weighted brain coverage.\n"
-       "       **N.B.: '-EPI' turns on '-warpfreeze'.\n"
+       "       **N.B.: '-EPI' turns on '-warpfreeze' and '-replacebase'.\n"
        "\n"
        " -parfix n v   = Fix parameter #n to be exactly at value 'v'.\n"
        " -parang n b t = Allow parameter #n to range only between 'b' and 't'.\n"
@@ -513,6 +519,9 @@ int main( int argc , char *argv[] )
         " -histbin nn   = Or you can just set the number of bins directly to 'nn'.\n"
         " -wtmrad  mm   = Set autoweight/mask median filter radius to 'mm' voxels.\n"
         " -wtgrad  gg   = Set autoweight/mask Gaussian filter radius to 'gg' voxels.\n"
+        " -replacemeth m= After sub-brick #0 is aligned, switch to method 'm' for\n"
+        "                 later sub-bricks.  For use with -replacebase or -EPI\n"
+        "                 (e.g., '-EPI -replacemeth ls').\n"
        ) ;
      }
 
@@ -1165,6 +1174,40 @@ int main( int argc , char *argv[] )
        paropt[nparopt].code = PARC_FIX ;
        paropt[nparopt].vb   = 0.0 ; nparopt++ ;
 
+       twofirst = 1 ; replace_base = 1 ;
+       iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcmp(argv[iarg],"-replacebase") == 0 ){  /* 18 Oct 2006 */
+       twofirst = replace_base = 1 ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-warpfreeze") == 0 ){  /* 18 Oct 2006 */
+       warp_freeze = 1 ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcmp(argv[iarg],"-replacemeth") == 0 ){  /* 18 Oct 2006 */
+       if( ++iarg >= argc ) ERROR_exit("no argument after '-replacemeth'!") ;
+
+       for( jj=ii=0 ; ii < NMETH ; ii++ ){
+         if( strcmp(argv[iarg],meth_shortname[ii]) == 0 ){
+           replace_meth = jj = ii+1 ; break ;
+         }
+       }
+       if( jj > 0 ){ iarg++ ; continue ; }
+
+       for( jj=ii=0 ; ii < NMETH ; ii++ ){
+         if( strncmp(argv[iarg],meth_longname[ii],7) == 0 ){
+           replace_meth = jj = ii+1 ; break ;
+         }
+       }
+       if( jj >=0 ){ iarg++ ; continue ; }
+
+       ERROR_exit("Unknown code '%s' after -replacemeth!",argv[iarg]) ;
        iarg++ ; continue ;
      }
 
@@ -1290,6 +1333,8 @@ int main( int argc , char *argv[] )
      if( dset_targ == NULL )
        ERROR_exit("Can't open source dataset '%s'",argv[iarg]) ;
    }
+
+   if( replace_base && DSET_NVALS(dset_targ) == 1 ) replace_base = 0 ;
 
    /* check target data type */
 
@@ -1755,37 +1800,41 @@ int main( int argc , char *argv[] )
      dxyz_dout[0] = dxout; dxyz_dout[1] = dyout; dxyz_dout[2] = dzout;
    }
 
-   /***----- start alignment process -----***/
+   /***---------------------- start alignment process ----------------------***/
 
 #undef  PARDUMP
-#define PARDUMP(ss,xxx) do{ fprintf(stderr," + %s Parameters =",ss) ;                 \
-                            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )               \
-                              fprintf(stderr," %.4f",stup.wfunc_param[jj].xxx) ;  \
-                            fprintf(stderr,"\n") ;                                    \
-                        } while(0)
+#define PARDUMP(ss,xxx)                                     \
+  do{ fprintf(stderr," + %s Parameters =",ss) ;             \
+      for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )           \
+        fprintf(stderr," %.4f",stup.wfunc_param[jj].xxx) ;  \
+      fprintf(stderr,"\n") ;                                \
+  } while(0)
 #undef  PAROUT
 #define PAROUT(ss) PARDUMP(ss,val_out)
 #undef  PARINI
 #define PARINI(ss) PARDUMP(ss,val_init)
 
    if( verb && apply_1D == NULL )
-     INFO_message("======== Starting Allineation: %s =======",
+     INFO_message("======== Allineation: %s =======",
                   meth_username[meth_code-1] ) ;
    else
-     INFO_message("======== Starting to process %d sub-bricks ========",
+     INFO_message("======== Processing %d sub-bricks ========",
                   DSET_NVALS(dset_targ) ) ;
 
    if( verb > 1 ) mri_genalign_verbose(verb-1) ;
 
-   /* array in which to save parameters for later waterboarding */
+   /*-- array in which to save parameters for later waterboarding --*/
 
    parsave = (float **)malloc(sizeof(float *)*DSET_NVALS(dset_targ)) ;
 
-   /*--- loop over target sub-bricks ---*/
+   /***-------------------- loop over target sub-bricks --------------------***/
 
    im_bset = im_base ;  /* base image for first loop */
+   im_wset = im_weig ;
 
    for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
+
+     stup.match_code = meth_code ;
 
      if( kk == 0 && skip_first ){  /* skip first image since it == im_base */
        if( verb )
@@ -1798,7 +1847,7 @@ int main( int argc , char *argv[] )
 
      /* make copy of target brick, and deal with that */
 
-     if( verb ) INFO_message("========== Target sub-brick #%d ==========",kk) ;
+     if( verb ) INFO_message("===== sub-brick #%d =====",kk) ;
 
      im_targ = mri_scale_to_float( DSET_BRICK_FACTOR(dset_targ,kk) ,
                                    DSET_BRICK(dset_targ,kk)         ) ;
@@ -1814,7 +1863,7 @@ int main( int argc , char *argv[] )
        stup.smooth_code   = 0 ;
        stup.npt_match     = 11 ;
        mri_genalign_scalar_setup( im_bset , NULL , im_targ , &stup ) ;
-       im_bset = NULL ;
+       im_bset = NULL ;  /* after setting base, don't need to set it again */
        mri_free(im_targ) ; im_targ = NULL ;
        goto WRAP_IT_UP_BABY ;
      }
@@ -1847,7 +1896,7 @@ int main( int argc , char *argv[] )
         stup.smooth_radius_targ = (sm_rad == 0.0f) ? 11.111f : sm_rad ;
 
        mri_genalign_scalar_setup( im_bset , im_wset , im_targ , &stup ) ;
-       im_bset = NULL ; im_wset = NULL ;
+       im_bset = NULL; im_wset = NULL;  /* after being set, needn't set again */
 
        if( save_hist != NULL ){  /* Save start 2D histogram: 28 Sep 2006 */
          int nbin ; float *xyc ;
@@ -1960,9 +2009,9 @@ int main( int argc , char *argv[] )
 
        didtwo = 1 ;   /* mark that we did the first pass */
 
-     } /*--- end of twopass-ization ---*/
+     } /*------------- end of twopass-ization -------------*/
 
-     /*--- do final resolution pass ---*/
+     /*----------------------- do final resolution pass -----------------------*/
 
      if( verb ) INFO_message("Fine pass begins") ;
      stup.interp_code = interp_code ;
@@ -1981,7 +2030,7 @@ int main( int argc , char *argv[] )
        mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;  /* simple re-setup */
      else {
        mri_genalign_scalar_setup( im_bset , im_wset , im_targ , &stup ) ;
-       im_bset = NULL ; im_wset = NULL ;
+       im_bset = NULL; im_wset = NULL;  /* after being set, needn't set again */
      }
 
      /* choose initial parameters, based on interp_code cost function */
@@ -2044,20 +2093,17 @@ int main( int argc , char *argv[] )
            PARINI("- Intrmed fine") ;
            ININFO_message("- Intrmed cost = %f",cost) ;
          }
-         if( nfunc < 6666 ) rad *= 0.222 ;
+         if( nfunc < 6666 ) rad *= 0.246 ;
        }
      }
 
      /* now do the final final optimization, with the correct interp mode */
-#if 0
-     if( verb > 2 ){ GA_do_dots(1); }
-#else
-     if( verb > 2 ){ GA_do_cost(1); }
-#endif
+
+     if( verb > 2 ) GA_do_cost(1);
 
      nfunc += mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
      if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ;
-     if( verb > 2 ){ printf("\n"); GA_do_dots(0); }
+     if( verb > 2 ) GA_do_cost(0);
      if( verb > 1 ) ININFO_message("- Fine CPU time = %.1f s",
                                    COX_cpu_time()-ctim) ;
      if( verb ) ININFO_message("- Fine Optimization took %d trials; final cost=%f",
@@ -2095,7 +2141,7 @@ int main( int argc , char *argv[] )
      mri_free(im_targ) ; im_targ = NULL ;
 
      /*--- 27 Sep 2006: check if results are stable when
-                       we optimize a different cost function ---*/
+                        we optimize a different cost function ---*/
 
      if( meth_check > 0 ){
        float pval[MAXPAR] , pdist , dmax ; int jmax,jtop ;
@@ -2149,9 +2195,33 @@ int main( int argc , char *argv[] )
        }
      }
 
+     /*--- do we replace the base image with warped first target image? ---*/
+
+     if( replace_base ){
+       float pp[MAXPAR] ;
+       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+         pp[jj] = stup.wfunc_param[jj].val_out ;
+       mri_free(im_base) ;
+       if( verb > 1 ) INFO_message("Computing replacement base image") ;
+       im_base =
+        im_bset = mri_genalign_scalar_warpone(
+                             stup.wfunc_numpar , pp , stup.wfunc ,
+                             stup.ajim, nx_base,ny_base,nz_base, final_interp );
+#if 0
+       im_wset = im_weig ;
+#endif
+       replace_base = 0 ;
+     }
+     if( replace_meth ){
+       if( verb > 1 ) INFO_message("Replacing meth='%s' with '%s'",
+                                   meth_shortname[meth_code] ,
+                                   meth_shortname[replace_meth] ) ;
+       meth_code = replace_meth; replace_meth = 0;
+     }
+
      /*--- at this point, val_out contains alignment parameters ---*/
 
-   WRAP_IT_UP_BABY:
+   WRAP_IT_UP_BABY: /***** goto target !!!!! *****/
 
      /* save parameters for the historical record */
 
@@ -2167,6 +2237,7 @@ int main( int argc , char *argv[] )
                              nxyz_dout, dxyz_dout, cmat_bout,
                              nxyz_targ, dxyz_targ, cmat_tout ) ;
 
+       if( verb > 1 ) INFO_message("Computing output image") ;
        im_targ = mri_genalign_scalar_warpone(
                              stup.wfunc_numpar , parsave[kk] , stup.wfunc ,
                              stup.ajim ,
