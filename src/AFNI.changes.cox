@@ -5941,3 +5941,5 @@
  * Ugh.
  * Modified afni_warp.c to only use warp_parent if the dataset being
      sliced is an AFNI dataset (not NIfTI, MINC, etc.).
+ * Modified afni_func.c to print warning when forced view change
+     when switching datasets or sessions - for Adam Thomas.
