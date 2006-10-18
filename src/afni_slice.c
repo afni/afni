@@ -4,7 +4,7 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
-#define SL_DEBUG  /* 17 Oct 2006 */
+#undef SL_DEBUG  /* 17 Oct 2006: some extra debugging stuff */
 
 #undef MAIN
 
@@ -204,10 +204,26 @@ static rgba    rgba_zero    = { 0,0,0,0 } ;
     _GEN:  for the general (non-parallel) case
     _PAR:  for the case when the inner loop is parallel to an input brick axis **/
 
-#define NN_ALOOP_GEN \
- (fxi_old += dfxi_inner , fyj_old += dfyj_inner , fzk_old += dfzk_inner , \
+#ifndef SL_DEBUG
+
+#define NN_ALOOP_GEN                                                            \
+ (fxi_old += dfxi_inner , fyj_old += dfyj_inner , fzk_old += dfzk_inner ,       \
   xi_old = FLOOR(fxi_old) , yj_old = FLOOR(fyj_old) , zk_old = FLOOR(fzk_old) , \
   bslice[out_ind++] = bold[ IBASE(xi_old,yj_old,zk_old) ])
+
+#else
+
+#define NN_ALOOP_GEN                                                                     \
+ do{                                                                                     \
+  fxi_old += dfxi_inner , fyj_old += dfyj_inner , fzk_old += dfzk_inner ,                \
+  xi_old = FLOOR(fxi_old) , yj_old = FLOOR(fyj_old) , zk_old = FLOOR(fzk_old) ;          \
+  if(PRINT_TRACING){ char str[256];                                                      \
+   sprintf(str,"out_ind=%d xi_old=%d yj_old=%d zk_old=%d",out_ind,xi_old,yj_old,zk_old); \
+   STATUS(str) ; }                                                                       \
+  bslice[out_ind++] = bold[ IBASE(xi_old,yj_old,zk_old) ] ;                              \
+ } while(0)
+
+#endif /* SL_DEBUG */
 
 #define NN_ALOOP_PAR(ijk) (bslice[out_ind++] = bold[ ib[ijk]+ob ])
 
@@ -352,7 +368,7 @@ void LMAP_XNAME( THD_linear_mapping * map , int resam_mode ,
 
    if( xi_fix < xi_bot || xi_fix > xi_top ) EXRETURN ;  /* map doesn't apply! */
 
-   if( bold==NULL || bslice == NULL ){ STATUS("NULL pointers?!"); EXRETURN; }
+   if( bold==NULL || bslice==NULL ){ STATUS("NULL pointers?!"); EXRETURN; }
 
 #ifdef SL_DEBUG
 if(PRINT_TRACING)
@@ -499,7 +515,9 @@ if(PRINT_TRACING)
 #define IND_top TWO_TWO(IND_NAME , _top)   /* inner loop index max  */
 
          if( all_outside ){
+#ifdef SL_DEBUG
 STATUS("NN resample has all outside") ;
+#endif
             for( OUD=OUD_bot ; OUD <= OUD_top ; OUD++ ){     /* all points are      */
                out_ind = IND_bot + OUD * IND_nnn ;           /* outside input brick */
                for( IND=IND_bot ; IND <= IND_top ; IND++ ){  /* so just load zeros  */
@@ -538,8 +556,8 @@ STATUS("NN resample has all outside") ;
 #ifdef SL_DEBUG
 if(PRINT_TRACING)
 { char str[256] ;
-  if( any_outside ) sprintf(str,"NN resample has some outside: thz = %d",thz) ;
-  else              sprintf(str,"NN resample has all inside: thz = %d",thz) ;
+  if( any_outside ) sprintf(str,"NN resample has some outside: thz=%d tho=%d",thz,tho);
+  else              sprintf(str,"NN resample has all inside: thz=%d thd=%d",thz,tho);
   STATUS(str) ;
   sprintf(str,"OUD_bot=%d  OUD_top=%d  nxold=%d nyold=%d nzold=%d",
           OUD_bot,OUD_top,nxold,nyold,nzold ) ; STATUS(str) ;
@@ -569,7 +587,9 @@ if(PRINT_TRACING)
 
             thz += OUTADD * any_outside ;
 
+#ifdef SL_DEBUG
 STATUS("beginning NN outer loop") ;
+#endif
 
             /*** outer loop ***/
 
@@ -1035,6 +1055,8 @@ void LMAP_YNAME( THD_linear_mapping * map , int resam_mode ,
 
    if( yj_fix < yj_bot || yj_fix > yj_top ) EXRETURN ;  /* map doesn't apply! */
 
+   if( bold==NULL || bslice==NULL ){ STATUS("NULL pointers?!"); EXRETURN; }
+
    nxold = old_daxes->nxx ;  nxnew = new_daxes->nxx ;
    nyold = old_daxes->nyy ;  nynew = new_daxes->nyy ;
    nzold = old_daxes->nzz ;  nznew = new_daxes->nzz ;
@@ -1158,7 +1180,9 @@ if(PRINT_TRACING)
 #define IND_top TWO_TWO(IND_NAME , _top)   /* inner loop index max  */
 
          if( all_outside ){
+#ifdef SL_DEBUG
 STATUS("NN resample has all outside") ;
+#endif
             for( OUD=OUD_bot ; OUD <= OUD_top ; OUD++ ){     /* all points are      */
                out_ind = IND_bot + OUD * IND_nnn ;           /* outside input brick */
                for( IND=IND_bot ; IND <= IND_top ; IND++ ){  /* so just load zeros  */
@@ -1228,7 +1252,9 @@ if(PRINT_TRACING)
 
             thz += OUTADD * any_outside ;
 
+#ifdef SL_DEBUG
 STATUS("beginning NN outer loop") ;
+#endif
 
             /*** outer loop ***/
 
@@ -1667,6 +1693,8 @@ void LMAP_ZNAME( THD_linear_mapping * map , int resam_mode ,
 
    if( zk_fix < zk_bot || zk_fix > zk_top ) EXRETURN ;  /* map doesn't apply! */
 
+   if( bold==NULL || bslice==NULL ){ STATUS("NULL pointers?!"); EXRETURN; }
+
    nxold = old_daxes->nxx ;  nxnew = new_daxes->nxx ;
    nyold = old_daxes->nyy ;  nynew = new_daxes->nyy ;
    nzold = old_daxes->nzz ;  nznew = new_daxes->nzz ;
@@ -1790,7 +1818,9 @@ if(PRINT_TRACING)
 #define IND_top TWO_TWO(IND_NAME , _top)   /* inner loop index max  */
 
          if( all_outside ){
+#ifdef SL_DEBUG
 STATUS("NN resample has all outside") ;
+#endif
             for( OUD=OUD_bot ; OUD <= OUD_top ; OUD++ ){     /* all points are      */
                out_ind = IND_bot + OUD * IND_nnn ;           /* outside input brick */
                for( IND=IND_bot ; IND <= IND_top ; IND++ ){  /* so just load zeros  */
@@ -1860,7 +1890,9 @@ if(PRINT_TRACING)
 
             thz += OUTADD * any_outside ;
 
+#ifdef SL_DEBUG
 STATUS("beginning NN outer loop") ;
+#endif
 
             /*** outer loop ***/
 
