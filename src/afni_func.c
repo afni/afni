@@ -2311,7 +2311,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    /*--- make sure all values are set OK-ly ---*/
 
    if( new_view < 0 || new_sess < 0 || new_anat < 0 || new_func < 0 ){
-      XBell( im3d->dc->display , 100 ) ; EXRETURN ;  /* bad! */
+     XBell( im3d->dc->display , 100 ) ; EXRETURN ;  /* bad! */
    }
 
    /*- beep & flash viewing control box if view type changes -*/
@@ -2327,8 +2327,10 @@ ENTRY("AFNI_finalize_dataset_CB") ;
      for( ii=0 ; ii < 8 ; ii++ ){
        MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(16);
        MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
+       MCW_invert_widget(wcall) ;
        MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(16);
        MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
+       MCW_invert_widget(wcall) ;
      }
    }
 
@@ -2351,8 +2353,10 @@ ENTRY("AFNI_finalize_dataset_CB") ;
      for( ii=0 ; ii < 8 ; ii++ ){
        MCW_invert_widget( im3d->vwid->view->view_bbox->wframe ); RWC_sleep(16);
        MCW_invert_widget( im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
+       MCW_invert_widget(wcall) ;
        MCW_invert_widget( im3d->vwid->view->view_bbox->wframe ); RWC_sleep(16);
        MCW_invert_widget( im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
+       MCW_invert_widget(wcall) ;
      }
    }
 
