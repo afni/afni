@@ -216,7 +216,9 @@ STATUS("setting parent_to_child_warp to identity") ;
       parent_to_child_warp = IDENTITY_WARP ;  /* no warp ==> use identity */
    }
 
-   if( dset->warp_parent != NULL ){
+   if( dset->warp_parent != NULL &&
+       (dset->dblk->diskptr->storage_mode == STORAGE_BY_BRICK ||
+        dset->dblk->diskptr->storage_mode == STORAGE_UNDEFINED  ) ){
 if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"setting parent_dset to stored warp_parent=%p  this dset=%p",

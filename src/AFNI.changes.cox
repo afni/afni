@@ -5936,3 +5936,8 @@
      dataset.
  * More changes to 3dAllineate.c.
  * Program 3dAcost.c to calculate 3dAllineate costs on 2 bricks.
+
+18 Oct 2006
+ * Ugh.
+ * Modified afni_warp.c to only use warp_parent if the dataset being
+     sliced is an AFNI dataset (not NIfTI, MINC, etc.).
