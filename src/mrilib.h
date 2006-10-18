@@ -1368,7 +1368,9 @@ extern MRI_IMAGE * mri_genalign_scalar_warpone(      /* 26 Sep 2006 */
                     MRI_IMAGE *imtarg ,
                     int nnx , int nny , int nnz , int icode ) ;
 
-/*------------------------------------------------------------------*/
+extern void mri_genalign_scalar_clrwght( GA_setup * ) ;  /* 18 Oct 2006 */
+
+/*--------------------------------------------------------------------------*/
 /* Prototypes for functions in nifti_stats.c */
 
 extern int nifti_intent_code    ( char * ) ;
