@@ -1823,7 +1823,7 @@ ENTRY("AFNI_quit_CB") ;
 
 void AFNI_quit_timeout_CB( XtPointer client_data , XtIntervalId * id )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
+   Three_D_View *im3d = (Three_D_View *) client_data ;
 ENTRY("AFNI_quit_timeout_CB") ;
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;

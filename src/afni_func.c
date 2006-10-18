@@ -2317,9 +2317,19 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    /*- beep & flash viewing control box if view type changes -*/
 
    if( old_view != new_view ){
-      XBell( im3d->dc->display , 100 ) ;
-      MCW_set_bbox( im3d->vwid->view->view_bbox , 1 << new_view ) ;
-      MCW_invert_widget( im3d->vwid->view->view_bbox->wbut[new_view] ) ;
+     XBell( im3d->dc->display , 100 ) ;
+     MCW_set_bbox( im3d->vwid->view->view_bbox , 1 << new_view ) ;
+
+     /* this stuff is for Adam Thomas -- 18 Oct 2006 */
+
+     fprintf(stderr,"** Forced switch from '%s' to '%s' **\n",
+             VIEW_typestr[old_view] , VIEW_typestr[new_view] ) ;
+     for( ii=0 ; ii < 8 ; ii++ ){
+       MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(16);
+       MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
+       MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(16);
+       MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
+     }
    }
 
    /*----- actually do the switch -----*/
@@ -2336,9 +2346,14 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    AFNI_initialize_view( im3d->anat_now , im3d ) ;
    SHOW_AFNI_READY ;
 
-   if( old_view != new_view ){            /* end flash */
-      XBell( im3d->dc->display , 100 ) ;
-      MCW_invert_widget( im3d->vwid->view->view_bbox->wbut[new_view] ) ;
+   if( old_view != new_view ){            /* ending flash */
+     XBell( im3d->dc->display , 100 ) ;
+     for( ii=0 ; ii < 8 ; ii++ ){
+       MCW_invert_widget( im3d->vwid->view->view_bbox->wframe ); RWC_sleep(16);
+       MCW_invert_widget( im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
+       MCW_invert_widget( im3d->vwid->view->view_bbox->wframe ); RWC_sleep(16);
+       MCW_invert_widget( im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
+     }
    }
 
    EXRETURN ;
