@@ -30,6 +30,7 @@ typedef struct
       double sigma;        /* If using sigma option to calculate weights, need to find new way to
                               determine velocity field for the entire surface.  Old way won't work. */
       int M_time_steps;    /* Number of internal time steps used in optimization.  M total steps used in Bob's equations. */
+      int sin_kern;        /* Option for turning on the sine kernal.  Using sin(theta)/theta as part of the expansion factor. */
    } MyCircleOpt;
 
 typedef struct
@@ -49,7 +50,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_toy_circle_ParseInput(char *argv[], int a
 SUMA_Boolean Debug_Weights( MyCircle *C, MyCircleOpt *opt, matrix M, matrix Mi, vector Vv) ;
 SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt);
 SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt) ;
-SUMA_Boolean Debug_Move( MyCircle *C, MyCircleOpt *opt, SUMA_SurfaceObject *SO, double dt, int niter, int a_niter, int first_bad_niter) ;
+SUMA_Boolean Debug_Move( MyCircle *C, MyCircleOpt *opt, SUMA_SurfaceObject *SO, double dt, int niter, int m, int a_niter, int first_bad_niter) ;
 SUMA_Boolean Neighbor( MyCircle *C, MyCircleOpt *opt, SUMA_SurfaceObject *SO, int niter, int a_niter) ;
 SUMA_Boolean Calculate_Step (MyCircle *C, MyCircleOpt *opt, double dt) ;
 SUMA_Boolean Move_Points (MyCircle *C, MyCircleOpt *opt) ;

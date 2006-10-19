@@ -206,7 +206,12 @@ SUMA_Boolean Rotation_Matrix( MyCircleOpt *opt, vector X, matrix M )
          /* Create the rotation matrix. */
          SUMA_3D_Rotation_Matrix( (&(X.elts[c3])), (&(X.elts[r3])), Mcr, t_cr, nrm_cr);
 
-         expand_cr = exp(-0.5*t_cr*t_cr);    
+         if( opt->sin_kern ) {
+            if(t_cr > 0.0000) expand_cr = (sin(t_cr)/t_cr)*exp(-0.5*t_cr*t_cr); 
+            else expand_cr = exp(-0.5*t_cr*t_cr);  
+         } else {
+            expand_cr = exp(-0.5*t_cr*t_cr); 
+         }
 
          /* Assemble the matrix and include the expansion factor. */
          M.elts[ (r3  ) ][ (c3  ) ] = expand_cr * Mcr[0][0];
@@ -481,7 +486,7 @@ double S_energy( MyCircleOpt *opt, SUMA_MX_VEC *VecX )    /* Be very careful!  O
 {
    static char FuncName[]={"S_energy"};
    int j, i, m, i3;
-   double *dp_m = NULL, *dp_m1 = NULL, S_grad = 0.0;
+   double *dp_m = NULL, *dp_m1 = NULL, S_grad = 0.0, Xm_mag;
    vector Xm, Xm_mid, Sm;
    matrix *nullptr = NULL;
    matrix Xm_t, Kern, KernI, A;
@@ -535,10 +540,18 @@ double S_energy( MyCircleOpt *opt, SUMA_MX_VEC *VecX )    /* Be very careful!  O
          Xm_t.elts[0][i3  ] = dp_m1[0] - dp_m[0];     
          Xm_t.elts[0][i3+1] = dp_m1[1] - dp_m[1];
          Xm_t.elts[0][i3+2] = dp_m1[2] - dp_m[2];
-         
+
+      /* This Xm_mid must be projected to the sphere!!! */
          Xm_mid.elts[i3  ] = 0.5*(dp_m1[0] + dp_m[0]);
          Xm_mid.elts[i3+1] = 0.5*(dp_m1[1] + dp_m[1]);
          Xm_mid.elts[i3+2] = 0.5*(dp_m1[2] + dp_m[2]);
+         
+         Xm_mag = sqrt(SUMA_POW2(Xm_mid.elts[i3  ]) + SUMA_POW2(Xm_mid.elts[i3+1]) + SUMA_POW2(Xm_mid.elts[i3+2]) );
+         if(Xm_mag) {
+            Xm_mid.elts[i3  ] =  Xm_mid.elts[i3  ]/Xm_mag;
+            Xm_mid.elts[i3+1] =  Xm_mid.elts[i3+1]/Xm_mag;
+            Xm_mid.elts[i3+2] =  Xm_mid.elts[i3+2]/Xm_mag;
+         }
       }
       
       if(LocalHead) {
@@ -594,13 +607,13 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
    int m, i, p, j, nr, nc, m3, m2, r, c, i3, repeat = 0, descent_small = 0;
    int C_N_dims = 3;
    int C_dims[10] = { opt->N_ctrl_points, (opt->M_time_steps - 1), 2};  /* time steps, p */
-   double *dp_m0 = NULL, *dp_m1 = NULL, *dp = NULL;
-   double Sx, SxL, Lda = 0.0, mag_G, Theta_step, Theta_step_min;
+   double *dp_m0 = NULL, *dp_m1 = NULL, *dp = NULL, *dp_LG = NULL;
+   double Sx, SxL, Lda = 0.0, mag_G, Theta_step, Theta_step_min, mag_LG;
    vector Change, G;
    matrix E, Et, EtE, EtEI, R;
    matrix *nullptr = NULL;
    
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
    
@@ -626,10 +639,8 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
       }  
    }
    fprintf(SUMA_STDERR, "Show Change_S:\n");
-   fprintf(SUMA_STDERR, "Problem Here? A\n");
    
    SUMA_ShowMxVec(Change_S, -1, NULL);
-   fprintf(SUMA_STDERR, "Problem Here? B\n");
    
    /* Fill vector C with the values. Index in order, m, i, p*/
    /* BE CAREFUL, M=0 IS NOT THE ENDPOINT, IT IS ACTUALLY THE FIRST STEP WHICH WAS PREVIOUSLY CALLED M=1. */
@@ -644,22 +655,16 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
       }
    }
    
-   fprintf(SUMA_STDERR, "Problem Here? C\n");
-   
    if(LocalHead) {
       fprintf(SUMA_STDERR, "Change:\n");
       for(j=0; j<(2*opt->N_ctrl_points*(opt->M_time_steps-1)); ++j) fprintf(SUMA_STDERR, "%f\n", Change.elts[j]);
    }
 
-   fprintf(SUMA_STDERR, "Problem Here? D\n");
    /* Form E matrices that store the perturbation vectors. */
    nr = 3*opt->N_ctrl_points*(opt->M_time_steps-1);
    nc = 2*opt->N_ctrl_points*(opt->M_time_steps-1);
    matrix_initialize(&E);
    matrix_create(nr, nc, &E);
-   
-   fprintf(SUMA_STDERR, "Problem Here? E\n");
-   
    
    for(r=0; r<nr; ++r) { for(c=0; c<nc; ++c) { E.elts[r][c] = 0.00; } }
    
@@ -789,19 +794,27 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
                   fprintf(SUMA_STDERR, "ControlCurve(%d, %d) = [%f %f %f];\n", m, i, dp[0], dp[1], dp[2]);
                   fprintf(SUMA_STDERR, "G.elts(%d, %d, %d) = [%f %f %f];\n", (i3 + m3), (i3 + m3 +1), (i3 + m3 +2), 
                                                    G.elts[i3 + m3    ], G.elts[i3 + m3 + 1], G.elts[i3 + m3 + 2]); 
-               }  
+               } 
+               /* This must be projected on to the sphere! */ 
                mxvd3(X_Lamda, 0, i, m) = dp[0] - Lda*G.elts[i3 + m3    ];
                mxvd3(X_Lamda, 1, i, m) = dp[1] - Lda*G.elts[i3 + m3 + 1];
-               mxvd3(X_Lamda, 2, i, m) = dp[2] - Lda*G.elts[i3 + m3 + 2];   
+               mxvd3(X_Lamda, 2, i, m) = dp[2] - Lda*G.elts[i3 + m3 + 2]; 
+               
+               dp_LG = mxvdp3(X_Lamda, 0, i, m);
+               mag_LG = sqrt(SUMA_POW2(dp_LG[0]) + SUMA_POW2(dp_LG[1]) + SUMA_POW2(dp_LG[2]));
+               dp_LG[0] = dp_LG[0]/mag_LG;
+               dp_LG[1] = dp_LG[1]/mag_LG;
+               dp_LG[2] = dp_LG[2]/mag_LG;
+               dp_LG = NULL;  
             }
             dp = NULL; 
          } 
       }
  
-      if(LocalHead) {
+      /*if(LocalHead) {
          fprintf(SUMA_STDERR, "Show X_Lamda:\n");
          SUMA_ShowMxVec(X_Lamda, -1, NULL);
-      }
+      }*/
       
       if(repeat<1) {
          if(LocalHead) fprintf(SUMA_STDERR, "Lda before comparison: %f\n", Lda);
@@ -1200,8 +1213,13 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
                /* Create the rotation matrix. */
                SUMA_3D_Rotation_Matrix( (&(opt->CtrlPts[c3])), (&(opt->CtrlPts[r3])), Mcr, t_cr, nrm_cr);
           
-               expand_cr = exp(-0.5*t_cr*t_cr);    
-               
+               if(opt->sin_kern) {
+                  if( t_cr > 0.0000) expand_cr = (sin(t_cr)/t_cr)*exp(-0.5*t_cr*t_cr); 
+                  else expand_cr = exp(-0.5*t_cr*t_cr);  
+               } else {
+                  expand_cr = exp(-0.5*t_cr*t_cr);  
+               }
+
                /* Assemble the matrix and include the expansion factor. */
                #if 0
                if(LocalHead) {
@@ -1334,6 +1352,7 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
 SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt) 
 {
    static char FuncName[]={"Velocity"};
+   char outfile_test_expansion[50];
    byte repeat;   
    int i, i3, j, j3, r;
    double v_alpha = 0.0, v_cr[3]={0.0,0.0,0.0}, v_expand, cr_mag; 
@@ -1352,9 +1371,13 @@ SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt)
       fprintf(SUMA_STDERR, "******************************************************\n"
                            "%s: CHECKING THE FUNCTION, First control point: \n", FuncName); }
    
+   FILE *test_expansion = NULL;
+   sprintf(outfile_test_expansion, "test_expansion_factor_0.1D");
+   test_expansion = fopen (outfile_test_expansion, "w"); 
+
    for (i=0; i< C->N_Node; ++i) {  /* i for all points, j for the control points. */
       i3 = 3*i;
-
+      
       for (j=0; j<opt->N_ctrl_points; ++j){  
          j3 = 3*j;
         
@@ -1374,14 +1397,30 @@ SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt)
          
          /* ROTATE THE WEIGHTS USING DISPLACEMENT ANGLE AND AXIS OF ROTATION CALCULATED ABOVE. */
          SUMA_ROTATE_ABOUT_AXIS( (&(C->Wv.elts[j3])), v_cr, v_alpha, (&(Wr.elts[j3])) );       
-                            
-         v_expand = exp( -0.5*v_alpha*v_alpha ); 
+         
+         if(opt->sin_kern) {
+            if(v_alpha > 0.0000) v_expand = (sin(v_alpha)/v_alpha)*exp( -0.5*v_alpha*v_alpha ); 
+            else v_expand = exp( -0.5*v_alpha*v_alpha );
+         } else {
+            v_expand = exp( -0.5*v_alpha*v_alpha );
+         }                   
          #endif
         
          SUMA_3D_Rotation_Matrix( (&(opt->CtrlPts[j3])), (&(C->NewNodeList[i3])), v_M, v_alpha, v_cr);
          
-         v_expand = exp( -0.5*v_alpha*v_alpha );   
-       
+         if(opt->sin_kern) {
+            if(v_alpha > 0.0000) v_expand = (sin(v_alpha)/v_alpha)*exp( -0.5*v_alpha*v_alpha ); 
+            else v_expand = exp( -0.5*v_alpha*v_alpha );
+         } else {
+            v_expand = exp( -0.5*v_alpha*v_alpha );
+         } 
+         
+         /* Try this out.  Want v_expand to be zero on the opposite side of the circle.  Try forcing it to be zero.*/
+         /* Must be atleast 0.008 to affect the expansion factor. */
+         /* if( v_expand < 0.0085 ) v_expand = 0.0000; */
+         
+         if( j==0 ) fprintf(test_expansion, "%d %f  %f\n", i, v_alpha, v_expand);
+           
          if(LocalHead) { 
             if (i == opt->CtrlPts_iim[0]) {
                fprintf(SUMA_STDERR, "AFTER ROTATION MATRIX CALCULATED: \n"
@@ -1469,7 +1508,7 @@ SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt)
          C->VelocityField[i3+1] += Wr.elts[j3+1];
          C->VelocityField[i3+2] += Wr.elts[j3+2]; 
       }
-   
+      
       if(LocalHead) { 
          if(i == opt->CtrlPts_iim[0]) {
             fprintf(SUMA_STDERR, "%s: Initial Velocity Field, no adjustment: \n"
@@ -1481,13 +1520,14 @@ SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt)
                                     SUMA_MT_DOT( (&(C->VelocityField[i3])), (&(C->NewNodeList[i3])) ) ); }
       }
    }
-      
+   fclose (test_expansion); test_expansion = NULL;
+  
    vector_destroy (&Wr);
 
    SUMA_RETURN(YUP);
 }
 
-SUMA_Boolean Debug_Move( MyCircle *C, MyCircleOpt *opt, SUMA_SurfaceObject *SO, double dt, int niter, int a_niter, int first_bad_niter) 
+SUMA_Boolean Debug_Move( MyCircle *C, MyCircleOpt *opt, SUMA_SurfaceObject *SO, double dt, int niter, int m, int a_niter, int first_bad_niter) 
 {
    static char FuncName[]={"Debug_Move"};
    int i, i3, j;
@@ -1504,17 +1544,21 @@ SUMA_Boolean Debug_Move( MyCircle *C, MyCircleOpt *opt, SUMA_SurfaceObject *SO, 
    
    if(LocalHead) { fprintf(stderr,"%s: niter = %d, dt = %.3f.\n", FuncName, niter, dt); }
    
+
    /* Test_move.1D -- Write nodelist and velocity field to file. */
    if(!first_bad_niter || niter < first_bad_niter+5){ 
       if(!a_niter) { /* For now, only write to file when niter changes, not when a_niter changes. */
          FILE *test = NULL;
          sprintf(outfile_test, "%s%d.1D", opt->outfile, (niter));
          test = fopen (outfile_test, "w"); 
-         fprintf (test, "col#0: Node Index\n"
-                        "col#1,2,3: Node Coordinates at Beginning of Iteration.\n"
-                        "col#4,5,6: Calculated Velocity Field to be Used in this Iteration.\n"
-                        "col#7: Step Size Used in the Move. (magnitude of velocity*dt)\n"
-                        "     dt = %f     Niter = %d\n", dt, niter );  
+         
+         if(opt->dom_dim > 2) {
+            fprintf (test, "col#0: Node Index\n"
+                           "col#1,2,3: Node Coordinates at Beginning of Iteration.\n"
+                           "col#4,5,6: Calculated Velocity Field to be Used in this Iteration.\n"
+                           "col#7: Step Size Used in the Move. (magnitude of velocity*dt)\n"
+                           "     dt = %f     Niter = %d\n", dt, niter );  
+         }
          for (i = 0; i < C->N_Node; ++i) {
             i3 = 3*i;
             /* Calculate magnitude of step size.  Storing in C->Theta[i3+2] because this array has already been created
@@ -1525,91 +1569,101 @@ SUMA_Boolean Debug_Move( MyCircle *C, MyCircleOpt *opt, SUMA_SurfaceObject *SO, 
             fprintf (test, "%d   %11.8f  %11.8f  %11.8f  %11.8f  %11.8f  %11.8f  %11.8f\n", 
                i, C->NewNodeList[i3  ], C->NewNodeList[i3+1], C->NewNodeList[i3+2], 
                C->VelocityField[i3  ], C->VelocityField[i3+1], C->VelocityField[i3+2], C->Theta[i3+2]);
-         } 
+         }
+         i = 0; i3 = 3*i;  /* In Matlab, to graph the circle, need last line to be the same as the first line. */
+         fprintf (test, "%d   %11.8f  %11.8f  %11.8f  %11.8f  %11.8f  %11.8f  %11.8f\n", 
+            i, C->NewNodeList[i3  ], C->NewNodeList[i3+1], C->NewNodeList[i3+2], 
+            C->VelocityField[i3  ], C->VelocityField[i3+1], C->VelocityField[i3+2], C->Theta[i3+2]); 
          fclose (test); test = NULL;   
       } 
-  
-      /* For calculating base and height of each facet and step size.  Base and Height of the triangle
-         are the minimum distances when considering the movement of the nodes that form the vertices of the triangle.
-         Need triangles to not flip, so must check to see that move (step size) is not greater than the 
-         distance across the triangle, which is at least the length of the base or height. */
-      if(!first_bad_niter || niter < first_bad_niter+5){ 
-         FILE *tri_area = NULL;
-         sprintf(outfile_tri_area, "tri_area%d.1D", niter);
-         tri_area = fopen (outfile_tri_area, "w"); 
-         fprintf (tri_area, "col#0: Facet Index\n"
-                        "col#1: Triangle base.\n"
-                        "col#2: Triangle height.\n"
-                        "col#3: Move distance/size of step for the three nodes of the facet.\n"
-                        "       Nodes of facet listed in random order.\n"
-                        "col#4: Triangle area.\n"
-                        "dt = %11f\n", dt);
-         for (i = 0; i < SO->N_FaceSet; ++i) {
-            i3 = 3*i;
-            f = SO->FaceSetList[i3  ];
-            g = SO->FaceSetList[i3+1];
-            h = SO->FaceSetList[i3+2];
-            f3 = 3*f; g3 = 3*g, h3 = 3*h; 
 
-            SUMA_TRI_AREA( (&(C->NewNodeList[f3])), (&(C->NewNodeList[g3])), (&(C->NewNodeList[h3])), t_area );
+      if(opt->dom_dim > 2) {
+         /* For calculating base and height of each facet and step size.  Base and Height of the triangle
+            are the minimum distances when considering the movement of the nodes that form the vertices of the triangle.
+            Need triangles to not flip, so must check to see that move (step size) is not greater than the 
+            distance across the triangle, which is at least the length of the base or height. */
+         if(!first_bad_niter){ 
+            FILE *tri_area = NULL;
+            sprintf(outfile_tri_area, "tri_area%d_%d.1D", m, niter);
+            tri_area = fopen (outfile_tri_area, "w"); 
+            fprintf (tri_area, "col#0: Facet Index\n"
+                           "col#1: Triangle base.\n"
+                           "col#2: Triangle height.\n"
+                           "col#3: Move distance/size of step for the three nodes of the facet.\n"
+                           "       Nodes of facet listed in random order.\n"
+                           "col#4: Triangle area.\n"
+                           "dt = %11f\n", dt);
+            for (i = 0; i < SO->N_FaceSet; ++i) {
+               i3 = 3*i;
+               f = SO->FaceSetList[i3  ];
+               g = SO->FaceSetList[i3+1];
+               h = SO->FaceSetList[i3+2];
+               f3 = 3*f; g3 = 3*g, h3 = 3*h; 
 
-            /* Determine the vectors that makes up the sides of the triangle by subtracting node locations.*/
-            SUMA_MT_SUB( sideA, (&(C->NewNodeList[f3])), (&(C->NewNodeList[g3])) );
-            SUMA_MT_SUB( sideB, (&(C->NewNodeList[f3])), (&(C->NewNodeList[h3])) );
-            SUMA_MT_SUB( sideC, (&(C->NewNodeList[g3])), (&(C->NewNodeList[h3])) );
+               SUMA_TRI_AREA( (&(C->NewNodeList[f3])), (&(C->NewNodeList[g3])), (&(C->NewNodeList[h3])), t_area );
 
-            /* Find the length of the side by finding the magnitude of the side vectors. 
-               These values represent the possible bases for calculating the area of a triangle 
-                  if area = 0.5*base*height. */
-            side[0] = sqrt( SUMA_POW2(sideA[0]) + SUMA_POW2(sideA[1]) + SUMA_POW2(sideA[2]) );
-            side[1] = sqrt( SUMA_POW2(sideB[0]) + SUMA_POW2(sideB[1]) + SUMA_POW2(sideB[2]) );
-            side[2] = sqrt( SUMA_POW2(sideC[0]) + SUMA_POW2(sideC[1]) + SUMA_POW2(sideC[2]) );
+               /* Determine the vectors that makes up the sides of the triangle by subtracting node locations.*/
+               SUMA_MT_SUB( sideA, (&(C->NewNodeList[f3])), (&(C->NewNodeList[g3])) );
+               SUMA_MT_SUB( sideB, (&(C->NewNodeList[f3])), (&(C->NewNodeList[h3])) );
+               SUMA_MT_SUB( sideC, (&(C->NewNodeList[g3])), (&(C->NewNodeList[h3])) );
 
-            /* Calculate the possible heights; the perpendicular bisectors of the triangle; 
-               the minimal distance across the triangle. */             
-            height[0] = (2*t_area) / side[0];
-            height[1] = (2*t_area) / side[1];
-            height[2] = (2*t_area) / side[2];
+               /* Find the length of the side by finding the magnitude of the side vectors. 
+                  These values represent the possible bases for calculating the area of a triangle 
+                     if area = 0.5*base*height. */
+               side[0] = sqrt( SUMA_POW2(sideA[0]) + SUMA_POW2(sideA[1]) + SUMA_POW2(sideA[2]) );
+               side[1] = sqrt( SUMA_POW2(sideB[0]) + SUMA_POW2(sideB[1]) + SUMA_POW2(sideB[2]) );
+               side[2] = sqrt( SUMA_POW2(sideC[0]) + SUMA_POW2(sideC[1]) + SUMA_POW2(sideC[2]) );
 
-            fprintf(tri_area, "%d   %f    %f    %f    %f\n"
-                              "     %f    %f    %f\n"
-                              "     %f    %f    %f\n", i,
-                              side[0], height[0], C->Theta[f3+2], t_area, 
-                              side[1], height[1], C->Theta[g3+2], 
-                              side[2], height[2], C->Theta[h3+2] );
+               /* Calculate the possible heights; the perpendicular bisectors of the triangle; 
+                  the minimal distance across the triangle. */             
+               height[0] = (2*t_area) / side[0];
+               height[1] = (2*t_area) / side[1];
+               height[2] = (2*t_area) / side[2];
+
+               fprintf(tri_area, "%d   %f    %f    %f    %f\n"
+                                 "     %f    %f    %f\n"
+                                 "     %f    %f    %f\n", i,
+                                 side[0], height[0], C->Theta[f3+2], t_area, 
+                                 side[1], height[1], C->Theta[g3+2], 
+                                 side[2], height[2], C->Theta[h3+2] );
+            }
+            fclose(tri_area); tri_area = NULL;
+         } 
+
+         /* TO PLOT VELOCITY FIELD AT ANY ITERATION. */
+         /* Write oriented segment file for plotting in SUMA. */
+         if(!niter){    /* Only write to file at the beginning of every m-loop. */
+            if(!first_bad_niter || niter < first_bad_niter+5) { 
+               FILE *plot_segments = NULL;
+               sprintf(outfile_segments, "SUMA_segments_m%d.1D.dset", m); 
+               plot_segments = fopen (outfile_segments, "w"); 
+               fprintf (plot_segments, "#oriented_segments\n");
+               for (i = 0; i < C->N_Node; ++i) {
+                  i3 = 3*i;
+                  /* To plot end of segment, must calculate the location of the point of the velocity vector. 
+                     This is done by adding the position vector of the node to the velocity vector at that node. */
+                  Vf_segment[0] = C->VelocityField[i3  ];
+                  Vf_segment[1] = C->VelocityField[i3+1];
+                  Vf_segment[2] = C->VelocityField[i3+2];
+
+                  Vf_segment[0] = C->NewNodeList[i3  ] + Vf_segment[0];
+                  Vf_segment[1] = C->NewNodeList[i3+1] + Vf_segment[1];
+                  Vf_segment[2] = C->NewNodeList[i3+2] + Vf_segment[2];
+
+                  fprintf (plot_segments, "%11.8f  %11.8f  %11.8f  %11.8f  %11.8f  %11.8f 0.0  0.0  1.0  1.0 1.5\n",
+                                          C->NewNodeList[i3], C->NewNodeList[i3+1], C->NewNodeList[i3+2], 
+                                          Vf_segment[0], Vf_segment[1], Vf_segment[2] );
+               }
+               fclose (plot_segments); plot_segments = NULL; 
+            } 
          }
-         fclose(tri_area); tri_area = NULL;
       } 
-
-      /* TO PLOT VELOCITY FIELD AT ANY ITERATION. */
-      /* Write oriented segment file for plotting in SUMA. */
-      if(!first_bad_niter || niter < first_bad_niter+5) { 
-         FILE *plot_segments = NULL;
-         sprintf(outfile_segments, "SUMA_segments%d.1D.dset", niter); 
-         plot_segments = fopen (outfile_segments, "w"); 
-         fprintf (plot_segments, "#oriented_segments\n");
-         for (i = 0; i < C->N_Node; ++i) {
-            i3 = 3*i;
-            /* To plot end of segment, must calculate the location of the point of the velocity vector. 
-               This is done by adding the position vector of the node to the velocity vector at that node. */
-            Vf_segment[0] = C->VelocityField[i3  ];
-            Vf_segment[1] = C->VelocityField[i3+1];
-            Vf_segment[2] = C->VelocityField[i3+2];
-
-            Vf_segment[0] = C->NewNodeList[i3  ] + 0.05*Vf_segment[0];
-            Vf_segment[1] = C->NewNodeList[i3+1] + 0.05*Vf_segment[1];
-            Vf_segment[2] = C->NewNodeList[i3+2] + 0.05*Vf_segment[2];
-
-            fprintf (plot_segments, "%11.8f  %11.8f  %11.8f  %11.8f  %11.8f  %11.8f 0.0  0.0  1.0  1.0 1.5\n",
-                                    C->NewNodeList[i3], C->NewNodeList[i3+1], C->NewNodeList[i3+2], 
-                                    Vf_segment[0], Vf_segment[1], Vf_segment[2] );
-         }
-         fclose (plot_segments); plot_segments = NULL; 
-      } 
-
+   }
+   
+   if(!niter) {
       /* Write velocity magnitudes to file for plotting in SUMA. */  
       FILE *plot_Vmag = NULL;
-      sprintf(outfile_Vmag, "SUMA_Vmag%d.1D.dset", niter); 
+      sprintf(outfile_Vmag, "SUMA_Vmag_m%d.1D.dset", m); 
       plot_Vmag = fopen (outfile_Vmag, "w"); 
       for (i = 0; i < C->N_Node; ++i) {
          i3 = 3*i;
@@ -1618,8 +1672,7 @@ SUMA_Boolean Debug_Move( MyCircle *C, MyCircleOpt *opt, SUMA_SurfaceObject *SO, 
                                                 SUMA_POW2(C->VelocityField[i3+2]) ));
       }
       fclose (plot_Vmag); plot_Vmag = NULL;
-
-   }
+   }  
    
    /* Send output to files for graphing in matlab. */
    if(LocalHead) {
