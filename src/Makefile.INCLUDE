@@ -726,6 +726,10 @@ rotcom:rotcom.o
 	$(RM) $@
 	$(CC) -o rotcom rotcom.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
+3dDistize:3dDistize.o
+	$(RM) $@
+	$(CC) -o 3dDistize 3dDistize.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 3dAnatNudge:3dAnatNudge.o
 	$(RM) $@
 	$(CC) -o 3dAnatNudge 3dAnatNudge.o $(LFLAGS) -lmri -lf2c $(LLIBS)

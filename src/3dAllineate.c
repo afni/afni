@@ -90,7 +90,7 @@ int main( int argc , char *argv[] )
    float **parsave=NULL ;
    MRI_IMAGE *apply_im = NULL ;
    float *apply_far    = NULL ;
-   int apply_nx, apply_ny , nparam_free ;
+   int apply_nx, apply_ny , nparam_free , diffblur=1 ;
    float cost, cost_ini ;
    mat44 cmat_bout , cmat_tout ;
    int   nxout,nyout,nzout ;
@@ -333,10 +333,14 @@ int main( int argc , char *argv[] )
        "               after doing the first sub-brick.  Subsequent volumes\n"
        "               will have the same spatial distortions as sub-brick #0,\n"
        "               plus rigid body motions only.\n"
-       " -replacebase= If the source has more than one sub-brick, and this\n"
-       "               option is turned on, then after the #0 sub-brick is\n"
-       "               aligned to the base, the aligned #0 sub-brick is used\n"
-       "               as the base image for subsequent source sub-bricks.\n"
+       "\n"
+       " -replacebase   = If the source has more than one sub-brick, and this\n"
+       "                  option is turned on, then after the #0 sub-brick is\n"
+       "                  aligned to the base, the aligned #0 sub-brick is used\n"
+       "                  as the base image for subsequent source sub-bricks.\n"
+       "\n"
+       " -replacemeth m = After sub-brick #0 is aligned, switch to method 'm'\n"
+       "                  for later sub-bricks.  For use with '-replacebase'.\n"
        "\n"
        " -EPI        = Treat the source dataset as being composed of warped\n"
        "               EPI slices, and the base as comprising anatomically\n"
@@ -352,7 +356,12 @@ int main( int argc , char *argv[] )
        "               some option (like '-EPI') to suppress scaling in the slice-\n"
        "               direction, the EPI dataset is likely to stretch the slice\n"
        "               thicknesss to better 'match' the T1-weighted brain coverage.\n"
-       "       **N.B.: '-EPI' turns on '-warpfreeze' and '-replacebase'.\n"
+#if 0
+       "       **N.B.: '-EPI' turns on '-warpfreeze -replacebase -replacemeth ls'.\n"
+       "               To disable '-replacemeth ls', use '-replacemeth 0' after '-EPI'.\n"
+#else
+       "       **N.B.: '-EPI' turns on '-warpfreeze -replacebase'.\n"
+#endif
        "\n"
        " -parfix n v   = Fix parameter #n to be exactly at value 'v'.\n"
        " -parang n b t = Allow parameter #n to range only between 'b' and 't'.\n"
@@ -446,6 +455,8 @@ int main( int argc , char *argv[] )
       "You could also fix some of the other parameters, if that makes sense\n"
       "in your situation; for example, to disable out of slice rotations:\n"
       "  -parfix 5 0  -parfix 6 0\n"
+      "and to disable out of slice translation:\n"
+      "  -parfix 3 0\n"
       "NOTE WELL: If you use '-EPI', then the output warp parameters apply\n"
       "           to the (freq,phase,slice) xyz coordinates, NOT to the DICOM\n"
       "           xyz coordinates, so equivalent transformations will be\n"
@@ -478,7 +489,7 @@ int main( int argc , char *argv[] )
       "================================================\n"
       "  RWCox - September 2006 - Live Long and Prosper\n"
       "================================================\n"
-      "** From Webster's Dictionary: Allineate == 'to align' **\n\n"
+      "** From Webster's Dictionary: Allineate == 'to align' **\n"
      ) ;
 
      if( argc > 1 &&
@@ -519,13 +530,13 @@ int main( int argc , char *argv[] )
         " -histbin nn   = Or you can just set the number of bins directly to 'nn'.\n"
         " -wtmrad  mm   = Set autoweight/mask median filter radius to 'mm' voxels.\n"
         " -wtgrad  gg   = Set autoweight/mask Gaussian filter radius to 'gg' voxels.\n"
-        " -replacemeth m= After sub-brick #0 is aligned, switch to method 'm' for\n"
-        "                 later sub-bricks.  For use with -replacebase or -EPI\n"
-        "                 (e.g., '-EPI -replacemeth ls').\n"
        ) ;
+     } else {
+       printf("\n"
+              "[[[[[ To see a few super-advanced options, use '-HELP'. ]]]]]\n") ;
      }
 
-     exit(0);
+     printf("\n"); exit(0);
    }
 
    /**--- bookkeeping and marketing ---**/
@@ -1174,7 +1185,10 @@ int main( int argc , char *argv[] )
        paropt[nparopt].code = PARC_FIX ;
        paropt[nparopt].vb   = 0.0 ; nparopt++ ;
 
-       twofirst = 1 ; replace_base = 1 ;
+       twofirst = 1; replace_base = 1;
+#if 0
+       replace_meth = GA_MATCH_PEARSON_SCALAR;
+#endif
        iarg++ ; continue ;
      }
 
@@ -1192,6 +1206,10 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-replacemeth") == 0 ){  /* 18 Oct 2006 */
        if( ++iarg >= argc ) ERROR_exit("no argument after '-replacemeth'!") ;
+
+       if( strcmp(argv[iarg],"0") == 0 ){
+         replace_meth = 0 ; iarg++ ; continue ;  /* special case */
+       }
 
        for( jj=ii=0 ; ii < NMETH ; ii++ ){
          if( strcmp(argv[iarg],meth_shortname[ii]) == 0 ){
@@ -2018,7 +2036,7 @@ int main( int argc , char *argv[] )
      stup.smooth_code = sm_code ;
      if( fine_rad > 0.0f ){
        stup.smooth_radius_base = stup.smooth_radius_targ = fine_rad ;
-     } else {
+     } else if( diffblur ){
        float br=cbrt(dx_base*dy_base*dz_base) ;  /* base voxel size */
        float tr=cbrt(dx_targ*dy_targ*dz_targ) ;  /* targ voxel size */
        stup.smooth_radius_targ = 0.0f ;
@@ -2074,6 +2092,7 @@ int main( int argc , char *argv[] )
        stup.interp_code = MRI_LINEAR ;
        stup.npt_match   = MIN(499999,npt_match) ;
        mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;
+       if( verb > 1 ) ININFO_message("- start Intrmed optimization") ;
        nfunc = mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 6666 );
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
          pini[jj] = stup.wfunc_param[jj].val_init ;
@@ -2091,7 +2110,7 @@ int main( int argc , char *argv[] )
        } else {
          if( verb > 1 ){
            PARINI("- Intrmed fine") ;
-           ININFO_message("- Intrmed cost = %f",cost) ;
+           ININFO_message("- Intrmed cost = %f  funcs = %d",cost,nfunc) ;
          }
          if( nfunc < 6666 ) rad *= 0.246 ;
        }
@@ -2102,6 +2121,7 @@ int main( int argc , char *argv[] )
      if( verb > 2 ) GA_do_cost(1);
 
      nfunc += mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
+
      if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ;
      if( verb > 2 ) GA_do_cost(0);
      if( verb > 1 ) ININFO_message("- Fine CPU time = %.1f s",
@@ -2208,9 +2228,9 @@ int main( int argc , char *argv[] )
                              stup.wfunc_numpar , pp , stup.wfunc ,
                              stup.ajim, nx_base,ny_base,nz_base, final_interp );
 #if 0
-       im_wset = im_weig ;
+       im_wset = im_weig ;  /* not needed, since stup 'remembers' the weight */
 #endif
-       replace_base = 0 ;
+       replace_base = 0 ; diffblur = 0 ;
      }
      if( replace_meth ){
        if( verb > 1 ) INFO_message("Replacing meth='%s' with '%s'",

@@ -54,7 +54,7 @@ int main( int argc , char * argv[] )
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
-      if( strcmp(argv[iarg],"-mfrac") == 0 ){
+      if( strcmp(argv[iarg],"-mfrac") == 0 || strcmp(argv[iarg],"-clfrac") == 0 ){
          mfrac = strtod( argv[++iarg] , NULL ) ;
          if( mfrac <= 0.0f ) ERROR_exit("Illegal -mfrac '%s'",argv[iarg]) ;
          while( mfrac >= 1.0f ) mfrac *= 0.01f ;
@@ -78,7 +78,10 @@ int main( int argc , char * argv[] )
 
    mri_free(medim) ;
 
-   if( !THD_need_brick_factor(dset) ) val = (float)rint((double)val) ;
+   if( !THD_need_brick_factor(dset) &&
+       DSET_datum_constant(dset)    &&
+      (DSET_BRICK_TYPE(dset,0)==MRI_short || DSET_BRICK_TYPE(dset,0)==MRI_byte) )
+     val = (float)rint((double)val) ;
 
    printf("%g\n",val) ;
    exit(0) ;
