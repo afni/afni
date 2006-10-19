@@ -144,9 +144,9 @@ SURFQUAL:
    echo "Running SurfQual ..."
    rm -f ${tmp}_sq_*.* >& /dev/null 
    SurfQual -spec $spc -surf_A $srfp.asc -sphere -prefix ${tmp}_sq_ -summary > ${tmp}_sq_.log
-   set bad = `grep Folding_Triangles ${tmp}_sq_.log` 
+   set bad = `grep Sketchy_nodes ${tmp}_sq_.log` 
    set nbad = $bad[2]
-   echo "Found $nbad folding triangles."
+   echo "Found $nbad sketchy nodes."
 
    if ($nbad == 0) then
       echo "All is well with the world"
@@ -190,9 +190,9 @@ NEW_METRICS:
 CHECK_AGAIN:
    echo "Running SurfQual on fixed surface..."
    SurfQual -spec ${outsn}.spec -surf_A ${outsn} -sphere -prefix ${tmp}_sq_${outsn} -summary > ${tmp}_sq_${outsn}.log
-   set bad = `grep Folding_Triangles ${tmp}_sq_${outsn}.log` 
+   set bad = `grep Sketchy_nodes ${tmp}_sq_${outsn}.log` 
    set nbad = $bad[2]
-   echo "Found $nbad folding triangles."
+   echo "Found $nbad sketchy nodes."
 
    if ($nbad == 0) then
       echo ""

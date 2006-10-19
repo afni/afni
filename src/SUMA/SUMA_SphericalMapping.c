@@ -39,6 +39,87 @@ extern SUMA_DO *SUMAg_DOv;
 float ep = 1e-4; /* this represents the smallest coordinate difference to be expected between neighboring nodes. Do not make it too small or else you will get round off errors. It is reassigned in SUMA_MakeIcosahedron, becoming dependent upon the recursion depth.  (Assigned here in case SUMA_binTesselate used without SUMA_CreateIcosahedron) Talk to Brenna Argall for details. */
 
 /*!
+   \brief face_nbad = SUMA_Bad_FacesetNorm_Dot_Radius(SO, FaceMask, dot_cut, face_bad_ind, face_bad_dot);
+   \param SO (SUMA_SurfaceObject *) A surface Object (make sure faceset normals are current) 
+   \param FaceMask (byte *) Optional mask for which triangles to analyze. If FaceMask[n] then triangle n is analyzed.
+                           Pass NULL to analyze all triangles
+   \param dot_cut (double) dot products below dot_cut are flagged
+   \param face_bad_ind (int *)   : if not null, it should hold up to SO->N_FaceSet elements and will contain,
+                                    upon the function's return, the indices of triangles that had a dot product
+                                    < dot_cut 
+   \param face_bad_dot (float *) : if not null, it should hold up to SO->N_FaceSet elements and will contain,
+                                    upon the function's return, the dot products of those troubled triangles.
+   \param CalcNorm (int ): flag for recalculating triangle normals before proceeding. 
+                           if 0 then SO->FaceNormList is used. Note that in either case, SO->FaceNormList
+                           is unchanged.
+   \return (int) The number of bad triangles encountered
+*/
+int SUMA_Bad_FacesetNorm_Dot_Radius(SUMA_SurfaceObject *SO, byte *FaceMask, double dot_cut, int *face_bad_ind, float *face_bad_dot, int CalcNorm)
+{
+   static char FuncName[]={"SUMA_Bad_FacesetNorm_Dot_Radius"};
+   int N_bad = -1, i, i3, n0, n0t, n1, n1t, n2, n2t;
+   double dot, nr, r[3], cent[3], norm[3];
+   float *P0, *P1, *P2;
+   SUMA_Boolean LocalHead = YUP;
+
+   SUMA_ENTRY;
+
+   if ((face_bad_ind && !face_bad_dot) || (!face_bad_ind && face_bad_dot)) {
+      SUMA_S_Err("Both of face_bad_ind and face_bad_dot must be either NULL or valid pointers");
+      SUMA_RETURN(N_bad);
+   }
+   
+   /*
+   if (CalcNorm) { fprintf(stderr,"CalcNorm = 1\n"); } 
+   else { fprintf(stderr,"CalcNorm = 0\n"); };
+   */
+   
+   N_bad = 0;
+   for (i=0; i < SO->N_FaceSet; ++i) {
+      if (!FaceMask || (FaceMask && FaceMask[i])) {
+         i3 = 3*i;
+         n0 = SO->FaceSetList[i3  ]; n0t = 3* n0;
+         n1 = SO->FaceSetList[i3+1]; n1t = 3* n1;
+         n2 = SO->FaceSetList[i3+2]; n2t = 3* n2;
+
+         /* Calculate Center of Gravity of each facet. */
+         cent[0  ] = ( SO->NodeList[n0t  ] + SO->NodeList[n1t  ] + SO->NodeList[n2t  ] )  / 3.0;
+         cent[1  ] = ( SO->NodeList[n0t+1] + SO->NodeList[n1t+1] + SO->NodeList[n2t+1] )  / 3.0;
+         cent[2  ] = ( SO->NodeList[n0t+2] + SO->NodeList[n1t+2] + SO->NodeList[n2t+2] )  / 3.0;
+
+         /* calculate radius vector */
+         r[0] = cent[0  ] - SO->Center[0];
+         r[1] = cent[1  ] - SO->Center[1];
+         r[2] = cent[2  ] - SO->Center[2];
+
+         /* scale radius vector */
+         nr = sqrt ( r[0] * r[0] + r[1] * r[1] + r[2] * r[2] );
+         r[0] /= nr; r[1] /= nr; r[2] /= nr; 
+
+         if (!CalcNorm) {
+         dot = r[0]*SO->FaceNormList[i3  ] + 
+               r[1]*SO->FaceNormList[i3+1] +
+               r[2]*SO->FaceNormList[i3+2] ;
+         } else {
+            P0 = &(SO->NodeList[n0t  ]);
+            P1 = &(SO->NodeList[n1t  ]);
+            P2 = &(SO->NodeList[n2t  ]);
+            SUMA_TRI_NORM_NORM(P0, P1, P2, norm);
+            dot = r[0]*norm[0] + r[1]*norm[1] + r[2]*norm[2];
+         }
+         if (dot < dot_cut) {
+            if (face_bad_ind) {
+               face_bad_ind[N_bad] = i;  
+               face_bad_dot[N_bad] = (float) dot;
+            }
+            ++N_bad;
+         }
+      }
+   }
+   SUMA_RETURN(N_bad);
+}
+
+/*!
    \brief A function to test if a spherical surface is indeed spherical
    
    SUMA_SphereQuality (SUMA_SurfaceObject *SO, char *Froot, char *historynote)
@@ -63,7 +144,7 @@ float ep = 1e-4; /* this represents the smallest coordinate difference to be exp
    
       
 */
-int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
+SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
 {
    static char FuncName[]={"SUMA_SphereQuality"};
    float *dist = NULL, mdist, *dot=NULL, nr, r[3], *bad_dot = NULL;
@@ -76,6 +157,8 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
    FILE *fid;
    FILE *face_id;
    char *fname;
+   float dot_cut = 0.00001;
+   SUMA_SPHERE_QUALITY SSQ;
    SUMA_COLOR_MAP *CM;
    SUMA_SCALE_TO_MAP_OPT * OptScl;
    SUMA_COLOR_SCALED_VECT * SV;
@@ -83,9 +166,12 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
    
    SUMA_ENTRY;
    
+   SSQ.N_bad_nodes = -1;
+   SSQ.N_bad_facesets = -1;
+   
    if (!SO) {
       SUMA_SL_Err("NULL SO");
-      SUMA_RETURN(-1);
+      SUMA_RETURN(SSQ);
    }
    
    /* get the options for creating the scaled color mapping */
@@ -359,43 +445,9 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
    face_dot       = (float *)SUMA_calloc(SO->N_FaceSet, sizeof(float));
    face_bad_ind   = (int *)  SUMA_calloc(SO->N_FaceSet, sizeof(int)  );
    face_bad_dot   = (float *)SUMA_calloc(SO->N_FaceSet, sizeof(float));
-   face_ibad = 0;
-   
-   /* Calculate Center of Gravity of each facet. */
-   for (i=0; i < SO->N_FaceSet; ++i) {
-      i3 = 3*i;
-      F[0] = 3*SO->FaceSetList[i3  ];
-      F[1] = 3*SO->FaceSetList[i3+1];
-      F[2] = 3*SO->FaceSetList[i3+2];
-      
-      face_cent[i3  ] = (1.0/3.0) * ( SO->NodeList[F[0]  ] + SO->NodeList[F[1]  ] + SO->NodeList[F[2]  ] );
-      face_cent[i3+1] = (1.0/3.0) * ( SO->NodeList[F[0]+1] + SO->NodeList[F[1]+1] + SO->NodeList[F[2]+1] );
-      face_cent[i3+2] = (1.0/3.0) * ( SO->NodeList[F[0]+2] + SO->NodeList[F[1]+2] + SO->NodeList[F[2]+2] );
-   }
-     
-   for (i=0; i < SO->N_FaceSet; ++i) {
-      i3 = 3*i;
-      r[0] = face_cent[i3  ] - SO->Center[0];
-      r[1] = face_cent[i3+1] - SO->Center[1];
-      r[2] = face_cent[i3+2] - SO->Center[2];
-      
-      nr = sqrt ( r[0] * r[0] + r[1] * r[1] + r[2] * r[2] );
-      r[0] /= nr; r[1] /= nr; r[2] /= nr; 
-      
-      face_dot[i] =  r[0]*SO->FaceNormList[i3  ] + 
-                     r[1]*SO->FaceNormList[i3+1] +
-                     r[2]*SO->FaceNormList[i3+2] ;
-      /*If change the dot product cut off, be sure to change it in the print statements as well.*/
-      if (face_dot[i] < 0.00001) {
-         face_bad_ind[face_ibad] = i;
-         face_bad_dot[face_ibad] = face_dot[i];
-         ++face_ibad;
-      }
-   }
-   
-   face_bad_ind = (int *)  SUMA_realloc(face_bad_ind, face_ibad * sizeof(int));
-   face_bad_dot = (float *)SUMA_realloc(face_bad_dot, face_ibad * sizeof(float));
-   
+
+   face_ibad = SUMA_Bad_FacesetNorm_Dot_Radius(SO, NULL, 0.0001, face_bad_ind, face_bad_dot, 0);
+       
    /* write the data */
    fname = SUMA_append_string(Froot, "_facedotprod.1D.dset");
    if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
@@ -412,10 +464,10 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
    fname = SUMA_append_string(Froot, "_BadFaceSets.1D.dset");
    if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
    face_id= fopen(fname, "w");
-   fprintf(face_id,"#Facets with normals at angle with radial direction: (dot product < 0.00001)\n"
+   fprintf(face_id,"#Facets with normals at angle with radial direction: (dot product < %f)\n"
                "#col 0: Facet Index\n"
                "#col 1: cos(angle)\n"
-               ); 
+               , dot_cut); 
    if (shist) fprintf(face_id,"#History:%s\n", shist);
    for (i=0; i<face_ibad; ++i) fprintf(face_id,"%d\t%f\n", face_bad_ind[i], face_bad_dot[i]);
    fclose(face_id);
@@ -426,8 +478,8 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
       int face_nrep;
       face_nrep = SUMA_MIN_PAIR(face_ibad, 10); 
       fprintf (SUMA_STDERR,"%d of the %d facets with normals at angle with radial direction\n"
-                           " i.e. (dot product < 0.00001)\n"
-                           " See output files for full list\n", face_nrep, face_ibad);
+                           " i.e. (dot product < %f)\n"
+                           " See output files for full list\n", face_nrep, face_ibad, dot_cut);
       for (i=0; i < face_nrep; ++i) {
          fprintf (SUMA_STDERR,"cos(ang) @ facet %d: %f\n", face_bad_ind[i], face_bad_dot[i]);
       /* If face_nrep is zero, then this will not be printed. */
@@ -450,7 +502,9 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
       Use "(face_ibad)" if want to flag in program when first bad facet occurs.
       Otherwise, use original return variable.  Before was just "(ibad)" */  
    
-   SUMA_RETURN(ibad);
+   SSQ.N_bad_nodes = ibad;
+   SSQ.N_bad_facesets = face_ibad;
+   SUMA_RETURN(SSQ);
 }
 
 /*!

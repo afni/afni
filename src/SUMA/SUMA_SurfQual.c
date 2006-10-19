@@ -27,6 +27,7 @@ void usage_SUMA_SurfQual ()
                "  Mesh winding consistency and 2-manifold checks are performed\n"
                "  on all surfaces.\n"
                "  Optional parameters:\n"
+               "     -summary: Provide summary of results to stdout\n"
                "     -self_intersect: Check if surface is self intersecting.\n"
                "                      This option is rather slow, so be patient.\n"
                "                      In the presence of intersections, the output file\n"
@@ -229,12 +230,14 @@ int main (int argc,char *argv[])
    static char FuncName[]={"SurfQual"};
    char *OutName = NULL, ext[5], *prefix = NULL, *shist=NULL;
    SUMA_SURFQUAL_OPTIONS *Opt; 
-   int SO_read = -1, nbad = -1;
+   int SO_read = -1;
    int i, cnt, trouble, consistent = -1, eu = -1, nsi = -1;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_SurfSpecFile Spec;
    void *SO_name = NULL;
    SUMA_Boolean DoConv = NOPE, DoSphQ = NOPE, DoSelfInt = NOPE;   
+   SUMA_SPHERE_QUALITY SSQ;
+
    SUMA_Boolean LocalHead = NOPE;
 	
    SUMA_STANDALONE_INIT;
@@ -332,7 +335,7 @@ int main (int argc,char *argv[])
             OutName = SUMA_copy_string (prefix);
          }
          shist = SUMA_HistString (NULL, argc, argv, NULL);
-         nbad = SUMA_SphereQuality (SO, OutName, shist);   
+         SSQ = SUMA_SphereQuality (SO, OutName, shist);   
          if (shist) SUMA_free(shist); shist = NULL;
          if (OutName) SUMA_free(OutName); OutName = NULL;
       }
@@ -431,7 +434,10 @@ int main (int argc,char *argv[])
                      fprintf(stdout,"Summary:\n");
                      fprintf(stdout,"Euler_No %d\n", eu);
                      fprintf(stdout,"Consistent_Winding %d\n", consistent);
-      if (DoSphQ)    fprintf(stdout,"Folding_Triangles %d\n", nbad);
+      if (DoSphQ) {
+                     fprintf(stdout,"Folding_Triangles %d\n", SSQ.N_bad_facesets);
+                     fprintf(stdout,"Sketchy_nodes %d\n", SSQ.N_bad_nodes);
+                  }
       if (DoSelfInt) fprintf(stdout,"Self_Intersections %d\n", nsi);
                      fprintf(stdout,"\n");
    }
