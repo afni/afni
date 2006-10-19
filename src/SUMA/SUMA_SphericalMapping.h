@@ -27,6 +27,11 @@ typedef struct {
    int* nvox_list;
    float* valArray;
 } SUMA_1dData;
+
+typedef struct {
+   int N_bad_nodes;
+   int N_bad_facesets;
+} SUMA_SPHERE_QUALITY;
 /*
 typedef struct {
    char fileNm[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
@@ -60,11 +65,12 @@ int * SUMA_divEdge( float *nodeList, int *nCtr, int node1, int node2, int N_Div)
 void SUMA_triangulateRow( float *nodeList, int *triList, int *nCtr, int *tCtr, int N_Div, int *currFloor, int node1, int node2);
 void SUMA_addNode(float *nodeList, int *ctr, float x, float y, float z);
 void SUMA_addTri(int *triList, int *ctr, int n1, int n2, int n3);
+int SUMA_Bad_FacesetNorm_Dot_Radius(SUMA_SurfaceObject *SO, byte *FaceMask, double dot_cut, int *face_bad_ind, float *face_bad_dot, int CalcNorm);
 
 SUMA_SO_map *SUMA_Create_SO_map (void);
 SUMA_Boolean SUMA_Free_SO_map (SUMA_SO_map *SOM); 
 SUMA_Boolean SUMA_Show_SO_map  (SUMA_SO_map *SOM, FILE *out); 
-int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist);
+SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist);
 
 #define SUMA_ICOSAHEDRON_DIMENSIONS(r, a, b, lgth){ /* r is the radius parameter passed to SUMA_CreateIcosahedron or the -rad option in CreateIcosahedron*/ \
    a = r*(1+sqrt(5)) / (sqrt(10+2*sqrt(5))); \
