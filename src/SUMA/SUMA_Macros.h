@@ -1433,6 +1433,33 @@ WARNING: The input data vectors are not cast to the type of s.
    }  \
    
 /*!
+   \brief Macro to calculate normal of a triangle 
+   \params P1, P2, P3: XYZ coordinates forming triangle
+   \param norm: Contains UN-NORMALIZED normal upon return
+   use SUMA_TRI_NORM_NORM for normalized normals
+*/
+#define SUMA_TRI_NORM(P1, P2, P3, norm){  \
+   double m_d1[3], m_d2[3];   \
+   m_d1[0] = P1[0] - P2[0];   \
+   m_d2[0] = P2[0] - P3[0];   \
+   m_d1[1] = P1[1] - P2[1];   \
+   m_d2[1] = P2[1] - P3[1];   \
+   m_d1[2] = P1[2] - P2[2];   \
+   m_d2[2] = P2[2] - P3[2];   \
+   norm[0] = m_d1[1]*m_d2[2] - m_d1[2]*m_d2[1]; \
+   norm[1] = m_d1[2]*m_d2[0] - m_d1[0]*m_d2[2]; \
+   norm[2] = m_d1[0]*m_d2[1] - m_d1[1]*m_d2[0]; \
+}  
+#define SUMA_TRI_NORM_NORM(P1, P2, P3, norm){  \
+   double m_d; \
+   SUMA_TRI_NORM(P1, P2, P3, norm); \
+   m_d = sqrt(norm[0]*norm[0]+norm[1]*norm[1]+norm[2]*norm[2]);  \
+   if (m_d == 0.0f) { norm[0] = norm[1] = norm[2] = 0.0; } \
+   else { norm[0] /= m_d; norm[1] /= m_d; norm[2] /= m_d;}  \
+}  
+
+     
+/*!
    \brief Macro to calculate the distance Un from P1-->P2 a
    \param P1/P2 (float *) 3-elements arrays containing XYZ of P1 and P2
    \param Un (float) the norm of |P1--P2|
