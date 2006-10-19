@@ -55,7 +55,7 @@ int main( int argc , char * argv[] )
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
-      if( strcmp(argv[iarg],"-clfrac") == 0 ){    /* 20 Mar 2006 */
+      if( strcmp(argv[iarg],"-clfrac") == 0 || strcmp(argv[iarg],"-mfrac") ){    /* 20 Mar 2006 */
         clfrac = strtod( argv[++iarg] , NULL ) ;
         if( clfrac < 0.1f || clfrac > 0.9f )
           ERROR_exit("-clfrac value %f is illegal!",clfrac) ;
