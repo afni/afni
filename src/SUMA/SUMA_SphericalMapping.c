@@ -450,7 +450,7 @@ int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
       Use "(face_ibad)" if want to flag in program when first bad facet occurs.
       Otherwise, use original return variable.  Before was just "(ibad)" */  
    
-   SUMA_RETURN(face_ibad);
+   SUMA_RETURN(ibad);
 }
 
 /*!
