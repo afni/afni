@@ -187,6 +187,7 @@ extern void MCW_erode_clusters (int, int, int, float, float, float, int,
 				  void *, float, float, int);
 
 extern void MCW_sort_cluster( MCW_cluster * ) ; /* 10 Jul 2001 */
+extern void MCW_radsort_cluster( MCW_cluster *, float, float, float ) ;
 
 /*----------------------------------------------------------------------------*/
 #undef ALLOW_SCALE_TO_MAX

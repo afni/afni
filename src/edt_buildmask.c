@@ -6,10 +6,10 @@
 
 #include "mrilib.h"
 
-/*-----------------------------------------------------------------------------
-   Routine to make a cluster that is a mask of points closer than max_dist.
-      dx, dy, dz   = voxel dimensions
-      max_dist     = maximum distance for a point to be included in the mask
+/*-----------------------------------------------------------------------------*/
+/*! Routine to make a cluster that is a mask of points closer than max_dist.
+     - dx, dy, dz = voxel dimensions
+     - max_dist   = maximum distance for a point to be included in the mask
    Date   :  11 September 1996
 
    To correct error due to abiguity in identification of clusters,
@@ -17,6 +17,10 @@
    BDW  06 March 1997
 
    30 Apr 2002: max_dist input as <= 0 now gives NN connectivity
+
+   N.B.: The cluster does NOT contain the (0,0,0) point!
+   N.B.: The cluster is not sorted by radius from the (0,0,0) point!
+         To do this, see MCW_radsort_cluster().
 -----------------------------------------------------------------------------*/
 
 MCW_cluster * MCW_build_mask( float dx, float dy, float dz, float max_dist )
@@ -28,9 +32,9 @@ MCW_cluster * MCW_build_mask( float dx, float dy, float dz, float max_dist )
 ENTRY("MCW_build_mask") ;
 
    if( max_dist <= 0.0 ){                   /* 30 Apr 2002 */
-     dx = dy = dz = 1.0 ; max_dist = 1.01 ;
+     dx = dy = dz = 1.0f ; max_dist = 1.01f ;
    } else {
-     if( dx <= 0.0f ) dx = 1.0f ;
+     if( dx <= 0.0f ) dx = 1.0f ;           /* something sensible */
      if( dy <= 0.0f ) dy = 1.0f ;
      if( dz <= 0.0f ) dz = 1.0f ;
    }
@@ -54,7 +58,7 @@ ENTRY("MCW_build_mask") ;
        yq = zq + (jj*dy) * (jj*dy) ;
        for( ii=-idx ; ii <= idx ; ii++ ){
          xq = yq + (ii*dx)*(ii*dx) ;
-         if( xq <= dist_q && xq > 0.0 ){
+         if( xq <= dist_q && xq > 0.0f ){
            ADDTO_CLUSTER( mask , ii, jj, kk, 0 ) ;
          }
        }
@@ -72,18 +76,38 @@ ENTRY("MCW_build_mask") ;
 }
 
 /*----------------------------------------------------------------------*/
+/*! Like MCW_build_mask(), but adds the (0,0,0) point to the cluster,
+    and then sorts by radius (so the points closest to the origin
+    are first in the array).  The radius from the origin is stored
+    in the 'mag' element of the cluster struct.
+------------------------------------------------------------------------*/
 
 MCW_cluster * MCW_spheremask( float dx, float dy, float dz, float radius )
 {
    MCW_cluster *mask;
+   int ii , nn ;
+   float x,y,z ;
 
    mask = MCW_build_mask(dx,dy,dz,radius) ;
    if( mask == NULL ){ INIT_CLUSTER(mask) ; }
    ADDTO_CLUSTER(mask,0,0,0,0) ;
+
+   /** sorting stuff added 20 Oct 2006 **/
+
+   if( dx <= 0.0f ) dx = 1.0f ;
+   if( dy <= 0.0f ) dy = 1.0f ;
+   if( dz <= 0.0f ) dz = 1.0f ;
+   nn = mask->num_pt ;
+   for( ii=0 ; ii < nn ; ii++ ){
+     x = mask->i[ii]*dx; y = mask->j[ii]*dy; z = mask->k[ii]*dz;
+     mask->mag[ii] = sqrt(x*x+y*y+z*z) ;
+   }
+   MCW_sort_cluster( mask ) ;
    return mask ;
 }
 
 /*----------------------------------------------------------------------*/
+/*! Like MCW_spheremask(), but builds a rectangular parallelopiped. */
 
 MCW_cluster * MCW_rectmask( float dx, float dy, float dz,
                             float xh, float yh, float zh )

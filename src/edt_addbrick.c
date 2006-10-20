@@ -6,27 +6,27 @@
 
 #include "mrilib.h"
 
-/*---------------------------------------------------------------------------
-  Routine to attach sub-bricks to the end of an already existing 3D dataset.
-    nbr = number of extra bricks
-    tbr = array of data types in each brick (defaults to MRI_short)
-    fbr = array of new brick_fac factors in each brick
-           if NULL, new factors will be set to zero
-    sbr = array of pointers to data in each brick
-           if sbr[i]==NULL, then the i'th extra brick will not have data
-           if sbr==NULL, then all new extra bricks will not have data
-             (in which case you will have to use mri_fix_data_pointer to
-              attach data at a later time, if you plan to use the data)
+/*---------------------------------------------------------------------------*/
+/*! Routine to attach sub-bricks to the end of an already existing 3D dataset.
+    - nbr = number of extra bricks
+    - tbr = array of data types in each brick (defaults to MRI_short)
+    - fbr = array of new brick_fac factors in each brick
+             if NULL, new factors will be set to zero
+    - sbr = array of pointers to data in each brick
+             if sbr[i]==NULL, then the i'th extra brick will not have data
+             if sbr==NULL, then all new extra bricks will not have data
+               (in which case you will have to use mri_fix_data_pointer to
+                attach data at a later time, if you plan to use the data)
 
   Note that this can only be done on a brick that is malloc-ed, not mmap-ed!
 -----------------------------------------------------------------------------*/
 
-void EDIT_add_bricklist( THD_3dim_dataset * dset ,
-                         int nbr, int * tbr, float * fbr , void *sbr[] )
+void EDIT_add_bricklist( THD_3dim_dataset *dset ,
+                         int nbr, int *tbr, float *fbr , void *sbr[] )
 {
    int ibr , typ , nx,ny,nz , nvals,new_nvals ;
-   THD_datablock * dblk ;
-   MRI_IMAGE * qim ;
+   THD_datablock *dblk ;
+   MRI_IMAGE *qim ;
    char str[32] ;
 
 ENTRY("EDIT_add_bricklist") ;
@@ -112,11 +112,14 @@ ENTRY("EDIT_add_bricklist") ;
   EXRETURN;
 }
 
-void EDIT_add_brick( THD_3dim_dataset * dset, int typ , float fac , void * br )
+/*---------------------------------------------------------------------------*/
+/*! Add one brick to the end of a dataset. */
+
+void EDIT_add_brick( THD_3dim_dataset *dset, int typ , float fac , void *br )
 {
-   int    ttt = typ ;
-   float  fff = fac ;
-   void * bbb = br ;
+   int   ttt = typ ;
+   float fff = fac ;
+   void *bbb = br ;
 
    EDIT_add_bricklist( dset , 1 , &ttt , &fff , &bbb ) ;
    return ;
