@@ -62,7 +62,9 @@ ENTRY("THD_open_one_dataset") ;
 
    if( getenv("AFNI_USE_THD_open_dataset") != NULL &&
        strstr(pathname,"[")                != NULL   ){
-      RETURN( THD_open_dataset(pathname) ) ;
+      dset = THD_open_dataset(pathname) ;
+      THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
+      RETURN(dset) ;
    }
 
    fsize = THD_filesize(pathname) ;                         /* 06 Jan 2005 */
@@ -72,34 +74,46 @@ ENTRY("THD_open_one_dataset") ;
 
    if( STRING_HAS_SUFFIX(pathname,".mnc") ){
      CHECK_FOR_DATA(pathname) ;               /* 06 Jan 2005 */
-     RETURN( THD_open_minc(pathname) ) ;
+     dset = THD_open_minc(pathname) ;
+     THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
+     RETURN(dset) ;
    }
 
    /*-- perhaps the ANALYZE way --*/
 
    if( STRING_HAS_SUFFIX(pathname,".hdr") ){
      CHECK_FOR_DATA(pathname) ;               /* 06 Jan 2005 */
-     RETURN( THD_open_analyze(pathname) ) ;
+     dset = THD_open_analyze(pathname) ;
+     THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
+     RETURN(dset) ;
    }
 
    /*-- perhaps the CTF way [04 Dec 2002] --*/
 
    if( STRING_HAS_SUFFIX(pathname,".mri") ){
      CHECK_FOR_DATA(pathname) ;               /* 06 Jan 2005 */
-     RETURN( THD_open_ctfmri(pathname) ) ;
+     dset = THD_open_ctfmri(pathname) ;
+     THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
+     RETURN(dset) ;
    } else if( STRING_HAS_SUFFIX(pathname,".svl") ){
      CHECK_FOR_DATA(pathname) ;               /* 06 Jan 2005 */
-     RETURN( THD_open_ctfsam(pathname) ) ;
+     dset = THD_open_ctfsam(pathname) ;
+     THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
+     RETURN(dset) ;
    }
 
    /*-- 04 Mar 2003: allow input of .1D files --*/
 
    if( STRING_HAS_SUFFIX(pathname,".1D") ){
      CHECK_FOR_DATA(pathname) ;               /* 06 Jan 2005 */
-     RETURN( THD_open_1D(pathname) ) ;
+     dset = THD_open_1D(pathname) ;
+     THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
+     RETURN(dset) ;
    } else if( STRING_HAS_SUFFIX(pathname,".3D") ){  /* 21 Mar 2003 */
      CHECK_FOR_DATA(pathname) ;               /* 06 Jan 2005 */
-     RETURN( THD_open_3D(pathname) ) ;
+     dset = THD_open_3D(pathname) ;
+     THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
+     RETURN(dset) ;
    }
 
    /*-- 28 Aug 2003: the NIFTI way! --*/
@@ -109,7 +123,9 @@ ENTRY("THD_open_one_dataset") ;
        STRING_HAS_SUFFIX(pathname,".nia")      ){
 
      CHECK_FOR_DATA(pathname) ;               /* 06 Jan 2005 */
-     RETURN( THD_open_nifti(pathname) ) ;
+     dset = THD_open_nifti(pathname) ;
+     THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
+     RETURN(dset) ;
    }
 
    /*-- 03 Dec 2003: the MPEG way! --*/
@@ -120,7 +136,9 @@ ENTRY("THD_open_one_dataset") ;
        STRING_HAS_SUFFIX(pathname,".mpeg")   ){
 
      CHECK_FOR_DATA(pathname) ;               /* 06 Jan 2005 */
-     RETURN( THD_open_mpeg(pathname) ) ;
+     dset = THD_open_mpeg(pathname) ;
+     THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
+     RETURN(dset) ;
    }
 
    /*-- 26 May 2006 [rickr]: the NIML way! --*/
@@ -128,7 +146,9 @@ ENTRY("THD_open_one_dataset") ;
    if( STRING_HAS_SUFFIX(pathname,".niml") ){
 
      CHECK_FOR_DATA(pathname) ;
-     RETURN( THD_open_niml(pathname) ) ;
+     dset = THD_open_niml(pathname) ;
+     THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
+     RETURN(dset) ;
    }
 
    /*-- 26 May 2006 [rickr]: the NI_SURF_DSET way! --*/
@@ -136,7 +156,9 @@ ENTRY("THD_open_one_dataset") ;
    if( STRING_HAS_SUFFIX(pathname,".niml.dset") ){
 
      CHECK_FOR_DATA(pathname) ;
-     RETURN( THD_open_niml(pathname) ) ;
+     dset = THD_open_niml(pathname) ;
+     THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
+     RETURN(dset) ;
    }
 
    /* -- Try to read an AFNI dataset and if that fails, 
@@ -184,13 +206,15 @@ ENTRY("THD_open_one_dataset") ;
       dblk = THD_init_one_datablock( dirname , fullname ) ;
       if( dblk != NULL ) {
          dset = THD_3dim_from_block( dblk ) ;
+         THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
          RETURN(dset) ;
       }
    } else {
       /*-- Nothing worked, see if name is that of an atlas based ROI -- */
-      dset = NULL;
       /* fprintf(stderr,"Here's your moment %s\n", pathname); */
-      RETURN(THD_3dim_from_ROIstring(pathname));
+      dset = THD_3dim_from_ROIstring(pathname) ;
+      THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
+      RETURN(dset) ;
    }
    /* all else failed, give them the famed message */
    CHECK_FOR_DATA(fullname) ;

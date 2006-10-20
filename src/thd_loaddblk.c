@@ -935,7 +935,7 @@ ENTRY("THD_zerofill_dataset") ;
     (from THD_load_datablock())
 
     return 0 on success
-  ----------------------------------------------------------------------------*/
+------------------------------------------------------------------------------*/
 int THD_apply_master_subrange( THD_datablock * blk )
 {
    THD_diskptr * dkptr ;
@@ -1024,3 +1024,29 @@ fprintf(stderr,"mbot=%d mtop=%d\n",(int)mbot,(int)mtop) ;
   RETURN(0) ;
 }
 
+/*----------------------------------------------------------------------*/
+/*! Set dx,dy,dz fields for MRI_IMAGEs in a dataset.
+------------------------------------------------------------------------*/
+
+void THD_patch_brickim( THD_3dim_dataset *dset )
+{
+   float dx,dy,dz ;
+   int iv , nvals ;
+
+ENTRY("THD_patch_dxyz") ;
+
+   if( !ISVALID_DSET(dset) ) EXRETURN ;
+
+   dx = fabs(DSET_DX(dset)) ; if( dx == 0.0f ) dx = 1.0f ;
+   dy = fabs(DSET_DY(dset)) ; if( dy == 0.0f ) dy = 1.0f ;
+   dz = fabs(DSET_DZ(dset)) ; if( dz == 0.0f ) dz = 1.0f ;
+
+   nvals = DSET_NVALS(dset) ;
+   for( iv=0 ; iv < nvals ; iv++ ){
+     DSET_BRICK(dset,iv)->dx = dx ;
+     DSET_BRICK(dset,iv)->dy = dy ;
+     DSET_BRICK(dset,iv)->dz = dz ;
+   }
+
+   EXRETURN ;
+}

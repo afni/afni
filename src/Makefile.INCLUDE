@@ -158,6 +158,10 @@ vastness:all plugins install install_plugins install_lib
 
 all:$(LIBDL) libmri.a libmrix.a libcoxplot.a libvolpack.a programs
 
+### Make afni binaries
+
+afobj:$(AFOBJS)
+
 ### Make a few more things
 
 itall:all plugins install install_plugins
@@ -729,6 +733,10 @@ rotcom:rotcom.o
 3dDistize:3dDistize.o
 	$(RM) $@
 	$(CC) -o 3dDistize 3dDistize.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
+3dDimize:3dDimize.o
+	$(RM) $@
+	$(CC) -o 3dDimize 3dDimize.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dAnatNudge:3dAnatNudge.o
 	$(RM) $@

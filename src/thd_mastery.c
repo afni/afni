@@ -44,6 +44,7 @@ ENTRY("THD_open_dataset") ;
      if( ISVALID_DSET(dset) && 
         !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
        THD_daxes_to_mat44(dset->daxes) ;
+     THD_patch_brickim(dset) ;                       /* 20 Oct 2006 */
      RETURN(dset) ;
    }
 
@@ -54,6 +55,7 @@ ENTRY("THD_open_dataset") ;
      if( ISVALID_DSET(dset) && 
         !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
        THD_daxes_to_mat44(dset->daxes) ;
+     THD_patch_brickim(dset) ;                       /* 20 Oct 2006 */
      RETURN(dset) ;
    }
 
@@ -65,7 +67,7 @@ ENTRY("THD_open_dataset") ;
      if( ISVALID_DSET(dset) && 
         !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
        THD_daxes_to_mat44(dset->daxes) ;
-     if( dset != NULL ) RETURN(dset) ;
+     if( dset != NULL ){ THD_patch_brickim(dset); RETURN(dset); }
    }
 
    /*-- 04 Aug 2004: allow input of a list of dataset, separated by spaces --*/
@@ -75,7 +77,7 @@ ENTRY("THD_open_dataset") ;
      if( ISVALID_DSET(dset) && 
         !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
        THD_daxes_to_mat44(dset->daxes) ;
-     RETURN(dset) ;
+     THD_patch_brickim(dset); RETURN(dset) ;
    }
 
    /*-- find the opening "[" and/or "<" --*/
@@ -87,7 +89,7 @@ ENTRY("THD_open_dataset") ;
      if( ISVALID_DSET(dset) && 
         !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
        THD_daxes_to_mat44(dset->daxes) ;
-     RETURN(dset) ;                             /*     normally */
+     THD_patch_brickim(dset); RETURN(dset);     /*     normally */
    }
 
    if( cpt == pathname || bpt == pathname ) RETURN(NULL);  /* error */
@@ -169,7 +171,7 @@ fprintf(stderr,"dpt=%s\n",dpt) ;
       !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
      THD_daxes_to_mat44(dset->daxes) ;
 
-   RETURN(dset) ;
+   THD_patch_brickim(dset); RETURN(dset);
 }
 
 /*-----------------------------------------------------------------
@@ -356,13 +358,13 @@ ENTRY("THD_setup_mastery") ;
 #include <sys/types.h>
 #include <sys/wait.h>
 
-static THD_3dim_dataset * THD_open_3dcalc( char * pname )
+static THD_3dim_dataset * THD_open_3dcalc( char *pname )
 {
-   int    Argc=1               ,    newArgc=0 , ii,ll  ;
-   char * Argv[1]={ "3dcalc" } , ** newArgv=NULL ;
-   char * qname , * tdir , prefix[16] ;
+   int    Argc=1               ,   newArgc=0 , ii,ll  ;
+   char  *Argv[1]={ "3dcalc" } , **newArgv=NULL ;
+   char  *qname , *tdir , prefix[16] ;
    pid_t  child_pid ;
-   THD_3dim_dataset * dset ;
+   THD_3dim_dataset *dset ;
    static int ibase=1 ;
 
 ENTRY("THD_open_3dcalc") ;

@@ -9,13 +9,13 @@
 /********************************************************************************/
 /* insertion_sort : sort an array of float + void*                              */
 
-static void isort_floatstuff( int n , float * ar , void ** iar )
+static void isort_floatstuff( int n , float *ar , void **iar )
 {
    register int  j , p ;  /* array indices */
    register float temp ;  /* a[j] holding place */
-   register void * itemp ;
-   register float  * a = ar ;
-   register void ** ia = iar ;
+   register void *itemp ;
+   register float  *a = ar ;
+   register void **ia = iar ;
 
    if( n < 2 ) return ;
 
@@ -45,15 +45,15 @@ static void isort_floatstuff( int n , float * ar , void ** iar )
 #define QS_SWAPI(i,j) (itemp=(i),(i)=(j),(j)=itemp)
 #define QS_SWAPV(i,j) (vtemp=(i),(i)=(j),(j)=vtemp)
 
-static void qsrec_floatstuff( int n , float * ar , void ** iar , int cutoff )
+static void qsrec_floatstuff( int n , float *ar , void **iar , int cutoff )
 {
    register int i , j ;           /* scanning indices */
    register float temp , pivot ;  /* holding places */
-   register void * ipivot ;
-   register float * a = ar ;
-   register void ** ia = iar ;
+   register void *ipivot ;
+   register float *a = ar ;
+   register void **ia = iar ;
    int itemp ;
-   void * vtemp ;
+   void *vtemp ;
 
    int left , right , mst , stack[QS_STACK] , nnew ;
 
@@ -133,7 +133,7 @@ static void qsrec_floatstuff( int n , float * ar , void ** iar , int cutoff )
 #define QS_CUTOFF 10
 #endif
 
-void qsort_floatstuff( int n , float * a , void ** ia )
+void qsort_floatstuff( int n , float *a , void **ia )
 {
    qsrec_floatstuff( n , a , ia , QS_CUTOFF ) ;
    isort_floatstuff( n , a , ia ) ;
