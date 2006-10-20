@@ -3670,6 +3670,7 @@ extern int     THD_load_niml   ( THD_datablock * ) ;         /* 12 Jun 2006 */
 
 extern void    THD_zerofill_dataset( THD_3dim_dataset * ) ;  /* 18 Mar 2005 */
 extern int     THD_apply_master_subrange( THD_datablock * ); /* 14 Apr 2006 */
+extern void    THD_patch_brickim( THD_3dim_dataset * ) ;     /* 20 Oct 2006 */
 
 extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
 #define DSET_datum_constant(ds) THD_datum_constant((ds)->dblk)
