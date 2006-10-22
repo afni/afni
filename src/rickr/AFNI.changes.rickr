@@ -1761,4 +1761,5 @@
 
 12 Oct 2006: added serial_writer.c program for rasmus
 16 Oct 2006: modified serial_writer.c: added -ms_sleep, -nblocks and -swap
+22 Oct 2006: added model_demri_3.c
 
