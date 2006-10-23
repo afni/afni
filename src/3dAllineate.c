@@ -2500,6 +2500,7 @@ void AL_setup_warp_coords( int epi_targ , int epi_fe, int epi_pe, int epi_se,
 }
 
 /******************************************************************************
+*******************************************************************************
 
        ==============================================================
      ===== Notes on Coordinates and Indexes - RWCox - 05 Oct 2006 =====
@@ -2535,7 +2536,9 @@ and [S][D][U][H] for dcode==DELTA_BEFORE.  [H] must be a matrix of the form
    [ 0 1 0 b ]
    [ 0 0 1 c ]
    [ 0 0 0 1 ]
-where {a,b,c} are the shifts.
+where {a,b,c} are the shifts.  I will ignore [H] in what follows.  Also,
+the order [S][D][U] can be altered by the user, which I'll pretty much
+ignore below, as well.
 
 For EPI data, we may want to restrict the transformation parameters so as
 to treat the phase-encoding direction differently than the frequency- and
@@ -2547,7 +2550,7 @@ FPS coordinates.
 
 The solution is to break the transformation from indexes to spatial
 coordinates into two pieces.  Let [C] = [R] [G], where [C] is an index-to
-space matrix, [G] is a matrix that transforms indexes to FPS coordinates,
+DICOM space matrix, [G] is a matrix that transforms indexes to FPS coordinates,
 and [R] is "what's left" (should be a rotation matrix, possibly with
 det[R]=-1).  A sample [G] is
 
@@ -2598,9 +2601,11 @@ to-index transformation (what is really needed, after all) is
          ------------ ----------- --------
          [after]      [transform] [before]
 
-In the 'normal' case, where either (a) we are going to allow full transform
-generality, or (b) no particular distortions of the image are to be specially
-allowed for, then we simply have
+(N.B.: The SDU order has been inverted to UDS, on the presumption that
+we will control the scaling and shear in the FPS coordinate system given
+by [Gb][ib].) In the 'normal' case, where either (a) we are going to allow
+full transform generality, or (b) no particular distortions of the image are
+to be specially allowed for, then we simply have
 
   [it] = inv[Ct] [S] [D] [U] [Cb]     [ib]
          ------- ----------- --------
@@ -2611,4 +2616,5 @@ nonlinear warping is allowed in place of the simple [S][D][U] transformation,
 the user needs to restrict the warping to occur only in the P-direction, and
 the data slices are oblique.
 
-******************************************************************************/
+*******************************************************************************
+*******************************************************************************/
