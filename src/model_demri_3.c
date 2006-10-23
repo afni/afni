@@ -25,9 +25,8 @@
 
 /* rcr: questions
     Do we get TR from x_array?    (x_array[1][1] - x_array[0][1])
-    Should m0 be considered as 1?
     Is nfirst going to equal the infusion TR?
-    In eqn 7, should Ct[t] be multiplied by (1-fpv)?
+    How do we get a TR of 7.2 ms?
 */
 
 void signal_model 
@@ -40,8 +39,9 @@ void signal_model
 
 typedef struct
 {
-    float    K, kep, fvp;       /* fit params */
-    float    r1, R, TR, theta;  /* given params (via env) */
+    float    K, kep, fvp;       /* fit params                        */
+    float    r1, R, TR, theta;  /* given params (via env)            */
+    float    cos0;              /* cos(theta)                        */
     int      nfirst;            /* num TRs used to compute mean Mp,0 */
     int      debug;
     double * comp;              /* computation data, and elist */
@@ -107,7 +107,7 @@ void signal_model (
     float  * ts_array           /* estimated signal model time series */  
 )
 {
-    static demri_params P = {0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,   0, 0};
+    static demri_params P = {0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,  0.0,   0, 0};
     static int          first_call = 1;
 
     float        * mcp = NULL;  /* from 1D file, via env var */
@@ -218,11 +218,13 @@ static int ct_from_cp(demri_params * P, float * cp, int len)
     
     for( n = P->nfirst; n < len; n++ )   /* ct[k] = 0, for k < nfirst */
     {
-        dval = 0;   /* dval is sum here */
+        dval = 0.0;   /* dval is sum here */
         for( k = P->nfirst; k < n; k++ )
             dval += cp[k]*elist[n-k];
         ct[n] = P12 * dval + P14 * cp[n];
     }
+
+    /* return tissue concentration of Gd over time (in ct[] via P->comp[]) */
 
     return 0;
 }
@@ -246,12 +248,14 @@ static int c_from_ct_cp(demri_params * P, float * cp, int len)
     R1[n] = R + r1 * C[n]
 
     note: R1 will replace C in P->comp
+          R1[i] will be constant P->R over i=0..nfirst-1
 */
 static int R1_from_c(demri_params * P, int len)
 {
     double * R1 = P->comp;
     int      n;
-    for( n = 0; n < len; n++ )
+    
+    for( n = P->nfirst; n < len; n++ ) 
         R1[n] = P->R + P->r1 * R1[n];
     return 0;
 }
@@ -272,6 +276,7 @@ static int R1_from_c(demri_params * P, int len)
     notes:  R1 is in P->comp
             The '1' is a placeholder for Mx(t=0), which should have
               been factored out of the input time series.
+            Mx[i] is identically 1, for i = 0..nfirst-1 .
             I can see no speed-up for e[n].  :'(
 */
 static int Mx_from_R1(demri_params * P, float * ts, int len)
@@ -280,16 +285,22 @@ static int Mx_from_R1(demri_params * P, float * ts, int len)
     double   P1, P1c, e, cos0;
     int      n;
 
-    cos0 = cos(P->theta * Mmmmmm_PIiiiii / 180.0);
-    P1   = - exp(-P->R * P->TR);
+    cos0 = P->cos0;
+    P1   = exp(-P->R * P->TR);
     P1c  = 1 - P1 * cos0;
     P1   = 1 - P1;
 
-    for( n = 0; n < len; n++ )
+    /* the first nfirst values 1.0 */
+    for( n = 0; n < P->nfirst; n++ )
+        ts[n] = 1.0;
+
+    /* and compute the last ones */
+    for( n = P->nfirst; n < len; n++ )
     {
         e = exp(-R1[n] * P->TR);
         ts[n] = (1 - e)*P1c / ( (1-cos0*e) * P1);
     }
+
     return 0;
 }
 
@@ -365,6 +376,7 @@ static int get_env_params(demri_params * P)
     else
     {
         P->theta = atof(envp);
+        P->cos0 = cos(P->theta * Mmmmmm_PIiiiii / 180.0);
         if( P->theta <= M_D3_THETA_MIN || P->theta >= M_D3_THETA_MAX )
         {
             fprintf(stderr, "** error: theta (%f) is not in (%f, %f)\n",
@@ -454,14 +466,13 @@ static int get_Mp_array(float ** mp, int * mp_len, demri_params * P)
 static int convert_mp_to_cp(float * mp, int mp_len, demri_params * P)
 {
     float  m0;                          /* should be first nfirst values */
-    double cos0;
     double rTR, R_r1;                   /* first and last simple term */
     double ertr, ertr_c0, c0_ertr_c0;   /* three 1-exp terms (1 repeat) */
     double dval;
     int    c;
 
     /* use local vars for those in P, for readability */
-    float  r1 = P->r1, R = P->R, TR = P->TR, theta = P->theta;
+    float  r1 = P->r1, R = P->R, TR = P->TR, cos0 = P->cos0;
     int    nfirst = P->nfirst;
 
     /* compute m0 equal to mean of first 'nfirst' values */
@@ -478,7 +489,6 @@ static int convert_mp_to_cp(float * mp, int mp_len, demri_params * P)
     }
 
     /* simple terms */
-    cos0 = cos(theta * Mmmmmm_PIiiiii / 180.0);
     rTR  = 1.0/(r1*TR);
     R_r1 = R/r1;
 
@@ -501,7 +511,7 @@ static int convert_mp_to_cp(float * mp, int mp_len, demri_params * P)
                (ertr_c0  -  ertr * mp[c] / m0 );
 
         if( dval < 1.0 ) mp[c] = 0.0;   /* if ln < 0, then c < 0, so skip */
-        mp[c] = rTR * log(dval) - R_r1;
+        else             mp[c] = rTR * log(dval) - R_r1;
 
         if( mp[c] < 0.0 ) mp[c] = 0.0;  /* don't allow result < 0 */
     }
@@ -531,13 +541,14 @@ static int disp_demri_params( char * mesg, demri_params * p )
                     "    R      = %f\n"
                     "    TR     = %f\n"
                     "    theta  = %f\n"
+                    "    cos0   = %f\n"
                     "    nfirst = %d\n\n"
                     "    debug  = %d\n"
                     "    comp   = %p\n"
                     "    elist  = %p\n"
             , p,
             p->K, p->kep, p->fvp,
-            p->r1, p->R, p->TR, p->theta,
+            p->r1, p->R, p->TR, p->theta, p->cos0,
             p->nfirst, p->debug, p->comp, p->elist);
 
     return 0;
@@ -578,6 +589,9 @@ static int model_help(void)
         "\n"
         "  - nfirst is the number of TRs before Gd infusion\n"
         "  - m0 is set to average of first nfirst Mp(t) values\n"
+        "  - the input M_trans is normalized:\n"
+        "      M_trans[0] = mean( M_trans[0..nfirst-1] )\n"
+        "      M_trans[k] = M_trans[k] / M_trans[0], k=0..N-1\n"
         "\n"
         "  R Reynolds, D Glen, Oct 2006\n"
         "  thanks to RW Cox\n"
