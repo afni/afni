@@ -4,7 +4,7 @@
   implemented for John Butman and Steve Fung.
 
 
-  Author: Rick Reynolds  22 Oct 2006
+  Author: Rick Reynolds, Daniel Glen  22 Oct 2006
  *----------------------------------------------------------------------
 */
 
@@ -579,8 +579,8 @@ static int model_help(void)
         "  - nfirst is the number of TRs before Gd infusion\n"
         "  - m0 is set to average of first nfirst Mp(t) values\n"
         "\n"
-        "  R Reynolds, Oct 2006\n"
-        "  thanks to RW Cox, D Glen\n"
+        "  R Reynolds, D Glen, Oct 2006\n"
+        "  thanks to RW Cox\n"
         "------------------------------------------------------------\n",
         M_D3_R1_MIN,    M_D3_R1_MAX,
         M_D3_R_MIN,     M_D3_R_MAX,
