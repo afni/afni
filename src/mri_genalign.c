@@ -1621,6 +1621,7 @@ static mat44 GA_setup_affine( int npar , float *parvec )
    if( npar >= 10 ){ a = parvec[ 9]; if( fabsf(a) > 0.3333f ) a = 0.0f; }
    if( npar >= 11 ){ b = parvec[10]; if( fabsf(b) > 0.3333f ) b = 0.0f; }
    if( npar >= 12 ){ c = parvec[11]; if( fabsf(c) > 0.3333f ) c = 0.0f; }
+#if 1
    switch( smat ){
      default:
      case SMAT_LOWER: LOAD_MAT44( ss , 1.0 , 0.0 , 0.0 , 0.0,
@@ -1643,6 +1644,15 @@ static mat44 GA_setup_affine( int npar , float *parvec )
                                        0.0 , 1.0 , 0.0, 0.0 ,
                                         a  ,  b  , 1.0, 0.0  ) ; break ;
    }
+#else
+   ksm = (smat % 3) ;           /* decode:  smat = ism*9 + jsm*3 + ksm    */
+   ism = (smat / 9) ;           /* (ism,jsm,ksm) = permutation of (0,1,2) */
+   jsm = (smat - 9*ism - ksm) ;
+   LOAD_DIAG_MAT44( ss , 1.0 , 1.0 , 1.0 ) ;  /* identity */
+   ss.m[jsm][ism] = a ;
+   ss.m[ksm][ism] = b ;
+   ss.m[ksm][jsm] = c ;
+#endif
 
    /* multiply them, as ordered */
 
