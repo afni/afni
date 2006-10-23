@@ -4,7 +4,7 @@
   implemented for John Butman and Steve Fung.
 
 
-  Authors: Rick Reynolds, Daniel Glen  20 Oct 2006
+  Author: Rick Reynolds  22 Oct 2006
  *----------------------------------------------------------------------
 */
 
@@ -25,8 +25,8 @@
 
 /* rcr: questions
     Do we get TR from x_array?    (x_array[1][1] - x_array[0][1])
+    Should m0 be considered as 1?
     Is nfirst going to equal the infusion TR?
-    Do we lose too much accuracy iterating powers in elist?
     In eqn 7, should Ct[t] be multiplied by (1-fpv)?
 */
 
@@ -40,9 +40,9 @@ void signal_model
 
 typedef struct
 {
-    float    K, kep, fvp;          /* fit params */
-    float    r1, R, TR, theta;     /* given params (via env) */
-    int      nfirst;               /* num TRs used to compute mean Mp,0 */
+    float    K, kep, fvp;       /* fit params */
+    float    r1, R, TR, theta;  /* given params (via env) */
+    int      nfirst;            /* num TRs used to compute mean Mp,0 */
     int      debug;
     double * comp;              /* computation data, and elist */
     double * elist;             /* (for easy allocation, etc.) */
@@ -207,10 +207,8 @@ static int ct_from_cp(demri_params * P, float * cp, int len)
     P14  = P12 * (1.0 - dval);          /* P1 * P4    */
     P12  = P12 * (1.0/dval - dval);     /* P1 * P2    */
 
-    /* rcr: Do we lose too much accuracy iterating over the powers?
-            We could iterate over e^2^k, and mult set exponent bits,
-            which would be slower, but 2nd most accurate.  I'll ponder
-            an intermediate method later... */
+    /* In a test, float accuracy was not lost until ~1 million products.
+       Computing powers over the range of a time series should be okay. */
 
     /* fill elist with powers of e(P3*i), i = 1..len-1-nfirst */
     elist[0] = 1.0;
@@ -460,7 +458,7 @@ static int convert_mp_to_cp(float * mp, int mp_len, demri_params * P)
     double rTR, R_r1;                   /* first and last simple term */
     double ertr, ertr_c0, c0_ertr_c0;   /* three 1-exp terms (1 repeat) */
     double dval;
-    int    c, c2;
+    int    c;
 
     /* use local vars for those in P, for readability */
     float  r1 = P->r1, R = P->R, TR = P->TR, theta = P->theta;
@@ -472,7 +470,7 @@ static int convert_mp_to_cp(float * mp, int mp_len, demri_params * P)
         dval += mp[c];
     dval /= nfirst;
 
-    if( fabs(m0) < EPSILON )
+    if( m0 < EPSILON ) /* negative is bad, too */
     {
         fprintf(stderr,"** m0 == %s is too small (for my dreams of konquest)\n",
                 MV_format_fval(m0));
@@ -581,9 +579,8 @@ static int model_help(void)
         "  - nfirst is the number of TRs before Gd infusion\n"
         "  - m0 is set to average of first nfirst Mp(t) values\n"
         "\n"
-        "\n"
-        "  R Reynolds, D Glen, SSCC/NIMH/NIH, Oct 2006\n"
-        "  thanks to RW Cox\n"
+        "  R Reynolds, Oct 2006\n"
+        "  thanks to RW Cox, D Glen\n"
         "------------------------------------------------------------\n",
         M_D3_R1_MIN,    M_D3_R1_MAX,
         M_D3_R_MIN,     M_D3_R_MAX,
