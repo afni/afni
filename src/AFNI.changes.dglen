@@ -144,8 +144,10 @@ standards. Made help clearer for @DTI_studio_reposition.
  * 3dDWItoDT supports Powell algorithm. 3dDTeig can read either old D tensor
  order or new NIFTI standard D tensor order. It can also write out separate
  files for eigenvalues, vectors, FA, MD (like 3dDWItoDT).
+24 Oct 2006
+ * Update to 3dNLfim to use memory mapping instead of shared memory, to support
+ multiple CPU jobs better 
  
- 
- 
+
  
  

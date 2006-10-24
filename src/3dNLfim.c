@@ -84,6 +84,9 @@
 
    Mod:      Added NEWUOA stuff (mostly to simplex.c, actually).
    Date:     20 Jul 2006 [RWCox]
+
+   Mod:      Copied memmap code from 3dDeconvolve.c
+   Date:     24 Oct 2006 [DRG]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -91,7 +94,7 @@
 #define PROGRAM_NAME "3dNLfim"                       /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "19 June 1997"    /* date of initial program release */
-#define PROGRAM_LATEST  "24 Jul 2006"     /* date of latest program revision */
+#define PROGRAM_LATEST  "24 Oct 2006 - DRG"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
