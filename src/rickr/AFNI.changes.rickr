@@ -1763,4 +1763,5 @@
 16 Oct 2006: modified serial_writer.c: added -ms_sleep, -nblocks and -swap
 22 Oct 2006: added model_demri_3.c
 23 Oct 2006: modified model_demri_3.c with DGlen, 2 speed-ups, 1 negation fix
+24 Oct 2006: modified model_demri_3.c: mpc was not stored across iterations
 

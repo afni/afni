@@ -46,16 +46,17 @@ typedef struct
     int      debug;
     double * comp;              /* computation data, and elist */
     double * elist;             /* (for easy allocation, etc.) */
+    float  * mcp;               /* (for easy allocation, etc.) */
 } demri_params;
 
 static int alloc_param_arrays(demri_params * P, int len);
-static int compute_ts       (demri_params *P, float *cp, float *ts, int ts_len);
-static int c_from_ct_cp     (demri_params * P, float * cp, int len);
-static int ct_from_cp       (demri_params * P, float * cp, int len);
+static int compute_ts       (demri_params *P, float *ts, int ts_len);
+static int c_from_ct_cp     (demri_params * P, int len);
+static int convert_mp_to_cp (demri_params * P, int mp_len);
+static int ct_from_cp       (demri_params * P, int len);
 static int disp_demri_params(char * mesg, demri_params * p );
-static int convert_mp_to_cp (float * mp, int mp_len, demri_params * P);
 static int get_env_params   (demri_params * P);
-static int get_Mp_array     (float ** mp, int * mp_len, demri_params * P);
+static int get_Mp_array     (demri_params * P, int * mp_len);
 static int model_help       (void);
 static int Mx_from_R1       (demri_params * P, float * ts, int len);
 static int R1_from_c        (demri_params * P, int len);
@@ -107,23 +108,22 @@ void signal_model (
     float  * ts_array           /* estimated signal model time series */  
 )
 {
-    static demri_params P = {0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,  0.0,   0, 0};
+    static demri_params P = {0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,  0.0,   0, 0,
+                             NULL, NULL, NULL };
     static int          first_call = 1;
-
-    float        * mcp = NULL;  /* from 1D file, via env var */
-    int            mp_len;      /* length of mcp list (must equal ts_len) */
+    int                 mp_len;      /* length of mcp list */
 
     /* first time here, get set params, and process Mp data */
     if( first_call )
     {
         if( get_env_params( &P ) ) exit(1); /* bad things, man, bad things */
 
-        if( get_Mp_array(&mcp, &mp_len, &P) ) exit(1);
+        if( get_Mp_array(&P, &mp_len) ) exit(1);
 
         if( alloc_param_arrays(&P, mp_len) ) exit(1);
 
         /* after this, mp is cp */
-        if( convert_mp_to_cp(mcp, mp_len, &P) ) exit(1);
+        if( convert_mp_to_cp(&P, mp_len) ) exit(1);
 
         /* verify TR (maybe we don't need TR) */
         if( P.TR != x_array[1][1] - x_array[1][0] )
@@ -138,6 +138,8 @@ void signal_model (
             exit(1);
         }
 
+        if( P.debug ) disp_demri_params("ready to rock: ", &P);
+
         first_call = 0;
     }
 
@@ -146,7 +148,7 @@ void signal_model (
     P.kep = params[1];
     P.fvp = params[2];
 
-    (void)compute_ts( &P, mcp, ts_array, ts_len );
+    (void)compute_ts( &P, ts_array, ts_len );
 }
 
 
@@ -154,11 +156,11 @@ void signal_model (
  * compute a time series
  *
 */
-static int compute_ts( demri_params * P, float * cp, float * ts, int ts_len )
+static int compute_ts( demri_params * P, float * ts, int ts_len )
 {
-    if( ct_from_cp(P, cp, ts_len) ) return 1;
+    if( ct_from_cp(P, ts_len) ) return 1;
 
-    if( c_from_ct_cp(P, cp, ts_len) ) return 1;
+    if( c_from_ct_cp(P, ts_len) ) return 1;
 
     if( R1_from_c(P, ts_len) ) return 1;
 
@@ -188,13 +190,14 @@ static int compute_ts( demri_params * P, float * cp, float * ts, int ts_len )
     note: in exp_list, max power is (P3*(len-1-m)), m is nfirst
     note: Ct is stored in P->comp
 */
-static int ct_from_cp(demri_params * P, float * cp, int len)
+static int ct_from_cp(demri_params * P, int len)
 {
     static int   first = 1;
     double     * ct = P->comp;
     double     * elist = P->elist;
     double       P12, P3, P14;
     double       dval;
+    float      * cp = P->mcp;
     int          k, n;
 
     /* we don't need to fill with zeros every time, but be explicit */
@@ -235,9 +238,10 @@ static int ct_from_cp(demri_params * P, float * cp, int len)
 
     note: C will replace Ct in P->comp
 */
-static int c_from_ct_cp(demri_params * P, float * cp, int len)
+static int c_from_ct_cp(demri_params * P, int len)
 {
     double * C = P->comp;
+    float  * cp = P->mcp;
     int      n;
     for( n = P->nfirst; n < len; n++ )
         C[n] += P->fvp * cp[n];         /* C already holds Ct */
@@ -388,12 +392,12 @@ static int get_env_params(demri_params * P)
     envp = my_getenv("AFNI_MODEL_D3_DEBUG");
     if( envp ) P->debug = atoi(envp);
 
-    if( envp && P->debug ) disp_demri_params("env params set: ", P);
+    if( envp && P->debug > 1 ) disp_demri_params("env params set: ", P);
 
     return errs;
 }
 
-static int get_Mp_array(float ** mp, int * mp_len, demri_params * P)
+static int get_Mp_array(demri_params * P, int * mp_len)
 {
     MRI_IMAGE * im;
     char      * envp;
@@ -414,11 +418,11 @@ static int get_Mp_array(float ** mp, int * mp_len, demri_params * P)
         return 1;
     }
 
-    *mp = MRI_FLOAT_PTR(im);        /* do not free this */
+    P->mcp = MRI_FLOAT_PTR(im);        /* do not free this */
     *mp_len = im->nx;
     if(P->debug>1) fprintf(stderr,"-d Mp (len, ny) = (%d, %d)\n",im->nx,im->ny);
 
-    if( ! *mp )
+    if( ! P->mcp )
     {
         fprintf(stderr,"** missing data in Mp file %s\n", envp);
         return 1;
@@ -447,7 +451,7 @@ static int get_Mp_array(float ** mp, int * mp_len, demri_params * P)
         int c;
         fprintf(stderr,"-d Mp array is:\n  ");
         for( c = 0; c < *mp_len; c++ )
-            fprintf(stderr,"  %s", MV_format_fval((*mp)[c]));
+            fprintf(stderr,"  %s", MV_format_fval(P->mcp[c]));
         fputc('\n', stderr);
     }
 
@@ -463,23 +467,24 @@ static int get_Mp_array(float ** mp, int * mp_len, demri_params * P)
 
     subject to Cp(t) >= 0
 */
-static int convert_mp_to_cp(float * mp, int mp_len, demri_params * P)
+static int convert_mp_to_cp(demri_params * P, int mp_len)
 {
-    float  m0;                          /* should be first nfirst values */
-    double rTR, R_r1;                   /* first and last simple term */
-    double ertr, ertr_c0, c0_ertr_c0;   /* three 1-exp terms (1 repeat) */
-    double dval;
-    int    c;
+    float * mp = P->mcp;
+    double  m0;                         /* mean of first nfirst values */
+    double  rTR, R_r1;                  /* first and last simple term */
+    double  ertr, ertr_c0, c0_ertr_c0;  /* three 1-exp terms (1 repeat) */
+    double  dval;
+    int     c;
 
     /* use local vars for those in P, for readability */
     float  r1 = P->r1, R = P->R, TR = P->TR, cos0 = P->cos0;
     int    nfirst = P->nfirst;
 
     /* compute m0 equal to mean of first 'nfirst' values */
-    dval = 0;
+    dval = 0.0;
     for(c = 0; c < nfirst; c++)
         dval += mp[c];
-    dval /= nfirst;
+    m0 = dval / nfirst;
 
     if( m0 < EPSILON ) /* negative is bad, too */
     {
@@ -496,6 +501,12 @@ static int convert_mp_to_cp(float * mp, int mp_len, demri_params * P)
     ertr       =  1 - exp(-R * TR);
     ertr_c0    =  1 - exp(-R * TR)  * cos0;
     c0_ertr_c0 = (1 - exp(-R * TR)) * cos0;
+
+    if(P->debug > 1)
+        fprintf(stderr,
+                "+d mp_len, m0, rTR, R_r1 = %d, %f, %f, %f\n"
+                "  ertr, ertr_c0, c0_ertr_c0 = %f, %f, %f\n"
+                , mp_len, m0, rTR, R_r1, ertr, ertr_c0, c0_ertr_c0);
 
     /* we don't have to be too fast here, since this is one-time-only */
 
@@ -546,10 +557,11 @@ static int disp_demri_params( char * mesg, demri_params * p )
                     "    debug  = %d\n"
                     "    comp   = %p\n"
                     "    elist  = %p\n"
+                    "    mcp    = %p\n"
             , p,
             p->K, p->kep, p->fvp,
             p->r1, p->R, p->TR, p->theta, p->cos0,
-            p->nfirst, p->debug, p->comp, p->elist);
+            p->nfirst, p->debug, p->comp, p->elist, p->mcp);
 
     return 0;
 }
