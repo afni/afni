@@ -5943,3 +5943,7 @@
      sliced is an AFNI dataset (not NIfTI, MINC, etc.).
  * Modified afni_func.c to print warning when forced view change
      when switching datasets or sessions - for Adam Thomas.
+
+24 Oct 2006
+ * Modified 3dAutomask.c (etc.) to add -peel and -nbhr options, with
+     also a fix to stupid error made a couple days before.

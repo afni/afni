@@ -66,9 +66,12 @@ ENTRY("mri_cut_3D") ;
 
    /*-- sanity checks --*/
 
-   if( im == NULL || xa < 0 || xb >= im->nx || xb < xa ||
-                     ya < 0 || yb >= im->ny || yb < ya ||
-                     za < 0 || zb >= im->nz || zb < za   ) RETURN(NULL) ;
+   if( im == NULL ) RETURN(NULL) ;
+
+   if( xa < 0 ) xa = 0 ; if( xb >= im->nx ) xb = im->nx ;
+   if( ya < 0 ) ya = 0 ; if( yb >= im->ny ) yb = im->ny ;
+   if( za < 0 ) za = 0 ; if( zb >= im->nz ) zb = im->nz ;
+   if( xb < xa || yb < ya || zb < za ) RETURN(NULL) ;
 
    /*-- pointer to input data --*/
 
