@@ -3857,6 +3857,8 @@ extern void MRI_autobbox( MRI_IMAGE * ,
 extern void MRI_autobbox_clust( int ) ;                    /* 20 Sep 2006 */
 
 extern void THD_automask_set_clipfrac( float f ) ;         /* 20 Mar 2006 */
+extern void THD_automask_set_peelcounts( int,int ) ;       /* 24 Oct 2006 */
+extern void THD_automask_set_gradualize( int ) ;
 
 extern int THD_mask_fillin_completely( int,int,int, byte *, int ) ; /* 19 Apr 2002 */
 extern int THD_mask_fillin_once      ( int,int,int, byte *, int ) ;
@@ -3865,6 +3867,7 @@ extern int THD_mask_clip_neighbors( int,int,int, byte *, float,float,float *) ; 
 
 extern void THD_mask_clust( int nx, int ny, int nz, byte *mmm ) ;
 extern void THD_mask_erode( int nx, int ny, int nz, byte *mmm, int redilate ) ;
+extern void THD_mask_erodemany( int nx, int ny, int nz, byte *mmm, int npeel ) ; /* 24 Oct 2006 */
 
 extern int THD_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth ) ;
 
@@ -3875,6 +3878,10 @@ extern float mri_topclip( MRI_IMAGE * ) ;                    /* 28 Sep 2006 */
 extern MRI_IMAGE * THD_median_brick( THD_3dim_dataset * ) ;  /* 12 Aug 2001 */
 extern MRI_IMAGE * THD_mean_brick  ( THD_3dim_dataset * ) ;  /* 15 Apr 2005 */
 extern MRI_IMAGE * THD_rms_brick   ( THD_3dim_dataset * ) ;  /* 15 Apr 2005 */
+
+extern float THD_cliplevel_partial( MRI_IMAGE *im , float mfrac ,
+                                    int xa,int xb, int ya,int yb, int za,int zb ) ;
+extern MRI_IMAGE * THD_cliplevel_gradual( MRI_IMAGE *im , float mfrac ) ;
 
  /* 08 Mar 2001 - functions for dealing with rows */
 

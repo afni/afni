@@ -13,6 +13,7 @@ int main( int argc , char * argv[] )
    int   SIax=0 , SIbot,SItop ;
    int   verb=1 ;
    float clfrac=0.5 ;      /* 20 Mar 2006 */
+   int peels=1, nbhrs=17 ; /* 24 Oct 2006 */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dAutomask [options] dataset\n"
@@ -25,12 +26,22 @@ int main( int argc , char * argv[] )
              " + Writes result as a 'fim' type of functional dataset.\n"
              "Options:\n"
              "  -prefix ppp = Write mask into dataset with prefix 'ppp'.\n"
-             "                 [default='automask']\n"
+             "                 [Default == 'automask']\n"
              "  -clfrac cc  = Set the 'clip level fraction' to 'cc', which\n"
              "                 must be a number between 0.1 and 0.9.\n"
              "                 A small 'cc' means to make the initial threshold\n"
              "                 for clipping (a la 3dClipLevel) smaller, which\n"
              "                 will tend to make the mask larger.  [default=0.5]\n"
+             "  -nograd     = The program uses a 'gradual' clip level by default.\n"
+             "                 To use a fixed clip level, use '-nograd'.\n"
+             "                 [Change to gradual clip level made 24 Oct 2006.]\n"
+             "  -peels pp   = Peel the mask 'pp' times, then unpeel.  Designed\n"
+             "                 to clip off protuberances less than 2*pp voxels\n"
+             "                 thick. [Default == 1]\n"
+             "  -nbhrs nn   = Define the number of neighbors needed for a voxel\n"
+             "                 NOT to be peeled.  The 18 nearest neighbors in\n"
+             "                 the 3D lattice are used, so 'nn' should be between\n"
+             "                 9 and 18.  [Default == 17]\n"
              "  -q          = Don't write progress messages (i.e., be quiet).\n"
              "  -eclip      = After creating the mask, remove exterior\n"
              "                 voxels below the clip threshold.\n"
@@ -38,12 +49,12 @@ int main( int argc , char * argv[] )
              "  -erode ne   = Erode the mask inwards 'ne' times.\n"
 #ifdef ALLOW_FILLIN
              "  -fillin nnn = Fill in holes inside the mask of width up\n"
-             "                 to 'nnn' voxels. [default=0=no fillin]\n"
+             "                 to 'nnn' voxels. [Default == 0 == no fillin]\n"
 #endif
              "  -SI hh      = After creating the mask, find the most superior\n"
              "                 voxel, then zero out everything more than 'hh'\n"
              "                 millimeters inferior to that.  hh=130 seems to\n"
-             "                 be decent (for human brains).\n"
+             "                 be decent (i.e., for Homo Sapiens brains).\n"
             ) ;
       exit(0) ;
    }
@@ -55,7 +66,20 @@ int main( int argc , char * argv[] )
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
-      if( strcmp(argv[iarg],"-clfrac") == 0 || strcmp(argv[iarg],"-mfrac") ){    /* 20 Mar 2006 */
+      if( strncmp(argv[iarg],"-peel",5) == 0 ){           /* 24 Oct 2006 */
+        peels = (int)strtod( argv[++iarg] , NULL ) ;
+        iarg++ ; continue ;
+      }
+      if( strncmp(argv[iarg],"-nbhr",5) == 0 ){           /* 24 Oct 2006 */
+        nbhrs = (int)strtod( argv[++iarg] , NULL ) ;
+        iarg++ ; continue ;
+      }
+      if( strncmp(argv[iarg],"-nograd",5) == 0 ){
+        THD_automask_set_gradualize(0) ;
+        iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-clfrac") == 0 || strcmp(argv[iarg],"-mfrac") == 0 ){    /* 20 Mar 2006 */
         clfrac = strtod( argv[++iarg] , NULL ) ;
         if( clfrac < 0.1f || clfrac > 0.9f )
           ERROR_exit("-clfrac value %f is illegal!",clfrac) ;
@@ -115,9 +139,12 @@ int main( int argc , char * argv[] )
 
       ERROR_exit("ILLEGAL option: %s\n",argv[iarg]) ;
    }
-   
+
+   THD_automask_set_peelcounts(peels,nbhrs) ;
+
    if((dilate_flag+erode_flag)>1)
      WARNING_message("Combining dilate and erode options is probably not useful here");
+
    /*-- read data --*/
 
    dset = THD_open_dataset(argv[iarg]) ;

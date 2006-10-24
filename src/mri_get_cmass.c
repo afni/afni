@@ -60,7 +60,7 @@ ENTRY("mri_get_cmass_3D") ;
    far = MRI_FLOAT_PTR(flim) ;
    nx  = im->nx ; ny = im->ny ; nz = im->nz ; nxy = nx*ny ;
 
-   sum = xx = yy = zz = 0.0 ;
+   sum = xx = yy = zz = 0.0f ;
    for( kk=0 ; kk < nz ; kk++ ){
      koff = kk * nxy ;
      for( jj=0 ; jj < ny ; jj++ ){
@@ -75,8 +75,8 @@ ENTRY("mri_get_cmass_3D") ;
      }
    }
 
-   if( sum > 0.0 ){ xx /= sum ; yy /= sum ; zz /= sum ; }
-   else           { xx = 0.5*(nx-1); yy=0.5*(ny-1); zz=0.5*(nz-1); }
+   if( sum > 0.0f ){ xx /= sum ; yy /= sum ; zz /= sum ; }
+   else           { xx = 0.5f*(nx-1); yy=0.5f*(ny-1); zz=0.5f*(nz-1); }
 
    if( flim != im ) mri_free(flim) ;
 
