@@ -1764,5 +1764,9 @@
 22 Oct 2006: added model_demri_3.c
 23 Oct 2006: modified model_demri_3.c with DGlen, 2 speed-ups, 1 negation fix
 24 Oct 2006: modified model_demri_3.c: mpc was not stored across iterations
-25 Oct 2006: modified 3dNLfim.c: updated check of proc_shmptr
+25 Oct 2006:
+  * modified 3dNLfim.c:
+      - updated check of proc_shmptr
+      - change on of the TR uses to TF (computing ct from cp)
+      - expanded help, and added a sample script
 
