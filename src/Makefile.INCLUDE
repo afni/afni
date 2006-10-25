@@ -160,7 +160,9 @@ all:$(LIBDL) libmri.a libmrix.a libcoxplot.a libvolpack.a programs
 
 ### Make afni binaries
 
-afobj:$(AFOBJS)
+afobj:$(AFOBJS) libf2c.a libcoxplot.a libvolpack.a libmrix.a
+
+afobjs: afobj
 
 ### Make a few more things
 
@@ -1246,7 +1248,6 @@ to3d.o:to3d.h
 3dbucket.o:3ddata.h
 
 3dTSgen.o:NLfit.c NLfit.h NLfit_model.c NLfit_model.h
-3dNLfim.o:NLfit.c NLfit.h NLfit_model.c NLfit_model.h
 
 mcw_graf.o:mcw_graf.h
 
@@ -1260,6 +1261,50 @@ afni_suma.o:afni_suma.c afni_suma.h cs_sort_template.h
 csfft.o:csfft.c
 	$(RM) $@
 	$(CCFAST) -c csfft.c $(INFLAGS)
+
+mri_percents.o:mri_percents.c
+	$(RM) $@
+	$(CCFAST) -c mri_percents.c $(INFLAGS)
+
+mri_to_float.o:mri_to_float.c
+	$(RM) $@
+	$(CCFAST) -c mri_to_float.c $(INFLAGS)
+
+mri_to_short.o:mri_to_short.c
+	$(RM) $@
+	$(CCFAST) -c mri_to_short.c $(INFLAGS)
+
+mri_to_byte.o:mri_to_byte.c
+	$(RM) $@
+	$(CCFAST) -c mri_to_byte.c $(INFLAGS)
+
+cs_symeig.o:cs_symeig.c
+	$(RM) $@
+	$(CCFAST) -c cs_symeig.c $(INFLAGS)
+
+cs_qmed.o:cs_qmed.c
+	$(RM) $@
+	$(CCFAST) -c cs_qmed.c $(INFLAGS)
+
+cs_sort_ff.o:cs_sort_ff.c
+	$(RM) $@
+	$(CCFAST) -c cs_sort_ff.c $(INFLAGS)
+
+cs_sort_fi.o:cs_sort_fi.c
+	$(RM) $@
+	$(CCFAST) -c cs_sort_fi.c $(INFLAGS)
+
+cs_sort_fv.o:cs_sort_fv.c
+	$(RM) $@
+	$(CCFAST) -c cs_sort_fv.c $(INFLAGS)
+
+3dNLfim.o:3dNLfim.c NLfit.c NLfit.h NLfit_model.c NLfit_model.h
+	$(RM) $@
+	$(CCFAST) -c 3dNLfim.c $(INFLAGS)
+
+powell_newuoa.o:powell_newuoa.c
+	$(RM) $@
+	$(CCFAST) -c powell_newuoa.c $(INFLAGS)
 
 mri_genalign.o:mri_genalign.c
 	$(RM) $@
