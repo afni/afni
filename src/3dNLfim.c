@@ -1716,7 +1716,8 @@ void proc_free( void *ptr )
    int ii ;
 
    if( ptr == NULL ) return ;
-   if( proc_shmid == 0 ){ free(ptr); return; }  /* no shm */
+   /* from if ( proc_shmid == 0 )             25 Oct 2006 DRG */
+   if( proc_shmptr == NULL ){ free(ptr); return; }  /* no shm */
    for( ii=0 ; ii < proc_shm_arnum ; ii++ )
      if( ((float *)ptr) == *proc_shm_ar[ii] ) return;
    free(ptr); return;
