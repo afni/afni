@@ -1522,7 +1522,7 @@ models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO)  \
         model_trnglwave_ap.$(SO) model_trnglwave_apf.$(SO)             \
         model_diffexp.$(SO) model_gammavar.$(SO)                       \
         model_convgamma.$(SO) model_convgamma2a.$(SO)                  \
-        model_michaelis_menton.$(SO) model_linplusort.$(SO)
+        model_michaelis_menton.$(SO) model_linplusort.$(SO) model_demri_3.$(SO)
 
 # Contributed plugins go last, since they might not compile well
 

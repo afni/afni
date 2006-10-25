@@ -8,16 +8,19 @@
  *----------------------------------------------------------------------
 */
 
+#include <stdlib.h>
 #include "NLfit_model.h"
 
 #define M_D3_R1_MIN     0.0     /* these are exclusive limits */
 #define M_D3_R1_MAX     1000.0
-#define M_D3_R_MIN      1.0     /* require > 1 to exclude reciprocal */
+#define M_D3_R_MIN      0.001
 #define M_D3_R_MAX      10000.0
-#define M_D3_TR_MIN     0.0
-#define M_D3_TR_MAX     10000.0
 #define M_D3_THETA_MIN  0.0
 #define M_D3_THETA_MAX  90.0
+#define M_D3_TR_MIN     0.0
+#define M_D3_TR_MAX     10000.0
+#define M_D3_TF_MIN     0.1
+#define M_D3_TF_MAX     30.0
 
 #define M_D3_NFIRST     5
 #define EPSILON         0.0001
@@ -25,7 +28,7 @@
 
 /* rcr: questions
     Do we get TR from x_array?    (x_array[1][1] - x_array[0][1])
-    Is nfirst going to equal the infusion TR?
+    Is nfirst going to equal the injection TR?
     How do we get a TR of 7.2 ms?
 */
 
@@ -39,11 +42,14 @@ void signal_model
 
 typedef struct
 {
-    float    K, kep, fvp;       /* fit params                        */
-    float    r1, R, TR, theta;  /* given params (via env)            */
-    float    cos0;              /* cos(theta)                        */
+    float    K, kep, fvp;       /* fit params                             */
+    float    r1, R, theta;      /* given params (via env)                 */
+    float    TR, TF;            /* TR & inter-frame TR (TR of input dset) */
+
+    float    cos0;              /* cos(theta)                             */
     int      nfirst;            /* num TRs used to compute mean Mp,0 */
     int      debug;
+
     double * comp;              /* computation data, and elist */
     double * elist;             /* (for easy allocation, etc.) */
     float  * mcp;               /* (for easy allocation, etc.) */
@@ -57,6 +63,7 @@ static int ct_from_cp       (demri_params * P, int len);
 static int disp_demri_params(char * mesg, demri_params * p );
 static int get_env_params   (demri_params * P);
 static int get_Mp_array     (demri_params * P, int * mp_len);
+static int get_time_in_seconds(char * str, float * time);
 static int model_help       (void);
 static int Mx_from_R1       (demri_params * P, float * ts, int len);
 static int R1_from_c        (demri_params * P, int len);
@@ -108,8 +115,8 @@ void signal_model (
     float  * ts_array           /* estimated signal model time series */  
 )
 {
-    static demri_params P = {0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,  0.0,   0, 0,
-                             NULL, NULL, NULL };
+    static demri_params P = {0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0, 0.0,
+                             0.0, 0, 0,  NULL, NULL, NULL };
     static int          first_call = 1;
     int                 mp_len;      /* length of mcp list */
 
@@ -172,23 +179,26 @@ static int compute_ts( demri_params * P, float * ts, int ts_len )
 /*----------------------------------------------------------------------
   compute Ct from Cp and params
 
-    Ct[n] = Ktrans * ( sum [ Cp[k] * exp( -kep(n-k)*TR )
-            ------                 * ( exp(kep*TR/2) - exp(-kep*TR/2) ) ]
-             kep       + Cp[n] * (1 - exp(-kep*TR/2)) )
+    Ct[n] = Ktrans * ( sum [ Cp[k] * exp( -kep(n-k)*TF )
+            ------                 * ( exp(kep*TF/2) - exp(-kep*TF/2) ) ]
+             kep       + Cp[n] * (1 - exp(-kep*TF/2)) )
 
     where sum is over k=m..n-1 (m is nfirst), and n is over 0..len-1
     note: Cp[n] = Ct[n] = 0, for n in {0..m-1}
 
         Let P1  = Ktrans / kep
-            P2  = exp(kep*TR/2) - exp(-kep*TR/2)
+            P2  = exp(kep*TF/2) - exp(-kep*TF/2)
                 = exp(-P3/2) - exp(P3/2)
-            P3  = -kep*TR
-            P4  = 1 - exp(-kep*TR/2)
+            P3  = -kep*TF
+            P4  = 1 - exp(-kep*TF/2)
                 = 1 - exp(P3/2)
 
     Ct[n] = P1*P2 * sum [ Cp[k] * exp(P3*(n-k)) ] + P1*P4 * Cp[n]
     note: in exp_list, max power is (P3*(len-1-m)), m is nfirst
     note: Ct is stored in P->comp
+    
+    ** This is the only place that the dataset TR (which we label as TF,
+       the inter-frame TR) is used in this model.
 */
 static int ct_from_cp(demri_params * P, int len)
 {
@@ -205,7 +215,7 @@ static int ct_from_cp(demri_params * P, int len)
 
     /* assign P*, and then fill elist[] from P3 */
     P12  = P->K / P->kep;               /* P1 for now */
-    P3   = -P->kep * P->TR;             /* P3         */
+    P3   = -P->kep * P->TF;             /* P3         */
     dval = exp(P3/2.0);
     P14  = P12 * (1.0 - dval);          /* P1 * P4    */
     P12  = P12 * (1.0/dval - dval);     /* P1 * P2    */
@@ -319,7 +329,7 @@ static int get_env_params(demri_params * P)
     if( !envp )
     {
         fprintf(stderr,"\n** NLfim: need env var AFNI_MODEL_D3_R1\n");
-        fprintf(stderr,"          (in mMol * sec)\n");
+        fprintf(stderr,"          (in 1/(mMol * sec))\n");
         errs++;
     }
     else
@@ -337,37 +347,23 @@ static int get_env_params(demri_params * P)
     if( !envp )
     {
         fprintf(stderr,"\n** NLfim: need env var AFNI_MODEL_D3_R\n");
-        fprintf(stderr,"          (in ms (reciprocal will be taken))\n");
+        fprintf(stderr,"          (in seconds (reciprocal will be taken))\n");
         errs++;
     }
     else
     {
-        P->R = atof(envp);
-        if( P->R <= M_D3_R_MIN || P->R >= M_D3_R_MAX )
+        if( get_time_in_seconds(envp, &P->R) )
+        {
+            fprintf(stderr,"** cannot process time '%s' for R\n", envp);
+            errs++;
+        }
+        else if( P->R <= M_D3_R_MIN || P->R >= M_D3_R_MAX )
         {
             fprintf(stderr, "** error: R (%f) is not in (%f, %f)\n",
                             P->R, M_D3_R_MIN, M_D3_R_MAX);
             errs++;
         }
         P->R = 1.0 / P->R;  /* and take the reciprocal */
-    }
-
-    envp = my_getenv("AFNI_MODEL_D3_TR");
-    if( !envp )
-    {
-        fprintf(stderr,"\n** NLfim: need env var AFNI_MODEL_D3_TR\n");
-        fprintf(stderr,"          (TR in milliseconds)\n");
-        errs++;
-    }
-    else
-    {
-        P->TR = atof(envp);
-        if( P->TR <= M_D3_TR_MIN || P->TR >= M_D3_TR_MAX )
-        {
-            fprintf(stderr, "** error: TR (%f) is not in (%f, %f)\n",
-                            P->TR, M_D3_TR_MIN, M_D3_TR_MAX);
-            errs++;
-        }
     }
 
     envp = my_getenv("AFNI_MODEL_D3_THETA");
@@ -385,6 +381,50 @@ static int get_env_params(demri_params * P)
         {
             fprintf(stderr, "** error: theta (%f) is not in (%f, %f)\n",
                             P->theta, M_D3_THETA_MIN, M_D3_THETA_MAX);
+            errs++;
+        }
+    }
+
+    envp = my_getenv("AFNI_MODEL_D3_TR");
+    if( !envp )
+    {
+        fprintf(stderr,"\n** NLfim: need env var AFNI_MODEL_D3_TR\n");
+        fprintf(stderr,"          (TR in seconds)\n");
+        errs++;
+    }
+    else
+    {
+        if( get_time_in_seconds(envp, &P->TR) )
+        {
+            fprintf(stderr,"** cannot process time '%s' for TR\n", envp);
+            errs++;
+        }
+        else if( P->TR <= M_D3_TR_MIN || P->TR >= M_D3_TR_MAX )
+        {
+            fprintf(stderr, "** error: TR (%f) is not in (%f, %f)\n",
+                            P->TR, M_D3_TR_MIN, M_D3_TR_MAX);
+            errs++;
+        }
+    }
+
+    envp = my_getenv("AFNI_MODEL_D3_TF");
+    if( !envp )
+    {
+        fprintf(stderr,"\n** NLfim: need env var AFNI_MODEL_D3_TF\n");
+        fprintf(stderr,"          (TF in seconds)\n");
+        errs++;
+    }
+    else
+    {
+        if( get_time_in_seconds(envp, &P->TF) )
+        {
+            fprintf(stderr,"** cannot process time '%s' for TF\n", envp);
+            errs++;
+        }
+        else if( P->TF <= M_D3_TF_MIN || P->TF >= M_D3_TF_MAX )
+        {
+            fprintf(stderr, "** error: TF (%f) is not in (%f, %f)\n",
+                            P->TF, M_D3_TF_MIN, M_D3_TF_MAX);
             errs++;
         }
     }
@@ -545,14 +585,15 @@ static int disp_demri_params( char * mesg, demri_params * p )
     if( !p ) { fprintf(stderr,"demri_params: p == NULL\n"); return 1; }
 
     fprintf(stderr, "dermi_params struct at %p:\n"
-                    "    K      = %f\n"
-                    "    kep    = %f\n"
-                    "    fvp    = %f\n\n"
-                    "    r1     = %f\n"
-                    "    R      = %f\n"
-                    "    TR     = %f\n"
-                    "    theta  = %f\n"
-                    "    cos0   = %f\n"
+                    "    K      = %f  ( K trans (plasma Gd -> tissue Gd) )\n"
+                    "    kep    = %f  ( back-transfer rate ( Gd_t -> Gd_p ) )\n"
+                    "    fvp    = %f  ( fraction of voxel occupied by blood )\n"
+                    "    r1     = %f  ( 1/(mMol*seconds) )\n"
+                    "    R      = %f  ( 1/seconds )\n"
+                    "    theta  = %f  ( degrees )\n"
+                    "    TR     = %f  ( seconds (~0.007) )\n"
+                    "    TF     = %f  ( seconds (~20) )\n"
+                    "    cos0   = %f  ( cos(theta) )\n"
                     "    nfirst = %d\n\n"
                     "    debug  = %d\n"
                     "    comp   = %p\n"
@@ -560,7 +601,7 @@ static int disp_demri_params( char * mesg, demri_params * p )
                     "    mcp    = %p\n"
             , p,
             p->K, p->kep, p->fvp,
-            p->r1, p->R, p->TR, p->theta, p->cos0,
+            p->r1, p->R, p->theta, p->TR, p->TF, p->cos0,
             p->nfirst, p->debug, p->comp, p->elist, p->mcp);
 
     return 0;
@@ -581,37 +622,84 @@ static int model_help(void)
         "\n"
         "   model parameters passed via environment variables:\n"
         "       AFNI_MODEL_D3_R1    : to set r1        in [%f, %f]\n"
-        "       AFNI_MODEL_D3_R     : to set R_1,i     in [%f, %f]\n"
-        "       AFNI_MODEL_D3_TR    : to set TR        in [%f, %f]\n"
-        "       AFNI_MODEL_D3_THETA : to set theta     in [%f, %f]\n"
+        "                             in 1/(mMol*second)\n"
+        "                             e.g. 4.8 (@ 1.5T)\n"
         "\n"
-        "       note: R_1,i is applied as its reciprocal (time in ms)\n"
+        "       AFNI_MODEL_D3_R     : to set R_1,i     in [%f, %f]\n"
+        "                          ** R_1,i, given as reciprocal, in seconds\n"
+        "                             e.g. 1.3 or 1.3s or 1300ms\n"
+        "\n"
+        "       AFNI_MODEL_D3_THETA : to set theta     in [%f, %f]\n"
+        "                             flip angle, in degrees\n"
+        "                             e.g. 30\n"
+        "\n"
+        "       AFNI_MODEL_D3_TR    : to set TR        in [%f, %f]\n"
+        "                             time between shots, in seconds\n"
+        "                             e.g. 0.0076 or 0.0076s or 7.6ms\n"
+        "\n"
+        "       AFNI_MODEL_D3_TF    : to set TF        in [%f, %f]\n"
+        "                             inter-frame TR (TR of input dataset)\n"
+        "                             e.g. 20 or 20sec\n"
+        "\n"
+        "     ** note: default units are with respect to seconds\n"
         "\n"
         "   environment variables to control Mp(t):\n"
         "       AFNI_MODEL_D3_MP_FILE : file containing Mp(t) data\n"
         "       AFNI_MODEL_D3_NFIRST  : to set nfirst (injection TR)\n"
+        "                               index of input dataset, e.g. 5\n"
         "\n"
         "   optional environment variables:\n"
         "       AFNI_MODEL_HELP_DEMRI_3 : to get this help\n"
         "       AFNI_MODEL_D3_DEBUG     : to set debug level\n"
         "\n"
-        "   -----------------\n"
+        "  -----------------------------------------------\n"
         "\n"
-        "Assumptions:\n"
+        "  Assumptions:\n"
         "\n"
-        "  - nfirst is the number of TRs before Gd infusion\n"
-        "  - m0 is set to average of first nfirst Mp(t) values\n"
-        "  - the input M_trans is normalized:\n"
-        "      M_trans[0] = mean( M_trans[0..nfirst-1] )\n"
-        "      M_trans[k] = M_trans[k] / M_trans[0], k=0..N-1\n"
+        "    - nfirst is the number of TRs before Gd injection\n"
+        "    - the input M_trans is normalized:\n"
+        "        M_trans[0] = mean( M_trans[0..nfirst-1] )\n"
+        "        M_trans[k] = M_trans[k] / M_trans[0], k=0..N-1\n"
+        "    - m0 is set to average of first nfirst Mp(t) values\n"
         "\n"
+        "  -----------------------------------------------\n"
+        "  sample command-script:\n"
+        "\n"
+        "      setenv AFNI_MODEL_D3_R1         4.8\n"
+        "      setenv AFNI_MODEL_D3_R          1500ms\n"
+        "      setenv AFNI_MODEL_D3_TR         8.0ms\n"
+        "      setenv AFNI_MODEL_D3_THETA      30\n"
+        "      setenv AFNI_MODEL_D3_TF         20s\n"
+        "      \n"
+        "      setenv AFNI_MODEL_D3_MP_FILE ROI_mean.1D\n"
+        "      setenv AFNI_MODEL_D3_NFIRST 7\n"
+        "      \n"
+        "      3dNLfim -input scaled_data.nii  \\\n"
+        "          -signal demri_3             \\\n"
+        "          -noise  Constant            \\\n"
+        "          -sconstr 0 0 .05            \\\n"
+        "          -sconstr 1 0 .05            \\\n"
+        "          -nconstr 0 0.0 0.0          \\\n"
+        "          -SIMPLEX                    \\\n"
+        "          -nabs                       \\\n"
+        "          -ignore 0                   \\\n"
+        "          -nrand  10000               \\\n"
+        "          -mask   my_mask+orig        \\\n"
+        "          -nbest  10                  \\\n"
+        "          -jobs 2                     \\\n"
+        "          -voxel_count                \\\n"
+        "          -sfit     $prefix.sfit      \\\n"
+        "          -bucket 0 $prefix.buc\n"
+        "\n"
+        "  -----------------------------------------------\n"
         "  R Reynolds, D Glen, Oct 2006\n"
         "  thanks to RW Cox\n"
         "------------------------------------------------------------\n",
         M_D3_R1_MIN,    M_D3_R1_MAX,
         M_D3_R_MIN,     M_D3_R_MAX,
         M_D3_TR_MIN,    M_D3_TR_MAX,
-        M_D3_THETA_MIN, M_D3_THETA_MAX
+        M_D3_THETA_MIN, M_D3_THETA_MAX,
+        M_D3_TF_MIN,    M_D3_TF_MAX
     );
 
     return 0;
@@ -630,3 +718,13 @@ static int alloc_param_arrays(demri_params * P, int len)
     return 0;
 }
 
+/* str can be of the form "7.2", "7.2s" or "7.2ms" */
+static int get_time_in_seconds( char * str, float * time )
+{
+    char * cp;
+    *time = strtod(str, &cp);
+    if( cp == str ) return 1;
+    if( *cp && !strncmp(cp, "ms", 2) )
+        *time /= 1000.0;
+    return 0;
+}
