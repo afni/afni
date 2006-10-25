@@ -163,8 +163,15 @@ ENTRY("mri_automask_image") ;
    /* 18 Apr 2002: now erode the resulting volume
                    (to break off any thinly attached pieces) */
 
-   if( verb ) ININFO_message("Peeling and Unpeeling %d layers",peelcount) ;
-   THD_mask_erodemany( nx,ny,nz, mmm, peelcount ) ;
+#if 0
+   if( peelcount > 1 ){                              /* 25 Oct 2006 */
+     THD_mask_erodemany( nx,ny,nz, mmm, 1 ) ;
+     THD_mask_clust( nx,ny,nz, mmm ) ;
+     THD_mask_fillin_once( nx,ny,nz , mmm , 1 ) ;
+   }
+#endif
+
+   THD_mask_erodemany( nx,ny,nz, mmm, peelcount ) ;  /* 24 Oct 2006: multiple layers */
 
    /* now recluster it, and again keep only the largest survivor */
 
