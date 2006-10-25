@@ -147,6 +147,9 @@ standards. Made help clearer for @DTI_studio_reposition.
 24 Oct 2006
  * Update to 3dNLfim to use memory mapping instead of shared memory, to support
  multiple CPU jobs better 
+25 Oct 2006
+ * 3dNLfim limit reports to every nth voxel via progress option
+ 
  
 
  

@@ -87,6 +87,9 @@
 
    Mod:      Copied memmap code from 3dDeconvolve.c
    Date:     24 Oct 2006 [DRG]
+
+   Mod:      Limit reports to nth voxels via progress option
+   Date:     25 Oct 2006 [DRG]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -101,6 +104,7 @@
 #define DEFAULT_NRAND 19999
 #define DEFAULT_NBEST     9
 #define DEFAULT_FDISP   999.0
+#define DEFAULT_PROGRESS 10000
 
 #include <stdio.h>
 #include <math.h>
@@ -223,6 +227,8 @@ void display_help_menu()
      "[-rmsmin r]        r = minimum rms error to reject reduced model      \n"
      "[-fdisp fval]      display (to screen) results for those voxels       \n"
      "                     whose f-statistic is > fval [default=%.1f]       \n"
+     "[-progress ival]   display (to screen) results for those voxels       \n"
+     "                     every ival number of voxels                      \n"
      "[-voxel_count]     display (to screen) the current voxel index        \n"
      "                                                                      \n"
      "--- These options choose the least-square minimization algorithm ---  \n"
@@ -353,6 +359,7 @@ void initialize_options
   int * nbest,             /* number of random vectors to keep */
   float * rms_min,         /* minimum rms error to reject reduced model */
   float * fdisp,           /* minimum f-statistic for display */ 
+  int *progress,           /* nth voxel to show report */
   char ** input_filename,     /* file name of input 3d+time dataset */
   char ** tfilename,          /* file name for time point series */  
   char ** freg_filename,      /* file name for regression f-statistics */
@@ -377,6 +384,7 @@ void initialize_options
   *nbest = DEFAULT_NBEST; 
   *rms_min = 0.0;
   *fdisp = DEFAULT_FDISP;
+  *progress = DEFAULT_PROGRESS;
   *smodel = NULL;
   *nmodel = NULL;
   *r = -1;
@@ -475,6 +483,7 @@ void get_options
   int * nbest,             /* number of random vectors to keep */
   float * rms_min,         /* minimum rms error to reject reduced model */
   float * fdisp,           /* minimum f-statistic for display */ 
+  int * progress,          /* progress report every nth voxel */
   char ** input_filename,     /* file name of input 3d+time dataset */
   char ** tfilename,          /* file name for time point series */  
   char ** freg_filename,      /* file name for regression f-statistics */
@@ -527,7 +536,7 @@ void get_options
   /*----- initialize the input options -----*/
   initialize_options (ignore, nmodel, smodel, r, p, npname, spname, 
                 min_nconstr, max_nconstr, min_sconstr, max_sconstr, nabs,
-                nrand, nbest, rms_min, fdisp, 
+                nrand, nbest, rms_min, fdisp, progress, 
                 input_filename, tfilename, freg_filename, 
                 frsqr_filename, fncoef_filename, fscoef_filename,
                 tncoef_filename, tscoef_filename,
@@ -781,6 +790,18 @@ void get_options
        continue;
      }
       
+       /*-----   -progress ival   -----*/
+      if (strcmp(argv[nopt], "-progress") == 0)
+     {
+       nopt++;
+       if (nopt >= argc)  NLfit_error ("need argument after -progress ");
+       sscanf (argv[nopt], "%d", &ival); 
+       if (ival < 1)
+          NLfit_error("illegal argument after -progress ");
+       *progress = ival;
+       nopt++;
+       continue;
+     }
 
        /*-----   -voxel_count   -----*/
       if (strcmp(argv[nopt], "-voxel_count") == 0)
@@ -1755,7 +1776,7 @@ void initialize_program
   int * nbest,             /* number of random vectors to keep */
   float * rms_min,         /* minimum rms error to reject reduced model */
   float * fdisp,           /* minimum f-statistic for display */ 
-
+  int *progress,           /* progress report every nth voxel */
   char ** input_filename,     /* file name of input 3d+time dataset */
   char ** tfilename,          /* file name for time point series */  
   char ** freg_filename,      /* file name for regression f-statistics */
@@ -1821,7 +1842,7 @@ void initialize_program
   get_options(argc, argv, ignore, nname, sname, nmodel, smodel, 
            r, p, npname, spname, 
            min_nconstr, max_nconstr, min_sconstr, max_sconstr, nabs, 
-           nrand, nbest, rms_min, fdisp, input_filename, tfilename, 
+           nrand, nbest, rms_min, fdisp, progress, input_filename, tfilename, 
            freg_filename, frsqr_filename, fsmax_filename, 
            ftmax_filename, fpmax_filename, farea_filename, fparea_filename, 
            fncoef_filename, fscoef_filename,
@@ -3103,6 +3124,7 @@ int main
   int nbest;               /* number of random vectors to keep */
   float rms_min;           /* minimum rms error to reject reduced model */
   float fdisp;             /* minimum f-statistic for display */ 
+  int progress;            /* show progress report every n voxels */
 
   /*----- declare time series variables -----*/
   THD_3dim_dataset * dset_time = NULL;      /* input 3d+time data set */
@@ -3209,7 +3231,7 @@ int main
                 &nname, &sname, &nmodel, &smodel, 
                 &r, &p, &npname, &spname,
                 &min_nconstr, &max_nconstr, &min_sconstr, &max_sconstr,
-                &nabs, &nrand, &nbest, &rms_min, &fdisp, 
+                &nabs, &nrand, &nbest, &rms_min, &fdisp,&progress, 
                 &input_filename, &tfilename, 
                 &freg_filename, &frsqr_filename,
                 &fsmax_filename, &ftmax_filename, &fpmax_filename,
@@ -3363,15 +3385,16 @@ int main
 
 
       /*----- report results for this voxel -----*/
-      if (freg >= fdisp && proc_ind == 0 )
-     {
-       report_results (nname, sname, r, p, npname, spname, ts_length,
-                 par_rdcd, sse_rdcd, par_full, sse_full, tpar_full,
-                 rmsreg, freg, rsqr, smax, tmax, pmax, 
-                 area, parea, &label);
-       printf ("\n\nVoxel #%d\n", iv);
-       printf ("%s \n", label);
-     }
+      if ((freg >= fdisp && proc_ind == 0 )
+        && (iv % progress == 0))
+       {
+	 report_results (nname, sname, r, p, npname, spname, ts_length,
+                   par_rdcd, sse_rdcd, par_full, sse_full, tpar_full,
+                   rmsreg, freg, rsqr, smax, tmax, pmax, 
+                   area, parea, &label);
+	 printf ("\n\nVoxel #%d\n", iv);
+	 printf ("%s \n", label);
+       }
 
       /*----- save results for this voxel into volume data -----*/
       save_results (iv, nmodel, smodel, r, p, novar, ts_length, x_array, 
