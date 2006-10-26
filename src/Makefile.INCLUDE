@@ -772,7 +772,7 @@ rtfeedme:rtfeedme.o
 
 3dNLfim:3dNLfim.o NLfit.c NLfit.h NLfit_model.c NLfit_model.h simplex.c
 	$(RM) $@
-	$(CC) -o 3dNLfim 3dNLfim.o $(PLFLAGS) -lmri -lf2c $(LLIBS)
+	$(CC) -o 3dNLfim 3dNLfim.o $(PLFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dStatClust:3dStatClust.o
 	$(RM) $@
