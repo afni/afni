@@ -504,7 +504,7 @@ float THD_jointentrop_scl( int n , float xbot,float xtop,float *x ,
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Compute MI of x[] and y[i], with autoscaling. */
+/*! Compute joint entropy of x[] and y[i], with autoscaling. */
 
 float THD_jointentrop( int n , float *x , float *y )
 {

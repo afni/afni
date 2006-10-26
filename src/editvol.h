@@ -561,6 +561,7 @@ extern int              okay_to_add_markers(THD_3dim_dataset * dset);
 /*------------------------------------------------------------------*/
 /* 22 Aug 2005: neighborhood/local operations. */
 
+extern void SetSearchAboutMaskedVoxel(int v);  /* ZSS */
 extern MRI_IMAGE * THD_get_dset_nbhd( THD_3dim_dataset *, int, byte *,
                                       int, int, int, MCW_cluster *    ) ;
 
@@ -568,12 +569,15 @@ extern MRI_IMAGE * mri_get_nbhd( MRI_IMAGE *, byte *,
                                  int, int, int, MCW_cluster * ) ;
 
 extern MRI_IMAGE * mri_localstat( MRI_IMAGE *, byte *, MCW_cluster *, int ) ;
-
 extern THD_3dim_dataset * THD_localstat( THD_3dim_dataset *, byte *,
                                          MCW_cluster *, int, int *) ;
 extern void THD_localstat_verb(int) ; 
 
-extern void SetSearchAboutMaskedVoxel(int v);
+extern MRI_IMAGE * mri_localbistat( MRI_IMAGE *, MRI_IMAGE *,
+                                    byte *, MCW_cluster *, int ) ;
+extern THD_3dim_dataset * THD_localbistat( THD_3dim_dataset *, THD_3dim_dataset *,
+                                           byte *, MCW_cluster *, int, int *) ;
+extern void THD_localbistat_verb(int) ; 
 
 #ifdef  __cplusplus
 }

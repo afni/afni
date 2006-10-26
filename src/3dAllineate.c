@@ -2275,12 +2275,12 @@ int main( int argc , char *argv[] )
        mri_free(im_targ) ; im_targ = NULL ;
      }
 
-   } /* end of loop over target sub-bricks */
+   } /***------------- end of loop over target sub-bricks ------------------***/
 
    DSET_unload(dset_targ) ;
    mri_free(im_base) ; mri_free(im_weig) ; mri_free(im_mask) ;
 
-   /****--- write output dataset to disk? ---****/
+   /***--- write output dataset to disk? ---***/
 
    if( dset_out != NULL ){ DSET_write(dset_out); WROTE_DSET(dset_out); }
 
