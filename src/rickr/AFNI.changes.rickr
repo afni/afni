@@ -1772,4 +1772,5 @@
 26 Oct 2006:
   * modified Makefile.INCLUDE: added $(LFLAGS) to 3dNLfim target
   * modified 3dNLfim.c: limit g_voxel_count output to every 10th voxel
+                      : RIB and RIT replace single R
 
