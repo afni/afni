@@ -90,6 +90,9 @@
 
    Mod:      Limit reports to nth voxels via progress option
    Date:     25 Oct 2006 [DRG]
+
+   Mod:      Limit g_voxel_count reports to every 10th voxel.
+   Date:     26 Oct 2006 [rickr]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -3201,6 +3204,7 @@ int main
   int novar;               /* flag for insufficient variation in the data */
 
   int ixyz_bot , ixyz_top ;
+  int voxel_count_index = 0 ;     /* for g_voxel_count output  26 Oct 2006 */
 
   /*----- start the elapsed time counter -----*/
   (void) COX_clock_time() ;
@@ -3357,7 +3361,12 @@ int main
 
       /*----- display progress for user (1-based) -----*/
       if (g_voxel_count && proc_ind == 0 )
-        fprintf(stderr,"\r++ voxel count: %8d (of %d)", iv+1, ixyz_top);
+      {
+        /* only print every 10th          26 Oct 2006 [rickr] */
+        if( voxel_count_index % 10 == 0 )
+          fprintf(stderr,"\r++ voxel count: %8d (of %d)", iv+1, ixyz_top);
+        voxel_count_index++ ;
+      }
 
       /*----- read the time series for voxel iv -----*/
       read_ts_array (dset_time, iv, ts_length, ignore, ts_array);
