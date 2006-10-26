@@ -149,8 +149,8 @@ standards. Made help clearer for @DTI_studio_reposition.
  multiple CPU jobs better 
 25 Oct 2006
  * 3dNLfim limit reports to every nth voxel via progress option
- 
+26 Oct 2006
+ * model_zero, noise model,for removing noise modeling in 3dNLfim
  
 
- 
  
