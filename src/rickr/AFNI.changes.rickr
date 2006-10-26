@@ -1769,5 +1769,7 @@
       - updated check of proc_shmptr
       - change on of the TR uses to TF (computing ct from cp)
       - expanded help, and added a sample script
-26 Oct 2006: modified Makefile.INCLUDE: added $(LFLAGS) to 3dNLfim target
+26 Oct 2006:
+  * modified Makefile.INCLUDE: added $(LFLAGS) to 3dNLfim target
+  * modified 3dNLfim.c: limit g_voxel_count output to every 10th voxel
 
