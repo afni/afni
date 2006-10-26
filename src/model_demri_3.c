@@ -43,8 +43,8 @@ void signal_model
 typedef struct
 {
     float    K, kep, fvp;       /* fit params                             */
-    float    r1, R, theta;      /* given params (via env)                 */
-    float    TR, TF;            /* TR & inter-frame TR (TR of input dset) */
+    float    r1, RIB, RIT;      /* given params (via env)                 */
+    float    theta, TR, TF;     /* TR & inter-frame TR (TR of input dset) */
 
     float    cos0;              /* cos(theta)                             */
     int      nfirst;            /* num TRs used to compute mean Mp,0 */
@@ -79,7 +79,7 @@ MODEL_interface * initialize_model ()
 {
     MODEL_interface * M;
 
-    if( my_getenv("AFNI_MODEL_HELP_DEMRI_3") )
+    if(my_getenv("AFNI_MODEL_HELP_DEMRI_3") || my_getenv("AFNI_MODEL_HELP_ALL"))
         model_help();
 
     /* get space for new struct */
@@ -115,7 +115,7 @@ void signal_model (
     float  * ts_array           /* estimated signal model time series */  
 )
 {
-    static demri_params P = {0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0, 0.0,
+    static demri_params P = {0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                              0.0, 0, 0,  NULL, NULL, NULL };
     static int          first_call = 1;
     int                 mp_len;      /* length of mcp list */
@@ -259,10 +259,10 @@ static int c_from_ct_cp(demri_params * P, int len)
 }
 
 /*----------------------------------------------------------------------
-    R1[n] = R + r1 * C[n]
+    R1[n] = RIT + r1 * C[n]
 
     note: R1 will replace C in P->comp
-          R1[i] will be constant P->R over i=0..nfirst-1
+          R1[i] will be constant P->RIT over i=0..nfirst-1
 */
 static int R1_from_c(demri_params * P, int len)
 {
@@ -270,21 +270,21 @@ static int R1_from_c(demri_params * P, int len)
     int      n;
     
     for( n = P->nfirst; n < len; n++ ) 
-        R1[n] = P->R + P->r1 * R1[n];
+        R1[n] = P->RIT + P->r1 * R1[n];
     return 0;
 }
 
 /*----------------------------------------------------------------------
   compute the final time series, M_transpose, from the R1 array
 
-    Mx[n] = 1 * (1 - exp(-R1[n] * TR)) * (1 - exp(-R*TR)cos0)
+    Mx[n] = 1 * (1 - exp(-R1[n] * TR)) * (1 - exp(-RIT*TR)cos0)
                 ---------------------------------------------
-                (1 - exp(-R1[n] * TR)cos0) * (1 - exp(-R*TR))
+                (1 - exp(-R1[n] * TR)cos0) * (1 - exp(-RIT*TR))
 
           =     (1 - e[n]) * P1c) / [(1 - cos0*e[n]) * P1]
 
-        where P1   = 1 - exp(-R*TR)
-              P1c  = 1 - exp(-R*TR)*cos0
+        where P1   = 1 - exp(-RIT*TR)
+              P1c  = 1 - exp(-RIT*TR)*cos0
               e[n] = exp(-R1[n] * TR)
 
     notes:  R1 is in P->comp
@@ -300,7 +300,7 @@ static int Mx_from_R1(demri_params * P, float * ts, int len)
     int      n;
 
     cos0 = P->cos0;
-    P1   = exp(-P->R * P->TR);
+    P1   = exp(-P->RIT * P->TR);
     P1c  = 1 - P1 * cos0;
     P1   = 1 - P1;
 
@@ -343,27 +343,50 @@ static int get_env_params(demri_params * P)
         }
     }
 
-    envp = my_getenv("AFNI_MODEL_D3_R");
+    envp = my_getenv("AFNI_MODEL_D3_RIB");
     if( !envp )
     {
-        fprintf(stderr,"\n** NLfim: need env var AFNI_MODEL_D3_R\n");
+        fprintf(stderr,"\n** NLfim: need env var AFNI_MODEL_D3_RIB\n");
         fprintf(stderr,"          (in seconds (reciprocal will be taken))\n");
         errs++;
     }
     else
     {
-        if( get_time_in_seconds(envp, &P->R) )
+        if( get_time_in_seconds(envp, &P->RIB) )
         {
-            fprintf(stderr,"** cannot process time '%s' for R\n", envp);
+            fprintf(stderr,"** cannot process time '%s' for RIB\n", envp);
             errs++;
         }
-        else if( P->R <= M_D3_R_MIN || P->R >= M_D3_R_MAX )
+        else if( P->RIB <= M_D3_R_MIN || P->RIB >= M_D3_R_MAX )
         {
-            fprintf(stderr, "** error: R (%f) is not in (%f, %f)\n",
-                            P->R, M_D3_R_MIN, M_D3_R_MAX);
+            fprintf(stderr, "** error: RIB (%f) is not in (%f, %f)\n",
+                            P->RIB, M_D3_R_MIN, M_D3_R_MAX);
             errs++;
         }
-        P->R = 1.0 / P->R;  /* and take the reciprocal */
+        P->RIB = 1.0 / P->RIB;  /* and take the reciprocal */
+    }
+
+    envp = my_getenv("AFNI_MODEL_D3_RIT");
+    if( !envp )
+    {
+        fprintf(stderr,"\n** NLfim: need env var AFNI_MODEL_D3_RIT\n");
+        fprintf(stderr,"          (in seconds (reciprocal will be taken))\n");
+        errs++;
+    }
+    else
+    {
+        if( get_time_in_seconds(envp, &P->RIT) )
+        {
+            fprintf(stderr,"** cannot process time '%s' for RIT\n", envp);
+            errs++;
+        }
+        else if( P->RIT <= M_D3_R_MIN || P->RIT >= M_D3_R_MAX )
+        {
+            fprintf(stderr, "** error: RIT (%f) is not in (%f, %f)\n",
+                            P->RIT, M_D3_R_MIN, M_D3_R_MAX);
+            errs++;
+        }
+        P->RIT = 1.0 / P->RIT;  /* and take the reciprocal */
     }
 
     envp = my_getenv("AFNI_MODEL_D3_THETA");
@@ -432,7 +455,7 @@ static int get_env_params(demri_params * P)
     envp = my_getenv("AFNI_MODEL_D3_DEBUG");
     if( envp ) P->debug = atoi(envp);
 
-    if( envp && P->debug > 1 ) disp_demri_params("env params set: ", P);
+    if( envp && P->debug>1 && !errs ) disp_demri_params("env params set: ", P);
 
     return errs;
 }
@@ -500,10 +523,11 @@ static int get_Mp_array(demri_params * P, int * mp_len)
 
 /*  convert Mp array to Cp(t) array
 
-    Cp(t) =   1/(r1*TR) * ln[ 1-exp(-R*TR)cos0 - (1-exp(-R*TR))cos0*Mp(t)/Mp(0)]
-                            [ ------------------------------------------------ ]
-                            [ 1-exp(-R*TR)cos0 - (1-exp(-R*TR))*Mp(t)/Mp(0)    ]
-                - R/r1
+    Cp(t) =   1    * ln[ 1-exp(-RIB*TR)cos0 - (1-exp(-RIB*TR))cos0*Mp(t)/Mp(0) ]
+            -----      [ ----------------------------------------------------  ]
+            r1*TR      [  1-exp(-RIB*TR)cos0 - (1-exp(-RIB*TR))*Mp(t)/Mp(0)    ]
+
+                   - RIB/r1
 
     subject to Cp(t) >= 0
 */
@@ -517,7 +541,7 @@ static int convert_mp_to_cp(demri_params * P, int mp_len)
     int     c;
 
     /* use local vars for those in P, for readability */
-    float  r1 = P->r1, R = P->R, TR = P->TR, cos0 = P->cos0;
+    float  r1 = P->r1, RIB = P->RIB, TR = P->TR, cos0 = P->cos0;
     int    nfirst = P->nfirst;
 
     /* compute m0 equal to mean of first 'nfirst' values */
@@ -535,12 +559,12 @@ static int convert_mp_to_cp(demri_params * P, int mp_len)
 
     /* simple terms */
     rTR  = 1.0/(r1*TR);
-    R_r1 = R/r1;
+    R_r1 = RIB/r1;
 
     /* exponential terms */
-    ertr       =  1 - exp(-R * TR);
-    ertr_c0    =  1 - exp(-R * TR)  * cos0;
-    c0_ertr_c0 = (1 - exp(-R * TR)) * cos0;
+    ertr       =  1 - exp(-RIB * TR);
+    ertr_c0    =  1 - exp(-RIB * TR)  * cos0;
+    c0_ertr_c0 = (1 - exp(-RIB * TR)) * cos0;
 
     if(P->debug > 1)
         fprintf(stderr,
@@ -589,7 +613,8 @@ static int disp_demri_params( char * mesg, demri_params * p )
                     "    kep    = %f  ( back-transfer rate ( Gd_t -> Gd_p ) )\n"
                     "    fvp    = %f  ( fraction of voxel occupied by blood )\n"
                     "    r1     = %f  ( 1/(mMol*seconds) )\n"
-                    "    R      = %f  ( 1/seconds )\n"
+                    "    RIB    = %f  ( 1/seconds )\n"
+                    "    RIT    = %f  ( 1/seconds )\n"
                     "    theta  = %f  ( degrees )\n"
                     "    TR     = %f  ( seconds (~0.007) )\n"
                     "    TF     = %f  ( seconds (~20) )\n"
@@ -601,7 +626,7 @@ static int disp_demri_params( char * mesg, demri_params * p )
                     "    mcp    = %p\n"
             , p,
             p->K, p->kep, p->fvp,
-            p->r1, p->R, p->theta, p->TR, p->TF, p->cos0,
+            p->r1, p->RIB, p->RIT, p->theta, p->TR, p->TF, p->cos0,
             p->nfirst, p->debug, p->comp, p->elist, p->mcp);
 
     return 0;
@@ -625,9 +650,13 @@ static int model_help(void)
         "                             in 1/(mMol*second)\n"
         "                             e.g. 4.8 (@ 1.5T)\n"
         "\n"
-        "       AFNI_MODEL_D3_R     : to set R_1,i     in [%f, %f]\n"
+        "       AFNI_MODEL_D3_RIB   : to set blood R_1,i   in [%f, %f]\n"
         "                          ** R_1,i, given as reciprocal, in seconds\n"
         "                             e.g. 1.3 or 1.3s or 1300ms\n"
+        "\n"
+        "       AFNI_MODEL_D3_RIT   : to set tissue R_1,i  in [%f, %f]\n"
+        "                          ** R_1,i, given as reciprocal, in seconds\n"
+        "                             e.g. 0.8 or 0.8s or 800ms\n"
         "\n"
         "       AFNI_MODEL_D3_THETA : to set theta     in [%f, %f]\n"
         "                             flip angle, in degrees\n"
@@ -666,7 +695,8 @@ static int model_help(void)
         "  sample command-script:\n"
         "\n"
         "      setenv AFNI_MODEL_D3_R1         4.8\n"
-        "      setenv AFNI_MODEL_D3_R          1500ms\n"
+        "      setenv AFNI_MODEL_D3_RIB        1500ms\n"
+        "      setenv AFNI_MODEL_D3_RIT        1100ms\n"
         "      setenv AFNI_MODEL_D3_TR         8.0ms\n"
         "      setenv AFNI_MODEL_D3_THETA      30\n"
         "      setenv AFNI_MODEL_D3_TF         20s\n"
@@ -688,14 +718,15 @@ static int model_help(void)
         "          -nbest  10                  \\\n"
         "          -jobs 2                     \\\n"
         "          -voxel_count                \\\n"
-        "          -sfit     $prefix.sfit      \\\n"
-        "          -bucket 0 $prefix.buc\n"
+        "          -sfit     subj7.sfit        \\\n"
+        "          -bucket 0 subj7.buc\n"
         "\n"
         "  -----------------------------------------------\n"
         "  R Reynolds, D Glen, Oct 2006\n"
         "  thanks to RW Cox\n"
         "------------------------------------------------------------\n",
         M_D3_R1_MIN,    M_D3_R1_MAX,
+        M_D3_R_MIN,     M_D3_R_MAX,
         M_D3_R_MIN,     M_D3_R_MAX,
         M_D3_TR_MIN,    M_D3_TR_MAX,
         M_D3_THETA_MIN, M_D3_THETA_MAX,
