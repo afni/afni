@@ -5947,3 +5947,9 @@
 24 Oct 2006
  * Modified 3dAutomask.c (etc.) to add -peel and -nbhr options, with
      also a fix to stupid error made a couple days before.
+
+30 Oct 2006
+ * Modified plut_scatplot.c to copy 'Aboot' option from plug_histog.c.
+ * Modified THD_pearson() stuff in thd_correlate.c to remove mean.
+ * New program 3dLocalBistat.c -- joint local statistics between 2
+     datasets.

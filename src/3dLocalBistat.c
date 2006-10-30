@@ -13,6 +13,9 @@ int main( int argc , char *argv[] )
    byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
    char *prefix="./localstat" ;
    int ntype=0 ; float na=0.0f,nb=0.0f,nc=0.0f ;
+   double hist_pow=0.3333333 ; int hist_nbin=0 ;
+   float hbot1=1.0f , htop1=-1.0f ; int hbot1_perc=0, htop1_perc=0 ;
+   float hbot2=1.0f , htop2=-1.0f ; int hbot2_perc=0, htop2_perc=0 ;
 
    /*---- for the clueless who wish to become clued-in ----*/
 
@@ -81,6 +84,20 @@ int main( int argc , char *argv[] )
       " -prefix ppp = Use string 'ppp' as the prefix for the output dataset.\n"
       "               The output dataset is always stored as floats.\n"
       "\n"
+      "ADVANCED OPTIONS\n"
+      "----------------\n"
+      " -histpow pp   = By default, the number of bins in the histogram used\n"
+      "                 for calculating the Hellinger, Mutual Information, and\n"
+      "                 Correlation Ratio statistics is n^(1/3), where n is\n"
+      "                 the number of data points in the -nbhd mask.  You can\n"
+      "                 change that exponent to 'pp' with this option.\n"
+      " -histbin nn   = Or you can just set the number of bins directly to 'nn'.\n"
+      " -hclip1 a b   = Clip dataset1 to lie between values 'a' and 'b'.  If 'a'\n"
+      "                 and 'b' end in '%%', then these values are percentage\n"
+      "                 points on the cumulative histogram.\n"
+      " -hclip2 a b   = Similar to '-hclip1' for dataset2.\n"
+      "\n"
+      "-----------------------------\n"
       "Author: RWCox - October 2006.\n"
      ) ;
      exit(0) ;
@@ -93,6 +110,56 @@ int main( int argc , char *argv[] )
    /*---- loop over options ----*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcmp(argv[iarg],"-hclip1") == 0 ){
+       char *cpt1, *cpt2 ;
+       if( ++iarg >= argc-1 ) ERROR_exit("need 2 arguments after -hclip1") ;
+       hbot1 = (float)strtod(argv[iarg],&cpt1) ; iarg++ ;
+       htop1 = (float)strtod(argv[iarg],&cpt2) ;
+       if( hbot1 >= htop1 ) ERROR_exit("illegal values after -hclip1") ;
+       if( *cpt1 == '%' ){
+         hbot1_perc = 1 ; hbot1 = (int)rint((double)hbot1) ;
+         if( hbot1 < 0 || hbot1 > 99 ) ERROR_exit("illegal bot percentage after -hclip1") ;
+       }
+       if( *cpt2 == '%' ){
+         htop1_perc = 1 ; htop1 = (int)rint((double)htop1) ;
+         if( htop1 < 1 || htop1 > 100 ) ERROR_exit("illegal top percentage after -hclip1") ;
+       }
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-hclip2") == 0 ){
+       char *cpt1, *cpt2 ;
+       if( ++iarg >= argc-1 ) ERROR_exit("need 2 arguments after -hclip2") ;
+       hbot2 = (float)strtod(argv[iarg],&cpt1) ; iarg++ ;
+       htop2 = (float)strtod(argv[iarg],&cpt2) ;
+       if( hbot2 >= htop2 ) ERROR_exit("illegal values after -hclip2") ;
+       if( *cpt1 == '%' ){
+         hbot2_perc = 1 ; hbot2 = (int)rint((double)hbot2) ;
+         if( hbot2 < 0 || hbot2 > 99 ) ERROR_exit("illegal bot percentage after -hclip2") ;
+       }
+       if( *cpt2 == '%' ){
+         htop2_perc = 1 ; htop2 = (int)rint((double)htop2) ;
+         if( htop2 < 1 || htop2 > 100 ) ERROR_exit("illegal top percentage after -hclip2") ;
+       }
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-histpow") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       hist_pow = strtod(argv[iarg],NULL) ;
+       if( hist_pow <= 0.0 || hist_pow > 0.5 ){
+         WARNING_message("Illegal value after -histpow"); hist_pow = 0.33333;
+       }
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-histbin") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       hist_nbin = (int)strtod(argv[iarg],NULL) ;
+       if( hist_nbin <= 1 ) WARNING_message("Illegal value after -histbin");
+       iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-prefix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-prefix'") ;
@@ -253,6 +320,31 @@ int main( int argc , char *argv[] )
 
    INFO_message("Neighborhood comprises %d voxels",nbhd->num_pt) ;
 
+   if( hist_nbin <= 1 ) hist_nbin = (int)pow((double)nbhd->num_pt,hist_pow) ;
+   if( hist_nbin <= 1 ) hist_nbin = 2 ;
+   INFO_message("2D histogram size = %d",hist_nbin) ;
+   set_2Dhist_hbin( hist_nbin ) ;
+
+   if( hbot1_perc || htop1_perc ){
+     MRI_IMAGE *fim ; float perc[101] ;
+     fim = THD_median_brick(inset) ;
+     mri_percents(fim,100,perc) ; mri_free(fim) ;
+     if( hbot1_perc ) hbot1 = perc[(int)hbot1] ;
+     if( htop1_perc ) htop1 = perc[(int)htop1] ;
+     INFO_message("Clipping dataset '%s' between %g and %g" ,
+                  DSET_BRIKNAME(inset),hbot1,htop1 ) ;
+   }
+   if( hbot2_perc || htop2_perc ){
+     MRI_IMAGE *fim ; float perc[101] ;
+     fim = THD_median_brick(jnset) ;
+     mri_percents(fim,100,perc) ; mri_free(fim) ;
+     if( hbot2_perc ) hbot2 = perc[(int)hbot2] ;
+     if( htop2_perc ) htop2 = perc[(int)htop2] ;
+     INFO_message("Clipping dataset '%s' between %g and %g" ,
+                  DSET_BRIKNAME(jnset),hbot2,htop2 ) ;
+   }
+   mri_nbistat_setclip( hbot1,htop1 , hbot2,htop2 ) ;
+
    /*---- actually do some work for a change ----*/
 
    THD_localbistat_verb(1) ;
@@ -267,21 +359,27 @@ int main( int argc , char *argv[] )
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dLocalBistat" , argc,argv , outset ) ;
 
-#if 0
+#if 1
    { char *lcode[66] , lll[66] ;
-     lcode[NSTAT_MEAN]   = "MEAN" ; lcode[NSTAT_SIGMA]  = "SIGMA"  ;
-     lcode[NSTAT_CVAR]   = "CVAR" ; lcode[NSTAT_MEDIAN] = "MEDIAN" ;
-     lcode[NSTAT_MAD]    = "MAD"  ; lcode[NSTAT_MAX]    = "MAX"    ;
-     lcode[NSTAT_MIN]    = "MIN"  ; lcode[NSTAT_ABSMAX] = "ABSMAX" ;
-     lcode[NSTAT_VAR]    = "VAR"  ; lcode[NSTAT_NUM]    = "NUM"    ;
+     lcode[0] = "Rank cor" ;
+     lcode[1] = "Quad cor" ;
+     lcode[2] = "Pear cor" ;
+     lcode[3] = "MI" ;
+     lcode[4] = "NMI" ;
+     lcode[5] = "Jnt Entropy" ;
+     lcode[6] = "Hlngr metric" ;
+     lcode[7] = "CorRat Sym*" ;
+     lcode[8] = "CorRat Sym+" ;
+     lcode[9] = "CorRatUnsym" ;
+     lcode[10]= "Number" ;
      if( DSET_NVALS(inset) == 1 ){
        for( ii=0 ; ii < DSET_NVALS(outset) ; ii++ )
          EDIT_dset_items( outset ,
-                            ADN_brick_label_one+ii , lcode[code[ii%ncode]] ,
+                            ADN_brick_label_one+ii, lcode[code[ii%ncode]-NBISTAT_BASE],
                           ADN_none ) ;
      } else {
        for( ii=0 ; ii < DSET_NVALS(outset) ; ii++ ){
-         sprintf(lll,"%s[%d]",lcode[code[ii%ncode]],(ii/ncode)) ;
+         sprintf(lll,"%s[%d]",lcode[code[ii%ncode]-NBISTAT_BASE],(ii/ncode)) ;
          EDIT_dset_items( outset , ADN_brick_label_one+ii,lll, ADN_none ) ;
        }
      }

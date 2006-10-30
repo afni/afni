@@ -1,6 +1,16 @@
 #include "mrilib.h"
 
 /*--------------------------------------------------------------------------*/
+static float hbot1 =  1.0f ;
+static float htop1 = -1.0f ;
+static float hbot2 =  1.0f ;
+static float htop2 = -1.0f ;
+void mri_nbistat_setclip( float hb1, float ht1 , float hb2, float ht2 )
+{
+  hbot1 = hb1 ; htop1 = ht1 ; hbot2 = hb2 ; htop2 = ht2 ;
+}
+
+/*--------------------------------------------------------------------------*/
 /*! Input = 2 1D images, and an NBISTAT_ code to compute some statistic.
    Output = statistic's value.
 ----------------------------------------------------------------------------*/
@@ -9,7 +19,7 @@ float mri_nbistat( int code , MRI_IMAGE *im , MRI_IMAGE *jm )
 {
    MRI_IMAGE *fim , *gim ;
    float     *far , *gar ; float outval=0.0f ;
-   int npt ;
+   int npt , ii ;
 
    if( im == NULL || jm == NULL || im->nvox == 0 || im->nvox != jm->nvox )
      return outval ;
@@ -21,6 +31,17 @@ float mri_nbistat( int code , MRI_IMAGE *im , MRI_IMAGE *jm )
    far = MRI_FLOAT_PTR(fim) ;  /* array of values to statisticate */
    gar = MRI_FLOAT_PTR(gim) ;
    npt = fim->nvox ;           /* number of values */
+
+   if( hbot1 < htop1 ){
+     for( ii=0 ; ii < npt ; ii++ )
+            if( far[ii] < hbot1 ) far[ii] = hbot1 ;
+       else if( far[ii] > htop1 ) far[ii] = htop1 ;
+   }
+   if( hbot2 < htop2 ){
+     for( ii=0 ; ii < npt ; ii++ )
+            if( gar[ii] < hbot2 ) gar[ii] = hbot2 ;
+       else if( gar[ii] > htop2 ) gar[ii] = htop2 ;
+   }
 
    switch( code ){
 
@@ -39,7 +60,9 @@ float mri_nbistat( int code , MRI_IMAGE *im , MRI_IMAGE *jm )
        outval = THD_mutual_info( npt , far , gar ) ; break ;
 
      case NBISTAT_NORMUT_INFO:
-       outval = THD_norm_mutinf( npt , far , gar ) ; break ;
+       outval = THD_norm_mutinf( npt , far , gar ) ;
+       if( outval != 0.0f ) outval = 1.0f / outval ;
+       break ;
 
      case NBISTAT_JOINT_ENTROPY:
        outval = THD_jointentrop( npt , far , gar ) ; break ;
@@ -143,6 +166,7 @@ ENTRY("THD_localbistat") ;
    EDIT_dset_items( oset ,
                       ADN_nvals     , nvout         ,
                       ADN_datum_all , MRI_float     ,
+                      ADN_ntt       , nvout         ,
                       ADN_nsl       , 0             ,
                       ADN_brick_fac , NULL          ,
                       ADN_prefix    , "localbistat" ,
@@ -152,7 +176,7 @@ ENTRY("THD_localbistat") ;
    ny = DSET_NY(dset) ;
    nz = DSET_NZ(dset) ; nxyz = nx*ny*nz ;
 
-   vstep = (verb && nxyz > 99999) ? nxyz/50 : 0 ;
+   vstep = (verb && nxyz > 66666) ? nxyz/50 : 0 ;
    if( vstep ) fprintf(stderr,"++ voxel loop:") ;
 
    aar = (float **)malloc(sizeof(float *)*ncode) ;

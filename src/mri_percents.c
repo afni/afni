@@ -448,7 +448,7 @@ void qsrec_pair( int n , float * ar , int * iar , int cutoff )
 
 /* quick_sort :  sort an array partially recursively, and partially insertion */
 
-void qsort_pair( int n , float * a , int * ia )
+void qsort_pair( int n , float *a , int *ia )
 {
    qsrec_pair( n , a , ia , QS_CUTOFF ) ;
    isort_pair( n , a , ia ) ;
@@ -464,7 +464,7 @@ void qsort_pair( int n , float * a , int * ia )
         "per" is float, no matter what the input image type is.
 ********************************************************************************/
 
-void mri_percents( MRI_IMAGE * im , int nper , float per[] )
+void mri_percents( MRI_IMAGE *im , int nper , float per[] )
 {
    register int pp , ii , nvox ;
    register float fi , frac ;
@@ -473,11 +473,7 @@ void mri_percents( MRI_IMAGE * im , int nper , float per[] )
 
    if( im == NULL || per == NULL || nper < 2 ) return ;
 
-#ifdef MRILIB_7D
    nvox = im->nvox ;
-#else
-   nvox = im->nx * im->ny ;
-#endif
    frac = nvox / ((float) nper) ;
 
    switch( im->kind ){
@@ -486,8 +482,8 @@ void mri_percents( MRI_IMAGE * im , int nper , float per[] )
            sort it, then interpolate the percentage points ***/
 
       default:{
-         MRI_IMAGE * inim ;
-         float * far ;
+         MRI_IMAGE *inim ;
+         float *far ;
 
          inim = mri_to_float( im ) ;
          far  = MRI_FLOAT_PTR(inim) ;
@@ -508,8 +504,8 @@ void mri_percents( MRI_IMAGE * im , int nper , float per[] )
 
       case MRI_short:
       case MRI_byte:{
-         MRI_IMAGE * inim ;
-         short * sar ;
+         MRI_IMAGE *inim ;
+         short *sar ;
 
          inim = mri_to_short( 1.0 , im ) ;
          sar  = MRI_SHORT_PTR(inim) ;
@@ -553,15 +549,9 @@ printf("Entry: mri_flatten\n") ;
    /*** make an image that is just the voxel index in its array ***/
    /*** also, make the output image while we are at it          ***/
 
-#ifdef MRILIB_7D
    nvox  = im->nvox ;
    intim = mri_new_conforming( im , MRI_int ) ;
    outim = mri_new_conforming( im , MRI_float ) ;
-#else
-   nvox  = im->nx * im->ny ;
-   intim = mri_new( im->nx , im->ny , MRI_int ) ;
-   outim = mri_new( im->nx , im->ny , MRI_float ) ;
-#endif
 
    iar = MRI_INT_PTR(intim) ; outar = MRI_FLOAT_PTR(outim) ;
 
@@ -637,11 +627,7 @@ float mri_quantile( MRI_IMAGE * im , float alpha )
    if( alpha <= 0.0 ) return (float) mri_min(im) ;
    if( alpha >= 1.0 ) return (float) mri_max(im) ;
 
-#ifdef MRILIB_7D
    nvox = im->nvox ;
-#else
-   nvox = im->nx * im->ny ;
-#endif
 
    switch( im->kind ){
 
