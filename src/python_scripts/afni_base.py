@@ -112,13 +112,13 @@ class comopt:
       self.required = False #is the argument required?
       return 
 
-   def show(self, mesg):
-      print "%sComopt: %s" % (mesg, opt.name)
+   def show(self, mesg = ''):
+      print "%sComopt: %s" % (mesg, self.name)
       print "  (i_name, n_exp, n_found) = (%d, %d, %d)" % \
-               (opt.i_name, opt.n_exp, opt.n_found)
-      print "  parlist = %s" % opt.parlist
-      print "  deflist = %s" % opt.deflist
-      print "  acceptlist = %s" % opt.acceptlist
+               (self.i_name, self.n_exp, self.n_found)
+      print "  parlist = %s" % self.parlist
+      print "  deflist = %s" % self.deflist
+      print "  acceptlist = %s" % self.acceptlist
 
    def test(self):
       if (len(self.deflist) != 0 and self.parlist == None):  #some checks possible, parlist not set yet
