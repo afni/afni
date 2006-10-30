@@ -601,7 +601,7 @@ extern MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * ) ;
 #define NSTAT_VAR    17
 #define NSTAT_NUM    18
 
-#define NBISTAT_NUM                NSTAT_NUM
+#define NBISTAT_BASE               66601
 #define NBISTAT_SPEARMAN_CORR      66601
 #define NBISTAT_QUADRANT_CORR      66602
 #define NBISTAT_PEARSON_CORR       66603
@@ -612,9 +612,11 @@ extern MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * ) ;
 #define NBISTAT_CORR_RATIO_M       66608
 #define NBISTAT_CORR_RATIO_A       66609
 #define NBISTAT_CORR_RATIO_U       66610
+#define NBISTAT_NUM                66611
 
 extern float mri_nstat  ( int , MRI_IMAGE * ) ;  /* 19 Aug 2005 */
 extern float mri_nbistat( int , MRI_IMAGE *, MRI_IMAGE * ) ; /* 26 Oct 2006 */
+extern void mri_nbistat_setclip( float, float , float, float ) ;
 
 extern MRI_IMAGE * mri_edit_image( float pthr, float power, MRI_IMAGE * im ) ;
 
