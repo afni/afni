@@ -109,28 +109,42 @@ class comopt:
       self.parlist = None     #parameter strings list following option 
       self.deflist = defpar #default parameter list,if any
       self.acceptlist = acplist #acceptable values if any
+      self.required = False #is the argument required?
       return 
+
+   def show(self, mesg):
+      print "%sComopt: %s" % (mesg, opt.name)
+      print "  (i_name, n_exp, n_found) = (%d, %d, %d)" % \
+               (opt.i_name, opt.n_exp, opt.n_found)
+      print "  parlist = %s" % opt.parlist
+      print "  deflist = %s" % opt.deflist
+      print "  acceptlist = %s" % opt.acceptlist
+
    def test(self):
       if (len(self.deflist) != 0 and self.parlist == None):  #some checks possible, parlist not set yet
          if self.n_exp >= 0:
             if len(self.deflist) != self.n_exp:
-               print "Error: Option %s needs %d parameters\nDefault list has %d parameters." \
+               print "Error: Option %s needs %d parameters\n" \
+                     "Default list has %d parameters." \
                         % (self.name, self.n_exp, len(self.deflist))
                return None
          else:
             if len(self.deflist) < -self.n_exp:
-               print "Error: Option %s needs at least %d parameters\nDefault list has %d parameters."\
+               print "Error: Option %s needs at least %d parameters\n"  \
+                     "Default list has %d parameters."\
                         % (self.name, -self.n_exp, len(self.deflist))
                return None 
       else :
          if self.n_exp >= 0:
             if len(self.parlist) != self.n_exp:
-               print "Error: Option %s needs %d parameters\nParameter list has %d parameters." \
+               print "Error: Option %s needs %d parameters\n" \
+                     "Parameter list has %d parameters." \
                         % (self.name, self.n_exp, len(self.parlist))
                return None
          else:
             if len(self.parlist) < -self.n_exp:
-               print "Error: Option %s needs at least %d parameters\nParameter list has %d parameters."\
+               print "Error: Option %s needs at least %d parameters\n"  \
+                     "Parameter list has %d parameters."\
                         % (self.name, -self.n_exp, len(self.parlist))
                return None 
       return 1
@@ -259,7 +273,7 @@ def getopts2(argv,oplist):
    optnames = []
    for op in oplist:
       optnames.append(op.name)
-      
+
    #find those options in oplist
    for op in oplist:
       if op.name in argv:
