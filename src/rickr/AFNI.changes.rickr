@@ -1774,3 +1774,5 @@
   * modified 3dNLfim.c: limit g_voxel_count output to every 10th voxel
                       : RIB and RIT replace single R
 
+30 Oct 2006: modified afni_base.py: added comopt.required, show(), print mods
+
