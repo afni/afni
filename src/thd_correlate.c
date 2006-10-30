@@ -199,11 +199,15 @@ float THD_quadrant_corr_nd( int n , float *x , float *y )
 
 float THD_pearson_corr( int n, float *x , float *y )
 {
-   float xv=0.0f , yv=0.0f , xy=0.0f ;
+   float xv=0.0f , yv=0.0f , xy=0.0f , vv,ww ;
+   float xm=0.0f , ym=0.0f ;
    int ii ;
 
+   for( ii=0 ; ii < n ; ii++ ){ xm += x[ii] ; ym += y[ii] ; }
+   xm /= n ; ym /= n ;
    for( ii=0 ; ii < n ; ii++ ){
-     xv += x[ii]*x[ii] ; yv += y[ii]*y[ii] ; xy += x[ii]*y[ii] ;
+     vv = x[ii]-xm ; ww = y[ii]-ym ;
+     xv += vv*vv ; yv += ww*ww ; xy += vv*ww ;
    }
 
    if( xv <= 0.0f || yv <= 0.0f ) return 0.0f ;
@@ -214,14 +218,19 @@ float THD_pearson_corr( int n, float *x , float *y )
 
 float THD_pearson_corr_wt( int n, float *x , float *y , float *wt )
 {
-   float xv=0.0f , yv=0.0f , xy=0.0f ;
+   float xv=0.0f , yv=0.0f , xy=0.0f , vv,ww ;
+   float xm=0.0f , ym=0.0f , ws=0.0f ;
    int ii ;
 
    if( wt == NULL ) return THD_pearson_corr(n,x,y) ;
 
    for( ii=0 ; ii < n ; ii++ ){
-     xv += wt[ii]*x[ii]*x[ii] ; yv += wt[ii]*y[ii]*y[ii] ;
-     xy += wt[ii]*x[ii]*y[ii] ;
+     xm += wt[ii]*x[ii]; ym += wt[ii]*y[ii]; ws += wt[ii];
+   }
+   xm /= ws ; ym /= ws ;
+   for( ii=0 ; ii < n ; ii++ ){
+     vv = x[ii]-xm ; ww = y[ii]-ym ;
+     xv += wt[ii]*vv*vv ; yv += wt[ii]*ww*ww ; xy += wt[ii]*vv*ww ;
    }
 
    if( xv <= 0.0f || yv <= 0.0f ) return 0.0f ;
@@ -508,8 +517,9 @@ float THD_jointentrop_scl( int n , float xbot,float xtop,float *x ,
 
 float THD_jointentrop( int n , float *x , float *y )
 {
-   return THD_mutual_info_scl( n, 1.0f,-1.0f, x, 1.0f,-1.0f, y, NULL ) ;
+   return THD_jointentrop_scl( n, 1.0f,-1.0f, x, 1.0f,-1.0f, y, NULL ) ;
 }
+
 
 /*--------------------------------------------------------------------------*/
 /* Decide if THD_corr_ratio_scl() computes symmetric or unsymmetric.        */
@@ -620,5 +630,5 @@ float THD_hellinger_scl( int n , float xbot,float xtop,float *x ,
 
 float THD_hellinger( int n , float *x , float *y )
 {
-   return THD_mutual_info_scl( n, 1.0f,-1.0f, x, 1.0f,-1.0f, y, NULL ) ;
+   return THD_hellinger_scl( n, 1.0f,-1.0f, x, 1.0f,-1.0f, y, NULL ) ;
 }
