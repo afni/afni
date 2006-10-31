@@ -27,9 +27,8 @@
 #define Mmmmmm_PIiiiii  3.1415926535897932385
 
 /* rcr: questions
-    Do we get TR from x_array?    (x_array[1][1] - x_array[0][1])
     Is nfirst going to equal the injection TR?
-    How do we get a TR of 7.2 ms?
+    Does ve need to be less than 1.0 (K < kep)?
 */
 
 void signal_model 
@@ -42,12 +41,13 @@ void signal_model
 
 typedef struct
 {
-    float    K, kep, fvp;       /* fit params                             */
+    float    K, kep, ve, fvp;   /* fit params  (one of kep or ve given)   */
     float    r1, RIB, RIT;      /* given params (via env)                 */
     float    theta, TR, TF;     /* TR & inter-frame TR (TR of input dset) */
 
     float    cos0;              /* cos(theta)                             */
     int      nfirst;            /* num TRs used to compute mean Mp,0 */
+    int      use_ve;
     int      debug;
 
     double * comp;              /* computation data, and elist */
@@ -79,7 +79,7 @@ MODEL_interface * initialize_model ()
 {
     MODEL_interface * M;
 
-    if(my_getenv("AFNI_MODEL_HELP_DEMRI_3") || my_getenv("AFNI_MODEL_HELP_ALL"))
+    if(AFNI_yesenv("AFNI_MODEL_HELP_DEMRI_3") || AFNI_yesenv("AFNI_MODEL_HELP_ALL"))
         model_help();
 
     /* get space for new struct */
@@ -115,8 +115,8 @@ void signal_model (
     float  * ts_array           /* estimated signal model time series */  
 )
 {
-    static demri_params P = {0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                             0.0, 0, 0,  NULL, NULL, NULL };
+    static demri_params P = {0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                             0.0, 0, 0, 0,   NULL, NULL, NULL };
     static int          first_call = 1;
     int                 mp_len;      /* length of mcp list */
 
@@ -152,8 +152,14 @@ void signal_model (
 
     /* note passed parameters */
     P.K   = params[0];
-    P.kep = params[1];
     P.fvp = params[2];
+
+    if( P.use_ve )
+    {
+        P.ve = params[1];
+        P.kep = P.K / P.ve;  /* what to do if P.ve is small, nothing? */
+    }
+    else P.kep = params[1];
 
     (void)compute_ts( &P, ts_array, ts_len );
 }
@@ -452,6 +458,8 @@ static int get_env_params(demri_params * P)
         }
     }
 
+    if( AFNI_yesenv("AFNI_MODEL_D3_USE_VE") ) P->use_ve = 1;
+
     envp = my_getenv("AFNI_MODEL_D3_DEBUG");
     if( envp ) P->debug = atoi(envp);
 
@@ -620,6 +628,7 @@ static int disp_demri_params( char * mesg, demri_params * p )
                     "    TF     = %f  ( seconds (~20) )\n"
                     "    cos0   = %f  ( cos(theta) )\n"
                     "    nfirst = %d\n\n"
+                    "    use_ve = %d\n"
                     "    debug  = %d\n"
                     "    comp   = %p\n"
                     "    elist  = %p\n"
@@ -627,7 +636,7 @@ static int disp_demri_params( char * mesg, demri_params * p )
             , p,
             p->K, p->kep, p->fvp,
             p->r1, p->RIB, p->RIT, p->theta, p->TR, p->TF, p->cos0,
-            p->nfirst, p->debug, p->comp, p->elist, p->mcp);
+            p->nfirst, p->use_ve, p->debug, p->comp, p->elist, p->mcp);
 
     return 0;
 }
@@ -678,8 +687,9 @@ static int model_help(void)
         "                               index of input dataset, e.g. 5\n"
         "\n"
         "   optional environment variables:\n"
-        "       AFNI_MODEL_HELP_DEMRI_3 : to get this help\n"
-        "       AFNI_MODEL_D3_DEBUG     : to set debug level\n"
+        "       AFNI_MODEL_HELP_DEMRI_3 (Y/N) : to get this help\n"
+        "       AFNI_MODEL_D3_USE_VE    (Y/N) : use ve instead of k_ep\n"
+        "       AFNI_MODEL_D3_DEBUG     (0..2): to set debug level\n"
         "\n"
         "  -----------------------------------------------\n"
         "\n"
@@ -706,9 +716,10 @@ static int model_help(void)
         "      \n"
         "      3dNLfim -input scaled_data.nii  \\\n"
         "          -signal demri_3             \\\n"
-        "          -noise  Constant            \\\n"
-        "          -sconstr 0 0 .05            \\\n"
-        "          -sconstr 1 0 .05            \\\n"
+        "          -noise  Zero                \\\n"
+        "          -sconstr 0 0 .95            \\\n"
+        "          -sconstr 1 0 .95            \\\n"
+        "          -sconstr 2 0 .99            \\\n"
         "          -nconstr 0 0.0 0.0          \\\n"
         "          -SIMPLEX                    \\\n"
         "          -nabs                       \\\n"
