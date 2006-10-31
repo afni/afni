@@ -1775,4 +1775,5 @@
                       : RIB and RIT replace single R
 
 30 Oct 2006: modified afni_base.py: added comopt.required, show(), print mods
+31 Oct 2006: modified model_demri_3.c: allow ve param, instead of k_ep
 
