@@ -1397,4 +1397,8 @@ extern double nifti_stat2zscore ( double, int, double,double,double ) ;
 extern double nifti_stat2hzscore( double, int, double,double,double ) ;
 /*------------------------------------------------------------------*/
 
+extern THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE * , byte * ) ;
+extern MRI_IMAGE * THD_estimate_FWHM_all( THD_3dim_dataset * , byte * ) ;
+
+
 #endif /* _MCW_MRILIB_HEADER_ */
