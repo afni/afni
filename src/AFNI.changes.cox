@@ -5953,3 +5953,6 @@
  * Modified THD_pearson() stuff in thd_correlate.c to remove mean.
  * New program 3dLocalBistat.c -- joint local statistics between 2
      datasets.
+
+31 Oct 2006
+ * New program 3dFWHMx -- does all sub-bricks.

@@ -72,7 +72,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            nifti_tool 3dAllineate nifti1_test whereami plugout_drive            \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \
-           3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat             \
+           3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -98,7 +98,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dAFNItoRaw DTIStudioFibertoSegments im2niml 3dLocalstat 3dGetrow \
                   Imon nifti_tool 3dAllineate nifti1_test Dimon 3danisosmooth       \
                   3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc 3dAcost     \
-                  3dLocalBistat                                                     \
+                  3dLocalBistat 3dFWHMx                                             \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -128,7 +128,8 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                dicom_to_raw rotcom 3dDeconvolve_f 3dUniformize 3dWarp 3dWarpDrive \
                file_tool.exe Imon.exe 3dresample.exe serial_helper.exe im2niml    \
                nifti_tool.exe 3dAFNItoRaw DTIStudioFibertoSegments Dimon.exe      \
-               3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAllineate
+               3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAllineate       \
+               3dFWHMx
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -799,6 +800,10 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CC) -o 3dFWHM 3dFWHM.o $(LFLAGS) $(LLIBS)
 
+3dFWHMx:3dFWHMx.o
+	$(RM) $@
+	$(CC) -o 3dFWHMx 3dFWHMx.o $(LFLAGS) $(LLIBS)
+
 3dMannWhitney:3dMannWhitney.o
 	$(RM) $@
 	$(CC) -o 3dMannWhitney 3dMannWhitney.o $(LFLAGS) $(LLIBS)
@@ -1391,7 +1396,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            ge4_header.o mri_equal.o mri_scalize.o mri_isgray.o mri_read_mpeg.o \
            mri_entropy16.o mri_symbolize.o mri_colorsetup.o mri_warp3D_align.o \
            mri_medianfilter.o mri_nstats.o mri_scaled_diff.o mri_matrix.o      \
-           mri_genalign.o mri_clusterize.o mri_nbistats.o
+           mri_genalign.o mri_clusterize.o mri_nbistats.o mri_fwhm.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \

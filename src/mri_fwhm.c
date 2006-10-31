@@ -34,7 +34,7 @@ THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE *im , byte *mask )
 
   /*----- initialize local variables -----*/
 
-  LOAD_FVED3(fw_xyz,sx,sy,sz) ;  /* load with error flags */
+  LOAD_FVEC3(fw_xyz,sx,sy,sz) ;  /* load with error flags */
 
   if( im == NULL ) return fw_xyz ;
   lim = (im->kind == MRI_float) ? im : mri_to_float(im) ;
@@ -130,4 +130,42 @@ THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE *im , byte *mask )
   LOAD_FVEC3(fw_xyz,sx,sy,sz) ;
   if( lim != im ) mri_free(lim) ;
   return fw_xyz ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static THD_fvec3 (*fester)(MRI_IMAGE *, byte *) = mri_estimate_FWHM_1dif ;
+
+/*---------------------------------------------------------------------------*/
+/*! Get FWHM estimates for each sub-brick in a dataset.
+    Output image is 3xN where N=# of sub-bricks.
+-----------------------------------------------------------------------------*/
+
+MRI_IMAGE * THD_estimate_FWHM_all( THD_3dim_dataset *dset , byte *mask )
+{
+   int iv , nvals ;
+   MRI_IMAGE *bim , *outim ;
+   float *outar , fac ;
+   THD_fvec3 fw ;
+
+ENTRY("THD_estimate_FWHM_all") ;
+
+   if( !ISVALID_DSET(dset) ) RETURN(NULL) ;
+   DSET_load(dset) ; if( !DSET_LOADED(dset) ) RETURN(NULL) ;
+
+   nvals = DSET_NVALS(dset) ;
+   outim = mri_new( 3 , nvals , MRI_float ) ;
+   outar = MRI_FLOAT_PTR(outim) ;
+
+   for( iv=0 ; iv < nvals ; iv++ ){
+     bim = DSET_BRICK(dset,iv) ;
+     fac = DSET_BRICK_FACTOR(dset,iv) ; if( fac == 0.0f ) fac = 1.0f ;
+     if( bim->kind != MRI_float || fac != 1.0f )
+       bim = mri_scale_to_float( fac , bim ) ;
+     fw = fester( bim , mask ) ;
+     if( bim != DSET_BRICK(dset,iv) ) mri_free(bim) ;
+     UNLOAD_FVEC3( fw , outar[0+3*iv] , outar[1+3*iv] , outar[2+3*iv] ) ;
+   }
+
+   RETURN(outim) ;
 }
