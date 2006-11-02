@@ -714,8 +714,28 @@ static float *N_pbot , *N_psiz ;
 static float *N_pv ;
 
 #ifdef SOLARIS
-#define floorf floor
+#define floorf floor   /* is Solaris lame, or what? */
 #endif
+
+/* Macro to periodically reduce a float variable into the range 0..1:
+   for example: PRED01(1.2) == 0.8, PRED01(1.8) == 0.2, et cetera;
+   graphically
+               PRED01(x)|
+                        | /\      /\      /\      /\      /\
+                        |/  \    /  \    /  \    /  \    /
+                        |    \  /    \  /    \  /    \  /
+                        |     \/      \/      \/      \/
+                        +------------------------------------> x
+                          -3  -2  -1   0  +1  +2  +3  +4  +5
+*/
+
+#undef  PRED01
+#define PRED01(x) fabsf( (x) - 2.0f*floorf(0.5f*((x)+1.0f)) )
+
+/* double precision version of the above */
+
+#undef  DRED01
+#define DRED01(x) fabs ( (x) - 2.0 *floor (0.5 *((x)+1.0 )) )
 
 /*----------------------------------------------------------------------------*/
 
@@ -725,9 +745,8 @@ double newfunc( int np , double *pv )  /* parameters are scaled to [0,1] */
 
    for( ii=0 ; ii < np ; ii++ ){
      x = (float)pv[ii] ;
-     if( x < 0.0f || x > 1.0f )                     /* reduce periodically */
-       x = fabsf( x - 2.0f*floorf(0.5f*(x+1.0f)) ); /* to [0,1] range;     */
-     N_pv[ii] = N_pbot[ii] + N_psiz[ii] * x ;       /* scale to true value */
+     if( x < 0.0f || x > 1.0f ) x = PRED01(x); /* reduce to [0,1] range */
+     N_pv[ii] = N_pbot[ii] + N_psiz[ii] * x ;  /* scale to true value  */
    }
 
    /* compute sum of squares between model fit and data */
@@ -825,15 +844,19 @@ void newuoa_optimization
   /* scale all parameters into the range [0,1];
      NEWUOA will operate on these, since it is scale-free */
 
-  for( ii=0 ; ii < r+p ; ii++ )
-    dv[ii] = (double) ((parameters[ii]-N_pbot[ii])/N_psiz[ii]) ;
+  for( ii=0 ; ii < r+p ; ii++ ){
+    dv[ii] = (double) ((parameters[ii]-N_pbot[ii])/N_psiz[ii]);
+    if( dv[ii] < 0.0 || dv[ii] > 0.0 ) dv[ii] = DRED01(dv[ii]); /* 03 Nov 2006 */
+  }
 
   powell_newuoa( r+p , dv , N_rstart , N_rend , N_maxit , newfunc ) ;
 
   *sse = (float)newfunc( r+p , dv ) ;
 
-  for( ii=0 ; ii < r+p ; ii++ )
-    parameters[ii] = (float)( N_pbot[ii] + N_psiz[ii]*dv[ii] ) ;
+  for( ii=0 ; ii < r+p ; ii++ ){
+    if( dv[ii] < 0.0 || dv[ii] > 0.0 ) dv[ii] = DRED01(dv[ii]); /* 03 Nov 2006 */
+    parameters[ii] = (float)( N_pbot[ii] + N_psiz[ii]*dv[ii] );
+  }
 
   free((void *)dv)     ;
   free((void *)N_pbot) ;
