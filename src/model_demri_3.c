@@ -47,13 +47,14 @@ typedef struct
 
     float    cos0;              /* cos(theta)                             */
     int      nfirst;            /* num TRs used to compute mean Mp,0 */
-    int      use_ve;
     int      debug;
 
     double * comp;              /* computation data, and elist */
     double * elist;             /* (for easy allocation, etc.) */
     float  * mcp;               /* (for easy allocation, etc.) */
 } demri_params;
+
+static int g_use_ve = 0;        /* can be modified in initialize model() */
 
 static int alloc_param_arrays(demri_params * P, int len);
 static int compute_ts       (demri_params *P, float *ts, int ts_len);
@@ -79,8 +80,14 @@ MODEL_interface * initialize_model ()
 {
     MODEL_interface * M;
 
-    if(AFNI_yesenv("AFNI_MODEL_HELP_DEMRI_3") || AFNI_yesenv("AFNI_MODEL_HELP_ALL"))
-        model_help();
+    if(AFNI_yesenv("AFNI_MODEL_HELP_DEMRI_3") ||
+         AFNI_yesenv("AFNI_MODEL_HELP_ALL")) model_help();
+
+    if( AFNI_yesenv("AFNI_MODEL_D3_USE_VE") )
+    {
+        fprintf(stderr,"-d will use Ve for param #2, to set k_ep\n");
+        g_use_ve = 1;
+    }
 
     /* get space for new struct */
     M = (MODEL_interface *)malloc(sizeof(MODEL_interface));
@@ -91,13 +98,14 @@ MODEL_interface * initialize_model ()
 
     /* set param labels */
     strcpy(M->plabel[0], "K_trans");
-    strcpy(M->plabel[1], "k_ep");
+    if( g_use_ve ) strcpy(M->plabel[1], "Ve");
+    else           strcpy(M->plabel[1], "k_ep");
     strcpy(M->plabel[2], "f_pv");
 
     /* set min/max constraints */
-    M->min_constr[0] = 0.0;  M->max_constr[0] = 0.05;
-    M->min_constr[1] = 0.0;  M->max_constr[1] = 0.05;
-    M->min_constr[2] = 0.0;  M->max_constr[2] = 1.00;
+    M->min_constr[0] = 0.0;  M->max_constr[0] = 0.99;
+    M->min_constr[1] = 0.0;  M->max_constr[1] = 0.99;
+    M->min_constr[2] = 0.0;  M->max_constr[2] = 0.99;
   
     M->call_func = &signal_model; /* set the signal model generator callback */
 
@@ -116,7 +124,7 @@ void signal_model (
 )
 {
     static demri_params P = {0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                             0.0, 0, 0, 0,   NULL, NULL, NULL };
+                             0.0, 0, 0,   NULL, NULL, NULL };
     static int          first_call = 1;
     int                 mp_len;      /* length of mcp list */
 
@@ -154,7 +162,7 @@ void signal_model (
     P.K   = params[0];
     P.fvp = params[2];
 
-    if( P.use_ve )
+    if( g_use_ve )
     {
         P.ve = params[1];
         P.kep = P.K / P.ve;  /* what to do if P.ve is small, nothing? */
@@ -458,8 +466,6 @@ static int get_env_params(demri_params * P)
         }
     }
 
-    if( AFNI_yesenv("AFNI_MODEL_D3_USE_VE") ) P->use_ve = 1;
-
     envp = my_getenv("AFNI_MODEL_D3_DEBUG");
     if( envp ) P->debug = atoi(envp);
 
@@ -616,7 +622,7 @@ static int disp_demri_params( char * mesg, demri_params * p )
 
     if( !p ) { fprintf(stderr,"demri_params: p == NULL\n"); return 1; }
 
-    fprintf(stderr, "dermi_params struct at %p:\n"
+    fprintf(stderr, "demri_params struct at %p:\n"
                     "    K      = %f  ( K trans (plasma Gd -> tissue Gd) )\n"
                     "    kep    = %f  ( back-transfer rate ( Gd_t -> Gd_p ) )\n"
                     "    fvp    = %f  ( fraction of voxel occupied by blood )\n"
@@ -628,7 +634,6 @@ static int disp_demri_params( char * mesg, demri_params * p )
                     "    TF     = %f  ( seconds (~20) )\n"
                     "    cos0   = %f  ( cos(theta) )\n"
                     "    nfirst = %d\n\n"
-                    "    use_ve = %d\n"
                     "    debug  = %d\n"
                     "    comp   = %p\n"
                     "    elist  = %p\n"
@@ -636,7 +641,7 @@ static int disp_demri_params( char * mesg, demri_params * p )
             , p,
             p->K, p->kep, p->fvp,
             p->r1, p->RIB, p->RIT, p->theta, p->TR, p->TF, p->cos0,
-            p->nfirst, p->use_ve, p->debug, p->comp, p->elist, p->mcp);
+            p->nfirst, p->debug, p->comp, p->elist, p->mcp);
 
     return 0;
 }
@@ -650,9 +655,9 @@ static int model_help(void)
         "   MODEL demri_3: 3-parameter DEMRI model\n"
         "\n"
         "   model parameters to fit:\n"
-        "       K_trans   in [0, 0.05]\n"
-        "       k_ep      in [0, 0.05]\n"
-        "       f_pv      in [0, 1.00]\n"
+        "       K_trans   in [0, 0.99]\n"
+        "       k_ep      in [0, 0.99]\n"
+        "       f_pv      in [0, 0.99]\n"
         "\n"
         "   model parameters passed via environment variables:\n"
         "       AFNI_MODEL_D3_R1    : to set r1        in [%f, %f]\n"
@@ -688,7 +693,7 @@ static int model_help(void)
         "\n"
         "   optional environment variables:\n"
         "       AFNI_MODEL_HELP_DEMRI_3 (Y/N) : to get this help\n"
-        "       AFNI_MODEL_D3_USE_VE    (Y/N) : use ve instead of k_ep\n"
+        "       AFNI_MODEL_D3_USE_VE    (Y/N) : param #2 is Ve, not k_ep\n"
         "       AFNI_MODEL_D3_DEBUG     (0..2): to set debug level\n"
         "\n"
         "  -----------------------------------------------\n"
