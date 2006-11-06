@@ -184,6 +184,7 @@ void matrix_destroy (matrix * m)
 /*---------------------------------------------------------------------------*/
 /*!
   Create matrix data structure by allocating memory and initializing values.
+
 */
 
 void matrix_create (int rows, int cols, matrix * m)
@@ -711,7 +712,9 @@ matrix_sprint("matrix_inverse:",a) ;
 	  }
 	
     }
+
   matrix_destroy (&tmp);
+
 #ifdef ENABLE_FLOPS
   flops += 3.0*n*n*n ;
 #endif

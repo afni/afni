@@ -692,12 +692,16 @@ extern int mri_write_jpg( char * , MRI_IMAGE * ) ;       /* 15 Apr 2005 */
 extern int mri_write_7D( char * , MRI_IMAGE * ) ;
 extern int mri_datum_size( MRI_TYPE typ ) ;
 extern MRI_IMAGE *mri_read_ascii( char * ) ;
+extern MRI_IMAGE *mri_read_double_ascii( char * ) ;
+extern MRI_IMAGE *mri_read_complex_ascii( char * ) ;
 extern MRI_IMAGE *mri_read_ascii_ragged(char *, float) ; /* 28 Jul 2004 */
 extern int mri_write_ascii( char * , MRI_IMAGE * ) ;
 extern int mri_write_raw( char * , MRI_IMAGE * ) ;       /* 05 Jan 2000 */
 extern void mri_write_analyze( char * , MRI_IMAGE * ) ;  /* 29 Nov 2001 */
 
 extern MRI_IMAGE * mri_read_1D( char * ) ;               /* 16 Nov 1999 */
+extern MRI_IMAGE * mri_read_double_1D( char * ) ;               
+extern MRI_IMAGE * mri_read_complex_1D( char * ) ;              
 extern int mri_write_1D( char * , MRI_IMAGE * ) ;        /* 16 Nov 1999 */
 
 extern MRI_IMAGE * mri_1D_fromstring( char * ) ;         /* 28 Apr 2003 */
@@ -1080,16 +1084,23 @@ typedef struct { int i,j;   } int_pair ;    /* 12 Aug 2002 */
 typedef struct { int i,j,k; } int_triple ;
 
 typedef struct { int nar ; float *ar ; } floatvec ;
+typedef struct { int nar ; double *ar ; } doublevec ;
 #define KILL_floatvec(fv)                      \
   do{ if( (fv) != NULL ){                      \
         if( (fv)->ar != NULL ) free((fv)->ar); \
         free(fv);                              \
   }} while(0)
+#define KILL_doublevec KILL_floatvec
 
 #define MAKE_floatvec(fv,n)                             \
   do{ (fv) = (floatvec *)malloc(sizeof(floatvec)) ;     \
       (fv)->nar = (n) ;                                 \
       (fv)->ar  = (float *)calloc(sizeof(float),(n)) ;  \
+  } while(0)
+#define MAKE_doublevec(dv,n)                             \
+  do{ (dv) = (doublevec *)malloc(sizeof(doublevec)) ;     \
+      (dv)->nar = (n) ;                                 \
+      (dv)->ar  = (double *)calloc(sizeof(double),(n)) ;  \
   } while(0)
 
 typedef struct { int nvec ; floatvec *fvar ; } floatvecvec ;

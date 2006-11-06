@@ -48,6 +48,58 @@ int SUMA_WhichViewerInMomentum(SUMA_SurfaceViewer *SVv, int N_SV, SUMA_SurfaceVi
    SUMA_RETURN(-1);
    
 }
+
+/*!
+   return an appropriate fov setting
+*/
+float SUMA_sv_fov_original(SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_sv_fov_original"};
+   float mxdim = -1.0, fov = FOV_INITIAL, maxv[3]={-1.0, -1.0, -1.0}, minv[3]={1000000.0, 10000000.0, 1000000.0}, dxv;
+   int i, N_vis=0, *Vis_IDs=NULL, k=0;
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_ENTRY;
+
+   if (sv->FOV_original > 0.0) SUMA_RETURN(sv->FOV_original);
+
+   /* automatic determination */
+   Vis_IDs = (int *)SUMA_malloc(sizeof(int)*SUMAg_N_DOv);
+   N_vis = SUMA_VisibleSOs (sv, SUMAg_DOv, Vis_IDs);
+   if (!N_vis) {
+      SUMA_LH("Nothing visible!");
+      SUMA_RETURN(FOV_INITIAL);
+   } else {
+      for (i=0; i<N_vis;++i) {
+         SO = (SUMA_SurfaceObject *)SUMAg_DOv[Vis_IDs[i]].OP;
+         for (k=0;k<2;++k) { 
+            if (SO->MaxDims[k] > maxv[k]) maxv[k] = SO->MaxDims[k] ;
+            if (SO->MinDims[k] < minv[k]) minv[k] = SO->MinDims[k] ;
+            /* if (SO->MaxDims[k] - SO->MinDims[k] > mxdim) mxdim = SO->MaxDims[k] - SO->MinDims[k]; */
+         }
+      }
+
+      dxv = 0.0;
+      for (k=0;k<2;++k) { 
+         if (maxv[k] - minv[k] > mxdim) mxdim = maxv[k] - minv[k];
+         dxv += maxv[k] - minv[k];
+      }
+      dxv /= 3.0;
+   }
+   SUMA_free(Vis_IDs); Vis_IDs= NULL;
+   if (mxdim > 0 && mxdim < 1000) {
+      if (mxdim / dxv > 2.2) { fov = 0.3*dxv; } /* just to make homer look better */
+      else { fov = 0.3*mxdim; }
+      SUMA_LHv("rat=%f, using %f\n", mxdim / dxv, fov);
+   } else {
+      fov = FOV_INITIAL;
+      SUMA_S_Errv("max dim too strange (%f)\nUsing default (%f).", mxdim, fov);
+   }
+   
+
+   SUMA_RETURN(fov);
+}
+
  
 /* This is used to hold the functions that manipulate SV, Surface Viewer Structures */
 /*! 
@@ -324,10 +376,11 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
          if (eee) {
             float fovinit = strtod(eee, NULL);
             if (fovinit > 1.0 && fovinit < 100.0)  SV->FOV_original = fovinit;
-            else  SV->FOV_original = FOV_INITIAL;
+            else  if (fovinit < 0) SV->FOV_original = -1;
+            else SV->FOV_original = FOV_INITIAL;
          } else SV->FOV_original = FOV_INITIAL;
       }
-
+      
       SV->Open = NOPE;
       
       SV->RegisteredDO = (int *)SUMA_calloc( SUMA_MAX_DISPLAYABLE_OBJECTS, sizeof(int));
@@ -1097,7 +1150,7 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend_va(SS,"   zoomDelta = %f, zoomBegin = %f\n", SV->GVS[SV->StdView].zoomDelta, SV->GVS[SV->StdView].zoomBegin);
    SS = SUMA_StringAppend_va(SS,"   ArrowRotationAngle=%f rad (%f deg)\n", SV->ArrowRotationAngle, SV->ArrowRotationAngle * 180.0 / SUMA_PI);
    SS = SUMA_StringAppend_va(SS,"   KeyZoomGain=%f \n", SV->KeyZoomGain);
-   SS = SUMA_StringAppend_va(SS,"   FOV_original=%f \n", SV->FOV_original);
+   SS = SUMA_StringAppend_va(SS,"   FOV_original=%f (%f)\n", SV->FOV_original, SUMA_sv_fov_original(SV));
    SS = SUMA_StringAppend_va(SS,"   spinDeltaX/Y = %.4f/%.4f\n", SV->GVS[SV->StdView].spinDeltaX, SV->GVS[SV->StdView].spinDeltaY);
    SS = SUMA_StringAppend_va(SS,"   spinBeginX/Y = %.4f/%.4f\n", SV->GVS[SV->StdView].spinBeginX, SV->GVS[SV->StdView].spinBeginY);   
    SS = SUMA_StringAppend_va(SS,"   TranslateGain = %f\n", SV->GVS[SV->StdView].TranslateGain);
@@ -1509,21 +1562,6 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
    
    SUMA_LH("Allocating...");   
    
-   /* allocate for FOV */
-   if (!csv->FOV) {
-      csv->FOV = (float *)SUMA_calloc(csv->N_VSv, sizeof(float));
-      for (i=0; i < csv->N_VSv; ++i) {
-         csv->FOV[i] = csv->FOV_original;
-      } 
-   } else {
-      csv->FOV = (float *)SUMA_realloc(csv->FOV, csv->N_VSv * sizeof(float));
-      for (i=old_N_VSv; i< csv->N_VSv; ++i) {
-         csv->FOV[i] = csv->FOV[0]; /*  used to be  = csv->FOV_original, 
-                           but it is best to set to 0th view, 
-                           gives user ability to set display 
-                           before auto-movie making via talk-suma */;
-      }
-   }
    
    /* allocate space for MembSOs counters will be reset for later use counting proceeds
    also initialize FOV*/
@@ -1570,6 +1608,21 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
       }
    }
    
+   /* allocate for FOV */
+   if (!csv->FOV) {
+      csv->FOV = (float *)SUMA_calloc(csv->N_VSv, sizeof(float));
+      for (i=0; i < csv->N_VSv; ++i) {
+         csv->FOV[i] = csv->FOV_original; /* This will get reset in SUMA_SetupSVforDOs */
+      } 
+   } else {
+      csv->FOV = (float *)SUMA_realloc(csv->FOV, csv->N_VSv * sizeof(float));
+      for (i=old_N_VSv; i< csv->N_VSv; ++i) {
+         csv->FOV[i] = csv->FOV[0]; /*  used to be  = csv->FOV_original, 
+                           but it is best to set to 0th view, 
+                           gives user ability to set display 
+                           before auto-movie making via talk-suma */;
+      }
+   }
    /*fprintf(SUMA_STDERR,"%s: Leaving ...\n", FuncName);*/
 
    SUMA_RETURN (YUP);
@@ -2468,7 +2521,7 @@ if surface is SureFit, flip lights
 SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv, SUMA_SurfaceViewer *cSV, int viewopt)
 {
    static char FuncName[] = {"SUMA_SetupSVforDOs"};
-   int kar, ws;
+   int kar, ws, i;
    SUMA_SurfaceObject *SO;
    SUMA_Axis *EyeAxis;
    int EyeAxis_ID;
@@ -2636,6 +2689,11 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
    
    /* do the axis setup */
    SUMA_WorldAxisStandard (cSV->WAx, cSV);
+
+   /* do the FOV thingy */
+   for (i=0; i < cSV->N_VSv; ++i) {
+      if (cSV->FOV[i] == cSV->FOV_original) { cSV->FOV[i] = SUMA_sv_fov_original(cSV);} 
+   } 
 
 
    SUMA_RETURN(YUP);

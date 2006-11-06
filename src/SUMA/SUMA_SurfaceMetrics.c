@@ -567,7 +567,7 @@ int main (int argc,char *argv[])
    histnote = SUMA_HistString (NULL, argc, argv, NULL);
    
    if (Do_sph) {
-      float *sph=NULL;
+      double *sph=NULL;
       sprintf(OutName, "%s.sphcoord.1D.dset", OutPrefix);
       if (SUMA_filexists(OutName)) {
          SUMA_S_Err("Edge output file exists.\nWill not overwrite.");
