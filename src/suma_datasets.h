@@ -1,6 +1,8 @@
 #ifndef SUMA_DATASETS_INCLUDED
 #define SUMA_DATASETS_INCLUDED
 
+#include "matrix.h"
+
 #define MAX_ERRLOG_MSG 1000
 #define MAX_ERRLOG_FUNCNAME 200
 
@@ -93,19 +95,22 @@ typedef struct {
    double *v;
 } SUMA_DVEC;
 
+#define SUMA_MX_VEC_MAX_DIMS 50
 typedef struct {
    SUMA_VARTYPE tp;
    int N_dims;
    int N_vals;
-   int dims[50];
-   int fdfm[50];
+   int dims[SUMA_MX_VEC_MAX_DIMS];
+   int fdfm[SUMA_MX_VEC_MAX_DIMS];
    void *v;
    byte *bv;
    short *sv;
    int *iv;
    float *fv;
    double *dv;
+   complex *cv;
    byte fdf;
+   matrix *m;
 } SUMA_MX_VEC;
 
 /*! macros to access pointers to elements in type double multiplexed vectors with mxv->fdf = 1;
@@ -120,6 +125,12 @@ typedef struct {
 #define mxvd3(mxv,i,j,k)   ( mxv->dv[( (int)(i) + (int)(j) * mxv->fdfm[0] + (int)(k) * mxv->fdfm[1]   )] )
 #define mxvd2(mxv,i,j  )   ( mxv->dv[( (int)(i) + (int)(j) * mxv->fdfm[0]   )] )
 #define mxvd1(mxv,i  )     ( mxv->dv[( (int)(i)   )] )
+/*! macros to access elements in type complex multiplexed vectors with mxv->fdf = 1;
+  \sa SUMA_NewMxVec*/ 
+#define mxvc4(mxv,i,j,k,l) ( mxv->cv[( (int)(i) + (int)(j) * mxv->fdfm[0] + (int)(k) * mxv->fdfm[1] + (int)(l) * mxv->fdfm[2] )] )
+#define mxvc3(mxv,i,j,k)   ( mxv->cv[( (int)(i) + (int)(j) * mxv->fdfm[0] + (int)(k) * mxv->fdfm[1]   )] )
+#define mxvc2(mxv,i,j  )   ( mxv->cv[( (int)(i) + (int)(j) * mxv->fdfm[0]   )] )
+#define mxvc1(mxv,i  )     ( mxv->cv[( (int)(i)   )] )
 
 /*! filename and path */
 typedef struct {
@@ -906,7 +917,7 @@ SUMA_DSET * SUMA_FindDset_ns (char *idcode_str, DList *DsetList);
 SUMA_DSET * SUMA_FindDset_eng (char *idcode_str, DList *DsetList);
 char *SUMA_DsetInfo (SUMA_DSET *dset, int detail);
 void SUMA_ShowDset (SUMA_DSET *dset, int detail, FILE *out);
-char *SUMA_ShowMeSome (void *dt, SUMA_VARTYPE tp, int N_dt, int mxshow);
+char *SUMA_ShowMeSome (void *dt, SUMA_VARTYPE tp, int N_dt, int mxshow, char *title);
 SUMA_DSET * SUMA_NewDsetPointer(void);
 SUMA_DSET * SUMA_CreateDsetPointer (  
                               char *name, 
@@ -976,6 +987,8 @@ char* SUMA_sdset_idmdom(SUMA_DSET *dset);
 NI_group *SUMA_oDsetNel2nDsetNgr(NI_element *nel); 
 void SUMA_SetParent_DsetToLoad(char *parent);
 float *SUMA_Load1D_eng (char *oName, int *ncol, int *nrow, int RowMajor, int verb);
+double *SUMA_LoadDouble1D_eng (char *oName, int *ncol, int *nrow, int RowMajor, int verb);
+complex *SUMA_LoadComplex1D_eng (char *oName, int *ncol, int *nrow, int RowMajor, int verb);
 float *SUMA_Load1D_ns (char *oName, int *ncol, int *nrow, int RowMajor, int verb);
 SUMA_OPEN_DX_STRUCT **SUMA_OpenDX_Read(char *fname, int *nobj);
 void SUMA_Show_OpenDX_Struct(SUMA_OPEN_DX_STRUCT **dxv, int N_dxv, FILE *out);
@@ -985,8 +998,12 @@ void * SUMA_OpenDx_Object_Header_Field(char *op, int nchar, const char *attr, ch
 SUMA_Boolean SUMA_OpenDx_Object_Data(char *op, int nchar, SUMA_OPEN_DX_STRUCT *dx);
 SUMA_MX_VEC *SUMA_FreeMxVec(SUMA_MX_VEC *mxv);
 SUMA_MX_VEC *SUMA_NewMxVec(SUMA_VARTYPE tp, int N_dims, int *dims, byte first_dim_first);
-char *SUMA_MxVec_Info (SUMA_MX_VEC *mxv, int detail);
-void SUMA_ShowMxVec (SUMA_MX_VEC *mxv, int detail, FILE *out);
+char *SUMA_MxVec_Info (SUMA_MX_VEC *mxv, int detail, char *title);
+void SUMA_ShowMxVec (SUMA_MX_VEC *mxv, int detail, FILE *out, char *title);
+int SUMA_MxVecInit(SUMA_MX_VEC *mxv, void *val);
+int SUMA_NewMxAllocVec(SUMA_MX_VEC *mxv) ;
+SUMA_MX_VEC *SUMA_NewMxNullVec(SUMA_VARTYPE tp, int N_dims, int *dims, byte first_dim_first);
+SUMA_MX_VEC *SUMA_VecToMxVec(SUMA_VARTYPE tp, int N_dims, int *dims, byte first_dim_first, void *vec);
 int * SUMA_FindNumericDataDsetCols(SUMA_DSET *dset, int *N_icols);
 SUMA_Boolean SUMA_MakeSparseColumnFullSorted(float **vp, int N_v, float mask_val, byte **bmp, SUMA_DSET *dset, int N_Node);
 SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, int N_Node); 

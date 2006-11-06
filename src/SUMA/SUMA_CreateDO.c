@@ -177,7 +177,12 @@ SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO,
    else { SUMA_LH("New Surface"); SOn =  SUMA_Alloc_SurfObject_Struct(1); } 
 
    if (NodeList) {
-      SUMA_LH("New Node List");
+      if (!replace) {
+         SUMA_LH("New Node List");
+      } else {
+         SUMA_LH("Freeing old node list and setting new one ");
+         if (SOn->NodeList) SUMA_free(SOn->NodeList);
+      }
       SOn->NodeDim = SO->NodeDim;
       SOn->NodeList = NodeList; SOn->N_Node = N_Node;
       SUMA_LH("Recalculating center");
@@ -185,6 +190,10 @@ SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO,
       RedoNormals = YUP;
    } else {
       if (!replace) {
+         if (SOn->NodeList) {
+            SUMA_S_Err("Should not be here");
+            SUMA_RETURN(NULL);
+         }
          SUMA_LH("Copying old node list");
          SOn->NodeDim = SO->NodeDim;
          SOn->N_Node = SO->N_Node;
@@ -197,6 +206,10 @@ SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO,
  
    if (FaceSetList) {
       SUMA_LH("New FaceSet List");
+      if (SOn->FaceSetList) {
+         SUMA_S_Err("Should not be here");
+         SUMA_RETURN(NULL);
+      }
       SOn->FaceSetList = FaceSetList; SOn->N_FaceSet = N_FaceSet; SOn->FaceSetDim = SO->FaceSetDim;
       /* Need a new edge list */
       if (!SUMA_SurfaceMetrics(SOn, "EdgeList, MemberFace", NULL)) {
@@ -205,6 +218,10 @@ SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO,
       RedoNormals = YUP;
    } else {
       if (!replace) {
+         if (SOn->FaceSetList) {
+                  SUMA_S_Err("Should not be here");
+                  SUMA_RETURN(NULL);
+         }         
          SUMA_LH("Copying old FaceSet list");
          SOn->N_FaceSet = SO->N_FaceSet;
          SOn->FaceSetDim = SO->FaceSetDim;
@@ -3974,7 +3991,7 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
    SUMA_ENTRY;
    
    fac = SUMA_MAX_PAIR(sv->ZoomCompensate, 0.03);
-   radsph = Ch->sphrad*fac;
+   radsph = Ch->sphrad*fac*sqrt(SUMA_sv_fov_original(sv)/FOV_INITIAL);
    gapch = Ch->g*fac;
    radch = Ch->r*fac;
 
@@ -4120,7 +4137,7 @@ void SUMA_Free_CrossHair (SUMA_CrossHair *Ch)
 /* Allocate for a SphereMarker object */
 SUMA_SphereMarker* SUMA_Alloc_SphereMarker (void)
 {   
-   static char FuncName[]={"SUMA_SphereMarker"};
+   static char FuncName[]={"SUMA_Alloc_SphereMarker"};
    SUMA_SphereMarker* SM;
    
    SUMA_ENTRY;
@@ -4466,7 +4483,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             glMaterialfv(GL_FRONT, GL_EMISSION, SurfObj->NodeMarker->sphcol); /*turn on emissidity for sphere */
             glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
             glTranslatef (SurfObj->NodeList[id], SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
-            gluSphere(SurfObj->NodeMarker->sphobj, SurfObj->NodeMarker->sphrad*SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06),
+            gluSphere(SurfObj->NodeMarker->sphobj, SurfObj->NodeMarker->sphrad*(SUMA_sv_fov_original(sv)/FOV_INITIAL)*SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06),
                       SurfObj->NodeMarker->slices, SurfObj->NodeMarker->stacks);
             glTranslatef (-SurfObj->NodeList[id], -SurfObj->NodeList[id+1],-SurfObj->NodeList[id+2]);
             glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissidity for axis*/

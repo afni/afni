@@ -65,7 +65,7 @@ SUMA_Boolean SUMA_AdoptGroup(SUMA_SurfaceViewer *csv, char *group);
 const char * SUMA_Clip_Type_to_Clip_Name (SUMA_CLIP_PLANE_TYPES tp);
 char * SUMA_Show_Clip_Planes_Info (SUMA_CommonFields *cf);
 void SUMA_Show_Clip_Planes (SUMA_CommonFields *cf, FILE *out);
-
+float SUMA_sv_fov_original(SUMA_SurfaceViewer *sv);
 
 
 

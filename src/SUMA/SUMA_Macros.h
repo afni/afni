@@ -2,6 +2,12 @@
 #define SUMA_MACROSm_INCLUDED
 
 
+#ifdef isfinite
+# define SUMA_IS_GOOD_FLOAT(x) isfinite(x) /* stolen from Bob's thd_floatscan.c */
+#else
+# define SUMA_IS_GOOD_FLOAT(x) finite(x)
+#endif
+
 /*!
    Macro to create a new ID code at random (when strn = NULL) or a hash of a string
    written mostly to allow for the allocation of newcode with SUMA's functions
@@ -101,11 +107,33 @@
 
 #define SUMA_SIGN(a) ( ((a) < 0) ? -1 : 1 )
 
+#define SUMA_SIGN_CHAR(p)  ( ( (p) < 0 ) ? '-' : '+' )
+
 #define SUMA_MIN_PAIR(a,b)   ( ((a) <= (b)) ? a : b )
 
 #define SUMA_MAX_PAIR(a,b)   ( ((a) <= (b)) ? b : a )
 
 #define SUMA_ABS(a) ( ((a) < 0 ) ? -(a) : a )
+
+#define SUMA_COMPLEX_ADD(a,b,m) {   \
+   (m).r = (a).r+(b).r; \
+   (m).i = (a).i+(b).i;   }
+#define SUMA_COMPLEX_REAL_ADD(a,b,m) {   \
+   (m).r = (a).r+(b); \
+   (m).i = (a).i;   }
+#define SUMA_COMPLEX_MULT(a,b,m) {  \
+   (m).r = (a).r*(b).r - (a).i*(b).i; \
+   (m).i = (a).i*(b).r + (a).r*(b).i;  }
+#define SUMA_COMPLEX_SCALE(a,f,m) {\
+   (m).r = (a).r*(f); \
+   (m).i = (a).i*(f);     }
+#define SUMA_COMPLEX_S2(a) ((a).r*(a).r+(a).i*(a).i)
+#define SUMA_COMPLEX_ABS(a) sqrt(SUMA_COMPLEX_S2(a))
+
+#define SUMA_COMPLEX_INV(a,ai) { \
+   double m_a=SUMA_COMPLEX_S2(a); \
+   ai.r = a.r/m_a;   ai.i = -a.i/m_a; \
+}
 
 #define SUMA_POW2(a) ((a)*(a))
 

@@ -49,7 +49,7 @@ float ep = 1e-4; /* this represents the smallest coordinate difference to be exp
                                     < dot_cut 
    \param face_bad_dot (float *) : if not null, it should hold up to SO->N_FaceSet elements and will contain,
                                     upon the function's return, the dot products of those troubled triangles.
-   \param CalcNorm (int ): flag for recalculating triangle normals before proceeding. 
+   \param ReCalcNorm (int ): flag for recalculating triangle normals before proceeding. 
                            if 0 then SO->FaceNormList is used. Note that in either case, SO->FaceNormList
                            is unchanged.
    \return (int) The number of bad triangles encountered

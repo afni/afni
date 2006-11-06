@@ -947,7 +947,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             /*fprintf(stderr,"Zoom in %f\n", sv->FOV[sv->iState]);*/
             /* Now update the zoom compensation variable */
             if (sv->ZoomCompensate) {
-               sv->ZoomCompensate = sv->FOV[sv->iState] / sv->FOV_original;
+               sv->ZoomCompensate = sv->FOV[sv->iState] / SUMA_sv_fov_original(sv);
                if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; /* weird stuff at zc_fac higher that 1.5 */
                else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; 
             }
@@ -964,7 +964,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             /*fprintf(stderr,"Zoom out %f\n", sv->FOV[sv->iState]);*/
             /* Now update the zoom compensation variable */
             if (sv->ZoomCompensate) {
-               sv->ZoomCompensate = sv->FOV[sv->iState] / sv->FOV_original;
+               sv->ZoomCompensate = sv->FOV[sv->iState] / SUMA_sv_fov_original(sv);
                if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; /* weird stuff at zc_fac higher that 1.5 */
                else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; /* weird stuff cause by integer spin variables! Proper way to handle all this is with float position storage and no recalculation of zc_fac except at zooming.*/ 
             }
@@ -1888,7 +1888,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                /*fprintf(stdout, "FOV zoom Delta = %f=n", sv->GVS[sv->StdView].zoomDelta);*/
             /* Now update the zoom compensation variable */
             if (sv->ZoomCompensate) {
-               sv->ZoomCompensate = sv->FOV[sv->iState] / sv->FOV_original;
+               sv->ZoomCompensate = sv->FOV[sv->iState] / SUMA_sv_fov_original(sv);
                if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; /* no need to compensate at low zooms */
                else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; /* no need to go lower */ 
             }

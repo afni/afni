@@ -128,7 +128,12 @@ typedef struct {
    
    char **com;
    int N_com;
-} SUMA_GENERIC_PROG_OPTIONS_STRUCT;
+   
+   char *unit_sphere_name;
+   char *bases_prefix;
+} SUMA_GENERIC_PROG_OPTIONS_STRUCT; /* also edit defaults in 
+                                 SUMA_Alloc_Generic_Prog_Options_Struct and in 
+                                 SUMA_Free_Generic_Prog_Options_Struct */
 
 #define SUMA_MAX_SURF_ON_COMMAND 100
 #define SUMA_N_ARGS_MAX 1000
@@ -415,6 +420,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
 */
 #define SUMA_S_Warn(msg) {\
    fprintf (SUMA_STDERR, "Warning %s (%s:%d):\n %s\n", FuncName, __FILE__, __LINE__, msg);  \
+}
+#define SUMA_S_Warnv(msg, ...) {\
+   fprintf (SUMA_STDERR, "Warning %s (%s:%d):\n", FuncName, __FILE__ , __LINE__);  \
+   fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
 }
 /*!
    \brief Macro that reports a warning to stderr and log 
