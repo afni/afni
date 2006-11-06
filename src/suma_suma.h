@@ -134,6 +134,7 @@
    #define SUMA_S_Warn(msg) {\
       fprintf (SUMA_STDERR, "Warning %s:\n %s\n", FuncName, msg);  \
    }
+   #define SUMA_S_Warnv SUMA_S_Warn 
    
    #define SUMA_S_Note(msg) {\
       fprintf (SUMA_STDERR, "Notice %s:\n %s\n", FuncName, msg);  \

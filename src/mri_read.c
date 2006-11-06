@@ -1939,10 +1939,10 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
    blen = strlen(buf) ;
    ncol = 0 ;
 
-   /* convert commas to blanks */
+   /* convert commas (or 'i' for complex numbers ZSS Oct 06) to blanks */
 
-   for( ii=0 ; ii < blen ; ii++ ) if( buf[ii] == ',' ) buf[ii] = ' ' ;
-
+   for( ii=0 ; ii < blen ; ii++ ) if( buf[ii] == ',' || buf[ii] == 'i') buf[ii] = ' ' ;
+   
    fv = (floatvec *)malloc(sizeof(floatvec)) ;
    fv->nar = 0 ;
    fv->ar  = (float *)NULL ;
@@ -1950,7 +1950,7 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
    for( bpos=0 ; bpos < blen ; ){
      /* skip to next nonblank character */
 
-     for( ; bpos < blen && (isspace(buf[bpos])||buf[bpos]==',') ; bpos++ ) ; /* nada */
+     for( ; bpos < blen && (isspace(buf[bpos])||buf[bpos]==','||buf[bpos]=='i') ; bpos++ ) ; /* nada */
      if( bpos == blen ) break ;    /* end of line */
 
      sscanf( buf+bpos , "%63s" , vbuf ) ;
@@ -1974,6 +1974,55 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
 
    if( fv->nar == 0 ){ KILL_floatvec(fv); fv = NULL; }
    return fv ;
+}
+
+static doublevec * decode_double_linebuf( char *buf )  /* 20 Jul 2004 */
+{
+   doublevec *dv=NULL ;
+   int blen, bpos, ncol, ii, count ;
+   char sep, vbuf[64] , *cpt ;
+   double val ;
+
+   if( buf == NULL || *buf == '\0' ) return dv ;
+
+   blen = strlen(buf) ;
+   ncol = 0 ;
+
+   /* convert commas (or 'i' for complex numbers ZSS Oct 06) to blanks */
+
+   for( ii=0 ; ii < blen ; ii++ ) if( buf[ii] == ',' || buf[ii] == 'i') buf[ii] = ' ' ;
+
+   dv = (doublevec *)malloc(sizeof(doublevec)) ;
+   dv->nar = 0 ;
+   dv->ar  = (double *)NULL ;
+
+   for( bpos=0 ; bpos < blen ; ){
+     /* skip to next nonblank character */
+
+     for( ; bpos < blen && (isspace(buf[bpos])||buf[bpos]==','||buf[bpos]=='i') ; bpos++ ) ; /* nada */
+     if( bpos == blen ) break ;    /* end of line */
+
+     sscanf( buf+bpos , "%63s" , vbuf ) ;
+
+     val = 0.0 ; count = 1 ;
+     if( vbuf[0] == '*' ){    /* 10 Aug 2004 */
+       val = (double)lbfill ;
+     } else if( (cpt=strchr(vbuf,'@')) != NULL ){
+       sscanf( vbuf , "%d%c%lf" , &count , &sep , &val ) ;
+       if( count < 1 ) count = 1 ;
+       if( *(cpt+1) == '*' ) val = (double)lbfill ;  /* 10 Aug 2004 */
+     } else {
+       sscanf( vbuf , "%lf" , &val ) ;
+     }
+
+     dv->ar = (double *)realloc( (void *)dv->ar , sizeof(double)*(dv->nar+count) ) ;
+     for( ii=0 ; ii < count ; ii++ ) dv->ar[ii+dv->nar] = val ;
+     dv->nar += count ;
+     bpos += strlen(vbuf) ;
+   }
+
+   if( dv->nar == 0 ){ KILL_doublevec(dv); dv = NULL; }
+   return dv ;
 }
 
 /*---------------------------------------------------------------*/
@@ -2104,6 +2153,227 @@ ENTRY("mri_read_ascii") ;
    FRB(buf) ; RETURN(outim) ;
 }
 
+MRI_IMAGE * mri_read_double_ascii( char * fname )
+{
+   MRI_IMAGE * outim ;
+   int ii,jj,val , used_tsar , alloc_tsar ;
+   double * dtsar ;
+   double dtemp ;
+   FILE * fts ;
+   char * ptr ;
+   int  ncol , bpos , blen , nrow ;
+   static char *buf=NULL ;            /* 20 Jun 2002: make a ptr */
+
+   doublevec *dvec ;                   /* 20 Jul 2004 */
+   int incts ;
+
+ENTRY("mri_read_double_ascii") ;
+
+   if( fname == NULL || fname[0] == '\0' ) RETURN(NULL) ;
+
+   if( strncmp(fname,"1D:",3) == 0 ){         /* 28 Apr 2003 */
+     /* 
+     MRI_IMAGE *qim = mri_1D_double_fromstring( fname+3 ) ;
+     if( qim != NULL ){
+       outim = mri_transpose(qim); mri_free(qim); RETURN(outim);
+     }*/
+     fprintf(stderr,"Somebody was too lazy to allow this option here.\n"); RETURN(NULL);
+   }
+
+   fts = fopen( fname , "r" ); if( fts == NULL ) RETURN(NULL);
+
+   if( buf == NULL ) buf = AFMALL(char, LBUF) ; /* create buffer */
+
+   /** step 1: read in the first line and see how many numbers are in it
+               (skipping lines that are comments or entirely blank)     */
+
+   (void) my_fgets( NULL , 0 , NULL ) ;  /* reset [20 Jul 2004] */
+   ptr = my_fgets( buf , LBUF , fts ) ;
+   if( ptr==NULL || *ptr=='\0' ){ FRB(buf); fclose(fts); RETURN(NULL); }  /* bad read? */
+
+   lbfill = 0.0f ;                          /* 10 Aug 2004 */
+
+   dvec = decode_double_linebuf( buf ) ;           /* 20 Jul 2004 */
+   if( dvec == NULL || dvec->nar == 0 ){
+     if( dvec != NULL ) KILL_doublevec(dvec) ;
+     FRB(buf); fclose(fts); RETURN(NULL);
+   }
+   ncol = dvec->nar ; KILL_doublevec(dvec) ;
+
+   /** At this point, ncol is the number of floats to be read from each line **/
+
+   rewind( fts ) ;  /* will start over */
+
+   incts      = MAX(INC_TSARSIZE,ncol) ;
+   used_tsar  = 0 ;
+   alloc_tsar = incts ;
+   dtsar       = (double *) malloc( sizeof(double) * alloc_tsar ) ;
+   if( dtsar == NULL ){
+      fprintf(stderr,"\n*** malloc error in mri_read_double_ascii ***\n"); EXIT(1);
+   }
+
+   /** read lines, convert to floats, store **/
+
+   nrow = 0 ;
+   while( 1 ){
+     ptr = my_fgets( buf , LBUF , fts ) ;  /* read */
+     if( ptr==NULL || *ptr=='\0' ) break ; /* failure --> end of data */
+
+     dvec = decode_double_linebuf( buf ) ;
+     if( dvec == NULL ) break ;
+     if( dvec->nar == 0 ){ KILL_doublevec(dvec); break; }
+
+     if( used_tsar + ncol >= alloc_tsar ){
+        alloc_tsar += incts ;
+        dtsar        = (double *)realloc( (void *)dtsar,sizeof(double)*alloc_tsar );
+        if( dtsar == NULL ){
+          fprintf(stderr,"\n*** realloc error in mri_read_double_ascii ***\n"); EXIT(1);
+        }
+     }
+     for( ii=0 ; ii < dvec->nar && ii < ncol ; ii++ )
+       dtsar[used_tsar+ii] = dvec->ar[ii] ;
+     for( ; ii < ncol ; ii++ )
+       dtsar[used_tsar+ii] = 0.0 ;
+     used_tsar += ncol ;
+     KILL_doublevec(dvec) ;
+
+     nrow++ ;                  /* got one more complete row! */
+   }
+   fclose( fts ) ; /* finished with this file! */
+   (void) my_fgets( NULL , 0 , NULL ) ;  /* reset [20 Jul 2004] */
+
+   /* from <= 1 to < 1 (allow 1x1 image) 25 Jan 2006 [rickr] */
+   if( used_tsar < 1 ){ FRB(buf); free(dtsar); RETURN(NULL); }
+
+   dtsar = (double *) realloc( dtsar , sizeof(double) * used_tsar ) ;
+   if( dtsar == NULL ){
+      fprintf(stderr,"\n*** final realloc error in mri_read_double_ascii ***\n"); EXIT(1);
+   }
+
+   outim = mri_new_vol_empty( ncol , nrow , 1 , MRI_double ) ;
+   mri_fix_data_pointer( dtsar , outim ) ;
+   mri_add_name( fname , outim ) ;
+
+   FRB(buf) ; RETURN(outim) ;
+}
+
+MRI_IMAGE * mri_read_complex_ascii( char * fname )
+{
+   MRI_IMAGE * outim ;
+   int ii,jj,val , used_tsar , alloc_tsar, ih ;
+   float * tsar ;
+   complex *ctsar;
+   float temp ;
+   FILE * fts ;
+   char * ptr ;
+   int  ncol , bpos , blen , nrow ;
+   static char *buf=NULL ;            /* 20 Jun 2002: make a ptr */
+
+   floatvec *vec ;                   /* 20 Jul 2004 */
+   int incts ;
+
+ENTRY("mri_read_complex_ascii") ;
+
+   if( fname == NULL || fname[0] == '\0' ) RETURN(NULL) ;
+
+   if( strncmp(fname,"1D:",3) == 0 ){         /* 28 Apr 2003 */
+     /*
+     MRI_IMAGE *qim = mri_1D_complex_fromstring( fname+3 ) ;
+     if( qim != NULL ){
+       outim = mri_transpose(qim); mri_free(qim); RETURN(outim);
+     }
+     */
+     fprintf(stderr,"Somebody was too lazy to allow this option here.\n"); RETURN(NULL);
+   }
+
+   fts = fopen( fname , "r" ); if( fts == NULL ) RETURN(NULL);
+
+   if( buf == NULL ) buf = AFMALL(char, LBUF) ; /* create buffer */
+
+   /** step 1: read in the first line and see how many numbers are in it
+               (skipping lines that are comments or entirely blank)     */
+
+   (void) my_fgets( NULL , 0 , NULL ) ;  /* reset [20 Jul 2004] */
+   ptr = my_fgets( buf , LBUF , fts ) ;
+   if( ptr==NULL || *ptr=='\0' ){ FRB(buf); fclose(fts); RETURN(NULL); }  /* bad read? */
+
+   lbfill = 0.0f ;                          /* 10 Aug 2004 */
+
+   vec = decode_linebuf( buf ) ;           /* 20 Jul 2004 */
+   if( vec == NULL || vec->nar == 0 ){
+     if( vec != NULL ) KILL_floatvec(vec) ;
+     FRB(buf); fclose(fts); RETURN(NULL);
+   }
+   ncol = vec->nar ; KILL_floatvec(vec) ;
+   if (ncol % 2) {
+      fprintf(stderr,"\n*** File does not have even number of columns."
+                     "\n    That is a must for complex 1D files.\n");
+      RETURN(NULL);
+   }
+   /** At this point, ncol is the number of floats to be read from each line **/
+
+   rewind( fts ) ;  /* will start over */
+
+   incts      = MAX(INC_TSARSIZE,ncol) ;
+   used_tsar  = 0 ;
+   alloc_tsar = incts ;
+   tsar       = (float *) malloc( sizeof(float) * alloc_tsar ) ;
+   if( tsar == NULL ){
+      fprintf(stderr,"\n*** malloc error in mri_read_float_ascii ***\n"); EXIT(1);
+   }
+
+   /** read lines, convert to floats, store **/
+
+   nrow = 0 ;
+   while( 1 ){
+     ptr = my_fgets( buf , LBUF , fts ) ;  /* read */
+     if( ptr==NULL || *ptr=='\0' ) break ; /* failure --> end of data */
+
+     vec = decode_linebuf( buf ) ;
+     if( vec == NULL ) break ;
+     if( vec->nar == 0 ){ KILL_floatvec(vec); break; }
+
+     if( used_tsar + ncol >= alloc_tsar ){
+        alloc_tsar += incts ;
+        tsar        = (float *)realloc( (void *)tsar,sizeof(float)*alloc_tsar );
+        if( tsar == NULL ){
+          fprintf(stderr,"\n*** realloc error in mri_read_float_ascii ***\n"); EXIT(1);
+        }
+     }
+     for( ii=0 ; ii < vec->nar && ii < ncol ; ii++ )
+       tsar[used_tsar+ii] = vec->ar[ii] ;
+     for( ; ii < ncol ; ii++ )
+       tsar[used_tsar+ii] = 0.0 ;
+     used_tsar += ncol ;
+     KILL_floatvec(vec) ;
+
+     nrow++ ;                  /* got one more complete row! */
+   }
+   fclose( fts ) ; /* finished with this file! */
+   (void) my_fgets( NULL , 0 , NULL ) ;  /* reset [20 Jul 2004] */
+
+   /* from <= 1 to < 1 (allow 1x1 image) 25 Jan 2006 [rickr] */
+   if( used_tsar < 1 ){ FRB(buf); free(tsar); RETURN(NULL); }
+
+   tsar = (float *) realloc( tsar , sizeof(float) * used_tsar ) ;
+   if( tsar == NULL ){
+      fprintf(stderr,"\n*** final realloc error in mri_read_float_ascii ***\n"); EXIT(1);
+   }
+   
+   /* now turn tsar into a complex vector */
+   ctsar = (complex *) calloc(used_tsar, sizeof(complex));
+   for( ii=0 ; ii < used_tsar; ii=ii+2) {
+      /* fprintf(stderr,"tsar[%d]=%f\n", ii, tsar[ii]);  */
+      ih = ii/2;
+      ctsar[ih].r = tsar[ii]; ctsar[ih].i = tsar[ii+1];
+   }
+
+   outim = mri_new_vol_empty( ncol/2 , nrow , 1 , MRI_complex ) ;
+   mri_fix_data_pointer( tsar , outim ) ;
+   mri_add_name( fname , outim ) ;
+
+   FRB(buf) ; RETURN(outim) ;
+}
 /*---------------------------------------------------------------------------*/
 
 /*! Read an ASCII file as columns, transpose to rows, allow column selectors.
@@ -2208,6 +2478,212 @@ ENTRY("mri_read_1D") ;
      for( ii=0 ; ii < nts ; ii++ )             /* copy desired columns */
        for( jj=0 ; jj < ny ; jj++ )
          oar[ii+jj*nts] = far[ivl[ii]+jj*nx] ;
+
+     mri_free(flim); free(sslist); flim = outim;
+   }
+
+   if( flip ){ inim=mri_transpose(flim); mri_free(flim); flim=inim; }
+
+   mri_add_name(fname,flim) ; RETURN(flim) ;
+}
+
+MRI_IMAGE * mri_read_double_1D( char *fname )
+{
+   MRI_IMAGE *inim , *outim , *flim ;
+   char dname[1024] , *cpt , *dpt ;
+   int ii,jj,nx,ny,nts , *ivlist , *ivl , *sslist ;
+   double *dar , *oar ;
+   int flip ;  /* 05 Sep 2006 */
+
+ENTRY("mri_read_double_1D") ;
+
+   if( fname == NULL || fname[0] == '\0' || strlen(fname) > 511 ) RETURN(NULL) ;
+
+   strcpy(dname,fname); ii = strlen(dname);  /* 05 Sep 2006 */
+   flip = (dname[ii-1] == '\''); if( flip ) dname[ii-1] = '\0';
+
+   if( strncmp(dname,"1D:",3) == 0 ){       /* 28 Apr 2003 */
+     /*
+     outim = mri_1D_double_fromstring( dname+3 ) ;
+     if( flip ){ inim=mri_transpose(outim); mri_free(outim); outim=inim; }
+     RETURN(outim) ;
+     */
+     fprintf(stderr,"Somebody was too lazy to allow this option here.\n"); RETURN(NULL);
+   }
+
+   /*-- split filename and subvector list --*/
+
+   cpt = strstr(fname,"[") ;
+   dpt = strstr(fname,"{") ;            /* 30 Apr 2003: subsampling list */
+
+   if( cpt == fname || dpt == fname ){  /* can't be at start of filename! */
+      ERROR_message("Illegal filename in mri_read_double_1D('%s')\n",fname) ;
+      RETURN(NULL) ;
+   } else {                             /* got a subvector list */
+      if( cpt != NULL ){ ii = cpt-fname; dname[ii] = '\0'; }
+      if( dpt != NULL ){ ii = dpt-fname; dname[ii] = '\0'; }
+   }
+
+   /*-- read file in, flip it sideways --*/
+
+   inim = mri_read_double_ascii(dname) ;
+   if( inim == NULL ) RETURN(NULL) ;
+   flim = mri_transpose(inim) ; mri_free(inim) ;
+
+   /*-- get the subvector and subsampling lists, if any --*/
+
+   nx = flim->nx ; ny = flim->ny ;
+
+   ivlist = MCW_get_intlist( ny , cpt ) ;   /* subvector list */
+   sslist = MCW_get_intlist( nx , dpt ) ;   /* subsampling list */
+
+   /* if have subvector list, extract those rows into a new image */
+
+   if( ivlist != NULL && ivlist[0] > 0 ){
+     nts = ivlist[0] ;                         /* number of subvectors */
+     ivl = ivlist + 1 ;                        /* start of array of subvectors */
+
+     for( ii=0 ; ii < nts ; ii++ ){            /* check them out */
+       if( ivl[ii] < 0 || ivl[ii] >= ny ){
+         fprintf(stderr,"*** Out-of-range subvector [list] in mri_read_double_1D: %s\n",fname) ;
+         mri_free(flim) ; free(ivlist) ; RETURN(NULL) ;
+       }
+     }
+
+     outim = mri_new( nx , nts , MRI_double ) ; /* make output image */
+     dar   = MRI_DOUBLE_PTR( flim ) ;
+     oar   = MRI_DOUBLE_PTR( outim ) ;
+
+     for( ii=0 ; ii < nts ; ii++ )             /* copy desired rows */
+       memcpy( oar + ii*nx , dar + ivl[ii]*nx , sizeof(double)*nx ) ;
+
+     mri_free(flim); free(ivlist); flim = outim; ny = nts;
+   }
+
+   /* if have subsampling list, extract those columns into a new image */
+
+   if( sslist != NULL && sslist[0] > 0 ){
+     nts = sslist[0] ;                         /* number of columns to get */
+     ivl = sslist + 1 ;                        /* start of array of column indexes */
+
+     for( ii=0 ; ii < nts ; ii++ ){            /* check them out */
+       if( ivl[ii] < 0 || ivl[ii] >= nx ){
+         fprintf(stderr,"*** Out-of-range subsampling {list} in mri_read_double_1D: %s\n",fname) ;
+         mri_free(flim) ; free(sslist) ; RETURN(NULL) ;
+       }
+     }
+
+     outim = mri_new( nts , ny , MRI_double ) ; /* make output image */
+     dar   = MRI_DOUBLE_PTR( flim ) ;
+     oar   = MRI_DOUBLE_PTR( outim ) ;
+
+     for( ii=0 ; ii < nts ; ii++ )             /* copy desired columns */
+       for( jj=0 ; jj < ny ; jj++ )
+         oar[ii+jj*nts] = dar[ivl[ii]+jj*nx] ;
+
+     mri_free(flim); free(sslist); flim = outim;
+   }
+
+   if( flip ){ inim=mri_transpose(flim); mri_free(flim); flim=inim; }
+
+   mri_add_name(fname,flim) ; RETURN(flim) ;
+}
+
+MRI_IMAGE * mri_read_complex_1D( char *fname )
+{
+   MRI_IMAGE *inim , *outim , *flim ;
+   char dname[1024] , *cpt , *dpt ;
+   int ii,jj,nx,ny,nts , *ivlist , *ivl , *sslist ;
+   complex *far , *oar ;
+   int flip ;  /* 05 Sep 2006 */
+
+ENTRY("mri_read_complex_1D") ;
+
+   if( fname == NULL || fname[0] == '\0' || strlen(fname) > 511 ) RETURN(NULL) ;
+
+   strcpy(dname,fname); ii = strlen(dname);  /* 05 Sep 2006 */
+   flip = (dname[ii-1] == '\''); if( flip ) dname[ii-1] = '\0';
+
+   if( strncmp(dname,"1D:",3) == 0 ){       /* 28 Apr 2003 */
+     /*
+     outim = mri_1D_complex_fromstring( dname+3 ) ;
+     if( flip ){ inim=mri_transpose(outim); mri_free(outim); outim=inim; }
+     RETURN(outim) ;
+      */
+     fprintf(stderr,"Somebody was too lazy to allow this option here.\n"); RETURN(NULL);
+   }
+
+   /*-- split filename and subvector list --*/
+
+   cpt = strstr(fname,"[") ;
+   dpt = strstr(fname,"{") ;            /* 30 Apr 2003: subsampling list */
+
+   if( cpt == fname || dpt == fname ){  /* can't be at start of filename! */
+      ERROR_message("Illegal filename in mri_read_complex_1D('%s')\n",fname) ;
+      RETURN(NULL) ;
+   } else {                             /* got a subvector list */
+      if( cpt != NULL ){ ii = cpt-fname; dname[ii] = '\0'; }
+      if( dpt != NULL ){ ii = dpt-fname; dname[ii] = '\0'; }
+   }
+
+   /*-- read file in, flip it sideways --*/
+
+   inim = mri_read_complex_ascii(dname) ;
+   if( inim == NULL ) RETURN(NULL) ;
+   flim = mri_transpose(inim) ; mri_free(inim) ;
+
+   /*-- get the subvector and subsampling lists, if any --*/
+
+   nx = flim->nx ; ny = flim->ny ;
+
+   ivlist = MCW_get_intlist( ny , cpt ) ;   /* subvector list */
+   sslist = MCW_get_intlist( nx , dpt ) ;   /* subsampling list */
+
+   /* if have subvector list, extract those rows into a new image */
+
+   if( ivlist != NULL && ivlist[0] > 0 ){
+     nts = ivlist[0] ;                         /* number of subvectors */
+     ivl = ivlist + 1 ;                        /* start of array of subvectors */
+
+     for( ii=0 ; ii < nts ; ii++ ){            /* check them out */
+       if( ivl[ii] < 0 || ivl[ii] >= ny ){
+         fprintf(stderr,"*** Out-of-range subvector [list] in mri_read_complex_1D: %s\n",fname) ;
+         mri_free(flim) ; free(ivlist) ; RETURN(NULL) ;
+       }
+     }
+
+     outim = mri_new( nx , nts , MRI_complex ) ; /* make output image */
+     far   = MRI_COMPLEX_PTR( flim ) ;
+     oar   = MRI_COMPLEX_PTR( outim ) ;
+
+     for( ii=0 ; ii < nts ; ii++ )             /* copy desired rows */
+       memcpy( oar + ii*nx , far + ivl[ii]*nx , sizeof(complex)*nx ) ;
+
+     mri_free(flim); free(ivlist); flim = outim; ny = nts;
+   }
+
+   /* if have subsampling list, extract those columns into a new image */
+
+   if( sslist != NULL && sslist[0] > 0 ){
+     nts = sslist[0] ;                         /* number of columns to get */
+     ivl = sslist + 1 ;                        /* start of array of column indexes */
+
+     for( ii=0 ; ii < nts ; ii++ ){            /* check them out */
+       if( ivl[ii] < 0 || ivl[ii] >= nx ){
+         fprintf(stderr,"*** Out-of-range subsampling {list} in mri_read_complex_1D: %s\n",fname) ;
+         mri_free(flim) ; free(sslist) ; RETURN(NULL) ;
+       }
+     }
+
+     outim = mri_new( nts , ny , MRI_complex ) ; /* make output image */
+     far   = MRI_COMPLEX_PTR( flim ) ;
+     oar   = MRI_COMPLEX_PTR( outim ) ;
+
+     for( ii=0 ; ii < nts ; ii++ )             /* copy desired columns */
+       for( jj=0 ; jj < ny ; jj++ ) {
+         oar[ii+jj*nts].r = far[ivl[ii]+jj*nx].r ;
+         oar[ii+jj*nts].i = far[ivl[ii]+jj*nx].i ;
+      }
 
      mri_free(flim); free(sslist); flim = outim;
    }

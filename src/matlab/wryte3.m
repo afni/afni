@@ -9,7 +9,7 @@ function [err,Fname] = wryte3 (M,Fname,Opt)
 %Input Parameters:
 %   M : NxK matrix
 %   Fname : string containing the file name to write the matrix to
-%   Opt is an optional structure with the following fields
+%   Opt is either a flag (0/1) or an optional structure with the following fields
 %     .Space string specifying whether to use a space character 's' or 
 %             a tab 't' or a comma ',' between numbers on the same line.
 %             The default is 's'. There won't be a comma after the last number.
@@ -24,6 +24,7 @@ function [err,Fname] = wryte3 (M,Fname,Opt)
 %          Note that there is no need to use the fast option with vectors (Nx1),
 %          They are written very efficiently
 %     .verbose (0/1), default is 0
+%   When Opt is used as a flag. If 0 then do not overwrite, otherwise do.
 %
 %Output Parameters:
 %   err : 0 No Problem
@@ -48,6 +49,16 @@ UsedName = '';
 
 %Set the defaults
 if (nargin < 3),	Opt = [];	end
+
+if (nargin == 3),
+   if (~isstruct(Opt)),
+      ov = Opt;
+      Opt = [];
+      if (ov), Opt.OverWrite = 'y'; 
+      else Opt.OverWrite = 'n';
+      end
+   end
+end
 
 if (~isfield(Opt,'Space') | isempty(Opt.Space)),
 	Opt.Space = 's';
@@ -120,38 +131,76 @@ switch Opt.Fast,
 	case 'n',
 	%slow mode
 		[ii,jj] = size(M);
-		if (jj==1),	%I can go fast on this one !
-			if (Opt.verbose),	fprintf (1,'%s verbose : Writing %s in Efficient Mode ...',FuncName,Fname);	end
-		
-			if (eq_str(Opt.Space,'s')),
-				fprintf(fid,'%g \n',M(1:ii-1));	end
-			if (eq_str(Opt.Space,'t')),
-				fprintf(fid,'%g\t\n',M(1:ii-1));	end
-			if (eq_str(Opt.Space,',')),
-				fprintf(fid,'%g,\n',M(1:ii-1));	end
-			%Now put the last value in
-			fprintf(fid,'%g\n',M(ii));	
-		end
-		
-		if (jj > 1),
-			if (Opt.verbose),	fprintf (1,'%s verbose : Writing %s in Slow Mode ...',FuncName,Fname);	end
-		
-			jjtemp = jj;
-			for (i=1:1:ii),
-				if (i == ii),	jjtemp = jj - 1;	end
-				for (j=1:1:jjtemp),
-					if (eq_str(Opt.Space,'s')),
-						fprintf(fid,'%g ',M(i,j));	end
-					if (eq_str(Opt.Space,'t')),
-						fprintf(fid,'%g\t',M(i,j));	end
-					if (eq_str(Opt.Space,',')),
-						fprintf(fid,'%g,',M(i,j));	end
-				end
-				if (i ~= ii), fprintf(fid,'\n');	end
-			end
-			%Now put the last number in
-			fprintf(fid,'%g\n',M(ii,jj));	
-		end
+		if (~isreal(M)),
+         if (jj==1),	%I can go fast on this one !
+			   if (Opt.verbose),	fprintf (1,'%s verbose : Writing Complex %s in Efficient Mode ...',FuncName,Fname);	end
+            rr = real(M(1:ii-1)); im = imag(M(1:ii-1));
+			   if (eq_str(Opt.Space,'s')),
+				   fprintf(fid,'%g%+gi\n', rr,  im );	end
+			   if (eq_str(Opt.Space,'t')),
+				   fprintf(fid,'%g%+gi\t\n',rr,  im);	end
+			   if (eq_str(Opt.Space,',')),
+				   fprintf(fid,'%g%+gi,\n',rr,  im);	end
+			   %Now put the last value in
+            rr = real(M(ii)); im = imag(M(ii));
+			   fprintf(fid,'%g%+gi\n', rr,  im);	
+		   end
+
+		   if (jj > 1),
+			   if (Opt.verbose),	fprintf (1,'%s verbose : Writing Complex %s in Slow Mode ...',FuncName,Fname);	end
+
+			   jjtemp = jj;
+			   for (i=1:1:ii),
+				   if (i == ii),	jjtemp = jj - 1;	end
+				   for (j=1:1:jjtemp),
+					   rr = real(M(i,j)); im = imag(M(i,j)); 
+                  if (eq_str(Opt.Space,'s')),
+						   fprintf(fid,'%g%+gi ', rr,  im);	end
+					   if (eq_str(Opt.Space,'t')),
+						   fprintf(fid,'%g%+gi\t', rr,  im);	end
+					   if (eq_str(Opt.Space,',')),
+						   fprintf(fid,'%g%+gi,', rr,  im);	end
+				   end
+				   if (i ~= ii), fprintf(fid,'\n');	end
+			   end
+			   %Now put the last number in
+            rr = real(M(ii,jj)); im = imag(M(ii,jj)); 
+			   fprintf(fid,'%g%+gi\n', rr,  im);	
+		   end
+      else
+         if (jj==1),	%I can go fast on this one !
+			   if (Opt.verbose),	fprintf (1,'%s verbose : Writing %s in Efficient Mode ...',FuncName,Fname);	end
+
+			   if (eq_str(Opt.Space,'s')),
+				   fprintf(fid,'%g \n',M(1:ii-1));	end
+			   if (eq_str(Opt.Space,'t')),
+				   fprintf(fid,'%g\t\n',M(1:ii-1));	end
+			   if (eq_str(Opt.Space,',')),
+				   fprintf(fid,'%g,\n',M(1:ii-1));	end
+			   %Now put the last value in
+			   fprintf(fid,'%g\n',M(ii));	
+		   end
+
+		   if (jj > 1),
+			   if (Opt.verbose),	fprintf (1,'%s verbose : Writing %s in Slow Mode ...',FuncName,Fname);	end
+
+			   jjtemp = jj;
+			   for (i=1:1:ii),
+				   if (i == ii),	jjtemp = jj - 1;	end
+				   for (j=1:1:jjtemp),
+					   if (eq_str(Opt.Space,'s')),
+						   fprintf(fid,'%g ',M(i,j));	end
+					   if (eq_str(Opt.Space,'t')),
+						   fprintf(fid,'%g\t',M(i,j));	end
+					   if (eq_str(Opt.Space,',')),
+						   fprintf(fid,'%g,',M(i,j));	end
+				   end
+				   if (i ~= ii), fprintf(fid,'\n');	end
+			   end
+			   %Now put the last number in
+			   fprintf(fid,'%g\n',M(ii,jj));	
+		   end
+      end
 	otherwise,
 		err = ErrEval(FuncName,'Err_Bad Opt.Fast value');	return
 end

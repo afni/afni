@@ -2629,7 +2629,7 @@ SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int de
    /* no need for buffer anymore ... */
    SUMA_free(fbuf); fbuf = NULL;
    if (LocalHead) { 
-      char *sdbg = SUMA_ShowMeSome((void *)SO->NodeList, SUMA_float, SUMA_MIN_PAIR(20, SO->N_Node), 20);
+      char *sdbg = SUMA_ShowMeSome((void *)SO->NodeList, SUMA_float, SUMA_MIN_PAIR(20, SO->N_Node), 20, NULL);
       fprintf(SUMA_STDERR,"%s NodeList:\n%s\n", FuncName, sdbg);
       SUMA_free(sdbg);sdbg = NULL;
    }
@@ -2640,7 +2640,7 @@ SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int de
    ex = fread(fbuffer, sizeof(float), 8, fl); /* colors of convex and concave stuff */
    if (bs) SUMA_SWAP_VEC(fbuffer,8, sizeof(float));
    if (LocalHead) { 
-      char *sdbg = SUMA_ShowMeSome((void *)fbuffer, SUMA_float, 8,8);
+      char *sdbg = SUMA_ShowMeSome((void *)fbuffer, SUMA_float, 8,8, NULL);
       fprintf(SUMA_STDERR,"%s colorstuff:\n%s\n", FuncName, sdbg);
       SUMA_free(sdbg);sdbg = NULL;
    }
@@ -2684,7 +2684,7 @@ SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int de
    
    if (bs) SUMA_SWAP_VEC(SO->FaceSetList,(SO->N_FaceSet * SO->FaceSetDim),sizeof(int));
    if (LocalHead) { 
-      char *sdbg = SUMA_ShowMeSome((void *)SO->FaceSetList, SUMA_int, SUMA_MIN_PAIR(20, SO->N_FaceSet * SO->FaceSetDim), 20);
+      char *sdbg = SUMA_ShowMeSome((void *)SO->FaceSetList, SUMA_int, SUMA_MIN_PAIR(20, SO->N_FaceSet * SO->FaceSetDim), 20, NULL);
       fprintf(SUMA_STDERR,"%s FaceSetList:\n%s\n", FuncName, sdbg);
       SUMA_free(sdbg);sdbg = NULL;
    }
