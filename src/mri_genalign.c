@@ -131,7 +131,8 @@ static void GA_interp_linear( MRI_IMAGE *fim ,
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
    float fx,fy,fz ;
    float *far = MRI_FLOAT_PTR(fim) ;
-   int nx1=nx-1,ny1=ny-1,nz1=nz-1, ix,jy,kz ;
+   int nx1=nx-1,ny1=ny-1,nz1=nz-1 ;
+   float ix,jy,kz ;
    int ix_00,ix_p1 ;         /* interpolation indices */
    int jy_00,jy_p1 ;
    int kz_00,kz_p1 ;
@@ -147,9 +148,9 @@ static void GA_interp_linear( MRI_IMAGE *fim ,
      jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
      kz = floorf(zz) ;  fz = zz - kz ;
 
-     ix_00 = ix ; ix_p1 = ix+1 ; CLIP(ix_00,nx1) ; CLIP(ix_p1,nx1) ;
-     jy_00 = jy ; jy_p1 = jy+1 ; CLIP(jy_00,ny1) ; CLIP(jy_p1,ny1) ;
-     kz_00 = kz ; kz_p1 = kz+1 ; CLIP(kz_00,nz1) ; CLIP(kz_p1,nz1) ;
+     ix_00 = ix ; ix_p1 = ix_00+1 ; CLIP(ix_00,nx1) ; CLIP(ix_p1,nx1) ;
+     jy_00 = jy ; jy_p1 = jy_00+1 ; CLIP(jy_00,ny1) ; CLIP(jy_p1,ny1) ;
+     kz_00 = kz ; kz_p1 = kz_00+1 ; CLIP(kz_00,nz1) ; CLIP(kz_p1,nz1) ;
 
      wt_00 = 1.0f-fx ; wt_p1 = fx ;  /* weights for ix_00 and ix_p1 points */
 
