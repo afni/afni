@@ -48,10 +48,14 @@
 
 #else
 
-# define MCHECK                           \
-   do{ char * mc = MCW_MALLOC_status ;    \
-        if( DBG_fp==NULL ) DBG_fp=stdout; \
-        if( mc != NULL ) fprintf(DBG_fp,"** Memory usage: %s\n",mc) ; } while(0)
+# define MCHECK                                       \
+   do{ char *mc = MCW_MALLOC_status ;                 \
+        if( DBG_fp==NULL ) DBG_fp=stdout;             \
+        if( mc != NULL ){                             \
+          fprintf(DBG_fp,"** Memory usage: %s\n",mc); \
+          fflush(DBG_fp) ;                            \
+        }                                             \
+   } while(0)
 
 # define MPROBE do{ if( !DBG_trace ) (void)MCW_MALLOC_status ; } while(0)
 
@@ -110,7 +114,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
      fprintf(stderr,"[No debug tracing stack: DBG_num=%d]\n",DBG_num) ;
    }
 #ifdef AFNI_VERSION_LABEL
-   fprintf(stderr,"** AFNI version = " AFNI_VERSION_LABEL 
+   fprintf(stderr,"** AFNI version = " AFNI_VERSION_LABEL
                    "  Compile date = " __DATE__ "\n" );
 #endif
 
