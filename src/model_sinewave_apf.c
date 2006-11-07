@@ -104,6 +104,10 @@ void signal_model
   int ib = ts_length % 4 , nt = ts_length ;
   float g0=gs[0] , g1=(PI/180.0)*gs[1] , g2=(2.0*PI)*gs[2] ;
 
+#ifdef SOLARIS
+# define sinf sin
+#endif
+
 #if 0
   /*----- calculate time series corresponding to the given parameters -----*/
   for (it = 0;  it < ts_length;  it++)
