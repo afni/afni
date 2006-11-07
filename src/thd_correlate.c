@@ -261,7 +261,7 @@ float mri_spearman_corr( MRI_IMAGE *im , MRI_IMAGE *jm )
 #undef  WW
 #define WW(i) ((w==NULL) ? 1.0f : w[i])   /* weight function for i'th datum */
 
-static int n_old=-1 , nbin_old=255 ;
+static int n_old=-1 , nbin_old=-1 ;
 static float *xc=NULL , *yc=NULL , *xyc=NULL , nww=0.0f ;
 static int nbin=0 , nbp=0 ;
 
@@ -303,7 +303,7 @@ void clear_2Dhist(void)
    if( xc  != NULL ){ free((void *)xc ); xc  = NULL; }
    if( yc  != NULL ){ free((void *)yc ); yc  = NULL; }
    if( xyc != NULL ){ free((void *)xyc); xyc = NULL; }
-   nbin = nbp = 0 ; n_old = -1 ;
+   nbin = nbp = 0 ; n_old = nbin_old = -1 ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -356,9 +356,9 @@ void build_2Dhist( int n , float xbot,float xtop,float *x ,
      if( ybot >= ytop ){ clear_2Dhist(); return; }
    }
 
-   if( n == n_old ){               /* can keep old arrays */
+   if( n == n_old && nbin_old > 2 ){ /* can keep old arrays */
      nbin = nbin_old ;
-   } else {                        /* need new arrays */
+   } else {                          /* need new arrays */
      nbin = (nhbin > 2) ? nhbin : (int)pow((double)n,hpow) ;
      if( nbin > 255 ) nbin = 255; else if( nbin < 3 ) nbin = 3;
      nbin_old = nbin ; n_old = n ;
