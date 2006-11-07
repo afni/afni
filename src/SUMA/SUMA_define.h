@@ -2261,6 +2261,12 @@ typedef enum {
    SUMA_GPSO1_is_GPSO2,     /*!< SO1 and SO2 have the same  granddaddy*/
 } SUMA_DOMAIN_KINSHIPS; /*!< The type of relationships between surfaces, modify 
                               function SUMA_DomainKinships_String; */
+typedef struct {
+   char name[100];
+   double lastcall;
+   struct timeval tt;
+} SUMA_TIMER;
+#define SUMA_MAX_N_TIMER 50
 /*! structure containing information global to all surface viewers */
 typedef struct {
    SUMA_Boolean Dev; /*!< Flag for developer option (allows the use of confusing or kludge options) */
@@ -2336,6 +2342,9 @@ typedef struct {
    GLdouble ClipPlanes[4*SUMA_MAX_N_CLIP_PLANES]; /*!< Equations of  clipping planes */
    SUMA_CLIP_PLANE_TYPES ClipPlaneType[SUMA_MAX_N_CLIP_PLANES]; /*!< Screen clipping, object clipping, etc. */
    char ClipPlanesLabels[SUMA_MAX_N_CLIP_PLANES][9]; 
+
+   int N_Timer;
+   SUMA_TIMER Timer[SUMA_MAX_N_TIMER];
 } SUMA_CommonFields;
 
 typedef enum { SUMA_NO_SORT, SUMA_BY_PLANE_DISTANCE, SUMA_BY_SEGMENT_DISTANCE, SUMA_SORT_BY_LLC_DISTANCE, SUMA_SORT_BY_LL_QUAD } SUMA_SORT_BOX_AXIS_OPTION;

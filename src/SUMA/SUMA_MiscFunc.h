@@ -20,7 +20,7 @@ void SUMA_error_message (char *s1,char *s2,int ext);
 int SUMA_iswordin_ci (const char *sbig,const char *ssub);
 int SUMA_iswordin (const char *sbig,const char *ssub);
 float SUMA_etime (struct  timeval  *t, int Report);
-void SUMA_etime2(struct timeval *m_tt, char *str, char *strloc);
+int SUMA_etime2(char *name, char *str, char *strloc);
 byte * SUMA_isinpoly(float *P, float *NodeList, int *FaceSetList, int N_FaceSet, int FaceSetDim, int *dims, int *N_in, byte *usethis, byte *mask);
 SUMA_ISINBOX SUMA_isinbox (float * NodeList, int nr, float *S_cent , float *S_dim , int BoundIn);
 SUMA_Boolean SUMA_Free_IsInBox (SUMA_ISINBOX *IB);

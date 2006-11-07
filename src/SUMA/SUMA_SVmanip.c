@@ -1864,6 +1864,13 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
       cf->ClipPlaneType[i] = SUMA_NO_CLIP_PLANE_TYPE;
       cf->ClipPlanesLabels[i][0]='\0';
    }
+   
+   for (i=0; i<SUMA_MAX_N_TIMER;++i) {
+      cf->Timer[i].name[0] = '\0';
+      cf->Timer[i].lastcall = -1.0;
+   }
+   cf->N_Timer = 0;
+
    return (cf);
 
 }
