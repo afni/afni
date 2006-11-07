@@ -151,6 +151,7 @@ standards. Made help clearer for @DTI_studio_reposition.
  * 3dNLfim limit reports to every nth voxel via progress option
 26 Oct 2006
  * model_zero, noise model,for removing noise modeling in 3dNLfim
- 
+07 Nov 2006
+ * R1I mapping and voxel indexing support added to the DEMRI model,model_demri_3 
 
  

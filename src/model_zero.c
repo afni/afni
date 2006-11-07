@@ -18,7 +18,7 @@ Copied from model_null.c, the null signal model
 
 /*---------------------------------------------------------------------------*/
 
-#include <math.h>
+/*#include <math.h>*/
 #include "NLfit_model.h"
 
 void noise_model 
