@@ -2593,7 +2593,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    Opt->UseThisBrainHull = NULL; /* do not free, argv[.] copy */
    Opt->UseThisSkullOuter = NULL; /* do not free, argv[.] copy */
    Opt->unit_sphere_name = NULL; /* do not free, argv[.] copy */
-   Opt->basis_prefix = NULL; /* do not free, argv[.] copy */
+   Opt->bases_prefix = NULL; /* do not free, argv[.] copy */
    
    Opt->com = NULL;
    Opt->N_com = 0;

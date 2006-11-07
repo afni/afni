@@ -310,7 +310,9 @@ SUMA_SurfaceObject *SUMA_head_01_surface(void)
    float *NodeList=NULL;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_NEW_SO_OPT *nsoopt = NULL;
-
+   
+   SUMA_ENTRY;
+   
    /* create a surface */
    nsoopt = SUMA_NewNewSOOpt();
    NodeList = (float *)SUMA_malloc(d1_head_01_1D_coord*d2_head_01_1D_coord*sizeof(float));
