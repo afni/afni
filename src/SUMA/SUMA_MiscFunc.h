@@ -1,6 +1,10 @@
 #ifndef SUMA_MISCFUNC_INCLUDED
 #define SUMA_MISCFUNC_INCLUDED
 
+#define MATRIX_NO_TIP (1<<1)
+#define MATRIX_OUT_SYMMETRIC (1<<2)
+#define MATRIX_B_IS_AT (1<<2)
+
 double SUMA_factorial (int n);
 double *SUMA_factorial_array (int n);
 SUMA_MX_VEC *SUMA_KronProd(SUMA_MX_VEC *A, SUMA_MX_VEC *B);
@@ -111,7 +115,9 @@ SUMA_IRGB *SUMA_Read_IRGB_file (char *f_name);
 SUMA_IRGB *SUMA_Create_IRGB(int n_el);
 SUMA_MX_VEC * SUMA_MxVecSetIdentity(SUMA_MX_VEC *thisone);
 SUMA_MX_VEC * SUMA_MxVecIdentity(SUMA_VARTYPE tp, int n, int dims[], SUMA_MX_VEC *recycle);
-SUMA_MX_VEC *SUMA_MxVecMult(SUMA_MX_VEC *va, SUMA_MX_VEC *vb, SUMA_MX_VEC *recycle);
+SUMA_MX_VEC *SUMA_MxVecMult(SUMA_MX_VEC *va, SUMA_MX_VEC *vb, SUMA_MX_VEC *recycle, int InfoMask);
+SUMA_MX_VEC *SUMA_MxVecMult_Engine(SUMA_MX_VEC *va, SUMA_MX_VEC *vb, SUMA_MX_VEC *recycle, SUMA_MX_VEC *vat, SUMA_MX_VEC *vbt, int InfoMask);
+SUMA_MX_VEC *SUMA_MxVecMultRect_Engine(SUMA_MX_VEC *va, SUMA_MX_VEC *vb, SUMA_MX_VEC *recycle, SUMA_MX_VEC *vat, SUMA_MX_VEC *vbt, int InfoMask);
 SUMA_MX_VEC * SUMA_MxVecTranspose(SUMA_MX_VEC *va, SUMA_MX_VEC *recycle);
 SUMA_MX_VEC * SUMA_MxVecInverse(SUMA_MX_VEC *va, SUMA_MX_VEC *recycle);
 SUMA_MX_VEC *SUMA_matrix2MxVec(matrix c) ;
