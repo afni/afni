@@ -10,6 +10,7 @@
 
 #include <stdlib.h>
 #include "NLfit_model.h"
+extern int  AFNI_needs_dset_ijk(void) ;
 
 #define M_D3_R1_MIN     0.0     /* these are exclusive limits */
 #define M_D3_R1_MAX     1000.0
@@ -47,6 +48,7 @@ typedef struct
 
     float    cos0;              /* cos(theta)                             */
     int      nfirst;            /* num TRs used to compute mean Mp,0 */
+    int      ijk;               /* voxel index*/
     int      debug;
 
     double * comp;              /* computation data, and elist */
@@ -55,6 +57,9 @@ typedef struct
 } demri_params;
 
 static int g_use_ve = 0;        /* can be modified in initialize model() */
+static THD_3dim_dataset *dset_R1I = NULL;    /* input 3d+time data set */
+static MRI_IMAGE *R1I_data_im = NULL;
+static float *R1I_data_ptr = NULL;
 
 static int alloc_param_arrays(demri_params * P, int len);
 static int compute_ts       (demri_params *P, float *ts, int ts_len);
@@ -124,7 +129,7 @@ void signal_model (
 )
 {
     static demri_params P = {0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                             0.0, 0, 0,   NULL, NULL, NULL };
+                             0.0, 0, 0, 0,  NULL, NULL, NULL };
     static int          first_call = 1;
     int                 mp_len;      /* length of mcp list */
 
@@ -168,6 +173,12 @@ void signal_model (
         P.kep = P.K / P.ve;  /* what to do if P.ve is small, nothing? */
     }
     else P.kep = params[1];
+    if(R1I_data_ptr) {
+        P.ijk = AFNI_needs_dset_ijk();
+	P.RIT = *(R1I_data_ptr+P.ijk);  /*  get R1I voxelwise from dataset */
+        if( P.debug > 1) printf("Voxel index %d, R1I value %f\n", P.ijk,
+	P.RIT);	
+    }
 
     (void)compute_ts( &P, ts_array, ts_len );
 }
@@ -469,6 +480,30 @@ static int get_env_params(demri_params * P)
     envp = my_getenv("AFNI_MODEL_D3_DEBUG");
     if( envp ) P->debug = atoi(envp);
 
+    /* check if non-uniform intrinsic Relaxivity map is assigned */
+    envp = my_getenv("AFNI_MODEL_D3_R1I_DSET");  
+    if(envp) {
+       /* verify R1I dataset existence and open dataset */
+       dset_R1I = THD_open_one_dataset (envp);
+       if (dset_R1I == NULL)  
+           ERROR_exit("Unable to open R1I dataset: %s", envp);
+       DSET_mallocize (dset_R1I);
+       DSET_load(dset_R1I);
+       if( !DSET_LOADED((dset_R1I)) ) 
+          ERROR_exit("Can't load dataset %s",envp) ;
+       R1I_data_im = DSET_BRICK(dset_R1I, 0);
+       R1I_data_ptr = mri_data_pointer(R1I_data_im);  /* initialize voxel ptr */
+       if(P->debug>0) printf("Set R1I_data_ptr\n");
+    }
+    else {                    /* should I close any open datasets? */
+       if(R1I_data_ptr) {
+          R1I_data_ptr = NULL;
+	  dset_R1I = NULL;
+	  R1I_data_im = NULL;
+       }
+    
+    }
+
     if( envp && P->debug>1 && !errs ) disp_demri_params("env params set: ", P);
 
     return errs;
@@ -635,13 +670,14 @@ static int disp_demri_params( char * mesg, demri_params * p )
                     "    cos0   = %f  ( cos(theta) )\n"
                     "    nfirst = %d\n\n"
                     "    debug  = %d\n"
+		    "    ijk    = %d\n"
                     "    comp   = %p\n"
                     "    elist  = %p\n"
                     "    mcp    = %p\n"
             , p,
             p->K, p->kep, p->fvp,
             p->r1, p->RIB, p->RIT, p->theta, p->TR, p->TF, p->cos0,
-            p->nfirst, p->debug, p->comp, p->elist, p->mcp);
+            p->nfirst, p->debug, p->ijk, p->comp, p->elist, p->mcp);
 
     return 0;
 }
