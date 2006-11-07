@@ -3367,7 +3367,8 @@ int main
           fprintf(stderr,"\r++ voxel count: %8d (of %d)", iv+1, ixyz_top);
         voxel_count_index++ ;
       }
-
+ 
+      AFNI_store_dset_index( iv, -1); /* set voxel index 03 Nov 2006 */
       /*----- read the time series for voxel iv -----*/
       read_ts_array (dset_time, iv, ts_length, ignore, ts_array);
  

@@ -1594,3 +1594,16 @@ void LR_full_model
   y_array = NULL;  /* not really needed since this array is 'auto' */
 }
 #endif  /* LINEAR_REDUCTION */
+
+/*---------- 3 Nov 2006 drg: save/get dataset index for function calls -------*/
+
+static int dset_ijk=-1 , dset_tin=-1 ;
+
+void AFNI_store_dset_index( int ijk , int tin )
+{
+   dset_ijk = ijk ; dset_tin = tin ; return ;
+}
+
+int AFNI_needs_dset_ijk(void){ return dset_ijk ; }
+int AFNI_needs_dset_tin(void){ return dset_tin ; }
+
