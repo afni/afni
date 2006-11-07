@@ -100,6 +100,10 @@ void signal_model
   float t;                          /* time */
   float fval;                       /* time series value at time t */  
 
+#ifdef SOLARIS
+# define sinf sin
+#endif
+
 
   /*----- calculate time series corresponding to the given parameters -----*/
   for (it = 0;  it < ts_length;  it++)
