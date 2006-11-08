@@ -4,6 +4,10 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+#ifdef USE_SUNPERF       /** for Solaris **/
+# include <sunperf.h>
+#endif
+
 /*
    This program calculates a nonlinear regression for each voxel of the input
    AFNI 3d+time data set.  The nonlinear regression is calculated by means of

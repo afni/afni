@@ -57,7 +57,7 @@ elif test x"$GCC" = x"yes"; then
 	esac
 	AC_TRY_CFLAGS([$OPT_CFLAGS],[CFLAGS=$OPT_CFLAGS]);;
     ppc-* | powerpc-*)
-	OPT_CFLAGS="$CFLAGS -Wa,-m7400"
+	OPT_CFLAGS="$CFLAGS"
 	AC_TRY_CFLAGS([$OPT_CFLAGS],
 	    [CFLAGS=$OPT_CFLAGS; AC_DEFINE([ARCH_PPC],,[ppc architecture])]);;
     sparc-* | sparc64-*)

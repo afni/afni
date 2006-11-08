@@ -3332,7 +3332,7 @@ echo "${ECHO_T}$ac_cv_try_cflags_ok" >&6
 	:
     fi;;
     ppc-* | powerpc-*)
-	OPT_CFLAGS="$CFLAGS -Wa,-m7400"
+	OPT_CFLAGS="$CFLAGS"
 	echo "$as_me:$LINENO: checking if $CC supports $OPT_CFLAGS flags" >&5
 echo $ECHO_N "checking if $CC supports $OPT_CFLAGS flags... $ECHO_C" >&6
     SAVE_CFLAGS="$CFLAGS"
