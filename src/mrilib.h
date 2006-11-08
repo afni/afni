@@ -180,7 +180,7 @@ static float MRI_TYPE_maxval[7] =
 
 /*! I suppose that the next C makes this pleonastic. */
 
-#ifdef _SUNPERF_COMPLEX
+#if defined(_SUNPERF_COMPLEX) || defined(DONT_DECLARE_COMPLEX)
 # define TYPEDEF_complex
 #endif
 
