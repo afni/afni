@@ -190,7 +190,7 @@ static char * commandline = NULL ;       /* command line for history notes */
 
 static byte * mask_vol  = NULL;          /* mask volume */
 static int    mask_nvox = 0;             /* number of voxels in mask volume */
-
+static int    output_datum = ILLEGAL_TYPE ;
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -581,10 +581,26 @@ void get_options
        *ts_length = DSET_NUM_TIMES(*dset_time);
 
      dsTR = DSET_TIMESTEP(*dset_time) ;
-
+     if(output_datum==ILLEGAL_TYPE) {   /* if output_datum type is not specified by user*/
+        output_datum = DSET_BRICK_TYPE(*dset_time,0);  /* get datum type from dataset */
+     }	
        nopt++;
        continue;
      }
+      /**** -datum type ****/
+
+      if( strcmp(argv[nopt],"-datum") == 0 ){
+         if( ++nopt >= argc )
+           NLfit_error("need an argument after -datum!\n") ;
+         if( strcmp(argv[nopt],"short") == 0 ){
+            output_datum = MRI_short ;
+         } else if( strcmp(argv[nopt],"float") == 0 ){
+            output_datum = MRI_float ;
+         } else {
+            ERROR_exit("-datum of type '%s' not supported in 3dNLfim!\n",argv[nopt]) ;
+         }
+         nopt++ ; continue ;  /* go to next arg */
+      }
 
 
       /**** -mask mset [18 May 2000] ****/
@@ -2297,13 +2313,13 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   int ibuf[32];                       /* integer buffer */
   float fbuf[MAX_STAT_AUX];           /* float buffer */
   float fimfac;                       /* scale factor for short data */
-  int output_datum;                   /* data type for output data */
+/*  int output_datum;  */                 /* data type for output data */
   short * tsp;                        /* 2nd sub-brick data pointer */
   void  * vdif;                       /* 1st sub-brick data pointer */
   int func_type;                      /* afni data set type */
   float top, func_scale_short;        /* parameters for scaling data */
   char label[80];                     /* label for output file history */ 
-  
+  int nbad;                           /* number of bad voxels in volume */
     
   /*----- read input dataset -----*/
   dset = THD_open_one_dataset (input_filename) ;
@@ -2327,9 +2343,11 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
 
   
   iv = DSET_PRINCIPAL_VALUE(dset) ;
-  output_datum = DSET_BRICK_TYPE(dset,iv) ;
-  if( output_datum == MRI_byte ) output_datum = MRI_short ;
   
+  fprintf(stderr,"--output datum is %d\n", output_datum);
+/*  output_datum = DSET_BRICK_TYPE(dset,iv) ;
+  if( output_datum == MRI_byte ) output_datum = MRI_short ;
+*/  
   
   ibuf[0] = output_datum ; ibuf[1] = MRI_short ;
   
@@ -2365,6 +2383,9 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   /*----- deleting exemplar dataset -----*/ 
   THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
   
+  nbad = thd_floatscan( nxyz , ffim ) ;
+  if(nbad)
+    fprintf(stderr,"++ %d bad floating point values in combined dataset\n",nbad);
   
   /*----- allocate memory for output data -----*/
   vdif = (void *)  malloc( mri_datum_size(output_datum) * nxyz );
@@ -2472,6 +2493,7 @@ void write_bucket_data
   char * output_session;    /* directory for bucket dataset */
   int nbricks, ib;          /* number of sub-bricks in bucket dataset */
   short ** bar = NULL;      /* bar[ib] points to data for sub-brick #ib */
+  float ** far = NULL;      /* far[ib] points to data for sub-brick #ib */
   float factor;             /* factor is new scale factor for sub-brick #ib */
   int brick_type;           /* indicates statistical type of sub-brick */
   int brick_coef;           /* regression coefficient index for sub-brick */
@@ -2480,8 +2502,9 @@ void write_bucket_data
   float * volume;           /* volume of floating point data */
   int dimension;            /* dimension of full model = p + q */
   char label[80];           /* label for output file history */ 
+  void * imptr;             /* pointer to volume in correct datum type to actually write out*/
+  int nbad;                 /* number of bad floating point values in volume */    
 
-    
   /*----- initialize local variables -----*/
   nbricks = option_data->numbricks;
   output_prefix = option_data->bucket_filename;
@@ -2491,10 +2514,15 @@ void write_bucket_data
   
 
   /*----- allocate memory -----*/
-  bar  = (short **) malloc (sizeof(short *) * nbricks);
-  MTEST (bar);
-
- 
+  if(output_datum==MRI_short) {
+     bar  = (short **) malloc (sizeof(short *) * nbricks);
+     MTEST (bar);
+  }
+  else {
+     far  = (float **) malloc (sizeof(float *) * nbricks);
+     MTEST (far);
+  }
+  
   /*----- read first dataset -----*/
   old_dset = THD_open_one_dataset (input_filename);
   
@@ -2543,7 +2571,8 @@ void write_bucket_data
   /*----- deleting exemplar dataset -----*/ 
   THD_delete_3dim_dataset( old_dset , False );  old_dset = NULL ;
   
-
+  nbad = 0;
+  
   /*----- loop over new sub-brick index, attach data array with 
           EDIT_substitute_brick then put some strings into the labels and 
           keywords, and modify the sub-brick scaling factor -----*/
@@ -2589,25 +2618,37 @@ void write_bucket_data
        EDIT_BRICK_TO_FIFT (new_dset, ib, numdof, dendof);
      }
 
+      nbad += thd_floatscan( nxyz , volume ) ;
+
       /*----- allocate memory for output sub-brick -----*/
-      bar[ib]  = (short *) malloc (sizeof(short) * nxyz);
-      MTEST (bar[ib]);
-      factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
-                           MRI_short, bar[ib]);
-
-      if (factor < EPSILON)  factor = 0.0;
-      else factor = 1.0 / factor;
-
+      if(output_datum==MRI_short) {
+	 bar[ib]  = (short *) malloc (sizeof(short) * nxyz);
+	 MTEST (bar[ib]);
+	 factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
+                              MRI_short, bar[ib]);
+	 imptr = bar[ib];
+      }
+      else {
+	 far[ib]  = (float *) malloc (sizeof(float) * nxyz);
+	 MTEST (far[ib]);
+	 factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
+                              output_datum, far[ib]);
+	 imptr = far[ib];
+      }
+     if (factor < EPSILON)  factor = 0.0;
+     else factor = 1.0 / factor;
+      
       /*----- edit the sub-brick -----*/
       EDIT_BRICK_LABEL (new_dset, ib, brick_label);
       EDIT_BRICK_FACTOR (new_dset, ib, factor);
-
       
-      /*----- attach bar[ib] to be sub-brick #ib -----*/
-      EDIT_substitute_brick (new_dset, ib, MRI_short, bar[ib]);
+      /*----- attach image pointer to be sub-brick #ib -----*/
+      EDIT_substitute_brick (new_dset, ib, output_datum, imptr);
 
     }
 
+  if(nbad)
+    fprintf(stderr,"++ %d bad floating point values in dataset\n",nbad);
 
   /*----- write bucket data set -----*/
   THD_load_statistics (new_dset);
@@ -2615,7 +2656,9 @@ void write_bucket_data
   fprintf(stderr,"++ Wrote bucket dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
   
   /*----- deallocate memory -----*/   
-  THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
+ /* if(output_datum==MRI_short) {*/
+    THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
+  /*}  */
 
 }
 
@@ -2644,10 +2687,11 @@ void write_3dtime
   int nxyz;                              /* total number of voxels */ 
   float factor;             /* factor is new scale factor for sub-brick #ib */
   short ** bar = NULL;      /* bar[ib] points to data for sub-brick #ib */
+  float ** far = NULL;      /* far[ib] points to data for sub-brick #ib */
   float * fbuf;             /* float buffer */
   float * volume;           /* pointer to volume of data */
   char label[80];           /* label for output file history */ 
-  
+  int nbad;                 /* number of voxels in volume with bad floating point values */  
 
   /*----- Initialize local variables -----*/
   dset = THD_open_one_dataset (input_filename);
@@ -2655,10 +2699,16 @@ void write_3dtime
 
  
   /*----- allocate memory -----*/
-  bar  = (short **) malloc (sizeof(short *) * ts_length);   MTEST (bar);
+  if(output_datum==MRI_short) {
+     bar  = (short **) malloc (sizeof(short *) * ts_length);   MTEST (bar);
+     }
+  else {
+     far  = (float **) malloc (sizeof(float *) * ts_length);   MTEST (far);
+     }
+  
   fbuf = (float *)  malloc (sizeof(float)   * ts_length);   MTEST (fbuf);
   for (ib = 0;  ib < ts_length;  ib++)    fbuf[ib] = 0.0;
-  
+
   
   /*-- make an empty copy of the prototype dataset, for eventual output --*/
   new_dset = EDIT_empty_copy (dset);
@@ -2681,7 +2731,7 @@ void write_3dtime
                    ADN_label1,      output_filename,
                    ADN_self_name,   output_filename,
                    ADN_malloc_type, DATABLOCK_MEM_MALLOC,  
-                   ADN_datum_all,   MRI_short,   
+                   ADN_datum_all,   output_datum,   
                    ADN_nvals,       ts_length,
                    ADN_ntt,         ts_length,
                    ADN_none);
@@ -2698,7 +2748,8 @@ void write_3dtime
          new_dset->dblk->diskptr->header_name ) ;
     exit(1) ;
   }
-
+  
+  nbad = 0;
   
   /*----- attach bricks to new data set -----*/
   for (ib = 0;  ib < ts_length;  ib++)
@@ -2706,22 +2757,38 @@ void write_3dtime
 
       /*----- Set pointer to appropriate volume -----*/
       volume = vol_array[ib];
-      
-      /*----- Allocate memory for output sub-brick -----*/
-      bar[ib]  = (short *) malloc (sizeof(short) * nxyz);
-      MTEST (bar[ib]);
+      nbad += thd_floatscan( nxyz , volume ) ;
+      if(output_datum==MRI_short) {
+	 /*----- Allocate memory for output sub-brick -----*/
+	 bar[ib]  = (short *) malloc (sizeof(short) * nxyz);
+	 MTEST (bar[ib]);
 
-      /*----- Convert data type to short for this sub-brick -----*/
-      factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
-                           MRI_short, bar[ib]);
-      if (factor < EPSILON)  factor = 0.0;
-      else factor = 1.0 / factor;
-      fbuf[ib] = factor;
+	 /*----- Convert data type to short for this sub-brick -----*/
+	 factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
+                              output_datum, bar[ib]);
+	 if (factor < EPSILON)  factor = 0.0;
+	 else factor = 1.0 / factor;
+	 fbuf[ib] = factor;
+         /*----- attach bar[ib] to be sub-brick #ib -----*/
+         mri_fix_data_pointer (bar[ib], DSET_BRICK(new_dset,ib)); 
+      }
+      else {
+	 /*----- Allocate memory for output sub-brick -----*/
+	 far[ib]  = (float *) malloc (sizeof(float) * nxyz);
+	 MTEST (far[ib]);
 
-      /*----- attach bar[ib] to be sub-brick #ib -----*/
-      mri_fix_data_pointer (bar[ib], DSET_BRICK(new_dset,ib)); 
+	 /*----- Convert data type to float for this sub-brick -----*/
+	 factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
+                              output_datum, far[ib]);
+	 if (factor < EPSILON)  factor = 0.0;
+	 else factor = 1.0 / factor;
+	 fbuf[ib] = factor;
+         /*----- attach far[ib] to be sub-brick #ib -----*/
+         mri_fix_data_pointer (far[ib], DSET_BRICK(new_dset,ib)); 
+      }
     }
-
+  if(nbad)
+    fprintf(stderr,"++ %d bad floating point values in dataset\n",nbad);
 
   /*----- write afni data set -----*/
 
@@ -2733,9 +2800,10 @@ void write_3dtime
 
 
   /*----- deallocate memory -----*/   
-  THD_delete_3dim_dataset (new_dset, False);   new_dset = NULL ;
-  free (fbuf);   fbuf = NULL;
-
+/*  if(output_datum==MRI_short) {*/
+     THD_delete_3dim_dataset (new_dset, False);   new_dset = NULL ;
+     free (fbuf);   fbuf = NULL;
+/*  }*/
 }
 
 
@@ -2754,7 +2822,6 @@ void output_results
   float * max_sconstr,    /* maximum parameter constraints for signal model */
   int  nxyz,              /* number of voxels in image */
   int  ts_length,         /* length of time series data */  
-
   float * rmsreg_vol,     /* root-mean-square error for the full model */
   float * freg_vol,       /* f-statistic for the full regression model */
   float * rsqr_vol,       /* R^2 volume data */
