@@ -27,7 +27,7 @@
   Date:    08 March 2004  [rickr]
 */
 
-
+static int dontcheckplus = 0 ;  /* 09 Nov 2006 */
 
 /*---------------------------------------------------------------------------*/
 
@@ -114,10 +114,17 @@ void display_help_menu()
      "This program estimates the Filter Width Half Maximum (FWHM).  \n\n"
      "Usage: \n"
      "3dFWHM \n"
-     "-dset file         file = name of input AFNI 3d dataset  \n"
-     "[-mask mname]      mname = filename of 3d mask dataset   \n"
-     "[-quiet]           suppress screen output                \n" 
-     "[-out file]        file = name of output file            \n"
+     "-dset file     file  = name of input AFNI 3d dataset \n"
+     "[-mask mname]  mname = filename of 3d mask dataset   \n"
+     "[-quiet]       suppress screen output                \n" 
+     "[-out file]    file  = name of output file           \n"
+     "\n"
+     "[-compat] = Be compatible with the older 3dFWHM, where if a\n"
+     "            voxel is in the mask, then its neighbors are used\n"
+     "            for differencing, even if they are not themselves in\n"
+     "            the mask.  This was an error; now, neighbors must also\n"
+     "            be in the mask to be used in the differencing.\n"
+     "            Use '-compat' to use the older method [for comparison].\n"
     );
 
    printf("\n" MASTER_SHORTHELP_STRING ) ;
@@ -246,6 +253,11 @@ void get_options (int argc, char ** argv, input_options * option_data)
   /*----- main loop over input options -----*/
   while (nopt < argc )
     {
+
+     if( strncmp(argv[nopt],"-compat",6) == 0 ){        /* 09 Nov 2006 */
+       dontcheckplus = 1 ; nopt++ ; continue ;
+     }
+
       
       /*-----   -dset filename   -----*/
       if (strncmp(argv[nopt], "-dset", 5) == 0 ||
@@ -394,6 +406,7 @@ void estimate_gfw (input_options * option_data, float * fim, float * fmask,
   nxyz = option_data->nxyz;
   nxy = nx * ny;
 
+  if( fmask == NULL ) dontcheckplus = 1 ;
 
   /*----- estimate the variance of the data -----*/
   fsum = 0.0;
@@ -425,28 +438,34 @@ void estimate_gfw (input_options * option_data, float * fim, float * fmask,
       if (ix+1 < nx)
 	{
 	  ixyz2 = THREE_TO_IJK (ix+1, jy, kz, nx, nxy);
-	  dfdx = (fim[ixyz2] - fim[ixyz]) / 1.0;
-	  dfdxsum += dfdx;
-	  dfdxsq  += dfdx * dfdx;
-	  countx += 1;
+     if( dontcheckplus || fmask[ixyz2] != 0.0 ){
+	    dfdx = (fim[ixyz2] - fim[ixyz]) / 1.0;
+	    dfdxsum += dfdx;
+	    dfdxsq  += dfdx * dfdx;
+	    countx += 1;
+     }
 	}
 
       if (jy+1 < ny)
 	{
 	  ixyz2 = THREE_TO_IJK (ix, jy+1, kz, nx, nxy);
-	  dfdy = (fim[ixyz2] - fim[ixyz]) / 1.0;
-	  dfdysum += dfdy;
-	  dfdysq  += dfdy * dfdy;
-	  county += 1;
+     if( dontcheckplus || fmask[ixyz2] != 0.0 ){
+	    dfdy = (fim[ixyz2] - fim[ixyz]) / 1.0;
+	    dfdysum += dfdy;
+	    dfdysq  += dfdy * dfdy;
+	    county += 1;
+     }
 	}
       
       if (kz+1 < nz)
 	{
 	  ixyz2 = THREE_TO_IJK (ix, jy, kz+1, nx, nxy);
-	  dfdz = (fim[ixyz2] - fim[ixyz]) / 1.0;
-	  dfdzsum += dfdz;
-	  dfdzsq  += dfdz * dfdz;
-	  countz += 1;
+     if( dontcheckplus || fmask[ixyz2] != 0.0 ){
+	    dfdz = (fim[ixyz2] - fim[ixyz]) / 1.0;
+	    dfdzsum += dfdz;
+	    dfdzsq  += dfdz * dfdz;
+	    countz += 1;
+     }
 	}
       
      }
