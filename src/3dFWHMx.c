@@ -24,7 +24,7 @@ int main( int argc , char *argv[] )
       "\n"
       "METHODS:\n"
       " - Calculate ratio of variance of first differences to data variance.\n"
-      " - Same as 3dFWHM.\n"
+      " - Same as 3dFWHM, if '-compat' is used.\n"
       "\n"
       "OPTIONS:\n"
       "  -mask mmm   = Use only voxels that are nonzero in dataset 'mmm'.\n"
@@ -37,6 +37,13 @@ int main( int argc , char *argv[] )
       "  -out ttt    = Write output to file 'ttt' (3 columns of numbers).\n"
       "                [If not given, 'ttt' defaults to stdout.]\n"
       "                [Use '-out NULL' to suppress this output file.]\n"
+      "\n"
+      "  -compat     = Be compatible with 3dFWHM.  In the older 3dFWHM,\n"
+      "                if a voxel is in the mask, then its neighbors are\n"
+      "                used for differencing, even if they are not themselves\n"
+      "                in the mask.  In 3dFWHMx, neighbors must also be in the\n"
+      "                mask to be used in the differencing.  Use '-compat'\n"
+      "                to use the older method. [Changes should be negligible.]\n"
       "\n"
       "SAMPLE USAGE: (tcsh)\n"
       "  set zork = `3dFWHMx -automask -input junque+orig -out NULL`\n"
@@ -54,6 +61,10 @@ int main( int argc , char *argv[] )
    /*---- loop over options ----*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strncmp(argv[iarg],"-compat",6) == 0 ){        /* 09 Nov 2006 */
+       FHWM_1dif_dontcheckplus(1) ; iarg++ ; continue ;
+     }
 
      if( strncmp(argv[iarg],"-out",4) == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-out'") ;

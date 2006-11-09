@@ -1410,6 +1410,6 @@ extern double nifti_stat2hzscore( double, int, double,double,double ) ;
 
 extern THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE * , byte * ) ;
 extern MRI_IMAGE * THD_estimate_FWHM_all( THD_3dim_dataset * , byte * ) ;
-
+extern void FHWM_1dif_dontcheckplus( int ) ;
 
 #endif /* _MCW_MRILIB_HEADER_ */

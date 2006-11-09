@@ -3,10 +3,13 @@
 #undef  GOOD
 #define GOOD(i) (mask==NULL || mask[i])
 
+static int dontcheckplus = 0 ;
+void FHWM_1dif_dontcheckplus( int i ){ dontcheckplus = i; }
+
 /*---------------------------------------------------------------------------*/
 /*! Routine to estimate Gaussian FWHM of data brick, using first differences.
      - A negative return value indicates an error condition in that direction
-       (e.g., FWHM(z) == -1.0 when nz == 1).S
+       (e.g., FWHM(z) == -1.0 when nz == 1).
      - Adapted from original 3dFWHM.c by BD Ward.
      - 31 Oct 2006 -- BOO!
 -----------------------------------------------------------------------------*/
@@ -70,7 +73,7 @@ THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE *im , byte *mask )
 
       if( ix+1 < nx ){
         ixyz2 = ixyz+1 ;
-        if( GOOD(ixyz2) ){
+        if( dontcheckplus || GOOD(ixyz2) ){
           dfdx     = (fim[ixyz2] - arg) ;
           dfdxsum += dfdx;
           dfdxsq  += dfdx * dfdx;
@@ -80,7 +83,7 @@ THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE *im , byte *mask )
 
       if( jy+1 < ny ){
         ixyz2 = ixyz+nx ;
-        if( GOOD(ixyz2) ){
+        if( dontcheckplus || GOOD(ixyz2) ){
           dfdy     = (fim[ixyz2] - arg) ;
           dfdysum += dfdy;
           dfdysq  += dfdy * dfdy;
@@ -90,7 +93,7 @@ THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE *im , byte *mask )
 
       if( kz+1 < nz ){
         ixyz2 = ixyz+nxy ;
-        if( GOOD(ixyz2) ){
+        if( dontcheckplus || GOOD(ixyz2) ){
           dfdz     = (fim[ixyz2] - arg) ;
           dfdzsum += dfdz;
           dfdzsq  += dfdz * dfdz;
@@ -115,17 +118,19 @@ THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE *im , byte *mask )
 
   dx = lim->dx; dy = lim->dy; dz = lim->dz;
 
+  /*---- 2.35482 = sqrt(8*log(2)) = sigma-to-FWHM conversion factor ----*/
+
   arg = 1.0 - 0.5*(varxx/var);
   sx  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0f
-                                     : sqrt( -1.0 / (4.0*log(arg)) ) * dx;
+                                     : 2.35482*sqrt( -1.0 / (4.0*log(arg)) )*dx;
 
   arg = 1.0 - 0.5*(varyy/var);
   sy  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0f
-                                     : sqrt( -1.0 / (4.0*log(arg)) ) * dy;
+                                     : 2.35482*sqrt( -1.0 / (4.0*log(arg)) )*dy;
 
   arg = 1.0 - 0.5*(varzz/var);
   sz  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0f
-                                     : sqrt( -1.0 / (4.0*log(arg)) ) * dz;
+                                     : 2.35482*sqrt( -1.0 / (4.0*log(arg)) )*dz;
 
   LOAD_FVEC3(fw_xyz,sx,sy,sz) ;
   if( lim != im ) mri_free(lim) ;
