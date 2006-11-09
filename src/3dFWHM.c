@@ -248,7 +248,8 @@ void get_options (int argc, char ** argv, input_options * option_data)
     {
       
       /*-----   -dset filename   -----*/
-      if (strncmp(argv[nopt], "-dset", 5) == 0)
+      if (strncmp(argv[nopt], "-dset", 5) == 0 ||
+          strncmp(argv[nopt], "-input",5) == 0   )
 	{
 	  nopt++;
 	  if (nopt >= argc)  FWHM_error ("need argument after -dset ");
