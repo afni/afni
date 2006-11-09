@@ -1506,6 +1506,9 @@ SUMA_MX_VEC *SUMA_MxVecMult_Engine(SUMA_MX_VEC *va, SUMA_MX_VEC *vb, SUMA_MX_VEC
    SUMA_RETURN(vp);
 }
 
+/* 
+   a function to test matrix operations using MxVec structures 
+*/
 void SUMA_TestMxVecMatOps(void)
 {
    static char FuncName[]={"SUMA_TestMxVecMatOps"};
