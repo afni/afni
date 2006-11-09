@@ -5956,3 +5956,7 @@
 
 31 Oct 2006
  * New program 3dFWHMx -- does all sub-bricks.
+
+09 Nov 2006
+ * Modified 3dFWHM to do what 3dFWHMx does -- not use a voxel in a difference
+     unless it is in the mask as well.

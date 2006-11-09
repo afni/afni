@@ -125,6 +125,7 @@ void display_help_menu()
      "            the mask.  This was an error; now, neighbors must also\n"
      "            be in the mask to be used in the differencing.\n"
      "            Use '-compat' to use the older method [for comparison].\n"
+     "         ** This change made 09 Nov 2006.\n"
     );
 
    printf("\n" MASTER_SHORTHELP_STRING ) ;
