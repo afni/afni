@@ -77,7 +77,7 @@ set v2 = $pth2/$v2_pref$v2_vw
 
 CHECKS:
 #make sure output doe not exist
-if ( ! -f $v2.HEAD || ! -f $v2.BRIK ) then
+if ( ! -f $v2.HEAD || (! -f $v2.BRIK && ! -f $v2.BRIK.gz)) then
    echo "Error: base brick $v2 not found."
    goto END
 endif
