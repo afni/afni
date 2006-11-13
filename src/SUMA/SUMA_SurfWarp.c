@@ -31,7 +31,7 @@ SUMA_Boolean Set_up_Control_Curve( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve )
       SUMA_ANGLE_DIST_NC((&(opt->CtrlPts_f[j3])), (&(opt->CtrlPts_i[j3])), arc_theta, arc_nrm);
       arc_theta = arc_theta/opt->M_time_steps;
       mag_arc_nrm = sqrt( SUMA_POW2(arc_nrm[0]) + SUMA_POW2(arc_nrm[1]) + SUMA_POW2(arc_nrm[2]) );
-      if(mag_arc_nrm > 0.0001) { 
+      if(mag_arc_nrm > opt->Zero) { 
          arc_nrm[0] *= (1.0/mag_arc_nrm);
          arc_nrm[1] *= (1.0/mag_arc_nrm);
          arc_nrm[2] *= (1.0/mag_arc_nrm);
@@ -84,8 +84,8 @@ SUMA_Boolean Perturbations( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX
                if(theta) fprintf(SUMA_STDERR, "Theta(i=%d,j=%d,k=%d) = %f\n", i, j, k, theta);
                if(theta_2) fprintf(SUMA_STDERR, "Theta_2(i=%d,j=%d,k=%d) = %f\n", i, j, k, theta_2); 
             }            
-            if(theta<0.000001) theta = theta_2;
-            else if(theta_2<0.000001) theta = theta; 
+            if(theta<opt->Zero) theta = theta_2;
+            else if(theta_2<opt->Zero) theta = theta; 
             else if(theta_2 && theta) { 
                if(theta_2 < theta) theta = theta_2;
                else theta = theta;
@@ -97,8 +97,9 @@ SUMA_Boolean Perturbations( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX
          /* Compare location  of control point at time k to location of that control point at time k-1. */
          dp_m1 = mxvdp3(ControlCurve, n, i, k-1);
          SUMA_ANGLE_DIST_NC((&(dp[0])), (&(dp_m1[0])), theta_2, nrm);
-         if(theta<0.000001) theta = theta_2;
-         else if(theta_2<0.000001) theta = theta; 
+         if(LocalHead)  if(theta_2) fprintf(SUMA_STDERR, "Theta_k-1(i=%d,j=%d,k=%d) = %f\n", i, j, k, theta_2); 
+         if(theta<opt->Zero) theta = theta_2;
+         else if(theta_2<opt->Zero) theta = theta; 
          else if(theta_2 && theta) { 
             if(theta_2 < theta) theta = theta_2;
             else theta = theta;
@@ -108,23 +109,23 @@ SUMA_Boolean Perturbations( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX
          /* Compare location  of control point at time k to location of that control point at time k+1. */
          dp_m2 = mxvdp3(ControlCurve, n, i, k+1);
          SUMA_ANGLE_DIST_NC((&(dp_m2[0])), (&(dp[0])), theta_2, nrm);
-         if(theta<0.000001) theta = theta_2;
-         else if(theta_2<0.000001) theta = theta; 
+         if(LocalHead)  if(theta_2) fprintf(SUMA_STDERR, "Theta_k+1(i=%d,j=%d,k=%d) = %f\n", i, j, k, theta_2); 
+         if(theta<opt->Zero) theta = theta_2;
+         else if(theta_2<opt->Zero) theta = theta; 
          else if(theta_2 && theta) { 
             if(theta_2 < theta) theta = theta_2;
             else theta = theta;
          }            
          if(LocalHead) fprintf(SUMA_STDERR, "Min Theta (i=%d, k=%d) = %f\n", i, k, theta);
          
-         /* This is the theta that I need to store!!  There's one for every i and m. */
+         /* This is the theta that I need to store!!  There's one for every i and m. The m's are the "knots", counted by index k.*/
          mxvd2(MaxStep, i, k) = theta;
-         
          
          /* Directed along the curve. */
          dp_p1 = mxvdp4(Perturb_Vec, n, i, k, 0);
          SUMA_MT_CROSS(p1, (&(nrm[0])), (&(dp[0])) );
          p1_mag = sqrt( SUMA_POW2(p1[0]) + SUMA_POW2(p1[1]) + SUMA_POW2(p1[2]) );
-         if(p1_mag > 0.0001) { 
+         if(p1_mag > opt->Zero) { 
             p1[0] *= (1.0/p1_mag);
             p1[1] *= (1.0/p1_mag);
             p1[2] *= (1.0/p1_mag);
@@ -143,7 +144,7 @@ SUMA_Boolean Perturbations( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX
          /* Directed transverse to the curve. */
          dp_p2 = mxvdp4(Perturb_Vec, n, i, k, 1);
          nrm_mag = sqrt( SUMA_POW2(nrm[0]) + SUMA_POW2(nrm[1]) + SUMA_POW2(nrm[2]) );
-         if(nrm_mag > 0.0001) { 
+         if(nrm_mag > opt->Zero) { 
             nrm[0] *= (1.0/nrm_mag);
             nrm[1] *= (1.0/nrm_mag);
             nrm[2] *= (1.0/nrm_mag);
@@ -152,6 +153,9 @@ SUMA_Boolean Perturbations( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX
          dp_p2[0] = (1.0/8.0)*theta*nrm[0];
          dp_p2[1] = (1.0/8.0)*theta*nrm[1];
          dp_p2[2] = (1.0/8.0)*theta*nrm[2];
+         
+         /* Check perturbation vectors.  These vectors should be perpendicular. */
+         if(LocalHead) fprintf( SUMA_STDERR, "Dot product of the two perturbation vectors = %g\n", SUMA_MT_DOT((&(dp_p1[0])), (&(dp_p2[0]))) );
          
          dp = dp2 = dp_m1 = dp_m2 = dp_p1 = dp_p2 = NULL;
          theta = theta_2 = 0.0;
@@ -207,7 +211,7 @@ SUMA_Boolean Rotation_Matrix( MyCircleOpt *opt, vector X, matrix M )
          SUMA_3D_Rotation_Matrix( (&(X.elts[c3])), (&(X.elts[r3])), Mcr, t_cr, nrm_cr);
 
          if( opt->sin_kern ) {
-            if(t_cr > 0.0000) expand_cr = (sin(t_cr)/t_cr)*exp(-0.5*t_cr*t_cr); 
+            if(t_cr > opt->Zero) expand_cr = (sin(t_cr)/t_cr)*exp(-0.5*t_cr*t_cr); 
             else expand_cr = exp(-0.5*t_cr*t_cr);  
          } else {
             expand_cr = exp(-0.5*t_cr*t_cr); 
@@ -343,10 +347,10 @@ SUMA_Boolean Change_in_Energy( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA
                for(j=0; j<3*opt->N_ctrl_points; ++j) {Pert.elts[j] = 0.0;}
                /* Pert.elts is all zeros except for one perturbation vector.  Only three rows have values.  x-y-z */   
                Pert.elts[i3  ] = 0.5*dp_q[0];
-               Pert.elts[i3+1] = 0.5*dp_q[1];   /* 0.5 used for calculations, will remove later */
+               Pert.elts[i3+1] = 0.5*dp_q[1];   /* 0.5 used for calculations, will store perturbation vectors with out this scaler */
                Pert.elts[i3+2] = 0.5*dp_q[2];
                
-               vector_add( Xm_mid, Pert, &Xm_p); 
+               vector_add( Xm_mid, Pert, &Xm_p); /* Xm_p is the perturbed midpoint vector. */
                
                if(LocalHead) fprintf(SUMA_STDERR, "Perturbation Vector: [%f; %f; %f]\n", dp_q[0], dp_q[1], dp_q[2]);
                
@@ -416,8 +420,12 @@ SUMA_Boolean Change_in_Energy( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA
                matrix_initialize(&B);
                matrix_create(1, (3*opt->N_ctrl_points), &B);
             
-               if(q == 1) matrix_scale(-2.0, Xm_t, &A);
-               if(q == 0) matrix_scale(+2.0, Xm_t, &A);
+               /* JUST CHANGED THIS.  11/07/06.  BEFORE HAD  q==1 ASSOCIATED WITH A -2 SCALER. */
+               /* q describes which point perturbed.  If q = 0, then the m point is perturbed.  If q = 1, then the 
+                     m+1 point is perturbed.  */
+               /* MUST BE A +2 SCALER WHEN USING M+1 POINT FOR PERTURBATION. */
+               if(q == 0) matrix_scale(-2.0, Xm_t, &A);
+               if(q == 1) matrix_scale(+2.0, Xm_t, &A);
                
                matrix_multiply(A, KernI, &B);
                vector_multiply(B, Pert, &del_S1);
@@ -638,7 +646,7 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
          }
       }  
    }
-   fprintf(SUMA_STDERR, "Show Change_S:\n");
+   if(LocalHead) fprintf(SUMA_STDERR, "Show Change_S:\n");
    
    SUMA_ShowMxVec(Change_S, -1, NULL);
    
@@ -723,10 +731,11 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
       fprintf(SUMA_STDERR, "];\n"); 
    }
    
-  
-   fprintf(SUMA_STDERR, "G = [\n");
-   for(j=0; j<nr; ++j) fprintf(SUMA_STDERR, "%f\n", G.elts[j]);
-   fprintf(SUMA_STDERR, "];\n");
+   if(LocalHead) {
+      fprintf(SUMA_STDERR, "G = [\n");
+      for(j=0; j<nr; ++j) fprintf(SUMA_STDERR, "%f\n", G.elts[j]);
+      fprintf(SUMA_STDERR, "];\n");
+   }
    
    /* Need to make G be just the direction vectors. Want unit vectors! */
    for(i=0; i< (opt->N_ctrl_points*(opt->M_time_steps-1)); ++i) {
@@ -751,23 +760,23 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
    Sx = S_energy(opt, ControlCurve);
    
    /* Find smallest "maximum allowable step" so know how big lamda can be. */
-   fprintf(SUMA_STDERR, "*************THETA_STEP_MIN:\n");
+   if(LocalHead) fprintf(SUMA_STDERR, "*************THETA_STEP_MIN:\n");
    Theta_step_min = mxvd2(MaxStep, 0, 1);
-   fprintf(SUMA_STDERR, "%f\n", Theta_step_min);
+   if(LocalHead) fprintf(SUMA_STDERR, "%f\n", Theta_step_min);
    for(m=1; (m<opt->M_time_steps); ++m) {
       for(i=0; i<opt->N_ctrl_points; ++i) {
          
          Theta_step = mxvd2(MaxStep, i, m);
-         fprintf(SUMA_STDERR, "%f\n", Theta_step);
+         if(LocalHead) fprintf(SUMA_STDERR, "%f\n", Theta_step);
          if(Theta_step < Theta_step_min) Theta_step_min = Theta_step;
       }
    }
-   fprintf(SUMA_STDERR, "Final Theta_step_min: %f\n", Theta_step_min);
+   if(LocalHead) fprintf(SUMA_STDERR, "Final Theta_step_min: %f\n", Theta_step_min);
    
    /* Set the smallest "max allowable movement", Theta_step_min as the starting point for Lda. */
    /* Now search for the largest Lda that gives lower energy than with an Lda of zero. */
    
-   fprintf(SUMA_STDERR, "Final Theta_step_min: %f\n", Theta_step_min);
+   if(LocalHead) fprintf(SUMA_STDERR, "Final Theta_step_min: %f\n", Theta_step_min);
    
    Lda = Theta_step_min;
    
@@ -817,21 +826,17 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
       }*/
       
       if(repeat<1) {
-         if(LocalHead) fprintf(SUMA_STDERR, "Lda before comparison: %f\n", Lda);
-       
+         fprintf(SUMA_STDERR, "Lda before comparison: %f\n", Lda);
          /* Find energy of sphere with adjusted path. */
          SxL = 0.0;
          SxL = S_energy(opt, X_Lamda);
          if( SxL < Sx ) repeat = 1; 
-        
          if( SxL >= Sx ) { 
             if(Lda>0.02) Lda = Lda - 0.005;
             if(Lda<=0.02) Lda = Lda - 0.0001;
-            if(Lda<=0.0001) Lda = Lda - 0.00001;
-            if(Lda<=0.00001) Lda = Lda - 0.000001;
-            if(Lda<0.0000001) { Lda = 0.0; repeat = 1; }
-         }
-         if(LocalHead) fprintf(SUMA_STDERR, "SxL = %.12f, Sx = %.12f, Lda = %f\n", SxL, Sx, Lda);
+            if(Lda<0.0001) { Lda = 0.0; repeat = 1; }
+         } 
+         fprintf(SUMA_STDERR, "SxL = %.12f, Sx = %.12f, Lda = %f\n", SxL, Sx, Lda);
       }
    } while(repeat < 1); 
 
@@ -1141,7 +1146,7 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
       
       /* Need to normalize because using the direction (unit vector) of this tangent vector in the velocity calculation. */
       tan_v_mag = sqrt( tan_v[0]*tan_v[0] + tan_v[1]*tan_v[1] + tan_v[2]*tan_v[2] );
-      if ( tan_v_mag > 0.000000001) {
+      if ( tan_v_mag > opt->Zero) {
          tan_v[0] = tan_v[0]/tan_v_mag;
          tan_v[1] = tan_v[1]/tan_v_mag;
          tan_v[2] = tan_v[2]/tan_v_mag; }
@@ -1214,7 +1219,7 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
                SUMA_3D_Rotation_Matrix( (&(opt->CtrlPts[c3])), (&(opt->CtrlPts[r3])), Mcr, t_cr, nrm_cr);
           
                if(opt->sin_kern) {
-                  if( t_cr > 0.0000) expand_cr = (sin(t_cr)/t_cr)*exp(-0.5*t_cr*t_cr); 
+                  if( t_cr > opt->Zero) expand_cr = (sin(t_cr)/t_cr)*exp(-0.5*t_cr*t_cr); 
                   else expand_cr = exp(-0.5*t_cr*t_cr);  
                } else {
                   expand_cr = exp(-0.5*t_cr*t_cr);  
@@ -1389,7 +1394,7 @@ SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt)
          if (LocalHead) { 
             if( i == opt->CtrlPts_iim[0] ) { fprintf(SUMA_STDERR, "Magnitude of Cross Product = %.12f \n", cr_mag); }} 
    
-         if(cr_mag > 0.000000001){ v_cr[0] = v_cr[0]/cr_mag; v_cr[1] = v_cr[1]/cr_mag; v_cr[2] = v_cr[2]/cr_mag; }  
+         if(cr_mag > opt->Zero){ v_cr[0] = v_cr[0]/cr_mag; v_cr[1] = v_cr[1]/cr_mag; v_cr[2] = v_cr[2]/cr_mag; }  
          
          if (LocalHead) {
             if (i == opt->CtrlPts_iim[0]) {
@@ -1399,7 +1404,7 @@ SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt)
          SUMA_ROTATE_ABOUT_AXIS( (&(C->Wv.elts[j3])), v_cr, v_alpha, (&(Wr.elts[j3])) );       
          
          if(opt->sin_kern) {
-            if(v_alpha > 0.0000) v_expand = (sin(v_alpha)/v_alpha)*exp( -0.5*v_alpha*v_alpha ); 
+            if(v_alpha > opt->Zero) v_expand = (sin(v_alpha)/v_alpha)*exp( -0.5*v_alpha*v_alpha ); 
             else v_expand = exp( -0.5*v_alpha*v_alpha );
          } else {
             v_expand = exp( -0.5*v_alpha*v_alpha );
@@ -1409,7 +1414,7 @@ SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt)
          SUMA_3D_Rotation_Matrix( (&(opt->CtrlPts[j3])), (&(C->NewNodeList[i3])), v_M, v_alpha, v_cr);
          
          if(opt->sin_kern) {
-            if(v_alpha > 0.0000) v_expand = (sin(v_alpha)/v_alpha)*exp( -0.5*v_alpha*v_alpha ); 
+            if(v_alpha > opt->Zero) v_expand = (sin(v_alpha)/v_alpha)*exp( -0.5*v_alpha*v_alpha ); 
             else v_expand = exp( -0.5*v_alpha*v_alpha );
          } else {
             v_expand = exp( -0.5*v_alpha*v_alpha );
@@ -1536,7 +1541,7 @@ SUMA_Boolean Debug_Move( MyCircle *C, MyCircleOpt *opt, SUMA_SurfaceObject *SO, 
    double sideA[3], sideB[3], sideC[3], height[3], side[3], t_area;
    int f, g, h, f3, g3, h3;
    double Vf_segment[3];
-   float Point_at_Distance[2][3] = { {0.0, 0.0, 0.0},{ 0.0, 0.0, 0.0} }, V_Mag = 0.0;
+   double Point_at_Distance[2][3] = { {0.0, 0.0, 0.0},{ 0.0, 0.0, 0.0} }, V_Mag = 0.0;
    
    SUMA_Boolean LocalHead = NOPE;
 
@@ -1810,7 +1815,7 @@ SUMA_Boolean Calculate_Step (MyCircle *C, MyCircleOpt *opt, double dt)
                      SUMA_POW2(C->Vf_Step[s4+1]) + 
                      SUMA_POW2(C->Vf_Step[s4+2]));
          /* rescale |u| to make it |uc| */
-         if (um > 0.0000001){
+         if (um > opt->Zero){
             C->Vf_Step[s4  ] *=  tan(um)/um;
             C->Vf_Step[s4+1] *=  tan(um)/um;            
             C->Vf_Step[s4+2] *=  tan(um)/um;            
@@ -1836,6 +1841,11 @@ SUMA_Boolean Move_Points (MyCircle *C, MyCircleOpt *opt)
 
    SUMA_ENTRY; 
    
+   /* Use array C->NewNodeList_temp to store the new node locations while checking to see if dt is small enough. */
+   /* When happy with dt and the move, set C->NewNodeList equal to C->NewNodeList_temp. */
+   
+   for (i = 0; i < 3*C->N_Node; ++i) C->NewNodeList_temp[i] = 0.0;  /* Reset temporary node list storage. */  
+   
    /* MOVE THE POINTS USING ROTATION MACRO. */
    for (i = 0; i < C->N_Node; ++i) {  
       s4 = 4*i;
@@ -1843,24 +1853,24 @@ SUMA_Boolean Move_Points (MyCircle *C, MyCircleOpt *opt)
       mv_mag = sqrt( SUMA_POW2(C->Vf_Step[s4  ]) +
                      SUMA_POW2(C->Vf_Step[s4+1]) +
                      SUMA_POW2(C->Vf_Step[s4+2]) );
-      if( mv_mag > 0.000000001) { mv_alpha = atan( mv_mag ); }
+      if( mv_mag > opt->Zero) { mv_alpha = atan( mv_mag ); }
       else { mv_alpha = 0.0; }
       SUMA_MT_CROSS ( mv_nrm,(&(C->NewNodeList[i3])), (&(C->Vf_Step[s4])) ); 
       mv_nrm_mag = sqrt( mv_nrm[0]*mv_nrm[0] + mv_nrm[1]*mv_nrm[1] +  mv_nrm[2]*mv_nrm[2] );
-      if (mv_nrm_mag > 0.000000001) {
+      if (mv_nrm_mag > opt->Zero) {
          mv_nrm[0] = mv_nrm[0]/mv_nrm_mag; mv_nrm[1] = mv_nrm[1]/mv_nrm_mag;  mv_nrm[2] = mv_nrm[2]/mv_nrm_mag; }
 
       /* Move the points a small step using the Rotation macro. */
-      SUMA_ROTATE_ABOUT_AXIS( (&(C->NewNodeList[i3])), (&(mv_nrm[0])), mv_alpha, (&(C->NewNodeList[i3])) );
+      SUMA_ROTATE_ABOUT_AXIS( (&(C->NewNodeList[i3])), (&(mv_nrm[0])), mv_alpha, (&(C->NewNodeList_temp[i3])) );
 
       /* Project point back onto the circle. */
-      newnode_mag = sqrt(  SUMA_POW2(C->NewNodeList[i3  ]) + 
-                           SUMA_POW2(C->NewNodeList[i3+1]) + 
-                           SUMA_POW2(C->NewNodeList[i3+2]) );
-      if (newnode_mag > 0.000000001) {
-         C->NewNodeList[i3  ] = opt->Radius*(C->NewNodeList[i3  ])/( newnode_mag );
-         C->NewNodeList[i3+1] = opt->Radius*(C->NewNodeList[i3+1])/( newnode_mag );
-         C->NewNodeList[i3+2] = opt->Radius*(C->NewNodeList[i3+2])/( newnode_mag ); }
+      newnode_mag = sqrt(  SUMA_POW2(C->NewNodeList_temp[i3  ]) + 
+                           SUMA_POW2(C->NewNodeList_temp[i3+1]) + 
+                           SUMA_POW2(C->NewNodeList_temp[i3+2]) );
+      if (newnode_mag > opt->Zero) {
+         C->NewNodeList_temp[i3  ] = opt->Radius*(C->NewNodeList_temp[i3  ])/( newnode_mag );
+         C->NewNodeList_temp[i3+1] = opt->Radius*(C->NewNodeList_temp[i3+1])/( newnode_mag );
+         C->NewNodeList_temp[i3+2] = opt->Radius*(C->NewNodeList_temp[i3+2])/( newnode_mag ); }
    }
    /* END OF MOVE. */
       

@@ -40,8 +40,10 @@ float ep = 1e-4; /* this represents the smallest coordinate difference to be exp
 
 /*!
    \brief face_nbad = SUMA_Bad_FacesetNorm_Dot_Radius(SO, FaceMask, dot_cut, face_bad_ind, face_bad_dot);
+   find bad triangles in a sphere's mesh based on the dot product of the normal at that triangle and the radius
    \param SO (SUMA_SurfaceObject *) A surface Object (make sure faceset normals are current) 
-   \param FaceMask (byte *) Optional mask for which triangles to analyze. If FaceMask[n] then triangle n is analyzed.
+   \param FaceMask (byte *) Optional mask for which triangles to analyze. If FaceMask[n] then 
+                           triangle indexed n is analyzed.
                            Pass NULL to analyze all triangles
    \param dot_cut (double) dot products below dot_cut are flagged
    \param face_bad_ind (int *)   : if not null, it should hold up to SO->N_FaceSet elements and will contain,
@@ -54,7 +56,8 @@ float ep = 1e-4; /* this represents the smallest coordinate difference to be exp
                            is unchanged.
    \return (int) The number of bad triangles encountered
 */
-int SUMA_Bad_FacesetNorm_Dot_Radius(SUMA_SurfaceObject *SO, byte *FaceMask, double dot_cut, int *face_bad_ind, float *face_bad_dot, int CalcNorm)
+int SUMA_Bad_FacesetNorm_Dot_Radius(SUMA_SurfaceObject *SO, byte *FaceMask, double dot_cut, 
+                                    int *face_bad_ind, float *face_bad_dot, int CalcNorm)
 {
    static char FuncName[]={"SUMA_Bad_FacesetNorm_Dot_Radius"};
    int N_bad = -1, i, i3, n0, n0t, n1, n1t, n2, n2t;
