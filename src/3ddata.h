@@ -3850,6 +3850,11 @@ extern void   THD_automask_extclip( int ) ;
 extern byte * mri_automask_image( MRI_IMAGE * ) ;          /* 05 Mar 2003 */
 extern byte * mri_automask_imarr( MRI_IMARR * ) ;          /* 18 Nov 2004 */
 
+                                                   /* 13 Nov 2006 [rickr] */
+extern int    thd_mask_from_brick(THD_3dim_dataset *, int, float, byte **, int);
+extern int    thd_multi_mask_from_brick(THD_3dim_dataset *, int, byte **);
+
+
 extern void THD_autobbox( THD_3dim_dataset * ,             /* 06 Jun 2002 */
                           int *, int * , int *, int * , int *, int * ) ;
 extern void MRI_autobbox( MRI_IMAGE * ,

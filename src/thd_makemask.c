@@ -307,3 +307,232 @@ int THD_countmask( int nvox , byte *mmm )
 
    return mc ;
 }
+
+/*------- functions moved from vol2surf.c ------------- 13 Nov 2006 [rickr] */
+
+/*----------------------------------------------------------------------
+ * thd_mask_from_brick    - create a mask from a sub-brick and threshold
+ *
+ * return the number of set voxels in the mask
+ *----------------------------------------------------------------------
+*/
+int thd_mask_from_brick(THD_3dim_dataset * dset, int volume, float thresh,
+                        byte ** mask, int absolute)
+{
+    float   factor;
+    byte  * tmask;
+    int     nvox, type, c, size = 0;
+
+ENTRY("thd_mask_from_brick");
+
+    if ( mask ) *mask = NULL;   /* to be sure */
+
+    if ( !ISVALID_DSET(dset) || ! mask || volume < 0 )
+        RETURN(-1);
+
+    if ( volume >= DSET_NVALS(dset) )
+    {
+        fprintf(stderr,"** tmfb: sub-brick %d out-of-range\n", volume);
+        RETURN(-1);
+    }
+
+    if( !DSET_LOADED(dset) ) DSET_load(dset);
+    nvox = DSET_NVOX(dset);
+    type = DSET_BRICK_TYPE(dset, volume);
+
+    if ( type != MRI_byte && type != MRI_short &&
+         type != MRI_int && type != MRI_float )
+    {
+        fprintf(stderr,"** tmfb: invalid dataset type %s, sorry...\n",
+                MRI_type_name[type]);
+        RETURN(-1);
+    }
+
+    tmask = (byte *)calloc(nvox, sizeof(byte));
+    if ( ! tmask )
+    {
+        fprintf(stderr,"** tmfb: failed to allocate mask of %d bytes\n", nvox);
+        RETURN(-1);
+    }
+
+    factor = DSET_BRICK_FACTOR(dset, volume);
+
+    /* cheat: adjust threshold, not data */
+    if ( factor != 0.0 ) thresh /= factor;
+
+    switch( DSET_BRICK_TYPE(dset, volume) )
+    {
+        case MRI_byte:
+        {
+            byte * dp  = DSET_ARRAY(dset, volume);
+            byte   thr = BYTEIZE(thresh + 0.99999);  /* ceiling */
+            for ( c = 0; c < nvox; c++ )
+                if ( dp[c] != 0 && ( dp[c] >= thr ) )
+                {
+                    size++;
+                    tmask[c] = 1;
+                }
+        }
+            break;
+
+        case MRI_short:
+        {
+            short * dp  = DSET_ARRAY(dset, volume);
+            short   thr = SHORTIZE(thresh + 0.99999);  /* ceiling */
+            for ( c = 0; c < nvox; c++, dp++ )
+                if ( *dp != 0 && ( *dp >= thr || (absolute && *dp <= -thr) ) )
+                {
+                    size++;
+                    tmask[c] = 1;
+                }
+        }
+            break;
+
+        case MRI_int:
+        {
+            int * dp  = DSET_ARRAY(dset, volume);
+            int   thr = (int)(thresh + 0.99999);  /* ceiling */
+            for ( c = 0; c < nvox; c++, dp++ )
+                if ( *dp != 0 && ( *dp >= thr || (absolute && *dp <= -thr) ) )
+                {
+                    size++;
+                    tmask[c] = 1;
+                }
+        }
+            break;
+
+        case MRI_float:
+        {
+            float * dp = DSET_ARRAY(dset, volume);
+            for ( c = 0; c < nvox; c++, dp++ )
+                if (*dp != 0 && (*dp >= thresh || (absolute && *dp <= -thresh)))
+                {
+                    size++;
+                    tmask[c] = 1;
+                }
+        }
+            break;
+
+        default:                /* let's be sure */
+        {
+            fprintf(stderr,"** tmfb: invalid dataset type, sorry...\n");
+            free(tmask);
+        }
+            break;
+    }
+
+    *mask = tmask;
+
+    RETURN(size);
+}
+
+/*----------------------------------------------------------------------
+ * thd_multi_mask_from_brick - create a valued mask from a sub-brick 
+ *
+ * return 0 on success, else failure             10 Nov 2006 [rickr]
+ *----------------------------------------------------------------------
+*/
+int thd_multi_mask_from_brick(THD_3dim_dataset * dset, int volume, byte ** mask)
+{
+    float   factor;
+    byte  * tmask;
+    int     nvox, type, c;
+
+ENTRY("thd_mask_from_brick");
+
+    if ( mask ) *mask = NULL;   /* to be sure */
+
+    if ( !ISVALID_DSET(dset) || ! mask || volume < 0 )
+        RETURN(-1);
+
+    if ( volume >= DSET_NVALS(dset) )
+    {
+        fprintf(stderr,"** tmmfb: sub-brick %d out-of-range\n", volume);
+        RETURN(-1);
+    }
+
+    if( !DSET_LOADED(dset) ) DSET_load(dset);
+    nvox = DSET_NVOX(dset);
+    type = DSET_BRICK_TYPE(dset, volume);
+
+    if ( type != MRI_byte && type != MRI_short &&
+         type != MRI_int && type != MRI_float )
+    {
+        fprintf(stderr,"** tmmfb: invalid dataset type %s, sorry...\n",
+                MRI_type_name[type]);
+        RETURN(-1);
+    }
+
+    tmask = (byte *)calloc(nvox, sizeof(byte));
+    if ( ! tmask )
+    {
+        fprintf(stderr,"** tmmfb: failed to allocate mask of %d bytes\n", nvox);
+        RETURN(-1);
+    }
+
+    factor = DSET_BRICK_FACTOR(dset, volume);
+    if( factor == 1.0 ) factor = 0.0;
+
+    switch( DSET_BRICK_TYPE(dset, volume) )
+    {
+        case MRI_byte:
+        {
+            byte * dp  = DSET_ARRAY(dset, volume);
+            if( factor )
+                for ( c = 0; c < nvox; c++ )
+                    tmask[c] = (byte)(int)rint(dp[c]*factor);
+            else
+                for ( c = 0; c < nvox; c++ )
+                    tmask[c] = dp[c];
+        }
+            break;
+
+        case MRI_short:
+        {
+            short * dp  = DSET_ARRAY(dset, volume);
+            if( factor )
+                for ( c = 0; c < nvox; c++ )
+                    tmask[c] = (byte)(int)rint(dp[c]*factor);
+            else
+                for ( c = 0; c < nvox; c++ )
+                    tmask[c] = (byte)dp[c];
+        }
+            break;
+
+        case MRI_int:
+        {
+            int * dp  = DSET_ARRAY(dset, volume);
+            if( factor )
+                for ( c = 0; c < nvox; c++ )
+                    tmask[c] = (byte)(int)rint(dp[c]*factor);
+            else
+                for ( c = 0; c < nvox; c++ )
+                    tmask[c] = (byte)dp[c];
+        }
+            break;
+
+        case MRI_float:
+        {
+            float * dp = DSET_ARRAY(dset, volume);
+            if( factor )
+                for ( c = 0; c < nvox; c++ )
+                    tmask[c] = (byte)(int)rint(dp[c]*factor);
+            else
+                for ( c = 0; c < nvox; c++ )
+                    tmask[c] = (byte)dp[c];
+        }
+            break;
+
+        default:                /* let's be sure */
+        {
+            fprintf(stderr,"** tmmfb: invalid dataset type, sorry...\n");
+            free(tmask);
+        }
+            break;
+    }
+
+    *mask = tmask;
+
+    RETURN(0);
+}
+

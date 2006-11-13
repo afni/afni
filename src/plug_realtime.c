@@ -42,34 +42,35 @@
 /** 30 Oct 2003: if possible, compute function on registered data    [rickr] **/
 /** 29 Jan 2004: allow 100 chars in root_prefix via PREFIX (from 31) [rickr]
                * x-axis of 3-D motion graphs changed from time to reps
-	       * plot_ts_... functions now use reg_rep for x-axis values
-	       * reg_graph_xr is no longer scaled by TR
+               * plot_ts_... functions now use reg_rep for x-axis values
+               * reg_graph_xr is no longer scaled by TR
                * added (float *)reg_rep, for graphing with x == rep num
-	       * added RT_set_grapher_pinnums(), to call more than once
-	       * added GRAPH_XRANGE and GRAPH_YRANGE command strings for
-	             control over the scales of the motion graph
-	       * if GRAPH_XRANGE and GRAPH_YRANGE commands are both passed,
-	             do not display the final (scaled) motion graph          **/
+               * added RT_set_grapher_pinnums(), to call more than once
+               * added GRAPH_XRANGE and GRAPH_YRANGE command strings for
+                     control over the scales of the motion graph
+               * if GRAPH_XRANGE and GRAPH_YRANGE commands are both passed,
+                     do not display the final (scaled) motion graph          **/
 /** 13 Feb 2004: added RT_MAX_PREFIX for incoming PREFIX command     [rickr]
-	       * if GRAPH_?RANGE is given, disable 'pushing'
-	             (see plot_ts_xypush())
-	       * added GRAPH_EXPR command, to compute and display a single
-	             motion curve, instead of the normal six
-	             (see p_code, etc., reg_eval, and RT_parser_init())      **/
+               * if GRAPH_?RANGE is given, disable 'pushing'
+                     (see plot_ts_xypush())
+               * added GRAPH_EXPR command, to compute and display a single
+                     motion curve, instead of the normal six
+                     (see p_code, etc., reg_eval, and RT_parser_init())      **/
 /** 31 Mar 2004: added ability to send registration parameters       [rickr]
-	       * If the AFNI_REALTIME_MP_HOST_PORT environment variable is
-	             set (as HOST:PORT, e.g. localhost:53214), then the six
-	             registration correction parameters will be sent to that
-	             host/port via a tcp socket.  This is done only in the
-	             case of graphing the 3D registration parameters.
-	       * added RT_input variables to manage the new socket
-	       * added RT_mp_comm_...() functions
-	       * modified yar[] logic in RT_registration_3D_realtime() to
-	             pass the registration parameters before adjusting the
-	             base pointers for plot_ts_addto()                       **/
+               * If the AFNI_REALTIME_MP_HOST_PORT environment variable is
+                     set (as HOST:PORT, e.g. localhost:53214), then the six
+                     registration correction parameters will be sent to that
+                     host/port via a tcp socket.  This is done only in the
+                     case of graphing the 3D registration parameters.
+               * added RT_input variables to manage the new socket
+               * added RT_mp_comm_...() functions
+               * modified yar[] logic in RT_registration_3D_realtime() to
+                     pass the registration parameters before adjusting the
+                     base pointers for plot_ts_addto()                       **/
 /** 02 Apr 2004: move RT_mp_comm_close() from last plot check  [tross/rickr] **/
 /** 10 May 2005: added TPATTERN command to set timing pattern        [rickr] **/
 /** 13 Sep 2005: add empty markers to appropriate datasets           [rickr] **/
+/** 11 Nov 2006: pass ROI means via RT_mp_*, one per ROI per TR      [rickr] **/
 
 
 /**************************************************************************/
@@ -215,12 +216,12 @@ typedef struct {
    float reg_graph_xr , reg_graph_yr ;
 
    /*-- Feb 2004 [rickr]: parser fields for GRAPH_EXPR command --*/
-   PARSER_code * p_code ; 			/* parser expression code    */
+   PARSER_code * p_code ;                       /* parser expression code    */
    char          p_expr   [RT_MAX_EXPR+1] ;     /* user's parser expression  */
    double        p_atoz   [26] ;                /* source values to evaluate */
-   int           p_has_sym[26] ;		/* symbol indices            */
-   int           p_max_sym ;			/* max index+1 of p_has_sym  */
-   float       * reg_eval ;			/* EXPR evaluation results   */
+   int           p_has_sym[26] ;                /* symbol indices            */
+   int           p_max_sym ;                    /* max index+1 of p_has_sym  */
+   float       * reg_eval ;                     /* EXPR evaluation results   */
 
    /*-- Mar 2004 [rickr]: tcp comm fields for motion params (for Tom Ross) --*/
    int           mp_tcp_use ;     /* are we using tcp comm for motion params */
@@ -229,6 +230,12 @@ typedef struct {
    char          mp_host[128] ;   /* destination host for motion params      */
    int           mp_nmsg ;        /* count the number of sent messages       */
    int           mp_npsets ;      /* count the number of sent data lists     */
+
+   /*-- Nov 2006 [rickr]: pass mask aves along with MP vals (for TRoss)    --*/
+   byte *        mask ;           /* mask from g_mask_dset (from plugin)     */
+   int           mask_nvals ;     /* number of non-zero mask values to use   */
+   double *      mask_aves ;      /* averages over each mask value           */
+   
 #endif
 
    double elapsed , cpu ;         /* times */
@@ -402,6 +409,8 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
 # define REG_MAKE_DSET(mm)                                   \
   ( (mm) == REGMODE_2D_RTIME || (mm) == REGMODE_2D_ATEND ||  \
     (mm) == REGMODE_3D_RTIME || (mm) == REGMODE_3D_ATEND   )
+
+  static THD_3dim_dataset * g_mask_dset = NULL ;  /* mask aves w/ MP vals */
 #endif
 
 /************ global data for reading data *****************/
@@ -448,9 +457,11 @@ void RT_tell_afni_one( RT_input * , int , int ) ;  /* 01 Aug 2002 */
   int  RT_mp_comm_close       ( RT_input * rtin );
   int  RT_mp_comm_init        ( RT_input * rtin );
   int  RT_mp_comm_init_vars   ( RT_input * rtin );
-  int  RT_mp_comm_send_data   ( RT_input * rtin, float * mp[6], int nt );
+  int  RT_mp_comm_send_data   ( RT_input * rtin, float *mp[6], int nt, int sub);
   int  RT_parser_init         ( RT_input * rtin );
   void RT_set_grapher_pinnums ( int pinnum );
+  int  RT_mask_free           ( RT_input * rtin );  /* 10 Nov 2006 [rickr] */
+  int  RT_get_mask_aves       ( RT_input * rtin, int sub );
 #endif
 
 #define TELL_NORMAL  0
@@ -607,6 +618,13 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_string( plint , "Graph" , NGRAPH , GRAPH_strings , reggraph ) ;
    PLUTO_add_number( plint , "NR [x-axis]" , 5,9999,0 , reg_nr , TRUE ) ;
    PLUTO_add_number( plint , "YR [y-axis]" , 1,100,1 , (int)(reg_yr*10.0) , TRUE ) ;
+
+   /* mask dataset option line   10 Nov 2006 [rickr] */
+   PLUTO_add_option( plint , "" , "Masking" , FALSE ) ;
+   PLUTO_add_dataset( plint , "Mask", ANAT_ALL_MASK, FUNC_ALL_MASK,
+                                      DIMEN_3D_MASK | BRICK_ALLREAL_MASK ) ;
+   PLUTO_add_hint( plint , "choose mask dataset for serial_helper" ) ;
+
 #endif
 
    /***** Register a work process *****/
@@ -713,8 +731,20 @@ char * RT_main( PLUGIN_interface * plint )
          /* 12 Oct 2000: set pin_num on all graphs now open */
 
          if( reg_nr >= MIN_PIN && reg_nr <= MAX_PIN && IM3D_OPEN(plint->im3d) )
-	     RT_set_grapher_pinnums(reg_nr);
+             RT_set_grapher_pinnums(reg_nr);
 
+         continue ;
+      }
+
+      /* 10 Nov 2006 [rickr] */
+      if( strcmp(tag,"Masking") == 0 ){
+         MCW_idcode * idc = PLUTO_get_idcode(plint) ;
+         g_mask_dset = PLUTO_find_dset(idc) ;
+         if ( !g_mask_dset )
+            return "*************************\n"
+                   "RT_opts: bad mask dataset\n"
+                   "*************************" ;
+         if ( verbose ) fprintf(stderr,"-d RTM: found mask dataset\n");
          continue ;
       }
 #endif
@@ -889,7 +919,6 @@ void cleanup_rtinp( int keep_ioc_data )
 Boolean RT_worker( XtPointer elvis )
 {
    int jj ;
-   static int first=1 ;
 
 #if 0
    if( first ){
@@ -1575,6 +1604,10 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->mp_npsets  = 0 ;
    strcpy(rtin->mp_host, "localhost") ;
 
+   rtin->mask       = NULL ;      /* mask averages, to send w/motion params */
+   rtin->mask_aves  = NULL ;      /*                    10 Nov 2006 [rickr] */
+   rtin->mask_nvals = 0 ;
+
    rtin->reg_resam = REG_resam_ints[reg_resam] ;
    if( rtin->reg_resam < 0 ){                    /* 20 Nov 1998: */
       rtin->reg_resam       = MRI_HEPTIC ;       /* special case */
@@ -1789,15 +1822,15 @@ int RT_mp_comm_close( RT_input * rtin )
     char magic_bye[] = { 0xde, 0xad, 0xde, 0xad, 0 };
 
     if ( rtin->mp_tcp_use != 1 || rtin->mp_tcp_sd <= 0 )
-	return 0;
+        return 0;
 
     if ( (tcp_writecheck(rtin->mp_tcp_sd, 1)   == -1) ||
          (send(rtin->mp_tcp_sd, magic_bye, 4, 0) == -1 ) )
-	fprintf(stderr,"** closing: our MP socket has gone bad?\n");
+        fprintf(stderr,"** closing: our MP socket has gone bad?\n");
 
-    fprintf(stderr,"RT: MP: closing motion param socket, "
-	           "sent %d param sets over %d messages\n",
-		   rtin->mp_npsets, rtin->mp_nmsg);
+    fprintf(stderr,"RTM: closing motion param socket, "
+                   "sent %d param sets over %d messages\n",
+                   rtin->mp_npsets, rtin->mp_nmsg);
 
     /* in any case, close the socket */
     close(rtin->mp_tcp_sd);
@@ -1806,6 +1839,9 @@ int RT_mp_comm_close( RT_input * rtin )
     rtin->mp_npsets  = 0;
     rtin->mp_nmsg    = 0;
 
+    /* free up any mask memory */
+    RT_mask_free(rtin);
+
     return 0;
 }
 
@@ -1813,61 +1849,204 @@ int RT_mp_comm_close( RT_input * rtin )
 /*---------------------------------------------------------------------------
    Send the current motion params.                        30 Mar 2004 [rickr]
 
+   if masks are set, pass masked averages from sub-brick 'sub' of dset[0]
+
    return   0 : on success
           < 0 : on error
 -----------------------------------------------------------------------------*/
-int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt )
+int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
 {
-    float data[600];		/* max transfer is nt == 100 */
+    float data[524];            /* 2*(256 + 6) -> 2 blocks, at least */
     int   rv, nvals, remain;
-    int   c, c2;
+    int   c, c2, mpindex, nblocks, bsize;
 
     if ( rtin->mp_tcp_use != 1 || nt <= 0 )
-	return 0;
+        return 0;
 
     if ( rtin->mp_tcp_sd <= 0 )
-	return -1;
+        return -1;
 
     /* hmmmm, Bob has a good function to test the socket... */
     if ( (rv = tcp_writecheck(rtin->mp_tcp_sd, 1)) == -1 )
     {
-	fprintf(stderr,"** our MP socket has gone bad?\n");
-	close(rtin->mp_tcp_sd);
-	rtin->mp_tcp_sd  = 0;
-	rtin->mp_tcp_use = 0;	/* allow a later re-try... */
-	return -1;
+        fprintf(stderr,"** our MP socket has gone bad?\n");
+        close(rtin->mp_tcp_sd);
+        rtin->mp_tcp_sd  = 0;
+        rtin->mp_tcp_use = 0;   /* allow a later re-try... */
+        return -1;
     }
 
-    remain = nt;
-    while ( remain > 0 )
+    bsize   = 6 + rtin->mask_nvals;          /* single block size per TR */
+    nblocks = 524 / bsize;                   /* max blocks per iteration */
+    mpindex = 0;            /* index into mp list (nvals may be partial) */
+    while( mpindex < nt )
     {
-	nvals = MIN(remain, 100);
+        remain = nt - mpindex;
+        nvals = MIN(remain, nblocks);
 
-	/* copy floats to 'data' */
-	for ( c = 0; c < nvals; c++ )
-	    for ( c2 = 0; c2 < 6; c2++ )
-		data[6*c+c2] = mp[c2][c];
+        /* copy floats to 'data' */
+        for ( c = 0; c < nvals; c++ )   /* for each block */
+        {
+            for ( c2 = 0; c2 < 6; c2++ )                /* send 6 mp params */
+            data[bsize*mpindex+c2] = mp[c2][mpindex];
 
-	if ( send(rtin->mp_tcp_sd, data, 6*nvals*sizeof(float), 0) == -1 )
-	{
-	    fprintf(stderr,"** failed to send %d floats, closing socket...\n",
-		    6*nvals);
-	    close(rtin->mp_tcp_sd);
-	    rtin->mp_tcp_sd  = 0;
-	    rtin->mp_tcp_use = 0;  /* allow a later re-try... */
-	    return -1;
-	}
+            /* and process mask, if desired */
+            if( rtin->mask && ! RT_get_mask_aves(rtin, sub+mpindex) )
+                for ( c2 = 0; c2 < rtin->mask_nvals; c2++ )
+                    data[bsize*mpindex+6+c2] = (float)rtin->mask_aves[c2+1];
 
-	/* keep track of num messages and num param sets */
-	rtin->mp_nmsg++;
-	rtin->mp_npsets += nvals;
+            mpindex++;  /* that was one TR */
+        }
 
-	remain -= nvals;
+        if ( send(rtin->mp_tcp_sd, data, bsize*nvals*sizeof(float), 0) == -1 )
+        {
+            fprintf(stderr,"** failed to send %d floats, closing socket...\n",
+                    6*nvals);
+            close(rtin->mp_tcp_sd);
+            rtin->mp_tcp_sd  = 0;
+            rtin->mp_tcp_use = 0;  /* allow a later re-try... */
+            return -1;
+        }
+
+        /* keep track of num messages and num param sets */
+        rtin->mp_nmsg++;
+        rtin->mp_npsets += nvals;
     }
 
     return 0;
 }
 
+
+/*---------------------------------------------------------------------------
+   Compute averages over mask ROIs for this sub-brick.    10 Nov 2006 [rickr]
+
+   return 0 on success
+-----------------------------------------------------------------------------*/
+int RT_get_mask_aves( RT_input * rtin, int sub )
+{
+    static int * nvals = NULL;
+    static int   nval_len = 0;
+    byte       * mask = rtin->mask;
+    float        ffac;
+    int          c, nvox;
+
+    if( !ISVALID_DSET(rtin->reg_dset) || DSET_NVALS(rtin->reg_dset) <= sub ){
+        fprintf(stderr,"** RT_get_mask_aves: not set for sub-brick %d\n",sub);
+        return -1;
+    }
+
+    nvox = DSET_NVOX(g_mask_dset);
+    if( DSET_NVOX(rtin->reg_dset) != nvox ){
+        /* terminal: whine, blow away the mask and continue */
+        fprintf(stderr,"** nvox for mask (%d) != nvox for reg_dset (%d)\n"
+                       "   terminating mask processing...\n",
+                nvox, DSET_NVOX(rtin->reg_dset) );
+        return RT_mask_free(rtin);
+    }
+
+    /* verify local memory for sizes (mask is 0..nvals) */
+    if( nval_len != (rtin->mask_nvals+1) ){
+        nval_len = rtin->mask_nvals+1;
+        nvals = (int *)realloc(nvals, nval_len * sizeof(int));
+        if( !nvals ){
+            fprintf(stderr,"** GMA: failed alloc of %d ints\n",nval_len);
+            return RT_mask_free(rtin);
+        }
+    }
+
+    /* all is well, computed ROI averages */
+
+    /* init sums and counts to zero (nval_len is max mask index +1) */
+    for(c = 1; c < nval_len; c++ ) rtin->mask_aves[c] = 0.0;
+    for(c = 1; c < nval_len; c++ ) nvals[c] = 0;
+
+    ffac = DSET_BRICK_FACTOR(rtin->reg_dset, sub);
+    if( ffac == 1.0 ) ffac = 0.0;
+    
+    /* try to be efficient... */
+    switch( rtin->datum ){
+        int iv, m;
+        case MRI_short:{
+           short * dar = (short *) DSET_ARRAY(rtin->reg_dset, sub);
+           if( ffac ) {
+               for( iv=0 ; iv < nvox ; iv++ )
+                   if( (m = mask[iv]) ){
+                       rtin->mask_aves[m] += (dar[iv] * ffac);
+                       nvals[m] ++;
+                   }
+           }
+           else {
+               for( iv=0 ; iv < nvox ; iv++ )
+                   if( (m = mask[iv]) ){
+                       rtin->mask_aves[m] += dar[iv];
+                       nvals[m] ++;
+                   }
+           }
+        }
+        break ;
+
+        case MRI_float:{
+           float * dar = (float *) DSET_ARRAY(rtin->reg_dset, sub);
+           if( ffac ) {
+               for( iv=0 ; iv < nvox ; iv++ )
+                   if( (m = mask[iv]) ){
+                       rtin->mask_aves[m] += (dar[iv] * ffac);
+                       nvals[m] ++;
+                   }
+           }
+           else {
+               for( iv=0 ; iv < nvox ; iv++ )
+                   if( (m = mask[iv]) ){
+                       rtin->mask_aves[m] += dar[iv];
+                       nvals[m] ++;
+                   }
+           }
+        }
+        break ;
+
+        case MRI_byte:{
+           byte * dar = (byte *) DSET_ARRAY(rtin->reg_dset, sub);
+           if( ffac ) {
+               for( iv=0 ; iv < nvox ; iv++ )
+                   if( (m = mask[iv]) ){
+                       rtin->mask_aves[m] += (dar[iv] * ffac);
+                       nvals[m] ++;
+                   }
+           }
+           else {
+               for( iv=0 ; iv < nvox ; iv++ )
+                   if( (m = mask[iv]) ){
+                       rtin->mask_aves[m] += dar[iv];
+                       nvals[m] ++;
+                   }
+           }
+        }
+        break ;
+    }
+
+    /* now take means */
+    for( c = 1; c < nval_len; c++ )
+    {
+        if( nvals[c] ) rtin->mask_aves[c] /= (double)nvals[c];
+        if( verbose > 1 )
+            fprintf(stderr,"-d RTM: sub-brick %d, mask %d: %d vals, mean %f\n",
+                    sub, c, nvals[c], rtin->mask_aves[c]);
+    }
+    if( verbose == 1 ) /* then only first mask */
+        fprintf(stderr,"-d RTM: brick %d, mask %d (of %d): %d vals, mean %f\n",
+                sub, 1, nval_len-1, nvals[1], rtin->mask_aves[1]);
+
+    return 0;
+}
+
+int RT_mask_free( RT_input * rtin )
+{
+    if( rtin->mask )     { free(rtin->mask);      rtin->mask      = NULL; }
+    if( rtin->mask_aves ){ free(rtin->mask_aves); rtin->mask_aves = NULL; }
+    rtin->mask_nvals = 0;
+
+    return 1;
+}
 
 /*---------------------------------------------------------------------------
    Initialize the motion parameter communications.        30 Mar 2004 [rickr]
@@ -1883,13 +2062,13 @@ int RT_mp_comm_init( RT_input * rtin )
     int                  sd;
 
     if ( rtin->mp_tcp_sd != 0 )
-	fprintf(stderr,"** warning, did we not close the MP socket?\n");
+        fprintf(stderr,"** warning, did we not close the MP socket?\n");
 
     if ( (hostp = gethostbyname(rtin->mp_host)) == NULL )
     {
-	fprintf(stderr,"** cannot lookup host '%s'\n", rtin->mp_host);
-	rtin->mp_tcp_use = -1;
-	return -1;
+        fprintf(stderr,"** cannot lookup host '%s'\n", rtin->mp_host);
+        rtin->mp_tcp_use = -1;
+        return -1;
     }
 
     /* fill the sockaddr_in struct */
@@ -1901,28 +2080,28 @@ int RT_mp_comm_init( RT_input * rtin )
     /* get a socket */
     if ( (sd = socket(AF_INET, SOCK_STREAM, 0)) == -1 )
     {
-	perror("pe: socket");
-	rtin->mp_tcp_use = -1;   /* let us not try, try again */
-	return -1;
+        perror("pe: socket");
+        rtin->mp_tcp_use = -1;   /* let us not try, try again */
+        return -1;
     }
 
     if ( connect(sd, (struct sockaddr *)&sin, sizeof(sin)) == -1 )
     {
-	perror("pe: connect");
-	rtin->mp_tcp_use = -1;
-	return -1;
+        perror("pe: connect");
+        rtin->mp_tcp_use = -1;
+        return -1;
     }
 
     /* send the hello message */
     if ( send(sd, magic_hi, 4*sizeof(char), 0) == -1 )
     {
-	perror("pe: send hello");
-	rtin->mp_tcp_use = -1;
-	return -1;
+        perror("pe: send hello");
+        rtin->mp_tcp_use = -1;
+        return -1;
     }
 
-    fprintf(stderr,"RT: MP: opened motion param socket to %s:%d\n",
-	    rtin->mp_host, rtin->mp_port);
+    fprintf(stderr,"RTM: opened motion param socket to %s:%d\n",
+            rtin->mp_host, rtin->mp_port);
 
     /* everything worked out, we're good to van Gogh */
 
@@ -1945,41 +2124,73 @@ int RT_mp_comm_init_vars( RT_input * rtin )
     char * ept, * cp;
     int    len;
 
-    if ( rtin->mp_tcp_use < 0 )	    /* we've failed out, do not try again */
-	return 0;
+    if ( rtin->mp_tcp_use < 0 )     /* we've failed out, do not try again */
+        return 0;
 
     if ( rtin->mp_tcp_sd != 0 )
-	fprintf(stderr,"** warning, did we not close the MP socket?\n");
+        fprintf(stderr,"** warning, did we not close the MP socket?\n");
     rtin->mp_tcp_sd   = 0;
 
     /* for now, we will only init this if the HOST:PORT env var exists */
     ept = getenv("AFNI_REALTIME_MP_HOST_PORT") ;  /* 09 Oct 2000 */
     if( ept == NULL )
-	return 0;
+        return 0;
 
-    cp = strchr(ept, ':');	/* find ':' seperator */
+    cp = strchr(ept, ':');      /* find ':' seperator */
 
     if ( cp == NULL || !isdigit(*(cp+1)) )
     {
-	fprintf(stderr,"** env var AFNI_REALTIME_MP_HOST_PORT must be in the "
-		       "form hostname:port_num\n   (var is '%s')\n", ept);
-	return -1;
+        fprintf(stderr,"** env var AFNI_REALTIME_MP_HOST_PORT must be in the "
+                       "form hostname:port_num\n   (var is '%s')\n", ept);
+        return -1;
     }
 
-    len = cp - ept;	/* length of hostname */
+    len = cp - ept;     /* length of hostname */
     if ( len > 127 )
     {
         fprintf(stderr,"** motion param hostname restricted to 127 bytes,\n"
-	               "   found %d from host in %s\n", len, ept);
-	return -1;
+                       "   found %d from host in %s\n", len, ept);
+        return -1;
     }
 
-    fprintf(stderr,"RT: MP: found motion param env var '%s'\n", ept);
+    fprintf(stderr,"RTM: found motion param env var '%s'\n", ept);
 
     rtin->mp_port = atoi(cp+1);
     strncpy(rtin->mp_host, ept, len);
     rtin->mp_host[len] = '\0';
     rtin->mp_tcp_use = 1;
+
+    /* now setup the mask data, if g_mask_dset is set */
+    if( g_mask_dset )
+    {   int c, max;
+        if( verbose > 1 ) fprintf(stderr,"-d RTM: setting up mask...\n");
+        if( rtin->mask ) free(rtin->mask) ; /* in case of change */
+        if( thd_multi_mask_from_brick(g_mask_dset, 0, &rtin->mask) )
+        {
+            fprintf(stderr,"** failed to make mask from mask dset\n");
+            rtin->mask = NULL;
+            g_mask_dset = NULL;
+            return 0;
+        }
+
+        /* now compute mask_nvals and allocate mask_aves */
+        for( c = 0, max = rtin->mask[0]; c < DSET_NVOX(g_mask_dset); c++ )
+            if( rtin->mask[c] > max )
+                max = rtin->mask[c];
+
+        rtin->mask_nvals = max;
+        if(!max){
+            fprintf(stderr,"** empty mask\n");
+            rtin->mask = NULL;
+            g_mask_dset = NULL;
+            return 0;
+        }
+        
+        /* and allocate, include unused index 0 */
+        rtin->mask_aves = (double *)realloc(rtin->mask_aves,
+                                            (max+1)*sizeof(double));
+        if( verbose ) fprintf(stderr,"-d RTM: have %d-value mask\n", max);
+    }
 
     return 0;
 }
@@ -1998,20 +2209,20 @@ int RT_parser_init( RT_input * rtin )
 
     if ( ! rtin->p_code )
     {
-	fprintf(stderr,"** cannot parse expression '%s'\n", rtin->p_expr);
-	return -1;
+        fprintf(stderr,"** cannot parse expression '%s'\n", rtin->p_expr);
+        return -1;
     }
 
     /* p_max_sym will be 0 if nothing is marked, 26 if z is, etc. */
     PARSER_mark_symbols( rtin->p_code, rtin->p_has_sym );
     for ( rtin->p_max_sym = 26; rtin->p_max_sym > 0; rtin->p_max_sym-- )
-	if ( rtin->p_has_sym[rtin->p_max_sym - 1] )
-	    break;
+        if ( rtin->p_has_sym[rtin->p_max_sym - 1] )
+            break;
 
     if ( rtin->p_max_sym > 6 )
     {
-	fprintf(stderr,"** parser expression may only contain symbols a-f\n");
-	return -2;
+        fprintf(stderr,"** parser expression may only contain symbols a-f\n");
+        return -2;
     }
 
     return 0;
@@ -2030,7 +2241,7 @@ int RT_parser_init( RT_input * rtin )
 
 int RT_process_info( int ninfo , char * info , RT_input * rtin )
 {
-   int ii , jj , nstart,nend , nuse , nbuf ;
+   int jj , nstart,nend , nbuf ;
    char buf[NBUF] ;
 
    if( rtin == NULL || info == NULL || ninfo == 0 ) return -1 ;
@@ -2093,30 +2304,30 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
          float fval = 0.0 ;
          sscanf( buf , "GRAPH_XRANGE %f" , &fval ) ;
          if( fval >= MIN_PIN && fval <= MAX_PIN ) {
-	     rtin->reg_graph_xnew = 1;
-	     rtin->reg_graph_xr   = fval;
+             rtin->reg_graph_xnew = 1;
+             rtin->reg_graph_xr   = fval;
 
              if( rtin->reg_graph && REG_IS_3D(rtin->reg_mode) &&
-		 IM3D_OPEN(plint->im3d) )
-	     {
-		 plot_ts_xypush(1-rtin->reg_graph_xnew, 1-rtin->reg_graph_ynew);
-		 RT_set_grapher_pinnums((int)(fval+0.5));
-	     }
+                 IM3D_OPEN(plint->im3d) )
+             {
+                 plot_ts_xypush(1-rtin->reg_graph_xnew, 1-rtin->reg_graph_ynew);
+                 RT_set_grapher_pinnums((int)(fval+0.5));
+             }
 
-	 } else
+         } else
               BADNEWS ;
 
       } else if( STARTER("GRAPH_YRANGE") ){
          float fval = 0.0 ;
          sscanf( buf , "GRAPH_YRANGE %f" , &fval ) ;
          if( fval > 0.0 ) {
-	    rtin->reg_graph_ynew = 1;
-	    rtin->reg_graph_yr   = fval ;
+            rtin->reg_graph_ynew = 1;
+            rtin->reg_graph_yr   = fval ;
 
-	    /* if the user sets scales, don't 'push'    11 Feb 2004 [rickr] */
+            /* if the user sets scales, don't 'push'    11 Feb 2004 [rickr] */
             if( rtin->reg_graph && REG_IS_3D(rtin->reg_mode) )
-		plot_ts_xypush(1-rtin->reg_graph_xnew, 1-rtin->reg_graph_ynew);
-	 } else
+                plot_ts_xypush(1-rtin->reg_graph_xnew, 1-rtin->reg_graph_ynew);
+         } else
             BADNEWS ;
 
       /* Allow the user to specify an expression, to evalue the six motion
@@ -2124,14 +2335,14 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
        *                                                12 Feb 2004 [rickr] */
       } else if( STARTER("GRAPH_EXPR") ){
          sscanf( buf , "GRAPH_EXPR %1024s" , rtin->p_expr ) ;
-	 rtin->p_expr[RT_MAX_EXPR] = '\0';
-	 if ( RT_parser_init(rtin) != 0 )
+         rtin->p_expr[RT_MAX_EXPR] = '\0';
+         if ( RT_parser_init(rtin) != 0 )
             BADNEWS ;
 #endif
 
       } else if( STARTER("NAME") ){
          char npr[THD_MAX_PREFIX] = "\0" ;
-	 /* RT_MAX_PREFIX is used here, currently 100 */
+         /* RT_MAX_PREFIX is used here, currently 100 */
          sscanf( buf , "NAME %100s" , npr ) ; /* 31->100  29 Jan 2004 [rickr] */
          if( THD_filename_pure(npr) ) strcpy( rtin->root_prefix , npr ) ;
          else
@@ -2139,7 +2350,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
 
       } else if( STARTER("PREFIX") ){           /* 01 Aug 2002 */
          char npr[THD_MAX_PREFIX] = "\0" ;
-	 /* RT_MAX_PREFIX is used here, currently 100 */
+         /* RT_MAX_PREFIX is used here, currently 100 */
          sscanf( buf , "PREFIX %100s" , npr ) ;
          if( THD_filename_pure(npr) ) strcpy( rtin->root_prefix , npr ) ;
          else
@@ -2291,28 +2502,28 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
 
       } else if( STARTER("BYTEORDER") ){    /* 27 Jun 2003:           [rickr] */
          int bo = 0 ;
-	 char tstr[10] = "\0" ;
-	 sscanf( buf, "BYTEORDER %9s", tstr ) ;
+         char tstr[10] = "\0" ;
+         sscanf( buf, "BYTEORDER %9s", tstr ) ;
 
-	 /* first, note the incoming endian */
-	 if      ( strncmp(tstr,"LSB_FIRST",9) == 0 ) bo = LSB_FIRST ;
-	 else if ( strncmp(tstr,"MSB_FIRST",9) == 0 ) bo = MSB_FIRST ;
-	 else
-	     BADNEWS ;
+         /* first, note the incoming endian */
+         if      ( strncmp(tstr,"LSB_FIRST",9) == 0 ) bo = LSB_FIRST ;
+         else if ( strncmp(tstr,"MSB_FIRST",9) == 0 ) bo = MSB_FIRST ;
+         else
+             BADNEWS ;
 
-	 /* if different from the local endian, we will swap bytes */
-	 if ( bo != 0 ) {
-	    int local_bo, one = 1;
-	    local_bo = (*(char *)&one == 1) ? LSB_FIRST : MSB_FIRST ;
+         /* if different from the local endian, we will swap bytes */
+         if ( bo != 0 ) {
+            int local_bo, one = 1;
+            local_bo = (*(char *)&one == 1) ? LSB_FIRST : MSB_FIRST ;
 
-	    /* if we are informed, and the orders differ, we will swap */
-	    if ( bo != local_bo )
-		rtin->swap_on_read = 1 ;
-	 }
+            /* if we are informed, and the orders differ, we will swap */
+            if ( bo != local_bo )
+                rtin->swap_on_read = 1 ;
+         }
 
-	 if( verbose > 1 )
-	    fprintf(stderr,"RT: BYTEORDER string = '%s', swap_on_read = %d\n",
-		    BYTE_ORDER_STRING(bo), rtin->swap_on_read) ;
+         if( verbose > 1 )
+            fprintf(stderr,"RT: BYTEORDER string = '%s', swap_on_read = %d\n",
+                    BYTE_ORDER_STRING(bo), rtin->swap_on_read) ;
       } else if( STARTER("LOCK_ZORDER") ){  /* 22 Feb 1999:                   */
          rtin->zorder_lock = 1 ;            /* allow program to 'lock' zorder,*/
                                             /* so that later changes are      */
@@ -2449,14 +2660,14 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
    /* validate data type when swapping */
    if ( rtin->swap_on_read == 1 ) {
 
-      if( (rtin->datum != MRI_short) &&		/* if the type is not okay, */
-	  (rtin->datum != MRI_int)   &&         /* then turn off swapping   */
-	  (rtin->datum != MRI_float) &&
-	  (rtin->datum != MRI_complex) )
+      if( (rtin->datum != MRI_short) &&         /* if the type is not okay, */
+          (rtin->datum != MRI_int)   &&         /* then turn off swapping   */
+          (rtin->datum != MRI_float) &&
+          (rtin->datum != MRI_complex) )
       {
-	 if( rtin->datum != MRI_byte )		/* don't complain about bytes */
-	     fprintf(stderr,"RT: BYTEORDER applies only to short, int, float "
-			    "or complex\n");
+         if( rtin->datum != MRI_byte )          /* don't complain about bytes */
+             fprintf(stderr,"RT: BYTEORDER applies only to short, int, float "
+                            "or complex\n");
          rtin->swap_on_read = 0;
       }
    }
@@ -2476,7 +2687,7 @@ void RT_start_dataset( RT_input * rtin )
 {
    THD_ivec3 nxyz , orixyz ;
    THD_fvec3 dxyz , orgxyz ;
-   int nvox , npix , n1 , ii , cc ;
+   int nvox , n1 , ii , cc ;
    char npr[THD_MAX_PREFIX] , ccpr[THD_MAX_PREFIX] ;
 
    /*********************************************/
@@ -3007,7 +3218,7 @@ void RT_read_image( RT_input * rtin , char * im )
       if ( rtin->swap_on_read != 0 ) {
          if( rtin->datum == MRI_short )
             mri_swap2( rtin->imsize / 2, (short *)im );
-	 else
+         else
             mri_swap4( rtin->imsize / 4, (int *)im );
       }
    }
@@ -3023,8 +3234,6 @@ void RT_read_image( RT_input * rtin , char * im )
 
 int RT_process_data( RT_input * rtin )
 {
-   int vdone ;
-
    /** can we create a dataset yet? **/
 
    if( rtin->sbr[0] == NULL && rtin->info_ok ){
@@ -3637,7 +3846,7 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
 
 void RT_finish_dataset( RT_input * rtin )
 {
-   int ii , cc , nbad=0 ;
+   int cc , nbad=0 ;
 
    if( rtin->image_mode ){
       if( verbose == 2 ) SHOW_TIMES ;
@@ -3754,7 +3963,7 @@ void RT_finish_dataset( RT_input * rtin )
       if ( rtin->p_code )
       {
          ycount = 1;
-	 yar[1] = rtin->reg_eval;
+         yar[1] = rtin->reg_eval;
       }
 
       plot_ts_lab( THE_DISPLAY ,
@@ -3799,7 +4008,7 @@ void RT_set_grapher_pinnums( int pinnum )
     /* 12 Oct 2000: set pin_num on all graphs now open */
 
     if( pinnum < MIN_PIN || pinnum > MAX_PIN || !IM3D_OPEN(plint->im3d) )
-	return;
+        return;
 
     drive_MCW_grapher( plint->im3d->g123, graDR_setpinnum, (XtPointer) pinnum );
     drive_MCW_grapher( plint->im3d->g231, graDR_setpinnum, (XtPointer) pinnum );
@@ -4155,7 +4364,7 @@ void RT_registration_3D_realtime( RT_input * rtin )
       /* realtime graphing? */
 
       if( rtin->reg_graph == 2 ){
-	 int    ycount = -6 ;  /* default number of graphs */
+         int    ycount = -6 ;  /* default number of graphs */
          static char * nar[6] = {
             "\\Delta I-S [mm]" , "\\Delta R-L [mm]" , "\\Delta A-P [mm]" ,
             "Roll [\\degree]" , "Pitch [\\degree]" , "Yaw [\\degree]"  } ;
@@ -4166,8 +4375,8 @@ void RT_registration_3D_realtime( RT_input * rtin )
          if( rtin->reg_mode == REGMODE_3D_ESTIM ) strcat(ttl," [Estimate]") ;
 
          /* if p_code, only plot the reg_eval */
-	 if ( rtin->p_code )
-	    ycount = 1;
+         if ( rtin->p_code )
+            ycount = 1;
 
          rtin->mp = plot_ts_init( GLOBAL_library.dc->display ,
                                   0.0,rtin->reg_graph_xr-1 ,
@@ -4178,9 +4387,9 @@ void RT_registration_3D_realtime( RT_input * rtin )
 
          free(ttl) ;
 
-	 /* set up comm for motion params    30 Mar 2004 [rickr] */
-	 RT_mp_comm_init_vars( rtin ) ;
-	 if ( rtin->mp_tcp_use ) RT_mp_comm_init( rtin ) ;
+         /* set up comm for motion params    30 Mar 2004 [rickr] */
+         RT_mp_comm_init_vars( rtin ) ;
+         if ( rtin->mp_tcp_use ) RT_mp_comm_init( rtin ) ;
       }
    }
 
@@ -4205,21 +4414,21 @@ void RT_registration_3D_realtime( RT_input * rtin )
 
       /* send the data off over tcp connection          30 Mar 2004 [rickr] */
       if ( rtin->mp_tcp_use )
-	  RT_mp_comm_send_data( rtin, yar+1, ntt-ttbot );
+          RT_mp_comm_send_data( rtin, yar+1, ntt-ttbot, ttbot );
 
       if( ttbot > 0 )  /* modify yar after send_data, when ttbot > 0 */
       {
-	  int c;
-	  for ( c = 0; c < 7; c++ )  /* apply the old ttbot-- */
-	      yar[c]--;
-	  ttbot-- ;
+          int c;
+          for ( c = 0; c < 7; c++ )  /* apply the old ttbot-- */
+              yar[c]--;
+          ttbot-- ;
       }
 
       /* if p_code, only plot the reg_eval */
       if ( rtin->p_code )
       {
          ycount = 1;
-	 yar[1] = rtin->reg_eval + ttbot;
+         yar[1] = rtin->reg_eval + ttbot;
       }
 
       plot_ts_addto( rtin->mp , ntt-ttbot , yar[0] , ycount , yar+1 ) ;
@@ -4296,9 +4505,9 @@ void RT_registration_3D_atend( RT_input * rtin )
 void RT_registration_3D_setup( RT_input * rtin )
 {
    int ibase = rtin->reg_base_index ;
-   int kk , nx,ny,nz , kind , nbar ;
+   int kk ;
    MRI_IMAGE * im ;
-   char * bar , * ept ;
+   char * ept ;
 
    /*-- extract info about coordinate axes of dataset --*/
 
@@ -4860,7 +5069,7 @@ int RT_fim_recurse( RT_input *rtin , int mode )
    if ( (DSET_NVALS(dset_time) <= mode) || (DSET_ARRAY(dset_time,mode) == NULL) )
       return 1;
 
-#if 0				/* change to first_pass test */
+#if 0                           /* change to first_pass test */
    if( mode == it1 )
 #endif
 

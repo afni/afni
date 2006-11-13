@@ -1,4 +1,4 @@
-#define VERSION "1.4 (April 7, 2004)"
+#define VERSION "1.5 (November 11, 2006)"
 
 /*----------------------------------------------------------------------
  * serial_helper.c    - pass data from plug_realtime to serial port
@@ -46,6 +46,9 @@ static char g_history[] =
  "\n"
  " 1.4a March 22, 2005  [rickr]\n"
  "    - removed all tabs\n"
+ "\n"
+ " 1.5  November 11, 2006 [rickr]\n"
+ "    - added -num_extras option, for processing extra floats per TR\n"
  "----------------------------------------------------------------------\n";
 
 
@@ -82,14 +85,17 @@ typedef struct{
     float   mp_min;
     float   mp_max;
     int     sock_num;
+    int     num_extra;          /* number of extra data values per TR */
     int     swap;
     int     debug;
 } optiondata;
 
 typedef struct {
-    int   nread;                /* number of instances processed */
-    int   nvals;
-    float data[SH_MAX_VALS];
+    int     nread;              /* number of instances processed */
+    int     nvals;
+    int     nex;                /* opt->num_extra */
+    float   data[SH_MAX_VALS];
+    float * extras;             /* extra data values received per TR */
 } motparm;
 
 typedef struct
@@ -364,6 +370,11 @@ int get_options(optiondata *opt, motparm * mp, port_list * plist,
         }
         else if ( !strncmp(argv[ac], "-no_serial", 7) )
             opt->no_serial = 1;
+        else if ( !strncmp(argv[ac], "-num_extra", 7) )
+        {
+            CHECK_ARG_COUNT(ac, "opt use: -num_extra NVALS\n");
+            opt->num_extra = atoi(argv[++ac]);
+        }
         else if ( !strncmp(argv[ac], "-serial_port", 7) )
         {
             CHECK_ARG_COUNT(ac, "opt use: -serial_port SERIAL_FILENAME\n");
@@ -396,12 +407,30 @@ int get_options(optiondata *opt, motparm * mp, port_list * plist,
         fprintf(stderr,"** missing option '-serial_port'\n");
         return -1;
     }
+    if ( opt->num_extra < 0 || opt->num_extra > 1000 )
+    {
+        fprintf(stderr,"** -num_extra %d is out of range [0,1000]\n",
+                opt->num_extra);
+        return -1;
+    }
 
     if ( opt->debug > 1 )
         disp_optiondata( "options read: ", opt );
 
     plist->debug = opt->debug;          /* for cleanup() */
     mp->nvals    = 6;
+
+    /* allocate space for extra data */
+    if ( opt->num_extra > 0 )
+    {
+        mp->nex = opt->num_extra;
+        mp->extras = (float *)malloc(mp->nex * sizeof(float));
+        if( !mp->extras )
+        {
+            fprintf(stderr,"** failed to alloc for %d extra floats\n", mp->nex);
+            return -1;
+        }
+    }
 
     return 0;
 }
@@ -516,6 +545,11 @@ int usage( char * prog, int level )
             "             under bash (for bash do the 2>&1 thingy...)\n"
             "\n"
             "        %s -serial_port /dev/ttyS0 -debug 3 |& tee helper.out\n"
+            "\n"
+            "    9. same as 4, but will receive 3 extra floats per TR\n"
+            "\n"
+            "        %s -serial_port /dev/ttyS0 -num_extra 3\n"
+            "\n"
             "------------------------------------------------------------\n"
             "  program setup:\n"
             "\n"
@@ -605,11 +639,23 @@ int usage( char * prog, int level )
             "        On the machine the user run afni from, that environment\n"
             "        variable should have the form HOST:PORT, where a basic\n"
             "        example might be localhost:53214.\n"
+            "\n"
+            "    -num_extra NVALS : will receive NVALS extra floats per TR\n"
+            "                     : e.g. -num_extra 5\n"
+            "                     : default is 0\n"
+            "\n"
+            "        Extra floats may arrive if, for instance, afni's RT\n"
+            "        plugin has a mask with 3 ROIs in it (numbered 1,2,3).\n"
+            "        The plugin would compute averages over each ROI per TR,\n"
+            "        and send that data after the MP vals.\n"
+            "        \n"
+            "        In such a case, specify '-num_extra 3', so the program\n"
+            "        knows 3 floats will be received after the MP data.\n"
             "------------------------------------------------------------\n"
             "  Authors: R. Reynolds, T. Ross  (March, 2004)\n"
             "------------------------------------------------------------\n",
             prog, prog,
-            prog, prog, prog, prog, prog, prog, prog, prog,
+            prog, prog, prog, prog, prog, prog, prog, prog, prog,
             prog
             );
     }
@@ -647,7 +693,7 @@ int test_socket(int sd)
 }
 
 /* ----------------------------------------------------------------------
- * read one set of motion parameters and store in structure
+ * read one set of motion parameters (extras?) and store in structure
  *
  * return 1 : finished
  *        0 : have data: continue
@@ -667,6 +713,7 @@ int read_socket(optiondata * opt, port_list * plist, motparm * mp)
         return 1;
     }
 
+    /* get motion params */
     len = mp->nvals * sizeof(float);
     if ( (rv = recv(plist->tdata_sd, (void *)mp->data, len, 0)) < len )
     {
@@ -675,8 +722,21 @@ int read_socket(optiondata * opt, port_list * plist, motparm * mp)
         return -1;
     }
 
-    if ( opt->swap )
-        swap_4(mp->data, mp->nvals);
+    if ( opt->swap ) swap_4(mp->data, mp->nvals);
+
+    /* get extra floats */
+    if( mp->nex > 0 )
+    {
+        len = mp->nex * sizeof(float);
+        if ( (rv = recv(plist->tdata_sd, (void *)mp->extras, len, 0)) < len )
+        {
+            fprintf(stderr,"** read only %d of %d Ebytes on socket\n", rv, len);
+            perror("pe: recv");
+            return -1;
+        }
+
+        if ( opt->swap ) swap_4(mp->extras, mp->nex);
+    }
 
     mp->nread++;
 
@@ -687,18 +747,26 @@ int read_socket(optiondata * opt, port_list * plist, motparm * mp)
         for ( c = 0; c < mp->nvals; c++ )
             fprintf(stderr,"  %f", mp->data[c]);
         fputc('\n', stderr);
+
+        fprintf(stderr,"++ recv %d extra floats:", mp->nex);
+        for ( c = 0; c < mp->nex; c++ )
+            fprintf(stderr,"  %f", mp->extras[c]);
+        fputc('\n', stderr);
     }
 
     return 0;
 }
 
+/* Here we convert each mp data value to a char after multiplying by 10.
+   For now, I'm not sure what to do with the extras, send as is... */
 void send_serial(optiondata * opt, port_list * plist, motparm *mot)
 {
     static char outdata[7];
-    int i;
+    int i, len;
     
     outdata[0] = -128;
-    for (i=0; i<6; i++) {
+    for(i = 0; i < 6; i++)
+    {
         if (mot->data[i] > opt->mp_max) 
             mot->data[i] = opt->mp_max;
         if (mot->data[i] < opt->mp_min)
@@ -706,8 +774,17 @@ void send_serial(optiondata * opt, port_list * plist, motparm *mot)
         outdata[i+1] = (char) (mot->data[i] * 10.0);
     }
     i = write(plist->sport, outdata, 7);
-    if (i<7)
-        fprintf(stderr, "warning: only wrote %d bytes to serial port\n", i);
+    if( i < 7 )
+        fprintf(stderr, "** warning: wrote %d of 7 bytes to serial port\n",i);
+
+    if( mot->nex > 0 )
+    {
+        len = mot->nex * sizeof(float);
+        i = write(plist->sport, mot->extras, len);
+        if( i < len )
+            fprintf(stderr,"** warning: wrote %d of %d Ebytes to serial port\n",
+                    i, len);
+    }
 } 
 
 
@@ -797,9 +874,10 @@ int disp_optiondata( char * info, optiondata * D )
             "    no_serial       = %d\n"
             "    mp_min, mp_max  = %f, %f\n"
             "    sock_num        = %d\n"
+            "    num_extra       = %d\n"
             "    swap, debug     = %d, %d\n",
             D, CHECK_NULL_STR(D->serial_port), D->no_serial,
-            D->mp_min, D->mp_max, D->sock_num, D->swap, D->debug);
+            D->mp_min, D->mp_max, D->sock_num, D->num_extra, D->swap, D->debug);
 
     return 0;
 }

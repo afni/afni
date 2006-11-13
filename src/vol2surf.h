@@ -148,10 +148,6 @@ int v2s_write_outfile_NSD( v2s_results *, v2s_opts_t *, v2s_param_t *, int);
 int v2s_write_outfile_niml( v2s_opts_t * sopt, v2s_results * sd, int free_vals);
 
 
-/* special thd function - might be moved from vol2surf.[ch] */
-int thd_mask_from_brick(THD_3dim_dataset * dset, int volume, float thresh,
-                        byte ** mask, int absolute);
-
 /* ---- define globals for everyone but vol2surf.c ---- */
 #ifndef _VOL2SURF_C_
     extern v2s_plugin_opts   gv2s_plug_opts;
