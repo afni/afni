@@ -31,6 +31,7 @@ typedef struct
                               determine velocity field for the entire surface.  Old way won't work. */
       int M_time_steps;    /* Number of internal time steps used in optimization.  M total steps used in Bob's equations. */
       int sin_kern;        /* Option for turning on the sine kernal.  Using sin(theta)/theta as part of the expansion factor. */
+      double Zero;
    } MyCircleOpt;
 
 typedef struct
@@ -41,6 +42,7 @@ typedef struct
       double *Vf_Step;
       double *VelocityMagnitude;
       double *NewNodeList;
+      double *NewNodeList_temp;
       double *Theta;
       vector Wv;
    } MyCircle;
