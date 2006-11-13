@@ -1,3 +1,6 @@
+/* FILE NOW OBSOLETE. LEFT HERE FOR THE RECORD.
+J. MOLONY Oct. 2006 */
+
 #include "SUMA_suma.h"
 #include "matrix.h"
 #include "SUMA_SurfWarp.h"
@@ -369,6 +372,7 @@ int main (int argc,char *argv[])
    int nbad;
    int too_close = 0, need_neighb_adjust = 0, need_more_adjustment = 0;
    static double energy, energy_sum, time_elapsed;
+   SUMA_SPHERE_QUALITY SSQ;
    SUMA_Boolean exists;
       
    MyCircle *Ci = NULL;
@@ -659,7 +663,8 @@ int main (int argc,char *argv[])
             for (i3=0; i3<3*SO->N_Node; ++i3) SO->NodeList[i3] = Ci->NewNodeList[i3];
             SUMA_RECOMPUTE_NORMALS(SO);
             shist = SUMA_HistString (NULL, argc, argv, NULL);
-            nbad = SUMA_SphereQuality(SO, outfile_SphereQuality , shist);
+            SSQ = SUMA_SphereQuality(SO, outfile_SphereQuality , shist);
+            nbad = SSQ.N_bad_facesets;
             if(nbad && !first_bad_niter){ first_bad_niter = niter; }
             if (shist) SUMA_free(shist); shist = NULL;
             SUMA_Save_Surface_Object(SO_name, SO, SUMA_VEC, SUMA_ASCII, NULL);
@@ -767,7 +772,8 @@ int main (int argc,char *argv[])
       SUMA_RECOMPUTE_NORMALS(SO);
       shist = SUMA_HistString (NULL, argc, argv, NULL);
       fprintf( SUMA_STDERR, "\nNITER = %d", niter );
-      nbad = SUMA_SphereQuality(SO, opt->outfile , shist);   
+      SSQ = SUMA_SphereQuality(SO, opt->outfile , shist);   
+      nbad = SSQ.N_bad_facesets;
       if (nbad) {
          fprintf(SUMA_STDERR,"Shist %s!:\n you have %d bad points!\n", FuncName, nbad);
       } else {
