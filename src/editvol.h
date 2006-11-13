@@ -564,9 +564,14 @@ extern int              okay_to_add_markers(THD_3dim_dataset * dset);
 extern void SetSearchAboutMaskedVoxel(int v);  /* ZSS */
 extern MRI_IMAGE * THD_get_dset_nbhd( THD_3dim_dataset *, int, byte *,
                                       int, int, int, MCW_cluster *    ) ;
+extern MRI_IMARR * THD_get_dset_indexed_nbhd(
+                                      THD_3dim_dataset *, int, byte *,
+                                      int, int, int, MCW_cluster *    ) ;
 
 extern MRI_IMAGE * mri_get_nbhd( MRI_IMAGE *, byte *,
                                  int, int, int, MCW_cluster * ) ;
+extern MRI_IMARR * mri_get_indexed_nbhd( MRI_IMAGE *, byte *,
+                                         int, int, int, MCW_cluster * ) ;
 
 extern MRI_IMAGE * mri_localstat( MRI_IMAGE *, byte *, MCW_cluster *, int ) ;
 extern THD_3dim_dataset * THD_localstat( THD_3dim_dataset *, byte *,
