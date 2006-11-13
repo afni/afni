@@ -3,10 +3,12 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /*** 7D SAFE ***/
+
+/*---------------------------------------------------------------------------*/
 
 MRI_IMAGE *mri_to_float( MRI_IMAGE *oldim )
 {
@@ -73,13 +75,15 @@ ENTRY("mri_to_float") ;
       break ;
 
       default:
-         fprintf( stderr , "mri_to_float:  unrecognized image kind %d\n",oldim->kind ) ;
-         MRI_FATAL_ERROR ;
+        fprintf(stderr,"mri_to_float: unrecognized image kind %d\n",oldim->kind);
+        MRI_FATAL_ERROR ;
    }
 
    MRI_COPY_AUX(newim,oldim) ;
    RETURN( newim );
 }
+
+/*---------------------------------------------------------------------------*/
 
 MRI_IMAGE *mri_scale_to_float( float scl , MRI_IMAGE *oldim )
 {
@@ -91,7 +95,9 @@ ENTRY("mri_scale_to_float") ;
 
    if( oldim == NULL ) RETURN( NULL );  /* 09 Feb 1999 */
 
-   fac   = scl ; if( fac == 0.0 ) fac = 1.0 ;
+   fac = scl ;
+   if( fac==0.0f || fac==1.0f ){ newim = mri_to_float(oldim); RETURN(newim); }
+
    newim = mri_new_conforming( oldim , MRI_float ) ;
    npix  = oldim->nvox ;
 
@@ -156,6 +162,8 @@ ENTRY("mri_scale_to_float") ;
    RETURN( newim );
 }
 
+
+/*---------------------------------------------------------------------------*/
 /* 13 Dec 1998 */
 
 #define FAC(q) ( (fac[q] != 0.0) ? fac[q] : 1.0 )

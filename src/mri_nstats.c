@@ -86,6 +86,127 @@ float mri_nstat( int code , MRI_IMAGE *im )
 }
 
 /*--------------------------------------------------------------------------*/
+
+#if 0
+static int fwhm_use_variance = 1 ;
+void mri_nstat_fwhmxyz_usevar( int i ){ fwhm_use_variance = i; }
+#endif
+
+#undef  INMASK
+#define INMASK(i) (mask == NULL || mask[i] != 0)
+
+/*--------------------------------------------------------------------------*/
+/*! FWHM parameters in a neigbhorhood of a point. */
+
+THD_fvec3 mri_nstat_fwhmxyz( int xx, int yy, int zz,
+                             MRI_IMAGE *im, byte *mask, MCW_cluster *nbhd )
+{
+   MRI_IMAGE *fim ;
+   float     *far ;
+   int npt , nx,ny,nz,nxy , aa,bb,cc, kk,ii,pp ;
+   THD_fvec3 fw_xyz ;
+   double fsum, fsq, var , arg ;
+   double dfdx, dfdxsum, dfdxsq, varxx;
+   double dfdy, dfdysum, dfdysq, varyy;
+   double dfdz, dfdzsum, dfdzsq, varzz;
+   double dx,dy,dz ;
+   float  sx,sy,sz ;
+   int count, countx, county, countz;
+
+   LOAD_FVEC3(fw_xyz,-1,-1,-1) ;  /* load with bad values */
+
+   if( im == NULL || im->kind != MRI_float || nbhd == NULL ) return fw_xyz;
+
+   far = MRI_FLOAT_PTR(im) ;
+   nx  = im->nx; ny = im->ny; nz = im->nz; nxy = nx*ny; npt = nbhd->num_pt;
+   kk  = xx + yy*nx + zz*nxy ;
+   if( npt == 0 || kk < 0 || kk >= nxy*nz || !INMASK(kk) ) return fw_xyz ;
+
+   /*----- estimate the variance of the local data -----*/
+
+   fsum = 0.0; fsq = 0.0; count = 0 ;
+   for( ii=0 ; ii < npt ; ii++ ){
+     aa = xx + nbhd->i[ii] ; if( aa < 0 || aa >= nx ) continue ;
+     bb = yy + nbhd->j[ii] ; if( bb < 0 || bb >= ny ) continue ;
+     cc = zz + nbhd->k[ii] ; if( cc < 0 || cc >= nz ) continue ;
+     kk = aa + bb*nx + cc*nxy ;
+     if( INMASK(kk) ){
+       count++; arg = far[kk]; fsum += arg; fsq += arg*arg;
+     }
+   }
+   if( count < 6 || fsq <= 0.0 ) return fw_xyz ;
+   var = (fsq - (fsum * fsum)/count) / (count-1.0);
+   if( var <= 0.0 )              return fw_xyz ;
+
+  /*----- estimate the partial derivatives -----*/
+
+  dfdxsum = 0.0;   dfdysum = 0.0;   dfdzsum = 0.0;
+  dfdxsq  = 0.0;   dfdysq  = 0.0;   dfdzsq  = 0.0;
+  countx  = 0;     county  = 0;     countz  = 0;
+  for( ii=0 ; ii < npt ; ii++ ){
+     aa = xx + nbhd->i[ii] ; if( aa < 0 || aa >= nx ) continue ;
+     bb = yy + nbhd->j[ii] ; if( bb < 0 || bb >= ny ) continue ;
+     cc = zz + nbhd->k[ii] ; if( cc < 0 || cc >= nz ) continue ;
+     kk = aa + bb*nx + cc*nxy ;
+     if( !INMASK(kk) ) continue ;
+     arg = far[kk] ;
+     if( aa+1 < nx ){
+       pp = kk+1 ;
+       if( INMASK(pp) ){
+         dfdx     = (far[pp] - arg) ;
+         dfdxsum += dfdx; dfdxsq += dfdx * dfdx; countx++ ;
+       }
+     }
+     if( bb+1 < ny ){
+       pp = kk+nx ;
+       if( INMASK(pp) ){
+         dfdy     = (far[pp] - arg) ;
+         dfdysum += dfdy; dfdysq += dfdy * dfdy; county++ ;
+       }
+     }
+     if( cc+1 < nz ){
+       pp = kk+nxy ;
+       if( INMASK(pp) ){
+         dfdz     = (far[pp] - arg) ;
+         dfdzsum += dfdz; dfdzsq += dfdz * dfdz; countz++ ;
+       }
+     }
+   }
+
+   /*----- estimate the variance of the partial derivatives -----*/
+
+   varxx = (countx < 6) ? 0.0
+                        : (dfdxsq - (dfdxsum * dfdxsum)/countx) / (countx-1.0);
+
+   varyy = (county < 6) ? 0.0
+                        : (dfdysq - (dfdysum * dfdysum)/county) / (county-1.0);
+
+   varzz = (countz < 6) ? 0.0
+                        : (dfdzsq - (dfdzsum * dfdzsum)/countz) / (countz-1.0);
+
+   /*----- now estimate the FWHMs -----*/
+
+   dx = im->dx; dy = im->dy; dz = im->dz;
+
+   /*---- 2.35482 = sqrt(8*log(2)) = sigma-to-FWHM conversion factor ----*/
+
+   arg = 1.0 - 0.5*(varxx/var);
+   sx  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0f
+                                      : 2.35482*sqrt( -1.0/(4.0*log(arg)) )*dx;
+
+   arg = 1.0 - 0.5*(varyy/var);
+   sy  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0f
+                                      : 2.35482*sqrt( -1.0/(4.0*log(arg)) )*dy;
+
+   arg = 1.0 - 0.5*(varzz/var);
+   sz  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0f
+                                      : 2.35482*sqrt( -1.0/(4.0*log(arg)) )*dz;
+
+   LOAD_FVEC3(fw_xyz,sx,sy,sz) ;
+   return fw_xyz ;
+}
+
+/*--------------------------------------------------------------------------*/
 /*! Compute a local statistic at each voxel of an image, possibly with
     a mask; 'local' is defined with a neighborhood; 'statistic' is defined
     by an NSTAT_ code.
@@ -135,10 +256,12 @@ THD_3dim_dataset * THD_localstat( THD_3dim_dataset *dset , byte *mask ,
                                   MCW_cluster *nbhd , int ncode, int *code )
 {
    THD_3dim_dataset *oset ;
-   MRI_IMAGE *nbim ;
+   MRI_IMAGE *nbim=NULL ;
    int iv,cc , nvin,nvout , nx,ny,nz,nxyz , ii,jj,kk,ijk ;
    float **aar ;
    int vstep ;
+   THD_fvec3 fwv ;
+   MRI_IMAGE *dsim=NULL; int need_dsim, need_nbim; float dx,dy,dz ;
 
 ENTRY("THD_localstat") ;
 
@@ -158,11 +281,19 @@ ENTRY("THD_localstat") ;
    nx = DSET_NX(dset) ;
    ny = DSET_NY(dset) ;
    nz = DSET_NZ(dset) ; nxyz = nx*ny*nz ;
+   dx = fabs(DSET_DX(dset)) ; if( dx <= 0.0f ) dx = 1.0f ;
+   dy = fabs(DSET_DY(dset)) ; if( dy <= 0.0f ) dy = 1.0f ;
+   dz = fabs(DSET_DZ(dset)) ; if( dz <= 0.0f ) dz = 1.0f ;
 
    vstep = (verb && nxyz > 99999) ? nxyz/50 : 0 ;
    if( vstep ) fprintf(stderr,"++ voxel loop:") ;
 
    aar = (float **)malloc(sizeof(float *)*ncode) ;
+
+   need_dsim = need_nbim = 0 ;
+   for( cc=0 ; cc < ncode ; cc++ )
+          if( code[cc] >= NSTAT_FWHMx ) need_dsim = 1;
+     else if( code[cc] <  NSTAT_FWHMx ) need_nbim = 1;
 
    for( iv=0 ; iv < nvin ; iv++ ){
      for( cc=0 ; cc < ncode ; cc++ ){
@@ -170,17 +301,32 @@ ENTRY("THD_localstat") ;
        if( aar[cc] == NULL )
          ERROR_exit("THD_localstat: out of memory at iv=%d cc=%d",iv,cc);
      }
+     if( need_dsim ){
+       float fac = DSET_BRICK_FACTOR(dset,iv) ;
+       if( fac <= 0.0f ) fac = 1.0f ;
+       dsim = mri_scale_to_float( fac , DSET_BRICK(dset,iv) ) ;
+       dsim->dx = dx ; dsim->dy = dy ; dsim->dz = dz ;
+     }
 
      for( ijk=kk=0 ; kk < nz ; kk++ ){
       for( jj=0 ; jj < ny ; jj++ ){
        for( ii=0 ; ii < nx ; ii++,ijk++ ){
          if( vstep && ijk%vstep==vstep-1 ) vstep_print() ;
-         nbim = THD_get_dset_nbhd( dset,iv , mask,ii,jj,kk , nbhd ) ;
-         for( cc=0 ; cc < ncode ; cc++ )
-           aar[cc][ijk] = mri_nstat( code[cc] , nbim ) ;
-         mri_free(nbim) ;
+         if( need_nbim )
+           nbim = THD_get_dset_nbhd( dset,iv , mask,ii,jj,kk , nbhd ) ;
+         for( cc=0 ; cc < ncode ; cc++ ){
+           if( code[cc] != NSTAT_FWHMx ){
+             aar[cc][ijk] = mri_nstat( code[cc] , nbim ) ;
+           } else {
+             fwv = mri_nstat_fwhmxyz( ii,jj,kk , dsim,mask,nbhd ) ;
+             UNLOAD_FVEC3( fwv, aar[cc][ijk],aar[cc+1][ijk],aar[cc+2][ijk] ) ;
+             cc += 2 ;  /* skip FWHMy and FWHMz codes */
+           }
+         }
+         if( nbim != NULL ){ mri_free(nbim); nbim = NULL; }
      }}}
 
+     if( dsim != NULL ){ mri_free(dsim); dsim = NULL; }
      for( cc=0 ; cc < ncode ; cc++ )
        EDIT_substitute_brick( oset , iv*ncode+cc , MRI_float , aar[cc] ) ;
    }

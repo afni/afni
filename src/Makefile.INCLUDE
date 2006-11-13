@@ -454,6 +454,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dLocalBistat 3dLocalBistat.o $(LFLAGS) $(LLIBS)
 
+3dBlurToFWHM:3dBlurToFWHM.o
+	$(RM) $@
+	$(CC) -o 3dBlurToFWHM 3dBlurToFWHM.o $(LFLAGS) $(LLIBS)
+
 3dDTeig:3dDTeig.o libmri.a
 	$(RM) $@
 	$(CC) -o 3dDTeig 3dDTeig.o $(LFLAGS) $(LLIBS) -lf2c
@@ -1280,6 +1284,10 @@ mri_nstats.o:mri_nstats.c
 	$(RM) $@
 	$(CCFAST) -c mri_nstats.c $(INFLAGS)
 
+mri_blur3d_variable.o:mri_blur3d_variable.c
+	$(RM) $@
+	$(CCFAST) -c mri_blur3d_variable.c $(INFLAGS)
+
 mri_nbistats.o:mri_nbistats.c
 	$(RM) $@
 	$(CCFAST) -c mri_nbistats.c $(INFLAGS)
@@ -1396,7 +1404,8 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            ge4_header.o mri_equal.o mri_scalize.o mri_isgray.o mri_read_mpeg.o \
            mri_entropy16.o mri_symbolize.o mri_colorsetup.o mri_warp3D_align.o \
            mri_medianfilter.o mri_nstats.o mri_scaled_diff.o mri_matrix.o      \
-           mri_genalign.o mri_clusterize.o mri_nbistats.o mri_fwhm.o
+           mri_genalign.o mri_clusterize.o mri_nbistats.o mri_fwhm.o           \
+           mri_blur3d_variable.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \
