@@ -1776,5 +1776,17 @@
 
 30 Oct 2006: modified afni_base.py: added comopt.required, show(), print mods
 31 Oct 2006: modified model_demri_3.c: allow ve param, instead of k_ep
-02 Oct 2006: modified model_demri_3.c: change init, so Ve is reported as output
+02 Nov 2006: modified model_demri_3.c: change init, so Ve is reported as output
+
+13 Nov 2006: changes to send ROI means to serial_helper (from Tom Ross)
+  * modified plug_realtime.c:
+      - added Mask dataset input to plugin interface
+      - if Mask, send averages over each ROI to AFNI_REALTIME_MP_HOST_PORT
+  * modified serial_helper.c:
+      - added -num_extras option to process extra floats per TR (ROI aves)
+  * modified thd_makemask.c:
+      - added thd_mask_from_brick() from vol2surf.c
+      - added new thd_multi_mask_from_brick()
+  * modified 3dvol2surf.c: moved thd_mask_from_brick() to thd_makemask.c
+  * modified 3ddata.h: added protos for mask functions
 
