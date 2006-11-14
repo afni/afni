@@ -25,8 +25,8 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *fxim=NULL , *fyim=NULL , *fzim=NULL ;
    float     *fxar=NULL , *fyar=NULL , *fzar=NULL ;
    float dx,dy,dz ;
-   float gx,gy,gz , val ;
-   int   mx,my,mz , nite , bmeqin , maxite=666 ;
+   float gx,gy,gz , val , maxfxyz ;
+   int   mx,my,mz , nite , bmeqin , maxite=666 , numfxyz ;
    float bx,by,bz ;
    char *bsave_prefix=NULL ;
 
@@ -316,21 +316,23 @@ int main( int argc , char *argv[] )
 
    /*--- make arrays for FWHM estimates and then diffusion parameters ---*/
 
+   numfxyz = 0 ;
    if( fwhm_xgoal > 0.0f ){
      fxim = mri_new_conforming( IMARR_SUBIM(bmar,0) , MRI_float ) ;
      fxar = MRI_FLOAT_PTR(fxim) ;
-     gx   = fwhm_xgoal - 0.222*dx ;
+     gx   = fwhm_xgoal - 0.999*dx ; numfxyz++ ;
    }
    if( fwhm_ygoal > 0.0f ){
      fyim = mri_new_conforming( IMARR_SUBIM(bmar,0) , MRI_float ) ;
      fyar = MRI_FLOAT_PTR(fyim) ;
-     gy   = fwhm_ygoal - 0.222*dy ;
+     gy   = fwhm_ygoal - 0.999*dy ; numfxyz++ ;
    }
    if( fwhm_zgoal > 0.0f ){
      fzim = mri_new_conforming( IMARR_SUBIM(bmar,0) , MRI_float ) ;
      fzar = MRI_FLOAT_PTR(fzim) ;
-     gz   = fwhm_zgoal - 0.222*dz ;
+     gz   = fwhm_zgoal - 0.999*dz ; numfxyz++ ;
    }
+   maxfxyz = 0.16f / numfxyz ;
 
    /*----------- Do the work:
                    estimate smoothness of blur master
@@ -347,39 +349,39 @@ int main( int argc , char *argv[] )
      estimate_blur_map( bmar , mask,nbhd , fxar,fyar,fzar ) ;
 
      if( bsave_prefix != NULL ){
-       char bp[1024]; THD_3dim_dataset *bset; int nv=0, iv=0;
-       sprintf(bp,"%s_%04d",bsave_prefix,nite) ;
-       bset = EDIT_empty_copy( inset ) ;
-       if( fxar != NULL ) nv++ ;
-       if( fyar != NULL ) nv++ ;
-       if( fzar != NULL ) nv++ ;
-       EDIT_dset_items( bset ,
-                          ADN_prefix , bp ,
-                          ADN_nvals  , nv ,
-                          ADN_ntt    , 0  ,
-                        ADN_none ) ;
+       char bp[1024]; THD_3dim_dataset *bset; float *qqq;
+       { float *bbb=MRI_FLOAT_PTR( IMARR_SUBIM(bmar,0) ) ;
+         qqq = malloc(sizeof(float)*nvox); memcpy(qqq,bbb,sizeof(float)*nvox);
+         bset = EDIT_empty_copy(inset); sprintf(bp,"%s_%04d_bm",bsave_prefix,nite);
+         EDIT_dset_items( bset, ADN_prefix,bp, ADN_nvals,1, ADN_ntt,0, ADN_none );
+         EDIT_substitute_brick( bset , 0 , MRI_float , qqq ) ;
+         EDIT_BRICK_LABEL( bset , 0 , "Bmar0" ) ;
+         DSET_write(bset) ; WROTE_DSET(bset) ; DSET_delete(bset) ;
+       }
        if( fxar != NULL ){
-         float *qqq = malloc(sizeof(float)*nvox) ;
-         memcpy(qqq,fxar,sizeof(float)*nvox) ;
-         for( ii=0 ; ii < nvox ; ii++ ) qqq[ii] = MAX(qqq[ii],0.0f) ;
-         EDIT_substitute_brick( bset , iv , MRI_float , qqq ) ;
-         EDIT_BRICK_LABEL( bset , iv , "FWHMx" ) ; iv++ ;
+         qqq = malloc(sizeof(float)*nvox); memcpy(qqq,fxar,sizeof(float)*nvox);
+         bset = EDIT_empty_copy(inset); sprintf(bp,"%s_%04dx",bsave_prefix,nite);
+         EDIT_dset_items( bset, ADN_prefix,bp, ADN_nvals,1, ADN_ntt,0, ADN_none );
+         EDIT_substitute_brick( bset , 0 , MRI_float , qqq ) ;
+         EDIT_BRICK_LABEL( bset , 0 , "FWHMx" ) ;
+         DSET_write(bset) ; WROTE_DSET(bset) ; DSET_delete(bset) ;
        }
        if( fyar != NULL ){
-         float *qqq = malloc(sizeof(float)*nvox) ;
-         memcpy(qqq,fyar,sizeof(float)*nvox) ;
-         for( ii=0 ; ii < nvox ; ii++ ) qqq[ii] = MAX(qqq[ii],0.0f) ;
-         EDIT_substitute_brick( bset , iv , MRI_float , qqq ) ;
-         EDIT_BRICK_LABEL( bset , iv , "FWHMy" ) ; iv++ ;
+         qqq = malloc(sizeof(float)*nvox); memcpy(qqq,fyar,sizeof(float)*nvox);
+         bset = EDIT_empty_copy(inset); sprintf(bp,"%s_%04dy",bsave_prefix,nite);
+         EDIT_dset_items( bset, ADN_prefix,bp, ADN_nvals,1, ADN_ntt,0, ADN_none );
+         EDIT_substitute_brick( bset , 0 , MRI_float , qqq ) ;
+         EDIT_BRICK_LABEL( bset , 0 , "FWHMy" ) ;
+         DSET_write(bset) ; WROTE_DSET(bset) ; DSET_delete(bset) ;
        }
        if( fzar != NULL ){
-         float *qqq = malloc(sizeof(float)*nvox) ;
-         memcpy(qqq,fzar,sizeof(float)*nvox) ;
-         for( ii=0 ; ii < nvox ; ii++ ) qqq[ii] = MAX(qqq[ii],0.0f) ;
-         EDIT_substitute_brick( bset , iv , MRI_float , qqq ) ;
-         EDIT_BRICK_LABEL( bset , iv , "FWHMz" ) ; iv++ ;
+         qqq = malloc(sizeof(float)*nvox); memcpy(qqq,fzar,sizeof(float)*nvox);
+         bset = EDIT_empty_copy(inset); sprintf(bp,"%s_%04dz",bsave_prefix,nite);
+         EDIT_dset_items( bset, ADN_prefix,bp, ADN_nvals,1, ADN_ntt,0, ADN_none );
+         EDIT_substitute_brick( bset , 0 , MRI_float , qqq ) ;
+         EDIT_BRICK_LABEL( bset , 0 , "FWHMz" ) ;
+         DSET_write(bset) ; WROTE_DSET(bset) ; DSET_delete(bset) ;
        }
-       DSET_write(bset) ; WROTE_DSET(bset) ; DSET_delete(bset) ;
      }
 
      /*--- count how many voxels aren't smooth enuf yet,
@@ -392,21 +394,21 @@ int main( int argc , char *argv[] )
            if( fxar[ii] <= 0.0f || fxar[ii] >= gx ) fxar[ii] = 0.0f ;
            else {
              mx++; val = (fwhm_xgoal-fxar[ii])/dx; val = val*val * 0.045f;
-             fxar[ii] = MIN(val,0.04f) ;
+             fxar[ii] = /* MIN(val,maxfxyz) ; */ maxfxyz ;
            }
          }
          if( fyar != NULL ){
            if( fyar[ii] <= 0.0f || fyar[ii] >= gy ) fyar[ii] = 0.0f ;
            else {
              my++; val = (fwhm_ygoal-fyar[ii])/dy; val = val*val * 0.045f;
-             fyar[ii] = MIN(val,0.04f) ;
+             fyar[ii] = /* MIN(val,maxfxyz) ; */ maxfxyz ;
            }
          }
          if( fzar != NULL ){
            if( fzar[ii] <= 0.0f || fzar[ii] >= gz ) fzar[ii] = 0.0f ;
            else {
              mz++; val = (fwhm_zgoal-fzar[ii])/dz; val = val*val * 0.045f;
-             fzar[ii] = MIN(val,0.04f) ;
+             fzar[ii] = /* MIN(val,maxfxyz) ; */ maxfxyz ;
            }
          }
        }
@@ -458,7 +460,7 @@ void estimate_blur_map( MRI_IMARR *bmar , byte *mask  , MCW_cluster *nbhd ,
 {
    int ibm , ii , nvox , nar , nx,nxy , xx,yy,zz , pp ;
    THD_fvec3 fw ;
-   double fxx ,  fyy , fzz ;
+   float  fxx ,  fyy , fzz ;
    int   nfxx , nfyy , nfzz;
    float  vxx ,  vyy ,  vzz;
 
@@ -473,19 +475,19 @@ ENTRY("estimate_blur_map") ;
      vxx = vyy = vzz = 0.0f ;
      if( INMASK(ii) ){
        nfxx = nfyy = nfzz = 0 ;
-        fxx =  fyy =  fzz = 1.0 ;
+        fxx =  fyy =  fzz = 0.0f ;
        IJK_TO_THREE(ii,xx,yy,zz,nx,nxy) ;
        for( ibm=0 ; ibm < nar ; ibm++ ){
-         fw = mri_nstat_fwhmxyz( xx,yy,zz , IMARR_SUBIM(bmar,ibm),mask,nbhd ) ;
-         if( fxar != NULL && fw.xyz[0] > 0.0f ){ nfxx++ ; fxx *= fw.xyz[0] ; }
-         if( fyar != NULL && fw.xyz[1] > 0.0f ){ nfyy++ ; fyy *= fw.xyz[1] ; }
-         if( fzar != NULL && fw.xyz[2] > 0.0f ){ nfzz++ ; fzz *= fw.xyz[2] ; }
+         fw = mri_nstat_fwhmxyz( xx,yy,zz , IMARR_SUBIM(bmar,ibm),mask,nbhd );
+         if( fxar != NULL && fw.xyz[0] > 0.0f ){ nfxx++; fxx += fw.xyz[0]; }
+         if( fyar != NULL && fw.xyz[1] > 0.0f ){ nfyy++; fyy += fw.xyz[1]; }
+         if( fzar != NULL && fw.xyz[2] > 0.0f ){ nfzz++; fzz += fw.xyz[2]; }
        }
-       if( nfxx > 0 ) vxx = (nfxx==1) ? fxx : pow(fxx,1.0/nfxx);
-       if( nfyy > 0 ) vyy = (nfyy==1) ? fyy : pow(fyy,1.0/nfyy);
-       if( nfzz > 0 ) vzz = (nfzz==1) ? fzz : pow(fzz,1.0/nfzz);
+       if( nfxx > 0 ) vxx = fxx / nfxx ;
+       if( nfyy > 0 ) vyy = fyy / nfyy ;
+       if( nfzz > 0 ) vzz = fzz / nfzz ;
      }
-     ASSIF(fxar,ii,vxx) ; ASSIF(fyar,ii,vyy) ; ASSIF(fzar,ii,vzz) ;
+     ASSIF(fxar,ii,vxx); ASSIF(fyar,ii,vyy); ASSIF(fzar,ii,vzz);
    }
 
    EXRETURN;
