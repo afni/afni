@@ -22,9 +22,10 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *fxim=NULL , *fyim=NULL , *fzim=NULL ;
    float     *fxar=NULL , *fyar=NULL , *fzar=NULL ;
    float dx,dy,dz ;
-   float gx,gy,gz , val , maxfxyz ;
-   int   nite , bmeqin , maxite=66 , numfxyz , nd,nblur ;
+   float gx,gy,gz , val , maxfxyz , maxfx,maxfy,maxfz ;
+   int   nite , bmeqin , maxite=33 , numfxyz , nd,nblur , xdone,ydone,zdone ;
    float bx,by,bz ;
+   float last_fwx=0.0f , last_fwy=0.0f , last_fwz=0.0f ;
    char *bsave_prefix=NULL ;
    THD_fvec3 fw ;
 
@@ -58,7 +59,7 @@ int main( int argc , char *argv[] )
       " -nbhd       nnn = As in 3dLocalstat, specifies the neighborhood\n"
       "                   used to compute local smoothness.\n"
       "                   [Default = 'SPHERE(10)' = sphere of 10 mm radius.]\n"
-      " -maxite     ccc = Set maximum number of iterations to 'ccc'.\n"
+      " -maxite     ccc = Set maximum number of iterations to 'ccc' [Default=33].\n"
       " -bsave      bbb = Save the blur map estimates at each iteration\n"
       "                   with dataset prefix 'bbb' [for debugging purposes].\n"
       "\n"
@@ -323,7 +324,8 @@ int main( int argc , char *argv[] )
      fzar = MRI_FLOAT_PTR(fzim) ;
      gz   = fwhm_goal - 0.666*dz ; numfxyz++ ;
    }
-   maxfxyz = 0.09f / numfxyz ;
+   maxfxyz    = 0.09f / numfxyz ;
+   fwhm_goal *= 0.99f ;
 
    /*----------- Do the work:
                    estimate smoothness of blur master
@@ -338,27 +340,44 @@ int main( int argc , char *argv[] )
 
      fw = mriarr_estimate_FWHM_1dif( bmar , mask ) ;
      UNLOAD_FVEC3(fw,bx,by,bz) ;
-     if( bx <= 0.0f ) bx = 1.0f ;
-     if( by <= 0.0f ) by = 1.0f ;
-     if( bz <= 0.0f ) bz = 1.0f ;
+     if( bx <= 0.0f ) bx = dx ;
+     if( by <= 0.0f ) by = dy ;
+     if( bz <= 0.0f ) bz = dz ;
      if( fwhm_2D ){
-       INFO_message("-- Iteration #%d: 2D FWHMx=%.4f, FWHMy=%.4f",nite,bx,by) ;
-       if( sqrt(bx*by) >= 0.99*fwhm_goal ){
-          INFO_message("*** Passes threshold ==> done!") ;
-          break ;
+       INFO_message("-- Iteration #%d: 2D FWHMx=%.4f FWHMy=%.4f",nite,bx,by) ;
+       if( sqrt(bx*by) >= fwhm_goal ){
+         INFO_message("** Passes 2D area threshold ==> done!") ; break ;
        }
+       if( nite > 3 && bx < last_fwx && by < last_fwy ){
+         INFO_message("** Bailing out for sluggish progress!") ; break ;
+       }
+       xdone = (bx >= fwhm_goal || bx < last_fwx) ;
+       ydone = (by >= fwhm_goal || by < last_fwy) ;
+       zdone = 1 ;
      } else {
-       INFO_message("-- Iteration #%d: 3D FWHMx=%.4f, FWHMy=%.4f, FWHMz=%.4f",
+       INFO_message("-- Iteration #%d: 3D FWHMx=%.4f FWHMy=%.4f FWHMz=%.4f",
                     nite,bx,by,bz) ;
-       if( cbrt(bx*by*bz) >= 0.99*fwhm_goal ){
-          INFO_message("-- Passes threshold ==> done!") ;
-          break ;
+       if( cbrt(bx*by*bz) >= fwhm_goal ){
+         INFO_message("-- Passes 3D volume threshold ==> done!") ; break ;
        }
+       if( nite > 3 && bx < last_fwx && by < last_fwy && bz < last_fwz ){
+         INFO_message("** Bailing out for sluggish progress!") ; break ;
+       }
+       xdone = (bx >= fwhm_goal || bx < last_fwx) ;
+       ydone = (by >= fwhm_goal || by < last_fwy) ;
+       zdone = (bz >= fwhm_goal || bz < last_fwz) ;
      }
+     if( xdone && ydone && zdone ){
+       INFO_message("** All axes stalled ==> done") ; break ;
+     }
+     maxfx = (xdone) ? 0.0111f*maxfxyz : maxfxyz ;
+     maxfy = (ydone) ? 0.0111f*maxfxyz : maxfxyz ;
+     maxfz = (zdone) ? 0.0111f*maxfxyz : maxfxyz ;
+     last_fwx = 1.01f*bx; last_fwy = 1.01f*by; last_fwz = 1.01f*bz;
 
      /*--- blur map estimation ---*/
 
-     ININFO_message(" Estimate blur map at each voxel") ;
+     ININFO_message(" Estimate blurring at each voxel") ;
      estimate_blur_map( bmar , mask,nbhd , fxar,fyar,fzar ) ;
 
      if( bsave_prefix != NULL ){
@@ -404,15 +423,15 @@ int main( int argc , char *argv[] )
        if( mask[ii] == 1 ){
          nd = 0 ;
          if( fxar != NULL ){
-           fxar[ii] = (fxar[ii] <= 0.0f || fxar[ii] >= gx) ? 0.0f : maxfxyz ;
+           fxar[ii] = (fxar[ii] <= 0.0f || fxar[ii] >= gx) ? 0.0f : maxfx ;
            if( fxar[ii] > 0.0f ) nd++ ;
          }
          if( fyar != NULL ){
-           fyar[ii] = (fyar[ii] <= 0.0f || fyar[ii] >= gy) ? 0.0f : maxfxyz ;
+           fyar[ii] = (fyar[ii] <= 0.0f || fyar[ii] >= gy) ? 0.0f : maxfy ;
            if( fyar[ii] > 0.0f ) nd++ ;
          }
          if( fzar != NULL ){
-           fzar[ii] = (fzar[ii] <= 0.0f || fzar[ii] >= gz) ? 0.0f : maxfxyz ;
+           fzar[ii] = (fzar[ii] <= 0.0f || fzar[ii] >= gz) ? 0.0f : maxfz ;
            if( fzar[ii] > 0.0f ) nd++ ;
          }
          if( nd == 0 ) mask[ii] = 2 ;   /* turn off future diffusion here */
