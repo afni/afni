@@ -6,9 +6,6 @@
 void estimate_blur_map( MRI_IMARR *bmar , byte *mask  , MCW_cluster *nbhd ,
                         float *fxar     , float *fyar , float *fzar        ) ;
 
-#undef  INMASK
-#define INMASK(i) (mask == NULL || mask[i] != 0)
-
 /*----------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
@@ -16,9 +13,9 @@ int main( int argc , char *argv[] )
    int iarg=1 , ii,nvox ;
    THD_3dim_dataset *bmset=NULL, *inset=NULL, *outset=NULL ;
    char *prefix="./blurto" ;
-   float fwhm_xgoal=0.0f, fwhm_ygoal=0.0f, fwhm_zgoal=0.0f ;
+   float fwhm_goal=0.0f ; int fwhm_2D=0 ;
    MCW_cluster *nbhd=NULL ;
-   byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
+   byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 , nmask ;
    int ntype=0 ; float na=0.0f,nb=0.0f,nc=0.0f ;
    MRI_IMARR *bmar ; MRI_IMAGE *bmed , *bmim ; int ibm ;
    MRI_IMARR *dsar ; MRI_IMAGE *dsim ;         int ids ;
@@ -26,17 +23,18 @@ int main( int argc , char *argv[] )
    float     *fxar=NULL , *fyar=NULL , *fzar=NULL ;
    float dx,dy,dz ;
    float gx,gy,gz , val , maxfxyz ;
-   int   mx,my,mz , nite , bmeqin , maxite=666 , numfxyz ;
+   int   nite , bmeqin , maxite=66 , numfxyz , nd,nblur ;
    float bx,by,bz ;
    char *bsave_prefix=NULL ;
+   THD_fvec3 fw ;
 
    /*-- help the pitifully ignorant luser? --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
       "Usage: 3dBlurToFWHM [options]\n"
-      "Blurs a 'master' dataset until it has (about) the same FWHM\n"
-      "smoothness at each point.  The same blurring schedule is\n"
+      "Blurs a 'master' dataset until it reaches a specified FWHM\n"
+      "smoothness (approximately).  The same blurring schedule is\n"
       "applied to the input dataset to produce the output.\n"
       "\n"
       "Options\n"
@@ -47,17 +45,14 @@ int main( int argc , char *argv[] )
       "                   that will be smoothed and output.\n"
       " -prefix     ppp = Prefix for output dataset will be 'ppp'.\n"
       " -mask       mmm = Mask dataset, if desired.  Blurring will\n"
-      "                   occur only within the mask.\n"
+      "                   occur only within the mask.  Voxels NOT in\n"
+      "                   the mask will be set to zero in the output.\n"
       " -automask       = Create an automask from the input dataset.\n"
-      " -FWHMx      fwx = Blur until the FWHM in the x-direction is 'fwx' mm.\n"
-      " -FWHMy      fwy = Blur until the FWHM in the y-direction is 'fwy' mm.\n"
-      " -FWHMz      fwz = Blur until the FWHM in the z-direction is 'fwz' mm.\n"
-      " -FWHMxy     fxy = Like '-FWHMx fxy -FWHMy fxy', just simpler.\n"
-      " -FWHMxyz    fff = Like '-FWHMx fff -FWHMy fff -FWHMz fff'.\n"
+      " -FWHM       f   = Blur until the 3D FWHM is 'f'.\n"
+      " -FWHMxy     f   = Blur until the 2D (x,y)-plane FWHM is 'f'.\n"
+      "                   No blurring is done along the z-axis.\n"
       "           **N.B.: Note that you can't REDUCE the smoothness of a\n"
-      "                   dataset.  If a location is already smoother than\n"
-      "                   the goal, it won't be smoothed any more, but it\n"
-      "                   won't be made less smooth.\n"
+      "                   dataset.\n"
       "           **N.B.: Here, 'x', 'y', and 'z' refer to the grid/slice\n"
       "                   order as stored in the dataset, not DICOM coordinates!\n"
       " -nbhd       nnn = As in 3dLocalstat, specifies the neighborhood\n"
@@ -65,7 +60,7 @@ int main( int argc , char *argv[] )
       "                   [Default = 'SPHERE(10)' = sphere of 10 mm radius.]\n"
       " -maxite     ccc = Set maximum number of iterations to 'ccc'.\n"
       " -bsave      bbb = Save the blur map estimates at each iteration\n"
-      "                   with dataset prefix 'bbb'\n"
+      "                   with dataset prefix 'bbb' [for debugging purposes].\n"
       "\n"
       "-- RWCox - Nov 2006\n"
      ) ;
@@ -119,7 +114,7 @@ int main( int argc , char *argv[] )
      }
 
      if( strcmp(argv[iarg],"-mask") == 0 ){
-       THD_3dim_dataset *mset ; int mmm ;
+       THD_3dim_dataset *mset ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-mask'") ;
        if( mask != NULL || automask ) ERROR_exit("Can't have two mask inputs") ;
        mset = THD_open_dataset( argv[iarg] ) ;
@@ -129,9 +124,9 @@ int main( int argc , char *argv[] )
        mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
        mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
        if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
-       mmm = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
-       INFO_message("Number of voxels in mask = %d",mmm) ;
-       if( mmm < 333 ) ERROR_exit("Mask is too small to process") ;
+       nmask = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
+       INFO_message("Number of voxels in mask = %d",nmask) ;
+       if( nmask < 333 ) ERROR_exit("Mask is too small to process") ;
        iarg++ ; continue ;
      }
 
@@ -161,29 +156,25 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-     if( strncmp(argv[iarg],"-FWHM",5) == 0 ||
-         strncmp(argv[iarg],"-FHWM",5) == 0   ){
-       char *cpt = argv[iarg]+5 ;
+     if( strcmp(argv[iarg],"-FWHM") == 0 || strcmp(argv[iarg],"-FHWM") == 0 ){
        float val ;
 
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]);
        val = (float)strtod(argv[iarg],NULL) ;
-       if( val < 0.0f ) ERROR_exit("Illegal value after '%s': '%s'",
+       if( val <= 0.0f ) ERROR_exit("Illegal value after '%s': '%s'",
                                     argv[iarg-1],argv[iarg]) ;
+       fwhm_goal = val ; fwhm_2D = 0 ;
+       iarg++ ; continue ;
+     }
 
-       if( cpt == '\0' || strcasecmp(cpt,"xyz") == 0 ){  /* -FWHM or -FWHMxyz */
-         fwhm_xgoal = fwhm_ygoal = fwhm_zgoal = val ;
-       } else if( strcasecmp(cpt,"x") == 0 ){
-         fwhm_xgoal = val ;
-       } else if( strcasecmp(cpt,"y") == 0 ){
-         fwhm_ygoal = val ;
-       } else if( strcasecmp(cpt,"z") == 0 ){
-         fwhm_zgoal = val ;
-       } else if( strcasecmp(cpt,"xy") == 0 ){
-         fwhm_xgoal = fwhm_ygoal = val ;
-       } else {
-         ERROR_exit("Don't recognize '%s' as a valid -FWHM option!",argv[iarg-1]);
-       }
+     if( strcmp(argv[iarg],"-FWHMxy") == 0 || strcmp(argv[iarg],"-FHWMxy") == 0 ){
+       float val ;
+
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]);
+       val = (float)strtod(argv[iarg],NULL) ;
+       if( val <= 0.0f ) ERROR_exit("Illegal value after '%s': '%s'",
+                                    argv[iarg-1],argv[iarg]) ;
+       fwhm_goal = val ; fwhm_2D = 1 ;
        iarg++ ; continue ;
      }
 
@@ -193,8 +184,8 @@ int main( int argc , char *argv[] )
 
    /*----- check for stupid inputs, load datasets, et cetera -----*/
 
-   if( fwhm_xgoal == 0.0f && fwhm_ygoal == 0.0f && fwhm_zgoal == 0.0f )
-     ERROR_exit("No -FWHM options given! What do you want?") ;
+   if( fwhm_goal == 0.0f )
+     ERROR_exit("No -FWHM option given! What do you want?") ;
 
    if( bmset == NULL ) ERROR_exit("No -blurmaster dataset?!") ;
 
@@ -209,12 +200,6 @@ int main( int argc , char *argv[] )
    dz   = fabs(DSET_DZ(inset)) ;
 
    bmeqin = EQUIV_DSETS(bmset,inset) ;  /* blurmaster and input the same? */
-
-   if( DSET_NX(inset) < 2 ) fwhm_xgoal = 0.0f ;
-   if( DSET_NY(inset) < 2 ) fwhm_ygoal = 0.0f ;
-   if( DSET_NZ(inset) < 2 ) fwhm_zgoal = 0.0f ;
-   if( fwhm_xgoal == 0.0f && fwhm_ygoal == 0.0f && fwhm_zgoal == 0.0f )
-     ERROR_exit("Can't process with given FWHM params and slice dimensions!");
 
    if( DSET_NX(inset) != DSET_NX(bmset) ||
        DSET_NY(inset) != DSET_NY(bmset) ||
@@ -231,13 +216,17 @@ int main( int argc , char *argv[] )
        ERROR_exit("-mask dataset grid doesn't match input dataset") ;
 
    } else if( automask ){
-     int mmm ;
      mask = THD_automask( inset ) ;
      if( mask == NULL )
        ERROR_message("Can't create -automask from input dataset?") ;
-     mmm = THD_countmask( DSET_NVOX(inset) , mask ) ;
-     INFO_message("Number of voxels in automask = %d",mmm) ;
-     if( mmm < 333 ) ERROR_exit("Automask is too small to process") ;
+     nmask = THD_countmask( DSET_NVOX(inset) , mask ) ;
+     INFO_message("Number of voxels in automask = %d",nmask) ;
+     if( nmask < 333 ) ERROR_exit("Automask is too small to process") ;
+
+   } else {
+     mask = (byte *)malloc(sizeof(byte)*nvox) ; nmask = nvox ;
+     memset(mask,1,sizeof(byte)*nvox) ;
+     INFO_message("No mask ==> processing all %d voxels",nvox) ;
    }
 
    /*---- create neighborhood -----*/
@@ -249,12 +238,13 @@ int main( int argc , char *argv[] )
 
    switch( ntype ){
      default:
-       ERROR_exit("WTF?  ntype=%d",ntype) ;
+       ERROR_exit("WTF?  ntype=%d",ntype) ;   /* should not happen */
 
      case NTYPE_SPHERE:{
        float ddx , ddy , ddz ;
        if( na < 0.0f ){ ddx = ddy = ddz = 1.0f ; na = -na ; }
        else           { ddx = dx ; ddy = dy ; ddz = dz ;    }
+       if( fwhm_2D ) ddz = 1.e+10 ;   /* 2D only */
        nbhd = MCW_spheremask( ddx,ddy,ddz , na ) ;
      }
      break ;
@@ -271,7 +261,7 @@ int main( int argc , char *argv[] )
 
    INFO_message("Neighborhood comprises %d voxels",nbhd->num_pt) ;
    if( nbhd->num_pt < 19 )
-     ERROR_exit("FWHM requires neighborhood of at least 19 voxels!") ;
+     ERROR_exit("FWHM estimation requires neighborhood of at least 19 voxels!") ;
 
    /*--- process blurmaster dataset to produce blur master image array ---*/
 
@@ -282,7 +272,10 @@ int main( int argc , char *argv[] )
      ADDTO_IMARR(bmar,bmed) ;
    } else {
      float *mar=MRI_FLOAT_PTR(bmed) , *bar ;
-     for( ibm=0 ; ibm < DSET_NVALS(bmset) ; ibm++ ){
+     int ntouse = (int)ceil(3456.0/nbhd->num_pt) ;
+          if( ntouse < 1                 ) ntouse = 1 ;
+     else if( ntouse > DSET_NVALS(bmset) ) ntouse = DSET_NVALS(bmset) ;
+     for( ibm=0 ; ibm < ntouse ; ibm++ ){
        bmim = mri_scale_to_float(DSET_BRICK_FACTOR(bmset,ibm),DSET_BRICK(bmset,ibm));
        bar  = MRI_FLOAT_PTR(bmim) ;
        for( ii=0 ; ii < nvox ; ii++ ) bar[ii] -= mar[ii] ;
@@ -317,22 +310,20 @@ int main( int argc , char *argv[] )
    /*--- make arrays for FWHM estimates and then diffusion parameters ---*/
 
    numfxyz = 0 ;
-   if( fwhm_xgoal > 0.0f ){
-     fxim = mri_new_conforming( IMARR_SUBIM(bmar,0) , MRI_float ) ;
-     fxar = MRI_FLOAT_PTR(fxim) ;
-     gx   = fwhm_xgoal - 0.999*dx ; numfxyz++ ;
-   }
-   if( fwhm_ygoal > 0.0f ){
-     fyim = mri_new_conforming( IMARR_SUBIM(bmar,0) , MRI_float ) ;
-     fyar = MRI_FLOAT_PTR(fyim) ;
-     gy   = fwhm_ygoal - 0.999*dy ; numfxyz++ ;
-   }
-   if( fwhm_zgoal > 0.0f ){
+   fxim = mri_new_conforming( IMARR_SUBIM(bmar,0) , MRI_float ) ;
+   fxar = MRI_FLOAT_PTR(fxim) ;
+   gx   = fwhm_goal - 0.666*dx ; numfxyz++ ;
+
+   fyim = mri_new_conforming( IMARR_SUBIM(bmar,0) , MRI_float ) ;
+   fyar = MRI_FLOAT_PTR(fyim) ;
+   gy   = fwhm_goal - 0.666*dy ; numfxyz++ ;
+
+   if( !fwhm_2D ){
      fzim = mri_new_conforming( IMARR_SUBIM(bmar,0) , MRI_float ) ;
      fzar = MRI_FLOAT_PTR(fzim) ;
-     gz   = fwhm_zgoal - 0.999*dz ; numfxyz++ ;
+     gz   = fwhm_goal - 0.666*dz ; numfxyz++ ;
    }
-   maxfxyz = 0.16f / numfxyz ;
+   maxfxyz = 0.09f / numfxyz ;
 
    /*----------- Do the work:
                    estimate smoothness of blur master
@@ -343,9 +334,31 @@ int main( int argc , char *argv[] )
 
    for( nite=1 ; nite <= maxite ; nite++ ){
 
+     /*--- average blurring estimation ---*/
+
+     fw = mriarr_estimate_FWHM_1dif( bmar , mask ) ;
+     UNLOAD_FVEC3(fw,bx,by,bz) ;
+     if( bx <= 0.0f ) bx = 1.0f ;
+     if( by <= 0.0f ) by = 1.0f ;
+     if( bz <= 0.0f ) bz = 1.0f ;
+     if( fwhm_2D ){
+       INFO_message("-- Iteration #%d: 2D FWHMx=%.4f, FWHMy=%.4f",nite,bx,by) ;
+       if( sqrt(bx*by) >= 0.99*fwhm_goal ){
+          INFO_message("*** Passes threshold ==> done!") ;
+          break ;
+       }
+     } else {
+       INFO_message("-- Iteration #%d: 3D FWHMx=%.4f, FWHMy=%.4f, FWHMz=%.4f",
+                    nite,bx,by,bz) ;
+       if( cbrt(bx*by*bz) >= 0.99*fwhm_goal ){
+          INFO_message("-- Passes threshold ==> done!") ;
+          break ;
+       }
+     }
+
      /*--- blur map estimation ---*/
 
-     INFO_message("Iteration #%d: estimate blur map",nite) ;
+     ININFO_message(" Estimate blur map at each voxel") ;
      estimate_blur_map( bmar , mask,nbhd , fxar,fyar,fzar ) ;
 
      if( bsave_prefix != NULL ){
@@ -384,41 +397,33 @@ int main( int argc , char *argv[] )
        }
      }
 
-     /*--- count how many voxels aren't smooth enuf yet,
-           and compute local blurring parameters where needed ---*/
+     /*--- compute local blurring parameters where needed ---*/
 
-     mx = my = mz = 0 ; bx = by = bz = 1.e+10 ;
+     nblur = 0 ;
      for( ii=0 ; ii < nvox ; ii++ ){
-       if( INMASK(ii) ){
+       if( mask[ii] == 1 ){
+         nd = 0 ;
          if( fxar != NULL ){
-           if( fxar[ii] <= 0.0f || fxar[ii] >= gx ) fxar[ii] = 0.0f ;
-           else {
-             mx++; val = (fwhm_xgoal-fxar[ii])/dx; val = val*val * 0.045f;
-             fxar[ii] = /* MIN(val,maxfxyz) ; */ maxfxyz ;
-           }
+           fxar[ii] = (fxar[ii] <= 0.0f || fxar[ii] >= gx) ? 0.0f : maxfxyz ;
+           if( fxar[ii] > 0.0f ) nd++ ;
          }
          if( fyar != NULL ){
-           if( fyar[ii] <= 0.0f || fyar[ii] >= gy ) fyar[ii] = 0.0f ;
-           else {
-             my++; val = (fwhm_ygoal-fyar[ii])/dy; val = val*val * 0.045f;
-             fyar[ii] = /* MIN(val,maxfxyz) ; */ maxfxyz ;
-           }
+           fyar[ii] = (fyar[ii] <= 0.0f || fyar[ii] >= gy) ? 0.0f : maxfxyz ;
+           if( fyar[ii] > 0.0f ) nd++ ;
          }
          if( fzar != NULL ){
-           if( fzar[ii] <= 0.0f || fzar[ii] >= gz ) fzar[ii] = 0.0f ;
-           else {
-             mz++; val = (fwhm_zgoal-fzar[ii])/dz; val = val*val * 0.045f;
-             fzar[ii] = /* MIN(val,maxfxyz) ; */ maxfxyz ;
-           }
+           fzar[ii] = (fzar[ii] <= 0.0f || fzar[ii] >= gz) ? 0.0f : maxfxyz ;
+           if( fzar[ii] > 0.0f ) nd++ ;
          }
+         if( nd == 0 ) mask[ii] = 2 ;   /* turn off future diffusion here */
+         else          nblur++ ;
        }
      }
-     ININFO_message(" #Too coarse: x=%d  y=%d  z=%d",mx,my,mz) ;
-     if( mx+my+mz == 0 ) break ;  /****** WE WIN!!!!! *****/
+     if( nblur == 0 ) break ;
 
      /*--- blur the master and the input ---*/
 
-     ININFO_message(" Blurring master") ;
+     ININFO_message(" Blurring %d voxels in master",nblur) ;
      for( ii=0 ; ii < IMARR_COUNT(bmar) ; ii++ )
        mri_blur3D_variable( IMARR_SUBIM(bmar,ii) , mask , fxim,fyim,fzim ) ;
 
@@ -473,7 +478,7 @@ ENTRY("estimate_blur_map") ;
 
    for( ii=0 ; ii < nvox ; ii++ ){
      vxx = vyy = vzz = 0.0f ;
-     if( INMASK(ii) ){
+     if( mask[ii] == 1 ){
        nfxx = nfyy = nfzz = 0 ;
         fxx =  fyy =  fzz = 0.0f ;
        IJK_TO_THREE(ii,xx,yy,zz,nx,nxy) ;

@@ -33,8 +33,8 @@ ENTRY("THD_median_brick") ;
 
    tsar = (float *) calloc( sizeof(float),nvals+1 ) ; /* 05 Nov 2001 */
    for( ii=0 ; ii < nvox ; ii++ ){
-      THD_extract_array( ii , dset , 0 , tsar ) ;     /* 05 Nov 2001 */
-      medar[ii] = qmed_float( nvals , tsar ) ;
+     THD_extract_array( ii , dset , 0 , tsar ) ;     /* 05 Nov 2001 */
+     medar[ii] = qmed_float( nvals , tsar ) ;
    }
 
    free(tsar) ; RETURN(medim) ;
@@ -61,8 +61,8 @@ ENTRY("THD_mean_brick") ;
    tsim  = DSET_BRICK(dset,0) ;
 
    if( nvals == 1 ){
-     medim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,0), tsim ) ;
-     RETURN(medim) ;
+    medim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,0), tsim ) ;
+    RETURN(medim) ;
    }
 
    medim = mri_new_conforming( tsim , MRI_float ) ;
@@ -71,9 +71,9 @@ ENTRY("THD_mean_brick") ;
 
    tsar = (float *) calloc( sizeof(float),nvals+1 ) ;
    for( ii=0 ; ii < nvox ; ii++ ){
-      THD_extract_array( ii , dset , 0 , tsar ) ;
-      for( sum=0.0,jj=0 ; jj < nvals ; jj++ ) sum += tsar[jj] ;
-      medar[ii] = fac * sum ;
+     THD_extract_array( ii , dset , 0 , tsar ) ;
+     for( sum=0.0,jj=0 ; jj < nvals ; jj++ ) sum += tsar[jj] ;
+     medar[ii] = fac * sum ;
    }
 
    free(tsar) ; RETURN(medim) ;
@@ -110,9 +110,9 @@ ENTRY("THD_rms_brick") ;
 
    tsar = (float *) calloc( sizeof(float),nvals+1 ) ;
    for( ii=0 ; ii < nvox ; ii++ ){
-      THD_extract_array( ii , dset , 0 , tsar ) ;
-      for( sum=0.0,jj=0 ; jj < nvals ; jj++ ) sum += tsar[jj]*tsar[jj] ;
-      medar[ii] = sqrt(fac * sum) ;
+     THD_extract_array( ii , dset , 0 , tsar ) ;
+     for( sum=0.0,jj=0 ; jj < nvals ; jj++ ) sum += tsar[jj]*tsar[jj] ;
+     medar[ii] = sqrt(fac * sum) ;
    }
 
    free(tsar) ; RETURN(medim) ;
