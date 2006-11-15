@@ -1790,3 +1790,5 @@
   * modified 3dvol2surf.c: moved thd_mask_from_brick() to thd_makemask.c
   * modified 3ddata.h: added protos for mask functions
 
+15 Nov 2006: modified serial_helper.c: encode nex into handshake byte
+
