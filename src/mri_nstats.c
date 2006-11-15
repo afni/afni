@@ -191,15 +191,15 @@ THD_fvec3 mri_nstat_fwhmxyz( int xx, int yy, int zz,
    /*---- 2.35482 = sqrt(8*log(2)) = sigma-to-FWHM conversion factor ----*/
 
    arg = 1.0 - 0.5*(varxx/var);
-   sx  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0f
+   sx  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0
                                       : 2.35482*sqrt( -1.0/(4.0*log(arg)) )*dx;
 
    arg = 1.0 - 0.5*(varyy/var);
-   sy  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0f
+   sy  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0
                                       : 2.35482*sqrt( -1.0/(4.0*log(arg)) )*dy;
 
    arg = 1.0 - 0.5*(varzz/var);
-   sz  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0f
+   sz  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0
                                       : 2.35482*sqrt( -1.0/(4.0*log(arg)) )*dz;
 
    LOAD_FVEC3(fw_xyz,sx,sy,sz) ;
