@@ -1,4 +1,4 @@
-#define VERSION "1.5 (November 11, 2006)"
+#define VERSION "1.6 (November 15, 2006)"
 
 /*----------------------------------------------------------------------
  * serial_helper.c    - pass data from plug_realtime to serial port
@@ -49,6 +49,9 @@ static char g_history[] =
  "\n"
  " 1.5  November 11, 2006 [rickr]\n"
  "    - added -num_extras option, for processing extra floats per TR\n"
+ "\n"
+ " 1.6  November 15, 2006 [rickr]\n"
+ "    - encode nex in handshake byte written to serial port each TR\n"
  "----------------------------------------------------------------------\n";
 
 
@@ -764,7 +767,7 @@ void send_serial(optiondata * opt, port_list * plist, motparm *mot)
     static char outdata[7];
     int i, len;
     
-    outdata[0] = -128;
+    outdata[0] = (char)(-128 + mot->nex);  /* encode nex in handshake byte */
     for(i = 0; i < 6; i++)
     {
         if (mot->data[i] > opt->mp_max) 
