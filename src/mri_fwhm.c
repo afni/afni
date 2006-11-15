@@ -7,6 +7,31 @@ static int dontcheckplus = 0 ;
 void FHWM_1dif_dontcheckplus( int i ){ dontcheckplus = i; }
 
 /*---------------------------------------------------------------------------*/
+
+THD_fvec3 mriarr_estimate_FWHM_1dif( MRI_IMARR *imar , byte *mask )
+{
+   int nar=IMARR_COUNT(imar) , ii ;
+   THD_fvec3 sv ;
+   float cx,cy,cz , fx,fy,fz ;
+   int   nx,ny,nz ;
+
+   cx = cy = cz = 0.0f ; nx = ny = nz = 0 ;
+   for( ii=0 ; ii < nar ; ii++ ){
+     sv = mri_estimate_FWHM_1dif( IMARR_SUBIM(imar,ii) , mask ) ;
+     UNLOAD_FVEC3(sv,fx,fy,fz) ;
+     /*** INFO_message("  sub-brick[%d]: fx=%g fy=%g fz=%g",ii,fx,fy,fz) ; ***/
+     if( fx > 0.0f ){ cx += fx ; nx++ ; }
+     if( fy > 0.0f ){ cy += fy ; ny++ ; }
+     if( fz > 0.0f ){ cz += fz ; nz++ ; }
+   }
+   cx = (nx==0) ? -1.0f : cx / nx ;
+   cy = (ny==0) ? -1.0f : cy / ny ;
+   cz = (nz==0) ? -1.0f : cz / nz ;
+   LOAD_FVEC3(sv,cx,cy,cz) ;
+   return sv ;
+}
+
+/*---------------------------------------------------------------------------*/
 /*! Routine to estimate Gaussian FWHM of data brick, using first differences.
      - A negative return value indicates an error condition in that direction
        (e.g., FWHM(z) == -1.0 when nz == 1).
@@ -146,11 +171,11 @@ static THD_fvec3 (*fester)(MRI_IMAGE *, byte *) = mri_estimate_FWHM_1dif ;
     Output image is 3xN where N=# of sub-bricks.
 -----------------------------------------------------------------------------*/
 
-MRI_IMAGE * THD_estimate_FWHM_all( THD_3dim_dataset *dset , byte *mask )
+MRI_IMAGE * THD_estimate_FWHM_all( THD_3dim_dataset *dset, byte *mask, int demed )
 {
-   int iv , nvals ;
-   MRI_IMAGE *bim , *outim ;
-   float *outar , fac ;
+   int iv , nvals , ii,nvox ;
+   MRI_IMAGE *bim , *outim , *medim ;
+   float *outar , fac , *medar, *bar ;
    THD_fvec3 fw ;
 
 ENTRY("THD_estimate_FWHM_all") ;
@@ -162,15 +187,20 @@ ENTRY("THD_estimate_FWHM_all") ;
    outim = mri_new( 3 , nvals , MRI_float ) ;
    outar = MRI_FLOAT_PTR(outim) ;
 
+   if( demed ){ medim = THD_median_brick(dset); medar = MRI_FLOAT_PTR(medim); }
+   nvox = DSET_NVOX(dset) ;
+
    for( iv=0 ; iv < nvals ; iv++ ){
-     bim = DSET_BRICK(dset,iv) ;
-     fac = DSET_BRICK_FACTOR(dset,iv) ; if( fac == 0.0f ) fac = 1.0f ;
-     if( bim->kind != MRI_float || fac != 1.0f )
-       bim = mri_scale_to_float( fac , bim ) ;
-     fw = fester( bim , mask ) ;
-     if( bim != DSET_BRICK(dset,iv) ) mri_free(bim) ;
+     bim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,iv), DSET_BRICK(dset,iv) );
+     if( demed ){
+       bar = MRI_FLOAT_PTR(bim) ;
+       for( ii=0 ; ii < nvox ; ii++ ) bar[ii] -= medar[ii] ;
+     }
+     fw = fester( bim , mask ) ; mri_free(bim) ;
      UNLOAD_FVEC3( fw , outar[0+3*iv] , outar[1+3*iv] , outar[2+3*iv] ) ;
    }
+
+   if( demed ) mri_free(medim) ;
 
    RETURN(outim) ;
 }
