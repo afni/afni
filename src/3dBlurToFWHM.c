@@ -3,6 +3,8 @@
 #define NTYPE_SPHERE 1
 #define NTYPE_RECT   2
 
+#define BAILOUT      3
+
 void estimate_blur_map( MRI_IMARR *bmar , byte *mask  , MCW_cluster *nbhd ,
                         float *fxar     , float *fyar , float *fzar        ) ;
 
@@ -11,7 +13,7 @@ void estimate_blur_map( MRI_IMARR *bmar , byte *mask  , MCW_cluster *nbhd ,
 int main( int argc , char *argv[] )
 {
    int iarg=1 , ii,nvox ;
-   THD_3dim_dataset *bmset=NULL, *inset=NULL, *outset=NULL ;
+   THD_3dim_dataset *bmset=NULL, *inset=NULL, *outset=NULL , *mset=NULL ;
    char *prefix="./blurto" ;
    float fwhm_goal=0.0f ; int fwhm_2D=0 ;
    MCW_cluster *nbhd=NULL ;
@@ -23,11 +25,12 @@ int main( int argc , char *argv[] )
    float     *fxar=NULL , *fyar=NULL , *fzar=NULL ;
    float dx,dy,dz ;
    float gx,gy,gz , val , maxfxyz , maxfx,maxfy,maxfz ;
-   int   nite , bmeqin , maxite=33 , numfxyz , nd,nblur , xdone,ydone,zdone ;
+   int   nite , bmeqin=0 , maxite=66 , numfxyz , nd,nblur , xdone,ydone,zdone ;
    float bx,by,bz ;
    float last_fwx=0.0f , last_fwy=0.0f , last_fwz=0.0f ;
    char *bsave_prefix=NULL ;
    THD_fvec3 fw ;
+   int nbail=0 , xalmost,yalmost,zalmost ;
 
    /*-- help the pitifully ignorant luser? --*/
 
@@ -41,13 +44,15 @@ int main( int argc , char *argv[] )
       "matter what smoothness it had on input (however, the program\n"
       "cannot 'unsmooth' a dataset!).  See below for the method used.\n"
       "\n"
-      "Options\n"
+      "OPTIONS\n"
       "-------\n"
-      " -blurmaster bbb = This required 'option' specifies the dataset\n"
+      " -blurmaster bbb = This option specifies the dataset whose\n"
       "                   whose smoothness controls the process.\n"
+      "                  **N.B.: If not given, the input dataset is used.\n"
       " -input      ddd = This required 'option' specifies the dataset\n"
       "                   that will be smoothed and output.\n"
       " -prefix     ppp = Prefix for output dataset will be 'ppp'.\n"
+      "                  **N.B.: Output dataset is always in float format.\n"
       " -mask       mmm = Mask dataset, if desired.  Blurring will\n"
       "                   occur only within the mask.  Voxels NOT in\n"
       "                   the mask will be set to zero in the output.\n"
@@ -55,18 +60,21 @@ int main( int argc , char *argv[] )
       " -FWHM       f   = Blur until the 3D FWHM is 'f'.\n"
       " -FWHMxy     f   = Blur until the 2D (x,y)-plane FWHM is 'f'.\n"
       "                   No blurring is done along the z-axis.\n"
-      "           **N.B.: Note that you can't REDUCE the smoothness of a\n"
-      "                   dataset.\n"
-      "           **N.B.: Here, 'x', 'y', and 'z' refer to the grid/slice\n"
-      "                   order as stored in the dataset, not DICOM coordinates!\n"
+      "                  **N.B.: Note that you can't REDUCE the smoothness\n"
+      "                          of a dataset.\n"
+      "                  **N.B.: Here, 'x', 'y', and 'z' refer to the\n"
+      "                          grid/slice order as stored in the dataset,\n"
+      "                          not DICOM ordered coordinates!\n"
       " -nbhd       nnn = As in 3dLocalstat, specifies the neighborhood\n"
       "                   used to compute local smoothness.\n"
-      "                   [Default = 'SPHERE(10)' = sphere of 10 mm radius.]\n"
-      " -maxite     ccc = Set maximum number of iterations to 'ccc' [Default=33].\n"
+      "                   [Default = 'SPHERE(-5)']\n"
+      "                  ** N.B.: for -FWHMxy, a 'SPHERE()' nbhd is\n"
+      "                           really a circle in the xy-plane\n"
+      " -maxite     ccc = Set maximum number of iterations to 'ccc' [Default=66].\n"
       " -bsave      bbb = Save the blur map estimates at each iteration\n"
       "                   with dataset prefix 'bbb' [for debugging purposes].\n"
       "\n"
-      "-blurmaster FILE RECOMMENDATIONS:\n"
+      "FILE RECOMMENDATIONS for -blurmaster:\n"
       "For FMRI statistical purposes, you DO NOT want the FWHM to reflect\n"
       "  the spatial structure of the underlying anatomy.  Rather, you want\n"
       "  the FWHM to reflect the spatial structure of the noise.  This means\n"
@@ -77,18 +85,28 @@ int main( int argc , char *argv[] )
       "You CAN give a multi-brick EPI dataset as the -blurmaster dataset; the\n"
       "  median of each voxel's time series will be removed (like the -demed option\n"
       "  in 3dFWHMx) which will tend to remove the spatial structure.  This makes\n"
-      "  it practicable to make the input and blurmaster datasets be the same.\n"
+      "  it practicable to make the input and blurmaster datasets be the same,\n"
+      "  without having to create a detrended or residual dataset beforehand.\n"
+      "  Considering the accuracy of blurring estimates, this is probably good\n"
+      "  enough for government work [that is an insider's joke].\n"
       "\n"
       "ALSO SEE:\n"
-      " - 3dFWHMx, which estimates smoothness globally\n"
-      " - 3dLocalstat -stat FHWM, which estimates smoothness locally\n"
+      " * 3dFWHMx, which estimates smoothness globally\n"
+      " * 3dLocalstat -stat FHWM, which estimates smoothness locally\n"
+      " * This paper, which discusses the need for a fixed level of smoothness\n"
+      "   when combining FMRI datasets from different scanner platforms:\n"
+      "     Friedman L, Glover GH, Krenz D, Magnotta V; The FIRST BIRN. \n"
+      "     Reducing inter-scanner variability of activation in a multicenter\n"
+      "     fMRI study: role of smoothness equalization.\n"
+      "     Neuroimage. 2006 Oct 1;32(4):1656-68.\n"
       "\n"
       "METHOD:\n"
       "The blurring is done by a conservative finite difference approximation\n"
-      "to the diffusion equation\n"
-      "  du/du = d/dx[ D_x(x,y,z) du/dx ] + d/dy[ D_y(x,y,z) du/dy ]\n"
+      "to the diffusion equation:\n"
+      "  du/dt = d/dx[ D_x(x,y,z) du/dx ] + d/dy[ D_y(x,y,z) du/dy ]\n"
       "                                   + d/dz[ D_z(x,y,z) du/dz ]\n"
       "        = div[ D(x,y,z) grad[u(x,y,z)] ]\n"
+      "where diffusion tensor D() is diagonal, Euler time-stepping is used, and\n"
       "with Neumann (reflecting) boundary conditions at the edges of the mask\n"
       "(which ensures that voxel data inside and outside the mask don't mix).\n"
       "At each pseudo-time step, the FWHM is estimated globally (like '3dFWHMx')\n"
@@ -151,7 +169,6 @@ int main( int argc , char *argv[] )
      }
 
      if( strcmp(argv[iarg],"-mask") == 0 ){
-       THD_3dim_dataset *mset ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-mask'") ;
        if( mask != NULL || automask ) ERROR_exit("Can't have two mask inputs") ;
        mset = THD_open_dataset( argv[iarg] ) ;
@@ -159,7 +176,7 @@ int main( int argc , char *argv[] )
        DSET_load(mset) ;
        if( !DSET_LOADED(mset) ) ERROR_exit("Can't load dataset '%s'",argv[iarg]) ;
        mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
-       mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
+       mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_unload(mset) ;
        if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
        nmask = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
        INFO_message("Number of voxels in mask = %d",nmask) ;
@@ -224,8 +241,6 @@ int main( int argc , char *argv[] )
    if( fwhm_goal == 0.0f )
      ERROR_exit("No -FWHM option given! What do you want?") ;
 
-   if( bmset == NULL ) ERROR_exit("No -blurmaster dataset?!") ;
-
    if( inset == NULL ){
      if( iarg >= argc ) ERROR_exit("No input dataset on command line?") ;
      inset = THD_open_dataset( argv[iarg] ) ;
@@ -236,7 +251,10 @@ int main( int argc , char *argv[] )
    dy   = fabs(DSET_DY(inset)) ;
    dz   = fabs(DSET_DZ(inset)) ;
 
-   bmeqin = EQUIV_DSETS(bmset,inset) ;  /* blurmaster and input the same? */
+   if( bmset == NULL ){
+     bmset = inset ; bmeqin = 1 ;
+     INFO_message("Using input dataset as blurmaster") ;
+   }
 
    if( DSET_NX(inset) != DSET_NX(bmset) ||
        DSET_NY(inset) != DSET_NY(bmset) ||
@@ -269,8 +287,8 @@ int main( int argc , char *argv[] )
    /*---- create neighborhood -----*/
 
    if( ntype == 0 ){
-     ntype = NTYPE_SPHERE ; na = 10.0f ;
-     INFO_message("Using default neighborhood 'SPHERE(10)'") ;
+     ntype = NTYPE_SPHERE ; na = -5.0f ;
+     INFO_message("Using default neighborhood 'SPHERE(-5)'") ;
    }
 
    switch( ntype ){
@@ -309,19 +327,27 @@ int main( int argc , char *argv[] )
      ADDTO_IMARR(bmar,bmed) ;
    } else {
      float *mar=MRI_FLOAT_PTR(bmed) , *bar ;
-     int ntouse = (int)ceil(3456.0/nbhd->num_pt) ;
-          if( ntouse < 1                 ) ntouse = 1 ;
-     else if( ntouse > DSET_NVALS(bmset) ) ntouse = DSET_NVALS(bmset) ;
-     for( ibm=0 ; ibm < ntouse ; ibm++ ){
+     int ntouse , nvb=DSET_NVALS(bmset) , ibot ;
+#if 1
+     ntouse = (int)ceil(4567.89/nbhd->num_pt) ;
+     ntouse = MAX(2,ntouse) ;
+     ntouse = MIN(nvb,ntouse) ;
+#else
+     ntouse = nvb ;
+#endif
+     ibot   = (nvb-ntouse)/2 ;
+     if( ntouse < nvb )
+       INFO_message("Using blurmaster sub-bricks [%d..%d]",ibot,ibot+ntouse-1);
+     for( ibm=ibot ; ibm < ibot+ntouse ; ibm++ ){
        bmim = mri_scale_to_float(DSET_BRICK_FACTOR(bmset,ibm),DSET_BRICK(bmset,ibm));
        bar  = MRI_FLOAT_PTR(bmim) ;
        for( ii=0 ; ii < nvox ; ii++ ) bar[ii] -= mar[ii] ;
        ADDTO_IMARR(bmar,bmim) ;
-       DSET_unload_one(bmset,ibm) ;
+       if( !bmeqin ) DSET_unload_one(bmset,ibm) ;
      }
      mri_free(bmed) ;
    }
-   DSET_unload(bmset) ;
+   if( !bmeqin ) DSET_unload(bmset) ;
    for( ibm=0 ; ibm < IMARR_COUNT(bmar) ; ibm++ ){
      IMARR_SUBIM(bmar,ibm)->dx = dx ;
      IMARR_SUBIM(bmar,ibm)->dy = dy ;
@@ -349,18 +375,18 @@ int main( int argc , char *argv[] )
    numfxyz = 0 ;
    fxim = mri_new_conforming( IMARR_SUBIM(bmar,0) , MRI_float ) ;
    fxar = MRI_FLOAT_PTR(fxim) ;
-   gx   = fwhm_goal - 0.666*dx ; numfxyz++ ;
+   gx   = fwhm_goal + 0.111*dx ; numfxyz++ ;
 
    fyim = mri_new_conforming( IMARR_SUBIM(bmar,0) , MRI_float ) ;
    fyar = MRI_FLOAT_PTR(fyim) ;
-   gy   = fwhm_goal - 0.666*dy ; numfxyz++ ;
+   gy   = fwhm_goal + 0.111*dy ; numfxyz++ ;
 
    if( !fwhm_2D ){
      fzim = mri_new_conforming( IMARR_SUBIM(bmar,0) , MRI_float ) ;
      fzar = MRI_FLOAT_PTR(fzim) ;
-     gz   = fwhm_goal - 0.666*dz ; numfxyz++ ;
+     gz   = fwhm_goal + 0.111*dz ; numfxyz++ ;
    }
-   maxfxyz    = 0.09f / numfxyz ;
+   maxfxyz    = 0.05f / numfxyz ;
    fwhm_goal *= 0.99f ;
 
    /*----------- Do the work:
@@ -385,11 +411,19 @@ int main( int argc , char *argv[] )
          INFO_message("** Passes 2D area threshold ==> done!") ; break ;
        }
        if( nite > 3 && bx < last_fwx && by < last_fwy ){
-         INFO_message("** Bailing out for sluggish progress!") ; break ;
-       }
-       xdone = (bx >= fwhm_goal || bx < last_fwx) ;
-       ydone = (by >= fwhm_goal || by < last_fwy) ;
+         nbail++ ;
+         if( nbail == BAILOUT ){
+           INFO_message("** Bailing out for sluggish progress!") ; break ;
+         } else {
+           INFO_message("** Progress is slow for some reason?!") ;
+         }
+       } else nbail = 0 ;
+       xdone = (bx >= fwhm_goal || (bx < last_fwx && nbail==BAILOUT) ) ;
+       ydone = (by >= fwhm_goal || (by < last_fwy && nbail==BAILOUT) ) ;
        zdone = 1 ;
+       xalmost = (!xdone && bx >= 0.931*fwhm_goal) ;  /* 0.931 is a  */
+       yalmost = (!ydone && by >= 0.931*fwhm_goal) ;  /* nice number */
+       zalmost = 0 ;
      } else {
        INFO_message("-- Iteration #%d: 3D FWHMx=%.4f FWHMy=%.4f FWHMz=%.4f",
                     nite,bx,by,bz) ;
@@ -397,19 +431,30 @@ int main( int argc , char *argv[] )
          INFO_message("-- Passes 3D volume threshold ==> done!") ; break ;
        }
        if( nite > 3 && bx < last_fwx && by < last_fwy && bz < last_fwz ){
-         INFO_message("** Bailing out for sluggish progress!") ; break ;
-       }
-       xdone = (bx >= fwhm_goal || bx < last_fwx) ;
-       ydone = (by >= fwhm_goal || by < last_fwy) ;
-       zdone = (bz >= fwhm_goal || bz < last_fwz) ;
+         nbail++ ;
+         if( nbail == BAILOUT ){
+           INFO_message("** Bailing out for sluggish progress!") ; break ;
+         } else {
+           INFO_message("** Progress is slow for some reason?!") ;
+         }
+       } else nbail = 0 ;
+       xdone = (bx >= fwhm_goal || (bx < last_fwx && nbail==BAILOUT) ) ;
+       ydone = (by >= fwhm_goal || (by < last_fwy && nbail==BAILOUT) ) ;
+       zdone = (bz >= fwhm_goal || (bz < last_fwz && nbail==BAILOUT) ) ;
+       xalmost = (!xdone && bx >= 0.95*fwhm_goal) ;
+       yalmost = (!ydone && by >= 0.95*fwhm_goal) ;
+       zalmost = (!zdone && bz >= 0.95*fwhm_goal) ;
      }
      if( xdone && ydone && zdone ){
-       INFO_message("** All axes stalled ==> done") ; break ;
+       INFO_message("** All axes stalled ==> quitting in disgust") ; break ;
      }
-     maxfx = (xdone) ? 0.0111f*maxfxyz : maxfxyz ;
-     maxfy = (ydone) ? 0.0111f*maxfxyz : maxfxyz ;
-     maxfz = (zdone) ? 0.0111f*maxfxyz : maxfxyz ;
-     last_fwx = 1.01f*bx; last_fwy = 1.01f*by; last_fwz = 1.01f*bz;
+     maxfx = (xdone) ? 0.001f*maxfxyz
+                     : (xalmost) ? 0.421f*maxfxyz : maxfxyz ;  /*  0.421  */
+     maxfy = (ydone) ? 0.001f*maxfxyz                          /* is also */
+                     : (yalmost) ? 0.421f*maxfxyz : maxfxyz ;  /*  nice   */
+     maxfz = (zdone) ? 0.001f*maxfxyz
+                     : (zalmost) ? 0.421f*maxfxyz : maxfxyz ;
+     last_fwx = bx; last_fwy = by; last_fwz = bz;
 
      /*--- blur map estimation ---*/
 
@@ -507,6 +552,16 @@ int main( int argc , char *argv[] )
                             MRI_FLOAT_PTR( IMARR_SUBIM(dsar,ii) ) ) ;
    DSET_write(outset) ;
    WROTE_DSET(outset) ;
+
+   { char buf[999] ;
+     strcpy(buf,"3dFWHMx -demed") ;
+     if( automask )
+       strcat(buf," -automask") ;
+     else if( mset != NULL )
+       sprintf(buf+strlen(buf)," -mask %s",DSET_BRIKNAME(mset)) ;
+     sprintf(buf+strlen(buf)," -dset %s",DSET_BRIKNAME(outset)) ;
+     INFO_message("To check results: %s",buf) ;
+   }
    exit(0) ;
 }
 
