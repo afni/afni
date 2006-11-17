@@ -3,7 +3,6 @@
   This is for the 3-parameter DEMRI model from Bob Cox and Steve Fung,
   implemented for John Butman and Steve Fung.
 
-
   Author: Rick Reynolds, Daniel Glen  22 Oct 2006
  *----------------------------------------------------------------------
 */
@@ -27,10 +26,6 @@ extern int  AFNI_needs_dset_ijk(void) ;
 #define EPSILON         0.0001
 #define Mmmmmm_PIiiiii  3.1415926535897932385
 
-/* rcr: questions
-    Is nfirst going to equal the injection TR?
-    Does ve need to be less than 1.0 (K < kep)?
-*/
 
 void signal_model 
 (
@@ -58,7 +53,6 @@ typedef struct
 
 static int g_use_ve = 0;        /* can be modified in initialize model() */
 static THD_3dim_dataset *dset_R1I = NULL;    /* input 3d+time data set */
-static MRI_IMAGE *R1I_data_im = NULL;
 static float *R1I_data_ptr = NULL;
 
 static int alloc_param_arrays(demri_params * P, int len);
@@ -132,35 +126,43 @@ void signal_model (
                              0.0, 0, 0, 0,  NULL, NULL, NULL };
     static int          first_call = 1;
     int                 mp_len;      /* length of mcp list */
+    int                 rv, errs = 0;
+
+    if( first_call > 1 ) return;    /* fail, and be quick about it */
 
     /* first time here, get set params, and process Mp data */
     if( first_call )
     {
-        if( get_env_params( &P ) ) exit(1); /* bad things, man, bad things */
-
-        if( get_Mp_array(&P, &mp_len) ) exit(1);
-
-        if( alloc_param_arrays(&P, mp_len) ) exit(1);
-
-        /* after this, mp is cp */
-        if( convert_mp_to_cp(&P, mp_len) ) exit(1);
+        if( get_env_params( &P )                ||
+            get_Mp_array(&P, &mp_len)           ||
+            alloc_param_arrays(&P, mp_len)      ||
+            convert_mp_to_cp(&P, mp_len) )
+                errs++;  /* bad things man, bad things */
 
         /* verify TR (maybe we don't need TR) */
-        if( P.TR != x_array[1][1] - x_array[1][0] )
+        if( !errs && P.TR != x_array[1][1] - x_array[1][0] )
             fprintf(stderr, "** warning: TR (%f) != x_array time (%f)\n",
                     P.TR, x_array[1][1] - x_array[1][0]);
 
         /* verify time series length */
-        if( mp_len != ts_len )
+        if( !errs && mp_len != ts_len )
         {
-            fprintf(stderr,"** mp_len (%d) != ts_len (%d), going home...\n",
+            fprintf(stderr,
+                    "** mp_len (%d) != ts_len (%d), going home in snit.\n",
                     mp_len, ts_len);
-            exit(1);
+            errs++;
         }
 
         if( P.debug ) disp_demri_params("ready to rock: ", &P);
 
-        first_call = 0;
+        if( errs )
+        {
+            first_call = 2;  /* prevent progression, but don't exit */
+            memset(ts_array, 0, ts_len*sizeof(float));
+            fprintf(stderr,"** MD3: failing out, and clearing time series\n");
+        }
+        else
+            first_call = 0;
     }
 
     /* note passed parameters */
@@ -170,17 +172,63 @@ void signal_model (
     if( g_use_ve )
     {
         P.ve = params[1];
-        P.kep = P.K / P.ve;  /* what to do if P.ve is small, nothing? */
+
+        /* it is not clear what to do if P.ve is small */
+        if( P.ve < 10e-6 )
+        {
+            if( P.debug > 2 )
+                fprintf(stderr, "** warning, ve, K = %f, %f --> kep = %f\n",
+                        P.ve, P.K, P.kep);
+            memset(ts_array, 0, ts_len*sizeof(float));
+            return;
+        }
+        else
+            P.kep = P.K / P.ve;
+
+        if( P.kep > 10.0 )
+        {
+            if( P.debug > 2 )
+                fprintf(stderr, "** warning, ve, K = %f, %f ---> kep = %f\n",
+                        P.ve, P.K, P.kep);
+            memset(ts_array, 0, ts_len*sizeof(float));
+            return;
+        }
     }
     else P.kep = params[1];
-    if(R1I_data_ptr) {
+
+    if( R1I_data_ptr )
+    {
         P.ijk = AFNI_needs_dset_ijk();
-	P.RIT = *(R1I_data_ptr+P.ijk);  /*  get R1I voxelwise from dataset */
-        if( P.debug > 1) printf("Voxel index %d, R1I value %f\n", P.ijk,
-	P.RIT);	
+        P.RIT = R1I_data_ptr[P.ijk];  /*  get R1I voxelwise from dataset */
+        if( P.RIT < 0.02 || P.RIT > 20 )
+        {
+            if( P.debug > 1 )
+                fprintf(stderr,"** warning, bad RIT value %f\n", P.RIT);
+            memset(ts_array, 0, ts_len*sizeof(float));
+            return;
+            /* do something here?  panic into error?? */
+        }
+        if(P.debug > 3) printf("Voxel index %d, R1I value %f\n", P.ijk, P.RIT); 
     }
 
     (void)compute_ts( &P, ts_array, ts_len );
+
+    if( (rv = thd_floatscan(ts_len, ts_array)) > 0 )
+    {
+        static int nbad = 0;
+        static int nprint = 1;
+        nbad++;
+
+        if( (nbad % nprint) == 0 )
+        {
+            char mesg[128];
+            sprintf(mesg, "\n** MD3: %d bad results (occurance %d):", rv, nbad);
+            disp_demri_params(mesg, &P);
+            if( nprint < 10e+6 ) nprint <<= 1;  /* slower and slower */
+        }
+
+        memset(ts_array, 0, ts_len*sizeof(float));
+    }
 }
 
 
@@ -482,26 +530,32 @@ static int get_env_params(demri_params * P)
 
     /* check if non-uniform intrinsic Relaxivity map is assigned */
     envp = my_getenv("AFNI_MODEL_D3_R1I_DSET");  
-    if(envp) {
-       /* verify R1I dataset existence and open dataset */
-       dset_R1I = THD_open_one_dataset (envp);
-       if (dset_R1I == NULL)  
-           ERROR_exit("Unable to open R1I dataset: %s", envp);
-       DSET_mallocize (dset_R1I);
-       DSET_load(dset_R1I);
-       if( !DSET_LOADED((dset_R1I)) ) 
-          ERROR_exit("Can't load dataset %s",envp) ;
-       R1I_data_im = DSET_BRICK(dset_R1I, 0);
-       R1I_data_ptr = mri_data_pointer(R1I_data_im);  /* initialize voxel ptr */
-       if(P->debug>0) printf("Set R1I_data_ptr\n");
+    if(envp)
+    {
+        /* verify R1I dataset existence and open dataset */
+        dset_R1I = THD_open_one_dataset (envp);
+        if (dset_R1I == NULL)  
+          { fprintf(stderr,"Unable to open R1I dataset: %s", envp); return 1; }
+
+        DSET_mallocize (dset_R1I);
+        DSET_load(dset_R1I);
+        if( !DSET_LOADED((dset_R1I)) ) 
+            { fprintf(stderr,"Can't load dataset %s",envp) ; return 1; }
+
+        if( DSET_BRICK_TYPE(dset_R1I, 0) != MRI_float )
+            { fprintf(stderr,"dset %s is not of type float\n",envp); return 1; }
+
+        R1I_data_ptr = DSET_ARRAY(dset_R1I, 0);
+        if(P->debug>0) printf("Set R1I_data_ptr\n");
     }
-    else {                    /* should I close any open datasets? */
-       if(R1I_data_ptr) {
-          R1I_data_ptr = NULL;
-	  dset_R1I = NULL;
-	  R1I_data_im = NULL;
+    else
+    {                    /* should I close any open datasets? */
+       if(R1I_data_ptr)
+       {
+           fprintf(stderr,"** MD3: warning, we should not be here\n");
+           R1I_data_ptr = NULL;
+           dset_R1I = NULL;
        }
-    
     }
 
     if( envp && P->debug>1 && !errs ) disp_demri_params("env params set: ", P);
@@ -660,6 +714,7 @@ static int disp_demri_params( char * mesg, demri_params * p )
     fprintf(stderr, "demri_params struct at %p:\n"
                     "    K      = %f  ( K trans (plasma Gd -> tissue Gd) )\n"
                     "    kep    = %f  ( back-transfer rate ( Gd_t -> Gd_p ) )\n"
+                    "    ve     = %f  ( external cellular volume fraction)\n"
                     "    fvp    = %f  ( fraction of voxel occupied by blood )\n"
                     "    r1     = %f  ( 1/(mMol*seconds) )\n"
                     "    RIB    = %f  ( 1/seconds )\n"
@@ -670,12 +725,12 @@ static int disp_demri_params( char * mesg, demri_params * p )
                     "    cos0   = %f  ( cos(theta) )\n"
                     "    nfirst = %d\n\n"
                     "    debug  = %d\n"
-		    "    ijk    = %d\n"
+                    "    ijk    = %d\n"
                     "    comp   = %p\n"
                     "    elist  = %p\n"
                     "    mcp    = %p\n"
             , p,
-            p->K, p->kep, p->fvp,
+            p->K, p->kep, p->ve, p->fvp,
             p->r1, p->RIB, p->RIT, p->theta, p->TR, p->TF, p->cos0,
             p->nfirst, p->debug, p->ijk, p->comp, p->elist, p->mcp);
 
@@ -811,3 +866,4 @@ static int get_time_in_seconds( char * str, float * time )
         *time /= 1000.0;
     return 0;
 }
+
