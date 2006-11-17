@@ -826,7 +826,7 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
       SUMA_SegmentDO *sdo=NULL;
       NI_group *ngr = NULL;
       int suc;
-      /* Send Change_S to SUMA */
+      /* Send G to SUMA */
       sdo = SUMA_G2SDO(G, ControlCurve, "G", 0.1);
       /* change that thing to NIML */
       ngr = SUMA_SDO2niSDO(sdo);
