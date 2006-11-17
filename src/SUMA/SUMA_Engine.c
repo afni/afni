@@ -373,6 +373,36 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Viewer Settings File", &SUMAg_CF->X->FileSelectDlg);
             break;
             
+         case SE_OpenSurfCont:
+            /* opens the surface controller 
+            Expects SO in vp */
+            if (EngineData->vp_Dest != NextComCode ) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
+                  FuncName, NextCom, NextComCode);
+               break;
+            }
+            if (!sv) sv = &(SUMAg_SVv[0]);
+            SO = (SUMA_SurfaceObject *)EngineData->vp;
+            if (!SUMA_viewSurfaceCont(NULL, SO, sv)) {
+               SUMA_S_Err("Failed open surfcont");
+               break;  
+            }
+            break;
+         
+         case SE_OneOnly:
+            if (EngineData->vp_Dest != NextComCode ) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
+                  FuncName, NextCom, NextComCode);
+               break;
+            }
+            if (!sv) sv = &(SUMAg_SVv[0]);
+            SO = (SUMA_SurfaceObject *)EngineData->vp;
+            if (!SUMA_ColPlaneShowOne_Set (SO, YUP)) {
+               SUMA_S_Err("Failed to set one only");
+               break;  
+            }
+            break;
+            
          case SE_OpenDsetFileSelection:
             /* opens the dataset file selection window. 
             Expects SO in vp and a position reference widget typecast to ip, the latter can be null.*/
@@ -402,7 +432,17 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Dset File", &SUMAg_CF->X->FileSelectDlg);
             
             break;
-         
+            
+         case SE_OpenDsetFile:
+            /* opens the dataset file, Expects SO in vp and a name in cp*/
+            if (EngineData->vp_Dest != NextComCode || EngineData->cp_Dest != NextComCode ) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
+                  FuncName, NextCom, NextComCode);
+               break;
+            }
+            SUMA_LoadDsetFile(EngineData->cp, EngineData->vp);
+            break;
+            
          case SE_OpenCmapFileSelection:
             /* opens the Cmap file selection window. 
             Expects SO in vp and a position reference widget typecast to ip, the latter can be null.*/
@@ -1992,6 +2032,155 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    *listp = NULL; 
    
    SUMA_RETURN (YUP);
+}
+
+void *SUMA_nimlEngine2Engine(NI_group *ngr)
+{
+   static char FuncName[]={"SUMA_nimlEngine2Engine"};
+   DList *list = NULL;
+   int cc, isv;
+   SUMA_EngineData *ED = NULL; 
+   DListElmt *el=NULL;
+   void *Ret = NULL;
+   char *SOid=NULL, *svid=NULL, *name=NULL, *SOlabel=NULL;
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_SurfaceViewer *sv = NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!ngr) { SUMA_S_Err("NULL input"); SUMA_RETURN(Ret); }
+   
+   if (strcmp(ngr->name, "EngineCommand")) {
+      fprintf (SUMA_STDERR,"Error %s: group name (%s) is not (EngineCommand)\n", FuncName, ngr->name);
+      SUMA_RETURN(Ret); 
+   }
+   
+   /* Is this a valid command? */
+   cc = SUMA_CommandCode(NI_get_attribute(ngr,"Command"));
+   if (cc == SE_Empty || cc == SE_BadCode) {
+      SUMA_S_Errv("Bad command code %s", SUMA_CHECK_NULL_STR(NI_get_attribute(ngr,"Command")));
+      SUMA_RETURN(Ret); 
+   }
+   
+   /* do we have the classics? */
+   
+   sv = NULL;
+   svid = NI_get_attribute(ngr,"SV_id");
+   if (svid) {
+      isv = SUMA_TO_LOWER_C(svid[0]-'a');
+      if (isv < 0 || isv > SUMAg_N_SVv) {
+         SUMA_S_Errv("Bad SV_id of %s\n", svid);
+         SUMA_RETURN(Ret);  
+      }
+      sv = &(SUMAg_SVv[isv]);
+   } 
+   if (!sv) {
+      sv = &(SUMAg_SVv[0]);
+   }
+
+   SO = NULL;
+   SOid = NI_get_attribute(ngr,"SO_idcode");
+   if (SOid) {
+      SO = SUMA_findSOp_inDOv (SOid, SUMAg_DOv, SUMAg_N_DOv);
+      if (!SO) {
+         SUMA_S_Errv("SO with id %s not found.\n", SOid);
+         SUMA_RETURN(Ret);  
+      }
+   }
+   SOlabel = NI_get_attribute(ngr,"SO_label");
+   if (SOlabel) {
+      if (SO && strcmp(SOlabel, SO->Label)) {
+         SUMA_S_Errv("Conflict between id %s (%s) and label (%s)", SO->idcode_str, SO->Label, SOlabel);
+         SUMA_RETURN(Ret); 
+      }
+      if (!SO) { /* find SO based on label! */
+         if ((SOid = SUMA_find_SOidcode_from_label(SOlabel, SUMAg_DOv, SUMAg_N_DOv))) {
+            SO = SUMA_findSOp_inDOv (SOid, SUMAg_DOv, SUMAg_N_DOv);
+            if (!SO) {
+               SUMA_S_Errv("SO with id %s not found.\n", SOid);
+               SUMA_RETURN(Ret);  
+            }
+         }else {
+            SUMA_S_Errv("SO id from label %s not found.\n", SOlabel);
+            SUMA_RETURN(Ret);  
+         }
+      }
+   }
+   if (!SO) SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+   if (!SO) {
+      SO = SUMA_findanySOp_inDOv(SUMAg_DOv, SUMAg_N_DOv); /* last resort */
+      SUMA_S_Err("Have no surfaces to work with at all.\n");
+      SUMA_RETURN(Ret);  
+   }
+   if (LocalHead) {
+      SUMA_LHv("Have surface %s to work with\n", SO->Label);
+   }
+   /* Create da list */
+   if (!list) list = SUMA_CreateList ();
+
+   /* check for things that are common accross ccs; things to be done BEFORE command */
+   if (     NI_get_attribute(ngr, "Surf_Cont_One_Only") && 
+           !NI_get_attribute(ngr, "View_Surf_Cont")           ) {
+      NI_set_attribute(ngr, "View_Surf_Cont", "y");
+   }
+   
+   if (NI_get_attribute(ngr, "View_Surf_Cont")) {
+      ED = SUMA_InitializeEngineListData (SE_OpenSurfCont);
+      if (!SUMA_RegisterEngineListCommand (   list, ED,
+                                             SEF_vp, (void *)SO,
+                                             SES_SumaFromAny, (void *)sv, NOPE,
+                                             SEI_Head, NULL)) {
+         fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+      }
+   }
+   
+   if (NI_get_attribute(ngr, "Surf_Cont_One_Only")) {
+      ED = SUMA_InitializeEngineListData (SE_OneOnly);
+      if (!SUMA_RegisterEngineListCommand (   list, ED,
+                                             SEF_vp, (void *)SO,
+                                             SES_SumaFromAny, (void *)sv, NOPE,
+                                             SEI_Tail, NULL)) {
+         fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+      }
+   }
+   
+   
+   
+   /* OK, now, switch on that command and create the Engine structure */
+   switch (cc) {
+      case SE_OpenDsetFile:
+         if (!(name = NI_get_attribute(ngr,"FileName"))) {
+            SUMA_S_Err("No filename given");
+            SUMA_RETURN(Ret);  
+         }
+         ED = SUMA_InitializeEngineListData (cc);
+         if (!(el = SUMA_RegisterEngineListCommand (  list, ED,
+                                                   SEF_vp, (void *)SO,
+                                                   SES_SumaFromAny, (void *)sv, NOPE,
+                                                   SEI_Tail, NULL))) {
+               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+         }
+         if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                                   SEF_cp, (void *)name,
+                                                   SES_SumaFromAny, (void *)sv, NOPE,
+                                                   SEI_In, el)) {
+               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+         }
+         break;
+      default:
+         SUMA_S_Errv("Cannot deal with command %s yet.\n", NI_get_attribute(ngr,"command"));
+         SUMA_RETURN(Ret); 
+         break;
+            
+   }
+   
+   if (!SUMA_Engine(&list)) {
+      SUMA_SLP_Err("Failed to execute command.");
+      SUMA_RETURN(Ret);
+   }
+   
+   SUMA_RETURN(Ret);
 }
 
 /*!

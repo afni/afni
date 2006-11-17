@@ -131,7 +131,9 @@ int SUMA_CommandCode(char *Scom)
    static char FuncName[]={"SUMA_CommandCode"};
    
    SUMA_ENTRY;
-
+   
+   if (!Scom) SUMA_RETURN(SE_BadCode);
+   
    if (!strlen(Scom)) SUMA_RETURN (SE_Empty);
    if (strcmp(Scom,"~") == 0) SUMA_RETURN (SE_Empty);
    
@@ -194,7 +196,8 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"LoadViewFileSelection")) SUMA_RETURN(SE_LoadViewFileSelection);
    if (!strcmp(Scom,"SaveViewFileSelection")) SUMA_RETURN(SE_SaveViewFileSelection);
    if (!strcmp(Scom,"LoadSegDO")) SUMA_RETURN(SE_LoadSegDO);
-   if (!strcmp(Scom,"SetClip")) SUMA_RETURN(SE_SetClip);   
+   if (!strcmp(Scom,"SetClip")) SUMA_RETURN(SE_SetClip); 
+   if (!strcmp(Scom,"OpenDsetFile")) SUMA_RETURN(SE_OpenDsetFile);  
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    
    /* Last one is Bad Code */
@@ -384,6 +387,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("LoadSegDO");    
       case SE_SetClip:
          SUMA_RETURN("SetClip");     
+      case SE_OpenDsetFile:
+         SUMA_RETURN("OpenDsetFile"); 
       /*case SE_:
          SUMA_RETURN("");      */
       default:        

@@ -19,6 +19,6 @@ int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list, SUMA_DO *d
 SUMA_Boolean SUMA_NewGeometryInViewer (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_isVisibleSO (SUMA_SurfaceViewer *sv, SUMA_DO *dov, SUMA_SurfaceObject *curSO);
 int *SUMA_FormSOListToSendToAFNI(SUMA_DO *dov, int N_dov, int *N_Send) ;
- 
+void *SUMA_nimlEngine2Engine(NI_group *ngr); 
 
 #endif

@@ -783,6 +783,56 @@ char *SUMA_ColorVec_Info (SUMA_RGB_NAME *Cv, int N_cols)
 }
 
 /*!
+   return a color in acol (4 floats) from colormap name color index i % Ncolors
+   if name is NULL a random color is returned
+*/
+    
+int SUMA_a_good_col(char *name, int i, float *acol)
+{
+   static char FuncName[]={"SUMA_a_good_col"};
+   int ic, icmap, dorand;
+   SUMA_COLOR_MAP *CM;
+
+   SUMA_ENTRY;
+
+   dorand = 0;
+   if (i<0 || !acol) {
+      SUMA_S_Err("Give me a break!");
+      SUMA_RETURN(0);
+   }
+
+   if (!name || !(SUMAg_CF && SUMAg_CF->scm && SUMAg_CF->scm->CMv && SUMAg_CF->scm->N_maps)) {
+      dorand = 1;   
+   } else {
+      /* have colormaps, get me something decent */
+      icmap = SUMA_Find_ColorMap(name, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps,-2);
+      if (icmap < 0) {
+         SUMA_S_Warnv("No colormap named %s was found, returning random colors.\n", name);
+         dorand = 1;
+      }
+   }
+
+   if (dorand) {
+      /* GIMME SOME RANDOM */
+      srand(i);
+      acol[0] = (float) (double)rand()/(double)RAND_MAX;
+      acol[1] = (float) (double)rand()/(double)RAND_MAX;
+      acol[2] = (float) (double)rand()/(double)RAND_MAX;
+      acol[3] = 1.0;
+      SUMA_RETURN(1);
+   } else {
+      CM = SUMAg_CF->scm->CMv[icmap];
+      ic = i % CM->N_Col;
+      acol[0] = CM->M[ic][0];
+      acol[1] = CM->M[ic][1];
+      acol[2] = CM->M[ic][2];
+      acol[3] = 1.0;
+   }
+
+   SUMA_RETURN(1);
+}
+
+/*!
    \brief List the colormaps in the vector
    
    \param CMv (SUMA_COLOR_MAP **) an array of pointers to colormap structures

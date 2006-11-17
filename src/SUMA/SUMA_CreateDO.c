@@ -668,7 +668,7 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
    \returns SDO (SUMA_SegmentDO *) 
      
 */
-SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented, char *Parent_idcode_str)
+SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented, char *Parent_idcode_str, SUMA_DO_Types type)
 {
    static char FuncName[]={"SUMA_Alloc_SegmentDO"};
    SUMA_SegmentDO * SDO= NULL;
@@ -681,6 +681,8 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented, char 
          fprintf(stderr,"Error %s: Failed to allocate for SDO\n", FuncName);
          SUMA_RETURN (SDO);
    }
+   SDO->do_type = type;
+   
    if (N_n > 0) {
       if (!Parent_idcode_str) {
          SDO->NodeBased = 0;
@@ -775,6 +777,7 @@ SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id)
    float *far=NULL;
    int itmp, itmp2, icol_thick = -1, icol_col=-1, icol_id = -1, icol_vec = -1;
    int nrow=-1, ncol=-1;
+   SUMA_DO_Types dotp;
    char buf[30];
    
    SUMA_ENTRY;
@@ -795,8 +798,11 @@ SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id)
       SUMA_RETURN(NULL);
    }
    
-   if (oriented) sprintf(buf,"Oriented Node-Based Vectors");
-   else {
+   if (oriented) {
+      sprintf(buf,"Oriented Node-Based Vectors");
+      dotp = ONBV_type;
+   } else {
+      dotp = NBV_type;
       sprintf(buf,"Bottomless Node-Based Vector ");
    }
    far = MRI_FLOAT_PTR(im);
@@ -856,7 +862,7 @@ SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id)
    }
 
    /* allocate for segments DO */
-   SDO = SUMA_Alloc_SegmentDO (ncol, s, oriented, parent_SO_id);
+   SDO = SUMA_Alloc_SegmentDO (ncol, s, oriented, parent_SO_id, dotp);
    if (!SDO) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Allocate_SegmentDO.\n", FuncName);
       SUMA_RETURN(NULL);
@@ -931,6 +937,7 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *parent_SO_id)
    int itmp, itmp2, icol_thick = -1, icol_col=-1;
    int nrow=-1, ncol=-1;
    char buf[30];
+   SUMA_DO_Types dotp;
    
    SUMA_ENTRY;
    
@@ -946,9 +953,13 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *parent_SO_id)
       SUMA_RETURN(NULL);
    }
    
-   if (oriented) sprintf(buf,"Oriented segment");
-   else sprintf(buf,"Segment");
-   
+   if (oriented) {
+      dotp = OLS_type;
+      sprintf(buf,"Oriented segment");
+   } else {
+      dotp = LS_type;
+      sprintf(buf,"Segment");
+   }
    far = MRI_FLOAT_PTR(im);
    ncol = im->nx;
    nrow = im->ny;
@@ -989,7 +1000,7 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *parent_SO_id)
    }
 
    /* allocate for segments DO */
-   SDO = SUMA_Alloc_SegmentDO (ncol, s, oriented, NULL);
+   SDO = SUMA_Alloc_SegmentDO (ncol, s, oriented, NULL, dotp);
    if (!SDO) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Allocate_SegmentDO.\n", FuncName);
       SUMA_RETURN(NULL);
@@ -1041,6 +1052,192 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *parent_SO_id)
    
    mri_free(im); im = NULL; far = NULL;
 
+   SUMA_RETURN(SDO);
+}
+
+
+
+NI_group *SUMA_SDO2niSDO(SUMA_SegmentDO *SDO) 
+{
+   static char FuncName[]={"SUMA_SDO2niSDO"};
+   NI_group *ngr = NULL;
+   NI_element *nel = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!SDO) { SUMA_RETURN(ngr); }
+   
+   ngr = NI_new_group_element();   
+   NI_rename_group(ngr, "Segment_DO");
+   
+   NI_SET_STR(ngr, "idcode_str", SDO->idcode_str);
+   NI_SET_STR(ngr, "Label", SDO->Label);
+   NI_SET_INT(ngr, "NodeBased", SDO->NodeBased);
+   NI_SET_STR(ngr, "Parent_idcode_str", SDO->Parent_idcode_str);
+   NI_SET_INT(ngr, "N_n", SDO->N_n);
+   NI_SET_FLOAT(ngr, "LineWidth", SDO->LineWidth);
+   NI_SET_FLOATv(ngr, "LineCol", SDO->LineCol, 4);
+   NI_SET_INT(ngr, "do_type", SDO->do_type);
+   if (SDO->botobj) { NI_SET_INT(ngr, "oriented", 1); }
+   else { NI_SET_INT(ngr, "oriented", 0); }
+   
+   if (SDO->NodeID) {
+      nel = NI_new_data_element("NodeID", SDO->N_n);
+      NI_add_column(nel, NI_INT, SDO->NodeID);
+      NI_add_to_group( ngr, nel); 
+   }
+   if (sizeof(GLfloat)!=sizeof(float)) { SUMA_S_Err("I hate life"); SUMA_RETURN(NULL); }
+   if (SDO->n0) {
+      nel = NI_new_data_element("n0", 3*SDO->N_n);
+      NI_add_column(nel, NI_FLOAT, SDO->n0);
+      NI_add_to_group( ngr, nel); 
+   }
+   if (SDO->n1) {
+      nel = NI_new_data_element("n1", 3*SDO->N_n);
+      NI_add_column(nel, NI_FLOAT, SDO->n1);
+      NI_add_to_group( ngr, nel); 
+   }
+   if (SDO->colv) {
+      nel = NI_new_data_element("colv", 4*SDO->N_n);
+      NI_add_column(nel, NI_FLOAT, SDO->colv);
+      NI_add_to_group( ngr, nel); 
+   }
+   if (SDO->thickv) {
+      nel = NI_new_data_element("thickv", SDO->N_n);
+      NI_add_column(nel, NI_FLOAT, SDO->thickv);
+      NI_add_to_group( ngr, nel); 
+   }
+   NI_SET_INT(ngr, "Stipple", SDO->Stipple);
+   
+   SUMA_RETURN(ngr);
+}
+
+SUMA_SegmentDO *SUMA_niSDO2SDO(NI_group *ngr) 
+{
+   static char FuncName[]={"SUMA_niSDO2SDO"};
+   SUMA_SegmentDO *SDO=NULL;
+   NI_element *nel = NULL;
+   int N_n, oriented, ncp=0;
+   SUMA_DO_Types type;
+   char att[500], *Parent_idcode_str=NULL, *Label=NULL, *idcode_str=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!ngr) { SUMA_RETURN(SDO); }
+   
+   if (strcmp(ngr->name, "Segment_DO")) {
+      SUMA_S_Err("NIML object not SDO");
+      SUMA_RETURN(SDO);
+   }
+   NI_GET_STR_CP(ngr, "Parent_idcode_str", Parent_idcode_str);
+   NI_GET_STR_CP(ngr, "Label", Label);
+   NI_GET_INT(ngr, "oriented",oriented);
+   NI_GET_INT(ngr, "N_n",N_n);
+   NI_GET_INT(ngr, "do_type",type);
+   
+   SDO = SUMA_Alloc_SegmentDO(N_n, Label, oriented, Parent_idcode_str, type);
+   if (Label) SUMA_free(Label); Label = NULL; 
+   if (Parent_idcode_str) SUMA_free(Parent_idcode_str); Parent_idcode_str = NULL;
+   
+   NI_GET_STR_CP(ngr, "idcode_str", idcode_str);
+   if (idcode_str) {
+      SUMA_LHv("Have id %s in niml, replacing SDO's\n", idcode_str);
+      SUMA_STRING_REPLACE(SDO->idcode_str, idcode_str);
+      SUMA_free(idcode_str); idcode_str = NULL;
+   }else {
+      SUMA_LH("Have no id in niml");
+   }
+   
+   NI_GET_INT(ngr, "NodeBased", SDO->NodeBased);   
+   NI_GET_FLOAT(ngr, "LineWidth", SDO->LineWidth);
+   NI_GET_FLOATv(ngr, "LineCol", SDO->LineCol, 4);
+   nel = SUMA_FindNgrNamedElement(ngr, "NodeID");
+   if (!nel) {
+      SDO->NodeID = NULL;
+   } else {
+      SDO->NodeID = (int *)SUMA_Copy_Part_Column(nel->vec[0], NI_rowtype_find_code(nel->vec_typ[0]), nel->vec_len, NULL, 0, &ncp);
+   }
+   nel = SUMA_FindNgrNamedElement(ngr, "n0");
+   if (!nel) {
+      SDO->n0 = NULL;
+   } else {
+      SDO->n0 = (float *)SUMA_Copy_Part_Column(nel->vec[0], NI_rowtype_find_code(nel->vec_typ[0]), nel->vec_len, NULL, 0, &ncp);
+   }
+   nel = SUMA_FindNgrNamedElement(ngr, "n1");
+   if (!nel) {
+      SDO->n1 = NULL;
+   } else {
+      SDO->n1 = (float *)SUMA_Copy_Part_Column(nel->vec[0], NI_rowtype_find_code(nel->vec_typ[0]), nel->vec_len, NULL, 0, &ncp);
+   }
+   nel = SUMA_FindNgrNamedElement(ngr, "colv");
+   if (!nel) {
+      SDO->colv = NULL;
+   } else {
+      SDO->colv = (float *)SUMA_Copy_Part_Column(nel->vec[0], NI_rowtype_find_code(nel->vec_typ[0]), nel->vec_len, NULL, 0, &ncp);
+   }
+   nel = SUMA_FindNgrNamedElement(ngr, "thickv");
+   if (!nel) {
+      SDO->thickv = NULL;
+   } else {
+      SDO->thickv = (float *)SUMA_Copy_Part_Column(nel->vec[0], NI_rowtype_find_code(nel->vec_typ[0]), nel->vec_len, NULL, 0, &ncp);
+   }
+   NI_GET_INT(ngr, "Stipple", SDO->Stipple);
+   
+   SUMA_RETURN(SDO);
+}
+
+
+SUMA_SegmentDO *SUMA_CreateSegmentDO(  int N_n, int oriented, int NodeBased, int Stipple,
+                                       char *Label, char *idcode_str, char *Parent_idcode_str,
+                                       float LineWidth, float *LineCol,
+                                       int *NodeID, float *n0, float *n1,
+                                       float *colv, float *thickv 
+                                       ) 
+{
+   static char FuncName[]={"SUMA_CreateSegmentDO"};
+   SUMA_SegmentDO *SDO=NULL;
+   int ncp=0, i;
+   SUMA_DO_Types type;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (oriented) type = LS_type;
+   else type = OLS_type;
+   
+   SDO = SUMA_Alloc_SegmentDO(N_n, Label, oriented, Parent_idcode_str, type);
+   if (idcode_str) SUMA_STRING_REPLACE(SDO->idcode_str, idcode_str);   
+   SDO->NodeBased = NodeBased;
+   SDO->Stipple = Stipple;
+   SDO->LineWidth =LineWidth;
+   if (LineCol) { for (i=0; i<4; ++i) SDO->LineCol[i] = LineCol[i]; }
+   else { SDO->LineCol[0] = 0.4; SDO->LineCol[1] = 0.8; SDO->LineCol[2] = 0.1; SDO->LineCol[3] = 1.0; }
+
+   if (NodeID) {
+      SDO->NodeID = (int *)SUMA_Copy_Part_Column((void*)NodeID, NI_rowtype_find_code(NI_INT), N_n, NULL, 0, &ncp);
+   } else SDO->NodeID = NULL;   
+   if (!n0) {
+      SDO->n0 = NULL;
+   } else {
+      SDO->n0 = (float *)SUMA_Copy_Part_Column((void *)n0,  NI_rowtype_find_code(NI_FLOAT), 3*N_n, NULL, 0, &ncp);
+   }
+   if (!n1) {
+      SDO->n1 = NULL;
+   } else {
+      SDO->n1 = (float *)SUMA_Copy_Part_Column((void *)n1,  NI_rowtype_find_code(NI_FLOAT), 3*N_n, NULL, 0, &ncp);
+   }
+   if (!colv) {
+      SDO->colv = NULL;
+   } else {
+      SDO->colv = (float *)SUMA_Copy_Part_Column((void *)colv,  NI_rowtype_find_code(NI_FLOAT), 4*N_n, NULL, 0, &ncp);
+   }
+   if (!thickv) {
+      SDO->thickv = NULL;
+   } else {
+      SDO->thickv = (float *)SUMA_Copy_Part_Column((void *)thickv,  NI_rowtype_find_code(NI_FLOAT), N_n, NULL, 0, &ncp);
+   }
+   
    SUMA_RETURN(SDO);
 }
 
@@ -1135,7 +1332,7 @@ SUMA_SphereDO * SUMA_ReadSphDO (char *s)
    }
 
    /* allocate for segments DO */
-   SDO = SUMA_Alloc_SphereDO (ncol, s, NULL);
+   SDO = SUMA_Alloc_SphereDO (ncol, s, NULL, SP_type);
    if (!SDO) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Allocate_SphereDO.\n", FuncName);
       SUMA_RETURN(NULL);
@@ -1286,7 +1483,7 @@ SUMA_SphereDO * SUMA_ReadNBSphDO (char *s, char *parent_SO_id)
    }
 
    /* allocate for segments DO */
-   SDO = SUMA_Alloc_SphereDO (ncol, s, parent_SO_id);
+   SDO = SUMA_Alloc_SphereDO (ncol, s, parent_SO_id, NBSP_type);
    if (!SDO) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Allocate_SphereDO.\n", FuncName);
       SUMA_RETURN(NULL);
@@ -1397,7 +1594,7 @@ SUMA_PlaneDO * SUMA_ReadPlaneDO (char *s)
    }
 
    /* allocate for  DO */
-   SDO = SUMA_Alloc_PlaneDO (ncol, s);
+   SDO = SUMA_Alloc_PlaneDO (ncol, s, PL_type);
    if (!SDO) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Allocate_PlaneDO.\n", FuncName);
       SUMA_RETURN(NULL);
@@ -1430,7 +1627,7 @@ SUMA_PlaneDO * SUMA_ReadPlaneDO (char *s)
 }
 
 /*! Allocate for a axis object */
-SUMA_Axis* SUMA_Alloc_Axis (const char *Name)
+SUMA_Axis* SUMA_Alloc_Axis (const char *Name, SUMA_DO_Types type)
 {   
    static char FuncName[]={"SUMA_Alloc_Axis"};
    SUMA_Axis* Ax;
@@ -1442,9 +1639,10 @@ SUMA_Axis* SUMA_Alloc_Axis (const char *Name)
       fprintf(stderr,"SUMA_Alloc_Axis Error: Failed to allocate Ax\n");
       SUMA_RETURN (Ax);
    }
+   Ax->do_type = type;
    
    /* setup some default values */
-   Ax->type = SUMA_STD_ZERO_CENTERED;
+   Ax->atype = SUMA_STD_ZERO_CENTERED;
    Ax->XaxisColor[0] = 1.0;
    Ax->XaxisColor[1] = 0.0;
    Ax->XaxisColor[2] = 0.0;
@@ -1685,7 +1883,7 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv)
    
 }
 
-SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label, char *Parent_idcode_str)
+SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label, char *Parent_idcode_str, SUMA_DO_Types type)
 {
    static char FuncName[]={"SUMA_Alloc_SphereDO"};
    SUMA_SphereDO* SDO;
@@ -1698,6 +1896,7 @@ SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label, char *Parent_idcode_s
       fprintf(stderr,"SUMA_Alloc_SphereDO Error: Failed to allocate SDO\n");
       SUMA_RETURN (NULL);
    }
+   SDO->do_type = type;
    
    if (N_n > 0) {
       if (!Parent_idcode_str) {
@@ -1995,7 +2194,7 @@ SUMA_Boolean SUMA_DrawPlaneDO (SUMA_PlaneDO *SDO, SUMA_SurfaceViewer *sv)
    
 }
 
-SUMA_PlaneDO * SUMA_Alloc_PlaneDO (int N_n, char *Label)
+SUMA_PlaneDO * SUMA_Alloc_PlaneDO (int N_n, char *Label, SUMA_DO_Types type)
 {
    static char FuncName[]={"SUMA_Alloc_PlaneDO"};
    SUMA_PlaneDO* SDO;
@@ -2008,6 +2207,7 @@ SUMA_PlaneDO * SUMA_Alloc_PlaneDO (int N_n, char *Label)
       fprintf(stderr,"SUMA_Alloc_PlaneDO Error: Failed to allocate SDO\n");
       SUMA_RETURN (NULL);
    }
+   SDO->do_type = type;
    
    if (N_n > 0) {
       SDO->cxyz = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
@@ -2335,7 +2535,7 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_S
    SUMA_ENTRY;
    
    LLC[1] = (double)sv->WindHeight;
-   if (Ax->type != SUMA_SCALE_BOX) {
+   if (Ax->atype != SUMA_SCALE_BOX) {
       SUMA_S_Err("Nothing to be done here.\nFor Scale Box type axis only.");
       SUMA_RETURN(NULL);
    }
@@ -2610,7 +2810,7 @@ SUMA_Boolean SUMA_DrawAxis (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
          SUMA_RETURN(NOPE);
    }
    
-   switch (Ax->type) {
+   switch (Ax->atype) {
       case SUMA_STD_ZERO_CENTERED:
          glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
          glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
@@ -5174,6 +5374,7 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
    }
    
    for (i=0; i< N; ++i) {
+      SO[i].do_type = SO_type;
       SO[i].FileType = SUMA_FT_NOT_SPECIFIED;
       SO[i].FileFormat = SUMA_FF_NOT_SPECIFIED;
       SO[i].NodeMarker = NULL;

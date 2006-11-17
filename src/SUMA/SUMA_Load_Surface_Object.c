@@ -2307,14 +2307,14 @@ SUMA_Boolean SUMA_PrepAddmappableSO(SUMA_SurfaceObject *SO, SUMA_DO *dov, int *N
       }
 
       /* Create a Mesh Axis for the surface */
-      SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis");
+      SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis", AO_type);
       if (SO->MeshAxis == NULL) {
          fprintf(SUMA_STDERR,"Error %s: Error Allocating axis\n", FuncName);
          SUMA_RETURN(NOPE);
       }
       /* Change the defaults of Mesh axis to fit standard  */
       /* For the moment, use Box Axis */
-      SO->MeshAxis->type = SUMA_SCALE_BOX;
+      SO->MeshAxis->atype = SUMA_SCALE_BOX;
       SUMA_MeshAxisStandard (SO->MeshAxis, SO);
       /*turn on the viewing for the axis */
       SO->ShowMeshAxis = NOPE;
@@ -2460,7 +2460,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
          /* if the surface is loaded OK, and it has not been loaded previously, register it */
          if (SurfIn) {
             /* Create a Mesh Axis for the surface */
-            SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis");
+            SO->MeshAxis = SUMA_Alloc_Axis ("Surface Mesh Axis", AO_type);
             if (SO->MeshAxis == NULL) {
                fprintf(SUMA_STDERR,"Error %s: Error Allocating axis\n", FuncName);
                SUMA_RETURN(NOPE);
