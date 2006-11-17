@@ -834,6 +834,24 @@ sinc is the value of the function at alpha
    }   \
 }
 
+/*!
+   Find the closest node in SO to coordinate xyz
+   distance^2 is stored in d and nc is the index of the
+   the closest node
+*/
+#define SUMA_CLOSEST_NODE(SO, xyz, nc, d) {  \
+   double m_dxyz = 1023734552736672366372.0; \
+   float *m_p; \
+   int m_n=0;  \
+   nc = -1; \
+   for (m_n=0; m_n<SO->N_Node; ++m_n) {   \
+      m_p = &(SO->NodeList[SO->NodeDim*m_n]);   \
+      SUMA_SEG_LENGTH_SQ(m_p, xyz, d); \
+      if (d < m_dxyz) {   \
+         m_dxyz = d; nc = m_n; \
+      }  \
+   }  \
+}
 
 /* Many of these macros are taken from DSP_in_C examples in
 C Language Algorithms for Digital Signal Processing 

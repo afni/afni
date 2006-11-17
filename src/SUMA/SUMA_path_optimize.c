@@ -688,7 +688,7 @@ int SUMA_Optimize_Path(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
       /* Set opt->X_Lamda as new opt->ControlCurve. When Changing opt->Lda no longer helps, most recent opt->ControlCurve is best path. */
       /* Now repeat optimization.  Keep repeating until path no longer changes.  Stop when best opt->Lda is 0. */
       SUMA_S_Warn("Warning Warning Will Robinson");
-      if(0 && opt->Lda>0.0) {    /* When opt->Lda=0, no longer adjusting path.  Then want Control Curve to stay the same. */
+      if (opt->Lda>0.0) {    /* When opt->Lda=0, no longer adjusting path.  Then want Control Curve to stay the same. */
          for(i=0; i<opt->N_ctrl_points; ++i) {
             for (m=0; m<opt->M_time_steps+1; ++m) {
                dp = mxvdp3(opt->ControlCurve, 0, i, m);
