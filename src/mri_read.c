@@ -2498,7 +2498,6 @@ MRI_IMAGE * mri_read_double_1D( char *fname )
 ENTRY("mri_read_double_1D") ;
 
    if( fname == NULL || fname[0] == '\0' || strlen(fname) > 511 ) RETURN(NULL) ;
-
    strcpy(dname,fname); ii = strlen(dname);  /* 05 Sep 2006 */
    flip = (dname[ii-1] == '\''); if( flip ) dname[ii-1] = '\0';
 
@@ -2529,7 +2528,10 @@ ENTRY("mri_read_double_1D") ;
    inim = mri_read_double_ascii(dname) ;
    if( inim == NULL ) RETURN(NULL) ;
    flim = mri_transpose(inim) ; mri_free(inim) ;
-
+   if( flim == NULL ) {
+      fprintf(stderr, "Failed to transpose image\n");
+      RETURN(NULL) ;
+   }
    /*-- get the subvector and subsampling lists, if any --*/
 
    nx = flim->nx ; ny = flim->ny ;

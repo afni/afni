@@ -31,6 +31,29 @@ ENTRY("mri_transpose_float") ;
    RETURN(om) ;
 }
 
+MRI_IMAGE * mri_transpose_double( MRI_IMAGE * im )
+{
+   MRI_IMAGE * om ;
+   double * iar , * oar ;
+   int ii,jj,nx,ny ;
+
+ENTRY("mri_transpose_double") ;
+
+   if( im == NULL || im->kind != MRI_double ) RETURN(NULL) ;
+
+   nx  = im->nx ; ny = im->ny ;
+   om  = mri_new( ny , nx , MRI_double ) ;
+   iar = MRI_DOUBLE_PTR(im) ;
+   oar = MRI_DOUBLE_PTR(om) ;
+
+   for( jj=0 ; jj < ny ; jj++ )
+      for( ii=0 ; ii < nx ; ii++ )
+         oar[jj+ii*ny] = iar[ii+jj*nx] ;
+
+   MRI_COPY_AUX(om,im) ;
+   RETURN(om) ;
+}
+
 MRI_IMAGE * mri_transpose_short( MRI_IMAGE * im )
 {
    MRI_IMAGE * om ;
@@ -158,6 +181,8 @@ MRI_IMAGE * mri_transpose( MRI_IMAGE * im )
       case MRI_int    : return mri_transpose_int    (im) ;
       case MRI_complex: return mri_transpose_complex(im) ;
       case MRI_rgb:     return mri_transpose_rgbyte (im) ;
+      case MRI_double:  return mri_transpose_double (im) ;
+      default:          fprintf(stderr,"Cannot transpose type %d.\n", im->kind);
    }
    return NULL ;
 }

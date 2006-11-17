@@ -1,6 +1,5 @@
 #include "SUMA_suma.h"
 #include "matrix.h"
-#include "matrix.c"
 #include "SUMA_SurfWarp.h"
 
 /******************* Begin optimizing functions here ************************************************/
@@ -58,11 +57,13 @@ SUMA_Boolean Set_up_Control_Curve( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve )
    SUMA_RETURN(YUP);
 }
 
-SUMA_Boolean Perturbations( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *MaxStep, SUMA_MX_VEC *Perturb_Vec )
+SUMA_Boolean Perturbations(   MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, 
+                              SUMA_MX_VEC *MaxStep, SUMA_MX_VEC *Perturb_Vec, 
+                              SUMA_GENERIC_ARGV_PARSE *ps )
 {
-   static char FuncName[]={"Perturb_Mag"};
+   static char FuncName[]={"Perturbations"};
    int i, j, k, n=0, p;
-   double theta= 0.0, theta_2 = 0.0, nrm[3], p1[3], p1_mag, nrm_mag;
+   double theta= 0.0, theta_2 = 0.0, nrm[3], p1[3], p1_mag, nrm_mag, theta_fac;
    double *dp = NULL, *dp2 = NULL, *dp_m1 = NULL, *dp_m2 = NULL, *dp_p1 = NULL, *dp_p2 = NULL;   
    
    SUMA_Boolean LocalHead = NOPE;
@@ -131,9 +132,10 @@ SUMA_Boolean Perturbations( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX
             p1[2] *= (1.0/p1_mag);
          }
          if(LocalHead) fprintf( SUMA_STDERR, "Direction along curve - checking if unit vec. %f %f %f\n", p1[0], p1[1], p1[2]);
-         dp_p1[0] = (1.0/8.0)*theta*p1[0];
-         dp_p1[1] = (1.0/8.0)*theta*p1[1];
-         dp_p1[2] = (1.0/8.0)*theta*p1[2];
+         theta_fac = (1.0/8.0)*theta;
+         dp_p1[0] = theta_fac*p1[0];
+         dp_p1[1] = theta_fac*p1[1];
+         dp_p1[2] = theta_fac*p1[2];
          p1[0] = 0.0; p1[1] = 0.0; p1[2] = 0.0; 
          if(LocalHead) {
             fprintf( SUMA_STDERR, "Direction along curve - complete vector. %f %f %f\n", dp_p1[0], dp_p1[1], dp_p1[2]);    
@@ -150,9 +152,9 @@ SUMA_Boolean Perturbations( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX
             nrm[2] *= (1.0/nrm_mag);
          }
          if(LocalHead) fprintf( SUMA_STDERR, "Direction perpendicular to curve - checking if unit vec. %f %f %f\n", nrm[0], nrm[1], nrm[2]);
-         dp_p2[0] = (1.0/8.0)*theta*nrm[0];
-         dp_p2[1] = (1.0/8.0)*theta*nrm[1];
-         dp_p2[2] = (1.0/8.0)*theta*nrm[2];
+         dp_p2[0] = theta_fac*nrm[0];
+         dp_p2[1] = theta_fac*nrm[1];
+         dp_p2[2] = theta_fac*nrm[2];
          
          /* Check perturbation vectors.  These vectors should be perpendicular. */
          if(LocalHead) fprintf( SUMA_STDERR, "Dot product of the two perturbation vectors = %g\n", SUMA_MT_DOT((&(dp_p1[0])), (&(dp_p2[0]))) );
@@ -322,11 +324,11 @@ SUMA_Boolean Change_in_Energy( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA
                }            
             }
          
+            
             /* Need to perturb one point at a time. */
             for(i=0; i<opt->N_ctrl_points; ++i) { 
                
                if(LocalHead) fprintf(SUMA_STDERR, "BEGINNING OF LOOP, q=%d, p=%d, m=%d, i=%d\n", q, p, m, i);
-            
                /* Create temporary matrices each time through loop. */
                matrix_initialize(&Kern);      
                matrix_create(nr, nc, &Kern);   
@@ -338,6 +340,7 @@ SUMA_Boolean Change_in_Energy( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA
                matrix_create(nr, nc, &KernI);
                matrix_initialize(&delKernI);
                matrix_create(nr, nc, &delKernI);
+            
             
                j3 = 3*j;
                i3 = 3*i;
@@ -471,12 +474,13 @@ SUMA_Boolean Change_in_Energy( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA
                matrix_destroy(&delKern);
                matrix_destroy(&delKernI);
             }
+               
             matrix_destroy(&Xm_t); 
          }   
       }
    }
    if(LocalHead) fprintf( SUMA_STDERR, "%s: Finished del_S loop.\n", FuncName);
- 
+   
    vector_destroy(&Xm);
    vector_destroy(&Xm_mid);
    vector_destroy(&Xm_p);
@@ -485,7 +489,7 @@ SUMA_Boolean Change_in_Energy( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA
    vector_destroy(&del_S2);
    vector_destroy(&del_SF);
    
-   fprintf( SUMA_STDERR, "\n\n\n\n\n");
+   if(LocalHead) fprintf( SUMA_STDERR, "\n\n\n\n\n");
    
    SUMA_RETURN(YUP);
 }
@@ -608,7 +612,71 @@ double S_energy( MyCircleOpt *opt, SUMA_MX_VEC *VecX )    /* Be very careful!  O
    SUMA_RETURN(S_grad);
 }
 
-double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *MaxStep, SUMA_MX_VEC *Perturb_Vec, SUMA_MX_VEC *Del_S, SUMA_MX_VEC *X_Lamda)
+SUMA_SegmentDO *SUMA_G2SDO(vector G, SUMA_MX_VEC *ControlCurve, char *Label, double scl)
+{
+   static char FuncName[]={"SUMA_G2SDO"};
+   SUMA_SegmentDO *SDO=NULL;
+   int N_n,  oriented,  NodeBased,  Stipple, i, m, d, kcc;
+   char *idcode_str=NULL,  *Parent_idcode_str=NULL;
+   float LineWidth;
+   double *dp=NULL, *dp_new=NULL;
+   int *NodeId=NULL;
+   float *n0=NULL,  *n1=NULL;
+   float *colv=NULL, *thickv=NULL;
+   float acol[4], LineCol[4] = { 1.000000, 0.300000, 1.000000, 1.000000 };
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   oriented = 0;
+   Stipple = 0;
+   NodeBased = 0;
+   LineWidth = 4;
+   SUMA_NEW_ID(idcode_str, Label);
+
+   N_n = ControlCurve->dims[1] * (ControlCurve->dims[2]-2);
+   n0 = (float *) SUMA_malloc(sizeof(float)*N_n*3);
+   n1 = (float *) SUMA_malloc(sizeof(float)*N_n*3);
+   colv = (float *) SUMA_malloc(sizeof(float)*N_n*4);
+   thickv = (float *) SUMA_malloc(sizeof(float)*N_n);
+
+   
+   for(i=0; i<ControlCurve->dims[1]; ++i) {  /* ControlCurve->dims[1] = opt->N_ctrl_points */
+      SUMA_a_good_col("roi256", i, acol);/* get a decent colormap */
+      for (m=0; m<ControlCurve->dims[2]-2; ++m) {     /* ControlCurve->dims[2] = opt->M_time_steps+1 */
+         kcc = m*ControlCurve->dims[1]+i;
+         if(1) {
+            dp = mxvdp3(ControlCurve, 0, i, m+1);
+            for (d=0;d<3;++d) {
+               n0[3*kcc+d] = dp[d];
+               n1[3*kcc+d] = dp[d]+scl * G.elts[3*kcc+d];
+               if (LocalHead) fprintf(SUMA_STDERR,"%d/%d\n", 3*kcc+d, 3*ControlCurve->dims[1] * (ControlCurve->dims[2]-2));
+            }
+         }                             
+         for (d=0;d<4;++d)   colv[4*kcc+d] = acol[d];
+         thickv[kcc] = 3;   
+         dp = NULL; dp_new = NULL;          
+      }
+   }
+
+   SDO = SUMA_CreateSegmentDO( N_n, oriented, NodeBased, Stipple,
+                               Label, idcode_str, Parent_idcode_str,
+                               LineWidth, LineCol,
+                               NodeId, n0, n1,
+                               colv, thickv 
+                              );
+
+   if (idcode_str) SUMA_free(idcode_str); idcode_str = NULL;
+   if (n0) SUMA_free(n0); n0 = NULL;
+   if (n1) SUMA_free(n1); n1 = NULL;
+   if (colv) SUMA_free(colv); colv = NULL;
+   if (thickv) SUMA_free(thickv); thickv = NULL;
+   SUMA_RETURN(SDO);
+}
+
+double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *MaxStep, 
+                  SUMA_MX_VEC *Perturb_Vec, SUMA_MX_VEC *Del_S, SUMA_MX_VEC *X_Lamda,
+                  SUMA_GENERIC_ARGV_PARSE *ps)
 {
    
    static char FuncName[]={"Find_Lamda"};
@@ -617,6 +685,7 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
    int C_dims[10] = { opt->N_ctrl_points, (opt->M_time_steps - 1), 2};  /* time steps, p */
    double *dp_m0 = NULL, *dp_m1 = NULL, *dp = NULL, *dp_LG = NULL;
    double Sx, SxL, Lda = 0.0, mag_G, Theta_step, Theta_step_min, mag_LG;
+   char stmp[500];
    vector Change, G;
    matrix E, Et, EtE, EtEI, R;
    matrix *nullptr = NULL;
@@ -624,6 +693,8 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
+   if (opt->dbg_flag > 2) LocalHead = YUP;
    
    vector_initialize(&Change);
    vector_create( (2*opt->N_ctrl_points*(opt->M_time_steps-1)), &Change );
@@ -648,7 +719,7 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
    }
    if(LocalHead) fprintf(SUMA_STDERR, "Show Change_S:\n");
    
-   SUMA_ShowMxVec(Change_S, -1, NULL);
+   if (opt->dbg_flag > 1) SUMA_ShowMxVec(Change_S, -1, NULL, "\nChange_S\n");
    
    /* Fill vector C with the values. Index in order, m, i, p*/
    /* BE CAREFUL, M=0 IS NOT THE ENDPOINT, IT IS ACTUALLY THE FIRST STEP WHICH WAS PREVIOUSLY CALLED M=1. */
@@ -670,6 +741,7 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
 
    /* Form E matrices that store the perturbation vectors. */
    nr = 3*opt->N_ctrl_points*(opt->M_time_steps-1);
+               fprintf(SUMA_STDERR,"nr = %d\n", nr);
    nc = 2*opt->N_ctrl_points*(opt->M_time_steps-1);
    matrix_initialize(&E);
    matrix_create(nr, nc, &E);
@@ -749,18 +821,40 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
       G.elts[i3+1] = G.elts[i3+1]/mag_G;
       G.elts[i3+2] = G.elts[i3+2]/mag_G;
    }
-   
+      
+   if (ps->cs->talk_suma) {
+      SUMA_SegmentDO *sdo=NULL;
+      NI_group *ngr = NULL;
+      int suc;
+      /* Send Change_S to SUMA */
+      sdo = SUMA_G2SDO(G, ControlCurve, "G", 0.1);
+      /* change that thing to NIML */
+      ngr = SUMA_SDO2niSDO(sdo);
+      #if 0
+      /* write it to diks, for kicks */
+      sprintf(stmp, "file:G_%d.niml.SDO", opt->iter_count);
+      NEL_WRITE_TX(ngr, stmp, suc);
+      #endif
+      /* send it to suma */
+      if (!SUMA_SendToSuma (opt->SO, ps->cs, (void *)ngr, SUMA_SEGMENT_OBJECT, 1)) {
+         SUMA_S_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+         ps->cs->talk_suma = NOPE;
+      }
+      SUMA_free_SegmentDO(sdo); sdo = NULL;
+      NI_free(ngr); ngr = NULL; 
+   }
+
    if(LocalHead){
       fprintf(SUMA_STDERR, "G = [\n");
       for(j=0; j<nr; ++j) fprintf(SUMA_STDERR, "%f\n", G.elts[j]);
       fprintf(SUMA_STDERR, "];\n");
    }
-
+   
    /* Find energy of sphere using unadjusted path. */
    Sx = S_energy(opt, ControlCurve);
    
    /* Find smallest "maximum allowable step" so know how big lamda can be. */
-   if(LocalHead) fprintf(SUMA_STDERR, "*************THETA_STEP_MIN:\n");
+   if(opt->dbg_flag > 1) fprintf(SUMA_STDERR, "*************THETA_STEP_MIN:\n");
    Theta_step_min = mxvd2(MaxStep, 0, 1);
    if(LocalHead) fprintf(SUMA_STDERR, "%f\n", Theta_step_min);
    for(m=1; (m<opt->M_time_steps); ++m) {
@@ -771,7 +865,7 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
          if(Theta_step < Theta_step_min) Theta_step_min = Theta_step;
       }
    }
-   if(LocalHead) fprintf(SUMA_STDERR, "Final Theta_step_min: %f\n", Theta_step_min);
+   if(opt->dbg_flag > 1) fprintf(SUMA_STDERR, "Final Theta_step_min: %f\n", Theta_step_min);
    
    /* Set the smallest "max allowable movement", Theta_step_min as the starting point for Lda. */
    /* Now search for the largest Lda that gives lower energy than with an Lda of zero. */
@@ -799,7 +893,7 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
                mxvd3(X_Lamda, 1, i, m) = dp[1];
                mxvd3(X_Lamda, 2, i, m) = dp[2];  
             } else {
-               if(Lda == Theta_step_min) {
+               if(opt->dbg_flag > 1 &&  Lda == Theta_step_min) {
                   fprintf(SUMA_STDERR, "ControlCurve(%d, %d) = [%f %f %f];\n", m, i, dp[0], dp[1], dp[2]);
                   fprintf(SUMA_STDERR, "G.elts(%d, %d, %d) = [%f %f %f];\n", (i3 + m3), (i3 + m3 +1), (i3 + m3 +2), 
                                                    G.elts[i3 + m3    ], G.elts[i3 + m3 + 1], G.elts[i3 + m3 + 2]); 
@@ -822,21 +916,22 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
  
       /*if(LocalHead) {
          fprintf(SUMA_STDERR, "Show X_Lamda:\n");
-         SUMA_ShowMxVec(X_Lamda, -1, NULL);
+         SUMA_ShowMxVec(X_Lamda, -1, NULL, "\nkkgjjg\n");
       }*/
       
       if(repeat<1) {
-         fprintf(SUMA_STDERR, "Lda before comparison: %f\n", Lda);
+         if(opt->dbg_flag > 1) fprintf(SUMA_STDERR, "Lda before comparison: %f\n", Lda);
          /* Find energy of sphere with adjusted path. */
          SxL = 0.0;
          SxL = S_energy(opt, X_Lamda);
          if( SxL < Sx ) repeat = 1; 
-         if( SxL >= Sx ) { 
-            if(Lda>0.02) Lda = Lda - 0.005;
-            if(Lda<=0.02) Lda = Lda - 0.0001;
+         if( SxL >= Sx ) { /* IMPROVEMENT_NOTE: Perhaps start from  a better Lda, looks like we have to go down often. */
+            /* if(Lda>0.02) Lda = Lda - 0.005;
+            if(Lda<=0.02) Lda = Lda - 0.0001; */
+            Lda = Lda - Theta_step_min * 0.02;
             if(Lda<0.0001) { Lda = 0.0; repeat = 1; }
          } 
-         fprintf(SUMA_STDERR, "SxL = %.12f, Sx = %.12f, Lda = %f\n", SxL, Sx, Lda);
+         if(opt->dbg_flag > 1) fprintf(SUMA_STDERR, "SxL = %.12f, Sx = %.12f, Lda = %f\n", SxL, Sx, Lda);
       }
    } while(repeat < 1); 
 

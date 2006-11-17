@@ -880,6 +880,44 @@ NI_element *SUMA_FindNgrAttributeElement(NI_group *ngr, char *attname)
    SUMA_RETURN(nel);
 }
 
+NI_element *SUMA_FindNgrNamedElement(NI_group *ngr, char *elname)
+{
+   static char FuncName[]={"SUMA_FindNgrNamedElement"};
+   NI_element *nel = NULL;
+   char *rs=NULL;
+   int ip;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!ngr || !elname) { SUMA_SL_Err("NUll input "); SUMA_RETURN(nel); }
+  /* now read the elements in this group */
+   for( ip=0 ; ip < ngr->part_num ; ip++ ){ 
+      switch( ngr->part_typ[ip] ){
+         /*-- a sub-group ==> recursion! --*/
+         case NI_GROUP_TYPE:
+            break ;
+         case NI_ELEMENT_TYPE:
+            nel = (NI_element *)ngr->part[ip] ;
+            if (LocalHead)  {
+               fprintf(SUMA_STDERR,"%s:  Looking for %s   name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", FuncName,\
+                        elname, nel->name, nel->vec_len, nel->vec_filled, nel->vec_num );
+            }
+            if (!strcmp(elname, nel->name)) SUMA_RETURN(nel);   
+            /* cancel plans if you get here */
+            nel = NULL;
+            break;
+         default:
+            SUMA_SL_Err("Don't know what to make of this group element, ignoring.");
+            break;
+      }
+   }
+
+
+   SUMA_RETURN(nel);
+}
+
+
 
 /*!
    Add an attribute element to a data set, to be called after adding a column to the data element
@@ -1869,6 +1907,10 @@ void *SUMA_Copy_Part_Column(void *col, NI_rowtype *rt, int N_col, byte *rowmask,
          if (!masked_only) {
             SUMA_LH("All copy");
             memcpy( ndat , (char *)col , rt->size * n_alloc ) ;
+            if (LocalHead && rt->code == NI_FLOAT) {
+               float *fv=(float*)ndat, *cv=(float *)col;
+               fprintf(SUMA_STDERR, "i=0; %f, %f\ni=1; %f, %f\n", fv[0], cv[0], fv[1], cv[1]);
+            }
             /* reset values that are not in mask */
             if (rowmask) {
                switch(rt->code) {
@@ -6554,6 +6596,7 @@ float *SUMA_Load1D_eng (char *oName, int *ncol, int *nrow, int RowMajor, int ver
    MRI_IMAGE *im = NULL, *imt = NULL;
    float *far=NULL;
    int i;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -6567,7 +6610,7 @@ float *SUMA_Load1D_eng (char *oName, int *ncol, int *nrow, int RowMajor, int ver
    }   
    *ncol = im->ny;
    *nrow = im->nx;
-   
+   if (LocalHead) fprintf(SUMA_STDERR, "Read %s, found %d cols, %d rows\n", oName, *ncol, *nrow);
    if (RowMajor) {
       imt = mri_transpose(im); mri_free(im); im = imt; imt = NULL;
    }   

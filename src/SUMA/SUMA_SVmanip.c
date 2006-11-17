@@ -406,13 +406,13 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->ShowWorldAxis = SUMA_NO_WAX;
       
       
-      SV->WAx = SUMA_Alloc_Axis ("Viewer World Axis");
+      SV->WAx = SUMA_Alloc_Axis ("Viewer World Axis", AO_type);
 
       if (SV->WAx == NULL) {
          fprintf(SUMA_STDERR,"Error %s: Error Allocating axis\n", FuncName);
          SUMA_RETURN(NULL);
       }
-      SV->WAx->type = SUMA_SCALE_BOX;
+      SV->WAx->atype = SUMA_SCALE_BOX;
 
       SV->Ch = SUMA_Alloc_CrossHair ();
       if (SV->Ch == NULL) {

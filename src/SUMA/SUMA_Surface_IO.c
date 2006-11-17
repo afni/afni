@@ -5801,6 +5801,7 @@ NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee)
    } else {
       NI_set_attribute(ngr, "Model_Name", SUMA_EMPTY_ATTR);
    }
+   NI_SET_INT(ngr, "do_type", SO->do_type);
    
    switch (SO->Side) {
       case SUMA_NO_SIDE:
@@ -6062,6 +6063,8 @@ SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr)
       SUMA_Free_Surface_Object(SO); SO = NULL; SUMA_RETURN(SO); 
    }   
    
+   NI_GET_INT(ngr, "do_type", SO->do_type);
+
    tmp = NI_get_attribute(ngr, "Object_Label");
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->Label = SUMA_copy_string(tmp);  
    

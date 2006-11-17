@@ -13,7 +13,7 @@
    written mostly to allow for the allocation of newcode with SUMA's functions
 */
 #define SUMA_NEW_ID(newcode, strn) { \
-   if ((newcode)) { SUMA_SL_Err("newcode pointer must be null"); } \
+   if ((newcode)) { SUMA_S_Err("newcode pointer must be null"); } \
    else if (!(strn)) { (newcode) = (char*)SUMA_calloc(SUMA_IDCODE_LENGTH, sizeof(char)); UNIQ_idcode_fill((newcode)); } \
    else {   char *m_tmp; m_tmp = UNIQ_hashcode((strn)); (newcode) = SUMA_copy_string(m_tmp); free(m_tmp); m_tmp = NULL; }  \
 }

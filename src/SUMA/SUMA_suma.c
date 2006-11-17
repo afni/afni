@@ -564,7 +564,7 @@ int main (int argc,char *argv[])
    #endif
       
 	/* create an Eye Axis DO */
-	EyeAxis = SUMA_Alloc_Axis ("Eye Axis");
+	EyeAxis = SUMA_Alloc_Axis ("Eye Axis", AO_type);
 	if (EyeAxis == NULL) {
 		SUMA_error_message (FuncName,"Error Creating Eye Axis",1);
 		exit(1);

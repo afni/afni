@@ -3295,6 +3295,100 @@ void SUMA_disp_vecucmat (unsigned char *v,int nr, int nc , int SpcOpt,
 }/*SUMA_disp_vecucmat*/
 
 /*!
+   Set *N_dims to -1 if you don't have dims setup and are willing to take whatever is in Name
+*/
+SUMA_MX_VEC *SUMA_Read1DMxVec(SUMA_VARTYPE tp, char *Name, int *dims, int *N_dims)
+{
+   static char FuncName[]={"SUMA_Read1DMxVec"};
+   SUMA_MX_VEC *v=NULL;
+   float *fv=NULL;
+   double *dv = NULL;
+   int ncol, nrow, i, nvals;
+   complex *cv = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (*N_dims) {
+      /* user has format in mind */
+      nvals = dims[0];
+      for (i=1;i<*N_dims;++i) nvals = nvals * dims[i];
+   } else {
+      nvals = -1;
+   }
+   switch (tp) {
+      case SUMA_complex:
+         cv = SUMA_LoadComplex1D_eng (Name, &ncol, &nrow, 0, 0);
+         if (!cv) {
+            SUMA_S_Errv("Failed to load %s\n", Name);
+            SUMA_RETURN(v);
+         } 
+         if (nvals >= 0) {
+            if (ncol*nrow != nvals) {
+               SUMA_S_Errv("User wants a total of %d values, %d found in file.\n", nvals, ncol*nrow);
+               SUMA_RETURN(v);
+            } 
+         } else {
+            nvals = ncol*nrow;
+            dims[0] = nrow; dims[1] = ncol;
+            *N_dims = ncol;
+         }
+         
+         v = SUMA_VecToMxVec(SUMA_complex, *N_dims, dims, 1, (void *)cv); cv = NULL; /* cv should be nulled, pointer copied into output*/
+         break;
+      
+      #if 0
+      case SUMA_double:
+         fv = SUMA_Load1D_eng (Name, &ncol, &nrow, 0, 0);
+         if (!fv) {
+            SUMA_S_Errv("Failed to load %s\n", Name);
+            SUMA_RETURN(v);
+         } 
+         if (nvals >= 0) {
+            if (ncol*nrow != nvals) {
+               SUMA_S_Errv("User wants a total of %d values, %d (%dx%d) found in file.\n", nvals, ncol*nrow, ncol, nrow);
+               SUMA_RETURN(v);
+            } 
+         } else {
+            nvals = ncol*nrow;
+            dims[0] = nrow; dims[1] = ncol;
+            *N_dims = ncol;
+         }
+         v = SUMA_NewMxVec(tp, *N_dims,  dims,  1);
+         for (i=0; i<nvals; ++i) {
+            mxvd1(v,i) = (double)fv[i];
+         }
+         SUMA_free(fv); fv = NULL;
+         break;
+      #else
+      case SUMA_double:
+         dv = SUMA_LoadDouble1D_eng(Name, &ncol, &nrow, 0, 0);
+         if (!dv) {
+            SUMA_S_Errv("Failed to load %s\n", Name);
+            SUMA_RETURN(v);
+         } 
+         if (nvals >= 0) {
+            if (ncol*nrow != nvals) {
+               SUMA_S_Errv("User wants a total of %d values, %d found in file.\n", nvals, ncol*nrow);
+               SUMA_RETURN(v);
+            } 
+         } else {
+            nvals = ncol*nrow;
+            dims[0] = nrow; dims[1] = ncol;
+            *N_dims = ncol;
+         }
+         
+         v = SUMA_VecToMxVec(SUMA_double, *N_dims, dims, 1, (void *)dv); dv = NULL; /* dv should be nulled, pointer copied into output*/
+         break;
+      #endif
+      default:
+         SUMA_S_Err("Not ready for this type");
+         break;
+   }
+   
+   SUMA_RETURN(v);
+}
+   
+/*!
    \brief a function to write MxVec to a file, mostly
    for debugging. No overwrite protection provided
    If Name is NULL then output is to stdout
@@ -3316,8 +3410,11 @@ int SUMA_WriteMxVec(SUMA_MX_VEC *mxv, char *Name, char *title)
       }
    }
    if (title) {
+      if (title[0] != '#') fprintf(out,"#");
       fprintf(out,"%s", title);
+      if (title[strlen(title)] != '\n'); fprintf(out,"\n");
    }
+   
    if (mxv->N_dims > 2) {
       fprintf(out,"#MxVec is %d dimensional, writing results in column major (first dimension first) array form.\n", mxv->N_dims);
       d0 = mxv->N_vals;
