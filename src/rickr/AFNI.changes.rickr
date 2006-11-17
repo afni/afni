@@ -1792,9 +1792,13 @@
 
 15 Nov 2006: modified serial_helper.c: encode nex into handshake byte
 
-17 Nov 2006: modifed model_demri_3.c:
-  * do not exit on fatal errors, complain and return zero'd data
-  * if model parameters are bad (esp. computed), zero data and return
-  * if thd_floatscan() on results shows bad floats, zero data and return
-  * require AFNI_MODEL_D3_R1I_DSET to be float
-  * removed R1I_data_im
+17 Nov 2006:
+  * modifed model_demri_3.c:
+      - do not exit on fatal errors, complain and return zero'd data
+      - if model parameters are bad (esp. computed), zero data and return
+      - if thd_floatscan() on results shows bad floats, zero data and return
+      - require AFNI_MODEL_D3_R1I_DSET to be float
+      - removed R1I_data_im
+  * added afni_util.py make.stim.times.py option_list.py to python_scripts
+  * modified afni_base.py
+
