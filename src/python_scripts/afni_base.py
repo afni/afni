@@ -13,7 +13,8 @@ class afni_name:
    def p(self):
       return os.path.abspath(self.path)
    def ppve(self):
-      s = "%s/%s%s%s" % (os.path.abspath(self.path), self.prefix, self.view, self.extension)
+      s = "%s/%s%s%s" % (os.path.abspath(self.path), self.prefix, \
+                         self.view, self.extension)
       return s
    def ppv(self):
       s = "%s/%s%s" % (os.path.abspath(self.path), self.prefix, self.view)
@@ -24,7 +25,8 @@ class afni_name:
       return "%s%s" % (self.prefix, self.view)
    def exist(self):
       if os.path.isfile("%s.HEAD" % self.ppv()) and \
-         (os.path.isfile("%s.BRIK" % self.ppv()) or os.path.isfile("%s.BRIK.gz" % self.ppv())):
+         (os.path.isfile("%s.BRIK" % self.ppv()) or \
+          os.path.isfile("%s.BRIK.gz" % self.ppv())):
          return 1
       else:
          return 0
@@ -100,16 +102,16 @@ class afni_name:
 class comopt:
    def __init__(self, name, npar, defpar, acplist=[]):
       self.name = name
-      self.i_name = -1      #index of option name in argv
-      self.n_exp = npar     #Number of expected params, 0 if no params, 
-                            #-1 if any number > 0 is OK.
-                            #N if exactly N numbers are expected 
-      self.n_found = -1     #Number of parameters found after parsing
-                            # 0 means option was on command line but had no parameters
-      self.parlist = None     #parameter strings list following option 
-      self.deflist = defpar #default parameter list,if any
-      self.acceptlist = acplist #acceptable values if any
-      self.required = False #is the argument required?
+      self.i_name = -1      # index of option name in argv
+      self.n_exp = npar     # Number of expected params, 0 if no params, 
+                            #   -1 if any number > 0 is OK.
+                            #   N if exactly N numbers are expected 
+      self.n_found = -1     # Number of parameters found after parsing
+                            #   0 means was on command line but had no params
+      self.parlist = None   # parameter strings list following option 
+      self.deflist = defpar # default parameter list,if any
+      self.acceptlist = acplist # acceptable values if any
+      self.required = False # is the argument required?
       return 
 
    def show(self, mesg = ''):
@@ -121,7 +123,8 @@ class comopt:
       print "  acceptlist = %s" % self.acceptlist
 
    def test(self):
-      if (len(self.deflist) != 0 and self.parlist == None):  #some checks possible, parlist not set yet
+      if (len(self.deflist) != 0 and self.parlist == None):
+         # some checks possible, parlist not set yet
          if self.n_exp >= 0:
             if len(self.deflist) != self.n_exp:
                print "Error: Option %s needs %d parameters\n" \
@@ -199,7 +202,8 @@ class shell_com:
          print "Empty output."
          return None
       elif len(self.so) <= i:
-         print "Index %d larger than number of elements (%d) in output " % (i, len(self.so))
+         print "Index %d larger than number of elements (%d) in output " %  \
+               (i, len(self.so))
          return None
       else:
          return self.so[i]
@@ -246,11 +250,12 @@ def getopts2(argv,oplist):
    So, from a main you can do the following:
 
    oplist = []
-   #an option that needs no params
+   # an option that needs no params
    oplist.append(afni_base.comopt('-dicom', 0, []))  
-   #an option that needs 2 params, with 2 options, defaulting to 2 and 10.0
+   # an option that needs 2 params, with 2 options, defaulting to 2 and 10.0
    oplist.append(afni_base.comopt('-clust', 2, ['2', '10.0']))  
-   #an option that needs an undetermined number of parameters ( 1 or more, -2 for 2 or more)
+   # an option that needs an undetermined number of parameters
+   # (1 or more, -2 for 2 or more)
    oplist.append(afni_base.comopt('-dsets', -1, []))
    
    once the list is made, you call getopts2 with argv and oplist
@@ -283,14 +288,16 @@ def getopts2(argv,oplist):
          op.parlist = []
          if op.n_exp < 0 or op.n_exp > 0: #parameters expected, get them
             while ((op.n_exp < 0 and op.iname < len(argv)) or \
-               (op.n_exp > 0 and len(op.parlist) < op.n_exp and len(argv) > 0)) and \
-               argv[op.iname] not in optnames:
+               (op.n_exp > 0 and len(op.parlist) < op.n_exp and len(argv) > 0))\
+                 and \ argv[op.iname] not in optnames:
                if len(op.acceptlist):
                   if argv[op.iname] not in op.acceptlist:
-                     print "Error: parameter value %s for %s is not acceptable\nChoose from %s" % \
-                           (argv[op.iname], op.name, string.join(op.acceptlist, ' , '))
+                     print "Error: parameter value %s for %s is not "   \
+                           "acceptable\nChoose from %s" %               \
+                           (argv[op.iname], op.name,                    \
+                           string.join(op.acceptlist, ' , '))
                op.parlist.append(argv[op.iname]) #string added
-               argv.remove(argv[op.iname])             #remove this string from list          
+               argv.remove(argv[op.iname])       #remove this string from list          
             op.n_found = len(op.parlist)
                
       else : #No option in argv, just copy option
@@ -311,12 +318,14 @@ def getopts2(argv,oplist):
             op.parlist.extend(argv)    #stick'em all in
             opts[op.name] = op
             if op.n_exp > 0 and len(op.parlist) != op.n_exp:
-               print "Error: Expecting %d parameters\nHave %d on command line (%s).\n" % \
-                  (op.n_exp, len(op.parlist), op.parlist)
+               print "Error: Expecting %d parameters\n" \
+                     "Have %d on command line (%s).\n" % \
+                     (op.n_exp, len(op.parlist), op.parlist)
                return None
       elif len(argv) > 0:
-         print "Error: Expecting no loose parameters.\nHave %d loose parameters (or bad option) on command line (%s).\n" % \
-                  (len(argv), argv)
+         print "Error: Expecting no loose parameters.\n"        \
+               "Have %d loose parameters (or bad option) on "   \
+               "command line (%s).\n" % (len(argv), argv)
          return None
    
    #go west young man
@@ -377,7 +386,8 @@ def parse_afni_name(name):
       pr = rni[0]
       tp = 'NIFTI'
    else: 
-      rni = strip_extension(fn,['.HEAD','.BRIK','.BRIK.gz','.1D', '.','.1D.dset', '.niml.dset'])
+      rni = strip_extension(fn,['.HEAD','.BRIK','.BRIK.gz','.1D', '.',  \
+                                '.1D.dset', '.niml.dset'])
       ex = rni[1]
       if (ex == '.1D' or ex == '.1D.dset'):
          tp = "1D"
@@ -439,7 +449,8 @@ def shell_exec(s,opt=""):
       
    return so, se
 
-#generic unique function, from:  http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/52560/index_txt
+#generic unique function, from:
+#  http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/52560/index_txt
 def unique(s):
     """Return a list of the elements in s, but without duplicates.
 
@@ -561,7 +572,8 @@ def GetSelectionFromList(l, prmpt = ""):
          if nameg:
             return nameg
          else:
-            print "Input error: selection %s has %d matches in list." % ( name, len(match(name, l)))
+            print "Input error: selection %s has %d matches in list." %  \
+                  ( name, len(match(name, l)))
       cnt += 1
    print "Vous ne comprenez pas l'anglais?"
    print "Ciao"            
