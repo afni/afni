@@ -50,6 +50,10 @@ int SUMA_ClosestNodeToVoxels(SUMA_SurfaceObject *SO, SUMA_VOLPAR *vp, int *close
                iv.xyz[0] = (float)i; iv.xyz[1] = (float)j; iv.xyz[2] = (float)k;    
                fv = SUMA_THD_3dfind_to_3dmm_vp(vp, iv);
                iv = SUMA_THD_3dmm_to_dicomm(vp->xxorient, vp->yyorient, vp->zzorient,  fv);
+               #if 0 /* macro not tested here so keeping older code below */
+               SUMA_CLOSEST_NODE(SO, iv.xyz, closest_node[ijk], d);
+               if (closest_dist) closest_dist[ijk] = (float)d;
+               #else
                dxyz = 1023734552736672366372.0;
                for (n=0; n<SO->N_Node; ++n) {
                   p = &(SO->NodeList[SO->NodeDim*n]);
@@ -59,6 +63,7 @@ int SUMA_ClosestNodeToVoxels(SUMA_SurfaceObject *SO, SUMA_VOLPAR *vp, int *close
                      if (closest_dist) closest_dist[ijk] = (float)d;
                   }
                }
+               #endif
                if (closest_dist) { if (closest_dist[ijk] >= 0.0f) closest_dist[ijk] = (float)sqrt(closest_dist[ijk]); }
                if (verb) {
                   ++cnt;
