@@ -365,6 +365,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
                SUMA_RETURNe;
             }
          }
+         SDO->do_type = dotp;
          VDO = (void *)SDO;
          break;
       case NBSP_type:
@@ -376,12 +377,14 @@ void SUMA_LoadSegDO (char *s, void *csvp )
             SUMA_SL_Err("Failed to read spheres file.\n");
             SUMA_RETURNe;
          }
+         ((SUMA_SphereDO * )VDO)->do_type = dotp;
          break;
       case OLS_type:
          if (!(SDO = SUMA_ReadSegDO(s, 1, NULL))) {
             SUMA_SL_Err("Failed to read segments file.\n");
             SUMA_RETURNe;
          }
+         SDO->do_type = dotp;
          VDO = (void *)SDO;
          break;
       case LS_type:
@@ -389,6 +392,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
             SUMA_SL_Err("Failed to read segments file.\n");
             SUMA_RETURNe;
          }
+         SDO->do_type = dotp;
          VDO = (void *)SDO;
          break;
       
@@ -397,18 +401,41 @@ void SUMA_LoadSegDO (char *s, void *csvp )
             SUMA_SL_Err("Failed to read spheres file.\n");
             SUMA_RETURNe;
          }
+         ((SUMA_SphereDO * )VDO)->do_type = dotp;
          break;
       case PL_type:
          if (!(VDO = (void *)SUMA_ReadPlaneDO(s))) {
             SUMA_SL_Err("Failed to read spheres file.\n");
             SUMA_RETURNe;
          }
+         ((SUMA_SphereDO * )VDO)->do_type = dotp;
          break;
       default:
          SUMA_SL_Err("Should not get here");
          SUMA_RETURNe;
          break;
    }
+   
+   #if 0 
+   { /* a test for changing SDO formats */
+      if (SDO) {
+         NI_group *ngr = SUMA_SDO2niSDO(SDO);
+         int suc;
+         NEL_WRITE_TX(ngr, "file:mess.niml.SDO", suc);
+         SUMA_S_Note("Wrote mess to disk");
+         /* Now free SDO and reload from disk */
+         SUMA_free_SegmentDO(SDO);
+         SDO = SUMA_niSDO2SDO(ngr);
+         NI_free(ngr); ngr = NULL;
+         /* now repeat xformation and see what you get */
+         ngr = SUMA_SDO2niSDO(SDO);
+         NEL_WRITE_TX(ngr, "file:mess2.niml.SDO", suc);
+         SUMA_S_Note("Wrote mess2 to disk");
+         NI_free(ngr); ngr = NULL;
+         VDO = (void *)SDO;
+      }
+   }
+   #endif
    
    /* addDO */
    if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, VDO, dotp, SUMA_LOCAL)) {
@@ -757,6 +784,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    while (i < csv->N_DO) {
       if (dov[csv->RegisteredDO[i]].CoordType == SUMA_SCREEN) {
          switch (dov[csv->RegisteredDO[i]].ObjectType) {
+            case type_not_set:
             case no_type:
                SUMA_SL_Err("Should not be doing this buidness");
                break;
@@ -864,6 +892,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                   fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawPlaneDO.\n", FuncName);
                }
                break;
+            case type_not_set:
             case no_type:
                SUMA_SL_Err("What's cracking?");
                break;
@@ -2916,6 +2945,44 @@ void SUMA_cb_viewSumaCont(Widget w, XtPointer data, XtPointer callData)
 
    SUMA_RETURNe;
 }
+
+/*! if calling this function from outside interface, set w to NULL 
+*/
+int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *sv) 
+{
+   static char FuncName[]={"SUMA_viewSurfaceCont"};
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO || !SO->SurfCont) {
+      SUMA_RETURN(0);
+   }
+   
+   if (!SO->SurfCont->TopLevelShell) {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_cb_createSurfaceCont.\n", FuncName);
+      if (w) SUMA_cb_createSurfaceCont( w, (XtPointer)SO, NULL);
+      else SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)SO, NULL);
+   }else {
+      /* controller already created, need to bring it up again */
+      #ifdef SUMA_USE_WITHDRAW
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: Controller already created, Raising it.\n", FuncName);
+         XMapRaised(SUMAg_CF->X->DPY_controller1, XtWindow(SO->SurfCont->TopLevelShell));      
+      #endif
+
+   }
+   
+   SUMA_Init_SurfCont_SurfParam(SO);
+   SUMA_Init_SurfCont_CrossHair(SO);
+   
+   if (SO->SurfCont->PosRef != sv->X->TOPLEVEL) {
+      SO->SurfCont->PosRef = sv->X->TOPLEVEL;
+      SUMA_PositionWindowRelative (SO->SurfCont->TopLevelShell, SO->SurfCont->PosRef, SWP_TOP_RIGHT);   
+   }
+   
+   SUMA_RETURN(1); 
+}
+
 /*!
    \brief SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData);
    opens the surface controller for the surface in focus. 
@@ -2945,29 +3012,14 @@ void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       SUMA_RETURNe;
    }
    
-   
-   if (!SO->SurfCont->TopLevelShell) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_cb_createSurfaceCont.\n", FuncName);
-      SUMA_cb_createSurfaceCont( w, (XtPointer)SO, callData);
-   }else {
-      /* controller already created, need to bring it up again */
-      #ifdef SUMA_USE_WITHDRAW
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Controller already created, Raising it.\n", FuncName);
-         XMapRaised(SUMAg_CF->X->DPY_controller1, XtWindow(SO->SurfCont->TopLevelShell));      
-      #endif
-
+   if (!SUMA_viewSurfaceCont(w, SO, sv)) {
+      SUMA_S_Err("Failed in SUMA_viewSurfaceCont");
+      SUMA_RETURNe;
    }
-   
-   SUMA_Init_SurfCont_SurfParam(SO);
-   SUMA_Init_SurfCont_CrossHair(SO);
-   
-   if (SO->SurfCont->PosRef != sv->X->TOPLEVEL) {
-      SO->SurfCont->PosRef = sv->X->TOPLEVEL;
-      SUMA_PositionWindowRelative (SO->SurfCont->TopLevelShell, SO->SurfCont->PosRef, SWP_TOP_RIGHT);   
-   } 
 
    SUMA_RETURNe;
 }
+
 /*! \brief SUMA_cb_viewViewerCont(Widget w, XtPointer data, XtPointer callData)
       opens the viewer controller. 
       \param data index of widget into sv->X->ViewMenu 
@@ -5772,6 +5824,27 @@ void SUMA_cb_ColPlaneShowOne_toggled (Widget w, XtPointer data, XtPointer client
    SUMA_UpdateNodeLblField(SO);
    
    SUMA_RETURNe;
+}
+
+int SUMA_ColPlaneShowOne_Set (SUMA_SurfaceObject *SO, SUMA_Boolean state) 
+{
+   static char FuncName[]={"SUMA_ColPlaneShowOne_Set"};
+   
+   SUMA_ENTRY;
+
+   if (!SO->SurfCont) SUMA_RETURN(0);
+   if (!SO->SurfCont->TopLevelShell) SUMA_RETURN(0);
+   
+   SO->SurfCont->ShowCurOnly = state;
+   XmToggleButtonSetState (SO->SurfCont->ColPlaneShowOne_tb, SO->SurfCont->ShowCurOnly, NOPE);   
+   
+   SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
+
+   SUMA_RemixRedisplay(SO);
+   SUMA_UpdateNodeLblField(SO);
+   
+   SUMA_RETURN(1);
+   
 }
 /*!
  \brief Function based on arrow_time.c program from Motif Programing Manual

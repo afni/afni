@@ -262,8 +262,9 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
       case GO_type:
          fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, Not trained to free GO objects\n");
          break;
+      case type_not_set:
       case no_type:
-         fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, no free no_type\n");
+         fprintf(SUMA_STDERR,"Error SUMA_Free_Displayable_Object, no free no_type or type_not_set\n");
          break;
       case NBSP_type:
       case SP_type:
@@ -316,7 +317,9 @@ int SUMA_FindDOi_byID(SUMA_DO *dov, int N_dov, char *idcode_str)
    for (i=0; i<N_dov; ++i) {
       if (dov[i].ObjectType > no_type) {
          ado = (SUMA_ALL_DO *)dov[i].OP;
-         /* fprintf(SUMA_STDERR,"%s: Object %d/%d type: %d\n", FuncName, i, N_dov, dov[i].ObjectType); */
+         /* fprintf(SUMA_STDERR,"%s: Object %d/%d type: %d\n", FuncName, i, N_dov, dov[i].ObjectType); 
+         fprintf(SUMA_STDERR,"%s: ado->idcode_str= %s\n", FuncName, SUMA_CHECK_NULL_STR(ado->idcode_str));
+         fprintf(SUMA_STDERR,"%s: idcode_str= %s\n", FuncName, SUMA_CHECK_NULL_STR(idcode_str)); */
          if (ado->idcode_str && strcmp(ado->idcode_str, idcode_str) == 0) {
             SUMA_RETURN(i);
          } 
@@ -334,6 +337,7 @@ SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_DO_Types DO_Typ
 {
    static char FuncName[] = {"SUMA_AddDO"};
    SUMA_ALL_DO *ado=NULL;
+   static int nm=0;
    void *eo=NULL;
    int ieo;
    
@@ -351,7 +355,10 @@ SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_DO_Types DO_Typ
          SUMA_SLP_Err("Surface exists, cannot be replaced this way.");
          SUMA_RETURN(NOPE);
       }
-      SUMA_SLP_Note("Object exists and will be replaced.");
+      if (!(nm % 300)) {
+         SUMA_SLP_Note("Object exists and will be replaced.\nMessage shown intermittently");
+      }
+      ++nm;
       /* free olde one */
       if (!SUMA_Free_Displayable_Object(&(dov[ieo]))) {
          SUMA_SL_Err("Failed to free displayable object");
@@ -985,6 +992,26 @@ SUMA_SurfaceObject * SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
    SUMA_RETURN(NULL);
 }
 
+SUMA_SurfaceObject * SUMA_findanySOp_inDOv(SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]={"SUMA_findanySOp_inDOv"};
+   SUMA_SurfaceObject *SO;
+   int i;
+   
+   SUMA_ENTRY;
+   
+   SO = NULL;
+   for (i=0; i<N_dov; ++i) {
+      if (dov[i].ObjectType == SO_type) {
+         SO = (SUMA_SurfaceObject *)dov[i].OP;
+         SUMA_RETURN (SO);
+      }
+   }
+   
+   SUMA_RETURN(NULL);
+}
+
+
 char *SUMA_find_SOLabel_from_idcode (char *idcode, SUMA_DO *dov, int N_dov)
 {
    static char FuncName[]={"SUMA_find_SOLabel_from_idcode"};
@@ -1004,6 +1031,32 @@ char *SUMA_find_SOLabel_from_idcode (char *idcode, SUMA_DO *dov, int N_dov)
       }
    }
    SUMA_RETURN(NULL);
+}
+
+char *SUMA_find_SOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]={"SUMA_find_SOidcode_from_label"};
+   SUMA_SurfaceObject *SO;
+   int i;
+   char *found = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!label) SUMA_RETURN(NULL);
+   
+   for (i=0; i<N_dov; ++i) {
+      if (dov[i].ObjectType == SO_type) {
+         SO = (SUMA_SurfaceObject *)dov[i].OP;
+         if (strcmp(label, SO->Label)== 0) {
+            if (!found) { found = SO->idcode_str; }
+            else {
+               SUMA_S_Errv("More than one surface with label %s found.\n", label);
+               SUMA_RETURN(NULL);
+            }
+         }
+      }
+   }
+   SUMA_RETURN(found);
 }
 
 /*!

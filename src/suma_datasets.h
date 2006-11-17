@@ -177,6 +177,8 @@ typedef enum {
    SUMA_VIEWER_SETTING,
    SUMA_SURFACE_VOLUME_PARENT,
    SUMA_SURFACE_OBJECT,
+   SUMA_ENGINE_INSTRUCTION,
+   SUMA_SEGMENT_OBJECT,
    SUMA_N_DSET_TYPES
 } SUMA_DSET_TYPE; /*!<  Type of data set ( should be called Object, not DSET ) 
                         When you add a new element, modify functions
@@ -578,7 +580,56 @@ NodeDef might be dynamically changed in the overlay plane */
 #endif
 /* #define DSET_(dset) NI_get_attribute(dset->nel,"") */
    
+#define NI_SET_STR(ngr, name, val)  {\
+   if (val) NI_set_attribute(ngr, name, val);  \
+   else NI_set_attribute(ngr, name, SUMA_EMPTY_ATTR); \
+}
+#define NI_GET_STR(ngr, name, val)  {\
+   char *m_s = NI_get_attribute(ngr, name);  \
+   if (strcmp(m_s,SUMA_EMPTY_ATTR) == 0) sprintf(val,"%s", m_s); else val[0] = '\0'; \
+}
+#define NI_GET_STR_CP(ngr, name, val)  {\
+   char *m_s = NI_get_attribute(ngr, name);  \
+   if (strcmp(m_s,SUMA_EMPTY_ATTR) == 0) val = NULL; else val = SUMA_copy_string(m_s); \
+}
 
+#define NI_SET_INT(ngr, name, val)  {\
+   char m_stmp[100]; sprintf(m_stmp,"%d", val);   \
+   NI_set_attribute(ngr, name, m_stmp);  \
+}
+#define NI_GET_INT(ngr, name, val)  {\
+   char *m_s = NI_get_attribute(ngr, name);  \
+   if (m_s) val = atoi(m_s); else val = 0; \
+}
+#define NI_SET_FLOAT(ngr, name, val)  {\
+   char m_stmp[100]; sprintf(m_stmp,"%f", val);   \
+   NI_set_attribute(ngr, name, m_stmp);  \
+}
+#define NI_GET_FLOAT(ngr, name, val)  {\
+   char *m_s = NI_get_attribute(ngr, name);  \
+   if (m_s) val = atof(m_s); else val = 0.0; \
+}
+#define NI_SET_FLOATv(ngr, name, valv, n) {\
+   char m_stmp[400]; int m_i=0;  m_stmp[0] = '\0';\
+   for (m_i=0; m_i<n;++m_i) snprintf(m_stmp, 390*sizeof(char), "%s %f", m_stmp, valv[m_i]);   \
+   NI_set_attribute(ngr, name, m_stmp);  \
+}
+#define NI_GET_FLOATv(ngr, name, valv, n) {\
+   char *m_s = NI_get_attribute(ngr, name);  \
+   int m_nr, m_i; float *m_fv;  \
+   for (m_i=0; m_i<n; ++m_i) valv[m_i] = 0.0;   \
+   if (m_s) {  \
+      m_fv = (float *)SUMA_strtol_vec(m_s, n, &m_nr, SUMA_float); \
+      if (m_fv) {\
+         if (m_nr < n) { SUMA_S_Warn("Fewer values in field\nProceeding..."); }  \
+         if (m_nr > n) { SUMA_S_Warn("More values in field\nProceeding..."); }  \
+         for (m_i=0; m_i<SUMA_MIN_PAIR(n, m_nr);++m_i) valv[m_i] = m_fv[m_i];    \
+         SUMA_free(m_fv);  \
+      } else {    \
+         SUMA_S_Warn("NULL vec, filling with zeros"); \
+      }  \
+   }  \
+}
 /*!
    NEL_READ macro for reading a NI element from strm
    nel (NI_element *) to contain the deed (if null then read failed)
@@ -650,12 +701,12 @@ NodeDef might be dynamically changed in the overlay plane */
    suc = 1; \
    m_ns = NI_stream_open( frm , "w" ) ;   \
    if( m_ns == NULL ) {    \
-      SUMA_SL_Err ("Failed to open stream");  \
+      SUMA_S_Err ("Failed to open stream");  \
       suc = 0; \
    } else { \
       /* write out the element */   \
       if (NI_write_element( m_ns , nel , form ) < 0) { \
-         SUMA_SL_Err ("Failed to write element");  \
+         SUMA_S_Err ("Failed to write element");  \
          suc = 0; \
       }  \
    }  \
@@ -875,6 +926,7 @@ NI_element *SUMA_FindDsetDataElement(SUMA_DSET *dset);
 NI_element *SUMA_FindDsetNodeIndexElement(SUMA_DSET *dset);
 NI_element *SUMA_FindDsetAttributeElement(SUMA_DSET *dset, char *attname);
 NI_element *SUMA_FindNgrAttributeElement(NI_group *ngr, char *attname);
+NI_element *SUMA_FindNgrNamedElement(NI_group *ngr, char *elname);
 NI_element *SUMA_FindNgrDataElement(NI_group *ngr, char *nelname, char *typename);
 float SUMA_LatestVersionNumber(void);
 char * SUMA_Dset_Type_Name (SUMA_DSET_TYPE tp);

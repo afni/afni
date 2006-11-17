@@ -1,6 +1,7 @@
 #ifndef SUMA_DOMANIP_INCLUDED
 #define SUMA_DOMANIP_INCLUDED
 
+SUMA_SurfaceObject * SUMA_findanySOp_inDOv(SUMA_DO *dov, int N_dov);
 int SUMA_ClosestNodeToVoxels(SUMA_SurfaceObject *SO, SUMA_VOLPAR *vp, int *closest_node, float *closest_dist, byte *vox_mask, int verb);
 float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex);
 int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList);
@@ -46,6 +47,7 @@ int SUMA_findSO_inDOv(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_SurfaceObject * SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv(char *coordname, SUMA_DO *dov, int N_dov);
 char *SUMA_find_SOLabel_from_idcode (char *idcode, SUMA_DO *dov, int N_dov);
+char *SUMA_find_SOidcode_from_label (char *label, SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_ismappable (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_isINHmappable (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_isLocalDomainParent (SUMA_SurfaceObject *SO);

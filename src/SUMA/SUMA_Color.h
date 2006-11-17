@@ -41,6 +41,7 @@
    }  \
 }  \
 
+int SUMA_a_good_col(char *name, int i, float *acol);
 SUMA_COLOR_MAP * SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_Boolean SkipLast, char *Name);
 void SUMA_Free_ColorMap (SUMA_COLOR_MAP* SM);
 int r_ulong_size ( unsigned long l );

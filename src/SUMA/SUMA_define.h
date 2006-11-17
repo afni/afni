@@ -153,7 +153,8 @@ typedef enum  { SUMA_FT_ERROR = -1, SUMA_FT_NOT_SPECIFIED,
                SUMA_OPENDX_MESH, 
                   SUMA_N_SO_FILE_TYPE} SUMA_SO_File_Type; /* add types always between SUMA_FT_NOT_SPECIFIED AND SUMA_N_SO_FILE_TYPE */
 typedef enum { SUMA_FF_NOT_SPECIFIED, SUMA_ASCII, SUMA_BINARY, SUMA_BINARY_BE, SUMA_BINARY_LE } SUMA_SO_File_Format;
-typedef enum { no_type, SO_type, AO_type, ROIdO_type, ROIO_type, 
+typedef enum { type_not_set = -1,
+               no_type, SO_type, AO_type, ROIdO_type, ROIO_type, 
                GO_type, LS_type, OLS_type, NBV_type, ONBV_type, SP_type,
                NBSP_type, PL_type} SUMA_DO_Types;   /*!< Displayable Object Types 
                                                                                     S: surface, A: axis, G: grid, 
@@ -184,7 +185,7 @@ typedef enum { SE_Empty,
                SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  SE_SetLight0Pos, SE_OpenColFileSelection,
                SE_SaveDrawnROIFileSelection, SE_OpenDrawnROIFileSelection, SE_SendColorMapToAfni, SE_SaveSOFileSelection,
                SE_SetSOinFocus, SE_StartListening, SE_LoadViewFileSelection, SE_SaveViewFileSelection, SE_LoadSegDO,
-               SE_OpenDsetFileSelection, SE_OpenCmapFileSelection, SE_SetClip,
+               SE_OpenDsetFileSelection, SE_OpenCmapFileSelection, SE_SetClip, SE_OpenDsetFile, SE_OneOnly, SE_OpenSurfCont,
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
                
 typedef enum { SEF_Empty, 
@@ -872,13 +873,14 @@ typedef struct {
 typedef struct {
    char *idcode_str;
    char *Label;
+   SUMA_DO_Types do_type;
    
 } SUMA_ALL_DO;
 
 /*! Displayable Object Type */
 typedef struct {
    void *OP;   /*!< Object Pointer */
-   SUMA_DO_Types ObjectType; /*!< Type of displayable object */
+   SUMA_DO_Types ObjectType; /*!< Type of displayable object (redundant with OP->type) */
    SUMA_DO_CoordType CoordType; /*!< Type of coordinate system that the object is attached to
                                     This is used to determine whether the object is drawn before or 
                                     or after the shift and rotation matrices are applied */
@@ -1302,7 +1304,8 @@ typedef struct {
 typedef struct {
    char *idcode_str;    /*!< unique idcode for DO */
    char *Label; /*!< ascii label for DO */ 
-
+   SUMA_DO_Types do_type;
+   
    int NodeBased; /*!< flag: 1 if segments are formed by vectors at surface nodes */
    char *Parent_idcode_str; /*!< Parent surface's id 
                                  (only used if NodeBased = 1
@@ -1330,7 +1333,8 @@ typedef struct {
 typedef struct {
    char *idcode_str;    /*!< unique idcode for DO */
    char *Label; /*!< ascii label for DO */ 
-
+   SUMA_DO_Types do_type;
+   
    int NodeBased; /*!< flag: 1 if segments are formed by vectors at surface nodes */
    char *Parent_idcode_str; /*!< Parent surface's id 
                                  (only used if NodeBased = 1
@@ -1355,7 +1359,8 @@ typedef struct {
 typedef struct {
    char *idcode_str;    /*!< unique idcode for DO */
    char *Label; /*!< ascii label for DO */ 
-
+   SUMA_DO_Types do_type;
+   
    int NodeBased; /*!< flag: 1 if segments are formed by vectors at surface nodes */
    char *Parent_idcode_str; /*!< Parent surface's id 
                                  (only used if NodeBased = 1
@@ -1371,7 +1376,8 @@ typedef struct {
 typedef struct {
    char *idcode_str;    /*!< unique idcode for DO */
    char *Label; /*!< ascii label for DO */ 
-
+   SUMA_DO_Types do_type;
+   
    GLfloat *cxyz; /*!< vector containing XYZ of centers (3*N_n elements long)*/
    GLfloat *pleq; /*!< plane equations 4*N_n elements long */
    int N_n; /*!< Number of planes */
@@ -1465,8 +1471,9 @@ typedef enum { SUMA_STD_ZERO_CENTERED, SUMA_SCALE_BOX } SUMA_AxisType;
 typedef struct {
    char *idcode_str; /*! idcode of axis */
    char *Label;
+   SUMA_DO_Types do_type; 
    
-   SUMA_AxisType type;
+   SUMA_AxisType atype;
    GLfloat XaxisColor[4] ;
    GLfloat YaxisColor[4] ;
    GLfloat ZaxisColor[4] ;
@@ -1786,6 +1793,7 @@ typedef struct {
 typedef struct {
    char *idcode_str; /*!< string containing the idcode of the surface */
    char *Label; /*!< string containing a label for the surface. Used for window titles and saved image names */
+   SUMA_DO_Types do_type;
    
    SUMA_SO_File_Type FileType; /*!< Type of Surface file */
    SUMA_SO_File_Format FileFormat; /*!< Format of Surface file ascii or binary*/

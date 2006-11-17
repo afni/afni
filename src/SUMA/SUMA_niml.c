@@ -1288,6 +1288,32 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          /* don't free nel, it's freed later on */
          SUMA_RETURN(YUP) ;
+      } else if (strcmp(ngr->name,"EngineCommand") == 0) {
+         SUMA_nimlEngine2Engine(ngr);
+         /* don't free nel, it's freed later on */
+         SUMA_RETURN(YUP) ;
+      } else if (strcmp(ngr->name,"Segment_DO") == 0) {
+         SUMA_SegmentDO *SDO = SUMA_niSDO2SDO(ngr);
+         /* addDO (mixing is taken care of internally)*/
+         if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, SDO->do_type, SUMA_LOCAL)) {
+            fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+            SUMA_RETURN(NOPE);
+         }
+         
+         if (!sv) sv = &(SUMAg_SVv[0]);
+
+         /* register DO with viewer */
+         if (!SUMA_RegisterDO(SUMAg_N_DOv-1, sv)) {
+            fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
+            SUMA_RETURN(NOPE);
+         }
+
+         /* redisplay curent only*/
+         sv->ResetGLStateVariables = YUP;
+         SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+
+         /* don't free nel, it's freed later on */
+         SUMA_RETURN(YUP);
       }
    
       /*** If here, then name of group didn't match anything ***/
@@ -2338,7 +2364,8 @@ SUMA_Boolean SUMA_SendSumaNewSurface(SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *c
          cs->talk_suma = NOPE;
          SUMA_RETURN(NOPE);
       }
-      
+      NI_free_element(ngr); ngr = NULL;
+
       /* now send the command to register the new surface with viewers
          This now also causes a redisplay*/
       if (!SUMA_SendToSuma (SO, cs, NULL, SUMA_PREP_NEW_SURFACE, 1)) {
@@ -3162,7 +3189,8 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, char *i
    send multiple types of data for multiple surfaces. Cleanup should be done without closing connections!
    See comment in function SUMA_SendSumaNewSurface's code.
    Also, send kth should be more clever, keeping separate counts per datatype and per surface
-                                    
+   
+   NOTE: For some data (lile                                  
 */
 SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void *data, SUMA_DSET_TYPE dtype, int action)
 {
@@ -3242,6 +3270,8 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
          case SUMA_PREP_NEW_SURFACE:
             break;
          case SUMA_SURFACE_OBJECT:
+         case SUMA_SEGMENT_OBJECT:
+         case SUMA_ENGINE_INSTRUCTION:   
             break;
          default:
             SUMA_SL_Err("Data type not supported.");
@@ -3304,6 +3334,8 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
             }
             break;
          case SUMA_SURFACE_OBJECT:
+         case SUMA_SEGMENT_OBJECT:
+         case SUMA_ENGINE_INSTRUCTION:
             ngr = (NI_group *)data;
             break;
          default:
@@ -3401,8 +3433,8 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
          if (cs->nelps > 0) fprintf (SUMA_STDOUT,"        element %d sent (%f sec)\n", cs->TrackID, SUMA_etime(&tt, 1));
          else fprintf (SUMA_STDOUT,"        element %d sent \n", cs->TrackID);
       }
-      if (nel) NI_free_element(nel) ; nel = NULL;
-      if (ngr) NI_free_element(ngr) ; ngr = NULL;
+      if (nel && nel != data) NI_free_element(nel) ; nel = NULL;
+      if (ngr && ngr != data) NI_free_element(ngr) ; ngr = NULL;
       
       if (cs->nelps > 0) {
          if (LocalHead) fprintf (SUMA_STDOUT,"%s: Resetting time...\n", FuncName);

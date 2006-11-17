@@ -129,6 +129,7 @@ SUMA_MX_VEC *SUMA_CoerceMxVec(SUMA_MX_VEC *va, SUMA_VARTYPE tp, int abs, SUMA_MX
 int SUMA_MxVecBuildMat(SUMA_MX_VEC *mxv);
 void SUMA_TestMxVecMatOps(void);
 SUMA_MX_VEC * SUMA_MxVecRand(SUMA_VARTYPE tp, int N_dims,int * dims, SUMA_MX_VEC *recycle);
+SUMA_MX_VEC *  SUMA_Read1DMxVec(SUMA_VARTYPE tp, char *Name, int *dims, int *N_dims);
 
 
 #endif

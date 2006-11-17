@@ -32,6 +32,17 @@ typedef struct
       int M_time_steps;    /* Number of internal time steps used in optimization.  M total steps used in Bob's equations. */
       int sin_kern;        /* Option for turning on the sine kernal.  Using sin(theta)/theta as part of the expansion factor. */
       double Zero;
+      char read_path[500];     /* read results of a path optimization with prefix read_path (only for the intrepid)*/
+      
+      /* Variables set in main */
+      SUMA_SurfaceObject *SO;
+      
+      /* Variables set upon returning from Optimize_Path */ 
+      SUMA_MX_VEC *ControlCurve;
+      SUMA_MX_VEC *X_Lamda;
+      double Lda;
+      int iter_count;
+      
    } MyCircleOpt;
 
 typedef struct
@@ -57,10 +68,13 @@ SUMA_Boolean Neighbor( MyCircle *C, MyCircleOpt *opt, SUMA_SurfaceObject *SO, in
 SUMA_Boolean Calculate_Step (MyCircle *C, MyCircleOpt *opt, double dt) ;
 SUMA_Boolean Move_Points (MyCircle *C, MyCircleOpt *opt) ;
 SUMA_Boolean Set_up_Control_Curve( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve );
-SUMA_Boolean Perturbations( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *MaxStep, SUMA_MX_VEC *Perturb_Vec );
+SUMA_Boolean Perturbations( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, 
+                              SUMA_MX_VEC *MaxStep, SUMA_MX_VEC *Perturb_Vec , SUMA_GENERIC_ARGV_PARSE *ps);
 SUMA_Boolean Print_Matrix( MyCircleOpt *opt, matrix M );
 SUMA_Boolean Rotation_Matrix( MyCircleOpt *opt, vector X, matrix M);
 SUMA_Boolean Change_in_Energy( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Perturb_Vec, SUMA_MX_VEC *Del_Sl );
 double S_energy( MyCircleOpt *opt, SUMA_MX_VEC *VecX );
-double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *MaxStep, SUMA_MX_VEC *Perturb_Vec, SUMA_MX_VEC *Del_S, SUMA_MX_VEC *X_Lamda );
+double Find_Lamda(   MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *MaxStep, 
+                     SUMA_MX_VEC *Perturb_Vec, SUMA_MX_VEC *Del_S, SUMA_MX_VEC *X_Lamda, 
+                     SUMA_GENERIC_ARGV_PARSE *ps );
 #endif

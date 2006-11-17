@@ -53,17 +53,21 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
                " -----------------------------------\n"
                "     show_surf: Send to, and display surface in, SUMA.\n"
                "                This action needs the following parameters:\n"
-               "        -label LABEL: A label (identifier) to assign to the surface\n"
+               "        -surf_label LABEL: A label (identifier) to assign to the surface\n"
                "        -i_TYPE SURF: Name of surface file, see surface I/O options\n"
                "                      below for details.\n"
                "     node_xyz: Assign new coordinates to surface in SUMA\n"
                "               This action needs the following parameters:\n"
-               "        -label LABEL: A label (identifier) to assign to the surface\n"
+               "        -surf_label LABEL: A label to identify the target surface\n"
                "        -xyz_1D COORDS.1D: A 1D formatted file containing a new \n"
                "                           coordinate for each of the nodes forming\n"
                "                           the surface. COORDS.1D must have three columns.\n"
                "                           Column selectors can be used here as they are in \n"
-               "                           AFNI.\n"              
+               "                           AFNI.\n"
+               "     load_dset: Load a dataset\n"
+               "                This action needs the following parameters:\n"
+               "        -surf_label LABEL: A label to identify the target surface\n"
+               "        -file DSET: Name of dataset to load\n"              
                " Example, soup to nuts:\n"
                " ----------------------\n"
                " Cut and paste the block below into a new file called temp_demo\n"
@@ -294,11 +298,11 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
    brk = NOPE;
 	while (kar < argtc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-      if (!brk && (strcmp(argt[kar], "-label") == 0))
+      if (!brk && ( (strcmp(argt[kar], "-label") == 0) || (strcmp(argt[kar], "-surf_label") == 0) || (strcmp(argt[kar], "-so_label") == 0)))
       {
          if (kar+1 >= argtc)
          {
-            fprintf (SUMA_STDERR, "need a label after -label \n");
+            fprintf (SUMA_STDERR, "need a label after -surf_label \n");
             exit (1);
          }
          
@@ -378,7 +382,7 @@ SUMA_SurfaceObject *SUMA_NodeXYZComToSO(char *com)
    brk = NOPE;
 	while (kar < argtc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-      if (!brk && (strcmp(argt[kar], "-label") == 0))
+      if (!brk && ( (strcmp(argt[kar], "-label") == 0) || (strcmp(argt[kar], "-surf_label") == 0) || (strcmp(argt[kar], "-so_label") == 0)) )
       {
          if (kar+1 >= argtc)
          {
@@ -443,12 +447,110 @@ SUMA_SurfaceObject *SUMA_NodeXYZComToSO(char *com)
    SUMA_RETURN(SO);
 }
 
+NI_group *SUMA_LoadDsetComToNgr(char *com)
+{
+   static char FuncName[]={"SUMA_LoadDsetComToNgr"};
+   NI_group *ngr = NULL;   
+   char **argt=NULL, *pos, *tp=NULL;
+   int argtc = 0, kar = 0;
+   SUMA_Boolean brk = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   /* change com to a bunch of arguments */
+   argt = SUMA_com2argv(com, &argtc); 
+   
+   ngr = NI_new_group_element();
+   NI_rename_group(ngr, "EngineCommand");
+   
+   NI_set_attribute(ngr, "Command", "OpenDsetFile");
+   
+   /* parse 'em */
+   kar = 1;
+   brk = NOPE;
+	while (kar < argtc) { /* loop accross command ine options */
+		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+      if (!brk && ( (strcmp(argt[kar], "-label") == 0) || (strcmp(argt[kar], "-surf_label") == 0) || (strcmp(argt[kar], "-so_label") == 0)))
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a label after -surf_label \n");
+            exit (1);
+         }
+         
+         NI_set_attribute(ngr, "SO_label", argt[++kar]);
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-file") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a dset file after -file \n");
+            exit (1);
+         }
+         
+         NI_set_attribute(ngr, "FileName", argt[++kar]);
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-viewer") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a viewer (A-F) after -viewer \n");
+            exit (1);
+         }
+         
+         NI_set_attribute(ngr, "SV_id", argt[++kar]);
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-1_only") == 0))
+      {
+         NI_set_attribute(ngr, "Surf_Cont_One_Only", "y");
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-view_surf_cont") == 0))
+      {
+         NI_set_attribute(ngr, "View_Surf_Cont", "y");
+         brk = YUP;
+      }
+      
+      if (!brk) {
+			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n",
+               FuncName, argt[kar]);
+			exit (1);
+		} else {	
+			brk = NOPE;
+			kar ++;
+		}
+   }
+
+   /* fix the trimmings */
+   if (LocalHead) {
+      if (LocalHead) {
+         int suc;
+         SUMA_SL_Warn("writing SO group to DISK!");
+         NEL_WRITE_TX(ngr, "stderr:", suc);
+      }
+   }
+   
+   /* clean up */
+   argt = SUMA_free_com_argv(argt, &argtc);
+   
+   SUMA_RETURN(ngr);
+}
+  
 SUMA_Boolean SUMA_ProcessCommand(char *com, SUMA_GENERIC_ARGV_PARSE *ps)
 {
    static char FuncName[]={"SUMA_ProcessCommand"};
    int i;
    float *far=NULL;
    char *act, *pos, *stp;
+   NI_group *ngr = NULL;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_SO_File_Type tp = SUMA_FT_NOT_SPECIFIED;
    SUMA_Boolean ans = NOPE;
@@ -475,6 +577,13 @@ SUMA_Boolean SUMA_ProcessCommand(char *com, SUMA_GENERIC_ARGV_PARSE *ps)
       if (!SUMA_SendToSuma (SO, ps->cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
+   } else if (strcmp((act), "load_dset") == 0) {
+      ngr = SUMA_LoadDsetComToNgr(com);
+      SUMA_LH("Sending LoadDset to suma");
+      if (!SUMA_SendToSuma (SO, ps->cs, (void *)ngr, SUMA_ENGINE_INSTRUCTION, 1)) {
+         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+      }
+      NI_free_element(ngr); ngr = NULL;
    } else {
       fprintf(SUMA_STDERR, "Error %s: Action %s not supported.\n", FuncName, act);
       ans = NOPE;
