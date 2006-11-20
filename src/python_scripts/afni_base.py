@@ -289,7 +289,7 @@ def getopts2(argv,oplist):
          if op.n_exp < 0 or op.n_exp > 0: #parameters expected, get them
             while ((op.n_exp < 0 and op.iname < len(argv)) or \
                (op.n_exp > 0 and len(op.parlist) < op.n_exp and len(argv) > 0))\
-                 and \ argv[op.iname] not in optnames:
+                 and argv[op.iname] not in optnames:
                if len(op.acceptlist):
                   if argv[op.iname] not in op.acceptlist:
                      print "Error: parameter value %s for %s is not "   \
@@ -400,6 +400,7 @@ def parse_afni_name(name):
       rni = strip_extension(rni[0], ['+orig','+tlrc','+acpc'])
       vi = rni[1]
       pr = rni[0]
+
    #Build the dictionary result
    if len(rp) == 0:
       rp = '.'
