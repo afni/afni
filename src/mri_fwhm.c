@@ -163,8 +163,141 @@ THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE *im , byte *mask )
 }
 
 /*---------------------------------------------------------------------------*/
+/*! Routine to estimate Gaussian FWHM of data brick, using differences
+    between 1st and 2cd nearest neighbors.
+     - A negative return value indicates an error condition in that direction
+       (e.g., FWHM(z) == -1.0 when nz == 1).
+-----------------------------------------------------------------------------*/
+
+THD_fvec3 mri_estimate_FWHM_12dif( MRI_IMAGE *im , byte *mask )
+{
+  int nx;                       /* number of voxels along x-axis */
+  int ny;                       /* number of voxels along y-axis */
+  int nz;                       /* number of voxels along z-axis */
+  int nxy, nxyz;                /* total number of voxels */
+  int ixyz;                     /* voxel index */
+  double dx;                    /* voxel size along x-axis */
+  double dy;                    /* voxel size along y-axis */
+  double dz;                    /* voxel size along z-axis */
+  int ix, jy, kz, qm,qp ;
+  double dx1 , dx1sum , dx1sqq , vx1,vy1,vz1 , arg ;
+  double dx2 , dx2sum , dx2sqq , vx2,vy2,vz2 ;
+  double dy1 , dy1sum , dy1sqq ;
+  double dy2 , dy2sum , dy2sqq ;
+  double dz1 , dz1sum , dz1sqq ;
+  double dz2 , dz2sum , dz2sqq ;
+  int countx, county, countz;
+
+  float sx=-1.0f,sy=-1.0f,sz=-1.0f ;
+  THD_fvec3 fw_xyz ;
+  MRI_IMAGE *lim ; float *fim ;
+
+  /*----- initialize local variables -----*/
+
+  LOAD_FVEC3(fw_xyz,sx,sy,sz) ;  /* load with error flags */
+
+  if( im == NULL ) return fw_xyz ;
+  lim = (im->kind == MRI_float) ? im : mri_to_float(im) ;
+  fim = MRI_FLOAT_PTR(lim) ;
+  nx  = lim->nx; ny = lim->ny; nz = lim->nz; nxy = nx*ny; nxyz = nx*ny*nz;
+
+  /*----- loop over voxels, compute differences, sum and sum squares -----*/
+
+  countx = county = countz = 0 ;
+  dx1sum = dx2sum = dy1sum = dy2sum = dz1sum = dz2sum = 0.0 ;
+  dx1sqq = dx2sqq = dy1sqq = dy2sqq = dz1sqq = dz2sqq = 0.0 ;
+  for( ixyz=0 ; ixyz < nxyz ; ixyz++ ){
+    if( GOOD(ixyz) ){
+      arg = fim[ixyz] ; IJK_TO_THREE (ixyz, ix, jy, kz, nx, nxy);
+
+      if( ix-1 >= 0 && ix+1 < nx ){
+        qp = ixyz+1 ; qm = ixyz-1 ;
+        if( GOOD(qp) && GOOD(qm) ){
+          dx1     = fim[qp]-arg ; dx2     = fim[qp]-fim[qm] ;
+          dx1sum += dx1         ; dx2sum += dx2             ;
+          dx1sqq += dx1*dx1     ; dx2sqq += dx2*dx2         ;
+          countx++ ;
+        }
+      }
+
+      if( jy-1 >= 0 && jy+1 < ny ){
+        qp = ixyz+nx ; qm = ixyz-nx ;
+        if( GOOD(qp) && GOOD(qm) ){
+          dy1     = fim[qp]-arg ; dy2     = fim[qp]-fim[qm] ;
+          dy1sum += dy1         ; dy2sum += dy2             ;
+          dy1sqq += dy1*dy1     ; dy2sqq += dy2*dy2         ;
+          county++ ;
+        }
+      }
+
+      if( kz-1 >= 0 && kz+1 < nz ){
+        qp = ixyz+nxy ; qm = ixyz-nxy ;
+        if( GOOD(qp) && GOOD(qm) ){
+          dz1     = fim[qp]-arg ; dz2     = fim[qp]-fim[qm] ;
+          dz1sum += dz1         ; dz2sum += dz2             ;
+          dz1sqq += dz1*dz1     ; dz2sqq += dz2*dz2         ;
+          countz++ ;
+        }
+      }
+    }
+  }
+
+  /*----- estimate variances of differences -----*/
+
+  vx1 = (countx < 6) ? 0.0 : (dx1sqq - (dx1sum*dx1sum)/countx) / (countx-1.0) ;
+  vy1 = (county < 6) ? 0.0 : (dy1sqq - (dy1sum*dy1sum)/county) / (county-1.0) ;
+  vz1 = (countz < 6) ? 0.0 : (dz1sqq - (dz1sum*dz1sum)/countz) / (countz-1.0) ;
+
+  vx2 = (countx < 6) ? 0.0 : (dx2sqq - (dx2sum*dx2sum)/countx) / (countx-1.0) ;
+  vy2 = (county < 6) ? 0.0 : (dy2sqq - (dy2sum*dy2sum)/county) / (county-1.0) ;
+  vz2 = (countz < 6) ? 0.0 : (dz2sqq - (dz2sum*dz2sum)/countz) / (countz-1.0) ;
+
+#if 0
+fprintf(stderr,"countx=%d dx1sum=%g dx1sqq=%g vx1=%g\n",countx,dx1sum,dx1sqq,vx1) ;
+fprintf(stderr,"countx=%d dx2sum=%g dx2sqq=%g vx2=%g\n",countx,dx2sum,dx2sqq,vx2) ;
+#endif
+
+  /*----- now estimate the FWHMs -----*/
+
+  dx = lim->dx; dy = lim->dy; dz = lim->dz;
+
+  /*---- 2.35482 = sqrt(8*log(2)) = sigma-to-FWHM conversion factor ----*/
+
+  if( vx1 > 0.0 && vx2 > vx1 ){
+    arg = vx2 / vx1 ;
+    arg = cbrt(12.0*sqrt(48.0 - 120.0*arg + 81.0*arg*arg) + 108.0*arg - 80.0) ;
+    arg = arg/6.0 - 4.0/(3.0*arg) - 1.0/3.0 ;
+    if( arg > 0.0 && arg < 1.0 ) sx = 2.35482*sqrt( -1.0 / (4.0*log(arg)) )*dx ;
+  }
+
+  if( vy1 > 0.0 && vy2 > vy1 ){
+    arg = vy2 / vy1 ;
+    arg = cbrt(12.0*sqrt(48.0 - 120.0*arg + 81.0*arg*arg) + 108.0*arg - 80.0) ;
+    arg = arg/6.0 - 4.0/(3.0*arg) - 1.0/3.0 ;
+    if( arg > 0.0 && arg < 1.0 ) sy = 2.35482*sqrt( -1.0 / (4.0*log(arg)) )*dy ;
+  }
+
+  if( vz1 > 0.0 && vz2 > vz1 ){
+    arg = vz2 / vz1 ;
+    arg = cbrt(12.0*sqrt(48.0 - 120.0*arg + 81.0*arg*arg) + 108.0*arg - 80.0) ;
+    arg = arg/6.0 - 4.0/(3.0*arg) - 1.0/3.0 ;
+    if( arg > 0.0 && arg < 1.0 ) sz = 2.35482*sqrt( -1.0 / (4.0*log(arg)) )*dz ;
+  }
+
+  LOAD_FVEC3(fw_xyz,sx,sy,sz) ;
+  if( lim != im ) mri_free(lim) ;
+  return fw_xyz ;
+}
+
+/*---------------------------------------------------------------------------*/
 
 static THD_fvec3 (*fester)(MRI_IMAGE *, byte *) = mri_estimate_FWHM_1dif ;
+
+void mri_fwhm_setfester( THD_fvec3 (*func)(MRI_IMAGE *, byte *) )
+{
+  if( func == NULL ) func = mri_estimate_FWHM_1dif ;
+  fester = func ;
+}
 
 /*---------------------------------------------------------------------------*/
 /*! Get FWHM estimates for each sub-brick in a dataset.
