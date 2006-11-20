@@ -16,10 +16,11 @@ static char * g_history[] =
     "      - output actual TR in to3d command of GERT_Reco script\n",
     " 2.2  Aug 29, 2005 [rickr] - added options -rev_org_dir, -rev_sort_dir\n",
     " 2.3  Sep 01, 2005 [rickr] - added option -tr\n",
+    " 2.4  Nov 20, 2006 [rickr] - added option -epsilon\n",
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 2.3 (September 01, 2005)"
+#define DIMON_VERSION "version 2.4 (November 20, 2006)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -174,6 +175,7 @@ param_t   gP;           /* main parameter struct     */
 stats_t   gS;           /* general run information   */
 ART_comm  gAC;          /* afni communication struct */
 
+float     gD_epsilon       = IFM_EPSILON;
 int       g_dicom_sort_dir = 1;  /* can use to swap sort direction */
 
 /***********************************************************************/
@@ -572,7 +574,7 @@ static int volume_search(
         int testc;
         for ( testc = last; testc < bound; testc++ )
             if ( abs( p->flist[first].geh.zoff -
-                      p->flist[testc].geh.zoff ) < IFM_EPSILON )
+                      p->flist[testc].geh.zoff ) < gD_epsilon )
             {
                 /* aaaaagh!  we are missing data from the first volume!   */
                 /* print error, and try to skip this volume               */
@@ -636,7 +638,7 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
         else /* 2 slices, so 1 volume of 2 slices or 2 volumes of 1 slice */
         {
             delta = p->flist[start+1].geh.zoff - p->flist[start].geh.zoff;
-            if ( fabs(delta) < IFM_EPSILON )  /* one slice per volume */
+            if ( fabs(delta) < gD_epsilon )  /* one slice per volume */
             {
                 *r_last = start;
                 *r_delta = 1.0;
@@ -659,7 +661,7 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
     run1  = p->flist[first+1].geh.uv17;
 
     /* if apparent 1-slice volume, skip and start over */
-    if ( (fabs(delta) < IFM_EPSILON) || (run1 != run0) )
+    if ( (fabs(delta) < gD_epsilon) || (run1 != run0) )
     {
         /* consider this a single slice volume */
         if ( p->opts.use_dicom )
@@ -677,7 +679,7 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
         delta = p->flist[first+1].geh.zoff - p->flist[first].geh.zoff;
         run0  = run1;
 
-        if ( fabs(delta) < IFM_EPSILON )
+        if ( fabs(delta) < gD_epsilon )
         {
             fprintf( stderr, "Error: 3 slices with 0 delta, beginning with"
                      "file <%s>\n", p->fnames[p->flist[start].index] );
@@ -697,7 +699,7 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
 
     /* scan for volume break */
     next = first + 2;                           /* next z to look at      */
-    while ( (next < bound) && (fabs(dz - delta) < IFM_EPSILON) &&
+    while ( (next < bound) && (fabs(dz - delta) < gD_epsilon) &&
             (run1 == run0) )
     {
         fp++;                             /* good index so get new values */
@@ -711,7 +713,7 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
 
     /* note final image in current volume -                        */
     /* if we left the current volume, next is too far by 2, else 1 */
-    if ( (fabs(dz - delta) > IFM_EPSILON) || (run1 != run0) ) last = next - 2;
+    if ( (fabs(dz - delta) > gD_epsilon) || (run1 != run0) ) last = next - 2;
     else                                                      last = next - 1;
 
     /* set return values */
@@ -724,7 +726,7 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
                 first, last, delta);
 
     /* If we have found the same slice location, we are done. */
-    if ( fabs(fp->geh.zoff - p->flist[first].geh.zoff) < IFM_EPSILON )
+    if ( fabs(fp->geh.zoff - p->flist[first].geh.zoff) < gD_epsilon )
     {
         if ( gD.level > 1 )
             fprintf(stderr,"+d found first slice of second volume\n");
@@ -733,7 +735,7 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
 
     /* Also, if we are still waiting for the same location, but are in
        state 2, then we seem to have only a single volume to read. */
-    if ( ( state == 2 && fabs(dz-delta)<IFM_EPSILON) && run1 == run0 )
+    if ( ( state == 2 && fabs(dz-delta)<gD_epsilon) && run1 == run0 )
     {
         if ( gD.level > 1 )
             fprintf(stderr,"+d no new data after finding sufficient slices\n"
@@ -741,7 +743,7 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
         return 1;
     }
     /* otherwise, if we have not changed the delta or run, continue */
-    if ( (fabs(dz - delta) < IFM_EPSILON) && (run1 == run0) ) /* not state 2 */
+    if ( (fabs(dz - delta) < gD_epsilon) && (run1 == run0) ) /* not state 2 */
         return 0;  /* not done yet */
     if ( dz * delta < 0.0 ) return -1;   /* wrong direction */
 
@@ -787,12 +789,12 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
     {
         z = vin->z_first + count * vin->z_delta;        /* note expected z */
 
-        if ( fabs( z - fp->geh.zoff ) > IFM_EPSILON )
+        if ( fabs( z - fp->geh.zoff ) > gD_epsilon )
         {
             /* slice is either missing or out of order */
 
             fp_test = fp + 1;                          /* check next image */
-            if ( fabs( z + vin->z_delta - fp_test->geh.zoff ) < IFM_EPSILON )
+            if ( fabs( z + vin->z_delta - fp_test->geh.zoff ) < gD_epsilon )
             {
                 /* report the error?                v2.12 */
                 if ( !check_error(&retry, vin->geh.tr, "slice out of order") )
@@ -805,7 +807,7 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
                         p->fnames[fp->index], z, fp->geh.zoff,
                         fp->geh.uv17, count + 1, vin->nim );
             }
-            else if ( fabs(z + vin->z_delta - fp->geh.zoff) < IFM_EPSILON )
+            else if ( fabs(z + vin->z_delta - fp->geh.zoff) < gD_epsilon )
             {
                 /* current slice matches next expected - slice missing */
 
@@ -851,14 +853,14 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
 
     if ( count >= vin->nim )    /* missed second to last slice */
         next_start = start + vin->nim - missing;
-    else if ( (next_start < 0) && (fabs( z - fp->geh.zoff ) > IFM_EPSILON) )
+    else if ( (next_start < 0) && (fabs( z - fp->geh.zoff ) > gD_epsilon) )
     {
         /* check last slice - count and fp should be okay*/
         if ( (p->nused - start) <= vin->nim )   /* no more images to check */
             return 0;                           /* wait for more data      */
         
         fp_test = fp + 1;                              /* check next image */
-        if ( fabs( vin->z_first - fp_test->geh.zoff ) < IFM_EPSILON )
+        if ( fabs( vin->z_first - fp_test->geh.zoff ) < gD_epsilon )
         {
             /* next image starts next run, slice is probably out of order */
 
@@ -870,7 +872,7 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
                     p->fnames[fp->index], z, fp->geh.zoff,
                     fp->geh.uv17, count + 1, vin->nim );
         }
-        else if ( fabs(vin->z_first - fp->geh.zoff) < IFM_EPSILON )
+        else if ( fabs(vin->z_first - fp->geh.zoff) < gD_epsilon )
         {
             /* this image starts next run, slice is missing */
 
@@ -1527,6 +1529,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 
     ART_init_AC_struct( A );            /* init for no real-time comm */
     A->param = p;                       /* store the param_t pointer  */
+    p->opts.ep = IFM_EPSILON;           /* allow user to override     */
     p->opts.use_dicom = 1;              /* will delete this later...  */
 
     empty_string_list( &p->opts.drive_list, 0 );
@@ -1557,6 +1560,21 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         else if ( ! strncmp( argv[ac], "-dicom_org", 10 ) )
         {
             p->opts.dicom_org = 1;
+        }
+        else if ( ! strncmp( argv[ac], "-epsilon", 8 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -epsilon EPSILON\n", stderr );
+                return 1;
+            }
+
+            p->opts.ep = atof(argv[ac]);
+            if( p->opts.ep < 0 )
+            {
+                fprintf(stderr,"error: epsilon must be non-negative\n");
+                errors++;
+            }
         }
         else if ( ! strncmp( argv[ac], "-GERT_Reco", 7 ) )
         {
@@ -1815,6 +1833,8 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             return 1;
         }
     }
+
+    gD_epsilon = p->opts.ep;    /* store new epsilon globally, for dimon_afni */
 
     if ( errors > 0 )          /* check for all minor errors before exiting */
     {
@@ -2958,6 +2978,15 @@ static int usage ( char * prog, int level )
           "        - The images can be sorted in reverse order using the\n"
           "          option, -rev_org_dir.\n"
           "\n"
+          "    -epsilon EPSILON   : specify EPSILON for 'equality' tests\n"
+          "\n"
+          "        e.g.  -epsilon 0.05\n"
+          "        the default is 0.01\n"
+          "\n"
+          "        When checking z-coordinates or differences between them\n"
+          "        for 'equality', a check of (difference < EPSILON) is used.\n"
+          "        This option lets the user specify that cutoff value.\n"
+          "\n"
           "    -help              : show this help information\n"
           "\n"
           "    -hist              : display a history of program changes\n"
@@ -3584,7 +3613,7 @@ static int find_next_zoff( param_t * p, int start, float zoff )
         return -1;
 
     for ( count = start; count <= p->nused; count++ )
-        if ( fabs( zoff - p->flist[count].geh.zoff ) < IFM_EPSILON )
+        if ( fabs( zoff - p->flist[count].geh.zoff ) < gD_epsilon )
             return count;                       /* found! */
 
     return -1;
