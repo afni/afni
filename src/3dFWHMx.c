@@ -96,6 +96,11 @@ int main( int argc , char *argv[] )
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
+     if( strcmp(argv[iarg],"-2dif") == 0 ){             /* 20 Nov 2006 */
+       mri_fwhm_setfester( mri_estimate_FWHM_12dif ) ;
+       iarg++ ; continue ;
+     }
+
      if( strncmp(argv[iarg],"-geom",4) == 0 ){          /* 15 Nov 2006 */
        geom = 1 ; iarg++ ; continue ;
      }
