@@ -1803,3 +1803,5 @@
         and option_list.py to python_scripts
   * modified afni_base.py
 
+18 Nov 2006: small mods to afni_base.py, afni_proc.py, option_list.py
+
