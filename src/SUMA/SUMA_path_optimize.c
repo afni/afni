@@ -552,10 +552,11 @@ int SUMA_Optimize_Path(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
       
       if (opt->dbg_flag > 2) {
          fprintf(SUMA_STDERR, "Max Allowable Movement:\n");
-         SUMA_ShowMxVec(MaxStep, -1, NULL, "\ntthhh\n");
-         /*SUMA_ShowMxVec(Perturb_Vec, -1, NULL, "\ntthhh\n");*/
-
+         SUMA_ShowMxVec(MaxStep, MaxStep->N_vals, NULL, "\nMaxStep\n");
          fprintf(SUMA_STDERR, "%s: Perturbation Vectors:\n", FuncName);
+         SUMA_ShowMxVec(Perturb_Vec, Perturb_Vec->N_vals, NULL, "\nPerturb_vec\n");
+
+         fprintf(SUMA_STDERR, "%s: Perturbation Vectors In Other View:\n", FuncName);
          for(p=0; p<2; ++p) {
             for(k=0; k<(opt->M_time_steps+1); ++k) {
                for(i=0; i<opt->N_ctrl_points; ++i) {
