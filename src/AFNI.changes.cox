@@ -5963,3 +5963,6 @@
 
 15 Nov 2006
  * New program 3dBlurToFWHM.c.
+
+20 Nov 2006
+ * Multitudinous changes to 3dBlurToFWHM.c.

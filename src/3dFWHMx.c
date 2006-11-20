@@ -90,7 +90,7 @@ int main( int argc , char *argv[] )
 
    /*---- official startup ---*/
 
-   PRINT_VERSION("3dFWHM"); mainENTRY("3dFWHM main"); machdep();
+   PRINT_VERSION("3dFWHMx"); mainENTRY("3dFWHMx main"); machdep();
 
    /*---- loop over options ----*/
 
