@@ -100,6 +100,7 @@ typedef struct  /* user options */
     char          ** argv;          /* passed to the program            */
     int              argc;
     float            tr;            /* user input TR, overrides files   */
+    float            ep;            /* epsilon - defaut to IFM_EPSILON  */
     int              nt;            /* user input time points per run   */
     int              nice;          /* nice offset (must be >= 0)       */
     int              pause;         /* pause time between volumes (MS)  */

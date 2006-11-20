@@ -1805,3 +1805,7 @@
 
 18 Nov 2006: small mods to afni_base.py, afni_proc.py, option_list.py
 
+20 Nov 2006:
+  * modified Dimon.c, dimon_afni.c, Imon.h:
+      - added -epsilon option for difference tests, including in dimon_afni.c
+
