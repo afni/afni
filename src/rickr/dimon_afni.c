@@ -40,6 +40,9 @@
  *
  * 29 December 2005 [rickr]
  *   - make any IMAGE_LOCATION/SLICE_LOCATION difference only a warning
+ *
+ * 20 November 2006 [rickr]
+ *   - change EPISILON of 0.1 to gD_epsilon from dimon.c
  *----------------------------------------------------------------------
 */
 
@@ -63,6 +66,8 @@ static float DI_MRL_zoff       = 0.0;
 static int   use_DI_MRL_xoff   = 0;
 static int   use_DI_MRL_yoff   = 0;
 static int   use_DI_MRL_zoff   = 0;
+
+extern float gD_epsilon;
 
 /* exported MRI-style globals */
 
@@ -995,7 +1000,7 @@ fprintf(stderr,"  nzoff=1 kor=%d qoff=%f\n",kor,qoff) ;
            nwarn0++;
         } else {
            /* it seems we have to add our own sign to the slice location */
-           if( zz * im->zo < 0.0 && (fabs(zz + im->zo) < 0.1) ){
+           if( zz * im->zo < 0.0 && (fabs(zz + im->zo) < gD_epsilon ) ){
               if( (nwarn1 == 0) && (debug > 2) )
                 fprintf(stderr,"** image and slice loc diff in sign: %f, %f\n",
                         im->zo, zz);
@@ -1003,7 +1008,7 @@ fprintf(stderr,"  nzoff=1 kor=%d qoff=%f\n",kor,qoff) ;
               zz = -zz;
            }
   
-           if( fabs(zz - im->zo) > 0.1 ){
+           if( fabs(zz - im->zo) > gD_epsilon ){ /* 20 Nov 2006 [rickr] */
               if( nwarn2 == 0 )
                   fprintf(stderr,
                       "** MRD: IMAGE_LOCATION and SLICE_LOCATION disagree:\n"
@@ -1017,7 +1022,7 @@ fprintf(stderr,"  nzoff=1 kor=%d qoff=%f\n",kor,qoff) ;
            } else {
               if( debug > 3 )
                  fprintf(stderr,"-d dicom: using slice location %f (zo = %f)\n",
-                         zz, im->zo );
+                         zz, im->zo);
               im->zo = zz;
            }
         }
