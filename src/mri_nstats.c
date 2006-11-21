@@ -286,7 +286,6 @@ ENTRY("THD_localstat") ;
    dz = fabs(DSET_DZ(dset)) ; if( dz <= 0.0f ) dz = 1.0f ;
 
    vstep = (verb && nxyz > 99999) ? nxyz/50 : 0 ;
-   if( vstep ) fprintf(stderr,"++ voxel loop:") ;
 
    aar = (float **)malloc(sizeof(float *)*ncode) ;
 
@@ -308,6 +307,7 @@ ENTRY("THD_localstat") ;
        dsim->dx = dx ; dsim->dy = dy ; dsim->dz = dz ;
      }
 
+     if( vstep ) fprintf(stderr,"++ voxel loop [%d]:",iv) ;
      for( ijk=kk=0 ; kk < nz ; kk++ ){
       for( jj=0 ; jj < ny ; jj++ ){
        for( ii=0 ; ii < nx ; ii++,ijk++ ){
@@ -326,12 +326,13 @@ ENTRY("THD_localstat") ;
          if( nbim != NULL ){ mri_free(nbim); nbim = NULL; }
      }}}
 
+     if( vstep ) fprintf(stderr,"\n") ;
+
      if( dsim != NULL ){ mri_free(dsim); dsim = NULL; }
      for( cc=0 ; cc < ncode ; cc++ )
        EDIT_substitute_brick( oset , iv*ncode+cc , MRI_float , aar[cc] ) ;
    }
 
-   if( vstep ) fprintf(stderr,"\n") ;
    free((void *)aar) ;
    RETURN(oset) ;
 }

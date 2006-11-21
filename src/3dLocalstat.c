@@ -13,7 +13,7 @@ int main( int argc , char *argv[] )
    byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
    char *prefix="./localstat" ;
    int ntype=0 ; float na=0.0f,nb=0.0f,nc=0.0f ;
-   int do_fwhm=0 ;
+   int do_fwhm=0 , verb=1 ;
 
    /*---- for the clueless who wish to become clued-in ----*/
 
@@ -91,6 +91,8 @@ int main( int argc , char *argv[] )
       " -prefix ppp = Use string 'ppp' as the prefix for the output dataset.\n"
       "               The output dataset is always stored as floats.\n"
       "\n"
+      " -quiet      = Stop the annoying progress reports.\n"
+      "\n"
       "Author: RWCox - August 2005.  Instigator: ZSSaad.\n"
      ) ;
      exit(0) ;
@@ -104,6 +106,10 @@ int main( int argc , char *argv[] )
    /*---- loop over options ----*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strncmp(argv[iarg],"-q",2) == 0 ){
+       verb = 0 ; iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-input") == 0 ){
        if( inset != NULL  ) ERROR_exit("Can't have two -input options") ;
@@ -131,7 +137,7 @@ int main( int argc , char *argv[] )
        mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
        if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
        mmm = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
-       INFO_message("Number of voxels in mask = %d",mmm) ;
+       if( verb ) INFO_message("Number of voxels in mask = %d",mmm) ;
        if( mmm < 2 ) ERROR_exit("Mask is too small to process") ;
        iarg++ ; continue ;
      }
@@ -229,7 +235,7 @@ int main( int argc , char *argv[] )
      if( mask == NULL )
        ERROR_message("Can't create -automask from input dataset?") ;
      mmm = THD_countmask( DSET_NVOX(inset) , mask ) ;
-     INFO_message("Number of voxels in automask = %d",mmm) ;
+     if( verb ) INFO_message("Number of voxels in automask = %d",mmm) ;
      if( mmm < 2 ) ERROR_exit("Automask is too small to process") ;
    }
 
@@ -237,7 +243,7 @@ int main( int argc , char *argv[] )
 
    if( ntype <= 0 ){         /* default neighborhood */
      ntype = NTYPE_SPHERE ; na = -1.01f ;
-     INFO_message("Using default neighborhood = self + 6 neighbors") ;
+     if( verb ) INFO_message("Using default neighborhood = self + 6 neighbors") ;
    }
 
    switch( ntype ){
@@ -264,14 +270,14 @@ int main( int argc , char *argv[] )
      break ;
    }
 
-   INFO_message("Neighborhood comprises %d voxels",nbhd->num_pt) ;
+   if( verb ) INFO_message("Neighborhood comprises %d voxels",nbhd->num_pt) ;
 
    if( do_fwhm && nbhd->num_pt < 19 )
      ERROR_exit("FWHM requires neighborhood of at least 19 voxels!");
 
    /*---- actually do some work for a change ----*/
 
-   THD_localstat_verb(1) ;
+   THD_localstat_verb(verb) ;
    outset = THD_localstat( inset , mask , nbhd , ncode , code ) ;
 
    DSET_unload(inset) ;
@@ -306,6 +312,6 @@ int main( int argc , char *argv[] )
    }
 
    DSET_write( outset ) ;
-   WROTE_DSET( outset ) ;
+   if( verb ) WROTE_DSET( outset ) ;
    exit(0) ;
 }
