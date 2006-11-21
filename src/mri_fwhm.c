@@ -99,30 +99,24 @@ THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE *im , byte *mask )
       if( ix+1 < nx ){
         ixyz2 = ixyz+1 ;
         if( dontcheckplus || GOOD(ixyz2) ){
-          dfdx     = (fim[ixyz2] - arg) ;
-          dfdxsum += dfdx;
-          dfdxsq  += dfdx * dfdx;
-          countx++ ;
+          dfdx = (fim[ixyz2] - arg) ;
+          dfdxsum += dfdx; dfdxsq  += dfdx * dfdx; countx++;
         }
      }
 
       if( jy+1 < ny ){
         ixyz2 = ixyz+nx ;
         if( dontcheckplus || GOOD(ixyz2) ){
-          dfdy     = (fim[ixyz2] - arg) ;
-          dfdysum += dfdy;
-          dfdysq  += dfdy * dfdy;
-          county++ ;
+          dfdy = (fim[ixyz2] - arg) ;
+          dfdysum += dfdy; dfdysq  += dfdy * dfdy; county++;
         }
       }
 
       if( kz+1 < nz ){
         ixyz2 = ixyz+nxy ;
         if( dontcheckplus || GOOD(ixyz2) ){
-          dfdz     = (fim[ixyz2] - arg) ;
-          dfdzsum += dfdz;
-          dfdzsq  += dfdz * dfdz;
-          countz++ ;
+          dfdz = (fim[ixyz2] - arg) ;
+          dfdzsum += dfdz; dfdzsq  += dfdz * dfdz; countz++;
         }
       }
     }
@@ -162,7 +156,6 @@ THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE *im , byte *mask )
   return fw_xyz ;
 }
 
-#if 0
 /*---------------------------------------------------------------------------*/
 /*! Routine to estimate Gaussian FWHM of data brick, using differences
     between 1st and 2cd nearest neighbors.
@@ -209,7 +202,7 @@ THD_fvec3 mri_estimate_FWHM_12dif( MRI_IMAGE *im , byte *mask )
   dx1sqq = dx2sqq = dy1sqq = dy2sqq = dz1sqq = dz2sqq = 0.0 ;
   for( ixyz=0 ; ixyz < nxyz ; ixyz++ ){
     if( GOOD(ixyz) ){
-      arg = fim[ixyz] ; IJK_TO_THREE (ixyz, ix, jy, kz, nx, nxy);
+      arg = fim[ixyz] ; IJK_TO_THREE (ixyz, ix,jy,kz, nx,nxy);
 
       if( ix-1 >= 0 && ix+1 < nx ){
         qp = ixyz+1 ; qm = ixyz-1 ;
@@ -262,7 +255,15 @@ fprintf(stderr,"countx=%d dx2sum=%g dx2sqq=%g vx2=%g\n",countx,dx2sum,dx2sqq,vx2
 
   dx = lim->dx; dy = lim->dy; dz = lim->dz;
 
-  /*---- 2.35482 = sqrt(8*log(2)) = sigma-to-FWHM conversion factor ----*/
+  if( lim != im ) mri_free(lim) ;
+
+  /*--- 2.35482 = sqrt(8*log(2)) = sigma-to-FWHM conversion factor ---*/
+  /*--- y = cbrt(12*sqrt(48-120*r+81*r*r)+108*r-80), and then
+        x = y/6 - 4/(3*y) - 1/3
+        is the real solution to the equation (1-x^4)/(1-x) = r > 1 ;
+        here, r = vx2/vx1 = ratio of variances at Delta=2*dx vs. Delta=1*dx;
+        x = exp[-dx**2/(4*sigma**2)] = correlation coefficient of neighbors;
+        we solve for x, then use that to solve for sigma, and scale to FWHM --*/
 
   if( vx1 > 0.0 && vx2 > vx1 ){
     arg = vx2 / vx1 ;
@@ -286,10 +287,8 @@ fprintf(stderr,"countx=%d dx2sum=%g dx2sqq=%g vx2=%g\n",countx,dx2sum,dx2sqq,vx2
   }
 
   LOAD_FVEC3(fw_xyz,sx,sy,sz) ;
-  if( lim != im ) mri_free(lim) ;
   return fw_xyz ;
 }
-#endif
 
 /*---------------------------------------------------------------------------*/
 
