@@ -162,6 +162,7 @@ THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE *im , byte *mask )
   return fw_xyz ;
 }
 
+#if 0
 /*---------------------------------------------------------------------------*/
 /*! Routine to estimate Gaussian FWHM of data brick, using differences
     between 1st and 2cd nearest neighbors.
@@ -288,6 +289,7 @@ fprintf(stderr,"countx=%d dx2sum=%g dx2sqq=%g vx2=%g\n",countx,dx2sum,dx2sqq,vx2
   if( lim != im ) mri_free(lim) ;
   return fw_xyz ;
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
 
