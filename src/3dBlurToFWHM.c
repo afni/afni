@@ -29,7 +29,7 @@ int main( int argc , char *argv[] )
    MRI_IMARR *dsar ; MRI_IMAGE *dsim ;         int ids ;
    MRI_IMAGE *fxim=NULL , *fyim=NULL , *fzim=NULL ;
    float     *fxar=NULL , *fyar=NULL , *fzar=NULL ;
-   float dx,dy,dz ;
+   float dx,dy,dz , hx,hy,hz , qx,qy,qz ;
    float gx,gy,gz , val , maxfxyz , maxfx,maxfy,maxfz ;
    int   nite , bmeqin=0 , maxite=66 , numfxyz , nd,nblur , xdone,ydone,zdone ;
    int   xstall , ystall , zstall ;
@@ -451,16 +451,19 @@ int main( int argc , char *argv[] )
    numfxyz = 0 ;
    fxim = mri_new_conforming( IMARR_SUBIM(bmar,0) , MRI_float ) ;
    fxar = MRI_FLOAT_PTR(fxim) ;
-   gx   = fwhm_goal + 0.011*dx ; numfxyz++ ;
+   gx   = fwhm_goal - 0.011f*dx ; numfxyz++ ;
+   hx   = 0.9f*gx ; qx = 1.0f/(gx-hx) ;
 
    fyim = mri_new_conforming( IMARR_SUBIM(bmar,0) , MRI_float ) ;
    fyar = MRI_FLOAT_PTR(fyim) ;
-   gy   = fwhm_goal + 0.011*dy ; numfxyz++ ;
+   gy   = fwhm_goal - 0.011f*dy ; numfxyz++ ;
+   hy   = 0.9f*gy ; qy = 1.0f/(gy-hy) ;
 
    if( !fwhm_2D ){
      fzim = mri_new_conforming( IMARR_SUBIM(bmar,0) , MRI_float ) ;
      fzar = MRI_FLOAT_PTR(fzim) ;
-     gz   = fwhm_goal + 0.011*dz ; numfxyz++ ;
+     gz   = fwhm_goal - 0.011f*dz ; numfxyz++ ;
+     hz   = 0.9f*gz ; qz = 1.0f/(gz-hz) ;
    }
    maxfxyz    = blurfac / numfxyz ;
 #if 0
@@ -674,15 +677,21 @@ int main( int argc , char *argv[] )
          if( mask[ii] == 1 ){
            nd = 0 ;
            if( fxar != NULL ){
-             fxar[ii] = (fxar[ii] <= 0.0f || fxar[ii] >= gx) ? 0.0f : maxfx ;
+             fxar[ii] = (fxar[ii] <= 0.0f || fxar[ii] >= gx)
+                        ? 0.0f
+                        : (fxar[ii] <= hx) ? maxfx : maxfx*qx*(gx-fxar[ii]) ;
              if( fxar[ii] > 0.0f ) nd++ ;
            }
            if( fyar != NULL ){
-             fyar[ii] = (fyar[ii] <= 0.0f || fyar[ii] >= gy) ? 0.0f : maxfy ;
+             fyar[ii] = (fyar[ii] <= 0.0f || fyar[ii] >= gy)
+                        ? 0.0f
+                        : (fyar[ii] <= hy) ? maxfy : maxfy*qy*(gy-fyar[ii]) ;
              if( fyar[ii] > 0.0f ) nd++ ;
            }
            if( fzar != NULL ){
-             fzar[ii] = (fzar[ii] <= 0.0f || fzar[ii] >= gz) ? 0.0f : maxfz ;
+             fzar[ii] = (fzar[ii] <= 0.0f || fzar[ii] >= gz)
+                        ? 0.0f
+                        : (fzar[ii] <= hz) ? maxfz : maxfz*qz*(gz-fzar[ii]) ;
              if( fzar[ii] > 0.0f ) nd++ ;
            }
            if( nd == 0 ) mask[ii] = 2 ;   /* turn off future diffusion here */
