@@ -41,6 +41,9 @@ int main( int argc , char *argv[] )
    int nbail=0 , xalmost,yalmost,zalmost , xstopped=0,ystopped=0,zstopped=0 ;
    float blurfac , blurmax=BLURMAX ;
    float xrat,yrat,zrat , dmin ;
+   int temperize=0 , temper_fx=0, temper_fy=0, temper_fz=0 ;
+   float fx_tbot,fx_ttop,fy_tbot,fy_ttop,fz_tbot,fz_ttop ;
+   float fx_trat,fy_trat,fz_trat ;
 
    /*-- help the pitifully ignorant luser? --*/
 
@@ -186,6 +189,10 @@ int main( int argc , char *argv[] )
 
      if( strncmp(argv[iarg],"-q",2) == 0 ){
        verb = 0 ; iarg++ ; continue ;
+     }
+
+     if( strncmp(argv[iarg],"-temper",6) == 0 ){
+       temperize = 1 ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-maxite") == 0 ){
@@ -388,8 +395,15 @@ int main( int argc , char *argv[] )
        INFO_message("Neighborhood comprises %d voxels",nbhd->num_pt) ;
      if( nbhd->num_pt < 19 )
        ERROR_exit("FWHM estimation requires neighborhood of at least 19 voxels!") ;
-   } else if( bsave_prefix != NULL ){
-     WARNING_message("Option '-bsave' means nothing with '-nbhd NULL'") ;
+   } else {
+     if( bsave_prefix != NULL ){
+       WARNING_message("Option '-bsave' means nothing with '-nbhd NULL'") ;
+       bsave_prefix = NULL ;
+     }
+     if( temperize ){
+       WARNING_message("Option '-temper' means nothing with '-nbhd NULL'") ;
+       temperize = 0 ;
+     }
    }
 
    /*--- process blurmaster dataset to produce blur master image array ---*/
@@ -672,26 +686,112 @@ int main( int argc , char *argv[] )
 
        /*--- compute local blurring parameters where needed ---*/
 
+       /* temper the blurring rate depending on the local smoothness? */
+
+#undef  TB
+#undef  TT
+#undef  TR
+#define TB 0.8f
+#define TT 0.2f
+#define TR 0.05f
+       if( temperize ){
+         floatpair qp; MRI_IMAGE *qim; float *qar; int ng;
+         temper_fx = temper_fy = temper_fz = 0 ;
+         if( fxim != NULL && !xstopped ){
+           for( ii=ng=0 ; ii < nvox ; ii++ )
+             if( mask[ii] == 1 && fxar[ii] > 0.0f && fxar[ii] < gx ) ng++ ;
+           if( ng >= 666 ){
+             qim = mri_new_vol( ng,1,1 , MRI_float ); qar = MRI_FLOAT_PTR(qim);
+             for( ii=ng=0 ; ii < nvox ; ii++ )
+               if( mask[ii] == 1 && fxar[ii] > 0.0f && fxar[ii] < gx )
+                 qar[ng++] = fxar[ii] ;
+             qp = mri_twoquantiles( qim , 0.15f , 0.85f ) ;
+             fx_tbot = qp.a ; fx_ttop = qp.b ; mri_free(qim) ;
+             fx_trat = fx_ttop - fx_tbot ;
+             temper_fx = (fx_trat > 0.0f) && (fx_trat > TR*gx) ;
+             if( temper_fx ) fx_trat = TB / fx_trat ;
+             if( verb ) ININFO_message(" temper x: %.4f .. %.4f %s",
+                                       fx_tbot,fx_ttop,temper_fx?"ON":"OFF") ;
+           }
+         }
+         if( fyim != NULL && !ystopped ){
+           for( ii=ng=0 ; ii < nvox ; ii++ )
+             if( mask[ii] == 1 && fyar[ii] > 0.0f && fyar[ii] < gy ) ng++ ;
+           if( ng >= 666 ){
+             qim = mri_new_vol( ng,1,1 , MRI_float ); qar = MRI_FLOAT_PTR(qim);
+             for( ii=ng=0 ; ii < nvox ; ii++ )
+               if( mask[ii] == 1 && fyar[ii] > 0.0f && fyar[ii] < gy )
+                 qar[ng++] = fyar[ii] ;
+             qp = mri_twoquantiles( qim , 0.15f , 0.85f ) ;
+             fy_tbot = qp.a ; fy_ttop = qp.b ; mri_free(qim) ;
+             fy_trat = fy_ttop - fy_tbot ;
+             temper_fy = (fy_trat > 0.0f) && (fy_trat > TR*gy) ;
+             if( verb ) ININFO_message(" temper y: %.4f .. %.4f %s",
+                                       fy_tbot,fy_ttop,temper_fy?"ON":"OFF") ;
+           }
+         }
+         if( fzim != NULL && !zstopped ){
+           for( ii=ng=0 ; ii < nvox ; ii++ )
+             if( mask[ii] == 1 && fzar[ii] > 0.0f && fzar[ii] < gz ) ng++ ;
+           if( ng >= 666 ){
+             qim = mri_new_vol( ng,1,1 , MRI_float ); qar = MRI_FLOAT_PTR(qim);
+             for( ii=ng=0 ; ii < nvox ; ii++ )
+               if( mask[ii] == 1 && fzar[ii] > 0.0f && fzar[ii] < gz )
+                 qar[ng++] = fzar[ii] ;
+             qp = mri_twoquantiles( qim , 0.15f , 0.85f ) ;
+             fz_tbot = qp.a ; fz_ttop = qp.b ; mri_free(qim) ;
+             fz_trat = fz_ttop - fz_tbot ;
+             temper_fz = (fz_trat > 0.0f) && (fz_trat > TR*gz) ;
+             if( verb ) ININFO_message(" temper z: %.4f .. %.4f %s",
+                                       fz_tbot,fz_ttop,temper_fz?"ON":"OFF") ;
+           }
+         }
+       }
+
        nblur = 0 ;
        for( ii=0 ; ii < nvox ; ii++ ){
          if( mask[ii] == 1 ){
            nd = 0 ;
            if( fxar != NULL ){
-             fxar[ii] = (fxar[ii] <= 0.0f || fxar[ii] >= gx)
-                        ? 0.0f
-                        : (fxar[ii] <= hx) ? maxfx : maxfx*qx*(gx-fxar[ii]) ;
+             if( fxar[ii] <= 0.0f || fxar[ii] >= gx )
+               fxar[ii] = 0.0f ;
+             else if( !temper_fx )
+               fxar[ii] = (fxar[ii] <= hx) ? maxfx : maxfx*qx*(gx-fxar[ii]) ;
+             else if( fxar[ii] <= fx_tbot )
+               fxar[ii] = maxfx ;
+             else if( fxar[ii] >= fx_ttop )
+               fxar[ii] = TT*maxfx ;
+             else
+               fxar[ii] = (TT+fx_trat*(fx_ttop-fxar[ii]))*maxfx ;
+
              if( fxar[ii] > 0.0f ) nd++ ;
            }
            if( fyar != NULL ){
-             fyar[ii] = (fyar[ii] <= 0.0f || fyar[ii] >= gy)
-                        ? 0.0f
-                        : (fyar[ii] <= hy) ? maxfy : maxfy*qy*(gy-fyar[ii]) ;
+             if( fyar[ii] <= 0.0f || fyar[ii] >= gy )
+               fyar[ii] = 0.0f ;
+             else if( !temper_fy )
+               fyar[ii] = (fyar[ii] <= hy) ? maxfy : maxfy*qy*(gy-fyar[ii]) ;
+             else if( fyar[ii] <= fy_tbot )
+               fyar[ii] = maxfy ;
+             else if( fyar[ii] >= fy_ttop )
+               fyar[ii] = TT*maxfy ;
+             else
+               fyar[ii] = (TT+fy_trat*(fy_ttop-fyar[ii]))*maxfy ;
+
              if( fyar[ii] > 0.0f ) nd++ ;
            }
            if( fzar != NULL ){
-             fzar[ii] = (fzar[ii] <= 0.0f || fzar[ii] >= gz)
-                        ? 0.0f
-                        : (fzar[ii] <= hz) ? maxfz : maxfz*qz*(gz-fzar[ii]) ;
+             if( fzar[ii] <= 0.0f || fzar[ii] >= gz )
+               fzar[ii] = 0.0f ;
+             else if( !temper_fz )
+               fzar[ii] = (fzar[ii] <= hz) ? maxfz : maxfz*qz*(gz-fzar[ii]) ;
+             else if( fzar[ii] <= fz_tbot )
+               fzar[ii] = maxfz ;
+             else if( fzar[ii] >= fz_ttop )
+               fzar[ii] = TT*maxfz ;
+             else
+               fzar[ii] = (TT+fz_trat*(fz_ttop-fzar[ii]))*maxfz ;
+
              if( fzar[ii] > 0.0f ) nd++ ;
            }
            if( nd == 0 ) mask[ii] = 2 ;   /* turn off future diffusion here */
