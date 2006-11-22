@@ -455,7 +455,9 @@ typedef struct {           /** structure to hold one -IRC_times stuff **/
   char *name ;
 } basis_irc ;
 
-typedef struct { float a,b ; } floatpair ;
+#if 0
+typedef struct { float a,b ; } floatpair ;  /* moved to mrilib.h */
+#endif
 
 #define denom_BASELINE (1)
 
