@@ -134,7 +134,7 @@ int main (int argc,char *argv[])
                            "--------------\n",
                             Opt->in_namev[i]);
       
-      if (!(NewName = SUMA_ParseFname(Opt->in_namev[i]))) {
+      if (!(NewName = SUMA_ParseFname(Opt->in_namev[i], NULL))) {
          SUMA_S_Err("Name parsing error");
          exit(1);
       }
