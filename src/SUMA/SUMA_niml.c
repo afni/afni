@@ -3164,6 +3164,36 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, char *i
       SUMA_LH("Cleanup for SUMA_Mesh_IJK2Mesh_IJK_nel..."); \
       SUMA_Mesh_IJK2Mesh_IJK_nel (NULL, NULL, 1, SUMA_NEW_MESH_IJK); \
 }
+void SUMA_Wait_Till_Stream_Goes_Bad(SUMA_COMM_STRUCT *cs, int slp, int WaitMax, int verb) 
+{  
+   static char FuncName[]={"SUMA_Wait_Till_Stream_Goes_Bad"};
+   SUMA_Boolean good = YUP;
+   int WaitClose = 0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (verb) fprintf (SUMA_STDERR,"\nWaiting for SUMA to close stream .");
+   while (good && WaitClose < WaitMax) {
+      if (NI_stream_goodcheck(SUMAg_CF->ns_v[cs->istream], 1) <= 0) {
+         good = NOPE;
+      } else {
+         SUMA_LHv("Good Check OK. Sleeping for %d ms...", slp);
+         NI_sleep(slp);
+         if (verb) fprintf (SUMA_STDERR,".");
+         WaitClose += slp;
+      }
+   }
+
+   if (WaitClose >= WaitMax) { 
+      if (verb) SUMA_S_Warnv("\nFailed to detect closed stream after %d ms.\nClosing shop anyway...", WaitMax);  
+   }else{
+      if (verb) fprintf (SUMA_STDERR,"Done.\n");
+   }
+
+   SUMA_RETURNe;
+}
+         
 /*!
    \brief Function to handle send data elements to AFNI
    \param SO (SUMA_SurfaceObject *) pointer to surface object structure
@@ -3483,27 +3513,8 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
 
 
          /* now wait till stream goes bad */
-         good = YUP;
-         WaitClose = 0;
-         WaitMax = 5000;
-         fprintf (SUMA_STDERR,"\nWaiting for SUMA to close stream .");
-         while (good && WaitClose < WaitMax) {
-            if (NI_stream_goodcheck(SUMAg_CF->ns_v[cs->istream], 1) <= 0) {
-               good = NOPE;
-            } else {
-               SUMA_LH("Good Check OK. Sleeping for a second...");
-               NI_sleep(1000);
-               fprintf (SUMA_STDERR,".");
-               WaitClose += 1000;
-            }
-         }
-
-         if (WaitClose >= WaitMax) { 
-            SUMA_SL_Warn("\nFailed to detect closed stream.\nClosing shop anyway...");  
-         }else{
-            fprintf (SUMA_STDERR,"Done.\n");
-         }
-      
+         SUMA_Wait_Till_Stream_Goes_Bad(cs, 1000, 5000, 1);
+          
          NI_stream_close(SUMAg_CF->ns_v[cs->istream]);
          SUMAg_CF->ns_v[cs->istream] = NULL;
          SUMAg_CF->ns_flags_v[cs->istream] = 0;

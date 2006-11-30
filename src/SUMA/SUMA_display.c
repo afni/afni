@@ -596,6 +596,69 @@ void SUMA_SaveVisualState(char *fname, void *csvp )
    SUMA_RETURNe;
 }
 
+int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
+{
+   static char FuncName[]={"SUMA_ApplyVisualState"};
+   int feyl;
+   char *fnamestmp=NULL, *fnamestmp2=NULL;
+   float quat[4], Aspect[1], FOV[1], tran[2],
+         WindWidth[1], WindHeight[1], clear_color[4], 
+         BF_Cull[1], Back_Modfact[1], PolyMode[1], ShowEyeAxis[1], ShowWorldAxis[1],
+         ShowMeshAxis[1], ShowCrossHair[1], ShowForeground[1], 
+         ShowBackground[1];   char *atmp;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!nel || !csv) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(0);
+   }
+   
+   /* don't crash if you fail here and there, try your best ...*/
+   SUMA_S2FV_ATTR(nel, "currentQuat", quat, 4, feyl); if (feyl) {SUMA_BEEP};
+   SUMA_S2FV_ATTR(nel, "translateVec", tran, 2, feyl); if (feyl) {SUMA_BEEP};
+   SUMA_S2FV_ATTR(nel, "FOV", FOV, 1, feyl); if (feyl) {SUMA_BEEP};
+   SUMA_S2FV_ATTR(nel, "Aspect", Aspect, 1, feyl); if (feyl) {SUMA_BEEP};
+   SUMA_S2FV_ATTR(nel, "WindWidth", WindWidth, 1, feyl); if (feyl) {SUMA_BEEP};
+   SUMA_S2FV_ATTR(nel, "WindHeight", WindHeight, 1, feyl); if (feyl) {SUMA_BEEP};
+   SUMA_S2FV_ATTR(nel, "clear_color", clear_color, 4, feyl); if (feyl) {SUMA_BEEP};
+   SUMA_S2FV_ATTR(nel, "BF_Cull", BF_Cull, 1, feyl); if (feyl) {SUMA_BEEP};
+   SUMA_S2FV_ATTR(nel, "Back_Modfact", Back_Modfact, 1, feyl); if (feyl) {SUMA_BEEP};
+   SUMA_S2FV_ATTR(nel, "PolyMode", PolyMode, 1, feyl); if (feyl) {SUMA_BEEP};
+   SUMA_S2FV_ATTR(nel, "ShowEyeAxis", ShowEyeAxis, 1, feyl); if (feyl) {SUMA_BEEP};
+   SUMA_S2FV_ATTR(nel, "ShowMeshAxis", ShowMeshAxis, 1, feyl); if (feyl) {SUMA_BEEP};
+   SUMA_S2FV_ATTR(nel, "ShowWorldAxis", ShowWorldAxis, 1, feyl); if (feyl) {SUMA_BEEP};
+   SUMA_S2FV_ATTR(nel, "ShowCrossHair", ShowCrossHair, 1, feyl); if (feyl) {SUMA_BEEP};
+   SUMA_S2FV_ATTR(nel, "ShowForeground", ShowForeground, 1, feyl); if (feyl) {SUMA_BEEP};
+   SUMA_S2FV_ATTR(nel, "ShowBackground", ShowBackground, 1, feyl); if (feyl) {SUMA_BEEP};
+   
+   /* set the values */
+   SUMA_COPY_VEC(quat, csv->GVS[csv->StdView].currentQuat, 4, float, float);
+   SUMA_COPY_VEC(tran, csv->GVS[csv->StdView].translateVec, 2, float, float);
+   csv->FOV[csv->iState] = FOV[0];
+   csv->Aspect = Aspect[0]; /* That gets recalculated when SUMA_resize is called */
+   csv->WindWidth = (int)WindWidth[0]; /* That gets recalculated when SUMA_resize is called */
+   csv->WindHeight = (int)WindHeight[0]; /* That gets recalculated when SUMA_resize is called */
+   SUMA_COPY_VEC(clear_color, csv->clear_color, 4, float, float);
+   csv->BF_Cull = (SUMA_Boolean)BF_Cull[0];
+   csv->Back_Modfact = Back_Modfact[0];
+   csv->PolyMode = (SUMA_RENDER_MODES)PolyMode[0];
+   csv->ShowEyeAxis = (int)ShowEyeAxis[0];
+   csv->ShowMeshAxis = (int)ShowMeshAxis[0];
+   csv->ShowWorldAxis = (int)ShowWorldAxis[0];
+   csv->ShowCrossHair = (int)ShowCrossHair[0];
+   csv->ShowForeground = (SUMA_Boolean)ShowForeground[0];
+   csv->ShowForeground = (SUMA_Boolean)ShowForeground[0];
+   
+   /* do a resize (does not matter if dimensions did not change, call is simple.
+   This call will also generate a SUMA_resize call */
+   SUMA_WidgetResize (csv->X->TOPLEVEL , csv->WindWidth, csv->WindHeight); 
+
+   
+   SUMA_RETURN(1);   
+   
+}
 /*!
    \brief function to load a viewer's visual state
 */
@@ -637,50 +700,15 @@ void SUMA_LoadVisualState(char *fname, void *csvp)
       SUMA_SL_Err("Failed to read nel.\n");
       SUMA_RETURNe;
    }
-
-   /* don't crash if you fail here and there, try your best ...*/
-   SUMA_S2FV_ATTR(nel, "currentQuat", quat, 4, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "translateVec", tran, 2, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "FOV", FOV, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "Aspect", Aspect, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "WindWidth", WindWidth, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "WindHeight", WindHeight, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "clear_color", clear_color, 4, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "BF_Cull", BF_Cull, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "Back_Modfact", Back_Modfact, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "PolyMode", PolyMode, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "ShowEyeAxis", ShowEyeAxis, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "ShowMeshAxis", ShowMeshAxis, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "ShowWorldAxis", ShowWorldAxis, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "ShowCrossHair", ShowCrossHair, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "ShowForeground", ShowForeground, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "ShowBackground", ShowBackground, 1, feyl); if (feyl) {SUMA_BEEP};
+   
+   if (!SUMA_ApplyVisualState(nel, csv)) {
+      SUMA_S_Err("Failed to apply state");
+      SUMA_RETURNe;
+   }
    
    NI_free_element(nel); nel = NULL;
    NI_stream_close(nstdin); 
    
-   /* set the values */
-   SUMA_COPY_VEC(quat, csv->GVS[csv->StdView].currentQuat, 4, float, float);
-   SUMA_COPY_VEC(tran, csv->GVS[csv->StdView].translateVec, 2, float, float);
-   csv->FOV[csv->iState] = FOV[0];
-   csv->Aspect = Aspect[0]; /* That gets recalculated when SUMA_resize is called */
-   csv->WindWidth = (int)WindWidth[0]; /* That gets recalculated when SUMA_resize is called */
-   csv->WindHeight = (int)WindHeight[0]; /* That gets recalculated when SUMA_resize is called */
-   SUMA_COPY_VEC(clear_color, csv->clear_color, 4, float, float);
-   csv->BF_Cull = (SUMA_Boolean)BF_Cull[0];
-   csv->Back_Modfact = Back_Modfact[0];
-   csv->PolyMode = (SUMA_RENDER_MODES)PolyMode[0];
-   csv->ShowEyeAxis = (int)ShowEyeAxis[0];
-   csv->ShowMeshAxis = (int)ShowMeshAxis[0];
-   csv->ShowWorldAxis = (int)ShowWorldAxis[0];
-   csv->ShowCrossHair = (int)ShowCrossHair[0];
-   csv->ShowForeground = (SUMA_Boolean)ShowForeground[0];
-   csv->ShowForeground = (SUMA_Boolean)ShowForeground[0];
-   
-   /* do a resize (does not matter if dimensions did not change, call is simple.
-   This call will also generate a SUMA_resize call */
-   SUMA_WidgetResize (csv->X->TOPLEVEL , csv->WindWidth, csv->WindHeight); 
-
 
    SUMA_RETURNe;
 }

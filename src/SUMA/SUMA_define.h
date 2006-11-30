@@ -186,13 +186,18 @@ typedef enum { SE_Empty,
                SE_SaveDrawnROIFileSelection, SE_OpenDrawnROIFileSelection, SE_SendColorMapToAfni, SE_SaveSOFileSelection,
                SE_SetSOinFocus, SE_StartListening, SE_LoadViewFileSelection, SE_SaveViewFileSelection, SE_LoadSegDO,
                SE_OpenDsetFileSelection, SE_OpenCmapFileSelection, SE_SetClip, SE_OpenDsetFile, SE_OneOnly, SE_OpenSurfCont,
+               SE_SetSurfCont, SE_SetViewerCont,
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
-               
+typedef enum { SE_niEmpty,
+               SE_niSetSurfCont, SE_niSetViewerCont,
+               SE_niKillSuma,
+               SE_niBadCode} SUMA_NI_COMMAND_CODE;
+                                
 typedef enum { SEF_Empty, 
                SEF_fm, SEF_im, SEF_fv3, SEF_iv3, SEF_fv15, 
                SEF_iv15, SEF_i, SEF_f, SEF_s, SEF_vp, 
                SEF_cp, SEF_fp, SEF_ip, SEF_iv200, SEF_fv200, 
-               SEF_ivec, SEF_fvec,
+               SEF_ivec, SEF_fvec, SEF_ngr, SEF_nel, 
                SEF_BadCode} SUMA_ENGINE_FIELD_CODE; 
                
 typedef enum { SES_Empty,
@@ -1712,6 +1717,14 @@ typedef struct {
    
    int N_rows; /*!< Number of rows in fm or im */
    int N_cols; /*!< Number of colums in fm or im */
+   
+   NI_group *ngr;
+   SUMA_ENGINE_CODE ngr_Dest; /*!<  destination of ngr */
+   SUMA_ENGINE_SOURCE ngr_Source; /*!< OBSOLETE source of ngr*/
+   
+   NI_element *nel;
+   SUMA_ENGINE_CODE nel_Dest; /*!<  destination of nel */
+   SUMA_ENGINE_SOURCE nel_Source; /*!< OBSOLETE source of nel*/
    
 } SUMA_EngineData;
 

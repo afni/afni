@@ -7,8 +7,781 @@ extern SUMA_CommonFields *SUMAg_CF;
 extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv;
 
+/*!
+   Return the code for the key that is specified in keyin
+*/
+int SUMA_KeyPress(char *keyin, char *keynameback)
+{
+   static char FuncName[]={"SUMA_KeyPress"};
+   int nk=0,i=0,nc=0;
+   char keyname[100];
+   char *key=NULL, c='\0';
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (keynameback) keynameback[0]='\0';
+   keyname[0]='\0';
+   
+   if (!keyin) SUMA_RETURN(XK_VoidSymbol);
+   nc = strlen(keyin);
+   if (nc<=0) SUMA_RETURN(XK_VoidSymbol);
+   
+   key = SUMA_append_string("+",keyin);  /* add a + to simplify parsing */   
+   
+   nc = strlen(key);
+   SUMA_LHv("Key now '%s'\n", key);
+   
+   /* find the last + */
+   i = nc-2; /* skip last char, might itself be + */
+   while (i >= 0 && key[i] != '+') { --i; }  ++i; /* reposition past last + */
+   
+   /* copy the rest into keyname */
+   nk=0;
+   while (i<nc && nk < 10) {
+      keyname[nk] = key[i];
+      ++i;   
+      ++nk;
+   }
+   keyname[nk] = '\0';
+   if (nk > 10 || nk == 0) {
+      SUMA_S_Errv("What kind of key is %s!!!\n", key);
+      SUMA_RETURN(XK_VoidSymbol);
+   }
+   SUMA_LHv("Keyname now '%s'\n", keyname);
+   if (keynameback) sprintf(keynameback,"%s", keyname);
+   
+   if (nk == 1) { /* the simple case, add them as needed */
+      c = keyname[0];
+      SUMA_LHv("c now '%c'\n", c);
+      switch(c) {
+         case 'n':
+            SUMA_RETURN(XK_n);
+         case 'N':
+            SUMA_RETURN(XK_N);
+         case 'm':
+            SUMA_RETURN(XK_m);
+         case 'M':
+            SUMA_RETURN(XK_M);
+         case 'p':
+            SUMA_RETURN(XK_p);
+         case 'P':
+            SUMA_RETURN(XK_P);
+         case 'r':
+            SUMA_RETURN(XK_r);
+         case 'R':
+            SUMA_RETURN(XK_R);
+         default:
+            SUMA_S_Errv("Key '%c' not yet supported, complain to author.\n", c);
+            SUMA_RETURN(XK_VoidSymbol);
+      }
+   } else {
+      if (SUMA_iswordsame_ci(keyname,"up") == 1) SUMA_RETURN(XK_Up);
+      if (SUMA_iswordsame_ci(keyname,"down") == 1) SUMA_RETURN(XK_Down);
+      if (SUMA_iswordsame_ci(keyname,"left") == 1) SUMA_RETURN(XK_Left);
+      if (SUMA_iswordsame_ci(keyname,"right") == 1) SUMA_RETURN(XK_Right);
+      
+      SUMA_S_Errv("Key '%s' not yet supported, complain to author.\n", keyname);
+      SUMA_RETURN(XK_VoidSymbol);
+   }
+   SUMA_RETURN(XK_VoidSymbol);
+}
+
+int SUMA_M_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_M_Key"};
+   char tk[]={"M"}, keyname[100];
+   int k, nc;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   if (!sv || !key) {
+      SUMA_S_Err("Null input");
+      SUMA_RETURN(0);  
+   }
+   if (!(nc = strlen(key))) { 
+      SUMA_S_Err("Empty key");
+      SUMA_RETURN(0);  
+   }
+   
+   SUMA_LHv("Have %s, nc=%d\n", key, nc);
+   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
+      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
+      SUMA_RETURN(0);  
+   }
+   SUMA_LHv("Have keyname = %s\n", keyname);
+   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
+      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
+      SUMA_RETURN(0);  
+   }
+
+   /* do the work */
+   switch (k) {
+      case XK_m:
+         if ((SUMA_CTRL_KEY(key))) {
+            SUMA_SurfaceObject *SO;
+            float fv3[3];
+            int it;
+            fprintf(SUMA_STDOUT, "%s: Enter mm distance [RAI] to move center of all mappable surfaces in DOv by.\n", FuncName);
+            it = SUMA_ReadNumStdin (fv3, 3);
+            if (it > 0 && it < 3) {
+               fprintf(SUMA_STDERR,"Error %s: read %d values, expected 3.\n", FuncName, it);
+               SUMA_RETURN(0);
+            }else if (it < 0) {
+               fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
+               SUMA_RETURN(0);
+            }else if (it == 0) {
+               fprintf(SUMA_STDERR,"%s: Nothing read.\n", FuncName);
+               SUMA_RETURN(0);
+            }
+
+            for (it = 0; it < SUMAg_N_DOv; ++it) {
+               if (SUMA_isSO_G (SUMAg_DOv[it], sv->CurGroupName)) {
+                  SO = (SUMA_SurfaceObject *)SUMAg_DOv[it].OP;
+                  if (SUMA_isLocalDomainParent(SO)) {
+                     int imax, ii;
+                     /* add the shift */
+                     fprintf (SUMA_STDERR,"%s: Shifting %s by %f %f %f mm RAI.\n", FuncName, SO->Label, fv3[0], fv3[1], fv3[2]);
+                     ii = 0;
+                     imax = 3 * SO->N_Node;
+                     while (ii < imax) {
+                        SO->NodeList[ii] += fv3[0]; ++ii;
+                        SO->NodeList[ii] += fv3[1]; ++ii;
+                        SO->NodeList[ii] += fv3[2]; ++ii;
+                     }
+                  }
+               }
+            }
+
+            SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         } else {
+            sv->GVS[sv->StdView].ApplyMomentum = !sv->GVS[sv->StdView].ApplyMomentum;
+            SUMA_UpdateViewerTitle(sv);
+            if (sv->GVS[sv->StdView].ApplyMomentum) {
+                sv->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_CF->X->App, 1, SUMA_momentum, (XtPointer) sv->X->GLXAREA);
+                /* wait till user initiates turning */
+               sv->GVS[sv->StdView].spinDeltaX = 0; sv->GVS[sv->StdView].spinDeltaY = 0;
+               sv->GVS[sv->StdView].translateDeltaX = 0; sv->GVS[sv->StdView].translateDeltaY = 0;
+            } else {
+               if (sv->X->MOMENTUMID)  {
+                  XtRemoveTimeOut(sv->X->MOMENTUMID);
+                  sv->X->MOMENTUMID = 0;
+               }
+            }
+         }
+         break;
+      case XK_M:
+         if (SUMA_CTRL_KEY(key) && (SUMA_ALT_KEY(key) || SUMA_APPLE_KEY(key)) ) {            
+            #ifndef DONT_USE_MCW_MALLOC
+            /* write memtrace results to disk */
+            if (!mcw_malloc_enabled()) {
+               if (callmode && strcmp(callmode, "interactive") == 0) {
+                  SUMA_SLP_Warn("Memory tracing\n"
+                               "is not enabled.\n"
+                               "Use Help-->MemTrace.");
+               } else {
+                  SUMA_S_Warn("Memory tracing\n"
+                               "is not enabled.\n"
+                               "Use Help-->MemTrace.");
+               }
+               SUMA_RETURN(0);
+            } else {
+               if (callmode && strcmp(callmode, "interactive") == 0) {
+                  SUMA_SLP_Note("Dumping memory tracing\n"
+                               "to latest ./malldump.???\n"
+                               "file (if possible).");
+               } else {
+                  SUMA_S_Note("Dumping memory tracing\n"
+                               "to latest ./malldump.???\n"
+                               "file (if possible).");
+               }
+               mcw_malloc_dump();
+            }
+            #else
+               if (callmode && strcmp(callmode, "interactive") == 0) {
+                  SUMA_SLP_Warn("Sorry, memory tracing\n"
+                             "was not enabled at compile.\n"
+                             "time. You are out of luck\n"
+                             "if using SUN.");
+               } else {
+                  SUMA_S_Warn("Sorry, memory tracing\n"
+                             "was not enabled at compile.\n"
+                             "time. You are out of luck\n"
+                             "if using SUN.");
+               }
+               SUMA_RETURNe;
+            #endif
+         }
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre ici");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+int SUMA_N_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_N_Key"};
+   char tk[]={"N"}, keyname[100];
+   int k, nc, it;
+   float fv15[15];
+   SUMA_EngineData *ED = NULL; 
+   DList *list = NULL;
+   DListElmt *NextElm= NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   if (!sv || !key) {
+      SUMA_S_Err("Null input");
+      SUMA_RETURN(0);  
+   }
+   if (!(nc = strlen(key))) { 
+      SUMA_S_Err("Empty key");
+      SUMA_RETURN(0);  
+   }
+   
+   SUMA_LHv("Have %s, nc=%d\n", key, nc);
+   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
+      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
+      SUMA_RETURN(0);  
+   }
+   SUMA_LHv("Have keyname = %s\n", keyname);
+   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
+      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
+      SUMA_RETURN(0);  
+   }
+
+   /* do the work */
+   switch (k) {
+      case XK_N:
+         break;
+      case XK_n:
+         if (SUMA_CTRL_KEY(key)) {   
+            if (LocalHead) fprintf(SUMA_STDOUT, "%s: Opening a new controller...\n", FuncName);
+            /* open a new controller */
+            if (!SUMA_X_SurfaceViewer_Create ()) {
+               fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_X_SurfaceViewer_Create.\n", FuncName);
+               SUMA_RETURN(0);
+            }
+         } else {
+            fprintf(stdout,"BAD IDEA Enter XYZ of center followed by size of Box (enter nothing to cancel):\n");
+            it = SUMA_ReadNumStdin (fv15, 6);
+            if (it > 0 && it < 6) {
+               fprintf(SUMA_STDERR,"Error %s: read %d values, expected 6.\n", FuncName, it);
+               SUMA_RETURN(0);
+            }else if (it < 0) {
+               fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
+               SUMA_RETURN(0);
+            }else if (it == 0) {
+               SUMA_RETURN(0);
+            }
+
+            fprintf (SUMA_STDOUT, "Parsed Input:\n\tCenter %f, %f, %f.\n\tBox Size %f, %f, %f\n", \
+               fv15[0], fv15[1],fv15[2],\
+               fv15[3], fv15[4],fv15[5]);
+
+            /* register fv15 with ED */
+            if (!list) list = SUMA_CreateList ();
+            ED = SUMA_InitializeEngineListData (SE_GetNearestNode);
+            if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                   SEF_fv15, (void *)fv15, 
+                                                   SES_Suma, (void *)sv, NOPE, 
+                                                   SEI_Head, NULL )) {
+               fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+               break;
+            }
+
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+            if (!SUMA_Engine (&list)) {
+               fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            }
+         }
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre ici");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
 
 
+/*!
+   Execute commands when P or p is pressed
+*/
+int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_P_Key"};
+   char tk[]={"P"}, keyname[100];
+   int k, nc;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   if (!sv || !key) {
+      SUMA_S_Err("Null input");
+      SUMA_RETURN(0);  
+   }
+   if (!(nc = strlen(key))) { 
+      SUMA_S_Err("Empty key");
+      SUMA_RETURN(0);  
+   }
+   
+   SUMA_LHv("Have %s, nc=%d\n", key, nc);
+   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
+      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
+      SUMA_RETURN(0);  
+   }
+   SUMA_LHv("Have keyname = %s\n", keyname);
+   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
+      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
+      SUMA_RETURN(0);  
+   }
+
+   /* do the work */
+   switch (k) {
+      case XK_p:
+         sv->PolyMode = ((sv->PolyMode+1) % SRM_N_RenderModes);
+         if (sv->PolyMode <= SRM_ViewerDefault) sv->PolyMode = SRM_Fill;
+
+         SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
+         SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre ici");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
+/*!
+   Execute commands when R or r is pressed
+*/
+int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_R_Key"};
+   char tk[]={"R"}, keyname[100];
+   int k, nc;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   if (!sv || !key) {
+      SUMA_S_Err("Null input");
+      SUMA_RETURN(0);  
+   }
+   if (!(nc = strlen(key))) { 
+      SUMA_S_Err("Empty key");
+      SUMA_RETURN(0);  
+   }
+   
+   SUMA_LHv("Have %s, nc=%d\n", key, nc);
+   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
+      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
+      SUMA_RETURN(0);  
+   }
+   SUMA_LHv("Have keyname = %s\n", keyname);
+   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
+      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
+      SUMA_RETURN(0);  
+   }
+
+   /* do the work */
+   switch (k) {
+      case XK_r:
+         if ((SUMA_APPLE_KEY(key) || SUMA_ALT_KEY(key))) {
+            sv->X->SetRot_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "Center of Rotation X,Y,Z:", 
+                                                   "0,0,0",
+                                                   sv->X->TOPLEVEL, YUP,
+                                                   SUMA_APPLY_BUTTON,
+                                                   SUMA_SetRotCenter, (void *)sv,
+                                                   NULL, NULL,
+                                                   NULL, NULL,
+                                                   NULL, NULL,  
+                                                   sv->X->SetRot_prmpt);
+
+            sv->X->SetRot_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->SetRot_prmpt);
+
+         } else {
+            GLvoid *pixels;
+            pixels = SUMA_grabPixels(1, sv->X->WIDTH, sv->X->HEIGHT);
+            if (pixels) {
+              ISQ_snapsave (sv->X->WIDTH, -sv->X->HEIGHT, (unsigned char *)pixels, sv->X->GLXAREA ); 
+              SUMA_free(pixels);
+            }else {
+               SUMA_SLP_Err("Failed to record image.");
+            }
+         }
+         break;
+      case XK_R:
+         sv->Record = !sv->Record;
+         if (sv->Record) { 
+            if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note ("Recording ON"); }
+            else { SUMA_S_Note ("Recording ON"); }
+         } else { 
+            if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note ("Recording OFF"); }
+            else { SUMA_S_Note ("Recording OFF");} 
+         }
+         SUMA_UpdateViewerTitle(sv);
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre ici");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
+int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
+{
+   static char FuncName[]={"SUMA_Up_Key"};
+   char tk[]={"Up"}, keyname[100];
+   int k, nc, ii;
+   float ArrowDeltaRot = 0.05; /* The larger the value, the bigger the rotation increment */
+   Widget w;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!sv || !key) {
+      SUMA_S_Err("Null input");
+      SUMA_RETURN(0);  
+   }
+   if (!(nc = strlen(key))) { 
+      SUMA_S_Err("Empty key");
+      SUMA_RETURN(0);  
+   }
+   
+   SUMA_LHv("Have %s, nc=%d\n", key, nc);
+   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
+      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
+      SUMA_RETURN(0);  
+   }
+   SUMA_LHv("Have keyname = %s\n", keyname);
+   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
+      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
+      SUMA_RETURN(0);  
+   }
+   
+   w = sv->X->GLXAREA;
+   /* do the work */
+   switch (k) {
+      case XK_Up:
+            if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
+               float a[3];
+               /* Posterior view ctrl+shift+up*/
+               /* From top view, rotate by 90 degrees about x axis */
+               a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
+               axis_to_quat(a, SUMA_PI/2, sv->GVS[sv->StdView].currentQuat);
+               SUMA_postRedisplay(w, NULL, NULL);
+            }else if (SUMA_SHIFT_KEY(key)) {
+               /*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
+               sv->GVS[sv->StdView].translateVec[1] +=  (GLfloat)sv->GVS[sv->StdView].ArrowtranslateDeltaY/(float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
+               SUMA_postRedisplay(w, NULL, NULL);
+            }else if (SUMA_CTRL_KEY(key)){
+               /*fprintf (SUMA_STDERR,"%s: Control down\n", FuncName);*/
+               /* Top view ctrl+up*/
+               float a[3];
+               /* Default top view, rotate by nothing */
+               a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
+               axis_to_quat(a, 0, sv->GVS[sv->StdView].currentQuat);
+               SUMA_postRedisplay(w, NULL, NULL);
+            }else if (SUMA_AALT_KEY(key)) {
+               /*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
+            }else {
+               if (LocalHead) fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);
+               trackball_Phi(sv->GVS[sv->StdView].deltaQuat, 
+                  0.0, -ArrowDeltaRot, /* first point */
+                  0.0, ArrowDeltaRot, /* ending x,y */
+                  sv->ArrowRotationAngle);
+               if (LocalHead) {
+                  fprintf(stdout,"\ncurrentQuat\n");
+                  for (ii=0; ii<4; ++ii) { 
+                     fprintf(stdout,"%f\t", sv->GVS[sv->StdView].currentQuat[ii]);
+                  } 
+                  fprintf(stdout,"\n");
+                  fprintf(stdout,"\ndeltaQuat\n");
+                  for (ii=0; ii<4; ++ii) { 
+                     fprintf(stdout,"%f\t", sv->GVS[sv->StdView].deltaQuat[ii]);
+                  } 
+                  fprintf(stdout,"\n");
+               }
+               add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
+               if (LocalHead) {
+                  fprintf(stdout,"\nnewQuat\n");
+                  for (ii=0; ii<4; ++ii) { 
+                     fprintf(stdout,"%f\t", sv->GVS[sv->StdView].currentQuat[ii]);
+                  } 
+                  fprintf(stdout,"\n");
+               }
+               sv->GVS[sv->StdView].spinDeltaX = 0;
+               sv->GVS[sv->StdView].spinDeltaY = 2.0*ArrowDeltaRot*sv->WindHeight;
+               SUMA_postRedisplay(w, NULL, NULL);
+                  
+            }
+            
+            break;
+         
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre ici");
+         SUMA_RETURN(0);
+         break;
+   }   
+   
+   SUMA_RETURN(1);
+}
+int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
+{
+   static char FuncName[]={"SUMA_Down_Key"};
+   char tk[]={"Down"}, keyname[100];
+   int k, nc, ii;
+   float ArrowDeltaRot = 0.05; /* The larger the value, the bigger the rotation increment */
+   Widget w;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!sv || !key) {
+      SUMA_S_Err("Null input");
+      SUMA_RETURN(0);  
+   }
+   if (!(nc = strlen(key))) { 
+      SUMA_S_Err("Empty key");
+      SUMA_RETURN(0);  
+   }
+   
+   SUMA_LHv("Have %s, nc=%d\n", key, nc);
+   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
+      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
+      SUMA_RETURN(0);  
+   }
+   SUMA_LHv("Have keyname = %s\n", keyname);
+   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
+      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
+      SUMA_RETURN(0);  
+   }
+   
+   w = sv->X->GLXAREA;
+   /* do the work */
+   switch (k) {
+      case XK_Down:
+            if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
+               float a[3], cQ[4], dQ[4];
+               /* Posterior view ctrl+shift+down*/
+               /* From top view, first rotate by 90 degrees about x axis */
+               a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
+               axis_to_quat(a, SUMA_PI/2, cQ);
+               /* then rotate by 180 degrees about y axis */
+               a[0] = 0.0; a[1] = 1.0; a[2] = 0.0;
+               axis_to_quat(a, SUMA_PI, dQ);
+               /*add rotation */
+               add_quats (dQ, cQ, sv->GVS[sv->StdView].currentQuat);
+               SUMA_postRedisplay(w, NULL, NULL);
+            }else if (SUMA_SHIFT_KEY(key)) {
+               /*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
+               /*sv->GVS[sv->StdView].translateVec[0] += 0;*/
+               sv->GVS[sv->StdView].translateVec[1] -=  (GLfloat)sv->GVS[sv->StdView].ArrowtranslateDeltaY/(float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
+               SUMA_postRedisplay(w, NULL, NULL);
+            }else if (SUMA_CTRL_KEY(key)){
+               /*fprintf (SUMA_STDERR,"%s: Control down\n", FuncName);*/
+               /* Inferior view ctrl+down*/
+               float a[3];
+               /* From top view, rotate by 180 degrees about y axis */
+               a[0] = 0.0; a[1] = 1.0; a[2] = 0.0;
+               axis_to_quat(a, SUMA_PI, sv->GVS[sv->StdView].currentQuat);
+               SUMA_postRedisplay(w, NULL, NULL);
+            }else if (SUMA_AALT_KEY(key)) {
+               /*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
+            }else {
+               /*fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
+               trackball_Phi(sv->GVS[sv->StdView].deltaQuat, 
+                  0.0, ArrowDeltaRot, /* first point */
+                  0.0, -ArrowDeltaRot, /* ending x,y */
+                  sv->ArrowRotationAngle);
+               /*fprintf(stdout,"\ncurrentQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", sv->GVS[sv->StdView].currentQuat[i]);} fprintf(stdout,"\n");
+               fprintf(stdout,"\ndeltaQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", sv->GVS[sv->StdView].deltaQuat[i]);} fprintf(stdout,"\n");*/
+               add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
+               /*fprintf(stdout,"\nnewQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", sv->GVS[sv->StdView].currentQuat[i]);} fprintf(stdout,"\n");*/
+               sv->GVS[sv->StdView].spinDeltaX = 0;
+               sv->GVS[sv->StdView].spinDeltaY = -2.0*ArrowDeltaRot*sv->WindHeight;
+               SUMA_postRedisplay(w, NULL, NULL);
+            }
+            
+            break;
+         
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre ici");
+         SUMA_RETURN(0);
+         break;
+   }   
+   
+
+   SUMA_RETURN(1);
+}
+int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
+{
+   static char FuncName[]={"SUMA_Left_Key"};
+   char tk[]={"Left"}, keyname[100];
+   int k, nc, ii;
+   float ArrowDeltaRot = 0.05; /* The larger the value, the bigger the rotation increment */
+   Widget w;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!sv || !key) {
+      SUMA_S_Err("Null input");
+      SUMA_RETURN(0);  
+   }
+   if (!(nc = strlen(key))) { 
+      SUMA_S_Err("Empty key");
+      SUMA_RETURN(0);  
+   }
+   
+   SUMA_LHv("Have %s, nc=%d\n", key, nc);
+   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
+      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
+      SUMA_RETURN(0);  
+   }
+   SUMA_LHv("Have keyname = %s\n", keyname);
+   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
+      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
+      SUMA_RETURN(0);  
+   }
+   
+   w = sv->X->GLXAREA;
+   /* do the work */
+   switch (k) {
+      case XK_Left:
+            if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
+               /* do nothing about ctrl+shift+this key */
+            }else if (SUMA_SHIFT_KEY(key)) {
+               /*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
+               sv->GVS[sv->StdView].translateVec[0] -= (GLfloat)sv->GVS[sv->StdView].ArrowtranslateDeltaX/(float)sv->WindWidth*sv->GVS[sv->StdView].TranslateGain;
+               /*sv->GVS[sv->StdView].translateVec[1] -= 0;*/
+               SUMA_postRedisplay(w, NULL, NULL);
+            }else if (SUMA_CTRL_KEY(key)){
+               float a[3], cQ[4], dQ[4];
+               /* From top view, rotate about x 90 degrees.*/ 
+               a[0] = 1.0; a[1] = 0.0;
+               axis_to_quat(a, SUMA_PI/2.0, cQ);
+               /* then rotate about y 90 degrees */
+               a[0] = 0.0; a[1] = 1.0; a[2] = 0.0;
+               axis_to_quat(a, SUMA_PI/2.0, dQ);
+               /*add and apply rotation*/
+               add_quats (dQ, cQ, sv->GVS[sv->StdView].currentQuat);
+               SUMA_postRedisplay(w, NULL, NULL);
+            }else if (SUMA_AALT_KEY(key)) {
+               /*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
+            }else {
+               /*fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
+               trackball_Phi(sv->GVS[sv->StdView].deltaQuat, 
+                  ArrowDeltaRot, 0.0, /* first point */
+                  -ArrowDeltaRot, 0.0, /* ending x,y */
+                  sv->ArrowRotationAngle);
+               add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
+               sv->GVS[sv->StdView].spinDeltaX = -2.0*ArrowDeltaRot*sv->WindWidth;
+               sv->GVS[sv->StdView].spinDeltaY = 0;
+               SUMA_postRedisplay(w, NULL, NULL);
+            }
+            
+            break;
+         
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre ici");
+         SUMA_RETURN(0);
+         break;
+   }   
+   
+
+   SUMA_RETURN(1);
+}
+int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
+{
+   static char FuncName[]={"SUMA_Right_Key"};
+   char tk[]={"Right"}, keyname[100];
+   int k, nc, ii;
+   float ArrowDeltaRot = 0.05; /* The larger the value, the bigger the rotation increment */
+   Widget w;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!sv || !key) {
+      SUMA_S_Err("Null input");
+      SUMA_RETURN(0);  
+   }
+   if (!(nc = strlen(key))) { 
+      SUMA_S_Err("Empty key");
+      SUMA_RETURN(0);  
+   }
+   
+   SUMA_LHv("Have %s, nc=%d\n", key, nc);
+   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
+      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
+      SUMA_RETURN(0);  
+   }
+   SUMA_LHv("Have keyname = %s\n", keyname);
+   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
+      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
+      SUMA_RETURN(0);  
+   }
+   
+   w = sv->X->GLXAREA;
+   /* do the work */
+   switch (k) {
+      case XK_Right:
+            if ((SUMA_CTRL_KEY(key) && SUMA_SHIFT_KEY(key))) {
+               /* do nothing about ctrl+shift+this key */
+            }else if (SUMA_SHIFT_KEY(key)) {
+               /*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
+               sv->GVS[sv->StdView].translateVec[0] += (GLfloat)sv->GVS[sv->StdView].ArrowtranslateDeltaX/(float)sv->WindWidth*sv->GVS[sv->StdView].TranslateGain;
+               /*sv->GVS[sv->StdView].translateVec[1] -= 0;*/
+               SUMA_postRedisplay(w,  NULL, NULL);
+            }else if (SUMA_CTRL_KEY(key)){
+               float a[3], cQ[4], dQ[4];
+               /* From top view, rotate about x 90 degrees */ 
+               a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
+               axis_to_quat(a, SUMA_PI/2.0, cQ);
+               /* then rotate about y -90 degrees */
+               a[0] = 0.0; a[1] = 1.0;
+               axis_to_quat(a, -SUMA_PI/2.0, dQ);
+               /*add and apply rotation*/
+               add_quats (dQ, cQ, sv->GVS[sv->StdView].currentQuat);
+               SUMA_postRedisplay(w, NULL, NULL);
+            }else if (SUMA_AALT_KEY(key)) {
+               /*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
+            }else {
+               /*fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
+               trackball_Phi(sv->GVS[sv->StdView].deltaQuat, 
+                  -ArrowDeltaRot, 0.0, /* first point */
+                  ArrowDeltaRot, 0.0, /* ending x,y */
+                  sv->ArrowRotationAngle);
+               add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
+               sv->GVS[sv->StdView].spinDeltaX = 2.0*ArrowDeltaRot*sv->WindWidth;
+               sv->GVS[sv->StdView].spinDeltaY = 0;
+               SUMA_postRedisplay(w,  NULL, NULL);
+            }
+            
+            break;
+         
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre ici");
+         SUMA_RETURN(0);
+         break;
+   }   
+   
+
+   SUMA_RETURN(1);
+}
 /*! Mouse and Keyboard input handler function for SUMA's viewer*/
 
 void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
@@ -464,7 +1237,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                                       SUMA_HighlightBox, (void *)sv,
                                                       NULL, NULL,
                                                       NULL, NULL,
-                                                      SUMA_isNumString, (void*)6,  
+                                                      SUMA_CleanNumString, (void*)6,  
                                                       sv->X->HighlightBox_prmpt);
                
                sv->X->HighlightBox_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->HighlightBox_prmpt);
@@ -503,7 +1276,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                                       SUMA_JumpXYZ, (void *)sv,
                                                       NULL, NULL,
                                                       NULL, NULL,
-                                                      SUMA_isNumString, (void*)3,  
+                                                      SUMA_CleanNumString, (void*)3,  
                                                       sv->X->JumpXYZ_prmpt);
                
                   sv->X->JumpXYZ_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->JumpXYZ_prmpt);  
@@ -517,7 +1290,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                                       SUMA_JumpFocusNode, (void *)sv,
                                                       NULL, NULL,
                                                       NULL, NULL,
-                                                      SUMA_isNumString, (void*)1,  
+                                                      SUMA_CleanNumString, (void*)1,  
                                                       sv->X->JumpFocusNode_prmpt);
                
                   sv->X->JumpFocusNode_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->JumpFocusNode_prmpt);
@@ -531,7 +1304,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                                       SUMA_JumpIndex, (void *)sv,
                                                       NULL, NULL,
                                                       NULL, NULL,
-                                                      SUMA_isNumString, (void*)1,  
+                                                      SUMA_CleanNumString, (void*)1,  
                                                       sv->X->JumpIndex_prmpt);
                
                   sv->X->JumpIndex_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->JumpIndex_prmpt);
@@ -548,7 +1321,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                                    SUMA_JumpFocusFace, (void *)sv,
                                                    NULL, NULL,
                                                    NULL, NULL,
-                                                   SUMA_isNumString, (void*)1,  
+                                                   SUMA_CleanNumString, (void*)1,  
                                                    sv->X->JumpFocusFace_prmpt);
 
                sv->X->JumpFocusFace_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->JumpFocusFace_prmpt);
@@ -594,7 +1367,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                                       SUMA_LookAtCoordinates, (void *)sv,
                                                       NULL, NULL,
                                                       NULL, NULL,
-                                                      SUMA_isNumString, (void*)3,  
+                                                      SUMA_CleanNumString, (void*)3,  
                                                       sv->X->LookAt_prmpt);
                
                sv->X->LookAt_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->LookAt_prmpt);
@@ -645,7 +1418,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                                          SUMA_SetLight0, (void *)sv,
                                                          NULL, NULL,
                                                          NULL, NULL,
-                                                         SUMA_isNumString, (void*)3,  
+                                                         SUMA_CleanNumString, (void*)3,  
                                                          NULL);
 
                   prmpt = SUMA_CreatePromptDialog(sv->X->Title, prmpt);
@@ -655,169 +1428,62 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          
          case XK_M:
             if ((Kev.state & Mod1Mask || Kev.state & Mod2Mask) && (Kev.state & ControlMask) ){
-                  #ifndef DONT_USE_MCW_MALLOC
-                  /* write memtrace results to disk */
-                  if (!mcw_malloc_enabled()) {
-                     SUMA_SLP_Warn("Memory tracing\n"
-                                  "is not enabled.\n"
-                                  "Use Help-->MemTrace.");
-                     SUMA_RETURNe;
-                  } else {
-                     SUMA_SLP_Note("Dumping memory tracing\n"
-                                  "to latest ./malldump.???\n"
-                                  "file (if possible).");
-                     mcw_malloc_dump();
+                  if (!SUMA_M_Key(sv, "alt+ctrl+M", "interactive")) {
+                     SUMA_S_Err("Failed in key func.");
                   }
-                  #else
-                     SUMA_SLP_Warn("Sorry, memory tracing\n"
-                                   "was not enabled at compile.\n"
-                                   "time. You are out of luck\n"
-                                   "if using SUN.");
-                     SUMA_RETURNe;
-                  #endif
             }
             break;
             
          case XK_m:
                if (Kev.state & ControlMask){
                   if (SUMAg_CF->Dev) {
-                     SUMA_SurfaceObject *SO;
-                     
-                     fprintf(SUMA_STDOUT, "%s: Enter mm distance [RAI] to move center of all mappable surfaces in DOv by.\n", FuncName);
-                     it = SUMA_ReadNumStdin (fv3, 3);
-                     if (it > 0 && it < 3) {
-                        fprintf(SUMA_STDERR,"Error %s: read %d values, expected 3.\n", FuncName, it);
-                        SUMA_RETURNe;
-                     }else if (it < 0) {
-                        fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
-                        SUMA_RETURNe;
-                     }else if (it == 0) {
-                        fprintf(SUMA_STDERR,"%s: Nothing read.\n", FuncName);
-                        SUMA_RETURNe;
+                     if (!SUMA_M_Key(sv, "ctrl+m", "interactive")) {
+                        SUMA_S_Err("Failed in key func.");
                      }
-                     
-                     for (it = 0; it < SUMAg_N_DOv; ++it) {
-                        if (SUMA_isSO_G (SUMAg_DOv[it], sv->CurGroupName)) {
-                           SO = (SUMA_SurfaceObject *)SUMAg_DOv[it].OP;
-                           if (SUMA_isLocalDomainParent(SO)) {
-                              int imax;
-                              /* add the shift */
-                              fprintf (SUMA_STDERR,"%s: Shifting %s by %f %f %f mm RAI.\n", FuncName, SO->Label, fv3[0], fv3[1], fv3[2]);
-                              ii = 0;
-                              imax = 3 * SO->N_Node;
-                              while (ii < imax) {
-                                 SO->NodeList[ii] += fv3[0]; ++ii;
-                                 SO->NodeList[ii] += fv3[1]; ++ii;
-                                 SO->NodeList[ii] += fv3[2]; ++ii;
-                              }
-                           }
-                        }
-                     }
-                     
-                     SUMA_postRedisplay(w, clientData, callData);
                   }
                } else {
-                  sv->GVS[sv->StdView].ApplyMomentum = !sv->GVS[sv->StdView].ApplyMomentum;
-                  SUMA_UpdateViewerTitle(sv);
-                  if (sv->GVS[sv->StdView].ApplyMomentum) {
-                      sv->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_CF->X->App, 1, SUMA_momentum, (XtPointer) w);
-                      /* wait till user initiates turning */
-                     sv->GVS[sv->StdView].spinDeltaX = 0; sv->GVS[sv->StdView].spinDeltaY = 0;
-                     sv->GVS[sv->StdView].translateDeltaX = 0; sv->GVS[sv->StdView].translateDeltaY = 0;
-                  } else {
-                     if (sv->X->MOMENTUMID)  {
-                        XtRemoveTimeOut(sv->X->MOMENTUMID);
-                        sv->X->MOMENTUMID = 0;
-                     }
+                  if (!SUMA_M_Key(sv, "m", "interactive")) {
+                     SUMA_S_Err("Failed in key func.");
                   }
                }
              break;
 
          case XK_n:
                if (Kev.state & ControlMask){
-                  if (LocalHead) fprintf(SUMA_STDOUT, "%s: Opening a new controller...\n", FuncName);
-                  /* open a new controller */
-                  if (!SUMA_X_SurfaceViewer_Create ()) {
-                     fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_X_SurfaceViewer_Create.\n", FuncName);
-                     SUMA_RETURNe;
-                  } 
+                  if (!SUMA_N_Key(sv, "ctrl+n", "interactive")) {
+                     SUMA_S_Err("Failed in key func.");
+                  }
                }else {
                   if (SUMAg_CF->Dev) {
-                     fprintf(stdout,"BAD IDEA Enter XYZ of center followed by size of Box (enter nothing to cancel):\n");
-
-                     it = SUMA_ReadNumStdin (fv15, 6);
-                     if (it > 0 && it < 6) {
-                        fprintf(SUMA_STDERR,"Error %s: read %d values, expected 6.\n", FuncName, it);
-                        SUMA_RETURNe;
-                     }else if (it < 0) {
-                        fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
-                        SUMA_RETURNe;
-                     }else if (it == 0) {
-                        SUMA_RETURNe;
-                     }
-
-                     fprintf (SUMA_STDOUT, "Parsed Input:\n\tCenter %f, %f, %f.\n\tBox Size %f, %f, %f\n", \
-                        fv15[0], fv15[1],fv15[2],\
-                        fv15[3], fv15[4],fv15[5]);
-
-                     /* register fv15 with ED */
-                     if (!list) list = SUMA_CreateList ();
-                     ED = SUMA_InitializeEngineListData (SE_GetNearestNode);
-                     if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                                            SEF_fv15, (void *)fv15, 
-                                                            SES_Suma, (void *)sv, NOPE, 
-                                                            SEI_Head, NULL )) {
-                        fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
-                        break;
-                     }
-
-                     SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
-                     if (!SUMA_Engine (&list)) {
-                        fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                     if (!SUMA_N_Key(sv, "n", "interactive")) {
+                        SUMA_S_Err("Failed in key func.");
                      }
                   }
                }
             break;
 
          case XK_p:
-            sv->PolyMode = ((sv->PolyMode+1) % SRM_N_RenderModes);
-            if (sv->PolyMode <= SRM_ViewerDefault) sv->PolyMode = SRM_Fill;
-            
-            SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
-            SUMA_postRedisplay(w, clientData, callData);
+            if (!SUMA_P_Key(sv, "p", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
+            }
             break;
          
          case XK_r:
             if (SUMAg_CF->Dev && (Kev.state & Mod1Mask || Kev.state & Mod2Mask)) {
-               sv->X->SetRot_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "Center of Rotation X,Y,Z:", 
-                                                      "0,0,0",
-                                                      sv->X->TOPLEVEL, YUP,
-                                                      SUMA_APPLY_BUTTON,
-                                                      SUMA_SetRotCenter, (void *)sv,
-                                                      NULL, NULL,
-                                                      NULL, NULL,
-                                                      NULL, NULL,  
-                                                      sv->X->SetRot_prmpt);
-               
-               sv->X->SetRot_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->SetRot_prmpt);
-               
+               if (!SUMA_R_Key(sv, "alt+r", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               }
             } else {
-               GLvoid *pixels;
-               pixels = SUMA_grabPixels(1, sv->X->WIDTH, sv->X->HEIGHT);
-               if (pixels) {
-                 ISQ_snapsave (sv->X->WIDTH, -sv->X->HEIGHT, (unsigned char *)pixels, sv->X->GLXAREA ); 
-                 SUMA_free(pixels);
-               }else {
-                  SUMA_SLP_Err("Failed to record image.");
+               if (!SUMA_R_Key(sv, "r", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
                }
             }
             break;
 
          case XK_R:
-            sv->Record = !sv->Record;
-            if (sv->Record) { SUMA_SLP_Note ("Recording ON"); }
-            else { SUMA_SLP_Note ("Recording OFF"); }
-            SUMA_UpdateViewerTitle(sv);
+            if (!SUMA_R_Key(sv, "R", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+            }
             break;
             
          case XK_S:
@@ -982,7 +1648,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                                          SUMA_SetNumForeSmoothing, (void *)sv,
                                                          NULL, NULL,
                                                          NULL, NULL,
-                                                         SUMA_isNumString, (void*)1,  
+                                                         SUMA_CleanNumString, (void*)1,  
                                                          SUMAg_CF->X->N_ForeSmooth_prmpt);
 
                SUMAg_CF->X->N_ForeSmooth_prmpt = SUMA_CreatePromptDialog("Foreground smoothing iterations", SUMAg_CF->X->N_ForeSmooth_prmpt);
@@ -1059,7 +1725,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         break;
                      }
                   }
-                  SO->SC = SUMA_Surface_Curvature (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->PolyArea, SO->N_FaceSet, SO->FN, SO->EL, "Curvs_c.txt", 1);
+                  SO->SC = SUMA_Surface_Curvature (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->PolyArea, 
+                                                   SO->N_FaceSet, SO->FN, SO->EL, "Curvs_c.txt", 1);
                   if (SO->SC == NULL) {
                         fprintf(stderr,"Error %s: Failed in SUMA_Surface_Curvature\n", FuncName);
                         break;
@@ -1468,35 +2135,30 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_Left:   /*KEY_LEFT:*/
             /*fprintf(stdout,"Left Key\n");*/
             if ((Kev.state & ControlMask) && (Kev.state & ShiftMask)) {
-               /* do nothing about ctrl+shift+this key */
+               if (!SUMA_Left_Key(sv, "ctrl+shift+left", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               } 
             }else if (Kev.state & ShiftMask) {
-               /*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
-               sv->GVS[sv->StdView].translateVec[0] -= (GLfloat)sv->GVS[sv->StdView].ArrowtranslateDeltaX/(float)sv->WindWidth*sv->GVS[sv->StdView].TranslateGain;
-               /*sv->GVS[sv->StdView].translateVec[1] -= 0;*/
-               SUMA_postRedisplay(w, clientData, callData);
+               if (!SUMA_Left_Key(sv, "shift+left", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               } 
             }else if (Kev.state & ControlMask){
-               float a[3], cQ[4], dQ[4];
-               /* From top view, rotate about x 90 degrees.*/ 
-               a[0] = 1.0; a[1] = 0.0;
-               axis_to_quat(a, SUMA_PI/2.0, cQ);
-               /* then rotate about y 90 degrees */
-               a[0] = 0.0; a[1] = 1.0; a[2] = 0.0;
-               axis_to_quat(a, SUMA_PI/2.0, dQ);
-               /*add and apply rotation*/
-               add_quats (dQ, cQ, sv->GVS[sv->StdView].currentQuat);
-               SUMA_postRedisplay(w, clientData, callData);
+               if (!SUMA_Left_Key(sv, "ctrl+left", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               }   
             }else if (Kev.state & Mod1Mask  || Kev.state & Mod2Mask) {
-               /*ffprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
+               if (!SUMA_Left_Key(sv, "alt+left", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               }
             }else {
-               /*ffprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
-               trackball_Phi(sv->GVS[sv->StdView].deltaQuat, 
-                  ArrowDeltaRot, 0.0, /* first point */
-                  -ArrowDeltaRot, 0.0, /* ending x,y */
-                  sv->ArrowRotationAngle);
-               add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
-               sv->GVS[sv->StdView].spinDeltaX = -2.0*ArrowDeltaRot*sv->WindWidth;
-               sv->GVS[sv->StdView].spinDeltaY = 0;
-               SUMA_postRedisplay(w, clientData, callData);
+               if (!SUMA_Left_Key(sv, "left", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               }
             }
                
             break;
@@ -1504,81 +2166,60 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_Right:   /*KEY_RIGHT: */
             /*printf("Right Key\n");*/
             if ((Kev.state & ControlMask) && (Kev.state & ShiftMask)) {
-               /* do nothing about ctrl+shift+this key */
+               if (!SUMA_Right_Key(sv, "ctrl+shift+right", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               }   
             }else if (Kev.state & ShiftMask) {
-               /*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
-               sv->GVS[sv->StdView].translateVec[0] += (GLfloat)sv->GVS[sv->StdView].ArrowtranslateDeltaX/(float)sv->WindWidth*sv->GVS[sv->StdView].TranslateGain;
-               /*sv->GVS[sv->StdView].translateVec[1] -= 0;*/
-               SUMA_postRedisplay(w, clientData, callData);
+               if (!SUMA_Right_Key(sv, "shift+right", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               }  
             }else if (Kev.state & ControlMask){
-               float a[3], cQ[4], dQ[4];
-               /* From top view, rotate about x 90 degrees */ 
-               a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
-               axis_to_quat(a, SUMA_PI/2.0, cQ);
-               /* then rotate about y -90 degrees */
-               a[0] = 0.0; a[1] = 1.0;
-               axis_to_quat(a, -SUMA_PI/2.0, dQ);
-               /*add and apply rotation*/
-               add_quats (dQ, cQ, sv->GVS[sv->StdView].currentQuat);
-               SUMA_postRedisplay(w, clientData, callData);
-               
+               if (!SUMA_Right_Key(sv, "ctrl+right", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               }  
             }else if (Kev.state & Mod1Mask || Kev.state & Mod2Mask) {
-               /*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
+               if (!SUMA_Right_Key(sv, "alt+right", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               }  
             }else {
-               /*fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
-               trackball_Phi(sv->GVS[sv->StdView].deltaQuat, 
-                  -ArrowDeltaRot, 0.0, /* first point */
-                  ArrowDeltaRot, 0.0, /* ending x,y */
-                  sv->ArrowRotationAngle);
-               add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
-               sv->GVS[sv->StdView].spinDeltaX = 2.0*ArrowDeltaRot*sv->WindWidth;
-               sv->GVS[sv->StdView].spinDeltaY = 0;
-               SUMA_postRedisplay(w, clientData, callData);
+               if (!SUMA_Right_Key(sv, "right", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               }  
             }
             break;
 
          case XK_Down:   /*KEY_DOWN*/
             /*printf("Down Key\n");*/
             if ((Kev.state & ControlMask) && (Kev.state & ShiftMask)) {
-               float a[3], cQ[4], dQ[4];
-               /* Posterior view ctrl+shift+down*/
-               /* From top view, first rotate by 90 degrees about x axis */
-               a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
-               axis_to_quat(a, SUMA_PI/2, cQ);
-               /* then rotate by 180 degrees about y axis */
-               a[0] = 0.0; a[1] = 1.0; a[2] = 0.0;
-               axis_to_quat(a, SUMA_PI, dQ);
-               /*add rotation */
-               add_quats (dQ, cQ, sv->GVS[sv->StdView].currentQuat);
-               SUMA_postRedisplay(w, clientData, callData);
+               if (!SUMA_Down_Key(sv, "ctrl+shift+down", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               }  
             }else if (Kev.state & ShiftMask) {
-               /*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
-               /*sv->GVS[sv->StdView].translateVec[0] += 0;*/
-               sv->GVS[sv->StdView].translateVec[1] -=  (GLfloat)sv->GVS[sv->StdView].ArrowtranslateDeltaY/(float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
-               SUMA_postRedisplay(w, clientData, callData);
+               if (!SUMA_Down_Key(sv, "shift+down", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               }  
             }else if (Kev.state & ControlMask){
-               /*fprintf (SUMA_STDERR,"%s: Control down\n", FuncName);*/
-               /* Inferior view ctrl+down*/
-               float a[3];
-               /* From top view, rotate by 180 degrees about y axis */
-               a[0] = 0.0; a[1] = 1.0; a[2] = 0.0;
-               axis_to_quat(a, SUMA_PI, sv->GVS[sv->StdView].currentQuat);
-               SUMA_postRedisplay(w, clientData, callData);
+               if (!SUMA_Down_Key(sv, "ctrl+down", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               } 
             }else if (Kev.state & Mod1Mask || Kev.state & Mod2Mask) {
-               /*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
+               if (!SUMA_Down_Key(sv, "alt+down", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               }  
             }else {
-               /*fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
-               trackball_Phi(sv->GVS[sv->StdView].deltaQuat, 
-                  0.0, ArrowDeltaRot, /* first point */
-                  0.0, -ArrowDeltaRot, /* ending x,y */
-                  sv->ArrowRotationAngle);
-               /*fprintf(stdout,"\ncurrentQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", sv->GVS[sv->StdView].currentQuat[i]);} fprintf(stdout,"\n");
-               fprintf(stdout,"\ndeltaQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", sv->GVS[sv->StdView].deltaQuat[i]);} fprintf(stdout,"\n");*/
-               add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
-               /*fprintf(stdout,"\nnewQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", sv->GVS[sv->StdView].currentQuat[i]);} fprintf(stdout,"\n");*/
-               sv->GVS[sv->StdView].spinDeltaX = 0;
-               sv->GVS[sv->StdView].spinDeltaY = -2.0*ArrowDeltaRot*sv->WindHeight;
-               SUMA_postRedisplay(w, clientData, callData);
+               if (!SUMA_Down_Key(sv, "down", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               } 
             }
             
             break;
@@ -1586,60 +2227,32 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_Up: /*KEY_UP*/
             /*printf("Up Key\n");*/
             if ((Kev.state & ControlMask) && (Kev.state & ShiftMask)) {
-               float a[3];
-               /* Posterior view ctrl+shift+up*/
-               /* From top view, rotate by 90 degrees about x axis */
-               a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
-               axis_to_quat(a, SUMA_PI/2, sv->GVS[sv->StdView].currentQuat);
-               SUMA_postRedisplay(w, clientData, callData);
+               if (!SUMA_Up_Key(sv, "ctrl+shift+up", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               }
             }else if (Kev.state & ShiftMask) {
-               /*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
-               sv->GVS[sv->StdView].translateVec[1] +=  (GLfloat)sv->GVS[sv->StdView].ArrowtranslateDeltaY/(float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
-               SUMA_postRedisplay(w, clientData, callData);
+               if (!SUMA_Up_Key(sv, "shift+up", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               }
             }else if (Kev.state & ControlMask){
-               /*fprintf (SUMA_STDERR,"%s: Control down\n", FuncName);*/
-               /* Top view ctrl+up*/
-               float a[3];
-               /* Default top view, rotate by nothing */
-               a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
-               axis_to_quat(a, 0, sv->GVS[sv->StdView].currentQuat);
-               SUMA_postRedisplay(w, clientData, callData);
+               if (!SUMA_Up_Key(sv, "ctrl+up", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               }
             }else if (Kev.state & Mod1Mask || Kev.state & Mod2Mask) {
-               /*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
+               if (!SUMA_Up_Key(sv, "alt+up", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
+               }
             }else {
-               if (LocalHead) fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);
-               trackball_Phi(sv->GVS[sv->StdView].deltaQuat, 
-                  0.0, -ArrowDeltaRot, /* first point */
-                  0.0, ArrowDeltaRot, /* ending x,y */
-                  sv->ArrowRotationAngle);
-               if (LocalHead) {
-                  fprintf(stdout,"\ncurrentQuat\n");
-                  for (ii=0; ii<4; ++ii) { 
-                     fprintf(stdout,"%f\t", sv->GVS[sv->StdView].currentQuat[ii]);
-                  } 
-                  fprintf(stdout,"\n");
-                  fprintf(stdout,"\ndeltaQuat\n");
-                  for (ii=0; ii<4; ++ii) { 
-                     fprintf(stdout,"%f\t", sv->GVS[sv->StdView].deltaQuat[ii]);
-                  } 
-                  fprintf(stdout,"\n");
+               if (!SUMA_Up_Key(sv, "up", "interactive")) {
+                  SUMA_S_Err("Error in key func.");
+                  break;
                }
-               add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
-               if (LocalHead) {
-                  fprintf(stdout,"\nnewQuat\n");
-                  for (ii=0; ii<4; ++ii) { 
-                     fprintf(stdout,"%f\t", sv->GVS[sv->StdView].currentQuat[ii]);
-                  } 
-                  fprintf(stdout,"\n");
-               }
-               sv->GVS[sv->StdView].spinDeltaX = 0;
-               sv->GVS[sv->StdView].spinDeltaY = 2.0*ArrowDeltaRot*sv->WindHeight;
-               SUMA_postRedisplay(w, clientData, callData);
-                  
             }
-            
             break;
-
          default:
             break;
 

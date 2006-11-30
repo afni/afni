@@ -34,11 +34,11 @@ extern int SUMAg_N_SVv;
 SUMA_Boolean SUMA_Engine (DList **listp)
 {
    static char FuncName[]={"SUMA_Engine"};
-   char tmpcom[SUMA_MAX_COMMAND_LENGTH], sfield[100], sdestination[100];
+   char tmpstr[100], sfield[100], sdestination[100];
    const char *NextCom;
-   int NextComCode, ii, i, id, ND, ip, NP;
+   int NextComCode, ii, i, id, ND, ip, NP, itmp=-1;
    SUMA_SurfaceObject *SO = NULL;
-   float delta_t;
+   float delta_t, ftmp = -1.0;
    struct  timeval tt;
    int it, Wait_tot, nn=0, N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS], iv200[200];
    float ft, **fm, fv15[15];
@@ -54,11 +54,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    DList *list= NULL;
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell = NULL, *LogShell=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
-   /*int iv3[3], iv15[15], **im;
-   float fv3[3];
-   char s[SUMA_MAX_STRING_LENGTH];*/ /* keep standard unused variables undeclared, else compiler complains*/
-   
+      
    
    SUMA_ENTRY;
    
@@ -2009,6 +2005,243 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
             break;
             
+         case SE_SetSurfCont:
+            /* expects a ngr and SO in vp */
+            if (EngineData->ngr_Dest != NextComCode || EngineData->vp_Dest != NextComCode) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n"
+                                    "Have %d and %d\n",FuncName, NextCom, NextComCode, EngineData->ngr_Dest, EngineData->vp_Dest);
+               break;
+            }
+            SO = (SUMA_SurfaceObject *)EngineData->vp;
+            
+            if (NI_get_attribute(EngineData->ngr, "switch_surf")) {
+               int is;
+               
+               if (SUMA_iswordsame(SO->Group, sv->CurGroupName) != 1) {
+                  SUMA_S_Errv("Surface %s is of group %s while viewer is of group %s.\n"
+                              "Need to switch group before switch_surf\n", SO->Label, SO->Group, sv->CurGroupName);
+                  break;
+               }
+               is = SUMA_WhichState(SO->State, sv, sv->CurGroupName);
+               if (is < 0) {
+                  SUMA_S_Errv("Surface %s of group %s, viewer in group %s\nNo surface of state %s found.\n",
+                                 SO->Label, SO->Group, sv->CurGroupName , SO->State);
+                  break;
+               }
+               if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, sv, is, sv->CurGroupName)) {
+                  SUMA_S_Err("Failed to switch state"); break;
+               } else {
+                  sv->Focus_SO_ID = SUMA_findSO_inDOv(SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+                  sv->NewGeom = YUP;   /* sv->ResetGLStateVariables was not enough */
+                  /* remove this attribute and call engine again for redisplay */
+                  NI_set_attribute(EngineData->ngr, "switch_surf", NULL);
+                  {
+                     DList *llist = SUMA_CreateList();
+                     SUMA_REGISTER_HEAD_COMMAND_NO_DATA(llist, SE_Redisplay, SES_SumaFromAny, sv);
+                     if (!SUMA_Engine (&llist)) {
+                        fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                     }
+                     /* update titles */
+                     SUMA_UpdateViewerTitle(sv);
+                  }
+               }
+            }
+            
+            if (NI_get_attribute(EngineData->ngr, "switch_dset")) {
+               SUMA_OVERLAYS *ColPlane = SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays, NI_get_attribute(EngineData->ngr, "switch_dset"), &itmp);
+               if (!ColPlane) {
+                  SUMA_S_Errv("Failed to find %s\n", NI_get_attribute(EngineData->ngr, "switch_dset")); break;
+               } else {
+                  if (LocalHead) fprintf (SUMA_STDERR,"%s: Retrieved ColPlane named %s\n", FuncName, ColPlane->Name);
+                  SUMA_InitializeColPlaneShell(SO, ColPlane);
+                  SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
+                  /* If you're viewing one plane at a time, do a remix */
+                  if (SO->SurfCont->ShowCurOnly) SUMA_RemixRedisplay(SO);
+               }
+            }
+            if (NI_get_attribute(EngineData->ngr, "switch_cmap")) {
+               /* find the colormap */
+               if ((itmp = SUMA_Find_ColorMap(NI_get_attribute(EngineData->ngr, "switch_cmap"), SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 )) < 0) {
+                  SUMA_S_Err("Failed to find color map"); break;
+               } else {
+                  SUMA_COLOR_MAP *ColMap = SUMAg_CF->scm->CMv[itmp];
+
+                  /* Set the menu button to the current choice */
+                  if (!SUMA_SetCmapMenuChoice (SO, ColMap->Name)) {
+                     SUMA_SL_Err("Failed in SUMA_SetCmapMenuChoice");
+                  }
+
+                  /* switch to the recently loaded  cmap */
+                  if (!SUMA_SwitchColPlaneCmap(SO, ColMap)) {
+                     SUMA_SL_Err("Failed in SUMA_SwitchColPlaneCmap");
+                  }
+
+                  /* update Lbl fields */
+                  SUMA_UpdateNodeLblField(SO);
+               }
+            }
+            if (NI_get_attribute(EngineData->ngr, "I_sb")) {
+               NI_GET_INT(EngineData->ngr, "I_sb", itmp);
+               /* inefficient implementation, but avoids duplicate code... */
+               if (!SUMA_SwitchColPlaneIntensity(SO, SO->SurfCont->curColPlane, itmp, 1)) { SUMA_S_Err("Failed in I_sb"); break; }
+            }
+            
+            if (NI_get_attribute(EngineData->ngr, "I_range")) {
+               char *stmp = NULL;
+               NI_GET_STR_CP(EngineData->ngr, "I_range", stmp);
+               if (!stmp) { 
+                  SUMA_S_Err("Bad I_range"); 
+               } else {
+                  nn = SUMA_StringToNum(stmp, fv15, 3);
+                  if (nn < 1 || nn > 2) {
+                     SUMA_S_Err("Bad range string.");
+                  }else {
+                     if (nn == 1) { fv15[0] = -SUMA_ABS(fv15[0]); fv15[1] = -fv15[0]; }
+                     else if (fv15[0] > fv15[1]) { ftmp = fv15[0]; fv15[0] = fv15[1]; fv15[1] = ftmp; }
+                     /* have range, set it please */
+                     SUMA_LHv("Have range of %f, %f\n", fv15[0], fv15[1]);  
+                     SO->SurfCont->curColPlane->OptScl->IntRange[0] = fv15[0];
+                     SO->SurfCont->curColPlane->OptScl->IntRange[1] = fv15[1];
+                     SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetRangeTable, 1, 1, SO->SurfCont->curColPlane->OptScl->IntRange[0]);
+                     SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetRangeTable, 1, 2, SO->SurfCont->curColPlane->OptScl->IntRange[1]);
+                     if (SO->SurfCont->curColPlane->Show) {
+                        if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
+                           SUMA_SLP_Err("Failed to colorize plane.\n"); 
+                        } else {
+                           SUMA_RemixRedisplay(SO);
+                           SUMA_UpdateNodeValField(SO);
+                           SUMA_UpdateNodeLblField(SO);
+                        }
+                     } 
+                  }
+                  SUMA_free(stmp); stmp = NULL;
+               }
+            }
+            if (NI_get_attribute(EngineData->ngr, "T_sb")) {
+               NI_GET_INT(EngineData->ngr, "T_sb", itmp);
+               /* inefficient implementation, but avoids duplicate code... */
+               if (!SUMA_SwitchColPlaneThreshold(SO, SO->SurfCont->curColPlane, itmp, 1)) { SUMA_S_Err("Failed in T_sb"); break; }
+            }
+            if (NI_get_attribute(EngineData->ngr, "T_val")) {
+               NI_GET_FLOAT(EngineData->ngr, "T_val", ftmp);
+               SUMA_MODIFY_CELL_VALUE(SO->SurfCont->SetThrScaleTable, 0,0, ftmp);
+               /* inefficient implementation, but avoids duplicate code... */
+               SUMA_SetScaleThr(EngineData->vp); 
+            }
+            if (NI_get_attribute(EngineData->ngr, "view_dset")) {
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "view_dset", "y")) SO->SurfCont->curColPlane->Show = YUP;
+               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "view_dset", "n"))SO->SurfCont->curColPlane->Show = NOPE;
+               else { 
+                  SUMA_S_Errv("Bad value of %s for view_dset, setting to 'y'\n", NI_get_attribute(EngineData->ngr, "view_dset"));
+                  SO->SurfCont->curColPlane->Show = YUP;
+               }
+               XmToggleButtonSetState ( SO->SurfCont->ColPlaneShow_tb, SO->SurfCont->curColPlane->Show, YUP);
+            }
+            
+            if (NI_get_attribute(EngineData->ngr, "1_only")) {
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "1_only", "y")) {
+                  itmp = YUP;
+               } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "1_only", "n")) {
+                  itmp = NOPE;
+               } else {
+                  SUMA_S_Errv("Bad value of %s for 1_only, setting to 'y'\n", NI_get_attribute(EngineData->ngr, "1_only"));
+                  itmp = YUP;
+               }
+               if (!SUMA_ColPlaneShowOne_Set (SO, itmp)) {
+                  SUMA_S_Err("Failed to set one only");
+                  break;  
+               }
+            }
+            
+            if (NI_get_attribute(EngineData->ngr, "View_Surf_Cont")) {
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "View_Surf_Cont", "y")) {
+                  if (!SUMA_viewSurfaceCont(NULL, SO, sv)) {
+                     SUMA_S_Err("Failed open surfcont");
+                     break;  
+                  }
+               } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "View_Surf_Cont", "n")) {
+                  SUMA_cb_closeSurfaceCont(NULL, (XtPointer) SO, NULL);
+               }
+            }
+
+
+            break;
+         case SE_SetViewerCont:
+            /* expects a ngr and SO in vp */
+            if (EngineData->ngr_Dest != NextComCode || EngineData->vp_Dest != NextComCode) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n"
+                                    "Have %d and %d\n",FuncName, NextCom, NextComCode, EngineData->ngr_Dest, EngineData->vp_Dest);
+               break;
+            }
+            SO = (SUMA_SurfaceObject *)EngineData->vp; 
+            /* search for the keys */
+            if (NI_get_attribute(EngineData->ngr,"N_Key")) {
+               char *stmp=NULL, nc;
+               int k;
+               NI_GET_INT(EngineData->ngr,"N_Key", itmp);
+               for (ii=0; ii<itmp; ++ii) {
+                  sprintf(tmpstr, "Key_%d", ii);
+                  NI_GET_STR_CP(EngineData->ngr,tmpstr, stmp);
+                  if (stmp && (nc = strlen(stmp))) {
+                     k = SUMA_KeyPress(stmp, NULL);
+                     switch (k) {
+                        case XK_n:
+                        case XK_N:
+                           if (!SUMA_N_Key(sv, stmp, "drivesuma")) {
+                              SUMA_S_Err("Failed in Key function.");
+                           }
+                           break;   
+                        case XK_m:
+                        case XK_M:
+                           if (!SUMA_M_Key(sv, stmp, "drivesuma")) {
+                              SUMA_S_Err("Failed in Key function.");
+                           }
+                           break;
+                        case XK_p:
+                        case XK_P:
+                           if (!SUMA_P_Key(sv, stmp, "drivesuma")) {
+                              SUMA_S_Err("Failed in Key function.");
+                           }
+                           break;
+                        case XK_r:
+                        case XK_R:
+                           if (!SUMA_R_Key(sv, stmp, "drivesuma")) {
+                              SUMA_S_Err("Failed in Key function.");
+                           }
+                           break;
+                        case XK_Up:
+                           if (!SUMA_Up_Key(sv, stmp, "drivesuma")) {
+                              SUMA_S_Err("Failed in Key function.");
+                           }
+                           break;
+                        case XK_Down:
+                           if (!SUMA_Down_Key(sv, stmp, "drivesuma")) {
+                              SUMA_S_Err("Failed in Key function.");
+                           }
+                           break;
+                        case XK_Left:
+                           if (!SUMA_Left_Key(sv, stmp, "drivesuma")) {
+                              SUMA_S_Err("Failed in Key function.");
+                           }
+                           break;
+                        case XK_Right:
+                           if (!SUMA_Right_Key(sv, stmp, "drivesuma")) {
+                              SUMA_S_Err("Failed in Key function.");
+                           }
+                           break;
+                        case XK_VoidSymbol:
+                           SUMA_S_Errv("No good key for %s\n", stmp);
+                           break;   
+                        default:
+                           SUMA_S_Errv("Don't know how to deal with %s in drive mode\n", stmp);
+                           break;   
+                     } /* end switch k */
+                     SUMA_free(stmp); stmp = NULL;
+                  }  /* end have iith key */
+               }  /* end loop all keys */
+            }  
+            break;
+            
          /*case SE_Something:
             break;*/
 
@@ -2038,14 +2271,15 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
 {
    static char FuncName[]={"SUMA_nimlEngine2Engine"};
    DList *list = NULL;
-   int cc, isv;
+   int  isv, itmp;
+   SUMA_NI_COMMAND_CODE cc;
    SUMA_EngineData *ED = NULL; 
    DListElmt *el=NULL;
    void *Ret = NULL;
    char *SOid=NULL, *svid=NULL, *name=NULL, *SOlabel=NULL;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_SurfaceViewer *sv = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -2057,7 +2291,7 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
    }
    
    /* Is this a valid command? */
-   cc = SUMA_CommandCode(NI_get_attribute(ngr,"Command"));
+   cc = SUMA_niCommandCode(NI_get_attribute(ngr,"Command"));
    if (cc == SE_Empty || cc == SE_BadCode) {
       SUMA_S_Errv("Bad command code %s", SUMA_CHECK_NULL_STR(NI_get_attribute(ngr,"Command")));
       SUMA_RETURN(Ret); 
@@ -2068,12 +2302,16 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
    sv = NULL;
    svid = NI_get_attribute(ngr,"SV_id");
    if (svid) {
-      isv = SUMA_TO_LOWER_C(svid[0]-'a');
+      isv = SUMA_TO_LOWER_C(svid[0])-'a';
       if (isv < 0 || isv > SUMAg_N_SVv) {
          SUMA_S_Errv("Bad SV_id of %s\n", svid);
          SUMA_RETURN(Ret);  
       }
       sv = &(SUMAg_SVv[isv]);
+      if (!sv->X->TOPLEVEL) {
+         SUMA_S_Errv("Viewer %s must first be created with a separate -com command.\n", svid);
+         SUMA_RETURN(Ret);  
+      }
    } 
    if (!sv) {
       sv = &(SUMAg_SVv[0]);
@@ -2110,63 +2348,89 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
    if (!SO) SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
    if (!SO) {
       SO = SUMA_findanySOp_inDOv(SUMAg_DOv, SUMAg_N_DOv); /* last resort */
+   }
+   if (!SO) {
       SUMA_S_Err("Have no surfaces to work with at all.\n");
       SUMA_RETURN(Ret);  
-   }
-   if (LocalHead) {
-      SUMA_LHv("Have surface %s to work with\n", SO->Label);
+   } else {
+      if (LocalHead) {
+         SUMA_LHv("Have surface %s to work with\n", SO->Label);
+      }
    }
    /* Create da list */
    if (!list) list = SUMA_CreateList ();
 
-   /* check for things that are common accross ccs; things to be done BEFORE command */
-   if (     NI_get_attribute(ngr, "Surf_Cont_One_Only") && 
-           !NI_get_attribute(ngr, "View_Surf_Cont")           ) {
-      NI_set_attribute(ngr, "View_Surf_Cont", "y");
-   }
-   
-   if (NI_get_attribute(ngr, "View_Surf_Cont")) {
-      ED = SUMA_InitializeEngineListData (SE_OpenSurfCont);
-      if (!SUMA_RegisterEngineListCommand (   list, ED,
-                                             SEF_vp, (void *)SO,
-                                             SES_SumaFromAny, (void *)sv, NOPE,
-                                             SEI_Head, NULL)) {
-         fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
-      }
-   }
-   
-   if (NI_get_attribute(ngr, "Surf_Cont_One_Only")) {
-      ED = SUMA_InitializeEngineListData (SE_OneOnly);
-      if (!SUMA_RegisterEngineListCommand (   list, ED,
-                                             SEF_vp, (void *)SO,
-                                             SES_SumaFromAny, (void *)sv, NOPE,
-                                             SEI_Tail, NULL)) {
-         fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
-      }
-   }
    
    
    
    /* OK, now, switch on that command and create the Engine structure */
    switch (cc) {
-      case SE_OpenDsetFile:
-         if (!(name = NI_get_attribute(ngr,"FileName"))) {
-            SUMA_S_Err("No filename given");
-            SUMA_RETURN(Ret);  
-         }
-         ED = SUMA_InitializeEngineListData (cc);
-         if (!(el = SUMA_RegisterEngineListCommand (  list, ED,
+       case SE_niSetSurfCont:
+         if (!SO->SurfCont->TopLevelShell) { /* better have a controller before going crazy */
+            ED = SUMA_InitializeEngineListData (SE_OpenSurfCont);
+            if (!SUMA_RegisterEngineListCommand (  list, ED,
                                                    SEF_vp, (void *)SO,
+                                                   SES_SumaFromAny, (void *)sv, NOPE,
+                                                   SEI_Head, NULL)) {
+               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+            }
+            /* make sure that business is closed if user does not control it */
+            if (!NI_get_attribute(ngr, "View_Surf_Cont"))  NI_set_attribute(ngr, "View_Surf_Cont", "n");      
+         }
+         if ((name = NI_get_attribute(ngr,"Dset_FileName"))) {
+            /* Have a dset to load */
+            ED = SUMA_InitializeEngineListData (SE_OpenDsetFile);
+            if (!(el = SUMA_RegisterEngineListCommand (  list, ED,
+                                                      SEF_vp, (void *)SO,
+                                                      SES_SumaFromAny, (void *)sv, NOPE,
+                                                      SEI_Tail, NULL))) {
+                  fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+            }
+            if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                                      SEF_cp, (void *)name,
+                                                      SES_SumaFromAny, (void *)sv, NOPE,
+                                                      SEI_In, el)) {
+                  fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+            }
+         }
+         /* all the rest can be handled in one engine call */
+         ED = SUMA_InitializeEngineListData (SE_SetSurfCont);
+         if (!(el = SUMA_RegisterEngineListCommand (  list, ED,
+                                                   SEF_ngr, (void *)ngr,
                                                    SES_SumaFromAny, (void *)sv, NOPE,
                                                    SEI_Tail, NULL))) {
                fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
          }
          if (!SUMA_RegisterEngineListCommand (  list, ED,
-                                                   SEF_cp, (void *)name,
+                                                   SEF_vp, (void *)SO,
                                                    SES_SumaFromAny, (void *)sv, NOPE,
                                                    SEI_In, el)) {
                fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
          }
+         break; 
+      case SE_niSetViewerCont:
+         if ((name = NI_get_attribute(ngr,"VVS_FileName"))) {
+            /* Have a vvs to load, do it straight up, no need to call some SE_SetViewerCont, a la SE_SetSurfCont yet */
+            SUMA_LoadVisualState(name, (void *)sv);
+         }
+         /* all the rest can be handled in one engine call */
+         ED = SUMA_InitializeEngineListData (SE_SetViewerCont);
+         if (!(el = SUMA_RegisterEngineListCommand (  list, ED,
+                                                   SEF_ngr, (void *)ngr,
+                                                   SES_SumaFromAny, (void *)sv, NOPE,
+                                                   SEI_Tail, NULL))) {
+               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+         }
+         if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                                   SEF_vp, (void *)SO,
+                                                   SES_SumaFromAny, (void *)sv, NOPE,
+                                                   SEI_In, el)) {
+               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+         }
+         break;   
+      case SE_niKillSuma:
+         XtCloseDisplay( SUMAg_CF->X->DPY_controller1 ) ;
+         exit(0);
          break;
       default:
          SUMA_S_Errv("Cannot deal with command %s yet.\n", NI_get_attribute(ngr,"command"));
@@ -2180,6 +2444,7 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
       SUMA_RETURN(Ret);
    }
    
+ 
    SUMA_RETURN(Ret);
 }
 

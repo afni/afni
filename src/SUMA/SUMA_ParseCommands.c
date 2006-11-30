@@ -19,6 +19,38 @@
 
 
 /*!
+   \brief Returns the time value in msec from a time string 'tm'
+   (if no unit follows number in tm, units are assumed to be in seconds)
+*/
+double SUMA_ParseTime(char *tm)
+{
+   static char FuncName[]={"SUMA_ParseTime"};
+   double slp;
+   char *dur=NULL;
+   int nc;
+   char un='\0';
+   
+   SUMA_ENTRY;
+   
+   if (!tm || !(nc = strlen(tm))) SUMA_RETURN(-1.0);
+   dur = SUMA_copy_string(tm);
+   
+   if (SUMA_iswordin_ci(dur, "ms") == 1) { un = 'm'; dur[nc-2] = '\0'; }
+   else if (SUMA_iswordin_ci(dur, "msec") == 1) { un = 'm'; dur[nc-4] = '\0'; }
+   else if (SUMA_iswordin_ci(dur, "millisec") == 1) { un = 'm'; dur[nc-8] = '\0'; }
+   else if (SUMA_iswordin_ci(dur, "mseconds") == 1) { un = 'm'; dur[nc-8] = '\0'; }
+   else if (SUMA_iswordin_ci(dur, "milliseconds") == 1) { un = 'm'; dur[nc-12] = '\0'; }
+   else if (SUMA_iswordin_ci(dur, "s") == 1) { un = 's'; dur[nc-1] = '\0'; }
+   else if (SUMA_iswordin_ci(dur, "sec") == 1) { un = 's'; dur[nc-3] = '\0'; }
+   else if (SUMA_iswordin_ci(dur, "seconds") == 1) { un = 's'; dur[nc-7] = '\0'; }
+   else { un = 's'; }
+   slp = atof(dur); if (un != 'm') slp *= 1000.0;   
+      
+   SUMA_free(dur); dur = NULL;
+   SUMA_RETURN(slp);
+}
+
+/*!
    \brief Returns the code for the next command (at the tail of the list).
    CommandCode =  SUMA_GetListNextCommand (list);
    \param list (DList *) pointer to doubly linked list
@@ -197,11 +229,34 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"SaveViewFileSelection")) SUMA_RETURN(SE_SaveViewFileSelection);
    if (!strcmp(Scom,"LoadSegDO")) SUMA_RETURN(SE_LoadSegDO);
    if (!strcmp(Scom,"SetClip")) SUMA_RETURN(SE_SetClip); 
-   if (!strcmp(Scom,"OpenDsetFile")) SUMA_RETURN(SE_OpenDsetFile);  
+   if (!strcmp(Scom,"load_dset")) SUMA_RETURN(SE_OpenDsetFile);  
+   if (!strcmp(Scom,"surf_cont")) SUMA_RETURN(SE_SetSurfCont);
+   if (!strcmp(Scom,"viewer_cont")) SUMA_RETURN(SE_SetViewerCont);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    
    /* Last one is Bad Code */
    SUMA_RETURN (SE_BadCode);
+     
+}
+SUMA_NI_COMMAND_CODE SUMA_niCommandCode(char *Scom)
+{   
+   static char FuncName[]={"SUMA_niCommandCode"};
+   
+   SUMA_ENTRY;
+   
+   if (!Scom) SUMA_RETURN(SE_BadCode);
+   
+   if (!strlen(Scom)) SUMA_RETURN (SE_niEmpty);
+   if (strcmp(Scom,"~") == 0) SUMA_RETURN (SE_niEmpty);
+   
+   /*fprintf(stdout,"Looking for %s\n", Scom);*/
+   if (!strcmp(Scom,"surf_cont")) SUMA_RETURN(SE_niSetSurfCont);
+   if (!strcmp(Scom,"viewer_cont")) SUMA_RETURN(SE_niSetViewerCont);
+   if (!strcmp(Scom,"kill_suma")) SUMA_RETURN(SE_niKillSuma);
+   /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_ni);*/
+   
+   /* Last one is Bad Code */
+   SUMA_RETURN (SE_niBadCode);
      
 }
 
@@ -388,8 +443,33 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
       case SE_SetClip:
          SUMA_RETURN("SetClip");     
       case SE_OpenDsetFile:
-         SUMA_RETURN("OpenDsetFile"); 
+         SUMA_RETURN("load_dset"); 
+      case SE_SetSurfCont:
+         SUMA_RETURN("surf_cont"); 
+      case SE_SetViewerCont:
+         SUMA_RETURN("viewer_cont"); 
       /*case SE_:
+         SUMA_RETURN("");      */
+      default:        
+         SUMA_RETURN ("BadCode");
+   }
+}
+const char *SUMA_niCommandString (SUMA_NI_COMMAND_CODE code)
+{
+   static char FuncName[]={"SUMA_niCommandString"};
+   
+   SUMA_ENTRY;
+   
+   switch (code) {
+     case SE_niEmpty:
+         SUMA_RETURN("Empty");
+      case SE_niSetSurfCont:
+         SUMA_RETURN("surf_cont"); 
+      case SE_niSetViewerCont:
+         SUMA_RETURN("viewer_cont");
+      case SE_niKillSuma:
+         SUMA_RETURN("kill_suma"); 
+      /*case SE_ni:
          SUMA_RETURN("");      */
       default:        
          SUMA_RETURN ("BadCode");
@@ -603,6 +683,12 @@ const char* SUMA_EngineFieldString (SUMA_ENGINE_FIELD_CODE i)
       case (SEF_ip):
          SUMA_RETURN ("ip");
          break;
+      case (SEF_ngr):
+         SUMA_RETURN ("ngr");
+         break;
+      case (SEF_nel):
+         SUMA_RETURN ("nel");
+         break;
       default:
          SUMA_RETURN ("Unknown");
          break;
@@ -637,6 +723,8 @@ SUMA_ENGINE_FIELD_CODE SUMA_EngineFieldCode(char *Scom)
    if (!strcmp(Scom,"fp")) SUMA_RETURN(SEF_fp);
    if (!strcmp(Scom,"cp")) SUMA_RETURN(SEF_cp);
    if (!strcmp(Scom,"ip")) SUMA_RETURN(SEF_ip);
+   if (!strcmp(Scom,"ngr")) SUMA_RETURN(SEF_ngr);
+   if (!strcmp(Scom,"nel")) SUMA_RETURN(SEF_nel);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SEF_);*/
    
    /* Last one is Bad Code */
@@ -1285,6 +1373,24 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
          EngineData->cp_Dest = Dest;
          break;
       
+      case SEF_ngr:
+         if (EngineData->ngr_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
+            fprintf(SUMA_STDERR, "Error %s: field %d has a preset destination (%d).\n", FuncName, Fld, EngineData->ngr_Dest);
+            SUMA_RETURN (NULL);
+         }
+         EngineData->ngr = (NI_group *)FldValp;
+         EngineData->ngr_Dest = Dest;
+         break;
+     
+      case SEF_nel:
+         if (EngineData->nel_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
+            fprintf(SUMA_STDERR, "Error %s: field %d has a preset destination (%d).\n", FuncName, Fld, EngineData->nel_Dest);
+            SUMA_RETURN (NULL);
+         }
+         EngineData->nel = (NI_element *)FldValp;
+         EngineData->nel_Dest = Dest;
+         break;   
+         
       default:
          fprintf(SUMA_STDERR, "Error %s: Not setup for field %d yet.\n", FuncName, Fld);
          SUMA_RETURN (NULL);
@@ -1677,6 +1783,28 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *ED, char *Fldname, void *
          SUMA_RETURN (YUP);   
          break;
       
+      case SEF_ngr:
+         if (ED->ngr_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
+            fprintf(SUMA_STDERR, "Error %s: field %s has a preset destination (%d).\n", FuncName, Fldname, ED->ngr_Dest);
+            SUMA_RETURN (NOPE);
+         }
+         ED->ngr = (NI_group *)FldValp;
+         ED->ngr_Dest = Dest;
+         ED->ngr_Source = Src;
+         SUMA_RETURN (YUP);   
+         break;
+      
+      case SEF_nel:
+         if (ED->nel_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
+            fprintf(SUMA_STDERR, "Error %s: field %s has a preset destination (%d).\n", FuncName, Fldname, ED->nel_Dest);
+            SUMA_RETURN (NOPE);
+         }
+         ED->nel = (NI_element *)FldValp;
+         ED->nel_Dest = Dest;
+         ED->nel_Source = Src;
+         SUMA_RETURN (YUP);   
+         break;
+      
       default:
          fprintf(SUMA_STDERR, "Error %s: Not setup for field %s yet.\n", FuncName, Fldname);
          SUMA_RETURN (NOPE);
@@ -1740,14 +1868,15 @@ SUMA_EngineData *SUMA_InitializeEngineListData (SUMA_ENGINE_CODE CommandCode)
    sprintf(ED->s,"NOTHING");
    
    ED->vp = NULL;
-   
+   ED->ngr = NULL;
+   ED->nel = NULL;
    ED->fm_Dest = ED->im_Dest = ED->i_Dest = ED->f_Dest = ED->iv3_Dest = ED->fv3_Dest = \
    ED->fv15_Dest = ED->iv15_Dest = ED->fv200_Dest = ED->iv200_Dest = ED->s_Dest = ED->vp_Dest = ED->ip_Dest = ED->fp_Dest = \
-   ED->cp_Dest = ED->ivec_Dest = ED->fvec_Dest = SE_Empty;
+   ED->cp_Dest = ED->ivec_Dest = ED->fvec_Dest = ED->ngr_Dest = ED->nel_Dest = SE_Empty;
    
    ED->fm_Source = ED->im_Source = ED->i_Source = ED->f_Source = ED->iv3_Source = ED->fv3_Source = \
    ED->fv15_Source = ED->iv15_Source = ED->fv200_Source = ED->iv200_Source = ED->s_Source = ED->vp_Source = \
-   ED->ivec_Source = ED->fvec_Source = SES_Empty;
+   ED->ivec_Source = ED->fvec_Source = ED->ngr_Source = ED->nel_Source = SES_Empty;
    
    SUMA_RETURN (ED);
 

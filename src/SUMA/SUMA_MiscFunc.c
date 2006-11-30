@@ -523,7 +523,7 @@ SUMA_MX_VEC *SUMA_MxVecAdd(SUMA_MX_VEC *va, SUMA_MX_VEC *vb, int sign, SUMA_MX_V
    SUMA_VARTYPE tp;
    int dims[SUMA_MX_VEC_MAX_DIMS];
    
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
@@ -631,7 +631,7 @@ SUMA_MX_VEC * SUMA_MxVecTranspose(SUMA_MX_VEC *va, SUMA_MX_VEC *recycle)
    int i, j;
    int dims[2];
    
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
    
    if (va->N_dims > 2 || va->N_dims < 0) {
@@ -2610,6 +2610,30 @@ int SUMA_iswordin_ci ( const char *sbig, const char *ssub)
    SUMA_RETURN(ans);
    
 } 
+/*!
+   \brief case insensitive version of SUMA_iswordsame 
+*/
+int SUMA_iswordsame_ci ( const char *sbig, const char *ssub)
+{
+   static char FuncName[]={"SUMA_iswordsame_ci"};
+   int ans;
+   
+   SUMA_ENTRY;
+   if ( (ans = SUMA_iswordin_ci(sbig, ssub)) == 1 && strlen(sbig) != strlen(ssub) ) ans = 0;
+   
+   SUMA_RETURN(ans);
+}
+
+int SUMA_iswordsame ( const char *sbig, const char *ssub)
+{
+   static char FuncName[]={"SUMA_iswordsame"};
+   int ans;
+   
+   SUMA_ENTRY;
+   if ( (ans = SUMA_iswordin(sbig, ssub)) == 1 && strlen(sbig) != strlen(ssub) ) ans = 0;
+   
+   SUMA_RETURN(ans);
+}
 
 /*!
  
@@ -2672,7 +2696,7 @@ int SUMA_iswordin (const char *sbig, const char *ssub)
    }
 
    if (j == strlen (ssub)) {
-      SUMA_RETURN (1);
+      SUMA_RETURN (1); 
    }
    else {
       SUMA_RETURN (0);

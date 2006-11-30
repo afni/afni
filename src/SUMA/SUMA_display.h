@@ -323,6 +323,7 @@ int SUMA_ShowVisual (Display *dpy, XVisualInfo *vi, SUMA_Boolean ShowHead);
 int SUMA_AskUser_File_replace(Widget parent, char *question, int default_ans);
 void SUMA_WidgetResize (Widget New, int width, int height);
 void SUMA_LoadVisualState(char *fname, void *csvp);
+int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv);
 void SUMA_SaveVisualState(char *fname, void *csvp);
 void SUMA_LoadSegDO (char *s, void *csvp);
 void SUMA_SiSi_I_Insist(void);
