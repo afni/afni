@@ -140,9 +140,11 @@ typedef struct {
 
 /*! filename, extension and path */
 typedef struct {
+   char *AbsPath;
    char *Path;
    char *FileName;
    char *FileName_NoExt;
+   char *FullName;
    char *Ext;
    char *NodeSelect;
    char *ColSelect;
@@ -918,6 +920,7 @@ typedef struct {
                                            ? 1 : 0 )
 
 #define SUMA_NCOL_OPENDX(dx) ( ( ( (dx)->shape == 0 ) ? 1 : ((dx)->shape) ) )
+char *SUMA_getcwd(void);
 void SUMA_FreeErrLog ( void *data);
 void SUMA_PushErrLog(char *macroname, char *msg, char *fname);
 DListElmt* SUMA_PopErrLog(DListElmt *eldone);
@@ -1090,7 +1093,7 @@ void SUMA_ParseInput_basics_ns (char *argv[], int argc);
 int SUMA_ParseInput_basics_eng (char *argv[], int argc); 
 void WorkErrLog_ns(void);
 SUMA_FileName SUMA_StripPath (char *FileName);
-SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName);
+SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *cwd);
 char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove);
 SUMA_DSET_FORMAT SUMA_GuessFormatFromExtension(char *Name);
 const char *SUMA_ExtensionOfDsetFormat (SUMA_DSET_FORMAT form);

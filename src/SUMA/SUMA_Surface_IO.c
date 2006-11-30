@@ -3931,7 +3931,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
       N_Node = iStop[i] - iStart[i] + 1; /* Number of Nodes in this ROI */
       Node = &(iNode[iStart[i]]); /* pointer to location of first index in this ROI */
       /* prepare a label for these ROIs */
-      NewName = SUMA_ParseFname (filename);
+      NewName = SUMA_ParseFname (filename, NULL);
       if (!NewName) {
          Label = SUMA_copy_string("BadLabel");
       }else {

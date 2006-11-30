@@ -730,17 +730,20 @@ int SUMA_SwitchColPlaneIntensity(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, in
 {
    static char FuncName[]={"SUMA_SwitchColPlaneIntensity"};
    char srange[500];
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
 
-   if (!SO || !SO->SurfCont || !SO->SurfCont->curColPlane || !colp || ind < 0) { SUMA_RETURN(0); }
+   if (!SO || !SO->SurfCont || !SO->SurfCont->curColPlane || !colp || ind < 0 || !colp->dset_link) { SUMA_RETURN(0); }
    if (LocalHead) {
       fprintf(SUMA_STDERR, "%s:\n request to switch intensity to col. %d\n", FuncName, ind);
       fprintf(SUMA_STDERR, "SO->Label = %s\n", SO->Label);
    }
+   if (ind >= SDSET_VECNUM(colp->dset_link)) {
+      SUMA_S_Errv("Col. Index of %d exceeds maximum of %d for this dset.\n", ind, SDSET_VECNUM(colp->dset_link)-1);
+      SUMA_RETURN(0);
+   }
    colp->OptScl->find = ind;
-
    if (setmen && colp == SO->SurfCont->curColPlane ) {
       SUMA_LH("Setting values");
       XtVaSetValues( SO->SurfCont->SwitchIntMenu[0], XmNmenuHistory , 
@@ -798,7 +801,7 @@ int SUMA_SwitchColPlaneThreshold(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, in
    
    SUMA_ENTRY;
    
-   if (!SO || !SO->SurfCont || !SO->SurfCont->curColPlane || !colp || ind < -1) { SUMA_RETURN(0); }
+   if (!SO || !SO->SurfCont || !SO->SurfCont->curColPlane || !colp || ind < -1 || !colp->dset_link) { SUMA_RETURN(0); }
    
    
    if (LocalHead) {
@@ -810,8 +813,12 @@ int SUMA_SwitchColPlaneThreshold(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, in
       SUMA_RETURN(1);
    } 
    
+   if (ind >= SDSET_VECNUM(colp->dset_link)) {
+      SUMA_S_Errv("Col. Index of %d exceeds maximum of %d for this dset.\n", ind, SDSET_VECNUM(colp->dset_link)-1);
+      SUMA_RETURN(0);
+   }
    colp->OptScl->tind = ind;
-   
+
    /* make sure threshold is on if command is not from the interface*/
    if (setmen && !colp->OptScl->UseThr && colp->OptScl->tind >= 0) {
       colp->OptScl->UseThr = YUP;
@@ -4755,7 +4762,7 @@ void SUMA_LoadCmapFile (char *filename, void *data)
    /* have Cmap, add to dbase */
 
    /* remove path from name for pretty purposes */
-   pn = SUMA_ParseFname(Cmap->Name);
+   pn = SUMA_ParseFname(Cmap->Name, NULL);
    SUMA_STRING_REPLACE(Cmap->Name, pn->FileName_NoExt);
    SUMA_Free_Parsed_Name(pn); pn = NULL;
    SUMAg_CF->scm->CMv = SUMA_Add_ColorMap (Cmap, SUMAg_CF->scm->CMv, &(SUMAg_CF->scm->N_maps)); 

@@ -246,6 +246,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
    int kar, N, nv, nums;
    float fv3[3], tmpf;
    char *stmp=NULL;
+   SUMA_PARSED_NAME *fn;
    SUMA_Boolean brk = NOPE;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -341,7 +342,10 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          
          argt[kar][0] = '\0';
-         NI_set_attribute(ngr, "Dset_FileName", argt[++kar]);
+         fn = SUMA_ParseFname(argt[++kar], SUMAg_CF->cwd);
+         /* SUMA_ShowParsedFname(fn, NULL); */
+         NI_set_attribute(ngr, "Dset_FileName", fn->FullName);
+         fn = SUMA_Free_Parsed_Name(fn);
          argt[kar][0] = '\0';
          brk = YUP;
       }

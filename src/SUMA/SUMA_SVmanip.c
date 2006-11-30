@@ -1871,6 +1871,8 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    }
    cf->N_Timer = 0;
 
+   cf->cwd = SUMA_getcwd();
+   
    return (cf);
 
 }
@@ -2187,6 +2189,7 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    int i;
    
    /* do not use commonfields related stuff here for obvious reasons */
+   if (cf->cwd) SUMA_free(cf->cwd); cf->cwd = NULL;
    if (cf->GroupList) {
       for (i=0; i< cf->N_Group; ++i) if (cf->GroupList[i]) SUMA_free(cf->GroupList[i]);
       SUMA_free(cf->GroupList); cf->GroupList = NULL;
@@ -2319,6 +2322,8 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
       s = SS->s; SUMA_free(SS); SS= NULL;
       SUMA_RETURN(s);
    }
+   
+   SS = SUMA_StringAppend_va(SS,"   CWD: %s\n", cf->cwd);
    
    for (i=0; i < SUMA_MAX_STREAMS; ++i) {
       SS = SUMA_StringAppend_va(SS,"   HostName: %s\n", cf->HostName_v[i]);

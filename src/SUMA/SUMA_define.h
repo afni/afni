@@ -2366,6 +2366,8 @@ typedef struct {
 
    int N_Timer;
    SUMA_TIMER Timer[SUMA_MAX_N_TIMER];
+   
+   char *cwd;
 } SUMA_CommonFields;
 
 typedef enum { SUMA_NO_SORT, SUMA_BY_PLANE_DISTANCE, SUMA_BY_SEGMENT_DISTANCE, SUMA_SORT_BY_LLC_DISTANCE, SUMA_SORT_BY_LL_QUAD } SUMA_SORT_BOX_AXIS_OPTION;
