@@ -3598,12 +3598,15 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name, SUMA_D
    }
    
    if (!Recycle) { /* a new puppy */
-      Sover = SUMA_CreateOverlayPointerIdentifiers(N_Nodes, Name, dset, ownerid);
+      if (!(Sover = SUMA_CreateOverlayPointerIdentifiers(N_Nodes, Name, dset, ownerid))) {
+         SUMA_S_Err("Failed to create overlay pointer identifiers.");
+         SUMA_RETURN(NULL);
+      }
    } else {
       Sover = Recycle;
       /* cleanup things to be replaced */
       if (!SUMA_FreeOverlayPointerRecyclables (Sover)) {
-         SUMA_SL_Err("Recycling failed!\nThe earth is doomed.");
+         SUMA_SL_Err("Recycling failed!\nEarth is doomed.");
          SUMA_FreeOverlayPointer(Sover);
          SUMA_RETURN(NULL);
       }

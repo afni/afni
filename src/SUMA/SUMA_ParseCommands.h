@@ -217,10 +217,13 @@ typedef struct {
    byte accept_talk_suma;
    byte check_input_surf;
 } SUMA_GENERIC_ARGV_PARSE;
+double SUMA_ParseTime(char *tm);
 int  SUMA_GetNextCommand (char *S, char d, char term, char *Scom);
 SUMA_Boolean  SUMA_RegisterCommand(char *S, char d, char term, char *Scom, SUMA_Boolean Prepend);
 int SUMA_CommandCode(char *Scom);
+SUMA_NI_COMMAND_CODE SUMA_niCommandCode(char *Scom);
 const char *SUMA_CommandString (SUMA_ENGINE_CODE code);
+const char *SUMA_niCommandString (SUMA_NI_COMMAND_CODE code);
 SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *MTI, char *Fldname, void *FldValp, char *DestName, char *SourceName, SUMA_Boolean PassByPointer);
 SUMA_Boolean SUMA_FreeEngineData (SUMA_EngineData *MTI);
 SUMA_ENGINE_FIELD_CODE SUMA_EngineFieldCode(char *Scom);

@@ -1120,7 +1120,7 @@ SUMA_SegmentDO *SUMA_niSDO2SDO(NI_group *ngr)
    int N_n, oriented, ncp=0;
    SUMA_DO_Types type;
    char att[500], *Parent_idcode_str=NULL, *Label=NULL, *idcode_str=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -1199,7 +1199,7 @@ SUMA_SegmentDO *SUMA_CreateSegmentDO(  int N_n, int oriented, int NodeBased, int
    SUMA_SegmentDO *SDO=NULL;
    int ncp=0, i;
    SUMA_DO_Types type;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    

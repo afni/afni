@@ -63,7 +63,7 @@ int SUMA_Bad_FacesetNorm_Dot_Radius(SUMA_SurfaceObject *SO, byte *FaceMask, doub
    int N_bad = -1, i, i3, n0, n0t, n1, n1t, n2, n2t;
    double dot, nr, r[3], cent[3], norm[3];
    float *P0, *P1, *P2;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 

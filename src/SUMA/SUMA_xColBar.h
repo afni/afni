@@ -68,16 +68,29 @@
    XtVaSetValues (TF->cells[j*TF->Ni+i], XmNvalue, strng, NULL);  \
 }
 
-#define SUMA_INSERT_CELL_VALUE(TF, i, j, val)   {  \
+/* modifies a cell's value and marks it as modified
+No callback is made*/
+#define SUMA_MODIFY_CELL_VALUE(TF, i, j, val)   {  \
    if (TF->type == SUMA_int || TF->type == SUMA_float) { \
       TF->cell_modified = j*TF->Ni+i;  \
       TF->num_value[TF->cell_modified] = val;  \
       SUMA_TableF_SetString(TF);\
-      TF->cell_modified = -1; \
    }  else {   \
       SUMA_SL_Err("Macro for numerical tables only"); \
    }  \
 }
+
+/* Like SUMA_MODIFY_CELL_VALUE, but cell_modified is reset to -1 */
+#define SUMA_INSERT_CELL_VALUE(TF, i, j, val)   {  \
+   if (TF->type == SUMA_int || TF->type == SUMA_float) { \
+      SUMA_MODIFY_CELL_VALUE(TF, i, j, val); \
+      TF->cell_modified = -1; \
+   }  else {   \
+      SUMA_SL_Err("Macro also for numerical tables only"); \
+   }  \
+}
+
+
 
 /*!
    \brief retrieves the cell index using the cell's widget
@@ -114,7 +127,9 @@ unsigned char *SUMA_read_ppm(char *fname, int *width, int *height, int verb);
 void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO);
 void SUMA_cb_ColMap_Switch(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_cb_SwitchBrightness(Widget w, XtPointer clientData, XtPointer call);
+int SUMA_SwitchColPlaneThreshold(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, int ind, int setmen);
 void SUMA_cb_SwitchThreshold(Widget w, XtPointer clientData, XtPointer call);
+int SUMA_SwitchColPlaneIntensity(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, int ind, int setmen);
 void SUMA_cb_SwitchIntensity(Widget w, XtPointer clientData, XtPointer call);
 SUMA_MenuItem *SUMA_FreeMenuVector(SUMA_MenuItem *menu, int Nels);
 SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_SurfaceObject *SO, int what, int *N_items);

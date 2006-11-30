@@ -34,5 +34,6 @@ SUMA_Boolean SUMA_Assign_HostName (SUMA_CommonFields *cf, char *HostName, int is
 SUMA_Boolean SUMA_SendDset_Afni( NI_stream ns, THD_3dim_dataset *dset, int all);
 NI_element *SUMA_SOVolPar2VolPar_nel (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, SUMA_DSET_TYPE dtype);
 SUMA_Boolean SUMA_VolPar_nel2SOVolPar(SUMA_SurfaceObject *SO, NI_element *nel);
+void SUMA_Wait_Till_Stream_Goes_Bad(SUMA_COMM_STRUCT *cs, int slp, int WaitMax, int verb);
 
 #endif
