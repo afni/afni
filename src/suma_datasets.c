@@ -7482,13 +7482,17 @@ int SUMA_filexists (char *f_name)
 /*!
    \brief function that tests whether a string contains N numbers
    
+   WARNING: This function will deform s ! 
+   
    \param str (char *) null terminated string
    \param N (void *) This is an integer in disguise
    \return 1: If str is NULL or N numbers were found in str
+   
+   \sa SUMA_isNumString
 */
-int SUMA_isNumString (char *s, void *p)
+int SUMA_CleanNumString (char *s, void *p)
 {
-   static char FuncName[]={"SUMA_isNumString"};
+   static char FuncName[]={"SUMA_CleanNumString"};
    char *endp, *strtp;
    int nd, N;
    int eos, FoundTip;
@@ -7502,6 +7506,7 @@ int SUMA_isNumString (char *s, void *p)
    N = (int)p;
    
    /* clean s by removing trailing junk then replacing non characters by space*/
+   if (LocalHead) fprintf (stderr, "%s: string begins:%s:\n", FuncName, s);
    FoundTip = 0;
    for (nd=strlen(s)-1; nd >=0; --nd) {
       if (!isdigit(s[nd]) && s[nd] != '.'  && s[nd] != '-' && s[nd] != '+') {
@@ -7516,6 +7521,9 @@ int SUMA_isNumString (char *s, void *p)
    }
    
    if (LocalHead) fprintf (stderr, "%s: string now:%s:\n", FuncName, s);
+   if (strlen(s) == 1 && (s[0] == '+' || s[0] == '-' || s[0] == '.')) {
+      SUMA_RETURN(0);
+   }
    
    /* parse s */
    strtp = s;
@@ -7548,6 +7556,22 @@ int SUMA_isNumString (char *s, void *p)
    }
    
 }   
+/*
+   Much like SUMA_CleanNumString, but leaves s untouched
+*/
+int SUMA_isNumString (char *s, void *p) 
+{
+   static char FuncName[]={"SUMA_isNumString"};
+   int ans;
+   char *sc;
+   
+   SUMA_ENTRY;
+   
+   sc = SUMA_copy_string(s);
+   ans = SUMA_CleanNumString(sc,p);
+   if(sc) SUMA_free(sc); sc = NULL;
+   SUMA_RETURN(ans);
+}
 
 /*!
    \brief function that parses a string of numbers into a float vector
@@ -7561,7 +7585,7 @@ int SUMA_isNumString (char *s, void *p)
       will return the full number of values found.
       
       -1 in case of error
-   \sa SUMA_isNumString
+   \sa SUMA_CleanNumString
    \sa SUMA_strtol_vec
    \sa SUMA_AdvancePastNumbers
 */

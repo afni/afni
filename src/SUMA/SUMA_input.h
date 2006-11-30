@@ -3,6 +3,21 @@
 
 #define SUMA_BRUSH_BLOCK 500
 
+#define SUMA_APPLE_KEY(s) ( (SUMA_iswordin_ci(s,"apl")==1) ? 1:0 )
+#define SUMA_CTRL_KEY(s) ( (SUMA_iswordin_ci(s,"ctrl")==1) ? 1:0 )
+#define SUMA_ALT_KEY(s) ( (SUMA_iswordin_ci(s,"alt")==1) ? 1:0 )
+#define SUMA_AALT_KEY(s) ( (SUMA_APPLE_KEY(s) || SUMA_ALT_KEY(s) ) )
+#define SUMA_SHIFT_KEY(s) ( (SUMA_iswordin_ci(s,"shift")==1) ? 1:0 )
+
+int SUMA_KeyPress(char *key, char *keyname); 
+int SUMA_M_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
+int SUMA_N_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
+int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
+int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
+int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
+int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
+int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
+int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller);
 void SUMA_input(Widget w, XtPointer clientData, XtPointer callData) ;
 int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov);
 void SUMA_momentum(XtPointer clientData, XtIntervalId *id);

@@ -630,6 +630,7 @@ NodeDef might be dynamically changed in the overlay plane */
       }  \
    }  \
 }
+#define NI_IS_STR_ATTR_EQUAL(ngr, name, stmp) ( (!name || !NI_get_attribute(ngr,name) || !stmp || strcmp(NI_get_attribute(ngr,name), stmp) ) ? 0:1 )
 /*!
    NEL_READ macro for reading a NI element from strm
    nel (NI_element *) to contain the deed (if null then read failed)
@@ -1097,6 +1098,7 @@ SUMA_Boolean SUMA_isExtension(char *filename, char *ext);
 void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test);
 int SUMA_StringToNum (char *s, float *fv, int N);
 int SUMA_isNumString (char *s, void *p);
+int SUMA_CleanNumString (char *s, void *p);
 char *SUMA_copy_string(char *buf);
 char * SUMA_append_string(char *s1, char *s2);
 char * SUMA_append_replace_string(  char *s1, char *s2, 
