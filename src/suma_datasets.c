@@ -3177,7 +3177,7 @@ SUMA_Boolean SUMA_LabelDset(SUMA_DSET *dset, char *lbl)
    if (lbl) {
       Label = SUMA_truncate_string(lbl, 20); 
    } else if ( (tmp = NI_get_attribute(dset->ngr,"filename")) ) {
-      pn = SUMA_ParseFname(tmp);
+      pn = SUMA_ParseFname(tmp, NULL);
       if (pn) {
          Label = SUMA_truncate_string(pn->FileName_NoExt, 20);
          SUMA_Free_Parsed_Name(pn); pn = NULL;
@@ -4828,7 +4828,7 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
    
    /* parse the name please. */
    RowSel = ColSel = NodeSel = NULL;
-   if (!(pn = SUMA_ParseFname(iName))) {
+   if (!(pn = SUMA_ParseFname(iName, NULL))) {
       SUMA_SL_Err("Failed to parse name"); goto GOODBYE;
    }
    if (pn->NodeSelect[0]!= '\0' && pn->RowSelect[0] != '\0') {
@@ -7084,6 +7084,7 @@ SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out)
    if (!pn) {
       SS = SUMA_StringAppend_va(SS, "NULL parsed name");
    } else {
+      SS = SUMA_StringAppend_va(SS, "AbsPath       :%s\n", pn->AbsPath);
       SS = SUMA_StringAppend_va(SS, "Path          :%s\n", pn->Path);
       SS = SUMA_StringAppend_va(SS, "FileName      :%s\n", pn->FileName);
       SS = SUMA_StringAppend_va(SS, "Ext           :%s\n", pn->Ext);
@@ -7092,6 +7093,7 @@ SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out)
       SS = SUMA_StringAppend_va(SS, "Node Selector :%s\n", pn->NodeSelect);
       SS = SUMA_StringAppend_va(SS, "Row Selector  :%s\n", pn->RowSelect);
       SS = SUMA_StringAppend_va(SS, "Range Selector:%s\n", pn->RangeSelect);
+      SS = SUMA_StringAppend_va(SS, "FullName      :%s\n", pn->FullName);
    }
 
    SUMA_SS2S(SS,s);
@@ -7102,8 +7104,21 @@ SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out)
    SUMA_RETURN(YUP);
 }
 
+char *SUMA_getcwd(void) 
+{
+   static char FuncName[]={"SUMA_getcwd"};
+   char *cwd = NULL;
+   
+   SUMA_ENTRY;
+   
+   cwd = (char *)SUMA_malloc(sizeof(char)*(MAXPATHLEN+1));
+   getcwd(cwd, MAXPATHLEN);
+   
+   SUMA_RETURN(cwd);
+}
+
 /*!
-   \brief ans = SUMA_ParseFname (FileName);
+   \brief ans = SUMA_ParseFname (FileName, cwd);
    parses a file name into its elements
    \param FileName (char *) obvious ...
    \return ans (SUMA_PARSED_NAME *) pointer to structure with following fields:
@@ -7111,6 +7126,11 @@ SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out)
                         if empty .FileName[0] = '\0'
       .Path (char *) containing path including last slash.
                      If no path exists, Path is "./" 
+      .AbsPath (char *) containing absolute path, which is 
+                        the same as .Path if .Path starts with '/'
+                        or cwd/.Path if .Path does not start with '/'
+                        AND cwd is specified. 
+                        If cwd is null then it is determined inside the function.
       .Ext (char *) containing extension including the dot.
                     If no extension exists, Ext[0] = '\0'
       .FileName_NoExt (char *) filename without extension.
@@ -7121,21 +7141,40 @@ SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out)
       
       \sa SUMA_Free_Parsed_Name, SUMA_ShowParsedFname
 */
-SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName)
+SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *ucwd)
 {/*SUMA_ParseFname*/
    static char FuncName[]={"SUMA_ParseFname"};
-   char PathDelimiter='/'; 
-   int i, j, iExt , iFile, iPath, iColSel, iRowSel, iNodeSel, iRangeSel, N_FileName, iFirstSel;
+   char PathDelimiter='/';
+   char *cwd=NULL; 
+   int i, j, iExt , iFile, iPath, iColSel, iRowSel, iNodeSel, iRangeSel, N_FileName, iFirstSel, nc;
 	SUMA_PARSED_NAME *NewName = NULL;
    SUMA_Boolean FoundPath = NOPE, FoundExt, FoundFile, FoundRowSel , FoundNodeSel, FoundColSel, FoundRangeSel;
 	SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
+   
    if (!FileName) {
       SUMA_S_Err("Null input");
       SUMA_RETURN(NULL);
    }
+   /* work cwd */
+   if (ucwd) {
+      if (ucwd[0] != '/') {
+         SUMA_S_Err("Current working directory must start with '/'");
+         SUMA_RETURN(NULL);
+      }
+      cwd = SUMA_copy_string(ucwd);
+   } else {
+      cwd = SUMA_getcwd();
+      if (cwd[0] != '/') {
+         SUMA_S_Err("STRANGE! Current working directory must start with '/'");
+         SUMA_free(cwd); cwd = NULL;
+         SUMA_RETURN(NULL);
+      }
+   }
+   nc = strlen(cwd);
+   if (cwd[nc-1] == PathDelimiter) { cwd[nc-1] = '\0'; --nc; } 
    
    SUMA_LH("Checking chars");
 	N_FileName = strlen(FileName);
@@ -7220,7 +7259,17 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName)
          NewName->Path = (char *)SUMA_malloc(sizeof(char)*(3));
          sprintf(NewName->Path, "./");
       }
-      
+      if (NewName->Path[0] == '/') {
+         NewName->AbsPath = SUMA_copy_string(NewName->Path);
+      } else {
+         char *ptmp = NewName->Path;
+         if (ptmp[0] == '.') {
+            if (SUMA_iswordin(NewName->Path,"./") == 1 && ptmp[1] == '/') ptmp = ptmp+2;
+            else ptmp = ptmp+1;   
+         } 
+         NewName->AbsPath = SUMA_append_replace_string(cwd, ptmp, "/", 0);
+         ptmp = NULL;
+      }
       if (FoundFile) {
          NewName->FileName = (char *)SUMA_malloc(sizeof(char)*(N_FileName - iFile + 2));
          for (i=iFile; i< iFirstSel; ++i) NewName->FileName[i-iFile] = FileName[i];
@@ -7290,13 +7339,21 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName)
       }else {
          NewName->RangeSelect = (char *)SUMA_malloc(sizeof(char));
          NewName->RangeSelect[0] = '\0';
-      }    
+      }
+          
+      NewName->FullName=SUMA_append_replace_string(NewName->FullName, NewName->AbsPath, "", 1);
+      NewName->FullName=SUMA_append_replace_string(NewName->FullName, NewName->FileName, "", 1);
+      NewName->FullName=SUMA_append_replace_string(NewName->FullName, NewName->NodeSelect, "", 1);
+      NewName->FullName=SUMA_append_replace_string(NewName->FullName, NewName->RowSelect, "", 1);
+      NewName->FullName=SUMA_append_replace_string(NewName->FullName, NewName->ColSelect, "", 1);
       
 	}
    
    if (LocalHead) {
       SUMA_ShowParsedFname(NewName, NULL);
    }
+   if (cwd) SUMA_free(cwd);
+   
 	SUMA_RETURN (NewName);
 }/*SUMA_ParseFname*/
 
@@ -7441,8 +7498,10 @@ void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test)
    SUMA_ENTRY;
 
    if (!Test) SUMA_RETURN (NULL);
+   if (Test->AbsPath) SUMA_free(Test->AbsPath);
    if (Test->Path) SUMA_free(Test->Path);
    if (Test->FileName) SUMA_free(Test->FileName);
+   if (Test->FullName) SUMA_free(Test->FullName);
    if (Test->Ext) SUMA_free(Test->Ext);
    if (Test->FileName_NoExt) SUMA_free(Test->FileName_NoExt);
    if (Test->RowSelect) SUMA_free(Test->RowSelect);

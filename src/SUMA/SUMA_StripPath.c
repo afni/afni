@@ -93,7 +93,7 @@ int main (int argc,char *argv[])
           exit (1);
        }
 
-	Test = SUMA_ParseFname (argv[1]);
+	Test = SUMA_ParseFname (argv[1], NULL);
 	if (!Test) {
       fprintf (SUMA_STDERR,"(null) (null) (null) (null)\n");
    }else {
