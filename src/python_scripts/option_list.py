@@ -13,7 +13,7 @@ class OptionList:
     def __init__(self, label):
         self.label    = label
         self.olist    = []      # list of comopt elements
-        self.trailers = False   # for  read_options: says trailing args are okay
+        self.trailers = False   # for  read_options: no trailing args allowed
                                 # from read_options: say there were such args
 
     def show(self, mesg = ''):
@@ -39,9 +39,10 @@ class OptionList:
             if com.name == name: count += 1
         return count
 
-    def add_opt(self, name, npar, defpar, acplist=[], req=False):
+    def add_opt(self, name, npar, defpar, acplist=[], req=False, setpar=False):
         com = afni_base.comopt(name, npar, defpar, acplist)
         com.required = req
+        if setpar: com.parlist = com.deflist
         self.olist.append(com)
 
 # ---------------------------------------------------------------------------
