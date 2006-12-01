@@ -19,6 +19,12 @@ class afni_name:
    def ppv(self):
       s = "%s/%s%s" % (os.path.abspath(self.path), self.prefix, self.view)
       return s
+   def rpv(self): # relative path, prefix, view (no leading './')
+      if self.path == './':
+          s = "%s%s" % (self.prefix, self.view)
+      else:
+          s = "%s%s%s" % (self.path, self.prefix, self.view)
+      return s
    def pp(self):
       return "%s/%s" % (os.path.abspath(self.path), self.prefix)
    def pv(self):
@@ -207,7 +213,20 @@ class shell_com:
          return None
       else:
          return self.so[i]
-              
+
+
+# return the attribute list for the given dataset and attribute
+def read_attribute(dset, atr):
+    [so, se] = shell_exec('3dAttribute %s %s' % (atr, dset))
+    if len(so) == 0:
+        print '** 3dAttribute exec failure for "%s %s":' % (atr, dset)
+        print se
+        return None
+    list = so[0].split()
+    if len(list) > 0: return list
+    else:
+        print '** 3dAttribute failure for "%s %s":' % (atr, dset)
+        return None
 
 #transform a list of afni names to one string for shell script usage
 def anlist(vlst, sb=''):
@@ -400,7 +419,6 @@ def parse_afni_name(name):
       rni = strip_extension(rni[0], ['+orig','+tlrc','+acpc'])
       vi = rni[1]
       pr = rni[0]
-
    #Build the dictionary result
    if len(rp) == 0:
       rp = '.'

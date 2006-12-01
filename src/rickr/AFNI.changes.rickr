@@ -1809,3 +1809,13 @@
   * modified Dimon.c, dimon_afni.c, Imon.h:
       - added -epsilon option for difference tests, including in dimon_afni.c
 
+01 Dec 2006: python updates
+  * added db_mod.py: contains datablock modification functions (may disappear)
+  * modified afni_base.py:
+      - added afni_name:rpv() - to return the relative path, if possible
+      - added read_attribute(), which calls 3dAttribute on a dataset
+  * modified afni_proc.py: now does most of the pre-processing
+  * modified option_list.py:
+      - added setpar parameter to OptionList:add_opt()
+      - updated comments
+
