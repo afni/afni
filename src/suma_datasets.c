@@ -7111,8 +7111,8 @@ char *SUMA_getcwd(void)
    
    SUMA_ENTRY;
    
-   cwd = (char *)SUMA_malloc(sizeof(char)*(MAXPATHLEN+1));
-   getcwd(cwd, MAXPATHLEN);
+   cwd = (char *)SUMA_malloc(sizeof(char)*(SUMA_MAX_DIR_LENGTH+1));
+   getcwd(cwd, SUMA_MAX_DIR_LENGTH);
    
    SUMA_RETURN(cwd);
 }
@@ -7264,7 +7264,7 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *ucwd)
       } else {
          char *ptmp = NewName->Path;
          if (ptmp[0] == '.') {
-            if (SUMA_iswordin(NewName->Path,"./") == 1 && ptmp[1] == '/') ptmp = ptmp+2;
+            if (strstr(NewName->Path,"./") && ptmp[1] == '/') ptmp = ptmp+2;
             else ptmp = ptmp+1;   
          } 
          NewName->AbsPath = SUMA_append_replace_string(cwd, ptmp, "/", 0);
