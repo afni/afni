@@ -7340,7 +7340,8 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *ucwd)
          NewName->RangeSelect = (char *)SUMA_malloc(sizeof(char));
          NewName->RangeSelect[0] = '\0';
       }
-          
+      
+      NewName->FullName=NULL;
       NewName->FullName=SUMA_append_replace_string(NewName->FullName, NewName->AbsPath, "", 1);
       NewName->FullName=SUMA_append_replace_string(NewName->FullName, NewName->FileName, "", 1);
       NewName->FullName=SUMA_append_replace_string(NewName->FullName, NewName->NodeSelect, "", 1);
