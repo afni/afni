@@ -1,4 +1,7 @@
 #include "SUMA_suma.h"
+#ifdef USE_DECOMPOSE_SHOEMAKE
+#include "Decompose.c"           /* For testing, put it in library if you'll be using it */
+#endif
 
 SUMA_SurfaceViewer *SUMAg_cSV = NULL; /*!< Global pointer to current Surface Viewer structure*/
 SUMA_SurfaceViewer *SUMAg_SVv = NULL; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
@@ -107,6 +110,10 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
                   "                  r31 r32 r33 D3\n"
                   "    -xcenter x y z: Use vector cen = [x y z]' for rotation center.\n"
                   "                    Default is cen = [0 0 0]'\n"
+                  "    -polar_decomp: Apply polar decomposition to mat and preserve\n"
+                  "                   orthogonal component and shift only. \n"
+                  "                   For more information, see cat_matvec's -P option.\n"
+                  "\n"
                   "%s\n"
                   , sio, s); SUMA_free(sio); sio = NULL; SUMA_free(s); s = NULL; 
           s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL; 
@@ -133,7 +140,8 @@ int main (int argc,char *argv[])
    char orsurf[3], orcode[3];
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
-   SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen, Doxmat, Do_wind, Do_p2s, onemore, Do_native;
+   SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen;
+   SUMA_Boolean Doxmat, Do_wind, Do_p2s, onemore, Do_native, Do_PolDec;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean exists;
    SUMA_Boolean LocalHead = NOPE;
@@ -168,6 +176,7 @@ int main (int argc,char *argv[])
    Do_p2s = NOPE;
    Do_native = NOPE;
    DoR2S = 0.0;
+   Do_PolDec = NOPE;
    onemore = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -403,6 +412,11 @@ int main (int argc,char *argv[])
 			brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-polar_decomp") == 0)) {
+         Do_PolDec = YUP;
+			brk = YUP;
+		}
+      
       if (!brk && (strcmp(argv[kar], "-make_consistent") == 0)) {
          Do_wind = YUP;
 			brk = YUP;
@@ -615,6 +629,11 @@ int main (int argc,char *argv[])
          fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, xmat_name);
          exit(1);
       }
+   } else {
+      if (Do_PolDec) {
+         SUMA_S_Err("-polar_decomp is useless without -xmat_1D");
+         exit(1);
+      }
    }
 
    if (sv_name) {
@@ -701,6 +720,71 @@ int main (int argc,char *argv[])
          M[i][3] = far[i+3*ncol];
       } 
       mri_free(im); im = NULL;
+      
+      if (Do_PolDec) {
+         #ifdef USE_DECOMPOSE_SHOEMAKE
+            /* a little something to do a polar decomposition on M into M = Q*S*/
+            {
+               float det, m[4][4], q[4][4], s[4][4];
+               char *stmp = SUMA_append_string("QS_",xmat_name);
+               FILE *fout = fopen(stmp,"w"); SUMA_free(stmp); stmp = NULL;
+               SUMA_S_Note("FixMe! #include above and if(1) here ...");
+               det = polar_decomp(M, q,s);
+               fprintf(fout,"#[M][D]: (D is the shift)\n");
+               for (i=0;i<3; ++i)
+                  fprintf(fout,"#%.5f   %.5f  %.5f  %.5f\n", M[i][0], M[i][1], M[i][2], M[i][3]); 
+               fprintf(fout,"#Q:\n");
+               for (i=0;i<3; ++i)
+                  fprintf(fout,"#%.5f   %.5f  %.5f  %.5f\n", q[i][0], q[i][1], q[i][2], q[i][3]); 
+               fprintf(fout,"#S:\n");
+               for (i=0;i<3; ++i)
+                  fprintf(fout,"#%.5f   %.5f  %.5f  %.5f\n", s[i][0], s[i][1], s[i][2], s[i][3]);
+               fprintf(fout,"#det: %f\n", det);
+               fprintf(fout,"#[Q][D]: A close xform to [M][D], without scaling.\n#M = Q*S\n");
+               for (i=0;i<3; ++i)
+                  fprintf(fout,"%.5f   %.5f  %.5f  %.5f\n", q[i][0], q[i][1], q[i][2], M[i][3]);
+               fclose(fout); SUMA_free(stmp); stmp = NULL;
+            }
+            /* replace user's xform with orthogonal one: */
+            fprintf(SUMA_STDOUT,"Replacing matrix:\n");
+            for (i=0;i<3; ++i)
+                  fprintf(SUMA_STDOUT," %.5f   %.5f  %.5f  %.5f\n", M[i][0], M[i][1], M[i][2], M[i][3]); 
+            fprintf(SUMA_STDOUT,"     with matrix:\n");
+            for (i=0;i<3; ++i)
+                  fprintf(SUMA_STDOUT," %.5f   %.5f  %.5f  %.5f\n", q[i][0], q[i][1], q[i][2], M[i][3]);
+            for (i=0;i<3; ++i) { M[i][0] = q[i][0]; M[i][1] = q[i][1]; M[i][2] = q[i][2]; }
+            
+         #else
+            {/* use the NIFTI polar decomposition function (same results as above)*/
+               mat33 Q, A;
+               for (i=0;i<3;++i) { A.m[i][0] = M[i][0]; A.m[i][1] = M[i][1]; A.m[i][2] = M[i][2]; }
+               Q = nifti_mat33_polar( A );
+               if (0) { /* save results to file for examination */
+                  char *stmp = SUMA_append_string("Q2_",xmat_name);
+                  FILE *fout = fopen(stmp,"w"); SUMA_free(stmp); stmp = NULL;
+                  fprintf(fout,"#[M][D]: (D is the shift)\n");
+                  for (i=0;i<3; ++i)
+                     fprintf(fout,"#%.5f   %.5f  %.5f  %.5f\n", M[i][0], M[i][1], M[i][2], M[i][3]); 
+                  fprintf(fout,"#Q:\n");
+                  for (i=0;i<3; ++i)
+                     fprintf(fout,"#%.5f   %.5f  %.5f  \n", Q.m[i][0], Q.m[i][1], Q.m[i][2]); 
+                  fprintf(fout,"#[Q][D]: A close xform to [M][D], without scaling.\n");
+                  for (i=0;i<3; ++i)
+                     fprintf(fout,"%.5f   %.5f  %.5f  %.5f\n", Q.m[i][0], Q.m[i][1], Q.m[i][2], M[i][3]);
+                  fclose(fout); SUMA_free(stmp); stmp = NULL;
+               }
+               /* replace user's xform with orthogonal one: */
+               fprintf(SUMA_STDOUT,"Replacing matrix:\n");
+               for (i=0;i<3; ++i)
+                     fprintf(SUMA_STDOUT," %.5f   %.5f  %.5f  %.5f\n", M[i][0], M[i][1], M[i][2], M[i][3]); 
+               fprintf(SUMA_STDOUT,"     with matrix:\n");
+               for (i=0;i<3; ++i)
+                     fprintf(SUMA_STDOUT," %.5f   %.5f  %.5f  %.5f\n", Q.m[i][0], Q.m[i][1], Q.m[i][2], M[i][3]);
+               for (i=0;i<3; ++i) { M[i][0] = Q.m[i][0]; M[i][1] = Q.m[i][1]; M[i][2] = Q.m[i][2]; }
+                
+            }
+         #endif 
+      }
    }
    /* prepare the name of the surface object to read*/
    SO = SUMA_Load_Surface_Object_Wrapper ( if_name, if_name2, vp_name, iType, iForm, sv_name, 1);
