@@ -9,7 +9,7 @@
 
 int main( int argc , char * argv[] )
 {
-   int iarg=1 , nn , invert,nadd ;
+   int iarg=1 , nn , invert,nadd , polar, i, j;
    THD_dmat33 tmat , qmat , imat ;
    THD_dfvec3 tvec , qvec , ivec ;
    FILE *fp ;
@@ -77,11 +77,22 @@ int main( int argc , char * argv[] )
              "\n"
              "The optional 'opkey' (operation key) following each mfile\n"
              "starts with a '-', and then is a set of letters telling how\n"
-             "to treat the input.  The only opkey currently defined is\n"
+             "to treat the input.  The opkeys currently defined are:\n"
              "\n"
              "  -I = invert the transformation:\n"
              "                     -1              -1\n"
              "       [xold] = [uij]  [xnew] - [uij]  [vi]\n"
+             "\n"
+             "  -P = Do a polar decomposition on the 3x3 matrix part \n"
+             "       of the mfile. This would result in an orthogonal\n"
+             "       matrix (rotation only, no scaling) Q that is closest,\n"
+             "       in the Frobenius distance sense, to the input matrix A.\n"
+             "    Note: if A = R *S * E, where R, S and E are the Rotation,\n"
+             "       Scale, and shEar matrices, respctively, Q does not \n"
+             "       necessarily equal R because of interaction; Each of R,\n"
+             "       S and E affects most of columns in matrix A.\n"
+             "\n"
+             "  -IP = -I followed by -P\n"
              "\n"
              "The transformation resulting by catenating the transformations\n"
              "is written to stdout in the same 3x4 ASCII file format.  This can\n"
@@ -113,15 +124,27 @@ int main( int argc , char * argv[] )
         matout = 1 ;  iarg++ ; continue ;
       }
  
-      nadd = 1 ; invert = 0 ;
-      if( iarg+1 < argc && strcmp(argv[iarg+1],"-I") == 0 ){
-         invert = 1 ; nadd = 2 ;
+      nadd = 1 ; invert = 0 ; polar = 0;
+      if( iarg+1 < argc ) {   
+         if (strcmp(argv[iarg+1],"-I") == 0 ){
+            invert = 1 ; nadd = 2 ;
+         } else if (strcmp(argv[iarg+1],"-P") == 0 ){
+            polar = 1 ; nadd = 2 ;
+         } else if (strcmp(argv[iarg+1],"-IP") == 0 ){
+            invert = 1; polar = 1 ; nadd = 2 ;
+         }
       }
       dvm = THD_read_dvecmat( argv[iarg] , invert ) ;
-      qmat = dvm.mm ; qvec = dvm.vv ;
-
-      if( SIZE_DMAT(qmat) == 0.0 )
+      if( SIZE_DMAT(dvm.mm) == 0.0 )
         ERROR_exit("can't read mfile %s\n",argv[iarg]) ;
+        
+      if (polar) {   /* do a polar decomposition */
+         mat33 A, M;
+         for (i=0;i<3;++i) for (j=0;j<3;++j) A.m[i][j] = (float) dvm.mm.mat[i][j];   /* loss of precision, sorry Joe. */
+         M = nifti_mat33_polar( A );
+         for (i=0;i<3;++i) for (j=0;j<3;++j) dvm.mm.mat[i][j] = (double) M.m[i][j];
+      }
+      qmat = dvm.mm ; qvec = dvm.vv ;
 
       iarg += nadd ;
 
