@@ -89,7 +89,7 @@ int main( int argc , char * argv[] )
    negative_flag = -1;
    zero_flag = -1;
    nan_flag = -1;
-   perc_flag = -1;
+   perc_flag = 0;
    
    datum = MRI_float;
    while( nopt < argc && argv[nopt][0] == '-' ){
