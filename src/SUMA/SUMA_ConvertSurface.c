@@ -113,6 +113,8 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
                   "    -polar_decomp: Apply polar decomposition to mat and preserve\n"
                   "                   orthogonal component and shift only. \n"
                   "                   For more information, see cat_matvec's -P option.\n"
+                  "                   This option can only be used in conjunction with\n"
+                  "                   -xmat_1D\n"
                   "\n"
                   "%s\n"
                   , sio, s); SUMA_free(sio); sio = NULL; SUMA_free(s); s = NULL; 
