@@ -2233,6 +2233,7 @@ SUMA_Boolean SUMA_AFNI_forward_warp_xyz( THD_warp * warp , float *xyzv, int N)
    static char FuncName[]={"SUMA_AFNI_forward_warp_xyz"};
    THD_fvec3 new_fv, old_fv;
    int i, i3;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -2282,6 +2283,11 @@ SUMA_Boolean SUMA_AFNI_forward_warp_xyz( THD_warp * warp , float *xyzv, int N)
 
       case WARP_AFFINE_TYPE:{
          THD_linear_mapping map = warp->rig_bod.warp ;
+         SUMA_LH("Have WarpAffineType");
+         if (LocalHead) {
+            for (i=0; i < 3; ++i) fprintf(SUMA_STDERR,"%.5f  %.5f  %.5f  %.5f\n", 
+                        map.mfor.mat[i][0], map.mfor.mat[i][1], map.mfor.mat[i][2], map.bvec.xyz[i]);
+         }
          for (i=0; i < N; ++i) {
             i3 = 3*i;
             old_fv.xyz[0] = xyzv[i3];
