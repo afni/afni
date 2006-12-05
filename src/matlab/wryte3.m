@@ -136,14 +136,14 @@ switch Opt.Fast,
 			   if (Opt.verbose),	fprintf (1,'%s verbose : Writing Complex %s in Efficient Mode ...',FuncName,Fname);	end
             rr = real(M(1:ii-1)); im = imag(M(1:ii-1));
 			   if (eq_str(Opt.Space,'s')),
-				   fprintf(fid,'%g%+gi\n', rr,  im );	end
+				   fprintf(fid,'% g%+gi\n', rr,  im );	end
 			   if (eq_str(Opt.Space,'t')),
-				   fprintf(fid,'%g%+gi\t\n',rr,  im);	end
+				   fprintf(fid,'% g%+gi\t\n',rr,  im);	end
 			   if (eq_str(Opt.Space,',')),
-				   fprintf(fid,'%g%+gi,\n',rr,  im);	end
+				   fprintf(fid,'% g%+gi,\n',rr,  im);	end
 			   %Now put the last value in
             rr = real(M(ii)); im = imag(M(ii));
-			   fprintf(fid,'%g%+gi\n', rr,  im);	
+			   fprintf(fid,'% g%+gi\n', rr,  im);	
 		   end
 
 		   if (jj > 1),
@@ -155,30 +155,30 @@ switch Opt.Fast,
 				   for (j=1:1:jjtemp),
 					   rr = real(M(i,j)); im = imag(M(i,j)); 
                   if (eq_str(Opt.Space,'s')),
-						   fprintf(fid,'%g%+gi ', rr,  im);	end
+						   fprintf(fid,'% g%+gi ', rr,  im);	end
 					   if (eq_str(Opt.Space,'t')),
-						   fprintf(fid,'%g%+gi\t', rr,  im);	end
+						   fprintf(fid,'% g%+gi\t', rr,  im);	end
 					   if (eq_str(Opt.Space,',')),
-						   fprintf(fid,'%g%+gi,', rr,  im);	end
+						   fprintf(fid,'% g%+gi,', rr,  im);	end
 				   end
 				   if (i ~= ii), fprintf(fid,'\n');	end
 			   end
 			   %Now put the last number in
             rr = real(M(ii,jj)); im = imag(M(ii,jj)); 
-			   fprintf(fid,'%g%+gi\n', rr,  im);	
+			   fprintf(fid,'% g%+gi\n', rr,  im);	
 		   end
       else
          if (jj==1),	%I can go fast on this one !
 			   if (Opt.verbose),	fprintf (1,'%s verbose : Writing %s in Efficient Mode ...',FuncName,Fname);	end
 
 			   if (eq_str(Opt.Space,'s')),
-				   fprintf(fid,'%g \n',M(1:ii-1));	end
+				   fprintf(fid,'% g \n',M(1:ii-1));	end
 			   if (eq_str(Opt.Space,'t')),
-				   fprintf(fid,'%g\t\n',M(1:ii-1));	end
+				   fprintf(fid,'% g\t\n',M(1:ii-1));	end
 			   if (eq_str(Opt.Space,',')),
-				   fprintf(fid,'%g,\n',M(1:ii-1));	end
+				   fprintf(fid,'% g,\n',M(1:ii-1));	end
 			   %Now put the last value in
-			   fprintf(fid,'%g\n',M(ii));	
+			   fprintf(fid,'% g\n',M(ii));	
 		   end
 
 		   if (jj > 1),
@@ -189,16 +189,16 @@ switch Opt.Fast,
 				   if (i == ii),	jjtemp = jj - 1;	end
 				   for (j=1:1:jjtemp),
 					   if (eq_str(Opt.Space,'s')),
-						   fprintf(fid,'%g ',M(i,j));	end
+						   fprintf(fid,'% g ',M(i,j));	end
 					   if (eq_str(Opt.Space,'t')),
-						   fprintf(fid,'%g\t',M(i,j));	end
+						   fprintf(fid,'% g\t',M(i,j));	end
 					   if (eq_str(Opt.Space,',')),
-						   fprintf(fid,'%g,',M(i,j));	end
+						   fprintf(fid,'% g,',M(i,j));	end
 				   end
 				   if (i ~= ii), fprintf(fid,'\n');	end
 			   end
 			   %Now put the last number in
-			   fprintf(fid,'%g\n',M(ii,jj));	
+			   fprintf(fid,'% g\n',M(ii,jj));	
 		   end
       end
 	otherwise,
