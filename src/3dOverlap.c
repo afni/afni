@@ -62,13 +62,8 @@ int main( int argc , char * argv[] )
    for( ; narg < argc ; narg++ ){
 
       xset = THD_open_dataset( argv[narg] ) ;
-      if( xset == NULL ){
-         fprintf(stderr,"*** Can't open dataset %s\n",argv[narg]); exit(1);
-      }
-      DSET_load(xset) ;
-      if( !DSET_LOADED(xset) ){
-         fprintf(stderr,"*** Can't load dataset %s\n",argv[narg]); exit(1);
-      }
+      CHECK_OPEN_ERROR(xset,argv[narg]) ;
+      DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
 
       if( nvox == 0 ){
          nvox = DSET_NVOX(xset) ; ccc = calloc(sizeof(short),nvox) ;

@@ -148,10 +148,7 @@ int main( int argc , char * argv[] )
       /*-- input dataset header --*/
 
       inset = THD_open_dataset( argv[nopt] ) ;
-      if( !ISVALID_DSET(inset) ){
-         fprintf(stderr,"** ERROR: can't open dataset %s\n",argv[nopt]) ;
-         exit(1) ;
-      }
+      CHECK_OPEN_ERROR(inset,argv[nopt]) ;
 
       /*-- 1st time thru: make workspace and empty output dataset --*/
 
@@ -203,11 +200,7 @@ int main( int argc , char * argv[] )
 
       /*-- read data from disk --*/
 
-      DSET_load(inset) ;
-      if( !DSET_LOADED(inset) ){
-         fprintf(stderr,"** ERROR: can't read data from dataset %s\n",argv[nopt]) ;
-         exit(1) ;
-      }
+      DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
       if( verb ) fprintf(stderr,"  ++ read in dataset %s\n",argv[nopt]) ;
 
@@ -283,10 +276,7 @@ int main( int argc , char * argv[] )
       /*-- input dataset header --*/
 
       inset = THD_open_dataset( argv[nopt] ) ;
-      if( !ISVALID_DSET(inset) ){
-        fprintf(stderr,"** ERROR: can't open dataset %s\n",argv[nopt]) ;
-        exit(1) ;
-      }
+      CHECK_OPEN_ERROR(inset,argv[nopt]) ;
 
       /*-- 1st time thru: make workspace to hold sd sums */
 
@@ -300,11 +290,7 @@ int main( int argc , char * argv[] )
 
       /*-- read data from disk --*/
 
-      DSET_load(inset) ;
-      if( !DSET_LOADED(inset) ){
-        fprintf(stderr,"** ERROR: can't read data from dataset %s\n",argv[nopt]) ;
-        exit(1) ;
-      }
+      DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
       if( verb ) fprintf(stderr,"  ++ read in dataset %s\n",argv[nopt]) ;
 

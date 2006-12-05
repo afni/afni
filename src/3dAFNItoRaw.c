@@ -84,13 +84,7 @@ int main( int argc , char * argv[] )
      exit(1);
    }
  
-   old_dset = THD_open_dataset (argv[nopt]);
-
- 
-   if (!ISVALID_DSET (old_dset)){
-      fprintf (stderr, "*** Error - Can not open dataset %s\n", argv[nopt]);
-      exit (1);
-   }
+   old_dset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(old_dset,argv[nopt]);
 
    /* expect at least 2 values per voxel - otherwise what's the point? */
    if (DSET_NVALS (old_dset) < 2){

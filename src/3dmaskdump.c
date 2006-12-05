@@ -468,10 +468,7 @@ int main( int argc , char * argv[] )
    /* read in input dataset bricks */
 
    for( ii=0 ; ii < ndset ; ii++ ){
-      DSET_load(input_dset[ii]) ;
-      if( !DSET_LOADED(input_dset[ii]) ){
-         fprintf(stderr,"*** Can't load dataset %s\n",argv[narg+ii]); exit(1);
-      }
+      DSET_load(input_dset[ii]) ;  CHECK_LOAD_ERROR(input_dset[ii]) ;
    }
 
    /* open the output file */

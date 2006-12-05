@@ -118,18 +118,11 @@ int main( int argc , char *argv[] )
       fprintf(stderr,"*** Need a dataset on command line!?\n"); exit(1);
    }
 
-   xset = THD_open_dataset( argv[nopt] ) ;
-   if( xset == NULL ){
-      fprintf(stderr,"** Can't open dataset %s\n",argv[nopt]); exit(1);
-   }
+   xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
    if( DSET_NUM_TIMES(xset) < 2 ){
       fprintf(stderr,"** Input dataset %s is not 3D+time\n",argv[nopt]); exit(1);
    }
-   DSET_load(xset) ;
-   if( !DSET_LOADED(xset) ){
-      fprintf(stderr,"*** Can't read dataset bricks from %s\n",argv[nopt-1]);
-      exit(1);
-   }
+   DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
 
    /*-- compute mask array, if desired --*/
 

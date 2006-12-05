@@ -231,7 +231,7 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-data") == 0 || strcmp(argv[iarg],"-input") == 0 ){
        if( yset != NULL ) ERROR_exit("Can't input 2 3D+time datasets") ;
        yset = THD_open_dataset(argv[++iarg]) ;
-       if( yset == NULL ) ERROR_exit("Can't open dataset %s",argv[iarg]) ;
+       CHECK_OPEN_ERROR(yset,argv[iarg]) ;
        nt = DSET_NVALS(yset) ;
        if( nt < 2 ) ERROR_exit("Only 1 sub-brick in dataset %s",argv[iarg]) ;
        nxyz = DSET_NVOX(yset) ;
@@ -241,7 +241,7 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-map") == 0 ){
        if( aset != NULL ) ERROR_exit("Can't input 2 -map datasets") ;
        aset = THD_open_dataset(argv[++iarg]) ;
-       if( aset == NULL ) ERROR_exit("Can't open dataset %s",argv[iarg]) ;
+       CHECK_OPEN_ERROR(aset,argv[iarg]) ;
        nparam = DSET_NVALS(aset) ;
        iarg++ ; continue ;
      }
@@ -249,14 +249,14 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-mapwt") == 0 ){
        if( wset != NULL ) ERROR_exit("Can't input 2 -mapwt datasets") ;
        wset = THD_open_dataset(argv[++iarg]) ;
-       if( wset == NULL ) ERROR_exit("Can't open dataset %s",argv[iarg]) ;
+       CHECK_OPEN_ERROR(wset,argv[iarg]) ;
        iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-mask") == 0 ){
        if( mset != NULL ) ERROR_exit("Can't input 2 -mask datasets") ;
        mset = THD_open_dataset(argv[++iarg]) ;
-       if( mset == NULL ) ERROR_exit("Can't open dataset %s",argv[iarg]) ;
+       CHECK_OPEN_ERROR(mset,argv[iarg]) ;
        iarg++ ; continue ;
      }
 
@@ -292,13 +292,9 @@ int main( int argc , char *argv[] )
      ERROR_exit("Grid mismatch between -data and -map") ;
 
    INFO_message("Loading dataset for Y") ;
-   DSET_load(yset);
-   if( !DSET_LOADED(yset) )
-     ERROR_exit("Can't load dataset '%s'",DSET_BRIKNAME(yset)) ;
+   DSET_load(yset); CHECK_LOAD_ERROR(yset) ;
    INFO_message("Loading dataset for A") ;
-   DSET_load(aset);
-   if( !DSET_LOADED(aset) )
-     ERROR_exit("Can't load dataset '%s'",DSET_BRIKNAME(aset)) ;
+   DSET_load(aset); CHECK_LOAD_ERROR(aset) ;
 
    if( wset != NULL ){
      if( DSET_NVOX(wset) != nxyz )
@@ -308,18 +304,14 @@ int main( int argc , char *argv[] )
        ERROR_exit("Wrong number of values=%d in -mapwt; should be 1 or %d",
                   nwt , nparam ) ;
      INFO_message("Loading dataset for mapwt") ;
-     DSET_load(wset);
-     if( !DSET_LOADED(wset) )
-       ERROR_exit("Can't load dataset '%s'",DSET_BRIKNAME(wset)) ;
+     DSET_load(wset); CHECK_LOAD_ERROR(wset) ;
    }
 
    if( mset != NULL ){
      if( DSET_NVOX(mset) != nxyz )
        ERROR_exit("Grid mismatch between -data and -mask") ;
      INFO_message("Loading dataset for mask") ;
-     DSET_load(mset);
-     if( !DSET_LOADED(mset) )
-       ERROR_exit("Can't load dataset '%s'",DSET_BRIKNAME(mset)) ;
+     DSET_load(mset); CHECK_LOAD_ERROR(mset) ;
      mask  = THD_makemask( mset , 0 , 1.0f,-1.0f ); DSET_delete(mset);
      nmask = THD_countmask( nxyz , mask ) ;
      if( nmask < 3 ){

@@ -284,10 +284,7 @@ int main( int argc , char * argv[] )
 
    /* load the input dataset */
 
-   DSET_load( iset ) ;
-   if( ! DSET_LOADED(iset) ){
-      fprintf(stderr,"** Can't read input dataset brick!\n") ; exit(1) ;
-   }
+   DSET_load( iset ) ; CHECK_LOAD_ERROR(iset) ;
    voxin = DSET_ARRAY(iset,0) ; vtype = DSET_BRICK_TYPE(iset,0) ;
    switch( vtype ){
       default: fprintf(stderr,"** Illegal brick type in input dataset!\n"); exit(1);

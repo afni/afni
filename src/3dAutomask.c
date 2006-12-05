@@ -147,16 +147,14 @@ int main( int argc , char * argv[] )
 
    /*-- read data --*/
 
-   dset = THD_open_dataset(argv[iarg]) ;
-   if( !ISVALID_DSET(dset) ) ERROR_exit("Can't open dataset %s\n",argv[iarg]);
+   dset = THD_open_dataset(argv[iarg]); CHECK_OPEN_ERROR(dset,argv[iarg]);
    if( DSET_BRICK_TYPE(dset,0) != MRI_short &&
        DSET_BRICK_TYPE(dset,0) != MRI_byte  &&
        DSET_BRICK_TYPE(dset,0) != MRI_float   ){
       ERROR_exit("Illegal dataset datum type\n") ;
    }
    if( verb ) INFO_message("Loading dataset %s\n",argv[iarg]) ;
-   DSET_load(dset) ;
-   if( !DSET_LOADED(dset) ) ERROR_exit("Can't load dataset %s\n",argv[iarg]);
+   DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
 
    /*** do all the real work now ***/
 

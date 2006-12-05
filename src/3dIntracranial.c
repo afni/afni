@@ -196,17 +196,8 @@ void get_options
 	  strcpy (anat_filename, argv[nopt]);
 
 	  anat = THD_open_dataset (anat_filename);
-	  if (!ISVALID_3DIM_DATASET (anat))
-	    {
-	      sprintf (message, "Can't open dataset: %s\n", anat_filename);
-	      SI_error (message);
-	    }
-	  THD_load_datablock (anat->dblk);
-	  if (DSET_ARRAY(anat,0) == NULL)
-	    {
-	      sprintf (message, "Can't access data: %s\n", anat_filename);
-	      SI_error (message);
-	    }
+     CHECK_OPEN_ERROR(anat,anat_filename) ;
+	  DSET_load(anat) ; CHECK_LOAD_ERROR(anat) ;
 
           /** RWCox [05 Dec 2002]
               If input is a byte dataset, make a short copy of it. **/
@@ -560,7 +551,7 @@ void write_afni_data
 
   /*----- initialize local variables -----*/
   filename = prefix_filename;
-  dset = THD_open_dataset (anat_filename);
+  dset = THD_open_dataset (anat_filename); CHECK_OPEN_ERROR(dset,anat_filename);
   nxyz = DSET_NX(dset) * DSET_NY(dset) * DSET_NZ(dset);
 
 

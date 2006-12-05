@@ -154,7 +154,7 @@ int main( int argc , char * argv[] )
    /*-- read dataset --*/
 
    dset = THD_open_dataset(argv[iarg]) ; dname = argv[iarg] ;
-   if( !ISVALID_DSET(dset) ){ fprintf(stderr,"** CAN'T open dataset\n");exit(1); }
+   CHECK_OPEN_ERROR(dset,dname) ;
    if( DSET_BRICK_TYPE(dset,0) != MRI_short ){
       fprintf(stderr,"** ILLEGAL non-short dataset type\n"); exit(1);
    }
@@ -163,8 +163,7 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"** Dataset dimensions are less than 32x32x32?!\n"); exit(1);
    }
    if( verb ) fprintf(stderr,"++ Loading dataset %s\n", DSET_BRIKNAME(dset) ) ;
-   DSET_load(dset) ;
-   if( !DSET_LOADED(dset) ){ fprintf(stderr,"** CAN'T load dataset\n");exit(1); }
+   DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
 
    if( label == NULL ) label = dname ;  /* 14 Mar 2003 */
 

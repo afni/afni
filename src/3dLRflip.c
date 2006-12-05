@@ -34,9 +34,8 @@ int main( int argc , char * argv[] )
    /*-- read data --*/
 
    dset = THD_open_dataset(argv[iarg]) ;
-   if( !ISVALID_DSET(dset) ){ fprintf(stderr,"** CAN'T open dataset\n");exit(1); }
-   DSET_mallocize(dset) ; DSET_load(dset) ;
-   if( !DSET_LOADED(dset) ){ fprintf(stderr,"** CAN'T load dataset\n");exit(1); }
+   CHECK_OPEN_ERROR(dset,argv[iarg]) ;
+   DSET_mallocize(dset) ; DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
 
    nx=DSET_NX(dset); ny=DSET_NY(dset); nz=DSET_NZ(dset);
 

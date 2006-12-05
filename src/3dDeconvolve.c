@@ -2170,18 +2170,8 @@ ENTRY("read_input_data") ;
     {
       /*----- Read the input 3d+time dataset -----*/
       *dset_time = THD_open_dataset (option_data->input_filename);
-      if (!ISVALID_3DIM_DATASET(*dset_time))
-      {
-        sprintf (message,  "Unable to open dataset '%s'",
-        option_data->input_filename);
-        DC_error (message);
-      }
-      THD_load_datablock ((*dset_time)->dblk);
-      if( !DSET_LOADED(*dset_time) ){
-        sprintf (message,  "Unable to load dataset '%s'",
-        option_data->input_filename);
-        DC_error (message);
-      }
+      CHECK_OPEN_ERROR(*dset_time,option_data->input_filename);
+      DSET_load(*dset_time) ; CHECK_LOAD_ERROR(*dset_time) ;
       if( (*dset_time)->taxis == NULL ){
         fprintf(stderr,"** WARNING: dataset '%s' has no time axis!!\n",
                        option_data->input_filename) ;
@@ -2258,12 +2248,7 @@ ENTRY("read_input_data") ;
 
            /*----- Read the input mask dataset -----*/
            mask_dset = THD_open_dataset (option_data->mask_filename);
-           if (!ISVALID_3DIM_DATASET(mask_dset))
-             {
-               sprintf (message,  "Unable to open mask file: %s",
-                      option_data->mask_filename);
-               DC_error (message);
-             }
+           CHECK_OPEN_ERROR(mask_dset,option_data->mask_filename);
 
            /*----- If mask is used, check for compatible dimensions -----*/
            if (    (DSET_NX(*dset_time) != DSET_NX(mask_dset))
@@ -4765,6 +4750,7 @@ void cubic_spline
 
   /*----- Initialize local variables -----*/
   dset = THD_open_dataset (option_data->input_filename);
+  CHECK_OPEN_ERROR(dset,option_data->input_filename) ;
   n = ts_length - 1;
   tdelta = dset->taxis->ttdel;
   nx = dset->daxes->nxx;   ny = dset->daxes->nyy;   nz = dset->daxes->nzz;
@@ -4919,6 +4905,7 @@ void write_ts_array
   /*----- Initialize local variables -----*/
   input_filename = option_data->input_filename;
   dset = THD_open_dataset (input_filename);
+  CHECK_OPEN_ERROR(dset,input_filename) ;
   nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;
   newtr = DSET_TIMESTEP(dset) / nptr;
   DSET_UNMSEC(dset) ;  /* 12 Aug 2005 */
@@ -5136,6 +5123,7 @@ void write_bucket_data
 
   /*----- read prototype dataset -----*/
   old_dset = THD_open_dataset (option_data->input_filename);
+  CHECK_OPEN_ERROR(old_dset,option_data->input_filename);
   DSET_UNMSEC(old_dset) ;  /* 12 Aug 2005 */
 
   bout = !option_data->nobout ;
@@ -7926,6 +7914,7 @@ void basis_write_iresp( int argc , char *argv[] ,
    /* open input 3D+time dataset to get some parameters */
 
    in_dset = THD_open_dataset(option_data->input_filename);
+   CHECK_OPEN_ERROR(in_dset,option_data->input_filename);
    nvox    = in_dset->daxes->nxx * in_dset->daxes->nyy * in_dset->daxes->nzz;
    DSET_UNMSEC(in_dset) ;  /* 12 Aug 2005 */
 
@@ -8064,6 +8053,7 @@ void basis_write_sresp( int argc , char *argv[] ,
    /* open input 3D+time dataset to get some parameters */
 
    in_dset = THD_open_dataset(option_data->input_filename);
+   CHECK_OPEN_ERROR(in_dset,option_data->input_filename);
    nvox    = in_dset->daxes->nxx * in_dset->daxes->nyy * in_dset->daxes->nzz;
    DSET_UNMSEC(in_dset) ;  /* 12 Aug 2005 */
 

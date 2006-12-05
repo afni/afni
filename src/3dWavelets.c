@@ -724,7 +724,7 @@ void read_input_data
 		   option_data->input_filename);
 	  WA_error (message);
 	}  
-      THD_load_datablock ((*dset_time)->dblk);
+      DSET_load(*dset_time) ; CHECK_LOAD_ERROR(*dset_time) ;
 
       if (option_data->mask_filename != NULL)
 	{
@@ -736,7 +736,7 @@ void read_input_data
 		       option_data->mask_filename);
 	      WA_error (message);
 	    }  
-	  THD_load_datablock ((*mask_dset)->dblk);
+	  DSET_load(*mask_dset) ;
 	}
     }
   else

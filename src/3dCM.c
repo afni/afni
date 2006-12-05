@@ -55,9 +55,7 @@ int main( int argc , char * argv[] )
           exit(1) ;
         }
         mask_dset = THD_open_dataset( argv[++narg] ) ;
-        if( mask_dset == NULL ){
-          fprintf(stderr,"*** Cannot open mask dataset!\n") ; exit(1) ;
-        }
+        CHECK_OPEN_ERROR(mask_dset,argv[narg]) ;
         if( DSET_BRICK_TYPE(mask_dset,0) == MRI_complex ){
           fprintf(stderr,"*** Cannot deal with complex-valued mask dataset!\n");
           exit(1) ;

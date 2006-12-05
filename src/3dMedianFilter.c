@@ -78,11 +78,8 @@ int main( int argc , char * argv[] )
    /*-- read input --*/
 
    inset = THD_open_dataset( argv[iarg] ) ;
-   if( inset == NULL )
-     ERROR_exit("Can't open dataset %s\n",argv[iarg]);
-   DSET_load( inset ) ;
-   if( !DSET_LOADED(inset) )
-     ERROR_exit("Can't load dataset %s\n",argv[iarg]);
+   CHECK_OPEN_ERROR(inset,argv[iarg]) ;
+   DSET_load( inset ) ; CHECK_LOAD_ERROR(inset) ;
    if( DSET_NVALS(inset) > 1 )
      WARNING_message("Only processing sub-brick #0\n");
 

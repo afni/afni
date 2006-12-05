@@ -222,10 +222,7 @@ int main( int argc , char * argv[] )
    if( dset == NULL ){
       fprintf(stderr,"** CANNOT open dataset %s\n",argv[iarg]) ; exit(1) ;
    }
-   DSET_load(dset) ;
-   if( !DSET_LOADED(dset) ){
-      fprintf(stderr,"** CANNOT load dataset %s\n",argv[iarg]) ; exit(1) ;
-   }
+   DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
 
    /*-- check for consistency --*/
 

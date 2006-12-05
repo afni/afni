@@ -181,9 +181,7 @@ int main( int argc , char * argv[] )
    }
 
    dset = THD_open_dataset( argv[iarg] ) ;
-   if( !ISVALID_DSET(dset) ){
-     fprintf(stderr,"** Can't open dataset %s\n",argv[iarg]); exit(1);
-   }
+   CHECK_OPEN_ERROR(dset,argv[iarg]) ;
    datum = DSET_BRICK_TYPE(dset,0) ;
    if( (datum != MRI_short && datum != MRI_float) || !DSET_datum_constant(dset) ){
      fprintf(stderr,"** Can't process non-short, non-float dataset!\n") ; exit(1) ;
@@ -206,10 +204,7 @@ int main( int argc , char * argv[] )
    }
    nxyz = DSET_NVOX(dset) ;
    fprintf(stderr,"++ Loading dataset %s\n",argv[iarg]) ;
-   DSET_load(dset) ;
-   if( !DSET_LOADED(dset) ){
-     fprintf(stderr,"** Can't read dataset from disk!\n") ; exit(1) ;
-   }
+   DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
 
    /*-- create automask --*/
 

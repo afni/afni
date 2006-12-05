@@ -104,8 +104,8 @@ int main( int argc , char *argv[] )
 
    mainENTRY("3dDimize"); machdep();
 
-   inset = THD_open_dataset(argv[1]); if( inset == NULL ) ERROR_exit("Can't open");
-   DSET_load(inset); if( !DSET_LOADED(inset) ) ERROR_exit("Can't load");
+   inset = THD_open_dataset(argv[1]); CHECK_OPEN_ERROR((inset,argv[1]);
+   DSET_load(inset); CHECK_LOAD_ERROR(inset) ;
    medim = THD_median_brick(inset); if( medim == NULL ) ERROR_exit("Can't median");
    DSET_unload(inset) ;
    clip_val = THD_cliplevel(medim,0.50f) ;

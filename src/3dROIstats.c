@@ -167,9 +167,7 @@ int main(int argc, char *argv[])
 		Error_Exit("-mask option requires a following argument!");
 
 	    mask_dset = THD_open_dataset(argv[++narg]);		/* 16 Sep 1999 */
-
-	    if (mask_dset == NULL)
-		Error_Exit("Cannot open mask dataset!");
+       CHECK_OPEN_ERROR(mask_dset,argv[narg]) ;
 
 	    if (DSET_BRICK_TYPE(mask_dset, 0) == MRI_complex)
 		Error_Exit("Cannot deal with complex-valued mask dataset!");

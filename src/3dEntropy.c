@@ -11,10 +11,7 @@ int main( int argc , char * argv[] )
    }
 
    for( ; iarg < argc ; iarg++ ){
-      dset = THD_open_dataset( argv[iarg] ) ;
-      if( !ISVALID_DSET(dset) ){
-         printf("%s: Can't open\n",argv[iarg]) ; continue ;
-      }
+      dset = THD_open_dataset( argv[iarg] ) ; CHECK_OPEN_ERROR(dset,argv[iarg]) ;
       eset = ENTROPY_dataset(dset) ;
       printf("%s: %g\n",argv[iarg],eset) ;
       DSET_delete(dset) ;

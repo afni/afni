@@ -127,7 +127,7 @@ int main( int argc , char *argv[] )
        if( inset != NULL  ) ERROR_exit("Can't have two -input options") ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-input'") ;
        inset = THD_open_dataset( argv[iarg] ) ;
-       if( inset == NULL  ) ERROR_exit("Can't open dataset '%s'",argv[iarg]) ;
+       CHECK_OPEN_ERROR(inset,argv[iarg]) ;
        iarg++ ; continue ;
      }
 
@@ -136,9 +136,8 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-mask'") ;
        if( mask != NULL || automask ) ERROR_exit("Can't have two mask inputs") ;
        mset = THD_open_dataset( argv[iarg] ) ;
-       if( mset == NULL ) ERROR_exit("Can't open dataset '%s'",argv[iarg]) ;
-       DSET_load(mset) ;
-       if( !DSET_LOADED(mset) ) ERROR_exit("Can't load dataset '%s'",argv[iarg]) ;
+       CHECK_OPEN_ERROR(mset,argv[iarg]) ;
+       DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
        mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
        mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
        if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
@@ -163,15 +162,13 @@ int main( int argc , char *argv[] )
    if( inset == NULL ){
      if( iarg >= argc ) ERROR_exit("No input dataset on command line?") ;
      inset = THD_open_dataset( argv[iarg] ) ;
-     if( inset == NULL  ) ERROR_exit("Can't open dataset '%s'",argv[iarg]) ;
+     CHECK_OPEN_ERROR(inset,argv[iarg]) ;
    }
 
    if( demed && DSET_NVALS(inset) < 2 )
      WARNING_message("-demed ignored: only 1 input sub-brick") ;
 
-   DSET_load(inset) ;
-   if( !DSET_LOADED(inset) )
-     ERROR_exit("Can't load input dataset '%s' from disk") ;
+   DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
    if( mask != NULL ){
      if( mask_nx != DSET_NX(inset) ||

@@ -129,10 +129,7 @@ int main( int argc , char * argv[] )
    if( verb )
       fprintf(stderr,"++ Direction = axis %d in dataset\n",dcode) ;
 
-   DSET_load(inset) ;
-   if( !DSET_LOADED(inset) ){
-      fprintf(stderr,"*** Can't load dataset %s\n",argv[iarg]); exit(1);
-   }
+   DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
    brim = mri_copy( DSET_BRICK(inset,0) ) ;
    DSET_unload(inset) ;
    EDIT_substitute_brick( outset , 0 , brim->kind , mri_data_pointer(brim) ) ;

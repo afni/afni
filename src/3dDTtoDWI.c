@@ -184,12 +184,7 @@ main (int argc, char *argv[])
 
   /* open I0 dataset - idealized no gradient image */
   I0_dset = THD_open_dataset (argv[nopt]);
-  if (!ISVALID_DSET (I0_dset))
-    {
-       fprintf (stderr, "*** Error - Can not open dataset %s\n", argv[nopt]);
-       mri_free (grad1Dptr);
-       exit (1);
-    }
+  CHECK_OPEN_ERROR(IO_dset,argv[nopt]) ;
 
    DSET_mallocize (I0_dset);
    DSET_load (I0_dset);	                /* load dataset */
@@ -210,13 +205,7 @@ main (int argc, char *argv[])
   /* Now read in all the MRI volumes for each gradient vector */
   /* assumes first one is no gradient */
   old_dset = THD_open_dataset (argv[nopt]);
-
-  if (!ISVALID_DSET (old_dset))
-    {
-      fprintf (stderr, "*** Error - Can not open dataset %s\n", argv[nopt]);
-      mri_free (grad1Dptr);
-      exit (1);
-    }
+  CHECK_OPEN_ERROR(old_dset,argv[nopt]) ;
 
   /* expect at least 6 values per voxel - 6 sub-briks as input dataset */
   if (DSET_NVALS (old_dset) <6)

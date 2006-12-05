@@ -244,11 +244,7 @@ void PC_read_opts( int argc , char * argv[] )
          exit(1) ;
       }
 
-      DSET_load( PC_dset[kk] ) ;
-      if( !DSET_LOADED( PC_dset[kk] ) ){
-         fprintf(stderr,"\n*** Can't load dataset %s BRIK from disk!\n",PC_dsname[kk]) ;
-         exit(1) ;
-      }
+      DSET_load( PC_dset[kk] ) ;  CHECK_LOAD_ERROR(PC_dset[kk]) ;
       if( !PC_be_quiet ){ printf("+"); fflush(stdout); }
 
       /* copy brick data into float storage */

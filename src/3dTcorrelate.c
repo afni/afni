@@ -153,16 +153,8 @@ int main( int argc , char *argv[] )
    if( im_ort != NULL && im_ort->nx < DSET_NUM_TIMES(xset) ){
       fprintf(stderr,"** Input datsets are longer than -ort file!\n"); exit(1);
    }
-   DSET_load(xset) ;
-   if( !DSET_LOADED(xset) ){
-      fprintf(stderr,"*** Can't read dataset bricks from %s\n",argv[nopt-1]);
-      exit(1);
-   }
-   DSET_load(yset) ;
-   if( !DSET_LOADED(yset) ){
-      fprintf(stderr,"*** Can't read dataset bricks from %s\n",argv[nopt]);
-      exit(1);
-   }
+   DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
+   DSET_load(yset) ; CHECK_LOAD_ERROR(yset) ;
 
    /*-- compute mask array, if desired --*/
 
