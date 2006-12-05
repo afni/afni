@@ -29,7 +29,7 @@ int main( int argc , char * argv[] )
        if( mask_dset != NULL ) ERROR_exit("Can't use -mask twice") ;
          if( narg+1 >= argc ) ERROR_exit("Need argument after -mask") ;
          mask_dset = THD_open_dataset( argv[++narg] ) ;
-         if( mask_dset == NULL ) ERROR_exit("Can't open -mask %s",argv[narg]) ;
+         CHECK_OPEN_ERROR(mask_dset,argv[narg]) ;
          narg++ ; continue ;
       }
 
@@ -41,10 +41,8 @@ int main( int argc , char * argv[] )
    ndset = argc - narg ;
    if( ndset <= 1 ) ERROR_exit("Need two input datasets") ;
 
-   xset = THD_open_dataset( argv[narg++] ) ;
-   yset = THD_open_dataset( argv[narg++] ) ;
-   if( xset == NULL || yset == NULL )
-     ERROR_exit("Cannot open both input datasets!\n") ;
+   xset = THD_open_dataset( argv[narg++] ) ; CHECK_OPEN_ERROR(xset,argv[narg-1]) ;
+   yset = THD_open_dataset( argv[narg++] ) ; CHECK_OPEN_ERROR(yset,argv[narg-1]) ;
 
    if( DSET_NVALS(xset) > 1 )
      WARNING_message("Will only use sub-brick #0 of 1st input dataset") ;
@@ -60,8 +58,7 @@ int main( int argc , char * argv[] )
      int mcount ;
      if( DSET_NVOX(mask_dset) != nvox )
        ERROR_exit("Input and mask datasets are not same dimensions!\n");
-     DSET_load(mask_dset) ;
-     if( !DSET_LOADED(mask_dset) ) ERROR_exit("Can't load mask dataset") ;
+     DSET_load(mask_dset) ; CHECK_LOAD_ERROR(mask_dset) ;
      mmm = THD_makemask( mask_dset , 0 , 1.0f,-1.0f ) ;
      mcount = THD_countmask( nvox , mmm ) ;
      INFO_message("Have %d voxels in the mask\n",mcount) ;
@@ -69,10 +66,8 @@ int main( int argc , char * argv[] )
      DSET_delete(mask_dset) ;
    }
 
-   DSET_load(xset) ;
-   if( !DSET_LOADED(xset) ) ERROR_exit("Can't load 1st dataset") ;
-   DSET_load(yset) ;
-   if( !DSET_LOADED(yset) ) ERROR_exit("Can't load 2nd dataset") ;
+   DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
+   DSET_load(yset) ; CHECK_LOAD_ERROR(yset) ;
 
    printf("# LOG SQRT CBRT\n") ;
    for( iv=0 ; iv < nvals ; iv++ ){

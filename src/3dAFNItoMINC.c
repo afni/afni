@@ -64,10 +64,7 @@ int main( int argc , char *argv[] )
      fprintf(stderr,"** ERROR: no dataset on command line?\n"); exit(1);
    }
 
-   dset = THD_open_dataset( argv[narg] ) ;
-   if( !ISVALID_DSET(dset) ){
-     fprintf(stderr,"** ERROR: can't open dataset %s\n",argv[narg]); exit(1);
-   }
+   dset = THD_open_dataset(argv[narg]); CHECK_OPEN_ERROR(dset,argv[narg]) ;
 
    if( prefix == NULL ) prefix = DSET_PREFIX(dset) ;
 

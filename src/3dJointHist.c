@@ -72,8 +72,7 @@ int main( int argc , char * argv[] )
      int mcount ;
      if( DSET_NVOX(mask_dset) != nvox )
        ERROR_exit("Input and mask datasets are not same dimensions!\n");
-     DSET_load(mask_dset) ;
-     if( !DSET_LOADED(mask_dset) ) ERROR_exit("Can't load mask dataset") ;
+     DSET_load(mask_dset) ; CHECK_LOAD_ERROR(mask_dset) ;
      mmm = THD_makemask( mask_dset , 0 , 1.0f,-1.0f ) ;
      mcount = THD_countmask( nvox , mmm ) ;
      INFO_message("Have %d voxels in the mask\n",mcount) ;
@@ -82,11 +81,9 @@ int main( int argc , char * argv[] )
    }
 
    INFO_message("loading 1st dataset") ;
-   DSET_load(xset) ;
-   if( !DSET_LOADED(xset) ) ERROR_exit("Can't load 1st dataset") ;
+   DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
    INFO_message("loading 2nd dataset") ;
-   DSET_load(yset) ;
-   if( !DSET_LOADED(yset) ) ERROR_exit("Can't load 2nd dataset") ;
+   DSET_load(yset) ; CHECK_LOAD_ERROR(yset) ;
 
    hset = EDIT_empty_copy(NULL) ;
    nxyz.ijk[0] = nxyz.ijk[1] = 256 ; nxyz.ijk[2] = nvals ;

@@ -115,9 +115,8 @@ if((ptr)==NULL) \
 
 #define DOPEN(ds,name)                                                        \
 do{ int pv ; (ds) = THD_open_dataset((name)) ;                                \
-       if( !ISVALID_3DIM_DATASET((ds)) ){                                     \
-          fprintf(stderr,"*** Can't open dataset: %s\n",(name)) ; exit(1) ; } \
-       THD_load_datablock( (ds)->dblk ) ;                                     \
+       CHECK_OPEN_ERROR((ds),(name)) ;                                        \
+       DSET_load((ds)) ;                                                      \
        pv = DSET_PRINCIPAL_VALUE((ds)) ;                                      \
        if( DSET_ARRAY((ds),pv) == NULL ){                                     \
           fprintf(stderr,"*** Can't access data: %s\n",(name)) ; exit(1); }   \
@@ -1333,12 +1332,7 @@ void * initialize_program (int argc, char * argv[], int * nopt)
     /*----- Open the input dataset -----*/
     if (!EX_quiet)  printf ("Reading input dataset: %s \n", argv[*nopt]);
     EX_dset = THD_open_dataset(argv[*nopt]);
-
-    if (EX_dset == NULL)
-      {
-	sprintf (message, "Cannot open input dataset %s", argv[*nopt]); 
-	EX_error (message);
-      }
+    CHECK_OPEN_ERROR(EX_dset,argv[*nopt]) ;
 
     /*----- Get dimensions of input dataset -----*/
     if (nxyz == 0)

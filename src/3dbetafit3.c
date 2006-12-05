@@ -652,10 +652,7 @@ int main( int argc , char * argv[] )
 
    /* load data from dataset */
 
-   DSET_load(input_dset) ;
-   if( !DSET_LOADED(input_dset) ){
-      fprintf(stderr,"*** Couldn't load dataset brick!\n");exit(1);
-   }
+   DSET_load(input_dset) ;  CHECK_LOAD_ERROR((input_dset) ;
 
    if( DSET_BRICK_STATCODE(input_dset,0) == FUNC_COR_TYPE ) sqr = 1 ;
 

@@ -443,8 +443,7 @@ int main( int argc , char * argv[] )
           (this code is adapted from 3drotate.c)                           --*/
 
      DSET_mallocize(dset) ;
-     DSET_load( dset ) ;
-     if( !DSET_LOADED(dset) ) ERREX("Can't load input dataset bricks") ;
+     DSET_load( dset ) ;  CHECK_LOAD_ERROR(dset) ;
      dset->idcode = MCW_new_idcode() ;
      dset->dblk->diskptr->storage_mode = STORAGE_BY_BRICK ; /* 14 Jan 2004 */
      EDIT_dset_items( dset ,

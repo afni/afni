@@ -151,9 +151,7 @@ int main (int argc, char *argv[])
 	/* try to open input dataset */
 
 	input = THD_open_dataset( argv[narg] ) ; /* 16 Sep 1999 */
-
-	if( input == NULL )
-		Error_Exit("Cannot open input dataset!") ;
+   CHECK_OPEN_ERROR(input,argv[narg]) ;
 
 	if (!DSET_GRAPHABLE(input))
 		Error_Exit("Input dataset is not a 3d+time dataset");

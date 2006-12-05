@@ -528,12 +528,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  /*--- check whether input files exist ---*/
 	  nopt++;
 	  dset = THD_open_dataset( argv[nopt] ) ;
-	  if( ! ISVALID_3DIM_DATASET(dset) )
-	    {
-	      sprintf(message,"Unable to open dataset file %s\n", 
-		      argv[nopt]);
-	      ANOVA_error (message);
-	    }
+     CHECK_OPEN_ERROR(dset,argv[nopt]) ;
 
 	  /*--- check number of selected sub-bricks ---*/
 	  if (DSET_NVALS(dset) != 1)
@@ -6413,11 +6408,7 @@ void create_bucket (anova_options * option_data)
 
   /*----- read first dataset -----*/
   dset = THD_open_dataset (option_data->first_dataset) ;
-  if( ! ISVALID_3DIM_DATASET(dset) ){
-    fprintf(stderr,"*** Unable to open dataset file %s\n",
-	    option_data->first_dataset);
-    exit(1) ;
-  }
+  CHECK_OPEN_ERROR(dset,option_data->first_dataset) ;
 
        if( DSET_IS_1D(dset) ) USE_1D_filenames(1) ; /* 14 Mar 2003 */
   else if( DSET_IS_3D(dset) ) USE_1D_filenames(3) ; /* 21 Mar 2003 */
@@ -6914,11 +6905,7 @@ void terminate (anova_options * option_data)
 
       /*----- read first dataset -----*/
       dset = THD_open_dataset (option_data->first_dataset) ;
-      if( ! ISVALID_3DIM_DATASET(dset) ){
-	fprintf(stderr,"*** Unable to open dataset file %s\n",
-		option_data->first_dataset);
-	exit(1) ;
-      }
+      CHECK_OPEN_ERROR(dset,option_data->first_dataset) ;
       
       /*----- make an empty copy of this dataset -----*/
       new_dset = EDIT_empty_copy (dset);

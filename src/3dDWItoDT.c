@@ -245,9 +245,7 @@ main (int argc, char *argv[])
            ERROR_exit("ERROR: can't use -mask with -automask!");
          }
          mask_dset = THD_open_dataset(argv[++nopt]) ;
-         if( mask_dset == NULL ){
-            ERROR_exit("ERROR: can't open -mask dataset!");
-         }
+         CHECK_OPEN_ERROR(mask_dset,argv[nopt]) ;
          if( maskptr != NULL ){
             ERROR_exit("** ERROR: can't have 2 -mask options!");
          }
@@ -484,12 +482,7 @@ main (int argc, char *argv[])
   /* Now read in all the MRI volumes for each gradient vector */
   /* assumes first one is no gradient */
   old_dset = THD_open_dataset (argv[nopt]);
-
-  if (!ISVALID_DSET (old_dset))
-    {
-      mri_free (grad1Dptr);
-      ERROR_exit("Error - Can not open dataset %s", argv[nopt]);
-    }
+  CHECK_OPEN_ERROR(old_dset,argv[nopt]) ;
 
   /* expect at least 7 values per voxel - 7 sub-briks as input dataset */
   if (DSET_NVALS (old_dset) != (grad1Dptr->nx + 1))

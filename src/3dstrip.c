@@ -151,8 +151,7 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"** Dataset is in the +orig view, which is illegal!\n") ; exit(1) ;
    }
 
-   DSET_mallocize(dset) ; DSET_load(dset) ;
-   if( !DSET_LOADED(dset) ){fprintf(stderr,"** Can't load dataset %s\n",argv[iarg]);exit(1);}
+   DSET_mallocize(dset) ; DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
 
    dar = DSET_ARRAY(dset,0) ;
 

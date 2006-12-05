@@ -284,7 +284,7 @@ do{ int pv ; (ds) = THD_open_dataset((name)) ;                                \
           fprintf(stderr,"*** Axes mismatch: %s\n",(name)) ; exit(1) ; }      \
        if( DSET_NVALS((ds)) != 1 ){                                           \
          fprintf(stderr,"*** Must specify 1 sub-brick: %s\n",(name));exit(1);}\
-       THD_load_datablock( (ds)->dblk ) ;                                     \
+       DSET_load((ds)) ;                                                      \
        pv = DSET_PRINCIPAL_VALUE((ds)) ;                                      \
        if( DSET_ARRAY((ds),pv) == NULL ){                                     \
           fprintf(stderr,"*** Can't access data: %s\n",(name)) ; exit(1); }   \
@@ -329,11 +329,7 @@ void get_dimensions
    /*----- read first dataset to get dimensions, etc. -----*/
 
    dset = THD_open_dataset( option_data->first_dataset ) ;
-   if( ! ISVALID_3DIM_DATASET(dset) ){
-      fprintf(stderr,"*** Unable to open dataset file %s\n", 
-              option_data->first_dataset);
-      exit(1) ;
-   }
+   CHECK_OPEN_ERROR(dset,option_data->first_dataset) ;
 
    /*----- data set dimensions in voxels -----*/
    option_data->nx = dset->daxes->nxx ;
@@ -1261,11 +1257,7 @@ void get_inputs
 	
 	/*--- check whether input files exist ---*/
 	dset = THD_open_dataset( argv[nopt] ) ;
-	if( ! ISVALID_3DIM_DATASET(dset) )
-	  {
-	    sprintf(message,"Unable to open dataset file %s\n", argv[nopt]);
-	    RA_error (message);
-	  }
+   CHECK_OPEN_ERROR(dset,argv[nopt]) ;
 	THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
 	
 	option_data->yname[irows] 
@@ -1846,11 +1838,7 @@ void check_one_output_file
   
   /*----- read first dataset -----*/
   dset = THD_open_dataset (option_data->first_dataset ) ;
-  if( ! ISVALID_3DIM_DATASET(dset) ){
-    fprintf(stderr,"*** Unable to open dataset file %s\n",
-	    option_data->first_dataset);
-    exit(1) ;
-  }
+  CHECK_OPEN_ERROR(dset,option_data->first_dataset) ;
   
   /*-- make an empty copy of this dataset, for eventual output --*/
   new_dset = EDIT_empty_copy( dset ) ;
@@ -2590,10 +2578,7 @@ void write_afni_data
   
   /*----- read first dataset -----*/
   dset = THD_open_dataset (option_data->first_dataset) ;
-  if( ! ISVALID_3DIM_DATASET(dset) ){
-    fprintf(stderr,"*** Unable to open dataset file %s\n",
-	    option_data->first_dataset);    exit(1) ;
-  }
+  CHECK_OPEN_ERROR(dset,option_data->first_dataset) ;
   
 
   /*-- make an empty copy of this dataset, for eventual output --*/

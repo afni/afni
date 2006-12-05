@@ -858,7 +858,7 @@ void read_input_data
 		   option_data->input_filename);
 	  DC_error (message);
 	}  
-      THD_load_datablock ((*dset_time)->dblk);
+      DSET_load(*dset_time) ; CHECK_LOAD_ERROR(*dset_time) ;
       nt = DSET_NUM_TIMES (*dset_time);
       nxyz = DSET_NVOX (*dset_time);
 
@@ -872,7 +872,7 @@ void read_input_data
 		       option_data->mask_filename);
 	      DC_error (message);
 	    }  
-	  THD_load_datablock ((*mask_dset)->dblk);
+     DSET_load(*mask_dset) ; CHECK_LOAD_ERROR(*mask_dset) ;
 	}
 
       /*----- Read the input baseline parameter dataset -----*/
@@ -885,7 +885,7 @@ void read_input_data
 		       option_data->base_filename);
 	      DC_error (message);
 	    }  
-	  THD_load_datablock ((*base_dset)->dblk);
+	  DSET_load(*base_dset); CHECK_LOAD_ERROR(*base_dset);
 	  *base_length = DSET_NVALS (*base_dset);
 	}
       else
@@ -914,7 +914,7 @@ void read_input_data
 			   option_data->iresp_filename[is]);
 		  DC_error (message);
 		}  
-	      THD_load_datablock ((*irf_dset)[is]->dblk);
+         DSET_load((*irf_dset)[is]) ; CHECK_LOAD_ERROR((*irf_dset)[is]) ;
 	      (*irf_length)[is] = DSET_NVALS ((*irf_dset)[is]);
 	    }	       
 	} 
@@ -929,7 +929,7 @@ void read_input_data
 		       option_data->errts_filename);
 	      DC_error (message);
 	    }  
-	  THD_load_datablock ((*err_dset)->dblk);
+     DSET_load(*err_dset); CHECK_LOAD_ERROR(*err_dset);
 	  *errts_length = DSET_NVALS (*err_dset);
 	}
       else

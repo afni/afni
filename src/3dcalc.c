@@ -609,9 +609,7 @@ void CALC_read_opts( int argc , char * argv[] )
                            " +     ==> converting all sub-bricks to floats\n",
                           argv[nopt-1]);
 
-           DSET_mallocize(dset) ; DSET_load(dset) ;
-           if( ! DSET_LOADED(dset) )
-             ERROR_exit("can't load %s from disk!\n",argv[nopt-1]);
+           DSET_mallocize(dset) ; DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
 
            for( ii=0 ; ii < ntime[ival] ; ii++ ){
              if( DSET_BRICK_TYPE(dset,ii) != MRI_float ){
@@ -657,9 +655,7 @@ void CALC_read_opts( int argc , char * argv[] )
          }
 
          if( ! DSET_LOADED(dset) ){
-           THD_load_datablock( dset->dblk ) ;
-           if( ! DSET_LOADED(dset) )
-             ERROR_exit("Can't read data brick for dataset %s\n",argv[nopt-1]) ;
+           DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
          }
 
          /* set pointers for actual dataset arrays */

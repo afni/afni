@@ -134,12 +134,7 @@ void get_options
 	      sprintf (message, "Can't open dataset: %s\n", anat_filename); 
 	      estPDF_error (message); 
 	    } 
-	  THD_load_datablock (anat->dblk); 
-	  if (DSET_ARRAY(anat,0) == NULL)
-	    {
-	      sprintf (message, "Can't access data: %s\n", anat_filename); 
-	      estPDF_error (message); 
-	    }
+	  DSET_load(anat); CHECK_LOAD_ERROR(anat);
 
 	  nopt++;
 	  continue;

@@ -89,7 +89,7 @@ int main( int argc , char * argv[] )
        if( mask_dset != NULL ) ERROR_exit("Can't use -mask twice!") ;
        if( iarg+1 >= argc ) ERROR_exit("-mask needs a filename!") ;
        mask_dset = THD_open_dataset( argv[++iarg] ) ;
-       if( mask_dset == NULL ) ERROR_exit("Can't open mask dataset!") ;
+       CHECK_OPEN_ERROR(mask_dset,argv[iarg]) ;
        iarg++ ; continue ;
      }
 
@@ -103,13 +103,10 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"*** No input datasets!?\n") ; exit(1) ;
    }
 
-   xset = THD_open_dataset( argv[iarg++] ) ;
-   yset = THD_open_dataset( argv[iarg++] ) ;
-   if( xset == NULL || yset == NULL )
-     ERROR_exit("Can't open both input datasets!") ;
+   xset = THD_open_dataset(argv[iarg++]) ; CHECK_OPEN_ERROR(xset,argv[iarg-1]) ;
+   yset = THD_open_dataset(argv[iarg++]) ; CHECK_OPEN_ERROR(yset,argv[iarg-1]) ;
    DSET_load(xset) ; DSET_load(yset) ;
-   if( !DSET_LOADED(xset) || !DSET_LOADED(yset) )
-     ERROR_exit("Can't load input datasets") ;
+   CHECK_LOAD_ERROR(xset) ; CHECK_LOAD_ERROR(yset) ;
    if( DSET_NVALS(xset) > 1 || DSET_NVALS(yset) > 1 )
      WARNING_message("Using only sub-brick [0] of input datasets") ;
 

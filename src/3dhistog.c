@@ -154,11 +154,7 @@ int main( int argc , char * argv[] )
      HI_syntax("mask and input dataset bricks don't match in size!") ;
 
    DSET_mallocize( dset ) ;
-   DSET_load( dset ) ;
-   if( !DSET_LOADED(dset) ){
-     fprintf(stderr,"** ERROR: can't load dataset %s\n",argv[iarg]) ;
-     exit(1) ;
-   }
+   DSET_load( dset ) ;  CHECK_LOAD_ERROR(dset) ;
    EDIT_one_dataset( dset , &HI_edopt ) ;  /* edit value in memory */
 
    nx = dset->daxes->nxx ;

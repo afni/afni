@@ -43,12 +43,8 @@ int main( int argc , char *argv[] )
          ERROR_exit("Can't have 2 -input options") ;
        if( ++nopt >= argc )
          ERROR_exit("Need argument after '-input'") ;
-       dset = THD_open_dataset(argv[nopt]) ;
-       if( !ISVALID_DSET(dset) )
-         ERROR_exit("Can't open dataset '%s'",argv[nopt]) ;
-       DSET_load(dset) ;
-       if( !DSET_LOADED(dset) )
-         ERROR_exit("Opened but can't load dataset '%s'",argv[nopt]) ;
+       dset = THD_open_dataset(argv[nopt]) ; CHECK_OPEN_ERROR(dset,argv[nopt]) ;
+       DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
        nopt++ ; continue ;
      }
 
@@ -100,12 +96,8 @@ int main( int argc , char *argv[] )
    if( dset == NULL ){
      if( nopt >= argc )
        ERROR_exit("No dataset on command line!?") ;
-     dset = THD_open_dataset(argv[nopt]) ;
-     if( !ISVALID_DSET(dset) )
-       ERROR_exit("Can't open dataset '%s'",argv[nopt]) ;
-     DSET_load(dset) ;
-     if( !DSET_LOADED(dset) )
-       ERROR_exit("Opened but can't load dataset '%s'",argv[nopt]) ;
+     dset = THD_open_dataset(argv[nopt]) ; CHECK_OPEN_ERROR(dset,argv[nopt]) ;
+     DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
    }
 
    /* get first sub-brick's row */

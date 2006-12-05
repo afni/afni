@@ -95,9 +95,7 @@ int main( int argc , char *argv[] )
            fprintf(stderr,"** Can't have 2 -anat options!\n"); exit(1);
          }
          dsant = THD_open_dataset( argv[++nopt] ) ;
-         if( !ISVALID_DSET(dsant) ){
-           fprintf(stderr,"** Can't open dataset %s\n",argv[nopt]); exit(1);
-         }
+         CHECK_OPEN_ERROR(dsant,argv[nopt]) ;
          nopt++ ; continue ;
       }
 
@@ -108,9 +106,7 @@ int main( int argc , char *argv[] )
            fprintf(stderr,"** Can't have 2 -epi options!\n"); exit(1);
          }
          dsepi = THD_open_dataset( argv[++nopt] ) ;
-         if( !ISVALID_DSET(dsepi) ){
-           fprintf(stderr,"** Can't open dataset %s\n",argv[nopt]); exit(1);
-         }
+         CHECK_OPEN_ERROR(dsepi,argv[nopt]) ;
          nopt++ ; continue ;
       }
 

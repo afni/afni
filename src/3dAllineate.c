@@ -1390,8 +1390,7 @@ int main( int argc , char *argv[] )
 
    /* target MUST be present */
 
-   DSET_load(dset_targ) ;
-   if( !DSET_LOADED(dset_targ) ) ERROR_exit("Can't load source dataset") ;
+   DSET_load(dset_targ) ; CHECK_LOAD_ERROR(dset_targ) ;
    nx_targ = DSET_NX(dset_targ) ; dx_targ = fabsf(DSET_DX(dset_targ)) ;
    ny_targ = DSET_NY(dset_targ) ; dy_targ = fabsf(DSET_DY(dset_targ)) ;
    nz_targ = DSET_NZ(dset_targ) ; dz_targ = fabsf(DSET_DZ(dset_targ)) ;
@@ -1405,8 +1404,7 @@ int main( int argc , char *argv[] )
    /* load base if defined */
 
    if( dset_base != NULL ){
-     DSET_load(dset_base) ;
-     if( !DSET_LOADED(dset_base) ) ERROR_exit("Can't load base dataset") ;
+     DSET_load(dset_base) ; CHECK_LOAD_ERROR(dset_base) ;
      im_base = mri_scale_to_float( DSET_BRICK_FACTOR(dset_base,0) ,
                                    DSET_BRICK(dset_base,0)         ) ;
      DSET_unload(dset_base) ;
@@ -1498,8 +1496,7 @@ int main( int argc , char *argv[] )
    /* load weight dataset if defined */
 
    if( dset_weig != NULL ){
-     DSET_load(dset_weig) ;
-     if( !DSET_LOADED(dset_weig) ) ERROR_exit("Can't load weight dataset") ;
+     DSET_load(dset_weig) ; CHECK_LOAD_ERROR(dset_weig) ;
      im_weig = mri_scale_to_float( DSET_BRICK_FACTOR(dset_weig,0) ,
                                    DSET_BRICK(dset_weig,0)         ) ;
      DSET_unload(dset_weig) ;

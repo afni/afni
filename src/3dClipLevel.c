@@ -92,7 +92,7 @@ int main( int argc , char * argv[] )
    /*-- read input dataset --*/
 
    dset = THD_open_dataset(argv[iarg]) ;
-   if( !ISVALID_DSET(dset) ) ERROR_exit("Can't open dataset '%s'",argv[iarg]);
+   CHECK_OPEN_ERROR(dset,argv[iarg]) ;
 
    /*-- get median at each voxel --*/
 

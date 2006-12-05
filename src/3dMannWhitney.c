@@ -270,11 +270,7 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 	  /*--- check whether input files exist ---*/
 	  nopt++;
 	  dset = THD_open_dataset( argv[nopt] ) ;
-	  if( ! ISVALID_3DIM_DATASET(dset) )
-	    {
-	     sprintf(message,"Unable to open dataset file %s\n", argv[nopt]);
-	     NP_error (message);
-	    }
+     CHECK_OPEN_ERROR(dset,argv[nopt]) ;
 
 	  /*--- check number of selected sub-bricks ---*/
 	  if (DSET_NVALS(dset) != 1)

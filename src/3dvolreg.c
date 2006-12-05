@@ -1681,12 +1681,7 @@ void VL_command_line(void)
           if( VL_verbose )
             fprintf(stderr,
                     "++ Reading in base dataset %s\n",DSET_BRIKNAME(VL_bset)) ;
-          DSET_load(VL_bset) ;
-          if( !DSET_LOADED(VL_bset) ){
-             fprintf(stderr,"** Couldn't read -base dataset %s\n",
-                     DSET_BRIKNAME(VL_bset)) ;
-             exit(1) ;
-          }
+          DSET_load(VL_bset) ; CHECK_LOAD_ERROR(VL_bset) ;
           if( DSET_NVALS(VL_bset) > 1 )
              fprintf(stderr,
                      "++ WARNING: -base dataset %s has more than 1 sub-brick\n",

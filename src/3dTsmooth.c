@@ -232,10 +232,7 @@ int main( int argc , char * argv[] )
       exit(1) ;
    }
 
-   DSET_load(old_dset) ;
-   if( !DSET_LOADED(old_dset) ){
-      fprintf(stderr,"*** Can't load datsaet from disk!\n") ; exit(1) ;
-   }
+   DSET_load(old_dset) ; CHECK_LOAD_ERROR(old_dset) ;
 
    old_datum = DSET_BRICK_TYPE(old_dset,0) ;
    if( new_datum < 0 ) new_datum = old_datum ;

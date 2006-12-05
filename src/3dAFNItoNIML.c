@@ -53,18 +53,12 @@ int main( int argc , char *argv[] )
 
    /*-- read dataset --*/
 
-   dset = THD_open_dataset( argv[iarg++] ) ;
-   if( dset == NULL ){
-     fprintf(stderr,"** Can't open dataset %s\n",argv[iarg-1]); exit(1);
-   }
+   dset = THD_open_dataset( argv[iarg++] ); CHECK_OPEN_ERROR(dset,argv[iarg-1]);
 
    /*-- convert attributes to NIML --*/
 
    if( dodata ){
-     DSET_load(dset) ;
-     if( !DSET_LOADED(dset) ){
-       fprintf(stderr,"** Can't load dataset %s\n",argv[iarg-1]); exit(1);
-     }
+     DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
    }
 
    switch( dodata ){
