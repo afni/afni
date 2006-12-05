@@ -661,12 +661,7 @@ int main( int argc , char * argv[] )
 
       if( ! TCAT_dry ){
          if( TCAT_verb ) printf("-verb: loading %s\n",DSET_FILECODE(dset)) ;
-         DSET_load(dset) ;
-         if( ! DSET_LOADED(dset) ){
-            fprintf(stderr,"*** Fatal error: can't load data from %s\n",
-                    DSET_FILECODE(dset)) ;
-            exit(1) ;
-         }
+         DSET_load(dset) ;  CHECK_LOAD_ERROR(dset) ;
       }
 
       /** loop over sub-bricks to output **/

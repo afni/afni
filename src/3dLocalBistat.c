@@ -173,9 +173,8 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-mask'") ;
        if( mask != NULL || automask ) ERROR_exit("Can't have two mask inputs") ;
        mset = THD_open_dataset( argv[iarg] ) ;
-       if( mset == NULL ) ERROR_exit("Can't open dataset '%s'",argv[iarg]) ;
-       DSET_load(mset) ;
-       if( !DSET_LOADED(mset) ) ERROR_exit("Can't load dataset '%s'",argv[iarg]) ;
+       CHECK_OPEN_ERROR(mset,argv[iarg]) ;
+       DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
        mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
        mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
        if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
@@ -253,22 +252,17 @@ int main( int argc , char *argv[] )
    /*---- deal with input datasets ----*/
 
    if( iarg >= argc-1 ) ERROR_exit("No input dataset on command line?") ;
-   inset = THD_open_dataset( argv[iarg] ) ;
-   if( inset == NULL  ) ERROR_exit("Can't open dataset '%s'",argv[iarg]) ;
+   inset = THD_open_dataset( argv[iarg] ) ; CHECK_OPEN_ERROR(inset,argv[iarg]) ;
    iarg++ ;
-   jnset = THD_open_dataset( argv[iarg] ) ;
+   jnset = THD_open_dataset( argv[iarg] ) ; CHECK_OPEN_ERROR(jnset,argv[iarg]) ;
    if( jnset == NULL  ) ERROR_exit("Can't open dataset '%s'",argv[iarg]) ;
    if( DSET_NVOX(jnset)  != DSET_NVOX(inset) )
      ERROR_exit("Input datasets have different numbers of voxels!?");
    if( DSET_NVALS(jnset) != DSET_NVALS(inset)  )
      ERROR_exit("Input datasets have different numbers of sub-bricks!?");
 
-   DSET_load(inset) ;
-   if( !DSET_LOADED(inset) )
-     ERROR_exit("Can't load input dataset '%s'",DSET_BRIKNAME(inset)) ;
-   DSET_load(jnset) ;
-   if( !DSET_LOADED(jnset) )
-     ERROR_exit("Can't load input dataset '%s'",DSET_BRIKNAME(jnset)) ;
+   DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
+   DSET_load(jnset) ; CHECK_LOAD_ERROR(jnset) ;
 
    if( mask != NULL ){
      if( mask_nx != DSET_NX(inset) ||

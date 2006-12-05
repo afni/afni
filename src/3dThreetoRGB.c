@@ -96,10 +96,7 @@ int main( int argc , char * argv[] )
            fprintf(stderr,"** -mset %s has invalid data type\n",argv[iarg]);
            exit(1) ;
          }
-         DSET_load(mset) ;
-         if( !DSET_LOADED(mset) ){
-           fprintf(stderr,"** can't load -mset %s\n",argv[iarg]); exit(1);
-         }
+         DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
          iarg++ ; continue ;
       }
 
@@ -118,10 +115,7 @@ int main( int argc , char * argv[] )
      if( !ISVALID_DSET(ds) ){                                       \
        fprintf(stderr,"** Can't open dataset %s\n",aa); exit(1);    \
      }                                                              \
-     DSET_load(ds) ;                                                \
-     if( !DSET_LOADED(ds) ){                                        \
-       fprintf(stderr,"** Can't load dataset %s\n",aa); exit(1);    \
-     }                                                              \
+     DSET_load(ds) ;  CHECK_LOAD_ERROR(ds) ;                        \
  } while(0)
 
    if( iarg == argc-1 ){   /* one dataset */

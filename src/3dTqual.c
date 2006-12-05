@@ -136,10 +136,7 @@ int main( int argc , char *argv[] )
    if( DSET_NUM_TIMES(dset) < 2 ){
       fprintf(stderr,"*** Input dataset is not 3D+time\n"); exit(1);
    }
-   DSET_load(dset) ;
-   if( !DSET_LOADED(dset) ){
-      fprintf(stderr,"*** Can't read dataset bricks\n"); exit(1);
-   }
+   DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
 
    /*-- compute median brick, and order it for correlation --*/
 

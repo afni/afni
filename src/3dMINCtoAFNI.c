@@ -52,11 +52,7 @@ int main( int argc , char *argv[] )
       fprintf(stderr,"** Not a MINC dataset: %s\n",argv[narg]) ;
       exit(1) ;
    }
-   DSET_load(dset) ;
-   if( !DSET_LOADED(dset) ){
-      fprintf(stderr,"** Can't read MINC dataset %s\n",argv[narg]) ;
-      exit(1) ;
-   }
+   DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
 
    EDIT_dset_items( dset , ADN_prefix,prefix , ADN_none ) ;
    dset->idcode = MCW_new_idcode() ;

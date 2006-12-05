@@ -173,11 +173,7 @@ int main( int argc , char * argv[] )
 
       /*-- read data from disk --*/
 
-      DSET_load(inset) ;
-      if( !DSET_LOADED(inset) ){
-         fprintf(stderr,"** ERROR: can't read data from dataset %s\n",insetname) ;
-         exit(1) ;
-      }
+      DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
       if( verb ) fprintf(stderr,"  ++ read in dataset %s\n",insetname) ;
 

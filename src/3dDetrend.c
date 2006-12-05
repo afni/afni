@@ -237,6 +237,7 @@ void DT_read_opts( int argc , char * argv[] )
    /*--- read input dataset ---*/
 
    DT_dset = THD_open_dataset( argv[nopt] ) ;
+   CHECK_OPEN_ERROR(DT_dset,argv[nopt]) ;
    if( DT_dset == NULL )
      ERROR_exit("Can't open dataset %s\n",argv[nopt]) ;
 
@@ -443,9 +444,7 @@ int main( int argc , char * argv[] )
 
    DSET_mallocize( new_dset ) ;
    DSET_mallocize( DT_dset ) ;
-   DSET_load( DT_dset ) ;
-   if( !DSET_LOADED(DT_dset) )
-     ERROR_exit("Can't read input dataset bricks\n") ;
+   DSET_load( DT_dset ) ; CHECK_LOAD_ERROR(DT_dset) ;
 
    nvals = DSET_NVALS(new_dset) ;
    for( iv=0 ; iv < nvals ; iv++ )

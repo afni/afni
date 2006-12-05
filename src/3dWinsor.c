@@ -147,10 +147,7 @@ int main( int argc , char * argv[] )
      DSET_delete(mset) ;
    }
 
-   DSET_load(inset) ;
-   if( !DSET_LOADED(inset) ){
-      fprintf(stderr,"*** Can't read dataset into memory!\n"); exit(1);
-   }
+   DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
    if( DSET_NVALS(inset) > 1 ){
       fprintf(stderr,"+++ WARNING: only processing sub-brick #0\n") ;

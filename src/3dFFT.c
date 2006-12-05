@@ -109,9 +109,5 @@ int main( int argc , char *argv[] )
 
    /* open input dataset */
 
-   dset_in = THD_open_dataset( argv[iarg] ) ;
-   if( dset_in == NULL ){
-     fprintf(stderr,"** ERROR: can't open dataset %s\n",argv[iarg]) ;
-     exit(1) ;
-   }
+   dset_in = THD_open_dataset(argv[iarg]); CHECK_OPEN_ERROR(dset_in,argv[iarg]);
 }

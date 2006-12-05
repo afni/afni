@@ -571,9 +571,7 @@ void get_options
          }
      DSET_UNMSEC( *dset_time ) ;  /* RWCox */
 
-       THD_load_datablock ((*dset_time)->dblk);
-     if( !DSET_LOADED((*dset_time)) )
-       ERROR_exit("Can't load dataset %s",*input_filename) ;
+       DSET_load(*dset_time) ; CHECK_LOAD_ERROR(*dset_time) ;
 
        *nxyz =  (*dset_time)->dblk->diskptr->dimsizes[0]
          * (*dset_time)->dblk->diskptr->dimsizes[1]

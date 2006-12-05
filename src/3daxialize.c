@@ -152,10 +152,7 @@ int main( int argc , char * argv[] )
 
    if( verbose ) INFO_message("Loading input dataset %s",argv[iarg]) ;
 
-   DSET_load(old_dset) ;
-   if( !DSET_LOADED(old_dset) ){
-      ERROR_exit("Can't load input .BRIK: %s",argv[iarg]);
-   }
+   DSET_load(old_dset) ;  CHECK_LOAD_ERROR(old_dset) ;
 
    /*- setup output dataset -*/
 

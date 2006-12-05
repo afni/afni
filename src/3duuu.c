@@ -194,9 +194,7 @@ void UC_read_opts( int argc , char * argv[] )
    for( kk=0 ; kk < UC_nvec ; kk++ ) UC_vec[kk] = vv + (kk*UC_vdim) ;
 
    if( !UC_be_quiet ) printf("--- reading input dataset\n") ;
-   DSET_load(UC_dset) ;
-   if( ! DSET_LOADED(UC_dset) )
-      UC_syntax("Can't load input dataset bricks!") ;
+   DSET_load(UC_dset) ; CHECK_LOAD_ERROR(UC_dset) ;
 
    /* copy brick data into float storage */
 

@@ -206,10 +206,7 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ){
          fprintf(stderr,"** -geomparent needs an argument!\n"); exit(1);
        }
-       gset = THD_open_dataset( argv[iarg] ) ;
-       if( !ISVALID_DSET(gset) ){
-         fprintf(stderr,"** Can't open -geomparent dataset!\n"); exit(1);
-       }
+       gset = THD_open_dataset( argv[iarg] ); CHECK_OPEN_ERROR(gset,argv[iarg]);
        iarg++ ; continue ;
      }
 

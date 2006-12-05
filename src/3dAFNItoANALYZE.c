@@ -134,11 +134,7 @@ int main( int argc , char *argv[] )
    }
    fname = malloc( strlen(aname)+16 ) ;
 
-   dset = THD_open_dataset( argv[iarg++] ) ;
-   if( dset == NULL ){
-     fprintf(stderr,"** Can't open dataset %s\n",argv[iarg-1]) ;
-     exit(1) ;
-   }
+   dset = THD_open_dataset( argv[iarg++] ); CHECK_OPEN_ERROR(dset,argv[iarg-1]);
 
    if( xxor >= 0 ){  /* 19 Mar 2003: figure how to flip */
      xdir = THD_get_axis_direction( dset->daxes , xxor ) ;
@@ -173,11 +169,7 @@ int main( int argc , char *argv[] )
      zdel = fabs(DSET_DZ(dset)) ;
    }
 
-   DSET_load(dset) ;
-   if( !DSET_LOADED(dset) ){
-     fprintf(stderr,"** Can't load dataset %s\n",argv[iarg-1]) ;
-     exit(1) ;
-   }
+   DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
 
    /* determine if we scale to floats */
 

@@ -306,9 +306,7 @@ int main( int argc , char * argv[] )
 
    if( !ZCAT_frugal ){                        /* 05 Apr 2006 */
      for( ids=0 ; ids < ninp ; ids++ ){
-       dset = DSUB(ids) ; DSET_load(dset) ;
-       if( !DSET_LOADED(dset) )
-         ERROR_exit("Can't load dataset '%s' from disk",DSET_BRIKNAME(dset)) ;
+       dset = DSUB(ids) ; DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
      }
    }
 

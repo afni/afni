@@ -215,7 +215,7 @@ THD_3dim_dataset * fim3d_fimmer_compute ( THD_3dim_dataset * dset_time ,
 
    /*--- FIM: find values above threshold to fim ---*/
 
-   THD_load_datablock( dset_time->dblk ) ;
+   DSET_load(dset_time); CHECK_LOAD_ERROR(dset_time);
 
    nxyz =  dset_time->dblk->diskptr->dimsizes[0]
          * dset_time->dblk->diskptr->dimsizes[1]

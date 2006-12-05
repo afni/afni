@@ -113,9 +113,7 @@ int main( int argc , char *argv[] )
    if( narg >= argc )
      ERROR_exit("No dataset on command line?\n");
 
-   dset = THD_open_dataset( argv[narg] ) ;
-   if( !ISVALID_DSET(dset) )
-     ERROR_exit("Can't open dataset %s\n",argv[narg]);
+   dset = THD_open_dataset( argv[narg] ); CHECK_OPEN_ERROR(dset,argv[narg]) ;
 
    /*--- deal with the filename ---*/
 
@@ -137,8 +135,7 @@ int main( int argc , char *argv[] )
      int nvals=DSET_NVALS(dset) , nxyz=DSET_NVOX(dset) , tt ;
      float fac , *far ;
 
-     DSET_mallocize(dset); DSET_load(dset);
-     if( !DSET_LOADED(dset) ) ERROR_exit("Can't load input dataset from disk") ;
+     DSET_mallocize(dset); DSET_load(dset); CHECK_LOAD_ERROR(dset);
      if( verb ) INFO_message("Converting dataset to floats (in memory)") ;
 
      /* loop over sub-bricks */

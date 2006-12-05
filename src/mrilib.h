@@ -708,8 +708,8 @@ extern int mri_write_raw( char * , MRI_IMAGE * ) ;       /* 05 Jan 2000 */
 extern void mri_write_analyze( char * , MRI_IMAGE * ) ;  /* 29 Nov 2001 */
 
 extern MRI_IMAGE * mri_read_1D( char * ) ;               /* 16 Nov 1999 */
-extern MRI_IMAGE * mri_read_double_1D( char * ) ;               
-extern MRI_IMAGE * mri_read_complex_1D( char * ) ;              
+extern MRI_IMAGE * mri_read_double_1D( char * ) ;
+extern MRI_IMAGE * mri_read_complex_1D( char * ) ;
 extern int mri_write_1D( char * , MRI_IMAGE * ) ;        /* 16 Nov 1999 */
 
 extern MRI_IMAGE * mri_1D_fromstring( char * ) ;         /* 28 Apr 2003 */
@@ -1256,6 +1256,17 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
 #undef  WROTE_DSET
 #define WROTE_DSET(dd) \
   INFO_message("Output dataset %s",DSET_BRIKNAME(dd))
+
+#undef  CHECK_OPEN_ERROR
+#define CHECK_OPEN_ERROR(dd,nn) \
+ do{ if( !ISVALID_DSET(dd) ) ERROR_exit("Can't open dataset '%s'",nn); }while(0)
+
+#undef  CHECK_LOAD_ERROR
+#define CHECK_LOAD_ERROR(dd)                                                   \
+ do{ if( ISVALID_DSET(dd) && !DSET_LOADED(dd) )                                \
+      ERROR_exit("Can't load dataset '%s': is it complete?",DSET_BRIKNAME(dd));\
+ } while(0)
+
 
 /*------------------------------------------------------------------*/
 

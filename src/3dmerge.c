@@ -1434,14 +1434,12 @@ int main( int argc , char * argv[] )
       if( MRG_have_edopt )
          EDIT_one_dataset( dset , &MRG_edopt ) ;  /* some real work */
       else
-         THD_load_datablock( dset->dblk ) ;
+         DSET_load(dset) ;
+      CHECK_LOAD_ERROR(dset) ;
 
       /* 02 Nov 2001: check for data that doesn't exist */
 
-      if( !DSET_LOADED(dset) ){
-         fprintf(stderr,"** Can't get data from %s\n",DSET_BRIKNAME(dset)) ;
-         exit(1) ;
-      }
+      CHECK_LOAD_ERROR(dset) ;
 
       if( ! MRG_be_quiet ){ printf(".") ; fflush(stdout) ; }
 

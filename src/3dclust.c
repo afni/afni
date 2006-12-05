@@ -387,7 +387,7 @@ int main( int argc , char * argv[] )
       THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ; /* don't mmap  */
       if( CL_verbose )
          fprintf(stderr,"+++ Loading dataset %s\n",argv[iarg]) ;
-      THD_load_datablock( dset->dblk  ) ;                          /* read in     */
+      DSET_load(dset); CHECK_LOAD_ERROR(dset);                     /* read in     */
       EDIT_one_dataset( dset , &CL_edopt ) ;                       /* editing?    */
 
       /* 30 Apr 2002: check if -mni should be used here */

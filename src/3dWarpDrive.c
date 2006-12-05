@@ -851,46 +851,34 @@ int main( int argc , char * argv[] )
 
    if( abas.verb ) INFO_message("Loading datasets\n") ;
 
-   DSET_load(inset) ;
-   if( !DSET_LOADED(inset) ){
-     ERROR_exit("Can't load input dataset into memory!\n") ;
+   DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
+   nvals = DSET_NVALS(inset) ;
+   if( nvals == 1 ){
+     clip_inset = THD_cliplevel( DSET_BRICK(inset,0) , 0.0 ) ;
+     if( DSET_BRICK_FACTOR(inset,0) > 0.0f )
+       clip_inset *= DSET_BRICK_FACTOR(inset,0) ;
+       mri_get_cmass_3D( DSET_BRICK(inset,0) , &i_xcm,&i_ycm,&i_zcm ) ;
    } else {
-     nvals = DSET_NVALS(inset) ;
-     if( nvals == 1 ){
-       clip_inset = THD_cliplevel( DSET_BRICK(inset,0) , 0.0 ) ;
-       if( DSET_BRICK_FACTOR(inset,0) > 0.0f )
-         clip_inset *= DSET_BRICK_FACTOR(inset,0) ;
-         mri_get_cmass_3D( DSET_BRICK(inset,0) , &i_xcm,&i_ycm,&i_zcm ) ;
-     } else {
-       qim = THD_median_brick( inset ) ;
-       clip_inset = THD_cliplevel( qim , 0.0 ) ;
-       mri_get_cmass_3D( qim , &i_xcm,&i_ycm,&i_zcm ) ;
-       mri_free(qim) ;
-     }
+     qim = THD_median_brick( inset ) ;
+     clip_inset = THD_cliplevel( qim , 0.0 ) ;
+     mri_get_cmass_3D( qim , &i_xcm,&i_ycm,&i_zcm ) ;
+     mri_free(qim) ;
    }
 
-   DSET_load(baset) ;
-   if( !DSET_LOADED(baset) ){
-     ERROR_exit("Can't load base dataset into memory!\n") ;
-   } else {
-     mri_get_cmass_3D( DSET_BRICK(baset,0) , &b_xcm,&b_ycm,&b_zcm ) ;
-     abas.imbase = mri_scale_to_float( DSET_BRICK_FACTOR(baset,0) ,
-                                       DSET_BRICK(baset,0)         ) ;
-     clip_baset  = THD_cliplevel( abas.imbase , 0.0 ) ;
-     base_idc    = strdup(baset->idcode.str) ;
-     DSET_unload(baset) ;
-   }
+   DSET_load(baset) ; CHECK_LOAD_ERROR(baset) ;
+   mri_get_cmass_3D( DSET_BRICK(baset,0) , &b_xcm,&b_ycm,&b_zcm ) ;
+   abas.imbase = mri_scale_to_float( DSET_BRICK_FACTOR(baset,0) ,
+                                     DSET_BRICK(baset,0)         ) ;
+   clip_baset  = THD_cliplevel( abas.imbase , 0.0 ) ;
+   base_idc    = strdup(baset->idcode.str) ;
+   DSET_unload(baset) ;
 
    if( wtset != NULL ){
-     DSET_load(wtset) ;
-     if( !DSET_LOADED(wtset) ){
-       ERROR_exit("Can't load weight dataset into memory!\n") ;
-     } else {
-       abas.imwt = mri_scale_to_float( DSET_BRICK_FACTOR(wtset,0) ,
-                                       DSET_BRICK(wtset,0)         ) ;
-       wt_idc    = strdup(wtset->idcode.str) ;
-       DSET_unload(wtset) ;
-     }
+     DSET_load(wtset) ; CHECK_LOAD_ERROR(wtset) ;
+     abas.imwt = mri_scale_to_float( DSET_BRICK_FACTOR(wtset,0) ,
+                                     DSET_BRICK(wtset,0)         ) ;
+     wt_idc    = strdup(wtset->idcode.str) ;
+     DSET_unload(wtset) ;
    }
 
    if( abas.verb ) INFO_message("Checking inputs\n") ;

@@ -205,8 +205,8 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-input") == 0 || strcmp(argv[iarg],"-dset") == 0 ){
        if( inset != NULL  ) ERROR_exit("Can't have two -input options") ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-input'") ;
-       inset = THD_open_dataset( argv[iarg] ) ;
-       if( inset == NULL  ) ERROR_exit("Can't open dataset '%s'",argv[iarg]) ;
+       inset = THD_open_dataset( argv[iarg] );
+       CHECK_OPEN_ERROR(inset,argv[iarg]) ;
        iarg++ ; continue ;
      }
 
@@ -214,7 +214,7 @@ int main( int argc , char *argv[] )
        if( bmset != NULL  ) ERROR_exit("Can't have two -blurmaster options") ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-blurmaster'") ;
        bmset = THD_open_dataset( argv[iarg] ) ;
-       if( bmset == NULL  ) ERROR_exit("Can't open dataset '%s'",argv[iarg]) ;
+       CHECK_OPEN_ERROR(bmset,argv[iarg]) ;
        iarg++ ; continue ;
      }
 
@@ -236,9 +236,8 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-mask'") ;
        if( mask != NULL || automask ) ERROR_exit("Can't have two mask inputs") ;
        mset = THD_open_dataset( argv[iarg] ) ;
-       if( mset == NULL ) ERROR_exit("Can't open dataset '%s'",argv[iarg]) ;
-       DSET_load(mset) ;
-       if( !DSET_LOADED(mset) ) ERROR_exit("Can't load dataset '%s'",argv[iarg]) ;
+       CHECK_OPEN_ERROR(mset,argv[iarg]) ;
+       DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
        mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
        mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_unload(mset) ;
        if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
@@ -309,7 +308,7 @@ int main( int argc , char *argv[] )
    if( inset == NULL ){
      if( iarg >= argc ) ERROR_exit("No input dataset on command line?") ;
      inset = THD_open_dataset( argv[iarg] ) ;
-     if( inset == NULL  ) ERROR_exit("Can't open dataset '%s'",argv[iarg]) ;
+     CHECK_OPEN_ERROR(inset,argv[iarg]) ;
    }
    nvox = DSET_NVOX(inset)     ;
    dx   = fabs(DSET_DX(inset)) ; if( dx == 0.0f ) dx = 1.0f ;
@@ -408,8 +407,7 @@ int main( int argc , char *argv[] )
 
    /*--- process blurmaster dataset to produce blur master image array ---*/
 
-   DSET_load(bmset) ;
-   if( !DSET_LOADED(bmset) ) ERROR_exit("Can't load -blurmaster dataset!") ;
+   DSET_load(bmset) ; CHECK_LOAD_ERROR(bmset) ;
    bmed = THD_median_brick(bmset) ; INIT_IMARR(bmar) ;
    if( DSET_NVALS(bmset) == 1 ){
      ADDTO_IMARR(bmar,bmed) ;
@@ -446,8 +444,7 @@ int main( int argc , char *argv[] )
 
    /*--- pre-process input dataset ---*/
 
-   DSET_load(inset) ;
-   if( !DSET_LOADED(inset) ) ERROR_exit("Can't load input dataset from disk") ;
+   DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
    INIT_IMARR(dsar) ;
    for( ids=0 ; ids < DSET_NVALS(inset) ; ids++ ){
      dsim = mri_scale_to_float(DSET_BRICK_FACTOR(inset,ids),DSET_BRICK(inset,ids));

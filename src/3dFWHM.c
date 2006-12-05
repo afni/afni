@@ -48,13 +48,12 @@ static int dontcheckplus = 0 ;  /* 09 Nov 2006 */
 
 #define DOPEN(ds,name)                                                               \
    do{ int pv ; (ds) = THD_open_dataset((name)) ;                                    \
-       if( !ISVALID_3DIM_DATASET((ds)) ){                                            \
-          fprintf(stderr,"*** Can't open dataset: %s\n",(name)) ; exit(1) ; }        \
+       CHECK_OPEN_ERROR((ds),(name)) ;                                               \
        if( (ds)->daxes->nxx!=nx || (ds)->daxes->nyy!=ny || (ds)->daxes->nzz!=nz ){   \
           fprintf(stderr,"*** Axes mismatch: %s\n",(name)) ; exit(1) ; }             \
        if( DSET_NUM_TIMES((ds)) > 1 ){                                               \
          fprintf(stderr,"*** Can't use time-dependent data: %s\n",(name));exit(1); } \
-       THD_load_datablock( (ds)->dblk ) ;                                            \
+       DSET_load((ds)) ;                                                             \
        pv = DSET_PRINCIPAL_VALUE((ds)) ;                                             \
        if( DSET_ARRAY((ds),pv) == NULL ){                                            \
           fprintf(stderr,"*** Can't access data: %s\n",(name)) ; exit(1); }          \
@@ -176,11 +175,7 @@ void get_dimensions (input_options * option_data)
    /*----- read first dataset to get dimensions, etc. -----*/
 
    dset = THD_open_dataset( option_data->infilename) ;
-   if( ! ISVALID_3DIM_DATASET(dset) ){
-      fprintf(stderr,"*** Unable to open dataset file %s\n", 
-              option_data->infilename);
-      exit(1) ;
-   }
+   CHECK_OPEN_ERROR(dset,option_data->infilename) ;
 
    /*----- voxel dimensions and data set dimensions -----*/
    option_data->dx = fabs(dset->daxes->xxdel) ;

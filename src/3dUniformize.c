@@ -206,13 +206,7 @@ void get_options
 		       option_data->anat_filename); 
 	      UN_error (message); 
 	    } 
-	  THD_load_datablock (anat_dset->dblk); 
-	  if (DSET_ARRAY(anat_dset,0) == NULL)
-	    {
-	      sprintf (message, "Can't access data: %s\n", 
-		       option_data->anat_filename); 
-	      UN_error (message); 
-	    }
+	  DSET_load(anat_dset) ; CHECK_LOAD_ERROR(anat_dset) ;
 
           /** RWCox [16 Apr 2003]
               If input is a byte dataset, make a short copy of it. **/

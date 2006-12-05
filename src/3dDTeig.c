@@ -105,9 +105,7 @@ int main( int argc , char * argv[] )
    }
 
    old_dset = THD_open_dataset( argv[nopt] ) ;
-   if( !ISVALID_DSET(old_dset) ){
-      ERROR_exit("Can't open dataset %s",argv[nopt]);
-   }
+   CHECK_OPEN_ERROR(old_dset,argv[nopt]) ;
 
    /* expect 6 values per voxel - 6 sub-briks as input dataset */ 
    if( DSET_NVALS(old_dset) < 6 ){  /* allows 6 or greater sub-briks */

@@ -69,8 +69,7 @@ int main( int argc , char *argv[] )
        if( mask != NULL ) ERROR_exit("Can't have two '-mask' options") ;
        mset = THD_open_dataset( argv[iarg] ) ;
        if( mset == NULL ) ERROR_exit("Can't open mask dataset '%s'",argv[iarg]) ;
-       DSET_load(mset) ;
-       if( !DSET_LOADED(mset) ) ERROR_exit("Can't load mask dataset '%s'",argv[iarg]) ;
+       DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
        nmask = DSET_NVOX(mset) ;
        mask  = THD_makemask( mset , 0 , 1.0f,-1.0f ) ; DSET_delete(mset) ;
        if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
@@ -94,8 +93,7 @@ int main( int argc , char *argv[] )
        inset = THD_open_dataset( argv[iarg] ) ;
        if( inset == NULL ) ERROR_exit("Can't open dataset '%s'",argv[iarg]) ;
        INFO_message("Loading dataset '%s'",argv[iarg]) ;
-       DSET_load(inset) ;
-       if( !DSET_LOADED(inset) ) ERROR_exit("Can't load dataset '%s'",argv[iarg]);
+       DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
        nvals = DSET_NVALS(inset) ; nvox = DSET_NVOX(inset) ;
        iarg++ ; continue ;
      }

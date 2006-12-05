@@ -61,14 +61,11 @@ int main( int argc , char * argv[] )
         if( mset != NULL )
           ERROR_exit("can't have 2 -mask options!\n");
         mset = THD_open_dataset( argv[++iarg] ) ;
-        if( !ISVALID_DSET(mset) ){
+        if( !ISVALID_DSET(mset) )
           ERROR_exit("can't open -mset %s\n",argv[iarg]);
         if( !GOOD_TYPE( DSET_BRICK_TYPE(mset,0) ) )
           ERROR_exit("-mset %s has invalid data type\n",argv[iarg]);
-        DSET_load(mset) ;
-        if( !DSET_LOADED(mset) )
-          ERROR_exit("can't load -mset %s\n",argv[iarg]);
-        }
+        DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
         iarg++ ; continue ;
       }
 
@@ -90,8 +87,7 @@ int main( int argc , char * argv[] )
 #define OPENIT(ds,aa)                                                  \
  do{ ds = THD_open_dataset(aa) ;                                       \
      if( !ISVALID_DSET(ds) ) ERROR_exit("Can't open dataset %s\n",aa); \
-     DSET_load(ds) ;                                                   \
-     if( !DSET_LOADED(ds) )  ERROR_exit("Can't load dataset %s\n",aa); \
+     DSET_load(ds) ; CHECK_LOAD_ERROR(ds) ;                            \
  } while(0)
 
    if( iarg == argc-1 ){   /* one dataset */

@@ -52,14 +52,8 @@ int main( int argc , char *argv[] )
      fprintf(stderr,"** ERROR: no dataset on command line?\n"); exit(1);
    }
 
-   dset = THD_open_dataset( argv[narg] ) ;
-   if( !ISVALID_DSET(dset) ){
-     fprintf(stderr,"** ERROR: can't open dataset %s\n",argv[narg]); exit(1);
-   }
-   DSET_load(dset) ;
-   if( !DSET_LOADED(dset) ){
-     fprintf(stderr,"** ERROR: can't load dataset %s\n",argv[narg]); exit(1);
-   }
+   dset = THD_open_dataset( argv[narg] ) ; CHECK_OPEN_ERROR(dset,argv[narg]) ;
+   DSET_load(dset) ;                       CHECK_LOAD_ERROR(dset) ;
    if( prefix == NULL ){                       /* 03 Jun 2005 */
      prefix = strdup( DSET_PREFIX(dset) ) ;
      if( STRING_HAS_SUFFIX(prefix,".1D") ){    /* don't overwrite .1D files! */
