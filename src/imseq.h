@@ -175,6 +175,11 @@ typedef struct {
       int save_mpeg   ;  /* 02 Jul 2001 */
 } ISQ_options ;
 
+#undef  AGIF_MODE
+#undef  MPEG_MODE
+#define AGIF_MODE 1  /* 06 Dec 2006 - for ISQ_save_anim() */
+#define MPEG_MODE 2
+
 #define ISQ_OPT_EQUAL(opta,optb)                    \
     ( ((opta).mirror      == (optb).mirror     ) && \
       ((opta).rot         == (optb).rot        ) && \
@@ -785,12 +790,15 @@ extern void ISQ_cropper( MCW_imseq *, XButtonEvent *) ; /* 17 Jun 2002 */
 
 extern void ISQ_snapshot( Widget w ) ;                 /* 18 Jun 2003 */
 extern void ISQ_snapsave( int,int, byte *, Widget ) ;  /* 03 Jul 2003 */
+extern void ISQ_snap_agif( char * ) ;                  /* 06 Dec 2006 */
+extern void ISQ_snap_mpeg( char * ) ;
 
 extern int ISQ_handle_keypress( MCW_imseq * , unsigned long ); /* 18 Feb 2005 */
 
 extern void mri_rgb_transform_nD( MRI_IMAGE *, int, generic_func * ) ;
 
-extern void ISQ_save_jpeg( MCW_imseq *seq , char *fname ) ; /* 28 Jul 2005 */
+extern void ISQ_save_jpeg( MCW_imseq *seq , char *fname ) ;    /* 28 Jul 2005 */
+extern void ISQ_save_anim( MCW_imseq *, char *, int,int,int ); /* 06 Dec 2006 */
 
 extern void ISQ_setup_ppmto_filters(void); /* 11 May 2006 */
 

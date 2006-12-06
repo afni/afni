@@ -110,7 +110,7 @@ THD_fvec3 mri_nstat_fwhmxyz( int xx, int yy, int zz,
    double dfdy, dfdysum, dfdysq, varyy;
    double dfdz, dfdzsum, dfdzsq, varzz;
    double dx,dy,dz ;
-   float  sx,sy,sz ;
+   float  sx=-1.0f,sy=-1.0f,sz=-1.0f ;
    int count, countx, county, countz;
 
    LOAD_FVEC3(fw_xyz,-1,-1,-1) ;  /* load with bad values */
@@ -120,7 +120,7 @@ THD_fvec3 mri_nstat_fwhmxyz( int xx, int yy, int zz,
    far = MRI_FLOAT_PTR(im) ;
    nx  = im->nx; ny = im->ny; nz = im->nz; nxy = nx*ny; npt = nbhd->num_pt;
    kk  = xx + yy*nx + zz*nxy ;
-   if( npt == 0 || kk < 0 || kk >= nxy*nz || !INMASK(kk) ) return fw_xyz ;
+   if( npt < 6 || kk < 0 || kk >= nxy*nz || !INMASK(kk) ) return fw_xyz ;
 
    /*----- estimate the variance of the local data -----*/
 
@@ -147,8 +147,7 @@ THD_fvec3 mri_nstat_fwhmxyz( int xx, int yy, int zz,
      aa = xx + nbhd->i[ii] ; if( aa < 0 || aa >= nx ) continue ;
      bb = yy + nbhd->j[ii] ; if( bb < 0 || bb >= ny ) continue ;
      cc = zz + nbhd->k[ii] ; if( cc < 0 || cc >= nz ) continue ;
-     kk = aa + bb*nx + cc*nxy ;
-     if( !INMASK(kk) ) continue ;
+     kk = aa + bb*nx + cc*nxy ;     if( !INMASK(kk) ) continue ;
      arg = far[kk] ;
      if( aa+1 < nx ){
        pp = kk+1 ;
@@ -184,23 +183,19 @@ THD_fvec3 mri_nstat_fwhmxyz( int xx, int yy, int zz,
    varzz = (countz < 6) ? 0.0
                         : (dfdzsq - (dfdzsum * dfdzsum)/countz) / (countz-1.0);
 
-   /*----- now estimate the FWHMs -----*/
+   /*---- now estimate the FWHMs                                     ----*/
+   /*---- 2.35482 = sqrt(8*log(2)) = sigma-to-FWHM conversion factor ----*/
 
    dx = im->dx; dy = im->dy; dz = im->dz;
 
-   /*---- 2.35482 = sqrt(8*log(2)) = sigma-to-FWHM conversion factor ----*/
-
    arg = 1.0 - 0.5*(varxx/var);
-   sx  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0
-                                      : 2.35482*sqrt( -1.0/(4.0*log(arg)) )*dx;
+   if( arg > 0.0 && arg < 1.0 ) sx = 2.35482*sqrt( -1.0/(4.0*log(arg)) )*dx;
 
    arg = 1.0 - 0.5*(varyy/var);
-   sy  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0
-                                      : 2.35482*sqrt( -1.0/(4.0*log(arg)) )*dy;
+   if( arg > 0.0 && arg < 1.0 ) sy = 2.35482*sqrt( -1.0/(4.0*log(arg)) )*dy;
 
    arg = 1.0 - 0.5*(varzz/var);
-   sz  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0
-                                      : 2.35482*sqrt( -1.0/(4.0*log(arg)) )*dz;
+   if( arg > 0.0 && arg < 1.0 ) sz = 2.35482*sqrt( -1.0/(4.0*log(arg)) )*dz;
 
    LOAD_FVEC3(fw_xyz,sx,sy,sz) ;
    return fw_xyz ;
