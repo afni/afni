@@ -10659,6 +10659,13 @@ void ISQ_snap_mpeg( char *prefix )
    ISQ_save_anim( snap_isq , prefix , 0,0 , MPEG_MODE ) ;
 }
 
+/*------------------------------------------------------------------*/
+
+void ISQ_snap_jpeg( char *prefix )
+{
+   ISQ_save_anim( snap_isq , prefix , 0,0 , JPEG_MODE ) ;
+}
+
 /*------------------------------------------------------------------
    Routine to provide data to the imseq.
    Just returns the control information, or the selected image.
@@ -11292,11 +11299,16 @@ ENTRY("ISQ_handle_keypress") ;
        busy=0 ; RETURN(1) ;
      break ;
 
-#if 0
+#if 1
      case 'G':
      case 'H':
-       ISQ_save_anim( seq , NULL , 0,0 , (key=='G') ? AGIF_MODE : MPEG_MODE ) ;
+     case 'J':{
+       int mode = (key=='G') ? AGIF_MODE
+                 :(key=='H') ? MPEG_MODE
+                 :             JPEG_MODE ;
+       ISQ_save_anim( seq , NULL , 0,0 , mode ) ;
        busy=0 ; RETURN(1) ;
+     }
      break ;
 #endif
 
@@ -11472,23 +11484,43 @@ void ISQ_save_anim( MCW_imseq *seq, char *prefin, int bot, int top, int mode )
 #else
    char *togif = ppmto_giff_filter ;
 #endif
+   int doanim=0 ;
+   char filt[512] ; FILE *fp ; MRI_IMAGE *ovim ;
+   int nx , ny , npix , pc ;
 
 ENTRY("ISQ_save_anim") ;
 
-   if( mode < AGIF_MODE || mode > MPEG_MODE || !ISQ_REALZ(seq) ) EXRETURN ;
-   if( mode == AGIF_MODE &&
-       (ppmto_agif_filter == NULL || togif == NULL) ){
-     ERROR_message("Can't save AGIF - missing filter!\a") ; EXRETURN ;
+   if( !ISQ_REALZ(seq) ) EXRETURN ;  /* bad input */
+   switch( mode ){
+     default: EXRETURN ;             /* bad input */
+
+     case AGIF_MODE:
+       if( ppmto_agif_filter == NULL || togif == NULL ){
+         ERROR_message("Can't save AGIF - missing filter!\a") ; EXRETURN ;
+       }
+       doanim = 1 ;
+     break ;
+
+     case MPEG_MODE:
+       if( ppmto_mpeg_filter == NULL || ppmto_ppm_filter == NULL ){
+         ERROR_message("Can't save MPEG - missing filter!\a") ; EXRETURN ;
+       }
+       doanim = 1 ;
+     break ;
+
+     case JPEG_MODE:
+       if( ppmto_jpg95_filter == NULL ){
+         ERROR_message("Can't save JPEG - missing filter!\a") ; EXRETURN ;
+       }
+       doanim = 0 ;
+     break ;
    }
-   if( mode == MPEG_MODE &&
-       (ppmto_mpeg_filter == NULL || ppmto_ppm_filter == NULL) ){
-     ERROR_message("Can't save MPEG - missing filter!\a") ; EXRETURN ;
-   }
+
    bot = MAX(bot,0) ;
    if( top == 0 ) top = seq->status->num_total-1 ;
    else           top = MIN(top,seq->status->num_total-1) ;
-   if( bot >= top ){
-     ERROR_message("Can't animate image range %d..%d!\a",bot,top) ; EXRETURN ;
+   if( bot > top || (bot==top && doanim) ){
+     ERROR_message("Can't save image range %d..%d!\a",bot,top) ; EXRETURN ;
    }
 
    /*--- setup prefix for animation filename to save ---*/
@@ -11522,7 +11554,10 @@ ENTRY("ISQ_save_anim") ;
 
    /*---- loop thru, get images, save them ----*/
 
-   INFO_message("Starting to save images to temp files") ;
+   if( doanim )
+     INFO_message("Starting to save images to temp files") ;
+   else
+     INFO_message("Starting to save images") ;
 
    for( kf=bot ; kf <= top ; kf++ ){
 
@@ -11532,254 +11567,253 @@ ENTRY("ISQ_save_anim") ;
 
       /* if we failed to get the image? */
 
-      if( tim == NULL ){
-        if( kf == top && agif_list != NULL ){
-          ERROR_message("Can't save animation: last image in list is NULL!\a");
-          DESTROY_SARR(agif_list) ;
-        }
-        continue ;  /* skip to next one */
-      }
+      if( tim == NULL ) continue ;  /* skip to next one? */
 
       /* image to save will be in flim */
 
       flim = tim ;
 
-      /*-- write image to temp save file through a filter --*/
+      /* process image to make the grayscale index */
 
-      {  char filt[512] ; FILE *fp ;
-         MRI_IMAGE *ovim=NULL ;
-         int nx , ny , npix , pc ;
+      seq->set_orim = 0 ;
+      tim  = flim ;
+      flim = ISQ_process_mri( kf , seq , tim ) ;
+      if( tim != flim ) KILL_1MRI( tim ) ;
 
-         /* process image to make the grayscale index */
+      /* get overlay and flip it */
 
-         seq->set_orim = 0 ;
-         tim  = flim ;
-         flim = ISQ_process_mri( kf , seq , tim ) ;
-         if( tim != flim ) KILL_1MRI( tim ) ;
-
-         /* get overlay and flip it */
-
-         if( !ISQ_SKIP_OVERLAY(seq) ){
-           tim = ISQ_getoverlay( kf , seq ) ;
-           if( tim != NULL && !ISQ_GOOD_OVERLAY_TYPE(tim->kind) ){
-             KILL_1MRI(tim) ;
-           }
-           if( tim != NULL )
-            ovim = mri_flippo( ISQ_TO_MRI_ROT(seq->opt.rot), seq->opt.mirror, tim );
-           if( tim != ovim ) KILL_1MRI(tim) ;
-         }
-
-         /* and perform overlay onto flim */
-
-         if( ovim != NULL ){
-           tim = flim ;
-           flim = ISQ_overlay( seq->dc , tim , ovim , seq->ov_opacity ) ;
-           if( flim == NULL ){ flim = tim ; }     /* shouldn't happen */
-           else              { KILL_1MRI(tim) ; }
-           mri_free( ovim ) ;
-         }
-
-         if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){   /* 08 Jun 2004 */
-           flim->dx = seq->last_dx ; flim->dy = seq->last_dy ;
-           tim = mri_squareaspect( flim ) ;
-           if( tim != NULL ){ mri_free(flim); flim = tim; }
-         }
-
-         /* if needed, convert from indices to RGB */
-
-         if( flim->kind == MRI_short ){
-           tim = ISQ_index_to_rgb( seq->dc , 0 , flim ) ;
-           mri_free(flim) ; flim = tim ;
-         }
-
-         /* 26 Mar 2002: zoom out, and geometry overlay, maybe */
-
-         if( seq->zoom_fac > 1 && seq->mont_nx == 1 && seq->mont_ny == 1 ){
-           tim=mri_dup2D(seq->zoom_fac,flim) ;
-           mri_free(flim) ; flim = tim ;
-         }
-
-         if( MCW_val_bbox(seq->wbar_plots_bbox) != 0 ){  /* draw geometry overlay */
-           MEM_plotdata *mp ;
-           mp = ISQ_getmemplot( kf , seq ) ;
-           if( mp != NULL ){
-             flip_memplot( ISQ_TO_MRI_ROT(seq->opt.rot),seq->opt.mirror,mp );
-             memplot_to_RGB_sef( flim, mp, 0,0,MEMPLOT_FREE_ASPECT ) ;
-             delete_memplot(mp) ;
-           }
-         }
-
-         if( seq->wbar_label_av->ival != 0 ){  /* 17 Jun 2005 */
-           char *lab = ISQ_getlabel( kf , seq ) ;
-           if( lab != NULL ){
-             MEM_plotdata *mp = ISQ_plot_label( seq , lab ) ;
-             if( mp != NULL ){
-               memplot_to_RGB_sef( flim, mp, 0,0,MEMPLOT_FREE_ASPECT ) ;
-               delete_memplot(mp) ;
-             }
-             free(lab) ;
-           }
-         }
-
-         if( seq->zoom_fac > 1 &&                   /* crop zoomed image */
-             seq->mont_nx == 1 &&                   /* to displayed part? */
-             seq->mont_ny == 1 &&
-             AFNI_yesenv("AFNI_CROP_ZOOMSAVE") ) {
-
-           int xa,ya , iw=flim->nx/seq->zoom_fac , ih=flim->ny/seq->zoom_fac ;
-
-           xa = seq->zoom_hor_off * flim->nx ;
-           if( xa+iw > flim->nx ) xa = flim->nx-iw ;
-           ya = seq->zoom_ver_off * flim->nx ;
-           if( ya+ih > flim->ny ) ya = flim->ny-ih ;
-           tim = mri_cut_2D( flim , xa,xa+iw-1 , ya,ya+ih-1 ) ;
-           if( tim != NULL ){ mri_free(flim); flim = tim; }
-         }
-
-         /* image dimensions we are saving */
-
-         nx = flim->nx ; ny = flim->ny ; npix = nx*ny ;
-
-         /* write the output file */
-         /* create the filter command into string 'filt' */
-
-         if( mode == AGIF_MODE ){               /* use the gif filter */
-           sprintf( fname, "%s%s.%05d.gif" , prefix,tsuf, kf) ;
-           sprintf( filt , togif  , fname ) ;  /* free colormap */
-           if( agif_list == NULL ) INIT_SARR(agif_list) ;
-           ADDTO_SARR(agif_list,fname) ;
-         } else if( mode == MPEG_MODE ){        /* use the ppm filter */
-           sprintf( fname, "%s%s.%05d.ppm" , prefix,tsuf, kf) ;
-           sprintf( filt , ppmto_ppm_filter , fname ) ;
-           if( agif_list == NULL ) INIT_SARR(agif_list) ;
-           ADDTO_SARR(agif_list,fname) ;
-         }
-         signal( SIGPIPE , SIG_IGN ) ;                 /* ignore broken pipe */
-         fp = popen( filt , "w" ) ;                    /* open pipe to filter */
-         if( fp == NULL ){
-           ERROR_message("Can't open output filter %s\a",filt) ;
-           continue ;  /* loop over files */
-         }
-
-         /* write RGB image to pipe as a PPM file */
-
-         fprintf(fp,"P6\n%d %d\n255\n" , nx,ny ) ;
-         fwrite( MRI_RGB_PTR(flim), sizeof(byte), 3*npix, fp ) ;
-         pc = pclose(fp) ;
-         if( pc == -1 ) perror("Error in image output pipe") ;
-
-         /* done with this image */
-
-         mri_free(flim) ; flim = NULL ;
-
-         /* 27 Jul 2001: if doing animation,
-                         and if at last image, then create result */
-
-         if( kf == top && agif_list != NULL ){
-
-           int af ;
-
-           if( agif_list->num == 0 ){
-             ERROR_message("Can't save animation: no images in list!");
-             goto AnimationCleanup ;
-           }
-
-           /* animated GIF */
-
-           if( mode == AGIF_MODE ){
-             int alen ; char *alc , *alf , *oof ;
-#ifdef USE_GIFF
-             remove( GIFF_MAPFILE ) ;   /* don't need this any longer */
-#endif
-             for( alen=af=0 ; af < agif_list->num ; af++ ) /* size of all */
-               alen += strlen( agif_list->ar[af] ) ;       /* filenames  */
-
-             alen += 3*agif_list->num + 32 ;               /* all filenames */
-             alc = AFMALL ( char, alen) ; alc[0] = '\0' ;  /* in one string */
-             for( alen=af=0 ; af < agif_list->num ; af++ ){
-               strcat(alc," ") ; strcat(alc,agif_list->ar[af]) ;
-             }
-
-             oof  = AFMALL( char, strlen(prefix)+32 ) ; /* output fname */
-             sprintf(oof,"%sgif",prefix) ;
-
-             alen =  strlen(alc)+strlen(ppmto_agif_filter)+strlen(oof)+32 ;
-             alf  = AFMALL( char, alen) ;
-             sprintf(alf , ppmto_agif_filter, alc, oof ) ; /* command to run */
-             INFO_message("Running '%s'",alf) ;
-             if( THD_is_ondisk(oof) ) WARNING_message("Over-writing '%s'",oof);
-             system(alf) ;                                 /* so run it!    */
-             free(alf) ; free(oof) ; free(alc) ;           /* free trash   */
-           }
-
-           /* MPEG-1 */
-
-           else if( mode == MPEG_MODE ){
-             int alen ; char *alf , *oof , *par , *frate ;
-             char *qscale , *pattrn ;
-             FILE *fpar ;
-
-             /* write mpeg_encode parameter file */
-
-             par = AFMALL( char, strlen(prefix)+32 ) ; /* param fname */
-             sprintf(par,"%s%s.PARAM",prefix,tsuf) ;
-
-             fpar = fopen( par , "w" ) ;
-             if( fpar == NULL ){ free(par) ; goto AnimationCleanup ; }
-             oof = AFMALL( char, strlen(prefix)+32 ) ; /* output fname */
-             sprintf(oof,"%smpg",prefix) ;
-             qscale=getenv("AFNI_MPEG_QSCALE") ;if(qscale==NULL) qscale="11"   ;
-             pattrn=getenv("AFNI_MPEG_PATTERN");if(pattrn==NULL) pattrn="IIIII";
-             frate =getenv("AFNI_MPEG_FRAMERATE");if(frate==NULL)frate ="24"   ;
-             fprintf(fpar,
-                       "OUTPUT %s\n"             /* oof */
-                       "GOP_SIZE          5\n"
-                       "SLICES_PER_FRAME  1\n"
-                       "FRAME_RATE        %s\n"  /* frate */
-                       "BASE_FILE_FORMAT  PPM\n"
-                       "INPUT_CONVERT     *\n"
-                       "INPUT_DIR         .\n"
-                       "PATTERN           %s\n"  /* pattrn */
-                       "IQSCALE           %s\n"  /* qscale */
-                       "PQSCALE           10\n"
-                       "BQSCALE           25\n"
-                       "PIXEL             HALF\n"
-                       "RANGE             10 4\n"
-                       "PSEARCH_ALG       LOGARITHMIC\n"
-                       "BSEARCH_ALG       SIMPLE\n"
-                       "REFERENCE_FRAME   ORIGINAL\n"
-                       "INPUT\n"
-                       "%s%s.*.ppm [%05d-%05d]\n"  /* prefix, tsuf, from, to */
-                       "END_INPUT\n"
-                    , oof , frate , pattrn , qscale ,
-                      prefix,tsuf,bot,top ) ;
-             fclose(fpar) ;
-
-             /* make command to run */
-
-             alen = strlen(par)+strlen(ppmto_mpeg_filter)+32 ;
-             alf  = AFMALL( char, alen) ;
-             sprintf(alf , ppmto_mpeg_filter, par ) ; /* command to run */
-             INFO_message("Running '%s' to produce %s",alf,oof) ;
-             if( THD_is_ondisk(oof) ) WARNING_message("Over-writing '%s'",oof);
-             system(alf) ;                            /* so run it!    */
-             unlink(par); free(alf); free(oof); free(par); /* free trash   */
-           }
-
-           /* animation is done, for good or for ill */
-
-           for( af=0 ; af < agif_list->num ; af++ )  /* erase temp files */
-             unlink( agif_list->ar[af] ) ;
-
-          AnimationCleanup:
-            DESTROY_SARR(agif_list) ;                 /* free more trash */
-         }
+      ovim = NULL ;
+      if( !ISQ_SKIP_OVERLAY(seq) ){
+        tim = ISQ_getoverlay( kf , seq ) ;
+        if( tim != NULL && !ISQ_GOOD_OVERLAY_TYPE(tim->kind) ){
+          KILL_1MRI(tim) ;
+        }
+        if( tim != NULL )
+         ovim = mri_flippo( ISQ_TO_MRI_ROT(seq->opt.rot), seq->opt.mirror, tim );
+        if( tim != ovim ) KILL_1MRI(tim) ;
       }
+
+      /* and perform overlay onto flim */
+
+      if( ovim != NULL ){
+        tim = flim ;
+        flim = ISQ_overlay( seq->dc , tim , ovim , seq->ov_opacity ) ;
+        if( flim == NULL ){ flim = tim ; }     /* shouldn't happen */
+        else              { KILL_1MRI(tim) ; }
+        mri_free( ovim ) ;
+      }
+
+      if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){   /* 08 Jun 2004 */
+        flim->dx = seq->last_dx ; flim->dy = seq->last_dy ;
+        tim = mri_squareaspect( flim ) ;
+        if( tim != NULL ){ mri_free(flim); flim = tim; }
+      }
+
+      /* if needed, convert from indices to RGB */
+
+      if( flim->kind == MRI_short ){
+        tim = ISQ_index_to_rgb( seq->dc , 0 , flim ) ;
+        mri_free(flim) ; flim = tim ;
+      }
+
+      /* 26 Mar 2002: zoom out, and geometry overlay, maybe */
+
+      if( seq->zoom_fac > 1 && seq->mont_nx == 1 && seq->mont_ny == 1 ){
+        tim=mri_dup2D(seq->zoom_fac,flim) ;
+        mri_free(flim) ; flim = tim ;
+      }
+
+      if( MCW_val_bbox(seq->wbar_plots_bbox) != 0 ){  /* draw geometry overlay */
+        MEM_plotdata *mp ;
+        mp = ISQ_getmemplot( kf , seq ) ;
+        if( mp != NULL ){
+          flip_memplot( ISQ_TO_MRI_ROT(seq->opt.rot),seq->opt.mirror,mp );
+          memplot_to_RGB_sef( flim, mp, 0,0,MEMPLOT_FREE_ASPECT ) ;
+          delete_memplot(mp) ;
+        }
+      }
+
+      if( seq->wbar_label_av->ival != 0 ){  /* 17 Jun 2005 */
+        char *lab = ISQ_getlabel( kf , seq ) ;
+        if( lab != NULL ){
+          MEM_plotdata *mp = ISQ_plot_label( seq , lab ) ;
+          if( mp != NULL ){
+            memplot_to_RGB_sef( flim, mp, 0,0,MEMPLOT_FREE_ASPECT ) ;
+            delete_memplot(mp) ;
+          }
+          free(lab) ;
+        }
+      }
+
+      if( seq->zoom_fac > 1 &&                   /* crop zoomed image */
+          seq->mont_nx == 1 &&                   /* to displayed part? */
+          seq->mont_ny == 1 &&
+          AFNI_yesenv("AFNI_CROP_ZOOMSAVE") ) {
+
+        int xa,ya , iw=flim->nx/seq->zoom_fac , ih=flim->ny/seq->zoom_fac ;
+
+        xa = seq->zoom_hor_off * flim->nx ;
+        if( xa+iw > flim->nx ) xa = flim->nx-iw ;
+        ya = seq->zoom_ver_off * flim->nx ;
+        if( ya+ih > flim->ny ) ya = flim->ny-ih ;
+        tim = mri_cut_2D( flim , xa,xa+iw-1 , ya,ya+ih-1 ) ;
+        if( tim != NULL ){ mri_free(flim); flim = tim; }
+      }
+
+      /* image dimensions we are saving */
+
+      nx = flim->nx ; ny = flim->ny ; npix = nx*ny ;
+
+      /* create the filter command into string 'filt' */
+
+      switch( mode ){
+        case AGIF_MODE:
+          sprintf( fname, "%s%s.%05d.gif" , prefix,tsuf, kf) ;
+          sprintf( filt , togif  , fname ) ;  /* free colormap */
+          if( agif_list == NULL ) INIT_SARR(agif_list) ;
+          ADDTO_SARR(agif_list,fname) ;
+        break ;
+
+        case MPEG_MODE:
+          sprintf( fname, "%s%s.%05d.ppm" , prefix,tsuf, kf) ;
+          sprintf( filt , ppmto_ppm_filter , fname ) ;
+          if( agif_list == NULL ) INIT_SARR(agif_list) ;
+          ADDTO_SARR(agif_list,fname) ;
+        break ;
+
+        case JPEG_MODE:
+          sprintf( fname, "%s%05d.jpg" , prefix, kf) ;
+          sprintf( filt , ppmto_jpg95_filter , fname ) ;
+          if( agif_list == NULL ) INIT_SARR(agif_list) ;
+          ADDTO_SARR(agif_list,fname) ;
+        break ;
+      }
+      signal( SIGPIPE , SIG_IGN ) ;                 /* ignore broken pipe */
+      fp = popen( filt , "w" ) ;                    /* open pipe to filter */
+      if( fp == NULL ){
+        ERROR_message("Can't open output filter %s\a",filt) ;
+        continue ;  /* loop over files */
+      }
+
+      /* write RGB image to pipe as a PPM file */
+
+      fprintf(fp,"P6\n%d %d\n255\n" , nx,ny ) ;
+      fwrite( MRI_RGB_PTR(flim), sizeof(byte), 3*npix, fp ) ;
+      pc = pclose(fp) ;
+      if( pc == -1 ) perror("Error in image output pipe") ;
+
+      /* done with this image */
+
+      mri_free(flim) ; flim = NULL ;
    }
 
-   printf(". **DONE**\n") ; fflush(stdout) ;
+   /** post-process saved images into animation? **/
+
+   if( agif_list != NULL && agif_list->num > 0 && doanim ){
+
+     int af ;
+
+     switch( mode ){
+      /* animated GIF */
+
+      case AGIF_MODE:{
+        int alen ; char *alc , *alf , *oof ;
+#ifdef USE_GIFF
+        remove( GIFF_MAPFILE ) ;   /* don't need this any longer */
+#endif
+        for( alen=af=0 ; af < agif_list->num ; af++ ) /* size of all */
+          alen += strlen( agif_list->ar[af] ) ;       /* filenames  */
+
+        alen += 3*agif_list->num + 32 ;               /* all filenames */
+        alc = AFMALL ( char, alen) ; alc[0] = '\0' ;  /* in one string */
+        for( alen=af=0 ; af < agif_list->num ; af++ ){
+          strcat(alc," ") ; strcat(alc,agif_list->ar[af]) ;
+        }
+
+        oof  = AFMALL( char, strlen(prefix)+32 ) ; /* output fname */
+        sprintf(oof,"%sgif",prefix) ;
+
+        alen =  strlen(alc)+strlen(ppmto_agif_filter)+strlen(oof)+32 ;
+        alf  = AFMALL( char, alen) ;
+        sprintf(alf , ppmto_agif_filter, alc, oof ) ; /* command to run */
+        INFO_message("Running '%s'",alf) ;
+        if( THD_is_ondisk(oof) ) WARNING_message("Over-writing '%s'",oof);
+        system(alf) ;                                 /* so run it!    */
+        free(alf) ; free(oof) ; free(alc) ;           /* free trash   */
+      }
+      break ;
+
+      /* MPEG-1 */
+
+      case MPEG_MODE:{
+        int alen ; char *alf , *oof , *par , *frate ;
+        char *qscale , *pattrn ;
+        FILE *fpar ;
+
+        /* write mpeg_encode parameter file */
+
+        par = AFMALL( char, strlen(prefix)+32 ) ; /* param fname */
+        sprintf(par,"%s%s.PARAM",prefix,tsuf) ;
+
+        fpar = fopen( par , "w" ) ;
+        if( fpar == NULL ){ free(par) ; break ; }
+        oof = AFMALL( char, strlen(prefix)+32 ) ; /* output fname */
+        sprintf(oof,"%smpg",prefix) ;
+        qscale=getenv("AFNI_MPEG_QSCALE") ;if(qscale==NULL) qscale="11"   ;
+        pattrn=getenv("AFNI_MPEG_PATTERN");if(pattrn==NULL) pattrn="IIIII";
+        frate =getenv("AFNI_MPEG_FRAMERATE");if(frate==NULL)frate ="24"   ;
+        fprintf(fpar,
+                  "OUTPUT %s\n"             /* oof */
+                  "GOP_SIZE          5\n"
+                  "SLICES_PER_FRAME  1\n"
+                  "FRAME_RATE        %s\n"  /* frate */
+                  "BASE_FILE_FORMAT  PPM\n"
+                  "INPUT_CONVERT     *\n"
+                  "INPUT_DIR         .\n"
+                  "PATTERN           %s\n"  /* pattrn */
+                  "IQSCALE           %s\n"  /* qscale */
+                  "PQSCALE           10\n"
+                  "BQSCALE           25\n"
+                  "PIXEL             HALF\n"
+                  "RANGE             10 4\n"
+                  "PSEARCH_ALG       LOGARITHMIC\n"
+                  "BSEARCH_ALG       SIMPLE\n"
+                  "REFERENCE_FRAME   ORIGINAL\n"
+                  "INPUT\n"
+                  "%s%s.*.ppm [%05d-%05d]\n"  /* prefix, tsuf, from, to */
+                  "END_INPUT\n"
+               , oof , frate , pattrn , qscale ,
+                 prefix,tsuf,bot,top ) ;
+        fclose(fpar) ;
+
+        /* make command to run */
+
+        alen = strlen(par)+strlen(ppmto_mpeg_filter)+32 ;
+        alf  = AFMALL( char, alen) ;
+        sprintf(alf , ppmto_mpeg_filter, par ) ; /* command to run */
+        INFO_message("Running '%s' to produce %s",alf,oof) ;
+        if( THD_is_ondisk(oof) ) WARNING_message("Over-writing '%s'",oof);
+        system(alf) ;                            /* so run it!    */
+        unlink(par); free(alf); free(oof); free(par); /* free trash   */
+      }
+      break ;
+     }
+
+     /* animation is done, for good or for ill */
+
+     for( af=0 ; af < agif_list->num ; af++ )  /* erase temp files */
+       unlink( agif_list->ar[af] ) ;
+     INFO_message("Done saving images") ;
+
+   } else if( agif_list != NULL && agif_list->num > 0 ){
+     if( agif_list->num > 1 )
+       INFO_message("Images saved in files %s .. %s",
+                    agif_list->ar[0] , agif_list->ar[agif_list->num-1] ) ;
+     else
+       INFO_message("Image saved in file %s",agif_list->ar[0]) ;
+   }
 
    /*--- go home ---*/
 
-   free(prefix) ; EXRETURN ;
+   DESTROY_SARR(agif_list) ; free(prefix) ; EXRETURN ;
 }
