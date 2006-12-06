@@ -134,22 +134,18 @@ THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE *im , byte *mask )
                        : (dfdzsq - (dfdzsum * dfdzsum)/countz) / (countz-1.0);
 
   /*----- now estimate the FWHMs -----*/
+  /*---- 2.35482 = sqrt(8*log(2)) = sigma-to-FWHM conversion factor ----*/
 
   dx = lim->dx; dy = lim->dy; dz = lim->dz;
 
-  /*---- 2.35482 = sqrt(8*log(2)) = sigma-to-FWHM conversion factor ----*/
-
   arg = 1.0 - 0.5*(varxx/var);
-  sx  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0f
-                                     : 2.35482*sqrt( -1.0 / (4.0*log(arg)) )*dx;
+  if( arg > 0.0 && arg < 1.0 ) sx = 2.35482*sqrt( -1.0 / (4.0*log(arg)) ) * dx;
 
   arg = 1.0 - 0.5*(varyy/var);
-  sy  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0f
-                                     : 2.35482*sqrt( -1.0 / (4.0*log(arg)) )*dy;
+  if( arg > 0.0 && arg < 1.0 ) sy = 2.35482*sqrt( -1.0 / (4.0*log(arg)) ) * dy;
 
   arg = 1.0 - 0.5*(varzz/var);
-  sz  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0f
-                                     : 2.35482*sqrt( -1.0 / (4.0*log(arg)) )*dz;
+  if( arg > 0.0 && arg < 1.0 ) sz = 2.35482*sqrt( -1.0 / (4.0*log(arg)) ) * dz;
 
   LOAD_FVEC3(fw_xyz,sx,sy,sz) ;
   if( lim != im ) mri_free(lim) ;

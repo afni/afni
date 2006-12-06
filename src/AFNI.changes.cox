@@ -5966,3 +5966,6 @@
 
 20 Nov 2006
  * Multitudinous changes to 3dBlurToFWHM.c.
+
+06 Dec 2006
+ * Added ISQ_snap_agif() and ISQ_snap_mpeg().
