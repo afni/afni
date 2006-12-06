@@ -177,8 +177,10 @@ typedef struct {
 
 #undef  AGIF_MODE
 #undef  MPEG_MODE
+#undef  JPEG_MODE
 #define AGIF_MODE 1  /* 06 Dec 2006 - for ISQ_save_anim() */
 #define MPEG_MODE 2
+#define JPEG_MODE 3
 
 #define ISQ_OPT_EQUAL(opta,optb)                    \
     ( ((opta).mirror      == (optb).mirror     ) && \
@@ -792,6 +794,7 @@ extern void ISQ_snapshot( Widget w ) ;                 /* 18 Jun 2003 */
 extern void ISQ_snapsave( int,int, byte *, Widget ) ;  /* 03 Jul 2003 */
 extern void ISQ_snap_agif( char * ) ;                  /* 06 Dec 2006 */
 extern void ISQ_snap_mpeg( char * ) ;
+extern void ISQ_snap_jpeg( char * ) ;
 
 extern int ISQ_handle_keypress( MCW_imseq * , unsigned long ); /* 18 Feb 2005 */
 
