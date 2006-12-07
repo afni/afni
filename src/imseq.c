@@ -239,6 +239,7 @@ static char *  ppmto_ppm_filter  = NULL ;
 
 static char *  ppmto_jpg75_filter = NULL ;  /* 27 Mar 2002 */
 static char *  ppmto_jpg95_filter = NULL ;  /* 28 Jul 2005 */
+static char *  ppmto_png_filter   = NULL ;  /* 07 Dec 2006 */
 
  /* the first %s will be the list of input gif filenames     */
  /* the second %s is the single output animated gif filename */
@@ -457,6 +458,7 @@ printf("\njpeg_compress %d\n", jpeg_compress);
       str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s -compression 9 > %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"png",bv) ;
+      ppmto_png_filter = strdup(str) ;  /* 07 Dec 2007 */
    }
    else { CANT_FIND("pnmtopng","PNG"); need_netpbm; }
 
@@ -6693,6 +6695,24 @@ ENTRY("drive_MCW_imseq") ;
         RETURN( True ) ;
       }
 
+      case isqDR_save_agif:{
+        char *fname = (char *)drive_data ;
+        ISQ_save_anim( seq , fname , 0,0, AGIF_MODE ) ;
+        RETURN(True) ;
+      }
+
+      case isqDR_save_mpeg:{
+        char *fname = (char *)drive_data ;
+        ISQ_save_anim( seq , fname , 0,0, MPEG_MODE ) ;
+        RETURN(True) ;
+      }
+
+      case isqDR_save_jpegall:{
+        char *fname = (char *)drive_data ;
+        ISQ_save_anim( seq , fname , 0,0, JPEG_MODE ) ;
+        RETURN(True) ;
+      }
+
       /*.....................................................*/
 
       case isqDR_plot_plot:{
@@ -10651,6 +10671,10 @@ void ISQ_snap_agif( char *prefix )
 {
    ISQ_save_anim( snap_isq , prefix , 0,0 , AGIF_MODE ) ;
 }
+void ISQ_snap_agif_rng( char *prefix , int a, int b )
+{
+   ISQ_save_anim( snap_isq , prefix , a,b , AGIF_MODE ) ;
+}
 
 /*------------------------------------------------------------------*/
 
@@ -10658,12 +10682,31 @@ void ISQ_snap_mpeg( char *prefix )
 {
    ISQ_save_anim( snap_isq , prefix , 0,0 , MPEG_MODE ) ;
 }
+void ISQ_snap_mpeg_rng( char *prefix , int a, int b )
+{
+   ISQ_save_anim( snap_isq , prefix , a,b , MPEG_MODE ) ;
+}
 
 /*------------------------------------------------------------------*/
 
 void ISQ_snap_jpeg( char *prefix )
 {
    ISQ_save_anim( snap_isq , prefix , 0,0 , JPEG_MODE ) ;
+}
+void ISQ_snap_jpeg_rng( char *prefix , int a, int b )
+{
+   ISQ_save_anim( snap_isq , prefix , a,b , JPEG_MODE ) ;
+}
+
+/*------------------------------------------------------------------*/
+
+void ISQ_snap_png( char *prefix )
+{
+   ISQ_save_anim( snap_isq , prefix , 0,0 , PNG_MODE ) ;
+}
+void ISQ_snap_png_rng( char *prefix , int a, int b )
+{
+   ISQ_save_anim( snap_isq , prefix , a,b , PNG_MODE ) ;
 }
 
 /*------------------------------------------------------------------
@@ -11302,10 +11345,12 @@ ENTRY("ISQ_handle_keypress") ;
 #if 1
      case 'G':
      case 'H':
-     case 'J':{
+     case 'J':
+     case 'K':{
        int mode = (key=='G') ? AGIF_MODE
                  :(key=='H') ? MPEG_MODE
-                 :             JPEG_MODE ;
+                 :(key=='J') ? JPEG_MODE 
+                 :             PNG_MODE  ;
        ISQ_save_anim( seq , NULL , 0,0 , mode ) ;
        busy=0 ; RETURN(1) ;
      }
@@ -11514,6 +11559,13 @@ ENTRY("ISQ_save_anim") ;
        }
        doanim = 0 ;
      break ;
+
+     case PNG_MODE:
+       if( ppmto_png_filter == NULL ){
+         ERROR_message("Can't save PNG - missing filter!\a") ; EXRETURN ;
+       }
+       doanim = 0 ;
+     break ;
    }
 
    bot = MAX(bot,0) ;
@@ -11687,6 +11739,13 @@ ENTRY("ISQ_save_anim") ;
           if( agif_list == NULL ) INIT_SARR(agif_list) ;
           ADDTO_SARR(agif_list,fname) ;
         break ;
+
+        case PNG_MODE:
+          sprintf( fname, "%s%05d.png" , prefix, kf) ;
+          sprintf( filt , ppmto_png_filter , fname ) ;
+          if( agif_list == NULL ) INIT_SARR(agif_list) ;
+          ADDTO_SARR(agif_list,fname) ;
+        break ;
       }
       signal( SIGPIPE , SIG_IGN ) ;                 /* ignore broken pipe */
       fp = popen( filt , "w" ) ;                    /* open pipe to filter */
@@ -11807,10 +11866,11 @@ ENTRY("ISQ_save_anim") ;
 
    } else if( agif_list != NULL && agif_list->num > 0 ){
      if( agif_list->num > 1 )
-       INFO_message("Images saved in files %s .. %s",
+       INFO_message("%d images saved in files %s .. %s",
+                    agif_list->num ,
                     agif_list->ar[0] , agif_list->ar[agif_list->num-1] ) ;
      else
-       INFO_message("Image saved in file %s",agif_list->ar[0]) ;
+       INFO_message("1 image saved in file %s",agif_list->ar[0]) ;
    }
 
    /*--- go home ---*/
