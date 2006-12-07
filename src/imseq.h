@@ -178,9 +178,11 @@ typedef struct {
 #undef  AGIF_MODE
 #undef  MPEG_MODE
 #undef  JPEG_MODE
+#undef  PNG_MODE
 #define AGIF_MODE 1  /* 06 Dec 2006 - for ISQ_save_anim() */
 #define MPEG_MODE 2
 #define JPEG_MODE 3
+#define PNG_MODE  4
 
 #define ISQ_OPT_EQUAL(opta,optb)                    \
     ( ((opta).mirror      == (optb).mirror     ) && \
@@ -623,6 +625,9 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_plot_label      701  /* 20 Sep 2001 */
 #define isqDR_plot_plot       702  /* 20 Sep 2001 */
 #define isqDR_save_jpeg       703  /* 28 Jul 2005 */
+#define isqDR_save_agif       704  /* 07 Dec 2006 */
+#define isqDR_save_mpeg       705  /* 07 Dec 2006 */
+#define isqDR_save_jpegall    706  /* 07 Dec 2006 */
 
 extern Boolean drive_MCW_imseq( MCW_imseq * , int , XtPointer ) ;
 
@@ -795,6 +800,11 @@ extern void ISQ_snapsave( int,int, byte *, Widget ) ;  /* 03 Jul 2003 */
 extern void ISQ_snap_agif( char * ) ;                  /* 06 Dec 2006 */
 extern void ISQ_snap_mpeg( char * ) ;
 extern void ISQ_snap_jpeg( char * ) ;
+extern void ISQ_snap_png ( char * ) ;
+extern void ISQ_snap_agif_rng( char *,int,int ) ;      /* 07 Dec 2006 */
+extern void ISQ_snap_mpeg_rng( char *,int,int ) ;
+extern void ISQ_snap_jpeg_rng( char *,int,int ) ;
+extern void ISQ_snap_png_rng ( char *,int,int ) ;
 
 extern int ISQ_handle_keypress( MCW_imseq * , unsigned long ); /* 18 Feb 2005 */
 
