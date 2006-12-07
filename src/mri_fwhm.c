@@ -301,11 +301,12 @@ void mri_fwhm_setfester( THD_fvec3 (*func)(MRI_IMAGE *, byte *) )
     Output image is 3xN where N=# of sub-bricks.
 -----------------------------------------------------------------------------*/
 
-MRI_IMAGE * THD_estimate_FWHM_all( THD_3dim_dataset *dset, byte *mask, int demed )
+MRI_IMAGE * THD_estimate_FWHM_all( THD_3dim_dataset *dset,
+                                   byte *mask, int demed , int unif )
 {
    int iv , nvals , ii,nvox ;
-   MRI_IMAGE *bim , *outim , *medim ;
-   float *outar , fac , *medar, *bar ;
+   MRI_IMAGE *bim , *outim , *medim , *madim ;
+   float *outar , fac ,      *medar , *madar , *bar ;
    THD_fvec3 fw ;
 
 ENTRY("THD_estimate_FWHM_all") ;
@@ -316,21 +317,36 @@ ENTRY("THD_estimate_FWHM_all") ;
    nvals = DSET_NVALS(dset) ;
    outim = mri_new( 3 , nvals , MRI_float ) ;
    outar = MRI_FLOAT_PTR(outim) ;
+   nvox  = DSET_NVOX(dset) ;
 
-   if( demed ){ medim = THD_median_brick(dset); medar = MRI_FLOAT_PTR(medim); }
-   nvox = DSET_NVOX(dset) ;
+   if( unif  ){
+     MRI_IMARR *imar ;
+     demed = 1 ;
+     imar  = THD_medmad_bricks(dset) ;
+     medim = IMARR_SUBIM(imar,0) ; medar = MRI_FLOAT_PTR(medim) ;
+     madim = IMARR_SUBIM(imar,1) ; madar = MRI_FLOAT_PTR(madim) ;
+     FREE_IMARR(imar) ;
+     for( ii=0 ; ii < nvox ; ii++ )
+       if( madar[ii] > 0.0f ) madar[ii] = 1.0f / madar[ii] ;
+   } else if( demed ){
+     medim = THD_median_brick(dset) ;
+     medar = MRI_FLOAT_PTR(medim) ;
+   }
 
    for( iv=0 ; iv < nvals ; iv++ ){
      bim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,iv), DSET_BRICK(dset,iv) );
      if( demed ){
        bar = MRI_FLOAT_PTR(bim) ;
        for( ii=0 ; ii < nvox ; ii++ ) bar[ii] -= medar[ii] ;
+       if( unif )
+        for( ii=0 ; ii < nvox ; ii++ ) bar[ii] *= madar[ii] ;
      }
      fw = fester( bim , mask ) ; mri_free(bim) ;
      UNLOAD_FVEC3( fw , outar[0+3*iv] , outar[1+3*iv] , outar[2+3*iv] ) ;
    }
 
    if( demed ) mri_free(medim) ;
+   if( unif  ) mri_free(madim) ;
 
    RETURN(outim) ;
 }
