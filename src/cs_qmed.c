@@ -103,6 +103,33 @@ float qmed_float( int n , float * ar )
 }
 
 /*---------------------------------------------------------------
+  Return mean and sigma of a float array -- 07 Dec 2006
+-----------------------------------------------------------------*/
+
+void meansigma_float( int n, float *ar, float *mnn, float *sig )
+{
+   register double ss , sq , vv ;
+   register int ii , nn ;
+
+   if( n <= 0 || ar == NULL || (mnn == NULL && sig == NULL) ) return ;
+
+   ss = sq = 0.0 ; nn = n ;
+   for( ii=0 ; ii < nn ; ii++ ){
+     vv = (double)ar[ii] ; ss += vv ; sq += vv*vv ;
+   }
+   ss /= nn ;
+   if( nn > 1 ){
+     sq = (sq - nn*ss*ss) / (nn-1.0) ; if( sq > 0.0 ) sq = sqrt(sq) ;
+   } else {
+     sq = 0.0 ;
+   }
+
+   if( mnn != NULL ) *mnn = ss ;
+   if( sig != NULL ) *sig = sq ;
+   return ;
+}
+
+/*---------------------------------------------------------------
   Return median and MAD, nondestructively -- 08 Mar 2001 - RWCox
 -----------------------------------------------------------------*/
 
@@ -111,7 +138,7 @@ void qmedmad_float( int n, float *ar, float *med, float *mad )
    float me=0.0f , ma=0.0f , *q ;
    register int ii ;
 
-   if( med == NULL && mad == NULL || n <= 0 || ar == NULL ) return ;
+   if( (med == NULL && mad == NULL) || n <= 0 || ar == NULL ) return ;
 
    q = (float *)malloc(sizeof(float)*n) ;
    memcpy(q,ar,sizeof(float)*n) ;  /* duplicate input array */

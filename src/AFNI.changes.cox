@@ -5972,3 +5972,8 @@
 
 07 Dec 2006
  * Added movie saving commands to afni_driver.c.
+ * Modified 3dFWHMx.c -geom option to add up logs rather than multiply up
+     results -- for large numbers of sub-bricks, can get overflow the old way.
+ * Added THD_medmad_bricks() and THD_meansigma_bricks() functions to
+     thd_median.c -- get location and dispersion statistics at same time,
+     for speed.

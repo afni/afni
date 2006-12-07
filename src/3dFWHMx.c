@@ -8,7 +8,7 @@ int main( int argc , char *argv[] )
    byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
    char *outfile = NULL ;
    double fx,fy,fz , cx,cy,cz ; int nx,ny,nz ;
-   int geom=1 , demed=0 ;
+   int geom=1 , demed=0 , unif=0 ;
 
    /*---- for the clueless who wish to become clueful ----*/
 
@@ -42,6 +42,10 @@ int main( int argc , char *argv[] )
       "                of each voxel's time series before processing FWHM.\n"
       "                This will tend to remove intrinsic spatial structure\n"
       "                and leave behind the noise.\n"
+      "                [Default = don't do this]\n"
+      "  -unif       = If the input dataset has more than one sub-brick,\n"
+      "                then normalize each voxel's time series to have\n"
+      "                the same MAD before processing FWHM.  Implies -demed.\n"
       "                [Default = don't do this]\n"
       "\n"
       "  -geom      }= If the input dataset has more than one sub-brick,\n"
@@ -110,6 +114,9 @@ int main( int argc , char *argv[] )
      if( strncmp(argv[iarg],"-demed",5) == 0 ){         /* 15 Nov 2006 */
        demed = 1 ; iarg++ ; continue ;
      }
+     if( strncmp(argv[iarg],"-unif",5) == 0 ){          /* 07 Dec 2006 */
+       unif = demed = 1 ; iarg++ ; continue ;
+     }
 
      if( strncmp(argv[iarg],"-compat",6) == 0 ){        /* 09 Nov 2006 */
        FHWM_1dif_dontcheckplus(1) ; iarg++ ; continue ;
@@ -165,8 +172,8 @@ int main( int argc , char *argv[] )
      CHECK_OPEN_ERROR(inset,argv[iarg]) ;
    }
 
-   if( demed && DSET_NVALS(inset) < 2 )
-     WARNING_message("-demed ignored: only 1 input sub-brick") ;
+   if( (demed || unif) && DSET_NVALS(inset) < 2 )
+     WARNING_message("-demed and/or -unif ignored: only 1 input sub-brick") ;
 
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
@@ -188,7 +195,7 @@ int main( int argc , char *argv[] )
 
    /*-- do the work --*/
 
-   outim = THD_estimate_FWHM_all( inset , mask , demed ) ;
+   outim = THD_estimate_FWHM_all( inset , mask , demed,unif ) ;
 
    DSET_unload(inset) ; nvals = DSET_NVALS(inset) ;
 
@@ -198,18 +205,21 @@ int main( int argc , char *argv[] )
 
    outar = MRI_FLOAT_PTR(outim) ;
 
+   nx = thd_floatscan( 3*nvals, outar ) ;  /* 07 Dec 2006 */
+   if( nx > 0 ) WARNING_message("found %d non-finite FWHM array values!",nx);
+
    nx = ny = nz = 0 ;
    if( geom ){
-     cx = cy = cz = 1.0 ;
+     cx = cy = cz = 0.0 ;
      for( ii=0 ; ii < nvals ; ii++ ){
        fx = outar[0+3*ii]; fy = outar[1+3*ii]; fz = outar[2+3*ii];
-       if( fx > 0.0 ){ cx *= fx ; nx++ ; }
-       if( fy > 0.0 ){ cy *= fy ; ny++ ; }
-       if( fz > 0.0 ){ cz *= fz ; nz++ ; }
+       if( fx > 0.0 ){ cx += log(fx) ; nx++ ; }
+       if( fy > 0.0 ){ cy += log(fy) ; ny++ ; }
+       if( fz > 0.0 ){ cz += log(fz) ; nz++ ; }
      }
-     if( nx == 0 ) cx = 0.0 ; else if( nx > 1 ) cx = pow(cx,1.0/nx) ;
-     if( ny == 0 ) cy = 0.0 ; else if( ny > 1 ) cy = pow(cy,1.0/ny) ;
-     if( nz == 0 ) cz = 0.0 ; else if( nz > 1 ) cz = pow(cz,1.0/nz) ;
+     cx = (nx == 0) ? 0.0 : exp(cx/nx) ;
+     cy = (ny == 0) ? 0.0 : exp(cy/ny) ;
+     cz = (nz == 0) ? 0.0 : exp(cz/nz) ;
    } else {
      cx = cy = cz = 0.0 ;
      for( ii=0 ; ii < nvals ; ii++ ){
@@ -218,9 +228,9 @@ int main( int argc , char *argv[] )
        if( fy > 0.0 ){ cy += fy ; ny++ ; }
        if( fz > 0.0 ){ cz += fz ; nz++ ; }
      }
-     if( nx == 0 ) cx = 0.0 ; else if( nx > 1 ) cx = cx / nx ;
-     if( ny == 0 ) cy = 0.0 ; else if( ny > 1 ) cy = cy / ny ;
-     if( nz == 0 ) cz = 0.0 ; else if( nz > 1 ) cz = cz / nz ;
+     cx = (nx == 0) ? 0.0 : cx/nx ;
+     cy = (ny == 0) ? 0.0 : cy/ny ;
+     cz = (nz == 0) ? 0.0 : cz/nz ;
    }
    printf(" %g  %g  %g\n",cx,cy,cz) ;
    exit(0) ;
