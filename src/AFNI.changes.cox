@@ -5969,3 +5969,6 @@
 
 06 Dec 2006
  * Added ISQ_snap_agif() and ISQ_snap_mpeg().
+
+07 Dec 2006
+ * Added movie saving commands to afni_driver.c.
