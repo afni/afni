@@ -226,6 +226,15 @@ SAVE_JPEG [c.]windowname filename
   'sagittalgraph', or 'coronalgraph'.  If the filename does not end in
   the string ".jpg" or ".JPG", then ".jpg" will be appended.
 
+SAVE_ALLJPEG [c].windowname filename
+SAVE_MPEG    [c].windowname filename
+SAVE_AGIF    [c].windowname filename
+  Save ALL the images in the given image sequence viewer (either as a
+  series of JPEG files, or as one animation file).  The windowname can
+  be one of 'axialimage', 'sagittalimage', or 'coronalimage'.  Do NOT
+  put a suffix like '.jpg' or '.mpg' on the filename -- it will be added.
+  N.B.: Unlike 'SAVE_JPEG', this command does not work with graph windows.
+
 SET_DICOM_XYZ [c] x y z
 SET_SPM_XYZ   [c] x y z
 SET_IJK       [c] i j k
