@@ -7,6 +7,7 @@ int main( int argc , char *argv[] )
    MRI_IMARR *tar ;
    double sum , *eval , *amat , **tvec , *bmat ;
    float *far ;
+   int demean=0 ;
 
    /* help? */
 
@@ -18,6 +19,7 @@ int main( int argc , char *argv[] )
             "\n"
             "Options:\n"
             " -one  =  Make 1st vector be all 1's.\n"
+            " -dem  =  Remove mean from all vectors (conflicts with '-one')\n"
            ) ;
      exit(0) ;
    }
@@ -28,7 +30,11 @@ int main( int argc , char *argv[] )
    while( iarg < argc && argv[iarg][0] == '-' ){
 
      if( strcmp(argv[iarg],"-one") == 0 ){
-       do_one = 1 ; iarg++ ; continue ;
+       demean = 0 ; do_one = 1 ; iarg++ ; continue ;
+     }
+
+     if( strncmp(argv[iarg],"-dem",4) == 0 ){
+       demean = 1 ; do_one = 0 ; iarg++ ; continue ;
      }
 
      fprintf(stderr,"** Unknown option: %s\n",argv[iarg]); exit(1);
@@ -86,14 +92,16 @@ int main( int argc , char *argv[] )
      tim = IMARR_SUBIM(tar,mm) ;
      far = MRI_FLOAT_PTR(tim) ;
      for( jj=0 ; jj < tim->ny ; jj++,kk++ ){
+       for( ii=0 ; ii < nx ; ii++ ) tvec[kk][ii] = far[ii+jj*nx] ;
+       if( demean ){
+         sum = 0.0 ;
+         for( ii=0 ; ii < nx ; ii++ ) sum += tvec[kk][ii] ;
+         sum /= nx ;
+         for( ii=0 ; ii < nx ; ii++ ) tvec[kk][ii] -= sum ;
+       }
        sum = 0.0 ;
-       for( ii=0 ; ii < nx ; ii++ ){
-         tvec[kk][ii] = far[ii+jj*nx] ;
-         sum += tvec[kk][ii] * tvec[kk][ii] ;
-       }
-       if( sum == 0.0 ){
-         fprintf(stderr,"** Input column is all zero!\n"); exit(1);
-       }
+       for( ii=0 ; ii < nx ; ii++ ) sum += tvec[kk][ii] * tvec[kk][ii] ;
+       if( sum == 0.0 ) ERROR_exit("Input column %02d is all zero!",kk) ;
        sum = 1.0 / sqrt(sum) ;
        for( ii=0 ; ii < nx ; ii++ ) tvec[kk][ii] *= sum ;
      }
