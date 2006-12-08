@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import sys, os, string, option_list
+import sys, os, string
+from option_list import *
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
 

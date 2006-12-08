@@ -27,7 +27,7 @@ def db_cmd_tcat(proc, block):
 
     proc.fp.write("# -------------------------------------------------------\n"
                   "# apply 3dTcat to copy input dsets to results dir, while\n"
-                  "# removing the first '%d' TRs\n" % first)
+                  "# removing the first %d TRs\n" % first)
     for run in range(0, proc.runs):
         proc.fp.write("3dTcat -prefix %s/%s %s'[%d..$]'\n" %    \
            (proc.out_dir, proc.prefix_form(block,run+1),        \
