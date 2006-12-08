@@ -1,23 +1,33 @@
 #!/usr/bin/env python
 
-import sys, os, string, options, afni_util
+import sys, os, string
+import option_list
+from afni_util import *
 
-# Convert a set of binary stim files to a set of stim_times files.
-#
-# Each input stim file can have a set of columns of stim classes,
-#      and multiple input files can be used.  Each column of an
-#      input file is expected to have one row per TR, and a total
-#      of num_TRs * num_runs rows.
-#
-# Options: -files file1.1D file2.1D ...  : specify stim files
-#          -prefix PREFIX                : output prefix for files
-#          -tr TR                        : TR time, in seconds
-#          -nruns NRUNS                  : number of runs
-#          -verb LEVEL                   : provide verbose output
-#
+g_help_string = """
+Convert a set of binary stim files to a set of stim_times files.
+
+Each input stim file can have a set of columns of stim classes,
+     and multiple input files can be used.  Each column of an
+     input file is expected to have one row per TR, and a total
+     of num_TRs * num_runs rows.
+
+Options: -files file1.1D file2.1D ...  : specify stim files
+         -prefix PREFIX                : output prefix for files
+         -tr TR                        : TR time, in seconds
+         -nruns NRUNS                  : number of runs
+         -verb LEVEL                   : provide verbose output
+
+example:
+
+    make.stim.files -files stimA.1D stimB.1D stimC.1D   \\
+                    -prefix stimes -TR 2.5 -nruns 7
+
+"""
 
 def get_opts():
-    okopts = options.OptionList('for input')
+    global g_help_string
+    okopts = option_list.OptionList('for input')
     okopts.add_opt('-files', -1, [], req=True)
     okopts.add_opt('-prefix', 1, [], req=True)
     okopts.add_opt('-tr', 1, [], req=True)
@@ -25,7 +35,13 @@ def get_opts():
     okopts.add_opt('-verb', 1, [])
     okopts.trailers = True
 
-    return options.read_options(sys.argv, okopts)
+    # if argv has only the program name, or user requests help, show it
+    if len(sys.argv) <= 1 or '-help' in sys.argv:
+        print g_help_string
+        return None
+
+    opts = option_list.read_options(sys.argv, okopts)
+    return opts
 
 def proc_mats(uopts):
     if uopts == None: return

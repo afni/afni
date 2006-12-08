@@ -1822,3 +1822,5 @@
 02 Dec 2006: modified suma_datasets.c:
       - SUMA_iswordin -> strstr, MAXPATHLEN -> SUMA_MAX_DIR_LENGTH
 
+07 Dec 2006: minor mods to afni_util.py, db_mod.py, make.stim.times.py
+
