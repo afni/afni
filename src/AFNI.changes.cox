@@ -5977,3 +5977,6 @@
  * Added THD_medmad_bricks() and THD_meansigma_bricks() functions to
      thd_median.c -- get location and dispersion statistics at same time,
      for speed.
+
+08 Dec 2006
+ * Added -dem option to 1ddot.c.
