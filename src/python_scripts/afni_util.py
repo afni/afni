@@ -11,7 +11,7 @@ from option_list import *
 def change_path_basename(orig, prefix, suffix):
     if not orig or not prefix: return
     (head, tail) = os.path.split(orig)
-    if head == '': return prefix
+    if head == '': return "%s%s" % (prefix, suffix)
     return "%s/%s%s" % (head, prefix, suffix)
 
 
@@ -45,6 +45,18 @@ def read_1D_file(filename, nlines = -1, verb = 0):
         lnum += 1
 
     return retmat
+
+# return the number of columns in a 1D file
+def num_cols_1D(filename):
+    mat = read_1D_file(filename)
+    if not mat or len(mat) == 0: return 0
+    return len(mat[0])
+
+# return the number of columns in a 1D file
+def num_rows_1D(filename):
+    mat = read_1D_file(filename)
+    if not mat: return 0
+    return len(mat)
 
 # transpose a 2D matrix, returning the new one
 def transpose(matrix):
