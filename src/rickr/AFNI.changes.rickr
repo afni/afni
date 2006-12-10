@@ -1824,3 +1824,6 @@
 
 07 Dec 2006: minor mods to afni_util.py, db_mod.py, make.stim.times.py
 
+09 Dec 2006: 3dDeconvolve command in afni_proc.py
+  * modified make.stim.times.py, afni_util.py, afni_proc.py, db_mod.py
+
