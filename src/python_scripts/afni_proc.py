@@ -27,16 +27,16 @@ from db_mod import *
 
 # globals
 
-BlockLabels  = ['tcat', 'tshift', 'volreg', 'blur', 'mask', 'scale', 'decon']
+BlockLabels  = ['tcat', 'tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
 # dictionary of block types and modification functions
-BlockModFunc  = {'tcat'  : db_mod_tcat,     'tshift':db_mod_tshift,
-                 'volreg': db_mod_volreg,   'blur'  :db_mod_blur,
+BlockModFunc  = {'tcat'  : db_mod_tcat,     'tshift' :db_mod_tshift,
+                 'volreg': db_mod_volreg,   'blur'   :db_mod_blur,
                  'mask'  : db_mod_mask,
-                 'scale' : db_mod_scale,    'decon' :db_mod_decon}
-BlockCmdFunc  = {'tcat'  : db_cmd_tcat,     'tshift':db_cmd_tshift,
-                 'volreg': db_cmd_volreg,   'blur'  :db_cmd_blur,
+                 'scale' : db_mod_scale,    'regress':db_mod_regress}
+BlockCmdFunc  = {'tcat'  : db_cmd_tcat,     'tshift' :db_cmd_tshift,
+                 'volreg': db_cmd_volreg,   'blur'   :db_cmd_blur,
                  'mask'  : db_cmd_mask,
-                 'scale' : db_cmd_scale,    'decon' :db_cmd_decon}
+                 'scale' : db_cmd_scale,    'regress':db_cmd_regress}
 AllOptionStyles = ['cmd', 'file', 'gui', 'sdir']
 
 # data processing stream class
@@ -48,6 +48,7 @@ class SubjProcSream:
 
         self.blocks     = []            # list of ProcessBlock elements
         self.dsets      = []            # list of afni_name elements
+        self.stims      = []            # list of stim files to apply
         self.opt_src    = 'cmd'         # option source
         self.subj_id    = 'SUBJ'        # hopefully user will replace this
         self.subj_label = '$subj'       # replace this for execution
@@ -117,12 +118,12 @@ class SubjProcSream:
 
         self.valid_opts.add_opt('-scale_max_val', 1, [])
 
-        self.valid_opts.add_opt('-decon_basis', 1, [])
-        self.valid_opts.add_opt('-decon_basis_normall', 1, [])
-        self.valid_opts.add_opt('-decon_polort', 1, [])
-        self.valid_opts.add_opt('-decon_stim_files', -1, [])
-        self.valid_opts.add_opt('-decon_stim_labels', -1, [])
-        self.valid_opts.add_opt('-decon_stim_times', -1, [])
+        self.valid_opts.add_opt('-regress_basis', 1, [])
+        self.valid_opts.add_opt('-regress_basis_normall', 1, [])
+        self.valid_opts.add_opt('-regress_polort', 1, [])
+        self.valid_opts.add_opt('-regress_stim_files', -1, [])
+        self.valid_opts.add_opt('-regress_stim_labels', -1, [])
+        self.valid_opts.add_opt('-regress_stim_times', -1, [])
 
 
         # other options
@@ -151,6 +152,7 @@ class SubjProcSream:
         opt = self.user_opts.find_opt('-subj_id')
         if opt != None: self.subj_id = opt.parlist[0]
 
+        # get datasets
         opt = self.user_opts.find_opt('-dsets')
         if opt != None:
             for dset in opt.parlist:
@@ -205,6 +207,11 @@ class SubjProcSream:
                 print "** script creation failure for block '%s'" % block.label
                 errs += 1
             # else: append_string_to_file(self.script, cmd_str)
+
+        rv = self.finalize_script()     # finish the script
+        if rv != None: return rv
+
+        if self.fp: self.fp.close()
 
         if errs > 0: return 1    # so we print all erros before leaving
 
@@ -284,18 +291,34 @@ class SubjProcSream:
                       'else                    \n'
                       '    set subj = %s       \n'
                       'endif\n\n' % self.subj_id )
-        self.fp.write("# verify that the results directory does not yet exist\n"
-                      "if ( -d %s ) then \n"
-                      "    echo output dir '$sub.results' already exists\n"
-                      "    exit                     \n"
-                      "endif\n\n" % self.out_dir)
+        self.fp.write('# verify that the results directory does not yet exist\n'
+                      'if ( -d %s ) then \n'
+                      '    echo output dir "$sub.results" already exists\n'
+                      '    exit                     \n'
+                      'endif\n\n' % self.out_dir)
         self.fp.write('# set list of runs\n')
         self.fp.write('set runs = (`count -digits 2 1 %d`)\n\n' % self.runs)
 
         self.fp.write('# create results directory\n')
         self.fp.write('mkdir %s\n\n' % self.out_dir)
         
+        if len(self.stims) > 0: # then copy stim files into script's stim dir
+            if self.verb > 1: print "+d init_s: copy stims: %s" % self.stims
+            self.fp.write('# create stimuli directory, and copy stim files\n')
+            self.fp.write('mkdir %s/stimuli\ncp ' % self.out_dir)
+            for ind in range(len(self.stims)):
+                self.fp.write('%s ' % self.stims[ind])
+                # after copying, strip pathname from filenames
+                self.stims[ind] = 'stimuli/%s'%os.path.basename(self.stims[ind])
+            self.fp.write('%s/stimuli\n\n' % self.out_dir)
+            if self.verb > 1: print "+d init_s: new stims: %s" % self.stims
+
         self.fp.flush()
+
+    # and last steps
+    def finalize_script(self):
+        self.fp.write('# return to parent directory\n'
+                      'cd ..\n\n')
 
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
     #    NN = block index, SUBJ = subj label, MM = run, BLABEL = block label

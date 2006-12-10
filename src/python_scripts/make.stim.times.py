@@ -21,7 +21,7 @@ Options: -files file1.1D file2.1D ...  : specify stim files
 example:
 
     make.stim.files -files stimA.1D stimB.1D stimC.1D   \\
-                    -prefix stimes -TR 2.5 -nruns 7
+                    -prefix stimes -tr 2.5 -nruns 7
 
 """
 
