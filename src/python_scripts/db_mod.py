@@ -81,7 +81,7 @@ def db_cmd_tshift(proc, block):
     cmd = cmd + '# -------------------------------------------------------\n' \
               + '# run 3dToutcount and 3dTshift for each run\n'
     cmd = cmd + 'foreach run ( $runs )\n'                                     \
-                '    3dToutcount -automask %s+orig > toutcount_r$run.1D\n'    \
+                '    3dToutcount -automask %s+orig > outcount_r$run.1D\n'     \
                 '\n'                                                          \
                 '    3dTshift %s %s -prefix %s      \\\n'                     \
                 '             %s+orig\n'                                      \
