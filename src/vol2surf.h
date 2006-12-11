@@ -134,6 +134,7 @@ v2s_results * afni_vol2surf     ( THD_3dim_dataset * gpar, int gp_index,
 v2s_results * vol2surf          ( v2s_opts_t * sopt, v2s_param_t * p );
 
 int disp_mri_imarr      ( char * info, MRI_IMARR * dp );
+int disp_v2s_command    ( v2s_opts_t * sopt );
 int disp_v2s_opts_t     ( char * info, v2s_opts_t * sopt );
 int disp_v2s_param_t    ( char * info, v2s_param_t * p );
 int disp_v2s_plugin_opts( char * mesg, v2s_plugin_opts * d );

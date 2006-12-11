@@ -257,6 +257,10 @@ ENTRY("afni_vol2surf");
 
     res = vol2surf(sopt, &P);
 
+    v2s_make_command(sopt, &P);
+    if ( gv2s_plug_opts.sopt.debug > 1 )
+        disp_v2s_command(sopt);
+
     /* if the user wants output files, here they are (don't error check) */
     if (res && sopt->outfile_1D )
     {
@@ -271,7 +275,6 @@ ENTRY("afni_vol2surf");
         if ( THD_is_file(sopt->outfile_niml) )
             fprintf(stderr,"** over-writing niml output file '%s'\n",
                     sopt->outfile_niml);
-        v2s_make_command(sopt, &P);
         v2s_write_outfile_NSD(res, sopt, &P, 0);
     }
 
@@ -2632,6 +2635,42 @@ ENTRY("v2s_make_command");
 
     RETURN(0);
 }
+
+/*----------------------------------------------------------------------
+ * display command
+ *----------------------------------------------------------------------
+*/
+int disp_v2s_command( v2s_opts_t * sopt )
+{
+    char * arg;
+    int    ac, quote;
+
+ENTRY("disp_v2s_command");
+
+    if( sopt->cmd.argc <= 1 || ! sopt->cmd.argv || ! sopt->cmd.argv[0] )
+        return 1;
+
+    printf("------------------------------------------------------\n"
+           "+d applying vol2surf similar to the following command:\n");
+    for( ac = 0; ac < sopt->cmd.argc; ac++ )
+        if( sopt->cmd.argv[ac] )
+        {
+            arg = sopt->cmd.argv[ac];
+            /* if there are special char, quote the option */
+            if( strchr(arg, '(') || strchr(arg, '[') ) quote = 1;
+            else quote = 0;
+
+            if( quote ) putchar('\'');
+            fputs(arg, stdout);
+            if( quote ) putchar('\'');
+            putchar(' ');
+        }
+    putchar('\n');
+    fflush(stdout);
+
+    RETURN(0);
+}
+
 
 /*----------------------------------------------------------------------
  * add 'str' to 'list' via strcpy
