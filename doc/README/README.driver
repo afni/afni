@@ -226,6 +226,9 @@ SAVE_JPEG [c.]windowname filename
   'sagittalgraph', or 'coronalgraph'.  If the filename does not end in
   the string ".jpg" or ".JPG", then ".jpg" will be appended.
 
+SAVE_PNG = like SAVE_JPEG, but saves to PNG format.  Only works for
+  image viewer windows at this time.
+
 SAVE_ALLJPEG [c].windowname filename
 SAVE_MPEG    [c].windowname filename
 SAVE_AGIF    [c].windowname filename
