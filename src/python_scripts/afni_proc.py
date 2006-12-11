@@ -26,10 +26,11 @@ from db_mod import *
 
 # globals
 
+g_version = "version 1.0, December 11, 2006"
+
 # ----------------------------------------------------------------------
 g_help_string = """
-
-    ---------------------------------------------------------------------------
+    ===========================================================================
     afni_proc.py        - generate a tcsh script for an AFNI process stream
 
     This python script can generate a processing script via a command-line
@@ -39,6 +40,9 @@ g_help_string = """
     The output script will create a results directory, copy input files into
     it, and perform all processing there.  So the user can delete the results
     directory and re-run the script at their leisure.
+
+    Note that the output script need to be ever run.  The user should feel
+    free to modify the script for their own evil purposes.
 
     --------------------------------------------------
     The output script will go through the following steps, unless the user
@@ -61,22 +65,26 @@ g_help_string = """
                       params)
 
     --------------------------------------------------
-    example usage (options can be provided in any order):
+    EXAMPLES (options can be provided in any order):
 
         1. Minimum use, provide datasets and stim files.  Note that a dataset
            suffix (e.g. HEAD) must be used with wildcards, so datasets are not
            applied twice.  In this case, a stim_file with many columns is
            given, allowing the script to change it to stim_times files.
 
-                afni_proc.py -dsets epiRT*.HEAD -regress_stim_files stims.1D
+                afni_proc.py -dsets epiRT*.HEAD              \\
+                             -regress_stim_files stims.1D
 
         2. In addition, specify the output script name, the subject ID, to
            remove the first 3 TRs of each run (before steady state), and to
            align volumes to the end of the runs (anat acquired after EPI).
 
-                afni_proc.py -dsets epiRT*.HEAD -regress_stim_files stims.1D \\
-                             -script process_ED -subj_id ED                  \\
-                             -tcat_remove_first_trs 3 -volreg_align_to last
+                afni_proc.py -dsets epiRT*.HEAD              \\
+                             -regress_stim_files stims.1D    \\
+                             -script process_ED              \\
+                             -subj_id ED                     \\
+                             -tcat_remove_first_trs 3        \\
+                             -volreg_align_to last
 
         3. Similar to #2, but skip tshift and mask steps (so the user must
            specify the others), apply 4 second BLOCK response function, and
@@ -86,15 +94,23 @@ g_help_string = """
 
                 afni_proc.py -dsets subjects/ED/epiRT*.HEAD                  \\
                          -blocks volreg blur scale regress                   \\
+                         -script process_ED                                  \\
+                         -subj_id ED                                         \\
+                         -tcat_remove_first_trs 3                            \\
+                         -volreg_align_to last                               \\
                          -regress_stim_times subjects/ED/ED_stim_times*.1D   \\
-                         -script process_ED -subj_id ED                      \\
-                         -tcat_remove_first_trs 3 -volreg_align_to last      \\
                          -regress_basis 'BLOCK(4,1)'
 
     --------------------------------------------------
-    options:
+    OPTIONS:
 
-    -- general execution options --
+        ------------ information options ------------
+
+        -help                   : show this help
+        -hist                   : show the module history
+        -ver                    : show the version number
+
+        ------------ general execution options ------------
 
         -blocks BLOCK1 ...      : specify the processing blocks to apply
 
@@ -125,6 +141,15 @@ g_help_string = """
             and .HEAD filenames on the command line (which would make it twice
             as many runs of data).
 
+        -keep_rm_files          : do not have script delete rm.* files at end
+
+                e.g. -keep_rm_files
+
+            The output script may generate temporary files in a block, which
+            would be given names with prefix 'rm.'.  By default, those files
+            are deleted at the end of the script.  This option blocks that
+            deletion.
+
         -out_dir DIR            : specify the output directory for the script
 
                 e.g. -out_dir ED_results
@@ -141,12 +166,16 @@ g_help_string = """
             The output of this program is a script file.  This option can be
             used to specify the name of that file.
 
+            See also -scr_overwrite, -subj_id.
+
         -scr_overwrite          : overwrite any existing script
 
                 e.g. -scr_overwrite
 
             If the output script file already exists, it will be overwritten
             only if the user applies this option.
+
+            See also -script.
 
         -subj_id SUBJECT_ID     : specify the subject ID for the script
 
@@ -157,7 +186,14 @@ g_help_string = """
             name (unless -out_dir is used).  This option allows the user to
             apply an appropriate naming convention.
 
-    -- block options --
+        -verb LEVEL             : specify the verbosity of this script
+
+                e.g. -verb 2
+                default: 1
+
+            Print out extra information during execution.
+
+        ------------ block options ------------
 
         These options pertain to individual processing blocks.  Each option
         starts with the block name.
@@ -181,14 +217,17 @@ g_help_string = """
             specify the time that slices are aligned to.
 
             It is likely that the user will use either '-slice SLICE_NUM' or
-            '-tzero ZERO_TIME'.  Please see '3dTshift -help' for more
-            information.
+            '-tzero ZERO_TIME'.
+
+            Please see '3dTshift -help' for more information.
             
         -tshift_interp METHOD   : specify the interpolation method for tshift
 
                 e.g. -tshift_interp -Fourier
                 e.g. -tshift_interp -cubic
                 default -quintic
+
+            Please see '3dTshift -help' for more information.
 
         -volreg_align_to POSN   : specify the base position for volume reg
 
@@ -198,24 +237,243 @@ g_help_string = """
             This option takes either 'first' or 'last' as a parameter.  It
             specifies whether the EPI volumes are registered to the first
             volume (of the first run) or the last volume (of the last run).
+            The choice of 'first' or 'last' should corresponding to when
+            anatomical dataset was acquired.
 
             Note that this is done after removing any volumes in the initial
-            tcat operation.  See -tcat_remove_first_trs.
+            tcat operation.
 
-    ---------------------------------------------------------------------------
+            Please see '3dvolreg -help' for more information.
+            See also -tcat_remove_first_trs, -volreg_base_ind.
+
+        -volreg_base_ind RUN SUB : specify volume/brick indices for base
+
+                e.g. -volreg_base_ind 10 123
+                default: 0 0
+
+            This option allow the user to specify exactly which dataset and
+            sub-brick to use as the base registration image.  Note that the
+            SUB index applies AFTER the removal of pre-steady state images.
+
+            The RUN number is 1-based, matching the run list in the output
+            shell script.  The SUB index is 0-based, matching the sub-brick of
+            EPI time series #RUN.  Yes, one is 1-based, the other is 0-based.
+            Life is hard.
+
+            The user can apply only one of the -volreg_align_to and
+            -volreg_base_ind options.
+
+            See also -volreg_align_to, -tcat_remove_first_trs.
+
+        -blur_filter FILTER     : specify 3dmerge filter option
+
+                e.g. -blur_filter -1blur_rms
+                default: -1blur_fwhm
+
+            This option allows the user to specify the filter option from
+            3dmerge.  Note that only the filter option is set here, not the
+            filter size.  The two parts were separated so that users might
+            generally worry only about the filter size.
+
+            Please see '3dmerge -help' for more information.
+            See also -blur_size.
+
+        -blur_size SIZE_MM      : specify the size, in millimeters
+
+                e.g. -blur_size 6.0
+                default: 4
+
+            This option allows the user to specify the size of the blur used
+            by 3dmerge.  It is applied as the 'bmm' parameter in the filter
+            option (such as -1blur_fwhm).
+
+            Please see '3dmerge -help' for more information.
+            See also -blur_filter.
+
+        -mask_type TYPE         : specify 'union' or 'intersection' mask type
+
+                e.g. -mask_type intersection
+                default: union
+
+            This option is used to specify whether the mask applied to the
+            analysis is the union of masks from each run, or the intersection.
+            The only valid values for TYPE are 'union' and 'intersection'.
+
+            This is not how to specify that no mask is applied at all, that is
+            done by excluding the mask block with the '-blocks' option.
+
+            Please see '3dAutomask -help', '3dMean -help' or '3dcalc -help'.
+            See also -mask_dilate, -blocks.
+
+        -mask_dilate NUM_VOXELS : specify the number of time to dilate the mask
+
+                e.g. -mask_dilate 3
+                default: 1
+
+            By default, the masks generated from the EPI data are dilated by
+            1 step (voxel), via the -dilate option in 3dAutomask.  With this
+            option, the user may specify the dilation.  Valid integers must
+            be at least zero.
+
+            Please see '3dAutomask -help' for more information.
+            See also -mask_type.
+
+        -scale_max_val MAX      : specify the maximum value for scaled data
+
+                e.g. -scale_max_val 1000
+                default 200
+
+            The scale step multiples the time series for each voxel by a
+            scalar so that the mean for that particular run is 100 (allowing
+            interpretation of EPI values as a percentage of the mean).
+
+            Values of 200 represent a 100% change above the mean, and so can
+            probably be considered garbage (or the voxel can be considered
+            non-brain).  The output values are limited so as not to sacrifice
+            the precision of the values of short datasets.  Note that in a
+            short (2-byte integer) dataset, a large range of values means
+            bits of accuracy are lost for the representation.
+
+            The user may remove the limit by applying a value <= 0.
+
+            Please see 'DATASET TYPES' in the output of '3dcalc -help'.
+
+        -regress_basis BASIS    : specify the regression basis function
+
+                e.g. -regress_basis 'BLOCK(4,1)'
+                e.g. -regress_basis 'TENT(8,14)'
+                default: GAM
+
+            This option is used to set the basis function used by 3dDeconvolve
+            in the regression step.  This basis function will be applied to
+            all user-supplied regressors (please let me know if there is need
+            to apply different basis functions to different regressors).
+        
+            Please see '3dDeconvolve -help' for more information, or the link:
+                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+            See also -regress_basis_normall, -regress_stim_times.
+
+        -regress_basis_normall NORM : specify the magnitude of basis functions
+
+                e.g. -regress_basis_normall 3.14159
+                default: 1.0
+
+            This option is used to set the '-basis_normall' parameter in
+            3dDeconvolve.  It specifies the height of each basis function.
+
+            Please see '3dDeconvolve -help' for more information.
+            See also -regress_basis.
+
+        -regress_polort DEGREE  : specify the polynomial degree of baseline
+
+                e.g. -regress_polort 1
+                default: 2
+
+            3dDeconvolve models the baseline for each run separately, using
+            Legendre polynomials (by default).  This option specifies the
+            degree of polynomial.  Note that this will create DEGREE * NRUNS
+            regressors.
+
+            Please see '3dDeconvolve -help' for more information, or the link:
+                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+
+        -regress_stim_times FILE1 ... : specify files used for -stim_times
+
+                e.g. -regress_stim_times ED_stim_times*.1D
+                e.g. -regress_stim_times times_A.1D times_B.1D times_C.1D
+
+            3dDeconvolve will be run using '-stim_times'.  This option is
+            used to specify the stimulus timing files to be applied, one
+            file per stimulus type.  The order of the files given on the 
+            command line will be the order given to 3dDeconvolve.  Each of
+            these timing files will be given along with the basis function
+            specified by '-regress_basis'.
+
+            The user must specify either -regress_stim_times or 
+            -regress_stim_files if regression is performed, but not both.
+            Note the form of the files is one row per run.  If there is at
+            most one stimulus per run, please add a trailing '*'.
+
+            Labels may be specified using the -regress_stim_labels option.
+
+            These two examples of such files are for a 3-run experiment.
+            In the second example, there is only 1 stimulus at all, occuring
+            in run 2.
+
+                e.g.            0  12.4  27.3  29
+                                *
+                                30 40 50
+
+                e.g.            *
+                                20 *
+                                *
+
+            Please see '3dDeconvolve -help' for more information, or the link:
+                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+            See also -regress_stim_files, -regress_stim_labels, -regress_basis,
+                     -regress_basis_normall, -regress_polort.
+
+        -regress_stim_files FILE1 ... : specify TR-based stim files
+
+                e.g. -regress_stim_times ED_stim_file*.1D
+                e.g. -regress_stim_times stim_A.1D stim_B.1D stim_C.1D
+
+            3dDeconvolve will be run using '-stim_times', no '-stim_file'.
+            The user is given the option to specify the antiquated stim_file
+            files here, which would then be replace using the script,
+            make_stim_times.py .  It might be more educational for the user
+            to run make_stim_times.py, or to create the timing files directly.
+
+            Each given file can be for multiple stimulus classes, where one
+            column is for one stim class, and each row represents a TR.  So
+            each file should have NUM_RUNS * NUM_TRS rows.
+
+            The stim_times files will be labeled stim_times.NN.1D, where NN
+            is the stimulus index.
+
+            Please see '3dDeconvolve -help' for more information, or the link:
+                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+            See also -regress_stim_times, -regress_stim_labels, -regress_basis,
+                     -regress_basis_normall, -regress_polort.
+
+        -regress_stim_labels LAB1 ...   : specify labels for stimulus types
+
+                e.g. -regress_stim_labels houses faces donuts
+                default: stim01 stim02 stim03 ...
+
+            This option is used to apply a label to each stimulus type.  The
+            number of labels should equal the number of files used in the
+            -regress_stim_times option, or the total number of columns in the
+            files used in the -regress_stim_files option.
+
+            These labels will be applied as '-stim_label' in 3dDeconvolve.
+
+            Please see '3dDeconvolve -help' for more information.
+            See also -regress_stim_times, -regress_stim_labels.
+
+    - R Reynolds  Dec, 2006
+    ===========================================================================
+"""
+
+g_history = """
+    afni_proc.py history:
+
+    0.2  Dec  7, 2006 : approaching initial release...
+    0.3  Dec  9, 2006 : added regress block (3dDeconvolve)
+    0.4  Dec 11, 2006 : added help
 """
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
 BlockLabels  = ['tcat', 'tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
-BlockModFunc  = {'tcat'  : db_mod_tcat,     'tshift' :db_mod_tshift,
-                 'volreg': db_mod_volreg,   'blur'   :db_mod_blur,
-                 'mask'  : db_mod_mask,
-                 'scale' : db_mod_scale,    'regress':db_mod_regress}
-BlockCmdFunc  = {'tcat'  : db_cmd_tcat,     'tshift' :db_cmd_tshift,
-                 'volreg': db_cmd_volreg,   'blur'   :db_cmd_blur,
-                 'mask'  : db_cmd_mask,
-                 'scale' : db_cmd_scale,    'regress':db_cmd_regress}
+BlockModFunc  = {'tcat'   : db_mod_tcat,     'tshift' :db_mod_tshift,
+                 'volreg' : db_mod_volreg,   'blur'   :db_mod_blur,
+                 'mask'   : db_mod_mask,     'scale'  : db_mod_scale,
+                 'regress':db_mod_regress}
+BlockCmdFunc  = {'tcat'   : db_cmd_tcat,     'tshift' :db_cmd_tshift,
+                 'volreg' : db_cmd_volreg,   'blur'   :db_cmd_blur,
+                 'mask'   : db_cmd_mask,     'scale'  : db_cmd_scale,
+                 'regress':db_cmd_regress}
 AllOptionStyles = ['cmd', 'file', 'gui', 'sdir']
 
 # ----------------------------------------------------------------------
@@ -237,6 +495,7 @@ class SubjProcSream:
         self.script     = '@proc_subj'
         self.overwrite  = False         # overwrite script file?
         self.fp         = None          # file object
+        self.rm_rm      = True          # remove rm.* files
 
         self.verb       = 1             # verbosity level
 
@@ -279,7 +538,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-script', 1, [])
         self.valid_opts.add_opt('-subj_id', -1, [])
 
-        # self.valid_opts.add_opt('-remove_rm_files', 0, [])
+        self.valid_opts.add_opt('-keep_rm_files', 0, [])
         # self.valid_opts.add_opt('-remove_pXX_files', 0, [])
 
         # block options
@@ -308,14 +567,19 @@ class SubjProcSream:
 
 
         # other options
-        self.valid_opts.add_opt('-help', 0, [1])
-        self.valid_opts.add_opt('-verb', 1, [1])
+        self.valid_opts.add_opt('-help', 0, [])
+        self.valid_opts.add_opt('-hist', 0, [])
+        self.valid_opts.add_opt('-ver', 0, [])
+        self.valid_opts.add_opt('-verb', 1, [])
 
         self.valid_opts.trailers = False   # do not allow unknown options
         
     def get_user_opts(self):
         self.user_opts = read_options(sys.argv, self.valid_opts)
-        if self.user_opts == None: return 1
+        if self.user_opts == None: return 1     # error condition
+        if len(self.user_opts.olist) == 0:      # no options: apply -help
+            print g_help_string
+            return 1
         if self.user_opts.trailers:
             opt = self.user_opts.find_opt('trailers')
             if not opt: print "** seem to have trailers, but cannot find them!"
@@ -327,7 +591,17 @@ class SubjProcSream:
 
         opt = self.user_opts.find_opt('-help')    # does the user want help?
         if opt != None:
-            self.disp_opt_help()
+            print g_help_string
+            return 1  # terminate
+        
+        opt = self.user_opts.find_opt('-hist')    # print the history
+        if opt != None:
+            print g_history
+            return 1  # terminate
+        
+        opt = self.user_opts.find_opt('-ver')    # show the version string
+        if opt != None:
+            print g_version
             return 1  # terminate
         
         opt = self.user_opts.find_opt('-subj_id')
@@ -347,6 +621,9 @@ class SubjProcSream:
 
         opt = self.user_opts.find_opt('-scr_overwrite')
         if opt != None: self.overwrite = True
+
+        opt = self.user_opts.find_opt('-keep_rm_files')
+        if opt != None: self.rm_rm = False
 
         # done checking options
 
@@ -396,13 +673,13 @@ class SubjProcSream:
             else: self.fp.write(cmd_str)
 
         rv = self.finalize_script()     # finish the script
-        if rv != None: return rv
+        if rv: errs += 1
 
         if self.fp: self.fp.close()
 
-        if errs > 0: return 1    # so we print all erros before leaving
+        if errs > 0: return 1    # so we print all errors before leaving
 
-        # verify whether subj_id is sub-string of each dset
+        if self.verb > 0: print "script is file: %s" % self.script
 
         return
 
@@ -434,14 +711,11 @@ class SubjProcSream:
         if self.verb > 1: print '(reps, runs, tr) = (%d, %d, %f)' %  \
                                  (self.reps, self.runs, self.tr)
 
-    def disp_opt_help(self):    # rcr
-        print g_help_string
-
     # create a new block for the given label, and append it to 'blocks'
     def add_block(self, label):
         block = ProcessBlock(label, self)
         if not block.valid:
-            print '** invalid block type: %s' % block.label
+            print '** invalid block : %s' % block.label
             return 1
         self.blocks.append(block)
 
@@ -498,6 +772,9 @@ class SubjProcSream:
 
     # and last steps
     def finalize_script(self):
+        if self.rm_rm:
+            self.fp.write('# remove temporary rm.* files\n'
+                          '\\rm -f rm.*\n\n')
         self.fp.write('# return to parent directory\n'
                       'cd ..\n\n')
 
