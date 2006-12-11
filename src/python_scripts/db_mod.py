@@ -1,4 +1,4 @@
-import glob, afni_util
+import os, glob, afni_util
 
 # modify the tcat block options according to the user options
 def db_mod_tcat(block, proc, user_opts):
@@ -21,21 +21,21 @@ def db_mod_tcat(block, proc, user_opts):
 # do not rely on the form of input filenames
 # use 3dtcat to copy each file to out_dir, then 'cd' into it
 def db_cmd_tcat(proc, block):
+    cmd = ''
     opt = block.opts.find_opt('-tcat_remove_first_trs')
     first = opt.parlist[0]
 
     if proc.verb > 2: block.show('+d db_cmd_tcat: ')
 
-    proc.fp.write("# -------------------------------------------------------\n"
-                  "# apply 3dTcat to copy input dsets to results dir, while\n"
-                  "# removing the first %d TRs\n" % first)
+    cmd = cmd + "# -------------------------------------------------------\n" \
+              + "# apply 3dTcat to copy input dsets to results dir, while\n"  \
+              + "# removing the first %d TRs\n" % first
     for run in range(0, proc.runs):
-        proc.fp.write("3dTcat -prefix %s/%s %s'[%d..$]'\n" %    \
-           (proc.out_dir, proc.prefix_form(block,run+1),        \
-            proc.dsets[run].rpv(), first))
+        cmd = cmd + "3dTcat -prefix %s/%s %s'[%d..$]'\n" %              \
+                    (proc.out_dir, proc.prefix_form(block,run+1),
+                     proc.dsets[run].rpv(), first)
 
-    proc.fp.write('\n# and enter the results directory\n'
-                  'cd %s\n\n' % proc.out_dir)
+    cmd = cmd + '\n# and enter the results directory\ncd %s\n\n' % proc.out_dir
 
     proc.reps   -= first        # update reps to account for removed TRs
     proc.bindex += 1            # increment block index
@@ -43,12 +43,12 @@ def db_cmd_tcat(proc, block):
 
     if proc.verb > 1: print "+d %s: reps is now %d" % (block.label, proc.reps)
         
-    return None
+    return cmd
 
 def db_mod_tshift(block, proc, user_opts):
     if len(block.opts.olist) == 0:    # then init to defaults
         block.opts.add_opt('-tshift_align_to', -1, ['-tzero', '0'], setpar=True)
-        block.opts.add_opt('-tshift_resam', 1, ['-quintic'], setpar=True)
+        block.opts.add_opt('-tshift_interp', 1, ['-quintic'], setpar=True)
 
     # check for updates to -tshift_align_to option
     uopt = user_opts.find_opt('-tshift_align_to')
@@ -56,9 +56,9 @@ def db_mod_tshift(block, proc, user_opts):
     if uopt and bopt:
         bopt.parlist = uopt.parlist     # copy new params
 
-    # check for updates to -tshift_resam option
-    uopt = user_opts.find_opt('-tshift_resam')
-    bopt = block.opts.find_opt('-tshift_resam')
+    # check for updates to -tshift_interp option
+    uopt = user_opts.find_opt('-tshift_interp')
+    bopt = block.opts.find_opt('-tshift_interp')
     if uopt and bopt:
         bopt.parlist = uopt.parlist     # copy new params
 
@@ -66,10 +66,11 @@ def db_mod_tshift(block, proc, user_opts):
 
 # run 3dToutcount and 3dTshift for each run
 def db_cmd_tshift(proc, block):
+    cmd = ''
     # get the base options
     opt = block.opts.find_opt('-tshift_align_to')
     align_to = ' '.join(opt.parlist)  # maybe '-tzero 0'
-    opt = block.opts.find_opt('-tshift_resam')
+    opt = block.opts.find_opt('-tshift_interp')
     resam = ' '.join(opt.parlist)     # maybe '-quintic'
 
     # note cur and prev prefix forms (with $run)
@@ -77,18 +78,20 @@ def db_cmd_tshift(proc, block):
     prev_prefix = proc.prev_prefix_form_run()
 
     # write commands
-    proc.fp.write('# -------------------------------------------------------\n'
-                  '# run 3dToutcount and 3dTshift for each run\n')
-    proc.fp.write('foreach run ( $runs )\n'
-                  '    3dToutcount -automask %s+orig > toutcount_r$run.1D\n'
-                  '\n'
-                  '    3dTshift %s %s -prefix %s      \\\n'
-                  '             %s+orig\n'
-                  'end\n\n' %     \
-                  (prev_prefix, align_to, resam, cur_prefix, prev_prefix))
+    cmd = cmd + '# -------------------------------------------------------\n' \
+              + '# run 3dToutcount and 3dTshift for each run\n'
+    cmd = cmd + 'foreach run ( $runs )\n'                                     \
+                '    3dToutcount -automask %s+orig > toutcount_r$run.1D\n'    \
+                '\n'                                                          \
+                '    3dTshift %s %s -prefix %s      \\\n'                     \
+                '             %s+orig\n'                                      \
+                'end\n\n' %                                                   \
+                (prev_prefix, align_to, resam, cur_prefix, prev_prefix)
     
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
+
+    return cmd
 
 def db_mod_volreg(block, proc, user_opts):
     if len(block.opts.olist) == 0:    # then init dset/brick indices to defaults
@@ -125,6 +128,7 @@ def db_mod_volreg(block, proc, user_opts):
     block.valid = 1
 
 def db_cmd_volreg(proc, block):
+    cmd = ''
     # get the base options
     opt = block.opts.find_opt('-volreg_base_ind')
     dset_ind = opt.parlist[0]
@@ -139,22 +143,23 @@ def db_cmd_volreg(proc, block):
     # get base prefix (run is index+1)
     base = proc.prev_prefix_form(dset_ind+1)
 
-    proc.fp.write("# -------------------------------------------------------\n"
-                  "# align each dset to the base volume\n"
-                  "foreach run ( $runs )\n"
-                  "    3dvolreg -verbose -zpad 1 -base %s+orig'[%d]'  \\\n"
-                  "             -1Dfile dfile.r$run.1D -prefix %s  \\\n"
-                  "             %s+orig\n"
-                  "end\n\n"
-                  "# make a single file of registration params\n"
-                  "cat dfile.r??.1D > dfile.rall.1D\n\n" %
+    cmd = cmd + "# -------------------------------------------------------\n" \
+                "# align each dset to the base volume\n"                      \
+                "foreach run ( $runs )\n"                                     \
+                "    3dvolreg -verbose -zpad 1 -base %s+orig'[%d]'  \\\n"     \
+                "             -1Dfile dfile.r$run.1D -prefix %s  \\\n"        \
+                "             %s+orig\n"                                      \
+                "end\n\n"                                                     \
+                "# make a single file of registration params\n"               \
+                "cat dfile.r??.1D > dfile.rall.1D\n\n" %                      \
                     (proc.prev_prefix_form(dset_ind+1), sub, 
                      proc.prefix_form_run(block),
                      proc.prev_prefix_form_run())
-                )
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
+
+    return cmd
 
 def db_mod_blur(block, proc, user_opts):
     if len(block.opts.olist) == 0: # init blur option
@@ -179,6 +184,7 @@ def db_mod_blur(block, proc, user_opts):
     block.valid = 1
 
 def db_cmd_blur(proc, block):
+    cmd = ''
     opt    = block.opts.find_opt('-blur_filter')
     filter = opt.parlist[0]
     opt    = block.opts.find_opt('-blur_size')
@@ -186,15 +192,17 @@ def db_cmd_blur(proc, block):
     prefix = proc.prefix_form_run(block)
     prev   = proc.prev_prefix_form_run()
 
-    proc.fp.write("# -------------------------------------------------------\n"
-                  "# blur each volume\n"
-                  "foreach run ( $runs )\n"
-                  "    3dmerge %s %d -doall -prefix %s   \\\n"
-                  "            %s+orig\n"
-                  "end\n\n" % (filter, size, prefix, prev))
+    cmd = cmd + "# -------------------------------------------------------\n" \
+                "# blur each volume\n"                                        \
+                "foreach run ( $runs )\n"                                     \
+                "    3dmerge %s %d -doall -prefix %s   \\\n"                  \
+                "            %s+orig\n"                                       \
+                "end\n\n" % (filter, size, prefix, prev)
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
+
+    return cmd
 
 def db_mod_mask(block, proc, user_opts):
     if len(block.opts.olist) == 0: # then init
@@ -220,6 +228,7 @@ def db_mod_mask(block, proc, user_opts):
     block.valid = 1
 
 def db_cmd_mask(proc, block):
+    cmd = ''
     opt = block.opts.find_opt('-mask_type')
     type = opt.parlist[0]
     if type == 'union': min = 1
@@ -229,21 +238,23 @@ def db_cmd_mask(proc, block):
     nsteps = opt.parlist[0]
 
     prev = proc.prev_prefix_form_run()
-    proc.fp.write("# -------------------------------------------------------\n"
-                  "# create 'full_mask' dataset (%s mask)\n"
-                  "foreach run ( $runs )\n"
-                  "    3dAutomask -dilate %d -prefix rm.mask_r$run %s+orig\n"
-                  "end\n\n" % (type, nsteps, prev))
+    cmd = cmd + "# -------------------------------------------------------\n" \
+                "# create 'full_mask' dataset (%s mask)\n"                    \
+                "foreach run ( $runs )\n"                                     \
+                "    3dAutomask -dilate %d -prefix rm.mask_r$run %s+orig\n"   \
+                "end\n\n" % (type, nsteps, prev)
 
-    proc.fp.write("# get sum and compare it to %d for taking '%s'\n"
-                  "3dMean -sum -datum short -prefix rm.sum rm.mask*.HEAD\n"
-                  "3dcalc -a rm.sum+orig -expr 'ispositive(a-%d)' "
-                      "-prefix full_mask\n\n" % (min, type, min))
+    cmd = cmd + "# get sum and compare it to %d for taking '%s'\n"            \
+                "3dMean -sum -datum short -prefix rm.sum rm.mask*.HEAD\n"     \
+                "3dcalc -a rm.sum+orig -expr 'ispositive(a-%d)' "             \
+                "-prefix full_mask\n\n" % (min, type, min)
 
     proc.mask = 'full_mask'     # note that we have a mask dataset to apply
 
     # do not increment block index or set 'previous' block label,
     # as there are no datasets created here
+
+    return cmd
 
 def db_mod_scale(block, proc, user_opts):     # no options at this time
     if len(block.opts.olist) == 0: # then init
@@ -263,6 +274,7 @@ def db_mod_scale(block, proc, user_opts):     # no options at this time
     block.valid = 1
 
 def db_cmd_scale(proc, block):
+    cmd = ''
     # check for max scale value 
     opt = block.opts.find_opt('-scale_max_val')
     max = opt.parlist[0]
@@ -281,18 +293,20 @@ def db_cmd_scale(proc, block):
 
     prev = proc.prev_prefix_form_run()
     prefix = proc.prefix_form_run(block)
-    proc.fp.write("# -------------------------------------------------------\n"
-                  "# create a scaled dataset for each run%s\n"
-                  "foreach run ( $runs )\n"
-                  "    3dTstat -prefix rm.mean_r$run %s+orig\n"
-                  "    3dcalc -a %s+orig -b rm.mean_r$run+orig  \\\n"
-                  "%s"
-                  "           -expr '%s'  \\\n"
-                  "           -prefix %s\n"
-                  "end\n\n" % (maxstr, prev, prev, mask_dset, expr, prefix))
+    cmd = cmd + "# -------------------------------------------------------\n" \
+                "# create a scaled dataset for each run%s\n"                  \
+                "foreach run ( $runs )\n"                                     \
+                "    3dTstat -prefix rm.mean_r$run %s+orig\n"                 \
+                "    3dcalc -a %s+orig -b rm.mean_r$run+orig  \\\n"           \
+                "%s"                                                          \
+                "           -expr '%s'  \\\n"                                 \
+                "           -prefix %s\n"                                     \
+                "end\n\n" % (maxstr, prev, prev, mask_dset, expr, prefix)
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
+
+    return cmd
 
 def db_mod_regress(block, proc, user_opts):
     if len(block.opts.olist) == 0: # then init
@@ -336,7 +350,7 @@ def db_mod_regress(block, proc, user_opts):
             print "** no files for -regress_stim_files?"
             errs += 1
         bopt.parlist = uopt.parlist
-        proc.stims = uopt.parlist   # store for initial copy
+        proc.stims_orig = uopt.parlist   # store for initial copy
 
     uopt = user_opts.find_opt('-regress_stim_labels')
     bopt = block.opts.find_opt('-regress_stim_labels')
@@ -355,12 +369,18 @@ def db_mod_regress(block, proc, user_opts):
             print "** no files for -regress_stim_times?"
             errs += 1
         bopt.parlist = uopt.parlist
-        proc.stims = uopt.parlist   # store for initial copy
+        proc.stims_orig = uopt.parlist   # store for initial copy
 
     # if we are here, then we should have stimulus files
-    if len(proc.stims) == 0:
+    if len(proc.stims_orig) == 0:
         print "** missing stim files (-regress_stim_times/-regress_stim_files)"
         errs += 1
+    # create local names for stim files
+    proc.stims = []
+    for file in proc.stims_orig:
+        proc.stims.append('stimuli/%s' % os.path.basename(file))
+    if proc.verb > 1:
+        print "-d applying stim files %s\n-> %s" % (proc.stims_orig,proc.stims)
 
     if errs > 0:
         block.valid = 0
@@ -373,6 +393,7 @@ def db_mod_regress(block, proc, user_opts):
 # without stim_times, use stim_files to generate stim_times
 # without stim_labels, use stim_times to create labels
 def db_cmd_regress(proc, block):
+    cmd = ''
     opt = block.opts.find_opt('-regress_basis')
     basis = opt.parlist[0]
 
@@ -384,26 +405,28 @@ def db_cmd_regress(proc, block):
 
     if len(proc.stims) <= 0:   # be sure we have some stim files
         print "** cmd_regress: no stim files"
-        return 1
+        return
 
-    proc.fp.write("# -------------------------------------------------------\n"
-                  "# run the regression analysis\n")
+    cmd = cmd + "# -------------------------------------------------------\n" \
+                "# run the regression analysis\n"
 
     opt = block.opts.find_opt('-regress_stim_times')
     if not opt.parlist or len(opt.parlist) == 0:
-        if db_cmd_regress_sfiles2times(proc, block): return 1
+        newcmd = db_cmd_regress_sfiles2times(proc, block)
+        if not newcmd: return
+        cmd = cmd + newcmd
     else: stim_times = opt.parlist
 
     if proc.mask: mask = '    -mask %s+orig  \\\n' % proc.mask
     else        : mask = ''
 
-    proc.fp.write('3dDeconvolve -input %s+orig.HEAD    \\\n'
-                  '    -polort %d  \\\n'
-                  '%s'
-                  '    -basis_normall %s  \\\n'
-                  '    -num_stimts %d  \\\n'
-                  % ( proc.prev_prefix_form_rwild(), polort, mask, str(normall),
-                      len(proc.stims)+6 ) )  # +6 for motion params
+    cmd = cmd + '3dDeconvolve -input %s+orig.HEAD    \\\n'      \
+                '    -polort %d  \\\n'                          \
+                '%s'                                            \
+                '    -basis_normall %s  \\\n'                   \
+                '    -num_stimts %d  \\\n'                      \
+                % ( proc.prev_prefix_form_rwild(), polort, mask, str(normall),
+                    len(proc.stims)+6 )  # +6 for motion params
 
     # verify labels (now that we know the list of stimulus files)
     opt = block.opts.find_opt('-regress_stim_labels')
@@ -414,46 +437,46 @@ def db_cmd_regress(proc, block):
         if proc.verb > 1: print ('+d adding labels: %s' % labels)
     elif len(proc.stims) != len(opt.parlist):
         print "** cmd_regress: have %d stims but %d labels"
-        return 1
+        return
     else:  # we have the same number of labels as stims
         labels = opt.parlist
 
     # write out stim lines
-    print ('** %d stims, %d labels' % (len(proc.stims), len(labels)))
-    print ('labels = %s' % labels)
     for ind in range(len(proc.stims)):
-        proc.fp.write('    -stim_times %d %s %s  \\\n'
-                      '    -stim_label %d %s  \\\n'
-                      % (ind+1, proc.stims[ind], basis, ind+1, labels[ind]))
+        cmd = cmd + "    -stim_times %d %s '%s'  \\\n"  \
+                    "    -stim_label %d %s  \\\n"     \
+                    % (ind+1, proc.stims[ind], basis, ind+1, labels[ind])
 
     # write out registration param lines
     labels = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
     first = len(proc.stims) + 1 # first stim index
     for ind in range(6):
-        proc.fp.write("    -stim_file %d dfile.rall.1D'[%d]' "
-                      "-stim_base %d -stim_label %d %s  \\\n"
-                      % (ind+first, ind, ind+first, ind+first, labels[ind]))
+        cmd = cmd + "    -stim_file %d dfile.rall.1D'[%d]' "  \
+                    "-stim_base %d -stim_label %d %s  \\\n"   \
+                    % (ind+first, ind, ind+first, ind+first, labels[ind])
 
     # add misc options
-    proc.fp.write("    -fout -tout -full_first -x1D Xmat.1D  \\\n"
-                  "    -bucket stats.$subj\n\n")
+    cmd = cmd + "    -fout -tout -full_first -x1D Xmat.1D  \\\n"  \
+                "    -bucket stats.$subj\n\n"
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
 
+    return cmd
+
 # convert a stim_files list into a stim_times list
 def db_cmd_regress_sfiles2times(proc, block):
+    cmd = ''
     if proc.verb > 1: print '-d old stim list: %s' % proc.stims
 
-    proc.fp.write('\n# create -stim_times files\n')
-    proc.fp.write('make.stim.times.py -prefix stim_times -tr %s -nruns %d  \\\n'
-                  '                   -files '
-                  % (str(proc.tr), proc.runs))
+    cmd = cmd + '\n# create -stim_times files\n'
+    cmd = cmd + 'make.stim.times.py -prefix stim_times -tr %s -nruns %d  \\\n' \
+                '                   -files ' % (str(proc.tr), proc.runs)
     cols = 0
-    for file in proc.stims:
-        proc.fp.write('%s ' % file)             # put name on cmd line
+    for file in proc.stims_orig:
+        cmd = cmd + 'stimuli/%s ' % file        # put name on cmd line
         cols += afni_util.num_cols_1D(file)     # and tally the number of cols
-    proc.fp.write('\n\n')
+    cmd = cmd + '\n\n'
 
     # and reset proc.stims to the new file list (which is 1-based)
     proc.stims = []
@@ -461,3 +484,6 @@ def db_cmd_regress_sfiles2times(proc, block):
         proc.stims.append('stimuli/stim_times.%02d.1D' % ind)
 
     if proc.verb > 1: print '-d new stim list: %s' % proc.stims
+
+    return cmd
+
