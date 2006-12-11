@@ -112,6 +112,45 @@ ENTRY("THD_medmad_bricks") ;
 }
 
 /*-----------------------------------------------------------------*/
+/*! Compute median and MAD bricks of an image array
+-------------------------------------------------------------------*/
+
+MRI_IMARR * IMARR_medmad_bricks( MRI_IMARR *dmar )
+{
+   int nvox , nvals , ii , kk ;
+   MRI_IMAGE *tsim , *madim, *medim ;
+   float             *madar, *medar ;
+   MRI_IMARR *imar ;
+   float *tsar , **dar ;
+
+ENTRY("IMARR_medmad_bricks") ;
+
+   if( dmar == NULL || IMARR_COUNT(dmar) < 2 ) RETURN(NULL) ;
+
+   nvals = IMARR_COUNT(dmar) ;
+   tsim  = IMARR_SUBIM(dmar,0) ;
+   madim = mri_new_conforming( tsim , MRI_float ) ;
+   madar = MRI_FLOAT_PTR(madim) ;
+   medim = mri_new_conforming( tsim , MRI_float ) ;
+   medar = MRI_FLOAT_PTR(medim) ;
+   nvox  = tsim->nvox ;
+
+   dar = (float **)malloc(sizeof(float *)*nvals) ;
+   for( kk=0 ; kk < nvals ; kk++ )
+     dar[kk] = MRI_FLOAT_PTR( IMARR_SUBIM(dmar,kk) ) ;
+
+   tsar = (float *) calloc( sizeof(float),nvals+1 ) ;
+   for( ii=0 ; ii < nvox ; ii++ ){
+     for( kk=0 ; kk < nvals ; kk++ ) tsar[kk] = dar[kk][ii] ;
+     qmedmad_float( nvals , tsar , medar+ii , madar+ii ) ;
+   }
+
+   free(tsar) ; free(dar) ;
+   INIT_IMARR(imar) ; ADDTO_IMARR(imar,medim) ; ADDTO_IMARR(imar,madim) ;
+   RETURN(imar) ;
+}
+
+/*-----------------------------------------------------------------*/
 /*! Compute mean and sigma bricks of a dataset - 07 Dec 2006
 -------------------------------------------------------------------*/
 

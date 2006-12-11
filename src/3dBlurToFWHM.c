@@ -44,6 +44,8 @@ int main( int argc , char *argv[] )
    int temperize=0 , temper_fx=0, temper_fy=0, temper_fz=0 ;
    float fx_tbot,fx_ttop,fy_tbot,fy_ttop,fz_tbot,fz_ttop ;
    float fx_trat,fy_trat,fz_trat ;
+   int bmall=0,do_unif=0 ;           /* 11 Dec 2006 */
+   MRI_IMARR *imar ; MRI_IMAGE *imed, *imad ; float *imedar, *imadar, *bar ;
 
    /*-- help the pitifully ignorant luser? --*/
 
@@ -164,6 +166,12 @@ int main( int argc , char *argv[] )
       "                        smoothness, use '-nbhd NULL'.\n"
       " -bsave   bbb = Save the local smoothness estimates at each iteration\n"
       "                with dataset prefix 'bbb' [for debugging purposes].\n"
+      " -bmall       = Use all blurmaster sub-bricks.\n"
+      "                [Default: a subset will be chosen, for speed]\n"
+      " -unif        = Uniformize the voxel-wise MAD in the blurmaster and\n"
+      "                input datasets prior to blurring.  Will be restored\n"
+      "                in the output dataset.\n"
+      " -temper      = Try harder to make the smoothness spatially uniform.\n"
       "\n"
       "-- Author: The Dreaded Emperor Zhark - Nov 2006\n"
      ) ;
@@ -189,6 +197,20 @@ int main( int argc , char *argv[] )
 
      if( strncmp(argv[iarg],"-q",2) == 0 ){
        verb = 0 ; iarg++ ; continue ;
+     }
+     if( strncmp(argv[iarg],"-verb",4) == 0 ){
+       verb = 1 ; iarg++ ; continue ;
+     }
+
+     if( strncmp(argv[iarg],"-bmal",5) == 0 ){
+       bmall = 1 ; iarg++ ; continue ;
+     }
+
+     if( strncmp(argv[iarg],"-unif",4) == 0 ){
+       do_unif = 1 ; iarg++ ; continue ;
+     }
+     if( strncmp(argv[iarg],"-nounif",6) == 0 ){
+       do_unif = 0 ; iarg++ ; continue ;
      }
 
      if( strncmp(argv[iarg],"-temper",6) == 0 ){
@@ -408,12 +430,24 @@ int main( int argc , char *argv[] )
    /*--- process blurmaster dataset to produce blur master image array ---*/
 
    DSET_load(bmset) ; CHECK_LOAD_ERROR(bmset) ;
-   bmed = THD_median_brick(bmset) ; INIT_IMARR(bmar) ;
+   INIT_IMARR(bmar) ;
    if( DSET_NVALS(bmset) == 1 ){
+     bmed = THD_median_brick(bmset) ;
      ADDTO_IMARR(bmar,bmed) ;
+     if( do_unif )
+       WARNING_message("Can't apply -unif: only 1 sub-brick in blurmaster dataset") ;
    } else {
-     float *mar=MRI_FLOAT_PTR(bmed) , *bar ;
+     MRI_IMAGE *smed ;
+     float *mar , *sar ;
      int ntouse , nvb=DSET_NVALS(bmset) , ibot , idel ;
+
+     imar = THD_medmad_bricks(bmset) ;
+     bmed = IMARR_SUBIM(imar,0) ;        /* 11 Dec 2006: -do_unif: */
+     smed = IMARR_SUBIM(imar,1) ;        /* normalize each voxel   */
+     mar  = MRI_FLOAT_PTR(bmed) ;        /* by 1/MAD, to allow for */
+     sar  = MRI_FLOAT_PTR(smed) ;        /* spatial variability    */
+     if( do_unif )
+       for( ii=0 ; ii < nvox ; ii++ ) if( sar[ii] != 0.0f ) sar[ii] = 1.0/sar[ii] ;
      if( nbhd != NULL ){
        ntouse = (int)ceil(9999.9999/nbhd->num_pt) ;
        ntouse = MAX(2,ntouse) ;
@@ -421,19 +455,22 @@ int main( int argc , char *argv[] )
      } else {
        ntouse = MIN(nvb,32) ;
      }
+     if( bmall ) ntouse = nvb ;
      idel = nvb / ntouse ;
      ibot = (nvb-1 - idel*(ntouse-1)) / 2 ;
-     if( ntouse < nvb )
-       if( verb ) INFO_message("Using blurmaster sub-bricks [%d..%d(%d)]",
-                               ibot,ibot+(ntouse-1)*idel,idel);
+     if( verb ) INFO_message("Using blurmaster sub-bricks [%d..%d(%d)]",
+                             ibot,ibot+(ntouse-1)*idel,idel);
      for( ibm=ibot ; ibm < nvb && IMARR_COUNT(bmar) < ntouse  ; ibm+=idel ){
        bmim = mri_scale_to_float(DSET_BRICK_FACTOR(bmset,ibm),DSET_BRICK(bmset,ibm));
        bar  = MRI_FLOAT_PTR(bmim) ;
-       for( ii=0 ; ii < nvox ; ii++ ) bar[ii] -= mar[ii] ;
+       if( do_unif )
+         for( ii=0 ; ii < nvox ; ii++ ) bar[ii] = (bar[ii]-mar[ii])*sar[ii] ;
+       else
+         for( ii=0 ; ii < nvox ; ii++ ) bar[ii] = bar[ii]-mar[ii] ;
        ADDTO_IMARR(bmar,bmim) ;
        if( !bmeqin ) DSET_unload_one(bmset,ibm) ;
      }
-     mri_free(bmed) ;
+     DESTROY_IMARR(imar) ;
    }
    if( !bmeqin ) DSET_unload(bmset) ;
    for( ibm=0 ; ibm < IMARR_COUNT(bmar) ; ibm++ ){
@@ -445,10 +482,33 @@ int main( int argc , char *argv[] )
    /*--- pre-process input dataset ---*/
 
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
+   if( do_unif ){
+     int nvi = DSET_NVALS(inset) ;
+     if( nvi < 3 ){
+       WARNING_message(
+         "Can't apply -unif: only %d sub-brick%s in input dataset" ,
+         nvi , (nvi==1) ? "\0" : "s" ) ;
+       do_unif = 0 ;
+     } else {
+       imar = THD_medmad_bricks(inset) ;
+       imed = IMARR_SUBIM(imar,0) ; imedar = MRI_FLOAT_PTR(imed) ;
+       imad = IMARR_SUBIM(imar,1) ; imadar = MRI_FLOAT_PTR(imad) ;
+       for( ii=0 ; ii < nvox ; ii++ )
+         if( imadar[ii] != 0.0f ) imadar[ii] = 1.0f/imadar[ii] ;
+     }
+   }
    INIT_IMARR(dsar) ;
    for( ids=0 ; ids < DSET_NVALS(inset) ; ids++ ){
      dsim = mri_scale_to_float(DSET_BRICK_FACTOR(inset,ids),DSET_BRICK(inset,ids));
+     if( do_unif ){
+       bar = MRI_FLOAT_PTR(dsim) ;
+       for( ii=0 ; ii < nvox ; ii++ ) bar[ii] = (bar[ii]-imedar[ii])*imadar[ii] ;
+     }
      ADDTO_IMARR(dsar,dsim) ; DSET_unload_one(inset,ids) ;
+   }
+   if( do_unif ){
+     for( ii=0 ; ii < nvox ; ii++ )
+       if( imadar[ii] != 0.0f ) imadar[ii] = 1.0f/imadar[ii] ;
    }
    DSET_unload(inset) ;
    for( ids=0 ; ids < IMARR_COUNT(dsar) ; ids++ ){
@@ -492,7 +552,7 @@ int main( int argc , char *argv[] )
 
      /*--- global smoothness estimation ---*/
 
-     fw = mriarr_estimate_FWHM_1dif( bmar , mask ) ;
+     fw = mriarr_estimate_FWHM_1dif( bmar , mask , do_unif ) ;
 
      UNLOAD_FVEC3(fw,bx,by,bz) ;
      if( bx <= 0.0f ) bx = dx ;  /* should not happen */
@@ -833,9 +893,14 @@ int main( int argc , char *argv[] )
    EDIT_dset_items( outset , ADN_prefix , prefix , ADN_none ) ;
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dBlurToFWHM" , argc,argv , outset ) ;
-   for( ii=0 ; ii < DSET_NVALS(outset) ; ii++ )
-     EDIT_substitute_brick( outset , ii , MRI_float ,
-                            MRI_FLOAT_PTR( IMARR_SUBIM(dsar,ii) ) ) ;
+   for( ids=0 ; ids < DSET_NVALS(outset) ; ids++ ){
+     bar = MRI_FLOAT_PTR( IMARR_SUBIM(dsar,ids) ) ;
+     if( do_unif ){
+       for( ii=0 ; ii < nvox ; ii++ )
+         if( mask[ii] ) bar[ii] = bar[ii]*imadar[ii] + imedar[ii] ;
+     }
+     EDIT_substitute_brick( outset , ids , MRI_float , bar ) ;
+   }
    DSET_write(outset) ;
    WROTE_DSET(outset) ;
 
@@ -846,7 +911,9 @@ int main( int argc , char *argv[] )
      pg  = THD_find_executable("3dFWHMx") ;
      buf = malloc(     ((pg != NULL) ? strlen(pg)+999 : 999      ) ) ;
      sprintf(buf,"%s", ((pg != NULL) ? pg             : "3dFWHMx") ) ;
-     sprintf(buf+strlen(buf)," -demed") ;
+     sprintf(buf+strlen(buf)," -arith") ;
+     if( do_unif )
+       sprintf(buf+strlen(buf)," -unif") ;
      if( automask )
        sprintf(buf+strlen(buf)," -automask") ;
      else if( mset != NULL )
