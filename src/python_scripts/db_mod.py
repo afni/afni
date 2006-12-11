@@ -107,7 +107,7 @@ def db_mod_volreg(block, proc, user_opts):
             print "** cannot use both '-volreg_base_ind' and '-volreg_align_to'"
             return 1
         errs = 0
-        try: bopt.parlist[0] = int(uopt.parlist[0])
+        try: bopt.parlist[0] = int(uopt.parlist[0]) - 1  # run -> index
         except: errs += 1
         try: bopt.parlist[1] = int(uopt.parlist[1])
         except: errs += 1
@@ -470,7 +470,7 @@ def db_cmd_regress_sfiles2times(proc, block):
     if proc.verb > 1: print '-d old stim list: %s' % proc.stims
 
     cmd = cmd + '\n# create -stim_times files\n'
-    cmd = cmd + 'make.stim.times.py -prefix stim_times -tr %s -nruns %d  \\\n' \
+    cmd = cmd + 'make_stim_times.py -prefix stim_times -tr %s -nruns %d  \\\n' \
                 '                   -files ' % (str(proc.tr), proc.runs)
     cols = 0
     for file in proc.stims_orig:

@@ -5,12 +5,29 @@ import option_list
 from afni_util import *
 
 g_help_string = """
-Convert a set of binary stim files to a set of stim_times files.
+===========================================================================
+Convert a set of 0/1 stim files into a set of stim_times files.
 
 Each input stim file can have a set of columns of stim classes,
      and multiple input files can be used.  Each column of an
      input file is expected to have one row per TR, and a total
      of num_TRs * num_runs rows.
+
+Sample stim_file with 3 stim classes over 7 TRs:
+
+        0       0       0
+        1       0       0
+        0       1       0
+        0       1       0
+        1       0       0
+        0       0       0
+        0       0       1
+
+Corresponding stim_times files, assume TR = 2.5 seconds:
+
+        stim.01.1D:     2.5 10
+        stim.02.1D:     5    7.5
+        stim.03.1D:     15
 
 Options: -files file1.1D file2.1D ...  : specify stim files
          -prefix PREFIX                : output prefix for files
@@ -18,11 +35,22 @@ Options: -files file1.1D file2.1D ...  : specify stim files
          -nruns NRUNS                  : number of runs
          -verb LEVEL                   : provide verbose output
 
-example:
+examples:
 
-    make.stim.files -files stimA.1D stimB.1D stimC.1D   \\
-                    -prefix stimes -tr 2.5 -nruns 7
+    1. Given 3 stimulus classes, A, B and C, each with a single column
+       file spanning 7 runs (with some number of TRs per run), create
+       3 stim_times files (stimes.01.1D, stimes.02.1D, stimes.02.1D)
+       having the times, in seconds, of the stimuli, one run per row.
 
+            make.stim.files -files stimA.1D stimB.1D stimC.1D   \\
+                            -prefix stimes -tr 2.5 -nruns 7
+
+    2. Same as 1, but suppose stim_all.1D has all 3 stim types (so 3 columns).
+
+            make.stim.files -files stim_all.1D -prefix stimes -tr 2.5 -nruns 7
+
+- R Reynolds, Nov 17, 2006
+===========================================================================
 """
 
 def get_opts():
