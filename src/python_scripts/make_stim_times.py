@@ -13,6 +13,11 @@ Each input stim file can have a set of columns of stim classes,
      input file is expected to have one row per TR, and a total
      of num_TRs * num_runs rows.
 
+Note: Since the output times are LOCAL (one row per run) in the
+     eyes of 3dDeconvolve, any file where the first stimulus is
+     the only stimulus in that run will have '*' appended to that
+     line, so 3dDeconvolve would treat it as a multi-run file.
+
 Sample stim_file with 3 stim classes over 7 TRs:
 
         0       0       0
@@ -104,6 +109,8 @@ def proc_mats(uopts):
             newfile = change_path_basename(file, newp, ".1D")
             if newfile == None: return
             fp = open(newfile, 'w')
+
+            need_ast = True         # '*' filler in case of 1 stim per run, max
             for run in range(nruns):
                 rindex = run * nt   # point to start of run
 
@@ -111,9 +118,16 @@ def proc_mats(uopts):
                     fp.write('*\n')
                     continue
                 time = 0        # in this run
+                nstim = 0       # be sure we have more than 1 somewhere
                 for lcol in range(nt):
-                    if row[rindex+lcol]: fp.write('%f '%time)
+                    if row[rindex+lcol]:
+                        nstim += 1
+                        fp.write('%f '%time)
                     time += tr
+                if need_ast and nstim == 1: # first time of 1 stim, add '*'
+                    fp.write('*')
+                    need_ast = False
+                elif nstim > 1: need_ast = False     # no worries
                 fp.write('\n')
 
             fp.close()
