@@ -5980,3 +5980,8 @@
 
 08 Dec 2006
  * Added -dem option to 1ddot.c.
+
+11 Dec 2006
+ * More changes to 3dBlurToFWHM.c -- de-median and de-MAD before blurring and
+     before estimating blur, to be somewhat more self-consistent.
+ * Added SAVE_PNG to the roster of AFNI driver commands.

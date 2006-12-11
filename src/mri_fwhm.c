@@ -8,15 +8,30 @@ void FHWM_1dif_dontcheckplus( int i ){ dontcheckplus = i; }
 
 /*---------------------------------------------------------------------------*/
 
-THD_fvec3 mriarr_estimate_FWHM_1dif( MRI_IMARR *imar , byte *mask )
+THD_fvec3 mriarr_estimate_FWHM_1dif( MRI_IMARR *imar, byte *mask, int unif )
 {
    int nar=IMARR_COUNT(imar) , ii ;
    THD_fvec3 sv ;
    float cx,cy,cz , fx,fy,fz ;
-   int   nx,ny,nz ;
+   int   nx,ny,nz , nvox , kk ;
+   MRI_IMAGE *medim , *madim ;
+   float     *medar , *madar , *sar ;
 
+   unif = unif && (nar > 2) ;
+   nvox = IMARR_SUBIM(imar,0)->nvox ;
+   if( unif ){
+     MRI_IMARR *qar = IMARR_medmad_bricks( imar ) ;
+     medim = IMARR_SUBIM(qar,0); medar = MRI_FLOAT_PTR(medim);
+     madim = IMARR_SUBIM(qar,1); madar = MRI_FLOAT_PTR(madim); FREE_IMARR(qar);
+     for( kk=0 ; kk < nvox ; kk++ )
+       if( madar[kk] != 0.0f ) madar[kk] = 1.0f / madar[kk] ;
+   }
    cx = cy = cz = 0.0f ; nx = ny = nz = 0 ;
    for( ii=0 ; ii < nar ; ii++ ){
+     if( unif ){
+       sar = MRI_FLOAT_PTR( IMARR_SUBIM(imar,ii) ) ;
+       for( kk=0 ; kk < nvox ; kk++ ) sar[kk] = (sar[kk]-medar[kk])*madar[kk] ;
+     }
      sv = mri_estimate_FWHM_1dif( IMARR_SUBIM(imar,ii) , mask ) ;
      UNLOAD_FVEC3(sv,fx,fy,fz) ;
      /*** INFO_message("  sub-brick[%d]: fx=%g fy=%g fz=%g",ii,fx,fy,fz) ; ***/
@@ -28,6 +43,7 @@ THD_fvec3 mriarr_estimate_FWHM_1dif( MRI_IMARR *imar , byte *mask )
    cy = (ny==0) ? -1.0f : cy / ny ;
    cz = (nz==0) ? -1.0f : cz / nz ;
    LOAD_FVEC3(sv,cx,cy,cz) ;
+   if( unif ){ mri_free(medim); mri_free(madim); }
    return sv ;
 }
 

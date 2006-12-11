@@ -20,6 +20,7 @@ static int AFNI_drive_setenv( char *cmd ) ;
 static int AFNI_drive_set_subbricks( char *cmd ) ;  /* 30 Nov 2005 */
 
 static int AFNI_drive_save_jpeg( char *cmd ) ;      /* 28 Jul 2005 */
+static int AFNI_drive_save_png ( char *cmd ) ;      /* 11 Dec 2006 */
 static int AFNI_drive_save_agif( char *cmd ) ;      /* 07 Dec 2006 */
 static int AFNI_drive_save_mpeg( char *cmd ) ;      /* 07 Dec 2006 */
 static int AFNI_drive_save_alljpeg( char *cmd ) ;   /* 07 Dec 2006 */
@@ -104,6 +105,7 @@ static AFNI_driver_pair dpair[] = {
  { "CLOSE_WINDOW"     , AFNI_drive_close_window      } ,
 
  { "SAVE_JPEG"        , AFNI_drive_save_jpeg         } ,
+ { "SAVE_PNG"         , AFNI_drive_save_png          } ,
  { "SAVE_MPEG"        , AFNI_drive_save_mpeg         } ,
  { "SAVE_AGIF"        , AFNI_drive_save_agif         } ,
  { "SAVE_ALLJPEG"     , AFNI_drive_save_alljpeg      } ,
@@ -2301,17 +2303,16 @@ ENTRY("AFNI_open_panel") ;
 }
 
 /*--------------------------------------------------------------------*/
-/*! SAVE_JPEG [c.]imagewindowname fname */
 
-static int AFNI_drive_save_jpeg( char *cmd )
+static int AFNI_drive_save_1image( char *cmd , int mode )
 {
-   int ic , dadd=2 ;
+   int ic , dadd=2 , imm ;
    Three_D_View *im3d ;
    char junk[256] , fname[288] ;
    MCW_imseq   *isq=NULL ;
    MCW_grapher *gra=NULL ;
 
-ENTRY("AFNI_drive_save_jpeg") ;
+ENTRY("AFNI_drive_save_1image") ;
 
    /* make sure the controller itself is open */
 
@@ -2322,7 +2323,7 @@ ENTRY("AFNI_drive_save_jpeg") ;
 
    im3d = GLOBAL_library.controllers[ic] ;
    if( !IM3D_OPEN(im3d) ){
-     ERROR_message("SAVE_JPEG %s: controller not open",cmd); RETURN(-1);
+     ERROR_message("Image save '%s': controller not open",cmd); RETURN(-1);
    }
 
    /* extract the filename to save into */
@@ -2330,12 +2331,9 @@ ENTRY("AFNI_drive_save_jpeg") ;
    junk[0] = fname[0] = '\0' ;
    sscanf( cmd+dadd , "%255s%255s" , junk , fname ) ;
    if( junk[0] == '\0' || fname[0] == '\0' ){
-     ERROR_message("SAVE_JPEG %s: something is missing",cmd); RETURN(-1);
+     ERROR_message("Image save '%s': something is missing",cmd); RETURN(-1);
      RETURN(-1) ;
    }
-
-   if( !STRING_HAS_SUFFIX(fname,".jpg") && !STRING_HAS_SUFFIX(fname,".JPG") )
-     strcat(fname,".jpg") ;
 
    /* find graph or image window */
 
@@ -2349,7 +2347,9 @@ ENTRY("AFNI_drive_save_jpeg") ;
    XmUpdateDisplay( im3d->vwid->top_shell ) ;
 
    if( isq != NULL ){
-     drive_MCW_imseq( isq, isqDR_save_jpeg , (XtPointer)fname ) ;
+     if( mode == PNG_MODE  ) imm = isqDR_save_png ;
+     else                    imm = isqDR_save_jpeg;
+     drive_MCW_imseq( isq, imm , (XtPointer)fname ) ;
    } else if( gra != NULL ){
      GRA_file_pixmap( gra , fname ) ;
    } else {
@@ -2358,6 +2358,19 @@ ENTRY("AFNI_drive_save_jpeg") ;
    }
 
    RETURN(0) ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! SAVE_JPEG [c.]imagewindowname fname */
+
+static int AFNI_drive_save_jpeg( char *cmd )
+{
+   return AFNI_drive_save_1image( cmd , JPEG_MODE ) ;
+}
+
+static int AFNI_drive_save_png( char *cmd )
+{
+   return AFNI_drive_save_1image( cmd , PNG_MODE ) ;
 }
 
 /*--------------------------------------------------------------------*/
