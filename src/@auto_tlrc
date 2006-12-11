@@ -25,6 +25,7 @@ PARSE:
    set clpbelow = ''
    set maxite = ''
    set accept_maxite = 0
+   set acpciate = 0
    if ("$1" == '') goto HELP
 
    while ($cnt <= $Narg)
@@ -224,6 +225,10 @@ PARSE:
       endif
       if ($donext && "$argv[$cnt]" == "-keep_tmp") then
          set KeepTmp = 1;      
+         set donext = 0      
+      endif
+      if ($donext && "$argv[$cnt]" == "-rigid_equiv") then
+         set acpciate = 1;      
          set donext = 0      
       endif
       if ($donext && "$argv[$cnt]" == "-clean") then
@@ -619,7 +624,19 @@ AUTO_TLRC_MODE:
          3drefit -wset ${anat_in} ${tt_pref}${ref_view}
       endif
    endif
-
+   
+   ACPCIATE:
+   if ($acpciate == 1) then
+      echo "Doing the MSB thing..."
+      #create a version witout scaling
+      cat_matvec ${tt_pref}${ref_view}::WARPDRIVE_MATVEC_INV_000000 -P > ${tmppref}_MP.1D
+      3dWarp -matvec_in2out ${tmppref}_MP.1D -prefix ${tt_pref}_rigid ${ns_pref}${anat_view}
+      if ($KeepView == 0) then
+         echo "Changing view of rigid_equiv anatomy"
+         3drefit -view ${ref_view} ${tt_pref}_rigid${anat_view}.HEAD
+      endif  
+   endif
+   
    goto WRAP_UP
 #######################
 #end of auto tlrc block
