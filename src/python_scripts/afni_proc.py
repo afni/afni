@@ -781,27 +781,27 @@ class SubjProcSream:
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
     #    NN = block index, SUBJ = subj label, MM = run, BLABEL = block label
     def prefix_form(self, block, run):
-        return 'p%02d.%s.r%02d.%s' %    \
+        return 'pb%02d.%s.r%02d.%s' %    \
                 (self.bindex, self.subj_label, run, block.label)
 
     # same, but leave run as a variable
     def prefix_form_run(self, block):
-        return 'p%02d.%s.r$run.%s' % (self.bindex, self.subj_label, block.label)
+        return 'pb%02d.%s.r$run.%s' % (self.bindex, self.subj_label,block.label)
 
     # same as prefix_form, but use previous block values (index and label)
     # (so we don't need the block)
     def prev_prefix_form(self, run):
-        return 'p%02d.%s.r%02d.%s' %    \
+        return 'pb%02d.%s.r%02d.%s' %    \
                 (self.bindex-1, self.subj_label, run, self.pblabel)
 
     # same, but leave run as a variable
     def prev_prefix_form_run(self):
-        return 'p%02d.%s.r$run.%s' %    \
+        return 'pb%02d.%s.r$run.%s' %    \
                 (self.bindex-1, self.subj_label, self.pblabel)
 
     # same, but leave run wild
     def prev_prefix_form_rwild(self):
-        return 'p%02d.%s.r??.%s' %    \
+        return 'pb%02d.%s.r??.%s' %    \
                 (self.bindex-1, self.subj_label, self.pblabel)
 
 class ProcessBlock:
