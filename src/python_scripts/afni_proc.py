@@ -22,13 +22,192 @@ from time import asctime
 from afni_base import *
 from afni_util import *
 from option_list import *
-
 from db_mod import *
 
 # globals
 
-BlockLabels  = ['tcat', 'tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
+# ----------------------------------------------------------------------
+g_help_string = """
+
+    ---------------------------------------------------------------------------
+    afni_proc.py        - generate a tcsh script for an AFNI process stream
+
+    This python script can generate a processing script via a command-line
+    interface by a tk GUI (eventually).  The user should minimally provide
+    the input datasets (-dsets) and stimulus files (-regress_stim_*).
+
+    The output script will create a results directory, copy input files into
+    it, and perform all processing there.  So the user can delete the results
+    directory and re-run the script at their leisure.
+
+    --------------------------------------------------
+    The output script will go through the following steps, unless the user
+    specifies otherwise.
+
+    automatic steps:
+
+        setup       : check subject arg, set run list, create output dir, and
+                      copy stim files
+        tcat        : copy input datasets and remove unwanted initial TRs
+
+    user controllable steps:
+
+        tshift      : slice timing alignment on volumes (default is -time 0)
+        volreg      : volume registration (default to first volume)
+        blur        : blur each volume (default is 4mm fwhm)
+        mask        : create a 'brain' mask from the EPI data (dilate 1 voxel)
+        scale       : scale each run mean to 100, for each voxel (max of 200)
+        regress     : regression analysis (default is GAM, peak 1, with motion
+                      params)
+
+    --------------------------------------------------
+    example usage (options can be provided in any order):
+
+        1. Minimum use, provide datasets and stim files.  Note that a dataset
+           suffix (e.g. HEAD) must be used with wildcards, so datasets are not
+           applied twice.  In this case, a stim_file with many columns is
+           given, allowing the script to change it to stim_times files.
+
+                afni_proc.py -dsets epiRT*.HEAD -regress_stim_files stims.1D
+
+        2. In addition, specify the output script name, the subject ID, to
+           remove the first 3 TRs of each run (before steady state), and to
+           align volumes to the end of the runs (anat acquired after EPI).
+
+                afni_proc.py -dsets epiRT*.HEAD -regress_stim_files stims.1D \\
+                             -script process_ED -subj_id ED                  \\
+                             -tcat_remove_first_trs 3 -volreg_align_to last
+
+        3. Similar to #2, but skip tshift and mask steps (so the user must
+           specify the others), apply 4 second BLOCK response function, and
+           specify stim_times files, instead of stim_files.  Also, provide
+           options given that ED's input files are sitting in directory
+           subjects/ED.
+
+                afni_proc.py -dsets subjects/ED/epiRT*.HEAD                  \\
+                         -blocks volreg blur scale regress                   \\
+                         -regress_stim_times subjects/ED/ED_stim_times*.1D   \\
+                         -script process_ED -subj_id ED                      \\
+                         -tcat_remove_first_trs 3 -volreg_align_to last      \\
+                         -regress_basis 'BLOCK(4,1)'
+
+    --------------------------------------------------
+    options:
+
+    -- general execution options --
+
+        -blocks BLOCK1 ...      : specify the processing blocks to apply
+
+                e.g. -blocks volreg blur scale regress
+                default: tshift volreg blur mask scale regress
+
+            The user may apply this option to specify which processing blocks
+            are to be included in the output script.  The order of the blocks
+            may be varied, and blocks may be skipped.
+
+        -dsets dset1 dset2 ...  : (REQUIRED) specify EPI run datasets
+
+                e.g. -dsets Elvis_run1+orig Elvis_run2+orig Elvis_run3+orig
+                e.g. -dsets Elvis_run*.HEAD
+
+            The user must specify the list of EPI run datasets to analyze.
+            When the runs are processed, they will be written to start with
+            run 1, regardless of whether the input runs were just 6, 7 and 21.
+        
+            Note that when using a wildcard it is essential for the EPI
+            datasets to be alphabetical, as that is how the shell will list
+            them on the command line.  For instance, epi_run1+orig through
+            epi_run11+orig is not alphabetical.  If they were specified via
+            wildward their order would end up as run1 run10 run11 run2 ...
+
+            Note also that when using a wildcard it is essential to specify
+            the datasets suffix, so that the shell doesn't put both the .BRIK
+            and .HEAD filenames on the command line (which would make it twice
+            as many runs of data).
+
+        -out_dir DIR            : specify the output directory for the script
+
+                e.g. -out_dir ED_results
+                default: SUBJ.results
+
+            The AFNI processing script will create this directory and perform
+            all processing in it.
+
+        -script SCRIPT_NAME     : specify the name of the resulting script
+
+                e.g. -script @ED.process.script
+                default: @proc_subj
+
+            The output of this program is a script file.  This option can be
+            used to specify the name of that file.
+
+        -scr_overwrite          : overwrite any existing script
+
+                e.g. -scr_overwrite
+
+            If the output script file already exists, it will be overwritten
+            only if the user applies this option.
+
+        -subj_id SUBJECT_ID     : specify the subject ID for the script
+
+                e.g. -subj_id elvis
+                default: SUBJ
+
+            The suject ID is used in dataset names and in the output directory
+            name (unless -out_dir is used).  This option allows the user to
+            apply an appropriate naming convention.
+
+    -- block options --
+
+        These options pertain to individual processing blocks.  Each option
+        starts with the block name.
+
+        -tcat_remove_first_trs NUM : specify how many TRs to remove from runs
+
+                e.g. -tcat_remove_first_trs 3
+                default: 0
+
+            Since the scanner takes several seconds to reach a steady state,
+            the initial TRs of each run may have values that are significantly
+            greater than the later ones.  This option is used to specify how
+            many TRs to remove from the beginning of every run.
+
+        -tshift_align_to TSHIFT OP : specify 3dTshift alignment option
+
+                e.g. -tshift_align_to -slice 14
+                default: -tzero 0
+
+            This option applies directly to the 3dTshift command, and is used
+            specify the time that slices are aligned to.
+
+            It is likely that the user will use either '-slice SLICE_NUM' or
+            '-tzero ZERO_TIME'.  Please see '3dTshift -help' for more
+            information.
+            
+        -tshift_interp METHOD   : specify the interpolation method for tshift
+
+                e.g. -tshift_interp -Fourier
+                e.g. -tshift_interp -cubic
+                default -quintic
+
+        -volreg_align_to POSN   : specify the base position for volume reg
+
+                e.g. -volreg_align_to last
+                default: first
+
+            This option takes either 'first' or 'last' as a parameter.  It
+            specifies whether the EPI volumes are registered to the first
+            volume (of the first run) or the last volume (of the last run).
+
+            Note that this is done after removing any volumes in the initial
+            tcat operation.  See -tcat_remove_first_trs.
+
+    ---------------------------------------------------------------------------
+"""
+
+# ----------------------------------------------------------------------
 # dictionary of block types and modification functions
+BlockLabels  = ['tcat', 'tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
 BlockModFunc  = {'tcat'  : db_mod_tcat,     'tshift' :db_mod_tshift,
                  'volreg': db_mod_volreg,   'blur'   :db_mod_blur,
                  'mask'  : db_mod_mask,
@@ -39,6 +218,7 @@ BlockCmdFunc  = {'tcat'  : db_cmd_tcat,     'tshift' :db_cmd_tshift,
                  'scale' : db_cmd_scale,    'regress':db_cmd_regress}
 AllOptionStyles = ['cmd', 'file', 'gui', 'sdir']
 
+# ----------------------------------------------------------------------
 # data processing stream class
 class SubjProcSream:
     def __init__(self, label):
@@ -48,6 +228,7 @@ class SubjProcSream:
 
         self.blocks     = []            # list of ProcessBlock elements
         self.dsets      = []            # list of afni_name elements
+        self.stims_orig = []            # orig list of stim files to apply
         self.stims      = []            # list of stim files to apply
         self.opt_src    = 'cmd'         # option source
         self.subj_id    = 'SUBJ'        # hopefully user will replace this
@@ -87,7 +268,7 @@ class SubjProcSream:
         self.valid_opts = OptionList('init_opts')
 
         # input style options  rcr - update
-        self.valid_opts.add_opt('-opt_source', 1, [], AllOptionStyles)
+        # self.valid_opts.add_opt('-opt_source', 1, [], AllOptionStyles)
 
         # general execution options
         self.valid_opts.add_opt('-blocks', -1, [])
@@ -98,14 +279,14 @@ class SubjProcSream:
         self.valid_opts.add_opt('-script', 1, [])
         self.valid_opts.add_opt('-subj_id', -1, [])
 
-        self.valid_opts.add_opt('-remove_rm_files', 0, [])
-        self.valid_opts.add_opt('-remove_pXX_files', 0, [])
+        # self.valid_opts.add_opt('-remove_rm_files', 0, [])
+        # self.valid_opts.add_opt('-remove_pXX_files', 0, [])
 
         # block options
         self.valid_opts.add_opt('-tcat_remove_first_trs', 1, [])
 
         self.valid_opts.add_opt('-tshift_align_to', -1, [])
-        self.valid_opts.add_opt('-tshift_resam', 1, [])
+        self.valid_opts.add_opt('-tshift_interp', 1, [])
 
         self.valid_opts.add_opt('-volreg_align_to', 1, [], ['first','last'])
         self.valid_opts.add_opt('-volreg_base_ind', 2, [])
@@ -177,7 +358,13 @@ class SubjProcSream:
     # init blocks from command line options, then check for an
     # alternate source       rcr - will we use 'file' as source?
     def create_blocks(self):
-        for label in BlockLabels:
+        blocklist = BlockLabels
+        opt = self.user_opts.find_opt('-blocks')
+        if opt:  # then create blocklist from user opts (but prepend tcat)
+            if opt.parlist[0] != 'tcat':
+                blocklist = ['tcat'] + opt.parlist
+            else: blocklist = opt.parlist
+        for label in blocklist:
             rv = self.add_block(label)
             if rv != None: return rv
 
@@ -203,10 +390,10 @@ class SubjProcSream:
         errs = 0
         for block in self.blocks:
             cmd_str = BlockCmdFunc[block.label](self, block)
-            if str == None:
+            if cmd_str == None:
                 print "** script creation failure for block '%s'" % block.label
                 errs += 1
-            # else: append_string_to_file(self.script, cmd_str)
+            else: self.fp.write(cmd_str)
 
         rv = self.finalize_script()     # finish the script
         if rv != None: return rv
@@ -248,9 +435,7 @@ class SubjProcSream:
                                  (self.reps, self.runs, self.tr)
 
     def disp_opt_help(self):    # rcr
-        print '''
-        afni_proc - create/run an AFNI processing script
-        '''
+        print g_help_string
 
     # create a new block for the given label, and append it to 'blocks'
     def add_block(self, label):
@@ -302,16 +487,12 @@ class SubjProcSream:
         self.fp.write('# create results directory\n')
         self.fp.write('mkdir %s\n\n' % self.out_dir)
         
-        if len(self.stims) > 0: # then copy stim files into script's stim dir
-            if self.verb > 1: print "+d init_s: copy stims: %s" % self.stims
+        if len(self.stims_orig) > 0: # copy stim files into script's stim dir
             self.fp.write('# create stimuli directory, and copy stim files\n')
             self.fp.write('mkdir %s/stimuli\ncp ' % self.out_dir)
             for ind in range(len(self.stims)):
-                self.fp.write('%s ' % self.stims[ind])
-                # after copying, strip pathname from filenames
-                self.stims[ind] = 'stimuli/%s'%os.path.basename(self.stims[ind])
+                self.fp.write('%s ' % self.stims_orig[ind])
             self.fp.write('%s/stimuli\n\n' % self.out_dir)
-            if self.verb > 1: print "+d init_s: new stims: %s" % self.stims
 
         self.fp.flush()
 
