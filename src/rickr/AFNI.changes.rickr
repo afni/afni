@@ -1832,5 +1832,8 @@
 11 Dec 2006: more uber-script updates
   * modified afni_proc.py: added version, history and complete help
   * modified db_mod.py: volreg_base_ind now takes run number, not dset index
-  * modified make_stim_times.py: renamed from make.stim.times.py, more help
+  * modified make_stim_times.py:
+      - renamed from make.stim.times.py
+      - more help
+      - per output file, append '*' if first stim row has only 1 stim 
 
