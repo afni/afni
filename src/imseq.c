@@ -6608,6 +6608,7 @@ ENTRY("ISQ_but_cnorm_CB") ;
 *    isqDR_keypress        (unsigned int) character or KeySym to send
 
 *    isqDR_save_jpeg       (char *) save current image to this filename
+*    isqDR_save_png        (char *) save current image to this filename
 
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
@@ -6692,6 +6693,12 @@ ENTRY("drive_MCW_imseq") ;
       case isqDR_save_jpeg:{                 /* 28 Jul 2005 */
         char *fname = (char *)drive_data ;
         ISQ_save_jpeg( seq , fname ) ;
+        RETURN( True ) ;
+      }
+
+      case isqDR_save_png:{                  /* 11 Dec 2006 */
+        char *fname = (char *)drive_data ;
+        ISQ_save_png( seq , fname ) ;
         RETURN( True ) ;
       }
 
@@ -11428,18 +11435,20 @@ ENTRY("mri_rgb_transform_nD") ;
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Save the current image to a JPEG file. [28 Jul 2005] */
+/*! Save the current image to a file thru a filter.
+    -- Refactored from the former ISQ_save_image() on 11 Dec 2006 --*/
 
-void ISQ_save_jpeg( MCW_imseq *seq , char *fname )
+void ISQ_save_image( MCW_imseq *seq  , char *fname ,
+                     char *filtername, char *suffix )
 {
    MRI_IMAGE *tim , *flim ;
-   char fn[288], filt[512] ;
+   char fn[299], filt[512] ;
    FILE *fp ;
    int sll ;
 
-ENTRY("ISQ_save_jpeg") ;
+ENTRY("ISQ_save_image") ;
 
-   if( !ISQ_REALZ(seq) || fname == NULL || ppmto_jpg95_filter == NULL ) EXRETURN;
+   if( !ISQ_REALZ(seq) || fname == NULL || filtername == NULL ) EXRETURN;
 
    sll = strlen(fname) ; if( sll < 1 || sll > 255 ) EXRETURN ;
 
@@ -11487,10 +11496,12 @@ ENTRY("ISQ_save_jpeg") ;
    /** open a pipe to the filter function **/
 
    strcpy(fn,fname) ;
-   if( !STRING_HAS_SUFFIX(fname,".jpg") && !STRING_HAS_SUFFIX(fname,".JPG") )
-     strcat(fn,".jpg") ;
+   if( suffix != NULL && *suffix != '\0' && !STRING_HAS_SUFFIX(fname,suffix) ){
+     if( *suffix != '.' ) strcat(fn,".") ;
+     strcat(fn,suffix) ;
+   }
 
-   sprintf( filt , ppmto_jpg95_filter , fn ) ;
+   sprintf( filt , filtername , fn ) ;
    INFO_message("Writing one %dx%d image to file %s",tim->nx,tim->ny,fn) ;
    signal( SIGPIPE , SIG_IGN ) ; errno = 0 ;
    fp = popen( filt , "w" ) ;
@@ -11506,11 +11517,25 @@ ENTRY("ISQ_save_jpeg") ;
    fwrite( MRI_RGB_PTR(tim), sizeof(byte), 3*tim->nvox, fp ) ;
    errno = 0 ; sll = pclose(fp) ;
    if( sll == -1 ){
-     ERROR_message("JPEG Filter command was %s\n",filt) ;
+     ERROR_message("Image save filter command was %s\n",filt) ;
      if( errno != 0 ) perror("** Unix error in image output pipe") ;
    }
 
    mri_free(tim) ; EXRETURN ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void ISQ_save_jpeg( MCW_imseq *seq , char *fname )
+{
+   ISQ_save_image( seq , fname , ppmto_jpg95_filter , ".jpg" ) ;
+   return ;
+}
+
+void ISQ_save_png( MCW_imseq *seq , char *fname )  /* 11 Dec 2006 */
+{
+   ISQ_save_image( seq , fname , ppmto_png_filter , ".png" ) ;
+   return ;
 }
 
 /*--------------------------------------------------------------------------*/

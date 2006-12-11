@@ -3887,6 +3887,7 @@ extern MRI_IMAGE * THD_rms_brick   ( THD_3dim_dataset * ) ;  /* 15 Apr 2005 */
 
 extern MRI_IMARR * THD_medmad_bricks   (THD_3dim_dataset *); /* 07 Dec 2006 */
 extern MRI_IMARR * THD_meansigma_bricks(THD_3dim_dataset *); /* 07 Dec 2006 */
+extern MRI_IMARR * IMARR_medmad_bricks ( MRI_IMARR * )     ; /* 11 Dec 2006 */
 
 extern float THD_cliplevel_partial( MRI_IMAGE *im , float mfrac ,
                                     int xa,int xb, int ya,int yb, int za,int zb ) ;

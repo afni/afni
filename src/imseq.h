@@ -628,6 +628,7 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_save_agif       704  /* 07 Dec 2006 */
 #define isqDR_save_mpeg       705  /* 07 Dec 2006 */
 #define isqDR_save_jpegall    706  /* 07 Dec 2006 */
+#define isqDR_save_png        707  /* 11 Dec 2006 */
 
 extern Boolean drive_MCW_imseq( MCW_imseq * , int , XtPointer ) ;
 
@@ -811,7 +812,10 @@ extern int ISQ_handle_keypress( MCW_imseq * , unsigned long ); /* 18 Feb 2005 */
 extern void mri_rgb_transform_nD( MRI_IMAGE *, int, generic_func * ) ;
 
 extern void ISQ_save_jpeg( MCW_imseq *seq , char *fname ) ;    /* 28 Jul 2005 */
+extern void ISQ_save_png ( MCW_imseq *seq , char *fname ) ;    /* 11 Dec 2006 */
 extern void ISQ_save_anim( MCW_imseq *, char *, int,int,int ); /* 06 Dec 2006 */
+
+extern void ISQ_save_image( MCW_imseq *, char *, char *, char *); /* 11 Dec 2006 */
 
 extern void ISQ_setup_ppmto_filters(void); /* 11 May 2006 */
 
