@@ -80,7 +80,7 @@ int main( int argc , char *argv[] )
       "good form of input is the output of '3dDeconvolve -errts', which is\n"
       "the residuals left over after the GLM fitted signal model is subtracted\n"
       "out from each voxel's time series.  If you don't want to go to that\n"
-      "trouble, use '-demed' to at least partially subtract out the anatomical\n"
+      "trouble, use '-unif' to at least partially subtract out the anatomical\n"
       "spatial structure, or use the output of 3dDetrend for the same purpose.\n"
       "\n"
       "ALSO SEE:\n"
