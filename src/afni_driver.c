@@ -2304,11 +2304,11 @@ ENTRY("AFNI_open_panel") ;
 
 /*--------------------------------------------------------------------*/
 
-static int AFNI_drive_save_1image( char *cmd , int mode )
+static int AFNI_drive_save_1image( char *cmd , int mode , char *suf )
 {
    int ic , dadd=2 , imm ;
    Three_D_View *im3d ;
-   char junk[256] , fname[288] ;
+   char junk[256] , fname[399] ;
    MCW_imseq   *isq=NULL ;
    MCW_grapher *gra=NULL ;
 
@@ -2346,6 +2346,9 @@ ENTRY("AFNI_drive_save_1image") ;
 
    XmUpdateDisplay( im3d->vwid->top_shell ) ;
 
+   if( suf != NULL && *suf != '\0' && !STRING_HAS_SUFFIX_CASE(fname,suf) )
+     strcat(fname,suf) ;
+
    if( isq != NULL ){
      if( mode == PNG_MODE  ) imm = isqDR_save_png ;
      else                    imm = isqDR_save_jpeg;
@@ -2353,7 +2356,7 @@ ENTRY("AFNI_drive_save_1image") ;
    } else if( gra != NULL ){
      GRA_file_pixmap( gra , fname ) ;
    } else {
-     ERROR_message("SAVE_JPEG %s: don't understand windowname",cmd) ;
+     ERROR_message("Image save '%s': don't understand windowname",cmd) ;
      RETURN(-1) ;
    }
 
@@ -2365,12 +2368,12 @@ ENTRY("AFNI_drive_save_1image") ;
 
 static int AFNI_drive_save_jpeg( char *cmd )
 {
-   return AFNI_drive_save_1image( cmd , JPEG_MODE ) ;
+   return AFNI_drive_save_1image( cmd , JPEG_MODE , ".jpg" ) ;
 }
 
 static int AFNI_drive_save_png( char *cmd )
 {
-   return AFNI_drive_save_1image( cmd , PNG_MODE ) ;
+   return AFNI_drive_save_1image( cmd , PNG_MODE , ".png" ) ;
 }
 
 /*--------------------------------------------------------------------*/

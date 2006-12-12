@@ -193,8 +193,10 @@ ENTRY("mri_write_pnm") ;
    if( im->nz > 1 ) RETURN( 0 );
    if( im->kind != MRI_byte && im->kind != MRI_rgb ) RETURN( 0 );
 
-   if( STRING_HAS_SUFFIX(fname,".jpg") ){   /* 15 Apr 2005: quick hack */
+   if( STRING_HAS_SUFFIX_CASE(fname,".jpg") ){   /* 15 Apr 2005: quick hack */
      RETURN( mri_write_jpg(fname,im) ) ;
+   } else if( STRING_HAS_SUFFIX_CASE(fname,".png") ) {  /* 11 Dec 2006 */
+     RETURN( mri_write_png(fname,im) ) ;
    }
 
    if( strcmp(fname,"-") != 0 ){
@@ -390,15 +392,13 @@ int mri_write_jpg( char *fname , MRI_IMAGE *im )  /* 15 Apr 2005 */
    if( pg == NULL ) return 0 ;
    /* user environment variable compression quality - mod 5/10/2006 drg */
    eee = my_getenv("AFNI_JPEG_COMPRESS");
-   if(eee!=NULL) {
-      jpeg_compress = strtod(eee, NULL);
-      if((jpeg_compress<=0) || (jpeg_compress>100))
-         jpeg_compress = 95;
-    }
+   if(eee!=NULL){
+     jpeg_compress = strtod(eee, NULL);
+     if((jpeg_compress<=0) || (jpeg_compress>100)) jpeg_compress = 95;
+   }
    else jpeg_compress = 95;
 
    jpfilt = (char *)malloc( sizeof(char)*(strlen(pg)+strlen(fname)+32) ) ;
-
    sprintf( jpfilt , "%s -quality %d > %s" , pg , jpeg_compress, fname ) ;
 #ifndef CYGWIN
    signal( SIGPIPE , SIG_IGN ) ;
@@ -415,4 +415,34 @@ int mri_write_jpg( char *fname , MRI_IMAGE *im )  /* 15 Apr 2005 */
    }
    (void) pclose(fp) ;
    free((void *)jpfilt) ; return 1 ;
+}
+
+/*---------------------------------------------------------------*/
+
+int mri_write_png( char *fname , MRI_IMAGE *im )  /* 11 Dec 2006 */
+{
+   char *pg , *pgfilt ;
+   FILE *fp ;
+
+   if( fname == NULL || *fname == '\0' || im == NULL ) return 0 ;
+   if( im->kind != MRI_rgb && im->kind != MRI_byte   ) return 0 ;
+
+   pg = THD_find_executable( "pnmtopng" ) ; if( pg == NULL ) return 0 ;
+   pgfilt = (char *)malloc( sizeof(char)*(strlen(pg)+strlen(fname)+32) ) ;
+   sprintf( pgfilt , "%s -compression 9 > %s" , pg , fname ) ;
+#ifndef CYGWIN
+   signal( SIGPIPE , SIG_IGN ) ;
+#endif
+   fp = popen( pgfilt , "w" ) ;
+   if( fp == NULL ){ free((void *)pgfilt); return 0 ;}
+
+   if( im->kind == MRI_rgb ){
+     fprintf(fp,"P6\n%d %d\n255\n" , im->nx,im->ny ) ;
+     fwrite( MRI_RGB_PTR(im), sizeof(byte), 3*im->nvox, fp ) ;
+   } else if( im->kind == MRI_byte ){
+     fprintf(fp,"P5\n%d %d\n255\n" , im->nx,im->ny ) ;
+     fwrite( MRI_BYTE_PTR(im), sizeof(byte), im->nvox, fp ) ;
+   }
+   (void) pclose(fp) ;
+   free((void *)pgfilt) ; return 1 ;
 }
