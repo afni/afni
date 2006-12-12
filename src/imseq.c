@@ -3282,7 +3282,10 @@ ENTRY("ISQ_saver_CB") ;
                }
                sprintf( filt , ppmto_filter[ff] , fname ) ;
                printf("Writing one image to file %s\n",fname) ;
-               signal( SIGPIPE , SIG_IGN ) ; errno = 0 ;
+#ifndef CYGWIN
+               signal( SIGPIPE , SIG_IGN ) ;
+#endif
+               errno = 0 ;
                fp = popen( filt , "w" ) ;
                if( fp == NULL ){
                   fprintf(stderr,"** Can't open output filter: %s\a\n",filt) ;
@@ -3595,7 +3598,9 @@ ENTRY("ISQ_saver_CB") ;
            if( agif_list == NULL ) INIT_SARR(agif_list) ;
            ADDTO_SARR(agif_list,fname) ;
          }
+#ifndef CYGWIN
          signal( SIGPIPE , SIG_IGN ) ;                 /* ignore broken pipe */
+#endif
          if( dbg ) fprintf(stderr,"  piping image to '%s'\n",filt) ;
          fp = popen( filt , "w" ) ;                    /* open pipe to filter */
          if( fp == NULL ){
@@ -11504,8 +11509,10 @@ ENTRY("ISQ_save_image") ;
 
    sprintf( filt , filtername , fn ) ;
    INFO_message("Writing one %dx%d image to file %s",tim->nx,tim->ny,fn) ;
-   signal( SIGPIPE , SIG_IGN ) ; errno = 0 ;
-   fp = popen( filt , "w" ) ;
+#ifndef CYGWIN
+   signal( SIGPIPE , SIG_IGN ) ;
+#endif
+   errno = 0 ; fp = popen( filt , "w" ) ;
    if( fp == NULL ){
      ERROR_message("Can't open output filter: %s",filt) ;
      if( errno != 0 ) perror("** Unix error message") ;
@@ -11773,7 +11780,9 @@ ENTRY("ISQ_save_anim") ;
           ADDTO_SARR(agif_list,fname) ;
         break ;
       }
+#ifndef CYGWIN
       signal( SIGPIPE , SIG_IGN ) ;                 /* ignore broken pipe */
+#endif
       fp = popen( filt , "w" ) ;                    /* open pipe to filter */
       if( fp == NULL ){
         ERROR_message("Can't open output filter %s\a",filt) ;
