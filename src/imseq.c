@@ -3274,7 +3274,7 @@ ENTRY("ISQ_saver_CB") ;
                /* open a pipe to the filter function */
 
                sprintf(filt,".%s.",ppmto_suffix[ff]) ;
-               if( STRING_HAS_SUFFIX(seq->saver_prefix,filt) ){
+               if( STRING_HAS_SUFFIX_CASE(seq->saver_prefix,filt) ){
                  strcpy(fname,seq->saver_prefix) ;
                  fname[sll-1] = '\0' ;
                } else {
@@ -11496,7 +11496,8 @@ ENTRY("ISQ_save_image") ;
    /** open a pipe to the filter function **/
 
    strcpy(fn,fname) ;
-   if( suffix != NULL && *suffix != '\0' && !STRING_HAS_SUFFIX(fname,suffix) ){
+   if( suffix != NULL && *suffix != '\0' &&
+       !STRING_HAS_SUFFIX_CASE(fname,suffix) ){
      if( *suffix != '.' ) strcat(fn,".") ;
      strcat(fn,suffix) ;
    }

@@ -68,6 +68,11 @@ extern "C" {
    (strlen(ss) >= strlen(suf))   &&            \
    (strcmp(ss+strlen(ss)-strlen(suf),suf) == 0))
 
+#define STRING_HAS_SUFFIX_CASE(ss,suf)         \
+  ((ss != NULL) && (suf != NULL) &&            \
+   (strlen(ss) >= strlen(suf))   &&            \
+   (strcasecmp(ss+strlen(ss)-strlen(suf),suf) == 0))
+
 /***************************** dimensions ***************************/
 
 /*! Max length of a "name" of a file, or stuff like that. */

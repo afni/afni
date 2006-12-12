@@ -130,10 +130,8 @@ ENTRY("THD_open_one_dataset") ;
 
    /*-- 03 Dec 2003: the MPEG way! --*/
 
-   if( STRING_HAS_SUFFIX(pathname,".mpg")  ||
-       STRING_HAS_SUFFIX(pathname,".MPG")  ||
-       STRING_HAS_SUFFIX(pathname,".MPEG") ||
-       STRING_HAS_SUFFIX(pathname,".mpeg")   ){
+   if( STRING_HAS_SUFFIX_CASE(pathname,".mpg") ||
+       STRING_HAS_SUFFIX_CASE(pathname,".mpeg")  ){
 
      CHECK_FOR_DATA(pathname) ;               /* 06 Jan 2005 */
      dset = THD_open_mpeg(pathname) ;
@@ -328,10 +326,8 @@ ENTRY("storage_mode_from_filename");
         STRING_HAS_SUFFIX(fname, ".hdr")    ||
         STRING_HAS_SUFFIX(fname, ".img") )      RETURN(STORAGE_BY_NIFTI);
 
-    if( STRING_HAS_SUFFIX(fname, ".mpg")   ||
-        STRING_HAS_SUFFIX(fname, ".mpeg")  ||
-        STRING_HAS_SUFFIX(fname, ".MPG")   ||
-        STRING_HAS_SUFFIX(fname, ".MPEG") )     RETURN(STORAGE_BY_MPEG);
+    if( STRING_HAS_SUFFIX_CASE(fname,".mpg") ||
+        STRING_HAS_SUFFIX_CASE(fname,".mpeg")  )RETURN(STORAGE_BY_MPEG);
 
     /* 26 May 2006 [rickr] */
     if( STRING_HAS_SUFFIX(fname, ".niml") )     RETURN(STORAGE_BY_NIML);
