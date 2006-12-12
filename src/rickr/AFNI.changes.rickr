@@ -1838,3 +1838,7 @@
       - per output file, append '*' if first stim row has only 1 stim 
   * modified vol2surf.[ch]: if plug_v2s:debug > 2, print 3dV2S command
 
+12 Dec 2006:
+  * modified afni_proc.py, db_mod.py, option_list.py:
+      - added fitts and iresp options, fixed scale limit
+
