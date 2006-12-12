@@ -26,7 +26,7 @@ from db_mod import *
 
 # globals
 
-g_version = "version 1.0, December 11, 2006"
+g_version = "version 0.5, December 12, 2006"
 
 # ----------------------------------------------------------------------
 g_help_string = """
@@ -80,13 +80,25 @@ g_help_string = """
            align volumes to the end of the runs (anat acquired after EPI).
 
                 afni_proc.py -dsets epiRT*.HEAD              \\
-                             -regress_stim_files stims.1D    \\
                              -script process_ED              \\
                              -subj_id ED                     \\
                              -tcat_remove_first_trs 3        \\
-                             -volreg_align_to last
+                             -volreg_align_to last           \\
+                             -regress_stim_files stims.1D
 
-        3. Similar to #2, but skip tshift and mask steps (so the user must
+        3. Similar to #2, but add labels for 3 stim types, and prevent the
+           -fitts option for 3dDeconvolve.
+
+                afni_proc.py -dsets epiRT*.HEAD                         \\
+                             -script process_ED                         \\
+                             -subj_id ED                                \\
+                             -tcat_remove_first_trs 3                   \\
+                             -volreg_align_to last                      \\
+                             -regress_stim_files stims.1D               \\
+                             -regress_stim_labels houses faces donuts   \\
+                             -regress_no_fitts
+
+        4. Similar to #2, but skip tshift and mask steps (so the user must
            specify the others), apply 4 second BLOCK response function, and
            specify stim_times files, instead of stim_files.  Also, provide
            options given that ED's input files are sitting in directory
@@ -364,6 +376,64 @@ g_help_string = """
             Please see '3dDeconvolve -help' for more information.
             See also -regress_basis.
 
+        -regress_fitts_prefix PREFIX : specify a prefix for the -fitts option
+
+                e.g. -regress_fitts_prefix model_fit
+                default: fitts
+
+            By default, the 3dDeconvolve command in the script will be given
+            a '-fitts fitts' option.  This option allows the user to change
+            the prefix applied in the output script.
+
+            The -regress_no_fitts option can be used to eliminate use of -fitts.
+
+            Please see '3dDeconvolve -help' for more information.
+            See also -regress_no_fitts.
+
+        -regress_iresp_prefix PREFIX : specify a prefix for the -iresp option
+
+                e.g. -regress_iresp_prefix model_fit
+                default: iresp
+
+            This option allows the user to change the -iresp prefix applied in
+            the 3dDeconvolve command of the output script.  
+
+            By default, the 3dDeconvolve command in the script will be given a
+            set of '-iresp iresp' options, one per stimulus type, unless the
+            regression basis function is GAM.  In the case of GAM, the response
+            form is assumed to be known, so there is no need for -iresp.
+
+            The stimulus label will be appended to this prefix so that a sample
+            3dDeconvolve option might look one of these 2 examples:
+
+                -iresp 7 iresp_stim07
+                -iresp 7 model_fit_donuts
+
+            The -regress_no_iresp option can be used to eliminate use of -iresp.
+
+            Please see '3dDeconvolve -help' for more information.
+            See also -regress_no_iresp, -regress_basis.
+
+        -regress_no_fitts       : do not supply -fitts to 3dDeconvolve
+
+                e.g. -regress_no_fitts
+
+            This option prevents the program from adding a -fitts option to
+            the 3dDeconvolve command in the output script.
+
+            See also -regress_fitts_prefix.
+
+        -regress_no_iresp       : do not supply -iresp to 3dDeconvolve
+
+                e.g. -regress_no_iresp
+
+            This option prevents the program from adding a set of -iresp
+            options to the 3dDeconvolve command in the output script.
+
+            By default -iresp will be used unless the basis function is GAM.
+
+            See also -regress_iresp_prefix, -regress_basis.
+
         -regress_polort DEGREE  : specify the polynomial degree of baseline
 
                 e.g. -regress_polort 1
@@ -461,6 +531,7 @@ g_history = """
     0.2  Dec  7, 2006 : approaching initial release...
     0.3  Dec  9, 2006 : added regress block (3dDeconvolve)
     0.4  Dec 11, 2006 : added help
+    0.5  Dec 12, 2006 : added fitts and iresp options, fixed scale limit
 """
 
 # ----------------------------------------------------------------------
@@ -564,6 +635,11 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_stim_files', -1, [])
         self.valid_opts.add_opt('-regress_stim_labels', -1, [])
         self.valid_opts.add_opt('-regress_stim_times', -1, [])
+
+        self.valid_opts.add_opt('-regress_fitts_prefix', 1, [])
+        self.valid_opts.add_opt('-regress_iresp_prefix', 1, [])
+        self.valid_opts.add_opt('-regress_no_fitts', 0, [])
+        self.valid_opts.add_opt('-regress_no_iresp', 0, [])
 
 
         # other options
