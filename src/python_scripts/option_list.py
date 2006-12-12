@@ -23,7 +23,7 @@ class OptionList:
             str = "opt %d: " % index
             self.olist[index].show(str)
 
-    def find_opt(self, name, nth=1):
+    def find_opt(self, name, nth=1):    # find nth occurance of option label
         """return nth comopt where name=name, else None"""
         index = 0
         for com in self.olist:
@@ -44,6 +44,16 @@ class OptionList:
         com.required = req
         if setpar: com.parlist = com.deflist
         self.olist.append(com)
+
+    def del_opt(self, name, nth=1):     # delete nth occurance of option label
+        """delete nth comopt where name=name, else None"""
+        count = 0
+        for index in range(len(self.olist)):
+            if self.olist[index].name == name:
+                count += 1
+                if count == nth:
+                    del self.olist[index]
+                    return 1
 
 # ---------------------------------------------------------------------------
 # read_options:

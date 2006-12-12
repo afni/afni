@@ -231,8 +231,8 @@ def db_cmd_mask(proc, block):
     cmd = ''
     opt = block.opts.find_opt('-mask_type')
     type = opt.parlist[0]
-    if type == 'union': min = 1
-    else:               min = proc.runs
+    if type == 'union': min = 0            # result must be greater than min
+    else:               min = proc.runs-1
 
     opt = block.opts.find_opt('-mask_dilate')
     nsteps = opt.parlist[0]
@@ -278,7 +278,9 @@ def db_cmd_scale(proc, block):
     # check for max scale value 
     opt = block.opts.find_opt('-scale_max_val')
     max = opt.parlist[0]
-    if max > 100: maxstr = ' * step(%d-a) + %d*step(a-%d)' % (max,max,max-1)
+    valstr = 'a/b*100'
+    if max > 100: maxstr = ' * step(%d-%s) + %d*step(%s-%d)' \
+                           % (max,valstr,max,valstr,max-1)
     else:         maxstr = ''
 
     if proc.mask:
@@ -317,11 +319,15 @@ def db_mod_regress(block, proc, user_opts):
         block.opts.add_opt('-regress_stim_labels', -1, [])
         block.opts.add_opt('-regress_stim_times', -1, [])
 
+        block.opts.add_opt('-regress_fitts_prefix', 1, ['fitts'], setpar=True)
+
     # check for user updates
     uopt = user_opts.find_opt('-regress_basis')
     bopt = block.opts.find_opt('-regress_basis')
     if uopt and bopt:
         bopt.parlist[0] = uopt.parlist[0]
+        if bopt.parlist[0] != 'GAM': # then default to -iresp
+            block.opts.add_opt('-regress_iresp_prefix',1,['iresp'],setpar=True)
 
     errs = 0
     uopt = user_opts.find_opt('-regress_basis_normall')
@@ -338,7 +344,7 @@ def db_mod_regress(block, proc, user_opts):
     if uopt and bopt:
         try: bopt.parlist[0] = int(uopt.parlist[0])
         except:
-            print "** -regress_polort requires int for poly degree (have %s)\n" \
+            print "** -regress_polort requires int for degree (have '%s')\n" \
                   % uopt.parlist[0]
             errs += 1
 
@@ -354,11 +360,7 @@ def db_mod_regress(block, proc, user_opts):
 
     uopt = user_opts.find_opt('-regress_stim_labels')
     bopt = block.opts.find_opt('-regress_stim_labels')
-    if uopt and bopt:
-        if len(uopt.parlist) != proc.runs:
-            print "** num -regress_stim_labels (%s) != num runs (%d)" \
-                  % (len(uopt.parlist), proc.runs)
-            errs += 1
+    if uopt and bopt:  # check the length once we know the runs
         bopt.parlist = uopt.parlist
 
     # times is one file per class
@@ -382,6 +384,33 @@ def db_mod_regress(block, proc, user_opts):
     if proc.verb > 1:
         print "-d applying stim files %s\n-> %s" % (proc.stims_orig,proc.stims)
 
+    # check for fitts prefix
+    uopt = user_opts.find_opt('-regress_fitts_prefix')
+    bopt = block.opts.find_opt('-regress_fitts_prefix')
+    if uopt and bopt:
+        bopt.parlist[0] = uopt.parlist[0]
+    elif not bopt: # maybe it was deleted previously (not currently possible)
+        block.opts.add_opt('-regress_fitts_prefix', 1, uopt.parlist,setpar=True)
+
+    # maybe the user wants to delete it
+    uopt = user_opts.find_opt('-regress_no_fitts')
+    bopt = block.opts.find_opt('-regress_fitts_prefix')
+    if uopt and bopt: block.opts.del_opt('-regress_fitts_prefix')
+
+    # check for iresp prefix
+    uopt = user_opts.find_opt('-regress_iresp_prefix')
+    bopt = block.opts.find_opt('-regress_iresp_prefix')
+    if uopt and bopt:
+        bopt.parlist[0] = uopt.parlist[0]
+    elif uopt and not bopt: # maybe it was deleted previously
+        block.opts.add_opt('-regress_iresp_prefix', 1, uopt.parlist,setpar=True)
+
+    # maybe the user wants to delete it
+    uopt = user_opts.find_opt('-regress_no_iresp')
+    bopt = block.opts.find_opt('-regress_iresp_prefix')
+    if uopt and bopt: block.opts.del_opt('-regress_iresp_prefix')
+
+    # prepare to return
     if errs > 0:
         block.valid = 0
         return 1
@@ -436,10 +465,20 @@ def db_cmd_regress(proc, block):
             labels.append('stim%02d' % (ind+1))
         if proc.verb > 1: print ('+d adding labels: %s' % labels)
     elif len(proc.stims) != len(opt.parlist):
-        print "** cmd_regress: have %d stims but %d labels"
+        print "** cmd_regress: have %d stims but %d labels" % \
+              (len(proc.stims), len(opt.parlist))
         return
     else:  # we have the same number of labels as stims
         labels = opt.parlist
+
+    # we need labels for iresp
+    opt = block.opts.find_opt('-regress_iresp_prefix')
+    if not opt or not opt.parlist: iresp = ''
+    else:
+        iresp = ''
+        for index in range(len(labels)):
+            iresp = iresp + "    -iresp %d %s_%s  \\\n" % \
+                            (index+1, opt.parlist[0], labels[index])
 
     # write out stim lines
     for ind in range(len(proc.stims)):
@@ -455,9 +494,16 @@ def db_cmd_regress(proc, block):
                     "-stim_base %d -stim_label %d %s  \\\n"   \
                     % (ind+first, ind, ind+first, ind+first, labels[ind])
 
+    # see if the user wants the fit time series
+    opt = block.opts.find_opt('-regress_fitts_prefix')
+    if not opt or not opt.parlist: fitts = ''
+    else: fitts = '    -fitts %s  \\\n' % opt.parlist[0]
+
     # add misc options
-    cmd = cmd + "    -fout -tout -full_first -x1D Xmat.1D  \\\n"  \
-                "    -bucket stats.$subj\n\n"
+    cmd = cmd + iresp
+    cmd = cmd + "    -fout -tout -full_first -x1D Xmat.1D  \\\n"
+    cmd = cmd + fitts
+    cmd = cmd + "    -bucket stats.$subj\n\n"
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
