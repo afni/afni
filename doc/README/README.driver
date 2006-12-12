@@ -226,8 +226,7 @@ SAVE_JPEG [c.]windowname filename
   'sagittalgraph', or 'coronalgraph'.  If the filename does not end in
   the string ".jpg" or ".JPG", then ".jpg" will be appended.
 
-SAVE_PNG = like SAVE_JPEG, but saves to PNG format.  Only works for
-  image viewer windows at this time.
+SAVE_PNG = like SAVE_JPEG, but saves to PNG format.
 
 SAVE_ALLJPEG [c].windowname filename
 SAVE_MPEG    [c].windowname filename
@@ -236,7 +235,7 @@ SAVE_AGIF    [c].windowname filename
   series of JPEG files, or as one animation file).  The windowname can
   be one of 'axialimage', 'sagittalimage', or 'coronalimage'.  Do NOT
   put a suffix like '.jpg' or '.mpg' on the filename -- it will be added.
-  N.B.: Unlike 'SAVE_JPEG', this command does not work with graph windows.
+  N.B.: Unlike 'SAVE_JPEG', these commands do not work with graph windows.
 
 SET_DICOM_XYZ [c] x y z
 SET_SPM_XYZ   [c] x y z
