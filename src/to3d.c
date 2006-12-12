@@ -3949,7 +3949,7 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
 
    /** 31 Mar 2006: check for .img and .hdr goofup [the JW error] **/
 
-   if( STRING_HAS_SUFFIX(gname[0],".img") ){
+   if( STRING_HAS_SUFFIX_CASE(gname[0],".img") ){
      char *hn=strdup(gname[0]) ;
      strcpy(hn+strlen(hn)-3,"hdr") ;
      if( THD_is_file(hn) )
