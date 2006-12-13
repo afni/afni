@@ -34,11 +34,12 @@ Corresponding stim_times files, assume TR = 2.5 seconds:
         stim.02.1D:     5    7.5
         stim.03.1D:     15
 
-Options: -files file1.1D file2.1D ...  : specify stim files
-         -prefix PREFIX                : output prefix for files
-         -tr TR                        : TR time, in seconds
-         -nruns NRUNS                  : number of runs
-         -verb LEVEL                   : provide verbose output
+Options: -files file1.1D file2.1D ...   : specify stim files
+         -prefix PREFIX                 : output prefix for files
+         -tr     TR                     : TR time, in seconds
+         -nruns  NRUNS                  : number of runs
+         -offset OFFSET                 : add OFFSET to all output times
+         -verb   LEVEL                  : provide verbose output
 
 examples:
 
@@ -54,6 +55,12 @@ examples:
 
             make.stim.files -files stim_all.1D -prefix stimes -tr 2.5 -nruns 7
 
+    3. Same as 2, but the stimuli were presented at the middle of the TR, so
+       add 1.25 seconds to each stimulus time.
+
+            make.stim.files -files stim_all.1D -prefix stimes   \\
+                            -tr 2.5 -offset 1.25 -nruns 7
+
 - R Reynolds, Nov 17, 2006
 ===========================================================================
 """
@@ -65,6 +72,7 @@ def get_opts():
     okopts.add_opt('-prefix', 1, [], req=True)
     okopts.add_opt('-tr', 1, [], req=True)
     okopts.add_opt('-nruns', 1, [], req=True)
+    okopts.add_opt('-offset', 1, [])
     okopts.add_opt('-verb', 1, [])
     okopts.trailers = True
 
@@ -77,20 +85,37 @@ def get_opts():
     return opts
 
 def proc_mats(uopts):
+    offset = 0.0        # offset for output times
+
     if uopts == None: return
 
     opt = uopts.find_opt('-verb')
-    if opt: verb = int(opt.parlist[0])
-    else:   verb = 0
+    if opt:
+        try: verb = int(opt.parlist[0])
+        except:
+            print "** error: verb must be int, have '%s'" % opt.parlist[0]
+            return
+    else: verb = 0
 
     opt    = uopts.find_opt('-files')
     files  = opt.parlist
     opt    = uopts.find_opt('-nruns')
     nruns  = int(opt.parlist[0])
+
+    opt    = uopts.find_opt('-offset')
+    if opt:
+        try: offset = float(opt.parlist[0])
+        except:
+            print "** error: offset must be float, have '%s'" % opt.parlist[0]
+            return
+
     opt    = uopts.find_opt('-prefix')
     prefix = opt.parlist[0]
     opt    = uopts.find_opt('-tr')
-    tr     = float(opt.parlist[0])
+    try: tr = float(opt.parlist[0])
+    except:
+        print "** error: TR must be float, have '%s'" % opt.parlist[0]
+        return
     
     for file in files:
         mat = read_1D_file(file, -1, verb=verb)
@@ -122,7 +147,7 @@ def proc_mats(uopts):
                 for lcol in range(nt):
                     if row[rindex+lcol]:
                         nstim += 1
-                        fp.write('%f '%time)
+                        fp.write('%f ' % (time+offset))
                     time += tr
                 if need_ast and nstim == 1: # first time of 1 stim, add '*'
                     fp.write('*')

@@ -25,8 +25,6 @@ def db_cmd_tcat(proc, block):
     opt = block.opts.find_opt('-tcat_remove_first_trs')
     first = opt.parlist[0]
 
-    if proc.verb > 2: block.show('+d db_cmd_tcat: ')
-
     cmd = cmd + "# -------------------------------------------------------\n" \
               + "# apply 3dTcat to copy input dsets to results dir, while\n"  \
               + "# removing the first %d TRs\n" % first
@@ -41,8 +39,8 @@ def db_cmd_tcat(proc, block):
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
 
-    if proc.verb > 1: print "+d %s: reps is now %d" % (block.label, proc.reps)
-        
+    if proc.verb > 0: print "-d %s: reps is now %d" % (block.label, proc.reps)
+
     return cmd
 
 def db_mod_tshift(block, proc, user_opts):
@@ -55,7 +53,14 @@ def db_mod_tshift(block, proc, user_opts):
     bopt = block.opts.find_opt('-tshift_align_to')
     if uopt and bopt:
         bopt.parlist = uopt.parlist     # copy new params
-
+        # warn the user about -regress_stim_times_offset
+        if user_opts.find_opt('-regress_stim_files') and proc.verb > 0   \
+           and not user_opts.find_opt('-regress_stim_times_offset'):
+          print '-----------------------------------------------------------\n'\
+                '** warning: using -tshift_align_to and -regress_stim_files\n' \
+                '   --> if temporal alignment is not to the beginning of the\n'\
+                '       TR, consider: -regress_stim_times_offset\n'            \
+                '-----------------------------------------------------------'
     # check for updates to -tshift_interp option
     uopt = user_opts.find_opt('-tshift_interp')
     bopt = block.opts.find_opt('-tshift_interp')
@@ -137,8 +142,8 @@ def db_cmd_volreg(proc, block):
     if dset_ind == -1: dset_ind = proc.runs - 1  # may need updates
     if sub      == -1: sub      = proc.reps - 1
 
-    if proc.verb > 1:
-        print "+d %s: base/sub indices are %d, %d" % (block.label,dset_ind,sub)
+    if proc.verb > 0:
+        print "-d %s: base/sub indices are %d, %d" % (block.label,dset_ind,sub)
 
     # get base prefix (run is index+1)
     base = proc.prev_prefix_form(dset_ind+1)
@@ -318,6 +323,7 @@ def db_mod_regress(block, proc, user_opts):
         block.opts.add_opt('-regress_stim_files', -1, [])
         block.opts.add_opt('-regress_stim_labels', -1, [])
         block.opts.add_opt('-regress_stim_times', -1, [])
+        block.opts.add_opt('-regress_stim_times_offset', 1, [0], setpar=True)
 
         block.opts.add_opt('-regress_fitts_prefix', 1, ['fitts'], setpar=True)
 
@@ -373,6 +379,15 @@ def db_mod_regress(block, proc, user_opts):
         bopt.parlist = uopt.parlist
         proc.stims_orig = uopt.parlist   # store for initial copy
 
+    uopt = user_opts.find_opt('-regress_stim_times_offset')
+    bopt = block.opts.find_opt('-regress_stim_times_offset')
+    if uopt and bopt:
+        try: bopt.parlist[0] = float(uopt.parlist[0])
+        except:
+            print "** stim times offset must be float, have '%s'" \
+                  % uopt.parlist[0]
+
+    # --------------------------------------------------
     # if we are here, then we should have stimulus files
     if len(proc.stims_orig) == 0:
         print "** missing stim files (-regress_stim_times/-regress_stim_files)"
@@ -381,8 +396,6 @@ def db_mod_regress(block, proc, user_opts):
     proc.stims = []
     for file in proc.stims_orig:
         proc.stims.append('stimuli/%s' % os.path.basename(file))
-    if proc.verb > 1:
-        print "-d applying stim files %s\n-> %s" % (proc.stims_orig,proc.stims)
 
     # check for fitts prefix
     uopt = user_opts.find_opt('-regress_fitts_prefix')
@@ -463,7 +476,7 @@ def db_cmd_regress(proc, block):
         labels = []
         for ind in range(len(proc.stims)):
             labels.append('stim%02d' % (ind+1))
-        if proc.verb > 1: print ('+d adding labels: %s' % labels)
+        if proc.verb > 0: print ('+d adding labels: %s' % labels)
     elif len(proc.stims) != len(opt.parlist):
         print "** cmd_regress: have %d stims but %d labels" % \
               (len(proc.stims), len(opt.parlist))
@@ -512,12 +525,20 @@ def db_cmd_regress(proc, block):
 
 # convert a stim_files list into a stim_times list
 def db_cmd_regress_sfiles2times(proc, block):
+
+    # check for a stimulus timing offset
+    opt = block.opts.find_opt('-regress_stim_times_offset')
+    if opt and opt.parlist:
+        off_cmd = '                   -offset %s  \\\n' % str(opt.parlist[0])
+    else: off_cmd = ''
+
     cmd = ''
-    if proc.verb > 1: print '-d old stim list: %s' % proc.stims
+    if proc.verb > 0: print '-d old stim list: %s' % proc.stims
 
     cmd = cmd + '\n# create -stim_times files\n'
     cmd = cmd + 'make_stim_times.py -prefix stim_times -tr %s -nruns %d  \\\n' \
-                '                   -files ' % (str(proc.tr), proc.runs)
+                '%s'                                                           \
+                '                   -files ' % (str(proc.tr), proc.runs,off_cmd)
     cols = 0
     for file in proc.stims_orig:
         cmd = cmd + 'stimuli/%s ' % file        # put name on cmd line
@@ -529,7 +550,7 @@ def db_cmd_regress_sfiles2times(proc, block):
     for ind in range(1,cols+1):
         proc.stims.append('stimuli/stim_times.%02d.1D' % ind)
 
-    if proc.verb > 1: print '-d new stim list: %s' % proc.stims
+    if proc.verb > 0: print '+d new stim list: %s' % proc.stims
 
     return cmd
 
