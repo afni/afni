@@ -1842,3 +1842,9 @@
   * modified afni_proc.py, db_mod.py, option_list.py:
       - added fitts and iresp options, fixed scale limit
 
+13 Dec 2006:
+  * modified afni_proc.py, db_mod.py
+      - added -regress_stim_times_offset and -no_proc_command
+        (afni_proc commands are stored by default)
+  * modified make_stim_times.py: added -offset option
+
