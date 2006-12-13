@@ -24,11 +24,9 @@ from afni_util import *
 from option_list import *
 from db_mod import *
 
+# ----------------------------------------------------------------------
 # globals
 
-g_version = "version 0.5, December 12, 2006"
-
-# ----------------------------------------------------------------------
 g_help_string = """
     ===========================================================================
     afni_proc.py        - generate a tcsh script for an AFNI process stream
@@ -162,6 +160,13 @@ g_help_string = """
             are deleted at the end of the script.  This option blocks that
             deletion.
 
+        -no_proc_command        : do not print afni_proc.py command in script
+
+                e.g. -no_proc_command
+
+            If this option is applied, the command used to generate the output
+            script will be stored at the end of the script.
+
         -out_dir DIR            : specify the output directory for the script
 
                 e.g. -out_dir ED_results
@@ -225,13 +230,21 @@ g_help_string = """
                 e.g. -tshift_align_to -slice 14
                 default: -tzero 0
 
-            This option applies directly to the 3dTshift command, and is used
-            specify the time that slices are aligned to.
+            By default, each time series is aligned to the beginning of the TR.
+            This option allows the users to change the alignment, and applies
+            the option parmeters directly to the 3dTshift command in the output
+            script.
 
             It is likely that the user will use either '-slice SLICE_NUM' or
             '-tzero ZERO_TIME'.
 
+            Note that when aligning to an offset other than the beginning of
+            the TR, and when applying the -regress_stim_files option, then it
+            may be necessary to also apply -regress_stim_times_offset, to
+            offset timing for stimuli to later within each TR.
+
             Please see '3dTshift -help' for more information.
+            See also '-regress_stim_times_offset'.
             
         -tshift_interp METHOD   : specify the interpolation method for tshift
 
@@ -447,6 +460,21 @@ g_help_string = """
             Please see '3dDeconvolve -help' for more information, or the link:
                 http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
 
+        -regress_stim_labels LAB1 ...   : specify labels for stimulus types
+
+                e.g. -regress_stim_labels houses faces donuts
+                default: stim01 stim02 stim03 ...
+
+            This option is used to apply a label to each stimulus type.  The
+            number of labels should equal the number of files used in the
+            -regress_stim_times option, or the total number of columns in the
+            files used in the -regress_stim_files option.
+
+            These labels will be applied as '-stim_label' in 3dDeconvolve.
+
+            Please see '3dDeconvolve -help' for more information.
+            See also -regress_stim_times, -regress_stim_labels.
+
         -regress_stim_times FILE1 ... : specify files used for -stim_times
 
                 e.g. -regress_stim_times ED_stim_times*.1D
@@ -501,25 +529,34 @@ g_help_string = """
             The stim_times files will be labeled stim_times.NN.1D, where NN
             is the stimulus index.
 
+            Note that if the stimuli were presented at a fixed time after
+            the beginning of a TR, the user should consider the option,
+            -regress_stim_times_offset, to apply that offset.
+
             Please see '3dDeconvolve -help' for more information, or the link:
                 http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
             See also -regress_stim_times, -regress_stim_labels, -regress_basis,
-                     -regress_basis_normall, -regress_polort.
+                     -regress_basis_normall, -regress_polort,
+                     -regress_stim_times_offset.
 
-        -regress_stim_labels LAB1 ...   : specify labels for stimulus types
+        -regress_stim_times_offset OFFSET : add OFFSET to -stim_times files
 
-                e.g. -regress_stim_labels houses faces donuts
-                default: stim01 stim02 stim03 ...
+                e.g. -stim_times_offset 1.25
+                default: 0
 
-            This option is used to apply a label to each stimulus type.  The
-            number of labels should equal the number of files used in the
-            -regress_stim_times option, or the total number of columns in the
-            files used in the -regress_stim_files option.
+            If the -regress_stim_files option is used (so the script converts
+            -stim_files to -stim_times before 3dDeconvolve), the user may want
+            to add an offset to the times in the output timing files.
 
-            These labels will be applied as '-stim_label' in 3dDeconvolve.
+            For example, if -tshift_align_to is applied, and the user chooses
+            to align volumes to the middle of the TR, it would be appropriate
+            to add TR/2 to the times of the stim_times files.
 
-            Please see '3dDeconvolve -help' for more information.
-            See also -regress_stim_times, -regress_stim_labels.
+            This OFFSET will be applied to the make_stim_times.py command in
+            the output script.
+
+            Please see 'make_stim_times.py -help' for more information.
+            See also -regress_stim_files, -tshift_align_to.
 
     - R Reynolds  Dec, 2006
     ===========================================================================
@@ -532,7 +569,11 @@ g_history = """
     0.3  Dec  9, 2006 : added regress block (3dDeconvolve)
     0.4  Dec 11, 2006 : added help
     0.5  Dec 12, 2006 : added fitts and iresp options, fixed scale limit
+    0.6  Dec 13, 2006 : added -regress_stim_times_offset, -no_proc_command
+                        (afni_proc commands are stored by default)
 """
+
+g_version = "version 0.6, December 13, 2006"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -635,6 +676,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_stim_files', -1, [])
         self.valid_opts.add_opt('-regress_stim_labels', -1, [])
         self.valid_opts.add_opt('-regress_stim_times', -1, [])
+        self.valid_opts.add_opt('-regress_stim_times_offset', 1, [])
 
         self.valid_opts.add_opt('-regress_fitts_prefix', 1, [])
         self.valid_opts.add_opt('-regress_iresp_prefix', 1, [])
@@ -706,7 +748,7 @@ class SubjProcSream:
         # update out_dir now (may combine option results)
         if self.out_dir == '': self.out_dir = '%s.results' % self.subj_label
 
-        if self.verb > 1: self.show('end get_user_opts ')
+        if self.verb > 3: self.show('end get_user_opts ')
 
     # init blocks from command line options, then check for an
     # alternate source       rcr - will we use 'file' as source?
@@ -746,7 +788,10 @@ class SubjProcSream:
             if cmd_str == None:
                 print "** script creation failure for block '%s'" % block.label
                 errs += 1
-            else: self.fp.write(cmd_str)
+            else:
+                self.fp.write(cmd_str)
+                if self.verb>2: block.show('+d post command creation: ')
+                if self.verb>1: print '+d %s command: %s'%(block.label, cmd_str)
 
         rv = self.finalize_script()     # finish the script
         if rv: errs += 1
@@ -755,7 +800,10 @@ class SubjProcSream:
 
         if errs > 0: return 1    # so we print all errors before leaving
 
-        if self.verb > 0: print "script is file: %s" % self.script
+        if self.verb > 0:
+            print "\n--> script is file: %s" % self.script
+            print '    (consider the command "tcsh -x %s |& tee output.%s") '% \
+                  (self.script, self.script)
 
         return
 
@@ -793,6 +841,7 @@ class SubjProcSream:
         if not block.valid:
             print '** invalid block : %s' % block.label
             return 1
+        if self.verb > 2: block.show('+d post init block: ')
         self.blocks.append(block)
 
     def find_block(self, label):
@@ -828,7 +877,7 @@ class SubjProcSream:
                       'endif\n\n' % self.subj_id )
         self.fp.write('# verify that the results directory does not yet exist\n'
                       'if ( -d %s ) then \n'
-                      '    echo output dir "$sub.results" already exists\n'
+                      '    echo output dir "$subj.results" already exists\n'
                       '    exit                     \n'
                       'endif\n\n' % self.out_dir)
         self.fp.write('# set list of runs\n')
@@ -853,6 +902,17 @@ class SubjProcSream:
                           '\\rm -f rm.*\n\n')
         self.fp.write('# return to parent directory\n'
                       'cd ..\n\n')
+
+        opt = self.user_opts.find_opt('-no_proc_command')
+        self.fp.write('\n\n\n'
+                  '# -------------------------------------------------------\n'
+                  '# script generated by the command:\n'
+                  '#\n' '# %s' % os.path.basename(sys.argv[0]) )
+        for arg in sys.argv[1:]:
+            if   '(' in arg or '[' in arg: self.fp.write(" '%s'" % arg)
+            else: self.fp.write(' %s' % arg)
+        self.fp.write('\n\n')
+
 
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
     #    NN = block index, SUBJ = subj label, MM = run, BLABEL = block label
@@ -911,8 +971,6 @@ def test_proc():
 
     rv = ps.create_script()
     if rv != None: return rv
-
-    if ps.verb > 1: ps.show('testing... ')
 
 # main, for testing
 if __name__ == '__main__':
