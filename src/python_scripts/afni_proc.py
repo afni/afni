@@ -131,6 +131,16 @@ g_help_string = """
             are to be included in the output script.  The order of the blocks
             may be varied, and blocks may be skipped.
 
+        -copy_anat ANAT         : copy the ANAT dataset to the results dir
+
+                e.g. -copy_anat Elvis/mprage+orig
+
+            This will apply 3dcopy to copy the anatomical dataset(s) to the
+            results directory.  Note that if a +view is not given, 3dcopy will
+            attempt to copy +acpc and +tlrc datasets, also.
+
+            See also '3dcopy -help'.
+
         -dsets dset1 dset2 ...  : (REQUIRED) specify EPI run datasets
 
                 e.g. -dsets Elvis_run1+orig Elvis_run2+orig Elvis_run3+orig
@@ -427,6 +437,21 @@ g_help_string = """
             Please see '3dDeconvolve -help' for more information.
             See also -regress_no_iresp, -regress_basis.
 
+        -regress_make_1D_ideal IDEAL.1D : create IDEAL.1D file from regressors
+
+                e.g. -regress_make_1D_ideal ideal_all.1D
+
+            If the -regress_basis function is a single parameter function
+            (either GAM or some form of BLOCK), then this option can be
+            applied to create an ideal response curve which is the sum of
+            individual stimulus response curves.
+
+            Use of this option will add a 3dTstat command to sum the regressor
+            (of interest) columns of the 1D X-matrix, output by 3dDeconvolve.
+
+            Please see '3dDeconvolve -help' and '3dTstat -help'.
+            See also -regress_basis.
+
         -regress_no_fitts       : do not supply -fitts to 3dDeconvolve
 
                 e.g. -regress_no_fitts
@@ -446,6 +471,16 @@ g_help_string = """
             By default -iresp will be used unless the basis function is GAM.
 
             See also -regress_iresp_prefix, -regress_basis.
+
+        -regress_opts_3dD OPTS ...   : specify extra options for 3dDeconvolve
+
+                e.g. -regress_opts_3dD -gltsym ../contr/contrast1.1D \\
+                                       -glt_label FACEvsDONUT        \\
+                                       -xjpeg Xmat
+
+            This option allows the user to add extra options to the 3dDeconvolve
+            command.  Note that only one -regress_opts_3dD should be applied,
+            which may be used for multiple 3dDeconvolve options.
 
         -regress_polort DEGREE  : specify the polynomial degree of baseline
 
@@ -571,9 +606,11 @@ g_history = """
     0.5  Dec 12, 2006 : added fitts and iresp options, fixed scale limit
     0.6  Dec 13, 2006 : added -regress_stim_times_offset, -no_proc_command
                         (afni_proc commands are stored by default)
+    0.7  Dec 14, 2006 : added options -copy_anat, -regress_make_1D_ideal,
+                        and -regress_opts_3dD
 """
 
-g_version = "version 0.6, December 13, 2006"
+g_version = "version 0.7, December 14, 2006"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -607,6 +644,7 @@ class SubjProcSream:
         self.script     = '@proc_subj'
         self.overwrite  = False         # overwrite script file?
         self.fp         = None          # file object
+        self.anat       = None          # anatomoy to copy (afni_name class)
         self.rm_rm      = True          # remove rm.* files
 
         self.verb       = 1             # verbosity level
@@ -650,6 +688,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-script', 1, [])
         self.valid_opts.add_opt('-subj_id', -1, [])
 
+        self.valid_opts.add_opt('-copy_anat', 1, [])
         self.valid_opts.add_opt('-keep_rm_files', 0, [])
         # self.valid_opts.add_opt('-remove_pXX_files', 0, [])
 
@@ -680,8 +719,10 @@ class SubjProcSream:
 
         self.valid_opts.add_opt('-regress_fitts_prefix', 1, [])
         self.valid_opts.add_opt('-regress_iresp_prefix', 1, [])
+        self.valid_opts.add_opt('-regress_make_1D_ideal', 1, [])
         self.valid_opts.add_opt('-regress_no_fitts', 0, [])
         self.valid_opts.add_opt('-regress_no_iresp', 0, [])
+        self.valid_opts.add_opt('-regress_opts_3dD', -1, [])
 
 
         # other options
@@ -739,6 +780,9 @@ class SubjProcSream:
 
         opt = self.user_opts.find_opt('-scr_overwrite')
         if opt != None: self.overwrite = True
+
+        opt = self.user_opts.find_opt('-copy_anat')
+        if opt != None: self.anat = afni_name(opt.parlist[0])
 
         opt = self.user_opts.find_opt('-keep_rm_files')
         if opt != None: self.rm_rm = False
@@ -892,6 +936,11 @@ class SubjProcSream:
             for ind in range(len(self.stims)):
                 self.fp.write('%s ' % self.stims_orig[ind])
             self.fp.write('%s/stimuli\n\n' % self.out_dir)
+
+        if self.anat:
+            self.fp.write('# copy anatomy to results dir\n')
+            self.fp.write('3dcopy %s %s/%s\n\n' %
+                          (self.anat.rpv(), self.out_dir, self.anat.prefix))
 
         self.fp.flush()
 

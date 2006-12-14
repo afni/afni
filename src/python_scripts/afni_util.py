@@ -14,6 +14,8 @@ def change_path_basename(orig, prefix, suffix):
     if head == '': return "%s%s" % (prefix, suffix)
     return "%s/%s%s" % (head, prefix, suffix)
 
+# ----------------------------------------------------------------------
+# begin matrix functions
 
 # read a simple 1D file into a float matrix, and return the matrix
 def read_1D_file(filename, nlines = -1, verb = 0):
@@ -70,4 +72,6 @@ def transpose(matrix):
         newmat.append(newrow)
     return newmat
 
+# end matrix functions
+# ----------------------------------------------------------------------
 
