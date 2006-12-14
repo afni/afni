@@ -1848,3 +1848,7 @@
         (afni_proc commands are stored by default)
   * modified make_stim_times.py: added -offset option
 
+14 Dec 2006:
+  * modified afni_proc.py, db_mod.py
+      - added -copy_anat, -regress_make_1D_ideal and -regress_opts_3dD
+
