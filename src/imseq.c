@@ -6614,6 +6614,9 @@ ENTRY("ISQ_but_cnorm_CB") ;
 
 *    isqDR_save_jpeg       (char *) save current image to this filename
 *    isqDR_save_png        (char *) save current image to this filename
+*    isqDR_save_filtered   (char *) save current image to this filter
+*    isqDR_save_agif       (char *) save current image series to this filename
+*    isqDR_save_mpeg       (char *) save current image series to this filename
 
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
@@ -6704,6 +6707,12 @@ ENTRY("drive_MCW_imseq") ;
       case isqDR_save_png:{                  /* 11 Dec 2006 */
         char *fname = (char *)drive_data ;
         ISQ_save_png( seq , fname ) ;
+        RETURN( True ) ;
+      }
+
+      case isqDR_save_filtered:{             /* 14 Dec 2006 */
+        char *fname = (char *)drive_data ;
+        ISQ_save_image( seq , NULL , fname , NULL ) ;
         RETURN( True ) ;
       }
 
@@ -11441,7 +11450,8 @@ ENTRY("mri_rgb_transform_nD") ;
 
 /*--------------------------------------------------------------------------*/
 /*! Save the current image to a file thru a filter.
-    -- Refactored from the former ISQ_save_image() on 11 Dec 2006 --*/
+    - Refactored from the former ISQ_save_jpeg() - 11 Dec 2006
+    - Modified for use as a filter (no fname or suffix) - 14 Dec 2006 */
 
 void ISQ_save_image( MCW_imseq *seq  , char *fname ,
                      char *filtername, char *suffix )
@@ -11453,9 +11463,17 @@ void ISQ_save_image( MCW_imseq *seq  , char *fname ,
 
 ENTRY("ISQ_save_image") ;
 
-   if( !ISQ_REALZ(seq) || fname == NULL || filtername == NULL ) EXRETURN;
+   if( !ISQ_REALZ(seq) || filtername == NULL ) EXRETURN;
 
-   sll = strlen(fname) ; if( sll < 1 || sll > 255 ) EXRETURN ;
+   if( fname != NULL ){
+     sll = strlen(fname) ; if( sll < 1 || sll > 255 ) EXRETURN ;
+   }
+   if( filtername == NULL ){
+     if( fname == NULL ){ filtername = "cat > AFNI.ppm" ;             }
+     else               { filtername = "cat > %s" ; suffix = ".ppm" ; }
+   }
+
+   /*-- get image that's stored for display, then process it --*/
 
    reload_DC_colordef( seq->dc ) ;
    tim = XImage_to_mri( seq->dc, seq->given_xim, X2M_USE_CMAP | X2M_FORCE_RGB );
@@ -11500,15 +11518,19 @@ ENTRY("ISQ_save_image") ;
 
    /** open a pipe to the filter function **/
 
-   strcpy(fn,fname) ;
-   if( suffix != NULL && *suffix != '\0' &&
-       !STRING_HAS_SUFFIX_CASE(fname,suffix) ){
-     if( *suffix != '.' ) strcat(fn,".") ;
-     strcat(fn,suffix) ;
+   if( fname != NULL ){
+     strcpy(fn,fname) ;
+     if( suffix != NULL && *suffix != '\0' &&
+         !STRING_HAS_SUFFIX_CASE(fname,suffix) ){
+       if( *suffix != '.' ) strcat(fn,".") ;
+       strcat(fn,suffix) ;
+     }
+     sprintf( filt , filtername , fn ) ;
+   } else {
+     strcpy( filt , filtername ) ;
    }
+   INFO_message("Writing one %dx%d image to filter '%s'",tim->nx,tim->ny,filt) ;
 
-   sprintf( filt , filtername , fn ) ;
-   INFO_message("Writing one %dx%d image to file %s",tim->nx,tim->ny,fn) ;
 #ifndef CYGWIN
    signal( SIGPIPE , SIG_IGN ) ;
 #endif
@@ -11522,7 +11544,7 @@ ENTRY("ISQ_save_image") ;
    /** write a PPM file to the filter pipe **/
 
    fprintf(fp,"P6\n%d %d\n255\n" , tim->nx,tim->ny ) ;
-   fwrite( MRI_RGB_PTR(tim), sizeof(byte), 3*tim->nvox, fp ) ;
+   fwrite( MRI_RGB_PTR(tim), sizeof(byte), 3*tim->nvox, fp ) ; fflush(fp) ;
    errno = 0 ; sll = pclose(fp) ;
    if( sll == -1 ){
      ERROR_message("Image save filter command was %s\n",filt) ;

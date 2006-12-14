@@ -29,6 +29,7 @@ static int AFNI_drive_set_dicom_xyz( char *cmd ) ;  /* 28 Jul 2005 */
 static int AFNI_drive_set_spm_xyz( char *cmd ) ;    /* 28 Jul 2005 */
 static int AFNI_drive_set_ijk( char *cmd ) ;        /* 28 Jul 2005 */
 static int AFNI_drive_set_xhairs( char *cmd ) ;     /* 28 Jul 2005 */
+static int AFNI_drive_save_filtered( char *cmd ) ;  /* 14 Dec 2006 */
 
 static int AFNI_drive_system( char *cmd ) ;         /* 19 Dec 2002 */
 static int AFNI_drive_chdir ( char *cmd ) ;         /* 19 Dec 2002 */
@@ -109,6 +110,7 @@ static AFNI_driver_pair dpair[] = {
  { "SAVE_MPEG"        , AFNI_drive_save_mpeg         } ,
  { "SAVE_AGIF"        , AFNI_drive_save_agif         } ,
  { "SAVE_ALLJPEG"     , AFNI_drive_save_alljpeg      } ,
+ { "SAVE_FILTERED"    , AFNI_drive_save_filtered     } ,
  { "SET_VIEW"         , AFNI_drive_set_view          } ,
  { "SET_DICOM_XYZ"    , AFNI_drive_set_dicom_xyz     } ,
  { "SET_SPM_XYZ"      , AFNI_drive_set_spm_xyz       } ,
@@ -2334,6 +2336,16 @@ ENTRY("AFNI_drive_save_1image") ;
      ERROR_message("Image save '%s': something is missing",cmd); RETURN(-1);
      RETURN(-1) ;
    }
+   if( fname[0] == '\'' || fname[0] == '\"' ){
+     char qt=fname[0] , *q1 , *q2 ;
+     q1 = strchr(cmd+dadd,qt)+1 ;
+     q2 = strchr(q1,qt) ; if( q2 == NULL ) q2 = cmd+strlen(cmd) ;
+     if( (imm=q2-q1) > 0 && imm < 399 ){
+       strncpy(fname,q1,imm) ; fname[imm] = '\0' ;
+     } else {
+       ERROR_message("Image save '%s': filename is bad",cmd); RETURN(-1);
+     }
+   }
 
    /* find graph or image window */
 
@@ -2350,8 +2362,11 @@ ENTRY("AFNI_drive_save_1image") ;
      strcat(fname,suf) ;
 
    if( isq != NULL ){
-     if( mode == PNG_MODE  ) imm = isqDR_save_png ;
-     else                    imm = isqDR_save_jpeg;
+     switch( mode ){
+       case PNG_MODE:  imm = isqDR_save_png     ; break ;
+       case JPEG_MODE: imm = isqDR_save_jpeg    ; break ;
+       default:        imm = isqDR_save_filtered; break ;
+     }
      drive_MCW_imseq( isq, imm , (XtPointer)fname ) ;
    } else if( gra != NULL ){
      GRA_file_pixmap( gra , fname ) ;
@@ -2374,6 +2389,11 @@ static int AFNI_drive_save_jpeg( char *cmd )
 static int AFNI_drive_save_png( char *cmd )
 {
    return AFNI_drive_save_1image( cmd , PNG_MODE , ".png" ) ;
+}
+
+static int AFNI_drive_save_filtered( char *cmd )
+{
+   return AFNI_drive_save_1image( cmd , -1 , NULL ) ;
 }
 
 /*--------------------------------------------------------------------*/
