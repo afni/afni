@@ -144,7 +144,7 @@ def read_options(argv, oplist, verb = 1):
                     return None
 
             if not oplist.trailers :   # then trailers are not allowed
-                print "** error: trailing arguements found: %s" % argv[ac:]
+                print "** error: trailing arguments found: %s" % argv[ac:]
                 return None
 
             # insert remaining args as trailers

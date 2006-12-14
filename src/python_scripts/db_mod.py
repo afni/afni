@@ -325,7 +325,11 @@ def db_mod_regress(block, proc, user_opts):
         block.opts.add_opt('-regress_stim_times', -1, [])
         block.opts.add_opt('-regress_stim_times_offset', 1, [0], setpar=True)
 
+        block.opts.add_opt('-regress_opts_3dD', -1, [])
+        block.opts.add_opt('-regress_make_1D_ideal', 1, [])
         block.opts.add_opt('-regress_fitts_prefix', 1, ['fitts'], setpar=True)
+
+    errs = 0  # allow errors to accumulate
 
     # check for user updates
     uopt = user_opts.find_opt('-regress_basis')
@@ -334,8 +338,14 @@ def db_mod_regress(block, proc, user_opts):
         bopt.parlist[0] = uopt.parlist[0]
         if bopt.parlist[0] != 'GAM': # then default to -iresp
             block.opts.add_opt('-regress_iresp_prefix',1,['iresp'],setpar=True)
+        # check on GAM/BLOCK for -regress_make_1D_ideal
+        uopt = user_opts.find_opt('-regress_make_1D_ideal')
+        if uopt and bopt.parlist[0][0:3] != 'GAM'  \
+                and bopt.parlist[0][0:5] != 'BLOCK':
+            print '** -regress_make_1D_ideal option inappropriate for basis %s'\
+                  % bopt.parlist[0]
+            errs += 1
 
-    errs = 0
     uopt = user_opts.find_opt('-regress_basis_normall')
     bopt = block.opts.find_opt('-regress_basis_normall')
     if uopt and bopt:
@@ -386,6 +396,15 @@ def db_mod_regress(block, proc, user_opts):
         except:
             print "** stim times offset must be float, have '%s'" \
                   % uopt.parlist[0]
+
+    uopt = user_opts.find_opt('-regress_make_1D_ideal')
+    bopt = block.opts.find_opt('-regress_make_1D_ideal')
+    if uopt and bopt:
+        bopt.parlist = uopt.parlist
+
+    uopt = user_opts.find_opt('-regress_opts_3dD')
+    bopt = block.opts.find_opt('-regress_opts_3dD')
+    if uopt and bopt: bopt.parlist = uopt.parlist
 
     # --------------------------------------------------
     # if we are here, then we should have stimulus files
@@ -512,13 +531,31 @@ def db_cmd_regress(proc, block):
     if not opt or not opt.parlist: fitts = ''
     else: fitts = '    -fitts %s  \\\n' % opt.parlist[0]
 
+    # see if the user has provided other options (like GLTs)
+    opt = block.opts.find_opt('-regress_opts_3dD')
+    if not opt or not opt.parlist: other_opts = ''
+    else: other_opts = '    %s  \\\n' % ' '.join(opt.parlist)
+
     # add misc options
     cmd = cmd + iresp
+    cmd = cmd + other_opts
     cmd = cmd + "    -fout -tout -full_first -x1D Xmat.1D  \\\n"
     cmd = cmd + fitts
     cmd = cmd + "    -bucket stats.$subj\n\n"
 
-    proc.bindex += 1            # increment block index
+    if fitts != '':
+        cmd = cmd + "\n# create an all_runs dataset to match the fitts\n"
+        cmd = cmd + "3dTcat -prefix all_runs %s+orig.HEAD\n\n" % \
+                    proc.prev_prefix_form_rwild()
+
+    opt = block.opts.find_opt('-regress_make_1D_ideal')
+    if opt and opt.parlist:
+        first = polort * proc.runs
+        last = first + len(proc.stims) - 1
+        cmd = cmd + "\n# create ideal file by adding ideal regressors\n"
+        cmd = cmd + "3dTstat -sum -prefix %s Xmat.1D'[%d..%d]'\n\n" % \
+                    (opt.parlist[0], first, last)
+
     proc.pblabel = block.label  # set 'previous' block label
 
     return cmd
@@ -528,7 +565,7 @@ def db_cmd_regress_sfiles2times(proc, block):
 
     # check for a stimulus timing offset
     opt = block.opts.find_opt('-regress_stim_times_offset')
-    if opt and opt.parlist:
+    if opt and opt.parlist and opt.parlist[0] != 0:
         off_cmd = '                   -offset %s  \\\n' % str(opt.parlist[0])
     else: off_cmd = ''
 
