@@ -629,6 +629,7 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_save_mpeg       705  /* 07 Dec 2006 */
 #define isqDR_save_jpegall    706  /* 07 Dec 2006 */
 #define isqDR_save_png        707  /* 11 Dec 2006 */
+#define isqDR_save_filtered   708  /* 14 Dec 2006 */
 
 extern Boolean drive_MCW_imseq( MCW_imseq * , int , XtPointer ) ;
 
