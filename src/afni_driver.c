@@ -74,11 +74,13 @@ static int AFNI_trace                  ( char *cmd ) ; /* 04 Oct 2005 */
   Return value is 0 if good, -1 if bad.
 -------------------------------------------------------------------*/
 
-typedef int dfunc(char *) ;
+typedef int dfunc(char *) ;  /* action functions */
 
-  /* function label from plugout, function pointer inside AFNI */
+  /* pairs of { command label , action function pointer } */
 
 typedef struct { char *nam; dfunc *fun; } AFNI_driver_pair ;
+
+  /* this array controls the dispatch of commands to functions */
 
 static AFNI_driver_pair dpair[] = {
  { "RESCAN_THIS"      , AFNI_drive_rescan_controller } ,
@@ -159,9 +161,11 @@ static AFNI_driver_pair dpair[] = {
 
  { "TRACE"              , AFNI_trace                   } , /* debugging */
 
- { NULL , NULL } } ;
+ { NULL , NULL }  /* flag that we've reached the end times */
+} ;
 
 /*----------------------------------------------------------------------*/
+/*! Accept a command, find the corresponding action function, call it.  */
 
 int AFNI_driver( char *cmdd )
 {
@@ -2305,6 +2309,7 @@ ENTRY("AFNI_open_panel") ;
 }
 
 /*--------------------------------------------------------------------*/
+/*! Function for saving images in various formats. */
 
 static int AFNI_drive_save_1image( char *cmd , int mode , char *suf )
 {
@@ -2386,10 +2391,16 @@ static int AFNI_drive_save_jpeg( char *cmd )
    return AFNI_drive_save_1image( cmd , JPEG_MODE , ".jpg" ) ;
 }
 
+/*------------*/
+/*! SAVE_PNG */
+
 static int AFNI_drive_save_png( char *cmd )
 {
    return AFNI_drive_save_1image( cmd , PNG_MODE , ".png" ) ;
 }
+
+/*-----------------*/
+/*! SAVE_FILTERED */
 
 static int AFNI_drive_save_filtered( char *cmd )
 {
@@ -2397,6 +2408,7 @@ static int AFNI_drive_save_filtered( char *cmd )
 }
 
 /*--------------------------------------------------------------------*/
+/*! Save all the images in an image viewer. */
 
 static int AFNI_drive_save_allimages( char *cmd , int mode )
 {
@@ -2476,7 +2488,7 @@ static int AFNI_drive_save_mpeg( char *cmd ){
   return AFNI_drive_save_allimages( cmd , MPEG_MODE ) ;
 }
 
-/*--------------------------------------*/
+/*-----------------------------------------*/
 /*! SAVE_ALLJPEG [c.]imagewindowname fname */
 
 static int AFNI_drive_save_alljpeg( char *cmd ){
