@@ -221,26 +221,32 @@ CLOSE_WINDOW [c.]windowname
   viewer windows this way, not plugin windows.
 
 SAVE_JPEG [c.]windowname filename
-  Save a JPEG dump of the given window to 'filename'.  The windowname can be
-  one of 'axialimage', 'sagittalimage', 'coronalimage', 'axialgraph',
-  'sagittalgraph', or 'coronalgraph'.  If the filename does not end in
-  the string ".jpg" or ".JPG", then ".jpg" will be appended.
+  Save a JPEG dump of the given window to 'filename' (using the cjpeg filter,
+  which must be in the path).  The windowname can be one of 'axialimage',
+  'sagittalimage', 'coronalimage', 'axialgraph', 'sagittalgraph', or
+  'coronalgraph'.  If the filename does not end in the string ".jpg" or
+  ".JPG", then ".jpg" will be appended.
 
-SAVE_PNG = like SAVE_JPEG, but saves to PNG format.
+SAVE_PNG [c.]windowname filename
+  Like SAVE_JPEG, but saves to the lossless PNG format (using the
+  pnmtopng filter, which must be in the path).
 
-SAVE_FILTERED = like SAVE_JPEG or SAVE_PNG, but instead of a filename, you
+SAVE_FILTERED  [c.]windowname filtercommand
+  Like SAVE_JPEG or SAVE_PNG, but instead of a filename, you
   give a Unix filter that processes a PPM file. For example
-    SAVE_FILTERED axialimage 'pnmcrop 10 20 120 240 | pnmtopng > zork.png'
+    SAVE_FILTERED axialimage 'pnmcut 10 20 120 240 | pnmtopng > zork.png'
   will crop the image and save it into a PNG file.  You'll need to become
   familiar with the NETPBM package if you want to use this command.
-  N.B.: This command does not work with graph windows (yet).
-  N.B.: As indicated in the example, you'll need to put the filter command
+  N.B.: As indicated in the example, you'll need to put filtercommand
         in quotes if it contains blanks, which it almost surely will.
+  Other filter examples:
+     Save to a PPM file:  'cat > zork.ppm'
+     Save to a TIFF file: 'ppm2tiff -c none > zork.tif'
 
-SAVE_ALLJPEG [c].windowname filename
-SAVE_ALLPNG  [c].windowname filename
-SAVE_MPEG    [c].windowname filename
-SAVE_AGIF    [c].windowname filename
+SAVE_ALLJPEG [c].imagewindowname filename
+SAVE_ALLPNG  [c].imagewindowname filename
+SAVE_MPEG    [c].imagewindowname filename
+SAVE_AGIF    [c].imagewindowname filename
   Save ALL the images in the given image sequence viewer (either as a
   series of JPEG/PNG files, or as one animation file).  The windowname can
   be one of 'axialimage', 'sagittalimage', or 'coronalimage'.  Do NOT
