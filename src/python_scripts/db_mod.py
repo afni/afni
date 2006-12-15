@@ -573,9 +573,11 @@ def db_cmd_regress_sfiles2times(proc, block):
     if proc.verb > 0: print '-d old stim list: %s' % proc.stims
 
     cmd = cmd + '\n# create -stim_times files\n'
-    cmd = cmd + 'make_stim_times.py -prefix stim_times -tr %s -nruns %d  \\\n' \
+    cmd = cmd + 'make_stim_times.py -prefix stim_times -tr %s -nruns %d'       \
+                ' -nt %d  \\\n'                                                \
                 '%s'                                                           \
-                '                   -files ' % (str(proc.tr), proc.runs,off_cmd)
+                '                   -files '    \
+                % (str(proc.tr), proc.reps, proc.runs,off_cmd)
     cols = 0
     for file in proc.stims_orig:
         cmd = cmd + 'stimuli/%s ' % file        # put name on cmd line
