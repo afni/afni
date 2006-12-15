@@ -30,6 +30,7 @@ static int AFNI_drive_set_spm_xyz( char *cmd ) ;    /* 28 Jul 2005 */
 static int AFNI_drive_set_ijk( char *cmd ) ;        /* 28 Jul 2005 */
 static int AFNI_drive_set_xhairs( char *cmd ) ;     /* 28 Jul 2005 */
 static int AFNI_drive_save_filtered( char *cmd ) ;  /* 14 Dec 2006 */
+static int AFNI_drive_save_allpng( char *cmd ) ;    /* 15 Dec 2006 */
 
 static int AFNI_drive_system( char *cmd ) ;         /* 19 Dec 2002 */
 static int AFNI_drive_chdir ( char *cmd ) ;         /* 19 Dec 2002 */
@@ -112,6 +113,7 @@ static AFNI_driver_pair dpair[] = {
  { "SAVE_MPEG"        , AFNI_drive_save_mpeg         } ,
  { "SAVE_AGIF"        , AFNI_drive_save_agif         } ,
  { "SAVE_ALLJPEG"     , AFNI_drive_save_alljpeg      } ,
+ { "SAVE_ALLPNG"      , AFNI_drive_save_allpng       } ,
  { "SAVE_FILTERED"    , AFNI_drive_save_filtered     } ,
  { "SET_VIEW"         , AFNI_drive_set_view          } ,
  { "SET_DICOM_XYZ"    , AFNI_drive_set_dicom_xyz     } ,
@@ -2429,8 +2431,9 @@ ENTRY("AFNI_drive_save_allimages") ;
      case AGIF_MODE: imode = isqDR_save_agif    ; break ;
      case MPEG_MODE: imode = isqDR_save_mpeg    ; break ;
      case JPEG_MODE: imode = isqDR_save_jpegall ; break ;
+     case PNG_MODE : imode = isqDR_save_pngall  ; break ;
      default:
-       ERROR_message("Saving Images: illegal code=%d?",mode); RETURN(-1);
+       ERROR_message("Saving All Images: illegal code=%d?",mode); RETURN(-1);
    }
 
    ic = AFNI_controller_code_to_index( cmd ) ;
@@ -2438,7 +2441,7 @@ ENTRY("AFNI_drive_save_allimages") ;
 
    im3d = GLOBAL_library.controllers[ic] ;
    if( !IM3D_OPEN(im3d) ){
-     ERROR_message("Saving images '%s': Controller not open",cmd); RETURN(-1);
+     ERROR_message("Saving All Images '%s': Controller not open",cmd); RETURN(-1);
    }
 
    /* extract the filename to save into */
@@ -2446,7 +2449,7 @@ ENTRY("AFNI_drive_save_allimages") ;
    junk[0] = fname[0] = '\0' ;
    sscanf( cmd+dadd , "%255s%255s" , junk , fname ) ;
    if( junk[0] == '\0' || fname[0] == '\0' ){
-     ERROR_message("Saving Images '%s': something is missing",cmd); RETURN(-1);
+     ERROR_message("Saving All Images '%s': something is missing",cmd); RETURN(-1);
    }
 
    /* find graph or image window */
@@ -2463,10 +2466,10 @@ ENTRY("AFNI_drive_save_allimages") ;
    if( isq != NULL ){
      drive_MCW_imseq( isq, imode , (XtPointer)fname ) ;
    } else if( gra != NULL ){
-     ERROR_message("Saving Images '%s': graph windows not implemented",cmd);
+     ERROR_message("Saving All Images '%s': graph windows not implemented",cmd);
      RETURN(-1) ;
    } else {
-     ERROR_message("Saving Images '%s': unknown window name",cmd) ;
+     ERROR_message("Saving All Images '%s': unknown window name",cmd) ;
      RETURN(-1) ;
    }
 
@@ -2493,6 +2496,13 @@ static int AFNI_drive_save_mpeg( char *cmd ){
 
 static int AFNI_drive_save_alljpeg( char *cmd ){
   return AFNI_drive_save_allimages( cmd , JPEG_MODE ) ;
+}
+
+/*-----------------------------------------*/
+/*! SAVE_ALLPNG [c.]imagewindowname fname */
+
+static int AFNI_drive_save_allpng( char *cmd ){
+  return AFNI_drive_save_allimages( cmd , PNG_MODE ) ;
 }
 
 /*--------------------------------------------------------------------*/
