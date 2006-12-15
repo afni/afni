@@ -13,6 +13,10 @@ Each input stim file can have a set of columns of stim classes,
      input file is expected to have one row per TR, and a total
      of num_TRs * num_runs rows.
 
+     The user must provide -files, -prefix, -nruns, -nt and -tr,
+     where NT * NRUNS should equal (or be less than) the number
+     of TR lines in each file.
+
 Note: Since the output times are LOCAL (one row per run) in the
      eyes of 3dDeconvolve, any file where the first stimulus is
      the only stimulus in that run will have '*' appended to that
@@ -36,8 +40,9 @@ Corresponding stim_times files, assume TR = 2.5 seconds:
 
 Options: -files file1.1D file2.1D ...   : specify stim files
          -prefix PREFIX                 : output prefix for files
-         -tr     TR                     : TR time, in seconds
          -nruns  NRUNS                  : number of runs
+         -nt     NT                     : number of TRs per run
+         -tr     TR                     : TR time, in seconds
          -offset OFFSET                 : add OFFSET to all output times
          -verb   LEVEL                  : provide verbose output
 
@@ -49,17 +54,24 @@ examples:
        having the times, in seconds, of the stimuli, one run per row.
 
             make.stim.files -files stimA.1D stimB.1D stimC.1D   \\
-                            -prefix stimes -tr 2.5 -nruns 7
+                            -prefix stimes -tr 2.5 -nruns 7 -nt 100
 
     2. Same as 1, but suppose stim_all.1D has all 3 stim types (so 3 columns).
 
-            make.stim.files -files stim_all.1D -prefix stimes -tr 2.5 -nruns 7
+            make.stim.files -files stim_all.1D -prefix stimes -tr 2.5 \\
+                            -nruns 7 -nt 100
 
     3. Same as 2, but the stimuli were presented at the middle of the TR, so
        add 1.25 seconds to each stimulus time.
 
-            make.stim.files -files stim_all.1D -prefix stimes   \\
-                            -tr 2.5 -offset 1.25 -nruns 7
+            make.stim.files -files stim_all.1D -prefix stimes -tr 2.5 \\
+                            -nruns 7 -nt 100 -offset 1.25
+
+    4. An appropriate conversion of stim_files to stim_times for the 
+       example in AFNI_data2 (HowTo #5).
+
+            make_stim_times.py -prefix ED_times -tr 1.0 -nruns 10 -nt 272 \\
+                               -files misc_files/all_stims.1D
 
 - R Reynolds, Nov 17, 2006
 ===========================================================================
@@ -71,6 +83,7 @@ def get_opts():
     okopts.add_opt('-files', -1, [], req=True)
     okopts.add_opt('-prefix', 1, [], req=True)
     okopts.add_opt('-tr', 1, [], req=True)
+    okopts.add_opt('-nt', 1, [], req=True)
     okopts.add_opt('-nruns', 1, [], req=True)
     okopts.add_opt('-offset', 1, [])
     okopts.add_opt('-verb', 1, [])
@@ -111,21 +124,31 @@ def proc_mats(uopts):
 
     opt    = uopts.find_opt('-prefix')
     prefix = opt.parlist[0]
+
     opt    = uopts.find_opt('-tr')
     try: tr = float(opt.parlist[0])
     except:
         print "** error: TR must be float, have '%s'" % opt.parlist[0]
         return
     
+    opt    = uopts.find_opt('-nt')
+    try: nt = int(opt.parlist[0])
+    except:
+        print "** error: -nt must be int, have '%s'" % opt.parlist[0]
+        return
+    
+    if verb: print "-d nt = %d, nruns = %d, TR = %f" % (nt, nruns, tr)
+
     for file in files:
         mat = read_1D_file(file, -1, verb=verb)
-        mat = transpose(mat)
         if not mat:
             print "read_1D_file failed for file: %s" % file
             return
+        mat = transpose(mat)
 
-        nt = len(mat[0])/nruns
-        if verb: print "file %s, nt = %d, nruns = %d" % (file, nt, nruns)
+        if len(mat[0]) != nt * nruns:
+            print 'warning: file %s has %d entries (expected %d)' % \
+                  (file, len(mat[0]), nt*nruns)
 
         newfile_index = 1
         for row in mat:
