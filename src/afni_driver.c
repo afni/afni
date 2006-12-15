@@ -2317,7 +2317,7 @@ static int AFNI_drive_save_1image( char *cmd , int mode , char *suf )
 {
    int ic , dadd=2 , imm ;
    Three_D_View *im3d ;
-   char junk[256] , fname[399] ;
+   char junk[256] , fname[599] ;
    MCW_imseq   *isq=NULL ;
    MCW_grapher *gra=NULL ;
 
@@ -2347,7 +2347,7 @@ ENTRY("AFNI_drive_save_1image") ;
      char qt=fname[0] , *q1 , *q2 ;
      q1 = strchr(cmd+dadd,qt)+1 ;
      q2 = strchr(q1,qt) ; if( q2 == NULL ) q2 = cmd+strlen(cmd) ;
-     if( (imm=q2-q1) > 0 && imm < 399 ){
+     if( (imm=q2-q1) > 0 && imm < 599 ){
        strncpy(fname,q1,imm) ; fname[imm] = '\0' ;
      } else {
        ERROR_message("Image save '%s': filename is bad",cmd); RETURN(-1);
@@ -2376,6 +2376,9 @@ ENTRY("AFNI_drive_save_1image") ;
      }
      drive_MCW_imseq( isq, imm , (XtPointer)fname ) ;
    } else if( gra != NULL ){
+     if( mode == -1 ){  /* start with '|' means a pipe */
+       memmove( fname+1, fname, strlen(fname)+1 ); fname[0] = '|';
+     }
      GRA_file_pixmap( gra , fname ) ;
    } else {
      ERROR_message("Image save '%s': don't understand windowname",cmd) ;
