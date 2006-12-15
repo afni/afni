@@ -6617,6 +6617,8 @@ ENTRY("ISQ_but_cnorm_CB") ;
 *    isqDR_save_filtered   (char *) save current image to this filter
 *    isqDR_save_agif       (char *) save current image series to this filename
 *    isqDR_save_mpeg       (char *) save current image series to this filename
+*    isqDR_save_jpegall    (char *) save current image series to bunch of files
+*    isqDR_save_pngall     (char *) save current image series to bunch of files
 
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
@@ -6731,6 +6733,12 @@ ENTRY("drive_MCW_imseq") ;
       case isqDR_save_jpegall:{
         char *fname = (char *)drive_data ;
         ISQ_save_anim( seq , fname , 0,0, JPEG_MODE ) ;
+        RETURN(True) ;
+      }
+
+      case isqDR_save_pngall:{
+        char *fname = (char *)drive_data ;
+        ISQ_save_anim( seq , fname , 0,0, PNG_MODE ) ;
         RETURN(True) ;
       }
 
@@ -11363,7 +11371,7 @@ ENTRY("ISQ_handle_keypress") ;
        busy=0 ; RETURN(1) ;
      break ;
 
-#if 1
+#if 0
      case 'G':
      case 'H':
      case 'J':

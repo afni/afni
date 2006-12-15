@@ -238,10 +238,11 @@ SAVE_FILTERED = like SAVE_JPEG or SAVE_PNG, but instead of a filename, you
         in quotes if it contains blanks, which it almost surely will.
 
 SAVE_ALLJPEG [c].windowname filename
+SAVE_ALLPNG  [c].windowname filename
 SAVE_MPEG    [c].windowname filename
 SAVE_AGIF    [c].windowname filename
   Save ALL the images in the given image sequence viewer (either as a
-  series of JPEG files, or as one animation file).  The windowname can
+  series of JPEG/PNG files, or as one animation file).  The windowname can
   be one of 'axialimage', 'sagittalimage', or 'coronalimage'.  Do NOT
   put a suffix like '.jpg' or '.mpg' on the filename -- it will be added.
   N.B.: Unlike 'SAVE_JPEG', these commands do not work with graph windows.
