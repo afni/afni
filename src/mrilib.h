@@ -698,6 +698,7 @@ extern int mri_write( char * , MRI_IMAGE * ) ;
 extern int mri_write_pnm( char * , MRI_IMAGE * ) ;
 extern int mri_write_jpg( char * , MRI_IMAGE * ) ;       /* 15 Apr 2005 */
 extern int mri_write_png( char * , MRI_IMAGE * ) ;       /* 11 Dec 2006 */
+extern int mri_write_filtered( char * , MRI_IMAGE * ) ;  /* 15 Dec 2006 */
 extern int mri_write_7D( char * , MRI_IMAGE * ) ;
 extern int mri_datum_size( MRI_TYPE typ ) ;
 extern MRI_IMAGE *mri_read_ascii( char * ) ;

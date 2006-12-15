@@ -189,14 +189,16 @@ int mri_write_pnm( char *fname , MRI_IMAGE *im )
 
 ENTRY("mri_write_pnm") ;
 
-   if( im == NULL ) RETURN( 0 );
+   if( im == NULL || fname == NULL || *fname == '\0' ) RETURN( 0 );
    if( im->nz > 1 ) RETURN( 0 );
-   if( im->kind != MRI_byte && im->kind != MRI_rgb ) RETURN( 0 );
+   if( im->kind != MRI_byte && im->kind != MRI_rgb   ) RETURN( 0 );
 
    if( STRING_HAS_SUFFIX_CASE(fname,".jpg") ){   /* 15 Apr 2005: quick hack */
      RETURN( mri_write_jpg(fname,im) ) ;
-   } else if( STRING_HAS_SUFFIX_CASE(fname,".png") ) {  /* 11 Dec 2006 */
+   } else if( STRING_HAS_SUFFIX_CASE(fname,".png") ){  /* 11 Dec 2006 */
      RETURN( mri_write_png(fname,im) ) ;
+   } else if( *fname == '|' ){                   /* 15 Dec 2006: pipe */
+     RETURN( mri_write_filtered(fname+1,im) ) ;
    }
 
    if( strcmp(fname,"-") != 0 ){
@@ -404,7 +406,7 @@ int mri_write_jpg( char *fname , MRI_IMAGE *im )  /* 15 Apr 2005 */
    signal( SIGPIPE , SIG_IGN ) ;
 #endif
    fp = popen( jpfilt , "w" ) ;
-   if( fp == NULL ){ free((void *)jpfilt); return 0 ;}
+   if( fp == NULL ){ free((void *)jpfilt); return 0; }
 
    if( im->kind == MRI_rgb ){
      fprintf(fp,"P6\n%d %d\n255\n" , im->nx,im->ny ) ;
@@ -434,7 +436,7 @@ int mri_write_png( char *fname , MRI_IMAGE *im )  /* 11 Dec 2006 */
    signal( SIGPIPE , SIG_IGN ) ;
 #endif
    fp = popen( pgfilt , "w" ) ;
-   if( fp == NULL ){ free((void *)pgfilt); return 0 ;}
+   if( fp == NULL ){ free((void *)pgfilt); return 0; }
 
    if( im->kind == MRI_rgb ){
      fprintf(fp,"P6\n%d %d\n255\n" , im->nx,im->ny ) ;
@@ -445,4 +447,30 @@ int mri_write_png( char *fname , MRI_IMAGE *im )  /* 11 Dec 2006 */
    }
    (void) pclose(fp) ;
    free((void *)pgfilt) ; return 1 ;
+}
+
+/*---------------------------------------------------------------*/
+
+int mri_write_filtered( char *fname , MRI_IMAGE *im )  /* 15 Dec 2006 */
+{
+   FILE *fp ;
+
+   if( fname == NULL || *fname == '\0' || im == NULL ) return 0 ;
+   if( im->kind != MRI_rgb && im->kind != MRI_byte   ) return 0 ;
+
+#ifndef CYGWIN
+   signal( SIGPIPE , SIG_IGN ) ;
+#endif
+   fp = popen( fname , "w" ) ;
+   if( fp == NULL ) return 0 ;
+
+   if( im->kind == MRI_rgb ){
+     fprintf(fp,"P6\n%d %d\n255\n" , im->nx,im->ny ) ;
+     fwrite( MRI_RGB_PTR(im), sizeof(byte), 3*im->nvox, fp ) ;
+   } else if( im->kind == MRI_byte ){
+     fprintf(fp,"P5\n%d %d\n255\n" , im->nx,im->ny ) ;
+     fwrite( MRI_BYTE_PTR(im), sizeof(byte), im->nvox, fp ) ;
+   }
+   (void) pclose(fp) ;
+   return 1 ;
 }
