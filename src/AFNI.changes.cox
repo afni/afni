@@ -5988,3 +5988,7 @@
 
 14 Dec 2006
  * Added SAVE_FILTERED to the roster of AFNI driver commands.
+
+15 Dec 2006
+ * Made SAVE_FILTERED work with graph windows -- by modifying mri_write_pnm()
+     to write through a filter if the output filename starts with '|'.
