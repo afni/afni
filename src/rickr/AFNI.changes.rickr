@@ -1853,3 +1853,6 @@
       - added -copy_anat, -regress_make_1D_ideal and -regress_opts_3dD
   * modified make_stim_times.py: added required -nt option
 
+15 Dec 2006:
+  * modified SUMA_3dVol2surf: updated help for niml.dest and EPI -> surface
+

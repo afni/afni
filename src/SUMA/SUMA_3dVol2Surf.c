@@ -51,7 +51,7 @@
  *               -grid_par   SubjA_EPI+orig                             \
  *               -cmask      '-a SubjA.func+orig[2] -expr step(a-0.6)'  \
  *               -map_func   midpoint                                   \
- *               -out_1D     SubjA_surf_out.txt
+ *               -out_niml   SubjA_surf_out.niml.dset
  *
  *----------------------------------------------------------------------
 */
@@ -211,11 +211,14 @@ static char g_history[] =
     "6.6  Aug 9, 2006 [rickr]\n"
     "  - store command-line arguments for history note\n"
     "  - added -skip_col_NSD_format option\n"
+    "\n"
     "6.7  Aug 23, 2006 [rickr] - added/modified output column options\n"
     "  - changed -skip_col_results     to -outcols_1_result\n"
     "  - changed -skip_col_non_results to -outcols_results\n"
     "  - changed -skip_col_NSD_format  to -outcols_NSD_format\n"
     "  - added -outcols_afni_NSD option\n"
+    "\n"
+    "6.8  Dec 15, 2006 [rickr] - added example for EPI -> surface in help\n"
     "---------------------------------------------------------------------\n";
 
 #define VERSION "version  6.7 (Aug 23, 2006)"
@@ -1805,7 +1808,7 @@ ENTRY("usage");
             "       -map_func     mask                                     \\\n"
             "       -debug        2                                        \\\n"
             "       -dnode        1874                                     \\\n"
-            "       -out_niml     fred_epi_vals.niml\n"
+            "       -out_niml     fred_epi_vals.niml.dset\n"
             "\n"
             "    3. Given a pair of related surfaces, for each node pair,\n"
             "       break the connected line segment into 10 points, and\n"
@@ -1828,7 +1831,7 @@ ENTRY("usage");
             "       -map_func     ave                                      \\\n"
             "       -f_steps      10                                       \\\n"
             "       -f_index      nodes                                    \\\n"
-            "       -out_1D       fred_func_ave.1D\n"
+            "       -out_niml     fred_func_ave.niml.dset\n"
             "\n"
             "    4. Similar to example 3, but restrict the output columns to\n"
             "       only node indices and values (i.e. skip 1dindex, i, j, k\n"
@@ -1849,7 +1852,7 @@ ENTRY("usage");
             "       -skip_col_j                                            \\\n"
             "       -skip_col_k                                            \\\n"
             "       -skip_col_vals                                         \\\n"
-            "       -out_1D       fred_func_ave_short.1D\n"
+            "       -out_niml     fred_func_ave_short.niml.dset\n"
             "\n"
             "    5. Similar to example 3, but each of the node pair segments\n"
             "       has grown by 10%% on the inside of the first surface,\n"
@@ -1873,7 +1876,7 @@ ENTRY("usage");
             "       -f_index      voxels                                   \\\n"
             "       -f_p1_fr      -0.1                                     \\\n"
             "       -f_pn_fr      0.2                                      \\\n"
-            "       -out_1D       fred_func_ave2.1D\n"
+            "       -out_niml     fred_func_ave2.niml.dset\n"
             "\n"
             "    6. Similar to example 3, instead of computing the average\n"
             "       across each segment (one average per sub-brick), output\n"
@@ -1893,7 +1896,7 @@ ENTRY("usage");
             "       -map_func     seg_vals                                 \\\n"
             "       -f_steps      10                                       \\\n"
             "       -f_index      nodes                                    \\\n"
-            "       -out_1D       fred_func_segvals_10.1D\n"
+            "       -out_niml     fred_func_segvals_10.niml.dset\n"
             "\n"
             "    7. Similar to example 6, but make sure there is output for\n"
             "       every node pair in the surfaces.  Since it is expected\n"
@@ -1918,7 +1921,7 @@ ENTRY("usage");
             "       -f_index      nodes                                    \\\n"
             "       -oob_value    0.0                                      \\\n"
             "       -oom_value    0.0                                      \\\n"
-            "       -out_1D       fred_func_segvals_10_all.1D\n"
+            "       -out_niml     fred_func_segvals_10_all.niml.dset\n"
             "\n"
             "    8. This is a basic example of calculating the average along\n"
             "       each segment, but where the segment is produced by only\n"
@@ -1935,7 +1938,7 @@ ENTRY("usage");
             "       -map_func     ave                                      \\\n"
             "       -f_steps      10                                       \\\n"
             "       -f_index      nodes                                    \\\n"
-            "       -out_1D       fred_anat_norm_ave.2.5.1D\n"
+            "       -out_niml     fred_anat_norm_ave.2.5.niml.dset\n"
             "\n"
             "    9. This is the same as example 8, but where the surface\n"
             "       nodes are restricted to the range 1000..1999 via the\n"
@@ -1953,10 +1956,33 @@ ENTRY("usage");
             "       -map_func     ave                                      \\\n"
             "       -f_steps      10                                       \\\n"
             "       -f_index      nodes                                    \\\n"
-            "       -out_1D       fred_anat_norm_ave.2.5.1D\n"
+            "       -out_niml     fred_anat_norm_ave.2.5.niml.dset\n"
+            "\n"
+            "   10. Create an EPI time-series surface dataset, suitable for\n"
+            "       performing single-subject processing on the surface.  So\n"
+            "       map a time-series onto each surface node.\n"
+            "\n"
+            "       Note that any time shifting (3dTshift) or registration\n"
+            "       of volumes (3dvolreg) should be done before this step.\n"
+            "\n"
+            "       After this step, the user can finish pre-processing with\n"
+            "       blurring (SurfSmooth) and scaling (3dTstat, 3dcalc),\n"
+            "       before performing the regression (3dDeconvolve).\n"
+            "\n"
+            "    %s                                                \\\n"
+            "       -spec                fred.spec                         \\\n"
+            "       -surf_A              smoothwm                          \\\n"
+            "       -surf_B              pial                              \\\n"
+            "       -sv                  SurfVolAlndExp+orig               \\\n"
+            "       -grid_parent         EPI_all_runs+orig                 \\\n"
+            "       -map_func            ave                               \\\n"
+            "       -f_steps             15                                \\\n"
+            "       -f_index             nodes                             \\\n"
+            "       -outcols_NSD_format                                    \\\n"
+            "       -out_niml            EPI_runs.niml.dset\n"
             "\n"
             "  --------------------------------------------------\n",
-            prog, prog, prog, prog, prog, prog, prog, prog, prog );
+            prog, prog, prog, prog, prog, prog, prog, prog, prog, prog );
 
         printf(
             "\n"
