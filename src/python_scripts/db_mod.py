@@ -47,6 +47,7 @@ def db_mod_tshift(block, proc, user_opts):
     if len(block.opts.olist) == 0:    # then init to defaults
         block.opts.add_opt('-tshift_align_to', -1, ['-tzero', '0'], setpar=True)
         block.opts.add_opt('-tshift_interp', 1, ['-quintic'], setpar=True)
+        block.opts.add_opt('-tshift_opts_ts', -1, [])
 
     # check for updates to -tshift_align_to option
     uopt = user_opts.find_opt('-tshift_align_to')
@@ -67,6 +68,10 @@ def db_mod_tshift(block, proc, user_opts):
     if uopt and bopt:
         bopt.parlist = uopt.parlist     # copy new params
 
+    uopt = user_opts.find_opt('-tshift_opts_ts')
+    bopt = block.opts.find_opt('-tshift_opts_ts')
+    if uopt and bopt: bopt.parlist = uopt.parlist
+
     block.valid = 1
 
 # run 3dToutcount and 3dTshift for each run
@@ -82,6 +87,11 @@ def db_cmd_tshift(proc, block):
     cur_prefix = proc.prefix_form_run(block)
     prev_prefix = proc.prev_prefix_form_run()
 
+    # maybe there are extra options to append to the command
+    opt = block.opts.find_opt('-tshift_opts_ts')
+    if not opt or not opt.parlist: other_opts = ''
+    else: other_opts = '             %s  \\\n' % ' '.join(opt.parlist)
+
     # write commands
     cmd = cmd + '# -------------------------------------------------------\n' \
               + '# run 3dToutcount and 3dTshift for each run\n'
@@ -89,9 +99,10 @@ def db_cmd_tshift(proc, block):
                 '    3dToutcount -automask %s+orig > outcount_r$run.1D\n'     \
                 '\n'                                                          \
                 '    3dTshift %s %s -prefix %s      \\\n'                     \
+                '%s'                                                          \
                 '             %s+orig\n'                                      \
                 'end\n\n' %                                                   \
-                (prev_prefix, align_to, resam, cur_prefix, prev_prefix)
+                (prev_prefix, align_to, resam,cur_prefix,other_opts,prev_prefix)
     
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
@@ -101,6 +112,7 @@ def db_cmd_tshift(proc, block):
 def db_mod_volreg(block, proc, user_opts):
     if len(block.opts.olist) == 0:    # then init dset/brick indices to defaults
         block.opts.add_opt('-volreg_base_ind', 2, [0, 0], setpar=True)
+        block.opts.add_opt('-volreg_opts_vr', -1, [])
 
     # check for updates to -volreg_base option
     uopt = user_opts.find_opt('-volreg_base_ind')
@@ -130,6 +142,10 @@ def db_mod_volreg(block, proc, user_opts):
             bopt.parlist[0] = proc.runs - 1     # index of last dset
             bopt.parlist[1] = proc.reps - 1     # index of last rep
 
+    uopt = user_opts.find_opt('-volreg_opts_vr')
+    bopt = block.opts.find_opt('-volreg_opts_vr')
+    if uopt and bopt: bopt.parlist = uopt.parlist
+
     block.valid = 1
 
 def db_cmd_volreg(proc, block):
@@ -148,17 +164,23 @@ def db_cmd_volreg(proc, block):
     # get base prefix (run is index+1)
     base = proc.prev_prefix_form(dset_ind+1)
 
+    # maybe there are extra options to append to the command
+    opt = block.opts.find_opt('-volreg_opts_vr')
+    if not opt or not opt.parlist: other_opts = ''
+    else: other_opts = '             %s  \\\n' % ' '.join(opt.parlist)
+
     cmd = cmd + "# -------------------------------------------------------\n" \
                 "# align each dset to the base volume\n"                      \
                 "foreach run ( $runs )\n"                                     \
                 "    3dvolreg -verbose -zpad 1 -base %s+orig'[%d]'  \\\n"     \
                 "             -1Dfile dfile.r$run.1D -prefix %s  \\\n"        \
+                "%s"                                                          \
                 "             %s+orig\n"                                      \
                 "end\n\n"                                                     \
                 "# make a single file of registration params\n"               \
                 "cat dfile.r??.1D > dfile.rall.1D\n\n" %                      \
                     (proc.prev_prefix_form(dset_ind+1), sub, 
-                     proc.prefix_form_run(block),
+                     proc.prefix_form_run(block), other_opts,
                      proc.prev_prefix_form_run())
 
     proc.bindex += 1            # increment block index
@@ -170,6 +192,7 @@ def db_mod_blur(block, proc, user_opts):
     if len(block.opts.olist) == 0: # init blur option
         block.opts.add_opt('-blur_filter', 1, ['-1blur_fwhm'], setpar=True)
         block.opts.add_opt('-blur_size', 1, [4.0], setpar=True)
+        block.opts.add_opt('-blur_opts_merge', -1, [])
 
     # check for option updates
     uopt = user_opts.find_opt('-blur_filter')
@@ -186,6 +209,10 @@ def db_mod_blur(block, proc, user_opts):
             block.valid = 0
             return 1
 
+    uopt = user_opts.find_opt('-blur_opts_merge')
+    bopt = block.opts.find_opt('-blur_opts_merge')
+    if uopt and bopt: bopt.parlist = uopt.parlist
+
     block.valid = 1
 
 def db_cmd_blur(proc, block):
@@ -197,12 +224,18 @@ def db_cmd_blur(proc, block):
     prefix = proc.prefix_form_run(block)
     prev   = proc.prev_prefix_form_run()
 
+    # maybe there are extra options to append to the command
+    opt = block.opts.find_opt('-blur_opts_merge')
+    if not opt or not opt.parlist: other_opts = ''
+    else: other_opts = '             %s  \\\n' % ' '.join(opt.parlist)
+
     cmd = cmd + "# -------------------------------------------------------\n" \
                 "# blur each volume\n"                                        \
                 "foreach run ( $runs )\n"                                     \
                 "    3dmerge %s %d -doall -prefix %s   \\\n"                  \
+                "%s"                                                          \
                 "            %s+orig\n"                                       \
-                "end\n\n" % (filter, size, prefix, prev)
+                "end\n\n" % (filter, size, prefix, other_opts, prev)
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
@@ -237,7 +270,7 @@ def db_cmd_mask(proc, block):
     opt = block.opts.find_opt('-mask_type')
     type = opt.parlist[0]
     if type == 'union': min = 0            # result must be greater than min
-    else:               min = proc.runs-1
+    else:               min = 0.999
 
     opt = block.opts.find_opt('-mask_dilate')
     nsteps = opt.parlist[0]
@@ -249,10 +282,10 @@ def db_cmd_mask(proc, block):
                 "    3dAutomask -dilate %d -prefix rm.mask_r$run %s+orig\n"   \
                 "end\n\n" % (type, nsteps, prev)
 
-    cmd = cmd + "# get sum and compare it to %d for taking '%s'\n"            \
-                "3dMean -sum -datum short -prefix rm.sum rm.mask*.HEAD\n"     \
-                "3dcalc -a rm.sum+orig -expr 'ispositive(a-%d)' "             \
-                "-prefix full_mask\n\n" % (min, type, min)
+    cmd = cmd + "# get mean and compare it to %s for taking '%s'\n"      \
+                "3dMean -datum short -prefix rm.mean rm.mask*.HEAD\n"    \
+                "3dcalc -a rm.mean+orig -expr 'ispositive(a-%s)' "       \
+                "-prefix full_mask\n\n" % (str(min), type, str(min))
 
     proc.mask = 'full_mask'     # note that we have a mask dataset to apply
 
@@ -577,7 +610,7 @@ def db_cmd_regress_sfiles2times(proc, block):
                 ' -nt %d  \\\n'                                                \
                 '%s'                                                           \
                 '                   -files '    \
-                % (str(proc.tr), proc.reps, proc.runs,off_cmd)
+                % (str(proc.tr), proc.runs, proc.reps,off_cmd)
     cols = 0
     for file in proc.stims_orig:
         cmd = cmd + 'stimuli/%s ' % file        # put name on cmd line

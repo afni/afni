@@ -1856,3 +1856,6 @@
 15 Dec 2006:
   * modified SUMA_3dVol2surf: updated help for niml.dest and EPI -> surface
 
+17 Dec 2006: modified afni_proc.py, db_mod.py:
+      - added options -tshift_opts_ts, -volreg_opts_vr, -blur_opts_merge
+
