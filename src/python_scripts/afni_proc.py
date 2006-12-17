@@ -52,7 +52,7 @@ g_help_string = """
                       copy stim files
         tcat        : copy input datasets and remove unwanted initial TRs
 
-    user controllable steps:
+    optional steps:
 
         tshift      : slice timing alignment on volumes (default is -time 0)
         volreg      : volume registration (default to first volume)
@@ -264,6 +264,16 @@ g_help_string = """
 
             Please see '3dTshift -help' for more information.
 
+        -tshift_opts_ts OPTS ... : specify extra options for 3dTshift
+
+                e.g. -tshift_opts_ts -tpattern alt+z
+
+            This option allows the user to add extra options to the 3dTshift
+            command.  Note that only one -tshift_opts_ts should be applied,
+            which may be used for multiple 3dTshift options.
+
+            Please see '3dTshift -help' for more information.
+
         -volreg_align_to POSN   : specify the base position for volume reg
 
                 e.g. -volreg_align_to last
@@ -300,6 +310,16 @@ g_help_string = """
 
             See also -volreg_align_to, -tcat_remove_first_trs.
 
+        -volreg_opts_vr OPTS ... : specify extra options for 3dvolreg
+
+                e.g. -volreg_opts_vr -noclip -nomaxdisp
+
+            This option allows the user to add extra options to the 3dvolreg
+            command.  Note that only one -volreg_opts_vr should be applied,
+            which may be used for multiple 3dvolreg options.
+
+            Please see '3dvolreg -help' for more information.
+
         -blur_filter FILTER     : specify 3dmerge filter option
 
                 e.g. -blur_filter -1blur_rms
@@ -324,6 +344,16 @@ g_help_string = """
 
             Please see '3dmerge -help' for more information.
             See also -blur_filter.
+
+        -blur_opts_merge OPTS ... : specify extra options for 3dmerge
+
+                e.g. -blur_opts_merge -2clip -20 50
+
+            This option allows the user to add extra options to the 3dmerge
+            command.  Note that only one -blur_opts_merge should be applied,
+            which may be used for multiple 3dmerge options.
+
+            Please see '3dmerge -help' for more information.
 
         -mask_type TYPE         : specify 'union' or 'intersection' mask type
 
@@ -482,6 +512,8 @@ g_help_string = """
             command.  Note that only one -regress_opts_3dD should be applied,
             which may be used for multiple 3dDeconvolve options.
 
+            Please see '3dDeconvolve -help' for more information.
+
         -regress_polort DEGREE  : specify the polynomial degree of baseline
 
                 e.g. -regress_polort 1
@@ -608,9 +640,10 @@ g_history = """
                         (afni_proc commands are stored by default)
     0.7  Dec 14, 2006 : added options -copy_anat, -regress_make_1D_ideal,
                         and -regress_opts_3dD
+    0.8  Dec 16, 2006 : added -tshift_opts_ts, -volreg_opts_vr, -blur_opts_merge
 """
 
-g_version = "version 0.7, December 14, 2006"
+g_version = "version 0.8, December 16, 2006"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -697,12 +730,15 @@ class SubjProcSream:
 
         self.valid_opts.add_opt('-tshift_align_to', -1, [])
         self.valid_opts.add_opt('-tshift_interp', 1, [])
+        self.valid_opts.add_opt('-tshift_opts_ts', -1, [])
 
         self.valid_opts.add_opt('-volreg_align_to', 1, [], ['first','last'])
         self.valid_opts.add_opt('-volreg_base_ind', 2, [])
+        self.valid_opts.add_opt('-volreg_opts_vr', -1, [])
 
         self.valid_opts.add_opt('-blur_filter', 1, [])
         self.valid_opts.add_opt('-blur_size', 1, [])
+        self.valid_opts.add_opt('-blur_opts_merge', -1, [])
 
         self.valid_opts.add_opt('-mask_type', 1, [], ['union','intersection'])
         self.valid_opts.add_opt('-mask_dilate', 1, [])
@@ -1007,7 +1043,7 @@ class ProcessBlock:
         print '------- %sProcessBlock: %s -------' % (mesg, self.label)
         self.opts.show('new options: ')
 
-def test_proc():
+def run_proc():
 
     ps = SubjProcSream('subject regression')
     ps.init_opts()
@@ -1021,7 +1057,8 @@ def test_proc():
     rv = ps.create_script()
     if rv != None: return rv
 
-# main, for testing
+# main
 if __name__ == '__main__':
 
-    test_proc()
+    run_proc()
+
