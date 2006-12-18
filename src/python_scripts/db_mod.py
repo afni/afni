@@ -613,8 +613,8 @@ def db_cmd_regress_sfiles2times(proc, block):
                 % (str(proc.tr), proc.runs, proc.reps,off_cmd)
     cols = 0
     for file in proc.stims_orig:
-        cmd = cmd + 'stimuli/%s ' % file        # put name on cmd line
-        cols += afni_util.num_cols_1D(file)     # and tally the number of cols
+        cmd = cmd + 'stimuli/%s ' % os.path.basename(file)      # add filename
+        cols += afni_util.num_cols_1D(file)         # tally the number of cols
     cmd = cmd + '\n\n'
 
     # and reset proc.stims to the new file list (which is 1-based)
