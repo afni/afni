@@ -1853,9 +1853,8 @@
       - added -copy_anat, -regress_make_1D_ideal and -regress_opts_3dD
   * modified make_stim_times.py: added required -nt option
 
-15 Dec 2006:
-  * modified SUMA_3dVol2surf: updated help for niml.dest and EPI -> surface
-
+15 Dec 2006: modified SUMA_3dVol2surf: help for niml.dest and EPI -> surface
 17 Dec 2006: modified afni_proc.py, db_mod.py:
       - added options -tshift_opts_ts, -volreg_opts_vr, -blur_opts_merge
+18 Dec 2006: small mods to afni_proc.py, db_mod.py, make_stim_times.py
 

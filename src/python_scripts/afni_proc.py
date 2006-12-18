@@ -849,6 +849,12 @@ class SubjProcSream:
             print '** not ready to update options from %s' % str(uopt.parlist)
             return 1
 
+        # rcr - if there is another place to update options from, do it
+        uopt = self.user_opts.find_opt('-opt_source')
+        if uopt != None:
+            print '** not ready to update options from %s' % str(uopt.parlist)
+            return 1
+
         # do some final error checking
         if len(self.dsets) == 0:
             print 'error: dsets have not been specified (consider -dsets)'
@@ -864,6 +870,7 @@ class SubjProcSream:
 
         errs = 0
         for block in self.blocks:
+            if not block.apply: continue        # skip such blocks
             cmd_str = BlockCmdFunc[block.label](self, block)
             if cmd_str == None:
                 print "** script creation failure for block '%s'" % block.label
@@ -1029,6 +1036,7 @@ class ProcessBlock:
     def __init__(self, label, proc):
         self.label = label      # label is block type
         self.valid = 0          # block is not yet valid
+        self.apply = True       # apply block to output script
         self.verb  = proc.verb  # verbose level
         if not label in BlockModFunc: return
 

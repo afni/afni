@@ -139,6 +139,7 @@ def proc_mats(uopts):
     
     if verb: print "-d nt = %d, nruns = %d, TR = %f" % (nt, nruns, tr)
 
+    newfile_index = 1   # index over output files
     for file in files:
         mat = read_1D_file(file, -1, verb=verb)
         if not mat:
@@ -150,7 +151,6 @@ def proc_mats(uopts):
             print 'warning: file %s has %d entries (expected %d)' % \
                   (file, len(mat[0]), nt*nruns)
 
-        newfile_index = 1
         for row in mat:
 
             newp = "%s.%02d" % (prefix,newfile_index)
