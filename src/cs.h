@@ -28,6 +28,7 @@ extern void qsort_doubleint ( int , double * , int * ) ;
 extern void qsort_intint    ( int , int *    , int * ) ;
 extern void qsort_floatfloat( int , float *  , float * ) ;  /* 30 Jan 2000 */
 extern void qsort_floatstuff( int , float *  , void ** ) ;  /* 06 Feb 2000 */
+extern void qsort_doublestuff( int, double * , void ** ) ;  /* 18 Dec 2006 */
 
 /***** Quicksort-ish median *****/
 
@@ -70,6 +71,13 @@ extern void powell_set_mfac( float mm , float aa ) ;
 extern int powell_newuoa_con( int ndim , double *x , double *xb, double *xt ,
                               int nrand, double rstart , double rend ,
                               int maxcall , double (*ufunc)(int,double *) ) ;
+
+extern int powell_newuoa_constrained(
+                               int ndim, double *x, double *cost ,
+                               double *xbot, double *xtop ,
+                               int nrand, int nkeep, int ntry ,
+                               double rstart , double rend ,
+                               int maxcall , double (*ufunc)(int,double *) ) ;
 
 extern char *approximate_number_string( double ) ;  /* 16 Jan 2004 */
 
