@@ -583,7 +583,7 @@ def db_cmd_regress(proc, block):
 
     opt = block.opts.find_opt('-regress_make_1D_ideal')
     if opt and opt.parlist:
-        first = polort * proc.runs
+        first = (polort+1) * proc.runs
         last = first + len(proc.stims) - 1
         cmd = cmd + "\n# create ideal file by adding ideal regressors\n"
         cmd = cmd + "3dTstat -sum -prefix %s Xmat.1D'[%d..%d]'\n\n" % \
