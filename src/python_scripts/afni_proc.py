@@ -65,51 +65,87 @@ g_help_string = """
     --------------------------------------------------
     EXAMPLES (options can be provided in any order):
 
-        1. Minimum use, provide datasets and stim files.  Note that a dataset
-           suffix (e.g. HEAD) must be used with wildcards, so datasets are not
-           applied twice.  In this case, a stim_file with many columns is
-           given, allowing the script to change it to stim_times files.
+        1. Minimum use, provide datasets and stim files (or stim_times files).
+           Note that a dataset suffix (e.g. HEAD) must be used with wildcards,
+           so that datasets are not applied twice.  In this case, a stim_file
+           with many columns is given, allowing the script to change it to
+           stim_times files.
 
                 afni_proc.py -dsets epiRT*.HEAD              \\
                              -regress_stim_files stims.1D
 
-        2. In addition, specify the output script name, the subject ID, to
-           remove the first 3 TRs of each run (before steady state), and to
-           align volumes to the end of the runs (anat acquired after EPI).
 
-                afni_proc.py -dsets epiRT*.HEAD              \\
+     ** The following examples can be run from the AFNI_data2 directory, and
+        are examples of how one might process the data for subject ED.
+
+        Because the stimuli are on a 1-second grid, while the EPI data is on a
+        2-second grid (TR = 2.0), we will run make_stim_times.py externally
+        (as opposed to giving stim_files to the afni_proc.py program) as
+        follows:
+
+            make_stim_times.py -prefix ED_times -tr 1.0 -nruns 10 -nt 272 \\
+                   -files misc_files/all_stims.1D
+
+        Then we will apply misc_files/ED_times.*.1D as the stim timing files.
+
+        2. This example shows basic usage, with the default GAM regressor.
+           We specify the output script name, the subject ID, removal of the
+           first 2 TRs of each run (before steady state), and volume alignment
+           to the end of the runs (the anat was acquired after the EPI).
+
+                afni_proc.py -dsets ED/ED_r??+orig.HEAD      \\
                              -script process_ED              \\
                              -subj_id ED                     \\
-                             -tcat_remove_first_trs 3        \\
-                             -volreg_align_to last           \\
-                             -regress_stim_files stims.1D
+                             -tcat_remove_first_trs 2        \\
+                             -volreg_align_to first          \\
+                             -regress_stim_times misc_files/ED_times.*.1D
 
-        3. Similar to #2, but add labels for 3 stim types, and prevent the
-           -fitts option for 3dDeconvolve.
+        3. Similar to #2, but add labels for the 4 stim types, and apply TENT
+           as the basis function to get 14 seconds of response, on a 2-second
+           TR grid.
 
-                afni_proc.py -dsets epiRT*.HEAD                         \\
-                             -script process_ED                         \\
-                             -subj_id ED                                \\
-                             -tcat_remove_first_trs 3                   \\
-                             -volreg_align_to last                      \\
-                             -regress_stim_files stims.1D               \\
-                             -regress_stim_labels houses faces donuts   \\
-                             -regress_no_fitts
+                afni_proc.py -dsets ED/ED_r??+orig.HEAD                    \\
+                             -script process_ED.8                          \\
+                             -subj_id ED.8                                 \\
+                             -tcat_remove_first_trs 2                      \\
+                             -volreg_align_to first                        \\
+                             -regress_stim_times misc_files/ED_times.*.1D  \\
+                             -regress_stim_labels ToolMovie HumanMovie     \\
+                                                  ToolPoint HumanPoint     \\
+                             -regress_basis 'TENT(0,14,8)'
 
-        4. Similar to #2, but skip tshift and mask steps (so the user must
-           specify the others), apply 4 second BLOCK response function, and
-           specify stim_times files, instead of stim_files.  Also, provide
-           options given that ED's input files are sitting in directory
-           subjects/ED.
+        4. Similar to #3, but find the response for the TENT functions on a
+           1-second grid, such as how the data is processed in the class
+           script, s1.analyze_ht05.  This is similar to using '-stim_nptr 2',
+           and requires the addition of 3dDeconvolve option '-TR_times 1.0' to  
+           see the -iresp output on a 1.0 second grid.
 
-                afni_proc.py -dsets subjects/ED/epiRT*.HEAD                  \\
-                         -blocks volreg blur scale regress                   \\
-                         -script process_ED                                  \\
-                         -subj_id ED                                         \\
-                         -tcat_remove_first_trs 3                            \\
-                         -volreg_align_to last                               \\
-                         -regress_stim_times subjects/ED/ED_stim_times*.1D   \\
-                         -regress_basis 'BLOCK(4,1)'
+                afni_proc.py -dsets ED/ED_r??+orig.HEAD                    \\
+                             -script process_ED.15                         \\
+                             -subj_id ED.15                                \\
+                             -tcat_remove_first_trs 2                      \\
+                             -volreg_align_to first                        \\
+                             -regress_stim_times misc_files/ED_times.*.1D  \\
+                             -regress_stim_labels ToolMovie HumanMovie     \\
+                                                  ToolPoint HumanPoint     \\
+                             -regress_basis 'TENT(0,14,15)'                \\
+                             -regress_opts_3dD -TR_times 1.0
+
+        5. Similar to #2, but skip tshift and mask steps (so the others must
+           be specified), and apply a 4 second BLOCK response function.  Also,
+           prevent output of a fit time series dataset, and copy the anatomical
+           dataset(s) to the results directory.
+
+                afni_proc.py -dsets ED/ED_r??+orig.HEAD                 \\
+                         -blocks volreg blur scale regress              \\
+                         -script process_ED.b4                          \\
+                         -subj_id ED.b4                                 \\
+                         -copy_anat ED/EDspgr                           \\
+                         -tcat_remove_first_trs 2                       \\
+                         -volreg_align_to first                         \\
+                         -regress_stim_times misc_files/ED_times.*.1D   \\
+                         -regress_basis 'BLOCK(4,1)'                    \\
+                         -regress_no_fitts
 
     --------------------------------------------------
     OPTIONS:
@@ -641,9 +677,10 @@ g_history = """
     0.7  Dec 14, 2006 : added options -copy_anat, -regress_make_1D_ideal,
                         and -regress_opts_3dD
     0.8  Dec 16, 2006 : added -tshift_opts_ts, -volreg_opts_vr, -blur_opts_merge
+    0.9  Dec 19, 2006 : help updates
 """
 
-g_version = "version 0.8, December 16, 2006"
+g_version = "version 0.9, December 19, 2006"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
