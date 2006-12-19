@@ -68,6 +68,7 @@ extern int powell_newuoa( int ndim , double *x ,
                           double rstart , double rend ,
                           int maxcall , double (*ufunc)(int,double *) ) ;
 extern void powell_set_mfac( float mm , float aa ) ;
+extern void powell_set_verbose( int ) ;
 extern int powell_newuoa_con( int ndim , double *x , double *xb, double *xt ,
                               int nrand, double rstart , double rend ,
                               int maxcall , double (*ufunc)(int,double *) ) ;
