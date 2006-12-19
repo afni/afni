@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 import sys, os, string
-import option_list
-from afni_util import *
+import option_list, afni_util
 
 g_help_string = """
 ===========================================================================
@@ -137,15 +136,15 @@ def proc_mats(uopts):
         print "** error: -nt must be int, have '%s'" % opt.parlist[0]
         return
     
-    if verb: print "-d nt = %d, nruns = %d, TR = %f" % (nt, nruns, tr)
+    if verb: print "-d nt = %d, nruns = %d, TR = %s" % (nt, nruns, str(tr))
 
     newfile_index = 1   # index over output files
     for file in files:
-        mat = read_1D_file(file, -1, verb=verb)
+        mat = afni_util.read_1D_file(file, -1, verb=verb)
         if not mat:
             print "read_1D_file failed for file: %s" % file
             return
-        mat = transpose(mat)
+        mat = afni_util.transpose(mat)
 
         if len(mat[0]) != nt * nruns:
             print 'warning: file %s has %d entries (expected %d)' % \
@@ -154,7 +153,7 @@ def proc_mats(uopts):
         for row in mat:
 
             newp = "%s.%02d" % (prefix,newfile_index)
-            newfile = change_path_basename(file, newp, ".1D")
+            newfile = afni_util.change_path_basename(file, newp, ".1D")
             if newfile == None: return
             fp = open(newfile, 'w')
 
@@ -170,7 +169,7 @@ def proc_mats(uopts):
                 for lcol in range(nt):
                     if row[rindex+lcol]:
                         nstim += 1
-                        fp.write('%f ' % (time+offset))
+                        fp.write('%s ' % str(time+offset))
                     time += tr
                 if need_ast and nstim == 1: # first time of 1 stim, add '*'
                     fp.write('*')

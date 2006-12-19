@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import sys, os, string
-from option_list import *
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
 
@@ -13,6 +12,24 @@ def change_path_basename(orig, prefix, suffix):
     (head, tail) = os.path.split(orig)
     if head == '': return "%s%s" % (prefix, suffix)
     return "%s/%s%s" % (head, prefix, suffix)
+
+# given a list of text elements, return a new list where any
+# existing quotes are escaped, and then if there are special
+# characters, put the whole string in single quotes
+def quotize_list(list):
+    if not list or len(list) < 1: return list
+
+    # okay, we haven't yet escaped any existing quotes...
+
+    # qlist = "[({* "
+    newlist = []
+    for string in list:
+        if '[' in string or '(' in string or '{' in string or ' ' in string:
+            newlist.append("'%s'" % string)
+        else:
+            newlist.append(string)
+
+    return newlist
 
 # ----------------------------------------------------------------------
 # begin matrix functions
