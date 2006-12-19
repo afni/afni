@@ -2,7 +2,11 @@
 
 double efun(double x)
 {
+#if 0
   return x*sqrt(1.0+x*x) ;
+#else
+  return x + 0.19*sin(8.0*x) ;
+#endif
 }
 
 double cfun( int n , double *x )
@@ -28,7 +32,8 @@ printf("%f)=%f\n",x[n-1],f) ;
 int main( int argc , char *argv[] )
 {
    int n , i , aa=1 , quiet=0 ;
-   double *x , cpu1,cpu2 ;
+   double *x , cpu1,cpu2 , cost ;
+   double *xbot, *xtop ;
 
    if( argc < 2 ){ printf("test_powell [-q] [-f m a] n1 n2 ...\n"); exit(0); }
 
@@ -44,22 +49,29 @@ int main( int argc , char *argv[] )
 
      ERROR_exit("Unknown option %s",argv[aa]) ;
    }
-   
+
+   if( !quiet) powell_set_verbose( 1 ) ;
+
    for( ; aa < argc ; aa++ ){
-     n = (int)strtod(argv[aa],NULL) ; if( n < 1 ) continue ;
-     x = (double *)malloc(sizeof(double)*n) ;
-     for( i=0 ; i < n ; i++ ) x[i] = 0.327*cos(i+.372) ;
+     n    = (int)strtod(argv[aa],NULL) ; if( n < 1 ) continue ;
+     x    = (double *)malloc(sizeof(double)*n) ;
+     xbot = (double *)malloc(sizeof(double)*n) ;
+     xtop = (double *)malloc(sizeof(double)*n) ;
+     for( i=0 ; i < n ; i++ ){
+       x[i] = 0.327*cos(i+.372) ; xbot[i] = -1.0 ; xtop[i] = 1.0 ;
+     }
      cpu1 = COX_cpu_time() ;
-     i = powell_newuoa( n , x , 0.3 , 0.001 , 99999 , cfun ) ;
+     i = powell_newuoa_constrained(
+           n , x , &cost , xbot,xtop , 777*n+1 , 151*n+1 , 5*n+1 , 0.22 , 0.0001 , 66666 , cfun ) ;
      cpu2 = COX_cpu_time()-cpu1 ;
      if( quiet ){
        printf("%d %f\n",i,cpu2) ; fflush(stdout) ;
      } else {
        printf("powell_newuoa: i=%d x=",i) ;
        for( i=0 ; i < n ; i++ ) printf("%f ",x[i]) ;
-       printf("  f=%f  cpu=%f\n",cfun(n,x),cpu2) ;
+       printf("  f=%f  cpu=%f\n",cost,cpu2) ;
      }
-     free(x) ;
+     free(x); free(xbot); free(xtop);
    }
    exit(0) ;
 }
