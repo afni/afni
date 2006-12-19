@@ -1857,5 +1857,8 @@
 17 Dec 2006: modified afni_proc.py, db_mod.py:
       - added options -tshift_opts_ts, -volreg_opts_vr, -blur_opts_merge
 18 Dec 2006: small mods to afni_proc.py, db_mod.py, make_stim_times.py
-19 Dec 2006: modified afni_proc.py: help update
+19 Dec 2006:
+  * modified afni_proc.py, db_mod.py: help update, use quotize_list
+  * modified afni_util.py: added quotist_list
+  * modified make_stim_times.py: use str(%f) for printing
 

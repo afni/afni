@@ -1,4 +1,4 @@
-import os, glob, afni_util
+import os, afni_util
 
 # modify the tcat block options according to the user options
 def db_mod_tcat(block, proc, user_opts):
@@ -567,7 +567,8 @@ def db_cmd_regress(proc, block):
     # see if the user has provided other options (like GLTs)
     opt = block.opts.find_opt('-regress_opts_3dD')
     if not opt or not opt.parlist: other_opts = ''
-    else: other_opts = '    %s  \\\n' % ' '.join(opt.parlist)
+    else: other_opts = '    %s  \\\n' %         \
+                       ' '.join(afni_util.quotize_list(opt.parlist))
 
     # add misc options
     cmd = cmd + iresp
