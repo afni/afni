@@ -46,8 +46,8 @@ short * tmp_ar = NULL ;
 short * nowim = NULL ;
 int     nowsize ;
 
-#define SAR(k) (allim[k]->im.short_data)  /* get pointer to data for image k */
-#define T_SAR(k) (t_allim[k]->im.short_data) /* pointer to temp data of im k */
+#define SAR(k)   MRI_SHORT_PTR(allim[k])   /* get pointer to data for image k */
+#define T_SAR(k) MRI_SHORT_PTR(t_allim[k]) /* pointer to temp data of im k */
 #define SIZ(k) (allim[k]->nx * allim[k]->ny)
 #define DIM(k) (allim[k]->nx)
 
@@ -3327,7 +3327,7 @@ STATUS("ENTER Load_index_Arr") ;
 STATUS("ENTER Resample") ;
 
    ndim = im->nx ;
-   all  = im->im.short_data ;
+   all  = MRI_SHORT_PTR(im) ;
 
    if(ndim == EPX4 ) {                    /* 32x32 pixels format */
       s  = st_8;

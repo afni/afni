@@ -54,48 +54,48 @@ ENTRY("mri_to_byte") ;
    switch( oldim->kind ){
 
       case MRI_byte:
-#ifdef DONT_USE_MEMCPY
-         for( ii=0 ; ii < npix ; ii++ )
-            ar[ii] = oldim->im.byte_data[ii] ;
-#else
-         (void) memcpy( ar , oldim->im.byte_data , sizeof(byte)*npix ) ;
-#endif
-         break ;
+        (void) memcpy( ar , MRI_BYTE_PTR(oldim) , sizeof(byte)*npix ) ;
+      break ;
 
       case MRI_rgb:{                           /* 13 Nov 2002 */
-         byte *rgb = oldim->im.rgb_data ;
-         float rfac=0.299*scale , gfac=0.587*scale , bfac=0.114*scale , val ;
-         for( ii=0 ; ii < npix ; ii++ ){
-           val = rfac * rgb[3*ii] + gfac * rgb[3*ii+1] + bfac * rgb[3*ii+2] ;
-           ar[ii] = BYTEIZE(val) ;
-         }
+        byte *rgb = MRI_RGB_PTR(oldim) ;
+        float rfac=0.299*scale , gfac=0.587*scale , bfac=0.114*scale , val ;
+        for( ii=0 ; ii < npix ; ii++ ){
+          val = rfac * rgb[3*ii] + gfac * rgb[3*ii+1] + bfac * rgb[3*ii+2] ;
+          ar[ii] = BYTEIZE(val) ;
+        }
       }
       break ;
 
-      case MRI_short:
-         for( ii=0 ; ii < npix ; ii++ )
-            ar[ii] = scale * (oldim->im.short_data[ii]-shbot) ;
-         break ;
+      case MRI_short:{
+         short *qar = MRI_SHORT_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) ar[ii] = scale * (qar[ii]-shbot) ;
+      }
+      break ;
 
-      case MRI_int:
-         for( ii=0 ; ii < npix ; ii++ )
-            ar[ii] = scale * (oldim->im.int_data[ii]-inbot) ;
-         break ;
+      case MRI_int:{
+         int *qar = MRI_INT_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) ar[ii] = scale * (qar[ii]-inbot) ;
+      }
+      break ;
 
-      case MRI_float:
-         for( ii=0 ; ii < npix ; ii++ )
-            ar[ii] = scale * (oldim->im.float_data[ii]-flbot) ;
-         break ;
+      case MRI_float:{
+         float *qar = MRI_FLOAT_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) ar[ii] = scale * (qar[ii]-flbot) ;
+      }
+      break ;
 
-      case MRI_double:
-         for( ii=0 ; ii < npix ; ii++ )
-            ar[ii] = scale * (oldim->im.double_data[ii]-dbbot) ;
-         break ;
+      case MRI_double:{
+         double *qar = MRI_DOUBLE_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) ar[ii] = scale * (qar[ii]-dbbot) ;
+      }
+      break ;
 
-      case MRI_complex:
-         for( ii=0 ; ii < npix ; ii++ )
-            ar[ii] = scale * CABS(oldim->im.complex_data[ii]) ;
-         break ;
+      case MRI_complex:{
+         complex *qar = MRI_COMPLEX_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) ar[ii] = scale * CABS(qar[ii]) ;
+      }
+      break ;
 
       default:
          fprintf( stderr , "mri_to_byte:  unrecognized image kind\n" ) ;
@@ -142,43 +142,49 @@ ENTRY("mri_to_byte_scl") ;
 
    switch( oldim->kind ){
 
-      case MRI_byte:
+      case MRI_byte:{
+         byte *qar = MRI_BYTE_PTR(oldim) ;
          for( ii=0 ; ii < npix ; ii++ ){
-            val = scale * (oldim->im.byte_data[ii]-flbot) ;
-            ar[ii] = BYTEIZE(val) ;
+            val = scale * (qar[ii]-flbot) ; ar[ii] = BYTEIZE(val) ;
          }
-         break ;
+      }
+      break ;
 
-      case MRI_short:
+      case MRI_short:{
+         short *qar = MRI_SHORT_PTR(oldim) ;
          for( ii=0 ; ii < npix ; ii++ ){
-            val = scale * (oldim->im.short_data[ii]-flbot) ;
-            ar[ii] = BYTEIZE(val) ;
+            val = scale * (qar[ii]-flbot) ; ar[ii] = BYTEIZE(val) ;
          }
-         break ;
+      }
+      break ;
 
-      case MRI_int:
+      case MRI_int:{
+         int *qar = MRI_INT_PTR(oldim) ;
          for( ii=0 ; ii < npix ; ii++ ){
-            val = scale * (oldim->im.int_data[ii]-flbot) ;
-            ar[ii] = BYTEIZE(val) ;
+            val = scale * (qar[ii]-flbot) ; ar[ii] = BYTEIZE(val) ;
          }
-         break ;
+      }
+      break ;
 
-      case MRI_float:
+      case MRI_float:{
+         float *qar = MRI_FLOAT_PTR(oldim) ;
          for( ii=0 ; ii < npix ; ii++ ){
-            val = scale * (oldim->im.float_data[ii]-flbot) ;
-            ar[ii] = BYTEIZE(val) ;
+            val = scale * (qar[ii]-flbot) ; ar[ii] = BYTEIZE(val) ;
          }
-         break ;
+      }
+      break ;
 
-      case MRI_double:
-         for( ii=0 ; ii < npix ; ii++ )
-            ar[ii] = dscale * (oldim->im.double_data[ii]-dbbot) ;
-         break ;
+      case MRI_double:{
+         double *qar = MRI_DOUBLE_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) ar[ii] = dscale * (qar[ii]-dbbot) ;
+      }
+      break ;
 
-      case MRI_complex:
-         for( ii=0 ; ii < npix ; ii++ )
-            ar[ii] = scale * CABS(oldim->im.complex_data[ii]) ;
-         break ;
+      case MRI_complex:{
+         complex *qar = MRI_COMPLEX_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) ar[ii] = scale * CABS(qar[ii]) ;
+      }
+      break ;
 
       default:
          fprintf( stderr , "mri_to_byte_scl:  unrecognized image kind\n" ) ;

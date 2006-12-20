@@ -599,8 +599,8 @@ void write_images( line_opt *opt ,    char *fname_imcor , MRI_IMAGE *imcor ,
    int vox ,
        numvox = imcor->nx * imcor->ny ;
 
-   float *pcorr = imcor->im.float_data ,
-         *alpha = imalp->im.float_data  ;
+   float *pcorr = MRI_FLOAT_PTR(imcor) ,
+         *alpha = MRI_FLOAT_PTR(imalp)  ;
 
    MRI_IMAGE *shim ;  /* image of shorts to actually write */
    short     *shar ;  /* array inside shim */

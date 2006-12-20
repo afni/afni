@@ -58,7 +58,7 @@ int main( int argc , char *argv[] )
    imb = mri_to_byte( im ) ; mri_free( im ) ;
 
    printf( "P5 %d %d 255\n" , imb->nx , imb->ny ) ;
-   fwrite( imb->im.byte_data , imb->pixel_size , imb->nx * imb->ny , stdout ) ;
+   fwrite( MRI_BYTE_PTR(imb) , imb->pixel_size , imb->nx * imb->ny , stdout ) ;
 
    exit(0) ;
 }

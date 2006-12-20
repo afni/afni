@@ -75,7 +75,7 @@ void mri_unpurge( MRI_IMAGE *im )
 ENTRY("mri_unpurge") ;
 
    if( im == NULL || !MRI_IS_PURGED(im) ) EXRETURN ;
-   iar = mri_data_pointer(im) ; if( iar != NULL ) EXRETURN ;
+   iar = mri_data_pointer_unvarnished(im) ; if( iar != NULL ) EXRETURN ;
 
    fp = fopen( im->fname , "rb" ) ;
    if( fp == NULL ){
@@ -89,6 +89,7 @@ ENTRY("mri_unpurge") ;
      ERROR_message("mri_unpurge: Can't malloc() %lld bytes",nb) ;
      fclose(fp) ; remove(im->fname) ; im->fondisk = 0 ; EXRETURN ;
    }
+   mri_fix_data_pointer( iar , im ) ;
 
    npix = fread( iar , (size_t)im->pixel_size , (size_t)im->nvox , fp ) ;
    fclose(fp) ; remove(im->fname) ; im->fondisk = 0 ;
@@ -110,8 +111,5 @@ ENTRY("mri_unpurge") ;
 
 void mri_killpurge( MRI_IMAGE *im )
 {
-ENTRY("mri_killpurge") ;
-   if( im == NULL || !MRI_IS_PURGED(im) ) EXRETURN ;
-   remove(im->fname) ; im->fondisk = 0 ;
-   EXRETURN ;
+   if( im != NULL && MRI_IS_PURGED(im) ){ remove(im->fname); im->fondisk = 0; }
 }

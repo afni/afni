@@ -38,6 +38,25 @@ void *mri_data_pointer( MRI_IMAGE *im )
 }
 
 /*-------------------------------------------------------------------------*/
+
+void *mri_data_pointer_unvarnished( MRI_IMAGE *im )
+{
+   void *data ;
+   switch( im->kind ){
+      case MRI_byte:   data = im->im.byte_data   ; break ;
+      case MRI_short:  data = im->im.short_data  ; break ;
+      case MRI_int:    data = im->im.int_data    ; break ;
+      case MRI_float:  data = im->im.float_data  ; break ;
+      case MRI_double: data = im->im.double_data ; break ;
+      case MRI_complex:data = im->im.complex_data; break ;
+      case MRI_rgb:    data = im->im.rgb_data    ; break ;
+      case MRI_rgba:   data = im->im.rgba_data   ; break ;
+      default:         data = NULL               ; break ;
+   }
+   return data ;
+}
+
+/*-------------------------------------------------------------------------*/
 /*! Modify the data pointer in an MRI_IMAGE struct.
 ---------------------------------------------------------------------------*/
 
