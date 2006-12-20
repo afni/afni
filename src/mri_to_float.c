@@ -14,6 +14,7 @@ MRI_IMAGE *mri_to_float( MRI_IMAGE *oldim )
 {
    MRI_IMAGE *newim ;
    register int ii , npix ;
+   register float *far ;
 
 ENTRY("mri_to_float") ;
 
@@ -21,42 +22,48 @@ ENTRY("mri_to_float") ;
 
    newim = mri_new_conforming( oldim , MRI_float ) ;
    npix  = oldim->nvox ;
+   far   = MRI_FLOAT_PTR(newim) ;
 
    switch( oldim->kind ){
 
-      case MRI_byte:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = oldim->im.byte_data[ii] ;
+      case MRI_byte:{
+         byte *qar = MRI_BYTE_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = qar[ii] ;
+      }
       break ;
 
-      case MRI_short:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = oldim->im.short_data[ii] ;
+      case MRI_short:{
+         short *qar = MRI_SHORT_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = qar[ii] ;
+      }
       break ;
 
-      case MRI_int:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = oldim->im.int_data[ii] ;
+      case MRI_int:{
+         int *qar = MRI_INT_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = qar[ii] ;
+      }
       break ;
 
-      case MRI_float:
-         (void) memcpy( newim->im.float_data ,
-                        oldim->im.float_data , sizeof(float) * npix ) ;
+      case MRI_float:{
+         float *qar = MRI_FLOAT_PTR(oldim) ;
+         (void) memcpy( far , qar , sizeof(float) * npix ) ;
+      }
       break ;
 
-      case MRI_double:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = oldim->im.double_data[ii] ;
+      case MRI_double:{
+         double *qar = MRI_DOUBLE_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = qar[ii] ;
+      }
       break ;
 
-      case MRI_complex:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = CABS(oldim->im.complex_data[ii]) ;
+      case MRI_complex:{
+         complex *qar = MRI_COMPLEX_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = CABS(qar[ii]) ;
+      }
       break ;
 
       case MRI_rgb:{                          /* 11 Feb 1999 */
-         byte  * rgb = MRI_RGB_PTR(oldim) ;
-         float * far = MRI_FLOAT_PTR(newim) ;
+         byte *rgb = MRI_RGB_PTR(oldim) ;
          for( ii=0 ; ii < npix ; ii++ )       /* scale to brightness */
             far[ii] =  0.299 * rgb[3*ii]      /* between 0 and 255     */
                      + 0.587 * rgb[3*ii+1]
@@ -65,8 +72,7 @@ ENTRY("mri_to_float") ;
       break ;
 
       case MRI_rgba:{                         /* 15 Apr 2002 */
-         byte  * rgb = (byte *) MRI_RGBA_PTR(oldim) ;
-         float * far = MRI_FLOAT_PTR(newim) ;
+         byte *rgb = (byte *)MRI_RGBA_PTR(oldim) ;
          for( ii=0 ; ii < npix ; ii++ )       /* scale to brightness */
             far[ii] =  0.299 * rgb[4*ii]      /* between 0 and 255     */
                      + 0.587 * rgb[4*ii+1]
@@ -90,6 +96,7 @@ MRI_IMAGE *mri_scale_to_float( float scl , MRI_IMAGE *oldim )
    MRI_IMAGE *newim ;
    register int ii , npix ;
    register float fac ;
+   register float *far ;
 
 ENTRY("mri_scale_to_float") ;
 
@@ -100,42 +107,48 @@ ENTRY("mri_scale_to_float") ;
 
    newim = mri_new_conforming( oldim , MRI_float ) ;
    npix  = oldim->nvox ;
+   far   = MRI_FLOAT_PTR(newim) ;
 
    switch( oldim->kind ){
 
-      case MRI_byte:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = fac * oldim->im.byte_data[ii] ;
-         break ;
+      case MRI_byte:{
+         byte *qar = MRI_BYTE_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = fac * qar[ii] ;
+      }
+      break ;
 
-      case MRI_short:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = fac * oldim->im.short_data[ii] ;
-         break ;
+      case MRI_short:{
+         short *qar = MRI_SHORT_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = fac * qar[ii] ;
+      }
+      break ;
 
-      case MRI_int:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = fac * oldim->im.int_data[ii] ;
-         break ;
+      case MRI_int:{
+         int *qar = MRI_INT_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = fac * qar[ii] ;
+      }
+      break ;
 
-      case MRI_float:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = fac * oldim->im.float_data[ii] ;
-         break ;
+      case MRI_float:{
+         float *qar = MRI_FLOAT_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = fac * qar[ii] ;
+      }
+      break ;
 
-      case MRI_double:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = fac * oldim->im.double_data[ii] ;
-         break ;
+      case MRI_double:{
+         double *qar = MRI_DOUBLE_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = fac * qar[ii] ;
+      }
+      break ;
 
-      case MRI_complex:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = fac * CABS(oldim->im.complex_data[ii]) ;
-         break ;
+      case MRI_complex:{
+         complex *qar = MRI_COMPLEX_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = fac * CABS(qar[ii]) ;
+      }
+      break ;
 
       case MRI_rgb:{
-         byte  * rgb = MRI_RGB_PTR(oldim) ;
-         float * far = MRI_FLOAT_PTR(newim) ;
+         byte *rgb = MRI_RGB_PTR(oldim) ;
          for( ii=0 ; ii < npix ; ii++ )
             far[ii] =  fac*(  0.299 * rgb[3*ii]
                             + 0.587 * rgb[3*ii+1]
@@ -144,8 +157,7 @@ ENTRY("mri_scale_to_float") ;
       break ;
 
       case MRI_rgba:{
-         byte  * rgb = (byte *) MRI_RGBA_PTR(oldim) ;
-         float * far = MRI_FLOAT_PTR(newim) ;
+         byte *rgb = (byte *) MRI_RGBA_PTR(oldim) ;
          for( ii=0 ; ii < npix ; ii++ )
             far[ii] = fac *(  0.299 * rgb[4*ii]
                             + 0.587 * rgb[4*ii+1]
@@ -162,7 +174,6 @@ ENTRY("mri_scale_to_float") ;
    RETURN( newim );
 }
 
-
 /*---------------------------------------------------------------------------*/
 /* 13 Dec 1998 */
 
@@ -172,43 +183,51 @@ MRI_IMAGE * mri_mult_to_float( float * fac , MRI_IMAGE * oldim )
 {
    MRI_IMAGE *newim ;
    register int ii , npix ;
+   register float *far ;
 
 ENTRY("mri_mult_to_float") ;
 
    newim = mri_new_conforming( oldim , MRI_float ) ;
    npix  = oldim->nvox ;
+   far   = MRI_FLOAT_PTR(newim) ;
 
    switch( oldim->kind ){
 
-      case MRI_byte:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = FAC(ii) * oldim->im.byte_data[ii] ;
-         break ;
+      case MRI_byte:{
+         byte *qar = MRI_BYTE_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = FAC(ii) * qar[ii] ;
+      }
+      break ;
 
-      case MRI_short:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = FAC(ii) * oldim->im.short_data[ii] ;
-         break ;
+      case MRI_short:{
+         short *qar = MRI_SHORT_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = FAC(ii) * qar[ii] ;
+      }
+      break ;
 
-      case MRI_int:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = FAC(ii) * oldim->im.int_data[ii] ;
-         break ;
+      case MRI_int:{
+         int *qar = MRI_INT_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = FAC(ii) * qar[ii] ;
+      }
+      break ;
 
-      case MRI_float:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = FAC(ii) * oldim->im.float_data[ii] ;
-         break ;
+      case MRI_float:{
+         float *qar = MRI_FLOAT_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = FAC(ii) * qar[ii] ;
+      }
+      break ;
 
-      case MRI_double:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = FAC(ii) * oldim->im.double_data[ii] ;
-         break ;
+      case MRI_double:{
+         double *qar = MRI_DOUBLE_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = FAC(ii) * qar[ii] ;
+      }
+      break ;
 
-      case MRI_complex:
-         for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = FAC(ii) * CABS(oldim->im.complex_data[ii]) ;
-         break ;
+      case MRI_complex:{
+         complex *qar = MRI_COMPLEX_PTR(oldim) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = FAC(ii) * CABS(qar[ii]) ;
+      }
+      break ;
 
       default:
          fprintf( stderr , "mri_to_float:  unrecognized image kind\n" ) ;

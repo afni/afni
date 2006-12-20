@@ -5995,3 +5995,11 @@
 
 19 Dec 2006
  * New constrained optimizer in powell_int.c.
+
+20 Dec 2006
+ * mri_purge.c for purging/unpurging MRI_IMAGEs to disk files.
+ * modify thd_cliplevel.c to do float->int conversion inline, rather
+     than through a temp image (saves on memory).
+ * modify mrilib.h to change MRI_BYTE_PTR() (etc.) macro to use
+     mri_data_pointer() function, which will invoke mri_unpurge()
+     if necessary.

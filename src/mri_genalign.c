@@ -816,10 +816,12 @@ ENTRY("mri_genalign_scalar_setup") ;
    if( !need_smooth_base ){
      if( stup->bsims != NULL ){ mri_free(stup->bsims); stup->bsims = NULL; }
      stup->old_sr_base = -1.0f ;
+     mri_unpurge(stup->bsim) ; /* 20 Dec 2006 */
    }
    if( !need_smooth_targ ){
      if( stup->ajims != NULL ){ mri_free(stup->ajims); stup->ajims = NULL; }
      stup->old_sr_targ = -1.0f ;
+     mri_unpurge(stup->ajim) ; /* 20 Dec 2006 */
    }
    if( do_smooth_base ){
      if( stup->bsims != NULL ) mri_free(stup->bsims);
@@ -827,6 +829,7 @@ ENTRY("mri_genalign_scalar_setup") ;
        ININFO_message("- Smoothing base; radius=%.2f",stup->smooth_radius_base);
      stup->bsims = GA_smooth( stup->bsim , stup->smooth_code ,
                                            stup->smooth_radius_base ) ;
+     if( stup->usetemp ) mri_purge( stup->bsim ) ;  /* 20 Dec 2006 */
    }
    if( do_smooth_targ ){
      if( stup->ajims != NULL ) mri_free(stup->ajims);
@@ -834,6 +837,7 @@ ENTRY("mri_genalign_scalar_setup") ;
        ININFO_message("- Smoothing source; radius=%.2f",stup->smooth_radius_targ);
      stup->ajims = GA_smooth( stup->ajim , stup->smooth_code ,
                                            stup->smooth_radius_targ ) ;
+     if( stup->usetemp ) mri_purge( stup->ajim ) ;  /* 20 Dec 2006 */
    }
 
    /* get min and max values in base and target images */

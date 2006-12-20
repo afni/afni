@@ -13,12 +13,14 @@ MRI_IMAGE *mri_to_short( double scl , MRI_IMAGE *oldim )
    MRI_IMAGE *newim ;
    register int ii , npix ;
    register double scale , val ;
+   register short *sar ;
 
 ENTRY("mri_to_short") ;
 
    if( oldim == NULL ) RETURN( NULL );  /* 09 Feb 1999 */
 
    newim = mri_new_conforming( oldim , MRI_short ) ;
+   sar   = MRI_SHORT_PTR(newim) ;
    npix  = oldim->nvox ;
 
    if( scl == 0.0 ){
@@ -45,73 +47,80 @@ ENTRY("mri_to_short") ;
    switch( oldim->kind ){
 
       case MRI_rgb:{
-         byte *rgb = oldim->im.rgb_data ;
+         byte *rgb = MRI_RGB_PTR(oldim) ;
          float rfac=0.299*scale , gfac=0.587*scale , bfac=0.114*scale ;
 
          for( ii=0 ; ii < npix ; ii++ )
-            newim->im.short_data[ii] = (short)(  rfac * rgb[3*ii]
-                                               + gfac * rgb[3*ii+1]
-                                               + bfac * rgb[3*ii+2] ) ;
+            sar[ii] = (short)(  rfac * rgb[3*ii]
+                              + gfac * rgb[3*ii+1]
+                              + bfac * rgb[3*ii+2] ) ;
       }
       break ;
 
-      case MRI_byte:
+      case MRI_byte:{
+         byte *qar = MRI_BYTE_PTR(oldim) ;
          if( scale != 1.0 )
             for( ii=0 ; ii < npix ; ii++ ){
-               val = scale * oldim->im.byte_data[ii] ;
-               newim->im.short_data[ii] = SHORTIZE(val) ;
+               val = scale * qar[ii] ;
+               sar[ii] = SHORTIZE(val) ;
             }
          else
             for( ii=0 ; ii < npix ; ii++ )
-               newim->im.short_data[ii] = (short) oldim->im.byte_data[ii] ;
+               sar[ii] = (short) qar[ii] ;
          break ;
+      }
 
-      case MRI_short:
-#ifndef DONT_USE_MEMCPY       /* this is a double negative! */
-         if( scale != 1.0 )
-#endif
-            for( ii=0 ; ii < npix ; ii++ ){
-               val = scale * oldim->im.short_data[ii] ;
-               newim->im.short_data[ii] = SHORTIZE(val) ;
-            }
-#ifndef DONT_USE_MEMCPY
-         else
-            (void) memcpy( newim->im.short_data ,
-                           oldim->im.short_data , sizeof(short)*npix ) ;
-#endif
-         break ;
-
-      case MRI_int:
+      case MRI_short:{
+         short *qar = MRI_SHORT_PTR(oldim) ;
          if( scale != 1.0 )
             for( ii=0 ; ii < npix ; ii++ ){
-               val = scale * oldim->im.int_data[ii] ;
-               newim->im.short_data[ii] = SHORTIZE(val) ;
+               val = scale * qar[ii] ;
+               sar[ii] = SHORTIZE(val) ;
             }
          else
-            for( ii=0 ; ii < npix ; ii++ )
-               newim->im.short_data[ii] = SHORTIZE(oldim->im.int_data[ii]) ;
+            (void) memcpy( sar , qar , sizeof(short)*npix ) ;
          break ;
+      }
 
-      case MRI_float:
+      case MRI_int:{
+         int *qar = MRI_INT_PTR(oldim) ;
          if( scale != 1.0 )
             for( ii=0 ; ii < npix ; ii++ ){
-               val = scale * oldim->im.float_data[ii] ;
-               newim->im.short_data[ii] = SHORTIZE(val) ;
+               val = scale * qar[ii] ;
+               sar[ii] = SHORTIZE(val) ;
             }
          else
             for( ii=0 ; ii < npix ; ii++ )
-               newim->im.short_data[ii] = SHORTIZE(oldim->im.float_data[ii]) ;
+               sar[ii] = SHORTIZE(qar[ii]) ;
          break ;
+      }
 
-      case MRI_double:
+      case MRI_float:{
+         float *qar = MRI_FLOAT_PTR(oldim) ;
+         if( scale != 1.0 )
+            for( ii=0 ; ii < npix ; ii++ ){
+               val = scale * qar[ii] ;
+               sar[ii] = SHORTIZE(val) ;
+            }
+         else
+            for( ii=0 ; ii < npix ; ii++ )
+               sar[ii] = SHORTIZE(qar[ii]) ;
+         break ;
+      }
+
+      case MRI_double:{
+         double *qar = MRI_DOUBLE_PTR(oldim) ;
          for( ii=0 ; ii < npix ; ii++ )
-            newim->im.short_data[ii] = scale * oldim->im.double_data[ii] ;
+            sar[ii] = scale * qar[ii] ;
          break ;
+      }
 
-      case MRI_complex:
+      case MRI_complex:{
+        complex *qar = MRI_COMPLEX_PTR(oldim) ;
         for( ii=0 ; ii < npix ; ii++ )
-           newim->im.short_data[ii] = scale * CABS(oldim->im.complex_data[ii]) ;
+           sar[ii] = scale * CABS(qar[ii]) ;
         break ;
+     }
 
       default:
          fprintf( stderr , "mri_to_short:  unrecognized image kind\n" ) ;
@@ -135,7 +144,7 @@ MRI_IMAGE *mri_to_short_scl( double scl , double lev , MRI_IMAGE *oldim )
 /* scale, lev->0, and clip */
 
 MRI_IMAGE *mri_to_short_sclip( double scl , double lev ,
-			       int bot , int top , MRI_IMAGE *oldim )
+                               int bot , int top , MRI_IMAGE *oldim )
 {
    MRI_IMAGE *newim ;
    register int ii , npix ;
@@ -170,7 +179,7 @@ ENTRY("mri_to_short_sclip") ;
    switch( oldim->kind ){
 
       case MRI_rgb:{
-	 register byte * rgb = mri_data_pointer(oldim) ;
+         register byte * rgb = mri_data_pointer(oldim) ;
          float rfac=0.299*scale , gfac=0.587*scale , bfac=0.114*scale ;
          for( ii=0 ; ii < npix ; ii++ )
             ar[ii] = (short) (  rfac * rgb[3*ii]
@@ -180,7 +189,7 @@ ENTRY("mri_to_short_sclip") ;
       break ;
 
       case MRI_byte:{
-	 register byte * oar = mri_data_pointer(oldim) ;
+         register byte * oar = mri_data_pointer(oldim) ;
          for( ii=0 ; ii < npix ; ii++ ){
             val = scale * (oar[ii]-flbot) ;
             ar[ii] = BYTEIZE(val) ;
@@ -189,7 +198,7 @@ ENTRY("mri_to_short_sclip") ;
       }
 
       case MRI_short:{
-	 register short * oar = mri_data_pointer(oldim) ;
+         register short * oar = mri_data_pointer(oldim) ;
          for( ii=0 ; ii < npix ; ii++ ){
             val = scale * (oar[ii]-flbot) ;
             ar[ii] = SHORTIZE(val) ;
@@ -198,28 +207,28 @@ ENTRY("mri_to_short_sclip") ;
       }
 
       case MRI_int:{
-	 register int * oar = mri_data_pointer(oldim) ;
+         register int * oar = mri_data_pointer(oldim) ;
          for( ii=0 ; ii < npix ; ii++ )
             ar[ii] = scale * (oar[ii]-flbot) ;
          break ;
       }
 
       case MRI_float:{
-	 register float * oar = mri_data_pointer(oldim) ;
+         register float * oar = mri_data_pointer(oldim) ;
          for( ii=0 ; ii < npix ; ii++ )
             ar[ii] = scale * (oar[ii]-flbot) ;
          break ;
       }
 
       case MRI_double:{
-	 register double * oar = mri_data_pointer(oldim) ;
+         register double * oar = mri_data_pointer(oldim) ;
          for( ii=0 ; ii < npix ; ii++ )
             ar[ii] = dscale * (oar[ii]-dbbot) ;
          break ;
       }
 
       case MRI_complex:{
-	 register complex * oar = mri_data_pointer(oldim) ;
+         register complex * oar = mri_data_pointer(oldim) ;
          for( ii=0 ; ii < npix ; ii++ )
             ar[ii] = scale * CABS(oar[ii]) ;
          break ;
@@ -235,8 +244,8 @@ ENTRY("mri_to_short_sclip") ;
    if( bot < top ){
       register short bb = bot , tt = top ;
       for( ii=0 ; ii < npix ; ii++ ){
-	      if( ar[ii] < bb ) ar[ii] = bb ;
-	 else if( ar[ii] > tt ) ar[ii] = tt ;
+             if( ar[ii] < bb ) ar[ii] = bb ;
+       else if( ar[ii] > tt ) ar[ii] = tt ;
       }
    }
 

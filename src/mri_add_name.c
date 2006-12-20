@@ -30,7 +30,6 @@ ENTRY("mri_add_name") ;
    EXRETURN ;
 }
 
-#ifdef USE_MRI_DELAY
 void mri_add_fname_delay( char *str , MRI_IMAGE *im )
 {
    int ll ;
@@ -49,4 +48,3 @@ ENTRY("mri_add_fname_delay") ;
    strcpy( im->fname , str ) ;
    EXRETURN ;
 }
-#endif

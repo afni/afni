@@ -86,6 +86,7 @@ extern "C" {
 
 void DBG_traceback(void)
 { int tt ;
+  MCHECK ;
   if( last_status[0] != '\0' )
     fprintf(stderr,"Last STATUS: %s\n",last_status) ;
   for( tt=DBG_num-1; tt >= 1 ; tt-- )
