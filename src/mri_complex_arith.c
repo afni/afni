@@ -17,6 +17,7 @@ MRI_IMAGE *mri_multiply_complex( int mode , MRI_IMAGE *f , MRI_IMAGE* g )
 {
    register int ii , npix ;
    MRI_IMAGE *newImg ;
+   complex *nar , *gar , *far ;
 
    if( f->nvox != g->nvox ){
       fprintf( stderr , "mri_multiply_complex shapes imcompatible!\n" ) ;
@@ -31,19 +32,18 @@ MRI_IMAGE *mri_multiply_complex( int mode , MRI_IMAGE *f , MRI_IMAGE* g )
    newImg  = mri_new_conforming( f , MRI_complex ) ;
    npix = f->nvox ;
    MRI_COPY_AUX( newImg , f ) ;
+   far = MRI_COMPLEX_PTR(f); gar = MRI_COMPLEX_PTR(g); nar = MRI_COMPLEX_PTR(newImg);
 
    switch( mode ){
      case 0:
         for( ii=0 ; ii < npix ; ii++ ){
-           newImg->im.complex_data[ii] =
-            CMULT( f->im.complex_data[ii] , g->im.complex_data[ii] ) ;
+           nar[ii] = CMULT( far[ii] , gar[ii] ) ;
         }
         break ;
 
       case 1:
          for( ii=0 ; ii < npix ; ii++ ){
-            newImg->im.complex_data[ii] =
-             CJMULT( f->im.complex_data[ii] , g->im.complex_data[ii] ) ;
+            nar[ii] = CJMULT( far[ii] , gar[ii] ) ;
          }
          break ;
 
@@ -60,6 +60,7 @@ MRI_IMAGE *mri_complex_phase( MRI_IMAGE *im )
 {
    register int ii , npix ;
    MRI_IMAGE *newImg ;
+   complex *nar , *iar ;
 
    if( im->kind != MRI_complex ){
       fprintf( stderr , "mri_complex_phase illegal image type!\n" ) ;
@@ -69,10 +70,10 @@ MRI_IMAGE *mri_complex_phase( MRI_IMAGE *im )
    npix = im->nvox ;
    newImg  = mri_new_conforming( im , MRI_float ) ;
    MRI_COPY_AUX( newImg , im ) ;
+   iar = MRI_COMPLEX_PTR(im) ; nar = MRI_COMPLEX_PTR(newImg) ;
 
    for( ii=0 ; ii < npix ; ii++ )
-     newImg->im.float_data[ii] =
-        atan2( im->im.complex_data[ii].i , im->im.complex_data[ii].r ) ;
+     nar[ii] = atan2( iar[ii].i , iar[ii].r ) ;
 
    return newImg ;
 }
@@ -83,6 +84,7 @@ MRI_IMAGE *mri_complex_abs( MRI_IMAGE *im )
 {
    register int ii , npix ;
    MRI_IMAGE *newImg ;
+   complex *nar , *iar ;
 
    if( im->kind != MRI_complex ){
       fprintf( stderr , "mri_complex_abs illegal type!\n" ) ;
@@ -92,9 +94,9 @@ MRI_IMAGE *mri_complex_abs( MRI_IMAGE *im )
    npix = im->nvox ;
    newImg  = mri_new_conforming( im , MRI_float ) ;
    MRI_COPY_AUX( newImg , im ) ;
+   iar = MRI_COMPLEX_PTR(im) ; nar = MRI_COMPLEX_PTR(newImg) ;
 
-   for( ii=0 ; ii < npix ; ii++ )
-      newImg->im.float_data[ii] = sqrt( CSQR( im->im.complex_data[ii] ) ) ;
+   for( ii=0 ; ii < npix ; ii++ ) nar[ii] = sqrt( CSQR( iar[ii] ) ) ;
 
    return newImg ;
 }

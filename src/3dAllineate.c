@@ -144,6 +144,7 @@ int main( int argc , char *argv[] )
    int epi_targ                = -1 ;
    int replace_base            = 0 ;             /* off by default */
    int replace_meth            = 0 ;             /* off by default */
+   int usetemp                 = 0 ;             /* off by default */
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -249,6 +250,7 @@ int main( int argc , char *argv[] )
        " -verb       = Print out verbose progress reports.\n"
        "               [Using '-VERB' will give even more prolix reports.]\n"
        " -quiet      = Don't print out verbose stuff.\n"
+       " -usetemp    = Write intermediate stuff to disk, to economize on RAM.\n"
        "\n"
        " -check kkk  = After cost function optimization is done, start at the\n"
        "               final parameters and RE-optimize using the new cost\n"
@@ -703,6 +705,9 @@ int main( int argc , char *argv[] )
      }
      if( strcmp(argv[iarg],"-quiet") == 0 ){  /* 10 Oct 2006 */
        verb=0 ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-usetemp") == 0 ){  /* 20 Dec 2006 */
+       usetemp=1 ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -1540,6 +1545,7 @@ int main( int argc , char *argv[] )
    } else {
      nmask = nvox_base ;  /* the universal 'mask' */
    }
+   if( usetemp ) mri_purge(im_mask) ;
 
    /* save weight? */
 
@@ -1578,6 +1584,7 @@ int main( int argc , char *argv[] )
    memset(&stup,0,sizeof(GA_setup)) ;
 
    stup.match_code = meth_code ;
+   stup.usetemp    = usetemp ;   /* 20 Dec 2006 */
 
    /* spatial coordinates: 'cmat' transforms from ijk to xyz */
 
@@ -1912,6 +1919,9 @@ int main( int argc , char *argv[] )
 
        mri_genalign_scalar_setup( im_bset , im_wset , im_targ , &stup ) ;
        im_bset = NULL; im_wset = NULL;  /* after being set, needn't set again */
+       if( usetemp ){
+         mri_purge(im_targ); mri_purge(im_base); mri_purge(im_weig);
+       }
 
        if( save_hist != NULL ){  /* Save start 2D histogram: 28 Sep 2006 */
          int nbin ; float *xyc ;
@@ -2046,6 +2056,7 @@ int main( int argc , char *argv[] )
      else {
        mri_genalign_scalar_setup( im_bset , im_wset , im_targ , &stup ) ;
        im_bset = NULL; im_wset = NULL;  /* after being set, needn't set again */
+       if( usetemp ) mri_purge( im_targ ) ;
      }
 
      /* choose initial parameters, based on interp_code cost function */
@@ -2310,6 +2321,7 @@ int main( int argc , char *argv[] )
    free((void *)parsave) ;
 
    if( verb ) INFO_message("total CPU time = %.1f sec\n",COX_cpu_time()) ;
+   if( PRINT_TRACING ) MCHECK ;
    exit(0) ;
 }
 

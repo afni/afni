@@ -22,38 +22,50 @@ double mri_max( MRI_IMAGE *im )
 
    switch( im->kind ){
 
-      case MRI_byte:
+      case MRI_byte:{
+         byte *qar = MRI_BYTE_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            byte_max = MAX( byte_max , im->im.byte_data[ii] ) ;
+            byte_max = MAX( byte_max , qar[ii] ) ;
          return (double) byte_max ;
+      }
 
-      case MRI_short:
+      case MRI_short:{
+         short *qar = MRI_SHORT_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            short_max = MAX( short_max , im->im.short_data[ii] ) ;
+            short_max = MAX( short_max , qar[ii] ) ;
          return (double) short_max ;
+      }
 
-      case MRI_int:
+      case MRI_int:{
+         int *qar = MRI_INT_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            int_max = MAX( int_max , im->im.int_data[ii] ) ;
+            int_max = MAX( int_max , qar[ii] ) ;
          return (double) int_max ;
+      }
 
-      case MRI_float:
+      case MRI_float:{
+         float *qar = MRI_FLOAT_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            float_max = MAX( float_max , im->im.float_data[ii] ) ;
+            float_max = MAX( float_max , qar[ii] ) ;
          return (double) float_max ;
+      }
 
-      case MRI_double:
+      case MRI_double:{
+         double *qar = MRI_DOUBLE_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            double_max = MAX( double_max , im->im.double_data[ii] ) ;
+            double_max = MAX( double_max , qar[ii] ) ;
          return double_max ;
+      }
 
-      case MRI_complex:
+      case MRI_complex:{
+         complex *qar = MRI_COMPLEX_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            float_max = MAX( float_max , CSQR(im->im.complex_data[ii]) ) ;
+            float_max = MAX( float_max , CSQR(qar[ii]) ) ;
          return sqrt(float_max) ;
+      }
 
       case MRI_rgb:{
-         byte *rgb = im->im.rgb_data ;
+         byte *rgb = MRI_RGB_PTR(im) ;
          double val , top=0.0 ;
          for( ii=0 ; ii < npix ; ii++ ){  /* scale to brightness */
             val =  0.299 * rgb[3*ii]      /* between 0 and 255     */
@@ -65,7 +77,7 @@ double mri_max( MRI_IMAGE *im )
       }
 
       default:
-         fprintf( stderr , "mri_max:  unknown image kind\n" ) ;
+        fprintf( stderr , "mri_max:  unknown image kind\n" ) ;
    }
    return 0 ;
 }
@@ -81,35 +93,47 @@ double mri_maxabs( MRI_IMAGE * im )
 
    switch( im->kind ){
 
-      case MRI_byte:
+      case MRI_byte:{
+         byte *qar = MRI_BYTE_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            byte_max = MAX( byte_max , im->im.byte_data[ii] ) ;
+            byte_max = MAX( byte_max , qar[ii] ) ;
          return (double) byte_max ;
+      }
 
-      case MRI_short:
+      case MRI_short:{
+         short *qar = MRI_SHORT_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            int_max = MAX( int_max , abs(im->im.short_data[ii]) ) ;
+            int_max = MAX( int_max , abs(qar[ii]) ) ;
          return (double) int_max ;
+      }
 
-      case MRI_int:
+      case MRI_int:{
+         int *qar = MRI_INT_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            int_max = MAX( int_max , abs(im->im.int_data[ii]) ) ;
+            int_max = MAX( int_max , abs(qar[ii]) ) ;
          return (double) int_max ;
+      }
 
-      case MRI_float:
+      case MRI_float:{
+         float *qar = MRI_FLOAT_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            double_max = MAX( double_max , fabs(im->im.float_data[ii]) ) ;
+            double_max = MAX( double_max , fabs(qar[ii]) ) ;
          return double_max ;
+      }
 
-      case MRI_double:
+      case MRI_double:{
+         double *qar = MRI_DOUBLE_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            double_max = MAX( double_max , fabs(im->im.double_data[ii]) ) ;
+            double_max = MAX( double_max , fabs(qar[ii]) ) ;
          return double_max ;
+      }
 
-      case MRI_complex:
+      case MRI_complex:{
+         complex *qar = MRI_COMPLEX_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            double_max = MAX( double_max , CSQR(im->im.complex_data[ii]) ) ;
+            double_max = MAX( double_max , CSQR(qar[ii]) ) ;
          return sqrt(double_max) ;
+      }
 
       case MRI_rgb:
          return mri_max( im ) ;
@@ -133,38 +157,50 @@ double mri_min( MRI_IMAGE *im )
 
    switch( im->kind ){
 
-      case MRI_byte:
+      case MRI_byte:{
+         byte *qar = MRI_BYTE_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            byte_min = MIN( byte_min , im->im.byte_data[ii] ) ;
+            byte_min = MIN( byte_min , qar[ii] ) ;
          return (double) byte_min ;
+      }
 
-      case MRI_short:
+      case MRI_short:{
+         short *qar = MRI_SHORT_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            short_min = MIN( short_min , im->im.short_data[ii] ) ;
+            short_min = MIN( short_min , qar[ii] ) ;
          return (double) short_min ;
+      }
 
-      case MRI_int:
+      case MRI_int:{
+         int *qar = MRI_INT_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            int_min = MIN( int_min , im->im.int_data[ii] ) ;
+            int_min = MIN( int_min , qar[ii] ) ;
          return (double) int_min ;
+      }
 
-      case MRI_float:
+      case MRI_float:{
+         float *qar = MRI_FLOAT_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            float_min = MIN( float_min , im->im.float_data[ii] ) ;
+            float_min = MIN( float_min , qar[ii] ) ;
          return (double) float_min ;
+      }
 
-      case MRI_double:
+      case MRI_double:{
+         double *qar = MRI_DOUBLE_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            double_min = MIN( double_min , im->im.double_data[ii] ) ;
+            double_min = MIN( double_min , qar[ii] ) ;
          return double_min ;
+      }
 
-      case MRI_complex:
+      case MRI_complex:{
+         complex *qar = MRI_COMPLEX_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            float_min = MIN( float_min , CSQR(im->im.complex_data[ii]) ) ;
+            float_min = MIN( float_min , CSQR(qar[ii]) ) ;
          return sqrt(float_min) ;
+      }
 
       case MRI_rgb:{
-         byte *rgb = im->im.rgb_data ;
+         byte *rgb = MRI_RGB_PTR(im) ;
          double val , bot=255.9 ;
          for( ii=0 ; ii < npix ; ii++ ){  /* scale to brightness */
             val =  0.299 * rgb[3*ii]      /* between 0 and 255     */

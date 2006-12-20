@@ -244,11 +244,9 @@ typedef union MRI_DATA {
 #  define MRI_LABEL_SIZE 4
 #endif
 
-#define USE_MRI_DELAY   /* 01 Jan 1997 */
-#ifdef USE_MRI_DELAY
-#  define INPUT_DELAY  1
-#  define BSWAP_DELAY  2
-#endif
+#define INPUT_DELAY  1
+#define BSWAP_DELAY  2
+#define IS_PURGED    4
 
 /*! Stores one image (1D to 7D).
     Why 7D, you ask?  Well, I originally only had 2D images here.
@@ -302,11 +300,9 @@ typedef struct MRI_IMAGE {
               wlab[MRI_LABEL_SIZE] ;  /*!< labels for each dimension */
 #endif
 
-#ifdef USE_MRI_DELAY
          char *fname ;   /*!< to read actual image data after delay */
          int foffset ;   /*!< offset into fname of image data */
          int fondisk ;   /*!< flag to indicate if is on disk (?) */
-#endif
 
          int was_swapped ; /* 07 Mar 2002 */
 } MRI_IMAGE ;
@@ -354,14 +350,16 @@ typedef struct MRI_IMAGE {
    ((iq)->nt == 1) ? 3 : ((iq)->nu == 1) ? 4 :     \
    ((iq)->nv == 1) ? 5 : ((iq)->nw == 1) ? 6 : 7 )
 
-#define MRI_BYTE_PTR(iq)    ((iq)->im.byte_data)
-#define MRI_SHORT_PTR(iq)   ((iq)->im.short_data)
-#define MRI_INT_PTR(iq)     ((iq)->im.int_data)
-#define MRI_FLOAT_PTR(iq)   ((iq)->im.float_data)
-#define MRI_DOUBLE_PTR(iq)  ((iq)->im.double_data)
-#define MRI_COMPLEX_PTR(iq) ((iq)->im.complex_data)
-#define MRI_RGB_PTR(iq)     ((iq)->im.rgb_data)
-#define MRI_RGBA_PTR(iq)    ((iq)->im.rgba_data)
+#define MRI_BYTE_PTR(iq)    ((byte *)mri_data_pointer(iq))
+#define MRI_SHORT_PTR(iq)   ((short *)mri_data_pointer(iq))
+#define MRI_INT_PTR(iq)     ((int *)mri_data_pointer(iq))
+#define MRI_FLOAT_PTR(iq)   ((float *)mri_data_pointer(iq))
+#define MRI_DOUBLE_PTR(iq)  ((double *)mri_data_pointer(iq))
+#define MRI_COMPLEX_PTR(iq) ((complex *)mri_data_pointer(iq))
+#define MRI_RGB_PTR(iq)     ((byte *)mri_data_pointer(iq))
+#define MRI_RGBA_PTR(iq)    ((rgba *)mri_data_pointer(iq))
+
+/* only used in afni.c -- don't use these generally! */
 
 #define MRI_BYTE_2D(iq,ix,jy)    MRI_BYTE_PTR(iq)[(ix)+(jy)*(iq)->nx]
 #define MRI_SHORT_2D(iq,ix,jy)   MRI_SHORT_PTR(iq)[(ix)+(jy)*(iq)->nx]
@@ -574,13 +572,16 @@ static int MRI_mm ;
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #endif
 
-#ifdef USE_MRI_DELAY
-  extern void        mri_input_delay( MRI_IMAGE * ) ;
-  extern void        mri_purge_delay( MRI_IMAGE * ) ;
-  extern void        mri_add_fname_delay( char * , MRI_IMAGE * ) ;
-  extern MRI_IMARR * mri_read_file_delay( char * ) ;
-  extern MRI_IMARR * mri_read_3D_delay( char * ) ;
-#endif
+extern void        mri_input_delay( MRI_IMAGE * ) ;
+extern void        mri_purge_delay( MRI_IMAGE * ) ;
+extern void        mri_add_fname_delay( char * , MRI_IMAGE * ) ;
+extern MRI_IMARR * mri_read_file_delay( char * ) ;
+extern MRI_IMARR * mri_read_3D_delay( char * ) ;
+
+extern void        mri_purge    ( MRI_IMAGE * ) ;  /* 20 Dec 2006 */
+extern void        mri_unpurge  ( MRI_IMAGE * ) ;
+extern void        mri_killpurge( MRI_IMAGE * ) ;
+#define MRI_IS_PURGED(iq) (((iq)->fondisk==IS_PURGED)&&(iq)->fname!=NULL)
 
 extern int mri_equal( MRI_IMAGE *, MRI_IMAGE * ) ; /* 30 Jun 2003 */
 
@@ -1329,6 +1330,7 @@ typedef struct {
   int interp_code ;             /* set by user */
   mat44 base_cmat , targ_cmat ; /* set by user */
   mat44 base_imat , targ_imat ;
+  int usetemp ;                 /* set by user */
 
   int old_sc ; float old_sr_base , old_sr_targ ;
 
