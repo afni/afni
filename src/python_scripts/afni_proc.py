@@ -23,7 +23,7 @@ from afni_base import *
 from afni_util import *
 from option_list import *
 from db_mod import *
-# import ask_me
+import ask_me
 
 # ----------------------------------------------------------------------
 # globals
@@ -687,6 +687,7 @@ g_history = """
     afni_proc.py history:
 
     1.0  Dec 20, 2006 : initial release
+    1.1  Dec 20, 2006 : added -regress_no_stim_times
 """
 
 g_version = "version 1.0, December 20, 2006"
@@ -725,6 +726,7 @@ class SubjProcSream:
         self.fp         = None          # file object
         self.anat       = None          # anatomoy to copy (afni_name class)
         self.rm_rm      = True          # remove rm.* files
+        self.mot_labs   = []            # labels for motion params
 
         self.verb       = 1             # verbosity level
 
@@ -767,6 +769,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-script', 1, [])
         self.valid_opts.add_opt('-subj_id', -1, [])
 
+        self.valid_opts.add_opt('-ask_me', 0, [])       # QnA session
         self.valid_opts.add_opt('-copy_anat', 1, [])
         self.valid_opts.add_opt('-keep_rm_files', 0, [])
         # self.valid_opts.add_opt('-remove_pXX_files', 0, [])
@@ -797,6 +800,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_stim_files', -1, [])
         self.valid_opts.add_opt('-regress_stim_labels', -1, [])
         self.valid_opts.add_opt('-regress_stim_times', -1, [])
+        self.valid_opts.add_opt('-regress_no_stim_times', 0, [])
         self.valid_opts.add_opt('-regress_stim_times_offset', 1, [])
 
         self.valid_opts.add_opt('-regress_fitts_prefix', 1, [])
@@ -891,9 +895,10 @@ class SubjProcSream:
             if rv != None: return rv
 
         # maybe the user wants to be quizzed for options
-        # uopt = self.user_opts.find_opt('-ask_me')
-        # if uopt != None:
-        #     ask_me.ask_me_afni_proc(self)
+        uopt = self.user_opts.find_opt('-ask_me')
+        if uopt != None:
+            if ask_me.ask_me_subj_proc(self):
+                return 1
 
         # rcr - if there is another place to update options from, do it
         uopt = self.user_opts.find_opt('-opt_source')
@@ -1080,7 +1085,7 @@ class SubjProcSream:
 class ProcessBlock:
     def __init__(self, label, proc):
         self.label = label      # label is block type
-        self.valid = 0          # block is not yet valid
+        self.valid = False      # block is not yet valid
         self.apply = True       # apply block to output script
         self.verb  = proc.verb  # verbose level
         if not label in BlockModFunc: return
