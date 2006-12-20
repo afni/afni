@@ -1867,7 +1867,9 @@
       - changed -regress_make_1D_ideal to -regress_make_ideal_sum
       - added output of stim ideals (default) and option -regress_no_ideals
       - verify that AFNI datasets are unique
+      - added -regress_no_stim_times
   * modified afni_base.py: added afni_name.pve()
   * modified afni_util.py: added uniq_list_as_dsets, basis_has_known_response
-  * modified db_mod.py: for change in 'ideal' options
+  * modified db_mod.py: for change in 'ideal' options & -regress_no_stim_times
+  * added ask_me.py: basically empty, to prompt users for options
 
