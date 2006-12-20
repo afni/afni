@@ -15,8 +15,8 @@ def db_mod_tcat(block, proc, user_opts):
             print "** %s: invalid integer: %s" % (uopt.label, uopt.parlist[0])
             errs += 1
 
-    if errs == 0: block.valid = 1
-    else        : block.valid = 0
+    if errs == 0: block.valid = True
+    else        : block.valid = False
 
 # do not rely on the form of input filenames
 # use 3dtcat to copy each file to out_dir, then 'cd' into it
@@ -56,7 +56,8 @@ def db_mod_tshift(block, proc, user_opts):
         bopt.parlist = uopt.parlist     # copy new params
         # warn the user about -regress_stim_times_offset
         if user_opts.find_opt('-regress_stim_files') and proc.verb > 0   \
-           and not user_opts.find_opt('-regress_stim_times_offset'):
+           and not user_opts.find_opt('-regress_stim_times_offset')      \
+           and not user_opts.find_opt('-regress_no_stim_times'):
           print '-----------------------------------------------------------\n'\
                 '** warning: using -tshift_align_to and -regress_stim_files\n' \
                 '   --> if temporal alignment is not to the beginning of the\n'\
@@ -72,7 +73,7 @@ def db_mod_tshift(block, proc, user_opts):
     bopt = block.opts.find_opt('-tshift_opts_ts')
     if uopt and bopt: bopt.parlist = uopt.parlist
 
-    block.valid = 1
+    block.valid = True
 
 # run 3dToutcount and 3dTshift for each run
 def db_cmd_tshift(proc, block):
@@ -131,7 +132,7 @@ def db_mod_volreg(block, proc, user_opts):
         if errs > 0:
             print "** -volreg_base_ind requires integer params (have %s,%s)" % \
                   (uopt.parlist[0], uopt.parlist[1])
-            block.valid = 0
+            block.valid = False
             return 1
 
     if aopt and bopt:
@@ -146,7 +147,7 @@ def db_mod_volreg(block, proc, user_opts):
     bopt = block.opts.find_opt('-volreg_opts_vr')
     if uopt and bopt: bopt.parlist = uopt.parlist
 
-    block.valid = 1
+    block.valid = True
 
 def db_cmd_volreg(proc, block):
     cmd = ''
@@ -183,6 +184,9 @@ def db_cmd_volreg(proc, block):
                      proc.prefix_form_run(block), other_opts,
                      proc.prev_prefix_form_run())
 
+    # used 3dvolreg, so have these labels
+    proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
+
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
 
@@ -206,14 +210,14 @@ def db_mod_blur(block, proc, user_opts):
         try: bopt.parlist[0] = float(uopt.parlist[0])
         except:
             print "** -blur_size must be a real number, have '%s'" %(parlist[0])
-            block.valid = 0
+            block.valid = False
             return 1
 
     uopt = user_opts.find_opt('-blur_opts_merge')
     bopt = block.opts.find_opt('-blur_opts_merge')
     if uopt and bopt: bopt.parlist = uopt.parlist
 
-    block.valid = 1
+    block.valid = True
 
 def db_cmd_blur(proc, block):
     cmd = ''
@@ -260,10 +264,10 @@ def db_mod_mask(block, proc, user_opts):
         except:
             print "** -mask_dilate requres an int nsteps (have '%s')" % \
                   uopt.parlist[0]
-            block.valid = 0
+            block.valid = False
             return 1
 
-    block.valid = 1
+    block.valid = True
 
 def db_cmd_mask(proc, block):
     cmd = ''
@@ -306,10 +310,10 @@ def db_mod_scale(block, proc, user_opts):     # no options at this time
         except:
             print "** -scale_max_val requres an int param (have '%s')" % \
                   uopt.parlist[0]
-            block.valid = 0
+            block.valid = False
             return 1
 
-    block.valid = 1
+    block.valid = True
 
 def db_cmd_scale(proc, block):
     cmd = ''
@@ -418,6 +422,10 @@ def db_mod_regress(block, proc, user_opts):
         if len(uopt.parlist) <= 0:
             print "** no files for -regress_stim_times?"
             errs += 1
+        # verify this doesn't go with no_stim_times
+        if user_opts.find_opt('-regress_no_stim_times'):
+            print '** have both -regress_no_stim_times and -regress_stim_times'
+            errs += 1
         bopt.parlist = uopt.parlist
         proc.stims_orig = uopt.parlist   # store for initial copy
 
@@ -440,13 +448,11 @@ def db_mod_regress(block, proc, user_opts):
 
     # --------------------------------------------------
     # if we are here, then we should have stimulus files
-    if len(proc.stims_orig) == 0:
-        print "** missing stim files (-regress_stim_times/-regress_stim_files)"
-        errs += 1
-    # create local names for stim files
-    proc.stims = []
-    for file in proc.stims_orig:
-        proc.stims.append('stimuli/%s' % os.path.basename(file))
+    if len(proc.stims_orig) > 0:
+        # create local names for stim files
+        proc.stims = []
+        for file in proc.stims_orig:
+            proc.stims.append('stimuli/%s' % os.path.basename(file))
 
     # check for fitts prefix
     uopt = user_opts.find_opt('-regress_fitts_prefix')
@@ -479,14 +485,21 @@ def db_mod_regress(block, proc, user_opts):
     bopt = block.opts.find_opt('-regress_iresp_prefix')
     if uopt and bopt: block.opts.del_opt('-regress_iresp_prefix')
 
+    # maybe the user does not want to convert stim_files to stim_times
+    uopt = user_opts.find_opt('-regress_no_stim_times')
+    bopt = block.opts.find_opt('-regress_no_stim_times')
+    if uopt and not bopt:
+        if proc.verb > 0: print '-d will use -stim_files in 3dDeconvolve'
+        block.opts.add_opt('-regress_no_stim_times',0,[],setpar=True)
+
     # prepare to return
     if errs > 0:
-        block.valid = 0
+        block.valid = False
         return 1
 
-    block.valid = 1
+    block.valid = True
 
-# here we need to concatenate the dfiles, and possible create stim_times files
+# here we need to concatenate the dfiles, and possibly create stim_times files
 #
 # without stim_times, use stim_files to generate stim_times
 # without stim_labels, use stim_times to create labels
@@ -502,18 +515,20 @@ def db_cmd_regress(proc, block):
     polort = opt.parlist[0]
 
     if len(proc.stims) <= 0:   # be sure we have some stim files
-        print "** cmd_regress: no stim files"
+        print "** missing stim files (-regress_stim_times/-regress_stim_files)"
+        block.valid = False
         return
 
     cmd = cmd + "# -------------------------------------------------------\n" \
                 "# run the regression analysis\n"
 
+    # possibly add a make_stim_times.py command
     opt = block.opts.find_opt('-regress_stim_times')
-    if not opt.parlist or len(opt.parlist) == 0:
+    use_times = (block.opts.find_opt('-regress_no_stim_times') == None)
+    if use_times and (not opt.parlist or len(opt.parlist) == 0):
         newcmd = db_cmd_regress_sfiles2times(proc, block)
         if not newcmd: return
         cmd = cmd + newcmd
-    else: stim_times = opt.parlist
 
     if proc.mask: mask = '    -mask %s+orig  \\\n' % proc.mask
     else        : mask = ''
@@ -524,7 +539,7 @@ def db_cmd_regress(proc, block):
                 '    -basis_normall %s  \\\n'                   \
                 '    -num_stimts %d  \\\n'                      \
                 % ( proc.prev_prefix_form_rwild(), polort, mask, str(normall),
-                    len(proc.stims)+6 )  # +6 for motion params
+                    len(proc.stims)+len(proc.mot_labs) )
 
     # verify labels (now that we know the list of stimulus files)
     opt = block.opts.find_opt('-regress_stim_labels')
@@ -550,18 +565,23 @@ def db_cmd_regress(proc, block):
                             (index+1, opt.parlist[0], labels[index])
 
     # write out stim lines
+    sfiles = block.opts.find_opt('-regress_no_stim_times')
     for ind in range(len(proc.stims)):
-        cmd = cmd + "    -stim_times %d %s '%s'  \\\n"  \
-                    "    -stim_label %d %s  \\\n"     \
-                    % (ind+1, proc.stims[ind], basis, ind+1, labels[ind])
+        if sfiles:  # then -stim_file and no basis function
+            cmd = cmd + "    -stim_file %d %s  \\\n" % (ind+1,proc.stims[ind])
+        else:
+            cmd = cmd + "    -stim_times %d %s '%s'  \\\n"  % \
+                        (ind+1, proc.stims[ind], basis)
+        # and add the label
+        cmd = cmd +  "    -stim_label %d %s  \\\n" % (ind+1, labels[ind])
 
     # write out registration param lines
-    mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
-    first = len(proc.stims) + 1 # first stim index
-    for ind in range(6):
-        cmd = cmd + "    -stim_file %d dfile.rall.1D'[%d]' "  \
-                    "-stim_base %d -stim_label %d %s  \\\n"   \
-                    % (ind+first, ind, ind+first, ind+first, mot_labs[ind])
+    if len(proc.mot_labs) > 0:
+        first = len(proc.stims) + 1 # first stim index
+        for ind in range(len(proc.mot_labs)):
+            cmd = cmd + "    -stim_file %d dfile.rall.1D'[%d]' "  \
+                        "-stim_base %d -stim_label %d %s  \\\n"   \
+                % (ind+first, ind, ind+first, ind+first, proc.mot_labs[ind])
 
     # see if the user wants the fit time series
     opt = block.opts.find_opt('-regress_fitts_prefix')
