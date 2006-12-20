@@ -1862,3 +1862,12 @@
   * modified afni_util.py: added quotist_list
   * modified make_stim_times.py: use str(%f) for printing
 
+20 Dec 2006: afni_proc.py (version 1.0 - initial release)
+  * modified afni_proc.py
+      - changed -regress_make_1D_ideal to -regress_make_ideal_sum
+      - added output of stim ideals (default) and option -regress_no_ideals
+      - verify that AFNI datasets are unique
+  * modified afni_base.py: added afni_name.pve()
+  * modified afni_util.py: added uniq_list_as_dsets, basis_has_known_response
+  * modified db_mod.py: for change in 'ideal' options
+

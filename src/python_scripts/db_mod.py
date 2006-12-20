@@ -359,7 +359,7 @@ def db_mod_regress(block, proc, user_opts):
         block.opts.add_opt('-regress_stim_times_offset', 1, [0], setpar=True)
 
         block.opts.add_opt('-regress_opts_3dD', -1, [])
-        block.opts.add_opt('-regress_make_1D_ideal', 1, [])
+        block.opts.add_opt('-regress_make_ideal_sum', 1, [])
         block.opts.add_opt('-regress_fitts_prefix', 1, ['fitts'], setpar=True)
 
     errs = 0  # allow errors to accumulate
@@ -371,11 +371,10 @@ def db_mod_regress(block, proc, user_opts):
         bopt.parlist[0] = uopt.parlist[0]
         if bopt.parlist[0] != 'GAM': # then default to -iresp
             block.opts.add_opt('-regress_iresp_prefix',1,['iresp'],setpar=True)
-        # check on GAM/BLOCK for -regress_make_1D_ideal
-        uopt = user_opts.find_opt('-regress_make_1D_ideal')
-        if uopt and bopt.parlist[0][0:3] != 'GAM'  \
-                and bopt.parlist[0][0:5] != 'BLOCK':
-            print '** -regress_make_1D_ideal option inappropriate for basis %s'\
+        # check on GAM/BLOCK for -regress_make_ideal_sum
+        uopt = user_opts.find_opt('-regress_make_ideal_sum')
+        if uopt and not afni_util.basis_has_known_response(bopt.parlist[0]):
+            print '** -regress_make_ideal_sum is inappropriate for basis %s'\
                   % bopt.parlist[0]
             errs += 1
 
@@ -430,8 +429,8 @@ def db_mod_regress(block, proc, user_opts):
             print "** stim times offset must be float, have '%s'" \
                   % uopt.parlist[0]
 
-    uopt = user_opts.find_opt('-regress_make_1D_ideal')
-    bopt = block.opts.find_opt('-regress_make_1D_ideal')
+    uopt = user_opts.find_opt('-regress_make_ideal_sum')
+    bopt = block.opts.find_opt('-regress_make_ideal_sum')
     if uopt and bopt:
         bopt.parlist = uopt.parlist
 
@@ -469,6 +468,11 @@ def db_mod_regress(block, proc, user_opts):
         bopt.parlist[0] = uopt.parlist[0]
     elif uopt and not bopt: # maybe it was deleted previously
         block.opts.add_opt('-regress_iresp_prefix', 1, uopt.parlist,setpar=True)
+
+    # maybe the user does not want default ideals
+    uopt = user_opts.find_opt('-regress_no_ideals')
+    bopt = block.opts.find_opt('-regress_no_ideals')
+    if uopt and not bopt: block.opts.add_opt('-regress_no_ideals',0,[])
 
     # maybe the user wants to delete it
     uopt = user_opts.find_opt('-regress_no_iresp')
@@ -552,12 +556,12 @@ def db_cmd_regress(proc, block):
                     % (ind+1, proc.stims[ind], basis, ind+1, labels[ind])
 
     # write out registration param lines
-    labels = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
+    mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
     first = len(proc.stims) + 1 # first stim index
     for ind in range(6):
         cmd = cmd + "    -stim_file %d dfile.rall.1D'[%d]' "  \
                     "-stim_base %d -stim_label %d %s  \\\n"   \
-                    % (ind+first, ind, ind+first, ind+first, labels[ind])
+                    % (ind+first, ind, ind+first, ind+first, mot_labs[ind])
 
     # see if the user wants the fit time series
     opt = block.opts.find_opt('-regress_fitts_prefix')
@@ -582,7 +586,15 @@ def db_cmd_regress(proc, block):
         cmd = cmd + "3dTcat -prefix all_runs %s+orig.HEAD\n\n" % \
                     proc.prev_prefix_form_rwild()
 
-    opt = block.opts.find_opt('-regress_make_1D_ideal')
+    opt = block.opts.find_opt('-regress_no_ideals')
+    if not opt: # then we compute individual ideal files for each stim
+        cmd = cmd + "\n# create ideal files for each stim type\n"
+        first = (polort+1) * proc.runs
+        for ind in range(len(labels)):
+            cmd = cmd + "1dcat Xmat.1D'[%d]' > ideal_%s.1D\n" % \
+                        (first+ind, labels[ind])
+
+    opt = block.opts.find_opt('-regress_make_ideal_sum')
     if opt and opt.parlist:
         first = (polort+1) * proc.runs
         last = first + len(proc.stims) - 1
