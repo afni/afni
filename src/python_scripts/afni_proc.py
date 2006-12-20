@@ -690,7 +690,7 @@ g_history = """
     1.1  Dec 20, 2006 : added -regress_no_stim_times
 """
 
-g_version = "version 1.0, December 20, 2006"
+g_version = "version 1.1, December 20, 2006"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
