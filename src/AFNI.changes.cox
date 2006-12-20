@@ -6002,4 +6002,6 @@
      than through a temp image (saves on memory).
  * modify mrilib.h to change MRI_BYTE_PTR() (etc.) macro to use
      mri_data_pointer() function, which will invoke mri_unpurge()
-     if necessary.
+     if necessary.  This also entailed changing a lot of functions
+     to avoid using the im.*_data pointers, which I eventually want
+     to eliminate entirely.

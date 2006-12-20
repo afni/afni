@@ -251,6 +251,11 @@ int main( int argc , char *argv[] )
        "               [Using '-VERB' will give even more prolix reports.]\n"
        " -quiet      = Don't print out verbose stuff.\n"
        " -usetemp    = Write intermediate stuff to disk, to economize on RAM.\n"
+       "       **N.B.: Temporary files are written to the directory given\n"
+       "               in environment variable TMPDIR, or in /tmp, or in ./\n"
+       "               (preference in that order).  If the program crashes,\n"
+       "               these files are named TIM_somethingrandom, and you'll\n"
+       "               have to delete them manually. (TIM=Temporary IMage)\n"
        "\n"
        " -check kkk  = After cost function optimization is done, start at the\n"
        "               final parameters and RE-optimize using the new cost\n"
@@ -707,7 +712,9 @@ int main( int argc , char *argv[] )
        verb=0 ; iarg++ ; continue ;
      }
      if( strcmp(argv[iarg],"-usetemp") == 0 ){  /* 20 Dec 2006 */
-       usetemp=1 ; iarg++ ; continue ;
+       usetemp=1 ; iarg++ ;
+       INFO_message("-usetemp: if program crashes, delete TIM_* files!") ;
+       continue ;
      }
 
      /*-----*/
@@ -2288,9 +2295,14 @@ int main( int argc , char *argv[] )
    DSET_unload(dset_targ) ;
    mri_free(im_base) ; mri_free(im_weig) ; mri_free(im_mask) ;
 
+   MRI_FREE(stup.bsim); MRI_FREE(stup.bsims);
+   MRI_FREE(stup.ajim); MRI_FREE(stup.ajims); MRI_FREE(stup.bwght);
+
    /***--- write output dataset to disk? ---***/
 
-   if( dset_out != NULL ){ DSET_write(dset_out); WROTE_DSET(dset_out); }
+   if( dset_out != NULL ){
+     DSET_write(dset_out); WROTE_DSET(dset_out); DSET_unload(dset_out);
+   }
 
    /*--- save parameters to a file, if desired ---*/
 

@@ -6617,7 +6617,7 @@ float *SUMA_Load1D_eng (char *oName, int *ncol, int *nrow, int RowMajor, int ver
    
    far = MRI_FLOAT_PTR(im);
    /* make sure that pointer is gone from im, or risk hell */
-   im->im.float_data = NULL;
+   mri_clear_data_pointer(im) ;
       
    /* done, clean up and out you go */
    if (im) mri_free(im); im = NULL; 
@@ -6651,7 +6651,7 @@ double *SUMA_LoadDouble1D_eng (char *oName, int *ncol, int *nrow, int RowMajor, 
    
    far = MRI_DOUBLE_PTR(im);
    /* make sure that pointer is gone from im, or risk hell */
-   im->im.double_data = NULL;
+   mri_clear_data_pointer(im) ;
       
    /* done, clean up and out you go */
    if (im) mri_free(im); im = NULL; 
@@ -6686,7 +6686,7 @@ complex *SUMA_LoadComplex1D_eng (char *oName, int *ncol, int *nrow, int RowMajor
    
    far = MRI_COMPLEX_PTR(im);
    /* make sure that pointer is gone from im, or risk hell */
-   im->im.complex_data = NULL;
+   mri_clear_data_pointer(im) ;
       
    /* done, clean up and out you go */
    if (im) mri_free(im); im = NULL; 

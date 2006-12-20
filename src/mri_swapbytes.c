@@ -13,18 +13,18 @@
 void mri_swapbytes( MRI_IMAGE *im )
 {
    register int ii , npix ;
+   register short *iar ;
 
 ENTRY("mri_swapbytes") ;
 
-   if( im->kind != MRI_short ){
+   if( im == NULL || im->kind != MRI_short ){
      fprintf( stderr , "mri_swapbytes called with non-short image kind\n" ) ;
      EXRETURN ;
    }
 
-   npix = im->nvox ;
+   npix = im->nvox ; iar = MRI_SHORT_PTR(im) ;
 
-   for( ii=0 ; ii < npix ; ii++ )
-     im->im.short_data[ii] = SWAB16( im->im.short_data[ii] ) ;
+   for( ii=0 ; ii < npix ; ii++ ) iar[ii] = SWAB16( iar[ii] ) ;
 
    EXRETURN ;
 }

@@ -17,39 +17,39 @@ ENTRY("mri_to_rgba") ;
 
    switch( oldim->kind ){
 
-      case MRI_byte:
+      case MRI_byte:{ byte *qar = MRI_BYTE_PTR(oldim) ;
         for( ii=0 ; ii < npix ; ii++ ){
-          oar[ii].r = oar[ii].g = oar[ii].b = oldim->im.byte_data[ii] ;
+          oar[ii].r = oar[ii].g = oar[ii].b = qar[ii] ;
           oar[ii].a = 255 ;
         }
-      break ;
+      } break ;
 
-      case MRI_float:
+      case MRI_float:{ float *qar = MRI_FLOAT_PTR(oldim) ;
         for( ii=0 ; ii < npix ; ii++ ){
-          oar[ii].r = oar[ii].g = oar[ii].b = oldim->im.float_data[ii] ;
+          oar[ii].r = oar[ii].g = oar[ii].b = qar[ii] ;
           oar[ii].a = 255 ;
         }
-      break ;
+      } break ;
 
-      case MRI_short:
+      case MRI_short:{ short *qar = MRI_SHORT_PTR(oldim) ;
         for( ii=0 ; ii < npix ; ii++ ){
-          oar[ii].r = oar[ii].g = oar[ii].b = oldim->im.short_data[ii] ;
+          oar[ii].r = oar[ii].g = oar[ii].b = qar[ii] ;
           oar[ii].a = 255 ;
         }
-      break ;
+      } break ;
 
-      case MRI_rgb:
+      case MRI_rgb:{ byte *qar = MRI_RGB_PTR(oldim) ;
         for( ii=0 ; ii < npix ; ii++ ){
-          oar[ii].r = oldim->im.rgb_data[3*ii] ;
-          oar[ii].g = oldim->im.rgb_data[3*ii+1] ;
-          oar[ii].b = oldim->im.rgb_data[3*ii+2] ;
+          oar[ii].r = qar[3*ii] ;
+          oar[ii].g = qar[3*ii+1] ;
+          oar[ii].b = qar[3*ii+2] ;
           oar[ii].a = 255 ;
         }
-      break ;
+      } break ;
 
-      case MRI_rgba:
-        memcpy( oar , oldim->im.rgba_data , sizeof(rgba)*npix ) ;
-      break ;
+      case MRI_rgba:{ rgba *qar = MRI_RGBA_PTR(oldim) ;
+        memcpy( oar , qar , sizeof(rgba)*npix ) ;
+      } break ;
 
       default:
          fprintf(stderr,"mri_to_rgb:  unrecognized image conversion %d\n",oldim->kind) ;
