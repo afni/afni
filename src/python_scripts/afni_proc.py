@@ -503,20 +503,23 @@ g_help_string = """
             Please see '3dDeconvolve -help' for more information.
             See also -regress_no_iresp, -regress_basis.
 
-        -regress_make_1D_ideal IDEAL.1D : create IDEAL.1D file from regressors
+        -regress_make_ideal_sum IDEAL.1D : create IDEAL.1D file from regressors
 
-                e.g. -regress_make_1D_ideal ideal_all.1D
+                e.g. -regress_make_ideal_sum ideal_all.1D
 
             If the -regress_basis function is a single parameter function
             (either GAM or some form of BLOCK), then this option can be
             applied to create an ideal response curve which is the sum of
-            individual stimulus response curves.
+            the individual stimulus response curves.
 
             Use of this option will add a 3dTstat command to sum the regressor
             (of interest) columns of the 1D X-matrix, output by 3dDeconvolve.
 
+            This is simlilar to the default behavior of creating ideal_STIM.1D
+            files for each stimulus label, STIM.
+
             Please see '3dDeconvolve -help' and '3dTstat -help'.
-            See also -regress_basis.
+            See also -regress_basis, -regress_no_ideals.
 
         -regress_no_fitts       : do not supply -fitts to 3dDeconvolve
 
@@ -526,6 +529,20 @@ g_help_string = """
             the 3dDeconvolve command in the output script.
 
             See also -regress_fitts_prefix.
+
+        -regress_no_ideals      : do not generate ideal response curves
+
+                e.g. -regress_no_ideals
+
+            By default, if the GAM or BLOCK basis function is used, ideal
+            resonse curve files are generated for each stimulus type (from
+            the output X matrix using '3dDeconvolve -x1D').  The names of the
+            ideal response function files look like 'ideal_LABEL.1D', for each
+            stimulus label, LABEL.
+
+            This option is used to supress generation of those files.
+
+            See also -regress_basis, -regress_stim_labels.
 
         -regress_no_iresp       : do not supply -iresp to 3dDeconvolve
 
@@ -668,20 +685,10 @@ g_help_string = """
 g_history = """
     afni_proc.py history:
 
-    0.2  Dec  7, 2006 : approaching initial release...
-    0.3  Dec  9, 2006 : added regress block (3dDeconvolve)
-    0.4  Dec 11, 2006 : added help
-    0.5  Dec 12, 2006 : added fitts and iresp options, fixed scale limit
-    0.6  Dec 13, 2006 : added -regress_stim_times_offset, -no_proc_command
-                        (afni_proc commands are stored by default)
-    0.7  Dec 14, 2006 : added options -copy_anat, -regress_make_1D_ideal,
-                        and -regress_opts_3dD
-    0.8  Dec 16, 2006 : added -tshift_opts_ts, -volreg_opts_vr, -blur_opts_merge
-    0.9  Dec 19, 2006 : help updates
-    0.10 Dec 19, 2006 : added quotize_list
+    1.0  Dec 20, 2006 : initial release
 """
 
-g_version = "version 0.10, December 19, 2006"
+g_version = "version 1.0, December 20, 2006"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -793,8 +800,9 @@ class SubjProcSream:
 
         self.valid_opts.add_opt('-regress_fitts_prefix', 1, [])
         self.valid_opts.add_opt('-regress_iresp_prefix', 1, [])
-        self.valid_opts.add_opt('-regress_make_1D_ideal', 1, [])
+        self.valid_opts.add_opt('-regress_make_ideal_sum', 1, [])
         self.valid_opts.add_opt('-regress_no_fitts', 0, [])
+        self.valid_opts.add_opt('-regress_no_ideals', 0, [])
         self.valid_opts.add_opt('-regress_no_iresp', 0, [])
         self.valid_opts.add_opt('-regress_opts_3dD', -1, [])
 
@@ -896,6 +904,8 @@ class SubjProcSream:
         # do some final error checking
         if len(self.dsets) == 0:
             print 'error: dsets have not been specified (consider -dsets)'
+            return 1
+        if not uniq_list_as_dsets(self.dsets, True):
             return 1
 
     # create script from blocks and options
