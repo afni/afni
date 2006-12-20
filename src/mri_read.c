@@ -3662,8 +3662,6 @@ int check_dicom_magic_num( char *fname )
    Stuff to read a file in "delay" mode -- 01 Jan 1997.
 -----------------------------------------------------------------------------*/
 
-#ifdef USE_MRI_DELAY
-
 /**** If possible, throw the data away for later retrieval from disk ****/
 
 void mri_purge_delay( MRI_IMAGE * im )
@@ -3983,4 +3981,3 @@ MRI_IMARR * mri_read_3D_delay( char * tname )
 
    return newar ;
 }
-#endif /* USE_MRI_DELAY */

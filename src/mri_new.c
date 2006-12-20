@@ -93,10 +93,8 @@ ENTRY("mri_new_7D_generic") ;
    newim->wlab[0] = '\0' ;
 #endif
 
-#ifdef USE_MRI_DELAY
    newim->fname   = NULL ;
    newim->foffset = newim->fondisk = 0 ;
-#endif
 
    npix = newim->nvox ;
 

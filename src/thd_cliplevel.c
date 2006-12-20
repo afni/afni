@@ -5,9 +5,10 @@
 float mri_topclip( MRI_IMAGE *im )  /* 28 Sep 2006 */
 {
    float cv , dv ;
+ENTRY("mri_topclip") ;
    cv = 3.11f * THD_cliplevel( im , 0.511f ) ;
    dv = (float)mri_max( im ) ;
-   cv = MIN(cv,dv) ; return cv ;
+   cv = MIN(cv,dv) ; RETURN(cv) ;
 }
 
 /*--------------------------------------------------------------------------
@@ -38,12 +39,13 @@ ENTRY("THD_cliplevel") ;
    switch( im->kind ){
       case MRI_short: nhist = 32767 ; lim = im ; break ;
       case MRI_byte : nhist =   255 ; lim = im ; break ;
+      case MRI_float: nhist = 10000 ; lim = im ; break ; /* 20 Dec 2006 */
 
       default:
         if( im->kind == MRI_rgb ){
           nhist = 255 ;
         } else {
-          fac = mri_maxabs(im) ; if( fac == 0.0 ) RETURN(0.0) ;
+          fac = (float)mri_maxabs(im) ; if( fac == 0.0f ) RETURN(0.0f) ;
           sfac = 32767.0f/fac ; nhist = 32767 ;
         }
         lim = mri_to_short( sfac , im ) ;
@@ -51,7 +53,7 @@ ENTRY("THD_cliplevel") ;
    }
 
    hist = (int *) calloc(sizeof(int),nhist+1) ;  /* 05 Nov 2001: +1 */
-   nvox = im->nvox ;
+   nvox = lim->nvox ;
 
    /*-- make histogram --*/
 
@@ -59,8 +61,25 @@ ENTRY("THD_cliplevel") ;
    switch( lim->kind ){
       default: break ;
 
+      case MRI_float:{   /* 20 Dec 2006: do the float->int conversion inline */
+        float *far = MRI_FLOAT_PTR(lim) ;
+        fac = (float)mri_max(im) ;
+        if( fac <= 0.0f ){ free(hist); RETURN(0.0f); }
+        sfac = nhist / fac ;
+        for( ii=0 ; ii < nvox ; ii++ ){
+          if( far[ii] > 0.0f ){
+            kk = (int)(sfac * far[ii]+0.499f) ;
+            if( kk <= nhist ){
+              hist[kk]++ ;
+              dsum += ((double)kk) * ((double)(kk)) ; npos++ ;
+            }
+          }
+        }
+      }
+      break ;
+
       case MRI_short:
-         sar =  MRI_SHORT_PTR(lim) ;
+         sar = MRI_SHORT_PTR(lim) ;
          for( ii=0 ; ii < nvox ; ii++ ){
             if( sar[ii] > 0 && sar[ii] <= nhist ){
                hist[sar[ii]]++ ;
@@ -71,7 +90,7 @@ ENTRY("THD_cliplevel") ;
       break ;
 
       case MRI_byte:                       /* there are no negative bytes */
-         bar =  MRI_BYTE_PTR(lim) ;
+         bar = MRI_BYTE_PTR(lim) ;
          for( ii=0 ; ii < nvox ; ii++ ){
             if( bar[ii] > 0 ){
                hist[bar[ii]]++ ;
@@ -81,7 +100,9 @@ ENTRY("THD_cliplevel") ;
       break ;
    }
 
-   if( npos <= 222 ){ free(hist); if(lim!=im)mri_free(lim); RETURN(0.0); }
+   if( lim != im ) mri_free(lim) ;
+
+   if( npos <= 222 ){ free(hist); RETURN(0.0f); }
 
    /*-- initialize cut position to include upper 65% of positive voxels --*/
 
@@ -103,7 +124,7 @@ ENTRY("THD_cliplevel") ;
       qq++ ;
    } while( qq < 66 && ncut != nold ) ;
 
-   free(hist) ; if( lim != im ) mri_free(lim) ;
+   free(hist) ;
 
    RETURN( (ncut/sfac) ) ;
 }
