@@ -23,6 +23,7 @@ from afni_base import *
 from afni_util import *
 from option_list import *
 from db_mod import *
+# import ask_me
 
 # ----------------------------------------------------------------------
 # globals
@@ -678,7 +679,7 @@ g_help_string = """
             Please see 'make_stim_times.py -help' for more information.
             See also -regress_stim_files, -tshift_align_to.
 
-    - R Reynolds  Dec, 2006
+    - R Reynolds  Dec, 2006                             thanks to Z Saad
     ===========================================================================
 """
 
@@ -889,11 +890,10 @@ class SubjProcSream:
             rv = self.add_block(label)
             if rv != None: return rv
 
-        # if there is another place to update options from, do it
-        uopt = self.user_opts.find_opt('-opt_source')
-        if uopt != None:
-            print '** not ready to update options from %s' % str(uopt.parlist)
-            return 1
+        # maybe the user wants to be quizzed for options
+        # uopt = self.user_opts.find_opt('-ask_me')
+        # if uopt != None:
+        #     ask_me.ask_me_afni_proc(self)
 
         # rcr - if there is another place to update options from, do it
         uopt = self.user_opts.find_opt('-opt_source')
