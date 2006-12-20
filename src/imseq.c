@@ -2862,7 +2862,7 @@ ENTRY("ISQ_process_mri") ;
       if( lim->kind == MRI_short && clbot < cltop ){
 
          int npix = lim->nx * lim->ny , ii ;
-         short *ar = lim->im.short_data ;
+         short *ar = MRI_SHORT_PTR(lim) ;
 
          if( seq->rng_ztop == 0 ){
             for( ii=0 ; ii < npix ; ii++ )
@@ -2876,7 +2876,7 @@ ENTRY("ISQ_process_mri") ;
       } else if( lim->kind == MRI_byte && clbot < cltop ){
 
          int npix = lim->nx * lim->ny , ii ;
-         byte *ar = lim->im.byte_data ;
+         byte *ar = MRI_BYTE_PTR(lim) ;
 
          if( seq->rng_ztop == 0 ){
             for( ii=0 ; ii < npix ; ii++ )

@@ -60,7 +60,7 @@ MRI_IMAGE *mri_complex_phase( MRI_IMAGE *im )
 {
    register int ii , npix ;
    MRI_IMAGE *newImg ;
-   complex *nar , *iar ;
+   float *nar ; complex *iar ;
 
    if( im->kind != MRI_complex ){
       fprintf( stderr , "mri_complex_phase illegal image type!\n" ) ;
@@ -70,7 +70,7 @@ MRI_IMAGE *mri_complex_phase( MRI_IMAGE *im )
    npix = im->nvox ;
    newImg  = mri_new_conforming( im , MRI_float ) ;
    MRI_COPY_AUX( newImg , im ) ;
-   iar = MRI_COMPLEX_PTR(im) ; nar = MRI_COMPLEX_PTR(newImg) ;
+   iar = MRI_COMPLEX_PTR(im) ; nar = MRI_FLOAT_PTR(newImg) ;
 
    for( ii=0 ; ii < npix ; ii++ )
      nar[ii] = atan2( iar[ii].i , iar[ii].r ) ;
@@ -84,7 +84,7 @@ MRI_IMAGE *mri_complex_abs( MRI_IMAGE *im )
 {
    register int ii , npix ;
    MRI_IMAGE *newImg ;
-   complex *nar , *iar ;
+   float *nar ; complex *iar ;
 
    if( im->kind != MRI_complex ){
       fprintf( stderr , "mri_complex_abs illegal type!\n" ) ;
@@ -94,7 +94,7 @@ MRI_IMAGE *mri_complex_abs( MRI_IMAGE *im )
    npix = im->nvox ;
    newImg  = mri_new_conforming( im , MRI_float ) ;
    MRI_COPY_AUX( newImg , im ) ;
-   iar = MRI_COMPLEX_PTR(im) ; nar = MRI_COMPLEX_PTR(newImg) ;
+   iar = MRI_COMPLEX_PTR(im) ; nar = MRI_FLOAT_PTR(newImg) ;
 
    for( ii=0 ; ii < npix ; ii++ ) nar[ii] = sqrt( CSQR( iar[ii] ) ) ;
 

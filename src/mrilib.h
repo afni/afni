@@ -648,6 +648,12 @@ extern void mri_fftshift( MRI_IMAGE *, float,float,float, int ) ; /* 13 May 2003
 extern void *mri_data_pointer( MRI_IMAGE * ) ;
 extern void mri_free( MRI_IMAGE * ) ;
 extern void mri_fix_data_pointer( void * , MRI_IMAGE * ) ;
+#define mri_set_data_pointer(iq,pt) mri_fix_data_pointer((pt),(iq))
+
+#define MRI_FREE(iq) do{ mri_free(iq); (iq)=NULL; } while(0)
+
+extern void *mri_data_pointer_unvarnished( MRI_IMAGE *im ) ; /* 20 Dec 2006 */
+
 
 extern char * mri_dicom_header( char * ) ;  /* 15 Jul 2002 */
 extern void   mri_dicom_pxlarr( off_t *, int * ) ;
