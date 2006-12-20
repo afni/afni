@@ -29,6 +29,8 @@ class afni_name:
       return "%s/%s" % (os.path.abspath(self.path), self.prefix)
    def pv(self):
       return "%s%s" % (self.prefix, self.view)
+   def pve(self):
+      return "%s%s%s" % (self.prefix, self.view, self.extension)
    def exist(self):
       if os.path.isfile("%s.HEAD" % self.ppv()) and \
          (os.path.isfile("%s.BRIK" % self.ppv()) or \

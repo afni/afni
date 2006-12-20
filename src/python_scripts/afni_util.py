@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys, os, string
+import afni_base
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
 
@@ -30,6 +31,41 @@ def quotize_list(list):
             newlist.append(string)
 
     return newlist
+
+# given a list of text elements, create a list of afni_name elements,
+# and check for unique prefixes
+def uniq_list_as_dsets(dsets, showerr=False):
+    if not dsets or len(dsets) < 2: return True
+
+    # iterate over dsets, searching for matches
+    uniq = True
+    for i1 in range(len(dsets)):
+        for i2 in range(i1+1, len(dsets)):
+            if dsets[i1].prefix == dsets[i2].prefix:
+                uniq = False
+                break
+        if not uniq: break
+
+    if not uniq and showerr:
+        print                                                               \
+          "-----------------------------------------------------------\n"   \
+          "** error: dataset names are not unique\n\n"                      \
+          "   (#%d == #%d, '%s' == '%s')\n\n"                               \
+          "   note: if using a wildcard, please specify a suffix,\n"        \
+          "         otherwise datasets may be listed twice\n"               \
+          "            e.g.  bad use:    ED_r*+orig*\n"                     \
+          "            e.g.  good use:   ED_r*+orig.HEAD\n"                 \
+          "-----------------------------------------------------------\n"   \
+          % (i1+1, i2+1, dsets[i1].pve(), dsets[i2].pve())
+
+    return uniq
+
+# given a string, if the prefix is either GAM or BLOCK, then the basis
+# function has a known response curve
+def basis_has_known_response(basis):
+    if not basis: return False
+    if basis[0:3] == 'GAM' or basis[0:5] == 'BLOCK': return True
+    else:                                            return False
 
 # ----------------------------------------------------------------------
 # begin matrix functions
