@@ -169,7 +169,7 @@ int r_idisp_mri_image( char * info, MRI_IMAGE * ip )
             ip,
             ip->nx, ip->ny, ip->nz, ip->nt, ip->nu, ip->nv, ip->nw,
             ip->nxy, ip->nxyz, ip->nxyzt, ip->nvox, ip->pixel_size,
-            (int)ip->kind, ip->im.byte_data, CHECK_NULL_STR(ip->name),
+            (int)ip->kind, mri_data_pointer(ip), CHECK_NULL_STR(ip->name),
             ip->dx, ip->dy, ip->dz, ip->dt, ip->du, ip->dv, ip->dw,
             ip->xo, ip->yo, ip->zo, ip->to, ip->uo, ip->vo, ip->wo,
             ip->was_swapped );
