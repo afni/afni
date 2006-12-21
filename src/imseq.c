@@ -11562,7 +11562,6 @@ ENTRY("ISQ_save_image") ;
    mri_free(tim) ; EXRETURN ;
 }
 
-/*--------------------------------------------------------------------------*/
 
 void ISQ_save_jpeg( MCW_imseq *seq , char *fname )
 {
@@ -11577,7 +11576,11 @@ void ISQ_save_png( MCW_imseq *seq , char *fname )  /* 11 Dec 2006 */
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Save the current images to an MPEG or AGIF file.  [06 Dec 2006] */
+/*! Save the current images to an MPEG or AGIF file.  [06 Dec 2006] 
+   if top = 0 then top is the index of the last recorded image
+   if bot = -1 then bot is the index of the last recorded image
+   use bot = 0 and top = 0 to save everything.
+*/
 
 void ISQ_save_anim( MCW_imseq *seq, char *prefin, int bot, int top, int mode )
 {
@@ -11593,7 +11596,7 @@ void ISQ_save_anim( MCW_imseq *seq, char *prefin, int bot, int top, int mode )
    char *togif = ppmto_giff_filter ;
 #endif
    int doanim=0 ;
-   char filt[512] ; FILE *fp ; MRI_IMAGE *ovim ;
+   char filt[512], *ppo = NULL; FILE *fp ; MRI_IMAGE *ovim ;
    int nx , ny , npix , pc ;
 
 ENTRY("ISQ_save_anim") ;
@@ -11631,7 +11634,11 @@ ENTRY("ISQ_save_anim") ;
      break ;
    }
 
-   bot = MAX(bot,0) ;
+  if (bot == -1) { /* special case */
+      bot = seq->status->num_total-1 ;
+   } else {
+      bot = MAX(bot,0) ;
+   }
    if( top == 0 ) top = seq->status->num_total-1 ;
    else           top = MIN(top,seq->status->num_total-1) ;
    if( bot > top || (bot==top && doanim) ){
@@ -11647,7 +11654,10 @@ ENTRY("ISQ_save_anim") ;
    ll = strlen(prefin) ;
    prefix = (char*)malloc( sizeof(char) * (ll+8) ) ;
    strcpy( prefix , prefin ) ;
+ 
+   ppo = THD_trailname(prefix,0) ;               /* strip directory */
 
+ 
    if( prefix[ll-1] != '.' ){  /* add a . at the end */
      prefix[ll++] = '.' ;      /* if one isn't there */
      prefix[ll]   = '\0' ;
@@ -11790,7 +11800,7 @@ ENTRY("ISQ_save_anim") ;
         break ;
 
         case MPEG_MODE:
-          sprintf( fname, "%s%s.%05d.ppm" , prefix,tsuf, kf) ;
+          sprintf( fname, "%s%s.%05d.ppm" , ppo,tsuf, kf) ;
           sprintf( filt , ppmto_ppm_filter , fname ) ;
           if( agif_list == NULL ) INIT_SARR(agif_list) ;
           ADDTO_SARR(agif_list,fname) ;
@@ -11876,8 +11886,8 @@ ENTRY("ISQ_save_anim") ;
 
         /* write mpeg_encode parameter file */
 
-        par = AFMALL( char, strlen(prefix)+32 ) ; /* param fname */
-        sprintf(par,"%s%s.PARAM",prefix,tsuf) ;
+        par = AFMALL( char, strlen(ppo)+32 ) ; /* param fname */
+        sprintf(par,"%s%s.PARAM",ppo,tsuf) ;
 
         fpar = fopen( par , "w" ) ;
         if( fpar == NULL ){ free(par) ; break ; }
@@ -11907,7 +11917,7 @@ ENTRY("ISQ_save_anim") ;
                   "%s%s.*.ppm [%05d-%05d]\n"  /* prefix, tsuf, from, to */
                   "END_INPUT\n"
                , oof , frate , pattrn , qscale ,
-                 prefix,tsuf,bot,top ) ;
+                 ppo,tsuf,bot,top ) ;
         fclose(fpar) ;
 
         /* make command to run */

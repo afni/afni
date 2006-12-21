@@ -168,7 +168,7 @@ SMOOTH_OUT_TROUBLE:
    if ( -f ${out}.1D) rm -f ${out}.1D
    if ( -f ${outsn} ) rm -f ${outsn} 
    SurfSmooth  -spec $spc -surf_A $srfn  \
-               -met NN_geom -Niter $niter -surf_out ${outsn}        \
+               -met NN_geom -use_neighbors_outside_mask -Niter $niter -surf_out ${outsn}        \
                -n_mask $troub
 
 PROJECT_AGAIN:

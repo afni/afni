@@ -142,6 +142,7 @@ float Init_Whereami_Max_Rad(void);
 void Set_Whereami_Max_Rad(float n);
 THD_3dim_dataset * get_altas(char *epath, char *aname) ;
 char Is_Side_Label(char *str, char *opt);
+int *z_rand_order(int bot, int top, long int seed);
 int *z_iqsort (float *x , int nx );
 int *z_idqsort (int *x , int nx );
 void Show_Atlas_Region (AFNI_ATLAS_REGION *aar);

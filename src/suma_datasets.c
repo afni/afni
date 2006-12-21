@@ -1394,7 +1394,7 @@ int SUMA_GetDsetColRange(SUMA_DSET *dset, int col_index, float range[2], int loc
    SUMA_RETURN(1);
 }
 
-int SUMA_GetDsetNodeIndexColRange(SUMA_DSET *dset, float range[2], int loc[2])
+int SUMA_GetDsetNodeIndexColRange(SUMA_DSET *dset, float range[2], int loc[2], int addifmissing)
 {
    static char FuncName[]={"SUMA_GetDsetNodeIndexColRange"};
    char *rs = NULL, Name[500];
@@ -1405,7 +1405,16 @@ int SUMA_GetDsetNodeIndexColRange(SUMA_DSET *dset, float range[2], int loc[2])
    if (!dset || !dset->inel) { SUMA_SL_Err("Null input"); SUMA_RETURN(0); }
    
    rs = NI_get_attribute(dset->inel, "COLMS_RANGE");
-   if (!rs) { SUMA_SL_Err("No range field."); SUMA_RETURN(0); }
+   if (!rs) { 
+      if (!addifmissing) {
+         SUMA_SL_Err("No range field."); SUMA_RETURN(0); 
+      }else {
+         if (!SUMA_AddGenDsetNodeIndexColAttr (dset, SUMA_NODE_INDEX, SDSET_NODE_INDEX_COL(dset), 1)) {
+            SUMA_SL_Err("Could not add range field."); SUMA_RETURN(0); 
+         }
+         rs = NI_get_attribute(dset->inel, "COLMS_RANGE"); 
+      }
+   }
    if (SUMA_StringToNum(rs, nums, 4) != 4) { SUMA_SL_Err("Failed to read 4 nums from range."); SUMA_RETURN(0); }
    range[0] = nums[0]; range[1] = nums[1]; 
    loc[0] = (int)nums[2]; loc[1] = (int)nums[3];
@@ -3145,8 +3154,7 @@ SUMA_DSET * SUMA_ngr_2_dset(NI_group *nini)
       if (dset->dnel) {
          SUMA_S_Note("Adding empty holder");
          dname = SUMA_append_string(
-               NI_get_attribute(dset->dnel,"data_type"), 
-               "_node_indices");
+               NEL_DSET_TYPE(dset->ngr), "_node_indices");
          dset->inel = NI_new_data_element("INDEX_LIST", SDSET_VECLEN(dset)); 
          NI_set_attribute (dset->inel, "data_type", dname); 
          SUMA_free(dname); dname = NULL;
@@ -3194,6 +3202,70 @@ SUMA_Boolean SUMA_LabelDset(SUMA_DSET *dset, char *lbl)
    SUMA_RETURN(ok);
 }   
 
+/*!
+   Rename a dataset and take care of idcode and relabeling, if necessary 
+*/
+SUMA_Boolean SUMA_RenameDset(SUMA_DSET *dset, char *filename) 
+{
+   static char FuncName[]={"SUMA_RenameDset"};
+   char *ofname=NULL, *ofnameid = NULL, *olabel = NULL;
+   char  *fnameid=NULL, *label=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!filename) {
+      SUMA_S_Err("No filename");
+      SUMA_RETURN(NOPE);
+   }
+   
+   /* Do we have file name already ? */
+   if (!(ofname = SUMA_copy_string(NI_get_attribute(dset->ngr,"filename")))) {
+      ofname = SUMA_copy_string(filename); /* old is new */
+   }
+   
+   /* put the new name in */
+   NI_set_attribute(dset->ngr, "filename", filename);
+   
+   /* what would the new id be based on the new name? */
+   SUMA_NEW_ID(fnameid, filename);
+   /* what would the old id be based on the olde name? */
+   SUMA_NEW_ID(ofnameid, ofname);
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"Old: %s, %s\n"
+                          "New: %s, %s\n", 
+                          ofnameid, ofname,
+                          fnameid, filename);
+   }
+   /* was the olde id based on the old fname? */
+   if (SDSET_ID(dset)) {
+      if (strcmp(SDSET_ID(dset), ofnameid) == 0) {
+         SUMA_LH("Id based on old name");
+         /* need to recreate id based on new name*/
+         NI_set_attribute (dset->ngr, "self_idcode", fnameid);
+      } else { /* id was not based on name, do nothing */
+         SUMA_LH("Id not based on old name");
+      }
+   } else {
+      SUMA_S_Warn("dset with no id, what gives?");
+   }
+   
+   /* what about the label ? */
+   if ((olabel = SDSET_LABEL(dset))) {
+      /* have label already */
+      if (strstr(ofname, olabel)) { /* old label was based on old file name, relabel with new filename */
+         SUMA_LabelDset(dset, filename);
+      }
+   } else { /* no label, put new one in */
+      SUMA_LabelDset(dset, filename);
+   }
+   
+   if (fnameid) SUMA_free(fnameid); fnameid = NULL;
+   if (ofnameid) SUMA_free(ofnameid); ofnameid = NULL;
+   if (ofname) SUMA_free(ofname); ofname = NULL;
+   
+   SUMA_RETURN(YUP);
+}
 
 /*!
    \brief Function to allocate and initialize a dataset and add 
@@ -3247,8 +3319,8 @@ SUMA_DSET * SUMA_CreateDsetPointer (
    
    if (!idcode) { /* No id is given yet */
       if (filename) {
-         if (LocalHead) fprintf(SUMA_STDERR,"%s: Using filename %s to create IDcode.\n", FuncName, filename); 
          SUMA_NEW_ID(locid, filename);   /* form one from the filename */
+         if (LocalHead) fprintf(SUMA_STDERR,"%s: Using filename %s to create IDcode %s.\n", FuncName, filename, locid); 
       } else {
          SUMA_NEW_ID(locid, NULL); 
       } 
@@ -4248,6 +4320,315 @@ float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly)
    SUMA_RETURN(V);
 }
 
+/* 
+given a 1D filename with one column of node indices, create a binary mask for
+a surface of N_Node nodes.
+if omask is specified, then omask is modified and returned per the operator "oper"
+oper can be "or" (or "") or "and"
+*/ 
+byte *SUMA_load_1D_n_mask(char *name, int N_Node, byte *omask, const char *oper, int *N_inmask)
+{
+   static char FuncName[]={"SUMA_load_1D_n_mask"};
+   int kk;
+   float *far=NULL;
+   MRI_IMAGE * im=NULL;
+   byte *out=NULL;
+
+   SUMA_ENTRY;
+   
+   if (*N_inmask) *N_inmask = -1;
+   if (!name) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(NULL); 
+   }
+
+   im = mri_read_1D (name);
+   if (!im) {
+      SUMA_S_Err("Failed to read mask file");  
+      SUMA_RETURN(NULL); 
+   }
+   far = MRI_FLOAT_PTR(im);
+
+   if (!im->nx) {
+      SUMA_S_Err("Empty file");  
+      goto CLEANUP;
+   }
+   
+   if (im->ny != 1 ) {
+      SUMA_S_Err("nmask file must have\n"
+                  " 1 column.");
+      fprintf(SUMA_STDERR,"Have %d columns!\n", im->ny);
+      goto CLEANUP;
+   }
+   if (!omask) {
+      out = (byte *)SUMA_calloc(N_Node, sizeof(byte));
+      if (!out) {
+         SUMA_S_Crit("Failed to allocate"); goto CLEANUP;
+      }
+   } else {
+      out = omask;
+   }
+   if (omask) {
+      if (!oper || oper[0] == '\0' || (oper && strstr(oper, "or"))) {
+         for (kk=0; kk<im->nx; ++kk) {
+            if (far[kk] < 0 || far[kk] >= N_Node) {
+               SUMA_S_Err( "Bad indices in mask file.\n"
+                           "Values either < 0 or >= number\n"
+                           "of nodes in surface.");
+               if (out && out != omask) SUMA_free(out); out = NULL;
+               goto CLEANUP;
+            }
+            out[(int)far[kk]] = 1;   
+         }
+      } else if (oper && strstr(oper, "and")) {
+         for (kk=0; kk<im->nx; ++kk) {
+            if (far[kk] < 0 || far[kk] >= N_Node) {
+               SUMA_S_Err( "Bad indices in mask file.\n"
+                           "Values either < 0 or >= number\n"
+                           "of nodes in surface.");
+               if (out && out != omask) SUMA_free(out); out = NULL;
+               goto CLEANUP;
+            }
+            out[(int)far[kk]] += 1; 
+            if (out[(int)far[kk]] > 2) {
+               SUMA_S_Err("input mask is not binary!\n");
+               if (out && out != omask) SUMA_free(out); out = NULL;
+               goto CLEANUP;   
+            }   
+         }
+         for (kk=0; kk < N_Node; ++kk) {
+            if (out[kk] > 1) out[kk] = 1;
+            else out[kk] = 0;
+         }
+      } else {
+         SUMA_S_Errv("Bad operator %s\n");
+         if (out && out != omask) SUMA_free(out); out = NULL;
+         goto CLEANUP;   
+
+      }
+   } else {
+      for (kk=0; kk<im->nx; ++kk) {
+         if (far[kk] < 0 || far[kk] >= N_Node) {
+            SUMA_S_Err( "Bad indices in mask file.\n"
+                        "Values either < 0 or >= number\n"
+                        "of nodes in surface.");
+            if (out && out != omask) SUMA_free(out); out = NULL;
+            goto CLEANUP;
+         }
+         out[(int)far[kk]] = 1;   
+      }
+   }
+
+   if (*N_inmask) {
+      *N_inmask = 0;
+      for (kk=0; kk<N_Node; ++kk) if (out[kk]) ++(*N_inmask);
+   }
+   
+   CLEANUP:
+   mri_free(im); im = NULL;
+   SUMA_RETURN(out);
+}
+
+/* 
+given a 1D filename with one column of 0s and non zeros, create a binary mask for
+a surface of N_Node nodes. 
+if omask is specified, then omask is modified and returned per the operator "oper"
+oper can be "or" (or "") or "and"
+*/ 
+byte *SUMA_load_1D_b_mask(char *name, int N_Node, byte *omask, const char *oper, int *N_inmask)
+{
+   static char FuncName[]={"SUMA_load_1D_b_mask"};
+   int kk;
+   float *far=NULL;
+   MRI_IMAGE * im=NULL;
+   byte *out=NULL;
+
+   SUMA_ENTRY;
+   
+   if (*N_inmask) *N_inmask = -1;
+   
+   if (!name) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(NULL); 
+   }
+
+   im = mri_read_1D (name);
+   if (!im) {
+      SUMA_S_Err("Failed to read mask file");  
+      SUMA_RETURN(NULL); 
+   }
+   far = MRI_FLOAT_PTR(im);
+
+   if (!im->nx) {
+      SUMA_S_Err("Empty file");  
+      goto CLEANUP;
+   }
+   if (im->ny != 1 ) {
+      SUMA_S_Err("nmask file must have\n"
+                  " 1 column.");
+      fprintf(SUMA_STDERR,"Have %d columns!\n", im->ny);
+      goto CLEANUP;
+   }
+
+   if (im->nx != N_Node) {
+      SUMA_S_Err( "Number of rows in mask file is not \n"
+                  "equal to number of nodes in surface.\n");  
+      goto CLEANUP;
+   }
+
+   if (!omask) {
+      out = (byte *)SUMA_calloc(N_Node, sizeof(byte));
+      if (!out) {
+         SUMA_S_Crit("Failed to allocate"); goto CLEANUP;
+      }
+   } else {
+      out = omask;
+   }
+
+   if (omask) {
+      if (!oper || oper[0] == '\0' || (oper && strstr(oper, "or"))) {
+         for (kk=0; kk<im->nx; ++kk) {
+            if ((int)far[kk]) {
+               out[kk] = 1; 
+               /* fprintf (SUMA_STDERR,"%d   ", kk);  */
+            }
+         }
+      } else if (oper && strstr(oper, "and")) {
+         for (kk=0; kk<im->nx; ++kk) {
+            if ((int)far[kk]&&out[kk]) out[kk] = 1;
+            else out[kk] = 0;
+         }
+      } else {
+         SUMA_S_Errv("Bad operator %s\n");
+         if (out && out != omask) SUMA_free(out); out = NULL;
+         goto CLEANUP;   
+
+      }
+   } else {
+      for (kk=0; kk<im->nx; ++kk) {
+         if ((int)far[kk]) { out[kk] = 1; }
+      }
+   }
+   
+   if (*N_inmask) {
+      *N_inmask = 0;
+      for (kk=0; kk<N_Node; ++kk) if (out[kk]) ++(*N_inmask);
+   }
+   CLEANUP:
+   mri_free(im); im = NULL;
+   SUMA_RETURN(out);
+}
+
+byte *SUMA_get_c_mask(char *mask, int N_Node, byte *omask, const char *oper, int *N_inmask)
+{
+   static char FuncName[]={"SUMA_get_c_mask"};
+   int    clen, ninmask, i, kk;
+	char * cmd;
+   byte *bmask=NULL, *out=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (*N_inmask) *N_inmask = -1;
+   if (!mask) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(bmask);
+   }
+   
+   clen = strlen( mask );
+	/* save original cmask command, as EDT_calcmask() is destructive */
+	cmd = (char *)malloc((clen + 1) * sizeof(char));
+	strcpy( cmd,  mask);
+
+	bmask = EDT_calcmask( cmd, &ninmask );
+
+	free( cmd );		cmd = NULL;	   /* free EDT_calcmask() string */
+
+	if ( bmask == NULL ) {
+	   SUMA_S_Err("Failed to compute mask from -cmask option");
+      SUMA_RETURN(NULL);
+	} 
+	if ( ninmask != N_Node ) {
+	   SUMA_S_Err("Input and cmask datasets do not have "
+		            "the same dimensions\n" );
+	   SUMA_free(bmask); bmask=NULL;
+	   SUMA_RETURN(NULL);
+	}
+   
+   if (!omask) {
+      out = bmask;
+   } else {
+      out = omask;
+      if (!oper || oper[0] == '\0' || (oper && strstr(oper, "or"))) {
+         for (kk=0; kk<ninmask; ++kk) {
+            if (bmask[kk]) {
+               out[kk] = 1; 
+               /* fprintf (SUMA_STDERR,"%d   ", kk);  */
+            }
+         }
+      } else if (oper && strstr(oper, "and")) {
+         for (kk=0; kk<ninmask; ++kk) {
+            if (bmask[kk]&&out[kk]) out[kk] = 1;
+            else out[kk] = 0;
+         }
+      } else {
+         SUMA_S_Errv("Bad operator %s\n");
+         if (out && out != omask) { SUMA_free(out); out = NULL; }
+         else { if (out) SUMA_free(out); out = NULL; }
+         goto CLEANUP;   
+      }
+   }
+   
+   if (*N_inmask) {
+      *N_inmask = 0;
+      for (kk=0; kk<N_Node; ++kk) if (out[kk]) ++(*N_inmask);
+   }
+   
+   CLEANUP:
+   if (bmask && out != bmask) free(bmask); bmask=NULL;
+   
+   SUMA_RETURN(out);
+}
+
+/*!
+   \brief Load and combine all masks on command line
+   mask = SUMA_load_all_command_masks(char *bmaskname, char *nmaskname, char *cmask, int N_Node, int *N_inmask);
+   N_Node is the number of nodes on the recipient surface
+   N_inmask will contain the number of nodes in the mask (if it is -1 then an error occurred)
+   mask is a vector (N_Node) of 1 for nodes in the mask (N_inmask of them) and 0 for nodes not in mask.
+*/   
+byte * SUMA_load_all_command_masks(char *bmaskname, char *nmaskname, char *cmask, int N_Node, int *N_inmask)
+{
+   static char FuncName[]={"SUMA_load_all_command_masks"};
+   byte *nmask=NULL;
+
+   SUMA_ENTRY;
+
+   *N_inmask = -1;   /* indicates an error */
+   
+   if (bmaskname) {
+      if (!(nmask = SUMA_load_1D_b_mask(bmaskname, N_Node, nmask, "and", N_inmask))) {
+         SUMA_S_Err("Failed loading mask");
+         if (nmask) SUMA_free(nmask); nmask=NULL; SUMA_RETURN(nmask);
+      }
+   }
+   if (cmask) {
+      if (!(nmask = SUMA_get_c_mask(cmask, N_Node, nmask, "and", N_inmask))) {
+         SUMA_S_Err("Failed loading mask");
+         if (nmask) SUMA_free(nmask); nmask=NULL; SUMA_RETURN(nmask);
+      }
+   }
+   if (nmaskname) {
+      if (!(nmask = SUMA_load_1D_n_mask(nmaskname, N_Node, nmask, "and", N_inmask))) {
+         SUMA_S_Err("Failed loading mask");
+         if (nmask) SUMA_free(nmask); nmask=NULL; SUMA_RETURN(nmask);
+      }
+   }
+   
+   /* Remove error flag, even if nmask is NULL (no mask to speak of) */
+   *N_inmask = 0;
+   SUMA_RETURN(nmask);
+}
+
 /*!
    \brief Create a byte * mask of indices in ind_list
    \param ind_list (int *) Pointer to vector of n_ind_list (node) indices
@@ -4337,7 +4718,7 @@ SUMA_Boolean SUMA_MakeSparseColumnFullSorted(float **vp, int N_v, float mask_val
       }
    } else {
       /* make sure column range does not exceed N_Node */
-      if (!SUMA_GetDsetNodeIndexColRange(dset, range, loc)) {
+      if (!SUMA_GetDsetNodeIndexColRange(dset, range, loc, 1)) {
          SUMA_S_Err("Failed to get nodedef range");
          SUMA_RETURN(NOPE);
       }
@@ -4645,6 +5026,7 @@ SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, int N_Node)
    int *ind=NULL, i, N_i;
    float *T = NULL;
    int *Ti = NULL;
+   byte *vis=NULL;
    SUMA_Boolean OKfirstCol = NOPE;
    SUMA_Boolean LocalHead = NOPE;
        
@@ -4666,15 +5048,19 @@ SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, int N_Node)
       if (!T) { SUMA_LH("First column does not cut it"); OKfirstCol = NOPE;}
       else {
          Ti = (int *)SUMA_malloc(sizeof(int)*SDSET_VECLEN(dset));
+         vis = (byte *)SUMA_calloc(N_Node, sizeof(byte));
          SUMA_LH("Testing if node indices can be in 1st column...");
-         /* check if all values are ints and if they are within 0 and N_Node -1 */
+         /* check if all values are ints and if they are within 0 and N_Node -1 
+            and that there are no duplicate entries */
          i=0;
          OKfirstCol = YUP;
          while (i <SDSET_VECLEN(dset) && OKfirstCol) {
             Ti[i] = (int)T[i];
-            if ( (T[i] != Ti[i]) || (T[i] < 0) || (T[i] >= N_Node) ) OKfirstCol = NOPE;
+            if ( (T[i] != Ti[i]) || (T[i] < 0) || (Ti[i] >= N_Node) || vis[Ti[i]] ) OKfirstCol = NOPE;
+            else if ( Ti[i] < N_Node ) vis[Ti[i]] = 1;
             ++i;
          }
+         SUMA_free(vis); vis = NULL;
          
          if (!OKfirstCol) { 
             SUMA_SLP_Note( "Assuming node indexing\n"
@@ -4712,13 +5098,47 @@ SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, int N_Node)
       if (Ti) SUMA_free(Ti); Ti = NULL;
       SUMA_RETURN(YUP);
    } else {
-      SUMA_LH("Node index column found");
+      SUMA_LH("Node index column found, element might be empty however, use SUMA_PopulateDsetNodeIndexNel to fill it.");
       /* Nothing to do, return on a positive note */
       SUMA_RETURN(YUP);      
    } 
    
    SUMA_SL_Err("why are you here ?");
    SUMA_RETURN(NOPE);
+}
+
+SUMA_Boolean SUMA_PopulateDsetNodeIndexNel(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_PopulateDsetNodeIndexNel"};
+   int *Ti = NULL; 
+   int i;
+   SUMA_ENTRY;
+
+   if (!dset ) {
+      SUMA_S_Err("NULL input dset");
+   }
+   
+   if (!dset->inel) {
+      SUMA_S_Err("NULL dset->inel");
+   }
+   
+   if (dset->inel && dset->inel->vec_num) {
+      SUMA_S_Note("Dset has node indices. Will not alter list.\n");
+   } else {
+      SUMA_S_Note( "Assuming node indexing\n"
+                     "is explicit. \n"
+                     "1st row is for node 0\n"
+                     "2nd is for node 1, etc.\n" );
+      Ti = (int *) SUMA_calloc(SDSET_VECLEN(dset), sizeof(int));
+      for (i=0; i <SDSET_VECLEN(dset); ++i) Ti[i]=i;
+      if (!SUMA_AddDsetNelCol (dset, "Node Index (inferred)", SUMA_NODE_INDEX, (void *)Ti, NULL, 1)) {
+         SUMA_S_Err("Failed to add column");
+         SUMA_RETURN(NOPE);
+      }
+      SUMA_free(Ti); Ti = NULL; 
+   }
+
+   SUMA_RETURN(YUP);
 }
 
 
@@ -4992,7 +5412,7 @@ char * SUMA_WriteDset_ns (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, in
 char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int overwrite, int verb) 
 {
    static char FuncName[]={"SUMA_WriteDset_eng"};
-   char *PrefOut = NULL, *NameOut = NULL, *strmname=NULL, stmp[500], *eee=NULL;
+   char *PrefOut = NULL, *NameOut = NULL, *strmname=NULL, stmp[500], *eee=NULL, *oName=NULL;
    int flg = 0, exists = 0;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -5004,7 +5424,16 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, i
       SUMA_ShowDset(dset, 0, NULL);
    }  
    if (!dset->ngr) { SUMA_PushErrLog("SL_Err","NULL dset->ngr", FuncName); SUMA_RETURN(NameOut); }
-   if (!Name) { SUMA_PushErrLog("SL_Err","NULL Name", FuncName); SUMA_RETURN(NameOut); }
+   if (!Name) { 
+      if (!(Name=NI_get_attribute(dset->ngr, "filename"))) {
+         SUMA_PushErrLog("SL_Err","NULL Name", FuncName); SUMA_RETURN(NameOut); 
+      }
+   } else {
+      /* call rename dset */
+      if (!SUMA_RenameDset(dset, Name)) {
+         SUMA_PushErrLog("SL_Err","Failed to rename dset", FuncName); SUMA_RETURN(NameOut);
+      }
+   }  
    PrefOut = SUMA_RemoveDsetExtension_ns(Name, form);
    if (!PrefOut) { SUMA_PushErrLog("SL_Err","Failed to write dset", FuncName); SUMA_RETURN(NameOut); }
    
@@ -6765,7 +7194,6 @@ char* SUMA_sdset_idmdom(SUMA_DSET *dset)
    SUMA_RETURN(id);
 }
 
-
    
 
 
@@ -6876,6 +7304,60 @@ char *SUMA_help_talk()
                   "      -feed_afni: Send updates to AFNI via SUMA's talk.\n"
                   "\n");
    SUMA_SS2S(SS,s);               
+   SUMA_RETURN(s);
+}
+char *SUMA_help_dset()
+{
+   SUMA_STRING *SS = NULL;
+   char *s=NULL;
+   static char FuncName[]={"SUMA_help_dset"};
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend(NULL, NULL);
+   SS = SUMA_StringAppend(SS,
+      "  SUMA dataset input options:\n"
+      "      -input DSET: Read DSET1 as input.\n"
+      "                   In programs accepting multiple input datasets\n"
+      "                   you can use -input DSET1 -input DSET2 or \n"
+      "                   input DSET1 DSET2 ...\n"
+      "       NOTE: Selecting subsets of a dataset:\n"
+      "             Much like in AFNI, you can select subsets of a dataset\n"
+      "             by adding qualifiers to DSET.\n"
+      "           Append #SEL# to select certain nodes.\n"
+      "           Append [SEL] to select certain columns.\n"
+      "           Append {SEL} to select certain rows.\n"
+      "           The format of SEL is the same as in AFNI, see section:\n"
+      "           'INPUT DATASET NAMES' in 3dcalc -help for details.\n"
+                  "\n");
+   SUMA_SS2S(SS,s);               
+   SUMA_RETURN(s);
+}
+
+char *SUMA_help_mask()
+{
+   SUMA_STRING *SS = NULL;
+   char *s=NULL;
+   static char FuncName[]={"SUMA_help_mask"};
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend(NULL, NULL);
+   SS = SUMA_StringAppend(SS,
+                  " SUMA mask options:\n"
+                  "      -n_mask INDEXMASK: Apply operations to nodes listed in\n"
+                  "                            INDEXMASK  only. \n"
+                  "      -b_mask BINARYMASK: Similar to -n_mask, except that BINARYMASK\n"
+                  "                          contains 1 for nodes to filter and 0 for nodes to be ignored.\n"
+                  "                          The number of rows in filter_binary_mask must be equal to the\n"
+                  "                          number of nodes forming the surface.\n"
+                  "      -c_mask EXPR: Masking based on the result of EXPR. \n"
+                  "                    Use like afni's -cmask options. See explanation in 3dmaskdump -help \n"
+                  "                    and examples in output of 3dVol2Surf -help\n"
+                  "      NOTE: Unless stated otherwise, if n_mask, b_mask and c_mask are used simultaneously\n"
+                  "            , the resultant mask is the intersection (AND operation) of all masks.\n"
+                  "\n");
+   SUMA_SS2S(SS,s);     
    SUMA_RETURN(s);
 }
 
@@ -7074,7 +7556,7 @@ SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out)
    static char FuncName[]={"SUMA_ShowParsedFname"};
    char *s=NULL;
    SUMA_STRING *SS=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -8007,6 +8489,46 @@ char * SUMA_append_replace_string(char *s1, char *s2, char *Spc, int whichTofree
                          FuncName);
          break;
    }  
+
+   SUMA_RETURN(atr);  
+}   
+ 
+char * SUMA_append_replace_num(char *s1, char *form, double num, SUMA_VARTYPE tp, int whichTofree)
+{
+   static char FuncName[]={"SUMA_append_replace_num"};
+   char *atr = NULL, sbuf[500];
+   int i,cnt, N_s2, N_s1, N_Spc=0;
+
+   
+   SUMA_ENTRY;
+   
+   if (!form) SUMA_RETURN(NULL);
+   if (!s1 && !form) SUMA_RETURN(NULL);
+   if (whichTofree > 1) {
+      SUMA_S_Err("Can only free s1");
+      SUMA_RETURN(NULL);
+   }
+   if (!s1) N_s1 = 0;
+   else N_s1 = strlen(s1);
+   
+   switch(tp) {
+      case SUMA_short:
+      case SUMA_int:
+         snprintf(sbuf, 450, form, (int)num);
+         break;
+      case SUMA_float:
+      case SUMA_double:
+         snprintf(sbuf, 450, form, (double)num);
+         break;
+      default: 
+         snprintf(sbuf, 450, "NUM_FORMAT_ERROR");
+         break; 
+   }  
+         
+   /* fprintf(SUMA_STDERR,"%s: Have %lf num, form:>%s<, sbuf>%s<\n", FuncName, num, form, sbuf); */
+      
+   atr = SUMA_append_replace_string(s1, sbuf, "", whichTofree);
+   
 
    SUMA_RETURN(atr);  
 }    

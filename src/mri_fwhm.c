@@ -53,6 +53,8 @@ THD_fvec3 mriarr_estimate_FWHM_1dif( MRI_IMARR *imar, byte *mask, int unif )
        (e.g., FWHM(z) == -1.0 when nz == 1).
      - Adapted from original 3dFWHM.c by BD Ward.
      - 31 Oct 2006 -- BOO!
+     - A sister function is in SUMA_GeomComp.c if changes are made to this 
+       one, please notify the half-gloved man.
 -----------------------------------------------------------------------------*/
 
 THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE *im , byte *mask )

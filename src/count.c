@@ -9,12 +9,14 @@
 #include <stdlib.h>
 #include <time.h>
 
-int ranco(int,int) ;
+int ranco(int,int, long int) ;
+extern int *z_rand_order(int bot, int top, long int seed);
 
 int main( int argc , char *argv[] )
 {
-   int ii , bot = -1 , top = -1 , step = -1 , rando_count = 0, rando_num ;
+   int ii , bot = -1 , top = -1 , step = -1 , rando_count = 0, rando_num, col ;
    int narg , ndig = 4 , iout ;
+   long int seed = 0;
    static char root[6664] , fmt[128] , suffix[6664] ;
    float sclfac = 0.0 ;
 
@@ -30,9 +32,16 @@ int main( int argc , char *argv[] )
         "* If 'bot' > 'top', counts backwards with stride '-step'.\n"
         "* If step is of the form 'R#', then '#' random counts are produced\n"
         "    in the range 'bot..top' (inclusive).\n"
-        "* 'bot' and 'top' must not be negative; step must be positive.\n"
+        "* If step is of the form 'S', then a random sequence of unique integers\n"
+        "    in the range 'bot..top' (inclusive) is output.\n"
+        "    A number after S ('S#') indicates the number of unique integers\n"
+        "    to output. If # exceeds the number of unique values, the shuffled\n"
+        "    sequence will simply repeat itself.\n"                  
+        "* 'bot' and 'top' must not be negative; step (#) must be positive.\n"
         "\n"
         "Options:\n"
+        "  -seed        seed for random number generator (for S and R above)\n"
+        "  -column      writes output, one number per line\n"
         "  -digits n    prints numbers with 'n' digits [default=4]\n"
         "  -root rrr    prints string 'rrr' before the number [default=empty]\n"
         "  -suffix sss  prints string 'sss' after the number [default=empty]\n"
@@ -60,7 +69,9 @@ int main( int argc , char *argv[] )
    narg      = 1 ;
    root[0]   = '\0' ;
    suffix[0] = '\0' ;
-
+   col = 0;
+   rando_count = 0;
+   seed = 0;
    do {
 
    /*** switches ***/
@@ -73,12 +84,23 @@ int main( int argc , char *argv[] )
          }
          continue ;
       }
+      
+      if( strncmp(argv[narg],"-seed",3) == 0 ){
+         seed = strtol( argv[++narg] , NULL , 10 ) ;
+         continue ;
+      }
 
       if( strncmp(argv[narg],"-root",2) == 0 ){
          strcpy(root,argv[++narg]) ;
          continue ;
       }
-
+      
+      if( strncmp(argv[narg],"-column",4) == 0 ){
+         col = 1 ;
+         continue ;
+      }
+      
+      
       if( strncmp(argv[narg],"-suffix",3) == 0 ){
          strcpy(suffix,argv[++narg]) ;
          continue ;
@@ -123,6 +145,18 @@ int main( int argc , char *argv[] )
                exit(1) ;
             }
             continue ;
+         } else if( argv[narg][0] == 'S' || argv[narg][0] == 's' ){
+            rando_count = 2 ;
+            if (strlen(argv[narg]) > 1) {
+               rando_num   = strtol( argv[narg]+1 , NULL , 10 ) ;
+               if( rando_num <= 0 ){
+                  fprintf( stderr , "illegal value of shuffle count %d\n" , rando_num ) ;
+                  exit(1) ;
+               }
+            } else {
+               rando_num   = -1;
+            }
+            continue ;
          }
          step = strtol( argv[narg] , NULL , 10 ) ;
          if( step <= 0 ){
@@ -141,49 +175,87 @@ int main( int argc , char *argv[] )
 
    if( step <= 0 ) step = 1 ;
 
-   if( sclfac == 0.0 )
-      sprintf( fmt , " %%s%%0%dd%%s" , ndig ) ;
-   else
-      strcpy( fmt , " %s%g%s" ) ;
-
-/*** iterate ***/
-
-   if( ! rando_count ){
-      if( bot <= top ){
-         for( ii=bot ; ii <= top ; ii += step )
-            if( sclfac == 0.0 )
-               printf( fmt , root , ii , suffix ) ;
-            else
-               printf( fmt , root , sclfac*ii , suffix ) ;
-      } else {
-         for( ii=bot ; ii >= top ; ii -= step )
-            if( sclfac == 0.0 )
-               printf( fmt , root , ii , suffix ) ;
-            else
-               printf( fmt , root , sclfac*ii , suffix ) ;
-      }
+   if (col == 0) {
+      if( sclfac == 0.0 )
+         sprintf( fmt , " %%s%%0%dd%%s" , ndig ) ;
+      else
+         strcpy( fmt , " %s%g%s" ) ;
    } else {
+      if( sclfac == 0.0 )
+         sprintf( fmt , " %%s%%0%dd%%s\n" , ndig ) ;
+      else
+         strcpy( fmt , " %s%g%s\n" ) ;
+   }
+/*** iterate ***/
+   /* fprintf(stderr,"bot=%d, top=%d, step=%d\n", bot, top, step); */
+   
+   if( rando_count == 0){
+      if( bot <= top ){
+         for( ii=bot ; ii <= top ; ii += step ) {
+            if (ii==top) suffix[0] = '\0';   /* ZSS Dec 06 */
+            if( sclfac == 0.0 )
+               printf( fmt , root , ii , suffix ) ;
+            else
+               printf( fmt , root , sclfac*ii , suffix ) ;
+         }
+      } else {
+         for( ii=bot ; ii >= top ; ii -= step ) {
+            if (ii==top) suffix[0] = '\0';   /* ZSS Dec 06 */
+            if( sclfac == 0.0 )
+               printf( fmt , root , ii , suffix ) ;
+            else
+               printf( fmt , root , sclfac*ii , suffix ) ;
+         }
+      }
+   } else if (rando_count == 1) {
       for( ii=0 ; ii < rando_num ; ii++ ){
-         iout = ranco( bot , top ) ;
+         iout = ranco( bot , top, seed) ;
+         if (ii==rando_num-1) suffix[0]='\0';
          if( sclfac == 0.0 )
             printf( fmt , root , iout , suffix ) ;
          else
             printf( fmt , root , sclfac*iout , suffix ) ;
       }
+   } else if (rando_count == 2) {
+      int nmax, *ir = z_rand_order(bot, top, seed);
+      if (top < bot) nmax = bot-top+1;
+      else nmax = top-bot+1;
+      if (rando_num == -1) rando_num = nmax;
+      if (nmax < rando_num) {
+         fprintf(stderr,"Warning: requested %d numbers in a shuffled sequence of %d unique values.\n"
+                        "         Sequence will repeat until %d values are output.\n", rando_num, nmax, rando_num);
+      }
+      if (ir) {
+         for( ii=0 ; ii < rando_num ; ii++ ){
+            iout = ir[ii%nmax] ;
+            if (ii==rando_num-1) suffix[0]='\0';
+            if( sclfac == 0.0 )
+               printf( fmt , root , iout , suffix ) ;
+            else
+               printf( fmt , root , sclfac*iout , suffix ) ;
+         }
+         free(ir); ir = NULL;
+      } else {
+         fprintf(stderr,"Failure to plan!\n");
+      }
+   } else {
+      fprintf(stderr,"Should not be here!\n");
+      exit(1);
    }
 
    printf( "\n" ) ;
    exit(0) ;
 }
 
-int ranco( int bot , int top )
+int ranco( int bot , int top , long int seed)
 {
    static int first = 1 ;
    int ir , ii ;
    double dr ;
 
    if( first ){
-      srand48( time(NULL) ) ;
+      if (seed) srand48( seed);
+      else srand48( time(NULL) ) ;
       dr = drand48() ;
       ir = (int)(dr*100) ;
       for( ii=0 ; ii < ir ; ii++ ) dr = drand48() ;
