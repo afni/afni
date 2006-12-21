@@ -254,8 +254,8 @@ int main( int argc , char *argv[] )
        "       **N.B.: Temporary files are written to the directory given\n"
        "               in environment variable TMPDIR, or in /tmp, or in ./\n"
        "               (preference in that order).  If the program crashes,\n"
-       "               these files are named TIM_somethingrandom, and you'll\n"
-       "               have to delete them manually. (TIM=Temporary IMage)\n"
+       "               these files are named TIM_somethingrandom, and you\n"
+       "               may have to delete them manually. (TIM=Temporary IMage)\n"
        "\n"
        " -check kkk  = After cost function optimization is done, start at the\n"
        "               final parameters and RE-optimize using the new cost\n"
@@ -711,9 +711,11 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-quiet") == 0 ){  /* 10 Oct 2006 */
        verb=0 ; iarg++ ; continue ;
      }
+
      if( strcmp(argv[iarg],"-usetemp") == 0 ){  /* 20 Dec 2006 */
+       char *pg = mri_purge_get_tmpdir() ;
        usetemp=1 ; iarg++ ;
-       INFO_message("-usetemp: if program crashes, delete TIM_* files!") ;
+       INFO_message("-usetemp: if program crashes, do /bin/rm -f %s/TIM_*",pg);
        continue ;
      }
 

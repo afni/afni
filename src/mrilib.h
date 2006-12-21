@@ -224,16 +224,21 @@ static rgbyte tEMp_rgbyte_aAa ;
 /*! A union type to hold all possible MRI_IMAGE types.
     This was created before I really understood how to use void *. */
 
-typedef union MRI_DATA {
-         byte     *byte_data ;
-         short    *short_data ;
-         int      *int_data ;
-         float    *float_data ;
-         double   *double_data ;
-         complex  *complex_data ;
-         byte     *rgb_data ;      /* Apr 1996: not well supported yet */
-         rgba     *rgba_data ;     /* Mar 2002 */
-} MRI_DATA ;
+#undef USE_UNION_DATA
+#ifdef USE_UNION_DATA
+  typedef union MRI_DATA {
+            byte     *byte_data ;
+            short    *short_data ;
+            int      *int_data ;
+            float    *float_data ;
+            double   *double_data ;
+            complex  *complex_data ;
+            byte     *rgb_data ;      /* Apr 1996: not well supported yet */
+            rgba     *rgba_data ;     /* Mar 2002 */
+  } MRI_DATA ;
+#else
+# define MRI_DATA void *              /* 21 Dec 2006: the big changeover */
+#endif
 
 /** Mar 1996: Extended to images up to 7D;
               Not all routines work with images > 2D --
@@ -578,9 +583,11 @@ extern void        mri_add_fname_delay( char * , MRI_IMAGE * ) ;
 extern MRI_IMARR * mri_read_file_delay( char * ) ;
 extern MRI_IMARR * mri_read_3D_delay( char * ) ;
 
-extern void        mri_purge    ( MRI_IMAGE * ) ;  /* 20 Dec 2006 */
-extern void        mri_unpurge  ( MRI_IMAGE * ) ;
-extern void        mri_killpurge( MRI_IMAGE * ) ;
+extern void   mri_purge    ( MRI_IMAGE * ) ;  /* 20 Dec 2006 */
+extern void   mri_unpurge  ( MRI_IMAGE * ) ;
+extern void   mri_killpurge( MRI_IMAGE * ) ;
+extern char * mri_purge_get_tmpdir(void) ;    /* 21 Dec 2006 */
+
 #define MRI_IS_PURGED(iq) (((iq)->fondisk==IS_PURGED)&&(iq)->fname!=NULL)
 
 extern int mri_equal( MRI_IMAGE *, MRI_IMAGE * ) ; /* 30 Jun 2003 */
@@ -645,15 +652,18 @@ extern void csfft_use_fftw( int ) ;     /* 20 Oct 2000 */
 
 extern void mri_fftshift( MRI_IMAGE *, float,float,float, int ) ; /* 13 May 2003 */
 
-extern void *mri_data_pointer( MRI_IMAGE * ) ;
+extern void * mri_data_pointer( MRI_IMAGE * ) ;
 extern void mri_free( MRI_IMAGE * ) ;
 extern void mri_fix_data_pointer( void * , MRI_IMAGE * ) ;
 #define mri_set_data_pointer(iq,pt) mri_fix_data_pointer((pt),(iq))
 
 #define MRI_FREE(iq) do{ mri_free(iq); (iq)=NULL; } while(0)
 
-extern void *mri_data_pointer_unvarnished( MRI_IMAGE *im ) ; /* 20 Dec 2006 */
-
+#ifdef USE_UNION_DATA
+  extern void * mri_data_pointer_unvarnished( MRI_IMAGE *im ) ;
+#else
+# define mri_data_pointer_unvarnished(iq) ((iq)->im)
+#endif 
 
 extern char * mri_dicom_header( char * ) ;  /* 15 Jul 2002 */
 extern void   mri_dicom_pxlarr( off_t *, int * ) ;

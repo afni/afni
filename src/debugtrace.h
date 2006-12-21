@@ -104,6 +104,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
      case SIGSEGV: sname = "SIGSEGV" ; break ;
      case SIGBUS:  sname = "SIGBUS"  ; break ;
      case SIGINT:  sname = "SIGINT"  ; break ;
+     case SIGTERM: sname = "SIGTERM" ; break ;
    }
    fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname) ;
    if( last_status[0] != '\0' )
@@ -141,7 +142,8 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 #define DBG_SIGNALS ( signal(SIGPIPE,DBG_sigfunc) , \
                       signal(SIGSEGV,DBG_sigfunc) , \
                       signal(SIGINT ,DBG_sigfunc) , \
-                      signal(SIGBUS ,DBG_sigfunc)  )
+                      signal(SIGBUS ,DBG_sigfunc) , \
+                      signal(SIGTERM,DBG_sigfunc) )
 /*---------------------------------------------------------------*/
 
 /* macros for entering and exiting a function */

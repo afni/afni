@@ -1016,6 +1016,7 @@ ENTRY("mri_genalign_scalar_setup") ;
          }
        }
      }
+     if( stup->usetemp ) mri_purge(stup->bwght) ;  /* 21 Dec 2006 */
 
      /* do match_code specific pre-processing of the extracted data */
 
