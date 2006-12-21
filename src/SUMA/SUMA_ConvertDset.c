@@ -50,6 +50,7 @@ void usage_ConverDset()
             "           1D_stderr, 1D_stdout, niml_stderr, or niml_stdout\n"
             "     -input DSET: Input dataset to be converted.\n"
             "  Optional parameters:\n"
+            "     -add_node_index: Add a node index element if one does not exist\n"
             "     -node_index_1D INDEX.1D: Specify file containing node indices\n"
             "                              Use this to provide node indices with \n"
             "                              a .1D dset\n"
@@ -82,7 +83,7 @@ void usage_ConverDset()
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ConvertDset"};
-   int kar, brk, i_input, i, j, *Ti=NULL, *indexmap = NULL;
+   int kar, brk, i_input, i, j, *Ti=NULL, *indexmap = NULL, force_node_index ;
    byte *Tb=NULL;
    float *fv = NULL;
    SUMA_DSET_FORMAT iform, oform;
@@ -100,6 +101,7 @@ int main (int argc,char *argv[])
       exit (1);
    }
 
+   force_node_index = 0;
    iform = SUMA_NO_DSET_FORMAT;
    oform = SUMA_NO_DSET_FORMAT;
    i_input = -1;
@@ -277,6 +279,13 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-add_node_index") == 0))
+      {
+         
+         force_node_index = 1;
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-prefix") == 0))
       {
          if (kar+1 >= argc) {
@@ -349,7 +358,13 @@ int main (int argc,char *argv[])
          SUMA_FreeDset(dseti); dseti = NULL;
       }
       
-
+      if (force_node_index) {
+         if (!SUMA_PopulateDsetNodeIndexNel(dset)) {
+            SUMA_S_Err("Failed to add node index column");
+            exit(1);
+         }
+      }
+      
       if (node_mask) { /* mask dataset */
          iform = SUMA_1D;
          if (!(dseti = SUMA_LoadDset_s (node_mask, &iform, 0))) {

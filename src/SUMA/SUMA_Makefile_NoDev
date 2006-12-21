@@ -17,7 +17,7 @@ SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c SUMA_MiscFunc.c SUMA_IV
 		 SUMA_Engine.c SUMA_Surface_IO.c SUMA_VolData.c SUMA_niml.c SUMA_Color.c	\
 		 SUMA_GeomComp.c SUMA_SphericalMapping.c SUMA_DataSets.c	\
 		 SUMA_Homer.c SUMA_xColBar.c SUMA_SurfClust.c SUMA_IsoSurface.c SUMA_ConvexHull.c SUMA_BrainWrap.c \
-		 SUMA_SurfaceToSurface.c
+		 SUMA_SurfaceToSurface.c SUMA_LocalStat.c
        
 SUMA_gts.o: SUMA_gts.c
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} ${SUMA_INPATH} -c SUMA_gts.c 
@@ -100,75 +100,93 @@ suma: libSUMA.a SUMA_suma.o
 
 MakeColorMap: SUMA_MakeColorMap.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_MakeColorMap_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_MakeColorMap.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_MakeColorMap_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_MakeColorMap.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 ScaleToMap: SUMA_ScaleToMap.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_ScaleToMap_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_ScaleToMap.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_ScaleToMap_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_ScaleToMap.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SUMA_FreeSurfer: SUMA_Surface_IO.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_FreeSurfer_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Surface_IO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_FreeSurfer_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_Surface_IO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SUMA_Read_SpecFile: SUMA_Load_Surface_Object.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_Read_SpecFile_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Load_Surface_Object.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_Read_SpecFile_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_Load_Surface_Object.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SUMA_Load_Surface_Object: SUMA_Load_Surface_Object.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_Load_Surface_Object_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Load_Surface_Object.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_Load_Surface_Object_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_Load_Surface_Object.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SUMA_SureFit: SUMA_Surface_IO.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_SureFit_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Surface_IO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_SureFit_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_Surface_IO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 CompareSurfaces: SUMA_compare_surfaces.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_compare_surfaces_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_compare_surfaces.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_compare_surfaces_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_compare_surfaces.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SUMA_inflate_compare: SUMA_inflate_compare.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_inflate_compare_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_inflate_compare.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_inflate_compare_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_inflate_compare.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 CreateIcosahedron: SUMA_SphericalMapping.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_CreateIcosahedron_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_SphericalMapping.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_CreateIcosahedron_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_SphericalMapping.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SUMA_Map_SurfacetoSurface: SUMA_SphericalMapping.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_Map_SurfacetoSurface_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_SphericalMapping.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_Map_SurfacetoSurface_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_SphericalMapping.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 MapIcosahedron: SUMA_SphericalMapping.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_MapIcosahedron_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_SphericalMapping.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_MapIcosahedron_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_SphericalMapping.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SUMA_SurfNorm: SUMA_SurfNorm.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_SurfNorm_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_SurfNorm.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_SurfNorm_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_SurfNorm.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SUMA_Ply_Read: SUMA_Surface_IO.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_Ply_Read_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Surface_IO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_Ply_Read_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_Surface_IO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SUMA_ParseName: SUMA_StripPath.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_ParseName_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_StripPath.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_ParseName_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_StripPath.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
  
 ConvertSurface: SUMA_ConvertSurface.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_ConvertSurface_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_ConvertSurface.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_ConvertSurface_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_ConvertSurface.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfaceMetrics: SUMA_SurfaceMetrics.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_SurfaceMetrics_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_SurfaceMetrics.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_SurfaceMetrics_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_SurfaceMetrics.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 inspec: SUMA_Load_Surface_Object.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_inspec_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Load_Surface_Object.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_inspec_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_Load_Surface_Object.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 quickspec: SUMA_Load_Surface_Object.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_quickspec_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Load_Surface_Object.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_quickspec_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_Load_Surface_Object.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 #>>>>>>>>>>>>>>>>>> Begin special block, compiling without all of SUMA's load <<<<<<<<<<<<<<<<<<<<
 #A special compilation of SUMA_DataSets and SUMA_Algorithms, without SUMA_COMPILED defined
@@ -192,35 +210,40 @@ SUMA_TestDsetIO_NS: SUMA_TestDsetIO.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o
 #SUMA_TestDsetIO Should be the same as  SUMA_TestDsetIO_NS but it uses SUMA_COMPILED and it links to libSUMA.a
 SUMA_TestDsetIO: SUMA_TestDsetIO.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_TestDsetIO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} SUMA_TestDsetIO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 ConvertDset: SUMA_ConvertDset.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_ConvertDset.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} SUMA_ConvertDset.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 ROI2dataset: SUMA_ROI2dataset.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_ROI2dataset_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_ROI2dataset.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_ROI2dataset_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} SUMA_ROI2dataset.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfSmooth: SUMA_GeomComp.c SUMA_SurfSmooth.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_SurfSmooth_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_SurfSmooth.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_SurfSmooth_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_SurfSmooth.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfPatch: SUMA_SurfPatch.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_getPatch_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_SurfPatch.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_getPatch_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_SurfPatch.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfQual: SUMA_SurfQual.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_SurfQual_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_SurfQual.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_SurfQual_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_SurfQual.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SUMA_Homer: SUMA_Homer.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_Homer_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Homer.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_Homer_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_Homer.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfClust: SUMA_SurfClust.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED -DSUMA_SurfClust_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_SurfClust.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED -DSUMA_SurfClust_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_SurfClust.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 IsoSurface: SUMA_IsoSurface.c MarchingCubes.o
 	$(RM) $@
@@ -382,6 +405,12 @@ SurfInfo: SUMA_SurfInfo.c
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
+SurfLocalstat: SUMA_SurfLocalStat.c
+	$(RM) $@
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SurfLocalStat.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
+		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+
 ROIgrow: SUMA_ROIgrow.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_ROIgrow.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
@@ -507,6 +536,7 @@ install:
 	@if [ -f AnalyzeTrace ]; then mv AnalyzeTrace ${INSTALLDIR_SUMA}; fi;
 	@if [ -f DriveSuma ]; then mv DriveSuma ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SumaProgramTemplate ]; then mv SumaProgramTemplate ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SurfLocalstat ]; then mv SurfLocalstat ${INSTALLDIR_SUMA}; fi;
 
 packbins:
 	if [ ! -d SUMA_bin	]; then $(MKDIR) SUMA_bin; fi
@@ -560,6 +590,7 @@ packbins:
 	@if [ -f AnalyzeTrace ]; then $(CP) -p AnalyzeTrace SUMA_bin/; fi;
 	@if [ -f DriveSuma ]; then $(CP) -p DriveSuma SUMA_bin/; fi;
 	@if [ -f SumaProgramTemplate ]; then $(CP) -p SumaProgramTemplate SUMA_bin/; fi;
+	@if [ -f SurfLocalstat ]; then $(CP) -p SurfLocalstat SUMA_bin/; fi;
 
 	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
 	${RM} -r SUMA_bin
@@ -575,7 +606,7 @@ standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
 	ROI2dataset SurfSmooth SurfPatch SurfQual inspec quickspec FScurv_to_1D FSread_annot	\
    SUMA_TestDsetIO ConvertDset ShowCmap SurfClust IsoSurface 3dSkullStrip \
    3dCRUISEtoAFNI	3dBRAIN_VOYAGERtoAFNI 3dSurfMask SurfToSurf ROIgrow\
-   NikoMap SurfDsetInfo SurfInfo AnalyzeTrace DriveSuma SumaProgramTemplate 
+   NikoMap SurfDsetInfo SurfInfo AnalyzeTrace DriveSuma SurfLocalstat SumaProgramTemplate 
    
  
 anew: clean libSUMA.a mainobj suma standalones packbins install 

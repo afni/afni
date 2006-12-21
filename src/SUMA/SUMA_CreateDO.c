@@ -4563,6 +4563,9 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             GLfloat rpos[4];
             char  string[]= {"Yo Baby sssup? 1 2 3, 4.2 mm"};
             int is;
+            int ShowString = 0;
+            int ShowImage = 0;
+            int ShowTexture = 0;
             float txcol[3] = {0.2, 0.5, 1};
             static int width, height;
 
@@ -4587,7 +4590,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                            "Might affect la drawing\n"
                            "color elsewhere");
             glColor3fv(txcol); 
-            for (is=0; string[is] != '\0'; is++) {
+            for (is=0; ShowString && string[is] != '\0'; is++) {
                glutBitmapCharacter(GLUT_BITMAP_9_BY_15, string[is]);
             }  
             glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissidity for text*/
@@ -4595,10 +4598,10 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             if (!image) {
                FILE *fid;
                SUMA_SL_Note(  "Reading the image.");
-               image = SUMA_read_ppm("IMG_0526.ppm", &width, &height, 1);
+               image = SUMA_read_ppm("/Users/ziad/Pictures/IMG_0526.ppm", &width, &height, 1);
                if (!image) {
                   SUMA_SL_Err("Failed to read image.");
-               }else{
+               }else if (ShowTexture) {
                   #if TestTexture
                   SUMA_SL_Note("Creating texture, see init pp 415 in OpenGL programming guide, 3red");
                   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -4629,7 +4632,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                */
                
             }
-            if (image) {
+            if (ShowImage && image) {
                SUMA_SL_Note(  "Drawing the image.");
                /* NOTE. The raster position has been pushed aside by the string.
                If you want it back, you need a new call to glRasterPos3f */
@@ -5213,8 +5216,11 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       } else {
          if (MaxShow > SO->EL->N_EL) MaxShow = SO->EL->N_EL; 
          sprintf (stmp, "SO->EL, %d edges, %d unique edges.\n"
+                        "Sloppy avg seg. length: %f\n"
                         "max_Hosts %d, min_Hosts %d (showing %d out of %d elements):\n", \
-               SO->EL->N_EL, SO->EL->N_Distinct_Edges, SO->EL->max_N_Hosts, SO->EL->min_N_Hosts, MaxShow, SO->EL->N_EL);
+               SO->EL->N_EL, SO->EL->N_Distinct_Edges, 
+               SO->EL->AvgLe,
+               SO->EL->max_N_Hosts, SO->EL->min_N_Hosts, MaxShow, SO->EL->N_EL);
          SS = SUMA_StringAppend (SS,stmp);
          for (i=0; i < MaxShow ; ++i)   {
             sprintf (stmp,"\tEdge %d: %d %d\tFlip %d Tri %d N_tri %d\n",\

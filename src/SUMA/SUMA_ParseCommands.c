@@ -232,6 +232,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"load_dset")) SUMA_RETURN(SE_OpenDsetFile);  
    if (!strcmp(Scom,"surf_cont")) SUMA_RETURN(SE_SetSurfCont);
    if (!strcmp(Scom,"viewer_cont")) SUMA_RETURN(SE_SetViewerCont);
+   if (!strcmp(Scom,"recorder_cont")) SUMA_RETURN(SE_SetRecorderCont);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    
    /* Last one is Bad Code */
@@ -252,6 +253,7 @@ SUMA_NI_COMMAND_CODE SUMA_niCommandCode(char *Scom)
    /*fprintf(stdout,"Looking for %s\n", Scom);*/
    if (!strcmp(Scom,"surf_cont")) SUMA_RETURN(SE_niSetSurfCont);
    if (!strcmp(Scom,"viewer_cont")) SUMA_RETURN(SE_niSetViewerCont);
+   if (!strcmp(Scom,"recorder_cont")) SUMA_RETURN(SE_niSetRecorderCont);
    if (!strcmp(Scom,"kill_suma")) SUMA_RETURN(SE_niKillSuma);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_ni);*/
    
@@ -448,6 +450,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("surf_cont"); 
       case SE_SetViewerCont:
          SUMA_RETURN("viewer_cont"); 
+      case SE_SetRecorderCont:
+         SUMA_RETURN("recorder_cont"); 
       /*case SE_:
          SUMA_RETURN("");      */
       default:        
@@ -467,6 +471,8 @@ const char *SUMA_niCommandString (SUMA_NI_COMMAND_CODE code)
          SUMA_RETURN("surf_cont"); 
       case SE_niSetViewerCont:
          SUMA_RETURN("viewer_cont");
+      case SE_niSetRecorderCont:
+         SUMA_RETURN("recorder_cont");
       case SE_niKillSuma:
          SUMA_RETURN("kill_suma"); 
       /*case SE_ni:
@@ -2731,6 +2737,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    
    Opt->com = NULL;
    Opt->N_com = 0;
+   
+   Opt->ps = NULL; /* just a holder */
    SUMA_RETURN(Opt);
 }
    
@@ -2742,6 +2750,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
    
    if (!Opt) SUMA_RETURN(NULL);
    
+   Opt->ps = NULL; /* DO NOT FREE THIS ONE HERE */
    if (Opt->OrigSpatNormedSet && Opt->OrigSpatNormedSet != Opt->in_vol) { DSET_delete(Opt->OrigSpatNormedSet); Opt->OrigSpatNormedSet = NULL; }
    else Opt->OrigSpatNormedSet = NULL;
 
@@ -2785,6 +2794,9 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_CreateGenericArgParse(char *optflags)
    SUMA_ENTRY;
    
    ps = (SUMA_GENERIC_ARGV_PARSE*)SUMA_malloc(sizeof(SUMA_GENERIC_ARGV_PARSE));
+   ps->cmask = NULL;
+   ps->nmaskname = NULL;
+   ps->bmaskname = NULL;
    
    ps->cs = NULL;
    
@@ -2804,6 +2816,11 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_CreateGenericArgParse(char *optflags)
       ps->vp[i] = NULL; ps->N_vp = 0;
    }
    
+   ps->N_dsetname = 0;
+   for (i=0; i<SUMA_MAX_DSET_ON_COMMAND; ++i) {
+      ps->dsetname[i]=NULL;
+   }
+   
    for (i=0; i< SUMA_N_ARGS_MAX; ++i) {
       ps->arg_checked[i] = 0;
    }
@@ -2817,6 +2834,9 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_CreateGenericArgParse(char *optflags)
    if (SUMA_iswordin(optflags,"-spec;")) ps->accept_spec = 1; else ps->accept_spec = 0;
    if (SUMA_iswordin(optflags,"-sv;")) ps->accept_sv = 1; else ps->accept_sv = 0;
    if (SUMA_iswordin(optflags,"-talk;")) ps->accept_talk_suma = 1; else ps->accept_talk_suma = 0;
+   if (SUMA_iswordin(optflags,"-m;")||SUMA_iswordin(optflags,"-mask;")) ps->accept_mask = 1; else ps->accept_mask = 0;
+   if (SUMA_iswordin(optflags,"-dset;")||SUMA_iswordin(optflags,"-d;")) ps->accept_dset = 1; else ps->accept_dset = 0;
+   
    ps->check_input_surf = 1;
    
    SUMA_RETURN(ps);
@@ -2857,6 +2877,13 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_FreeGenericArgParse(SUMA_GENERIC_ARGV_PARSE *ps)
          if (ps->sv[i]) SUMA_free(ps->sv[i]); ps->sv[i] = NULL;
          if (ps->vp[i]) SUMA_free(ps->vp[i]); ps->vp[i] = NULL;
       }
+      for (i=0; i<SUMA_MAX_DSET_ON_COMMAND; ++i) {
+         if (ps->dsetname[i]) SUMA_free(ps->dsetname[i]); ps->dsetname[i]=NULL;
+      }
+      
+      if (ps->nmaskname) SUMA_free(ps->nmaskname); ps->nmaskname = NULL;
+      if (ps->bmaskname) SUMA_free(ps->nmaskname); ps->nmaskname = NULL;
+      if (ps->cmask) SUMA_free(ps->cmask); ps->cmask = NULL;
       if (ps->cs) SUMA_Free_CommSrtuct(ps->cs); ps->cs = NULL;
       SUMA_free(ps); ps = NULL;  
    } 
@@ -2997,6 +3024,28 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
       );
    }
    
+   if (opt->accept_dset) {
+      st = SUMA_help_dset();
+      SS = SUMA_StringAppend_va (SS,
+                  "\n"
+                  "%s"
+                  "\n", 
+                  st
+      );
+      SUMA_free(st); st = NULL;
+   }
+   
+   if (opt->accept_mask) {
+      st = SUMA_help_mask();
+      SS = SUMA_StringAppend_va (SS,
+                  "\n"
+                  "%s"
+                  "\n", 
+                  st
+      );
+      SUMA_free(st); st = NULL;
+   }
+   
    if (opt->accept_talk_suma) {
       st = SUMA_help_talk();
       SS = SUMA_StringAppend_va (SS,
@@ -3022,7 +3071,7 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
 SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optflags)
 {
    static char FuncName[]={"SUMA_Parse_IO_Args"};
-   int i, kar, ind, N_name;
+   int i, kar, ind, N_name, MoreInput =0;
    SUMA_Boolean brk = NOPE;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -3044,7 +3093,68 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
    kar = 1;
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
-      if (ps->accept_talk_suma) {
+      if (!brk && ps->accept_mask) {
+         if (!brk && (strcmp(argv[kar], "-n_mask") == 0)) {
+            ps->arg_checked[kar]=1; kar ++;
+			   if (kar >= argc)  {
+		  		   fprintf (SUMA_STDERR, "need 1 argument after -n_mask \n");
+				   exit (1);
+			   }
+			   ps->nmaskname = SUMA_copy_string(argv[kar]);
+            ps->arg_checked[kar]=1; 
+			   brk = YUP;
+		   }
+         if (!brk && (strcmp(argv[kar], "-cmask") == 0 || strcmp(argv[kar], "-c_mask") == 0)) {
+            ps->arg_checked[kar]=1; kar ++;
+			   if (kar >= argc)  {
+		  		   fprintf (SUMA_STDERR, "need 1 argument after -c_mask \n");
+				   exit (1);
+			   }
+			   ps->cmask = SUMA_copy_string(argv[kar]); 
+            ps->arg_checked[kar]=1;
+			   brk = YUP;
+		   }
+         if (!brk && (strcmp(argv[kar], "-b_mask") == 0)) {
+            kar ++;
+			   if (kar >= argc)  {
+		  		   fprintf (SUMA_STDERR, "need 1 argument after -b_mask \n");
+				   exit (1);
+			   }
+			   ps->bmaskname = SUMA_copy_string(argv[kar]); 
+            ps->arg_checked[kar]=1;
+			   brk = YUP;
+		   }
+      }
+      if (!brk && ps->accept_dset) {
+        if (!brk && (strcmp(argv[kar], "-input") == 0)) {
+			   if (kar+1 >= argc)  {
+		  		   fprintf (SUMA_STDERR, "need 1 argument after -input \n");
+				   exit (1);
+			   }
+            ps->N_dsetname = 0;
+            do {
+               ps->arg_checked[kar]=1; ++kar;
+               /* do we have a - as the first char ? */
+               if (argv[kar][0] == '-') {
+                  fprintf (SUMA_STDERR, "no option should directly follow -input \n");
+				      exit (1);
+               }
+			      if (ps->N_dsetname+1 < SUMA_MAX_DSET_ON_COMMAND) {
+                  ps->dsetname[ps->N_dsetname] = SUMA_copy_string(argv[kar]);
+                  SUMA_LHv("Got %s\n", ps->dsetname[ps->N_dsetname]);
+                  ++ps->N_dsetname;
+               } else {
+                  SUMA_S_Errv("Too many dsets on command line.\nMaximum of %d is allowed.\n", SUMA_MAX_DSET_ON_COMMAND);
+                  exit (1);
+               }
+               ps->arg_checked[kar]=1;
+               if (kar+1>= argc || argv[kar+1][0] == '-') { SUMA_LH("No more input"); MoreInput = 0; }
+               else { SUMA_LH("More input"); MoreInput = 1; }
+            } while (MoreInput);             
+			   brk = YUP;
+		  } 
+      }
+      if (!brk && ps->accept_talk_suma) {
          if (!brk && (strcmp(argv[kar], "-talk_suma") == 0)) {
             ps->arg_checked[kar]=1;
             ps->cs->talk_suma = 1;
@@ -3141,7 +3251,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
            
       }
       
-      if (ps->accept_sv) {
+      if (!brk && ps->accept_sv) {
          if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
@@ -3168,7 +3278,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             brk = YUP;
 		   }   
       }
-      if (ps->accept_spec || ps->accept_s) {
+      if (!brk && (ps->accept_spec || ps->accept_s)) {
          if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
@@ -3185,7 +3295,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             brk = YUP;
 		   }   
       }
-      if (ps->accept_s) {
+      if (!brk && ps->accept_s) {
          if (!brk && (strncmp(argv[kar], "-surf_", 6) == 0)) {
             ps->arg_checked[kar]=1;
 		      if (kar + 1>= argc)  {
@@ -3232,7 +3342,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             brk = YUP;
 	      }  
       }
-      if (ps->accept_i) {
+      if (!brk && ps->accept_i) {
          SUMA_LHv("accept_i %d (argv[%d]=%s)\n", ps->accept_i, kar, argv[kar]);
          if (!brk && ( (strcmp(argv[kar], "-i_bv") == 0) || (strcmp(argv[kar], "-i_BV") == 0) ) ) {
             ps->arg_checked[kar]=1;
@@ -3368,7 +3478,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                   
       }
       
-      if (ps->accept_ipar) {
+      if (!brk && ps->accept_ipar) {
          if (!brk && ( (strcmp(argv[kar], "-ipar_bv") == 0) || (strcmp(argv[kar], "-ipar_BV") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
@@ -3502,7 +3612,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
          }         
       }      
       
-      if (ps->accept_t) {
+      if (!brk && ps->accept_t) {
          if (!brk && (strcmp(argv[kar], "-tn") == 0)) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
@@ -3594,7 +3704,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 		   }
           
       }
-      if (ps->accept_o) {
+      if (!brk && ps->accept_o) {
          if (!brk && ( (strcmp(argv[kar], "-o_fs") == 0) || (strcmp(argv[kar], "-o_FS") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
@@ -3736,6 +3846,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
     
    SUMA_RETURN(ps);
 }
+
 
  
 #ifdef STAND_ALONE

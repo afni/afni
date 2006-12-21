@@ -4,6 +4,102 @@
 /* structures to be used by most command line programs */
 #define SUMA_GENERIC_PROG_MAX_SURF 10  /*!< Maximum number of surfaces allowed*/
 #define SUMA_GENERIC_PROG_MAX_IN_NAME 500 /*!< Maximum number of input dsets allowed*/
+
+#define SUMA_MAX_SURF_ON_COMMAND 100
+#define SUMA_MAX_DSET_ON_COMMAND 1000
+#define SUMA_N_ARGS_MAX 1000
+
+typedef struct {
+   /* spec related input */
+   char *spec_names[SUMA_MAX_SURF_ON_COMMAND];
+   int N_spec_names;
+   
+   char *s_surfnames[SUMA_MAX_SURF_ON_COMMAND];
+   char *s_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
+   char *s_surfpath[SUMA_MAX_SURF_ON_COMMAND];
+   int s_N_surfnames;
+   
+   /* -i_ related input */
+   char *i_surfnames[SUMA_MAX_SURF_ON_COMMAND];
+   char *i_surftopo[SUMA_MAX_SURF_ON_COMMAND];
+   char *i_surfpath[SUMA_MAX_SURF_ON_COMMAND];
+   char *i_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
+   char *i_state[SUMA_MAX_SURF_ON_COMMAND];
+   char *i_group[SUMA_MAX_SURF_ON_COMMAND];
+   int i_anatomical[SUMA_MAX_SURF_ON_COMMAND];
+   int i_N_surfnames;
+   SUMA_SO_File_Format i_FF[SUMA_MAX_SURF_ON_COMMAND];
+   SUMA_SO_File_Type i_FT[SUMA_MAX_SURF_ON_COMMAND];
+   
+   /* -ipar_ related input */
+   char *ipar_surfnames[SUMA_MAX_SURF_ON_COMMAND];
+   char *ipar_surftopo[SUMA_MAX_SURF_ON_COMMAND];
+   char *ipar_surfpath[SUMA_MAX_SURF_ON_COMMAND];
+   char *ipar_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
+   char *ipar_state[SUMA_MAX_SURF_ON_COMMAND];
+   char *ipar_group[SUMA_MAX_SURF_ON_COMMAND];
+   int ipar_anatomical[SUMA_MAX_SURF_ON_COMMAND];
+   int ipar_N_surfnames;
+   SUMA_SO_File_Format ipar_FF[SUMA_MAX_SURF_ON_COMMAND];
+   SUMA_SO_File_Type ipar_FT[SUMA_MAX_SURF_ON_COMMAND];
+   
+   /* -o_related input */
+   char *o_surfnames[SUMA_MAX_SURF_ON_COMMAND];
+   char *o_surftopo[SUMA_MAX_SURF_ON_COMMAND];
+   char *o_surfpath[SUMA_MAX_SURF_ON_COMMAND];
+   char *o_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
+   char *o_state[SUMA_MAX_SURF_ON_COMMAND];
+   char *o_group[SUMA_MAX_SURF_ON_COMMAND];
+   int o_anatomical[SUMA_MAX_SURF_ON_COMMAND];
+   int o_N_surfnames;
+   SUMA_SO_File_Format o_FF[SUMA_MAX_SURF_ON_COMMAND];
+   SUMA_SO_File_Type o_FT[SUMA_MAX_SURF_ON_COMMAND];
+   
+   /* -t_related input */
+   char *t_surfnames[SUMA_MAX_SURF_ON_COMMAND];
+   char *t_surftopo[SUMA_MAX_SURF_ON_COMMAND];
+   char *t_surfpath[SUMA_MAX_SURF_ON_COMMAND];
+   char *t_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
+   char *t_state[SUMA_MAX_SURF_ON_COMMAND];
+   char *t_group[SUMA_MAX_SURF_ON_COMMAND];
+   int t_anatomical[SUMA_MAX_SURF_ON_COMMAND];
+   int t_N_surfnames;
+   SUMA_SO_File_Format t_FF[SUMA_MAX_SURF_ON_COMMAND];
+   SUMA_SO_File_Type t_FT[SUMA_MAX_SURF_ON_COMMAND];
+   
+   byte arg_checked[SUMA_N_ARGS_MAX];
+   int N_args;
+   char *sv[SUMA_MAX_SURF_ON_COMMAND];
+   int N_sv;
+   char *vp[SUMA_MAX_SURF_ON_COMMAND];
+   int N_vp;
+   
+   /* -talk_suma options */
+   SUMA_COMM_STRUCT *cs;
+
+   /* mask fields */
+   char *cmask ;
+   char *bmaskname ;
+   char *nmaskname ;
+
+   /* dsets */
+   char *dsetname[SUMA_MAX_DSET_ON_COMMAND];
+   int N_dsetname;
+   
+   /* flags for what to read */
+   byte accept_t;
+   byte accept_s;
+   byte accept_i;
+   byte accept_ipar;
+   byte accept_o;
+   byte accept_spec;
+   byte accept_sv;
+   byte accept_talk_suma;
+   byte check_input_surf;
+   byte accept_mask;
+   byte accept_dset;
+} SUMA_GENERIC_ARGV_PARSE;
+
 typedef struct {
    SUMA_SO_File_Type iType;
    char *sv_name;
@@ -131,92 +227,12 @@ typedef struct {
    
    char *unit_sphere_name;
    char *bases_prefix;
+   
+   SUMA_GENERIC_ARGV_PARSE *ps; /* just a holder for convenience, never free it here*/
 } SUMA_GENERIC_PROG_OPTIONS_STRUCT; /* also edit defaults in 
                                  SUMA_Alloc_Generic_Prog_Options_Struct and in 
                                  SUMA_Free_Generic_Prog_Options_Struct */
 
-#define SUMA_MAX_SURF_ON_COMMAND 100
-#define SUMA_N_ARGS_MAX 1000
-
-typedef struct {
-   /* spec related input */
-   char *spec_names[SUMA_MAX_SURF_ON_COMMAND];
-   int N_spec_names;
-   
-   char *s_surfnames[SUMA_MAX_SURF_ON_COMMAND];
-   char *s_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
-   char *s_surfpath[SUMA_MAX_SURF_ON_COMMAND];
-   int s_N_surfnames;
-   
-   /* -i_ related input */
-   char *i_surfnames[SUMA_MAX_SURF_ON_COMMAND];
-   char *i_surftopo[SUMA_MAX_SURF_ON_COMMAND];
-   char *i_surfpath[SUMA_MAX_SURF_ON_COMMAND];
-   char *i_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
-   char *i_state[SUMA_MAX_SURF_ON_COMMAND];
-   char *i_group[SUMA_MAX_SURF_ON_COMMAND];
-   int i_anatomical[SUMA_MAX_SURF_ON_COMMAND];
-   int i_N_surfnames;
-   SUMA_SO_File_Format i_FF[SUMA_MAX_SURF_ON_COMMAND];
-   SUMA_SO_File_Type i_FT[SUMA_MAX_SURF_ON_COMMAND];
-   
-   /* -ipar_ related input */
-   char *ipar_surfnames[SUMA_MAX_SURF_ON_COMMAND];
-   char *ipar_surftopo[SUMA_MAX_SURF_ON_COMMAND];
-   char *ipar_surfpath[SUMA_MAX_SURF_ON_COMMAND];
-   char *ipar_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
-   char *ipar_state[SUMA_MAX_SURF_ON_COMMAND];
-   char *ipar_group[SUMA_MAX_SURF_ON_COMMAND];
-   int ipar_anatomical[SUMA_MAX_SURF_ON_COMMAND];
-   int ipar_N_surfnames;
-   SUMA_SO_File_Format ipar_FF[SUMA_MAX_SURF_ON_COMMAND];
-   SUMA_SO_File_Type ipar_FT[SUMA_MAX_SURF_ON_COMMAND];
-   
-   /* -o_related input */
-   char *o_surfnames[SUMA_MAX_SURF_ON_COMMAND];
-   char *o_surftopo[SUMA_MAX_SURF_ON_COMMAND];
-   char *o_surfpath[SUMA_MAX_SURF_ON_COMMAND];
-   char *o_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
-   char *o_state[SUMA_MAX_SURF_ON_COMMAND];
-   char *o_group[SUMA_MAX_SURF_ON_COMMAND];
-   int o_anatomical[SUMA_MAX_SURF_ON_COMMAND];
-   int o_N_surfnames;
-   SUMA_SO_File_Format o_FF[SUMA_MAX_SURF_ON_COMMAND];
-   SUMA_SO_File_Type o_FT[SUMA_MAX_SURF_ON_COMMAND];
-   
-   /* -t_related input */
-   char *t_surfnames[SUMA_MAX_SURF_ON_COMMAND];
-   char *t_surftopo[SUMA_MAX_SURF_ON_COMMAND];
-   char *t_surfpath[SUMA_MAX_SURF_ON_COMMAND];
-   char *t_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
-   char *t_state[SUMA_MAX_SURF_ON_COMMAND];
-   char *t_group[SUMA_MAX_SURF_ON_COMMAND];
-   int t_anatomical[SUMA_MAX_SURF_ON_COMMAND];
-   int t_N_surfnames;
-   SUMA_SO_File_Format t_FF[SUMA_MAX_SURF_ON_COMMAND];
-   SUMA_SO_File_Type t_FT[SUMA_MAX_SURF_ON_COMMAND];
-   
-   byte arg_checked[SUMA_N_ARGS_MAX];
-   int N_args;
-   char *sv[SUMA_MAX_SURF_ON_COMMAND];
-   int N_sv;
-   char *vp[SUMA_MAX_SURF_ON_COMMAND];
-   int N_vp;
-   
-   /* -talk_suma options */
-   SUMA_COMM_STRUCT *cs;
-
-   /* flags for what to read */
-   byte accept_t;
-   byte accept_s;
-   byte accept_i;
-   byte accept_ipar;
-   byte accept_o;
-   byte accept_spec;
-   byte accept_sv;
-   byte accept_talk_suma;
-   byte check_input_surf;
-} SUMA_GENERIC_ARGV_PARSE;
 double SUMA_ParseTime(char *tm);
 int  SUMA_GetNextCommand (char *S, char d, char term, char *Scom);
 SUMA_Boolean  SUMA_RegisterCommand(char *S, char d, char term, char *Scom, SUMA_Boolean Prepend);
@@ -492,6 +508,16 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
       fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
    }  \
 }
+
+#define SUMA_ANIM_EXT(Ext) (  (\
+                                 SUMA_iswordsame_ci(Ext,".agif") || SUMA_iswordsame_ci(Ext,".gif") ||   \
+                                 SUMA_iswordsame_ci(Ext,".mpeg") || SUMA_iswordsame_ci(Ext,".mpg") \
+                              )  ? 1:0 )
+#define SUMA_IMG_EXT(Ext) (  (\
+                                 SUMA_iswordsame_ci(Ext,".jpeg") || SUMA_iswordsame_ci(Ext,".jpg") ||   \
+                                 SUMA_iswordsame_ci(Ext,".png") || \
+                                 SUMA_iswordsame_ci(Ext,".gif") \
+                              )  ? 1:0 )
 
 
 #endif
