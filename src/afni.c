@@ -5416,6 +5416,7 @@ void AFNI_range_setter( Three_D_View *im3d , MCW_imseq *seq )
      rng[0] = ds->stats->bstat[ival].min ;
      rng[1] = ds->stats->bstat[ival].max ;
    }
+   rng[2] = 1.0f ;  /* 21 Dec 2006: do NOT redisplay image */
 
    drive_MCW_imseq( seq , isqDR_setrange , (XtPointer) rng ) ;
    return ;

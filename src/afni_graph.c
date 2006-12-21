@@ -6014,5 +6014,7 @@ ENTRY("GRA_timer_CB") ;
 
 void GRA_timer_stop( MCW_grapher *grapher )
 {
-   if( grapher->timer_id > 0 ){ XtRemoveTimeOut(grapher->timer_id); grapher->timer_id = 0; }
+   if( grapher->timer_id > 0 ){
+     XtRemoveTimeOut(grapher->timer_id); grapher->timer_id = 0;
+   }
 }

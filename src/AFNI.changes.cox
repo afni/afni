@@ -6005,3 +6005,11 @@
      if necessary.  This also entailed changing a lot of functions
      to avoid using the im.*_data pointers, which I eventually want
      to eliminate entirely.
+
+21 Dec 2006
+ * Made the change to 'void *' -- no more im.short_data (etc.).  Changes
+     in a bunch more places.
+ * Modified mri_purger.c to delete extant TIM_* files when exit() happens.
+ * When AFNI_IMAGE_GLOBALRANGE is yes, don't do redisplay on isqDR_setrange.
+     Causes an unpleasant flickering in the image viewer window.  Changes
+     to afni.c (AFNI_range_setter()), imseq.c, etc.

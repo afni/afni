@@ -6650,7 +6650,8 @@ ENTRY("drive_MCW_imseq") ;
         } else {
           seq->rng_bot = rng[0] ; seq->rng_top = rng[1] ; seq->rng_ztop = 0.0 ;
         }
-        ISQ_redisplay( seq , -1 , isqDR_display ) ;
+        if( rng == NULL || rng[2] == 0.0f )
+          ISQ_redisplay( seq , -1 , isqDR_display ) ;
         RETURN( True ) ;
       }
       break ;
