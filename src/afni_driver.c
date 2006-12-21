@@ -2188,6 +2188,9 @@ int AFNI_drive_setenv( char *cmd )
          AFNI_range_setter( im3d , im3d->s123 ) ;
          AFNI_range_setter( im3d , im3d->s231 ) ;
          AFNI_range_setter( im3d , im3d->s312 ) ;
+         drive_MCW_imseq( im3d->s123 , isqDR_display , (XtPointer)(-1) ) ;
+         drive_MCW_imseq( im3d->s231 , isqDR_display , (XtPointer)(-1) ) ;
+         drive_MCW_imseq( im3d->s312 , isqDR_display , (XtPointer)(-1) ) ;
        } else {
          drive_MCW_imseq( im3d->s123 , isqDR_setrange , (XtPointer)NULL ) ;
          drive_MCW_imseq( im3d->s231 , isqDR_setrange , (XtPointer)NULL ) ;

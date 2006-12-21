@@ -859,11 +859,25 @@ typedef struct {
       VEDIT_settings vedset ;                   /* 05 Sep 2006 */
 } Three_D_View ;
 
+/*! Is any image viewer window open? */
+
 #define IM3D_IMAGIZED(iq) \
  ( (iq)->s123 != NULL || (iq)->s231 != NULL || (iq)->s312 != NULL )
 
+/*! Is any graph viewer window open? */
+
 #define IM3D_GRAPHIZED(iq) \
  ( (iq)->g123 != NULL || (iq)->g231 != NULL || (iq)->g312 != NULL )
+
+/*! Is any image or graph viewer doing a timer thing? [21 Dec 2006] */
+
+#define IM3D_TIMERIZED(iq)                              \
+ ( ((iq)->s123 != NULL && (iq)->s123->timer_id > 0) ||  \
+   ((iq)->s231 != NULL && (iq)->s231->timer_id > 0) ||  \
+   ((iq)->s312 != NULL && (iq)->s312->timer_id > 0) ||  \
+   ((iq)->g123 != NULL && (iq)->g123->timer_id > 0) ||  \
+   ((iq)->g231 != NULL && (iq)->g231->timer_id > 0) ||  \
+   ((iq)->g312 != NULL && (iq)->g312->timer_id > 0)   )
 
 /* 02 Nov 1996: macro to load current viewing data into current datasets */
 
