@@ -1,3 +1,4 @@
+
 import os, afni_util
 
 # modify the tcat block options according to the user options
@@ -373,9 +374,8 @@ def db_mod_regress(block, proc, user_opts):
     bopt = block.opts.find_opt('-regress_basis')
     if uopt and bopt:
         bopt.parlist[0] = uopt.parlist[0]
-        if bopt.parlist[0] != 'GAM': # then default to -iresp
+        if not afni_util.basis_has_known_response(bopt.parlist[0]):
             block.opts.add_opt('-regress_iresp_prefix',1,['iresp'],setpar=True)
-        # check on GAM/BLOCK for -regress_make_ideal_sum
         uopt = user_opts.find_opt('-regress_make_ideal_sum')
         if uopt and not afni_util.basis_has_known_response(bopt.parlist[0]):
             print '** -regress_make_ideal_sum is inappropriate for basis %s'\
@@ -607,7 +607,8 @@ def db_cmd_regress(proc, block):
                     proc.prev_prefix_form_rwild()
 
     opt = block.opts.find_opt('-regress_no_ideals')
-    if not opt: # then we compute individual ideal files for each stim
+    if not opt and afni_util.basis_has_known_response(basis):
+        # then we compute individual ideal files for each stim
         cmd = cmd + "\n# create ideal files for each stim type\n"
         first = (polort+1) * proc.runs
         for ind in range(len(labels)):

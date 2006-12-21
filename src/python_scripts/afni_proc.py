@@ -149,7 +149,36 @@ g_help_string = """
                          -regress_no_fitts
 
     --------------------------------------------------
-    OPTIONS:
+    DEFAULTS: basic defaults for each block (not all defaults)
+
+        setup:    - use 'SUBJ' for the subject id
+                        (option: -subj_id SUBJ)
+                  - create a t-shell script called '@proc_subj'
+                        (option: -script @proc_subj)
+                  - use results directory 'SUBJ.results'
+                        (option: -out_dir SUBJ.results)
+
+        tcat:     - do not remove any of the first TRs
+
+        tshift:   - align slices to the beginning of the TR
+
+        volreg:   -  align to first volume of first run
+                        (option: -volreg_align_to first)
+
+        mask:     - apply union of masks from 3dAutomask on each run
+
+        scale:    - scale each voxel to mean of 100, clip values at 200
+
+        regress:  - use GAM regressor for each stim
+                        (option: -regress_basis)
+                  - use quadratic baseline for each run
+                        (option: -regress_polort 2)
+                  - output fit time series
+                  - output ideal curves for GAM/BLOCK regressors
+                  - output iresp curves for non-GAM/non-BLOCK regressors
+
+    --------------------------------------------------
+    OPTIONS: (block options are ordered by block)
 
         ------------ information options ------------
 
@@ -157,7 +186,7 @@ g_help_string = """
         -hist                   : show the module history
         -ver                    : show the version number
 
-        ------------ general execution options ------------
+        ------------ general execution and setup options ------------
 
         -blocks BLOCK1 ...      : specify the processing blocks to apply
 
@@ -688,6 +717,7 @@ g_history = """
 
     1.0  Dec 20, 2006 : initial release
     1.1  Dec 20, 2006 : added -regress_no_stim_times
+    1.2  Dec 21, 2006 : help, start -ask_me, updated when to use -iresp/ideal
 """
 
 g_version = "version 1.1, December 20, 2006"
@@ -853,12 +883,6 @@ class SubjProcSream:
         opt = self.user_opts.find_opt('-subj_id')
         if opt != None: self.subj_id = opt.parlist[0]
 
-        # get datasets
-        opt = self.user_opts.find_opt('-dsets')
-        if opt != None:
-            for dset in opt.parlist:
-                self.dsets.append(afni_name(dset))
-
         opt = self.user_opts.find_opt('-out_dir')
         if opt != None: self.out_dir = opt.parlist[0]
 
@@ -884,6 +908,12 @@ class SubjProcSream:
     # init blocks from command line options, then check for an
     # alternate source       rcr - will we use 'file' as source?
     def create_blocks(self):
+        # first, note datasets
+        opt = self.user_opts.find_opt('-dsets')
+        if opt != None:
+            for dset in opt.parlist:
+                self.dsets.append(afni_name(dset))
+
         blocklist = BlockLabels
         opt = self.user_opts.find_opt('-blocks')
         if opt:  # then create blocklist from user opts (but prepend tcat)

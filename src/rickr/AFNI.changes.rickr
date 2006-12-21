@@ -1873,3 +1873,6 @@
   * modified db_mod.py: for change in 'ideal' options & -regress_no_stim_times
   * added ask_me.py: basically empty, to prompt users for options
 
+21 Dec 2006: afni_proc.py (v1.2)
+      - help, start -ask_me, updated when to use -iresp/ideal
+
