@@ -1,6 +1,73 @@
 #include "mrilib.h"
 
 /*----------------------------------------------------------------------------*/
+
+static char *tmpdir = NULL ;
+
+/*! Function to get name of the directory to store TIM_* mri_purge() files. */
+
+char * mri_purge_get_tmpdir(void)
+{
+   if( tmpdir == NULL ){
+                                             tmpdir = getenv( "TMPDIR" ) ;
+     if( tmpdir == NULL || *tmpdir == '\0' ) tmpdir = getenv( "TEMPDIR" ) ;
+     if( tmpdir == NULL || *tmpdir == '\0' ) tmpdir = "/tmp" ;
+     if( !THD_is_directory(tmpdir) )         tmpdir = "." ;
+   }
+   return tmpdir ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Functions to save a list of TIM_* mri_purge() files, so that they can
+   be deleted at program rundown, if they weren't mri_free()-ed already.
+   If mainENTRY() was used, then even a program crash might do cleanup, since
+   the most common fatal signals are caught and will end up invoking exit(),
+   which will in turn invoke purge_atexit().
+------------------------------------------------------------------------------*/
+
+static int atexit_called = 0 ;   /* was atexit() already called for this? */
+
+static int    npurge = 0 ;       /* number of filenames in qpurge array */
+static char **qpurge = NULL ;    /* filenames of TIM_* files still alive */
+
+static void purge_atexit(void) /*--- called by exit(): delete TIM_* files ---*/
+{
+   int ii ;
+   for( ii=0 ; ii < npurge ; ii++ ){
+     if( qpurge[ii] != NULL ){
+       INFO_message("removing temporary image file %s",qpurge[ii]) ;
+       remove(qpurge[ii]) ;
+     }
+   }
+   return ;
+}
+
+static void add_purge( char *fn ) /*-------- add fn to the qpurge list ----*/
+{
+   int ii ;
+   if( fn == NULL || *fn == '\0' ) return ;
+   for( ii=0 ; ii < npurge ; ii++ )  /* see if already in list */
+     if( qpurge[ii] != NULL && strcmp(qpurge[ii],fn) == 0 ) break ;
+   if( ii < npurge ) return ;        /* already in list! */
+   for( ii=0 ; ii < npurge ; ii++ )  /* find an empty slot */
+     if( qpurge[ii] == NULL ) break ;
+   if( ii == npurge )                /* make new empty slot */
+     qpurge = (char **)realloc(qpurge,sizeof(char *)*(++npurge)) ;
+   qpurge[ii] = strdup(fn) ;         /* fill empty slot */
+   return ;
+}
+
+static void kill_purge( char *fn ) /*---- remove fn from the qpurge list ----*/
+{
+   int ii ;
+   if( fn == NULL || *fn == '\0' || qpurge == NULL ) return ;
+   for( ii=0 ; ii < npurge ; ii++ )  /* find in list */
+     if( qpurge[ii] != NULL && strcmp(qpurge[ii],fn) == 0 ) break ;
+   if( ii < npurge ){ free(qpurge[ii]) ; qpurge[ii] = NULL ; }
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
 /*! Purge an image file to disk, to a random filename.
      - If the write to disk works, the image array is free()-ed.
      - If the write to disk fails, the image array is not free()-ed.
@@ -27,11 +94,9 @@ ENTRY("mri_purge") ;
 
    if( im->fname != NULL ) free(im->fname) ;
 
-                                   pg = getenv( "TMPDIR" ) ;
-   if( pg == NULL || *pg == '\0' ) pg = getenv( "TEMPDIR" ) ;
-   if( pg == NULL || *pg == '\0' ) pg = "/tmp" ;
-   if( !THD_is_directory(pg) )     pg = "." ;
+   /* make up a unique name for the purge file */
 
+   pg        = mri_purge_get_tmpdir() ;
    im->fname = malloc(strlen(pg)+64) ;
    un = UNIQ_idcode(); un[0] = 'T'; un[1] = 'I'; un[2] = 'M';
    strcpy(im->fname,pg); strcat(im->fname,"/"); strcat(im->fname,un);
@@ -52,6 +117,8 @@ ENTRY("mri_purge") ;
      remove(im->fname) ;
    } else {
      free(iar) ; mri_clear_data_pointer(im) ; im->fondisk = IS_PURGED ;
+     add_purge(im->fname) ;
+     if( !atexit_called ){ atexit(purge_atexit); atexit_called = 1; }
      if( PRINT_TRACING ){
        long long nb = ((long long)im->pixel_size) * ((long long)im->nvox) ;
        char str[256] ;
@@ -83,21 +150,26 @@ ENTRY("mri_unpurge") ;
      EXRETURN ;
    }
 
+   /* make space for data we are about to receive */
+
    iar = calloc( (size_t)im->pixel_size , (size_t)im->nvox ) ;
    if( iar == NULL ){
      long long nb = ((long long)im->pixel_size) * ((long long)im->nvox) ;
      ERROR_message("mri_unpurge: Can't malloc() %lld bytes",nb) ;
-     fclose(fp) ; remove(im->fname) ; im->fondisk = 0 ; EXRETURN ;
+     fclose(fp); remove(im->fname); im->fondisk = 0; kill_purge(im->fname);
+     EXRETURN;
    }
    mri_fix_data_pointer( iar , im ) ;
 
-   npix = fread( iar , (size_t)im->pixel_size , (size_t)im->nvox , fp ) ;
-   fclose(fp) ; remove(im->fname) ; im->fondisk = 0 ;
+   /* get the data, babeee! */
 
-   if( npix < (size_t)im->nvox ){
+   npix = fread( iar , (size_t)im->pixel_size , (size_t)im->nvox , fp ) ;
+   fclose(fp); remove(im->fname); im->fondisk = 0; kill_purge(im->fname);
+
+   if( npix < (size_t)im->nvox ){  /* didn't get enuf data? */
      long long nb = ((long long)im->pixel_size) * ((long long)im->nvox) ;
      WARNING_message("mri_unpurge: Can't read %lld bytes from %s",nb,im->fname);
-   } else if( PRINT_TRACING ){
+   } else if( PRINT_TRACING ){     /* debug tracing output? */
      long long nb = ((long long)im->pixel_size) * ((long long)im->nvox) ;
      char str[256] ;
      sprintf(str,"read %lld bytes from file %s",nb,im->fname); STATUS(str);
@@ -107,9 +179,19 @@ ENTRY("mri_unpurge") ;
 }
 
 /*----------------------------------------------------------------------------*/
-/*! If the image is purged to disk, kill the purge file. */
+/*! If the image is purged to disk, kill the purge file.
+    Called from mri_free() to make sure that purged images are cleaned up.
+------------------------------------------------------------------------------*/
 
 void mri_killpurge( MRI_IMAGE *im )
 {
-   if( im != NULL && MRI_IS_PURGED(im) ){ remove(im->fname); im->fondisk = 0; }
+   if( im != NULL && MRI_IS_PURGED(im) ){
+     ENTRY("mri_killpurge") ;             /* only do traceback if work to do */
+     remove(im->fname); im->fondisk = 0; kill_purge(im->fname);
+     if( PRINT_TRACING ){
+       char str[256]; sprintf(str,"removed file %s",im->fname); STATUS(str);
+     }
+     EXRETURN ;
+   }
+   return ;
 }
