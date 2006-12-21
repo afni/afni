@@ -53,6 +53,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    DListElmt *NextElem_CANT_TOUCH_THIS, *LocElm=NULL;
    DList *list= NULL;
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell = NULL, *LogShell=NULL;
+   SUMA_PARSED_NAME *fn = NULL;
    SUMA_Boolean LocalHead = NOPE;
       
    
@@ -2242,6 +2243,94 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }  
             break;
             
+         case SE_SetRecorderCont:
+            /* expects a ngr */
+            if (EngineData->ngr_Dest != NextComCode ) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n"
+                                    "Have %d \n",FuncName, NextCom, NextComCode, EngineData->ngr_Dest);
+               break;
+            }
+            {
+               char *stmp=NULL, *sname=NULL;
+               int ifrom = -1, ito = -1;
+               if (NI_get_attribute(EngineData->ngr, "Save_As")) {
+
+                  NI_GET_INT(EngineData->ngr, "Save_From", itmp);
+                  if (!NI_GOT) {
+                     itmp = -1; 
+                  } else {
+                     ifrom = itmp;
+                     if (ifrom < -1) { 
+                        SUMA_S_Errv("Bad 1st value for -save_range (%d)\n", ifrom);
+                        break;
+                     }
+                  }
+                  NI_GET_INT(EngineData->ngr, "Save_To", itmp);
+                  if (!NI_GOT) { 
+                     itmp = -1; 
+                  }else {
+                     ito = itmp;
+                     if (ito < 0) { 
+                        SUMA_S_Errv("Bad 2nd value for -save_range (%d)\n", ito);
+                        break;
+                     }
+                  }
+                  NI_GET_INT(EngineData->ngr, "Save_One", itmp);
+                  if (NI_GOT) { 
+                     if (itmp == -1) { ifrom = -1; ito = 0; }
+                     else if (itmp >= 0) { ifrom = itmp; ito = ifrom; }
+                     else {
+                        SUMA_S_Errv("Bad value for -save_one (%d)\n", itmp);
+                        break;
+                     }
+                  }
+                  
+                  NI_GET_STR_CP(EngineData->ngr, "Save_As", stmp);
+                  if (!stmp) {
+                     SUMA_S_Err("Empty Save_As");
+                     goto CLEAN_RECORDER_CONT;
+                  }
+                  fn = SUMA_ParseFname(stmp, NI_get_attribute(EngineData->ngr, "Caller_Working_Dir"));
+                  if (!(sname = SUMA_copy_string(fn->FileName_NoExt))) {
+                     sname = SUMA_copy_string("no_name");
+                  }
+                  sname = SUMA_append_replace_string(fn->AbsPath, sname, "", 2);
+                  
+                  /* more checking */
+                  if (ito < 0 && ifrom < 0) {   
+                     if (SUMA_IMG_EXT(fn->Ext)) {
+                        ifrom = -1; ito = 0;/* nothing set, save last one */
+                     } else if (SUMA_ANIM_EXT(fn->Ext)) {
+                        ifrom = 0; ito = 0;/* nothing set, save all in animation */
+                     } else {
+                        SUMA_S_Errv("No support for extension %s\n", fn->Ext);
+                        goto CLEAN_RECORDER_CONT;
+                     }
+                  }
+                  
+                  if (ifrom > ito && ito != 0) {
+                     SUMA_S_Errv("Error: ifrom=%d > ito=%d\n", ifrom, ito);
+                     goto CLEAN_RECORDER_CONT;
+                  }
+                  if (SUMA_iswordsame_ci(fn->Ext,".agif") || SUMA_iswordsame_ci(fn->Ext,".gif")) {
+                     ISQ_snap_agif_rng(sname, ifrom, ito);
+                  } else if (SUMA_iswordsame_ci(fn->Ext,".mpeg") || SUMA_iswordsame_ci(fn->Ext,".mpg")) {
+                     ISQ_snap_mpeg_rng(sname, ifrom, ito);
+                  } else if (SUMA_iswordsame_ci(fn->Ext,".jpeg") || SUMA_iswordsame_ci(fn->Ext,".jpg")) {
+                     ISQ_snap_jpeg_rng(sname, ifrom, ito);
+                  } else if (SUMA_iswordsame_ci(fn->Ext,".png") ) {
+                     ISQ_snap_png_rng(sname, ifrom, ito);
+                  } else {
+                     SUMA_S_Errv("Not ready to deal with format %s\n", tmpstr);
+                     goto CLEAN_RECORDER_CONT;
+                  }
+               }
+               CLEAN_RECORDER_CONT:
+               if (stmp) SUMA_free(stmp); stmp = NULL;
+               if (sname) SUMA_free(sname); sname = NULL;
+               if (fn) fn = SUMA_Free_Parsed_Name(fn);
+            }
+            break;
          /*case SE_Something:
             break;*/
 
@@ -2427,7 +2516,17 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
                                                    SEI_In, el)) {
                fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
          }
-         break;   
+         break;    
+      case SE_niSetRecorderCont:
+         ED = SUMA_InitializeEngineListData (SE_SetRecorderCont);
+         if (!(el = SUMA_RegisterEngineListCommand (  list, ED,
+                                                   SEF_ngr, (void *)ngr,
+                                                   SES_SumaFromAny, (void *)sv, NOPE,
+                                                   SEI_Tail, NULL))) {
+               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+         }
+         
+         break;
       case SE_niKillSuma:
          XtCloseDisplay( SUMAg_CF->X->DPY_controller1 ) ;
          exit(0);

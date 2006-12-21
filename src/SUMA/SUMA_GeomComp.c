@@ -2744,12 +2744,12 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                             float lambda, float mu, float *fin_orig, 
                             int N_iter, int vpn, SUMA_INDEXING_ORDER d_order,
                             float *fout_final_user, SUMA_COMM_STRUCT *cs, 
-                            byte *nmask)
+                            byte *nmask, byte strict_mask)
 {
    static char FuncName[]={"SUMA_Taubin_Smooth"};
    float *fout_final=NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, *fin_next=NULL, *ftmp=NULL;
    float fp, dfp, fpj;
-   int i, n , k, j, niter, vnk, n_offset, DoThis; 
+   int i, n , k, j, niter, vnk, n_offset, DoThis, nj=-1, nnei=-1; 
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2853,17 +2853,30 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                   if (DoThis) {
                      fp = fin[vnk]; /* kth value at node n */
                      dfp = 0.0;
-                     for (j=0; j < SO->FN->N_Neighb[n]; ++j) { /* calculating the laplacian */
-                        fpj = fin[SO->FN->FirstNeighb[n][j]+n_offset]; /* value at jth neighbor of n */
-                        if (wgt) dfp += wgt[n][j] * (fpj - fp); 
-                        else dfp += (fpj - fp); /* will apply equal weight later */
-                     }/* for j*/
+                     if (nmask) {
+                        nnei = 0;
+                        for (j=0; j < SO->FN->N_Neighb[n]; ++j) { /* calculating the laplacian */
+                              nj = SO->FN->FirstNeighb[n][j];
+                              if (nmask[nj] || !strict_mask){ /* consider only neighbors that are in mask if strict_mask is 1*/
+                                 fpj = fin[nj+n_offset]; /* value at jth neighbor of n */
+                                 if (wgt) dfp += wgt[n][j] * (fpj - fp); 
+                                 else { dfp += (fpj - fp); ++nnei; }/* will apply equal weight later */
+                              }
+                        }/* for j*/
+                     } else {
+                        nnei = SO->FN->N_Neighb[n];
+                        for (j=0; j < SO->FN->N_Neighb[n]; ++j) { /* calculating the laplacian */
+                              fpj = fin[SO->FN->FirstNeighb[n][j]+n_offset]; /* value at jth neighbor of n */
+                              if (wgt) dfp += wgt[n][j] * (fpj - fp); 
+                              else dfp += (fpj - fp); /* will apply equal weight later */
+                        }/* for j*/
+                     }
                      if (niter%2) { /* odd */
                         if (wgt) fout[vnk] = fin[vnk] + mu * dfp;
-                        else fout[vnk] = fin[vnk] + mu * dfp / (float)SO->FN->N_Neighb[n];   /* apply equal weight factor here */
+                        else fout[vnk] = fin[vnk] + mu * dfp / (float)nnei;   /* apply equal weight factor here */
                      }else{ /* even */
                        if (wgt) fout[vnk] = fin[vnk] + lambda * dfp;
-                       else fout[vnk] = fin[vnk] + lambda * dfp / (float)SO->FN->N_Neighb[n];  /* apply equal weight factor here */
+                       else fout[vnk] = fin[vnk] + lambda * dfp / (float)nnei;  /* apply equal weight factor here */
                      }
                   } else {
                      fout[vnk] = fin[vnk];
@@ -2919,17 +2932,31 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                   if (DoThis) {
                      fp = fin[vnk]; /* kth value at node n */
                      dfp = 0.0;
-                     for (j=0; j < SO->FN->N_Neighb[n]; ++j) { /* calculating the laplacian */
-                        fpj = fin[SO->FN->FirstNeighb[n][j]*vpn+k]; /* value at jth neighbor of n */
-                        if (wgt) dfp += wgt[n][j] * (fpj - fp); 
-                        else dfp += (fpj - fp); /* will apply equal weight later */
-                     }/* for j*/
+                     if (nmask) {
+                        nnei = 0;
+                        for (j=0; j < SO->FN->N_Neighb[n]; ++j) { /* calculating the laplacian */
+                           nj = SO->FN->FirstNeighb[n][j];
+                           if (nmask[nj] || !strict_mask) { /* consider only neighbors that are in mask if strict_mask is 1*/
+                            
+                              fpj = fin[nj*vpn+k]; /* value at jth neighbor of n */
+                              if (wgt) dfp += wgt[n][j] * (fpj - fp); 
+                              else { dfp += (fpj - fp); ++nnei;} /* will apply equal weight later */
+                           }
+                        }/* for j*/
+                     } else {
+                        nnei = SO->FN->N_Neighb[n];
+                        for (j=0; j < SO->FN->N_Neighb[n]; ++j) { /* calculating the laplacian */
+                           fpj = fin[SO->FN->FirstNeighb[n][j]*vpn+k]; /* value at jth neighbor of n */
+                           if (wgt) dfp += wgt[n][j] * (fpj - fp); 
+                           else dfp += (fpj - fp); /* will apply equal weight later */
+                        }/* for j*/
+                     }
                      if (niter%2) { /* odd */
                         if (wgt) fout[vnk] = fin[vnk] + mu * dfp;
-                        else fout[vnk] = fin[vnk] + mu * dfp / (float)SO->FN->N_Neighb[n];   /* apply equal weight factor here */
+                        else fout[vnk] = fin[vnk] + mu * dfp / (float)nnei;   /* apply equal weight factor here */
                      }else{ /* even */
                        if (wgt) fout[vnk] = fin[vnk] + lambda * dfp;
-                       else fout[vnk] = fin[vnk] + lambda * dfp / (float)SO->FN->N_Neighb[n];  /* apply equal weight factor here */
+                       else fout[vnk] = fin[vnk] + lambda * dfp / (float)nnei;  /* apply equal weight factor here */
                      }
                   } else {
                      fout[vnk] = fin[vnk];
@@ -3286,7 +3313,7 @@ int SUMA_OffsetLayerPropagationLocation(SUMA_SurfaceObject *SO, SUMA_GET_OFFSET_
 
 /*!
    \brief creates a vector of node neighbors structures such that:
-   OffS = SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float OffsetLim, const char *Opts);
+   OffS = SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float OffsetLim, const char *Opts, byte *nmask, float FWHM);
    
    \param OffS (SUMA_OFFSET_STRUCT *) SO->Node x 1 vector of structures 
          OffS[i] is a structure containing node neighbors of node i
@@ -3310,6 +3337,11 @@ int SUMA_OffsetLayerPropagationLocation(SUMA_SurfaceObject *SO, SUMA_GET_OFFSET_
    \param Opts (const char *) if contains the string "DoProp" then the function
                               also calculates the propagation directions.
                               Default is NULL, no extras.
+   \param nmask (byte *) a mask vector, if non null, then only nodes n, where nmask[n] == 1
+                           are processed 
+   \param FWHM (float) if > 0, then the distances x are changed in Neighb_dist are 
+                              changed to G(x) = 1/(sqrt(2pi)Sig)*exp(-(x*x)/(2*Sig*Sig)) 
+                              where Sig is calculated from FWHM by Sig = FWHM /   2.354820;
    - NOTE: This function will chew up a lot of memory, real quick.
             An approximate equation for the size needed for OffS:
                (mean_N_Neighb_per_Node * 8 + 12) * SO->N_Node Bytes
@@ -3321,21 +3353,29 @@ int SUMA_OffsetLayerPropagationLocation(SUMA_SurfaceObject *SO, SUMA_GET_OFFSET_
          
 */
 
-SUMA_OFFSET_STRUCT *SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float OffsetLim, const char *opts)
+SUMA_OFFSET_STRUCT *SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float OffsetLim, const char *opts, byte *nmask, float FWHM)
 {
    static char FuncName[]={"SUMA_FormNeighbOffset"};
-   int i, ii, il, jl, ip, noffs,  DoProp = 0;
+   int i, ii, il, jl, ip, noffs,  DoProp = 0, iproc, N_mask;
    SUMA_GET_OFFSET_STRUCT *OffS = NULL;
    struct  timeval start_time;
+   double scl, ds2, sig, d;
    float etime_GetOffset, mean_N_Neighb, dist, dist_norm;   
    SUMA_OFFSET_STRUCT *OffS_out=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURN(NULL); }
-   if (!SO->FN) {
-      SUMA_SL_Err("NULL SO->FN");
-      SUMA_RETURN(NULL);
+   if (!SO->FN || !SO->EL) {
+      /* do it here */
+      if (!SO->EL && !(SO->EL = SUMA_Make_Edge_List_eng (SO->FaceSetList, SO->N_FaceSet, SO->N_Node, SO->NodeList, 0, SO->idcode_str))) {
+         SUMA_S_Err("Failed to create Edge_List");
+         SUMA_RETURN(NULL);
+      }
+      if (!SO->FN && !(SO->FN = SUMA_Build_FirstNeighb( SO->EL, SO->N_Node, SO->idcode_str)) ) {
+         SUMA_S_Err("Failed to create FirstNeighb");
+         SUMA_RETURN(NULL);
+      }
    }
    
    if (SUMA_iswordin(opts,"DoProp") == 1) {
@@ -3343,86 +3383,118 @@ SUMA_OFFSET_STRUCT *SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float Offset
       DoProp = 1;
    }
 
+   /* calculate sigma */
+   if (FWHM > 0.0) {
+      sig = FWHM /   2.354820;
+      ds2 = 2*sig*sig;
+      scl = iSQ_2PI/sig;
+   } else sig = -1.0;
+   /* calculate the offset limit, if allowed */
+   if (OffsetLim < 0.0) {
+      if (sig > 0.0) {
+         OffsetLim = 3.5*sig;
+      } else {
+         SUMA_S_Errv("Have OffsetLim =%f and no FWHM (%f) from which to estimate it.\n", OffsetLim, FWHM);
+         SUMA_RETURN(NULL);
+      }
+   }
+   SUMA_LHv("OffsetLim set to %f\nSigma set to %f\n", OffsetLim, sig);
+   
+   N_mask=0;
+   if (nmask) {
+      for (i=0; i<SO->N_Node; ++i) if (nmask[i]) ++N_mask;
+   } else N_mask = SO->N_Node;
+   
    OffS_out = (SUMA_OFFSET_STRUCT *)SUMA_malloc(SO->N_Node * sizeof(SUMA_OFFSET_STRUCT));
    
    SUMA_etime(&start_time,0);
    
+   
    OffS = SUMA_Initialize_getoffsets (SO->N_Node);
    mean_N_Neighb = 0;
    dist_norm = 1.1 * OffsetLim;
+   iproc = 0;
    for (i=0; i < SO->N_Node; ++i) {
-      SUMA_getoffsets2 (i, SO, OffsetLim, OffS, NULL, 0);
-      /* Now store all the relevant info in OffS in OffS_out[i] */
-      OffS_out[i].N_Neighb = 0; 
-      for (il=1; il<OffS->N_layers; ++il) {
-         OffS_out[i].N_Neighb += OffS->layers[il].N_NodesInLayer;
-      }
-      OffS_out[i].Neighb_ind = (int *)SUMA_malloc(OffS_out[i].N_Neighb * sizeof(int));
-      OffS_out[i].Neighb_dist = (float *)SUMA_malloc(OffS_out[i].N_Neighb * sizeof(float));
-      if (DoProp) {
-         OffS_out[i].Neighb_PropLoc = (float*)SUMA_malloc(OffS_out[i].N_Neighb * sizeof(float)*3);
-      } else {
-         OffS_out[i].Neighb_PropLoc = NULL;
-      }  
-      mean_N_Neighb += OffS_out[i].N_Neighb;
-      noffs = 0;
-      for (il=1; il<OffS->N_layers; ++il) {
-         for (jl=0; jl<OffS->layers[il].N_NodesInLayer; ++jl) {
-            OffS_out[i].Neighb_ind[noffs] = OffS->layers[il].NodesInLayer[jl]; 
-            #if 1
-            /* don't play fancy with the weights here */
-            OffS_out[i].Neighb_dist[noffs] = OffS->OffVect[OffS_out[i].Neighb_ind[noffs]];
-            #else
-            dist = OffS->OffVect[OffS_out[i].Neighb_ind[noffs]];
-            if (dist > OffsetLim) OffS_out[i].Neighb_dist[noffs] = 0;
-            else OffS_out[i].Neighb_dist[noffs] = (dist ); 
-            #endif
-            ++noffs;
+      OffS_out[i].N_Neighb = 0;
+      OffS_out[i].Neighb_ind = NULL;
+      OffS_out[i].Neighb_dist = NULL; 
+      OffS_out[i].Neighb_PropLoc = NULL;
+      if (!nmask || nmask[i]) {
+         SUMA_getoffsets2 (i, SO, OffsetLim, OffS, NULL, 0);
+         /* Now store all the relevant info in OffS in OffS_out[i] */
+         for (il=1; il<OffS->N_layers; ++il) {
+            OffS_out[i].N_Neighb += OffS->layers[il].N_NodesInLayer;
          }
-      }
-      
-      if (DoProp) {
-         SUMA_LH("Going to SUMA_OffsetLayerPropagationLocation\n");
-         if (!SUMA_OffsetLayerPropagationLocation(SO, OffS, OffS_out[i].Neighb_PropLoc)) {
-            SUMA_S_Err("Failed to calculation propagation location.");
+         OffS_out[i].Neighb_ind = (int *)SUMA_malloc(OffS_out[i].N_Neighb * sizeof(int));
+         OffS_out[i].Neighb_dist = (float *)SUMA_malloc(OffS_out[i].N_Neighb * sizeof(float));
+         if (DoProp) {
+            OffS_out[i].Neighb_PropLoc = (float*)SUMA_malloc(OffS_out[i].N_Neighb * sizeof(float)*3);
          }  
-         SUMA_LH("Done with SUMA_OffsetLayerPropagationLocation\n");
-      }
-      
-      /* Show me the offsets for one node*/
-      if (0) {
-         if (i == OffsetDebugNode) {
-            FILE *fid=NULL;
-            char *outname=NULL;
-            outname = SUMA_Extension("SomethingOffset", ".1D", YUP);
-            outname = SUMA_append_replace_string(outname, "offset.1D", "", 1);
-            fid = fopen(outname, "w"); free(outname); outname = NULL;
-            if (!fid) {
-               SUMA_SL_Err("Could not open file for writing.\nCheck file permissions, disk space.\n");
-            } else {
-               fprintf (fid,"#Column 1 = Node index\n"
-                            "#column 2 = Neighborhood layer\n"
-                            "#Column 3 = Distance from node %d\n", OffsetDebugNode);
-               for (ii=0; ii<SO->N_Node; ++ii) {
-                  if (OffS->LayerVect[ii] >= 0) {
-                     fprintf(fid,"%d\t%d\t%f\n", ii, OffS->LayerVect[ii], OffS->OffVect[ii]);
-                  }
+         mean_N_Neighb += OffS_out[i].N_Neighb;
+         noffs = 0;
+         for (il=1; il<OffS->N_layers; ++il) {
+            for (jl=0; jl<OffS->layers[il].N_NodesInLayer; ++jl) {
+               OffS_out[i].Neighb_ind[noffs] = OffS->layers[il].NodesInLayer[jl]; 
+               #if 1
+               /* don't play fancy with the weights here */
+               d = OffS->OffVect[OffS_out[i].Neighb_ind[noffs]];
+               if (sig > 0.0) {
+                  OffS_out[i].Neighb_dist[noffs] = scl * exp(-(d*d)/(ds2));
+               }  else {
+                  OffS_out[i].Neighb_dist[noffs] = d;
                }
-               fclose(fid);
+               #else
+               dist = OffS->OffVect[OffS_out[i].Neighb_ind[noffs]];
+               if (dist > OffsetLim) OffS_out[i].Neighb_dist[noffs] = 0;
+               else OffS_out[i].Neighb_dist[noffs] = (dist ); 
+               #endif
+               ++noffs;
             }
          }
-      }
-               
-      if (i == 99) {
-         etime_GetOffset = SUMA_etime(&start_time,1);
-         fprintf(SUMA_STDERR, "%s: Search to %f mm took %f seconds for %d nodes.\n"
-                              "Projected completion time: %f minutes\n"
-                              "Projected memory need for structure %f MB\n", 
-                              FuncName, OffsetLim, etime_GetOffset, i+1, 
-                              etime_GetOffset * SO->N_Node / 60.0 / (i+1),
-                              (mean_N_Neighb / (i+1) * 8 + 12)* SO->N_Node/1000000.0);
-      }
-      SUMA_Recycle_getoffsets (OffS);
+
+         if (DoProp) {
+            SUMA_LH("Going to SUMA_OffsetLayerPropagationLocation\n");
+            if (!SUMA_OffsetLayerPropagationLocation(SO, OffS, OffS_out[i].Neighb_PropLoc)) {
+               SUMA_S_Err("Failed to calculation propagation location.");
+            }  
+            SUMA_LH("Done with SUMA_OffsetLayerPropagationLocation\n");
+         }
+
+         /* Show me the offsets for one node*/
+         if (0) {
+            if (i == OffsetDebugNode) {
+               FILE *fid=NULL;
+               char *outname=NULL;
+               outname = SUMA_Extension("SomethingOffset", ".1D", YUP);
+               outname = SUMA_append_replace_string(outname, "offset.1D", "", 1);
+               fid = fopen(outname, "w"); free(outname); outname = NULL;
+               if (!fid) {
+                  SUMA_SL_Err("Could not open file for writing.\nCheck file permissions, disk space.\n");
+               } else {
+                  fprintf (fid,"#Column 1 = Node index\n"
+                               "#column 2 = Neighborhood layer\n"
+                               "#Column 3 = Distance from node %d\n", OffsetDebugNode);
+                  for (ii=0; ii<SO->N_Node; ++ii) {
+                     if (OffS->LayerVect[ii] >= 0) {
+                        fprintf(fid,"%d\t%d\t%f\n", ii, OffS->LayerVect[ii], OffS->OffVect[ii]);
+                     }
+                  }
+                  fclose(fid);
+               }
+            }
+         }
+         ++iproc;
+         if (iproc == 100) {
+            etime_GetOffset = SUMA_etime(&start_time,1);
+            fprintf(SUMA_STDERR, "%s: Search to %f mm took %f seconds for %d nodes.\n"
+                                 "Projected completion time: %f minutes\n"
+                                 "Projected memory need for structure %f MB\n", 
+                                 FuncName, OffsetLim, etime_GetOffset, iproc, 
+                                 etime_GetOffset * N_mask / 60.0 / (float)(iproc),
+                                 (mean_N_Neighb / (iproc) * 8 + 12)* N_mask/1000000.0);
+         }
+         SUMA_Recycle_getoffsets (OffS);
+      } /* if node in mask */
    }
    SUMA_Free_getoffsets(OffS); OffS = NULL;
    
@@ -3523,7 +3595,7 @@ float *SUMA_Offset_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float OffsetL
       }
    }
    SUMA_LH("Calculating OffS_out ...");
-   OffS_out = SUMA_FormNeighbOffset (SO, OffsetLim, NULL);
+   OffS_out = SUMA_FormNeighbOffset (SO, OffsetLim, NULL, NULL, -1.0);
    fin_next = fin_orig;
    switch (d_order) {
       case SUMA_ROW_MAJOR:
@@ -3583,7 +3655,7 @@ float *SUMA_Offset_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float OffsetL
 
 float *SUMA_NN_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig, 
                            int vpn, SUMA_INDEXING_ORDER d_order, float *fout_final_user,
-                           SUMA_COMM_STRUCT *cs, byte *nmask)
+                           SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask)
 {
    static char FuncName[]= {"SUMA_NN_GeomSmooth"};
    float *fout_final=NULL, *fbuf=NULL, *fin_next=NULL, *fin=NULL, *fout=NULL;
@@ -3648,7 +3720,7 @@ float *SUMA_NN_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig,
                fin_next = fbuf; /* in the next iteration, the input is from the buffer */
             }
             fout = SUMA_SmoothAttr_Neighb ( fin, vpn*SO->N_Node, 
-                                                 fout, SO->FN, vpn, nmask);
+                                                 fout, SO->FN, vpn, nmask, strict_mask);
             if (cs->Send) {
                if (!SUMA_SendToSuma (SO, cs, (void *)fout, SUMA_NODE_XYZ, 1)) {
                   SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
@@ -3713,12 +3785,12 @@ float *SUMA_NN_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig,
 float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt, 
                            int N_iter, float FWHM, float *fin_orig, 
                            int vpn, SUMA_INDEXING_ORDER d_order, float *fout_final_user,
-                           SUMA_COMM_STRUCT *cs, byte *nmask)
+                           SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask)
 {
    static char FuncName[]={"SUMA_Chung_Smooth"};
    float *fout_final = NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, *fin_next = NULL;
    float delta_time, fp, dfp, fpj, minfn=0.0, maxfn=0.0;
-   int n , k, j, niter, vnk, os, jj;
+   int n , k, j, niter, vnk, os, jj, nj=-1;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -3807,20 +3879,18 @@ float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                      if (nmask[n]) {
                         if (SO->FN->N_Neighb[n]) {
                            jj = 0;
-                           #if 0 /* only use nodes in mask as neighbors */
+                           if (strict_mask) { /* consider only neighbors that are in mask */
                               do {
                                  minfn = maxfn = fin[SO->FN->FirstNeighb[n][jj]+os]; ++jj;
                               } while (!nmask[SO->FN->FirstNeighb[n][jj]] && jj < SO->FN->N_Neighb[n]);
-                           #else
+                           } else { /* consider all neighbors */
                               minfn = maxfn = fin[SO->FN->FirstNeighb[n][jj]+os];
-                           #endif
+                           }
                         }
                         for (j=0; j < SO->FN->N_Neighb[n]; ++j) {
-                           #if 0 /* only use nodes in mask as neighbors */
-                           if (nmask[SO->FN->FirstNeighb[n][j]])
-                           #endif
-                           {
-                              fpj = fin[SO->FN->FirstNeighb[n][j]+os]; /* value at jth neighbor of n */
+                           nj = SO->FN->FirstNeighb[n][j];
+                           if (nmask[nj] || !strict_mask) { /* consider only neighbors that are in mask if strict_mask is 1*/
+                              fpj = fin[nj+os]; /* value at jth neighbor of n */
                               if (fpj < minfn) minfn = fpj;
                               if (fpj > maxfn) maxfn = fpj;
                               dfp += wgt[n][j] * (fpj - fp);
@@ -3867,12 +3937,12 @@ float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt,
 */
 SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt, 
                            int N_iter, float FWHM, SUMA_DSET *dset, 
-                           SUMA_COMM_STRUCT *cs, byte *nmask)
+                           SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask)
 {
    static char FuncName[]={"SUMA_Chung_Smooth_dset"};
    float *fout_final = NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, *fin_next = NULL, *fin_orig = NULL;
    float delta_time, fp, dfp, fpj, minfn=0.0, maxfn=0.0;
-   int n , k, j, niter, jj, *icols=NULL, N_icols, N_nmask;
+   int n , k, j, niter, jj, *icols=NULL, N_icols, N_nmask, nj=-1;
    byte *bfull=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -4001,20 +4071,18 @@ SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt,
                if (nmask[n]) {
                   if (SO->FN->N_Neighb[n]) {
                      jj = 0;
-                     #if 0 /* only use nodes in mask as neighbors */
+                     if (strict_mask) { /* consider only neighbors that are in mask */
                         do {
                            minfn = maxfn = fin[SO->FN->FirstNeighb[n][jj]]; ++jj;
                         } while (!nmask[SO->FN->FirstNeighb[n][jj]] && jj < SO->FN->N_Neighb[n]);
-                     #else
+                     } else { /* consider all neighbors */
                         minfn = maxfn = fin[SO->FN->FirstNeighb[n][jj]];
-                     #endif
+                     }
                   }
                   for (j=0; j < SO->FN->N_Neighb[n]; ++j) {
-                     #if 0 /* only use nodes in mask as neighbors */
-                     if (nmask[SO->FN->FirstNeighb[n][j]])
-                     #endif
-                     {
-                        fpj = fin[SO->FN->FirstNeighb[n][j]]; /* value at jth neighbor of n */
+                     nj = SO->FN->FirstNeighb[n][j];
+                     if (nmask[nj] || !strict_mask) { /* consider only neighbors that are in mask if strict_mask is 1*/
+                        fpj = fin[nj]; /* value at jth neighbor of n */
                         if (fpj < minfn) minfn = fpj;
                         if (fpj > maxfn) maxfn = fpj;
                         dfp += wgt[n][j] * (fpj - fp);
@@ -4049,7 +4117,8 @@ SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt,
    
    CLEANUP:
    if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL; /* just in case, this one's still alive from a GOTO */
-   if (bfull == nmask) { if (nmask) SUMA_free(nmask); nmask = NULL; bfull = NULL; }
+   /* Pre Dec 06 stupidity: if (bfull == nmask) { if (nmask) SUMA_free(nmask); nmask = NULL; bfull = NULL; } */
+   if (bfull) SUMA_free(bfull); bfull = NULL;
    if (fbuf) SUMA_free(fbuf); fbuf = NULL;
    if (fout_final) SUMA_free(fout_final); fout_final = NULL;
    
@@ -4105,12 +4174,12 @@ SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt,
 float * SUMA_Chung_Smooth_05 (SUMA_SurfaceObject *SO, float **wgt, 
                            int N_iter, float FWHM, float *fin_orig, 
                            int vpn, SUMA_INDEXING_ORDER d_order, float *fout_final_user,
-                           SUMA_COMM_STRUCT *cs, byte *nmask)
+                           SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask)
 {
    static char FuncName[]={"SUMA_Chung_Smooth_05"};
    float *fout_final = NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, *fin_next = NULL;
    float fp, dfp, fpj;
-   int n , k, j, niter, vnk, os, jj;
+   int n , k, j, niter, vnk, os, jj, nj;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -4193,8 +4262,11 @@ float * SUMA_Chung_Smooth_05 (SUMA_SurfaceObject *SO, float **wgt,
                      if (nmask[n]) {
                         for (j=0; j < SO->FN->N_Neighb[n]; ++j) {
                            {
-                              fpj = fin[SO->FN->FirstNeighb[n][j]+os]; /* value at jth neighbor of n */
-                              dfp += wgt[n][j+1] * fpj;
+                              nj = SO->FN->FirstNeighb[n][j];
+                              if (nmask[nj] || !strict_mask) { /* consider only neighbors that are in mask if strict_mask is 1*/
+                                 fpj = fin[nj+os]; /* value at jth neighbor of n */
+                                 dfp += wgt[n][j+1] * fpj;
+                              }
                            } 
                         }/* for j*/
                         fout[vnk] = fin[vnk] * wgt[n][0] +  dfp;
@@ -4234,12 +4306,12 @@ float * SUMA_Chung_Smooth_05 (SUMA_SurfaceObject *SO, float **wgt,
 */
 SUMA_Boolean SUMA_Chung_Smooth_05_dset (SUMA_SurfaceObject *SO, float **wgt, 
                            int N_iter, float FWHM, SUMA_DSET *dset, 
-                           SUMA_COMM_STRUCT *cs, byte *nmask)
+                           SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask)
 {
    static char FuncName[]={"SUMA_Chung_Smooth_05_dset"};
    float *fout_final = NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, *fin_next = NULL, *fin_orig = NULL;
    float delta_time, fp, dfp, fpj, minfn=0.0, maxfn=0.0;
-   int n , k, j, niter, jj, *icols=NULL, N_icols, N_nmask;
+   int n , k, j, niter, jj, nj, *icols=NULL, N_icols, N_nmask;
    byte *bfull=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -4364,8 +4436,11 @@ SUMA_Boolean SUMA_Chung_Smooth_05_dset (SUMA_SurfaceObject *SO, float **wgt,
                if (nmask[n]) {
                   for (j=0; j < SO->FN->N_Neighb[n]; ++j) {
                      {
-                        fpj = fin[SO->FN->FirstNeighb[n][j]]; /* value at jth neighbor of n */
-                        dfp += wgt[n][j+1] * fpj;
+                        nj = SO->FN->FirstNeighb[n][j];
+                        if (nmask[nj] || !strict_mask) { /* consider only neighbors that are in mask if strict_mask is 1*/
+                           fpj = fin[nj]; /* value at jth neighbor of n */
+                           dfp += wgt[n][j+1] * fpj;
+                        }
                      } 
                   }/* for j*/
                   fout[n] = fin[n] * wgt[n][0] +  dfp;
@@ -4395,7 +4470,361 @@ SUMA_Boolean SUMA_Chung_Smooth_05_dset (SUMA_SurfaceObject *SO, float **wgt,
    
    CLEANUP:
    if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL; /* just in case, this one's still alive from a GOTO */
-   if (bfull == nmask) { if (nmask) SUMA_free(nmask); nmask = NULL; bfull = NULL; }
+   /* Pre Dec 06 stupidity: if (bfull == nmask) { if (nmask) SUMA_free(nmask); nmask = NULL; bfull = NULL; } */
+   if (bfull) SUMA_free(bfull); bfull = NULL;
+   if (fbuf) SUMA_free(fbuf); fbuf = NULL;
+   if (fout_final) SUMA_free(fout_final); fout_final = NULL;
+   
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   Estimate the FWHM on a surface. 
+   FWHM based on implementation in mri_estimate_FWHM_1dif (Forman et. al 1995)
+   SO (SUMA_SurfaceObject *) La surface
+   fim (float *) SO->N_Node x 1 vector of data values
+   mask (byte *) SO->N_Node x 1 mask vector (NULL for no masking)
+   nodup (int ) 0- allow a segment to be counted twice (uncool, but slightly faster)
+               1- Do not allow a segment to be counted twice (respectful approach)
+*/
+float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask, int nodup )
+{
+   static char FuncName[]={"SUMA_estimate_FWHM_1dif"};
+   
+   double ds;                  /* average segment size */
+   double fsum, fsq, var , arg ;
+   double dfds, dfdssum, dfdssq, varss;
+   int count, counts, oke, iseg, k, in, ink;
+   float ss=-1.0f ;
+   byte *visited = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!fim || !SO) {
+      SUMA_S_Errv("NULL input fim=%p, SO=%p\n", fim, SO);
+      SUMA_RETURN(ss);
+   }
+   if (!SO->FN || !SO->EL) {
+      SUMA_S_Errv("J'ai besoin des voisins(%p) et des cotes (%p), cherie\n", SO->FN, SO->EL);
+      SUMA_RETURN(ss);
+   }
+   /*----- estimate the variance of the data -----*/
+
+   fsum = 0.0; fsq = 0.0; count = 0;
+   for (in = 0;  in < SO->N_Node;  in++){
+      if( !nmask || nmask[in] ) { count++; arg = fim[in]; fsum += arg; fsq  += arg*arg; }
+   }
+   if( count < 9 || fsq <= 0.0 ){     /* no data? */
+      SUMA_RETURN(ss) ;
+   }
+
+   var = (fsq - (fsum * fsum)/count) / (count-1.0);
+   if( var <= 0.0 ){                  /* crappy data? */
+      SUMA_RETURN(ss);
+   }
+
+   if (nodup) {
+      if (!(visited = (byte *)SUMA_calloc(SO->EL->N_EL, sizeof(byte)))) {
+         SUMA_S_Err("Failed to bytocate for visited.");
+         SUMA_RETURN(ss);
+      }
+   }
+      
+   /*----- estimate the partial derivatives -----*/
+
+   dfdssum = 0.0;   
+   dfdssq  = 0.0;   
+   counts  = 0;
+   ds = 0.0;     
+   for (in = 0;  in < SO->N_Node;  in++){
+      if( !nmask || nmask[in] ){
+         arg = fim[in] ;
+         for(k=0; k < SO->FN->N_Neighb[in]; ++k) { 
+            ink = SO->FN->FirstNeighb[in][k];
+            if (!nmask || nmask[ink]) { /* neighbour also in mask */
+               /* locate the segment, and get distance */
+               iseg = -1;
+               if (in < ink) { SUMA_FIND_EDGE(SO->EL, in, ink, iseg); }
+               else { SUMA_FIND_EDGE(SO->EL, ink, in, iseg); }
+               if (iseg < 0) {
+                  SUMA_S_Errv("Could not find segment between nodes %d and %d\nThis should not happen.\n", in, ink);
+                  SUMA_RETURN(ss);
+               }  
+               if (nodup) { /* make sure edge is fresh */
+                  if (visited[iseg]) oke = 0;
+                  else { oke = 1; visited[iseg] = 1; }
+               } else oke = 1;
+               if (oke) {
+                  ds += SO->EL->Le[iseg];
+                  dfds = (fim[ink] - arg) ;
+                  dfdssum += dfds; dfdssq += dfds*dfds; 
+                  counts++;
+               }
+            }
+         }
+      }
+   }   
+
+   
+   if (visited) SUMA_free(visited); visited = NULL;
+   
+   /*----- estimate the variance of the partial derivatives -----*/
+
+   varss = (counts < 36) ? 0.0
+                       : (dfdssq - (dfdssum * dfdssum)/counts) / (counts-1.0);
+   ds /= counts;  /* the average segment length */
+
+   /*----- now estimate the FWHMs -----*/
+
+   /*---- 2.35482 = sqrt(8*log(2)) = sigma-to-FWHM conversion factor ----*/
+
+   arg = 1.0 - 0.5*(varss/var);
+   ss  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0f
+                                       : 2.35482*sqrt( -1.0 / (4.0*log(arg)) )*ds;
+
+   SUMA_RETURN(ss) ;
+}
+
+SUMA_Boolean SUMA_Offset_Smooth_dset( SUMA_SurfaceObject *SO, 
+                                          float FWHM, float OffsetLim, 
+                                          int N_iter,
+                                          SUMA_DSET *dset, 
+                                          SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask) 
+{
+   static char FuncName[]={"SUMA_Offset_Smooth_dset"};
+   float *fout_final = NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, *fin_next = NULL, *fin_orig = NULL;
+   float fp, dfp, fpj, wt, wts, sig, fwhm_orig, fwhm_out;
+   double dj, ds2, scl;
+   int n , k, j, niter, vnk, os, jj, nj=-1, *icols=NULL, N_icols, N_nmask;
+   byte *bfull=NULL;
+   SUMA_OFFSET_STRUCT *OffS_out = NULL;
+   
+   SUMA_Boolean LocalHead = YUP;
+
+   SUMA_ENTRY;
+   
+   SUMA_S_Warn("Niter is not treated properly");
+   SUMA_S_Warn("No useful weighting in place");
+   
+   
+   if (!SO || !dset) {
+      SUMA_S_Errv("NULL SO (%p) or dset(%p)\n", SO, dset);
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (!SO->FN) {
+      SUMA_SL_Err("NULL SO->FN\n");
+      SUMA_RETURN(NOPE);
+   }
+    
+   /* what columns can we process ?*/
+   icols = SUMA_FindNumericDataDsetCols(dset, &N_icols);
+         
+   if (N_icols <= 0) {
+      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_RETURN(NOPE);   
+   }
+   
+   /* allocate for buffer and output */
+   fbuf = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
+   fout_final = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
+   if (!fbuf || !fout_final) {
+      SUMA_SL_Crit("Failed to allocate for fbuf and fout_final\n");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (cs->Send && N_icols > 1) {
+      SUMA_S_Warn("Only 1st data column will be sent to SUMA in talk_mode.");
+   }
+   
+   if (N_iter < 1) {
+      SUMA_S_Errv("Niter = %d!\n", N_iter);
+   }
+   /* reduce FWHM by Niter */
+   FWHM = FWHM/sqrt(N_iter);
+   
+   /* calculate sigma */
+   if (FWHM > 0.0) {
+      sig = FWHM /   2.354820;
+      ds2 = 2*sig*sig;
+      scl = iSQ_2PI/sig;
+   } else {
+      SUMA_S_Errv("Bad FWHM %f", FWHM);
+      SUMA_RETURN(NOPE);
+   }
+
+   /* calculate the offset limit, if allowed */
+   if (OffsetLim < 0.0) {
+      if (sig > 0.0) {
+         OffsetLim = 3.5*sig;
+      } else {
+         SUMA_S_Errv("Have OffsetLim =%f and no FWHM (%f) from which to estimate it.\n", OffsetLim, FWHM);
+         SUMA_RETURN(NOPE);
+      }
+   }
+
+   /* Check for plausible values */
+   if (OffsetLim < 3*SO->EL->AvgLe) {
+      int Niter_sug = SUMA_MAX_PAIR(1, (int)((float)N_iter*SUMA_POW2(OffsetLim/3.0/(float)SO->EL->AvgLe)));
+      fprintf(SUMA_STDERR,"Error %s:%d\n"
+                  "********************************************\n"
+                  "Inapropriate values for Niter of %d and/or\n"
+                  "FWHM of %.1f. Per iteration, fwhm is %.4f\n"
+                  "and OffsetLim is set to %f.\n"
+                  "But the internodal distance of %.3f is\n"
+                  "too large for proper estimation.\n", 
+                  FuncName, __LINE__,
+                  N_iter, FWHM*sqrt(N_iter), FWHM, OffsetLim, SO->EL->AvgLe);
+      if (Niter_sug < N_iter) {
+         fprintf(SUMA_STDERR,"Try replacing Niter by %d. If you still get\n"
+                  "this warning then your FWHM is too small for your\n"
+                  "mesh\n"
+                  "********************************************\n",
+                   Niter_sug);
+      } else {
+         fprintf(SUMA_STDERR,"Your FWHM is too small for this \n"
+                  "mesh\n"
+                  "********************************************\n");
+      }
+      SUMA_RETURN(NOPE); 
+   }
+   SUMA_LHv("OffsetLim set to %f\nSigma set to %f per iteration with %d iterations (FWHM per iteration=%f)\n", OffsetLim, sig, N_iter, FWHM);
+     
+   /* Begin filtering operation for each column */
+   for (k=0; k < N_icols; ++k) {
+      /* get a float copy of the data column */
+      fin_orig = SUMA_DsetCol2Float (dset, icols[k], 1);
+      if (!fin_orig) {
+         SUMA_SL_Crit("Failed to get copy of column. Woe to thee!");
+         SUMA_RETURN(NOPE);
+      }
+      /* make sure column is not sparse, one value per node */
+      if (k==0) {
+         SUMA_LH( "Special case k = 0, going to SUMA_MakeSparseColumnFullSorted");
+         bfull = NULL;
+         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(dset), 0.0, &bfull, dset, SO->N_Node)) {
+            SUMA_S_Err("Failed to get full column vector");
+            SUMA_RETURN(NOPE);
+         }
+         if (bfull) {
+            SUMA_LH( "Something was filled in SUMA_MakeSparseColumnFullSorted\n" );
+            /* something was filled in good old SUMA_MakeSparseColumnFullSorted */
+            if (nmask) {   /* combine bfull with nmask */
+               SUMA_LH( "Merging masks\n" );
+               for (jj=0; jj < SO->N_Node; ++jj) { if (nmask[jj] && !bfull[jj]) nmask[jj] = 0; }   
+            } else { nmask = bfull; }
+         } 
+         if (nmask) {
+            N_nmask = 0;
+            for (n=0; n<SO->N_Node; ++n) { if (nmask[n]) ++ N_nmask; }
+            SUMA_LHv("Blurring with node mask (%d nodes in mask)\n", N_nmask);
+            if (!N_nmask) {
+               SUMA_S_Warn("Empty mask, nothing to do");
+               goto CLEANUP;
+            }
+         }
+         /* now calculate the neighbor offset structure */
+         SUMA_LHv("Calculating OffS_out FWHM=%f, OffsetLim = %f\n", FWHM, OffsetLim);
+         OffS_out = SUMA_FormNeighbOffset (SO, OffsetLim, NULL, nmask, FWHM);
+      } else {
+         SUMA_LH( "going to SUMA_MakeSparseColumnFullSorted");
+         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(dset), 0.0, NULL, dset, SO->N_Node)) {
+            SUMA_S_Err("Failed to get full column vector");
+            SUMA_RETURN(NOPE);
+         }
+         /* no need for reworking nmask and bfull for each column...*/
+         
+      }
+           
+      if (cs->Send && k == 0) { /* send the first monster */
+         if (!SUMA_SendToSuma (SO, cs, (void *)fin_orig, SUMA_NODE_RGBAb, 1)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+         }
+      }
+      
+      fwhm_orig = SUMA_estimate_FWHM_1dif(SO, fin_orig, nmask, 1);
+      SUMA_LHv("FWHM_orig for col. %d is : %f\n", k, fwhm_orig);
+      
+      /* filter this column for each of the iterations */
+      fin_next = fin_orig;
+      for (niter=0; niter < N_iter; ++niter) {
+         SUMA_LHv("niter %d\n", niter);
+         if ( niter % 2 ) { /* odd */
+            fin = fin_next; /* input from previous output buffer */
+            fout = fout_final; /* results go into final vector */
+            fin_next = fout_final; /* in the next iteration, the input is from fout_final */
+         } else { /* even */
+            /* input data is in fin_new */
+            fin = fin_next;
+            fout = fbuf; /* results go into buffer */
+            fin_next = fbuf; /* in the next iteration, the input is from the buffer */
+         }
+         
+         if (!nmask) {
+            for (n=0; n < SO->N_Node; ++n) {
+               fp = fin[n]; /* kth value at node n */
+               wt = iSQ_2PI/sig; 
+               dfp = wt*fp; wts = wt;
+               /* if (n == 1358) { fprintf(SUMA_STDOUT,"fin[%d]=%f; Have %d neighbs, wt = %f\n", n, fin[n], OffS_out[n].N_Neighb, wt); } */
+               for (j=0; j<OffS_out[n].N_Neighb; ++j) {
+                  nj = OffS_out[n].Neighb_ind[j];
+                  fpj = fin[nj]; /* value at jth neighbor of n */
+                  wt = OffS_out[n].Neighb_dist[j];   /*  */ 
+                  dfp += wt * (fpj);  wts += wt;
+                  /* if (n == 1358) { fprintf(SUMA_STDOUT,"   fin[%d]=%f; wt=%f, dfp=%f; wts=%f\n", nj, fin[nj],  wt, dfp, wts); }  */
+               }/* for j*/
+               fout[n] = dfp/(wts);
+            }/* for n */
+         }else{/* masking potential */
+            for (n=0; n < SO->N_Node; ++n) {
+               fp = fin[n]; /* kth value at node n */
+               wt = iSQ_2PI/sig; 
+               dfp = wt*fp; wts = wt;
+               if (nmask[n]) {
+                  for (j=0; j<OffS_out[n].N_Neighb; ++j) {
+                     nj = OffS_out[n].Neighb_ind[j];
+                     if (nmask[nj] || !strict_mask) { /* consider only neighbors that are in mask if strict_mask is 1*/ 
+                        fpj = fin[nj]; /* value at jth neighbor of n */
+                        wt = OffS_out[n].Neighb_dist[j];   
+                        dfp += wt * (fpj);  wts += wt;
+                     }
+                  }/* for j*/
+               }
+               fout[n] = dfp/(wts);
+            }/* for n */
+         }/* masking potential */
+            
+        if (cs->Send && k == 0) {
+            if (!SUMA_SendToSuma (SO, cs, (void *)fout, SUMA_NODE_RGBAb, 1)) {
+               SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+            }
+         }
+
+      } /* for niter */
+      
+      if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL;
+      
+      /* Now we need to shove the filtered data back into the dset */
+      if (N_iter % 2) { /* odd */
+         fout = fbuf;
+      } else fout = fout_final;
+      
+      if (!SUMA_Float2DsetCol (dset, icols[k], fout, SO->N_Node)) {
+         SUMA_S_Err("Failed to update dset's values");
+         SUMA_RETURN(NOPE);      
+      }
+
+      fwhm_out = SUMA_estimate_FWHM_1dif(SO, fout, nmask, 1);
+      SUMA_LHv("FWHM_out for col. %d is : %f\n", k, fwhm_out);
+
+      
+   } /* for each col */
+   
+   CLEANUP:
+   OffS_out = SUMA_free_NeighbOffset (SO, OffS_out);
+   if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL; /* just in case, this one's still alive from a GOTO */
+   /* Pre Dec 06 stupidity: if (bfull == nmask) { if (nmask) SUMA_free(nmask); nmask = NULL; bfull = NULL; } */
+   if (bfull) SUMA_free(bfull); bfull = NULL;
    if (fbuf) SUMA_free(fbuf); fbuf = NULL;
    if (fout_final) SUMA_free(fout_final); fout_final = NULL;
    
@@ -4415,7 +4844,7 @@ SUMA_Boolean SUMA_Chung_Smooth_05_dset (SUMA_SurfaceObject *SO, float **wgt,
    \param Force (int) 1: Force the flipping of only those triangles whose normals point in the wrong direction (opposite to orient).
                            With this option, you will destroy the winding consistency of a surface!  
    \return ans (int):   0: error
-                       1: most normals were pointing outwards
+                        1: most normals were pointing outwards
                        -1:  most normals were pointing inwards
 */
 int SUMA_OrientTriangles (float *NodeList, int N_Node, int *FaceSetList, int N_FaceSet, int orient, int Force)

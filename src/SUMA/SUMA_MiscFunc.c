@@ -7306,10 +7306,10 @@ int main (int argc,char *argv[])
    
    \sa   SUMA_SmoothAttr_Neighb_Rec  
 */
-float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NODE_FIRST_NEIGHB *fn, int nr, byte *nmask)
+float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NODE_FIRST_NEIGHB *fn, int nr, byte *nmask, byte strict_mask)
 {
    static char FuncName[]={"SUMA_SmoothAttr_Neighb"};
-   int ni, im, offs, j;
+   int ni, im, offs, j, nj, wgt;
     
    SUMA_ENTRY;
 
@@ -7350,17 +7350,34 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
          continue;
       }
       offs = nr * ni;
-      for (im=0; im<nr; ++im) {
-         attr_sm[offs+im] = attr[offs+im];
-         if (nmask && !nmask[fn->NodeId[ni]]){
-            /* do nothing */
-         } else {
+      if (nmask) {
+         if (nmask[fn->NodeId[ni]]) {  /* the node is in the mask */
+            for (im=0; im<nr; ++im) {
+               attr_sm[offs+im] = attr[offs+im];
+               {
+                  wgt = 0;
+                  for (j=0; j < fn->N_Neighb[ni]; ++j)
+                  {
+                     nj = fn->FirstNeighb[ni][j];
+                     if (nmask[nj] || !strict_mask) { /* the neighbor is in the mask or we take in all neighbors */
+                        attr_sm[offs+im] += attr[nr*nj+im]; ++wgt;
+                     }
+                  }   
+                  attr_sm[offs+im] /= ((float)wgt+1.0);
+               }
+            }
+         } else { /* the node is not in the mask */
+            for (im=0; im<nr; ++im) attr_sm[offs+im] = attr[offs+im];
+         }
+      } else { 
+         for (im=0; im<nr; ++im) {
+            attr_sm[offs+im] = attr[offs+im];
             for (j=0; j < fn->N_Neighb[ni]; ++j)
             {
                attr_sm[offs+im] += attr[nr*fn->FirstNeighb[ni][j]+im]; 
             }   
             attr_sm[offs+im] /= (fn->N_Neighb[ni]+1);
-         }
+         }   
       }
    }
    
@@ -7401,7 +7418,7 @@ float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig
    curr_attr = attr; /* initialize with user's data */
    while (i < N_rep) {
       /* intermediary calls */
-      attr_sm = SUMA_SmoothAttr_Neighb (curr_attr, N_attr, NULL, fn, nr, NULL);
+      attr_sm = SUMA_SmoothAttr_Neighb (curr_attr, N_attr, NULL, fn, nr, NULL, 1);
       if (i > 1)  { /* second or more time in */
          /* free input to previous calculation */
          if (curr_attr) SUMA_free(curr_attr);
@@ -7411,7 +7428,7 @@ float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig
    }      
    
    /* last call, honor the user's return pointer */
-   attr_sm = SUMA_SmoothAttr_Neighb (curr_attr, N_attr, attr_sm_orig, fn, nr, NULL);
+   attr_sm = SUMA_SmoothAttr_Neighb (curr_attr, N_attr, attr_sm_orig, fn, nr, NULL, 1);
    
    /* free curr_attr if i > 1, i.e. it is not the user's original copy */
    if (i > 1) {

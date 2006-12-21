@@ -10,6 +10,10 @@
 */
 #define SUMA_IS_BLANK(c) ( ((c) == ' ' || (c) == '\t' || (c) == '\n' || (c) == '\v' || (c) == '\f' || (c) == '\r') ? 1 : 0 )
 #define SUMA_IS_LINE_END(c) ( ((c) == '\n' || (c) == '\f' || (c) == '\r') ? 1 : 0 )
+#define SUMA_IS_NICE_PREFIX_CHAR(c) ( (SUMA_IS_BLANK(c) \
+                                       || (c) == ':' || (c) == ';' || (c) == '[' || (c) == ']' || (c) == '{' || (c) == '}'  \
+                                       || (c) == '<' || (c) == '>' || (c) == '#' || (c) == '*' || (c) == '?' )   \
+                                       ? 1 : 0 )    
 
 /*!
    \brief advances pointer to next non-space, see isspace function for characters I check for.
@@ -31,7 +35,29 @@
    if (*m_op == cc) { ans = 1; } \
 }
 
+#define SUMA_DEBLANK_FILENAME(name,repl) {  \
+   if (name)   {  \
+      int m_i, m_r=0; \
+      if (repl) { \
+         for (m_i=0; m_i<strlen(name); ++m_i) { if (SUMA_IS_BLANK(name[m_i])) { name[m_i] = repl; }  } \
+      }  else {   \
+         for (m_i=0; m_i<strlen(name); ++m_i) { if (!SUMA_IS_BLANK(name[m_i])) { name[m_r] = name[m_i]; ++m_r;} } \
+         name[m_r] = '\0'; \
+      }  \
+   }\
+}
 
+#define SUMA_NICEATE_FILENAME(name,repl) {  \
+   if (name)   {  \
+      int m_i, m_r=0; \
+      if (repl) { \
+         for (m_i=0; m_i<strlen(name); ++m_i) { if (SUMA_IS_NICE_PREFIX_CHAR(name[m_i])) { name[m_i] = repl; }  } \
+      }  else {   \
+         for (m_i=0; m_i<strlen(name); ++m_i) { if (!SUMA_IS_NICE_PREFIX_CHAR(name[m_i])) { name[m_r] = name[m_i]; ++m_r;} } \
+         name[m_r] = '\0'; \
+      }  \
+   }\
+}
 /*!
    \brief advance pointer to next blank, skips quoted strings (works with " and ' combos, I hope)
    Hello 'djjdk sskjd' Jon
