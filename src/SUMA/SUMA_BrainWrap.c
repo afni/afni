@@ -656,7 +656,7 @@ int SUMA_SkullMask (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Op
          cs->kth = 1;  /*make sure all gets sent at this stage */
          dsmooth = SUMA_Taubin_Smooth( SO, NULL,
                                     0.6307, -.6732, SO->NodeList,
-                                    8, 3, SUMA_ROW_MAJOR, dsmooth, cs, NULL);    
+                                    8, 3, SUMA_ROW_MAJOR, dsmooth, cs, NULL, 0);    
          memcpy((void*)SO->NodeList, (void *)dsmooth, SO->N_Node * 3 * sizeof(float));
          cs->kth = kth_buf; 
          
@@ -2883,7 +2883,7 @@ void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_
             /* civilized smoothing */
             dsmooth = SUMA_Taubin_Smooth( SO, NULL,
                                     0.6307, -.6732, SO->NodeList,
-                                    Opt->smooth_end, 3, SUMA_ROW_MAJOR, dsmooth, cs, NULL);    
+                                    Opt->smooth_end, 3, SUMA_ROW_MAJOR, dsmooth, cs, NULL, 0);    
             memcpy((void*)SO->NodeList, (void *)dsmooth, SO->N_Node * 3 * sizeof(float));
             SUMA_RECOMPUTE_NORMALS(SO);
          } 
@@ -3294,7 +3294,7 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_ST
             SUMA_SL_Err("Failed to compute weights.\n"); 
             exit(1); 
          }  
-         dsmooth = SUMA_Chung_Smooth (SO, wgt, 200, 20, touchup, 1, SUMA_COLUMN_MAJOR, NULL, cs, NULL);   
+         dsmooth = SUMA_Chung_Smooth (SO, wgt, 200, 20, touchup, 1, SUMA_COLUMN_MAJOR, NULL, cs, NULL, 1);   
          if (LocalHead) fprintf (SUMA_STDERR,"%s: ********************* filtering done.\n", FuncName);   
       } else { 
          dsmooth = touchup; /* carefull at the free business */

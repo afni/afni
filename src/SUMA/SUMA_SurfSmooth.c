@@ -15,9 +15,10 @@ SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing 
 void usage_SUMA_SurfSmooth ()
    {
       static char FuncName[]={"usage_SUMA_SurfSmooth"};
-      char * s = NULL, *st = NULL;
+      char * s = NULL, *st = NULL, *sm = NULL;
       s = SUMA_help_basics();
       st = SUMA_help_talk();
+      sm = SUMA_help_mask();
       printf ("\nUsage:  SurfSmooth <-spec SpecFile> <-surf_A insurf> <-met method> \n"
               "\n"
               "   Some methods require additional options detailed below.\n"
@@ -186,16 +187,14 @@ void usage_SUMA_SurfSmooth ()
               "      -add_index : Output the node index in the first column.\n"
               "                   This is not done by default.\n"
               "      -dbg_n node : output debug information for node 'node'.\n"
-              "      -n_mask filter_mask: Apply filtering to nodes listed in\n"
-              "                          filter_mask only. Nodes not in the filter_mask will\n"
-              "                          not see their value change, but they will still \n"
-              "                          contribute to the values of nodes in the filtermask.\n"
-              "                          At the moment, it is only implemented for methods\n"
-              "                          NN_geom, LM, LB_FEM and HEAT (and maybe other ones)\n"
-              "      -b_mask filter_binary_mask: Similar to -n_mask, except that filter_binary_mask\n"
-              "                          contains 1 for nodes to filter and 0 for nodes to be ignored.\n"
-              "                          The number of rows in filter_binary_mask must be equal to the\n"
-              "                          number of nodes forming the surface.\n"
+              "      -use_neighbors_outside_mask: When using -c_mask or -b_mask or -n_mask\n"
+              "                                   options, allow value from a node nj neighboring\n"
+              "                                   node n to contribute to the value at n even if\n"
+              "                                   nj is not in the mask.\n"
+              "                                   The default is to ignore all nodes not in the\n"
+              "                                   mask.\n"
+              "\n"
+              "%s"
               "\n"
               "%s"
               "\n"
@@ -278,7 +277,7 @@ void usage_SUMA_SurfSmooth ()
               "       to load surface datasets directly into SUMA and colorize\n"
               "       them interactively."
               "\n"
-              "\n", st, s); SUMA_free(s); s = NULL; SUMA_free(st); st = NULL;
+              "\n", sm,  st, s); SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sm); sm = NULL; 
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
        printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
        exit (0);
@@ -320,6 +319,8 @@ typedef struct {
    byte *nmask;
    char *nmaskname;
    char *bmaskname;
+   char *cmask;
+   byte strict_mask;
    float sigma;
    SUMA_DSET_FORMAT oform;
 } SUMA_SURFSMOOTH_OPTIONS;
@@ -348,7 +349,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
    Opt = (SUMA_SURFSMOOTH_OPTIONS *)SUMA_malloc(sizeof(SUMA_SURFSMOOTH_OPTIONS));
    
    kar = 1;
-   Opt->OffsetLim = 10.0;
+   Opt->OffsetLim = -1.0;
    Opt->MatchMethod = 0;
    Opt->lim = 1000000.0;
    Opt->fwhm = -1;
@@ -376,6 +377,8 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
    Opt->spec_file = NULL;
    Opt->sigma = -1.0;
    Opt->oform = SUMA_NO_DSET_FORMAT;
+   Opt->cmask = NULL;
+   Opt->strict_mask = 1;
    SUMA_Set_Taubin_Weights(SUMA_EQUAL);
    for (i=0; i<SURFSMOOTH_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
    outname = NULL;
@@ -389,56 +392,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
 		
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
 
-      #if 0 /* now  in the SUMA_GENERIC_ARGV_PARSE struct */
-      if (!brk && strcmp(argv[kar], "-ni_text") == 0)
-		{
-         SUMA_GEOMCOMP_NI_MODE = NI_TEXT_MODE;
-         brk = YUP;
-      }
       
-      if (!brk && strcmp(argv[kar], "-ni_binary") == 0)
-		{
-         SUMA_GEOMCOMP_NI_MODE = NI_BINARY_MODE;
-         brk = YUP;
-      }
-      
-		if (!brk && strcmp(argv[kar], "-sh") == 0)
-		{
-			kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -sh \n");
-				exit (1);
-			}
-			if (strcmp(argv[kar],"localhost") != 0) {
-            Opt->suma_host_name = SUMA_copy_string(argv[kar]);
-         }else {
-           fprintf (SUMA_STDERR, "localhost is the default for -sh\nNo need to specify it.\n");
-         }
-
-			brk = YUP;
-		}	
-      if (!brk && strcmp(argv[kar], "-refresh_rate") == 0)
-		{
-			kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -refresh_rate \n");
-				exit (1);
-			}
-			Opt->rps = atof(argv[kar]);
-         if (Opt->rps <= 0) {
-            fprintf (SUMA_STDERR, "Bad value (%f) for refresh_rate\n", Opt->rps);
-				exit (1);
-         }
-
-			brk = YUP;
-		}
-      
-      if (!brk && (strcmp(argv[kar], "-talk_suma") == 0)) {
-			Opt->talk_suma = 1; 
-			brk = YUP;
-		}
-      
-      #endif
       if (!brk && strcmp(argv[kar], "-dist") == 0)
 		{
 			kar ++;
@@ -447,7 +401,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
 				exit (1);
 			}
 			Opt->OffsetLim = atof(argv[kar]);
-         if (Opt->OffsetLim <= 0) {
+         if (Opt->OffsetLim <= 0 && Opt->OffsetLim != -1.0) {
             fprintf (SUMA_STDERR, "Bad value (%f) for refresh_rate\n", Opt->OffsetLim);
 				exit (1);
          }
@@ -463,25 +417,6 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
 			}
 			Opt->ShowNode = atoi(argv[kar]); 
          SUMA_Set_SurfSmooth_NodeDebug(Opt->ShowNode);
-			brk = YUP;
-		}
-      if (!brk && (strcmp(argv[kar], "-n_mask") == 0)) {
-         kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 1 argument after -n_mask \n");
-				exit (1);
-			}
-			Opt->nmaskname = argv[kar]; 
-			brk = YUP;
-		}
-      
-      if (!brk && (strcmp(argv[kar], "-b_mask") == 0)) {
-         kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 1 argument after -b_mask \n");
-				exit (1);
-			}
-			Opt->bmaskname = argv[kar]; 
 			brk = YUP;
 		}
       
@@ -583,6 +518,11 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
       
       if (!brk && (strcmp(argv[kar], "-add_index") == 0)) {
 			Opt->AddIndex = 1;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-use_neighbors_outside_mask") == 0)) {
+			Opt->strict_mask = 0;
 			brk = YUP;
 		}
       
@@ -1056,17 +996,20 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
          break;
    }
    
-   if (Opt->bmaskname && Opt->nmaskname) {
-      fprintf (SUMA_STDERR,"Error %s:\n-n_mask and -b_mask options are mutually exclusive.\n", FuncName);
+   if (0 && ((Opt->bmaskname && Opt->nmaskname) || (Opt->bmaskname && Opt->cmask) || (Opt->nmaskname && Opt->cmask) ) ) {
+      fprintf (SUMA_STDERR,"Error %s:\n-n_mask, -b_mask, and -c_mask options are mutually exclusive.\n", FuncName);
       exit(1);
+   }else {
+      /* SUMA_S_Warn("For testing! Turn me back on!!!\n"); */ /* Now it is allowed */
    }
    SUMA_RETURN (Opt);
 }
 
+
 int main (int argc,char *argv[])
 {/* Main */    
    static char FuncName[]={"SurfSmooth"}; 
-	int kar, icol, nvec, ncol=0, i, ii;
+	int kar, icol, nvec, ncol=0, i, ii, N_inmask = -1;
    float *data_old = NULL, *far = NULL;
    float **DistFirstNeighb;
    void *SO_name = NULL;
@@ -1085,7 +1028,7 @@ int main (int argc,char *argv[])
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_DSET *dset = NULL;
    int iform;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;
@@ -1140,83 +1083,32 @@ int main (int argc,char *argv[])
    }
 
    /* setup the mask, if needed */
-   if (Opt->nmaskname) {
-      int kk;
-      float *far=NULL;
-      MRI_IMAGE * im=NULL;
-      
-      
-      im = mri_read_1D (Opt->nmaskname);
-      if (!im) {
-         SUMA_S_Err("Failed to read mask file");  
-         exit(1);
-      }
-      far = MRI_FLOAT_PTR(im);
-   
-      if (!im->nx) {
-         SUMA_S_Err("Empty file");  
-         exit(1);
-      }
-      if (im->ny != 1 ) {
-         SUMA_S_Err("nmask file must have\n"
-                     " 1 column.");
-         fprintf(SUMA_STDERR,"Have %d columns!\n", im->ny);
-         exit(1);
-      }
-      Opt->nmask = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));
-      if (!Opt->nmask) {
-         SUMA_S_Crit("Failed to allocate"); exit(1);
-      }
-      for (kk=0; kk<im->nx; ++kk) {
-         if (far[kk] < 0 || far[kk] >= SO->N_Node) {
-            SUMA_S_Err( "Bad indices in mask file.\n"
-                        "Values either < 0 or >= number\n"
-                        "of nodes in surface.");
-            exit(1);
-         }
-         Opt->nmask[(int)far[kk]] = 1;   
-      }
-      mri_free(im); im = NULL;
+   if (Opt->nmask) {
+      SUMA_S_Err("Should be null here!");
+      exit(1);
    }
-   if (Opt->bmaskname) {
-      int kk;
-      float *far=NULL;
-      MRI_IMAGE * im=NULL;
-      
-      
-      im = mri_read_1D (Opt->bmaskname);
-      if (!im) {
-         SUMA_S_Err("Failed to read mask file");  
-         exit(1);
-      }
-      far = MRI_FLOAT_PTR(im);
    
-      if (!im->nx) {
-         SUMA_S_Err("Empty file");  
+   if (!(Opt->nmask = SUMA_load_all_command_masks(Opt->bmaskname, Opt->nmaskname, Opt->cmask, SO->N_Node, &N_inmask)) && N_inmask < 0) {
+         SUMA_S_Err("Failed loading mask");
          exit(1);
-      }
-      if (im->nx != SO->N_Node) {
-         SUMA_S_Err( "Number of rows in mask file is not \n"
-                     "equal to number of nodes in surface.\n");  
-         exit(1);
-      }
-      if (im->ny != 1 ) {
-         SUMA_S_Err("nmask file must have\n"
-                     " 1 column.");
-         fprintf(SUMA_STDERR,"Have %d columns!\n", im->ny);
-         exit(1);
-      }
-      Opt->nmask = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));
-      if (!Opt->nmask) {
-         SUMA_S_Crit("Failed to allocate"); exit(1);
-      }
-      for (kk=0; kk<im->nx; ++kk) {
-         if ((int)far[kk]) {
-            Opt->nmask[kk] = 1; 
-            /* fprintf (SUMA_STDERR,"%d   ", kk);  */
+   }
+   
+   if (Opt->nmask) {
+      fprintf(SUMA_STDOUT,"%d nodes in mask:\n", N_inmask);
+      if (LocalHead) {
+         ii = 0;
+         for (i=0; i<SO->N_Node; ++i) {
+            if (Opt->nmask[i]) {
+               fprintf(SUMA_STDERR,"%6d   ", i); ++ii;
+               if (!(ii % 12)) fprintf(SUMA_STDERR,"\n");
+            }
          }
+         fprintf(SUMA_STDERR,"\n");   
       }
-      mri_free(im); im = NULL;
+   } else {
+      if (LocalHead) {
+         fprintf(SUMA_STDOUT,"No masking.\n");
+      }
    }
    
    if (Opt->ShowNode >= 0 && Opt->ShowNode >= SO->N_Node) {
@@ -1315,7 +1207,8 @@ int main (int argc,char *argv[])
                                        etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
             
-            dsmooth = SUMA_Chung_Smooth_05 (SO, wgt, Opt->N_iter, Opt->fwhm, far, ncol, SUMA_COLUMN_MAJOR, NULL, cs, Opt->nmask);
+            dsmooth = SUMA_Chung_Smooth_05 ( SO, wgt, Opt->N_iter, Opt->fwhm, far, ncol, 
+                                             SUMA_COLUMN_MAJOR, NULL, cs, Opt->nmask, Opt->strict_mask);
             
             if (LocalHead) {
                etime_GetOffset = SUMA_etime(&start_time,1);
@@ -1372,7 +1265,8 @@ int main (int argc,char *argv[])
             }
             
             
-            dsmooth = SUMA_Chung_Smooth (SO, wgt, Opt->N_iter, Opt->fwhm, far, ncol, SUMA_COLUMN_MAJOR, NULL, cs, Opt->nmask);
+            dsmooth = SUMA_Chung_Smooth ( SO, wgt, Opt->N_iter, Opt->fwhm, far, ncol, 
+                                          SUMA_COLUMN_MAJOR, NULL, cs, Opt->nmask, Opt->strict_mask);
             
             if (LocalHead) {
                etime_GetOffset = SUMA_etime(&start_time,1);
@@ -1440,7 +1334,7 @@ int main (int argc,char *argv[])
             
             if (!SUMA_Chung_Smooth_dset ( SO, wgt, 
                                           Opt->N_iter, Opt->fwhm, 
-                                          dset, cs, Opt->nmask)) {
+                                          dset, cs, Opt->nmask, Opt->strict_mask)) {
                SUMA_S_Err("Failed in  SUMA_Chung_Smooth_dset");
                exit(1);                            
             }
@@ -1508,7 +1402,7 @@ int main (int argc,char *argv[])
             
             if (!SUMA_Chung_Smooth_05_dset ( SO, wgt, 
                                           Opt->N_iter, Opt->fwhm, 
-                                          dset, cs, Opt->nmask)) {
+                                          dset, cs, Opt->nmask, Opt->strict_mask)) {
                SUMA_S_Err("Failed in  SUMA_Chung_Smooth_05_dset");
                exit(1);                            
             }
@@ -1525,6 +1419,69 @@ int main (int argc,char *argv[])
          }
          break; 
       
+      case SUMA_BRUTE_FORCE:
+         {
+            /* now load the input data */
+            iform = SUMA_GuessFormatFromExtension(Opt->in_name);
+            if (!(dset = SUMA_LoadDset_s (Opt->in_name, &iform, 0))) {
+               SUMA_S_Err("Failed to read dset");
+               exit(1);
+            }
+              
+            if (Opt->oform == SUMA_NO_DSET_FORMAT) Opt->oform = iform;
+
+            if (!SDSET_VECLEN(dset) || !SDSET_VECNUM(dset)) {
+               SUMA_SL_Err("Empty file");
+               exit(1);
+            }
+            if (SDSET_VECLEN(dset) != SO->N_Node) {
+               if (LocalHead) fprintf(SUMA_STDERR, "Warning %s:\n"
+                                    "Expecting 1D file to have %d rows\n"
+                                    "                    found %d rows instead.\n"
+                                    "Function should deal with this properly but check results\n",
+                                     FuncName, SO->N_Node, SDSET_VECLEN(dset));
+            }
+            
+            if (Opt->AddIndex || Opt->oform == SUMA_NIML) {
+               if (!SUMA_AddNodeIndexColumn(dset, SO->N_Node)) {
+                  SUMA_S_Err("Failed to add a node index column");
+                  exit(1);
+               }
+            }
+             
+            if (LocalHead) SUMA_etime(&start_time,0);
+                                    
+
+            if (LocalHead) {
+               SUMA_LHv("Input %s:\n", Opt->in_name);
+               SUMA_ShowDset(dset, 0, NULL);
+            }
+            
+            if (!SUMA_Offset_Smooth_dset( SO, Opt->fwhm, Opt->OffsetLim, Opt->N_iter, dset, cs, Opt->nmask, Opt->strict_mask)) {
+               SUMA_S_Err("Failed in SUMA_Offset_Smooth_dset ");
+               exit(1);  
+            }
+
+            if (LocalHead) {
+               etime_GetOffset = SUMA_etime(&start_time,1);
+               fprintf(SUMA_STDERR, "%s: Total processing took %f seconds for %d nodes.\n"
+                                 "Projected time per 100000 nodes is: %f minutes\n", 
+                                       FuncName, etime_GetOffset, SO->N_Node, 
+                                       etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
+            }
+
+            if (0 && LocalHead) {
+               SUMA_LH("See dsmooth.1D");
+               SUMA_disp_vecmat (dsmooth, SO->N_Node, 3, 1,  d_order, NULL, YUP);
+            }
+            /* writing of results is done below */
+            etime_GetOffset_all = SUMA_etime(&start_time_all,1);
+            fprintf(SUMA_STDERR, "%s: Done.\nSearch to %f mm took %f minutes for %d nodes.\n" , 
+                                 FuncName, Opt->lim, etime_GetOffset_all / 60.0 , SO->N_Node);
+
+         }
+         break;
+      
       case SUMA_NN_GEOM:
          /* brute forcem nearset neighbor interpolation */
          {
@@ -1533,7 +1490,7 @@ int main (int argc,char *argv[])
             d_order =  SUMA_ROW_MAJOR; 
             
             dsmooth = SUMA_NN_GeomSmooth( SO, Opt->N_iter, SO->NodeList,
-                                          3, d_order, NULL, cs, Opt->nmask);
+                                          3, d_order, NULL, cs, Opt->nmask, Opt->strict_mask);
             if (0 && LocalHead) {
                SUMA_LH("See dsmooth.1D");
                SUMA_disp_vecmat (dsmooth, SO->N_Node, 3, 1,  d_order, NULL, YUP);
@@ -1546,33 +1503,6 @@ int main (int argc,char *argv[])
             /* writing of results is done below */
          }
          break;  
-      case SUMA_BRUTE_FORCE:
-         /* a method that will likely be dropped NOT FINISHED  */
-         {
-            if (LocalHead) SUMA_etime(&start_time,0);
-            
-            d_order =  SUMA_ROW_MAJOR; 
-            
-            SUMA_etime(&start_time_all,0);
-            dsmooth = SUMA_Offset_GeomSmooth( SO, Opt->N_iter, Opt->OffsetLim, SO->NodeList,
-                                              3, d_order, NULL, cs);
-            if (0 && LocalHead) {
-               SUMA_LH("See dsmooth.1D");
-               SUMA_disp_vecmat (dsmooth, SO->N_Node, 3, 1,  d_order, NULL, YUP);
-            }
-            if (!dsmooth) {
-               SUMA_SL_Err("Failed in SUMA_Offset_Geom_Smooth");
-               exit(1);
-            }
-            
-            /* writing of results is done below */
-            
-            etime_GetOffset_all = SUMA_etime(&start_time_all,1);
-            fprintf(SUMA_STDERR, "%s: Done.\nSearch to %f mm took %f minutes for %d nodes.\n" , 
-                                 FuncName, Opt->lim, etime_GetOffset_all / 60.0 , SO->N_Node);
-
-         }
-         break;
       case SUMA_LM:
          /* Taubin's */
          {
@@ -1603,7 +1533,7 @@ int main (int argc,char *argv[])
             dsmooth = SUMA_Taubin_Smooth (SO, wgt, 
                       Opt->l, Opt->m, SO->NodeList, 
                       Opt->N_iter, 3, d_order,
-                      NULL, cs, Opt->nmask); 
+                      NULL, cs, Opt->nmask, Opt->strict_mask); 
 
             if (LocalHead) {
                etime_GetOffset = SUMA_etime(&start_time,1);
@@ -1624,7 +1554,7 @@ int main (int argc,char *argv[])
    }
    
    
-   if (Opt->Method == SUMA_BRUTE_FORCE || Opt->Method == SUMA_NN_GEOM)
+   if (Opt->Method == SUMA_NN_GEOM)
    {
       if (Opt->MatchMethod) {   
          SUMA_LH("Fixing shrinkage...");
@@ -1783,7 +1713,7 @@ int main (int argc,char *argv[])
             exit(1);
       }
    } else {
-      if (Opt->Method != SUMA_LB_FEM && Opt->Method != SUMA_HEAT_05 ) {
+      if (Opt->Method != SUMA_LB_FEM && Opt->Method != SUMA_HEAT_05 && Opt->Method != SUMA_BRUTE_FORCE) {
          if (!dsmooth) {
             SUMA_SL_Err("NULL dsmooth for data smoothing. Either failed to smooth or logical error.");
             exit(1);
@@ -1792,7 +1722,7 @@ int main (int argc,char *argv[])
          if (Opt->AddIndex) SUMA_disp_vecmat (dsmooth, SO->N_Node, ncol, 1, d_order, fileout, YUP);
          else SUMA_disp_vecmat (dsmooth, SO->N_Node, ncol, 1, d_order, fileout, NOPE);
          fclose(fileout); fileout = NULL;
-      } else if (Opt->Method == SUMA_LB_FEM || Opt->Method == SUMA_HEAT_05) {
+      } else if (Opt->Method == SUMA_LB_FEM || Opt->Method == SUMA_HEAT_05 || Opt->Method == SUMA_BRUTE_FORCE) {
          SUMA_NEWDSET_ID_LABEL_HIST(dset, Opt->out_name) ;
          SUMA_WriteDset_s(Opt->out_name, dset, Opt->oform, 0, 0);
          SUMA_FreeDset(dset); dset = NULL;

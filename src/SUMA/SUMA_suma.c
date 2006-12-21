@@ -362,7 +362,7 @@ int main (int argc,char *argv[])
       Specp[ispec] = SUMA_IO_args_2_spec (ps, &nspec); 
       if (Specp[ispec]) ++ispec;
       if (nspec != 1) {
-         SUMA_S_Err("-spec is being parsed separately here, expecting one spec only from SUMA_IO_args_2_spec");
+         SUMA_S_Errv("-spec is being parsed separately here, expecting one spec only from SUMA_IO_args_2_spec, got %d\n", nspec);
          exit (1);
       }
       

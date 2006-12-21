@@ -130,6 +130,7 @@
    #include "SUMA_IsoSurface.h"
    #include "SUMA_BrainWrap.h"
    #include "SUMA_SurfaceToSurface.h"
+   #include "SUMA_LocalStat.h"
 #else
    /* define the necessary macros */   
    #define SUMA_STDERR stderr

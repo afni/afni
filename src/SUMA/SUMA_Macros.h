@@ -8,6 +8,10 @@
 # define SUMA_IS_GOOD_FLOAT(x) finite(x)
 #endif
 
+/*!   sqrt(2 pi) and 1/sqrt(2 pi) */
+#define SQ_2PI 2.50662827463100024161
+#define iSQ_2PI 0.39894228040143270286
+
 /*!
    Macro to create a new ID code at random (when strn = NULL) or a hash of a string
    written mostly to allow for the allocation of newcode with SUMA's functions

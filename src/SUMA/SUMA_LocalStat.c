@@ -961,7 +961,313 @@ SUMA_Boolean SUMA_Sort_ClustersList (DList *list, SUMA_SURF_CLUST_SORT_MODES Sor
          break; 
    }
    
-   
-   
    SUMA_RETURN(YUP);
 }
+
+#define SUMA_LOCAL_STATS_NODE_DBG { \
+   if (n == ndbg) {  \
+       char *mfname = SUMA_append_replace_num("SUMA_SurfLocalstat", "_node%ddbg_Col_", n, SUMA_int, 0);   \
+       mfname = SUMA_append_replace_string(mfname, lblcp, "", 1); \
+       mfname = SUMA_append_replace_string(mfname, ".1D.dset", "", 1); \
+       SUMA_NICEATE_FILENAME(mfname,'\0');   \
+       FILE *mf=fopen(mfname,"w");   \
+       if (!mf) { SUMA_S_Errv("Failed to open %s for writing.\n", mfname); }   \
+       else {   \
+          fprintf(mf, "#Node %d in mask, total of %d neighbs of which %d went into output of (%f).\n",    \
+                n, OffS_out[n].N_Neighb, nval-1, fout[n]);   \
+          if (nmask) {\
+            fprintf(mf, "#nmask in use, nmask[n]=%d, strict_mask = %d\n", nmask[n], strict_mask); \
+            fprintf(mf, "#Col. 0: Node index of neighbor (1st row is debug node itself)\n"); \
+            fprintf(mf, "#Col. 1: Graph distance of neighbor from debug node\n");   \
+            fprintf(mf, "#Col. 2: Neighbor value\n"); \
+            fprintf(mf, "#Col. 3: nmask value of neighbor (see strict_mask flag also)\n"); \
+            fprintf(mf, "%6d\t%+2.3f\t%+2.3f\t%2d\n", n, 0.0, fin_orig[n], nmask[n]);  \
+          } else { \
+            fprintf(mf, "#No masking\n"); \
+            fprintf(mf, "#Col. 0: Node index of neighbor (1st row is debug node itself)\n"); \
+            fprintf(mf, "#Col. 1: Graph distance of neighbor from debug node\n");   \
+            fprintf(mf, "#Col. 2: Neighbor value\n"); \
+            fprintf(mf, "%6d\t%+2.3f\t%+2.3f\n", n, 0.0, fin_orig[n]);  \
+          } \
+          if (!nmask) {  \
+             for (j=0; j<OffS_out[n].N_Neighb; ++j) {  \
+                nj = OffS_out[n].Neighb_ind[j];  \
+                if (OffS_out[n].Neighb_dist[j] <= rhood) { fprintf(mf, "%6d\t%+2.3f\t%+2.3f\n", nj, OffS_out[n].Neighb_dist[j], fin_orig[nj]);  }\
+             }/* for j*/ \
+          } else {   \
+             for (j=0; j<OffS_out[n].N_Neighb; ++j) {  \
+                nj = OffS_out[n].Neighb_ind[j];  \
+                if (nmask[nj] || !strict_mask) { \
+                  if (OffS_out[n].Neighb_dist[j] <= rhood) { fprintf(mf, "%6d\t%+2.3f\t%+2.3f\t%2d\n", nj, OffS_out[n].Neighb_dist[j], fin_orig[nj], nmask[nj]);  }\
+                }\
+             }/* for j*/ \
+          } \
+          SUMA_S_Notev("Node %d in mask, total of %d neighbs of which %d went into output of (%f).\nSee also %s\n", \
+                        n, OffS_out[n].N_Neighb, nval-1, fout[n], mfname);\
+          SUMA_free(mfname); mfname=NULL;\
+          fclose(mf); mf=NULL; \
+       }  \
+   }\
+}
+
+SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din, 
+                                    byte *nmask, byte strict_mask,
+                                    float rhood, SUMA_OFFSET_STRUCT *UseThisOffset,
+                                    int ncode, int *code, 
+                                    SUMA_DSET *UseThisDout, int ndbg)
+{
+   static char FuncName[]={"SUMA_CalculateLocalStats"};
+   SUMA_DSET *dout = NULL;
+   int *icols = NULL, N_icols = -1, *ind = NULL, n_incopy=-1;
+   int ic = -1, k = -1, n = -1, nj=-1, jj=-1, N_nmask=-1, nval=-1, j=-1;
+   void *ncoli=NULL;
+   int masked_only = 1;
+   char *lblcp=NULL;
+   float *fin_orig=NULL, *fout = NULL, fp = -1.0;
+   byte *fwhm_mask=NULL;
+   SUMA_OFFSET_STRUCT *OffS_out=NULL;
+   byte *bfull=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+      
+   if (ncode <=0 || !din || rhood <= 0.0f || !code || !SO) {
+      SUMA_S_Errv("Bad input: SO=%p, din=%p, nmask=%p, rhood=%f, ncode=%d,code=%p, UseThisDout=%p\n", 
+            SO, din, nmask, rhood, ncode, code, UseThisDout);
+      SUMA_RETURN(NULL);
+   }
+  
+   /* what columns can we process ?*/
+   icols = SUMA_FindNumericDataDsetCols(din, &N_icols);
+         
+   if (N_icols <= 0) {
+      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_RETURN(NOPE);   
+   }
+   
+   
+   if (UseThisDout) dout = UseThisDout;
+   else {
+      if (!(ind = SDSET_NODE_INDEX_COL(din))) {
+         SUMA_S_Note("Trying to populate the node index element");
+         if (!SUMA_PopulateDsetNodeIndexNel(din)) {
+            SUMA_S_Err("Failed to populate NodeIndex Nel");
+            SUMA_RETURN(NULL);
+         }
+      }
+      /* Create a dset, at least as big as din*/
+      if ((ind = SDSET_NODE_INDEX_COL(din))) {
+         if (!masked_only) {
+            /* preserve all rows */
+            ncoli = SUMA_Copy_Part_Column(ind, NI_rowtype_find_code(SUMA_ColType2TypeCast(SUMA_NODE_INDEX)), SDSET_VECLEN(din), NULL, masked_only, &n_incopy);
+         } else {
+            ncoli = SUMA_Copy_Part_Column(ind, NI_rowtype_find_code(SUMA_ColType2TypeCast(SUMA_NODE_INDEX)), SDSET_VECLEN(din), nmask, masked_only, &n_incopy);  
+         }
+         if (!ncoli) {
+            SUMA_SL_Err("No index data got copied.");
+            SUMA_RETURN(NULL);
+         }
+         dout = SUMA_CreateDsetPointer("LocalStat", SUMA_NODE_BUCKET, NULL,  NI_get_attribute(din->ngr,"domain_parent_idcode"), n_incopy);
+         if (!SUMA_AddDsetNelCol (dout, NI_get_attribute(din->inel,"COLMS_LABS"), SUMA_NODE_INDEX, ncoli, NULL ,1)) {
+            SUMA_SL_Crit("Failed in SUMA_AddDsetNelCol");
+            SUMA_FreeDset((void*)dout); dout = NULL;
+            SUMA_RETURN(NULL);
+         }
+         if (lblcp) SUMA_free(lblcp); lblcp = NULL;
+         if (ncoli) SUMA_free(ncoli); ncoli = NULL; 
+      } else {
+         SUMA_S_Err("Do not have node indices in input dset! and could not create one.");
+         SUMA_RETURN(NULL);
+      }
+   }
+   
+   /* some checks? Some day? */
+   if (dout == UseThisDout) {
+      if (SDSET_VECLEN(dout) != SDSET_VECLEN(din)) {
+         SUMA_S_Errv("Mismatch in recycled dset (%d rows) and input dset (%d rows)\n", SDSET_VECLEN(dout),  SDSET_VECLEN(din));
+         SUMA_FreeDset((void*)dout); dout = NULL;
+         SUMA_RETURN(NULL);
+      }
+      if (SDSET_VECNUM(dout) != SDSET_VECNUM(din)) {
+         SUMA_S_Errv("Mismatch in recycled dset (%d cols) and input dset (%d cols)\n", SDSET_VECNUM(dout),  SDSET_VECNUM(din));
+         SUMA_FreeDset((void*)dout); dout = NULL;
+         SUMA_RETURN(NULL);
+      }
+   }
+   
+   
+   /* Now, for each code, do the dance */
+   for (ic=0; ic <ncode; ++ic) {
+      for (k=0; k < N_icols; ++k) {
+         /* get a float copy of the data column */
+         fin_orig = SUMA_DsetCol2Float (din, icols[k], 1);
+         if (!fin_orig) {
+            SUMA_SL_Crit("Failed to get copy of column. Woe to thee!");
+            SUMA_RETURN(NOPE);
+         }
+         fout = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
+         if (!fout) {
+            SUMA_SL_Crit("Failed to allocate fout!");
+            SUMA_RETURN(NOPE);
+         }
+         /* make sure column is not sparse, one value per node */
+         if (k==0) {
+            SUMA_LH( "Special case k = 0, going to SUMA_MakeSparseColumnFullSorted");
+            bfull = NULL;
+            if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(din), 0.0, &bfull, din, SO->N_Node)) {
+               SUMA_S_Err("Failed to get full column vector");
+               SUMA_RETURN(NOPE);
+            }
+            if (bfull) {
+               SUMA_LH( "Something was filled in SUMA_MakeSparseColumnFullSorted\n" );
+               /* something was filled in good old SUMA_MakeSparseColumnFullSorted */
+               if (nmask) {   /* combine bfull with nmask */
+                  SUMA_LH( "Merging masks\n" );
+                  for (jj=0; jj < SO->N_Node; ++jj) { if (nmask[jj] && !bfull[jj]) nmask[jj] = 0; }   
+               } else { nmask = bfull; }
+            } 
+            if (nmask) {
+               N_nmask = 0;
+               for (n=0; n<SO->N_Node; ++n) { if (nmask[n]) ++ N_nmask; }
+               SUMA_LHv("Blurring with node mask (%d nodes in mask)\n", N_nmask);
+               if (!N_nmask) {
+                  SUMA_S_Warn("Empty mask, nothing to do");
+               }
+            }
+            /* now calculate the neighbor offset structure */
+            if (!UseThisOffset) {
+               SUMA_LH("Calculating OffS_out ...");
+               OffS_out = SUMA_FormNeighbOffset (SO, rhood, NULL, nmask, -1.0);
+            } else {
+               OffS_out = UseThisOffset;
+            }
+         } else {
+            SUMA_LH( "going to SUMA_MakeSparseColumnFullSorted");
+            if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(din), 0.0, NULL, din, SO->N_Node)) {
+               SUMA_S_Err("Failed to get full column vector");
+               SUMA_RETURN(NOPE);
+            }
+            /* no need for reworking nmask and bfull for each column...*/
+         }
+         /* Now I have the data column, nice and solid , do the stats */
+         switch (code[ic]) {
+            case NSTAT_MEAN:
+               lblcp = SUMA_DsetColLabelCopy(din, icols[k], 1); lblcp = SUMA_append_replace_string("mean_", lblcp, "", 2);
+               if (!SUMA_AddDsetNelCol (dout, lblcp, SUMA_NODE_FLOAT, (void *)fout, NULL ,1)) {
+                  SUMA_S_Crit("Failed to add dset column");
+                  SUMA_RETURN(NULL);
+               }
+               if (!nmask) {
+                  SUMA_LH("No mask");
+                  for (n=0; n < SO->N_Node; ++n) {
+                     fp = fin_orig[n];
+                     nval = 1;
+                     for (j=0; j<OffS_out[n].N_Neighb; ++j) {
+                        nj = OffS_out[n].Neighb_ind[j];
+                        if (OffS_out[n].Neighb_dist[j] <= rhood) { fp += fin_orig[nj]; ++nval; }
+                     }/* for j*/
+                        fout[n] = fp/(float)(nval);
+                        SUMA_LOCAL_STATS_NODE_DBG;
+                  } /* for n */
+               } else {
+                  SUMA_LH("Have mask");
+                  for (n=0; n < SO->N_Node; ++n) {
+                     if (nmask[n]) {
+                        fp = fin_orig[n];
+                        nval = 1;
+                        for (j=0; j<OffS_out[n].N_Neighb; ++j) {
+                           nj = OffS_out[n].Neighb_ind[j];
+                           if (nmask[nj] || !strict_mask) {
+                              if (OffS_out[n].Neighb_dist[j] <= rhood) { fp += fin_orig[nj]; ++nval; }
+                           } 
+                        }/* for j*/
+                        fout[n] = fp/(float)nval;
+                        SUMA_LOCAL_STATS_NODE_DBG;
+                     } else {
+                        fout[n] = fin_orig[n];
+                     }
+                  } /* for n */
+               } 
+               SUMA_free(lblcp); lblcp = NULL;
+               break;
+            case NSTAT_FWHMx:
+               lblcp = SUMA_DsetColLabelCopy(din, icols[k], 1); lblcp = SUMA_append_replace_string("fwhm_", lblcp, "", 2);
+               if (!SUMA_AddDsetNelCol (dout, lblcp, SUMA_NODE_FLOAT, (void *)fout, NULL ,1)) {
+                  SUMA_S_Crit("Failed to add dset column");
+                  SUMA_RETURN(NULL);
+               }
+               /* form a mask for fwhm function */
+               if (!(fwhm_mask = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte)))) {
+                  SUMA_S_Crit("Failed to allocate fwhm_mask");
+                  SUMA_RETURN(NULL);
+               }
+               if (!nmask) {
+                  SUMA_LH("No mask");
+                  for (n=0; n < SO->N_Node; ++n) {
+                     /* build thy fwhm mask (must have a clean mask here ) */
+                     fwhm_mask[n] = 1; nval = 1;
+                     for (j=0; j<OffS_out[n].N_Neighb; ++j) {
+                        nj = OffS_out[n].Neighb_ind[j];
+                        if (OffS_out[n].Neighb_dist[j] <= rhood) { fwhm_mask[nj] = 1; ++nval; }
+                     }/* for j*/
+                     fout[n] = SUMA_estimate_FWHM_1dif( SO, fin_orig, fwhm_mask, 1);
+                     SUMA_LOCAL_STATS_NODE_DBG;
+                     /* reset mask */
+                     fwhm_mask[n] = 0; 
+                     for (j=0; j<OffS_out[n].N_Neighb; ++j) {
+                        nj = OffS_out[n].Neighb_ind[j]; fwhm_mask[nj] = 0; 
+                     }
+                  } /* for n */
+               } else {
+                  SUMA_LH("Have mask");
+                  if (!strict_mask) {
+                     SUMA_S_Warn("For fwhm, masking must be STRICT!\nProceeding with foolishness.");
+                  }
+                  for (n=0; n < SO->N_Node; ++n) {
+                     if (nmask[n]) {
+                        /* build thy fwhm mask (must have a clean mask here ) */
+                        fwhm_mask[n] = 1; nval = 1;
+                        for (j=0; j<OffS_out[n].N_Neighb; ++j) {
+                           nj = OffS_out[n].Neighb_ind[j];
+                           if (nmask[nj] || !strict_mask) {
+                              if (OffS_out[n].Neighb_dist[j] <= rhood) { fwhm_mask[nj] = 1; ++nval;}
+                           } 
+                        }/* for j*/
+                        fout[n] = SUMA_estimate_FWHM_1dif( SO, fin_orig, fwhm_mask, 1);
+                        SUMA_LOCAL_STATS_NODE_DBG;
+                        /* reset mask */
+                        fwhm_mask[n] = 0; 
+                        for (j=0; j<OffS_out[n].N_Neighb; ++j) {
+                           nj = OffS_out[n].Neighb_ind[j]; fwhm_mask[nj] = 0; 
+                        }
+                     } else {
+                        fout[n] = 0.0; nval = 0;/* Non, rien de rien */
+                     }
+                  } /* for n */
+               } 
+               SUMA_free(fwhm_mask); fwhm_mask = NULL;
+               SUMA_free(lblcp); lblcp = NULL;
+               break;
+            default:
+               SUMA_S_Errv("Should not be here, not ready to deal with this stat (%d)\n", code[ic]);
+               SUMA_RETURN(NULL);
+               break;
+         }
+         
+         /* add this column to the output dset */
+         if (!SUMA_Float2DsetCol (dout, icols[k], fout, 1)) {
+            SUMA_S_Err("Failed to update dset's values");
+            SUMA_RETURN(NOPE);      
+         }
+         
+         if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL;
+         if (fout) SUMA_free(fout); fout = NULL;
+      } /* for k */
+      /* Pre Dec 06 stupidity: if (bfull == nmask) { if (nmask) SUMA_free(nmask); nmask = NULL; bfull = NULL; } */
+      if (bfull) SUMA_free(bfull); bfull = NULL;
+         
+   }/* for ic */
+   if (!UseThisOffset) OffS_out = SUMA_free_NeighbOffset (SO, OffS_out);
+   
+   SUMA_RETURN(dout);
+} 

@@ -428,7 +428,7 @@ int main (int argc,char *argv[])
       SUMA_LH( "Patch Grow, the memory expensive way\n"
                "Calculating OffS_out ... Very SLOWWWW...");
       if (Opt->NodeDbg >= 0) SUMA_Set_OffsetDebugNode(Opt->NodeDbg);
-      OffS_out = SUMA_FormNeighbOffset (SO, Opt->r, OptS);
+      OffS_out = SUMA_FormNeighbOffset (SO, Opt->r, OptS, NULL, -1.0);
       SUMA_LH("Writing OffS_out ... ");
       for (i=0; i < SO->N_Node; ++i) {
          fprintf(fout,"%d %d ", i, OffS_out[i].N_Neighb); /* node index */

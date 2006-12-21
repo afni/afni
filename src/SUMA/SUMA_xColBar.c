@@ -730,7 +730,7 @@ int SUMA_SwitchColPlaneIntensity(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, in
 {
    static char FuncName[]={"SUMA_SwitchColPlaneIntensity"};
    char srange[500];
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 

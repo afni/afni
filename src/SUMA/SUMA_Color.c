@@ -4742,8 +4742,9 @@ SUMA_Boolean SUMA_isOverlayOfSO (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Plane)
    
    SUMA_ENTRY; 
 
-   for (i=0; i< SO->N_Overlays; ++i) if (SO->Overlays[i] == Plane) SUMA_RETURN(YUP);
+   for (i=0; i< SO->N_Overlays; ++i) if (SO->Overlays[i] == Plane) { SUMA_LHv("Found plane at ind: %d\n", i); SUMA_RETURN(YUP); }
    
+   SUMA_LH("Plane not found");
    SUMA_RETURN(NOPE);
 }
 
@@ -5001,7 +5002,7 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, S
    
    if (SUMA_NewPlaneSearch(SO, Overlay)) {
       if (DuplicateFlag == 0) {
-         SUMA_S_Err("Plane exists in SO->Overlays.");
+         SUMA_S_Errv("Plane exists in SO->Overlays either by pointer %p or by name (%s).\nBoth of these must be unique because DuplicateFlag=%d\n", Overlay, Overlay->Name, DuplicateFlag);
          SUMA_RETURN (NOPE);
       } else {
          SUMA_S_Note("Plane exists in SO->Overlays. Preserving old one.");
@@ -5701,7 +5702,7 @@ SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
    } else {
       SUMA_LH("Node index column found");
       /* there is a node index column, see if the range is OK */
-      if (!SUMA_GetDsetNodeIndexColRange(dset, range, loc)) {
+      if (!SUMA_GetDsetNodeIndexColRange(dset, range, loc, 1)) {
          SUMA_SLP_Err("Unexpect error in SUMA_GetDsetColRange");
          SUMA_RETURN(NOPE);
       }
@@ -5728,7 +5729,7 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    static char FuncName[]={"SUMA_LoadDsetFile"};
    SUMA_SurfaceObject *SO = NULL;
    SUMA_IRGB *irgb=NULL;
-   int OverInd = -1, lnp=-1, loc[2];
+   int OverInd = -1, lnp=-1, loc[2], OKdup = 0;
    char *np=NULL;
    SUMA_DSET_FORMAT form;
    DList *list=NULL;
@@ -5768,6 +5769,8 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    else SUMA_SetParent_DsetToLoad(NULL);  
 
    dset = SUMA_LoadDset_s (filename, &form, 0); 
+   SUMA_LHv("Dset as loaded is %p\n", dset);
+   
    if (!dset) { SUMA_SLP_Err(  "Failed to load dataset.\n"
                                  "Make sure file exists\n"
                                  "and is of a supported\n"
@@ -5847,11 +5850,12 @@ void SUMA_LoadDsetFile (char *filename, void *data)
             SUMA_SLP_Err("Failed to remove coord bias");
             SUMA_RETURNe;
          }
-
-      } else {
+         OKdup = 1;
+      } else { /* dset is considered new */
          colplanepre = NULL;
          /* The overlay index for that plane is SO->N_Overlays */
          OverInd = SO->N_Overlays;
+         OKdup = 0;
       }
       /* set up the colormap for this dset */
       NewColPlane = SUMA_CreateOverlayPointer (SDSET_VECLEN(dset), filename, dset, SO->idcode_str, colplanepre);
@@ -5861,7 +5865,7 @@ void SUMA_LoadDsetFile (char *filename, void *data)
       }
 
       /* Add this plane to SO->Overlays */
-      if (!SUMA_AddNewPlane (SO, NewColPlane, SUMAg_DOv, SUMAg_N_DOv, 1)) {
+      if (!SUMA_AddNewPlane (SO, NewColPlane, SUMAg_DOv, SUMAg_N_DOv, OKdup)) {
          SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
          SUMA_FreeOverlayPointer(NewColPlane);
          SUMA_FreeDset(dset); dset = NULL;

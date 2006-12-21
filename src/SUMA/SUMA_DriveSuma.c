@@ -51,6 +51,12 @@ static char uDS_viewer_cont[]={
                "                 -com  pause press enter to stop this misery \\\n"
                "                 -com  viewer_cont -key m \n"
 };
+static char uDS_recorder_cont[]={
+               "       DriveSuma -com  recorder_cont -save_as allanimgif.agif \\\n"
+               "                 -com  recorder_cont -save_as lastone.jpg \\\n"
+               "                 -com  recorder_cont -save_as three.jpg -save_index 3\\\n"
+               "                 -com  recorder_cont -save_as some.png -save_range 3 6\n"
+};
 static char uDS_surf_cont[]={
                /*"       quickspec -spec radcoord.spec \\\n"
                "                 -tn 1d radcoord.1D.coord radcoord.1D.topo \\\n"
@@ -183,6 +189,25 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
                "       -------------------------------------\n"
                "%s"
                "\n"
+               " o recorder_cont: Apply commands to recorder window\n"
+               "     + Optional parameters for action recorder_cont:\n"
+               "       -save_as PREFIX.EXT: Save image(s) in recorder\n"
+               "                             in the format determined by\n"
+               "                             extension EXT.\n"
+               "                             Allowed extensions are:\n"
+               "                             agif or gif: Animated GIF (movie)\n"
+               "                             mpeg or mpg: MPEG (movie)\n"
+               "                             jpeg or jpg: JPEG (stills)\n"
+               "                             png: PNG (stills)\n"
+               "       -save_index IND: Save one image indexed IND\n"
+               "       -save_range FROM TO: Save images from FROM to TO\n"
+               "       -save_last: Save last image (default for still formats)\n"
+               "       -save_all: Save all images (default for movie formats)\n"
+               "     + Example recorder_cont (assumes there is a recorder window)\n"
+               "       currently open from SUMA.\n"
+               "       -------------------------------------\n"
+               "%s"
+               "\n"                            
                " o surf_cont: Apply settings to surface controller.\n"
                "     + Optional parameters for action surf_cont:\n"
                "       (Parameter names reflect GUI labels.)\n"  
@@ -229,7 +254,7 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
                "\n"
                "%s"
                "%s"
-               "\n", uDS_show_surf, uDS_node_xyz, uDS_viewer_cont, uDS_surf_cont, sio,  s);
+               "\n", uDS_show_surf, uDS_node_xyz, uDS_viewer_cont, uDS_recorder_cont, uDS_surf_cont, sio,  s);
       SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
@@ -552,6 +577,85 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          brk = YUP;
       }
       
+      if (!brk && ( (strcmp(argt[kar], "-save_as") == 0) ) )
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a PREFIX.EXT  after -save_as \n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';++kar;
+         
+         NI_set_attribute(ngr, "Save_As", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      if (!brk && ( (strcmp(argt[kar], "-save_range") == 0) ) )
+      {
+         if (kar+2 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need 2 numbers after -save_from \n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';++kar;
+         NI_SET_INT(ngr, "Save_From", atoi(argt[kar]));
+         argt[kar][0] = '\0';++kar;
+         NI_SET_INT(ngr, "Save_To", atoi(argt[kar]));
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && ( (strcmp(argt[kar], "-save_last") == 0) ) )
+      {
+         
+         NI_SET_INT(ngr, "Save_One", -1);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      if (!brk && ( (strcmp(argt[kar], "-save_index") == 0) ) )
+      {
+         
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a number after -save_index \n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';++kar;
+         NI_SET_INT(ngr, "Save_One", atoi(argt[kar]));
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      if (!brk && ( (strcmp(argt[kar], "-save_all") == 0) ) )
+      {
+         
+         NI_SET_INT(ngr, "Save_From", 0);
+         NI_SET_INT(ngr, "Save_To", 0);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      if (!brk && ( (strcmp(argt[kar], "-caller_working_dir") == 0) || (strcmp(argt[kar], "-cwd") == 0)) )
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a path after -caller_working_dir \n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';++kar;
+         
+         NI_set_attribute(ngr, "Caller_Working_Dir", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
       if (0 && !brk) { /* do not enforce this here */
 			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n",
                FuncName, argt[kar]);
@@ -561,7 +665,9 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
 			kar ++;
 		}
    }
-   
+   if (!NI_get_attribute(ngr, "Caller_Working_Dir")) {
+      NI_set_attribute(ngr, "Caller_Working_Dir", SUMAg_CF->cwd);
+   }
    SUMA_RETURN(YUP);
 }
 
@@ -613,6 +719,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(char *argv[], int ar
          fprintf(SUMA_STDOUT,"#show_surf action\n%s\n", uDS_show_surf);
          fprintf(SUMA_STDOUT,"#node_xyz action\n%s\n", uDS_node_xyz);
          fprintf(SUMA_STDOUT,"#viewer_cont action\n%s\n", uDS_viewer_cont);
+         fprintf(SUMA_STDOUT,"#recorder_cont action\n%s\n", uDS_recorder_cont);
          fprintf(SUMA_STDOUT,"#surf_cont action\n%s\n", uDS_surf_cont);
          fprintf(SUMA_STDOUT,"#Adieu\n%s\n", uDS_kill_suma);
          exit(0);          
@@ -1087,6 +1194,15 @@ int SUMA_ProcessCommand(char *com, SUMA_GENERIC_ARGV_PARSE *ps)
          SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
       }
       SUMA_LH("Sending SetViewerCont to suma");
+      if (!SUMA_SendToSuma (SO, ps->cs, (void *)ngr, SUMA_ENGINE_INSTRUCTION, 1)) {
+         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+      }
+      NI_free_element(ngr); ngr = NULL;
+   } else if (strcmp((act), "recorder_cont") == 0) {
+      if (!(ngr = SUMA_ComToNgr(com, act))) {
+         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
+      }
+      SUMA_LH("Sending SetRecorderCont to suma");
       if (!SUMA_SendToSuma (SO, ps->cs, (void *)ngr, SUMA_ENGINE_INSTRUCTION, 1)) {
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }

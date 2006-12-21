@@ -49,7 +49,7 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_datase
    }  \
    SUMA_SO_RADIUS(SO, m_Rref);   /* get the radius before shrinking */\
    memcpy((void*)refNodeList, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float)); /* copy original surface coords */ \
-   dsmooth = SUMA_NN_GeomSmooth( SO, niter, SO->NodeList, 3, SUMA_ROW_MAJOR, dsmooth, cs, nmask);    \
+   dsmooth = SUMA_NN_GeomSmooth( SO, niter, SO->NodeList, 3, SUMA_ROW_MAJOR, dsmooth, cs, nmask, 1);    \
    memcpy((void*)SO->NodeList, (void *)dsmooth, SO->N_Node * 3 * sizeof(float)); /* copy smoothed surface coords */  \
    /* matching area fails for some reason. */\
    if (0) { \
