@@ -83,6 +83,8 @@ typedef struct rgbyte { byte r,g,b ; } rgbyte ;  /* 15 Feb 1999 */
 /*! A union type to hold all possible MRI_IMAGE types.
     This was created before I really understood how to use void *. */
 
+#undef USE_UNION_DATA
+#ifdef USE_UNION_DATA
 typedef union MRI_DATA {
          byte     *byte_data ;
          short    *short_data ;
@@ -93,6 +95,9 @@ typedef union MRI_DATA {
          byte     *rgb_data ;      /* Apr 1996: not well supported yet */
          rgba     *rgba_data ;     /* Mar 2002 */
 } MRI_DATA ;
+#else
+# define MRI_DATA void *           /* 21 Dec 2006 */
+#endif
 
 /** Mar 1996: Extended to images up to 7D;
               Not all routines work with images > 2D --
@@ -208,6 +213,14 @@ typedef struct MRI_IMAGE {
  ( ((iq)->ny == 1) ? 1 : ((iq)->nz == 1) ? 2 :     \
    ((iq)->nt == 1) ? 3 : ((iq)->nu == 1) ? 4 :     \
    ((iq)->nv == 1) ? 5 : ((iq)->nw == 1) ? 6 : 7 )
+
+extern void *mri_data_pointer( MRI_IMAGE * ) ;
+
+#ifdef USE_UNION_DATA
+ extern void *mri_data_pointer_unvarnished( MRI_IMAGE *im ) ;
+#else
+# define mri_data_pointer_unvarnished(iq) ((iq)->im)
+#endif
 
 #define MRI_BYTE_PTR(iq)    ((byte *)mri_data_pointer(iq))
 #define MRI_SHORT_PTR(iq)   ((short *)mri_data_pointer(iq))

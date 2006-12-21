@@ -1432,7 +1432,10 @@ STATUS("default call") ;
 
          if( nosplash || nodown ) RETURN(True) ;
          if( !nodown &&
-             COX_clock_time()-eltime >= max_splash ){ AFNI_splashdown(); RETURN(True); }
+             COX_clock_time()-eltime >= max_splash ){
+
+           AFNI_splashdown(); STATUS("splashed down"); RETURN(True);
+         }
       }
       break ;
 
