@@ -582,17 +582,30 @@ NodeDef might be dynamically changed in the overlay plane */
 #endif
 /* #define DSET_(dset) NI_get_attribute(dset->nel,"") */
    
+static byte NI_GOT;
+
 #define NI_SET_STR(ngr, name, val)  {\
-   if (val) NI_set_attribute(ngr, name, val);  \
+   if (val && val[0] != '\0') NI_set_attribute(ngr, name, val);  \
    else NI_set_attribute(ngr, name, SUMA_EMPTY_ATTR); \
 }
 #define NI_GET_STR(ngr, name, val)  {\
    char *m_s = NI_get_attribute(ngr, name);  \
-   if (strcmp(m_s,SUMA_EMPTY_ATTR) == 0) sprintf(val,"%s", m_s); else val[0] = '\0'; \
+   if (m_s) {  \
+      NI_GOT = 1; \
+      if (strcmp(m_s,SUMA_EMPTY_ATTR) == 0) val[0] = '\0'; else sprintf(val,"%s", m_s); \
+   }  else {   \
+      NI_GOT = 0; \
+      val[0] = '\0'; \
+   }  \
 }
 #define NI_GET_STR_CP(ngr, name, val)  {\
    char *m_s = NI_get_attribute(ngr, name);  \
-   if (strcmp(m_s,SUMA_EMPTY_ATTR) == 0) val = NULL; else val = SUMA_copy_string(m_s); \
+   if (m_s) {  \
+      NI_GOT = 1; \
+      if (strcmp(m_s,SUMA_EMPTY_ATTR) == 0) val = NULL; else val = SUMA_copy_string(m_s); \
+   } else { \
+      NI_GOT = 0; val = NULL; \
+   }  \
 }
 
 #define NI_SET_INT(ngr, name, val)  {\
@@ -601,7 +614,7 @@ NodeDef might be dynamically changed in the overlay plane */
 }
 #define NI_GET_INT(ngr, name, val)  {\
    char *m_s = NI_get_attribute(ngr, name);  \
-   if (m_s) val = atoi(m_s); else val = 0; \
+   if (m_s) { NI_GOT = 1; val = atoi(m_s); } else { NI_GOT = 0; val = 0; }\
 }
 #define NI_SET_FLOAT(ngr, name, val)  {\
    char m_stmp[100]; sprintf(m_stmp,"%f", val);   \
@@ -609,7 +622,7 @@ NodeDef might be dynamically changed in the overlay plane */
 }
 #define NI_GET_FLOAT(ngr, name, val)  {\
    char *m_s = NI_get_attribute(ngr, name);  \
-   if (m_s) val = atof(m_s); else val = 0.0; \
+   if (m_s) { NI_GOT = 1; val = atof(m_s); } else { NI_GOT = 0; val = 0.0; }\
 }
 #define NI_SET_FLOATv(ngr, name, valv, n) {\
    char m_stmp[400]; int m_i=0;  m_stmp[0] = '\0';\
@@ -621,6 +634,7 @@ NodeDef might be dynamically changed in the overlay plane */
    int m_nr, m_i; float *m_fv;  \
    for (m_i=0; m_i<n; ++m_i) valv[m_i] = 0.0;   \
    if (m_s) {  \
+      NI_GOT = 1; \
       m_fv = (float *)SUMA_strtol_vec(m_s, n, &m_nr, SUMA_float); \
       if (m_fv) {\
          if (m_nr < n) { SUMA_S_Warn("Fewer values in field\nProceeding..."); }  \
@@ -628,9 +642,10 @@ NodeDef might be dynamically changed in the overlay plane */
          for (m_i=0; m_i<SUMA_MIN_PAIR(n, m_nr);++m_i) valv[m_i] = m_fv[m_i];    \
          SUMA_free(m_fv);  \
       } else {    \
+         NI_GOT = 1; \
          SUMA_S_Warn("NULL vec, filling with zeros"); \
       }  \
-   }  \
+   } else { NI_GOT = 0; }  \
 }
 #define NI_IS_STR_ATTR_EQUAL(ngr, name, stmp) ( (!name || !NI_get_attribute(ngr,name) || !stmp || strcmp(NI_get_attribute(ngr,name), stmp) ) ? 0:1 )
 /*!
@@ -997,6 +1012,7 @@ int SUMA_FillDsetNelCol (SUMA_DSET *dset, char *col_label,
 int SUMA_FillDsetNelNodeIndexCol (SUMA_DSET *dset, char *col_label, 
                      SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride); 
+SUMA_Boolean SUMA_PopulateDsetNodeIndexNel(SUMA_DSET *dset);
 int SUMA_FillNelCol (NI_element *nel, char *col_label,
                      SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride); 
@@ -1006,7 +1022,7 @@ int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind, float *V, int FilledOnly);
 float * SUMA_DsetCol2Float (SUMA_DSET *dset, int ind, int FilledOnly);
 float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly);
 int SUMA_GetDsetColRange(SUMA_DSET *dset, int col_index, float range[2], int loc[2]);
-int SUMA_GetDsetNodeIndexColRange(SUMA_DSET *dset, float range[2], int loc[2]);
+int SUMA_GetDsetNodeIndexColRange(SUMA_DSET *dset, float range[2], int loc[2], int addifmissing);
 int SUMA_GetColRange(NI_element *nel, int col_index, float range[2], int loc[2]);
 int SUMA_AddGenDsetColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp, void *col, int stride, int col_index);
 int SUMA_AddGenDsetNodeIndexColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp, void *col, int stride) ;
@@ -1066,6 +1082,12 @@ SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, int N_Node);
 int *SUMA_CreateNodeIndexToRowIndexMap(SUMA_DSET *dset);
 SUMA_DSET * SUMA_ngr_2_dset(NI_group *nini);
 SUMA_Boolean SUMA_LabelDset(SUMA_DSET *dset, char *lbl);
+SUMA_Boolean SUMA_RenameDset(SUMA_DSET *dset, char *filename);
+byte *SUMA_load_1D_n_mask(char *name, int N_Node, byte *omask, const char *oper, int *N_inmask);
+byte * SUMA_indexlist_2_bytemask(int *ind_list, int N_ind_list, int N_mask, int *N_inmask);  
+byte *SUMA_load_1D_b_mask(char *name, int N_Node, byte *omask, const char *oper, int *N_inmask);
+byte *SUMA_get_c_mask(char *mask, int N_Node, byte *omask, const char *oper, int *N_inmask);
+byte * SUMA_load_all_command_masks(char *bmaskname, char *nmaskname, char *cmask, int N_Node, int *N_inmask);
 
 /*********************** BEGIN Miscellaneous support functions **************************** */
    #define SUMA_STANDALONE_INIT {   \
@@ -1082,6 +1104,8 @@ SUMA_Boolean SUMA_LabelDset(SUMA_DSET *dset, char *lbl);
 int SUMA_filexists (char *f_name);
 char *SUMA_help_basics();
 char *SUMA_help_talk();
+char *SUMA_help_mask();
+char *SUMA_help_dset();
 int get_Domemtrace(void);
 void set_Domemtrace(int s);
 int get_Doiotrace(void);
@@ -1106,6 +1130,7 @@ char *SUMA_copy_string(char *buf);
 char * SUMA_append_string(char *s1, char *s2);
 char * SUMA_append_replace_string(  char *s1, char *s2, 
                                     char *Spc, int whichTofree);
+char * SUMA_append_replace_num(char *s1, char *form, double num, SUMA_VARTYPE tp, int whichTofree);
 char * SUMA_truncate_string (char *s1, int length);
 char *SUMA_set_string_length(char *buf, char cp, int n);
 SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring);
@@ -1141,7 +1166,6 @@ char * SUMA_file_suck( char *fname , int *nread );
 void *SUMA_AdvancePastNumbers(char *op, char **opend, SUMA_VARTYPE tp);
 void *SUMA_strtol_vec(char *op, int nvals, int *nread, SUMA_VARTYPE vtp);
 SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out);
-byte * SUMA_indexlist_2_bytemask(int *ind_list, int N_ind_list, int N_mask, int *N_inmask);  
 
 
 /*********************** END Miscellaneous support functions **************************** */
