@@ -629,14 +629,17 @@ AUTO_TLRC_MODE:
    if ($acpciate == 1) then
       echo "Doing the MSB thing..."
       #create a version witout scaling
-      cat_matvec ${tt_pref}${ref_view}::WARPDRIVE_MATVEC_INV_000000 -P > ${tmppref}__MP.1D
-      3dWarp -matvec_in2out ${tmppref}__MP.1D -prefix ${tmppref}_acpciate ${ns_pref}${anat_view}
+      cat_matvec ${tt_pref}${ref_view}::WARPDRIVE_MATVEC_INV_000000 -P > ${tt_pref}_rigid_MP.1D
+      3dWarp -matvec_in2out ${tt_pref}_rigid_MP.1D -prefix ${tmppref}_acpciate ${ns_pref}${anat_view}
       if ($KeepView == 0) then
          echo "Changing view of rigid_equiv anatomy"
          3drefit -view ${ref_view} ${tmppref}_acpciate${anat_view}.HEAD
       endif
       #Now resample as +tlrc dset 
       3dresample -master ${tt_pref}${ref_view} -inset ${tmppref}_acpciate${ref_view} -prefix ${tt_pref}_rigid
+      
+      3dNotes -a "Dataset created via: `basename $0` $argv[*]" -h "Dataset created via: `basename $0` $argv[*]" ${tt_pref}${anat_view}
+      
    endif
    
    goto WRAP_UP
