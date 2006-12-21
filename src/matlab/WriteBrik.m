@@ -110,7 +110,7 @@ if (~isempty(Info) & ~isstruct(Info)),
    ErrMessage = sprintf('Error %s: Info must be a struct. Check your arguments.', FuncName);  
    errordlg(ErrMessage); return;
 end
-if (~isempty(Info) & (isempty(Info.FileFormat) | ~isfield(Info,'FileFormat'))),
+if (~isempty(Info) & ( ~isfield(Info,'FileFormat') | isempty(Info.FileFormat)  ) ),
 	Info.FileFormat = 'BRIK';
 end
 %is this a 1D file ?

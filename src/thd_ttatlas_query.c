@@ -1649,6 +1649,41 @@ int *z_idqsort (int *x , int nx )
 
 }/*z_idqsort*/
 
+/* 
+  give a shuffled series between bot and top inclusive
+
+*/
+int *z_rand_order(int bot, int top, long int seed) {
+   int i, *s=NULL, n;
+   float *num=NULL;
+   
+   ENTRY("z_rand_order");
+   if (!seed) seed = (long)time(NULL)+(long)getpid();
+   srand48(seed);
+   
+   if (bot > top) { i = bot; bot = top; top = i; }
+   n = top-bot+1;
+   
+   if (!(num = (float*)calloc(n , sizeof(float)))) {
+      fprintf(stderr,"Failed to allocate for %d floats.\n", n);
+      RETURN(s);
+   }
+   for (i=0;i<n;++i) num[i] = (float)drand48();
+   
+   if (!(s = z_iqsort(num, n))) {
+      fprintf(stderr,"Failed to sort %d floats.\n", n);
+      RETURN(s);
+   }
+   free(num); num = NULL;
+   
+   /* offset numbers to get to bot */
+   for (i=0;i<n;++i) {
+      /* fprintf(stderr,"s[%d]=%d (bot=%d)\n", i, s[i], bot); */
+      s[i] += bot;
+   }
+   RETURN(s);
+}
+
 /* inverse sort floats */
 int *z_iqsort (float *x , int nx )
 {/*z_iqsort*/
