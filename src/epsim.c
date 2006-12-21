@@ -428,25 +428,25 @@ int main( int argc , char * argv[] )
          switch ( kind )
          {
             case MRI_byte :
-               im2d->im.byte_data = im->im.byte_data + izz * nx * ny ;
+               mri_set_data_pointer(im2d, MRI_BYTE_PTR(im) + iz*nx*ny) ;
             break;
             case MRI_short :
-               im2d->im.short_data = im->im.short_data + izz * nx * ny ;
+               mri_set_data_pointer(im2d, MRI_SHORT_PTR(im) + iz*nx*ny) ;
             break;
             case MRI_int :
-               im2d->im.int_data = im->im.int_data + izz * nx * ny ;
+               mri_set_data_pointer(im2d, MRI_INT_PTR(im) + iz*nx*ny) ;
             break;
             case MRI_float :
-               im2d->im.float_data = im->im.float_data + izz * nx * ny ;
+               mri_set_data_pointer(im2d, MRI_FLOAT_PTR(im) + iz*nx*ny) ;
             break;
             case MRI_double :
-               im2d->im.double_data = im->im.double_data + izz * nx * ny ;
+               mri_set_data_pointer(im2d, MRI_DOUBLE_PTR(im) + iz*nx*ny) ;
             break;
             case MRI_complex :
-               im2d->im.complex_data = im->im.complex_data + izz * nx * ny ;
+               mri_set_data_pointer(im2d, MRI_COMPLEX_PTR(im) + iz*nx*ny) ;
             break;
             case MRI_rgb :
-               im2d->im.rgb_data = im->im.rgb_data + izz * nx * ny ;
+               mri_set_data_pointer(im2d, MRI_RGB_PTR(im) + 3*iz*nx*ny) ;
             break;
             default :
                FatalError ("Illegal data type encountered.");
