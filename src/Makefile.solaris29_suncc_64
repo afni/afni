@@ -4,7 +4,7 @@ USE_ZLIB = -DHAVE_ZLIB
 LZLIB    = -lz
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CC     = cc -xarch=generic64 -xcode=pic32 -xO4 -xbuiltin=%all -xlibmil -Xa -w -DSOLARIS -DSOLARIS_DIRENT_ZERO -UUSE_TRACING -DDONT_USE_MCW_MALLOC
+CC     = cc -xarch=generic64 -xcode=pic32 -xO2 -xbuiltin=%all -xlibmil -Xa -w -DSOLARIS -DSOLARIS_DIRENT_ZERO -UUSE_TRACING -DDONT_USE_MCW_MALLOC
 CCVOL  = cc -xarch=generic64 -xcode=pic32 -xO2 -Xa -w -DSOLARIS
 CCFAST = $(CC) -DUSE_SUNPERF -dalign -xlic_lib=sunperf
 CCMIN  = cc -xarch=generic64 -xcode=pic32
