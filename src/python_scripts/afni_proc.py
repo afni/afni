@@ -98,7 +98,9 @@ g_help_string = """
                              -volreg_align_to first          \\
                              -regress_stim_times misc_files/stim_times.*.1D
 
-        3. Similar to #2, but add labels for the 4 stim types, and apply TENT
+        3. Current class example.
+
+           Similar to #2, but add labels for the 4 stim types, and apply TENT
            as the basis function to get 14 seconds of response, on a 2-second
            TR grid.
 
