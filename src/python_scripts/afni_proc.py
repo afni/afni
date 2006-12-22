@@ -80,14 +80,11 @@ g_help_string = """
         are examples of how one might process the data for subject ED.
 
         Because the stimuli are on a 1-second grid, while the EPI data is on a
-        2-second grid (TR = 2.0), we will run make_stim_times.py externally
-        (as opposed to giving stim_files to the afni_proc.py program) as
-        follows:
+        2-second grid (TR = 2.0), we ran make_stim_times.py to generate the
+        stim_times files (which are now distributed in AFNI_data2) as follows:
 
-            make_stim_times.py -prefix ED_times -tr 1.0 -nruns 10 -nt 272 \\
+            make_stim_times.py -prefix stim_times -tr 1.0 -nruns 10 -nt 272 \\
                    -files misc_files/all_stims.1D
-
-        Then we will apply misc_files/ED_times.*.1D as the stim timing files.
 
         2. This example shows basic usage, with the default GAM regressor.
            We specify the output script name, the subject ID, removal of the
@@ -99,20 +96,20 @@ g_help_string = """
                              -subj_id ED                     \\
                              -tcat_remove_first_trs 2        \\
                              -volreg_align_to first          \\
-                             -regress_stim_times misc_files/ED_times.*.1D
+                             -regress_stim_times misc_files/stim_times.*.1D
 
         3. Similar to #2, but add labels for the 4 stim types, and apply TENT
            as the basis function to get 14 seconds of response, on a 2-second
            TR grid.
 
-                afni_proc.py -dsets ED/ED_r??+orig.HEAD                    \\
-                             -script process_ED.8                          \\
-                             -subj_id ED.8                                 \\
-                             -tcat_remove_first_trs 2                      \\
-                             -volreg_align_to first                        \\
-                             -regress_stim_times misc_files/ED_times.*.1D  \\
-                             -regress_stim_labels ToolMovie HumanMovie     \\
-                                                  ToolPoint HumanPoint     \\
+                afni_proc.py -dsets ED/ED_r??+orig.HEAD                      \\
+                             -script process_ED.8                            \\
+                             -subj_id ED.8                                   \\
+                             -tcat_remove_first_trs 2                        \\
+                             -volreg_align_to first                          \\
+                             -regress_stim_times misc_files/stim_times.*.1D  \\
+                             -regress_stim_labels ToolMovie HumanMovie       \\
+                                                  ToolPoint HumanPoint       \\
                              -regress_basis 'TENT(0,14,8)'
 
         4. Similar to #3, but find the response for the TENT functions on a
@@ -121,15 +118,15 @@ g_help_string = """
            and requires the addition of 3dDeconvolve option '-TR_times 1.0' to  
            see the -iresp output on a 1.0 second grid.
 
-                afni_proc.py -dsets ED/ED_r??+orig.HEAD                    \\
-                             -script process_ED.15                         \\
-                             -subj_id ED.15                                \\
-                             -tcat_remove_first_trs 2                      \\
-                             -volreg_align_to first                        \\
-                             -regress_stim_times misc_files/ED_times.*.1D  \\
-                             -regress_stim_labels ToolMovie HumanMovie     \\
-                                                  ToolPoint HumanPoint     \\
-                             -regress_basis 'TENT(0,14,15)'                \\
+                afni_proc.py -dsets ED/ED_r??+orig.HEAD                      \\
+                             -script process_ED.15                           \\
+                             -subj_id ED.15                                  \\
+                             -tcat_remove_first_trs 2                        \\
+                             -volreg_align_to first                          \\
+                             -regress_stim_times misc_files/stim_times.*.1D  \\
+                             -regress_stim_labels ToolMovie HumanMovie       \\
+                                                  ToolPoint HumanPoint       \\
+                             -regress_basis 'TENT(0,14,15)'                  \\
                              -regress_opts_3dD -TR_times 1.0
 
         5. Similar to #2, but skip tshift and mask steps (so the others must
@@ -137,15 +134,15 @@ g_help_string = """
            prevent output of a fit time series dataset, and copy the anatomical
            dataset(s) to the results directory.
 
-                afni_proc.py -dsets ED/ED_r??+orig.HEAD                 \\
-                         -blocks volreg blur scale regress              \\
-                         -script process_ED.b4                          \\
-                         -subj_id ED.b4                                 \\
-                         -copy_anat ED/EDspgr                           \\
-                         -tcat_remove_first_trs 2                       \\
-                         -volreg_align_to first                         \\
-                         -regress_stim_times misc_files/ED_times.*.1D   \\
-                         -regress_basis 'BLOCK(4,1)'                    \\
+                afni_proc.py -dsets ED/ED_r??+orig.HEAD                   \\
+                         -blocks volreg blur scale regress                \\
+                         -script process_ED.b4                            \\
+                         -subj_id ED.b4                                   \\
+                         -copy_anat ED/EDspgr                             \\
+                         -tcat_remove_first_trs 2                         \\
+                         -volreg_align_to first                           \\
+                         -regress_stim_times misc_files/stim_times.*.1D   \\
+                         -regress_basis 'BLOCK(4,1)'                      \\
                          -regress_no_fitts
 
     --------------------------------------------------
@@ -718,9 +715,10 @@ g_history = """
     1.0  Dec 20, 2006 : initial release
     1.1  Dec 20, 2006 : added -regress_no_stim_times
     1.2  Dec 21, 2006 : help, start -ask_me, updated when to use -iresp/ideal
+    1.3  Dec 22, 2006 : change help to assumme ED's stim_times files exist
 """
 
-g_version = "version 1.1, December 20, 2006"
+g_version = "version 1.3, December 22, 2006"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -1036,7 +1034,8 @@ class SubjProcSream:
             return 1
 
         self.fp.write('#!/usr/bin/env tcsh\n\n')
-        self.fp.write('# auto-generated by afni_proc.py, %s\n\n' % asctime())
+        self.fp.write('# auto-generated by afni_proc.py, %s\n' % asctime())
+        self.fp.write('# (%s)\n\n'% g_version)
         self.fp.write('# --------------------------------------------------\n'
                       '# script setup\n\n'
                       '# the user may specify a single subject to run with\n')
