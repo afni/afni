@@ -1875,4 +1875,5 @@
 
 21 Dec 2006: afni_proc.py (v1.2)
       - help, start -ask_me, updated when to use -iresp/ideal
+22 Dec 2006: modified afni_proc.py, make_stim_times.py for AFNI_data2 times
 
