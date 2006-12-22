@@ -21,6 +21,10 @@ void usage_SurfLocalStat (SUMA_GENERIC_ARGV_PARSE *ps)
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
                "Usage: A template code for writing SUMA programs.\n"
+      " -hood R     = Neighborhood of node n consists of nodes within R \n"
+      " -nbhd_rad R = distance from n as measured by the shortest \n"
+      "               distance along the mesh.\n"
+      " -prefix PREFIX = Prefix of output data set.\n"
       " -stat sss   = Compute the statistic named 'sss' on the values\n"
       "               extracted from the region around each voxel:\n"
       "               * mean   = average of the values\n"
@@ -75,6 +79,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
    Opt->ps = ps; /* for convenience */
    Opt->NodeDbg = -1;
    Opt->out_prefix = NULL;
+   Opt->r = -1.0;
    ncode = 0;
    kar = 1;
    brk = NOPE;
@@ -158,6 +163,22 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-hood") == 0 || strcmp(argv[kar], "-nbhd_rad") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a value after -nbhd_rad \n");
+            exit (1);
+         }
+         
+         Opt->r = atof(argv[++kar]);
+         if (Opt->r <= 0.0) {
+            fprintf (SUMA_STDERR,"Error %s:\nneighborhood radius is not valid (have %f from %s).\n", FuncName, Opt->r, argv[kar]);
+		      exit (1);
+         }
+         brk = YUP;
+      }
+      
       if (!brk && !ps->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
 			exit (1);
@@ -170,7 +191,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
    if (!Opt->out_prefix) {
       Opt->out_prefix = SUMA_copy_string("SurfLocalstat");
    }
-   
+   if (Opt->r <= 0.0) {
+      fprintf (SUMA_STDERR,"Error %s:\nneighborhood radius is not set (have %f).\n", FuncName, Opt->r);
+		exit (1);
+   }
    if (!ncode) {
       SUMA_S_Note("No stat specified, doing -stat mean\n");
       code[0] = NSTAT_MEAN;
@@ -243,7 +267,7 @@ int main (int argc,char *argv[])
 
    if (!(dout = SUMA_CalculateLocalStats(SO, din, 
                                     Opt->nmask, 1,
-                                    5.0, NULL,
+                                    Opt->r, NULL,
                                     ncode, code, 
                                     NULL, Opt->NodeDbg))) {
       SUMA_S_Err("Failed in SUMA_CalculateLocalStats");

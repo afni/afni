@@ -4479,6 +4479,101 @@ SUMA_Boolean SUMA_Chung_Smooth_05_dset (SUMA_SurfaceObject *SO, float **wgt,
 }
 
 /*!
+   A wrapper to make repeated calls to SUMA_estimate_FWHM_1dif for a dataset
+*/
+float *SUMA_estimate_dset_FWHM_1dif(SUMA_SurfaceObject *SO, SUMA_DSET *dset, 
+                                    int *icols, int N_icols, byte *nmask, 
+                                    int nodup, char *options)
+{
+   static char FuncName[]={"SUMA_estimate_dset_FWHM_1dif"};
+   int k, jj, N_nmask=0, n= 0;
+   float *fwhmv=NULL, *fin_orig=NULL;
+   byte *bfull=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   
+   if (!dset || !SO) {
+      SUMA_S_Errv("NULL input fim=%p, SO=%p\n", dset, SO);
+      SUMA_RETURN(NULL);
+   }
+   if (!SO->FN || !SO->EL) {
+      /* do it here */
+      if (!SO->EL && !(SO->EL = SUMA_Make_Edge_List_eng (SO->FaceSetList, SO->N_FaceSet, SO->N_Node, SO->NodeList, 0, SO->idcode_str))) {
+         SUMA_S_Err("Failed to create Edge_List");
+         SUMA_RETURN(NULL);
+      }
+      if (!SO->FN && !(SO->FN = SUMA_Build_FirstNeighb( SO->EL, SO->N_Node, SO->idcode_str)) ) {
+         SUMA_S_Err("Failed to create FirstNeighb");
+         SUMA_RETURN(NULL);
+      }
+   }
+
+
+   if (!(fwhmv = (float *)SUMA_calloc(N_icols, sizeof(float)))) {
+      SUMA_S_Err("Failed to callocate");
+      SUMA_RETURN(fwhmv);
+   }
+   
+   /* Begin operation for each column */
+   for (k=0; k < N_icols; ++k) {
+      /* get a float copy of the data column */
+      fin_orig = SUMA_DsetCol2Float (dset, icols[k], 1);
+      if (!fin_orig) {
+         SUMA_SL_Crit("Failed to get copy of column. Woe to thee!");
+         SUMA_free(fwhmv); fwhmv = NULL;
+         goto CLEANUP;
+      }
+      /* make sure column is not sparse, one value per node */
+      if (k==0) {
+         SUMA_LH( "Special case k = 0, going to SUMA_MakeSparseColumnFullSorted");
+         bfull = NULL;
+         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(dset), 0.0, &bfull, dset, SO->N_Node)) {
+            SUMA_S_Err("Failed to get full column vector");
+            SUMA_free(fwhmv); fwhmv = NULL;
+            goto CLEANUP;
+         }
+         if (bfull) {
+            SUMA_LH( "Something was filled in SUMA_MakeSparseColumnFullSorted\n" );
+            /* something was filled in good old SUMA_MakeSparseColumnFullSorted */
+            if (nmask) {   /* combine bfull with nmask */
+               SUMA_LH( "Merging masks\n" );
+               for (jj=0; jj < SO->N_Node; ++jj) { if (nmask[jj] && !bfull[jj]) nmask[jj] = 0; }   
+            } else { nmask = bfull; }
+         } 
+         if (nmask) {
+            N_nmask = 0;
+            for (n=0; n<SO->N_Node; ++n) { if (nmask[n]) ++ N_nmask; }
+            SUMA_LHv("Blurring with node mask (%d nodes in mask)\n", N_nmask);
+            if (!N_nmask) {
+               SUMA_S_Warn("Empty mask, nothing to do");
+               SUMA_free(fwhmv); fwhmv = NULL; goto CLEANUP;
+            }
+         }
+      } else {
+         SUMA_LH( "going to SUMA_MakeSparseColumnFullSorted");
+         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(dset), 0.0, NULL, dset, SO->N_Node)) {
+            SUMA_S_Err("Failed to get full column vector");
+            SUMA_free(fwhmv); fwhmv = NULL;
+            goto CLEANUP;
+         }
+         /* no need for reworking nmask and bfull for each column...*/
+         
+      }
+      
+      fwhmv[k] = SUMA_estimate_FWHM_1dif( SO, fin_orig, nmask, nodup);
+      if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL; /* just in case, this one's still alive from a GOTO */
+   } /* for k */
+
+   CLEANUP:
+   
+   if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL; /* just in case, this one's still alive from a GOTO */
+   if (bfull) SUMA_free(bfull); bfull=NULL; 
+   SUMA_RETURN(fwhmv);
+}
+
+/*!
    Estimate the FWHM on a surface. 
    FWHM based on implementation in mri_estimate_FWHM_1dif (Forman et. al 1995)
    SO (SUMA_SurfaceObject *) La surface
