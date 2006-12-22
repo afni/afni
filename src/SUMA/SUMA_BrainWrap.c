@@ -3397,7 +3397,7 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_ST
             fprintf (SUMA_STDERR,"%s: Touchup smoothing.\n", FuncName);
             csmooth = SUMA_Taubin_Smooth( SO, NULL,
                                           0.6307, -.6732, SO->NodeList,
-                                          20, 3, SUMA_ROW_MAJOR, csmooth, cs, fmask);    
+                                          20, 3, SUMA_ROW_MAJOR, csmooth, cs, fmask, 0);    
             memcpy((void*)SO->NodeList, (void *)csmooth, SO->N_Node * 3 * sizeof(float));
          }      
             cs->Send = Send_buf;
