@@ -19,17 +19,15 @@ void usage_SurfFWHM (SUMA_GENERIC_ARGV_PARSE *ps)
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
-               "Usage: A template code for writing SUMA programs.\n"
-              "      -n_mask filter_mask: Apply filtering to nodes listed in\n"
-              "                          filter_mask only. Nodes not in the filter_mask will\n"
-              "                          not see their value change, but they will still \n"
-              "                          contribute to the values of nodes in the filtermask.\n"
-              "                          At the moment, it is only implemented for methods\n"
-              "                          NN_geom, LM, LB_FEM and HEAT (and maybe other ones)\n"
-              "      -b_mask filter_binary_mask: Similar to -n_mask, except that filter_binary_mask\n"
-              "                          contains 1 for nodes to filter and 0 for nodes to be ignored.\n"
-              "                          The number of rows in filter_binary_mask must be equal to the\n"
-              "                          number of nodes forming the surface.\n"
+               "Usage: A program for calculating local and global FWHM.\n"
+      " -hood R     = Using this option indicates that you want local\n"
+      " -nbhd_rad R = as well as global measures of FWHM. Local measurements\n"
+      "               at node n are obtained using a neighborhood that \n"
+      "               consists of nodes within R distance from n \n"
+      "               as measured by the shortest \n"
+      "               distance along the mesh.\n"
+      " -prefix PREFIX = Prefix of output data set. Only need when doing \n"
+      "                  local FWHM calculations.\n"
                " \n"
                "%s"
                "%s"
@@ -56,6 +54,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
    Opt->ps = ps; /* for convenience */
    Opt->NodeDbg = -1;
    Opt->out_prefix = NULL;
+   Opt->r = -1.0;
    ncode = 0;
    kar = 1;
    brk = NOPE;
@@ -101,6 +100,22 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
          }
          
          Opt->out_prefix = SUMA_copy_string(argv[++kar]);
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-hood") == 0 || strcmp(argv[kar], "-nbhd_rad") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a value after -nbhd_rad \n");
+            exit (1);
+         }
+         
+         Opt->r = atof(argv[++kar]);
+         if (Opt->r <= 0.0) {
+            fprintf (SUMA_STDERR,"Error %s:\nneighborhood radius is not valid (have %f from %s).\n", FuncName, Opt->r, argv[kar]);
+		      exit (1);
+         }
          brk = YUP;
       }
       
@@ -185,22 +200,25 @@ int main (int argc,char *argv[])
          exit(1);
    }
 
-   #ifdef VARIABLE_FWHM
-   code[0] = NSTAT_FWHM;
-   ncode = 1;
-   if (!(dout = SUMA_CalculateLocalStats(SO, din, 
-                                    Opt->nmask, 1,
-                                    5.0, NULL,
-                                    ncode, code, 
-                                    NULL, Opt->NodeDbg))) {
-      SUMA_S_Err("Failed in SUMA_CalculateLocalStats");
-      exit(1);
+   if (Opt->r > 0.0) { /* wants to do localized FWHM */
+      SUMA_S_Note("Doing local FWHM...");
+      code[0] = NSTAT_FWHMx;
+      ncode = 1;
+      if (!(dout = SUMA_CalculateLocalStats(SO, din, 
+                                       Opt->nmask, 1,
+                                       Opt->r, NULL,
+                                       ncode, code, 
+                                       NULL, Opt->NodeDbg))) {
+         SUMA_S_Err("Failed in SUMA_CalculateLocalStats");
+         exit(1);
+      }
+   
+      /* write it out */
+      SUMA_WriteDset_s(Opt->out_prefix, dout, iform, 0, 0);
+      if (dout) SUMA_FreeDset(dout); dout = NULL;
    }
    
-   /* write it out */
-   SUMA_WriteDset_s(Opt->out_prefix, dout, iform, 0, 0);
-   #endif
-   
+   SUMA_S_Note("Doing Global FWHM...");
    /* what columns can we process ?*/
    icols = SUMA_FindNumericDataDsetCols(din, &N_icols);
          
@@ -219,6 +237,7 @@ int main (int argc,char *argv[])
    for (i=0; i<N_icols; ++i) {
       fprintf(stdout,"FWHM[%4d]=%.4f\n", icols[i], fwhmv[i]);
    }
+   
    if (din) SUMA_FreeDset(din); din = NULL;
    if (dout) SUMA_FreeDset(dout); dout = NULL;
    if (fwhmv) SUMA_free(fwhmv); fwhmv=NULL;

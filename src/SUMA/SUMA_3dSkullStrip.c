@@ -1778,7 +1778,7 @@ int main (int argc,char *argv[])
             }
          dsmooth = SUMA_Taubin_Smooth( SO, NULL,
                                        0.6307, -.6732, SO->NodeList,
-                                       Opt->smooth_end, 3, SUMA_ROW_MAJOR, dsmooth, ps->cs, NULL);    
+                                       Opt->smooth_end, 3, SUMA_ROW_MAJOR, dsmooth, ps->cs, NULL, 0);    
          memcpy((void*)SO->NodeList, (void *)dsmooth, SO->N_Node * 3 * sizeof(float));
          SUMA_RECOMPUTE_NORMALS(SO);
          if (ps->cs->Send) {
@@ -1923,7 +1923,7 @@ int main (int argc,char *argv[])
          ps->cs->kth = kth_buf; 
          dsmooth = SUMA_Taubin_Smooth( SO, NULL,
                                        0.6307, -.6732, SO->NodeList,
-                                       Opt->smooth_end, 3, SUMA_ROW_MAJOR, dsmooth, ps->cs, NULL);    
+                                       Opt->smooth_end, 3, SUMA_ROW_MAJOR, dsmooth, ps->cs, NULL, 0);    
          memcpy((void*)SO->NodeList, (void *)dsmooth, SO->N_Node * 3 * sizeof(float));
          SUMA_RECOMPUTE_NORMALS(SO);
          if (ps->cs->Send) {
