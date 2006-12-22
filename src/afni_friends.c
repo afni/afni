@@ -695,7 +695,7 @@ static mday holiday[] = {
    {DEC,24,"Ignatius Loyola's birthday"                              } ,
    {DEC,24,"Kit Carson's birthday"                                   } ,
    {DEC,24,"Christmas Eve"                                           } ,
-   {DEC,25,"Christmas Day"                                           } ,
+   {DEC,25,"Christmas Day - Ho Ho Ho"                                } ,
    {DEC,25,"Sir Isaac Newton's birthday"                             } ,
    {DEC,25,"Clara Barton's birthday"                                 } ,
    {DEC,25,"Rod Serling's birthday"                                  } ,
