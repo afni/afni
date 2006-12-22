@@ -69,7 +69,7 @@ examples:
     4. An appropriate conversion of stim_files to stim_times for the 
        example in AFNI_data2 (HowTo #5).
 
-            make_stim_times.py -prefix ED_times -tr 1.0 -nruns 10 -nt 272 \\
+            make_stim_times.py -prefix stim_times -tr 1.0 -nruns 10 -nt 272 \\
                                -files misc_files/all_stims.1D
 
 - R Reynolds, Nov 17, 2006
