@@ -377,7 +377,7 @@ ENTRY("mri_startup_lsqfit") ;
    if( wtim != NULL && wtim->kind != MRI_float ){
       fprintf(stderr,"mri_startup_lsqfit: non-float wtim!\a\n") ; RETURN(NULL);
    }
-   wtar = (wtim == NULL) ? (NULL) : (MRI_FLOAT_PTR(wtim)) ;
+   wtar = MRI_FLOAT_PTR(wtim) ;
 
    if( refim == NULL || refim->num < 1 ){
       fprintf(stderr,"mri_startup_lsqfit: NULL refim!\a\n") ; RETURN(NULL);

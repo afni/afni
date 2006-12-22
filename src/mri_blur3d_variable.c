@@ -38,9 +38,9 @@ ENTRY("mri_blur3D_variable") ;
    nx = im->nx; ny = im->ny; nz = im->nz; nxy = nx*ny; nxyz = nxy*nz;
 
    iar  = MRI_FLOAT_PTR(im) ;
-   fxar = (fx != NULL) ? MRI_FLOAT_PTR(fx) : NULL ;
-   fyar = (fy != NULL) ? MRI_FLOAT_PTR(fy) : NULL ;
-   fzar = (fz != NULL) ? MRI_FLOAT_PTR(fz) : NULL ;
+   fxar = MRI_FLOAT_PTR(fx) ;
+   fyar = MRI_FLOAT_PTR(fy) ;
+   fzar = MRI_FLOAT_PTR(fz) ;
    qar  = (float *)calloc(sizeof(float),nxyz) ;
 
    for( ijk=kk=0 ; kk < nz ; kk++ ){
