@@ -966,11 +966,12 @@ SUMA_Boolean SUMA_Sort_ClustersList (DList *list, SUMA_SURF_CLUST_SORT_MODES Sor
 
 #define SUMA_LOCAL_STATS_NODE_DBG { \
    if (n == ndbg) {  \
+       FILE *mf ;    \
        char *mfname = SUMA_append_replace_num("SUMA_SurfLocalstat", "_node%ddbg_Col_", n, SUMA_int, 0);   \
        mfname = SUMA_append_replace_string(mfname, lblcp, "", 1); \
        mfname = SUMA_append_replace_string(mfname, ".1D.dset", "", 1); \
        SUMA_NICEATE_FILENAME(mfname,'\0');   \
-       FILE *mf=fopen(mfname,"w");   \
+       mf=fopen(mfname,"w");   \
        if (!mf) { SUMA_S_Errv("Failed to open %s for writing.\n", mfname); }   \
        else {   \
           fprintf(mf, "#Node %d in mask, total of %d neighbs of which %d went into output of (%f).\n",    \
