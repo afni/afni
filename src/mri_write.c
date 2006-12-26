@@ -415,8 +415,7 @@ int mri_write_jpg( char *fname , MRI_IMAGE *im )  /* 15 Apr 2005 */
      fprintf(fp,"P5\n%d %d\n255\n" , im->nx,im->ny ) ;
      fwrite( MRI_BYTE_PTR(im), sizeof(byte), im->nvox, fp ) ;
    }
-   (void) pclose(fp) ;
-   free((void *)jpfilt) ; return 1 ;
+   (void) pclose(fp) ; free((void *)jpfilt) ; return 1 ;
 }
 
 /*---------------------------------------------------------------*/
@@ -445,8 +444,7 @@ int mri_write_png( char *fname , MRI_IMAGE *im )  /* 11 Dec 2006 */
      fprintf(fp,"P5\n%d %d\n255\n" , im->nx,im->ny ) ;
      fwrite( MRI_BYTE_PTR(im), sizeof(byte), im->nvox, fp ) ;
    }
-   (void) pclose(fp) ;
-   free((void *)pgfilt) ; return 1 ;
+   (void) pclose(fp) ; free((void *)pgfilt) ; return 1 ;
 }
 
 /*---------------------------------------------------------------*/
@@ -455,14 +453,15 @@ int mri_write_filtered( char *fname , MRI_IMAGE *im )  /* 15 Dec 2006 */
 {
    FILE *fp ;
 
-   if( fname == NULL || *fname == '\0' || im == NULL ) return 0 ;
+   if( fname == NULL || im == NULL )                   return 0 ;
    if( im->kind != MRI_rgb && im->kind != MRI_byte   ) return 0 ;
+   if( *fname == '|' ) fname++ ;   /* skip pipe character, if present */
+   if( *fname == '\0' )                                return 0 ;
 
 #ifndef CYGWIN
    signal( SIGPIPE , SIG_IGN ) ;
 #endif
-   fp = popen( fname , "w" ) ;
-   if( fp == NULL ) return 0 ;
+   fp = popen( fname , "w" ) ; if( fp == NULL ) return 0 ;
 
    if( im->kind == MRI_rgb ){
      fprintf(fp,"P6\n%d %d\n255\n" , im->nx,im->ny ) ;

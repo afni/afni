@@ -370,6 +370,7 @@ ENTRY("check_PBAR_palette") ;
 }
 
 /*------------------------------------------------------------------------------*/
+
 char * dump_PBAR_palette_table( int verb )
 {
    int ii , jj , nn , nsss,nuuu , nbuf , kk ;
@@ -848,16 +849,16 @@ ENTRY("AFNI_set_pbar_top_CB") ;
 
 /*----------------------------------------------------------------------------*/
 
-void AFNI_finalize_write_palette_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
+void AFNI_finalize_write_palette_CB( Widget wcaller, XtPointer cd, MCW_choose_cbs *cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
    int ll , ii , jj ;
-   char * fname , * ptr ;
-   FILE * fp ;
-   MCW_pbar * pbar ;
+   char *fname , *ptr ;
+   FILE *fp ;
+   MCW_pbar *pbar ;
    int jm , npane , novu , ovu[NPANE_MAX] ;
-   int * ovin ;
-   float * pval ;
+   int *ovin ;
+   float *pval ;
 
 ENTRY("AFNI_finalize_write_palette_CB") ;
 
@@ -954,17 +955,17 @@ ENTRY("AFNI_finalize_saveim_CB") ;
 
    if( ll > 240 || ! THD_filename_ok(fname) ){free(fname); BEEPIT; EXRETURN;}
 
-                     ptr = strstr(fname,".ppm") ;
-   if( ptr == NULL ) ptr = strstr(fname,".pnm") ;
-   if( ptr == NULL ) ptr = strstr(fname,".jpg") ;
-   if( ptr == NULL ) strcat(fname,".ppm") ;
+   if( !STRING_HAS_SUFFIX_CASE(fname,".ppm") &&
+       !STRING_HAS_SUFFIX_CASE(fname,".pnm") &&
+       !STRING_HAS_SUFFIX_CASE(fname,".jpg") &&
+       !STRING_HAS_SUFFIX_CASE(fname,".png")   ) strcat(fname,".ppm") ;
 
-   fprintf(stderr,"Writing palette image to %s\n",fname) ;
+   INFO_message("Writing palette image to %s",fname) ;
 
    ptr = getenv( "AFNI_PBAR_IMXY" );
    if( ptr != NULL ){
-      ll = sscanf( ptr , "%dx%d" , &nx , &ny ) ;
-      if( ll < 2 || nx < 1 || ny < 32 ){ nx=20; ny=256; }
+     ll = sscanf( ptr , "%dx%d" , &nx , &ny ) ;
+     if( ll < 2 || nx < 1 || ny < 32 ){ nx=20; ny=256; }
    }
 
    im = MCW_pbar_to_mri( im3d->vwid->func->inten_pbar , nx,ny ) ;
