@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, os, string
+import sys, os, string, glob
 import afni_base
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
@@ -60,6 +60,37 @@ def uniq_list_as_dsets(dsets, showerr=False):
 
     return uniq
 
+
+# given a list, return the list of afni_name elements
+# - the list can include wildcarding
+# - they must be valid names of existing datasets
+# - return None on error
+def list_to_datasets(words):
+    if not words or len(words) < 1: return []
+    dsets = []
+    wlist = []
+    errs  = False
+    for word in words:
+        glist = glob.glob(word)  # first, check for globbing
+        if glist:
+            glist.sort()
+            wlist += glist
+        else: wlist.append(word)
+    # now process all words
+    for word in wlist:
+        dset = afni_base.afni_name(word)
+        if dset.exist():
+            dsets.append(dset)
+        else:
+            print "** no dataset match for '%s'" % word
+            errs = True
+
+    if errs:
+        print # for separation
+        return None
+    return dsets
+
+
 # given a string, if the prefix is either GAM or BLOCK, then the basis
 # function has a known response curve
 def basis_has_known_response(basis):
@@ -76,10 +107,10 @@ def read_1D_file(filename, nlines = -1, verb = 0):
     try:
         fp = open(filename, 'r')
     except:
-        print "failed to open 1D file %s" % filename
+        if verb >= 0: print "failed to open 1D file %s" % filename
         return None
 
-    if verb: print "+d opened file %s" % filename
+    if verb > 0: print "+d opened file %s" % filename
 
     retmat = []
     lnum   = 0
@@ -88,11 +119,16 @@ def read_1D_file(filename, nlines = -1, verb = 0):
     for line in data.splitlines():
         if 0 <= nlines <= lnum: break   # then stop early
         if line[0] == '#' or line[0] == '\0':
-            if verb: print "skipping comment line: %s" % line
+            if verb > 0: print "skipping comment line: %s" % line
             continue
         retmat.append([])
         tokens = line.split()
         for tok in tokens:
+            try: fval = float(tok)
+            except:
+                if verb >= 0:
+                    print "found bad float on line %d: '%s'" % (lnum+1,tok)
+                return None
             retmat[lnum].append(float(tok))
 
         if verb > 1: print "+d line %d, length %d" % (lnum, len(retmat[lnum]))

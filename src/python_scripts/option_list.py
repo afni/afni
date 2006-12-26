@@ -4,7 +4,7 @@
 
 # do we want all of the 
 
-import sys, glob, string
+import sys
 import afni_base
 
 # ---------------------------------------------------------------------------
