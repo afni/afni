@@ -98,7 +98,7 @@ g_help_string = """
                              -volreg_align_to first          \\
                              -regress_stim_times misc_files/stim_times.*.1D
 
-        3. Current class example.
+        3. Current AFNI_data2 class example.
 
            Similar to #2, but add labels for the 4 stim types, and apply TENT
            as the basis function to get 14 seconds of response, on a 2-second
@@ -161,8 +161,12 @@ g_help_string = """
 
         tshift:   - align slices to the beginning of the TR
 
-        volreg:   -  align to first volume of first run
+        volreg:   - align to first volume of first run
                         (option: -volreg_align_to first)
+
+        blur:     - blur data using a 4 mm FWHM filter
+                        (option: -blur_filter -1blur_fwhm)
+                        (option: -blur_size 4)
 
         mask:     - apply union of masks from 3dAutomask on each run
 
@@ -718,9 +722,10 @@ g_history = """
     1.1  Dec 20, 2006 : added -regress_no_stim_times
     1.2  Dec 21, 2006 : help, start -ask_me, updated when to use -iresp/ideal
     1.3  Dec 22, 2006 : change help to assumme ED's stim_times files exist
+    1.4  Dec 25, 2006 : initial -ask_me
 """
 
-g_version = "version 1.3, December 22, 2006"
+g_version = "version 1.4, December 25, 2006"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -862,48 +867,51 @@ class SubjProcSream:
             else: print "** have invalid trailing args: %s", opt.show()
             return 1  # failure
 
-        opt = self.user_opts.find_opt('-verb')    # set and use verb
-        if opt != None: self.verb = int(opt.parlist[0])
-
-        opt = self.user_opts.find_opt('-help')    # does the user want help?
-        if opt != None:
-            print g_help_string
-            return 1  # terminate
-        
-        opt = self.user_opts.find_opt('-hist')    # print the history
-        if opt != None:
-            print g_history
-            return 1  # terminate
-        
-        opt = self.user_opts.find_opt('-ver')    # show the version string
-        if opt != None:
-            print g_version
-            return 1  # terminate
-        
-        opt = self.user_opts.find_opt('-subj_id')
-        if opt != None: self.subj_id = opt.parlist[0]
-
-        opt = self.user_opts.find_opt('-out_dir')
-        if opt != None: self.out_dir = opt.parlist[0]
-
-        opt = self.user_opts.find_opt('-script')
-        if opt != None: self.script = opt.parlist[0]
-
-        opt = self.user_opts.find_opt('-scr_overwrite')
-        if opt != None: self.overwrite = True
-
-        opt = self.user_opts.find_opt('-copy_anat')
-        if opt != None: self.anat = afni_name(opt.parlist[0])
-
-        opt = self.user_opts.find_opt('-keep_rm_files')
-        if opt != None: self.rm_rm = False
-
-        # done checking options
+        # apply the user options
+        if self.apply_initial_opts(self.user_opts): return 1
 
         # update out_dir now (may combine option results)
         if self.out_dir == '': self.out_dir = '%s.results' % self.subj_label
 
         if self.verb > 3: self.show('end get_user_opts ')
+
+    # apply the general options
+    def apply_initial_opts(self, opt_list):
+        opt = opt_list.find_opt('-verb')    # set and use verb
+        if opt != None: self.verb = int(opt.parlist[0])
+
+        opt = opt_list.find_opt('-help')    # does the user want help?
+        if opt != None:
+            print g_help_string
+            return 1  # terminate
+        
+        opt = opt_list.find_opt('-hist')    # print the history
+        if opt != None:
+            print g_history
+            return 1  # terminate
+        
+        opt = opt_list.find_opt('-ver')    # show the version string
+        if opt != None:
+            print g_version
+            return 1  # terminate
+        
+        opt = opt_list.find_opt('-subj_id')
+        if opt != None: self.subj_id = opt.parlist[0]
+
+        opt = opt_list.find_opt('-out_dir')
+        if opt != None: self.out_dir = opt.parlist[0]
+
+        opt = opt_list.find_opt('-script')
+        if opt != None: self.script = opt.parlist[0]
+
+        opt = opt_list.find_opt('-scr_overwrite')
+        if opt != None: self.overwrite = True
+
+        opt = opt_list.find_opt('-copy_anat')
+        if opt != None: self.anat = afni_name(opt.parlist[0])
+
+        opt = opt_list.find_opt('-keep_rm_files')
+        if opt != None: self.rm_rm = False
 
     # init blocks from command line options, then check for an
     # alternate source       rcr - will we use 'file' as source?
@@ -929,6 +937,12 @@ class SubjProcSream:
         if uopt != None:
             if ask_me.ask_me_subj_proc(self):
                 return 1
+            for label in blocklist:
+                block = self.find_block(label)
+                if not block:
+                    print "** error missing block '%s' in ask_me update"%label
+                    return 1
+                BlockModFunc[label](block, self, self.user_opts) # modify block
 
         # rcr - if there is another place to update options from, do it
         uopt = self.user_opts.find_opt('-opt_source')
@@ -1084,8 +1098,15 @@ class SubjProcSream:
                   '# -------------------------------------------------------\n'
                   '# script generated by the command:\n'
                   '#\n'
-                  '# %s %s\n\n' % (os.path.basename(sys.argv[0]),
-                                   ' '.join(quotize_list(sys.argv[1:]))))
+                  '# %s %s\n' % (os.path.basename(sys.argv[0]),
+                                 ' '.join(quotize_list(sys.argv[1:]))))
+        if self.user_opts.find_opt('-ask_me'):
+            self.fp.write('#\n# all applied options: ')
+            for opt in self.user_opts.olist:
+                if opt.name == '-ask_me': continue
+                self.fp.write(opt.name+' ')
+                self.fp.write(' '.join(quotize_list(opt.parlist))+' ')
+        self.fp.write('\n')
 
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
     #    NN = block index, SUBJ = subj label, MM = run, BLABEL = block label
