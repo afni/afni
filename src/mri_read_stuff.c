@@ -120,7 +120,9 @@ ENTRY("mri_read_stuff") ;
      sprintf( pg , filt , fname ) ;
    }
 
+#ifndef CYGWIN
    signal( SIGPIPE , SIG_IGN ) ;  /* ignore this signal */
+#endif
    fp = popen( pg , "r" ) ;
    if( fp == NULL ){ free(pg); RETURN(NULL); }  /* bad pipe */
 
