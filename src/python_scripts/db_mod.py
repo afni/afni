@@ -15,6 +15,12 @@ def db_mod_tcat(block, proc, user_opts):
         except:
             print "** %s: invalid integer: %s" % (uopt.label, uopt.parlist[0])
             errs += 1
+        if errs == 0 and bopt.parlist[0] > 0:
+          print '--------------------------------------------------------\n' \
+            '** warning: removing first %d TRs from beginning of each run\n'  \
+            '   --> it is essential that stimulus timing files match the\n' \
+            '       removal of these TRs\n' \
+            '--------------------------------------------------------'
 
     if errs == 0: block.valid = True
     else        : block.valid = False

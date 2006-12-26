@@ -1877,3 +1877,9 @@
       - help, start -ask_me, updated when to use -iresp/ideal
 22 Dec 2006: modified afni_proc.py, make_stim_times.py for AFNI_data2 times
 
+25 Dec 2006:
+  * modified afni_proc.py (v1.4): updates for -ask_me
+  * modified ask_me.py: first pass, result matches ED_process
+  * modified afni_util.py: added list_to_datasets() and float test
+  * small mods to db_mod.py, option_list
+
