@@ -443,7 +443,7 @@ static int AFNI_drive_set_subbricks( char *cmd )
 }
 
 /*------------------------------------------------------------------
-  Set the anatomical dataset.  Input is of the form "A.prefix".
+  Set the anatomical dataset.  Input is of the form "A.prefix n".
   Return value is 0 if good, -1 if bad.
 -------------------------------------------------------------------*/
 
@@ -502,7 +502,7 @@ ENTRY("AFNI_switch_anatomy") ;
 }
 
 /*----------------------------------------------------------------------
-  Set the functional dataset.  Input is of the form "A.prefix".
+  Set the functional dataset.  Input is of the form "A.prefix j k".
   Return value is 0 if good, -1 if bad.
 -------------------------------------------------------------------*/
 

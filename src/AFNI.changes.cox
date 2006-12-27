@@ -6013,3 +6013,7 @@
  * When AFNI_IMAGE_GLOBALRANGE is yes, don't do redisplay on isqDR_setrange.
      Causes an unpleasant flickering in the image viewer window.  Changes
      to afni.c (AFNI_range_setter()), imseq.c, etc.
+
+28 Dec 2006
+ * Modify afni_splash.c to save current dataset names and xyz coords in
+     the startup script.
