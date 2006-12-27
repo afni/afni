@@ -1,8 +1,8 @@
-=====================================================
-** Driving AFNI from a Plugout or a Startup Script **
-=====================================================
-A plugout can control some aspects of AFNI.  This is done by passing a
-command line of the form
+       =====================================================
+      *** Driving AFNI from a Plugout or a Startup Script ***
+       =====================================================
+An external program (i.e., a "plugout") can control some aspects of AFNI.
+This functionality is invoked by passing a command line of the form
 
   DRIVE_AFNI command arguments ...
 
@@ -22,15 +22,21 @@ button (by giving a blank as the filename).
 You can also give commands to AFNI on the 'afni' command line, using the
 '-com' option.  For example:
 
-  afni -com 'OPEN_WINDOW A.axialimage' \
-       -com 'SWITCH_UNDERLAY anat'     \
-       -com 'SAVE_JPEG sss.jpg'        \
-       -com 'QUIT'                     \
+  afni -com 'OPEN_WINDOW A.axialimage'       \
+       -com 'SWITCH_UNDERLAY anat'           \
+       -com 'SAVE_JPEG A.axialimage sss.jpg' \
+       -com 'QUIT'                           \
        somedirectory
 
-could be used to create an image file 'sss.jpg' automatically.
+could be used to create an image file 'sss.jpg' automatically.  The AFNI GUI
+would open up (and so X11 must be running), but no user interaction would
+actually occur -- the image opens and gets saved, and then AFNI just ends.
+N.B.: If the 'QUIT' command weren't included above, AFNI would remain open,
+ready for user interaction after the image file was saved.
 
------------------------------------------------------------------------------
+=============================================================================
+COMMANDS (in no coherent order)
+-------------------------------
 
 ADD_OVERLAY_COLOR colordef colorlab
   Adds the color defined by the string "colordef" to the list of overlay
@@ -119,7 +125,7 @@ SET_FUNC_VISIBLE [c.]{+|-}
     SET_FUNC_VISIBLE A.+
   You can also use SEE_OVERLAY for this, which is closer to the label on
   the GUI button.
- 
+
 SEE_OVERLAY
    Same as SET_FUNC_VISIBLE
 
@@ -131,7 +137,7 @@ SET_FUNC_RESAM [c.]{NN|Li|Cu|Bk}[.{NN|Li|Cu|Bk}]
 OPEN_PANEL [c.]Panel_Name
   Opens the specified controller panel, where 'Panel_Name' is one of
   'Define_Overlay', 'Define_Datamode', or 'Define_Markers'.  At this time,
-  there is no way to close a panel.
+  there is no way to close a panel except from the GUI.
 
 SYSTEM command string
   Executes "command string" using the system() library function; for
@@ -144,9 +150,7 @@ CHDIR newdirectory
 RESCAN_THIS [c]
   rescans the current session directory for controller 'c', where 'c'
   is one of 'A', 'B', 'C', 'D', or 'E'.  If 'c' is absent, the 'A'
-  controller's current session is scanned.  If the specified controller
-  is not open, the acknowledgement from AFNI will be "BAD", otherwise
-  it will be "good".
+  controller's current session is scanned.
 
 SET_SESSION [c.]directoryname
   Switches controller 'c' to be looking at the named directory.  The
@@ -227,10 +231,14 @@ SAVE_JPEG [c.]windowname filename
   'sagittalimage', 'coronalimage', 'axialgraph', 'sagittalgraph', or
   'coronalgraph'.  If the filename does not end in the string ".jpg" or
   ".JPG", then ".jpg" will be appended.
+  ++ Saving is done via the cjpeg program, which must be in the path,
+     and is included in the standard AFNI source and binary collections.
 
 SAVE_PNG [c.]windowname filename
-  Like SAVE_JPEG, but saves to the lossless PNG format (using the
-  pnmtopng filter, which must be in the path).
+  Like SAVE_JPEG, but saves to the lossless PNG format.
+  ++ Saving is done via the pnmtopng filter, which must be in the path.
+     Unlike cjpeg, this program is NOT part of the AFNI collection, but
+     must be installed separately (usually by getting the NETPBM package).
 
 SAVE_FILTERED  [c.]windowname filtercommand
   Like SAVE_JPEG or SAVE_PNG, but instead of a filename, you
@@ -276,11 +284,16 @@ PURGE_MEMORY [dataset_prefix]
      a '3dcalc()' command line call; or was fetched across the Web).
 
 QUIT
-  AFNI will exit immediately.
+  AFNI will exit immediately.  Communication with the dead being difficult,
+  this action forestalls all further attempts to send commands to AFNI.
 
 SETENV name value
   Set the environment variable "name" to "value" in AFNI; for example
     SETENV AFNI_CROSSHAIR_LINES YES
+  Most of the time, when you set an environment variable inside AFNI,
+  just changing the variable won't have any immediate visible effect.
+  Only when you instigate something that this variable controls will
+  anything change in AFNI.  Thus, you may want to 'REDISPLAY' afterwards.
 
 REDISPLAY
   Forces all images and graphs to be redrawn.
@@ -290,15 +303,19 @@ SLEEP ms
   a script file to provide a pause between some effects.
 
 TRACE {YES | NO}
-  Turns debug tracig on or off.
+  Turns debug tracig on or off.  Mostly for AFNI developers.
 
 
-============
+==============================================================================
 ** GRAPHS **
 ============
 The following commands are used to open graph windows and manipulate them.
 These commands don't actually interact with the rest of AFNI - they are
-really just using AFNI as a graph display server.
+really just using AFNI as a graph display server.  [This functionality
+was added per the request of Jerzy Bodurka at the NIH, to provide a way
+to graph physiological signals monitored while the subject is in the
+scanner, at the same time the EPI images are being sent to the AFNI
+realtime plugin.]
 
 At present there are two similar kinds of graphs:
 
@@ -341,7 +358,7 @@ x-axis of a 1D graph.  The full list of such escapes is
 
 All characters are drawn with line strokes from an internal font; standard
 fonts (e.g., Helvetica) are not available.  If you want classier looking
-graphs, find another program.
+graphs, stop whining and find another program.
 
 --------------------------
 
