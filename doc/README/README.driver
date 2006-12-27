@@ -162,6 +162,7 @@ SET_ANATOMY [c.]prefix [i]
   ++ If an optional integer is given (separated by a space) after the
      prefix, this is the sub-brick index to view.
   ++ You can also use "SWITCH_ANATOMY" or "SWITCH_UNDERLAY" for the command.
+  ++ The 'prefix' can also be the dataset IDcode string, if you insist.
 
 SET_FUNCTION [c.]prefix [j [k]]
   Same, but for the functional dataset in controller 'c'.
@@ -237,8 +238,8 @@ SAVE_FILTERED  [c.]windowname filtercommand
     SAVE_FILTERED axialimage 'pnmcut 10 20 120 240 | pnmtopng > zork.png'
   will crop the image and save it into a PNG file.  You'll need to become
   familiar with the NETPBM package if you want to use this command.
-  N.B.: As indicated in the example, you'll need to put filtercommand
-        in quotes if it contains blanks, which it almost surely will.
+  ++ As indicated in the example, you'll need to put filtercommand
+     in quotes if it contains blanks, which it almost surely will.
   Other filter examples:
      Save to a PPM file:  'cat > zork.ppm'
      Save to a TIFF file: 'ppm2tiff -c none > zork.tif'
@@ -251,7 +252,7 @@ SAVE_AGIF    [c].imagewindowname filename
   series of JPEG/PNG files, or as one animation file).  The windowname can
   be one of 'axialimage', 'sagittalimage', or 'coronalimage'.  Do NOT
   put a suffix like '.jpg' or '.mpg' on the filename -- it will be added.
-  N.B.: Unlike 'SAVE_JPEG', these commands do not work with graph windows.
+  ++ Unlike 'SAVE_JPEG', these commands do not work with graph windows.
 
 SET_DICOM_XYZ [c] x y z
 SET_SPM_XYZ   [c] x y z
@@ -269,10 +270,10 @@ PURGE_MEMORY [dataset_prefix]
   If no prefix is given, the sub-bricks of all datasets will be purged from
   memory, and when re-used, AFNI will re-read them from disk.  If a prefix
   is given, only that dataset (in all coordinate views) will be purged.
-  N.B.: "Locked" datasets will not be purged -- a dataset will be locked
-  into memory if it can't be re-read from disk (e.g., was sent from SUMA;
-  is being drawn upon, nudged, or acquired in realtime; was loaded from
-  a '3dcalc()' command line call; or was fetched across the Web).
+  ++ "Locked" datasets will not be purged -- a dataset will be locked
+     into memory if it can't be re-read from disk (e.g., was sent from SUMA;
+     is being drawn upon, nudged, or acquired in realtime; was loaded from
+     a '3dcalc()' command line call; or was fetched across the Web).
 
 QUIT
   AFNI will exit immediately.
