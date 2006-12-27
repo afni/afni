@@ -1883,3 +1883,5 @@
   * modified afni_util.py: added list_to_datasets() and float test
   * small mods to db_mod.py, option_list
 
+27 Dec 2006: afni_proc.py (v1.5): ask_me help
+

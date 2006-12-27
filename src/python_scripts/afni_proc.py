@@ -33,15 +33,21 @@ g_help_string = """
     afni_proc.py        - generate a tcsh script for an AFNI process stream
 
     This python script can generate a processing script via a command-line
-    interface by a tk GUI (eventually).  The user should minimally provide
+    interface, or by a tk GUI (eventually).  The user should provide at least
     the input datasets (-dsets) and stimulus files (-regress_stim_*).
 
     The output script will create a results directory, copy input files into
     it, and perform all processing there.  So the user can delete the results
-    directory and re-run the script at their leisure.
+    directory and re-run the script at their whim.
 
-    Note that the output script need to be ever run.  The user should feel
-    free to modify the script for their own evil purposes.
+    Note that the user need not actually run the output script.  The user
+    should feel free to modify the script for their own evil purposes, as
+    opposed to trying to create a script that does everything the need.
+
+    Note also that there is a text interface that can be accessed via the
+    -ask_me option.  That envokes a Q & A session, during which this program
+    sets user options on the fly.  The user may elect to enter some of the
+    options, which still using -ask_me.
 
     --------------------------------------------------
     The output script will go through the following steps, unless the user
@@ -148,6 +154,33 @@ g_help_string = """
                          -regress_no_fitts
 
     --------------------------------------------------
+    -ask_me EXAMPLES:
+
+        a1. Apply -ask_me in the most basic form, with no other options.
+
+                afni_proc.py -ask_me
+
+        a2. Supply input datasets.
+
+                afni_proc.py -ask_me -dsets ED/ED_r*.HEAD
+
+        a3. Same as a2, but supply the datasets in expanded form.
+
+                afni_proc.py -ask_me                                    \
+                     -dsets ED/ED_r01+orig.HEAD ED/ED_r02+orig.HEAD     \
+                            ED/ED_r03+orig.HEAD ED/ED_r04+orig.HEAD     \
+                            ED/ED_r05+orig.HEAD ED/ED_r06+orig.HEAD     \
+                            ED/ED_r07+orig.HEAD ED/ED_r08+orig.HEAD     \
+                            ED/ED_r09+orig.HEAD ED/ED_r10+orig.HEAD
+
+        a4. Supply datasets, stim_times files and labels.
+
+                afni_proc.py -ask_me -dsets ED/ED_r*.HEAD               \
+                        -regress_stim_times misc_files/stim_times.*.1D  \
+                        -regress_stim_labels ToolMovie HumanMovie       \
+                                             ToolPoint HumanPoint
+
+    --------------------------------------------------
     DEFAULTS: basic defaults for each block (not all defaults)
 
         setup:    - use 'SUBJ' for the subject id
@@ -190,6 +223,12 @@ g_help_string = """
         -ver                    : show the version number
 
         ------------ general execution and setup options ------------
+
+        -ask_me                 : ask the user about the basic options to apply
+
+            When this option is used, the program will ask the user how they
+            wish to set the basic options.  The intention is to give the user
+            a feel for what options to apply (without using -ask_me).
 
         -blocks BLOCK1 ...      : specify the processing blocks to apply
 
@@ -723,9 +762,10 @@ g_history = """
     1.2  Dec 21, 2006 : help, start -ask_me, updated when to use -iresp/ideal
     1.3  Dec 22, 2006 : change help to assumme ED's stim_times files exist
     1.4  Dec 25, 2006 : initial -ask_me
+    1.5  Dec 25, 2006 : ask_me help
 """
 
-g_version = "version 1.4, December 25, 2006"
+g_version = "version 1.5, December 27, 2006"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
