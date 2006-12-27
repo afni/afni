@@ -200,6 +200,7 @@ OPEN_WINDOW [c.]windowname [options]
   Another option for both graph and image windows is
     keypress=c       -> where 'c' is a single character to send as if
                         the user pressed that key in the specified window
+                        (multiple keypress= options can be used)
   For image windows, other options available are:
     ifrac=number     -> set image fraction in window to number (<= 1.0)
     mont=PxQ:R       -> montage P across, Q down, every R'th slice
