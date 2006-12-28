@@ -1885,3 +1885,8 @@
 
 27 Dec 2006: afni_proc.py (v1.5): ask_me help
 
+28 Dec 2006: afni_proc.py (v1.6)
+  * modified afni_proc.py: added -gltsym examples
+  * modified afni_util.py: added an opt_prefix parameter to quotize_list()
+  * modified db_mod.py   : used min(200,a/b*100) in scale block
+
