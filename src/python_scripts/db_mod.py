@@ -327,17 +327,15 @@ def db_cmd_scale(proc, block):
     # check for max scale value 
     opt = block.opts.find_opt('-scale_max_val')
     max = opt.parlist[0]
-    valstr = 'a/b*100'
-    if max > 100: maxstr = ' * step(%d-%s) + %d*step(%s-%d)' \
-                           % (max,valstr,max,valstr,max-1)
-    else:         maxstr = ''
+    if max > 100: valstr = 'min(%d, a/b*100)' % max
+    else:         valstr = 'a/b*100'
 
     if proc.mask:
         mask_dset = '           -c %s+orig \\\n' % proc.mask
-        expr      = 'c*(a/b*100%s)' % maxstr
+        expr      = 'c * %s' % valstr
     else:
         mask_dset = ''
-        expr      = 'a/b*100%s' % maxstr
+        expr      = valstr
 
     if max > 100: maxstr = ', subject to maximum value of %d' % max
     else        : maxstr = ''
@@ -598,7 +596,7 @@ def db_cmd_regress(proc, block):
     opt = block.opts.find_opt('-regress_opts_3dD')
     if not opt or not opt.parlist: other_opts = ''
     else: other_opts = '    %s  \\\n' %         \
-                       ' '.join(afni_util.quotize_list(opt.parlist))
+                       ' '.join(afni_util.quotize_list(opt.parlist,'\\\n    '))
 
     # add misc options
     cmd = cmd + iresp

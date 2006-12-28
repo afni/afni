@@ -17,7 +17,9 @@ def change_path_basename(orig, prefix, suffix):
 # given a list of text elements, return a new list where any
 # existing quotes are escaped, and then if there are special
 # characters, put the whole string in single quotes
-def quotize_list(list):
+#
+# if the first character is '-', opt_prefix will be applied
+def quotize_list(list, opt_prefix):
     if not list or len(list) < 1: return list
 
     # okay, we haven't yet escaped any existing quotes...
@@ -25,10 +27,12 @@ def quotize_list(list):
     # qlist = "[({* "
     newlist = []
     for string in list:
+        if string[0] == '-': prefix = opt_prefix
+        else: prefix = ''
         if '[' in string or '(' in string or '{' in string or ' ' in string:
-            newlist.append("'%s'" % string)
+            newlist.append("'%s%s'" % (prefix,string))
         else:
-            newlist.append(string)
+            newlist.append("%s%s" % (prefix,string))
 
     return newlist
 
