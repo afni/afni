@@ -205,18 +205,18 @@ g_help_string = """
 
         a3. Same as a2, but supply the datasets in expanded form.
 
-                afni_proc.py -ask_me                                    \
-                     -dsets ED/ED_r01+orig.HEAD ED/ED_r02+orig.HEAD     \
-                            ED/ED_r03+orig.HEAD ED/ED_r04+orig.HEAD     \
-                            ED/ED_r05+orig.HEAD ED/ED_r06+orig.HEAD     \
-                            ED/ED_r07+orig.HEAD ED/ED_r08+orig.HEAD     \
+                afni_proc.py -ask_me                                    \\
+                     -dsets ED/ED_r01+orig.HEAD ED/ED_r02+orig.HEAD     \\
+                            ED/ED_r03+orig.HEAD ED/ED_r04+orig.HEAD     \\
+                            ED/ED_r05+orig.HEAD ED/ED_r06+orig.HEAD     \\
+                            ED/ED_r07+orig.HEAD ED/ED_r08+orig.HEAD     \\
                             ED/ED_r09+orig.HEAD ED/ED_r10+orig.HEAD
 
         a4. Supply datasets, stim_times files and labels.
 
-                afni_proc.py -ask_me -dsets ED/ED_r*.HEAD               \
-                        -regress_stim_times misc_files/stim_times.*.1D  \
-                        -regress_stim_labels ToolMovie HumanMovie       \
+                afni_proc.py -ask_me -dsets ED/ED_r*.HEAD               \\
+                        -regress_stim_times misc_files/stim_times.*.1D  \\
+                        -regress_stim_labels ToolMovie HumanMovie       \\
                                              ToolPoint HumanPoint
 
     --------------------------------------------------
