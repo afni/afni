@@ -596,7 +596,7 @@ def db_cmd_regress(proc, block):
     opt = block.opts.find_opt('-regress_opts_3dD')
     if not opt or not opt.parlist: other_opts = ''
     else: other_opts = '    %s  \\\n' %         \
-                       ' '.join(afni_util.quotize_list(opt.parlist,'\\\n    '))
+               ' '.join(afni_util.quotize_list(opt.parlist, '\\\n    ', True))
 
     # add misc options
     cmd = cmd + iresp
