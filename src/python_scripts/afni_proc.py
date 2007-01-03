@@ -133,11 +133,12 @@ g_help_string = """
 
            Similar to #2, but add labels for the 4 stim types, and apply TENT
            as the basis function to get 14 seconds of response, on a 2-second
-           TR grid.
+           TR grid.  Also, copy the anat dataset(s) to the results directory.
 
                 afni_proc.py -dsets ED/ED_r??+orig.HEAD                      \\
                              -script process_ED.8                            \\
                              -subj_id ED.8                                   \\
+                             -copy_anat ED/EDspgr                            \\
                              -tcat_remove_first_trs 2                        \\
                              -volreg_align_to first                          \\
                              -regress_stim_times misc_files/stim_times.*.1D  \\
@@ -152,6 +153,7 @@ g_help_string = """
            afni_proc.py -dsets ED/ED_r??+orig.HEAD                           \\
                   -script process_ED.8.glt                                   \\
                   -subj_id ED.8.glt                                          \\
+                  -copy_anat ED/EDspgr                                       \\
                   -tcat_remove_first_trs 2                                   \\
                   -volreg_align_to first                                     \\
                   -regress_stim_times misc_files/stim_times.*.1D             \\
@@ -172,6 +174,7 @@ g_help_string = """
            afni_proc.py -dsets ED/ED_r??+orig.HEAD                           \\
               -script process_ED.8.gltsym                                    \\
               -subj_id ED.8.gltsym                                           \\
+              -copy_anat ED/EDspgr                                           \\
               -tcat_remove_first_trs 2                                       \\
               -volreg_align_to first                                         \\
               -regress_stim_times misc_files/stim_times.*.1D                 \\
@@ -193,6 +196,7 @@ g_help_string = """
                 afni_proc.py -dsets ED/ED_r??+orig.HEAD                      \\
                              -script process_ED.15                           \\
                              -subj_id ED.15                                  \\
+                             -copy_anat ED/EDspgr                            \\
                              -tcat_remove_first_trs 2                        \\
                              -volreg_align_to first                          \\
                              -regress_stim_times misc_files/stim_times.*.1D  \\
@@ -203,8 +207,7 @@ g_help_string = """
 
         7. Similar to #2, but skip tshift and mask steps (so the others must
            be specified), and apply a 4 second BLOCK response function.  Also,
-           prevent output of a fit time series dataset, and copy the anatomical
-           dataset(s) to the results directory.
+           prevent output of a fit time series dataset.
 
                 afni_proc.py -dsets ED/ED_r??+orig.HEAD                   \\
                          -blocks volreg blur scale regress                \\
