@@ -19,16 +19,22 @@ def change_path_basename(orig, prefix, suffix):
 # characters, put the whole string in single quotes
 #
 # if the first character is '-', opt_prefix will be applied
-def quotize_list(list, opt_prefix):
+#
+# if skip_first, do not add initial prefix
+def quotize_list(list, opt_prefix, skip_first=False):
     if not list or len(list) < 1: return list
 
     # okay, we haven't yet escaped any existing quotes...
 
     # qlist = "[({* "
     newlist = []
+    first = True   # ugly, but easier for option processing
     for string in list:
-        if string[0] == '-': prefix = opt_prefix
-        else: prefix = ''
+        prefix = ''
+        if skip_first and first:
+            first = False       # use current (empty) prefix
+        else:
+            if string[0] == '-': prefix = opt_prefix
         if '[' in string or '(' in string or '{' in string or ' ' in string:
             newlist.append("'%s%s'" % (prefix,string))
         else:

@@ -33,33 +33,50 @@ g_help_string = """
     afni_proc.py        - generate a tcsh script for an AFNI process stream
 
     This python script can generate a processing script via a command-line
-    interface, or by a tk GUI (eventually).  The user should provide at least
-    the input datasets (-dsets) and stimulus files (-regress_stim_*).
+    interface, with an optional question/answer session (-ask_me), or by a tk
+    GUI (eventually).
 
-    The output script will create a results directory, copy input files into
-    it, and perform all processing there.  So the user can delete the results
-    directory and re-run the script at their whim.
+    The user should provide at least the input datasets (-dsets) and stimulus
+    files (-regress_stim_*), in order to create an output script.  See the
+    'DEFAULTS' section for a description of the default options for each block.
+
+    The output script, when executed will create a results directory, copy
+    input files into it, and perform all processing there.  So the user can
+    delete the results directory and re-run the script at their whim.
 
     Note that the user need not actually run the output script.  The user
-    should feel free to modify the script for their own evil purposes, as
-    opposed to trying to create a script that does everything the need.
+    should feel free to modify the script for their own evil purposes, before
+    running it.
 
-    Note also that there is a text interface that can be accessed via the
-    -ask_me option.  That envokes a Q & A session, during which this program
-    sets user options on the fly.  The user may elect to enter some of the
-    options, which still using -ask_me.
+    The text interface can be accessed via the -ask_me option.  It envokes a
+    question & answer session, during which this program sets user options on
+    the fly.  The user may elect to enter some of the options on the command
+    line, even if using -ask_me.  See "-ask_me EXAMPLES", below.
 
     --------------------------------------------------
+    TIMING FILE NOTE:
+
+    One issue that the user must be sure of is the timing of the stimulus
+    files (whether -regress_stim_files or -regress_stim_times is used).
+
+    The 'tcat' step will remove the number of pre-steady-state TRs that the
+    user specifies (defaulting to 0).  The stimulus files, provided by the
+    user, must match datasets that have had such TRs removed (i.e. the stim
+    files should start _after_ steady state has been reached).
+
+    --------------------------------------------------
+    PROCESSING STEPS (of the output script):
+
     The output script will go through the following steps, unless the user
     specifies otherwise.
 
-    automatic steps:
+    automatic steps (the tcsh script will always perform these):
 
         setup       : check subject arg, set run list, create output dir, and
                       copy stim files
         tcat        : copy input datasets and remove unwanted initial TRs
 
-    optional steps:
+    optional steps (the user may skip these, or alter their order):
 
         tshift      : slice timing alignment on volumes (default is -time 0)
         volreg      : volume registration (default to first volume)
@@ -81,6 +98,10 @@ g_help_string = """
                 afni_proc.py -dsets epiRT*.HEAD              \\
                              -regress_stim_files stims.1D
 
+           or without any wildcard, the .HEAD suffix is not needed:
+
+                afni_proc.py -dsets epiRT_r1+orig epiRT_r2+orig epiRT_r3+orig \\
+                             -regress_stim_files stims.1D
 
      ** The following examples can be run from the AFNI_data2 directory, and
         are examples of how one might process the data for subject ED.
@@ -91,6 +112,10 @@ g_help_string = """
 
             make_stim_times.py -prefix stim_times -tr 1.0 -nruns 10 -nt 272 \\
                    -files misc_files/all_stims.1D
+
+        If your AFNI_data2 directory does not have misc_files/stim_times.*,
+        then you can run the make_stim_times.py command from AFNI_data2.
+
 
         2. This example shows basic usage, with the default GAM regressor.
            We specify the output script name, the subject ID, removal of the
@@ -157,7 +182,7 @@ g_help_string = """
                 -gltsym 'SYM: -ToolMovie +HumanMovie -ToolPoint +HumanPoint' \\
                 -glt_label 1 HvsT                                            \\
                 -gltsym 'SYM: +HumanMovie -HumanPoint'                       \\
-                -glt_label 2 HvsT
+                -glt_label 2 HMvsHP
 
         6. Similar to #3, but find the response for the TENT functions on a
            1-second grid, such as how the data is processed in the class
@@ -204,17 +229,19 @@ g_help_string = """
                 afni_proc.py -ask_me -dsets ED/ED_r*.HEAD
 
         a3. Same as a2, but supply the datasets in expanded form.
+            No suffix (.HEAD) is needed when wildcards are not used.
 
-                afni_proc.py -ask_me                                    \\
-                     -dsets ED/ED_r01+orig.HEAD ED/ED_r02+orig.HEAD     \\
-                            ED/ED_r03+orig.HEAD ED/ED_r04+orig.HEAD     \\
-                            ED/ED_r05+orig.HEAD ED/ED_r06+orig.HEAD     \\
-                            ED/ED_r07+orig.HEAD ED/ED_r08+orig.HEAD     \\
-                            ED/ED_r09+orig.HEAD ED/ED_r10+orig.HEAD
+                afni_proc.py -ask_me                          \\
+                     -dsets ED/ED_r01+orig ED/ED_r02+orig     \\
+                            ED/ED_r03+orig ED/ED_r04+orig     \\
+                            ED/ED_r05+orig ED/ED_r06+orig     \\
+                            ED/ED_r07+orig ED/ED_r08+orig     \\
+                            ED/ED_r09+orig ED/ED_r10+orig
 
         a4. Supply datasets, stim_times files and labels.
 
-                afni_proc.py -ask_me -dsets ED/ED_r*.HEAD               \\
+                afni_proc.py -ask_me                                    \\
+                        -dsets ED/ED_r*.HEAD                            \\
                         -regress_stim_times misc_files/stim_times.*.1D  \\
                         -regress_stim_labels ToolMovie HumanMovie       \\
                                              ToolPoint HumanPoint
@@ -253,7 +280,8 @@ g_help_string = """
                   - output iresp curves for non-GAM/non-BLOCK regressors
 
     --------------------------------------------------
-    OPTIONS: (block options are ordered by block)
+    OPTIONS: (information options, general options, block options)
+             (block options are ordered by block)
 
         ------------ information options ------------
 
@@ -803,9 +831,10 @@ g_history = """
     1.4  Dec 25, 2006 : initial -ask_me
     1.5  Dec 27, 2006 : ask_me help
     1.6  Dec 28, 2006 : -gylsym examples, min(a,b) in scale block
+    1.7  Jan 03, 2007 : help updates, no blank '\\' line from -gltsym
 """
 
-g_version = "version 1.6, December 28, 2006"
+g_version = "version 1.7, January 3, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
