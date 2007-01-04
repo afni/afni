@@ -78,7 +78,8 @@ void TS_syntax(char * str)
           "                  -rlt+ means to add only the mean back into the output\n"
           "                  (cf. '3dTcat -help')\n"
           "\n"
-          "  -no_detrend   = Do not remove or restore mean and linear trend.\n"
+          "  -no_detrend   = Do not remove or restore linear trend.\n"
+          "                  Heptic becomes the default interpolation method.\n"
           "\n"
           "  -Fourier = Use a Fourier method (the default: most accurate; slowest).\n"
           "  -linear  = Use linear (1st order polynomial) interpolation (least accurate).\n"
@@ -393,8 +394,12 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[nopt],"-no_detrend") == 0 ){ /* 3 Jan 2007 */
          if( TS_rlt ) TS_syntax("cannot use both -rlt and -no_detrend");
+         if( SHIFT_get_method() == MRI_FOURIER ){
+            fprintf(stderr,"found -no_detrend, changing default to -heptic\n");
+            SHIFT_set_method(MRI_HEPTIC);
+         }
          TS_detrend = 0 ;
-         TS_rlt = 1 ;        /* do not add in any trend, either */
+         TS_rlt = 2 ;        /* still de-mean/re-mean, as Bob suggests */
          nopt++ ; continue ;
       }
 
@@ -537,8 +542,10 @@ int main( int argc , char *argv[] )
             }
          }
 
-         if( TS_detrend )   /* then remove trend    3 Jan 2007 [rickr] */
+         if( TS_detrend )   /* remove trend, else mean   3 Jan 2007 [rickr] */
             THD_linear_detrend( ntt-ignore , far+ignore , &f0,&f1 ) ;
+         else
+            THD_const_detrend( ntt-ignore , far+ignore , &f0 ) ;
 
          for( fmin=fmax=far[ignore],jj=ignore+1 ; jj < ntt ; jj++ ){
                  if( far[jj] < fmin ) fmin = far[jj] ;   /* range of data: after */
@@ -558,6 +565,8 @@ int main( int argc , char *argv[] )
 
             if( TS_detrend )
                THD_linear_detrend( ntt-ignore , gar+ignore , &g0,&g1 ) ;
+            else
+               THD_const_detrend( ntt-ignore , far+ignore , &g0 ) ;
 
             for( gmin=gmax=gar[ignore],jj=ignore+1 ; jj < ntt ; jj++ ){
                     if( gar[jj] < gmin ) gmin = gar[jj] ;
