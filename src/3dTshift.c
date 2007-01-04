@@ -408,6 +408,10 @@ int main( int argc , char *argv[] )
 
    }  /* end of scan command line */
 
+   if( TS_detrend == 0 && SHIFT_get_method() == MRI_FOURIER )
+      fprintf(stderr,
+         "*** WARNING: -no_detrend with Fourier interpolation is dangerous\n");
+
    /*- open dataset; extract values, check for errors -*/
 
    if( nopt >= argc ) TS_syntax("Need a dataset input?!") ;

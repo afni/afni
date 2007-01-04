@@ -1895,3 +1895,5 @@
       - help updates, no blank '\' line from -gltsym, -copy_anat in examples
   * modified 3dTshift.c: added -no_detrend
 
+04 Jan 2007: modified 3dTshift.c: added warning for -no_detrend and MRI_FOURIER
+
