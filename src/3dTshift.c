@@ -78,6 +78,8 @@ void TS_syntax(char * str)
           "                  -rlt+ means to add only the mean back into the output\n"
           "                  (cf. '3dTcat -help')\n"
           "\n"
+          "  -no_detrend   = Do not remove or restore mean and linear trend.\n"
+          "\n"
           "  -Fourier = Use a Fourier method (the default: most accurate; slowest).\n"
           "  -linear  = Use linear (1st order polynomial) interpolation (least accurate).\n"
           "  -cubic   = Use the cubic (3rd order) Lagrange polynomial interpolation.\n"
@@ -264,6 +266,7 @@ static float   TS_tzero  = -1.0 ;
 static int     TS_slice  = -1 ;
 static int     TS_rlt    = 0 ;   /* 0=add both in; 1=add neither; 2=add mean */
 
+static int     TS_detrend = 1 ;  /* do any detrend?  3 Jan 2007 [rickr] */
 static int     TS_verbose = 0 ;
 
 static int     TS_ignore  = 0 ;  /* 15 Feb 2001 */
@@ -377,12 +380,21 @@ int main( int argc , char *argv[] )
       }
 
       if( strcmp(argv[nopt],"-rlt") == 0 ){
+         if( !TS_detrend ) TS_syntax("cannot use both -rlt and -no_detrend");
          TS_rlt = 1 ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-rlt+") == 0 ){
+         if( !TS_detrend ) TS_syntax("cannot use both -rlt+ and -no_detrend");
          TS_rlt = 2 ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-no_detrend") == 0 ){ /* 3 Jan 2007 */
+         if( TS_rlt ) TS_syntax("cannot use both -rlt and -no_detrend");
+         TS_detrend = 0 ;
+         TS_rlt = 1 ;        /* do not add in any trend, either */
          nopt++ ; continue ;
       }
 
@@ -521,7 +533,8 @@ int main( int argc , char *argv[] )
             }
          }
 
-         THD_linear_detrend( ntt-ignore , far+ignore , &f0,&f1 ) ;   /* remove trend */
+         if( TS_detrend )   /* then remove trend    3 Jan 2007 [rickr] */
+            THD_linear_detrend( ntt-ignore , far+ignore , &f0,&f1 ) ;
 
          for( fmin=fmax=far[ignore],jj=ignore+1 ; jj < ntt ; jj++ ){
                  if( far[jj] < fmin ) fmin = far[jj] ;   /* range of data: after */
@@ -539,7 +552,8 @@ int main( int argc , char *argv[] )
                }
             }
 
-            THD_linear_detrend( ntt-ignore , gar+ignore , &g0,&g1 ) ;
+            if( TS_detrend )
+               THD_linear_detrend( ntt-ignore , gar+ignore , &g0,&g1 ) ;
 
             for( gmin=gmax=gar[ignore],jj=ignore+1 ; jj < ntt ; jj++ ){
                     if( gar[jj] < gmin ) gmin = gar[jj] ;

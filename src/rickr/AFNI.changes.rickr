@@ -1893,4 +1893,5 @@
 03 Jan 2007: afni_proc.py (1.7)
   * modified afni_proc.py, afni_util.py, db_mod.py:
       - help updates, no blank '\' line from -gltsym, -copy_anat in examples
+  * modified 3dTshift.c: added -no_detrend
 
