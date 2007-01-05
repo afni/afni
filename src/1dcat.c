@@ -48,6 +48,7 @@ int main( int argc , char * argv[] )
       if( AFNI_yesenv("ragged") ){
         MRI_IMAGE *qim ;
         qim      = mri_read_ascii_ragged( argv[jj+1] , 3.e+33 ) ;
+        fprintf(stderr,"qim: nx=%d ny=%d\n",qim->nx,qim->ny) ;
         inim[jj] = mri_transpose(qim) ; mri_free(qim) ;
       } else
 #endif

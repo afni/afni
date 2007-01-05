@@ -726,6 +726,8 @@ extern int mri_write_ascii( char * , MRI_IMAGE * ) ;
 extern int mri_write_raw( char * , MRI_IMAGE * ) ;       /* 05 Jan 2000 */
 extern void mri_write_analyze( char * , MRI_IMAGE * ) ;  /* 29 Nov 2001 */
 
+extern MRI_IMAGE * mri_read_ragged_fromstring( char *, float); /* 05 Jan 2007 */
+
 extern MRI_IMAGE * mri_read_1D( char * ) ;               /* 16 Nov 1999 */
 extern MRI_IMAGE * mri_read_double_1D( char * ) ;
 extern MRI_IMAGE * mri_read_complex_1D( char * ) ;
