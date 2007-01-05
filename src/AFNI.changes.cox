@@ -5949,7 +5949,7 @@
      also a fix to stupid error made a couple days before.
 
 30 Oct 2006
- * Modified plut_scatplot.c to copy 'Aboot' option from plug_histog.c.
+ * Modified plug_scatplot.c to copy 'Aboot' option from plug_histog.c.
  * Modified THD_pearson() stuff in thd_correlate.c to remove mean.
  * New program 3dLocalBistat.c -- joint local statistics between 2
      datasets.
@@ -6017,4 +6017,4 @@
 28 Dec 2006
  * Modify afni_splash.c to save current dataset names and xyz coords in
      the startup script.
- * Modify afni_driver.c to allow multiple "keypres=" options to OPEN_WINDOW.
+ * Modify afni_driver.c to allow multiple "keypress=" options to OPEN_WINDOW.
