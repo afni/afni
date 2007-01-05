@@ -6018,3 +6018,7 @@
  * Modify afni_splash.c to save current dataset names and xyz coords in
      the startup script.
  * Modify afni_driver.c to allow multiple "keypress=" options to OPEN_WINDOW.
+
+05 Jan 2007
+ * Modify mri_read.c to allow 'ragged' input from "1D:" strings
+    (e.g., for use with 3dDeconvolve).

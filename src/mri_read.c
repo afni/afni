@@ -2696,8 +2696,9 @@ ENTRY("mri_read_complex_1D") ;
 }
 
 /*-----------------------------------------------------------------------------------*/
+/* Read ragged rows, with '*' being set to the filler value [28 Jul 2004] */
 
-MRI_IMAGE * mri_read_ascii_ragged( char *fname , float filler )  /* 28 Jul 2004 - ragged rows */
+MRI_IMAGE * mri_read_ascii_ragged( char *fname , float filler )
 {
    MRI_IMAGE *outim ;
    int ii,jj , ncol,nrow ;
@@ -2710,6 +2711,11 @@ MRI_IMAGE * mri_read_ascii_ragged( char *fname , float filler )  /* 28 Jul 2004 
 ENTRY("mri_read_ascii_ragged") ;
 
    if( fname == NULL || *fname == '\0' ){ FRB(buf); RETURN(NULL); }
+
+   if( strncmp(fname,"1D:",3) == 0 ){  /* 05 Jan 2007 */
+     outim = mri_read_ragged_fromstring( fname+3 , filler ) ;
+     FRB(buf); RETURN(outim) ;
+   }
 
    fts = fopen( fname , "r" ); if( fts == NULL ){ FRB(buf); RETURN(NULL); }
 
