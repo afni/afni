@@ -1897,3 +1897,10 @@
 
 04 Jan 2007: modified 3dTshift.c: added warning for -no_detrend and MRI_FOURIER
 
+08 Jan 2007: afni_proc.py (v 1.8)
+  * modified afni_proc.py, db_mod.py:
+      - changed default script name to proc.SUBJ_ID, and removed -script from
+          most examples
+      - added options '-bash', '-copy_files', '-volreg_zpad', '-tlrc_anat',
+          '-tlrc_base', '-tlrc_no_ss', '-tlrc_rmode', '-tlrc_suffix'
+

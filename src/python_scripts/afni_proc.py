@@ -122,8 +122,9 @@ g_help_string = """
            first 2 TRs of each run (before steady state), and volume alignment
            to the end of the runs (the anat was acquired after the EPI).
 
+           The script name will default to proc.ED, based on -subj_id.
+
                 afni_proc.py -dsets ED/ED_r??+orig.HEAD      \\
-                             -script process_ED              \\
                              -subj_id ED                     \\
                              -tcat_remove_first_trs 2        \\
                              -volreg_align_to first          \\
@@ -136,7 +137,6 @@ g_help_string = """
            TR grid.  Also, copy the anat dataset(s) to the results directory.
 
                 afni_proc.py -dsets ED/ED_r??+orig.HEAD                      \\
-                             -script process_ED.8                            \\
                              -subj_id ED.8                                   \\
                              -copy_anat ED/EDspgr                            \\
                              -tcat_remove_first_trs 2                        \\
@@ -151,7 +151,6 @@ g_help_string = """
            like analyze_ht05.
 
            afni_proc.py -dsets ED/ED_r??+orig.HEAD                           \\
-                  -script process_ED.8.glt                                   \\
                   -subj_id ED.8.glt                                          \\
                   -copy_anat ED/EDspgr                                       \\
                   -tcat_remove_first_trs 2                                   \\
@@ -169,12 +168,13 @@ g_help_string = """
                       -gltsym ../misc_files/contrast6.1D -glt_label 6 HPvsTP \\
                       -gltsym ../misc_files/contrast7.1D -glt_label 7 HMvsTM
 
-        5. Similar to #4, but replace some glt files with SYM.
+        5. Similar to #4, but replace some glt files with SYM, and request
+           to run @auto_tlrc.
 
            afni_proc.py -dsets ED/ED_r??+orig.HEAD                           \\
-              -script process_ED.8.gltsym                                    \\
               -subj_id ED.8.gltsym                                           \\
               -copy_anat ED/EDspgr                                           \\
+              -tlrc_anat                                                     \\
               -tcat_remove_first_trs 2                                       \\
               -volreg_align_to first                                         \\
               -regress_stim_times misc_files/stim_times.*.1D                 \\
@@ -194,7 +194,6 @@ g_help_string = """
            see the -iresp output on a 1.0 second grid.
 
                 afni_proc.py -dsets ED/ED_r??+orig.HEAD                      \\
-                             -script process_ED.15                           \\
                              -subj_id ED.15                                  \\
                              -copy_anat ED/EDspgr                            \\
                              -tcat_remove_first_trs 2                        \\
@@ -207,13 +206,15 @@ g_help_string = """
 
         7. Similar to #2, but skip tshift and mask steps (so the others must
            be specified), and apply a 4 second BLOCK response function.  Also,
-           prevent output of a fit time series dataset.
+           prevent the output of a fit time series dataset, run @auto_tlrc at
+           the end, and specify an output script name.
 
                 afni_proc.py -dsets ED/ED_r??+orig.HEAD                   \\
                          -blocks volreg blur scale regress                \\
                          -script process_ED.b4                            \\
                          -subj_id ED.b4                                   \\
                          -copy_anat ED/EDspgr                             \\
+                         -tlrc_anat                                       \\
                          -tcat_remove_first_trs 2                         \\
                          -volreg_align_to first                           \\
                          -regress_stim_times misc_files/stim_times.*.1D   \\
@@ -254,8 +255,8 @@ g_help_string = """
 
         setup:    - use 'SUBJ' for the subject id
                         (option: -subj_id SUBJ)
-                  - create a t-shell script called '@proc_subj'
-                        (option: -script @proc_subj)
+                  - create a t-shell script called 'proc_subj'
+                        (option: -script proc_subj)
                   - use results directory 'SUBJ.results'
                         (option: -out_dir SUBJ.results)
 
@@ -263,8 +264,9 @@ g_help_string = """
 
         tshift:   - align slices to the beginning of the TR
 
-        volreg:   - align to first volume of first run
+        volreg:   - align to first volume of first run, -zpad 1
                         (option: -volreg_align_to first)
+                        (option: -volreg_zpad 1)
 
         blur:     - blur data using a 4 mm FWHM filter
                         (option: -blur_filter -1blur_fwhm)
@@ -300,6 +302,15 @@ g_help_string = """
             wish to set the basic options.  The intention is to give the user
             a feel for what options to apply (without using -ask_me).
 
+        -bash                   : show example execution command in bash form
+
+            After the script file is created, this program suggests how to run
+            it (piping stdout/stderr through 'tee').  If the user is running
+            the bash shell, this option will suggest the 'bash' form of a
+            command to execute the newly created script.
+
+            Please see "man bash" or "man tee" for more information.
+
         -blocks BLOCK1 ...      : specify the processing blocks to apply
 
                 e.g. -blocks volreg blur scale regress
@@ -318,6 +329,16 @@ g_help_string = """
             attempt to copy +acpc and +tlrc datasets, also.
 
             See also '3dcopy -help'.
+
+        -copy_files file1 ...   : copy file1, etc. into the results directory
+
+                e.g. -copy_files glt_AvsB.1D glt_BvsC.1D glt_eat_cheese.1D
+                e.g. -copy_files contrasts/glt_*.1D
+
+            This option allows the user to copy some list of files into the
+            results directory.  This would happen before the tcat block, so
+            such files may be used for other commands in the script (such as
+            contrast files in 3dDeconvolve, via -regress_opts_3dD).
 
         -dsets dset1 dset2 ...  : (REQUIRED) specify EPI run datasets
 
@@ -365,8 +386,8 @@ g_help_string = """
 
         -script SCRIPT_NAME     : specify the name of the resulting script
 
-                e.g. -script @ED.process.script
-                default: @proc_subj
+                e.g. -script ED.process.script
+                default: proc_subj
 
             The output of this program is a script file.  This option can be
             used to specify the name of that file.
@@ -390,6 +411,62 @@ g_help_string = """
             The suject ID is used in dataset names and in the output directory
             name (unless -out_dir is used).  This option allows the user to
             apply an appropriate naming convention.
+        self.valid_opts.add_opt('-tlrc_anat', 0, [])
+        self.valid_opts.add_opt('-tlrc_base', 1, [])
+        self.valid_opts.add_opt('-tlrc_no_ss', 0, [])
+
+        -tlrc_anat              : run @auto_tlrc on '-copy_anat' dataset
+
+                e.g. -tlrc_anat
+
+            After the regression block, run @auto_tlrc on the anatomical
+            dataset provided by '-copy_anat'.  By default, warp the anat to
+            align with TT_N27+tlrc, unless the '-tlrc_base' option is given.
+
+            The -copy_anat option specifies which anatomy to transform.
+
+            Please see '@auto_tlrc -help' for more information.
+            See also -copy_anat, -tlrc_base, -tlrc_no_ss.
+
+        -tlrc_base BASE_DSET    : run "@auto_tlrc -base BASE_DSET"
+
+                e.g. -tlrc_base TT_icbm452+tlrc
+                default: -tlrc_base TT_N27+tlrc
+
+            This option is used to supply an alternate -base dataset for
+            @auto_tlrc.  Otherwise, TT_N27+tlrc will be used.
+
+            Note that the default operation of @auto_tlrc is to "skull strip"
+            the input dataset.  If this is not appropriate, consider also the
+            '-tlrc_no_ss' option.
+
+            Please see '@auto_tlrc -help' for more information.
+            See also -tlrc_anat, -tlrc_no_ss.
+
+        -tlrc_no_ss             : add the -no_ss option to @auto_tlrc
+
+                e.g. -tlrc_no_ss
+
+            This option is used to tell @auto_tlrc not to perform the skull
+            strip operation.
+
+            Please see '@auto_tlrc -help' for more information.
+
+        -tlrc_rmode RMODE       : apply RMODE resampling in @auto_tlrc
+
+                e.g. -tlrc_rmode NN
+
+            This option is used to apply '-rmode RMODE' in @auto_tlrc.
+
+            Please see '@auto_tlrc -help' for more information.
+
+        -tlrc_suffix SUFFIX     : apply SUFFIX to result of @auto_tlrc
+
+                e.g. -tlrc_suffix auto_tlrc
+
+            This option is used to apply '-suffix SUFFIX' in @auto_tlrc.
+
+            Please see '@auto_tlrc -help' for more information.
 
         -verb LEVEL             : specify the verbosity of this script
 
@@ -497,6 +574,14 @@ g_help_string = """
             which may be used for multiple 3dvolreg options.
 
             Please see '3dvolreg -help' for more information.
+
+        -volreg_zpad N_SLICES   : specify number of slices for -zpad
+
+                e.g. -volreg_zpad 4
+                default: -volreg_zpad 1
+
+            This option allows the user to specify the number of slices applied
+            via the -zpad option to 3dvolreg.
 
         -blur_filter FILTER     : specify 3dmerge filter option
 
@@ -835,9 +920,14 @@ g_history = """
     1.5  Dec 27, 2006 : ask_me help
     1.6  Dec 28, 2006 : -gylsym examples, min(a,b) in scale block
     1.7  Jan 03, 2007 : help updates, no blank '\\' line from -gltsym
+    1.8  Jan 08, 2007 :
+         - changed default script name to proc.SUBJ_ID, and removed -script
+             from most examples
+         - added options '-bash', '-copy_files', '-volreg_zpad', '-tlrc_anat',
+             '-tlrc_base', '-tlrc_no_ss', '-tlrc_rmode', '-tlrc_suffix'
 """
 
-g_version = "version 1.7, January 3, 2007"
+g_version = "version 1.8, January 8, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -868,7 +958,7 @@ class SubjProcSream:
         self.subj_id    = 'SUBJ'        # hopefully user will replace this
         self.subj_label = '$subj'       # replace this for execution
         self.out_dir    = ''            # output directory for use by script
-        self.script     = '@proc_subj'
+        self.script     = None          # script name, default proc.SUBJ
         self.overwrite  = False         # overwrite script file?
         self.fp         = None          # file object
         self.anat       = None          # anatomoy to copy (afni_name class)
@@ -917,8 +1007,16 @@ class SubjProcSream:
         self.valid_opts.add_opt('-subj_id', -1, [])
 
         self.valid_opts.add_opt('-ask_me', 0, [])       # QnA session
+        self.valid_opts.add_opt('-bash', 0, [])
         self.valid_opts.add_opt('-copy_anat', 1, [])
+        self.valid_opts.add_opt('-copy_files', -1, [])
         self.valid_opts.add_opt('-keep_rm_files', 0, [])
+        self.valid_opts.add_opt('-tlrc_anat', 0, [])
+        self.valid_opts.add_opt('-tlrc_base', 1, [])
+        self.valid_opts.add_opt('-tlrc_no_ss', 0, [])
+        self.valid_opts.add_opt('-tlrc_rmode', 1, [])
+        self.valid_opts.add_opt('-tlrc_suffix', 1, [])
+
         # self.valid_opts.add_opt('-remove_pXX_files', 0, [])
 
         # block options
@@ -931,6 +1029,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-volreg_align_to', 1, [], ['first','last'])
         self.valid_opts.add_opt('-volreg_base_ind', 2, [])
         self.valid_opts.add_opt('-volreg_opts_vr', -1, [])
+        self.valid_opts.add_opt('-volreg_zpad', 1, [])
 
         self.valid_opts.add_opt('-blur_filter', 1, [])
         self.valid_opts.add_opt('-blur_size', 1, [])
@@ -1015,6 +1114,7 @@ class SubjProcSream:
 
         opt = opt_list.find_opt('-script')
         if opt != None: self.script = opt.parlist[0]
+        else:           self.script = 'proc.%s' % self.subj_id
 
         opt = opt_list.find_opt('-scr_overwrite')
         if opt != None: self.overwrite = True
@@ -1066,8 +1166,9 @@ class SubjProcSream:
         if len(self.dsets) == 0:
             print 'error: dsets have not been specified (consider -dsets)'
             return 1
-        if not uniq_list_as_dsets(self.dsets, True):
-            return 1
+
+        if not uniq_list_as_dsets(self.dsets, True): return 1
+        if not db_tlrc_opts_okay(self.user_opts): return 1
 
     # create script from blocks and options
     def create_script(self):
@@ -1098,8 +1199,12 @@ class SubjProcSream:
 
         if self.verb > 0:
             print "\n--> script is file: %s" % self.script
-            print '    (consider the command "tcsh -x %s |& tee output.%s") '% \
-                  (self.script, self.script)
+            if self.user_opts.find_opt('-bash'): # give bash form
+                print '    (consider: "tcsh -x %s 2>&1 | tee output.%s") ' \
+                                % (self.script, self.script)
+            else:                                # give tcsh form
+              print '    (consider the command "tcsh -x %s |& tee output.%s")' \
+                                % (self.script, self.script)
 
         return
 
@@ -1195,6 +1300,12 @@ class SubjProcSream:
             self.fp.write('3dcopy %s %s/%s\n\n' %
                           (self.anat.rpv(), self.out_dir, self.anat.prefix))
 
+        opt = self.user_opts.find_opt('-copy_files')
+        if opt and len(opt.parlist) > 0:
+            self.fp.write('# copy extra files into results dir\n')
+            self.fp.write('cp -rv %s %s\n\n' % \
+                          (' '.join(quotize_list(opt.parlist,'')),self.out_dir))
+
         self.fp.flush()
 
     # and last steps
@@ -1202,6 +1313,14 @@ class SubjProcSream:
         if self.rm_rm:
             self.fp.write('# remove temporary rm.* files\n'
                           '\\rm -f rm.*\n\n')
+
+        if self.user_opts.find_opt('-tlrc_anat'):
+            cmd_str = db_cmd_tlrc(self.anat.pv(), self.user_opts)
+            if cmd_str == None:
+                print "** script creation failure for block 'tlrc'"
+                return 1
+            self.fp.write(cmd_str)
+
         self.fp.write('# return to parent directory\n'
                       'cd ..\n\n')
 
@@ -1217,7 +1336,7 @@ class SubjProcSream:
             for opt in self.user_opts.olist:
                 if opt.name == '-ask_me': continue
                 self.fp.write(opt.name+' ')
-                self.fp.write(' '.join(quotize_list(opt.parlist,''))+' ')
+                self.fp.write(' '.join(quotize_list(opt.parlist,'')))
         self.fp.write('\n')
 
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
