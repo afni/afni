@@ -27,7 +27,7 @@ static char *INIT_labovr[DEFAULT_NCOLOVR] = {
    "white"  , "gry-dd"    , "gry-bb"    , "black"
 } ;
 
-static int nx,nts , sep=1 ;
+static int nx,nts , sep=1, sepscl=0;
 static float **yar , *xar ;
 static MCW_DC *dc ;
 static char *title = NULL , *xlabel = NULL , *ylabel = NULL ;
@@ -70,6 +70,9 @@ int main( int argc , char *argv[] )
             " -sep       = Plot each column in a separate sub-graph.\n"
             " -one       = Plot all columns together in one big graph.\n"
             "                [default = -sep]\n"
+            " -sepscl    = Plot each column in a separate sub-graph\n"
+            "              and allow each sub-graph to have a different\n"
+            "              y-scale. -sepscl is meaningless with -one.\n"
             " -dx xx     = Spacing between points on the x-axis is 'xx'\n"
             "                [default = 1]\n"
             " -xzero zz  = Initial x coordinate is 'zz' [default = 0]\n"
@@ -276,14 +279,19 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-sep") == 0 ){
         sep = 1 ; iarg++ ; continue ;
      }
-
+     if( strcmp(argv[iarg],"-sepscl") == 0 ){
+        sepscl = 1 ; iarg++ ; continue ;
+     }
      if( strcmp(argv[iarg],"-one") == 0 ){
         sep = 0 ; iarg++ ; continue ;
      }
 
      ERROR_exit("Unknown option: %s\n",argv[iarg]) ;
    }
-
+   
+   if(sepscl && sep == 0) {
+      ERROR_exit("Cannot use -sepscl with -one!\n") ;
+   }
    if( iarg >= argc && !use_stdin )
       ERROR_exit("No time series file on command line!\n") ;
 
@@ -432,7 +440,8 @@ int main( int argc , char *argv[] )
 
    { MEM_plotdata *mp ;
      int ymask = (sep) ? TSP_SEPARATE_YBOX : 0 ;
-
+     if (sepscl) ymask = ymask | TSP_SEPARATE_YSCALE;
+     
      mp = plot_ts_mem( nx,xar , nts,ymask,yar ,
                        xlabel , ylabel , title , yname ) ;
 
@@ -448,13 +457,14 @@ void killfunc(void *fred){ exit(0) ; }
 
 void startup_timeout_CB( XtPointer client_data , XtIntervalId *id )
 {
-   int ng ;
+   int ng , ngx;
 
    /* make graph */
 
    ng = (sep) ? (-nts) : (nts) ;
-
-   plot_ts_lab( dc->display , nx , xar , ng , yar ,
+   ngx = (sepscl) ? (-nx) : (nx) ;
+   
+   plot_ts_lab( dc->display , ngx , xar , ng , yar ,
                 xlabel , ylabel , title , yname , killfunc ) ;
 
    return ;

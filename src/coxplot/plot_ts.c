@@ -404,6 +404,7 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
 /*-----------------------------------------------------------------------
   Plot some timeseries data into window (linear-linear scales).
   If array x[] is NULL, then routine will make an x-axis up.
+  If nx < 0, this is a flag to scale each y[i][] array separately
   If ny < 0, this is a flag to plot each y[i][] array into a separate
   graph; ny > 0 means all in one graph.
 -------------------------------------------------------------------------*/
@@ -418,7 +419,8 @@ void plot_ts_lab( Display * dpy ,
 
    if( dpy == NULL ) return ;
 
-   if( ny < 0 ){ ymask = TSP_SEPARATE_YBOX ; ny = -ny ; }
+   if (nx < 0 ) { ymask = ymask | TSP_SEPARATE_YSCALE; nx = -nx; } 
+   if( ny < 0 ){ ymask = ymask | TSP_SEPARATE_YBOX ; ny = -ny ; }
 
    mp = plot_ts_mem( nx,x , ny,ymask,y , lab_xxx , lab_yyy , lab_top , nam_yyy ) ;
    if( mp != NULL )

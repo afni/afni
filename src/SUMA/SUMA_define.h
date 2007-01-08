@@ -285,7 +285,8 @@ typedef enum {
    SUMA_RDC_X_ENTER_WINDOW,
    SUMA_RDC_X_END, /*!< flag, End of X reasons */
    SUMA_RDC_NEW_CROSSHAIR,
-   SUMA_RDC_NEW_DATA,  
+   SUMA_RDC_NEW_DATA,
+   SUMA_RDC_NEW_SHUTUP_AND_RECORD,  
 } SUMA_REDISPLAY_CAUSE; /*!< reasons for requesting a redisplay */
                                                                            
 typedef struct {
