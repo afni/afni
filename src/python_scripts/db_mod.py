@@ -1,5 +1,5 @@
 
-import os, afni_util
+import os, afni_util, afni_base
 
 # modify the tcat block options according to the user options
 def db_mod_tcat(block, proc, user_opts):
@@ -17,10 +17,11 @@ def db_mod_tcat(block, proc, user_opts):
             errs += 1
         if errs == 0 and bopt.parlist[0] > 0:
           print '--------------------------------------------------------\n' \
-            '** warning: removing first %d TRs from beginning of each run\n'  \
-            '   --> it is essential that stimulus timing files match the\n' \
-            '       removal of these TRs\n' \
-            '--------------------------------------------------------'
+            '** warning: removing first %d TRs from beginning of each run\n' \
+            '   --> it is essential that stimulus timing files match the\n'  \
+            '       removal of these TRs\n'                                  \
+            '--------------------------------------------------------'       \
+            % bopt.parlist[0]
 
     if errs == 0: block.valid = True
     else        : block.valid = False
@@ -121,6 +122,7 @@ def db_mod_volreg(block, proc, user_opts):
     if len(block.opts.olist) == 0:    # then init dset/brick indices to defaults
         block.opts.add_opt('-volreg_base_ind', 2, [0, 0], setpar=True)
         block.opts.add_opt('-volreg_opts_vr', -1, [])
+        block.opts.add_opt('-volreg_zpad', 1, [1], setpar=True)
 
     # check for updates to -volreg_base option
     uopt = user_opts.find_opt('-volreg_base_ind')
@@ -150,9 +152,18 @@ def db_mod_volreg(block, proc, user_opts):
             bopt.parlist[0] = proc.runs - 1     # index of last dset
             bopt.parlist[1] = proc.reps - 1     # index of last rep
 
+    zopt = user_opts.find_opt('-volreg_zpad')
+    if zopt:
+        bopt = block.opts.find_opt('-volreg_zpad')
+        try: bopt.parlist[0] = int(zopt.parlist[0])
+        except:
+            print "** -volreg_zpad requires an int (have '%s')"%zopt.parlist[0]
+            return 1
+
     uopt = user_opts.find_opt('-volreg_opts_vr')
-    bopt = block.opts.find_opt('-volreg_opts_vr')
-    if uopt and bopt: bopt.parlist = uopt.parlist
+    if uopt:
+        bopt = block.opts.find_opt('-volreg_opts_vr')
+        bopt.parlist = uopt.parlist
 
     block.valid = True
 
@@ -172,6 +183,11 @@ def db_cmd_volreg(proc, block):
     # get base prefix (run is index+1)
     base = proc.prev_prefix_form(dset_ind+1)
 
+    # get the zpad value
+    opt = block.opts.find_opt('-volreg_zpad')
+    if not opt or not opt.parlist: zpad = 1
+    else: zpad = opt.parlist[0]
+
     # maybe there are extra options to append to the command
     opt = block.opts.find_opt('-volreg_opts_vr')
     if not opt or not opt.parlist: other_opts = ''
@@ -180,14 +196,14 @@ def db_cmd_volreg(proc, block):
     cmd = cmd + "# -------------------------------------------------------\n" \
                 "# align each dset to the base volume\n"                      \
                 "foreach run ( $runs )\n"                                     \
-                "    3dvolreg -verbose -zpad 1 -base %s+orig'[%d]'  \\\n"     \
+                "    3dvolreg -verbose -zpad %d -base %s+orig'[%d]'  \\\n"    \
                 "             -1Dfile dfile.r$run.1D -prefix %s  \\\n"        \
                 "%s"                                                          \
                 "             %s+orig\n"                                      \
                 "end\n\n"                                                     \
                 "# make a single file of registration params\n"               \
                 "cat dfile.r??.1D > dfile.rall.1D\n\n" %                      \
-                    (proc.prev_prefix_form(dset_ind+1), sub, 
+                    (zpad, proc.prev_prefix_form(dset_ind+1), sub, 
                      proc.prefix_form_run(block), other_opts,
                      proc.prev_prefix_form_run())
 
@@ -618,6 +634,7 @@ def db_cmd_regress(proc, block):
         for ind in range(len(labels)):
             cmd = cmd + "1dcat Xmat.1D'[%d]' > ideal_%s.1D\n" % \
                         (first+ind, labels[ind])
+        cmd = cmd + '\n'
 
     opt = block.opts.find_opt('-regress_make_ideal_sum')
     if opt and opt.parlist:
@@ -664,3 +681,66 @@ def db_cmd_regress_sfiles2times(proc, block):
 
     return cmd
 
+# verify consistency of -tlrc_* options
+# return True or False
+def db_tlrc_opts_okay(opts):
+    opta = opts.find_opt('-tlrc_anat')
+
+    if not opta:
+        if opts.find_opt('-tlrc_base'):
+            print '** -tlrc_base requires dataset via -tlrc_anat'
+            return False
+        if opts.find_opt('-tlrc_no_ss'):
+            print '** -tlrc_no_ss requires dataset via -tlrc_anat'
+            return False
+        if opts.find_opt('-tlrc_rmode'):
+            print '** -tlrc_rmode requires dataset via -tlrc_anat'
+            return False
+        if opts.find_opt('-tlrc_suffix'):
+            print '** -tlrc_rmode requires dataset via -tlrc_anat'
+            return False
+
+        return True  # okay, no options
+
+    opt_anat = opts.find_opt('-copy_anat')
+    if not opt_anat:
+        print '** -tlrc_anat option requires anatomy via -copy_anat'
+        return False
+
+    dset = afni_base.afni_name(opt_anat.parlist[0])
+    if not dset.exist():
+        print "** -tlrc_anat dataset '%s' does not exist" % opt_anat.parlist[0]
+        return False
+
+    # base image does not need to exist (might be in abin)
+
+    return True
+
+# create a command to run @auto_tlrc
+def db_cmd_tlrc(dname, options):
+    if not dname : # should include +orig
+        print "** missing dataset name for tlrc operation"
+        return None
+
+    opt = options.find_opt('-tlrc_base')
+    if opt: base = opt.parlist[0]
+    else:   base = 'TT_N27+tlrc'
+
+    opt = options.find_opt('-tlrc_no_ss')
+    if opt: ss = '-no_ss'
+    else:   ss = ''
+
+    opt = options.find_opt('-tlrc_rmode')
+    if opt: rmode = '-rmode %s' % opt.parlist[0]
+    else:   rmode = ''
+
+    opt = options.find_opt('-tlrc_suffix')
+    if opt: suffix = '-suffix %s' % opt.parlist[0]
+    else:   suffix = ''
+
+    cmd = "# -------------------------------------------------------\n" \
+          "# run @auto_tlrc to warp '%s' to match template '%s'\n"      \
+          "@auto_tlrc -base %s -input %s %s %s %s\n\n"                  \
+          % (dname, base,base, dname, ss, rmode, suffix)
+
+    return cmd
