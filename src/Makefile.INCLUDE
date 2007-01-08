@@ -41,7 +41,9 @@ MISC    = AFNI.Xdefaults AFNI.afnirc 3d*.lib gmovie*
 ## AFNI package, but included because they are useful.  Some of
 ## them are Open Source programs, not from the AFNI group at all.
 
-EXTRAS   = cjpeg djpeg whirlgif mpeg_encode mpegtoppm myget Xphace rmz aiv $(EXPROGS)
+EXTRAS   = cjpeg djpeg whirlgif mpeg_encode myget Xphace rmz aiv $(EXPROGS)
+
+# mpegtoppm in above list
 
 ## This list is the core AFNI package:
 ## other programs are experimental and/or outsiders.
@@ -466,6 +468,10 @@ dsetdup:dsetdup.o
 3dDWItoDT:3dDWItoDT.o libmri.a
 	$(RM) $@
 	$(CC) -o 3dDWItoDT 3dDWItoDT.o $(LFLAGS) $(LLIBS) -lf2c -lmri
+
+1dSEM:1dSEM.o libmri.a sqrmat.c matrix.c matrix.h
+	$(RM) $@
+	$(CC) -o 1dSEM 1dSEM.o sqrmat.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
 3dDTtoDWI:3dDTtoDWI.o libmri.a
 	$(RM) $@
@@ -1177,12 +1183,15 @@ afni_src.tgz:
 	$(MKDIR) afni_src
 	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)               ./afni_src
 	$(CP) -pr coxplot volpack moveup moveAFNI* cdflib eispack $(SCRIPTS) $(PY_DIR)     ./afni_src
-	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir mpegtoppm_dir                 ./afni_src
+	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir 
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat               ./afni_src
 	$(CP) -pr SUMA matlab rickr faces poems ni_test_? README.*                         ./afni_src
 	chmod -R ugo+rw                                                                    ./afni_src
 	$(TAR) cf - afni_src | $(GZIP) -9v > afni_src.tgz
 	$(RM) -r afni_src
+
+# in above list
+# mpegtoppm_dir                 ./afni_src
 
 ### Make the source of the Matlab code
 
