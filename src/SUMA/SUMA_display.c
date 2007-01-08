@@ -753,6 +753,10 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
     
    SUMA_ENTRY;
    
+   if (LocalHead) {
+      SUMA_DUMP_TRACE("Trace At display call");
+   }
+   
    /* now you need to set the clear_color since it can be changed per viewer Thu Dec 12 2002 */
    glClearColor (csv->clear_color[0], csv->clear_color[1], csv->clear_color[2], csv->clear_color[3]);
    
@@ -9747,6 +9751,71 @@ int SUMA_AskUser_File_replace(Widget parent, char *question, int default_ans)
    SUMA_RETURN(answer);
 }
 
+/*!
+
+*/
+int SUMA_PauseForUser(Widget parent, char *question, SUMA_WINDOW_POSITION pos)
+{
+    static char FuncName[]={"SUMA_PauseForUser"};
+    static Widget dialog; /* static to avoid multiple creation */
+    Widget YesWid;
+    XmString text, yes;
+    static int answer;
+   
+   SUMA_Boolean LocalHead = YUP;
+   SUMA_ENTRY;
+
+   if (!dialog) {
+     SUMA_LH("Creating Dialog");
+     dialog = XmCreateQuestionDialog (parent, "dialog", NULL, 0);
+     XtVaSetValues (dialog,
+         XmNdialogStyle,        XmDIALOG_INFORMATION,
+         NULL);
+     XtSetSensitive (
+         XmMessageBoxGetChild (dialog, XmDIALOG_HELP_BUTTON),
+         False);
+     XtAddCallback (dialog, XmNokCallback, SUMA_response, &answer); 
+    } else {
+      SUMA_LH("Reusing Dialog");
+    }
+    
+   answer = SUMA_NO_ANSWER;
+   text = XmStringCreateLocalized (question);
+   yes = XmStringCreateLocalized ("Yes");
+   XtVaSetValues (dialog,
+     XmNmessageString,      text,
+     XmNokLabelString,      yes,
+     XmNdefaultButtonType,  XmDIALOG_OK_BUTTON,
+     NULL);
+   XmStringFree (text);
+   XmStringFree (yes);
+
+   /* set the values of the standard buttons */
+   SUMA_LH("Setting Children");
+   YesWid = XmMessageBoxGetChild(dialog, XmDIALOG_OK_BUTTON);
+   XtVaSetValues(YesWid, XmNuserData, SUMA_YES, NULL);
+
+   SUMA_LH("Managing");
+   XtManageChild (dialog);
+   SUMA_LH("Popping");
+   XtPopup (XtParent (dialog), XtGrabNone);
+   SUMA_LH("Position");
+   if (pos != SWP_DONT_CARE) SUMA_PositionWindowRelative(dialog, parent, pos);
+   
+   while (answer == SUMA_NO_ANSWER)
+     XtAppProcessEvent (SUMAg_CF->X->App, XtIMAll);
+   
+   XtPopdown (XtParent (dialog));
+   
+   SUMA_LH("Popped down");
+   /* make sure the dialog goes away before returning. Sync with server
+   * and update the display.
+   */
+   XSync (XtDisplay (dialog), 0);
+   XmUpdateDisplay (parent);
+   SUMA_LH("Returning");
+   SUMA_RETURN(answer);
+}
 
 /*!
    \brief create a forced answer dialog YES/NO 

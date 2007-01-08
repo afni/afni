@@ -53,7 +53,8 @@ function [err, ErrMessage, Info] = WriteBrik (M, Info, Opt)
 %      has already been written. 
 %      If Slices and Frames are not all slices and frames, then Scale 
 %      is set to 0 (no scaling).
-%
+%      .OverWrite: if 'y' then overwrite existing dataset. 
+%                  Default is to not overwrite.
 %Output Parameters:
 %   err : 0 No Problem
 %       : 1 Mucho Problems
@@ -104,6 +105,14 @@ if (~isfield(Opt, 'Prefix') | isempty (Opt.Prefix)),
    ErrMessage = sprintf('Error %s: You must specify Opt.Prefix.', FuncName);  
    errordlg(ErrMessage); return;
 end
+
+%check on overwrite flag
+if (isfield(Opt,'OverWrite') & Opt.OverWrite == 'y'),
+   OverW = 1;
+else
+   OverW = 0;
+end
+
 %set format if not present
 if (~isempty(Info) & ~isstruct(Info)),
    err = 1; 
@@ -129,7 +138,9 @@ end
 
 if (is1D),
    if (isempty(Info)), [err,Info] = Info_1D(M); end
-   Opt1D.OverWrite = 'n'; % default mode
+   if (OverW == 0) Opt1D.OverWrite = 'n'; % default mode
+   else Opt1D.OverWrite = 'y';
+   end 
    if (isfield(Opt,'Slices') & ~isempty(Opt.Slices)), 
       if (length(Opt.Slices) ~= 1),
          err = 1; 
@@ -366,7 +377,7 @@ numframes=length(Opt.Frames);
 
 %open file for writing based on the type specified in Info
 if Opt.Slices(1)==1 & Opt.Frames(1)==1
-   if ((exist(FnameHEAD) == 2 | exist(FnameBRIK) == 2)),
+   if (OverW == 0 & (exist(FnameHEAD) == 2 | exist(FnameBRIK) == 2)),
       err = 1; ErrMessage = sprintf('Error %s: Output data set %s exists.', FuncName, Fname); errordlg(ErrMessage); return;
    end
    [fid, mess] = fopen (FnameBRIK, 'w', ByteOrder);

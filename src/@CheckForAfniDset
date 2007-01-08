@@ -11,7 +11,24 @@ endif
 
 set pref = `@GetAfniPrefix $1`
 set view = `@GetAfniView $1`
-if ("$view" == "") then
+
+set ext = $1:e
+if ("$ext" == "gz") then
+   set Name2 = $1:r
+   set ext = $Name2:e
+endif
+
+if ("$ext" == "nii") then
+   if ( -f $1 ) then
+      set cnt = 3
+   else 
+      set cnt = 0
+   endif
+   goto RESULT
+endif
+
+   
+if ("$view" == "" && "$ext" != "nii") then
    echo "Error: No view specified in dset name $1"
    echo "Make sure you are not passing a prefix instead"
    echo "of a dataset name"

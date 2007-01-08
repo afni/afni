@@ -80,11 +80,109 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
       if (SUMA_iswordsame_ci(keyname,"down") == 1) SUMA_RETURN(XK_Down);
       if (SUMA_iswordsame_ci(keyname,"left") == 1) SUMA_RETURN(XK_Left);
       if (SUMA_iswordsame_ci(keyname,"right") == 1) SUMA_RETURN(XK_Right);
+      if (SUMA_iswordsame_ci(keyname,"f1") == 1) SUMA_RETURN(XK_F1);
+      if (SUMA_iswordsame_ci(keyname,"f2") == 1) SUMA_RETURN(XK_F2);
       
       SUMA_S_Errv("Key '%s' not yet supported, complain to author.\n", keyname);
       SUMA_RETURN(XK_VoidSymbol);
    }
    SUMA_RETURN(XK_VoidSymbol);
+}
+int SUMA_F1_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_F1_Key"};
+   char tk[]={"F1"}, keyname[100];
+   int k, nc;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   if (!sv || !key) {
+      SUMA_S_Err("Null input");
+      SUMA_RETURN(0);  
+   }
+   if (!(nc = strlen(key))) { 
+      SUMA_S_Err("Empty key");
+      SUMA_RETURN(0);  
+   }
+   
+   SUMA_LHv("Have %s, nc=%d\n", key, nc);
+   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
+      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
+      SUMA_RETURN(0);  
+   }
+   SUMA_LHv("Have keyname = %s\n", keyname);
+   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
+      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
+      SUMA_RETURN(0);  
+   }
+
+   /* do the work */
+   switch (k) {
+      case XK_F1:
+         sv->ShowEyeAxis = !sv->ShowEyeAxis;
+         SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre la");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+int SUMA_F2_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_F2_Key"};
+   char tk[]={"F2"}, keyname[100];
+   int k, nc;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   if (!sv || !key) {
+      SUMA_S_Err("Null input");
+      SUMA_RETURN(0);  
+   }
+   if (!(nc = strlen(key))) { 
+      SUMA_S_Err("Empty key");
+      SUMA_RETURN(0);  
+   }
+   
+   SUMA_LHv("Have %s, nc=%d\n", key, nc);
+   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
+      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
+      SUMA_RETURN(0);  
+   }
+   SUMA_LHv("Have keyname = %s\n", keyname);
+   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
+      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
+      SUMA_RETURN(0);  
+   }
+
+   /* do the work */
+   switch (k) {
+      case XK_F2:
+         {
+            int *do_id, n_do_id;
+            ++sv->ShowWorldAxis; sv->ShowWorldAxis = sv->ShowWorldAxis % SUMA_N_WAX_OPTIONS; 
+            sv->ShowMeshAxis = 0; /* used to be = !sv->ShowMeshAxis; ,  Turned off Oct 15 04 , in favor or WorldAxis */
+            do_id = SUMA_GetDO_Type(SUMAg_DOv, SUMAg_N_DOv, SO_type, &n_do_id);
+            if (n_do_id) {
+               while (n_do_id) {
+                 ((SUMA_SurfaceObject *)SUMAg_DOv[do_id[n_do_id-1]].OP)->ShowMeshAxis = sv->ShowMeshAxis;
+                  --n_do_id;
+               }
+               SUMA_free(do_id);
+            }
+         }
+         SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre la haut");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
 }
 
 int SUMA_M_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
@@ -1960,26 +2058,17 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_F1: /* F1 */
             /*printf("F1\n");*/
-            sv->ShowEyeAxis = !sv->ShowEyeAxis;
-            SUMA_postRedisplay(w, clientData, callData);
+            if (!SUMA_F1_Key(sv, "F1", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
+            }
             break;
 
          case XK_F2:
             /*printf("F2\n");*/
-            {
-               int *do_id, n_do_id;
-               ++sv->ShowWorldAxis; sv->ShowWorldAxis = sv->ShowWorldAxis % SUMA_N_WAX_OPTIONS; 
-               sv->ShowMeshAxis = 0; /* used to be = !sv->ShowMeshAxis; ,  Turned off Oct 15 04 , in favor or WorldAxis */
-               do_id = SUMA_GetDO_Type(SUMAg_DOv, SUMAg_N_DOv, SO_type, &n_do_id);
-               if (n_do_id) {
-                  while (n_do_id) {
-                    ((SUMA_SurfaceObject *)SUMAg_DOv[do_id[n_do_id-1]].OP)->ShowMeshAxis = sv->ShowMeshAxis;
-                     --n_do_id;
-                  }
-                  SUMA_free(do_id);
-               }
+            if (!SUMA_F2_Key(sv, "F2", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
             }
-            SUMA_postRedisplay(w, clientData, callData);
+            
             break;
 
          case XK_F3: /* F3 */

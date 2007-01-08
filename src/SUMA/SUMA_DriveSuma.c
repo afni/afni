@@ -15,7 +15,7 @@ SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing 
    + support -surf_group and -switch_group
    + support view_surf (for hiding say L/R hemis)
    + create syntax for series of repeated key strokes with delay between strokes and perhaps a forced redisplay
-   + make recorder save pictures
+   + DONE: make recorder save pictures
    + add passing of DOs as is done in Julia's program
    + DONE: support for quit action
    + DONE: support control of intensity range
@@ -178,7 +178,9 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
                "                         the effect of each key. For example,\n"
                "                         -key right -key right would most likely\n"
                "                         produce one image rotated twice rather than\n"
-               "                         two images, each turned right once.\n" 
+               "                         two images, each turned right once.\n"
+               /*"           The -key string can be followed by modifiers:\n"
+               "              -key@N  KEY_STRING: would repeat KEY_STRING N times.\n" */
                "        -viewer VIEWER: Specify which viewer should be acted \n"
                "                        upon. Default is viewer 'A'. Viewers\n"
                "                        must be created first (ctrl+n) before\n"
@@ -261,6 +263,67 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
       exit(0);
 }
 
+SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult, float *Key_pause, int *Key_redis)
+{
+   static char FuncName[]={"SUMA_ParseKeyModifiers"};
+   char *cccp=NULL;
+   int Found, v;
+   double dv;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_ENTRY;
+   
+   *Key_mult = 1;
+   *Key_pause = 0.0;
+   *Key_redis = 0;
+   if (!keyopt || strncmp(keyopt,"-key", 4)) {
+      SUMA_S_Errv("NULL or bad keyopt %s", SUMA_CHECK_NULL_STR(keyopt));
+      SUMA_RETURN(NOPE);
+   }
+   Found = 1; 
+   SUMA_LHv("keyopt=%s\n", keyopt);
+   cccp = keyopt;
+   do {
+      if ((cccp = strstr(cccp,":"))) {/* found mods */
+         SUMA_LHv("Now at =%s\n", cccp);
+         /* what is it? */
+         ++cccp;
+         switch (cccp[0]) {
+            case 'r':
+               SUMA_ADVANCE_PAST_INT(cccp, v, Found);
+               if (!Found) {
+                  fprintf (SUMA_STDERR, "Failed to parse number after :r in %s\n", keyopt);
+                  SUMA_RETURN(NOPE);
+               }
+               *Key_mult = v;
+               break;
+            case 'p':
+               *Key_pause = -1; Found = 1;
+               SUMA_LH("Will pause for each rep\n");
+               break;
+            case 's':
+               ++cccp;  /* touchy for floats*/
+               SUMA_ADVANCE_PAST_NUM(cccp, dv, Found);
+               if (!Found) {
+                  fprintf (SUMA_STDERR, "Failed to parse number after :s in %s\n", keyopt);
+                  SUMA_RETURN(NOPE);
+               }
+               *Key_pause = (float)dv;
+               SUMA_LHv("Will pause for %f secs\n", *Key_pause);
+               break;
+            case 'd':
+               *Key_redis = 1;
+               SUMA_LH("Will redisplay for each rep\n");
+               break;
+            default:
+               SUMA_S_Errv("Failed to parse content of %s\n", keyopt);
+               Found = 0;
+               break;
+         }
+      }
+   } while (cccp && cccp[0] && Found);
+
+   SUMA_RETURN(YUP);   
+}
 /*
 A function for parsing command command options.
 Words recognized here are flagged with a null char at the beginning of the identified strings
@@ -542,21 +605,53 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          brk = YUP;
       }
       
-      if (!brk && (strcmp(argt[kar], "-key") == 0))
+      if (!brk && (strncmp(argt[kar], "-key", 4) == 0))
       {
-         int N_Key = 0;
+         int N_Key = 0, Key_mult = 1, Key_redis= 0;
          char stmp[100];
+         float Key_pause = 0;
          if (kar+1 >= argtc)
          {
             fprintf (SUMA_STDERR, "need a key after -key \n");
             SUMA_RETURN(0);
          }
+         
+         #if 0
+         if (strlen(argt[kar]) > 4) {
+            char *cccp=argt[kar]+4;
+            int Found;
+            if (*cccp == ':') {
+               SUMA_ADVANCE_PAST_INT(cccp, Key_mult, Found);
+               if (!Found) {
+                  fprintf (SUMA_STDERR, "Failed to parse number after : in %s\n", argt[kar]);
+                  SUMA_RETURN(0);
+               }
+               SUMA_LHv("Key will be repeated %d times\n", Key_mult);
+            } else {
+               fprintf (SUMA_STDERR, "Bad flag after -key in %s\n", argt[kar]);
+               SUMA_RETURN(0);
+            }   
+         }
+         #else
+            if (!SUMA_ParseKeyModifiers(argt[kar], &Key_mult, &Key_pause, &Key_redis)) {
+               SUMA_S_Errv("Failed in parsing %s\n", argt[kar]);
+               SUMA_RETURN(0);
+            } 
+         
+         #endif
+         
          argt[kar][0] = '\0';
          ++kar;
          if (!NI_get_attribute(ngr,"N_Key")) NI_SET_INT(ngr,"N_Key", 0);
          NI_GET_INT(ngr, "N_Key", N_Key); 
          sprintf(stmp, "Key_%d", N_Key);
          NI_SET_STR(ngr, stmp, argt[kar]);
+         sprintf(stmp, "Key_rep_%d", N_Key);
+         NI_SET_INT(ngr, stmp, Key_mult);
+         sprintf(stmp, "Key_pause_%d", N_Key);
+         NI_SET_FLOAT(ngr, stmp, Key_pause);
+         sprintf(stmp, "Key_redis_%d", N_Key);
+         NI_SET_INT(ngr, stmp, Key_redis);
          argt[kar][0] = '\0';
          ++N_Key;
          NI_SET_INT(ngr,"N_Key", N_Key);
