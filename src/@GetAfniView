@@ -7,7 +7,15 @@ endif
 
 #remove path
 set Name = $1:t
-
+set ext = $Name:e
+if ($ext == "gz") then 
+   set Name2 = $Name:r
+   set ext = $Name2:e
+endif
+if ("$ext" == "nii") then
+   echo ''
+   goto ENDALL
+endif 
 
 #look for +orig or whatever it is
 echo $Name | grep '+orig' >& /dev/null

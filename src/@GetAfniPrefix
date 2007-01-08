@@ -12,7 +12,16 @@ if ("$ext" == "gz") then
    #remove .gz first
    set Name = $Name:r
    set ext = $Name:e
+   set fext = ".gz"
+else
+   set Name = $Name:r
+   set fext = ""
 endif
+if ("$ext" == "nii") then
+   set Name = $Name.$ext"$fext"
+   goto ECHO
+endif
+    
 #Remove extension only if it is .HEAD or .BRIK
 if ("$ext" == "HEAD" || "$ext" == "BRIK") then
    set Name = $Name:r
@@ -24,7 +33,9 @@ set Name = `echo $Name | sed 's/+tlrc.//'`
 set Name = `echo $Name | sed 's/+orig//'`
 set Name = `echo $Name | sed 's/+acpc//'`
 set Name = `echo $Name | sed 's/+tlrc//'`
+goto ECHO
 
+ECHO:
 echo $Name
 unset noglob
 

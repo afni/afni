@@ -2178,65 +2178,116 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* search for the keys */
             if (NI_get_attribute(EngineData->ngr,"N_Key")) {
                char *stmp=NULL, nc;
-               int k;
+               int k, rep,  N_rep = 1, redisp=0;
+               float pauz=0.0, delta_t=0.0;
+               struct timeval tt;
+               DList *llist = NULL;
+               LocalHead = YUP;
                NI_GET_INT(EngineData->ngr,"N_Key", itmp);
                for (ii=0; ii<itmp; ++ii) {
                   sprintf(tmpstr, "Key_%d", ii);
                   NI_GET_STR_CP(EngineData->ngr,tmpstr, stmp);
+                  sprintf(tmpstr, "Key_rep_%d", ii);
+                  NI_GET_INT(EngineData->ngr,tmpstr, N_rep);
+                  sprintf(tmpstr, "Key_pause_%d", ii);
+                  NI_GET_FLOAT(EngineData->ngr,tmpstr, pauz);
+                  sprintf(tmpstr, "Key_redis_%d", ii);
+                  NI_GET_INT(EngineData->ngr,tmpstr, redisp);
+                  SUMA_LHv("Rep=%d, Pause=%f, Redis=%d\n", N_rep, pauz, redisp);
                   if (stmp && (nc = strlen(stmp))) {
                      k = SUMA_KeyPress(stmp, NULL);
-                     switch (k) {
-                        case XK_n:
-                        case XK_N:
-                           if (!SUMA_N_Key(sv, stmp, "drivesuma")) {
-                              SUMA_S_Err("Failed in Key function.");
+                     for (rep=0; rep<N_rep; ++rep) {
+                        SUMA_LHv(".............rep %d\n", rep);
+                        SUMA_etime(&tt, 0);
+                        switch (k) {
+                           case XK_n:
+                           case XK_N:
+                              if (!SUMA_N_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;   
+                           case XK_m:
+                           case XK_M:
+                              if (!SUMA_M_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_p:
+                           case XK_P:
+                              if (!SUMA_P_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_r:
+                           case XK_R:
+                              if (!SUMA_R_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_Up:
+                              if (!SUMA_Up_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_Down:
+                              if (!SUMA_Down_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_Left:
+                              if (!SUMA_Left_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_Right:
+                              if (!SUMA_Right_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_F1:
+                              if (!SUMA_F1_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_F2:
+                              if (!SUMA_F2_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_VoidSymbol:
+                              SUMA_S_Errv("No good key for %s\n", stmp);
+                              break;   
+                           default:
+                              SUMA_S_Errv("Don't know how to deal with %s in drive mode\n", stmp);
+                              break;   
+                        } /* end switch k */
+                        /* do we need a call for redisplay now? */
+                        if ((rep < N_rep-1) && (redisp || pauz != 0.0f )) {
+                           /* a redisplay is already pending (from the key functions), kill it or it will get executed later*/
+                           SUMA_remove_workproc2( SUMA_handleRedisplay, sv->X->GLXAREA );
+                           llist = SUMA_CreateList ();
+                           SUMA_REGISTER_TAIL_COMMAND_NO_DATA(llist, SE_RedisplayNow, SES_SumaFromAny, sv);
+                           SUMA_LH("Forcing redisplay");
+                           SUMA_Engine (&llist);
+                        }
+
+                        /* check on delay */
+                        if (pauz < 0) {   
+                           SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL; /* Use this only to create prompt that are not to be preserved */
+                           char buf[100];
+                           sprintf(buf, "Pausing DriveSuma at Key %s, rep=%d, N_rep=%d", stmp, rep, N_rep);
+                           SUMA_LH("Calling user pause...");
+                           /* SUMA_PauseForUser(sv->X->TOPLEVEL, buf, SWP_DONT_CARE); */
+                           SUMA_ForceUser_YesNo(sv->X->TOPLEVEL, "Close All Viewers?", SUMA_YES, SWP_DONT_CARE);
+
+                        } else if (pauz > 0.0f) {
+                           SUMA_LHv("Sleeping for %dms\n", (int) ((pauz-delta_t)*1000));
+                           delta_t = SUMA_etime(&tt, 1);
+                           if (delta_t < pauz) {
+                              NI_sleep((int) ((pauz-delta_t)*1000));
                            }
-                           break;   
-                        case XK_m:
-                        case XK_M:
-                           if (!SUMA_M_Key(sv, stmp, "drivesuma")) {
-                              SUMA_S_Err("Failed in Key function.");
-                           }
-                           break;
-                        case XK_p:
-                        case XK_P:
-                           if (!SUMA_P_Key(sv, stmp, "drivesuma")) {
-                              SUMA_S_Err("Failed in Key function.");
-                           }
-                           break;
-                        case XK_r:
-                        case XK_R:
-                           if (!SUMA_R_Key(sv, stmp, "drivesuma")) {
-                              SUMA_S_Err("Failed in Key function.");
-                           }
-                           break;
-                        case XK_Up:
-                           if (!SUMA_Up_Key(sv, stmp, "drivesuma")) {
-                              SUMA_S_Err("Failed in Key function.");
-                           }
-                           break;
-                        case XK_Down:
-                           if (!SUMA_Down_Key(sv, stmp, "drivesuma")) {
-                              SUMA_S_Err("Failed in Key function.");
-                           }
-                           break;
-                        case XK_Left:
-                           if (!SUMA_Left_Key(sv, stmp, "drivesuma")) {
-                              SUMA_S_Err("Failed in Key function.");
-                           }
-                           break;
-                        case XK_Right:
-                           if (!SUMA_Right_Key(sv, stmp, "drivesuma")) {
-                              SUMA_S_Err("Failed in Key function.");
-                           }
-                           break;
-                        case XK_VoidSymbol:
-                           SUMA_S_Errv("No good key for %s\n", stmp);
-                           break;   
-                        default:
-                           SUMA_S_Errv("Don't know how to deal with %s in drive mode\n", stmp);
-                           break;   
-                     } /* end switch k */
+                        }
+                     } /* end of rep */
                      SUMA_free(stmp); stmp = NULL;
                   }  /* end have iith key */
                }  /* end loop all keys */

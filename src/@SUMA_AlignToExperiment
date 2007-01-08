@@ -351,15 +351,19 @@ REGISTER:
 	goto Ret_REGISTER
 
 CHECK_EXISTENCE:
-	test -f $ExpAnat.HEAD || goto NO_EXPANAT
-	if (!(-f $ExpAnat.BRIK || -f $ExpAnat.BRIK.gz || -f $ExpAnat.BRIK.Z)) then
-		goto NO_EXPANAT
-	endif
+	if (`@CheckForAfniDset $ExpAnat` < 2) goto NO_EXPANAT
+   
+   #if (!(-f $ExpAnat.HEAD || -f $ExpAnat)) goto NO_EXPANAT
+	#if (!(-f $ExpAnat.BRIK || -f $ExpAnat.BRIK.gz || -f $ExpAnat.BRIK.Z)) then
+	#	goto NO_EXPANAT
+	#endif
 
-	test -f $SurfAnatPath/$SurfAnat.HEAD || goto NO_SURFANAT
-	if (!(-f $SurfAnatPath/$SurfAnat.BRIK || -f $SurfAnatPath/$SurfAnat.BRIK.gz || -f $SurfAnatPath/$SurfAnat.BRIK.Z)) then
-		goto NO_SURFANAT
-	endif
+	if (`@CheckForAfniDset $SurfAnatPath/$SurfAnat` < 2) goto NO_SURFANAT
+	
+   #test -f $SurfAnatPath/$SurfAnat.HEAD || goto NO_SURFANAT
+	#if (!(-f $SurfAnatPath/$SurfAnat.BRIK || -f $SurfAnatPath/$SurfAnat.BRIK.gz || -f $SurfAnatPath/$SurfAnat.BRIK.Z)) then
+	#	goto NO_SURFANAT
+	#endif
    
    #check for large center difference
    set dist_cent = `@Center_Distance -dset $ExpAnat.HEAD $SurfAnatPath/$SurfAnat.HEAD`
