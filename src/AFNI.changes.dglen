@@ -155,5 +155,8 @@ standards. Made help clearer for @DTI_studio_reposition.
  * R1I mapping and voxel indexing support added to the DEMRI model,model_demri_3 
 09 Nov 2006
  * output datum type support in 3dNLfim
+08 Jan 2007
+ * 1dSEM program for doing structural equation modeling
+ 
  
  
