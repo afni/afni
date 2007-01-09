@@ -4333,7 +4333,7 @@ SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent
    /* sort NodesTotal and rearrange LabelsTotal accordingly */
    {  int *isort = NULL, *LabelsTotal_r = NULL,
          *NodesTotal_u = NULL, N_NodesTotal_u, *iu = NULL;
-      char report[100];
+      char report[200];
 
       isort = SUMA_z_dqsort(NodesTotal, N_NodesTotal);
       LabelsTotal_r = SUMA_reorder (LabelsTotal, isort, N_NodesTotal);
@@ -4352,7 +4352,8 @@ SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent
       LabelsTotal = LabelsTotal_r; LabelsTotal_r = NULL;
 
       if (N_NodesTotal - N_NodesTotal_u) {
-         sprintf(report, "%d/%d nodes had duplicate entries.\n"
+         snprintf(report, 199,
+                         "%d/%d nodes had duplicate entries.\n"
                          "(ie same node part of more than 1 ROI)\n"
                          "Duplicate entries were eliminated.", 
                          N_NodesTotal - N_NodesTotal_u , N_NodesTotal);
@@ -4361,7 +4362,7 @@ SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent
          SUMA_SLP_Warn(report);
       }
    }
-
+   
    if (Pad_to > 0) {
       SUMA_LH("Padding to desired length");
       if (Pad_to < MaxIndex) {
@@ -4388,9 +4389,10 @@ SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent
          N_NodesTotal = Pad_to + 1;
       }
    }
-   
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"%s: N_NodesTotal = %d\nCreating dset\n", FuncName, N_NodesTotal);
+   }
    /* construct a NIML data set for the output */
-   SUMA_LH("Creating dset ");
    dset = SUMA_CreateDsetPointer(
                                  NULL,         /* usually the filename */
                                  SUMA_NODE_ROI,                /* mix and match */
