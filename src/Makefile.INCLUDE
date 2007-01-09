@@ -1183,7 +1183,7 @@ afni_src.tgz:
 	$(MKDIR) afni_src
 	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)               ./afni_src
 	$(CP) -pr coxplot volpack moveup moveAFNI* cdflib eispack $(SCRIPTS) $(PY_DIR)     ./afni_src
-	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir 
+	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat               ./afni_src
 	$(CP) -pr SUMA matlab rickr faces poems ni_test_? README.*                         ./afni_src
 	chmod -R ugo+rw                                                                    ./afni_src
