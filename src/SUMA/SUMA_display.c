@@ -9751,32 +9751,34 @@ int SUMA_AskUser_File_replace(Widget parent, char *question, int default_ans)
    SUMA_RETURN(answer);
 }
 
-/*!
 
+/*!
+  Supposed to behave like ForceUser function below but only for pausing.
 */
 int SUMA_PauseForUser(Widget parent, char *question, SUMA_WINDOW_POSITION pos)
 {
-    static char FuncName[]={"SUMA_PauseForUser"};
-    static Widget dialog; /* static to avoid multiple creation */
-    Widget YesWid;
-    XmString text, yes;
-    static int answer;
+   static char FuncName[]={"SUMA_PauseForUser"};
+   static Widget dialog; /* static to avoid multiple creation */
+   Widget YesWid;
+   XmString text, yes;
+   static int answer;
+   SUMA_Boolean LocalHead = NOPE;
    
-   SUMA_Boolean LocalHead = YUP;
    SUMA_ENTRY;
 
    if (!dialog) {
      SUMA_LH("Creating Dialog");
      dialog = XmCreateQuestionDialog (parent, "dialog", NULL, 0);
      XtVaSetValues (dialog,
-         XmNdialogStyle,        XmDIALOG_INFORMATION,
+         XmNdialogStyle,        XmDIALOG_FULL_APPLICATION_MODAL,
          NULL);
-     XtSetSensitive (
-         XmMessageBoxGetChild (dialog, XmDIALOG_HELP_BUTTON),
-         False);
+     /* Don't need help and cancel buttons */
+     XtUnmanageChild (XmMessageBoxGetChild (dialog, XmDIALOG_HELP_BUTTON));
+     XtUnmanageChild (XmMessageBoxGetChild (dialog, XmDIALOG_CANCEL_BUTTON));
+     
      XtAddCallback (dialog, XmNokCallback, SUMA_response, &answer); 
     } else {
-      SUMA_LH("Reusing Dialog");
+      SUMA_LH("Reusing Dialog (SLOW SLOW SLOW)");
     }
     
    answer = SUMA_NO_ANSWER;
@@ -9791,29 +9793,27 @@ int SUMA_PauseForUser(Widget parent, char *question, SUMA_WINDOW_POSITION pos)
    XmStringFree (yes);
 
    /* set the values of the standard buttons */
-   SUMA_LH("Setting Children");
    YesWid = XmMessageBoxGetChild(dialog, XmDIALOG_OK_BUTTON);
    XtVaSetValues(YesWid, XmNuserData, SUMA_YES, NULL);
 
-   SUMA_LH("Managing");
    XtManageChild (dialog);
-   SUMA_LH("Popping");
+   
    XtPopup (XtParent (dialog), XtGrabNone);
-   SUMA_LH("Position");
+   
    if (pos != SWP_DONT_CARE) SUMA_PositionWindowRelative(dialog, parent, pos);
    
    while (answer == SUMA_NO_ANSWER)
      XtAppProcessEvent (SUMAg_CF->X->App, XtIMAll);
-   
-   XtPopdown (XtParent (dialog));
-   
-   SUMA_LH("Popped down");
-   /* make sure the dialog goes away before returning. Sync with server
-   * and update the display.
-   */
-   XSync (XtDisplay (dialog), 0);
-   XmUpdateDisplay (parent);
-   SUMA_LH("Returning");
+      
+   #if 1
+      XtDestroyWidget(dialog); 
+      dialog = NULL;
+   #else /* bad, takes for ever to come back up. 
+               Same for repeated calls of ForceUser if created for the first time from DriveSuma and
+               not from the interface with, say 'shft+Esc' 
+               See bit of illustration code in SUMA_Engine where PauseForUser is called*/ 
+      XtUnmanageChild(dialog);
+   #endif
    SUMA_RETURN(answer);
 }
 

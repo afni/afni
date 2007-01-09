@@ -2182,7 +2182,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                float pauz=0.0, delta_t=0.0;
                struct timeval tt;
                DList *llist = NULL;
-               LocalHead = YUP;
+               LocalHead = NOPE;
                NI_GET_INT(EngineData->ngr,"N_Key", itmp);
                for (ii=0; ii<itmp; ++ii) {
                   sprintf(tmpstr, "Key_%d", ii);
@@ -2262,7 +2262,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               break;   
                         } /* end switch k */
                         /* do we need a call for redisplay now? */
-                        if ((rep < N_rep-1) && (redisp || pauz != 0.0f )) {
+                        if ((redisp || pauz != 0.0f )) {
                            /* a redisplay is already pending (from the key functions), kill it or it will get executed later*/
                            SUMA_remove_workproc2( SUMA_handleRedisplay, sv->X->GLXAREA );
                            llist = SUMA_CreateList ();
@@ -2273,13 +2273,20 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
                         /* check on delay */
                         if (pauz < 0) {   
-                           SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL; /* Use this only to create prompt that are not to be preserved */
                            char buf[100];
                            sprintf(buf, "Pausing DriveSuma at Key %s, rep=%d, N_rep=%d", stmp, rep, N_rep);
                            SUMA_LH("Calling user pause...");
-                           /* SUMA_PauseForUser(sv->X->TOPLEVEL, buf, SWP_DONT_CARE); */
-                           SUMA_ForceUser_YesNo(sv->X->TOPLEVEL, "Close All Viewers?", SUMA_YES, SWP_DONT_CARE);
-
+                           #if 1
+                              SUMA_PauseForUser(sv->X->TOPLEVEL, buf, SWP_POINTER_OFF); 
+                           #else /* kept here to illustrate bug */
+                              /* very slow when called repeatedly except when you open the 
+                              'Close All Viewers' thing by hand with SHFTESC then press No.
+                              In that case, repeated calls to SUMA_ForceUser_YesNo are quite fast.
+                              The problem in the XtManage call once the dialog is created. It takes
+                              forever to return. One solution, implemented in PauseForUser, is
+                              to destroy the widget each time and recreate it anew. Not a big deal.*/
+                              SUMA_ForceUser_YesNo(sv->X->TOPLEVEL, "Close All Viewers?", SUMA_YES, SWP_DONT_CARE);
+                           #endif
                         } else if (pauz > 0.0f) {
                            SUMA_LHv("Sleeping for %dms\n", (int) ((pauz-delta_t)*1000));
                            delta_t = SUMA_etime(&tt, 1);

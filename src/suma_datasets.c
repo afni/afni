@@ -1563,7 +1563,9 @@ int SUMA_AddDsetNelIndexCol ( SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ct
    
    SUMA_ENTRY;
    
-   
+   if (LocalHead) {
+      SUMA_DUMP_TRACE("Trace at entry");
+   }
    if (!dset || !dset->inel || !SDSET_NODEINDLEN(dset)) { 
       SUMA_SL_Err("Null input"); 
       SUMA_DUMP_TRACE("Bad dset->inel, dumping trace for debug:"); 
