@@ -279,7 +279,7 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-sep") == 0 ){
         sep = 1 ; iarg++ ; continue ;
      }
-     if( strcmp(argv[iarg],"-sepscl") == 0 ){
+     if( strncmp(argv[iarg],"-sepsc",6) == 0 ){
         sepscl = 1 ; iarg++ ; continue ;
      }
      if( strcmp(argv[iarg],"-one") == 0 ){
@@ -290,7 +290,7 @@ int main( int argc , char *argv[] )
    }
    
    if(sepscl && sep == 0) {
-      ERROR_exit("Cannot use -sepscl with -one!\n") ;
+      WARNING_message("Cannot use -sepscl with -one!") ; sepscl=0 ;
    }
    if( iarg >= argc && !use_stdin )
       ERROR_exit("No time series file on command line!\n") ;
