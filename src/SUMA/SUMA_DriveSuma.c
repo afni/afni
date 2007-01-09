@@ -14,7 +14,7 @@ SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing 
 /* NICE THINGS TO ADD 
    + support -surf_group and -switch_group
    + support view_surf (for hiding say L/R hemis)
-   + create syntax for series of repeated key strokes with delay between strokes and perhaps a forced redisplay
+   + DONE: create syntax for series of repeated key strokes with delay between strokes and perhaps a forced redisplay
    + DONE: make recorder save pictures
    + add passing of DOs as is done in Julia's program
    + DONE: support for quit action
@@ -42,8 +42,9 @@ static char uDS_node_xyz[]={
 };
 static char uDS_viewer_cont[]={
                "       DriveSuma -com  viewer_cont -key R -key ctrl+right\n"
-               "       DriveSuma -com  viewer_cont -key up -key up -key up   \\\n"
-               "                       -key left -key left\n"
+               "       DriveSuma -com  viewer_cont -key:r3:s0.3 up  \\\n"
+               "                       -key:r2:p left -key:r5:d right \\\n"
+               "                       -key:r5 left\n"
                "       DriveSuma -com  viewer_cont -key m -key down \\\n"
                "                 -com  sleep 2s -com viewer_cont -key m \\\n"
                "                       -key ctrl+right\n"
@@ -175,12 +176,25 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
                "                         GUI help.\n"
                "                         ~ Using multiple keys in the same command\n"
                "                         might not result in the serial display of\n"
-               "                         the effect of each key. For example,\n"
+               "                         the effect of each key, unless 'd' modifier\n"
+               "                         is used as shown further below. For example,\n"
                "                         -key right -key right would most likely\n"
                "                         produce one image rotated twice rather than\n"
                "                         two images, each turned right once.\n"
-               /*"           The -key string can be followed by modifiers:\n"
-               "              -key@N  KEY_STRING: would repeat KEY_STRING N times.\n" */
+               "           The -key string can be followed by modifiers:\n"
+               "              For example, -key:r5:s0.2 has two modifiers,\n"
+               "              r5 and s0.2. All modifiers are separated by ':'.\n"
+               "              'r' Repeat parameter, so r5 would repeat the \n"
+               "                  same key 5 times.\n"
+               "              's' Sleep parameter, so s0.2 would sleep for 0.2\n"
+               "                  seconds between repeated keys.\n"
+               "              'd' Immediate redisplay flag. That is useful\n"
+               "                  when you are performing a succession of keys and\n"
+               "                  want to ensure each individual one gets displayed\n"
+               "                  and recorded (most likely). Otherwise, successive\n"
+               "                  keys may only display their resultant. 'd' is used\n"
+               "                  automatically with 's' modifier.\n"
+               "              'p' Pause flag. Requires user intervention to proceed.\n"
                "        -viewer VIEWER: Specify which viewer should be acted \n"
                "                        upon. Default is viewer 'A'. Viewers\n"
                "                        must be created first (ctrl+n) before\n"
