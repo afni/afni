@@ -7,12 +7,12 @@
 #include "mrilib.h"
 #include <string.h>
 
-double DSET_cor( THD_3dim_dataset *, THD_3dim_dataset *, byte *, int ) ;
+double DSET_cor( THD_3dim_dataset *, THD_3dim_dataset *, byte *, int , double *sdxyr) ;
 
 int main( int argc , char * argv[] )
 {
-   double dxy ;
-   int narg , ndset , nvox , demean=0 ;
+   double dxy , sdxy;
+   int narg , ndset , nvox , demean=0 , DoDot = 0;
    THD_3dim_dataset * xset , * yset , * mask_dset=NULL ;
    float mask_bot=666.0 , mask_top=-666.0 ;
    byte * mmm=NULL ;
@@ -39,6 +39,7 @@ int main( int argc , char * argv[] )
              "                 it won't be included, even if a < 0 < b.\n"
              "  -demean      Means to remove the mean from each volume\n"
              "                 prior to computing the correlation.\n"
+             "  -dodot       Return the dot product.\n"
             ) ;
 
       printf("\n" MASTER_SHORTHELP_STRING ) ;
@@ -53,7 +54,10 @@ int main( int argc , char * argv[] )
          demean++ ;
          narg++ ; continue ;
       }
-
+      if( strncmp(argv[narg],"-dodot",4) == 0 ){
+         DoDot++ ;
+         narg++ ; continue ;
+      }
       if( strncmp(argv[narg],"-mask",5) == 0 ){
          if( mask_dset != NULL ){
             fprintf(stderr,"*** Cannot have two -mask options!\n") ; exit(1) ;
@@ -127,13 +131,17 @@ int main( int argc , char * argv[] )
       DSET_delete(mask_dset) ;
    }
 
-   dxy = DSET_cor( xset , yset , mmm , demean ) ;
-   printf("%g\n",dxy) ;
+   dxy = DSET_cor( xset , yset , mmm , demean, &sdxy ) ;
+   if (DoDot) {
+      printf("%g\n",dxy*sdxy) ;
+   } else {
+      printf("%g\n",dxy) ;
+   }
    exit(0) ;
 }
 
 double DSET_cor( THD_3dim_dataset *xset,
-                 THD_3dim_dataset *yset, byte *mmm , int dm )
+                 THD_3dim_dataset *yset, byte *mmm , int dm, double *sdxyr)
 {
    double sumxx , sumyy , sumxy , tx,ty , dxy ;
    void  *  xar , *  yar ;
@@ -141,7 +149,9 @@ double DSET_cor( THD_3dim_dataset *xset,
    int ii , nxyz , ivx,ivy , itypx,itypy , fxar_new,fyar_new , nnn ;
 
    nxyz = DSET_NVOX(xset) ;
-
+   
+   if (sdxyr) *sdxyr = 0.0;
+   
    /* load bricks */
 
    DSET_load(xset); CHECK_LOAD_ERROR(xset);
@@ -207,6 +217,10 @@ double DSET_cor( THD_3dim_dataset *xset,
    /* compute result */
 
    dxy = sumxx * sumyy ; if( dxy <= 0.0 ) return 0.0 ;
+   if (sdxyr) *sdxyr = sqrt(dxy);
+   
    dxy = sumxy / sqrt(dxy) ;
+   
+   
    return dxy ;
 }
