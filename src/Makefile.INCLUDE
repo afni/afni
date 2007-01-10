@@ -2138,6 +2138,10 @@ asnap:asnap.o
 	$(RM) $@
 	$(CC) -o asnap asnap.o $(LFLAGS) -lmrix -lcoxplot $(LLIBS) -lf2c
 
+galler:galler.o
+	$(RM) $@
+	$(CC) -o galler galler.o $(LFLAGS) $(LLIBS)
+
 # specifics for the nifti library files
 
 3dAFNItoNIFTI.o:3dAFNItoNIFTI.c
