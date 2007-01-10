@@ -30,7 +30,7 @@ static char helpstring[] =
 
 static char * DOT_main( PLUGIN_interface * ) ;
 
-static double DSET_cor( int , THD_3dim_dataset * , THD_3dim_dataset * ) ;
+static double DSET_cor( int , THD_3dim_dataset * , THD_3dim_dataset * , double *sxy) ;
 
 /***********************************************************************
    Set up the interface to the user
@@ -85,7 +85,7 @@ static char * DOT_main( PLUGIN_interface * plint )
    THD_3dim_dataset * xset , * yset ;
    char * tag ;
    int demean ;
-   double dcor ;
+   double dcor, sxy ;
    char str[256] ;
 
    /*--------------------------------------------------------------------*/
@@ -120,7 +120,7 @@ static char * DOT_main( PLUGIN_interface * plint )
 
    /*-- do the actual work --*/
 
-   dcor = DSET_cor( demean , xset , yset ) ;
+   dcor = DSET_cor( demean , xset , yset, &sxy ) ;
 
    if( dcor < -1.0 )
       return "*********************************\n"
@@ -132,9 +132,10 @@ static char * DOT_main( PLUGIN_interface * plint )
    sprintf(str , "    Dataset %s\n"
                  "and Dataset %s\n\n"
                  "Correlation = %g\n"
+                 "        Dot = %g\n"
                  "%s" ,
            DSET_FILECODE(xset) , DSET_FILECODE(yset) ,
-           dcor ,
+           dcor , dcor * sxy,
            (demean) ? "[mean removed]" : " " ) ;
 
    PLUTO_popup_message( plint , str ) ;
@@ -147,15 +148,18 @@ static char * DOT_main( PLUGIN_interface * plint )
   less than -1.0 if an error occurs.
 ------------------------------------------------------------------------------*/
 
-static double DSET_cor( int demean, THD_3dim_dataset * xset, THD_3dim_dataset * yset )
+static double DSET_cor( int demean, THD_3dim_dataset * xset, THD_3dim_dataset * yset, double *sxy )
 {
    double sumxx , sumyy , sumxy , tx,ty , dxy , xbar,ybar ;
    void  *  xar , *  yar ;
    float * fxar , * fyar ;
    int ii , nxyz , ivx,ivy , itypx,itypy , fxar_new,fyar_new ;
 
+   
+   if (sxy) *sxy = 0.0;
+   
    /*-- check datasets for conformity in dimensions --*/
-
+   
    nxyz = xset->daxes->nxx * xset->daxes->nyy * xset->daxes->nzz ;
 
    if(  yset->daxes->nxx * yset->daxes->nyy * yset->daxes->nzz != nxyz )
@@ -236,6 +240,7 @@ static double DSET_cor( int demean, THD_3dim_dataset * xset, THD_3dim_dataset * 
    /*-- compute correlation --*/
 
    dxy = sumxx * sumyy ; if( dxy <= 0.0 ) return -666.0 ;
+   if (sxy) *sxy =  sqrt(dxy) ;
    dxy = sumxy / sqrt(dxy) ;
    return dxy ;
 }
