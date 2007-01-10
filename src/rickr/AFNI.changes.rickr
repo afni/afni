@@ -1897,10 +1897,16 @@
 
 04 Jan 2007: modified 3dTshift.c: added warning for -no_detrend and MRI_FOURIER
 
-08 Jan 2007: afni_proc.py (v 1.8)
+08 Jan 2007: afni_proc.py (1.8)
   * modified afni_proc.py, db_mod.py:
       - changed default script name to proc.SUBJ_ID, and removed -script from
           most examples
       - added options '-bash', '-copy_files', '-volreg_zpad', '-tlrc_anat',
           '-tlrc_base', '-tlrc_no_ss', '-tlrc_rmode', '-tlrc_suffix'
+
+10 Jan 2007: afni_proc.py (1.9) added aligned line wrapping
+  * modified afni_proc.py, afni_util.py
+      - new functions add_line_wrappers, align_wrappers, insert_wrappers,
+                      get_next_indentation, needs_wrapper, find_command_end,
+                      num_leading_line_spaces, find_next_space, find_last_space
 
