@@ -33,6 +33,7 @@ int main( int argc , char *argv[] )
             " -one     = Make 1st vector be all 1's.\n"
             " -cond    = Only print condition number (ratio of extremes)\n"
             " -sing    = Only print singular values\n"
+            " -sort    = Sort singular values (descending)\n"
             " -1Dright = Only output right eigenvectors, in a .1D format\n"
             "            This can be useful for reducing the number of\n"
             "            columns in a design matrix.  The singular values\n"
@@ -45,6 +46,10 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ; nvec = 0 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcmp(argv[iarg],"-sort") == 0 ){
+       set_svd_sort(-1) ; iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-1Dright") == 0 ){
        pall = 0 ; do_1Drr = 1 ; iarg++ ; continue ;

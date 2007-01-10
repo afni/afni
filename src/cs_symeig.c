@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 #include "eispack.h"
 
 /*---------------------------------------------------------------------------*/
@@ -393,19 +394,28 @@ void symeigval_double( int n , double *a , double *e )
 # define CHK 0
 #endif
 
-/*--------------------------------------------------------------------*/
+/** sorting SVD values:
+      0 = no sort
+     +1 = sort increasing order
+     -1 = sort descending order **/
+
+static int svd_sort = 0 ;
+void set_svd_sort( int ss ){ svd_sort = ss; }
+
+/*----------------------------------------------------------------------------*/
 /*! Compute SVD of double precision matrix:                      T
                                             [a] = [u] diag[s] [v]
     - m = # of rows in a
     - n = # of columns in a
-    - a = pointer to input matrix; a[i+j*m] has the (i,j) element
+    - a = pointer to input matrix; a[i+j*m] has the (i,j) element (mXn matrix)
     - s = pointer to output singular values; length = n
-    - u = pointer to output matrix, if desired; length = m*n
-    - v = pointer to output matrix, if desired; length = n*n
+    - u = pointer to output matrix, if desired; length = m*n (mXn matrix)
+    - v = pointer to output matrix, if desired; length = n*n (nxn matrix)
 
-----------------------------------------------------------------------*/
+  Modified 10 Jan 2007 to add sorting of s and columns of u & v.
+------------------------------------------------------------------------------*/
 
-void svd_double( int m , int n , double *a , double *s , double *u , double *v )
+void svd_double( int m, int n, double *a, double *s, double *u, double *v )
 {
    integer mm,nn , lda,ldu,ldv , ierr ;
    doublereal *aa, *ww , *uu , *vv , *rv1 ;
@@ -453,7 +463,7 @@ void svd_double( int m , int n , double *a , double *s , double *u , double *v )
      }}
      err /= (m*n) ;
      if( err >= 1.e-5 ){
-       fprintf(stderr,"++ WARNING: svd err=%g; recomputing ...\n",err) ;
+       WARNING_message("SVD err=%g; recomputing ...\n",err) ;
        (void) svd_slow_( &mm , &nn , &lda , aa , ww ,
                          &matu , &ldu , uu , &matv , &ldv , vv , &ierr , rv1 ) ;
        err = 0.0 ;
@@ -464,7 +474,7 @@ void svd_double( int m , int n , double *a , double *s , double *u , double *v )
           err += fabs(aij) ;
        }}
        err /= (m*n) ;
-       fprintf(stderr,"++ WARNING: recomputed svd err=%g %s\n",
+       WARNING_message("Recomputed SVD err=%g %s\n",
                err , (err >= 1.e-5) ? "**BAD**" : "**OK**"      ) ;
      }
    }
@@ -474,6 +484,40 @@ void svd_double( int m , int n , double *a , double *s , double *u , double *v )
 
    if( u == NULL && uu != NULL ) free((void *)uu) ;
    if( v == NULL && vv != NULL ) free((void *)vv) ;
+
+   /*--- 10 Jan 2007: sort the singular values and columns of U and V ---*/
+
+   if( n > 1 && svd_sort != 0 ){
+     double *sv , *uv ; int *iv , jj,kk ;
+     sv = (double *)malloc(sizeof(double)*n) ;
+     iv = (int *)   malloc(sizeof(int)   *n) ;
+     for( kk=0 ; kk < n ; kk++ ){
+       iv[kk] = kk ; sv[kk] = (svd_sort > 0) ? s[kk] : -s[kk] ;
+     }
+     qsort_doubleint( n , sv , iv ) ;
+     if( u != NULL ){
+       double *cc = (double *)malloc(sizeof(double)*m*n) ;
+       (void)memcpy( cc , u , sizeof(double)*m*n ) ;
+       for( jj=0 ; jj < n ; jj++ ){
+         kk = iv[jj] ;  /* where the new jj-th col came from */
+         (void)memcpy( u+jj*m , cc+kk*m , sizeof(double)*m ) ;
+       }
+       free((void *)cc) ;
+     }
+     if( v != NULL ){
+       double *cc = (double *)malloc(sizeof(double)*n*n) ;
+       (void)memcpy( cc , v , sizeof(double)*n*n ) ;
+       for( jj=0 ; jj < n ; jj++ ){
+         kk = iv[jj] ;
+         (void)memcpy( v+jj*n , cc+kk*n , sizeof(double)*n ) ;
+       }
+       free((void *)cc) ;
+     }
+     for( kk=0 ; kk < n ; kk++ )
+       s[kk] = (svd_sort > 0) ? sv[kk] : -sv[kk] ;
+     free((void *)iv) ; free((void *)sv) ;
+   }
+
    return ;
 }
 
@@ -482,7 +526,7 @@ void svd_double( int m , int n , double *a , double *s , double *u , double *v )
 #define DBG_PC 0
 /*!
    Calculate the covariance matrix of data_mat based on code in 3dpc
-   
+
    data_mat: Data matrix containg num_cols vectors that have num_rows elements.
    cov_mat:  On output, cov_mat will contain the covariance matrix. Caller must
              allocate num_cols x num_cols elements for it.
@@ -491,31 +535,31 @@ void svd_double( int m , int n , double *a , double *s , double *u , double *v )
             NULL for no masking.
    num_rows, num_cols: 1st and 2nd dimensions of data_mat
    norm: flag for normalizing covariance.
-         -1 no normalization, 
-         0, normalize by num_rows - 1, 
+         -1 no normalization,
+         0, normalize by num_rows - 1,
          1, normalize by num_rows
    remove_mean: 0  : do nothing
                 1  : remove the mean of each column in data_mat (like -dmean in 3dpc)
-                
+
    To match matlab's cov function, you need to remove the mean of each column and set norm to 0 (default for matlab) or 1
-   
+
    the function returns the trace of the covariance matrix if all went well.
     a -1.0 in case of error.
-   
+
 */
-double covariance(float *data_mat, double *cov_mat, unsigned char * row_mask, int num_rows, 
-               int num_cols, int norm, int remove_mean, int be_quiet) 
+double covariance(float *data_mat, double *cov_mat, unsigned char * row_mask, int num_rows,
+               int num_cols, int norm, int remove_mean, int be_quiet)
 {
    double atrace, dsum, normval=0.0;
    int idel, jj, nn, mm, ifirst, ilast, ii, PC_be_quiet, kk, nsum;
-      
+
    if (norm == 0) normval = (double)num_rows  - 1.0;
    else if (norm == 1) normval = (double)num_rows;
    else if (norm == -1) normval = 0.0f;
    else {
      fprintf(stderr,"*** norm value of %d is not acceptable.\n", norm); return(-1.0);
-   } 
-   
+   }
+
    if (remove_mean == 1) {
       for( jj=0 ; jj < num_cols ; jj++ ){ /* for each column */
          nsum = 0;
@@ -536,7 +580,7 @@ double covariance(float *data_mat, double *cov_mat, unsigned char * row_mask, in
          }
       }
    }
-   
+
    idel = 1 ;                           /* ii goes forward */
    for( jj=0 ; jj < num_cols ; jj++ ){
 
@@ -576,40 +620,40 @@ double covariance(float *data_mat, double *cov_mat, unsigned char * row_mask, in
    if( ii > 0 ){ fprintf(stderr, "*** Warning %d zero or negative covariance on diagonals!\n", ii); }
 
    if( !be_quiet ){ printf("--- covariance trace = %g\n",atrace); fflush(stdout); }
-   
+
    return(atrace);
 }
 /*!
-   Principal Component calculation by doing SVD on the 
+   Principal Component calculation by doing SVD on the
    covariance matrix of the data.
-    
+
    Based on code in 3dpc
-   
-   data_mat is a matrix of M (num_cols) column vectors, each N (num_rows) elements 
-            long, and stored in a column major order. 
+
+   data_mat is a matrix of M (num_cols) column vectors, each N (num_rows) elements
+            long, and stored in a column major order.
    row_mask is a byte mask vector for data values to consider in data_mat
             If row_mask[i] then row i is considered in the calculations
             If NULL then all rows are considered.
    num_rows is the length N of each column in data_mat
    num_cols is the number of columns (M) (second dimension of data_mat)
    be_quiet
-   
+
    (HAVE YET TO MAKE THIS FUNCTION RETURN VALUES a la pca_fast3. I'll do it when
    I'll need it ZSS)
-   
+
 */
 void pca (float *data_mat, unsigned char * row_mask, int num_rows, int num_cols, int be_quiet) {
    double *aa=NULL, atrace, *wout, sum, *perc;
    int i, jj, ll, ii;
-   
+
    /* calculate covariance matrix */
    aa = (double *)malloc(sizeof(double)*num_cols*num_cols);
    wout = (double*)malloc(sizeof(double)*num_cols);
    atrace = covariance(data_mat, aa, row_mask, num_rows, num_cols, 0, 1, be_quiet);
-   
+
    /* calculate eigenvalues and vectors to be held in aa */
    symeig_double( num_cols , aa , wout ) ;
-   
+
    /* print results for now */
    sum = 0.0 ;
    perc = (double *) malloc( sizeof(double) * num_cols) ;
@@ -622,7 +666,7 @@ void pca (float *data_mat, unsigned char * row_mask, int num_rows, int num_cols,
       fprintf(stderr, "%4d  %14.7g  %14.7g  %14.7g\n",
              jj+1 , wout[ll] , perc[jj] , sum ) ;
    }
-   
+
    /* now write the vectors */
    for (ii=0; ii< num_cols; ++ii) {  /* for each row */
       for( jj=0 ; jj < num_cols ; jj++ ){ /* for each column */
@@ -632,36 +676,36 @@ void pca (float *data_mat, unsigned char * row_mask, int num_rows, int num_cols,
       }
       fprintf(stderr, "\n"); fflush(stdout);
    }
-   
+
    free(perc); free(aa); free(wout);
    return;
 }
 
 /*!
-   Principal Component calculation by doing SVD on the 
+   Principal Component calculation by doing SVD on the
    covariance matrix of the data.
-   
-   Optimized for matrices with 3 columns (x y z, typically) 
+
+   Optimized for matrices with 3 columns (x y z, typically)
    Based on code in 3dpc
-   
-   data_mat is a matrix of 3 column vectors, each N (num_rows) elements 
-            long, and stored in a column major order. 
-            x0, x1, x2, x3, ... , y0, y1, ... , z0, z1, ... ,zN-1 
-            
+
+   data_mat is a matrix of 3 column vectors, each N (num_rows) elements
+            long, and stored in a column major order.
+            x0, x1, x2, x3, ... , y0, y1, ... , z0, z1, ... ,zN-1
+
    num_rows is the length N of each column in data_mat
    be_quiet
-   pca_vec is a matrix of 3 column vectors corresponding to the 
-            eigen values in pca_eig. NOTE: Storage is still column 
+   pca_vec is a matrix of 3 column vectors corresponding to the
+            eigen values in pca_eig. NOTE: Storage is still column
             major order, like data_mat
    pca_eig is a vector of the 3 eigen values (sorted large to small)
-   
+
    Function returns the trace of the covariance matrix
 */
 
 double pca_fast3 (float *data_mat, int num_rows, int be_quiet, double *pca_mat, double *pca_eig) {
    double aa[9], atrace, wout[9], sum, perc[9];
    int i, jj, ll, ii, cnt;
-   
+
    #if DBG_PC
       fprintf(stderr, "data_mat=[ %f %f %f\n%f %f %f\n%f %f %f]\n",
                         data_mat[0], data_mat[3], data_mat[6],
@@ -670,10 +714,10 @@ double pca_fast3 (float *data_mat, int num_rows, int be_quiet, double *pca_mat, 
    #endif
    /* calculate covariance */
    atrace = covariance(data_mat, aa, NULL, num_rows, 3, 0, 1, be_quiet);
-   
+
    /* calc eigs */
    symeig_3( aa , wout, 1 ) ;
-   
+
    /* now write the vectors */
    /* print results for now */
    sum = 0.0 ;
@@ -702,11 +746,11 @@ double pca_fast3 (float *data_mat, int num_rows, int be_quiet, double *pca_mat, 
          pca_mat[cnt] = aa[ll];
          ++cnt;
       }
-     #if DBG_PC 
-      fprintf(stderr, "\n"); 
+     #if DBG_PC
+      fprintf(stderr, "\n");
      #endif
    }
-   
+
    return(atrace);
-   
+
 }
