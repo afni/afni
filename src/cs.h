@@ -42,6 +42,7 @@ extern void symeig_double( int , double * , double * ) ;
 extern void symeigval_double( int , double * , double * ) ;
 extern void svd_double( int, int, double *, double *, double *, double * ) ;
 extern void svd_float ( int, int, float *, float *, float *, float * ) ;
+extern void set_svd_sort(int) ;
 
 extern void symeig_3( double *, double *, int ) ;  /* 30 Sep 2005 */
 extern void symeig_2( double *, double *, int ) ;
