@@ -516,6 +516,89 @@ void NI_add_column( NI_element *nel , int typ , void *arr )
    return ;
 }
 
+/*!
+   Like add_column, but inserts the column at nel->vec[icol] rather than
+   at the end.
+   if icol < 0 || icol > nel->vec_num then icol = nel->vec_num
+*/
+void NI_insert_column( NI_element *nel , int typ , void *arr, int icol )
+{
+   int nn, ii ;
+   NI_rowtype *rt ;
+
+   /* check for reasonable inputs */
+
+   if( nel == NULL || nel->vec_len <= 0 )            return ;
+   if( nel->type != NI_ELEMENT_TYPE )                return ;
+   rt = NI_rowtype_find_code(typ) ; if( rt == NULL ) return ;
+   
+   /* get number of vectors currently in element */
+   nn = nel->vec_num ;
+   
+   if (icol > nn || icol < 0) icol = nn;
+   
+   /* call add column */
+   NI_add_column(nel, typ, arr);
+   
+   /* check on success */
+   if (nel->vec_num != nn+1) return ;  /* misere */
+   nn = nel->vec_num ;  /* the new number of vectors */
+   
+   NI_move_column(nel, nn-1, icol);
+
+   return ;
+}
+
+/*!
+   move a column from index ibefore to iafter
+   if ibefore (or iafter) is (< 0 || > nel->vec_num) then  
+      ibefore = nel->vec_num-1
+*/
+void NI_move_column(NI_element *nel, int ibefore, int iafter)
+{
+   int nn, ii ;
+   int typ_buf;
+   void *col_buf;
+   
+   if (nel == NULL || nel->vec_len <= 0 )            return ;
+   
+   nn = nel->vec_num ;
+   if (ibefore < 0 || ibefore >= nn) ibefore = nn-1;
+   if (iafter < 0 || iafter >= nn) iafter = nn-1;
+   
+   /* nothing to see here? */
+   if (ibefore == iafter) return;
+   
+   /* do the deed */
+   /* store the initial values */
+   typ_buf = nel->vec_typ[ibefore];
+   col_buf = nel->vec[ibefore];
+   /* shift */
+   if (ibefore > iafter) {
+      /* shift columns to left*/
+      for (ii=ibefore; ii > iafter; --ii) {
+         nel->vec[ii] = nel->vec[ii-1];
+         nel->vec_typ[ii] = nel->vec_typ[ii-1];
+      }
+   } else {
+      /* shift columns to right*/
+      for (ii=ibefore; ii < iafter; ++ii) {
+         nel->vec[ii] = nel->vec[ii+1];
+         nel->vec_typ[ii] = nel->vec_typ[ii+1];
+      }
+   }
+   
+   /* insert the trouble maker back*/
+   nel->vec[iafter] = col_buf;
+   nel->vec_typ[iafter] = typ_buf;
+   
+   /* house keeping */
+   /* if element has "ni_type" attribute, adjust it   14 Jul 2006 [rickr] */
+   if( NI_get_attribute(nel, "ni_type") )
+      NI_set_ni_type_atr(nel) ;
+
+   return ;
+}
 /*------------------------------------------------------------------------*/
 /*! Change the length of all the columns in a data element.
      - If the columns are longer, they will be zero filled.
@@ -584,6 +667,39 @@ void NI_add_column_stride( NI_element *nel, int typ, void *arr, int stride )
 
    return ;
 }
+
+/*!
+   See NI_insert_column for inspiration
+*/
+void NI_insert_column_stride( NI_element *nel, int typ, void *arr, int stride, int icol )
+{
+   int nn , ii ;
+   NI_rowtype *rt ;
+   char *idat ;
+
+   /* check for reasonable inputs */
+
+   if( nel == NULL || nel->vec_len <= 0 )            return ;
+   if( nel->type != NI_ELEMENT_TYPE )                return ;
+   rt = NI_rowtype_find_code(typ) ; if( rt == NULL ) return ;
+
+   /* get number of vectors currently in element */
+   nn = nel->vec_num ;
+
+   if (icol > nn || icol < 0) icol = nn;
+   
+   /* call add column_stride */
+   NI_add_column_stride(nel, typ, arr, stride);
+   
+   /* check on success */
+   if (nel->vec_num != nn+1) return ;  /* misere */
+   nn = nel->vec_num ;  /* the new number of vectors */
+   
+   NI_move_column(nel, nn-1, icol);
+
+   return ;
+}
+
 
 /*------------------------------------------------------------------------*/
 /*! ZSS; Fills an already created column with values up to vec_filled
