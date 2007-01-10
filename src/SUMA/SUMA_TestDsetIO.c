@@ -257,6 +257,14 @@ int main (int argc,char *argv[])
             fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
             exit(1);
          }
+         #if 0
+         SUMA_LH("Testing insert column ...");
+         /* Test NI_inset_column_stride here please */
+         if (!SUMA_InsertDsetNelCol (dset, "Le G2", SUMA_NODE_G, (void *)(rgb+1), NULL ,3, 0)) {
+            fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
+            exit(1);
+         }
+         #endif
       }
       { int suc; SUMA_LH("Where are the attributes?"); NEL_WRITE_TX(dset->ngr,"fd:1",suc); }
       /* add the byte column, just to check multi type nightmares */
@@ -273,6 +281,7 @@ int main (int argc,char *argv[])
       #else
       OutName = SUMA_WriteDset_ns ("Test_write_all_num", dset, SUMA_1D, 1, 1); 
       #endif
+
       if (!OutName) {
          SUMA_SL_Err("Write Failed.");
       } else { fprintf (stderr,"%s:\nDset written to %s\n", FuncName, OutName); 
@@ -301,6 +310,18 @@ int main (int argc,char *argv[])
          SUMA_free(OutName); OutName = NULL;
       }
       
+      /* Now shuffle some columns (then put them back) */
+      SUMA_S_Note("NOTE THAT SHUFFLING here does not take care of attributes inside dset, but only dnel");
+      NI_move_column(dset->dnel, -1, 2);
+      SUMA_ShowNel(dset->dnel);
+      #ifdef SUMA_COMPILED
+      OutName = SUMA_WriteDset_s ("Test_writeas_all_shuff_num", dset, SUMA_ASCII_NIML, 1, 1); 
+      #else
+      OutName = SUMA_WriteDset_ns ("Test_writeas_all_shuff_num", dset, SUMA_ASCII_NIML, 1, 1); 
+      #endif
+      NI_move_column(dset->dnel, 2, -1);
+      SUMA_ShowNel(dset->dnel);
+     
       /* zero out some columns and test operations */
       SUMA_LH("Trying masking operations");
       ndset = SUMA_MaskedCopyofDset(dset, maskrow, maskcol, 1, 0); 

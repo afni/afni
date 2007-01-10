@@ -961,6 +961,8 @@ void SUMA_allow_nel_use(int al);
 int SUMA_AddDsetNelCol ( SUMA_DSET *dset, char *col_label, 
                      SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride);
+int SUMA_InsertDsetNelCol ( SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp, void *col, 
+                     void *col_attr, int stride, int icol);
 int SUMA_AddNelCol ( NI_element *nel, char *col_label,
                      SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride);

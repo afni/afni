@@ -246,8 +246,8 @@ int main (int argc,char *argv[])
             exit(1);
          }
       }else {
-         SUMA_S_Err(  "Failed to recognize\n"
-                      "ROI type from filename.");
+         SUMA_S_Errv(  "Failed to recognize\n"
+                      "ROI type from filename '%s'\n", input_name_v[i]);
          exit(1);
       } 
       
@@ -351,6 +351,9 @@ int main (int argc,char *argv[])
          nn = NI_write_element(  ns , dset->ngr , NI_BINARY_MODE ); 
          break;
       case SUMA_1D:
+         if (LocalHead) SUMA_ShowNel(dset->dnel);
+         NI_insert_column(dset->dnel, dset->inel->vec_typ[0], dset->inel->vec[0], 0); 
+         if (LocalHead) SUMA_ShowNel(dset->dnel);
          nn = NI_write_element(  ns , dset->dnel , NI_TEXT_MODE | NI_HEADERSHARP_FLAG);  
          break;
       default:
