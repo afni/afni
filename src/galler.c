@@ -72,7 +72,12 @@ int main( int argc , char *argv[] )
    /* - - - - - - - - - - */
 
    if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
-     printf("Usage: galler infile prefix\n") ;
+     printf("Usage: galler infile outdirectory\n") ;
+     printf(
+       "Creates an HTML thumbnail image gallery in 'outdirectory',\n"
+       "using the specification in 'infile', which consists of\n"
+       "a series of 1 line commands and file specifications.\n"
+     ) ;
      exit(0) ;
    }
 
