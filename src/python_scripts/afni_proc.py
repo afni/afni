@@ -784,15 +784,16 @@ g_help_string = """
 
         -regress_opts_3dD OPTS ...   : specify extra options for 3dDeconvolve
 
-                e.g. -regress_opts_3dD -gltsym ../contr/contrast1.1D \\
-                                       -glt_label FACEvsDONUT        \\
+                e.g. -regress_opts_3dD -gltsym ../contr/contrast1.1D   \\
+                                       -glt_label 1 FACEvsDONUT        \\
                                        -xjpeg Xmat
 
             This option allows the user to add extra options to the 3dDeconvolve
             command.  Note that only one -regress_opts_3dD should be applied,
             which may be used for multiple 3dDeconvolve options.
 
-            Please see '3dDeconvolve -help' for more information.
+            Please see '3dDeconvolve -help' for more information, or the link:
+                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
 
         -regress_polort DEGREE  : specify the polynomial degree of baseline
 
@@ -804,8 +805,7 @@ g_help_string = """
             degree of polynomial.  Note that this will create DEGREE * NRUNS
             regressors.
 
-            Please see '3dDeconvolve -help' for more information, or the link:
-                http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
+            Please see '3dDeconvolve -help' for more information.
 
         -regress_stim_labels LAB1 ...   : specify labels for stimulus types
 
@@ -926,9 +926,10 @@ g_history = """
          - added options '-bash', '-copy_files', '-volreg_zpad', '-tlrc_anat',
              '-tlrc_base', '-tlrc_no_ss', '-tlrc_rmode', '-tlrc_suffix'
     1.9  Jan 09, 2007 : added aligned line wrapping (see afni_util.py)
+    1.10 Jan 11, 2007 : set subj = $argv[1], added index to -glt_label in -help
 """
 
-g_version = "version 1.9, January 10, 2007"
+g_version = "version 1.10, January 11, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -1274,7 +1275,7 @@ class SubjProcSream:
                       '# script setup\n\n'
                       '# the user may specify a single subject to run with\n')
         self.fp.write('if ( $#argv > 0 ) then  \n'
-                      '    set subj = $argv[0] \n'
+                      '    set subj = $argv[1] \n'
                       'else                    \n'
                       '    set subj = %s       \n'
                       'endif\n\n' % self.subj_id )
