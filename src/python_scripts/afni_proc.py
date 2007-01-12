@@ -1,18 +1,5 @@
 #!/usr/bin/env python
 
-# todo: - verify whether dsets contain subj_id as sub-string
-#
-#
-# For now, do not consider re-running old process steps from
-# script dir.  Since the purpose of this python script is to
-# create a tcsh script, then that script would need to be
-# responsible for creation of the python state.  Maybe we can
-# create a state file with the subject ID, and allow the user
-# to specify it along with an execution directory.
-#
-# dset name form is index.user_prefix.run.operation
-# e.g. p02.SUBJ.r03.volreg (+orig)
-#
 # note: in the script, runs are 1-based (probably expected)
 
 import sys
@@ -151,22 +138,22 @@ g_help_string = """
            like analyze_ht05.  Note that the contrast files have been renamed
            from contrast*.1D to glt*.txt, though the contents have not changed.
 
-           afni_proc.py -dsets ED/ED_r??+orig.HEAD                           \\
-                  -subj_id ED.8.glt                                          \\
-                  -copy_anat ED/EDspgr                                       \\
-                  -tcat_remove_first_trs 2                                   \\
-                  -volreg_align_to first                                     \\
-                  -regress_stim_times misc_files/stim_times.*.1D             \\
-                  -regress_stim_labels ToolMovie HumanMovie                  \\
-                                       ToolPoint HumanPoint                  \\
-                  -regress_basis 'TENT(0,14,8)'                              \\
-                  -regress_opts_3dD                                          \\
-                      -gltsym ../misc_files/glt1.txt -glt_label 1 FullF      \\
-                      -gltsym ../misc_files/glt2.txt -glt_label 2 HvsT       \\
-                      -gltsym ../misc_files/glt3.txt -glt_label 3 MvsP       \\
-                      -gltsym ../misc_files/glt4.txt -glt_label 4 HMvsHP     \\
-                      -gltsym ../misc_files/glt5.txt -glt_label 5 TMvsTP     \\
-                      -gltsym ../misc_files/glt6.txt -glt_label 6 HPvsTP     \\
+           afni_proc.py -dsets ED/ED_r??+orig.HEAD                         \\
+                  -subj_id ED.8.glt                                        \\
+                  -copy_anat ED/EDspgr                                     \\
+                  -tcat_remove_first_trs 2                                 \\
+                  -volreg_align_to first                                   \\
+                  -regress_stim_times misc_files/stim_times.*.1D           \\
+                  -regress_stim_labels ToolMovie HumanMovie                \\
+                                       ToolPoint HumanPoint                \\
+                  -regress_basis 'TENT(0,14,8)'                            \\
+                  -regress_opts_3dD                                        \\
+                      -gltsym ../misc_files/glt1.txt -glt_label 1 FullF    \\
+                      -gltsym ../misc_files/glt2.txt -glt_label 2 HvsT     \\
+                      -gltsym ../misc_files/glt3.txt -glt_label 3 MvsP     \\
+                      -gltsym ../misc_files/glt4.txt -glt_label 4 HMvsHP   \\
+                      -gltsym ../misc_files/glt5.txt -glt_label 5 TMvsTP   \\
+                      -gltsym ../misc_files/glt6.txt -glt_label 6 HPvsTP   \\
                       -gltsym ../misc_files/glt7.txt -glt_label 7 HMvsTM
 
         5. Similar to #4, but replace some glt files with SYM, and request
@@ -310,6 +297,14 @@ g_help_string = """
             the bash shell, this option will suggest the 'bash' form of a
             command to execute the newly created script.
 
+            example of tcsh form for execution:
+
+                tcsh -x proc.ED.8.glt |& tee output.proc.ED.8.glt
+
+            example of bash form for execution:
+
+                tcsh -x proc.ED.8.glt 2>&1 | tee output.proc.ED.8.glt
+
             Please see "man bash" or "man tee" for more information.
 
         -blocks BLOCK1 ...      : specify the processing blocks to apply
@@ -369,6 +364,11 @@ g_help_string = """
             would be given names with prefix 'rm.'.  By default, those files
             are deleted at the end of the script.  This option blocks that
             deletion.
+
+        -move_preproc_files     : move preprocessing files to preproc.data dir
+
+            At the end of the output script, create a 'preproc.data' directory,
+            and move most of the files there (dfile, outcount, pb*, rm*).
 
         -no_proc_command        : do not print afni_proc.py command in script
 
@@ -783,6 +783,13 @@ g_help_string = """
 
             See also -regress_iresp_prefix, -regress_basis.
 
+        -regress_no_motion      : do not apply motion params in 3dDeconvolve
+
+                e.g. -regress_no_motion
+
+            This option prevents the program from adding the registration
+            parameters (from volreg) to the 3dDeconvolve command.
+
         -regress_opts_3dD OPTS ...   : specify extra options for 3dDeconvolve
 
                 e.g. -regress_opts_3dD -gltsym ../contr/contrast1.txt  \\
@@ -923,14 +930,18 @@ g_history = """
     1.7  Jan 03, 2007 : help updates, no blank '\\' line from -gltsym
     1.8  Jan 08, 2007 :
          - changed default script name to proc.SUBJ_ID, and removed -script
-             from most examples
-         - added options '-bash', '-copy_files', '-volreg_zpad', '-tlrc_anat',
-             '-tlrc_base', '-tlrc_no_ss', '-tlrc_rmode', '-tlrc_suffix'
+           from most examples
+         - added options -bash, -copy_files, -volreg_zpad, -tlrc_anat,
+           -tlrc_base, -tlrc_no_ss, -tlrc_rmode, -tlrc_suffix
     1.9  Jan 09, 2007 : added aligned line wrapping (see afni_util.py)
     1.10 Jan 12, 2007 : set subj = $argv[1], added index to -glt_label in -help
+    1.11 Jan 12, 2007 :
+         - added options -move_preproc_files, -regress_no_motion
+         - use $output_dir var in script, and echo version at run-time
+         - append .$subj to more output files 
 """
 
-g_version = "version 1.10, January 12, 2007"
+g_version = "version 1.11, January 12, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -961,6 +972,7 @@ class SubjProcSream:
         self.subj_id    = 'SUBJ'        # hopefully user will replace this
         self.subj_label = '$subj'       # replace this for execution
         self.out_dir    = ''            # output directory for use by script
+        self.od_var     = ''            # output dir variable: $output_dir
         self.script     = None          # script name, default proc.SUBJ
         self.overwrite  = False         # overwrite script file?
         self.fp         = None          # file object
@@ -1014,6 +1026,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-copy_anat', 1, [])
         self.valid_opts.add_opt('-copy_files', -1, [])
         self.valid_opts.add_opt('-keep_rm_files', 0, [])
+        self.valid_opts.add_opt('-move_preproc_files', 0, [])
         self.valid_opts.add_opt('-tlrc_anat', 0, [])
         self.valid_opts.add_opt('-tlrc_base', 1, [])
         self.valid_opts.add_opt('-tlrc_no_ss', 0, [])
@@ -1058,6 +1071,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_no_fitts', 0, [])
         self.valid_opts.add_opt('-regress_no_ideals', 0, [])
         self.valid_opts.add_opt('-regress_no_iresp', 0, [])
+        self.valid_opts.add_opt('-regress_no_motion', 0, [])
         self.valid_opts.add_opt('-regress_opts_3dD', -1, [])
 
 
@@ -1086,6 +1100,7 @@ class SubjProcSream:
 
         # update out_dir now (may combine option results)
         if self.out_dir == '': self.out_dir = '%s.results' % self.subj_label
+        self.od_var = '$output_dir'
 
         if self.verb > 3: self.show('end get_user_opts ')
 
@@ -1270,8 +1285,8 @@ class SubjProcSream:
             return 1
 
         self.fp.write('#!/usr/bin/env tcsh\n\n')
-        self.fp.write('# auto-generated by afni_proc.py, %s\n' % asctime())
-        self.fp.write('# (%s)\n\n'% g_version)
+        self.fp.write('echo "auto-generated by afni_proc.py, %s"\n' % asctime())
+        self.fp.write('echo "(%s)"\n\n'% g_version)
         self.fp.write('# --------------------------------------------------\n'
                       '# script setup\n\n'
                       '# the user may specify a single subject to run with\n')
@@ -1280,45 +1295,57 @@ class SubjProcSream:
                       'else                    \n'
                       '    set subj = %s       \n'
                       'endif\n\n' % self.subj_id )
+        self.fp.write('# assign output directory name\n'
+                      'set output_dir = %s\n\n' % self.out_dir)
         self.fp.write('# verify that the results directory does not yet exist\n'
                       'if ( -d %s ) then \n'
                       '    echo output dir "$subj.results" already exists\n'
                       '    exit                     \n'
-                      'endif\n\n' % self.out_dir)
+                      'endif\n\n' % self.od_var)
         self.fp.write('# set list of runs\n')
         self.fp.write('set runs = (`count -digits 2 1 %d`)\n\n' % self.runs)
 
         self.fp.write('# create results directory\n')
-        self.fp.write('mkdir %s\n\n' % self.out_dir)
+        self.fp.write('mkdir %s\n\n' % self.od_var)
 
         if len(self.stims_orig) > 0: # copy stim files into script's stim dir
             str = '# create stimuli directory, and copy stim files\n' \
-                  'mkdir %s/stimuli\ncp ' % self.out_dir
+                  'mkdir %s/stimuli\ncp ' % self.od_var
             for ind in range(len(self.stims)):
                 str += '%s ' % self.stims_orig[ind]
-            str += '%s/stimuli\n\n' % self.out_dir
+            str += '%s/stimuli\n\n' % self.od_var
             self.fp.write(add_line_wrappers(str))
 
         if self.anat:
             str = '# copy anatomy to results dir\n'     \
                   '3dcopy %s %s/%s\n\n' %               \
-                      (self.anat.rpv(), self.out_dir, self.anat.prefix)
+                      (self.anat.rpv(), self.od_var, self.anat.prefix)
             self.fp.write(add_line_wrappers(str))
 
         opt = self.user_opts.find_opt('-copy_files')
         if opt and len(opt.parlist) > 0:
             str = '# copy extra files into results dir\n' \
                   'cp -rv %s %s\n\n' %                    \
-                      (' '.join(quotize_list(opt.parlist,'')),self.out_dir)
+                      (' '.join(quotize_list(opt.parlist,'')),self.od_var)
             self.fp.write(add_line_wrappers(str))
 
         self.fp.flush()
 
     # and last steps
     def finalize_script(self):
+        str = '# -------------------------------------------------------\n\n'
+        self.fp.write(str)
+
         if self.rm_rm:
             self.fp.write('# remove temporary rm.* files\n'
                           '\\rm -f rm.*\n\n')
+
+        if self.user_opts.find_opt('-move_preproc_files'):
+            cmd_str = \
+              "# move preprocessing files to 'preproc.data' directory\n"   \
+              "mkdir preproc.data\n"                                       \
+              "mv dfile.r??.1D outcount* pb??.$subj.r??.* rm.* preproc.data\n\n"
+            self.fp.write(add_line_wrappers(cmd_str))
 
         if self.user_opts.find_opt('-tlrc_anat'):
             cmd_str = db_cmd_tlrc(self.anat.pv(), self.user_opts)
