@@ -1910,5 +1910,7 @@
                       get_next_indentation, needs_wrapper, find_command_end,
                       num_leading_line_spaces, find_next_space, find_last_space
 
-11 Jan 2007: afni_proc.py: subj = $argv[1], add index to -glt_label in -help
+11 Jan 2007: modified afni_proc.py:
+      - subj = $argv[1], added index to -glt_label in -help
+      - rename glt contrast files to gltN.txt (so change AFNI_data2 files)
 

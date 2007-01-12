@@ -160,13 +160,13 @@ g_help_string = """
                                        ToolPoint HumanPoint                  \\
                   -regress_basis 'TENT(0,14,8)'                              \\
                   -regress_opts_3dD                                          \\
-                      -gltsym ../misc_files/contrast1.1D -glt_label 1 FullF  \\
-                      -gltsym ../misc_files/contrast2.1D -glt_label 2 HvsT   \\
-                      -gltsym ../misc_files/contrast3.1D -glt_label 3 MvsP   \\
-                      -gltsym ../misc_files/contrast4.1D -glt_label 4 HMvsHP \\
-                      -gltsym ../misc_files/contrast5.1D -glt_label 5 TMvsTP \\
-                      -gltsym ../misc_files/contrast6.1D -glt_label 6 HPvsTP \\
-                      -gltsym ../misc_files/contrast7.1D -glt_label 7 HMvsTM
+                      -gltsym ../misc_files/glt1.txt -glt_label 1 FullF      \\
+                      -gltsym ../misc_files/glt2.txt -glt_label 2 HvsT       \\
+                      -gltsym ../misc_files/glt3.txt -glt_label 3 MvsP       \\
+                      -gltsym ../misc_files/glt4.txt -glt_label 4 HMvsHP     \\
+                      -gltsym ../misc_files/glt5.txt -glt_label 5 TMvsTP     \\
+                      -gltsym ../misc_files/glt6.txt -glt_label 6 HPvsTP     \\
+                      -gltsym ../misc_files/glt7.txt -glt_label 7 HMvsTM
 
         5. Similar to #4, but replace some glt files with SYM, and request
            to run @auto_tlrc.
@@ -332,8 +332,8 @@ g_help_string = """
 
         -copy_files file1 ...   : copy file1, etc. into the results directory
 
-                e.g. -copy_files glt_AvsB.1D glt_BvsC.1D glt_eat_cheese.1D
-                e.g. -copy_files contrasts/glt_*.1D
+                e.g. -copy_files glt_AvsB.txt glt_BvsC.1D glt_eat_cheese.txt
+                e.g. -copy_files contrasts/glt_*.txt
 
             This option allows the user to copy some list of files into the
             results directory.  This would happen before the tcat block, so
@@ -784,7 +784,7 @@ g_help_string = """
 
         -regress_opts_3dD OPTS ...   : specify extra options for 3dDeconvolve
 
-                e.g. -regress_opts_3dD -gltsym ../contr/contrast1.1D   \\
+                e.g. -regress_opts_3dD -gltsym ../contr/contrast1.txt  \\
                                        -glt_label 1 FACEvsDONUT        \\
                                        -xjpeg Xmat
 
@@ -926,10 +926,10 @@ g_history = """
          - added options '-bash', '-copy_files', '-volreg_zpad', '-tlrc_anat',
              '-tlrc_base', '-tlrc_no_ss', '-tlrc_rmode', '-tlrc_suffix'
     1.9  Jan 09, 2007 : added aligned line wrapping (see afni_util.py)
-    1.10 Jan 11, 2007 : set subj = $argv[1], added index to -glt_label in -help
+    1.10 Jan 12, 2007 : set subj = $argv[1], added index to -glt_label in -help
 """
 
-g_version = "version 1.10, January 11, 2007"
+g_version = "version 1.10, January 12, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
