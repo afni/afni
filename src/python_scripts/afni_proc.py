@@ -148,7 +148,8 @@ g_help_string = """
 
         4. Similar to #3, but append a single -regress_opts_3dD option to
            include contrasts.  The intention is to create a script very much
-           like analyze_ht05.
+           like analyze_ht05.  Note that the contrast files have been renamed
+           from contrast*.1D to glt*.txt, though the contents have not changed.
 
            afni_proc.py -dsets ED/ED_r??+orig.HEAD                           \\
                   -subj_id ED.8.glt                                          \\
