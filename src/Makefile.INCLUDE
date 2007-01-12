@@ -471,7 +471,7 @@ dsetdup:dsetdup.o
 
 1dSEM:1dSEM.o libmri.a sqrmat.c matrix.c matrix.h
 	$(RM) $@
-	$(CC) -o 1dSEM 1dSEM.o sqrmat.o $(LFLAGS) $(LLIBS) -lf2c -lmri
+	$(CC) -o 1dSEM 1dSEM.o sqrmat.c $(LFLAGS) $(LLIBS) -lf2c -lmri
 
 3dDTtoDWI:3dDTtoDWI.o libmri.a
 	$(RM) $@
