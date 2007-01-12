@@ -1914,3 +1914,8 @@
       - subj = $argv[1], added index to -glt_label in -help
       - rename glt contrast files to gltN.txt (so change AFNI_data2 files)
 
+12 Jan 2007: modified afni_proc.py (1.11), db_mod.py:
+      - added options -move_preproc_files, -regress_no_motion
+      - use $output_dir var in script, and echo version at run-time
+      - append .$subj to more output files
+
