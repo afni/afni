@@ -1384,6 +1384,8 @@ MRI_IMAGE * mri_rgb_blur2D( float sig , MRI_IMAGE *im )
    MRI_IMARR *imar ;
    MRI_IMAGE *rim , *gim , *bim , *newim ;
 
+ENTRY("mri_rgb_blur2D") ;
+
    if( im == NULL || im->kind != MRI_rgb || sig <= 0.0f ) RETURN(NULL) ;
 
    imar = mri_rgb_to_3float(im) ;
@@ -1400,6 +1402,38 @@ MRI_IMAGE * mri_rgb_blur2D( float sig , MRI_IMAGE *im )
 
    newim = mri_3to_rgb(rim,gim,bim) ; MRI_COPY_AUX(newim,im) ;
    DESTROY_IMARR(imar) ; RETURN(newim) ;
+}
+
+/*-----------------------------------------------------------------------------*/
+/*! Blurring, applied to a 2D float image. */
+
+MRI_IMAGE * mri_float_blur2D( float sig , MRI_IMAGE *im )
+{
+   MRI_IMAGE *newim ;
+
+ENTRY("mri_float_blur2D") ;
+
+   if( im == NULL || im->kind != MRI_float || sig <= 0.0f ) RETURN(NULL) ;
+   newim = mri_copy(im) ;
+   FIR_blur_volume_3d( newim->nx,newim->ny,1 , 1.0f,1.0f,1.0f ,
+                       MRI_FLOAT_PTR(newim)  , sig,sig,0.0f    ) ;
+   RETURN(newim) ;
+}
+
+/*-----------------------------------------------------------------------------*/
+/*! Blurring, applied to a 3D float image. */
+
+MRI_IMAGE * mri_float_blur3D( float sig , MRI_IMAGE *im )
+{
+   MRI_IMAGE *newim ;
+
+ENTRY("mri_float_blur3D") ;
+
+   if( im == NULL || im->kind != MRI_float || sig <= 0.0f ) RETURN(NULL) ;
+   newim = mri_copy(im) ;
+   FIR_blur_volume_3d( newim->nx,newim->ny,newim->nz , 1.0f,1.0f,1.0f ,
+                       MRI_FLOAT_PTR(newim)  , sig,sig,sig             ) ;
+   RETURN(newim) ;
 }
 
 /**************************************************************************/
