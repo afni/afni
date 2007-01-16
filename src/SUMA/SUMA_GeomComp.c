@@ -4572,7 +4572,10 @@ float *SUMA_estimate_dset_FWHM_1dif(SUMA_SurfaceObject *SO, SUMA_DSET *dset,
    if (bfull) SUMA_free(bfull); bfull=NULL; 
    SUMA_RETURN(fwhmv);
 }
-
+#define OK_FWHM_DBG
+static int DbgFWHM_1_dif=0;
+void SUMA_SetDbgFWHM(int i) { DbgFWHM_1_dif=i; return; }
+int SUMA_GetDbgFWHM(void) { return(DbgFWHM_1_dif); }
 /*!
    Estimate the FWHM on a surface. 
    FWHM based on implementation in mri_estimate_FWHM_1dif (Forman et. al 1995)
@@ -4592,15 +4595,32 @@ float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask,
    int count, counts, oke, iseg, k, in, ink;
    float ss=-1.0f ;
    byte *visited = NULL;
+   FILE *fdbg=NULL;
+   SUMA_Boolean LocalHead=YUP;
    
    SUMA_ENTRY;
-   
+   #ifdef OK_FWHM_DBG
+      if (SUMA_GetDbgFWHM()) {
+         SUMA_S_Warn("Function in debug mode. File of same name created!\n");
+         fdbg = fopen(FuncName,"w");
+         fprintf(fdbg,"#--------------------\n#n1   n2  SegLen   dfds\n");
+      }
+   #endif
    if (!fim || !SO) {
       SUMA_S_Errv("NULL input fim=%p, SO=%p\n", fim, SO);
       SUMA_RETURN(ss);
    }
-   if (!SO->FN || !SO->EL) {
-      SUMA_S_Errv("J'ai besoin des voisins(%p) et des cotes (%p), cherie\n", SO->FN, SO->EL);
+   
+   if (!SO->FN || !SO->EL || !SO->MF || !SO->PolyArea) {
+      if (!SUMA_SurfaceMetrics_eng(SO, "EdgeList|MemberFace|PolyArea", NULL, 0, SUMAg_CF->DsetList)){
+         SUMA_SL_Err("Failed to create needed accessories");
+         SUMA_RETURN(ss);
+      }
+   }
+
+   if (!SO->FN || !SO->EL || !SO->MF || !SO->PolyArea) {
+      SUMA_S_Errv("J'ai besoin des voisins(%p) et des cotes (%p), cherie\nEt en plus, MF(%p) and PolyArea(%p)", 
+            SO->FN, SO->EL, SO->MF, SO->PolyArea);
       SUMA_RETURN(ss);
    }
    /*----- estimate the variance of the data -----*/
@@ -4612,7 +4632,7 @@ float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask,
    if( count < 9 || fsq <= 0.0 ){     /* no data? */
       SUMA_RETURN(ss) ;
    }
-
+   
    var = (fsq - (fsum * fsum)/count) / (count-1.0);
    if( var <= 0.0 ){                  /* crappy data? */
       SUMA_RETURN(ss);
@@ -4653,6 +4673,11 @@ float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask,
                   ds += SO->EL->Le[iseg];
                   dfds = (fim[ink] - arg) ;
                   dfdssum += dfds; dfdssq += dfds*dfds; 
+                  #ifdef OK_FWHM_DBG
+                     if (SUMA_GetDbgFWHM()) {
+                        fprintf(fdbg,"%5d %5d   %.3f  %.3f\n", in, ink, SO->EL->Le[iseg], dfds);      
+                     }
+                  #endif
                   counts++;
                }
             }
@@ -4667,7 +4692,7 @@ float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask,
 
    varss = (counts < 36) ? 0.0
                        : (dfdssq - (dfdssum * dfdssum)/counts) / (counts-1.0);
-   ds /= counts;  /* the average segment length */
+   ds /= (double)counts;  /* the average segment length */
 
    /*----- now estimate the FWHMs -----*/
 
@@ -4676,7 +4701,13 @@ float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask,
    arg = 1.0 - 0.5*(varss/var);
    ss  = ( arg <= 0.0 || arg >= 1.0 ) ? -1.0f
                                        : 2.35482*sqrt( -1.0 / (4.0*log(arg)) )*ds;
-
+   
+   #ifdef OK_FWHM_DBG
+      if (SUMA_GetDbgFWHM()) {
+         fprintf(fdbg,"#counts=%d\n#var=%f\n#varss=%f\n#ds=%.3f\n#arg=%.3f\n#ss=%f\n", counts, var, varss, ds, arg, ss);
+         fclose(fdbg);
+      }
+   #endif                  
    SUMA_RETURN(ss) ;
 }
 

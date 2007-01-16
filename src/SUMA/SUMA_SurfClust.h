@@ -59,7 +59,6 @@ SUMA_DSET *SUMA_MaskDsetByClustList(SUMA_DSET *idset, SUMA_SurfaceObject *SO,
                      DList *list, SUMA_Boolean FullList, char *leName); 
 SUMA_DSET *SUMA_SurfClust_list_2_DsetMask(SUMA_SurfaceObject *SO, 
                      DList *list, SUMA_Boolean FullList, char *leName);
-float *SUMA_CalculateNodeAreas(SUMA_SurfaceObject *SO);
 int SUMA_ClusterCenterofMass  (SUMA_SurfaceObject *SO, SUMA_CLUST_DATUM *cd, int UseSurfDst);
 SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(int dothisnode, SUMA_CLUST_DATUM *AddToThisClust, 
                                                 float *ToBeAssigned, int *N_TobeAssigned, float *NodeArea,

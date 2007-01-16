@@ -73,9 +73,11 @@ if (nargin == 1),
 	[ST,I] = dbstack; 
 	if (length(ST) > 1), %use the calling function name as a signature
 		[jnk1, CallPath, CallFname] = GetPath(ST(2).name);
+      if (CallPath(1)=='.') CallPath = pwd; end
 	else %this function is called directly from command line
 		CallPath = pwd;
 		CallFname = mfilename;
+      if (strcmp(CallFname,'plotsign2')), CallFname='ShellPrompt'; end;
 	end
 	[tmp, smach] = unix('hostname');
 	%remove this annoying tset message (some bug ....)

@@ -2410,7 +2410,7 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    static char FuncName[]={"SUMA_RenderToPixMap"};
 
    SUMA_ENTRY;
-
+   SUMA_S_Note("CALLED!");
    dpy = XOpenDisplay(NULL);
    if (dpy == NULL)
     fprintf(SUMA_STDERR,"Error %s: could not open display", FuncName);

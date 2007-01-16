@@ -1,4 +1,7 @@
 function A = suma_stitch(imaname)
+% A function to put together a series of suma recorder images
+% Very crude, only for the intrepid.
+% Example: A = suma_stitch('imageseries_');
 figure(1); clf
 [e, em, lst] = zglobb({sprintf('%s*', imaname)});
 N_im = length(lst)

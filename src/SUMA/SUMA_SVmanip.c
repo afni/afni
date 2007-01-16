@@ -1785,7 +1785,19 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
          }
       } else cf->SUMA_ThrScalePowerBias = 2; 
    }
-   
+   {
+      char *eee = getenv("SUMA_SnapshotOverSampling");
+      if (eee) {
+         cf->SUMA_SnapshotOverSampling = (int)strtod(eee, NULL);
+         if (cf->SUMA_SnapshotOverSampling < 1 || cf->SUMA_SnapshotOverSampling>10) {
+            fprintf (SUMA_STDERR,   "Warning %s:\n"
+                                    "Bad value for environment variable\n"
+                                    "SUMA_SnapshotOverSampling.\n"
+                                    "Assuming default of 1", FuncName);
+            cf->SUMA_SnapshotOverSampling = 1;
+         }
+      } else cf->SUMA_SnapshotOverSampling = 1; 
+   }
    {
       char *eee = getenv("SUMA_WarnBeforeClose");
       if (eee) {
@@ -1834,6 +1846,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    } else {
       cf->ColMixMode = SUMA_ORIG_MIX_MODE;
    }
+   
    
    cf->GroupList = NULL;
    cf->N_Group = -1;
