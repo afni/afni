@@ -720,9 +720,12 @@ def db_tlrc_opts_okay(opts):
         return False
 
     dset = afni_base.afni_name(opt_anat.parlist[0])
-    if not dset.exist():
-        print "** -tlrc_anat dataset '%s' does not exist" % opt_anat.parlist[0]
-        return False
+    if not dset.exist():  # allow for no +view
+        dset = afni_base.afni_name(opt_anat.parlist[0]+'+orig')
+        if not dset.exist():
+            print "** -tlrc_anat dataset '%s' does not exist" % \
+                  opt_anat.parlist[0]
+            return False
 
     # base image does not need to exist (might be in abin)
 
@@ -733,6 +736,10 @@ def db_cmd_tlrc(dname, options):
     if not dname : # should include +orig
         print "** missing dataset name for tlrc operation"
         return None
+
+    dset = afni_base.afni_name(dname)   # allow for no +view
+    if not dset.exist():
+        dname = dname + '+orig'
 
     opt = options.find_opt('-tlrc_base')
     if opt: base = opt.parlist[0]
