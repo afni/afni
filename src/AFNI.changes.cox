@@ -6029,3 +6029,4 @@
 
 15 Jan 2007
  * Added mri_gamma_rgb_inplace() to mri_to_rgb.c.
+ * Modified 1dsvd.c to change Left for Right.
