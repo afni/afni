@@ -238,7 +238,7 @@ int main( int argc , char *argv[] )
 
 static void GAL_imageize( char *iname, char *prefix , int lab )
 {
-   MRI_IMAGE *inim , *qim ;
+   MRI_IMAGE *inim , *qim , *bim ;
    int nx,ny , nxnew , nynew ;
 
    imagename[0] = thumbname[0] = '\0' ;
@@ -262,9 +262,12 @@ static void GAL_imageize( char *iname, char *prefix , int lab )
      float fx , fy ;
      fx = imagesize / (float)nx ; fy = imagesize / (float)ny ;
      fx = MIN(fx,fy) ; nxnew = (int)(nx*fx); nynew = (int)(ny*fx) ;
-     qim = mri_resize( inim , nxnew , nynew ) ;
+     if( fx < 0.95f ) bim = mri_rgb_blur2D( 0.4/fx , inim ) ;
+     else             bim = inim ;
+     qim = mri_resize( bim , nxnew , nynew ) ;
      nx_im = qim->nx ; ny_im = qim->ny ;
-     mri_write_jpg( imagename , qim ) ; mri_free(qim) ;
+     mri_write_jpg( imagename , qim ) ;
+     mri_free(qim) ; if( bim != inim ) mri_free(bim) ;
    }
 
    sprintf(thumbname,"%-1.999s/Th%04d.jpg",prefix,lab) ;

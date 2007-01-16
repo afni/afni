@@ -1469,5 +1469,6 @@ extern THD_fvec3 mri_nstat_fwhmxyz( int,int,int ,
 extern void mri_blur3D_variable( MRI_IMAGE * , byte * ,
                                  MRI_IMAGE * , MRI_IMAGE * , MRI_IMAGE * ) ;
 
+extern MRI_IMAGE * mri_rgb_blur2D( float sig , MRI_IMAGE *im ) ;
 
 #endif /* _MCW_MRILIB_HEADER_ */
