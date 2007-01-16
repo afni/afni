@@ -112,7 +112,7 @@ ENTRY("EDIT_blur_volume_3d") ;
 
    /*** 10 Jan 2003: find bot and top of data input */
 
-   if( allow_fir ){ 
+   if( allow_fir ){
      ii = (int) ceil( 2.5 * sigmax / dx ) ;
      jj = (int) ceil( 2.5 * sigmay / dy ) ;
      kk = (int) ceil( 2.5 * sigmaz / dz ) ;
@@ -806,14 +806,14 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
       default:
       break ;
    }
-   
+
    if( nx < 512 ) goto SMALLIMAGE;
 
    /* In this function, for each value of kk (z index), we extract a
       2D (y,x) slice, with m-long buffers on each side in the y-direction.
       The purpose of this is to get multiple lines of y-direction data into
       the CPU cache, to speed up processing (a lot).  For the x-axis, this
-      was unneeded, since the x-rows are contiguous in memory. For data at 256x256 
+      was unneeded, since the x-rows are contiguous in memory. For data at 256x256
       this 2D extract/process/insert trick was nugatory. However, for 512x512 data
       this trick becomes important. The same method is used for the z-axis in fir_blurz*/
 
@@ -949,7 +949,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
    /*** finito, cara mia mine, oh, oh, oh, each time we part, my heart wants to die...***/
 
    free((void *)ss) ; free((void *)rr) ; EXRETURN ;
-   
 
 /* for small images (nx<512), use slice as is and don't use reslicing trick*/
 
@@ -1097,7 +1096,7 @@ SMALLIMAGE:
 
    }  /* end of switch on m */
 
-   free((void *)r) ; EXRETURN ;  
+   free((void *)r) ; EXRETURN ;
 }
 
 /*-------------------------------------------------------------------*/
@@ -1375,6 +1374,32 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
    }
 
    EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------------*/
+/*! Blurring, applied to a 2D RGB image. */
+
+MRI_IMAGE * mri_rgb_blur2D( float sig , MRI_IMAGE *im )
+{
+   MRI_IMARR *imar ;
+   MRI_IMAGE *rim , *gim , *bim , *newim ;
+
+   if( im == NULL || im->kind != MRI_rgb || sig <= 0.0f ) RETURN(NULL) ;
+
+   imar = mri_rgb_to_3float(im) ;
+   rim = IMARR_SUBIM(imar,0) ;
+   gim = IMARR_SUBIM(imar,1) ;
+   bim = IMARR_SUBIM(imar,2) ;
+
+   FIR_blur_volume_3d( rim->nx,rim->ny,1 , 1.0f,1.0f,1.0f ,
+                       MRI_FLOAT_PTR(rim) , sig,sig,0.0f   ) ;
+   FIR_blur_volume_3d( gim->nx,gim->ny,1 , 1.0f,1.0f,1.0f ,
+                       MRI_FLOAT_PTR(gim) , sig,sig,0.0f   ) ;
+   FIR_blur_volume_3d( bim->nx,bim->ny,1 , 1.0f,1.0f,1.0f ,
+                       MRI_FLOAT_PTR(bim) , sig,sig,0.0f   ) ;
+
+   newim = mri_3to_rgb(rim,gim,bim) ; MRI_COPY_AUX(newim,im) ;
+   DESTROY_IMARR(imar) ; RETURN(newim) ;
 }
 
 /**************************************************************************/
