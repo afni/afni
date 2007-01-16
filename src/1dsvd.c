@@ -193,14 +193,14 @@ int main( int argc , char *argv[] )
 
    if( !do_1Dll ) printf("\n++ Left Vectors [U]:\n   " ) ;
    else           printf("# Left Vectors\n#") ;
-   for( jj=0 ; jj < nvec ; jj++ ) printf(" %12.5g",sval[jj]) ;
+   for( jj=0 ; jj < nvec ; jj++ ) printf(" %12.6g",sval[jj]) ;
    printf("\n") ;
-   if( do_1Dll ) printf("#") ; else printf("  ") ;
+   if( do_1Dll ) printf("#") ; else printf("   ") ;
    for( jj=0 ; jj < nvec ; jj++ ) printf(" ------------") ;
    printf("\n") ;
    for( kk=0 ; kk < nx ; kk++ ){
      if( !do_1Dll) printf("%02d:",kk) ;
-     for( jj=0 ; jj < nvec ; jj++ ) printf(" %12.5g",U(kk,jj)) ;
+     for( jj=0 ; jj < nvec ; jj++ ) printf(" %12.6g",U(kk,jj)) ;
      printf("\n") ;
    }
 
@@ -208,13 +208,13 @@ int main( int argc , char *argv[] )
 
    printf("\n"
           "++ Right Vectors [V]:\n   " ) ;
-   for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.5f",sval[jj]) ;
+   for( jj=0 ; jj < nvec ; jj++ ) printf(" %12.6g",sval[jj]) ;
    printf("\n   ") ;
-   for( jj=0 ; jj < nvec ; jj++ ) printf(" ---------") ;
+   for( jj=0 ; jj < nvec ; jj++ ) printf(" ------------") ;
    printf("\n") ;
    for( kk=0 ; kk < nvec ; kk++ ){
      printf("%02d:",kk) ;
-     for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.5f",V(kk,jj)) ;
+     for( jj=0 ; jj < nvec ; jj++ ) printf(" %12.6g",V(kk,jj)) ;
      printf("\n") ;
    }
 
@@ -239,11 +239,11 @@ int main( int argc , char *argv[] )
 
    printf("\n"
           "++ Pseudo-inverse:\n   " ) ;
-   for( jj=0 ; jj < nx ; jj++ ) printf(" ---------") ;
+   for( jj=0 ; jj < nx ; jj++ ) printf(" ------------") ;
    printf("\n") ;
    for( kk=0 ; kk < nvec ; kk++ ){
      printf("%02d:",kk) ;
-     for( jj=0 ; jj < nx ; jj++ ) printf(" %9.5f",X(kk,jj)) ;
+     for( jj=0 ; jj < nx ; jj++ ) printf(" %12.6g",X(kk,jj)) ;
      printf("\n") ;
    }
 
