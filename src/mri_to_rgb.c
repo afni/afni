@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /*** 7D SAFE [some of it] ***/
@@ -24,35 +24,35 @@ ENTRY("mri_to_rgb") ;
    switch( oldim->kind ){
 
       case MRI_byte:{ byte *qar = MRI_BYTE_PTR(oldim) ;
-         for( ii=0 ; ii < npix ; ii++ )
-            rgb[3*ii] = rgb[3*ii+1] = rgb[3*ii+2] = qar[ii] ;
+        for( ii=0 ; ii < npix ; ii++ )
+          rgb[3*ii] = rgb[3*ii+1] = rgb[3*ii+2] = qar[ii] ;
       } break ;
 
       case MRI_float:{ float *qar = MRI_FLOAT_PTR(oldim) ;
-         for( ii=0 ; ii < npix ; ii++ )
-            rgb[3*ii] = rgb[3*ii+1] = rgb[3*ii+2] = qar[ii] ;
+        for( ii=0 ; ii < npix ; ii++ )
+          rgb[3*ii] = rgb[3*ii+1] = rgb[3*ii+2] = qar[ii] ;
       } break ;
 
       case MRI_short:{ short *qar = MRI_SHORT_PTR(oldim) ;
-         for( ii=0 ; ii < npix ; ii++ )
-            rgb[3*ii] = rgb[3*ii+1] = rgb[3*ii+2] = qar[ii] ;
+        for( ii=0 ; ii < npix ; ii++ )
+          rgb[3*ii] = rgb[3*ii+1] = rgb[3*ii+2] = qar[ii] ;
       } break ;
 
       case MRI_rgb:
-         memcpy( rgb , MRI_RGB_PTR(oldim) , 3*npix ) ;
+        memcpy( rgb , MRI_RGB_PTR(oldim) , 3*npix ) ;
       break ;
 
       case MRI_rgba:{ rgba *qar = MRI_RGBA_PTR(oldim) ;
-         for( ii=0 ; ii < npix ; ii++ ){
-            rgb[3*ii]   = qar[ii].r ;
-            rgb[3*ii+1] = qar[ii].g ;
-            rgb[3*ii+2] = qar[ii].b ;
-         }
+        for( ii=0 ; ii < npix ; ii++ ){
+          rgb[3*ii]   = qar[ii].r ;
+          rgb[3*ii+1] = qar[ii].g ;
+          rgb[3*ii+2] = qar[ii].b ;
+        }
       } break ;
 
       default:
-         fprintf(stderr,"mri_to_rgb:  unrecognized image conversion %d\n",oldim->kind) ;
-         RETURN( NULL );
+        ERROR_message("mri_to_rgb: unrecognized image conversion %d",oldim->kind) ;
+        mri_free(newim) ; RETURN(NULL);
    }
 
    MRI_COPY_AUX(newim,oldim) ;
@@ -63,7 +63,7 @@ ENTRY("mri_to_rgb") ;
    Inputs must be in same formats (# voxels and kinds)!
 -----------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_3to_rgb( MRI_IMAGE * rim , MRI_IMAGE * gim , MRI_IMAGE * bim )
+MRI_IMAGE * mri_3to_rgb( MRI_IMAGE *rim , MRI_IMAGE *gim , MRI_IMAGE *bim )
 {
    MRI_IMAGE *newim ;
    register int ii , npix ;
@@ -79,28 +79,28 @@ ENTRY("mri_3to_rgb") ;
    switch( rim->kind ){
 
       case MRI_byte:{
-         byte * rr=MRI_BYTE_PTR(rim), * gg=MRI_BYTE_PTR(gim), * bb=MRI_BYTE_PTR(bim) ;
-         for( ii=0 ; ii < npix ; ii++ ){
-            rgb[3*ii  ] = rr[ii] ;
-            rgb[3*ii+1] = gg[ii] ;
-            rgb[3*ii+2] = bb[ii] ;
-         }
+        byte *rr=MRI_BYTE_PTR(rim), *gg=MRI_BYTE_PTR(gim), *bb=MRI_BYTE_PTR(bim) ;
+        for( ii=0 ; ii < npix ; ii++ ){
+          rgb[3*ii  ] = rr[ii] ;
+          rgb[3*ii+1] = gg[ii] ;
+          rgb[3*ii+2] = bb[ii] ;
+        }
       }
       break ;
 
       case MRI_float:{
-         float * rr=MRI_FLOAT_PTR(rim), * gg=MRI_FLOAT_PTR(gim), * bb=MRI_FLOAT_PTR(bim) ;
-         for( ii=0 ; ii < npix ; ii++ ){
-            rgb[3*ii  ] = rr[ii] ;
-            rgb[3*ii+1] = gg[ii] ;
-            rgb[3*ii+2] = bb[ii] ;
-         }
+        float *rr=MRI_FLOAT_PTR(rim), *gg=MRI_FLOAT_PTR(gim), *bb=MRI_FLOAT_PTR(bim) ;
+        for( ii=0 ; ii < npix ; ii++ ){
+          rgb[3*ii  ] = rr[ii] ;
+          rgb[3*ii+1] = gg[ii] ;
+          rgb[3*ii+2] = bb[ii] ;
+        }
       }
       break ;
 
       default:
-         fprintf(stderr,"mri_3to_rgb:  unrecognized image conversion %d\n",rim->kind) ;
-         MRI_FATAL_ERROR ;
+        ERROR_message("mri_3to_rgb: unrecognized image conversion %d",rim->kind) ;
+        mri_free(newim) ; RETURN(NULL) ;
    }
 
    MRI_COPY_AUX(newim,rim) ;
@@ -109,12 +109,12 @@ ENTRY("mri_3to_rgb") ;
 
 /*-------------------------------------------------------------------------------*/
 
-MRI_IMARR * mri_rgb_to_3float( MRI_IMAGE * oldim )
+MRI_IMARR * mri_rgb_to_3float( MRI_IMAGE *oldim )
 {
-   MRI_IMARR * imar ;
-   MRI_IMAGE * rim , * gim , * bim ;
-   float     * rr  , * gg  , * bb  ;
-   byte      * rgb ;
+   MRI_IMARR *imar ;
+   MRI_IMAGE *rim , *gim , *bim ;
+   float     *rr  , *gg  , *bb  ;
+   byte      *rgb ;
    int ii , npix ;
 
 ENTRY("mri_rgb_to_3float") ;
@@ -124,13 +124,13 @@ ENTRY("mri_rgb_to_3float") ;
    rim = mri_new_conforming( oldim , MRI_float ) ; rr = MRI_FLOAT_PTR(rim) ;
    gim = mri_new_conforming( oldim , MRI_float ) ; gg = MRI_FLOAT_PTR(gim) ;
    bim = mri_new_conforming( oldim , MRI_float ) ; bb = MRI_FLOAT_PTR(bim) ;
-                                                   rgb= MRI_BYTE_PTR(oldim) ;
+                                                   rgb= MRI_BYTE_PTR(oldim);
    npix = oldim->nvox ;
 
    for( ii=0 ; ii < npix ; ii++ ){
-      rr[ii] = rgb[3*ii  ] ;
-      gg[ii] = rgb[3*ii+1] ;
-      bb[ii] = rgb[3*ii+2] ;
+     rr[ii] = (float)rgb[3*ii  ] ;
+     gg[ii] = (float)rgb[3*ii+1] ;
+     bb[ii] = (float)rgb[3*ii+2] ;
    }
 
    INIT_IMARR(imar) ;
@@ -141,11 +141,11 @@ ENTRY("mri_rgb_to_3float") ;
 
 /*-------------------------------------------------------------------------------*/
 
-MRI_IMARR * mri_rgb_to_3byte( MRI_IMAGE * oldim )  /* 15 Apr 1999 */
+MRI_IMARR * mri_rgb_to_3byte( MRI_IMAGE *oldim )  /* 15 Apr 1999 */
 {
-   MRI_IMARR * imar ;
-   MRI_IMAGE * rim , * gim , * bim ;
-   byte      * rr  , * gg  , * bb  , * rgb ;
+   MRI_IMARR *imar ;
+   MRI_IMAGE *rim , *gim , *bim ;
+   byte      *rr  , *gg  , *bb  , *rgb ;
    int ii , npix ;
 
 ENTRY("mri_rgb_to_3byte") ;
@@ -154,13 +154,13 @@ ENTRY("mri_rgb_to_3byte") ;
    rim = mri_new_conforming( oldim , MRI_byte ) ; rr = MRI_BYTE_PTR(rim) ;
    gim = mri_new_conforming( oldim , MRI_byte ) ; gg = MRI_BYTE_PTR(gim) ;
    bim = mri_new_conforming( oldim , MRI_byte ) ; bb = MRI_BYTE_PTR(bim) ;
-                                                  rgb= MRI_BYTE_PTR(oldim) ;
+                                                  rgb= MRI_BYTE_PTR(oldim);
    npix = oldim->nvox ;
 
    for( ii=0 ; ii < npix ; ii++ ){
-      rr[ii] = rgb[3*ii  ] ;
-      gg[ii] = rgb[3*ii+1] ;
-      bb[ii] = rgb[3*ii+2] ;
+     rr[ii] = rgb[3*ii  ] ;
+     gg[ii] = rgb[3*ii+1] ;
+     bb[ii] = rgb[3*ii+2] ;
    }
 
    INIT_IMARR(imar) ;
@@ -171,11 +171,11 @@ ENTRY("mri_rgb_to_3byte") ;
 
 /*-----------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_sharpen_rgb( float phi , MRI_IMAGE * im )
+MRI_IMAGE * mri_sharpen_rgb( float phi , MRI_IMAGE *im )
 {
-   MRI_IMAGE * flim , * shim , * newim ;
-   byte  * iar , * nar ;
-   float * sar , * far ;
+   MRI_IMAGE *flim , *shim , *newim ;
+   byte  *iar , *nar ;
+   float *sar , *far ;
    int ii , nvox , rr,gg,bb ;
    float fac ;
 
@@ -194,32 +194,31 @@ ENTRY("mri_sharpen_rgb") ;
 
    nvox = newim->nvox ;
    for( ii=0 ; ii < nvox ; ii++ ){
-      if( far[ii] <= 0.0 || sar[ii] <= 0.0 ){
-         nar[3*ii] = nar[3*ii+1] = nar[3*ii+2] = 0 ;
-      } else {
-         fac = sar[ii] / far[ii] ; /* will be positive */
-         rr  = fac * iar[3*ii]   ;
-         gg  = fac * iar[3*ii+1] ;
-         bb  = fac * iar[3*ii+2] ;
-         nar[3*ii  ] = (rr > 255) ? 255 : rr ;
-         nar[3*ii+1] = (gg > 255) ? 255 : gg ;
-         nar[3*ii+2] = (bb > 255) ? 255 : bb ;
-      }
+     if( far[ii] <= 0.0 || sar[ii] <= 0.0 ){
+       nar[3*ii] = nar[3*ii+1] = nar[3*ii+2] = 0 ;
+     } else {
+       fac = sar[ii] / far[ii] ; /* will be positive */
+       rr  = fac * iar[3*ii]   ;
+       gg  = fac * iar[3*ii+1] ;
+       bb  = fac * iar[3*ii+2] ;
+       nar[3*ii  ] = (rr > 255) ? 255 : rr ;
+       nar[3*ii+1] = (gg > 255) ? 255 : gg ;
+       nar[3*ii+2] = (bb > 255) ? 255 : bb ;
+     }
    }
 
    mri_free(flim) ; mri_free(shim) ;
-
    MRI_COPY_AUX(newim,im) ;
    RETURN( newim );
 }
 
 /*-----------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_flatten_rgb( MRI_IMAGE * im )
+MRI_IMAGE * mri_flatten_rgb( MRI_IMAGE *im )
 {
-   MRI_IMAGE * flim , * shim , * newim ;
-   byte  * iar , * nar ;
-   float * sar , * far ;
+   MRI_IMAGE *flim , *shim , *newim ;
+   byte  *iar , *nar ;
+   float *sar , *far ;
    int ii , nvox , rr,gg,bb ;
    float fac ;
 
@@ -238,21 +237,20 @@ ENTRY("mri_flatten_rgb") ;
    nvox = newim->nvox ;
 
    for( ii=0 ; ii < nvox ; ii++ ){
-      if( far[ii] <= 0.0 || sar[ii] <= 0.0 ){
-         nar[3*ii] = nar[3*ii+1] = nar[3*ii+2] = 0 ;
-      } else {
-         fac = 255.9 * sar[ii] / far[ii] ; /* will be positive */
-         rr  = fac * iar[3*ii]   ;
-         gg  = fac * iar[3*ii+1] ;
-         bb  = fac * iar[3*ii+2] ;
-         nar[3*ii  ] = (rr > 255) ? 255 : rr ;
-         nar[3*ii+1] = (gg > 255) ? 255 : gg ;
-         nar[3*ii+2] = (bb > 255) ? 255 : bb ;
-      }
+     if( far[ii] <= 0.0 || sar[ii] <= 0.0 ){
+       nar[3*ii] = nar[3*ii+1] = nar[3*ii+2] = 0 ;
+     } else {
+       fac = 255.9 * sar[ii] / far[ii] ; /* will be positive */
+       rr  = fac * iar[3*ii]   ;
+       gg  = fac * iar[3*ii+1] ;
+       bb  = fac * iar[3*ii+2] ;
+       nar[3*ii  ] = (rr > 255) ? 255 : rr ;
+       nar[3*ii+1] = (gg > 255) ? 255 : gg ;
+       nar[3*ii+2] = (bb > 255) ? 255 : bb ;
+     }
    }
 
    mri_free(flim) ; mri_free(shim) ;
-
    MRI_COPY_AUX(newim,im) ;
    RETURN( newim );
 }
@@ -273,5 +271,42 @@ ENTRY("mri_invert_inplace") ;
      case MRI_rgb:   nbar = 3*im->nvox ; bar = MRI_RGB_PTR(im)  ; break ;
    }
    for( ii=0 ; ii < nbar ; ii++ ) bar[ii] = 255 - bar[ii] ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------------*/
+
+#ifdef SOLARIS
+# define powf pow
+#endif
+
+void mri_gamma_rgb_inplace( float gam , MRI_IMAGE *im )  /* 15 Jan 2007 */
+{
+   MRI_IMAGE *flim ; byte *iar ; float *far ;
+   int ii , nvox , rr,gg,bb ; float fac ;
+
+ENTRY("mri_gamma_rgb_inplace") ;
+
+   if( im == NULL || im->kind != MRI_rgb ) EXRETURN ;
+
+   flim = mri_to_float( im ) ; /* intensity of input */
+   iar = MRI_BYTE_PTR(im) ; far = MRI_FLOAT_PTR(flim) ;
+   nvox = im->nvox ;
+
+   for( ii=0 ; ii < nvox ; ii++ ){
+     if( far[ii] <= 0.0f ){
+       iar[3*ii] = iar[3*ii+1] = iar[3*ii+2] = 0 ;
+     } else {
+       fac = powf( far[ii]/255.0f , gam ) ;
+       rr  = fac * iar[3*ii]   ;
+       gg  = fac * iar[3*ii+1] ;
+       bb  = fac * iar[3*ii+2] ;
+       iar[3*ii  ] = (rr > 255) ? 255 : rr ;
+       iar[3*ii+1] = (gg > 255) ? 255 : gg ;
+       iar[3*ii+2] = (bb > 255) ? 255 : bb ;
+     }
+   }
+
+   mri_free(flim) ;
    EXRETURN ;
 }
