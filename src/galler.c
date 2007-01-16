@@ -19,6 +19,8 @@ static int tabled = 0 ;
 static int tr     = 0 ;
 static int tc     = 0 ;
 
+static float gam  = 1.0f ;
+
 static char imagename[1024] ;
 static char thumbname[1024] ;
 
@@ -181,6 +183,9 @@ int main( int argc , char *argv[] )
      } else if( strncasecmp(cpt,"titl",4)==0 && dpt != NULL ){
        for( ii=ndpt ; ii < sar->num ; ii++ )
          tst[num_tst++] = strdup(sar->str[ii]) ;
+     } else if( strncasecmp(cpt,"gam",3)==0 && dpt != NULL ){
+       float qam=(float)strtod(dpt,NULL) ;
+       if( qam > 0.0f ){ gam = qam; INFO_message("Set gamma = %f",gam); }
      }
      goto GetLine ;
    }
@@ -245,6 +250,7 @@ static void GAL_imageize( char *iname, char *prefix , int lab )
    if( inim->kind != MRI_rgb ){
      qim = mri_to_rgb(inim) ; mri_free(inim) ; inim = qim ;
    }
+   if( gam != 1.0f ) mri_gamma_rgb_inplace( gam , inim ) ;
 
    nx = inim->nx ; ny = inim->ny ;
 

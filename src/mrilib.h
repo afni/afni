@@ -804,6 +804,7 @@ extern MRI_IMARR * mri_rgb_to_3byte( MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_sharpen_rgb( float , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_flatten_rgb( MRI_IMAGE * ) ;
 extern void mri_invert_inplace( MRI_IMAGE *) ;   /* 07 Apr 2003 */
+extern void mri_gamma_rgb_inplace( float gam , MRI_IMAGE *im ) ;
 
 extern MRI_IMAGE * mri_to_rgba( MRI_IMAGE * ) ;  /* 20 Mar 2002 */
 
@@ -844,6 +845,8 @@ extern float mri_warp_bicubic_point( MRI_IMAGE * , int , int ,
 
 extern float mri_rotate_point( MRI_IMAGE *im, float,float,float,float, int,int ) ;
 #endif /* WARP_POINT_ROUTINES */
+
+extern void mri_warp_setpow( float gg ) ;  /* 15 Jan 2007 */
 
 extern MRI_IMAGE *mri_resize( MRI_IMAGE * , int , int ) ;
 
