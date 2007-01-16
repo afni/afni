@@ -2354,7 +2354,8 @@ typedef struct {
    DList *DsetList;  /*!< List containing datasets */
    SUMA_Boolean Allow_Dset_Replace; /*!< Allow replacement of old dset with new dset having same id */
    
-   int SUMA_ThrScalePowerBias; 
+   int SUMA_ThrScalePowerBias;
+   int SUMA_SnapshotOverSampling; 
    SUMA_Boolean IgnoreVolreg; /*!< if YUP then ignore any Volreg or TagAlign transform in the header of the surface volume */
    SUMA_Boolean isGraphical; /*!< if YUP then Named afni colors will get resolved when creating color maps. 
                                   Otherwise they are set to gray. Only suma and ScaleToMap will need to set 

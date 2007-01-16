@@ -155,6 +155,8 @@ float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask,
 float *SUMA_estimate_dset_FWHM_1dif(SUMA_SurfaceObject *SO, SUMA_DSET *dset, 
                                     int *icols, int N_icols, byte *nmask, 
                                     int nodup, char *options);
+void SUMA_SetDbgFWHM(int i);
+int SUMA_GetDbgFWHM(void);
 
 /* End function prototypes for VolData.c */
 

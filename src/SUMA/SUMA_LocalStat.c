@@ -27,11 +27,12 @@ void SUMA_FreeClustDatum (void * data)
 /*!
    \brief Calculate area of each node as one third of the sum of
    the areas of incident triangles. 
+   mask: if not null, then calculate areas for nodes in mask only
    If you change this function make sure changes are also done
    on RickR's compute_node_areas since the two functions use
    the same principle.
 */
-float *SUMA_CalculateNodeAreas(SUMA_SurfaceObject *SO)
+float *SUMA_CalculateNodeAreas(SUMA_SurfaceObject *SO, byte *mask)
 {
    static char FuncName[]={"SUMA_CalculateNodeAreas"};
    float *NodeAreas=NULL;
@@ -40,8 +41,8 @@ float *SUMA_CalculateNodeAreas(SUMA_SurfaceObject *SO)
    SUMA_ENTRY;
    
    if (!SO) { SUMA_RETURN(NodeAreas); }
-   if (!SO->PolyArea) {
-      if (!SUMA_SurfaceMetrics_eng(SO, "PolyArea", NULL, 0, SUMAg_CF->DsetList)) {
+   if (!SO->PolyArea || !SO->MF) {
+      if (!SUMA_SurfaceMetrics_eng(SO, "PolyArea|MemberFace", NULL, 0, SUMAg_CF->DsetList)) {
          fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
          SUMA_RETURN(NodeAreas);
       }
@@ -51,12 +52,14 @@ float *SUMA_CalculateNodeAreas(SUMA_SurfaceObject *SO)
    if (!NodeAreas) { SUMA_SL_Crit ("Failed to allocate for NodeAreas"); SUMA_RETURN(NodeAreas); }
    
    for (i=0; i<SO->N_Node; ++i) {
-      flist = SO->MF->NodeMemberOfFaceSet[i];
       NodeAreas[i] = 0.0;
-      for (c = 0; c < SO->MF->N_Memb[i]; c++) {
-         NodeAreas[i] += SO->PolyArea[flist[c]];
+      if (!mask || mask[i]) {
+         flist = SO->MF->NodeMemberOfFaceSet[i];
+         for (c = 0; c < SO->MF->N_Memb[i]; c++) {
+            NodeAreas[i] += SO->PolyArea[flist[c]];
+         }
+         NodeAreas[i] /= 3.0;
       }
-      NodeAreas[i] /= 3.0;
    }
    
    SUMA_RETURN(NodeAreas);
@@ -1011,6 +1014,17 @@ SUMA_Boolean SUMA_Sort_ClustersList (DList *list, SUMA_SURF_CLUST_SORT_MODES Sor
    }\
 }
 
+static double FWHM_MinArea = -1.0; 
+double SUMA_GetFWHM_MinArea(void) 
+{ 
+   return(FWHM_MinArea); 
+}
+void SUMA_SetFWHM_MinArea(double MinArea) 
+{ 
+   FWHM_MinArea = MinArea; 
+   return; 
+}
+
 SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din, 
                                     byte *nmask, byte strict_mask,
                                     float rhood, SUMA_OFFSET_STRUCT *UseThisOffset,
@@ -1028,6 +1042,7 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
    byte *fwhm_mask=NULL;
    SUMA_OFFSET_STRUCT *OffS_out=NULL;
    byte *bfull=NULL;
+   float *NodeAreaVec=NULL, ZoneArea, MinZoneArea;
    SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
@@ -1096,6 +1111,11 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
       }
    }
    
+   /* calculate the areas per node, if need be (a little overhead)*/
+   MinZoneArea = SUMA_GetFWHM_MinArea() ;
+   if (MinZoneArea > 0.0) {
+      NodeAreaVec = SUMA_CalculateNodeAreas(SO, NULL);
+   }
    
    /* Now, for each code, do the dance */
    for (ic=0; ic <ncode; ++ic) {
@@ -1130,7 +1150,7 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
             if (nmask) {
                N_nmask = 0;
                for (n=0; n<SO->N_Node; ++n) { if (nmask[n]) ++ N_nmask; }
-               SUMA_LHv("Blurring with node mask (%d nodes in mask)\n", N_nmask);
+               SUMA_LHv("FWHMing with node mask (%d nodes in mask)\n", N_nmask);
                if (!N_nmask) {
                   SUMA_S_Warn("Empty mask, nothing to do");
                }
@@ -1206,12 +1226,30 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
                   SUMA_LH("No mask");
                   for (n=0; n < SO->N_Node; ++n) {
                      /* build thy fwhm mask (must have a clean mask here ) */
-                     fwhm_mask[n] = 1; nval = 1;
+                     fwhm_mask[n] = 1; nval = 1; 
+                     if (NodeAreaVec) ZoneArea = NodeAreaVec[n]; else ZoneArea = -1.0;
                      for (j=0; j<OffS_out[n].N_Neighb; ++j) {
                         nj = OffS_out[n].Neighb_ind[j];
-                        if (OffS_out[n].Neighb_dist[j] <= rhood) { fwhm_mask[nj] = 1; ++nval; }
+                        if (OffS_out[n].Neighb_dist[j] <= rhood) { 
+                           if (NodeAreaVec) ZoneArea += NodeAreaVec[nj];
+                           fwhm_mask[nj] = 1; ++nval; 
+                        }
                      }/* for j*/
-                     fout[n] = SUMA_estimate_FWHM_1dif( SO, fin_orig, fwhm_mask, 1);
+                        if (ZoneArea > 0.0  && ZoneArea < MinZoneArea) {
+                           if (n==ndbg) {
+                              SUMA_S_Notev("At node %d,\ndata for FWHM estimate spans %g mm2, need %g mm2 for minimum. Bad for node.\n",
+                                     n,  ZoneArea, MinZoneArea);
+                           }
+                           fout[n] = -1.0;
+                        } else {
+                           if (n==ndbg) {
+                              SUMA_S_Notev("At node %d,\ndata for FWHM estimate spans %g mm2, need %g mm2 for minimum. Looks good.\n", 
+                                    n, ZoneArea, MinZoneArea);
+                           }
+                           if (n==ndbg) SUMA_SetDbgFWHM(1);
+                           fout[n] = SUMA_estimate_FWHM_1dif( SO, fin_orig, fwhm_mask, 1);
+                           if (n==ndbg) SUMA_SetDbgFWHM(0);
+                        }  
                      SUMA_LOCAL_STATS_NODE_DBG;
                      /* reset mask */
                      fwhm_mask[n] = 0; 
@@ -1228,13 +1266,31 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
                      if (nmask[n]) {
                         /* build thy fwhm mask (must have a clean mask here ) */
                         fwhm_mask[n] = 1; nval = 1;
+                        if (NodeAreaVec) ZoneArea = NodeAreaVec[n]; else ZoneArea = -1.0;
                         for (j=0; j<OffS_out[n].N_Neighb; ++j) {
                            nj = OffS_out[n].Neighb_ind[j];
                            if (nmask[nj] || !strict_mask) {
-                              if (OffS_out[n].Neighb_dist[j] <= rhood) { fwhm_mask[nj] = 1; ++nval;}
+                              if (OffS_out[n].Neighb_dist[j] <= rhood) { 
+                                 if (NodeAreaVec) ZoneArea += NodeAreaVec[nj];
+                                 fwhm_mask[nj] = 1; ++nval;
+                              }
                            } 
                         }/* for j*/
-                        fout[n] = SUMA_estimate_FWHM_1dif( SO, fin_orig, fwhm_mask, 1);
+                            if (ZoneArea > 0.0 && ZoneArea < MinZoneArea) {
+                              if (n==ndbg) {
+                                 SUMA_S_Notev("At node %d,\ndata for FWHM estimate spans %g mm2, need %g mm2 for minimum accepted\n", 
+                                                n,  ZoneArea, MinZoneArea);
+                              }
+                              fout[n] = -1.0;
+                           } else {
+                              if (n==ndbg) {
+                                 SUMA_S_Notev("At node %d,\ndata for FWHM estimate spans %g mm2, need %g mm2 for minimum. Looks good.\n", 
+                                                n, ZoneArea, MinZoneArea);
+                              }
+                              if (n==ndbg) SUMA_SetDbgFWHM(1);
+                              fout[n] = SUMA_estimate_FWHM_1dif( SO, fin_orig, fwhm_mask, 1);
+                              if (n==ndbg) SUMA_SetDbgFWHM(0);
+                           }  
                         SUMA_LOCAL_STATS_NODE_DBG;
                         /* reset mask */
                         fwhm_mask[n] = 0; 
@@ -1245,7 +1301,7 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
                         fout[n] = 0.0; nval = 0;/* Non, rien de rien */
                      }
                   } /* for n */
-               } 
+               }
                SUMA_free(fwhm_mask); fwhm_mask = NULL;
                SUMA_free(lblcp); lblcp = NULL;
                break;
@@ -1268,6 +1324,7 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
       if (bfull) SUMA_free(bfull); bfull = NULL;
          
    }/* for ic */
+   if (NodeAreaVec) SUMA_free(NodeAreaVec); NodeAreaVec = NULL; 
    if (!UseThisOffset) OffS_out = SUMA_free_NeighbOffset (SO, OffS_out);
    
    SUMA_RETURN(dout);
