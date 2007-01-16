@@ -463,7 +463,7 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 {
    static char FuncName[]={"SUMA_R_Key"};
    char tk[]={"R"}, keyname[100];
-   int k, nc;
+   int k, nc, ii, jj;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -505,12 +505,32 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
          } else {
             GLvoid *pixels;
-            pixels = SUMA_grabPixels(1, sv->X->WIDTH, sv->X->HEIGHT);
-            if (pixels) {
-              ISQ_snapsave (sv->X->WIDTH, -sv->X->HEIGHT, (unsigned char *)pixels, sv->X->GLXAREA ); 
-              SUMA_free(pixels);
-            }else {
-               SUMA_SLP_Err("Failed to record image.");
+            for (jj=0; jj<SUMAg_CF->SUMA_SnapshotOverSampling; ++jj) {
+               for (ii=0; ii<SUMAg_CF->SUMA_SnapshotOverSampling; ++ii) { 
+                  if (SUMAg_CF->SUMA_SnapshotOverSampling > 1) {
+                     if (ii==0 && jj == 0) {
+                        SUMA_S_Notev(  "Resampling factor of %d\n"
+                                    "If using this secret feature,\n"
+                                    " use matlab function suma_stitch.m\n"
+                                    " to put images together.\n", SUMAg_CF->SUMA_SnapshotOverSampling);
+                     }
+                     glViewport(-ii*sv->X->WIDTH, -jj*sv->X->HEIGHT, 
+                                 SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->WIDTH, SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->HEIGHT);
+                     SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+                  }
+                  pixels = SUMA_grabPixels(1, sv->X->WIDTH, sv->X->HEIGHT);
+                  if (pixels) {
+                    ISQ_snapsave (sv->X->WIDTH, -sv->X->HEIGHT, (unsigned char *)pixels, sv->X->GLXAREA ); 
+                    SUMA_free(pixels);
+                  }else {
+                     SUMA_SLP_Err("Failed to record image.");
+                  }
+                  if (SUMAg_CF->SUMA_SnapshotOverSampling > 1) {
+                     glViewport( 0, 0, 
+                                 sv->X->WIDTH, sv->X->HEIGHT);
+                     SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+                  }
+               }
             }
          }
          break;
@@ -2349,8 +2369,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    break;
    
    case ButtonPress:
-      if (LocalHead) fprintf(stdout,"In ButtonPress\n");      
       pButton = Bev.button;
+      if (LocalHead) fprintf(stdout,"In ButtonPress Button %d\n", pButton);      
       if (SUMAg_CF->SwapButtons_1_3 || (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
          if (pButton == Button1) pButton = Button3;
          else if (pButton == Button3) pButton = Button1;
@@ -2499,8 +2519,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
       break;
       
    case ButtonRelease:
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: In ButtonRelease\n", FuncName); 
       rButton = Bev.button;
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: In ButtonRelease Button %d\n", FuncName, rButton); 
       if (SUMAg_CF->SwapButtons_1_3 || (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
          if (rButton == Button1) rButton = Button3;
          else if (rButton == Button3) rButton = Button1;
@@ -2549,7 +2569,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
       break;
       
    case MotionNotify:
-      if (LocalHead) fprintf(stdout,"In MotionNotify\n"); 
+      if (LocalHead) {
+          fprintf(stdout,"In MotionNotify\n"); 
+              if (Mev.state & Button1MotionMask) fprintf(stdout,"   B1 mot\n");
+         else if (Mev.state & Button2MotionMask) fprintf(stdout,"   B2 mot\n");
+         else if (Mev.state & Button3MotionMask) fprintf(stdout,"   B3 mot\n");
+         else if (Mev.state & Button4MotionMask) fprintf(stdout,"   B4 mot\n");
+         else if (Mev.state & Button5MotionMask) fprintf(stdout,"   B5 mot\n");
+      }
       if (SUMAg_CF->SwapButtons_1_3 || (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
         if (((Mev.state & Button3MotionMask) && (Mev.state & Button2MotionMask)) || ((Mev.state & Button2MotionMask) && (Mev.state & ShiftMask))) {
             mButton = SUMA_Button_12_Motion;

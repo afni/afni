@@ -7938,7 +7938,8 @@ char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove)
    static char FuncName[]={"SUMA_Extension"}; 
    char *ans = NULL;
    int i, next, nfilename, ifile;
-   SUMA_Boolean NoMatch = NOPE, LocalHead = NOPE;
+   SUMA_Boolean NoMatch = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
@@ -7952,6 +7953,11 @@ char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove)
    }
    next = strlen(ext);
    
+   if (next > nfilename) {
+      ans = (char *)SUMA_malloc((nfilename+1)*sizeof(char));
+      ans = strcpy(ans,filename);
+      SUMA_RETURN(ans);
+   }
    #if 0
    if (nfilename < next || next < 1 || nfilename < 1) {
       ans = (char *)SUMA_malloc((nfilename+1)*sizeof(char));

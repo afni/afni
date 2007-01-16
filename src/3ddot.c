@@ -7,11 +7,11 @@
 #include "mrilib.h"
 #include <string.h>
 
-double DSET_cor( THD_3dim_dataset *, THD_3dim_dataset *, byte *, int , double *sdxyr) ;
+double DSET_cor( THD_3dim_dataset *, THD_3dim_dataset *, byte *, int , double *) ;
 
 int main( int argc , char * argv[] )
 {
-   double dxy , sdxy;
+   double dxy , sxy;
    int narg , ndset , nvox , demean=0 , DoDot = 0;
    THD_3dim_dataset * xset , * yset , * mask_dset=NULL ;
    float mask_bot=666.0 , mask_top=-666.0 ;
@@ -131,9 +131,9 @@ int main( int argc , char * argv[] )
       DSET_delete(mask_dset) ;
    }
 
-   dxy = DSET_cor( xset , yset , mmm , demean, &sdxy ) ;
+   dxy = DSET_cor( xset , yset , mmm , demean, &sxy ) ;
    if (DoDot) {
-      printf("%g\n",dxy*sdxy) ;
+      printf("%g\n",dxy*sxy) ;
    } else {
       printf("%g\n",dxy) ;
    }
@@ -141,7 +141,7 @@ int main( int argc , char * argv[] )
 }
 
 double DSET_cor( THD_3dim_dataset *xset,
-                 THD_3dim_dataset *yset, byte *mmm , int dm, double *sdxyr)
+                 THD_3dim_dataset *yset, byte *mmm , int dm, double *sxyr)
 {
    double sumxx , sumyy , sumxy , tx,ty , dxy ;
    void  *  xar , *  yar ;
@@ -150,7 +150,7 @@ double DSET_cor( THD_3dim_dataset *xset,
 
    nxyz = DSET_NVOX(xset) ;
    
-   if (sdxyr) *sdxyr = 0.0;
+   if (sxyr) *sxyr = 0.0;
    
    /* load bricks */
 
@@ -217,7 +217,7 @@ double DSET_cor( THD_3dim_dataset *xset,
    /* compute result */
 
    dxy = sumxx * sumyy ; if( dxy <= 0.0 ) return 0.0 ;
-   if (sdxyr) *sdxyr = sqrt(dxy);
+   if (sxyr) *sxyr = sqrt(dxy);
    
    dxy = sumxy / sqrt(dxy) ;
    

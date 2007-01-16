@@ -28,6 +28,8 @@ void usage_SurfFWHM (SUMA_GENERIC_ARGV_PARSE *ps)
       "               distance along the mesh.\n"
       " -prefix PREFIX = Prefix of output data set. Only need when doing \n"
       "                  local FWHM calculations.\n"
+      " -vox_size D\n"
+      " -ok_warn\n"
                " \n"
                "%s"
                "%s"
@@ -55,6 +57,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
    Opt->NodeDbg = -1;
    Opt->out_prefix = NULL;
    Opt->r = -1.0;
+   Opt->d1 = -1.0;
+   Opt->b1 = 0;
    ncode = 0;
    kar = 1;
    brk = NOPE;
@@ -119,6 +123,28 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-vox_size") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a value after -vox_size \n");
+            exit (1);
+         }
+         
+         Opt->d1 = atof(argv[++kar]);
+         if (Opt->d1 <= 0.0) {
+            fprintf (SUMA_STDERR,"Error %s:\nvoxel dimension is not valid (have %f from %s).\n", FuncName, Opt->d1, argv[kar]);
+		      exit (1);
+         }
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-ok_warn") == 0))
+      {
+         Opt->b1 = 1;
+         brk = YUP;
+      }
+      
       if (!brk && !ps->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
 			exit (1);
@@ -132,6 +158,23 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
       Opt->out_prefix = SUMA_copy_string("SurfLocalstat");
    }
 
+   if (Opt->r > 0.0 && Opt->d1 > 0.0) {
+      if (Opt->r / Opt->d1 < 2.99) {   /* no magic reason for 3 other than it results in approx. pi*(3*d)2 mm2 area, which would be approx. pi*3*3 voxels. */
+         SUMA_S_Warnv(  "\n"
+                        "**********************************************\n"
+                        "The neighborhood radius of %.3fmm is likely too\n"
+                        " small, relative to the voxel size of %.3fmm, \n"
+                        " to yield an appropriate estimate for FWHM. \n"
+                        " A radius of at least %.3f would be more \n"
+                        " appropriate. Use -ok_warn to proceed despite\n"
+                        " warning.\n"
+                        " ZSS. DC CC and its vanilla suburbs.\n"
+                        "***********************************************\n"
+                        "\n", 
+                        Opt->r, Opt->d1, Opt->d1*3.0 ); 
+         if (!Opt->b1) exit(1);
+      }
+   }
    
    SUMA_RETURN(Opt);
 }
@@ -148,6 +191,7 @@ int main (int argc,char *argv[])
    SUMA_SurfSpecFile *Spec = NULL;
    int i, N_Spec, N_inmask = -1;
    float *fwhmv=NULL;
+   double MinArea = -1.0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
@@ -204,6 +248,11 @@ int main (int argc,char *argv[])
       SUMA_S_Note("Doing local FWHM...");
       code[0] = NSTAT_FWHMx;
       ncode = 1;
+      if (Opt->d1 > 0.0) {
+         /* have a way of suggesting minimum number of nodes to enter in FWHM calculations */
+         MinArea = SUMA_PI * SUMA_POW2((3.0 * Opt->d1)); /* need at least area covering a radius of 3 voxels */ 
+         SUMA_SetFWHM_MinArea(MinArea);
+      }
       if (!(dout = SUMA_CalculateLocalStats(SO, din, 
                                        Opt->nmask, 1,
                                        Opt->r, NULL,
@@ -234,6 +283,7 @@ int main (int argc,char *argv[])
       exit(1);                                         
    }
   
+   fprintf(stdout,"Global FWHM estimates for each column:\n");
    for (i=0; i<N_icols; ++i) {
       fprintf(stdout,"FWHM[%4d]=%.4f\n", icols[i], fwhmv[i]);
    }

@@ -498,7 +498,7 @@ int main (int argc,char *argv[])
       exit(1);
    }
    SO = SUMA_find_named_SOp_inDOv(Opt->surf_names[0], SUMAg_DOv, SUMAg_N_DOv);
-   NodeArea = SUMA_CalculateNodeAreas(SO);
+   NodeArea = SUMA_CalculateNodeAreas(SO, NULL);
    if (!NodeArea) {
       SUMA_S_Err("Failed to calculate Node Areas.\n");
       exit(1);

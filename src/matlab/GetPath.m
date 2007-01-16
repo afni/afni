@@ -36,7 +36,7 @@ end
 
 %initailize return variables
 err = 1;
-p = '';
+p = '.';
 f = '';
 
 N = length(s);
@@ -50,7 +50,7 @@ else
    [i] = union(findstr(s,'/'), findstr(s,'\'));
 end
 if (isempty(i)),
-	p = '';
+	p = '.';
 	f = s;
 elseif (max(i)==N);
 	p = s;
