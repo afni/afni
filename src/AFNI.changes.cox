@@ -6026,3 +6026,6 @@
 10 Jan 2007
  * Modified svd_double() in cs_symeig.c to sort singular values and vectors.
  * Modifed 1dsvd.c to have a '-sort' option.
+
+15 Jan 2007
+ * Added mri_gamma_rgb_inplace() to mri_to_rgb.c.
