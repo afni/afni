@@ -60,6 +60,7 @@ static char g_cren_hist[] =
  "\n"
  " 1.9a 22 March 2005 [rickr] - removed all tabs\n"
  " 1.10  4 April 2006 [rickr] - handle NPANE_BIG > 128 for bigmode\n"
+ " 1.11 16 Jan 2007 [rickr] - Pos for bigmode had not been properly applied\n"
  "\n";
 /***********************************************************************/
 
@@ -6938,7 +6939,8 @@ ENTRY( "RCREND_reload_func_dset" );
           fim_thr[lp] = scale_factor * pbar->pval[lp+1] / cfac ;
    }
 
-   if( thresh < 1.0 || !func_use_thresh ){  /*--- no thresholding needed ---*/
+   /*--- no thresholding needed ---*/
+   if( (thresh < 1.0 && cim->kind != MRI_float) || !func_use_thresh ){
       switch( cim->kind ){
 
          default: {
@@ -6952,6 +6954,8 @@ ENTRY( "RCREND_reload_func_dset" );
 
             for( ii=0 ; ii < nvox ; ii++ ){
                if( sar[ii] == 0 ){
+                  ovar[ii] = 0 ;
+               } else if( func_posfunc && sar[ii] < 0 ){
                   ovar[ii] = 0 ;
                } else if ( pbar->bigmode ) {
                    /* since 0 is considered blank, use 1 through 127 */
@@ -6977,6 +6981,8 @@ ENTRY( "RCREND_reload_func_dset" );
 
             for( ii=0 ; ii < nvox ; ii++ ){
                if( sar[ii] == 0.0 ){
+                  ovar[ii] = 0 ;
+               } else if( func_posfunc && sar[ii] < 0.0 ){
                   ovar[ii] = 0 ;
                } else if ( pbar->bigmode ) {
                    /* since 0 is considered blank, use 1 through 127 */
@@ -7039,8 +7045,10 @@ ENTRY( "RCREND_reload_func_dset" );
             int     thr = (int) thresh  ;
 
             for( ii=0 ; ii < nvox ; ii++ ){
-               if( (qar[ii] > -thr && qar[ii] < thr) || sar[ii] == 0.0 ){
+               if( (qar[ii] > -thr && qar[ii] < thr) || sar[ii] == 0 ){
                   ovar[ii] = 0 ;
+               } else if( func_posfunc && sar[ii] < 0 ){
+                  ovar[ii] = 0 ;   /* apply Pos button   16 Jan 2007 [rickr] */
                } else if ( pbar->bigmode ) {
                    /* since 0 is considered blank, use 1 through 127 */
                    bindex = (int)( (btop - sar[ii])/bdelta + 1);
@@ -7064,7 +7072,9 @@ ENTRY( "RCREND_reload_func_dset" );
             float   thr = thresh        ;
 
             for( ii=0 ; ii < nvox ; ii++ ){
-               if( (qar[ii] > -thr && qar[ii] < thr) || sar[ii] == 0 ){
+               if( (qar[ii] > -thr && qar[ii] < thr) || sar[ii] == 0.0 ){
+                  ovar[ii] = 0 ;
+               } else if( func_posfunc && sar[ii] < 0.0 ){
                   ovar[ii] = 0 ;
                } else if ( pbar->bigmode ) {
                    /* since 0 is considered blank, use 1 through 127 */
