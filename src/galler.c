@@ -250,7 +250,10 @@ static void GAL_imageize( char *iname, char *prefix , int lab )
    if( inim->kind != MRI_rgb ){
      qim = mri_to_rgb(inim) ; mri_free(inim) ; inim = qim ;
    }
-   if( gam != 1.0f ) mri_gamma_rgb_inplace( gam , inim ) ;
+   if( gam != 1.0f ){
+     ININFO_message(" -Processing gamma") ;
+     mri_gamma_rgb_inplace( gam , inim ) ;
+   }
 
    nx = inim->nx ; ny = inim->ny ;
 
@@ -262,8 +265,13 @@ static void GAL_imageize( char *iname, char *prefix , int lab )
      float fx , fy ;
      fx = imagesize / (float)nx ; fy = imagesize / (float)ny ;
      fx = MIN(fx,fy) ; nxnew = (int)(nx*fx); nynew = (int)(ny*fx) ;
-     if( fx < 0.95f ) bim = mri_rgb_blur2D( 0.4/fx , inim ) ;
-     else             bim = inim ;
+     if( fx < 0.95f ){
+       float sigma = 0.3456789f/fx ;
+       ININFO_message(" -Antialias filter sigma=%.2f",sigma) ;
+       bim = mri_rgb_blur2D( sigma , inim ) ;
+     }
+     else bim = inim ;
+     ININFO_message(" -Resizing to %d x %d",nxnew,nynew) ;
      qim = mri_resize( bim , nxnew , nynew ) ;
      nx_im = qim->nx ; ny_im = qim->ny ;
      mri_write_jpg( imagename , qim ) ;
@@ -278,6 +286,7 @@ static void GAL_imageize( char *iname, char *prefix , int lab )
      float fx , fy ;
      fx = thumbsize / (float)nx ; fy = thumbsize / (float)ny ;
      fx = MIN(fx,fy) ; nxnew = (int)(nx*fx); nynew = (int)(ny*fx) ;
+     ININFO_message(" - Making thumbnail %d x %d",nxnew,nynew) ;
      qim = mri_resize( inim , nxnew , nynew ) ;
      nx_th = qim->nx ; ny_th = qim->ny ;
      mri_write_jpg( thumbname , qim ) ; mri_free(qim) ;
