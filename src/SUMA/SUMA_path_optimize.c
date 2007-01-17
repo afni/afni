@@ -38,6 +38,9 @@ void usage_path_optimize (SUMA_GENERIC_ARGV_PARSE *ps)
                "                    Default does not renew the weights.                                        \n"
                "  -adjust:          Choose to scale displacement.                                              \n"
                "                    Default is no adjustment.                                                  \n"  
+               "  -sin_kern         Choose to use the expansion factor that includes the sine term.            \n"
+               "                    Default is without the sine component of the kernel,  but the default      \n"
+               "                       doesn't work. This option is manditory for successful deformations.     \n"
                "  -dot:             Choose to use a dot product requirment when calculated the weights         \n"
                "                    to ensure tangency.                                                        \n"
                "  -neighb_check:    Will check at each iteration if the distance to each node's nearest        \n"
@@ -105,9 +108,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_path_optimize_ParseInput(char *argv[], in
    popt->sigma = 0.0;
    popt->M_time_steps = 10;
    popt->sin_kern = 0;
-   popt->Zero = 0.0000000001;     /* Need global variable for zero. */
+   popt->Zero = 0.0000000000001;     /* Need global variable for zero. */
    popt->read_path[0] = '\0';
-   
+   popt->SO = NULL;
    popt->ControlCurve = NULL;
    popt->X_Lamda = NULL;
    popt->Lda = -1.0;
@@ -170,8 +173,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_path_optimize_ParseInput(char *argv[], in
          popt->sin_kern = 1; 
          brk = 1;
       }
-      
-      
+            
       if (!brk && (strcmp(argv[kar], "-dom_dim") == 0)) {
          kar ++;
          if (kar >= argc)  
@@ -416,10 +418,9 @@ SUMA_SegmentDO *SUMA_ControlCurve2SDO(SUMA_MX_VEC *ControlCurve, char *Label)
    colv = (float *) SUMA_malloc(sizeof(float)*N_n*4);
    thickv = (float *) SUMA_malloc(sizeof(float)*N_n);
 
-   
    kcc = 0;
    for(i=0; i<ControlCurve->dims[1]; ++i) {
-      SUMA_a_good_col("roi256", i, acol);/* get a decent colormap */
+      SUMA_a_good_col("roi256", i+2, acol);/* get a decent colormap */  /* Add 2 to the color map index to avoid getting purple. */
       for (m=0; m<ControlCurve->dims[2]; ++m) {
          if(m<ControlCurve->dims[2]-1) {
             dp = mxvdp3(ControlCurve, 0, i, m);
@@ -464,9 +465,10 @@ int SUMA_Optimize_Path(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
    int N_dims, dims[10], M_N_dims, M_dims[10], Perturb_N_dims, Perturb_dims[12], S_N_dims, S_dims[20], XL_N_dims, XL_dims[10]; 
    double *dp = NULL, *dp_new = NULL;
    int i, m, p, k;
-   char stmp[600], outfile_PlotPathSeg[50], outfile_PathConnected[50];
+   char stmp[600], outfile_PlotPathSeg[50], outfile_PathConnected[50], outfile_TempCC[50];
    FILE *PathConnected = NULL;
    FILE *PlotPathSeg = NULL;
+   FILE *TempCC = NULL;  /* Store most recent control curve locations for debugging purposes. */
    SUMA_MX_VEC *Del_S = NULL, *mo = NULL;
    SUMA_MX_VEC *MaxStep = NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -515,8 +517,10 @@ int SUMA_Optimize_Path(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
    XL_dims[1] = opt->N_ctrl_points;
    XL_dims[2] = (opt->M_time_steps+1);
    opt->X_Lamda = SUMA_NewMxVec( SUMA_double, XL_N_dims, XL_dims, 1 );
-
-   /* Find the initial control curve.  Calculated uing desired arc of travel and number of steps taken. */
+   
+   TempCC = fopen ("SUMA_TempControlCurve.1D.dset", "w"); 
+   
+   /* Find the initial control curve.  Calculated using desired arc of travel and number of steps taken. */
    Set_up_Control_Curve(opt, opt->ControlCurve);
    
    SUMA_etime2(FuncName, NULL, NULL);
@@ -534,7 +538,6 @@ int SUMA_Optimize_Path(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
             fprintf(SUMA_STDERR, "\n");
          }
       }
-
    
       /* Store path as a sphere or segment file to be viewed in SUMA. */
       /* See snip2.c */
@@ -548,7 +551,6 @@ int SUMA_Optimize_Path(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
          sprintf(stmp, "Done with Perturbations");
          SUMA_etime2(FuncName, stmp, "Pre-Change_in_Energy");
       }
-
       
       if (opt->dbg_flag > 2) {
          fprintf(SUMA_STDERR, "Max Allowable Movement:\n");
@@ -590,7 +592,6 @@ int SUMA_Optimize_Path(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
          SUMA_ShowMxVec(opt->X_Lamda, -1, NULL, "\nX_Lamda\n"); 
       }
       
-
       /* Add new path to sphere or segment file to be viewed in SUMA. */
       /* see snip3.c */
       if(LocalHead){
@@ -690,13 +691,21 @@ int SUMA_Optimize_Path(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
       /* Now repeat optimization.  Keep repeating until path no longer changes.  Stop when best opt->Lda is 0. */
       SUMA_S_Warn("Warning Warning Will Robinson");
       if (opt->Lda>0.0) {    /* When opt->Lda=0, no longer adjusting path.  Then want Control Curve to stay the same. */
+         fprintf(TempCC, "Number of times through optimization process = %d\n", opt->iter_count);
          for(i=0; i<opt->N_ctrl_points; ++i) {
+            fprintf(TempCC, "\n i = %d\n", i);
             for (m=0; m<opt->M_time_steps+1; ++m) {
                dp = mxvdp3(opt->ControlCurve, 0, i, m);
 
                dp[0] = mxvd3(opt->X_Lamda, 0, i, m);
                dp[1] = mxvd3(opt->X_Lamda, 1, i, m);
                dp[2] = mxvd3(opt->X_Lamda, 2, i, m);
+               
+               /* Store newest control curve locations.  This is for debugging only! */
+               fprintf(TempCC, "%f; \n", dp[0]);
+               fprintf(TempCC, "%f; \n", dp[1]);
+               fprintf(TempCC, "%f; \n", dp[2]);
+               
                dp = NULL;
             }
          }
@@ -709,6 +718,8 @@ int SUMA_Optimize_Path(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
 
       ++opt->iter_count;
    } while ( opt->Lda > 0.0);
+   
+   fclose(TempCC); TempCC = NULL;
    
    /* Done, write out output */
    
@@ -813,7 +824,7 @@ int SUMA_Apply_Deformation(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
    byte *RiskyTrigs=NULL;
    SUMA_Boolean exists;
    SUMA_SPHERE_QUALITY SSQ;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -825,11 +836,15 @@ int SUMA_Apply_Deformation(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
       Ci->N_Node = opt->N_sub;
    } else {
       /* opt->N_sub has been taken care of */
-      Ci->N_Node =  2 + 10 * SUMA_POW2(opt->N_sub);
-      fprintf (SUMA_STDERR,"Note %s: Closest number of nodes is %d, Number of Subdivisions is %d\n", 
-         FuncName, Ci->N_Node, opt->N_sub);
+      if(!opt->SO){
+         Ci->N_Node =  2 + 10 * SUMA_POW2(opt->N_sub);
+         fprintf (SUMA_STDERR,"Note %s: Closest number of nodes is %d, Number of Subdivisions is %d\n", 
+            FuncName, Ci->N_Node, opt->N_sub);
+      } else{
+         Ci->N_Node = opt->SO->N_Node;
+      }
    }
- 
+   
    if (opt->dbg_flag) { fprintf(stderr,"%s: Object contains %d nodes.\n", FuncName, Ci->N_Node); }
    Ci->NodeList = Ci->VelocityField = Ci->Vf_Step = Ci->NewNodeList = Ci->VelocityMagnitude = Ci->NewNodeList_temp = NULL;
    Ci->Theta = NULL;
@@ -1117,6 +1132,9 @@ int SUMA_Apply_Deformation(MyCircleOpt *opt, SUMA_GENERIC_ARGV_PARSE *ps)
             if (ps->cs->talk_suma) {
                for (i3=0; i3<3*opt->SO->N_Node; ++i3) opt->SO->NodeList[i3] = Ci->NewNodeList_temp[i3];
                SUMA_RECOMPUTE_NORMALS(opt->SO); 
+               if (opt->pause > 1) {
+                  SUMA_PAUSE_PROMPT("Go ye Huskies");
+               }
                if (ps->cs->Send) {
                   if (!SUMA_SendToSuma (opt->SO, ps->cs, (void *)opt->SO->NodeList, SUMA_NODE_XYZ, 1)) {
                      SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
@@ -1403,13 +1421,17 @@ int main (int argc,char *argv[])
    MyCircleOpt myopt, *opt = NULL;
    SUMA_SPHERE_QUALITY SSQ;
    vector Wv;
-   int i, niter = 0, nbad_face, nbad_node, dims[50], N_dims;
+   int i, niter = 0, nbad_face, nbad_node, dims[50], N_dims, i3;
    FILE *SpheresAtNodes = NULL;
    void *SO_name;
    SUMA_Boolean exists;
    SUMA_MX_VEC *mo=NULL;
    float ctr[3];
+   double Rref = 0.0, mesh_area = 0.0, mag_ctrlpt, mag_nodelist;
    char *shist = NULL, stmp[600];
+   SUMA_SurfSpecFile *Spec = NULL;
+   int N_Spec;
+   SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
     
@@ -1421,7 +1443,7 @@ int main (int argc,char *argv[])
    
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-talk;");
+   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-talk;-i;-t;-spec;-s;");
    
    if (argc < 2) {
       usage_path_optimize(ps);
@@ -1436,6 +1458,110 @@ int main (int argc,char *argv[])
       system("mkdir DBG_out");
    }
 
+   if (ps->s_N_surfnames + ps->i_N_surfnames + ps->t_N_surfnames > 1) {
+      SUMA_S_Err("Multiple surface specifications used. Only one surface allowed.");
+      exit(1);
+   }
+
+   Spec = SUMA_IO_args_2_spec(ps, &N_Spec);
+   if (N_Spec == 0) {
+      SUMA_S_Note("No surfaces found, using internal ico");
+   } else {
+      if (N_Spec != 1) {
+         SUMA_S_Err("Multiple spec at input.");
+         exit(1);
+      }
+      SUMA_LH("Loading surface...");
+      SO = SUMA_Load_Spec_Surf(Spec, 0, ps->sv[0], Opt->debug);
+      if (!SO) {
+            fprintf (SUMA_STDERR,"Error %s:\n"
+                                 "Failed to find surface\n"
+                                 "in spec file. \n",
+                                 FuncName );
+            exit(1);
+
+      }
+      opt->SO = SO;
+      opt->N_sub = -1; /*meaningless here */    
+   }
+/****** Adjust surface to be a unit sphere. ****************/   
+
+     /* When loading a spec file and not creating my own icosahedron, must adjust the sphere. */
+                 /* Need to shrink sphere to be unit sphere so assumptions still apply. */
+      fprintf(SUMA_STDERR, "VIEW CONTENTS OF SURFACE OBJECT.  BEFORE ADJUSTMENT.  RADIUS MAYBE BE >1.\n");
+      SUMA_Print_Surface_Object(opt->SO, NULL);
+
+      /* Set center to zero. */
+      SUMA_S_Warnv("Surface center set to 0.0, 0.0, 0.0\n Actual Center estimated at %f, %f, %f\n",
+                    opt->SO->Center[0],opt->SO->Center[1],opt->SO->Center[2]);
+      opt->SO->Center[0] = 0.0;
+      opt->SO->Center[1] = 0.0;
+      opt->SO->Center[2] = 0.0;
+      
+      /* Calculate the true radius. Calling it Rref for reference radius. */
+      SUMA_SO_RADIUS(opt->SO, Rref);
+      opt->Radius = Rref;
+      fprintf(SUMA_STDERR, "Calculated True Radius Set to be Reference Radius = %f\n", Rref);
+     
+      fprintf(SUMA_STDERR,"****************\n \n \n %f %f %f\n",opt->SO->NodeList[0],opt->SO->NodeList[1],opt->SO->NodeList[2]);
+      
+      if (!SUMA_NewSurfaceRadius(opt->SO, 1.0, NULL)) {
+         SUMA_S_Err("Misere!");
+         exit(1);
+      }
+
+      /* Check Work. */
+      fprintf(SUMA_STDERR, "VIEW CONTENTS OF SURFACE OBJECT.  AFTER ADJUSTMENT.  RADIUS MUST BE 1.0.\n");
+      SUMA_Print_Surface_Object(opt->SO, NULL);
+   
+
+#if 0
+   if(opt->SO){
+      for (i=0; i < opt->SO->N_Node; ++i) {
+         i3 = 3*i;
+         mag_nodelist = 0.0;
+         mag_nodelist = sqrt( SUMA_POW2(opt->SO->NodeList[i3  ]) + 
+                              SUMA_POW2(opt->SO->NodeList[i3+1]) + 
+                              SUMA_POW2(opt->SO->NodeList[i3+2]) );
+         if(mag_nodelist > 0.00001) {
+            opt->SO->NodeList[i3  ] = opt->SO->NodeList[i3  ]/mag_nodelist;
+            opt->SO->NodeList[i3+1] = opt->SO->NodeList[i3+1]/mag_nodelist;
+            opt->SO->NodeList[i3+2] = opt->SO->NodeList[i3+2]/mag_nodelist;
+         }         
+      }   
+   
+      for(i=0; i < opt->N_ctrl_points; ++i){
+         i3 = 3*i;
+         opt->CtrlPts_i[i3  ] = opt->SO->NodeList[opt->CtrlPts_iim[i]  ];
+         opt->CtrlPts_i[i3+1] = opt->SO->NodeList[opt->CtrlPts_iim[i]+1];
+         opt->CtrlPts_i[i3+2] = opt->SO->NodeList[opt->CtrlPts_iim[i]+2];
+      }
+
+      /* Adjust control point files. */
+      for(i=0; i < opt->N_ctrl_points; ++i){
+         i3 = 3*i;
+         mag_ctrlpt = 0.0;
+         mag_ctrlpt = sqrt( SUMA_POW2(opt->CtrlPts_i[i3  ]) + SUMA_POW2(opt->CtrlPts_i[i3+1]) + SUMA_POW2(opt->CtrlPts_i[i3+2]));
+
+         opt->CtrlPts_i[i3  ] = opt->CtrlPts_i[i3  ]/mag_ctrlpt;
+         opt->CtrlPts_i[i3+1] = opt->CtrlPts_i[i3+1]/mag_ctrlpt;                       
+         opt->CtrlPts_i[i3+2] = opt->CtrlPts_i[i3+2]/mag_ctrlpt;    
+      }
+      for(i=0; i < opt->N_ctrl_points; ++i){
+         i3 = 3*i;
+         mag_ctrlpt = 0.0;
+         mag_ctrlpt = sqrt( SUMA_POW2(opt->CtrlPts_f[i3  ]) + SUMA_POW2(opt->CtrlPts_f[i3+1]) + SUMA_POW2(opt->CtrlPts_f[i3+2]));
+         
+         if(mag_ctrlpt) {
+            opt->CtrlPts_f[i3  ] = opt->CtrlPts_f[i3  ]/mag_ctrlpt;
+            opt->CtrlPts_f[i3+1] = opt->CtrlPts_f[i3+1]/mag_ctrlpt;                    
+            opt->CtrlPts_f[i3+2] = opt->CtrlPts_f[i3+2]/mag_ctrlpt;  
+         }  
+      }
+   }   
+#endif   
+/********************************************************/
+   
    /* Create file for plotting spheres at the nodes.  These spheres will follow the landmark movement.
       Useful for making movies. */
    sprintf(outfile_Spheres, "SUMA_Spheres.1D.dset"); 
@@ -1449,24 +1575,33 @@ int main (int argc,char *argv[])
 /******* Surface Creation section ********************/
    if (opt->dom_dim >= 3) opt->N_sub = SUMA_ROUND((sqrt((float)( opt->N_sub - 2 ) / 10.0)));   
    if (opt->dbg_flag) { fprintf(stderr,"%s: Creating icosahedron with %d subdivisions.\n", FuncName, opt->N_sub); }
-   opt->Radius= 1.0;
+   if(!opt->SO) opt->Radius= 1.0;
    opt->Center[0] = opt->Center[1] = opt->Center[2] = 0.0;
    ctr[0] = (float)opt->Center[0];
    ctr[1] = (float)opt->Center[1];
    ctr[2] = (float)opt->Center[2];
       
-   opt->SO = SUMA_CreateIcosahedron(opt->Radius, opt->N_sub, ctr, "n", 1);
-   SO_name = SUMA_Prefix2SurfaceName ("toy_ico", NULL, NULL, SUMA_VEC, &exists);
-   if (!opt->SO->State) {opt->SO->State = SUMA_copy_string("Julia"); }
-   if (!opt->SO->Group) {opt->SO->Group = SUMA_copy_string("Julia"); }
-   if (!opt->SO->Label) {opt->SO->Label = SUMA_copy_string("toy_ico"); }
-   /* make the idcode_str depend on the Label, it is convenient to send the same surface all the time to SUMA */
-   if (opt->SO->Label) {   if (opt->SO->idcode_str) SUMA_free(opt->SO->idcode_str); 
-                           opt->SO->idcode_str = NULL; 
-                           SUMA_NEW_ID(opt->SO->idcode_str, opt->SO->Label); }
-   
-   SUMA_Save_Surface_Object(SO_name, opt->SO, SUMA_VEC, SUMA_ASCII, NULL);   /*Creates .coord and .topo files for SUMA */
-      
+   if (!opt->SO) {
+      opt->SO = SUMA_CreateIcosahedron(opt->Radius, opt->N_sub, ctr, "n", 1);
+      SO_name = SUMA_Prefix2SurfaceName ("toy_ico", NULL, NULL, SUMA_VEC, &exists);
+      if (!opt->SO->State) {opt->SO->State = SUMA_copy_string("Julia"); }
+      if (!opt->SO->Group) {opt->SO->Group = SUMA_copy_string("Julia"); }
+      if (!opt->SO->Label) {opt->SO->Label = SUMA_copy_string("toy_ico"); }
+      /* make the idcode_str depend on the Label, it is convenient to send the same surface all the time to SUMA */
+      if (opt->SO->Label) {   if (opt->SO->idcode_str) SUMA_free(opt->SO->idcode_str); 
+                              opt->SO->idcode_str = NULL; 
+                              SUMA_NEW_ID(opt->SO->idcode_str, opt->SO->Label); }
+
+      SUMA_Save_Surface_Object(SO_name, opt->SO, SUMA_VEC, SUMA_ASCII, NULL);   /*Creates .coord and .topo files for SUMA */
+   } else {
+      if (!opt->SO->State) {opt->SO->State = SUMA_copy_string("Julia"); }
+      if (!opt->SO->Group) {opt->SO->Group = SUMA_copy_string("Julia"); }
+      if (!opt->SO->Label) {opt->SO->Label = SUMA_copy_string("toy_ico"); }
+      /* make the idcode_str depend on the Label, it is convenient to send the same surface all the time to SUMA */
+      if (opt->SO->Label) {   if (opt->SO->idcode_str) SUMA_free(opt->SO->idcode_str); 
+                              opt->SO->idcode_str = NULL; 
+                              SUMA_NEW_ID(opt->SO->idcode_str, opt->SO->Label); }
+   }   
    /* see if SUMA talk is turned on */
    if (ps->cs->talk_suma) {
       ps->cs->istream = SUMA_BRAINWRAP_LINE;
@@ -1482,7 +1617,6 @@ int main (int argc,char *argv[])
          SUMA_SendSumaNewSurface(opt->SO, ps ->cs);
       }
    }
-   
   
 /******* Optimization section ************************/   
 
@@ -1545,8 +1679,6 @@ int main (int argc,char *argv[])
 
 
    /*Cleanup*/
-   
-   
    if (opt->SO) SUMA_Free_Surface_Object(opt->SO); opt->SO = NULL;
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
