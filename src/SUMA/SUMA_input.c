@@ -463,7 +463,7 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 {
    static char FuncName[]={"SUMA_R_Key"};
    char tk[]={"R"}, keyname[100];
-   int k, nc, ii, jj;
+   int k, nc, ii, jj, mm;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -505,14 +505,48 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
          } else {
             GLvoid *pixels;
+            double rat;
+            int oh=-1,ow=-1;
+            /* Control for GL_MAX_VIEWPORT_DIMS */
+            if (SUMAg_CF->SUMA_SnapshotOverSampling > 1) {
+               glGetIntegerv(GL_MAX_VIEWPORT_DIMS,&k);
+               mm = SUMA_MAX_PAIR( SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->HEIGHT,
+                                   SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->WIDTH);
+               if (mm > k) { /* too big, find best new dimesnions */
+                  rat = (double)mm/(double)k; /*window shrinking factor to allow for stitching*/
+                  SUMA_S_Notev(  "%d/%d (H/W) Too big for oversampling\n"
+                                 " reducing resolution by %f.\n", sv->X->HEIGHT, sv->X->WIDTH, rat);
+                  /* store original size */
+                  ow = sv->X->WIDTH; oh = sv->X->HEIGHT;
+                  sv->WindHeight = sv->X->HEIGHT = (int)((double)sv->X->HEIGHT/rat)-1;
+                  sv->WindWidth = sv->X->WIDTH = (int)((double)sv->X->WIDTH/rat)-1;
+                  SUMA_WidgetResize (sv->X->TOPLEVEL , sv->X->WIDTH, sv->X->HEIGHT);
+                  sv->rdc = SUMA_RDC_X_RESIZE;
+                  glViewport( 0, 0, 
+                                 sv->X->WIDTH, sv->X->HEIGHT);  
+                  SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA); 
+               } else {
+                  SUMA_S_Note("Size OK");
+               }
+            }
+            /* turn off checking for duplicates */
             for (jj=0; jj<SUMAg_CF->SUMA_SnapshotOverSampling; ++jj) {
                for (ii=0; ii<SUMAg_CF->SUMA_SnapshotOverSampling; ++ii) { 
                   if (SUMAg_CF->SUMA_SnapshotOverSampling > 1) {
+                     glGetIntegerv(GL_MAX_VIEWPORT_DIMS,&k);
                      if (ii==0 && jj == 0) {
                         SUMA_S_Notev(  "Resampling factor of %d\n"
                                     "If using this secret feature,\n"
                                     " use matlab function suma_stitch.m\n"
-                                    " to put images together.\n", SUMAg_CF->SUMA_SnapshotOverSampling);
+                                    " to put images together.\n"
+                                    "Have ViewPort GL_MAX_VIEWPORT_DIMS of %d\n"
+                                    "and max dims needed of %d.\n",
+                                    SUMAg_CF->SUMA_SnapshotOverSampling, k,
+                                    SUMA_MAX_PAIR( SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->HEIGHT,
+                                                   SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->WIDTH)  );
+                     } else {
+                        /* sometimes you have repeated black areas when oversampling, allow that after very first 'tant' */
+                        SNAP_OkDuplicates();
                      }
                      glViewport(-ii*sv->X->WIDTH, -jj*sv->X->HEIGHT, 
                                  SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->WIDTH, SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->HEIGHT);
@@ -525,13 +559,23 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                   }else {
                      SUMA_SLP_Err("Failed to record image.");
                   }
-                  if (SUMAg_CF->SUMA_SnapshotOverSampling > 1) {
-                     glViewport( 0, 0, 
-                                 sv->X->WIDTH, sv->X->HEIGHT);
-                     SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
-                  }
+                  
                }
             }
+            if (SUMAg_CF->SUMA_SnapshotOverSampling > 1) {  /* Now return the window to its previous size */
+               if (ow > 0) {
+                  sv->WindHeight = sv->X->HEIGHT = oh;
+                  sv->WindWidth = sv->X->WIDTH = ow;
+                  SUMA_WidgetResize (sv->X->TOPLEVEL , ow, oh);   
+               }
+               sv->rdc = SUMA_RDC_X_RESIZE;
+               glViewport( 0, 0, 
+                           sv->X->WIDTH, sv->X->HEIGHT);
+               SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+            }
+            if (SUMAg_CF->NoDuplicatesInRecorder) SNAP_NoDuplicates();
+            else SNAP_OkDuplicates();
+
          }
          break;
       case XK_R:

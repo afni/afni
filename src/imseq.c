@@ -10828,6 +10828,10 @@ ENTRY("SNAP_make_dc") ;
    EXRETURN ;
 }
 
+static int NoDuplicates = 1;
+void SNAP_NoDuplicates (void) { NoDuplicates = 1; return; }
+void SNAP_OkDuplicates (void) { NoDuplicates = 0; return; }
+
 /*-------------------------------------------------------------------------*/
 /*! Save image into a viewer, which should be opened near the widget w. */
 
@@ -10839,7 +10843,7 @@ ENTRY("SNAP_store_image") ;
 
    if( snap_imar == NULL ) INIT_IMARR(snap_imar) ;
 
-   if( IMARR_COUNT(snap_imar) > 0 ){
+   if( NoDuplicates && IMARR_COUNT(snap_imar) > 0 ){
      MRI_IMAGE *qim = IMARR_LASTIM( snap_imar ) ;
      if( mri_equal(qim,tim) ){
        fprintf(stderr,"++ Image recorder: reject duplicate image at #%d\n",
