@@ -746,20 +746,20 @@ def db_cmd_tlrc(dname, options):
     else:   base = 'TT_N27+tlrc'
 
     opt = options.find_opt('-tlrc_no_ss')
-    if opt: ss = '-no_ss'
+    if opt: ss = ' -no_ss'
     else:   ss = ''
 
     opt = options.find_opt('-tlrc_rmode')
-    if opt: rmode = '-rmode %s' % opt.parlist[0]
+    if opt: rmode = ' -rmode %s' % opt.parlist[0]
     else:   rmode = ''
 
     opt = options.find_opt('-tlrc_suffix')
-    if opt: suffix = '-suffix %s' % opt.parlist[0]
-    else:   suffix = ''
+    if opt: suffix = ' -suffix %s' % opt.parlist[0]
+    else:   suffix = ' -suffix NONE'     # make NONE the default
 
     cmd = "# -------------------------------------------------------\n" \
           "# run @auto_tlrc to warp '%s' to match template '%s'\n"      \
-          "@auto_tlrc -base %s -input %s %s %s %s\n\n"                  \
+          "@auto_tlrc -base %s -input %s%s%s%s\n\n"                     \
           % (dname, base,base, dname, ss, rmode, suffix)
 
     return cmd

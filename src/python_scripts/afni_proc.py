@@ -940,9 +940,10 @@ g_history = """
          - use $output_dir var in script, and echo version at run-time
          - append .$subj to more output files 
     1.12 Jan 16, 2007 : allow no +view when using -tlrc_anat
+    1.13 Jan 17, 2007 : if -tlrc_anat, apply default option '-tlrc_suffix NONE'
 """
 
-g_version = "version 1.12, January 16, 2007"
+g_version = "version 1.13, January 17, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
