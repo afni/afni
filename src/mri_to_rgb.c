@@ -280,33 +280,36 @@ ENTRY("mri_invert_inplace") ;
 # define powf pow
 #endif
 
+/*** Am not sure if this works properly! ***/
+
 void mri_gamma_rgb_inplace( float gam , MRI_IMAGE *im )  /* 15 Jan 2007 */
 {
    MRI_IMAGE *flim ; byte *iar ; float *far ;
-   int ii , nvox , rr,gg,bb ; float fac ;
+   int ii , nvox , rr,gg,bb ; float fac , val , gg1 ;
 
 ENTRY("mri_gamma_rgb_inplace") ;
 
-   if( im == NULL || im->kind != MRI_rgb ) EXRETURN ;
+   if( im == NULL || im->kind != MRI_rgb || gam <= 0.0f ) EXRETURN ;
 
    flim = mri_to_float( im ) ; /* intensity of input */
    iar = MRI_BYTE_PTR(im) ; far = MRI_FLOAT_PTR(flim) ;
-   nvox = im->nvox ;
+   fac = mri_max(flim) ;
+   if( fac <= 0.0f ){ mri_free(flim); EXRETURN; } else fac = 1.0f/fac ;
 
+   nvox = im->nvox ; gg1 = gam-1.0f ;
    for( ii=0 ; ii < nvox ; ii++ ){
      if( far[ii] <= 0.0f ){
        iar[3*ii] = iar[3*ii+1] = iar[3*ii+2] = 0 ;
      } else {
-       fac = powf( far[ii]/255.0f , gam ) ;
-       rr  = fac * iar[3*ii]   ;
-       gg  = fac * iar[3*ii+1] ;
-       bb  = fac * iar[3*ii+2] ;
+       val = powf( far[ii]*fac , gg1 ) ;
+       rr  = rint(val * iar[3*ii  ]) ;
+       gg  = rint(val * iar[3*ii+1]) ;
+       bb  = rint(val * iar[3*ii+2]) ;
        iar[3*ii  ] = (rr > 255) ? 255 : rr ;
        iar[3*ii+1] = (gg > 255) ? 255 : gg ;
        iar[3*ii+2] = (bb > 255) ? 255 : bb ;
      }
    }
 
-   mri_free(flim) ;
-   EXRETURN ;
+   mri_free(flim) ; EXRETURN ;
 }
