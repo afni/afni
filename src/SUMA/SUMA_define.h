@@ -2365,7 +2365,8 @@ typedef struct {
    GLdouble ClipPlanes[4*SUMA_MAX_N_CLIP_PLANES]; /*!< Equations of  clipping planes */
    SUMA_CLIP_PLANE_TYPES ClipPlaneType[SUMA_MAX_N_CLIP_PLANES]; /*!< Screen clipping, object clipping, etc. */
    char ClipPlanesLabels[SUMA_MAX_N_CLIP_PLANES][9]; 
-
+   
+   int NoDuplicatesInRecorder;
    int N_Timer;
    SUMA_TIMER Timer[SUMA_MAX_N_TIMER];
    
