@@ -1430,6 +1430,43 @@ double SUMA_NewAreaAtRadius(SUMA_SurfaceObject *SO, double r, double Rref, float
 
    SUMA_RETURN(A);
 } 
+/*!
+   \brief Change the coordinates so that the new surface has a radius r
+   \param SO: La surface
+   \param r: Le radius
+   \param Center: If not NULL then a 3x1 vector containing the Center of SO
+                  Use this when SO->Center is not OK for some reason. Else, SO->Center
+                  is used.
+*/
+SUMA_Boolean SUMA_NewSurfaceRadius(SUMA_SurfaceObject *SO, double r, float *Center)
+{
+   static char FuncName[]={"SUMA_NewSurfaceRadius"};
+   double Un, U[3], Dn, P2[2][3], c[3];
+   float *fp;
+   int i;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   if (!SO || !SO->NodeList) { SUMA_S_Err("Imbecile!"); SUMA_RETURN(NOPE); }
+   if (!Center) Center = SO->Center;
+   
+   /* Now loop over all the nodes in SO and add the deal */
+   for (i=0; i<SO->N_Node; ++i) {
+      /* change node coordinate of each node by Dr, along radial direction  */
+      fp = &(SO->NodeList[3*i]); SUMA_UNIT_VEC(Center, fp, U, Un);
+      if (Un) {
+         SUMA_COPY_VEC(Center, c, 3, float, double);
+         SUMA_POINT_AT_DISTANCE_NORM(U, c, r, P2);
+         SO->NodeList[3*i] = (float)P2[0][0]; SO->NodeList[3*i+1] = (float)P2[0][1]; SO->NodeList[3*i+2] = (float)P2[0][2];
+      } else {
+         SUMA_SL_Err("Identical points!\n"
+                     "No coordinates modified");
+      }
+   }
+
+   SUMA_RETURN(YUP);
+}
 
 /*!
    \brief Changes the coordinates of SO's nodes so that the new average radius of the surface
