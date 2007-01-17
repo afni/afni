@@ -321,6 +321,11 @@ PARSE:
 
 
 IN_CHECK:
+if ("$suf" == '' && $KeepView == 1) then
+   echo "Cannot use -keep_view and -suffix none"
+   goto END
+endif
+
 if ( `@CheckForAfniDset ${ref_in}` != 2 ) then
    echo "Error: Template dset ${ref_in} not found."
    goto END
@@ -606,24 +611,31 @@ AUTO_TLRC_MODE:
    UNPAD:
    #unPadding the anatomical 
    echo "Unpadding ..."
+   set tt_prefupad = ${tmppref}__upad${pd}_${tt_pref}
    3dZeropad   -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd -mm \
-               -prefix ${tt_pref} ${tt_prefpad}${anat_view}
+               -prefix ${tt_prefupad} ${tt_prefpad}${anat_view}
    #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
-   3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_INPUT_IDCODE ${tt_pref}${anat_view}
-   3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_INPUT_NAME ${tt_pref}${anat_view}
-   3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_BASE_IDCODE ${tt_pref}${anat_view}
-   3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_MATVEC_FOR_000000 ${tt_pref}${anat_view}
-   3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_MATVEC_INV_000000 ${tt_pref}${anat_view}
-   3dNotes -a "Dataset created via: `basename $0` $argv[*]" -h "Dataset created via: `basename $0` $argv[*]" ${tt_pref}${anat_view}
+   3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_INPUT_IDCODE ${tt_prefupad}${anat_view}
+   3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_INPUT_NAME ${tt_prefupad}${anat_view}
+   3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_BASE_IDCODE ${tt_prefupad}${anat_view}
+   3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_MATVEC_FOR_000000 ${tt_prefupad}${anat_view}
+   3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_MATVEC_INV_000000 ${tt_prefupad}${anat_view}
+   3dNotes -a "Dataset created via: `basename $0` $argv[*]" -h "Dataset created via: `basename $0` $argv[*]" ${tt_prefupad}${anat_view}
    
    if ($KeepView == 0) then
       echo "Changing view of transformed anatomy"
-      3drefit -view ${ref_view} ${tt_pref}${anat_view}.HEAD
+      3drefit -view ${ref_view} ${tt_prefupad}${anat_view}.HEAD
       if ("${ref_view}" == "+tlrc" && "${anat_view}" == "+orig") then
          #Now add a 3drefit line to specify the warp parent
-         3drefit -wset ${anat_in} ${tt_pref}${ref_view}
+         echo "Setting parent with 3drefit -wset ${anat_in} ${tt_prefupad}${ref_view}"
+         3drefit -wset ${anat_in} ${tt_prefupad}${ref_view}
       endif
+      #finally, rename the damned thing
+      3drename ${tt_prefupad}${ref_view} ${tt_pref}${ref_view}
+   else
+      3drename ${tt_prefupad}${anat_view} ${tt_pref}${anat_view}
    endif
+   
    
    ACPCIATE:
    if ($acpciate == 1) then
