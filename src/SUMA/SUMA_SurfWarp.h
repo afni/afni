@@ -77,4 +77,6 @@ double S_energy( MyCircleOpt *opt, SUMA_MX_VEC *VecX, SUMA_GENERIC_ARGV_PARSE *p
 double Find_Lamda(   MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *MaxStep, 
                      SUMA_MX_VEC *Perturb_Vec, SUMA_MX_VEC *Del_S, SUMA_MX_VEC *X_Lamda, 
                      SUMA_GENERIC_ARGV_PARSE *ps );
+double Optimization_Kernel( MyCircleOpt *opt, double theta);
+double Deformation_Kernel( MyCircleOpt *opt, double theta);
 #endif
