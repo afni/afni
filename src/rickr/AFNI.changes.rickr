@@ -1923,3 +1923,5 @@
   * modified plug_crender.c: fixed use of Pos with bigmode
   * modified db_mod.py to allow -tlrc_anat without a +view in -copy_anat
 
+17 Jan 2007: modified db_mod.py: -tlrc_anat ==> default of '-tlrc_suffix NONE'
+
