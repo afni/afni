@@ -820,6 +820,9 @@ extern void ISQ_save_anim( MCW_imseq *, char *, int,int,int ); /* 06 Dec 2006 */
 extern void ISQ_save_image( MCW_imseq *, char *, char *, char *); /* 11 Dec 2006 */
 
 extern void ISQ_setup_ppmto_filters(void); /* 11 May 2006 */
+void SNAP_NoDuplicates (void);
+void SNAP_OkDuplicates (void);
+
 
 #ifdef  __cplusplus
 }

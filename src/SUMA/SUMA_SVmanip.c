@@ -1132,8 +1132,8 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
                                              SV->light0_position[2], SV->light0_position[3], SV->lit_for);
    SS = SUMA_StringAppend_va(SS,"   light1_position = [%f %f %f %f]\n", SV->light1_position[0], SV->light1_position[1], SV->light1_position[2], SV->light1_position[3]);
    SS = SUMA_StringAppend_va(SS,"   ZoomCompensate = %f\n", SV->ZoomCompensate);
-   SS = SUMA_StringAppend_va(SS,"   WindWidth = %d\n", SV->WindWidth);
-   SS = SUMA_StringAppend_va(SS,"   WindHeight = %d\n", SV->WindHeight);
+   SS = SUMA_StringAppend_va(SS,"   WindWidth/WIDTH = %d/%d\n", SV->WindWidth, SV->X->WIDTH);
+   SS = SUMA_StringAppend_va(SS,"   WindHeight/HEIGHT = %d/%d\n", SV->WindHeight, SV->X->HEIGHT);
    SS = SUMA_StringAppend_va(SS,"   ShowWorldAxis = %d\n", SV->ShowWorldAxis);
    if (SV->WAx) {
       SS = SUMA_StringAppend_va(SS,"   WorldAxis: Center = [%f %f %f] BR = [%f %f %f , %f %f %f]\n", 
@@ -1883,7 +1883,23 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
       cf->Timer[i].lastcall = -1.0;
    }
    cf->N_Timer = 0;
-
+   
+   {
+      char *eee = getenv("SUMA_NoDuplicatesInRecorder");
+      if (eee) {
+         if (strcmp(eee,"NO") == 0) cf->NoDuplicatesInRecorder = 0;
+         else if (strcmp(eee,"YES") == 0) cf->NoDuplicatesInRecorder = 1;
+         else {
+            fprintf (SUMA_STDERR,   "Warning %s:\n"
+                                    "Bad value for environment variable SUMA_NoDuplicatesInRecorder\n"
+                                    "Assuming default of YES", FuncName);
+            cf->NoDuplicatesInRecorder = 1;
+         }
+      } else cf->NoDuplicatesInRecorder = 1;
+   }
+   /*if (SUMAg_CF->NoDuplicatesInRecorder) SNAP_NoDuplicates();
+   else SNAP_OkDuplicates();
+*/
    cf->cwd = SUMA_getcwd();
    
    return (cf);
