@@ -199,14 +199,14 @@ int main( int argc , char *argv[] )
             if (ii==top) suffix[0] = '\0';   /* ZSS Dec 06 */
             if( sclfac == 0.0 ) printf( fmt , root , ii , suffix ) ;
             else                printf( fmt , root , sclfac*ii , suffix ) ;
-            if( ii < top && comma ) printf(",") ;
+            if( ii <= top-step && comma ) printf(",") ;
          }
       } else {
          for( ii=bot ; ii >= top ; ii -= step ) {
             if (ii==top) suffix[0] = '\0';   /* ZSS Dec 06 */
             if( sclfac == 0.0 ) printf( fmt , root , ii , suffix ) ;
             else                printf( fmt , root , sclfac*ii , suffix ) ;
-            if( ii > bot && comma ) printf(",") ;
+            if( ii >= top+step && comma ) printf(",") ;
          }
       }
    } else if (rando_count == 1) {
