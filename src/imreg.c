@@ -16,7 +16,7 @@ static char RG_out_suffix[256] = "\0"   ;
 static int  RG_out_start       = 1      ;
 static int  RG_out_step        = 1      ;
 static int  RG_out_mode        = -666   ;
-
+static int  RG_keepsize        = 0      ;
 static char RG_dout_prefix[256] = "\0" ;
 
 static int  RG_meth            = ALIGN_DFSPACE_TYPE ;
@@ -189,7 +189,14 @@ fprintf(stderr,"Image %d: xbase=%g ybase=%g xcm=%g ycm=%g di=%d dj=%d\n",
       if( dxfil  != NULL ) fprintf( dxfil  , "%6.3f\n" , dx[kim] ) ;
       if( dyfil  != NULL ) fprintf( dyfil  , "%6.3f\n" , dy[kim] ) ;
       if( phifil != NULL ) fprintf( phifil , "%6.3f\n" , (180.0/PI)*phi[kim] ) ;
-
+      
+      if (RG_keepsize) {
+         int kkk;
+         MRI_IMARR * trimarr = mri_uncat2D( 1500 , 1100 , tim );
+         mri_free(tim); tim = IMARR_SUBIMAGE(trimarr,0) ;
+         for (kkk=1; kkk<trimarr->num; ++kkk) mri_free(IMARR_SUBIMAGE(trimarr,kkk));
+      }
+      
       if( ! RG_skip_output ){
          switch( RG_out_mode ){
 
@@ -246,6 +253,9 @@ void REG_syntax(void)
     "                  (which can be converted to shorts using program ftosh).\n"
     "                *** Default is to write images in format of first\n"
     "                    input file in the image_sequence.\n"
+    "  -keepsize       Preserve the original image size on output.\n"
+    "                  Default is without this option, and results\n"
+    "                  in images that are padded to be square.\n"
     "\n"
     "  -quiet          Don't write progress report messages.\n"
     "  -debug          Write lots of debugging output!\n"
@@ -341,6 +351,11 @@ void REG_command_line(void)
 
       if( strncmp(Argv[Iarg],"-nowrite",5) == 0 ){
          RG_skip_output = 1 ;
+         Iarg++ ; continue ;
+      }
+
+      if( strncmp(Argv[Iarg],"-keepsize",5) == 0 ){
+         RG_keepsize = 1 ;
          Iarg++ ; continue ;
       }
 
