@@ -464,7 +464,7 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    static char FuncName[]={"SUMA_R_Key"};
    char tk[]={"R"}, keyname[100];
    int k, nc, ii, jj, mm;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    if (!sv || !key) {
@@ -503,6 +503,15 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
             sv->X->SetRot_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->SetRot_prmpt);
 
+         } else if (SUMA_CTRL_KEY(key)) {
+            SUMAg_CF->SUMA_SnapshotOverSampling = (SUMAg_CF->SUMA_SnapshotOverSampling +1)%5;
+            if (SUMAg_CF->SUMA_SnapshotOverSampling == 0) SUMAg_CF->SUMA_SnapshotOverSampling = 1;
+            { 
+               char msg[50];
+               sprintf(msg,"Oversampling now set to %d", SUMAg_CF->SUMA_SnapshotOverSampling);
+               if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note (msg); }
+               else { SUMA_S_Note (msg); }
+            }
          } else {
             GLvoid *pixels;
             double rat;
@@ -536,11 +545,11 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                      glGetIntegerv(GL_MAX_VIEWPORT_DIMS,&k);
                      if (ii==0 && jj == 0) {
                         SUMA_S_Notev(  "Resampling factor of %d\n"
-                                    "If using this secret feature,\n"
-                                    " use matlab function suma_stitch.m\n"
-                                    " to put images together.\n"
-                                    "Have ViewPort GL_MAX_VIEWPORT_DIMS of %d\n"
-                                    "and max dims needed of %d.\n",
+                                    "If using this feature, save\n"
+                                    " image sequence to disk, then\n"
+                                    " use imcat to put images together.\n"
+                                    "(Have ViewPort GL_MAX_VIEWPORT_DIMS of %d\n"
+                                    " and max dims needed of %d.)\n",
                                     SUMAg_CF->SUMA_SnapshotOverSampling, k,
                                     SUMA_MAX_PAIR( SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->HEIGHT,
                                                    SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->WIDTH)  );
@@ -1634,6 +1643,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_r:
             if (SUMAg_CF->Dev && (Kev.state & Mod1Mask || Kev.state & Mod2Mask)) {
                if (!SUMA_R_Key(sv, "alt+r", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               }
+            } if (Kev.state & ControlMask){
+               if (!SUMA_R_Key(sv, "ctrl+r", "interactive")) {
                   SUMA_S_Err("Failed in key func.");
                }
             } else {

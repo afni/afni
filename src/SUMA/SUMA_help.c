@@ -128,11 +128,13 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "  + SurfDsetInfo: Program to display surface dataset information.\n"
             "  + AnalyzeTrace: Program to analyze the output of -trace option.\n"
             "  + DriveSuma: Program to control SUMA from the command line\n"
+            "  + imcat: Program to catenate images.\n"
             "Modifications:\n"
             "  + SUMA:\n"
             "    o Addition of new Displayable Objects (DO)(ctrl+Alt+s)\n"
             "    o Allow replacement of pre-loaded DO and Dsets\n"
             "    o Support for .niml.dset as format for surface-based anlysis\n"
+            "    o High resolution image saving with ctrl+r\n"
             );
          break; 
       case 20041229:
@@ -708,14 +710,32 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "     p: Viewer rendering mode  \n"
       "        (Fill, Line, Points), switch.\n\n");
+   SS = SUMA_StringAppend (SS, 
+      "     r: record current image\n"
+      "        in an a la AFNI image viewer.\n"
+      "        Identical images are rejected.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "     Alt+r: Set new center of rotation.\n"
       "            Enter nothing to go back to default.\n"
       "\n");
    SS = SUMA_StringAppend (SS, 
-      "     r: record current image\n"
-      "        in an a la AFNI image viewer.\n"
-      "        Identical images are rejected.\n\n");
+      "     Ctrl+r: Increase the image oversampling factor.\n"
+      "             By increasing this factor, you can create\n"
+      "             images at a resolution higher than that \n"
+      "             of the SUMA window. This is done by subdividing \n"
+      "             the scene into NxN sections and rendering each\n"
+      "             section separately. The NxN renderings are\n"
+      "             saved in the image recorder. After you \n"
+      "             save the images to disk, you can stitch them\n"
+      "             using imcat (a la AFNI montage). \n"
+      "        Note that each section is still rendered at\n"
+      "             the resolution of the SUMA window. So the bigger\n"
+      "             the window the more resolution per section.\n"
+      "             However, you cannot exceed a certain limit\n"
+      "             on the number of pixels in the final image.\n"
+      "             This limitation is due to the graphics card\n"
+      "             on your system. SUMA will take care not to exceed\n"
+      "             this limit.\n");
    SS = SUMA_StringAppend (SS, 
       "     R: Toggle continuous recording \n"
       "        to an a la AFNI image viewer.\n"
