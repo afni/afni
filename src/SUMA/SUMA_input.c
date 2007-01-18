@@ -548,7 +548,8 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                         /* sometimes you have repeated black areas when oversampling, allow that after very first 'tant' */
                         SNAP_OkDuplicates();
                      }
-                     glViewport(-ii*sv->X->WIDTH, -jj*sv->X->HEIGHT, 
+                     /* start from top left, move to right then go down one row (Row Major, starting on top left ) */
+                     glViewport(-ii*sv->X->WIDTH, -(SUMAg_CF->SUMA_SnapshotOverSampling - jj - 1)*sv->X->HEIGHT, 
                                  SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->WIDTH, SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->HEIGHT);
                      SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
                   }
