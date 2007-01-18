@@ -22,7 +22,8 @@ static double DF=0.0;           /* degrees of freedom */
 static double F_fixed;          /* fixed components for cost function */
 static int model_search = 0;    /* search for best model */
 static int max_paths = 1000;    /* maximum number of paths to try in model search */
-static double stop_cost = 0.3;  /* stop searching if cost function drops below this value */
+static double stop_cost = 0.1;  /* stop searching if cost function drops below this value */
+static int grow_all = 0;        /* search for models over all possible combinations */
 
 static sqrmat *kmat;            /* matrix of path coefficients (thetas) */
 static sqrmat *theta_init_mat;  /* coded initial matrix of path coefficients */
@@ -34,12 +35,18 @@ static sqrmat *i_mat;           /* identity matrix */
 static void InitGlobals (int npts);
 static void FreeGlobals (void);
 static void ModelSearch(int p, char **roilabels);
+static void GrowAllModels(char **roilabels);
+static void GrowModel(int, int, int, int *, int *, int, double *, sqrmat *, sqrmat *);
+
 static double ComputeThetawithPowell(void);
 static sqrmat *ComputeInvSigma(void);
 static sqrmat *ComputeInvSigmaExp(sqrmat *invSigma);
 
 static void fill_kmat(int n,double *x);
 static void fill_theta(int nx,double *x);
+static void UpdatethetawithArray(int *thetavec, sqrmat *theta0_mat);
+static void UpdateArraywiththeta(int *thetavec, sqrmat *theta0_mat);
+
 static double Compute_chisq0(int Px);
 
 static void im_to_sqrmat(MRI_IMAGE *mri_im, sqrmat *smat);
@@ -54,6 +61,9 @@ static sqrmat *sm_inverse(sqrmat *smat);
 
 static char ** read_labels(char * file_str, int nrows);
 static char * my_fgets( char *buf , int size , FILE *fts );
+
+static void printarray(int *iar, int n);
+
 
 int
 main (int argc, char *argv[])
@@ -97,10 +107,18 @@ main (int argc, char *argv[])
               "   specifications. Each entry must be 0 for entries excluded from the model,\n"
 	      "   1 for each required entry in the minimum model, 2 for each possible path\n"
 	      "   to try.\n"
-	      "   -model_search = search for best model\n"
+	      "   -model_search = search for best model by growing a model for one additional\n"
+	      "    coefficient from the previous model for n-1 coefficients. If the initial\n"
+	      "    theta matrix has no required coefficients, the initial model will grow from\n"
+	      "    the best model for a single coefficient\n"
 	      "   -max_paths n = maximum number of paths to include (Default = 1000)\n"
 	      "   -stop_cost n.nnn = stop searching for paths when cost function is below\n"
-	      "    this value (Default = 0.3)\n"
+	      "    this value (Default = 0.1)\n"
+	      "   -grow_all = search over all possible models by comparing models at\n"
+	      "    incrementally increasing number of path coefficients. This\n"
+	      "    algorithm searches all possible combinations; for the number of coeffs\n"
+	      "    this method can be exceptionally slow, especially as the number of\n"
+	      "    coefficients gets larger, for example at n>=9.\n"
               " This method is modified from the published method, ASAMIN, which uses an\n"
 	      "   annealing simulation optimization method. This program uses a Powell\n"
 	      "   optimization instead.\n\n"
@@ -113,11 +131,19 @@ main (int argc, char *argv[])
 	      "   to be modeled. The 1D file can have leading columns for labels that will\n"
 	      "   be used in the output. Label rows must be commented with the # symbol\n"
 	      " If using the model_search option, the theta file should have a '1' for each\n"
-	      "   required coefficient, 0 for each excluded coefficient, 2 for each optional\n"
+	      "   required coefficient, '0' for each excluded coefficient, '2' for each optional\n"
 	      "   coefficient. Excluded coefficients are not modeled. Required coefficients\n"
 	      "   are included in every computed model.\n"
-              " Example:\n"
-              "   1dSEM -theta inittheta.1D -C SEMCorr.1D -psi SEMvar.1D -DF 5\n"
+              " Examples:\n"
+              "   To confirm a specific model:\n"
+              "    1dSEM -theta inittheta.1D -C SEMCorr.1D -psi SEMvar.1D -DF 30\n"
+	      "   To search models by growing from the best single coefficient model\n"
+	      "     up to 12 coefficients\n"
+              "    1dSEM -theta testthetas_ms.1D -C testcorr.1D -psi testpsi.1D \\ \n"
+              "    -nrand 100 -DF 30 -model_search -max_paths 12\n"
+	      "   To search all possible models up to 8 coefficients:\n"
+              "    1dSEM -theta testthetas_ms.1D -C testcorr.1D -psi testpsi.1D \\ \n"
+              "    -nrand 10 -DF 30 -stop_cost 0.1 -grow_all -max_paths 8 | & tee testgrow.txt\n"
 	      "\n");
 
       exit (0);
@@ -148,7 +174,7 @@ main (int argc, char *argv[])
 
       if(strcmp(argv[nopt], "-DF") == 0 ) {
 	   if(++nopt >=argc ){
-	      ERROR_exit("Error - need an argument after -stop_cost!");
+	      ERROR_exit("Error - need an argument after -DF!");
 	   }
          DF = (double) atof(argv[nopt]);
 	 nopt++; continue;
@@ -193,6 +219,12 @@ main (int argc, char *argv[])
         }
 
       if(strcmp(argv[nopt], "-model_search") == 0 ) {
+         model_search = 1;
+	 nopt++; continue;
+      }
+
+      if(strcmp(argv[nopt], "-grow_all") == 0 ) {
+         grow_all = 1;
          model_search = 1;
 	 nopt++; continue;
       }
@@ -269,7 +301,7 @@ main (int argc, char *argv[])
    if((ntheta<2)&&(!model_search))
        ERROR_exit("Must have at least two connection path coefficients to estimate");
    if(verbose)
-       printf("ntheta, number of non-zero elements in connection path coefficients to calculate = %d\n",ntheta);
+       INFO_message("ntheta, number of non-zero elements in connection path coefficients to calculate = %d\n",ntheta);
    
    /* read Correlation matrix 1D file */
    corr_matrix = mri_read_1D (corr_file_str);
@@ -319,18 +351,24 @@ main (int argc, char *argv[])
    if(verbose)
       DUMP_SQRMAT("Psi Matrix", psi_mat);
    InitGlobals (Px);	/* initialize all the matrices and vectors */
-   if(model_search)
-      ModelSearch(Px,roilabels);
+   if(model_search) {
+      if(grow_all)
+         GrowAllModels(roilabels);   
+      else
+         ModelSearch(Px,roilabels);
+   }	 
    else {
-       cost  = ComputeThetawithPowell();  /* calculate connection coefficients */
-       printf("Cost is %g\n", cost);
-       chisq = cost * (DF-1.0);   /* compute chi square statistic for minimum fit */
-       printf("Chi Square = %g\n", chisq);
-      }
-   if(roilabels)
-      DUMP_SQRMAT_LABELED("Connection coefficients", kmat,roilabels);
-   else
-      DUMP_SQRMAT("Connection coefficients", kmat);
+	 cost  = ComputeThetawithPowell();  /* calculate connection coefficients */
+	 INFO_message("Cost is %g\n", cost);
+	 chisq = cost * (DF-1.0);   /* compute chi square statistic for minimum fit */
+	 INFO_message("Chi Square = %g\n", chisq);
+
+	 if(roilabels)
+	    DUMP_SQRMAT_LABELED("Connection coefficients", kmat,roilabels);
+	 else
+	    DUMP_SQRMAT("Connection coefficients", kmat);
+   }
+
 
    if(roilabels){
      for(i=0;i<Px;i++)
@@ -352,20 +390,20 @@ main (int argc, char *argv[])
 static void ModelSearch(int p, char **roilabels)
 {
    int j,k,n, nelements, max_i,max_j;
-   int i, nmodels, maxmodel;
+   int i, nmodels, maxmodel, kk;
    double eta, temp, dfdt, d2fdt2, temp2;
    sqrmat *invsigma, *sigma, *Si_mat, *newsigma, *invsigmaexp;
    sqrmat *tempmat, *tempmat2, *tempmat3, *newinvsigma;
-   double maxMI, MI, cost, mincost, chisq0, chisq;
+   double maxMI, MI, cost, mincost, chisq0, chisq, chisq2, pfi, aic;
    double *mat, *nat;
    
    ENTRY("ModelSearch");
-   maxmodel = 10000;
-   cost = 1.0E38;
+   maxmodel = max_paths;
+   cost = HUGENUMBER;
    nelements = p*(p-1);
 /*   nmodels = (long long)pow(2.0,nelements); */  /* maximum number of models to try */
    nmodels = count_value_sm(theta_init_mat, 2.0);
-printf("nmodels to try is %d\n", nmodels);
+   INFO_message("nmodels to try is %d\n", nmodels);
    n = kmat->n;
    mat = kmat->mat;
    nat = theta_init_mat->mat;
@@ -378,20 +416,23 @@ printf("nmodels to try is %d\n", nmodels);
    
    if(nmodels>maxmodel)      /* limit number of models to some maximum */
       nmodels = maxmodel;
+      
+   kk = n*(n+1)/2;
    ntheta = count_nonzero_sm(theta_init_mat);
    if(ntheta!=0) {
       cost = ComputeThetawithPowell();  /* calculate connection coefficients - minimum model */
- printf("cost = %g\n", cost);
+      INFO_message("cost = %g\n", cost);
       chisq0 = cost * (DF - 1.0);
+      chisq2 = chisq0 / 2.0;
       if(roilabels)
-	 DUMP_SQRMAT_LABELED("Connection coefficients", kmat,roilabels);
+	 DUMP_SQRMAT_LABELED("Connection coefficients - minimum model", kmat,roilabels);
       else
-         DUMP_SQRMAT("Connection coefficients", kmat);
+         DUMP_SQRMAT("Connection coefficients - minimum model", kmat);
    }
    else {
       chisq0 = Compute_chisq0(n);   /* compute chi square statistic for minimum fit */
    }
-   printf("Chi Square 0 = %f  for minimum fit\n", chisq0);
+   INFO_message("Chi Square 0 = %f  for minimum fit\n", chisq0);
 
    for(i=0;(i<nmodels)&&(cost>stop_cost);i++) {     /* for all possible combinations or maximum */
       invsigma = ComputeInvSigma();  /* more efficient and safer to calculate inverse first */
@@ -399,7 +440,7 @@ printf("nmodels to try is %d\n", nmodels);
       sigma = sm_inverse(invsigma);  
       /* sigma^-1*(sigma - C)*Sigma^-1 */
       invsigmaexp = ComputeInvSigmaExp(invsigma);
-      maxMI = -1.0E38; max_i = -1; max_j = -1; mincost = 1.0E38;
+      maxMI = -HUGENUMBER; max_i = -1; max_j = -1; mincost = HUGENUMBER;
       for(j=0;j<p;j++) {  /* add an element to the current model */
          for(k=0;k<p;k++) { 
             if(NAT(j,k)==2.0) { /* allow user to exclude elements and don't do already modeled elements */
@@ -447,14 +488,18 @@ printf("nmodels to try is %d\n", nmodels);
 	 }
       }
       if((max_i<0)||(max_j<0)) {
-         printf("Error finding maximum direction\n");
+         INFO_message("Error finding maximum direction\n");
          EXRETURN;
       } 
       NAT(max_i, max_j) = 1.0;  /* this was the best estimated model to add in this iteration */
       cost = ComputeThetawithPowell();  /* recompute the optimization */
       
       chisq = cost * (DF-1.0);
-      printf("max i,j = %d, %d with cost = %g, chisq = %g, ntheta = %d\n", max_i, max_j, cost, chisq, ntheta);
+      INFO_message("\nmax i,j = %d, %d with cost = %g, chisq = %g, ntheta = %d\n", max_i, max_j, cost, chisq, ntheta);
+      
+      pfi = 1.0 - (chisq/(kk-ntheta))*kk/chisq0;    /* parsimonious fit index */
+      aic = chisq + (ntheta+ntheta);                /* Akaike's information criterion */
+      INFO_message("parsimonious fit index = %g   Akaike's Information Criterion = %g\n", pfi, aic);
       if(roilabels)
          DUMP_SQRMAT_LABELED("Connection coefficients", kmat,roilabels);
       else
@@ -462,6 +507,119 @@ printf("nmodels to try is %d\n", nmodels);
     }
 }
 
+static void
+GrowAllModels(char **roilabels)
+{
+   int *thetavec, *minvec;
+   double mincost, cost;
+   int stopdepth, npts, notheta, maxdepth, depth, ntheta0;
+   sqrmat *theta0_mat, *bestkmat;   
+   double chisq0, chisq, chisq2, pfi, aic;
+   
+   ENTRY("GrowAllModels");
+
+   ntheta0 = count_nonzero_sm(theta_init_mat); /* how many points required in original model */
+   notheta = count_value_sm(theta_init_mat, 0.0);  /* how many points excluded with diagonal */
+   npts = theta_init_mat->n; 
+   npts = npts*npts - notheta;  /* size of vector is number of non-diagonal elements */
+
+   if(ntheta0!=0) {
+      cost = ComputeThetawithPowell();  /* calculate connection coefficients - minimum model */
+      INFO_message("cost = %g\n", cost);
+      chisq0 = cost * (DF - 1.0);
+      chisq2 = chisq0 / 2.0;
+      if(roilabels)
+	 DUMP_SQRMAT_LABELED("Connection coefficients", kmat,roilabels);
+      else
+         DUMP_SQRMAT("Connection coefficients", kmat);
+   }
+   else {
+      chisq0 = Compute_chisq0(theta_init_mat->n);   /* compute chi square statistic for minimum fit */
+   }
+   INFO_message("Chi Square 0 = %f  for minimum fit\n", chisq0);
+
+   theta0_mat = sm_copy(theta_init_mat);   /* create temporary copy of matrix */
+   INIT_SQRMAT(bestkmat,kmat->n);       /* path coefficients - where final results go*/
+
+   thetavec = malloc(npts * sizeof(int));
+   minvec = malloc(npts * sizeof(int));
+   if((thetavec==NULL)||(minvec==NULL)||(theta0_mat==NULL)||(bestkmat==NULL)) {
+     ERROR_exit("Can not allocate memory for growing all models");
+     EXRETURN;
+   }
+   UpdateArraywiththeta(thetavec,theta0_mat);
+   mincost = HUGENUMBER;
+   maxdepth = npts;
+   if(max_paths<maxdepth)
+      maxdepth = max_paths;
+   INFO_message("Min. coeffs. %d maxdepth %d npts %d\n", ntheta0, maxdepth, npts);
+
+   for(stopdepth = ntheta0; stopdepth < maxdepth; stopdepth++) {
+      mincost = HUGENUMBER;   /* find the best at each depth even if it's the same as lesser depth */
+      GrowModel(-1,ntheta0,stopdepth, thetavec, minvec, npts, &mincost, theta0_mat, bestkmat);
+      /* best k kept in bestkmat */
+      cost = mincost;
+      chisq = cost * (DF-1.0);
+      depth = stopdepth + 1;
+      INFO_message("\n\ncost = %g chisq = %g, #coeffs = %d\n", cost, chisq, depth);
+      pfi = 1.0 - (chisq/(depth-ntheta0))*depth/chisq0;    /* parsimonious fit index */
+      aic = chisq + (depth+depth);                /* Akaike's information criterion */
+      INFO_message("parsimonious fit index = %g   Akaike's Information Criterion = %g\n", pfi, aic);
+      if(roilabels)
+         DUMP_SQRMAT_LABELED("Connection coefficients", bestkmat,roilabels);
+      else
+         DUMP_SQRMAT("Connection coefficients", bestkmat);
+
+   }
+
+   EQUIV_SQRMAT(bestkmat,kmat);
+   free(minvec); free(thetavec);
+   minvec = NULL; thetavec = NULL;
+   KILL_SQRMAT(bestkmat);
+   KILL_SQRMAT(theta0_mat);
+   EXRETURN;
+}
+
+static void
+GrowModel(int lastindex, int depth, int stopdepth, int *thetavec, int *minvec, int npts,\
+          double *mincost, sqrmat *theta0_mat, sqrmat *bestkmat)
+{
+   int start, ii, temp;
+   double cost;
+   
+   ENTRY("GrowModel");
+   start = lastindex + 1;  /* start at node right after previous index */
+   if(start>=npts)
+      EXRETURN;
+   for(ii=start; ii<npts;ii++){
+      temp = thetavec[ii];
+      thetavec[ii] = 1;
+      if(depth==stopdepth) {
+         UpdatethetawithArray(thetavec,theta0_mat);
+         cost = ComputeThetawithPowell();
+	 if(cost<*mincost) {
+	    *mincost = cost;
+	    memcpy(minvec, thetavec, npts*sizeof(int));
+            EQUIV_SQRMAT(kmat,bestkmat);
+	 }
+	}
+      else {
+         GrowModel(ii,depth+1,stopdepth, thetavec, minvec, npts, mincost, theta0_mat, bestkmat);
+      }
+      thetavec[ii] = temp;
+   }
+   EXRETURN;
+}
+
+static void
+printarray(int *iar, int n)
+{
+   int i;
+
+   for(i=0;i<n;i++)
+      printf("%d ",iar[i]);
+   printf("\n");
+}
 
 /*! allocate all the global matrices and arrays once */
 static void
@@ -514,9 +672,14 @@ double SEM_Powell_cost_fun(int n, double *x)
 */
    static int ncall=0;
    
-   double F; /* the cost (error) using these parameters,x */
+   static double F = 0.0; /* the cost (error) using these parameters,x */
    double lndet_kkt, C_inv_sigma;
    sqrmat *inv_sigma;
+   
+   if(n==0) {
+      ncall = 0;   /* reset iteration counter */
+      return(F);   /* return last computed cost too (as a bonus) */
+    }
    /* Sigma  = (I-K)^-1 Psi [(I-K)^-1]'  - not actually needed though */
 
    /* convert doubles from optimizer pointer to sqrmat (matrix) format */
@@ -547,7 +710,7 @@ double SEM_Powell_cost_fun(int n, double *x)
    KILL_SQRMAT(inv_sigma);
    if(verbose&&(!(ncall%verbose)))   /* show verbose messages every verbose=n voxels */
       {
-         printf("Iteration %d: cost %f\n",ncall,F);
+         INFO_message("Iteration %d: cost %f\n",ncall,F);
       }
    ncall++;
    
@@ -576,20 +739,26 @@ static double ComputeThetawithPowell() /*compute connection matrix */
       *(thetamax+i) = 1.0;
    }
    fill_theta(ntheta, x);   /* put initial values from theta matrix */
-
-   printf("Finding optimal theta values\n");
-   /* use constrained Powell optimization with nrand option here */
-/*  icalls = powell_newuoa_con(ntheta, x, thetamin, thetamax, nrand, 0.1, 0.00000001, max_iter, SEM_Powell_cost_fun);*/
-    /* this version of Powell optimization is less susceptible to local minima by following multiple paths */
-   icalls = powell_newuoa_constrained(ntheta, x, &cost, thetamin, thetamax, nrand, nrand*13, 5, 0.1, 0.0001, \
+   if(!model_search)
+      INFO_message("Finding optimal theta values\n");
+   SEM_Powell_cost_fun(0,x);  /* reset iteration counter */
+   if(grow_all) {
+      /* use constrained Powell optimization - not multiple path version for speed */
+      icalls = powell_newuoa_con(ntheta, x, thetamin, thetamax, nrand, 0.1, 0.0001, max_iter, SEM_Powell_cost_fun);
+      cost = SEM_Powell_cost_fun(0,x); /* get final cost */
+   }
+   else {
+      /* this version of Powell optimization is less susceptible to local minima by following multiple paths */
+      icalls = powell_newuoa_constrained(ntheta, x, &cost, thetamin, thetamax, nrand, nrand*13, 5, 0.1, 0.0001, \
                max_iter, SEM_Powell_cost_fun);
-
+   }
    fill_kmat(ntheta, x);  /* final fill of k matrix with thetas */
    
    free(thetamax);
    free(thetamin);
    free(x);
-   printf("Total number of iterations %d\n", icalls+nrand);
+   if(!model_search)
+      INFO_message("Total number of iterations %d\n", icalls+nrand);
    RETURN(cost);
 }
 
@@ -665,6 +834,8 @@ static void fill_kmat(int nx,double *x)
 	    if(nfill>nx)
 	       EXRETURN;
 	}
+	else
+	    MAT(i,j) = 0.0;
      }
   }
   
@@ -706,6 +877,56 @@ static void fill_theta(int nx,double *x)
   }
   
   EXRETURN;
+}
+
+/* refill theta_init_mat setup matrix with values in an array */
+static void
+UpdatethetawithArray(int *thetavec, sqrmat *theta0_mat)
+{
+   int i,j,n;
+   double *mat, *nat;
+   int *thetaptr;
+
+   ENTRY("UpdatethetawithArray");
+    
+   thetaptr = thetavec;
+   mat = theta_init_mat->mat;
+   nat = theta0_mat->mat;   /* exclusion matrix */
+   n = theta_init_mat->n;
+   for(i=0;i<n;i++) {
+      for(j=0;j<n;j++) {
+         if(NAT(i,j)!=0.0) {   /* skip diagonals and other exclusions*/
+	    MAT(i,j) = (double) *thetaptr++;  /* thetavec has all included points 0 or 1 */
+	 }
+      }
+   }
+   EXRETURN;
+}
+
+/* fill array with required values from matrix */
+static void
+UpdateArraywiththeta(int *thetavec, sqrmat *theta0_mat)
+{
+   int i,j,n;
+   double *mat, *nat;
+   int *thetaptr;
+
+   ENTRY("UpdateArraywiththeta");
+   thetaptr = thetavec;
+   mat = theta0_mat->mat;   /* exclusion matrix */
+   n = theta0_mat->n;
+   for(i=0;i<n;i++) {
+      for(j=0;j<n;j++) {
+         if(MAT(i,j)!=0.0) {   /* skip diagonals and other exclusions*/
+	    if(MAT(i,j)==1.0)  /* set vector only for required coeffs*/
+  	       *thetaptr = 1;
+	    else
+	       *thetaptr = 0;
+	    thetaptr++;   
+	 }
+      }
+   }
+   EXRETURN;
 }
 
 /* compute Chisq0 for no model (no coefficients) */

@@ -23,25 +23,32 @@ typedef struct { int n ; double *mat ; } sqrmat ;
 #undef  DUMP_SQRMAT
 #define DUMP_SQRMAT(str,ss)                                      \
  do{ int yy,zz,n=(ss)->n; double *mat=(ss)->mat;                 \
-     printf("%s matrix: %d x %d\n",(str),n,n);                   \
+     fprintf(stderr,"%s matrix: %d x %d\n",(str),n,n);                   \
      for( yy=0 ; yy < n ; yy++ ){                                \
-       printf("%02d:",yy+1) ;                                    \
-       for( zz=0 ; zz < n ; zz++ ) printf(" %11.4f",MAT(yy,zz)); \
-       printf("\n") ;                                            \
+       fprintf(stderr,"%02d:",yy+1) ;                                    \
+       for( zz=0 ; zz < n ; zz++ ) fprintf(stderr," %11.4f",MAT(yy,zz)); \
+       fprintf(stderr,"\n") ;                                            \
  }} while(0)
 
 #undef  DUMP_SQRMAT_LABELED
 #define DUMP_SQRMAT_LABELED(str,ss,labels)                       \
  do{ int yy,zz,n=(ss)->n; double *mat=(ss)->mat;                 \
-     printf("%s matrix: %d x %d\n#     ",(str),n,n);             \
+     fprintf(stderr,"%s matrix: %d x %d\n#     ",(str),n,n);             \
      for( yy=0 ; yy < n ; yy++ )                                 \
-        printf("%11.4s ",labels[yy]) ;                            \
-     printf("\n");                                               \
+        fprintf(stderr,"%11.4s ",labels[yy]) ;                            \
+     fprintf(stderr,"\n");                                               \
      for( yy=0 ; yy < n ; yy++ ){                                \
-       printf("%-5.5s ",labels[yy]) ;                             \
-       for( zz=0 ; zz < n ; zz++ ) printf(" %11.4f",MAT(yy,zz)); \
-       printf("\n") ;                                            \
+       fprintf(stderr,"%-5.5s ",labels[yy]) ;                             \
+       for( zz=0 ; zz < n ; zz++ ) fprintf(stderr," %11.4f",MAT(yy,zz)); \
+       fprintf(stderr,"\n") ;                                            \
  }} while(0)
+
+#undef  EQUIV_SQRMAT
+#define EQUIV_SQRMAT(ss,tt)                                          \
+ do{                                                                 \
+   memcpy((tt)->mat, (ss)->mat, ((ss)->n)*((ss)->n)*sizeof(double)); \
+ } while(0)
+
 
 sqrmat * sm_iktk( sqrmat *K );
 int sm_choleski( sqrmat *A );
