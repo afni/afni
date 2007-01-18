@@ -173,7 +173,7 @@ void initialize_options
 
   (*opt)->input_filename = NULL;
   (*opt)->base_filename = NULL;
-  (*opt)->base_vol_index = 3;       
+  (*opt)->base_vol_index = -3;       
   (*opt)->nofine = 0;
   (*opt)->blur = 1.0;     
   (*opt)->dxy  = 0.07;    
@@ -408,10 +408,15 @@ void initialize_slice_sequence
   float * time_array = NULL;       /* array of slice acquisition times */
   int iz, i, j;                    /* index numbers */
   float z;                         /* slice z location */
+   
 
-
+  if (!dset->taxis) {               /* Jan 07 [ZSS] */
+      IR_error ("NULL taxis, should not be here.");   
+  }
+  
   /*----- Initialize local variables -----*/
-  num_slices = dset->taxis->nsl;
+  num_slices = dset->taxis->nsl;  
+  
   ivolume = 0;
 
   if ( num_slices <= 0 )            /* 06 Oct 2003 [rickr] */
@@ -564,13 +569,12 @@ void initialize_program
   /*----- Get user inputs -----*/
   get_user_inputs (argc, argv, option_data);
 
-
   /*----- Read the input 3d+time dataset to be registered -----*/
   read_dataset ((*option_data)->input_filename, &dset);
 
   
   /*----- Initialize the z-slice time order arrays -----*/
-  initialize_slice_sequence (*option_data, dset);
+  if (dset->taxis) initialize_slice_sequence (*option_data, dset);
 
 
   /*----- Initialize the array of state vectors -----*/
@@ -880,9 +884,10 @@ char * IMREG_main
              "*************************"  ;
 
    ntime = DSET_NUM_TIMES(old_dset) ;
-   if( ntime < 2 )
+   if( ntime < 2 && !opt->base_filename)
       return "*****************************\n"
              "Dataset has only 1 time point\n"
+             " and no -basefile specified.\n"
              "*****************************"  ;
 
    ii = DSET_NVALS_PER_TIME(old_dset) ;
@@ -897,6 +902,7 @@ char * IMREG_main
 
    if( nx != ny || fabs(dx) != fabs(dy) ){
 
+     /*     No need to quit, works fine.  ZSS 07
      if (opt->debug)
        fprintf(stderr,"\nIMREG: nx=%d ny=%d nz=%d  dx=%f dy=%f dz=%f\n",
 	       nx,ny,nz,dx,dy,dz ) ;
@@ -904,6 +910,9 @@ char * IMREG_main
       return "***********************************\n"
              "Dataset does not have square slices\n"
              "***********************************"  ;
+     */
+     fprintf(stderr,"\nNotice 2dImreg: nx=%d ny=%d nz=%d  dx=%f dy=%f dz=%f\n",
+	       nx,ny,nz,dx,dy,dz ) ;
    }
 
    new_prefix = opt->new_prefix;     /* get string item (the output prefix) */
@@ -954,8 +963,15 @@ char * IMREG_main
    base_datum = DSET_BRICK_TYPE(base_dset,0);
 
    base = opt->base_vol_index;
-
-   if( base >= DSET_NUM_TIMES(base_dset))
+   if (base < 0) { /* default */
+      if (-base >= DSET_NUM_TIMES(base_dset)) {
+         base = DSET_NUM_TIMES(base_dset)-1;
+      } else {
+         base = -base;
+      }
+   }
+   
+   if( base >= DSET_NUM_TIMES(base_dset) )
       return "******************************\n"
              "Base image number is too large\n"
              "******************************"  ;
@@ -1374,15 +1390,24 @@ void output_state_history
 
   
   /*----- Write the registration parameters -----*/
-  for (iv = 0;  iv < num_vectors;  iv++)
-    {
-      ivolume = iv / num_slices;
-      iz = t_to_z[iv % num_slices];
-      t = get_time (ivolume, iz, dset);
-      fprintf (dx_file,  "%f   %f\n", t, state_history[iv].elts[1]);
-      fprintf (dy_file,  "%f   %f\n", t, state_history[iv].elts[2]);
-      fprintf (psi_file, "%f   %f\n", t, state_history[iv].elts[3]);
-    }
+  if (dset->taxis) {
+     for (iv = 0;  iv < num_vectors;  iv++)
+       {
+         ivolume = iv / num_slices;
+         iz = t_to_z[iv % num_slices];
+         t = get_time (ivolume, iz, dset);
+         fprintf (dx_file,  "%f   %f\n", t, state_history[iv].elts[1]);
+         fprintf (dy_file,  "%f   %f\n", t, state_history[iv].elts[2]);
+         fprintf (psi_file, "%f   %f\n", t, state_history[iv].elts[3]);
+       }
+  } else {
+      for (iv = 0;  iv < num_vectors;  iv++)
+       {
+         fprintf (dx_file,  "%d   %f\n", iv, state_history[iv].elts[1]);
+         fprintf (dy_file,  "%d   %f\n", iv, state_history[iv].elts[2]);
+         fprintf (psi_file, "%d   %f\n", iv, state_history[iv].elts[3]);
+       } 
+  }
 
 
   /*----- Close output files -----*/
@@ -1408,9 +1433,7 @@ void output_results
 {
   THD_3dim_dataset * dset;
 
-
   read_dataset (option_data->input_filename, &dset);
-
 
   /*----- Write the time series of state parameters -----*/
   if (option_data->dprefix != NULL)
@@ -1450,8 +1473,9 @@ void terminate_program
 
   /*----- Initialize local variables -----*/
   read_dataset ((*option_data)->input_filename, &dset);
-  num_slices = dset->taxis->nsl;
-
+  if (dset->taxis) num_slices = dset->taxis->nsl;
+   else num_slices = -1;
+   
   if ( num_slices <= 0 )            /* 06 Oct 2003 [rickr] */
       num_slices = dset->daxes->nzz;
 
@@ -1462,8 +1486,8 @@ void terminate_program
 
   /*----- Release memory -----*/
   free (*option_data);     *option_data = NULL;
-  free (t_to_z);           t_to_z = NULL;
-  free (z_to_t);           z_to_t = NULL;
+  if (t_to_z) free (t_to_z);           t_to_z = NULL;
+  if (z_to_t) free (z_to_t);           z_to_t = NULL;
 
   
   if (*old_rms_array != NULL)
@@ -1511,7 +1535,6 @@ int main
 
   machdep() ; mainENTRY("2dImReg main") ; PRINT_VERSION("2dImReg") ;
 
-  
   /*----- Program initialization -----*/
   initialize_program (argc, argv, &option_data, &state_history, 
 		      &old_rms_array, &new_rms_array);
