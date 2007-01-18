@@ -192,7 +192,9 @@ fprintf(stderr,"Image %d: xbase=%g ybase=%g xcm=%g ycm=%g di=%d dj=%d\n",
       
       if (RG_keepsize) {
          int kkk;
-         MRI_IMARR * trimarr = mri_uncat2D( 1500 , 1100 , tim );
+         MRI_IMARR * trimarr = mri_uncat2D( RG_baseimage->nx , RG_baseimage->ny , tim );
+         if( RG_verbose )
+            printf("-- image cropped back to original size of %dx%d\n", RG_baseimage->nx , RG_baseimage->ny);
          mri_free(tim); tim = IMARR_SUBIMAGE(trimarr,0) ;
          for (kkk=1; kkk<trimarr->num; ++kkk) mri_free(IMARR_SUBIMAGE(trimarr,kkk));
       }
