@@ -19,7 +19,10 @@ int main( int argc , char * argv[] )
    char suffix[50] = "\0";
    int iarg , ii,jj , nx,ny , nxim,nyim ;
    int nmode = XYNUM ;
-
+   int gap = 0;
+   byte  gap_col[3] = {255, 20, 128} ;
+   void *ggg=NULL;
+    
    if( argc < 4 ){
       printf("Usage: imcat [options] fname1 fname2 etc.\n"
              "Puts images of the same type and size into a montage.\n"
@@ -36,6 +39,9 @@ int main( int argc , char * argv[] )
              "  -matrix NX NY: Specify both numbers at the same time.\n"
              "        The program will try to guess if neither NX nor NY are\n"
              "        specified.\n"
+             "  -gap G: Put a line G pixels wide between images.\n"
+             "  -gap_col R G B: Set color of line to R G B values.\n"
+             "                  Values range between 0 and 255.\n"
              "\n"
              "You can look at the output image file with\n"
              "  afni -im ppp.ppm  [then open the Sagittal image window]\n"
@@ -78,10 +84,24 @@ int main( int argc , char * argv[] )
           iarg++ ; continue ;
        }
 
-       if( strcmp(argv[iarg],"-yxnum") == 0 ){
-          nmode = YXNUM ; iarg++ ; continue ;
+       if( strcmp(argv[iarg],"-gap") == 0 ){
+         if (iarg+1 > argc) {
+            fprintf(stderr,"*** ERROR: Need an integer after -gap\n");
+            exit(1);
+         }
+         gap = (int) strtod( argv[++iarg] , NULL ) ; 
+          iarg++ ; continue ;
        }
-
+       if( strcmp(argv[iarg],"-gap_col") == 0 ){
+         if (iarg+2 > argc) {
+            fprintf(stderr,"*** ERROR: Need three integers between 0 and 255 after -gap_col\n");
+            exit(1);
+         }
+         gap_col[0] = (byte) strtod( argv[++iarg] , NULL ) ;
+         gap_col[1] = (byte) strtod( argv[++iarg] , NULL ) ;
+         gap_col[2] = (byte) strtod( argv[++iarg] , NULL ) ;
+          iarg++ ; continue ;
+       }
        if( strcmp(argv[iarg],"-prefix") == 0 ){
           MCW_strncpy( prefix , argv[++iarg] , 240 ) ;
           iarg++ ; continue ;
@@ -130,12 +150,16 @@ int main( int argc , char * argv[] )
     exit(1) ;
    }
    if (nx*ny != inimar->num) {
-      fprintf(stderr,"*** Have %d images, does not fit: %dx%d\n", inimar->num, nx, ny);
+      fprintf(stderr,"*** Have %d images. Cannot fit in: %dx%d\n", inimar->num, nx, ny);
       exit(1);
    }
    fprintf(stdout, "\nArranging %d images into a %dx%d matrix.\n", inimar->num, nx, ny);
-   
-   if (!(im = mri_cat2D( nx , ny , 0 , NULL , inimar ))) {
+   if (gap && IMAGE_IN_IMARR(inimar,0)->kind != MRI_rgb) {
+      fprintf(stderr,"*** Cannot do gaps for non-rgb images.\n");
+      exit(1);
+   }
+   ggg = (void *)gap_col;
+   if (!(im = mri_cat2D( nx , ny , gap , ggg , inimar ))) {
       fprintf(stderr,"*** ERROR: Failed to create image!\n");
       exit(1) ;
    }
