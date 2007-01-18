@@ -114,7 +114,7 @@ int main( int argc , char *argv[] )
          continue ;
       }
 
-      if( strncmp(argv[narg],"-comma",4) == 0 ){
+      if( strncmp(argv[narg],"-comma",4) == 0 || strncmp(argv[narg],"-,",2) == 0 ){
         comma = 1 ; sep = ',' ; col = 0 ; continue ;
       }
 
