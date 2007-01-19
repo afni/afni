@@ -38,7 +38,7 @@ ENTRY("SYM_expand_ranges") ;
       (str[ii] == '/' && str[ii+1] == '/')  /* starts with "//" */
    ) RETURN(NULL) ;
 
-   fv     = (floatvec *)malloc(sizeof(floatvec)) ;    /* create empty output */
+   fv      = (floatvec *)malloc(sizeof(floatvec)) ;    /* create empty output */
    fv->nar = nlast+1 ;
    fv->ar  = (float *)calloc(sizeof(float),nlast+1) ;
 
