@@ -464,7 +464,7 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    static char FuncName[]={"SUMA_R_Key"};
    char tk[]={"R"}, keyname[100];
    int k, nc, ii, jj, mm;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    if (!sv || !key) {
