@@ -23,7 +23,7 @@ int main( int argc , char * argv[] )
    int gap = 0, ScaleInt=0, force_rgb_out = 0, matrix_size_from_scale = 0;
    byte  gap_col[3] = {255, 20, 128} ;
    MRI_IMAGE *imscl=NULL;
-   int kkk, nscl=-1;
+   int kkk, nscl=-1, resix=-1, resiy=-1, force_rgb_at_input=0, N_byte = 0, N_rgb = 0;
    float *scl=NULL;
    byte *scl3=NULL, *rgb=NULL;
    char name[100];
@@ -31,15 +31,14 @@ int main( int argc , char * argv[] )
     
    if( argc < 4 ){
       printf("Usage: imcat [options] fname1 fname2 etc.\n"
-             "Puts images of the same type and size into a montage.\n"
-             " of nx by ny images, a la AFNI montage.\n"
-             " 3x4 images would be assembled into an image matrix IM\n"
-             " in this order:\n"
-             "  0  1  2\n"
-             "  3  4  5\n"
-             "  6  7  8\n"
-             "  9  10 11\n"
+             "Puts a set images into an image matrix (IM) \n"
+             " montage of NX by NY images.\n"
+             " The minimum set of input is N images (N >= 1).\n"
+             " If need be, images are reused until the desired\n"
+             " NX by NY size is achieved.\n"
+             " \n"
              "OPTIONS:\n"
+             " ++ Options for editing, coloring input images:\n"
              "  -scale_image SCALE_IMG: Multiply each image IM(i,j) in output\n"
              "                          image matrix IM by the color or intensity\n"
              "                          of the pixel (i,j) in SCALE_IMG.\\n"
@@ -48,27 +47,53 @@ int main( int argc , char * argv[] )
              "                          (average color)\n"
              "  -rgb_out: Force output to be in rgb, even if input is bytes.\n"
              "            This option is turned on automatically in certain cases.\n"
+             "  -res_in RX RY: Set resolution of all input images to RX by RY pixels.\n"
+             "                 Default is to make all input have the same\n"
+             "                 resolution as the first image.\n"
+             " ++ Options for output:\n"
              "  -prefix ppp = Prefix the output files with string 'ppp'\n"
-             "  -nx NX: Number of images in each row (3 for example above)\n"
-             "  -ny NY: Number of images in each column (4 for example above)\n"
-             "  -matrix NX NY: Specify both numbers at the same time.\n"
-             "        The program will try to guess if neither NX nor NY are\n"
-             "        specified.\n"
+             "  -matrix NX NY: Specify number of images in each row and column \n"
+             "                 of IM at the same time. \n"
+             "  -nx NX: Number of images in each row (3 for example below)\n"
+             "  -ny NY: Number of images in each column (4 for example below)\n"
+             "      Example: If 12 images appearing on the command line\n"
+             "               are to be assembled into a 3x4 IM matrix they\n"
+             "               would appear in this order:\n"
+             "                 0  1  2\n"
+             "                 3  4  5\n"
+             "                 6  7  8\n"
+             "                 9  10 11\n"
+             "    NOTE: The program will try to guess if neither NX nor NY \n"
+             "          are specified.\n"
              "  -matrix_from_scale: Set NX and NY to be the same as the \n"
              "                      SCALE_IMG's dimensions. (needs -scale_image)\n"
              "  -gap G: Put a line G pixels wide between images.\n"
              "  -gap_col R G B: Set color of line to R G B values.\n"
              "                  Values range between 0 and 255.\n"
              "\n"
+             "Example 0 (assuming afni is in ~/abin directory):\n"
+             "   Resizing an image:\n"
+             "   imcat -prefix big -res_in 1024 1024 \\\n"
+             "         ~/abin/face_zzzsunbrain.jpg \n"
+             "   imcat -prefix small -res_in 64 64 \\\n"
+             "         ~/abin/face_zzzsunbrain.jpg \n"
+             "   aiv small.ppm big.ppm \n"
+             "\n"
              "Example 1:\n"
-             "   Use to stitch SUMA's images into one high-res image\n"
-             "   (read Ctrl+r in SUMA's GUI help.)\n"
-             "   imcat -prefix onehighres img*.ppm\n"
-             "Example 2: (assuming afni is in ~/abin directory):\n"
+             "   Stitching together images:\n"
+             "    (Can be used to make very high resolution SUMA images.\n"
+             "     Read about 'Ctrl+r' in SUMA's GUI help.)\n"
+             "   imcat -prefix cat -matrix 14 12 \\\n"
+             "         ~/abin/face_*.jpg\n"
+             "   aiv cat.ppm\n"
+             "\n"
+             "Example 2 (assuming afni is in ~/abin directory):\n"
              "   imcat -prefix bigcat -scale_image ~/abin/face_rwcox.jpg \\\n"
-             "         -matrix_from_scale -rgb_out ~/abin/face_mbelmonte.jpg\n"
-             "   look at bigcat.ppm with zoom set to window size, then zoom in \n"
-             "   all the way.\n"
+             "         -matrix_from_scale -rgb_out -res_in 32 32 ~/abin/face_*.jpg \n"
+             "   aiv   bigcat.ppm bigcat.ppm \n"
+             "   Crop/Zoom in to see what was done. In practice, you want to use\n"
+             "   a faster image viewer to examine the result. Zooming on such\n"
+             "   a large image is not fast in aiv.\n"
              "   Be careful with this toy. Images get real big, real quick.\n"
              "\n"
              "You can look at the output image file with\n"
@@ -81,6 +106,8 @@ int main( int argc , char * argv[] )
    machdep() ;
 
     ScaleInt = 0;
+    resix=-1;
+    resiy=-1;
     force_rgb_out = 0;
     iarg = 1 ;
       nx = -1; ny = -1;
@@ -93,6 +120,16 @@ int main( int argc , char * argv[] )
          }
          nx = (int) strtod( argv[++iarg] , NULL ) ;
          ny = (int) strtod( argv[++iarg] , NULL ) ;
+          iarg++ ; continue ;
+       }
+       
+       if( strcmp(argv[iarg],"-res_in") == 0 ){
+         if (iarg+2 > argc) {
+            fprintf(stderr,"*** ERROR: Need two integers after -res_in\n");
+            exit(1);
+         }
+         resix = (int) strtod( argv[++iarg] , NULL ) ;
+         resiy = (int) strtod( argv[++iarg] , NULL ) ;
           iarg++ ; continue ;
        }
        
@@ -167,7 +204,6 @@ int main( int argc , char * argv[] )
     }
       
     if (scale_image) {
-      fprintf(stderr,"Scale Land\n");
       if (!(imscl = mri_read_just_one(scale_image))) {
          fprintf(stderr,"*** Failed to read scale image.\n");
          exit(1);
@@ -212,7 +248,7 @@ int main( int argc , char * argv[] )
    mri_Set_OK_catwrap();
 
    /* read all images */
-   inimar = mri_read_many_files( argc-iarg , argv+iarg ) ;
+   inimar = mri_read_resamp_many_files( argc-iarg , argv+iarg, resix, resiy ) ;
    if( inimar == NULL ){
       fprintf(stderr,"*** no input images read!\a\n") ;
       exit(1) ;
@@ -257,16 +293,34 @@ int main( int argc , char * argv[] )
    nxin = IMAGE_IN_IMARR(inimar,0)->nx;
    nyin = IMAGE_IN_IMARR(inimar,0)->ny;
    
-   fprintf(stdout, "\n+++ Arranging %d images (each %dx%d) into a %dx%d matrix.\n", inimar->num, nxin, nyin, nx, ny);
+   fprintf(stdout, "+++ Arranging %d images (each %dx%d) into a %dx%d matrix.\n", inimar->num, nxin, nyin, nx, ny);
 
-
-   if (gap) { /* make sure all images are rgb type */
+   force_rgb_at_input = 0;
+   N_byte = 0; N_rgb = 0;
+   if (gap) force_rgb_at_input = 1; /* must go rgb */
+   else {
+      /* if have multiple types, must also go rgb */
+      for (kkk=0; kkk<inimar->num; ++kkk) {
+         if (IMAGE_IN_IMARR(inimar,kkk)->kind != MRI_byte && IMAGE_IN_IMARR(inimar,kkk)->kind != MRI_rgb) {
+            fprintf(stderr,"*** Unexpected image kind on input.\n"
+                           "    Only byte and rgb (3byte) images allowed.\n");
+            exit(1);
+         } else if (IMAGE_IN_IMARR(inimar,kkk)->kind == MRI_byte) {
+            ++N_byte;
+         } else if (IMAGE_IN_IMARR(inimar,kkk)->kind == MRI_rgb) {
+            ++N_rgb;
+         } 
+         if (N_byte && N_rgb) { force_rgb_at_input = 1; continue; }
+      }
+   }
+   
+   if (force_rgb_at_input) { /* make sure all images are rgb type */
       MRI_IMAGE *imin, *newim;
       int kkk, nmin;
       if (nx*ny < inimar->num) nmin = nx*ny;
       else nmin = inimar->num;
       /* must transform input to rgb here to allow for gap option */
-      fprintf(stderr,"+++ Transforming all input to rgb to accomodate gap \n");
+      fprintf(stderr,"+++ Transforming all input to rgb for a good reason \n");
       for (kkk=0; kkk<nmin; ++kkk) {
          imin = IMAGE_IN_IMARR(inimar,kkk%inimar->num);
          if(imin->kind == MRI_byte) {
@@ -278,8 +332,9 @@ int main( int argc , char * argv[] )
             exit(1);
          }
       }
-   }
+   } 
 
+   
    ggg = (void *)gap_col;
    
    if (!(im = mri_cat2D( nx , ny , gap , ggg , inimar ))) {
@@ -398,6 +453,6 @@ int main( int argc , char * argv[] )
    mri_write(fnam,im) ;
    
    mri_free(im); im = NULL;
-   fprintf(stdout, "You can view image %s with:\n afni -im %s &\n in the saggittal view.\n", fnam, fnam);
+   fprintf(stdout, "You can view image %s with:\n aiv %s \n", fnam, fnam);
     exit(0) ;
 }
