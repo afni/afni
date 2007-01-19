@@ -6030,3 +6030,7 @@
 15 Jan 2007
  * Added mri_gamma_rgb_inplace() to mri_to_rgb.c.
  * Modified 1dsvd.c to change Left for Right.
+
+19 Jan 2007
+ * Modified 3dDeconvolve.c and mri_fromstring.c to use '|' as a line
+     separator in 'SYM:' and '1D:' inputs (as well as '\\').
