@@ -764,6 +764,7 @@ extern MRI_IMARR * mri_read_3A( char * ) ;
 extern MRI_IMARR * mri_read_file( char * ) ;
 extern int mri_imcount( char * ) ;
 extern MRI_IMARR * mri_read_many_files( int nf , char * fn[] ) ;
+extern MRI_IMARR * mri_read_resamp_many_files( int nf, char * fn[] , int nxnew, int nynew);
 
 /** returns array of byte images: red, green, blue **/
 
@@ -1472,6 +1473,7 @@ extern void mri_blur3D_variable( MRI_IMAGE * , byte * ,
                                  MRI_IMAGE * , MRI_IMAGE * , MRI_IMAGE * ) ;
 
 extern MRI_IMAGE * mri_rgb_blur2D  ( float sig , MRI_IMAGE *im ) ;
+extern MRI_IMAGE * mri_byte_blur2D( float sig , MRI_IMAGE *im );
 extern MRI_IMAGE * mri_float_blur2D( float sig , MRI_IMAGE *im ) ;
 extern MRI_IMAGE * mri_float_blur3D( float sig , MRI_IMAGE *im ) ;
 
