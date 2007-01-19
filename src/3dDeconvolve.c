@@ -7221,7 +7221,8 @@ ENTRY("read_glt_matrix") ;
 
        buf = fdup ;
        while(1){
-         fpt = strchr(buf,'\\') ;          /* end of 'line' */
+                           fpt = strchr(buf,'\\'); /* find end of 'line' */
+         if( fpt == NULL ) fpt = strchr(buf,'|') ;
          if( fpt != NULL ) *fpt = '\0' ;
          fvv = SYM_expand_ranges( ncol-1 , nSymStim,SymStim , buf ) ;
          if( fvv == NULL || fvv->nvec < 1 ) continue ;

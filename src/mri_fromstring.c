@@ -1,5 +1,8 @@
 #include "mrilib.h"
 
+#undef  IS_COLSEP
+#define IS_COLSEP(s) ( strcmp((s),"\\")==0 || strcmp((s),"|")==0 )
+
 /*-----------------------------------------------------------------------------*/
 /*! Produce a 1D (float) image from a string of the form "20@1,10@0,5@1".
     13 Apr 2006: make '\' be a column separator.
@@ -16,7 +19,7 @@ MRI_IMAGE * mri_1D_fromstring( char *str )
 
 ENTRY("mri_1D_fromstring") ;
 
-   sar = NI_decode_string_list( str , ",;" ) ;
+   sar = NI_decode_string_list( str , "," ) ;
    if( sar == NULL ) RETURN(NULL) ;
    if( sar->num == 0 ){ NI_delete_str_array(sar); RETURN(NULL); }
 
@@ -34,7 +37,7 @@ ENTRY("mri_1D_fromstring") ;
           free(col_len); free(far); NI_delete_str_array(sar); RETURN(NULL);
         }
 
-     } else if( strcmp(sar->str[ii],"\\") == 0 ){ /* a col separator */
+     } else if( IS_COLSEP(sar->str[ii]) ){ /* a col separator */
        col_num++ ;
        col_len = (int *)realloc( col_len , sizeof(int)*col_num ) ;
        col_len[col_num-1] = 0 ;
@@ -88,7 +91,7 @@ MRI_IMAGE * mri_read_ragged_fromstring( char *str , float filler )
 
 ENTRY("mri_read_ragged_fromstring") ;
 
-   sar = NI_decode_string_list( str , ",;" ) ;
+   sar = NI_decode_string_list( str , "," ) ;
    if( sar == NULL ) RETURN(NULL) ;
    if( sar->num == 0 ){ NI_delete_str_array(sar); RETURN(NULL); }
 
@@ -108,7 +111,7 @@ ENTRY("mri_read_ragged_fromstring") ;
         if( *sval == '*' ) value = filler ;
         else               value = (float)strtod(sval,NULL) ;
 
-     } else if( strcmp(sar->str[ii],"\\") == 0 ){
+     } else if( IS_COLSEP(sar->str[ii]) ){
 
        col_num++ ;
        col_len = (int *)realloc( col_len , sizeof(int)*col_num ) ;
