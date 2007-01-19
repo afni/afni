@@ -15,7 +15,9 @@
            8 9 10 11
    At this time, all the images must be the same dimensions and kind.
 ----------------------------------------------------------------------*/
-
+static byte OK_wrap = 0;
+void mri_Set_KO_catwrap(void) { OK_wrap = 0; return; }
+void mri_Set_OK_catwrap(void) { OK_wrap = 1; return; }
 MRI_IMAGE * mri_cat2D( int mx , int my , int gap , void *gapval , MRI_IMARR *imar )
 {
    int nx , ny , ii , jj , kind , ij , nxout , nyout , ijoff , jout,iout ;
@@ -26,11 +28,11 @@ ENTRY("mri_cat2D") ;
 
    /*--- sanity checks ---*/
 
-   if( mx < 1 || my < 1 || imar == NULL || imar->num < mx*my ) RETURN( NULL );
+   if( mx < 1 || my < 1 || imar == NULL || (!OK_wrap && imar->num < mx*my) ) RETURN( NULL );   
    if( gap < 0 || (gap > 0 && gapval == NULL) )                RETURN( NULL );
 
    for( ij=0 ; ij < mx*my ; ij++ ){     /* find first non-empty image */
-      imin = IMARR_SUBIMAGE(imar,ij) ;
+      imin = IMARR_SUBIMAGE(imar,ij%imar->num) ;
       if( imin != NULL ) break ;
    }
    if( ij == mx*my ) RETURN( NULL );      /* all are empty! */
@@ -39,13 +41,15 @@ ENTRY("mri_cat2D") ;
    nx   = imin->nx ;
    ny   = imin->ny ;
 
+
    if( mx==1 && my==1 ){                    /* 1x1 case (shouldn't happen) */
       imout = mri_to_mri( kind , imin ) ;   /* Just copy input to output   */
       RETURN( imout );
    }
 
+
    for( ij=0 ; ij < mx*my ; ij++ ){     /* check for consistency */
-      imin = IMARR_SUBIMAGE(imar,ij) ;
+      imin = IMARR_SUBIMAGE(imar,ij%imar->num) ;
       if( imin != NULL &&
           (imin->kind != kind || imin->nx != nx || imin->ny != ny) )
          RETURN( NULL );
@@ -56,11 +60,12 @@ ENTRY("mri_cat2D") ;
    imout = mri_new( nxout , nyout , kind ) ;
    vout  = mri_data_pointer( imout ) ;
 
+
    ij = 0 ;
    for( jj=0 ; jj < my ; jj++ ){            /* loop over rows */
       for( ii=0 ; ii < mx ; ii++ , ij++ ){  /* loop over columns */
 
-         imin  = IMARR_SUBIMAGE(imar,ij) ;
+         imin  = IMARR_SUBIMAGE(imar,ij%imar->num) ;
          ijoff = ii * (nx+gap) + jj * (ny+gap) * nxout ;
 
          /*--- NULL image ==> fill this spot with zeroes ---*/
