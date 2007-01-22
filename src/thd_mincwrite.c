@@ -7,7 +7,7 @@
      - dset = AFNI dataset
      - flags = logical OR of various masks:
      - MINC_FLOATIZE_MASK => force output in float format
-
+     - MINC_SWAPIZE_MASK => add -swap_bytes option  
    Return value is 1 if went OK, 0 if not.
 -------------------------------------------------------------------*/
 
@@ -133,8 +133,13 @@ ENTRY("THD_write_minc") ;
    cmd = AFMALL(char, 65500) ; /* long enough?  */
    strcpy(cmd,pg) ;      /* basic command */
 
+   /* -- swap action */
+   if (flags & MINC_SWAPIZE_MASK) {
+      sprintf(cmd+strlen(cmd)," -swap_bytes");
+   }
+   
    /* axes orientation */
-
+   
    sprintf(cmd+strlen(cmd)," -%c%c%c",axcode[2],axcode[1],axcode[0]) ;
 
    /* input and output data type */
@@ -197,7 +202,7 @@ ENTRY("THD_write_minc") ;
    sprintf(cmd+strlen(cmd)," %d %d %d" , axnum[2],axnum[1],axnum[0] ) ;
 
    /*-- execute the command as a filter --*/
-
+   fprintf(stderr,"About to run %s\n", cmd);
    signal( SIGPIPE , SIG_IGN ) ; errno = 0 ;
    fp = popen( cmd , "w" ) ;
    if( fp == NULL ){
