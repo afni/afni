@@ -4,7 +4,7 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset ;
    char *prefix=NULL , *fname ;
-   int narg=1 , flags=0 , ii ;
+   int narg=1 , flags=0 , ii , swap = 0;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dAFNItoMINC [options] dataset\n"
@@ -14,6 +14,7 @@ int main( int argc , char *argv[] )
              " -prefix ppp  = Write result into file ppp.mnc;\n"
              "                  default prefix is same as AFNI dataset's.\n"
              " -floatize    = Write MINC file in float format.\n"
+             " -swap        = Swap bytes when passing data to rawtominc\n"
              "\n"
              "NOTES:\n"
              "* Multi-brick datasets are written as 4D (x,y,z,t) MINC\n"
@@ -57,6 +58,12 @@ int main( int argc , char *argv[] )
         narg++ ; continue ;
      }
 
+      
+     if( strcmp(argv[narg],"-swap") == 0 ){
+        flags |= MINC_SWAPIZE_MASK ;
+        narg++ ; continue ;
+     }
+     
      fprintf(stderr,"** ERROR: unknown option: %s\n",argv[narg]); exit(1);
    }
 

@@ -3684,6 +3684,7 @@ extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
 #define ALLOW_FSL_FEAT  /* 27 Aug 2002 */
 
 #define MINC_FLOATIZE_MASK 1
+#define MINC_SWAPIZE_MASK 1<<1
 extern int THD_write_minc( char *, THD_3dim_dataset * , int) ; /* 11 Apr 2002 */
 
 extern void THD_write_1D( char *, char *, THD_3dim_dataset *); /* 04 Mar 2003 */
