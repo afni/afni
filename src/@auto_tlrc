@@ -381,18 +381,26 @@ endif
 AUTO_TLRC_MODE:
    #Check for center differences and warn
    set dist_cent = `@Center_Distance -dset ${ref_in} ${anat_in}`
-   if (`ccalc -form int -eval "step($dist_cent - 80)"`) then
+   if (`ccalc -form int -eval "step($dist_cent - 60)"`) then
       echo ""
       echo "*********** Warning *************"
       echo "Dataset centers are $dist_cent mm"
       echo "apart. If registration fails, try"
       echo "recentering all the input data using"
-      echo "@Align_Centers"
+      echo "@Align_Centers -base ${ref_in} \"
+      echo "               -dset ${anat_in} \"
+      echo "               -child ${anat_path}/*.HEAD\"
+      echo ""
+      echo "Then rerun `basename $0` using the _shft"
+      echo "version of your datasets."
+      echo ""
       echo "*********************************"
       echo ""
-      echo "Hit Enter to proceed."
-      echo ""
-      set junk = $<
+      if (`ccalc -form int -eval "step($dist_cent - 80)"`) then
+         echo "Hit Enter to proceed."
+         echo ""
+         set junk = $<
+      endif
    else
       echo "Center distance of $dist_cent mm"   
    endif 
@@ -500,6 +508,7 @@ AUTO_TLRC_MODE:
       set rms_i = `echo "$res" | cut -d ' ' -f3`
       set rms_f = `echo "$res" | cut -d ' ' -f4`
       set rms_diff_pos = `ccalc -eval "step($rms_f - $rms_i)" | cut -d '.' -f1`
+      set rms_ratio = `ccalc -form int -eval "($rms_i - $rms_f) / $rms_i * 100"`
       set rat = `echo "$res" | cut -d ' ' -f9` 
       set niter = `echo "$rat" | cut -d '/' -f1`
       set nitermax = `echo "$rat" | cut -d '/' -f2`
@@ -567,29 +576,41 @@ AUTO_TLRC_MODE:
                set maxite = "-maxite $ans"
                set Converged = 0
                set pass = 2
-            else 
-               echo ""
-               echo "Warping used up maximum iterations"
-               echo "even after doubling number of iterations to $nitermax."
-               echo "Convergence might not have"
-               echo "been reached."
-               echo "Try rerunning the script with a transform"
-               echo "type of fewer parameters (-xform) or by using "
-               echo "an even higher number of iterations (-maxite)."
-               echo "You can also choose to continue with the"
-               echo "current result (dset: ${tmppref}_reg_warpdriveout${anat_view}"
-               echo "by using the option: -OK_maxite"
-               echo ""
-               set pass = 3
-               if ($accept_maxite == 1) then
-                  #doing nothing will proceed
-                  echo "Accepting result per user's choice."
+            else
+               if ($rms_ratio > 30) then 
                   echo ""
+                  echo "Warping used up maximum iterations even after "
+                  echo "doubling number of iterations to $nitermax."
+                  echo "However, convergence is possible, given an RMS"
+                  echo "improvement of $rms_ratio%"
+                  echo "Check results at the end"
+                  echo ""
+                  set pass = 3
                else
-                  echo "Script will stop ..."
                   echo ""
-                  set Converged = 0
-                  goto END
+                  echo "Warping used up maximum iterations"
+                  echo "even after doubling number of iterations to $nitermax."
+                  echo "Convergence might not have been reached."
+                  echo ""
+                  echo "If you find the alignment poor, try"
+                  echo "rerunning the script with a transform"
+                  echo "type of fewer parameters (-xform) or by using "
+                  echo "an even higher number of iterations (-maxite)."
+                  echo "You can also choose to continue with the"
+                  echo "current result (dset: ${tmppref}_reg_warpdriveout${anat_view}"
+                  echo "by using the option: -OK_maxite"
+                  echo ""
+                  set pass = 3
+                  if ($accept_maxite == 1) then
+                     #doing nothing will proceed
+                     echo "Accepting result per user's choice."
+                     echo ""
+                  else
+                     echo "Script will stop ..."
+                     echo ""
+                     set Converged = 0
+                     goto END
+                  endif
                endif   
             endif
          endif
