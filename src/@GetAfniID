@@ -1,0 +1,19 @@
+#!/bin/tcsh -f
+
+if ("$1" == "" || "$1" == "-h" || "$1" == "-help") then
+   echo "`basename $0` DSET"
+   echo " Returns the unique identifier of a dataset."
+   goto ENDALL   
+endif
+
+if ( `@CheckForAfniDset $1` < 1 ) then
+   echo "Error: AFNI Dset '$1' not found."
+   goto ENDALL   
+endif
+
+set s = `3dAttribute -name IDCODE_STRING $1`
+set id = $s[3]
+echo $id
+
+
+ENDALL:
