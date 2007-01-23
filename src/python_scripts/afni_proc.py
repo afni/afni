@@ -412,9 +412,6 @@ g_help_string = """
             The suject ID is used in dataset names and in the output directory
             name (unless -out_dir is used).  This option allows the user to
             apply an appropriate naming convention.
-        self.valid_opts.add_opt('-tlrc_anat', 0, [])
-        self.valid_opts.add_opt('-tlrc_base', 1, [])
-        self.valid_opts.add_opt('-tlrc_no_ss', 0, [])
 
         -tlrc_anat              : run @auto_tlrc on '-copy_anat' dataset
 
