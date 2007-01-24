@@ -63,6 +63,8 @@ static char uDS_surf_cont[]={
                "                 -tn 1d radcoord.1D.coord radcoord.1D.topo \\\n"
                "       SurfaceMetrics -curv -spec radcoord.spec \\\n"
                "                      -surf_A radcoord -prefix radcoord      \n"*/
+               "       echo 1 0 0 > bbr.1D.cmap; echo 1 1 1 >> bbr.1D.cmap; \\\n"
+               "       echo 0 0  1 >> bbr.1D.cmap\n"
                "       IsoSurface -shape 4 128 -o_ply blooby.ply\n"
                "       quickspec -spec blooby.spec -tn ply blooby.ply\n"
                "       SurfaceMetrics -curv -spec blooby.spec \\\n"
@@ -81,6 +83,7 @@ static char uDS_surf_cont[]={
                "       DriveSuma -com surf_cont -view_dset n\n"
                "       DriveSuma -com surf_cont -switch_dset blooby.curv.1D.dset \\\n"
                "                      -view_surf_cont n -I_range -0.05 0.14\n"
+               "       DriveSuma -com surf_cont -load_cmap bbr.1D.cmap\n"
 };
 static char uDS_kill_suma[]={
                "       DriveSuma -com kill_suma\n"
@@ -241,6 +244,8 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
                "       -view_dset y/n: Set view toggle button of DSET\n"
                "       -1_only y/n: Set 1_only toggle button of DSET\n"
                "       -switch_cmap CMAP: switch colormap to CMAP\n"
+               "       -load_cmap CMAP.1D.cmap: load and switch colormap in \n"
+               "                                file CMAP.1D.cmap\n"
                "       -I_sb ISB: Switch intensity to ISBth column (sub-brick)\n"
                "       -I_range IR0 IR1: set intensity range from IR0 to IR1.\n"
                "                         If only one number is given, the range\n"
@@ -404,6 +409,19 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';
          NI_set_attribute(ngr, "switch_cmap", argt[++kar]);
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && ( (strcmp(argt[kar], "-load_cmap") == 0) ))
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a cmap name after -load_cmap \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         NI_set_attribute(ngr, "load_cmap", argt[++kar]);
          argt[kar][0] = '\0';
          brk = YUP;
       }

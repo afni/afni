@@ -93,7 +93,7 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps)
                   "                    SurfaceVolume to each surface in the spec file. \n"
                   "                    In this manner, you can have different surfaces using\n"
                   "                    different surface volumes.\n"     
-			         "   [-ah <AfniHost>]: Name (or IP address) of the computer running AFNI. This \n"     
+			         "   [-ah AfniHost]: Name (or IP address) of the computer running AFNI. This \n"     
 			         "                     parameter is optional, the default is localhost. \n"     
                   "                     When both AFNI and SUMA are on the same computer, \n"
                   "                     communication is through shared memory. You can turn that \n"
