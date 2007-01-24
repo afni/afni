@@ -3499,7 +3499,7 @@ extern MRI_IMAGE *        THD_fetch_1D           (char *) ; /* 26 Mar 2001 */
 
 extern void THD_set_storage_mode( THD_3dim_dataset *,int ); /* 21 Mar 2003 */
 
-extern int * get_count_intlist ( char *str , int *nret); 
+extern int * get_count_intlist ( char *str , int *nret);
 extern int * MCW_get_intlist( int , char * ) ;
 extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
 
@@ -3598,6 +3598,7 @@ extern THD_3dim_dataset * THD_copy_dset_subs( THD_3dim_dataset * , int * ) ;
    "a timeseries in AFNI.  The convention is to store this type of data\n"    \
    "in a filename ending in '.1D'.\n"                                         \
    "\n"                                                                       \
+   "** COLUMN SELECTION WITH [] **\n"                                         \
    "When specifying a timeseries file to an command-line AFNI program, you\n" \
    "can select a subset of columns using the '[...]' notation:\n"             \
    "  'fred.1D[5]'            ==> use only column #5\n"                       \
@@ -3608,11 +3609,14 @@ extern THD_3dim_dataset * THD_copy_dset_subs( THD_3dim_dataset * , int * ) ;
    "to indicate the last sub-brick in a dataset; for example, you\n"          \
    "can select every third sub-brick by using the selection list\n"           \
    "  'fred.1D[0..$(3)]'      ==> use columns #0, #3, #6, #9, ....\n"         \
+   "\n"                                                                       \
+   "** ROW SELECTION WITH {} **\n"                                            \
    "Similarly, you select a subset of the rows using the '{...}' notation:\n" \
    "  'fred.1D{0..$(2)}'      ==> use rows #0, #2, #4, ....\n"                \
    "You can also use both notations together, as in\n"                        \
    "  'fred.1D[1,3]{1..$(2)}' ==> columns #1 and #3; rows #1, #3, #5, ....\n" \
    "\n"                                                                       \
+   "** DIRECT INPUT OF DATA ON THE COMMAND LINE WITH 1D: **\n"                \
    "You can also input a 1D time series 'dataset' directly on the command\n"  \
    "line, without an external file. The 'filename' for such input has the\n"  \
    "general format\n"                                                         \
@@ -3622,12 +3626,20 @@ extern THD_3dim_dataset * THD_copy_dset_subs( THD_3dim_dataset * , int * ) ;
    "   -a '1D:5@0,10@1,5@0,10@1,5@0'\n"                                       \
    "specifies that variable 'a' be assigned to a 1D time series of 35,\n"     \
    "alternating in blocks between values 0 and value 1.\n"                    \
+   " * Spaces or commas can be used to separate values.\n"                    \
+   " * A '|' character can be used to start a new input \"line\":\n"          \
+   "   Try 1dplot '1D: 3 4 3 5 | 3 5 4 3'\n"                                  \
    "\n"                                                                       \
+   "** TRANSPOSITION WITH \\' **\n"                                           \
    "Finally, you can force most AFNI programs to tranpose a 1D file on\n"     \
    "input by appending a single ' character at the end of the filename.\n"    \
    "N.B.: Since the ' character is also special to the shell, you'll\n"       \
    "      probably have to put a \\ character before it. Examples:\n"         \
-   "       1dcat 1D:3,4,5   and   1dcat 1D:3,4,5\\'\n"
+   "       1dplot '1D: 3 2 3 4 | 2 3 4 3'   and\n"                            \
+   "       1dplot '1D: 3 2 3 4 | 2 3 4 3'\\'\n"                               \
+   "When you have reached this level of understanding, you are ready to\n"    \
+   "take the AFNI Jedi Master test.  I won't insult you by telling you\n"     \
+   "where to find this examination.\n"
 
 extern void THD_delete_3dim_dataset( THD_3dim_dataset * , Boolean ) ;
 extern THD_3dim_dataset * THD_3dim_from_block( THD_datablock * ) ;
