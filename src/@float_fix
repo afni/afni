@@ -1,0 +1,66 @@
+#!/bin/tcsh -f
+
+if ("$1" == '' || "$1" == "-help" || "$1" == "-h") goto HELP
+
+PROCESS:
+set found = 0
+set ok = 0
+foreach dset ($*)
+	set nm = `@parse_afni_name $dset`
+	set name = $nm[1]/$nm[2]$nm[3]
+	set outname = ___old_$nm[2]$nm[3].BRIK
+	if ( ! -f $name.BRIK ) goto FILE_NOT_FOUND
+	float_scan $name.BRIK 
+	if ( $status ) then
+		mv $name.BRIK $outname
+		float_scan -fix $outname > $name.BRIK
+		3drefit -redo_bstat $name.HEAD
+		@ found ++
+	else
+		echo "$name.BRIK  is OK"
+		@ ok ++
+	endif
+end
+if ($found > 0) then
+	echo ""
+	echo "Found $found files that needed fixing $ok files that were OK."
+	echo "Once you verify that the dsets are now proper"
+	echo "you can delete the bad .BRIK files with"
+	echo "rm ___old_*.BRIK"
+	echo ""
+else
+	echo ""
+	echo "All $ok files were ok"
+	echo ""
+endif	
+goto END
+
+FILE_NOT_FOUND:
+	echo "File $name.BRIK not found. Script does not handle compressed bricks."
+	echo ""
+	goto END
+
+HELP:
+   echo ""
+   echo "Usage: @float_fix File1 File2 ..."
+   echo ""
+   echo "   Check whether the input files have any IEEE floating"
+   echo "   point numbers for illegal values: infinities and"
+   echo "   not-a-number (NaN) values."
+   echo ""
+   echo " NOTE: Wildcard can be used when specifying filenames. However"
+   echo "       the filenames have to end up with .HEAD. For example"
+   echo "       @float_fix Mozart*.HEAD"
+   echo ""
+   echo "Gang Chen (gangchen@mail.nih.gov) and Ziad Saad (saadz@nih.gov)"
+   echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
+   echo "01/24/2007"
+   echo ""
+   goto END
+
+
+goto END
+
+ 
+END:
+
