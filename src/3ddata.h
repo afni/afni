@@ -75,17 +75,20 @@ extern "C" {
 
 /***************************** dimensions ***************************/
 
-/*! Max length of a "name" of a file, or stuff like that. */
-
-#define THD_MAX_NAME      256
-
 /*! Max length of a dataset label. */
 
 #define THD_MAX_LABEL     38
 
 /*! Max length of a dataset prefix. */
 
-#define THD_MAX_PREFIX     (127+1)  /* must be more than THD_MAX_LABEL */
+#define THD_MAX_PREFIX     (255+1)  /* must be more than THD_MAX_LABEL 
+                                    (  ZSS Jan 07 need room for path specified 
+                                       with prefix on command line   (why that +1, 
+                                       I don't know) ) */
+
+/*! Max length of a "name" of a file, or stuff like that. */
+
+#define THD_MAX_NAME      (256+THD_MAX_PREFIX)     /* (ZSS Jan 07)*/
 
 /*! Max length of a dataset view code (+orig, etc). */
 
