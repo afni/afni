@@ -49,20 +49,30 @@ class afni_name:
    def move_to_dir(self, path=""):
       #self.show()
       #print path
+      found = 0
       if os.path.isdir(path):
          if os.path.isfile("%s.HEAD" % self.ppv()):
             sv = shell_com("mv %s %s/" % (self.head(), path))
+            found = found + 1
          if os.path.isfile("%s.BRIK" % self.ppv()):           
             sv = shell_com("mv %s %s/" % (self.brick(), path))
+            found = found + 1
          if os.path.isfile("%s.BRIK.gz" % self.ppv()):
             sv = shell_com("mv %s %s/" % (self.brickgz(), path))
-         self.new_path(path)
-         if ( not self.exist() ):
-            print "Error: Move failed"
+            found = found + 1         
+         if (found > 0):
+            self.new_path(path)
+            if ( not self.exist() ):
+               print "Error: Move to %s failed" % (self.ppv())
+               return 0
+         else:
+            print "Error: Found no .HEAD or .BRIK or .BRIK.gz of %s" % (self.ppv())
             return 0
       else:
+         print "Error: Path %s not found for moving %s." % (path, self.ppv())
          return 0
       return 1
+      
    def head(self):
       return "%s.HEAD" % self.ppv()
    def brick(self):
