@@ -9760,12 +9760,24 @@ int SUMA_PauseForUser(Widget parent, char *question, SUMA_WINDOW_POSITION pos)
    static char FuncName[]={"SUMA_PauseForUser"};
    static Widget dialog; /* static to avoid multiple creation */
    Widget YesWid;
+   int ii;
    XmString text, yes;
    static int answer;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-
+   if (!parent) {
+      /* look for the first non-null sv->X->TOPLEVEL */
+      ii = 0;
+      while (ii<SUMAg_N_SVv && !(parent=SUMAg_SVv[ii].X->TOPLEVEL)) {
+         ++ii;
+      }
+   }
+   if (!parent) { /* no widgets, go command line */
+      SUMA_PAUSE_PROMPT(question);
+      SUMA_RETURN(SUMA_YES);
+   }
+   
    if (!dialog) {
      SUMA_LH("Creating Dialog");
      dialog = XmCreateQuestionDialog (parent, "dialog", NULL, 0);

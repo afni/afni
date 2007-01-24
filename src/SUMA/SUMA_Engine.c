@@ -2051,7 +2051,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             if (NI_get_attribute(EngineData->ngr, "switch_dset")) {
                SUMA_OVERLAYS *ColPlane = SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays, NI_get_attribute(EngineData->ngr, "switch_dset"), &itmp);
                if (!ColPlane) {
-                  SUMA_S_Errv("Failed to find %s\n", NI_get_attribute(EngineData->ngr, "switch_dset")); break;
+                  SUMA_S_Errv("Failed to find dset %s\n", NI_get_attribute(EngineData->ngr, "switch_dset")); break;
                } else {
                   if (LocalHead) fprintf (SUMA_STDERR,"%s: Retrieved ColPlane named %s\n", FuncName, ColPlane->Name);
                   SUMA_InitializeColPlaneShell(SO, ColPlane);
@@ -2081,6 +2081,11 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_UpdateNodeLblField(SO);
                }
             }
+            
+            if (NI_get_attribute(EngineData->ngr, "load_cmap")) {
+               SUMA_LoadCmapFile (NI_get_attribute(EngineData->ngr, "load_cmap"), (void *)SO);
+            }
+            
             if (NI_get_attribute(EngineData->ngr, "I_sb")) {
                NI_GET_INT(EngineData->ngr, "I_sb", itmp);
                /* inefficient implementation, but avoids duplicate code... */

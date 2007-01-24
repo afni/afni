@@ -3765,19 +3765,44 @@ SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover)
 SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_OVERLAYS **Overlays, int N_Overlays, const char * Name, int * OverInd)
 {
    static char FuncName[]={"SUMA_Fetch_OverlayPointer"};
-   int i;
+   int i, ifound =-1, nfound = 0;
    SUMA_OVERLAYS *ptr= NULL;
+   SUMA_PARSED_NAME *pn=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-
+   
+   if (!Name) SUMA_RETURN(NULL);
+   
    for (i=0; i < N_Overlays; ++i) {
+      SUMA_LHv("Comparing\n>%s<\nto>%s<\n", Overlays[i]->Name, Name);
       if (!strcmp(Overlays[i]->Name, Name)) {
          *OverInd = i;
          if (LocalHead) fprintf (SUMA_STDOUT,"%s: Found overlay plane %s, indexed %d.\n", FuncName, Name, i);
          SUMA_RETURN (Overlays[i]);
       }
    }
+   
+   /* failed to find name, perhaps name is missing the path which would be OK as long as there is no conflict */
+   nfound = 0;
+   for (i=0; i < N_Overlays; ++i) {
+      if (strlen(Overlays[i]->Name) > strlen(Name)) {
+         if((pn = SUMA_ParseFname(Overlays[i]->Name, NULL))) {
+            if (!strcmp(pn->FileName, Name)) {
+               ifound = i; ++nfound;
+            }
+            SUMA_Free_Parsed_Name(pn); pn = NULL; 
+         }
+      }
+   }
+   if (nfound == 1) {
+      i = ifound;
+      *OverInd = i;
+      if (LocalHead) fprintf (SUMA_STDOUT,"%s: Found overlay plane %s in secondary search, indexed %d.\n", FuncName, Name, i);
+      SUMA_RETURN (Overlays[i]);
+   } else if (nfound > 1) {
+      SUMA_LHv("Found %d possible matches for %s\n", nfound, Name);
+   } 
    
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: Overlay plane %s was not found.\n", FuncName, Name);
    
