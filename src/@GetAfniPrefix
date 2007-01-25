@@ -8,12 +8,13 @@ set noglob
 set Name = $1:t
 #remove extension .HEAD or .BRIK
 set ext = $Name:e
+set fext = ""
 if ("$ext" == "gz") then
    #remove .gz first
    set Name = $Name:r
    set ext = $Name:e
    set fext = ".gz"
-else
+else if ("$ext" == ".BRIK" || "$ext" == ".HEAD") then
    set Name = $Name:r
    set fext = ""
 endif

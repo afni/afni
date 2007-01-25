@@ -187,7 +187,14 @@ class shell_com:
          sys.stdout.flush()
          self.out()
       return
+   def trim(self):
+      #try to remove absolute path
+      string.replace(self.com, self.cd, '')
+      return
    def run(self):
+      #If command line is too long, trim it, if possible
+      if (len(self.com) > 500):
+         self.trim()
       so, se = shell_exec(self.com, "")
       self.so = so
       self.se = se

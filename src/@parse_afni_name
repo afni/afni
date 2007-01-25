@@ -11,6 +11,7 @@ endif
 
 set anat_in = `echo "$1" | cut -d \[ -f1`
 set bling = `echo "$1" | cut -d \[ -f2 | cut -d \] -f1`
+if ("$bling" == "$1") set bling = ""
 
 set anat_path = $anat_in:h
 if ( "$anat_path" == "${anat_in}" ) set anat_path = "."
