@@ -381,12 +381,14 @@ endif
 AUTO_TLRC_MODE:
    #Check for center differences and warn
    set dist_cent = `@Center_Distance -dset ${ref_in} ${anat_in}`
-   if (`ccalc -form int -eval "step($dist_cent - 60)"`) then
+   if (`ccalc -form int -eval "step($dist_cent - 40)"`) then
       echo ""
       echo "*********** Warning *************"
       echo "Dataset centers are $dist_cent mm"
-      echo "apart. If registration fails, try"
-      echo "recentering all the input data using"
+      echo "apart. If registration fails, or if"
+      echo "parts of the original anatomy gets"
+      echo "cropped, try recentering all the "
+      echo "input data using this command:"
       echo "@Align_Centers -base ${ref_in} \"
       echo "               -dset ${anat_in} \"
       echo "               -child ${anat_path}/*.HEAD\"
