@@ -13,7 +13,7 @@ class OptionList:
     def __init__(self, label):
         self.label    = label
         self.olist    = []      # list of comopt elements
-        self.trailers = False   # for  read_options: no trailing args allowed
+        self.trailers = 0       # for  read_options: no trailing args allowed
                                 # from read_options: say there were such args
 
     def show(self, mesg = ''):
@@ -39,7 +39,7 @@ class OptionList:
             if com.name == name: count += 1
         return count
 
-    def add_opt(self, name, npar, defpar, acplist=[], req=False, setpar=False):
+    def add_opt(self, name, npar, defpar, acplist=[], req=0, setpar=0):
         com = afni_base.comopt(name, npar, defpar, acplist)
         com.required = req
         if setpar: com.parlist = com.deflist
@@ -183,7 +183,7 @@ def test_comopts():
     okopts.add_opt('-debug',  1, ['0'       ],     range(4) )
     okopts.add_opt('-c',      2, ['21', '24']               )
     okopts.add_opt('-d',     -1, [          ]               )
-    okopts.trailers = True # allow trailing args
+    okopts.trailers = 1 # allow trailing args
 
     okopts.show('------ possible input options ------ ')
 

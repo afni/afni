@@ -938,9 +938,12 @@ g_history = """
          - append .$subj to more output files 
     1.12 Jan 16, 2007 : allow no +view when using -tlrc_anat
     1.13 Jan 17, 2007 : if -tlrc_anat, apply default option '-tlrc_suffix NONE'
+    1.14 Jan 26, 2007 :
+         - if only 1 run, warn user, do not use 3dMean
+         - changed all True/False uses to 1/0 (for older python versions)
 """
 
-g_version = "version 1.13, January 17, 2007"
+g_version = "version 1.14, January 26, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -973,10 +976,10 @@ class SubjProcSream:
         self.out_dir    = ''            # output directory for use by script
         self.od_var     = ''            # output dir variable: $output_dir
         self.script     = None          # script name, default proc.SUBJ
-        self.overwrite  = False         # overwrite script file?
+        self.overwrite  = 0             # overwrite script file?
         self.fp         = None          # file object
         self.anat       = None          # anatomoy to copy (afni_name class)
-        self.rm_rm      = True          # remove rm.* files
+        self.rm_rm      = 1             # remove rm.* files
         self.mot_labs   = []            # labels for motion params
 
         self.verb       = 1             # verbosity level
@@ -1080,7 +1083,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-ver', 0, [])
         self.valid_opts.add_opt('-verb', 1, [])
 
-        self.valid_opts.trailers = False   # do not allow unknown options
+        self.valid_opts.trailers = 0   # do not allow unknown options
         
     def get_user_opts(self):
         self.user_opts = read_options(sys.argv, self.valid_opts)
@@ -1134,13 +1137,13 @@ class SubjProcSream:
         else:           self.script = 'proc.%s' % self.subj_id
 
         opt = opt_list.find_opt('-scr_overwrite')
-        if opt != None: self.overwrite = True
+        if opt != None: self.overwrite = 1
 
         opt = opt_list.find_opt('-copy_anat')
         if opt != None: self.anat = afni_name(opt.parlist[0])
 
         opt = opt_list.find_opt('-keep_rm_files')
-        if opt != None: self.rm_rm = False
+        if opt != None: self.rm_rm = 0
 
     # init blocks from command line options, then check for an
     # alternate source       rcr - will we use 'file' as source?
@@ -1184,7 +1187,7 @@ class SubjProcSream:
             print 'error: dsets have not been specified (consider -dsets)'
             return 1
 
-        if not uniq_list_as_dsets(self.dsets, True): return 1
+        if not uniq_list_as_dsets(self.dsets, 1): return 1
         if not db_tlrc_opts_okay(self.user_opts): return 1
 
     # create script from blocks and options
@@ -1215,6 +1218,10 @@ class SubjProcSream:
         if errs > 0: return 1    # so we print all errors before leaving
 
         if self.verb > 0:
+            if self.runs == 1:
+                print "\n-------------------------------------\n" \
+                        "** warning have only 1 run to analyze\n" \
+                        "-------------------------------------"
             print "\n--> script is file: %s" % self.script
             if self.user_opts.find_opt('-bash'): # give bash form
                 print '    (consider: "tcsh -x %s 2>&1 | tee output.%s") ' \
@@ -1403,8 +1410,8 @@ class SubjProcSream:
 class ProcessBlock:
     def __init__(self, label, proc):
         self.label = label      # label is block type
-        self.valid = False      # block is not yet valid
-        self.apply = True       # apply block to output script
+        self.valid = 0          # block is not yet valid
+        self.apply = 1          # apply block to output script
         self.verb  = proc.verb  # verbose level
         if not label in BlockModFunc: return
 
