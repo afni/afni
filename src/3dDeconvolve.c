@@ -7209,6 +7209,7 @@ ENTRY("read_glt_matrix") ;
      floatvecvec *fvv ;
      float **far=NULL ;
      int nr=0 , iv ;
+     char *str_echo=NULL ;  /* 26 Jan 2007 */
 
      if( nSymStim < 1 ){
        fprintf(stderr,"** ERROR: use of -gltsym without SymStim being defined\n");
@@ -7241,6 +7242,7 @@ ENTRY("read_glt_matrix") ;
        while(1){
          cpt = fgets( buf , 8192 , fp ) ;   /* read next line */
          if( cpt == NULL ) break ;          /* end of input? */
+         str_echo = THD_zzprintf(str_echo," : %s",cpt) ;
          fvv = SYM_expand_ranges( ncol-1 , nSymStim,SymStim , buf ) ;
          if( fvv == NULL || fvv->nvec < 1 ) continue ;
          far = (float **)realloc((void *)far , sizeof(float *)*(nr+fvv->nvec)) ;
@@ -7258,6 +7260,7 @@ ENTRY("read_glt_matrix") ;
 
      if( !AFNI_noenv("AFNI_GLTSYM_PRINT") ){
        printf("GLT matrix from '%s':\n",fname) ;
+       if( str_echo != NULL ){ printf("%s",str_echo); free(str_echo); }
        matrix_print( *cmat ) ;
      }
    }
