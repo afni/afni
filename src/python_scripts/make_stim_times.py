@@ -79,14 +79,14 @@ examples:
 def get_opts():
     global g_help_string
     okopts = option_list.OptionList('for input')
-    okopts.add_opt('-files', -1, [], req=True)
-    okopts.add_opt('-prefix', 1, [], req=True)
-    okopts.add_opt('-tr', 1, [], req=True)
-    okopts.add_opt('-nt', 1, [], req=True)
-    okopts.add_opt('-nruns', 1, [], req=True)
+    okopts.add_opt('-files', -1, [], req=1)
+    okopts.add_opt('-prefix', 1, [], req=1)
+    okopts.add_opt('-tr', 1, [], req=1)
+    okopts.add_opt('-nt', 1, [], req=1)
+    okopts.add_opt('-nruns', 1, [], req=1)
     okopts.add_opt('-offset', 1, [])
     okopts.add_opt('-verb', 1, [])
-    okopts.trailers = True
+    okopts.trailers = 1
 
     # if argv has only the program name, or user requests help, show it
     if len(sys.argv) <= 1 or '-help' in sys.argv:
@@ -157,7 +157,7 @@ def proc_mats(uopts):
             if newfile == None: return
             fp = open(newfile, 'w')
 
-            need_ast = True         # '*' filler in case of 1 stim per run, max
+            need_ast = 1         # '*' filler in case of 1 stim per run, max
             for run in range(nruns):
                 rindex = run * nt   # point to start of run
 
@@ -173,8 +173,8 @@ def proc_mats(uopts):
                     time += tr
                 if need_ast and nstim == 1: # first time of 1 stim, add '*'
                     fp.write('*')
-                    need_ast = False
-                elif nstim > 1: need_ast = False     # no worries
+                    need_ast = 0
+                elif nstim > 1: need_ast = 0     # no worries
                 fp.write('\n')
 
             fp.close()
