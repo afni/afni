@@ -11582,8 +11582,13 @@ void ISQ_save_png( MCW_imseq *seq , char *fname )  /* 11 Dec 2006 */
 
 /*--------------------------------------------------------------------------*/
 /*! Save the current images to an MPEG or AGIF file.  [06 Dec 2006] 
-   if top = 0 then top is the index of the last recorded image
-   if bot = -1 then bot is the index of the last recorded image
+      Say the recorder has N images       ZSS Jan 07
+   if top < 0 then top = N +top
+      top ==0 then top = N -1
+   else top = min(top, N)
+   if bot < 0 then bot = N +bot
+   else bot = max(bot, 0)
+  
    use bot = 0 and top = 0 to save everything.
 */
 
@@ -11639,17 +11644,29 @@ ENTRY("ISQ_save_anim") ;
      break ;
    }
 
-  if (bot == -1) { /* special case */
-      bot = seq->status->num_total-1 ;
+  if (bot < 0) { /* special case */
+      bot = seq->status->num_total+bot ; 
+      if (bot < 0) bot = 0;
    } else {
       bot = MAX(bot,0) ;
    }
-   if( top == 0 ) top = seq->status->num_total-1 ;
-   else           top = MIN(top,seq->status->num_total-1) ;
+   if( top < 0 ) {
+      top = seq->status->num_total+top ;
+      if (top > seq->status->num_total-1) top = seq->status->num_total-1;
+   } else if (top == 0) {
+      top = seq->status->num_total -1;
+   }  else  {
+      top = MIN(top,seq->status->num_total-1) ;
+   }
    if( bot > top || (bot==top && doanim) ){
      ERROR_message("Can't save image range %d..%d!\a",bot,top) ; EXRETURN ;
    }
 
+   /* 
+      fprintf(stderr,
+         "+++ Will save from %d to %d with %d images total in recorder.\n", 
+               bot, top, seq->status->num_total);
+   */
    /*--- setup prefix for animation filename to save ---*/
 
    if( prefin == NULL || *prefin == '\0' ) prefin = "Anim" ;

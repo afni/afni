@@ -218,9 +218,10 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
                "                             mpeg or mpg: MPEG (movie)\n"
                "                             jpeg or jpg: JPEG (stills)\n"
                "                             png: PNG (stills)\n"
-               "       -save_index IND: Save one image indexed IND\n"
-               "       -save_range FROM TO: Save images from FROM to TO\n"
+               "       -save_index IND: Save one image indexed IND (start at 0)\n"
+               "       -save_range FROM TO: Save images from FROM to TO \n"
                "       -save_last: Save last image (default for still formats)\n"
+               "       -save_last_n N: Save last N images\n"
                "       -save_all: Save all images (default for movie formats)\n"
                "     + Example recorder_cont (assumes there is a recorder window)\n"
                "       currently open from SUMA.\n"
@@ -738,11 +739,12 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
       if (!brk && ( (strcmp(argt[kar], "-save_last") == 0) ) )
       {
          
-         NI_SET_INT(ngr, "Save_One", -1);
-         
+         NI_SET_INT(ngr, "Save_From", -1);
+         NI_SET_INT(ngr, "Save_To", 0);
          argt[kar][0] = '\0';
          brk = YUP;
       }
+      
       if (!brk && ( (strcmp(argt[kar], "-save_index") == 0) ) )
       {
          
@@ -753,7 +755,28 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          
          argt[kar][0] = '\0';++kar;
-         NI_SET_INT(ngr, "Save_One", atoi(argt[kar]));
+         NI_SET_INT(ngr, "Save_From", atoi(argt[kar]));
+         NI_SET_INT(ngr, "Save_To", atoi(argt[kar]));
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      if (!brk && ( (strcmp(argt[kar], "-save_last_n") == 0) ) )
+      {
+         
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a number after -save_last_n \n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';++kar;
+         if (atoi(argt[kar]) <= 0) {
+            fprintf (SUMA_STDERR, "need a number > 0 after -save_last_n\n");
+            SUMA_RETURN(0);
+         }
+         NI_SET_INT(ngr, "Save_From", -atoi(argt[kar]));
+         NI_SET_INT(ngr, "Save_To", 0);
          
          argt[kar][0] = '\0';
          brk = YUP;
