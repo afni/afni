@@ -2315,29 +2315,49 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             {
                char *stmp=NULL, *sname=NULL;
-               int ifrom = -1, ito = -1;
+               int ifrom = -1, ito = -1, NoTsEt = -999999;
                if (NI_get_attribute(EngineData->ngr, "Save_As")) {
 
+                  #if 1
+                  ifrom = ito = NoTsEt;
                   NI_GET_INT(EngineData->ngr, "Save_From", itmp);
                   if (!NI_GOT) {
                      itmp = -1; 
                   } else {
                      ifrom = itmp;
-                     if (ifrom < -1) { 
-                        SUMA_S_Errv("Bad 1st value for -save_range (%d)\n", ifrom);
-                        break;
-                     }
                   }
                   NI_GET_INT(EngineData->ngr, "Save_To", itmp);
                   if (!NI_GOT) { 
                      itmp = -1; 
                   }else {
                      ito = itmp;
-                     if (ito < 0) { 
-                        SUMA_S_Errv("Bad 2nd value for -save_range (%d)\n", ito);
-                        break;
+                  }
+                  
+                  NI_GET_STR_CP(EngineData->ngr, "Save_As", stmp);
+                  if (!stmp) {
+                     SUMA_S_Err("Empty Save_As");
+                     goto CLEAN_RECORDER_CONT;
+                  }
+                  fn = SUMA_ParseFname(stmp, NI_get_attribute(EngineData->ngr, "Caller_Working_Dir"));
+                  if (!(sname = SUMA_copy_string(fn->FileName_NoExt))) {
+                     sname = SUMA_copy_string("no_name");
+                  }
+                  sname = SUMA_append_replace_string(fn->AbsPath, sname, "", 2);
+                  if (ito == NoTsEt && ifrom == NoTsEt) {
+                     if (SUMA_IMG_EXT(fn->Ext)) {
+                        ifrom = -1; ito = 0;/* nothing set, save last one */
+                     } else if (SUMA_ANIM_EXT(fn->Ext)) {
+                        ifrom = 0; ito = 0;/* nothing set, save all in animation */
+                     } else {
+                        SUMA_S_Errv("No support for extension %s\n", fn->Ext);
+                        goto CLEAN_RECORDER_CONT;
                      }
                   }
+                  if (ito == NoTsEt || ifrom == NoTsEt) {
+                     SUMA_S_Errv("Erreur! Horreur! ito=%d, ifrom=%d (NotSet=%d)\n", ito, ifrom , NoTsEt);
+                     goto CLEAN_RECORDER_CONT;
+                  }
+                  #else
                   NI_GET_INT(EngineData->ngr, "Save_One", itmp);
                   if (NI_GOT) { 
                      if (itmp == -1) { ifrom = -1; ito = 0; }
@@ -2370,8 +2390,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         goto CLEAN_RECORDER_CONT;
                      }
                   }
-                  
-                  if (ifrom > ito && ito != 0) {
+                  #endif
+                  if (ifrom > ito && ito > 0) { /* note that negative indices are OK, see ISQ_save_anim */
                      SUMA_S_Errv("Error: ifrom=%d > ito=%d\n", ifrom, ito);
                      goto CLEAN_RECORDER_CONT;
                   }
