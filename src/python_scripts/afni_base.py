@@ -10,14 +10,19 @@ class afni_name:
       self.extension = res['extension']
       self.type = res['type']
       return
-   def p(self):
-      return os.path.abspath(self.path)
+   def p(self):   #Full path 
+      pp = "%s/" % os.path.abspath('./')  #full path at this location
+      fn = string.find(pp,self.path)      #is path at end of abspath?
+      if (fn > 0 and fn+len(self.path) == len(pp)): #path is at end of abs path
+         return pp
+      else:
+         return os.path.abspath(self.path)
    def ppve(self):
-      s = "%s/%s%s%s" % (os.path.abspath(self.path), self.prefix, \
+      s = "%s/%s%s%s" % (self.p(), self.prefix, \
                          self.view, self.extension)
       return s
    def ppv(self):
-      s = "%s/%s%s" % (os.path.abspath(self.path), self.prefix, self.view)
+      s = "%s/%s%s" % (self.p(), self.prefix, self.view)
       return s
    def rpv(self): # relative path, prefix, view (no leading './')
       if self.path == './':
@@ -26,7 +31,7 @@ class afni_name:
           s = "%s%s%s" % (self.path, self.prefix, self.view)
       return s
    def pp(self):
-      return "%s/%s" % (os.path.abspath(self.path), self.prefix)
+      return "%s/%s" % (self.p(), self.prefix)
    def pv(self):
       return "%s%s" % (self.prefix, self.view)
    def pve(self):
@@ -177,18 +182,39 @@ class shell_com:
       self.exc = 0      #command not executed yet
       self.so = ''
       self.se = ''
+      #If command line is long, trim it, if possible
+      l1 = len(self.com)
+      if (l1 > 100):
+         self.trimcom = self.trim()
+         #if (len(self.com) < l1):
+         #print "Command trimmed to: %s" % (self.com)
+      else:
+         self.trimcom = self.com
       if eo == "echo":
-         print "#Now running:\n   cd %s\n   %s" % (self.dir, self.com)
+         if (len(self.trimcom) < len(self.com)):
+            ms = " (command trimmed)"
+         else:
+            ms = ""
+         print "#Now running%s:\n   cd %s\n   %s" % (ms, self.dir, self.trimcom)
+         #if (len(self.trimcom)):
+         #   print "#Command trimmed to:\n   %s" % (self.trimcom)
          sys.stdout.flush()
          self.run()
          self.out()
       elif eo == "dry_run":
-         print "#Would be running:\n   cd %s\n   %s" % (self.dir, self.com)
+         print "#Would be running%s:\n   cd %s\n   %s" % (ms, self.dir, self.trimcom)
          sys.stdout.flush()
          self.out()
       return
+   def trim(self):
+      #try to remove absolute path
+      if self.dir[-1] != '/':
+         tcom = string.replace(self.com, "%s/" % (self.dir), '')
+      else:
+         tcom = string.replace(self.com, self.dir, '')
+      return tcom
    def run(self):
-      so, se = shell_exec(self.com, "")
+      so, se = shell_exec(self.trimcom, "")
       self.so = so
       self.se = se
       self.exc = 1
