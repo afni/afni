@@ -1925,3 +1925,8 @@
 
 17 Jan 2007: modified db_mod.py: -tlrc_anat ==> default of '-tlrc_suffix NONE'
 
+26 Jan 2007: modified afni_base.py, afni_proc.py, afni_util.py, ask_me.py
+             db_mod.py, make_stim_times.py, option_list.py
+      - changed all True/False uses to 1/0 (for older python versions)
+      - afni_proc.py: if only 1 run, warn user, do not use 3dMean
+

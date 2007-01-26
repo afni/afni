@@ -4,7 +4,7 @@ import os, afni_util, afni_base
 # modify the tcat block options according to the user options
 def db_mod_tcat(block, proc, user_opts):
     if len(block.opts.olist) == 0:    # then init to defaults
-        block.opts.add_opt('-tcat_remove_first_trs', 1, [0], setpar=True)
+        block.opts.add_opt('-tcat_remove_first_trs', 1, [0], setpar=1)
 
     errs = 0
 
@@ -23,8 +23,8 @@ def db_mod_tcat(block, proc, user_opts):
             '--------------------------------------------------------'       \
             % bopt.parlist[0]
 
-    if errs == 0: block.valid = True
-    else        : block.valid = False
+    if errs == 0: block.valid = 1
+    else        : block.valid = 0
 
 # do not rely on the form of input filenames
 # use 3dtcat to copy each file to od_var, then 'cd' into it
@@ -53,8 +53,8 @@ def db_cmd_tcat(proc, block):
 
 def db_mod_tshift(block, proc, user_opts):
     if len(block.opts.olist) == 0:    # then init to defaults
-        block.opts.add_opt('-tshift_align_to', -1, ['-tzero', '0'], setpar=True)
-        block.opts.add_opt('-tshift_interp', 1, ['-quintic'], setpar=True)
+        block.opts.add_opt('-tshift_align_to', -1, ['-tzero', '0'], setpar=1)
+        block.opts.add_opt('-tshift_interp', 1, ['-quintic'], setpar=1)
         block.opts.add_opt('-tshift_opts_ts', -1, [])
 
     # check for updates to -tshift_align_to option
@@ -81,7 +81,7 @@ def db_mod_tshift(block, proc, user_opts):
     bopt = block.opts.find_opt('-tshift_opts_ts')
     if uopt and bopt: bopt.parlist = uopt.parlist
 
-    block.valid = True
+    block.valid = 1
 
 # run 3dToutcount and 3dTshift for each run
 def db_cmd_tshift(proc, block):
@@ -120,9 +120,9 @@ def db_cmd_tshift(proc, block):
 
 def db_mod_volreg(block, proc, user_opts):
     if len(block.opts.olist) == 0:    # then init dset/brick indices to defaults
-        block.opts.add_opt('-volreg_base_ind', 2, [0, 0], setpar=True)
+        block.opts.add_opt('-volreg_base_ind', 2, [0, 0], setpar=1)
         block.opts.add_opt('-volreg_opts_vr', -1, [])
-        block.opts.add_opt('-volreg_zpad', 1, [1], setpar=True)
+        block.opts.add_opt('-volreg_zpad', 1, [1], setpar=1)
 
     # check for updates to -volreg_base option
     uopt = user_opts.find_opt('-volreg_base_ind')
@@ -141,7 +141,7 @@ def db_mod_volreg(block, proc, user_opts):
         if errs > 0:
             print "** -volreg_base_ind requires integer params (have %s,%s)" % \
                   (uopt.parlist[0], uopt.parlist[1])
-            block.valid = False
+            block.valid = 0
             return 1
 
     if aopt and bopt:
@@ -165,7 +165,7 @@ def db_mod_volreg(block, proc, user_opts):
         bopt = block.opts.find_opt('-volreg_opts_vr')
         bopt.parlist = uopt.parlist
 
-    block.valid = True
+    block.valid = 1
 
 def db_cmd_volreg(proc, block):
     cmd = ''
@@ -217,8 +217,8 @@ def db_cmd_volreg(proc, block):
 
 def db_mod_blur(block, proc, user_opts):
     if len(block.opts.olist) == 0: # init blur option
-        block.opts.add_opt('-blur_filter', 1, ['-1blur_fwhm'], setpar=True)
-        block.opts.add_opt('-blur_size', 1, [4.0], setpar=True)
+        block.opts.add_opt('-blur_filter', 1, ['-1blur_fwhm'], setpar=1)
+        block.opts.add_opt('-blur_size', 1, [4.0], setpar=1)
         block.opts.add_opt('-blur_opts_merge', -1, [])
 
     # check for option updates
@@ -233,14 +233,14 @@ def db_mod_blur(block, proc, user_opts):
         try: bopt.parlist[0] = float(uopt.parlist[0])
         except:
             print "** -blur_size must be a real number, have '%s'" %(parlist[0])
-            block.valid = False
+            block.valid = 0
             return 1
 
     uopt = user_opts.find_opt('-blur_opts_merge')
     bopt = block.opts.find_opt('-blur_opts_merge')
     if uopt and bopt: bopt.parlist = uopt.parlist
 
-    block.valid = True
+    block.valid = 1
 
 def db_cmd_blur(proc, block):
     cmd = ''
@@ -271,8 +271,8 @@ def db_cmd_blur(proc, block):
 
 def db_mod_mask(block, proc, user_opts):
     if len(block.opts.olist) == 0: # then init
-        block.opts.add_opt('-mask_type', 1, ['union'], setpar=True)
-        block.opts.add_opt('-mask_dilate', 1, [1], setpar=True)
+        block.opts.add_opt('-mask_type', 1, ['union'], setpar=1)
+        block.opts.add_opt('-mask_dilate', 1, [1], setpar=1)
 
     # check for user updates
     uopt = user_opts.find_opt('-mask_type')
@@ -287,10 +287,10 @@ def db_mod_mask(block, proc, user_opts):
         except:
             print "** -mask_dilate requres an int nsteps (have '%s')" % \
                   uopt.parlist[0]
-            block.valid = False
+            block.valid = 0
             return 1
 
-    block.valid = True
+    block.valid = 1
 
 def db_cmd_mask(proc, block):
     cmd = ''
@@ -309,12 +309,16 @@ def db_cmd_mask(proc, block):
                 "    3dAutomask -dilate %d -prefix rm.mask_r$run %s+orig\n"   \
                 "end\n\n" % (type, nsteps, prev)
 
-    cmd = cmd + "# get mean and compare it to %s for taking '%s'\n"      \
-                "3dMean -datum short -prefix rm.mean rm.mask*.HEAD\n"    \
-                "3dcalc -a rm.mean+orig -expr 'ispositive(a-%s)' "       \
-                "-prefix full_mask.$subj\n\n" % (str(min), type, str(min))
+    if proc.runs > 1:  # if more than 1 run, create union mask
+        cmd = cmd + "# get mean and compare it to %s for taking '%s'\n"      \
+                    "3dMean -datum short -prefix rm.mean rm.mask*.HEAD\n"    \
+                    "3dcalc -a rm.mean+orig -expr 'ispositive(a-%s)' "       \
+                    "-prefix full_mask.$subj\n\n" % (str(min), type, str(min))
+    else:  # just copy the one
+        cmd = cmd + "# only 1 run, so copy this to full_mask\n"              \
+                    "3dcopy rm.mask_r01 full_mask.$subj\n\n" 
 
-    proc.mask = 'full_mask.$subj'  # note that we have a mask dataset to apply
+    proc.mask = 'full_mask.$subj'  # note that we have a mask to apply
 
     # do not increment block index or set 'previous' block label,
     # as there are no datasets created here
@@ -323,7 +327,7 @@ def db_cmd_mask(proc, block):
 
 def db_mod_scale(block, proc, user_opts):     # no options at this time
     if len(block.opts.olist) == 0: # then init
-        block.opts.add_opt('-scale_max_val', 1, [200], setpar=True)
+        block.opts.add_opt('-scale_max_val', 1, [200], setpar=1)
 
     # check for user updates
     uopt = user_opts.find_opt('-scale_max_val')
@@ -333,10 +337,10 @@ def db_mod_scale(block, proc, user_opts):     # no options at this time
         except:
             print "** -scale_max_val requres an int param (have '%s')" % \
                   uopt.parlist[0]
-            block.valid = False
+            block.valid = 0
             return 1
 
-    block.valid = True
+    block.valid = 1
 
 def db_cmd_scale(proc, block):
     cmd = ''
@@ -376,18 +380,18 @@ def db_cmd_scale(proc, block):
 
 def db_mod_regress(block, proc, user_opts):
     if len(block.opts.olist) == 0: # then init
-        block.opts.add_opt('-regress_basis', 1, ['GAM'], setpar=True)
-        block.opts.add_opt('-regress_basis_normall', 1, [1], setpar=True)
-        block.opts.add_opt('-regress_polort', 1, [2], setpar=True)
+        block.opts.add_opt('-regress_basis', 1, ['GAM'], setpar=1)
+        block.opts.add_opt('-regress_basis_normall', 1, [1], setpar=1)
+        block.opts.add_opt('-regress_polort', 1, [2], setpar=1)
         block.opts.add_opt('-regress_stim_files', -1, [])
         block.opts.add_opt('-regress_stim_labels', -1, [])
         block.opts.add_opt('-regress_stim_times', -1, [])
-        block.opts.add_opt('-regress_stim_times_offset', 1, [0], setpar=True)
+        block.opts.add_opt('-regress_stim_times_offset', 1, [0], setpar=1)
 
         block.opts.add_opt('-regress_opts_3dD', -1, [])
         block.opts.add_opt('-regress_make_ideal_sum', 1, [])
         block.opts.add_opt('-regress_fitts_prefix', 1, ['fitts.$subj'],
-                                                       setpar=True)
+                                                       setpar=1)
 
     errs = 0  # allow errors to accumulate
 
@@ -397,7 +401,7 @@ def db_mod_regress(block, proc, user_opts):
     if uopt and bopt:
         bopt.parlist[0] = uopt.parlist[0]
         if not afni_util.basis_has_known_response(bopt.parlist[0]):
-            block.opts.add_opt('-regress_iresp_prefix',1,['iresp'],setpar=True)
+            block.opts.add_opt('-regress_iresp_prefix',1,['iresp'],setpar=1)
         uopt = user_opts.find_opt('-regress_make_ideal_sum')
         if uopt and not afni_util.basis_has_known_response(bopt.parlist[0]):
             print '** -regress_make_ideal_sum is inappropriate for basis %s'\
@@ -482,7 +486,7 @@ def db_mod_regress(block, proc, user_opts):
     if uopt and bopt:
         bopt.parlist[0] = uopt.parlist[0]
     elif not bopt: # maybe it was deleted previously (not currently possible)
-        block.opts.add_opt('-regress_fitts_prefix', 1, uopt.parlist,setpar=True)
+        block.opts.add_opt('-regress_fitts_prefix', 1, uopt.parlist,setpar=1)
 
     # maybe the user wants to delete it
     uopt = user_opts.find_opt('-regress_no_fitts')
@@ -495,7 +499,7 @@ def db_mod_regress(block, proc, user_opts):
     if uopt and bopt:
         bopt.parlist[0] = uopt.parlist[0]
     elif uopt and not bopt: # maybe it was deleted previously
-        block.opts.add_opt('-regress_iresp_prefix', 1, uopt.parlist,setpar=True)
+        block.opts.add_opt('-regress_iresp_prefix', 1, uopt.parlist,setpar=1)
 
     # maybe the user does not want default ideals
     uopt = user_opts.find_opt('-regress_no_ideals')
@@ -519,14 +523,14 @@ def db_mod_regress(block, proc, user_opts):
     bopt = block.opts.find_opt('-regress_no_stim_times')
     if uopt and not bopt:
         if proc.verb > 0: print '-d will use -stim_files in 3dDeconvolve'
-        block.opts.add_opt('-regress_no_stim_times',0,[],setpar=True)
+        block.opts.add_opt('-regress_no_stim_times',0,[],setpar=1)
 
     # prepare to return
     if errs > 0:
-        block.valid = False
+        block.valid = 0
         return 1
 
-    block.valid = True
+    block.valid = 1
 
 # here we need to concatenate the dfiles, and possibly create stim_times files
 #
@@ -548,7 +552,7 @@ def db_cmd_regress(proc, block):
 
     if len(proc.stims) <= 0:   # be sure we have some stim files
         print "** missing stim files (-regress_stim_times/-regress_stim_files)"
-        block.valid = False
+        block.valid = 0
         return
 
     cmd = cmd + "# -------------------------------------------------------\n" \
@@ -624,7 +628,7 @@ def db_cmd_regress(proc, block):
     opt = block.opts.find_opt('-regress_opts_3dD')
     if not opt or not opt.parlist: other_opts = ''
     else: other_opts = '    %s  \\\n' %         \
-               ' '.join(afni_util.quotize_list(opt.parlist, '\\\n    ', True))
+               ' '.join(afni_util.quotize_list(opt.parlist, '\\\n    ', 1))
 
     # add misc options
     cmd = cmd + iresp
@@ -694,30 +698,30 @@ def db_cmd_regress_sfiles2times(proc, block):
     return cmd
 
 # verify consistency of -tlrc_* options
-# return True or False
+# return 1 or 0
 def db_tlrc_opts_okay(opts):
     opta = opts.find_opt('-tlrc_anat')
 
     if not opta:
         if opts.find_opt('-tlrc_base'):
             print '** -tlrc_base requires dataset via -tlrc_anat'
-            return False
+            return 0
         if opts.find_opt('-tlrc_no_ss'):
             print '** -tlrc_no_ss requires dataset via -tlrc_anat'
-            return False
+            return 0
         if opts.find_opt('-tlrc_rmode'):
             print '** -tlrc_rmode requires dataset via -tlrc_anat'
-            return False
+            return 0
         if opts.find_opt('-tlrc_suffix'):
             print '** -tlrc_rmode requires dataset via -tlrc_anat'
-            return False
+            return 0
 
-        return True  # okay, no options
+        return 1  # okay, no options
 
     opt_anat = opts.find_opt('-copy_anat')
     if not opt_anat:
         print '** -tlrc_anat option requires anatomy via -copy_anat'
-        return False
+        return 0
 
     dset = afni_base.afni_name(opt_anat.parlist[0])
     if not dset.exist():  # allow for no +view
@@ -725,11 +729,11 @@ def db_tlrc_opts_okay(opts):
         if not dset.exist():
             print "** -tlrc_anat dataset '%s' does not exist" % \
                   opt_anat.parlist[0]
-            return False
+            return 0
 
     # base image does not need to exist (might be in abin)
 
-    return True
+    return 1
 
 # create a command to run @auto_tlrc
 def db_cmd_tlrc(dname, options):

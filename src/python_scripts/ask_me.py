@@ -38,14 +38,14 @@ def ask_me_subj_proc(proc):
               "    name, as well as names of datasets which are created.\n"
         word = read_one_word('++ please enter a subject ID: ')
         print "    (applying '-subj_id %s')\n" % word
-        proc.user_opts.add_opt('-subj_id', 1, [word],setpar=True)
+        proc.user_opts.add_opt('-subj_id', 1, [word],setpar=1)
 
     if not proc.user_opts.find_opt('-script'):
         print "----- requesting '-script' option\n"
         print "    This is the name of the output processing script.\n"
         word = read_one_word('++ please enter a script name: ')
         print "    (applying '-script %s')\n" % word
-        proc.user_opts.add_opt('-script', 1, [word],setpar=True)
+        proc.user_opts.add_opt('-script', 1, [word],setpar=1)
 
     print '---------- tcat block --------------------------------------\n'
     if not proc.user_opts.find_opt('-tcat_remove_first_trs'):
@@ -58,7 +58,7 @@ def ask_me_subj_proc(proc):
         val = read_one_int('++ please enter the number of TRs to remove: ')
         print "    (applying '-tcat_remove_first_trs %d')\n" % val
         proc.user_opts.add_opt('-tcat_remove_first_trs', 1, [str(val)],
-                                                            setpar=True)
+                                                            setpar=1)
 
     print '---------- tshift block --------------------------------------\n'
     print "    Slices will be temporally aligned with the start of each TR.\n"
@@ -75,7 +75,7 @@ def ask_me_subj_proc(proc):
         word = read_one_word("++ align to 'first' or 'last' volume: ",
                              ['first', 'last'])
         print "    (applying '-volreg_align_to %s')\n" % word
-        proc.user_opts.add_opt('-volreg_align_to', 1, [word],setpar=True)
+        proc.user_opts.add_opt('-volreg_align_to', 1, [word],setpar=1)
 
     print '---------- mask block --------------------------------------\n'
     print "    '3dAutomask -dilate 1' will be used to create a mask for"
@@ -103,7 +103,7 @@ def ask_me_subj_proc(proc):
           "                             7 intervals (so 8 tents)\n"
         word = read_one_word('++ please enter a basis function: ')
         print "    (applying -regress_basis '%s')\n" % word
-        proc.user_opts.add_opt('-regress_basis', 1, [word],setpar=True)
+        proc.user_opts.add_opt('-regress_basis', 1, [word],setpar=1)
 
     # get stim_times or stim_files
     if not proc.user_opts.find_opt('-regress_stim_times') and   \
@@ -121,11 +121,11 @@ def get_stim_labels(proc, type):
     print "Stimulus labels should match the order of the -stim_times or\n" \
           "  -stim_files parameters.\n"
 
-    nlabs = read_one_int('++ enter the number of stimulus labels: ', pos=True)
+    nlabs = read_one_int('++ enter the number of stimulus labels: ', pos=1)
 
     if proc.verb > 1: print 'want %d stim labels\n' % nlabs
 
-    while True:  # break when done
+    while 1:  # break when done
         print 'Please enter the list of stim labels.\n'
         nremain = nlabs
         labels = []
@@ -145,7 +145,7 @@ def get_stim_labels(proc, type):
         break
 
     print "    (applying: -regress_stim_labels %s)\n" % (' '.join(labels))
-    proc.user_opts.add_opt('-regress_stim_labels', -1, labels, setpar=True)
+    proc.user_opts.add_opt('-regress_stim_labels', -1, labels, setpar=1)
 
 def get_stim_files(proc, type):
     print "---------- requesting stimuli...\n"
@@ -156,11 +156,11 @@ def get_stim_files(proc, type):
                          ['files','times'])
 
     nfiles = read_one_int('++ enter the number of files for stim_%s: '%type,
-                          pos=True)
+                          pos=1)
 
     if proc.verb > 1: print 'want %d stim_%s\n' % (nfiles,type)
 
-    while True:  # break when done
+    while 1:  # break when done
         print 'Please enter stim names, wildcard use is okay.\n' \
               '(wildcards okay only if order of names is alphabetical)\n'
         nremain = nfiles
@@ -183,17 +183,17 @@ def get_stim_files(proc, type):
         break
 
     print "    (applying: -regress_stim_%s %s)\n" % (type, ' '.join(files))
-    proc.user_opts.add_opt('-regress_stim_%s'%type, -1, files, setpar=True)
+    proc.user_opts.add_opt('-regress_stim_%s'%type, -1, files, setpar=1)
 
 
 def get_datasets(proc):
     print '-- Datasets are required (no -dsets option was given).\n' \
           '   Enter the names in the order that should will be processed.\n'
 
-    ndsets = read_one_int('++ enter the number of datasets: ',pos=True)
+    ndsets = read_one_int('++ enter the number of datasets: ',pos=1)
     if proc.verb > 1: print 'ndsets = %d\n' % ndsets
 
-    while True:  # break when done
+    while 1:  # break when done
         print 'Please enter dataset names, wildcard use is okay.' \
               '(wildcards okay only if order of names is alphabetical)\n'
         nremain = ndsets
@@ -210,7 +210,7 @@ def get_datasets(proc):
 
             # if we god a new dataset list, append it and check for repeats
             dsets += new_dsets
-            if not afni_util.uniq_list_as_dsets(dsets, True):
+            if not afni_util.uniq_list_as_dsets(dsets, 1):
                 errs += 1
             else:
                 nremain -= len(new_dsets)
@@ -250,12 +250,12 @@ def read_one_glob_file_list():
         else: wlist.append(word)
 
     flist = []
-    errs = False
+    errs = 0
     for file in wlist:  # now check for existence
         if os.path.isfile(file): flist.append(file)
         else:
             print "** no file match for '%s'" % file
-            errs = True
+            errs = 1
 
     if errs: return None
 
@@ -265,7 +265,7 @@ def read_one_glob_file_list():
 #       - a list of valid possibilities may be passed
 #       - try until success
 def read_one_word(prompt, valid_list=None):
-    while True:
+    while 1:
         print prompt,
         words = string.split(sys.stdin.readline())
         print # for separation
@@ -277,8 +277,8 @@ def read_one_word(prompt, valid_list=None):
 # read a single integer from a command line, and return it
 #       - try until success
 #       - pos -> integer must be positive
-def read_one_int(prompt, pos=False, nonneg=False):
-    while True:
+def read_one_int(prompt, pos=0, nonneg=0):
+    while 1:
         print prompt,
         words = string.split(sys.stdin.readline())
         print # for separation

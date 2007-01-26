@@ -21,18 +21,18 @@ def change_path_basename(orig, prefix, suffix):
 # if the first character is '-', opt_prefix will be applied
 #
 # if skip_first, do not add initial prefix
-def quotize_list(list, opt_prefix, skip_first=False):
+def quotize_list(list, opt_prefix, skip_first=0):
     if not list or len(list) < 1: return list
 
     # okay, we haven't yet escaped any existing quotes...
 
     # qlist = "[({* "
     newlist = []
-    first = True   # ugly, but easier for option processing
+    first = 1   # ugly, but easier for option processing
     for string in list:
         prefix = ''
         if skip_first and first:
-            first = False       # use current (empty) prefix
+            first = 0       # use current (empty) prefix
         else:
             if string[0] == '-': prefix = opt_prefix
         if '[' in string or '(' in string or '{' in string or ' ' in string:
@@ -44,15 +44,15 @@ def quotize_list(list, opt_prefix, skip_first=False):
 
 # given a list of text elements, create a list of afni_name elements,
 # and check for unique prefixes
-def uniq_list_as_dsets(dsets, showerr=False):
-    if not dsets or len(dsets) < 2: return True
+def uniq_list_as_dsets(dsets, showerr=0):
+    if not dsets or len(dsets) < 2: return 1
 
     # iterate over dsets, searching for matches
-    uniq = True
+    uniq = 1
     for i1 in range(len(dsets)):
         for i2 in range(i1+1, len(dsets)):
             if dsets[i1].prefix == dsets[i2].prefix:
-                uniq = False
+                uniq = 0
                 break
         if not uniq: break
 
@@ -79,7 +79,7 @@ def list_to_datasets(words):
     if not words or len(words) < 1: return []
     dsets = []
     wlist = []
-    errs  = False
+    errs  = 0
     for word in words:
         glist = glob.glob(word)  # first, check for globbing
         if glist:
@@ -93,7 +93,7 @@ def list_to_datasets(words):
             dsets.append(dset)
         else:
             print "** no dataset match for '%s'" % word
-            errs = True
+            errs = 1
 
     if errs:
         print # for separation
@@ -104,9 +104,9 @@ def list_to_datasets(words):
 # given a string, if the prefix is either GAM or BLOCK, then the basis
 # function has a known response curve
 def basis_has_known_response(basis):
-    if not basis: return False
-    if basis[0:3] == 'GAM' or basis[0:5] == 'BLOCK': return True
-    else:                                            return False
+    if not basis: return 0
+    if basis[0:3] == 'GAM' or basis[0:5] == 'BLOCK': return 1
+    else:                                            return 0
 
 # ----------------------------------------------------------------------
 # begin matrix functions
@@ -202,7 +202,7 @@ def align_wrappers(command):
     # first, find the maximum offset
     posn = 0
     max  = -1
-    while True:
+    while 1:
         next = command.find('\n',posn)
         if next < 0: break
         if next > posn and command[next-1] == '\\':  # check against max
@@ -215,7 +215,7 @@ def align_wrappers(command):
     # repeat the previous loop, but adding appropriate spaces
     new_cmd = ''
     posn = 0
-    while True:
+    while 1:
         next = command.find('\n',posn)
         if next < 0: break
         if next > posn and command[next-1] == '\\':  # check against max
@@ -239,7 +239,7 @@ def align_wrappers(command):
 def insert_wrappers(command, start=0, end=-1):
     if end < 0: end = len(command) - start - 1
 
-    nfirst = num_leading_line_spaces(command,start,True) # note initial indent
+    nfirst = num_leading_line_spaces(command,start,1) # note initial indent
     prefix = get_next_indentation(command,start,end)
     plen   = len(prefix)
     maxlen = 78
@@ -272,12 +272,12 @@ def insert_wrappers(command, start=0, end=-1):
 def get_next_indentation(command,start=0,end=-1):
     if end < 0: end = len(command) - start - 1
 
-    spaces = num_leading_line_spaces(command,start,True)
+    spaces = num_leading_line_spaces(command,start,1)
     prefix = command[start:start+spaces]+'    ' # grab those spaces, plus 4
     # now check for an indention prefix
     posn = command.find('\\\n', start)
     if posn >= 0:
-        spaces = num_leading_line_spaces(command,posn+2,True)
+        spaces = num_leading_line_spaces(command,posn+2,1)
         if posn > start and spaces >= 2:
             prefix = command[posn+2:posn+2+spaces] # grab those spaces
 
@@ -309,15 +309,15 @@ def needs_wrapper(command, max=79, start=0, end=-1):
             remain = end_posn - cur_posn
             continue
 
-        return True
+        return 1
 
-    return False        # if we get here, line wrapping is not needed
+    return 0        # if we get here, line wrapping is not needed
 
 # find the next '\n' that is not preceeded by '\\', or return -1
 def find_command_end(command, start=0):
     length = len(command) - start
     end = start-1
-    while True:
+    while 1:
         start = end + 1
         end = command.find('\n',start)
 
@@ -332,7 +332,7 @@ def find_command_end(command, start=0):
 # count the number of leading non-whitespace chars
 # (newline chars are not be counted, as they end a line)
 # if pound, skip any leading '#'
-def num_leading_line_spaces(str,start,pound=False):
+def num_leading_line_spaces(str,start,pound=0):
     length = len(str)
     if start < 0: start = 0
     if length < 1 or length <= start: return 0
@@ -348,12 +348,12 @@ def num_leading_line_spaces(str,start,pound=False):
 # find (index of) first space after start that isn't a newline
 # (skip any leading indendation if skip_prefix is set)
 # return -1 if none are found
-def find_next_space(str,start,skip_prefix=False):
+def find_next_space(str,start,skip_prefix=0):
     length = len(str)
     index  = start
-    if skip_prefix: index += num_leading_line_spaces(str,start,True)
+    if skip_prefix: index += num_leading_line_spaces(str,start,1)
     
-    while True:
+    while 1:
         if index >= length: break
         if str[index] != '\n' and str[index].isspace(): break
         index += 1
