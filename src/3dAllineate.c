@@ -145,6 +145,7 @@ int main( int argc , char *argv[] )
    int replace_base            = 0 ;             /* off by default */
    int replace_meth            = 0 ;             /* off by default */
    int usetemp                 = 0 ;             /* off by default */
+   int nmatch_setup            = 23456 ;
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -537,6 +538,7 @@ int main( int argc , char *argv[] )
         " -histbin nn   = Or you can just set the number of bins directly to 'nn'.\n"
         " -wtmrad  mm   = Set autoweight/mask median filter radius to 'mm' voxels.\n"
         " -wtgrad  gg   = Set autoweight/mask Gaussian filter radius to 'gg' voxels.\n"
+        " -nmsetup nn   = Use 'nn' points for the setup matching [default=23456]\n"
        ) ;
      } else {
        printf("\n"
@@ -593,6 +595,15 @@ int main( int argc , char *argv[] )
        dxyz_mast = (float)strtod(argv[iarg],NULL) ;
        if( dxyz_mast <= 0.0f )
          ERROR_exit("Illegal value '%s' after -dxyz",argv[iarg]) ;
+       iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcmp(argv[iarg],"-nmsetup") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       nmatch_setup = (int)strtod(argv[iarg],NULL) ;
+       if( nmatch_setup < 666 ) nmatch_setup = 23456 ;
        iarg++ ; continue ;
      }
 
@@ -1919,8 +1930,8 @@ int main( int argc , char *argv[] )
        ccode            = (interp_code == MRI_NN) ? MRI_NN : MRI_LINEAR ;
        stup.interp_code = ccode ;
        stup.npt_match   = nmask / 20 ;
-            if( stup.npt_match <   666 ) stup.npt_match =   666 ;
-       else if( stup.npt_match > 22222 ) stup.npt_match = 23456 ;
+            if( stup.npt_match <   666        ) stup.npt_match =   666 ;
+       else if( stup.npt_match > nmatch_setup ) stup.npt_match = nmatch_setup;
 
        stup.smooth_code        = sm_code ;
        stup.smooth_radius_base =
@@ -1939,11 +1950,18 @@ int main( int argc , char *argv[] )
          if( nbin > 0 && xyc != NULL ){
            char fname[256] ; MRI_IMAGE *fim ; double ftop ;
            fim = mri_new(nbin,nbin,MRI_float); mri_fix_data_pointer(xyc,fim);
-           ftop = mri_max(fim) ; qim = mri_to_byte_scl(255.4/ftop,0.0,fim) ;
-           mri_clear_data_pointer(fim); mri_free(fim);
-           fim = mri_flippo(MRI_ROT_90,0,qim); mri_free(qim);
-           sprintf(fname,"%s_start_%04d.pgm",save_hist,kk) ;
-           mri_write_pnm(fname,fim); mri_free(fim);
+           if( strstr(save_hist,"FF") == NULL ){
+             ftop = mri_max(fim) ; qim = mri_to_byte_scl(255.4/ftop,0.0,fim) ;
+             mri_clear_data_pointer(fim); mri_free(fim);
+             fim = mri_flippo(MRI_ROT_90,0,qim); mri_free(qim);
+             sprintf(fname,"%s_start_%04d.pgm",save_hist,kk) ;
+             mri_write_pnm(fname,fim); mri_free(fim);
+           } else {
+             qim = mri_flippo(MRI_ROT_90,0,fim);
+             mri_clear_data_pointer(fim); mri_free(fim);
+             sprintf(fname,"%s_start_%04d.mri",save_hist,kk) ;
+             mri_write(fname,qim); mri_free(qim);
+           }
            if( verb > 1 ) ININFO_message("- Saved histogram to %s",fname) ;
          }
        }
@@ -2166,11 +2184,18 @@ int main( int argc , char *argv[] )
        if( nbin > 0 && xyc != NULL ){
          char fname[256] ; MRI_IMAGE *fim ; double ftop ;
          fim = mri_new(nbin,nbin,MRI_float); mri_fix_data_pointer(xyc,fim);
-         ftop = mri_max(fim) ; qim = mri_to_byte_scl(255.4/ftop,0.0,fim) ;
-         mri_clear_data_pointer(fim); mri_free(fim);
-         fim = mri_flippo(MRI_ROT_90,0,qim); mri_free(qim);
-         sprintf(fname,"%s_final_%04d.pgm",save_hist,kk) ;
-         mri_write_pnm(fname,fim); mri_free(fim);
+         if( strstr(save_hist,"FF") == NULL ){
+           ftop = mri_max(fim) ; qim = mri_to_byte_scl(255.4/ftop,0.0,fim) ;
+           mri_clear_data_pointer(fim); mri_free(fim);
+           fim = mri_flippo(MRI_ROT_90,0,qim); mri_free(qim);
+           sprintf(fname,"%s_final_%04d.pgm",save_hist,kk) ;
+           mri_write_pnm(fname,fim); mri_free(fim);
+         } else {
+           qim = mri_flippo(MRI_ROT_90,0,fim);
+           mri_clear_data_pointer(fim); mri_free(fim);
+           sprintf(fname,"%s_final_%04d.mri",save_hist,kk) ;
+           mri_write(fname,qim); mri_free(qim);
+         }
          if( verb > 1 ) ININFO_message("- Saved histogram to %s",fname) ;
        }
      }
