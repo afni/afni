@@ -370,6 +370,8 @@ int main( int argc , char *argv[] )
 #else
        "       **N.B.: '-EPI' turns on '-warpfreeze -replacebase'.\n"
 #endif
+       "               You can use '-nowarpfreeze' and/or '-noreplacebase' AFTER the\n"
+       "               '-EPI' on the command line if you do not want these options used.\n"
        "\n"
        " -parfix n v   = Fix parameter #n to be exactly at value 'v'.\n"
        " -parang n b t = Allow parameter #n to range only between 'b' and 't'.\n"
@@ -1222,9 +1224,15 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-replacebase") == 0 ){  /* 18 Oct 2006 */
        twofirst = replace_base = 1 ; iarg++ ; continue ;
      }
-
      if( strcmp(argv[iarg],"-warpfreeze") == 0 ){  /* 18 Oct 2006 */
        warp_freeze = 1 ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-nowarpfreeze") == 0 ){  /* 01 Feb 2007 */
+       warp_freeze = 0 ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-noreplacebase") == 0 ){  /* 01 Feb 2007 */
+       replace_base = 0 ; iarg++ ; continue ;
      }
 
      /*-----*/
