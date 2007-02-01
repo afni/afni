@@ -941,7 +941,9 @@ ENTRY("mri_genalign_scalar_setup") ;
      if( use_all == 1 ){         /*------------- all points, no mask -----------*/
 
        if( stup->im != NULL ){
-         KILL_floatvec(stup->im); KILL_floatvec(stup->jm); KILL_floatvec(stup->km);
+         KILL_floatvec(stup->im) ;
+         KILL_floatvec(stup->jm) ;
+         KILL_floatvec(stup->km) ;
        }
        stup->im = stup->jm = stup->km = NULL ;
 
@@ -950,7 +952,9 @@ ENTRY("mri_genalign_scalar_setup") ;
        int nvox , pp ; byte *mask=stup->bmask ;
 
        if( stup->im != NULL ){
-         KILL_floatvec(stup->im); KILL_floatvec(stup->jm); KILL_floatvec(stup->km);
+         KILL_floatvec(stup->im) ;
+         KILL_floatvec(stup->jm) ;
+         KILL_floatvec(stup->km) ;
        }
        MAKE_floatvec(stup->im,stup->npt_match) ;
        MAKE_floatvec(stup->jm,stup->npt_match) ;
@@ -971,7 +975,9 @@ ENTRY("mri_genalign_scalar_setup") ;
        nvox = stup->bsim->nvox ;
        dm   = find_relprime_fixed(nvox) ;
        if( stup->im != NULL ){
-         KILL_floatvec(stup->im); KILL_floatvec(stup->jm); KILL_floatvec(stup->km);
+         KILL_floatvec(stup->im) ;
+         KILL_floatvec(stup->jm) ;
+         KILL_floatvec(stup->km) ;
        }
        MAKE_floatvec(stup->im,stup->npt_match) ;
        MAKE_floatvec(stup->jm,stup->npt_match) ;
@@ -993,6 +999,7 @@ ENTRY("mri_genalign_scalar_setup") ;
 
      /*------------- extract values from base image for matching -------------*/
 
+     KILL_floatvec(stup->bvm) ; KILL_floatvec(stup->wvm) ;
      bim = (stup->bsims != NULL ) ? stup->bsims : stup->bsim ;
      bsar = MRI_FLOAT_PTR(bim) ;
      MAKE_floatvec(stup->bvm,stup->npt_match) ;

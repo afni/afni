@@ -352,7 +352,7 @@ static int use_tracking = 0 ;  /* is the tracking enabled? */
 char * mcw_malloc_status(const char *fn , int ln)
 {
    static char buf[128] = "\0" ;
-   int jj,kk , nptr=0 ; size_t nbyt=0 ;
+   int jj,kk , nptr=0 ; long long nbyt=0 ;
 
    if( ! use_tracking ) return NULL ;
 
@@ -366,8 +366,23 @@ char * mcw_malloc_status(const char *fn , int ln)
       }
    }
 
-   sprintf(buf,"chunks=%d bytes=%u",nptr,(UINT)nbyt) ;
+   sprintf(buf,"chunks=%d bytes=%lld",nptr,nbyt) ;
    return buf ;
+}
+
+/*-----------------------------------------------------------------*/
+
+long long mcw_malloc_total(void)  /* 01 Feb 2007 */
+{
+   int jj,kk ; long long nbyt=0 ;
+
+   if( ! use_tracking ) return 0 ;
+
+   for( jj=0 ; jj < SLOTS ; jj++ )
+     for( kk=0 ; kk < nhtab[jj] ; kk++ )
+       if( htab[jj][kk].pmt != NULL ) nbyt += htab[jj][kk].psz ;
+
+   return nbyt ;
 }
 
 /*-----------------------------------------------------------------
@@ -544,7 +559,7 @@ int mcw_malloc_paused()
 /*---------------------------------------------------------------*/
 /*--- lets the user check if the tracking routines are in use ---*/
 
-int mcw_malloc_enabled(){ return (use_tracking != 0) ; }
+int mcw_malloc_enabled(void){ return (use_tracking != 0) ; }
 
 /*-----------------------------------------------------------------
    The actual routine that replaces malloc() -- see mcw_malloc.h

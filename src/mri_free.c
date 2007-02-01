@@ -106,6 +106,18 @@ ENTRY("mri_free") ;
 }
 
 /*-------------------------------------------------------------------------*/
+
+void mri_clear( MRI_IMAGE *im )  /* 31 Jan 2007 */
+{
+  void *ptr ;
+  if( im == NULL ) return ;
+  mri_killpurge(im) ;
+  ptr = mri_data_pointer(im) ;
+  if( ptr != NULL ){ free(ptr); mri_fix_data_pointer(NULL,im); }
+  return ;
+}
+
+/*-------------------------------------------------------------------------*/
 /*! Return the size (bytes) of one data element of the given type.
 ---------------------------------------------------------------------------*/
 

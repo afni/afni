@@ -26,6 +26,7 @@ extern "C" {
 #define MCW_MALLOC_enabled 0
 
 #define MCW_MALLOC_status  NULL
+#define MCW_MALLOC_total   0
 
 #undef  mcw_malloc
 #define mcw_malloc  malloc
@@ -71,11 +72,14 @@ extern void   pause_mcw_malloc(void);
 extern void   resume_mcw_malloc(void);
 extern int    mcw_malloc_paused(void);
 
+extern long long mcw_malloc_total(void) ; /* 01 Feb 2007 */
+
 /*-- how to check if the tracking routines are working --*/
 
 #define MCW_MALLOC_enabled mcw_malloc_enabled()
 
 #define MCW_MALLOC_status  mcw_malloc_status(__FILE__,__LINE__)
+#define MCW_MALLOC_total   mcw_malloc_total()
 
 /*-- do the same macro thing for the Xt library functions --*/
 

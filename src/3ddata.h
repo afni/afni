@@ -81,9 +81,9 @@ extern "C" {
 
 /*! Max length of a dataset prefix. */
 
-#define THD_MAX_PREFIX     (255+1)  /* must be more than THD_MAX_LABEL 
-                                    (  ZSS Jan 07 need room for path specified 
-                                       with prefix on command line   (why that +1, 
+#define THD_MAX_PREFIX     (255+1)  /* must be more than THD_MAX_LABEL
+                                    (  ZSS Jan 07 need room for path specified
+                                       with prefix on command line   (why that +1,
                                        I don't know) ) */
 
 /*! Max length of a "name" of a file, or stuff like that. */
@@ -2543,6 +2543,10 @@ typedef struct THD_3dim_dataset {
 
 #define DSET_BRICK(ds,iv) DBLK_BRICK((ds)->dblk,(iv))
 
+/*! See if the iv-th volume is purged to disk at this moment */
+
+#define DSET_BRICK_IS_PURGED(ds,iv) MRI_IS_PURGED(DSET_BRICK((ds),(iv)))
+
 #define DBLK_BRICK_TYPE(db,iv) (DBLK_BRICK((db),(iv))->kind)
 
 /*! Return the datum code (MRI_short, etc.) of the iv-th volume of dataset ds */
@@ -3688,6 +3692,8 @@ extern void    THD_load_nifti  ( THD_datablock * ) ;         /* 28 Aug 2003 */
 extern void    THD_load_mpeg   ( THD_datablock * ) ;         /* 03 Dec 2003 */
 extern void    THD_load_tcat   ( THD_datablock * ) ;         /* 04 Aug 2004 */
 extern int     THD_load_niml   ( THD_datablock * ) ;         /* 12 Jun 2006 */
+
+extern int     THD_count_potential_databricks( THD_datablock *dblk );
 
 extern void    THD_zerofill_dataset( THD_3dim_dataset * ) ;  /* 18 Mar 2005 */
 extern int     THD_apply_master_subrange( THD_datablock * ); /* 14 Apr 2006 */
