@@ -1,7 +1,6 @@
 #include "mrilib.h"
 
 /*----------------------------------------------------------------------------*/
-
 static char *tmpdir = NULL ;
 
 /*! Function to get name of the directory to store TIM_* mri_purge() files. */
@@ -15,6 +14,22 @@ char * mri_purge_get_tmpdir(void)
      if( !THD_is_directory(tmpdir) )         tmpdir = "." ;
    }
    return tmpdir ;
+}
+
+/*----------------------------------------------------------------------------*/
+static char tsuf[8] = "\0" ;
+
+/*! Function to set TIM suffix for this process */
+
+static void purge_set_tsuf(void)  /* 01 Feb 2007 */
+{
+   int ii ;
+   if( tsuf[0] != '\0' ) return ;
+   ii = (lrand48()>>5) % 52 ; tsuf[0] = (ii < 26) ? (ii+'A') : (ii-26+'a') ;
+   ii = (lrand48()>>5) % 52 ; tsuf[1] = (ii < 26) ? (ii+'A') : (ii-26+'a') ;
+   ii = (lrand48()>>5) % 52 ; tsuf[2] = (ii < 26) ? (ii+'A') : (ii-26+'a') ;
+   tsuf[3] = '\0' ;
+   return ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -32,15 +47,19 @@ static char **qpurge = NULL ;    /* filenames of TIM_* files still alive */
 
 static void purge_atexit(void) /*--- called by exit(): delete TIM_* files ---*/
 {
-   int ii ;
-   for( ii=0 ; ii < npurge ; ii++ ){
+   int ii , nn ;
+   for( nn=ii=0 ; ii < npurge ; ii++ ){
      if( qpurge[ii] != NULL ){
        INFO_message("removing temporary image file %s",qpurge[ii]) ;
-       remove(qpurge[ii]) ;
+       remove(qpurge[ii]) ; nn++ ;
      }
    }
+   if( tmpdir != NULL && nn > 0 && tsuf[0] != '\0' )
+     WARNING_message("-usetemp: Check %s/ for other TIM_%s* files",tmpdir,tsuf);
    return ;
 }
+
+/*----------------------------------------------------------------------------*/
 
 static void add_purge( char *fn ) /*-------- add fn to the qpurge list ----*/
 {
@@ -56,6 +75,8 @@ static void add_purge( char *fn ) /*-------- add fn to the qpurge list ----*/
    qpurge[ii] = strdup(fn) ;         /* fill empty slot */
    return ;
 }
+
+/*----------------------------------------------------------------------------*/
 
 static void kill_purge( char *fn ) /*---- remove fn from the qpurge list ----*/
 {
@@ -96,9 +117,11 @@ ENTRY("mri_purge") ;
 
    /* make up a unique name for the purge file */
 
-   pg        = mri_purge_get_tmpdir() ;
+   pg        = mri_purge_get_tmpdir() ; purge_set_tsuf() ;
    im->fname = malloc(strlen(pg)+64) ;
-   un = UNIQ_idcode(); un[0] = 'T'; un[1] = 'I'; un[2] = 'M';
+   un = UNIQ_idcode();
+   un[0] = 'T'     ; un[1] = 'I'     ; un[2] = 'M'     ; un[3] = '_' ;
+   un[4] = tsuf[0] ; un[5] = tsuf[1] ; un[6] = tsuf[2] ;
    strcpy(im->fname,pg); strcat(im->fname,"/"); strcat(im->fname,un);
    free(un) ;
 
@@ -185,7 +208,7 @@ ENTRY("mri_unpurge") ;
 
 void mri_killpurge( MRI_IMAGE *im )
 {
-   if( im != NULL && MRI_IS_PURGED(im) ){
+   if( MRI_IS_PURGED(im) ){
      ENTRY("mri_killpurge") ;             /* only do traceback if work to do */
      remove(im->fname); im->fondisk = 0; kill_purge(im->fname);
      if( PRINT_TRACING ){

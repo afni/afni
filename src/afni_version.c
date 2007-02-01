@@ -208,7 +208,7 @@ void AFNI_start_version_check(void)
 #ifdef VERBOSE
 # define KAPUT(ss)                                          \
   do{ fprintf(stderr,"** Version Check fails: %s **\n",ss); \
-      return ; } while(0)
+      return 0; } while(0)
 #else
 # define KAPUT(ss) return
 #endif
@@ -238,7 +238,7 @@ int AFNI_version_check(void)
 
    /* if something is rotten, then toss it out */
 
-   if( disabled ) return 0 ;   /* 27 Jan 2003 */
+   if( GLOBAL_argopt.allow_rt || disabled ) return 0 ;   /* 27 Jan 2003 */
 
    if( vc_ioc == NULL || vc_child_pid == (pid_t)(-1) ) KAPUT("bad child state");
 

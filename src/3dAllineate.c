@@ -75,7 +75,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *im_base, *im_targ, *im_weig=NULL, *im_mask=NULL, *qim ;
    MRI_IMAGE *im_bset, *im_wset ;
    GA_setup stup ;
-   int iarg , ii,jj,kk , nmask=0 , nfunc , rr ;
+   int iarg , ii,jj,kk , nmask=0 , nfunc , rr , ntask ;
    int   nx_base,ny_base,nz_base , nx_targ,ny_targ,nz_targ , nxy_base ;
    float dx_base,dy_base,dz_base , dx_targ,dy_targ,dz_targ ;
    int   nxyz_base[3] , nxyz_targ[3] , nxyz_dout[3] ;
@@ -725,7 +725,7 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-usetemp") == 0 ){  /* 20 Dec 2006 */
        char *pg = mri_purge_get_tmpdir() ;
-       usetemp=1 ; iarg++ ;
+       usetemp = 1 ; iarg++ ;
        INFO_message("-usetemp: if program crashes, do /bin/rm -f %s/TIM_*",pg);
        continue ;
      }
@@ -1590,18 +1590,15 @@ int main( int argc , char *argv[] )
 
    /* number of points to use for matching */
 
-   if( npt_match < -100 ){                              /* default */
-     npt_match = (int)(0.20*nmask) ;
-     if( npt_match > 66666 ) npt_match = 66666 ;
-   } else if( npt_match < 0 ){                          /* percentage */
-     npt_match = (int)(-0.01*npt_match*nmask) ;
-   }
+   ntask = DSET_NVOX(dset_targ) ;
+   ntask = (ntask < nmask) ? (int)sqrt(ntask*(double)nmask) : nmask ;
+   if( npt_match < 0 )   npt_match = (int)(-0.01f*npt_match*ntask) ;
    if( npt_match < 666 ) npt_match = 666 ;
    if( verb ) INFO_message("Number of points for matching = %d",npt_match) ;
 
    /*------ setup alignment structure parameters ------*/
 
-   memset(&stup,0,sizeof(GA_setup)) ;
+   memset(&stup,0,sizeof(GA_setup)) ;  /* NULL out */
 
    stup.match_code = meth_code ;
    stup.usetemp    = usetemp ;   /* 20 Dec 2006 */
@@ -1929,7 +1926,7 @@ int main( int argc , char *argv[] )
        if( verb ) INFO_message("Start coarse pass") ;
        ccode            = (interp_code == MRI_NN) ? MRI_NN : MRI_LINEAR ;
        stup.interp_code = ccode ;
-       stup.npt_match   = nmask / 20 ;
+       stup.npt_match   = ntask / 20 ;
             if( stup.npt_match <   666        ) stup.npt_match =   666 ;
        else if( stup.npt_match > nmatch_setup ) stup.npt_match = nmatch_setup;
 
@@ -1995,7 +1992,7 @@ int main( int argc , char *argv[] )
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
            if( stup.wfunc_param[jj].fixed == 1 ) stup.wfunc_param[jj].fixed = 0 ;
 
-         stup.npt_match = nmask / 7 ;
+         stup.npt_match = ntask / 7 ;
               if( stup.npt_match < 666   ) stup.npt_match = 666 ;
          else if( stup.npt_match > 99999 ) stup.npt_match = 99999 ;
 
@@ -2036,7 +2033,7 @@ int main( int argc , char *argv[] )
          if( verb     ) ININFO_message("- Start coarse optimization") ;
          if( verb > 1 ) ctim = COX_cpu_time() ;
          nfunc = mri_genalign_scalar_optim( &stup , 0.05 , 0.005 , 6666 ) ;
-         stup.npt_match = nmask / 10 ;
+         stup.npt_match = ntask / 10 ;
               if( stup.npt_match < 666   ) stup.npt_match = 666 ;
          else if( stup.npt_match > 55555 ) stup.npt_match = 55555 ;
          stup.smooth_radius_base *= 0.666 ;
@@ -2315,7 +2312,18 @@ int main( int argc , char *argv[] )
                                             targ_kind, 1.0f ) ;
        }
        mri_free(im_targ) ; im_targ = NULL ;
+
+       if( usetemp && DSET_NVALS(dset_out) > 1 )   /* 31 Jan 2007 */
+         mri_purge( DSET_BRICK(dset_out,kk) ) ;
      }
+
+#ifdef USING_MCW_MALLOC
+     if( verb > 5 ) mcw_malloc_dump() ;
+     if( verb > 1 ){
+       long long nb = mcw_malloc_total() ;
+       if( nb > 0 ) INFO_message("Memory usage = %lld",nb) ;
+     }
+#endif
 
    } /***------------- end of loop over target sub-bricks ------------------***/
 
@@ -2326,6 +2334,14 @@ int main( int argc , char *argv[] )
    MRI_FREE(stup.ajim); MRI_FREE(stup.ajims); MRI_FREE(stup.bwght);
 
    /***--- write output dataset to disk? ---***/
+
+#ifdef USING_MCW_MALLOC
+     if( verb > 5 ) mcw_malloc_dump() ;
+     if( verb > 1 ){
+       long long nb = mcw_malloc_total() ;
+       if( nb > 0 ) INFO_message("Memory usage = %lld",nb) ;
+     }
+#endif
 
    if( dset_out != NULL ){
      DSET_write(dset_out); WROTE_DSET(dset_out); DSET_unload(dset_out);

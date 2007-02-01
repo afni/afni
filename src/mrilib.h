@@ -588,7 +588,13 @@ extern void   mri_unpurge  ( MRI_IMAGE * ) ;
 extern void   mri_killpurge( MRI_IMAGE * ) ;
 extern char * mri_purge_get_tmpdir(void) ;    /* 21 Dec 2006 */
 
-#define MRI_IS_PURGED(iq) (((iq)->fondisk==IS_PURGED)&&(iq)->fname!=NULL)
+#define MRI_IS_PURGED(iq) \
+  ( (iq)!=NULL && (iq)->fondisk==IS_PURGED && (iq)->fname!=NULL )
+
+#define MRI_HAS_DATA(iq)                                    \
+  ( (iq)!= NULL &&                                          \
+    ( ( (iq)->fondisk==IS_PURGED && (iq)->fname!=NULL ) ||  \
+      mri_data_pointer_unvarnished(iq) != NULL         )  )
 
 extern int mri_equal( MRI_IMAGE *, MRI_IMAGE * ) ; /* 30 Jun 2003 */
 
@@ -654,6 +660,7 @@ extern void mri_fftshift( MRI_IMAGE *, float,float,float, int ) ; /* 13 May 2003
 
 extern void * mri_data_pointer( MRI_IMAGE * ) ;
 extern void mri_free( MRI_IMAGE * ) ;
+extern void mri_clear( MRI_IMAGE * ) ;  /* 31 Jan 2007 */
 extern void mri_fix_data_pointer( void * , MRI_IMAGE * ) ;
 #define mri_set_data_pointer(iq,pt) mri_fix_data_pointer((pt),(iq))
 
@@ -663,7 +670,7 @@ extern void mri_fix_data_pointer( void * , MRI_IMAGE * ) ;
   extern void * mri_data_pointer_unvarnished( MRI_IMAGE *im ) ;
 #else
 # define mri_data_pointer_unvarnished(iq) ((iq)->im)
-#endif 
+#endif
 
 extern char * mri_dicom_header( char * ) ;  /* 15 Jul 2002 */
 extern void   mri_dicom_pxlarr( off_t *, int * ) ;
@@ -1125,7 +1132,7 @@ typedef struct { int nar ; double *ar ; } doublevec ;
 #define KILL_floatvec(fv)                      \
   do{ if( (fv) != NULL ){                      \
         if( (fv)->ar != NULL ) free((fv)->ar); \
-        free(fv);                              \
+        free(fv); (fv) = NULL;                 \
   }} while(0)
 #define KILL_doublevec KILL_floatvec
 
@@ -1146,7 +1153,7 @@ typedef struct { int nar ; int *ar ; } intvec ;
 #define KILL_intvec(iv)                        \
   do{ if( (iv) != NULL ){                      \
         if( (iv)->ar != NULL ) free((iv)->ar); \
-        free(iv);                              \
+        free(iv); (iv) = NULL;                 \
   } } while(0)
 
 #define MAKE_intvec(iv,n)                           \
