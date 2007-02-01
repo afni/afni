@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
 
@@ -25,8 +25,23 @@ int THD_count_databricks( THD_datablock * dblk )
 
    count = 0 ;
    for( ibr=0 ; ibr < dblk->nvals ; ibr++ )
-      if( DBLK_BRICK(dblk,ibr) != NULL && DBLK_ARRAY(dblk,ibr) != NULL )
-        count++ ;
+     if( DBLK_BRICK(dblk,ibr) != NULL && DBLK_ARRAY(dblk,ibr) != NULL )
+       count++ ;
+
+   return count ;
+}
+
+/*---------------------------------------------------------------*/
+
+int THD_count_potential_databricks( THD_datablock * dblk )
+{
+   int ibr , count ;
+
+   if( ! ISVALID_DATABLOCK(dblk) || dblk->brick == NULL ) return -1 ;
+
+   count = 0 ;
+   for( ibr=0 ; ibr < dblk->nvals ; ibr++ )
+     if( MRI_HAS_DATA(DBLK_BRICK(dblk,ibr)) ) count++ ;
 
    return count ;
 }

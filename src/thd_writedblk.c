@@ -105,6 +105,7 @@ Boolean THD_write_datablock( THD_datablock *blk , Boolean write_brick )
    MRI_IMAGE *im ;
    int save_order ;
    int64_t nb , idone ;
+   int do_mripurge ;
 
    /*-- sanity checks --*/
 
@@ -184,7 +185,7 @@ fprintf(stderr,"THD_write_datablock: save_order=%d  dkptr->byte_order=%d\n",
           if none exist, cannot write, but is OK
           if some but not all exist, cannot write, and is an error --*/
 
-   id = THD_count_databricks( blk ) ;
+   id = THD_count_potential_databricks( blk ) ;
    if( id <= 0 )         return True ;
    if( id < blk->nvals ) WRITE_ERR("only partial data exists in memory") ;
 
@@ -238,10 +239,12 @@ fprintf(stderr,"THD_write_datablock: save_order=%d  dkptr->byte_order=%d\n",
             for( ibr=0 ; ibr < nv ; ibr++ ){
                mri_fix_data_pointer( (void *)(bnew+offset) , DBLK_BRICK(blk,ibr) ) ;
                offset += DBLK_BRICK_BYTES(blk,ibr) ;
+               DBLK_BRICK(blk,ibr)->fondisk = 0 ;   /* 31 Jan 2007 */
             }
 
             purge_when_done = True ;
-         }
+
+         } /** fall thru to here if have a malloc-ed dataset **/
 
          if( save_order != native_order ) purge_when_done = True ;
 
@@ -291,6 +294,9 @@ fprintf(stderr,"Entropy=%g ==> forcing write gzip on %s\n",entrop,dkptr->brick_n
          idone = 0 ;
          for( ibr=0 ; ibr < nv ; ibr++ ){
 
+           do_mripurge = MRI_IS_PURGED( DBLK_BRICK(blk,ibr) ) ;
+           if( do_mripurge ) mri_unpurge( DBLK_BRICK(blk,ibr) ) ;
+
            if( save_order != native_order ){       /* 25 April 1998 */
              switch( DBLK_BRICK_TYPE(blk,ibr) ){
                case MRI_short:
@@ -309,7 +315,12 @@ fprintf(stderr,"Entropy=%g ==> forcing write gzip on %s\n",entrop,dkptr->brick_n
            }
 
            idone += fwrite( DBLK_ARRAY(blk,ibr), 1, DBLK_BRICK_BYTES(blk,ibr), far );
-         }
+
+           if( do_mripurge ){                    /* 31 Jan 2007 */
+             if( !purge_when_done ) mri_purge( DBLK_BRICK(blk,ibr) ) ;
+             else                   mri_clear( DBLK_BRICK(blk,ibr) ) ;
+           }
+         } /* end of loop over sub-bricks */
 
          COMPRESS_fclose(far) ;
 
