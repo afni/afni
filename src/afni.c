@@ -1876,10 +1876,14 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    if( MAIN_im3d->type == AFNI_3DDATA_VIEW && GLOBAL_argopt.yes_niml ){
      AFNI_init_niml() ;
-     XtSetSensitive(MAIN_im3d->vwid->dmode->misc_niml_pb,False) ;
+     if( MAIN_im3d->vwid->dmode->misc_niml_pb != NULL )
+       XtSetSensitive(MAIN_im3d->vwid->dmode->misc_niml_pb,False) ;
    } else if( GLOBAL_argopt.port_niml > 0 ){  /* 10 Dec 2002 */
      fprintf(stderr,"*** WARNING: -np was given, but NIML is turned off.\n") ;
    }
+
+   if( AFNI_have_niml() && AFNI_have_plugouts() )  /* 02 Feb 2007 */
+     XtSetSensitive(MAIN_im3d->vwid->view->nimlpo_pb,False) ;
 
    if( !AFNI_noenv("AFNI_STARTUP_WARNINGS") ){  /* 22 Jul 2003 */
 
@@ -4949,7 +4953,7 @@ ENTRY("AFNI_time_index_CB") ;
    AV_assign_ival( im3d->vwid->func->anat_buck_av , im3d->vinfo->anat_index ) ;
 
    if( ISVALID_DSET(im3d->fim_now)                                             &&
-      ( HAS_TIMEAXIS(im3d->fim_now) || AFNI_yesenv("AFNI_SLAVE_BUCKETS_TOO") ) && 
+      ( HAS_TIMEAXIS(im3d->fim_now) || AFNI_yesenv("AFNI_SLAVE_BUCKETS_TOO") ) &&
        !AFNI_noenv("AFNI_SLAVE_FUNCTIME") ){
 
      im3d->vinfo->fim_index = ipx ;
