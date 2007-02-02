@@ -6055,3 +6055,4 @@
 02 Feb 2007
  * Added a 'Rescan' button next to 'Overlay' and 'Underlay' in the main
      AFNI controller.  At the demand of Ziad Saad.
+ * Later: and a 'NIML+PO' button below that.
