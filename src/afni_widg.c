@@ -1253,8 +1253,8 @@ STATUS("imag->view_frame") ;
    imag->view_rowcol =
       XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , imag->view_frame ,
-            XmNpacking      , XmPACK_TIGHT ,
-            XmNorientation  , XmVERTICAL   ,
+            XmNpacking     , XmPACK_TIGHT ,
+            XmNorientation , XmVERTICAL   ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -1473,8 +1473,9 @@ STATUS("making view->rowcol") ;
    view->rowcol =
       XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , view->frame ,
-            XmNpacking      , XmPACK_TIGHT ,
-            XmNorientation  , XmVERTICAL   ,
+            XmNpacking     , XmPACK_TIGHT ,
+            XmNorientation , XmVERTICAL   ,
+            XmNisAligned   , False ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -1526,8 +1527,9 @@ STATUS("making view->rowcol") ;
    view->marks_rowcol =
       XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , view->marks_frame ,
-            XmNpacking      , XmPACK_TIGHT ,
-            XmNorientation  , XmVERTICAL   ,
+            XmNpacking     , XmPACK_TIGHT ,
+            XmNorientation , XmVERTICAL   ,
+            XmNisAligned   , False ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -1537,9 +1539,10 @@ STATUS("making view->rowcol") ;
    view->define_marks_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->marks_rowcol ,
-            LABEL_ARG("Define Markers") ,
+            LABEL_ARG("Define Markers ->") ,
             XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
+            XmNalignment , XmALIGNMENT_CENTER ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -1594,8 +1597,9 @@ STATUS("making view->rowcol") ;
    view->func_rowcol =
       XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , view->func_frame ,
-            XmNpacking      , XmPACK_TIGHT ,
-            XmNorientation  , XmVERTICAL   ,
+            XmNpacking     , XmPACK_TIGHT ,
+            XmNorientation , XmVERTICAL   ,
+            XmNisAligned   , False ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -1605,9 +1609,10 @@ STATUS("making view->rowcol") ;
    view->define_func_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->func_rowcol ,
-            LABEL_ARG("Define OverLay") ,
+            LABEL_ARG("Define OverLay ->") ,
             XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
+            XmNalignment , XmALIGNMENT_CENTER ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -1651,9 +1656,10 @@ STATUS("making view->rowcol") ;
    view->define_dmode_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->rowcol ,
-            LABEL_ARG("Define Datamode") ,
+            LABEL_ARG("Define Datamode ->") ,
             XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
+            XmNalignment , XmALIGNMENT_CENTER ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -1685,8 +1691,9 @@ STATUS("making view->rowcol") ;
    view->dataset_rowcol =
       XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , view->dataset_frame ,
-            XmNpacking      , XmPACK_TIGHT ,
-            XmNorientation  , XmVERTICAL   ,
+            XmNpacking     , XmPACK_TIGHT ,
+            XmNorientation , XmVERTICAL   ,
+            XmNisAligned   , False ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -1699,6 +1706,7 @@ STATUS("making view->rowcol") ;
             LABEL_ARG("Switch Session") ,
             XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
+            XmNalignment , XmALIGNMENT_CENTER ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -1713,10 +1721,27 @@ STATUS("making view->rowcol") ;
 
    view_count ++ ;
 
+   /*-- 02 Feb 2007: move Underlay and Overlay choosers into a rowcol --*/
+
+   view->choose_rowcol =
+      XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , view->dataset_rowcol ,
+            XmNpacking      , XmPACK_COLUMN ,
+            XmNnumColumns   , 2 ,
+            XmNorientation  , XmVERTICAL   ,
+            XmNtraversalOn  , False ,
+            XmNmarginHeight , 0 ,
+            XmNmarginWidth  , 0 ,
+            XmNspacing      , 0 ,
+            XmNadjustLast   , False ,
+            XmNentryAlignment , XmALIGNMENT_CENTER ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
    view->choose_anat_pb =
       XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , view->dataset_rowcol ,
-            LABEL_ARG("Switch UnderLay") ,
+         "dialog" , xmPushButtonWidgetClass , view->choose_rowcol ,
+            LABEL_ARG("UnderLay") ,
             XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1742,8 +1767,8 @@ STATUS("making view->rowcol") ;
 
    view->choose_func_pb =
       XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , view->dataset_rowcol ,
-            LABEL_ARG("Switch OverLay") ,
+         "dialog" , xmPushButtonWidgetClass , view->choose_rowcol ,
+            LABEL_ARG("OverLay") ,
             XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1764,6 +1789,25 @@ STATUS("making view->rowcol") ;
 
    view_count ++ ;
 
+   /* 02 Feb 2007: new rescan this button here */
+
+   view->rescan_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , view->choose_rowcol ,
+            LABEL_ARG("Rescan") ,
+            XmNmarginHeight , 1 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( view->rescan_pb , XmNactivateCallback ,
+                  AFNI_rescan_CB , im3d ) ;
+   MCW_register_hint( view->rescan_pb ,
+                      "Read current session again" ) ;
+   MCW_register_help( view->rescan_pb ,
+                      "Read current session again:\n"
+                      "  to see if new datasets\n"
+                      "  were added." ) ;
+
    /* 19 Aug 2002: Surface chooser! */
 
    view->choose_surf_pb =
@@ -1772,6 +1816,7 @@ STATUS("making view->rowcol") ;
             LABEL_ARG("Control Surface") ,
             XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
+            XmNalignment , XmALIGNMENT_CENTER ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -1855,6 +1900,7 @@ STATUS("making view->rowcol") ;
 
    XtManageChild( view->marks_rowcol ) ;
    XtManageChild( view->func_rowcol ) ;
+   XtManageChild( view->choose_rowcol ) ;
    XtManageChild( view->dataset_rowcol ) ;
    XtManageChild( view->rowcol ) ;
 
