@@ -1931,6 +1931,7 @@
       - afni_proc.py: if only 1 run, warn user, do not use 3dMean
 
 02 Feb 2007:
+      - afni_proc.py: put execution command at top of script
       - modified db_mod.py: print blur_size as float
       - modified make_stim_times.py: added -ver, -hist, extra '*' run 1 only
 
