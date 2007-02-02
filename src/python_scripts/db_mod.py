@@ -259,10 +259,10 @@ def db_cmd_blur(proc, block):
     cmd = cmd + "# -------------------------------------------------------\n" \
                 "# blur each volume\n"                                        \
                 "foreach run ( $runs )\n"                                     \
-                "    3dmerge %s %d -doall -prefix %s   \\\n"                  \
+                "    3dmerge %s %s -doall -prefix %s   \\\n"                  \
                 "%s"                                                          \
                 "            %s+orig\n"                                       \
-                "end\n\n" % (filter, size, prefix, other_opts, prev)
+                "end\n\n" % (filter, str(size), prefix, other_opts, prev)
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label

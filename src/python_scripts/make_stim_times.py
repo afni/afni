@@ -76,9 +76,24 @@ examples:
 ===========================================================================
 """
 
+g_mst_history = """
+    make_stim_times.py history:
+
+    1.0  Dec     2006: initial release
+    1.1  Feb 02, 2007:
+         - only print needed '*' (or two) for first run
+         - added options -hist, -ver
+"""
+
+g_mst_version = "version 1.1, February 2, 2007"
+
 def get_opts():
     global g_help_string
     okopts = option_list.OptionList('for input')
+    okopts.add_opt('-help', 0, [])
+    okopts.add_opt('-hist', 0, [])
+    okopts.add_opt('-ver', 0, [])
+
     okopts.add_opt('-files', -1, [], req=1)
     okopts.add_opt('-prefix', 1, [], req=1)
     okopts.add_opt('-tr', 1, [], req=1)
@@ -91,9 +106,19 @@ def get_opts():
     # if argv has only the program name, or user requests help, show it
     if len(sys.argv) <= 1 or '-help' in sys.argv:
         print g_help_string
-        return None
+        return
+
+    # check for -ver and -hist, too
+    if '-hist' in sys.argv:
+        print g_mst_history
+        return
+
+    if '-ver' in sys.argv:
+        print g_mst_version
+        return
 
     opts = option_list.read_options(sys.argv, okopts)
+
     return opts
 
 def proc_mats(uopts):
@@ -162,7 +187,8 @@ def proc_mats(uopts):
                 rindex = run * nt   # point to start of run
 
                 if not 1 in row[rindex:rindex+nt]:  # no stim in this run
-                    fp.write('*\n')
+                    if run == 0: fp.write('* *\n')  # first run gets 2
+                    else:        fp.write('*\n')
                     continue
                 time = 0        # in this run
                 nstim = 0       # be sure we have more than 1 somewhere
@@ -171,8 +197,8 @@ def proc_mats(uopts):
                         nstim += 1
                         fp.write('%s ' % str(time+offset))
                     time += tr
-                if need_ast and nstim == 1: # first time of 1 stim, add '*'
-                    fp.write('*')
+                if run == 1 and need_ast and nstim == 1:
+                    fp.write('*')   # if first time has 1 stim, add '*'
                     need_ast = 0
                 elif nstim > 1: need_ast = 0     # no worries
                 fp.write('\n')

@@ -1930,3 +1930,7 @@
       - changed all True/False uses to 1/0 (for older python versions)
       - afni_proc.py: if only 1 run, warn user, do not use 3dMean
 
+02 Feb 2007:
+      - modified db_mod.py: print blur_size as float
+      - modified make_stim_times.py: added -ver, -hist, extra '*' run 1 only
+
