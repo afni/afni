@@ -1804,9 +1804,10 @@ STATUS("making view->rowcol") ;
    MCW_register_hint( view->rescan_pb ,
                       "Read current session again" ) ;
    MCW_register_help( view->rescan_pb ,
-                      "Read current session again:\n"
-                      "  to see if new datasets\n"
-                      "  were added." ) ;
+                      "Read current session again\n"
+                      " to see if new datasets were\n"
+                      " added.  Exactly the same as\n"
+                      "Define Datamode->Rescan This" ) ;
 
    /* 19 Aug 2002: Surface chooser! */
 
