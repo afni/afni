@@ -5229,12 +5229,16 @@ STATUS("got func info") ;
    else if( w == im3d->vwid->dmode->misc_plugout_pb ){ /* 07 Nov 2001 */
       AFNI_init_plugouts() ;
       XtSetSensitive(w,False) ;
+      if( AFNI_have_niml() )  /* 02 Feb 2007 */
+        XtSetSensitive(im3d->vwid->view->nimlpo_pb,False) ;
    }
 #endif /* ALLOW_PLUGINS */
 
    else if( w == im3d->vwid->dmode->misc_niml_pb ){ /* 02 Mar 2002 */
       AFNI_init_niml() ;
       XtSetSensitive(w,False) ;
+      if( AFNI_have_plugouts() )  /* 02 Feb 2007 */
+        XtSetSensitive(im3d->vwid->view->nimlpo_pb,False) ;
    }
 
    /*.........................................................*/

@@ -1493,8 +1493,8 @@ STATUS("making view->rowcol") ;
                     AFNI_switchview_CB , (XtPointer) im3d ) ;
 
    for( id=0 ; id <= LAST_VIEW_TYPE ; id++ ){
-      if( im3d->anat_dset[id] == NULL )
-         XtSetSensitive( view->view_bbox->wbut[id] , False ) ;
+     if( im3d->anat_dset[id] == NULL )
+       XtSetSensitive( view->view_bbox->wbut[id] , False ) ;
    }
 
    MCW_set_bbox( view->view_bbox , 1 << im3d->vinfo->view_type ) ;
@@ -1789,7 +1789,7 @@ STATUS("making view->rowcol") ;
 
    view_count ++ ;
 
-   /* 02 Feb 2007: new rescan this button here */
+   /* 02 Feb 2007: new Rescan This button here */
 
    view->rescan_pb =
       XtVaCreateManagedWidget(
@@ -1809,6 +1809,24 @@ STATUS("making view->rowcol") ;
                       " added.  Exactly the same as\n"
                       "Define Datamode->Rescan This" ) ;
 
+   /* NIML+PO button here -- 02 Feb 2007 */
+
+   view->nimlpo_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , view->choose_rowcol ,
+            LABEL_ARG("NIML+PO") ,
+            XmNmarginHeight , 1 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( view->nimlpo_pb , XmNactivateCallback ,
+                  AFNI_nimlpo_CB , im3d ) ;
+   if( AFNI_have_niml() && AFNI_have_plugouts() ) 
+     XtSetSensitive(view->nimlpo_pb,False) ;
+   else
+     MCW_register_hint( view->nimlpo_pb ,
+                        "Starts NIML and Plugouts") ;
+
    /* 19 Aug 2002: Surface chooser! */
 
    view->choose_surf_pb =
@@ -1820,7 +1838,7 @@ STATUS("making view->rowcol") ;
             XmNalignment , XmALIGNMENT_CENTER ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
+   XtSetSensitive( view->choose_surf_pb , False ) ;
    XtAddCallback( view->choose_surf_pb , XmNactivateCallback ,
                   AFNI_choose_surface_CB , im3d ) ;
 
@@ -5626,18 +5644,22 @@ ENTRY("AFNI_misc_button") ;
 
    /*-- 02 Mar 2002: button to start NIML --*/
 
-   dmode->misc_niml_pb =
-         XtVaCreateManagedWidget(
-            "dialog" , xmPushButtonWidgetClass , menu ,
-               LABEL_ARG("Start NIML") ,
-               XmNmarginHeight , 0 ,
-               XmNtraversalOn , False ,
-               XmNinitialResourcesPersistent , False ,
-            NULL ) ;
-   XtAddCallback( dmode->misc_niml_pb , XmNactivateCallback ,
-                  AFNI_misc_CB , im3d ) ;
-   MCW_register_hint( dmode->misc_niml_pb ,
-                      "Start listening for NIML connections" ) ;
+   if( !AFNI_have_niml() ){
+     dmode->misc_niml_pb =
+           XtVaCreateManagedWidget(
+              "dialog" , xmPushButtonWidgetClass , menu ,
+                 LABEL_ARG("Start NIML") ,
+                 XmNmarginHeight , 0 ,
+                 XmNtraversalOn , False ,
+                 XmNinitialResourcesPersistent , False ,
+              NULL ) ;
+     XtAddCallback( dmode->misc_niml_pb , XmNactivateCallback ,
+                    AFNI_misc_CB , im3d ) ;
+     MCW_register_hint( dmode->misc_niml_pb ,
+                        "Start listening for NIML connections" ) ;
+   } else {
+     dmode->misc_niml_pb = NULL ;
+   }
 
    /*--- Utility buttons ---*/
 
@@ -5783,4 +5805,21 @@ ENTRY("AFNI_misc_button") ;
 
    XtManageChild( rc ) ;
    EXRETURN ;
+}
+
+/*------------------------------------------------------------------*/
+/*! Doesn't do much. */
+
+void AFNI_invert_CB( Widget wcall , XtPointer cd , XtPointer cbs )
+{
+   if( wcall != (Widget)NULL ) MCW_invert_widget(wcall) ;
+}
+
+/*------------------------------------------------------------------*/
+
+void AFNI_nimlpo_CB( Widget wcall , XtPointer cd , XtPointer cbs )
+{
+   AFNI_init_niml() ;
+   AFNI_init_plugouts() ;
+   XtSetSensitive( wcall , False ) ;
 }
