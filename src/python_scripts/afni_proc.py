@@ -941,9 +941,10 @@ g_history = """
     1.14 Jan 26, 2007 :
          - if only 1 run, warn user, do not use 3dMean
          - changed all True/False uses to 1/0 (for older python versions)
+    1.15 Feb 02, 2007 : output float for -blur_size
 """
 
-g_version = "version 1.14, January 26, 2007"
+g_version = "version 1.15, February 2, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
