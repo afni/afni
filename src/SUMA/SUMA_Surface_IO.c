@@ -1285,7 +1285,7 @@ void usage_SUMA_SureFit_Main ()
           printf ("\nUsage:  SUMA_SureFit CoordRoot TopoRoot \n");
           printf ("\t ..... \n\n");
           printf ("\t To Compile:\ngcc -DSUMA_SureFit_STAND_ALONE -Wall -o $1 $1.c -I./ -I//usr/X11R6/include SUMA_lib.a\n");
-          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \tFri Feb 8 16:29:06 EST 2002 \n");
+          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \tFri Feb 8 16:29:06 EST 2002 \n");
           exit (0);
   }/*Usage*/
    
@@ -2763,7 +2763,7 @@ void usage_SUMA_FreeSurfer_Main ()
           printf ("\nUsage:  SUMA_FreeSurfer f_name \n");
           printf ("\t ..... \n\n");
           printf ("\t To Compile:\ngcc -DSUMA_FreeSurfer_STAND_ALONE -Wall -o $1 $1.c -I./ -I//usr/X11R6/include SUMA_lib.a\n");
-          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \tFri Feb 8 16:29:06 EST 2002 \n");
+          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \tFri Feb 8 16:29:06 EST 2002 \n");
           exit (0);
   }/*Usage*/
    
@@ -3511,7 +3511,7 @@ void usage_SUMA_Ply_Read_Main ()
   {/*Usage*/
           printf ("\nUsage:  SUMA_Ply_Read -s f_name \n");
           printf ("\t reads in a .ply file and writes it out to copy_f_name.ply\n");
-          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \t Wed Jan  8 13:44:29 EST 2003 \n");
+          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \t Wed Jan  8 13:44:29 EST 2003 \n");
           exit (0);
   }/*Usage*/
    

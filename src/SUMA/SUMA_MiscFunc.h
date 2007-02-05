@@ -42,6 +42,7 @@ int *SUMA_z_qsort (float *x , int nx );
 int *SUMA_reorder(int *y, int *isort, int N_isort);
 int SUMA_compare_int (int *a, int *b );
 int SUMA_compare_float (float *a, float *b );
+int SUMA_compare_double (double *a, double *b );
 void SUMA_disp_dmat (int **v,int nr, int nc , int SpcOpt);
 void SUMA_disp_mat (float **v,int nr, int nc , int SpcOpt);
 void SUMA_disp_vecmat (float *v,int nr, int nc , int SpcOpt, 

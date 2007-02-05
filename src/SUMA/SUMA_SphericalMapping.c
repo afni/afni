@@ -122,6 +122,7 @@ int SUMA_Bad_FacesetNorm_Dot_Radius(SUMA_SurfaceObject *SO, byte *FaceMask, doub
    SUMA_RETURN(N_bad);
 }
 
+
 /*!
    \brief A function to test if a spherical surface is indeed spherical
    
@@ -161,6 +162,8 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char
    FILE *face_id;
    char *fname;
    float dot_cut = 0.00001;
+   double cent[3]={0.0, 0.0, 0.0};
+   double centmed[3]={0.0, 0.0, 0.0};
    SUMA_SPHERE_QUALITY SSQ;
    SUMA_COLOR_MAP *CM;
    SUMA_SCALE_TO_MAP_OPT * OptScl;
@@ -192,14 +195,29 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char
       exit (1); 
    }
    
+   if (!SUMA_GetCenterOfSphereSurface(SO, 500, cent, centmed)) {
+      SUMA_S_Err("Failed to get center");
+   }else{
+      SUMA_S_Notev("Center of mass of surface is:\n"
+                  "  [%f   %f   %f]\n"
+                  "Estimated center of surface is:\n"
+                  "  [%f   %f   %f]\n"
+                  "Median estimated center of surface is:\n"
+                  "  [%f   %f   %f]\n",
+                  SO->Center[0], SO->Center[1], SO->Center[2],
+                  cent[0], cent[1], cent[2],
+                  centmed[0], centmed[1], centmed[2]);
+   }
+   
+
    /* compare the distance of each node to the distance to estimated radius */
    dist = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
    mdist = 0.0;
    for (i=0; i<SO->N_Node; ++i) {
       i3 = 3*i;
-      dist[i] =   sqrt ( pow((double)(SO->NodeList[i3]   - SO->Center[0]), 2.0) +
-                         pow((double)(SO->NodeList[i3+1] - SO->Center[1]), 2.0) +
-                         pow((double)(SO->NodeList[i3+2] - SO->Center[2]), 2.0) );
+      dist[i] =   sqrt ( pow((double)(SO->NodeList[i3]   - centmed[0]), 2.0) +
+                         pow((double)(SO->NodeList[i3+1] - centmed[1]), 2.0) +
+                         pow((double)(SO->NodeList[i3+2] - centmed[2]), 2.0) );
       mdist += dist[i];
    }
    mdist /= (float)SO->N_Node;
@@ -230,9 +248,9 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char
    fname = SUMA_append_string(Froot, "_Dist.1D.dset");
    if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
    fid = fopen(fname, "w");
-   fprintf(fid,"#Node distance from center of mass.\n"
+   fprintf(fid,"#Node distance from estimated geometric center of %f %f %f.\n"
                "#col 0: Node Index\n"
-               "#col 1: distance\n");
+               "#col 1: distance\n", centmed[0], centmed[1], centmed[2]);
    if (shist) fprintf(fid,"#History:%s\n", shist);
    for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\n", i, dist[i]);
    fclose(fid);
@@ -242,11 +260,11 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char
    fname = SUMA_append_string(Froot, "_Dist.1D.col");
    if (LocalHead) fprintf (SUMA_STDERR,"%s:\nWriting %s...\n", FuncName, fname);
    fid = fopen(fname, "w");
-   fprintf(fid,"#Color file of node distance from center of mass.\n"
+   fprintf(fid,"#Color file of node distance from estimated geometric center of %f %f %f.\n"
                "#col 0: Node Index\n"
                "#col 1: R\n"
                "#col 2: G\n"
-               "#col 3: B\n");
+               "#col 3: B\n", centmed[0], centmed[1], centmed[2]);
    if (shist) fprintf(fid,"#History:%s\n", shist);
    for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\t%f\t%f\n", i, SV->cV[3*i  ], SV->cV[3*i+1], SV->cV[3*i+2]);
    fclose(fid);
@@ -260,7 +278,7 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char
    fprintf (SUMA_STDERR,"\n");
    fprintf (SUMA_STDERR,"%s: \n"
                         "Reporting on Spheriosity of %s\n", FuncName, SO->Label);
-   fprintf (SUMA_STDERR," Mean distance from center (estimated radius): %f\n", mdist);
+   fprintf (SUMA_STDERR," Mean distance from geometric center (estimated radius): %f\n", mdist);
    fprintf (SUMA_STDERR," Largest 10 absolute departures from estimated radius:\n"
                         " See output files for more detail.\n");
    for (i=SO->N_Node-1; i > SO->N_Node - 10; --i) {
@@ -308,9 +326,9 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char
    ibad = 0;
    for (i=0; i<SO->N_Node; ++i) {
       i3 = 3*i;
-      r[0] = SO->NodeList[i3]   - SO->Center[0];
-      r[1] = SO->NodeList[i3+1] - SO->Center[1];
-      r[2] = SO->NodeList[i3+2] - SO->Center[2];
+      r[0] = SO->NodeList[i3]   - centmed[0];
+      r[1] = SO->NodeList[i3+1] - centmed[1];
+      r[2] = SO->NodeList[i3+2] - centmed[2];
       nr = sqrt ( r[0] * r[0] + r[1] * r[1] + r[2] * r[2] );
       r[0] /= nr; r[1] /= nr; r[2] /= nr; 
       
@@ -2430,7 +2448,7 @@ void SUMA_CreateIcosahedron_usage ()
     s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
     printf ("\n"
             "       Brenna D. Argall LBC/NIMH/NIH bargall@codon.nih.gov \n"
-            "       Ziad S. Saad     SSC/NIMH/NIH ziad@nih.gov\n");
+            "       Ziad S. Saad     SSC/NIMH/NIH saadz@mail.nih.gov\n");
    exit (0);
 }/*Usage*/
 /*!
@@ -2842,7 +2860,7 @@ int main (int argc, char *argv[])
    for (i=0; i<2; ++i) {
       if ( surfaces_orig[i]->FileType!=SUMA_FREE_SURFER && 
            surfaces_orig[i]->FileType!=SUMA_PLY && surfaces_orig[i]->FileType!=SUMA_VEC ) { 
-         fprintf(SUMA_STDERR, "\n***\n   The SurfaceType (of surface %d) is not currently handled\n     by this program due to lack of data.\n   If you would like this option to be added, please contact\n     ziad@nih.gov or brenna.argall@nih.gov.\n***\n\n", i);
+         fprintf(SUMA_STDERR, "\n***\n   The SurfaceType (of surface %d) is not currently handled\n     by this program due to lack of data.\n   If you would like this option to be added, please contact\n     saadz@mail.nih.gov or brenna.argall@nih.gov.\n***\n\n", i);
          if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
          if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
          exit(1);
@@ -2968,7 +2986,7 @@ int main (int argc, char *argv[])
    else if ( SUMA_iswordin(spec_info[1].type, "Vec") ==1) 
       writeFile = SUMA_Save_Surface_Object (surfFileNm, morph_SO, SUMA_VEC, SUMA_ASCII, NULL);
    else {
-      fprintf(SUMA_STDERR, "\n** Surface format (%s) is not currently handled by this program due to lack of data.\n   If you would like this option to be added, please contact\n   ziad@nih.gov or brenna.argall@nih.gov.\n\n", spec_info[1].type); 
+      fprintf(SUMA_STDERR, "\n** Surface format (%s) is not currently handled by this program due to lack of data.\n   If you would like this option to be added, please contact\n   saadz@mail.nih.gov or brenna.argall@nih.gov.\n\n", spec_info[1].type); 
       exit (0);
    }
 
@@ -3043,6 +3061,34 @@ void SUMA_MapIcosahedron_usage ()
             "        accectable inputs are 'sphere.reg' and 'sphere'\n"
             "        (optional, default uses sphere.reg over sphere).\n"
             "\n"
+            "   The following four options affect the geometric center and radius\n"
+            "   settings of morphSurf. In previous versions, the geometric center\n"
+            "   was set to the center of mass. A better estimate of the geometric\n"
+            "   center is now obtained and this might make standard-mesh surfaces\n"
+            "   less sensitive to distortions in the spherical surfaces.\n"
+            "   With this change, the coordinates of the nodes will be silghtly\n"
+            "   different from in previous versions. If you insist on the old \n"
+            "   method, use the option -use_com below.\n"
+            "   ----------------------------------------------------------------\n"
+            "   -sphere_at_origin: Geometric center of morphSurf sphere is at \n"
+            "                      0.0 0.0 0.0. This is usually the case but\n"
+            "                      if you do not know, the the program guess.\n"
+            "\n"
+            "   -sphere_center cx cy cz: Geometric center of morphSurf sphere. \n"
+            "                            If not specified, it will be estimated.\n"
+            "      Note: It is best to specify cx cy cz or use -sphere_at_origin\n"
+            "            when the center is known.\n"
+            "\n"
+            "   -use_com: (ONLY for backward compatibility)\n"
+            "             Use this option to make the center of mass of morpSurf.\n"
+            "             be the geometric center estimate. This is not optimal,\n"
+            "             use this option only for backward compatibility.\n"
+            "\n"
+            "   -sphere_radius R: Radius of morphSurf sphere. If not specified,\n"
+            "                     this would be the average radius of morpSurf.\n"
+            "                     \n"
+            "   ----------------------------------------------------------------\n"
+            "\n"
             "   -it numIt: number of smoothing interations \n"
             "        (optional, default none).\n"
             "\n"
@@ -3071,7 +3117,7 @@ void SUMA_MapIcosahedron_usage ()
             "      This is only due to user demand and available test\n"
             "      data. If you want to apply this algorithm using surfaces\n"
             "      created by other programs such as SureFit and Caret, \n"
-            "      Send ziad@nih.gov a note and some test data.\n"
+            "      Send saadz@mail.nih.gov a note and some test data.\n"
             "\n"
             "NOTE 2: At times, the standard-mesh surfaces are visibly\n"
             "      distorted in some locations from the original surfaces.\n"
@@ -3085,7 +3131,7 @@ void SUMA_MapIcosahedron_usage ()
 
    printf ( "\n"
             "       Brenna D. Argall LBC/NIMH/NIH brenna.argall@nih.gov \n"
-            "       Ziad S. Saad     SSC/NIMH/NIH ziad@nih.gov\n"
+            "       Ziad S. Saad     SSC/NIMH/NIH saadz@mail.nih.gov\n"
             "          Fri Sept 20 2002\n"
             "\n");
    exit (0);
@@ -3118,8 +3164,10 @@ int main (int argc, char *argv[])
    SUMA_INDEXING_ORDER d_order;
    SUMA_COMM_STRUCT *cs = NULL;
    struct  timeval start_time;
-   float etime_MapSurface;
-   SUMA_Boolean CheckSphereReg, CheckSphere, skip, writeFile;
+   float etime_MapSurface, UserRadius=-1.0, Uctr[3];
+   int UserCenter=-1;
+   double cent[3], centmed[3];
+   SUMA_Boolean UseCOM, CheckSphereReg, CheckSphere, skip, writeFile;
    SUMA_Boolean LocalHead = NOPE;
 
    FILE *tmpFile=NULL;
@@ -3151,6 +3199,9 @@ int main (int argc, char *argv[])
    }
    
    /* read in the options */
+   UserCenter = -1;
+   Uctr[0] = 0.0; Uctr[1] = 0.0; Uctr[2] = 0.0;
+   UserRadius = -1.0;
    depth = 3;
    morph_surf = NULL;
    sprintf( fout, "%s", "MapIco");
@@ -3161,7 +3212,8 @@ int main (int argc, char *argv[])
    brk = NOPE;
    CheckSphere = NOPE;
    CheckSphereReg = NOPE;
-
+   UseCOM = NOPE;
+   
    while (kar < argc) { /* loop accross command line options */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
          SUMA_MapIcosahedron_usage ();
@@ -3188,6 +3240,45 @@ int main (int argc, char *argv[])
                exit (1);
             }
             brainSpecFile = argv[kar];
+            brk = YUP;
+         }
+      if (!brk && (strcmp(argv[kar], "-sphere_radius") == 0 ))
+         {
+            kar ++;
+            if (kar >= argc)  {
+               fprintf (SUMA_STDERR, "need argument after -sphere_radius \n");
+               exit (1);
+            }
+            UserRadius = atof(argv[kar]);
+            brk = YUP;
+         }
+      if (!brk && (strcmp(argv[kar], "-sphere_at_origin") == 0 ))
+         {
+            UserCenter  = 1;
+            Uctr[0] = 0.0; Uctr[1] = 0.0; Uctr[2] = 0.0;
+            brk = YUP;
+         }
+      if (!brk && (strcmp(argv[kar], "-use_com") == 0)) {
+         fprintf(SUMA_STDOUT, "\n"
+                              "Warning %s:\n"
+                              " Using Center of Mass of sphere as\n"
+                              " geometric center. This is only for\n"
+                              " backward comaptibility.\n"
+                              " Better not use this option.\n", FuncName);
+         UseCOM = YUP;
+         brk = YUP;
+      }
+      if (!brk && (strcmp(argv[kar], "-sphere_center") == 0 ))
+         {
+            kar ++;
+            if (kar+2 >= argc)  {
+               fprintf (SUMA_STDERR, "need 3 arguments after -sphere_center \n");
+               exit (1);
+            }
+            UserCenter  = 1;
+            Uctr[0] = atof(argv[kar]); kar ++;
+            Uctr[1] = atof(argv[kar]); kar ++;
+            Uctr[2] = atof(argv[kar]); 
             brk = YUP;
          }      
       if (!brk && (strcmp(argv[kar], "-rd") == 0 ))
@@ -3287,6 +3378,14 @@ int main (int argc, char *argv[])
       
    }/* loop accross command line options */
 
+   if (!UseCOM && UserCenter == -1) {
+      SUMA_S_Note("\n"
+                  "This version estimates the geometric center of the sphere\n"
+                  "rather than use the center of mass. If you must, you can \n"
+                  "revert to the old method (for backward compatibility) by \n"
+                  "using -use_com option.\n"
+                  "\n");
+   }
    /* check for some sanity */
    if (bin[0] == 'y' && depth > 10) {
       fprintf (SUMA_STDERR, "%s: You cannot use a recursive depth > 10.\n", FuncName);
@@ -3443,7 +3542,7 @@ int main (int argc, char *argv[])
          /*set out file names (and check for unsupported surface types)*/
          if ( surfaces_orig[id]->FileType!=SUMA_FREE_SURFER && 
               surfaces_orig[id]->FileType!=SUMA_PLY && surfaces_orig[id]->FileType!=SUMA_VEC ) { 
-            fprintf(SUMA_STDERR, "\n***\n   The Surface Type is not currently handled by this program\n     due to lack of data.\n   If you would like this option to be added, please contact\n     ziad@nih.gov or brenna.argall@nih.gov.\n***\n\n");
+            fprintf(SUMA_STDERR, "\n***\n   The Surface Type is not currently handled by this program\n     due to lack of data.\n   If you would like this option to be added, please contact\n     saadz@mail.nih.gov or brenna.argall@nih.gov.\n***\n\n");
             if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
             if (surfaces_orig) SUMA_free (surfaces_orig);
             if (spec_order) SUMA_free(spec_order);
@@ -3650,7 +3749,7 @@ int main (int argc, char *argv[])
       }
    }
    
-   /**determine radius for icosahedron*/ 
+   /**determine radius for icosahedron*/  
    ctrX=0; ctrY=0; ctrZ=0; j=0;
    for (i=0; i<surfaces_orig[i_morph]->N_Node; ++i) {
       j = 3*i;
@@ -3662,11 +3761,69 @@ int main (int argc, char *argv[])
    ctrY = ctrY/(surfaces_orig[i_morph]->N_Node);
    ctrZ = ctrZ/(surfaces_orig[i_morph]->N_Node);
    
+   if (UserCenter > -1) {
+      SUMA_S_Notev(  "User specified center of surface %s = \n"
+                     "  [%.4f   %.4f   %.4f]\n"
+                     "Center of mass of surface is = \n"
+                     "  [%.4f   %.4f   %.4f]\n" , 
+                        surfaces_orig[i_morph]->Label, 
+                        Uctr[0], Uctr[1], Uctr[2],
+                        ctrX, ctrY, ctrZ);
+      ctrX = Uctr[0];
+      ctrY = Uctr[1];
+      ctrZ = Uctr[2];
+   }else{
+      if (!SUMA_GetCenterOfSphereSurface(surfaces_orig[i_morph], 500, cent, centmed)) {
+         SUMA_S_Err("Failed to estimate center of spherical surface.");
+         exit(1);
+      }else{
+         if (UseCOM) {
+            SUMA_S_Notev(  "Using (not recommended) center of mass coordinate of \n"
+                           "  [%f   %f   %f]\n"
+                           "instead of estimated geometric center of:\n"
+                           "  [%f   %f   %f]\n"
+                           "for surface %s in absence of specified \n"
+                           "geometric center.\n",
+                              ctrX, ctrY, ctrZ,
+                              centmed[0], centmed[1], centmed[2],
+                              surfaces_orig[i_morph]->Label );
+         } else {
+            SUMA_S_Notev(  "Using (recommended) estimated geometric center of:\n"
+                           "  [%f   %f   %f]\n"
+                           "rather than center of mass coordinate of \n"
+                           "  [%f   %f   %f]\n"
+                           "for surface %s in absence of specified \n"
+                           "geometric center.\n", 
+                              centmed[0], centmed[1], centmed[2], 
+                              ctrX, ctrY, ctrZ,
+                              surfaces_orig[i_morph]->Label );
+            ctrX = centmed[0];
+            ctrY = centmed[1];
+            ctrZ = centmed[2];
+         }
+      }
+
+   }
+     
    ctr[0] = 0; ctr[1] = 0; ctr[2] = 0;
    r = sqrt( pow( (surfaces_orig[i_morph]->NodeList[0]-ctrX), 2) + pow( (surfaces_orig[i_morph]->NodeList[1]-ctrY), 2) 
              + pow( (surfaces_orig[i_morph]->NodeList[2]-ctrZ), 2) );
+   if (UserRadius > -1) {
+      SUMA_S_Notev(  "User specified radius of surface %s = \n"
+                     "  [%.4f]\n"
+                     "Average raidus of surface is = \n"
+                     "  [%.4f]\n" , 
+                        surfaces_orig[i_morph]->Label, 
+                        UserRadius,
+                        r);
+      r = UserRadius;
+   } else {
+      SUMA_S_Notev(  "Using average radius of %.4f\n"
+                     "for surface %s in adsence of\n"
+                     "specified center.\n", r, surfaces_orig[i_morph]->Label  );
+   }
    
-   
+   SUMA_S_Notev(  "Creating Icodahedron of radius %f and center [%f %f %f]\n", r, ctr[0], ctr[1], ctr[2]);
    /**create icosahedron*/
    icoSurf = SUMA_CreateIcosahedron (r, depth, ctr, bin, 0);
    if (!icoSurf) {
@@ -3793,7 +3950,9 @@ int main (int argc, char *argv[])
          else if ( SUMA_iswordin(spec_info[i_surf].type, "Vec") ==1) 
             writeFile = SUMA_Save_Surface_Object (spec_info[i_surf].fileToRead, currSurf, SUMA_VEC, SUMA_ASCII, NULL);
          else {
-            fprintf(SUMA_STDERR, "\n** Surface format (%s) is not currently handled by this program due to lack of data.\n   If you would like this option to be added, please contact\n   ziad@nih.gov or brenna.argall@nih.gov.\n\n", spec_info[i_surf].type); 
+            fprintf(SUMA_STDERR, "\n** Surface format (%s) is not currently handled by this program due to lack of data.\n"
+                                 "If you would like this option to be added, please contact\n"
+                                 "   saadz@mail.nih.gov or brenna.argall@nih.gov.\n\n", spec_info[i_surf].type); 
             exit (0);
          }
          

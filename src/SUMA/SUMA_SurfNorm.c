@@ -463,7 +463,7 @@ void usage ()
           printf ("\t <FaceSetList> : file containing the facesetlist \n");
           printf ("\t <index file> : file containing the indices of the nodes \n");
           printf ("\t              You're looking up wich node belongs to which FaceSets\n\n");
-          printf ("\t\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \tThu Jan 3 12:01:49 EST 2002 \n");
+          printf ("\t\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \tThu Jan 3 12:01:49 EST 2002 \n");
           exit (0);
   }/*Usage*/
    
@@ -512,7 +512,7 @@ void usage ()
   {/*Usage*/
           printf ("\nUsage:  SUMA_SurfNorm <NodeList> <FaceSetList> \n");
           printf ("\t ..... \n\n");
-          printf ("\t\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \tThu Jan 3 14:46:55 EST 2002 \n");
+          printf ("\t\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \tThu Jan 3 14:46:55 EST 2002 \n");
           exit (0);
   }/*Usage*/
    

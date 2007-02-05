@@ -2385,7 +2385,7 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
          else el = dlist_next(el);
          dset = (SUMA_DSET *)el->data;
          if (!dset) {
-            SUMA_SLP_Err("Unexpected NULL dset element in list!\nPlease report this occurrence to ziad@nih.gov."); 
+            SUMA_SLP_Err("Unexpected NULL dset element in list!\nPlease report this occurrence to saadz@mail.nih.gov."); 
          } else {   
            s = SUMA_DsetInfo (dset,0);
            SS = SUMA_StringAppend_va(SS, "\n%s\n", s); SUMA_free(s); s = NULL;    

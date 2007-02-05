@@ -26,7 +26,7 @@ void usage_PROGRAM_NAME (SUMA_GENERIC_ARGV_PARSE *ps)
                "\n", sio,  s);
       if (s) SUMA_free(s); s = NULL; if (st) SUMA_free(st); st = NULL; if (sio) SUMA_free(sio); sio = NULL;       
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
-      printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
+      printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
       exit(0);
 }
 

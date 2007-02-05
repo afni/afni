@@ -279,7 +279,7 @@ void usage_SUMA_SurfSmooth ()
               "\n"
               "\n", sm,  st, s); SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sm); sm = NULL; 
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
-       printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
+       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
        exit (0);
    }
 

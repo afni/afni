@@ -138,7 +138,7 @@ void usage_SUMA_SurfaceMetrics ()
                "\n", s);
       SUMA_free(s); s = NULL;
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
-      printf ( "       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n"
+      printf ( "       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n"
                "       Mon May 19 15:41:12 EDT 2003\n"
                "\n");   
    }

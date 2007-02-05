@@ -89,7 +89,7 @@ void SUMA_MakeColorMap_usage ()
                             "%s",s);
       SUMA_free(s); s = NULL;
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
-      fprintf (SUMA_STDOUT, "    Ziad S. Saad & Rick R. Reynolds SSCC/NIMH/NIH ziad@nih.gov    Tue Apr 23 14:14:48 EDT 2002\n\n");
+      fprintf (SUMA_STDOUT, "    Ziad S. Saad & Rick R. Reynolds SSCC/NIMH/NIH saadz@mail.nih.gov    Tue Apr 23 14:14:48 EDT 2002\n\n");
       
       SUMA_RETURNe;
    }

@@ -7933,8 +7933,187 @@ int *SUMA_NodePath_to_TriPath_Inters_OLD (SUMA_SurfaceObject *SO, SUMA_TRI_BRANC
 }   
 
 
+SUMA_Boolean SUMA_CenterOfSphere(double *p1, double *p2, double *p3, double *p4, double *c)
+{
+   static char FuncName[]={"SUMA_CenterOfSphere"};
+   double pp1[3], pp2[3], pp3[3], pp4[3];
+   THD_dmat33  mat;
+   double n1, n2, n3, d3;
+   double x2Mx1, x3Mx1, x4Mx1;
+   double y2My1, y3My1, y4My1;
+   double z2Mz1, z3Mz1, z4Mz1;
+   double spp1, spp2, spp3, spp4;
+   int i = 0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   /* calculate doubles */
+   for (i=0; i<3; ++i) {
+      pp1[i] = p1[i]*p1[i];
+      pp2[i] = p2[i]*p2[i];
+      pp3[i] = p3[i]*p3[i];
+      pp4[i] = p4[i]*p4[i];
+   }
+   spp1 = pp1[0] + pp1[1] + pp1[2];
+   spp2 = pp2[0] + pp2[1] + pp2[2];
+   spp3 = pp3[0] + pp3[1] + pp3[2];
+   spp4 = pp4[0] + pp4[1] + pp4[2];
+   
+   /* calculate differences */
+   x2Mx1 = p2[0] - p1[0];
+   x3Mx1 = p3[0] - p1[0];
+   x4Mx1 = p4[0] - p1[0];
+   y2My1 = p2[1] - p1[1];
+   y3My1 = p3[1] - p1[1];
+   y4My1 = p4[1] - p1[1];
+   z2Mz1 = p2[2] - p1[2];
+   z3Mz1 = p3[2] - p1[2];
+   z4Mz1 = p4[2] - p1[2];
+   
+   
+   /* calculate N1 */
+   mat.mat[0][0] = spp2 - (spp1);
+   mat.mat[1][0] = spp3 - (spp1);
+   mat.mat[2][0] = spp4 - (spp1);
+   mat.mat[0][1] = y2My1;
+   mat.mat[1][1] = y3My1;
+   mat.mat[2][1] = y4My1;
+   mat.mat[0][2] = z2Mz1;
+   mat.mat[1][2] = z3Mz1;
+   mat.mat[2][2] = z4Mz1;
+   n1 = MAT_DET(mat);
+   SUMA_LHv("n1=%f\n", n1);
+   
+   /* calculate N2 */
+   mat.mat[0][0] = x2Mx1;
+   mat.mat[1][0] = x3Mx1;
+   mat.mat[2][0] = x4Mx1;
+   mat.mat[0][1] = spp2 - (spp1);
+   mat.mat[1][1] = spp3 - (spp1);
+   mat.mat[2][1] = spp4 - (spp1);
+   mat.mat[0][2] = z2Mz1;
+   mat.mat[1][2] = z3Mz1;
+   mat.mat[2][2] = z4Mz1;
+   n2 = MAT_DET(mat);
+   SUMA_LHv("n2=%f\n", n2);
+   
+   /* calculate N3 */
+   mat.mat[0][0] = x2Mx1;
+   mat.mat[1][0] = x3Mx1;
+   mat.mat[2][0] = x4Mx1;
+   mat.mat[0][1] = y2My1;
+   mat.mat[1][1] = y3My1;
+   mat.mat[2][1] = y4My1;
+   mat.mat[0][2] = spp2 - (spp1);
+   mat.mat[1][2] = spp3 - (spp1);
+   mat.mat[2][2] = spp4 - (spp1);
+   n3 = MAT_DET(mat);
+   SUMA_LHv("n3=%f\n", n3);
+   
+   /* calculate D3 */
+   mat.mat[0][0] = x2Mx1;
+   mat.mat[1][0] = x3Mx1;
+   mat.mat[2][0] = x4Mx1;
+   mat.mat[0][1] = y2My1;
+   mat.mat[1][1] = y3My1;
+   mat.mat[2][1] = y4My1;
+   mat.mat[0][2] = z2Mz1;
+   mat.mat[1][2] = z3Mz1;
+   mat.mat[2][2] = z4Mz1;
+   d3 = MAT_DET(mat);
+   SUMA_LHv("d3=%f\n", d3);
+   
+   if (d3) {
+      /* Center */
+      c[0] = n1/(2.0*d3);
+      c[1] = n2/(2.0*d3);
+      c[2] = n3/(2.0*d3);
+      SUMA_LHv("c=[%f, %f, %f]\n", c[0], c[1], c[2]);
 
+      SUMA_RETURN(YUP);
+   } else {
+      c[0] = 1.0; c[1] = -2.0; c[2] = 3.0;
+      SUMA_LH("0 denominator, solution impossibile\n");
+      SUMA_RETURN(NOPE);
+   }
+}
 
+extern int *z_rand_order(int bot, int top, long int seed) ;
+
+SUMA_Boolean SUMA_GetCenterOfSphereSurface(SUMA_SurfaceObject *SO, int Nquads, double *cs, double *cm)
+{
+   static char FuncName[]={"SUMA_GetCenterOfSphereSurface"};
+   double  p1[3], p2[3], p3[3], p4[3], c[3];
+   double *cx=NULL, *cy=NULL, *cz=NULL;
+   int ii, nn[4], jj, Ns, nmax;
+   int *ir = NULL, cnt;
+   SUMA_Boolean LocalHead=NOPE;
+
+   SUMA_ENTRY;
+
+   c[0] = -11111.0; c[1] = -22222.0; c[2] = -33333.0;
+   cs[0] = cs[1] = cs[2] = 0.0;
+   if (!(ir = z_rand_order(0, SO->N_Node-1, 111111311))) {
+      SUMA_S_Err("Failed to get randomized list");
+      SUMA_RETURN(NOPE);
+   } else {
+      /* minimum number of distinct quads */
+      nmax = (SO->N_Node-1)/4;
+      if (Nquads < 1) Ns = SUMA_MIN_PAIR(100, nmax);
+      else Ns = SUMA_MIN_PAIR(Nquads, nmax);
+      cx = (double*)SUMA_malloc(sizeof(double)*Ns);
+      cy = (double*)SUMA_malloc(sizeof(double)*Ns);
+      cz = (double*)SUMA_malloc(sizeof(double)*Ns);
+      cs[0] = cs[1] = cs[2] = 0.0;
+      cnt = 0;
+      for (jj=0; jj<Ns; ++jj) {
+         nn[0] = ir[4*jj+0]; 
+         nn[1] = ir[4*jj+1]; 
+         nn[2] = ir[4*jj+2]; 
+         nn[3] = ir[4*jj+3];
+         for (ii=0; ii<3; ++ii) {
+            p1[ii] = (double)SO->NodeList[3*nn[0]+ii];
+            p2[ii] = (double)SO->NodeList[3*nn[1]+ii];
+            p3[ii] = (double)SO->NodeList[3*nn[2]+ii];
+            p4[ii] = (double)SO->NodeList[3*nn[3]+ii];
+         }
+         /* Find a nice center */
+         if (SUMA_CenterOfSphere( p1, p2, p3, p4, c )) {
+            SUMA_LHv(  "Center estimate %d:\n"
+                           "  [%f   %f   %f]\n", jj, c[0], c[1], c[2]);
+            for (ii=0; ii<3;++ii) {
+               cs[ii] += c[ii];
+            }
+            cx[cnt] = c[0];
+            cy[cnt] = c[1];
+            cz[cnt] = c[2];
+            ++cnt;
+         }
+      }
+      Ns = cnt;
+      for (ii=0; ii<3;++ii) {
+         cs[ii] /= (double)Ns;
+      }
+      /* sort coords */
+      qsort(cx, Ns, sizeof(double), (int(*) (const void *, const void *)) SUMA_compare_double);
+      qsort(cy, Ns, sizeof(double), (int(*) (const void *, const void *)) SUMA_compare_double);
+      qsort(cz, Ns, sizeof(double), (int(*) (const void *, const void *)) SUMA_compare_double);
+      cm[0] = cx[Ns/2];
+      cm[1] = cy[Ns/2];
+      cm[2] = cz[Ns/2];
+      SUMA_LHv(  "Average of %d center estimates:\n"
+                 "  [%f   %f   %f]\n"
+                 "Median of %d center estimates:\n"
+                 "  [%f   %f   %f]\n"
+                     , Ns, cs[0], cs[1], cs[2],
+                       Ns, cm[0], cm[1], cm[2]); 
+      SUMA_free(cx); SUMA_free(cy); SUMA_free(cz); cx = cy = cz = NULL;
+      if (ir) SUMA_free(ir); ir = NULL;
+   }
+   SUMA_RETURN(YUP);
+}
+   
 
 
 #if 0

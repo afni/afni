@@ -65,7 +65,7 @@ void usage_ROI2dataset_Main ()
             "\n");
          s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
          fprintf(SUMA_STDOUT, 
-            "       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n");
+            "       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n");
      exit (0);
   }/*Usage*/
    
