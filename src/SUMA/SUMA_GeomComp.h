@@ -158,6 +158,8 @@ float *SUMA_estimate_dset_FWHM_1dif(SUMA_SurfaceObject *SO, SUMA_DSET *dset,
 SUMA_Boolean SUMA_NewSurfaceRadius(SUMA_SurfaceObject *SO, double r, float *Center);
 void SUMA_SetDbgFWHM(int i);
 int SUMA_GetDbgFWHM(void);
+SUMA_Boolean SUMA_CenterOfSphere(double *p1, double *p2, double *p3, double *p4, double *c);
+SUMA_Boolean SUMA_GetCenterOfSphereSurface(SUMA_SurfaceObject *SO, int Nquads, double *cs, double *cm);
 
 /* End function prototypes for VolData.c */
 

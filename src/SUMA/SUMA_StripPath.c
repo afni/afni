@@ -31,7 +31,7 @@ void usageSUMA_StripPath ()
           printf ("\nUsage:  SUMA_StripPath <Name> \n");
           printf ("\t  \n\n");
           printf ("To Compile:\ngcc -DSUMA_StripPath_STAND_ALONE -Wall -o $1 $1.c -SUMA_lib.a -I/usr/X11R6/include -I./ \n\n");
-          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \tThu Jan 24 10:55:18 EST 2002 \n");
+          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \tThu Jan 24 10:55:18 EST 2002 \n");
           exit (0);
   }/*Usage*/
    
@@ -71,7 +71,7 @@ void usageParseName_Main ()
           printf ("\t  breaks a file name into path, filename and extension components.\n");
           printf ("\t  The program outputs: Path FileName FileName_NoExtension Extension\n");
           printf ("\t  Empty attributes are represented by (null).\n");
-          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \t Thu Jan  9 15:48:09 EST 2003\n");
+          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \t Thu Jan  9 15:48:09 EST 2003\n");
           exit (0);
   }/*Usage*/
    

@@ -69,7 +69,7 @@ void usage_path_optimize (SUMA_GENERIC_ARGV_PARSE *ps)
       SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       printf(  "       Julia T. Molony SSCC/NIMH/NIH molonyj@nih.gov \n"
-               "       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov       \n");
+               "       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov       \n");
       exit(0);
 }
 

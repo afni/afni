@@ -140,7 +140,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "             [< -monkey >]\n"  
                "\n"
                "  NOTE: Please report bugs and strange failures\n"
-               "        to ziad@nih.gov\n"
+               "        to saadz@mail.nih.gov\n"
                "\n"
                "  Mandatory parameters:\n"
                "     -input VOL: Input AFNI (or AFNI readable) volume.\n"
@@ -333,7 +333,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "\n", sio,  s);
        SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL; SUMA_free(sts); sts = NULL;         
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
-       printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
+       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
        exit (0);
    }
 /*!

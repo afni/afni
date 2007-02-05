@@ -77,7 +77,7 @@ void usage_ConverDset()
    #ifdef SUMA_COMPILED
    s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
    #endif
-   fprintf (SUMA_STDOUT, "    Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov    Thu Apr  8 16:15:02 EDT 2004\n\n");
+   fprintf (SUMA_STDOUT, "    Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov    Thu Apr  8 16:15:02 EDT 2004\n\n");
    exit(0); 
 }
 int main (int argc,char *argv[])

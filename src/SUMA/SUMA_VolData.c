@@ -1080,7 +1080,7 @@ SUMA_Boolean SUMA_Delign_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
             /* For SureFit, coordinates are actually a float version of the indices */
             SUMA_SL_Warn(  "Reverse implementation not finished\n"
                            "Send me a complaint, I must have forgotten\n"
-                           "Coords will be left untouched. (ziad@nih.gov)\n");
+                           "Coords will be left untouched. (saadz@mail.nih.gov)\n");
             #if 0               
             {   THD_fvec3 fv, iv;
                float D[3];

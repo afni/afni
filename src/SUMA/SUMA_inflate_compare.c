@@ -414,7 +414,7 @@ void cmp_surf_usage ()
   printf ("\n\n\tIf you can't get help here, please get help somewhere.\n");
   SUMA_Version(NULL);
   
-  printf ("\n\t Shruti Japee LBC/NIMH/NIH shruti@codon.nih.gov Ziad Saad SSSC/NIMH/NIH ziad@nih.gov \n\n");
+  printf ("\n\t Shruti Japee LBC/NIMH/NIH shruti@codon.nih.gov Ziad Saad SSSC/NIMH/NIH saadz@mail.nih.gov \n\n");
   exit (0);
 }
 

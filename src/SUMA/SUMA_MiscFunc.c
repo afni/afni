@@ -4715,6 +4715,17 @@ int SUMA_compare_float (float *a, float *b )
       return (1);
    
 }/*SUMA_compare_float*/
+
+int SUMA_compare_double (double *a, double *b )
+{/*SUMA_compare_double*/
+    if (*a < *b)
+      return (-1);
+   else if (*a == *b)
+      return (0);
+   else
+      return (1);
+   
+}
 /*!**
    
 File : from ~/Programs/C/Z/Zlib/code/SUMA_z_qsort.c
@@ -7224,7 +7235,7 @@ void usage ()
           printf ("To compile: \ngcc -DSUMA_MakeConsistent_STANDALONE -Wall -o SUMA_MakeConsistent SUMA_MiscFunc.c ");
           printf ("SUMA_lib.a libmri.a -I/usr/X11R6/include -I./ -L/usr/lib -L/usr/X11R6/lib \n");
           printf ("-lm -lGL -lGLU -lGLw -lXmu -lXm -lXt -lXext -lX11 -lMesaGLw -lMesaGLwM \n");
-          printf ("\t\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \t Wed Mar 20 14:23:42 EST 2002\n");
+          printf ("\t\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \t Wed Mar 20 14:23:42 EST 2002\n");
           exit (0);
   }/*Usage*/
    

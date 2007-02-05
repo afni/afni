@@ -41,7 +41,7 @@ void SUMA_usage ()
 			 printf ("\n\n\tIf you can't get help here, please get help somewhere.\n");
 			 SUMA_Version(NULL);
 			 
-          printf ("\n\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n\n");
+          printf ("\n\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n\n");
           exit (0);
   }/*Usage*/
      

@@ -2952,7 +2952,7 @@ SUMA_DSET * SUMA_FindDset_eng (char *idcode, DList *DsetList)
       dset = (SUMA_DSET *)el->data;
       if (!dset) {
          SUMA_PushErrLog("SLP_Err", 
-                        "Unexpected NULL dset element in list!\nPlease report this occurrence to ziad@nih.gov.",
+                        "Unexpected NULL dset element in list!\nPlease report this occurrence to saadz@mail.nih.gov.",
                         FuncName);
       } else {   
          #ifdef OLD_DSET      /* before dsets were NI_groups */

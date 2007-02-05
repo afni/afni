@@ -24,7 +24,7 @@ void  SUMA_TestDataSets_Usage()
   {/*Usage*/
           printf ("\nUsage:   \n");
           printf ("\t ..... \n\n");
-          printf ("\t\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \t"
+          printf ("\t\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \t"
                   "Thu May 29 14:42:58 EDT 2003 \n");
           exit (0);
   }/*Usage*/

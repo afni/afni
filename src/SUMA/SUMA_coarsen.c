@@ -58,7 +58,7 @@ void usage_SUMA_coarsen (SUMA_GENERIC_ARGV_PARSE *ps)
             "\n",sio,s); SUMA_free(sio); sio = NULL;SUMA_free(s); s = NULL;
    s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
    printf(  " Originally written by Jakub Otwinowski.\n"
-            " Now maintained by Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
+            " Now maintained by Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
    printf(  " This program uses the GTS library gts.sf.net\n"
             " for fun read \"Fast and memory efficient polygonal simplification\" (1998) \n"
             " and \"Evaluation of memoryless simplification\" (1999) by Lindstrom and Turk.\n");
