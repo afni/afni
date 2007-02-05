@@ -2238,6 +2238,14 @@ Can be used to set the optimization method using in the NLfit plugin
   POWELL  (the NEWUOA method)
   BOTH    (use both methods, choose the 'best' result)
 
+----------------------------
+Variable: AFNI_OVERLAY_ONTOP
+----------------------------
+If this variable is set to YES, then the 'Overlay' button will be above
+the 'Underlay' button on the AFNI control panel.  The default, from the
+olden days, is to have the 'Underlay' button above the 'Overlay' button,
+which some people find confusing.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
