@@ -139,7 +139,7 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps)
                   SUMA_free(sb); SUMA_free(sio);
 			 SUMA_Version(NULL);
 			 printf ("\n" 
-                  "\n    Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n\n");
+                  "\n    Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n\n");
           exit (0);
   }/*Usage*/
      

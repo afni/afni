@@ -462,7 +462,7 @@ int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 {
    static char FuncName[]={"SUMA_R_Key"};
-   char tk[]={"R"}, keyname[100];
+   char tk[]={"R"}, keyname[100], msg[100];
    int k, nc, ii, jj, mm;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -507,7 +507,6 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             SUMAg_CF->SUMA_SnapshotOverSampling = (SUMAg_CF->SUMA_SnapshotOverSampling +1)%5;
             if (SUMAg_CF->SUMA_SnapshotOverSampling == 0) SUMAg_CF->SUMA_SnapshotOverSampling = 1;
             { 
-               char msg[50];
                sprintf(msg,"Oversampling now set to %d", SUMAg_CF->SUMA_SnapshotOverSampling);
                if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note (msg); }
                else { SUMA_S_Note (msg); }
@@ -545,12 +544,15 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                      glGetIntegerv(GL_MAX_VIEWPORT_DIMS,&k);
                      if (ii==0 && jj == 0) {
                         SUMA_S_Notev(  "Resampling factor of %d\n"
-                                    "If using this feature, save\n"
-                                    " image sequence to disk, then\n"
-                                    " use imcat to put images together.\n"
+                                    "If using this feature, the\n"
+                                    " sequence of %d images is saved\n"
+                                    " temporarily to disk and 'imcat'\n"
+                                    " is then used to put the images together.\n"
                                     "(Have ViewPort GL_MAX_VIEWPORT_DIMS of %d\n"
                                     " and max dims needed of %d.)\n",
-                                    SUMAg_CF->SUMA_SnapshotOverSampling, k,
+                                    SUMAg_CF->SUMA_SnapshotOverSampling, 
+                                    SUMAg_CF->SUMA_SnapshotOverSampling*SUMAg_CF->SUMA_SnapshotOverSampling,
+                                    k,
                                     SUMA_MAX_PAIR( SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->HEIGHT,
                                                    SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->WIDTH)  );
                      } else {
@@ -569,7 +571,6 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                   }else {
                      SUMA_SLP_Err("Failed to record image.");
                   }
-                  
                }
             }
             if (SUMAg_CF->SUMA_SnapshotOverSampling > 1) {  /* Now return the window to its previous size */
@@ -585,7 +586,18 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             }
             if (SUMAg_CF->NoDuplicatesInRecorder) SNAP_NoDuplicates();
             else SNAP_OkDuplicates();
-
+            if (SUMAg_CF->SUMA_SnapshotOverSampling > 1) {
+               /* record the image to make life easy on user */
+               sprintf(msg,"Writing resultant image\n to HighRes_Suma_tmp.ppm ...");
+               if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note (msg); }
+               else { SUMA_S_Note (msg); }
+               ISQ_snap_png_rng("HighRes_Photo___tmp", 
+                              -(SUMAg_CF->SUMA_SnapshotOverSampling*SUMAg_CF->SUMA_SnapshotOverSampling),
+                              0);
+               system(  "rm -f HighRes_Suma_tmp* >& /dev/null ; "
+                        "imcat -prefix HighRes_Suma_tmp HighRes_Photo___tmp* ;"
+                        "rm -f HighRes_Photo___tmp* >& /dev/null");
+            }
          }
          break;
       case XK_R:
@@ -841,7 +853,7 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
             }else if (SUMA_CTRL_KEY(key)){
                float a[3], cQ[4], dQ[4];
                /* From top view, rotate about x 90 degrees.*/ 
-               a[0] = 1.0; a[1] = 0.0;
+               a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
                axis_to_quat(a, SUMA_PI/2.0, cQ);
                /* then rotate about y 90 degrees */
                a[0] = 0.0; a[1] = 1.0; a[2] = 0.0;

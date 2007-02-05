@@ -2945,7 +2945,7 @@ void usage_SUMA_inspec()
             "               Available levels are 1, 2 and 3.\n"
             "    -h or -help: This message here.\n" );
    s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
-   printf ( "      Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n     Dec 2 03\n"
+   printf ( "      Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n     Dec 2 03\n"
             "\n");   
    return;
 }
@@ -3087,7 +3087,7 @@ void usage_SUMA_quickspec()
             "  not meant to replace the venerable @SUMA_Make_Spec_XX scripts.\n"
             "\n");
      s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
-     printf("      Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n\t\t Tue Dec 30\n"
+     printf("      Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n\t\t Tue Dec 30\n"
             "\n");
     return;   
 }
@@ -3322,7 +3322,7 @@ void usage_SUMA_Read_SpecFile ()
           printf ("\t <fname> Filename of Surface Specs file\n");
           printf ("To compile: \ngcc -DSUMA_Read_SpecFile_STAND_ALONE -Wall -o SUMA_Load_Surface_Object  SUMA_Load_Surface_Object.c ");
           printf ("SUMA_lib.a libmri.a -I/usr/X11R6/include -I./ -L/usr/lib -L/usr/X11R6/lib -lm \n");
-          printf ("\t\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n");
+          printf ("\t\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n");
           exit (0);
   }/*Usage*/
   
@@ -3371,7 +3371,7 @@ void usage_SUMA_Load_Surface_Object_STAND_ALONE ()
           printf ("To compile: \ngcc -DSUMA_Load_Surface_Object_STAND_ALONE -Wall -o SUMA_Load_Surface_Object SUMA_Load_Surface_Object.c ");
           printf ("SUMA_lib.a  -I/usr/X11R6/include -I./ -L/usr/lib -L/usr/X11R6/lib -lm \n");
           printf ("-lGL -lGLU -lGLw -lXmu -lXm -lXt -lXext -lX11 -lMesaGLw -lMesaGLw\n");
-          printf ("\t\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \tWed Jan 23 15:18:12 EST 2002 \n");
+          printf ("\t\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \tWed Jan 23 15:18:12 EST 2002 \n");
           exit (0);
   }/*Usage*/
    

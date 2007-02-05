@@ -119,7 +119,7 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
                   "%s\n"
                   , sio, s); SUMA_free(sio); sio = NULL; SUMA_free(s); s = NULL; 
           s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL; 
-          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \t Wed Jan  8 13:44:29 EST 2003 \n");
+          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \t Wed Jan  8 13:44:29 EST 2003 \n");
           exit (0);
   }/*Usage*/
    

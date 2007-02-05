@@ -279,7 +279,7 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
                "\n", uDS_show_surf, uDS_node_xyz, uDS_viewer_cont, uDS_recorder_cont, uDS_surf_cont, sio,  s);
       SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
-      printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
+      printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
       exit(0);
 }
 

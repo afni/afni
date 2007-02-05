@@ -164,7 +164,7 @@ SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing 
                               "\n", s);
       SUMA_free(s); s = NULL;                        
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
-      fprintf (SUMA_STDOUT,   "    Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n"
+      fprintf (SUMA_STDOUT,   "    Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n"
                               "      July 31/02 \n"
                               "\n");
       SUMA_RETURNe;

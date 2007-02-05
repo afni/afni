@@ -983,6 +983,16 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
   /* if recording, take a snap */
   if (csv->Record) {
       if (csv->rdc < SUMA_RDC_X_START || csv->rdc > SUMA_RDC_X_END) {
+         /*
+         Combination below helps partial coverage 
+         problem under linux when recording.
+         But it does not fix the coverage problem 
+         entirely.
+         
+         SUMA_S_Note("Raising the dead");
+         XtPopup (csv->X->TOPLEVEL, XtGrabExclusive);
+         XRaiseWindow(XtDisplay(csv->X->TOPLEVEL), XtWindow(csv->X->TOPLEVEL));
+       */  
          glFinish();
          glXWaitX();
       #ifdef DARWIN
