@@ -1738,63 +1738,72 @@ STATUS("making view->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
-   view->choose_anat_pb =
-      XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , view->choose_rowcol ,
-            LABEL_ARG("UnderLay") ,
-            XmNmarginHeight , 1 ,
-            XmNtraversalOn , False ,
-            XmNinitialResourcesPersistent , False ,
-         NULL ) ;
+#define UNDERLAY_BUTTON                                             \
+ do{                                                                \
+   view->choose_anat_pb =                                           \
+      XtVaCreateManagedWidget(                                      \
+         "dialog" , xmPushButtonWidgetClass , view->choose_rowcol , \
+            LABEL_ARG("UnderLay") ,                                 \
+            XmNmarginHeight , 1 ,                                   \
+            XmNtraversalOn , False ,                                \
+            XmNinitialResourcesPersistent , False ,                 \
+         NULL ) ;                                                   \
+   XtAddCallback( view->choose_anat_pb , XmNactivateCallback ,      \
+                  AFNI_choose_dataset_CB , im3d ) ;                 \
+   MCW_register_help( view->choose_anat_pb ,                        \
+        "Use this to choose which 3D\n"                             \
+        "dataset to view as the underlay\n"                         \
+        "(from the current session).\n\n"                           \
+        "N.B.: Datasets which can be\n"                             \
+        "  graphed are marked with a\n"                             \
+        "  '*' after their names.\n"                                \
+        "  Datasets that are compressed\n"                          \
+        "  have 'z' after their names."                             \
+   ) ;                                                              \
+   MCW_register_hint( view->choose_anat_pb ,                        \
+                      "Switch datasets for underlay/graphs" ) ;     \
+   MCW_set_widget_bg( view->choose_anat_pb , "black" , 0 ) ;        \
+   view_count ++ ;                                                  \
+ } while(0)
 
-   XtAddCallback( view->choose_anat_pb , XmNactivateCallback ,
-                  AFNI_choose_dataset_CB , im3d ) ;
+#define OVERLAY_BUTTON                                              \
+ do{                                                                \
+   view->choose_func_pb =                                           \
+      XtVaCreateManagedWidget(                                      \
+         "dialog" , xmPushButtonWidgetClass , view->choose_rowcol , \
+            LABEL_ARG("OverLay") ,                                  \
+            XmNmarginHeight , 1 ,                                   \
+            XmNtraversalOn , False ,                                \
+            XmNinitialResourcesPersistent , False ,                 \
+         NULL ) ;                                                   \
+   XtAddCallback( view->choose_func_pb , XmNactivateCallback ,      \
+                  AFNI_choose_dataset_CB , im3d ) ;                 \
+   MCW_register_help( view->choose_func_pb ,                        \
+     "Use this to choose which\n"                                   \
+     "overlay 3D dataset to view\n"                                 \
+     "(from the current session).\n"                                \
+     "N.B.: Datasets that are compressed\n"                         \
+     "  have 'z' after their names."                                \
+    ) ;                                                             \
+   MCW_register_hint( view->choose_func_pb ,                        \
+                      "Switch datasets for color overlay" ) ;       \
+   view_count ++ ;                                                  \
+ } while(0)
 
-   MCW_register_help( view->choose_anat_pb ,
-        "Use this to choose which 3D\n"
-        "dataset to view as the underlay\n"
-        "(from the current session).\n\n"
-        "N.B.: Datasets which can be\n"
-        "  graphed are marked with a\n"
-        "  '*' after their names.\n"
-        "  Datasets that are compressed\n"
-        "  have 'z' after their names."
-   ) ;
-   MCW_register_hint( view->choose_anat_pb ,
-                      "Switch datasets for underlay/graphs" ) ;
-
-   view_count ++ ;
-
-   view->choose_func_pb =
-      XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , view->choose_rowcol ,
-            LABEL_ARG("OverLay") ,
-            XmNmarginHeight , 1 ,
-            XmNtraversalOn , False ,
-            XmNinitialResourcesPersistent , False ,
-         NULL ) ;
-
-   XtAddCallback( view->choose_func_pb , XmNactivateCallback ,
-                  AFNI_choose_dataset_CB , im3d ) ;
-
-   MCW_register_help( view->choose_func_pb ,
-     "Use this to choose which\n"
-     "overlay 3D dataset to view\n"
-     "(from the current session).\n"
-     "N.B.: Datasets that are compressed\n"
-     "  have 'z' after their names."
-    ) ;
-   MCW_register_hint( view->choose_func_pb ,
-                      "Switch datasets for color overlay" ) ;
-
-   view_count ++ ;
+   if( AFNI_yesenv("AFNI_OVERLAY_ONTOP") ){  /* 05 Feb 2007 */
+     OVERLAY_BUTTON  ;
+     UNDERLAY_BUTTON ;
+   } else {
+     UNDERLAY_BUTTON ;
+     OVERLAY_BUTTON  ;
+   }
 
    /* 02 Feb 2007: new Rescan This button here */
 
    view->rescan_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->choose_rowcol ,
-            LABEL_ARG("Rescan") ,
+            LABEL_ARG("RescanTh") ,
             XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
