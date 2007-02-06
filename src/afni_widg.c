@@ -1830,11 +1830,20 @@ STATUS("making view->rowcol") ;
          NULL ) ;
    XtAddCallback( view->nimlpo_pb , XmNactivateCallback ,
                   AFNI_nimlpo_CB , im3d ) ;
-   if( AFNI_have_niml() && AFNI_have_plugouts() ) 
+   if( AFNI_have_niml() && AFNI_have_plugouts() ){
      XtSetSensitive(view->nimlpo_pb,False) ;
-   else
+   } else {
      MCW_register_hint( view->nimlpo_pb ,
                         "Starts NIML and Plugouts") ;
+     MCW_register_help( view->nimlpo_pb ,
+                        "Start listening for NIML\n"
+                        "and Plugout TCP/IP sockets.\n"
+                        "If you forgot to use options\n"
+                        "'-niml' and '-yesplugouts'\n"
+                        "on the command line, and\n"
+                        "are expecting AFNI to talk\n"
+                        "SUMA and/or plugout_drive."  ) ;
+   }
 
    /* 19 Aug 2002: Surface chooser! */
 
