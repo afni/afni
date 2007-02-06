@@ -1935,3 +1935,5 @@
       - modified db_mod.py: print blur_size as float
       - modified make_stim_times.py: added -ver, -hist, extra '*' run 1 only
 
+06 Feb 2007: added TTatlas example to 3dcalc help
+
