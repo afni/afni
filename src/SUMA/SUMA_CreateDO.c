@@ -4873,6 +4873,23 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    SUMA_RETURN (YUP);
 }   
 
+static char *SUMA_GeomTypeName(SUMA_GEOM_TYPE tp) {
+   switch(tp) {
+      case SUMA_GEOM_NOT_SET:
+         return("Not Set");
+      case SUMA_GEOM_SPHERE:
+         return("Sphere");
+      case SUMA_GEOM_ICOSAHEDRON:
+         return("Icosahedron");
+      case SUMA_GEOM_IRREGULAR:
+         return("Irregular");
+      case SUMA_N_GEOM:
+         return("Number of geometries");
+      default:
+         return("Should not have this");
+   }
+   return("What the hell?");
+}
 
 /*!
    \brief Creates a string containing information about the surface
@@ -5063,9 +5080,29 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       SUMA_EULER_SO(SO, eu);
       SS = SUMA_StringAppend_va (SS, "Euler No. = %d\n\n", eu);
       
-      sprintf (stmp,"Center: [%.3f\t%.3f\t%.3f]\n", SO->Center[0], SO->Center[1],SO->Center[2]);
+      sprintf (stmp,"Center of Mass: [%.3f\t%.3f\t%.3f]\n", SO->Center[0], SO->Center[1],SO->Center[2]);
       SS = SUMA_StringAppend (SS,stmp);
-
+      if (SO->isSphere == SUMA_GEOM_SPHERE || SO->isSphere == SUMA_GEOM_ICOSAHEDRON ) {
+         sprintf (stmp, "Surface is considered a %s.\n"
+                        "Sphere Center: [%.3f\t%.3f\t%.3f]\n",
+                        SUMA_GeomTypeName(SO->isSphere), 
+                        SO->SphereCenter[0], SO->SphereCenter[1],SO->SphereCenter[2]);
+         SS = SUMA_StringAppend (SS,stmp);
+         sprintf (stmp,"Sphere Radius: [%.3f]\n", SO->SphereRadius);
+         SS = SUMA_StringAppend (SS,stmp);
+      } else if (SO->isSphere > SUMA_GEOM_NOT_SET) {
+         sprintf (stmp, "Surface geometry is considered irregular.\n"
+                        "Sphere Center Set To: [%.3f\t%.3f\t%.3f]\n", SO->SphereCenter[0], SO->SphereCenter[1],SO->SphereCenter[2]);
+         SS = SUMA_StringAppend (SS,stmp);
+         sprintf (stmp,"Sphere Radius Set To: [%.3f]\n", SO->SphereRadius);
+         SS = SUMA_StringAppend (SS,stmp);
+      }  else {
+         sprintf (stmp, "Surface geometry has not been checked for type.\n"
+                        "Sphere Center Set To: [%.3f\t%.3f\t%.3f]\n", SO->SphereCenter[0], SO->SphereCenter[1],SO->SphereCenter[2]);
+         SS = SUMA_StringAppend (SS,stmp);
+         sprintf (stmp,"Sphere Radius Set To: [%.3f]\n", SO->SphereRadius);
+         SS = SUMA_StringAppend (SS,stmp);
+      }
       sprintf (stmp,"Maximum: [%.3f\t%.3f\t%.3f]\t (aMax %.3f)\n", SO->MaxDims[0], SO->MaxDims[1],SO->MaxDims[2], SO->aMaxDims);
       SS = SUMA_StringAppend (SS,stmp);
 
@@ -5460,6 +5497,11 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].PolyMode = SRM_ViewerDefault;
       SO[i].Show = YUP;
       SO[i].Side = SUMA_NO_SIDE;
+      SO[i].isSphere = SUMA_GEOM_NOT_SET;
+      SO[i].SphereRadius = -1.0;
+      SO[i].SphereCenter[0] = -1.0; 
+      SO[i].SphereCenter[1] = -1.0; 
+      SO[i].SphereCenter[2] = -1.0; 
       SO[i].AnatCorrect = NOPE;
       SO[i].DomainGrandParentID = NULL;
       SO[i].OriginatorID = NULL;

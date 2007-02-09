@@ -23,6 +23,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
 SUMA_Boolean SUMA_Save_Surface_Object (void *F_name, SUMA_SurfaceObject *SO, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, void*someparam);
 char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath);
 SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO);
+int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol);
 char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO);
 int    SUMA_spec_select_surfs ( SUMA_SurfSpecFile * spec, char ** names,
 			        int nnames, int debug );
