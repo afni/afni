@@ -847,6 +847,32 @@ void SUMA_addTri(int *triList, int *ctr, int n1, int n2, int n3) {
    SUMA_RETURNe;
 }
 
+/* See also SUMA_ProjectSurfaceToSphere */
+SUMA_Boolean SUMA_ProjectToSphere(SUMA_SurfaceObject *SO, float *ctr, float r)
+{
+   static char FuncName[]={"SUMA_ProjectToSphere"};
+   int i, i3;
+   float dv, uv[3], U[2][3]={ {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} }, *p1;
+   SUMA_Boolean LocalHead = YUP;
+
+   SUMA_ENTRY;
+
+   for (i=0; i<SO->N_Node; ++i) {
+      i3 = 3*i;
+      p1 = &(SO->NodeList[i3]);
+      /* SUMA_UNIT_VEC(ctr, p1, uv, dv); */
+      uv[0] = p1[0] - ctr[0]; uv[1] = p1[1] - ctr[1]; uv[2] = p1[2] - ctr[2];
+      SUMA_POINT_AT_DISTANCE(uv, ctr, r, U);
+      SO->NodeList[i3  ] = U[0][0]; SO->NodeList[i3+1] = U[0][1]; SO->NodeList[i3+2] = U[0][2]; 
+   }
+
+   SO->isSphere = SUMA_GEOM_SPHERE;
+   SO->SphereRadius = r;
+   SUMA_COPY_VEC(ctr, SO->SphereCenter, 3, float, float);
+   
+   SUMA_RETURN(YUP);
+}
+
 /*!
   SO = SUMA_CreateIcosahedron (r, depth, ctr, bin, ToSphere);
 
@@ -1014,6 +1040,9 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    if (LocalHead) fprintf(SUMA_STDERR,"%s: There are %d nodes, %d triangles in the icosahedron.\n", FuncName, numNodes, numTri);
 
    /* store in SO and get out */
+   SO->isSphere = SUMA_GEOM_ICOSAHEDRON;
+   SUMA_COPY_VEC(ctr,SO->SphereCenter,3, float, float);
+   SO->SphereRadius = r;
    SO->NodeList = icosaNode;
    SO->FaceSetList = icosaTri;
    SO->N_Node = numNodes;
@@ -1058,15 +1087,10 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    
    /* project to sphere ? */
    if (ToSphere) {
-      float dv, uv[3], U[2][3]={ {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} }, *p1;
-      for (i=0; i<SO->N_Node; ++i) {
-         i3 = 3*i;
-         p1 = &(SO->NodeList[i3]);
-         /* SUMA_UNIT_VEC(ctr, p1, uv, dv); */
-         uv[0] = p1[0] - ctr[0]; uv[1] = p1[1] - ctr[1]; uv[2] = p1[2] - ctr[2];
-         SUMA_POINT_AT_DISTANCE(uv, ctr, r, U);
-         SO->NodeList[i3  ] = U[0][0]; SO->NodeList[i3+1] = U[0][1]; SO->NodeList[i3+2] = U[0][2]; 
-      }
+      if (!SUMA_ProjectToSphere(SO, ctr, r)) {
+         SUMA_S_Err("Failed to project to sphere.");
+         SUMA_RETURN(NULL);
+      }  
    }
    
    /* create surface normals */
@@ -1399,7 +1423,7 @@ float intersection_map(float a, float b, float c, float d, float val) {
   Written by Brenna Argall
 */
 
-SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject *surf2)
+SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject *surf2, int verb)
 {
    static char FuncName[]={"SUMA_MapSurface"};
 
@@ -1462,30 +1486,37 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
 
    /**center surf1 to surf2 (that will make it easier to debug in SUMA)*/
 
-   /*first find centers of each surface*/
-   ctr1[0]=0; ctr1[1]=0; ctr1[2]=0;
-   ctr2[0]=0; ctr2[1]=0; ctr2[2]=0;
    zero[0]=0; zero[1]=0; zero[2]=0;
-
-   for (i=0; i<numNodes_1; ++i) {
-      j = 3*i;
-      ctr1[0] = ctr1[0] + nodeList_1[j];
-      ctr1[1] = ctr1[1] + nodeList_1[j+1];
-      ctr1[2] = ctr1[2] + nodeList_1[j+2];
+   
+   if (SUMA_IS_GEOM_SYMM(surf1->isSphere)) {
+      SUMA_COPY_VEC(surf1->SphereCenter, ctr1, 3, float, float);
+   } else {
+      ctr1[0]=0; ctr1[1]=0; ctr1[2]=0;
+      for (i=0; i<numNodes_1; ++i) {
+         j = 3*i;
+         ctr1[0] = ctr1[0] + nodeList_1[j];
+         ctr1[1] = ctr1[1] + nodeList_1[j+1];
+         ctr1[2] = ctr1[2] + nodeList_1[j+2];
+      }
+      ctr1[0] = ctr1[0]/numNodes_1;
+      ctr1[1] = ctr1[1]/numNodes_1;
+      ctr1[2] = ctr1[2]/numNodes_1;
    }
-   ctr1[0] = ctr1[0]/numNodes_1;
-   ctr1[1] = ctr1[1]/numNodes_1;
-   ctr1[2] = ctr1[2]/numNodes_1;
-
-   for (i=0; i<numNodes_2; ++i) {
-      j = 3*i;
-      ctr2[0] = ctr2[0] + nodeList_2[j];
-      ctr2[1] = ctr2[1] + nodeList_2[j+1];
-      ctr2[2] = ctr2[2] + nodeList_2[j+2];
+   if (SUMA_IS_GEOM_SYMM(surf2->isSphere)) {
+      SUMA_COPY_VEC(surf2->SphereCenter, ctr2, 3, float, float);
+   } else {
+      /*first find centers of each surface*/
+      ctr2[0]=0; ctr2[1]=0; ctr2[2]=0;
+      for (i=0; i<numNodes_2; ++i) {
+         j = 3*i;
+         ctr2[0] = ctr2[0] + nodeList_2[j];
+         ctr2[1] = ctr2[1] + nodeList_2[j+1];
+         ctr2[2] = ctr2[2] + nodeList_2[j+2];
+      }
+      ctr2[0] = ctr2[0]/numNodes_2;
+      ctr2[1] = ctr2[1]/numNodes_2;
+      ctr2[2] = ctr2[2]/numNodes_2;
    }
-   ctr2[0] = ctr2[0]/numNodes_2;
-   ctr2[1] = ctr2[1]/numNodes_2;
-   ctr2[2] = ctr2[2]/numNodes_2;
 
    /* set the zero center to be that of surf 2 */
    zero[0] = ctr2[0];
@@ -1600,7 +1631,7 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
 
    /** mapping surf1 to surf2 */
 
-   fprintf(SUMA_STDERR,"\nComputing intersections...\n\n");
+   if (verb) fprintf(SUMA_STDERR,"\nComputing intersections...\n\n");
    ptHit[0]=0; ptHit[1]=0; ptHit[2]=0;
    triNode0=0; triNode1=0; triNode2=0;
  
@@ -2041,12 +2072,13 @@ SUMA_Boolean SUMA_Free_MorphInfo (SUMA_MorphInfo *MI)
 */
 SUMA_SurfaceObject* SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI, SUMA_Boolean nodeChk) {
 
+   static char FuncName[] = {"SUMA_morphToStd"};
    float *newNodeList = NULL;
    int *tmp_newFaceSetList = NULL, *newFaceSetList = NULL, *inclNodes=NULL;
-   int i, j, N_FaceSet;
+   int i, j, N_FaceSet, ti;
    SUMA_SurfaceObject *SO_new=NULL;
-   static char FuncName[] = {"SUMA_morphToStd"};
-  
+   SUMA_Boolean LocalHead = YUP;
+   
    SUMA_ENTRY;
 
    SO_new = SUMA_Alloc_SurfObject_Struct(1);
@@ -2090,7 +2122,7 @@ SUMA_SurfaceObject* SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI,
 
       if ( !SO->FN ) {
          fprintf(SUMA_STDERR, "Error %s: No First Neighbor information passed.\n", FuncName);
-         return (NULL);
+         SUMA_RETURN (NULL);
       }
 
       /*keep track of included MI nodes; 1=>included, 0=>not*/
@@ -2102,10 +2134,18 @@ SUMA_SurfaceObject* SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI,
       for (i=0; i<(MI->N_Node); ++i) {
          
          j = 3*i;
-         if ( (MI->ClsNodes[j])<=(SO->N_Node) && (MI->ClsNodes[j+1])<=(SO->N_Node) &&  (MI->ClsNodes[j+2])<=(SO->N_Node) ) {
+         if ( (MI->ClsNodes[j])<(SO->N_Node) && (MI->ClsNodes[j+1])<(SO->N_Node) &&  (MI->ClsNodes[j+2])<(SO->N_Node) ) {  /* CONDITIONS USED TO BE <= ; NOT GOOD    ZSS FEB 07 */
             /*index of 3 nodes in MI->ClsNodes do not exceed number of nodes in SO*/
             if ( SO->FN->N_Neighb[MI->ClsNodes[j]]>0 && SO->FN->N_Neighb[MI->ClsNodes[j+1]]>0 && SO->FN->N_Neighb[MI->ClsNodes[j+2]]>0 ) {
                /*3 nodes in MI->ClsNodes are all a part of the SO mesh (have at least 1 neighbor in the SO mesh)*/
+               /* Make sure these three nodes do form a valid facet. Otherwise, whine. */
+               if ( (ti = SUMA_whichTri(SO->EL, MI->ClsNodes[j], MI->ClsNodes[j+1], MI->ClsNodes[j+2], 0)) < 0) {
+                  SUMA_S_Warnv ( "Node %d of the mapping structure has\n"
+                                 " three closest nodes %d %d %d that do\n"
+                                 " not form a triangle in %s's mesh.\n", 
+                                 i, MI->ClsNodes[j], MI->ClsNodes[j+1], MI->ClsNodes[j+2], SO->Label);
+                                  
+               }  
 
                inclNodes[i]   = 1; 
                newNodeList[j]   = (MI->Weight[j])*SO->NodeList[3*(MI->ClsNodes[j])] +       //node0 x
@@ -2118,8 +2158,10 @@ SUMA_SurfaceObject* SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI,
                   (MI->Weight[j+1])*SO->NodeList[3*(MI->ClsNodes[j+1])+2] +                 //node1 z
                   (MI->Weight[j+2])*SO->NodeList[3*(MI->ClsNodes[j+2])+2];                  //node2 z   
             }
+         } else {
+           /*otherwise, morphing for this node skipped*/
+           SUMA_LHv(    "MI->ClsNodes[%d || %d || %d] = SO->N_Node=%d", j, j+1, j+2, SO->N_Node);
          }
-         /*otherwise, morphing for this node skipped*/
       }
 
       /*create list of MI facesets for which all 3 nodes were morphed*/
@@ -2302,7 +2344,7 @@ void SUMA_writeColorFile (float *array, int numNode, int *index, char fileNm[]) 
 }
 
 /*!
-  SUMA_writeFSfile(nodeList, faceList, numNode, numFace, firstLine, fileNm);
+  SUMA_writeFSfile(SO, firstLine, fileNm);
 
   Function to write out file in freesurfer format. 
   \param nodeList (float *) list of nodes
@@ -2330,8 +2372,8 @@ void SUMA_writeFSfile (SUMA_SurfaceObject *SO, char firstLine[], char fileNm[]) 
    }
    else {
       if ( firstLine!=NULL ) 
-         fprintf (outFile,"# %s\n", firstLine);
-      else fprintf (outFile, "#\n");
+         fprintf (outFile,"#%s\n", firstLine);
+      else fprintf (outFile, "#!ascii version of FreeSurfer surface\n");
       fprintf (outFile, "%d %d\n", SO->N_Node, SO->N_FaceSet);
     
       j=0;
@@ -2353,7 +2395,7 @@ void SUMA_writeFSfile (SUMA_SurfaceObject *SO, char firstLine[], char fileNm[]) 
 }
 
 /*!
-  SUMA_writeSpecFile( surfaces, numSurf, program, group, specFileNm);
+  SUMA_writeSpecFile( surfaces, numSurf, program, group, specFileNm, char *histnote);
 
   Function to write suma spec file.
   \param surfaces (SUMA_specSurfInfo *) necessary surface information for spec file
@@ -2365,7 +2407,7 @@ void SUMA_writeFSfile (SUMA_SurfaceObject *SO, char firstLine[], char fileNm[]) 
 
   Written by Brenna Argall
 */
-void SUMA_writeSpecFile (SUMA_SpecSurfInfo *surfaces, int numSurf, char program[], char group[], char specFileNm[]) {
+void SUMA_writeSpecFile (SUMA_SpecSurfInfo *surfaces, int numSurf, char program[], char group[], char specFileNm[], char *histnote) {
 
    FILE *outFile=NULL;
    int i=0, k=0, tag=0, ifSmwm=0, p=0;
@@ -2379,7 +2421,9 @@ void SUMA_writeSpecFile (SUMA_SpecSurfInfo *surfaces, int numSurf, char program[
       exit (1);
    }
    else {
-      fprintf (outFile, "# %s spec file for %s\n\n", program, group);
+      fprintf (outFile, "# %s spec file for %s\n", program, group);
+      if (histnote) fprintf (outFile, "#History: %s\n\n", histnote);
+      else fprintf (outFile, "\n");
       fprintf (outFile, "#define the group\n\tGroup = %s\n\n", group);
       fprintf (outFile, "#define various States\n");
       for (i=0; i<numSurf; ++i) {
@@ -2465,6 +2509,7 @@ int main (int argc, char *argv[])
    SUMA_Boolean brk;
    int NumOnly, ToSphere;
    SUMA_Boolean LocalHead = NOPE;
+   char *histnote=NULL;
    char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char bin[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char surfFileNm[1000], outSpecFileNm[1000];
@@ -2585,7 +2630,8 @@ int main (int argc, char *argv[])
       }
       
    }/* loop accross command ine options */
-
+   histnote = SUMA_HistString (NULL, argc, argv, NULL);
+   
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Recursion depth %d, Size %f.\n", FuncName, depth, r);
 
    if (NumOnly) {
@@ -2631,7 +2677,7 @@ int main (int argc, char *argv[])
 
 
    /**write tesselated icosahedron to file*/
-   SUMA_writeFSfile (SO, "#tesselated icosahedron for SUMA_CreateIcosahedron (SUMA_SphericalMapping.c)", surfFileNm);
+   SUMA_writeFSfile (SO, "!ascii version in FreeSurfer format (CreateIcosahedron)", surfFileNm);
 
    /**write spec file*/
    surfaces = (SUMA_SpecSurfInfo *) SUMA_calloc(1, sizeof(SUMA_SpecSurfInfo));
@@ -2640,7 +2686,7 @@ int main (int argc, char *argv[])
    sprintf (surfaces[0].fileToRead, "%s", surfFileNm); strcpy( surfaces[0].mapRef, "SAME");  
    strcpy (surfaces[0].state, "icosahedron"); strcpy (surfaces[0].dim, "3");
   
-   SUMA_writeSpecFile ( surfaces, 1, FuncName, fout, outSpecFileNm );
+   SUMA_writeSpecFile ( surfaces, 1, FuncName, fout, outSpecFileNm, histnote );
    fprintf (SUMA_STDERR, "\n* To view in SUMA, run:\n suma -spec %s \n\n", outSpecFileNm);
 
    /* free the surface object */
@@ -2650,7 +2696,9 @@ int main (int argc, char *argv[])
    SUMA_free(surfaces);
 
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
-
+   
+   if (histnote) SUMA_free(histnote);
+   
    SUMA_RETURN(0);
   
 }/* main SUMA_CreateIcosahedron*/
@@ -2688,7 +2736,7 @@ int main (int argc, char *argv[])
    SUMA_SurfSpecFile spec;  
    char surfFileNm[1000], outSpecFileNm[1000];
  
-   int kar, i, j;
+   int kar, i, j, verb = 1;
    SUMA_SurfaceObject **surfaces_orig=NULL, *currSurf=NULL;
    char *specFile=NULL;
    SUMA_MorphInfo *MI=NULL;
@@ -2956,7 +3004,7 @@ int main (int argc, char *argv[])
       exit (1);
    }            
 
-   MI = SUMA_MapSurface( surfaces_orig[0], surfaces_orig[1]);
+   MI = SUMA_MapSurface( surfaces_orig[0], surfaces_orig[1], 1);
    if (!MI) {
       fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_MapSurface.\n", FuncName);
       if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
@@ -2978,7 +3026,7 @@ int main (int argc, char *argv[])
 
    /**write surface to file*/
    writeFile = NOPE;
-   fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, surfFileNm);
+   if (verb) fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, surfFileNm);
    if ( SUMA_iswordin(spec_info[1].type, "FreeSurfer") ==1) 
       writeFile = SUMA_Save_Surface_Object (surfFileNm, morph_SO, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
    else if ( SUMA_iswordin(spec_info[1].type, "Ply") ==1) 
@@ -3002,7 +3050,7 @@ int main (int argc, char *argv[])
    }
 
    /**write spec file*/
-   SUMA_writeSpecFile ( spec_info, 3, FuncName, fout, outSpecFileNm );
+   SUMA_writeSpecFile ( spec_info, 3, FuncName, fout, outSpecFileNm, NULL );
    fprintf (SUMA_STDERR, "\n**\t\t\t\t\t**\n\t  To view in SUMA, run:\n\tsuma -spec %s \n**\t\t\t\t\t**\n\n", outSpecFileNm);
 
 
@@ -3038,7 +3086,7 @@ void SUMA_MapIcosahedron_usage ()
             "                      [-rd recDepth] [-ld linDepth] \n"
             "                      [-morph morphSurf] \n"
             "                      [-it numIt] [-prefix fout] \n"
-            "                      [-verb] [-help]\n"
+            "                      [-verb] [-help] [...]\n"
             "\n"
             "Creates new versions of the original-mesh surfaces using the mesh\n"
             "of an icosahedron. \n"
@@ -3083,6 +3131,8 @@ void SUMA_MapIcosahedron_usage ()
             "             Use this option to make the center of mass of morpSurf.\n"
             "             be the geometric center estimate. This is not optimal,\n"
             "             use this option only for backward compatibility.\n"
+            "             The new results, i.e. without -use_com, should always be\n"
+            "             better.\n"
             "\n"
             "   -sphere_radius R: Radius of morphSurf sphere. If not specified,\n"
             "                     this would be the average radius of morpSurf.\n"
@@ -3092,7 +3142,7 @@ void SUMA_MapIcosahedron_usage ()
             "   -it numIt: number of smoothing interations \n"
             "        (optional, default none).\n"
             "\n"
-            "   -prefix fout: prefix for output files.\n"
+            "   -prefix FOUT: prefix for output files.\n"
             "        (optional, default MapIco)\n"
             "\n"
             "   NOTE: See program SurfQual -help for more info on the following 2 options.\n"
@@ -3106,9 +3156,30 @@ void SUMA_MapIcosahedron_usage ()
             "\n"
             "   -sph_check and -sphreg_check are mutually exclusive.\n"
             "\n"
-            "   -verb: When specified, includes original-mesh surfaces \n"
+            "   -all_surfs_spec: When specified, includes original-mesh surfaces \n"
             "       and icosahedron in output spec file.\n"
             "       (optional, default does not include original-mesh surfaces)\n"
+            "   -verb: verbose.\n"
+            "   -write_nodemap: (default) Write a file showing the mapping of each \n"
+            "                   node in the icosahedron to the closest\n"
+            "                   three nodes in the original mesh.\n"
+            "                   The file is named by the prefix FOUT\n"
+            "                   suffixed by _MI.1D\n"
+            "  NOTE: This option is useful for understanding what contributed\n"
+            "        to a node's position in the standard meshes (STD_M).\n"
+            "        Say a triangle on the  STD_M version of the white matter\n"
+            "        surface (STD_WM) looks fishy, such as being large and \n"
+            "        obtuse compared to other triangles in STD_M. Right\n"
+            "        click on that triangle and get one of its nodes (Ns)\n"
+            "        search for Ns in column 0 of the _MI.1D file. The three\n"
+            "        integers (N0, N1, N2) on the same row as Ns will point \n"
+            "        to the three nodes on the original meshes (sphere.reg) \n"
+            "        to which Ns (from the icosahedron) was mapped. Go to N1\n"
+            "        (or N0 or N2) on the original sphere.reg and examine the\n"
+            "        mesh there, which is best seen in mesh view mode ('p' button).\n"
+            "        It will most likely be the case that the sphere.reg mesh\n"
+            "        there would be highly distorted (quite compressed).\n"    
+            "   -no_nodemap: Opposite of write_nodemap\n"
             "\n"
             "NOTE 1: The algorithm used by this program is applicable\n"
             "      to any surfaces warped to a spherical coordinate\n"
@@ -3130,8 +3201,8 @@ void SUMA_MapIcosahedron_usage ()
    s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
 
    printf ( "\n"
-            "       Brenna D. Argall LBC/NIMH/NIH brenna.argall@nih.gov \n"
-            "       Ziad S. Saad     SSC/NIMH/NIH saadz@mail.nih.gov\n"
+            "          Brenna D. Argall LBC/NIMH/NIH brenna.argall@nih.gov \n"
+            "(contact) Ziad S. Saad     SSC/NIMH/NIH saadz@mail.nih.gov\n"
             "          Fri Sept 20 2002\n"
             "\n");
    exit (0);
@@ -3144,10 +3215,10 @@ int main (int argc, char *argv[])
 {/* main SUMA_MapIcosahedron */
 
    static char FuncName[]={"MapIcosahedron"};
-   SUMA_Boolean brk, smooth=NOPE, verb=NOPE;
+   SUMA_Boolean brk, smooth=NOPE, verb=NOPE, all_surfs_spec=NOPE;
    char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char icoFileNm[10000], outSpecFileNm[10000];
-   char bin[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
+   char bin[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH], *histnote=NULL;
    int numTriBin=0, numTriLin=0, numIt=0;
 
    int kar, i, j, k, p, it, id = -1, depth;
@@ -3167,7 +3238,8 @@ int main (int argc, char *argv[])
    float etime_MapSurface, UserRadius=-1.0, Uctr[3];
    int UserCenter=-1;
    double cent[3], centmed[3];
-   SUMA_Boolean UseCOM, CheckSphereReg, CheckSphere, skip, writeFile;
+   char snote[1000];
+   SUMA_Boolean UseCOM, CheckSphereReg, CheckSphere, skip, writeFile, WriteMI;
    SUMA_Boolean LocalHead = NOPE;
 
    FILE *tmpFile=NULL;
@@ -3208,12 +3280,13 @@ int main (int argc, char *argv[])
    sprintf( bin, "%s", "y");
    smooth = NOPE;  numIt=0;
    verb = NOPE;
+   all_surfs_spec = NOPE;
    kar = 1;
    brk = NOPE;
    CheckSphere = NOPE;
    CheckSphereReg = NOPE;
    UseCOM = NOPE;
-   
+   WriteMI = YUP;
    while (kar < argc) { /* loop accross command line options */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
          SUMA_MapIcosahedron_usage ();
@@ -3258,16 +3331,18 @@ int main (int argc, char *argv[])
             Uctr[0] = 0.0; Uctr[1] = 0.0; Uctr[2] = 0.0;
             brk = YUP;
          }
+      
       if (!brk && (strcmp(argv[kar], "-use_com") == 0)) {
          fprintf(SUMA_STDOUT, "\n"
                               "Warning %s:\n"
-                              " Using Center of Mass of sphere as\n"
+                              " Using sphere's center of mass as a\n"
                               " geometric center. This is only for\n"
-                              " backward comaptibility.\n"
-                              " Better not use this option.\n", FuncName);
+                              " compulsive backward comaptibility.\n"
+                              " It is better NOT to use this option.\n", FuncName);
          UseCOM = YUP;
          brk = YUP;
       }
+      
       if (!brk && (strcmp(argv[kar], "-sphere_center") == 0 ))
          {
             kar ++;
@@ -3304,6 +3379,16 @@ int main (int argc, char *argv[])
             sprintf (bin, "n");
             brk = YUP;
          }      
+      if (!brk && strcmp(argv[kar], "-write_nodemap") == 0)
+         {
+            WriteMI = YUP;
+            brk = YUP;
+         }
+      if (!brk && strcmp(argv[kar], "-no_nodemap") == 0)
+         {
+            WriteMI = NOPE;
+            brk = YUP;
+         }
       if (!brk && strcmp(argv[kar], "-morph") == 0)
          {
             kar ++;
@@ -3332,10 +3417,20 @@ int main (int argc, char *argv[])
          }      
       if (!brk && (strcmp(argv[kar], "-verb") == 0 ))
          {
+            SUMA_S_Note("-verb option no longer produces\n"
+                        "a spec file that includes original\n"
+                        "meshes. See -all_surfs_spec for that.\n");
             verb = YUP;
             brk = YUP;
             
          }
+      if (!brk && (strcmp(argv[kar], "-all_surfs_spec") == 0 ))
+         {
+            all_surfs_spec = YUP;
+            brk = YUP;
+            
+         }
+      
       if (!brk && (strcmp(argv[kar], "-sphreg_check") == 0 ))
          {
             if (CheckSphere) {
@@ -3380,10 +3475,13 @@ int main (int argc, char *argv[])
 
    if (!UseCOM && UserCenter == -1) {
       SUMA_S_Note("\n"
-                  "This version estimates the geometric center of the sphere\n"
-                  "rather than use the center of mass. If you must, you can \n"
-                  "revert to the old method (for backward compatibility) by \n"
-                  "using -use_com option.\n"
+                  "---------------------------------------------------\n"
+                  "The program now uses the estimated geometric center\n"
+                  "of the sphere rather than the center of mass.  This\n"
+                  "is  more  robusto.   But if you INSIST on the older\n"
+                  "approach for backward compatibility, you can revert\n"
+                  "to the old method with -use_com option.\n"
+                  "---------------------------------------------------\n"
                   "\n");
    }
    /* check for some sanity */
@@ -3412,7 +3510,8 @@ int main (int argc, char *argv[])
       exit(1);
    }
 
-   
+   histnote = SUMA_HistString (NULL, argc, argv, NULL);
+
    /** load surfaces */
    
    if (CheckSphere) {
@@ -3432,7 +3531,7 @@ int main (int argc, char *argv[])
    }
    
    /*establish spec_info structure*/
-   if ( verb ) N_inSpec = 2*brainSpec.N_Surfs+1;
+   if ( all_surfs_spec ) N_inSpec = 2*brainSpec.N_Surfs+1;
    else        N_inSpec = brainSpec.N_Surfs;
 
    spec_info = (SUMA_SpecSurfInfo *)SUMA_calloc( N_inSpec, sizeof(SUMA_SpecSurfInfo));
@@ -3443,7 +3542,7 @@ int main (int argc, char *argv[])
       
       skip = NOPE;
       
-      if (verb) i_surf = 2*(i-N_skip);
+      if (all_surfs_spec) i_surf = 2*(i-N_skip);
       else i_surf = i-N_skip;
       
       if (SUMA_isSO(SUMAg_DOv[i])) 
@@ -3485,7 +3584,7 @@ int main (int argc, char *argv[])
          
             fprintf(SUMA_STDERR, "\nWarning %s: Surface State %s not recognized. Skipping...\n", 
                FuncName, currSurf->State);
-            if ( verb ) N_inSpec = N_inSpec-2;
+            if ( all_surfs_spec ) N_inSpec = N_inSpec-2;
             else        N_inSpec = N_inSpec-1;
             N_skip = N_skip+1;
             skip = YUP;
@@ -3556,7 +3655,7 @@ int main (int argc, char *argv[])
                sprintf(spec_info[i_surf].fileToRead, "%s_%s.ply", fout, spec_info[i_surf].state);
             else
                sprintf(spec_info[i_surf].fileToRead, "%s_%s.asc", fout, spec_info[i_surf].state);
-            if (verb) strcpy(spec_info[i_surf+1].fileToRead, surfaces_orig[id]->Name.FileName);
+            if (all_surfs_spec) strcpy(spec_info[i_surf+1].fileToRead, surfaces_orig[id]->Name.FileName);
          }
          
          if ( SUMA_filexists(spec_info[i_surf].fileToRead) ) {
@@ -3603,7 +3702,7 @@ int main (int argc, char *argv[])
          }
          
          /*set all else*/
-         if ( !verb ) k=1;
+         if ( !all_surfs_spec ) k=1;
          else k=2;
          for ( j=0; j<k; ++j) {
             if ( surfaces_orig[id]->FileType==SUMA_PLY ) 
@@ -3629,23 +3728,23 @@ int main (int argc, char *argv[])
       if (spec_order[id]>=0) {
          /*surface state id exists*/
          
-         if ( verb ) i_surf = 2*spec_order[id];
+         if ( all_surfs_spec ) i_surf = 2*spec_order[id];
          else i_surf = spec_order[id];
          
          if ( spec_order[spec_mapRef[id]] < 0 ) {
             /*mapping reference not a surface in the spec file*/
             fprintf(SUMA_STDERR, "Warning %s: Mapping Reference for surface %d is not included in the spec file.\n\tSetting to 'SAME'.\n", FuncName, spec_order[id]); 
             strcpy( spec_info[i_surf].mapRef, "SAME" );
-            if (verb) strcpy( spec_info[i_surf+1].mapRef, "SAME");
+            if (all_surfs_spec) strcpy( spec_info[i_surf+1].mapRef, "SAME");
          } 
          else if ( spec_mapRef[id] == id ) {
             /*mapping reference is SAME*/
             strcpy( spec_info[i_surf].mapRef, "SAME" );
-            if (verb) strcpy( spec_info[i_surf+1].mapRef, "SAME");
+            if (all_surfs_spec) strcpy( spec_info[i_surf+1].mapRef, "SAME");
          }
          else {
             /*mapping reference is a surface in the spec file, distinct from current surface*/
-            if (verb) {
+            if (all_surfs_spec) {
                strcpy( spec_info[i_surf].mapRef, spec_info[2*spec_order[spec_mapRef[id]]].fileToRead );
                strcpy( spec_info[i_surf+1].mapRef, spec_info[2*spec_order[spec_mapRef[id]]+1].fileToRead );
             }
@@ -3778,7 +3877,8 @@ int main (int argc, char *argv[])
          exit(1);
       }else{
          if (UseCOM) {
-            SUMA_S_Notev(  "Using (not recommended) center of mass coordinate of \n"
+            if (verb) {
+               SUMA_S_Notev(  "Using (not recommended) center of mass coordinate of \n"
                            "  [%f   %f   %f]\n"
                            "instead of estimated geometric center of:\n"
                            "  [%f   %f   %f]\n"
@@ -3787,8 +3887,14 @@ int main (int argc, char *argv[])
                               ctrX, ctrY, ctrZ,
                               centmed[0], centmed[1], centmed[2],
                               surfaces_orig[i_morph]->Label );
+            }
+            sprintf(snote, "Notice: Forced to use COM of [%f   %f   %f], instead of geom. center of [%f   %f   %f] for %s.\n"
+                              , ctrX, ctrY, ctrZ,
+                              centmed[0], centmed[1], centmed[2],
+                              surfaces_orig[i_morph]->Label );
          } else {
-            SUMA_S_Notev(  "Using (recommended) estimated geometric center of:\n"
+            if (verb) {
+               SUMA_S_Notev(  "Using (recommended) estimated geometric center of:\n"
                            "  [%f   %f   %f]\n"
                            "rather than center of mass coordinate of \n"
                            "  [%f   %f   %f]\n"
@@ -3797,6 +3903,9 @@ int main (int argc, char *argv[])
                               centmed[0], centmed[1], centmed[2], 
                               ctrX, ctrY, ctrZ,
                               surfaces_orig[i_morph]->Label );
+            }
+            sprintf(snote, "Notice: Used geom. center of [%f   %f   %f] for %s. COM was [%f   %f   %f].\n",
+                              centmed[0], centmed[1], centmed[2], surfaces_orig[i_morph]->Label, ctrX, ctrY, ctrZ);
             ctrX = centmed[0];
             ctrY = centmed[1];
             ctrZ = centmed[2];
@@ -3809,21 +3918,25 @@ int main (int argc, char *argv[])
    r = sqrt( pow( (surfaces_orig[i_morph]->NodeList[0]-ctrX), 2) + pow( (surfaces_orig[i_morph]->NodeList[1]-ctrY), 2) 
              + pow( (surfaces_orig[i_morph]->NodeList[2]-ctrZ), 2) );
    if (UserRadius > -1) {
-      SUMA_S_Notev(  "User specified radius of surface %s = \n"
-                     "  [%.4f]\n"
-                     "Average raidus of surface is = \n"
-                     "  [%.4f]\n" , 
+      if (verb) {   
+         SUMA_S_Notev(  "Surface %s\n"
+                     "  User specified radius = %.4f\n"
+                     "  Average raidus is     = %.4f\n" , 
                         surfaces_orig[i_morph]->Label, 
                         UserRadius,
                         r);
+      } 
+      sprintf(snote,"%s User specified radius = %.4f, Average raidus is     = %.4f.", snote, UserRadius, r);
       r = UserRadius;
    } else {
-      SUMA_S_Notev(  "Using average radius of %.4f\n"
-                     "for surface %s in adsence of\n"
-                     "specified center.\n", r, surfaces_orig[i_morph]->Label  );
+      if (verb) {
+         SUMA_S_Notev(  "Surface %s\n"
+                     "  Using average radius of %.4f\n", surfaces_orig[i_morph]->Label, r  );
+      } 
+      sprintf(snote,"%s Using average radius of %.4f", snote, r);
    }
    
-   SUMA_S_Notev(  "Creating Icodahedron of radius %f and center [%f %f %f]\n", r, ctr[0], ctr[1], ctr[2]);
+   if (verb) SUMA_S_Notev(  "Creating Icodahedron of radius %f and center [%f %f %f]\n", r, ctr[0], ctr[1], ctr[2]);
    /**create icosahedron*/
    icoSurf = SUMA_CreateIcosahedron (r, depth, ctr, bin, 0);
    if (!icoSurf) {
@@ -3838,10 +3951,10 @@ int main (int argc, char *argv[])
    }
    
    /**write icosahedron to file, if indicated*/
-   if ( verb ) {
+   if ( all_surfs_spec ) {
       sprintf (icoFileNm, "%s_icoSurf.asc", fout);
-      fprintf (SUMA_STDERR, "\n%s: Now writing surface %s to disk ...\n", FuncName, icoFileNm);
-      SUMA_writeFSfile (icoSurf, "#icosahedron for SUMA_MapIcosahedron (SUMA_SphericalMapping.c)", icoFileNm);
+      if (verb) fprintf (SUMA_STDERR, "\n%s: Now writing surface %s to disk ...\n", FuncName, icoFileNm);
+      SUMA_writeFSfile (icoSurf, "!ascii version in FreeSurfer format (MapIcosahedron)", icoFileNm);
       /*add to spec*/
       strcpy  (spec_info[ N_inSpec-1 ].type, "FreeSurfer");
       strcpy  (spec_info[ N_inSpec-1 ].format, "ASCII");
@@ -3857,7 +3970,13 @@ int main (int argc, char *argv[])
    /* start timer */
    SUMA_etime(&start_time,0);
    
-   MI = SUMA_MapSurface( icoSurf, surfaces_orig[i_morph] ) ;
+   
+   if (UseCOM) {/* if old method, reset isSphere flags */
+      icoSurf->isSphere = SUMA_GEOM_NOT_SET;
+      surfaces_orig[i_morph]->isSphere = SUMA_GEOM_NOT_SET;
+   }
+   
+   MI = SUMA_MapSurface( icoSurf, surfaces_orig[i_morph], verb) ;
    if (!MI) {
       fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_MapIcosahedron.\n", FuncName);
       if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
@@ -3869,7 +3988,27 @@ int main (int argc, char *argv[])
       if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
       exit (1);
    }
-
+   
+   if (WriteMI) {
+      FILE *fp=NULL;
+      char *fname = SUMA_append_string(fout,"_MI.1D");
+      if (!(fp = fopen(fname,"w")) ) {
+         SUMA_S_Err("Failed to open %s for writing.");
+         exit (1);
+      }
+      fprintf(fp, "# Col. 0: Std-mesh icosahedron's node index.\n"
+                  "# Col. 1..3: 1st..3rd closest nodes from original mesh (%s)\n"
+                  "# History:%s\n"
+                  "# %s\n"
+                  , surfaces_orig[i_morph]->Label, histnote, snote);
+      for (i=0; i<MI->N_Node; ++i) {
+         fprintf(fp, "%6d   %6d %6d %6d\n", 
+            i, MI->ClsNodes[3*i], MI->ClsNodes[3*i+1], MI->ClsNodes[3*i+2]); 
+      }
+      SUMA_free(fname); fname=NULL; 
+      fclose(fp); fp = NULL;   
+   }
+   
    etime_MapSurface = SUMA_etime(&start_time,1);
 
    
@@ -3936,12 +4075,21 @@ int main (int argc, char *argv[])
                }
             }
          }
-
+         
+         if (!UseCOM) {
+            /* project to sphere only if spheres */
+            SUMA_SetSphereParams(surfaces_orig[id], 0.2);
+            if (surfaces_orig[id]->isSphere == SUMA_GEOM_SPHERE) {
+               if ( verb ) SUMA_S_Note("Projecting standard mesh surface to sphere");
+               SUMA_ProjectToSphere(currSurf, surfaces_orig[id]->SphereCenter, surfaces_orig[id]->SphereRadius);
+            }
+         } 
+         
          /*write to file*/
-         if ( verb ) i_surf = 2*spec_order[id];
+         if ( all_surfs_spec ) i_surf = 2*spec_order[id];
          else i_surf = spec_order[id];
          
-         fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, spec_info[i_surf].fileToRead);
+         if (verb) fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, spec_info[i_surf].fileToRead);
          writeFile = NOPE;
          if ( SUMA_iswordin(spec_info[i_surf].type, "FreeSurfer") ==1) 
             writeFile = SUMA_Save_Surface_Object (spec_info[i_surf].fileToRead, currSurf, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
@@ -3978,10 +4126,10 @@ int main (int argc, char *argv[])
    
    /*write spec file*/
    sprintf (outSpecFileNm, "%s_std.spec", fout);
-   SUMA_writeSpecFile ( spec_info, N_inSpec, FuncName, fout, outSpecFileNm );
+   SUMA_writeSpecFile ( spec_info, N_inSpec, FuncName, fout, outSpecFileNm, histnote );
    
    
-   fprintf (SUMA_STDERR, "\nSUMA_MapSurface took %f seconds to execute.\n", etime_MapSurface); 
+   if (verb) fprintf (SUMA_STDERR, "\nSUMA_MapSurface took %f seconds to execute.\n", etime_MapSurface); 
    fprintf (SUMA_STDERR, "\n**\t\t\t\t\t**\n\t  To view in SUMA, run:\n\tsuma -spec %s \n**\t\t\t\t\t**\n\n", outSpecFileNm);
    
    
@@ -3993,6 +4141,7 @@ int main (int argc, char *argv[])
    if (spec_mapRef) SUMA_free(spec_mapRef);
    if (spec_info) SUMA_free(spec_info);
    if (MI) SUMA_Free_MorphInfo (MI);
+   if (histnote) SUMA_free(histnote);
 
    /*free surfaces*/
    if (icoSurf) SUMA_Free_Surface_Object (icoSurf);

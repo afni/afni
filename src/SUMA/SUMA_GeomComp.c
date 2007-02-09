@@ -1901,6 +1901,8 @@ SUMA_Boolean SUMA_EquateSurfaceVolumes(SUMA_SurfaceObject *SO, SUMA_SurfaceObjec
    \param SOref reference SurfaceObject, used to communicate with SUMA 
    \param radius , you know what.
    \param cs the famed communication structure
+   
+   \sa SUMA_ProjectToSphere
 */
 /*
 #define FROM_THIS_NODE 0
@@ -2007,7 +2009,10 @@ SUMA_Boolean SUMA_ProjectSurfaceToSphere(SUMA_SurfaceObject *SO, SUMA_SurfaceObj
              
       
    }   
-   
+   SO->isSphere = SUMA_GEOM_SPHERE;
+   SO->SphereRadius = radius;
+   SUMA_COPY_VEC(SO->Center, SO->SphereCenter, 3, float, float);
+
    
    SUMA_RETURN(YUP);
 }

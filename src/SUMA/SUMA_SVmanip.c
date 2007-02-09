@@ -957,13 +957,14 @@ Updates the View Center and view from of SV based on the contents of RegisteredD
 
 SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_dov)
 {
+   static char FuncName[]={"SUMA_UpdateViewPoint"};
    int i, do_id, TotWeight;
    float NewCenter[3], UsedCenter[3];
    SUMA_SurfaceObject *so_op;
-   static char FuncName[]={"SUMA_UpdateViewPoint"};
+   SUMA_Boolean LocalHead = NOPE;
       
    SUMA_ENTRY;
-
+               
    NewCenter[0] = 0.0;
    NewCenter[1] = 0.0;
    NewCenter[2] = 0.0;
@@ -975,8 +976,17 @@ SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_d
       switch (dov[do_id].ObjectType) {
          case SO_type:
             so_op = (SUMA_SurfaceObject *)dov[do_id].OP;
-            if (SV->UsePatchDims) { SUMA_COPY_VEC(so_op->patchCenter, UsedCenter, 3, float, float);  } 
-            else {  SUMA_COPY_VEC(so_op->Center, UsedCenter, 3, float, float); }
+            if (SV->UsePatchDims) { 
+               SUMA_LH("Using patch center");
+               SUMA_COPY_VEC(so_op->patchCenter, UsedCenter, 3, float, float);  
+            } else {  
+               SUMA_LH("Using center of mass or sphere's center.");
+               if (!SUMA_IS_GEOM_SYMM(so_op->isSphere)) {
+                  SUMA_COPY_VEC(so_op->Center, UsedCenter, 3, float, float); 
+               } else {
+                  SUMA_COPY_VEC(so_op->SphereCenter, UsedCenter, 3, float, float); 
+               }
+            }
             if (so_op->ViewCenterWeight) {
                NewCenter[0] += so_op->ViewCenterWeight*UsedCenter[0];
                NewCenter[1] += so_op->ViewCenterWeight*UsedCenter[1];
@@ -1042,7 +1052,13 @@ SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_
          case SO_type:
             so_op = (SUMA_SurfaceObject *)dov[do_id].OP;
             if (SV->UsePatchDims) { SUMA_COPY_VEC(so_op->patchCenter, UsedCenter, 3, float, float);  } 
-            else {  SUMA_COPY_VEC(so_op->Center, UsedCenter, 3, float, float); }
+            else {  
+               if (SUMA_IS_GEOM_SYMM(so_op->isSphere)) {
+                  SUMA_COPY_VEC(so_op->SphereCenter, UsedCenter, 3, float, float); 
+               } else {
+                  SUMA_COPY_VEC(so_op->Center, UsedCenter, 3, float, float); 
+               }
+            }
             if (so_op->RotationWeight) {
                NewCenter[0] += so_op->RotationWeight*UsedCenter[0];
                NewCenter[1] += so_op->RotationWeight*UsedCenter[1];
