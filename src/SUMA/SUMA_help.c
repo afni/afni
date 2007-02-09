@@ -135,6 +135,8 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "    o Allow replacement of pre-loaded DO and Dsets\n"
             "    o Support for .niml.dset as format for surface-based anlysis\n"
             "    o High resolution image saving with ctrl+r\n"
+            "  + MapIcosahedron:\n"
+            "    o Better handling of surface centers. \n"
             );
          break; 
       case 20041229:

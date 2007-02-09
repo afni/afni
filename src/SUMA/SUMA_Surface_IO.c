@@ -3289,7 +3289,8 @@ SUMA_Boolean SUMA_FS_Write (char *fileNm, SUMA_SurfaceObject *SO, char *firstLin
       SUMA_RETURN (NOPE);
    } 
    
-   fprintf (outFile,"#%s\n", firstLine);
+   if (firstLine) fprintf (outFile,"#%s\n", firstLine);
+   else fprintf (outFile,"#!ascii version of FreeSurfer surface\n");
    fprintf (outFile, "%d %d\n", SO->N_Node, SO->N_FaceSet);
 
    j=0;

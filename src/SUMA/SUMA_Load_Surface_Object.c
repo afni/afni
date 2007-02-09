@@ -236,7 +236,7 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
          if (SO_FF != SUMA_ASCII) {
             fprintf (SUMA_STDERR, "Warning %s: Only ASCII supported for Free Surfer surfaces.\n", FuncName);
          }
-         if (!SUMA_FS_Write ((char *)F_name, SO, "#Output of SUMA_SurfaceConvert")) {
+         if (!SUMA_FS_Write ((char *)F_name, SO, "!ascii version in FreeSurfer format (SUMA)")) {
             fprintf (SUMA_STDERR, "Error %s: Failed to write FreeSurfer surface.\n", FuncName);
             SUMA_RETURN (NOPE);
          }
@@ -310,13 +310,19 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    /* calculate the center and dimensions for the nodes in the patch only */
    PatchNodeMask = SUMA_MaskOfNodesInPatch(SO, &(SO->N_patchNode));
    if (!SO->N_patchNode || SO->N_patchNode == SO->N_Node) { 
+      SUMA_LHv("Up here, isSphere = %d\n", SO->isSphere);
       if (!PatchNodeMask ) { SUMA_SL_Err("Failed in SUMA_MaskOfNodesInPatch.\nUsing values from all nodes."); }
-      SUMA_COPY_VEC(SO->Center, SO->patchCenter, 3, float, float);
+      if (!SUMA_IS_GEOM_SYMM(SO->isSphere)) {
+         SUMA_COPY_VEC(SO->Center, SO->patchCenter, 3, float, float);
+      } else {
+         SUMA_COPY_VEC(SO->SphereCenter, SO->patchCenter, 3, float, float);
+      }
       SUMA_COPY_VEC(SO->MinDims, SO->patchMinDims, 3, float, float);
       SUMA_COPY_VEC(SO->MaxDims, SO->patchMaxDims, 3, float, float);
       SO->patchaMaxDims = SO->aMaxDims;
       SO->patchaMinDims = SO->aMinDims;
    }else {
+      SUMA_LH("Down there");
       SUMA_MIN_MAX_SUM_VECMAT_MASK_COL (SO->NodeList, SO->N_Node, SO->NodeDim, PatchNodeMask, SO->patchMinDims, SO->patchMaxDims, SO->patchCenter);
       SO->patchCenter[0] /= SO->N_patchNode;
       SO->patchCenter[1] /= SO->N_patchNode;
@@ -1022,6 +1028,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
       SUMA_Free_Surface_Object (SO);
       SUMA_RETURN (NULL);
    }
+
+   if (SO->isSphere == SUMA_GEOM_NOT_SET) { SUMA_SetSphereParams(SO, -0.1); }  /* sets the spheriosity parameters */
 
 
    if (!SUMA_PrepSO_GeomProp_GL (SO)) {
@@ -2186,6 +2194,7 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(SUMA_SurfSpecFile *Spec, int i, char *t
       SO->Label = SUMA_copy_string(Spec->SurfaceLabel[i]);
    }
 
+   if (SO->isSphere == SUMA_GEOM_NOT_SET) { SUMA_SetSphereParams(SO, -0.1); }  /* sets the spheriosity parameters */
 
    if (!SO->Group || !SO->State || !SO->Label) {
       fprintf(SUMA_STDERR,"Error %s: Error allocating lameness.\n", FuncName);
@@ -2201,6 +2210,7 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(SUMA_SurfSpecFile *Spec, int i, char *t
       SO->Side = SUMA_RIGHT;
    } else SO->Side = SUMA_GuessSide (SO);
 
+   
    if (Spec->OriginatorID[i][0]) SO->OriginatorID = SUMA_copy_string(Spec->OriginatorID[i]);
    if (Spec->DomainGrandParentID[i][0]) SO->DomainGrandParentID = SUMA_copy_string(Spec->DomainGrandParentID[i]);
    if (Spec->LocalCurvatureParent[i][0]) SO->LocalCurvatureParent = SUMA_copy_string(Spec->LocalCurvatureParent[i]);
@@ -3615,6 +3625,116 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
    } 
    
    SUMA_RETURN (SUMA_NO_SIDE);
+}
+
+/*!
+   tol is the percent tolerance for accepting a surface as a sphere if
+   its radius fluctuates by tol percent. 
+*/
+int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
+{
+   static char FuncName[]={"SUMA_SetSphereParams"};
+   double cent[3], centmed[3], RAD, RAD0, RAD1, rad;
+   int i, i3;
+   SUMA_GEOM_TYPE isSphere = SUMA_GEOM_NOT_SET;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   isSphere = SUMA_GEOM_NOT_SET;
+   if (tol < 0.0) tol = 0.2;
+   
+   /* has this been determined ? */
+   if (SUMA_IS_GEOM_SYMM(SO->isSphere)) {
+      SUMA_LHv("%s is labeled as %d already\n", SO->Label, SO->isSphere);
+      isSphere = SO->isSphere;
+   }
+   
+   if (isSphere == SUMA_GEOM_NOT_SET) {  /* try to guess from name */
+      SUMA_LHv("Trying to guess from name %s\n", SO->Name.FileName);
+      switch (SO->FileType) {
+         case SUMA_INVENTOR_GENERIC:
+            break;
+         case SUMA_FREE_SURFER:
+         case SUMA_FREE_SURFER_PATCH:
+            if (  SUMA_iswordin_ci (SO->Name.FileName, "sphere.reg") == 1 ||
+                  SUMA_iswordin (SO->Name.FileName, "sphere") == 1   ) {
+               isSphere = SUMA_GEOM_SPHERE;
+            } 
+            break;
+         case SUMA_BRAIN_VOYAGER:
+             break;
+         case SUMA_SUREFIT:
+            if (SUMA_iswordin_ci (SO->Name_coord.FileName, "sphere") == 1 ) {
+               isSphere = SUMA_GEOM_SPHERE;
+            } 
+            break;
+         case SUMA_VEC:
+            break;
+         case SUMA_FT_NOT_SPECIFIED:
+         case SUMA_CMAP_SO:
+         case SUMA_N_SO_FILE_TYPE:
+         case SUMA_FT_ERROR:
+            break;
+         case SUMA_OPENDX_MESH:
+         case SUMA_PLY:
+            break;
+      } 
+   }
+    
+   if (isSphere ==  SUMA_GEOM_NOT_SET || SUMA_IS_GEOM_SYMM(isSphere) && SO->SphereRadius < 0.0 ) {  /* need to figure out the hard way
+                                                               or need to fill up params */
+      if (isSphere ==  SUMA_GEOM_NOT_SET) { 
+         SUMA_LHv("The hard way (tol = %f)\n", tol);
+      } else {
+         SUMA_LHv("Need to set radius and center. tol = %f\n", tol);
+      }
+      /* the hard way */
+      if (!SUMA_GetCenterOfSphereSurface(SO, 500, cent, centmed)) {
+         SUMA_S_Warn("Failed to guess at spheriosity.");
+         SUMA_RETURN(NOPE);
+      }
+      /* have center, verify that all nodes are within 1/1000 of Rad */
+      SUMA_LHv("Have a center of [%f   %f   %f] for %s\n", 
+               centmed[0] , centmed[1], centmed[2] , SO->Label) ;
+      RAD = sqrt( SUMA_POW2( SO->NodeList[0] - centmed[0] ) +
+                  SUMA_POW2( SO->NodeList[1] - centmed[1] ) +
+                  SUMA_POW2( SO->NodeList[2] - centmed[2] ) );
+      RAD0 = RAD * (100.0-tol)/100.0;
+      RAD1 = RAD * (100.0+tol)/100.0;
+      isSphere = SUMA_GEOM_SPHERE;
+      for (i=1; i<SO->N_Node && isSphere == SUMA_GEOM_SPHERE; ++i) {
+         i3 = 3*i;
+         rad = sqrt( SUMA_POW2( SO->NodeList[i3  ] - centmed[0] ) +
+                     SUMA_POW2( SO->NodeList[i3+1] - centmed[1] ) +
+                     SUMA_POW2( SO->NodeList[i3+2] - centmed[2] ) );   
+         if (rad < RAD0 || rad > RAD1) {
+            /* no cigar */
+            SUMA_LHv("Failed radius test:\n"
+                     "Rad range [%f  %f]\n"
+                     "Rad           %f\n", RAD0, RAD1, rad);
+            isSphere  = SUMA_GEOM_IRREGULAR;
+         }  
+      }
+      if (isSphere == SUMA_GEOM_SPHERE) {
+         SO->SphereRadius = RAD;
+         SO->SphereCenter[0] = centmed[0];
+         SO->SphereCenter[1] = centmed[1];
+         SO->SphereCenter[2] = centmed[2];
+         SUMA_LHv("A sphere it is: \n"
+                  "r = %f\n"
+                  "c = [%f   %f   %f]\n", SO->SphereRadius,
+                  SO->SphereCenter[0], SO->SphereCenter[1], SO->SphereCenter[2]);
+      }else{
+         SUMA_LH("A sphere it is NOT, assuming it is irregular");
+      }
+   } else {
+      SUMA_LHv("isSphere is %d, SUMA_IS_GEOM_SYMM(isSphere) = %d, SO->SphereRadius=%f\n",
+               isSphere , SUMA_IS_GEOM_SYMM(isSphere), SO->SphereRadius);
+   }  
+   
+   SO->isSphere = isSphere;
+   SUMA_RETURN (YUP);
 }
 
 /*---------------------------------------------------------------------------

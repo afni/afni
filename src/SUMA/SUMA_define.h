@@ -145,6 +145,11 @@ typedef enum { SUMA_VOX_NEIGHB_FACE, SUMA_VOX_NEIGHB_EDGE, SUMA_VOX_NEIGHB_CORNE
 typedef enum { SUMA_DONT_KNOW = 0, SUMA_IN_TRIBOX_OUTSIDE = 1, SUMA_INTERSECTS_TRIANGLE_OUTSIDE, SUMA_ON_NODE, SUMA_INTERSECTS_TRIANGLE_INSIDE, SUMA_IN_TRIBOX_INSIDE, SUMA_INSIDE_SURFACE } SUMA_SURF_GRID_INTERSECT_OPTIONS;
                                     
 typedef enum { SUMA_SIDE_ERROR=-1, SUMA_NO_SIDE, SUMA_LEFT, SUMA_RIGHT } SUMA_SO_SIDE; 
+typedef enum { SUMA_GEOM_NOT_SET=-1, SUMA_GEOM_IRREGULAR = 0,    
+               SUMA_GEOM_SPHERE = 1, SUMA_GEOM_ICOSAHEDRON, 
+               SUMA_N_GEOM } SUMA_GEOM_TYPE;
+#define SUMA_IS_GEOM_SYMM(gt) ( ( (gt) == SUMA_GEOM_SPHERE || (gt) == SUMA_GEOM_ICOSAHEDRON ) ? 1:0 ) 
+
 typedef enum  { SUMA_NO_ANSWER, SUMA_YES, SUMA_NO, SUMA_HELP, SUMA_CANCEL, SUMA_YES_ALL, SUMA_NO_ALL, SUMA_WHAT_THE_HELL } SUMA_QUESTION_DIALOG_ANSWER; /* DO NOT CHANGE THE ORDER OF THE FIRST 4 */
 
 typedef enum  { SUMA_FT_ERROR = -1, SUMA_FT_NOT_SPECIFIED, 
@@ -1833,6 +1838,9 @@ typedef struct {
    char *ModelName; /*!< cerebellum, hippocampus, cerebrum, etc. */
    /* modifications to the lame MappingRef field */
    SUMA_SO_SIDE Side; /*!< Left/right */
+   SUMA_GEOM_TYPE isSphere;  /*!< yes/no */
+   float SphereRadius; /*!< If a sphere, then this is its radius */
+   float SphereCenter[3]; /*!< If a sphere, then this it is center */
    SUMA_Boolean AnatCorrect;    /*!< Does surface geometry matches anatomy ? (YUP/NOPE)*/
    char *DomainGrandParentID;        /*!< Grandparent's mesh ID (icosahedron's for std-meshes) */
    char *OriginatorID;          /*!<  ID common for surfaces from one subject that are created
