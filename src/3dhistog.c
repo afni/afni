@@ -120,7 +120,7 @@ int main( int argc , char * argv[] )
              "  -unq U.1D Writes out the sorted unique values to file U.1D.\n"
              "            This option is not allowed for float data\n"
              "            If you have a problem with this, write\n"
-             "            Ziad S. Saad (ziad@nih.gov)\n"
+             "            Ziad S. Saad (saadz@mail.nih.gov)\n"
              "\n"
              "The histogram is written to stdout.  Use redirection '>' if you\n"
              "want to save it to a file.  The format is a title line, then\n"
@@ -314,9 +314,10 @@ int main( int argc , char * argv[] )
        case MRI_float:{
          float *fim = (float *)vfim ;
          for( ii=0 ; ii < nxyz ; ii++ ){
+	   fval = fim[ii]*fimfac ;  /* thanks to Tom Holroyd for noticing this*/
            if( (fval >= fbot && fval <= ftop) &&
-                KEEP(fim[ii]*fimfac) && (HI_mask == NULL || HI_mask[ii]) ){
-             kk = (int)( (fim[ii]-fbot)*dfi ) ;
+                KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
+             kk = (int)( (fval-fbot)*dfi ) ;
              fbin[kk]++ ;
            }
          }
