@@ -21,7 +21,7 @@ function [M] = ROIcmap(nc,opt)
 %   M: The colormap. 
 %
 %see also readXcol, rgbdectohex, and ScaleToMap
-% Ziad S. Saad SSCC/NIMH/NIH, ziad@nih.gov
+% Ziad S. Saad SSCC/NIMH/NIH, saadz@mail.nih.gov
 
 if (nargin == 0),
    nc = 64;

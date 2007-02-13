@@ -64,7 +64,7 @@ function [err, ErrMessage, Info] = WriteBrik (M, Info, Opt)
 %Key Terms:
 %   
 %More Info :
-%   BrikInfo, BrikLoad, WriteBrikHEAD, HEAD_Rules, Info_1D
+%   New_HEAD BrikInfo, BrikLoad, WriteBrikHEAD, HEAD_Rules, Info_1D
 %     
 %     need a FormHEAD function to create a minimal Info structure for a data vector
 %
@@ -79,7 +79,7 @@ function [err, ErrMessage, Info] = WriteBrik (M, Info, Opt)
 %     Date : Fri Apr 6 16:03:02 PDT 2001, last modified Oct 01 04
 %     LBC/NIMH/ National Institutes of Health, Bethesda Maryland
 %
-%     Contact: ziad@nih.gov
+%     Contact: saadz@mail.nih.gov
 
 
 %Define the function name for easy referencing
@@ -100,6 +100,8 @@ if (nargin < 3),
 end
 
 %first check on Prefix
+if (isfield(Opt,'prefix')), Opt.Prefix = Opt.prefix; end %comes from New_HEAD
+if (isfield(Opt,'scale')), Opt.Scale =  Opt.scale; end %comes from New_HEAD
 if (~isfield(Opt, 'Prefix') | isempty (Opt.Prefix)), 
    err = 1; 
    ErrMessage = sprintf('Error %s: You must specify Opt.Prefix.', FuncName);  
@@ -178,7 +180,9 @@ end
 
    if (Opt.verbose), fprintf(1,'%s verbose: Checking input data ...', FuncName); end
    if (~isfield(Opt, 'Scale') | isempty (Opt.Scale)), Opt.Scale = 0; end
+   if (isfield(Opt,'view')) Opt.View = Opt.view; end  %comes from New_HEAD
    if (~isfield(Opt, 'View') | isempty(Opt.View)), Opt.View = ''; end
+   
    %Make sure prefix is clear of view
       [Opt.Prefix, uv, ue]  = AfniPrefix(Opt.Prefix);
       if (~isempty(uv)),
@@ -352,6 +356,7 @@ end
 isallframes=all(ismember(allframes,Opt.Frames));
 
 Info.BRICK_FLOAT_FACS = zeros(1,Info.DATASET_RANK(2));
+
 if (Opt.Scale & isallslices & isallframes),
       if (Opt.verbose), fprintf(1,'Scaling ...'); end
       NperBrik = Info.DATASET_DIMENSIONS(1) .* Info.DATASET_DIMENSIONS(2) .* Info.DATASET_DIMENSIONS(3);
@@ -377,8 +382,8 @@ numframes=length(Opt.Frames);
 
 %open file for writing based on the type specified in Info
 if Opt.Slices(1)==1 & Opt.Frames(1)==1
-   if (OverW == 0 & (exist(FnameHEAD) == 2 | exist(FnameBRIK) == 2)),
-      err = 1; ErrMessage = sprintf('Error %s: Output data set %s exists.', FuncName, Fname); errordlg(ErrMessage); return;
+   if (OverW == 0 & (filexist(FnameHEAD) | filexist(FnameBRIK))),
+      err = 1; ErrMessage = sprintf('Error %s: Output data set %s exists.\n', FuncName, Fname); errordlg(ErrMessage); return;
    end
    [fid, mess] = fopen (FnameBRIK, 'w', ByteOrder);
    if (fid < 0), 

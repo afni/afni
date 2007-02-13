@@ -153,7 +153,6 @@ ENTRY("THD_dataset_info") ;
   }
 
    /*-- tagset --*/
-
    if( verbose > 0 && dset->tagset != NULL && dset->tagset->num > 0 ){
       int ii , ns=0 ;
       for( ii=0 ; ii < dset->tagset->num ; ii++ )
@@ -224,6 +223,7 @@ ENTRY("THD_dataset_info") ;
    ntimes   = DSET_NUM_TIMES(dset) ;
    nval_per = DSET_NVALS_PER_TIME(dset) ;
    if( ntimes > 1 ){
+
       outbuf = THD_zzprintf(outbuf,
          "Number of time steps = %d  Number of values at each pixel = %d\n",
          ntimes , nval_per ) ;

@@ -245,6 +245,10 @@ int afni_io(void)
 {
    static int afni_mode = AFNI_OPEN_CONTROL_MODE ;  /* status variable */
    static IOCHAN * afni_ioc = NULL ;                /* connection to AFNI */
+   static float delta_t = -1.0;                     /* time spent waiting */
+   float Time_Fact = 1000000.0;
+   static struct  timeval  tw;
+   struct  timeval  tn;
    int ii ;
 
    /***************************************************************/
@@ -275,6 +279,8 @@ int afni_io(void)
          return -1 ;
       }
       afni_mode = AFNI_WAIT_CONTROL_MODE ; /* waiting for AFNI connection */
+      gettimeofday(&tw, NULL);   /* keep track of time that you began waiting */
+      
       if( afni_verbose )
          fprintf(stderr,"++ AFNI control channel created\n") ;
    }
@@ -284,7 +290,8 @@ int afni_io(void)
 
    if( afni_mode == AFNI_WAIT_CONTROL_MODE ){
       ii = iochan_writecheck( afni_ioc , 5 ) ;     /* wait at most 5 msec */
-
+      gettimeofday(&tn, NULL);   /* what time is it now? */
+      
       /** the iochan_*check() routines return
              -1 for an error,
               0 if not ready,
@@ -300,7 +307,17 @@ int afni_io(void)
          if( afni_verbose )
             fprintf(stderr,"++ AFNI control channel connected\n");
       } else {
-         return 0 ;                                /* try again next time */
+         delta_t = (((float)(tn.tv_sec  - tw.tv_sec )*Time_Fact) +     /* time spent waiting */
+                     (float)(tn.tv_usec - tw.tv_usec)) /Time_Fact;
+         if (delta_t > 5.0) {
+            fprintf(stderr,"** Waited 5 seconds to no avail.\n"
+                           "   I quit.\n"); 
+            IOCHAN_CLOSE(afni_ioc) ;
+            afni_mode = 0 ;
+            return -1 ;
+         } else {
+            return 0 ;                                /* try again next time */
+         }
       }
    }
 

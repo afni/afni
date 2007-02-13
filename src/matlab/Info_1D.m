@@ -7,7 +7,7 @@ function [err, Info] = Info_1D(v, fname)
 % otherwise, you can do that on your own later.
 % 
 % see also Read_1D, BrikLoad, and BrikInfo
-%     Ziad S. Saad ziad@nih.gov, SSCC/NIMH/NIH/USA
+%     Ziad S. Saad saadz@mail.nih.gov, SSCC/NIMH/NIH/USA
 
 FuncName = 'Info_1D';
 err = 1;
