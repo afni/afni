@@ -39,7 +39,9 @@ class afni_name:
    def exist(self):
       if os.path.isfile("%s.HEAD" % self.ppv()) and \
          (os.path.isfile("%s.BRIK" % self.ppv()) or \
-          os.path.isfile("%s.BRIK.gz" % self.ppv())):
+          os.path.isfile("%s.BRIK.gz" % self.ppv()) or \
+          os.path.isfile("%s.BRIK.bz2" % self.ppv()) or \
+          os.path.isfile("%s.BRIK.Z" % self.ppv()) ):
          return 1
       else:
          return 0
@@ -50,6 +52,10 @@ class afni_name:
          shell_exec("rm %s.BRIK" % self.ppv())
       if os.path.isfile("%s.BRIK.gz" % self.ppv()):
          shell_exec("rm %s.BRIK.gz" % self.ppv())
+      if os.path.isfile("%s.BRIK.bz2" % self.ppv()):
+         shell_exec("rm %s.BRIK.bz2" % self.ppv())
+      if os.path.isfile("%s.BRIK.Z" % self.ppv()):
+         shell_exec("rm %s.BRIK.Z" % self.ppv())
       return
    def move_to_dir(self, path=""):
       #self.show()
@@ -65,13 +71,19 @@ class afni_name:
          if os.path.isfile("%s.BRIK.gz" % self.ppv()):
             sv = shell_com("mv %s %s/" % (self.brickgz(), path))
             found = found + 1         
+         if os.path.isfile("%s.BRIK.bz2" % self.ppv()):
+            sv = shell_com("mv %s %s/" % (self.brickbz2(), path))
+            found = found + 1 
+         if os.path.isfile("%s.BRIK.Z" % self.ppv()):
+            sv = shell_com("mv %s %s/" % (self.brickZ(), path))
+            found = found + 1 
          if (found > 0):
             self.new_path(path)
             if ( not self.exist() ):
                print "Error: Move to %s failed" % (self.ppv())
                return 0
          else:
-            print "Error: Found no .HEAD or .BRIK or .BRIK.gz of %s" % (self.ppv())
+            print "Error: Found no .HEAD or .BRIK or .BRIK.gz (or .bz2 or .Z) of %s" % (self.ppv())
             return 0
       else:
          print "Error: Path %s not found for moving %s." % (path, self.ppv())
@@ -84,6 +96,10 @@ class afni_name:
       return "%s.BRIK" % self.ppv()      
    def brickgz(self):
       return "%s.BRIK.gz" % self.ppv() 
+   def brickbz2(self):
+      return "%s.BRIK.bz2" % self.ppv() 
+   def brickZ(self):
+      return "%s.BRIK.Z" % self.ppv() 
    def new_path(self,path=""):
       #give name a new path
       if len(path) == 0:
@@ -443,7 +459,7 @@ def parse_afni_name(name):
       pr = rni[0]
       tp = 'NIFTI'
    else: 
-      rni = strip_extension(fn,['.HEAD','.BRIK','.BRIK.gz','.1D', '.',  \
+      rni = strip_extension(fn,['.HEAD','.BRIK','.BRIK.gz','.BRIK.bz2','.BRIK.Z','.1D', '.',  \
                                 '.1D.dset', '.niml.dset'])
       ex = rni[1]
       if (ex == '.1D' or ex == '.1D.dset'):
