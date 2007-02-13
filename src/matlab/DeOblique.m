@@ -18,7 +18,7 @@
 %If you are using this script for some reason, use it with 
 %caution. Verify your results with AFNI at the end.
 %
-%ziad@nih.gov
+%saadz@mail.nih.gov
 
 FuncName = 'DeOblique';
 
@@ -159,7 +159,7 @@ while (~isempty(fname)),
          fprintf (fidv(outp),' alignment with the function.\n');
          fprintf (fidv(outp),'If the rotation appears to be in the wrong direction,\n');
          fprintf (fidv(outp),' try using %g for a rotation angle.\n', -AngleDeg);
-         fprintf (fidv(outp),' When that occurs, please notify me. \n\tziad@nih.gov\n\n');
+         fprintf (fidv(outp),' When that occurs, please notify me. \n\tsaadz@mail.nih.gov\n\n');
       end
    end   
 

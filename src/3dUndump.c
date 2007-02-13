@@ -86,6 +86,9 @@ void Syntax(char * msg)
     "                   of the output dataset.  If -master is used instead,\n"
     "                   the output dataset's axes ordering is the same as the\n"
     "                   -master dataset's, regardless of -orient.\n"
+    "  -head_only   =  A secret option for creating only the .HEAD file which\n"
+    "                  gets exploited by the AFNI matlab library function\n"
+    "                  New_HEAD.m\n"
     "\n"
     "Input File Format:\n"
     " The input file(s) are ASCII files, with one voxel specification per\n"
@@ -143,7 +146,7 @@ int main( int argc , char * argv[] )
 
    FILE *fp ;
    THD_3dim_dataset *dset , *maskset=NULL ;
-   int iarg , ii,jj,kk,ll,ijk , nx,ny,nz , nxyz , nn ;
+   int iarg , ii,jj,kk,ll,ijk , nx,ny,nz , nxyz , nn , do_head_only=0;
    float      xx,yy,zz,vv=0.0 ;
    short               sv=0   ;
    byte                bv=0   ;
@@ -171,6 +174,7 @@ int main( int argc , char * argv[] )
 
    /*-- command line options --*/
 
+   do_head_only = 0 ;
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
 
@@ -306,9 +310,15 @@ int main( int argc , char * argv[] )
          do_ijk = 0 ;
          iarg++ ; continue ;
       }
-
+      
       /*-----*/
 
+      if( strcmp(argv[iarg],"-head_only") == 0 ){
+         do_head_only = 1 ;
+         iarg++ ; continue ;
+      }
+
+      /*-----*/
       if( strcmp(argv[iarg],"-orient") == 0 ){
          int xx,yy,zz ;
          if( iarg+1 >= argc )
@@ -333,7 +343,7 @@ int main( int argc , char * argv[] )
 
    /*-- check for inconsistencies --*/
 
-   if( iarg >= argc )
+   if( iarg >= argc && !do_head_only)
       Syntax("No input files on command line!?") ;
 
    if( do_ijk == 0 && mset == NULL )
@@ -412,6 +422,11 @@ int main( int argc , char * argv[] )
    if( THD_is_file(DSET_HEADNAME(dset)) )
       Syntax("Output dataset already exists -- can't overwrite") ;
 
+   if (do_head_only) {
+      DSET_write_header(dset);
+      exit(0);
+   }
+   
    /*-- make empty brick array for dataset --*/
 
    EDIT_substitute_brick( dset , 0 , datum , NULL ) ;  /* will make array */

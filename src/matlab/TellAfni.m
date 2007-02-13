@@ -20,7 +20,9 @@ function [err] = TellAfni (cs, opt)
 %More Info :
 %   
 %     NewCs
-%     AFNI's README.driver file and the program plugout_drive
+%     TellAfni_Commands
+%     Test_TellAfni
+%     AFNI's README.driver  file and the program plugout_drive
 %     
 %     Author : Ziad Saad
 %     Date : Tue Dec 6 10:38:23 EST 2005

@@ -24,10 +24,11 @@ function [l, sh] = TellAfni_Commands (f, fpart )
 %Key Terms:
 %   
 %More Info :
-%   
-%     README.driver
-%     NewCs
-%     TellAfni
+%    TellAfni
+%    TellAfni_Commands
+%    Test_TellAfni
+%    AFNI's README.driver
+%    NewCs
 %
 %     Author : Ziad Saad
 %     Date : Wed Dec 7 15:34:57 EST 2005

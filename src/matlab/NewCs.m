@@ -69,16 +69,16 @@ if (length(win) ~= 1 | win < 'A' | win > 'J'),
    fprintf(2,'Bad window specifer %s\n', win); 
    return;           
 end
-
+  
 Name = upper(Name);
 switch (Name),
    case 'START_AFNI',
       cs.c = sprintf('%s', Name);
       if (~isempty(p1)),
-         if (exist(p1,'dir') == 7),
+         if (NewCs_CheckFnames(p1) > 0),
             cs.v = p1;
          else
-            fprintf(2,'Command <%s> requires an existing directory for the first parameter\nDirectory %s not found\n', Name, p1)
+            fprintf(2,'Command <%s> requires an existing directory or files for the first parameter\nSomething in %s not found\n', Name, p1)
          end
       end
       cs.v = sprintf('%s %s', cs.v, p2);;
@@ -640,3 +640,13 @@ function [err] = NewCs_OKpanel(p1)
 
 return
 
+%check on input file names
+function [k] = NewCs_CheckFnames(s)
+   [si, s] = strtok(s,' ');
+   k = 0;
+   if (exist(si,'dir') == 7 || filexist(si)), 
+      k = k + 1;
+   else
+      k = -1;
+   end
+return
