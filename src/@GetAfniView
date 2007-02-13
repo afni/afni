@@ -8,7 +8,7 @@ endif
 #remove path
 set Name = $1:t
 set ext = $Name:e
-if ($ext == "gz") then 
+if ($ext == "gz" || $ext == "bz2" || $ext == "Z") then 
    set Name2 = $Name:r
    set ext = $Name2:e
 endif

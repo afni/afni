@@ -209,7 +209,7 @@ DOWNSAMPLE:
 		if ($Skip == 0) then
 			echo "running: adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu"
 			adwarp -force -prefix $tmpPrefix -apar $SurfAnat -dpar $SurfAnat -dxyz $DownSample -resam Cu
-			if(!(-f $tmpPrefix$SurfAnatView.BRIK || -f $tmpPrefix$SurfAnatView.BRIK.gz || -f $tmpPrefix$SurfAnatView.BRIK.Z)) then
+			if(!(-f $tmpPrefix$SurfAnatView.BRIK || -f $tmpPrefix$SurfAnatView.BRIK.gz || -f $tmpPrefix$SurfAnatView.BRIK.Z || -f $tmpPrefix$SurfAnatView.BRIK.bz2 )) then
 				goto NO_DOWNGOOD_BADBAD
 			endif
 			
@@ -252,7 +252,7 @@ RESAMPLE:
          rm -rf ${tmpref}*.???? >& /dev/null
          @clip_volume -below $clpbelow -input $ExpAnat -prefix $tmpref
          set nxt = "$tmpref""$ExpAnatView"
-         if (!(-f $nxt.BRIK || -f $nxt.BRIK.gz || -f $nxt.BRIK.Z)) then 
+         if (!(-f $nxt.BRIK || -f $nxt.BRIK.gz || -f $nxt.BRIK.Z || -f $nxt.BRIK.bz2)) then 
 			   goto NO_RESAMP
 		   endif
       else   
@@ -261,7 +261,7 @@ RESAMPLE:
       echo "3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $nxt"
 		echo ""
 		3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $nxt
-		if (!(-f $ExpAnat_Resamp.BRIK || -f $ExpAnat_Resamp.BRIK.gz || -f $ExpAnat_Resamp.BRIK.Z)) then 
+		if (!(-f $ExpAnat_Resamp.BRIK || -f $ExpAnat_Resamp.BRIK.gz || -f $ExpAnat_Resamp.BRIK.Z || -f $ExpAnat_Resamp.BRIK.bz2)) then 
 			goto NO_RESAMP
 		endif
       rm -rf ${tmpref}*.???? >& /dev/null
@@ -299,7 +299,7 @@ REGISTER:
 	   echo "3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat"
 	   echo ""
 	   3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat
-	   if (!(-f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z)) then
+	   if (!(-f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.bz2)) then
 		   goto NO_VOLREG
 	   endif
       set fview = $SurfAnatView
@@ -331,7 +331,7 @@ REGISTER:
       else
          set fview = $SurfAnatView
       endif
-      if (!(-f ./$VolRegPrefix$fview.BRIK || -f ./$VolRegPrefix$fview.BRIK.gz || -f ./$VolRegPrefix$fview.BRIK.Z)) then
+      if (!(-f ./$VolRegPrefix$fview.BRIK || -f ./$VolRegPrefix$fview.BRIK.gz || -f ./$VolRegPrefix$fview.BRIK.Z || -f ./$VolRegPrefix$fview.BRIK.bz2)) then
 		   goto NO_WARPDRIVE
 	   endif
       rm -rf ${tmpref}*.???? >& /dev/null
@@ -354,14 +354,14 @@ CHECK_EXISTENCE:
 	if (`@CheckForAfniDset $ExpAnat` < 2) goto NO_EXPANAT
    
    #if (!(-f $ExpAnat.HEAD || -f $ExpAnat)) goto NO_EXPANAT
-	#if (!(-f $ExpAnat.BRIK || -f $ExpAnat.BRIK.gz || -f $ExpAnat.BRIK.Z)) then
+	#if (!(-f $ExpAnat.BRIK || -f $ExpAnat.BRIK.gz || -f $ExpAnat.BRIK.Z || -f $ExpAnat.BRIK.bz2)) then
 	#	goto NO_EXPANAT
 	#endif
 
 	if (`@CheckForAfniDset $SurfAnatPath/$SurfAnat` < 2) goto NO_SURFANAT
 	
    #test -f $SurfAnatPath/$SurfAnat.HEAD || goto NO_SURFANAT
-	#if (!(-f $SurfAnatPath/$SurfAnat.BRIK || -f $SurfAnatPath/$SurfAnat.BRIK.gz || -f $SurfAnatPath/$SurfAnat.BRIK.Z)) then
+	#if (!(-f $SurfAnatPath/$SurfAnat.BRIK || -f $SurfAnatPath/$SurfAnat.BRIK.gz || -f $SurfAnatPath/$SurfAnat.BRIK.Z || -f $SurfAnatPath/$SurfAnat.BRIK.bz2)) then
 	#	goto NO_SURFANAT
 	#endif
    
