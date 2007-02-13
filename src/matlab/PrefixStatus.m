@@ -46,7 +46,7 @@ Status = 0;
 View = '';
 
 %make sure you have no HEAD or BRIK as an extension
-[Prefix, Ext] = RemoveExtension(Prefix, '.HEAD|.BRIK');
+[Prefix, Ext] = RemoveExtension(Prefix, '.HEAD|.BRIK|.BRIK.gz');
 
 %make sure you have no view
 [Prefix, ViewName] = RemoveExtension(Prefix, '+orig|+acpc|+tlrc');

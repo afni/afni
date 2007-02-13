@@ -212,7 +212,7 @@ if (~isempty(which('se_note'))),
          fprintf(fida, '"%s",\n', otr(4,:)); 
          for (i=1:1:size(car,1)), fprintf(fida, '"   %s",\n', car(i,:));  end
          fprintf(fida, '"%s",\n', otr(5,:));
-         fprintf(fida, '" ",\n" ",\n"AFNI adaptation by",\n" Ziad S. Saad (ziad@nih.gov, SSCC/NIMH/NIH)",\n');
+         fprintf(fida, '" ",\n" ",\n"AFNI adaptation by",\n" Ziad S. Saad (saadz@mail.nih.gov, SSCC/NIMH/NIH)",\n');
          fprintf(fida, '" Info automatically created with CA_EZ_Prep.m based on se_note.m",\n'); 
          fprintf(fida, '""};/* Must be the only empty string in the array*/\n'); %Must be the only empty string in the array
          fprintf(fida, '%s = { "%s" };\n', sdecl2, vers);

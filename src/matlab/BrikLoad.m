@@ -99,7 +99,7 @@ function [err, V, Info, ErrMessage] = BrikLoad (BrikName, param1, param2)
 %     Biomedical Engineering, Marquette University
 %     Biophysics Research institute, Medical College of Wisconsin
 %
-%     Contact: ziad@nih.gov
+%     Contact: saadz@mail.nih.gov
 
 
 %Define the function name for easy referencing

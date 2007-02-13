@@ -81,7 +81,7 @@ end
 Info.IDCODE_DATE = datestr(now,0);
 
 %add the generating code version
-Info.GEN_SOURCE = sprintf('WriteBrik matlab library functions %s (please report bugs to ziad@nih.gov)', FUNCTION_VERSION);
+Info.GEN_SOURCE = sprintf('WriteBrik matlab library functions %s (please report bugs to saadz@mail.nih.gov)', FUNCTION_VERSION);
 
 
 fidout = fopen(FileName, 'w');
