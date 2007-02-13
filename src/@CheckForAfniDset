@@ -13,7 +13,7 @@ set pref = `@GetAfniPrefix $1`
 set view = `@GetAfniView $1`
 
 set ext = $1:e
-if ("$ext" == "gz") then
+if ("$ext" == "gz" || "$ext" == "bz2" || "$ext" == "Z" ) then
    set Name2 = $1:r
    set ext = $Name2:e
 endif
@@ -43,7 +43,7 @@ if ( -f $dsethead ) then
 else
    goto RESULT
 endif
-if ( -f $dsetbrik || -f {$dsetbrik}.gz ) then 
+if ( -f $dsetbrik || -f {$dsetbrik}.gz || -f {$dsetbrik}.bz2 || -f {$dsetbrik}.Z ) then 
    @ cnt ++
 else
    goto RESULT
@@ -58,9 +58,9 @@ goto ENDALL
 USAGE:
 	echo "Usage: `basename $0` <Name> ....."
 	echo "example: `basename $0` /Data/stuff/Hello+orig.HEAD"
-	echo "returns 0 if neither .HEAD nor .BRIK(.gz) exist" 
+	echo "returns 0 if neither .HEAD nor .BRIK(.gz)(.bz2)(.Z) exist" 
 	echo "        1 if only .HEAD exists"
-   echo "        2 if both .HEAD and .BRIK(.gz) exist"
+   echo "        2 if both .HEAD and .BRIK(.gz)(.bz2)(.Z) exist"
 	echo "        3 if .nii dataset "
    echo "Ziad Saad (ziad@nih.gov)"
    echo "  SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
