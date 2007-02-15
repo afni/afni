@@ -8,7 +8,7 @@
 /* Header FILES */
    
 #include "SUMA_suma.h"
-#include "../THD_brainormalize.h"
+#include "../thd_brainormalize.h"
 
 #ifdef STAND_ALONE
    SUMA_CommonFields *SUMAg_CF;
