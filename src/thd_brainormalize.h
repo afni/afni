@@ -1,5 +1,6 @@
 #define THD_BN_CMTOP
 
+typedef enum { SPECIE_NOT_SET=-1, HUMAN = 0, MONKEY, RAT, N_SPECIES} Species; 
 
 #if 0
    /* ZSS: See replacement functions called THD_BN in 3ddata.h */

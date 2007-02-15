@@ -66,7 +66,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "     Adds an agressive push to brain edges. Use this option\n"
                "     when the chunks of gray matter are not included. This option\n"
                "     might cause the mask to leak into non-brain areas.\n"
-               "  o 3dSkullStrip -input VOL -prefix VOL_PREFIX -monkey\n"
+               "  o 3dSkullStrip -input VOL -surface_coil -prefix VOL_PREFIX -monkey\n"
                "     Vanilla mode, for use with monkey data.\n"
                "  o 3dSkullStrip -input VOL -prefix VOL_PREFIX -ld 30\n"
                "     Use a denser mesh, in the cases where you have lots of \n"
@@ -137,7 +137,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "             [< -max_inter_iter MII >] [-mask_vol]\n"
                "             [< -debug DBG >] [< -node_debug NODE_DBG >]\n"
                "             [< -demo_pause >]\n"
-               "             [< -monkey >]\n"  
+               "             [< -monkey >] [<-rat>]\n"  
                "\n"
                "  NOTE: Please report bugs and strange failures\n"
                "        to saadz@mail.nih.gov\n"
@@ -148,6 +148,9 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "\n"
                "  Optional Parameters:\n"
                "     -monkey: the brain of a monkey.\n"
+               "     -rat: the brain of a rat.\n"
+               "           By default, no_touchup is used with the rat.\n"
+               "     -surface_coil: Data acquired with a surface coil.\n"
                "     -o_TYPE PREFIX: prefix of output surface.\n"
                "        where TYPE specifies the format of the surface\n"
                "        and PREFIX is, well, the prefix.\n"
@@ -429,7 +432,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
    Opt->blur_fwhm = 0.0;
    Opt->shrink_bias_name = NULL;
    Opt->shrink_bias = NULL;
-   Opt->monkey = 0;
+   Opt->specie = HUMAN;
    Opt->Use_emask = 1;
    Opt->emask  = NULL;
    Opt->PushToEdge = -1;
@@ -459,10 +462,13 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
       }
       
       if (!brk && (strcmp(argv[kar], "-monkey") == 0)) {
-         Opt->monkey = 1;
+         Opt->specie = MONKEY;
          brk = YUP;
       }
-      
+      if (!brk && (strcmp(argv[kar], "-rat") == 0)) {
+         Opt->specie = RAT;
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-visual") == 0)) {
          ps->cs->talk_suma = 1;
          ps->cs->kth = 5;
@@ -888,6 +894,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
          brk = YUP;
       }
       
+      if (!brk && ( (strcmp(argv[kar], "-surface_coil") == 0) ) ) {
+         Opt->SurfaceCoil = 1;
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-k98") == 0)) {
          SUMA_SL_Warn("Bad option, causes trouble (big clipping) in other parts of brain.");
          Opt->Kill98 = 1;
@@ -913,7 +924,13 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
 		}
    }
    
-   if (Opt->UseNew < 0) Opt->UseNew = Opt->UseNew * -1.0;
+   if (Opt->UseNew < 0) {
+      if (Opt->specie != RAT) {
+         Opt->UseNew = Opt->UseNew * -1.0;
+      } else {
+         Opt->UseNew = 0; /* not for ze ghat monsieur */
+      }
+   }
    
    if (Opt->PushToEdge < 0) Opt->PushToEdge = 0;
    
@@ -1090,13 +1107,14 @@ int main (int argc,char *argv[])
         exit(1);
       }
       
-      mri_monkeybusiness(Opt->monkey);
+      mri_speciebusiness(Opt->specie);
       if (Opt->SpatNormDxyz) {
          if (Opt->debug) SUMA_S_Note("Overriding default resampling");
          mri_brainormalize_initialize(Opt->SpatNormDxyz, Opt->SpatNormDxyz, Opt->SpatNormDxyz);
       } else {
          float xxdel, yydel, zzdel, minres;
-         if (Opt->monkey) minres = 0.5;
+         if (Opt->specie == MONKEY) minres = 0.5;
+         else if (Opt->specie == RAT) minres = 0.1;
          else minres = 0.5;
          /* don't allow for too low a resolution, please */
          if (SUMA_ABS(Opt->iset->daxes->xxdel) < minres) xxdel = minres;
@@ -1270,7 +1288,7 @@ int main (int argc,char *argv[])
       DSET_load(Opt->in_vol);
       if (Opt->fillhole) Opt->OrigSpatNormedSet = Opt->in_vol; /* original is same as in_vol */
       /* initialize, just to make sure numbers are ok for if statement below */
-      mri_monkeybusiness(Opt->monkey);
+      mri_speciebusiness(Opt->specie);
       mri_brainormalize_initialize(Opt->in_vol->daxes->xxdel, Opt->in_vol->daxes->yydel, Opt->in_vol->daxes->zzdel);
       if (DSET_NX( Opt->in_vol) !=  THD_BN_nx() || DSET_NY( Opt->in_vol) !=  THD_BN_ny()  || DSET_NZ( Opt->in_vol) !=  THD_BN_nz() ) {
          fprintf(SUMA_STDERR,"Error %s:\n SpatNormed Dset must be %d x %d x %d\n", FuncName, THD_BN_nx(), THD_BN_ny(), THD_BN_nz() );
@@ -1479,7 +1497,7 @@ int main (int argc,char *argv[])
          }
       }
 
-      if (Opt->avoid_vent) {
+      if (Opt->avoid_vent && Opt->specie != RAT) { /* No need for this avoidance in rodents*/
          float U[3], Un, *a, P2[2][3];
          for (i=0; i<SO->N_Node; ++i) {
             /* stretch the top coordinates by d1 and the back too*/

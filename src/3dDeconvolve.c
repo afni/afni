@@ -488,6 +488,7 @@ typedef struct DC_options
   char * input_filename;   /* input 3d+time dataset */
   char * mask_filename;    /* input mask dataset */
   char * input1D_filename; /* input fMRI measurement time series */
+  float  input1D_TR;       /* TR for input 1D time series */
   char * censor_filename;  /* input censor time series filename */
   char * concat_filename;  /* filename for list of concatenated runs */
   int nodata;              /* flag for 'no data' option */
@@ -608,6 +609,8 @@ void display_help_menu()
     "                       (catenated  in time;   if you do this, )        \n"
     "                       ('-concat' is not needed and is ignored)        \n"
     "[-input1D dname]     dname = filename of single (fMRI) .1D time series \n"
+    "[-TR_1D tr1d]        tr1d = TR for .1D time series (default 1.0 sec).  \n"
+    "                     This option has no effect without -input1D        \n"
     "[-nodata [NT [TR]]   Evaluate experimental design only (no input data) \n"
     "[-mask mname]        mname = filename of 3d mask dataset               \n"
     "[-automask]          build a mask automatically from input data        \n"
@@ -857,6 +860,7 @@ void initialize_options
   option_data->input_filename = NULL;
   option_data->mask_filename = NULL;
   option_data->input1D_filename = NULL;
+  option_data->input1D_TR = 0.0;
   option_data->censor_filename = NULL;
   option_data->concat_filename = NULL;
   option_data->bucket_filename = NULL;
@@ -1142,7 +1146,15 @@ void get_options
         continue;
       }
 
-
+      /*-----   -input1D TR  --------*/
+      if (strcmp(argv[nopt], "-TR_1D") == 0)
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -TR_1D ");
+        option_data->input1D_TR = (float)strtod(argv[nopt++],NULL) ;
+        continue;
+      }
+      
       /*-----   -censor filename   -----*/
       if (strcmp(argv[nopt], "-censor") == 0)
       {
@@ -1345,7 +1357,7 @@ void get_options
         }
         nopt++ ; continue ;
       }
-
+      
       /*-----  -TR_irc irc_dt [08 Sep 2004]  -----*/
       if( strcmp(argv[nopt],"-TR_irc") == 0 ){
         nopt++ ;
@@ -1862,6 +1874,11 @@ void get_options
 
   /**--- Test various combinations for legality [11 Aug 2004] ---**/
 
+  if (option_data->input1D_TR > 0.0 && !option_data->input1D_filename) {
+    option_data->input1D_TR = 0.0;
+    if( verb ) fprintf(stderr,"** WARNING: -TR_1D is meaningless without -input1D\n");
+  }
+  
   if( option_data->polort < 0 ) demean_base = 0 ;  /* 12 Aug 2004 */
 
   nerr = 0 ;
@@ -2164,6 +2181,9 @@ ENTRY("read_input_data") ;
       *dset_time = NULL;
       nt = *fmri_length;
       nxyz = 1;
+      
+      if (option_data->input1D_TR > 0.0) basis_TR = option_data->input1D_TR; 
+      if (verb) fprintf(stderr,"++ Notice: 1D TR is %.3fsec\n", basis_TR);  
    }
 
   else if (option_data->input_filename != NULL)
