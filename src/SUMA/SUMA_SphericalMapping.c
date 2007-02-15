@@ -3120,7 +3120,7 @@ void SUMA_MapIcosahedron_usage ()
             "   ----------------------------------------------------------------\n"
             "   -sphere_at_origin: Geometric center of morphSurf sphere is at \n"
             "                      0.0 0.0 0.0. This is usually the case but\n"
-            "                      if you do not know, the the program guess.\n"
+            "                      if you do not know, let the program guess.\n"
             "\n"
             "   -sphere_center cx cy cz: Geometric center of morphSurf sphere. \n"
             "                            If not specified, it will be estimated.\n"
