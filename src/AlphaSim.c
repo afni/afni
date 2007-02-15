@@ -1385,19 +1385,23 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
   if(quiet<2)fprintf (fout, "Cluster connection radius: rmm = %5.2f \n\n", rmm);
   if(quiet<2)fprintf (fout, "Threshold probability: pthr = %e \n\n", pthr);
   if(quiet<2)fprintf (fout, "Number of Monte Carlo iterations = %5d \n\n", niter);
-  if (!power)
+  if (!power){
     if(quiet<2)fprintf (fout, "Cl Size     Frequency    Cum Prop     p/Voxel"
 	     "   Max Freq       Alpha\n");
-  else
+  }
+  else {
     if(quiet<2)fprintf (fout, "Cl Size     Frequency    Cum Prop     p/Voxel"
-	     "   Max Freq       Power\n");    
-  for (i = 1;  i < g_max_cluster_size;  i++)
+	     "   Max Freq       Power\n"); 
+  }
+	     
+  for (i = 1;  i < g_max_cluster_size;  i++) {
     if (alpha_table[i] < EPSILON)
       break;
     else
       fprintf (fout, "%7d  %12ld  %10.6f  %10.8f    %7ld  %10.6f\n", 
 	       i, freq_table[i], cum_prop_table[i], prob_table[i], 
 	       max_table[i], alpha_table[i]);
+  }
 
   fclose(fout);
 
