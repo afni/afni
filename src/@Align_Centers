@@ -64,17 +64,16 @@ PARSE:
       @ cnt ++
    end
    
-SET_PARAMS:
+SET_PARAMS: 
 set v2_vw = `@GetAfniView $v2i`
-set pth2 = $2:h
+set pth2 = $v2i:h
 if ("$pth2" == "$v2i") then 
    set pth2 = .
 endif
 
 set v2_pref = `@GetAfniPrefix $v2i`
 set v2 = $pth2/$v2_pref$v2_vw
-
-
+ 
 CHECKS:
 #make sure output doe not exist
 if ( ! -f $v2.HEAD || (! -f $v2.BRIK && ! -f $v2.BRIK.gz && ! -f $v2.BRIK.bz2 && ! -f $v2.BRIK.Z)) then
