@@ -115,6 +115,10 @@ int main( int argc , char * argv[] )
         if (mps == 0.0f) {
          ERROR_exit( "** Error: step cannot be 0" ); 
         }
+        if (mp0 < 0 || mp0 > 100 || mp1 < 0 || mp1 > 100) {
+         ERROR_exit( "** Error: p0 and p1 must be >=0 and <= 100" ); 
+        }
+        
         nopt++; continue;
       }
 

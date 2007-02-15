@@ -345,7 +345,7 @@ Widget MCW_popup_message( Widget wparent , char *msg , int msg_type )
 
 ENTRY("MCW_popup_message") ;
 
-   if( ! XtIsRealized( wparent ) ||
+   if( ! wparent || ! XtIsRealized( wparent ) ||
        msg == NULL               || strlen(msg) == 0 ) RETURN(NULL) ;
 
    /* set position for message box based on parent and screen geometry */

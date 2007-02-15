@@ -1,4 +1,5 @@
 #include "mrilib.h"
+#include "thd_brainormalize.h"
 #include "rickr/r_new_resam_dset.h"
 
 int main( int argc , char *argv[] )
@@ -6,7 +7,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *imin, *imout , *imout_orig;
    THD_3dim_dataset *iset, *oset , *ooset;
    char *prefix = "SpatNorm" ;
-   int iarg , verb=0, OrigSpace = 0 , monkey = 0;
+   int iarg , verb=0, OrigSpace = 0 , specie = HUMAN;
    float SpatNormDxyz= 0.0;
    THD_ivec3 orixyz , nxyz ;
    THD_fvec3 dxyz , orgxyz, originRAIfv, fv2;
@@ -63,9 +64,11 @@ int main( int argc , char *argv[] )
        verb++ ; iarg++ ; continue ;
      }
      if( strncmp(argv[iarg],"-monkey",5) == 0 ){
-       monkey = 1 ; iarg++ ; continue ;
+       specie = MONKEY ; iarg++ ; continue ;
      }
-     
+     if( strncmp(argv[iarg],"-rat",5) == 0 ){
+       specie = RAT ; iarg++ ; continue ;
+     }
      if( strncmp(argv[iarg],"-orig_space",10) == 0 ){
        OrigSpace = 1 ; iarg++ ; continue ;
      }
@@ -100,13 +103,14 @@ int main( int argc , char *argv[] )
    imin->dy = fabs(iset->daxes->yydel) ;
    imin->dz = fabs(iset->daxes->zzdel) ;
    
-   mri_monkeybusiness(monkey);
+   mri_speciebusiness(specie);
    if (SpatNormDxyz) {
       if (verb) fprintf(stderr,"Overriding default resampling\n");
       mri_brainormalize_initialize(SpatNormDxyz, SpatNormDxyz, SpatNormDxyz);
    } else {
       float xxdel, yydel, zzdel, minres;
-      if (monkey) minres = 0.3;
+      if (specie == MONKEY) minres = 0.3;
+      else if (specie == RAT) minres = 0.1;
       else minres = 0.5;
       /* don't allow for too low a resolution, please */
       if (imin->dx < minres) xxdel = minres;

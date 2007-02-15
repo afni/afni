@@ -1816,7 +1816,11 @@ STATUS("making view->rowcol") ;
                       "Read current session again\n"
                       " to see if new datasets were\n"
                       " added.  Exactly the same as\n"
-                      "Define Datamode->Rescan This" ) ;
+                      "Define Datamode->Rescan This\n"
+                      "Can also set in .afnirc file\n"
+                      " AFNI_RESCAN_AT_SWITCH = YES\n"
+                      " to rescan each time you hit\n"
+                      " one of the 'Switch' buttons" ) ;
 
    /* NIML+PO button here -- 02 Feb 2007 */
 

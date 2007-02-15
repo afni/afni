@@ -98,6 +98,7 @@ typedef struct {
    byte check_input_surf;
    byte accept_mask;
    byte accept_dset;
+   
 } SUMA_GENERIC_ARGV_PARSE;
 
 typedef struct {
@@ -179,7 +180,7 @@ typedef struct {
    int DemoPause;
    int DoSpatNorm;
    float SpatNormDxyz;
-   int monkey;
+   int specie;
    int WriteSpatNorm;
    int fillhole;
    THD_3dim_dataset *iset;
@@ -219,7 +220,8 @@ typedef struct {
    char *UseThisBrain;/* do not free, argv[.] copy */
    char *UseThisBrainHull; /* do not free, argv[.] copy */
    char *UseThisSkullOuter; /* do not free, argv[.] copy */
-   
+   byte SurfaceCoil; /* data acquired with SurfaceCoil */
+      
    int iopt;
    
    char **com;

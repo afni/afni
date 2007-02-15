@@ -120,7 +120,9 @@ float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObj
          CoordList[3*i+1] = ndicom.xyz[1];
          CoordList[3*i+2] = ndicom.xyz[2];
       if (Opt->fvec[i] > Opt->t) {
-         mass = SUMA_MIN_PAIR(Opt->t98, Opt->fvec[i]);
+         if (!Opt->SurfaceCoil) {
+            mass = SUMA_MIN_PAIR(Opt->t98, Opt->fvec[i]);
+         } else mass = 1.0;
          Opt->cog[0] += mass * ndicom.xyz[0];
          Opt->cog[1] += mass * ndicom.xyz[1];
          Opt->cog[2] += mass * ndicom.xyz[2];
@@ -139,10 +141,15 @@ float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObj
    if (LocalHead) {
          fprintf (SUMA_STDERR,"%s: Volume %f, radius %f\n", FuncName, vol, Opt->r);
    }
-   if (Opt->monkey) {
+   if (Opt->specie == MONKEY) {
       Opt->r  = Opt->r/THD_BN_rat();
       if (LocalHead) {
          fprintf (SUMA_STDERR,"%s: Radius reduced to %f, less brain, more muscle.\n",  FuncName, Opt->r);
+      }
+   } else if (Opt->specie == RAT) {
+      Opt->r  = Opt->r;       /* No need to trim, looks like vol is small enough */
+      if (LocalHead) {
+         fprintf (SUMA_STDERR,"%s: Radius at %f. RATS!.\n",  FuncName, Opt->r);
       }
    }
    

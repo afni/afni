@@ -5,7 +5,7 @@
 #define IJK(i,j,k) ((i)+(j)*nx+(k)*nxy)
 
 static int verb = 0 ;
-static int monkey = 0;
+static int specie = HUMAN;
 void mri_brainormalize_verbose( int v ){ verb = v ; THD_automask_verbose(v); }
 
 #define  THD_BN_DXYZ    1.0
@@ -23,8 +23,11 @@ void mri_brainormalize_verbose( int v ){ verb = v ; THD_automask_verbose(v); }
 #else
    #define  THD_BN_ZCM  0.0
 #endif   
+
+
 #define HUMAN_RAT      1.0   /* Ratio is size of human / human dimensions */
 #define MONKEY_RAT      2.0   /* Ratio is size of human / monkey dimensions */
+#define RAT_RAT         8.0
 
 static float thd_bn_dxyz = 0.0;
 static int thd_bn_nx     = 0;
@@ -39,8 +42,13 @@ static float thd_bn_ycm = 0.0;
 static float thd_bn_zcm = 0.0;
 static float thd_bn_rat = 0.0;
 
-void mri_monkeybusiness( int v ) { 
-   monkey = v ;  
+void mri_speciebusiness( int v ) { 
+   if (v < HUMAN || v >= N_SPECIES) {
+      fprintf(stderr,"** Bad specie %d\nDefaulting to Human.\n", v);
+      specie = HUMAN;
+   }  else {
+      specie = v;
+   }
 }
 void mri_brainormalize_initialize(float dx, float dy, float dz)
 {
@@ -48,7 +56,7 @@ void mri_brainormalize_initialize(float dx, float dy, float dz)
    /* set the resolution */
    thd_bn_dxyz = MIN(fabs(dx), fabs(dy)); thd_bn_dxyz = MIN(thd_bn_dxyz, fabs(dz));
    
-   if (monkey) {
+   if (specie == MONKEY) {
       /* do the monkey thing, smaller box, basically, half the size of human*/
       thd_bn_nx     = (int)(THD_BN_NX/MONKEY_RAT);
       thd_bn_ny     = (int)(THD_BN_NY/MONKEY_RAT);
@@ -61,6 +69,19 @@ void mri_brainormalize_initialize(float dx, float dy, float dz)
       thd_bn_ycm = THD_BN_YCM/MONKEY_RAT;
       thd_bn_zcm = THD_BN_ZCM/MONKEY_RAT;
       thd_bn_rat = MONKEY_RAT;
+   } else if (specie == RAT) {
+      /* do the monkey thing, smaller box, basically, half the size of human*/
+      thd_bn_nx     = (int)(THD_BN_NX/RAT_RAT);
+      thd_bn_ny     = (int)(THD_BN_NY/RAT_RAT);
+      thd_bn_nz     = (int)(THD_BN_NZ/RAT_RAT);
+      thd_bn_zheight = THD_BN_ZHEIGHT/RAT_RAT; 
+      thd_bn_xorg =  THD_BN_XORG/RAT_RAT;  
+      thd_bn_yorg =  THD_BN_YORG/RAT_RAT ;
+      thd_bn_zorg =  THD_BN_ZORG/RAT_RAT;
+      thd_bn_xcm = THD_BN_XCM/RAT_RAT;
+      thd_bn_ycm = THD_BN_YCM/RAT_RAT;
+      thd_bn_zcm = THD_BN_ZCM/RAT_RAT;
+      thd_bn_rat = RAT_RAT;
    } else {
       thd_bn_dxyz = THD_BN_DXYZ;
       thd_bn_nx     = THD_BN_NX;

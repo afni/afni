@@ -4351,7 +4351,7 @@ extern void brainnormalize_coord( float  ispat, float  jspat, float  kspat ,
                            THD_3dim_dataset *origset,
                            float *xrai_orig, float *yrai_orig, float *zrai_orig); /* ZSS */
 extern MRI_IMAGE * mri_watershedize( MRI_IMAGE * , float ) ;
-extern void mri_monkeybusiness( int ) ;
+extern void mri_speciebusiness( int ) ;
 extern void mri_brainormalize_initialize(float dx, float dy, float dz);
 extern float THD_BN_dxyz(void);
 extern int THD_BN_nx(void);
