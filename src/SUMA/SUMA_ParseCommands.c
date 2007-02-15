@@ -8,6 +8,7 @@
 /* Header FILES */
    
 #include "SUMA_suma.h"
+#include "../THD_brainormalize.h"
 
 #ifdef STAND_ALONE
    SUMA_CommonFields *SUMAg_CF;
@@ -2705,7 +2706,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    Opt->iset_hand = 0;
    Opt->shrink_bias_name = NULL;
    Opt->shrink_bias = NULL;
-   Opt->monkey = 0;
+   Opt->specie = HUMAN;
    
    Opt->NearestNode = 0;
    Opt->NearestTriangle = 0;
@@ -2734,6 +2735,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    Opt->UseThisSkullOuter = NULL; /* do not free, argv[.] copy */
    Opt->unit_sphere_name = NULL; /* do not free, argv[.] copy */
    Opt->bases_prefix = NULL; /* do not free, argv[.] copy */
+   Opt->SurfaceCoil = 0;
    
    Opt->com = NULL;
    Opt->N_com = 0;

@@ -1955,11 +1955,18 @@ ENTRY("AFNI_choose_dataset_CB") ;
    /*--- initialize ---*/
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
    if( GLOBAL_library.have_dummy_dataset ){ BEEPIT ; EXRETURN ; }
 #if 0
    if( AFNI_splash_isopen() == 1         ){ BEEPIT ; EXRETURN ; }
 #endif
 
+   /* how about a rescan ? ZSS - Fur Greg Detre*/
+   if( AFNI_yesenv("AFNI_RESCAN_AT_SWITCH") ) {
+      /* fprintf(stderr,"Rescanning...\n"); */
+      AFNI_rescan_CB( w , (XtPointer)im3d , NULL ) ;
+   }
+   
    if( first_call ){
       for( ii=0 ; ii < THD_MAX_CHOICES ; ii++ )
          strlist[ii] = (char*)XtMalloc( sizeof(char) * (STRLIST_SIZE+1) ) ;
