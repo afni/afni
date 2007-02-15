@@ -1104,7 +1104,14 @@ int main( int argc , char * argv[] )
 
    if( FLDIF(DSET_DX(baset),dx) ||
        FLDIF(DSET_DY(baset),dy) || FLDIF(DSET_DZ(baset),dz) ){
-     WARNING_message("base and input grid spacings don't match!\n") ;
+     WARNING_message("base and input grid spacings don't match!\n"
+                     /*"If this is not by design or if registration\n"
+                     "fails, use 3dresample with -master option:\n"
+                     "  3dresample -master %s \\\n"
+                     "             -input %s \\\n"
+                     "             -prefix RS\n"
+                     "to sesample the input data and rerun the\n"
+                     "registration with RS as the input.\n", DSET_BRIKNAME(baset), DSET_BRIKNAME(inset) */) ;
      WARNING_message("base  grid = %.5f X %.5f X %.5f mm\n",
                      DSET_DX(baset),DSET_DY(baset),DSET_DZ(baset) ) ;
      WARNING_message("input grid = %.5f X %.5f X %.5f mm\n",
@@ -1114,7 +1121,14 @@ int main( int argc , char * argv[] )
    if( FLDIF(DSET_XORG(baset),DSET_XORG(inset)) ||
        FLDIF(DSET_YORG(baset),DSET_YORG(inset)) ||
        FLDIF(DSET_ZORG(baset),DSET_ZORG(inset))   ){
-     WARNING_message("base and input grid offsets don't match!\n") ;
+     WARNING_message("base and input grid offsets don't match!\n"
+                     /*"If this is not by design or if registration\n"
+                     "fails, use 3dresample with -master option:\n"
+                     "  3dresample -master %s\\\n"
+                     "             -input %s \\\n"
+                     "             -prefix RS\n"
+                     "to sesample the input data and rerun the\n"
+                     "registration with RS as the input.\n", DSET_BRIKNAME(baset), DSET_BRIKNAME(inset) */) ;
      WARNING_message("base  offsets = %.5f X %.5f X %.5f mm\n",
                      DSET_XORG(baset),DSET_YORG(baset),DSET_ZORG(baset) ) ;
      WARNING_message("input offsets = %.5f X %.5f X %.5f mm\n",
@@ -1124,7 +1138,14 @@ int main( int argc , char * argv[] )
    if( baset->daxes->xxorient != inset->daxes->xxorient ||
        baset->daxes->yyorient != inset->daxes->yyorient ||
        baset->daxes->zzorient != inset->daxes->zzorient   ){
-     WARNING_message("base and input orientations don't match!\n") ;
+     WARNING_message("base and input orientations don't match!\n"
+                     /*"If this is not by design or if registration\n"
+                     "fails, use 3dresample with -master option:\n"
+                     "  3dresample -master %s \\\n"
+                     "             -input %s \\\n"
+                     "             -prefix RS\n"
+                     "to sesample the input data and rerun the\n"
+                     "registration with RS as the input.\n", DSET_BRIKNAME(baset), DSET_BRIKNAME(inset) */) ;
      WARNING_message("base  = %s X %s X %s\n",
              ORIENT_shortstr[baset->daxes->xxorient] ,
              ORIENT_shortstr[baset->daxes->yyorient] ,
