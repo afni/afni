@@ -6061,3 +6061,8 @@
  * Add AFNI_OVERLAY_ONTOP environment variable, to move 'Overlay' button
      above 'Underlay'.  Also, change bg of 'Underlay' to black, to
      distinguish it better from 'Overlay'.
+
+18 Feb 2007:
+ * When running "afni" (no directory args) and no data is found is './',
+     then afni.c will now recurse 1 level on './' to see if any datasets
+     can be found 1 level deeper.  Inspired by Korea workshop and Hame Park.

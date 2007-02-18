@@ -107,6 +107,8 @@ static Boolean        MAIN_workprocess( XtPointer ) ;
 static int   COM_num = 0 ;
 static char *COM_com[1024] ;  /* only 1024 commands allowed!!! */
 
+static int   recursed_ondot = 0 ;  /* 18 Feb 2007 */
+
 /********************************************************************
    Print out some help information and then quit quit quit
 *********************************************************************/
@@ -1917,6 +1919,15 @@ ENTRY("AFNI_startup_timeout_CB") ;
                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
 #endif
    }
+
+   if( recursed_ondot && GLOBAL_library.sslist->num_sess > 0 ) /* 18 Feb 2007 */
+    (void) MCW_popup_message( MAIN_im3d->vwid->picture ,
+                              " \n"
+                              "++ NOTICE:                              ++\n"
+                              "++ No data was found in './' directory, ++\n"
+                              "++ so its subdirectories were searched  ++\n"
+                              "++ for dataset files.                   ++\n" ,
+                              MCW_USER_KILL | MCW_TIMER_KILL ) ;
 
    /* 21 Nov 2002: check the AFNI version */
 
@@ -3963,7 +3974,7 @@ ENTRY("AFNI_read_inputs") ;
       char str[256] ;
       Boolean good ;
       int num_ss , qd , qs , vv=0 , no_args , jj , nskip_noanat=0 ;
-      THD_string_array *flist , *dlist=NULL ;
+      THD_string_array *flist , *dlist=NULL , *elist=NULL , *qlist ;
       char *dname , *eee ;
       THD_session *new_ss ;
       int num_dsets=0 ;       /* 04 Jan 2000 */
@@ -4004,8 +4015,8 @@ ENTRY("AFNI_read_inputs") ;
       dss->type   = SESSION_TYPE ;
       dss->parent = NULL ;
       BLANK_SESSION(dss) ;
-      MCW_strncpy( dss->sessname , "from CLI" , THD_MAX_NAME ) ;
-      MCW_strncpy( dss->lastname , "from CLI" , THD_MAX_NAME ) ;
+      MCW_strncpy( dss->sessname , "fromCLI" , THD_MAX_NAME ) ;
+      MCW_strncpy( dss->lastname , "fromCLI" , THD_MAX_NAME ) ;
 
       /* now get the list of strings to read as directories */
 
@@ -4026,6 +4037,7 @@ STATUS("no args: recursion on ./") ;
          } else {
 STATUS("no args: using ./") ;
            ADDTO_SARR(dlist,"./") ;
+           elist = THD_get_all_subdirs( 1 , "./" ) ;  /* 18 Feb 2007 */
          }
       } else {
          for( id=0 ; id < num_ss ; id++ ){
@@ -4048,24 +4060,24 @@ STATUS("no args: using ./") ;
 
       /** 09 Sep 1998: eliminate duplicates from the directory list **/
 
-      { THD_string_array * qlist ;
 STATUS("normalizing directory list") ;
-        qlist = THD_normalize_flist( dlist ) ;
-        if( qlist != NULL ){ DESTROY_SARR(dlist) ; dlist = qlist ; }
-      }
+      qlist = THD_normalize_flist( dlist ) ;
+      if( qlist != NULL ){ DESTROY_SARR(dlist); dlist = qlist; }
 
       REFRESH ;
 
       /* read each session, set parents, put into session list */
 
-      num_ss = dlist->num ;
+      qlist = dlist ;
+   RESTART_DIRECTORY_SCAN:   /* 18 Feb 2007 */
+      num_ss = qlist->num ;
       for( id=0 ; id < num_ss ; id++ ){
 
 if(PRINT_TRACING)
 { char str[256] ;
-  sprintf(str,"try to read directory %s",dlist->ar[id]) ; STATUS(str) ; }
+  sprintf(str,"try to read directory %s",qlist->ar[id]) ; STATUS(str) ; }
 
-         dname  = dlist->ar[id] ;                /* try to read datasets from */
+         dname  = qlist->ar[id] ;                /* try to read datasets from */
          new_ss = THD_init_session( dname ) ;    /* this directory name       */
 
          REFRESH ;
@@ -4139,6 +4151,11 @@ if(PRINT_TRACING)
                break ;                            /* exit the loop over id */
             }
          }
+         else {   /* 18 Feb 2007: do -R1 on "./" if no data found */
+           if( qlist == dlist && elist != NULL ){
+             recursed_ondot = 1; qlist = elist; goto RESTART_DIRECTORY_SCAN;
+           }
+         }
 
       }  /* end of id loop (over input directory names) */
 
@@ -4184,7 +4201,7 @@ if(PRINT_TRACING)
 #define QQ_FOV  240.0
 
       if( GLOBAL_library.sslist->num_sess <= 0 ){
-         byte * bar ;  /* as opposed to a bite bar */
+         byte *bar ;  /* as opposed to a bite bar */
          int ii , nbar , jj ;
          THD_ivec3 nxyz ;
          THD_fvec3 fxyz , oxyz ;
@@ -4387,7 +4404,7 @@ STATUS("reading timeseries files") ;
       /* 27 Jan 2000: allow skipping *.1D files from dataset directories */
 
       GLOBAL_library.timeseries =
-           THD_get_many_timeseries( (GLOBAL_argopt.read_1D) ? dlist : NULL ) ;
+        THD_get_many_timeseries( (GLOBAL_argopt.read_1D) ? qlist : NULL ) ;
 
       REFRESH ;
 
@@ -4401,6 +4418,7 @@ STATUS("reading timeseries files") ;
       /*** throw away the list of directories that were scanned ***/
 
       DESTROY_SARR(dlist) ;
+      if( elist != NULL ){ DESTROY_SARR(elist); }  /* 18 Feb 2007 */
 
       /* assign the warp and anatomy parent pointers;
          then, make any datasets that don't exist but logically
