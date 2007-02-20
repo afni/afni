@@ -522,6 +522,7 @@ ENTRY("new_MCW_optmenu") ;
    av->wmenu = wmenu = XmCreatePulldownMenu( parent , "menu" , NULL , 0 ) ;
 
    VISIBILIZE_WHEN_MAPPED(wmenu) ;
+   TEAROFFIZE(wmenu) ;
 
    /** create the button that pops down the menu **/
 
@@ -1609,7 +1610,7 @@ ENTRY("MCW_choose_ovcolor") ;
 
    wpop = XtVaCreatePopupShell(                        /* Popup Shell */
              "menu" , xmDialogShellWidgetClass , wpar ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -1631,7 +1632,7 @@ ENTRY("MCW_choose_ovcolor") ;
              "menu" , xmRowColumnWidgetClass , wpop ,
                 XmNpacking      , XmPACK_TIGHT ,
                 XmNorientation  , XmVERTICAL ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -1659,7 +1660,7 @@ ENTRY("MCW_choose_ovcolor") ;
    XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
 
    if( av->wtext != NULL )
-      MCW_set_widget_bg( av->wtext , NULL , dc->ovc->pix_ov[ovc_init] ) ; /* after popup */
+     MCW_set_widget_bg( av->wtext , NULL , dc->ovc->pix_ov[ovc_init] ) ; /* after popup */
 
    RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
    NORMAL_cursorize( wpop ) ;
@@ -1717,7 +1718,7 @@ ENTRY("MCW_choose_vector") ;
 
    wpop = XtVaCreatePopupShell(                           /* Popup Shell */
              "menu" , xmDialogShellWidgetClass , wpar ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -1739,7 +1740,7 @@ ENTRY("MCW_choose_vector") ;
              "menu" , xmRowColumnWidgetClass , wpop ,
                 XmNpacking      , XmPACK_TIGHT ,
                 XmNorientation  , XmVERTICAL ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -1852,7 +1853,7 @@ ENTRY("MCW_choose_integer") ;
 
    wpop = XtVaCreatePopupShell(                           /* Popup Shell */
              "menu" , xmDialogShellWidgetClass , wpar ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -1874,7 +1875,7 @@ ENTRY("MCW_choose_integer") ;
              "menu" , xmRowColumnWidgetClass , wpop ,
                 XmNpacking      , XmPACK_TIGHT ,
                 XmNorientation  , XmVERTICAL ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -2161,7 +2162,7 @@ ENTRY("MCW_choose_string") ;
 
    wpop = XtVaCreatePopupShell(                           /* Popup Shell */
              "menu" , xmDialogShellWidgetClass , wpar ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -2183,7 +2184,7 @@ ENTRY("MCW_choose_string") ;
              "menu" , xmRowColumnWidgetClass , wpop ,
                 XmNpacking      , XmPACK_TIGHT ,
                 XmNorientation  , XmVERTICAL ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -2221,7 +2222,7 @@ ENTRY("MCW_choose_string") ;
                  XmNautoShowCursorPosition , True ,
 
                  XmNinitialResourcesPersistent , False ,
-                 XmNtraversalOn , False ,
+                 XmNtraversalOn , True ,
               NULL ) ;
 
    if( default_string != NULL && default_string[0] != '\0' ){
@@ -2309,6 +2310,8 @@ void MCW_choose_strlist( Widget wpar , char * label ,
    return ;
 }
 
+/*-------------------------------------------------------------------------*/
+
 void MCW_choose_multi_strlist( Widget wpar , char * label , int mode ,
                                int num_str , int * init , char * strlist[] ,
                                gen_func * func , XtPointer func_data )
@@ -2328,19 +2331,19 @@ ENTRY("MCW_choose_multi_strlist") ;
    /** destructor callback **/
 
    if( wpar == NULL ){
-      if( wpop != NULL ){
-         XtUnmapWidget( wpop ) ;
-         XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
-         XtDestroyWidget( wpop ) ;
-      }
-      STATUS("destroying chooser") ;
-      wpop = NULL ; EXRETURN ;
+     if( wpop != NULL ){
+       XtUnmapWidget( wpop ) ;
+       XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
+       XtDestroyWidget( wpop ) ;
+     }
+     STATUS("destroying chooser") ;
+     wpop = NULL ; EXRETURN ;
    }
 
    if( ! XtIsRealized(wpar) ){  /* illegal call */
-      fprintf(stderr,"\n*** illegal call to MCW_choose_strlist %s\n",
-              XtName(wpar) ) ;
-      EXRETURN ;
+     fprintf(stderr,"\n*** illegal call to MCW_choose_strlist %s\n",
+             XtName(wpar) ) ;
+     EXRETURN ;
    }
 
    MCW_set_listmax( wpar ) ;
@@ -2348,8 +2351,8 @@ ENTRY("MCW_choose_multi_strlist") ;
    /*--- if popup widget already exists, destroy it ---*/
 
    if( wpop != NULL ){
-      XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
-      XtDestroyWidget( wpop ) ;
+     XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
+     XtDestroyWidget( wpop ) ;
    }
 
    wlist = NULL ;
@@ -2357,17 +2360,17 @@ ENTRY("MCW_choose_multi_strlist") ;
    /*--- create popup widget ---*/
 
    wpop = XtVaCreatePopupShell(                           /* Popup Shell */
-             "menu" , xmDialogShellWidgetClass , wpar ,
-                XmNtraversalOn , False ,
-                XmNinitialResourcesPersistent , False ,
-             NULL ) ;
+            "menu" , xmDialogShellWidgetClass , wpar ,
+               XmNtraversalOn , True ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
 
    if( MCW_isitmwm(wpar) ){
-      XtVaSetValues( wpop ,
-                        XmNmwmDecorations ,  MWM_DECOR_BORDER ,
-                        XmNmwmFunctions   ,  MWM_FUNC_MOVE
-                                           | MWM_FUNC_CLOSE ,
-                     NULL ) ;
+     XtVaSetValues( wpop ,
+                      XmNmwmDecorations ,  MWM_DECOR_BORDER ,
+                      XmNmwmFunctions   ,  MWM_FUNC_MOVE
+                                         | MWM_FUNC_CLOSE ,
+                    NULL ) ;
    }
 
    XtAddCallback( wpop , XmNdestroyCallback , MCW_destroy_chooser_CB , &wpop ) ;
@@ -2381,18 +2384,18 @@ ENTRY("MCW_choose_multi_strlist") ;
              "menu" , xmRowColumnWidgetClass , wpop ,
                 XmNpacking     , XmPACK_TIGHT ,
                 XmNorientation , XmVERTICAL ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True  ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
    if( label != NULL && label[0] != '\0' ){
-      lbuf = (char*)XtMalloc( strlen(label) + 32 ) ;
-      sprintf( lbuf , "----Choose %s----\n%s" ,
-               (mode == mcwCT_single_mode) ? "One" : "One or More" , label ) ;
+     lbuf = (char*)XtMalloc( strlen(label) + 32 ) ;
+     sprintf( lbuf , "----Choose %s----\n%s" ,
+              (mode == mcwCT_single_mode) ? "One" : "One or More" , label ) ;
    } else {
-      lbuf = (char*)XtMalloc( 32 ) ;
-      sprintf( lbuf , "----Choose %s----",
-               (mode == mcwCT_single_mode) ? "One" : "One or More" ) ;
+     lbuf = (char*)XtMalloc( 32 ) ;
+     sprintf( lbuf , "----Choose %s----",
+              (mode == mcwCT_single_mode) ? "One" : "One or More" ) ;
    }
    xms = XmStringCreateLtoR( lbuf , XmFONTLIST_DEFAULT_TAG ) ;
    wlab = XtVaCreateManagedWidget(
@@ -2411,7 +2414,7 @@ ENTRY("MCW_choose_multi_strlist") ;
 
    xmstr = (XmStringTable) XtMalloc( num_str * sizeof(XmString *) ) ;
    for( ib=0 ; ib < num_str ; ib++ )
-      xmstr[ib] = XmStringCreateSimple(strlist[ib]) ;
+     xmstr[ib] = XmStringCreateSimple(strlist[ib]) ;
 
    wlist = XmCreateScrolledList( wrc , "menu" , NULL , 0 ) ;
 
@@ -2422,26 +2425,25 @@ ENTRY("MCW_choose_multi_strlist") ;
                     XmNvisibleItemCount , nvisible ,
                     XmNtraversalOn      , True ,
                     XmNselectionPolicy  , (mode == mcwCT_single_mode)
-                                          ? XmSINGLE_SELECT : XmMULTIPLE_SELECT ,
+                                          ? XmBROWSE_SELECT : XmMULTIPLE_SELECT ,
                   NULL ) ;
 
    if( init != NULL ){
-      for( ib=0 ; init[ib] >= 0 && init[ib] < num_str ; ib++ ){
-         XmListSelectPos( wlist , init[ib]+1 , False ) ;
-      }
-      if( ib > 0 && init[ib-1] > nvisible )
-         XmListSetBottomPos( wlist , init[ib-1]+1 ) ;
+     for( ib=0 ; init[ib] >= 0 && init[ib] < num_str ; ib++ )
+       XmListSelectPos( wlist , init[ib]+1 , False ) ;
+     if( ib > 0 && init[ib-1] > nvisible )
+       XmListSetBottomPos( wlist , init[ib-1]+1 ) ;
    }
 
    XtManageChild(wlist) ;
 
    if( mode == mcwCT_multi_mode ){
-      MCW_register_help( wlist , OVC_list_help_2 ) ;
-      MCW_register_help( wlab  , OVC_list_help_2 ) ;
+     MCW_register_help( wlist , OVC_list_help_2 ) ;
+     MCW_register_help( wlab  , OVC_list_help_2 ) ;
    } else {
-      MCW_register_help( wlist , OVC_list_help_1 ) ;
-      MCW_register_help( wlab  , OVC_list_help_1 ) ;
-      XtAddCallback( wlist , XmNdefaultActionCallback , MCW_choose_CB , &cd ) ;
+     MCW_register_help( wlist , OVC_list_help_1 ) ;
+     MCW_register_help( wlab  , OVC_list_help_1 ) ;
+     XtAddCallback( wlist , XmNdefaultActionCallback , MCW_choose_CB , &cd ) ;
    }
 
    cd.wchoice = wlist ;
@@ -2461,7 +2463,7 @@ ENTRY("MCW_choose_multi_strlist") ;
    (void) MCW_action_area( wrc , OVC_act , NUM_OVC_ACT ) ;
 
    if( mode == mcwCT_multi_mode ){
-      MCW_arrowval * av ;
+      MCW_arrowval *av ;
 
       (void) XtVaCreateManagedWidget(
                "menu" , xmSeparatorWidgetClass , wrc ,
@@ -2488,6 +2490,8 @@ ENTRY("MCW_choose_multi_strlist") ;
 
    EXRETURN ;
 }
+
+/*--------------------------------------------------------------------*/
 
 void MCW_list_mode_CB( MCW_arrowval * av , XtPointer cd )
 {
@@ -2620,7 +2624,7 @@ if(PRINT_TRACING){
 
    wpop = XtVaCreatePopupShell(                           /* Popup Shell */
              "menu" , xmDialogShellWidgetClass , wpar ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -2643,7 +2647,7 @@ if(PRINT_TRACING){
              "menu" , xmRowColumnWidgetClass , wpop ,
                 XmNpacking     , XmPACK_TIGHT ,
                 XmNorientation , XmVERTICAL ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -2711,7 +2715,7 @@ if(PRINT_TRACING){
                     XmNitemCount        , num_ts ,
                     XmNvisibleItemCount , nvisible ,
                     XmNtraversalOn      , True ,
-                    XmNselectionPolicy  , XmSINGLE_SELECT ,
+                    XmNselectionPolicy  , XmBROWSE_SELECT ,
                   NULL ) ;
    if( init >= 0 && init < num_ts ){
      XmListSelectPos( wlist , init+1 , False ) ;
@@ -2839,7 +2843,7 @@ ENTRY("MCW_choose_multi_editable_strlist") ;
    wpop = XtVaCreatePopupShell(                           /* Popup Shell */
              "menu" , xmDialogShellWidgetClass , wpar ,
                 XmNallowShellResize , True ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -2864,7 +2868,7 @@ ENTRY("MCW_choose_multi_editable_strlist") ;
              "menu" , xmRowColumnWidgetClass , wpop ,
                 XmNpacking     , XmPACK_TIGHT ,
                 XmNorientation , XmVERTICAL ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -2902,7 +2906,7 @@ ENTRY("MCW_choose_multi_editable_strlist") ;
    XtVaSetValues( wlist ,
                     XmNtraversalOn      , True ,
                     XmNselectionPolicy  , (mode == mcwCT_single_mode)
-                                          ? XmSINGLE_SELECT : XmMULTIPLE_SELECT ,
+                                          ? XmBROWSE_SELECT : XmMULTIPLE_SELECT ,
                   NULL ) ;
 
    num_str = SARR_NUM(sar) ;
@@ -2993,7 +2997,7 @@ ENTRY("MCW_choose_multi_editable_strlist") ;
              "menu" , xmRowColumnWidgetClass , wrc ,
                 XmNpacking      , XmPACK_TIGHT ,
                 XmNorientation  , XmHORIZONTAL ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -3013,7 +3017,7 @@ ENTRY("MCW_choose_multi_editable_strlist") ;
                  XmNautoShowCursorPosition , True ,
 
                  XmNinitialResourcesPersistent , False ,
-                 XmNtraversalOn , False ,
+                 XmNtraversalOn , True ,
               NULL ) ;
 
    xms = XmStringCreateLtoR( "Add" , XmFONTLIST_DEFAULT_TAG ) ;
@@ -3021,7 +3025,7 @@ ENTRY("MCW_choose_multi_editable_strlist") ;
    wadd = XtVaCreateManagedWidget(                     /* Button to add it */
              "menu" , xmPushButtonWidgetClass , wrc2 ,
                 XmNlabelString  , xms ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -3123,14 +3127,14 @@ ENTRY("MCW_choose_CB") ;
 
    if( list_dbclick_use == LIST_DBCLICK_UNKNOWN ){
 #if 0
-      char *xdef = XGetDefault( XtDisplay(w) , "AFNI" , "chooser_doubleclick" ) ;
+     char *xdef = XGetDefault( XtDisplay(w) , "AFNI" , "chooser_doubleclick" ) ;
 #else
-      char *xdef = RWC_getname( XtDisplay(w) , "chooser_doubleclick" ) ;
+     char *xdef = RWC_getname( XtDisplay(w) , "chooser_doubleclick" ) ;
 #endif
-      if( xdef != NULL && strcmp(xdef,OVC_apply_label) == 0 )
-         list_dbclick_use = LIST_DBCLICK_APPLY ;
-      else
-         list_dbclick_use = LIST_DBCLICK_DONE ;
+     if( xdef != NULL && strcasecmp(xdef,OVC_apply_label) == 0 )
+       list_dbclick_use = LIST_DBCLICK_APPLY ;
+     else
+       list_dbclick_use = LIST_DBCLICK_DONE ;
    }
 
    /*--- branch on type of chooser that called this ---*/
@@ -3224,9 +3228,9 @@ ENTRY("MCW_choose_CB") ;
          flash = ! done ;                              /* flash if not done */
          call  = strcmp(wname,OVC_quit_label)  != 0 ;  /* call unless just "Quit" */
          if( w == cd->wchoice ){    /* Double click in List */
-            done  = (list_dbclick_use == LIST_DBCLICK_DONE) ;
-            flash = False ;
-            call  = True ;
+           done  = (list_dbclick_use == LIST_DBCLICK_DONE) ;
+           flash = False ;
+           call  = True ;
          }
 
          if( done ) RWC_XtPopdown( cd->wpop ) ;

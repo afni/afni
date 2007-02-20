@@ -5484,8 +5484,8 @@ ENTRY( "RCREND_func_widgets" );
    wfunc_pbar_menu = XmCreatePopupMenu( wfunc_color_label , "menu" , NULL , 0 ) ;
 
    SAVEUNDERIZE(XtParent(wfunc_pbar_menu)) ; /* 27 Feb 2001 */
-
    VISIBILIZE_WHEN_MAPPED(wfunc_pbar_menu) ;
+   TEAROFFIZE(wfunc_pbar_menu) ;
 
    XtInsertEventHandler( wfunc_color_label ,     /* handle events in label */
 
@@ -7388,6 +7388,7 @@ ENTRY( "RCREND_script_menu" );
          XmCreatePulldownMenu( mbar , "menu" , NULL,0 ) ;
 
    VISIBILIZE_WHEN_MAPPED(script_menu) ;
+   TEAROFFIZE(script_menu) ;
 
    script_cbut =
          XtVaCreateManagedWidget(

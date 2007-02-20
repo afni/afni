@@ -6066,3 +6066,11 @@
  * When running "afni" (no directory args) and no data is found is './',
      then afni.c will now recurse 1 level on './' to see if any datasets
      can be found 1 level deeper.  Inspired by Korea workshop and Hame Park.
+
+20 Feb 2007
+ * Modify list choosers in bbox.c to add XmNtraversal = True, so that arrow
+     keys can be used to move around in lists.
+ * Also add TEAROFFIZE() macro to xutil.h and use it to make most popup or
+     pulldown menus in AFNI have the 'tear off' feature.
+ * When Datamode->Misc->Purge Memory is used, and mcw_malloc() is turned on,
+     prints out the before and after usage, just for fun.

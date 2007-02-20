@@ -233,6 +233,7 @@ ENTRY("new_MCW_grapher") ;
    SAVEUNDERIZE(XtParent(grapher->but3_menu)) ; /* 27 Feb 2001 */
 
    VISIBILIZE_WHEN_MAPPED(grapher->but3_menu) ;
+   TEAROFFIZE(grapher->but3_menu) ;
 
    grapher->but3_label =
       XtVaCreateManagedWidget(
@@ -347,6 +348,7 @@ ENTRY("new_MCW_grapher") ;
          XmCreatePulldownMenu( mb_tmp , "menu" , NULL,0 ) ;
 
    VISIBILIZE_WHEN_MAPPED(grapher->opt_menu) ;  /* 27 Sep 2000 */
+   TEAROFFIZE(grapher->opt_menu) ;
 
    grapher->opt_cbut =
          XtVaCreateManagedWidget(
@@ -5123,10 +5125,11 @@ ENTRY("AFNI_new_fim_menu") ;
    /*--- FIM Menu Buttons ---*/
    /*------------------------*/
 
-   fmenu->fim_menu =
-         XmCreatePulldownMenu( parent , "menu" , NULL,0 ) ;
+   fmenu->fim_menu = XmCreatePulldownMenu( parent , "menu" , NULL,0 ) ;
 
    VISIBILIZE_WHEN_MAPPED(fmenu->fim_menu) ;  /* 27 Sep 2000 */
+
+   TEAROFFIZE(fmenu->fim_menu) ;  /* 20 Feb 2007 */
 
    fmenu->fim_cbut =
          XtVaCreateManagedWidget(
