@@ -2216,9 +2216,10 @@ Variable: AFNI_RESCAN_AT_SWITCH
 -------------------------------
 If this YES/NO variable is set to YES, then the interactive AFNI program
 will rescan all session directories everytime you click on the Switch *
-buttons. Basically, this is just another way for you to avoid pressing 
-the 'Rescan' buttons. Unlike AFNI_AUTO_RESCAN, the AFNI_AUTO_RESCAN 
-settings are respected.
+buttons. Basically, this is just another way for you to avoid pressing
+the 'Rescan' buttons. Unlike AFNI_AUTO_RESCAN, the AFNI_AUTO_RESCAN
+settings are respected.  [[What does this last sentence MEAN, Ziad?]]
+
 --------------------------
 Variable: AFNI_WEB_BROWSER
 --------------------------
@@ -2234,7 +2235,7 @@ square to the right of the 'done' button) will have a menu item to open it.
 Variable: AFNI_JPEG_COMPRESS
 ----------------------------
 This variable determines the compression quality of JPEG files saved in
-the AFNI GUI and 3dDeconvolve. Its value can be set to an integer from 
+the AFNI GUI and 3dDeconvolve. Its value can be set to an integer from
 1 to 100. If not set, the default value is 95%.
 
 ---------------------------
