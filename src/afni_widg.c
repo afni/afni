@@ -718,7 +718,9 @@ STATUS("making imag->rowcol") ;
    SAVEUNDERIZE(XtParent(imag->popmenu)) ; /* 27 Feb 2001 */
 
    VISIBILIZE_WHEN_MAPPED(imag->popmenu) ;
+#if 0
    TEAROFFIZE(imag->popmenu) ;
+#endif
 
 /***
    XtAddCallback( imag->popmenu ,
