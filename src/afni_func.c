@@ -1963,14 +1963,14 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
    /* how about a rescan ? ZSS - Fur Greg Detre*/
    if( AFNI_yesenv("AFNI_RESCAN_AT_SWITCH") ) {
-      /* fprintf(stderr,"Rescanning...\n"); */
-      AFNI_rescan_CB( w , (XtPointer)im3d , NULL ) ;
+     STATUS("rescanning, per AFNI_RESCAN_AT_SWITCH") ;
+     AFNI_rescan_CB( w , (XtPointer)im3d , NULL ) ;
    }
-   
+
    if( first_call ){
-      for( ii=0 ; ii < THD_MAX_CHOICES ; ii++ )
-         strlist[ii] = (char*)XtMalloc( sizeof(char) * (STRLIST_SIZE+1) ) ;
-      first_call = 0 ;
+     for( ii=0 ; ii < THD_MAX_CHOICES ; ii++ )
+       strlist[ii] = (char*)XtMalloc( sizeof(char) * (STRLIST_SIZE+1) ) ;
+     first_call = 0 ;
    }
 
    /*--- make a list of session names ---*/

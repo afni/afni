@@ -1514,6 +1514,7 @@ if( PRINT_TRACING ){
    SAVEUNDERIZE(XtParent(newseq->wbar_menu)) ;  /* 27 Feb 2001 */
 
    VISIBILIZE_WHEN_MAPPED(newseq->wbar_menu) ;
+   TEAROFFIZE(newseq->wbar_menu) ;
 
    newseq->wbar_rng_but =
       XtVaCreateManagedWidget(
@@ -9687,6 +9688,7 @@ ENTRY("ISQ_record_button") ;
 
    menu = XmCreatePulldownMenu( mbar , "menu" , NULL,0 ) ;
    VISIBILIZE_WHEN_MAPPED(menu) ;
+   TEAROFFIZE(menu) ;
 
    /* the cascade button (what the user sees) */
 
