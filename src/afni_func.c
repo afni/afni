@@ -5038,7 +5038,12 @@ STATUS("got func info") ;
    /*.........................................................*/
 
    else if( w == im3d->vwid->dmode->misc_purge_pb ){
-      AFNI_purge_dsets( 1 ) ;
+     long long mb , ma ;
+     mb = mcw_malloc_total() ;
+     AFNI_purge_dsets( 1 ) ;
+     ma = mcw_malloc_total() ;
+     if( mb > 0 && ma > 0 )
+       INFO_message("Purge: before=%lld  after=%lld  diff=%lld",mb,ma,mb-ma) ;
    }
 
    /*.........................................................*/
