@@ -5000,8 +5000,8 @@ void REND_func_widgets(void)
 #endif
 
    SAVEUNDERIZE(XtParent(wfunc_pbar_menu)) ; /* 27 Feb 2001 */
-
    VISIBILIZE_WHEN_MAPPED(wfunc_pbar_menu) ;
+   TEAROFFIZE(wfunc_pbar_menu) ;
 
    XtInsertEventHandler( wfunc_color_label ,     /* handle events in label */
 
@@ -6571,6 +6571,7 @@ void REND_script_menu( Widget parent )
          XmCreatePulldownMenu( mbar , "menu" , NULL,0 ) ;
 
    VISIBILIZE_WHEN_MAPPED(script_menu) ;
+   TEAROFFIZE(script_menu) ;
 
    script_cbut =
          XtVaCreateManagedWidget(

@@ -248,6 +248,7 @@ ENTRY("new_MCW_pbar") ;
 
    SAVEUNDERIZE(XtParent(pbar->big_menu)) ;
    VISIBILIZE_WHEN_MAPPED(pbar->big_menu) ;
+   TEAROFFIZE(pbar->big_menu) ;
 
    pbar->big_label = XtVaCreateManagedWidget(
                      "menu" , xmLabelWidgetClass , pbar->big_menu ,

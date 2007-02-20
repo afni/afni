@@ -624,7 +624,7 @@ ENTRY("AFNI_parse_args") ;
          val = strtod( argv[++narg] , NULL ) ;
          if( val >= 1024 && val <= 65535 ) GLOBAL_argopt.port_niml = (int)val ;
          else fprintf(stderr,
-                "\n*** WARNING: -np %s is illegal!\n", argv[narg]);
+                "\n** WARNING: -np %s is illegal!\n", argv[narg]);
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -657,7 +657,7 @@ ENTRY("AFNI_parse_args") ;
       /*----- -destruct option -----*/
 
       if( strncmp(argv[narg],"-destruct",6) == 0 ){   /** has no effect at present **/
-         fprintf(stderr,"\n*** -destruct option not implemented at present! ***\n") ;
+         fprintf(stderr,"\n** -destruct option not implemented at present! **\n") ;
          GLOBAL_argopt.destruct = False ;
          narg++ ; continue ;  /* go to next arg */
       }
@@ -804,7 +804,7 @@ ENTRY("AFNI_parse_args") ;
          val = strtod( argv[++narg] , NULL ) ;
          if( val >= 0 ) GLOBAL_argopt.ignore = (int) val ;
          else fprintf(stderr,
-                "\n*** WARNING: -ignore value %s illegal\n", argv[narg]);
+                "\n** WARNING: -ignore value %s illegal\n", argv[narg]);
 
          narg++ ; continue ;  /* go to next arg */
       }
@@ -818,7 +818,7 @@ ENTRY("AFNI_parse_args") ;
          val = strtod( argv[++narg] , NULL ) ;
          if( val >= 1 ) GLOBAL_argopt.ignore = (int) (val-1.0) ;
          else fprintf(stderr,
-                "\n*** WARNING: -ignore value %s illegal\n", argv[narg]);
+                "\n** WARNING: -ignore value %s illegal\n", argv[narg]);
 
          narg++ ; continue ;  /* go to next arg */
       }
@@ -833,7 +833,7 @@ ENTRY("AFNI_parse_args") ;
          val = strtod( argv[++narg] , NULL ) ;
          if( val > 0 ) GLOBAL_argopt.dy = val ;
          else fprintf(stderr,
-                "\n*** WARNING: -dy value %s illegal\n", argv[narg]);
+                "\n** WARNING: -dy value %s illegal\n", argv[narg]);
 
          narg++ ; continue ;  /* go to next arg */
       }
@@ -847,7 +847,7 @@ ENTRY("AFNI_parse_args") ;
          val = strtod( argv[++narg] , NULL ) ;
          if( val > 0 ) GLOBAL_argopt.dz = val ;
          else fprintf(stderr,
-                "\n*** WARNING: -dz value %s illegal\n", argv[narg]);
+                "\n** WARNING: -dz value %s illegal\n", argv[narg]);
 
          narg++ ; continue ;  /* go to next arg */
       }
@@ -861,7 +861,7 @@ ENTRY("AFNI_parse_args") ;
          val = strtod( argv[++narg] , NULL ) ;
          if( val > 0 ) GLOBAL_argopt.gamma = val ;
          else fprintf(stderr,
-                "\n*** WARNING: -gamma value %s illegal\n", argv[narg]);
+                "\n** WARNING: -gamma value %s illegal\n", argv[narg]);
 
          narg++ ; continue ;  /* go to next arg */
       }
@@ -876,7 +876,7 @@ ENTRY("AFNI_parse_args") ;
          val = strtod( argv[++narg] , NULL ) ;
          if( val != 0 ) GLOBAL_argopt.gsfac = val ;
          else fprintf(stderr,
-                "\n*** WARNING: -gsfac value %s illegal\n", argv[narg]);
+                "\n** WARNING: -gsfac value %s illegal\n", argv[narg]);
 
          narg++ ; continue ;  /* go to next arg */
       }
@@ -913,7 +913,7 @@ ENTRY("AFNI_parse_args") ;
          val = strtod( argv[++narg] , NULL ) ;
          if( val > 2 ) GLOBAL_argopt.ncolor = val ;
          else fprintf(stderr,
-                "\n*** WARNING: -ncolor value %s illegal\n", argv[narg]);
+                "\n** WARNING: -ncolor value %s illegal\n", argv[narg]);
 
          narg++ ; continue ;  /* go to next arg */
       }
@@ -984,8 +984,8 @@ ENTRY("AFNI_parse_args") ;
 
       /*----- if we get here, bad news for America! -----*/
 
-      fprintf(stderr,"\n*** Unknown option %s ***",argv[narg]) ;
-      fprintf(stderr,"\n*** Try 'afni -help' for a list of command line options.\n") ;
+      fprintf(stderr,"\n** Unknown option %s ***",argv[narg]) ;
+      fprintf(stderr,"\n** Try 'afni -help' for a list of command line options.\n") ;
       exit(1) ;
 
    } /* end of loop over argv's starting with '-' */
@@ -1100,7 +1100,7 @@ void AFNI_sigfunc(int sig)   /** signal handler for fatal errors **/
    fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname); fflush(stderr);
    TRACEBACK ;
    fprintf(stderr,"** AFNI version = " VERSION "  Compile date = " __DATE__ "\n" );
-   fprintf(stderr,"** Program Abort ***\n") ; fflush(stderr) ;
+   fprintf(stderr,"** Program Abort **\n") ; fflush(stderr) ;
    exit(1) ;
 }
 #endif
@@ -1298,7 +1298,7 @@ int main( int argc , char * argv[] )
                                    &argc , argv , FALLback , NULL ) ;
 
    if( MAIN_shell == NULL ){
-     fprintf(stderr,"\n*** Cannot initialize X11 ***\n") ; exit(1) ;
+     fprintf(stderr,"\n** Cannot initialize X11 **\n") ; exit(1) ;
    }
    if( DBG_trace == 2 ){                           /* 01 Dec 1999 */
      XSynchronize(XtDisplay(MAIN_shell),TRUE) ;
@@ -1733,7 +1733,7 @@ STATUS("call 15") ;
 
 void FatalError(char * str)
 {
-   fprintf(stderr,"\n**** Fatal Error ****\n %s\n",str) ;
+   fprintf(stderr,"\n** Fatal Error **\n %s\n",str) ;
    sleep(1) ; exit(1) ;
 }
 
@@ -1881,7 +1881,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
      if( MAIN_im3d->vwid->dmode->misc_niml_pb != NULL )
        XtSetSensitive(MAIN_im3d->vwid->dmode->misc_niml_pb,False) ;
    } else if( GLOBAL_argopt.port_niml > 0 ){  /* 10 Dec 2002 */
-     fprintf(stderr,"*** WARNING: -np was given, but NIML is turned off.\n") ;
+     fprintf(stderr,"** WARNING: -np was given, but NIML is turned off.\n") ;
    }
 
    if( AFNI_have_niml() && AFNI_have_plugouts() )  /* 02 Feb 2007 */
@@ -1920,7 +1920,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
 #endif
    }
 
-   if( recursed_ondot && GLOBAL_library.sslist->num_sess > 0 ) /* 18 Feb 2007 */
+   if( recursed_ondot ) /* 18 Feb 2007 */
     (void) MCW_popup_message( MAIN_im3d->vwid->picture ,
                               " \n"
                               "++ NOTICE:                              ++\n"
@@ -2869,7 +2869,7 @@ ENTRY("AFNI_read_images") ;
 
    /*----- see if there are any images to read! -----*/
 
-   if( nf < 1 ) FatalError("*** No images on command line!? ***") ;
+   if( nf < 1 ) FatalError("** No images on command line!? **") ;
 
    /* count total number of images */
 
@@ -2877,7 +2877,7 @@ ENTRY("AFNI_read_images") ;
    for( lf=0 ; lf < nf ; lf++ ){
       ii = mri_imcount( fname[lf] ) ;
       if( ii == 0 ){
-         sprintf(str,"*** Illegal image file specifier: %s",fname[lf]) ;
+         sprintf(str,"** Illegal image file specifier: %s",fname[lf]) ;
          FatalError(str) ;
       }
       nz += ii ;
@@ -2888,7 +2888,7 @@ ENTRY("AFNI_read_images") ;
 
    arr = mri_read_file( fname[0] ) ;
    if( arr == NULL || arr->num == 0 ){
-      sprintf(str,"*** cannot read first image file: %s",fname[0]) ;
+      sprintf(str,"** Cannot read first image file: %s",fname[0]) ;
       FatalError(str) ;
    }
 
@@ -2902,7 +2902,7 @@ ENTRY("AFNI_read_images") ;
 
    if( datum < 0 ) datum = im->kind ;
    if( ! AFNI_GOOD_DTYPE(datum) )
-      FatalError("*** Illegal datum type found ***") ;
+      FatalError("** Illegal datum type found ***") ;
 
    dsize = mri_datum_size( (MRI_TYPE) datum ) ;
    bar   = (char *) malloc( dsize * nx*ny*nz ) ;
@@ -2921,7 +2921,7 @@ ENTRY("AFNI_read_images") ;
       if( lf != 0 ){
          arr = mri_read_file( fname[lf] ) ;
          if( arr == NULL || arr->num == 0 ){
-           sprintf(str,"*** cannot read image file: %s",fname[lf]) ;
+           sprintf(str,"** Cannot read image file: %s",fname[lf]) ;
            FatalError(str) ;
          }
       }
@@ -2935,8 +2935,8 @@ ENTRY("AFNI_read_images") ;
 
          if( im->nx != nx || im->ny != ny ){
             if( ! GLOBAL_argopt.resize_images ){
-               sprintf(str, "*** image size mismatch:\n"
-                           " *** expected nx=%d ny=%d but got nx=%d ny=%d in file %s" ,
+               sprintf(str, "** Image size mismatch:\n"
+                           " ** expected nx=%d ny=%d but got nx=%d ny=%d in file %s" ,
                            nx,ny,im->nx,im->ny , fname[lf] ) ;
                FatalError(str) ;
             } else {
@@ -2953,7 +2953,7 @@ ENTRY("AFNI_read_images") ;
             shim = im ;
          } else {
             shim = mri_to_mri( datum , im ) ;
-            if( shim == NULL ) FatalError("*** Illegal convert! ***") ;
+            if( shim == NULL ) FatalError("** Illegal convert! **") ;
             mri_free( im ) ;
          }
 
@@ -4003,7 +4003,7 @@ ENTRY("AFNI_read_inputs") ;
                 }
               }
          } else {
-           sprintf(str,"\n*** No datasets in AFNI_GLOBAL_SESSION=%s",eee) ;
+           sprintf(str,"\n** No datasets in AFNI_GLOBAL_SESSION=%s",eee) ;
            REPORT_PROGRESS(str) ;
          }
       }
@@ -4066,7 +4066,7 @@ STATUS("normalizing directory list") ;
 
       REFRESH ;
 
-      /* read each session, set parents, put into session list */
+      /*----- read each session, set parents, put into session list -----*/
 
       qlist = dlist ;
    RESTART_DIRECTORY_SCAN:   /* 18 Feb 2007 */
@@ -4090,7 +4090,7 @@ if(PRINT_TRACING)
                dss->dsset[qd][dset->view_type] = dset ;
                dss->num_dsset ++ ;
                AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
-             } else {
+             } else if( qlist == dlist ){
                fprintf(stderr,
                        "\n** Couldn't open %s as session OR as dataset!" ,
                        dname ) ;
@@ -4116,6 +4116,7 @@ if(PRINT_TRACING)
             /* put the new session into place in the list of sessions */
 
             GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = new_ss ;
+            if( qlist == elist ) recursed_ondot++ ;  /* 18 Feb 2007 */
 
             sprintf(str,"\n session #%3d  = %s ==> %d dataset%s" ,
                     GLOBAL_library.sslist->num_sess ,
@@ -4153,11 +4154,12 @@ if(PRINT_TRACING)
          }
          else {   /* 18 Feb 2007: do -R1 on "./" if no data found */
            if( qlist == dlist && elist != NULL ){
-             recursed_ondot = 1; qlist = elist; goto RESTART_DIRECTORY_SCAN;
+             fprintf(stderr,"\n** Searching subdirectories of './' for data") ;
+             qlist = elist; goto RESTART_DIRECTORY_SCAN;
            }
          }
 
-      }  /* end of id loop (over input directory names) */
+      }  /*----- end of id loop (over input directory names) -----*/
 
       /* 28 Aug 2003: if have dataset in session dss, use it */
 
@@ -4209,7 +4211,7 @@ if(PRINT_TRACING)
 
          if( !THD_is_directory(snam) ) snam = "./" ;
 
-         REPORT_PROGRESS("\n*** No datasets or sessions input -- Dummy dataset created.") ;
+         REPORT_PROGRESS("\n** No datasets or sessions input -- Dummy dataset created.") ;
 
          /** manufacture a minimal session **/
 
@@ -4460,7 +4462,7 @@ STATUS("making descendant datasets") ;
       int ii,nerr=0,vv,nn , dd ;
 
       if( nds <= 0 ){
-         fprintf(stderr,"\a\n*** No datasets on command line?!\n"); exit(1);
+         fprintf(stderr,"\a\n** No datasets on command line?!\n"); exit(1);
       }
       nds = 0 ;
 
@@ -4494,7 +4496,7 @@ STATUS("reading commandline dsets") ;
 
             dsar = THD_fetch_many_datasets( argv[ii] ) ;
             if( dsar == NULL || dsar->num == 0 ){
-              fprintf(stderr,"\a\n*** Can't read datasets from %s\n",argv[ii]) ;
+              fprintf(stderr,"\a\n** Can't read datasets from %s\n",argv[ii]) ;
               nerr++ ; continue ; /* next ii */
             }
 
@@ -4502,7 +4504,7 @@ STATUS("reading commandline dsets") ;
 
             dset = THD_open_dataset( argv[ii] ) ;
             if( dset == NULL ){
-               fprintf(stderr,"\a\n*** Can't read dataset %s\n",argv[ii]) ;
+               fprintf(stderr,"\a\n** Can't read dataset %s\n",argv[ii]) ;
                nerr++ ; continue ; /* next ii */
             }
             INIT_XTARR(dsar) ; ADDTO_XTARR(dsar,dset) ;
@@ -4533,7 +4535,7 @@ STATUS("reading commandline dsets") ;
             vv = dset->view_type ;
             nn = new_ss->num_dsset ;
             if( nn >= THD_MAX_SESSION_SIZE ){
-              fprintf(stderr,"\a\n*** too many datasets!\n") ;
+              fprintf(stderr,"\a\n** too many datasets!\n") ;
               nerr++ ;
             } else {
               new_ss->dsset[nn][vv] = dset ;
@@ -4551,7 +4553,7 @@ STATUS("reading commandline dsets") ;
 
       sprintf(str,"\n dataset count = %d" , nds ) ;
       if( new_ss->num_dsset == 0 ){
-         fprintf(stderr,"\n*** No datasets read from the list!\n") ;
+         fprintf(stderr,"\n** No datasets read from the list!\n") ;
          exit(1) ;
       }
       REPORT_PROGRESS(str) ;
@@ -4601,7 +4603,7 @@ STATUS("forcible adoption of unparented datasets") ;
 
    else {  /* should never occur! */
 
-     fprintf(stderr,"\a\n*** Illegal Usage configuration detected!\n"); exit(1);
+     fprintf(stderr,"\a\n** Illegal Usage configuration detected!\n"); exit(1);
    }
 
    /** done at last **/
@@ -5688,7 +5690,7 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 
       if( tlab == NULL ){
          MCW_textwin_alter( im3d->vwid->imag->pop_whereami_twin ,
-                           "\n*** Can't compute Talairach coordinates now ***\n");
+                           "\n** Can't compute Talairach coordinates now **\n");
       } else {
          MCW_textwin_alter( im3d->vwid->imag->pop_whereami_twin , tlab ) ;
          free(tlab) ;
@@ -9967,7 +9969,7 @@ void AFNI_load_defaults( Widget w )
 ENTRY("AFNI_load_defaults") ;
 
    if( w == NULL ){
-      fprintf(stderr,"\n*** AFNI_load_defaults: NULL input widget ***\n") ;
+      fprintf(stderr,"\n** AFNI_load_defaults: NULL input widget **\n") ;
       EXRETURN ;
    }
 
