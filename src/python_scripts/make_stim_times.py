@@ -52,18 +52,18 @@ examples:
        3 stim_times files (stimes.01.1D, stimes.02.1D, stimes.02.1D)
        having the times, in seconds, of the stimuli, one run per row.
 
-            make.stim.files -files stimA.1D stimB.1D stimC.1D   \\
+            make_stim_files -files stimA.1D stimB.1D stimC.1D   \\
                             -prefix stimes -tr 2.5 -nruns 7 -nt 100
 
     2. Same as 1, but suppose stim_all.1D has all 3 stim types (so 3 columns).
 
-            make.stim.files -files stim_all.1D -prefix stimes -tr 2.5 \\
+            make_stim_files -files stim_all.1D -prefix stimes -tr 2.5 \\
                             -nruns 7 -nt 100
 
     3. Same as 2, but the stimuli were presented at the middle of the TR, so
        add 1.25 seconds to each stimulus time.
 
-            make.stim.files -files stim_all.1D -prefix stimes -tr 2.5 \\
+            make_stim_files -files stim_all.1D -prefix stimes -tr 2.5 \\
                             -nruns 7 -nt 100 -offset 1.25
 
     4. An appropriate conversion of stim_files to stim_times for the 
