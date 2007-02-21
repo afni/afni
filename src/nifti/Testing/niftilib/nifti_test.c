@@ -101,7 +101,7 @@ nifti_image * generate_reference_image( const char * write_image_filename , int 
   PrintTest("Checking memory allocation",reference_image->data ==0 ,NIFTITEST_TRUE,Errors);
   {
   signed int i=0;
-  for(; i < (int)NumVoxels ; i++)
+  for(; i < (signed int)NumVoxels ; i++)
     {
     ((signed int *)(reference_image->data))[i]=i;
     }
@@ -180,7 +180,7 @@ int main (int argc, char *argv[])
   unsigned int filenameindex;
   for(filenameindex=0;filenameindex<6; filenameindex++)
     {
-    char buf[512]; 
+    char buf[512];
     int CompressedTwoFile = strstr(write_image_filename[filenameindex],".img.gz") != 0 ||
       strstr(write_image_filename[filenameindex],".hdr.gz") != 0;
 
