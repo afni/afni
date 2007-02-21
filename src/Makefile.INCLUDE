@@ -1351,7 +1351,9 @@ cs_sort_dv.o:cs_sort_dv.c
 	$(CCFAST) -c 3dNLfim.c $(INFLAGS)
 
 3dNLfim_n.o:3dNLfim.c NLfit.c NLfit.h NLfit_model.c NLfit_model.h
+	$(RM) 3dNLfim.o 3dNLfim_n.o
 	$(CC) -c 3dNLfim.c $(INFLAGS)
+	$(MV) 3dNLfim.o 3dNLfim_n.o
 
 powell_newuoa.o:powell_newuoa.c
 	$(RM) $@
