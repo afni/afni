@@ -795,6 +795,10 @@ rtfeedme:rtfeedme.o
 	$(RM) $@
 	$(CCFAST) -o 3dNLfim 3dNLfim.o $(PLFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
 
+3dNLfim_n:3dNLfim_n.o NLfit.c NLfit.h NLfit_model.c NLfit_model.h simplex.c
+	$(RM) $@
+	$(CC) -o 3dNLfim_n 3dNLfim_n.o $(PLFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 3dStatClust:3dStatClust.o
 	$(RM) $@
 	$(CC) -o 3dStatClust 3dStatClust.o $(PLFLAGS) -lmri -lf2c $(LLIBS)
@@ -1345,6 +1349,9 @@ cs_sort_dv.o:cs_sort_dv.c
 3dNLfim.o:3dNLfim.c NLfit.c NLfit.h NLfit_model.c NLfit_model.h
 	$(RM) $@
 	$(CCFAST) -c 3dNLfim.c $(INFLAGS)
+
+3dNLfim_n.o:3dNLfim.c NLfit.c NLfit.h NLfit_model.c NLfit_model.h
+	$(CC) -c 3dNLfim.c $(INFLAGS)
 
 powell_newuoa.o:powell_newuoa.c
 	$(RM) $@
