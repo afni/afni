@@ -127,6 +127,15 @@ piles of paper in my office, though.)
  AFNI_FIM_BKTHR           = 25.0    //                       |
  AFNI_SPLASHTIME          = 3.0     //                       v
 
+------------------------------------
+Variable: AFNI_DONT_SORT_ENVIRONMENT
+------------------------------------
+If this YES/NO variable is YES, then the Edit Environment controls will
+NOT be sorted alphabetically.  The default action is to sort them
+alphabetically.  If they are unsorted, the editable environment variables
+will appear in the control panel in the order in which they were added to
+the code (that is, in an order that makes no real sense).
+
 ---------------------
 Variable: AFNI_ORIENT (editable)
 ---------------------
