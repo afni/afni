@@ -1944,4 +1944,9 @@
 21 Feb 2007: modified afni_proc.py (1.16), db_mod.py
       - added optional 'despike' block
       - added options -do_block and -despike_opts_3dDes
+  * updated nifti tree to match that of sourceforge
+      - minor changes to CMakeLists.txt DartConfig.cmake
+        examples/CMakeLists.txt niftilib/CMakeLists.txt niftilib/nifti1_io.c
+        real_easy/nifti1_read_write.c Testing/niftilib/nifti_test.c
+        utils/CMakeLists.txt znzlib/CMakeLists.txt znzlib/znzlib.h
 
