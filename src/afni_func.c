@@ -1949,6 +1949,7 @@ void AFNI_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cb )
    Widget wpar ;
    Three_D_View *im3d = (Three_D_View *) cd ;
    int llen , ltop ;
+   int browse_select = 0 ;
 
 ENTRY("AFNI_choose_dataset_CB") ;
 
@@ -1999,6 +2000,8 @@ ENTRY("AFNI_choose_dataset_CB") ;
       wpar    = im3d->vwid->view->choose_anat_pb ;
       num_str = im3d->ss_now->num_dsset ;
       if( num_str < 1 ) EXRETURN ;
+
+      if( AFNI_yesenv("AFNI_DATASET_BROWSE") ) browse_select = 1 ;
 
       ltop = 4 ;
       for( ii=0 ; ii < num_str ; ii++ ){
@@ -2062,6 +2065,8 @@ ENTRY("AFNI_choose_dataset_CB") ;
       num_str = im3d->ss_now->num_dsset ;
       if( num_str < 1 ) EXRETURN ;
 
+      if( AFNI_yesenv("AFNI_DATASET_BROWSE") ) browse_select = 1 ;
+
       ltop = 4 ;
       for( ii=0 ; ii < num_str ; ii++ ){
          for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ )
@@ -2118,6 +2123,8 @@ ENTRY("AFNI_choose_dataset_CB") ;
    }
 
    /*--- call the chooser ---*/
+
+   MCW_set_browse_select( browse_select ) ;
 
    MCW_choose_strlist( wpar , label , num_str , init_str , strlist ,
                        AFNI_finalize_dataset_CB , (XtPointer) im3d ) ;
@@ -3594,9 +3601,9 @@ ENTRY("AFNI_modify_viewing") ;
    EXRETURN ;
 }
 
-/*----------------------------------------------------------------
+/*--------------------------------------------------------------------
   23 Nov 1996: Setup to write out many datasets
-------------------------------------------------------------------*/
+----------------------------------------------------------------------*/
 
 void AFNI_write_many_dataset_CB( Widget w, XtPointer cd, XtPointer cb )
 {
@@ -3723,6 +3730,8 @@ ENTRY("AFNI_write_many_dataset_CB") ;
 
    EXRETURN ;
 }
+
+/*--------------------------------------------------------------------*/
 
 void AFNI_do_many_writes( Widget wpar , XtPointer cd , MCW_choose_cbs *cbs )
 {
