@@ -5,7 +5,7 @@
 ******************************************************************************/
 
 /**********************************************************************/
-/* GPL/NIH AFNI:                                                      */
+/* MCW/GPL/NIH AFNI:                                                  */
 /*    Analysis of Functional NeuroImages                              */
 /*                                                                    */
 /* Author: Robert W. Cox, PhD                                         */
@@ -2875,12 +2875,18 @@ ENTRY("AFNI_read_images") ;
 
    nz = 0 ;
    for( lf=0 ; lf < nf ; lf++ ){
-      ii = mri_imcount( fname[lf] ) ;
-      if( ii == 0 ){
-         sprintf(str,"** Illegal image file specifier: %s",fname[lf]) ;
-         FatalError(str) ;
-      }
-      nz += ii ;
+     if( THD_is_directory(fname[lf]) ){  /* 21 Feb 2007 */
+       fprintf(stderr,
+               "\n** Fatal Error: %s is a directory, not an image file!",
+               fname[lf]) ;
+       exit(1) ;
+     }
+     ii = mri_imcount( fname[lf] ) ;
+     if( ii == 0 ){
+       sprintf(str,"** Illegal image file specifier: %s",fname[lf]) ;
+       FatalError(str) ;
+     }
+     nz += ii ;
    }
    if( nz == 1 ) nz = 2 ;  /* special case for just one image */
 
@@ -4082,11 +4088,13 @@ if(PRINT_TRACING)
 
          REFRESH ;
 
-         if( new_ss == NULL ){ /* 28 Aug 2003 */
+         if( new_ss == NULL && !THD_is_directory(dname) ){ /* 28 Aug 2003 */
+           STATUS("trying to read it as a dataset file") ;
            qd = dss->num_dsset ;
            if( qd < THD_MAX_SESSION_SIZE ){
              THD_3dim_dataset *dset = THD_open_dataset( dname ) ;
-             if( dset != NULL ){
+             if( ISVALID_DSET(dset) ){
+               STATUS("it IS a dataset file!") ;
                dss->dsset[qd][dset->view_type] = dset ;
                dss->num_dsset ++ ;
                AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
@@ -4099,58 +4107,58 @@ if(PRINT_TRACING)
          }
 
          if( new_ss != NULL && new_ss->num_dsset > 0 ){ /* got something? */
-            THD_3dim_dataset *dset ;
+           THD_3dim_dataset *dset ;
 
-            /* set parent pointers */
+           /* set parent pointers */
 
-            new_ss->parent = NULL ;
-            for( qd=0 ; qd < new_ss->num_dsset ; qd++ ){
-              for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
-                dset = new_ss->dsset[qd][vv] ;
-                if( dset != NULL ){
-                  PARENTIZE( dset , NULL ) ;
-                  AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
-                }
-            } }
+           new_ss->parent = NULL ;
+           for( qd=0 ; qd < new_ss->num_dsset ; qd++ ){
+             for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
+               dset = new_ss->dsset[qd][vv] ;
+               if( dset != NULL ){
+                 PARENTIZE( dset , NULL ) ;
+                 AFNI_inconstancy_check(NULL,dset) ; /* 06 Sep 2006 */
+               }
+           } }
 
-            /* put the new session into place in the list of sessions */
+           /* put the new session into place in the list of sessions */
 
-            GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = new_ss ;
-            if( qlist == elist ) recursed_ondot++ ;  /* 18 Feb 2007 */
+           GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = new_ss ;
+           if( qlist == elist ) recursed_ondot++ ;  /* 18 Feb 2007 */
 
-            sprintf(str,"\n session #%3d  = %s ==> %d dataset%s" ,
-                    GLOBAL_library.sslist->num_sess ,
-                    new_ss->sessname , new_ss->num_dsset ,
-                    (new_ss->num_dsset > 1) ? "s" : " " ) ;
-            REPORT_PROGRESS(str) ;
+           sprintf(str,"\n session #%3d  = %s ==> %d dataset%s" ,
+                   GLOBAL_library.sslist->num_sess ,
+                   new_ss->sessname , new_ss->num_dsset ,
+                   (new_ss->num_dsset > 1) ? "s" : " " ) ;
+           REPORT_PROGRESS(str) ;
 
-            num_dsets += new_ss->num_dsset ;
+           num_dsets += new_ss->num_dsset ;
 
-            /* 28 Aug 2002: add any inter-dataset warps to global warptable */
+           /* 28 Aug 2002: add any inter-dataset warps to global warptable */
 
-            if( new_ss->warptable != NULL ){
-              if( GLOBAL_library.warptable == NULL ) /* create global warptable */
-                GLOBAL_library.warptable = new_Htable(101) ;
-              subsume_Htable( new_ss->warptable , GLOBAL_library.warptable ) ;
-              destroy_Htable( new_ss->warptable ) ;
-              new_ss->warptable = NULL ;
-            }
+           if( new_ss->warptable != NULL ){
+             if( GLOBAL_library.warptable == NULL ) /* create global warptable */
+               GLOBAL_library.warptable = new_Htable(101) ;
+             subsume_Htable( new_ss->warptable , GLOBAL_library.warptable ) ;
+             destroy_Htable( new_ss->warptable ) ;
+             new_ss->warptable = NULL ;
+           }
 
-            /* 11 May 2002: put global datasets into session now */
+           /* 11 May 2002: put global datasets into session now */
 
-            if( new_ss != NULL && gss != NULL )
-              AFNI_append_sessions( new_ss , gss ) ;
+           if( new_ss != NULL && gss != NULL )
+             AFNI_append_sessions( new_ss , gss ) ;
 
-            /* if we've maxed out on sessions AND
-               if this isn't the last command line argument ... */
+           /* if we've maxed out on sessions AND
+              if this isn't the last command line argument ... */
 
-            if( GLOBAL_library.sslist->num_sess == THD_MAX_NUM_SESSION &&
-                id < num_ss-1 ){
-               sprintf(str,"\n *** reached max no. sessions (%d) ***",
-                       THD_MAX_NUM_SESSION) ;
-               REPORT_PROGRESS(str) ;
-               break ;                            /* exit the loop over id */
-            }
+           if( GLOBAL_library.sslist->num_sess == THD_MAX_NUM_SESSION &&
+               id < num_ss-1 ){
+             sprintf(str,"\n *** reached max no. sessions (%d) ***",
+                     THD_MAX_NUM_SESSION) ;
+             REPORT_PROGRESS(str) ;
+             break ;                            /* exit the loop over id */
+           }
          }
          else {   /* 18 Feb 2007: do -R1 on "./" if no data found */
            if( qlist == dlist && elist != NULL ){

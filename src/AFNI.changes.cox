@@ -6081,3 +6081,7 @@
  * Added 'instant switch on selection' mode to 'Overlay' and 'Underlay'
      dataset choosers, controlled by AFNI_DATASET_BROWSE variable.
  * And to 'Talairach To' controls.
+ * Fixed bug when '-R' would fail to find any datasets, and would then
+     try to reconcile parents, look for duplicates, etc., de-referencing
+     NULL pointers.  Not sure what happened, actually, but one technique
+     was to avoid trying to read directories as regular file datasets.
