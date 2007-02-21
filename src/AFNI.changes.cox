@@ -6074,3 +6074,9 @@
      pulldown menus in AFNI have the 'tear off' feature.
  * When Datamode->Misc->Purge Memory is used, and mcw_malloc() is turned on,
      prints out the before and after usage, just for fun.
+
+21 Feb 2007
+ * Modified Edit Environment pseudo-plugin (afni_pplug_env.c) to sort
+     controls by variable name.
+ * Added 'instant switch on selection' mode to 'Overlay' and 'Underlay'
+     dataset choosers, controlled by AFNI_DATASET_BROWSE variable.

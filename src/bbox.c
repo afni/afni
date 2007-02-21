@@ -2258,6 +2258,11 @@ ENTRY("MCW_choose_string") ;
 
 /*-------------------------------------------------------------------------*/
 
+static int browse_select = 0 ;
+void MCW_set_browse_select(int i){ browse_select = i ; } /* 21 Feb 2007 */
+
+/*-------------------------------------------------------------------------*/
+
 static int list_max = -1 , list_maxmax ;
 
 static void MCW_set_listmax( Widget wpar )
@@ -2325,10 +2330,13 @@ void MCW_choose_multi_strlist( Widget wpar , char * label , int mode ,
    XmString xms ;
    char * lbuf ;
    int nvisible ;
+   int bc = browse_select ;  /* 21 Feb 2007 */
 
 ENTRY("MCW_choose_multi_strlist") ;
 
    /** destructor callback **/
+
+   browse_select = 0 ;  /* 21 Feb 2007 */
 
    if( wpar == NULL ){
      if( wpop != NULL ){
@@ -2444,6 +2452,8 @@ ENTRY("MCW_choose_multi_strlist") ;
      MCW_register_help( wlist , OVC_list_help_1 ) ;
      MCW_register_help( wlab  , OVC_list_help_1 ) ;
      XtAddCallback( wlist , XmNdefaultActionCallback , MCW_choose_CB , &cd ) ;
+     if( bc )  /* 21 Feb 2007 */
+       XtAddCallback( wlist, XmNbrowseSelectionCallback,MCW_choose_CB, &cd ) ;
    }
 
    cd.wchoice = wlist ;

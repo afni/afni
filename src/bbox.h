@@ -269,6 +269,8 @@ extern void MCW_choose_multi_editable_strlist( Widget, char *, int,
 
 extern void MCW_stradd_CB( Widget , XtPointer , XtPointer ) ;
 
+extern void MCW_set_browse_select(int) ;  /* 21 Feb 2007 */
+
 typedef struct {
       int            ctype ;   /* choice type */
       MCW_DC       * dc ;      /* display context */
