@@ -2255,6 +2255,15 @@ the 'Underlay' button on the AFNI control panel.  The default, from the
 olden days, is to have the 'Underlay' button above the 'Overlay' button,
 which some people find confusing.
 
+-----------------------------
+Variable: AFNI_DATASET_BROWSE (editable)
+-----------------------------
+If this variable is set to YES, then when you 'browse' through a dataset
+chooser ('Overlay' or 'Underlay' list) with the mouse or arrow keys, then
+as a dataset is selected in the list, AFNI will immediately switch to
+viewing that dataset.  This can be convenient for scrolling through datasets,
+but can also consume memory and CPU time very quickly.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
