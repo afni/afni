@@ -8170,10 +8170,11 @@ ENTRY("AFNI_imag_pop_CB") ;
          TTO_labeled = 1 ;
       }
       if( ISQ_REALZ(seq) ){
-         MCW_choose_strlist( seq->wbar ,
-                             "Brain Structure (from San Antonio Talairach Daemon)" ,
-                             TTO_COUNT , TTO_current , TTO_labels ,
-                             AFNI_talto_CB , (XtPointer) im3d ) ;
+        if( AFNI_yesenv("AFNI_DATASET_BROWSE") ) MCW_set_browse_select(1) ;
+        MCW_choose_strlist( seq->wbar ,
+                          "Brain Structure (from San Antonio Talairach Daemon)" ,
+                          TTO_COUNT , TTO_current , TTO_labels ,
+                          AFNI_talto_CB , (XtPointer) im3d ) ;
       }
    }
 
