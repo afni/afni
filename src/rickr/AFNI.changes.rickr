@@ -1937,3 +1937,11 @@
 
 06 Feb 2007: added TTatlas example to 3dcalc help
 
+20 Feb 2007:
+  * modified -help of make_stim_times.c (fixing old make.stim.times)
+  * modified thd_opendset.c: made fsize unsigned (handles 4.2 GB files, now)
+
+21 Feb 2007: modified afni_proc.py (1.16), db_mod.py
+      - added optional 'despike' block
+      - added options -do_block and -despike_opts_3dDes
+

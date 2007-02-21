@@ -63,7 +63,7 @@ g_help_string = """
                       copy stim files
         tcat        : copy input datasets and remove unwanted initial TRs
 
-    optional steps (the user may skip these, or alter their order):
+    default steps (the user may skip these, or alter their order):
 
         tshift      : slice timing alignment on volumes (default is -time 0)
         volreg      : volume registration (default to first volume)
@@ -72,6 +72,10 @@ g_help_string = """
         scale       : scale each run mean to 100, for each voxel (max of 200)
         regress     : regression analysis (default is GAM, peak 1, with motion
                       params)
+
+    optional steps (the default is _not_ to apply these blocks)
+
+        despike     : truncate spikes in each voxel's time series
 
     --------------------------------------------------
     EXAMPLES (options can be provided in any order):
@@ -117,9 +121,7 @@ g_help_string = """
                              -volreg_align_to first          \\
                              -regress_stim_times misc_files/stim_times.*.1D
 
-        3. Current AFNI_data2 class example.
-
-           Similar to #2, but add labels for the 4 stim types, and apply TENT
+        3. Similar to #2, but add labels for the 4 stim types, and apply TENT
            as the basis function to get 14 seconds of response, on a 2-second
            TR grid.  Also, copy the anat dataset(s) to the results directory.
 
@@ -133,7 +135,9 @@ g_help_string = """
                                                   ToolPoint HumanPoint       \\
                              -regress_basis 'TENT(0,14,8)'
 
-        4. Similar to #3, but append a single -regress_opts_3dD option to
+        4. This is the current AFNI_data2 class example.
+
+           Similar to #3, but append a single -regress_opts_3dD option to
            include contrasts.  The intention is to create a script very much
            like analyze_ht05.  Note that the contrast files have been renamed
            from contrast*.1D to glt*.txt, though the contents have not changed.
@@ -192,13 +196,15 @@ g_help_string = """
                              -regress_basis 'TENT(0,14,15)'                  \\
                              -regress_opts_3dD -TR_times 1.0
 
-        7. Similar to #2, but skip tshift and mask steps (so the others must
-           be specified), and apply a 4 second BLOCK response function.  Also,
-           prevent the output of a fit time series dataset, run @auto_tlrc at
-           the end, and specify an output script name.
+        7. Similar to #2, but add the despike block, and skip the tshift and
+           mask blocks (so the others must be specified).
+
+           Also, apply a 4 second BLOCK response function, prevent the output
+           of a fit time series dataset, run @auto_tlrc at the end, and specify
+           an output script name.
 
                 afni_proc.py -dsets ED/ED_r??+orig.HEAD                   \\
-                         -blocks volreg blur scale regress                \\
+                         -blocks despike volreg blur scale regress        \\
                          -script process_ED.b4                            \\
                          -subj_id ED.b4                                   \\
                          -copy_anat ED/EDspgr                             \\
@@ -249,6 +255,9 @@ g_help_string = """
                         (option: -out_dir SUBJ.results)
 
         tcat:     - do not remove any of the first TRs
+
+        despike:  - NOTE: by default, this block is _not_ used
+                  - use no extra options (so automask is default)
 
         tshift:   - align slices to the beginning of the TR
 
@@ -310,11 +319,14 @@ g_help_string = """
         -blocks BLOCK1 ...      : specify the processing blocks to apply
 
                 e.g. -blocks volreg blur scale regress
+                e.g. -blocks despike tshift volreg blur scale regress
                 default: tshift volreg blur mask scale regress
 
             The user may apply this option to specify which processing blocks
             are to be included in the output script.  The order of the blocks
             may be varied, and blocks may be skipped.
+
+            See also '-do_block' (e.g. '-do_block despike').
 
         -copy_anat ANAT         : copy the ANAT dataset to the results dir
 
@@ -335,6 +347,20 @@ g_help_string = """
             results directory.  This would happen before the tcat block, so
             such files may be used for other commands in the script (such as
             contrast files in 3dDeconvolve, via -regress_opts_3dD).
+
+        -do_block BLOCK_NAME ...: add extra blocks in their default positions
+
+                e.g. -do_block despike
+
+            Currently, the 'despike' block is the only block not applied by
+            default (in the processing script).  Any block not included in
+            the default list can be added via this option.
+
+            The default position for 'despike' is between 'tcat' and 'tshift'.
+
+            This option should not be used with '-blocks'.
+
+            See also '-blocks'.
 
         -dsets dset1 dset2 ...  : (REQUIRED) specify EPI run datasets
 
@@ -487,6 +513,20 @@ g_help_string = """
             the initial TRs of each run may have values that are significantly
             greater than the later ones.  This option is used to specify how
             many TRs to remove from the beginning of every run.
+
+        -despike_opts_3dDes OPTS... : specify additional options for 3dDespike
+
+                e.g. -despike_opts_3dDes -nomask -ignore 2
+
+            By default, 3dDespike is used with only -prefix.  Any other options
+            must be applied via -despike_opts_3dDes.
+
+            Note that the despike block is not applied by default.  To apply
+            despike in the processing script, use either '-do_block despike' or
+            '-blocks ... despike ...'.
+
+            Please see '3dDespike -help' for more information.
+            See also '-do_blocks', '-blocks'.
 
         -tshift_align_to TSHIFT OP : specify 3dTshift alignment option
 
@@ -944,22 +984,33 @@ g_history = """
     1.15 Feb 02, 2007 :
          - output float for -blur_size
          - put execution command at top of script
+    1.16 Feb 21, 2007 :
+         - added optional 'despike' block
+         - added options -do_block and -despike_opts_3dDes
 """
 
-g_version = "version 1.15, February 2, 2007"
+g_version = "version 1.16, February 21, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
-BlockLabels  = ['tcat', 'tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
-BlockModFunc  = {'tcat'   : db_mod_tcat,     'tshift' :db_mod_tshift,
-                 'volreg' : db_mod_volreg,   'blur'   :db_mod_blur,
+
+BlockLabels  = ['tcat', 'despike', 'tshift', 'volreg',
+                'blur', 'mask', 'scale', 'regress', 'empty']
+BlockModFunc  = {'tcat'   : db_mod_tcat,     'despike': db_mod_despike,
+                 'tshift' : db_mod_tshift,
+                 'volreg' : db_mod_volreg,   'blur'   : db_mod_blur,
                  'mask'   : db_mod_mask,     'scale'  : db_mod_scale,
-                 'regress':db_mod_regress}
-BlockCmdFunc  = {'tcat'   : db_cmd_tcat,     'tshift' :db_cmd_tshift,
-                 'volreg' : db_cmd_volreg,   'blur'   :db_cmd_blur,
+                 'regress': db_mod_regress}
+BlockCmdFunc  = {'tcat'   : db_cmd_tcat,     'despike': db_cmd_despike,
+                 'tshift' : db_cmd_tshift,
+                 'volreg' : db_cmd_volreg,   'blur'   : db_cmd_blur,
                  'mask'   : db_cmd_mask,     'scale'  : db_cmd_scale,
                  'regress':db_cmd_regress}
 AllOptionStyles = ['cmd', 'file', 'gui', 'sdir']
+
+# default block labels, and other labels (along with the label they follow)
+DefLabels   = ['tcat', 'tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
+OtherLabels = {'despike':'tcat'}
 
 # ----------------------------------------------------------------------
 # data processing stream class
@@ -1019,6 +1070,7 @@ class SubjProcSream:
 
         # general execution options
         self.valid_opts.add_opt('-blocks', -1, [])
+        self.valid_opts.add_opt('-do_block', -1, [])
         self.valid_opts.add_opt('-dsets', -1, [])
 
         self.valid_opts.add_opt('-out_dir', 1, [])
@@ -1042,6 +1094,8 @@ class SubjProcSream:
 
         # block options
         self.valid_opts.add_opt('-tcat_remove_first_trs', 1, [])
+
+        self.valid_opts.add_opt('-despike_opts_3dDes', -1, [])
 
         self.valid_opts.add_opt('-tshift_align_to', -1, [])
         self.valid_opts.add_opt('-tshift_interp', 1, [])
@@ -1157,12 +1211,37 @@ class SubjProcSream:
             for dset in opt.parlist:
                 self.dsets.append(afni_name(dset))
 
-        blocklist = BlockLabels
+        blocklist = DefLabels  # init to defaults
+
+        # check for -do_block options
+        opt = self.user_opts.find_opt('-do_block')
+        if opt and opt.parlist and len(opt.parlist) > 0:
+            if self.user_opts.find_opt('-blocks'):
+                print '** error: -do_block invalid when using -blocks'
+                return 1
+
+            # check additional blocks one by one
+            errs = 0
+            for bname in opt.parlist:
+                if bname in OtherLabels:
+                    preindex = blocklist.index(OtherLabels[bname])
+                    if preindex < 0:
+                        print "** error: -do_block failure for '%s'" % bname
+                        errs += 1
+                    # so add the block to blocklist
+                    preindex += 1
+                    blocklist[preindex:preindex] = [bname]
+                else:
+                    print "** error: '%s' is invalid in '-do_block'" % bname
+                    errs += 1
+            if errs > 0 : return 1
+
         opt = self.user_opts.find_opt('-blocks')
         if opt:  # then create blocklist from user opts (but prepend tcat)
             if opt.parlist[0] != 'tcat':
                 blocklist = ['tcat'] + opt.parlist
             else: blocklist = opt.parlist
+
         for label in blocklist:
             rv = self.add_block(label)
             if rv != None: return rv
@@ -1175,7 +1254,7 @@ class SubjProcSream:
             for label in blocklist:
                 block = self.find_block(label)
                 if not block:
-                    print "** error missing block '%s' in ask_me update"%label
+                    print "** error: missing block '%s' in ask_me update"%label
                     return 1
                 BlockModFunc[label](block, self, self.user_opts) # modify block
 
