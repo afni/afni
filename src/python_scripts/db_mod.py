@@ -1,6 +1,8 @@
 
 import os, afni_util, afni_base
 
+# --------------- tcat ---------------
+
 # modify the tcat block options according to the user options
 def db_mod_tcat(block, proc, user_opts):
     if len(block.opts.olist) == 0:    # then init to defaults
@@ -50,6 +52,47 @@ def db_cmd_tcat(proc, block):
     if proc.verb > 0: print "-d %s: reps is now %d" % (block.label, proc.reps)
 
     return cmd
+
+# --------------- despike ---------------
+
+def db_mod_despike(block, proc, user_opts):
+    if len(block.opts.olist) == 0:    # then init to defaults
+        block.opts.add_opt('-despike_opts_3dDes', -1, [])
+
+    uopt = user_opts.find_opt('-despike_opts_3dDes')
+    bopt = block.opts.find_opt('-despike_opts_3dDes')
+    bopt = block.opts.find_opt('-despike_opts_3dDes')
+    if uopt and bopt: bopt.parlist = uopt.parlist
+
+    block.valid = 1
+
+# apply 3dDespike to each run
+def db_cmd_despike(proc, block):
+    cmd = ''
+
+    # see if the user has provided other options
+    opt = block.opts.find_opt('-despike_opts_3dDes')
+    if not opt or not opt.parlist: other_opts = ''
+    else: other_opts = ' %s' %      \
+               ' '.join(afni_util.quotize_list(opt.parlist, '', 1))
+
+    prefix = proc.prefix_form_run(block)
+    prev   = proc.prev_prefix_form_run()
+
+    # write commands
+    cmd = cmd + '# -------------------------------------------------------\n' \
+              + '# apply 3dDespike to each run\n'
+    cmd = cmd + 'foreach run ( $runs )\n'                                     \
+                '    3dDespike%s -prefix %s %s\n'                             \
+                'end\n\n' %                                                   \
+                (other_opts, prev, prefix)
+
+    proc.bindex += 1            # increment block index
+    proc.pblabel = block.label  # set 'previous' block label
+
+    return cmd
+
+# --------------- tshift ---------------
 
 def db_mod_tshift(block, proc, user_opts):
     if len(block.opts.olist) == 0:    # then init to defaults
