@@ -6080,3 +6080,4 @@
      controls by variable name.
  * Added 'instant switch on selection' mode to 'Overlay' and 'Underlay'
      dataset choosers, controlled by AFNI_DATASET_BROWSE variable.
+ * And to 'Talairach To' controls.
