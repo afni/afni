@@ -795,6 +795,13 @@ void* FslReadAllVolumes(FSLIO* fslio, char* filename)
   if (!znz_isnull(fslio->fileptr)) FslClose(fslio);  
   
   fslio->niftiptr = nifti_image_read(filename,1);
+
+  /* check for failure, from David Akers */
+  if (fslio->niftiptr == NULL) {
+        FSLIOERR("FslReadAllVolumes: error reading NIfTI image");
+        return(NULL);
+  }
+
   FslSetFileType(fslio,fslio->niftiptr->nifti_type);
   FslSetWriteMode(fslio,0);
   return fslio->niftiptr->data;

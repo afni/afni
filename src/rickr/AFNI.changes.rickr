@@ -1949,4 +1949,5 @@
         examples/CMakeLists.txt niftilib/CMakeLists.txt niftilib/nifti1_io.c
         real_easy/nifti1_read_write.c Testing/niftilib/nifti_test.c
         utils/CMakeLists.txt znzlib/CMakeLists.txt znzlib/znzlib.h
+  * updated nifti/fsliolib/fslio.c: NULL check from David Akers
 
