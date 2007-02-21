@@ -13,11 +13,11 @@
     [28 Jul 2003] Modified for new THD_session struct.
 ------------------------------------------------------------------*/
 
-void THD_check_idcodes( THD_sessionlist * ssl )
+void THD_check_idcodes( THD_sessionlist *ssl )
 {
    int iss , idd,jdd , ivv , dsnum , nd ;
-   THD_session * sess ;
-   THD_3dim_dataset * dset , ** dsl ;
+   THD_session *sess ;
+   THD_3dim_dataset * dset , **dsl ;
 
 ENTRY("THD_check_idcodes") ;
 
@@ -28,28 +28,31 @@ ENTRY("THD_check_idcodes") ;
    /*-- count number of datasets --*/
 
    for( dsnum=iss=0 ; iss < ssl->num_sess ; iss++ ){
-      sess = ssl->ssar[iss] ;
-      for( idd=0 ; idd < sess->num_dsset ; idd++ ){
-         for( ivv=FIRST_VIEW_TYPE ; ivv <= LAST_VIEW_TYPE ; ivv++ ){
-            dset = sess->dsset[idd][ivv] ;
-            if( ISVALID_DSET(dset) ) dsnum++ ;
-         }
-      }
+     sess = ssl->ssar[iss] ; if( !ISVALID_SESSION(sess) ) continue ;
+     for( idd=0 ; idd < sess->num_dsset ; idd++ ){
+       for( ivv=FIRST_VIEW_TYPE ; ivv <= LAST_VIEW_TYPE ; ivv++ ){
+         dset = sess->dsset[idd][ivv] ;
+         if( ISVALID_DSET(dset) ) dsnum++ ;
+       }
+     }
    }
+   STATUS("counted datasets") ;
+   if( dsnum < 2 ) EXRETURN ;  /* 21 Feb 2007 */
 
    /*-- make list of datasets --*/
 
    dsl = (THD_3dim_dataset **) malloc( sizeof(THD_3dim_dataset *) * dsnum ) ;
 
    for( nd=iss=0 ; iss < ssl->num_sess ; iss++ ){
-      sess = ssl->ssar[iss] ;
-      for( idd=0 ; idd < sess->num_dsset ; idd++ ){
-         for( ivv=FIRST_VIEW_TYPE ; ivv <= LAST_VIEW_TYPE ; ivv++ ){
-            dset = sess->dsset[idd][ivv] ;
-            if( ISVALID_DSET(dset) ) dsl[nd++] = dset ;
-         }
-      }
+     sess = ssl->ssar[iss] ; if( !ISVALID_SESSION(sess) ) continue ;
+     for( idd=0 ; idd < sess->num_dsset ; idd++ ){
+       for( ivv=FIRST_VIEW_TYPE ; ivv <= LAST_VIEW_TYPE ; ivv++ ){
+         dset = sess->dsset[idd][ivv] ;
+         if( ISVALID_DSET(dset) ) dsl[nd++] = dset ;
+       }
+     }
    }
+   STATUS("collected datasets") ;
 
    /*-- check list for duplicates --*/
 
