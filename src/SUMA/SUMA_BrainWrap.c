@@ -138,17 +138,17 @@ float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObj
    
    /* find the radius */
    Opt->r = pow(vol*3.0/(3.14159*4.0), 1/3.0);
-   if (LocalHead) {
+   if (Opt->debug) {
          fprintf (SUMA_STDERR,"%s: Volume %f, radius %f\n", FuncName, vol, Opt->r);
    }
    if (Opt->specie == MONKEY) {
       Opt->r  = Opt->r/THD_BN_rat();
-      if (LocalHead) {
+      if (Opt->debug) {
          fprintf (SUMA_STDERR,"%s: Radius reduced to %f, less brain, more muscle.\n",  FuncName, Opt->r);
       }
    } else if (Opt->specie == RAT) {
-      Opt->r  = Opt->r;       /* No need to trim, looks like vol is small enough */
-      if (LocalHead) {
+      Opt->r  = SUMA_MAX_PAIR(Opt->r/THD_BN_rat(), 6.0);       
+      if (Opt->debug) {
          fprintf (SUMA_STDERR,"%s: Radius at %f. RATS!.\n",  FuncName, Opt->r);
       }
    }

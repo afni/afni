@@ -676,10 +676,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
          }
          brk = YUP;
 		}
-      if (!brk && (strcmp(argv[kar], "-NNsmooth") == 0)) {
+      if (!brk && (strcmp(argv[kar], "-NNsmooth") == 0 || strcmp(argv[kar], "-NN_smooth") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -NNsmooth \n");
+		  		fprintf (SUMA_STDERR, "need argument after -NN_smooth \n");
 				exit (1);
 			}
 			Opt->NNsmooth = atoi(argv[kar]);
@@ -1441,6 +1441,13 @@ int main (int argc,char *argv[])
       if (LocalHead) fprintf (SUMA_STDERR,"%s: Got me a volume of %f mm3\n", FuncName, vol);
    }
    
+   /* create the ico, might need coords for bias correction below*/
+   SO = SUMA_CreateIcosahedron (Opt->r/2.0, Opt->Icold, Opt->cog, "n", 1);
+   if (!SO) {
+      SUMA_S_Err("Failed to create Icosahedron");
+      exit(1);
+   }         
+
    /* allocate and initialize shrink bias vector */
    {
       int nico = (2 + 10 * Opt->Icold * Opt->Icold );
@@ -1475,6 +1482,42 @@ int main (int argc,char *argv[])
          }
          mri_free(im); im = NULL;   /* done with that baby */
 
+      } else if (Opt->specie == RAT) {
+         float p1[3], Y[3], Z[3], U[3], Un, dotz, doty;
+         Y[0] = 0.0; Y[1] = 1.0; Y[2] = 0.0; /* The Y direction */
+         Z[0] = 0.0; Z[1] = 0.0; Z[2] = 1.0; /* The Z direction */
+         /* less on top, and sides, more in front */
+         for (i=0; i<SO->N_Node; ++i) {
+            /* vector from center to node */
+            p1[0] = SO->NodeList[3*i  ]; p1[1] = SO->NodeList[3*i+1]; p1[2] = SO->NodeList[3*i+2];
+            SUMA_UNIT_VEC(Opt->cog, p1, U, Un);  
+            SUMA_DOTP_VEC(U,Y, doty , 3,float,float);
+            SUMA_DOTP_VEC(U,Z, dotz , 3,float,float);
+            Opt->shrink_bias[i] = ((1.5 - (SUMA_ABS(doty)*(1-SUMA_ABS(dotz))))) ;
+         }
+         if (Opt->debug) {
+            snprintf(stmp, 198, "%s_shrink_bias.1D.dset", Opt->out_vol_prefix);
+            SUMA_WRITE_ARRAY_1D(Opt->shrink_bias,SO->N_Node,1, stmp);        
+         }
+      } else if (Opt->specie == MONKEY) {
+         float p1[3], Y[3], Z[3], U[3], Un, dotz, doty;
+         Y[0] = 0.0; Y[1] = 1.0; Y[2] = 0.0; /* The Y direction */
+         Z[0] = 0.0; Z[1] = 0.0; Z[2] = 1.0; /* The Z direction */
+         /* less on top, and sides, more in front */
+         for (i=0; i<SO->N_Node; ++i) {
+            /* vector from center to node */
+            p1[0] = SO->NodeList[3*i  ]; p1[1] = SO->NodeList[3*i+1]; p1[2] = SO->NodeList[3*i+2];
+            SUMA_UNIT_VEC(Opt->cog, p1, U, Un);  
+            SUMA_DOTP_VEC(U,Y, doty , 3,float,float);
+            SUMA_DOTP_VEC(U,Z, dotz , 3,float,float);
+            if (doty < 0 && dotz > 0) { /* loosen front upper of brain */
+               Opt->shrink_bias[i] = ((1.1 - (SUMA_ABS(doty)*(1-(dotz))))) ;
+            } 
+         }
+         if (Opt->debug) {
+            snprintf(stmp, 198, "%s_shrink_bias.1D.dset", Opt->out_vol_prefix);
+            SUMA_WRITE_ARRAY_1D(Opt->shrink_bias,SO->N_Node,1, stmp);        
+         }
       }
 
    } 
@@ -1482,10 +1525,15 @@ int main (int argc,char *argv[])
    do {   
       /* Now create that little sphere that is about to expand */
       sprintf(stmp,"icobaby_ld%d", Opt->Icold);  
-      SO = SUMA_CreateIcosahedron (Opt->r/2.0, Opt->Icold, Opt->cog, "n", 1);
-      if (!SO) {
-         SUMA_S_Err("Failed to create Icosahedron");
-         exit(1);
+      if (SO) {
+         if (Opt->debug) fprintf (SUMA_STDERR,"%s: Have surface, OK for 1st entry.\n", FuncName);
+      }  else {   
+         if (Opt->debug) fprintf (SUMA_STDERR,"%s: Creating Ico.\n", FuncName);
+         SO = SUMA_CreateIcosahedron (Opt->r/2.0, Opt->Icold, Opt->cog, "n", 1);
+         if (!SO) {
+            SUMA_S_Err("Failed to create Icosahedron");
+            exit(1);
+         }         
       }
 
       if (Opt->Stop) SUMA_free(Opt->Stop); Opt->Stop = NULL;
@@ -2121,6 +2169,25 @@ int main (int argc,char *argv[])
             exit (1);
          }
       }
+   }
+   
+   if (Opt->debug) {
+      float rad, vol, *p;
+      int kkk;
+      vol = SUMA_Mesh_Volume(SO, NULL, -1);
+      rad = pow(3.0/4.0/SUMA_PI*vol, 1.0/3.0);
+      SUMA_MIN_MAX_SUM_VECMAT_COL(SO->NodeList, SO->N_Node, SO->NodeDim, SO->MinDims, SO->MaxDims, SO->Center);
+      SO->Center[0] /= (float)SO->N_Node; 
+      SO->Center[1] /= (float)SO->N_Node; 
+      SO->Center[2] /= (float)SO->N_Node; 
+      /* what is the deviation from a sphere? */
+      for (kkk=0; kkk<SO->N_Node; ++kkk) {
+         p=&(SO->NodeList[3*kkk]);
+         SUMA_SEG_LENGTH(SO->Center, p , Opt->shrink_bias[kkk]);  
+         Opt->shrink_bias[kkk] /= rad; 
+      }
+      snprintf(stmp, 198, "%s_radrat.1D.dset", Opt->out_vol_prefix);
+      SUMA_WRITE_ARRAY_1D(Opt->shrink_bias, SO->N_Node, 1, stmp);
    }
    
    if (Opt->UseSkull && SOhull) {
