@@ -3869,6 +3869,11 @@ extern FD_brick * THD_oriented_brick( THD_3dim_dataset *, char *) ; /* 07 Dec 20
 extern int thd_floatscan  ( int , float *   ) ; /* 30 Jul 1999 */
 extern int thd_complexscan( int , complex * ) ; /* 14 Sep 1999 */
 
+extern int mri_floatscan  ( MRI_IMAGE * ) ;     /* 22 Feb 2007 */
+extern int imarr_floatscan( MRI_IMARR * ) ;
+extern int dblk_floatscan ( THD_datablock * ) ;
+extern int dset_floatscan ( THD_3dim_dataset * ) ;
+
 extern byte * THD_makemask( THD_3dim_dataset *, int,float,float) ;
 extern int    THD_makedsetmask( THD_3dim_dataset *, int,float,float, byte*cmask) ;
 extern int *THD_unique_vals( THD_3dim_dataset *mask_dset , int miv, int *n_unique, byte*cmask );
