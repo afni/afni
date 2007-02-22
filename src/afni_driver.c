@@ -584,28 +584,29 @@ ENTRY("AFNI_switch_function") ;
    RETURN(0) ;
 }
 
-/*--------------------------------------------------------------------*/
-/* Macros for deciding on window to use -- 22 Feb 2007 */
+/*---------------------------------------------------------------------*/
+/* Macros for deciding on which window is in play -- allows for
+   various mis-spellings that might naturally transpire -- 22 Feb 2007 */
 
-#define HAS_axialimage(s) \
- ( strstr((s),"axialimage")!=NULL || strstr((s),"axial_image")!=NULL )
+#define HAS_axialimage(s)                                               \
+ ( strstr((s),"axialim")!=NULL || strstr((s),"axial_im")!=NULL )
 
-#define HAS_sagittalimage(s) \
- ( strstr((s),"sagittalimage")!=NULL || strstr((s),"sagittal_image")!=NULL || \
-   strstr((s),"sagitalimage") !=NULL || strstr((s),"sagital_image") !=NULL )
+#define HAS_sagittalimage(s)                                            \
+ ( strstr((s),"sagittalim")!=NULL || strstr((s),"sagittal_im")!=NULL || \
+   strstr((s),"sagitalim") !=NULL || strstr((s),"sagital_im") !=NULL   )
 
-#define HAS_coronalimage(s) \
- ( strstr((s),"coronalimage")!=NULL || strstr((s),"coronal_image")!=NULL )
+#define HAS_coronalimage(s)                                             \
+ ( strstr((s),"coronalim")!=NULL || strstr((s),"coronal_im")!=NULL )
 
-#define HAS_axialgraph(s) \
- ( strstr((s),"axialgraph")!=NULL || strstr((s),"axial_graph")!=NULL )
+#define HAS_axialgraph(s)                                               \
+ ( strstr((s),"axialgr")!=NULL || strstr((s),"axial_gr")!=NULL )
 
-#define HAS_sagittalgraph(s) \
- ( strstr((s),"sagittalgraph")!=NULL || strstr((s),"sagittal_graph")!=NULL || \
-   strstr((s),"sagitalgraph") !=NULL || strstr((s),"sagital_graph") !=NULL )
+#define HAS_sagittalgraph(s)                                            \
+ ( strstr((s),"sagittalgr")!=NULL || strstr((s),"sagittal_gr")!=NULL || \
+   strstr((s),"sagitalgr") !=NULL || strstr((s),"sagital_gr") !=NULL   )
 
-#define HAS_coronalgraph(s) \
- ( strstr((s),"coronalgraph")!=NULL || strstr((s),"coronal_graph")!=NULL )
+#define HAS_coronalgraph(s)                                             \
+ ( strstr((s),"coronalgr")!=NULL || strstr((s),"coronal_gr")!=NULL )
 
 /*--------------------------------------------------------------------
   Open a window in the controller.

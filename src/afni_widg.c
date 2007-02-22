@@ -1842,7 +1842,7 @@ STATUS("making view->rowcol") ;
      XtSetSensitive(view->nimlpo_pb,False) ;
    } else {
      MCW_register_hint( view->nimlpo_pb ,
-                        "Starts NIML and Plugouts") ;
+                        "Start NIML and Plugout TCP/IP sockets") ;
      MCW_register_help( view->nimlpo_pb ,
                         "Start listening for NIML\n"
                         "and Plugout TCP/IP sockets.\n"
