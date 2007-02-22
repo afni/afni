@@ -698,6 +698,38 @@ static byte NI_GOT;
    }  \
 }
 
+/*! Write an array to a text file, mcol consecutive values per line. 
+v is the array
+Nel is the total number of values
+m is the number of consecutive values to write per line 
+If you want to have some index before the entries, use SUMA_WRITE_IND_ARRAY_1D*/
+#define SUMA_WRITE_ARRAY_1D(v,Nel,m,name){  \
+   int m_kkk; \
+   FILE * m_fp = fopen(name,"w");  \
+   if (m_fp) { \
+      fprintf(m_fp,"# Output from %s, %d values (%d per line).\n", FuncName, Nel, 1);  \
+      for (m_kkk=0; m_kkk<Nel; ++m_kkk) { if (!(m_kkk % m)) fprintf(m_fp,"\n"); fprintf(m_fp,"%f   ", v[m_kkk]); }\
+      fclose(m_fp); \
+   }  \
+}
+/* Just like SUMA_WRITE_ARRAY_1D but ind contains indices
+to add at the beginning of each line.
+If ind is NULL, then the index will be the line number.
+*/
+#define SUMA_WRITE_IND_ARRAY_1D(v,ind,Nel,m,name){  \
+   int m_kkk; \
+   FILE * m_fp = fopen(name,"w");  \
+   if (m_fp) { \
+      fprintf(m_fp,"# Output from %s, index followed by %d values (%d per line).\n", FuncName, Nel, 1);  \
+      if (!ind) {  \
+         for (m_kkk=0; m_kkk<Nel; ++m_kkk) { if (!(m_kkk % m)) fprintf(m_fp,"\n%d   ", m_kkk/m); fprintf(m_fp,"%f   ", v[m_kkk]); }\
+      } else {\
+         for (m_kkk=0; m_kkk<Nel; ++m_kkk) { if (!(m_kkk % m)) fprintf(m_fp,"\n%d   ", ind[m_kkk/m]); fprintf(m_fp,"%f   ", v[m_kkk]); }\
+      }  \
+      fclose(m_fp); \
+   }  \
+}
+
 /*!
    NEL_WRITE_TX(nel, strm, suc)
    NEL_WRITE_BI(nel, strm, suc)
