@@ -4648,8 +4648,9 @@ byte * SUMA_load_all_command_masks(char *bmaskname, char *nmaskname, char *cmask
       }
    }
    
-   /* Remove error flag, even if nmask is NULL (no mask to speak of) */
-   *N_inmask = 0;
+   
+   if (*N_inmask < 0) *N_inmask = 0; /* Remove error flag, even if nmask is NULL (no mask to speak of) */
+   
    SUMA_RETURN(nmask);
 }
 
