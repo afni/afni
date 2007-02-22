@@ -317,12 +317,10 @@ typedef struct {
    char *spec_file;
    int MatchMethod;
    byte *nmask;
-   char *nmaskname;
-   char *bmaskname;
-   char *cmask;
    byte strict_mask;
    float sigma;
    SUMA_DSET_FORMAT oform;
+   SUMA_GENERIC_ARGV_PARSE *ps;
 } SUMA_SURFSMOOTH_OPTIONS;
 
 /*!
@@ -372,13 +370,11 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
    Opt->AddIndex = 0;
    Opt->insurf_method = 0;
    Opt->nmask = NULL;
-   Opt->nmaskname = NULL;
-   Opt->bmaskname = NULL;
    Opt->spec_file = NULL;
    Opt->sigma = -1.0;
    Opt->oform = SUMA_NO_DSET_FORMAT;
-   Opt->cmask = NULL;
    Opt->strict_mask = 1;
+   Opt->ps = ps;
    SUMA_Set_Taubin_Weights(SUMA_EQUAL);
    for (i=0; i<SURFSMOOTH_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
    outname = NULL;
@@ -996,7 +992,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
          break;
    }
    
-   if (0 && ((Opt->bmaskname && Opt->nmaskname) || (Opt->bmaskname && Opt->cmask) || (Opt->nmaskname && Opt->cmask) ) ) {
+   if (0 && ((Opt->ps->bmaskname && Opt->ps->nmaskname) || (Opt->ps->bmaskname && Opt->ps->cmask) || (Opt->ps->nmaskname && Opt->ps->cmask) ) ) {
       fprintf (SUMA_STDERR,"Error %s:\n-n_mask, -b_mask, and -c_mask options are mutually exclusive.\n", FuncName);
       exit(1);
    }else {
@@ -1028,7 +1024,7 @@ int main (int argc,char *argv[])
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_DSET *dset = NULL;
    int iform;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;
@@ -1036,7 +1032,7 @@ int main (int argc,char *argv[])
    
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-i;-sv;-talk;");
+   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-i;-sv;-talk;-mask;");
    
    if (argc < 6)
        {
@@ -1087,8 +1083,7 @@ int main (int argc,char *argv[])
       SUMA_S_Err("Should be null here!");
       exit(1);
    }
-   
-   if (!(Opt->nmask = SUMA_load_all_command_masks(Opt->bmaskname, Opt->nmaskname, Opt->cmask, SO->N_Node, &N_inmask)) && N_inmask < 0) {
+   if (!(Opt->nmask = SUMA_load_all_command_masks(Opt->ps->bmaskname, Opt->ps->nmaskname, Opt->ps->cmask, SO->N_Node, &N_inmask)) && N_inmask < 0) {
          SUMA_S_Err("Failed loading mask");
          exit(1);
    }
