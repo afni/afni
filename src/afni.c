@@ -105,7 +105,8 @@ static Boolean        MAIN_workprocess( XtPointer ) ;
 /*----- Stuff saved from the '-com' command line arguments [29 Jul 2005] -----*/
 
 static int   COM_num = 0 ;
-static char *COM_com[1024] ;  /* only 1024 commands allowed!!! */
+static char *COM_com[1024] ;  /* max of 1024 commands allowed!!! */
+static char comsep = ';' ;    /* command separator: 22 Feb 2007 */
 
 static int   recursed_ondot = 0 ;  /* 18 Feb 2007 */
 
@@ -212,6 +213,14 @@ void AFNI_syntax(void)
      "                  the order they are given on the command line.\n"
      "            N.B.: Most commands to AFNI contain spaces, so the 'ccc'\n"
      "                  command strings will need to be enclosed in quotes.\n"
+     "   -comsep 'c'  Use character 'c' as a separator for commands.\n"
+     "                  In this way, you can put multiple commands in\n"
+     "                  a single '-com' option.  Default separator is ';'.\n"
+     "            N.B.: The command separator CANNOT be alphabetic or\n"
+     "                  numeric (a..z, A..Z, 0..9) or whitespace or a quote!\n"
+     "            N.B.: -comsep should come BEFORE any -com option that\n"
+     "                  uses a non-semicolon separator!\n"
+     "   Example: -com 'OPEN_WINDOW axialimage; SAVE_JPEG axialimage zork; QUIT'\n"
      "\n"
      " * If no session_directories are given, then the program will use\n"
      "    the current working directory (i.e., './').\n"
@@ -593,15 +602,44 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 
+      /*---- -comsep c [22 Feb 2007] ----*/
+
+      if( strcmp(argv[narg],"-comsep") == 0 ){
+        char cc ;
+        if( ++narg >= argc ) FatalError("need an argument after -comsep") ;
+        cc = argv[narg][0] ;
+        if( cc=='\0' || isalnum(cc) || isspace(cc) || cc=='\'' || cc=='\"' )
+          ERROR_message("Illegal character after -comsep") ;
+        else
+          comsep = cc ;
+
+        narg++ ; continue ;
+      }
+
       /*---- -com ccc [29 Jul 2005] ----*/
 
       if( strcmp(argv[narg],"-com") == 0 ){
-        int ll ;
+        int ii , ll ; char *cm , *cs , *cq ;
         if( ++narg >= argc ) FatalError("need an argument after -com!");
-        ll = strlen(argv[narg]) ;
-             if( ll > 255 ) ERROR_message("argument after -com is too long!" );
-        else if( ll <   3 ) ERROR_message("argument after -com is too short!");
-        else                COM_com[ COM_num++ ] = argv[narg] ;
+        cm = argv[narg] ; ll = strlen(cm) ; cs = strchr(cm,comsep) ;
+             if( ll > 255   ) ERROR_message("argument after -com is too long" );
+        else if( ll <   3   ) ERROR_message("argument after -com is too short");
+        else if( cs == NULL ) COM_com[ COM_num++ ] = strdup(argv[narg]) ;
+        else {  /* 22 Feb 2007: break into sub-commands */
+          cq = cm = strdup(argv[narg]) ;
+          for( ii=ll-1 ; isspace(cm[ii]) ; ii-- ) cm[ii] = '\0' ; /* trim end */
+          cs = strchr(cm,comsep) ;
+          while(1){
+            *cs = '\0' ;  /* NUL terminate command at separator */
+            for( ; *cm != '\0' && isspace(*cm) ; cm++ ) ; /* trim front */
+            ll = strlen(cm) ;
+            if( ll > 2 && ll <= 255 ) COM_com[ COM_num++ ] = strdup(cm) ;
+            cm = cs+1 ; if( *cm == '\0' ) break ;  /* reached the end */
+            cs = strchr(cm,comsep) ;               /* search for next sep */
+            if( cs == NULL ) cs = cm + strlen(cm) ;
+          }
+          free(cq) ;
+        }
 
         narg++ ; continue ;  /* go to next arg */
       }
@@ -1988,7 +2026,9 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    /* 29 Jul 2005: run any driver commands from the command line */
 
-   for( vv=0 ; vv < COM_num ; vv++ ) AFNI_driver( COM_com[vv] ) ;
+   for( vv=0 ; vv < COM_num ; vv++ ){
+     AFNI_driver(COM_com[vv]) ; free(COM_com[vv]) ;
+   }
 
    /* 29 Nov 2005: Message Of The Day -- did it change? */
 
