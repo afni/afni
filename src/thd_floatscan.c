@@ -23,32 +23,31 @@
    Return the number of illegal values found.
 -----------------------------------------------------------------------*/
 
-int thd_floatscan( int nbuf , float * fbuf )
+int thd_floatscan( int nbuf , float *fbuf )
 {
    int ii , nerr ;
 
    if( nbuf <= 0 || fbuf == NULL ) return 0 ;
 
-   for( nerr=ii=0 ; ii < nbuf ; ii++ ){
-      if( !IS_GOOD_FLOAT(fbuf[ii]) ){ fbuf[ii] = 0.0 ; nerr++ ; }
-   }
+   for( nerr=ii=0 ; ii < nbuf ; ii++ )
+     if( !IS_GOOD_FLOAT(fbuf[ii]) ){ fbuf[ii] = 0.0 ; nerr++ ; }
 
    return nerr ;
 }
 
 #if 0
-typedef struct complex { float r , i ; } complex ;
+typedef struct complex { float r , i ; } complex ;  /* cf. mrilib.h */
 #endif
 
-int thd_complexscan( int nbuf , complex * cbuf )
+int thd_complexscan( int nbuf , complex *cbuf )
 {
    int ii , nerr ;
 
    if( nbuf <= 0 || cbuf == NULL ) return 0 ;
 
    for( nerr=ii=0 ; ii < nbuf ; ii++ ){
-      if( !IS_GOOD_FLOAT(cbuf[ii].r) ){ cbuf[ii].r = 0.0 ; nerr++ ; }
-      if( !IS_GOOD_FLOAT(cbuf[ii].i) ){ cbuf[ii].i = 0.0 ; nerr++ ; }
+     if( !IS_GOOD_FLOAT(cbuf[ii].r) ){ cbuf[ii].r = 0.0 ; nerr++ ; }
+     if( !IS_GOOD_FLOAT(cbuf[ii].i) ){ cbuf[ii].i = 0.0 ; nerr++ ; }
    }
 
    return nerr ;
@@ -59,8 +58,14 @@ int thd_complexscan( int nbuf , complex * cbuf )
 
 int mri_floatscan( MRI_IMAGE *im )
 {
-   if( im == NULL || im->kind != MRI_float ) return 0 ;
-   return thd_floatscan( im->nvox , MRI_FLOAT_PTR(im) ) ;
+   if( im == NULL ) return 0 ;
+   switch( im->kind ){
+     case MRI_float:
+       return thd_floatscan( im->nvox , MRI_FLOAT_PTR(im) ) ;
+     case MRI_complex:
+       return thd_complexscan( im->nvox , MRI_COMPLEX_PTR(im) ) ;
+   }
+   return 0 ;
 }
 
 int imarr_floatscan( MRI_IMARR *imar )

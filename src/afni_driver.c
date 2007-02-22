@@ -228,10 +228,14 @@ ENTRY("AFNI_driver") ;
 
        AFNI_block_rescan(1) ;                /* 10 Nov 2005 */
        rval = dpair[dd].fun( cmd+ii ) ;      /* execute command */
+       if( rval < 0 )
+         WARNING_message("Bad drive AFNI in '%s'",cmd) ;  /* 22 Feb 2007 */
        AFNI_block_rescan(0) ;
        free(dmd) ; RETURN(rval) ;
      }
    }
+
+   ERROR_message("Can't drive AFNI with '%s'",cmd) ;  /* 22 Feb 2007 */
 
    free(dmd) ; RETURN(-1) ;  /* not in the list */
 }
@@ -580,11 +584,34 @@ ENTRY("AFNI_switch_function") ;
    RETURN(0) ;
 }
 
+/*--------------------------------------------------------------------*/
+/* Macros for deciding on window to use -- 22 Feb 2007 */
+
+#define HAS_axialimage(s) \
+ ( strstr((s),"axialimage")!=NULL || strstr((s),"axial_image")!=NULL )
+
+#define HAS_sagittalimage(s) \
+ ( strstr((s),"sagittalimage")!=NULL || strstr((s),"sagittal_image")!=NULL || \
+   strstr((s),"sagitalimage") !=NULL || strstr((s),"sagital_image") !=NULL )
+
+#define HAS_coronalimage(s) \
+ ( strstr((s),"coronalimage")!=NULL || strstr((s),"coronal_image")!=NULL )
+
+#define HAS_axialgraph(s) \
+ ( strstr((s),"axialgraph")!=NULL || strstr((s),"axial_graph")!=NULL )
+
+#define HAS_sagittalgraph(s) \
+ ( strstr((s),"sagittalgraph")!=NULL || strstr((s),"sagittal_graph")!=NULL || \
+   strstr((s),"sagitalgraph") !=NULL || strstr((s),"sagital_graph") !=NULL )
+
+#define HAS_coronalgraph(s) \
+ ( strstr((s),"coronalgraph")!=NULL || strstr((s),"coronal_graph")!=NULL )
+
 /*--------------------------------------------------------------------
   Open a window in the controller.
   Input is a string of the form A.sagittalimage, etc.
   Return value is 0 if good, -1 if bad.
--------------------------------------------------------------------*/
+----------------------------------------------------------------------*/
 
 static int AFNI_drive_open_window( char *cmd )
 {
@@ -622,34 +649,34 @@ ENTRY("AFNI_drive_open_window") ;
 
 #ifdef ALLOW_PLUGINS
    if( strstr(cmd,"plugin.") != NULL ){
-      ic = AFNI_drive_open_plugin( cmd ) ;
-      RETURN(ic) ;
+     ic = AFNI_drive_open_plugin( cmd ) ;
+     RETURN(ic) ;
    }
 #endif
 
    /* open a graph or image window */
 
-        if( strstr(cmd,"axialimage") != NULL ){
+        if( HAS_axialimage(cmd) ){
           AFNI_view_xyz_CB( im3d->vwid->imag->image_xyz_pb, im3d, NULL ) ;
           isq = im3d->s123 ;
 
-   } else if( strstr(cmd,"sagittalimage") != NULL ){
+   } else if( HAS_sagittalimage(cmd) ){
           AFNI_view_xyz_CB( im3d->vwid->imag->image_yzx_pb, im3d, NULL ) ;
           isq = im3d->s231 ;
 
-   } else if( strstr(cmd,"coronalimage") != NULL ){
+   } else if( HAS_coronalimage(cmd) ){
           AFNI_view_xyz_CB( im3d->vwid->imag->image_zxy_pb, im3d, NULL ) ;
           isq = im3d->s312 ;
 
-   } else if( strstr(cmd,"axialgraph") != NULL ){
+   } else if( HAS_axialgraph(cmd) ){
           AFNI_view_xyz_CB( im3d->vwid->imag->graph_xyz_pb, im3d, NULL ) ;
           gra = im3d->g123 ;
 
-   } else if( strstr(cmd,"sagittalgraph") != NULL ){
+   } else if( HAS_sagittalgraph(cmd) ){
           AFNI_view_xyz_CB( im3d->vwid->imag->graph_yzx_pb, im3d, NULL ) ;
           gra = im3d->g231 ;
 
-   } else if( strstr(cmd,"coronalgraph") != NULL ){
+   } else if( HAS_coronalgraph(cmd) ){
           AFNI_view_xyz_CB( im3d->vwid->imag->graph_zxy_pb, im3d, NULL ) ;
           gra = im3d->g312 ;
    }
@@ -891,22 +918,22 @@ ENTRY("AFNI_drive_close_window") ;
 
    /* close a graph or image window */
 
-        if( strstr(cmd,"axialimage") != NULL )
+        if( HAS_axialimage(cmd) )
           drive_MCW_imseq( im3d->s123 , isqDR_destroy , NULL ) ;
 
-   else if( strstr(cmd,"sagittalimage") != NULL )
+   else if( HAS_sagittalimage(cmd) )
           drive_MCW_imseq( im3d->s231 , isqDR_destroy , NULL ) ;
 
-   else if( strstr(cmd,"coronalimage") != NULL )
+   else if( HAS_coronalimage(cmd) )
           drive_MCW_imseq( im3d->s312 , isqDR_destroy , NULL ) ;
 
-   else if( strstr(cmd,"axialgraph") != NULL )
+   else if( HAS_axialgraph(cmd) )
           drive_MCW_grapher( im3d->g123 , graDR_destroy , NULL ) ;
 
-   else if( strstr(cmd,"sagittalgraph") != NULL )
+   else if( HAS_sagittalgraph(cmd) )
           drive_MCW_grapher( im3d->g231 , graDR_destroy , NULL ) ;
 
-   else if( strstr(cmd,"coronalgraph") != NULL )
+   else if( HAS_coronalgraph(cmd) )
           drive_MCW_grapher( im3d->g312 , graDR_destroy , NULL ) ;
 
    else
@@ -2389,12 +2416,12 @@ ENTRY("AFNI_drive_save_1image") ;
 
    /* find graph or image window */
 
-        if( strstr(cmd+dadd,"axialimage")    != NULL ) isq = im3d->s123 ;
-   else if( strstr(cmd+dadd,"sagittalimage") != NULL ) isq = im3d->s231 ;
-   else if( strstr(cmd+dadd,"coronalimage")  != NULL ) isq = im3d->s312 ;
-   else if( strstr(cmd+dadd,"axialgraph")    != NULL ) gra = im3d->g123 ;
-   else if( strstr(cmd+dadd,"sagittalgraph") != NULL ) gra = im3d->g231 ;
-   else if( strstr(cmd+dadd,"coronalgraph")  != NULL ) gra = im3d->g312 ;
+        if( HAS_axialimage   (cmd+dadd) ) isq = im3d->s123 ;
+   else if( HAS_sagittalimage(cmd+dadd) ) isq = im3d->s231 ;
+   else if( HAS_coronalimage (cmd+dadd) ) isq = im3d->s312 ;
+   else if( HAS_axialgraph   (cmd+dadd) ) gra = im3d->g123 ;
+   else if( HAS_sagittalgraph(cmd+dadd) ) gra = im3d->g231 ;
+   else if( HAS_coronalgraph (cmd+dadd) ) gra = im3d->g312 ;
 
    XmUpdateDisplay( im3d->vwid->top_shell ) ;
 
@@ -2490,12 +2517,12 @@ ENTRY("AFNI_drive_save_allimages") ;
 
    /* find graph or image window */
 
-        if( strstr(cmd+dadd,"axialimage")    != NULL ) isq = im3d->s123 ;
-   else if( strstr(cmd+dadd,"sagittalimage") != NULL ) isq = im3d->s231 ;
-   else if( strstr(cmd+dadd,"coronalimage")  != NULL ) isq = im3d->s312 ;
-   else if( strstr(cmd+dadd,"axialgraph")    != NULL ) gra = im3d->g123 ;
-   else if( strstr(cmd+dadd,"sagittalgraph") != NULL ) gra = im3d->g231 ;
-   else if( strstr(cmd+dadd,"coronalgraph")  != NULL ) gra = im3d->g312 ;
+        if( HAS_axialimage   (cmd+dadd) ) isq = im3d->s123 ;
+   else if( HAS_sagittalimage(cmd+dadd) ) isq = im3d->s231 ;
+   else if( HAS_coronalimage (cmd+dadd) ) isq = im3d->s312 ;
+   else if( HAS_axialgraph   (cmd+dadd) ) gra = im3d->g123 ;
+   else if( HAS_sagittalgraph(cmd+dadd) ) gra = im3d->g231 ;
+   else if( HAS_coronalgraph (cmd+dadd) ) gra = im3d->g312 ;
 
    XmUpdateDisplay( im3d->vwid->top_shell ) ;
 

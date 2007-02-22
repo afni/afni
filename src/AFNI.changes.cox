@@ -6090,3 +6090,7 @@
  * Modified thd_loaddblk.c to do floatscan on ANALYZE (etc.) datasets.
  * Also modified thd_floatscan.c to add functions to scan MRI_IMAGEs
      and other AFNI-ish assemblies of numbers.
+ * Modified afni.c to parse multiple commands in a single '-com' option,
+     separated by ';' (or by the choice in '-comsep').
+ * Modified afni_driver.c to allow use of 'axial_image' (etc.) as easy
+     typos for 'axialimage' (etc.).
