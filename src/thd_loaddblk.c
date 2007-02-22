@@ -161,6 +161,8 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      ii = THD_count_databricks( blk ) ;
      if( ii == blk->nvals ){
        THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
+       ii = dblk_floatscan(blk) ;  /* 22 Feb 2007 */
+       if(ii>0) WARNING_message("fixed %d bad floats in %s",ii,dkptr->brick_name);
        RETURN( True ) ;
      }
      STATUS("can't read MINC file?!") ;
@@ -185,6 +187,8 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      ii = THD_count_databricks( blk ) ;
      if( ii == blk->nvals ){
        THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
+       ii = dblk_floatscan(blk) ;  /* 22 Feb 2007 */
+       if(ii>0) WARNING_message("fixed %d bad floats in %s",ii,dkptr->brick_name);
        RETURN( True ) ;
      }
      STATUS("can't read ANALYZE file?!") ;
@@ -196,6 +200,8 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      ii = THD_count_databricks( blk ) ;
      if( ii == blk->nvals ){
        THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
+       ii = dblk_floatscan(blk) ;  /* 22 Feb 2007 */
+       if(ii>0) WARNING_message("fixed %d bad floats in %s",ii,dkptr->brick_name);
        RETURN( True ) ;
      }
      STATUS("can't read CTF MRI file?!") ;
@@ -207,6 +213,8 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      ii = THD_count_databricks( blk ) ;
      if( ii == blk->nvals ){
        THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
+       ii = dblk_floatscan(blk) ;  /* 22 Feb 2007 */
+       if(ii>0) WARNING_message("fixed %d bad floats in %s",ii,dkptr->brick_name);
        RETURN( True ) ;
      }
      STATUS("can't read CTF SAM file?!") ;
@@ -259,11 +267,12 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
    if( dkptr->storage_mode == STORAGE_BY_NIML ){   /* 26 May 2006 [rickr] */
      if( THD_load_niml( blk ) ){
-        STATUS("failed to load NIML file");
-        RETURN( False );
+       STATUS("failed to load NIML file"); RETURN( False );
      }
      if( THD_count_databricks( blk ) == blk->nvals ){
        THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
+       ii = dblk_floatscan(blk) ;  /* 22 Feb 2007 */
+       if(ii>0) WARNING_message("fixed %d bad floats in %s",ii,dkptr->brick_name);
        RETURN( True ) ;
      }
      STATUS("can't read NIML dataset file?!") ;
