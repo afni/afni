@@ -1483,6 +1483,7 @@ int main (int argc,char *argv[])
          mri_free(im); im = NULL;   /* done with that baby */
 
       } else if (Opt->specie == RAT) {
+      #if 0
          float p1[3], Y[3], Z[3], U[3], Un, dotz, doty;
          Y[0] = 0.0; Y[1] = 1.0; Y[2] = 0.0; /* The Y direction */
          Z[0] = 0.0; Z[1] = 0.0; Z[2] = 1.0; /* The Z direction */
@@ -1499,7 +1500,9 @@ int main (int argc,char *argv[])
             snprintf(stmp, 198, "%s_shrink_bias.1D.dset", Opt->out_vol_prefix);
             SUMA_WRITE_ARRAY_1D(Opt->shrink_bias,SO->N_Node,1, stmp);        
          }
+      #endif
       } else if (Opt->specie == MONKEY) {
+      #if 0
          float p1[3], Y[3], Z[3], U[3], Un, dotz, doty;
          Y[0] = 0.0; Y[1] = 1.0; Y[2] = 0.0; /* The Y direction */
          Z[0] = 0.0; Z[1] = 0.0; Z[2] = 1.0; /* The Z direction */
@@ -1518,6 +1521,7 @@ int main (int argc,char *argv[])
             snprintf(stmp, 198, "%s_shrink_bias.1D.dset", Opt->out_vol_prefix);
             SUMA_WRITE_ARRAY_1D(Opt->shrink_bias,SO->N_Node,1, stmp);        
          }
+      #endif
       }
 
    } 
