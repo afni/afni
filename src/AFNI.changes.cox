@@ -6094,3 +6094,4 @@
      separated by ';' (or by the choice in '-comsep').
  * Modified afni_driver.c to allow use of 'axial_image' (etc.) as easy
      typos for 'axialimage' (etc.).
+ * Modified dist_help script to include README.* files.
