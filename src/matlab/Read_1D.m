@@ -92,6 +92,7 @@ if (Opt.method < 0 | Opt.method > 2),
    fprintf(2,'Opt.method must be an integer between 0 and 2\n');
    return;
 end
+fname
 if (~filexist(fname)), % try with extension
 	fname2 = sprintf('%s.1D', fname);
    fname3 = sprintf('%s.1D.dset', fname);

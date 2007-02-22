@@ -1,7 +1,7 @@
 function ExamineXmat(fname, polort, dt)
 % a function to examine the design matrix produced by AFNI's 3dDeconvolve
 % parameters not specified in function call 
-if (nargin < 1 | isempty(fname)),
+if (nargin < 1 | isempty(fname) | ~filexist(fname)),
    fname = uigetfile('*.1D','Pick an Xmat');
 end
 if (nargin < 2 | polort == -1),
@@ -13,7 +13,7 @@ end
 if (nargin < 3 | dt < 0.0),   
    dt = [];
    while(isempty(dt) | ~isnumeric(dt) | dt < 0.0),
-      dt = input('Enter dt');
+      dt = input('Enter dt: ');
    end
 end
 
@@ -21,7 +21,7 @@ end
 
 s = 'ddd';
 
-%assuming motion is last, remove last 6 regressors
+%remove baseline and, assuming motion is last, remove last 6 regressors
 trimmed = Xabi(:,[1+(polort+1)*8:size(Xabi,2)-6]);
 CondFull = cond(Xabi);
 CondNoMotion = cond(Xabi(:, [1:size(Xabi,2)-6]));
@@ -34,10 +34,12 @@ while (~isempty(s) & ~isempty(v)),
    for (i=1:1:length(v)),
       subplot (length(v), 1, i);
       plot (t, trimmed(:, v(i))); ylabel(sprintf('R%d', v(i)));
-      if (i==1) title(sprintf('Condition #: Full %d\t NoMot %g\t NoMotNoBase %g\t Viewed %g\n',...
-                               CondFull, CondNoMotion, CondNoMotionNoBase, cond(trimmed(:, [v])))); end
+      if (i==1) title(sprintf('Xmat %s\tCondition #: Full %d\t NoMot %g\t NoMotNoBase %g\t Viewed %g\n',...
+                               fname, CondFull, CondNoMotion,...
+                               CondNoMotionNoBase, cond(trimmed(:, [v]))),...
+                     'interpreter', 'none'); end
    end
    xlabel('time (sec)');
-   s = input ('Enter what you want see: ', 's');
+   s = input (sprintf('Enter what you want see (%d--%d): ', 1, size(trimmed,2)), 's');
    eval(sprintf('v=%s;', s));
 end
