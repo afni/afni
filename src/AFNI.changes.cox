@@ -6085,3 +6085,8 @@
      try to reconcile parents, look for duplicates, etc., de-referencing
      NULL pointers.  Not sure what happened, actually, but one technique
      was to avoid trying to read directories as regular file datasets.
+
+22 Feb 2007
+ * Modified thd_loaddblk.c to do floatscan on ANALYZE (etc.) datasets.
+ * Also modified thd_floatscan.c to add functions to scan MRI_IMAGEs
+     and other AFNI-ish assemblies of numbers.

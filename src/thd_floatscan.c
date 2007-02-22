@@ -4,6 +4,7 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+#include "mrilib.h"
 #include <math.h>
 #include <stdlib.h>
 
@@ -35,7 +36,9 @@ int thd_floatscan( int nbuf , float * fbuf )
    return nerr ;
 }
 
+#if 0
 typedef struct complex { float r , i ; } complex ;
+#endif
 
 int thd_complexscan( int nbuf , complex * cbuf )
 {
@@ -49,4 +52,34 @@ int thd_complexscan( int nbuf , complex * cbuf )
    }
 
    return nerr ;
+}
+
+/*--------------------------------------------------------------------*/
+/* Functions below added 22 Feb 2007 -- RWCox */
+
+int mri_floatscan( MRI_IMAGE *im )
+{
+   if( im == NULL || im->kind != MRI_float ) return 0 ;
+   return thd_floatscan( im->nvox , MRI_FLOAT_PTR(im) ) ;
+}
+
+int imarr_floatscan( MRI_IMARR *imar )
+{
+   int ii , nn ;
+   if( imar == NULL ) return 0 ;
+   for( nn=ii=0 ; ii < IMARR_COUNT(imar) ; ii++ )
+     nn += mri_floatscan( IMARR_SUBIM(imar,ii) ) ;
+   return nn ;
+}
+
+int dblk_floatscan( THD_datablock *dblk )
+{
+   if( !ISVALID_DATABLOCK(dblk) ) return 0 ;
+   return imarr_floatscan( dblk->brick ) ;
+}
+
+int dset_floatscan( THD_3dim_dataset *dset )
+{
+   if( !ISVALID_DSET(dset) ) return 0 ;
+   return dblk_floatscan( dset->dblk ) ;
 }
