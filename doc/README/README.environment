@@ -2224,10 +2224,10 @@ AFNI_RESCAN_METHOD to.
 Variable: AFNI_RESCAN_AT_SWITCH
 -------------------------------
 If this YES/NO variable is set to YES, then the interactive AFNI program
-will rescan all session directories everytime you click on the Switch *
-buttons. Basically, this is just another way for you to avoid pressing
-the 'Rescan' buttons. Unlike with AFNI_AUTO_RESCAN, the AFNI_RESCAN_METHOD
-settings are respected.  
+will rescan all session directories everytime you click on either of the
+'Overlay' or 'Underlay' buttons. Basically, this is just another way for
+you to avoid pressing the 'Rescan' buttons.  (Unlike with AFNI_AUTO_RESCAN,
+the AFNI_RESCAN_METHOD settings are respected.)
 
 --------------------------
 Variable: AFNI_WEB_BROWSER
