@@ -6103,3 +6103,5 @@
      per Bernd Feige of Freiburg.
  * Modified bbox.c to make AFNI_list_doubleclick default be 'Apply' rather
      than 'Set'.
+ * Modified afni_func.c to replace 'RescanTh' button with 'EditEnv' if
+     Ziad's AFNI_RESCAN_AT_SWITCH is turned on.
