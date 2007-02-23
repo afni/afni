@@ -187,6 +187,7 @@ ENTRY("TTRR_setup_widgets") ;
            XmNdeleteResponse    , XmDO_NOTHING ,         /* deletion handled below */
            XmNallowShellResize  , False ,                /* let code resize shell? */
            XmNinitialResourcesPersistent , False ,
+              XmNkeyboardFocusPolicy , XmEXPLICIT ,
       NULL ) ;
 
    DC_yokify( ttc->shell , dc ) ;
@@ -207,7 +208,7 @@ ENTRY("TTRR_setup_widgets") ;
              "AFNI" , xmFormWidgetClass , ttc->shell ,
                  XmNborderWidth , 0 ,
                  XmNborderColor , 0 ,
-                  XmNtraversalOn , False ,
+                  XmNtraversalOn , True  ,
                  XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -324,7 +325,7 @@ ENTRY("TTRR_setup_widgets") ;
            XmNbottomAttachment, XmATTACH_FORM ,
            XmNtopWidget       , separator ,
            XmNtopOffset       , 3 ,
-           XmNtraversalOn , False ,
+           XmNtraversalOn , True  ,
            XmNinitialResourcesPersistent , False ,
         NULL ) ;
 
@@ -333,7 +334,7 @@ ENTRY("TTRR_setup_widgets") ;
         "AFNI" , xmFrameWidgetClass , ttc->scrollw ,
             XmNshadowType , XmSHADOW_ETCHED_IN ,
             XmNshadowThickness , 5 ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -342,7 +343,7 @@ ENTRY("TTRR_setup_widgets") ;
            "AFNI" , xmFormWidgetClass , frame ,
               XmNborderWidth , 0 ,
               XmNborderColor , 0 ,
-              XmNtraversalOn , False ,
+              XmNtraversalOn , True  ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
 

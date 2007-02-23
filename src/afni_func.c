@@ -2417,6 +2417,7 @@ STATUS("creating new dialog") ;
               XmNtitle , "GPL AFNI" ,
               XmNdeleteResponse , XmDO_NOTHING ,
               XmNinitialResourcesPersistent , False ,
+              XmNkeyboardFocusPolicy , XmEXPLICIT ,
            NULL ) ;
 
       XmAddWMProtocolCallback(           /* make "Close" window menu work */
@@ -2435,7 +2436,7 @@ STATUS("creating new dialog") ;
               XmNfileTypeMask      , XmFILE_ANY_TYPE ,
               XmNcancelLabelString , cancellabel ,
               XmNokLabelString     , oklabel ,
-              XmNtraversalOn       , False ,
+              XmNtraversalOn       , True ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
 

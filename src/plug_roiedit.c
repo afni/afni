@@ -299,7 +299,7 @@ static void DRAW_make_widgets(void)
 	     "AFNI" , xmRowColumnWidgetClass , shell ,
 		XmNpacking     , XmPACK_TIGHT ,
 		XmNorientation , XmVERTICAL ,
-		XmNtraversalOn , False ,
+		XmNtraversalOn , True  ,
 		XmNinitialResourcesPersistent , False ,
 	     NULL ) ;
 
@@ -330,7 +330,7 @@ static void DRAW_make_widgets(void)
    choose_pb = XtVaCreateManagedWidget(
 		  "AFNI" , xmPushButtonWidgetClass , rowcol ,
 		     XmNlabelString , xstr ,
-		     XmNtraversalOn , False ,
+		     XmNtraversalOn , True  ,
 		     XmNinitialResourcesPersistent , False ,
 		  NULL ) ;
    XmStringFree(xstr) ;

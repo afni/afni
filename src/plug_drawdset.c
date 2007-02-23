@@ -501,7 +501,7 @@ void DRAW_make_widgets(void)
              "AFNI" , xmRowColumnWidgetClass , shell ,
                 XmNpacking     , XmPACK_TIGHT ,
                 XmNorientation , XmVERTICAL ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True  ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -543,7 +543,7 @@ void DRAW_make_widgets(void)
                               XmNmarginWidth  , 0 ,
                               XmNspacing      , 0 ,
                               XmNinitialResourcesPersistent , False ,
-                              XmNtraversalOn , False ,
+                              XmNtraversalOn , True  ,
                            NULL ) ;
 
      /*** button box to turn copy mode on or off ***/
@@ -607,7 +607,7 @@ void DRAW_make_widgets(void)
    choose_pb = XtVaCreateManagedWidget(
                   "AFNI" , xmPushButtonWidgetClass , rowcol ,
                      XmNlabelString , xstr ,
-                     XmNtraversalOn , False ,
+                     XmNtraversalOn , True  ,
                      XmNinitialResourcesPersistent , False ,
                   NULL ) ;
    XmStringFree(xstr) ;
@@ -639,7 +639,7 @@ void DRAW_make_widgets(void)
                        XmNmarginWidth  , 0 ,
                        XmNspacing      , 0 ,
                        XmNinitialResourcesPersistent , False ,
-                       XmNtraversalOn , False ,
+                       XmNtraversalOn , True  ,
                     NULL ) ;
 
      value_av = new_MCW_arrowval( rc , "Value " ,
@@ -677,7 +677,7 @@ void DRAW_make_widgets(void)
                            XmNcursorPositionVisible , True ,
                            XmNblinkRate , 0 ,
                            XmNautoShowCursorPosition , True ,
-                           XmNtraversalOn , False ,
+                           XmNtraversalOn , True  ,
                            XmNinitialResourcesPersistent , False ,
                         NULL ) ;
      XtSetSensitive( label_label , (Boolean)(value_int != 0) ) ;
@@ -737,7 +737,7 @@ void DRAW_make_widgets(void)
                        XmNmarginWidth  , 0 ,
                        XmNspacing      , 0 ,
                        XmNinitialResourcesPersistent , False ,
-                       XmNtraversalOn , False ,
+                       XmNtraversalOn , True  ,
                     NULL ) ;
 
      mode_av = new_MCW_optmenu( rc , "Mode  " ,
@@ -832,7 +832,7 @@ void DRAW_make_widgets(void)
                        XmNmarginWidth  , 0 ,
                        XmNspacing      , 0 ,
                        XmNinitialResourcesPersistent , False ,
-                       XmNtraversalOn , False ,
+                       XmNtraversalOn , True  ,
                     NULL ) ;
 
      fillin_dir_av = new_MCW_optmenu( rc , "Linear Fillin " ,
@@ -847,7 +847,7 @@ void DRAW_make_widgets(void)
      xstr = XmStringCreateLtoR( "*Do the Fill*" , XmFONTLIST_DEFAULT_TAG ) ;
      fillin_doit_pb = XtVaCreateManagedWidget( "AFNI" , xmPushButtonWidgetClass , rc ,
                                                 XmNlabelString , xstr ,
-                                                XmNtraversalOn , False ,
+                                                XmNtraversalOn , True  ,
                                                 XmNinitialResourcesPersistent , False ,
                                                NULL ) ;
      XtAddCallback( fillin_doit_pb , XmNactivateCallback, DRAW_fillin_CB, NULL ) ;
@@ -881,7 +881,7 @@ void DRAW_make_widgets(void)
                       XmNmarginWidth  , 0 ,
                       XmNspacing      , 0 ,
                       XmNinitialResourcesPersistent , False ,
-                      XmNtraversalOn , False ,
+                      XmNtraversalOn , True  ,
                    NULL ) ;
 
        /*** label at top ***/

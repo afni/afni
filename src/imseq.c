@@ -940,6 +940,7 @@ if( PRINT_TRACING ){
            XmNallowShellResize , False ,       /* let code resize shell */
 
            XmNinitialResourcesPersistent , False ,
+           XmNkeyboardFocusPolicy , XmEXPLICIT ,
       NULL ) ;
 
    DC_yokify( newseq->wtop , dc ) ;  /* 14 Sep 1998 */
@@ -974,7 +975,7 @@ if( PRINT_TRACING ){
             XmNhorizontalSpacing , 0 ,  /* 17 Jun 2002 */
             XmNverticalSpacing   , 0 ,
 
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
       NULL ) ;
 
@@ -993,7 +994,7 @@ if( PRINT_TRACING ){
           XmNbottomAttachment , XmATTACH_POSITION ,
           XmNbottomPosition   , (int)( 0.49 + IMAGE_FRAC * FORM_FRAC_BASE ) ,
 
-          XmNtraversalOn , False ,
+          XmNtraversalOn , True  ,
           XmNinitialResourcesPersistent , False ,
        NULL ) ;
 
@@ -1032,7 +1033,7 @@ if( PRINT_TRACING ){
       XtSetArg( wa[na] , XmNmarginTop     , 0     ) ; na++ ;
       XtSetArg( wa[na] , XmNmarginLeft    , 0     ) ; na++ ;
       XtSetArg( wa[na] , XmNmarginRight   , 0     ) ; na++ ;
-      XtSetArg( wa[na] , XmNtraversalOn   , False ) ; na++ ;
+      XtSetArg( wa[na] , XmNtraversalOn   , True  ) ; na++ ;
       XtSetArg( wa[na] , XmNrecomputeSize , False ) ; na++ ;
 
       XtSetArg( wa[na] , XmNinitialResourcesPersistent , False ) ; na++ ;
@@ -1105,7 +1106,7 @@ if( PRINT_TRACING ){
       XtSetArg( wa[na] , XmNmarginTop     , 0     ) ; na++ ;
       XtSetArg( wa[na] , XmNmarginLeft    , 0     ) ; na++ ;
       XtSetArg( wa[na] , XmNmarginRight   , 0     ) ; na++ ;
-      XtSetArg( wa[na] , XmNtraversalOn   , False ) ; na++ ;
+      XtSetArg( wa[na] , XmNtraversalOn   , True  ) ; na++ ;
       XtSetArg( wa[na] , XmNrecomputeSize , False ) ; na++ ;
 
       XtSetArg( wa[na] , XmNinitialResourcesPersistent , False ) ; na++ ;
@@ -1290,7 +1291,7 @@ if( PRINT_TRACING ){
             XmNmarginTop     , 0 ,
             XmNmarginLeft    , 0 ,
             XmNmarginRight   , 0 ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
      XtAddCallback( newseq->zoom_drag_pb , XmNactivateCallback ,
@@ -1344,7 +1345,7 @@ if( PRINT_TRACING ){
             XmNmarginTop     , 0 ,
             XmNmarginLeft    , 0 ,
             XmNmarginRight   , 0 ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
      XtAddCallback( newseq->crop_drag_pb , XmNactivateCallback ,
@@ -1436,7 +1437,7 @@ if( PRINT_TRACING ){
           XmNscaleMultiple , 1 ,                       /* single step */
           XmNorientation   , XmHORIZONTAL ,            /* sideways */
 
-          XmNtraversalOn , False ,
+          XmNtraversalOn , True  ,
           XmNinitialResourcesPersistent , False ,
        NULL ) ;
 
@@ -1480,7 +1481,7 @@ if( PRINT_TRACING ){
 
            XmNwidth       , COLOR_BAR_WIDTH ,
 
-           XmNtraversalOn , False ,
+           XmNtraversalOn , True  ,
            XmNinitialResourcesPersistent , False ,
        NULL ) ;
 
@@ -1520,7 +1521,7 @@ if( PRINT_TRACING ){
       XtVaCreateManagedWidget(
          "menu" , xmPushButtonWidgetClass , newseq->wbar_menu ,
             LABEL_ARG("Choose Display Range") ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -1530,7 +1531,7 @@ if( PRINT_TRACING ){
       XtVaCreateManagedWidget(
          "menu" , xmPushButtonWidgetClass , newseq->wbar_menu ,
             LABEL_ARG("Choose Zero Color") ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -1540,7 +1541,7 @@ if( PRINT_TRACING ){
       XtVaCreateManagedWidget(
          "menu" , xmPushButtonWidgetClass , newseq->wbar_menu ,
             LABEL_ARG("Choose Flatten Range") ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -1550,7 +1551,7 @@ if( PRINT_TRACING ){
       XtVaCreateManagedWidget(
          "menu" , xmPushButtonWidgetClass , newseq->wbar_menu ,
             LABEL_ARG("Choose Sharpen factor") ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -1680,7 +1681,7 @@ STATUS("creation: widgets created") ;
         XtVaCreateManagedWidget(
            "menu" , xmPushButtonWidgetClass , newseq->wbar_menu ,
               LABEL_ARG("Display Graymap Plot") ,
-              XmNtraversalOn , False ,
+              XmNtraversalOn , True  ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
      XtAddCallback( newseq->wbar_graymap_pb, XmNactivateCallback, ISQ_wbar_menu_CB, newseq ) ;
@@ -5492,6 +5493,7 @@ ENTRY("ISQ_but_disp_CB") ;
                        XmNtitle , "Display Options" ,
                        XmNdeleteResponse , XmDO_NOTHING ,
                        XmNinitialResourcesPersistent , False ,
+                       XmNkeyboardFocusPolicy , XmEXPLICIT ,
                     NULL ) ;
 
    SAVEUNDERIZE(seq->dialog) ; /* 27 Feb 2001 */
@@ -7979,6 +7981,7 @@ fprintf(stderr,"montage: zoom_fac = %d\n",seq->zoom_fac) ;
                        XmNtitle , "Montage" ,
                        XmNdeleteResponse , XmDO_NOTHING ,
                        XmNinitialResourcesPersistent , False ,
+                       XmNkeyboardFocusPolicy , XmEXPLICIT ,
                     NULL ) ;
 
    SAVEUNDERIZE(seq->dialog) ; /* 27 Feb 2001 */
@@ -8005,7 +8008,7 @@ fprintf(stderr,"montage: zoom_fac = %d\n",seq->zoom_fac) ;
              "menu" , xmRowColumnWidgetClass , seq->dialog ,
                 XmNpacking     , XmPACK_TIGHT ,
                 XmNorientation , XmVERTICAL ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True  ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -9663,7 +9666,7 @@ ENTRY("ISQ_record_button") ;
               XmNborderColor  , 0 ,
 
               XmNrecomputeSize , False ,
-              XmNtraversalOn , False ,
+              XmNtraversalOn , True  ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
 
@@ -9680,7 +9683,7 @@ ENTRY("ISQ_record_button") ;
                      XmNspacing      , 0 ,
                      XmNborderWidth  , 0 ,
                      XmNborderColor  , 0 ,
-                     XmNtraversalOn  , False ,
+                     XmNtraversalOn  , True  ,
                      XmNbackground   , seq->dc->ovc->pixov_brightest ,
                   NULL ) ;
 
@@ -9704,7 +9707,7 @@ ENTRY("ISQ_record_button") ;
                XmNmarginTop   , 0 ,
                XmNmarginRight , 0 ,
                XmNmarginLeft  , 0 ,
-               XmNtraversalOn , False ,
+               XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
    XmStringFree( xstr ) ;

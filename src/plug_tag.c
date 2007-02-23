@@ -294,7 +294,7 @@ static void TAG_make_widgets(void)
                  "AFNI" , xmFormWidgetClass , shell ,
                      XmNborderWidth , 0 ,
                      XmNborderColor , 0 ,
-                     XmNtraversalOn , False ,
+                     XmNtraversalOn , True  ,
                      XmNinitialResourcesPersistent , False ,
                  NULL ) ;
 
@@ -306,7 +306,7 @@ static void TAG_make_widgets(void)
                    XmNlabelString , xstr ,
                    XmNmarginHeight , 4 ,
                    XmNmarginWidth  , 4 ,
-                   XmNtraversalOn , False ,
+                   XmNtraversalOn , True  ,
                    XmNinitialResourcesPersistent , False ,
                    XmNleftAttachment , XmATTACH_FORM ,
                    XmNtopAttachment  , XmATTACH_FORM ,
@@ -505,7 +505,7 @@ static void TAG_make_widgets(void)
               XmNbottomAttachment, XmATTACH_FORM ,
               XmNtopWidget       , wjunk ,
               XmNtopOffset       , 5 ,
-              XmNtraversalOn , False ,
+              XmNtraversalOn , True  ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
 
@@ -514,7 +514,7 @@ static void TAG_make_widgets(void)
            "AFNI" , xmFrameWidgetClass , scrollw ,
                XmNshadowType , XmSHADOW_ETCHED_IN ,
                XmNshadowThickness , 5 ,
-               XmNtraversalOn , False ,
+               XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
 
@@ -524,7 +524,7 @@ static void TAG_make_widgets(void)
               XmNpacking     , XmPACK_COLUMN ,
               XmNnumColumns  , 1 ,
               XmNorientation , XmVERTICAL ,
-              XmNtraversalOn , False ,
+              XmNtraversalOn , True  ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
 
@@ -557,7 +557,7 @@ static void TAG_make_widgets(void)
 #if 0
                  XmNselectColor    , fg_pix ,
 #endif
-                 XmNtraversalOn    , False ,
+                 XmNtraversalOn    , True  ,
                  XmNinitialResourcesPersistent , False ,
               NULL ) ;
 

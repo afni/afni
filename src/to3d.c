@@ -440,7 +440,7 @@ ENTRY("T3D_create_widgets") ;
                      "dialog" , xmFormWidgetClass , wset.topshell ,
                          XmNborderWidth , 0 ,
 #if 1
-                         XmNtraversalOn , False ,
+                         XmNtraversalOn , True  ,
 #endif
                      NULL ) ;
 

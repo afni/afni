@@ -291,7 +291,7 @@ static void NOTES_make_widgets(void)
                 "AFNI" , xmFormWidgetClass , shell ,
                   XmNborderWidth , 0 ,
                   XmNborderColor , 0 ,
-                  XmNtraversalOn , False ,
+                  XmNtraversalOn , True  ,
                 NULL ) ;
 
    /*** horizontal rowcol to hold top row of controls ***/
@@ -300,7 +300,7 @@ static void NOTES_make_widgets(void)
              "AFNI" , xmRowColumnWidgetClass , topman ,
                 XmNpacking     , XmPACK_TIGHT ,
                 XmNorientation , XmHORIZONTAL ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True  ,
                 XmNleftAttachment , XmATTACH_FORM ,
                 XmNrightAttachment, XmATTACH_FORM ,
                 XmNtopAttachment  , XmATTACH_FORM ,
@@ -313,7 +313,7 @@ static void NOTES_make_widgets(void)
    choose_pb = XtVaCreateManagedWidget(
                   "AFNI" , xmPushButtonWidgetClass , twid ,
                      XmNlabelString , xstr ,
-                     XmNtraversalOn , False ,
+                     XmNtraversalOn , True  ,
                   NULL ) ;
    XmStringFree(xstr) ;
    XtAddCallback( choose_pb, XmNactivateCallback, NOTES_choose_CB, NULL ) ;
@@ -404,7 +404,7 @@ static void NOTES_make_widgets(void)
                 XmNorientation , XmVERTICAL ,
                 XmNmarginHeight, 0 ,
                 XmNmarginWidth , 0 ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True  ,
              NULL ) ;
 
    /**** make an initial Note window
@@ -463,14 +463,14 @@ static NOTE_wind * NOTES_make_note( void )
                   "AFNI" , xmFrameWidgetClass , noterc ,
                   XmNshadowType , XmSHADOW_IN ,
                   XmNshadowThickness , 1 ,
-                  XmNtraversalOn , False ,
+                  XmNtraversalOn , True  ,
                NULL ) ;
 
    nw->vert_rc = XtVaCreateWidget(
                     "AFNI" , xmRowColumnWidgetClass , nw->frame ,
                        XmNpacking     , XmPACK_TIGHT ,
                        XmNorientation , XmVERTICAL ,
-                       XmNtraversalOn , False ,
+                       XmNtraversalOn , True  ,
                        XmNmarginHeight, 0 ,
                        XmNmarginWidth , 0 ,
                     NULL ) ;
@@ -479,7 +479,7 @@ static NOTE_wind * NOTES_make_note( void )
                     "AFNI" , xmRowColumnWidgetClass , nw->vert_rc ,
                        XmNpacking     , XmPACK_TIGHT ,
                        XmNorientation , XmHORIZONTAL ,
-                       XmNtraversalOn , False ,
+                       XmNtraversalOn , True  ,
                        XmNmarginHeight, 0 ,
                        XmNmarginWidth , 0 ,
                     NULL ) ;
@@ -494,7 +494,7 @@ static NOTE_wind * NOTES_make_note( void )
    nw->delete_pb = XtVaCreateManagedWidget(
                       "AFNI" , xmPushButtonWidgetClass , nw->horz_rc ,
                          XmNlabelString , xstr ,
-                         XmNtraversalOn , False ,
+                         XmNtraversalOn , True  ,
                          XmNmarginHeight, 0 ,
                          XmNmarginWidth , 0 ,
                       NULL ) ;
@@ -510,7 +510,7 @@ static NOTE_wind * NOTES_make_note( void )
    nw->restore_pb = XtVaCreateManagedWidget(
                       "AFNI" , xmPushButtonWidgetClass , nw->horz_rc ,
                          XmNlabelString , xstr ,
-                         XmNtraversalOn , False ,
+                         XmNtraversalOn , True  ,
                          XmNmarginHeight, 0 ,
                          XmNmarginWidth , 0 ,
                       NULL ) ;

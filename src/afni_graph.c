@@ -104,6 +104,7 @@ ENTRY("new_MCW_grapher") ;
            XmNdeleteResponse   , XmDO_NOTHING ,   /* deletion handled below */
            XmNallowShellResize , False ,          /* let code resize shell */
            XmNinitialResourcesPersistent , False ,
+              XmNkeyboardFocusPolicy , XmEXPLICIT ,
       NULL ) ;
 
    DC_yokify( grapher->fdw_graph , dc ) ;  /* 14 Sep 1998 */
@@ -145,7 +146,7 @@ ENTRY("new_MCW_grapher") ;
                     XmNwidth  , new_xsize + GL_DLX + GR_DLX ,
                     XmNheight , new_ysize + GT_DLY + GB_DLY ,
                     XmNborderWidth , 0 ,
-                    XmNtraversalOn , False ,
+                    XmNtraversalOn , True ,
                     XmNinitialResourcesPersistent , False ,
               NULL ) ;
 
@@ -168,7 +169,7 @@ ENTRY("new_MCW_grapher") ;
           XmNmarginWidth  , 0 ,
           XmNmarginHeight , 0 ,
 
-          XmNtraversalOn , False ,
+          XmNtraversalOn , True ,
           XmNinitialResourcesPersistent , False ,
        NULL ) ;
 
@@ -239,7 +240,7 @@ ENTRY("new_MCW_grapher") ;
       XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , grapher->but3_menu ,
             XmNalignment , XmALIGNMENT_BEGINNING ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -256,7 +257,7 @@ ENTRY("new_MCW_grapher") ;
             XmNmarginHeight, 0 ,
             XmNspacing     , 2 ,
             XmNbackground  , grapher->dc->ovc->pixov_brightest ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True ,
             XmNinitialResourcesPersistent , False ,
             XmNleftAttachment   , XmATTACH_NONE ,
             XmNtopAttachment    , XmATTACH_NONE ,
@@ -282,7 +283,7 @@ ENTRY("new_MCW_grapher") ;
                  XmNmarginHeight, 0 ,
                  XmNspacing     , 0 ,
                  XmNbackground  , grapher->dc->ovc->pixov_brightest ,
-                 XmNtraversalOn , False ,
+                 XmNtraversalOn , True ,
                  XmNinitialResourcesPersistent , False ,
               NULL ) ;
    mb_tmp = XmCreateMenuBar( rc_tmp , "dialog" , NULL,0 ) ;
@@ -292,7 +293,7 @@ ENTRY("new_MCW_grapher") ;
                      XmNspacing      , 0 ,
                      XmNborderWidth  , 0 ,
                      XmNborderColor  , 0 ,
-                     XmNtraversalOn  , False ,
+                     XmNtraversalOn  , True ,
                      XmNbackground   , grapher->dc->ovc->pixov_brightest ,
                   NULL ) ;
    XtManageChild( mb_tmp ) ;
@@ -329,7 +330,7 @@ ENTRY("new_MCW_grapher") ;
                  XmNmarginHeight, 0 ,
                  XmNspacing     , 0 ,
                  XmNbackground  , grapher->dc->ovc->pixov_brightest ,
-                 XmNtraversalOn , False ,
+                 XmNtraversalOn , True ,
                  XmNinitialResourcesPersistent , False ,
               NULL ) ;
    mb_tmp = XmCreateMenuBar( rc_tmp , "dialog" , NULL,0 ) ;
@@ -339,7 +340,7 @@ ENTRY("new_MCW_grapher") ;
                      XmNspacing      , 0 ,
                      XmNborderWidth  , 0 ,
                      XmNborderColor  , 0 ,
-                     XmNtraversalOn  , False ,
+                     XmNtraversalOn  , True ,
                      XmNbackground   , grapher->dc->ovc->pixov_brightest ,
                   NULL ) ;
    XtManageChild( mb_tmp ) ;
@@ -361,7 +362,7 @@ ENTRY("new_MCW_grapher") ;
                XmNmarginTop    , 0 ,
                XmNmarginRight  , 0 ,
                XmNmarginLeft   , 0 ,
-               XmNtraversalOn  , False ,
+               XmNtraversalOn  , True ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
 
@@ -428,7 +429,7 @@ ENTRY("new_MCW_grapher") ;
             "dialog" , xmPushButtonWidgetClass , grapher->opt_menu , \
                LABEL_ARG( label ) ,                                  \
                XmNmarginHeight , 0 ,                                 \
-               XmNtraversalOn , False ,                              \
+               XmNtraversalOn , True ,                               \
                XmNinitialResourcesPersistent , False ,               \
             NULL ) ;                                                 \
       XtAddCallback( grapher -> wname , XmNactivateCallback ,        \
@@ -446,7 +447,7 @@ ENTRY("new_MCW_grapher") ;
        "dialog" , xmCascadeButtonWidgetClass , grapher->opt_menu ,     \
           LABEL_ARG( label ) ,                                         \
           XmNsubMenuId , grapher -> wmenu ,                            \
-          XmNtraversalOn , False ,                                     \
+          XmNtraversalOn , True  ,                                     \
           XmNinitialResourcesPersistent , False ,                      \
        NULL ) ;                                                        \
    MCW_register_hint( grapher -> wcbut , hhh ) ;                       \
@@ -460,7 +461,7 @@ ENTRY("new_MCW_grapher") ;
             "dialog" , xmPushButtonWidgetClass , grapher -> wmenu , \
                LABEL_ARG( label ) ,                                 \
                XmNmarginHeight , 0 ,                                \
-               XmNtraversalOn , False ,                             \
+               XmNtraversalOn , True  ,                             \
                XmNinitialResourcesPersistent , False ,              \
             NULL ) ;                                                \
       XtAddCallback( grapher -> wname , XmNactivateCallback ,       \
@@ -710,7 +711,7 @@ ENTRY("new_MCW_grapher") ;
                  "dialog" , xmLabelWidgetClass , grapher->opt_baseline_menu ,
                     XmNlabelString , xstr ,
                     XmNrecomputeSize , False ,
-                    XmNtraversalOn , False ,
+                    XmNtraversalOn , True  ,
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
      XmStringFree( xstr ) ;
@@ -4882,6 +4883,7 @@ ENTRY("GRA_setshift_startup") ;
                          XmNscreen   , grapher->dc->screen ,
                          XmNbackground  , 0 ,
                          XmNborderColor , 0 ,
+              XmNkeyboardFocusPolicy , XmEXPLICIT ,
 
                       NULL ) ;
 
@@ -4902,7 +4904,7 @@ ENTRY("GRA_setshift_startup") ;
              "dialog" , xmRowColumnWidgetClass , grapher->dialog ,
                 XmNpacking     , XmPACK_TIGHT ,
                 XmNorientation , XmVERTICAL ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True  ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -5142,7 +5144,7 @@ ENTRY("AFNI_new_fim_menu") ;
                XmNmarginTop    , 0 ,
                XmNmarginRight  , 0 ,
                XmNmarginLeft   , 0 ,
-               XmNtraversalOn  , False ,
+               XmNtraversalOn  , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
 
@@ -5240,7 +5242,7 @@ ENTRY("AFNI_new_fim_menu") ;
             "dialog" , xmPushButtonWidgetClass , fmenu->fim_menu , \
                LABEL_ARG( label ) ,                                \
                XmNmarginHeight , 0 ,                               \
-               XmNtraversalOn , False ,                            \
+               XmNtraversalOn , True  ,                            \
                XmNinitialResourcesPersistent , False ,             \
             NULL ) ;                                               \
       XtAddCallback( fmenu -> wname , XmNactivateCallback ,        \
@@ -5258,7 +5260,7 @@ ENTRY("AFNI_new_fim_menu") ;
        "dialog" , xmCascadeButtonWidgetClass , fmenu->fim_menu ,   \
           LABEL_ARG( label ) ,                                     \
           XmNsubMenuId , fmenu -> wmenu ,                          \
-          XmNtraversalOn , False ,                                 \
+          XmNtraversalOn , True  ,                                 \
           XmNinitialResourcesPersistent , False ,                  \
        NULL ) ;                                                    \
    MCW_register_hint( fmenu -> wcbut , hhh ) ;                     \
@@ -5272,7 +5274,7 @@ ENTRY("AFNI_new_fim_menu") ;
             "dialog" , xmPushButtonWidgetClass , fmenu -> wmenu , \
                LABEL_ARG( label ) ,                               \
                XmNmarginHeight , 0 ,                              \
-               XmNtraversalOn , False ,                           \
+               XmNtraversalOn , True  ,                           \
                XmNinitialResourcesPersistent , False ,            \
             NULL ) ;                                              \
       XtAddCallback( fmenu -> wname , XmNactivateCallback ,       \
@@ -5290,13 +5292,13 @@ ENTRY("AFNI_new_fim_menu") ;
                      xmCascadeButtonWidgetClass , fmenu->fim_menu ,       \
                      LABEL_ARG( label ) ,                                 \
                      XmNsubMenuId , qbut_menu ,                           \
-                     XmNtraversalOn , False ,                             \
+                     XmNtraversalOn , True  ,                             \
                      XmNinitialResourcesPersistent , False , NULL ) ;     \
       fmenu -> wname = XtVaCreateManagedWidget( "dialog" ,                \
                          xmPushButtonWidgetClass , qbut_menu ,            \
                          LABEL_ARG( qlab ) ,                              \
                          XmNmarginHeight , 0 ,                            \
-                         XmNtraversalOn , False ,                         \
+                         XmNtraversalOn , True  ,                         \
                          XmNinitialResourcesPersistent , False , NULL ) ; \
       MCW_register_hint( fmenu -> wname , hhh ) ;                         \
       XtAddCallback( fmenu -> wname , XmNactivateCallback ,               \
@@ -5439,7 +5441,7 @@ ENTRY("AFNI_new_fim_menu") ;
       XtVaCreateManagedWidget( "dialog" , xmPushButtonWidgetClass , qbut_menu ,
                                  LABEL_ARG( "Set Defaults" ) ,
                                  XmNmarginHeight , 0 ,
-                                 XmNtraversalOn , False ,
+                                 XmNtraversalOn , True  ,
                                  XmNinitialResourcesPersistent , False ,
                                NULL ) ;
    XtAddCallback( fmenu->fimp_setdefault_pb ,
@@ -5450,7 +5452,7 @@ ENTRY("AFNI_new_fim_menu") ;
       XtVaCreateManagedWidget( "dialog" , xmPushButtonWidgetClass , qbut_menu ,
                                  LABEL_ARG( "Set All" ) ,
                                  XmNmarginHeight , 0 ,
-                                 XmNtraversalOn , False ,
+                                 XmNtraversalOn , True  ,
                                  XmNinitialResourcesPersistent , False ,
                                NULL ) ;
    XtAddCallback( fmenu->fimp_setall_pb ,
@@ -5461,7 +5463,7 @@ ENTRY("AFNI_new_fim_menu") ;
       XtVaCreateManagedWidget( "dialog" , xmPushButtonWidgetClass , qbut_menu ,
                                  LABEL_ARG( "Unset All" ) ,
                                  XmNmarginHeight , 0 ,
-                                 XmNtraversalOn , False ,
+                                 XmNtraversalOn , True  ,
                                  XmNinitialResourcesPersistent , False ,
                                NULL ) ;
    XtAddCallback( fmenu->fimp_unsetall_pb ,
