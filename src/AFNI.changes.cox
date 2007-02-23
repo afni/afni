@@ -6101,3 +6101,5 @@
      make keyboard focus be kept better in text widgets.
  * Added 'dset=NULL' initializer to THD_open_one_dataset() in thd_opendset.c,
      per Bernd Feige of Freiburg.
+ * Modified bbox.c to make AFNI_list_doubleclick default be 'Apply' rather
+     than 'Set'.

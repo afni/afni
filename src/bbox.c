@@ -3148,10 +3148,10 @@ ENTRY("MCW_choose_CB") ;
 #else
      char *xdef = RWC_getname( XtDisplay(w) , "chooser_doubleclick" ) ;
 #endif
-     if( xdef != NULL && strcasecmp(xdef,OVC_apply_label) == 0 )
-       list_dbclick_use = LIST_DBCLICK_APPLY ;
-     else
+     if( xdef != NULL && strcasecmp(xdef,OVC_done_label) != 0 )
        list_dbclick_use = LIST_DBCLICK_DONE ;
+     else
+       list_dbclick_use = LIST_DBCLICK_APPLY ;
    }
 
    /*--- branch on type of chooser that called this ---*/
