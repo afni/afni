@@ -344,7 +344,7 @@ int main( int argc , char * argv[] )
    MAIN_rc = XtVaCreateWidget( "AFNI" , xmRowColumnWidgetClass , MAIN_shell ,
                                  XmNpacking     , XmPACK_TIGHT ,
                                  XmNorientation , XmVERTICAL   ,
-                                 XmNtraversalOn , False ,
+                                 XmNtraversalOn , True ,
                                NULL ) ;
 
    /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -352,7 +352,7 @@ int main( int argc , char * argv[] )
    rc = XtVaCreateWidget( "AFNI" , xmRowColumnWidgetClass , MAIN_rc ,
                             XmNpacking     , XmPACK_TIGHT ,
                             XmNorientation , XmHORIZONTAL ,
-                            XmNtraversalOn , False ,
+                            XmNtraversalOn , True ,
                           NULL ) ;
 
    lab = XtVaCreateManagedWidget( "AFNI" , xmLabelWidgetClass , rc ,
@@ -369,7 +369,7 @@ int main( int argc , char * argv[] )
                                             XmNshowValue     , True ,
                                             XmNscaleMultiple , 10 ,
                                             XmNorientation   , XmHORIZONTAL ,
-                                            XmNtraversalOn , False ,
+                                            XmNtraversalOn , True ,
                                          NULL ) ;
 
    XtAddCallback( MAGN_scale , XmNvalueChangedCallback , PH_scale_CB , NULL ) ;
@@ -380,7 +380,7 @@ int main( int argc , char * argv[] )
    rc = XtVaCreateWidget( "AFNI" , xmRowColumnWidgetClass , MAIN_rc ,
                             XmNpacking     , XmPACK_TIGHT ,
                             XmNorientation , XmHORIZONTAL ,
-                            XmNtraversalOn , False ,
+                            XmNtraversalOn , True ,
                           NULL ) ;
 
    lab = XtVaCreateManagedWidget( "AFNI" , xmLabelWidgetClass , rc ,
@@ -397,7 +397,7 @@ int main( int argc , char * argv[] )
                                             XmNshowValue     , True ,
                                             XmNscaleMultiple , 10 ,
                                             XmNorientation   , XmHORIZONTAL ,
-                                            XmNtraversalOn , False ,
+                                            XmNtraversalOn , True ,
                                          NULL ) ;
 
    XtAddCallback( PHASE_scale , XmNvalueChangedCallback , PH_scale_CB , NULL ) ;
