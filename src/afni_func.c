@@ -1955,15 +1955,19 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
    /*--- initialize ---*/
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_VALID(im3d) || w == (Widget)NULL ) EXRETURN ;
 
    if( GLOBAL_library.have_dummy_dataset ){ BEEPIT ; EXRETURN ; }
 #if 0
    if( AFNI_splash_isopen() == 1         ){ BEEPIT ; EXRETURN ; }
 #endif
 
-   /* how about a rescan ? ZSS - Fur Greg Detre*/
-   if( AFNI_yesenv("AFNI_RESCAN_AT_SWITCH") ) {
+   /* how about a rescan ? ZSS - Fur Greg Detre */
+
+   if( AFNI_yesenv("AFNI_RESCAN_AT_SWITCH") &&
+      !(w == im3d->vwid->view->choose_sess_pb ||
+        w == im3d->vwid->view->popchoose_sess_pb) ){
+
      STATUS("rescanning, per AFNI_RESCAN_AT_SWITCH") ;
      AFNI_rescan_CB( w , (XtPointer)im3d , NULL ) ;
    }
@@ -5270,6 +5274,17 @@ STATUS("got func info") ;
    EXRETURN ;
 }
 
+/*---------------------------------------------------------------*/
+
+void AFNI_editenv_CB( Widget w , XtPointer cd , XtPointer cbd )
+{
+   Three_D_View *im3d = (Three_D_View *) cd ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+   AFNI_misc_CB( im3d->vwid->dmode->misc_environ_pb ,
+                 (XtPointer) im3d , (XtPointer) NULL ) ;
+}
+
 #ifdef USE_HIDDEN
 
 /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -5302,7 +5317,7 @@ void AFNI_hidden_CB( Widget w , XtPointer cd , XtPointer cbs )
 
 ENTRY("AFNI_hidden_CB") ;
 
-   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) || w == (Widget)NULL ) EXRETURN ;
 
 #ifdef ALLOW_DATASET_VLIST
    /****----- Read points -----****/

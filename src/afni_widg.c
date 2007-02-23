@@ -1804,27 +1804,40 @@ STATUS("making view->rowcol") ;
 
    /* 02 Feb 2007: new Rescan This button here */
 
-   view->rescan_pb =
-      XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , view->choose_rowcol ,
-            LABEL_ARG("RescanTh") ,
-            XmNmarginHeight , 1 ,
-            XmNtraversalOn , True  ,
-            XmNinitialResourcesPersistent , False ,
-         NULL ) ;
-   XtAddCallback( view->rescan_pb , XmNactivateCallback ,
-                  AFNI_rescan_CB , im3d ) ;
-   MCW_register_hint( view->rescan_pb ,
-                      "Read current session again" ) ;
-   MCW_register_help( view->rescan_pb ,
-                      "Read current session again\n"
-                      " to see if new datasets were\n"
-                      " added.  Exactly the same as\n"
-                      "Define Datamode->Rescan This\n"
-                      "Can also set in .afnirc file\n"
-                      " AFNI_RESCAN_AT_SWITCH = YES\n"
-                      " to rescan each time you hit\n"
-                      " one of the 'Switch' buttons" ) ;
+   if( !AFNI_yesenv("AFNI_RESCAN_AT_SWITCH") ){
+     view->rescan_pb =
+        XtVaCreateManagedWidget(
+           "dialog" , xmPushButtonWidgetClass , view->choose_rowcol ,
+              LABEL_ARG("RescanTh") ,
+              XmNmarginHeight , 1 ,
+              XmNtraversalOn , True  ,
+              XmNinitialResourcesPersistent , False ,
+           NULL ) ;
+     XtAddCallback( view->rescan_pb , XmNactivateCallback ,
+                    AFNI_rescan_CB , im3d ) ;
+     MCW_register_hint( view->rescan_pb ,
+                        "Read current session again" ) ;
+     MCW_register_help( view->rescan_pb ,
+                        "Read current session again\n"
+                        "to see if new datasets were\n"
+                        "added.  Exactly the same as\n"
+                        " Define Datamode->Rescan This\n"
+                        "Can also set (in .afnirc)\n"
+                        " AFNI_RESCAN_AT_SWITCH = YES\n"
+                        "to rescan each time you hit\n"
+                        "'Overlay' or 'Underlay'."     ) ;
+   } else {
+     view->rescan_pb =              /* 23 Feb 2007 */
+        XtVaCreateManagedWidget(
+           "dialog" , xmPushButtonWidgetClass , view->choose_rowcol ,
+              LABEL_ARG("EditEnv") ,
+              XmNmarginHeight , 1 ,
+              XmNtraversalOn , True  ,
+              XmNinitialResourcesPersistent , False ,
+           NULL ) ;
+     XtAddCallback( view->rescan_pb , XmNactivateCallback ,
+                    AFNI_editenv_CB , im3d ) ;
+   }
 
    /* NIML+PO button here -- 02 Feb 2007 */
 
@@ -3906,10 +3919,8 @@ STATUS("making dmode->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
    XtAddCallback( dmode->rescan_pb , XmNactivateCallback ,
                   AFNI_rescan_CB , im3d ) ;
-
    MCW_register_hint( dmode->rescan_pb ,
                       "Read current session again" ) ;
 
