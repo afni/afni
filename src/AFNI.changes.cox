@@ -6105,3 +6105,5 @@
      than 'Set'.
  * Modified afni_func.c to replace 'RescanTh' button with 'EditEnv' if
      Ziad's AFNI_RESCAN_AT_SWITCH is turned on.
+ * Modified afni_func.c to do AFNI_RESCAN_AT_SWITCH only for 'Overlay'
+     and 'Underlay' buttons.  (It's pointless for 'Switch Session'.)

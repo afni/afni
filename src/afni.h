@@ -1433,6 +1433,7 @@ extern void AFNI_copy_statistics( THD_3dim_dataset * , THD_3dim_dataset * ) ;
 extern void AFNI_lock_button( Three_D_View * ) ;
 extern void AFNI_misc_button( Three_D_View * ) ;
 extern void AFNI_misc_CB    ( Widget , XtPointer , XtPointer );
+extern void AFNI_editenv_CB ( Widget , XtPointer , XtPointer );
 
 extern void AFNI_add_timeseries( MRI_IMAGE * ) ;
 
