@@ -6095,3 +6095,7 @@
  * Modified afni_driver.c to allow use of 'axial_image' (etc.) as easy
      typos for 'axialimage' (etc.).
  * Modified dist_help script to include README.* files.
+
+23 Feb 2007
+ * Change XmNtraversalOn from False to True in about 1 zillion places, to
+     make keyboard focus be kept better in text widgets.
