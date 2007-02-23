@@ -6099,3 +6099,5 @@
 23 Feb 2007
  * Change XmNtraversalOn from False to True in about 1 zillion places, to
      make keyboard focus be kept better in text widgets.
+ * Added 'dset=NULL' initializer to THD_open_one_dataset() in thd_opendset.c,
+     per Bernd Feige of Freiburg.

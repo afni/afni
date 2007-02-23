@@ -333,7 +333,7 @@ static void NUD_make_widgets(void)
              "AFNI" , xmRowColumnWidgetClass , shell ,
                 XmNpacking     , XmPACK_TIGHT ,
                 XmNorientation , XmVERTICAL ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True  ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -360,7 +360,7 @@ static void NUD_make_widgets(void)
               XmNpacking      , XmPACK_TIGHT ,
               XmNadjustLast   , False ,
               XmNadjustMargin , False ,
-              XmNtraversalOn  , False ,
+              XmNtraversalOn  , True  ,
               XmNmarginWidth  , 0 ,
               XmNmarginHeight , 0 ,
               XmNinitialResourcesPersistent , False ,
@@ -372,7 +372,7 @@ static void NUD_make_widgets(void)
    choose_pb = XtVaCreateManagedWidget(
                   "AFNI" , xmPushButtonWidgetClass , hrc ,
                      XmNlabelString , xstr ,
-                     XmNtraversalOn , False ,
+                     XmNtraversalOn , True  ,
                      XmNinitialResourcesPersistent , False ,
                   NULL ) ;
    XmStringFree(xstr) ;
@@ -460,7 +460,7 @@ static void NUD_make_widgets(void)
               XmNpacking      , XmPACK_TIGHT ,
               XmNadjustLast   , False ,
               XmNadjustMargin , False ,
-              XmNtraversalOn  , False ,
+              XmNtraversalOn  , True  ,
               XmNmarginWidth  , 0 ,
               XmNmarginHeight , 0 ,
               XmNinitialResourcesPersistent , False ,
@@ -518,7 +518,7 @@ static void NUD_make_widgets(void)
                         XmNmarginTop     , 0 ,
                         XmNmarginWidth   , 0 ,
 #endif
-                        XmNtraversalOn , False ,
+                        XmNtraversalOn , True  ,
                      NULL ) ;
    XmStringFree(xstr) ;
    MCW_register_hint( angle_cum_lab , "Cumulative [degrees]" ) ;
@@ -535,7 +535,7 @@ static void NUD_make_widgets(void)
               XmNpacking      , XmPACK_TIGHT ,
               XmNadjustLast   , False ,
               XmNadjustMargin , False ,
-              XmNtraversalOn  , False ,
+              XmNtraversalOn  , True  ,
               XmNmarginWidth  , 0 ,
               XmNmarginHeight , 0 ,
               XmNinitialResourcesPersistent , False ,
@@ -594,7 +594,7 @@ static void NUD_make_widgets(void)
                         XmNmarginTop     , 0 ,
                         XmNmarginWidth   , 0 ,
 #endif
-                        XmNtraversalOn , False ,
+                        XmNtraversalOn , True  ,
                      NULL ) ;
    XmStringFree(xstr) ;
    MCW_register_hint( shift_cum_lab , "Cumulative [mm]" ) ;

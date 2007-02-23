@@ -914,7 +914,7 @@ void REND_make_widgets(void)
                      XmNpacking      , XmPACK_TIGHT ,
                      XmNadjustLast   , False ,
                      XmNadjustMargin , False ,
-                     XmNtraversalOn  , False ,
+                     XmNtraversalOn  , True  ,
                      XmNmarginWidth  , 0 ,
                      XmNmarginHeight , 0 ,
                      XmNinitialResourcesPersistent , False ,
@@ -926,7 +926,7 @@ void REND_make_widgets(void)
                    "AFNI" , xmFrameWidgetClass , top_rowcol ,
                       XmNshadowType , XmSHADOW_ETCHED_IN ,
                       XmNshadowThickness , 5 ,
-                      XmNtraversalOn , False ,
+                      XmNtraversalOn , True  ,
                       XmNinitialResourcesPersistent , False ,
                    NULL ) ;
 
@@ -936,7 +936,7 @@ void REND_make_widgets(void)
                      XmNorientation , XmVERTICAL ,
                      XmNadjustLast  , False ,
                      XmNadjustMargin, False ,
-                     XmNtraversalOn , False ,
+                     XmNtraversalOn , True  ,
                      XmNinitialResourcesPersistent , False ,
                   NULL ) ;
 
@@ -965,7 +965,7 @@ void REND_make_widgets(void)
               XmNpacking      , XmPACK_TIGHT ,
               XmNadjustLast   , False ,
               XmNadjustMargin , False ,
-              XmNtraversalOn  , False ,
+              XmNtraversalOn  , True  ,
               XmNmarginWidth  , 0 ,
               XmNmarginHeight , 0 ,
               XmNinitialResourcesPersistent , False ,
@@ -978,7 +978,7 @@ void REND_make_widgets(void)
                   "AFNI" , xmPushButtonWidgetClass , hrc ,
                      XmNalignment   , XmALIGNMENT_CENTER ,
                      XmNlabelString , xstr ,
-                     XmNtraversalOn , False ,
+                     XmNtraversalOn , True  ,
                      XmNinitialResourcesPersistent , False ,
                   NULL ) ;
    XmStringFree(xstr) ;
@@ -1018,7 +1018,7 @@ void REND_make_widgets(void)
                   "AFNI" , xmPushButtonWidgetClass , hrc ,
                      XmNalignment   , XmALIGNMENT_CENTER ,
                      XmNlabelString , xstr ,
-                     XmNtraversalOn , False ,
+                     XmNtraversalOn , True  ,
                      XmNinitialResourcesPersistent , False ,
                   NULL ) ;
    XmStringFree(xstr) ;
@@ -1038,7 +1038,7 @@ void REND_make_widgets(void)
               XmNpacking      , XmPACK_TIGHT ,
               XmNadjustLast   , False ,
               XmNadjustMargin , False ,
-              XmNtraversalOn  , False ,
+              XmNtraversalOn  , True  ,
               XmNmarginWidth  , 0 ,
               XmNmarginHeight , 0 ,
               XmNinitialResourcesPersistent , False ,
@@ -1052,7 +1052,7 @@ void REND_make_widgets(void)
                 XmNorientation , XmVERTICAL ,
                 XmNadjustLast  , False ,
                 XmNadjustMargin, False ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True  ,
                 XmNmarginWidth , 0 ,
                 XmNmarginHeight, 0 ,
                 XmNinitialResourcesPersistent , False ,
@@ -1109,7 +1109,7 @@ void REND_make_widgets(void)
                 XmNorientation , XmVERTICAL ,
                 XmNadjustLast  , False ,
                 XmNadjustMargin, False ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True  ,
                 XmNmarginWidth , 0 ,
                 XmNmarginHeight, 0 ,
                 XmNinitialResourcesPersistent , False ,
@@ -1152,7 +1152,7 @@ void REND_make_widgets(void)
                 XmNorientation , XmVERTICAL ,
                 XmNadjustLast  , False ,
                 XmNadjustMargin, False ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True  ,
                 XmNmarginWidth , 0 ,
                 XmNmarginHeight, 0 ,
                 XmNinitialResourcesPersistent , False ,
@@ -1198,7 +1198,7 @@ void REND_make_widgets(void)
               XmNpacking , XmPACK_TIGHT ,
               XmNadjustLast  , False ,
               XmNadjustMargin, False ,
-              XmNtraversalOn , False ,
+              XmNtraversalOn , True  ,
               XmNmarginWidth , 0 ,
               XmNmarginHeight, 0 ,
               XmNinitialResourcesPersistent , False ,
@@ -1257,7 +1257,7 @@ void REND_make_widgets(void)
               XmNpacking , XmPACK_TIGHT ,
               XmNadjustLast  , False ,
               XmNadjustMargin, False ,
-              XmNtraversalOn , False ,
+              XmNtraversalOn , True  ,
               XmNmarginWidth , 0 ,
               XmNmarginHeight, 0 ,
               XmNinitialResourcesPersistent , False ,
@@ -1325,7 +1325,7 @@ void REND_make_widgets(void)
               XmNpacking , XmPACK_TIGHT ,
               XmNadjustLast  , False ,
               XmNadjustMargin, False ,
-              XmNtraversalOn , False ,
+              XmNtraversalOn , True  ,
               XmNmarginWidth , 0 ,
               XmNmarginHeight, 0 ,
               XmNinitialResourcesPersistent , False ,
@@ -1366,7 +1366,7 @@ void REND_make_widgets(void)
    autocompute_pb = XtVaCreateManagedWidget(
                      "AFNI" , xmPushButtonWidgetClass , hrc ,
                         XmNlabelString , xstr ,
-                        XmNtraversalOn , False ,
+                        XmNtraversalOn , True  ,
                         XmNinitialResourcesPersistent , False ,
                      NULL ) ;
    XmStringFree(xstr) ;
@@ -1381,7 +1381,7 @@ void REND_make_widgets(void)
    autocancel_pb = XtVaCreateWidget(
                      "AFNI" , xmPushButtonWidgetClass , hrc ,
                         XmNlabelString , xstr ,
-                        XmNtraversalOn , False ,
+                        XmNtraversalOn , True  ,
                         XmNinitialResourcesPersistent , False ,
                      NULL ) ;
    XmStringFree(xstr) ;
@@ -1401,7 +1401,7 @@ void REND_make_widgets(void)
               XmNpacking , XmPACK_TIGHT ,
               XmNadjustLast  , False ,
               XmNadjustMargin, False ,
-              XmNtraversalOn , False ,
+              XmNtraversalOn , True  ,
               XmNmarginWidth , 0 ,
               XmNmarginHeight, 0 ,
               XmNinitialResourcesPersistent , False ,
@@ -1507,7 +1507,7 @@ void REND_make_widgets(void)
               XmNpacking , XmPACK_TIGHT ,
               XmNadjustLast  , False ,
               XmNadjustMargin, False ,
-              XmNtraversalOn , False ,
+              XmNtraversalOn , True  ,
               XmNmarginWidth , 0 ,
               XmNmarginHeight, 0 ,
               XmNinitialResourcesPersistent , False ,
@@ -1738,7 +1738,7 @@ REND_cutout * REND_make_cutout( int n )
                    XmNpacking , XmPACK_TIGHT ,
                    XmNadjustLast  , False ,
                    XmNadjustMargin, False ,
-                   XmNtraversalOn , False ,
+                   XmNtraversalOn , True  ,
                    XmNmarginWidth , 0 ,
                    XmNmarginHeight, 0 ,
                    XmNinitialResourcesPersistent , False ,
@@ -1784,7 +1784,7 @@ REND_cutout * REND_make_cutout( int n )
    rc->set_pb = XtVaCreateWidget(
                   "AFNI" , xmPushButtonWidgetClass , rc->hrc ,
                      XmNlabelString , xstr ,
-                     XmNtraversalOn , False ,
+                     XmNtraversalOn , True  ,
                      XmNinitialResourcesPersistent , False ,
                   NULL ) ;
    XmStringFree(xstr) ;
@@ -4822,7 +4822,7 @@ void REND_func_widgets(void)
                    "AFNI" , xmFrameWidgetClass , top_rowcol ,
                       XmNshadowType , XmSHADOW_ETCHED_IN ,
                       XmNshadowThickness , 5 ,
-                      XmNtraversalOn , False ,
+                      XmNtraversalOn , True  ,
                       XmNinitialResourcesPersistent , False ,
                    NULL ) ;
 
@@ -4830,7 +4830,7 @@ void REND_func_widgets(void)
                     "AFNI" , xmRowColumnWidgetClass , wfunc_frame ,
                        XmNorientation , XmVERTICAL ,
                        XmNpacking , XmPACK_TIGHT ,
-                       XmNtraversalOn , False ,
+                       XmNtraversalOn , True  ,
                        XmNinitialResourcesPersistent , False ,
                     NULL ) ;
 
@@ -4851,7 +4851,7 @@ void REND_func_widgets(void)
                   "AFNI" , xmPushButtonWidgetClass , wfunc_uber_rowcol ,
                      XmNalignment   , XmALIGNMENT_CENTER ,
                      XmNlabelString , xstr ,
-                     XmNtraversalOn , False ,
+                     XmNtraversalOn , True  ,
                      XmNinitialResourcesPersistent , False ,
                   NULL ) ;
    XmStringFree(xstr) ;
@@ -4863,7 +4863,7 @@ void REND_func_widgets(void)
                     "AFNI" , xmRowColumnWidgetClass , wfunc_uber_rowcol ,
                        XmNorientation , XmHORIZONTAL ,
                        XmNpacking , XmPACK_TIGHT ,
-                       XmNtraversalOn , False ,
+                       XmNtraversalOn , True  ,
                        XmNinitialResourcesPersistent , False ,
                     NULL ) ;
 
@@ -4875,7 +4875,7 @@ void REND_func_widgets(void)
                            XmNpacking , XmPACK_TIGHT ,
                            XmNmarginHeight, 0 ,
                            XmNmarginWidth , 0 ,
-                           XmNtraversalOn , False ,
+                           XmNtraversalOn , True  ,
                            XmNinitialResourcesPersistent , False ,
                         NULL ) ;
 
@@ -4901,7 +4901,7 @@ void REND_func_widgets(void)
    wqqq = XtVaCreateManagedWidget(
            "AFNI" , xmFrameWidgetClass , wfunc_thr_rowcol ,
             XmNshadowType , XmSHADOW_ETCHED_IN ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
           NULL ) ;
 #else
@@ -4927,7 +4927,7 @@ void REND_func_widgets(void)
             XmNorientation , XmVERTICAL ,
             XmNheight , sel_height ,
             XmNborderWidth , 0 ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
   }
@@ -4978,7 +4978,7 @@ void REND_func_widgets(void)
             XmNmarginHeight, 0 ,
             XmNmarginWidth , 0 ,
             XmNpacking , XmPACK_TIGHT ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -5034,7 +5034,7 @@ void REND_func_widgets(void)
          "dialog" , xmPushButtonWidgetClass , wfunc_pbar_menu ,
             LABEL_ARG("Equalize Spacing") ,
             XmNmarginHeight , 0 ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -5046,7 +5046,7 @@ void REND_func_widgets(void)
          "dialog" , xmPushButtonWidgetClass , wfunc_pbar_menu ,
             LABEL_ARG("Set Top Value") ,
             XmNmarginHeight , 0 ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -5060,7 +5060,7 @@ void REND_func_widgets(void)
          "dialog" , xmPushButtonWidgetClass , wfunc_pbar_menu ,
             LABEL_ARG("Save to PPM") ,
             XmNmarginHeight , 0 ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -5192,7 +5192,7 @@ void REND_func_widgets(void)
             XmNpacking , XmPACK_TIGHT ,
             XmNmarginHeight, 0 ,
             XmNmarginWidth , 0 ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -5211,7 +5211,7 @@ void REND_func_widgets(void)
       XtVaCreateWidget(
          "AFNI" , xmFrameWidgetClass , wfunc_choices_rowcol ,
             XmNshadowType , XmSHADOW_ETCHED_IN ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -5220,7 +5220,7 @@ void REND_func_widgets(void)
          "AFNI" , xmRowColumnWidgetClass , wfunc_buck_frame ,
             XmNorientation , XmVERTICAL ,
             XmNpacking , XmPACK_TIGHT ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -5269,7 +5269,7 @@ void REND_func_widgets(void)
       XtVaCreateWidget(
          "AFNI" , xmFrameWidgetClass , wfunc_choices_rowcol ,
             XmNshadowType , XmSHADOW_ETCHED_IN ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -5278,7 +5278,7 @@ void REND_func_widgets(void)
          "AFNI" , xmRowColumnWidgetClass , wfunc_opacity_frame ,
             XmNorientation , XmVERTICAL ,
             XmNpacking , XmPACK_TIGHT ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -5318,7 +5318,7 @@ void REND_func_widgets(void)
                 XmNpacking , XmPACK_TIGHT ,
                 XmNmarginHeight, 0 ,
                 XmNmarginWidth , 0 ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True  ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -5378,7 +5378,7 @@ void REND_func_widgets(void)
       XtVaCreateManagedWidget(
          "AFNI" , xmFrameWidgetClass , wfunc_choices_rowcol ,
             XmNshadowType , XmSHADOW_ETCHED_IN ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -5387,7 +5387,7 @@ void REND_func_widgets(void)
          "AFNI" , xmRowColumnWidgetClass , wfunc_range_frame ,
             XmNorientation , XmVERTICAL ,
             XmNpacking , XmPACK_TIGHT ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -5399,7 +5399,7 @@ void REND_func_widgets(void)
          "AFNI" , xmLabelWidgetClass , wfunc_range_rowcol ,
             XmNrecomputeSize , False ,
             XmNlabelString , xstr ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
    XmStringFree(xstr) ;
@@ -5428,7 +5428,7 @@ void REND_func_widgets(void)
          "dialog" , xmRowColumnWidgetClass , wfunc_range_rowcol ,
             XmNorientation , XmHORIZONTAL ,
             XmNpacking , XmPACK_TIGHT ,
-            XmNtraversalOn , False ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -6551,7 +6551,7 @@ void REND_script_menu( Widget parent )
            "dialog" , xmRowColumnWidgetClass , parent ,
               XmNorientation , XmHORIZONTAL ,
               XmNpacking , XmPACK_TIGHT ,
-              XmNtraversalOn , False ,
+              XmNtraversalOn , True  ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
 
@@ -6562,7 +6562,7 @@ void REND_script_menu( Widget parent )
                      XmNspacing      , 3 ,
                      XmNborderWidth  , 0 ,
                      XmNborderColor  , 0 ,
-                     XmNtraversalOn  , False ,
+                     XmNtraversalOn  , True  ,
                      XmNbackground   , im3d->dc->ovc->pixov_brightest ,
                   NULL ) ;
    XtManageChild( mbar ) ;
@@ -6584,7 +6584,7 @@ void REND_script_menu( Widget parent )
                XmNmarginTop    , 0 ,
                XmNmarginRight  , 0 ,
                XmNmarginLeft   , 0 ,
-               XmNtraversalOn  , False ,
+               XmNtraversalOn  , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
 
@@ -6602,7 +6602,7 @@ void REND_script_menu( Widget parent )
             "dialog" , xmPushButtonWidgetClass , script_menu , \
                LABEL_ARG( label ) ,                            \
                XmNmarginHeight , 0 ,                           \
-               XmNtraversalOn , False ,                        \
+               XmNtraversalOn , True  ,                        \
                XmNinitialResourcesPersistent , False ,         \
             NULL ) ;                                           \
       XtAddCallback( wname , XmNactivateCallback ,             \

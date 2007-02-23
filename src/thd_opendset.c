@@ -43,7 +43,7 @@ THD_3dim_dataset * THD_open_one_dataset( char *pathname )
 {
    int ii , plen ;
    char dirname[THD_MAX_NAME] , fullname[THD_MAX_NAME] ;
-   THD_3dim_dataset *dset ;
+   THD_3dim_dataset *dset=NULL ;  /* NULL added 23 Feb 2007, from Bernd Feige */
    THD_datablock    *dblk ;
    char *sub ;
    char *fname ;   /* to skip directory during HEAD/BRIK search in filename */
