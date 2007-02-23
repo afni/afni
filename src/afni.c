@@ -1342,6 +1342,7 @@ int main( int argc , char * argv[] )
      XSynchronize(XtDisplay(MAIN_shell),TRUE) ;
      STATUS("XSynchronize is enabled") ;
    }
+   XtVaSetValues( MAIN_shell, XmNkeyboardFocusPolicy,XmEXPLICIT , NULL ) ;
 
    MAIN_argc = argc ; MAIN_argv = argv ;  /* what's left after XtVaAppInit */
 

@@ -1257,6 +1257,7 @@ ENTRY("PLUG_setup_widgets") ;
            XmNdeleteResponse    , XmDO_NOTHING , /* deletion handled below */
            XmNallowShellResize  , False ,        /* let code resize shell? */
            XmNinitialResourcesPersistent , False ,
+              XmNkeyboardFocusPolicy , XmEXPLICIT ,
       NULL ) ;
 
    DC_yokify( wid->shell , dc ) ; /* 14 Sep 1998 */
@@ -1282,7 +1283,7 @@ ENTRY("PLUG_setup_widgets") ;
                  "AFNI" , xmFormWidgetClass , wid->shell ,
                      XmNborderWidth , 0 ,
                      XmNborderColor , 0 ,
-                     XmNtraversalOn , False ,
+                     XmNtraversalOn , True  ,
                      XmNinitialResourcesPersistent , False ,
                  NULL ) ;
 
@@ -1353,7 +1354,7 @@ ENTRY("PLUG_setup_widgets") ;
               XmNbottomAttachment, XmATTACH_FORM ,
               XmNtopWidget       , actar ,
               XmNtopOffset       , 7 ,
-              XmNtraversalOn , False ,
+              XmNtraversalOn , True  ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
 
@@ -1362,7 +1363,7 @@ ENTRY("PLUG_setup_widgets") ;
            "AFNI" , xmFrameWidgetClass , wid->scrollw ,
                XmNshadowType , XmSHADOW_ETCHED_IN ,
                XmNshadowThickness , 5 ,
-               XmNtraversalOn , False ,
+               XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
 
@@ -1371,7 +1372,7 @@ ENTRY("PLUG_setup_widgets") ;
            "AFNI" , xmFormWidgetClass , wframe ,
               XmNborderWidth , 0 ,
               XmNborderColor , 0 ,
-              XmNtraversalOn , False ,
+              XmNtraversalOn , True  ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
 
@@ -1462,7 +1463,7 @@ ENTRY("PLUG_setup_widgets") ;
               XmNmarginWidth      , 0  ,
               XmNselectColor      , fg_pix ,  /* fill with foreground when set */
 
-              XmNtraversalOn , False ,
+              XmNtraversalOn , True  ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
 
@@ -1682,7 +1683,7 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                           XmNmarginHeight, 0 ,
                           XmNmarginWidth , 0 ,
                           XmNspacing     , 0 ,
-                          XmNtraversalOn , False ,
+                          XmNtraversalOn , True  ,
                           XmNinitialResourcesPersistent , False ,
                        NULL ) ;
 
@@ -1709,7 +1710,7 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                            XmNcursorPositionVisible , True ,
                            XmNblinkRate , 0 ,
                            XmNautoShowCursorPosition , True ,
-                           XmNtraversalOn , False ,
+                           XmNtraversalOn , True  ,
                            XmNinitialResourcesPersistent , False ,
                         NULL ) ;
 
@@ -1756,7 +1757,7 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                        XmNmarginHeight, 0 ,
                        XmNmarginWidth , 0 ,
                        XmNspacing     , 0 ,
-                       XmNtraversalOn , False ,
+                       XmNtraversalOn , True  ,
                        XmNinitialResourcesPersistent , False ,
                     NULL ) ;
 
@@ -1787,7 +1788,7 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                               XmNmarginHeight  , 0 ,
                               XmNmarginWidth   , 0 ,
                               XmNrecomputeSize , False ,
-                              XmNtraversalOn   , False ,
+                              XmNtraversalOn   , True  ,
                               XmNuserData      , (XtPointer) av ,
                               XmNinitialResourcesPersistent , False ,
                            NULL ) ;
@@ -1823,7 +1824,7 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                        XmNmarginHeight, 0 ,
                        XmNmarginWidth , 0 ,
                        XmNspacing     , 0 ,
-                       XmNtraversalOn , False ,
+                       XmNtraversalOn , True  ,
                        XmNinitialResourcesPersistent , False ,
                     NULL ) ;
 
@@ -1848,7 +1849,7 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                               XmNmarginHeight  , 0 ,
                               XmNmarginWidth   , 0 ,
                               XmNrecomputeSize , False ,
-                              XmNtraversalOn   , False ,
+                              XmNtraversalOn   , True  ,
                               XmNuserData      , (XtPointer) av ,
                               XmNinitialResourcesPersistent , False ,
                            NULL ) ;
@@ -3400,7 +3401,7 @@ ENTRY("AFNI_plugin_button") ;
            "dialog" , xmRowColumnWidgetClass , wpar ,
               XmNorientation , XmHORIZONTAL ,
               XmNpacking , XmPACK_TIGHT ,
-              XmNtraversalOn , False ,
+              XmNtraversalOn , True  ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
 
@@ -3411,7 +3412,7 @@ ENTRY("AFNI_plugin_button") ;
                      XmNspacing      , 3 ,
                      XmNborderWidth  , 0 ,
                      XmNborderColor  , 0 ,
-                     XmNtraversalOn  , False ,
+                     XmNtraversalOn  , True  ,
                      XmNbackground   , im3d->dc->ovc->pixov_brightest ,
                   NULL ) ;
    XtManageChild( mbar ) ;
@@ -3431,7 +3432,7 @@ ENTRY("AFNI_plugin_button") ;
                XmNmarginTop    , 0 ,
                XmNmarginRight  , 0 ,
                XmNmarginLeft   , 0 ,
-               XmNtraversalOn  , False ,
+               XmNtraversalOn  , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
    XmStringFree( xstr ) ;
@@ -3453,7 +3454,7 @@ ENTRY("AFNI_plugin_button") ;
                   XmNlabelString , xstr ,                                 \
                   XmNmarginHeight , 0 ,                                   \
                   XmNuserData , (XtPointer) im3d ,                        \
-                  XmNtraversalOn , False ,                                \
+                  XmNtraversalOn , True  ,                                \
                   XmNinitialResourcesPersistent , False ,                 \
                NULL ) ;                                                   \
       im3d->vwid->plugbut[npbut] = pbut ;            /* 23 Sep 2000 */    \
@@ -4624,7 +4625,7 @@ ENTRY("new_PLUGIN_strval") ;
                      XmNmarginHeight, 0 ,
                      XmNmarginWidth , 0 ,
                      XmNspacing     , 0 ,
-                     XmNtraversalOn , False ,
+                     XmNtraversalOn , True  ,
                      XmNinitialResourcesPersistent , False ,
                   NULL ) ;
 
@@ -4648,7 +4649,7 @@ ENTRY("new_PLUGIN_strval") ;
                       XmNcursorPositionVisible , True ,
                       XmNblinkRate , 0 ,
                       XmNautoShowCursorPosition , True ,
-                      XmNtraversalOn , False ,
+                      XmNtraversalOn , True  ,
                       XmNinitialResourcesPersistent , False ,
                    NULL ) ;
 

@@ -76,7 +76,7 @@ ENTRY("new_MCW_pbar") ;
                                      XmNmarginWidth , 0 ,
                                      XmNheight , npane*pheight+(npane-1)*PANE_SPACING ,
                                      XmNresizePolicy , XmRESIZE_ANY ,
-                                     XmNtraversalOn , False ,
+                                     XmNtraversalOn , True  ,
                                      XmNinitialResourcesPersistent , False ,
                                   NULL ) ;
 
@@ -93,7 +93,7 @@ ENTRY("new_MCW_pbar") ;
                                       XmNmarginWidth , 0 ,
                                       XmNspacing , PANE_SPACING ,
                                       XmNx , 0 , XmNy , 0 ,
-                                      XmNtraversalOn, False ,
+                                      XmNtraversalOn, True  ,
                                       XmNinitialResourcesPersistent , False ,
                               NULL ) ;
 
@@ -129,7 +129,7 @@ ENTRY("new_MCW_pbar") ;
                               XmNpushButtonEnabled , True ,
                               XmNshadowThickness , 1 ,
                               XmNuserData , (XtPointer) pbar ,
-                              XmNtraversalOn , False,
+                              XmNtraversalOn , True ,
                               XmNinitialResourcesPersistent , False ,
                             NULL ) ;
 
@@ -263,7 +263,7 @@ ENTRY("new_MCW_pbar") ;
    pbar->big_choose_pb = XtVaCreateManagedWidget(
                            "menu" , xmPushButtonWidgetClass , pbar->big_menu ,
                              LABEL_ARG("Choose Colorscale") ,
-                             XmNtraversalOn , False ,
+                             XmNtraversalOn , True  ,
                              XmNinitialResourcesPersistent , False ,
                           NULL ) ;
    XtAddCallback( pbar->big_choose_pb, XmNactivateCallback, PBAR_big_menu_CB , pbar ) ;

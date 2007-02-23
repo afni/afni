@@ -115,7 +115,7 @@ static void psfile_CB( Widget w , XtPointer cd , XtPointer cb )
 
    mpcb->dial = wpop = XtVaCreatePopupShell(
              "AFNI" , xmDialogShellWidgetClass , mpcb->top ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True  ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -128,7 +128,7 @@ static void psfile_CB( Widget w , XtPointer cd , XtPointer cb )
              "menu" , xmRowColumnWidgetClass , wpop ,
                 XmNpacking      , XmPACK_TIGHT ,
                 XmNorientation  , XmVERTICAL ,
-                XmNtraversalOn , False ,
+                XmNtraversalOn , True  ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -150,7 +150,7 @@ static void psfile_CB( Widget w , XtPointer cd , XtPointer cb )
                  XmNblinkRate , 0 ,
                  XmNautoShowCursorPosition , True ,
                  XmNinitialResourcesPersistent , False ,
-                 XmNtraversalOn , False ,
+                 XmNtraversalOn , True  ,
               NULL ) ;
    XtAddCallback( wtf, XmNactivateCallback, psfinalize_CB, cd ) ; /* return key */
 
@@ -180,7 +180,7 @@ static void psfile_CB( Widget w , XtPointer cd , XtPointer cb )
                     XmNrightPosition , ibut*TIG + (TIG-1) ,
 
                     XmNrecomputeSize , False ,
-                    XmNtraversalOn   , False ,
+                    XmNtraversalOn   , True  ,
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
    XtAddCallback( but0 , XmNactivateCallback , pscancel_CB , cd ) ;
@@ -206,7 +206,7 @@ static void psfile_CB( Widget w , XtPointer cd , XtPointer cb )
                     XmNrightPosition , ibut*TIG + (TIG-1) ,
 
                     XmNrecomputeSize , False ,
-                    XmNtraversalOn   , False ,
+                    XmNtraversalOn   , True  ,
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
    XtAddCallback( but1 , XmNactivateCallback , psfinalize_CB , cd ) ;
@@ -441,7 +441,7 @@ MEM_topshell_data * memplot_to_topshell( Display * dpy,
                     XmNrightPosition , ibut*TIG + (TIG-1) ,
 
                     XmNrecomputeSize , False ,
-                    XmNtraversalOn   , False ,
+                    XmNtraversalOn   , True  ,
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
    XtAddCallback( psfilebut , XmNactivateCallback , psfile_CB , (XtPointer) mpcb ) ;
@@ -461,7 +461,7 @@ MEM_topshell_data * memplot_to_topshell( Display * dpy,
                     XmNrightPosition , ibut*TIG + (TIG-1) ,
 
                     XmNrecomputeSize , False ,
-                    XmNtraversalOn   , False ,
+                    XmNtraversalOn   , True  ,
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
    prc = getenv( "AFNI_PSPRINT" ) ;
@@ -492,7 +492,7 @@ MEM_topshell_data * memplot_to_topshell( Display * dpy,
                     XmNrightPosition , ibut*TIG + (TIG-1) ,
 
                     XmNrecomputeSize , False ,
-                    XmNtraversalOn   , False ,
+                    XmNtraversalOn   , True  ,
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
    XtAddCallback( donebut , XmNactivateCallback , donebut_CB , (XtPointer) mpcb ) ;

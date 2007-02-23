@@ -38,7 +38,7 @@ MCW_graf * new_MCW_graf( Widget wpar , MCW_DC * dc , char * title ,
    gp->topform = XtVaCreateWidget(
                     "dialog" , xmFormWidgetClass , wpar ,
                        XmNinitialResourcesPersistent , False ,
-                       XmNtraversalOn , False ,
+                       XmNtraversalOn , True  ,
                     NULL ) ;
 
    if( title == NULL || title[0] == '\0' ) title = "Graphing" ;
@@ -61,14 +61,14 @@ MCW_graf * new_MCW_graf( Widget wpar , MCW_DC * dc , char * title ,
                              XmNtopAttachment   , XmATTACH_WIDGET ,
                              XmNtopWidget       , gp->toplabel ,
                              XmNleftAttachment  , XmATTACH_FORM ,
-                             XmNtraversalOn , False ,
+                             XmNtraversalOn , True  ,
                              XmNinitialResourcesPersistent , False ,
                           NULL ) ;
    gp->drawer = XtVaCreateManagedWidget(
                    "dialog" , xmDrawingAreaWidgetClass , wf ,
                        XmNwidth       , GRAF_SIZE ,
                        XmNheight      , GRAF_SIZE + GRAF_EXTRA ,
-                       XmNtraversalOn , False ,
+                       XmNtraversalOn , True  ,
                        XmNinitialResourcesPersistent , False ,
                     NULL ) ;
    XtManageChild(wf) ;
@@ -126,7 +126,7 @@ MCW_graf * new_MCW_graf( Widget wpar , MCW_DC * dc , char * title ,
                      "dialog" , xmPushButtonWidgetClass , rcbox ,
                         LABEL_ARG("Line") ,
                         XmNalignment     , XmALIGNMENT_CENTER ,
-                        XmNtraversalOn   , False ,
+                        XmNtraversalOn   , True  ,
                         XmNinitialResourcesPersistent , False ,
                      NULL ) ;
 
@@ -785,7 +785,7 @@ MCW_pasgraf * new_MCW_pasgraf( Widget wpar , MCW_DC * dc , char * title )
    gp->topform = XtVaCreateWidget(
                     "dialog" , xmFormWidgetClass , wpar ,
                        XmNinitialResourcesPersistent , False ,
-                       XmNtraversalOn , False ,
+                       XmNtraversalOn , True  ,
                     NULL ) ;
 
    if( title == NULL || title[0] == '\0' ) title = "Graphing" ;
@@ -808,14 +808,14 @@ MCW_pasgraf * new_MCW_pasgraf( Widget wpar , MCW_DC * dc , char * title )
                              XmNtopAttachment   , XmATTACH_WIDGET ,
                              XmNtopWidget       , gp->toplabel ,
                              XmNleftAttachment  , XmATTACH_FORM ,
-                             XmNtraversalOn , False ,
+                             XmNtraversalOn , True  ,
                              XmNinitialResourcesPersistent , False ,
                           NULL ) ;
    gp->drawer = XtVaCreateManagedWidget(
                    "dialog" , xmDrawingAreaWidgetClass , wf ,
                        XmNwidth       , GRAF_SIZE ,
                        XmNheight      , GRAF_SIZE + GRAF_EXTRA ,
-                       XmNtraversalOn , False ,
+                       XmNtraversalOn , True  ,
                        XmNinitialResourcesPersistent , False ,
                     NULL ) ;
    XtManageChild(wf) ;

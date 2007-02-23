@@ -115,7 +115,7 @@ ENTRY("new_MCW_bbox") ;
                            XmNmarginWidth   , 0 ,
                            XmNselectColor   , fg_pix ,  /* 04 Nov 1996 */
                            XmNrecomputeSize , False ,
-                           XmNtraversalOn   , False ,
+                           XmNtraversalOn   , True  ,
                            XmNinitialResourcesPersistent , False ,
                         NULL ) ;
 
@@ -237,9 +237,9 @@ ENTRY("new_MCW_arrowval") ;
    /** July 1996: optmenu capability as a dropin for arrowval **/
 
    if( direc == MCW_AV_optmenu ){
-      av = new_MCW_optmenu( parent , label , minval,maxval,inival , decim ,
-                            delta_value , delta_data , text_proc , text_data ) ;
-      RETURN(av) ;
+     av = new_MCW_optmenu( parent , label , minval,maxval,inival , decim ,
+                           delta_value , delta_data , text_proc , text_data ) ;
+     RETURN(av) ;
    }
 
    av = myXtNew( MCW_arrowval ) ;
@@ -257,7 +257,7 @@ ENTRY("new_MCW_arrowval") ;
                        XmNresizeWidth  , False ,
 #endif
                        XmNinitialResourcesPersistent , False ,
-                       XmNtraversalOn , False ,
+                       XmNtraversalOn , True ,
                     NULL ) ;
 
    if( label != NULL && strlen(label) > 0 ){
@@ -300,7 +300,7 @@ ENTRY("new_MCW_arrowval") ;
                      XmNborderWidth , 0 ,
 
                      XmNinitialResourcesPersistent , False ,
-                     XmNtraversalOn , False ,
+                     XmNtraversalOn , True ,
                   NULL ) ;
 
    av->wup    = XtVaCreateManagedWidget(
@@ -313,7 +313,7 @@ ENTRY("new_MCW_arrowval") ;
                      XmNborderWidth , 0 ,
 
                      XmNinitialResourcesPersistent , False ,
-                     XmNtraversalOn , False ,
+                     XmNtraversalOn , True ,
                   NULL ) ;
 
    XtAddCallback( av->wdown , XmNarmCallback    , AV_press_CB , av ) ;
@@ -365,7 +365,7 @@ ENTRY("new_MCW_arrowval") ;
                           XmNcursorPositionVisible , False ,
 
                           XmNinitialResourcesPersistent , False ,
-                          XmNtraversalOn , False ,
+                          XmNtraversalOn , True ,
                        NULL ) ;
 
          av->text_CB   = (text_proc != NULL ) ? (text_proc)
@@ -382,7 +382,7 @@ ENTRY("new_MCW_arrowval") ;
             wf = XtVaCreateWidget( "dialog" , xmFrameWidgetClass , av->wrowcol ,
                                       XmNshadowType , XmSHADOW_OUT ,
                                       XmNshadowThickness , 1 ,
-                                      XmNtraversalOn , False ,
+                                      XmNtraversalOn , True ,
                                       XmNinitialResourcesPersistent , False ,
                                    NULL ) ;
             maxlen = AV_MAXLEN ;
@@ -408,7 +408,7 @@ ENTRY("new_MCW_arrowval") ;
                           XmNautoShowCursorPosition , True ,
 
                           XmNinitialResourcesPersistent , False ,
-                          XmNtraversalOn , False ,
+                          XmNtraversalOn , True ,
                        NULL ) ;
 
          if( textype == MCW_AV_noactext ) XtManageChild(wf) ;
@@ -604,7 +604,7 @@ ENTRY("new_MCW_optmenu") ;
                   XmNmarginRight  , 0 ,
                   XmNmarginLeft   , 0 ,
                   XmNuserData     , (XtPointer) ival ,    /* Who am I? */
-                  XmNtraversalOn , False ,
+                  XmNtraversalOn , True  ,
                   XmNinitialResourcesPersistent , False ,
                 NULL ) ;
 
@@ -752,7 +752,7 @@ ENTRY("refit_MCW_optmenu") ;
                      XmNmarginRight  , 0 ,
                      XmNmarginLeft   , 0 ,
                      XmNuserData     , (XtPointer) ival ,    /* Who am I? */
-                     XmNtraversalOn , False ,
+                     XmNtraversalOn , True  ,
                      XmNinitialResourcesPersistent , False ,
                    NULL ) ;
          XtAddCallback( wbut , XmNactivateCallback , AVOPT_press_CB , av ) ;
@@ -1612,6 +1612,7 @@ ENTRY("MCW_choose_ovcolor") ;
              "menu" , xmDialogShellWidgetClass , wpar ,
                 XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
+                XmNkeyboardFocusPolicy , XmEXPLICIT ,
              NULL ) ;
 
    if( MCW_isitmwm(wpar) ){
@@ -1720,6 +1721,7 @@ ENTRY("MCW_choose_vector") ;
              "menu" , xmDialogShellWidgetClass , wpar ,
                 XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
+                XmNkeyboardFocusPolicy , XmEXPLICIT ,
              NULL ) ;
 
    if( MCW_isitmwm(wpar) ){
@@ -1855,6 +1857,7 @@ ENTRY("MCW_choose_integer") ;
              "menu" , xmDialogShellWidgetClass , wpar ,
                 XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
+                XmNkeyboardFocusPolicy , XmEXPLICIT ,
              NULL ) ;
 
    if( MCW_isitmwm(wpar) ){
@@ -1947,7 +1950,7 @@ ENTRY("new_MCW_arrowpad") ;
                     "dialog" , xmFormWidgetClass , parent ,
                        XmNfractionBase , AP_FBASE ,
                        XmNinitialResourcesPersistent , False ,
-                       XmNtraversalOn , False ,
+                       XmNtraversalOn , True  ,
                     NULL ) ;
 
    /*--- create the arrowbuttons ---*/
@@ -1973,7 +1976,7 @@ ENTRY("new_MCW_arrowpad") ;
                      XmNborderWidth , 0 ,
 
                      XmNinitialResourcesPersistent , False ,
-                     XmNtraversalOn , False ,
+                     XmNtraversalOn , True  ,
                   NULL ) ;
 
 
@@ -2004,7 +2007,7 @@ ENTRY("new_MCW_arrowpad") ;
                      XmNrecomputeSize , False ,
 
                      XmNinitialResourcesPersistent , False ,
-                     XmNtraversalOn , False ,
+                     XmNtraversalOn , True  ,
                   NULL ) ;
 
    XtAddCallback( apad->wbut[4] , XmNactivateCallback , AP_press_CB , apad ) ;
@@ -2121,9 +2124,9 @@ void AP_timer_CB( XtPointer client_data , XtIntervalId * id )
    active at a time (per application).  This is a deliberate choice.
 ---------------------------------------------------------------------------*/
 
-void MCW_choose_string( Widget wpar , char * label ,
-                        char * default_string ,
-                        gen_func * func , XtPointer func_data )
+void MCW_choose_string( Widget wpar , char *label ,
+                        char *default_string ,
+                        gen_func *func , XtPointer func_data )
 {
    static Widget wpop = NULL , wrc , wtf , wlab ;
    static MCW_choose_data cd ;
@@ -2135,27 +2138,27 @@ ENTRY("MCW_choose_string") ;
    /** destructor callback **/
 
    if( wpar == NULL ){
-      if( wpop != NULL ){
-         XtUnmapWidget( wpop ) ;
-         XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
-         XtDestroyWidget( wpop ) ;
-      }
-      wpop = NULL ; EXRETURN ;
+     if( wpop != NULL ){
+       XtUnmapWidget( wpop ) ;
+       XtRemoveCallback( wpop,XmNdestroyCallback,MCW_destroy_chooser_CB,&wpop );
+       XtDestroyWidget( wpop ) ;
+     }
+     wpop = NULL ; EXRETURN ;
    }
 
    if( ! XtIsWidget(wpar) ) EXRETURN ;
 
    if( ! XtIsRealized(wpar) ){  /* illegal call */
-      fprintf(stderr,"\n*** illegal call to MCW_choose_string: %s\n",
-              XtName(wpar) ) ;
-      EXRETURN ;
+     fprintf(stderr,"\n*** illegal call to MCW_choose_string: %s\n",
+             XtName(wpar) ) ;
+     EXRETURN ;
    }
 
    /*--- if popup widget already exists, destroy it ---*/
 
    if( wpop != NULL ){
-      XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
-      XtDestroyWidget( wpop ) ;
+     XtRemoveCallback( wpop,XmNdestroyCallback,MCW_destroy_chooser_CB,&wpop );
+     XtDestroyWidget( wpop ) ;
    }
 
    /*--- create popup widget ---*/
@@ -2164,13 +2167,14 @@ ENTRY("MCW_choose_string") ;
              "menu" , xmDialogShellWidgetClass , wpar ,
                 XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
+                XmNkeyboardFocusPolicy , XmEXPLICIT ,
              NULL ) ;
 
    if( MCW_isitmwm(wpar) ){
-      XtVaSetValues( wpop ,
-                        XmNmwmDecorations , MWM_DECOR_BORDER ,
-                        XmNmwmFunctions   ,  MWM_FUNC_MOVE ,
-                     NULL ) ;
+     XtVaSetValues( wpop ,
+                      XmNmwmDecorations , MWM_DECOR_BORDER ,
+                      XmNmwmFunctions   ,  MWM_FUNC_MOVE ,
+                    NULL ) ;
    }
 
    XtAddCallback( wpop , XmNdestroyCallback , MCW_destroy_chooser_CB , &wpop ) ;
@@ -2189,20 +2193,20 @@ ENTRY("MCW_choose_string") ;
              NULL ) ;
 
    if( label != NULL && (ncol=strlen(label)) > 0 ){
-      char *cpt ;
-      wlab = XtVaCreateManagedWidget(
-                "menu" , xmLabelWidgetClass , wrc ,
-                   LABEL_ARG(label) ,
-                   XmNinitialResourcesPersistent , False ,
-                NULL ) ;
+     char *cpt ;
+     wlab = XtVaCreateManagedWidget(
+               "menu" , xmLabelWidgetClass , wrc ,
+                  LABEL_ARG(label) ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
 
-      cpt = strstr(label,"\n") ;
-      if( cpt != NULL ) ncol = cpt-label ;  /* 01 Nov 2001 */
+     cpt = strstr(label,"\n") ;
+     if( cpt != NULL ) ncol = cpt-label ;  /* 01 Nov 2001 */
    }
 
    if( default_string != NULL && default_string[0] != '\0' ){
-      int qq = strlen(default_string) ;
-      if( qq > ncol ) ncol = qq ;
+     int qq = strlen(default_string) ;
+     if( qq > ncol ) ncol = qq ;
    }
    if( ncol < AV_NCOL ) ncol = AV_NCOL ;
 
@@ -2226,9 +2230,9 @@ ENTRY("MCW_choose_string") ;
               NULL ) ;
 
    if( default_string != NULL && default_string[0] != '\0' ){
-      int qq  = strlen(default_string) , ii ;
-      for( ii=0 ; ii < qq ; ii++ ) if( default_string[ii] != ' ' ) break ;
-      if( ii < qq ) TEXT_SET( wtf , default_string ) ;
+     int qq  = strlen(default_string) , ii ;
+     for( ii=0 ; ii < qq ; ii++ ) if( default_string[ii] != ' ' ) break ;
+     if( ii < qq ) TEXT_SET( wtf , default_string ) ;
    }
 
    cd.wpop    = wpop ;  /* data to be passed to pushbutton callback */
@@ -2238,7 +2242,7 @@ ENTRY("MCW_choose_string") ;
    cd.sel_cd  = func_data ;
    cd.ctype   = mcwCT_string ;
 
-   XtAddCallback( wtf, XmNactivateCallback, MCW_choose_CB, &cd ) ; /* return key */
+   XtAddCallback( wtf,XmNactivateCallback,MCW_choose_CB,&cd ) ; /* return key */
 
    for( ib=0 ; ib < NUM_CLR_ACT ; ib++ ) OVC_act[ib].data = &cd ;
 
@@ -2371,6 +2375,7 @@ ENTRY("MCW_choose_multi_strlist") ;
             "menu" , xmDialogShellWidgetClass , wpar ,
                XmNtraversalOn , True ,
                XmNinitialResourcesPersistent , False ,
+                XmNkeyboardFocusPolicy , XmEXPLICIT ,
             NULL ) ;
 
    if( MCW_isitmwm(wpar) ){
@@ -2636,6 +2641,7 @@ if(PRINT_TRACING){
              "menu" , xmDialogShellWidgetClass , wpar ,
                 XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
+                XmNkeyboardFocusPolicy , XmEXPLICIT ,
              NULL ) ;
 
    if( MCW_isitmwm(wpar) ){
@@ -2855,6 +2861,7 @@ ENTRY("MCW_choose_multi_editable_strlist") ;
                 XmNallowShellResize , True ,
                 XmNtraversalOn , True ,
                 XmNinitialResourcesPersistent , False ,
+                XmNkeyboardFocusPolicy , XmEXPLICIT ,
              NULL ) ;
 
    if( MCW_isitmwm(wpar) ){

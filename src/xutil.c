@@ -297,7 +297,7 @@ Widget MCW_action_area( Widget parent, MCW_action_item * action, int num_act )
                   XmNrightPosition    , ii*TIG + (TIG-1) ,
 
                   XmNrecomputeSize , False ,
-                  XmNtraversalOn   , False ,
+                  XmNtraversalOn   , True  ,
                   XmNinitialResourcesPersistent , False ,
                NULL ) ;
 
@@ -1034,7 +1034,7 @@ ENTRY("MCW_popup_meter") ;
                XmNborderWidth , 0 ,
                XmNhighlightThickness , 0 ,
                XmNshadowThickness , 0 ,
-               XmNtraversalOn , False ,
+               XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
 
@@ -1175,7 +1175,7 @@ ENTRY("new_MCW_textwin_2001") ;
                 "menu" , xmFormWidgetClass , tw->wshell ,
                   XmNborderWidth , 0 ,
                   XmNborderColor , 0 ,
-                  XmNtraversalOn , False ,
+                  XmNtraversalOn , True  ,
                   XmNinitialResourcesPersistent , False ,
                 NULL ) ;
 
