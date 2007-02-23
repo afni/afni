@@ -940,7 +940,6 @@ if( PRINT_TRACING ){
            XmNallowShellResize , False ,       /* let code resize shell */
 
            XmNinitialResourcesPersistent , False ,
-           XmNkeyboardFocusPolicy , XmEXPLICIT ,
       NULL ) ;
 
    DC_yokify( newseq->wtop , dc ) ;  /* 14 Sep 1998 */
@@ -975,7 +974,7 @@ if( PRINT_TRACING ){
             XmNhorizontalSpacing , 0 ,  /* 17 Jun 2002 */
             XmNverticalSpacing   , 0 ,
 
-            XmNtraversalOn , True  ,
+            XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
       NULL ) ;
 
@@ -994,7 +993,7 @@ if( PRINT_TRACING ){
           XmNbottomAttachment , XmATTACH_POSITION ,
           XmNbottomPosition   , (int)( 0.49 + IMAGE_FRAC * FORM_FRAC_BASE ) ,
 
-          XmNtraversalOn , True  ,
+          XmNtraversalOn , False ,
           XmNinitialResourcesPersistent , False ,
        NULL ) ;
 
@@ -1033,7 +1032,7 @@ if( PRINT_TRACING ){
       XtSetArg( wa[na] , XmNmarginTop     , 0     ) ; na++ ;
       XtSetArg( wa[na] , XmNmarginLeft    , 0     ) ; na++ ;
       XtSetArg( wa[na] , XmNmarginRight   , 0     ) ; na++ ;
-      XtSetArg( wa[na] , XmNtraversalOn   , True  ) ; na++ ;
+      XtSetArg( wa[na] , XmNtraversalOn   , False ) ; na++ ;
       XtSetArg( wa[na] , XmNrecomputeSize , False ) ; na++ ;
 
       XtSetArg( wa[na] , XmNinitialResourcesPersistent , False ) ; na++ ;
@@ -1106,7 +1105,7 @@ if( PRINT_TRACING ){
       XtSetArg( wa[na] , XmNmarginTop     , 0     ) ; na++ ;
       XtSetArg( wa[na] , XmNmarginLeft    , 0     ) ; na++ ;
       XtSetArg( wa[na] , XmNmarginRight   , 0     ) ; na++ ;
-      XtSetArg( wa[na] , XmNtraversalOn   , True  ) ; na++ ;
+      XtSetArg( wa[na] , XmNtraversalOn   , False ) ; na++ ;
       XtSetArg( wa[na] , XmNrecomputeSize , False ) ; na++ ;
 
       XtSetArg( wa[na] , XmNinitialResourcesPersistent , False ) ; na++ ;
@@ -1291,7 +1290,7 @@ if( PRINT_TRACING ){
             XmNmarginTop     , 0 ,
             XmNmarginLeft    , 0 ,
             XmNmarginRight   , 0 ,
-            XmNtraversalOn , True  ,
+            XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
      XtAddCallback( newseq->zoom_drag_pb , XmNactivateCallback ,
@@ -1345,7 +1344,7 @@ if( PRINT_TRACING ){
             XmNmarginTop     , 0 ,
             XmNmarginLeft    , 0 ,
             XmNmarginRight   , 0 ,
-            XmNtraversalOn , True  ,
+            XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
      XtAddCallback( newseq->crop_drag_pb , XmNactivateCallback ,
@@ -1437,7 +1436,7 @@ if( PRINT_TRACING ){
           XmNscaleMultiple , 1 ,                       /* single step */
           XmNorientation   , XmHORIZONTAL ,            /* sideways */
 
-          XmNtraversalOn , True  ,
+          XmNtraversalOn , False ,
           XmNinitialResourcesPersistent , False ,
        NULL ) ;
 
@@ -1481,7 +1480,7 @@ if( PRINT_TRACING ){
 
            XmNwidth       , COLOR_BAR_WIDTH ,
 
-           XmNtraversalOn , True  ,
+           XmNtraversalOn , False ,
            XmNinitialResourcesPersistent , False ,
        NULL ) ;
 
@@ -1521,7 +1520,7 @@ if( PRINT_TRACING ){
       XtVaCreateManagedWidget(
          "menu" , xmPushButtonWidgetClass , newseq->wbar_menu ,
             LABEL_ARG("Choose Display Range") ,
-            XmNtraversalOn , True  ,
+            XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -1531,7 +1530,7 @@ if( PRINT_TRACING ){
       XtVaCreateManagedWidget(
          "menu" , xmPushButtonWidgetClass , newseq->wbar_menu ,
             LABEL_ARG("Choose Zero Color") ,
-            XmNtraversalOn , True  ,
+            XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -1541,7 +1540,7 @@ if( PRINT_TRACING ){
       XtVaCreateManagedWidget(
          "menu" , xmPushButtonWidgetClass , newseq->wbar_menu ,
             LABEL_ARG("Choose Flatten Range") ,
-            XmNtraversalOn , True  ,
+            XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -1551,7 +1550,7 @@ if( PRINT_TRACING ){
       XtVaCreateManagedWidget(
          "menu" , xmPushButtonWidgetClass , newseq->wbar_menu ,
             LABEL_ARG("Choose Sharpen factor") ,
-            XmNtraversalOn , True  ,
+            XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -1681,7 +1680,7 @@ STATUS("creation: widgets created") ;
         XtVaCreateManagedWidget(
            "menu" , xmPushButtonWidgetClass , newseq->wbar_menu ,
               LABEL_ARG("Display Graymap Plot") ,
-              XmNtraversalOn , True  ,
+              XmNtraversalOn , False ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
      XtAddCallback( newseq->wbar_graymap_pb, XmNactivateCallback, ISQ_wbar_menu_CB, newseq ) ;
@@ -5493,7 +5492,6 @@ ENTRY("ISQ_but_disp_CB") ;
                        XmNtitle , "Display Options" ,
                        XmNdeleteResponse , XmDO_NOTHING ,
                        XmNinitialResourcesPersistent , False ,
-                       XmNkeyboardFocusPolicy , XmEXPLICIT ,
                     NULL ) ;
 
    SAVEUNDERIZE(seq->dialog) ; /* 27 Feb 2001 */
@@ -7981,7 +7979,6 @@ fprintf(stderr,"montage: zoom_fac = %d\n",seq->zoom_fac) ;
                        XmNtitle , "Montage" ,
                        XmNdeleteResponse , XmDO_NOTHING ,
                        XmNinitialResourcesPersistent , False ,
-                       XmNkeyboardFocusPolicy , XmEXPLICIT ,
                     NULL ) ;
 
    SAVEUNDERIZE(seq->dialog) ; /* 27 Feb 2001 */
@@ -8008,7 +8005,7 @@ fprintf(stderr,"montage: zoom_fac = %d\n",seq->zoom_fac) ;
              "menu" , xmRowColumnWidgetClass , seq->dialog ,
                 XmNpacking     , XmPACK_TIGHT ,
                 XmNorientation , XmVERTICAL ,
-                XmNtraversalOn , True  ,
+                XmNtraversalOn , False ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -9666,7 +9663,7 @@ ENTRY("ISQ_record_button") ;
               XmNborderColor  , 0 ,
 
               XmNrecomputeSize , False ,
-              XmNtraversalOn , True  ,
+              XmNtraversalOn , False ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
 
@@ -9683,7 +9680,7 @@ ENTRY("ISQ_record_button") ;
                      XmNspacing      , 0 ,
                      XmNborderWidth  , 0 ,
                      XmNborderColor  , 0 ,
-                     XmNtraversalOn  , True  ,
+                     XmNtraversalOn  , False ,
                      XmNbackground   , seq->dc->ovc->pixov_brightest ,
                   NULL ) ;
 
@@ -9707,7 +9704,7 @@ ENTRY("ISQ_record_button") ;
                XmNmarginTop   , 0 ,
                XmNmarginRight , 0 ,
                XmNmarginLeft  , 0 ,
-               XmNtraversalOn , True  ,
+               XmNtraversalOn , False ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
    XmStringFree( xstr ) ;
@@ -10273,7 +10270,7 @@ ENTRY("ISQ_getlabel") ;
 MEM_plotdata * ISQ_getmemplot( int nn , MCW_imseq *seq )
 {
    MEM_plotdata *mp ;
-   int ntic ;
+   int           ntic ;
 
 ENTRY("ISQ_getmemplot") ;
 
@@ -10324,11 +10321,36 @@ ENTRY("ISQ_getmemplot") ;
    /*** 23 Feb 2004: tick marks around the edge of the image? ***/
 
    ntic = seq->wbar_ticnum_av->ival ;
+
    if( ntic > 0 ){
      MEM_plotdata *tp ;
      char *eee ;
-     float rr=0.8,gg=1.0,bb=0.6 , tic, fac=1.0/ntic ;
-     int it ;
+     /* float tic, fac=1.0/ntic ; */
+     float rr=0.8,gg=1.0,bb=0.6 , tic, xfac, yfac;
+     float xlen = 0.0, ylen = 0.0;  /* when ntics is in mm */
+     int it, nticx, nticy;
+
+     /* plot ntic as separation distance for J Binder  23 Feb 2006 [rickr] */
+
+     if( seq->imim && AFNI_yesenv("AFNI_IMAGE_TICK_DIV_IN_MM") ){
+         /* get image size */
+         if( mp != NULL && seq->cropit ){  /* cropped size */
+           xlen = abs(seq->crop_xb - seq->crop_xa);
+           ylen = abs(seq->crop_yb - seq->crop_ya);
+         } else {                          /* full size */
+           xlen = seq->imim->nx * seq->imim->dx;
+           ylen = seq->imim->ny * seq->imim->dy;
+         }
+
+         nticx = xlen/ntic;
+         nticy = ylen/ntic;
+         xfac=ntic/xlen;
+         yfac=ntic/ylen;
+     } else {
+         nticx = nticy = ntic;
+         xfac=1.0/ntic;
+         yfac=1.0/ntic;
+     }
 
      create_memplot_surely( "Iticplot" , 1.0 ) ;
      set_thick_memplot(0.0) ;
@@ -10339,11 +10361,14 @@ ENTRY("ISQ_getmemplot") ;
 
      tic = 0.01 * seq->wbar_ticsiz_av->ival ;  /* percent of image size */
 
-     for( it=0 ; it <= ntic ; it++ ){
-       plotpak_line( 0.0,it*fac , tic    ,it*fac ) ;
-       plotpak_line( 1.0,it*fac , 1.0-tic,it*fac ) ;
-       plotpak_line( it*fac,0.0 , it*fac ,tic    ) ;
-       plotpak_line( it*fac,1.0 , it*fac ,1.0-tic) ;
+     /* x and y are separate, in case ntic is in mm */
+     for( it=0 ; it <= nticy ; it++ ){
+       plotpak_line( 0.0,it*yfac , tic    ,it*yfac ) ;
+       plotpak_line( 1.0,it*yfac , 1.0-tic,it*yfac ) ;
+     }
+     for( it=0 ; it <= nticx ; it++ ){
+       plotpak_line( it*xfac,0.0 , it*xfac ,tic    ) ;
+       plotpak_line( it*xfac,1.0 , it*xfac ,1.0-tic) ;
      }
 
      /* append tick plot to existing plot, if any */

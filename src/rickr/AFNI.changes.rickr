@@ -1951,3 +1951,7 @@
         utils/CMakeLists.txt znzlib/CMakeLists.txt znzlib/znzlib.h
   * updated nifti/fsliolib/fslio.c: NULL check from David Akers
 
+23 Feb 2007:
+  * modified imseq.c to do tick div in mm for Binder
+  * modified README.environment: added AFNI_IMAGE_TICK_DIV_IN_MM variable
+
