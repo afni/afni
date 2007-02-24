@@ -1279,6 +1279,16 @@ ENTRY("new_MCW_textwin_2001") ;
    tw->shell_width = swid ; tw->shell_height = shi ; /* 10 Jul 2001 */
 
    NORMAL_cursorize( tw->wshell ) ;
+
+#if 1
+   { Widget ws ;     /* 24 Feb 2007 */
+     ws = XtNameToWidget( tw->wscroll , "VertScrollBar" ) ;
+     if( ws != NULL ) XtVaSetValues( ws , XmNincrement , 1 , NULL ) ;
+     ws = XtNameToWidget( tw->wscroll , "HorScrollBar" ) ;
+     if( ws != NULL ) XtVaSetValues( ws , XmNincrement , 1 , NULL ) ;
+   }
+#endif
+
    RETURN(tw) ;
 }
 
