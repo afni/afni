@@ -291,6 +291,15 @@ static char * FALLback[] =
       "AFNI*borderWidth:          0"                    ,
       "AFNI*troughColor:          green"                ,
       "AFNI*XmLabel.translations: #override<Btn2Down>:" , /* Motif 2.0 bug */
+      "AFNI*XmList.translations: #override"                /* 24 Feb 2007 */
+           "<Btn4Down>: ListPrevItem()\\n"
+           "<Btn5Down>: ListNextItem()"                  ,
+      "AFNI*XmText.translations: #override"
+           "<Btn4Down>: previous-line()\\n"
+           "<Btn5Down>: next-line()"                     ,
+      "AFNI*XmScrollBar.translations: #override"
+           "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
+           "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
    NULL } ;
 
 #ifndef LABEL_ARG
