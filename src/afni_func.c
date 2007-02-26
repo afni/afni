@@ -2476,6 +2476,8 @@ STATUS("re-initializing old dialog") ;
 
       im3d->vwid->file_cb = NULL ;
       im3d->vwid->file_cd = NULL ;
+
+      XtVaSetValues(im3d->vwid->file_sbox,XmNfileTypeMask,XmFILE_ANY_TYPE,NULL);
    }
 
    EXRETURN ;
@@ -2514,6 +2516,10 @@ ENTRY("AFNI_read_sess_CB") ;
    XtAddCallback( im3d->vwid->file_sbox , XmNhelpCallback ,
                   AFNI_finalize_read_sess_CB , cd ) ;
 
+   XtVaSetValues(im3d->vwid->file_sbox,XmNfileTypeMask,XmFILE_DIRECTORY,NULL);
+   MCW_set_widget_label( XtNameToWidget(im3d->vwid->file_sbox,"Items") ,
+                         "Sessions" ) ;
+                  
    im3d->vwid->file_cb = AFNI_finalize_read_sess_CB ;
    im3d->vwid->file_cd = cd ;
 
@@ -2766,6 +2772,11 @@ ENTRY("AFNI_read_1D_CB") ;
 
    XtAddCallback( im3d->vwid->file_sbox , XmNhelpCallback ,
                   AFNI_finalize_read_1D_CB , cd ) ;
+
+   XtVaSetValues(im3d->vwid->file_sbox,XmNfileTypeMask,XmFILE_REGULAR,NULL);
+   MCW_set_widget_label( XtNameToWidget(im3d->vwid->file_sbox,"Items") ,
+                         "1D Files" ) ;
+
 
    /* 02 Feb 1998: put *.1D* in the filename pattern */
 
