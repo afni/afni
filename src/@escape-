@@ -1,0 +1,4 @@
+#/bin/tcsh -f
+#Add a shell escape before the first dash in argument
+set a = `echo $1 | sed 's/^-/\\-/'` 
+echo "$a"
