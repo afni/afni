@@ -6117,3 +6117,5 @@
  * Added Ziad's Xt translations for Button4 and Button5 scrolling.
  * Fixed mri_medianfilter.c: had logic for usedxyz exactly backwards! Oopsie.
  * Added Button4+5 image window scrolling to imseq.c, and to afni_graph.c
+ * If only dummy dataset is present, then 'Switch Session' opens up the
+     'Read Session' dialog.
