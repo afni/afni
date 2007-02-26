@@ -1119,8 +1119,8 @@ static char *FALLback[] =
            "<Btn4Down>: ListPrevItem()\\n"
            "<Btn5Down>: ListNextItem()"                  ,
       "AFNI*XmText.translations: #override"
-           "<Btn4Down>: previous-line()\\n"
-           "<Btn5Down>: next-line()"                     ,
+           "<Btn4Down>: previous-line() scroll-one-line-down()\\n"
+           "<Btn5Down>: next-line() scroll-one-line-up()"          ,
       "AFNI*XmScrollBar.translations: #override"
            "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
            "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
