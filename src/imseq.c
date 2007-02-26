@@ -5310,7 +5310,7 @@ ENTRY("ISQ_button2_EV") ;
       /*----- take button press -----*/
 
       case ButtonPress:{
-         XButtonEvent * event = (XButtonEvent *) ev ;
+         XButtonEvent *event = (XButtonEvent *) ev ;
          int bx,by , but , xim,yim,zim ;
 
          but = event->button ; if( but != Button2 ) EXRETURN ;
@@ -5320,8 +5320,8 @@ ENTRY("ISQ_button2_EV") ;
          /* 1st time in: allocate space to save points */
 
          if( bxsav == NULL ){
-            bxsav = (int *) malloc( sizeof(int) * (NPTS_MAX+1) ) ;
-            bysav = (int *) malloc( sizeof(int) * (NPTS_MAX+1) ) ;
+           bxsav = (int *) malloc( sizeof(int) * (NPTS_MAX+1) ) ;
+           bysav = (int *) malloc( sizeof(int) * (NPTS_MAX+1) ) ;
          }
 
          /* save this point */

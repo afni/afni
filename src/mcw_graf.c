@@ -258,7 +258,7 @@ void GRAF_drawing_EV( Widget w , XtPointer client_data ,
       /*----- Button Press -----*/
 
       case ButtonPress:{
-         XButtonEvent * event = (XButtonEvent *) ev ;
+         XButtonEvent *event = (XButtonEvent *) ev ;
          Window rW,cW ;
          int mx,my , but , rx,ry ;
          int vertonly, x,y , orighx, orighy, grab,h , newx,newy ;
