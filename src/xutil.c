@@ -1086,10 +1086,10 @@ void MCW_set_meter( Widget wscal , int percent )
 #ifdef NCOL
    { Widget ws = XtNameToWidget(wscal,"Scrollbar") ;
      if( ws != NULL )
-     XtVaSetValues( ws ,
-                     XtVaTypedArg , XmNtroughColor , XmRString ,
-                                    cname[icol] , strlen(cname[icol])+1 ,
-                   NULL ) ;
+       XtVaSetValues( ws ,
+                       XtVaTypedArg , XmNtroughColor , XmRString ,
+                                      cname[icol] , strlen(cname[icol])+1 ,
+                      NULL ) ;
      icol = (icol+1) % NCOL ;
    }
 #endif
@@ -1126,7 +1126,7 @@ MCW_textwin * new_MCW_textwin_2001( Widget wpar, char *msg, int type,
    Position xroot , yroot ;
    Screen *scr ;
    Boolean editable , cursorable ;
-   Arg wa[64] ; int na ;
+   Arg wa[64] ; int na ; Widget ws ;
 
 ENTRY("new_MCW_textwin_2001") ;
 
@@ -1225,16 +1225,16 @@ ENTRY("new_MCW_textwin_2001") ;
    tw->wtext = XtVaCreateManagedWidget(
                     "menu" , xmTextWidgetClass , tw->wscroll ,
                        XmNeditMode               , XmMULTI_LINE_EDIT ,
-                       XmNautoShowCursorPosition , editable ,
+                       XmNautoShowCursorPosition , cursorable ,
                        XmNeditable               , editable ,
-                       XmNcursorPositionVisible  , editable ,
+                       XmNcursorPositionVisible  , cursorable ,
                     NULL ) ;
 
    if( msg == NULL ) msg = "\0" ;  /* 27 Sep 2000 */
 
    if( msg != NULL ){
       int cmax = 20 , ll , nlin ;
-      char * cpt , *cold , cbuf[128] ;
+      char *cpt , *cold , cbuf[128] ;
       XmString xstr ;
       XmFontList xflist ;
 
@@ -1243,14 +1243,14 @@ ENTRY("new_MCW_textwin_2001") ;
 
       cmax = 20 ; nlin = 1 ;
       for( cpt=msg,cold=msg ; *cpt != '\0' ; cpt++ ){
-         if( *cpt == '\n' ){
-            ll = cpt - cold - 1 ; if( cmax < ll ) cmax = ll ;
-            cold = cpt ; nlin++ ;
-         }
+        if( *cpt == '\n' ){
+          ll = cpt - cold - 1 ; if( cmax < ll ) cmax = ll ;
+          cold = cpt ; nlin++ ;
+        }
       }
       ll = cpt - cold - 1 ; if( cmax < ll ) cmax = ll ;
       if( cmax > 100 ) cmax = 100 ;
-      cmax+=3 ;
+      cmax +=3 ;
       for( ll=0 ; ll < cmax ; ll++ ) cbuf[ll] = 'x' ;
       cbuf[cmax] = '\0' ;
 
@@ -1285,14 +1285,16 @@ ENTRY("new_MCW_textwin_2001") ;
 
    NORMAL_cursorize( tw->wshell ) ;
 
-#if 1
-   { Widget ws ;     /* 24 Feb 2007 */
-     ws = XtNameToWidget( tw->wscroll , "VertScrollBar" ) ;
-     if( ws != NULL ) XtVaSetValues( ws , XmNincrement , 1 , NULL ) ;
-     ws = XtNameToWidget( tw->wscroll , "HorScrollBar" ) ;
-     if( ws != NULL ) XtVaSetValues( ws , XmNincrement , 1 , NULL ) ;
-   }
+   ws = XtNameToWidget(tw->wscroll,"VertScrollBar") ;
+   if( ws != NULL ){
+#ifdef DARWIN
+     XtVaSetValues( ws , XmNshowArrows , XmMIN_SIDE , NULL ) ;
 #endif
+     XtVaSetValues( ws , XmNincrement     , 1 ,
+                         XmNpageIncrement , 1 ,
+                         XmNmaximum       , 100 , NULL ) ;
+     (void)XmProcessTraversal( ws , XmTRAVERSE_CURRENT ) ;
+   }
 
    RETURN(tw) ;
 }
