@@ -853,7 +853,7 @@ SUMA_Boolean SUMA_ProjectToSphere(SUMA_SurfaceObject *SO, float *ctr, float r)
    static char FuncName[]={"SUMA_ProjectToSphere"};
    int i, i3;
    float dv, uv[3], U[2][3]={ {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} }, *p1;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 

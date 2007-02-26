@@ -1,4 +1,9 @@
 #/bin/tcsh -f
 #Add a shell escape before the first dash in argument
-set a = `echo $1 | sed 's/^-/\\-/'` 
-echo "$a"
+#  @escape- one -two three
+set  ll = ()
+foreach jjj ($*)
+   set a = `echo $jjj | sed 's/^-/\\-/'` 
+   set ll = ($ll "$a")
+end
+echo "$ll"

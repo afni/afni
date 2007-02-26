@@ -54,6 +54,15 @@ static String fallbackResources_default[] = {
    "*help*fontList:         9x15bold=charset1"    ,
    "*cluefont:              9x15bold"             ,
    "*help*cancelWaitPeriod: 50"                   ,
+   "*XmList.translations: #override"                /* 24 Feb 2007 */
+        "<Btn4Down>: ListPrevItem()\\n"
+        "<Btn5Down>: ListNextItem()"                  ,
+   "*XmText.translations: #override"
+        "<Btn4Down>: previous-line()\\n"
+        "<Btn5Down>: next-line()"                     ,
+   "*XmScrollBar.translations: #override"
+        "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
+        "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
   NULL
 }; /* if you change default width and height, make sure you change SV->X->WIDTH & SV->X->HEIGHT in SUMA_SVmanip */
 
@@ -80,6 +89,15 @@ static String fallbackResources_AFNI[] = {
    "*help*fontList:         9x15bold=charset1"    ,
    "*cluefont:              9x15bold"             ,
    "*help*cancelWaitPeriod: 50"                   ,
+   "*XmList.translations: #override"                /* 24 Feb 2007 */
+        "<Btn4Down>: ListPrevItem()\\n"
+        "<Btn5Down>: ListNextItem()"                  ,
+   "*XmText.translations: #override"
+        "<Btn4Down>: previous-line()\\n"
+        "<Btn5Down>: next-line()"                     ,
+   "*XmScrollBar.translations: #override"
+        "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
+        "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
   NULL
 }; /* if you change default width and height, make sure you change SV->X->WIDTH & SV->X->HEIGHT in SUMA_SVmanip */
 
@@ -107,6 +125,15 @@ static String fallbackResources_EURO[] = {
    "*cluefont:              9x15"             ,
    "*help*cancelWaitPeriod: 50"                   ,
    "*hotcolor:              blue2"               , 
+   "*XmList.translations: #override"                /* 24 Feb 2007 */
+        "<Btn4Down>: ListPrevItem()\\n"
+        "<Btn5Down>: ListNextItem()"                  ,
+   "*XmText.translations: #override"
+        "<Btn4Down>: previous-line()\\n"
+        "<Btn5Down>: next-line()"                     ,
+   "*XmScrollBar.translations: #override"
+        "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
+        "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
   NULL
 }; /* if you change default width and height, make sure you change SV->X->WIDTH & SV->X->HEIGHT in SUMA_SVmanip */
 
@@ -134,8 +161,26 @@ static String fallbackResources_Bonaire[] = {
    "*cluefont:              9x15bold"             ,
    "*help*cancelWaitPeriod: 50"                   ,
    "*hotcolor:              azure"               , 
+   "*XmList.translations: #override"                /* 24 Feb 2007 */
+        "<Btn4Down>: ListPrevItem()\\n"
+        "<Btn5Down>: ListNextItem()"                  ,
+   "*XmText.translations: #override"
+        "<Btn4Down>: previous-line()\\n"
+        "<Btn5Down>: next-line()"                     ,
+   "*XmScrollBar.translations: #override"
+        "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
+        "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
   NULL
 }; /* if you change default width and height, make sure you change SV->X->WIDTH & SV->X->HEIGHT in SUMA_SVmanip */
+
+static char SUMA_TEXT_WIDGET_TRANSLATIONS[] = 
+   "  <Btn4Down>: previous-line()   \n\
+      <Btn5Down>: next-line()       ";
+static char SUMA_SCR_LIST_WIDGET_TRANSLATIONS[] = 
+   "  <Btn4Down>: ListPrevItem() \n\
+      <Btn5Down>: ListNextItem() ";
+
+      
 
 /*!
 
@@ -5106,7 +5151,6 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
       XtSetArg (args[n], XmNitemCount,      0); n++;
       XtSetArg (args[n], XmNlistSizePolicy,   XmCONSTANT   ); n++;
       LW->list = XmCreateScrolledList (LW->rc, "Tonka", args, n);
-
       
       
       /* add the default selection callback  SEE ALSO  SUMA_UpdateScrolledListData */
@@ -5116,7 +5160,7 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
          XtAddCallback (LW->list, XmNdefaultActionCallback, LW->Default_cb, (XtPointer)LW->Default_Data);
       }        
 
-      /* set the selection policy SEE ALSO  SUMA_UpdateScrolledListData */
+     /* set the selection policy SEE ALSO  SUMA_UpdateScrolledListData */
       switch (LW->SelectPolicy){
          case SUMA_LSP_SINGLE:
             XtVaSetValues( LW->list, XmNselectionPolicy, XmSINGLE_SELECT, NULL);
@@ -5155,10 +5199,11 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
             break;
       }
        
-      /* manage it */
+       /* manage it */
       if (LocalHead) fprintf(SUMA_STDERR, "%s: Managing ..\n", FuncName);
       XtManageChild (LW->list);
       XtManageChild (LW->rc);
+
 
       SUMA_PositionWindowRelative (LW->toplevel, LW->PosRef, LW->Pos);   
 
@@ -5217,6 +5262,7 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
          XmListAddItemUnselected (LW->list, str, l_bound+1);
       }
       XmStringFree (str);
+
    }
 
 
@@ -5227,8 +5273,14 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
 
    
    if (New) {
+      /* XmListSetPos(LW->list,6);
+      XmListSelectPos(LW->list,6, False); Someday make it open on selected map*/
       /* realize the widget */
       XtRealizeWidget (LW->toplevel);
+      /* Do the wheel buidness Can't seem to get this working no matter where I put it. Best to leave it in fallback */
+      /*XtVaSetValues  (  LW->list, 
+                  XmNtranslations, XtParseTranslationTable(SUMA_SCR_LIST_WIDGET_TRANSLATIONS),
+                  NULL);  */
    }
    
    SUMA_RETURNe;
@@ -7516,7 +7568,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA
    int n;
    SUMA_Boolean LocalHead = NOPE;
    Pixel fg_pix;
-   Arg args[20];
+   Arg args[30];
    
    SUMA_ENTRY;
 
@@ -7528,7 +7580,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA
    if (!TextShell->toplevel) { /* need to create window */
       if (LocalHead) fprintf (SUMA_STDERR, "%s: Creating new text shell window.\n", FuncName);
       TextShell->toplevel = XtVaAppCreateShell (title, "Suma",
-         topLevelShellWidgetClass, SUMAg_CF->X->DPY_controller1 ,
+         topLevelShellWidgetClass, SUMAg_CF->X->DPY_controller1 ,        
          XmNdeleteResponse, XmDO_NOTHING,
          NULL);  
 
@@ -7598,8 +7650,13 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA
          XmTextSetString (TextShell->text_w, s);
       }   
       XtManageChild (TextShell->text_w);
-
+      
       XtAddCallback (TextShell->search_w, XmNactivateCallback, SUMA_cb_search_text, TextShell);
+      
+      /* Setting XmNtranslations gives warning if done inside XmCreateScrolledText ror text_w */
+      XtVaSetValues  (  TextShell->text_w, 
+                        XmNtranslations, XtParseTranslationTable(SUMA_TEXT_WIDGET_TRANSLATIONS),
+                        NULL); 
 
       XtManageChild (form);
 
