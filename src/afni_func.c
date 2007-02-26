@@ -1957,9 +1957,16 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
    if( ! IM3D_VALID(im3d) || w == (Widget)NULL ) EXRETURN ;
 
-   if( GLOBAL_library.have_dummy_dataset ){ BEEPIT ; EXRETURN ; }
+   if( GLOBAL_library.have_dummy_dataset ){  /* 26 Feb 2007: read session? */
+     BEEPIT ;
+     if( w == im3d->vwid->view->choose_sess_pb ||
+         w == im3d->vwid->view->popchoose_sess_pb )
+       AFNI_read_sess_CB(im3d->vwid->dmode->read_sess_pb,(XtPointer)im3d,NULL);
+     EXRETURN ;
+   }
+
 #if 0
-   if( AFNI_splash_isopen() == 1         ){ BEEPIT ; EXRETURN ; }
+   if( AFNI_splash_isopen() == 1 ){ BEEPIT ; EXRETURN ; }
 #endif
 
    /* how about a rescan ? ZSS - Fur Greg Detre */
