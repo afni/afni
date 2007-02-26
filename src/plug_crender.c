@@ -3824,13 +3824,13 @@ void RCREND_xhair_EV( Widget w , XtPointer cd ,
 ENTRY( "RCREND_xhair_EV" );
 
    switch( ev->type ){
-      case ButtonPress:{
-         XButtonEvent * event = (XButtonEvent *) ev ;
-         if( event->button == Button3 || event->button == Button2 ){
-            MCW_choose_ovcolor( w,dc , xhair_ovc , RCREND_xhair_ovc_CB,NULL ) ;
-         }
-      }
-      break ;
+     case ButtonPress:{
+       XButtonEvent *event = (XButtonEvent *) ev ;
+       if( event->button == Button3 || event->button == Button2 ){
+         MCW_choose_ovcolor( w,dc , xhair_ovc , RCREND_xhair_ovc_CB,NULL ) ;
+       }
+     }
+     break ;
    }
    EXRETURN ;
 }
@@ -3969,25 +3969,25 @@ ENTRY( "RCREND_xhair_recv" );
 --------------------------------------------------------------------------*/
 
 void RCREND_accum_lab_EV( Widget w , XtPointer cd ,
-                    XEvent * ev , Boolean * continue_to_dispatch )
+                    XEvent *ev , Boolean *continue_to_dispatch )
 {
 ENTRY( "RCREND_accum_lab_EV" );
 
    switch( ev->type ){
-      case ButtonPress:{
-         XButtonEvent *event = (XButtonEvent *) ev ;
+     case ButtonPress:{
+       XButtonEvent *event = (XButtonEvent *) ev ;
 
-         if( event->button == Button3 || event->button == Button2 ){
-           char *ttl ;
-           accum_lab_replace =
-             ( (event->state & ShiftMask) || (event->state & ControlMask) ) ;
+       if( event->button == Button3 || event->button == Button2 ){
+         char *ttl ;
+         accum_lab_replace =
+           ( (event->state & ShiftMask) || (event->state & ControlMask) ) ;
 
-           ttl = (accum_lab_replace) ? "Replacment Label"
-                                     : "New Overlay Label" ;
-           MCW_choose_string( w,ttl,accum_label , RCREND_accum_lab_CB,NULL ) ;
-         }
-      }
-      break ;
+         ttl = (accum_lab_replace) ? "Replacment Label"
+                                   : "New Overlay Label" ;
+         MCW_choose_string( w,ttl,accum_label , RCREND_accum_lab_CB,NULL ) ;
+       }
+     }
+     break ;
    }
    EXRETURN ;
 }
@@ -6647,7 +6647,7 @@ ENTRY( "RCREND_pbarmenu_EV" );
 
    switch( ev->type ){
       case ButtonPress:{
-         XButtonEvent * event = (XButtonEvent *) ev ;
+         XButtonEvent *event = (XButtonEvent *) ev ;
          if( event->button == Button3 || event->button == Button1 ){
 
             /* in case the user read in any new palette, add them to menu */

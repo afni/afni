@@ -3457,7 +3457,7 @@ if(PRINT_TRACING)
       case isqCR_dyplus:
       case isqCR_dyminus:{
          THD_ivec3 ib , id ;
-         XButtonEvent * xev = (XButtonEvent *) cbs->event ;
+         XButtonEvent *xev = (XButtonEvent *) cbs->event ;
          int step = 1 ;
          THD_dataxes *daxes ;
 
@@ -8032,8 +8032,10 @@ ENTRY("AFNI_crosshair_EV") ;
          XtManageChild ( im3d->vwid->imag->crosshair_menu ) ;        /* popup */
        }
 
-       else {
-         (void) MCW_popup_message( im3d->vwid->imag->crosshair_label ,
+       else if( event->button == Button1 ) {
+         static int nn=0 ;
+         if( nn < 9 )
+          (void) MCW_popup_message( im3d->vwid->imag->crosshair_label ,
                                    " The road goes ever on and on\n"
                                    " Out from the door from where it began.\n"
                                    " Now, far ahead the road has gone\n"
@@ -8043,6 +8045,7 @@ ENTRY("AFNI_crosshair_EV") ;
                                    " Where many paths and errands meet\n"
                                    " And whither then I cannot say." ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
+         nn++ ;
        }
      }
      break ;
