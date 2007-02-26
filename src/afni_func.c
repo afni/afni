@@ -2393,7 +2393,7 @@ void AFNI_close_file_dialog_CB( Widget w, XtPointer cd, XtPointer cb )
 ENTRY("AFNI_close_file_dialog") ;
 
    if( im3d->vwid->file_dialog != NULL )
-      RWC_XtPopdown( im3d->vwid->file_dialog ) ;
+     RWC_XtPopdown( im3d->vwid->file_dialog ) ;
 
    EXRETURN ;
 }
@@ -2405,6 +2405,7 @@ ENTRY("AFNI_close_file_dialog") ;
 
 void AFNI_make_file_dialog( Three_D_View *im3d )
 {
+   Widget www ;
 
 ENTRY("AFNI_make_file_dialog") ;
 
@@ -2449,15 +2450,8 @@ STATUS("creating new dialog") ;
       im3d->vwid->file_cb = NULL ;
       im3d->vwid->file_cd = NULL ;
 
-#if 1
-      { Widget www ;
-        www = XmFileSelectionBoxGetChild( im3d->vwid->file_sbox ,
-                                          XmDIALOG_TEXT ) ;
-        if( www != NULL ) MCW_set_widget_bg( www , MCW_hotcolor(www) , 0 ) ;
-      }
-#endif
-
    } else if( im3d->vwid->file_cb != NULL ){
+      Widget www ;
 
 STATUS("re-initializing old dialog") ;
 
@@ -2480,6 +2474,12 @@ STATUS("re-initializing old dialog") ;
       XtVaSetValues(im3d->vwid->file_sbox,XmNfileTypeMask,XmFILE_ANY_TYPE,NULL);
    }
 
+#if 0  /* doesn't work, because the button is a gadget, not a widget */
+   www = XtNameToWidget( im3d->vwid->file_sbox , "OK" ) ;
+   if( www != NULL )
+     MCW_set_widget_bg( www , MCW_hotcolor(www) , 0 ) ;
+#endif
+
    EXRETURN ;
 }
 
@@ -2491,7 +2491,8 @@ STATUS("re-initializing old dialog") ;
 
 void AFNI_read_sess_CB( Widget w, XtPointer cd, XtPointer cb )
 {
-   Three_D_View *im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   Widget www ;
 
 ENTRY("AFNI_read_sess_CB") ;
 
@@ -2519,7 +2520,7 @@ ENTRY("AFNI_read_sess_CB") ;
    XtVaSetValues(im3d->vwid->file_sbox,XmNfileTypeMask,XmFILE_DIRECTORY,NULL);
    MCW_set_widget_label( XtNameToWidget(im3d->vwid->file_sbox,"Items") ,
                          "Sessions" ) ;
-                  
+
    im3d->vwid->file_cb = AFNI_finalize_read_sess_CB ;
    im3d->vwid->file_cd = cd ;
 
@@ -2731,18 +2732,25 @@ STATUS("freeing 'text' variable") ;
 
       case XmCR_HELP:
          (void) MCW_popup_message( w ,
-                    "To choose a new session, use the\n"
-                    "Directories and Files selectors,\n"
+                    "To read in a new session, use the\n"
+                    "Directories and Sessions selectors,\n"
                     "and the Filter entry and button,\n"
                     "to get the 'Selection' box correct;\n"
-                    "that is, 'Selection' should either\n"
-                    "be the name of the session directory,\n"
-                    "or the name of a file in the session\n"
-                    "directory.  Then press 'Set'.\n"
+                    "that is, 'Selection' should be the\n"
+                    "be the name of the session directory.\n"
+                    "Then press 'Set'.\n"
                     "\n"
+                    "How to Use the 'Directories' list:\n"
+                    " Click on or use arrow keys to select\n"
+                    " a directory, then press 'Enter' or\n"
+                    " double-click.  This will set the\n"
+                    " Selection to that directory name,\n"
+                    " and will show the sub-directories\n"
+                    " in the Sessions list to the right.\n"
+                    "-----------------------------------\n"
                     "N.B.: To see datasets in the new\n"
                     "      session, you must use the\n"
-                    "      'Switch Session' button."
+                    "      'Switch Session' button!\n"
                  , MCW_USER_KILL ) ;
       break ;
    }
@@ -2853,13 +2861,22 @@ ENTRY("AFNI_finalize_read_1D_CB") ;
 
       case XmCR_HELP:
          (void) MCW_popup_message( w ,
-                    "To choose a new timeseries, use the\n"
-                    "Directories and Files selectors,\n"
+                    "To read in a new timeseries, use the\n"
+                    "Directories and '1D Files' selectors,\n"
                     "and the Filter entry and button,\n"
                     "to get the 'Selection' box correct;\n"
-                    "that is, 'Selection' should show the\n"
-                    "name of the 1D file which will be input.\n"
+                    "that is, 'Selection' should be the\n"
+                    "be the name of the 1D file to read.\n"
                     "Then press 'Set'.\n"
+                    "\n"
+                    "How to Use the 'Directories' list:\n"
+                    " Click on or use arrow keys to select\n"
+                    " a directory, then press 'Enter' or\n"
+                    " double-click.  This will set the\n"
+                    " Selection to that directory name.\n"
+                    " You must then choose the 1D file you\n"
+                    " want from the '1D Files' list at the\n"
+                    " right.\n"
                  , MCW_USER_KILL ) ;
       break ;
    }
