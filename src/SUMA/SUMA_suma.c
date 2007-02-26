@@ -322,6 +322,7 @@ int main (int argc,char *argv[])
    DListElmt *Element= NULL;
    int iv15[15], N_iv15, ispec, nspec;
    struct stat stbuf;
+   float fff=0.0;
    SUMA_Boolean Start_niml = NOPE, Domemtrace = YUP;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -545,7 +546,7 @@ int main (int argc,char *argv[])
       SOv = SUMA_GimmeSomeSOs(&N_SOv);
       Specp[ispec] = SUMA_SOGroup_2_Spec (SOv, N_SOv);
       SUMA_free(SOv); SOv = NULL;
-      InMem[ispec] = 1; 
+      InMem[ispec] = 1;
       ++ispec;
 	}
 
@@ -612,8 +613,9 @@ int main (int argc,char *argv[])
          fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
          exit (1);
       }
+      fff = (float) InMem[i];
       if (!( Element = SUMA_RegisterEngineListCommand (  list, ED, 
-                                             SEF_f, (void *)&InMem[i], 
+                                             SEF_f, (void *)&fff, 
                                              SES_Suma, NULL, NOPE, 
                                              SEI_In, Element ))) {
          fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);

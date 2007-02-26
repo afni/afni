@@ -2174,7 +2174,8 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(SUMA_SurfSpecFile *Spec, int i, char *t
 
       brk = YUP;
    }
-
+   
+   SUMA_S_Notev("%s\n", Spec->SurfaceType[i]);
    if (!brk) {
       fprintf(SUMA_STDERR,"Error %s: Unknown SurfaceFormat %s.\n(Format syntax is case sensitive)\n", FuncName, Spec->SurfaceType[i]);
       SUMA_RETURN(NULL);
