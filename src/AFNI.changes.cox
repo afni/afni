@@ -6115,3 +6115,4 @@
  * Modified xutil.c so that MCW_expose_widget() doesn't do anything for
      a non-widget (e.g., gadget) input.
  * Added Ziad's Xt translations for Button4 and Button5 scrolling.
+ * Fixed mri_medianfilter.c: had logic for usedxyz exactly backwards! Oopsie.
