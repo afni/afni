@@ -39,7 +39,7 @@ ENTRY("mri_medianfilter") ;
 
    /** build cluster of points for median-izing **/
 
-   if( use_dxyz ){
+   if( !use_dxyz ){
      if( irad < 1.01f ) irad = 1.01f ;
      dz = (imin->nz == 1) ? 666.0f : 1.0f ;
      cl = MCW_build_mask( 1.0f,1.0f,dz , irad ) ;
