@@ -3510,7 +3510,7 @@ void REND_xhair_EV( Widget w , XtPointer cd ,
 {
    switch( ev->type ){
       case ButtonPress:{
-         XButtonEvent * event = (XButtonEvent *) ev ;
+         XButtonEvent *event = (XButtonEvent *) ev ;
          if( event->button == Button3 || event->button == Button2 ){
 #if 0
             allow_MCW_optmenu_popup(0) ;
@@ -6000,7 +6000,7 @@ void REND_pbarmenu_EV( Widget w , XtPointer cd ,
 
    switch( ev->type ){
       case ButtonPress:{
-         XButtonEvent * event = (XButtonEvent *) ev ;
+         XButtonEvent *event = (XButtonEvent *) ev ;
          if( event->button == Button3 || event->button == Button1 ){
 
             /* in case the user read in any new palette, add them to menu */
