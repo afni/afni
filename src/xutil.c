@@ -27,8 +27,10 @@ void MCW_expose_widget( Widget w )
    XExposeEvent xev;
    Dimension ww , hh ;
 
+                               if(   w == NULL                 ) return ;
                                if( ! XtIsRealized(w)           ) return ;
                                if( ! XtIsManaged(w)            ) return ;
+                               if( ! XtIsWidget(w)             ) return ;
    xev.window  = XtWindow(w) ; if( xev.window == (Window) NULL ) return ;
    xev.type    = Expose ;
    xev.display = XtDisplay(w) ;
@@ -181,13 +183,15 @@ void MCW_set_widget_bg( Widget w , char * cname , Pixel pix )
 
 /*-------------------------------------------------------------------*/
 
-void MCW_set_widget_label( Widget w , char * str )
+void MCW_set_widget_label( Widget w , char *str )
 {
    XmString xstr ;
+   if( w == NULL || str == NULL ) return ;
    xstr = XmStringCreateLtoR( str , XmFONTLIST_DEFAULT_TAG ) ;
    XtVaSetValues( w , XmNlabelString , xstr , NULL ) ;
    XmStringFree( xstr ) ;
    MCW_expose_widget( w ) ;
+   return ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -1113,15 +1117,15 @@ MCW_textwin * new_MCW_textwin( Widget wpar, char * msg, int type )
    Modified 10 Jul 2001 to include killing callback
 -------------------------------------------------------------------------*/
 
-MCW_textwin * new_MCW_textwin_2001( Widget wpar, char * msg, int type,
-                                    void_func * kill_func , XtPointer kill_data )
+MCW_textwin * new_MCW_textwin_2001( Widget wpar, char *msg, int type,
+                                    void_func *kill_func , XtPointer kill_data )
 {
-   MCW_textwin * tw ;
+   MCW_textwin *tw ;
    int wx,hy,xx,yy , xp,yp , scr_width,scr_height , xr,yr , xpr,ypr , ii,nact ;
    int swid , shi ;
    Position xroot , yroot ;
-   Screen * scr ;
-   Boolean editable ;
+   Screen *scr ;
+   Boolean editable , cursorable ;
    Arg wa[64] ; int na ;
 
 ENTRY("new_MCW_textwin_2001") ;
@@ -1182,6 +1186,7 @@ ENTRY("new_MCW_textwin_2001") ;
    /* create action area */
 
    editable = (Boolean) (type == TEXT_EDITABLE) ;
+   cursorable = True ;  /* 26 Feb 2007 */
 
    nact = (editable) ? EDIT_NUM : RONLY_NUM ;
    for( ii=0 ; ii < nact ; ii++ ){

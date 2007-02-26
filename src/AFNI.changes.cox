@@ -6107,3 +6107,11 @@
      Ziad's AFNI_RESCAN_AT_SWITCH is turned on.
  * Modified afni_func.c to do AFNI_RESCAN_AT_SWITCH only for 'Overlay'
      and 'Underlay' buttons.  (It's pointless for 'Switch Session'.)
+
+26 Feb 2007
+ * Modified afni_func.c to make the Session selection dialog directory-
+     specific, and the 1D selection dialog regular-file-specific.  Also
+     changed the labels on top of the file list for each case.
+ * Modified xutil.c so that MCW_expose_widget() doesn't do anything for
+     a non-widget (e.g., gadget) input.
+ * Added Ziad's Xt translations for Button4 and Button5 scrolling.
