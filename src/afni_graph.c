@@ -2806,17 +2806,32 @@ STATUS("KeyPress event") ;
       /*----- take button press -----*/
 
       case ButtonPress:{
-         XButtonEvent * event = (XButtonEvent *) ev ;
-         int bx,by , width,height , but ;
+         XButtonEvent *event = (XButtonEvent *) ev ;
+         int bx,by , width,height , but=event->button ;
          int i, j, gx , gy , mat , xloc,yloc ;
          unsigned int but_state ;
          int xd,yd,zd ;  /* 19 Mar 2004: for mangling to AFNI indexes */
 
 STATUS("button press") ;
 
-         bx  = event->x ;
-         by  = event->y ;
-         but = event->button ; but_state = event->state ;
+         /* 26 Feb 2007: Buttons 4 and 5 = scroll wheel = change time point */
+
+         if( but == Button4 || but == Button5 ){
+           int tt = (but==Button4) ? grapher->time_index-1 : grapher->time_index+1 ;
+           EXRONE(grapher) ; GRA_timer_stop(grapher) ;
+           if( tt >= 0 && tt < grapher->status->num_series ){
+             if( grapher->status->send_CB != NULL ){
+               GRA_cbs cbs ;
+               cbs.reason = graCR_setindex; cbs.key = tt; cbs.event = NULL;
+               CALL_sendback( grapher , cbs ) ;
+             } else {
+               (void) drive_MCW_grapher( grapher, graDR_setindex, (XtPointer)tt) ;
+             }
+           }
+           EXRETURN;
+         }
+
+         bx = event->x ; by = event->y ; but_state = event->state ;
          MCW_discard_events( w , ButtonPressMask ) ;
 
          /* Button 1 in pixmap logo = toggle on or off */
