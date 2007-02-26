@@ -1115,13 +1115,13 @@ static char *FALLback[] =
       "AFNI*help*fontList:         9x15bold=charset1"    ,
       "AFNI*cluefont:              9x15bold"             ,
       "AFNI*help*cancelWaitPeriod: 333"                  ,
-      "AFNI*XmList.translations: #override"                /* 24 Feb 2007 */
+      "AFNI*XmList.translations: #augment"                /* 24 Feb 2007 */
            "<Btn4Down>: ListPrevItem()\\n"
            "<Btn5Down>: ListNextItem()"                  ,
-      "AFNI*XmText.translations: #override"
+      "AFNI*XmText.translations: #augment"
            "<Btn4Down>: previous-line() scroll-one-line-down()\\n"
            "<Btn5Down>: next-line() scroll-one-line-up()"          ,
-      "AFNI*XmScrollBar.translations: #override"
+      "AFNI*XmScrollBar.translations: #augment"
            "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
            "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
 

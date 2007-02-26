@@ -5035,7 +5035,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
       /*----- take button press -----*/
 
       case ButtonPress:{
-         XButtonEvent * event = (XButtonEvent *) ev ;
+         XButtonEvent *event = (XButtonEvent *) ev ;
          int bx,by , width,height , but ;
 
 DPR(" .. ButtonPress") ;
@@ -5073,6 +5073,16 @@ DPR(" .. ButtonPress") ;
          seq->last_by = by = event->y ;  /*            press (x,y) coords */
          seq->cmap_changed = 0 ;
          but = event->button ;
+
+         /* 26 Feb 2007: Buttons 4 and 5 = scroll wheel = change slice */
+
+         if( but == Button4 || but == Button5 ){
+           int nold=seq->im_nr , nnew=(but==Button4) ? nold-1 : nold+1;
+           ISQ_timer_stop(seq) ;
+           if( nnew >= 0 && nnew < seq->status->num_total )
+             ISQ_redisplay( seq , nnew , isqDR_display ) ;
+           busy=0; EXRETURN;
+         }
 
          MCW_widget_geom( w , &width , &height , NULL,NULL ) ;
          seq->wimage_width  = width ;
@@ -9034,6 +9044,8 @@ char * ISQ_rowgraph_label( MCW_arrowval * av , XtPointer cd )
    return buf ;
 }
 
+/*--------------------------------------------------------------------------*/
+
 void ISQ_rowgraph_CB( MCW_arrowval * av , XtPointer cd )
 {
    MCW_imseq * seq = (MCW_imseq *) cd ;
@@ -9052,6 +9064,8 @@ ENTRY("ISQ_rowgraph_CB") ;
    ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */
    EXRETURN ;
 }
+
+/*--------------------------------------------------------------------------*/
 
 void ISQ_rowgraph_draw( MCW_imseq *seq )
 {
