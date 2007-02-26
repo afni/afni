@@ -1098,6 +1098,18 @@ void MCW_set_meter( Widget wscal , int percent )
    return ;
 }
 
+/*------------------------------------------------------------------------*/
+
+#if 0
+static void MCW_textwin_timer_CB( XtPointer client_data , XtIntervalId *id )
+{
+   Widget ws = (Widget)client_data ;
+   XtVaSetValues( ws , XmNincrement     , 1 ,
+                       XmNpageIncrement , 1 ,
+                       XmNmaximum       , 100 , NULL ) ;
+}
+#endif
+
 /*-----------------------------------------------------------------------*/
 
 #define RONLY_NUM 1
@@ -1290,11 +1302,17 @@ ENTRY("new_MCW_textwin_2001") ;
 #ifdef DARWIN
      XtVaSetValues( ws , XmNshowArrows , XmMIN_SIDE , NULL ) ;
 #endif
-     XtVaSetValues( ws , XmNincrement     , 1 ,
-                         XmNpageIncrement , 1 ,
-                         XmNmaximum       , 100 , NULL ) ;
      (void)XmProcessTraversal( ws , XmTRAVERSE_CURRENT ) ;
+#if 0
+     (void)XtAppAddTimeOut( XtWidgetToApplicationContext(ws) ,
+	                         66 , MCW_textwin_timer_CB , ws   ) ;
+#endif
    }
+#ifdef DARWIN
+   ws = XtNameToWidget(tw->wscroll,"HorScrollBar") ;
+   if( ws != NULL )
+     XtVaSetValues( ws , XmNshowArrows , XmMIN_SIDE , NULL ) ;
+#endif
 
    RETURN(tw) ;
 }
