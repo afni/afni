@@ -1,9 +1,0 @@
-#/bin/tcsh -f
-#Return 1 if argument starts with a -
-#       0 otherwise
-set a = `echo $1 | sed 's/^-//'` 
-if ("$a" == "$1") then
-   echo "0"
-else
-   echo "1"
-endif
