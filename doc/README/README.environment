@@ -2273,6 +2273,13 @@ as a dataset is selected in the list, AFNI will immediately switch to
 viewing that dataset.  This can be convenient for scrolling through datasets,
 but can also consume memory and CPU time very quickly.
 
+------------------------------
+Variable: AFNI_DISABLE_TEAROFF
+------------------------------
+If this variable is set to YES, then the AFNI GUI will not allow popup or
+popdown menus to be 'torn off'.  The default is to enable tear off for most
+menus, but this may cause bad things on some platforms (like program death).
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
@@ -2365,9 +2372,9 @@ This integer will override the base TCP port used by afni to listen for
 plugouts.  This allows multiple instances of afni on one machine, where
 each can listen for plugouts.  Valid port numbers are 1024..65535.
 
--------------------------------
+-----------------------------------
 Variable: AFNI_IMAGE_TICK_DIV_IN_MM
--------------------------------
+-----------------------------------
 If this YES/NO variable is set to YES, then the Tick Div. value in an
 image window will be interpreted as a separation distance, in mm, as
 opposed to the number of tick divisions along each edge.  In that case,

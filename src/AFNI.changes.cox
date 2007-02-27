@@ -6119,3 +6119,6 @@
  * Added Button4+5 image window scrolling to imseq.c, and to afni_graph.c
  * If only dummy dataset is present, then 'Switch Session' opens up the
      'Read Session' dialog.
+
+27 Feb 2007
+ * AFNI_DISABLE_TEAROFF environment variable.

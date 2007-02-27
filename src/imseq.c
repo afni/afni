@@ -1514,7 +1514,7 @@ if( PRINT_TRACING ){
    SAVEUNDERIZE(XtParent(newseq->wbar_menu)) ;  /* 27 Feb 2001 */
 
    VISIBILIZE_WHEN_MAPPED(newseq->wbar_menu) ;
-   TEAROFFIZE(newseq->wbar_menu) ;
+   if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(newseq->wbar_menu) ;
 
    newseq->wbar_rng_but =
       XtVaCreateManagedWidget(
@@ -9702,8 +9702,8 @@ ENTRY("ISQ_record_button") ;
 
    menu = XmCreatePulldownMenu( mbar , "menu" , NULL,0 ) ;
    VISIBILIZE_WHEN_MAPPED(menu) ;
-#if 0
-   TEAROFFIZE(menu) ;  /* doesn't work well */
+#if 0  /* doesn't work well */
+   if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(menu) ;
 #endif
 
    /* the cascade button (what the user sees) */
@@ -11429,7 +11429,7 @@ ENTRY("ISQ_handle_keypress") ;
      case 'K':{
        int mode = (key=='G') ? AGIF_MODE
                  :(key=='H') ? MPEG_MODE
-                 :(key=='J') ? JPEG_MODE 
+                 :(key=='J') ? JPEG_MODE
                  :             PNG_MODE  ;
        ISQ_save_anim( seq , NULL , 0,0 , mode ) ;
        busy=0 ; RETURN(1) ;
@@ -11627,14 +11627,14 @@ void ISQ_save_png( MCW_imseq *seq , char *fname )  /* 11 Dec 2006 */
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Save the current images to an MPEG or AGIF file.  [06 Dec 2006] 
+/*! Save the current images to an MPEG or AGIF file.  [06 Dec 2006]
       Say the recorder has N images       ZSS Jan 07
    if top < 0 then top = N +top
       top ==0 then top = N -1
    else top = min(top, N)
    if bot < 0 then bot = N +bot
    else bot = max(bot, 0)
-  
+
    use bot = 0 and top = 0 to save everything.
 */
 
@@ -11691,7 +11691,7 @@ ENTRY("ISQ_save_anim") ;
    }
 
   if (bot < 0) { /* special case */
-      bot = seq->status->num_total+bot ; 
+      bot = seq->status->num_total+bot ;
       if (bot < 0) bot = 0;
    } else {
       bot = MAX(bot,0) ;
@@ -11708,9 +11708,9 @@ ENTRY("ISQ_save_anim") ;
      ERROR_message("Can't save image range %d..%d!\a",bot,top) ; EXRETURN ;
    }
 
-   /* 
+   /*
       fprintf(stderr,
-         "+++ Will save from %d to %d with %d images total in recorder.\n", 
+         "+++ Will save from %d to %d with %d images total in recorder.\n",
                bot, top, seq->status->num_total);
    */
    /*--- setup prefix for animation filename to save ---*/
@@ -11722,10 +11722,9 @@ ENTRY("ISQ_save_anim") ;
    ll = strlen(prefin) ;
    prefix = (char*)malloc( sizeof(char) * (ll+8) ) ;
    strcpy( prefix , prefin ) ;
- 
+
    ppo = THD_trailname(prefix,0) ;               /* strip directory */
 
- 
    if( prefix[ll-1] != '.' ){  /* add a . at the end */
      prefix[ll++] = '.' ;      /* if one isn't there */
      prefix[ll]   = '\0' ;

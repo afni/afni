@@ -524,8 +524,8 @@ ENTRY("new_MCW_optmenu") ;
    av->wmenu = wmenu = XmCreatePulldownMenu( parent , "menu" , NULL , 0 ) ;
 
    VISIBILIZE_WHEN_MAPPED(wmenu) ;
-#if 0
-   TEAROFFIZE(wmenu) ;   /* doesn't work well if optmenu is inside a popup! */
+#if 0   /* doesn't work well if optmenu is inside a popup! */
+   if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(wmenu) ;
 #endif
 
    /** create the button that pops down the menu **/
