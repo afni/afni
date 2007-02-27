@@ -1,6 +1,6 @@
 function ExamineXmat(fname, polort, dt)
 % a function to examine the design matrix produced by AFNI's 3dDeconvolve
-% parameters not specified in function call 
+% parameters not specified in function call  
 if (nargin < 1 | isempty(fname) | ~filexist(fname)),
    fname = uigetfile('*.1D','Pick an Xmat');
 end
