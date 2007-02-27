@@ -1955,3 +1955,9 @@
   * modified imseq.c to do tick div in mm for Binder
   * modified README.environment: added AFNI_IMAGE_TICK_DIV_IN_MM variable
 
+27 Feb 2007: afni_proc.py (v 1.17)
+  * modified afni_proc.py, db_mod.py, option_list.py:
+      -volreg_align_to defaults to 'third' (was 'first')
+      -added +orig to despike input
+      -added 'empty' block type, for a placeholder
+

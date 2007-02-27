@@ -66,7 +66,7 @@ g_help_string = """
     default steps (the user may skip these, or alter their order):
 
         tshift      : slice timing alignment on volumes (default is -time 0)
-        volreg      : volume registration (default to first volume)
+        volreg      : volume registration (default to third volume)
         blur        : blur each volume (default is 4mm fwhm)
         mask        : create a 'brain' mask from the EPI data (dilate 1 voxel)
         scale       : scale each run mean to 100, for each voxel (max of 200)
@@ -76,6 +76,7 @@ g_help_string = """
     optional steps (the default is _not_ to apply these blocks)
 
         despike     : truncate spikes in each voxel's time series
+        empty       : placehold for some user commamd (using 3dTcat as sample)
 
     --------------------------------------------------
     EXAMPLES (options can be provided in any order):
@@ -123,13 +124,14 @@ g_help_string = """
 
         3. Similar to #2, but add labels for the 4 stim types, and apply TENT
            as the basis function to get 14 seconds of response, on a 2-second
-           TR grid.  Also, copy the anat dataset(s) to the results directory.
+           TR grid.  Also, copy the anat dataset(s) to the results directory,
+           and align volumes to the third TR, instead of the first.
 
                 afni_proc.py -dsets ED/ED_r??+orig.HEAD                      \\
                              -subj_id ED.8                                   \\
                              -copy_anat ED/EDspgr                            \\
                              -tcat_remove_first_trs 2                        \\
-                             -volreg_align_to first                          \\
+                             -volreg_align_to third                          \\
                              -regress_stim_times misc_files/stim_times.*.1D  \\
                              -regress_stim_labels ToolMovie HumanMovie       \\
                                                   ToolPoint HumanPoint       \\
@@ -146,7 +148,7 @@ g_help_string = """
                   -subj_id ED.8.glt                                        \\
                   -copy_anat ED/EDspgr                                     \\
                   -tcat_remove_first_trs 2                                 \\
-                  -volreg_align_to first                                   \\
+                  -volreg_align_to third                                   \\
                   -regress_stim_times misc_files/stim_times.*.1D           \\
                   -regress_stim_labels ToolMovie HumanMovie                \\
                                        ToolPoint HumanPoint                \\
@@ -168,7 +170,7 @@ g_help_string = """
               -copy_anat ED/EDspgr                                           \\
               -tlrc_anat                                                     \\
               -tcat_remove_first_trs 2                                       \\
-              -volreg_align_to first                                         \\
+              -volreg_align_to third                                         \\
               -regress_stim_times misc_files/stim_times.*.1D                 \\
               -regress_stim_labels ToolMovie HumanMovie                      \\
                                    ToolPoint HumanPoint                      \\
@@ -189,7 +191,7 @@ g_help_string = """
                              -subj_id ED.15                                  \\
                              -copy_anat ED/EDspgr                            \\
                              -tcat_remove_first_trs 2                        \\
-                             -volreg_align_to first                          \\
+                             -volreg_align_to third                          \\
                              -regress_stim_times misc_files/stim_times.*.1D  \\
                              -regress_stim_labels ToolMovie HumanMovie       \\
                                                   ToolPoint HumanPoint       \\
@@ -197,20 +199,22 @@ g_help_string = """
                              -regress_opts_3dD -TR_times 1.0
 
         7. Similar to #2, but add the despike block, and skip the tshift and
-           mask blocks (so the others must be specified).
+           mask blocks (so the others must be specified).  The user wants to
+           apply a block that afni_proc.py does not deal with, putting it after
+           the 'despike' block.  So 'empty' is given after 'despike'.
 
            Also, apply a 4 second BLOCK response function, prevent the output
            of a fit time series dataset, run @auto_tlrc at the end, and specify
            an output script name.
 
                 afni_proc.py -dsets ED/ED_r??+orig.HEAD                   \\
-                         -blocks despike volreg blur scale regress        \\
+                         -blocks despike empty volreg blur scale regress  \\
                          -script process_ED.b4                            \\
                          -subj_id ED.b4                                   \\
                          -copy_anat ED/EDspgr                             \\
                          -tlrc_anat                                       \\
                          -tcat_remove_first_trs 2                         \\
-                         -volreg_align_to first                           \\
+                         -volreg_align_to third                           \\
                          -regress_stim_times misc_files/stim_times.*.1D   \\
                          -regress_basis 'BLOCK(4,1)'                      \\
                          -regress_no_fitts
@@ -256,13 +260,15 @@ g_help_string = """
 
         tcat:     - do not remove any of the first TRs
 
+        empty:    - do nothing (just copy the data using 3dTcat)
+
         despike:  - NOTE: by default, this block is _not_ used
                   - use no extra options (so automask is default)
 
         tshift:   - align slices to the beginning of the TR
 
-        volreg:   - align to first volume of first run, -zpad 1
-                        (option: -volreg_align_to first)
+        volreg:   - align to third volume of first run, -zpad 1
+                        (option: -volreg_align_to third)
                         (option: -volreg_zpad 1)
 
         blur:     - blur data using a 4 mm FWHM filter
@@ -570,13 +576,18 @@ g_help_string = """
         -volreg_align_to POSN   : specify the base position for volume reg
 
                 e.g. -volreg_align_to last
-                default: first
+                default: third
 
-            This option takes either 'first' or 'last' as a parameter.  It
-            specifies whether the EPI volumes are registered to the first
-            volume (of the first run) or the last volume (of the last run).
-            The choice of 'first' or 'last' should corresponding to when
-            anatomical dataset was acquired.
+            This option takes 'first', 'third' or 'last' as a parameter.
+            It specifies whether the EPI volumes are registered to the first
+            or third volume (of the first run) or the last volume (of the last
+            run).  The choice of 'first' or 'third' should correspond to when
+            the anatomy was acquired before the EPI data.  The choice of 'last'
+            should correspond to when the anatomy was acquired after the EPI
+            data.
+
+            The default of 'third' was chosen to go a little farther into the
+            steady state data.
 
             Note that this is done after removing any volumes in the initial
             tcat operation.
@@ -593,7 +604,7 @@ g_help_string = """
             sub-brick to use as the base registration image.  Note that the
             SUB index applies AFTER the removal of pre-steady state images.
 
-            The RUN number is 1-based, matching the run list in the output
+          * The RUN number is 1-based, matching the run list in the output
             shell script.  The SUB index is 0-based, matching the sub-brick of
             EPI time series #RUN.  Yes, one is 1-based, the other is 0-based.
             Life is hard.
@@ -987,9 +998,13 @@ g_history = """
     1.16 Feb 21, 2007 :
          - added optional 'despike' block
          - added options -do_block and -despike_opts_3dDes
+    1.17 Feb 27, 2007 :
+         -volreg_align_to defaults to 'third' (was 'first')
+         -added +orig to despike input
+         -added 'empty' block type, for a placeholder
 """
 
-g_version = "version 1.16, February 21, 2007"
+g_version = "version 1.17, February 27, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -1000,17 +1015,18 @@ BlockModFunc  = {'tcat'   : db_mod_tcat,     'despike': db_mod_despike,
                  'tshift' : db_mod_tshift,
                  'volreg' : db_mod_volreg,   'blur'   : db_mod_blur,
                  'mask'   : db_mod_mask,     'scale'  : db_mod_scale,
-                 'regress': db_mod_regress}
+                 'regress': db_mod_regress,  'empty'  : db_mod_empty}
 BlockCmdFunc  = {'tcat'   : db_cmd_tcat,     'despike': db_cmd_despike,
                  'tshift' : db_cmd_tshift,
                  'volreg' : db_cmd_volreg,   'blur'   : db_cmd_blur,
                  'mask'   : db_cmd_mask,     'scale'  : db_cmd_scale,
-                 'regress':db_cmd_regress}
+                 'regress': db_cmd_regress,  'empty'  : db_cmd_empty}
 AllOptionStyles = ['cmd', 'file', 'gui', 'sdir']
 
 # default block labels, and other labels (along with the label they follow)
 DefLabels   = ['tcat', 'tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
-OtherLabels = {'despike':'tcat'}
+OtherDefLabels = {'despike':'tcat'}
+OtherLabels    = ['empty']
 
 # ----------------------------------------------------------------------
 # data processing stream class
@@ -1101,7 +1117,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-tshift_interp', 1, [])
         self.valid_opts.add_opt('-tshift_opts_ts', -1, [])
 
-        self.valid_opts.add_opt('-volreg_align_to', 1, [], ['first','last'])
+        self.valid_opts.add_opt('-volreg_align_to', 1, [],
+                                ['first','third', 'last'])
         self.valid_opts.add_opt('-volreg_base_ind', 2, [])
         self.valid_opts.add_opt('-volreg_opts_vr', -1, [])
         self.valid_opts.add_opt('-volreg_zpad', 1, [])
@@ -1223,8 +1240,8 @@ class SubjProcSream:
             # check additional blocks one by one
             errs = 0
             for bname in opt.parlist:
-                if bname in OtherLabels:
-                    preindex = blocklist.index(OtherLabels[bname])
+                if bname in OtherDefLabels:
+                    preindex = blocklist.index(OtherDefLabels[bname])
                     if preindex < 0:
                         print "** error: -do_block failure for '%s'" % bname
                         errs += 1
