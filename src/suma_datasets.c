@@ -5416,6 +5416,9 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
    SUMA_RETURN(dset);
 }
 
+static int AddIndex_1D = 0;
+void SUMA_SetAddIndex_1D(int v) { AddIndex_1D=v; return; }
+int SUMA_GetAddIndex_1D(void) { return(AddIndex_1D); }
 
 /*!
    \brief writes a dataset to disk
@@ -5515,7 +5518,7 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, i
             NI_set_attribute(dset->ngr,"filename", NameOut);
             strmname = SUMA_append_string("file:",NameOut);
 	         SUMA_LH("Writing 1D..."); SUMA_LH(strmname); 
-            DSET_WRITE_1D (dset, strmname, flg);
+            DSET_WRITE_1D (dset, strmname, flg, AddIndex_1D);
             if (!flg) {
                SUMA_PushErrLog("SL_Err","Output file not written", FuncName);
             } else {
@@ -5531,7 +5534,7 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, i
             NI_set_attribute(dset->ngr,"filename", NameOut);
             strmname = SUMA_copy_string(NameOut);
 	         SUMA_LH("Writing 1D pure..."); SUMA_LH(strmname); 
-            DSET_WRITE_1D_PURE (dset, strmname, flg);
+            DSET_WRITE_1D_PURE (dset, strmname, flg, AddIndex_1D);
             if (!flg) {
                SUMA_PushErrLog("SL_Err","Output file not written", FuncName);
             } else {
@@ -5540,7 +5543,7 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, i
          } 
          break;
       case SUMA_1D_STDOUT:
-         DSET_WRITE_1D (dset, "stdout:", flg);
+         DSET_WRITE_1D (dset, "stdout:", flg, AddIndex_1D);
          if (!flg) {
             SUMA_PushErrLog("SL_Err","Output file not written", FuncName);
          } else {
@@ -5548,7 +5551,7 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, i
          }
          break;
       case SUMA_1D_STDERR:
-         DSET_WRITE_1D (dset, "stderr:", flg);
+         DSET_WRITE_1D (dset, "stderr:", flg, AddIndex_1D);
          if (!flg) {
             SUMA_PushErrLog("SL_Err","Output file not written", FuncName);
          } else {

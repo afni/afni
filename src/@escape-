@@ -3,7 +3,9 @@
 #  @escape- one -two three
 set  ll = ()
 foreach jjj ($*)
-   set a = `echo $jjj | sed 's/^-/\\-/'` 
+   #Needed to add two \\ to the rash of '\' in sed's command. That's not needed on command line but it has to be in the script
+   set a = "`echo $jjj | sed 's/^-/\\\\-/'`" 
+   #echo ddd $jjj "$a"
    set ll = ($ll "$a")
 end
 echo "$ll"

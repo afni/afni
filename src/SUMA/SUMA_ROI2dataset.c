@@ -355,6 +355,7 @@ int main (int argc,char *argv[])
          NI_insert_column(dset->dnel, dset->inel->vec_typ[0], dset->inel->vec[0], 0); 
          if (LocalHead) SUMA_ShowNel(dset->dnel);
          nn = NI_write_element(  ns , dset->dnel , NI_TEXT_MODE | NI_HEADERSHARP_FLAG);  
+         NI_remove_column(dset->dnel, 0); 
          break;
       default:
          SUMA_S_Err("Output format not supported");
