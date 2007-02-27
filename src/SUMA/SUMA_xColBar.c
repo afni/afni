@@ -3428,7 +3428,7 @@ SUMA_Boolean SUMA_DsetColSelectList(SUMA_SurfaceObject *SO, int type)
          if (!LW) {
             SUMA_LH("Allocating widget");
             /* need to create widget */
-            LW = SUMA_AllocateScrolledList   (  "Switch Intensity", SUMA_LSP_SINGLE,
+            LW = SUMA_AllocateScrolledList   (  "Switch Intensity", SUMA_LSP_BROWSE,
                                                 NOPE,          NOPE,
                                                 SO->SurfCont->TopLevelShell, SWP_POINTER_OFF,
                                                 SUMA_cb_SelectSwitchInt, (void *)SO,
@@ -3508,7 +3508,7 @@ SUMA_Boolean SUMA_CmapSelectList(SUMA_SurfaceObject *SO, int refresh, int bringu
    if (!LW) {
       SUMA_LH("Allocating widget");
       /* need to create widget */
-      LW = SUMA_AllocateScrolledList   (  "Switch Cmap", SUMA_LSP_SINGLE,
+      LW = SUMA_AllocateScrolledList   (  "Switch Cmap", SUMA_LSP_BROWSE,
                                           NOPE,          NOPE,
                                           SO->SurfCont->TopLevelShell, SWP_POINTER_OFF,
                                           SUMA_cb_SelectSwitchCmap, (void *)SO,
@@ -3633,10 +3633,12 @@ void SUMA_cb_SelectSwitchCmap (Widget w, XtPointer client_data, XtPointer call_d
    }
    
    
-   if (cbs->reason == XmCR_SINGLE_SELECT) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Single selection, list widget %s... \n", FuncName, LW->Label);
+   if (cbs->reason == XmCR_SINGLE_SELECT || cbs->reason == XmCR_BROWSE_SELECT) {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Single selection (reason %d, (%d, %d)), list widget %s... \n", 
+               FuncName, cbs->reason, XmCR_SINGLE_SELECT, XmCR_BROWSE_SELECT , LW->Label);
    } else {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Default selection, list widget %s... \n", FuncName, LW->Label);
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Default selection (reason %d, (%d, %d)), list widget %s... \n", 
+                  FuncName, cbs->reason, XmCR_SINGLE_SELECT, XmCR_BROWSE_SELECT, LW->Label);
       /*double click or enter on that one, close shop after selection */
       CloseShop = YUP;
    }
@@ -3648,7 +3650,7 @@ void SUMA_cb_SelectSwitchCmap (Widget w, XtPointer client_data, XtPointer call_d
    Found = NOPE;
    ichoice = 0;
    do {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing:\n%s\n%s\n", FuncName, LW->ALS->clist[ichoice], choice);
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing:\t>%s<\t>%s<\n", FuncName, LW->ALS->clist[ichoice], choice);
       if (strncmp(LW->ALS->clist[ichoice], choice, strlen(choice)) == 0) Found = YUP; 
       else ++ichoice;
    } while (ichoice < LW->ALS->N_clist && !Found);

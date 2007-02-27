@@ -1719,6 +1719,7 @@ int main (int argc,char *argv[])
          fclose(fileout); fileout = NULL;
       } else if (Opt->Method == SUMA_LB_FEM || Opt->Method == SUMA_HEAT_05 || Opt->Method == SUMA_BRUTE_FORCE) {
          SUMA_NEWDSET_ID_LABEL_HIST(dset, Opt->out_name) ;
+         if (Opt->AddIndex) SUMA_SetAddIndex_1D(1);
          SUMA_WriteDset_s(Opt->out_name, dset, Opt->oform, 0, 0);
          SUMA_FreeDset(dset); dset = NULL;
       } else {
