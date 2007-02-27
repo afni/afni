@@ -5485,7 +5485,7 @@ ENTRY( "RCREND_func_widgets" );
 
    SAVEUNDERIZE(XtParent(wfunc_pbar_menu)) ; /* 27 Feb 2001 */
    VISIBILIZE_WHEN_MAPPED(wfunc_pbar_menu) ;
-   TEAROFFIZE(wfunc_pbar_menu) ;
+   if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(wfunc_pbar_menu) ;
 
    XtInsertEventHandler( wfunc_color_label ,     /* handle events in label */
 

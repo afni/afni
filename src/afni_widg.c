@@ -719,7 +719,7 @@ STATUS("making imag->rowcol") ;
 
    VISIBILIZE_WHEN_MAPPED(imag->popmenu) ;
 #if 0
-   TEAROFFIZE(imag->popmenu) ;
+    if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(imag->popmenu) ;
 #endif
 
 /***
@@ -967,7 +967,7 @@ STATUS("making imag->rowcol") ;
 
     SAVEUNDERIZE(XtParent(imag->crosshair_menu)) ;
     VISIBILIZE_WHEN_MAPPED(imag->crosshair_menu) ;
-    TEAROFFIZE(imag->crosshair_menu) ;
+    if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(imag->crosshair_menu) ;
 
     XtInsertEventHandler( imag->crosshair_label , /* handle events in label */
                              ButtonPressMask ,    /* button presses */
@@ -2524,7 +2524,7 @@ STATUS("making func->rowcol") ;
 
    SAVEUNDERIZE(XtParent(func->thr_menu)) ;
    VISIBILIZE_WHEN_MAPPED(func->thr_menu) ;
-   TEAROFFIZE(func->thr_menu) ;
+   if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(func->thr_menu) ;
 
    XtInsertEventHandler( func->thr_label ,       /* handle events in label */
 
@@ -2748,7 +2748,7 @@ STATUS("making func->rowcol") ;
 
    SAVEUNDERIZE(XtParent(func->pbar_menu)) ; /* 27 Feb 2001 */
    VISIBILIZE_WHEN_MAPPED(func->pbar_menu) ;
-   TEAROFFIZE(func->pbar_menu) ;
+   if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(func->pbar_menu) ;
 
    XtInsertEventHandler( func->inten_label ,      /* handle events in label */
 
@@ -4347,7 +4347,7 @@ STATUS("making prog->rowcol") ;
       SAVEUNDERIZE(XtParent(prog->hidden_menu)) ; /* 27 Feb 2001 */
 
       VISIBILIZE_WHEN_MAPPED(prog->hidden_menu) ;
-      TEAROFFIZE(prog->hidden_menu) ;
+      if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(prog->hidden_menu) ;
 
 /***
       XtAddCallback( prog->hidden_menu ,
@@ -4381,7 +4381,7 @@ STATUS("making prog->rowcol") ;
          XmCreatePulldownMenu( prog->hidden_menu , "menu" , NULL , 0 ) ;
 
       VISIBILIZE_WHEN_MAPPED(prog->hidden_pts_menu) ;
-      TEAROFFIZE(prog->hidden_pts_menu) ;
+      if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(prog->hidden_pts_menu) ;
 
       /** cascade button to bring this menu up **/
 
@@ -5249,7 +5249,7 @@ ENTRY("AFNI_lock_button") ;
    menu = XmCreatePulldownMenu( mbar , "menu" , NULL,0 ) ;
 
    VISIBILIZE_WHEN_MAPPED(menu) ;
-   TEAROFFIZE(menu) ;
+   if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(menu) ;
 
    xstr = XmStringCreateLtoR( "Lock" , XmFONTLIST_DEFAULT_TAG ) ;
    cbut = XtVaCreateManagedWidget(
@@ -5429,7 +5429,7 @@ ENTRY("AFNI_misc_button") ;
    menu = XmCreatePulldownMenu( mbar , "menu" , NULL,0 ) ;
 
    VISIBILIZE_WHEN_MAPPED(menu) ;
-   TEAROFFIZE(menu) ;
+   if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(menu) ;
 
    xstr = XmStringCreateLtoR( "Misc" , XmFONTLIST_DEFAULT_TAG ) ;
    cbut = XtVaCreateManagedWidget(
