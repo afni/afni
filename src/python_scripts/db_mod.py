@@ -83,9 +83,9 @@ def db_cmd_despike(proc, block):
     cmd = cmd + '# -------------------------------------------------------\n' \
               + '# apply 3dDespike to each run\n'
     cmd = cmd + 'foreach run ( $runs )\n'                                     \
-                '    3dDespike%s -prefix %s %s\n'                             \
+                '    3dDespike%s -prefix %s %s+orig\n'                        \
                 'end\n\n' %                                                   \
-                (other_opts, prev, prefix)
+                (other_opts, prefix, prev)
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
@@ -163,7 +163,7 @@ def db_cmd_tshift(proc, block):
 
 def db_mod_volreg(block, proc, user_opts):
     if len(block.opts.olist) == 0:    # then init dset/brick indices to defaults
-        block.opts.add_opt('-volreg_base_ind', 2, [0, 0], setpar=1)
+        block.opts.add_opt('-volreg_base_ind', 2, [0, 2], setpar=1)
         block.opts.add_opt('-volreg_opts_vr', -1, [])
         block.opts.add_opt('-volreg_zpad', 1, [1], setpar=1)
 
@@ -191,9 +191,17 @@ def db_mod_volreg(block, proc, user_opts):
         if aopt.parlist[0] == 'first':
             bopt.parlist[0] = 0
             bopt.parlist[1] = 0
-        else:   # 'last' (if we don't know runs/reps yet, will have -1)
+        elif aopt.parlist[0] == 'third':
+            bopt.parlist[0] = 0
+            bopt.parlist[1] = 2
+        elif aopt.parlist[0] == 'last':
+            # (if we don't know runs/reps yet, will have -1, which is okay)
             bopt.parlist[0] = proc.runs - 1     # index of last dset
             bopt.parlist[1] = proc.reps - 1     # index of last rep
+        else:   
+            print "** unknown '%s' param with -volreg_base_ind option" \
+                  % aopt.parlist[0]
+            return 1
 
     zopt = user_opts.find_opt('-volreg_zpad')
     if zopt:
@@ -808,5 +816,27 @@ def db_cmd_tlrc(dname, options):
           "# run @auto_tlrc to warp '%s' to match template '%s'\n"      \
           "@auto_tlrc -base %s -input %s%s%s%s\n\n"                     \
           % (dname, base,base, dname, ss, rmode, suffix)
+
+    return cmd
+
+# currently nothing to verify for an 'empty' command (placeholder command)
+# just return 1
+def db_mod_empty(block, proc, user_opts):
+    block.valid = 1
+    return 1
+
+# create a placeholder command using 3dTcat to copy the EPI data
+def db_cmd_empty(proc, block):
+    prefix = proc.prefix_form_run(block)
+    prev   = proc.prev_prefix_form_run()
+
+    cmd = "# -------------------------------------------------------\n" \
+          "# empty block: use '3dTcat' as a placeholder command\n"      \
+          "foreach run ( $runs )\n"                                     \
+          "    3dTcat -prefix %s %s+orig\n"                             \
+          "end\n\n" % (prefix, prev)
+
+    proc.bindex += 1            # increment block index
+    proc.pblabel = block.label  # set 'previous' block label
 
     return cmd
