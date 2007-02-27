@@ -345,8 +345,7 @@ ENTRY("new_MCW_grapher") ;
                   NULL ) ;
    XtManageChild( mb_tmp ) ;
 
-   grapher->opt_menu =
-         XmCreatePulldownMenu( mb_tmp , "menu" , NULL,0 ) ;
+   grapher->opt_menu = XmCreatePulldownMenu( mb_tmp , "menu" , NULL,0 ) ;
 
    VISIBILIZE_WHEN_MAPPED(grapher->opt_menu) ;  /* 27 Sep 2000 */
    TEAROFFIZE(grapher->opt_menu) ;
