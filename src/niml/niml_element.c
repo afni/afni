@@ -599,6 +599,44 @@ void NI_move_column(NI_element *nel, int ibefore, int iafter)
 
    return ;
 }
+
+/*!
+   Do we really need to document this too?
+   Removes column irm from nel. If irm < 0 or
+   irm >= nel->vec_num irm = nel->vec_num -1 
+*/
+void NI_remove_column(NI_element *nel, int irm)
+{
+   int nn;
+   
+   if (nel == NULL || nel->vec_len <= 0 )            return ;
+   
+   nn = nel->vec_num ;
+   if (irm < 0 || irm >= nn) irm = nn-1;
+   
+   /* move irm to last column */
+   NI_move_column(nel, irm, -1);
+   
+   /* free the last column */
+   NI_free_column( NI_rowtype_find_code(nel->vec_typ[nn-1]) ,
+                           nel->vec_len , nel->vec[nn-1]             ) ;
+   nel->vec[nn-1] = NULL; /* to be sure */
+   
+   /* decrease the number of columns */
+   --nn; 
+   nel->vec_num = nn; 
+   
+   /* get rid of extra space */
+   nel->vec_typ = NI_realloc( nel->vec_typ, int, sizeof(int)*(nn-1) ) ;
+   nel->vec = NI_realloc( nel->vec , void*, sizeof(void *)*(nn-1) ) ;
+
+   /* if element has "ni_type" attribute, adjust it   14 Jul 2006 [rickr] */
+   if( NI_get_attribute(nel, "ni_type") )
+      NI_set_ni_type_atr(nel) ;
+
+   
+   return;
+}
 /*------------------------------------------------------------------------*/
 /*! Change the length of all the columns in a data element.
      - If the columns are longer, they will be zero filled.

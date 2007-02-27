@@ -5170,12 +5170,12 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
                XtAddCallback (LW->list, XmNsingleSelectionCallback, LW->Select_cb, (XtPointer)LW->Select_Data); 
             break;
          case SUMA_LSP_BROWSE:
+            XtVaSetValues( LW->list, XmNselectionPolicy, XmBROWSE_SELECT, NULL);
             if (!LW->Select_Data) 
                XtAddCallback (LW->list, XmNbrowseSelectionCallback, LW->Select_cb, (XtPointer)LW);
             else
                XtAddCallback (LW->list, XmNbrowseSelectionCallback, LW->Select_cb, (XtPointer)LW->Select_Data); 
             
-            XtVaSetValues( LW->list, XmNselectionPolicy, XmBROWSE_SELECT, NULL);
             break;
          case SUMA_LSP_MULTIPLE:
             if (!LW->Select_Data) 
@@ -5273,8 +5273,8 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
 
    
    if (New) {
-      /* XmListSetPos(LW->list,6);
-      XmListSelectPos(LW->list,6, False); Someday make it open on selected map*/
+      XmListSetPos(LW->list,1);
+      XmListSelectPos(LW->list,1, False); 
       /* realize the widget */
       XtRealizeWidget (LW->toplevel);
       /* Do the wheel buidness Can't seem to get this working no matter where I put it. Best to leave it in fallback */
@@ -6329,7 +6329,7 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
    Found = NOPE;
    ichoice = 0;
    do {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing:\n%s\n%s", FuncName, LW->ALS->clist[ichoice], choice);
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing:\t>%s<\t>%s<", FuncName, LW->ALS->clist[ichoice], choice);
       if (strncmp(LW->ALS->clist[ichoice], choice, strlen(LW->ALS->clist[ichoice])) == 0) Found = YUP; 
       else ++ichoice;
    } while (ichoice < LW->ALS->N_clist && !Found);
@@ -6438,7 +6438,7 @@ void SUMA_cb_SelectSwitchGroup(Widget w, XtPointer data, XtPointer call_data)
    Found = NOPE;
    ichoice = 0;
    do {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing:\n%s\n%s", FuncName, LW->ALS->clist[ichoice], choice);
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing:\t>%s<\t>%s<", FuncName, LW->ALS->clist[ichoice], choice);
       if (strncmp(LW->ALS->clist[ichoice], choice, strlen(LW->ALS->clist[ichoice])) == 0) Found = YUP; 
       else ++ichoice;
    } while (ichoice < LW->ALS->N_clist && !Found);
@@ -6550,7 +6550,7 @@ void SUMA_cb_SelectSwitchROI(Widget w, XtPointer data, XtPointer call_data)
    Found = NOPE;
    ichoice = 0;
    do {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing:\n%s\n%s", FuncName, LW->ALS->clist[ichoice], choice);
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing:\t>%s<\t>%s<", FuncName, LW->ALS->clist[ichoice], choice);
       if (strncmp(LW->ALS->clist[ichoice], choice, strlen(LW->ALS->clist[ichoice])) == 0) Found = YUP; 
       else ++ichoice;
    } while (ichoice < LW->ALS->N_clist && !Found);
