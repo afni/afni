@@ -121,7 +121,7 @@ def read_options(argv, oplist, verb = 1):
                 for par in parlist:
                     # check against repr(list), since par is a string
                     if par not in repr(newopt.acceptlist):  # unacceptable!!
-                        print "** option %s, param %s is not in: %s" % \
+                        print "** option %s: param '%s' is not in: %s" % \
                               (newopt.name, par, newopt.acceptlist)
                         return None  # what else can we do?
 
