@@ -9702,7 +9702,9 @@ ENTRY("ISQ_record_button") ;
 
    menu = XmCreatePulldownMenu( mbar , "menu" , NULL,0 ) ;
    VISIBILIZE_WHEN_MAPPED(menu) ;
-   TEAROFFIZE(menu) ;
+#if 0
+   TEAROFFIZE(menu) ;  /* doesn't work well */
+#endif
 
    /* the cascade button (what the user sees) */
 

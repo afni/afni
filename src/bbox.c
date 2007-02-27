@@ -48,20 +48,21 @@ ENTRY("new_MCW_bbox") ;
    switch( bb_frame ){
 
       case MCW_BB_frame:
-         STATUS("create frame") ;
-         rc_parent = bb->wtop = bb->wframe =
-            XtVaCreateManagedWidget(
-               "frame" , xmFrameWidgetClass , parent ,
-                   XmNshadowType , XmSHADOW_ETCHED_IN ,
-                   XmNinitialResourcesPersistent , False ,
-               NULL ) ;
-         break ;
+        STATUS("create frame") ;
+        rc_parent = bb->wtop = bb->wframe =
+           XtVaCreateManagedWidget(
+              "frame" , xmFrameWidgetClass , parent ,
+                  XmNshadowType , XmSHADOW_ETCHED_IN ,
+                  XmNtraversalOn , True ,
+                  XmNinitialResourcesPersistent , False ,
+              NULL ) ;
+      break ;
 
       case MCW_BB_noframe:
       default:
         rc_parent  = parent ;
         bb->wframe = NULL ;
-        break ;
+      break ;
    }
 
    /***--- create RowColumn to hold the buttons ---***/
@@ -81,18 +82,19 @@ ENTRY("new_MCW_bbox") ;
    XtSetArg( wa[na] , XmNmarginWidth  , 0 ) ; na++ ;
    XtSetArg( wa[na] , XmNspacing      , 1 ) ; na++ ;
 
+   XtSetArg( wa[na] , XmNtraversalOn , True ) ; na++ ;
    XtSetArg( wa[na] , XmNinitialResourcesPersistent , False ) ; na++ ;
 
    if( bb_type == MCW_BB_radio_zero || bb_type == MCW_BB_radio_one ){
 
-      XtSetArg( wa[na] , XmNradioBehavior , True ) ; na++ ;
+     XtSetArg( wa[na] , XmNradioBehavior , True ) ; na++ ;
 
-      if( bb_type == MCW_BB_radio_one ){
-         initial_value = 1 ;
-         XtSetArg( wa[na] , XmNradioAlwaysOne , True ) ; na++ ;
-      } else {
-         XtSetArg( wa[na] , XmNradioAlwaysOne , False ) ; na++ ;
-      }
+     if( bb_type == MCW_BB_radio_one ){
+       initial_value = 1 ;
+       XtSetArg( wa[na] , XmNradioAlwaysOne , True ) ; na++ ;
+     } else {
+       XtSetArg( wa[na] , XmNradioAlwaysOne , False ) ; na++ ;
+     }
    }
 
    STATUS("create rowcol") ;
@@ -120,7 +122,7 @@ ENTRY("new_MCW_bbox") ;
                         NULL ) ;
 
       if( cb != NULL )
-         XtAddCallback( bb->wbut[ib] , XmNdisarmCallback , cb , cb_data ) ;
+        XtAddCallback( bb->wbut[ib] , XmNdisarmCallback , cb , cb_data ) ;
 
    }
    for( ib=num_but ; ib < MCW_MAX_BB ; ib++ ) bb->wbut[ib] = NULL ;
@@ -502,18 +504,18 @@ static void optmenu_EV_fixup( Widget ww ) ;
 #endif
 
 MCW_arrowval * new_MCW_optmenu( Widget parent ,
-                                char * label ,
+                                char *label ,
                                 int    minval , int maxval , int inival , int decim ,
-                                gen_func * delta_value, XtPointer delta_data,
-                                str_func * text_proc  , XtPointer text_data
+                                gen_func *delta_value, XtPointer delta_data,
+                                str_func *text_proc  , XtPointer text_data
                               )
 {
-   MCW_arrowval * av = myXtNew( MCW_arrowval ) ;
+   MCW_arrowval *av = myXtNew( MCW_arrowval ) ;
    Widget wmenu , wbut ;
    Arg args[5] ;
    int nargs , ival ;
    XmString xstr ;
-   char * butlabel , * blab ;
+   char *butlabel , *blab ;
 
 ENTRY("new_MCW_optmenu") ;
 
@@ -522,7 +524,9 @@ ENTRY("new_MCW_optmenu") ;
    av->wmenu = wmenu = XmCreatePulldownMenu( parent , "menu" , NULL , 0 ) ;
 
    VISIBILIZE_WHEN_MAPPED(wmenu) ;
-   TEAROFFIZE(wmenu) ;
+#if 0
+   TEAROFFIZE(wmenu) ;   /* doesn't work well if optmenu is inside a popup! */
+#endif
 
    /** create the button that pops down the menu **/
 
@@ -540,6 +544,7 @@ ENTRY("new_MCW_optmenu") ;
                      XmNmarginWidth  , 0 ,
                      XmNmarginHeight , 0 ,
                      XmNspacing      , 2 ,
+                     XmNtraversalOn  , True ,
                   NULL ) ;
 
    av->wlabel = XmOptionLabelGadget (av->wrowcol) ;
@@ -568,6 +573,7 @@ ENTRY("new_MCW_optmenu") ;
                      XmNmarginTop    , 0 ,
                      XmNmarginRight  , 0 ,
                      XmNmarginLeft   , 0 ,
+                     XmNtraversalOn  , True ,
                      XmNhighlightThickness , 0 ,
                   NULL ) ;
 
@@ -589,7 +595,7 @@ ENTRY("new_MCW_optmenu") ;
 
       blab = butlabel = XtNewString( av->sval ) ;
       if( av->text_CB==AV_default_text_CB && butlabel[0]==' ' && minval >= 0 ){
-         blab += 1 ;  /* deal with leading blanks in default routine */
+        blab += 1 ;  /* deal with leading blanks in default routine */
       }
 
       xstr = XmStringCreateLtoR( blab , XmFONTLIST_DEFAULT_TAG ) ;
@@ -604,7 +610,7 @@ ENTRY("new_MCW_optmenu") ;
                   XmNmarginRight  , 0 ,
                   XmNmarginLeft   , 0 ,
                   XmNuserData     , (XtPointer) ival ,    /* Who am I? */
-                  XmNtraversalOn , True  ,
+                  XmNtraversalOn  , True  ,
                   XmNinitialResourcesPersistent , False ,
                 NULL ) ;
 
@@ -613,7 +619,7 @@ ENTRY("new_MCW_optmenu") ;
       XtAddCallback( wbut , XmNactivateCallback , AVOPT_press_CB , av ) ;
 
       if( ival == inival )
-         XtVaSetValues( av->wrowcol ,  XmNmenuHistory , wbut , NULL ) ;
+        XtVaSetValues( av->wrowcol ,  XmNmenuHistory , wbut , NULL ) ;
    }
 
    XtManageChild( av->wrowcol ) ;
@@ -907,7 +913,7 @@ static void optmenu_EV( Widget w , XtPointer cd ,
 {
    MCW_arrowval *av = (MCW_arrowval *) cd ;
    int  ic , ival , sval , nstr ;
-   XButtonEvent * bev = (XButtonEvent *) ev ;
+   XButtonEvent *bev = (XButtonEvent *) ev ;
    Dimension lw ;
    static char **strlist=NULL ;
    static  int  nstrlist=0 ;    /* 06 Aug 2002 */

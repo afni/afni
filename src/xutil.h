@@ -48,7 +48,8 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 
 #define SAVEUNDERIZE(w) XtVaSetValues((w),XmNsaveUnder,True,NULL) /* 27 Feb 2001 */
 
-#define TEAROFFIZE(w) XtVaSetValues((w),XmNtearOffModel,XmTEAR_OFF_ENABLED,NULL)
+#define   TEAROFFIZE(w) XtVaSetValues((w),XmNtearOffModel,XmTEAR_OFF_ENABLED ,NULL)
+#define UNTEAROFFIZE(w) XtVaSetValues((w),XmNtearOffModel,XmTEAR_OFF_DISABLED,NULL)
 
 extern void MCW_expose_widget( Widget ) ;
 extern void MCW_invert_widget( Widget ) ;
