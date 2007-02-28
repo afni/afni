@@ -11,11 +11,12 @@ extern THD_3dim_dataset *THD_3dim_from_ROIstring(char *shar);
 
 #undef  CHECK_FOR_DATA     /* 06 Jan 2005: message about empty files */
 #define CHECK_FOR_DATA(fn)                                                \
- do{ if( fsize <= 0 ){                                                    \
-       if( fsize == 0 )                                                   \
+ do{ if( fsize == 0 ){                                                    \
+       if( isfile )                                                       \
          fprintf(stderr,"** Can't read ANY data from file '%s'\n",(fn));  \
        RETURN(NULL) ;                                                     \
      }} while(0)
+
 
 /*-----------------------------------------------------------------
  * this is a list of known filename extensions
@@ -49,6 +50,7 @@ THD_3dim_dataset * THD_open_one_dataset( char *pathname )
    char *fname ;   /* to skip directory during HEAD/BRIK search in filename */
    int   offset ;  /*                                 - [rickr 20 Sep 2002] */
    unsigned int fsize ;     /* 06 Jan 2005, to unsigned 20 Feb 2006 [rickr] */
+   int   isfile = 1;
 
 ENTRY("THD_open_one_dataset") ;
 
@@ -68,7 +70,9 @@ ENTRY("THD_open_one_dataset") ;
    }
 
    fsize = THD_filesize(pathname) ;                         /* 06 Jan 2005 */
-   if( fsize == 0 && !THD_is_file(pathname) ) fsize = -1 ;  /* 31 Mar 2005 */
+
+   /* replace fsize == -1 use with isfile variable   28 Feb 2007 [rickr] */
+   if( fsize == 0 && !THD_is_file(pathname) ) isfile = 0;
 
    /*-- perhaps the MINC way --*/
 
@@ -198,10 +202,8 @@ ENTRY("THD_open_one_dataset") ;
 
    /*-- open it up? --*/
 
-   fsize = THD_filesize(fullname) ;                         /* 06 Jan 2005 */
-
-   /* if this fails, jump to ROI case   28 Feb 2007 [rickr] */
-   if( fsize > 0 || THD_is_file(pathname) ) {
+   /* if it is not a file, check the ROI case   28 Feb 2007 [rickr] */
+   if( isfile ) {
       dblk = THD_init_one_datablock( dirname , fullname ) ;
       if( dblk != NULL ) {
          dset = THD_3dim_from_block( dblk ) ;
