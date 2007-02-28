@@ -93,8 +93,6 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
 #  define MIN(a,b) (((a)>(b)) ? (b) : (a))
 #endif
 
-#undef DONT_USE_MEMCPY
-
 /**** define types ****/
 
 /*! The MRI_byte data type. */
@@ -1427,6 +1425,7 @@ extern void GA_reset_fit_callback( void (*fc)(int,double*) ) ;
 extern void GA_do_dots(int) ;
 extern void GA_do_cost(int) ;
 extern float mri_genalign_scalar_cost( GA_setup * ) ;
+extern void GA_set_outval( float ) ;   /* 28 Feb 2007 */
 
 #define MATORDER_SDU  1  /* matrix multiplication order: */
 #define MATORDER_SUD  2  /* S = shear matrix             */

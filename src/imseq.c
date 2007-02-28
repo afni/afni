@@ -5047,23 +5047,31 @@ DPR(" .. ButtonPress") ;
            busy=0; EXRETURN;
          }
 
+         but = event->button ;
+
          /* button press in the wbar => popup menu */
 
          if( w == seq->wbar ){          /* moved here 18 Oct 2001 */
-           if( event->button == Button1 ){ /* 21 Oct 2003 */
+           if( but == Button1 ){ /* 21 Oct 2003 */
              bx = seq->opt.free_aspect ; seq->opt.free_aspect = 0 ;
              ISQ_reset_dimen( seq, seq->last_width_mm, seq->last_height_mm ) ;
              seq->opt.free_aspect = bx ;
-           } else if( event->button == Button3 ){
+           } else if( but == Button3 ){
              XmMenuPosition( seq->wbar_menu , event ) ; /* where */
              XtManageChild ( seq->wbar_menu ) ;         /* popup */
            }
-           else
+           else if( but == Button4 || but == Button5 ){
+              int ddd = (but==Button4) ? -1 : 1 ;
+              DC_palette_squeeze( seq->dc , ddd ) ;
+              COLORMAP_CHANGE(seq) ;      /* 22 Aug 1998 */
+           }
+           else {
 #if 0
              XUngrabPointer( event->display , CurrentTime ) ;
 #else
              XBell(seq->dc->display,100) ;
 #endif
+           }
            busy=0; EXRETURN ;
          }
 
@@ -5072,7 +5080,6 @@ DPR(" .. ButtonPress") ;
          seq->last_bx = bx = event->x ;  /* 23 Oct 2003: save last button */
          seq->last_by = by = event->y ;  /*            press (x,y) coords */
          seq->cmap_changed = 0 ;
-         but = event->button ;
 
          /* 26 Feb 2007: Buttons 4 and 5 = scroll wheel = change slice */
 

@@ -4949,12 +4949,7 @@ int RT_fim_recurse( RT_input *rtin , int mode )
             if( fabs(vval[iv]) > topval ) topval = fabs(vval[iv]) ;
 
          bar = DSET_ARRAY( new_dset , FUNC_ival_fim[FUNC_COR_TYPE] ) ;
-
-#ifdef DONT_USE_MEMCPY
-         for( iv=0 ; iv < nxyz ; iv++ ) bar[iv] = 0 ;
-#else
          memset( bar , 0 , sizeof(short)*nxyz ) ;
-#endif
 
          if( topval > 0.0 ){
             topval = MRI_TYPE_maxval[MRI_short] / topval ;
@@ -4972,12 +4967,7 @@ int RT_fim_recurse( RT_input *rtin , int mode )
          PCOR_get_pcor( pc_ref[0] , pc_vc[0] , vval ) ;
 
          bar = DSET_ARRAY( new_dset , FUNC_ival_thr[FUNC_COR_TYPE] ) ;
-
-#ifdef DONT_USE_MEMCPY
-         for( iv=0 ; iv < nxyz ; iv++ ) bar[iv] = 0 ;
-#else
          memset( bar , 0 , sizeof(short)*nxyz ) ;
-#endif
 
          for( iv=0 ; iv < nvox ; iv++ )
             bar[indx[iv]] = (short)(FUNC_COR_SCALE_SHORT * vval[iv] + 0.499) ;
@@ -5018,12 +5008,7 @@ int RT_fim_recurse( RT_input *rtin , int mode )
             if( fabs(abest[iv]) > topval ) topval = fabs(abest[iv]) ;
 
          bar = DSET_ARRAY( new_dset , FUNC_ival_fim[FUNC_COR_TYPE] ) ;
-
-#ifdef DONT_USE_MEMCPY
-         for( iv=0 ; iv < nxyz ; iv++ ) bar[iv] = 0 ;
-#else
          memset( bar , 0 , sizeof(short)*nxyz ) ;
-#endif
 
          if( topval > 0.0 ){
             topval = MRI_TYPE_maxval[MRI_short] / topval ;
@@ -5036,12 +5021,7 @@ int RT_fim_recurse( RT_input *rtin , int mode )
          }
 
          bar = DSET_ARRAY( new_dset , FUNC_ival_thr[FUNC_COR_TYPE] ) ;
-
-#ifdef DONT_USE_MEMCPY
-         for( iv=0 ; iv < nxyz ; iv++ ) bar[iv] = 0 ;
-#else
          memset( bar , 0 , sizeof(short)*nxyz ) ;
-#endif
 
          for( iv=0 ; iv < nvox ; iv++ )
             bar[indx[iv]] = (short)(FUNC_COR_SCALE_SHORT * rbest[iv] + 0.499) ;

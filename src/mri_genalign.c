@@ -100,6 +100,9 @@ static MRI_IMAGE * GA_smooth( MRI_IMAGE *im , int meth , float rad )
 #undef  CLIP
 #define CLIP(mm,nn) if(mm < 0)mm=0; else if(mm > nn)mm=nn
 
+static float outval = 0.0f ;                  /* value for 'outside' voxels */
+void GA_set_outval( float v ){ outval = v; }  /* 28 Feb 2007 */
+
 /*---------------------------------------------------------------*/
 /*! Interpolate an image at npp (index) points, using NN method. */
 
@@ -111,9 +114,9 @@ static void GA_interp_NN( MRI_IMAGE *fim ,
    float *far = MRI_FLOAT_PTR(fim) ;
 
    for( pp=0 ; pp < npp ; pp++ ){
-     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=0.0f; continue; }
-     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=0.0f; continue; }
-     zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ vv[pp]=0.0f; continue; }
+     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
+     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
+     zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ vv[pp]=outval; continue; }
 
      ii = (int)(xx+0.5f) ; jj = (int)(yy+0.5f) ; kk = (int)(zz+0.5f) ;
      vv[pp] = FAR(ii,jj,kk) ;
@@ -140,9 +143,9 @@ static void GA_interp_linear( MRI_IMAGE *fim ,
    float f_j00_k00, f_jp1_k00, f_j00_kp1, f_jp1_kp1, f_k00, f_kp1 ;
 
    for( pp=0 ; pp < npp ; pp++ ){
-     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=0.0f; continue; }
-     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=0.0f; continue; }
-     zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ vv[pp]=0.0f; continue; }
+     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
+     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
+     zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ vv[pp]=outval; continue; }
 
      ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
      jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
@@ -213,9 +216,9 @@ static void GA_interp_cubic( MRI_IMAGE *fim ,
          f_km1    , f_k00    , f_kp1    , f_kp2     ;
 
    for( pp=0 ; pp < npp ; pp++ ){
-     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=0.0f; continue; }
-     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=0.0f; continue; }
-     zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ vv[pp]=0.0f; continue; }
+     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
+     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
+     zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ vv[pp]=outval; continue; }
 
      ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
      jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
@@ -316,9 +319,9 @@ static void GA_interp_quintic( MRI_IMAGE *fim ,
          f_km2    , f_km1    , f_k00    , f_kp1    , f_kp2    , f_kp3     ;
 
    for( pp=0 ; pp < npp ; pp++ ){
-     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=0.0f; continue; }
-     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=0.0f; continue; }
-     zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ vv[pp]=0.0f; continue; }
+     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
+     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
+     zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ vv[pp]=outval; continue; }
 
      ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
      jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
@@ -1396,6 +1399,7 @@ MRI_IMAGE * mri_genalign_scalar_warpim( GA_setup *stup )
 {
    MRI_IMAGE *wim ;
    float     *war ;
+   float      oot ;
 
 ENTRY("mri_genalign_scalar_warpim") ;
 
@@ -1409,7 +1413,9 @@ ENTRY("mri_genalign_scalar_warpim") ;
    wim = mri_new_conforming( stup->bsim , MRI_float ) ;
    war = MRI_FLOAT_PTR(wim) ;
 
+   oot = outval ; outval = 0.0f ;
    GA_get_warped_values( 0 , NULL , war ) ;
+   outval = oot ;
 
    RETURN(wim) ;
 }
@@ -1436,6 +1442,7 @@ MRI_IMAGE * mri_genalign_scalar_warpone( int npar, float *wpar, GA_warpfunc *wfu
    float *imw , *jmw , *kmw ;
    MRI_IMAGE *wim , *inim ;
    float     *war , *inar ;
+   float oot ;
 
 ENTRY("mri_genalign_scalar_warpone") ;
 
@@ -1475,6 +1482,8 @@ ENTRY("mri_genalign_scalar_warpone") ;
    jmw = (float *)calloc(sizeof(float),NPER) ;
    kmw = (float *)calloc(sizeof(float),NPER) ;
 
+   oot = outval ; outval = 0.0f ;
+
    /*--- do (up to) NPER points at a time ---*/
 
    for( pp=0 ; pp < npt ; pp+=NPER ){
@@ -1513,6 +1522,8 @@ ENTRY("mri_genalign_scalar_warpone") ;
        break ;
      }
    }
+
+   outval = oot ;
 
    /* clip interpolated values to range of target image, if need be */
 
