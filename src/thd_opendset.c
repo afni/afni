@@ -199,8 +199,9 @@ ENTRY("THD_open_one_dataset") ;
    /*-- open it up? --*/
 
    fsize = THD_filesize(fullname) ;                         /* 06 Jan 2005 */
-   if( fsize == 0 && !THD_is_file(pathname) ) fsize = -1 ;  /* 31 Mar 2005 */
-   if (fsize > 0) { /* there's more to try should this fail ... ZSS Feb 06 */
+
+   /* if this fails, jump to ROI case   28 Feb 2007 [rickr] */
+   if( fsize > 0 || THD_is_file(pathname) ) {
       dblk = THD_init_one_datablock( dirname , fullname ) ;
       if( dblk != NULL ) {
          dset = THD_3dim_from_block( dblk ) ;
@@ -214,6 +215,7 @@ ENTRY("THD_open_one_dataset") ;
       THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
       RETURN(dset) ;
    }
+
    /* all else failed, give them the famed message */
    CHECK_FOR_DATA(fullname) ;
    
