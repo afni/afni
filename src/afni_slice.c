@@ -2356,7 +2356,7 @@ void B2SL_NAME( int nxx, int nyy, int nzz ,
          register int out , base , xx,yy , inn ;
 
          base = fixed_index * zstep ;
-#ifdef DONT_USE_MEMCPY
+#if 0
          out  = 0 ;
          for( yy=0 ; yy < nyy ; yy++ ){
             inn   = base ;

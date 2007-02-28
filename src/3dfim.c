@@ -526,12 +526,7 @@ STATUS("getting 1 ref alpha") ;
 	      }
 
             bar = DSET_ARRAY( new_dset , FUNC_ival_fim[FUNC_COR_TYPE] ) ;
-
-#ifdef DONT_USE_MEMCPY
-            for( iv=0 ; iv < nxyz ; iv++ ) bar[iv] = 0 ;
-#else
             memset( bar , 0 , sizeof(short)*nxyz ) ;
-#endif
 
             if( topval > 0.0 ){
                topval = MRI_TYPE_maxval[MRI_short] / topval ;
@@ -551,12 +546,7 @@ STATUS("getting 1 ref pcor") ;
             PCOR_get_pcor( pc_ref[0] , pc_vc[0] , vval ) ;
 
             bar = DSET_ARRAY( new_dset , FUNC_ival_thr[FUNC_COR_TYPE] ) ;
-
-#ifdef DONT_USE_MEMCPY
-            for( iv=0 ; iv < nxyz ; iv++ ) bar[iv] = 0 ;
-#else
             memset( bar , 0 , sizeof(short)*nxyz ) ;
-#endif
 
             for( iv=0 ; iv < nvox ; iv++ )
                bar[indx[iv]] = (short)(FUNC_COR_SCALE_SHORT * vval[iv] + 0.499) ;
@@ -626,12 +616,7 @@ STATUS("getting 1 ref pcor") ;
 	      }
 
             bar = DSET_ARRAY( new_dset , FUNC_ival_fim[FUNC_COR_TYPE] ) ;
-
-#ifdef DONT_USE_MEMCPY
-            for( iv=0 ; iv < nxyz ; iv++ ) bar[iv] = 0 ;
-#else
             memset( bar , 0 , sizeof(short)*nxyz ) ;
-#endif
 
             if( topval > 0.0 ){
                topval = MRI_TYPE_maxval[MRI_short] / topval ;
@@ -644,12 +629,7 @@ STATUS("getting 1 ref pcor") ;
             }
 
             bar = DSET_ARRAY( new_dset , FUNC_ival_thr[FUNC_COR_TYPE] ) ;
-
-#ifdef DONT_USE_MEMCPY
-            for( iv=0 ; iv < nxyz ; iv++ ) bar[iv] = 0 ;
-#else
             memset( bar , 0 , sizeof(short)*nxyz ) ;
-#endif
 
             for( iv=0 ; iv < nvox ; iv++ )
                bar[indx[iv]] = (short)(FUNC_COR_SCALE_SHORT * rbest[iv] + 0.499) ;

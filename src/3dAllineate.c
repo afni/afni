@@ -43,9 +43,13 @@ void AL_setup_warp_coords( int,int,int,int ,
 
 static int meth_visible[NMETH] =       /* 1 = show in -help; 0 = don't show */
   { 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1 } ;
+/* ls  sp  mi  crM nmi je  hel crA crU */
 
 static int meth_noweight[NMETH] =      /* 1 = don't allow weights, just masks */
-  { 0 , 1 , 0 , 0 , 1 , 1 , 1 , 0 , 0 } ;
+  { 0 , 1 , 0 , 0 , 0 , 1 , 0 , 0 , 0 } ;
+/* ls  sp  mi  crM nmi je  hel crA crU */
+
+static int visible_noweights ;
 
 static char *meth_shortname[NMETH] =   /* short names for terse cryptic users */
   { "ls" , "sp" , "mi" , "crM" , "nmi" , "je" , "hel" , "crA" , "crU" } ;
@@ -146,12 +150,18 @@ int main( int argc , char *argv[] )
    int replace_meth            = 0 ;             /* off by default */
    int usetemp                 = 0 ;             /* off by default */
    int nmatch_setup            = 23456 ;
+   int ignout                  = 0 ;             /* 28 Feb 2007 */
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
 
    if( argc < 2 || strcmp(argv[1],"-help")==0 ||
                    strcmp(argv[1],"-HELP")==0 || strcmp(argv[1],"-POMOC")==0 ){
+
+     visible_noweights = 0 ;
+     for( ii=0 ; ii < NMETH ; ii++ )
+       if( meth_visible[ii] && meth_noweight[ii] ) visible_noweights++ ;
+
      printf(
        "Usage: 3dAllineate [options] sourcedataset\n"
        "\n"
@@ -307,27 +317,52 @@ int main( int argc , char *argv[] )
        "                 between the source and base.\n"
        "               * '-fineblur' is experimental, and if you use it, the\n"
        "                 value should probably be small (1 mm?).\n"
+      ) ;
+
+      printf(
        "\n"
        " -autoweight = Compute a weight function using the 3dAutomask\n"
        "               algorithm plus some blurring of the base image.\n"
+      ) ;
+      if( visible_noweights ){
+        printf(
        "       **N.B.: Some cost functions do not allow -autoweight, and\n"
        "               will use -automask instead.  A warning message\n"
        "               will be printed if you run into this situation.\n"
+        ) ;
+      }
+      printf(
        " -automask   = Compute a mask function, which is like -autoweight,\n"
-       "               but the weight for a voxel is either 0 or 1.\n"
+       "               but the weight for a voxel is set to either 0 or 1.\n"
        " -autobox    = Expand the -automask function to enclose a rectangular\n"
        "               box that holds the irregular mask.\n"
-       "               [This is the default mode of operation.]\n"
+       "       **N.B.: This is the default mode of operation!\n"
        " -nomask     = Don't compute the autoweight/mask; if -weight is not\n"
-       "               used, then every voxel will be counted equally.\n"
+       "               also used, then every voxel will be counted equally.\n"
        " -weight www = Set the weighting for each voxel in the base dataset;\n"
        "               larger weights mean that voxel counts more in the cost\n"
        "               function.\n"
        "       **N.B.: The weight dataset must be defined on the same grid as\n"
        "               the base dataset.\n"
+       "       **N.B.: Even if a method does not allow -autoweight, you CAN\n"
+       "               use a weight dataset that is not 0/1 valued.  The\n"
+       "               risk is yours, of course (as always in AFNI).\n"
        " -wtprefix p = Write the weight volume to disk as a dataset with\n"
        "               prefix name 'p'.  Used with '-autoweight/mask', this option\n"
        "               lets you see what voxels were important in the allineation.\n"
+      ) ;
+
+      if( visible_noweights > 0 ){
+        printf("\n"
+               "    Method  Allows -autoweight\n"
+               "    ------  ------------------\n") ;
+        for( ii=0 ; ii < NMETH ; ii++ )
+          if( meth_visible[ii] )
+            printf("     %-4s   %s\n", meth_shortname[ii] ,
+                                       meth_noweight[ii] ? "NO" : "YES" ) ;
+      }
+
+      printf(
        "\n"
        " -warp xxx   = Set the warp type to 'xxx', which is one of\n"
        "                 shift_only         *OR* sho =  3 parameters\n"
@@ -541,6 +576,7 @@ int main( int argc , char *argv[] )
         " -wtmrad  mm   = Set autoweight/mask median filter radius to 'mm' voxels.\n"
         " -wtgrad  gg   = Set autoweight/mask Gaussian filter radius to 'gg' voxels.\n"
         " -nmsetup nn   = Use 'nn' points for the setup matching [default=23456]\n"
+        " -ignout       = Ignore voxels outside the warped source dataset.\n"
        ) ;
      } else {
        printf("\n"
@@ -565,6 +601,12 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     /*-----*/
+
+     if( strcmp(argv[iarg],"-ignout") == 0 ){               /* SECRET OPTION */
+       GA_set_outval(1.e+33); ignout = 1; iarg++; continue; /* 28 Feb 2007  */
+     }
 
      /*-----*/
 
@@ -1543,7 +1585,7 @@ int main( int argc , char *argv[] )
      }
      if( im_weig->nx != nx_base ||
          im_weig->ny != ny_base || im_weig->nz != nz_base )
-       ERROR_exit("-weight and base volumes don't match!") ;
+       ERROR_exit("-weight and base volumes don't match grid dimensions!") ;
 
    } else if( auto_weight ){  /* manufacture weight from the base */
      if( meth_noweight[meth_code-1] && auto_weight == 1 ){
@@ -1626,6 +1668,7 @@ int main( int argc , char *argv[] )
 
      if( MAT44_DET(stup.base_cmat) * MAT44_DET(stup.targ_cmat) < 0.0f )
        WARNING_message("base and source datasets have different handedness!") ;
+       WARNING_message("Alignment will proceed, but examine results carefully!");
    } else {
      stup.base_cmat = stup.targ_cmat ;
    }
