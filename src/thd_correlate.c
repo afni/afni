@@ -268,6 +268,13 @@ static int nbin=0 , nbp=0 ;
 #undef  XYC
 #define XYC(p,q) xyc[(p)+(q)*nbp]
 
+#ifndef WAY_BIG
+#  define WAY_BIG 1.e+10
+#endif
+
+#undef  GOODVAL
+#define GOODVAL(x) ((x) < WAY_BIG)
+
 /*--------------------------------------------------------------------------*/
 
 static double hpow = 0.33333333333 ;
@@ -308,7 +315,7 @@ void clear_2Dhist(void)
 
 /*--------------------------------------------------------------------------*/
 /*! Build 2D histogram of x[0..n-1] and y[0..n-1], each point optionally
-    weighted by w[0..n-1].
+    weighted by w[0..n-1] (weights are all 1 if w==NULL).
     Used in the histogram-based measures of dependence between x[] and y[i].
     If something is bad on input, nbin is set to 0.  Otherwise, these global
     variables are set:
@@ -331,6 +338,7 @@ void build_2Dhist( int n , float xbot,float xtop,float *x ,
 {
    register int ii,jj,kk ;
    float xb,xi , yb,yi , xx,yy , x1,y1 , nbb , ww ;
+   byte *good ;
 
    /* bad inputs? */
 
@@ -338,22 +346,30 @@ void build_2Dhist( int n , float xbot,float xtop,float *x ,
 
    /* get the min..max range for x data? */
 
+   good = (byte *)malloc(sizeof(byte)*n) ;         /* 28 Feb 2007 */
+   for( ii=0 ; ii < n ; ii++ )
+     good[ii] = GOODVAL(x[ii]) && GOODVAL(y[ii]) ;
+
    if( xbot >= xtop ){
-     xbot = ybot = x[0] ;
+     xbot = WAY_BIG ; xtop = -WAY_BIG ;
      for( ii=0 ; ii < n ; ii++ )
-            if( x[ii] > xtop ) xtop = x[ii] ;
-       else if( x[ii] < xbot ) xbot = x[ii] ;
-     if( xbot >= xtop ){ clear_2Dhist(); return; }
+       if( good[ii] ){
+              if( x[ii] > xtop ) xtop = x[ii] ;
+         else if( x[ii] < xbot ) xbot = x[ii] ;
+       }
+     if( xbot >= xtop ){ clear_2Dhist(); free(good); return; }
    }
 
    /* get the min..max range for y data? */
 
    if( ybot >= ytop ){
-     ybot = ybot = y[0] ;
+     ybot = WAY_BIG ; ytop = -WAY_BIG ;
      for( ii=0 ; ii < n ; ii++ )
-            if( y[ii] > ytop ) ytop = y[ii] ;
-       else if( y[ii] < ybot ) ybot = y[ii] ;
-     if( ybot >= ytop ){ clear_2Dhist(); return; }
+       if( good[ii] ){
+              if( y[ii] > ytop ) ytop = y[ii] ;
+         else if( y[ii] < ybot ) ybot = y[ii] ;
+       }
+     if( ybot >= ytop ){ clear_2Dhist(); free(good); return; }
    }
 
    if( n == n_old && nbin_old > 2 ){ /* can keep old arrays */
@@ -379,6 +395,7 @@ void build_2Dhist( int n , float xbot,float xtop,float *x ,
    xb = xbot ; xi = nbb/(xtop-xbot) ;
    yb = ybot ; yi = nbb/(ytop-xbot) ; nww = 0.0f ;
    for( ii=0 ; ii < n ; ii++ ){
+     if( !good[ii] ) continue ;  /* skip this value */
      xx = (x[ii]-xb)*xi ;
      if( xx < 0.0f ) xx = 0.0f ; else if( xx > nbb ) xx = nbb ;
      jj = (int)xx ; xx = xx - jj ; x1 = 1.0f-xx ;
@@ -410,7 +427,7 @@ void build_2Dhist( int n , float xbot,float xtop,float *x ,
      for( ii=0 ; ii < nbq ; ii++ ){ xyc[ii] *= ni; }
    }
 
-   return ;
+   free(good); return;
 }
 
 /*--------------------------------------------------------------------------*/

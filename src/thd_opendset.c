@@ -204,7 +204,7 @@ ENTRY("THD_open_one_dataset") ;
 
    fsize = THD_filesize(fullname) ;                         /* 06 Jan 2005 */
    if( fsize == 0 && !THD_is_file(fullname) ) isfile = 0;
-   else isfile = 1;
+   else                                       isfile = 1;
 
    /* if it is not a file, check the ROI case   28 Feb 2007 [rickr] */
    if( isfile ) {
