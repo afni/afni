@@ -1963,3 +1963,7 @@
 
 28 Feb 2007: fixed fsize problem in thd_opendset.c (from change to unsigned)
 
+01 Mar 2007: modified README.environment
+      - added variables AFNI_NIML_DEBUG, AFNI_NSD_ADD_NODES,
+        AFNI_NSD_TO_FLOAT and AFNI_NIML_TEXT_DATA
+
