@@ -1968,4 +1968,5 @@
       - added variables AFNI_NIML_DEBUG, AFNI_NSD_ADD_NODES,
         AFNI_NSD_TO_FLOAT and AFNI_NIML_TEXT_DATA
   * modified thd_niml.c: allowed sub-brick selection via thd_mastery
+  * modified thd_mastery.c: init master_bot/top for .niml.dset files
 
