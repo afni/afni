@@ -123,7 +123,7 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-dilate") == 0 ){
          dilate = strtol( argv[++iarg] , NULL , 10 ) ;
-	 dilate_flag = 1;
+         dilate_flag = 1;
          if( dilate < 0 )
            ERROR_exit("-dilate %s is illegal!\n",argv[iarg]);
          iarg++ ; continue ;
@@ -131,7 +131,7 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-erode") == 0 ){
          erode = strtol( argv[++iarg] , NULL , 10 ) ;
-	 erode_flag = 1;
+         erode_flag = 1;
          if( erode < 0 )
            ERROR_exit("-erode %s is illegal!\n",argv[iarg]);
          iarg++ ; continue ;
