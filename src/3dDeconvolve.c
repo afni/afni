@@ -338,9 +338,11 @@
 #ifndef FLOATIZE
 # include "matrix.h"          /* double precision */
 # define MTYPE double
+# define QEPS 1.e-6
 #else
 # include "matrix_f.h"        /* single precision */
 # define MTYPE float
+# define QEPS 1.e-4
 #endif
 
 /*------------ prototypes for routines far below (RWCox) ------------------*/
@@ -384,6 +386,9 @@ void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat ) ;
 static void vstep_print(void) ;
 
 static int show_singvals = 0 ;
+
+static int        num_CENSOR = 0 ;     /* 01 Mar 2007 */
+static inttriple *abc_CENSOR = NULL ;
 
 /*---------- Typedefs for basis function expansions of the IRF ----------*/
 
@@ -616,6 +621,19 @@ void display_help_menu()
     "[-automask]          build a mask automatically from input data        \n"
     "                      (will be slow for long time series datasets)     \n"
     "[-censor cname]      cname = filename of censor .1D time series        \n"
+    "[-CENSOR clist]      clist = list of strings that specify time indexes \n"
+    "                       to be removed from the analysis.  Each string is\n"
+    "                       of one of the following forms:                  \n"
+    "                           37 => delete global time index #37          \n"
+    "                         2:37 => delete time index #37 in run #2       \n"
+    "                       37..47 => delete global time indexes #37-47     \n"
+    "                       37-47  => same as above                         \n"
+    "                     2:37..47 => delete time indexes #37-47 in run #2  \n"
+    "                       Time indexes within each run start at 0.        \n"
+    "                       Run indexes start at 1 (just be to confusing).  \n"
+    "                       Multiple -CENSOR options may be used, or        \n"
+    "                       multiple CENSORing strings can be given at once,\n"
+    "                       separated by spaces or commas.                  \n"
     "[-concat rname]      rname = filename for list of concatenated runs    \n"
     "[-nfirst fnum]       fnum = number of first dataset image to use in the\n"
     "                       deconvolution procedure. (default = max maxlag) \n"
@@ -1154,7 +1172,7 @@ void get_options
         option_data->input1D_TR = (float)strtod(argv[nopt++],NULL) ;
         continue;
       }
-      
+
       /*-----   -censor filename   -----*/
       if (strcmp(argv[nopt], "-censor") == 0)
       {
@@ -1168,6 +1186,55 @@ void get_options
         continue;
       }
 
+      /*-----  -CENSOR clist -----*/
+
+      if( strcmp(argv[nopt],"-CENSOR") == 0 ){   /* RWCox - 01 Mar 2007 */
+        NI_str_array *nsar ;
+        char *src=malloc(1), *cpt, *dpt ;
+        int ns, r,a,b, nerr=0 ; inttriple rab ;
+
+        *src = '\0' ;
+        for( nopt++ ; nopt < argc && argv[nopt][0] != '-' ; nopt++ ){
+          ns = strlen(argv[nopt]) ; if( ns == 0 ) continue ;
+          src = realloc(src,strlen(src)+ns+2) ;
+          strcat(src," ") ; strcat(src,argv[nopt]) ;
+        }
+        if( *src == '\0' ) DC_error("Bad argument after -CENSOR") ;
+        nsar = NI_decode_string_list( src , "," ) ;
+        for( ns=0 ; ns < nsar->num ; ns++ ){
+          cpt = nsar->str[ns] ; dpt = strchr(cpt,':') ; r = 0 ;
+          if( dpt != NULL ){                /* run: */
+            r = (int)strtol(cpt,NULL,10) ;
+            if( r <= 0 ){
+              ERROR_message("-CENSOR %s: run index '%d' is bad!",nsar->str[ns],r);
+              nerr++ ;
+            }
+            cpt = dpt+1 ;
+          }
+          a = (int)strtol(cpt,&dpt,10) ;
+          if( a < 0 ){
+            ERROR_message("-CENSOR %s: time index '%d' is bad!",nsar->str[ns],a);
+            nerr++ ;
+          }
+          if( *dpt == '\0' ){
+            b = a ;
+          } else {
+            for( dpt++ ; *dpt != '\0' && !isdigit(*dpt) ; dpt++ ) ; /*nada*/
+            b = (int)strtol(dpt,NULL,10) ;
+            if( b < a || b < 0 ){
+              ERROR_message("-CENSOR %s: time indexes '%d' to '%d' is bad!",
+                            nsar->str[ns],a,b);
+              nerr++ ;
+            }
+          }
+          abc_CENSOR = (inttriple *)realloc( abc_CENSOR ,
+                                             sizeof(inttriple)*(num_CENSOR+1) );
+          rab.a = r; rab.b = a; rab.c = b; abc_CENSOR[num_CENSOR++] = rab ;
+        }
+        if( nerr > 0 ) ERROR_exit("Can't proceed after -CENSOR errors!") ;
+        NI_delete_str_array(nsar) ; free(src) ;
+        continue ;  /* next option */
+      }
 
       /*-----   -concat filename   -----*/
       if (strcmp(argv[nopt], "-concat") == 0)
@@ -1287,6 +1354,10 @@ void get_options
         option_data->quiet = 1;  verb = 0 ;
         nopt++;
         continue;
+      }
+
+      if (strncmp(argv[nopt],"-verb",5) == 0){  /* 01 Mar 2007 */
+        verb++ ; nopt++ ; continue ;
       }
 
       /*-----   -progress n  -----*/
@@ -2054,6 +2125,7 @@ void read_input_data
 ENTRY("read_input_data") ;
 
   /*----- Initialize local variables -----*/
+
   num_stimts = option_data->num_stimts;
   num_glt    = option_data->num_glt;
   baseline   = option_data->stim_base;
@@ -2062,6 +2134,7 @@ ENTRY("read_input_data") ;
 
 
   /*----- Read the input stimulus time series -----*/
+
   if (num_stimts > 0)
     {
       int nerr=0 ;
@@ -2138,9 +2211,9 @@ ENTRY("read_input_data") ;
   *num_blocks = 0 ;  /* 04 Aug 2004 */
 
   /*----- Read the input fMRI measurement data -----*/
-  if (option_data->nodata)
+
+  if (option_data->nodata)  /*----- No input data -----*/
     {
-      /*----- No input data -----*/
       if (num_stimts <= 0)
         DC_error ("Must have num_stimts > 0 for -nodata option");
 
@@ -2163,7 +2236,7 @@ ENTRY("read_input_data") ;
       nxyz = 0;
     }
 
-  else if (option_data->input1D_filename != NULL)
+  else if (option_data->input1D_filename != NULL) /*----- 1D input file -----*/
     {
 
       if( option_data->num_slice_base > 0 )
@@ -2186,9 +2259,9 @@ ENTRY("read_input_data") ;
       if (verb) fprintf(stderr,"++ Notice: 1D TR is %.3fsec\n", basis_TR);  
    }
 
-  else if (option_data->input_filename != NULL)
+  else if (option_data->input_filename != NULL) /*----- 3d+time dataset -----*/
     {
-      /*----- Read the input 3d+time dataset -----*/
+      if( verb ) INFO_message("reading dataset %s",option_data->input_filename);
       *dset_time = THD_open_dataset (option_data->input_filename);
       CHECK_OPEN_ERROR(*dset_time,option_data->input_filename);
       DSET_load(*dset_time) ; CHECK_LOAD_ERROR(*dset_time) ;
@@ -2225,8 +2298,8 @@ ENTRY("read_input_data") ;
 
       if( DSET_IS_TCAT(*dset_time) ){  /** 04 Aug 2004: manufacture block list **/
         if( option_data->concat_filename != NULL ){
-          fprintf(stderr,
-             "** WARNING: '-concat %s' ignored: input dataset is auto-catenated\n" ,
+          WARNING_message(
+             "'-concat %s' ignored: input dataset is auto-catenated\n" ,
              option_data->concat_filename ) ;
           option_data->concat_filename = NULL ;
         }
@@ -2294,7 +2367,8 @@ ENTRY("read_input_data") ;
     }
 
 
-  /*----- Check number of data points -----*/
+  /*----- Check number of data (time) points -----*/
+
   if (nt <= 0)      DC_error ("No time points?");
   option_data->nt = nt;
   if (nxyz < 0)     DC_error ("Program initialization error: nxyz < 0");
@@ -2302,8 +2376,8 @@ ENTRY("read_input_data") ;
 
   voxel_num = nxyz ;  /* 31 Aug 2004 */
 
+  /*----- Read the block list (-concat option) -----*/
 
-  /*----- Read the block list -----*/
   if (option_data->concat_filename == NULL)
     {
       if( *num_blocks <= 0 ){   /* make one big block, if not already set */
@@ -2314,7 +2388,7 @@ ENTRY("read_input_data") ;
     }
   else
     {
-      float * f = NULL;
+      float *f = NULL;
 
       f = read_time_series (option_data->concat_filename, num_blocks);
       if (*num_blocks < 1)
@@ -2454,6 +2528,7 @@ for( ii=0 ; ii < nt ; ii++ ){
 
 
   /*----- Determine total number of parameters in the model -----*/
+
   qp = (option_data->polort + 1) * (*num_blocks);
   q = qp;   /* number of baseline parameters */
   p = qp;   /* number of total parameters */
@@ -2472,7 +2547,8 @@ for( ii=0 ; ii < nt ; ii++ ){
   option_data->q  = q;   /* number of baseline parameters (polort+stim_base) */
   option_data->qp = qp;  /* number of polort baseline parameters */
 
-  /*----- Read the censorship file -----*/
+  /*----- Read the censorship file (John Ashcroft, we miss you) -----*/
+
   if (option_data->censor_filename != NULL)
     {
       /*----- Read the input censor time series array -----*/
@@ -2495,6 +2571,47 @@ for( ii=0 ; ii < nt ; ii++ ){
       (*censor_array)[it] = 1.0;
     }
 
+  /*----- 01 Mar 2007: also apply the -CENSOR commands -----*/
+
+  { int ic , rr , aa,bb , nerr=0 , bbot,btop ;
+    for( ic=0 ; ic < num_CENSOR ; ic++ ){
+      rr = abc_CENSOR[ic].a ;
+      aa = abc_CENSOR[ic].b ; if( aa < 0  ) continue ;
+      bb = abc_CENSOR[ic].c ; if( bb < aa ) continue ;
+      if( rr > 0 ){
+        if( rr > *num_blocks ){
+          ERROR_message("-CENSOR %d:%d-%d has run index out of range 1..%d",
+                        rr,aa,bb , *num_blocks ) ;
+          nerr++ ; aa = -66666666 ;
+        } else {
+          bbot = (*block_list)[rr-1] ;
+          btop = (rr < *num_blocks) ? (*block_list)[rr]-1 : nt-1 ;
+          if( aa+bbot > btop ){
+            WARNING_message("-CENSOR %d:%d-%d has start index past end of run - IGNORING",
+                            rr,aa,bb ) ; aa = -66666666 ;
+          } else if( bb+bbot > btop ){ 
+            WARNING_message("-CENSOR %d:%d-%d has stop index past end of run - STOP THERE",
+                            rr,aa,bb ) ;
+          }
+          aa += bbot ; bb += bbot ; if( bb > btop ) bb = btop ;
+        }
+      } else {
+        if( aa >= nt ){
+          WARNING_message("-CENSOR %d..%d has start index past end of data - IGNORING",
+                          rr,aa,bb ) ; aa = -66666666 ;
+        } else if( bb > nt ){
+          WARNING_message("-CENSOR %d..%d has stop index past end of data - STOP THERE",
+                          rr,aa,bb ) ; bb = nt-1 ;
+        }
+      }
+      if( aa < 0  || aa >= nt ) continue ;  /* nothing to do */
+      if( bb < aa || bb >= nt ) continue ;
+      if( verb > 1 ) ININFO_message("-CENSOR time indexes %d..%d",aa,bb) ;
+      for( it=aa ; it <= bb ; it++ ) (*censor_array)[it] = 0.0f;
+    }
+    if( nerr > 0 ) ERROR_exit("Can't continue! Fix the -CENSOR error%s",
+                              (nerr==1) ? "." : "s." ) ;
+  }
 
   /*----- Build symbolic list of stim names and index ranges [29 Jul 2004] -----*/
 
@@ -2527,6 +2644,7 @@ for( ii=0 ; ii < nt ; ii++ ){
   }
 
   /*----- Read the general linear test matrices -----*/
+
   if (num_glt > 0)
     {
       *glt_cmat = (matrix *) malloc (sizeof(matrix) * num_glt);
@@ -2555,6 +2673,8 @@ for( ii=0 ; ii < nt ; ii++ ){
 #endif
       }
     }
+
+   /*----- done done done -----*/
 
    EXRETURN ;
 }
@@ -2842,7 +2962,7 @@ void check_for_valid_inputs
 
       irb = it - block_list[ib];
 
-      if ((irb >= NFirst) && (irb <= NLast) && (censor_array[it]))
+      if ((irb >= NFirst) && (irb <= NLast) && (censor_array[it] != 0.0f))
       {
         (*good_list)[N] = it;
         N++;
@@ -4228,7 +4348,7 @@ ENTRY("calculate_results") ;
   /*-- 14 Jul 2004: check matrix for bad columns - RWCox --*/
 
   { int *iar , k , nerr=0 ;
-    iar = matrix_check_columns( xdata , 1.e-7 ) ;
+    iar = matrix_check_columns( xdata , QEPS ) ;
     if( iar != NULL ){
       fprintf(stderr,"** WARNING: Problems with the X matrix columns:\n") ;
       for( k=0 ; iar[2*k] >= 0 ; k++ ){
@@ -6238,8 +6358,7 @@ void JPEG_matrix_gray( matrix X , char *fname )
          jpeg_compress = 95;
     }
    else jpeg_compress = 95;
-   
-      
+
    jpfilt = (char *)malloc( sizeof(char)*(strlen(pg)+strlen(fname)+32) ) ;
 
    sprintf( jpfilt , "%s -quality %d > %s" , pg , jpeg_compress, fname ) ;
