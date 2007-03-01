@@ -192,6 +192,16 @@ typedef struct complex { float r , i ; } complex ;
 typedef struct { float a,b ; } floatpair ;
 #endif
 
+#ifndef TYPEDEF_intpair
+#define TYPEDEF_intpair
+typedef struct { int i,j ; } intpair ;
+#endif
+
+#ifndef TYPEDEF_inttriple
+#define TYPEDEF_inttriple
+typedef struct { int a,b,c ; } inttriple ;
+#endif
+
 /*-------*/
 
 /*! Triple to hold RGB bytes. */
