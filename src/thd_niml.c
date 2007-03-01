@@ -9,7 +9,7 @@
 /* globals to control I/O of niml data      3 Aug 2006 [rickr] */
 typedef struct {
     int add_nodes;       /* add to output    (AFNI_NSD_ADD_NODES == Y)  */
-    int debug;           /* debug level      (AFNI_NI_DEBUG level)      */
+    int debug;           /* debug level      (AFNI_NIML_DEBUG level)    */
     int to_float;        /* convert to float (AFNI_NSD_TO_FLOAT == Y)   */
     int write_mode;      /* NI_TEXT_MODE     (AFNI_NIML_TEXT_DATA == Y) */
 } ni_globals;
@@ -867,7 +867,8 @@ int THD_add_sparse_data(THD_3dim_dataset * dset, NI_group * ngr )
     NI_element     * nel = NULL;
     float          * data;
     void          ** elist = NULL;
-    int              nvals, ind, sub, swap, len;
+    int              nvals, ind, mind, sub, swap, len;
+    int            * mlist = NULL;  /* master list */
 
 ENTRY("THD_add_sparse_data");
 
@@ -879,13 +880,19 @@ ENTRY("THD_add_sparse_data");
     if( ind > 0 ) { nel = (NI_element *)elist[0]; NI_free(elist); }
     if( !nel ) RETURN(0);
 
+    /* if mlist is NULL, no mastery */
+    if( DBLK_IS_MASTERED(blk) ) mlist = blk->master_ival;
+
     /*-- verify sizes --*/
     if( nel->vec_num != nvals )
     {
         if(gni.debug)
+        {
             fprintf(stderr,"** TASD: vec_num = %d, but nvals = %d\n",
                     nel->vec_num, nvals);
-        RETURN(0);
+            if( mlist ) fprintf(stderr,"   (dataset is mastered)\n");
+        }
+        if( !mlist ) RETURN(0); /* no mastery means failure here */
     }
     if( nel->vec_len != DSET_NX(dset) )
     {
@@ -895,16 +902,17 @@ ENTRY("THD_add_sparse_data");
     }
 
     /*-- verify types --*/
-    for( ind = 0; ind < nel->vec_num; ind++ )
+    for( ind = 0; ind < nvals; ind++ )
     {
-        if( nel->vec_typ[ind] != NI_FLOAT )
+        mind = mlist ? mlist[ind] : ind;  /* maybe use master index */
+        if( nel->vec_typ[mind] != NI_FLOAT )
         {
-            if(gni.debug) fprintf(stderr,"** TASD: vec[%d] not float\n",ind);
+            if(gni.debug) fprintf(stderr,"** TASD: vec[%d] not float\n",mind);
             RETURN(0);
         }
-        else if( ! nel->vec[ind] )
+        else if( ! nel->vec[mind] )
         {
-            if(gni.debug) fprintf(stderr,"** TASD: vec[%d] not filled!\n",ind);
+            if(gni.debug) fprintf(stderr,"** TASD: vec[%d] not filled!\n",mind);
             RETURN(0);
         }
     }
@@ -916,15 +924,16 @@ ENTRY("THD_add_sparse_data");
 
     /*-- we seem to have all of the data, now copy it --*/
     sub = 0;
-    for( ind = 0; ind < nel->vec_num; ind++ )
+    for( ind = 0; ind < nvals; ind++ )
     {
+        mind = mlist ? mlist[ind] : ind;  /* maybe use master index */
         data = (float *)XtMalloc(len * sizeof(float));
         if(!data){fprintf(stderr,"**ASD alloc fail: %d bytes\n",len);RETURN(0);}
-        memcpy(data, nel->vec[ind], len * sizeof(float));
+        memcpy(data, nel->vec[mind], len * sizeof(float));
         if( swap ) nifti_swap_4bytes(len, data);
         mri_fix_data_pointer(data, DBLK_BRICK(blk,sub));
         sub++;
-        NI_free(nel->vec[ind]);  nel->vec[ind] = NULL;
+        NI_free(nel->vec[mind]);  nel->vec[mind] = NULL;
     }
 
     RETURN(nvals);
@@ -1401,7 +1410,7 @@ ENTRY("set_ni_globs_from_env");
     /* if datasets don't have nodes, the user may want to add a default list */
     gni.add_nodes = AFNI_yesenv("AFNI_NSD_ADD_NODES");        /* 30 Aug 2006 */
 
-    gni.debug = AFNI_numenv("AFNI_NI_DEBUG");  /* maybe the user wants info */
+    gni.debug = AFNI_numenv("AFNI_NIML_DEBUG"); /* maybe the user wants info */
 
     /* if having no conversion is desired, block it */
     gni.to_float = AFNI_noenv("AFNI_NSD_TO_FLOAT") ? 0 : 1;
