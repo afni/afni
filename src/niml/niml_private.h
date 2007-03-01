@@ -36,7 +36,10 @@ typedef struct {
 
 /*! A pair of integers (what did you think it was?). */
 
+#ifndef TYPEDEF_intpair
+#define TYPEDEF_intpair
 typedef struct { int i,j ; } intpair ;
+#endif
 
 /*! An array of integers. */
 

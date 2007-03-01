@@ -6125,3 +6125,4 @@
 
 01 Mar 2007
  * Add dilation to -automask option in 3dAllineate.  And -ignout option.
+ * Add -CENSOR to 3dDeconvolve.c.
