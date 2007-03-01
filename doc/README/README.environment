@@ -2280,6 +2280,55 @@ If this variable is set to YES, then the AFNI GUI will not allow popup or
 popdown menus to be 'torn off'.  The default is to enable tear off for most
 menus, but this may cause bad things on some platforms (like program death).
 
+-------------------------------
+Variable: AFNI_PLUGOUT_TCP_BASE
+-------------------------------
+This integer will override the base TCP port used by afni to listen for
+plugouts.  This allows multiple instances of afni on one machine, where
+each can listen for plugouts.  Valid port numbers are 1024..65535.
+
+-----------------------------------
+Variable: AFNI_IMAGE_TICK_DIV_IN_MM
+-----------------------------------
+If this YES/NO variable is set to YES, then the Tick Div. value in an
+image window will be interpreted as a separation distance, in mm, as
+opposed to the number of tick divisions along each edge.  In that case,
+a larger value would produce fewer ticks, as they would be farther apart.
+
+----------------------------------------------------------------------
+--- variables specific to NIML I/O
+----------------------------------------------------------------------
+
+-----------------------------------
+Variable: AFNI_NIML_DEBUG
+-----------------------------------
+This integer sets the debugging level in some niml I/O routines, particularly
+those in thd_niml.c.  Currently used values range from 0 to 3.
+
+-----------------------------------
+Variable: AFNI_NSD_ADD_NODES
+-----------------------------------
+If this YES/NO variable is set to YES, then when a NI_SURF_DSET dataset
+is written to disk, if it has no node list attribute, a default list will
+be created.
+
+-----------------------------------
+Variable: AFNI_NSD_TO_FLOAT
+-----------------------------------
+If this YES/NO variable is set to NO, then any necessary conversion of
+NI_SURF_DSET datasets to type float will be blocked.  Otherwise, all such
+datasets will be written as float.
+
+-----------------------------------
+Variable: AFNI_NIML_TEXT_DATA
+-----------------------------------
+If this YES/NO variable is set to YES, then NI_SURF_DSET datasets will be
+written with data in text format.  Otherwise, data will be in binary.
+
+----------------------------------------------------------------------
+--- END: variables specific to NIML I/O
+----------------------------------------------------------------------
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
@@ -2364,19 +2413,3 @@ Variable: AFNI_GLTSYM_PRINT
 If this YES/NO variable is set to YES, then the GLT matrices generated
 in 3dDeconvolve by the "-gltsym" option will be printed to the screen
 when the program starts up.
-
--------------------------------
-Variable: AFNI_PLUGOUT_TCP_BASE
--------------------------------
-This integer will override the base TCP port used by afni to listen for
-plugouts.  This allows multiple instances of afni on one machine, where
-each can listen for plugouts.  Valid port numbers are 1024..65535.
-
------------------------------------
-Variable: AFNI_IMAGE_TICK_DIV_IN_MM
------------------------------------
-If this YES/NO variable is set to YES, then the Tick Div. value in an
-image window will be interpreted as a separation distance, in mm, as
-opposed to the number of tick divisions along each edge.  In that case,
-a larger value would produce fewer ticks, as they would be farther apart.
-
