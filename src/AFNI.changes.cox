@@ -6122,3 +6122,6 @@
 
 27 Feb 2007
  * AFNI_DISABLE_TEAROFF environment variable.
+
+01 Mar 2007
+ * Add dilation to -automask option in 3dAllineate.  And -ignout option.
