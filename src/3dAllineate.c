@@ -31,7 +31,7 @@ static float wt_gausmooth = 4.50f ;
 
 static int verb           = 1 ;       /* somewhat on by default */
 
-MRI_IMAGE * mri_weightize( MRI_IMAGE *, int ) ;  /* prototype */
+MRI_IMAGE * mri_weightize( MRI_IMAGE *, int , int ) ;  /* prototype */
 
 void AL_setup_warp_coords( int,int,int,int ,
                            int *, float *, mat44,
@@ -46,7 +46,7 @@ static int meth_visible[NMETH] =       /* 1 = show in -help; 0 = don't show */
 /* ls  sp  mi  crM nmi je  hel crA crU */
 
 static int meth_noweight[NMETH] =      /* 1 = don't allow weights, just masks */
-  { 0 , 1 , 0 , 0 , 0 , 1 , 0 , 0 , 0 } ;
+  { 0 , 1 , 1 , 0 , 0 , 1 , 1 , 0 , 0 } ;
 /* ls  sp  mi  crM nmi je  hel crA crU */
 
 static int visible_noweights ;
@@ -108,6 +108,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset_weig = NULL ;
    int auto_weight             = 3 ;            /* -autobbox == default */
    char *auto_string           = "-autobox" ;
+   int auto_dilation           = 0 ;            /* for -automask+N */
    float dxyz_mast             = 0.0f ;         /* not implemented */
    int meth_code               = GA_MATCH_HELLINGER_SCALAR ;
    int sm_code                 = GA_SMOOTH_GAUSSIAN ;
@@ -334,6 +335,8 @@ int main( int argc , char *argv[] )
       printf(
        " -automask   = Compute a mask function, which is like -autoweight,\n"
        "               but the weight for a voxel is set to either 0 or 1.\n"
+       "       **N.B.: '-automask+3' means to compute the mask function, and\n"
+       "               then dilate it outwards by 3 voxels.\n"
        " -autobox    = Expand the -automask function to enclose a rectangular\n"
        "               box that holds the irregular mask.\n"
        "       **N.B.: This is the default mode of operation!\n"
@@ -695,9 +698,12 @@ int main( int argc , char *argv[] )
        auto_weight = 1 ; auto_string = "-autoweight" ; iarg++ ; continue ;
      }
 
-     if( strncmp(argv[iarg],"-automask",8) == 0 ){
+     if( strncmp(argv[iarg],"-automask",9) == 0 ){
        if( dset_weig != NULL ) ERROR_exit("Can't use -automask AND -weight!") ;
-       auto_weight = 2 ; auto_string = "-automask" ; iarg++ ; continue ;
+       auto_weight = 2 ; auto_string = argv[iarg] ;
+       if( auto_string[9] == '+' )
+         auto_dilation = (int)strtod(auto_string+10,NULL) ;
+       iarg++ ; continue ;
      }
 
      if( strncmp(argv[iarg],"-noauto",6) == 0 ||
@@ -1596,7 +1602,7 @@ int main( int argc , char *argv[] )
        INFO_message("Computing %s",auto_string) ;
      }
      if( verb > 1 ) ctim = COX_cpu_time() ;
-     im_weig = mri_weightize( im_base , auto_weight ) ;
+     im_weig = mri_weightize( im_base , auto_weight , auto_dilation ) ;
      if( verb > 1 ) INFO_message("%s CPU time = %.1f s" ,
                                  auto_string , COX_cpu_time()-ctim ) ;
    }
@@ -2436,7 +2442,7 @@ int main( int argc , char *argv[] )
     If acod == 2, then make a binary mask at the end.
 -----------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod )
+MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod , int ndil )
 {
    float *wf,clip,clip2 ;
    int xfade,yfade,zfade , nx,ny,nz,nxy,nxyz , ii,jj,kk,ff ;
@@ -2512,9 +2518,20 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod )
 
 #undef  BPAD
 #define BPAD 4
-   if( acod == 2 || acod == 3 ){
+   if( acod == 2 || acod == 3 ){  /* binary weight: mask=2 or maskbox=3 */
      if( verb > 1 ) ININFO_message("Weightize: binarizing") ;
      for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] != 0.0f ) wf[ii] = 1.0f ;
+     if( ndil > 0 ){  /* 01 Mar 2007: dilation */
+       byte *mmm = (byte *)malloc(sizeof(byte)*nxyz) ;
+       if( verb > 1 ) ININFO_message("Weightize: dilating") ;
+       for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] != 0.0f) ;
+       for( ii=0 ; ii < ndil ; ii++ ){
+         THD_mask_dilate     ( nx,ny,nz , mmm , 3 ) ;
+         THD_mask_fillin_once( nx,ny,nz , mmm , 2 ) ;
+       }
+       for( ii=0 ; ii < nxyz ; ii++ ) wf[ii] = (float)mmm[ii] ;
+       free(mmm) ;
+     }
      if( acod == 3 ){  /* boxize */
        int xm,xp , ym,yp , zm,zp ;
        MRI_autobbox_clust(0) ;
