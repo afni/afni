@@ -46,7 +46,7 @@ static int meth_visible[NMETH] =       /* 1 = show in -help; 0 = don't show */
 /* ls  sp  mi  crM nmi je  hel crA crU */
 
 static int meth_noweight[NMETH] =      /* 1 = don't allow weights, just masks */
-  { 0 , 1 , 1 , 0 , 0 , 1 , 1 , 0 , 0 } ;
+  { 0 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 } ;
 /* ls  sp  mi  crM nmi je  hel crA crU */
 
 static int visible_noweights ;
