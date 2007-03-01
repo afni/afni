@@ -933,7 +933,9 @@ ENTRY("THD_add_sparse_data");
         if( swap ) nifti_swap_4bytes(len, data);
         mri_fix_data_pointer(data, DBLK_BRICK(blk,sub));
         sub++;
-        NI_free(nel->vec[mind]);  nel->vec[mind] = NULL;
+
+        /* we can only nuke the old stuff if we know we're done with it */
+        if( !mlist ){ NI_free(nel->vec[mind]);  nel->vec[mind] = NULL; }
     }
 
     RETURN(nvals);
