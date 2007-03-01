@@ -135,8 +135,9 @@ ENTRY("THD_open_dataset") ;
    /* 21 Feb 2001: if present, load the sub-range data */
 
    /* THD_init_one_datablock() was not called   14 Apr 2006 [rickr] */
-   if( STRING_HAS_SUFFIX(dname,".hdr") || STRING_HAS_SUFFIX(dname,".nia") ||
-       STRING_HAS_SUFFIX(dname,".nii") || STRING_HAS_SUFFIX(dname,".nii.gz")){
+   if( STRING_HAS_SUFFIX(dname,".hdr") || STRING_HAS_SUFFIX(dname,".nia")    ||
+       STRING_HAS_SUFFIX(dname,".nii") || STRING_HAS_SUFFIX(dname,".nii.gz") ||
+       STRING_HAS_SUFFIX(dname,".niml.dset") ) {
       dset->dblk->master_bot = 1.0 ;
       dset->dblk->master_top = 0.0 ;
    }
