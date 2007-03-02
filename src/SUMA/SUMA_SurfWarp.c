@@ -5,10 +5,58 @@
 /******************* Begin optimizing functions here ************************************************/
 /* DON'T FORGET TO ADD FUNCTIONS TO THE SUMA_SURFWARP.H FILE!!! */
 
+double Matrix_Condition_Num (matrix M, FILE *condition_num)
+{
+   static char FuncName[]={"Matrix_Condition_Num"};
+   double *ev, ebot, emin, emax, cond = 0.0; 
+   int i, nsmall=0 ;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_ENTRY;
+   
+   #ifndef PSINV_EPS
+   #define PSINV_EPS 1.e-12
+   #endif
+   
+   ev = matrix_singvals( M ) ;
+   emax = 1.e-38 ;
+   for( i=0 ; i < M.cols ; i++ ){
+      if( ev[i] > emax ) emax = ev[i] ;
+   }
+   
+   fprintf(condition_num, "E = [\n");
+   for (i=0 ; i < M.cols ; i++ ){
+      fprintf(condition_num, "%f\n", ev[i]);
+   }
+   fprintf(condition_num, "];\n \n");
+   
+   ebot = sqrt(PSINV_EPS)*emax ; emin = 1.e+38 ;
+   for( i=0 ; i < M.cols ; i++ ){
+      if( ev[i] >= ebot && ev[i] < emin ) emin = ev[i] ;
+      if( ev[i] <  ebot ) nsmall++ ;
+   }
+   if( nsmall > 0 ){
+      fprintf(stderr,
+        "** WARNING: Largest singular value=%g;"
+        "            Implies strong collinearity in the input regressors\n", emax ) ;
+   }
+   
+   if(LocalHead) fprintf(stderr,"min ev=%g  max ev=%g\n",emin,emax ) ;
+
+   free((void *)ev) ;
+   if( emin <= 0.0 || emax <= 0.0 ){
+      fprintf(condition_num,"** Matrix condition:  UNDEFINED: "
+                     "min ev=%g  max ev=%g  ** VERY BAD **\n",emin,emax ) ;
+   } else {
+      cond = emax/emin ;
+      fprintf(condition_num,"Matrix condition : %f\n", cond) ;
+   }
+ SUMA_RETURN(cond);
+}
+
 double Optimization_Kernel(MyCircleOpt *opt, double theta)
 {
    static char FuncName[]={"Optimization_Kernel"};
-   double expand;
+   double expand = 0.0;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
   
@@ -17,13 +65,15 @@ double Optimization_Kernel(MyCircleOpt *opt, double theta)
          } else { expand = 1.0; }
    }
   
+   expand = exp(-0.5*theta*theta); 
+  
    SUMA_RETURN(expand);
 }
 
 double Deformation_Kernel(MyCircleOpt *opt, double theta)
 {
    static char FuncName[]={"Deformation_Kernel"};
-   double expand;
+   double expand = 0.0;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
    
@@ -322,29 +372,33 @@ SUMA_Boolean Perturbations(   MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve,
    SUMA_RETURN(YUP);
 }
 
-SUMA_Boolean Print_Matrix( MyCircleOpt *opt, matrix M ) /* Assumes # of rows and # of columns depend on # of control points. */
+SUMA_Boolean Print_Matrix( MyCircleOpt *opt, matrix M, FILE *fp ) /* Assumes # of rows and # of columns depend on # of control points. */
 {
    static char FuncName[]={"Print_Matrix"};
    int r, c, r3, c3, k;
+   FILE *fpl = NULL;  /* fp local */
    
    SUMA_Boolean LocalHead = NOPE;
-
    SUMA_ENTRY;
    
-   fprintf(SUMA_STDERR, "[\n");
+   if(fp) fpl = fp;
+   else fpl = SUMA_STDERR;
+   
+   fprintf(fpl, "[\n");
    for (r=0; r<opt->N_ctrl_points; ++r) {
       for (k=0; k<3; ++k) {
          for(c=0; c<opt->N_ctrl_points; ++c) { 
-            fprintf (SUMA_STDERR,"%11.8f   %11.8f   %11.8f   ", 
+            fprintf (fpl,"%11.8f   %11.8f   %11.8f   ", 
                                     M.elts [ (3*r+k) ][ (3*c  ) ],
                                     M.elts [ (3*r+k) ][ (3*c+1) ],
                                     M.elts [ (3*r+k) ][ (3*c+2) ]);
          }
-         fprintf(SUMA_STDERR,"\n");
+         fprintf(fpl,"\n");
       }
    }
-   fprintf(SUMA_STDERR, "];\n"); 
-  
+   fprintf(fpl, "];\n\n"); 
+   
+   fpl = NULL;
    SUMA_RETURN(YUP);
 }
 
@@ -381,21 +435,22 @@ SUMA_Boolean Rotation_Matrix( MyCircleOpt *opt, vector X, matrix M )
       }
    } 
    
-   if(LocalHead) Print_Matrix(opt, M);
+   if(LocalHead) Print_Matrix(opt, M, NULL);
    
    SUMA_RETURN(YUP);
 }
 
 /* See Snip_2.c for Sm2SD0 function.  Function for plotting Sm, but Sm isn't what we want to plot. */
 
-SUMA_Boolean Change_in_Energy( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Perturb_Vec, SUMA_MX_VEC *Del_S ) 
+SUMA_Boolean Change_in_Energy(   MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Perturb_Vec, 
+                                 SUMA_MX_VEC *Del_S, FILE *condition_num, FILE *condition_num_only) 
 {
    static char FuncName[]={"Change_in_Energy"};
    matrix Kern, Kern_p, delKern, KernI, delKernI, Xm_t, A, B;
    matrix *nullptr = NULL;
    vector Xm, Xm_mid, Xm_p, Pert, del_S1, del_S2, del_SF; 
    int nr, nc, i, i3, q, m, p, r, c, k, j, j3; 
-   double mag_mid, mag_p;
+   double mag_mid, mag_p, cond = 0.0;
    double *Cp_list = NULL, *dp = NULL, *dp_m1 = NULL, *dp_q = NULL;
    
    SUMA_Boolean LocalHead = NOPE;
@@ -541,20 +596,32 @@ SUMA_Boolean Change_in_Energy( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA
                }
 
                Rotation_Matrix(opt, Xm_mid, Kern);
+               
+               /* This is the matrix whose condition number should be checked. */
+               if(i<1 && q<1 && p<1) {
+                  fprintf(condition_num, "Kern (m=%d) = ", m);
+                  Print_Matrix(opt, Kern, condition_num);
+                  cond = Matrix_Condition_Num( Kern, condition_num );
+                  fprintf(condition_num, "%f\n", cond);
+                  fprintf(condition_num_only, "%f\n", cond);
+               }
+               
+               
+               
                matrix_psinv(Kern, nullptr, &KernI);
                if(LocalHead) { 
-                  fprintf(SUMA_STDERR, "\nKern = ");  Print_Matrix(opt, Kern); 
-                  fprintf(SUMA_STDERR, "\nKernI = "); Print_Matrix(opt, KernI); 
+                  fprintf(SUMA_STDERR, "\nKern = ");  Print_Matrix(opt, Kern, NULL); 
+                  fprintf(SUMA_STDERR, "\nKernI = "); Print_Matrix(opt, KernI, NULL); 
                }
    
                Rotation_Matrix(opt, Xm_p, Kern_p);
-               if(LocalHead) { fprintf(SUMA_STDERR, "\nKern_p = ");  Print_Matrix(opt, Kern_p); }
+               if(LocalHead) { fprintf(SUMA_STDERR, "\nKern_p = ");  Print_Matrix(opt, Kern_p, NULL); }
 
                /* Calculate delta K */
                matrix_subtract(Kern_p, Kern, &delKern);
 
-               if(LocalHead) { fprintf(SUMA_STDERR, "\ndelKern = "); Print_Matrix(opt, delKern); }
-               if(LocalHead) { fprintf(SUMA_STDERR, "\nKernI = "); Print_Matrix(opt, KernI); }
+               if(LocalHead) { fprintf(SUMA_STDERR, "\ndelKern = "); Print_Matrix(opt, delKern, NULL); }
+               if(LocalHead) { fprintf(SUMA_STDERR, "\nKernI = "); Print_Matrix(opt, KernI, NULL); }
 
                /*****************************/
                matrix_initialize(&A);
@@ -567,7 +634,7 @@ SUMA_Boolean Change_in_Energy( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA
                matrix_multiply(A, KernI, &B);
                matrix_scale(-1.0, B, &delKernI);
 
-               if(LocalHead) { fprintf(SUMA_STDERR, "\ndelKernI = "); Print_Matrix(opt, delKernI); }
+               if(LocalHead) { fprintf(SUMA_STDERR, "\ndelKernI = "); Print_Matrix(opt, delKernI, NULL); }
 
                matrix_destroy(&A);
                matrix_destroy(&B);
@@ -772,9 +839,9 @@ double S_energy( MyCircleOpt *opt, SUMA_MX_VEC *VecX , SUMA_GENERIC_ARGV_PARSE *
       if(LocalHead) {
          fprintf(SUMA_STDERR, "\n %s:\n", FuncName);
          fprintf(SUMA_STDERR, "Kern = \n");
-         Print_Matrix(opt, Kern);
+         Print_Matrix(opt, Kern, NULL);
          fprintf(SUMA_STDERR, "KernI = \n");
-         Print_Matrix(opt, KernI);
+         Print_Matrix(opt, KernI, NULL);
          fprintf(SUMA_STDERR, "A = \n");
          matrix_print(A);
          fprintf(SUMA_STDERR, "Sm = %f\n", Sm.elts[0]); 
@@ -1137,228 +1204,185 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
 SUMA_Boolean Debug_Weights( MyCircle *C, MyCircleOpt *opt, matrix M, matrix Mi, vector Vv) 
 {
    static char FuncName[]={"Debug_Weights"};
-   static int matrix_ncall;
    int i, i3, j, j3, r, k, c, idm;
  
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
-   if(matrix_ncall == 3) matrix_ncall = 0;
 
    FILE *output_matrix = NULL;  /*for sending the matrix to a file to be read by matlab. */
    output_matrix = fopen( "output_matrix.m", "w" );
    /* Print Matrix */
-   if(matrix_ncall == 0) {
-      if (opt->dot) {
-         fprintf(SUMA_STDERR, "%s:\n"
-                              "M = [\n", FuncName);
+   if (opt->dot) {
+      fprintf(SUMA_STDERR, "%s:\n"
+                           "M = [\n", FuncName);
+      for (r=0; r<opt->N_ctrl_points; ++r) {
+         for (k=0; k<(3+opt->N_ctrl_points); ++k) {
+            for(c=0; c<opt->N_ctrl_points; ++c) { 
+               fprintf (SUMA_STDERR,"%.8f   %.8f   %.8f   ", 
+                                       M.elts [ ((3+opt->N_ctrl_points) * r+k) ][ (3*c  ) ],
+                                       M.elts [ ((3+opt->N_ctrl_points) * r+k) ][ (3*c+1) ],
+                                       M.elts [ ((3+opt->N_ctrl_points) * r+k) ][ (3*c+2) ]);
+            }
+            fprintf (SUMA_STDERR,"\n");
+         }
+      }
+      fprintf(SUMA_STDERR, "];\n"); 
+   } else { 
+      fprintf(SUMA_STDERR, "%s:\n"
+                           "M = [\n", FuncName);
+      for (r=0; r<opt->N_ctrl_points; ++r) {
+         for (k=0; k<3; ++k) {
+            for(c=0; c<opt->N_ctrl_points; ++c) { 
+               fprintf (SUMA_STDERR,"%.5f   %.5f   %.5f   ", 
+                                       M.elts [ (3*r+k) ][ (3*c  ) ],
+                                       M.elts [ (3*r+k) ][ (3*c+1) ],
+                                       M.elts [ (3*r+k) ][ (3*c+2) ]);
+            }
+            fprintf (SUMA_STDERR,"\n");
+         }
+      }
+      fprintf(SUMA_STDERR, "];\n");
+   }
+
+   /* Write matrix to a file so can be read by matlab. */
+   if (opt->dot) {
+      fprintf(output_matrix, "M = [\n");
          for (r=0; r<opt->N_ctrl_points; ++r) {
             for (k=0; k<(3+opt->N_ctrl_points); ++k) {
-               for(c=0; c<opt->N_ctrl_points; ++c) { 
-                  fprintf (SUMA_STDERR,"%.8f   %.8f   %.8f   ", 
+               for (c=0; c<opt->N_ctrl_points; ++c) { 
+                  fprintf (output_matrix,"%11.8f   %11.8f   %11.8f   ", 
                                           M.elts [ ((3+opt->N_ctrl_points) * r+k) ][ (3*c  ) ],
                                           M.elts [ ((3+opt->N_ctrl_points) * r+k) ][ (3*c+1) ],
                                           M.elts [ ((3+opt->N_ctrl_points) * r+k) ][ (3*c+2) ]);
                }
-               fprintf (SUMA_STDERR,"\n");
-            }
-         }
-         fprintf(SUMA_STDERR, "];\n"); 
-      } else { 
-         fprintf(SUMA_STDERR, "%s:\n"
+               fprintf (output_matrix,"\n");
+            } }
+      fprintf(output_matrix, "]; \n \n"); 
+   } else { 
+      fprintf(output_matrix,  "%s:\n"
                               "M = [\n", FuncName);
          for (r=0; r<opt->N_ctrl_points; ++r) {
             for (k=0; k<3; ++k) {
                for(c=0; c<opt->N_ctrl_points; ++c) { 
-                  fprintf (SUMA_STDERR,"%.5f   %.5f   %.5f   ", 
+                  fprintf (output_matrix,"%11.8f   %11.8f   %11.8f   ", 
                                           M.elts [ (3*r+k) ][ (3*c  ) ],
                                           M.elts [ (3*r+k) ][ (3*c+1) ],
                                           M.elts [ (3*r+k) ][ (3*c+2) ]);
                }
-               fprintf (SUMA_STDERR,"\n");
-            }
-         }
-         fprintf(SUMA_STDERR, "];\n");
-      }
- 
-      /* Write matrix to a file so can be read by matlab. */
-      
-      if (opt->dot) {
-         fprintf(output_matrix, "M = [\n");
-            for (r=0; r<opt->N_ctrl_points; ++r) {
-               for (k=0; k<(3+opt->N_ctrl_points); ++k) {
-                  for (c=0; c<opt->N_ctrl_points; ++c) { 
-                     fprintf (output_matrix,"%11.8f   %11.8f   %11.8f   ", 
-                                             M.elts [ ((3+opt->N_ctrl_points) * r+k) ][ (3*c  ) ],
-                                             M.elts [ ((3+opt->N_ctrl_points) * r+k) ][ (3*c+1) ],
-                                             M.elts [ ((3+opt->N_ctrl_points) * r+k) ][ (3*c+2) ]);
-                  }
-                  fprintf (output_matrix,"\n");
-               } }
-         fprintf(output_matrix, "]; \n \n"); 
-      } else { 
-         fprintf(output_matrix, "M = [\n");
-            for (r=0; r<opt->N_ctrl_points; ++r) {
-               for (k=0; k<3; ++k) {
-                  for(c=0; c<opt->N_ctrl_points; ++c) { 
-                     fprintf (output_matrix,"%11.8f   %11.8f   %11.8f   ", 
-                                             M.elts [ (3*r+k) ][ (3*c  ) ],
-                                             M.elts [ (3*r+k) ][ (3*c+1) ],
-                                             M.elts [ (3*r+k) ][ (3*c+2) ]);
-                  }
-                  fprintf (output_matrix,"\n");
-               } }
-         fprintf(output_matrix, "]; \n \n");  } 
-      
-   }
+               fprintf (output_matrix,"\n");
+            } }
+      fprintf(output_matrix, "]; \n \n");  
+   } 
+  
    
    /*Print the Inverse Coefficient Matrix.*/
-   if(matrix_ncall == 1) {
-      if(opt->dot) {   
-         if (opt->dim == 3) {
-            fprintf(SUMA_STDERR, "%s:\n"
-                                 "Mi = [\n", FuncName);
-            for (r=0; r<opt->N_ctrl_points; ++r) {
-               for (k=0; k<3; ++k) {
-                  for(c=0; c<opt->N_ctrl_points; ++c) { 
-                     fprintf (SUMA_STDERR,"%.5f   %.5f   %.5f   %.5f ", 
-                                             Mi.elts [ (3*r+k) ][ (4*c  ) ],
-                                             Mi.elts [ (3*r+k) ][ (4*c+1) ],
-                                             Mi.elts [ (3*r+k) ][ (4*c+2) ],
-                                             Mi.elts [ (3*r+k) ][ (4*c+3) ]);
-                  }
-                  fprintf (SUMA_STDERR,"\n");
-               }
+   if(opt->dot) {   
+      fprintf(SUMA_STDERR, "%s:\n"  "Mi = [\n", FuncName);
+      for (r=0; r<opt->N_ctrl_points; ++r) {
+         for (k=0; k<3; ++k) {
+            for(c=0; c<opt->N_ctrl_points; ++c) { 
+               fprintf (SUMA_STDERR,"%.5f   %.5f   %.5f   %.5f ", 
+                                       Mi.elts [ (3*r+k) ][ (4*c  ) ],
+                                       Mi.elts [ (3*r+k) ][ (4*c+1) ],
+                                       Mi.elts [ (3*r+k) ][ (4*c+2) ],
+                                       Mi.elts [ (3*r+k) ][ (4*c+3) ]);
             }
-            fprintf(SUMA_STDERR, "];\n");
-         } else {
-            fprintf(SUMA_STDERR, "%s:\n"
-                                 "Mi = [\n", FuncName);
-            for (r=0; r<opt->N_ctrl_points; ++r) {
-               for (k=0; k<3; ++k) {
-                  for(c=0; c<opt->N_ctrl_points; ++c) { 
-                     fprintf (SUMA_STDERR,"%.5f   %.5f  ", 
-                                             Mi.elts [ (3*r+k) ][ (2*c  ) ],
-                                             Mi.elts [ (3*r+k) ][ (2*c+1) ]);
-                  }
-                  fprintf (SUMA_STDERR,"\n");
-               }
-            }
-            fprintf(SUMA_STDERR, "];\n");
+            fprintf (SUMA_STDERR,"\n");
          }
-      } else {   
-         if (opt->dim == 3) {
-            fprintf(SUMA_STDERR, "%s:\n"
-                                 "Mi = [\n", FuncName);
-            for (r=0; r<opt->N_ctrl_points; ++r) {
-               for (k=0; k<3; ++k) {
-                  for(c=0; c<opt->N_ctrl_points; ++c) { 
-                     fprintf (SUMA_STDERR,"%.5f   %.5f   %.5f   ", 
-                                             Mi.elts [ (3*r+k) ][ (3*c  ) ],
-                                             Mi.elts [ (3*r+k) ][ (3*c+1) ],
-                                             Mi.elts [ (3*r+k) ][ (3*c+2) ]);
-                  }
-                  fprintf (SUMA_STDERR,"\n");
-               }
+      }
+      fprintf(SUMA_STDERR, "];\n");
+   } else {
+      fprintf(SUMA_STDERR, "%s:\n"  "Mi = [\n", FuncName);
+      for (r=0; r<opt->N_ctrl_points; ++r) {
+         for (k=0; k<3; ++k) {
+            for(c=0; c<opt->N_ctrl_points; ++c) { 
+               fprintf (SUMA_STDERR,"%.5f   %.5f   %.5f   ", 
+                                       Mi.elts [ (3*r+k) ][ (3*c  ) ],
+                                       Mi.elts [ (3*r+k) ][ (3*c+1) ],
+                                       Mi.elts [ (3*r+k) ][ (3*c+2) ]);
             }
-            fprintf(SUMA_STDERR, "];\n");
-         } else {
-            fprintf(SUMA_STDERR, "%s:\n"
-                                 "Mi = [\n", FuncName);
-            for (r=0; r<opt->N_ctrl_points; ++r) {
-               for (k=0; k<2; ++k) {
-                  for(c=0; c<opt->N_ctrl_points; ++c) { 
-                     fprintf (SUMA_STDERR,"%.5f   %.5f  ", 
-                                             Mi.elts [ (2*r+k) ][ (2*c  ) ],
-                                             Mi.elts [ (2*r+k) ][ (2*c+1) ]);
-                  }
-                  fprintf (SUMA_STDERR,"\n");
-               }
-            }
-            fprintf(SUMA_STDERR, "];\n");
+            fprintf (SUMA_STDERR,"\n");
          }
+      }
+      fprintf(SUMA_STDERR, "];\n");
+   }
+
+   /* Print velocity vectors. */
+   fprintf(SUMA_STDERR, "%s:\n"
+                        "V = [ \n", FuncName );
+   for (i=0; i < opt->N_ctrl_points; ++i) {
+      if(opt->dot) { 
+         idm = (opt->dim+opt->N_ctrl_points)*i; 
+         fprintf(SUMA_STDERR, "  %10.8f;  %10.8f;  %10.8f; ",
+                              Vv.elts[idm  ], Vv.elts[idm+1], Vv.elts[idm+2] ); 
+         for(k=0; k < opt->N_ctrl_points; ++k) { fprintf(SUMA_STDERR, "  0.0000;" ); } 
+         fprintf(SUMA_STDERR, "\n" );  
+      } else { 
+         idm = opt->dim*i; 
+         fprintf(SUMA_STDERR, "  %10.8f;  %10.8f;  %10.8f \n",
+                              Vv.elts[idm  ], Vv.elts[idm+1], Vv.elts[idm+2]); 
       }
    }
-   
-   /* Print velocity vectors. */
-   if(matrix_ncall < 2) {
-      fprintf(SUMA_STDERR, "%s:\n"
-                           "V = [ \n", FuncName );
-      for (i=0; i < opt->N_ctrl_points; ++i) {
-         if(opt->dot) { 
-            idm = (opt->dim+opt->N_ctrl_points)*i; 
-            fprintf(SUMA_STDERR, "  %10.8f;  %10.8f;  %10.8f; ",
-                                 Vv.elts[idm  ], Vv.elts[idm+1], Vv.elts[idm+2] ); 
-            for(k=0; k < opt->N_ctrl_points; ++k) { fprintf(SUMA_STDERR, "  0.0000;" ); } 
-            fprintf(SUMA_STDERR, "\n" );  
-         } else { 
-            idm = opt->dim*i; 
-            fprintf(SUMA_STDERR, "  %10.8f;  %10.8f;  %10.8f \n",
-                                 Vv.elts[idm  ], Vv.elts[idm+1], Vv.elts[idm+2]); 
-         }
-      }
-      fprintf(SUMA_STDERR, "];\n \n" );
+   fprintf(SUMA_STDERR, "];\n \n" );
 
-      /* Send velocity vector to output file for checking math in matlab. */
-      fprintf(output_matrix, "V = [ \n" );
-      for (i=0; i < opt->N_ctrl_points; ++i) {
-         if(opt->dot) { 
-            idm = (opt->dim+opt->N_ctrl_points)*i; 
-            fprintf(output_matrix, "  %11.20f;  %11.20f;  %11.20f; ",
-                                 Vv.elts[idm  ], Vv.elts[idm+1], Vv.elts[idm+2] ); 
-            for(k=0; k < opt->N_ctrl_points; ++k) { fprintf(output_matrix, "  0.0000;" ); } 
-            fprintf(output_matrix, "\n" );  
-         } else { 
-            idm = opt->dim*i; 
-            fprintf(output_matrix, "  %11.20f;  %11.20f;  %11.20f \n",
-                                 Vv.elts[idm  ], Vv.elts[idm+1], Vv.elts[idm+2]); 
-         }
+   /* Send velocity vector to output file for checking math in matlab. */
+   fprintf(output_matrix, "V = [ \n" );
+   for (i=0; i < opt->N_ctrl_points; ++i) {
+      if(opt->dot) { 
+         idm = (opt->dim+opt->N_ctrl_points)*i; 
+         fprintf(output_matrix, "  %11.20f;  %11.20f;  %11.20f; ",
+                              Vv.elts[idm  ], Vv.elts[idm+1], Vv.elts[idm+2] ); 
+         for(k=0; k < opt->N_ctrl_points; ++k) { fprintf(output_matrix, "  0.0000;" ); } 
+         fprintf(output_matrix, "\n" );  
+      } else { 
+         idm = opt->dim*i; 
+         fprintf(output_matrix, "  %11.20f;  %11.20f;  %11.20f \n",
+                              Vv.elts[idm  ], Vv.elts[idm+1], Vv.elts[idm+2]); 
       }
-      fprintf(output_matrix, "];\n \n" );
- 
-      /* Print Weights. */
-      fprintf(SUMA_STDERR, "%s:\n"
-                           "Wv = [\n", FuncName);
-      for (r=0; r<opt->N_ctrl_points; ++r) {
-         if (opt->dim == 3) {
-            fprintf (SUMA_STDERR,"%.20f;   %.20f;   %.20f;  \n",
-                                  C->Wv.elts[3*r], C->Wv.elts[3*r+1], C->Wv.elts[3*r+2]);   
-         }else {
-             fprintf (SUMA_STDERR,"%.20f;   %.20f;     \n", C->Wv.elts[2*r], C->Wv.elts[2*r+1]);   
-         }
-      }
-      fprintf (SUMA_STDERR,"];\n");
-      for (i=0; i<opt->N_ctrl_points; ++i) {
-         fprintf (SUMA_STDERR,"Dot_Wv (%d) = %.24f \n"
-                              "  W(%d) =  [%f;   %f;    %f]\n"
-                              "  Control Point(%d) = [%f;   %f;    %f]\n", 
-                                 i, SUMA_MT_DOT( (&(opt->CtrlPts[3*i])), (&(C->Wv.elts[3*i])) ),
-                                 i, C->Wv.elts[3*i], C->Wv.elts[3*i+1], C->Wv.elts[3*i+2],
-                                 i, opt->CtrlPts[3*i], opt->CtrlPts[3*i+1],  opt->CtrlPts[3*i+2]); 
-      }
+   }
+   fprintf(output_matrix, "];\n \n" );
 
-      /* Also send weights to output file for use in matlab. */
-      fprintf(output_matrix, "Wv = [\n" );
-      for (r=0; r<opt->N_ctrl_points; ++r) {
-         if (opt->dim == 3) {
-            fprintf (output_matrix,"  %11.20f;   %11.20f;   %11.20f;  \n",
-                                  C->Wv.elts[3*r], C->Wv.elts[3*r+1], C->Wv.elts[3*r+2]);   
-         }else {
-             fprintf (output_matrix,"  %11.20f;   %11.20f;  \n", C->Wv.elts[2*r], C->Wv.elts[2*r+1]);   
-         }
+   /* Print Weights. */
+   fprintf(SUMA_STDERR, "%s:\n"
+                        "Wv = [\n", FuncName);
+   for (r=0; r<opt->N_ctrl_points; ++r) {
+      if (opt->dim == 3) {
+         fprintf (SUMA_STDERR,"%.20f;   %.20f;   %.20f;  \n",
+                               C->Wv.elts[3*r], C->Wv.elts[3*r+1], C->Wv.elts[3*r+2]);   
+      }else {
+          fprintf (SUMA_STDERR,"%.20f;   %.20f;     \n", C->Wv.elts[2*r], C->Wv.elts[2*r+1]);   
       }
-      fprintf (output_matrix,"];\n \n");
-   } 
+   }
+   fprintf (SUMA_STDERR,"];\n");
+   for (i=0; i<opt->N_ctrl_points; ++i) {
+      fprintf (SUMA_STDERR,"Dot_Wv (%d) = %.24f \n"
+                           "  W(%d) =  [%f;   %f;    %f]\n"
+                           "  Control Point(%d) = [%f;   %f;    %f]\n", 
+                              i, SUMA_MT_DOT( (&(opt->CtrlPts[3*i])), (&(C->Wv.elts[3*i])) ),
+                              i, C->Wv.elts[3*i], C->Wv.elts[3*i+1], C->Wv.elts[3*i+2],
+                              i, opt->CtrlPts[3*i], opt->CtrlPts[3*i+1],  opt->CtrlPts[3*i+2]); 
+   }
+
+   /* Also send weights to output file for use in matlab. */
+   fprintf(output_matrix, "Wv = [\n" );
+   for (r=0; r<opt->N_ctrl_points; ++r) {
+      if (opt->dim == 3) {
+         fprintf (output_matrix,"  %11.20f;   %11.20f;   %11.20f;  \n",
+                               C->Wv.elts[3*r], C->Wv.elts[3*r+1], C->Wv.elts[3*r+2]);   
+      }else {
+          fprintf (output_matrix,"  %11.20f;   %11.20f;  \n", C->Wv.elts[2*r], C->Wv.elts[2*r+1]);   
+      }
+   }
+   fprintf (output_matrix,"];\n \n");
    
    fclose (output_matrix); output_matrix = NULL;
   
-   ++matrix_ncall;
    SUMA_RETURN(YUP);
 }
 
 
-SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
+SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt, FILE *condition_num, FILE *condition_num_only)
 {
    static char FuncName[]={"FindSplineWeights"};
    vector Vv;
@@ -1372,7 +1396,7 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
    double tan_v[3]={0.0,0.0,0.0};  /* Meaning tangent velocity vector. Stores cross product when calculating given velocity. */
    double Vv_mag = 0.0, t_cr, expand_cr = 0.0; 
    matrix *nullptr = NULL;
-   double I[3][3], sI[3][3];
+   double I[3][3], sI[3][3], cond;
    
    SUMA_Boolean LocalHead = NOPE;
    
@@ -1501,47 +1525,19 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
                expand_cr = Deformation_Kernel(opt, t_cr);
                
                /* Assemble the matrix and include the expansion factor. */
-               #if 0
-               if(LocalHead) {
-                  if( r == 0 || r == 1 ) {
-                     fprintf(SUMA_STDERR, "ROTATION MATRIX: \n"
-                                          "  p1 = [ %f      %f    %f ] \n"
-                                          "  p2 = [ %f      %f    %f ] \n"
-                                          "     alpha(%d, %d) = %.12f  \n"
-                                          "     u (%d, %d) = [ %.12f    %.12f    %.12f ] \n"
-                                          "     expansion = %f \n",
-                                          opt->CtrlPts[c3  ], opt->CtrlPts[c3+1], opt->CtrlPts[c3+2],
-                                          opt->CtrlPts[r3  ], opt->CtrlPts[r3+1], opt->CtrlPts[r3+2],                                
-                                          r, c, t_cr, 
-                                          r, c, nrm_cr[0], nrm_cr[1], nrm_cr[2],
-                                          expand_cr ); } }
-               #endif 
-              
-               if( opt->sigma && r == c) {   /* Need to add sigma squared times the identity matrix to each 3X3. */
-                  M.elts[ (r3  ) ][ (c3  ) ] = expand_cr * Mcr[0][0] + (opt->sigma)*(opt->sigma);
-                  M.elts[ (r3  ) ][ (c3+1) ] = expand_cr * Mcr[0][1];
-                  M.elts[ (r3  ) ][ (c3+2) ] = expand_cr * Mcr[0][2];
-                  M.elts[ (r3+1) ][ (c3  ) ] = expand_cr * Mcr[1][0];
-                  M.elts[ (r3+1) ][ (c3+1) ] = expand_cr * Mcr[1][1] + (opt->sigma)*(opt->sigma);
-                  M.elts[ (r3+1) ][ (c3+2) ] = expand_cr * Mcr[1][2];
-                  M.elts[ (r3+2) ][ (c3  ) ] = expand_cr * Mcr[2][0];
-                  M.elts[ (r3+2) ][ (c3+1) ] = expand_cr * Mcr[2][1];
-                  M.elts[ (r3+2) ][ (c3+2) ] = expand_cr * Mcr[2][2] + (opt->sigma)*(opt->sigma); 
-               } else {
-                  M.elts[ (r3  ) ][ (c3  ) ] = expand_cr * Mcr[0][0];
-                  M.elts[ (r3  ) ][ (c3+1) ] = expand_cr * Mcr[0][1];
-                  M.elts[ (r3  ) ][ (c3+2) ] = expand_cr * Mcr[0][2];
-                  M.elts[ (r3+1) ][ (c3  ) ] = expand_cr * Mcr[1][0];
-                  M.elts[ (r3+1) ][ (c3+1) ] = expand_cr * Mcr[1][1];
-                  M.elts[ (r3+1) ][ (c3+2) ] = expand_cr * Mcr[1][2];
-                  M.elts[ (r3+2) ][ (c3  ) ] = expand_cr * Mcr[2][0];
-                  M.elts[ (r3+2) ][ (c3+1) ] = expand_cr * Mcr[2][1];
-                  M.elts[ (r3+2) ][ (c3+2) ] = expand_cr * Mcr[2][2]; 
-               }         
-            }
+               M.elts[ (r3  ) ][ (c3  ) ] = expand_cr * Mcr[0][0];
+               M.elts[ (r3  ) ][ (c3+1) ] = expand_cr * Mcr[0][1];
+               M.elts[ (r3  ) ][ (c3+2) ] = expand_cr * Mcr[0][2];
+               M.elts[ (r3+1) ][ (c3  ) ] = expand_cr * Mcr[1][0];
+               M.elts[ (r3+1) ][ (c3+1) ] = expand_cr * Mcr[1][1];
+               M.elts[ (r3+1) ][ (c3+2) ] = expand_cr * Mcr[1][2];
+               M.elts[ (r3+2) ][ (c3  ) ] = expand_cr * Mcr[2][0];
+               M.elts[ (r3+2) ][ (c3+1) ] = expand_cr * Mcr[2][1];
+               M.elts[ (r3+2) ][ (c3+2) ] = expand_cr * Mcr[2][2]; 
          }
       }
-   
+   }
+
    if( opt->dot ) {
       for(r=0; r<opt->N_ctrl_points; ++r) {     /* r for row.  For the first three rows, r represents the first control point.*/
          for(c=0; c<opt->N_ctrl_points; ++c) {  /* c for column. While r is held constant, c cycles through all control points
@@ -1602,8 +1598,13 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
       }  
    }
    
-   /* if( LocalHead ) Debug_Weights(C, opt, M, Mi, Vv); */
- 
+   /* Check condition number for matrix M.  Send to file for plotting in Matlab. */
+   fprintf(condition_num, "M = ");
+   Print_Matrix(opt, M, condition_num);
+   cond = Matrix_Condition_Num( M, condition_num );
+   fprintf(condition_num, "%f\n", cond);
+   fprintf(condition_num_only, "%f\n", cond);
+   
    SUMA_LH("Calculating inverse...");
    matrix_initialize(&Mi);
    matrix_create(nr, nc, &Mi);
@@ -1626,7 +1627,7 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
    vector_destroy (&Vv);
    
    opt->Dtheta = NULL;
-      
+   
    SUMA_RETURN(YUP);   
 }
 
@@ -1743,13 +1744,7 @@ SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt)
          Wr.elts[j3  ] *= v_expand;
          Wr.elts[j3+1] *= v_expand;
          Wr.elts[j3+2] *= v_expand;
-         
-         if(opt->sigma) { 
-            Wr.elts[j3  ] += SUMA_POW2( opt->sigma )*C->Wv.elts[j3  ];
-            Wr.elts[j3+1] += SUMA_POW2( opt->sigma )*C->Wv.elts[j3+1];
-            Wr.elts[j3+2] += SUMA_POW2( opt->sigma )*C->Wv.elts[j3+2];
-         }
-         
+       
          if(LocalHead) {
             if(i == opt->CtrlPts_iim[0]) {
                fprintf(SUMA_STDERR, "%s:\n"
