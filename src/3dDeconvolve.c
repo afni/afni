@@ -621,21 +621,20 @@ void display_help_menu()
     "[-automask]          build a mask automatically from input data        \n"
     "                      (will be slow for long time series datasets)     \n"
     "[-censor cname]      cname = filename of censor .1D time series        \n"
-    "[-CENSOR clist]      clist = list of strings that specify time indexes \n"
+    "[-CENSORTR clist]    clist = list of strings that specify time indexes \n"
     "                       to be removed from the analysis.  Each string is\n"
     "                       of one of the following forms:                  \n"
-    "                           37 => delete global time index #37          \n"
-    "                         2:37 => delete time index #37 in run #2       \n"
-    "                       37..47 => delete global time indexes #37-47     \n"
+    "                           37 => remove global time index #37          \n"
+    "                         2:37 => remove time index #37 in run #2       \n"
+    "                       37..47 => remove global time indexes #37-47     \n"
     "                       37-47  => same as above                         \n"
-    "                     2:37..47 => delete time indexes #37-47 in run #2  \n"
-    "                       Time indexes within each run start at 0.        \n"
-    "                       Run indexes start at 1 (just be to confusing).  \n"
-    "                       You can also use '*' for the run index, to      \n"
-    "                       indicate 'all runs', as in '*:0..2'.            \n"
-    "                       Multiple -CENSOR options may be used, or        \n"
-    "                       multiple CENSORing strings can be given at once,\n"
-    "                       separated by spaces or commas.                  \n"
+    "                     2:37..47 => remove time indexes #37-47 in run #2  \n"
+    "                     *:0-2    => remove time indexes #0-2 in all runs  \n"
+    "                      +Time indexes within each run start at 0.        \n"
+    "                      +Run indexes start at 1 (just be to confusing).  \n"
+    "                      +Multiple -CENSORTR options may be used, or      \n"
+    "                        multiple -CENSORTR strings can be given at     \n"
+    "                        once, separated by spaces or commas.           \n"
     "[-concat rname]      rname = filename for list of concatenated runs    \n"
     "[-nfirst fnum]       fnum = number of first dataset image to use in the\n"
     "                       deconvolution procedure. (default = max maxlag) \n"
@@ -1190,41 +1189,41 @@ void get_options
 
       /*-----  -CENSOR clist -----*/
 
-      if( strcmp(argv[nopt],"-CENSOR") == 0 ){   /* RWCox - 01 Mar 2007 */
+      if( strncmp(argv[nopt],"-CENSOR",7) == 0 ){   /* RWCox - 01 Mar 2007 */
         NI_str_array *nsar ;
         char *src=malloc(1), *cpt, *dpt ;
         int ns, r,a,b, nerr=0 ; inttriple rab ;
 
-        *src = '\0' ;
+        *src = '\0' ;   /* cat all following options until starts with '-' */
         for( nopt++ ; nopt < argc && argv[nopt][0] != '-' ; nopt++ ){
           ns = strlen(argv[nopt]) ; if( ns == 0 ) continue ;
           src = realloc(src,strlen(src)+ns+2) ;
           strcat(src," ") ; strcat(src,argv[nopt]) ;
         }
-        if( *src == '\0' ) DC_error("Bad argument after -CENSOR") ;
-        nsar = NI_decode_string_list( src , "," ) ;
-        for( ns=0 ; ns < nsar->num ; ns++ ){
+        if( *src == '\0' ) DC_error("Bad argument after -CENSORTR") ;
+        nsar = NI_decode_string_list( src , "," ) ; /* break into substrings */
+        for( ns=0 ; ns < nsar->num ; ns++ ){ /* loop over substrings */
           cpt = nsar->str[ns] ; dpt = strchr(cpt,':') ; r = 0 ;
           if( *cpt == '\0' ) continue ;   /* skip an empty string */
-          if( dpt != NULL ){              /* run: */
+          if( dpt != NULL ){              /* found 'run:' */
             if( *cpt == '*' ){ /* wildcard = all runs */
               r = -666 ;
             } else {
               r = (int)strtol(cpt,NULL,10) ;
               if( r <= 0 ){  /* skip out */
-                ERROR_message("-CENSOR %s -- run index '%d' is bad!",nsar->str[ns],r);
+                ERROR_message("-CENSORTR %s -- run index '%d' is bad!",nsar->str[ns],r);
                 nerr++ ; continue ;
               }
             }
             cpt = dpt+1 ;  /* skip to character after ':' */
             if( *cpt == '\0' ){  /* skip out */
-              ERROR_message("-CENSOR %s -- no data after run index!",nsar->str[ns]);
+              ERROR_message("-CENSORTR %s -- no data after run index!",nsar->str[ns]);
               nerr++ ; continue ;
             }
           }
           a = (int)strtol(cpt,&dpt,10) ;    /* get first index number */
           if( a < 0 ){  /* skip out */
-            ERROR_message("-CENSOR %s: time index '%d' is bad!",nsar->str[ns],a);
+            ERROR_message("-CENSORTR %s -- time index '%d' is bad!",nsar->str[ns],a);
             nerr++ ; continue ;
           }
           if( *dpt == '\0' ){  /* no second number */
@@ -1233,7 +1232,7 @@ void get_options
             for( dpt++ ; *dpt != '\0' && !isdigit(*dpt) ; dpt++ ) ; /*nada*/
             b = (int)strtol(dpt,NULL,10) ;
             if( b < a || b < 0 ){  /* skip out */
-              ERROR_message("-CENSOR %s: time indexes '%d' to '%d' is bad!",
+              ERROR_message("-CENSORTR %s -- time indexes '%d' to '%d' is bad!",
                             nsar->str[ns],a,b);
               nerr++ ; continue ;
             }
@@ -1241,8 +1240,8 @@ void get_options
           abc_CENSOR = (inttriple *)realloc( abc_CENSOR ,
                                              sizeof(inttriple)*(num_CENSOR+1) );
           rab.a = r; rab.b = a; rab.c = b; abc_CENSOR[num_CENSOR++] = rab ;
-        } /* end of loop over -CENSOR strings */
-        if( nerr > 0 ) ERROR_exit("Can't proceed after -CENSOR errors!") ;
+        } /* end of loop over -CENSORTR strings */
+        if( nerr > 0 ) ERROR_exit("Can't proceed after -CENSORTR errors!") ;
         NI_delete_str_array(nsar) ; free(src) ;
         continue ;  /* next option */
       }
@@ -1439,7 +1438,7 @@ void get_options
         }
         nopt++ ; continue ;
       }
-      
+
       /*-----  -TR_irc irc_dt [08 Sep 2004]  -----*/
       if( strcmp(argv[nopt],"-TR_irc") == 0 ){
         nopt++ ;
@@ -1960,7 +1959,7 @@ void get_options
     option_data->input1D_TR = 0.0;
     if( verb ) fprintf(stderr,"** WARNING: -TR_1D is meaningless without -input1D\n");
   }
-  
+
   if( option_data->polort < 0 ) demean_base = 0 ;  /* 12 Aug 2004 */
 
   nerr = 0 ;
@@ -2265,9 +2264,9 @@ ENTRY("read_input_data") ;
       *dset_time = NULL;
       nt = *fmri_length;
       nxyz = 1;
-      
-      if (option_data->input1D_TR > 0.0) basis_TR = option_data->input1D_TR; 
-      if (verb) fprintf(stderr,"++ Notice: 1D TR is %.3fsec\n", basis_TR);  
+
+      if (option_data->input1D_TR > 0.0) basis_TR = option_data->input1D_TR;
+      if (verb) fprintf(stderr,"++ Notice: 1D TR is %.3fsec\n", basis_TR);
    }
 
   else if (option_data->input_filename != NULL) /*----- 3d+time dataset -----*/
@@ -2582,10 +2581,11 @@ for( ii=0 ; ii < nt ; ii++ ){
       (*censor_array)[it] = 1.0;
     }
 
-  /*----- 01 Mar 2007: also apply the -CENSOR commands -----*/
+  /*----- 01 Mar 2007: apply the -CENSORTR commands to censor_array -----*/
 
-  { int ic , rr , aa,bb , nerr=0 , bbot,btop , nblk=*num_blocks ;
-    for( ic=0 ; ic < num_CENSOR ; ic++ ){
+  if( abc_CENSOR != NULL ){
+    int ic , rr , aa,bb , nerr=0 , bbot,btop , nblk=*num_blocks ;
+    for( ic=0 ; ic < num_CENSOR ; ic++ ){  /* loop over CENSOR commands */
       rr = abc_CENSOR[ic].a ;
       aa = abc_CENSOR[ic].b ; if( aa < 0  ) continue ;  /* shouldn't happen */
       bb = abc_CENSOR[ic].c ; if( bb < aa ) continue ;  /* shouldn't happen */
@@ -2594,43 +2594,49 @@ for( ii=0 ; ii < nt ; ii++ ){
         abc_CENSOR = (inttriple *)realloc( abc_CENSOR ,
                                            sizeof(inttriple)*(num_CENSOR+nblk) );
         for( rr=1 ; rr <= nblk ; rr++ ){
-          rab.a = rr; rab.b = aa; rab.c = bb; abc_CENSOR[num_CENSOR++] = rab ;
+          rab.a = rr; rab.b = aa; rab.c = bb; abc_CENSOR[num_CENSOR++] = rab;
         }
         continue ;  /* skip to next one */
       }
-      if( rr > 0 ){
-        if( rr > nblk ){
-          ERROR_message("-CENSOR %d:%d-%d has run index out of range 1..%d",
+      if( rr > 0 ){       /* convert local indexes to global */
+        if( rr > nblk ){  /* stupid user */
+          ERROR_message("-CENSORTR %d:%d-%d has run index out of range 1..%d",
                         rr,aa,bb , nblk ) ;
           nerr++ ; aa = -66666666 ;
         } else {
-          bbot = (*block_list)[rr-1] ;
-          btop = (rr < nblk) ? (*block_list)[rr]-1 : nt-1 ;
-          if( aa+bbot > btop ){
-            WARNING_message("-CENSOR %d:%d-%d has start index past end of run - IGNORING",
-                            rr,aa,bb ) ; aa = -66666666 ;
-          } else if( bb+bbot > btop ){ 
-            WARNING_message("-CENSOR %d:%d-%d has stop index past end of run - STOP THERE",
-                            rr,aa,bb ) ;
+          bbot = (*block_list)[rr-1] ;        /* start index of block #rr */
+          btop = (rr < nblk) ? (*block_list)[rr]-1 : nt-1 ; /* last index */
+          if( aa+bbot > btop ){  /* WTF? */
+            WARNING_message(
+             "-CENSORTR %d:%d-%d has start index past end of run (%d) - IGNORING",
+             rr,aa,bb,btop-bbot ) ; aa = -66666666 ;
+          } else if( bb+bbot > btop ){  /* oopsie */
+            WARNING_message(
+             "-CENSORTR %d:%d-%d has stop index past end of run (%d) - STOPPING THERE",
+             rr,aa,bb,btop-bbot ) ;
           }
           aa += bbot ; bb += bbot ; if( bb > btop ) bb = btop ;
         }
-      } else {
+      } else {           /* global indexes: check for stupidities */
         if( aa >= nt ){
-          WARNING_message("-CENSOR %d..%d has start index past end of data - IGNORING",
-                          rr,aa,bb ) ; aa = -66666666 ;
+          WARNING_message(
+           "-CENSORTR %d..%d has start index past end of data (%d) - IGNORING",
+           rr,aa,bb,nt-1 ) ; aa = -66666666 ;
         } else if( bb > nt ){
-          WARNING_message("-CENSOR %d..%d has stop index past end of data - STOP THERE",
-                          rr,aa,bb ) ; bb = nt-1 ;
+          WARNING_message(
+           "-CENSORTR %d..%d has stop index past end of data (%d) - STOPPING THERE",
+           rr,aa,bb,nt-1 ) ; bb = nt-1 ;
         }
       }
       if( aa < 0  || aa >= nt ) continue ;  /* nothing to do */
       if( bb < aa || bb >= nt ) continue ;
-      if( verb > 1 ) ININFO_message("-CENSOR time indexes %d..%d",aa,bb) ;
-      for( it=aa ; it <= bb ; it++ ) (*censor_array)[it] = 0.0f;
-    }
-    if( nerr > 0 ) ERROR_exit("Can't continue! Fix the -CENSOR error%s",
+      if( verb > 1 )
+        ININFO_message("applying -CENSORTR global time indexes %d..%d",aa,bb) ;
+      for( it=aa ; it <= bb ; it++ ) (*censor_array)[it] = 0.0f ;
+    } /* end of loop over CENSOR commands */
+    if( nerr > 0 ) ERROR_exit("Can't continue! Fix the -CENSORTR error%s",
                               (nerr==1) ? "." : "s." ) ;
+    free((void *)abc_CENSOR) ; abc_CENSOR = NULL ; num_CENSOR = 0 ;
   }
 
   /*----- Build symbolic list of stim names and index ranges [29 Jul 2004] -----*/
