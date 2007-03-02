@@ -515,10 +515,11 @@ g_help_string = """
                 e.g. -tcat_remove_first_trs 3
                 default: 0
 
-            Since the scanner takes several seconds to reach a steady state,
-            the initial TRs of each run may have values that are significantly
-            greater than the later ones.  This option is used to specify how
-            many TRs to remove from the beginning of every run.
+            Since it takes several seconds for the magnetization to reach a
+            steady state (at the beginning of each run), the initial TRs of
+            each run may have values that are significantly greater than the
+            later ones.  This option is used to specify how many TRs to
+            remove from the beginning of every run.
 
         -despike_opts_3dDes OPTS... : specify additional options for 3dDespike
 
