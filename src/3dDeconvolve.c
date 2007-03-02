@@ -631,6 +631,8 @@ void display_help_menu()
     "                     2:37..47 => delete time indexes #37-47 in run #2  \n"
     "                       Time indexes within each run start at 0.        \n"
     "                       Run indexes start at 1 (just be to confusing).  \n"
+    "                       You can also use '*' for the run index, to      \n"
+    "                       indicate 'all runs', as in '*:0..2'.            \n"
     "                       Multiple -CENSOR options may be used, or        \n"
     "                       multiple CENSORing strings can be given at once,\n"
     "                       separated by spaces or commas.                  \n"
@@ -1203,34 +1205,43 @@ void get_options
         nsar = NI_decode_string_list( src , "," ) ;
         for( ns=0 ; ns < nsar->num ; ns++ ){
           cpt = nsar->str[ns] ; dpt = strchr(cpt,':') ; r = 0 ;
-          if( dpt != NULL ){                /* run: */
-            r = (int)strtol(cpt,NULL,10) ;
-            if( r <= 0 ){
-              ERROR_message("-CENSOR %s: run index '%d' is bad!",nsar->str[ns],r);
-              nerr++ ;
+          if( *cpt == '\0' ) continue ;   /* skip an empty string */
+          if( dpt != NULL ){              /* run: */
+            if( *cpt == '*' ){ /* wildcard = all runs */
+              r = -666 ;
+            } else {
+              r = (int)strtol(cpt,NULL,10) ;
+              if( r <= 0 ){  /* skip out */
+                ERROR_message("-CENSOR %s -- run index '%d' is bad!",nsar->str[ns],r);
+                nerr++ ; continue ;
+              }
             }
-            cpt = dpt+1 ;
+            cpt = dpt+1 ;  /* skip to character after ':' */
+            if( *cpt == '\0' ){  /* skip out */
+              ERROR_message("-CENSOR %s -- no data after run index!",nsar->str[ns]);
+              nerr++ ; continue ;
+            }
           }
-          a = (int)strtol(cpt,&dpt,10) ;
-          if( a < 0 ){
+          a = (int)strtol(cpt,&dpt,10) ;    /* get first index number */
+          if( a < 0 ){  /* skip out */
             ERROR_message("-CENSOR %s: time index '%d' is bad!",nsar->str[ns],a);
-            nerr++ ;
+            nerr++ ; continue ;
           }
-          if( *dpt == '\0' ){
+          if( *dpt == '\0' ){  /* no second number */
             b = a ;
-          } else {
+          } else {             /* get second number */
             for( dpt++ ; *dpt != '\0' && !isdigit(*dpt) ; dpt++ ) ; /*nada*/
             b = (int)strtol(dpt,NULL,10) ;
-            if( b < a || b < 0 ){
+            if( b < a || b < 0 ){  /* skip out */
               ERROR_message("-CENSOR %s: time indexes '%d' to '%d' is bad!",
                             nsar->str[ns],a,b);
-              nerr++ ;
+              nerr++ ; continue ;
             }
           }
           abc_CENSOR = (inttriple *)realloc( abc_CENSOR ,
                                              sizeof(inttriple)*(num_CENSOR+1) );
           rab.a = r; rab.b = a; rab.c = b; abc_CENSOR[num_CENSOR++] = rab ;
-        }
+        } /* end of loop over -CENSOR strings */
         if( nerr > 0 ) ERROR_exit("Can't proceed after -CENSOR errors!") ;
         NI_delete_str_array(nsar) ; free(src) ;
         continue ;  /* next option */
@@ -2573,19 +2584,28 @@ for( ii=0 ; ii < nt ; ii++ ){
 
   /*----- 01 Mar 2007: also apply the -CENSOR commands -----*/
 
-  { int ic , rr , aa,bb , nerr=0 , bbot,btop ;
+  { int ic , rr , aa,bb , nerr=0 , bbot,btop , nblk=*num_blocks ;
     for( ic=0 ; ic < num_CENSOR ; ic++ ){
       rr = abc_CENSOR[ic].a ;
-      aa = abc_CENSOR[ic].b ; if( aa < 0  ) continue ;
-      bb = abc_CENSOR[ic].c ; if( bb < aa ) continue ;
+      aa = abc_CENSOR[ic].b ; if( aa < 0  ) continue ;  /* shouldn't happen */
+      bb = abc_CENSOR[ic].c ; if( bb < aa ) continue ;  /* shouldn't happen */
+      if( rr == -666 ){  /* run = wildcard ==> expand to nblk new triples */
+        inttriple rab ;
+        abc_CENSOR = (inttriple *)realloc( abc_CENSOR ,
+                                           sizeof(inttriple)*(num_CENSOR+nblk) );
+        for( rr=1 ; rr <= nblk ; rr++ ){
+          rab.a = rr; rab.b = aa; rab.c = bb; abc_CENSOR[num_CENSOR++] = rab ;
+        }
+        continue ;  /* skip to next one */
+      }
       if( rr > 0 ){
-        if( rr > *num_blocks ){
+        if( rr > nblk ){
           ERROR_message("-CENSOR %d:%d-%d has run index out of range 1..%d",
-                        rr,aa,bb , *num_blocks ) ;
+                        rr,aa,bb , nblk ) ;
           nerr++ ; aa = -66666666 ;
         } else {
           bbot = (*block_list)[rr-1] ;
-          btop = (rr < *num_blocks) ? (*block_list)[rr]-1 : nt-1 ;
+          btop = (rr < nblk) ? (*block_list)[rr]-1 : nt-1 ;
           if( aa+bbot > btop ){
             WARNING_message("-CENSOR %d:%d-%d has start index past end of run - IGNORING",
                             rr,aa,bb ) ; aa = -66666666 ;
