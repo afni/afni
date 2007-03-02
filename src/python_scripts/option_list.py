@@ -126,9 +126,11 @@ def read_options(argv, oplist, verb = 1):
                         return None  # what else can we do?
 
             # so do we still have enough parameters?
-            if len(parlist) < newopt.n_exp:
+            if newopt.n_exp < 0: nreq = abs(newopt.n_exp)
+            else:                nreq = newopt.n_exp
+            if len(parlist) < nreq:
                 print "** error: arg #%d (%s) requires %d params, found %d" % \
-                      (ac-1, newopt.name, newopt.n_exp, pc)
+                      (ac-1, newopt.name, nreq, len(parlist))
                 return None
 
             # success!  insert the remaining list
@@ -163,8 +165,8 @@ def read_options(argv, oplist, verb = 1):
             if co.required: 
                 print "** error: missing option %s" % co.name
                 return None
-            elif co.n_exp > 0 and co.n_exp == len(co.deflist):  # use it
-                newopt = afni_base.comopt(co.name, co.n_exp, co.deflist)
+            elif len(co.deflist) > 0:  # use it
+                newopt = afni_base.comopt(co.name, len(co.deflist), co.deflist)
                 newopt.parlist = newopt.deflist
                 # leave n_found at -1, so calling function knows
                 OL.olist.append(newopt) # insert newopt into our return list
@@ -183,6 +185,7 @@ def test_comopts():
     okopts.add_opt('-debug',  1, ['0'       ],     range(4) )
     okopts.add_opt('-c',      2, ['21', '24']               )
     okopts.add_opt('-d',     -1, [          ]               )
+    okopts.add_opt('-e',     -2, ['21', '24', '265']        )
     okopts.trailers = 1 # allow trailing args
 
     okopts.show('------ possible input options ------ ')
