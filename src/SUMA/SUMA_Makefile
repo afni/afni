@@ -49,7 +49,7 @@ SPECIAL = -faltivec -framework Accelerate -DUSE_ALTIVEC
 endif
 
 ifndef INSTALLDIR
-INSTALLDIR_SUMA = /Users/ziad/abin
+INSTALLDIR_SUMA = /Users/julia/abin
 else
 #send suma to one directory back and let Makefile.INCLUDE move it to INSTALLDIR
 INSTALLDIR_SUMA = ../
