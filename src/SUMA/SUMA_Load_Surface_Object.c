@@ -3682,7 +3682,7 @@ int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
       } 
    }
     
-   if (isSphere ==  SUMA_GEOM_NOT_SET || SUMA_IS_GEOM_SYMM(isSphere) && SO->SphereRadius < 0.0 ) {  /* need to figure out the hard way
+   if (isSphere ==  SUMA_GEOM_NOT_SET || (SUMA_IS_GEOM_SYMM(isSphere) && SO->SphereRadius < 0.0) ) {  /* need to figure out the hard way
                                                                or need to fill up params */
       if (isSphere ==  SUMA_GEOM_NOT_SET) { 
          SUMA_LHv("The hard way (tol = %f)\n", tol);
