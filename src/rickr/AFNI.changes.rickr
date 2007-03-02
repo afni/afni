@@ -1970,7 +1970,9 @@
   * modified thd_niml.c: allowed sub-brick selection via thd_mastery
   * modified thd_mastery.c: init master_bot/top for .niml.dset files
 
-02 Mar 2007: modified count.c
+02 Mar 2007:
+  * modified count.c
       - added '-sep', same as '-suffix'
       - extended number of strncmp() characters for many options
+  * modified option_list.py: if n_exp = -N, then at least N opts are required
 
