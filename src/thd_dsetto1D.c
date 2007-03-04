@@ -71,7 +71,7 @@ ENTRY("THD_extract_series") ;
 int THD_extract_array( int ind, THD_3dim_dataset *dset, int raw, void *uar )
 {
    MRI_TYPE typ ;
-   int nv , ival , nb ;
+   int nv , ival , nb , nb1 ;
    char  *iar ;      /* brick in the input */
    float *far=NULL ; /* non-raw output */
    static void *tar=NULL ; static int ntar=0 ;
@@ -91,7 +91,7 @@ ENTRY("THD_extract_array") ;
 
    /* will extract nb bytes of raw data into array tar */
 
-   nb = mri_datum_size(typ) * (nv+1) ;
+   nb1 = mri_datum_size(typ); nb = nb1 * (nv+1); nb1 = nb1 * nv;
    if( nb > ntar ){ tar = AFREALL(tar,void *,nb) ; ntar = nb ; }
    memset(tar,0,nb) ;
 
@@ -177,12 +177,12 @@ ENTRY("THD_extract_array") ;
 
    }
 
-   if( raw ){ memcpy(uar,tar,nb); RETURN(0); }
+   if( raw ){ memcpy(uar,tar,nb1); RETURN(0); }
 
    if( THD_need_brick_factor(dset) ){
-      for( ival=0 ; ival < nv ; ival++ )
-         if( DSET_BRICK_FACTOR(dset,ival) > 0.0 )
-           far[ival] *= DSET_BRICK_FACTOR(dset,ival) ;
+     for( ival=0 ; ival < nv ; ival++ )
+       if( DSET_BRICK_FACTOR(dset,ival) > 0.0 )
+         far[ival] *= DSET_BRICK_FACTOR(dset,ival) ;
    }
 
    RETURN(0);
