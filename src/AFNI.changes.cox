@@ -6131,3 +6131,6 @@
  * Modified -CENSOR to -CENSORTR (for Rick's sake) and added '*' capability
     to the run syntax.
  * Added 3dDFT.c, from Kevin Murphy.
+
+04 Mar 2007
+ * Fixed overrun bug in THD_extract_array().
