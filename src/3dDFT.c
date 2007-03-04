@@ -5,15 +5,15 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset *dset1,*dset2=NULL, *oset ;
    MRI_IMAGE *dbr1,*dbr2,*dbr3 ;
    char *prefix = "DFT" ;
-   float   *mag;
+   float   *mag, *real;
    complex *comp_array;
-   int iarg=1 , doabs=0, ii, jj, kk, ll, nvox, nvals=1;
+   int iarg=1 , doabs=0, ii, jj, kk, ll, nvox, nvals=1, isfloat=0;
    int nx, ny, nz, nfft;
 
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: 3dDFT [-prefix ppp] [-abs] dataset\n"
-            "   where dataset is complex-valued.\n"
+            "   where dataset is complex or float valued.\n"
             "\n"
             " -abs == output float dataset = abs(DFT)\n"
            ) ;
@@ -22,10 +22,11 @@ int main( int argc , char * argv[] )
 
    mainENTRY("3dDFT main"); machdep(); AFNI_logger("3dDFT",argc,argv);
    AUTHOR("Kevin Murphy & Zhark the Glorious") ;
+   enable_mcw_malloc() ;
 
    /*-- options --*/
 
-#define GOOD_TYPE(tt) ((tt)==MRI_complex)
+#define GOOD_TYPE(tt) ((tt)==MRI_complex || (tt)==MRI_float )
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
@@ -59,8 +60,9 @@ int main( int argc , char * argv[] )
 
    OPENIT(dset1,argv[iarg])   ;
    if( !GOOD_TYPE( DSET_BRICK_TYPE(dset1,0) ) )
-     ERROR_exit("ILLEGAL dataset type in %s - must be complex\n",argv[iarg]) ;
+     ERROR_exit("ILLEGAL dataset type in %s - must be complex or float\n",argv[iarg]) ;
 
+   if(DSET_BRICK_TYPE(dset1,0) == MRI_float) { isfloat = 1; }
 
    dbr1 = DSET_BRICK(dset1,0) ;
 
@@ -82,10 +84,12 @@ int main( int argc , char * argv[] )
    oset = EDIT_empty_copy( dset1 ) ;
    EDIT_dset_items( oset ,
                       ADN_prefix , prefix ,
+                      ADN_datum_all, (isfloat) ? MRI_float : MRI_complex  ,
                       ADN_nvals  , nfft ,
                       ADN_ntt    , nfft ,
                     ADN_none ) ;
 
+   
    if( THD_is_file( DSET_HEADNAME(oset) ) )
      ERROR_exit("Output file %s exists -- will not overwrite!",
                  DSET_HEADNAME(oset) ) ;
@@ -94,14 +98,21 @@ int main( int argc , char * argv[] )
      EDIT_substitute_brick( oset , ii ,
                             (doabs) ? MRI_float : MRI_complex ,
                             NULL ) ;
+   
 
    /* Loop through timeseries and do DFT */
 
    comp_array = (complex *) calloc( sizeof(complex) , nfft);
    mag        = (float *)   calloc( sizeof(float)   , nfft);
+   if (isfloat) { real = (float *)   calloc( sizeof(float)   , nfft); }
 
    for( ii=0 ; ii < nvox ; ii++ ){
-     (void)THD_extract_array( ii , dset1 , 1 , comp_array ) ;
+    if(!isfloat) { (void)THD_extract_array( ii , dset1 , 1 , comp_array ) ; 
+     } else {
+     (void)THD_extract_array( ii , dset1 , 1 , real );
+     for( jj=0 ; jj < nvals ; jj++ ) { comp_array[jj].r = real[jj]; comp_array[jj].i = 0.0f ; }
+     }
+          
      for( jj=nvals ; jj < nfft ; jj++ )
        comp_array[jj].r = comp_array[jj].i = 0.0f ;
 
