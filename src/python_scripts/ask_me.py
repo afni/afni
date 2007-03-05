@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys, string, glob, os
 import afni_base, afni_util
 

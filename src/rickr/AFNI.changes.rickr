@@ -1976,3 +1976,7 @@
       - extended number of strncmp() characters for many options
   * modified option_list.py: if n_exp = -N, then at least N opts are required
 
+05 Mar 2007: per Jason Bacon:
+  * modified @escape-: added '!' in #!/bin/tcsh
+  * modified ask_me.py, db_mod.py, added 'env python', in case of crazy users
+
