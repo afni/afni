@@ -3503,13 +3503,34 @@ if(PRINT_TRACING)
       break ;  /* end of arrowpad arrow press */
 
       case isqCR_keypress:{
-#if 0
-         MCW_grapher * grapher = VIEWER_TO_GRAPHER(im3d,seq) ;
-         if( grapher != NULL ){
-            char buf[2] ;
-            buf[0] = cbs->key ; buf[1] = '\0' ;
-            GRA_handle_keypress( grapher , buf , cbs->event ) ;
-         }
+#if 1
+        switch( cbs->key ){  /* 05 Mar 2007 */
+
+          case 'u':{
+            int uu = im3d->vinfo->underlay_type ;
+            uu = (uu+1) % (LAST_UNDERLAY_TYPE+1) ;
+            MCW_set_bbox( im3d->vwid->func->underlay_bbox , 1<<uu ) ;
+            AFNI_underlay_CB( im3d->vwid->func->underlay_bbox->wbut[0] ,
+                              im3d , NULL ) ;
+          }
+          break ;
+
+          case 'o':{
+            int ov = MCW_val_bbox( im3d->vwid->view->see_func_bbox ) ;
+            MCW_set_bbox( im3d->vwid->view->see_func_bbox , !ov ) ;
+            AFNI_see_func_CB( NULL , im3d , NULL ) ; 
+          }
+          break ;
+
+        }
+
+#else /* OLD OLD OLD */
+        MCW_grapher *grapher = VIEWER_TO_GRAPHER(im3d,seq) ;
+        if( grapher != NULL ){
+          char buf[2] ;
+          buf[0] = cbs->key ; buf[1] = '\0' ;
+          GRA_handle_keypress( grapher , buf , cbs->event ) ;
+        }
 #endif
       }
       break ; /* end of keyboard press */

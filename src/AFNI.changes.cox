@@ -6138,3 +6138,4 @@
 
 05 Mar 2007
  * Added -nfft and -detrend options to 3dDFT.
+ * Added 'u' and 'o' image viewer keypress handling to afni.c.
