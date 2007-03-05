@@ -68,6 +68,25 @@ void THD_linear_detrend( int npt, float *far, float *xx0, float *xx1 )
    return ;
 }
 
+/*---------------------------------------------------------------------------*/
+
+void THD_linear_detrend_complex( int npt , complex *cx )  /* 05 Mar 2007 */
+{
+   register float *f ; register int ii ;
+
+   if( npt < 3 || cx == NULL ) return ;
+
+   f = malloc(sizeof(float)*npt) ;
+   for( ii=0 ; ii < npt ; ii++ ) f[ii] = cx[ii].r ;
+   THD_linear_detrend( npt , f , NULL,NULL ) ;
+   for( ii=0 ; ii < npt ; ii++ ){
+     cx[ii].r = f[ii] ; f[ii] = cx[ii].i ;
+   }
+   THD_linear_detrend( npt , f , NULL,NULL ) ;
+   for( ii=0 ; ii < npt ; ii++ ) cx[ii].i = f[ii] ;
+   return ;
+}
+
 /*---------------------------------------------------------------------------
    Given x[0..npt-1], return f0,f1,f2 as the least squares coefficients to
      x[j] = f0 + f1*j + f2*j*j

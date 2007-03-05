@@ -3837,6 +3837,7 @@ extern void THD_normalize        ( int, float * ) ;
 extern void THD_cubic_detrend    ( int, float * ) ;  /* 15 Nov 1999 */
 
 extern void THD_const_detrend    ( int, float *, float * ); /* 24 Aug 2001 */
+void THD_linear_detrend_complex  ( int, complex * ); /* 05 Mar 2007 */
 
 extern void THD_generic_detrend( int, float *, int, int, float ** ) ;
 

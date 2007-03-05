@@ -8,21 +8,24 @@ int main( int argc , char * argv[] )
    float   *mag, *real;
    complex *comp_array;
    int iarg=1 , doabs=0, ii, jj, kk, ll, nvox, nvals=1, isfloat=0;
-   int nx, ny, nz, nfft;
-
+   int nx, ny, nz, nfft=0 , detrend=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: 3dDFT [-prefix ppp] [-abs] dataset\n"
+     printf("Usage: 3dDFT [-prefix ppp] [-abs] [-nfft N] [-detrend] dataset\n"
             "   where dataset is complex or float valued.\n"
             "\n"
-            " -abs == output float dataset = abs(DFT)\n"
+            " -abs     == output float dataset = abs(DFT)\n"
+            " -nfft N  == use 'N' for DFT length (must be >= #time points)\n"
+            " -detrend == least-squares remove linear drift before DFT\n"
            ) ;
      exit(0) ;
    }
 
    mainENTRY("3dDFT main"); machdep(); AFNI_logger("3dDFT",argc,argv);
    AUTHOR("Kevin Murphy & Zhark the Glorious") ;
+#ifdef USING_MCW_MALLOC
    enable_mcw_malloc() ;
+#endif
 
    /*-- options --*/
 
@@ -39,6 +42,26 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-abs") == 0 ){
         doabs = 1 ; iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-detrend") == 0 ){
+        detrend = 1 ; iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-nfft") == 0 ){
+        nfft = (int)strtod(argv[++iarg],NULL) ;
+        if( nfft <= 2 ){
+          WARNING_message("Illegal -nfft value on command line") ;
+          nfft = 0 ;
+        } else {
+          ii = csfft_nextup(nfft) ;
+          if( ii > nfft ){
+            WARNING_message("Replacing -nfft=%d with next largest legal value=%d",
+                            nfft,ii) ;
+            nfft = ii ;
+          }
+        }
+        iarg++ ; continue ;
       }
 
       ERROR_exit("ILLEGAL option: %s\n",argv[iarg]) ;
@@ -74,10 +97,17 @@ int main( int argc , char * argv[] )
    nvals = DSET_NVALS(dset1);
 
    /* Calculate size for FFT */
-//   nfft = csfft_nextup_one35(nvals);
+#if 0
+   nfft = csfft_nextup_one35(nvals);
+#endif
 
-   nfft = csfft_nextup(nvals);
-   INFO_message("Data length = %d ; FFT length = %d",nvals,nfft) ;
+   ii = csfft_nextup(nvals);
+   if( nfft <= 2 )
+     INFO_message("Data length = %d ; FFT length = %d",nvals,ii) ;
+   else if( ii > nfft )
+     WARNING_message("Data length = %d ; replacing -nfft=%d with %d",
+                     nvals,nfft,ii);
+   nfft = ii ;
 
    /* make output dataset */
 
@@ -89,16 +119,27 @@ int main( int argc , char * argv[] )
                       ADN_ntt    , nfft ,
                     ADN_none ) ;
 
-   
+   DSET_UNMSEC(dset1) ;
+   if( DSET_TIMEUNITS(dset1) == UNITS_SEC_TYPE ){   /* 'time' becomes Hz */
+     float dt = DSET_TR(dset1) ;
+     if( dt <= 0.0f ) dt = 1.0f ;
+     EDIT_dset_items( oset ,
+                        ADN_tunits , UNITS_HZ_TYPE ,
+                        ADN_ttdel  , 1.0f/(nfft*dt) ,
+                        ADN_nsl    , 0 ,
+                      ADN_none ) ;
+   }
+
    if( THD_is_file( DSET_HEADNAME(oset) ) )
      ERROR_exit("Output file %s exists -- will not overwrite!",
                  DSET_HEADNAME(oset) ) ;
+
+   /* create empty bricks for output dataset */
 
    for( ii=0 ; ii < nfft ; ii++ )
      EDIT_substitute_brick( oset , ii ,
                             (doabs) ? MRI_float : MRI_complex ,
                             NULL ) ;
-   
 
    /* Loop through timeseries and do DFT */
 
@@ -106,15 +147,21 @@ int main( int argc , char * argv[] )
    mag        = (float *)   calloc( sizeof(float)   , nfft);
    if (isfloat) { real = (float *)   calloc( sizeof(float)   , nfft); }
 
-   for( ii=0 ; ii < nvox ; ii++ ){
-    if(!isfloat) { (void)THD_extract_array( ii , dset1 , 1 , comp_array ) ; 
+   for( ii=0 ; ii < nvox ; ii++ ){  /* loop over voxels */
+
+     if(!isfloat){
+       (void)THD_extract_array( ii , dset1 , 1 , comp_array ) ;
+       if( detrend ) THD_linear_detrend_complex( nvals , comp_array ) ;
      } else {
-     (void)THD_extract_array( ii , dset1 , 1 , real );
-     for( jj=0 ; jj < nvals ; jj++ ) { comp_array[jj].r = real[jj]; comp_array[jj].i = 0.0f ; }
+       (void)THD_extract_array( ii , dset1 , 1 , real );
+       if( detrend ) THD_linear_detrend( nvals , real , NULL,NULL ) ;
+       for( jj=0 ; jj < nvals ; jj++ ) {
+         comp_array[jj].r = real[jj]; comp_array[jj].i = 0.0f ;
+       }
      }
-          
+
      for( jj=nvals ; jj < nfft ; jj++ )
-       comp_array[jj].r = comp_array[jj].i = 0.0f ;
+       comp_array[jj].r = comp_array[jj].i = 0.0f ;  /* zero pad */
 
     /* Perform the DFT at last! */
 
