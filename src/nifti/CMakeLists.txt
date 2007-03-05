@@ -33,7 +33,7 @@ ELSE("${ITK_VERSION_MAJOR}" GREATER 0.0)
 
   #Needs an if clause and more work before testing can take place.
   SUBDIRS(Testing)
-  SUBDIRS(utils)
+  SUBDIRS(nifticdf utils)
 
   OPTION(USE_FSL_CODE "If OFF, The copyright of this code is questionable for inclusion with nifti." OFF)
   MARK_AS_ADVANCED(USE_FSL_CODE)

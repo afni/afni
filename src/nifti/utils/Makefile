@@ -7,6 +7,7 @@ ZNZ_INCS	=	-I/usr/include
 
 FSLIO_LIBS	=	-L../lib -lfslio
 NIFTI_LIBS	=	-L../lib -lniftiio
+NIFTICDF_LIBS	=	-L../lib -lnifticdf
 ZNZ_LIBS	=	-L/usr/lib -L../lib -lznz -lm -lz
 
 
@@ -36,7 +37,7 @@ clean:
 
 
 nifti_stats: nifti_stats.c
-	$(CC) $(CFLAGS) -o nifti_stats nifti_stats.c $(NIFTI_INCS) $(ZNZ_INCS) $(NIFTI_LIBS) $(ZNZ_LIBS)
+	$(CC) $(CFLAGS) -o nifti_stats nifti_stats.c $(NIFTI_INCS) $(ZNZ_INCS) $(NIFTICDF_LIBS) $(NIFTI_LIBS) $(ZNZ_LIBS)
 
 nifti_tool: nifti_tool.c nifti_tool.h
 	$(CC) $(CFLAGS) -Wall -o nifti_tool nifti_tool.c $(NIFTI_INCS) $(ZNZ_INCS) $(NIFTI_LIBS) $(ZNZ_LIBS)

@@ -1976,7 +1976,18 @@
       - extended number of strncmp() characters for many options
   * modified option_list.py: if n_exp = -N, then at least N opts are required
 
-05 Mar 2007: per Jason Bacon:
-  * modified @escape-: added '!' in #!/bin/tcsh
-  * modified ask_me.py, db_mod.py, added 'env python', in case of crazy users
+05 Mar 2007: per Jason Bacon and Michael Hanke:
+  * JB: modified @escape-: added '!' in #!/bin/tcsh
+  * JB: modified ask_me.py, db_mod.py, added 'env python', for crazy users
+  * MH: added nifti/nifticdf: CMakeLists.txt, Makefile, nifticdf.c, nifticdf.h
+        (separating nifti_stats.c into nifticdf.[ch])
+  * MH: modified CMakeLists.txt and utils/CMakeLists.txt for cmake
+  * MH: modified nifti_stats.c (removed all functions but main)
+  * rr: modified Makefile, README, utils/Makefile (to build without cmake)
+  * rr: modified Makefile.INCLUDE
+        - replace nifti_stats.o with nifticdf.o in CS_OBJS
+        - add nifticdf.o target and link to nifti_stats
+        - modified nifticdf.[ch]: reverted back closer to nifti_stats.c
+          (moving 7 protos to nifticdf.h, and all but main to nifticdf.c)
+          (keep all static and __COMPILE_UNUSED_FUNCTIONS__ use)
 

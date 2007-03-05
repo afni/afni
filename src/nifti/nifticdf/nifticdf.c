@@ -34,8 +34,117 @@
 #include <ctype.h>
 #include <string.h>
 
+ /************************************************************************/
+ /************ Include all the cdflib functions here and now *************/
+ /************     [about 9900 lines of code below here]     *************/
+ /************************************************************************/
+
+/** Prototypes for cdflib functions **/
+
+static double algdiv(double*,double*);
+static double alngam(double*);
+static double alnrel(double*);
+static double apser(double*,double*,double*,double*);
+static double basym(double*,double*,double*,double*);
+static double bcorr(double*,double*);
+static double betaln(double*,double*);
+static double bfrac(double*,double*,double*,double*,double*,double*);
+static void bgrat(double*,double*,double*,double*,double*,double*,int*i);
+static double bpser(double*,double*,double*,double*);
+static void bratio(double*,double*,double*,double*,double*,double*,int*);
+static double brcmp1(int*,double*,double*,double*,double*);
+static double brcomp(double*,double*,double*,double*);
+static double bup(double*,double*,double*,double*,int*,double*);
+static void cdfbet(int*,double*,double*,double*,double*,double*,double*,
+                   int*,double*);
+static void cdfbin(int*,double*,double*,double*,double*,double*,double*,
+                   int*,double*);
+static void cdfchi(int*,double*,double*,double*,double*,int*,double*);
+static void cdfchn(int*,double*,double*,double*,double*,double*,int*,double*);
+static void cdff(int*,double*,double*,double*,double*,double*,int*,double*);
+static void cdffnc(int*,double*,double*,double*,double*,double*,double*,
+                   int*s,double*);
+static void cdfgam(int*,double*,double*,double*,double*,double*,int*,double*);
+#if defined(__COMPILE_UNUSED_FUNCTIONS__)
+static void cdfnbn(int*,double*,double*,double*,double*,double*,double*,
+                   int*,double*);
+static void cdfnor(int*,double*,double*,double*,double*,double*,int*,double*);
+#endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
+static void cdfpoi(int*,double*,double*,double*,double*,int*,double*);
+static void cdft(int*,double*,double*,double*,double*,int*,double*);
+static void cumbet(double*,double*,double*,double*,double*,double*);
+static void cumbin(double*,double*,double*,double*,double*,double*);
+static void cumchi(double*,double*,double*,double*);
+static void cumchn(double*,double*,double*,double*,double*);
+static void cumf(double*,double*,double*,double*,double*);
+static void cumfnc(double*,double*,double*,double*,double*,double*);
+static void cumgam(double*,double*,double*,double*);
+#if defined(__COMPILE_UNUSED_FUNCTIONS__)
+static void cumnbn(double*,double*,double*,double*,double*,double*);
+#endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
+static void cumnor(double*,double*,double*);
+static void cumpoi(double*,double*,double*,double*);
+static void cumt(double*,double*,double*,double*);
+#if defined(__COMPILE_UNUSED_FUNCTIONS__)
+static double dbetrm(double*,double*);
+#endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
+static double devlpl(double [],int*,double*);
+#if defined(__COMPILE_UNUSED_FUNCTIONS__)
+static double dexpm1(double*);
+static double dinvnr(double *p,double *q);
+#endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
+static void E0000(int,int*,double*,double*,unsigned long*,
+                  unsigned long*,double*,double*,double*,
+                  double*,double*,double*,double*);
+static void dinvr(int*,double*,double*,unsigned long*,unsigned long*);
+static void dstinv(double*,double*,double*,double*,double*,double*,
+                   double*);
+#if defined(__COMPILE_UNUSED_FUNCTIONS__)
+static double dlanor(double*);
+static double dln1mx(double*);
+static double dln1px(double*);
+static double dlnbet(double*,double*);
+static double dlngam(double*);
+static double dstrem(double*);
+#endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
+static double dt1(double*,double*,double*);
+static void E0001(int,int*,double*,double*,double*,double*,
+                  unsigned long*,unsigned long*,double*,double*,
+                  double*,double*);
+static void dzror(int*,double*,double*,double*,double *,
+                  unsigned long*,unsigned long*);
+static void dstzr(double *zxlo,double *zxhi,double *zabstl,double *zreltl);
+static double erf1(double*);
+static double erfc1(int*,double*);
+static double esum(int*,double*);
+static double exparg(int*);
+static double fpser(double*,double*,double*,double*);
+static double gam1(double*);
+static void gaminv(double*,double*,double*,double*,double*,int*);
+static double gamln(double*);
+static double gamln1(double*);
+static double Xgamm(double*);
+static void grat1(double*,double*,double*,double*,double*,double*);
+static void gratio(double*,double*,double*,double*,int*);
+static double gsumln(double*,double*);
+static double psi(double*);
+static double rcomp(double*,double*);
+static double rexp(double*);
+static double rlog(double*);
+static double rlog1(double*);
+static double spmpar(int*);
+static double stvaln(double*);
+static double fifdint(double);
+static double fifdmax1(double,double);
+static double fifdmin1(double,double);
+static double fifdsign(double,double);
+static long fifidint(double);
+static long fifmod(long,long);
+static void ftnstop(char*);
+static int ipmpar(int*);
+
 /***=====================================================================***/
-double algdiv(double *a,double *b)
+static double algdiv(double *a,double *b)
 /*
 -----------------------------------------------------------------------
 
@@ -102,7 +211,7 @@ S30:
 } /* END */
 
 /***=====================================================================***/
-double alngam(double *x)
+static double alngam(double *x)
 /*
 **********************************************************************
 
@@ -216,7 +325,7 @@ S110:
 } /* END */
 
 /***=====================================================================***/
-double alnrel(double *a)
+static double alnrel(double *a)
 /*
 -----------------------------------------------------------------------
             EVALUATION OF THE FUNCTION LN(1 + A)
@@ -247,7 +356,7 @@ S10:
 } /* END */
 
 /***=====================================================================***/
-double apser(double *a,double *b,double *x,double *eps)
+static double apser(double *a,double *b,double *x,double *eps)
 /*
 -----------------------------------------------------------------------
      APSER YIELDS THE INCOMPLETE BETA RATIO I(SUB(1-X))(B,A) FOR
@@ -284,7 +393,7 @@ S30:
 } /* END */
 
 /***=====================================================================***/
-double basym(double *a,double *b,double *lambda,double *eps)
+static double basym(double *a,double *b,double *lambda,double *eps)
 /*
 -----------------------------------------------------------------------
      ASYMPTOTIC EXPANSION FOR IX(A,B) FOR LARGE A AND B.
@@ -394,7 +503,7 @@ S80:
 } /* END */
 
 /***=====================================================================***/
-double bcorr(double *a0,double *b0)
+static double bcorr(double *a0,double *b0)
 /*
 -----------------------------------------------------------------------
 
@@ -445,7 +554,7 @@ static double bcorr,a,b,c,h,s11,s3,s5,s7,s9,t,w,x,x2;
 } /* END */
 
 /***=====================================================================***/
-double betaln(double *a0,double *b0)
+static double betaln(double *a0,double *b0)
 /*
 -----------------------------------------------------------------------
      EVALUATION OF THE LOGARITHM OF THE BETA FUNCTION
@@ -553,7 +662,7 @@ S110:
 } /* END */
 
 /***=====================================================================***/
-double bfrac(double *a,double *b,double *x,double *y,double *lambda,
+static double bfrac(double *a,double *b,double *x,double *y,double *lambda,
              double *eps)
 /*
 -----------------------------------------------------------------------
@@ -622,7 +731,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-void bgrat(double *a,double *b,double *x,double *y,double *w,
+static void bgrat(double *a,double *b,double *x,double *y,double *w,
            double *eps,int *ierr)
 /*
 -----------------------------------------------------------------------
@@ -706,7 +815,7 @@ S70:
 } /* END */
 
 /***=====================================================================***/
-double bpser(double *a,double *b,double *x,double *eps)
+static double bpser(double *a,double *b,double *x,double *eps)
 /*
 -----------------------------------------------------------------------
      POWER SERIES EXPANSION FOR EVALUATING IX(A,B) WHEN B .LE. 1
@@ -806,7 +915,7 @@ S110:
 } /* END */
 
 /***=====================================================================***/
-void bratio(double *a,double *b,double *x,double *y,double *w,
+static void bratio(double *a,double *b,double *x,double *y,double *w,
             double *w1,int *ierr)
 /*
 -----------------------------------------------------------------------
@@ -1045,7 +1154,7 @@ S330:
 } /* END */
 
 /***=====================================================================***/
-double brcmp1(int *mu,double *a,double *b,double *x,double *y)
+static double brcmp1(int *mu,double *a,double *b,double *x,double *y)
 /*
 -----------------------------------------------------------------------
           EVALUATION OF  EXP(MU) * (X**A*Y**B/BETA(A,B))
@@ -1185,7 +1294,7 @@ S190:
 } /* END */
 
 /***=====================================================================***/
-double brcomp(double *a,double *b,double *x,double *y)
+static double brcomp(double *a,double *b,double *x,double *y)
 /*
 -----------------------------------------------------------------------
                EVALUATION OF X**A*Y**B/BETA(A,B)
@@ -1325,7 +1434,7 @@ S190:
 } /* END */
 
 /***=====================================================================***/
-double bup(double *a,double *b,double *x,double *y,int *n,double *eps)
+static double bup(double *a,double *b,double *x,double *y,int *n,double *eps)
 /*
 -----------------------------------------------------------------------
      EVALUATION OF IX(A,B) - IX(A+N,B) WHERE N IS A POSITIVE INTEGER.
@@ -1404,7 +1513,7 @@ S70:
 } /* END */
 
 /***=====================================================================***/
-void cdfbet(int *which,double *p,double *q,double *x,double *y,
+static void cdfbet(int *which,double *p,double *q,double *x,double *y,
             double *a,double *b,int *status,double *bound)
 /**********************************************************************
 
@@ -1780,7 +1889,7 @@ S540:
 } /* END */
 
 /***=====================================================================***/
-void cdfbin(int *which,double *p,double *q,double *s,double *xn,
+static void cdfbin(int *which,double *p,double *q,double *s,double *xn,
             double *pr,double *ompr,int *status,double *bound)
 /**********************************************************************
 
@@ -2151,7 +2260,7 @@ S560:
 } /* END */
 
 /***=====================================================================***/
-void cdfchi(int *which,double *p,double *q,double *x,double *df,
+static void cdfchi(int *which,double *p,double *q,double *x,double *df,
             int *status,double *bound)
 /**********************************************************************
 
@@ -2437,7 +2546,7 @@ S380:
 } /* END */
 
 /***=====================================================================***/
-void cdfchn(int *which,double *p,double *q,double *x,double *df,
+static void cdfchn(int *which,double *p,double *q,double *x,double *df,
             double *pnonc,int *status,double *bound)
 /**********************************************************************
 
@@ -2712,7 +2821,7 @@ S280:
 } /* END */
 
 /***=====================================================================***/
-void cdff(int *which,double *p,double *q,double *f,double *dfn,
+static void cdff(int *which,double *p,double *q,double *f,double *dfn,
           double *dfd,int *status,double *bound)
 /**********************************************************************
 
@@ -3030,7 +3139,7 @@ S420:
 } /* END */
 
 /***=====================================================================***/
-void cdffnc(int *which,double *p,double *q,double *f,double *dfn,
+static void cdffnc(int *which,double *p,double *q,double *f,double *dfn,
             double *dfd,double *phonc,int *status,double *bound)
 /**********************************************************************
 
@@ -3356,7 +3465,7 @@ S350:
 } /* END */
 
 /***=====================================================================***/
-void cdfgam(int *which,double *p,double *q,double *x,double *shape,
+static void cdfgam(int *which,double *p,double *q,double *x,double *shape,
             double *scale,int *status,double *bound)
 /**********************************************************************
 
@@ -3655,8 +3764,9 @@ S310:
 #undef inf
 } /* END */
 
+#if defined(__COMPILE_UNUSED_FUNCTIONS__)
 /***=====================================================================***/
-void cdfnbn(int *which,double *p,double *q,double *s,double *xn,
+static void cdfnbn(int *which,double *p,double *q,double *s,double *xn,
             double *pr,double *ompr,int *status,double *bound)
 /**********************************************************************
 
@@ -4029,7 +4139,7 @@ S540:
 } /* END */
 
 /***=====================================================================***/
-void cdfnor(int *which,double *p,double *q,double *x,double *mean,
+static void cdfnor(int *which,double *p,double *q,double *x,double *mean,
             double *sd,int *status,double *bound)
 /**********************************************************************
 
@@ -4233,9 +4343,10 @@ S160:
     }
     return;
 } /* END */
+#endif /* defined(__COMPILE_UNUSED_FUNCTIONS__) */
 
 /***=====================================================================***/
-void cdfpoi(int *which,double *p,double *q,double *s,double *xlam,
+static void cdfpoi(int *which,double *p,double *q,double *s,double *xlam,
             int *status,double *bound)
 /**********************************************************************
 
@@ -4493,7 +4604,7 @@ S330:
 } /* END */
 
 /***=====================================================================***/
-void cdft(int *which,double *p,double *q,double *t,double *df,
+static void cdft(int *which,double *p,double *q,double *t,double *df,
           int *status,double *bound)
 /**********************************************************************
 
@@ -4746,7 +4857,7 @@ S310:
 } /* END */
 
 /***=====================================================================***/
-void cumbet(double *x,double *y,double *a,double *b,double *cum,
+static void cumbet(double *x,double *y,double *a,double *b,double *cum,
             double *ccum)
 /*
 **********************************************************************
@@ -4824,7 +4935,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-void cumbin(double *s,double *xn,double *pr,double *ompr,
+static void cumbin(double *s,double *xn,double *pr,double *ompr,
             double *cum,double *ccum)
 /*
 **********************************************************************
@@ -4892,7 +5003,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-void cumchi(double *x,double *df,double *cum,double *ccum)
+static void cumchi(double *x,double *df,double *cum,double *ccum)
 /*
 **********************************************************************
 
@@ -4944,7 +5055,7 @@ static double a,xx;
 } /* END */
 
 /***=====================================================================***/
-void cumchn(double *x,double *df,double *pnonc,double *cum,
+static void cumchn(double *x,double *df,double *pnonc,double *cum,
             double *ccum)
 /*
 **********************************************************************
@@ -5159,7 +5270,7 @@ S80:
 } /* END */
 
 /***=====================================================================***/
-void cumf(double *f,double *dfn,double *dfd,double *cum,double *ccum)
+static void cumf(double *f,double *dfn,double *dfd,double *cum,double *ccum)
 /*
 **********************************************************************
 
@@ -5245,7 +5356,7 @@ S10:
 } /* END */
 
 /***=====================================================================***/
-void cumfnc(double *f,double *dfn,double *dfd,double *pnonc,
+static void cumfnc(double *f,double *dfn,double *dfd,double *pnonc,
             double *cum,double *ccum)
 /*
 **********************************************************************
@@ -5417,7 +5528,7 @@ S70:
 } /* END */
 
 /***=====================================================================***/
-void cumgam(double *x,double *a,double *cum,double *ccum)
+static void cumgam(double *x,double *a,double *cum,double *ccum)
 /*
 **********************************************************************
 
@@ -5477,8 +5588,9 @@ S10:
     return;
 } /* END */
 
+#if defined(__COMPILE_UNUSED_FUNCTIONS__)
 /***=====================================================================***/
-void cumnbn(double *s,double *xn,double *pr,double *ompr,
+static void cumnbn(double *s,double *xn,double *pr,double *ompr,
             double *cum,double *ccum)
 /*
 **********************************************************************
@@ -5543,9 +5655,10 @@ static double T1;
     cumbet(pr,ompr,xn,&T1,cum,ccum);
     return;
 } /* END */
+#endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
 
 /***=====================================================================***/
-void cumnor(double *arg,double *result,double *ccum)
+static void cumnor(double *arg,double *result,double *ccum)
 /*
 **********************************************************************
 
@@ -5758,7 +5871,7 @@ static double del,eps,temp,x,xden,xnum,y,xsq,min;
 } /* END */
 
 /***=====================================================================***/
-void cumpoi(double *s,double *xlam,double *cum,double *ccum)
+static void cumpoi(double *s,double *xlam,double *cum,double *ccum)
 /*
 **********************************************************************
 
@@ -5811,7 +5924,7 @@ static double chi,df;
 } /* END */
 
 /***=====================================================================***/
-void cumt(double *t,double *df,double *cum,double *ccum)
+static void cumt(double *t,double *df,double *cum,double *ccum)
 /*
 **********************************************************************
 
@@ -5874,8 +5987,9 @@ S20:
     return;
 } /* END */
 
+#if defined(__COMPILE_UNUSED_FUNCTIONS__)
 /***=====================================================================***/
-double dbetrm(double *a,double *b)
+static double dbetrm(double *a,double *b)
 /*
 **********************************************************************
 
@@ -5925,9 +6039,10 @@ static double dbetrm,T1,T2,T3;
     dbetrm += dstrem(&T3);
     return dbetrm;
 } /* END */
+#endif /* defined(__COMPILE_UNUSED_FUNCTIONS__) */
 
 /***=====================================================================***/
-double devlpl(double a[],int *n,double *x)
+static double devlpl(double a[],int *n,double *x)
 /*
 **********************************************************************
 
@@ -5969,8 +6084,9 @@ static int i;
     return devlpl;
 } /* END */
 
+#if defined(__COMPILE_UNUSED_FUNCTIONS__)
 /***=====================================================================***/
-double dexpm1(double *x)
+static double dexpm1(double *x)
 /*
 **********************************************************************
 
@@ -6020,9 +6136,10 @@ S20:
     dexpm1 = w*(0.5e0+(0.5e0-1.0e0/w));
     return dexpm1;
 } /* END */
+#endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
 
 /***=====================================================================***/
-double dinvnr(double *p,double *q)
+static double dinvnr(double *p,double *q)
 /*
 **********************************************************************
 
@@ -6120,7 +6237,7 @@ S40:
 } /* END */
 
 /***=====================================================================***/
-void E0000(int IENTRY,int *status,double *x,double *fx,
+static void E0000(int IENTRY,int *status,double *x,double *fx,
                   unsigned long *qleft,unsigned long *qhi,double *zabsst,
                   double *zabsto,double *zbig,double *zrelst,
                   double *zrelto,double *zsmall,double *zstpmu)
@@ -6327,7 +6444,7 @@ S310:
 } /* END */
 
 /***=====================================================================***/
-void dinvr(int *status,double *x,double *fx,
+static void dinvr(int *status,double *x,double *fx,
            unsigned long *qleft,unsigned long *qhi)
 /*
 **********************************************************************
@@ -6394,7 +6511,7 @@ void dinvr(int *status,double *x,double *fx,
 } /* END */
 
 /***=====================================================================***/
-void dstinv(double *zsmall,double *zbig,double *zabsst,
+static void dstinv(double *zsmall,double *zbig,double *zabsst,
             double *zrelst,double *zstpmu,double *zabsto,
             double *zrelto)
 /*
@@ -6466,8 +6583,9 @@ void dstinv(double *zsmall,double *zbig,double *zabsst,
     zstpmu);
 } /* END */
 
+#if defined(__COMPILE_UNUSED_FUNCTIONS__)
 /***=====================================================================***/
-double dlanor(double *x)
+static double dlanor(double *x)
 /*
 **********************************************************************
 
@@ -6528,7 +6646,7 @@ static double dlanor,approx,correc,xx,xx2,T2;
 } /* END */
 
 /***=====================================================================***/
-double dln1mx(double *x)
+static double dln1mx(double *x)
 /*
 **********************************************************************
 
@@ -6572,7 +6690,7 @@ static double dln1mx,T1;
 } /* END */
 
 /***=====================================================================***/
-double dln1px(double *a)
+static double dln1px(double *a)
 /*
 **********************************************************************
 
@@ -6634,7 +6752,7 @@ S10:
 } /* END */
 
 /***=====================================================================***/
-double dlnbet(double *a0,double *b0)
+static double dlnbet(double *a0,double *b0)
 /*
 **********************************************************************
 
@@ -6773,7 +6891,7 @@ S110:
 } /* END */
 
 /***=====================================================================***/
-double dlngam(double *a)
+static double dlngam(double *a)
 /*
 **********************************************************************
 
@@ -6856,7 +6974,7 @@ S40:
 } /* END */
 
 /***=====================================================================***/
-double dstrem(double *z)
+static double dstrem(double *z)
 {
 /*
 **********************************************************************
@@ -6920,9 +7038,10 @@ S20:
 #undef hln2pi
 #undef ncoef
 } /* END */
+#endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
 
 /***=====================================================================***/
-double dt1(double *p,double *q,double *df)
+static double dt1(double *p,double *q,double *df)
 /*
 **********************************************************************
 
@@ -6993,7 +7112,7 @@ S30:
 } /* END */
 
 /***=====================================================================***/
-void E0001(int IENTRY,int *status,double *x,double *fx,
+static void E0001(int IENTRY,int *status,double *x,double *fx,
                   double *xlo,double *xhi,unsigned long *qleft,
                   unsigned long *qhi,double *zabstl,double *zreltl,
                   double *zxhi,double *zxlo)
@@ -7153,7 +7272,7 @@ S280:
 } /* END */
 
 /***=====================================================================***/
-void dzror(int *status,double *x,double *fx,double *xlo,
+static void dzror(int *status,double *x,double *fx,double *xlo,
            double *xhi,unsigned long *qleft,unsigned long *qhi)
 /*
 **********************************************************************
@@ -7223,7 +7342,7 @@ void dzror(int *status,double *x,double *fx,double *xlo,
 } /* END */
 
 /***=====================================================================***/
-void dstzr(double *zxlo,double *zxhi,double *zabstl,double *zreltl)
+static void dstzr(double *zxlo,double *zxhi,double *zabstl,double *zreltl)
 /*
 **********************************************************************
      void dstzr(double *zxlo,double *zxhi,double *zabstl,double *zreltl)
@@ -7272,7 +7391,7 @@ void dstzr(double *zxlo,double *zxhi,double *zabstl,double *zreltl)
 } /* END */
 
 /***=====================================================================***/
-double erf1(double *x)
+static double erf1(double *x)
 /*
 -----------------------------------------------------------------------
              EVALUATION OF THE REAL ERROR FUNCTION
@@ -7342,7 +7461,7 @@ S30:
 } /* END */
 
 /***=====================================================================***/
-double erfc1(int *ind,double *x)
+static double erfc1(int *ind,double *x)
 /*
 -----------------------------------------------------------------------
          EVALUATION OF THE COMPLEMENTARY ERROR FUNCTION
@@ -7450,7 +7569,7 @@ S70:
 } /* END */
 
 /***=====================================================================***/
-double esum(int *mu,double *x)
+static double esum(int *mu,double *x)
 /*
 -----------------------------------------------------------------------
                     EVALUATION OF EXP(MU + X)
@@ -7481,7 +7600,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-double exparg(int *l)
+static double exparg(int *l)
 /*
 --------------------------------------------------------------------
      IF L = 0 THEN  EXPARG(L) = THE LARGEST POSITIVE W FOR WHICH
@@ -7529,7 +7648,7 @@ S50:
 } /* END */
 
 /***=====================================================================***/
-double fpser(double *a,double *b,double *x,double *eps)
+static double fpser(double *a,double *b,double *x,double *eps)
 /*
 -----------------------------------------------------------------------
 
@@ -7575,7 +7694,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-double gam1(double *a)
+static double gam1(double *a)
 /*
      ------------------------------------------------------------------
      COMPUTATION OF 1/GAMMA(A+1) - 1  FOR -0.5 .LE. A .LE. 1.5
@@ -7637,7 +7756,7 @@ S50:
 } /* END */
 
 /***=====================================================================***/
-void gaminv(double *a,double *x,double *x0,double *p,double *q,
+static void gaminv(double *a,double *x,double *x0,double *p,double *q,
             int *ierr)
 /*
  ----------------------------------------------------------------------
@@ -8001,7 +8120,7 @@ S360:
 } /* END */
 
 /***=====================================================================***/
-double gamln(double *a)
+static double gamln(double *a)
 /*
 -----------------------------------------------------------------------
             EVALUATION OF LN(GAMMA(A)) FOR POSITIVE A
@@ -8056,7 +8175,7 @@ S40:
 } /* END */
 
 /***=====================================================================***/
-double gamln1(double *a)
+static double gamln1(double *a)
 /*
 -----------------------------------------------------------------------
      EVALUATION OF LN(GAMMA(1 + A)) FOR -0.2 .LE. A .LE. 1.25
@@ -8106,7 +8225,7 @@ S10:
 } /* END */
 
 /***=====================================================================***/
-double Xgamm(double *a)
+static double Xgamm(double *a)
 /*
 -----------------------------------------------------------------------
 
@@ -8257,7 +8376,7 @@ S120:
 } /* END */
 
 /***=====================================================================***/
-void grat1(double *a,double *x,double *r,double *p,double *q,
+static void grat1(double *a,double *x,double *r,double *p,double *q,
            double *eps)
 {
 static int K2 = 0;
@@ -8362,7 +8481,7 @@ S120:
 } /* END */
 
 /***=====================================================================***/
-void gratio(double *a,double *x,double *ans,double *qans,int *ind)
+static void gratio(double *a,double *x,double *ans,double *qans,int *ind)
 /*
  ----------------------------------------------------------------------
         EVALUATION OF THE INCOMPLETE GAMMA RATIO FUNCTIONS
@@ -8781,7 +8900,7 @@ S430:
 } /* END */
 
 /***=====================================================================***/
-double gsumln(double *a,double *b)
+static double gsumln(double *a,double *b)
 /*
 -----------------------------------------------------------------------
           EVALUATION OF THE FUNCTION LN(GAMMA(A + B))
@@ -8810,7 +8929,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-double psi(double *xx)
+static double psi(double *xx)
 /*
 ---------------------------------------------------------------------
 
@@ -9005,7 +9124,7 @@ S100:
 } /* END */
 
 /***=====================================================================***/
-double rcomp(double *a,double *x)
+static double rcomp(double *a,double *x)
 /*
      -------------------
      EVALUATION OF EXP(-X)*X**A/GAMMA(A)
@@ -9040,7 +9159,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-double rexp(double *x)
+static double rexp(double *x)
 /*
 -----------------------------------------------------------------------
             EVALUATION OF THE FUNCTION EXP(X) - 1
@@ -9072,7 +9191,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-double rlog(double *x)
+static double rlog(double *x)
 /*
      -------------------
      COMPUTATION OF  X - 1 - LN(X)
@@ -9124,7 +9243,7 @@ S40:
 } /* END */
 
 /***=====================================================================***/
-double rlog1(double *x)
+static double rlog1(double *x)
 /*
 -----------------------------------------------------------------------
              EVALUATION OF THE FUNCTION X - LN(1 + X)
@@ -9176,7 +9295,7 @@ S40:
 } /* END */
 
 /***=====================================================================***/
-double spmpar(int *i)
+static double spmpar(int *i)
 /*
 -----------------------------------------------------------------------
 
@@ -9244,7 +9363,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-double stvaln(double *p)
+static double stvaln(double *p)
 /*
 **********************************************************************
 
@@ -9305,7 +9424,7 @@ S20:
 } /* END */
 
 /***=====================================================================***/
-double fifdint(double a)
+static double fifdint(double a)
 /************************************************************************
 FIFDINT:
 Truncates a double precision number to an integer and returns the
@@ -9317,7 +9436,7 @@ value in a double.
 } /* END */
 
 /***=====================================================================***/
-double fifdmax1(double a,double b)
+static double fifdmax1(double a,double b)
 /************************************************************************
 FIFDMAX1:
 returns the maximum of two numbers a and b
@@ -9330,7 +9449,7 @@ returns the maximum of two numbers a and b
 } /* END */
 
 /***=====================================================================***/
-double fifdmin1(double a,double b)
+static double fifdmin1(double a,double b)
 /************************************************************************
 FIFDMIN1:
 returns the minimum of two numbers a and b
@@ -9343,7 +9462,7 @@ returns the minimum of two numbers a and b
 } /* END */
 
 /***=====================================================================***/
-double fifdsign(double mag,double sign)
+static double fifdsign(double mag,double sign)
 /************************************************************************
 FIFDSIGN:
 transfers the sign of the variable "sign" to the variable "mag"
@@ -9358,7 +9477,7 @@ transfers the sign of the variable "sign" to the variable "mag"
 } /* END */
 
 /***=====================================================================***/
-long fifidint(double a)
+static long fifidint(double a)
 /************************************************************************
 FIFIDINT:
 Truncates a double precision number to a long integer
@@ -9370,7 +9489,7 @@ Truncates a double precision number to a long integer
 } /* END */
 
 /***=====================================================================***/
-long fifmod(long a,long b)
+static long fifmod(long a,long b)
 /************************************************************************
 FIFMOD:
 returns the modulo of a and b
@@ -9382,7 +9501,7 @@ returns the modulo of a and b
 } /* END */
 
 /***=====================================================================***/
-void ftnstop(char* msg)
+static void ftnstop(char* msg)
 /************************************************************************
 FTNSTOP:
 Prints msg to standard error and then exits
@@ -9394,7 +9513,7 @@ Prints msg to standard error and then exits
 } /* END */
 
 /***=====================================================================***/
-int ipmpar(int *i)
+static int ipmpar(int *i)
 /*
 -----------------------------------------------------------------------
 
@@ -9843,7 +9962,7 @@ typedef struct { double p,q ; } pqpair ;  /* for returning p=cdf q=1-cdf */
   F statistic
 -----------------------------------------------------------------*/
 
-double fstat_pq2s( pqpair pq , double dofnum , double dofden )
+static double fstat_pq2s( pqpair pq , double dofnum , double dofden )
 {
    int which , status ;
    double p , q , f , dfn , dfd , bound ;
@@ -9861,7 +9980,7 @@ double fstat_pq2s( pqpair pq , double dofnum , double dofden )
 
 /*------------------------------*/
 
-pqpair fstat_s2pq( double ff , double dofnum , double dofden )
+static pqpair fstat_s2pq( double ff , double dofnum , double dofden )
 {
    int which , status ;
    double p , q , f , dfn , dfd , bound ;
@@ -9882,7 +10001,7 @@ pqpair fstat_s2pq( double ff , double dofnum , double dofden )
   noncentral F statistic
 -----------------------------------------------------------------*/
 
-double fnonc_pq2s( pqpair pq , double dofnum , double dofden , double nonc )
+static double fnonc_pq2s( pqpair pq , double dofnum , double dofden , double nonc )
 {
    int which , status ;
    double p , q , f , dfn , dfd , bound , pnonc ;
@@ -9901,7 +10020,7 @@ double fnonc_pq2s( pqpair pq , double dofnum , double dofden , double nonc )
 
 /*------------------------------*/
 
-pqpair fnonc_s2pq( double ff , double dofnum , double dofden , double nonc )
+static pqpair fnonc_s2pq( double ff , double dofnum , double dofden , double nonc )
 {
    int which , status ;
    double p , q , f , dfn , dfd , bound , pnonc ;
@@ -9923,7 +10042,7 @@ pqpair fnonc_s2pq( double ff , double dofnum , double dofden , double nonc )
   Standard Normal distribution
 -----------------------------------------------------------------*/
 
-pqpair normal_s2pq( double zz )
+static pqpair normal_s2pq( double zz )
 {
    double p , q , x=zz ;
    pqpair pq ;
@@ -9934,7 +10053,7 @@ pqpair normal_s2pq( double zz )
 
 /*------------------------------*/
 
-double normal_pq2s( pqpair pq )
+static double normal_pq2s( pqpair pq )
 {
    double p=pq.p , q=pq.q ;
 
@@ -9947,7 +10066,7 @@ double normal_pq2s( pqpair pq )
    Chi-square
 ------------------------------------------------------------------*/
 
-pqpair chisq_s2pq( double xx , double dof )
+static pqpair chisq_s2pq( double xx , double dof )
 {
    int which , status ;
    double p,q,x,df,bound ;
@@ -9965,7 +10084,7 @@ pqpair chisq_s2pq( double xx , double dof )
 
 /*------------------------------*/
 
-double chisq_pq2s( pqpair pq , double dof )
+static double chisq_pq2s( pqpair pq , double dof )
 {
    int which , status ;
    double p,q,x,df,bound ;
@@ -9984,7 +10103,7 @@ double chisq_pq2s( pqpair pq , double dof )
    noncentral Chi-square
 ------------------------------------------------------------------*/
 
-pqpair chsqnonc_s2pq( double xx , double dof , double nonc )
+static pqpair chsqnonc_s2pq( double xx , double dof , double nonc )
 {
    int which , status ;
    double p,q,x,df,bound , pnonc ;
@@ -10003,7 +10122,7 @@ pqpair chsqnonc_s2pq( double xx , double dof , double nonc )
 
 /*------------------------------*/
 
-double chsqnonc_pq2s( pqpair pq , double dof , double nonc )
+static double chsqnonc_pq2s( pqpair pq , double dof , double nonc )
 {
    int which , status ;
    double p,q,x,df,bound , pnonc ;
@@ -10023,7 +10142,7 @@ double chsqnonc_pq2s( pqpair pq , double dof , double nonc )
    Beta distribution
 ------------------------------------------------------------------*/
 
-pqpair beta_s2pq( double xx , double aa , double bb )
+static pqpair beta_s2pq( double xx , double aa , double bb )
 {
    int which , status ;
    double p,q,x,y,a,b,bound ;
@@ -10043,7 +10162,7 @@ pqpair beta_s2pq( double xx , double aa , double bb )
 
 /*------------------------------*/
 
-double beta_pq2s( pqpair pq , double aa , double bb )
+static double beta_pq2s( pqpair pq , double aa , double bb )
 {
    int which , status ;
    double p,q,x,y,a,b,bound ;
@@ -10066,7 +10185,7 @@ double beta_pq2s( pqpair pq , double aa , double bb )
     trials were successful).
 ------------------------------------------------------------------*/
 
-pqpair binomial_s2pq( double ss , double ntrial , double ptrial )
+static pqpair binomial_s2pq( double ss , double ntrial , double ptrial )
 {
    int which , status ;
    double p,q, s,xn,pr,ompr,bound ;
@@ -10086,7 +10205,7 @@ pqpair binomial_s2pq( double ss , double ntrial , double ptrial )
 
 /*------------------------------*/
 
-double binomial_pq2s( pqpair pq , double ntrial , double ptrial )
+static double binomial_pq2s( pqpair pq , double ntrial , double ptrial )
 {
    int which , status ;
    double p,q, s,xn,pr,ompr,bound ;
@@ -10107,7 +10226,7 @@ double binomial_pq2s( pqpair pq , double ntrial , double ptrial )
    Gamma distribution.
 ------------------------------------------------------------------*/
 
-pqpair gamma_s2pq( double xx , double sh , double sc )
+static pqpair gamma_s2pq( double xx , double sh , double sc )
 {
    int which , status ;
    double p,q, x,shape,scale,bound ;
@@ -10126,7 +10245,7 @@ pqpair gamma_s2pq( double xx , double sh , double sc )
 
 /*------------------------------*/
 
-double gamma_pq2s( pqpair pq , double sh , double sc )
+static double gamma_pq2s( pqpair pq , double sh , double sc )
 {
    int which , status ;
    double p,q, x,shape,scale,bound ;
@@ -10146,7 +10265,7 @@ double gamma_pq2s( pqpair pq , double sh , double sc )
    Poisson distribution
 ------------------------------------------------------------------*/
 
-pqpair poisson_s2pq( double xx , double lambda )
+static pqpair poisson_s2pq( double xx , double lambda )
 {
    int which , status ;
    double p,q, s,xlam,bound ;
@@ -10164,7 +10283,7 @@ pqpair poisson_s2pq( double xx , double lambda )
 
 /*------------------------------*/
 
-double poisson_pq2s( pqpair pq , double lambda )
+static double poisson_pq2s( pqpair pq , double lambda )
 {
    int which , status ;
    double p,q, s,xlam,bound ;
@@ -10183,7 +10302,7 @@ double poisson_pq2s( pqpair pq , double lambda )
    T distribution.
 ------------------------------------------------------------------*/
 
-pqpair student_s2pq( double xx , double dof )
+static pqpair student_s2pq( double xx , double dof )
 {
    int which , status ;
    double p,q, s,xlam,bound ;
@@ -10225,14 +10344,14 @@ double student_pq2s( pqpair pq , double dof )
    Let x = (rr+1)/2; then x is Beta(dof/2,dof/2).
 ------------------------------------------------------------------*/
 
-pqpair correl_s2pq( double rr , double dof )  /* fake it with cdflib */
+static pqpair correl_s2pq( double rr , double dof )  /* fake it with cdflib */
 {
    return beta_s2pq( 0.5*(rr+1.0) , 0.5*dof , 0.5*dof ) ;
 }
 
 /*------------------------------*/
 
-double correl_pq2s( pqpair pq , double dof )
+static double correl_pq2s( pqpair pq , double dof )
 {
    double xx = beta_pq2s( pq , 0.5*dof , 0.5*dof ) ;
    return (2.0*xx-1.0) ;
@@ -10242,7 +10361,7 @@ double correl_pq2s( pqpair pq , double dof )
   Uniform U(0,1) distribution.
 ------------------------------------------------------------------*/
 
-pqpair uniform_s2pq( double xx )  /* this isn't too hard */
+static pqpair uniform_s2pq( double xx )  /* this isn't too hard */
 {
    pqpair pq ;
         if( xx <= 0.0 ) pq.p = 0.0 ;
@@ -10253,7 +10372,7 @@ pqpair uniform_s2pq( double xx )  /* this isn't too hard */
 
 /*------------------------------*/
 
-double uniform_pq2s( pqpair pq )
+static double uniform_pq2s( pqpair pq )
 {
    return pq.p ;   /* that was easy */
 }
@@ -10262,7 +10381,7 @@ double uniform_pq2s( pqpair pq )
   standard Logistic distribution.
 ------------------------------------------------------------------*/
 
-pqpair logistic_s2pq( double xx )  /* this isn't hard, either */
+static pqpair logistic_s2pq( double xx )  /* this isn't hard, either */
 {
    pqpair pq ;
    if( xx >= 0.0 ){ pq.q = 1.0/(1.0+exp( xx)); pq.p = 1.0-pq.q; }
@@ -10272,7 +10391,7 @@ pqpair logistic_s2pq( double xx )  /* this isn't hard, either */
 
 /*------------------------------*/
 
-double logistic_pq2s( pqpair pq )
+static double logistic_pq2s( pqpair pq )
 {
         if( pq.p <= 0.0 ) return -BIGG ;
    else if( pq.q <= 0.0 ) return  BIGG ;
@@ -10285,7 +10404,7 @@ double logistic_pq2s( pqpair pq )
   standard Laplace distribution.
 ------------------------------------------------------------------*/
 
-pqpair laplace_s2pq( double xx )  /* easy */
+static pqpair laplace_s2pq( double xx )  /* easy */
 {
    pqpair pq ;
 
@@ -10296,7 +10415,7 @@ pqpair laplace_s2pq( double xx )  /* easy */
 
 /*------------------------------*/
 
-double laplace_pq2s( pqpair pq )
+static double laplace_pq2s( pqpair pq )
 {
         if( pq.p <= 0.0 ) return -BIGG ;
    else if( pq.q <= 0.0 ) return  BIGG ;
@@ -10318,7 +10437,7 @@ double laplace_pq2s( pqpair pq )
 *****************************************************************************/
 
 #if 0
-double alng( double x )   /* log(Gamma(x)) from K */
+static double alng( double x )   /* log(Gamma(x)) from K */
 {
    int indx ;
    double xx,fterm,sum,valg ;
@@ -10341,7 +10460,7 @@ double alng( double x )   /* log(Gamma(x)) from K */
    return valg ;
 }
 #else
-double alng( double x ) /*-- replace with cdflib function --*/
+static double alng( double x ) /*-- replace with cdflib function --*/
 {
   double xx=x ; return alngam( &xx ) ;
 }
@@ -10350,7 +10469,7 @@ double alng( double x ) /*-- replace with cdflib function --*/
 /*---------------------------------------------------------------------------*/
 
 #if 0
-double gaudf( double x )  /* N(0,1) cdf from K */
+static double gaudf( double x )  /* N(0,1) cdf from K */
 {
    static double p0=913.16744211475570 , p1=1024.60809538333800,
                  p2=580.109897562908800, p3=202.102090717023000,
@@ -10383,7 +10502,7 @@ double gaudf( double x )  /* N(0,1) cdf from K */
    return reslt ;
 }
 #else
-double gaudf( double x ) /*-- replace with cdflib func --*/
+static double gaudf( double x ) /*-- replace with cdflib func --*/
 {
    double xx=x , p,q ;
    cumnor( &xx, &p, &q ); return p;
@@ -10393,7 +10512,7 @@ double gaudf( double x ) /*-- replace with cdflib func --*/
 /*---------------------------------------------------------------------------*/
 
 #if 0
-double betadf( double x , double p , double q ) /* Beta cdf from K */
+static double betadf( double x , double p , double q ) /* Beta cdf from K */
 {
    int check , ns ;
    double result,betf,psq,xx,cx,pp,qq ;
@@ -10435,7 +10554,7 @@ L5:
    return result ;
 }
 #else
-double betadf( double x , double p , double q ) /*-- cdflib func --*/
+static double betadf( double x , double p , double q ) /*-- cdflib func --*/
 {
    double xx=x,yy=1.0-x , aa=p,bb=q , pp,qq ;
    cumbet( &xx,&yy , &aa,&bb , &pp,&qq ) ; return pp ;
@@ -10449,7 +10568,7 @@ double betadf( double x , double p , double q ) /*-- cdflib func --*/
    A couple of other minor fixes are also included.
 -----------------------------------------------------------------------------*/
 
-pqpair tnonc_s2pq( double t , double df , double delta )
+static pqpair tnonc_s2pq( double t , double df , double delta )
 {
    int indx , k , i ;
    double x,del,tnd,ans,y,dels,a,b,c ;
@@ -10570,7 +10689,7 @@ L2:
    to solve the equation.
 --------------------------------*/
 
-double tnonc_pq2s( pqpair pq , double dof , double nonc )
+static double tnonc_pq2s( pqpair pq , double dof , double nonc )
 {
    double t ;  /* will be result */
    double tbot,ttop , dt ;
@@ -10641,7 +10760,7 @@ double tnonc_pq2s( pqpair pq , double dof , double nonc )
    Chi distribution (sqrt of chi-squared, duh).
 ------------------------------------------------------------------*/
 
-pqpair chi_s2pq( double xx , double dof )
+static pqpair chi_s2pq( double xx , double dof )
 {
    pqpair pq={0.0,1.0} ;
 
@@ -10651,7 +10770,7 @@ pqpair chi_s2pq( double xx , double dof )
 
 /*------------------------------*/
 
-double chi_pq2s( pqpair pq , double dof )
+static double chi_pq2s( pqpair pq , double dof )
 {
    if( pq.p <= 0.0 ) return  0.0 ;
    if( pq.q <= 0.0 ) return BIGG ;
@@ -10662,7 +10781,7 @@ double chi_pq2s( pqpair pq , double dof )
    Extreme value type I: cdf(x) = exp(-exp(-x)).
 ------------------------------------------------------------------*/
 
-pqpair extval1_s2pq( double x )
+static pqpair extval1_s2pq( double x )
 {
    double p,q,y ; pqpair pq ;
 
@@ -10676,7 +10795,7 @@ pqpair extval1_s2pq( double x )
 
 /*------------------------------*/
 
-double extval1_pq2s( pqpair pq )
+static double extval1_pq2s( pqpair pq )
 {
         if( pq.p <= 0.0 ) return -BIGG ;
    else if( pq.p >= 1.0 ) return  BIGG ;
@@ -10687,7 +10806,7 @@ double extval1_pq2s( pqpair pq )
    Weibull distribution: cdf(x) = 1 - exp( -x^c ) for x>0 and c>0.
 ------------------------------------------------------------------*/
 
-pqpair weibull_s2pq( double x , double c )
+static pqpair weibull_s2pq( double x , double c )
 {
    double y ;
    pqpair pq={0.0,1.0} ;
@@ -10702,7 +10821,7 @@ pqpair weibull_s2pq( double x , double c )
 
 /*------------------------------*/
 
-double weibull_pq2s( pqpair pq , double c )
+static double weibull_pq2s( pqpair pq , double c )
 {
         if( pq.p <= 0.0 || c <= 0.0 ) return  0.0 ;
    else if( pq.q <= 0.0             ) return BIGG ;
@@ -10714,7 +10833,7 @@ double weibull_pq2s( pqpair pq , double c )
     density proportional to exp(-0.5*c(x+1/x))/x^1.5 (x,c >0).
 ------------------------------------------------------------------*/
 
-pqpair invgauss_s2pq( double x, double c )
+static pqpair invgauss_s2pq( double x, double c )
 {
    double y , p1,q1 , p2,q2 , v ;
    pqpair pq={0.0,1.0} ;
@@ -10735,7 +10854,7 @@ pqpair invgauss_s2pq( double x, double c )
    to solve the equation.
 --------------------------------*/
 
-double invgauss_pq2s( pqpair pq , double c )
+static double invgauss_pq2s( pqpair pq , double c )
 {
    double t ;  /* will be result */
    double tbot,ttop , dt ;
@@ -10800,7 +10919,7 @@ double invgauss_pq2s( pqpair pq , double c )
     - All the actual work is done in utility functions for each distribution.
 ----------------------------------------------------------------------------*/
 
-pqpair stat2pq( double val, int code, double p1,double p2,double p3 )
+static pqpair stat2pq( double val, int code, double p1,double p2,double p3 )
 {
    pqpair pq={0.0,1.0} ;
 
@@ -10865,7 +10984,7 @@ pqpair stat2pq( double val, int code, double p1,double p2,double p3 )
       will be -log(q) and -log10(q).
 ----------------------------------------------------------------------------*/
 
-double pq2stat( pqpair pq, int code, double p1,double p2,double p3 )
+static double pq2stat( pqpair pq, int code, double p1,double p2,double p3 )
 {
    double val=BIGG ;
 
@@ -10930,6 +11049,42 @@ double pq2stat( pqpair pq, int code, double p1,double p2,double p3 )
 /*[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]*/
 /****************************************************************************/
 
+/****************************************************************************
+ Statistical codes implemented here:
+
+     NIFTI_INTENT_CORREL     = correlation statistic
+     NIFTI_INTENT_TTEST      = t statistic (central)
+     NIFTI_INTENT_FTEST      = F statistic (central)
+     NIFTI_INTENT_ZSCORE     = N(0,1) statistic
+     NIFTI_INTENT_CHISQ      = Chi-squared (central)
+     NIFTI_INTENT_BETA       = Beta variable (central)
+     NIFTI_INTENT_BINOM      = Binomial variable
+     NIFTI_INTENT_GAMMA      = Gamma distribution
+     NIFTI_INTENT_POISSON    = Poisson distribution
+     NIFTI_INTENT_FTEST_NONC = noncentral F statistic
+     NIFTI_INTENT_CHISQ_NONC = noncentral chi-squared
+     NIFTI_INTENT_TTEST_NONC = noncentral t statistic
+     NIFTI_INTENT_CHI        = Chi statistic (central)
+     NIFTI_INTENT_INVGAUSS   = inverse Gaussian variable
+     NIFTI_INTENT_WEIBULL    = Weibull distribution
+     NIFTI_INTENT_EXTVAL     = Extreme value type I
+     NIFTI_INTENT_NORMAL     = N(mu,variance) normal
+     NIFTI_INTENT_LOGISTIC   = Logistic distribution
+     NIFTI_INTENT_LAPLACE    = Laplace distribution
+     NIFTI_INTENT_UNIFORM    = Uniform distribution
+     NIFTI_INTENT_PVAL       = "p-value"
+     NIFTI_INTENT_LOGPVAL    = -ln(p)
+     NIFTI_INTENT_LOG10PVAL  = -log10(p)
+*****************************************************************************/
+
+char *inam[]={ NULL , NULL ,
+                       "CORREL"   , "TTEST"   , "FTEST"      , "ZSCORE"     ,
+                       "CHISQ"    , "BETA"    , "BINOM"      , "GAMMA"      ,
+                       "POISSON"  , "NORMAL"  , "FTEST_NONC" , "CHISQ_NONC" ,
+                       "LOGISTIC" , "LAPLACE" , "UNIFORM"    , "TTEST_NONC" ,
+                       "WEIBULL"  , "CHI"     , "INVGAUSS"   , "EXTVAL"     ,
+                       "PVAL"     , "LOGPVAL" , "LOG10PVAL"  ,
+                     NULL } ;
 
 /*--------------------------------------------------------------------------*/
 /*! Given a string name for a statistic, return its integer code.
@@ -11004,6 +11159,7 @@ double nifti_cdf2stat( double p , int code, double p1,double p2,double p3 )
    return pq2stat(pq,code,p1,p2,p3) ;
 }
 
+#if defined(__COMPILE_UNUSED_FUNCTIONS__)
 /*--------------------------------------------------------------------------*/
 /*! Given a reversed cdf probability, find the value that gave rise to it.
      - q        = 1-cdf; 0 < q < 1
@@ -11019,6 +11175,7 @@ double nifti_rcdf2stat( double q , int code, double p1,double p2,double p3 )
    pq.p = 1.0-q ; pq.q = q ;
    return pq2stat(pq,code,p1,p2,p3) ;
 }
+#endif/*(__COMPILE_UNUSED_FUNCTIONS__)*/
 /*--------------------------------------------------------------------------*/
 /*! Given a statistic, compute a z-score from it.  That is, the output
     is z such that cdf(z) of a N(0,1) variable is the same as the cdf
