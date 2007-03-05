@@ -6133,4 +6133,8 @@
  * Added 3dDFT.c, from Kevin Murphy.
 
 04 Mar 2007
- * Fixed overrun bug in THD_extract_array().
+ * Fixed overrun bug in THD_extract_array() for raw data -- code was never
+     tested!  Affected 3dDFT.c.
+
+05 Mar 2007
+ * Added -nfft and -detrend options to 3dDFT.
