@@ -1365,6 +1365,9 @@ extern void AFNI_thr_scale_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_set_thr_pval( Three_D_View * im3d ) ;
 extern void AFNI_thr_scale_drag_CB( Widget , XtPointer , XtPointer ) ;
 
+extern float AFNI_get_autothresh( Three_D_View * ) ;        /* 05 Mar 2007 */
+extern void AFNI_set_threshold( Three_D_View * , float  ) ;
+
 extern void AFNI_inten_pbar_CB( MCW_pbar * , XtPointer , int ) ;
 extern void AFNI_inten_av_CB( MCW_arrowval * , XtPointer ) ;
 extern char * AFNI_inten_av_texter ( MCW_arrowval *, XtPointer ) ; /* 30 Jan 2003 */

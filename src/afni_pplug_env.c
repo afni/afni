@@ -443,6 +443,9 @@ PLUGIN_interface * ENV_init(void)
    /* 21 Feb 2007 [RWCox] */
    ENV_add_yesno( "AFNI_DATASET_BROWSE" , "Switch datasets upon selection?" ) ;
 
+   /* 05 Mar 2007 [RWCox] */
+   ENV_add_yesno( "AFNI_THRESH_AUTO" , "Reset threshold on Switch Overlay?" ) ;
+
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
    if( !AFNI_yesenv("AFNI_DONT_SORT_ENVIRONMENT") )

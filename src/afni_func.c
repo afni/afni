@@ -41,6 +41,81 @@ ENTRY("AFNI_see_func_CB") ;
    EXRETURN ;
 }
 
+/*-----------------------------------------------------------------------*/
+/*! Get the threshold automatically.  [05 Mar 2007]
+-------------------------------------------------------------------------*/
+
+float AFNI_get_autothresh( Three_D_View *im3d )
+{
+   MRI_IMAGE *thrim ;
+   float thrval,pval=0.0f ; int ival ;
+
+ENTRY("AFNI_get_autothresh") ;
+
+   if( !IM3D_OPEN(im3d) || im3d->fim_now == NULL ) RETURN(-1.0f) ;
+
+   ival = im3d->vinfo->thr_index ;  /* threshold sub-brick index */
+
+   if( DSET_BRICK_STATCODE(im3d->fim_now,ival) > 0 )
+     pval = THD_pval_to_stat( 1.e-3 ,
+                              DSET_BRICK_STATCODE(im3d->fim_now,ival) ,
+                              DSET_BRICK_STATAUX (im3d->fim_now,ival)  ) ;
+
+   DSET_load( im3d->fim_now ) ;
+   thrim  = DSET_BRICK(im3d->fim_now,ival) ;
+   thrval = THD_cliplevel_abs( thrim , 0.123f ) ;
+
+   if( pval > 0.0f ){
+     if( thrval <= 0.0f ) thrval = pval ;
+     else                 thrval = MIN(thrval,pval) ;
+   }
+   if( thrval == 0.0f ) thrval = -1.0f ;
+
+   RETURN(thrval) ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Set the threshold and slider.  [05 Mar 2007]
+-------------------------------------------------------------------------*/
+
+void AFNI_set_threshold( Three_D_View *im3d , float val )
+{
+   int olddec,newdec , smax,stop , ival ;
+   static float tval[9] = { 1.0 , 10.0 , 100.0 , 1000.0 , 10000.0 ,
+                            100000.0 , 1000000.0 , 10000000.0 , 100000000.0 } ;
+
+ENTRY("AFNI_set_threshold") ;
+
+   if( !IM3D_OPEN(im3d) || val < 0.0f || val > THR_TOP_VALUE ) EXRETURN;
+
+   /* get current scale decimal setting */
+
+   olddec = (int)rint( log10(im3d->vinfo->func_thresh_top) ) ;
+        if( olddec < 0             ) olddec = 0 ;
+   else if( olddec > THR_TOP_EXPON ) olddec = THR_TOP_EXPON ;
+   newdec = olddec ;
+
+   if( val > 0.0f ){
+     newdec = (int)( log10(val) + 1.0 ) ;
+          if( newdec < 0             ) newdec = 0 ;
+     else if( newdec > THR_TOP_EXPON ) newdec = THR_TOP_EXPON ;
+     if( newdec != olddec )
+       AFNI_set_thresh_top( im3d , tval[newdec] ) ;
+   }
+
+   smax  = (int)rint( pow(10.0,THR_TOP_EXPON) ) ;
+   stop  = smax - 1 ;                             /* max slider value */
+
+   ival = rint( val/(THR_FACTOR*tval[newdec]) ) ;
+        if( ival < 0    ) ival = 0    ;
+   else if( ival > stop ) ival = stop ;
+
+   XmScaleSetValue( im3d->vwid->func->thr_scale , ival ) ;
+   AFNI_thr_scale_CB( im3d->vwid->func->thr_scale, (XtPointer)im3d, NULL ) ;
+   AFNI_thresh_lock_carryout(im3d) ;
+   EXRETURN ;
+}
+
 /*-----------------------------------------------------------------------
    Called when the scale for the threshold is adjusted.
    30 Oct 1996: changed scale factor from slider to threshold
@@ -147,7 +222,7 @@ ENTRY("AFNI_set_thresh_top") ;
 
    decim = THR_TOP_EXPON - decim ;
    if( decim != im3d->vwid->func->thr_top_av->ival )
-      AV_assign_ival( im3d->vwid->func->thr_top_av , decim ) ;
+     AV_assign_ival( im3d->vwid->func->thr_top_av , decim ) ;
 
    EXRETURN ;
 }
@@ -2383,6 +2458,14 @@ ENTRY("AFNI_finalize_dataset_CB") ;
        MCW_invert_widget( im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
        MCW_invert_widget(wcall) ;
      }
+   }
+
+   if( wcall == im3d->vwid->view->choose_func_pb &&
+       AFNI_yesenv("AFNI_THRESH_AUTO")              ){  /* 05 Mar 2007 */
+
+     float new_thresh = AFNI_get_autothresh(im3d) ;
+     if( new_thresh > 0.0f )
+       AFNI_set_threshold(im3d,new_thresh) ;
    }
 
    EXRETURN ;
@@ -4835,6 +4918,12 @@ ENTRY("AFNI_bucket_CB") ;
       if( redisplay == REDISPLAY_OVERLAY &&
           im3d->vinfo->func_visible        ) AFNI_process_funcdisplay(im3d) ;
       SHOW_AFNI_READY ;
+   }
+
+   if( AFNI_yesenv("AFNI_THRESH_AUTO") ){           /* 05 Mar 2007 */
+     float new_thresh = AFNI_get_autothresh(im3d) ;
+     if( new_thresh > 0.0f )
+       AFNI_set_threshold(im3d,new_thresh) ;
    }
 
    EXRETURN ;
