@@ -130,6 +130,30 @@ ENTRY("THD_cliplevel") ;
 }
 
 /*-------------------------------------------------------------------------*/
+
+float THD_cliplevel_abs( MRI_IMAGE *im , float mfrac )
+{
+   MRI_IMAGE *fim ; register float *far ; register int ii ; float val,tv ;
+
+ENTRY("THD_cliplevel_abs") ;
+   if( im == NULL ) RETURN(0.0f) ;
+   fim = mri_to_float(im) ; if( fim == NULL ) RETURN(0.0f) ;
+   far = MRI_FLOAT_PTR(fim) ;
+   for( ii=0 ; ii < fim->nvox ; ii++ ) far[ii] = fabsf(far[ii]) ;
+   val = THD_cliplevel( fim , mfrac ) ;
+
+   qsort_float( fim->nvox , far ) ;
+   ii = (int)(0.9*fim->nvox) ; tv = far[ii] ;
+   if( tv == 0.0f ){
+     for( ; ii < fim->nvox && far[ii] == 0.0f ; ii++ ) ; /* nada */
+     if( ii < fim->nvox ) tv = far[ii] ;
+   }
+   if( val > tv && tv > 0.0f ) val = tv ;
+
+   mri_free(fim) ; RETURN(val) ;
+}
+
+/*-------------------------------------------------------------------------*/
 /*! Cliplevel for part of an image.  Quick and easy to write!
     Not very efficient, but this isn't a big CPU sink.  [24 Oct 2006] */
 

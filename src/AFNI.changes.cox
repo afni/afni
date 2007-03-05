@@ -6139,3 +6139,5 @@
 05 Mar 2007
  * Added -nfft and -detrend options to 3dDFT.
  * Added 'u' and 'o' image viewer keypress handling to afni.c.
+ * Added Mod+Button4+5 threshold slider changing to imseq.c and afni.c.
+ * Added AFNI_THRESH_AUTO to afni_func.c.
