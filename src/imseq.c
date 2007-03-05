@@ -5063,7 +5063,7 @@ DPR(" .. ButtonPress") ;
            else if( but == Button4 || but == Button5 ){
               int ddd = (but==Button4) ? -1 : 1 ;
               DC_palette_squeeze( seq->dc , ddd ) ;
-              COLORMAP_CHANGE(seq) ;      /* 22 Aug 1998 */
+              COLORMAP_CHANGE(seq) ;
            }
            else {
 #if 0
@@ -5084,10 +5084,18 @@ DPR(" .. ButtonPress") ;
          /* 26 Feb 2007: Buttons 4 and 5 = scroll wheel = change slice */
 
          if( but == Button4 || but == Button5 ){
-           int nold=seq->im_nr , nnew=(but==Button4) ? nold-1 : nold+1;
-           ISQ_timer_stop(seq) ;
-           if( nnew >= 0 && nnew < seq->status->num_total )
-             ISQ_redisplay( seq , nnew , isqDR_display ) ;
+           if( (event->state & (Mod1Mask|Mod2Mask)) ){  /* mod+scroll == '{}' */
+             cbs.reason = isqCR_keypress ;
+             cbs.event  = ev ;
+             cbs.key    = (but==Button4) ? '}' : '{' ;
+             cbs.nim    = seq->im_nr ;
+             SEND(seq,cbs) ;
+           } else {                           /* no modifiers == change slice */
+             int nold=seq->im_nr , nnew=(but==Button4) ? nold-1 : nold+1;
+             ISQ_timer_stop(seq) ;
+             if( nnew >= 0 && nnew < seq->status->num_total )
+               ISQ_redisplay( seq , nnew , isqDR_display ) ;
+           }
            busy=0; EXRETURN;
          }
 

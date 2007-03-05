@@ -18,7 +18,7 @@ MRI_IMAGE *mri_to_float( MRI_IMAGE *oldim )
 
 ENTRY("mri_to_float") ;
 
-   if( oldim == NULL ) RETURN( NULL ) ;  /* 09 Feb 1999 */
+   if( oldim == NULL || mri_data_pointer(oldim) == NULL ) RETURN(NULL) ;
 
    newim = mri_new_conforming( oldim , MRI_float ) ;
    npix  = oldim->nvox ;

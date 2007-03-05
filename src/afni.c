@@ -3518,7 +3518,21 @@ if(PRINT_TRACING)
           case 'o':{
             int ov = MCW_val_bbox( im3d->vwid->view->see_func_bbox ) ;
             MCW_set_bbox( im3d->vwid->view->see_func_bbox , !ov ) ;
-            AFNI_see_func_CB( NULL , im3d , NULL ) ; 
+            AFNI_see_func_CB( NULL , im3d , NULL ) ;
+          }
+          break ;
+
+          case '{':
+          case '}':{
+            int stt=(int)THR_TOP_VALUE , dss , scl , osc ;
+            XmScaleGetValue( im3d->vwid->func->thr_scale , &scl ) ; osc = scl ;
+            dss = (stt+1)/100 ; if( cbs->key == '{' ) dss = -dss ;
+            scl += dss ;
+            if( scl <= 0 ) scl = 0 ; else if( scl >= stt ) scl = stt ;
+            if( scl != osc ){
+              XmScaleSetValue( im3d->vwid->func->thr_scale , scl ) ;
+              AFNI_thr_scale_CB( im3d->vwid->func->thr_scale, (XtPointer)im3d, NULL ) ;
+            }
           }
           break ;
 
@@ -6812,10 +6826,10 @@ ENTRY("AFNI_purge_dsets") ;
 void AFNI_initialize_view( THD_3dim_dataset *old_anat, Three_D_View *im3d )
 {
    int vvv , itog , lll , sss , aaa , fff , id ;
-   THD_3dim_dataset     * dset , * new_anat , * new_func ;
-   THD_marker_set       * markers ;
-   AFNI_viewing_widgets * view ;
-   AFNI_marks_widgets   * marks ;
+   THD_3dim_dataset     *dset , *new_anat , *new_func ;
+   THD_marker_set       *markers ;
+   AFNI_viewing_widgets *view ;
+   AFNI_marks_widgets   *marks ;
    THD_fvec3 fv ;
    THD_ivec3 iv ;
 
@@ -6861,13 +6875,13 @@ STATUS("purging old datasets from memory (maybe)") ;
    /* set the new datasets that we will deal with from now on */
 
    for( id=0 ; id <= LAST_VIEW_TYPE ; id++ ){
-      im3d->anat_dset[id] = GLOBAL_library.sslist->ssar[sss]->dsset[aaa][id] ;
-      im3d->fim_dset[id]  = GLOBAL_library.sslist->ssar[sss]->dsset[fff][id] ;
+     im3d->anat_dset[id] = GLOBAL_library.sslist->ssar[sss]->dsset[aaa][id] ;
+     im3d->fim_dset[id]  = GLOBAL_library.sslist->ssar[sss]->dsset[fff][id] ;
 
-      if( ISVALID_3DIM_DATASET(im3d->anat_dset[id]) )
-         SENSITIZE( im3d->vwid->view->view_bbox->wbut[id], True ) ;
-      else
-         SENSITIZE( im3d->vwid->view->view_bbox->wbut[id], False) ;
+     if( ISVALID_3DIM_DATASET(im3d->anat_dset[id]) )
+       SENSITIZE( im3d->vwid->view->view_bbox->wbut[id], True ) ;
+     else
+       SENSITIZE( im3d->vwid->view->view_bbox->wbut[id], False) ;
    }
 
    im3d->anat_now = im3d->anat_dset[vvv] ;
