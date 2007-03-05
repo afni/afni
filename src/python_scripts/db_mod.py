@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 import os, afni_util, afni_base
 
