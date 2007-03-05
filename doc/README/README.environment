@@ -1754,6 +1754,13 @@ variable; for example
   setenv AFNI_THRESH_BIGSTEP 100
 will move the slider 1% of its height per PageUp/PageDown key or mouse click.
 
+--------------------------
+Variable: AFNI_THRESH_AUTO (editable)
+--------------------------
+If this YES/NO variable is set to YES, then whenever you switch overlay datasets,
+the function threshold slider will automatically change to some value that may
+be appropriate for the values in the new dataset.  [This is for Ziad!]
+
 ------------------------------
 Variable: AFNI_SNAPFILE_PREFIX
 ------------------------------
