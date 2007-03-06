@@ -4028,6 +4028,12 @@ void report_evaluation
 /*---------------------------------------------------------------------------*/
 
 typedef struct {
+  int 
+  char name[64] ;
+
+/*---------------------------------------------------------------------------*/
+
+typedef struct {
   int qp    ,           /* number of polynomial baseline parameters */
       q     ,           /* total number of baseline parameters */
       p     ,           /* total number of parameters */
