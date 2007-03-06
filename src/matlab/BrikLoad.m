@@ -229,6 +229,11 @@ end
       err = ErrEval(FuncName,'Err_HEAD file not found');
       return;
    end
+   sBRIK_gz = sprintf('%s.BRIK.gz', BrikName);
+   if (filexist(sBRIK_gz)),
+      fprintf(2,'Unzipping %s...\n', sBRIK_gz);
+      unix(sprintf('gzip -d %s', sBRIK_gz)); %matlab gunzip version requires Java
+   end
    if (~filexist(sBRIK)), 
       ErrMessage = sprintf ('%s: %s not found', FuncName, sBRIK);
       err = ErrEval(FuncName,'Err_BRIK file not found');

@@ -33,13 +33,20 @@ FuncName = 'DeOblique';
 
 fname = input ('Enter I filename: ', 's');
 while (~isempty(fname)),
-   [su_hdr,ex_hdr,se_hdr,im_hdr,pix_hdr,im_offset] = GE_readHeader(fname);
+   if (strcmp(fname,'test') ~= 1),
+      [su_hdr,ex_hdr,se_hdr,im_hdr,pix_hdr,im_offset] = GE_readHeader(fname);
 
-   %get three points forming corners of plane and the center of the plane 
-   tlhc1 = [im_hdr.tlhc_R im_hdr.tlhc_A im_hdr.tlhc_S];
-   trhc1 = [im_hdr.trhc_R im_hdr.trhc_A im_hdr.trhc_S];
-   brhc1 = [im_hdr.brhc_R im_hdr.brhc_A im_hdr.brhc_S];
-   ctr1 = [im_hdr.ctr_R im_hdr.ctr_A im_hdr.ctr_S];
+      %get three points forming corners of plane and the center of the plane 
+      tlhc1 = [im_hdr.tlhc_R im_hdr.tlhc_A im_hdr.tlhc_S];
+      trhc1 = [im_hdr.trhc_R im_hdr.trhc_A im_hdr.trhc_S];
+      brhc1 = [im_hdr.brhc_R im_hdr.brhc_A im_hdr.brhc_S];
+      ctr1 = [im_hdr.ctr_R im_hdr.ctr_A im_hdr.ctr_S];
+   else
+      tlhc1 = [83 -123 32];
+      trhc1 = [-83 -123 32];
+      brhc1 = [-83 -55 22];
+      ctr1  = [ 0   0 27];
+   end
    Tri1.XYZ = [tlhc1; trhc1; brhc1];
    [err,Eq1] = Plane_Equation (Tri1);
 
