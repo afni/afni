@@ -1399,7 +1399,7 @@ void CALC_Syntax(void)
     "                    pairmin(a,b,c,p,q,r} finds the minimum of {a,b,c}\n"
     "                    and returns the corresponding value from {p,q,r};\n"
     "                      pairmin(3,2,7,5,-1,-2,-3,-4) = -2\n"
-    "                    (The 'pair' functions are the Lukas specials!)\n"
+    "                    (The 'pair' functions are the Lukas Pezawas specials!)\n"
     "\n"
     "  [These last 7 functions take a variable number of arguments.]\n"
     "\n"
