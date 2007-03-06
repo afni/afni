@@ -109,7 +109,9 @@ SUMA_SurfaceObject *SUMA_MarchingCubesSurface(SUMA_GENERIC_PROG_OPTIONS_STRUCT *
       SUMA_RETURN(SO);
    }
    
+   nsoopt = SUMA_NewNewSOOpt();
    if (Opt->obj_type < 0) {
+      nsoopt->LargestBoxSize = -1;
       if (Opt->debug) {
          fprintf(SUMA_STDERR,"%s:\nCopying vertices, changing to DICOM \nOrig:(%f %f %f) \nD:(%f %f %f)...\n", 
             FuncName, DSET_XORG(Opt->in_vol), DSET_YORG(Opt->in_vol), DSET_ZORG(Opt->in_vol),
@@ -133,6 +135,7 @@ SUMA_SurfaceObject *SUMA_MarchingCubesSurface(SUMA_GENERIC_PROG_OPTIONS_STRUCT *
          FaceSetList[j+2] = mcp->triangles[i].v1;
       }
    } else {
+      nsoopt->LargestBoxSize = 100;
       /* built in */
       for ( i = 0; i < mcp->nverts; i++ ) {
          j = 3*i;
@@ -149,8 +152,6 @@ SUMA_SurfaceObject *SUMA_MarchingCubesSurface(SUMA_GENERIC_PROG_OPTIONS_STRUCT *
    }
    
 
-   nsoopt = SUMA_NewNewSOOpt();
-   nsoopt->LargestBoxSize = 100;
    SO = SUMA_NewSO(&NodeList, mcp->nverts, &FaceSetList, mcp->ntrigs, nsoopt);
    if (Opt->obj_type < 0) {
       /* not sure if anything needs to be done here ...*/
