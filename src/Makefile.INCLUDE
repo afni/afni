@@ -7,7 +7,7 @@ F2C = ./f2c -A
 
 ## 07 Dec 2005: modify the include flags here
 
-INFLAGS  = $(IFLAGS) -Inifti/niftilib -Inifti/znzlib -I3DEdge/src $(USE_ZLIB)
+INFLAGS  = $(IFLAGS) -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src $(USE_ZLIB)
 ISFLAGS  = $(IFLAGS) -I../nifti/niftilib -I../nifti/znzlib -I../3DEdge/src $(USE_ZLIB)
 
 DOCS     = ../doc/ps/*.ps ../doc/README/README* AFNI.changes.cox   \
@@ -1505,7 +1505,7 @@ CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_sort_fv.o cs_laguerre.o machdep.o cs_qhull.o afni_logger.o   \
            afni_suma.o vol2surf.o cl1.o nifti1_io.o znzlib.o cs_misc.o     \
            list_struct.o nifti_statlib.o powell_int.o powell_newuoa.o      \
-           nifti_stats.o cs_sort_dv.o
+           nifticdf.o cs_sort_dv.o
 
 EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
            eis_bandv.o eis_bisect.o eis_bqr.o eis_cbabk2.o eis_cbal.o      \
@@ -2180,15 +2180,19 @@ znzlib.o:nifti/znzlib/znzlib.c nifti/znzlib/znzlib.h
 
 nifti_stats.o:nifti/utils/nifti_stats.c
 	$(RM) $@
-	$(CC) -c nifti/utils/nifti_stats.c $(INFLAGS) -DOMIT_MAIN
+	$(CC) -c nifti/utils/nifti_stats.c $(INFLAGS)
+
+nifticdf.o:nifti/nifticdf/nifticdf.c
+	$(RM) $@
+	$(CC) -c nifti/nifticdf/nifticdf.c $(INFLAGS)
 
 nifti_statlib.o:nifti/utils/nifti_stats.c nifti_statlib.c
 	$(RM) $@
 	$(CC) -c nifti_statlib.c -Inifti/utils $(INFLAGS)
 
-nifti_stats:nifti_stats.o
+nifti_stats:nifti_stats.o nifticdf.o
 	$(RM) $@
-	$(CC) -o nifti_stats nifti_stats.o -lm
+	$(CC) -o nifti_stats nifti_stats.o nifticdf.o -lm
 
 nifti1_test.o:nifti/utils/nifti1_test.c
 	$(RM) $@
