@@ -669,7 +669,7 @@ int main (int argc,char *argv[])
    and the shading reflecting it.... ZSS, Aug. 05 04 */
    glLightfv(GL_LIGHT0, GL_POSITION, SUMAg_SVv[0].light0_position); 
 
-   if (Start_niml) {
+   if (Start_niml || AFNI_yesenv("SUMA_START_NIML")) {
       if (!list) list = SUMA_CreateList();
       SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_StartListening, SES_Suma, NULL);
 

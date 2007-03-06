@@ -44,10 +44,10 @@ static char uDS_viewer_cont[]={
                "       DriveSuma -com  viewer_cont -key R -key ctrl+right\n"
                "       DriveSuma -com  viewer_cont -key:r3:s0.3 up  \\\n"
                "                       -key:r2:p left -key:r5:d right \\\n"
-               "                       -key:r5 left\n"
+               "                       -key:r3 z   -key:r5 left -key F6\n"
                "       DriveSuma -com  viewer_cont -key m -key down \\\n"
                "                 -com  sleep 2s -com viewer_cont -key m \\\n"
-               "                       -key ctrl+right\n"
+               "                       -key:r4 Z   -key ctrl+right\n"
                "       DriveSuma -com  viewer_cont -key m -key right \\\n"
                "                 -com  pause press enter to stop this misery \\\n"
                "                 -com  viewer_cont -key m \n"
@@ -77,7 +77,7 @@ static char uDS_surf_cont[]={
                "       DriveSuma -com surf_cont -I_sb 7 -T_sb 8 -T_val 0.0\n"
                "       DriveSuma -com surf_cont -I_range 0.05 -T_sb -1\n"
                "       DriveSuma -com surf_cont -I_sb 8 -I_range -0.1 0.1 \\\n"
-               "                      -T_val 0.02 \n"
+               "                      -T_val 0.02 -Dim 0.4\n"
                "       DriveSuma -com surf_cont -switch_dset Convexity -1_only y\n"
                "       DriveSuma -com surf_cont -switch_cmap roi64 -1_only n\n"
                "       DriveSuma -com surf_cont -view_dset n\n"
@@ -172,7 +172,8 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
                "                         ~ Not all key presses from interactive\n"
                "                         more are allowed here.\n"
                "                         ~ Available keys and their variants are:\n"
-               "                         m, n, p, r, up, down, left, right\n"
+               "                         b, m, n, p, r, t, z, up, down, left, right,\n"
+               "                         and F1 to F8.\n"
                "                         ~ Key variants are specified this way:\n"
                "                         ctrl+Up or ctrl+alt+Down etc.\n"
                "                         ~ For help on key actions consult SUMA's\n"
@@ -254,6 +255,7 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
                "       -T_sb TSB: Switch threshold to TSBth column (sub-brick)\n"
                "                  Set TSB to -1 to turn off thresholding.\n"
                "       -T_val THR: Set threshold to THR\n"
+               "       -Dim DIM: Set the dimming factor.\n"
                "     + Example surf_cont (assumes all previous examples have\n"
                "       been executed and suma is still running).\n"
                "       - Obvious chicaneries to follow:\n"
@@ -544,6 +546,20 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          
          argt[kar][0] = '\0';
          NI_set_attribute(ngr, "T_val", argt[++kar]);
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && ( (strcmp(argt[kar], "-Dim") == 0) ) )
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a value after -Dim \n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';
+         NI_set_attribute(ngr, "Dim", argt[++kar]);
          argt[kar][0] = '\0';
          brk = YUP;
       }
