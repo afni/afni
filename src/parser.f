@@ -2452,6 +2452,7 @@ C
 C  Return x such that Q(x)=P, for 0 < P < 1.  Q=reversed Gaussian cdf.
 C
       IMPLICIT REAL*8 (A-H,O-Z)
+      IMPLICIT INTEGER (I-N)
 C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 C
       DP = P
@@ -2919,6 +2920,7 @@ C
       END
       REAL*8 FUNCTION  DBI( X , I )
       REAL*8 X
+      INTEGER I
       CALL QQQERR
       DBI = 0.D+0
       RETURN
