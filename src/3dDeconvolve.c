@@ -337,20 +337,22 @@
 
 #ifndef FLOATIZE
 # include "matrix.h"          /* double precision */
-# define MTYPE double
+# define MTYPE    double
+# define NI_MTYPE NI_DOUBLE
 # define QEPS 1.e-6
 #else
 # include "matrix_f.h"        /* single precision */
-# define MTYPE float
+# define MTYPE    float
+# define NI_MTYPE NI_FLOAT
 # define QEPS 1.e-4
 #endif
 
 /*------------ prototypes for routines far below (RWCox) ------------------*/
 
-void JPEG_matrix_gray( matrix X , char *fname ) ; /* save X matrix to a JPEG */
-void ONED_matrix_save( matrix X , char *fname ) ; /* save X matrix to a .1D  */
+void JPEG_matrix_gray( matrix X, char *fname );        /* save X matrix to JPEG */
+void ONED_matrix_save( matrix X, char *fname, void * ); /* save X matrix to .1D */
 
-void XSAVE_output( char * ) ;                     /* save X matrix into file */
+void XSAVE_output( char * ) ;                      /* save X matrix into file */
 
 static int xsave=0 ;                                   /* globals for -xsave */
 static int nGoodList=0 , *GoodList=NULL ;
@@ -417,7 +419,7 @@ typedef struct {
   int nfunc , pbot ;
   float tbot,ttop ;
   basis_func *bfunc ;
-  char *name ;
+  char *name , *symfun ;
 } basis_expansion ;
 
 /** Prototypes for some basis expansion functions appearing (much) later. **/
@@ -474,6 +476,20 @@ floatpair evaluate_irc( basis_irc *birc , vector coef ,
 
 /*---------------------------------------------------------------------------*/
 
+#define CM_BASELINE_MASK (1<<0)
+#define CM_POLORT_MASK   (1<<1)
+
+typedef struct {
+  unsigned int  mask ;      /* binary properties of column */
+  unsigned int  group ;     /* 0=baseline, larger=stimulus */
+  char name[64] ;
+} column_metadata ;
+
+static int             ncoldat = 0 ;
+static column_metadata *coldat = NULL ;
+
+/*---------------------------------------------------------------------------*/
+
 #include "Deconvolve.c"
 
 /*---------------------------------------------------------------------------*/
@@ -500,7 +516,7 @@ typedef struct DC_options
   int p;                   /* number of parameters in the full model */
   int q;                   /* number of parameters in the baseline model */
   int qp;                  /* number of polynomial trend parameters
-                        in the baseline model  Note: qp <= q <= p  */
+                              in the baseline model  Note: qp <= q <= p  */
   int nbricks;             /* number of sub-bricks in bucket dataset output */
 
   int num_stimts;          /* number of stimulus time series */
@@ -543,6 +559,8 @@ typedef struct DC_options
 
   int   nodata_NT ;     /* optional values after -nodata [27 Apr 2005] */
   float nodata_TR ;
+
+  column_metadata *coldat ; /* info about each column [06 Mar 2007] */
 } DC_options;
 
 
@@ -841,6 +859,7 @@ void initialize_options
   option_data->nocond   = 0;   /* 15 Jul 2004 */
   option_data->nodata_NT= 0;   /* 27 Apr 2005 */
   option_data->nodata_TR= 0.0;
+  option_data->coldat   = NULL; /* 06 Mar 2007 */
 
   option_data->xjpeg_filename = NULL ;  /* 21 Jul 2004 */
   option_data->x1D_filename   = NULL ;
@@ -943,7 +962,7 @@ ENTRY("initialize_stim_options") ;
       option_data->stim_filename[is] = NULL;
       option_data->stim_label[is] = malloc (sizeof(char)*THD_MAX_NAME);
       MTEST (option_data->stim_label[is]);
-      sprintf (option_data->stim_label[is], "Stim#%d", is+1);
+      sprintf (option_data->stim_label[is], "Stim_%d", is+1);
 
       option_data->stim_base[is]    = 0;
       option_data->stim_minlag[is]  = 0;
@@ -2130,6 +2149,9 @@ void read_input_data
   int is;                  /* stimulus time series index */
   int num_glt;             /* number of general linear tests */
   int iglt;                /* general linear test index */
+  column_metadata cd ;     /* 05 Mar 2007 */
+  int nblk,npol , p1,nc ;
+  unsigned int mk,gp ;
 
 
 ENTRY("read_input_data") ;
@@ -2556,6 +2578,38 @@ for( ii=0 ; ii < nt ; ii++ ){
   option_data->p  = p;   /* total number of parameters */
   option_data->q  = q;   /* number of baseline parameters (polort+stim_base) */
   option_data->qp = qp;  /* number of polort baseline parameters */
+
+  /*----- Save info about each column, for later storage [06 Mar 2007] -----*/
+
+  option_data->coldat = (column_metadata *)calloc(sizeof(column_metadata),p) ;
+  nblk = *num_blocks ;
+  npol = option_data->polort ;
+
+  p1 = 0 ;
+  for( is=0 ; is < nblk ; is++ ){
+    for( it=0 ; it <= npol ; it++ ){
+      cd.mask  = CM_BASELINE_MASK | CM_POLORT_MASK ;
+      cd.group = 0 ;
+      sprintf(cd.name,"Run#%dPol#%d",is+1,it) ;
+      option_data->coldat[p1++] = cd ;
+    }
+  }
+  for( is=0 ; is < num_stimts ; is++ ){
+    if( basis_stim[is] != NULL ){
+      nc = basis_stim[is]->nfunc ;
+      mk = 0 ; gp = is+1 ;
+    } else {
+      nc = max_lag[is] - min_lag[is] + 1 ;
+      if( baseline[is] ){ mk = CM_BASELINE_MASK; gp = 0   ; }
+      else              { mk = 0               ; gp = is+1; }
+    }
+    for( it=0 ; it < nc ; it++ ){
+      cd.mask  = mk ; cd.group = gp ;
+      sprintf(cd.name,"%-1.60s#%d",option_data->stim_label[is],it) ;
+      option_data->coldat[p1++] = cd ;
+    }
+  }
+  coldat = option_data->coldat ;  /* global variable */
 
   /*----- Read the censorship file (John Ashcroft, we miss you) -----*/
 
@@ -4028,13 +4082,6 @@ void report_evaluation
 /*---------------------------------------------------------------------------*/
 
 typedef struct {
-  int  mask ;
-  char name[64] ;
-} column_metadata ;
-
-/*---------------------------------------------------------------------------*/
-
-typedef struct {
   int qp    ,           /* number of polynomial baseline parameters */
       q     ,           /* total number of baseline parameters */
       p     ,           /* total number of parameters */
@@ -4374,8 +4421,11 @@ ENTRY("calculate_results") ;
 
   if( option_data->xjpeg_filename != NULL )    /* 21 Jul 2004 */
     JPEG_matrix_gray( xdata , option_data->xjpeg_filename ) ;
-  if( option_data->x1D_filename   != NULL )    /* 28 Mar 2006 */
-    ONED_matrix_save( xdata , option_data->x1D_filename   ) ;
+  if( option_data->x1D_filename   != NULL ){   /* 28 Mar 2006 */
+    void *cd=NULL ;
+    if( AFNI_yesenv("AFNI_3dDeconvolve_NIML") ) cd = (void *)coldat ;
+    ONED_matrix_save( xdata , option_data->x1D_filename , cd ) ;
+  }
 
 
   /*-- 14 Jul 2004: check matrix for bad columns - RWCox --*/
@@ -4540,7 +4590,7 @@ ENTRY("calculate_results") ;
                          jpt = strstr(fn,".1D") ; jsuf = ".1D" ;
       if( jpt == NULL )  jpt = fn + strlen(fn) ;
       strcpy(jpt,"_psinv") ; strcat(fn,jsuf) ;
-      ONED_matrix_save( xpsinv , fn ) ;
+      ONED_matrix_save( xpsinv , fn , NULL ) ;
     }
 
     free((void *)fn) ; matrix_destroy( &xpsinv ) ;
@@ -6415,20 +6465,50 @@ void JPEG_matrix_gray( matrix X , char *fname )
 
 /*----------------------------------------------------------------------------*/
 
-void ONED_matrix_save( matrix X , char *fname )
+void ONED_matrix_save( matrix X , char *fname , void *xd )
 {
    int nx=X.rows , ny=X.cols , ii,jj ;
    MRI_IMAGE *xim ;
    float     *xar ;
+   column_metadata *cd = (column_metadata *)xd ;
 
    if( fname == NULL || *fname == '\0' ) return ;
 
-   xim = mri_new( nx , ny , MRI_float ) ;
-   xar = MRI_FLOAT_PTR(xim) ;
-   for( jj=0 ; jj < ny ; jj++ )
-     for( ii=0 ; ii < nx ; ii++ ) xar[ii+jj*nx] = X.elts[ii][jj] ;
-
-   mri_write_1D(fname,xim) ; mri_free(xim) ;
+   if( cd == NULL ){
+     xim = mri_new( nx , ny , MRI_float ) ;
+     xar = MRI_FLOAT_PTR(xim) ;
+     for( jj=0 ; jj < ny ; jj++ )
+       for( ii=0 ; ii < nx ; ii++ ) xar[ii+jj*nx] = X.elts[ii][jj] ;
+     mri_write_1D(fname,xim) ; mri_free(xim) ;
+   } else {
+     NI_element *nel ; NI_stream ns ; MTYPE *col ;
+     char *lab=NULL,lll[128] ;
+     nel = NI_new_data_element( "matrix" , nx ) ;
+     col = (MTYPE *)malloc(sizeof(MTYPE)*nx) ;
+     for( jj=0 ; jj < ny ; jj++ ){
+       for( ii=0 ; ii < nx ; ii++ ) col[ii] = X.elts[ii][jj] ;
+       NI_add_column( nel , NI_MTYPE , col ) ;
+       strcpy(lll,cd[jj].name) ; if( jj < ny-1 ) strcat(lll," ; ") ;
+       lab = THD_zzprintf( lab , "%s" , lll ) ;
+     }
+     NI_set_attribute( nel , "ColumnLabels" , lab ) ;
+     free((void *)col) ; free((void *)lab) ; lab = NULL ;
+     for( jj=0 ; jj < ny ; jj++ ){
+       sprintf(lll,"%u",cd[jj].mask) ; if( jj < ny-1 ) strcat(lll," ; ") ;
+       lab = THD_zzprintf( lab , "%s" , lll ) ;
+     }
+     NI_set_attribute( nel, "ColumnMasks", lab ); free((void *)lab); lab = NULL;
+     for( jj=0 ; jj < ny ; jj++ ){
+       sprintf(lll,"%u",cd[jj].group) ; if( jj < ny-1 ) strcat(lll," ; ") ;
+       lab = THD_zzprintf( lab , "%s" , lll ) ;
+     }
+     NI_set_attribute( nel, "ColumnGroups", lab ); free((void *)lab); lab = NULL;
+     lab = malloc(strlen(fname)+32) ;
+     strcpy(lab,"file:") ; strcat(lab,fname) ;
+     ns = NI_stream_open( lab , "w" ) ; free((void *)lab) ; lab = NULL ;
+     NI_write_element( ns , nel , NI_HEADERSHARP_FLAG | NI_TEXT_MODE ) ;
+     NI_stream_close( ns ) ;
+   }
    if( verb ) fprintf(stderr,"++ Wrote matrix values to file %s\n",fname) ;
    return ;
 }
@@ -7764,6 +7844,7 @@ basis_expansion * basis_parser( char *sym )
 
    be = (basis_expansion *)malloc(sizeof(basis_expansion)) ;
    be->name = NULL ;   /* will be fixed later */
+   be->symfun = strdup(sym) ;  /* 06 Mar 2007 */
 
    /*--- GAM(b,c) ---*/
 

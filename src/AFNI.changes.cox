@@ -6144,3 +6144,5 @@
 
 06 Mar 2007
  * Fixed pairmin() bug in parser.f.
+ * Store column_metadata in 3dDeconvolve.c, and write it to -x1D file
+     if AFNI_3dDeconvolve_NIML is YES.
