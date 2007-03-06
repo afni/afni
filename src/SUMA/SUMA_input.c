@@ -55,6 +55,10 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
       c = keyname[0];
       SUMA_LHv("c now '%c'\n", c);
       switch(c) {
+         case 'b':
+            SUMA_RETURN(XK_b);
+         case 'B':
+            SUMA_RETURN(XK_B);
          case 'n':
             SUMA_RETURN(XK_n);
          case 'N':
@@ -71,6 +75,14 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
             SUMA_RETURN(XK_r);
          case 'R':
             SUMA_RETURN(XK_R);
+         case 't':
+            SUMA_RETURN(XK_t);
+         case 'T':
+            SUMA_RETURN(XK_T);
+         case 'z':
+            SUMA_RETURN(XK_z);
+         case 'Z':
+            SUMA_RETURN(XK_Z);
          default:
             SUMA_S_Errv("Key '%c' not yet supported, complain to author.\n", c);
             SUMA_RETURN(XK_VoidSymbol);
@@ -82,12 +94,69 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
       if (SUMA_iswordsame_ci(keyname,"right") == 1) SUMA_RETURN(XK_Right);
       if (SUMA_iswordsame_ci(keyname,"f1") == 1) SUMA_RETURN(XK_F1);
       if (SUMA_iswordsame_ci(keyname,"f2") == 1) SUMA_RETURN(XK_F2);
+      if (SUMA_iswordsame_ci(keyname,"f3") == 1) SUMA_RETURN(XK_F3);
+      if (SUMA_iswordsame_ci(keyname,"f4") == 1) SUMA_RETURN(XK_F4);
+      if (SUMA_iswordsame_ci(keyname,"f5") == 1) SUMA_RETURN(XK_F5);
+      if (SUMA_iswordsame_ci(keyname,"f6") == 1) SUMA_RETURN(XK_F6);
+      if (SUMA_iswordsame_ci(keyname,"f7") == 1) SUMA_RETURN(XK_F7);
+      if (SUMA_iswordsame_ci(keyname,"f8") == 1) SUMA_RETURN(XK_F8);
       
       SUMA_S_Errv("Key '%s' not yet supported, complain to author.\n", keyname);
       SUMA_RETURN(XK_VoidSymbol);
    }
    SUMA_RETURN(XK_VoidSymbol);
 }
+
+#define SUMA_KEY_COMMON {  \
+   if (!sv || !key) {   \
+      SUMA_S_Err("Null input");  \
+      SUMA_RETURN(0);  \
+   }  \
+   if (!(nc = strlen(key))) {    \
+      SUMA_S_Err("Empty key");   \
+      SUMA_RETURN(0);   \
+   }  \
+      \
+   SUMA_LHv("Have %s, nc=%d\n", key, nc); \
+   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {   \
+      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);  \
+      SUMA_RETURN(0);  \
+   }  \
+   SUMA_LHv("Have keyname = %s\n", keyname); \
+   if (SUMA_iswordsame_ci(keyname,tk) != 1) {   \
+      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );  \
+      SUMA_RETURN(0);   \
+   }  \
+}   
+
+#if 0 /* a template to use for various keys , replace CHAR by upper case char and cHaR by lower case*/
+int SUMA_CHAR_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_CHAR_Key"};
+   char tk[]={"CHAR"}, keyname[100];
+   int k, nc;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_KEY_COMMON;
+   
+   /* do the work */
+   switch (k) {
+      case XK_CHAR:
+         break;
+      case XK_cHaR:
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas ci dessous");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+#endif
+
 int SUMA_F1_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 {
    static char FuncName[]={"SUMA_F1_Key"};
@@ -96,26 +165,9 @@ int SUMA_F1_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   if (!sv || !key) {
-      SUMA_S_Err("Null input");
-      SUMA_RETURN(0);  
-   }
-   if (!(nc = strlen(key))) { 
-      SUMA_S_Err("Empty key");
-      SUMA_RETURN(0);  
-   }
-   
-   SUMA_LHv("Have %s, nc=%d\n", key, nc);
-   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
-      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
-      SUMA_RETURN(0);  
-   }
-   SUMA_LHv("Have keyname = %s\n", keyname);
-   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
-      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
-      SUMA_RETURN(0);  
-   }
 
+   SUMA_KEY_COMMON;
+   
    /* do the work */
    switch (k) {
       case XK_F1:
@@ -138,26 +190,9 @@ int SUMA_F2_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   if (!sv || !key) {
-      SUMA_S_Err("Null input");
-      SUMA_RETURN(0);  
-   }
-   if (!(nc = strlen(key))) { 
-      SUMA_S_Err("Empty key");
-      SUMA_RETURN(0);  
-   }
-   
-   SUMA_LHv("Have %s, nc=%d\n", key, nc);
-   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
-      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
-      SUMA_RETURN(0);  
-   }
-   SUMA_LHv("Have keyname = %s\n", keyname);
-   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
-      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
-      SUMA_RETURN(0);  
-   }
 
+   SUMA_KEY_COMMON;
+   
    /* do the work */
    switch (k) {
       case XK_F2:
@@ -185,6 +220,311 @@ int SUMA_F2_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_RETURN(1);
 }
 
+int SUMA_F3_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_F3_Key"};
+   char tk[]={"F3"}, keyname[100];
+   int k, nc;
+   SUMA_EngineData *ED = NULL; 
+   DList *list = NULL;
+   DListElmt *NextElm= NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   SUMA_KEY_COMMON;
+   
+   /* do the work */
+   switch (k) {
+      case XK_F3:
+         if (!list) list = SUMA_CreateList();
+         SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleCrossHair, SES_Suma, sv);
+         SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+         if (!SUMA_Engine (&list)) {
+               fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+         }
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre over here");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
+int SUMA_F4_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_F4_Key"};
+   char tk[]={"F4"}, keyname[100];
+   int k, nc;
+   SUMA_EngineData *ED = NULL; 
+   DList *list = NULL;
+   DListElmt *NextElm= NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   SUMA_KEY_COMMON;
+   
+   /* do the work */
+   switch (k) {
+      case XK_F4:
+         if (!list) list = SUMA_CreateList();
+         SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleShowSelectedNode, SES_Suma, sv);
+         SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+         if (!SUMA_Engine (&list)) {
+               fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+         }
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre over dort");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
+int SUMA_F5_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_F5_Key"};
+   char tk[]={"F5"}, keyname[100];
+   int k, nc;
+   SUMA_EngineData *ED = NULL; 
+   DList *list = NULL;
+   DListElmt *NextElm= NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   SUMA_KEY_COMMON;
+   
+   /* do the work */
+   switch (k) {
+      case XK_F5:
+         if (!list) list = SUMA_CreateList();
+         SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleShowSelectedFaceSet, SES_Suma, sv);
+         SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+         if (!SUMA_Engine (&list)) {
+               fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+         }
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre over dort");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
+int SUMA_F6_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_F6_Key"};
+   char tk[]={"F6"}, keyname[100];
+   int k, nc;
+   SUMA_EngineData *ED = NULL; 
+   DList *list = NULL;
+   DListElmt *NextElm= NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   SUMA_KEY_COMMON;
+   
+   /* do the work */
+   switch (k) {
+      case XK_F6:
+         sv->clear_color[0] = 1 - sv->clear_color[0];
+         sv->clear_color[1] = 1 - sv->clear_color[1];
+         sv->clear_color[2] = 1 - sv->clear_color[2];
+
+         if (!list) list = SUMA_CreateList();
+         SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+         if (!SUMA_Engine (&list)) {
+               fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+         }
+         break; 
+      default:
+         SUMA_S_Err("Il ne faut pas etre over dere");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+int SUMA_F7_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_F7_Key"};
+   char tk[]={"F7"}, keyname[100];
+   int k, nc;
+   SUMA_EngineData *ED = NULL; 
+   DList *list = NULL;
+   DListElmt *NextElm= NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   SUMA_KEY_COMMON;
+   
+   /* do the work */
+   switch (k) {
+      case XK_F7:
+         ++SUMAg_CF->ColMixMode;
+         if (SUMAg_CF->ColMixMode >= SUMA_MAX_MODES) {
+            SUMAg_CF->ColMixMode = SUMA_ORIG_MIX_MODE;
+         }
+         {
+            char stmp[200];
+            sprintf(stmp,"Using %s color mixing mode.", SUMA_ColMixModeString(SUMAg_CF->ColMixMode)); 
+            if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note(stmp); }
+            else { SUMA_S_Note(stmp); }
+         }
+
+         SUMA_SetAllRemixFlag (SUMAg_SVv, SUMAg_N_SVv);
+
+         if (!list) list = SUMA_CreateList();
+         SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_Suma, NULL);
+         if (!SUMA_Engine (&list)) {
+               fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+         }
+         break; 
+      default:
+         SUMA_S_Err("Il ne faut pas etre over yonder");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
+int SUMA_F8_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_F8_Key"};
+   char tk[]={"F8"}, keyname[100];
+   int k, nc;
+   SUMA_EngineData *ED = NULL; 
+   DList *list = NULL;
+   DListElmt *NextElm= NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   SUMA_KEY_COMMON;
+   
+   /* do the work */
+   switch (k) {
+      case XK_F8:
+         sv->ortho = !sv->ortho;
+         {
+            char stmp[200];
+            if (sv->ortho) {
+               sprintf(stmp,"Using orthographic projection viewing");
+               sv->FOV[sv->iState] = sv->FOV[sv->iState] / 2.0;
+            } else {
+               sprintf(stmp,"Using perspective viewing");
+               sv->FOV[sv->iState] = sv->FOV[sv->iState] * 2.0;
+            }
+            if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note(stmp); }
+            else { SUMA_S_Note(stmp); }
+         }
+
+         SUMA_SET_GL_PROJECTION(sv);
+         SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         break; 
+      default:
+         SUMA_S_Err("Il ne faut pas etre over yonder");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
+int SUMA_B_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_B_Key"};
+   char tk[]={"B"}, keyname[100];
+   int k, nc;
+   SUMA_EngineData *ED = NULL; 
+   DList *list = NULL;
+   DListElmt *NextElm= NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_KEY_COMMON;
+   
+   /* do the work */
+   switch (k) {
+      case XK_B:
+         if ((SUMA_CTRL_KEY(key))){ 
+            if (SUMAg_CF->Dev ) {
+               sv->Blend_Mode = (sv->Blend_Mode+1)%SUMA_N_BLEND_MODES;
+               switch (sv->Blend_Mode) {
+                  case SUMA_NO_BLEND:
+                     glDisable(GL_BLEND);
+                     if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note ("Blending  disabled."); }
+                     else { SUMA_S_Note ("Blending  disabled."); }
+                     break;
+                  case SUMA_BLEND1:
+                     glEnable (GL_BLEND);
+                     glBlendFunc(GL_ONE,GL_SRC_ALPHA);
+                     if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note ("Blending mode1."); }
+                     else { SUMA_S_Note ("Blending  mode1."); }
+                     break;
+                  case SUMA_BLEND2:
+                     glEnable (GL_BLEND);
+                     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                     if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note ("Blending mode2.");}
+                     else { SUMA_S_Note ("Blending  mode2."); }
+                     break;
+                  default:
+                     SUMA_SL_Err ("Should not be here");
+                     break;
+               }
+               SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+            }
+         } else {
+            sv->BF_Cull = (sv->BF_Cull+1)%3;
+            if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_CullOption(sv, "Apply");}
+            else { SUMA_CullOption(sv, "Restore");}
+            SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         }
+         break;
+      case XK_b:
+         /* Show/hide the background */
+         if (!list) list = SUMA_CreateList();
+         ED = SUMA_InitializeEngineListData (SE_ToggleBackground);
+         if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                                SEF_Empty, NULL,
+                                                SES_Suma, (void *)sv, NOPE,
+                                                SEI_Head, NULL)) {
+            fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+         }
+
+         ED = SUMA_InitializeEngineListData (SE_Redisplay);
+         if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                                SEF_Empty, NULL,
+                                                SES_Suma, (void *)sv, NOPE,
+                                                SEI_Head, NULL)) {
+            fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+         }
+
+         if (!SUMA_Engine (&list)) {
+            fprintf(SUMA_STDERR, "Error SUMA_input: SUMA_Engine call failed.\n");
+         }
+         break;            
+      default:
+         SUMA_S_Err("Il ne faut pas ci dessous");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
 int SUMA_M_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 {
    static char FuncName[]={"SUMA_M_Key"};
@@ -193,26 +533,9 @@ int SUMA_M_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   if (!sv || !key) {
-      SUMA_S_Err("Null input");
-      SUMA_RETURN(0);  
-   }
-   if (!(nc = strlen(key))) { 
-      SUMA_S_Err("Empty key");
-      SUMA_RETURN(0);  
-   }
    
-   SUMA_LHv("Have %s, nc=%d\n", key, nc);
-   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
-      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
-      SUMA_RETURN(0);  
-   }
-   SUMA_LHv("Have keyname = %s\n", keyname);
-   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
-      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
-      SUMA_RETURN(0);  
-   }
-
+   SUMA_KEY_COMMON;
+   
    /* do the work */
    switch (k) {
       case XK_m:
@@ -331,26 +654,9 @@ int SUMA_N_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   if (!sv || !key) {
-      SUMA_S_Err("Null input");
-      SUMA_RETURN(0);  
-   }
-   if (!(nc = strlen(key))) { 
-      SUMA_S_Err("Empty key");
-      SUMA_RETURN(0);  
-   }
    
-   SUMA_LHv("Have %s, nc=%d\n", key, nc);
-   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
-      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
-      SUMA_RETURN(0);  
-   }
-   SUMA_LHv("Have keyname = %s\n", keyname);
-   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
-      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
-      SUMA_RETURN(0);  
-   }
-
+   SUMA_KEY_COMMON;
+   
    /* do the work */
    switch (k) {
       case XK_N:
@@ -418,25 +724,8 @@ int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   if (!sv || !key) {
-      SUMA_S_Err("Null input");
-      SUMA_RETURN(0);  
-   }
-   if (!(nc = strlen(key))) { 
-      SUMA_S_Err("Empty key");
-      SUMA_RETURN(0);  
-   }
-   
-   SUMA_LHv("Have %s, nc=%d\n", key, nc);
-   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
-      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
-      SUMA_RETURN(0);  
-   }
-   SUMA_LHv("Have keyname = %s\n", keyname);
-   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
-      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
-      SUMA_RETURN(0);  
-   }
+
+   SUMA_KEY_COMMON;
 
    /* do the work */
    switch (k) {
@@ -467,25 +756,8 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   if (!sv || !key) {
-      SUMA_S_Err("Null input");
-      SUMA_RETURN(0);  
-   }
-   if (!(nc = strlen(key))) { 
-      SUMA_S_Err("Empty key");
-      SUMA_RETURN(0);  
-   }
-   
-   SUMA_LHv("Have %s, nc=%d\n", key, nc);
-   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
-      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
-      SUMA_RETURN(0);  
-   }
-   SUMA_LHv("Have keyname = %s\n", keyname);
-   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
-      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
-      SUMA_RETURN(0);  
-   }
+
+   SUMA_KEY_COMMON;
 
    /* do the work */
    switch (k) {
@@ -569,7 +841,8 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                     ISQ_snapsave (sv->X->WIDTH, -sv->X->HEIGHT, (unsigned char *)pixels, sv->X->GLXAREA ); 
                     SUMA_free(pixels);
                   }else {
-                     SUMA_SLP_Err("Failed to record image.");
+                     if (callmode && strcmp(callmode, "interactive") == 0) {SUMA_SLP_Err("Failed to record image.");}
+                     else { SUMA_S_Err("Failed to record image.");}
                   }
                }
             }
@@ -620,6 +893,111 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_RETURN(1);
 }
 
+int SUMA_T_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_T_Key"};
+   char tk[]={"T"}, keyname[100];
+   int k, nc;
+   SUMA_EngineData *ED = NULL; 
+   DList *list = NULL;
+   DListElmt *NextElm= NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_KEY_COMMON;
+   
+   /* do the work */
+   switch (k) {
+      case XK_T:
+         if (!list) list = SUMA_CreateList();
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_StartListening, SES_Suma, sv);
+
+         if (!SUMA_Engine (&list)) {
+               fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+         } 
+         break;
+      case XK_t:
+         if ((SUMA_CTRL_KEY(key))){
+               if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note("Forcing a resend of Surfaces to Afni...");}
+               else { SUMA_S_Note("Forcing a resend of Surfaces to Afni..."); }
+               if (!list) list = SUMA_CreateList();
+               SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_SetForceAfniSurf, SES_Suma, sv);
+
+               if (!SUMA_Engine (&list)) {
+                  fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+               }
+         } else {
+            if (!list) list = SUMA_CreateList();
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleConnected, SES_Suma, sv);
+
+            if (!SUMA_Engine (&list)) {
+                  fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            }
+         }
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas ci dessous");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
+/*!
+   Execute commands when Z or z is pressed
+*/
+int SUMA_Z_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_Z_Key"};
+   char tk[]={"Z"}, keyname[100], msg[100];
+   int k, nc, ii, jj, mm;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   SUMA_KEY_COMMON;
+
+   /* do the work */
+   switch (k) {
+      case XK_Z:
+         sv->FOV[sv->iState] /= (1+sv->KeyZoomGain); if (sv->FOV[sv->iState] < FOV_MIN) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MIN; }
+         /*fprintf(stderr,"Zoom in %f\n", sv->FOV[sv->iState]);*/
+         /* Now update the zoom compensation variable */
+         if (sv->ZoomCompensate) {
+            sv->ZoomCompensate = sv->FOV[sv->iState] / SUMA_sv_fov_original(sv);
+            if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; /* weird stuff at zc_fac higher that 1.5 */
+            else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; 
+         }
+         SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         break;
+
+      case XK_z:
+         sv->FOV[sv->iState] /= (1-sv->KeyZoomGain); 
+         if (sv->ortho) { 
+            if (sv->FOV[sv->iState] > FOV_MAX/2.0) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MAX/2.0; }
+         } else {
+            if (sv->FOV[sv->iState] > FOV_MAX) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MAX; }
+         }
+         /*fprintf(stderr,"Zoom out %f\n", sv->FOV[sv->iState]);*/
+         /* Now update the zoom compensation variable */
+         if (sv->ZoomCompensate) {
+            sv->ZoomCompensate = sv->FOV[sv->iState] / SUMA_sv_fov_original(sv);
+            if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; /* weird stuff at zc_fac higher that 1.5 */
+            else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; /* weird stuff cause by integer spin variables! Proper way to handle all this is with float position storage and no recalculation of zc_fac except at zooming.*/ 
+         }
+         SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         break;
+
+      default:
+         SUMA_S_Err("Il ne faut pas etre la");
+         SUMA_RETURN(0);
+         break;
+   }
+   SUMA_RETURN(1);
+}
+
 int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 {
    static char FuncName[]={"SUMA_Up_Key"};
@@ -631,25 +1009,7 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    
    SUMA_ENTRY;
    
-   if (!sv || !key) {
-      SUMA_S_Err("Null input");
-      SUMA_RETURN(0);  
-   }
-   if (!(nc = strlen(key))) { 
-      SUMA_S_Err("Empty key");
-      SUMA_RETURN(0);  
-   }
-   
-   SUMA_LHv("Have %s, nc=%d\n", key, nc);
-   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
-      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
-      SUMA_RETURN(0);  
-   }
-   SUMA_LHv("Have keyname = %s\n", keyname);
-   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
-      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
-      SUMA_RETURN(0);  
-   }
+   SUMA_KEY_COMMON;
    
    w = sv->X->GLXAREA;
    /* do the work */
@@ -730,26 +1090,8 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    
    SUMA_ENTRY;
    
-   if (!sv || !key) {
-      SUMA_S_Err("Null input");
-      SUMA_RETURN(0);  
-   }
-   if (!(nc = strlen(key))) { 
-      SUMA_S_Err("Empty key");
-      SUMA_RETURN(0);  
-   }
-   
-   SUMA_LHv("Have %s, nc=%d\n", key, nc);
-   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
-      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
-      SUMA_RETURN(0);  
-   }
-   SUMA_LHv("Have keyname = %s\n", keyname);
-   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
-      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
-      SUMA_RETURN(0);  
-   }
-   
+   SUMA_KEY_COMMON;
+      
    w = sv->X->GLXAREA;
    /* do the work */
    switch (k) {
@@ -819,26 +1161,8 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    
    SUMA_ENTRY;
    
-   if (!sv || !key) {
-      SUMA_S_Err("Null input");
-      SUMA_RETURN(0);  
-   }
-   if (!(nc = strlen(key))) { 
-      SUMA_S_Err("Empty key");
-      SUMA_RETURN(0);  
-   }
-   
-   SUMA_LHv("Have %s, nc=%d\n", key, nc);
-   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
-      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
-      SUMA_RETURN(0);  
-   }
-   SUMA_LHv("Have keyname = %s\n", keyname);
-   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
-      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
-      SUMA_RETURN(0);  
-   }
-   
+   SUMA_KEY_COMMON;
+         
    w = sv->X->GLXAREA;
    /* do the work */
    switch (k) {
@@ -898,26 +1222,8 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    
    SUMA_ENTRY;
    
-   if (!sv || !key) {
-      SUMA_S_Err("Null input");
-      SUMA_RETURN(0);  
-   }
-   if (!(nc = strlen(key))) { 
-      SUMA_S_Err("Empty key");
-      SUMA_RETURN(0);  
-   }
-   
-   SUMA_LHv("Have %s, nc=%d\n", key, nc);
-   if ((k = SUMA_KeyPress(key, keyname)) == XK_VoidSymbol) {
-      SUMA_S_Errv("KeyPress for %s could not be obtained.\n", key);
-      SUMA_RETURN(0);  
-   }
-   SUMA_LHv("Have keyname = %s\n", keyname);
-   if (SUMA_iswordsame_ci(keyname,tk) != 1) {
-      SUMA_S_Errv("Expecting %s (or lower case version), got %s\n", tk, keyname );
-      SUMA_RETURN(0);  
-   }
-   
+   SUMA_KEY_COMMON;
+         
    w = sv->X->GLXAREA;
    /* do the work */
    switch (k) {
@@ -1223,56 +1529,20 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_B:
                if (( Kev.state & ControlMask)){ 
                   if (SUMAg_CF->Dev ) {
-                     sv->Blend_Mode = (sv->Blend_Mode+1)%SUMA_N_BLEND_MODES;
-                     switch (sv->Blend_Mode) {
-                        case SUMA_NO_BLEND:
-                           glDisable(GL_BLEND);
-                           SUMA_SLP_Note ("Blending  disabled.");
-                           break;
-                        case SUMA_BLEND1:
-                           glEnable (GL_BLEND);
-                           glBlendFunc(GL_ONE,GL_SRC_ALPHA);
-                           SUMA_SLP_Note ("Blending mode1.");
-                           break;
-                        case SUMA_BLEND2:
-                           glEnable (GL_BLEND);
-                           glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                           SUMA_SLP_Note ("Blending mode2.");
-                           break;
-                        default:
-                           SUMA_SL_Err ("Should not be here");
-                           break;
+                     if (!SUMA_B_Key(sv, "ctrl+B", "interactive")) {
+                        SUMA_S_Err("Failed in key func.");
                      }
-                     SUMA_postRedisplay(w, clientData, callData);
                   }
                } else {
-                  sv->BF_Cull = (sv->BF_Cull+1)%3;
-                  SUMA_CullOption(sv, "Apply");
-                  SUMA_postRedisplay(w, clientData, callData);
+                  if (!SUMA_B_Key(sv, "B", "interactive")) {
+                     SUMA_S_Err("Failed in key func.");
+                  }
                }
             break;
 
          case XK_b:
-            /* Show/hide the background */
-            if (!list) list = SUMA_CreateList();
-            ED = SUMA_InitializeEngineListData (SE_ToggleBackground);
-            if (!SUMA_RegisterEngineListCommand (  list, ED,
-                                                   SEF_Empty, NULL,
-                                                   SES_Suma, (void *)sv, NOPE,
-                                                   SEI_Head, NULL)) {
-               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
-            }
-            
-            ED = SUMA_InitializeEngineListData (SE_Redisplay);
-            if (!SUMA_RegisterEngineListCommand (  list, ED,
-                                                   SEF_Empty, NULL,
-                                                   SES_Suma, (void *)sv, NOPE,
-                                                   SEI_Head, NULL)) {
-               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
-            }
-                                                    
-            if (!SUMA_Engine (&list)) {
-               fprintf(SUMA_STDERR, "Error SUMA_input: SUMA_Engine call failed.\n");
+            if (!SUMA_B_Key(sv, "b", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
             }
             break;            
 
@@ -1722,29 +1992,19 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_t:
             if ((Kev.state & ControlMask)){
-                  SUMA_SLP_Note("Forcing a resend of Surfaces to Afni...");
-                  if (!list) list = SUMA_CreateList();
-                  SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_SetForceAfniSurf, SES_Suma, sv);
-                  
-                  if (!SUMA_Engine (&list)) {
-                     fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
-                  }
+               if (!SUMA_T_Key(sv, "ctrl+t", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               } 
             } else {
-               if (!list) list = SUMA_CreateList();
-               SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleConnected, SES_Suma, sv);
-               
-               if (!SUMA_Engine (&list)) {
-                     fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
-               }
+               if (!SUMA_T_Key(sv, "t", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               } 
             }
             break;
          
          case XK_T:
-            if (!list) list = SUMA_CreateList();
-               SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_StartListening, SES_Suma, sv);
-               
-            if (!SUMA_Engine (&list)) {
-                  fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            if (!SUMA_T_Key(sv, "T", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
             } 
             break;
             
@@ -1797,32 +2057,15 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_Z:
-            sv->FOV[sv->iState] /= (1+sv->KeyZoomGain); if (sv->FOV[sv->iState] < FOV_MIN) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MIN; }
-            /*fprintf(stderr,"Zoom in %f\n", sv->FOV[sv->iState]);*/
-            /* Now update the zoom compensation variable */
-            if (sv->ZoomCompensate) {
-               sv->ZoomCompensate = sv->FOV[sv->iState] / SUMA_sv_fov_original(sv);
-               if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; /* weird stuff at zc_fac higher that 1.5 */
-               else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; 
+            if (!SUMA_Z_Key(sv, "Z", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
             }
-            SUMA_postRedisplay(w, clientData, callData);
             break;
 
          case XK_z:
-            sv->FOV[sv->iState] /= (1-sv->KeyZoomGain); 
-            if (sv->ortho) { 
-               if (sv->FOV[sv->iState] > FOV_MAX/2.0) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MAX/2.0; }
-            } else {
-               if (sv->FOV[sv->iState] > FOV_MAX) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MAX; }
+            if (!SUMA_Z_Key(sv, "z", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
             }
-            /*fprintf(stderr,"Zoom out %f\n", sv->FOV[sv->iState]);*/
-            /* Now update the zoom compensation variable */
-            if (sv->ZoomCompensate) {
-               sv->ZoomCompensate = sv->FOV[sv->iState] / SUMA_sv_fov_original(sv);
-               if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; /* weird stuff at zc_fac higher that 1.5 */
-               else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; /* weird stuff cause by integer spin variables! Proper way to handle all this is with float position storage and no recalculation of zc_fac except at zooming.*/ 
-            }
-            SUMA_postRedisplay(w, clientData, callData);
             break;
 
          case XK_8:
@@ -2158,86 +2401,43 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if (!SUMA_F2_Key(sv, "F2", "interactive")) {
                SUMA_S_Err("Failed in key func.");
             }
-            
             break;
 
          case XK_F3: /* F3 */
-            if (!list) list = SUMA_CreateList();
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleCrossHair, SES_Suma, sv);
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
-            if (!SUMA_Engine (&list)) {
-                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            if (!SUMA_F3_Key(sv, "F3", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
             }
             break;
 
          case XK_F4: /* F4 */
-            if (!list) list = SUMA_CreateList();
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleShowSelectedNode, SES_Suma, sv);
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
-            if (!SUMA_Engine (&list)) {
-                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            if (!SUMA_F4_Key(sv, "F4", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
             }
             break;
-
+            
          case XK_F5: /* F5 */
-            if (!list) list = SUMA_CreateList();
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleShowSelectedFaceSet, SES_Suma, sv);
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
-            if (!SUMA_Engine (&list)) {
-                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            if (!SUMA_F5_Key(sv, "F5", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
             }
             break;
 
          case XK_F6: /*F6 */
-            sv->clear_color[0] = 1 - sv->clear_color[0];
-            sv->clear_color[1] = 1 - sv->clear_color[1];
-            sv->clear_color[2] = 1 - sv->clear_color[2];
-            
-            if (!list) list = SUMA_CreateList();
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
-            if (!SUMA_Engine (&list)) {
-                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            if (!SUMA_F6_Key(sv, "F6", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
             }
-            break; 
-         
+            break;
+        
          case XK_F7: /*F7 */
-            ++SUMAg_CF->ColMixMode;
-            if (SUMAg_CF->ColMixMode >= SUMA_MAX_MODES) {
-               SUMAg_CF->ColMixMode = SUMA_ORIG_MIX_MODE;
+            if (!SUMA_F7_Key(sv, "F7", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
             }
-            {
-               char stmp[200];
-               sprintf(stmp,"Using %s color mixing mode.", SUMA_ColMixModeString(SUMAg_CF->ColMixMode)); 
-               SUMA_SLP_Note(stmp);
-            }
-            
-            SUMA_SetAllRemixFlag (SUMAg_SVv, SUMAg_N_SVv);
-            
-            if (!list) list = SUMA_CreateList();
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_Suma, NULL);
-            if (!SUMA_Engine (&list)) {
-                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
-            }
-            break; 
+            break;
               
          case XK_F8: /*F8 */
-            sv->ortho = !sv->ortho;
-            
-            {
-               char stmp[200];
-               if (sv->ortho) {
-                  sprintf(stmp,"Using orthographic projection viewing");
-                  sv->FOV[sv->iState] = sv->FOV[sv->iState] / 2.0;
-               } else {
-                  sprintf(stmp,"Using perspective viewing");
-                  sv->FOV[sv->iState] = sv->FOV[sv->iState] * 2.0;
-               }
-               SUMA_SLP_Note(stmp);
+            if (!SUMA_F8_Key(sv, "F8", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
             }
-
-            SUMA_SET_GL_PROJECTION(sv);
-            SUMA_postRedisplay(w, clientData, callData);
-            break; 
+            break;
          
          case XK_F12: /* F12 */
             /* time display speed */

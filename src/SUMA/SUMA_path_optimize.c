@@ -112,6 +112,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_path_optimize_ParseInput(char *argv[], in
    popt->X_Lamda = NULL;
    popt->Lda = -1.0;
    popt->iter_count = -1;
+   popt->psepsilon = 1e-18;
    
    snprintf(popt->outfile, 499*sizeof(char),"test_move");
    kar = 1;
@@ -151,6 +152,16 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_path_optimize_ParseInput(char *argv[], in
             exit (1);
          }
          popt->dt = (double)atof(argv[kar]);               
+         brk = 1;
+      }
+      if (!brk && (strcmp(argv[kar], "-pseps") == 0)) {
+         kar ++;
+         if (kar >= argc)  
+         {
+            fprintf (stderr, "need argument after -pseps \n");
+            exit (1);
+         }
+         popt->psepsilon = (double)atof(argv[kar]);               
          brk = 1;
       }
       if (!brk && (strcmp(argv[kar], "-sin_kern") == 0))
@@ -1587,7 +1598,8 @@ int main (int argc,char *argv[])
    }
   
 /******* Optimization section ************************/   
-
+   matrix_psinv_seteps(opt->psepsilon);
+   
    if (opt->read_path[0]) {/* read results */
       SUMA_S_Warn("Warning, reading optimal path from files.");
       N_dims = 3; dims[0]= 3; dims[1] = opt->N_ctrl_points; dims[2] = (opt->M_time_steps+1);

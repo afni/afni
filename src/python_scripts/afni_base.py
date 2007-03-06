@@ -37,54 +37,88 @@ class afni_name:
    def pve(self):
       return "%s%s%s" % (self.prefix, self.view, self.extension)
    def exist(self):
-      if os.path.isfile("%s.HEAD" % self.ppv()) and \
-         (os.path.isfile("%s.BRIK" % self.ppv()) or \
-          os.path.isfile("%s.BRIK.gz" % self.ppv()) or \
-          os.path.isfile("%s.BRIK.bz2" % self.ppv()) or \
-          os.path.isfile("%s.BRIK.Z" % self.ppv()) ):
-         return 1
+      if (self.type == 'NIFTI'):
+         if (     os.path.isfile("%s.nii" % self.ppv()) or \
+                  os.path.isfile("%s.nii.gz" % self.ppv()) \
+            ):
+            return 1
+         else: return 0
+      elif (self.type == 'BRIK'):
+         if (     os.path.isfile("%s.HEAD" % self.ppv()) \
+               and  \
+               (  os.path.isfile("%s.BRIK" % self.ppv()) or \
+                  os.path.isfile("%s.BRIK.gz" % self.ppv()) or \
+                  os.path.isfile("%s.BRIK.bz2" % self.ppv()) or \
+                  os.path.isfile("%s.BRIK.Z" % self.ppv()) )   \
+            ):
+            return 1
+         else: return 0
+      elif (self.type == 'NIML'):
+         if (     os.path.isfile("%s.niml.dset" % self.ppv()) \
+            ):
+            return 1
+         else: return 0
       else:
-         return 0
+         if (     os.path.isfile(self.ppve()) ):
+            return 1
+         else: return 0
    def delete(self): #delete files on disk!
-      if os.path.isfile("%s.HEAD" % self.ppv()):
-         shell_exec("rm %s.HEAD" % self.ppv())
-      if os.path.isfile("%s.BRIK" % self.ppv()):
-         shell_exec("rm %s.BRIK" % self.ppv())
-      if os.path.isfile("%s.BRIK.gz" % self.ppv()):
-         shell_exec("rm %s.BRIK.gz" % self.ppv())
-      if os.path.isfile("%s.BRIK.bz2" % self.ppv()):
-         shell_exec("rm %s.BRIK.bz2" % self.ppv())
-      if os.path.isfile("%s.BRIK.Z" % self.ppv()):
-         shell_exec("rm %s.BRIK.Z" % self.ppv())
+      if (self.type == 'BRIK'):
+         if os.path.isfile("%s.HEAD" % self.ppv()):
+            shell_exec("rm %s.HEAD" % self.ppv())
+         if os.path.isfile("%s.BRIK" % self.ppv()):
+            shell_exec("rm %s.BRIK" % self.ppv())
+         if os.path.isfile("%s.BRIK.gz" % self.ppv()):
+            shell_exec("rm %s.BRIK.gz" % self.ppv())
+         if os.path.isfile("%s.BRIK.bz2" % self.ppv()):
+            shell_exec("rm %s.BRIK.bz2" % self.ppv())
+         if os.path.isfile("%s.BRIK.Z" % self.ppv()):
+            shell_exec("rm %s.BRIK.Z" % self.ppv())
+      else:
+         if os.path.isfile(self.ppve()):
+            shell_exec("rm %s" % self.ppve())
       return
    def move_to_dir(self, path=""):
       #self.show()
       #print path
       found = 0
       if os.path.isdir(path):
-         if os.path.isfile("%s.HEAD" % self.ppv()):
-            sv = shell_com("mv %s %s/" % (self.head(), path))
-            found = found + 1
-         if os.path.isfile("%s.BRIK" % self.ppv()):           
-            sv = shell_com("mv %s %s/" % (self.brick(), path))
-            found = found + 1
-         if os.path.isfile("%s.BRIK.gz" % self.ppv()):
-            sv = shell_com("mv %s %s/" % (self.brickgz(), path))
-            found = found + 1         
-         if os.path.isfile("%s.BRIK.bz2" % self.ppv()):
-            sv = shell_com("mv %s %s/" % (self.brickbz2(), path))
-            found = found + 1 
-         if os.path.isfile("%s.BRIK.Z" % self.ppv()):
-            sv = shell_com("mv %s %s/" % (self.brickZ(), path))
-            found = found + 1 
-         if (found > 0):
-            self.new_path(path)
-            if ( not self.exist() ):
-               print "Error: Move to %s failed" % (self.ppv())
+         if (self.type == 'BRIK'):
+            if os.path.isfile("%s.HEAD" % self.ppv()):
+               sv = shell_com("mv %s %s/" % (self.head(), path))
+               found = found + 1
+            if os.path.isfile("%s.BRIK" % self.ppv()):           
+               sv = shell_com("mv %s %s/" % (self.brick(), path))
+               found = found + 1
+            if os.path.isfile("%s.BRIK.gz" % self.ppv()):
+               sv = shell_com("mv %s %s/" % (self.brickgz(), path))
+               found = found + 1         
+            if os.path.isfile("%s.BRIK.bz2" % self.ppv()):
+               sv = shell_com("mv %s %s/" % (self.brickbz2(), path))
+               found = found + 1 
+            if os.path.isfile("%s.BRIK.Z" % self.ppv()):
+               sv = shell_com("mv %s %s/" % (self.brickZ(), path))
+               found = found + 1 
+            if (found > 0):
+               self.new_path(path)
+               if ( not self.exist() ):
+                  print "Error: Move to %s failed" % (self.ppv())
+                  return 0
+            else:
+               print "Error: Found no .HEAD or .BRIK or .BRIK.gz (or .bz2 or .Z) of %s" % (self.ppv())
                return 0
          else:
-            print "Error: Found no .HEAD or .BRIK or .BRIK.gz (or .bz2 or .Z) of %s" % (self.ppv())
-            return 0
+            if os.path.isfile("%s" % self.ppve()):
+               sv = shell_com("mv %s %s/" % (self.ppve(), path))
+               found = found + 1
+            if (found > 0):
+               self.new_path(path)
+               if ( not self.exist() ):
+                  print "Error: Move to %s failed" % (self.ppv())
+                  return 0
+            else:
+               print "Error: Found no file %s to move." % self.ppve()
+               return 0
       else:
          print "Error: Path %s not found for moving %s." % (path, self.ppv())
          return 0
@@ -178,6 +212,8 @@ class comopt:
                return None 
       else :
          if self.n_exp >= 0:
+            #print "option %s n_exp = %d, len(parlist)=%d" % (self.name, self.n_exp, len(self.parlist))
+            #self.show()
             if len(self.parlist) != self.n_exp:
                print "Error: Option %s needs %d parameters\n" \
                      "Parameter list has %d parameters." \
@@ -206,11 +242,11 @@ class shell_com:
          #print "Command trimmed to: %s" % (self.com)
       else:
          self.trimcom = self.com
+      if (len(self.trimcom) < len(self.com)):
+         ms = " (command trimmed)"
+      else:
+         ms = ""
       if eo == "echo":
-         if (len(self.trimcom) < len(self.com)):
-            ms = " (command trimmed)"
-         else:
-            ms = ""
          print "#Now running%s:\n   cd %s\n   %s" % (ms, self.dir, self.trimcom)
          #if (len(self.trimcom)):
          #   print "#Command trimmed to:\n   %s" % (self.trimcom)
@@ -328,7 +364,7 @@ def getopts2(argv,oplist):
    # an option that needs 2 params, with 2 options, defaulting to 2 and 10.0
    oplist.append(afni_base.comopt('-clust', 2, ['2', '10.0']))  
    # an option that needs an undetermined number of parameters
-   # (1 or more, -2 for 2 or more)
+   # (-1 for 1 or more, -2 for 2 or more)
    oplist.append(afni_base.comopt('-dsets', -1, []))
    
    once the list is made, you call getopts2 with argv and oplist

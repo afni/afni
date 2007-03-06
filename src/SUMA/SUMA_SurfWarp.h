@@ -40,7 +40,7 @@ typedef struct
       SUMA_MX_VEC *X_Lamda;
       double Lda;
       int iter_count;
-      
+      double psepsilon;
    } MyCircleOpt;
 
 typedef struct

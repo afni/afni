@@ -1440,6 +1440,13 @@ double * matrix_singvals( matrix X )   /* 14 Jul 2004 */
 
 extern void svd_double( int, int, double *, double *, double *, double * ) ;
 
+static double pseps = 1.e-16 ;
+
+void matrix_psinv_seteps( double eps )
+{
+   pseps = (eps > 0.0) ? eps : 1.e-16 ;
+}
+
 /*---------------------------------------------------------------------------*/
 /*! Given MxN matrix X, return the NxN matrix
 
@@ -1502,7 +1509,7 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
 #ifdef FLOATIZE
 #define PSINV_EPS 1.e-8
 #else
-#define PSINV_EPS 1.e-16
+#define PSINV_EPS pseps
 #endif
 
    /* "reciprocals" of singular values:  1/s is actually s/(s^2+del) */
