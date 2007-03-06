@@ -2646,7 +2646,7 @@ C
       PP = X(M+1)
       DO I=2,M
         IF( X(I) .LT. BB )THEN
-          TT = X(I)
+          BB = X(I)
           PP = X(M+I)
         ENDIF
       ENDDO
