@@ -63,14 +63,14 @@ ENTRY("AFNI_get_autothresh") ;
 
    DSET_load( im3d->fim_now ) ;
    thrim  = DSET_BRICK(im3d->fim_now,ival) ;
-   thrval = THD_cliplevel_abs( thrim , 0.123f ) ;
+   thrval = THD_cliplevel_abs( thrim , 0.500f ) ;
+   if( DSET_BRICK_FACTOR(im3d->fim_now,ival) > 0.0f )
+     thrval *= DSET_BRICK_FACTOR(im3d->fim_now,ival) ;
 
-   if( pval > 0.0f ){
-     if( thrval <= 0.0f ) thrval = pval ;
-     else                 thrval = MIN(thrval,pval) ;
-   }
+   if( pval > 0.0f )
+     thrval = (thrval <= 0.0f) ? pval : sqrt(thrval*pval) ;
+
    if( thrval == 0.0f ) thrval = -1.0f ;
-
    RETURN(thrval) ;
 }
 
