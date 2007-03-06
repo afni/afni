@@ -63,7 +63,7 @@ ENTRY("AFNI_get_autothresh") ;
 
    DSET_load( im3d->fim_now ) ;
    thrim  = DSET_BRICK(im3d->fim_now,ival) ;
-   thrval = THD_cliplevel_abs( thrim , 0.500f ) ;
+   thrval = THD_cliplevel_abs( thrim , -0.500f ) ;
    if( DSET_BRICK_FACTOR(im3d->fim_now,ival) > 0.0f )
      thrval *= DSET_BRICK_FACTOR(im3d->fim_now,ival) ;
 
@@ -2464,8 +2464,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
        AFNI_yesenv("AFNI_THRESH_AUTO")              ){  /* 05 Mar 2007 */
 
      float new_thresh = AFNI_get_autothresh(im3d) ;
-     if( new_thresh > 0.0f )
-       AFNI_set_threshold(im3d,new_thresh) ;
+     if( new_thresh > 0.0f ) AFNI_set_threshold(im3d,new_thresh) ;
    }
 
    EXRETURN ;
@@ -4865,7 +4864,7 @@ ENTRY("AFNI_reset_func_range") ;
 void AFNI_bucket_CB( MCW_arrowval *av , XtPointer cd )
 {
    Three_D_View *im3d = (Three_D_View *) cd ;
-   int doit = 0 , iv , redisplay ;
+   int doit=0 , iv , redisplay , dothr=0 ;
 
 ENTRY("AFNI_bucket_CB") ;
 
@@ -4906,6 +4905,7 @@ ENTRY("AFNI_bucket_CB") ;
        im3d->vinfo->thr_index = iv ;
        redisplay = REDISPLAY_OVERLAY ;
      }
+     dothr = 1 ;
    }
 
    /** Change the view, if required **/
@@ -4920,10 +4920,9 @@ ENTRY("AFNI_bucket_CB") ;
       SHOW_AFNI_READY ;
    }
 
-   if( AFNI_yesenv("AFNI_THRESH_AUTO") ){           /* 05 Mar 2007 */
+   if( dothr && AFNI_yesenv("AFNI_THRESH_AUTO") ){    /* 05 Mar 2007 */
      float new_thresh = AFNI_get_autothresh(im3d) ;
-     if( new_thresh > 0.0f )
-       AFNI_set_threshold(im3d,new_thresh) ;
+     if( new_thresh > 0.0f ) AFNI_set_threshold(im3d,new_thresh) ;
    }
 
    EXRETURN ;

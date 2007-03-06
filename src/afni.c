@@ -1704,21 +1704,21 @@ STATUS("call 14") ;
         if( !GLOBAL_library.hints_on ) MCW_hint_toggle() ;
 
         if( MAIN_im3d->vwid->dmode->misc_hints_pb != NULL )
-           MCW_set_bbox( MAIN_im3d->vwid->dmode->misc_hints_bbox ,
-                         GLOBAL_library.hints_on ) ;
+          MCW_set_bbox( MAIN_im3d->vwid->dmode->misc_hints_bbox ,
+                        GLOBAL_library.hints_on ) ;
 
         /* Feb 1998: setup write compression from environment */
         /*           (read de-compression always works)       */
 
         ii = THD_enviro_write_compression() ;
         if( ii >= 0 && ii <= COMPRESS_LASTCODE ){
-           char str[64] ;
-           sprintf(str,"\n write compress= %s", COMPRESS_enviro[ii]) ;
-           REPORT_PROGRESS(str) ;
+          char str[64] ;
+          sprintf(str,"\n write compress= %s", COMPRESS_enviro[ii]) ;
+          REPORT_PROGRESS(str) ;
         }
 
         if( ALLOW_real_time > 0 )
-           REPORT_PROGRESS("\nRT: realtime plugin is active") ;
+          REPORT_PROGRESS("\nRT: realtime plugin is active") ;
 
         /* 23 Sep 2000: this function will be called 0.123 seconds
                         from now to initialize the window layouts  */
@@ -1764,6 +1764,14 @@ STATUS("call 14") ;
             AFNI_fimmer_setref( MAIN_im3d , tsim ) ;
           }
         }
+
+        /* 05 Mar 2007: auto-threshold? */
+
+        if( AFNI_yesenv("AFNI_THRESH_AUTO") ){
+          float new_thresh = AFNI_get_autothresh(MAIN_im3d) ;
+          if( new_thresh > 0.0f ) AFNI_set_threshold(MAIN_im3d,new_thresh) ;
+        }
+
 
         REPORT_PROGRESS("\n") ;
       }
@@ -3504,10 +3512,10 @@ if(PRINT_TRACING)
 
       case isqCR_keypress:{
 #if 1
-        switch( cbs->key ){  /* 05 Mar 2007 */
-
+        switch( cbs->key ){  /* 05 Mar 2007: keys that AFNI needs */
+                                          /* to process, not imseq.c */
           case 'u':{
-            int uu = im3d->vinfo->underlay_type ;
+            int uu = im3d->vinfo->underlay_type ; /* toggle Overlay as Underlay */
             uu = (uu+1) % (LAST_UNDERLAY_TYPE+1) ;
             MCW_set_bbox( im3d->vwid->func->underlay_bbox , 1<<uu ) ;
             AFNI_underlay_CB( im3d->vwid->func->underlay_bbox->wbut[0] ,
@@ -3515,24 +3523,24 @@ if(PRINT_TRACING)
           }
           break ;
 
-          case 'o':{
+          case 'o':{                              /* turn overlay on or off */
             int ov = MCW_val_bbox( im3d->vwid->view->see_func_bbox ) ;
             MCW_set_bbox( im3d->vwid->view->see_func_bbox , !ov ) ;
             AFNI_see_func_CB( NULL , im3d , NULL ) ;
           }
           break ;
 
-          case '{':
-          case '}':{
-            int stt=(int)THR_TOP_VALUE , dss , scl , osc ;
-            XmScaleGetValue( im3d->vwid->func->thr_scale , &scl ) ; osc = scl ;
-            dss = (stt+1)/100 ; if( cbs->key == '{' ) dss = -dss ;
-            scl += dss ;
-            if( scl <= 0 ) scl = 0 ; else if( scl >= stt ) scl = stt ;
-            if( scl != osc ){
-              XmScaleSetValue( im3d->vwid->func->thr_scale , scl ) ;
-              AFNI_thr_scale_CB( im3d->vwid->func->thr_scale, (XtPointer)im3d, NULL ) ;
-            }
+          case '{':    /* Actually: Mod+Button4/5 = Mod+ScrollWheel */
+          case '}':{   /* Change the threshold slider up or down */
+            int scl ; float fff,dff,nff ;
+            XmScaleGetValue( im3d->vwid->func->thr_scale , &scl ) ;
+            fff = scl * im3d->vinfo->func_thresh_top * THR_FACTOR ;
+            dff = im3d->vinfo->func_thresh_top * 0.01f ;
+            if( cbs->key == '{' ) dff = -dff ;
+            nff = fff+dff ;
+                 if( nff < 0.0f          ) nff = 0.0f ;
+            else if( nff > THR_TOP_VALUE ) nff = THR_TOP_VALUE ;
+            if( nff != fff ) AFNI_set_threshold( im3d , nff ) ;
           }
           break ;
 

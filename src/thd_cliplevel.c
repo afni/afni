@@ -133,22 +133,28 @@ ENTRY("THD_cliplevel") ;
 
 float THD_cliplevel_abs( MRI_IMAGE *im , float mfrac )
 {
-   MRI_IMAGE *fim ; register float *far ; register int ii ; float val,tv ;
+   MRI_IMAGE *fim ;
+   register float *far ;
+   register int ii ;
+   float val,tv ; int dotwo ;
 
 ENTRY("THD_cliplevel_abs") ;
    if( im == NULL ) RETURN(0.0f) ;
    fim = mri_to_float(im) ; if( fim == NULL ) RETURN(0.0f) ;
    far = MRI_FLOAT_PTR(fim) ;
    for( ii=0 ; ii < fim->nvox ; ii++ ) far[ii] = fabsf(far[ii]) ;
+   if( mfrac < 0.0f ){ dotwo = 1; mfrac = -mfrac; }
    val = THD_cliplevel( fim , mfrac ) ;
 
-   qsort_float( fim->nvox , far ) ;
-   ii = (int)(0.9*fim->nvox) ; tv = far[ii] ;
-   if( tv == 0.0f ){
-     for( ; ii < fim->nvox && far[ii] == 0.0f ; ii++ ) ; /* nada */
-     if( ii < fim->nvox ) tv = far[ii] ;
+   if( dotwo ){
+     qsort_float( fim->nvox , far ) ;
+     ii = (int)(0.9*fim->nvox) ; tv = far[ii] ;
+     if( tv == 0.0f ){
+       for( ; ii < fim->nvox && far[ii] == 0.0f ; ii++ ) ; /* nada */
+       if( ii < fim->nvox ) tv = far[ii] ;
+     }
+     if( val > tv && tv > 0.0f ) val = tv ;
    }
-   if( val > tv && tv > 0.0f ) val = tv ;
 
    mri_free(fim) ; RETURN(val) ;
 }

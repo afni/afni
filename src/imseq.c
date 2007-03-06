@@ -5060,9 +5060,12 @@ DPR(" .. ButtonPress") ;
              XmMenuPosition( seq->wbar_menu , event ) ; /* where */
              XtManageChild ( seq->wbar_menu ) ;         /* popup */
            }
-           else if( but == Button4 || but == Button5 ){
+           else if( but == Button4 || but == Button5 ){ /* Scroll Wheel */
               int ddd = (but==Button4) ? -1 : 1 ;
-              DC_palette_squeeze( seq->dc , ddd ) ;
+              if( (event->state & (Mod1Mask|Mod2Mask)) )
+                DC_palette_bright(  seq->dc , ddd ) ;   /* brightness */
+              else
+                DC_palette_squeeze( seq->dc , ddd ) ;   /* contrast */
               COLORMAP_CHANGE(seq) ;
            }
            else {
@@ -5081,13 +5084,13 @@ DPR(" .. ButtonPress") ;
          seq->last_by = by = event->y ;  /*            press (x,y) coords */
          seq->cmap_changed = 0 ;
 
-         /* 26 Feb 2007: Buttons 4 and 5 = scroll wheel = change slice */
+         /* 26 Feb 2007: Buttons 4 and 5 = Scroll Wheel = change slice */
 
          if( but == Button4 || but == Button5 ){
-           if( (event->state & (Mod1Mask|Mod2Mask)) ){  /* mod+scroll == '{}' */
+           if( (event->state & (Mod1Mask|Mod2Mask)) ){ /* mod+scroll == '{}' */
              cbs.reason = isqCR_keypress ;
              cbs.event  = ev ;
-             cbs.key    = (but==Button4) ? '}' : '{' ;
+             cbs.key    = (but==Button4) ? '}' : '{' ; /* == change threshold */
              cbs.nim    = seq->im_nr ;
              SEND(seq,cbs) ;
            } else {                           /* no modifiers == change slice */
