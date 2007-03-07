@@ -31,9 +31,31 @@ FuncName = 'DeOblique';
 
 
 
-fname = input ('Enter I filename: ', 's');
+fname = input ('Enter I filename (or test or dircos, or twovec): ', 's');
 while (~isempty(fname)),
-   if (strcmp(fname,'test') ~= 1),
+   if (strcmp(fname,'test') == 1),
+      tlhc1 = [83 -123 32];
+      trhc1 = [-83 -123 32];
+      brhc1 = [-83 -55 22];
+      ctr1  = [ 0   0 27];
+      Tri1.XYZ = [tlhc1; trhc1; brhc1];
+      [err,Eq1] = Plane_Equation (Tri1);
+   elseif (strcmp(fname,'dircos') == 1),
+      d1 = []; while (length(d1) ~= 3), d1 = input ('Enter 1st direction cosines [1 0 0]: '); end
+      d2 = []; while (length(d2) ~= 3), d2 = input ('Enter 2nd direction cosines [0 0.88 0.44]: '); end
+      d1 = acos(d1); d2 = acos(d2);
+      dpl = cross(d1, d2); % plane normal
+      ctr1 = [0 0 0];
+      Eq1 = [dpl 0]; 
+      Tri1 = [];
+   elseif (strcmp(fname,'twovec') == 1),
+      d1 = []; while (length(d1) ~= 3), d1 = input ('Enter 1st vector [1 0 0]: '); end
+      d2 = []; while (length(d2) ~= 3), d2 = input ('Enter 2nd vector [0 1 0]: '); end
+      dpl = cross(d1, d2); % plane normal
+      ctr1 = [0 0 0];
+      Eq1 = [dpl 0]; 
+      Tri1 = [];
+   else
       [su_hdr,ex_hdr,se_hdr,im_hdr,pix_hdr,im_offset] = GE_readHeader(fname);
 
       %get three points forming corners of plane and the center of the plane 
@@ -41,18 +63,17 @@ while (~isempty(fname)),
       trhc1 = [im_hdr.trhc_R im_hdr.trhc_A im_hdr.trhc_S];
       brhc1 = [im_hdr.brhc_R im_hdr.brhc_A im_hdr.brhc_S];
       ctr1 = [im_hdr.ctr_R im_hdr.ctr_A im_hdr.ctr_S];
-   else
-      tlhc1 = [83 -123 32];
-      trhc1 = [-83 -123 32];
-      brhc1 = [-83 -55 22];
-      ctr1  = [ 0   0 27];
+      Tri1.XYZ = [tlhc1; trhc1; brhc1];
+      [err,Eq1] = Plane_Equation (Tri1);
    end
-   Tri1.XYZ = [tlhc1; trhc1; brhc1];
-   [err,Eq1] = Plane_Equation (Tri1);
 
    %an idea of the displacement at the edges, typically the minimum of d
-   d = 2 .* (tlhc1 - ctr1);
-
+   if (~isempty(Tri1)),
+      d = 2 .* (tlhc1 - ctr1);
+   else
+      d = -1;
+   end
+   
    %form the equation of the desired plane
    ctr2 = ctr1; 
 
@@ -81,7 +102,11 @@ while (~isempty(fname)),
    u = u ./ norm(u, 2);
 
    %This line must pass by ctr because I said so
-   somescale = abs(max(trhc1 - brhc1))./3;
+   if (~isempty(Tri1)),
+      somescale = abs(max(trhc1 - brhc1))./3;
+   else
+      somescale = 10;
+   end
    Line = [ctr1; ctr1+somescale.*u];
 
 
@@ -94,7 +119,9 @@ while (~isempty(fname)),
    Opt.Fig = figure(1); clf
 
    subplot 211; cla
-   plot3(Tri1.XYZ(:,1), Tri1.XYZ(:, 2), Tri1.XYZ(:,3),'r*'); axis tight;hold on
+   if (~isempty(Tri1)),
+      plot3(Tri1.XYZ(:,1), Tri1.XYZ(:, 2), Tri1.XYZ(:,3),'r*'); axis tight;hold on
+   end
    plot3(ctr1(1), ctr1(2) , ctr1(3), 'b*'); 
 
    [err,PatchHandles] = ShowPlane (Eq1, Opt); view(3); hold on
@@ -107,7 +134,9 @@ while (~isempty(fname)),
 
    title (stmp);
    subplot 212; cla
-   plot3(Tri1.XYZ(:,1), Tri1.XYZ(:, 2), Tri1.XYZ(:,3),'r*'); axis tight;hold on
+   if (~isempty(Tri1)),
+      plot3(Tri1.XYZ(:,1), Tri1.XYZ(:, 2), Tri1.XYZ(:,3),'r*'); axis tight;hold on
+   end
    plot3(ctr1(1), ctr1(2) , ctr1(3), 'b*'); 
 
    [err,PatchHandles] = ShowPlane (Eq1, Opt); view(3); hold on
