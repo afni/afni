@@ -6146,3 +6146,8 @@
  * Fixed pairmin() bug in parser.f.
  * Store column_metadata in 3dDeconvolve.c, and write it to -x1D file
      if AFNI_3dDeconvolve_NIML is YES.
+
+07 Mar 2007
+ * 3dDeconvolve.c: -GOFORIT, check_matrix_condition(), report -stim_times
+     values outside of run intervals, condition numbers with and without
+     baseline regressors.

@@ -354,6 +354,8 @@ void ONED_matrix_save( matrix X, char *fname, void * ); /* save X matrix to .1D 
 
 void XSAVE_output( char * ) ;                      /* save X matrix into file */
 
+static int check_matrix_condition( matrix xdata, char *xname ); /* 07 Mar 2007 */
+
 static int xsave=0 ;                                   /* globals for -xsave */
 static int nGoodList=0 , *GoodList=NULL ;
 static int nParam=0 , *ParamIndex=NULL , *ParamStim=NULL ;
@@ -374,6 +376,9 @@ static char *xrestore_filename = NULL ;
 static int NumTimePoints=0 , NumRegressors=0 ;
 
 static int verb = 1 ;
+
+static int goforit = 0 ;  /* 07 Mar 2007 */
+static int badlev  = 0 ;
 
 struct DC_options ;  /* incomplete struct definition */
 
@@ -481,8 +486,8 @@ floatpair evaluate_irc( basis_irc *birc , vector coef ,
 
 typedef struct {
   unsigned int  mask ;      /* binary properties of column */
-  unsigned int  group ;     /* 0=baseline, larger=stimulus */
-  char name[64] ;
+           int  group ;     /* -1=polort 0=other baseline, larger=stimulus */
+           char name[64] ;  /* string describing this column */
 } column_metadata ;
 
 static int             ncoldat = 0 ;
@@ -666,10 +671,15 @@ void display_help_menu()
     "[-nodmbase]          don't de-mean baseline time series                \n"
     "                       (i.e., polort>1 and -stim_base inputs)          \n"
     "[-dmbase]            de-mean baseline time series (default if polort>0)\n"
-    "[-nocond]            don't calculate matrix condition number           \n"
     "[-svd]               Use SVD instead of Gaussian elimination (default) \n"
     "[-nosvd]             Use Gaussian elimination instead of SVD           \n"
     "[-rmsmin r]          r = minimum rms error to reject reduced model     \n"
+    "[-nocond]            DON'T calculate matrix condition number           \n"
+    "                      ** This is NOT the same as Matlab!               \n"
+    "[-singvals]          Print out the matrix singular values              \n"
+    "[-GOFORIT]           Use this to proceed even if the matrix has        \n"
+    "                     bad problems (e.g., duplicate columns, large      \n"
+    "                     condition number, etc.)                           \n"
     "                                                                       \n"
     "**** Input stimulus options:                                           \n"
     "-num_stimts num      num = number of input stimulus time series        \n"
@@ -1070,6 +1080,8 @@ void get_options
   initialize_options (option_data);
 
 
+  if( AFNI_yesenv("AFNI_3dDeconvolve_GOFORIT") ) goforit++ ; /* 07 Mar 2007 */
+
   /*----- main loop over input options -----*/
   while (nopt < argc )
     {
@@ -1085,6 +1097,10 @@ void get_options
         fprintf(stderr,"** WARNING: -nocond is ignored in 3dDeconvolve_f!\n") ;
 #endif
         nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-goforit") == 0 ){  /* 07 Mar 2007 */
+        goforit++ ; nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-singvals") == 0 ){  /* 13 Aug 2004 */
@@ -1451,10 +1467,8 @@ void get_options
         nopt++ ;
         if( nopt >= argc ) DC_error("need argument after -TR_times") ;
         basis_dtout = -1.0 ; sscanf( argv[nopt] , "%f" , &basis_dtout ) ;
-        if( basis_dtout <= 0.0f ){
-          fprintf(stderr,"** ERROR: -TR_times '%s' is illegal\n",argv[nopt]) ;
-          exit(1) ;
-        }
+        if( basis_dtout <= 0.0f )
+          ERROR_exit("-TR_times '%s' is illegal\n",argv[nopt]) ;
         nopt++ ; continue ;
       }
 
@@ -1463,10 +1477,8 @@ void get_options
         nopt++ ;
         if( nopt >= argc ) DC_error("need argument after -TR_irc") ;
         irc_dt = -1.0 ; sscanf( argv[nopt] , "%f" , &irc_dt ) ;
-        if( irc_dt <= 0.0f ){
-          fprintf(stderr,"** ERROR: -TR_irc '%s' is illegal\n",argv[nopt]) ;
-          exit(1) ;
-        }
+        if( irc_dt <= 0.0f )
+          ERROR_exit("-TR_irc '%s' is illegal\n",argv[nopt]) ;
         nopt++ ; continue ;
       }
 
@@ -1486,34 +1498,23 @@ void get_options
         nopt++ ;
         if( nopt+2 >= argc ) DC_error("need 3 arguments after -stim_times");
         ival = -1 ; sscanf( argv[nopt] , "%d" , &ival ) ;
-        if( (ival < 1) || (ival > option_data->num_stimts) ){
-          fprintf(stderr,
-                  "** ERROR: '-stim_times %d' value out of range 1..%d\n",
+        if( (ival < 1) || (ival > option_data->num_stimts) )
+          ERROR_exit("'-stim_times %d' value out of range 1..%d\n",
                   ival , option_data->num_stimts ) ;
-          exit(1) ;
-        }
         k = ival-1 ; nopt++ ;
-        if( option_data->stim_filename[k] != NULL ){
-          fprintf(stderr,
-                  "** ERROR: '-stim_times %d' trying to overwrite previous stimulus\n",
+        if( option_data->stim_filename[k] != NULL )
+          ERROR_exit("'-stim_times %d' trying to overwrite previous stimulus",
                   ival ) ;
-          exit(1) ;
-        }
         option_data->stim_filename[k] = strdup( argv[nopt] ) ;
         basis_times[k] = mri_read_ascii_ragged( argv[nopt] , basis_filler ) ;
-        if( basis_times[k] == NULL ){
-          fprintf(stderr,
-                  "** ERROR: '-stim_times %d' can't read file '%s'\n",
+        if( basis_times[k] == NULL )
+          ERROR_exit("'-stim_times %d' can't read file '%s'\n",
                   ival , argv[nopt] ) ;
-          exit(1) ;
-        }
         nopt++ ;
         basis_stim[k] = basis_parser( argv[nopt] ) ;  /* regression model */
-        if( basis_stim[k] == NULL ){
-          fprintf(stderr,
-                  "** ERROR: '-stim_times %d %s' can't parse '%s'\n",
+        if( basis_stim[k] == NULL )
+          ERROR_exit("'-stim_times %d %s' can't parse '%s'\n",
                   ival , argv[nopt-1] , argv[nopt] ) ;
-        }
         basis_count++ ;
         nopt++ ; continue ;
       }
@@ -1555,12 +1556,9 @@ void get_options
           DC_error ("-stim_file k sname   Require: 1 <= k <= num_stimts");
         k = ival-1;
         nopt++;
-          if( option_data->stim_filename[k] != NULL ){
-            fprintf(stderr,
-                    "** ERROR: '-stim_file %d' trying to overwrite previous stimulus\n",
+          if( option_data->stim_filename[k] != NULL )
+            ERROR_exit("'-stim_file %d' trying to overwrite previous stimulus\n",
                     ival ) ;
-            exit(1) ;
-          }
 
         option_data->stim_filename[k] = malloc (sizeof(char)*THD_MAX_NAME);
         MTEST (option_data->stim_filename[k]);
@@ -2045,8 +2043,8 @@ void get_options
     }
 
   } /* end of loop over stimuli */
-  if( nerr > 0 ) exit(1) ;
-
+  if( nerr > 0 ) ERROR_exit("Can't continue after above problems!") ;
+  return ;
 }
 
 
@@ -2182,19 +2180,19 @@ ENTRY("read_input_data") ;
         for( is=0 ; is < num_stimts ; is++ ){
           for( js=is+1 ; js < num_stimts ; js++ ){
             if( strcmp( option_data->stim_filename[is] ,
-                        option_data->stim_filename[js]  ) == 0 )
+                        option_data->stim_filename[js]  ) == 0 ){
               fprintf(stderr,"** WARNING: stimulus filename "
                              "#%d:'%s' same as #%d:'%s'\n" ,
                       is+1,option_data->stim_filename[is] ,
                       js+1,option_data->stim_filename[js]  ) ; nerr++ ;
+              badlev++ ;
+            }
           }
         }
       }
 
-      if( nerr > 0 && AFNI_yesenv("AFNI_3dDeconvolve_nodup") ){
-        fprintf(stderr,"** ERROR: can't continue after above warnings!\n");
-        exit(1) ;
-      }
+      if( nerr > 0 && AFNI_yesenv("AFNI_3dDeconvolve_nodup") )
+        ERROR_exit("Can't continue after above warnings!\n");
 
       for (is = 0;  is < num_stimts;  is++)
       {
@@ -2326,7 +2324,12 @@ ENTRY("read_input_data") ;
       }
 
       basis_TR = DSET_TR(*dset_time) ;          /* 11 Aug 2004 */
-      if( basis_TR <= 0.0f ) basis_TR = 1.0f ;
+      if( basis_TR <= 0.0f ){
+        basis_TR = 1.0f; WARNING_message("no TR in dataset; setting TR=1 s");
+      } else if( basis_TR <= 0.10f ){
+        WARNING_message("TR in dataset = %g s (less than 0.100 s) -- FYI",
+                        basis_TR ) ;  /* the PSFB syndrome */
+      }
 
       if( DSET_IS_TCAT(*dset_time) ){  /** 04 Aug 2004: manufacture block list **/
         if( option_data->concat_filename != NULL ){
@@ -2449,6 +2452,8 @@ ENTRY("read_input_data") ;
     if( basis_TR    <= 0.0f ) basis_TR    = 1.0f ;
     if( basis_dtout <= 0.0f ) basis_dtout = basis_TR ;
 
+    INFO_message("-stim_times using dataset TR=%g seconds",basis_TR) ;
+
     for( is=0 ; is < num_stimts ; is++ ){
       be = basis_stim[is] ;
       if( be == NULL ) continue ;   /* old style -stim_file */
@@ -2460,19 +2465,25 @@ ENTRY("read_input_data") ;
       qar   = (float *)calloc(sizeof(float),nx*ny) ;
 
       if( nx == 1 ){                     /* 1 column = global times */
-        int nbad=0 ;
+        int nbad=0 , nout=0 ;
         INFO_message("-stim_times %d using global times",is+1) ;
         tmax = (nt-1)*basis_TR ;         /* max allowed time offset */
         for( ii=0 ; ii < nx*ny ; ii++ ){
           tt = tar[ii] ;
-          if( tt >= 0.0f && tt <= tmax ) qar[ngood++] = tt/basis_TR ;
-          if( tt >= basis_filler ) nbad++ ;
+               if( tt >= 0.0f && tt <= tmax ) qar[ngood++] = tt/basis_TR ;
+          else if( tt >= basis_filler       ) nbad++ ;
+          else                                nout++ ;
         }
         if( nbad )
           WARNING_message(
            "-stim_times (GLOBAL) %d has %d '*' fillers; do you want LOCAL times?",
            is+1,nbad) ;
+        if( nout )
+          WARNING_message(
+           "-stim_times (GLOBAL) %d has %d values outside range 0 .. %g",
+           is+1 , nout , tmax ) ;
       } else {                           /* multicol => 1 row per block */
+        int nout ;
         INFO_message("-stim_times %d using local times",is+1) ;
         if( ny != nbl ){                 /* times are relative to block */
           fprintf(stderr,
@@ -2484,10 +2495,15 @@ ENTRY("read_input_data") ;
         for( jj=0 ; jj < ny ; jj++ ){   /* jj=row index=block index */
           if( jj < nbl-1 ) tmax = (bst[jj+1]-1-bst[jj])*basis_TR ;
           else             tmax = (nt       -1-bst[jj])*basis_TR ;
-          for( ii=0 ; ii < nx ; ii++ ){
+          for( nout=ii=0 ; ii < nx ; ii++ ){
             tt = tar[ii+jj*nx] ;
             if( tt >= 0.0f && tt <= tmax ) qar[ngood++] = tt/basis_TR+bst[jj] ;
+            else if( tt < basis_filler )   nout++ ;
           }
+          if( nout )
+            WARNING_message(
+             "-stim_times (LOCAL) %d run#%d has %d values outside range 0 .. %g",
+             is+1 , jj+1 , nout , tmax ) ;
         }
       }
 
@@ -2495,7 +2511,7 @@ ENTRY("read_input_data") ;
         fprintf(stderr,
                 "** WARNING: '-stim_times %d' file '%s' has no good entries\n",
                 is+1 , option_data->stim_filename[is] ) ;
-        free((void *)qar) ; qim = NULL ;
+        free((void *)qar) ; qim = NULL ; badlev++ ;
       } else {
         qim = mri_new_vol_empty(ngood,1,1,MRI_float) ;
         qar = (float *)realloc((void *)qar,sizeof(float)*ngood) ;
@@ -2589,7 +2605,7 @@ for( ii=0 ; ii < nt ; ii++ ){
   for( is=0 ; is < nblk ; is++ ){
     for( it=0 ; it <= npol ; it++ ){
       cd.mask  = CM_BASELINE_MASK | CM_POLORT_MASK ;
-      cd.group = 0 ;
+      cd.group = -1 ;                            /* polort group = -1 */
       sprintf(cd.name,"Run#%dPol#%d",is+1,it) ;
       option_data->coldat[p1++] = cd ;
     }
@@ -2810,7 +2826,7 @@ ENTRY("remove_zero_stimfns") ;
       if (all_zero)  /*----- Remove this stimulus function -----*/
       {
         printf("** WARNING!  -stim_file function %s comprises all zeros!\n",
-             option_data->stim_filename[is]); fflush(stdout);
+             option_data->stim_filename[is]); fflush(stdout); badlev++ ;
         if (option_data->num_glt > 0)
           DC_error
             ("Cannot process -glt option(s) when -stim_file function is all zero");
@@ -3109,7 +3125,7 @@ void check_for_valid_inputs
       char *eee = getenv("AFNI_3dDeconvolve_extend") ;
       if( eee != NULL && (*eee=='n' || *eee=='N') ){
         fprintf(stderr,"** ERROR: Can't continue with too short files!\n"
-                       "          AFNI_3dDeconvolve_extend = %s\n",eee ) ;
+                       "**        AFNI_3dDeconvolve_extend = %s\n",eee ) ;
         exit(1) ;
       }
       fprintf(stderr,"++ EXTENDING short files with zero values\n"
@@ -4421,14 +4437,16 @@ ENTRY("calculate_results") ;
 
   if( option_data->xjpeg_filename != NULL )    /* 21 Jul 2004 */
     JPEG_matrix_gray( xdata , option_data->xjpeg_filename ) ;
+
   if( option_data->x1D_filename   != NULL ){   /* 28 Mar 2006 */
     void *cd=NULL ;
-    if( AFNI_yesenv("AFNI_3dDeconvolve_NIML") ) cd = (void *)coldat ;
+    if( strstr(option_data->x1D_filename,"niml") != NULL ||
+        AFNI_yesenv("AFNI_3dDeconvolve_NIML")              ) cd = (void *)coldat;
     ONED_matrix_save( xdata , option_data->x1D_filename , cd ) ;
   }
 
 
-  /*-- 14 Jul 2004: check matrix for bad columns - RWCox --*/
+  /*----- 14 Jul 2004: check matrix for bad columns - RWCox -----*/
 
   { int *iar , k , nerr=0 ;
     iar = matrix_check_columns( xdata , QEPS ) ;
@@ -4437,67 +4455,72 @@ ENTRY("calculate_results") ;
       for( k=0 ; iar[2*k] >= 0 ; k++ ){
         if( iar[2*k+1] >= 0 ){
           fprintf(stderr," * Columns %d and %d are nearly collinear!\n",
-                  iar[2*k],iar[2*k+1] ) ; nerr++ ;
+                  iar[2*k],iar[2*k+1] ) ; nerr++ ; badlev++ ;
         } else {
           fprintf(stderr," * Column %d is all zeros: %s\n",
                   iar[2*k] ,
                   use_psinv ? "SVD on => will be kept"
-                            : "SVD off => will be excised" ) ;
+                            : "SVD off => will be excised" ) ; badlev++ ;
         }
       }
-      if( nerr > 0 && AFNI_yesenv("AFNI_3dDeconvolve_nodup") ){
-        fprintf(stderr,"** ERROR: can't continue after above warnings!\n");
-        exit(1) ;
-      }
+      if( nerr > 0 && AFNI_yesenv("AFNI_3dDeconvolve_nodup") )
+        ERROR_exit("Can't continue after above problems/warnings!\n");
       free(iar) ;
     }
   }
 
   /*-- 14 Jul 2004: calculate matrix condition number - RWCox --*/
 
-#ifndef PSINV_EPS
-#define PSINV_EPS 1.e-12
-#endif
   if( !option_data->nocond ){
-    double *ev , ebot,emin,emax ; int i,nsmall=0 ;
-    ev = matrix_singvals( xdata ) ;
-    emax = 1.e-38 ;
-    for( i=0 ; i < xdata.cols ; i++ ){
-      if( ev[i] > emax ) emax = ev[i] ;
+    int qbad , *clist , nlist , jj ; matrix xext ;
+
+    /* examine full matrix */
+
+    qbad = check_matrix_condition( xdata, "Signal+Baseline" ); badlev += qbad;
+
+    /* extract columns for signal model only */
+
+    clist = (int *)malloc(sizeof(int)*xdata.cols) ;
+    for( nlist=jj=0 ; jj < xdata.cols ; jj++ )
+      if( coldat[jj].group > 0 ) clist[nlist++] = jj ;
+    if( nlist > 0 ){
+      matrix_initialize (&xext);
+      matrix_extract( xdata , nlist , clist , &xext ) ;
+      qbad = check_matrix_condition( xext, "Signal-only" ); badlev += qbad;
+      matrix_destroy( &xext ) ;
     }
-    ebot = sqrt(PSINV_EPS)*emax ; emin = 1.e+38 ;
-    for( i=0 ; i < xdata.cols ; i++ ){
-      if( ev[i] >= ebot && ev[i] < emin ) emin = ev[i] ;
-      if( ev[i] <  ebot ) nsmall++ ;
+
+    /* extract columns for baseline model only */
+
+    for( nlist=jj=0 ; jj < xdata.cols ; jj++ )
+      if( coldat[jj].group <= 0 ) clist[nlist++] = jj ;
+    if( nlist > 0 ){
+      matrix_initialize (&xext);
+      matrix_extract( xdata , nlist , clist , &xext ) ;
+      qbad = check_matrix_condition( xext, "Baseline-only" ); badlev += qbad;
+      matrix_destroy( &xext ) ;
     }
-    if( nsmall > 0 ){
-      fprintf(stderr,
-        "** WARNING: Largest singular value=%g;"
-                  " %d %s less than cutoff=%g\n"
-        "            Implies strong collinearity in the input regressors\n",
-              emax , nsmall , (nsmall==1)?"is":"are" , ebot ) ;
-      show_singvals = 1 ;
+
+    /* extract columns for -stim_base model only */
+
+    for( nlist=jj=0 ; jj < xdata.cols ; jj++ )
+      if( coldat[jj].group == 0 ) clist[nlist++] = jj ;
+    if( nlist > 0 ){
+      matrix_initialize (&xext);
+      matrix_extract( xdata , nlist , clist , &xext ) ;
+      qbad = check_matrix_condition( xext, "-stim_base-only" ); badlev += qbad;
+      matrix_destroy( &xext ) ;
     }
-    if( show_singvals ){
-      fprintf(stderr,"++ Matrix singular values:") ;
-      for( i=0; i < xdata.cols ; i++ ) fprintf(stderr," %g",ev[i]) ;
-      fprintf(stderr,"\n") ;
-    }
-    free((void *)ev) ;
-    if( emin <= 0.0 || emax <= 0.0 ){
-      fprintf(stderr,"** Matrix condition:  UNDEFINED: "
-                     "min ev=%g  max ev=%g  ** VERY BAD **\n",emin,emax ) ;
-    } else {
-      double cond = sqrt(emax/emin) ;
-      if( !use_psinv ) cond = cond*cond ;  /* Gaussian elim is twice as bad */
-      fprintf(stderr,"++ (%dx%d) Matrix condition [%s]:  %g",
-              xdata.rows,xdata.cols , (use_psinv) ? "X" : "XtX" , cond  ) ;
-#ifdef FLOATIZE
-      if( cond > 100.0 ) fprintf(stderr,"  ** BEWARE **") ;
-#else
-      if( cond > 1.e6  ) fprintf(stderr,"  ** BEWARE **") ;
-#endif
-      fprintf(stderr,"\n") ;
+
+    /* extract columns for -polort model only */
+
+    for( nlist=jj=0 ; jj < xdata.cols ; jj++ )
+      if( coldat[jj].group < 0 ) clist[nlist++] = jj ;
+    if( nlist > 0 ){
+      matrix_initialize (&xext);
+      matrix_extract( xdata , nlist , clist , &xext ) ;
+      qbad = check_matrix_condition( xext, "-polort-only" ); badlev += qbad;
+      matrix_destroy( &xext ) ;
     }
   }
 
@@ -4551,7 +4574,7 @@ ENTRY("calculate_results") ;
   if( !option_data->nocond ){
     double esum , sum ;
     int nn=xdata.rows , mm=xdata.cols , ii,jj,kk ;
-    char *www = "\0" ;
+    char *www ;
     fprintf(stderr,"++ Matrix inverse average error = ") ;
     esum = 0.0 ;
     for( ii=0 ; ii < mm ; ii++ ){
@@ -4563,7 +4586,10 @@ ENTRY("calculate_results") ;
       }
     }
     esum /= (mm*mm) ;
-    if( esum > 1.e-3 ) www = " ** WARNING!!! **" ;
+         if( esum > 1.e-3 ){ www = " ** BEWARE **"   ; badlev++; }
+    else if( esum > 1.e-4 ){ www = " ++ OK ++"       ; }
+    else if( esum > 1.e-6 ){ www = " ++ GOOD ++"     ; }
+    else                   { www = " ++ VERY GOOD ++"; }
     fprintf(stderr,"%g %s\n",esum,www) ;
   }
 
@@ -4585,13 +4611,15 @@ ENTRY("calculate_results") ;
       JPEG_matrix_gray( xpsinv , fn ) ;
     }
 
+#if 0
     if( option_data->x1D_filename != NULL ){
       strcpy(fn,option_data->x1D_filename) ;
                          jpt = strstr(fn,".1D") ; jsuf = ".1D" ;
       if( jpt == NULL )  jpt = fn + strlen(fn) ;
       strcpy(jpt,"_psinv") ; strcat(fn,jsuf) ;
-      ONED_matrix_save( xpsinv , fn , NULL ) ;
+      ONED_matrix_save( xpsinv , fn , NULL ) ;  /* no column metadata */
     }
+#endif
 
     free((void *)fn) ; matrix_destroy( &xpsinv ) ;
   }
@@ -4627,6 +4655,11 @@ ENTRY("calculate_results") ;
           iget[NGET] ;        /* voxel index of timeseries */
       MRI_IMARR *imget=NULL ; /* array of timeseries */
 #endif
+
+      if( badlev > 0 && !goforit )  /* 07 Mar 2007 */
+        ERROR_exit(
+        "3dDeconvolve: Can't run past %d matrix warnings without -GOFORIT",
+        badlev);
 
 #ifdef PROC_MAX
       if( proc_numjob > 1 ){    /*---- set up multiple processes ----*/
@@ -6464,23 +6497,25 @@ void JPEG_matrix_gray( matrix X , char *fname )
 }
 
 /*----------------------------------------------------------------------------*/
+/*! Save matrix to a .1D text file */
 
 void ONED_matrix_save( matrix X , char *fname , void *xd )
 {
    int nx=X.rows , ny=X.cols , ii,jj ;
-   MRI_IMAGE *xim ;
-   float     *xar ;
    column_metadata *cd = (column_metadata *)xd ;
 
    if( fname == NULL || *fname == '\0' ) return ;
 
-   if( cd == NULL ){
-     xim = mri_new( nx , ny , MRI_float ) ;
-     xar = MRI_FLOAT_PTR(xim) ;
+   if( cd == NULL ){  /*---- standard save, plain text ----*/
+
+     MRI_IMAGE *xim = mri_new( nx , ny , MRI_float ) ;
+     float     *xar = MRI_FLOAT_PTR(xim) ;
      for( jj=0 ; jj < ny ; jj++ )
        for( ii=0 ; ii < nx ; ii++ ) xar[ii+jj*nx] = X.elts[ii][jj] ;
      mri_write_1D(fname,xim) ; mri_free(xim) ;
-   } else {
+
+   } else {  /*---- save with NIML information ----*/
+
      NI_element *nel ; NI_stream ns ; MTYPE *col ;
      char *lab=NULL,lll[128] ;
      nel = NI_new_data_element( "matrix" , nx ) ;
@@ -6488,26 +6523,29 @@ void ONED_matrix_save( matrix X , char *fname , void *xd )
      for( jj=0 ; jj < ny ; jj++ ){
        for( ii=0 ; ii < nx ; ii++ ) col[ii] = X.elts[ii][jj] ;
        NI_add_column( nel , NI_MTYPE , col ) ;
-       strcpy(lll,cd[jj].name) ; if( jj < ny-1 ) strcat(lll," ; ") ;
+       strcpy(lll,cd[jj].name) ;
+       for( ii=0 ; lll[ii] != '\0' ; ii++ ) if( isspace(lll[ii]) ) lll[ii]='_';
+       if( jj < ny-1 ) strcat(lll," ; ") ;
        lab = THD_zzprintf( lab , "%s" , lll ) ;
      }
      NI_set_attribute( nel , "ColumnLabels" , lab ) ;
      free((void *)col) ; free((void *)lab) ; lab = NULL ;
+#if 0
      for( jj=0 ; jj < ny ; jj++ ){
-       sprintf(lll,"%u",cd[jj].mask) ; if( jj < ny-1 ) strcat(lll," ; ") ;
+       sprintf(lll,"%u",cd[jj].mask) ; if( jj < ny-1 ) strcat(lll,";") ;
        lab = THD_zzprintf( lab , "%s" , lll ) ;
      }
      NI_set_attribute( nel, "ColumnMasks", lab ); free((void *)lab); lab = NULL;
+#endif
+#if 1
      for( jj=0 ; jj < ny ; jj++ ){
-       sprintf(lll,"%u",cd[jj].group) ; if( jj < ny-1 ) strcat(lll," ; ") ;
+       sprintf(lll,"%d",cd[jj].group) ; if( jj < ny-1 ) strcat(lll,";") ;
        lab = THD_zzprintf( lab , "%s" , lll ) ;
      }
      NI_set_attribute( nel, "ColumnGroups", lab ); free((void *)lab); lab = NULL;
-     lab = malloc(strlen(fname)+32) ;
-     strcpy(lab,"file:") ; strcat(lab,fname) ;
-     ns = NI_stream_open( lab , "w" ) ; free((void *)lab) ; lab = NULL ;
-     NI_write_element( ns , nel , NI_HEADERSHARP_FLAG | NI_TEXT_MODE ) ;
-     NI_stream_close( ns ) ;
+#endif
+     NI_write_element_tofile( fname, nel, NI_HEADERSHARP_FLAG | NI_TEXT_MODE );
+     NI_free_element( nel ) ;
    }
    if( verb ) fprintf(stderr,"++ Wrote matrix values to file %s\n",fname) ;
    return ;
@@ -8480,4 +8518,79 @@ floatpair evaluate_irc( basis_irc *birc , vector coef ,
      else               vt.a /= base ;
    }
    return vt ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Check matrix condition number.  Return value is the
+    number of bad things that were detected.  [07 Mar 2007]
+-----------------------------------------------------------------------------*/
+
+static int check_matrix_condition( matrix xdata , char *xname )
+{
+    double *ev, ebot,emin,emax ;
+    int i,nsmall=0, ssing=show_singvals, bad=0 ;
+
+#undef PSINV_EPS
+#ifdef FLOATIZE
+# define PSINV_EPS      1.e-8
+# define CN_VERYGOOD   10.0
+# define CN_GOOD       40.0
+# define CN_OK        160.0
+# define CN_BEWARE    666.0
+#else
+# define PSINV_EPS      1.e-14
+# define CN_VERYGOOD   20.0
+# define CN_GOOD      400.0
+# define CN_OK       8000.0
+# define CN_BEWARE 160000.0 
+#endif
+
+    ev   = matrix_singvals( xdata ) ;
+    emax = ev[0] ;
+    for( i=1 ; i < xdata.cols ; i++ ) if( ev[i] > emax ) emax = ev[i] ;
+    ebot = sqrt(PSINV_EPS)*emax ; emin = 1.e+38 ;
+    for( i=0 ; i < xdata.cols ; i++ ){
+      if( ev[i] >= ebot && ev[i] < emin ) emin = ev[i] ;
+      if( ev[i] <  ebot ) nsmall++ ;
+    }
+
+    if( ssing ) fprintf(stderr,"\n") ;
+
+    if( emin <= 0.0 || emax <= 0.0 ){
+      fprintf(stderr,"** %s matrix condition:  UNDEFINED ** VERY BAD **\n" ,
+                     xname ) ;
+      ssing = 1 ; bad++ ;
+    } else {
+      double cond=sqrt(emax/emin) ; char *rating ;
+      if( !use_psinv ) cond = cond*cond ;  /* Gaussian elim is twice as bad */
+           if( cond < CN_VERYGOOD )  rating = "++ VERY GOOD ++"    ;
+      else if( cond < CN_GOOD     )  rating = "++ GOOD ++"         ;
+      else if( cond < CN_OK       )  rating = "++ OK ++"           ;
+      else if( cond < CN_BEWARE   )  rating = "++ A LITTLE BIG ++" ;
+      else                         { rating = "** BEWARE **" ; bad++; ssing = 1; }
+      fprintf(stderr,"++ %s matrix condition [%s] (%dx%d):  %g  %s\n",
+              xname, (use_psinv) ? "X" : "XtX",
+              xdata.rows,xdata.cols , cond , rating ) ;
+    }
+
+    if( nsmall > 0 ){
+      fprintf(stderr,
+        "** WARNING in %s matrix:\n"
+        " * Largest singular value=%g\n"
+        " * %d %s less than cutoff=%g\n"
+        " * Implies strong collinearity in the matrix columns! \n",
+        xname , emax , nsmall , (nsmall==1)?"is":"are" , ebot ) ;
+      ssing = 1 ; bad++ ;
+    }
+
+    if( ssing ){
+      fprintf(stderr,"++ %s matrix singular values:\n",xname) ;
+      for( i=0; i < xdata.cols ; i++ ){
+        fprintf(stderr," %13g",ev[i]) ;
+        if( i < xdata.cols-1 && i%5 == 4 ) fprintf(stderr,"\n") ;
+      }
+      fprintf(stderr,"\n") ;
+    }
+
+    free((void *)ev) ; return bad ;
 }
