@@ -2350,6 +2350,13 @@ written with data in text format.  Otherwise, data will be in binary.
 ##### Variables that Specifically Affect the Operation of 3dDeconvolve #####
 ############################################################################
 
+-----------------------------------
+Variable: AFNI_3dDeconvolve_GOFORIT
+-----------------------------------
+If this variable is set to YES, then 3dDeconvolve behaves as if you used the
+'-GOFORIT' option on the command line -- that is, it will continue to run
+even if it detects serious non-fatal problems with the problem setup.
+
 ----------------------------------
 Variable: AFNI_3dDeconvolve_extend
 ----------------------------------
