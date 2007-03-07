@@ -258,7 +258,7 @@ while (~isempty(fname)),
 
    end
    
-   fname = input ('Enter I filename: ', 's');
+   fname = input ('Enter I filename (or test or dircos, or twovec): ', 's');
 end
 fprintf (fidv(2), '\n\n\tCreated with %s\n\t%s, %s\n', FuncName, pwd, date);
 fclose(fidv(2));
