@@ -449,7 +449,7 @@ void matrix_equate (matrix a, matrix * b)
   Extract p columns (specified by list) from matrix a.  Result is matrix b.
 */
 
-void matrix_extract (matrix a, int p, int * list, matrix * b)
+void matrix_extract (matrix a, int p, int *list, matrix * b)
 {
   register int i, j;
   register int rows, cols;
