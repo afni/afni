@@ -2357,6 +2357,14 @@ If this variable is set to YES, then 3dDeconvolve behaves as if you used the
 '-GOFORIT' option on the command line -- that is, it will continue to run
 even if it detects serious non-fatal problems with the problem setup.
 
+--------------------------------
+Variable: AFNI_3dDeconvolve_NIML
+--------------------------------
+3dDeconvolve outputs the regression matrix 'X' into a file formatted in
+the 'NIML' .1D format -- with an XML-style header in '#' comments at the
+start of the file.  If you DON'T want this format, just plain numbers,
+set this variable to NO.
+
 ----------------------------------
 Variable: AFNI_3dDeconvolve_extend
 ----------------------------------
