@@ -187,19 +187,9 @@ static float MRI_TYPE_maxval[7] =
 typedef struct complex { float r , i ; } complex ;
 #endif
 
-#ifndef TYPEDEF_floatpair
-#define TYPEDEF_floatpair
-typedef struct { float a,b ; } floatpair ;
-#endif
-
-#ifndef TYPEDEF_intpair
-#define TYPEDEF_intpair
-typedef struct { int i,j ; } intpair ;
-#endif
-
-#ifndef TYPEDEF_inttriple
-#define TYPEDEF_inttriple
-typedef struct { int a,b,c ; } inttriple ;
+#ifndef TYPEDEF_float_pair
+#define TYPEDEF_float_pair
+typedef struct { float a,b ; } float_pair ;
 #endif
 
 /*-------*/
@@ -741,6 +731,9 @@ extern int mri_write_ascii( char * , MRI_IMAGE * ) ;
 extern int mri_write_raw( char * , MRI_IMAGE * ) ;       /* 05 Jan 2000 */
 extern void mri_write_analyze( char * , MRI_IMAGE * ) ;  /* 29 Nov 2001 */
 
+extern MRI_IMAGE * mri_read_ascii_ragged_complex(char *,float); /* 08 Mar 2007 */
+
+
 extern MRI_IMAGE * mri_read_ragged_fromstring( char *, float); /* 05 Jan 2007 */
 
 extern MRI_IMAGE * mri_read_1D( char * ) ;               /* 16 Nov 1999 */
@@ -901,7 +894,7 @@ extern void mri_percents( MRI_IMAGE * , int nper , float per[] ) ;
 extern MRI_IMAGE * mri_flatten( MRI_IMAGE * ) ;
 extern float mri_quantile( MRI_IMAGE * im , float alpha ) ;
 
-extern floatpair mri_twoquantiles( MRI_IMAGE * im, float alpha, float beta ) ;
+extern float_pair mri_twoquantiles( MRI_IMAGE * im, float alpha, float beta ) ;
 
 extern void qsort_short( int , short * ) ;
 extern void qsort_float( int , float * ) ;

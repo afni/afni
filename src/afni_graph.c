@@ -2827,7 +2827,7 @@ STATUS("button press") ;
                (void) drive_MCW_grapher( grapher, graDR_setindex, (XtPointer)tt) ;
              }
            }
-           EXRETURN;
+           MCW_discard_events( w , ButtonPressMask ) ; EXRETURN;
          }
 
          bx = event->x ; by = event->y ; but_state = event->state ;

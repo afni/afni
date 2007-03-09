@@ -291,51 +291,51 @@ ENTRY("mri_write_ascii") ;
       switch( im->kind ){
 
          case MRI_float:{
-            float *iar = MRI_FLOAT_PTR(im) + (jj*nx) ;
-            for( ii=0 ; ii < nx ; ii++ )
-               fprintf(imfile," %14.7g",iar[ii]) ;
+           float *iar = MRI_FLOAT_PTR(im) + (jj*nx) ;
+           for( ii=0 ; ii < nx ; ii++ )
+             fprintf(imfile," %14g",iar[ii]) ;
          }
          break ;
 
          case MRI_short:{
-            short *iar = MRI_SHORT_PTR(im) + (jj*nx) ;
-            for( ii=0 ; ii < nx ; ii++ )
-               fprintf(imfile," %6d",iar[ii]) ;
+           short *iar = MRI_SHORT_PTR(im) + (jj*nx) ;
+           for( ii=0 ; ii < nx ; ii++ )
+             fprintf(imfile," %6d",iar[ii]) ;
          }
          break ;
 
          case MRI_byte:{
-            byte *iar = MRI_BYTE_PTR(im) + (jj*nx) ;
-            for( ii=0 ; ii < nx ; ii++ )
-               fprintf(imfile," %3d",iar[ii]) ;
+           byte *iar = MRI_BYTE_PTR(im) + (jj*nx) ;
+           for( ii=0 ; ii < nx ; ii++ )
+             fprintf(imfile," %3d",iar[ii]) ;
          }
          break ;
 
          case MRI_int:{
-            int *iar = MRI_INT_PTR(im) + (jj*nx) ;
-            for( ii=0 ; ii < nx ; ii++ )
-               fprintf(imfile," %6d",iar[ii]) ;
+           int *iar = MRI_INT_PTR(im) + (jj*nx) ;
+           for( ii=0 ; ii < nx ; ii++ )
+             fprintf(imfile," %6d",iar[ii]) ;
          }
          break ;
 
          case MRI_double:{
-            double *iar = MRI_DOUBLE_PTR(im) + (jj*nx) ;
-            for( ii=0 ; ii < nx ; ii++ )
-               fprintf(imfile," %14.7g",iar[ii]) ;
+           double *iar = MRI_DOUBLE_PTR(im) + (jj*nx) ;
+           for( ii=0 ; ii < nx ; ii++ )
+             fprintf(imfile," %16g",iar[ii]) ;
          }
          break ;
 
          case MRI_complex:{
-            complex *iar = MRI_COMPLEX_PTR(im) + (jj*nx) ;
-            for( ii=0 ; ii < nx ; ii++ )
-               fprintf(imfile," %14.7g %14.7g",iar[ii].r,iar[ii].i) ;
+           complex *iar = MRI_COMPLEX_PTR(im) + (jj*nx) ;
+           for( ii=0 ; ii < nx ; ii++ )
+             fprintf(imfile," %-1.7g;%-1.7g",iar[ii].r,iar[ii].i) ;
          }
          break ;
 
          case MRI_rgb:{
-            byte *iar = MRI_RGB_PTR(im) + (3*jj*nx) ;
-            for( ii=0 ; ii < nx ; ii++ )
-               fprintf(imfile," %3d %3d %3d",iar[3*ii],iar[3*ii+1],iar[3*ii+2]) ;
+           byte *iar = MRI_RGB_PTR(im) + (3*jj*nx) ;
+           for( ii=0 ; ii < nx ; ii++ )
+             fprintf(imfile," %3d %3d %3d",iar[3*ii],iar[3*ii+1],iar[3*ii+2]) ;
          }
          break ;
       }

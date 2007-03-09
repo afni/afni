@@ -5,9 +5,19 @@
 #include "AFNI_label.h"
 #include "debugtrace.h"  /* contains 1 function */
 
+static FILE   *messfp = NULL ;
+
+void SET_message_file( char *fname )
+{
+   if( messfp != NULL ){ fclose(messfp); messfp = NULL; }
+
+   if( fname != NULL && *fname != '\0' ) messfp = fopen(fname,"w") ;
+   return ;
+}
+
 /*--------------------------------------------------------------------------*/
 
-static void output_message( char *prefix , char *fmt , va_list vararg_ptr )
+static void output_message( int ump, char *prefix, char *fmt, va_list vararg_ptr )
 {
    char *ifmt , *msg ; int ll ;
 
@@ -23,7 +33,9 @@ static void output_message( char *prefix , char *fmt , va_list vararg_ptr )
    msg = malloc(sizeof(char)*16*ll+1) ; msg[0] = '\0' ;
    vsprintf(msg,ifmt,vararg_ptr) ; ll = strlen(msg) ;
    if( msg[ll-1] != '\n' ){ msg[ll] = '\n' ; msg[ll+1] = '\0' ; }
-   fputs(msg,stderr) ; free(msg) ;  /* 03 Mar 2006: forgot the free! */
+   fputs(msg,stderr) ;
+   if( ump && messfp != NULL ) fputs(msg,messfp) ; /* 09 Mar 2007 */
+   free(msg) ;  /* 03 Mar 2006: forgot the free! */
    if( ifmt != fmt ) free(ifmt) ;
    fflush(stdout) ; fflush(stderr) ; return ;
 }
@@ -34,7 +46,7 @@ void INFO_message( char *fmt , ... )
 {
    va_list vararg_ptr ;
    va_start( vararg_ptr , fmt ) ;
-   output_message( "++ " , fmt , vararg_ptr ) ;
+   output_message( 0 , "++ " , fmt , vararg_ptr ) ;
    va_end( vararg_ptr ) ;
    return ;
 }
@@ -45,7 +57,7 @@ void ININFO_message( char *fmt , ... )
 {
    va_list vararg_ptr ;
    va_start( vararg_ptr , fmt ) ;
-   output_message( " + " , fmt , vararg_ptr ) ;
+   output_message( 0 , " + " , fmt , vararg_ptr ) ;
    va_end( vararg_ptr ) ;
    return ;
 }
@@ -56,7 +68,7 @@ void WARNING_message( char *fmt , ... )
 {
    va_list vararg_ptr ;
    va_start( vararg_ptr , fmt ) ;
-   output_message( "++ WARNING: " , fmt , vararg_ptr ) ;
+   output_message( 1 , "++ WARNING: " , fmt , vararg_ptr ) ;
    va_end( vararg_ptr ) ;
    return ;
 }
@@ -67,7 +79,7 @@ void ERROR_message( char *fmt , ... )
 {
    va_list vararg_ptr ;
    va_start( vararg_ptr , fmt ) ;
-   output_message( "** ERROR: " , fmt , vararg_ptr ) ;
+   output_message( 1 , "** ERROR: " , fmt , vararg_ptr ) ;
    va_end( vararg_ptr ) ;
    return ;
 }
@@ -78,7 +90,7 @@ void ERROR_exit( char *fmt , ... )
 {
    va_list vararg_ptr ;
    va_start( vararg_ptr , fmt ) ;
-   output_message( "** FATAL ERROR: " , fmt , vararg_ptr ) ;
+   output_message( 1 , "** FATAL ERROR: " , fmt , vararg_ptr ) ;
    va_end( vararg_ptr ) ;
    exit(1) ;
 }

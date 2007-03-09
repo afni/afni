@@ -6151,3 +6151,12 @@
  * 3dDeconvolve.c: -GOFORIT, check_matrix_condition(), report -stim_times
      values outside of run intervals, condition numbers with and without
      baseline regressors.
+
+08 Mar 2007
+ * Add mri_read_ascii_ragged_complex() to mri_read.c.
+ * And modify mri_write_ascii() in mri_write.c to write complex numbers
+     with ';' as a real/imag separator, instead of ' '.
+
+09 Mar 2007
+ * First test of -stim_times_AM? looks good.
+ * MCW_discard_events() for Button4/5 ScrollWheel actions.

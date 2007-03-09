@@ -2841,6 +2841,87 @@ ENTRY("mri_read_ascii_ragged") ;
    FRB(buf) ; lbfill = 0.0f ; RETURN(outim) ;
 }
 
+/*---------------------------------------------------------------------------*/
+/*! Decode pairs of numbers separated by a single non-space character */
+
+static INLINE complex decode_complex( char *str , float filler )
+{
+   complex pp ; char ss ; float aa , bb ;
+
+   pp.r = pp.i = filler ;
+   if( str == NULL ) return pp ;
+   aa = bb = filler ;
+   sscanf( str , "%f%c%f" , &aa , &ss , &bb ) ;
+   pp.r = aa ; pp.i = bb ; return pp ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Ragged read pairs of values into a complex image. [08 Mar 2007] */
+
+MRI_IMAGE * mri_read_ascii_ragged_complex( char *fname , float filler )
+{
+   MRI_IMAGE *outim ;
+   complex   *cxar , cval ;
+   int ii,jj , ncol,nrow ;
+   FILE *fts ;
+   char *buf , *ptr ;
+   NI_str_array *sar ; int nsar ;
+
+ENTRY("mri_read_ascii_complex") ;
+
+   if( fname == NULL || *fname == '\0' ) RETURN(NULL) ;
+
+   fts = fopen(fname,"r"); if( fts == NULL ) RETURN(NULL) ;
+
+   buf = (char *)malloc(LBUF) ;
+
+   /** step 1: read in ALL lines, see how many numbers are in each,
+               in order to get the maximum row length and # of rows **/
+
+   (void) my_fgets( NULL , 0 , NULL ) ;  /* reset */
+   ncol = nrow = 0 ;
+   while(1){
+     ptr = my_fgets( buf , LBUF , fts ) ;       /* read line */
+     if( ptr==NULL || *ptr=='\0' ) break ;      /* fails? end of data */
+     sar = NI_decode_string_list( buf , "~" ) ; /* break into pieces */
+     if( sar != NULL ){
+       nsar = sar->num ;                        /* number of pieces */
+       if( nsar > 0 ){ nrow++; ncol = MAX(ncol,nsar); }
+       NI_delete_str_array(sar) ;               /* recycle this */
+     }
+   }
+   if( nrow == 0 || ncol == 0 ){ fclose(fts); free(buf); RETURN(NULL); }
+
+   /** At this point, ncol is the number of pairs to be read from each line **/
+
+   rewind(fts) ;  /* start over at top of file */
+
+   outim = mri_new( ncol , nrow , MRI_complex ) ;
+   cxar  = MRI_COMPLEX_PTR(outim) ;
+
+   /** read lines, convert to floats, store **/
+
+   nrow = 0 ; cval.r = cval.i = filler ;
+   while( 1 ){
+     ptr = my_fgets( buf , LBUF , fts ) ;       /* read line */
+     if( ptr==NULL || *ptr=='\0' ) break ;      /* failure --> end of data */
+     sar = NI_decode_string_list( buf , "~" ) ; /* break up */
+     if( sar != NULL ){
+       nsar = sar->num ;                        /* number of pieces */
+       for( ii=0 ; ii < nsar ; ii++ )           /* decode each piece */
+         cxar[nrow*ncol+ii] = decode_complex( sar->str[ii] , filler ) ;
+       for( ; ii < ncol ; ii++ )
+         cxar[nrow*ncol+ii] = cval ;            /* fill row with junk */
+       NI_delete_str_array(sar) ;               /* done with this */
+     }
+     nrow++ ;                                   /* added one complete row */
+   }
+
+   free(buf); fclose( fts ); (void) my_fgets(NULL,0,NULL);  /* cleanup */
+
+   mri_add_name(fname,outim) ; RETURN(outim) ;
+}
+
 /*---------------------------------------------------------------------------
   Read in an ASCII file to a float array.
 -----------------------------------------------------------------------------*/
