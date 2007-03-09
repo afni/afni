@@ -678,11 +678,11 @@ float mri_quantile( MRI_IMAGE *im , float alpha )
 /*! Return TWO quantile levels at once; cf. mri_quantile().
 ---------------------------------------------------------------------*/
 
-floatpair mri_twoquantiles( MRI_IMAGE *im, float alpha, float beta )
+float_pair mri_twoquantiles( MRI_IMAGE *im, float alpha, float beta )
 {
    int ii , nvox ;
    float fi ;
-   floatpair qt = {0.0f,0.0f} ;
+   float_pair qt = {0.0f,0.0f} ;
    float qalph=WAY_BIG,qbeta=WAY_BIG ;
 
    /*** sanity checks ***/

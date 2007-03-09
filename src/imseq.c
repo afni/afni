@@ -5075,6 +5075,7 @@ DPR(" .. ButtonPress") ;
              XBell(seq->dc->display,100) ;
 #endif
            }
+           MCW_discard_events( w , ButtonPressMask ) ;
            busy=0; EXRETURN ;
          }
 
@@ -5099,6 +5100,7 @@ DPR(" .. ButtonPress") ;
              if( nnew >= 0 && nnew < seq->status->num_total )
                ISQ_redisplay( seq , nnew , isqDR_display ) ;
            }
+           MCW_discard_events( w , ButtonPressMask ) ;
            busy=0; EXRETURN;
          }
 

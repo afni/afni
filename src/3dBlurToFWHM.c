@@ -752,7 +752,7 @@ int main( int argc , char *argv[] )
 #define TT 0.2f
 #define TR 0.05f
        if( temperize ){
-         floatpair qp; MRI_IMAGE *qim; float *qar; int ng;
+         float_pair qp; MRI_IMAGE *qim; float *qar; int ng;
          temper_fx = temper_fy = temper_fz = 0 ;
          if( fxim != NULL && !xstopped ){
            for( ii=ng=0 ; ii < nvox ; ii++ )

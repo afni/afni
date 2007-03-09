@@ -254,6 +254,8 @@ extern void ININFO_message ( char *fmt , ... ) ;
 extern void WARNING_message( char *fmt , ... ) ;
 extern void ERROR_message  ( char *fmt , ... ) ;
 extern void ERROR_exit     ( char *fmt , ... ) ;
+extern void SET_message_file( char *fname )    ;  /* 09 Mar 2007 */
+
 #define FATAL_ERROR_message ERROR_exit
 
 #ifdef  __cplusplus
