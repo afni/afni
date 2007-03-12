@@ -497,7 +497,11 @@ typedef struct {
 } column_metadata ;
 
 static int             ncoldat = 0 ;
-static column_metadata *coldat = NULL ;
+static column_metadata *coldat = NULL ;  /* global info about matrix columns */
+
+#define COLUMN_LABEL(n) coldat[n].name
+
+#undef  USE_OLD_LABELS
 
 /*---------------------------------------------------------------------------*/
 
@@ -583,7 +587,7 @@ typedef struct DC_options
 #if 1
 void DC_error (char * message)
 {
-  ERROR_exit("3dDeconvolve dies: %s",message) ;
+  ERROR_exit( PROGRAM_NAME " dies: %s",message) ;
 }
 #else
 # define DC_error(m) ERROR_exit("3dDeconvolve dies: %s",(m))
@@ -597,8 +601,8 @@ void identify_software ()
 
   /*----- Identify software -----*/
 #if 1
-  PRINT_VERSION("3dDeconvolve") ; AUTHOR(PROGRAM_AUTHOR) ;
-  THD_check_AFNI_version("3dDeconvolve") ;
+  PRINT_VERSION(PROGRAM_NAME) ; AUTHOR(PROGRAM_AUTHOR) ;
+  THD_check_AFNI_version(PROGRAM_NAME) ;
 #else
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
@@ -1084,13 +1088,10 @@ void get_options
   int nerr ;
 
   /*-- addto the arglist, if user wants to --*/
-  mainENTRY("3dDeconvolve"); machdep() ; /* RWCox: 20 Apr 2001 */
-  { int new_argc ; char ** new_argv ;
+  { int new_argc ; char **new_argv ;
     addto_args( argc , argv , &new_argc , &new_argv ) ;
     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
   }
-  /*** SET_message_file( "3dDeconvolve.err" ) ; ***/
-
 
   /*----- does user request help menu? -----*/
   if (argc < 2 || strcmp(argv[1], "-help") == 0)  display_help_menu();
@@ -1610,6 +1611,7 @@ void get_options
       /*-----   -stim_label k slabel   -----*/
       if (strcmp(argv[nopt], "-stim_label") == 0)
       {
+        char *qq ;
         nopt++;
         if (nopt+1 >= argc)  DC_error ("need 2 arguments after -stim_label");
 
@@ -1620,8 +1622,7 @@ void get_options
         nopt++;
 
         strcpy (option_data->stim_label[k], argv[nopt]);
-        nopt++;
-        continue;
+        nopt++; continue;
       }
 
 
@@ -2792,6 +2793,7 @@ for( ii=0 ; ii < nt ; ii++ ){
     for( it=0 ; it < nc ; it++ ){
       cd.mask  = mk ; cd.group = gp ;
       sprintf(cd.name,"%-1.60s#%d",option_data->stim_label[is],it) ;
+      DEBLANK(cd.name) ;
       option_data->coldat[p1++] = cd ;
     }
   }
@@ -4835,10 +4837,16 @@ ENTRY("calculate_results") ;
       MRI_IMARR *imget=NULL ; /* array of timeseries */
 #endif
 
-      if( badlev > 0 && !goforit )  /* 07 Mar 2007 */
-        ERROR_exit(
-        "!! 3dDeconvolve: Can't run past %d matrix warnings without -GOFORIT !!",
-        badlev);
+      if( badlev > 0 ){       /*--- 07 Mar 2007 ---*/
+        if( goforit )
+          WARNING_message(
+            "!! " PROGRAM_NAME " -GOFORIT is set: running despite %d matrix warnings",
+            badlev ) ;
+        else
+          ERROR_exit(
+            "!! " PROGRAM_NAME ": Can't run past %d matrix warnings without -GOFORIT",
+            badlev ) ;
+      }
 
 #ifdef PROC_MAX
       if( proc_numjob > 1 ){    /*---- set up multiple processes ----*/
@@ -5704,14 +5712,22 @@ void write_bucket_data
 
             /*----- Baseline coefficient -----*/
             brick_type = FUNC_FIM_TYPE;
-              sprintf (brick_label, "%s %s%d Coef", label,blab, icoef % (polort+1));
+#ifdef USE_OLD_LABELS
+            sprintf (brick_label, "%s %s%d Coef", label,blab, icoef % (polort+1));
+#else
+            sprintf( brick_label, "%s_Coef" , COLUMN_LABEL(icoef) ) ;
+#endif
             volume = coef_vol[icoef];
 
               if( cout && bout )
               attach_sub_brick (new_dset, ++ibrick, volume, nxyz,
                           brick_type, brick_label, 0, 0, 0, bar);
 
+#ifdef USE_OLD_LABELS
               sprintf(brick_label,"%s:%s%d" , label,blab,icoef%(polort+1)) ;
+#else
+              strcpy(brick_label,COLUMN_LABEL(icoef)) ;  /* 12 Mar 2007 */
+#endif
 
               if( ParamIndex != NULL ) ParamIndex[icoef] = ibrick ;
               ParamStim [icoef] = 0 ;
@@ -5729,8 +5745,12 @@ void write_bucket_data
               ibrick++;
               brick_type = FUNC_TT_TYPE;
               dof = N - p;
+#ifdef USE_OLD_LABELS
               sprintf (brick_label, "%s %s%d t-st",
                      label,blab, icoef % (polort+1));
+#else
+              sprintf( brick_label, "%s_Tst" , COLUMN_LABEL(icoef) ) ;
+#endif
               volume = tcoef_vol[icoef];
               attach_sub_brick (new_dset, ibrick, volume, nxyz,
                             brick_type, brick_label, dof, 0, 0, bar);
@@ -5761,24 +5781,32 @@ void write_bucket_data
             {
               /*----- Stimulus coefficient -----*/
               brick_type = FUNC_FIM_TYPE;
+#ifdef USE_OLD_LABELS
               sprintf (brick_label, "%s[%d] Coef", label, ilag);
+#else
+              sprintf( brick_label, "%s_Coef" , COLUMN_LABEL(icoef) ) ;
+#endif
               volume = coef_vol[icoef];
-                  if( cout && (!option_data->stim_base[istim] || bout) )
+              if( cout && (!option_data->stim_base[istim] || bout) )
                 attach_sub_brick (new_dset, ++ibrick, volume, nxyz,
                               brick_type, brick_label, 0, 0, 0, bar);
 
-                  sprintf(brick_label,"%s:%d",label,ilag) ;
+#ifdef USE_OLD_LABELS
+              sprintf(brick_label,"%s:%d",label,ilag) ;
+#else
+              strcpy(brick_label,COLUMN_LABEL(icoef)) ;  /* 12 Mar 2007 */
+#endif
 
-                  if( ParamIndex != NULL ) ParamIndex[icoef] = ibrick ;
-                  ParamStim [icoef] = option_data->stim_base[istim] ? 0
-                                                                    : istim+1 ;
-                  ParamLabel[icoef] = strdup(brick_label) ;
+              if( ParamIndex != NULL ) ParamIndex[icoef] = ibrick ;
+              ParamStim [icoef] = option_data->stim_base[istim] ? 0
+                                                                : istim+1 ;
+              ParamLabel[icoef] = strdup(brick_label) ;
 
-                  if( coef_dset != NULL ){
-                    cbuck++ ;
-                    attach_sub_brick( coef_dset , cbuck , volume , nxyz ,
-                              brick_type, brick_label, 0, 0, 0, NULL);
-                  }
+              if( coef_dset != NULL ){
+                cbuck++ ;
+                attach_sub_brick( coef_dset , cbuck , volume , nxyz ,
+                          brick_type, brick_label, 0, 0, 0, NULL);
+              }
 
               /*----- Stimulus t-stat -----*/
               if (cout && option_data->tout && (!option_data->stim_base[istim] || bout) )
@@ -5786,7 +5814,11 @@ void write_bucket_data
                   ibrick++;
                   brick_type = FUNC_TT_TYPE;
                   dof = N - p;
+#ifdef USE_OLD_LABELS
                   sprintf (brick_label, "%s[%d] t-st", label, ilag);
+#else
+                  sprintf( brick_label, "%s_Tst" , COLUMN_LABEL(icoef) ) ;
+#endif
                   volume = tcoef_vol[icoef];
                   attach_sub_brick (new_dset, ibrick, volume, nxyz,
                             brick_type, brick_label, dof, 0, 0, bar);
@@ -5802,7 +5834,11 @@ void write_bucket_data
           {
             ibrick++;
             brick_type = FUNC_THR_TYPE;
+#ifdef USE_OLD_LABELS
             sprintf (brick_label, "%s R^2", label);
+#else
+            sprintf( brick_label, "%s_R^2" , label ) ;
+#endif
             volume = rpart_vol[istim];
             attach_sub_brick (new_dset, ibrick, volume, nxyz,
                         brick_type, brick_label, 0, 0, 0, bar);
@@ -5816,7 +5852,11 @@ void write_bucket_data
             brick_type = FUNC_FT_TYPE;
               ndof = itop - ibot + 1 ;
             ddof = N - p;
+#ifdef USE_OLD_LABELS
             sprintf (brick_label, "%s F-stat", label);
+#else
+            sprintf( brick_label, "%s_Fst" , label ) ;
+#endif
             volume = fpart_vol[istim];
             attach_sub_brick (new_dset, ibrick, volume, nxyz,
                         brick_type, brick_label, 0, ndof, ddof, bar);
@@ -6386,7 +6426,8 @@ int main
 #ifdef USING_MCW_MALLOC
    enable_mcw_malloc() ;
 #endif
-   mainENTRY("3dDeconvolve main") ;
+   mainENTRY(PROGRAM_NAME " main") ; machdep() ;
+  SET_message_file( PROGRAM_NAME ".err" ) ;
 
   /*----- start the elapsed time counter -----*/
   (void) COX_clock_time() ;
@@ -6700,6 +6741,10 @@ void ONED_matrix_save( matrix X , char *fname , void *xd )
        lab = THD_zzprintf( lab , "%s" , lll ) ;
      }
      NI_set_attribute( nel, "ColumnGroups", lab ); free((void *)lab); lab = NULL;
+#endif
+#if 1
+     lab = THD_zzprintf( lab , "%g" , basis_TR ) ;
+     NI_set_attribute( nel, "RowTR", lab ); free((void *)lab); lab = NULL;
 #endif
      NI_write_element_tofile( fname, nel, NI_HEADERSHARP_FLAG | NI_TEXT_MODE );
      NI_free_element( nel ) ;
