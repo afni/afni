@@ -1546,35 +1546,44 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
       SOCenter[0] /= SO->N_Node;  SOCenter[1] /= SO->N_Node;   SOCenter[2] /= SO->N_Node;
       {
          float u[3], un, p0[3], p1[3];
-         int Found = 0, cnt;
+         int Found = 0, cnt, itry = 0;
          SUMA_MT_INTERSECT_TRIANGLE *mti = NULL; 
 
          /* Ray from a node on the surface to the center */
-         p0[0] = NodeIJKlist[0]; p1[0] = SOCenter[0]; 
-         p0[1] = NodeIJKlist[1]; p1[1] = SOCenter[1]; 
-         p0[2] = NodeIJKlist[2]; p1[2] = SOCenter[2]; 
-         SUMA_UNIT_VEC(p0, p1, u, un);
-         /* travel along that ray until you find a point inside the surface AND not on the mask */
-         Found = 0; cnt = 1;
-         while (!Found && cnt <= un) {
-            p1[0] = p0[0] + cnt * u[0];
-            p1[1] = p0[1] + cnt * u[1];
-            p1[2] = p0[2] + cnt * u[2];
-            if (LocalHead) {
-               fprintf(SUMA_STDERR,"%s:\nTrying seed ijk is %d %d %d\n", FuncName, (int)p1[0], (int)p1[1], (int)p1[2]); 
+         p1[0] = SOCenter[0];    
+         p1[1] = SOCenter[1];    
+         p1[2] = SOCenter[2];    
+         while (!Found && itry < SO->N_Node/100) {
+            p0[0] = NodeIJKlist[3*itry+0]; 
+            p0[1] = NodeIJKlist[3*itry+1]; 
+            p0[2] = NodeIJKlist[3*itry+2]; 
+
+            SUMA_UNIT_VEC(p0, p1, u, un);
+            SUMA_LHv("Try %d, un=%f...\nP0[%f %f %f] P1[%f %f %f]\n", 
+                  itry, un, p0[0], p0[1], p0[2], p1[0], p1[1], p1[2]);
+            /* travel along that ray until you find a point inside the surface AND not on the mask */
+            Found = 0; cnt = 1;
+            while (!Found && cnt <= un) {
+               p1[0] = p0[0] + cnt * u[0];
+               p1[1] = p0[1] + cnt * u[1];
+               p1[2] = p0[2] + cnt * u[2];
+               if (LocalHead) {
+                  fprintf(SUMA_STDERR,"%s:\nTrying seed ijk is %d %d %d\n", FuncName, (int)p1[0], (int)p1[1], (int)p1[2]); 
+               }
+               ijkseed = SUMA_3D_2_1D_index(p1[0], p1[1], p1[2], nx , nxy);
+               mti = SUMA_MT_intersect_triangle(p1, SOCenter, NodeIJKlist, SO->N_Node, SO->FaceSetList, SO->N_FaceSet, mti);
+               if (!(mti->N_poshits % 2)) { /* number of positive direction hits is a multiple of 2 */
+                  /* seed is outside */
+                  SUMA_LH("Seed outside");
+               } else {
+                  SUMA_LH("Seed inside");
+                  /* seed is inside, is it on the mask ? */
+                  if (!ijkmask[ijkseed]) { SUMA_LH("Seed Accepted");Found = YUP; }
+                  else SUMA_LH("Seed on mask");
+               }
+               ++cnt;   
             }
-            ijkseed = SUMA_3D_2_1D_index(p1[0], p1[1], p1[2], nx , nxy);
-            mti = SUMA_MT_intersect_triangle(p1, SOCenter, NodeIJKlist, SO->N_Node, SO->FaceSetList, SO->N_FaceSet, mti);
-            if (!(mti->N_poshits % 2)) { /* number of positive direction hits is a multiple of 2 */
-               /* seed is outside */
-               SUMA_LH("Seed outside");
-            } else {
-               SUMA_LH("Seed inside");
-               /* seed is inside, is it on the mask ? */
-               if (!ijkmask[ijkseed]) { SUMA_LH("Seed Accepted");Found = YUP; }
-               else SUMA_LH("Seed on mask");
-            }
-            ++cnt;   
+            ++itry;
          }
          if (!Found) {
             SUMA_SL_Err("Failed to find seed!");
