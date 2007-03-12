@@ -1447,6 +1447,9 @@ int main (int argc,char *argv[])
       SUMA_S_Err("Failed to create Icosahedron");
       exit(1);
    }         
+   /* Need Brain_Contour holder at the very least*/
+   if (!Opt->Brain_Contour) Opt->Brain_Contour = (float *)SUMA_calloc(SO->N_Node * 3, sizeof(float));
+
 
    /* allocate and initialize shrink bias vector */
    {
@@ -1537,7 +1540,7 @@ int main (int argc,char *argv[])
          if (!SO) {
             SUMA_S_Err("Failed to create Icosahedron");
             exit(1);
-         }         
+         }
       }
 
       if (Opt->Stop) SUMA_free(Opt->Stop); Opt->Stop = NULL;
@@ -1670,6 +1673,8 @@ int main (int argc,char *argv[])
          free(far); far = NULL;
          Opt->PercInt = -1; /* cancel intersection checking */ 
       }
+      /* Make a copy to brain contours, in case user jumps ahead */
+      memcpy((void*)Opt->Brain_Contour, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float));
       
       /* check for intersections */
       if (Opt->PercInt >= 0) {
@@ -1739,6 +1744,8 @@ int main (int argc,char *argv[])
             if (Opt->debug) fprintf (SUMA_STDERR,"%s: Touchup correction, pass 1 ...\n", FuncName);
             if (Opt->DemoPause  == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("touchup correction next"); }
             if (Opt->DemoPause == SUMA_3dSS_INTERACTIVE) {
+               /* Make a copy to brain contours, in case user jumps ahead */
+               memcpy((void*)Opt->Brain_Contour, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float));
                fprintf (SUMA_STDERR,"3dSkullStrip Interactive: \n"
                                     "Touchup, pass 1.\n"
                                     "Do you want to (C)ontinue, (P)ass or (S)ave this? ");
@@ -1775,6 +1782,8 @@ int main (int argc,char *argv[])
          if (Opt->DemoPause  == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("Push To Edge Correction"); }
          if (Opt->debug) fprintf (SUMA_STDERR,"%s: Push to edge correction ...\n", FuncName);
          if (Opt->DemoPause == SUMA_3dSS_INTERACTIVE) {
+               /* Make a copy to brain contours, in case user jumps ahead */
+               memcpy((void*)Opt->Brain_Contour, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float));
                fprintf (SUMA_STDERR,"3dSkullStrip Interactive: \n"
                                     "Push To Edge.\n"
                                     "Do you want to (C)ontinue, (P)ass or (S)ave this?  ");
@@ -1828,6 +1837,8 @@ int main (int argc,char *argv[])
          if (Opt->DemoPause  == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("beauty treatment smoothing next"); }
          if (Opt->debug) fprintf (SUMA_STDERR,"%s: The beauty treatment smoothing.\n", FuncName);
          if (Opt->DemoPause == SUMA_3dSS_INTERACTIVE) {
+               /* Make a copy to brain contours, in case user jumps ahead */
+               memcpy((void*)Opt->Brain_Contour, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float));
                fprintf (SUMA_STDERR,"3dSkullStrip Interactive: \n"
                                     "Beauty treatment smoothing.\n"
                                     "Do you want to (C)ontinue, (P)ass or (S)ave this?  ");
@@ -1866,6 +1877,8 @@ int main (int argc,char *argv[])
          if (Opt->DemoPause  == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("touchup correction 2 next"); }
          if (Opt->debug) fprintf (SUMA_STDERR,"%s: Final touchup correction ...\n", FuncName);
          if (Opt->DemoPause == SUMA_3dSS_INTERACTIVE) {
+               /* Make a copy to brain contours, in case user jumps ahead */
+               memcpy((void*)Opt->Brain_Contour, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float));
                fprintf (SUMA_STDERR,"3dSkullStrip Interactive: \n"
                                     "Touchup, pass 2.\n"
                                     "Do you want to (C)ontinue, (P)ass or (S)ave this?  ");
@@ -1896,8 +1909,7 @@ int main (int argc,char *argv[])
    }
    
 
-   /* Make a copy of the brain contours */
-   Opt->Brain_Contour = (float *)SUMA_calloc(SO->N_Node * 3, sizeof(float));
+   /* Put brain contours in Brain_Contour*/
    memcpy((void*)Opt->Brain_Contour, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float));
    
    PUSH_TO_OUTER_SKULL:
@@ -2057,6 +2069,7 @@ int main (int argc,char *argv[])
    /* send the last surface (kind a stupid since you have som many surfaces) ...*/
    ps->cs->kth = 1;
    if (ps->cs->Send) {
+      SUMA_LH("SendSuma");
       if (!SUMA_SendToSuma (SO, ps->cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
@@ -2139,6 +2152,7 @@ int main (int argc,char *argv[])
    
    /* write the surfaces to disk */
    if (strcmp(Opt->out_prefix,"skull_strip_out")) {
+      SUMA_LH("Output surfaces");
       if (Opt->Brain_Hull) {
          memcpy((void *)SO->NodeList, (void*)Opt->Brain_Hull, SO->N_Node * 3 * sizeof(float));  
          if (Opt->debug) fprintf (SUMA_STDERR,"%s: Writing Brain Hull surface  ...\n", FuncName);
@@ -2178,6 +2192,8 @@ int main (int argc,char *argv[])
    if (Opt->debug) {
       float rad, vol, *p;
       int kkk;
+      SUMA_LH("Rad Ratting");
+
       vol = SUMA_Mesh_Volume(SO, NULL, -1);
       rad = pow(3.0/4.0/SUMA_PI*vol, 1.0/3.0);
       SUMA_MIN_MAX_SUM_VECMAT_COL(SO->NodeList, SO->N_Node, SO->NodeDim, SO->MinDims, SO->MaxDims, SO->Center);
