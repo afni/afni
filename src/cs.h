@@ -83,6 +83,16 @@ extern int powell_newuoa_constrained(
 
 extern char *approximate_number_string( double ) ;  /* 16 Jan 2004 */
 
+extern int strcmp_aboot( char * , char * ) ;        /* 12 Mar 2007 */
+
+#ifndef DEBLANK
+#define DEBLANK(cc) do{ if( (cc) != NULL ){                   \
+                          char *qc ;                          \
+                          for( qc=(cc) ; *qc != '\0' ; qc++ ) \
+                            if( isspace(*qc) ) *qc = '_' ;    \
+                       }} while(0)
+#endif
+
 typedef struct {
       float x;
       int Index;

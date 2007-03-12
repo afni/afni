@@ -5,13 +5,24 @@
 #include "AFNI_label.h"
 #include "debugtrace.h"  /* contains 1 function */
 
+/*--------------------------------------------------------------------------*/
+
 static FILE   *messfp = NULL ;
+static char   *messfn = NULL ;
 
 void SET_message_file( char *fname )
 {
    if( messfp != NULL ){ fclose(messfp); messfp = NULL; }
+   if( messfn != NULL ){ free  (messfn); messfn = NULL; }
 
-   if( fname != NULL && *fname != '\0' ) messfp = fopen(fname,"w") ;
+   if( fname != NULL && *fname != '\0' ) messfn = strdup(fname) ;
+   return ;
+}
+
+static void fputs_messfp( char *msg )
+{
+   if( messfn != NULL && messfp == NULL ) messfp = fopen(messfn,"w") ;
+   if( messfp != NULL ){ fputs(msg,messfp); fflush(messfp); }
    return ;
 }
 
@@ -34,7 +45,7 @@ static void output_message( int ump, char *prefix, char *fmt, va_list vararg_ptr
    vsprintf(msg,ifmt,vararg_ptr) ; ll = strlen(msg) ;
    if( msg[ll-1] != '\n' ){ msg[ll] = '\n' ; msg[ll+1] = '\0' ; }
    fputs(msg,stderr) ;
-   if( ump && messfp != NULL ) fputs(msg,messfp) ; /* 09 Mar 2007 */
+   if( ump ) fputs_messfp(msg) ;  /* 12 Mar 2007 */
    free(msg) ;  /* 03 Mar 2006: forgot the free! */
    if( ifmt != fmt ) free(ifmt) ;
    fflush(stdout) ; fflush(stderr) ; return ;
@@ -68,7 +79,7 @@ void WARNING_message( char *fmt , ... )
 {
    va_list vararg_ptr ;
    va_start( vararg_ptr , fmt ) ;
-   output_message( 1 , "++ WARNING: " , fmt , vararg_ptr ) ;
+   output_message( 1 , "*+ WARNING: " , fmt , vararg_ptr ) ;
    va_end( vararg_ptr ) ;
    return ;
 }

@@ -36,14 +36,27 @@ int main( int argc , char * argv[] )
        " -select sss   = Selects specific columns from the matrix (and the\n"
        "                 corresponding coefficient sub-bricks from the\n"
        "                 cbucket).  The string 'sss' can be of the forms:\n"
-       "                   StimLabel = all columns/coefficients that match\n"
+       "                   baseline  = All baseline coefficients.\n"
+       "                   polort    = All polynomial baseline coefficients\n"
+       "                               (skipping -stim_base coefficients).\n"
+       "                   allfunc   = All coefficients that are NOT marked\n"
+       "                               (in the -matrix file) as being in\n"
+       "                               the baseline (i.e., all -stim_xxx\n"
+       "                               values except those with -stim_base)\n"
+       "                   allstim   = All -stim_xxx coefficients, including\n"
+       "                               those with -stim_base.\n"
+       "                   all       = All coefficients (should give results\n"
+       "                               equivalent to '3dDeconvolve -fitts').\n"
+       "                   something = All columns/coefficients that match\n"
        "                               this -stim_label from 3dDeconvolve\n"
-       "                   baseline  = all baseline coefficients\n"
-       "                   polort    = all polynomial baseline coefficients\n"
-       "                               (skipping -stim_base coefficients)\n"
+       "                               [to be precise, all columns whose   ]\n"
+       "                               [-stim_label starts with 'something']\n"
+       "                               [will be selected for inclusion.    ]\n"
        "                 More than one '-select sss' option can be used.\n"
        "\n"
-       "-- Zhark the All Powerful (when his Prozac is working) -- March 2007\n"
+       "The output dataset is stored as floats.\n"
+       "\n"
+       "-- Zhark the Exultant (when his Prozac kicks on) -- March 2007\n"
       ) ;
       exit(0) ;
    }
@@ -52,11 +65,12 @@ int main( int argc , char * argv[] )
 
    mainENTRY("3dSynthesize main"); machdep(); AFNI_logger("3dSynthesize",argc,argv);
    PRINT_VERSION("3dSynthesize") ; AUTHOR("RW Cox") ;
+   (void)COX_clock_time() ;  /* anticipating the very end of time */
 
-   /** parse options **/
+   /** parse command line options **/
 
    iarg = 1 ;
-   while( iarg < argc && argv[iarg][0] == '-' ){
+   while( iarg < argc ){
 
       /** output dataset prefix **/
 
@@ -102,8 +116,11 @@ int main( int argc , char * argv[] )
       ERROR_exit("Unknown option: %s",argv[iarg]) ;
    }
 
-   if( nelmat == NULL || inset == NULL || nselect == 0 || select == NULL )
-     ERROR_exit("Missing -matrix and/or -inset and/or -select options!") ;
+   ii = 0 ;
+   if( nelmat == NULL ){ ii++; ERROR_message("Missing -matrix!") ; }
+   if( inset  == NULL ){ ii++; ERROR_message("Missing -cbucket!"); }
+   if( select == NULL ){ ii++; ERROR_message("Missing -select!") ; }
+   if( ii > 0 )                ERROR_exit("3dSynthesize: can't continue!") ;
 
    /*-- look at matrix, get it's pieces --*/
 
@@ -137,7 +154,18 @@ int main( int argc , char * argv[] )
    }
 
    clist = (float **)malloc(sizeof(float *)*ncol) ;
-   for( ii=0 ; ii < ncol ; ii++ ) clist[ii] = nelmat->vec[ii] ;
+   if( nelmat->vec_typ[0] == NI_FLOAT ){
+     for( ii=0 ; ii < ncol ; ii++ ) clist[ii] = (float *)nelmat->vec[ii] ;
+   } else if( nelmat->vec_typ[0] == NI_DOUBLE ){
+     double *cd ;
+     for( ii=0 ; ii < ncol ; ii++ ){
+       clist[ii] = (float *)malloc(sizeof(float)*nrow) ;
+       cd        = (double *)nelmat->vec[ii] ;
+       for( jj=0 ; jj < nrow ; jj++ ) clist[ii][jj] = (float)cd[jj] ;
+     }
+   } else {
+     ERROR_exit("-matrix file stored will illegal data type!") ;
+   }
 
    /*-- process the -select options to build a column list --*/
 
@@ -171,10 +199,15 @@ int main( int argc , char * argv[] )
                        select[kk]) ;
    }
 
-   for( nilist=ii=0 ; ii < ncol ; ii++ ) if( ilist[ii] > 0 ) nilist++ ;
+   for( nilist=ii=0 ; ii < ncol ; ii++ ) if( ilist[ii] ) nilist++ ;
 
    if( nilist == 0 )
      ERROR_exit("No columns selected for dataset synthesis!") ;
+
+   INFO_message("Index list: %d nonzero entries",nilist) ;
+   fprintf(stderr,"++ ") ;
+   for( ii=0 ; ii < ncol ; ii++ ) if( ilist[ii] ) fprintf(stderr," %d",ii) ;
+   fprintf(stderr,"\n") ;
 
    /*-- create empty output 3D+time dataset --*/
 
@@ -210,6 +243,8 @@ int main( int argc , char * argv[] )
       /* get kk-th coefficient array into cfar */
 
       (void)THD_extract_array( kk , inset , 0 , cfar ) ;
+      for( ii=0 ; ii < ncol && cfar[ii] == 0.0f ; ii++ ) ; /* nada */
+      if( ii == ncol ) continue ;   /** coefficients are all zero! */
 
       for( jj=0 ; jj < nrow ; jj++ ){
         tsar[jj] = 0.0f ;
@@ -220,12 +255,12 @@ int main( int argc , char * argv[] )
       /* put result into output dataset */
 
       THD_insert_series( kk , outset ,
-                         ncol , MRI_float , tsar , 1 ) ;
-
+                         nrow , MRI_float , tsar , 1 ) ;
    }
 
-   DSET_delete(inset) ;
    DSET_write(outset) ;
    WROTE_DSET(outset) ;
+   INFO_message("CPU time=%.2f s ; Elapsed=%.2f s",
+                COX_cpu_time(),COX_clock_time()  ) ;
    exit(0) ;
 }

@@ -6160,3 +6160,6 @@
 09 Mar 2007
  * First test of -stim_times_AM? looks good.
  * MCW_discard_events() for Button4/5 ScrollWheel actions.
+
+12 Mar 2007
+ * New program 3dSynthesize.c.
