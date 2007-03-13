@@ -379,6 +379,7 @@ static int verb = 1 ;
 
 static int goforit = 0 ;  /* 07 Mar 2007 */
 static int badlev  = 0 ;
+static int floatout= 0 ;  /* 13 Mar 2007 */
 
 struct DC_options ;  /* incomplete struct definition */
 
@@ -724,7 +725,6 @@ void display_help_menu()
     "                     (can also be called 'IGFUN' which stands)         \n"
     "                     (for 'incomplete gamma function'        )         \n"
     "     'EXPR(b,c) exp1 ... expn' = n parameter; arbitrary expressions    \n"
-#if 0
     "                                                                       \n"
     "[-stim_times_AM1 k tname Rmodel]                                       \n"
     "   Similar, but generates an amplitude modulated response model.       \n"
@@ -732,7 +732,6 @@ void display_help_menu()
     "[-stim_times_AM2 k tname Rmodel]                                       \n"
     "   Similar, but generates 2 response models: one with the mean         \n"
     "   amplitude and one with the differences from the mean.               \n"
-#endif
     "                                                                       \n"
     "[-basis_normall a]                                                     \n"
     "   Normalize all basis functions for '-stim_times' to have             \n"
@@ -800,11 +799,13 @@ void display_help_menu()
     "[-tout]            Flag to output the t-statistics                     \n"
     "[-vout]            Flag to output the sample variance (MSE) map        \n"
     "[-nobout]          Flag to suppress output of baseline coefficients    \n"
-    "                     (and associated statistics)                       \n"
+    "                     (and associated statistics) [** DEFAULT **]       \n"
+    "[-bout]            Flag to turn on output of baseline coefs and stats. \n"
     "[-nocout]          Flag to suppress output of regression coefficients  \n"
     "                     (and associated statistics)                       \n"
     "[-full_first]      Flag to specify that the full model statistics will \n"
-    "                     appear first in the bucket dataset output         \n"
+    "                     be first in the bucket dataset [** DEFAULT **]    \n"
+    "[-nofull_first]    Flag to specify that full model statistics go last  \n"
     "[-bucket bprefix]  Create one AFNI 'bucket' dataset containing various \n"
     "                     parameters of interest, such as the estimated IRF \n"
     "                     coefficients, and full model fit statistics.      \n"
@@ -817,12 +818,21 @@ void display_help_menu()
     "                     into a dataset named 'cprefix'.  This dataset     \n"
     "                     will be used in a -xrestore run instead of the    \n"
     "                     bucket dataset, if possible.                      \n"
+    "                   Also, the -cbucket and -x1D output can be combined  \n"
+    "                     in 3dSynthesize to produce 3D+time datasets that  \n"
+    "                     are derived from subsets of the regression model  \n"
+    "                     [generalizing the -fitts option, which produces]  \n"
+    "                     [a 3D+time dataset derived from the full model].  \n"
     "                                                                       \n"
     "[-xrestore f.xsave] Restore the X matrix, etc. from a previous run     \n"
     "                     that was saved into file 'f.xsave'.  You can      \n"
     "                     then carry out new -glt tests.  When -xrestore    \n"
     "                     is used, most other command line options are      \n"
     "                     ignored.                                          \n"
+    "                                                                       \n"
+    "[-float]            Write output datasets in float format, instead of  \n"
+    "                    as scaled shorts.                                  \n"
+    "[-short]            Write output as scaled shorts [the default for now]\n"
     "                                                                       \n"
     "**** The following options control the screen output only:             \n"
     "[-quiet]             Flag to suppress most screen output               \n"
@@ -927,9 +937,9 @@ void initialize_options
   option_data->tout = 0;
   option_data->vout = 0;
   option_data->xout = 0;
-  option_data->nobout = 0;
+  option_data->nobout = 1;      /* 13 Mar 2007: on by default now */
   option_data->nocout = 0;
-  option_data->full_first = 0;
+  option_data->full_first = 1;  /* 13 Mar 2007; on by default now */
 
   /*----- Initialize character strings -----*/
   option_data->input_filename = NULL;
@@ -1428,6 +1438,22 @@ void get_options
         verb++ ; nopt++ ; continue ;
       }
 
+      /*-----   -float, etc.   -----*/
+      if( strcmp(argv[nopt],"-float") == 0 ){    /* 13 Mar 2007 */
+        floatout = 1 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-short") == 0 ){
+        floatout = 0 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-datum") == 0 ){
+        nopt++ ;
+        if( nopt >= argc ) DC_error("need argument after -datum");
+             if( strcmp(argv[nopt],"float") == 0 ) floatout = 1 ;
+        else if( strcmp(argv[nopt],"short") == 0 ) floatout = 0 ;
+        else              DC_error("illegal name after -datum") ;
+        nopt++ ; continue ;
+      }
+
       /*-----   -progress n  -----*/
       if (strcmp(argv[nopt], "-progress") == 0)
       {
@@ -1899,27 +1925,27 @@ void get_options
       /*-----   -nobout   -----*/
       if (strcmp(argv[nopt], "-nobout") == 0)
       {
-        option_data->nobout = 1;
-        nopt++;
-        continue;
+        option_data->nobout = 1; nopt++; continue;
+      }
+      if( strcmp(argv[nopt],"-bout") == 0 ){          /* 13 Mar 2007 */
+        option_data->nobout = 0 ; nopt++ ; continue ;
       }
 
 
       /*-----   -nocout   -----*/
       if (strcmp(argv[nopt], "-nocout") == 0)
       {
-        option_data->nocout = 1;
-        nopt++;
-        continue;
+        option_data->nocout = 1; nopt++; continue;
       }
 
 
       /*-----   -full_first   -----*/
       if (strcmp(argv[nopt], "-full_first") == 0)
       {
-        option_data->full_first = 1;
-        nopt++;
-        continue;
+        option_data->full_first = 1; nopt++; continue;
+      }
+      if (strcmp(argv[nopt], "-nofull_first") == 0){    /* 13 Mar 2007 */
+        option_data->full_first = 0; nopt++; continue;
       }
 
 
@@ -2340,12 +2366,27 @@ ENTRY("read_input_data") ;
       }
 
       *dset_time = NULL;
-      if( option_data->nodata_NT > 0 )  /* special case */
-        nt = option_data->nodata_NT ;
-      else
-        nt = (*stim_length)[0] / option_data->stim_nptr[0];
 
-      nxyz = 0;
+      /* with no actual data, must determine matrix size somehow */
+
+      if( option_data->nodata_NT > 0 )  /* user gave it to us directly? */
+        nt = option_data->nodata_NT ;
+      else if( option_data->NLast > 0 ) /* a little indirectly? */
+        nt = option_data->NLast+1 ;
+      else {                            /* use the longest -stim_file input? */
+        int qt ;
+        for( qt=nt=is=0 ; is < num_stimts ; is++ ){
+          if( basis_stim[is] == NULL ){
+            qt = (*stim_length)[is] / option_data->stim_nptr[is] ;
+            nt = MAX(nt,qt) ;
+          }
+        }
+        if( nt == 0 )
+          ERROR_exit("-nodata has no way to determine time series length to model");
+      }
+      INFO_message("using NT=%d time points for -nodata",nt) ;
+
+      nxyz = 0;  /* signal that there is no data */
     }
 
   else if (option_data->input1D_filename != NULL) /*----- 1D input file -----*/
@@ -2481,7 +2522,7 @@ ENTRY("read_input_data") ;
          }
 
     } else {                                   /* no input data? */
-      DC_error ("Must specify input data");
+      DC_error ("Must specify some sort of input data, or '-nodata'");
     }
 
 
@@ -3066,7 +3107,7 @@ void check_one_output_file
                       ADN_label1 , filename ,
                       ADN_self_name , filename ,
                       ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE :
-                                                            GEN_FUNC_TYPE ,
+                                                     GEN_FUNC_TYPE ,
                       ADN_none ) ;
 
   if( ierror > 0 )
@@ -3591,7 +3632,8 @@ void proc_finalize_shm_volumes(void)
    atexit(proc_atexit) ;   /* or when the program exits */
 
 #ifdef MAP_ANON
-   INFO_message("mmap() memory allocated: %lld bytes\n" , proc_shmsize ) ;
+   INFO_message("mmap() memory allocated: %lld bytes [%s]\n" ,
+                proc_shmsize, approximate_number_string((double)proc_shmsize) );
 #else
    INFO_message("Shared memory allocated: %lld bytes at id=%d\n" ,
                 proc_shmsize , proc_shmid ) ;
@@ -5340,11 +5382,10 @@ void write_ts_array
   int nxyz;                              /* total number of voxels */
   float factor;             /* factor is new scale factor for sub-brick #ib */
   char * input_filename;    /* input afni data set file name */
-  short ** bar = NULL;      /* bar[ib] points to data for sub-brick #ib */
-  float * fbuf = NULL;      /* float buffer */
   float * volume;           /* pointer to volume of data */
   char label[THD_MAX_NAME]; /* label for output file */
   float newtr;              /* new time step = TR/nptr */
+  int dtype ;
 
 
   /*----- Initialize local variables -----*/
@@ -5352,12 +5393,12 @@ void write_ts_array
   dset = THD_open_dataset (input_filename);
   CHECK_OPEN_ERROR(dset,input_filename) ;
   nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;
-  newtr = DSET_TIMESTEP(dset) / nptr;
   DSET_UNMSEC(dset) ;  /* 12 Aug 2005 */
+  newtr = DSET_TIMESTEP(dset) / nptr;
 
   /*----- allocate memory -----*/
-  bar  = (short **) malloc (sizeof(short *) * ts_length);   MTEST (bar);
-  fbuf = (float *)  malloc (sizeof(float)   * ts_length);   MTEST (fbuf);
+
+  dtype = (floatout) ? MRI_float : MRI_short ;
 
   /*-- make an empty copy of the prototype dataset, for eventual output --*/
   new_dset = EDIT_empty_copy (dset);
@@ -5365,7 +5406,7 @@ void write_ts_array
   /*----- Record history of dataset -----*/
   tross_Copy_History( dset , new_dset ) ;
 
-  { char * commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
+  { char *commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
     sprintf (label, "Output prefix: %s", output_filename);
     if( commandline != NULL )
        tross_multi_Append_History( new_dset , commandline,label,NULL ) ;
@@ -5383,7 +5424,7 @@ void write_ts_array
                       ADN_label1,      output_filename,
                       ADN_self_name,   output_filename,
                       ADN_malloc_type, DATABLOCK_MEM_MALLOC,
-                      ADN_datum_all,   MRI_short,
+                      ADN_datum_all,   dtype ,
                       ADN_nvals,       ts_length,
                       ADN_ntt,         ts_length,
                       ADN_ttdel,       newtr,
@@ -5395,7 +5436,7 @@ void write_ts_array
 
   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
     ERROR_exit(
-          "Output dataset file %s already exists--cannot continue!",
+          "Output dataset file %s already exists -- can't continue!",
           new_dset->dblk->diskptr->header_name ) ;
 
 
@@ -5407,6 +5448,7 @@ void write_ts_array
                  ADN_ttdur, 0.0,    /* in case not already set */
                  ADN_none);
 
+  EDIT_dset_items( new_dset , ADN_brick_fac,NULL , ADN_none ) ;
 
   /*----- attach bricks to new data set -----*/
   for (ib = 0;  ib < ts_length;  ib++)
@@ -5415,25 +5457,28 @@ void write_ts_array
       /*----- Set pointer to appropriate volume -----*/
       volume = vol_array[ib];
 
-      /*----- Allocate memory for output sub-brick -----*/
-      bar[ib]  = (short *) malloc (sizeof(short) * nxyz);
-      MTEST (bar[ib]);
+      if( floatout ){  /* the new (float) way */
+        float *fff ;
+        EDIT_substitute_brick( new_dset , ib , MRI_float , NULL ) ;
+        fff = DSET_ARRAY(new_dset,ib) ;
+        memcpy( fff , volume , sizeof(float)*nxyz ) ;
 
-      /*----- Convert data type to short for this sub-brick -----*/
-      factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
-                                MRI_short, bar[ib]);
-      if (factor < EPSILON)  factor = 0.0;
-      else factor = 1.0 / factor;
-      fbuf[ib] = factor;
+      } else {   /* the old (short) way */
+        short *bar ;
+        EDIT_substitute_brick( new_dset , ib , MRI_short , NULL ) ;
+        bar = DSET_ARRAY(new_dset,ib) ;
 
-      /*----- attach bar[ib] to be sub-brick #ib -----*/
-      mri_fix_data_pointer (bar[ib], DSET_BRICK(new_dset,ib));
-    }
-
+        if( volume != NULL ){
+          factor = EDIT_coerce_autoscale_new( nxyz, MRI_float, volume,
+                                              MRI_short, bar);
+          if (factor < EPSILON)  factor = 0.0;
+          else                   factor = 1.0 / factor;
+          EDIT_BRICK_FACTOR( new_dset , ib , factor ) ;
+        }
+      }
+   }
 
   /*----- write afni data set -----*/
-
-  (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
 
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset (NULL, NULL, new_dset, True);
@@ -5443,7 +5488,6 @@ void write_ts_array
 
   /*----- deallocate memory -----*/
   THD_delete_3dim_dataset (new_dset, False);   new_dset = NULL ;
-  free (fbuf);   fbuf = NULL;
 
 }
 
@@ -5461,43 +5505,52 @@ void attach_sub_brick
   int nxyz,                 /* total number of voxels */
   int brick_type,           /* indicates statistical type of sub-brick */
   char * brick_label,       /* character string label for sub-brick */
-  int dof,
-  int ndof,
-  int ddof,                 /* degrees of freedom */
-  short ** bar              /* bar[ib] points to data for sub-brick #ib */
+  float dof,
+  float ndof,
+  float ddof,                 /* degrees of freedom */
+  void ** bar              /* bar[ib] points to data for sub-brick #ib */
 )
 
 {
-  const float EPSILON = 1.0e-10;
-  float factor;             /* factor is new scale factor for sub-brick #ib */
-  short *sbr ;
+  float factor=0.0f ; const float EPSILON = 1.0e-10;
 
 ENTRY("attach_sub_brick") ;
 
-
   /*----- allocate memory for output sub-brick -----*/
-  sbr = (short *) malloc (sizeof(short) * nxyz);
-  MTEST (sbr);
-  factor = EDIT_coerce_autoscale_new(nxyz, MRI_float,volume, MRI_short,sbr);
+  if( floatout ){  /* the new (float) way */
+    float *fff ;
+    EDIT_substitute_brick( new_dset , ibrick , MRI_float , NULL ) ;
+    fff = DSET_ARRAY(new_dset,ibrick) ;
+    if( bar != NULL ) bar[ibrick] = (void *)fff ;
+    memcpy( fff , volume , sizeof(float)*nxyz ) ;
 
-  if (factor < EPSILON)  factor = 0.0;
-  else                   factor = 1.0 / factor;
+  } else {         /* the old (short) way */
+    short *sbr ;
+    EDIT_substitute_brick( new_dset , ibrick , MRI_short , NULL ) ;
+    sbr = DSET_ARRAY(new_dset,ibrick) ;
+    if( bar != NULL ) bar[ibrick] = (void *)sbr ;
+    factor = EDIT_coerce_autoscale_new(nxyz, MRI_float,volume, MRI_short,sbr);
+    if (factor < EPSILON)  factor = 0.0;
+    else                   factor = 1.0 / factor;
+   }
 
-  /*----- edit the sub-brick -----*/
-  EDIT_BRICK_LABEL (new_dset, ibrick, brick_label);
-  EDIT_BRICK_FACTOR(new_dset, ibrick, factor);
+   /*----- edit the sub-brick -----*/
+   EDIT_BRICK_LABEL (new_dset, ibrick, brick_label);
+   EDIT_BRICK_FACTOR(new_dset, ibrick, factor);
 
-  if (brick_type == FUNC_TT_TYPE)
-    EDIT_BRICK_TO_FITT (new_dset, ibrick, dof);
-  else if (brick_type == FUNC_FT_TYPE)
-    EDIT_BRICK_TO_FIFT (new_dset, ibrick, ndof, ddof);
+   switch( brick_type ){
+     case FUNC_TT_TYPE: if( dof > 0 )
+                          EDIT_BRICK_TO_FITT(new_dset, ibrick, dof);
+     break ;
+     case FUNC_FT_TYPE: if( ndof > 0 && ddof > 0 )
+                          EDIT_BRICK_TO_FIFT(new_dset, ibrick, ndof, ddof);
+     break ;
+     case FUNC_BT_TYPE: if( ndof > 0 && ddof > 0 )
+                          EDIT_BRICK_TO_FIBT(new_dset, ibrick, ndof, ddof);
+     break ;
+   }
 
-
-  /*----- attach sbr to be sub-brick #ibrick -----*/
-  EDIT_substitute_brick (new_dset, ibrick, MRI_short, sbr);
-  if( bar != NULL ) bar[ibrick] = sbr ;
-
-  EXRETURN ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -5530,7 +5583,7 @@ void write_bucket_data
   char output_prefix[THD_MAX_NAME];     /* prefix name for bucket dataset */
   char output_session[THD_MAX_NAME];    /* directory for bucket dataset */
   int nbricks;              /* number of sub-bricks in bucket dataset */
-  short ** bar = NULL;      /* bar[ib] points to data for sub-brick #ib */
+  void ** bar = NULL;       /* bar[ib] points to data for sub-brick #ib */
 
   int brick_type;           /* indicates statistical type of sub-brick */
   int brick_coef;           /* regression coefficient index for sub-brick */
@@ -5551,7 +5604,7 @@ void write_bucket_data
   int ilag;                 /* lag index */
   int icoef;                /* coefficient index */
   int ibrick;               /* sub-brick index */
-  int dof, ndof, ddof;      /* degrees of freedom */
+  float dof, ndof, ddof;      /* degrees of freedom */
   char label[THD_MAX_NAME];   /* general label for sub-bricks */
   char blab[THD_MAX_NAME] ;   /* label for baseline funcs */
   int num_glt;                   /* number of general linear tests */
@@ -5591,7 +5644,7 @@ void write_bucket_data
 
 
   /*----- allocate memory -----*/
-  bar  = (short **) malloc (sizeof(short *) * nbricks);
+  bar  = (void **) malloc (sizeof(void *) * nbricks);
   MTEST (bar);
 
 
@@ -5608,11 +5661,11 @@ void write_bucket_data
   /*----- Modify some structural properties.  Note that the nbricks
           just make empty sub-bricks, without any data attached. -----*/
   ierror = EDIT_dset_items (new_dset,
-                            ADN_prefix,          output_prefix,
+                      ADN_prefix,          output_prefix,
                       ADN_type,            HEAD_FUNC_TYPE,
                       ADN_func_type,       FUNC_BUCK_TYPE,
-                      ADN_datum_all,       MRI_short ,
-                            ADN_ntt,             0,               /* no time */
+                      ADN_datum_all,       (floatout) ? MRI_float : MRI_short ,
+                      ADN_ntt,             0,   /* no time axis */
                       ADN_nvals,           nbricks,
                       ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
                       ADN_none ) ;
@@ -5636,11 +5689,11 @@ void write_bucket_data
     tross_Copy_History( old_dset , coef_dset ) ;
     tross_Make_History( PROGRAM_NAME , argc , argv , coef_dset ) ;
     (void) EDIT_dset_items( coef_dset,
-                            ADN_prefix,          CoefFilename ,
+                      ADN_prefix,          CoefFilename ,
                       ADN_type,            HEAD_FUNC_TYPE,
                       ADN_func_type,       FUNC_BUCK_TYPE,
-                      ADN_datum_all,       MRI_short ,
-                            ADN_ntt,             0,               /* no time */
+                      ADN_datum_all,       (floatout) ? MRI_float : MRI_short ,
+                      ADN_ntt,             0,  /* no time axis */
                       ADN_nvals,           p ,
                       ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
                       ADN_none ) ;
@@ -5720,8 +5773,8 @@ void write_bucket_data
             volume = coef_vol[icoef];
 
               if( cout && bout )
-              attach_sub_brick (new_dset, ++ibrick, volume, nxyz,
-                          brick_type, brick_label, 0, 0, 0, bar);
+               attach_sub_brick (new_dset, ++ibrick, volume, nxyz,
+                           brick_type, brick_label, 0, 0, 0, bar);
 
 #ifdef USE_OLD_LABELS
               sprintf(brick_label,"%s:%s%d" , label,blab,icoef%(polort+1)) ;
@@ -5833,7 +5886,9 @@ void write_bucket_data
                  && (!option_data->stim_base[istim] || bout) )
           {
             ibrick++;
-            brick_type = FUNC_THR_TYPE;
+            brick_type = FUNC_BT_TYPE;
+            ndof = 0.5*(itop - ibot + 1) ;
+            ddof = 0.5*(N - p);
 #ifdef USE_OLD_LABELS
             sprintf (brick_label, "%s R^2", label);
 #else
@@ -5841,7 +5896,7 @@ void write_bucket_data
 #endif
             volume = rpart_vol[istim];
             attach_sub_brick (new_dset, ibrick, volume, nxyz,
-                        brick_type, brick_label, 0, 0, 0, bar);
+                        brick_type, brick_label, 0, ndof,ddof, bar);
           }
 
         /*----- Stimulus F-stat -----*/
@@ -5850,7 +5905,7 @@ void write_bucket_data
           {
             ibrick++;
             brick_type = FUNC_FT_TYPE;
-              ndof = itop - ibot + 1 ;
+            ndof = itop - ibot + 1 ;
             ddof = N - p;
 #ifdef USE_OLD_LABELS
             sprintf (brick_label, "%s F-stat", label);
@@ -5911,11 +5966,13 @@ void write_bucket_data
       if (option_data->rout)
       {
         ibrick++;
-        brick_type = FUNC_THR_TYPE;
+        brick_type = FUNC_BT_TYPE;
+        ndof = 0.5 * glt_rows[iglt];
+        ddof = 0.5 * (N - p);
         sprintf (brick_label, "%s R^2", label);
         volume = glt_rstat_vol[iglt];
         attach_sub_brick (new_dset, ibrick, volume, nxyz,
-                      brick_type, brick_label, 0, 0, 0, bar);
+                      brick_type, brick_label, 0, ndof,ddof, bar);
       }
 
       /*----- GLT F-stat -----*/
@@ -5952,11 +6009,13 @@ void write_bucket_data
   if (option_data->rout)
     {
       ibrick++;
-      brick_type = FUNC_THR_TYPE;
+      brick_type = FUNC_BT_TYPE;
+      ndof = 0.5*(p - q);
+      ddof = 0.5*(N - p);
       sprintf (brick_label, "Full R^2");
       volume = rfull_vol;
       attach_sub_brick (new_dset, ibrick, volume, nxyz,
-                  brick_type, brick_label, 0, 0, 0, bar);
+                  brick_type, brick_label, 0, ndof,ddof, bar);
     }
 
   /*----- Full model F-stat -----*/
@@ -7609,8 +7668,8 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
                              ADN_prefix,          buck_prefix ,
                              ADN_type,            HEAD_FUNC_TYPE,
                              ADN_func_type,       FUNC_BUCK_TYPE,
-                             ADN_datum_all,       MRI_short ,
-                             ADN_ntt,             0,               /* no time */
+                             ADN_datum_all,       (floatout)?MRI_float:MRI_short,
+                             ADN_ntt,             0,  /* no time axis */
                              ADN_nvals,           nvol ,
                              ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
                              ADN_none ) ;
@@ -7642,10 +7701,12 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
      }
 
      if( rout ){
+       float a,b ;
        sprintf( brick_label , "%s R^2" , glt_label[iglt] ) ;
        volume = glt_rstat_vol[iglt];
+       a = 0.5*glt_rows[iglt] ; b = 0.5*(nt-np) ;
        attach_sub_brick( dset_buck, ivol, volume, nxyz,
-                         FUNC_THR_TYPE, brick_label, 0, 0, 0, NULL);
+                         FUNC_BT_TYPE, brick_label, 0, a, b, NULL);
        free((void *)volume) ; ivol++ ;
      }
 
@@ -8423,7 +8484,7 @@ void basis_write_iresp( int argc , char *argv[] ,
                              ADN_label1,      output_filename,
                              ADN_self_name,   output_filename,
                              ADN_malloc_type, DATABLOCK_MEM_MALLOC,
-                             ADN_datum_all,   MRI_short,
+                             ADN_datum_all,   (floatout)?MRI_float:MRI_short,
                              ADN_nvals,       ts_length,
                              ADN_ntt,         ts_length,
                              ADN_ttdel,       dt ,
@@ -8489,13 +8550,18 @@ void basis_write_iresp( int argc , char *argv[] ,
    /* scale floating point bricks to shorts and insert into output dataset */
 
    for( ib=0 ; ib < ts_length ; ib++ ){
-     bar = (short *) malloc( sizeof(short) * nvox ) ;
-     factor = EDIT_coerce_autoscale_new(nvox, MRI_float,hout[ib], MRI_short,bar) ;
-     if( factor < EPSILON ) factor = 0.0f ;          /* if brick is all zero */
-     else                   factor = 1.0f / factor ;
+     if( floatout ){
+       EDIT_substitute_brick( out_dset , ib , MRI_float , hout[ib] ) ;
+       factor = 0.0f ;
+     } else {
+       bar = (short *) malloc( sizeof(short) * nvox ) ;
+       factor = EDIT_coerce_autoscale_new(nvox, MRI_float,hout[ib], MRI_short,bar) ;
+       if( factor < EPSILON ) factor = 0.0f ;          /* if brick is all zero */
+       else                   factor = 1.0f / factor ;
+       EDIT_substitute_brick( out_dset , ib , MRI_short , bar ) ;
+       free((void *)hout[ib]) ;
+     }
      EDIT_BRICK_FACTOR( out_dset , ib , factor ) ;
-     EDIT_substitute_brick( out_dset , ib , MRI_short , bar ) ;
-     free((void *)hout[ib]) ;
    }
    free((void *)hout) ;
 
@@ -8562,7 +8628,7 @@ void basis_write_sresp( int argc , char *argv[] ,
                              ADN_label1,      output_filename,
                              ADN_self_name,   output_filename,
                              ADN_malloc_type, DATABLOCK_MEM_MALLOC,
-                             ADN_datum_all,   MRI_short,
+                             ADN_datum_all,   (floatout)?MRI_float:MRI_short,
                              ADN_nvals,       ts_length,
                              ADN_ntt,         ts_length,
                              ADN_ttdel,       dt ,
@@ -8623,13 +8689,18 @@ void basis_write_sresp( int argc , char *argv[] ,
    /* scale floating point bricks to shorts and insert into output dataset */
 
    for( ib=0 ; ib < ts_length ; ib++ ){
-     bar = (short *) malloc( sizeof(short) * nvox ) ;
-     factor = EDIT_coerce_autoscale_new(nvox, MRI_float,hout[ib], MRI_short,bar) ;
-     if( factor < EPSILON ) factor = 0.0f ;          /* if brick is all zero */
-     else                   factor = 1.0f / factor ;
+     if( floatout ){
+       EDIT_substitute_brick( out_dset , ib , MRI_float , hout[ib] ) ;
+       factor = 0.0f ;
+     } else {
+       bar = (short *) malloc( sizeof(short) * nvox ) ;
+       factor = EDIT_coerce_autoscale_new(nvox, MRI_float,hout[ib], MRI_short,bar) ;
+       if( factor < EPSILON ) factor = 0.0f ;          /* if brick is all zero */
+       else                   factor = 1.0f / factor ;
+       EDIT_substitute_brick( out_dset , ib , MRI_short , bar ) ;
+       free((void *)hout[ib]) ;
+     }
      EDIT_BRICK_FACTOR( out_dset , ib , factor ) ;
-     EDIT_substitute_brick( out_dset , ib , MRI_short , bar ) ;
-     free((void *)hout[ib]) ;
    }
    free((void *)hout) ;
 
