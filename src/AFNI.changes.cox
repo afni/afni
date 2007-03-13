@@ -6168,3 +6168,4 @@
  * Minor changes to 3dSynthesize.
  * Change PRINT_VERSION() macro in mrilib.h to include compilation __DATE__
      in output.
+ * '-float' option to 3dDeconvolve.  Also a few little other fixes.

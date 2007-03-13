@@ -5426,6 +5426,7 @@ void T3D_pointer_leave_EV( Widget w , XtPointer client_data ,
    Geometry parent name has been specified, so check it out
 -----------------------------------------------------------------*/
 
+#undef  DEBLANK
 #define DEBLANK(str) \
    { int iq ;        \
      for( iq=strlen(str)-1; iq >= 0 && str[iq]==' '; iq-- )str[iq]='\0'; \
