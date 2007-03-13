@@ -562,7 +562,8 @@ void get_options
        *input_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
        MTEST (*input_filename);
        strcpy (*input_filename, argv[nopt]);
-       *dset_time = THD_open_one_dataset (*input_filename);
+       /* open input dataset - was THD_open_one_dataset, allow sub-bricks */
+       *dset_time = THD_open_dataset (*input_filename);  
        if ((*dset_time) == NULL)  
          { 
            sprintf (message, 
@@ -2320,7 +2321,7 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   int nbad;                           /* number of bad voxels in volume */
     
   /*----- read input dataset -----*/
-  dset = THD_open_one_dataset (input_filename) ;
+  dset = THD_open_dataset (input_filename) ; /* was THD_open_one...*/
   if( ! ISVALID_3DIM_DATASET(dset) ){
     fprintf(stderr,"*** Unable to open dataset file %s\n",
          input_filename);
@@ -2522,7 +2523,7 @@ void write_bucket_data
   }
   
   /*----- read first dataset -----*/
-  old_dset = THD_open_one_dataset (input_filename);
+  old_dset = THD_open_dataset (input_filename); /* was THD_open_one...*/
   
 
   /*-- make an empty copy of this dataset, for eventual output --*/
@@ -2692,7 +2693,7 @@ void write_3dtime
   int nbad;                 /* number of voxels in volume with bad floating point values */  
 
   /*----- Initialize local variables -----*/
-  dset = THD_open_one_dataset (input_filename);
+  dset = THD_open_dataset (input_filename); /* was THD_open_one...*/
   nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;
 
  
