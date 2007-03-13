@@ -6163,3 +6163,8 @@
 
 12 Mar 2007
  * New program 3dSynthesize.c.
+
+13 Mar 2007
+ * Minor changes to 3dSynthesize.
+ * Change PRINT_VERSION() macro in mrilib.h to include compilation __DATE__
+     in output.

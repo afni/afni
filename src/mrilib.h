@@ -1278,7 +1278,7 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
 #include "AFNI_label.h"
 #undef  PRINT_VERSION
 #define PRINT_VERSION(pp)                                       \
-  INFO_message("Program %s: AFNI version=%s [%d-bit]",          \
+  INFO_message("%s: AFNI version=%s (" __DATE__ ") [%d-bit]",   \
                (pp),AFNI_VERSION_LABEL,(int)(sizeof(void *)*8))
 
 #undef  AUTHOR
