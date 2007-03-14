@@ -6,12 +6,12 @@ int main( int argc , char * argv[] )
 {
    MRI_IMAGE *xim , *yim ;
    float     *xar , *yar , *war ;
-   int iarg , ndset , nvox , ii , xyall , clip=0 ;
+   int iarg , ndset , nvox , ii , jj, xyall , clip=0 ;
    THD_3dim_dataset *xset , *yset , * mask_dset=NULL ;
    float xbot=1.0f,xtop=0.0f , ybot=1.0f,ytop=0.0f , val ;
    float xsum,ysum , xsig,ysig ;
    byte *mmm=NULL ;
-   char *save_hist=NULL ;
+   char *save_hist=NULL, *save_hist_1D=NULL ;
 
    /*-- read command line arguments --*/
 
@@ -33,6 +33,8 @@ int main( int argc , char * argv[] )
             "                 (Max number of bins is 255.)\n"
             " -savehist ss  Save 2D histogram to image file 'ss'\n"
             "                 (floating point image; read with 'afni -im')\n"
+            " -savehist_1D dd  Save original form of 2D histogram to 1D file 'dd'\n"
+            "                 (-savehist produces the rootogram)\n"
             " -xrange a b   Use only xset values in range a..b.\n"
             " -yrange c d   Use only yset values in range c..d.\n"
             "                 (Default is to use all values.)\n"
@@ -68,7 +70,12 @@ int main( int argc , char * argv[] )
          ERROR_exit("badly formed filename: '%s' '%s'",argv[iarg-1],argv[iarg]);
        save_hist = argv[iarg] ; iarg++ ; continue ;
      }
-
+     
+     if( strcmp(argv[iarg],"-savehist_1D") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       save_hist_1D= argv[iarg] ; iarg++ ; continue ;
+     }
+     
      if( strcmp(argv[iarg],"-histpow") == 0 ){
        double hist_pow ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
@@ -246,8 +253,26 @@ int main( int argc , char * argv[] )
        mri_write(save_hist,qim); mri_free(qim);
 #endif
        INFO_message("- Saved %dx%d histogram to %s",nbin,nbin,save_hist) ;
+       
      }
    }
-
+   
+   if( save_hist_1D != NULL ){  /* Save 2D raw histogram */
+     int nbin ; float *xyc ;
+     nbin = retrieve_2Dhist( &xyc ) ;
+     if( nbin > 0 && xyc != NULL ){
+         FILE *fid=fopen(save_hist_1D,"w");
+         for( ii=0 ; ii < nbin; ii++ ) {
+            for( jj=0 ; jj < nbin; jj++ ) {
+               fprintf(fid,"%.4f\t", xyc[ii*nbin+jj]); 
+            }
+            fprintf(fid,"\n");
+         }
+         fclose(fid);
+      }
+      INFO_message("- Saved %dx%d 1D histogram to %s",nbin,nbin,save_hist_1D) ;
+       
+  }
+  
    exit(0) ;
 }

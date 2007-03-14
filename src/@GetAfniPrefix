@@ -3,6 +3,11 @@ if ("$1" == '' || "$1" == '-h' || "$1" == '-help') then
 	goto USAGE
 endif
 
+set PrefSuf = ''
+if ("$2" != '') then
+   set PrefSuf = $2
+endif
+
 set noglob
 #remove path
 set Name = $1:t
@@ -27,7 +32,7 @@ else if ("$ext" == ".BRIK" || "$ext" == ".HEAD") then
    set fext = ""
 endif
 if ("$ext" == "nii") then
-   set Name = $Name.$ext"$fext"
+   set Name = $Name$PrefSuf".$ext$fext"
    goto ECHO
 endif
     
@@ -42,6 +47,7 @@ set Name = `echo $Name | sed 's/+tlrc.//'`
 set Name = `echo $Name | sed 's/+orig//'`
 set Name = `echo $Name | sed 's/+acpc//'`
 set Name = `echo $Name | sed 's/+tlrc//'`
+set Name = $Name$PrefSuf
 goto ECHO
 
 ECHO:
@@ -51,13 +57,16 @@ unset noglob
 goto ENDALL
 
 USAGE:
-	echo "Usage: `basename $0` <Name> ....."
+	echo "Usage: `basename $0` <Name> [Suffix]"
 	echo "example: `basename $0` /Data/stuff/Hello+orig.HEAD"
 	echo "returns the afni prefix of name (Hello)" 
 	echo "Wildcards are treated as regular characters:"
 	echo "example: `basename $0` 'AAzst1r*+orig'"
 	echo "returns : AAzst1r*"
 	echo ""
+   echo "If a Suffix string is specified, then it is"
+   echo "appended to the returned prefix."
+   echo ""
    echo "Ziad Saad (ziad@nih.gov)"
    echo "  LBC/NIMH/ National Institutes of Health, Bethesda Maryland"
    echo ""
