@@ -6169,3 +6169,6 @@
  * Change PRINT_VERSION() macro in mrilib.h to include compilation __DATE__
      in output.
  * '-float' option to 3dDeconvolve.  Also a few little other fixes.
+
+14 Mar 2007
+ * New program 1dMarry.c.
