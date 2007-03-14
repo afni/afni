@@ -49,7 +49,7 @@ LIBDIR = $(INSTALLDIR)
 # for static linking to Motif, dynamic to all else
 # Motif here is actually LessTif - www.lesstif.org
 
-LLIBS  = -lmri /usr/X11R6/lib/libXm.a -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 $(LZLIB) -lm  -lc
+LLIBS  = -lmri /usr/X11R6/lib/libXm.a -lXm -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 $(LZLIB) -lm  -lc
 
 
 ###############################################################

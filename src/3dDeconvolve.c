@@ -728,7 +728,7 @@ void display_help_menu()
     "                                                                       \n"
     "[-stim_times_AM1 k tname Rmodel]                                       \n"
     "   Similar, but generates an amplitude modulated response model.       \n"
-    "   The 'tname' file should consist of 'time,amplitude' pairs.          \n"
+    "   The 'tname' file should consist of 'time*amplitude' pairs.          \n"
     "[-stim_times_AM2 k tname Rmodel]                                       \n"
     "   Similar, but generates 2 response models: one with the mean         \n"
     "   amplitude and one with the differences from the mean.               \n"
