@@ -62,46 +62,46 @@ class afni_name:
          if (     os.path.isfile(self.ppve()) ):
             return 1
          else: return 0
-   def delete(self): #delete files on disk!
+   def delete(self, oexec=""): #delete files on disk!
       if (self.type == 'BRIK'):
          if os.path.isfile("%s.HEAD" % self.ppv()):
-            shell_exec("rm %s.HEAD" % self.ppv())
+            shell_exec("rm %s.HEAD" % self.ppv(), oexec)
          if os.path.isfile("%s.BRIK" % self.ppv()):
-            shell_exec("rm %s.BRIK" % self.ppv())
+            shell_exec("rm %s.BRIK" % self.ppv(), oexec)
          if os.path.isfile("%s.BRIK.gz" % self.ppv()):
-            shell_exec("rm %s.BRIK.gz" % self.ppv())
+            shell_exec("rm %s.BRIK.gz" % self.ppv(), oexec)
          if os.path.isfile("%s.BRIK.bz2" % self.ppv()):
-            shell_exec("rm %s.BRIK.bz2" % self.ppv())
+            shell_exec("rm %s.BRIK.bz2" % self.ppv(), oexec)
          if os.path.isfile("%s.BRIK.Z" % self.ppv()):
-            shell_exec("rm %s.BRIK.Z" % self.ppv())
+            shell_exec("rm %s.BRIK.Z" % self.ppv(), oexec)
       else:
          if os.path.isfile(self.ppve()):
-            shell_exec("rm %s" % self.ppve())
+            shell_exec("rm %s" % self.ppve(), oexec)
       return
-   def move_to_dir(self, path=""):
+   def move_to_dir(self, path="", oexec=""):
       #self.show()
       #print path
       found = 0
       if os.path.isdir(path):
          if (self.type == 'BRIK'):
             if os.path.isfile("%s.HEAD" % self.ppv()):
-               sv = shell_com("mv %s %s/" % (self.head(), path))
+               sv = shell_com("mv %s %s/" % (self.head(), path), oexec)
                found = found + 1
             if os.path.isfile("%s.BRIK" % self.ppv()):           
-               sv = shell_com("mv %s %s/" % (self.brick(), path))
+               sv = shell_com("mv %s %s/" % (self.brick(), path), oexec)
                found = found + 1
             if os.path.isfile("%s.BRIK.gz" % self.ppv()):
-               sv = shell_com("mv %s %s/" % (self.brickgz(), path))
+               sv = shell_com("mv %s %s/" % (self.brickgz(), path), oexec)
                found = found + 1         
             if os.path.isfile("%s.BRIK.bz2" % self.ppv()):
-               sv = shell_com("mv %s %s/" % (self.brickbz2(), path))
+               sv = shell_com("mv %s %s/" % (self.brickbz2(), path), oexec)
                found = found + 1 
             if os.path.isfile("%s.BRIK.Z" % self.ppv()):
-               sv = shell_com("mv %s %s/" % (self.brickZ(), path))
+               sv = shell_com("mv %s %s/" % (self.brickZ(), path), oexec)
                found = found + 1 
             if (found > 0):
                self.new_path(path)
-               if ( not self.exist() ):
+               if ( not self.exist() and oexec != "dry_run"):
                   print "Error: Move to %s failed" % (self.ppv())
                   return 0
             else:
@@ -109,11 +109,11 @@ class afni_name:
                return 0
          else:
             if os.path.isfile("%s" % self.ppve()):
-               sv = shell_com("mv %s %s/" % (self.ppve(), path))
+               sv = shell_com("mv %s %s/" % (self.ppve(), path), oexec)
                found = found + 1
             if (found > 0):
                self.new_path(path)
-               if ( not self.exist() ):
+               if ( not self.exist() and oexec != "dry_run"):
                   print "Error: Move to %s failed" % (self.ppv())
                   return 0
             else:
@@ -290,17 +290,26 @@ class shell_com:
       else:
          print "#............. not executed."
          sys.stdout.flush()
-   def val(self, i):
+   def val(self, i, j=-1): #return the jth string from the ith line of output. if j=-1, return all ith line
       if not self.exc:
-         print "Command not executed"
+         print "Error: Command not executed"
          return None
       elif len(self.so) == 0:
-         print "Empty output."
+         print "Error: Empty output."
          return None
       elif len(self.so) <= i:
-         print "Index %d larger than number of elements (%d) in output " %  \
+         print "Error: First index i=%d >= to number of elements (%d) in output " %  \
                (i, len(self.so))
          return None
+      
+      if j>= 0:
+         l = string.split(self.so[i])
+         if len(l) <= j:
+            print "Error: Second index j=%d is >= to number of elements (%d) in %dth line of output" % \
+                     (j, len(l), i)
+            return None
+         else:
+            return l[j]
       else:
          return self.so[i]
 

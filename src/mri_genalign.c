@@ -590,8 +590,16 @@ void GA_do_dots(int x){ GA_reset_fit_callback( (x)?GA_fitter_dotter:NULL ); }
 void GA_fitter_coster(int n, double *mpar){
   printf(" + Cost=%g\r",fit_vbest); fflush(stdout);
 }
-
-void GA_do_cost(int x){ GA_reset_fit_callback( (x)?GA_fitter_coster:NULL ); }
+void GA_fitter_coster_tab(int n, double *mpar){
+  printf(" + Cost=%g\t",fit_vbest); fflush(stdout);
+}
+void GA_do_cost(int x, byte use_tab){ 
+   if (use_tab) {
+      GA_reset_fit_callback( (x)?GA_fitter_coster_tab:NULL ); 
+   } else {
+      GA_reset_fit_callback( (x)?GA_fitter_coster:NULL ); 
+   }
+}
 
 /*---------------------------------------------------------------------------*/
 /*! Fit metric for matching base and target image value pairs.

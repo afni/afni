@@ -29,7 +29,7 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 static float wt_medsmooth = 2.25f ;   /* for mri_weightize() */
 static float wt_gausmooth = 4.50f ;
 
-static int verb           = 1 ;       /* somewhat on by default */
+static int verb           = 1 ;       /* somewhat on by default (please keep this the default: ZSS) */
 
 MRI_IMAGE * mri_weightize( MRI_IMAGE *, int , int ) ;  /* prototype */
 
@@ -134,6 +134,7 @@ int main( int argc , char *argv[] )
    float powell_mm             = 0.0f ;
    float powell_aa             = 0.0f ;
    float conv_mm               = 0.05 ;         /* millimeters */
+   float nmask_frac            = -1.0;          /* default settings for fraction of voxels to use */
    int matorder                = MATORDER_SDU ; /* matrix mult order */
    int smat                    = SMAT_LOWER ;   /* shear matrix triangle */
    int dcode                   = DELTA_AFTER ;  /* shift after */
@@ -680,6 +681,15 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
+     /*-----*/
+
+     if( strncmp(argv[iarg],"-weight_frac",11) == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       nmask_frac = atof( argv[iarg] ) ;
+       if( nmask_frac < 0.0f || nmask_frac > 1.0f ) ERROR_exit("-weight_frac must be between 0.0 and 1.0 (have '%s')",argv[iarg]);
+       iarg++ ; continue ;
+     }
+       
     /*-----*/
 
      if( strncmp(argv[iarg],"-weight",6) == 0 ){
@@ -691,8 +701,8 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+       
      /*-----*/
-
      if( strncmp(argv[iarg],"-autoweight",8) == 0 ){
        if( dset_weig != NULL ) ERROR_exit("Can't use -autoweight AND -weight!") ;
        auto_weight = 1 ; auto_string = "-autoweight" ; iarg++ ; continue ;
@@ -1645,11 +1655,14 @@ int main( int argc , char *argv[] )
    }
 
    /* number of points to use for matching */
-
-   ntask = DSET_NVOX(dset_targ) ;
-   ntask = (ntask < nmask) ? (int)sqrt(ntask*(double)nmask) : nmask ;
-   if( npt_match < 0 )   npt_match = (int)(-0.01f*npt_match*ntask) ;
-   if( npt_match < 666 ) npt_match = 666 ;
+   if (nmask_frac < 0) {
+      ntask = DSET_NVOX(dset_targ) ;
+      ntask = (ntask < nmask) ? (int)sqrt(ntask*(double)nmask) : nmask ;
+      if( npt_match < 0 )   npt_match = (int)(-0.01f*npt_match*ntask) ;
+      if( npt_match < 666 ) npt_match = 666 ;
+   } else {
+      npt_match = (int)(nmask_frac*(double)nmask);
+   }   
    if( verb ) INFO_message("Number of points for matching = %d",npt_match) ;
 
    /*------ setup alignment structure parameters ------*/
@@ -2207,12 +2220,12 @@ int main( int argc , char *argv[] )
 
      /* now do the final final optimization, with the correct interp mode */
 
-     if( verb > 2 ) GA_do_cost(1);
+     if( verb > 2 ) GA_do_cost(1, (byte)(verb-2));
 
      nfunc += mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
 
      if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ;
-     if( verb > 2 ) GA_do_cost(0);
+     if( verb > 2 ) GA_do_cost(0, (byte)(verb-2));
      if( verb > 1 ) ININFO_message("- Fine CPU time = %.1f s",
                                    COX_cpu_time()-ctim) ;
      if( verb ) ININFO_message("- Fine Optimization took %d trials; final cost=%f",
