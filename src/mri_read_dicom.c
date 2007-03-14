@@ -559,11 +559,26 @@ ENTRY("mri_read_dicom") ;
 
      if( epos[E_SLICE_SPACING] != NULL ){                  /* get reported slice spacing */
        ddd = strstr(epos[E_SLICE_SPACING],"//") ;
-       if( ddd != NULL ) sscanf( ddd+2 , "%f" , &sp ) ;
+       if( ddd != NULL ) {
+          if(*(ddd+2)=='\n'){  /* catch carriage returns - Jeff Gunter via DRG 3/14/2007 */
+	     sp = 0.0;   /* probably should write this as function to check on all DICOM fields*/
+	  }
+	  else {
+	     sscanf( ddd+2 , "%f" , &sp ) ;
+	     }
+	}     
      }
+
      if( epos[E_SLICE_THICKNESS] != NULL ){                /* get reported slice thickness */
        ddd = strstr(epos[E_SLICE_THICKNESS],"//") ;
-       if( ddd != NULL ) sscanf( ddd+2 , "%f" , &th ) ;
+       if( ddd != NULL ) {
+          if(*(ddd+2)=='\n'){
+	     th = 0.0;
+	  }
+	  else {
+	     sscanf( ddd+2 , "%f" , &th ) ;
+	     }
+       }
      }
 
      th = fabs(th) ; sp = fabs(sp) ;                       /* we don't use the sign */
