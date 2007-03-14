@@ -58,7 +58,7 @@ INSTALL_PREREQ = suma_gts
 
 # for static linking to Motif, dynamic to all else
 
-LLIBS  = -lmri /usr/lib/libXm.a -lXft -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -ljpeg -lpng $(LZLIB) -lm  -ldl -lc
+LLIBS  = -lmri /usr/lib/libXm.a -lXm -lXft -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -ljpeg -lpng $(LZLIB) -lm  -ldl -lc
 
 # for static linking, as far as possible
 
