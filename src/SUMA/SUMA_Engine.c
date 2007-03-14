@@ -2137,9 +2137,11 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             if (NI_get_attribute(EngineData->ngr, "Dim")) {
                char stmp[50];
                NI_GET_FLOAT(EngineData->ngr, "Dim", ftmp);
-               SO->SurfCont->ColPlaneDimFact->value = ftmp;
-               sprintf(stmp,"%.1f", ftmp);
-               SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneDimFact->textfield, stmp); 
+               if (SO->SurfCont && SO->SurfCont->ColPlaneDimFact) {
+                  SO->SurfCont->ColPlaneDimFact->value = ftmp;
+                  sprintf(stmp,"%.1f", ftmp);
+                  SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneDimFact->textfield, stmp); 
+               }
                /* inefficient implementation, but avoids duplicate code... */
                SUMA_ColPlane_NewDimFact((void*)SO);
             }
@@ -2595,6 +2597,10 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
    /* OK, now, switch on that command and create the Engine structure */
    switch (cc) {
        case SE_niSetSurfCont:
+         if (!SO->SurfCont) {
+            SUMA_S_Err("Unexpected NULL SurfCont\nPlease report error to author.");
+            SUMA_RETURN(Ret);
+         }
          if (!SO->SurfCont->TopLevelShell) { /* better have a controller before going crazy */
             ED = SUMA_InitializeEngineListData (SE_OpenSurfCont);
             if (!SUMA_RegisterEngineListCommand (  list, ED,

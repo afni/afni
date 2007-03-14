@@ -4459,6 +4459,8 @@ SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_SurfaceObject *SO)
    
    SUMA_ENTRY;
    
+   if (!SO->SurfCont) SUMA_RETURN(NOPE);
+   
    SUMA_LH("Called");
    /* find out which surfaces are related to SO */
    for (i=0; i<SUMAg_N_DOv; ++i) {
@@ -5807,7 +5809,8 @@ void SUMA_ColPlane_NewDimFact (void *data)
    SUMA_LH("Called");
    
    SO = (SUMA_SurfaceObject *)data;
-
+   if (!SO->SurfCont || !SO->SurfCont->curColPlane ) SUMA_RETURNe;
+   
    /* change the value of the dimfact */
    SO->SurfCont->curColPlane->DimFact = SO->SurfCont->ColPlaneDimFact->value; 
    if (SO->SurfCont->curColPlane->OptScl) 

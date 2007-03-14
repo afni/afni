@@ -4524,7 +4524,7 @@ SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_SurfaceObject *SO)
 
    SUMA_ENTRY;
 
-   if (!SO) SUMA_RETURN(NOPE);
+   if (!SO || !SO->SurfCont) SUMA_RETURN(NOPE);
 
    Sover = SO->SurfCont->curColPlane;
    if (!Sover) {
