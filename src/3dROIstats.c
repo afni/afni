@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 	       "   input dataset.  Across each line will be every statistic for\n"
 	       "   every mask value.  For instance, if there 3 mask values (1,2,3),\n"
 	       "   then the columns Mean_1, Mean_2 and Mean_3 will refer to the\n"
-	       "   means across each mask value, respectively.  If 4 statics are\n"
+	       "   means across each mask value, respectively.  If 4 statistics are\n"
 	       "   requested, then there will be 12 stats displayed on each line\n"
 	       "   (4 for each mask region), besides the file and sub-brick number.\n"
 	       "\n"
