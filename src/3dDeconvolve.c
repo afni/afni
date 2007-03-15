@@ -721,6 +721,7 @@ void display_help_menu()
     "     'POLY(b,c,n)' = n parameter polynomial expansion                  \n"
     "     'SIN(b,c,n)'  = n parameter sine series expansion                 \n"
     "     'TENT(b,c,n)' = n parameter tent function expansion               \n"
+    "     'CTENT(b,c,n)'= n parameter curved tent function expansion        \n"
     "     'BLOCK(d,p)'  = 1 parameter block stimulus of duration 'd'        \n"
     "                     (can also be called 'IGFUN' which stands)         \n"
     "                     (for 'incomplete gamma function'        )         \n"
@@ -5535,7 +5536,9 @@ ENTRY("attach_sub_brick") ;
    }
 
    /*----- edit the sub-brick -----*/
-   EDIT_BRICK_LABEL (new_dset, ibrick, brick_label);
+   if( brick_label != NULL && *brick_label != '\0' )
+     EDIT_BRICK_LABEL (new_dset, ibrick, brick_label);
+
    EDIT_BRICK_FACTOR(new_dset, ibrick, factor);
 
    switch( brick_type ){
@@ -5802,7 +5805,7 @@ void write_bucket_data
               sprintf (brick_label, "%s %s%d t-st",
                      label,blab, icoef % (polort+1));
 #else
-              sprintf( brick_label, "%s_Tst" , COLUMN_LABEL(icoef) ) ;
+              sprintf( brick_label, "%s_Tstat" , COLUMN_LABEL(icoef) ) ;
 #endif
               volume = tcoef_vol[icoef];
               attach_sub_brick (new_dset, ibrick, volume, nxyz,
@@ -5870,7 +5873,7 @@ void write_bucket_data
 #ifdef USE_OLD_LABELS
                   sprintf (brick_label, "%s[%d] t-st", label, ilag);
 #else
-                  sprintf( brick_label, "%s_Tst" , COLUMN_LABEL(icoef) ) ;
+                  sprintf( brick_label, "%s_Tstat" , COLUMN_LABEL(icoef) ) ;
 #endif
                   volume = tcoef_vol[icoef];
                   attach_sub_brick (new_dset, ibrick, volume, nxyz,
@@ -5910,7 +5913,7 @@ void write_bucket_data
 #ifdef USE_OLD_LABELS
             sprintf (brick_label, "%s F-stat", label);
 #else
-            sprintf( brick_label, "%s_Fst" , label ) ;
+            sprintf( brick_label, "%s_Fstat" , label ) ;
 #endif
             volume = fpart_vol[istim];
             attach_sub_brick (new_dset, ibrick, volume, nxyz,
@@ -5944,7 +5947,11 @@ void write_bucket_data
         /*----- GLT coefficient -----*/
         ibrick++;
         brick_type = FUNC_FIM_TYPE;
+#ifdef USE_OLD_LABELS
         sprintf (brick_label, "%s LC[%d] coef", label, ilc);
+#else
+        sprintf (brick_label, "%s_GLT#%d_Coef", label, ilc);
+#endif
         volume = glt_coef_vol[iglt][ilc];
         attach_sub_brick (new_dset, ibrick, volume, nxyz,
                       brick_type, brick_label, 0, 0, 0, bar);
@@ -5955,7 +5962,11 @@ void write_bucket_data
             ibrick++;
             brick_type = FUNC_TT_TYPE;
             dof = N - p;
+#ifdef USE_OLD_LABELS
             sprintf (brick_label, "%s LC[%d] t-st", label, ilc);
+#else
+            sprintf (brick_label, "%s_GLT#%d_Tstat", label, ilc);
+#endif
             volume = glt_tcoef_vol[iglt][ilc];
             attach_sub_brick (new_dset, ibrick, volume, nxyz,
                         brick_type, brick_label, dof, 0, 0, bar);
@@ -5969,7 +5980,11 @@ void write_bucket_data
         brick_type = FUNC_BT_TYPE;
         ndof = 0.5 * glt_rows[iglt];
         ddof = 0.5 * (N - p);
+#ifdef USE_OLD_LABELS
         sprintf (brick_label, "%s R^2", label);
+#else
+        sprintf (brick_label, "%s_GLT_R^2", label);
+#endif
         volume = glt_rstat_vol[iglt];
         attach_sub_brick (new_dset, ibrick, volume, nxyz,
                       brick_type, brick_label, 0, ndof,ddof, bar);
@@ -5982,7 +5997,11 @@ void write_bucket_data
         brick_type = FUNC_FT_TYPE;
         ndof = glt_rows[iglt];
         ddof = N - p;
+#ifdef USE_OLD_LABELS
         sprintf (brick_label, "%s F-stat", label);
+#else
+        sprintf (brick_label, "%s_GLT_Fstat", label);
+#endif
         volume = glt_fstat_vol[iglt];
         attach_sub_brick (new_dset, ibrick, volume, nxyz,
                       brick_type, brick_label, 0, ndof, ddof, bar);
@@ -5999,7 +6018,11 @@ void write_bucket_data
     {
       ibrick++;
       brick_type = FUNC_FIM_TYPE;
+#ifdef USE_OLD_LABELS
       sprintf (brick_label, "Full MSE");
+#else
+      sprintf (brick_label, "Full_MSE");
+#endif
       volume = mse_vol;
       attach_sub_brick (new_dset, ibrick, volume, nxyz,
                   brick_type, brick_label, 0, 0, 0, bar);
@@ -6012,7 +6035,11 @@ void write_bucket_data
       brick_type = FUNC_BT_TYPE;
       ndof = 0.5*(p - q);
       ddof = 0.5*(N - p);
+#ifdef USE_OLD_LABELS
       sprintf (brick_label, "Full R^2");
+#else
+      sprintf (brick_label, "Full_R^2");
+#endif
       volume = rfull_vol;
       attach_sub_brick (new_dset, ibrick, volume, nxyz,
                   brick_type, brick_label, 0, ndof,ddof, bar);
@@ -6025,7 +6052,11 @@ void write_bucket_data
       brick_type = FUNC_FT_TYPE;
       ndof = p - q;
       ddof = N - p;
+#ifdef USE_OLD_LABELS
       sprintf (brick_label, "Full F-stat");
+#else
+      sprintf (brick_label, "Full_Fstat");
+#endif
       volume = ffull_vol;
       attach_sub_brick (new_dset, ibrick, volume, nxyz,
                   brick_type, brick_label, 0, ndof, ddof, bar);
@@ -7685,14 +7716,22 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
    for( iglt=0 ; iglt < num_glt ; iglt++ ){
 
      for( ilc=0 ; ilc < glt_rows[iglt] ; ilc++ ){
+#ifdef USE_OLD_LABELS
        sprintf( brick_label , "%s LC[%d] coef" , glt_label[iglt], ilc ) ;
+#else
+       sprintf (brick_label, "%s_GLT#%d_Coef", glt_label[iglt], ilc);
+#endif
        volume = glt_coef_vol[iglt][ilc];
        attach_sub_brick( dset_buck, ivol, volume, nxyz,
                          FUNC_FIM_TYPE, brick_label, 0, 0, 0, NULL);
        free((void *)volume) ; ivol++ ;
 
        if( tout ){
+#ifdef USE_OLD_LABELS
          sprintf( brick_label , "%s LC[%d] t-st" , glt_label[iglt], ilc ) ;
+#else
+         sprintf (brick_label, "%s_GLT#%d_Tstat", glt_label[iglt], ilc);
+#endif
          volume = glt_tcoef_vol[iglt][ilc];
          attach_sub_brick( dset_buck, ivol, volume, nxyz,
                            FUNC_TT_TYPE, brick_label, nt-np, 0, 0, NULL);
@@ -7702,7 +7741,11 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 
      if( rout ){
        float a,b ;
+#ifdef USE_OLD_LABELS
        sprintf( brick_label , "%s R^2" , glt_label[iglt] ) ;
+#else
+       sprintf( brick_label , "%s_GLT_R^2" , glt_label[iglt] ) ;
+#endif
        volume = glt_rstat_vol[iglt];
        a = 0.5*glt_rows[iglt] ; b = 0.5*(nt-np) ;
        attach_sub_brick( dset_buck, ivol, volume, nxyz,
@@ -7711,7 +7754,11 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
      }
 
      if( fout ){
+#ifdef USE_OLD_LABELS
        sprintf( brick_label , "%s F-stat" , glt_label[iglt] ) ;
+#else
+       sprintf( brick_label , "%s_GLT_Fstat" , glt_label[iglt] ) ;
+#endif
        volume = glt_fstat_vol[iglt];
        attach_sub_brick( dset_buck, ivol, volume, nxyz,
                          FUNC_FT_TYPE, brick_label, 0, glt_rows[iglt], nt-np, NULL);
@@ -7855,6 +7902,25 @@ static float basis_tent( float x, float bot, float mid, float top, void *q )
    if( x <= bot || x >= top ) return 0.0f ;
    if( x <= mid )             return (x-bot)/(mid-bot) ;
                               return (top-x)/(top-mid) ;
+}
+
+/*--------------------------------------------------------------------------*/
+#undef  CT
+#define CT(x) (1.0-2.0*(x)*(x)+(x)*(x)*(x))  /* 1 - 2x^2 + x^3 */
+/*--------------------------------------------------------------------------*/
+/*! Curved Tent basis function:
+     - 0 for x outside bot..top range
+     - piecewise cubic and equal to 1 at x=mid
+----------------------------------------------------------------------------*/
+
+static float basis_ctent( float x, float bot, float mid, float top, void *q )
+{
+   float y ;
+   if( x <= bot || x >= top ) return 0.0f ;
+
+   y = (x >= mid) ? (x-mid)/(top-mid)     /* 0..1 from mid..top */
+                  : (mid-x)/(mid-bot) ;   /* 0..1 from mid..bot */
+   return CT(y) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -8187,6 +8253,44 @@ basis_expansion * basis_parser( char *sym )
        be->bfunc[nn].c = bot + (nn+1)*dx ;
      }
      be->bfunc[nord-1].f = basis_tent ;
+     be->bfunc[nord-1].a = bot + (nord-2)*dx ;
+     be->bfunc[nord-1].b = top ;
+     be->bfunc[nord-1].c = top + 0.001*dx ;
+
+   /*--- CTENT(bot,top,order) ---*/
+
+   } else if( strcmp(scp,"CTENT") == 0 ){   /* 15 Mar 2007 */
+     float dx ;
+
+     if( cpt == NULL ){
+       ERROR_message("'CTENT' by itself is illegal") ;
+       ERROR_message(
+        " Correct format: 'CTENT(bot,top,n)' with bot < top and n > 0.") ;
+       free((void *)be); free(scp); return NULL;
+     }
+     sscanf(cpt,"%f,%f,%d",&bot,&top,&nord) ;
+     if( bot >= top || nord < 2 ){
+       ERROR_message("'CTENT(%s' is illegal",cpt) ;
+       ERROR_message(
+        " Correct format: 'CTENT(bot,top,n)' with bot < top and n > 1.") ;
+       free((void *)be); free(scp); return NULL;
+     }
+     be->nfunc = nord ;
+     be->tbot  = bot  ; be->ttop = top ;
+     be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
+     dx        = (top-bot) / (nord-1) ;
+
+     be->bfunc[0].f = basis_ctent ;
+     be->bfunc[0].a = bot-0.001*dx ;
+     be->bfunc[0].b = bot ;
+     be->bfunc[0].c = bot+dx ;
+     for( nn=1 ; nn < nord-1 ; nn++ ){
+       be->bfunc[nn].f = basis_ctent ;
+       be->bfunc[nn].a = bot + (nn-1)*dx ;
+       be->bfunc[nn].b = bot +  nn   *dx ;
+       be->bfunc[nn].c = bot + (nn+1)*dx ;
+     }
+     be->bfunc[nord-1].f = basis_ctent ;
      be->bfunc[nord-1].a = bot + (nord-2)*dx ;
      be->bfunc[nord-1].b = top ;
      be->bfunc[nord-1].c = top + 0.001*dx ;
