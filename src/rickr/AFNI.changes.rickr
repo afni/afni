@@ -1991,3 +1991,5 @@
           (moving 7 protos to nifticdf.h, and all but main to nifticdf.c)
           (keep all static and __COMPILE_UNUSED_FUNCTIONS__ use)
 
+15 Mar 2007: mod afni_proc.py, db_mod.py: use x1D suffix, removed -full_first
+
