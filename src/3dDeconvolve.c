@@ -2737,7 +2737,7 @@ fprintf(stderr,"\n") ;
             switch( btyp ){
               default:                   z1 = 1.0f ;                   break;
               case BASIS_MODULATED_MONO: z1 = zar[kk] ;                break;
-              case BASIS_MODULATED_PAIR: z1 = zbar; z2 = zar[kk]-zbar; break;
+              case BASIS_MODULATED_PAIR: z1 = 1.0f; z2 = zar[kk]-zbar; break;
             }
           }
 
