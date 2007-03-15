@@ -6172,3 +6172,7 @@
 
 14 Mar 2007
  * New program 1dMarry.c.
+
+15 Mar 2007
+ * Added CTENT() to 3dDeconvolve.c, for experimental purposes.
+ * Modified bucket labels in 3dDeconvolve.c to be clearer (to me, anyhoo).
