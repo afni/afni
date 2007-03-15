@@ -1000,12 +1000,15 @@ g_history = """
          - added optional 'despike' block
          - added options -do_block and -despike_opts_3dDes
     1.17 Feb 27, 2007 :
-         -volreg_align_to defaults to 'third' (was 'first')
-         -added +orig to despike input
-         -added 'empty' block type, for a placeholder
+         - volreg_align_to defaults to 'third' (was 'first')
+         - added +orig to despike input
+         - added 'empty' block type, for a placeholder
+    1.18 Mar 15, 2007 : minor changes
+         - x1D output file uses x1D suffix
+         - removed now unneeded -full_first option in 3dDeconvolve
 """
 
-g_version = "version 1.17, February 27, 2007"
+g_version = "version 1.18, March 15 (the ides of March, oooooh...), 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
