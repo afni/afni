@@ -682,6 +682,8 @@ void display_help_menu()
     "                       deconvolution procedure. (default = last point) \n"
     "[-polort pnum]       pnum = degree of polynomial corresponding to the  \n"
     "                       null hypothesis  (default: pnum = 1)            \n"
+    "                       If you use 'A' for pnum, the program will       \n"
+    "                       automatically choose a value.                   \n"
     "[-legendre]          use Legendre polynomials for null hypothesis      \n"
     "[-nolegendre]        use power polynomials for null hypotheses         \n"
     "                       (default is -legendre)                          \n"
@@ -1382,9 +1384,13 @@ void get_options
       {
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -polort ");
-        ival = -2 ; sscanf (argv[nopt], "%d", &ival);
-        if (ival < -1)
-          DC_error ("illegal argument after -polort ");
+        if( toupper(argv[nopt][0]) == 'A' ){  /* 16 Mar 2006: Automatic */
+          ival = -666 ;
+        } else {
+          ival = -2 ; sscanf (argv[nopt], "%d", &ival);
+          if (ival < -1)
+            DC_error ("illegal argument after -polort ");
+        }
         option_data->polort = ival;
         nopt++;
         continue;
@@ -2068,14 +2074,21 @@ void get_options
     free(pref) ;
   }
 
+  if( !legendre_polort && option_data->polort == -666 ){
+    WARNING_message("-nolegendre and -polort A are incompatible!") ;
+    legendre_polort = 1 ;
+  }
+
   /**--- Test various combinations for legality [11 Aug 2004] ---**/
 
+#if 0
   if (option_data->input1D_TR > 0.0 && !option_data->input1D_filename) {
     option_data->input1D_TR = 0.0;
     if( verb ) WARNING_message("-TR_1D is meaningless without -input1D");
   }
+#endif
 
-  if( option_data->polort < 0 ) demean_base = 0 ;  /* 12 Aug 2004 */
+  if( option_data->polort == -1 ) demean_base = 0 ;  /* 12 Aug 2004 */
 
   nerr = 0 ;
   for( k=0 ; k < option_data->num_stimts ; k++ ){
@@ -2262,6 +2275,7 @@ void read_input_data
   column_metadata cd ;     /* 05 Mar 2007 */
   int nblk,npol , p1,nc ;
   unsigned int mk,gp ;
+  float dtloc=0.0f ;
 
 
 ENTRY("read_input_data") ;
@@ -2362,6 +2376,8 @@ ENTRY("read_input_data") ;
       if( option_data->num_slice_base > 0 )
         ERROR_exit("'-nodata' and '-slice_base' are incompatible!") ;
 
+      if( option_data->nodata_TR > 0.0 ) dtloc = option_data->nodata_TR ;
+
       if( basis_count > 0 ){
              if( option_data->nodata_TR > 0.0 ) basis_TR = option_data->nodata_TR ;
         else if( basis_dtout            > 0.0 ) basis_TR = basis_dtout ;
@@ -2411,7 +2427,8 @@ ENTRY("read_input_data") ;
       nt = *fmri_length;
       nxyz = 1;
 
-      if (option_data->input1D_TR > 0.0) basis_TR = option_data->input1D_TR;
+      if (option_data->input1D_TR > 0.0)
+        dtloc = basis_TR = option_data->input1D_TR;
       if (verb) INFO_message("1D TR is %.3f seconds", basis_TR);
    }
 
@@ -2449,9 +2466,15 @@ ENTRY("read_input_data") ;
         }
       }
 
-      basis_TR = DSET_TR(*dset_time) ;          /* 11 Aug 2004 */
+      dtloc = basis_TR = DSET_TR(*dset_time) ;          /* 11 Aug 2004 */
       if( basis_TR <= 0.0f ){
-        basis_TR = 1.0f; WARNING_message("no TR in dataset; setting TR=1 s");
+        if( option_data->input1D_TR > 0.0f ){
+          dtloc = basis_TR = option_data->input1D_TR ;
+          WARNING_message("no TR in dataset: using -TR_1D=%.3f s",dtloc) ;
+        } else {
+          dtloc = basis_TR = 1.0f;
+          WARNING_message("no TR in dataset; setting TR=1 s");
+        }
       } else if( basis_TR <= 0.10f ){
         WARNING_message("TR in dataset = %g s (less than 0.100 s) -- FYI",
                         basis_TR ) ;  /* the PSFB syndrome */
@@ -2566,6 +2589,44 @@ ENTRY("read_input_data") ;
           (*block_list)[it] = floor (f[it]+0.5);
       }
     }
+
+  /*** 16 Mar 2007:
+       estimate desirable polort level from max block duration,
+       and print warning if actual polort is smaller than this. ***/
+
+   { int nbl=*num_blocks , *bl=*block_list ;
+     int ibot , itop , ilen , lmax=0 ; float dmax ;
+     for( it=0 ; it < nbl ; it++ ){   /* find longest block */
+       ibot = bl[it] ;
+       itop = (it < nbl-1) ? bl[it+1] : nt ;
+       ilen = itop-ibot ;
+       if( ilen > lmax ) lmax = ilen ;
+     }
+     if( dtloc <= 0.0f ) dtloc = 1.0f ;
+     dmax = dtloc * lmax ;                /* duration of longest block */
+          if( dmax <= 150.0 ) ilen = 1 ;
+     else if( dmax <= 300.0 ) ilen = 2 ;
+     else                     ilen = 1+(int)floor(dmax/150.0) ;
+     switch( option_data->polort ){
+       default:                           /* user supplied non-negative polort */
+         if( option_data->polort < ilen )
+           WARNING_message(
+            "Input polort=%d; Imaging duration=%.1f s; Recommended minimum polort=%d",
+            option_data->polort , dmax , ilen ) ;
+         else
+           INFO_message(
+            "Input polort=%d; Imaging duration=%.1f s; Recommended minimum polort=%d ++ OK ++",
+            option_data->polort , dmax , ilen ) ;
+       break ;
+
+       case -1: break ;                   /* user orders no baseline at all */
+
+       case -666:                         /* user orders automatic polort */
+         INFO_message("Imaging duration=%.1f s; Automatic polort=%d",dmax,ilen) ;
+         option_data->polort = ilen ;
+       break ;
+     }
+   }
 
   /*-- Create timing for each -stim_times input [11 Aug 2004] --*/
   /*-- Modified to deal with amplitude modulation [08 Mar 2007] --*/
@@ -7906,13 +7967,14 @@ static float basis_tent( float x, float bot, float mid, float top, void *q )
                               return (top-x)/(top-mid) ;
 }
 
+#if 0
 /*--------------------------------------------------------------------------*/
 #undef  CT
 #undef  CA
 #define CA    0.2f   /* slope at x=0 */
 #define CT(x) (1.0f - CA*(x) + (1.0f-CA)*(x)*(x)*(2.0f*(x)-3.0f) )
 /*--------------------------------------------------------------------------*/
-/*! Curved Tent basis function: [15 Mar 2007]
+/*! Curved Tent (CTENT) basis function: [15 Mar 2007]
      - 0 for x outside bot..top range
      - piecewise cubic and equal to 1 at x=mid
 ----------------------------------------------------------------------------*/
@@ -7926,9 +7988,9 @@ static float basis_ctent( float x, float bot, float mid, float top, void *q )
                   : (mid-x)/(mid-bot) ;   /* 0..1 from mid..bot */
    return CT(y) ;
 }
-
 #undef CT
 #undef CA
+#endif
 
 /*--------------------------------------------------------------------------*/
 /* Basis function that is 1 inside the bot..top interval, 0 outside of it.
@@ -8263,6 +8325,7 @@ basis_expansion * basis_parser( char *sym )
      be->bfunc[nord-1].b = top ;
      be->bfunc[nord-1].c = top + 0.001*dx ;
 
+#if 0
    /*--- CTENT(bot,top,order) ---*/
 
    } else if( strcmp(scp,"CTENT") == 0 ){   /* 15 Mar 2007 */
@@ -8300,6 +8363,7 @@ basis_expansion * basis_parser( char *sym )
      be->bfunc[nord-1].a = bot + (nord-2)*dx ;
      be->bfunc[nord-1].b = top ;
      be->bfunc[nord-1].c = top + 0.001*dx ;
+#endif
 
    /*--- TRIG(bot,top,order) ---*/
 
