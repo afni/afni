@@ -723,13 +723,14 @@ void display_help_menu()
     "     'POLY(b,c,n)' = n parameter polynomial expansion                  \n"
     "     'SIN(b,c,n)'  = n parameter sine series expansion                 \n"
     "     'TENT(b,c,n)' = n parameter tent function expansion               \n"
-#if 0
-    "     'CTENT(b,c,n)'= n parameter curved tent function expansion        \n"
-#endif
     "     'BLOCK(d,p)'  = 1 parameter block stimulus of duration 'd'        \n"
     "                     (can also be called 'IGFUN' which stands)         \n"
     "                     (for 'incomplete gamma function'        )         \n"
     "     'EXPR(b,c) exp1 ... expn' = n parameter; arbitrary expressions    \n"
+#define USE_CSPLIN
+#ifdef  USE_CSPLIN
+    "     'CSPLIN(b,c,n)'= n parameter cardinal spline function expansion   \n"
+#endif
     "                                                                       \n"
     "[-stim_times_AM1 k tname Rmodel]                                       \n"
     "   Similar, but generates an amplitude modulated response model.       \n"
@@ -7967,30 +7968,35 @@ static float basis_tent( float x, float bot, float mid, float top, void *q )
                               return (top-x)/(top-mid) ;
 }
 
-#if 0
+#ifdef USE_CSPLIN
 /*--------------------------------------------------------------------------*/
-#undef  CT
 #undef  CA
-#define CA    0.2f   /* slope at x=0 */
-#define CT(x) (1.0f - CA*(x) + (1.0f-CA)*(x)*(x)*(2.0f*(x)-3.0f) )
+#define CA  0.5f   /* negative of slope at x=0 */
+static float hh_csplin( float y )   /* for CSPLIN */
+{
+   float yy = fabsf(y) ;
+   if( yy >= 2.0f ) return 0.0f ;
+   if( yy >= 1.0f ) return -CA*(-4.0f+yy*(8.0f+yy*(-5.0f+yy))) ;
+   return 1.0f+yy*yy*((2.0f-CA)*yy-(3.0f-CA)) ;
+}
+#undef CA
 /*--------------------------------------------------------------------------*/
-/*! Curved Tent (CTENT) basis function: [15 Mar 2007]
-     - 0 for x outside bot..top range
-     - piecewise cubic and equal to 1 at x=mid
+/*! CSPLIN: Cardinal spline basis function: [15 Mar 2007]
 ----------------------------------------------------------------------------*/
 
-static float basis_ctent( float x, float bot, float mid, float top, void *q )
+static float basis_csplin( float x, float a, float dx, float flag, void *q )
 {
-   float y ;
-   if( x <= bot || x >= top ) return 0.0f ;
-
-   y = (x >= mid) ? (x-mid)/(top-mid)     /* 0..1 from mid..top */
-                  : (mid-x)/(mid-bot) ;   /* 0..1 from mid..bot */
-   return CT(y) ;
+   float y=(x-a)/dx , bot=-2.0f , top=2.0f ; int gg=(int)flag ;
+   switch(gg){
+     case -2: bot =  0.0f ; break ;  /* at left edge */
+     case -1: bot = -1.0f ; break ;  /* 1 in from left edge */
+     case  1: top =  1.0f ; break ;  /* 1 in from right edge */
+     case  2: top =  0.0f ; break ;  /* at right edge */
+   }
+   if( y < bot || y > top ) return 0.0f ;
+   return hh_csplin(y) ;
 }
-#undef CT
-#undef CA
-#endif
+#endif /* USE_CSPLIN */
 
 /*--------------------------------------------------------------------------*/
 /* Basis function that is 1 inside the bot..top interval, 0 outside of it.
@@ -8325,23 +8331,23 @@ basis_expansion * basis_parser( char *sym )
      be->bfunc[nord-1].b = top ;
      be->bfunc[nord-1].c = top + 0.001*dx ;
 
-#if 0
-   /*--- CTENT(bot,top,order) ---*/
+#ifdef USE_CSPLIN
+   /*--- CSPLIN(bot,top,order) ---*/
 
-   } else if( strcmp(scp,"CTENT") == 0 ){   /* 15 Mar 2007 */
+   } else if( strcmp(scp,"CSPLIN") == 0 ){   /* 15 Mar 2007 */
      float dx ;
 
      if( cpt == NULL ){
-       ERROR_message("'CTENT' by itself is illegal") ;
+       ERROR_message("'CSPLIN' by itself is illegal") ;
        ERROR_message(
-        " Correct format: 'CTENT(bot,top,n)' with bot < top and n > 0.") ;
+        " Correct format: 'CSPLIN(bot,top,n)' with bot < top and n > 3.") ;
        free((void *)be); free(scp); return NULL;
      }
      sscanf(cpt,"%f,%f,%d",&bot,&top,&nord) ;
-     if( bot >= top || nord < 2 ){
-       ERROR_message("'CTENT(%s' is illegal",cpt) ;
+     if( bot >= top || nord < 4 ){
+       ERROR_message("'CSPLIN(%s' is illegal",cpt) ;
        ERROR_message(
-        " Correct format: 'CTENT(bot,top,n)' with bot < top and n > 1.") ;
+        " Correct format: 'CSPLIN(bot,top,n)' with bot < top and n > 3.") ;
        free((void *)be); free(scp); return NULL;
      }
      be->nfunc = nord ;
@@ -8349,21 +8355,17 @@ basis_expansion * basis_parser( char *sym )
      be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
      dx        = (top-bot) / (nord-1) ;
 
-     be->bfunc[0].f = basis_ctent ;
-     be->bfunc[0].a = bot-0.001*dx ;
-     be->bfunc[0].b = bot ;
-     be->bfunc[0].c = bot+dx ;
-     for( nn=1 ; nn < nord-1 ; nn++ ){
-       be->bfunc[nn].f = basis_ctent ;
-       be->bfunc[nn].a = bot + (nn-1)*dx ;
-       be->bfunc[nn].b = bot +  nn   *dx ;
-       be->bfunc[nn].c = bot + (nn+1)*dx ;
+     for( nn=0 ; nn < nord ; nn++ ){
+       be->bfunc[nn].f = basis_csplin ;
+       be->bfunc[nn].a = bot +  nn*dx ;
+       be->bfunc[nn].b = dx ;
+       be->bfunc[nn].c = 0.0f ;
      }
-     be->bfunc[nord-1].f = basis_ctent ;
-     be->bfunc[nord-1].a = bot + (nord-2)*dx ;
-     be->bfunc[nord-1].b = top ;
-     be->bfunc[nord-1].c = top + 0.001*dx ;
-#endif
+     be->bfunc[0].c      = -2.0f ;  /* edge markers */
+     be->bfunc[1].c      = -1.0f ;
+     be->bfunc[nord-2].c =  1.0f ;
+     be->bfunc[nord-1].c =  2.0f ;
+#endif /* USE_CSPLIN */
 
    /*--- TRIG(bot,top,order) ---*/
 

@@ -6179,3 +6179,4 @@
 
 16 Mar 2007
  * -polort A and polort degree warning message.
+ * Change CTENT() to CSPLIN().
