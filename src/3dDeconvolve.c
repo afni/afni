@@ -721,7 +721,9 @@ void display_help_menu()
     "     'POLY(b,c,n)' = n parameter polynomial expansion                  \n"
     "     'SIN(b,c,n)'  = n parameter sine series expansion                 \n"
     "     'TENT(b,c,n)' = n parameter tent function expansion               \n"
+#if 0
     "     'CTENT(b,c,n)'= n parameter curved tent function expansion        \n"
+#endif
     "     'BLOCK(d,p)'  = 1 parameter block stimulus of duration 'd'        \n"
     "                     (can also be called 'IGFUN' which stands)         \n"
     "                     (for 'incomplete gamma function'        )         \n"
@@ -7906,9 +7908,11 @@ static float basis_tent( float x, float bot, float mid, float top, void *q )
 
 /*--------------------------------------------------------------------------*/
 #undef  CT
-#define CT(x) (1.0-2.0*(x)*(x)+(x)*(x)*(x))  /* 1 - 2x^2 + x^3 */
+#undef  CA
+#define CA    0.2f   /* slope at x=0 */
+#define CT(x) (1.0f - CA*(x) + (1.0f-CA)*(x)*(x)*(2.0f*(x)-3.0f) )
 /*--------------------------------------------------------------------------*/
-/*! Curved Tent basis function:
+/*! Curved Tent basis function: [15 Mar 2007]
      - 0 for x outside bot..top range
      - piecewise cubic and equal to 1 at x=mid
 ----------------------------------------------------------------------------*/
@@ -7922,6 +7926,9 @@ static float basis_ctent( float x, float bot, float mid, float top, void *q )
                   : (mid-x)/(mid-bot) ;   /* 0..1 from mid..bot */
    return CT(y) ;
 }
+
+#undef CT
+#undef CA
 
 /*--------------------------------------------------------------------------*/
 /* Basis function that is 1 inside the bot..top interval, 0 outside of it.
@@ -8151,7 +8158,6 @@ static float basis_legendre( float x, float bot, float top, float n, void *q )
 #undef  POLY_MAX
 #define POLY_MAX 9  /* max order allowed in function above */
 
-
 /*--------------------------------------------------------------------------*/
 #define ITT 19
 #define IXX 23
@@ -8367,14 +8373,16 @@ basis_expansion * basis_parser( char *sym )
      if( cpt == NULL ){
        ERROR_message("'POLY' by itself is illegal") ;
        ERROR_message(
-        " Correct format: 'POLY(bot,top,n)' with bot < top and n > 0.") ;
+        " Correct format: 'POLY(bot,top,n)' with bot<top and n>0 and n<%d",
+        POLY_MAX+1) ;
        free((void *)be); free(scp); return NULL;
      }
      sscanf(cpt,"%f,%f,%d",&bot,&top,&nord) ;
      if( bot >= top || nord < 1 || nord > POLY_MAX ){
        ERROR_message("'POLY(%s' is illegal",cpt) ;
        ERROR_message(
-        " Correct format: 'POLY(bot,top,n)' with bot < top and n > 0.") ;
+        " Correct format: 'POLY(bot,top,n)' with bot<top and n>0 and n<%d",
+        POLY_MAX+1) ;
        free((void *)be); free(scp); return NULL;
      }
      be->nfunc = nord ;
