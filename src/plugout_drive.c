@@ -437,10 +437,13 @@ int afni_io(void)
          }
          I_com++ ;
       } else {
+         char *qpt ;
          if (DontWait) exit(0);
          /* get user input */
 
-         printf("Enter command: ") ; fflush(stdout) ; fgets(cmd_buf,PLUGOUT_COM_LENGTH,stdin) ;
+         printf("Enter command: ") ; fflush(stdout) ;
+         qpt = fgets(cmd_buf,PLUGOUT_COM_LENGTH,stdin) ;
+         if( qpt == NULL ) exit(0) ;  /* 18 Mar 2007 */
 
          /* make command to AFNI */
 
