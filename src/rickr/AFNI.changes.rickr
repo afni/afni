@@ -1992,4 +1992,5 @@
           (keep all static and __COMPILE_UNUSED_FUNCTIONS__ use)
 
 15 Mar 2007: mod afni_proc.py, db_mod.py: use x1D suffix, removed -full_first
+19 Mar 2007: modified afni_proc.py: allow dataset TR stored in depreciated ms
 
