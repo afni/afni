@@ -1003,12 +1003,13 @@ g_history = """
          - volreg_align_to defaults to 'third' (was 'first')
          - added +orig to despike input
          - added 'empty' block type, for a placeholder
-    1.18 Mar 15, 2007 : minor changes
+    1.18 Mar 15, 2007 : minor changes on the ides of March (oooooooh...)
          - x1D output file uses x1D suffix
          - removed now unneeded -full_first option in 3dDeconvolve
+    1.19 Mar 19, 2007: allow for dataset TR stored in depreciated ms
 """
 
-g_version = "version 1.18, March 15 (the ides of March, oooooh...), 2007"
+g_version = "version 1.19, March 19, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -1352,16 +1353,25 @@ class SubjProcSream:
         if self.reps < 1:
             print "** invalid nreps (%d) for dset %s" % (self.reps, dset)
             return 1
+        # and set units (to either sec (77002) or ms (77001))
+        try: units = int(list[2])
+        except: units = 77002
+        if units != 77001 and units != 77002: units = 77002
 
         list = read_attribute(dset, 'TAXIS_FLOATS')
         if list == None: return 1
         try: self.tr = float(list[1])
         except:
-            print "** TR '%s' is not an int?" % list[0]
+            print "** TR '%s' is not a float?" % list[0]
             return 1
+        # specify units in string
+        if units == 77001: unit_str = 'ms'
+        else             : unit_str = 's'
 
-        if self.verb > 1: print '(reps, runs, tr) = (%d, %d, %f)' %  \
-                                 (self.reps, self.runs, self.tr)
+        if self.verb > 1: print '(reps, runs, tr) = (%d, %d, %s%s)' %  \
+                                 (self.reps, self.runs, str(self.tr), unit_str)
+        # and adjust TR
+        if units == 77001: self.tr /= 1000.0
 
     # create a new block for the given label, and append it to 'blocks'
     def add_block(self, label):
