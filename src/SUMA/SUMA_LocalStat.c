@@ -7,7 +7,15 @@ extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv; 
 extern int SUMAg_N_DOv;  
 
-static int BuildMethod;
+static int BuildMethod = SUMA_OFFSETS2_NO_REC;
+
+void SUMA_SurfClust_Set_Method(int m)
+{
+   BuildMethod = m;
+   return;
+}
+int SUMA_SurfClust_Get_Method(void) 
+{ return(BuildMethod); }
 
 void SUMA_FreeClustDatum (void * data)
 {
@@ -427,7 +435,8 @@ DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni, float *nv, int N_ni,
       } else if (BuildMethod == SUMA_OFFSETS2 || BuildMethod == SUMA_OFFSETS_LL) {
          Clust = SUMA_Build_Cluster_From_Node(dothisnode, NULL, ToBeAssigned, &N_n, NodeArea, SO, Opt);
       } else {
-         SUMA_SL_Err("No Such Method!");
+         SUMA_S_Errv("No Such Method (%d)!\n", BuildMethod);
+         SUMA_DUMP_TRACE(FuncName);
          SUMA_RETURN(list);
       }
       if (!Clust) {

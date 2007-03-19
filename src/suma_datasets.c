@@ -7957,7 +7957,7 @@ char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove)
    }
    next = strlen(ext);
    
-   if (next > nfilename) {
+   if (next > nfilename && Remove) {
       ans = (char *)SUMA_malloc((nfilename+1)*sizeof(char));
       ans = strcpy(ans,filename);
       SUMA_RETURN(ans);
@@ -7970,15 +7970,20 @@ char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove)
    }
    #endif
    
+   
    ifile = nfilename - next;
-   NoMatch = NOPE;
-   i = 0;
-   do {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing %c %c\n", FuncName, filename[ifile+i], ext[i]);
-      if (filename[ifile+i] != ext[i]) NoMatch = YUP;
-      ++i;
-   }  while (ifile < nfilename && i < next && !NoMatch);
-
+   if (ifile > 0) {
+      NoMatch = NOPE;
+      i = 0;
+      do {
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing %c %c\n", FuncName, filename[ifile+i], ext[i]);
+         if (filename[ifile+i] != ext[i]) NoMatch = YUP;
+         ++i;
+      }  while (ifile < nfilename && i < next && !NoMatch);
+   } else {
+      NoMatch = YUP;
+   }
+   
    if (NoMatch) {
       if (Remove) { /* nothing to do */
          SUMA_LH("NoMatch, nothing to do");
@@ -7986,7 +7991,7 @@ char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove)
          ans = strcpy(ans,filename);
          SUMA_RETURN(ans);
       } else { /* add extension */
-         SUMA_LH("NoMatch, adding extensio");
+         SUMA_LH("NoMatch, adding extension");
          ans = (char *)SUMA_malloc((nfilename+next+1)*sizeof(char));
          sprintf(ans,"%s%s", filename, ext);
          SUMA_RETURN(ans);
