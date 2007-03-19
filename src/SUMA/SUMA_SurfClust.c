@@ -425,7 +425,9 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
       SUMA_SL_Err("Bad BuildMethod");
       exit(1);
    } 
-
+   
+   SUMA_SurfClust_Set_Method(BuildMethod);
+   
    if (Opt->FullROIList && !(Opt->OutROI || Opt->OutClustDset)) {
       SUMA_SL_Err("-out_fulllist must be used in conjunction with -out_ROIdset or -out_clusterdset");
       exit(1);
