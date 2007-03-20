@@ -6180,3 +6180,7 @@
 16 Mar 2007
  * -polort A and polort degree warning message.
  * Change CTENT() to CSPLIN().
+
+20 Mar 2007
+ * MCW_discard_events_all() in xutil.c, and its application to stop
+     over-scrolling in imseq.c, et cetera.
