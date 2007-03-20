@@ -6184,3 +6184,4 @@
 20 Mar 2007
  * MCW_discard_events_all() in xutil.c, and its application to stop
      over-scrolling in imseq.c, et cetera.
+ * -nox1D in 3dDeconvolve.c.
