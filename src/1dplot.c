@@ -279,7 +279,8 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-sep") == 0 ){
         sep = 1 ; iarg++ ; continue ;
      }
-     if( strncmp(argv[iarg],"-sepsc",6) == 0 ){
+     if( strncmp(argv[iarg],"-sepsc" ,6) == 0 ||
+         strncmp(argv[iarg],"-sep_sc",7) == 0   ){
         sepscl = 1 ; iarg++ ; continue ;
      }
      if( strcmp(argv[iarg],"-one") == 0 ){
