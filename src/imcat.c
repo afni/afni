@@ -41,7 +41,7 @@ int main( int argc , char * argv[] )
              " ++ Options for editing, coloring input images:\n"
              "  -scale_image SCALE_IMG: Multiply each image IM(i,j) in output\n"
              "                          image matrix IM by the color or intensity\n"
-             "                          of the pixel (i,j) in SCALE_IMG.\\n"
+             "                          of the pixel (i,j) in SCALE_IMG.\n"
              "  -scale_intensity: Instead of multiplying by the color of \n"
              "                          pixel (i,j), use its intensity \n"
              "                          (average color)\n"
