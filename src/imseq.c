@@ -4203,6 +4203,8 @@ ENTRY("ISQ_redisplay") ;
       if( RECUR ) recur_flg = FALSE ; EXRETURN ;
    }
 
+   MCW_discard_events_all( seq->wimage , ButtonPressMask ) ;  /* 20 Mar 2007 */
+
    switch( type ){
       default: { if( RECUR ) recur_flg = FALSE ; EXRETURN ; }
 

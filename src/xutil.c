@@ -236,6 +236,19 @@ void MCW_discard_events( Widget w , int ev_mask )
 
 /*--------------------------------------------------------------------------*/
 
+void MCW_discard_events_all( Widget w , int ev_mask )
+{
+   XEvent evjunk ;
+
+   if( w == NULL || XtWindow(w) == (Window) NULL ) return ;
+
+   XSync( XtDisplay(w) , False ) ;
+   while( XCheckMaskEvent( XtDisplay(w), ev_mask , &evjunk ) ) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
 char * MCW_hotcolor(Widget w)
 {
    static char *redcolor = NULL ;
