@@ -2433,6 +2433,7 @@ ENTRY("read_input_data") ;
       *dset_time = NULL;
       nt = *fmri_length;
       nxyz = 1;
+      option_data->nobout = 0 ;
 
       if (option_data->input1D_TR > 0.0)
         dtloc = basis_TR = option_data->input1D_TR;
@@ -6160,21 +6161,28 @@ void write_one_ts
 )
 
 {
-  char filename[80];              /* output time series file name */
+  char filename[THD_MAX_NAME];    /* output time series file name */
   int it;                         /* time index */
   FILE * outfile = NULL;          /* file pointer */
 
+  if( vol_array == NULL )
+    ERROR_message("Can't output 1D file '%s' -- data array is NULL!",prefix);
 
   /*----- Create output filename by appending ".1D" -----*/
-  sprintf (filename, "%s.1D", prefix);
+
+  if( strstr(prefix,"1D") == NULL )
+    sprintf (filename, "%s.1D", prefix);
+  else
+    sprintf (filename, "%s"   , prefix);
+
   outfile = fopen (filename, "w");
 
 
   /*----- 'Volume' data consists of just one voxel -----*/
   for (it = 0;  it < ts_length;  it++)
     {
-      fprintf (outfile, "%f", vol_array[it][0]);
-      fprintf (outfile, " \n");
+      fprintf (outfile, "%f \n",
+              (vol_array[it] != NULL) ? vol_array[it][0] : 0.0 ) ;
     }
 
 

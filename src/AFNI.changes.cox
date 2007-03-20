@@ -6185,3 +6185,4 @@
  * MCW_discard_events_all() in xutil.c, and its application to stop
      over-scrolling in imseq.c, et cetera.
  * -nox1D in 3dDeconvolve.c.
+ * Make -bout be always on for 3dDeconvolve -input1D.
