@@ -1121,9 +1121,15 @@ static char *FALLback[] =
       "AFNI*XmText.translations: #augment"
            "<Btn4Down>: previous-line() scroll-one-line-down()\\n"
            "<Btn5Down>: next-line() scroll-one-line-up()"          ,
+#if 0
+      "AFNI*XmScrollBar.translations: #augment"
+           "<Btn4Down>: IncrementUpOrLeft(0)\\n"
+           "<Btn5Down>: IncrementDownOrRight(0)" ,
+#else
       "AFNI*XmScrollBar.translations: #augment"
            "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
            "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
+#endif
 
    NULL } ;
 

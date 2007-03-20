@@ -147,6 +147,8 @@ ENTRY("AFNI_thr_scale_CB") ;
                                            : REDISPLAY_OPTIONAL ;
    AFNI_set_thr_pval( im3d ) ;
 
+   MCW_discard_events_all( w , ButtonPressMask ) ;  /* 20 Mar 2007 */
+
    if( im3d->vinfo->func_pval >= 0.0 && im3d->vinfo->func_pval <= 1.0 ){
      char pstr[32] ;
      sprintf( pstr , "nominal p=%.5e" , im3d->vinfo->func_pval ) ;

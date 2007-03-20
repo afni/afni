@@ -552,6 +552,7 @@ void PH_scale_CB( Widget w , XtPointer cd , XtPointer cb )
    else if( w == PHASE_scale ) P_beta  = val ;
 
    PH_redraw() ;
+   MCW_discard_events_all( w , ButtonPressMask ) ;
 
    { char *eee = getenv("XPHACE_SNAP") ;
      if( eee != NULL && toupper(*eee) == 'Y' ){

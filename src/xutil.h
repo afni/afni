@@ -120,6 +120,7 @@ extern void MCW_unregister_hint( Widget ) ;        /* 11 Jul 2001 */
 extern void MCW_set_widget_label( Widget , char * ) ;
 extern void MCW_widget_geom( Widget , int * , int * , int * , int * ) ;
 extern void MCW_discard_events( Widget , int ) ;
+extern void MCW_discard_events_all( Widget , int ) ;
 
 typedef struct {
       char         * label ;        /* label for button       */

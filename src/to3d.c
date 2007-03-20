@@ -91,9 +91,15 @@ static char * FALLback[] =
       "AFNI*XmText.translations: #override"
            "<Btn4Down>: previous-line()\\n"
            "<Btn5Down>: next-line()"                     ,
-      "AFNI*XmScrollBar.translations: #override"
+#if 0
+      "AFNI*XmScrollBar.translations: #augment"
+           "<Btn4Down>: IncrementUpOrLeft(0)\\n"
+           "<Btn5Down>: IncrementDownOrRight(0)" ,
+#else
+      "AFNI*XmScrollBar.translations: #augment"
            "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
            "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
+#endif
    NULL } ;
 /*-----------------------------------------------------------------------*/
 
