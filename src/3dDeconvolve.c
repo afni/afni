@@ -570,6 +570,7 @@ typedef struct DC_options
 
   char *xjpeg_filename; /* plot file for -xjpeg option [21 Jul 2004] */
   char *x1D_filename;   /* save filename for -x1D option [28 Mar 2006] */
+  int nox1D ;           /* 20 Mar 2007 */
 
   int automask ;        /* flag to do automasking [15 Apr 2005] */
 
@@ -729,7 +730,7 @@ void display_help_menu()
     "     'EXPR(b,c) exp1 ... expn' = n parameter; arbitrary expressions    \n"
 #define USE_CSPLIN
 #ifdef  USE_CSPLIN
-    "     'CSPLIN(b,c,n)'= n parameter cardinal spline function expansion   \n"
+    "     'CSPLIN(b,c,n)'= n parameter cubic spline function expansion      \n"
 #endif
     "                                                                       \n"
     "[-stim_times_AM1 k tname Rmodel]                                       \n"
@@ -844,7 +845,8 @@ void display_help_menu()
     "[-quiet]             Flag to suppress most screen output               \n"
     "[-xout]              Flag to write X and inv(X'X) matrices to screen   \n"
     "[-xjpeg filename]    Write a JPEG file graphing the X matrix           \n"
-    "[-x1D filename]      Save X matrix to a 1D (ASCII) file                \n"
+    "[-x1D filename]      Save X matrix to a .x1D (ASCII) file [default]    \n"
+    "[-nox1D]             Don't save X matrix                               \n"
     "[-progress n]        Write statistical results for every nth voxel     \n"
     "[-fdisp fval]        Write statistical results for those voxels        \n"
     "                       whose full model F-statistic is > fval          \n"
@@ -916,6 +918,7 @@ void initialize_options
 
   option_data->xjpeg_filename = NULL ;  /* 21 Jul 2004 */
   option_data->x1D_filename   = NULL ;
+  option_data->nox1D          = 0 ;
 
   /*----- Initialize stimulus options -----*/
   option_data->num_stimts = 0;
@@ -1176,6 +1179,9 @@ void get_options
         nopt++; continue;
       }
 
+      if( strcmp(argv[nopt],"-nox1D") == 0 ){  /* 20 Mar 2007 */
+        option_data->nox1D = 1 ; nopt++ ; continue ;
+      }
 
       /*-----   -input filename   -----*/
       if (strcmp(argv[nopt], "-input") == 0)
@@ -2056,7 +2062,7 @@ void get_options
 
   /*---- 09 Mar 2007: output -x1D file always ----*/
 
-  if( option_data->x1D_filename == NULL ){
+  if( option_data->x1D_filename == NULL && !option_data->nox1D ){
     char *pref=NULL , *cpt ;
     if( option_data->bucket_filename != NULL ){         /* use bucket name? */
       pref = strdup(option_data->bucket_filename) ;
