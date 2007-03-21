@@ -260,10 +260,8 @@ PARSE:
    SET_REF_PATH_RETURN:
    #echo "Template/Apar path is: $ref_path"
    
-   set anat_path = $anat_in:h
-   if ( "$anat_path" == "${anat_in}" ) set anat_path = "."
-
-   
+   set prs_in = `@parse_afni_name "$anat_in"`
+   set anat_path = $prs_in[1]
    
    #At the moment, must have . for anat_path
    #It looks like 3drefit does not like an input dset with a path
@@ -302,8 +300,8 @@ PARSE:
       goto END
    endif
    
-   set anat_pref = "`@GetAfniPrefix ${anat_in}`"
-   set anat_view = "`@GetAfniView ${anat_in}`"
+   set anat_pref = `@GetAfniPrefix "${anat_in}"`
+   set anat_view = `@GetAfniView "${anat_in}"`
    
    if ($RemoveSkull == 1) then
       set ns_pref = ${anat_pref}_ns
@@ -312,7 +310,7 @@ PARSE:
    endif
    #update tmppref IF YOU MUST! so that you can use multiple versions concurrently
    #set tmppref = "${tmppref}__`@GetAfniPrefix ${anat_in}`" 
-   set rs_pref = ${tmppref}__rs_`@GetAfniPrefix ${anat_in}`
+   set rs_pref = ${tmppref}__rs_`@GetAfniPrefix "${anat_in}"`
    set tt_pref = ${anat_pref}${suf}
 
    set ref_pref_nopad = "${ref_path}/`@GetAfniPrefix ${ref_in}`"
@@ -349,7 +347,20 @@ if ("$ttt_pref" == "TT_avg152T1" || "$ttt_pref" == "TT_avg152EPI") then
    endif
    goto WARN_notice
 endif
+
 OK_notice:
+
+#Make a copy of anat_in if we are given sub-brick selectors
+if ($#prs_in > 3) then
+   set anat_in2 = $prs_in[1]/$prs_in[2]"_$prs_in[4]"$prs_in[3]
+   echo "Copying sub-brick $prs_in[3] to $anat_in2"
+   3dcalc -a "$anat_in" -expr "a" -prefix $anat_in2
+   if ( `@CheckForAfniDset ${anat_in2}` != 2 ) then
+      echo "Error: Anatomical dset copy ${anat_in2} not found."
+      goto END
+   endif 
+   set anat_in = $anat_in2
+endif 
 
 if ( `@CheckForAfniDset ${anat_in}` != 2 ) then
    echo "Error: Anatomical dset ${anat_in} not found."
