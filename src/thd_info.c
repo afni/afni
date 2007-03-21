@@ -86,46 +86,48 @@ ENTRY("THD_dataset_info") ;
 
    /*-- 21 Jun 2002: print storage mode --*/
 
-   switch( dset->dblk->diskptr->storage_mode ){
-     default: 
-       outbuf = THD_zzprintf(outbuf,"Storage Mode:    Undefined\n") ; break ;
+   if( dset->dblk->diskptr != NULL ){
+    switch( dset->dblk->diskptr->storage_mode ){
+      default: 
+        outbuf = THD_zzprintf(outbuf,"Storage Mode:    Undefined\n") ; break ;
 
-     case STORAGE_BY_BRICK:
-       outbuf = THD_zzprintf(outbuf,"Storage Mode:    BRIK file\n") ; break ;
+      case STORAGE_BY_BRICK:
+        outbuf = THD_zzprintf(outbuf,"Storage Mode:    BRIK file\n") ; break ;
 
-     case STORAGE_BY_MINC:
-       outbuf = THD_zzprintf(outbuf,"Storage Mode:    MINC file\n") ; break ;
+      case STORAGE_BY_MINC:
+        outbuf = THD_zzprintf(outbuf,"Storage Mode:    MINC file\n") ; break ;
 
-     case STORAGE_BY_VOLUMES:
-       outbuf = THD_zzprintf(outbuf,"Storage Mode:    Volume file(s)\n") ; break ;
+      case STORAGE_BY_VOLUMES:
+        outbuf = THD_zzprintf(outbuf,"Storage Mode:    Volume file(s)\n") ; break ;
 
-     case STORAGE_BY_ANALYZE:
-       outbuf = THD_zzprintf(outbuf,"Storage Mode:    ANALYZE files\n") ; break ;
+      case STORAGE_BY_ANALYZE:
+        outbuf = THD_zzprintf(outbuf,"Storage Mode:    ANALYZE files\n") ; break ;
 
-     case STORAGE_BY_CTFMRI:
-       outbuf = THD_zzprintf(outbuf,"Storage Mode:    CTF MRI file\n") ; break ;
+      case STORAGE_BY_CTFMRI:
+        outbuf = THD_zzprintf(outbuf,"Storage Mode:    CTF MRI file\n") ; break ;
 
-     case STORAGE_BY_CTFSAM:
-       outbuf = THD_zzprintf(outbuf,"Storage Mode:    CTF SAM file\n") ; break ;
+      case STORAGE_BY_CTFSAM:
+        outbuf = THD_zzprintf(outbuf,"Storage Mode:    CTF SAM file\n") ; break ;
 
-     case STORAGE_BY_1D:
-       outbuf = THD_zzprintf(outbuf,"Storage Mode:    AFNI .1D file\n") ; break ;
+      case STORAGE_BY_1D:
+        outbuf = THD_zzprintf(outbuf,"Storage Mode:    AFNI .1D file\n") ; break ;
 
-     case STORAGE_BY_3D:
-       outbuf = THD_zzprintf(outbuf,"Storage Mode:    AFNI .3D file\n") ; break ;
+      case STORAGE_BY_3D:
+        outbuf = THD_zzprintf(outbuf,"Storage Mode:    AFNI .3D file\n") ; break ;
 
-     case STORAGE_BY_NIFTI:
-       outbuf = THD_zzprintf(outbuf,"Storage Mode:    NIFTI file\n") ; break ;
+      case STORAGE_BY_NIFTI:
+        outbuf = THD_zzprintf(outbuf,"Storage Mode:    NIFTI file\n") ; break ;
 
-     case STORAGE_BY_MPEG:
-       outbuf = THD_zzprintf(outbuf,"Storage Mode:    MPEG file\n") ; break ;
+      case STORAGE_BY_MPEG:
+        outbuf = THD_zzprintf(outbuf,"Storage Mode:    MPEG file\n") ; break ;
 
-     case STORAGE_BY_NIML:   /* 26 May 2006 [rickr] */
-       outbuf = THD_zzprintf(outbuf,"Storage Mode:    NIML file\n") ; break ;
+      case STORAGE_BY_NIML:   /* 26 May 2006 [rickr] */
+        outbuf = THD_zzprintf(outbuf,"Storage Mode:    NIML file\n") ; break ;
 
-     case STORAGE_BY_NI_SURF_DSET:
-       outbuf = THD_zzprintf(outbuf,"Storage Mode:    NI_SURF_DSET file\n") ;
+      case STORAGE_BY_NI_SURF_DSET:
+        outbuf = THD_zzprintf(outbuf,"Storage Mode:    NI_SURF_DSET file\n") ;
        break ;
+    }
    }
 
    /*-- keywords --*/
@@ -228,6 +230,8 @@ ENTRY("THD_dataset_info") ;
          "Number of time steps = %d  Number of values at each pixel = %d\n",
          ntimes , nval_per ) ;
 
+      STATUS("timestep") ;
+
       outbuf = THD_zzprintf(outbuf, "Time step = %.3f%s  Origin = %.3f%s" ,
                  dset->taxis->ttdel ,
                  UNITS_TYPE_LABEL(dset->taxis->units_type) ,
@@ -238,7 +242,9 @@ ENTRY("THD_dataset_info") ;
                   dset->taxis->nsl , fabs(dset->taxis->dz_sl) ) ;
       outbuf = THD_zzprintf(outbuf,"\n") ;
 
-      if( verbose > 0 && dset->taxis->nsl > 0 ){
+      STATUS("nsl done") ;
+
+      if( verbose > 0 && dset->taxis->nsl > 0 && dset->taxis->toff_sl != NULL ){
          outbuf = THD_zzprintf(outbuf,"Time-offsets per slice:") ;
          for( ival=0 ; ival < dset->taxis->nsl ; ival++ )
            outbuf = THD_zzprintf(outbuf, " %.3f" , dset->taxis->toff_sl[ival] ) ;
@@ -260,6 +266,8 @@ ENTRY("THD_dataset_info") ;
    /* print out stuff for each sub-brick */
 
    for( ival=0 ; ival < nval_per ; ival++ ){
+
+     STATUS("ival") ;
 
       sprintf( str ,
                "  -- At sub-brick #%d '%s' datum type is %s" ,

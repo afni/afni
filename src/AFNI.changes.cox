@@ -6189,3 +6189,4 @@
 
 21 Mar 2007
  * New program 3dEmpty.c.
+ * Fix 3dinfo.c to allow empty datasets (duh).
