@@ -8,9 +8,11 @@ if ("$2" != '') then
    set PrefSuf = $2
 endif
 
+set cln = `echo "$1" | cut -d \[ -f1`
+
 set noglob
 #remove path
-set Nom = $1:t
+set Nom = $cln:t
 #remove extension .HEAD or .BRIK
 set ext = $Nom:e
 set fext = ""
