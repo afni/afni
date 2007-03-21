@@ -31,6 +31,8 @@ int main( int argc , char * argv[] )
         if( strncmp(argv[iarg],"-verb" ,5) == 0 ){ verbose =  1; iarg++; }
    else if( strncmp(argv[iarg],"-short",5) == 0 ){ verbose = -1; iarg++; }
 
+   THD_allow_empty_dataset(1) ;  /* 21 Mar 2007 */
+
    for( ; iarg < argc ; iarg++ ){
 #if 0
       dset = THD_open_one_dataset( argv[iarg] ) ;

@@ -6186,3 +6186,6 @@
      over-scrolling in imseq.c, et cetera.
  * -nox1D in 3dDeconvolve.c.
  * Make -bout be always on for 3dDeconvolve -input1D.
+
+21 Mar 2007
+ * New program 3dEmpty.c.
