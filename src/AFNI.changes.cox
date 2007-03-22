@@ -6190,3 +6190,7 @@
 21 Mar 2007
  * New program 3dEmpty.c.
  * Fix 3dinfo.c to allow empty datasets (duh).
+
+22 Mar 2007
+ * Make THD_filesize() return a 'long long', and change mri_read_3D() to
+     match.  (This is Colm Connolly's fault.)

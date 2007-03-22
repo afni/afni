@@ -304,7 +304,7 @@ typedef struct MRI_IMAGE {
 #endif
 
          char *fname ;   /*!< to read actual image data after delay */
-         int foffset ;   /*!< offset into fname of image data */
+         unsigned int foffset ;   /*!< offset into fname of image data */
          int fondisk ;   /*!< flag to indicate if is on disk (?) */
 
          int was_swapped ; /* 07 Mar 2002 */
@@ -787,8 +787,9 @@ MRI_IMARR *mri_read_many_nsize( int nf , char * fn[] ) ;
 
 void init_MCW_sizes(void) ;
 char * imsized_fname( char * fname ) ;
-long mri_filesize( char * pathname ) ;
 char * my_strdup( char * str ) ;
+
+#define mri_filesize THD_filesize  /* 22 Mar 2007 */
 
 extern void mri_overlay_2D( MRI_IMAGE *, MRI_IMAGE *, int,int ) ;
 
