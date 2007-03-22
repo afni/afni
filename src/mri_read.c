@@ -266,8 +266,12 @@ ENTRY("mri_read") ;
      RETURN( NULL );
    }
 
+#if 0
    fseek( imfile , 0L , SEEK_END ) ;  /* get the length of the file */
    length = ftell( imfile ) ;         /* (the AJ way) */
+#else
+   length = THD_filesize(fname) ;     /* 22 Mar 2007 */
+#endif
 
    /*--- 03 Dec 2001: check for GEMS format file "IMGF"   ---*/
    /*[[[ Information herein from Medical Image Format FAQ ]]]*/
@@ -849,15 +853,16 @@ ENTRY("mri_try_pgm") ;
 
 /*! Read one or more 2D slices from a "3D:" formatted image file. */
 
-MRI_IMARR * mri_read_3D( char * tname )
+MRI_IMARR * mri_read_3D( char *tname )
 {
    int hglobal , himage , nx , ny , nz ;
    char fname[256] , buf[512] ;
-   int ngood , length , kim , koff , datum_type , datum_len , swap ;
-   MRI_IMARR * newar ;
-   MRI_IMAGE * newim ;
-   void      * imar ;
-   FILE      * imfile ;
+   int ngood , kim , datum_type , datum_len , swap ;
+   MRI_IMARR *newar ;
+   MRI_IMAGE *newim ;
+   void      *imar ;
+   FILE      *imfile ;
+   long long length , nneed , koff , hglob ;
 
 ENTRY("mri_read_3D") ;
 
@@ -968,30 +973,28 @@ ENTRY("mri_read_3D") ;
       RETURN(NULL);
    }
 
+#if 0
    fseek( imfile , 0L , SEEK_END ) ;  /* get the length of the file */
    length = ftell( imfile ) ;
+#else
+   length = THD_filesize(fname) ;     /* 22 Mar 2007 */
+#endif
 
    /** 13 Apr 1999: modified to allow actual hglobal < -1
                     as long as hglobal+himage >= 0       **/
 
-#if 0                 /* the old code */
-   if( hglobal < 0 ){
-      hglobal = length - nz*(datum_len*nx*ny+himage) ;
-      if( hglobal < 0 ) hglobal = 0 ;
+   hglob = hglobal ;
+   if( hglob == -1 || hglob+himage < 0 ){
+      hglob = length - (datum_len*nx*ny+himage) * (long long)nz ;
+      if( hglob < 0 ) hglob = 0 ;
    }
-#else                 /* 13 Apr 1999 */
-   if( hglobal == -1 || hglobal+himage < 0 ){
-      hglobal = length - nz*(datum_len*nx*ny+himage) ;
-      if( hglobal < 0 ) hglobal = 0 ;
-   }
-#endif
 
-   ngood = hglobal + nz*(datum_len*nx*ny+himage) ;
-   if( length < ngood ){
-      fprintf( stderr,
-        "image file %s is %d bytes long but must be at least %d bytes long\n"
-        "for hglobal=%d himage=%d nx=%d ny=%d nz=%d and voxel=%d bytes\n",
-        fname,length,ngood,hglobal,himage,nx,ny,nz,datum_len ) ;
+   nneed = hglob + (datum_len*nx*ny+himage) * (long long)nz ;
+   if( length < nneed ){
+      ERROR_message(
+        "image file %s is %lld bytes long but must be at least %lld bytes long\n"
+        "  for hglobal=%lld himage=%d nx=%d ny=%d nz=%d and voxel=%d bytes\n",
+        fname,length,nneed,hglob,himage,nx,ny,nz,datum_len ) ;
       fclose( imfile ) ;
       RETURN(NULL);
    }
@@ -1001,12 +1004,12 @@ ENTRY("mri_read_3D") ;
    INIT_IMARR(newar) ;
 
    for( kim=0 ; kim < nz ; kim++ ){
-      koff = hglobal + (kim+1)*himage + datum_len*nx*ny*kim ;
-      fseek( imfile , koff , SEEK_SET ) ;
+      koff = hglob + (kim+1)*himage + datum_len*nx*ny * (long long)kim ;
+      fseeko( imfile , (off_t)koff , SEEK_SET ) ;
 
       newim  = mri_new( nx , ny , datum_type ) ;
       imar   = mri_data_pointer( newim ) ;
-      length = fread( imar , datum_len , nx * ny , imfile ) ;
+      (void)fread( imar , datum_len , nx * ny , imfile ) ;
       if( swap ){
          mri_swapbytes( newim ) ;
          newim->was_swapped = 1 ;  /* 07 Mar 2002 */
@@ -1235,11 +1238,11 @@ ENTRY("mri_read_just_one") ;
 static int mri_imcount_analyze75( char * ) ;  /* prototype */
 static int mri_imcount_siemens( char * ) ;
 
-int mri_imcount( char * tname )
+int mri_imcount( char *tname )
 {
    int hglobal , himage , nx , ny , nz , ngood ;
    char fname[256]="\0" ;
-   char * new_fname ;
+   char *new_fname ;
 
 ENTRY("mri_imcount") ;
 
@@ -1709,7 +1712,7 @@ char * my_strdup( char * str )
 char * imsized_fname( char * fname )
 {
    int num , lll ;
-   long len ;
+   long long len ;
    char * new_name ;
 
    init_MCW_sizes() ;
@@ -1718,7 +1721,7 @@ char * imsized_fname( char * fname )
       return new_name ;              /* --> return copy of old name */
    }
 
-   len = mri_filesize( fname ) ;
+   len = THD_filesize( fname ) ;
    if( len <= 0 ){
       new_name = my_strdup(fname) ;  /* not an existing filename */
       return new_name ;              /* --> return copy of old name */
@@ -1760,6 +1763,7 @@ char * imsized_fname( char * fname )
    return new_name ;
 }
 
+#if 0  /* removed on 22 Mar 2007 */
 /*------------------------------------------------------------------------*/
 /*! Return the size of a file in bytes.
 
@@ -1777,6 +1781,7 @@ long mri_filesize( char * pathname )
    ii = stat( pathname , &buf ) ; if( ii != 0 ) return -1 ;
    return buf.st_size ;
 }
+#endif
 
 /*---------------------------------------------------------------*/
 
@@ -3986,10 +3991,11 @@ MRI_IMARR * mri_read_3D_delay( char * tname )
 {
    int hglobal , himage , nx , ny , nz ;
    char fname[256] , buf[512] ;
-   int ngood , length , kim , datum_type , datum_len , swap ;
-   MRI_IMARR * newar ;
-   MRI_IMAGE * newim ;
-   FILE      * imfile ;
+   int ngood , kim , datum_type , datum_len , swap ;
+   MRI_IMARR *newar ;
+   MRI_IMAGE *newim ;
+   FILE      *imfile ;
+   long long length , nneed , hglob ;
 
    /*** get info from 3D tname ***/
 
@@ -4088,30 +4094,28 @@ MRI_IMARR * mri_read_3D_delay( char * tname )
    }
 
    if( imfile != NULL ){
+#if 0
       fseek( imfile , 0L , SEEK_END ) ;  /* get the length of the file */
       length = ftell( imfile ) ;
+#else
+      length = THD_filesize(fname) ;     /* 22 Mar 2007 */
+#endif
 
    /** 13 Apr 1999: modified to allow actual hglobal < -1
                     as long as hglobal+himage >= 0       **/
 
-#if 0                 /* the old code */
-      if( hglobal < 0 ){
-         hglobal = length - nz*(datum_len*nx*ny+himage) ;
-         if( hglobal < 0 ) hglobal = 0 ;
+      hglob = hglobal ;
+      if( hglob == -1 || hglob+himage < 0 ){
+        hglob = length - nz*(datum_len*nx*ny+himage) ;
+        if( hglob < 0 ) hglob = 0 ;
       }
-#else                 /* 13 Apr 1999 */
-      if( hglobal == -1 || hglobal+himage < 0 ){
-         hglobal = length - nz*(datum_len*nx*ny+himage) ;
-         if( hglobal < 0 ) hglobal = 0 ;
-      }
-#endif
 
-      ngood = hglobal + nz*(datum_len*nx*ny+himage) ;
-      if( length < ngood ){
+      nneed = hglob + (datum_len*nx*ny+himage) * (long long)nz ;
+      if( length < nneed ){
          fprintf( stderr,
-           "file %s is %d bytes long but must be at least %d bytes long\n"
-           "for hglobal=%d himage=%d nx=%d ny=%d nz=%d and voxel=%d bytes\n",
-           fname,length,ngood,hglobal,himage,nx,ny,nz,datum_len ) ;
+           "file %s is %lld bytes long but must be at least %lld bytes long\n"
+           "for hglobal=%lld himage=%d nx=%d ny=%d nz=%d and voxel=%d bytes\n",
+           fname,length,nneed,hglob,himage,nx,ny,nz,datum_len ) ;
          fclose( imfile ) ;
          return NULL ;
       }
@@ -4127,12 +4131,12 @@ MRI_IMARR * mri_read_3D_delay( char * tname )
       mri_add_fname_delay( fname , newim ) ;               /* put filename in */
       newim->fondisk = (swap) ? (INPUT_DELAY | BSWAP_DELAY) /* mark read type */
                               : (INPUT_DELAY) ;
-      newim->foffset = hglobal + (kim+1)*himage + datum_len*nx*ny*kim ;
+      newim->foffset = hglob + (kim+1)*himage + datum_len*nx*ny*(long long)kim ;
 
       if( nz == 1 ) mri_add_name( fname , newim ) ;
       else {
-         sprintf( buf , "%s#%d" , fname,kim ) ;
-         mri_add_name( buf , newim ) ;
+        sprintf( buf , "%s#%d" , fname,kim ) ;
+        mri_add_name( buf , newim ) ;
       }
 
       ADDTO_IMARR(newar,newim) ;

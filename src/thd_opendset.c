@@ -49,7 +49,8 @@ THD_3dim_dataset * THD_open_one_dataset( char *pathname )
    char *sub ;
    char *fname ;   /* to skip directory during HEAD/BRIK search in filename */
    int   offset ;  /*                                 - [rickr 20 Sep 2002] */
-   unsigned int fsize ;     /* 06 Jan 2005, to unsigned 20 Feb 2006 [rickr] */
+   long long fsize ;     /* 06 Jan 2005, to unsigned 20 Feb 2006 [rickr] */
+                                      /* to long long 22 Mar 2007 [RWC] */
    int   isfile = 1;
 
 ENTRY("THD_open_one_dataset") ;

@@ -39,7 +39,7 @@
 
 
 /* comes from either Imon.o or libmri.a */
-extern unsigned long THD_filesize ( char * pathname );
+extern long long THD_filesize ( char * pathname );  /* in thd_filestuff.c */
 
 /* local protos */
 static int swap_2      ( void * ptr );
@@ -80,7 +80,7 @@ int ge4_read_header( ge4_header * H, char * filename, int get_image )
     ge4_series_t * sh;
     ge4_study_t  * st;
     FILE         * fp;
-    int            file_len;
+    long long      file_len;
     int            rres = 0;		/* read result */
 
     if ( filename == NULL || H == NULL )
@@ -92,8 +92,7 @@ int ge4_read_header( ge4_header * H, char * filename, int get_image )
     file_len = THD_filesize( filename );
 
     /* file size must be fixed at 145408 bytes (142 KB) */
-    if ( file_len != (GE4_HEADER_LENGTH + GE4_IMAGE_SIZE) )
-	return 1;
+    if ( file_len != (GE4_HEADER_LENGTH + GE4_IMAGE_SIZE) ) return 1;
 
     /* clear structure */
     memset( H, 0, sizeof(ge4_header) );
