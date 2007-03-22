@@ -1616,11 +1616,11 @@ ENTRY("AFNI_finalsave_layout_CB") ;
            int opval=9 ;
            drive_MCW_imseq( isq, isqDR_getopacity, &opval ) ;
            if( mont[0] == '\0' ){
-             fprintf(gp, "OPEN_WINDOW %c.%simage geom=+%d+%d ifrac=%s opacity=%d\n" ,
-                     abet[cc], wnam[ww], gxx,gyy, AV_uformat_fval(ifrac), opval ) ;
+             fprintf(gp, "OPEN_WINDOW %c.%simage geom=%dx%d+%d+%d ifrac=%s opacity=%d\n" ,
+                     abet[cc], wnam[ww], gww,ghh, gxx,gyy, AV_uformat_fval(ifrac), opval ) ;
            } else {
-             fprintf(gp,"OPEN_WINDOW %c.%simage geom=+%d+%d ifrac=%s mont=%s opacity=%d\n",
-                     abet[cc], wnam[ww], gxx,gyy, AV_uformat_fval(ifrac), mont, opval ) ;
+             fprintf(gp,"OPEN_WINDOW %c.%simage geom=%dx%d+%d+%d ifrac=%s mont=%s opacity=%d\n",
+                     abet[cc], wnam[ww], gww,ghh, gxx,gyy, AV_uformat_fval(ifrac), mont, opval ) ;
            }
         }
       }
