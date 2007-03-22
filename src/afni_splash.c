@@ -1568,7 +1568,7 @@ ENTRY("AFNI_finalsave_layout_CB") ;
         if( ISVALID_DSET(im3d->fim_now) ){           /* 27 Dec 2006 */
           char *pp = DSET_PREFIX(im3d->fim_now) ;
           if( pp == NULL || *pp == '\0' ) pp = DSET_IDCODE_STR(im3d->fim_now);
-          fprintf(gp,"SET_OVERRLAY %c.%s %d %d\n",
+          fprintf(gp,"SET_OVERLAY %c.%s %d %d\n",
                   abet[cc], pp, im3d->vinfo->fim_index,im3d->vinfo->thr_index );
         }
         fprintf(gp,"SET_DICOM_XYZ %c %f %f %f\n",    /* 27 Dec 2006 */
