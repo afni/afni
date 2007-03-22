@@ -270,6 +270,9 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "                       see SurfSmooth -help for detail.\n"
                "     -avoid_vent: avoid ventricles. Default.\n"
                "     -no_avoid_vent: Do not use -avoid_vent.\n"
+               "     -init_radius RAD: Use RAD for the initial sphere radius.\n"
+               "                       For the automatic setting, there is an\n"
+               "                       upper limit of 80mm for humans.\n"
                "     -avoid_eyes: avoid eyes. Default\n"
                "     -no_avoid_eyes: Do not use -avoid_eyes.\n"
                "     -use_edge: Use edge detection to reduce leakage into meninges and eyes.\n"
@@ -396,7 +399,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
    Opt->Icold = -1;
    Opt->NodeDbg = -1;
    Opt->t2 = Opt->t98 = Opt->t = Opt->tm = -1;
-   Opt->r = 0;
+   Opt->r = -1.0;
    Opt->d1 = -1;
    Opt->su1 = 1;
    Opt->UseNew = -1.0;
@@ -573,13 +576,26 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
 				exit (1);
 			}
 			Opt->blur_fwhm = atof(argv[kar]);
-         if ( Opt->PercInt < 0 || Opt->PercInt > 50) {
+         if ( Opt->blur_fwhm < 0 || Opt->blur_fwhm > 50) {
             fprintf (SUMA_STDERR, "parameter after -blur_fwhm should be between 0 and 50 (have %f) \n", Opt->blur_fwhm);
 				exit (1);
          }
          brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-init_radius") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -init_radius \n");
+				exit (1);
+			}
+			Opt->r = atof(argv[kar]);
+         if ( Opt->r <= 0 || Opt->r > 100) {
+            fprintf (SUMA_STDERR, "parameter after -init_radius should be between 0 and 100 (have %f) \n", Opt->r);
+				exit (1);
+         }
+         brk = YUP;
+		}
       if (!brk && (strcmp(argv[kar], "-input_1D") == 0)) {
          kar ++;
 			if (kar >= argc)  {

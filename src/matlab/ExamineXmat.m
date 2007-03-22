@@ -1,7 +1,7 @@
-function [Xabi] = ExamineXmat(fname, polort, dt, nrun)
+function [Xabi] = ExamineXmat(fname, polort, dt, nrun, nmot)
 % a function to examine the design matrix produced by AFNI's 3dDeconvolve
 % parameters not specified in function call  
-if (nargin < 1 | isempty(fname) | ~filexist(fname)),
+if (nargin < 1 | isempty(fname) | (ischar(fname) & ~filexist(fname))),
    fname = uigetfile('*.1D','Pick an Xmat');
 end
 if (nargin < 2 | polort == -1),
@@ -29,7 +29,9 @@ if (nargin < 5 | nmot < 0.0),
    end
 end
 
-[e,Xabi] = Read_1D(fname);
+if (ischar(fname)) [e,Xabi] = Read_1D(fname);
+else Xabi = fname; fname = 'matrix in mem.';
+end
 
 s = 'ddd';
 
@@ -56,5 +58,9 @@ while (~isempty(s) & ~isempty(v)),
    end
    xlabel('time (sec)');
    s = input (sprintf('Enter what you want see (stimuli between %d--%d): ', istim(1), istim(2)), 's');
-   eval(sprintf('v=%s;', s));
+   if (isempty(s)), 
+      return;
+   else
+      eval(sprintf('v=%s;', s)); v
+   end
 end
