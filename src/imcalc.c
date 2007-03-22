@@ -226,7 +226,7 @@ int main( int argc , char * argv[] )
 
    /*** make output image (always float datum) ***/
 
-   if( mri_filesize(CALC_output_name) > 0 ){
+   if( THD_filesize(CALC_output_name) > 0 ){
       fprintf(stderr,
               "*** Output file %s already exists -- cannot continue!\n",
               CALC_output_name ) ;

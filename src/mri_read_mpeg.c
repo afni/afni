@@ -55,7 +55,7 @@ ENTRY("mri_read_mpeg") ;
    /*--- check input for OK-ness ---*/
 
    if( fname == NULL || *fname == '\0' ) RETURN( NULL );
-   ii = mri_filesize(fname) ;
+   ii = THD_filesize(fname) ;
    if( ii <= 0 ) RETURN( NULL );
 
    mpeg_setup() ;
@@ -120,7 +120,7 @@ ENTRY("mri_imcount_mpeg") ;
    /*--- check input for OK-ness ---*/
 
    if( fname == NULL || *fname == '\0' ) RETURN( 0 );
-   ii = mri_filesize(fname) ;
+   ii = THD_filesize(fname) ;
    if( ii <= 0 ) RETURN( 0 );
 
    mpeg_setup() ;

@@ -347,7 +347,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
    } else if( blk->malloc_type == DATABLOCK_MEM_MMAP ){
 
-      int fd , fsize ;
+      int fd ; long long fsize ;
       fd = open( dkptr->brick_name , O_RDONLY ) ;  /* N.B.: readonly mode */
       if( fd < 0 ){
          fprintf( stderr , "\n*** cannot open brick file %s for mmap\n"
@@ -363,7 +363,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
       fsize = THD_filesize( dkptr->brick_name ) ;
       if( fsize < blk->total_bytes )
         fprintf(stderr ,
-                "\n*** WARNING: file %s size is %d, but should be at least %lld!\n" ,
+                "\n*** WARNING: file %s size is %lld, but should be at least %lld!\n" ,
                 dkptr->brick_name , fsize , (long long)blk->total_bytes ) ;
 
       /* clear the sub-brick pointers */

@@ -3413,7 +3413,7 @@ extern int THD_is_ondisk   ( char * ) ;  /* 19 Dec 2002 */
 extern int THD_mkdir       ( char * ) ;  /* 19 Dec 2002 */
 extern int THD_cwd         ( char * ) ;  /* 19 Dec 2002 */
 extern int THD_equiv_files ( char * , char * ) ;
-extern unsigned long THD_filesize( char * pathname ) ;
+extern long long THD_filesize( char * pathname ) ;
 extern THD_string_array * THD_get_all_subdirs( int , char * ) ;
 extern THD_string_array * THD_normalize_flist( THD_string_array * ) ;
 extern THD_string_array * THD_get_wildcard_filenames( char * ) ;

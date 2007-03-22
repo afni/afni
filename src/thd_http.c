@@ -12,7 +12,7 @@ static int debug = 0 ;
 #define FAILED     if(debug)fprintf(stderr," **FAILED\n")
 #define DMESS(s,t) if(debug)fprintf(stderr,s,t)
 
-extern unsigned long THD_filesize( char * pathname ) ;
+extern long long THD_filesize( char * pathname ) ;
 
 /*---------------------------------------------------------------------*/
 static int   use_http_10     = 0          ;

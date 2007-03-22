@@ -49,7 +49,7 @@ int main( int argc , char * argv[] )
    int fix=0 , verb=0 , skip=0 ;
    int num_inf=0 , num_nan=0 , num_this ;
 
-   int fsize , fpos ; FILE * fp ;
+   int fpos ; FILE *fp ; long long fsize ;
 
    int nbuf ; float fbuf[NBUF] ;
 
@@ -133,7 +133,7 @@ int main( int argc , char * argv[] )
 
    fsize = THD_filesize( argv[iarg] ) ;
    if( fsize % sizeof(float) != 0 ){
-      fprintf(stderr,"*** File %s is %d bytes long: not a multiple of %d!\n",
+      fprintf(stderr,"*** File %s is %lld bytes long: not a multiple of %d!\n",
               argv[iarg] , fsize , (int)sizeof(float) ) ;
       exit(0) ;
    }
