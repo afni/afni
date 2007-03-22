@@ -226,7 +226,7 @@ end
    sBRIK = sprintf('%s.BRIK', BrikName);
    if (~filexist(sHead)), 
       ErrMessage = sprintf ('%s: %s not found', FuncName, sHead);
-      err = ErrEval(FuncName,'Err_HEAD file not found');
+      err = ErrEval(FuncName,sprintf ('Err_HEAD file %s not found', sHead));
       return;
    end
    sBRIK_gz = sprintf('%s.BRIK.gz', BrikName);
