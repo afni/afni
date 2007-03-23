@@ -164,9 +164,9 @@ ENTRY("THD_open_one_dataset") ;
      RETURN(dset) ;
    }
 
-   /* -- Try to read an AFNI dataset and if that fails, 
+   /* -- Try to read an AFNI dataset and if that fails,
          there is one more chance                 -- */
-         
+
    /*-- Must be an AFNI-formatted dataset! -------------*/
    /*-- find directory and last names in the pathname --*/
 
@@ -225,7 +225,7 @@ ENTRY("THD_open_one_dataset") ;
 
    /* all else failed, give them the famed message */
    CHECK_FOR_DATA(fullname) ;
-   
+
    RETURN(dset) ; /* not destined to get here */
 }
 
@@ -273,6 +273,91 @@ ENTRY("THD_is_dataset") ;
 
 /*--------------------------------------------------------------------*/
 
+static int THD_deconflict_nifti( char *pfx )
+{
+   int lp , ls ; char suf[9] ;
+   char aa,bb,cc ;
+
+   if( !THD_is_file(pfx) ) return 0 ;
+
+   lp = strlen(pfx) ;
+   if( STRING_HAS_SUFFIX(pfx,".nii") ){
+     ls = lp-4 ; strcpy(suf,".nii") ;
+   } else if( STRING_HAS_SUFFIX(pfx,".nii.gz") ){
+     ls = lp-7 ; strcpy(suf,".nii.gz") ;
+   } else if( STRING_HAS_SUFFIX(pfx,".hdr") ){
+     ls = lp-4 ; strcpy(suf,".hdr") ;
+   } else {
+     ls = lp   ; strcpy(suf,"\0") ;
+   }
+
+   for( aa='A' ; aa <= 'Z' ; aa++ ){
+    for( bb='A' ; bb <= 'Z' ; bb++ ){
+     for( cc='1' ; cc <= '9' ; cc++ ){
+       pfx[ls  ] = '_' ;
+       pfx[ls+1] = aa  ;
+       pfx[ls+2] = bb  ;
+       pfx[ls+3] = cc  ;
+       pfx[ls+4] = '\0';
+       strcat(pfx,suf) ;
+       if( ! THD_is_file(pfx) ) return 1 ;
+   }}}
+
+   if( ls > THD_MAX_PREFIX-45 ) ls = THD_MAX_PREFIX-45 ;
+   pfx[ls++] = '_' ; UNIQ_idcode_fill( pfx+ls ) ; strcat(pfx,suf) ;
+   return 1;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Modify the prefix of a dataset to make sure it doesn't conflict
+    with an existing file.  Return value is 0 if no change was
+    needed, 1 if a change was made.
+----------------------------------------------------------------------*/
+
+int THD_deconflict_prefix( THD_3dim_dataset *dset )
+{
+   char pfx[THD_MAX_PREFIX] ; int lp  ;
+   char aa,bb,cc ;
+
+ENTRY("THD_deconflict_prefix") ;
+
+   if( !ISVALID_DSET(dset) ) RETURN(0) ;
+
+   MCW_strncpy( pfx , DSET_PREFIX(dset) , THD_MAX_PREFIX ) ;
+
+   if( PREFIX_IS_NIFTI(pfx) ){
+     lp = THD_deconflict_nifti( pfx ) ;
+     if( lp > 0 ) EDIT_dset_items( dset , ADN_prefix , pfx , ADN_none ) ;
+     RETURN(lp) ;
+   }
+
+   if( ! THD_is_file(dset->dblk->diskptr->header_name) ) RETURN(0) ;
+
+   lp = strlen(pfx) ;
+   if( lp > THD_MAX_PREFIX-5 ) lp = THD_MAX_PREFIX-5 ;
+
+   for( aa='A' ; aa <= 'Z' ; aa++ ){
+    for( bb='A' ; bb <= 'Z' ; bb++ ){
+     for( cc='1' ; cc <= '9' ; cc++ ){
+       pfx[lp  ] = '_' ;
+       pfx[lp+1] = aa  ;
+       pfx[lp+2] = bb  ;
+       pfx[lp+3] = cc  ;
+       pfx[lp+4] = '\0';
+       EDIT_dset_items( dset , ADN_prefix , pfx , ADN_none ) ;
+       if( ! THD_is_file(dset->dblk->diskptr->header_name) ) RETURN(1) ;
+   }}}
+
+   /** ugly brute force final solution: should never happen! **/
+
+   if( lp > THD_MAX_PREFIX-35 ) lp = THD_MAX_PREFIX-35 ;
+   pfx[lp++] = '_' ; UNIQ_idcode_fill( pfx+lp ) ;
+   EDIT_dset_items( dset , ADN_prefix , pfx , ADN_none ) ;
+   RETURN(1) ;
+}
+
+/*--------------------------------------------------------------------*/
+
 char * THD_dataset_headname( char *sname , char *pname , int vt )
 {
    THD_3dim_dataset *dset ;
@@ -314,13 +399,13 @@ ENTRY("storage_mode_from_filename");
     if( STRING_HAS_SUFFIX(fname, ".HEAD") ||
         STRING_HAS_SUFFIX(fname, ".BRIK") ||
         STRING_HAS_SUFFIX(fname, ".BRIK.gz") )  RETURN(STORAGE_BY_BRICK);
-        
+
     if( STRING_HAS_SUFFIX(fname, ".mnc") )      RETURN(STORAGE_BY_MINC);
 
     if( 0 )                                     RETURN(STORAGE_BY_VOLUMES);
 
     if( 0 )   /* default is NIFTI */            RETURN(STORAGE_BY_ANALYZE);
-        
+
     if( STRING_HAS_SUFFIX(fname, ".mri") )      RETURN(STORAGE_BY_CTFMRI);
 
     if( STRING_HAS_SUFFIX(fname, ".svl") )      RETURN(STORAGE_BY_CTFSAM);

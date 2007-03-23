@@ -21,10 +21,6 @@
 
 /*** for non ANSI compilers ***/
 
-#ifndef SEEK_END
-#define SEEK_END 2
-#endif
-
 #ifndef SEEK_SET
 #define SEEK_SET 0
 #endif
@@ -266,12 +262,7 @@ ENTRY("mri_read") ;
      RETURN( NULL );
    }
 
-#if 0
-   fseek( imfile , 0L , SEEK_END ) ;  /* get the length of the file */
-   length = ftell( imfile ) ;         /* (the AJ way) */
-#else
    length = THD_filesize(fname) ;     /* 22 Mar 2007 */
-#endif
 
    /*--- 03 Dec 2001: check for GEMS format file "IMGF"   ---*/
    /*[[[ Information herein from Medical Image Format FAQ ]]]*/
@@ -862,7 +853,7 @@ MRI_IMARR * mri_read_3D( char *tname )
    MRI_IMAGE *newim ;
    void      *imar ;
    FILE      *imfile ;
-   long long length , nneed , koff , hglob ;
+   long long length , nneed , koff , hglob ;  /* 22 Mar 2007 */
 
 ENTRY("mri_read_3D") ;
 
@@ -969,16 +960,11 @@ ENTRY("mri_read_3D") ;
 
    imfile = fopen( fname , "r" ) ;
    if( imfile == NULL ){
-      fprintf( stderr , "couldn't open image file %s\n" , fname ) ;
-      RETURN(NULL);
+     fprintf( stderr , "couldn't open image file %s\n" , fname ) ;
+     RETURN(NULL);
    }
 
-#if 0
-   fseek( imfile , 0L , SEEK_END ) ;  /* get the length of the file */
-   length = ftell( imfile ) ;
-#else
    length = THD_filesize(fname) ;     /* 22 Mar 2007 */
-#endif
 
    /** 13 Apr 1999: modified to allow actual hglobal < -1
                     as long as hglobal+himage >= 0       **/
@@ -1005,7 +991,7 @@ ENTRY("mri_read_3D") ;
 
    for( kim=0 ; kim < nz ; kim++ ){
       koff = hglob + (kim+1)*himage + datum_len*nx*ny * (long long)kim ;
-      fseeko( imfile , (off_t)koff , SEEK_SET ) ;
+      fseeko( imfile, (off_t)koff, SEEK_SET ) ; /* 22 Mar 2007: fseek->fseeko */
 
       newim  = mri_new( nx , ny , datum_type ) ;
       imar   = mri_data_pointer( newim ) ;
@@ -1712,7 +1698,7 @@ char * my_strdup( char * str )
 char * imsized_fname( char * fname )
 {
    int num , lll ;
-   long long len ;
+   long long len ;  /* 22 Mar 2007 */
    char * new_name ;
 
    init_MCW_sizes() ;
@@ -3995,7 +3981,7 @@ MRI_IMARR * mri_read_3D_delay( char * tname )
    MRI_IMARR *newar ;
    MRI_IMAGE *newim ;
    FILE      *imfile ;
-   long long length , nneed , hglob ;
+   long long length , nneed , hglob ;  /* 22 Mar 2007 */
 
    /*** get info from 3D tname ***/
 
@@ -4094,12 +4080,7 @@ MRI_IMARR * mri_read_3D_delay( char * tname )
    }
 
    if( imfile != NULL ){
-#if 0
-      fseek( imfile , 0L , SEEK_END ) ;  /* get the length of the file */
-      length = ftell( imfile ) ;
-#else
       length = THD_filesize(fname) ;     /* 22 Mar 2007 */
-#endif
 
    /** 13 Apr 1999: modified to allow actual hglobal < -1
                     as long as hglobal+himage >= 0       **/

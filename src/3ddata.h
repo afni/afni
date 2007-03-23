@@ -73,6 +73,10 @@ extern "C" {
    (strlen(ss) >= strlen(suf))   &&            \
    (strcasecmp(ss+strlen(ss)-strlen(suf),suf) == 0))
 
+#define PREFIX_IS_NIFTI(ss) ( STRING_HAS_SUFFIX(ss,".nii")    ||  \
+                              STRING_HAS_SUFFIX(ss,".nii.gz") ||  \
+                              STRING_HAS_SUFFIX(ss,".hdr")      )
+
 /***************************** dimensions ***************************/
 
 /*! Max length of a dataset label. */
@@ -2614,6 +2618,7 @@ extern int THD_need_brick_factor( THD_3dim_dataset * ) ;
 
 extern char * THD_newprefix(THD_3dim_dataset * dset, char * suffix); /* 16 Feb 2001 */
 extern char * THD_deplus_prefix( char *prefix ) ;                    /* 22 Nov 2002 */
+extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2007 */
 
 /*! Return a pointer to the filecode of dataset ds (prefix+view) */
 
