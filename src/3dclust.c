@@ -120,7 +120,7 @@ int main( int argc , char * argv[] )
    char buf1[16],buf2[16],buf3[16] ;
    float dxf,dyf,dzf ;                  /* 24 Jan 2001: for -dxyz=1 option */
    int do_mni ;                         /* 30 Apr 2002 */
-   char c1d = '\0', c1dn = '\0';
+   char c1d[2] = {""}, c1dn[2] = {""};
    
    if( argc < 4 || strncmp(argv[1],"-help",4) == 0 ){
       printf ("\n\n");
@@ -336,8 +336,11 @@ int main( int argc , char * argv[] )
    nopt = CL_nopt ;
    
    if (CL_1Dform) {
-      c1d = '#';
-      c1dn = ' ';
+      sprintf(c1d, "#");
+      sprintf(c1dn, " ");
+   } else {
+      c1d[0] = '\0';
+      c1dn[0] = '\0';
    }
    if( CL_do_mni )
      THD_coorder_fill( "LPI" , &CL_cord ) ;  /* 30 Apr 2002 */
@@ -345,11 +348,11 @@ int main( int argc , char * argv[] )
  /*----- Identify software -----*/
 #if 0
    if( !CL_quiet ){
-      printf ("%c\n%c\n", c1d, c1d);
-      printf ("%cProgram: %s \n", c1d, PROGRAM_NAME);
-      printf ("%cAuthor:  %s \n", c1d, PROGRAM_AUTHOR);
-      printf ("%cDate:    %s \n", c1d, PROGRAM_DATE);
-      printf ("%c\n", c1d);
+      printf ("%s\n%s\n", c1d, c1d);
+      printf ("%sProgram: %s \n", c1d, PROGRAM_NAME);
+      printf ("%sAuthor:  %s \n", c1d, PROGRAM_AUTHOR);
+      printf ("%sDate:    %s \n", c1d, PROGRAM_DATE);
+      printf ("%s\n", c1d);
    }
 #endif
 
@@ -435,17 +438,17 @@ int main( int argc , char * argv[] )
      if( !CL_quiet ){
 
          if( CL_summarize != 1 ){
-            printf( "%c\n"
-             "%cCluster report for file %s %s\n"
+            printf( "%s\n"
+             "%sCluster report for file %s %s\n"
 #if 0
-             "%c[3D Dataset Name: %s ]\n"
-             "%c[    Short Label: %s ]\n"
+             "%s[3D Dataset Name: %s ]\n"
+             "%s[    Short Label: %s ]\n"
 #endif
-             "%c[Connectivity radius = %.2f mm  Volume threshold = %.2f ]\n"
-             "%c[Single voxel volume = %.1f (microliters) ]\n"
-             "%c[Voxel datum type    = %s ]\n"
-             "%c[Voxel dimensions    = %.3f mm X %.3f mm X %.3f mm ]\n"
-             "%c[Coordinates Order   = %s ]\n", 
+             "%s[Connectivity radius = %.2f mm  Volume threshold = %.2f ]\n"
+             "%s[Single voxel volume = %.1f (microliters) ]\n"
+             "%s[Voxel datum type    = %s ]\n"
+             "%s[Voxel dimensions    = %.3f mm X %.3f mm X %.3f mm ]\n"
+             "%s[Coordinates Order   = %s ]\n", 
               c1d, 
               c1d, argv[iarg] , do_mni ? "[MNI coords]" : "" ,  /* 30 Apr 2002 */
 #if 0
@@ -459,18 +462,18 @@ int main( int argc , char * argv[] )
               c1d, CL_cord.orcode );
 
              if( CL_edopt.fake_dxyz )  /* 24 Jan 2001 */
-               printf("%c[Fake voxel dimen    = %.3f mm X %.3f mm X %.3f mm ]\n",
+               printf("%s[Fake voxel dimen    = %.3f mm X %.3f mm X %.3f mm ]\n",
                       c1d, dxf,dyf,dzf) ;
 
             if (CL_noabs)                                   /* BDW  19 Jan 1999 */
-              printf ("%cMean and SEM based on Signed voxel intensities: \n%c\n", c1d, c1d);
+              printf ("%sMean and SEM based on Signed voxel intensities: \n%s\n", c1d, c1d);
             else
-              printf ("%cMean and SEM based on Absolute Value "
-                      "of voxel intensities: \n%c\n", c1d, c1d);
+              printf ("%sMean and SEM based on Absolute Value "
+                      "of voxel intensities: \n%s\n", c1d, c1d);
 
          printf (
-"%cVolume  CM %s  CM %s  CM %s  min%s  max%s  min%s  max%s  min%s  max%s    Mean     SEM    Max Int  MI %s  MI %s  MI %s\n"
-"%c------  -----  -----  -----  -----  -----  -----  -----  -----  -----  -------  -------  -------  -----  -----  -----\n",
+"%sVolume  CM %s  CM %s  CM %s  min%s  max%s  min%s  max%s  min%s  max%s    Mean     SEM    Max Int  MI %s  MI %s  MI %s\n"
+"%s------  -----  -----  -----  -----  -----  -----  -----  -----  -----  -------  -------  -------  -----  -----  -----\n",
 
               c1d,
               ORIENT_tinystr[ CL_cord.xxor ] ,
@@ -487,13 +490,13 @@ int main( int argc , char * argv[] )
 
           } else {
             if (CL_noabs)                                   /* BDW  19 Jan 1999 */
-              printf ("%cMean and SEM based on Signed voxel intensities: \n", c1d);
+              printf ("%sMean and SEM based on Signed voxel intensities: \n", c1d);
             else
-              printf ("%cMean and SEM based on Absolute Value "
+              printf ("%sMean and SEM based on Absolute Value "
                       "of voxel intensities: \n", c1d);
-            printf("%cCluster summary for file %s %s\n" ,
+            printf("%sCluster summary for file %s %s\n" ,
                    c1d, argv[iarg] , do_mni ? "[MNI coords]" : "");
-            printf("%cVolume  CM %s  CM %s  CM %s  Mean    SEM    \n", c1d, ORIENT_tinystr[ CL_cord.xxor ],ORIENT_tinystr[ CL_cord.yyor ] ,ORIENT_tinystr[ CL_cord.zzor ]);
+            printf("%sVolume  CM %s  CM %s  CM %s  Mean    SEM    \n", c1d, ORIENT_tinystr[ CL_cord.xxor ],ORIENT_tinystr[ CL_cord.yyor ] ,ORIENT_tinystr[ CL_cord.zzor ]);
           }
       } /* end of report header */
 
@@ -507,7 +510,7 @@ int main( int argc , char * argv[] )
       PURGE_DSET( dset ) ;
 
       if( clar == NULL || clar->num_clu == 0 ){
-         printf("%c** NO CLUSTERS FOUND ***\n", c1d) ;
+         printf("%s** NO CLUSTERS FOUND ***\n", c1d) ;
          if( clar != NULL ) DESTROY_CLARR(clar) ;
          continue ;                               /* next dataset */
       }
@@ -525,7 +528,7 @@ int main( int argc , char * argv[] )
       DESTROY_CLARR(clar) ;
       clar = clbig ;
       if( clar == NULL || clar->num_clu == 0 ){
-         printf("%c** NO CLUSTERS FOUND ***\n", c1d) ;
+         printf("%s** NO CLUSTERS FOUND ***\n", c1d) ;
          if( clar != NULL ) DESTROY_CLARR(clar) ;
          continue ;
       }
@@ -628,7 +631,7 @@ int main( int argc , char * argv[] )
       if( clar->num_clu < 1000 ){
          SORT_CLARR(clar) ;
       } else if( CL_summarize != 1 ){
-         printf("%c** TOO MANY CLUSTERS TO SORT BY VOLUME ***\n", c1d) ;
+         printf("%s** TOO MANY CLUSTERS TO SORT BY VOLUME ***\n", c1d) ;
       }
       ndet = 0 ;
 
@@ -727,7 +730,7 @@ int main( int argc , char * argv[] )
            MCW_fc7(msmax,buf2) ;
            MCW_fc7(sem  ,buf3) ;
 
-	   printf("%c%6.0f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %7s  %7s  %7s  %5.1f  %5.1f  %5.1f \n",
+	   printf("%s%6.0f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %7s  %7s  %7s  %5.1f  %5.1f  %5.1f \n",
 		  c1dn, volsum, xxsum, yysum, zzsum, RLmin, RLmax, APmin, APmax, ISmin, ISmax, buf1, buf3, buf2, xxmax, yymax, zzmax ) ;
          }
 
@@ -738,7 +741,7 @@ int main( int argc , char * argv[] )
 
       DESTROY_CLARR(clar) ;
       if( ndet == 0 )
-         printf("%c** NO CLUSTERS FOUND ABOVE THRESHOLD VOLUME ***\n", c1d) ;
+         printf("%s** NO CLUSTERS FOUND ABOVE THRESHOLD VOLUME ***\n", c1d) ;
 
 
       /* MSB 11/1/96  Calculate global SEM */
@@ -761,16 +764,16 @@ int main( int argc , char * argv[] )
       /* MSB 11/1/96 Modified so that mean and SEM would print in correct column */
       if( CL_summarize == 1 )
 	 {   if( !CL_quiet )
-	         printf( "%c------  -----  -----  ----- -------- -------- \n", c1d);
-		printf("%c%6.0f  %5.1f  %5.1f  %5.1f %8.1f %6.3f\n" , c1d, vol_total, glxxsum, glyysum, glzzsum, glmean, sem ) ;
+	         printf( "%s------  -----  -----  ----- -------- -------- \n", c1d);
+		printf("%s%6.0f  %5.1f  %5.1f  %5.1f %8.1f %6.3f\n" , c1d, vol_total, glxxsum, glyysum, glzzsum, glmean, sem ) ;
       }
 	 else if( ndet > 1 && CL_summarize != -1 )
 	{
           MCW_fc7(glmean ,buf1) ;
           MCW_fc7(sem    ,buf3) ;
 	  if( !CL_quiet )
-	  	printf ("%c------  -----  -----  -----  -----  -----  -----  -----  -----  -----  -------  -------  -------  -----  -----  -----\n", c1d);
-	     printf ("%c%6.0f  %5.1f  %5.1f  %5.1f                                            %7s  %7s                             \n",
+	  	printf ("%s------  -----  -----  -----  -----  -----  -----  -----  -----  -----  -------  -------  -------  -----  -----  -----\n", c1d);
+	     printf ("%s%6.0f  %5.1f  %5.1f  %5.1f                                            %7s  %7s                             \n",
 		   c1d, vol_total, glxxsum, glyysum, glzzsum, buf1, buf3 ) ;
 	}
 
