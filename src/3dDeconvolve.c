@@ -504,6 +504,8 @@ static column_metadata *coldat = NULL ;  /* global info about matrix columns */
 
 #undef  USE_OLD_LABELS
 
+#define FIX_CONFLICTS   /* 23 Mar 2007 */
+
 /*---------------------------------------------------------------------------*/
 
 #include "Deconvolve.c"
@@ -558,6 +560,7 @@ typedef struct DC_options
 
   int tshift;           /* flag to time shift the impulse response */
   int fout;             /* flag to output F-statistics */
+  int do_fullf ;        /* flag to do full F, even if fout==0 */
   int rout;             /* flag to output R^2 statistics */
   int tout;             /* flag to output t-statistics */
   int vout;             /* flag to output variance map */
@@ -813,6 +816,9 @@ void display_help_menu()
     "[-full_first]      Flag to specify that the full model statistics will \n"
     "                     be first in the bucket dataset [** DEFAULT **]    \n"
     "[-nofull_first]    Flag to specify that full model statistics go last  \n"
+    "[-nofullf_atall]   Flag to turn off the full model F statistic         \n"
+    "                     ** DEFAULT: the full F is always computed, even if\n"
+    "                     sub-model partial F's are not ordered with -fout. \n"
     "[-bucket bprefix]  Create one AFNI 'bucket' dataset containing various \n"
     "                     parameters of interest, such as the estimated IRF \n"
     "                     coefficients, and full model fit statistics.      \n"
@@ -942,6 +948,7 @@ void initialize_options
   /*----- Initialize output flags -----*/
   option_data->tshift = 0;
   option_data->fout = 0;
+  option_data->do_fullf = 1 ;   /* 23 Mar 2007 */
   option_data->rout = 0;
   option_data->tout = 0;
   option_data->vout = 0;
@@ -1963,6 +1970,9 @@ void get_options
       if (strcmp(argv[nopt], "-nofull_first") == 0){    /* 13 Mar 2007 */
         option_data->full_first = 0; nopt++; continue;
       }
+      if (strcmp(argv[nopt], "-nofullf_atall") == 0){   /* 23 Mar 2007 */
+        option_data->do_fullf = 0; nopt++; continue;
+      }
 
 
       /*-----   -bucket filename   -----*/
@@ -2037,8 +2047,11 @@ void get_options
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
       DC_error (message);
 
-    }
+    } /***** end of loop over input arguments ****/
 
+  /*----- 23 Mar 2007: full first stuff? -----*/
+
+  if( option_data->fout ) option_data->do_fullf = 1 ;
 
   /*----- Set number of GLTs actually present -----*/
   option_data->num_glt = iglt;
@@ -3190,6 +3203,15 @@ void check_one_output_file
       DC_error (message);
     }
 
+#ifdef FIX_CONFLICTS
+  ierror = THD_deconflict_prefix( new_dset ) ;
+  if( ierror > 0 ){
+    char *pfx = DSET_PREFIX(new_dset) ;
+    WARNING_message("Filename conflict: changing '%s' to '%s'",
+                    filename , pfx ) ;
+    strcpy(filename,pfx) ;
+  }
+#else
   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
     {
       sprintf (message,
@@ -3198,6 +3220,7 @@ void check_one_output_file
              new_dset->dblk->diskptr->header_name);
       DC_error (message);
     }
+#endif
 
   /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
@@ -3462,10 +3485,10 @@ void check_for_valid_inputs
     {
       if (! option_data->nocout)
       {
-        if (! option_data->nobout)
+        if (! option_data->nobout)    /* baseline coefs + t stats */
           nbricks += qp * (1 + option_data->tout);
 
-        for (is = 0;  is < num_stimts;  is++)
+        for (is = 0;  is < num_stimts;  is++)  /* individual -stim coefs + stats */
           {
             if ((!option_data->stim_base[is]) || (!option_data->nobout))
             {
@@ -3477,10 +3500,12 @@ void check_for_valid_inputs
           }
       }
 
-      nbricks += option_data->rout + option_data->fout + option_data->vout;
+      /* full model stats */
+
+      nbricks += option_data->rout + option_data->do_fullf + option_data->vout;
 
       if (num_glt > 0)
-      for (iglt = 0;  iglt < num_glt;  iglt++)
+      for (iglt = 0;  iglt < num_glt;  iglt++)  /* GLT coefs + stats */
         {
           nbricks += glt_rows[iglt] * (1 + option_data->tout);
           nbricks += option_data->rout + option_data->fout;
@@ -3905,7 +3930,7 @@ ENTRY("allocate_memory") ;
 
 
   if (vout || basis_need_mse)  zero_fill_volume (&(*mse_vol),   nxyz);
-  if (fout)  zero_fill_volume (&(*ffull_vol), nxyz);
+  if (option_data->do_fullf)  zero_fill_volume (&(*ffull_vol), nxyz);
   if (rout)  zero_fill_volume (&(*rfull_vol), nxyz);
 
 
@@ -5506,10 +5531,16 @@ void write_ts_array
     ERROR_exit(
           "%d errors in attempting to create output dataset!", ierror ) ;
 
+#ifndef FIX_CONFLICTS
   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
     ERROR_exit(
           "Output dataset file %s already exists -- can't continue!",
           new_dset->dblk->diskptr->header_name ) ;
+#else
+  if( THD_deconflict_prefix(new_dset) > 0 )
+    WARNING_message("Filename conflict: changing '%s' to '%s'",
+                    output_filename,DSET_PREFIX(new_dset) ) ;
+#endif
 
 
   /*----- Reset slice offset times to zero -----*/
@@ -5753,10 +5784,16 @@ void write_bucket_data
                              ADN_directory_name,  output_session,
                            ADN_none ) ;
 
+#ifndef FIX_CONFLICTS
   if (THD_is_file(DSET_HEADNAME(new_dset)))
     ERROR_exit(
           "Bucket dataset file %s already exists--cannot continue!",
           DSET_HEADNAME(new_dset));
+#else
+  if( THD_deconflict_prefix(new_dset) > 0 )
+    WARNING_message("Filename conflict: changing '%s' to '%s'",
+                    output_prefix,DSET_PREFIX(new_dset) ) ;
+#endif
 
   if( CoefFilename != NULL ){
     coef_dset = EDIT_empty_copy( new_dset ) ;
@@ -5775,10 +5812,16 @@ void write_bucket_data
       (void) EDIT_dset_items( coef_dset ,
                                 ADN_directory_name,  output_session,
                               ADN_none ) ;
+#ifndef FIX_CONFLICTS
     if( THD_is_file(DSET_HEADNAME(coef_dset)) )
       ERROR_exit(
         "Coefficient dataset file %s already exists--cannot continue!",
         DSET_HEADNAME(coef_dset));
+#else
+  if( THD_deconflict_prefix(coef_dset) > 0 )
+    WARNING_message("Filename conflict: changing '%s' to '%s'",
+                    CoefFilename,DSET_PREFIX(coef_dset) ) ;
+#endif
   }
 
   /*----- save names for future xsave-ing -----*/
@@ -5802,7 +5845,7 @@ void write_bucket_data
   /*----- User can choose to place full model stats first -----*/
   ibrick = -1;
   if (option_data->full_first)
-    ibrick += option_data->vout + option_data->rout + option_data->fout;
+    ibrick += option_data->vout + option_data->rout + option_data->do_fullf;
 
   cbuck = -1 ;
 
@@ -6117,7 +6160,7 @@ void write_bucket_data
     }
 
   /*----- Full model F-stat -----*/
-  if (option_data->fout)
+  if (option_data->do_fullf)
     {
       ibrick++;
       brick_type = FUNC_FT_TYPE;
@@ -8683,12 +8726,18 @@ void basis_write_iresp( int argc , char *argv[] ,
                              ADN_ttorg,       be->tbot,
                             ADN_none ) ;
 
+#ifndef FIX_CONFLICTS
    if( THD_is_file(out_dset->dblk->diskptr->header_name) ){
      ERROR_message(
              "Output dataset file %s already exists - won't overwrite",
              out_dset->dblk->diskptr->header_name ) ;
      DSET_delete(out_dset) ; return ;
    }
+#else
+   if( THD_deconflict_prefix(out_dset) > 0 )
+    WARNING_message("Filename conflict: changing '%s' to '%s'",
+                    output_filename,DSET_PREFIX(out_dset) ) ;
+#endif
 
    /* create output bricks (float for now, will scale to shorts later) */
 
@@ -8827,12 +8876,18 @@ void basis_write_sresp( int argc , char *argv[] ,
                              ADN_ttorg,       be->tbot,
                             ADN_none ) ;
 
+#ifndef FIX_CONFLICTS
    if( THD_is_file(out_dset->dblk->diskptr->header_name) ){
      ERROR_message(
              "Output dataset file %s already exists - won't overwrite",
              out_dset->dblk->diskptr->header_name ) ;
      DSET_delete(out_dset) ; return ;
    }
+#else
+   if( THD_deconflict_prefix(out_dset) > 0 )
+    WARNING_message("Filename conflict: changing '%s' to '%s'",
+                    output_filename,DSET_PREFIX(out_dset) ) ;
+#endif
 
    /* create output bricks (float for now, will scale to shorts later) */
 
