@@ -130,9 +130,15 @@ int main( int argc , char * argv[] )
                       ADN_none ) ;
    }
 
+#if 0
    if( THD_is_file( DSET_HEADNAME(oset) ) )
      ERROR_exit("Output file %s exists -- will not overwrite!",
                  DSET_HEADNAME(oset) ) ;
+#else
+   if( THD_deconflict_prefix(oset) > 0 )
+     WARNING_message("Filename conflict: changing '%s' to '%s'",
+                     prefix , DSET_PREFIX(oset) ) ;
+#endif
 
    /* create empty bricks for output dataset */
 
