@@ -83,7 +83,8 @@ static char * CL_prefix = NULL ; /* 29 Nov 2001 -- RWCox */
 static int    CL_do_mni = 0 ;    /* 30 Apr 2002 -- RWCox */
 static int    CL_isomode = 0 ;   /* 30 Apr 2002 -- RWCox */
 
-static int    CL_1Dform = 0 ;    /* 02 Mar 2006 -- Zaid (it's hopeless) */
+static int    CL_1Dform = 1 ;    /* 02 Mar 2006 -- Zaid (it's hopeless) 
+                                    Changed to '1' 23 Mar 2007 -- Said (still hopeless)*/
 
 /**-- RWCox: July 1997
       Report directions based on AFNI_ORIENT environment --**/
@@ -119,7 +120,7 @@ int main( int argc , char * argv[] )
    char buf1[16],buf2[16],buf3[16] ;
    float dxf,dyf,dzf ;                  /* 24 Jan 2001: for -dxyz=1 option */
    int do_mni ;                         /* 30 Apr 2002 */
-   char c1d = '\0';
+   char c1d = '\0', c1dn = '\0';
    
    if( argc < 4 || strncmp(argv[1],"-help",4) == 0 ){
       printf ("\n\n");
@@ -201,10 +202,12 @@ int main( int argc , char * argv[] )
   "* -verb       => Print out a progress report (to stderr)                \n"
   "                 as the computations proceed                            \n"
   "                                                                        \n"
-  "* -1Dformat   => Write output in 1D format. You can redirect the output \n"
-  "                 to a .1D file and use the file as input to whereami    \n"
-  "                 for obtaining Atlas-based information on cluster       \n"
-  "                 locations. See whereami -help for more info.           \n"
+  "* -1Dformat   => Write output in 1D format (now default). You can       \n"
+  "                 redirect the output to a .1D file and use the file     \n"
+  "                 as input to whereami for obtaining Atlas-based         \n"
+  "                 information on cluster locations.                      \n"
+  "                 See whereami -help for more info.                      \n"
+  "* -no_1Dformat=> Do not write output in 1D format.                      \n"
   "                                                                        \n"   
   "* -quiet      => Suppress all non-essential output                      \n"
   "                                                                        \n"
@@ -332,8 +335,10 @@ int main( int argc , char * argv[] )
    CL_read_opts( argc , argv ) ;
    nopt = CL_nopt ;
    
-   if (CL_1Dform) c1d = '#';
-   
+   if (CL_1Dform) {
+      c1d = '#';
+      c1dn = ' ';
+   }
    if( CL_do_mni )
      THD_coorder_fill( "LPI" , &CL_cord ) ;  /* 30 Apr 2002 */
 
@@ -722,8 +727,8 @@ int main( int argc , char * argv[] )
            MCW_fc7(msmax,buf2) ;
            MCW_fc7(sem  ,buf3) ;
 
-	   printf("%6.0f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %7s  %7s  %7s  %5.1f  %5.1f  %5.1f \n",
-		  volsum, xxsum, yysum, zzsum, RLmin, RLmax, APmin, APmax, ISmin, ISmax, buf1, buf3, buf2, xxmax, yymax, zzmax ) ;
+	   printf("%c%6.0f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %7s  %7s  %7s  %5.1f  %5.1f  %5.1f \n",
+		  c1dn, volsum, xxsum, yysum, zzsum, RLmin, RLmax, APmin, APmax, ISmin, ISmax, buf1, buf3, buf2, xxmax, yymax, zzmax ) ;
          }
 
          nvox_total += cl->num_pt ;
@@ -889,6 +894,11 @@ void CL_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-1Dformat",5) == 0 ){
          CL_1Dform = 1 ;
+         nopt++ ; continue ;
+      }
+
+      if( strncmp(argv[nopt],"-no_1Dformat",7) == 0 ){
+         CL_1Dform = 0 ;
          nopt++ ; continue ;
       }
       
