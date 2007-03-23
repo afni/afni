@@ -6194,3 +6194,8 @@
 22 Mar 2007
  * Make THD_filesize() return a 'long long', and change mri_read_3D() to
      match.  (This is Colm Connolly's fault.)
+
+23 Mar 2007
+ * New function THD_deconflict_prefix() in thd_opendset.c.
+ * Modify 3dDeconvolve.c to deconflict output prefixes (instead of failing),
+     and to compute Full F by default, unless -nofullf_atall is given.
