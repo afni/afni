@@ -4853,6 +4853,7 @@ ENTRY("AFNI_closedown_3dview") ;
 /*-------------------------------------------------------------------------
   Open or close the viewing controls panel
 ---------------------------------------------------------------------------*/
+
 void AFNI_controller_panel_CB( Widget wcall , XtPointer cd , XtPointer cbs )
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
@@ -5184,28 +5185,52 @@ ENTRY("AFNI_view_xyz_CB") ;
        open window by bringing that window to the top */
 
     if( w == pb_xyz && sxyz != NULL ){
-       if( ISQ_REALZ(sxyz) )
-          XMapRaised( XtDisplay(sxyz->wtop) , XtWindow(sxyz->wtop) ) ;
+       if( ISQ_REALZ(sxyz) ){
+          if( AFNI_yesenv("AFNI_IMAGRA_CLOSER") )
+            drive_MCW_imseq( sxyz , isqDR_destroy , NULL ) ;
+          else
+            XMapRaised( XtDisplay(sxyz->wtop) , XtWindow(sxyz->wtop) ) ;
+       }
        EXRETURN ;
     } else if( w == pb_yzx && syzx != NULL ){
-       if( ISQ_REALZ(syzx) )
-          XMapRaised( XtDisplay(syzx->wtop) , XtWindow(syzx->wtop) ) ;
+       if( ISQ_REALZ(syzx) ){
+          if( AFNI_yesenv("AFNI_IMAGRA_CLOSER") )
+            drive_MCW_imseq( syzx , isqDR_destroy , NULL ) ;
+          else
+            XMapRaised( XtDisplay(syzx->wtop) , XtWindow(syzx->wtop) ) ;
+       }
        EXRETURN ;
     } else if( w == pb_zxy && szxy != NULL ){
-       if( ISQ_REALZ(szxy) )
-          XMapRaised( XtDisplay(szxy->wtop) , XtWindow(szxy->wtop) ) ;
+       if( ISQ_REALZ(szxy) ){
+          if( AFNI_yesenv("AFNI_IMAGRA_CLOSER") )
+            drive_MCW_imseq( szxy , isqDR_destroy , NULL ) ;
+          else
+            XMapRaised( XtDisplay(szxy->wtop) , XtWindow(szxy->wtop) ) ;
+       }
        EXRETURN ;
     } else if( w == gr_xyz && gxyz != NULL ){
-       if( GRA_REALZ(gxyz) )
-          XMapRaised( XtDisplay(gxyz->fdw_graph) , XtWindow(gxyz->fdw_graph) ) ;
+       if( GRA_REALZ(gxyz) ){
+          if( AFNI_yesenv("AFNI_IMAGRA_CLOSER") )
+            drive_MCW_grapher( gxyz , graDR_destroy , NULL ) ;
+          else
+            XMapRaised( XtDisplay(gxyz->fdw_graph) , XtWindow(gxyz->fdw_graph) ) ;
+       }
        EXRETURN ;
     } else if( w == gr_yzx && gyzx != NULL ){
-       if( GRA_REALZ(gyzx) )
-          XMapRaised( XtDisplay(gyzx->fdw_graph) , XtWindow(gyzx->fdw_graph) ) ;
+       if( GRA_REALZ(gyzx) ){
+          if( AFNI_yesenv("AFNI_IMAGRA_CLOSER") )
+            drive_MCW_grapher( gyzx , graDR_destroy , NULL ) ;
+          else
+            XMapRaised( XtDisplay(gyzx->fdw_graph) , XtWindow(gyzx->fdw_graph) ) ;
+       }
        EXRETURN ;
     } else if( w == gr_zxy && gzxy != NULL ){
-       if( GRA_REALZ(gzxy) )
-          XMapRaised( XtDisplay(gzxy->fdw_graph) , XtWindow(gzxy->fdw_graph) ) ;
+       if( GRA_REALZ(gzxy) ){
+          if( AFNI_yesenv("AFNI_IMAGRA_CLOSER") )
+            drive_MCW_grapher( gzxy , graDR_destroy , NULL ) ;
+          else
+            XMapRaised( XtDisplay(gzxy->fdw_graph) , XtWindow(gzxy->fdw_graph) ) ;
+       }
        EXRETURN ;
     }
 
