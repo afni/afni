@@ -2302,6 +2302,17 @@ image window will be interpreted as a separation distance, in mm, as
 opposed to the number of tick divisions along each edge.  In that case,
 a larger value would produce fewer ticks, as they would be farther apart.
 
+----------------------------
+Variable: AFNI_IMAGRA_CLOSER
+----------------------------
+If this YES/NO variable is set to YES, then when you click in an 'Image'
+or 'Graph' button for a viewer window that is already open (so the button
+is displayed in inverted colors), then the corresponding viewer window
+will close.  The default action is to try to raise the viewer window to
+the front, but some window managers (I'm looking at you, FC5) don't allow
+this action.  So this provides a way to kill the window, at least, if you've
+lost it in desktop hell somewhere.
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
