@@ -864,6 +864,20 @@ g_help_string = """
 
             Please see '3dDeconvolve -help' for more information.
 
+        -regress_no_stim_times  : use -stim_file in regression, not -stim_times
+
+            The default operation of afni_proc.py is to convert TR-locked files
+            for the 3dDeconvolve -stim_file option to timing files for the
+            3dDeconvolve -stim_times option.
+
+            If the -regress_no_stim_times option is provided, then no such
+            conversion will take place.  This assumes the -regress_stim_files
+            option is applied, to provide such -stim_file files.
+
+            Please see '3dDeconvolve -help' for more information.
+            See also -regress_stim_files, -regress_stim_times, 
+                     -regress_stim_labels.
+
         -regress_stim_labels LAB1 ...   : specify labels for stimulus types
 
                 e.g. -regress_stim_labels houses faces donuts
@@ -915,16 +929,20 @@ g_help_string = """
             See also -regress_stim_files, -regress_stim_labels, -regress_basis,
                      -regress_basis_normall, -regress_polort.
 
-        -regress_stim_files FILE1 ... : specify TR-based stim files
+        -regress_stim_files FILE1 ... : specify TR-locked stim files
 
                 e.g. -regress_stim_times ED_stim_file*.1D
                 e.g. -regress_stim_times stim_A.1D stim_B.1D stim_C.1D
 
-            3dDeconvolve will be run using '-stim_times', no '-stim_file'.
-            The user is given the option to specify the antiquated stim_file
-            files here, which would then be replace using the script,
-            make_stim_times.py .  It might be more educational for the user
-            to run make_stim_times.py, or to create the timing files directly.
+            Without the -regress_no_stim_times option, 3dDeconvolve will be
+            run using '-stim_times', not '-stim_file'.  The user can still
+            specify the 3dDeconvolve -stim_file files here, but they would
+            then be converted to -stim_times files using the script,
+            make_stim_times.py .
+
+            It might be more educational for the user to run make_stim_times.py
+            outside afni_proc.py (such as was done before example 2, above), or
+            to create the timing files directly.
 
             Each given file can be for multiple stimulus classes, where one
             column is for one stim class, and each row represents a TR.  So
@@ -937,11 +955,18 @@ g_help_string = """
             the beginning of a TR, the user should consider the option,
             -regress_stim_times_offset, to apply that offset.
 
+            ---
+
+            If the -regress_no_stim_times option is provided, 3dDeconvolve
+            will be run using each stim_file as a regressor.  The order of the
+            regressors should match the order of any labels, provided via the
+            -regress_stim_labels option.
+
             Please see '3dDeconvolve -help' for more information, or the link:
                 http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
             See also -regress_stim_times, -regress_stim_labels, -regress_basis,
                      -regress_basis_normall, -regress_polort,
-                     -regress_stim_times_offset.
+                     -regress_stim_times_offset, -regress_no_stim_times.
 
         -regress_stim_times_offset OFFSET : add OFFSET to -stim_times files
 
@@ -960,7 +985,8 @@ g_help_string = """
             the output script.
 
             Please see 'make_stim_times.py -help' for more information.
-            See also -regress_stim_files, -tshift_align_to.
+            See also -regress_stim_files, -regress_no_stim_times,
+                     -tshift_align_to.
 
     - R Reynolds  Dec, 2006                             thanks to Z Saad
     ===========================================================================
@@ -1007,9 +1033,10 @@ g_history = """
          - x1D output file uses x1D suffix
          - removed now unneeded -full_first option in 3dDeconvolve
     1.19 Mar 19, 2007: allow for dataset TR stored in depreciated ms
+    1.20 Mar 25, 2007: added -help for long-existing -regress_no_stim_times
 """
 
-g_version = "version 1.19, March 19, 2007"
+g_version = "version 1.20, March 25, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
