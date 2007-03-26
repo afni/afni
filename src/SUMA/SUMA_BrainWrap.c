@@ -137,7 +137,7 @@ float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObj
    vol *= fabs(DSET_DX(Opt->in_vol) * DSET_DY(Opt->in_vol) * DSET_DZ(Opt->in_vol) );
    
    /* find the radius */
-   if (Opt->r > 0.0f) {
+   if (Opt->r < 0.0f) {
       Opt->r = pow(vol*3.0/(3.14159*4.0), 1/3.0);
       if (Opt->debug) {
             fprintf (SUMA_STDERR,"%s: Volume %f, radius %f\n", FuncName, vol, Opt->r);
@@ -153,9 +153,9 @@ float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObj
             fprintf (SUMA_STDERR,"%s: Radius at %f. RATS!.\n",  FuncName, Opt->r);
          }
       } else if (Opt->specie == HUMAN) {
-         if (Opt->r > 80) {
-            SUMA_S_Notev("Radius estimated at %f is large. Setting back to 80.0\n", Opt->r);
-            Opt->r = 80;
+         if (Opt->r > 100) {
+            SUMA_S_Notev("Radius estimated at %f is large. Setting back to 100.0\n", Opt->r);
+            Opt->r = 100;
          }
       }
    } else {
