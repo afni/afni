@@ -100,7 +100,7 @@ typedef struct {
    ((uu)==UNDERLAY_ALLFUNC||(uu)==UNDERLAY_THRFUNC)
 
 static char * UNDERLAY_typestr[] =
-   { "ULay underlay" , "OLay underlay" , "OLay@Thr underlay" } ;
+   { "u:ULay" , "u:OLay" , "u:O@Thr" } ;
 
 #define DEFAULT_FIM_SCALE 10000   /* change this and bad things will happen! */
 
@@ -474,8 +474,6 @@ typedef struct {
       Widget thr_rowcol , thr_label , thr_scale , thr_pval_label ;
       MCW_arrowval * thr_top_av ;
 
-      Widget thr_menu , thr_clear_pb , thr_cluster_pb ;  /* 05 Sep 2006 */
-
       Widget inten_rowcol , inten_label ;
       MCW_pbar     * inten_pbar ;
       MCW_arrowval * inten_av ;
@@ -496,7 +494,9 @@ typedef struct {
       int            pbar_transform2D_index ;
 
       Widget options_rowcol , options_label ;
+      Widget ulaclu_rowcol ;
       MCW_bbox     * underlay_bbox ;
+      Widget clu_rowcol , clu_clear_pb , clu_cluster_pb ;  /* 05 Sep 2006 */
 
       Widget         buck_frame , buck_rowcol ;
       MCW_arrowval * anat_buck_av , * fim_buck_av , * thr_buck_av ;  /* 30 Nov 1997 */
