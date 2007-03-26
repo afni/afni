@@ -91,7 +91,7 @@ extern void AFNI_finalize_saveim_CB( Widget, XtPointer, MCW_choose_cbs * );
 extern void AFNI_palette_tran_CB( MCW_arrowval * , XtPointer ) ;
 
 extern void AFNI_thr_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
-extern void AFNI_thr_CB( Widget , XtPointer , XtPointer ) ;
+extern void AFNI_clu_CB( Widget , XtPointer , XtPointer ) ;
 
 #ifdef  __cplusplus
 }

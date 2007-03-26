@@ -1031,10 +1031,10 @@ static void set_vedit_label( Three_D_View *im3d , int ll )
    if( !IM3D_OPEN(im3d) ) return ;
 
    strcpy(lab,thrbutlab[0]); if( ll==0 ) lab[0] = '*' ;
-   MCW_set_widget_label( im3d->vwid->func->thr_clear_pb , lab ) ;
+   MCW_set_widget_label( im3d->vwid->func->clu_clear_pb , lab ) ;
 
    strcpy(lab,thrbutlab[1]); if( ll==1 ) lab[0] = '*' ;
-   MCW_set_widget_label( im3d->vwid->func->thr_cluster_pb , lab ) ;
+   MCW_set_widget_label( im3d->vwid->func->clu_cluster_pb , lab ) ;
 
    return ;
 }
@@ -1069,17 +1069,17 @@ ENTRY("AFNI_cluster_choose_CB") ;
 /*---------------------------------------------------------------*/
 /* Callback for items on the thr_label menu itself.              */
 
-void AFNI_thr_CB( Widget w , XtPointer cd , XtPointer cbs )
+void AFNI_clu_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
 
-ENTRY("AFNI_thr_CB") ;
+ENTRY("AFNI_clu_CB") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    /*--- Clear editing ---*/
 
-   if( w == im3d->vwid->func->thr_clear_pb ){
+   if( w == im3d->vwid->func->clu_clear_pb ){
      im3d->vedset.code = 0 ;
      AFNI_vedit_clear( im3d->fim_now ) ;
      set_vedit_label(im3d,0) ;
@@ -1089,7 +1089,7 @@ ENTRY("AFNI_thr_CB") ;
 
    /*--- Get clusterizing parameters ---*/
 
-   if( w == im3d->vwid->func->thr_cluster_pb ){
+   if( w == im3d->vwid->func->clu_cluster_pb ){
      char *lvec[2] = { "rmm " , "vmul" } ;
      int   ivec[2] ;
      if( im3d->vedset.code == VEDIT_CLUST ){
@@ -1108,6 +1108,7 @@ ENTRY("AFNI_thr_CB") ;
    EXRETURN ;  /* should be unreachable */
 }
 
+#if 0
 /*-----------------------------------------------------------------
   Event handler to find #3 button press for thr_label popup;
   just pops up the menu for the user's gratification.
@@ -1136,3 +1137,4 @@ ENTRY("AFNI_thr_EV") ;
 
    EXRETURN ;
 }
+#endif
