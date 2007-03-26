@@ -2514,6 +2514,7 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->thr_label , "Type of threshold statistic" ) ;
 #endif
 
+#if 0
    /**-- 05 Sep 2006: menu hidden on the thr_label --**/
 
 #ifdef BAD_BUTTON3_POPUPS
@@ -2552,7 +2553,6 @@ STATUS("making func->rowcol") ;
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->thr_menu ,
             LABEL_ARG("*Clear Edit") ,
-            XmNmarginHeight , 0 ,
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -2565,7 +2565,6 @@ STATUS("making func->rowcol") ;
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->thr_menu ,
             LABEL_ARG(" Clusterize") ,
-            XmNmarginHeight , 0 ,
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -2574,6 +2573,7 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->thr_cluster_pb , "Cluster edit overlay" ) ;
 
    /*---- end of thr_menu creation ----*/
+#endif
 
    FIX_SCALE_VALUE(im3d) ;
 
@@ -2682,6 +2682,7 @@ STATUS("making func->rowcol") ;
          "* This is the significance PER VOXEL." ) ;
    MCW_register_hint( func->thr_pval_label , "Nominal p-value per voxel" ) ;
 
+#if 0
    /* 05 Sep 2006: duplicate popup from thr_label */
 
    XtInsertEventHandler( func->thr_pval_label ,  /* handle events in label */
@@ -2694,6 +2695,7 @@ STATUS("making func->rowcol") ;
                             (XtPointer) im3d ,   /* client data */
                             XtListTail           /* last in queue */
                           ) ;
+#endif
 
    /** Jul 1997: optmenu to choose top value for scale **/
 
@@ -3127,36 +3129,84 @@ STATUS("making func->rowcol") ;
    func->options_label =
       XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , func->options_rowcol ,
-            LABEL_ARG("Options") ,
+            LABEL_ARG("Options    Clustering") ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   /*-- 26 Mar 2007: rowcol for clustering stuff --*/
+
+   func->ulaclu_rowcol = 
+      XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , func->options_rowcol ,
+            XmNorientation , XmHORIZONTAL ,
+            XmNpacking , XmPACK_TIGHT ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
    /*-- underlay type --*/
 
    func->underlay_bbox =
-      new_MCW_bbox( func->options_rowcol ,
+      new_MCW_bbox( func->ulaclu_rowcol ,
                     LAST_UNDERLAY_TYPE+1 , UNDERLAY_typestr ,
                     MCW_BB_radio_one ,
                     MCW_BB_frame ,
                     AFNI_underlay_CB , (XtPointer) im3d ) ;
-
    func->underlay_bbox->parent = (XtPointer) im3d ;
-
    MCW_set_bbox( func->underlay_bbox , 1 << im3d->vinfo->underlay_type ) ;
-
    MCW_reghelp_children( func->underlay_bbox->wrowcol ,
       "Use these buttons to choose\n"
       "whether the underlay or\n"
       "overlay images appear\n"
       "as the background display" ) ;
+   ADDTO_KILL(im3d->kl,func->underlay_bbox) ;
 
-   { char * hh[] = { "Use underlay dataset for background" ,
+   { char *hh[] = { "Use underlay dataset for background" ,
                      "Use overlay dataset for background" ,
+
                      "Use thresholded overlay dataset for background" } ;
      MCW_bbox_hints( func->underlay_bbox , 3 , hh ) ;
    }
 
-   ADDTO_KILL(im3d->kl,func->underlay_bbox) ;
+   /*--- 26 Mar 2007: clustering stuff moved here ---*/
+
+   func->clu_rowcol =
+      XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , func->ulaclu_rowcol ,
+            XmNorientation , XmVERTICAL ,
+            XmNpacking , XmPACK_TIGHT ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   func->clu_clear_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->clu_rowcol ,
+            LABEL_ARG("*Clear Edit") ,
+            XmNmarginHeight, 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->clu_clear_pb , XmNactivateCallback ,
+                  AFNI_clu_CB , im3d ) ;
+   MCW_register_hint( func->clu_clear_pb , "Turn off Volume Edit" ) ;
+   im3d->vedset.code = 0 ; im3d->vedset.ival = -1 ;
+
+   func->clu_cluster_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->clu_rowcol ,
+            LABEL_ARG(" Clusterize") ,
+            XmNmarginHeight, 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->clu_cluster_pb , XmNactivateCallback ,
+                  AFNI_clu_CB , im3d ) ;
+   MCW_register_hint( func->clu_cluster_pb , "Cluster edit overlay" ) ;
 
    /*--- 30 Nov 1997: bucket managers ---*/
 
@@ -3543,6 +3593,8 @@ STATUS("making func->rowcol") ;
    XtManageChild( func->thr_rowcol ) ;
    XtManageChild( func->inten_rowcol ) ;
    XtManageChild( func->range_rowcol ) ;
+   XtManageChild( func->ulaclu_rowcol ) ;
+   XtManageChild( func->clu_rowcol ) ;
    XtManageChild( func->options_rowcol ) ;
 #ifdef USE_FUNC_FIM
    XtManageChild( func->fim_rowcol ) ;
@@ -5061,8 +5113,10 @@ ENTRY("AFNI_initialize_controller") ;
 
    WAIT_for_window( im3d->vwid->top_shell ) ;
 
+#if 0
    POPUP_cursorize( im3d->vwid->func->thr_label ) ;       /* 05 Sep 2006 */
    POPUP_cursorize( im3d->vwid->func->thr_pval_label ) ;  /* 05 Sep 2006 */
+#endif
    POPUP_cursorize( im3d->vwid->func->inten_label ) ;
    POPUP_cursorize( im3d->vwid->picture ) ;
    POPUP_cursorize( imag->crosshair_label ) ;
