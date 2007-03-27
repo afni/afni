@@ -1837,6 +1837,8 @@ STATUS("making view->rowcol") ;
            NULL ) ;
      XtAddCallback( view->rescan_pb , XmNactivateCallback ,
                     AFNI_editenv_CB , im3d ) ;
+     MCW_register_hint( view->rescan_pb ,
+                        "open Edit Environment controls" ) ;
    }
 
    /* NIML+PO button here -- 02 Feb 2007 */
