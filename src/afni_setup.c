@@ -1093,10 +1093,10 @@ ENTRY("AFNI_clu_CB") ;
      char *lvec[2] = { "rmm " , "vmul" } ;
      int   ivec[2] ;
      if( im3d->vedset.code == VEDIT_CLUST ){
-       ivec[0] = im3d->vedset.param[2] ; if( ivec[0] <= 0 ) ivec[0] = 5 ;
-       ivec[1] = im3d->vedset.param[3] ; if( ivec[1] <= 0 ) ivec[1] = 200 ;
+       ivec[0] = im3d->vedset.param[2] ; if( ivec[0] <= 0 ) ivec[0] = 0 ;
+       ivec[1] = im3d->vedset.param[3] ; if( ivec[1] <= 0 ) ivec[1] = 20 ;
      } else {
-       ivec[0] = 5 ; ivec[1] = 200 ;
+       ivec[0] = 0 ; ivec[1] = 20 ;
      }
      MCW_choose_vector( im3d->vwid->func->thr_label ,
                        "Clusterize Parameters" ,

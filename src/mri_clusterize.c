@@ -1,5 +1,9 @@
 #include "mrilib.h"
 
+static char *report = NULL ;
+
+char * mri_clusterize_report(void){ return report; }
+
 /*---------------------------------------------------------------------*/
 /*! Cluster-edit volume bim, possibly thresholding with tim, and
     produce a new output image.  [05 Sep 2006]
@@ -14,6 +18,8 @@ MRI_IMAGE * mri_clusterize( float rmm , float vmul , MRI_IMAGE *bim ,
    MCW_cluster *cl ; MCW_cluster_array*clar ;
 
 ENTRY("mri_clusterize") ;
+
+   if( report != NULL ){ free(report); report = NULL; }
 
    if( bim == NULL || mri_data_pointer(bim) == NULL ) RETURN(NULL) ;
 
@@ -59,6 +65,11 @@ ENTRY("mri_clusterize") ;
        }
      }
      DESTROY_CLARR(clar) ;
+     report = THD_zzprintf( report ,
+                            "Voxels survived clustering = %5d\n"
+                            "Voxels edited out          = %5d\n"
+                            "Cluster size threshold     = %d"   ,
+                            nkeep , nkill , ptmin ) ;
    }
 
    RETURN(cim) ;
