@@ -5705,6 +5705,7 @@ DUMP_IVEC3("  new_id",new_id) ;
        }
        AFNI_vedit( im3d->fim_now , im3d->vedset ) ;
        if( !DSET_VEDIT_good(im3d->fim_now) ) VEDIT_clear_label(im3d) ;
+       else                                  VEDIT_helpize(im3d) ;
      } else {
        AFNI_vedit_clear( im3d->fim_now ) ; VEDIT_clear_label(im3d) ;
      }

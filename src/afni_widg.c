@@ -3130,7 +3130,7 @@ STATUS("making func->rowcol") ;
    func->options_label =
       XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , func->options_rowcol ,
-            LABEL_ARG("Options      Clustering") ,
+            LABEL_ARG("Background   Cluster Edit") ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -3143,6 +3143,7 @@ STATUS("making func->rowcol") ;
             XmNpacking , XmPACK_TIGHT ,
             XmNmarginHeight, 0 ,
             XmNmarginWidth , 0 ,
+            XmNspacing     , 5 ,
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -3201,7 +3202,11 @@ STATUS("making func->rowcol") ;
          NULL ) ;
    XtAddCallback( func->clu_clear_pb , XmNactivateCallback ,
                   AFNI_clu_CB , im3d ) ;
-   MCW_register_hint( func->clu_clear_pb , "Turn off Volume Edit" ) ;
+   MCW_register_hint( func->clu_clear_pb , "Turn off Cluster Edit" ) ;
+   MCW_register_help( func->clu_clear_pb , "Disable on-the-fly\n"
+                                           "clustering of the\n"
+                                           "thresholded overlay\n"
+                                           "volume." ) ;
    im3d->vedset.code = 0 ; im3d->vedset.ival = -1 ;
 
    func->clu_cluster_pb =
@@ -3214,7 +3219,19 @@ STATUS("making func->rowcol") ;
          NULL ) ;
    XtAddCallback( func->clu_cluster_pb , XmNactivateCallback ,
                   AFNI_clu_CB , im3d ) ;
-   MCW_register_hint( func->clu_cluster_pb , "Cluster edit overlay" ) ;
+   MCW_register_hint( func->clu_cluster_pb , "Set clustering parameters" ) ;
+   MCW_register_help( func->clu_cluster_pb ,
+                        "Cluster editing parameters:\n"
+                        "  rmm = connectivity radius (rmm=0 -> 1 voxel)\n"
+                        " vmul = minimum cluster volume (in microliters)\n"
+                        "       ** BUT, if rmm=0, vmul is in voxels,\n"
+                        "       ** not in absolute volume!\n\n"
+                        "N.B.: Clustering is done at the overlay\n"
+                        "      dataset voxel resolution, NOT at\n"
+                        "      the underlay resolution.\n\n"
+                        "N.B.: Clustering cannot be done if the overlay\n"
+                        "      dataset does not have a stored volume\n"
+                        "      (e.g., is 'warp-on-demand' only)." ) ;
 
    /*--- 30 Nov 1997: bucket managers ---*/
 

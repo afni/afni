@@ -920,6 +920,7 @@ extern MRI_IMAGE * mri_sharpen( float , int , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_transpose( MRI_IMAGE * ) ;
 
 extern MRI_IMAGE * mri_clusterize( float,float, MRI_IMAGE *, float, MRI_IMAGE * );
+extern char * mri_clusterize_report(void) ;
 
 #define FILT_FFT_WRAPAROUND  1
 
