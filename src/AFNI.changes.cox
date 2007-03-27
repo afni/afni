@@ -6203,3 +6203,7 @@
 
 26 Mar 2007
  * Moved on-the-fly cluster editing to Define Overlay panel, from popup menu.
+
+27 Mar 2007
+ * Help for cluster editing, and some rationalization (e.g., reset it when
+     changing datasets, turn widgets off if it's not avaiable, et cetera).

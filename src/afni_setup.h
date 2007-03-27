@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #ifndef _AFNI_SETUP_HEADER_
 #define _AFNI_SETUP_HEADER
 
@@ -94,8 +94,18 @@ extern void AFNI_thr_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
 extern void AFNI_clu_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void set_vedit_label( Three_D_View *im3d , int ll ) ;  /* 26 Mar 2007 */
-#define VEDIT_clear_label(iq) set_vedit_label(iq,0)
+
+#define VEDIT_clear_label(iq)  \
+  do{ set_vedit_label(iq,0) ;  \
+      MCW_unregister_help((iq)->vwid->func->options_label); } while(0)
+
 #define VEDIT_clust_label(iq) set_vedit_label(iq,1)
+
+#define VEDIT_helpize(iq)                                                 \
+ do{ char *hc = mri_clusterize_report();                                   \
+     MCW_unregister_help((iq)->vwid->func->options_label);                  \
+     if( hc != NULL ) MCW_register_help((iq)->vwid->func->options_label,hc); \
+ } while(0)
 
 #ifdef  __cplusplus
 }
