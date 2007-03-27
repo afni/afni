@@ -93,6 +93,10 @@ extern void AFNI_palette_tran_CB( MCW_arrowval * , XtPointer ) ;
 extern void AFNI_thr_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
 extern void AFNI_clu_CB( Widget , XtPointer , XtPointer ) ;
 
+extern void set_vedit_label( Three_D_View *im3d , int ll ) ;  /* 26 Mar 2007 */
+#define VEDIT_clear_label(iq) set_vedit_label(iq,0)
+#define VEDIT_clust_label(iq) set_vedit_label(iq,1)
+
 #ifdef  __cplusplus
 }
 #endif
