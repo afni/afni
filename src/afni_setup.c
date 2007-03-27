@@ -1025,7 +1025,7 @@ static char *thrbutlab[] = { " Clear Edit" ,
                              " Clusterize"  } ;
 #define NTHRBUT (sizeof(thrbutlab)/sizeof(char *))
 
-static void set_vedit_label( Three_D_View *im3d , int ll )
+void set_vedit_label( Three_D_View *im3d , int ll )
 {
    char lab[64] ;
    if( !IM3D_OPEN(im3d) ) return ;

@@ -6200,3 +6200,6 @@
  * Modify 3dDeconvolve.c to deconflict output prefixes (instead of failing),
      and to compute Full F by default, unless -nofullf_atall is given.
  * AFNI_IMAGRA_CLOSER, for the FC5 abusers out there.
+
+26 Mar 2007
+ * Moved on-the-fly cluster editing to Define Overlay panel, from popup menu.
