@@ -100,7 +100,7 @@ typedef struct {
    ((uu)==UNDERLAY_ALLFUNC||(uu)==UNDERLAY_THRFUNC)
 
 static char * UNDERLAY_typestr[] =
-   { "u:ULay" , "u:OLay" , "u:O@Thr" } ;
+   { "ulay:ULay" , "ulay:OLay" , "ulay:O@Thr" } ;
 
 #define DEFAULT_FIM_SCALE 10000   /* change this and bad things will happen! */
 

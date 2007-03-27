@@ -1978,6 +1978,7 @@ void AFNI_make_wid2( Three_D_View * im3d )
 {
    int ii ;
    Widget hrc ;  /* 30 Mar 2001 */
+   Widget www ;  /* 26 Mar 2007 */
 
 ENTRY("AFNI_make_wid2") ;
 
@@ -3129,7 +3130,7 @@ STATUS("making func->rowcol") ;
    func->options_label =
       XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , func->options_rowcol ,
-            LABEL_ARG("Options    Clustering") ,
+            LABEL_ARG("Options      Clustering") ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
@@ -3172,13 +3173,20 @@ STATUS("making func->rowcol") ;
 
    /*--- 26 Mar 2007: clustering stuff moved here ---*/
 
+   www = XtVaCreateManagedWidget(
+           "dialog" , xmFrameWidgetClass , func->ulaclu_rowcol ,
+              XmNshadowType , XmSHADOW_ETCHED_IN ,
+              XmNshadowThickness , 2 ,
+              XmNinitialResourcesPersistent , False ,
+           NULL ) ;
    func->clu_rowcol =
       XtVaCreateWidget(
-         "dialog" , xmRowColumnWidgetClass , func->ulaclu_rowcol ,
+         "dialog" , xmRowColumnWidgetClass , www ,
             XmNorientation , XmVERTICAL ,
             XmNpacking , XmPACK_TIGHT ,
             XmNmarginHeight, 0 ,
             XmNmarginWidth , 0 ,
+            XmNspacing     , 0 ,
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;

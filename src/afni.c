@@ -5704,8 +5704,9 @@ DUMP_IVEC3("  new_id",new_id) ;
          break ;
        }
        AFNI_vedit( im3d->fim_now , im3d->vedset ) ;
+       if( !DSET_VEDIT_good(im3d->fim_now) ) VEDIT_clear_label(im3d) ;
      } else {
-       AFNI_vedit_clear( im3d->fim_now ) ;
+       AFNI_vedit_clear( im3d->fim_now ) ; VEDIT_clear_label(im3d) ;
      }
      AFNI_set_thr_pval(im3d) ;  /* for the * marker */
    }
@@ -6890,6 +6891,7 @@ if(PRINT_TRACING)
    new_func = GLOBAL_library.sslist->ssar[sss]->dsset[fff][vvv] ;
 
    AFNI_vedit_clear( im3d->fim_now ) ;  /* 05 Sep 2006 */
+   VEDIT_clear_label( im3d ) ;
 
    /*----------------------------------------------*/
    /*--- if the old dataset has markers and the
@@ -6926,6 +6928,8 @@ STATUS("purging old datasets from memory (maybe)") ;
    im3d->anat_now = im3d->anat_dset[vvv] ;
    im3d->fim_now  = im3d->fim_dset[vvv] ;
    im3d->ss_now   = GLOBAL_library.sslist->ssar[sss] ;
+
+   SENSITIZE( im3d->vwid->func->clu_rowcol , DSET_INMEMORY(im3d->fim_now) ) ;
 
    /*------------------------------------------------*/
    /*--- if markers are defined, then set them up ---*/
@@ -7096,9 +7100,9 @@ THD_warp * AFNI_find_warp( THD_3dim_dataset *dset_to , THD_3dim_dataset *dset_fr
    30 Nov 1997: add bucket stuff
 ------------------------------------------------------------------------*/
 
-void AFNI_setup_viewing( Three_D_View * im3d , Boolean rescaled )
+void AFNI_setup_viewing( Three_D_View *im3d , Boolean rescaled )
 {
-   FD_brick ** fbr ;
+   FD_brick **fbr ;
    XmString xstr ;
    Boolean  same , dont_fix_pts , writer ,
             anat_brick_possible , func_brick_possible ;
