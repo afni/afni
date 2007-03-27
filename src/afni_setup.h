@@ -95,16 +95,22 @@ extern void AFNI_clu_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void set_vedit_label( Three_D_View *im3d , int ll ) ;  /* 26 Mar 2007 */
 
+#define VEDIT_unhelpize(iq)                                                   \
+ do{ MCW_unregister_help((iq)->vwid->func->options_label);                     \
+     if( (iq)->vedlabel != NULL ){ free((iq)->vedlabel); (iq)->vedlabel=NULL; } \
+ } while(0)
+
 #define VEDIT_clear_label(iq)  \
-  do{ set_vedit_label(iq,0) ;  \
-      MCW_unregister_help((iq)->vwid->func->options_label); } while(0)
+ do{ set_vedit_label(iq,0); VEDIT_unhelpize(iq); } while(0)
 
 #define VEDIT_clust_label(iq) set_vedit_label(iq,1)
 
 #define VEDIT_helpize(iq)                                                 \
- do{ char *hc = mri_clusterize_report();                                   \
-     MCW_unregister_help((iq)->vwid->func->options_label);                  \
-     if( hc != NULL ) MCW_register_help((iq)->vwid->func->options_label,hc); \
+ do{ char *hc = mri_clusterize_report(); VEDIT_unhelpize(iq) ;            \
+     if( hc != NULL ){                                                    \
+       (iq)->vedlabel = strdup(hc);                                       \
+       MCW_register_help((iq)->vwid->func->options_label,(iq)->vedlabel); \
+     }                                                                    \
  } while(0)
 
 #ifdef  __cplusplus

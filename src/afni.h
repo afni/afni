@@ -858,6 +858,7 @@ typedef struct {
       int dummied ;                             /* 27 Jan 2004 */
 
       VEDIT_settings vedset ;                   /* 05 Sep 2006 */
+      char * vedlabel ;                         /* 27 Mar 2007 */
 } Three_D_View ;
 
 /*! Is any image viewer window open? */
