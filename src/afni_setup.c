@@ -1055,7 +1055,7 @@ ENTRY("AFNI_cluster_choose_CB") ;
    if( vmul <= 0.0 ){
      im3d->vedset.code = 0 ;
      AFNI_vedit_clear( im3d->fim_now ) ;
-     set_vedit_label(im3d,0) ;
+     set_vedit_label(im3d,0) ; VEDIT_unhelpize(im3d) ;
    } else {
      im3d->vedset.code     = VEDIT_CLUST ;
      im3d->vedset.param[2] = rmm ;
@@ -1082,7 +1082,7 @@ ENTRY("AFNI_clu_CB") ;
    if( w == im3d->vwid->func->clu_clear_pb ){
      im3d->vedset.code = 0 ;
      AFNI_vedit_clear( im3d->fim_now ) ;
-     set_vedit_label(im3d,0) ;
+     set_vedit_label(im3d,0) ; VEDIT_unhelpize(im3d) ;
      if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
      EXRETURN ;
    }
