@@ -1242,7 +1242,8 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(SCRIPTS)  $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py  $(INSTALLDIR)
-	if [ -f README.environment ]; then $(CP) README.* $(INSTALLDIR); fi;
+	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
+	if [ -f AFNI.afnirc        ]; then $(CP) AFNI.afnirc $(INSTALLDIR); fi;
 
 install_noplug: $(INSTALLDIR)
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
