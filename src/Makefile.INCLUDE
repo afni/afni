@@ -35,7 +35,7 @@ AFWARPOBJS = afni_warp.o afni_slice_byte.o afni_slice_short.o      \
 
 T3OBJS  = to3d.o
 
-MISC    = AFNI.Xdefaults AFNI.afnirc 3d*.lib gmovie*
+MISC    = AFNI.Xdefaults AFNI.afnirc AFNI.sumarc 3d*.lib gmovie*
 
 ## The following programs are "extras" not really part of the
 ## AFNI package, but included because they are useful.  Some of
@@ -1244,6 +1244,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ)
 	$(CP) $(PY_DIR)/*.py  $(INSTALLDIR)
 	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
 	if [ -f AFNI.afnirc        ]; then $(CP) AFNI.afnirc $(INSTALLDIR); fi;
+	if [ -f AFNI.sumarc        ]; then $(CP) AFNI.sumarc $(INSTALLDIR); fi;
 
 install_noplug: $(INSTALLDIR)
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
