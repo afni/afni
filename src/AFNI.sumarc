@@ -1,0 +1,49 @@
+#SUMA DEFAULTS
+***ENVIRONMENT
+//1- incremental arrow rotation angle in degrees
+ SUMA_ArrowRotAngle = 5
+//2- color pattern (AFNI, EURO, DEFAULT) 
+ SUMA_ColorPattern =  EURO
+//3- swap mouse buttons 1 and 3
+ SUMA_SwapButtons_1_3 = NO
+//4- background color r g b. No space between values
+ SUMA_BackgroundColor = 0.0,0.0,0.0
+//5- ROI color map (bgyr64, roi64, roi128, roi256)
+ SUMA_ROIColorMap = roi256
+//6- Number of smoothing operations to run on convexity data, default is 5
+ SUMA_NumConvSmooth = 8
+//7- Colormap for convexity (gray02, gray_i02, ngray20, bgyr64, etc.)
+ SUMA_ConvColorMap = gray02
+//8- Brightness factor for convexity (default is 0.5)
+ SUMA_ConvBrightFactor = 0.5
+//9- Number of smoothing operations to run on mixed foregroung color plane before mixing with background
+ SUMA_NumForeSmoothing = 0
+//10- Setup the color mixing mode (ORIG, MOD1) 
+ SUMA_ColorMixingMode = ORIG
+//11- Port for communicating with AFNI
+//Listening ports are derived from SUMA_AFNI_TCP_PORT 
+//Listening port i = SUMA_AFNI_TCP_PORT + i (i > 0)
+ SUMA_AFNI_TCP_PORT = 53211
+//12- Warn before closing with the Escape key (YES/NO, default is YES)
+ SUMA_WarnBeforeClose = YES
+//13- Mask node values = 0 ? YES(default)/NO
+SUMA_MaskZero = YES
+//14- Threshold if Val < thr (NO) or | Val | < | Thr | (YES, default)
+SUMA_AbsThreshold = NO
+//15- Threshold scale precision. 2 is the default and the minimum. This value might be overriden in SUMA.
+SUMA_ThresholdScalePower = 2 
+//16- Center of Rotation is based on nodes used in the mesh and not on all the nodes in NodeList (NOPE, default)
+SUMA_CenterOnPatch = YES
+//17- Use cross ticks on axis ?
+SUMA_UseCrossTicks = NO
+//18- Warn if 1D file looks like it needs a transpose
+SUMA_1D_Transponse_Warn = YES
+//19- Adjust roation and translation factor of mouse with changes in zoom levels (YES, default)
+SUMA_AdjustMouseMotionWithZoom = YES
+//20- Use orthographic projection (NOPE, default)
+SUMA_ViewOrthographicProjection = NOPE
+//21- Percent gain for zooming in and out with the 'z' and 'Z' keys. Typical range from 0 to 50, default is 5
+SUMA_KeyZoomGain = 5
+//22- Original FOV. Set between 1.0 and 100.0. Default is 30.0
+SUMA_FOV_Original = 30.0
+
