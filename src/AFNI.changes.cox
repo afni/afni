@@ -6207,3 +6207,7 @@
 27 Mar 2007
  * Help for cluster editing, and some rationalization (e.g., reset it when
      changing datasets, turn widgets off if it's not avaiable, et cetera).
+
+03 Apr 2007
+ * Modify edt_blur.c to compute FIR Gaussian weights as a local sum across
+     each cell, rather than just the weight at the center of the cell.

@@ -13,6 +13,8 @@ static void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f ) ;
 static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f ) ;
 static void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f ) ;
 
+static void fir_gaussian_load( int m, float dx, float *ff ) ; /* 03 Apr 2007 */
+
 #undef  FIR_MAX
 #define FIR_MAX 15  /** max length of FIR filter to use instead of FFTs **/
 
@@ -89,6 +91,9 @@ void EDIT_blur_volume_3d( int nx, int ny, int nz,
    float fir_wt[FIR_MAX+1] ;
    int all_fir=0 ;            /* 06 Oct 2005 */
 
+   double sfac = AFNI_numenv("AFNI_BLUR_FIRFAC") ;
+   if( sfac < 2.0 ) sfac = 2.5 ;
+
    /***---------- initialize ----------***/
 
 ENTRY("EDIT_blur_volume_3d") ;
@@ -113,9 +118,9 @@ ENTRY("EDIT_blur_volume_3d") ;
    /*** 10 Jan 2003: find bot and top of data input */
 
    if( allow_fir ){
-     ii = (int) ceil( 2.5 * sigmax / dx ) ;
-     jj = (int) ceil( 2.5 * sigmay / dy ) ;
-     kk = (int) ceil( 2.5 * sigmaz / dz ) ;
+     ii = (int) ceil( sfac * sigmax / dx ) ;
+     jj = (int) ceil( sfac * sigmay / dy ) ;
+     kk = (int) ceil( sfac * sigmaz / dz ) ;
      if( ii <= FIR_MAX && jj <= FIR_MAX && kk <= FIR_MAX ) all_fir = 1 ;
    }
    if( ftype != MRI_float ) all_fir = 0 ;  /* 17 Nov 2005: oopsie */
@@ -157,10 +162,12 @@ ENTRY("EDIT_blur_volume_3d") ;
      STATUS("skipping x blur") ; fir_num++ ; goto DO_Y_BLUR ;
    }
 
-   fir_m = (int) ceil( 2.5 * sigmax / dx ) ;
+   fir_m = (int) ceil( sfac * sigmax / dx ) ;
    if( allow_fir && ftype == MRI_float && fir_m <= FIR_MAX ){
      STATUS("start x FIR") ;
      if( fir_m < 1 ) fir_m = 1 ;
+     fir_gaussian_load( fir_m , dx/sigmax , fir_wt ) ;
+#if 0
      fac = fir_wt[0] = 1.0f ;
      for( ii=1 ; ii <= fir_m ; ii++ ){
        fir_wt[ii] = exp(-0.5*(ii*dx)*(ii*dx)/(sigmax*sigmax)) ;
@@ -168,6 +175,7 @@ ENTRY("EDIT_blur_volume_3d") ;
      }
      fac = 1.0f / fac ;
      for( ii=0 ; ii <= fir_m ; ii++ ) fir_wt[ii] *= fac ;
+#endif
      fir_blurx( fir_m , fir_wt , nx,ny,nz , ffim ) ;
      fir_num++ ; goto DO_Y_BLUR ;
    }
@@ -286,10 +294,12 @@ STATUS("start x FFTs") ;
      STATUS("skip y blur") ; fir_num++ ; goto DO_Z_BLUR ;
    }
 
-   fir_m = (int) ceil( 2.5 * sigmay / dy ) ;
+   fir_m = (int) ceil( sfac * sigmay / dy ) ;
    if( allow_fir && ftype == MRI_float && fir_m <= FIR_MAX ){
      STATUS("start y FIR") ;
      if( fir_m < 1 ) fir_m = 1 ;
+     fir_gaussian_load( fir_m , dy/sigmay , fir_wt ) ;
+#if 0
      fac = fir_wt[0] = 1.0f ;
      for( ii=1 ; ii <= fir_m ; ii++ ){
        fir_wt[ii] = exp(-0.5*(ii*dy)*(ii*dy)/(sigmay*sigmay)) ;
@@ -297,6 +307,7 @@ STATUS("start x FFTs") ;
      }
      fac = 1.0f / fac ;
      for( ii=0 ; ii <= fir_m ; ii++ ) fir_wt[ii] *= fac ;
+#endif
      fir_blury( fir_m , fir_wt , nx,ny,nz , ffim ) ;
      fir_num++ ; goto DO_Z_BLUR ;
    }
@@ -411,10 +422,12 @@ STATUS("start y FFTs") ;
      STATUS("skip z blur") ; fir_num++ ; goto ALL_DONE_NOW ;
    }
 
-   fir_m = (int) ceil( 2.5 * sigmaz / dz ) ;
+   fir_m = (int) ceil( sfac * sigmaz / dz ) ;
    if( allow_fir && ftype == MRI_float && fir_m <= FIR_MAX ){
      STATUS("start z FIR") ;
      if( fir_m < 1 ) fir_m = 1 ;
+     fir_gaussian_load( fir_m , dz/sigmaz , fir_wt ) ;
+#if 0
      fac = fir_wt[0] = 1.0f ;
      for( ii=1 ; ii <= fir_m ; ii++ ){
        fir_wt[ii] = exp(-0.5*(ii*dz)*(ii*dz)/(sigmaz*sigmaz)) ;
@@ -422,6 +435,7 @@ STATUS("start y FFTs") ;
      }
      fac = 1.0f / fac ;
      for( ii=0 ; ii <= fir_m ; ii++ ) fir_wt[ii] *= fac ;
+#endif
      fir_blurz( fir_m , fir_wt , nx,ny,nz , ffim ) ;
      fir_num++ ; goto ALL_DONE_NOW ;
    }
@@ -1310,6 +1324,9 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
    int   fir_m , ii ;
    float *fir_wt , fac ;
 
+   double sfac = AFNI_numenv("AFNI_BLUR_FIRFAC") ;
+   if( sfac < 2.0 ) sfac = 2.5 ;
+
    ENTRY("FIR_blur_volume_3d") ;
 
    if( ffim == NULL ) EXRETURN ;
@@ -1322,10 +1339,12 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
    /*-- blur along x --*/
 
    if( sigmax > 0.0 && nx > 1 ){
-     fir_m = (int) ceil( 2.5 * sigmax / dx ) ;  /* about the 5% level */
+     fir_m = (int) ceil( sfac * sigmax / dx ) ;  /* about the 5% level */
      if( fir_m < 1    ) fir_m = 1 ;
      if( fir_m > nx/2 ) fir_m = nx/2 ;
      fir_wt = (float *)malloc(sizeof(float)*(fir_m+1)) ;
+     fir_gaussian_load( fir_m , dx/sigmax , fir_wt ) ;
+#if 0
      fac = fir_wt[0] = 1.0f ;
      for( ii=1 ; ii <= fir_m ; ii++ ){
        fir_wt[ii] = exp(-0.5*(ii*dx)*(ii*dx)/(sigmax*sigmax)) ;
@@ -1333,6 +1352,7 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
      }
      fac = 1.0f / fac ;
      for( ii=0 ; ii <= fir_m ; ii++ ) fir_wt[ii] *= fac ;
+#endif
      fir_blurx( fir_m , fir_wt , nx,ny,nz , ffim ) ;
      free((void *)fir_wt) ;
    }
@@ -1340,10 +1360,12 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
    /*-- blur along y --*/
 
    if( sigmay > 0.0 && ny > 1 ){
-     fir_m = (int) ceil( 2.5 * sigmay / dy ) ;
+     fir_m = (int) ceil( sfac * sigmay / dy ) ;
      if( fir_m < 1    ) fir_m = 1 ;
      if( fir_m > ny/2 ) fir_m = ny/2 ;
      fir_wt = (float *)malloc(sizeof(float)*(fir_m+1)) ;
+     fir_gaussian_load( fir_m , dy/sigmay , fir_wt ) ;
+#if 0
      fac = fir_wt[0] = 1.0f ;
      for( ii=1 ; ii <= fir_m ; ii++ ){
        fir_wt[ii] = exp(-0.5*(ii*dy)*(ii*dy)/(sigmay*sigmay)) ;
@@ -1351,6 +1373,7 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
      }
      fac = 1.0f / fac ;
      for( ii=0 ; ii <= fir_m ; ii++ ) fir_wt[ii] *= fac ;
+#endif
      fir_blury( fir_m , fir_wt , nx,ny,nz , ffim ) ;
      free((void *)fir_wt) ;
    }
@@ -1358,10 +1381,12 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
    /*-- blur along z --*/
 
    if( sigmaz > 0.0 && nz > 1 ){
-     fir_m = (int) ceil( 2.5 * sigmaz / dz ) ;
+     fir_m = (int) ceil( sfac * sigmaz / dz ) ;
      if( fir_m < 1    ) fir_m = 1 ;
      if( fir_m > nz/2 ) fir_m = nz/2 ;
      fir_wt = (float *)malloc(sizeof(float)*(fir_m+1)) ;
+     fir_gaussian_load( fir_m , dz/sigmaz , fir_wt ) ;
+#if 0
      fac = fir_wt[0] = 1.0f ;
      for( ii=1 ; ii <= fir_m ; ii++ ){
        fir_wt[ii] = exp(-0.5*(ii*dz)*(ii*dz)/(sigmaz*sigmaz)) ;
@@ -1369,6 +1394,7 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
      }
      fac = 1.0f / fac ;
      for( ii=0 ; ii <= fir_m ; ii++ ) fir_wt[ii] *= fac ;
+#endif
      fir_blurz( fir_m , fir_wt , nx,ny,nz , ffim ) ;
      free((void *)fir_wt) ;
    }
@@ -1455,6 +1481,43 @@ ENTRY("mri_float_blur3D") ;
    FIR_blur_volume_3d( newim->nx,newim->ny,newim->nz , 1.0f,1.0f,1.0f ,
                        MRI_FLOAT_PTR(newim)  , sig,sig,sig             ) ;
    RETURN(newim) ;
+}
+
+/*-----------------------------------------------------------------------------*/
+
+#undef  NG
+#define NG 3
+static void fir_gaussian_load( int m, float dx, float *ff )
+{
+   int ii ; float fac ; double xx ;
+
+   if( m < 0 || dx <= 0.0f || ff == NULL ) return ;
+
+   if( AFNI_yesenv("AFNI_BLUR_FIROLD") ){   /** the olde waye **/
+     fac = ff[0] = 1.0f ;
+     for( ii=1 ; ii <= m ; ii++ ){
+       xx = ii*dx ;
+       ff[ii] = exp(-0.5*xx*xx ) ;    /* center of each cell */
+       fac += 2.0f * ff[ii] ;
+     }
+   } else {                           /** the newe bettere waye **/
+     double sum , dxj , ee ; int jj ;
+     fac = 0.0f ; dxj = dx/(2.0*NG) ; /* subdivision of each cell */
+     for( ii=0 ; ii <= m ; ii++ ){
+       sum = 0.0 ;
+       for( jj=-NG ; jj <= NG ; jj++ ){ /* sum over subdivisions */
+         xx = ii*dx + jj*dxj ;
+         ee = exp( -0.5*xx*xx ) ;
+         if( jj==-NG || jj==NG ) sum += 0.5*ee ; else sum += ee ;
+       }
+       ff[ii] = sum ;
+       if( ii==0 ) fac += sum ; else fac += 2.0*sum ;
+     }
+   }
+
+   fac = 1.0f / fac ;
+   for( ii=0 ; ii <= m ; ii++ ) ff[ii] *= fac ;
+   return ;
 }
 
 /**************************************************************************/
