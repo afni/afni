@@ -35,6 +35,9 @@
   Mod:     Added -max_clust_size, to override MAX_CLUSTER_SIZE.
            Also, increased default from 1000 to 10000.
   Date:    12 Apr 2006 [rickr]
+
+  Mod:     Added AFNI_BLUR_* environment variable stuff.
+  Date:    03 Apr 2007 [RWC]
 */
 
 
@@ -43,7 +46,7 @@
 #define PROGRAM_NAME "AlphaSim"                      /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "18 June 1997"    /* date of initial program release */
-#define PROGRAM_LATEST  "02 December 2002"/* date of latest program revision */
+#define PROGRAM_LATEST  "03 April 2007"   /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -106,6 +109,16 @@ void display_help_menu()
      "[-quiet]     suppress screen output                                   \n"
      "[-out file]  file = name of output file                               \n"
      "[-max_clust_size size]  size = maximum allowed voxels in a cluster    \n"
+     "\n"
+     "Unix environment variables:\n"
+     " Set AFNI_BLUR_FFT to YES to require blurring be done with FFTs\n"
+     "   (the oldest way, and slowest).\n"
+     " Set AFNI_BLUR_FFT to NO and AFNI_BLUR_FIROLD to YES to require\n"
+     "   blurring to be done with the old (crude) FIR code (not advised).\n"
+     " If neither of these are set, then blurring is done using the newer\n"
+     "   (more accurate) FIR code (recommended).\n"
+     " Results will differ in detail depending on the blurring method\n"
+     "   used to generate the simulated noise fields.\n"
      );
   
   exit(0);
@@ -883,6 +896,8 @@ void gaussian_filter (int nx, int ny, int nz, float dx, float dy, float dz,
 		      float rmm, float sigmax, float sigmay, float sigmaz,
 		      float * fim)
 {
+
+  if( AFNI_yesenv("AFNI_BLUR_FFT") ) EDIT_blur_allow_fir(0) ;  /* 03 Apr 2007 */
 
   /*----- use Gaussian blur routine -----*/ 
   EDIT_blur_volume_3d (nx, ny, nz, dx, dy, dz, 
