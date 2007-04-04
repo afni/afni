@@ -134,7 +134,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "             [< -use_edge >] [< -no_use_edge >] \n"
                "             [< -push_to_edge >] [<-no_push_to_edge>]\n"
                "             [< -perc_int PERC_INT >] \n"
-               "             [< -max_inter_iter MII >] [-mask_vol]\n"
+               "             [< -max_inter_iter MII >] [-mask_vol | -orig_vol | -norm_vol]\n"
                "             [< -debug DBG >] [< -node_debug NODE_DBG >]\n"
                "             [< -demo_pause >]\n"
                "             [< -monkey >] [<-rat>]\n"  
@@ -167,11 +167,12 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "        of the program, a mask volume was written out.\n" 
                "        You can still get that mask volume instead of the\n"
                "        skull-stripped volume with the option -mask_vol . \n"
-               "        NOTE: The output volume does not have values identical\n"
-               "              to those in the input. In particular, the range might\n"
-               "              be larger and some low-intensity values are set to 0.\n"
+               "        NOTE: In the default setting, the output volume does not \n"
+               "              have values identical to those in the input. \n"
+               "              In particular, the range might be larger \n"
+               "              and some low-intensity values are set to 0.\n"
                "              If you insist on having the same range of values as in\n"
-               "              the input, then either use:\n"
+               "              the input, then either use option -orig_vol, or run:\n"
                "         3dcalc -nscale -a VOL+VIEW -b VOL_PREFIX+VIEW \\\n"
                "                -expr 'a*step(b)' -prefix VOL_SAME_RANGE\n"
                "              With the command above, you can preserve the range\n"
@@ -182,6 +183,11 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "              inside the brain surface envelope:\n"
                "         3dcalc -nscale -a VOL+VIEW -b VOL_MASK_PREFIX+VIEW \\\n"
                "                -expr 'a*step(b-3.01)' -prefix VOL_SAME_RANGE_KEEP_LOW\n"
+               "     -norm_vol: Output a masked and somewhat intensity normalized and \n"
+               "                thresholded version of the input. This is the default,\n"
+               "                and you can use -orig_vol to override it.\n"
+               "     -orig_vol: Output a masked version of the input AND do not modify\n"
+               "                the values inside the brain as -norm_vol would.\n"
                "     -mask_vol: Output a mask volume instead of a skull-stripped\n"
                "                volume.\n"
                "                The mask volume containes:\n"
@@ -293,7 +299,8 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "                         However, few surfaces might have small stubborn\n"
                "                         intersections that produce a few holes.\n"
                "                         PERC_INT should be a small number, typically\n"
-               "                         between 0 and 0.1\n"
+               "                         between 0 and 0.1\n. A -1 means do not do\n"
+               "                         any testing for intersection.\n"
                "     -max_inter_iter N_II: Number of iteration to remove intersection\n"
                "                           problems. With each iteration, the program\n"
                "                           automatically increases the amount of smoothing\n"
@@ -458,7 +465,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
          Opt->UseExpansion = 1;
          brk = YUP;
       }
-
+      
       if (!brk && ( (strcmp(argv[kar], "-4Tom") == 0) || (strcmp(argv[kar], "-skulls") == 0) ) ) {
          Opt->DoSkulls = 1;
          brk = YUP;
@@ -898,7 +905,14 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
          Opt->MaskMode = 1;
          brk = YUP;
       }
-      
+      if (!brk && ( (strcmp(argv[kar], "-orig_vol") == 0) ) ) {
+         Opt->MaskMode = 2;
+         brk = YUP;
+      }
+      if (!brk && ( (strcmp(argv[kar], "-norm_vol") == 0) ) ) {
+         Opt->MaskMode = 0;
+         brk = YUP;
+      }
       if (!brk && ( (strcmp(argv[kar], "-touchup") == 0) ) ) {
          if (Opt->UseNew < 0) Opt->UseNew = 1.0;
          else ++ Opt->UseNew;
@@ -2260,29 +2274,46 @@ int main (int argc,char *argv[])
    }
    
    /* change Opt->fvec to reflect original data (not spat normed baby)*/
-   if (Opt->fvec) { SUMA_free(Opt->fvec); Opt->fvec = NULL; }
-   Opt->nvox = DSET_NVOX( Opt->OrigSpatNormedSet );
-   Opt->fvec = (float *)SUMA_malloc(sizeof(float) * Opt->nvox);
-   if (!Opt->fvec) {
-      SUMA_SL_Crit("Failed to allocate for fvec.\nOh misery.");
-      SUMA_RETURN(NOPE);
+   {
+      THD_3dim_dataset *dout=NULL;
+      
+      if (Opt->MaskMode == 0 || Opt->MaskMode == 1) { /* use spatnormed baby, OK for mask too*/
+         dout = Opt->OrigSpatNormedSet;
+      } else if (Opt->MaskMode == 2) { /* use original dset */
+         DSET_load(Opt->iset);
+         dout = Opt->iset;
+      } else {
+         SUMA_S_Errv("Bad MaskMode value of %d!\n", Opt->MaskMode);
+         SUMA_RETURN(NOPE);
+      }
+      
+      if (Opt->fvec) { SUMA_free(Opt->fvec); Opt->fvec = NULL; }
+      Opt->nvox = DSET_NVOX( dout );
+      Opt->fvec = (float *)SUMA_malloc(sizeof(float) * Opt->nvox);
+      if (!Opt->fvec) {
+         SUMA_SL_Crit("Failed to allocate for fvec.\nOh misery.");
+         SUMA_RETURN(NOPE);
+      }
+
+      EDIT_coerce_scale_type( Opt->nvox , DSET_BRICK_FACTOR(dout,0) ,
+                              DSET_BRICK_TYPE(dout,0), DSET_ARRAY(dout, 0) ,      /* input  */
+                              MRI_float               , Opt->fvec  ) ;   /* output */
    }
-   
-   EDIT_coerce_scale_type( Opt->nvox , DSET_BRICK_FACTOR(Opt->OrigSpatNormedSet,0) ,
-                           DSET_BRICK_TYPE(Opt->OrigSpatNormedSet,0), DSET_ARRAY(Opt->OrigSpatNormedSet, 0) ,      /* input  */
-                           MRI_float               , Opt->fvec  ) ;   /* output */
-   if (!Opt->MaskMode) {
+   if (Opt->MaskMode == 0 || Opt->MaskMode == 2) {
       SUMA_LH("Creating skull-stripped volume");
       for (i=0; i<SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz; ++i) {
          /* apply the mask automatically */
          if (isin[i] >= SUMA_ON_NODE) isin_float[i] = (float)Opt->fvec[i];
          else isin_float[i] = 0.0;
       }
-   } else {
+   } else if (Opt->MaskMode == 1) {
       SUMA_LH("Creating mask volume");
       for (i=0; i<SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz; ++i) {
          isin_float[i] = (float)isin[i];
       }
+   } else {
+      SUMA_S_Errv("Bad MaskMode of %d!\n", Opt->MaskMode);
+      SUMA_RETURN(NOPE);
    }
    if (isin) SUMA_free(isin); isin = NULL;
       
@@ -2311,6 +2342,26 @@ int main (int argc,char *argv[])
    } else {
       tross_Make_History( FuncName , argc,argv , dset ) ;
       DSET_write(dset) ;
+      if (Opt->MaskMode != 2) {
+         if (Opt->MaskMode == 0) {
+            fprintf(SUMA_STDERR,
+                  "The intensity in the output dataset is a modified version\n"
+                  "of the intensity in the input volume.\n" );
+         } else {
+            fprintf(SUMA_STDERR,
+                  "The output dataset is a mask reflecting where voxels in the\n"
+                  "input dataset lie in the brain.\n");
+         }
+         fprintf(SUMA_STDERR,
+               "To obtain a masked version of the input with identical values inside\n"
+               "the brain, you can either use 3dSkullStrip's -orig_vol option\n"
+               "or run the following command:\n"
+               "  3dcalc -a %s -b %s+orig -expr 'a*step(b)' \\\n"
+               "         -prefix %s_orig_vol\n"
+               "to generate a new masked version of the input.\n",
+               Opt->in_name, Opt->out_vol_prefix, Opt->out_vol_prefix);
+               
+      }
    }
    
    /* you don't want to exit rapidly because the SUMA might not be done processing the last elements*/

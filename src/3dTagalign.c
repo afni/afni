@@ -66,7 +66,7 @@ int main( int argc , char * argv[] )
              "\n"
              " -matvec mfile = Write the matrix+vector of the transformation to\n"
              "                   file 'mfile'.  This can be used as input to the\n"
-             "                   '-matvec_out2in' option of 3dWarp, if you want\n"
+             "                   '-matvec_in2out' option of 3dWarp, if you want\n"
              "                   to align other datasets in the same way (e.g.,\n"
              "                   functional datasets).\n"
 #if 0
