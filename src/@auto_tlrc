@@ -263,6 +263,20 @@ PARSE:
    set prs_in = `@parse_afni_name "$anat_in"`
    set anat_path = $prs_in[1]
    
+   #Make a copy of anat_in if we are given sub-brick selectors
+   if ($#prs_in > 3) then
+      set anat_in2 = $prs_in[1]/$prs_in[2]"_$prs_in[4]"$prs_in[3]
+      echo "Copying sub-brick $prs_in[3] to $anat_in2"
+      3dcalc -a "$anat_in" -expr "a" -prefix $anat_in2
+      if ( `@CheckForAfniDset ${anat_in2}` != 2 ) then
+         echo "Error: Anatomical dset copy ${anat_in2} not found."
+         goto END
+      endif 
+      set anat_in = $anat_in2
+      set prs_in = `@parse_afni_name "$anat_in"`
+   endif 
+
+   
    #At the moment, must have . for anat_path
    #It looks like 3drefit does not like an input dset with a path
    if ( "$anat_path" != "." ) then
@@ -350,18 +364,6 @@ endif
 
 OK_notice:
 
-#Make a copy of anat_in if we are given sub-brick selectors
-if ($#prs_in > 3) then
-   set anat_in2 = $prs_in[1]/$prs_in[2]"_$prs_in[4]"$prs_in[3]
-   echo "Copying sub-brick $prs_in[3] to $anat_in2"
-   3dcalc -a "$anat_in" -expr "a" -prefix $anat_in2
-   if ( `@CheckForAfniDset ${anat_in2}` != 2 ) then
-      echo "Error: Anatomical dset copy ${anat_in2} not found."
-      goto END
-   endif 
-   set anat_in = $anat_in2
-endif 
-
 if ( `@CheckForAfniDset ${anat_in}` != 2 ) then
    echo "Error: Anatomical dset ${anat_in} not found."
    goto END
@@ -390,6 +392,16 @@ endif
 #Begin auto tlrc block
 #######################
 AUTO_TLRC_MODE:
+   #make sure only one sub-brick in input 
+   set nsb = `3dAttribute -name DATASET_RANK $anat_in`
+   if ($nsb[4] != "1") then
+      echo "Error: Only one sub-brick allowed as input in usage mode 1"
+      echo "       Input dataset has $nsb[4] sub-bricks. Use '[]' to "
+      echo "       choose one sub-brick."
+      echo ""
+      goto END
+   endif
+
    #Check for center differences and warn
    set dist_cent = `@Center_Distance -dset ${ref_in} ${anat_in}`
    if (`ccalc -form int -eval "step($dist_cent - 40)"`) then
@@ -743,12 +755,12 @@ goto END
 #ONLY SUB-ROUTINES BELOW
 
 CLEANUP:
-rm -f ${tmppref}*_ref*.???? >& /dev/null
-rm -f ${tmppref}*_reg*.???? >& /dev/null
-rm -f ${tmppref}*_resam*.???? >& /dev/null
-rm -f ${tmppref}*__rs*.???? >& /dev/null
-rm -f ${tmppref}__pad*.???? >& /dev/null
-rm -f ${tmppref}__acpc*.???? >& /dev/null
+rm -f ${tmppref}*_ref*.????* >& /dev/null
+rm -f ${tmppref}*_reg*.????* >& /dev/null
+rm -f ${tmppref}*_resam*.????* >& /dev/null
+rm -f ${tmppref}*__rs*.????* >& /dev/null
+rm -f ${tmppref}__pad*.????* >& /dev/null
+rm -f ${tmppref}__acpc*.????* >& /dev/null
 rm -f ${tmppref}__MP* >& /dev/null
 goto $Ret_Clean
 
