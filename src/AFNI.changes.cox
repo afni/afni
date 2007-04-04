@@ -6211,3 +6211,7 @@
 03 Apr 2007
  * Modify edt_blur.c to compute FIR Gaussian weights as a local sum across
      each cell, rather than just the weight at the center of the cell.
+
+04 Apr 2007
+ * Modify 3dDespike.c to add -localedit option.
+ * Modify 3dAllineate.c to save matrices into header of output.

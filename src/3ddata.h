@@ -1476,6 +1476,11 @@ extern mat44 THD_mat44_mul( mat44 A , mat44 B ) ;      /* matrix multiply */
     a21=AA.m[1][0] , a22=AA.m[1][1] , a23=AA.m[1][2] , a24=AA.m[1][3] ,   \
     a31=AA.m[2][0] , a32=AA.m[2][1] , a33=AA.m[2][2] , a34=AA.m[2][3]  )
 
+#undef  UNLOAD_MAT44_AR
+#define UNLOAD_MAT44_AR(AA,vv)                           \
+ UNLOAD_MAT44(AA,vv[0],vv[1],vv[2],vv[3],vv[4 ],vv[5 ],  \
+                 vv[6],vv[7],vv[8],vv[9],vv[10],vv[11] )
+
 /* negate the top 2 rows of a mat44 matrix
    (for transforming between NIfTI-1 and DICOM coord systems) */
 

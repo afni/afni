@@ -38,6 +38,8 @@ int main( int argc , char * argv[] )
    byte   *tar , *mask=NULL ;
    float  *zar , *yar ;
    int     datum ;
+   int     localedit=0 , id,iu ;  /* 04 Apr 2007 */
+   int     verb=1 ;
 
    /*----- Read command line -----*/
 
@@ -45,7 +47,7 @@ int main( int argc , char * argv[] )
       printf("Usage: 3dDespike [options] dataset\n"
              "Removes 'spikes' from the 3D+time input dataset and writes\n"
              "a new dataset with the spike values replaced by something\n"
-             "more pleasing.\n"
+             "more pleasing to the eye.\n"
              "\n"
              "Method:\n"
              " * L1 fit a smooth-ish curve to each voxel time series\n"
@@ -88,12 +90,20 @@ int main( int argc , char * argv[] )
              " -nomask    = Process all voxels\n"
              "               [default=use a mask of high-intensity voxels, ]\n"
              "               [as created via '3dAutomask -dilate 4 dataset'].\n"
+             " -q[uiet]   = Don't print '++' informational messages.\n"
+             "\n"
+             " -localedit = Change the editing process to the following:\n"
+             "                If a voxel |s| value is >= c2, then replace\n"
+             "                the voxel value with the average of the two\n"
+             "                nearest non-spike (|s| < c2) values; the first\n"
+             "                one previous and the first one after.\n"
+             "                Note that the c1 cut value is not used here.\n"
              "\n"
              "Caveats:\n"
              "* Despiking may interfere with image registration, since head\n"
              "   movement may produce 'spikes' at the edge of the brain, and\n"
              "   this information would be used in the registration process.\n"
-             "   This possibility has not been explored.\n"
+             "   This possibility has not been explored or calibrated.\n"
              "* Check your data visually before and after despiking and\n"
              "   registration!\n"
              "   [Hint: open 2 AFNI controllers, and turn Time Lock on.]\n"
@@ -111,20 +121,30 @@ int main( int argc , char * argv[] )
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
 
+      if( strncmp(argv[iarg],"-q",2) == 0 ){       /* 04 Apr 2007 */
+        verb = 0 ; iarg++ ; continue ;
+      }
+      if( strncmp(argv[iarg],"-v",2) == 0 ){
+        verb++ ; iarg++ ; continue ;
+      }
+
+      /** -localedit **/
+
+      if( strcmp(argv[iarg],"-localedit") == 0 ){  /* 04 Apr 2007 */
+        localedit = 1 ; iarg++ ; continue ;
+      }
+
       /** don't use masking **/
 
       if( strcmp(argv[iarg],"-nomask") == 0 ){
-        nomask = 1 ;
-        iarg++ ; continue ;
+        nomask = 1 ; iarg++ ; continue ;
       }
 
       /** output dataset prefix **/
 
       if( strcmp(argv[iarg],"-prefix") == 0 ){
         prefix = argv[++iarg] ;
-        if( !THD_filename_ok(prefix) ){
-          fprintf(stderr,"** ERROR: -prefix is not good!\n"); exit(1);
-        }
+        if( !THD_filename_ok(prefix) ) ERROR_exit("-prefix is not good");
         iarg++ ; continue ;
       }
 
@@ -132,9 +152,7 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-ssave") == 0 ){
         tprefix = argv[++iarg] ;
-        if( !THD_filename_ok(tprefix) ){
-          fprintf(stderr,"** ERROR: -ssave prefix is not good!\n"); exit(1);
-        }
+        if( !THD_filename_ok(tprefix) ) ERROR_exit("-ssave prefix is not good");
         iarg++ ; continue ;
       }
 
@@ -142,9 +160,7 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-corder") == 0 ){
         corder = strtol( argv[++iarg] , NULL , 10 ) ;
-        if( corder < 0 ){
-          fprintf(stderr,"** Illegal value of -corder!\n"); exit(1);
-        }
+        if( corder < 0 ) ERROR_exit("Illegal value of -corder");
         iarg++ ; continue ;
       }
 
@@ -152,9 +168,7 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-ignore") == 0 ){
         ignore = strtol( argv[++iarg] , NULL , 10 ) ;
-        if( ignore < 0 ){
-          fprintf(stderr,"** Illegal value of -ignore!\n"); exit(1);
-        }
+        if( ignore < 0 ) ERROR_exit("Illegal value of -ignore");
         iarg++ ; continue ;
       }
 
@@ -163,47 +177,42 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[iarg],"-cut") == 0 ){
         cut1 = strtod( argv[++iarg] , NULL ) ;
         cut2 = strtod( argv[++iarg] , NULL ) ;
-        if( cut1 < 1.0 || cut2 < cut1+0.5 ){
-          fprintf(stderr,"** Illegal values after -cut!\n"); exit(1);
-        }
+        if( cut1 < 1.0 || cut2 < cut1+0.5 )
+          ERROR_exit("Illegal values after -cut");
         iarg++ ; continue ;
       }
 
-      fprintf(stderr,"** Unknown option: %s\n",argv[iarg]) ; exit(1) ;
+      ERROR_exit("Unknown option: %s",argv[iarg]) ;
    }
 
    c21 = cut2-cut1 ; ic21 = 1.0/c21 ;
 
    /*----- read input dataset -----*/
 
-   if( iarg >= argc ){
-     fprintf(stderr,"** No input dataset!?\n"); exit(1);
-   }
+   if( iarg >= argc ) ERROR_exit("No input dataset!!??");
 
    dset = THD_open_dataset( argv[iarg] ) ;
    CHECK_OPEN_ERROR(dset,argv[iarg]) ;
    datum = DSET_BRICK_TYPE(dset,0) ;
-   if( (datum != MRI_short && datum != MRI_float) || !DSET_datum_constant(dset) ){
-     fprintf(stderr,"** Can't process non-short, non-float dataset!\n") ; exit(1) ;
-   }
-   fprintf(stderr,"Input data type = %s\n",MRI_TYPE_name[datum]) ;
+   if( (datum != MRI_short && datum != MRI_float) || !DSET_datum_constant(dset) )
+     ERROR_exit("Can't process non-short, non-float dataset!") ;
+
+   if( verb ) INFO_message("Input data type = %s\n",MRI_TYPE_name[datum]) ;
    nvals = DSET_NUM_TIMES(dset) ; nuse = nvals - ignore ;
-   if( nuse < 15 ){
-     fprintf(stderr,"** Can't use dataset with < 15 time points per voxel!\n") ;
-     exit(1) ;
-   }
-   fprintf(stderr,"++ ignoring first %d time points, using last %d\n",ignore,nuse);
+   if( nuse < 15 )
+     ERROR_exit("Can't use dataset with < 15 time points per voxel!") ;
+
+   if( verb ) INFO_message("ignoring first %d time points, using last %d",ignore,nuse);
    if( corder > 0 && 4*corder+2 > nuse ){
-     fprintf(stderr,"** -corder %d is too big for NT=%d!\n",corder,nvals) ;
-     exit(1) ;
+     ERROR_exit("-corder %d is too big for NT=%d",corder,nvals) ;
    } else if( corder < 0 ){
      corder = rint(nuse/30.0) ;
-     fprintf(stderr,"++ using %d time points => -corder %d\n",nuse,corder) ;
+     if( verb ) INFO_message("using %d time points => -corder %d",nuse,corder) ;
    } else {
-     fprintf(stderr,"++ -corder %d set from command line\n",corder) ;
+     if( verb ) INFO_message("-corder %d set from command line",corder) ;
    }
    nxyz = DSET_NVOX(dset) ;
-   fprintf(stderr,"++ Loading dataset %s\n",argv[iarg]) ;
+   if( verb ) INFO_message("Loading dataset %s",argv[iarg]) ;
    DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
 
    /*-- create automask --*/
@@ -213,9 +222,9 @@ int main( int argc , char * argv[] )
      for( ii=0 ; ii < 4 ; ii++ )
        THD_mask_dilate( DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset), mask, 3 ) ;
      ii = THD_countmask( DSET_NVOX(dset) , mask ) ;
-     fprintf(stderr,"++ %d voxels in the mask [out of %d in dataset]\n",ii,DSET_NVOX(dset)) ;
+     if( verb ) INFO_message("%d voxels in the mask [out of %d in dataset]",ii,DSET_NVOX(dset)) ;
    } else {
-     fprintf(stderr,"++ processing all %d voxels in dataset\n",DSET_NVOX(dset)) ;
+     if( verb ) INFO_message("processing all %d voxels in dataset",DSET_NVOX(dset)) ;
    }
 
    /*-- create empty despiked dataset --*/
@@ -227,10 +236,8 @@ int main( int argc , char * argv[] )
                       ADN_datum_all , datum ,
                     ADN_none ) ;
 
-   if( THD_is_file(DSET_HEADNAME(oset)) ){
-     fprintf(stderr,"** ERROR: output dataset already exists: %s\n",DSET_HEADNAME(oset));
-     exit(1);
-   }
+   if( THD_is_file(DSET_HEADNAME(oset)) )
+     ERROR_exit("output dataset already exists: %s",DSET_HEADNAME(oset));
 
    tross_Copy_History( oset , dset ) ;
    tross_Make_History( "3dDespike" , argc , argv , oset ) ;
@@ -279,9 +286,8 @@ int main( int argc , char * argv[] )
      tross_Copy_History( tset , dset ) ;
      tross_Make_History( "3dDespike" , argc , argv , tset ) ;
 
-     if( THD_is_file(DSET_HEADNAME(tset)) ){
-       fprintf(stderr,"** ERROR: -ssave dataset already exists!\n"); exit(1);
-     }
+     if( THD_is_file(DSET_HEADNAME(tset)) )
+       ERROR_exit("-ssave dataset already exists");
 
      tross_Copy_History( tset , dset ) ;
      tross_Make_History( "3dDespike" , argc , argv , tset ) ;
@@ -344,10 +350,18 @@ int main( int argc , char * argv[] )
 
    /*--- loop over voxels and do work ---*/
 
-   fprintf(stderr,"++ edit thresholds: %.1f .. %.1f standard deviations\n",cut1,cut2) ;
-   fprintf(stderr,"++                [ %.4f%% .. %.4f%% of normal distribution]\n",
-                  200.0*qg(cut1) , 200.0*qg(cut2) ) ;
-   fprintf(stderr,"++ %d slices to process\n",DSET_NZ(dset)) ;
+   if( verb ){
+    if( !localedit ){
+      INFO_message("smash edit thresholds: %.1f .. %.1f standard deviations",cut1,cut2) ;
+      INFO_message("                      [ %.4f%% .. %.4f%% of normal distribution]",
+                     200.0*qg(cut1) , 200.0*qg(cut2) ) ;
+    } else {
+      INFO_message("local edit threshold:  %.1f standard deviations",cut2) ;
+      INFO_message("                      [ %.4f%% of normal distribution]",
+                    200.0*qg(cut2) ) ;
+    }
+    INFO_message("%d slices to process",DSET_NZ(dset)) ;
+   }
    kzold  = -1 ;
    nspike =  0 ; nbig = 0 ; nproc = 0 ;
    for( ii=0 ; ii < nxyz ; ii++ ){   /* ii = voxel index */
@@ -356,14 +370,17 @@ int main( int argc , char * argv[] )
 
       kz = DSET_index_to_kz(dset,ii) ;       /* starting a new slice */
       if( kz != kzold ){
-        fprintf(stderr, "++ start slice %2d",kz ) ;
-        if( nproc > 0 ){
-          pspike = (100.0*nspike)/nproc ;
-          pbig   = (100.0*nbig  )/nproc ;
-          fprintf(stderr,"; done %d data points, %d edits [%.3f%%], %d big edits [%.3f%%]",
-                  nproc,nspike,pspike,nbig,pbig ) ;
+        if( verb ){
+          fprintf(stderr, "++ start slice %2d",kz ) ;
+          if( nproc > 0 ){
+            pspike = (100.0*nspike)/nproc ;
+            pbig   = (100.0*nbig  )/nproc ;
+            fprintf(stderr,
+                    "; so far %d data points, %d edits [%.3f%%], %d big edits [%.3f%%]",
+                    nproc,nspike,pspike,nbig,pbig ) ;
+          }
+          fprintf(stderr,"\n") ;
         }
-        fprintf(stderr,"\n") ;
         kzold = kz ;
       }
 
@@ -387,7 +404,7 @@ int main( int argc , char * argv[] )
 
       /*** solve for L1 fit ***/
 
-      cls = cl1_solve( nuse , nref , far , ref , fit,0 );
+      cls = cl1_solve( nuse , nref , far , ref , fit,0 ) ; /* the slow part */
 
       if( cls < 0.0 ){                       /* fit failed! */
 #if 0
@@ -406,7 +423,7 @@ int main( int argc , char * argv[] )
         for( jj=3 ; jj < nref ; jj++ )       /* rest of curve fit */
           val += fit[jj] * ref[jj][iv] ;
 
-        fitar[iv] = val ;                    /* save curve value */
+        fitar[iv] = val ;                    /* save curve fit value */
         var[iv]   = dar[iv]-val ;            /* remove fitted value = resid */
         far[iv]   = fabs(var[iv]) ;          /* abs value of resid */
       }
@@ -430,25 +447,41 @@ int main( int argc , char * argv[] )
 
         if( tset != NULL ){
           for( iv=0 ; iv < nuse ; iv++ ){
-            tar   = DSET_ARRAY(tset,iv+ignore) ;
-            snew   = ITFAC*fabs(ssp[iv]) ;   /* scale for byte storage */
-            tar[ii] = BYTEIZE(snew) ;        /* cf. mrilib.h */
+            tar     = DSET_ARRAY(tset,iv+ignore) ;
+            snew    = ITFAC*fabs(ssp[iv]) ;   /* scale for byte storage */
+            tar[ii] = BYTEIZE(snew) ;         /* cf. mrilib.h */
           }
         }
 
         /* process values of |s| > cut1, editing dar[] */
 
-        for( iv=0 ; iv < nuse ; iv++ ){
-          if( ssp[iv] > cut1 ){
-            snew = cut1 + c21*mytanh((ssp[iv]-cut1)*ic21) ;   /* edit s down */
-            dar[iv] = fitar[iv] + snew*fsig ;
-            nspike++ ; if( ssp[iv] > cut2 ) nbig++ ;          /* count edits */
-          } else if( ssp[iv] < -cut1 ){
-            snew = -cut1 + c21*mytanh((ssp[iv]+cut1)*ic21) ;  /* edit s up */
-            dar[iv] = fitar[iv] + snew*fsig ;
-            nspike++ ; if( ssp[iv] < -cut2 ) nbig++ ;
+        for( iv=0 ; iv < nuse ; iv++ ){ /* loop over time points */
+          if( !localedit ){             /** classic 'smash' edit **/
+            if( ssp[iv] > cut1 ){
+              snew = cut1 + c21*mytanh((ssp[iv]-cut1)*ic21) ;   /* edit s down */
+              dar[iv] = fitar[iv] + snew*fsig ;
+              nspike++ ; if( ssp[iv] > cut2 ) nbig++ ;          /* count edits */
+            } else if( ssp[iv] < -cut1 ){
+              snew = -cut1 + c21*mytanh((ssp[iv]+cut1)*ic21) ;  /* edit s up */
+              dar[iv] = fitar[iv] + snew*fsig ;
+              nspike++ ; if( ssp[iv] < -cut2 ) nbig++ ;
+            }
+          } else {                      /** local edit: 04 Apr 2007 **/
+            if( ssp[iv] >= cut2 || ssp[iv] <= -cut2 ){
+              for( iu=iv+1 ; iu < nuse ; iu++ )  /* find non-spike above */
+                if( ssp[iu] < cut2 && ssp[iu] > -cut2 ) break ;
+              for( id=iv-1 ; id >= 0   ; id-- )  /* find non-spike below */
+                if( ssp[id] < cut2 && ssp[id] > -cut2 ) break ;
+              switch( (id>=0) + 2*(iu<nuse) ){   /* compute replacement val */
+                case 3: val = 0.5*(dar[iu]+dar[id]); break; /* iu and id OK */
+                case 2: val =      dar[iu]         ; break; /* only iu OK   */
+                case 1: val =              dar[id] ; break; /* only id OK   */
+               default: val = fitar[iv]            ; break; /* shouldn't be */
+              }
+              dar[iv] = val ; nspike++ ; nbig++ ;
+            }
           }
-        }
+        } /* end of loop over time points */
         nproc += nuse ;  /* number data points processed */
 
       } /* end of processing time series when fsig is positive */
@@ -476,24 +509,27 @@ int main( int argc , char * argv[] )
 
    DSET_delete(dset) ; /* delete input dataset */
 
-   if( nproc > 0 ){
-     pspike = (100.0*nspike)/nproc ;
-     pbig   = (100.0*nbig  )/nproc ;
-     fprintf(stderr,"++ FINAL: %d data points, %d edits [%.3f%%], %d big edits [%.3f%%]\n",
-             nproc,nspike,pspike,nbig,pbig ) ;
-   } else {
-     fprintf(stderr,"++ FINAL: no good voxels found to process!!!!\n") ;
+   if( verb ){
+     if( nproc > 0 ){
+       pspike = (100.0*nspike)/nproc ;
+       pbig   = (100.0*nbig  )/nproc ;
+       INFO_message("FINAL: %d data points, %d edits [%.3f%%], %d big edits [%.3f%%]",
+               nproc,nspike,pspike,nbig,pbig ) ;
+     } else {
+       INFO_message("FINAL: no good voxels found to process!!??") ;
+     }
    }
 
    /* write results */
 
-   DSET_write(oset) ;
-   fprintf(stderr,"++ Wrote output dataset %s\n",DSET_BRIKNAME(oset)) ;
-   DSET_delete(oset) ;
+     DSET_write(oset) ;
+     if( verb ) WROTE_DSET(oset) ;
+     DSET_delete(oset) ;
 
    if( tset != NULL ){
      DSET_write(tset) ;
-     fprintf(stderr,"++ Wrote -ssave dataset %s\n",DSET_BRIKNAME(tset)) ;
+     if( verb ) WROTE_DSET(tset) ;
+     DSET_delete(tset) ;
    }
 
    exit(0) ;

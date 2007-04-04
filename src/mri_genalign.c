@@ -1582,7 +1582,7 @@ void mri_genalign_affine_setup( int mmmm , int dddd , int ssss )
 /*--------------------------------------------------------------------------*/
 
 static int   aff_use_before=0 , aff_use_after=0 ;
-static mat44 aff_before       , aff_after       , aff_gam ;
+static mat44 aff_before       , aff_after       , aff_gamijk , aff_gamxyz ;
 
 void mri_genalign_affine_set_befafter( mat44 *ab , mat44 *af )
 {
@@ -1604,6 +1604,16 @@ void mri_genalign_affine_get_befafter( mat44 *ab , mat44 *af )
 {
    if( ab != NULL ) *ab = aff_before ;
    if( af != NULL ) *af = aff_after  ;
+}
+
+void mri_genalign_affine_get_gammaijk( mat44 *gg )
+{
+  if( gg != NULL ) *gg = aff_gamijk ;
+}
+
+void mri_genalign_affine_get_gammaxyz( mat44 *gg )
+{
+  if( gg != NULL ) *gg = aff_gamxyz ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -1717,8 +1727,12 @@ static mat44 GA_setup_affine( int npar , float *parvec )
 
    /* before and after transformations? */
 
+   aff_gamxyz = gam ;
+
    if( aff_use_before ) gam = MAT44_MUL( gam , aff_before ) ;
    if( aff_use_after  ) gam = MAT44_MUL( aff_after , gam  ) ;
+
+   aff_gamijk = gam ;
 
 #if 0
    if( verb > 1 ){
@@ -1745,9 +1759,7 @@ void mri_genalign_affine( int npar, float *wpar ,
 
    /** new parameters ==> setup matrix */
 
-   if( npar > 0 && wpar != NULL ){
-     gam = GA_setup_affine( npar , wpar ) ; aff_gam = gam ;
-   }
+   if( npar > 0 && wpar != NULL ) gam = GA_setup_affine( npar , wpar ) ;
 
    /* nothing to transform? */
 
