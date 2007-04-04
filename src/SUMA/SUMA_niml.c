@@ -3449,7 +3449,7 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
       }
 
       /* send it to SUMA */
-      if (LocalHead) fprintf (SUMA_STDOUT,"Sending element %d...\n", cs->TrackID);
+      if (LocalHead) fprintf (SUMA_STDOUT,"Sending element %d comm_NI_mode = %d...\n", cs->TrackID, cs->comm_NI_mode);
       if (nel) {
          if (NI_write_element( SUMAg_CF->ns_v[cs->istream] , nel, cs->comm_NI_mode ) < 0) {
             SUMA_LH("Failed updating SUMA...");
