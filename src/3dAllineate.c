@@ -686,11 +686,12 @@ int main( int argc , char *argv[] )
      if( strncmp(argv[iarg],"-weight_frac",11) == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        nmask_frac = atof( argv[iarg] ) ;
-       if( nmask_frac < 0.0f || nmask_frac > 1.0f ) ERROR_exit("-weight_frac must be between 0.0 and 1.0 (have '%s')",argv[iarg]);
+       if( nmask_frac < 0.0f || nmask_frac > 1.0f )
+         ERROR_exit("-weight_frac must be between 0.0 and 1.0 (have '%s')",argv[iarg]);
        iarg++ ; continue ;
      }
-       
-    /*-----*/
+
+     /*-----*/
 
      if( strncmp(argv[iarg],"-weight",6) == 0 ){
        auto_weight = 0 ;
@@ -701,7 +702,6 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-       
      /*-----*/
      if( strncmp(argv[iarg],"-autoweight",8) == 0 ){
        if( dset_weig != NULL ) ERROR_exit("Can't use -autoweight AND -weight!") ;
@@ -1662,7 +1662,7 @@ int main( int argc , char *argv[] )
       if( npt_match < 666 ) npt_match = 666 ;
    } else {
       npt_match = (int)(nmask_frac*(double)nmask);
-   }   
+   }
    if( verb ) INFO_message("Number of points for matching = %d",npt_match) ;
 
    /*------ setup alignment structure parameters ------*/
@@ -2371,6 +2371,21 @@ int main( int argc , char *argv[] )
                              stup.wfunc_numpar , parsave[kk] , stup.wfunc ,
                              stup.ajim ,
                              nxout , nyout , nzout , final_interp ) ;
+
+       /* 04 Apr 2007: save matrix into dataset header */
+
+       { static mat44 gam , gami ; char anam[64] ; float matar[12] ;
+         mri_genalign_affine_get_gammaxyz( &gam ) ;
+         if( ISVALID_MAT44(gam) ){
+           sprintf(anam,"ALLINEATE_MATVEC_B2S_%06d",kk) ;
+           UNLOAD_MAT44_AR(gam,matar) ;
+           THD_set_float_atr( dset_out->dblk , anam , 12 , matar ) ;
+           gami = MAT44_INV(gam) ;
+           sprintf(anam,"ALLINEATE_MATVEC_S2B_%06d",kk) ;
+           UNLOAD_MAT44_AR(gami,matar) ;
+           THD_set_float_atr( dset_out->dblk , anam , 12 , matar ) ;
+         }
+       }
 
        /* save without scaling factor */
 

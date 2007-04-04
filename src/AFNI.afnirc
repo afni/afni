@@ -13,6 +13,8 @@
 
 // Most (not all) of the Unix environment variables that affect AFNI
 
+   IDCODE_PREFIX            = AFN  // 3 letter prefix for dataset ID codes
+
 // AFNI_graph_boxes_thick   =  0   // 0=thin lines, 1=thick lines, for graph boxes
 // AFNI_graph_grid_thick    =  0   // ditto for the graph vertical grid lines
    AFNI_graph_data_thick    =  1   // ditto for the data graphs
@@ -158,7 +160,6 @@
 // AFNI_SLICE_SPACING_IS_GAP = NO   // YES==fix GE DICOM error
 // AFNI_DICOM_RESCALE        = NO   // YES==use DICOM rescale tags
 // AFNI_DICOM_WINDOW         = NO   // YES==use DICOM window tags
-// IDCODE_PREFIX             = NIH  // 3 letter prefix for dataset ID codes
 
 // AFNI_RESCAN_METHOD       = Add    // add new datasets, don't replace old ones
 // AFNI_STARTUP_WARNINGS    = YES    // NO==turn off some warning message at startup
