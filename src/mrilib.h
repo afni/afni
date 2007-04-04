@@ -1448,6 +1448,8 @@ extern void GA_set_outval( float ) ;   /* 28 Feb 2007 */
 extern void mri_genalign_affine_setup( int,int,int ) ;
 extern void mri_genalign_affine_set_befafter( mat44 *, mat44 * ) ;
 extern void mri_genalign_affine_get_befafter( mat44 *, mat44 * ) ;
+extern void mri_genalign_affine_get_gammaijk( mat44 * ) ; /* 04 Apr 2007 */
+extern void mri_genalign_affine_get_gammaxyz( mat44 * ) ;
 
 extern MRI_IMAGE * mri_genalign_scalar_warpone(      /* 26 Sep 2006 */
                     int npar, float *wpar, GA_warpfunc *wfunc,
