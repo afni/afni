@@ -81,6 +81,7 @@ float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt,
 SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt, 
                            int N_iter, float FWHM, SUMA_DSET *dset, 
                            SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask);
+#define SUMA_CHUNG_KERNEL_NUMER(x,s) (exp(-(x)/(2.0*(s)*(s)))) 
 float ** SUMA_Chung_Smooth_Weights_05 (SUMA_SurfaceObject *SO, float fwhm);
 float * SUMA_Chung_Smooth_05 (SUMA_SurfaceObject *SO, float **wgt, 
                            int N_iter, float FWHM, float *fin, 

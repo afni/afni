@@ -30,10 +30,10 @@ void usage_SUMA_SurfSmooth ()
               "            This method is used to filter data\n"
               "            on the surface. It is faster and more stable than\n"
               "            the older LB_FEM below.\n"
-              "      LB_FEM: <-input inData.1D> <-fwhm f>\n"
+/*              "      LB_FEM: <-input inData.1D> <-fwhm f>\n"
               "              This method is used to filter data\n"
               "              on the surface.\n"
-              "      LM: [-kpb k] [-lm l m] [-surf_out surfname] [-iw weights]\n"
+*/              "      LM: [-kpb k] [-lm l m] [-surf_out surfname] [-iw weights]\n"
               "          This method is used to filter the surface's\n"
               "          geometry (node coordinates).\n"
               "      NN_geom: smooth by averaging coordinates of \n"
@@ -69,7 +69,7 @@ void usage_SUMA_SurfSmooth ()
               "                          that might need to be corrected with the -match_*\n"
               "                          options below. \n" 
               "\n"
-              "   Options for LB_FEM:\n"
+/*              "   Options for LB_FEM:\n"
               "   It is now recommended that you use the newer method HEAT (see below).\n"
               "      -input inData: file containing data (in 1D or niml format)\n"
               "                        Each column in inData is processed separately.\n"
@@ -84,9 +84,9 @@ void usage_SUMA_SurfSmooth ()
               "               With curved surfaces, the equation used to estimate FWHM is \n"
               "               an approximation. \n"
               "               Blurring on the surface depends on the geodesic instead \n"
-              "               of the Euclidean disntaces. See Ref #1 for more details \n"
+              "               of the Euclidean distances. See Ref #1 for more details \n"
               "               on this parameter.\n"
-              "\n"
+*/              "\n"
               "   Options for HEAT:\n"
               "      -input inData : file containing data (in 1D or NIML format)\n"
               "                        Each column in inData is processed separately.\n"
@@ -96,17 +96,22 @@ void usage_SUMA_SurfSmooth ()
               "                  Note: The program will infer the format of the input\n"
               "                        file from the extension of inData. \n" 
               "                        programs.\n"
-              "      Two and only two of the following three parameters:\n"
-              "                     (See Refs #3&4 for more details)\n"
               "      -fwhm F: Effective Full Width at Half Maximum in surface coordinate units \n"
               "               (usuallly mm) of an equivalent Gaussian filter had the surface been \n"
               "               flat. With curved surfaces, the equation used to estimate FWHM is \n"
               "               an approximation. For Gaussian filters, FWHM, SIGMA (STD-DEV) and RMS\n"
               "               FWHM = 2.354820 * SIGMA = 1.359556 * RMS\n"
               "               Blurring on the surface depends on the geodesic instead \n"
-              "               of the Euclidean disntaces. \n"
-              "      -Niter N: Number of iterations, must be multiple of 2.\n"
-              "                For this method, N > 200 is a good start. \n"
+              "               of the Euclidean distances. \n"
+              "       and one of the following two parameters:\n"
+              "                     (See Refs #3&4 for more details)\n"
+              "      -Niter N: Number of iterations (default is -1).\n"
+              "                You can now set this parameter to -1 and have \n"
+              "                the program suggest a value based on the -fwhm value.\n"
+              "                Too large or too small a number of iterations can affect \n"
+              "                smoothing results. Acceptable values depend on \n"
+              "                the average distance between nodes on the mesh and\n"
+              "                the desired fwhm.\n"
               "      -sigma  S: Bandwidth of smoothing kernel (for a single iteration).\n"
               "                 S should be small (< 1) and is related to the previous two\n"
               "                 parameters by: F = sqrt(N) * S * 2.355\n"
@@ -165,7 +170,10 @@ void usage_SUMA_SurfSmooth ()
               "   Common options:\n"
               "      -Niter N: Number of smoothing iterations (default is 100)\n"
               "                For practical reasons, this number must be a multiple of 2\n"
-              "          NOTE: For LB_FEM method, the number of iterations controls the\n"
+              "          NOTE 1: For HEAT method, you can set Niter to -1, in conjunction\n"
+              "                  with -fwhm FWHM option, and the program\n"
+              "                  will pick an acceptable number for you.\n"
+              "          NOTE 2: For LB_FEM method, the number of iterations controls the\n"
               "                iteration steps (dt in Ref #1).\n"
               "                dt = fwhm*fwhm / (16*Niter*log(2));\n"
               "                dt must satisfy conditions that depend on the internodal\n"
@@ -207,9 +215,9 @@ void usage_SUMA_SurfSmooth ()
               "\n"
               "   Sample commands lines for data smoothing:\n"
               "      SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met HEAT   \\\n"
-              "                  -input in.1D -Niter 200 -fwhm 8 -add_index         \\\n"
+              "                  -input in.1D -Niter -1 -fwhm 8 -add_index         \\\n"
               "                  -output in_smh8.1D.dset \n"
-              "      Or using the older (less recommended method):\n"
+/*              "      Or using the older (less recommended method):\n"
               "      SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met LB_FEM   \\\n"
               "                  -input in.1D -Niter 100 -fwhm 8 -add_index         \\\n"
               "                  -output in_sm8.1D.dset \n"
@@ -217,7 +225,7 @@ void usage_SUMA_SurfSmooth ()
               "         and puts the output in in_sm8.1D.dset with the first column \n"
               "         containing the node index and the second containing the \n"
               "         filtered version of in.1D.\n"
-              "         \n"
+              "         \n"*/
               "\n"
               "         You can colorize the input and output data using ScaleToMap:\n"
               "         ScaleToMap  -input in.1D 0 1 -cmap BGYR19       \\\n"
@@ -363,7 +371,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
    Opt->surf_out = NULL;
    Opt->ShowOffset_DBG = NULL;
    Opt->iType = SUMA_FT_NOT_SPECIFIED;
-   Opt->N_iter = 100;
+   Opt->N_iter = -100;
    Opt->kpb = -1.0;
    Opt->l = -1.0;
    Opt->m = -1.0;
@@ -740,6 +748,15 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
             fprintf (SUMA_STDERR, "Method %s not supported.\n", argv[kar]);
 				exit (1);
          }
+         if (Opt->Method == SUMA_HEAT_05) {
+            if (Opt->N_iter < 0) {
+               Opt->N_iter = -1;
+            }
+         } else {
+            if (Opt->N_iter < 0) {
+               Opt->N_iter = -Opt->N_iter;
+            }  
+         }
 			brk = YUP;
 		}
       
@@ -755,46 +772,57 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
    /* check on options for HEAT budiness first */
    if (Opt->Method == SUMA_HEAT_05_1D || Opt->Method == SUMA_HEAT_05) {
       float sequiv;
-      if (  (Opt->N_iter < 0 && Opt->fwhm < 0 && Opt->sigma < 0) || 
-            (Opt->N_iter > 0 && Opt->fwhm > 0 && Opt->sigma > 0) || 
-            (Opt->N_iter < 0 && Opt->fwhm < 0) ||
-            (Opt->N_iter < 0 && Opt->sigma < 0)||
-            (Opt->fwhm < 0 && Opt->sigma < 0) ) {
-         fprintf (SUMA_STDERR,"Error %s:\n"
-                              "Need to specify two and only two out of the three options:\n"
-                              "-N_iter, -fwhm, -sigma\n", FuncName);
-         exit (1);
-      }
-      if (Opt->N_iter < 0) {
-         sequiv  = Opt->fwhm * 0.42466090;
-         Opt->N_iter = SUMA_POW2(sequiv/Opt->sigma);
-         if (Opt->N_iter % 2) ++Opt->N_iter;
-         if (Opt->N_iter < 100) {
-            fprintf (SUMA_STDERR,"Warning: N_iter = %d\n"
-                                 "Perhaps too small for comfort.\n"
-                                 "Consider reducing sigma.\n", Opt->N_iter);
+      if (Opt->N_iter < 0 &&  Opt->fwhm > 0 && Opt->sigma < 0)  {
+         /* will make a suggestion, but after surface is read */
+         
+      }else {
+         if (  (Opt->N_iter < 0 && Opt->fwhm < 0 && Opt->sigma < 0) || 
+               (Opt->N_iter > 0 && Opt->fwhm > 0 && Opt->sigma > 0) || 
+               (Opt->N_iter < 0 && Opt->fwhm < 0) ||
+               (Opt->N_iter < 0 && Opt->sigma < 0)||
+               (Opt->fwhm < 0 && Opt->sigma < 0) ) {
+            fprintf (SUMA_STDERR,"Error %s:\n"
+                                 "Need to specify two and only two out of the three options:\n"
+                                 "-N_iter, -fwhm, -sigma\n", FuncName);
+            exit (1);
+         }
+         if (Opt->N_iter < 0) {
+            sequiv  = Opt->fwhm * 0.42466090;
+            Opt->N_iter = SUMA_POW2(sequiv/Opt->sigma);
+            if (Opt->N_iter % 2) ++Opt->N_iter;
+            if (Opt->N_iter < 100) {
+               fprintf (SUMA_STDERR,"Warning: N_iter = %d\n"
+                                    "Perhaps too small for comfort.\n"
+                                    "Consider reducing sigma.\n", Opt->N_iter);
+            }
+            /* recalculate sigma */
+            sequiv = Opt->fwhm * 0.42466090;
+            Opt->sigma = sequiv / sqrt(Opt->N_iter);
+         }
+         if (Opt->fwhm < 0) {
+            sequiv = sqrt(Opt->N_iter)*Opt->sigma;
+            Opt->fwhm = sequiv / 0.42466090;
+         }
+         if (Opt->sigma < 0) {
+            sequiv = Opt->fwhm * 0.42466090;
+            Opt->sigma = sequiv / sqrt(Opt->N_iter);
          }
       }
-      if (Opt->fwhm < 0) {
-         sequiv = sqrt(Opt->N_iter)*Opt->sigma;
-         Opt->fwhm = sequiv / 0.42466090;
-      }
-      if (Opt->sigma < 0) {
-         sequiv = Opt->fwhm * 0.42466090;
-         Opt->sigma = sequiv / sqrt(Opt->N_iter);
-      }
-      fprintf (SUMA_STDERR,"Effective FWHM = %f, kernel bandwidth = %f, N_iter = %d\n", Opt->fwhm, Opt->sigma, Opt->N_iter);
    }
    
-   if (Opt->N_iter == -1) { /* default */ Opt->N_iter = 100; }
-   if (Opt->N_iter < 1) {
-      fprintf (SUMA_STDERR,"Error %s:\nWith -Niter N option, N must be > 1\n", FuncName);
-      exit (1);
+   if (Opt->Method != SUMA_HEAT_05) {
+      if (Opt->N_iter == -1) { /* default */ Opt->N_iter = 100; }
+      if (Opt->N_iter < 1) {
+         fprintf (SUMA_STDERR,"Error %s:\nWith -Niter N option, N must be > 1\n", FuncName);
+         exit (1);
+      }
+   } else {
+      if (Opt->N_iter == -1) {Opt->N_iter = -2; }/* let it slide, we'll take care of it after surface is loaded in main */
    }
    
    if ( (Opt->N_iter % 2) &&
         (Opt->Method == SUMA_LB_FEM_1D || Opt->Method == SUMA_LB_FEM || 
-        Opt->Method == SUMA_HEAT_05_1D || Opt->Method == SUMA_HEAT_05 ||
+        Opt->Method == SUMA_HEAT_05_1D  ||
         Opt->Method == SUMA_LM) ) {
       fprintf (SUMA_STDERR, "Number of iterations must be a multiple of 2.\n%d is not a multiple of 2.\n", Opt->N_iter);
       exit(1);
@@ -1163,6 +1191,10 @@ int main (int argc,char *argv[])
       case SUMA_HEAT_05_1D:/* Operates on 1D files, OBSOLETE but still accessible with -met HEAT_1D */
          /* Moo Chung's method for interpolation weights */
          {
+            if (Opt->N_iter < 0) {
+               SUMA_S_Errv("Bad number of iterations (%d)\n", Opt->N_iter);
+               exit(1);
+            }
             /* now load the input data */
             im = mri_read_1D (Opt->in_name);
 
@@ -1349,6 +1381,47 @@ int main (int argc,char *argv[])
       case SUMA_HEAT_05:
          /* Moo Chung's method for interpolation weights */
          {
+            double avg_wt, sequiv;
+            
+            if (Opt->N_iter < 0 &&  Opt->fwhm > 0 && Opt->sigma < 0)  {
+               /* make a suggestion */
+               Opt->sigma = sqrt(-SO->EL->AvgLe/(2*log(0.01))); /* making the average SUMA_CHUNG_KERNEL_NUMER be 1 percent */
+               /* have sigma and fwhm, what is N? */
+               sequiv  = Opt->fwhm * 0.42466090;
+               Opt->N_iter = SUMA_POW2(sequiv/Opt->sigma);
+               if (Opt->N_iter % 2) ++Opt->N_iter;
+               if (Opt->N_iter < 4) Opt->N_iter = 4; /* need a few iterations */
+               /* now reset sigma based on number of iterations */
+               sequiv = Opt->fwhm * 0.42466090;
+               Opt->sigma = sequiv / sqrt(Opt->N_iter);
+            } else if (Opt->N_iter < 0) {
+               SUMA_S_Errv("Negative number of iterations (%d).Should not be here.\n", Opt->N_iter);
+               exit(1);
+            }
+         
+            fprintf (SUMA_STDERR,"Effective FWHM = %f, kernel bandwidth = %f, N_iter = %d\n", Opt->fwhm, Opt->sigma, Opt->N_iter);
+
+            /* check that sigma is not too small or too big relative to average segment length */
+            avg_wt = SUMA_CHUNG_KERNEL_NUMER(SO->EL->AvgLe,Opt->sigma);
+            fprintf(SUMA_STDERR, "Kernel Bandwidth / Average Edge Distance = %f/%f = %f\n"
+                                 "   Corresponding Kernel Numerator = %g\n", 
+                                    Opt->sigma, SO->EL->AvgLe,  Opt->sigma/SO->EL->AvgLe, avg_wt);
+            if (avg_wt > 0.05) {
+               SUMA_S_Warnv("Average weight assigned per node is of %g\n"
+                            "It is advisable to increase the number of\n"
+                            "iterations, if possible.\n", avg_wt);
+            }
+            if (avg_wt < 1e-4) {
+               SUMA_S_Warnv("Average weight assigned per node is of %g\n"
+                            "It is advisable to decrease the number of\n"
+                            "iterations, if possible.\n", avg_wt);
+            }
+            if (avg_wt < 1e-7) {
+               SUMA_S_Warnv("Average weight assigned per node is of %g\n"
+                            "Cannot trust results. Reduce number of\n"
+                            "iterations, if possible.\n", avg_wt);
+            }
+            
             /* now load the input data */
             iform = SUMA_GuessFormatFromExtension(Opt->in_name);
             if (!(dset = SUMA_LoadDset_s (Opt->in_name, &iform, 0))) {

@@ -3117,7 +3117,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 			   brk = YUP;
 		   }
          if (!brk && (strcmp(argv[kar], "-b_mask") == 0)) {
-            kar ++;
+             ps->arg_checked[kar]=1; kar ++;
 			   if (kar >= argc)  {
 		  		   fprintf (SUMA_STDERR, "need 1 argument after -b_mask \n");
 				   exit (1);

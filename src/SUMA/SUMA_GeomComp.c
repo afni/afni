@@ -2295,14 +2295,14 @@ float ** SUMA_Chung_Smooth_Weights (SUMA_SurfaceObject *SO)
    \sa SUMA_Chung_Smooth_05
    \sa Moo's hk_smooth.m
 */
-#define SUMA_CHUNG_KERNEL_NUMER(x,s) (exp(-(x)/(2.0*(s)*(s)))) 
 
 float ** SUMA_Chung_Smooth_Weights_05 (SUMA_SurfaceObject *SO, float sigma)
 {
    static char FuncName[]={"SUMA_Chung_Smooth_Weights_05"};
    float **wgt=NULL, *dist=NULL, *kern=NULL, *tfp=NULL;
    float dx,dy,dz, skern;
-   int j, n, n3, nj, nj3;
+   int j, n, n3, nj, nj3, skern_warn = 0;
+   int *n_troub=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2353,17 +2353,36 @@ float ** SUMA_Chung_Smooth_Weights_05 (SUMA_SurfaceObject *SO, float sigma)
       skern = 0.0;
       for (j=0; j<=SO->FN->N_Neighb[n]; ++j) {
          kern[j] = SUMA_CHUNG_KERNEL_NUMER(dist[j],sigma);
+         if (LocalHead && n == SUMA_SSidbg) {
+            fprintf (SUMA_STDERR,"%s: Neighb %d of %d: dist %f sigma %f: %g\n", 
+                           FuncName, SO->FN->FirstNeighb[n][j], n, 
+                           dist[j], sigma, SUMA_CHUNG_KERNEL_NUMER(dist[j],sigma));
+         }
          skern += kern[j];
       }
       
+      if (skern < 1.0f+1e-8) {
+         if (!skern_warn) {
+            n_troub = (int *)SUMA_malloc(sizeof(int)*SO->N_Node);
+            SUMA_S_Warnv(  "   Weights sum < 1.0f+1e-8 at node %d\n"
+                        "   Mesh may be too coarse for kernel\n"
+                        "   bandwidth of %f in float precision.\n"
+                        "   Consider decreasing your number of iterations. \n"
+                        "   Future similar warnings are muted, but \n"
+                        "   a count is issued at the end.\n", n, sigma);
+         }
+         if (n_troub) n_troub[skern_warn] = n;
+         ++skern_warn;
+      }
+       
       /* now calculate the weights */
       for (j=0; j<=SO->FN->N_Neighb[n]; ++j) { 
          wgt[n][j] = kern[j]/skern;
       }
       
       if (LocalHead && n == SUMA_SSidbg) {
-         fprintf (SUMA_STDERR,"%s: Weight Results for neighbors of %d (matlab node %d):\n",
-                              FuncName, n, n+1);
+         fprintf (SUMA_STDERR,"%s: Weight Results for neighbors of %d (matlab node %d):\nskern=%f",
+                              FuncName, n, n+1, skern);
          SUMA_disp_vect (wgt[n], SO->FN->N_Neighb[n]+1);
       }
    }  /* for n */
@@ -2372,6 +2391,18 @@ float ** SUMA_Chung_Smooth_Weights_05 (SUMA_SurfaceObject *SO, float sigma)
    if (kern) SUMA_free(kern); kern = NULL;
    if (dist) SUMA_free(dist); dist = NULL;
 
+   if (skern_warn) {
+      SUMA_S_Warnv("    %d precision warnings out of %d nodes forming surface (%.5f %%).\n",
+                       skern_warn, SO->N_Node, (float)skern_warn/(float)SO->N_Node*100.0);
+      if (n_troub) {
+         char *s = SUMA_ShowMeSome((void*)n_troub, SUMA_int, 
+                                    skern_warn, SUMA_MIN_PAIR(20, skern_warn), 
+                                    "Nodes with possible precision problems:\n   ");
+         fprintf(SUMA_STDERR,"%s\n", s);
+         SUMA_free(s); s= NULL;
+         SUMA_free(n_troub); n_troub = NULL;
+      }
+   }
    SUMA_RETURN(wgt);
 }
 
@@ -4353,16 +4384,18 @@ SUMA_Boolean SUMA_Chung_Smooth_05_dset (SUMA_SurfaceObject *SO, float **wgt,
    static char FuncName[]={"SUMA_Chung_Smooth_05_dset"};
    float *fout_final = NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, *fin_next = NULL, *fin_orig = NULL;
    float delta_time, fp, dfp, fpj, minfn=0.0, maxfn=0.0;
-   int n , k, j, niter, jj, nj, *icols=NULL, N_icols, N_nmask;
+   int n , k, j, niter, jj, nj, *icols=NULL, N_icols, N_nmask, kth_buf;
    byte *bfull=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
+   /*
    if (N_iter % 2) {
       SUMA_SL_Err("N_iter must be an even number\n");
       SUMA_RETURN(NOPE);
    }
+   */
    
    if (!SO || !wgt || !dset) {
       SUMA_SL_Err("NULL SO or wgt or dset\n");
@@ -4493,14 +4526,25 @@ SUMA_Boolean SUMA_Chung_Smooth_05_dset (SUMA_SurfaceObject *SO, float **wgt,
          } /* masking potential */
          
          if (cs->Send && k == 0) {
+            kth_buf = cs->kth;
+            if (niter == N_iter -1) {
+               cs->kth = 1;   /* send the last iteration no matter what */
+            }
             if (!SUMA_SendToSuma (SO, cs, (void *)fout, SUMA_NODE_RGBAb, 1)) {
                SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
             }
+            cs->kth = kth_buf;
          }
 
       } /* for niter */
       
       if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL;
+      
+      
+      if (N_iter % 2 ) {/* if Niter is odd, then copy contents into fout final from fbuf */
+         SUMA_LHv("Copying buffer content, N_iter = %d\n", N_iter);
+         memcpy((void*)fout_final, (void *)fbuf, SO->N_Node*sizeof(float));
+      }
       
       /* Now we need to shove the filtered data back into the dset */
       if (!SUMA_Float2DsetCol (dset, icols[k], fout_final, SO->N_Node)) {
