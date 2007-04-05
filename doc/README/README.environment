@@ -1389,6 +1389,29 @@ the Talairach Daemon database onto odd-sized +tlrc datasets.  Therefore, I
 recommend that these variables be used only when strictly needed, and with
 caution.
 
+Lastly, try hard not to mix TLRC datasets created with various box sizes in
+the same session. Strange things may happen.
+
+---------------------------
+Variables: AFNI_ACPC_BBOX_*
+---------------------------
+The variables let you choose the size of the "ACPC Box", into which 
++acpc datasets are transformed. If defined, they should be positive values,
+in mm.  The 6 variables (any or all of which may be used) are:
+
+  AFNI_ACPC_BBOX_LAT = distance from midline to maximum left/right position
+                        [default=95]
+  AFNI_ACPC_BBOX_ANT = distance from AC to most anterior point in box
+                        [default=95]
+  AFNI_ACPC_BBOX_POS = distance from AC to most posterior point in box
+                        [default=140]
+  AFNI_ACPC_BBOX_INF = distance from AC-PC line to most inferior point in box
+                        [default=70]
+  AFNI_ACPC_BBOX_SUP = distance from AC-PC line to most superior point in box
+                        [default=100]
+
+Check example and heed ALL warnings for variables AFNI_TLRC_BBOX_* above.
+
 -------------------------
 Variable: AFNI_TTRR_SETUP
 -------------------------

@@ -9158,10 +9158,30 @@ ENTRY("AFNI_make_warp") ;
          /* load bot & top with largest possible excursions from
             origin (the ALIGNBOX dimensions were added 3/25/95)  */
 
-         LOAD_FVEC3(awarp->warp.bot,
-                    -ATLAS_ALIGNBOX_LAT,-ATLAS_ALIGNBOX_ANT,-ATLAS_ALIGNBOX_INF);
-         LOAD_FVEC3(awarp->warp.top,
-                     ATLAS_ALIGNBOX_LAT, ATLAS_ALIGNBOX_POS, ATLAS_ALIGNBOX_SUP);
+         {
+            float zbot = ATLAS_ALIGNBOX_INF;
+            float ztop = ATLAS_ALIGNBOX_SUP;
+            float xtop = ATLAS_ALIGNBOX_LAT;
+            float ytop = ATLAS_ALIGNBOX_POS;
+            float ybot = ATLAS_ALIGNBOX_ANT;
+            #define GETVAL(vvv,nnn) do{ char *eee = getenv(nnn) ;                            \
+                            if( eee != NULL ){                                   \
+                              float val=strtod(eee,NULL); if(val>0.0) vvv = val; \
+                            } } while(0)
+
+                     GETVAL(xtop,"AFNI_ACPC_BBOX_LAT") ;  /* ZSS: Apr 2007: get new bounding box */
+                     GETVAL(ybot,"AFNI_ACPC_BBOX_ANT") ;  /* from environment variables, maybe */
+                     GETVAL(ytop,"AFNI_ACPC_BBOX_POS") ;
+                     GETVAL(zbot,"AFNI_ACPC_BBOX_INF") ;
+                     GETVAL(ztop,"AFNI_ACPC_BBOX_SUP") ;
+
+            #undef GETVAL
+
+            LOAD_FVEC3(awarp->warp.bot,
+                       -xtop, -ybot, -zbot);
+            LOAD_FVEC3(awarp->warp.top,
+                        xtop, ytop, ztop);
+         }
 
 #ifdef AFNI_DEBUG
 STATUS("Original -> Aligned Map::") ;
@@ -9671,6 +9691,7 @@ ENTRY("AFNI_init_warp") ;
 #else
             xnew_bot = aff_bot ;
             xnew_top = aff_top ;
+            
 #endif
          }
 
