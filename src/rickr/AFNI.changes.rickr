@@ -1994,4 +1994,5 @@
 15 Mar 2007: mod afni_proc.py, db_mod.py: use x1D suffix, removed -full_first
 19 Mar 2007: modified afni_proc.py: allow dataset TR stored in depreciated ms
 25 Mar 2007: afni_proc.py: added -help for long-existing -regress_no_stim_times
+19 Apr 2007: afni_proc.py (v1.21): apply +orig in 1-run mean using 3dcopy
 

@@ -1034,9 +1034,10 @@ g_history = """
          - removed now unneeded -full_first option in 3dDeconvolve
     1.19 Mar 19, 2007: allow for dataset TR stored in depreciated ms
     1.20 Mar 25, 2007: added -help for long-existing -regress_no_stim_times
+    1.21 Apr 19, 2007: apply +orig in 1-run mean using 3dcopy
 """
 
-g_version = "version 1.20, March 25, 2007"
+g_version = "version 1.21, April 19, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
