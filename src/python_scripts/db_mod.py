@@ -368,7 +368,7 @@ def db_cmd_mask(proc, block):
                     "-prefix full_mask.$subj\n\n" % (str(min), type, str(min))
     else:  # just copy the one
         cmd = cmd + "# only 1 run, so copy this to full_mask\n"              \
-                    "3dcopy rm.mask_r01 full_mask.$subj\n\n" 
+                    "3dcopy rm.mask_r01+orig full_mask.$subj\n\n" 
 
     proc.mask = 'full_mask.$subj'  # note that we have a mask to apply
 

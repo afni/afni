@@ -196,7 +196,7 @@ def get_datasets(proc):
     if proc.verb > 1: print 'ndsets = %d\n' % ndsets
 
     while 1:  # break when done
-        print 'Please enter dataset names, wildcard use is okay.' \
+        print 'Please enter dataset names, wildcard use is okay.\n' \
               '(wildcards okay only if order of names is alphabetical)\n'
         nremain = ndsets
         dsets = []
