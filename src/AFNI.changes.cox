@@ -6215,3 +6215,7 @@
 04 Apr 2007
  * Modify 3dDespike.c to add -localedit option.
  * Modify 3dAllineate.c to save matrices into header of output.
+
+26 Apr 2007
+ * Modify imseq.[ch], afni.c, and afni_graph.c to use '[' and ']' keys for
+     time index incrementing, per John Butman.

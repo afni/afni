@@ -283,6 +283,7 @@ typedef struct {
 #define isqCR_button2_key    502  /* 20 Feb 2003 */
 
 #define isqCR_force_redisplay 601 /* 22 Aug 1998 */
+#define isqCR_setindex        602 /* 26 Apr 2007 */
 
 #define COLORMAP_CHANGE(sq)                                          \
   do{ if( ISQ_REALZ((sq)) && (sq)->dc->visual_class == TrueColor ){  \
