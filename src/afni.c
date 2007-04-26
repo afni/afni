@@ -3260,9 +3260,9 @@ ENTRY("AFNI_read_images") ;
    respond to events that one of the MCW_imseq's sends to us
 ------------------------------------------------------------------------*/
 
-void AFNI_seq_send_CB( MCW_imseq * seq , FD_brick * br , ISQ_cbs * cbs )
+void AFNI_seq_send_CB( MCW_imseq *seq , FD_brick *br , ISQ_cbs *cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) seq->parent ;
+   Three_D_View *im3d = (Three_D_View *) seq->parent ;
 
 ENTRY("AFNI_seq_send_CB") ;
 
@@ -3278,9 +3278,9 @@ if(PRINT_TRACING)
       default: break ;
 
       case isqCR_destroy:{
-         MCW_imseq * sxyz = im3d->s123 ,
-                   * syzx = im3d->s231 ,
-                   * szxy = im3d->s312  ;
+         MCW_imseq *sxyz = im3d->s123 ,
+                   *syzx = im3d->s231 ,
+                   *szxy = im3d->s312  ;
          Widget w ;
          int a3 = br->a123.ijk[2] ,   /* z axis of the brick?    */
              az = abs(a3) - 1       ; /* 0,1,2 for dataset x,y,z */
@@ -3519,7 +3519,7 @@ if(PRINT_TRACING)
       case isqCR_keypress:{
 #if 1
         switch( cbs->key ){  /* 05 Mar 2007: keys that AFNI needs */
-                                          /* to process, not imseq.c */
+                                       /* to process, not imseq.c */
           case 'u':{
             int uu = im3d->vinfo->underlay_type ; /* toggle Overlay as Underlay */
             uu = (uu+1) % (LAST_UNDERLAY_TYPE+1) ;
@@ -3641,6 +3641,25 @@ if(PRINT_TRACING)
          PLUTO_force_rebar() ;      /* ditto [23 Aug 1998] */
       }
       break ; /* end of forced redisplay */
+
+      /*--- 26 Apr 2007: time indexing ---*/
+
+      case isqCR_setindex:{
+         MCW_arrowval *tav = im3d->vwid->imag->time_index_av ;
+         MCW_arrowval *aav = im3d->vwid->func->anat_buck_av ;
+         int new_index = im3d->vinfo->anat_index + cbs->key ;
+
+         if( new_index != im3d->vinfo->anat_index ){
+           if( im3d->vinfo->time_on ){
+             AV_assign_ival( tav , new_index ) ;               /* set time_index */
+             AFNI_time_index_CB( tav, (XtPointer) im3d ); /* will set anat_index */
+           } else {
+             AV_assign_ival( aav, new_index ) ;       /* set anat index directly */
+             AFNI_bucket_CB( aav, im3d ) ;
+           }
+         }
+      }
+      break ;
 
    }  /* end of switch on reason for call */
 
@@ -5129,8 +5148,9 @@ static char * AFNI_image_help =
  "s = sharpen image        m = toggle Min-to-Max\n"
  "D = open Disp panel      M = open Montage panel\n"
  "S = Save image           l = left-right mirror\n"
- "> = Page Up   = forward  1 image\n"
- "< = Page Down = backward 1 image\n"
+ "[ = time index down 1    ] = time index up 1\n"
+ "> = Page Up   = forward  1 image (e.g., slice)\n"
+ "< = Page Down = backward 1 image (e.g., slice)\n"
  "v/V = Video image sequence up/down\n"
  "r/R = Ricochet image sequence up/down\n"
  "i/I = image fraction down/up\n"
@@ -9691,7 +9711,6 @@ ENTRY("AFNI_init_warp") ;
 #else
             xnew_bot = aff_bot ;
             xnew_top = aff_top ;
-            
 #endif
          }
 
