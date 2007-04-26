@@ -207,13 +207,13 @@ ENTRY("new_MCW_grapher") ;
                        "inside the logo.\n"
                        "\n"
                        "Miscellaneous Keystrokes:\n"
-                       "< = move back in time 1 point\n"
-                       "> = move forward in time 1 point\n"
-                       "1 = move to 1st time point\n"
-                       "l = move to last time point\n"
-                       "L = turn AFNI logo on/off\n"
-                       "v/V = Video up/down in time\n"
-                       "r/R = Video ricochet up/down in time\n"
+                       "< or [ = move back in time 1 point\n"
+                       "> or ] = move forward in time 1 point\n"
+                       "1      = move to 1st time point\n"
+                       "l      = move to last time point\n"
+                       "L      = turn AFNI logo on/off\n"
+                       "v/V    = Video up/down in time\n"
+                       "r/R    = Video ricochet up/down in time\n"
                        "\n"
                        "See the 'Opt' menu for other keypress actions\n"
                        "and for other options to control graph display."
@@ -3287,14 +3287,15 @@ STATUS(str); }
 
       case '<': case ',':   /* change time point */
       case '>': case '.':
+      case '[': case ']':
       case '1':
       case 'l':
          EXRONE(grapher) ;  /* 22 Sep 2000 */
 
-              if( buf[0] == '<' || buf[0] == ',' ) ii = grapher->time_index - 1;
-         else if( buf[0] == '>' || buf[0] == '.' ) ii = grapher->time_index + 1;
-         else if( buf[0] == '1'                  ) ii = 1 ;
-         else if( buf[0] == 'l'                  ) ii = grapher->status->num_series-1;
+              if( buf[0]=='<' || buf[0]==',' || buf[0]=='[' ) ii = grapher->time_index-1;
+         else if( buf[0]=='>' || buf[0]=='.' || buf[0]==']' ) ii = grapher->time_index+1;
+         else if( buf[0] == '1'  ) ii = 1 ;
+         else if( buf[0] == 'l'  ) ii = grapher->status->num_series-1;
 
          ii = (ii+grapher->status->num_series) % grapher->status->num_series ;
          if( ii >= 0 && ii < grapher->status->num_series ){

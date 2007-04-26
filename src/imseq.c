@@ -11307,11 +11307,13 @@ ENTRY("ISQ_handle_keypress") ;
                      using '<' or '>' keys (like graphs) */
 
      case '>':
-     case '<':{
+     case '<':
+     case ',':
+     case '.':{
        int nn=seq->im_nr , nt=seq->status->num_total ;
        if( nt > 1 ){
-         if( key == '<' ){ nn--; if( nn <  0 ) nn = nt-1; }
-         else            { nn++; if( nn >= nt) nn = 0   ; }
+         if( key == '<' || key == ',' ){ nn--; if( nn <  0 ) nn = nt-1; }
+         else                          { nn++; if( nn >= nt) nn = 0   ; }
 #if 1
          ISQ_redisplay( seq , nn , isqDR_display ) ;
 #else
@@ -11422,6 +11424,17 @@ ENTRY("ISQ_handle_keypress") ;
        }
        ISQ_redisplay( seq , -1 , isqDR_display ) ;
        busy=0 ; RETURN(1) ;
+     }
+     break ;
+
+     /* 26 Apr 2007: time indexing */
+
+     case '[':
+     case ']':{
+       ISQ_cbs cbs ;
+       cbs.reason = isqCR_setindex ;
+       cbs.key    = (key == '[') ? -1 : +1 ;
+       SEND(seq,cbs) ;
      }
      break ;
 
