@@ -43,7 +43,7 @@
 #define HAVE_ALLOCA_H 1
 
 /* Define if you don't have the strerror function  */
-/* #undef NO_STRERROR */
+#undef NO_STRERROR
 
 /* The number of bytes in a size_t */
 #define SIZEOF_SIZE_T 4
