@@ -760,9 +760,8 @@ fprintf(stderr,"VOL[%d]: id=%d\n",ibr,id) ;
          }
       }
       if( nerr > 0 )
-         fprintf(stderr ,
-                 "*** %s: found %d float errors -- see program float_scan\n" ,
-                 dkptr->brick_name , nerr ) ;
+         WARNING_message("file %s: fixed %d float errors" ,
+                         dkptr->brick_name , nerr ) ;
    }
 
    /* 21 Feb 2001: if sub-ranging also used, clip values in brick */

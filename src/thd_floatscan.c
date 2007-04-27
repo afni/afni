@@ -8,11 +8,15 @@
 #include <math.h>
 #include <stdlib.h>
 
+#if 0
 #ifdef isfinite
 # define IS_GOOD_FLOAT(x) isfinite(x) /* 28 Aug 2003: use C99 macro if exists */
 #else
 # define IS_GOOD_FLOAT(x) finite(x)
 #endif
+#endif
+
+#define IS_GOOD_FLOAT(x) finite(x)
 
 #if 0
 # define IS_GOOD_FLOAT(x) isnan(x)
@@ -30,7 +34,7 @@ int thd_floatscan( int nbuf , float *fbuf )
    if( nbuf <= 0 || fbuf == NULL ) return 0 ;
 
    for( nerr=ii=0 ; ii < nbuf ; ii++ )
-     if( !IS_GOOD_FLOAT(fbuf[ii]) ){ fbuf[ii] = 0.0 ; nerr++ ; }
+     if( !IS_GOOD_FLOAT(fbuf[ii]) ){ fbuf[ii] = 0.0f ; nerr++ ; }
 
    return nerr ;
 }
@@ -46,8 +50,8 @@ int thd_complexscan( int nbuf , complex *cbuf )
    if( nbuf <= 0 || cbuf == NULL ) return 0 ;
 
    for( nerr=ii=0 ; ii < nbuf ; ii++ ){
-     if( !IS_GOOD_FLOAT(cbuf[ii].r) ){ cbuf[ii].r = 0.0 ; nerr++ ; }
-     if( !IS_GOOD_FLOAT(cbuf[ii].i) ){ cbuf[ii].i = 0.0 ; nerr++ ; }
+     if( !IS_GOOD_FLOAT(cbuf[ii].r) ){ cbuf[ii].r = 0.0f ; nerr++ ; }
+     if( !IS_GOOD_FLOAT(cbuf[ii].i) ){ cbuf[ii].i = 0.0f ; nerr++ ; }
    }
 
    return nerr ;
@@ -61,7 +65,7 @@ int mri_floatscan( MRI_IMAGE *im )
    if( im == NULL ) return 0 ;
    switch( im->kind ){
      case MRI_float:
-       return thd_floatscan( im->nvox , MRI_FLOAT_PTR(im) ) ;
+       return thd_floatscan  ( im->nvox , MRI_FLOAT_PTR(im)   ) ;
      case MRI_complex:
        return thd_complexscan( im->nvox , MRI_COMPLEX_PTR(im) ) ;
    }
