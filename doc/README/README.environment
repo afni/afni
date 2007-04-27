@@ -2366,6 +2366,16 @@ Variable: AFNI_NIML_TEXT_DATA
 If this YES/NO variable is set to YES, then NI_SURF_DSET datasets will be
 written with data in text format.  Otherwise, data will be in binary.
 
+-----------------------------
+Variable: AFNI_SIMPLE_HISTORY
+-----------------------------
+A few programs (particularly 3dcalc) create a complicated history note
+in the output dataset header, by including the history of all inputs.
+This history can become inordinately long and pointless when 3calc is
+run in a long chain of calculations.  Setting this variable to YES will
+turn off this cumulation of all histories, and may make your dataset
+headers more manageable.
+
 ----------------------------------------------------------------------
 --- END: variables specific to NIML I/O
 ----------------------------------------------------------------------
