@@ -61,7 +61,7 @@
 #define uchar unsigned char
 
 /* Define if the system does not use IEEE floating point representation */
-/* #undef NO_IEEE_FLOAT */
+#undef NO_IEEE_FLOAT
 
 /* The number of bytes in a double.  */
 #define SIZEOF_DOUBLE 8
