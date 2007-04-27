@@ -2781,9 +2781,9 @@ ENTRY("read_input_data") ;
         if( nzer > 0 || nbad > 0 ){  /* report bad paired vals */
           WARNING_message(
            "%s '%s %d' file '%s' amplitudes: #times=%d #zero=%d #undefined=%d",
-           (nzer > 0) ? "!! " : "\0" ,
+           (nbad > 0) ? "!! " : "\0" ,
            be->option, is+1, option_data->stim_filename[is] , ngood,nzer,nbad ) ;
-          if( nzer > 0 ) badlev++ ;
+          if( nbad > 0 ) badlev++ ;
         }
         if( nzb > 0 ) zbar /= nzb ;  /* average paired value */
         INFO_message("'%s %d' average value = %g",be->option, is+1,zbar) ;

@@ -708,18 +708,18 @@ ENTRY("THD_load_nifti") ;
        mri_fix_data_pointer( NBL.bricks[ibr] ,DBLK_BRICK(dblk,ibr) ) ;
        NBL.bricks[ibr] = NULL ;  /* so it won't be deleted later */
 
-       if( AFNI_yesenv("AFNI_FLOATSCAN") ){  /*--- check float inputs? ---*/
-         if( DBLK_BRICK_TYPE(dblk,ibr) == MRI_float )
-           nerr += thd_floatscan( DBLK_BRICK_NVOX(dblk,ibr) ,
+       if( DBLK_BRICK_TYPE(dblk,ibr) == MRI_float ){
+         STATUS("doing floatscan") ;
+         nerr += thd_floatscan( DBLK_BRICK_NVOX(dblk,ibr) ,
+                                DBLK_ARRAY(dblk,ibr)        ) ;
+       } else if( DBLK_BRICK_TYPE(dblk,ibr) == MRI_complex ){
+         STATUS("doing complexscan") ;
+         nerr += thd_complexscan( DBLK_BRICK_NVOX(dblk,ibr) ,
                                   DBLK_ARRAY(dblk,ibr)        ) ;
-         else if( DBLK_BRICK_TYPE(dblk,ibr) == MRI_complex )
-           nerr += thd_complexscan( DBLK_BRICK_NVOX(dblk,ibr) ,
-                                    DBLK_ARRAY(dblk,ibr)        ) ;
        }
      }
-     if( nerr > 0 ) fprintf(stderr ,
-                    "** %s: found %d float errors -- see program float_scan\n",
-                    dkptr->brick_name , nerr ) ;
+     if( nerr > 0 ) WARNING_message("file %s: corrected %d float errors\n",
+                                    dkptr->brick_name , nerr ) ;
 
    } else { /*---------- need to copy data ==> do some more work -----------*/
 
@@ -766,13 +766,15 @@ ENTRY("THD_load_nifti") ;
 
    /*-- scale results? ---*/
 
-   if( nim->scl_slope != 0.0 ){       /*--- scale results? ---*/
+   if( nim->scl_slope != 0.0 && finite(nim->scl_slope) && finite(nim->scl_inter) ){
      STATUS("scaling sub-bricks") ;
      for( ibr=0 ; ibr < nv ; ibr++ ){
        if( DBLK_BRICK_TYPE(dblk,ibr) == MRI_float ){
          float *far = (float *) DBLK_ARRAY(dblk,ibr) ; int ii ;
-         for( ii=0 ; ii < nxyz ; ii++ )
+         for( ii=0 ; ii < nxyz ; ii++ ){
            far[ii] = nim->scl_slope * far[ii] + nim->scl_inter ;
+           if( !finite(far[ii]) ) far[ii] = 0.0f ;
+         }
        } else if( DBLK_BRICK_TYPE(dblk,ibr) == MRI_complex ){
          complex *car = (complex *) DBLK_ARRAY(dblk,ibr) ; int ii ;
          for( ii=0 ; ii < nxyz ; ii++ ){
@@ -784,7 +786,7 @@ ENTRY("THD_load_nifti") ;
    }
 
    if( DBLK_IS_MASTERED(dblk) && dblk->master_bot <= dblk->master_top )
-      THD_apply_master_subrange(dblk) ;
+     THD_apply_master_subrange(dblk) ;
 
    /*-- throw away the trash and return --*/
 
