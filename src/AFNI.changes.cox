@@ -6219,3 +6219,7 @@
 26 Apr 2007
  * Modify imseq.[ch], afni.c, and afni_graph.c to use '[' and ']' keys for
      time index incrementing, per John Butman.
+
+27 Apr 2007
+ * Modified thd_niftiread.c to always do floatscan on datasets.
+ * Modified 3dDeconvolve.c to make 0.0 ABI paired values not require -GOFORIT.

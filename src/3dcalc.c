@@ -1509,14 +1509,14 @@ int main( int argc , char *argv[] )
    /** make history for new dataset */
 
    if( CALC_histpar < 0 ){
-      for( iii=jjj=0 ; iii < 26 ; iii++ )       /* count number of input datasets */
-         if( CALC_dset[iii] != NULL ) jjj++ ;
+     for( iii=jjj=0 ; iii < 26 ; iii++ )       /* count number of input datasets */
+       if( CALC_dset[iii] != NULL ) jjj++ ;
    } else {
-      ids = CALC_histpar ;
-      jjj = 1 ;
+     ids = CALC_histpar ;
+     jjj = 1 ;
    }
 
-   if( jjj == 1 ){
+   if( jjj == 1 || AFNI_yesenv("AFNI_SIMPLE_HISTORY") ){
       tross_Copy_History( CALC_dset[ids] , new_dset ) ;
    } else {                                               /* 27 Feb 2003 */
       char hbuf[64] ;
