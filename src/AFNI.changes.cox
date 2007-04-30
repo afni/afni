@@ -6223,3 +6223,6 @@
 27 Apr 2007
  * Modified thd_niftiread.c to always do floatscan on datasets.
  * Modified 3dDeconvolve.c to make 0.0 ABI paired values not require -GOFORIT.
+
+30 Apr 2007
+ * Included 3dinfo.c patch from Colm Connolly with -label2index option.

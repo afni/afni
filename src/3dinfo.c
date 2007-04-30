@@ -8,20 +8,32 @@
 
 void Syntax(void)
 {
-   printf(
+   printf("\n"
     "Prints out sort-of-useful information from a 3D dataset's header\n"
     "Usage: 3dinfo [-verb OR -short] dataset [dataset ...]\n"
     "  -verb means to print out lots of stuff\n"
     "  -short means to print out less stuff\n"
+    "\n"
+    "Alternative Usage (without either of the above options):\n"
+    "  3dinfo -label2index label dataset\n"
+    "  * Prints to stdout the index corresponding to the sub-brick with\n"
+    "    the name label, or a blank line if label not found.\n"
+    "  * If this option is used, then the ONLY output is this sub-brick index.\n"
+    "    This is intended to be used in a script, as in this tcsh fragment:\n"
+    "      set face = `3dinfo -label2index Face#0 AA_Decon+orig`\n"
+    "      set hous = `3dinfo -label2index House#0 AA_Decon+orig`\n"
+    "      3dcalc -a AA_Decon+orig\"[$face]\" -b AA_Decon+orig\"[$hous]\" ...\n"
+    "  * Added per the request and efforts of Colm Connolly.\n"
    ) ;
    exit(0) ;
 }
 
-int main( int argc , char * argv[] )
+int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset * dset ;
+   THD_3dim_dataset *dset ;
    int iarg , verbose = 0 ;
-   char * outbuf ;
+   char *outbuf ;
+   char *labelName = NULL;
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax() ;
 
@@ -30,6 +42,17 @@ int main( int argc , char * argv[] )
    iarg = 1 ;
         if( strncmp(argv[iarg],"-verb" ,5) == 0 ){ verbose =  1; iarg++; }
    else if( strncmp(argv[iarg],"-short",5) == 0 ){ verbose = -1; iarg++; }
+
+   else if ( strncmp(argv[iarg],"-label2",7) == 0 )
+   {
+       iarg++;
+       if (iarg >= argc)
+           ERROR_exit( "3dinfo needs an argument after -label2number\n");
+       labelName = malloc(sizeof(char) * 2048);
+       strcpy(labelName, argv[iarg]);
+       iarg++;
+   }
+
 
    THD_allow_empty_dataset(1) ;  /* 21 Mar 2007 */
 
@@ -44,16 +67,38 @@ int main( int argc , char * argv[] )
          continue ;
       }
 
-      outbuf = THD_dataset_info( dset , verbose ) ;
-      if( outbuf != NULL ){
-         printf("\n") ;
-         puts(outbuf) ;
-         free(outbuf) ; outbuf = NULL ;
-      } else {
-         printf("\nCan't get info for dataset %s\n",argv[iarg]) ;
+      if (labelName == NULL )
+      {
+          outbuf = THD_dataset_info( dset , verbose ) ;
+          if( outbuf != NULL ){
+              printf("\n") ;
+              puts(outbuf) ;
+              free(outbuf) ; outbuf = NULL ;
+          } else {
+              printf("\nCan't get info for dataset %s\n",argv[iarg]) ;
+          }
+      }
+      else
+      {
+          int nval_per = dset->dblk->nvals;
+          int foundLabel = 0;
+          int ival=0;
+
+          for (ival=0 ; ival < nval_per && !foundLabel; ival++ )
+          {
+              if (strcmp(DSET_BRICK_LAB(dset,ival), labelName) == 0)
+              {
+                  printf("%d\n", ival);
+                  foundLabel = 1;
+              }
+          } /* end of for (ival=0 ; ival < nval_per ; ival++ ) */
+          if (!foundLabel)
+              printf("\n");
       }
 
       THD_delete_3dim_dataset( dset , False ) ;
    }
+   free(labelName);
+
    exit(0) ;
 }
