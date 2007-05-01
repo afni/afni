@@ -43,3 +43,17 @@ ELSE("${ITK_VERSION_MAJOR}" GREATER 0.0)
   ENDIF(USE_FSL_CODE)
   ENABLE_TESTING()
 ENDIF("${ITK_VERSION_MAJOR}" GREATER 0.0)
+
+####################################
+### Define information necessary for packaging with CPACK (http://www.cmake.org/Wiki/CMake:Packaging_With_CPack)
+INCLUDE(InstallRequiredSystemLibraries)
+
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Niftilib is a set of i/o libraries for reading and writing files in the nifti-1 data format. nifti-1 is a binary file format for storing medical image data, e.g. magnetic resonance image (MRI) and functional MRI (fMRI) brain images.")
+SET(CPACK_PACKAGE_VENDOR "NIFTI DFWG")
+SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README")
+SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/README")
+SET(CPACK_PACKAGE_VERSION_MAJOR "0")
+SET(CPACK_PACKAGE_VERSION_MINOR "4")
+SET(CPACK_PACKAGE_VERSION_PATCH "0")
+SET(CPACK_PACKAGE_INSTALL_DIRECTORY "NIFTI ${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}")
+INCLUDE(CPack)
