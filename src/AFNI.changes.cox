@@ -6229,4 +6229,7 @@
 
 03 May 2007
  * Added 'crop=' to afni_driver.c image window opening, and also to afni_splash.c
-     when saving .afni.startup_script file.
+     when saving .afni.startup_script file.  [Per John Butman]
+ * Modified 3dDeconvolve.c to print clearer messages when -gltsym errors
+     occur, and also to allow the Decon -bucket dataset to be overwritten,
+     and also to add the -nobucket option.  [Per Mike Beauchamp]
