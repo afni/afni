@@ -76,7 +76,7 @@ int main( int argc , char *argv[] )
             " -x  X.1D   = Use for X axis the data in X.1D.\n"
             "              Note that X.1D should have one column\n"
             "              of the same size as the columns in tsfile. \n"
-            " NOTE: -x will override -dx, -xzero and -xaxis options.\n"
+            " N.B.: -x will override -dx and -xzero; -xaxis still has effects\n"
             "\n"
             " -dx xx     = Spacing between points on the x-axis is 'xx'\n"
             "                [default = 1]\n"
@@ -452,15 +452,14 @@ int main( int argc , char *argv[] )
       /* read xfile */
       MRI_IMAGE *inimx = mri_read_1D( xfile ) ;
       if( inimx == NULL ) 
-         ERROR_exit("Can't read x axis input file %s\n",xfile) ;
-      if (inimx->nx != flim->nx)
-         ERROR_exit("Number of rows in x axis input file %s is not the same as in input file\n",xfile) ; 
+         ERROR_exit("Can't read x-axis '-x %s'",xfile) ;
+      if (inimx->nx < flim->nx)
+         ERROR_exit("Number of rows in '-x %s' fewer than in plot data",xfile) ; 
       if (inimx->ny != 1)
-         ERROR_exit("Must have only 1 column from the x axis file %s \n",xfile) ; 
+         WARNING_message("Using only first column from '-x %s'",xfile) ; 
       far = MRI_FLOAT_PTR(inimx);
       xar = (float *) malloc( sizeof(float) * nx ) ;
       for( ii=0 ; ii < nx ; ii++ ) xar[ii] = far[ii+ignore] ;
-      mri_clear_data_pointer(inimx) ;
       mri_free(inimx); inimx=NULL; far = NULL;
    }
    /* start X11 */
