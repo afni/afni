@@ -1613,8 +1613,8 @@ ENTRY("AFNI_finalsave_layout_CB") ;
          /*-- 22 Jan 2003: startup script stuff for image viewers --*/
 
          if( gp != NULL ){
-           int opval=9 ;
-           drive_MCW_imseq( isq, isqDR_getopacity, &opval ) ;
+           int opval=9 , iar[4] ;
+           drive_MCW_imseq( isq, isqDR_getopacity, (XtPointer)&opval ) ;
            if( mont[0] == '\0' ){
              fprintf(gp, "OPEN_WINDOW %c.%simage geom=%dx%d+%d+%d ifrac=%s opacity=%d\n" ,
                      abet[cc], wnam[ww], gww,ghh, gxx,gyy, AV_uformat_fval(ifrac), opval ) ;
@@ -1622,6 +1622,14 @@ ENTRY("AFNI_finalsave_layout_CB") ;
              fprintf(gp,"OPEN_WINDOW %c.%simage geom=%dx%d+%d+%d ifrac=%s mont=%s opacity=%d\n",
                      abet[cc], wnam[ww], gww,ghh, gxx,gyy, AV_uformat_fval(ifrac), mont, opval ) ;
            }
+
+           /* 03 May 2007: save crop info as well */
+
+           iar[0] = -1 ;
+           drive_MCW_imseq( isq , isqDR_get_crop , (XtPointer)iar ) ;
+           if( iar[0] >= 0 )
+             fprintf(gp, "ALTER_WINDOW %c.%simage crop=%d:%d,%d:%d\n",
+                     abet[cc], wnam[ww] , iar[0],iar[1],iar[2],iar[3] ) ;
         }
       }
 

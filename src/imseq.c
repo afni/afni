@@ -746,7 +746,7 @@ ENTRY("open_MCW_imseq") ;
 
    newseq->cropit       =  0 ; /* 11 Jun 2002 */
    newseq->crop_allowed =  1 ;
-   newseq->crop_nxorg   = -1 ;
+   newseq->crop_nxorg   = newseq->crop_nyorg = -1 ;
 
    newseq->last_width_mm  = IM_WIDTH(tim) ;  /* dimensions in real space */
    newseq->last_height_mm = IM_HEIGHT(tim) ;
@@ -2144,8 +2144,8 @@ ENTRY("ISQ_crop_pb_CB") ;
    MCW_invert_widget( seq->crop_drag_pb ) ;
    seq->crop_drag = !seq->crop_drag ;
 
-   if( !seq->crop_drag && seq->cropit ){        /* turn crop off */
-     seq->cropit = 0 ; seq->crop_nxorg = -1 ;   /* if double-pressed */
+   if( !seq->crop_drag && seq->cropit ){                      /* turn crop off */
+     seq->cropit = 0; seq->crop_nxorg = seq->crop_nyorg = -1; /* if double-pressed */
      ISQ_redisplay( seq , -1 , isqDR_display ) ;
    }
 
@@ -6653,6 +6653,9 @@ ENTRY("ISQ_but_cnorm_CB") ;
 *    isqDR_save_jpegall    (char *) save current image series to bunch of files
 *    isqDR_save_pngall     (char *) save current image series to bunch of files
 
+*    isqDR_get_crop        (int *) 4 ints that specify current crop status
+*    isqDR_set_crop        (int *) 4 ints to change current crop status
+
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
@@ -6978,6 +6981,44 @@ static unsigned char record_bits[] = {
         if( seq->ov_opacity_av == NULL || val == NULL ) RETURN( False ) ;
         *val = seq->ov_opacity_av->ival ;
         RETURN( True ) ;
+      }
+      break ;
+
+      /*--------- get crop data [03 May 2007] -----------*/
+
+      case isqDR_get_crop:{
+        int *iar = (int *)drive_data ;
+        if( iar != NULL ){
+          if( !seq->cropit ){
+            iar[0] = iar[1] = iar[2] = iar[3] = -1 ;
+          } else {
+            iar[0] = seq->crop_xa ; iar[1] = seq->crop_xb ;
+            iar[2] = seq->crop_ya ; iar[3] = seq->crop_yb ;
+          }
+        }
+        RETURN(True) ;
+      }
+      break ;
+
+      /*--------- set crop data [03 May 2007] -----------*/
+
+      case isqDR_set_crop:{
+        int *iar = (int *)drive_data ;
+        if( iar == NULL              ||
+            iar[0] < 0               || iar[2] < 0               ||
+            iar[0]+MINCROP >= iar[1] || iar[2]+MINCROP >= iar[3]   ){
+          seq->cropit = 0 ;
+        } else {
+          seq->cropit = 1 ;
+          seq->crop_xa = iar[0] ; seq->crop_xb = iar[1] ;
+          seq->crop_ya = iar[2] ; seq->crop_yb = iar[3] ;
+          if( seq->crop_nxorg > 0 && seq->crop_xb >= seq->crop_nxorg )
+            seq->crop_xb = seq->crop_nxorg-1 ;
+          if( seq->crop_nyorg > 0 && seq->crop_yb >= seq->crop_nyorg )
+            seq->crop_yb = seq->crop_nyorg-1 ;
+        }
+        ISQ_redisplay( seq , -1 , isqDR_display ) ;
+        RETURN(True) ;
       }
       break ;
 
@@ -10325,6 +10366,9 @@ ENTRY("ISQ_getmemplot") ;
      float nxorg=seq->crop_nxorg , nyorg=seq->crop_nyorg ;
      MEM_plotdata *np ;
 
+     if( xb >= nxorg ) xb = nxorg-1 ;
+     if( yb >= nyorg ) yb = nyorg-1 ;
+
      /**
       Original plot has [0..1]x[0..1] mapped to [0..nxorg]x[nyorg..0].
       Now, image will be cropped to [xa..xb]x[ya..yb], which will be
@@ -10474,7 +10518,7 @@ ENTRY("ISQ_getimage") ;
 
    if( seq->cropit ){
 
-     if( seq->crop_nxorg < 0 ){    /* original image size not set yet */
+     if( seq->crop_nxorg < 0 || seq->crop_nyorg < 0 ){ /* orig image size not set yet */
        seq->crop_nxorg = tim->nx ;
        seq->crop_nyorg = tim->ny ;
      }
@@ -10482,7 +10526,7 @@ ENTRY("ISQ_getimage") ;
      if( tim->nx != seq->crop_nxorg ||    /* image changed size? */
          tim->ny != seq->crop_nyorg   ){  /* => turn cropping off */
 
-       seq->cropit = 0 ; seq->crop_nxorg = -1 ;
+       seq->cropit = 0 ; seq->crop_nxorg = seq->crop_nyorg = -1 ;
 
        if( seq->crop_drag ){              /* should not happen */
          MCW_invert_widget( seq->crop_drag_pb ) ;
@@ -10490,8 +10534,11 @@ ENTRY("ISQ_getimage") ;
        }
 
      } else {
-       MRI_IMAGE *cim = mri_cut_2D( tim, seq->crop_xa,seq->crop_xb,
-                                         seq->crop_ya,seq->crop_yb ) ;
+       MRI_IMAGE *cim ;
+       if( seq->crop_xb >= seq->crop_nxorg ) seq->crop_xb = seq->crop_nxorg - 1 ;
+       if( seq->crop_yb >= seq->crop_nyorg ) seq->crop_yb = seq->crop_nyorg - 1 ;
+       cim = mri_cut_2D( tim, seq->crop_xa,seq->crop_xb,
+                              seq->crop_ya,seq->crop_yb ) ;
        if( cim != NULL ){ mri_free(tim); tim = cim; }
      }
    }
@@ -10598,8 +10645,6 @@ ENTRY("ISQ_getimage") ;
 
 void ISQ_cropper( MCW_imseq *seq , XButtonEvent *event )
 {
-#define MINCROP 9
-
    int x1=event->x,y1=event->y , x2,y2 ;
    int imx1,imy1,nim1 , imx2,imy2,nim2 , tt ;
    int zlev = seq->zoom_fac ;
@@ -10658,7 +10703,7 @@ ENTRY("ISQ_cropper") ;
 
    if( imx2-imx1 < MINCROP || imy2-imy1 < MINCROP ){ /* too small */
      if( imx2-imx1 < 2 || imy2-imy1 < 2 ){
-       seq->cropit = 0 ; seq->crop_nxorg = -1 ;  /* turn crop off */
+       seq->cropit = 0 ; seq->crop_nxorg = seq->crop_nyorg = -1 ;  /* turn crop off */
      } else {
        XBell(seq->dc->display,100);                 /* do nothing */
      }
@@ -10683,7 +10728,7 @@ ENTRY("ISQ_cropper") ;
        /* set size of original image from which cropping will be done */
 
        nx = (seq->crop_nxorg > 0) ? seq->crop_nxorg : seq->horig ;
-       ny = (seq->crop_nxorg > 0) ? seq->crop_nyorg : seq->vorig ;
+       ny = (seq->crop_nyorg > 0) ? seq->crop_nyorg : seq->vorig ;
 #if 0
 fprintf(stderr,"Crop: imx1=%d imx2=%d xmid=%d xh=%d xhw=%d nx=%d\n",imx1,imx2,xmid,xh,xhw,nx);
 fprintf(stderr,"      imy1=%d imy2=%d ymid=%d yh=%d yhw=%d ny=%d\n",imy1,imy2,ymid,yh,yhw,ny);
@@ -10733,7 +10778,7 @@ fprintf(stderr,"      imy1=%d imy2=%d ver_off=%f\n",imy1,imy2,seq->zoom_ver_off)
 
      seq->crop_xa = imx1 ; seq->crop_xb = imx2 ;
      seq->crop_ya = imy1 ; seq->crop_yb = imy2 ;
-     seq->cropit = 1 ; seq->crop_nxorg = -1 ;
+     seq->cropit = 1 ; seq->crop_nxorg = seq->crop_nyorg = -1 ;
    }
 
    /*** force image redisplay ***/

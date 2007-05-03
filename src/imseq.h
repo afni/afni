@@ -622,6 +622,8 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_setopacity      608  /* 21 Jan 2003 */
 #define isqDR_setimsave       609  /* 23 Jan 2003 */
 #define isqDR_penbbox         610  /* 18 Jul 2003 */
+#define isqDR_get_crop        611  /* 03 May 2007 */
+#define isqDR_set_crop        612  /* 03 May 2007 */
 
 #define isqDR_plot_label      701  /* 20 Sep 2001 */
 #define isqDR_plot_plot       702  /* 20 Sep 2001 */
@@ -798,6 +800,8 @@ extern void ISQ_record_kill_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void ISQ_remove_widget( MCW_imseq * , Widget ) ;
 extern void ISQ_cropper( MCW_imseq *, XButtonEvent *) ; /* 17 Jun 2002 */
+
+#define MINCROP 9  /* moved here 03 May 2007 */
 
 extern void ISQ_snapshot( Widget w ) ;                 /* 18 Jun 2003 */
 extern void ISQ_snapsave( int,int, byte *, Widget ) ;  /* 03 Jul 2003 */
