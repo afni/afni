@@ -1996,4 +1996,6 @@
 25 Mar 2007: afni_proc.py: added -help for long-existing -regress_no_stim_times
 19 Apr 2007: afni_proc.py (v1.21): apply +orig in 1-run mean using 3dcopy
 01 May 2007: included Hans' updates: CMakeLists.txt, nifticdf/CMakeLists.txt
+03 May 2007: added 3dPAR2AFNI.pl, from Colm G. Connolly
+             modified Makefile.INCLUDE: added 3dPAR2AFNI.pl to SCRIPTS
 
