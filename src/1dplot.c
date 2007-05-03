@@ -48,7 +48,7 @@ int main( int argc , char *argv[] )
 {
    int iarg , ii , ny , ignore=0 , use=0 , install=0 ;
    float dx=1.0 , xzero=0.0 ;
-   char *cpt ;
+   char *cpt , *xfile=NULL;
    MRI_IMAGE *inim , *flim ;
    float *far ;
    XtAppContext app ;
@@ -73,6 +73,11 @@ int main( int argc , char *argv[] )
             " -sepscl    = Plot each column in a separate sub-graph\n"
             "              and allow each sub-graph to have a different\n"
             "              y-scale. -sepscl is meaningless with -one.\n"
+            " -x  X.1D   = Use for X axis the data in X.1D.\n"
+            "              Note that X.1D should have one column\n"
+            "              of the same size as the columns in tsfile. \n"
+            " NOTE: -x will override -dx, -xzero and -xaxis options.\n"
+            "\n"
             " -dx xx     = Spacing between points on the x-axis is 'xx'\n"
             "                [default = 1]\n"
             " -xzero zz  = Initial x coordinate is 'zz' [default = 0]\n"
@@ -84,6 +89,13 @@ int main( int argc , char *argv[] )
             "                [default = no axis label]\n"
             " -ylabel aa = Put string 'aa' to the left of the y-axis\n"
             "                [default = no axis label]\n"
+            " -plabel pp = Put string 'pp' atop the plot.\n"
+            "              Some characters, such as '_' have\n"
+            "              special formatting effects. You \n"
+            "              can escape that with '\'. For example:\n"
+            "        echo 2 4.5 -1 | 1dplot -plabel 'test_underscore' -stdin\n"
+            "              versus\n"
+            "        echo 2 4.5 -1 | 1dplot -plabel 'test\\_underscore' -stdin\n"
             "\n"
             " -stdin     = Don't read from tsfile; instead, read from\n"
             "              stdin and plot it. You cannot combine input\n"
@@ -182,7 +194,12 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-") == 0 ){  /* 23 Aug 2006: null option */
        iarg++ ; continue ;
      }
-
+     
+     if( strcmp(argv[iarg],"-x") == 0 ){   /* ZSS: April 2007 */
+       xfile = argv[++iarg];
+       iarg++; continue;
+     }
+     
      if( strcmp(argv[iarg],"-xaxis") == 0 ){   /* 22 Jul 2003 */
        sscanf(argv[++iarg],"%f:%f:%d:%d",&xbot,&xtop,&nnax,&mmax) ;
        if( xbot >= xtop || nnax < 0 || mmax < 1 )
@@ -238,7 +255,7 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
 
-     if( strcmp(argv[iarg],"-title") == 0 ){
+     if( strcmp(argv[iarg],"-plabel") == 0 ){
         title = argv[++iarg] ;
         iarg++ ; continue ;
      }
@@ -415,10 +432,6 @@ int main( int argc , char *argv[] )
    if( nx < 2 )
      ERROR_exit("1dplot can't plot curves only 1 point long!\n") ;
 
-   /* make x axis */
-
-   xar = (float *) malloc( sizeof(float) * nx ) ;
-   for( ii=0 ; ii < nx ; ii++ ) xar[ii] = xzero + dx*ii ;
 
    /* select data to plot */
 
@@ -430,6 +443,26 @@ int main( int argc , char *argv[] )
 
    if( use > 1 && nx > use ) nx = use ;  /* 29 Nov 1999 */
 
+   /* make x axis */
+
+   if (!xfile) {
+      xar = (float *) malloc( sizeof(float) * nx ) ;
+      for( ii=0 ; ii < nx ; ii++ ) xar[ii] = xzero + dx*ii ;
+   } else {
+      /* read xfile */
+      MRI_IMAGE *inimx = mri_read_1D( xfile ) ;
+      if( inimx == NULL ) 
+         ERROR_exit("Can't read x axis input file %s\n",xfile) ;
+      if (inimx->nx != flim->nx)
+         ERROR_exit("Number of rows in x axis input file %s is not the same as in input file\n",xfile) ; 
+      if (inimx->ny != 1)
+         ERROR_exit("Must have only 1 column from the x axis file %s \n",xfile) ; 
+      far = MRI_FLOAT_PTR(inimx);
+      xar = (float *) malloc( sizeof(float) * nx ) ;
+      for( ii=0 ; ii < nx ; ii++ ) xar[ii] = far[ii+ignore] ;
+      mri_clear_data_pointer(inimx) ;
+      mri_free(inimx); inimx=NULL; far = NULL;
+   }
    /* start X11 */
 
    if( !out_ps ){
@@ -464,7 +497,6 @@ void startup_timeout_CB( XtPointer client_data , XtIntervalId *id )
 
    ng = (sep) ? (-nts) : (nts) ;
    ngx = (sepscl) ? (-nx) : (nx) ;
-   
    plot_ts_lab( dc->display , ngx , xar , ng , yar ,
                 xlabel , ylabel , title , yname , killfunc ) ;
 
