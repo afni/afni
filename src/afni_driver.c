@@ -748,6 +748,19 @@ ENTRY("AFNI_drive_open_window") ;
         drive_MCW_imseq( isq , isqDR_setopacity , (XtPointer)opaval ) ;
       }
 
+      /* crop [03 May 2007] */
+
+      cpt = strstr(cmd,"crop=") ;
+      if( cpt == NULL ) cpt = strstr(cmd,"crop:") ;
+      if( cpt != NULL ){
+        int iar[4] ; char s1,s2,s3 ;
+        iar[0] = iar[1] = iar[2] = iar[3] = -1 ;
+        sscanf(cpt+5,"%d%c%d%c%d%c%d",
+               iar+0 , &s1 , iar+1 , &s2 , iar+2 , &s3 , iar+3 ) ;
+        if( iar[0] >= 0 && iar[1] >= iar[0] && iar[2] >= 0 && iar[3] >= iar[2] )
+          drive_MCW_imseq( isq , isqDR_set_crop , (XtPointer)iar ) ;
+      }
+
       /* keypress [18 Feb 2005] */
 
       ccc = cmd ;   /* 28 Dec 2006: allow multiple keypress= options */
