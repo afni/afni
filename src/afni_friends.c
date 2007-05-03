@@ -81,7 +81,7 @@ static AFNI_friend afni_friends[] = {
   { "G Chen"         , (         4 | 8 |           64                   ) } ,
   { "M Furey"        , (             8 |                128             ) } ,
   { "J Bodurka"      , (         4 | 8 |                      256       ) } ,
-  { "JA Butman"      , (     2 | 4 | 8 |                                ) } ,
+  { "JA Butman"      , (     2 | 4 | 8                                  ) } ,
   { "B Feige"        , ( 1 |         8                                  ) }
 } ;
 
