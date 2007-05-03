@@ -1541,7 +1541,7 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
    nn = 0;
    ept = str;   /* use temporary pointer instead of passed pointer to Siemens */
    /* must be able to read at least 3 of the 4 parameters in slice information */
-   while ((nn < 3) && (strlen(str) > 20)) {  /* mod drg, fredtam */
+   while ((nn < 3) && (strlen(ept) > 20)) {  /* mod drg, fredtam */
      cpt = strstr( str , "sSliceArray.asSlice[" ) ; /* 20 characters minimum */
      if( cpt == NULL ) return ;
      /* interpret next string into
