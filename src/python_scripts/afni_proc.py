@@ -719,7 +719,8 @@ g_help_string = """
         -regress_basis BASIS    : specify the regression basis function
 
                 e.g. -regress_basis 'BLOCK(4,1)'
-                e.g. -regress_basis 'TENT(8,14)'
+                e.g. -regress_basis 'BLOCK(5)'
+                e.g. -regress_basis 'TENT(0,14,8)'
                 default: GAM
 
             This option is used to set the basis function used by 3dDeconvolve
