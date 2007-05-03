@@ -1552,7 +1552,7 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
 
      nn = sscanf( cpt , "sSliceArray.asSlice[%d].%1022s =%f%n" ,
                   &snum , name , &val , &mm ) ;
-     str = cpt + 20; /* skip to end of "false match", advance to next string KRH */
+     ept = cpt + 20; /* skip to end of "false match", advance to next string KRH */
    }
 
 
