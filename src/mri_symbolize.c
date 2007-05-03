@@ -1,5 +1,8 @@
 #include "mrilib.h"
 
+static int nerr=0 ;
+int SYM_expand_errcount(void){ return nerr; }  /* 03 May 2007 */
+
 /*----------------------------------------------------------------------------*/
 /*! Expand a string like "Fred 2*Jed -Ned[1..3]" into a float vector.
 
@@ -49,6 +52,7 @@ ENTRY("SYM_expand_ranges") ;
      fvv  = (floatvecvec *)malloc(sizeof(floatvecvec)) ;
      fvv->nvec = 1 ;
      fvv->fvar = fv ;
+     ERROR_message("empty line in -gltsym?") ; nerr++ ;
      RETURN(fvv) ;
    }
 
@@ -84,8 +88,8 @@ ENTRY("SYM_expand_ranges") ;
      for( rr=0 ; rr < nrang ; rr++ )                 /* match name in list */
        if( strcmp(qpt,rang[rr].name) == 0 ) break ;
      if( rr == nrang ){                                      /* no match!? */
-       fprintf(stderr,"** ERROR: can't match symbolic name '%s'\n",qpt) ;
-       free((void *)qstr) ; continue ;
+       ERROR_message("-gltsym: can't match symbolic name '%s'\n",qpt) ;
+       nerr++ ; free((void *)qstr) ; continue ;
      }
                                        /* now scan for intlist, if present */
      if( qls != NULL ){
@@ -103,9 +107,9 @@ ENTRY("SYM_expand_ranges") ;
              fvv->fvar[iv].ar  = (float *)calloc(sizeof(float),nlast+1) ;
            }
          } else if( qlist[0] != nvec ){
-           fprintf(stderr,"** ERROR: mismatch in use of -gltsym [[...]]: '%s'\n",
+           ERROR_message("mismatch in use of -gltsym [[...]]: '%s'\n",
                    sar->str[ss] ) ;
-           free((void *)qlist) ; free((void *)qstr) ;
+           nerr++ ;free((void *)qlist) ; free((void *)qstr) ;
            continue ;
          }
          for( iv=0 ; iv < nvec ; iv++ ){
@@ -126,9 +130,9 @@ ENTRY("SYM_expand_ranges") ;
 
      for( ii=0 ; ii < qlist[0] ; ii++ ){
        if( qlist[ii+1] < rang[rr].nbot || qlist[ii+1] > rang[rr].ntop ){
-         fprintf(stderr,"** ERROR: subscript %s[%d] out of range %d..%d\n",
+         ERROR_message("-gltsym subscript %s[%d] out of range %d..%d\n",
                  rang[rr].name , qlist[ii+1] , rang[rr].nbot,rang[rr].ntop ) ;
-         continue ;
+         nerr++ ; continue ;
        }
        gg = qlist[ii+1] - rang[rr].nbot + rang[rr].gbot ;
        if( gg >= 0 && gg <= nlast ) fv->ar[gg] = fac ;
