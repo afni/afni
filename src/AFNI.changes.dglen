@@ -159,6 +159,7 @@ standards. Made help clearer for @DTI_studio_reposition.
  * 1dSEM program for doing structural equation modeling
 18 Jan 2007
  * 1dSEM updates for growing model size over all possible models
- 
- 
+03 May 2007 
+ * mri_read_dicom patches given and modified by Fred Tam for strange 
+ Siemens DICOM headers
  

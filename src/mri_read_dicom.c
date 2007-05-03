@@ -154,7 +154,7 @@ MRI_IMARR * mri_read_dicom( char *fname )
    float rescale_slope=0.0 , rescale_inter=0.0 ;  /* 23 Dec 2002 */
    float window_center=0.0 , window_width =0.0 ;
 
-   char *sexi_start;   /* KRH 25 Jul 2003 */
+   char *sexi_start, *sexi_start2;   /* KRH 25 Jul 2003 */
    char *sexi_end;
 
    int ts_endian = 1 ; /* 05 Jul 2006 - transfer syntax endian-ness
@@ -442,16 +442,23 @@ ENTRY("mri_read_dicom") ;
        && str_sexinfo                               != NULL   ){
 
      sexi_start = strstr(str_sexinfo, "### ASCCONV BEGIN ###");
-     sexi_end = strstr(str_sexinfo, "### ASCCONV END ###");
-     if ((sexi_start != NULL) && (sexi_end != NULL)) {
-       char *sexi_tmp;
-       int sexi_size;
+     if(sexi_start != NULL) {  /* search for end after start - drg,fredtam 23 Mar 2007 */
+        sexi_start2 = strstr(sexi_start+21, "### ASCCONV BEGIN ###");
+        sexi_end = strstr(sexi_start, "### ASCCONV END ###");
+        if (sexi_end != NULL) {
+           char *sexi_tmp;
+           int sexi_size;
+
+           if((sexi_start2!=NULL) && (sexi_start2<sexi_end)) {
+              sexi_start = sexi_start2;
+            }
   
-       sexi_size = sexi_end - sexi_start + 19 ;
-       sexi_tmp = AFMALL( char, sexi_size );
-       memcpy(sexi_tmp,sexi_start,sexi_size);
-       free(str_sexinfo);
-       str_sexinfo = sexi_tmp;
+	   sexi_size = sexi_end - sexi_start + 19 ;
+	   sexi_tmp = AFMALL( char, sexi_size );
+	   memcpy(sexi_tmp,sexi_start,sexi_size);
+	   free(str_sexinfo);
+	   str_sexinfo = sexi_tmp;
+        }
      }
      /* end KRH 25 Jul 2003 change */
 
@@ -1310,7 +1317,7 @@ int mri_imcount_dicom( char *fname )
    int mosaic=0 , mos_nx,mos_ny , mos_ix,mos_iy,mos_nz ;  /* 28 Oct 2002 */
    Siemens_extra_info sexinfo ;                           /* 02 Dec 2002 */
    
-   char *sexi_start;   /* KRH 25 Jul 2003 */
+   char *sexi_start, *sexi_start2;   /* KRH 25 Jul 2003 */
    char *sexi_end;
 
 ENTRY("mri_imcount_dicom") ;
@@ -1427,19 +1434,26 @@ ENTRY("mri_imcount_dicom") ;
 
      /* KRH 25 Jul 2003 if start and end markers are present for
       * Siemens extra info, cut string down to those boundaries */
-
      sexi_start = strstr(str_sexinfo, "### ASCCONV BEGIN ###");
-     sexi_end = strstr(str_sexinfo, "### ASCCONV END ###");
-     if ((sexi_start != NULL) && (sexi_end != NULL)) {
-       char *sexi_tmp;
-       int sexi_size;
+     if(sexi_start != NULL) {  /* search for end after start - drg,fredtam 23 Mar 2007 */
+        sexi_start2 = strstr(sexi_start+21, "### ASCCONV BEGIN ###");
+        sexi_end = strstr(sexi_start, "### ASCCONV END ###");
+        if (sexi_end != NULL) {
+           char *sexi_tmp;
+           int sexi_size;
 
-       sexi_size = sexi_end - sexi_start + 19 ;
-       sexi_tmp = AFMALL( char,  sexi_size );
-       memcpy(sexi_tmp,sexi_start,sexi_size);
-       free(str_sexinfo);
-       str_sexinfo = sexi_tmp;
+           if((sexi_start2!=NULL) && (sexi_start2<sexi_end)) {
+              sexi_start = sexi_start2;
+            }
+  
+	   sexi_size = sexi_end - sexi_start + 19 ;
+	   sexi_tmp = AFMALL( char, sexi_size );
+	   memcpy(sexi_tmp,sexi_start,sexi_size);
+	   free(str_sexinfo);
+	   str_sexinfo = sexi_tmp;
+        }
      }
+
      /* end KRH 25 Jul 2003 change */
 
      sexinfo.good = 0 ;  /* start by marking it as bad */
@@ -1502,7 +1516,7 @@ static char * extract_bytes_from_file( FILE *fp, off_t start, size_t len, int st
 
 static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
 {
-   char *cpt , *dpt ;
+   char *cpt , *dpt, *ept ;
    int nn , mm , snum , last_snum=-1 ;
    int have_x[2] = {0,0},
        have_y[2] = {0,0},
@@ -1525,11 +1539,12 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
     * of the target string present in some mosaic files in the *
     * binary section                                     --KRH */
    nn = 0;
-   while (nn == 0) {
-
-     cpt = strstr( str , "sSliceArray.asSlice[" ) ;
+   ept = str;   /* use temporary pointer instead of passed pointer to Siemens */
+   /* must be able to read at least 3 of the 4 parameters in slice information */
+   while ((nn < 3) && (strlen(str) > 20)) {  /* mod drg, fredtam */
+     cpt = strstr( str , "sSliceArray.asSlice[" ) ; /* 20 characters minimum */
      if( cpt == NULL ) return ;
-     /* interepret next string into
+     /* interpret next string into
          snum = slice subscript (0,1,...)
          name = variable name
          val  = number of RHS of '=' sign
@@ -1537,7 +1552,7 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
 
      nn = sscanf( cpt , "sSliceArray.asSlice[%d].%1022s =%f%n" ,
                   &snum , name , &val , &mm ) ;
-     str += 20; /* skip to end of "false match" string KRH */
+     str = cpt + 20; /* skip to end of "false match", advance to next string KRH */
    }
 
 
@@ -1549,7 +1564,6 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
 #endif
 
    while(1){
-
 
 
      if( nn   <  3                   ) break ;  /* bad conversion set */
