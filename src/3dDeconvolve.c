@@ -557,6 +557,7 @@ typedef struct DC_options
   char ** sresp_filename;  /* std. dev. 3d+time output */
   char * fitts_filename;   /* fitted time series 3d+time output */
   char * errts_filename;   /* error time series 3d+time output */
+  int nobucket ;           /* don't output a -bucket file! */
 
   int tshift;           /* flag to time shift the impulse response */
   int fout;             /* flag to output F-statistics */
@@ -823,6 +824,9 @@ void display_help_menu()
     "                     parameters of interest, such as the estimated IRF \n"
     "                     coefficients, and full model fit statistics.      \n"
     "                     Output 'bucket' dataset is written to bprefix.    \n"
+    "[-nobucket]        Don't output a bucket dataset.  By default, the     \n"
+    "                     program uses '-bucket Decon' if you don't give    \n"
+    "                     either -bucket or -nobucket on the command line.  \n"
     "                                                                       \n"
     "[-xsave]           Flag to save X matrix into file bprefix.xsave       \n"
     "                     (only works if -bucket option is also given)      \n"
@@ -969,6 +973,7 @@ void initialize_options
   option_data->errts_filename = NULL;
 
   option_data->automask = 0 ;  /* 15 Apr 2005 */
+  option_data->nobucket = 0 ;  /* 03 May 2007 */
 }
 
 
@@ -1987,6 +1992,11 @@ void get_options
         continue;
       }
 
+      /*-----   -nobucket    [03 May 2007]  -----*/
+      if( strcmp(argv[nopt],"-nobucket") == 0 ){
+        option_data->nobucket = 1 ; nopt++ ; continue ;
+      }
+
       /*-----   -cbucket filename   -----*/
       if (strcmp(argv[nopt], "-cbucket") == 0 || strcmp(argv[nopt],"-cprefix") == 0 )
       {
@@ -2067,7 +2077,8 @@ void get_options
 
   /*---- 09 Mar 2007: manufacture -bucket name if needed ----*/
 
-  if( option_data->bucket_filename == NULL && option_data->input_filename != NULL ){
+  if( option_data->bucket_filename == NULL &&
+      option_data->input_filename  != NULL && !option_data->nobucket ){
     option_data->bucket_filename = strdup("Decon") ;
     INFO_message("No '-bucket' option given ==> using '-bucket %s'",
                  option_data->bucket_filename) ;
@@ -3041,6 +3052,7 @@ for( ii=0 ; ii < nt ; ii++ ){
 
   if (num_glt > 0)
     {
+      int ngerr ;
       *glt_cmat = (matrix *) malloc (sizeof(matrix) * num_glt);
 
       /*----- Initialize general linear test matrices -----*/
@@ -3051,9 +3063,14 @@ for( ii=0 ; ii < nt ; ii++ ){
       for (iglt = 0;  iglt < num_glt;  iglt++)
       {
 #if 1
+          ngerr = SYM_expand_errcount() ;
           read_glt_matrix( option_data->glt_filename[iglt] ,
                            option_data->glt_rows + iglt ,
                            p , *glt_cmat + iglt              ) ;
+          ngerr = SYM_expand_errcount() - ngerr ;
+          if( ngerr > 0 )
+            ERROR_message("-gltsym errors immediately above from file '%s'",
+                          option_data->glt_filename[iglt] ) ;
 #else
         matrix_file_read (option_data->glt_filename[iglt],  /* uses MRI_read_1D() */
                       option_data->glt_rows[iglt],
@@ -3066,6 +3083,9 @@ for( ii=0 ; ii < nt ; ii++ ){
           }
 #endif
       }
+
+      if( SYM_expand_errcount() > 0 )
+        ERROR_exit("Can't continue after the above -gltsym problems!") ;
     }
 
    /*----- done done done -----*/
@@ -3243,7 +3263,10 @@ void check_output_files
   int is;                         /* stimulus time series index */
 
 
-  if (option_data->bucket_filename != NULL)
+  /* 03 May 2007: allow default 'Decon' bucket file to be overwritten */
+
+  if( option_data->bucket_filename != NULL &&
+      strcmp(option_data->bucket_filename,"Decon") != 0 )
     check_one_output_file (dset_time, option_data->bucket_filename);
 
   if (option_data->fitts_filename != NULL)
@@ -3542,8 +3565,10 @@ void check_for_valid_inputs
 
 
   /*----- Check whether any of the output files already exist -----*/
+#ifndef FIX_CONFLICTS
   if (option_data->input_filename != NULL)
     check_output_files (option_data, dset_time);
+#endif
 
 }
 
@@ -5785,12 +5810,12 @@ void write_bucket_data
                            ADN_none ) ;
 
 #ifndef FIX_CONFLICTS
-  if (THD_is_file(DSET_HEADNAME(new_dset)))
+  if( THD_is_file(DSET_HEADNAME(new_dset)) && strcmp(output_prefix,"Decon") != 0 )
     ERROR_exit(
           "Bucket dataset file %s already exists--cannot continue!",
           DSET_HEADNAME(new_dset));
 #else
-  if( THD_deconflict_prefix(new_dset) > 0 )
+  if( strcmp(output_prefix,"Decon") != 0 && THD_deconflict_prefix(new_dset) > 0 )
     WARNING_message("Filename conflict: changing '%s' to '%s'",
                     output_prefix,DSET_PREFIX(new_dset) ) ;
 #endif
