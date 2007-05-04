@@ -107,6 +107,7 @@ main (int argc, char *argv[])
               "   specifications. Each entry must be 0 for entries excluded from the model,\n"
 	      "   1 for each required entry in the minimum model, 2 for each possible path\n"
 	      "   to try.\n"
+              "   -tree_growth or \n"
 	      "   -model_search = search for best model by growing a model for one additional\n"
 	      "    coefficient from the previous model for n-1 coefficients. If the initial\n"
 	      "    theta matrix has no required coefficients, the initial model will grow from\n"
@@ -114,6 +115,7 @@ main (int argc, char *argv[])
 	      "   -max_paths n = maximum number of paths to include (Default = 1000)\n"
 	      "   -stop_cost n.nnn = stop searching for paths when cost function is below\n"
 	      "    this value (Default = 0.1)\n"
+              "   -forest_growth or \n"
 	      "   -grow_all = search over all possible models by comparing models at\n"
 	      "    incrementally increasing number of path coefficients. This\n"
 	      "    algorithm searches all possible combinations; for the number of coeffs\n"
@@ -128,9 +130,8 @@ main (int argc, char *argv[])
 	      "   Bullmore, ET, Horwitz, B, Honey, GD, Brammer, MJ, Williams, SCR, Sharma, T,\n"
 	      "    How Good is Good Enough in Path Analysis of fMRI Data?\n"
 	      "    NeuroImage 11, 289-301 (2000)\n\n"
-              "   Stein, JL, Wiedholz, LM, Weinberger, DR, Mattay, V, Meyer-Lindenberg, A\n"
-	      "    Validated Network of Effective Amygdala Connectivity,\n"
-	      "    Manuscript in submission, (2007)\n\n"
+              "   Stein, JL, et al., A validated network of effective amygdala connectivity,\n"
+              "    NeuroImage (2007), doi:10.1016/j.neuroimage.2007.03.022\n\n"
 	      " The initial representation in the theta file is non-zero for each element\n"
 	      "   to be modeled. The 1D file can have leading columns for labels that will\n"
 	      "   be used in the output. Label rows must be commented with the # symbol\n"
@@ -138,6 +139,8 @@ main (int argc, char *argv[])
 	      "   required coefficient, '0' for each excluded coefficient, '2' for an optional\n"
 	      "   coefficient. Excluded coefficients are not modeled. Required coefficients\n"
 	      "   are included in every computed model.\n\n"
+              " N.B. - Connection directionality is from column to row of the output connection \n"
+              "   coefficient matrices.\n\n"
               " Examples:\n"
               "   To confirm a specific model:\n"
               "    1dSEM -theta inittheta.1D -C SEMCorr.1D -psi SEMvar.1D -DF 30\n"
@@ -223,12 +226,14 @@ main (int argc, char *argv[])
 	  continue;
         }
 
-      if(strcmp(argv[nopt], "-model_search") == 0 ) {
+      if((strcmp(argv[nopt], "-model_search") == 0 )||   \
+         (strcmp(argv[nopt], "-tree_growth") == 0 ) ) {
          model_search = 1;
 	 nopt++; continue;
       }
 
-      if(strcmp(argv[nopt], "-grow_all") == 0 ) {
+      if((strcmp(argv[nopt], "-grow_all") == 0 ) ||      \
+         (strcmp(argv[nopt], "-forest_growth") == 0 ) ) {
          grow_all = 1;
          model_search = 1;
 	 nopt++; continue;
@@ -356,6 +361,9 @@ main (int argc, char *argv[])
    if(verbose)
       DUMP_SQRMAT("Psi Matrix", psi_mat);
    InitGlobals (Px);	/* initialize all the matrices and vectors */
+
+   INFO_message("Connection directionality is from column to row");
+
    if(model_search) {
       if(grow_all)
          GrowAllModels(roilabels);   
@@ -438,7 +446,7 @@ static void ModelSearch(int p, char **roilabels)
       chisq0 = Compute_chisq0(n);   /* compute chi square statistic for minimum fit */
    }
    INFO_message("Chi Square 0 = %f  for minimum fit\n", chisq0);
-
+   INFO_message("-------------------------------------------------------------------------------\n\n");
    for(i=0;(i<nmodels)&&(cost>stop_cost);i++) {     /* for all possible combinations or maximum */
       invsigma = ComputeInvSigma();  /* more efficient and safer to calculate inverse first */
       /* use inverse of the inverse sigma matrix for nice symmetric matrix */  
@@ -509,6 +517,7 @@ static void ModelSearch(int p, char **roilabels)
          DUMP_SQRMAT_LABELED("Connection coefficients", kmat,roilabels);
       else
          DUMP_SQRMAT("Connection coefficients", kmat);
+      INFO_message("-------------------------------------------------------------------------------\n\n");
     }
 }
 
@@ -558,6 +567,7 @@ GrowAllModels(char **roilabels)
    if(max_paths<maxdepth)
       maxdepth = max_paths;
    INFO_message("Min. coeffs. %d maxdepth %d npts %d\n", ntheta0, maxdepth, npts);
+   INFO_message("-------------------------------------------------------------------------------\n\n");
 
    for(stopdepth = ntheta0; stopdepth < maxdepth; stopdepth++) {
       mincost = HUGENUMBER;   /* find the best at each depth even if it's the same as lesser depth */
@@ -574,7 +584,7 @@ GrowAllModels(char **roilabels)
          DUMP_SQRMAT_LABELED("Connection coefficients", bestkmat,roilabels);
       else
          DUMP_SQRMAT("Connection coefficients", bestkmat);
-
+      INFO_message("-------------------------------------------------------------------------------\n\n");
    }
 
    EQUIV_SQRMAT(bestkmat,kmat);
