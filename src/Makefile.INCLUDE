@@ -3,7 +3,7 @@
 ##   -- goes at end of each platform specific Makefile.
 ##
 
-F2C = ./f2c -A
+F2C = f2c -A
 
 ## 07 Dec 2005: modify the include flags here
 

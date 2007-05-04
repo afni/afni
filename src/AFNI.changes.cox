@@ -6233,3 +6233,6 @@
  * Modified 3dDeconvolve.c to print clearer messages when -gltsym errors
      occur, and also to allow the Decon -bucket dataset to be overwritten,
      and also to add the -nobucket option.  [Per Mike Beauchamp]
+
+04 May 2007
+ * 'amongst' function in parser.f and so in 3dcalc.c.

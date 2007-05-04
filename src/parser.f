@@ -820,7 +820,7 @@ C
      X       LAND,LOR,LMOFN,MEDIAN , ZTONE , HMODE,LMODE,
      X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD ,
      X       MEAN , STDEV , SEM
-      REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN
+      REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN , AMONGF
 C
 C  External library functions
 C
@@ -1173,6 +1173,10 @@ C.......................................................................
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
             R8_EVAL(NEVAL) = PAIRMN( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'AMONGST' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            R8_EVAL(NEVAL) = AMONGF( NTM , R8_EVAL(NEVAL) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
             NEVAL = NEVAL - 3
@@ -1328,7 +1332,7 @@ C
      X       LOR, LMOFN , MEDIAN , ZTONE , HMODE , LMODE ,
      X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD ,
      X       MEAN , STDEV , SEM
-      REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN
+      REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN, AMONGF
 C
 C  External library functions
 C
@@ -2059,7 +2063,7 @@ C.......................................................................
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = PAIRMX( NTM, SCOP )
             ENDDO
-         ELSEIF( CNCODE .EQ. 'PAIRMN'  )THEN
+         ELSEIF( CNCODE .EQ. 'PAIRMIN'  )THEN
             NTM   = R8_EVAL(1, NEVAL)
             NEVAL = NEVAL - NTM
             DO IV=IVBOT,IVTOP
@@ -2067,6 +2071,15 @@ C.......................................................................
                   SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = PAIRMN( NTM, SCOP )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'AMONGST'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            DO IV=IVBOT,IVTOP
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = AMONGF( NTM, SCOP )
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
@@ -2652,6 +2665,21 @@ C
         ENDIF
       ENDDO
       PAIRMN = PP
+      RETURN
+      END
+C
+C
+C
+      FUNCTION AMONGF(N,X)
+      REAL*8 AMONGF , X(N)
+      INTEGER N,I
+      DO I=2,N
+        IF( X(1) .EQ. X(I) )THEN
+          AMONGF = 1.0D+00
+          RETURN
+        ENDIF
+      ENDDO
+      AMONGF = 0.0D+00
       RETURN
       END
 C
