@@ -52,7 +52,7 @@ static int use_psinv = 1 ;  /* 19 Jul 2004 */
 # include "matrix.c"
 #endif
 
-void RA_error (char * message);
+void RA_error (char * message);  /* prototype */
 
 
 /*---------------------------------------------------------------------------*/
@@ -99,7 +99,7 @@ ENTRY("calc_matrices") ;
     if (ok)
       matrix_multiply (*xtxinv, xt, xtxinvxt);
     else
-      RA_error ("Improper X matrix  (cannot invert X'X) ");
+      RA_error ("Regression setup: Improper X matrix (can't invert X'X) ");
     matrix_destroy (&xtx);
     matrix_destroy (&xt);
   } else {
@@ -150,7 +150,7 @@ ENTRY("calc_glt_matrix") ;
       matrix_subtract (t1, t2, a);
     }
   else
-    RA_error ("Improper C matrix  ( cannot invert C(1/(X'X))C' ) ");
+    RA_error ("GLT setup: Improper C matrix (can't invert C[1/(X'X)]C') ");
 
 
   /*----- dispose of matrices -----*/
