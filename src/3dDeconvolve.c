@@ -701,9 +701,18 @@ void display_help_menu()
     "[-nocond]            DON'T calculate matrix condition number           \n"
     "                      ** This is NOT the same as Matlab!               \n"
     "[-singvals]          Print out the matrix singular values              \n"
-    "[-GOFORIT]           Use this to proceed even if the matrix has        \n"
+    "[-GOFORIT [g]]       Use this to proceed even if the matrix has        \n"
     "                     bad problems (e.g., duplicate columns, large      \n"
-    "                     condition number, etc.)                           \n"
+    "                     condition number, etc.).                          \n"
+    "               *N.B.: Warnings that you should particularly heed have  \n"
+    "                      the string '!!' somewhere in their text.         \n"
+    "               *N.B.: Error and Warning messages go to stderr and      \n"
+    "                      also to file " PROGRAM_NAME ".err.               \n"
+    "               *N.B.: The optional number 'g' that appears is the      \n"
+    "                      number of warnings that can be ignored.          \n"
+    "                      That is, if you use -GOFORIT 7 and 9 '!!'        \n"
+    "                      matrix warnings appear, then the program will    \n"
+    "                      not run.  If 'g' is not present, 1 is used.      \n"
     "                                                                       \n"
     "**** Input stimulus options:                                           \n"
     "-num_stimts num      num = number of input stimulus time series        \n"
@@ -1030,7 +1039,7 @@ ENTRY("initialize_stim_options") ;
       option_data->stim_filename[is] = NULL;
       option_data->stim_label[is] = malloc (sizeof(char)*THD_MAX_NAME);
       MTEST (option_data->stim_label[is]);
-      sprintf (option_data->stim_label[is], "Stim_%d", is+1);
+      sprintf (option_data->stim_label[is], "Stim#%d", is+1);
 
       option_data->stim_base[is]    = 0;
       option_data->stim_minlag[is]  = 0;
@@ -1087,7 +1096,7 @@ ENTRY("initialize_glt_options") ;
       option_data->glt_filename[iglt] = NULL;
       option_data->glt_label[iglt] = malloc (sizeof(char)*THD_MAX_NAME);
       MTEST (option_data->glt_label[iglt]);
-      sprintf (option_data->glt_label[iglt], "GLT #%d ", iglt+1);
+      sprintf (option_data->glt_label[iglt], "GLT#%d ", iglt+1);
       option_data->glt_rows[iglt] = 0;
     }
 
@@ -1156,7 +1165,12 @@ void get_options
       }
 
       if( strcasecmp(argv[nopt],"-goforit") == 0 ){  /* 07 Mar 2007 */
-        goforit++ ; nopt++ ; continue ;
+        nopt++ ;
+        if( nopt < argc && isdigit(argv[nopt][0]) )
+          goforit += (int)strtod(argv[nopt++],NULL) ;  /* 04 May 2007 */
+        else
+          goforit++ ;
+        continue ;
       }
 
       if( strcmp(argv[nopt],"-singvals") == 0 ){  /* 13 Aug 2004 */
@@ -1674,6 +1688,10 @@ void get_options
           DC_error ("-stim_label k slabel   Require: 1 <= k <= num_stimts");
         k = ival-1;
         nopt++;
+
+        if( strncmp(option_data->stim_label[k],"Stim#",5) != 0 )
+          WARNING_message("-stim_label %d '%s' replacing old label '%s'",
+                          ival , argv[nopt] , option_data->stim_label[k] ) ;
 
         strcpy (option_data->stim_label[k], argv[nopt]);
         nopt++; continue;
@@ -5002,14 +5020,31 @@ ENTRY("calculate_results") ;
 #endif
 
       if( badlev > 0 ){       /*--- 07 Mar 2007 ---*/
-        if( goforit )
+        if( goforit >= badlev ){
           WARNING_message(
-            "!! " PROGRAM_NAME " -GOFORIT is set: running despite %d matrix warnings",
-            badlev ) ;
-        else
+            "!! " PROGRAM_NAME " -GOFORIT is set to %d: running despite %d matrix warnings",
+            goforit , badlev ) ;
+          WARNING_message(
+            "!! See file " PROGRAM_NAME ".err for all WARNING and ERROR messages !!") ;
+          WARNING_message(
+            "!! Please be sure you understand what you are doing !!") ;
+          WARNING_message(
+            "!! If in doubt, consult with someone or with the AFNI message board !!") ;
+        } else {
+          ERROR_message(
+            "!! " PROGRAM_NAME ": Can't run past %d matrix warnings without -GOFORIT %d",
+            badlev , goforit ) ;
+          ERROR_message(
+            "!!                Currently at -GOFORIT %d",goforit) ;
+          ERROR_message(
+            "!! See file " PROGRAM_NAME ".err for all WARNING and ERROR messages !!") ;
+          ERROR_message(
+            "!! Be sure you understand what you are doing before using -GOFORIT !!") ;
+          ERROR_message(
+            "!! If in doubt, consult with someone or with the AFNI message board !!") ;
           ERROR_exit(
-            "!! " PROGRAM_NAME ": Can't run past %d matrix warnings without -GOFORIT",
-            badlev ) ;
+            "!! " PROGRAM_NAME " (regretfully) shuts itself down !!") ;
+        }
       }
 
 #ifdef PROC_MAX
@@ -8601,6 +8636,39 @@ basis_expansion * basis_parser( char *sym )
      be->bfunc[0].b = bot ;
      be->bfunc[0].c = 0.0f ;
 
+     /* 04 May 2007: check for consistency in BLOCK-izing */
+
+     { static float first_block_peakval = 0.0f ;
+       static char *first_block_peaksym = NULL ;
+       static int   num_block           = 0 ;
+       static float first_len_pkzero    = 0.0f ;
+       static char *first_sym_pkzero    = NULL ;
+
+       if( num_block == 0 ){
+         first_block_peakval = bot ;
+         first_block_peaksym = strdup(sym) ;
+       } else if( FLDIF(bot,first_block_peakval) ){
+         WARNING_message(
+          "%s has different peak value than first %s\n"
+          "            We hope you know what you are doing!" ,
+          sym , first_block_peaksym ) ;
+       }
+
+       if( bot == 0.0f ){
+         if( first_len_pkzero == 0.0f ){
+           first_len_pkzero = top ;
+           first_sym_pkzero = strdup(sym) ;
+         } else if( FLDIF(top,first_len_pkzero) ){
+           WARNING_message(
+            "%s has different duration than first %s\n"
+            "            ==> Amplitudes will differ.  We hope you know what you are doing!" ,
+            sym , first_sym_pkzero ) ;
+         }
+       }
+
+       num_block++ ;
+     }
+
    /*--- EXPR(bot,top) exp1 exp2 ... ---*/
 
    } else if( strcmp(scp,"EXPR") == 0 ){   /* 28 Aug 2004 */
@@ -9107,14 +9175,14 @@ static int check_matrix_condition( matrix xdata , char *xname )
       WARNING_message(
         "!! in %s matrix:\n"
         " * Largest singular value=%g\n"
-        " * %d %s less than cutoff=%g\n"
+        " * %d singular value%s less than cutoff=%g\n"
         " * Implies strong collinearity in the matrix columns! \n",
-        xname , emax , nsmall , (nsmall==1)?"is":"are" , ebot ) ;
+        xname , emax , nsmall , (nsmall==1)?" is":"s are" , ebot ) ;
       ssing = 1 ; bad++ ;
     }
 
     if( ssing ){
-      INFO_message("++ %s matrix singular values:\n",xname) ;
+      INFO_message("%s matrix singular values:\n",xname) ;
       for( i=0; i < xdata.cols ; i++ ){
         fprintf(stderr," %13g",ev[i]) ;
         if( i < xdata.cols-1 && i%5 == 4 ) fprintf(stderr,"\n") ;
