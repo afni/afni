@@ -162,4 +162,6 @@ standards. Made help clearer for @DTI_studio_reposition.
 03 May 2007 
  * mri_read_dicom patches given and modified by Fred Tam for strange 
  Siemens DICOM headers
- 
+04 May 2007
+ * minor output, option name and help changes to 1dSEM
+
