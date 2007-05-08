@@ -21,7 +21,7 @@ static THD_3dim_dataset * THD_open_3dcalc( char * ) ;
 THD_3dim_dataset * THD_open_dataset( char *pathname )
 {
    THD_3dim_dataset *dset ;
-   char dname[THD_MAX_NAME] , subv[THD_MAX_NAME] ;
+   char dname[THD_MAX_NAME] , * subv ;            /* 8 May 2007 */
    char *cpt , *bpt ;
    int  *ivlist=NULL ;
    int    ii , jj , kk ;
@@ -118,9 +118,11 @@ ENTRY("THD_open_dataset") ;
 
    if( cpt != NULL ){
      char *qpt ;
-     strcpy(subv,cpt) ;
+     subv = strdup(cpt);
+     /* strcpy(subv,cpt) ;  don't assume length   8 May 2007 [rickr,dglen] */
      qpt = strstr(subv,"<") ; if( qpt != NULL ) *qpt = '\0' ;
      ivlist = MCW_get_intlist( DSET_NVALS(dset) , subv ) ;
+     free(subv) ;
    }
    if( ivlist == NULL ){
      if( cpt != NULL )
