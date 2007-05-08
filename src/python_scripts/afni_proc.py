@@ -2,7 +2,7 @@
 
 # note: in the script, runs are 1-based (probably expected)
 
-import sys
+import string, sys, os
 from time import asctime
 
 # AFNI modules
@@ -734,11 +734,12 @@ g_help_string = """
 
         -regress_basis_normall NORM : specify the magnitude of basis functions
 
-                e.g. -regress_basis_normall 3.14159
-                default: 1.0
+                e.g. -regress_basis_normall 1.0
 
             This option is used to set the '-basis_normall' parameter in
             3dDeconvolve.  It specifies the height of each basis function.
+
+            For the example basis functions, -basis_normall is not recommended.
 
             Please see '3dDeconvolve -help' for more information.
             See also -regress_basis.
@@ -865,20 +866,6 @@ g_help_string = """
 
             Please see '3dDeconvolve -help' for more information.
 
-        -regress_no_stim_times  : use -stim_file in regression, not -stim_times
-
-            The default operation of afni_proc.py is to convert TR-locked files
-            for the 3dDeconvolve -stim_file option to timing files for the
-            3dDeconvolve -stim_times option.
-
-            If the -regress_no_stim_times option is provided, then no such
-            conversion will take place.  This assumes the -regress_stim_files
-            option is applied, to provide such -stim_file files.
-
-            Please see '3dDeconvolve -help' for more information.
-            See also -regress_stim_files, -regress_stim_times, 
-                     -regress_stim_labels.
-
         -regress_stim_labels LAB1 ...   : specify labels for stimulus types
 
                 e.g. -regress_stim_labels houses faces donuts
@@ -935,7 +922,7 @@ g_help_string = """
                 e.g. -regress_stim_times ED_stim_file*.1D
                 e.g. -regress_stim_times stim_A.1D stim_B.1D stim_C.1D
 
-            Without the -regress_no_stim_times option, 3dDeconvolve will be
+            Without the -regress_use_stim_files option, 3dDeconvolve will be
             run using '-stim_times', not '-stim_file'.  The user can still
             specify the 3dDeconvolve -stim_file files here, but they would
             then be converted to -stim_times files using the script,
@@ -958,7 +945,7 @@ g_help_string = """
 
             ---
 
-            If the -regress_no_stim_times option is provided, 3dDeconvolve
+            If the -regress_use_stim_files option is provided, 3dDeconvolve
             will be run using each stim_file as a regressor.  The order of the
             regressors should match the order of any labels, provided via the
             -regress_stim_labels option.
@@ -967,7 +954,7 @@ g_help_string = """
                 http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
             See also -regress_stim_times, -regress_stim_labels, -regress_basis,
                      -regress_basis_normall, -regress_polort,
-                     -regress_stim_times_offset, -regress_no_stim_times.
+                     -regress_stim_times_offset, -regress_use_stim_files.
 
         -regress_stim_times_offset OFFSET : add OFFSET to -stim_times files
 
@@ -986,8 +973,24 @@ g_help_string = """
             the output script.
 
             Please see 'make_stim_times.py -help' for more information.
-            See also -regress_stim_files, -regress_no_stim_times,
+            See also -regress_stim_files, -regress_use_stim_files,
                      -tshift_align_to.
+
+        -regress_use_stim_times : use -stim_file in regression, not -stim_times
+
+            The default operation of afni_proc.py is to convert TR-locked files
+            for the 3dDeconvolve -stim_file option to timing files for the
+            3dDeconvolve -stim_times option.
+
+            If the -regress_use_stim_times option is provided, then no such
+            conversion will take place.  This assumes the -regress_stim_files
+            option is applied to provide such -stim_file files.
+
+            This option has been renamed from '-regress_no_stim_times'.
+
+            Please see '3dDeconvolve -help' for more information.
+            See also -regress_stim_files, -regress_stim_times, 
+                     -regress_stim_labels.
 
     - R Reynolds  Dec, 2006                             thanks to Z Saad
     ===========================================================================
@@ -997,7 +1000,7 @@ g_history = """
     afni_proc.py history:
 
     1.0  Dec 20, 2006 : initial release
-    1.1  Dec 20, 2006 : added -regress_no_stim_times
+    1.1  Dec 20, 2006 : added -regress_use_stim_files
     1.2  Dec 21, 2006 : help, start -ask_me, updated when to use -iresp/ideal
     1.3  Dec 22, 2006 : change help to assumme ED's stim_times files exist
     1.4  Dec 25, 2006 : initial -ask_me
@@ -1033,12 +1036,16 @@ g_history = """
     1.18 Mar 15, 2007 : minor changes on the ides of March (oooooooh...)
          - x1D output file uses x1D suffix
          - removed now unneeded -full_first option in 3dDeconvolve
-    1.19 Mar 19, 2007: allow for dataset TR stored in depreciated ms
-    1.20 Mar 25, 2007: added -help for long-existing -regress_no_stim_times
-    1.21 Apr 19, 2007: apply +orig in 1-run mean using 3dcopy
+    1.19 Mar 19, 2007 : allow for dataset TR stored in depreciated ms
+    1.20 Mar 25, 2007 : added -help for long-existing -regress_use_stim_files
+    1.21 Apr 19, 2007 : apply +orig in 1-run mean using 3dcopy
+    1.22 May 08, 2007 :
+         - change read_options() to be compatible with python version 2.2
+         - '-basis_normall 1' is no longer used by default
+         - rename -regress_no_stim_times to -regress_use_stim_files
 """
 
-g_version = "version 1.21, April 19, 2007"
+g_version = "version 1.22, May 8, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -1174,6 +1181,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_stim_times', -1, [])
         self.valid_opts.add_opt('-regress_no_stim_times', 0, [])
         self.valid_opts.add_opt('-regress_stim_times_offset', 1, [])
+        self.valid_opts.add_opt('-regress_use_stim_files', 0, [])
 
         self.valid_opts.add_opt('-regress_fitts_prefix', 1, [])
         self.valid_opts.add_opt('-regress_iresp_prefix', 1, [])
