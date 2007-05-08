@@ -2000,5 +2000,10 @@
   * added 3dPAR2AFNI.pl, from Colm G. Connolly
   * modified Makefile.INCLUDE: added 3dPAR2AFNI.pl to SCRIPTS
   * modified afni_proc.py: added BLOCK(5) to the examples
-08 May 2007: w/dglen, mod 3dcalc.c, thd_mastery.c to handle long sub-brick lists
+08 May 2007:
+  * w/dglen, mod 3dcalc.c, thd_mastery.c to handle long sub-brick lists
+  * modified afni_proc.py, db_mod.py, option_list.py (v 1.22)
+        - change read_options() to be compatible with python version 2.2
+        - '-basis_normall 1' is no longer used by default
+        - rename -regress_no_stim_times to -regress_use_stim_files
 
