@@ -88,6 +88,8 @@ def read_options(argv, oplist, verb = 1):
         com = oplist.find_opt(argv[ac])
         if com:
             namelist[argv[ac]] += 1     # increment dictionary count
+            if verb > 2: print "+d found option '%s'" % com.name
+            if verb > 3: print "-d remaining args: %s" % argv[ac:-1]
 
             # create new return option
             newopt = afni_base.comopt(com.name, com.n_exp, com.deflist)
@@ -99,12 +101,14 @@ def read_options(argv, oplist, verb = 1):
             # create parlist of potential parameters
             if newopt.n_exp > 0:    # try to insert that number of args
                 if newopt.n_exp <= alen - ac:
+                    if verb > 2: print "+d adding %d params" % newopt.n_exp
                     parlist = argv[ac:ac+newopt.n_exp]
                 else:   # too few args
                     print "** error: arg #%d (%s) requires %d params" % \
                           (ac-1, newopt.name, newopt.n_exp)
                     return None
             elif newopt.n_exp < 0:  # grab everything, and truncate later
+                if verb > 2: print "+d start with all %d params" % (alen-ac)
                 parlist = argv[ac:]
             else: parlist = []      # n_exp == 0
 
@@ -119,8 +123,12 @@ def read_options(argv, oplist, verb = 1):
             # now check parlist against acceptlist
             if newopt.acceptlist:
                 for par in parlist:
-                    # check against repr(list), since par is a string
-                    if par not in repr(newopt.acceptlist):  # unacceptable!!
+                    # check against repr(list element), since par is a string
+                    # (search slowly for older versions of python)
+                    found = 0
+                    for accpar in newopt.acceptlist:
+                        if par == str(accpar): found = 1
+                    if not found:  # panic into error!  aaas yoooou wiiiiish...
                         print "** option %s: param '%s' is not in: %s" % \
                               (newopt.name, par, newopt.acceptlist)
                         return None  # what else can we do?

@@ -19,11 +19,12 @@ def db_mod_tcat(block, proc, user_opts):
             print "** %s: invalid integer: %s" % (uopt.label, uopt.parlist[0])
             errs += 1
         if errs == 0 and bopt.parlist[0] > 0:
-          print '--------------------------------------------------------\n' \
+          print                                                              \
+            '-----------------------------------------------------------\n'  \
             '** warning: removing first %d TRs from beginning of each run\n' \
             '   --> it is essential that stimulus timing files match the\n'  \
             '       removal of these TRs\n'                                  \
-            '--------------------------------------------------------'       \
+            '-----------------------------------------------------------'    \
             % bopt.parlist[0]
 
     if errs == 0: block.valid = 1
@@ -433,7 +434,6 @@ def db_cmd_scale(proc, block):
 def db_mod_regress(block, proc, user_opts):
     if len(block.opts.olist) == 0: # then init
         block.opts.add_opt('-regress_basis', 1, ['GAM'], setpar=1)
-        block.opts.add_opt('-regress_basis_normall', 1, [1], setpar=1)
         block.opts.add_opt('-regress_polort', 1, [2], setpar=1)
         block.opts.add_opt('-regress_stim_files', -1, [])
         block.opts.add_opt('-regress_stim_labels', -1, [])
@@ -453,21 +453,26 @@ def db_mod_regress(block, proc, user_opts):
     if uopt and bopt:
         bopt.parlist[0] = uopt.parlist[0]
         if not afni_util.basis_has_known_response(bopt.parlist[0]):
-            block.opts.add_opt('-regress_iresp_prefix',1,['iresp'],setpar=1)
+            if not user_opts.find_opt('-regress_iresp_prefix'):
+                block.opts.add_opt('-regress_iresp_prefix',1,['iresp'],setpar=1)
         uopt = user_opts.find_opt('-regress_make_ideal_sum')
         if uopt and not afni_util.basis_has_known_response(bopt.parlist[0]):
             print '** -regress_make_ideal_sum is inappropriate for basis %s'\
                   % bopt.parlist[0]
             errs += 1
 
+    # set basis_normall only via user option
     uopt = user_opts.find_opt('-regress_basis_normall')
-    bopt = block.opts.find_opt('-regress_basis_normall')
-    if uopt and bopt:
-        try: bopt.parlist[0] = float(uopt.parlist[0])
+    if uopt:
+        norm = 1.0
+        try: norm = float(uopt.parlist[0])
         except:
             print "** -regress_basis_normall requires float param (have '%s')" \
                   % uopt.parlist[0]
             errs += 1
+        bopt = block.opts.find_opt('-regress_basis_normall')
+        if bopt: bopt.parlist[0] = norm
+        else: block.opts.add_opt('-regress_basis_normall', 1, [norm], setpar=1)
 
     uopt = user_opts.find_opt('-regress_polort')
     bopt = block.opts.find_opt('-regress_polort')
@@ -490,7 +495,7 @@ def db_mod_regress(block, proc, user_opts):
 
     uopt = user_opts.find_opt('-regress_stim_labels')
     bopt = block.opts.find_opt('-regress_stim_labels')
-    if uopt and bopt:  # check the length once we know the runs
+    if uopt and bopt:  # check length later, when we know num stim types
         bopt.parlist = uopt.parlist
 
     # times is one file per class
@@ -501,6 +506,9 @@ def db_mod_regress(block, proc, user_opts):
             print "** no files for -regress_stim_times?"
             errs += 1
         # verify this doesn't go with no_stim_times
+        if user_opts.find_opt('-regress_use_stim_files'):
+            print '** have both -regress_use_stim_files and -regress_stim_times'
+            errs += 1
         if user_opts.find_opt('-regress_no_stim_times'):
             print '** have both -regress_no_stim_times and -regress_stim_times'
             errs += 1
@@ -558,7 +566,7 @@ def db_mod_regress(block, proc, user_opts):
     bopt = block.opts.find_opt('-regress_no_ideals')
     if uopt and not bopt: block.opts.add_opt('-regress_no_ideals',0,[])
 
-    # maybe the user wants to delete it
+    # maybe the user does not want iresp datasets
     uopt = user_opts.find_opt('-regress_no_iresp')
     bopt = block.opts.find_opt('-regress_iresp_prefix')
     if uopt and bopt: block.opts.del_opt('-regress_iresp_prefix')
@@ -571,7 +579,8 @@ def db_mod_regress(block, proc, user_opts):
     elif not uopt and bopt: block.opts.del_opt('-regress_no_motion',0,[])
 
     # maybe the user does not want to convert stim_files to stim_times
-    uopt = user_opts.find_opt('-regress_no_stim_times')
+    uopt = user_opts.find_opt('-regress_use_stim_files')
+    if not uopt: uopt = user_opts.find_opt('-regress_no_stim_times')
     bopt = block.opts.find_opt('-regress_no_stim_times')
     if uopt and not bopt:
         if proc.verb > 0: print '-d will use -stim_files in 3dDeconvolve'
@@ -594,7 +603,8 @@ def db_cmd_regress(proc, block):
     basis = opt.parlist[0]
 
     opt = block.opts.find_opt('-regress_basis_normall')
-    normall = opt.parlist[0]
+    if opt: normall = '    -basis_normall %s  \\\n' % opt.parlist[0]
+    else:   normall = ''
 
     opt = block.opts.find_opt('-regress_no_motion')
     if opt: proc.mot_labs = []   # then clear any motion labels
@@ -623,10 +633,10 @@ def db_cmd_regress(proc, block):
 
     cmd = cmd + '3dDeconvolve -input %s+orig.HEAD    \\\n'      \
                 '    -polort %d  \\\n'                          \
-                '%s'                                            \
-                '    -basis_normall %s  \\\n'                   \
+                '%s%s'                                          \
                 '    -num_stimts %d  \\\n'                      \
-                % ( proc.prev_prefix_form_rwild(), polort, mask, str(normall),
+                % ( proc.prev_prefix_form_rwild(), polort,
+                    mask, normall,
                     len(proc.stims)+len(proc.mot_labs) )
 
     # verify labels (now that we know the list of stimulus files)
@@ -841,3 +851,9 @@ def db_cmd_empty(proc, block):
     proc.pblabel = block.label  # set 'previous' block label
 
     return cmd
+
+# dummy main - should not be used
+if __name__ == '__main__':
+
+    print '** this file is not to be used as a main program **'
+
