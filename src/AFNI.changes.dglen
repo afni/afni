@@ -164,4 +164,5 @@ standards. Made help clearer for @DTI_studio_reposition.
  Siemens DICOM headers
 04 May 2007
  * minor output, option name and help changes to 1dSEM
-
+08 May 2007
+ * [with rickr] count can skip in a funny way
