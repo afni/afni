@@ -2000,4 +2000,5 @@
   * added 3dPAR2AFNI.pl, from Colm G. Connolly
   * modified Makefile.INCLUDE: added 3dPAR2AFNI.pl to SCRIPTS
   * modified afni_proc.py: added BLOCK(5) to the examples
+08 May 2007: w/dglen, mod 3dcalc.c, thd_mastery.c to handle long sub-brick lists
 
