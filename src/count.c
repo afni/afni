@@ -21,6 +21,9 @@ int main( int argc , char *argv[] )
    float sclfac = 0.0 ;
    int comma=0 ;   /* 18 Jan 2007 */
    char sep=' ' ;
+   int skipn = 0; /* skip numbers that modulus m = n  08 May 2007 */
+   int skipm = 0;
+   int skipout;
 
 /*** Usage ***/
 
@@ -53,6 +56,9 @@ int main( int argc , char *argv[] )
      "                 the floating point format '%%g' is used for output.\n"
      "                 ('fff' can be a floating point number.)\n"
      "  -comma       put commas between the outputs, instead of spaces\n"
+     "  -skipnmodm n m   skip over numbers with a modulus of n with m\n"
+     "                  -skipnmodm 15 16 would skip 15, 31, 47, ...\n"
+     "               not valid with random number sequence options\n"
      "\n"
      "The main application of this program is for use in C shell programming:\n"
      "  foreach fred ( `count 1 20` )\n"
@@ -123,6 +129,13 @@ int main( int argc , char *argv[] )
           strncmp(argv[narg],"-,",2) == 0 ){
         comma = 1 ; sep = ',' ; col = 0 ; continue ;
       }
+
+      if( strncmp(argv[narg],"-skipnmodm",10) == 0 ){
+         skipn = strtol(argv[++narg],NULL,10) ;
+         skipm = strtol(argv[++narg],NULL,10) ;
+         continue ;
+      }
+
 
       if( strncmp(argv[narg],"-",1) == 0 ){
          fprintf( stderr , "unknown switch %s\n" , argv[narg] ) ;
@@ -202,6 +215,11 @@ int main( int argc , char *argv[] )
    if( rando_count == 0){
       if( bot <= top ){
          for( ii=bot ; ii <= top ; ii += step ) {
+            if(skipm) {
+              skipout = ii%skipm;
+              if(skipout==skipn)
+                 continue;
+            }
             if (ii==top) suffix[0] = '\0';   /* ZSS Dec 06 */
             if( sclfac == 0.0 ) printf( fmt , root , ii , suffix ) ;
             else                printf( fmt , root , sclfac*ii , suffix ) ;
@@ -209,6 +227,12 @@ int main( int argc , char *argv[] )
          }
       } else {
          for( ii=bot ; ii >= top ; ii -= step ) {
+            if(skipm) {
+              skipout = ii%skipm;
+              if(skipout==skipn)
+                 continue;
+            }
+
             if (ii==top) suffix[0] = '\0';   /* ZSS Dec 06 */
             if( sclfac == 0.0 ) printf( fmt , root , ii , suffix ) ;
             else                printf( fmt , root , sclfac*ii , suffix ) ;
