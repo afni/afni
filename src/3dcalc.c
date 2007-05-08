@@ -566,6 +566,7 @@ void CALC_read_opts( int argc , char * argv[] )
                       argv[nopt-1],DSET_NVALS(dset)) ;
 #else
          { char dname[512] ;                               /* 02 Nov 1999 */
+           char * fname = argv[nopt];           /* 8 May 2007 [rickr,dglen] */
 
            if( ids > 2 ){                                  /* mangle name */
               if( strstr(argv[nopt],"[") != NULL ){
@@ -575,13 +576,14 @@ void CALC_read_opts( int argc , char * argv[] )
                          argv[nopt-1] , argv[nopt] ) ;
               }
               sprintf(dname,"%s[%d]",argv[nopt++],isub) ;  /* use sub-brick */
+              fname = dname ;
               isub = 0 ;                                   /* 0 of dname    */
            } else {
-              strcpy(dname,argv[nopt++]) ;                 /* don't mangle */
+              nopt++ ;                                     /* don't mangle */
            }
-           dset = THD_open_dataset( dname ) ;              /* open it */
+           dset = THD_open_dataset( fname ) ;              /* open it */
            if( dset == NULL )
-              ERROR_exit("can't open dataset %s\n",dname) ;
+              ERROR_exit("can't open dataset %s\n",fname) ;
          }
 #endif
 
