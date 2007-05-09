@@ -1355,6 +1355,9 @@ typedef void GA_warpfunc( int, float *,
 
 typedef MRI_warp3D_param_def GA_param ;  /* cf. 3ddata.h */
 
+#define GA_HIST_EQWIDE 1
+#define GA_HIST_EQHIGH 2
+
  /* struct to control mri_genalign.c optimization */
 
 typedef struct {
@@ -1384,13 +1387,16 @@ typedef struct {
   int npt_match   ;            /* set by user */
   floatvec *im, *jm, *km , *bvm , *wvm ;
   float bvstat ;
+  int hist_mode ;              /* set by user */
+  float hist_param ;           /* set by user */
+  int need_hist_setup ;
 
                              /*** NOT USED YET ***/
   int kernel_code ;            /* set by user */
   float kernel_radius ;        /* set by user */
   int npt_sum ;                /* set by user */
   intvec *is, *js, *ks ;
-  floatvec *bvs ;
+  floatvec *bvs ;            /********************/
 
   int          wfunc_numpar ;  /* set by user */
   GA_param    *wfunc_param ;   /* set by user */
