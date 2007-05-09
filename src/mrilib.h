@@ -1357,6 +1357,7 @@ typedef MRI_warp3D_param_def GA_param ;  /* cf. 3ddata.h */
 
 #define GA_HIST_EQWIDE 1
 #define GA_HIST_EQHIGH 2
+#define GA_HIST_CLEQWD 3
 
  /* struct to control mri_genalign.c optimization */
 
