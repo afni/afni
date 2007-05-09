@@ -144,15 +144,17 @@ int main( int argc , char *argv[] )
    int XYZ_warp                = 0 ;            /* off by default */
    double hist_pow             = 0.0 ;
    int hist_nbin               = 0 ;
-   int epi_fe                  = -1 ;            /* off by default */
+   int epi_fe                  = -1 ;           /* off by default */
    int epi_pe                  = -1 ;
    int epi_se                  = -1 ;
    int epi_targ                = -1 ;
-   int replace_base            = 0 ;             /* off by default */
-   int replace_meth            = 0 ;             /* off by default */
-   int usetemp                 = 0 ;             /* off by default */
+   int replace_base            = 0 ;            /* off by default */
+   int replace_meth            = 0 ;            /* off by default */
+   int usetemp                 = 0 ;            /* off by default */
    int nmatch_setup            = 23456 ;
-   int ignout                  = 0 ;             /* 28 Feb 2007 */
+   int ignout                  = 0 ;            /* 28 Feb 2007 */
+   int    hist_mode            = 0 ;            /* 08 May 2007 */
+   float  hist_param           = 0.0f ;
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -577,6 +579,7 @@ int main( int argc , char *argv[] )
         "                 the number of data points.  You can change that exponent\n"
         "                 to 'pp' with this option.\n"
         " -histbin nn   = Or you can just set the number of bins directly to 'nn'.\n"
+        " -eqbin   nn   = Use equalized marginal histograms with 'nn' bins.\n"
         " -wtmrad  mm   = Set autoweight/mask median filter radius to 'mm' voxels.\n"
         " -wtgrad  gg   = Set autoweight/mask Gaussian filter radius to 'gg' voxels.\n"
         " -nmsetup nn   = Use 'nn' points for the setup matching [default=23456]\n"
@@ -755,7 +758,19 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-histbin") == 0 ){   /* SECRET OPTION */
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        hist_nbin = (int)strtod(argv[iarg],NULL) ;
+       hist_mode = 0 ; hist_param = 0.0f ;
        set_2Dhist_hbin( hist_nbin ) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-eqbin") == 0 ){   /* SECRET OPTION - 08 May 2007 */
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       hist_mode  = GA_HIST_EQHIGH ;
+       hist_param = (float)strtod(argv[iarg],NULL) ;
+       if( hist_param < 3.0f || hist_param > 255.0f ){
+         WARNING_message("'-eqbin %f' is illegal -- ignoring",hist_param) ;
+         hist_mode = 0 ; hist_param = 0.0f ;
+       }
        iarg++ ; continue ;
      }
 
@@ -1670,7 +1685,10 @@ int main( int argc , char *argv[] )
    memset(&stup,0,sizeof(GA_setup)) ;  /* NULL out */
 
    stup.match_code = meth_code ;
-   stup.usetemp    = usetemp ;   /* 20 Dec 2006 */
+   stup.usetemp    = usetemp ;     /* 20 Dec 2006 */
+
+   stup.hist_mode  = hist_mode ;   /* 08 May 2007 */
+   stup.hist_param = hist_param ;
 
    /* spatial coordinates: 'cmat' transforms from ijk to xyz */
 

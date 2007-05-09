@@ -23,7 +23,8 @@ int main( int argc , char * argv[] )
              "  -mask mset  = Means to use the dataset 'mset' as a mask:\n"
              "                 Only voxels with nonzero values in 'mset'\n"
              "                 will be averaged from 'dataset'.\n"
-             "  -prefix ppp = If you don't know this by now, go away.\n"
+             "  -prefix ppp = If you don't know this by now, you shouldn't\n"
+             "                 even THINK about using this program!\n"
             ) ;
       exit(0) ;
    }
@@ -102,7 +103,7 @@ int main( int argc , char * argv[] )
    EDIT_substitute_brick( hset , 0 , MRI_float , NULL ) ;
    hdim = DSET_BRICK(hset,0) ; hdar = MRI_FLOAT_PTR(hdim) ;
 
-   fprintf(stderr,"++ histogramizing") ;
+   fprintf(stderr,"++ histogram-izing") ;
    for( iv=0 ; iv < nvals ; iv++ ){
      fprintf(stderr,".") ;
      imh = mri_jointhist( DSET_BRICK(xset,0), DSET_BRICK(yset,iv), mmm ) ;

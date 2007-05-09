@@ -593,12 +593,64 @@ void GA_fitter_coster(int n, double *mpar){
 void GA_fitter_coster_tab(int n, double *mpar){
   printf(" + Cost=%g\t",fit_vbest); fflush(stdout);
 }
-void GA_do_cost(int x, byte use_tab){ 
+void GA_do_cost(int x, byte use_tab){
    if (use_tab) {
-      GA_reset_fit_callback( (x)?GA_fitter_coster_tab:NULL ); 
+      GA_reset_fit_callback( (x)?GA_fitter_coster_tab:NULL );
    } else {
-      GA_reset_fit_callback( (x)?GA_fitter_coster:NULL ); 
+      GA_reset_fit_callback( (x)?GA_fitter_coster:NULL );
    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void GA_setup_2Dhistogram( float *xar , float *yar )  /* 08 May 2007 */
+{
+   switch( gstup->hist_mode ){
+
+     default:
+     case GA_HIST_EQWIDE:
+       set_2Dhist_xybin( 0,NULL,NULL ) ;
+     break ;
+
+     case GA_HIST_EQHIGH:{
+       int nbin=(int)gstup->hist_param , npt=gstup->npt_match , ii,dm,mm,nnew ;
+       float *xx , *yy ;
+
+       if( npt > 666*nbin ){                /* subsample data to save CPU time */
+         dm = find_relprime_fixed( npt ) ;
+         mm = 1 ; nnew = (int)(314.1593*nbin) ;
+         xx = (float *)malloc(sizeof(float)*nnew) ;
+         yy = (float *)malloc(sizeof(float)*nnew) ;
+         for( ii=0 ; ii < nnew ; ii++,mm=(mm+dm)%npt ){
+           xx[ii] = xar[mm] ; yy[ii] = yar[mm] ;
+         }
+         npt = nnew ;
+       } else {                             /* just use all the data */
+         xx = xar ; yy = yar ;
+       }
+
+       if( verb > 1 )
+         ININFO_message("- setting up equalized histogram bins with %d pts",npt) ;
+
+       set_2Dhist_xybin_eqhigh( nbin , npt , xx , yy ) ;
+       if( xx != xar ){ free(yy); free(xx); }
+
+       if( verb > 1 ){
+         nbin = get_2Dhist_xybin( &xx , &yy ) ;
+         ININFO_message("-- %d equalized histogram bins for source follow:",nbin) ;
+         fprintf(stderr,"    ") ;
+         for( ii=0 ; ii <= nbin ; ii++ ) fprintf(stderr," %g",xx[ii]) ;
+         fprintf(stderr,"\n") ;
+         ININFO_message("-- %d equalized histogram bins for base follow:",nbin) ;
+         fprintf(stderr,"    ") ;
+         for( ii=0 ; ii <= nbin ; ii++ ) fprintf(stderr," %g",yy[ii]) ;
+         fprintf(stderr,"\n") ;
+       }
+     }
+     break ;
+   }
+
+   gstup->need_hist_setup = 0 ; return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -616,6 +668,8 @@ static double GA_scalar_fitter( int npar , double *mpar )
 
   bvm = gstup->bvm->ar ;                                  /* base points */
   wvm = (gstup->wvm != NULL) ? gstup->wvm->ar : NULL ;    /* weights */
+
+  if( gstup->need_hist_setup ) GA_setup_2Dhistogram( avm , bvm ) ;
 
   /* compare the avm and bvm arrays in some way */
 
@@ -1049,6 +1103,8 @@ ENTRY("mri_genalign_scalar_setup") ;
      }
 
    } /* end of if(need_pts) */
+
+   stup->need_hist_setup = 1 ;   /* 08 May 2007 */
 
    if( verb > 1 ) ININFO_message("* Exit alignment setup routine") ;
    stup->setup = SMAGIC ;

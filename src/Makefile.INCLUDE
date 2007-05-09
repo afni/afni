@@ -750,7 +750,7 @@ qm:qm.o
 	$(RM) $@
 	$(CC) -o qm qm.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
-3dAllineate:3dAllineate.o
+3dAllineate:3dAllineate.o mri_genalign.c thd_correlate.c
 	$(RM) $@
 	$(CCFAST) -o 3dAllineate 3dAllineate.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
