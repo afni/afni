@@ -4349,12 +4349,19 @@ extern float THD_hellinger_scl( int, float,float,float *,      /* 26 Sep 2006 */
                                      float,float,float *, float * ) ;
 extern float THD_hellinger( int , float *, float * ) ;
 
-extern int retrieve_2Dhist   ( float **xyhist ) ; /* 28 Sep 2006 */
-extern void set_2Dhist_hpower( double ) ;         /* 03 Oct 2006 */
+extern int retrieve_2Dhist   ( float **xyhist ) ;     /* 28 Sep 2006 */
+extern int retrieve_2Dhist1  ( float **, float ** ) ; /* 07 May 2007 */
+extern void set_2Dhist_hpower( double ) ;             /* 03 Oct 2006 */
 extern void set_2Dhist_hbin  ( int  ) ;
+extern int  get_2Dhist_hbin  ( void ) ;
 extern void clear_2Dhist     ( void ) ;
 extern void build_2Dhist( int n , float xbot,float xtop,float *x ,
                           float ybot,float ytop,float *y , float *w ) ;
+
+extern void set_2Dhist_xybin( int nb , float *xb , float *yb ) ;  /* 07 May 2007 */
+extern int get_2Dhist_xybin( float **xb , float **yb ) ;
+extern void set_2Dhist_xybin_eqwide( int,float,float,float,float ) ;
+extern void set_2Dhist_xybin_eqhigh( int,int,float *,float * ) ;
 
 /*------------------------------------------------------------------------*/
 
