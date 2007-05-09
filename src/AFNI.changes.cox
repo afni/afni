@@ -6237,3 +6237,6 @@
 04 May 2007
  * 'amongst' function in parser.f and so in 3dcalc.c.
  * Added more warnings to 3dDeconvolve.c, including a parametrized -GOFORIT.
+
+09 May 2007
+ * New advanced histogram options '-clbin' and '-eqbin' for 3dAllineate.

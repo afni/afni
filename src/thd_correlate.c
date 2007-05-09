@@ -444,6 +444,12 @@ void build_2Dhist( int n , float xbot,float xtop,float *x ,
 /*--------------------------------------------------------------------------*/
 # else  /* don't USE_OLD_2DHIST */
 /*--------------------------------------------------------------------------*/
+/* Changes from the olde method:
+    * values below bot and above top are not used
+    * histogram can have bot and top bins unequal, and in-between ones
+      equal (if use_xyclip != 0)
+    * histogram can have all unequal bin sizes (if nxybin > 2)
+----------------------------------------------------------------------------*/
 #define LINHIST                           /* do linear spread in histogram  */
 #undef  WW
 #define WW(i) ((w==NULL) ? 1.0f : w[i])   /* weight function for i'th datum */
@@ -453,6 +459,10 @@ static int nbin=0 , nbp=0 ;
 
 static float *xbin=NULL , *ybin=NULL ;
 static int  nxybin=0 ;
+
+static int   use_xyclip=0 ;
+static float xclip_bot, xclip_top ;
+static float yclip_bot, yclip_top ;
 
 #undef  XYC
 #define XYC(p,q) xyc[(p)+(q)*nbp]
@@ -572,6 +582,51 @@ void set_2Dhist_xybin_eqwide( int nb, float xbot,float xtop,float ybot,float yto
 
 /*--------------------------------------------------------------------------*/
 
+static float_pair clipate( int nval , float *xar )
+{
+   MRI_IMAGE *qim ; float cbot,ctop, mmm ; float_pair rr ;
+
+   qim = mri_new_vol_empty( nval,1,1 , MRI_float ) ;
+   mri_fix_data_pointer( xar , qim ) ;
+   mmm  = mri_min( qim ) ;
+   cbot = THD_cliplevel( qim , 0.345f ) ;
+   ctop = mri_quantile ( qim , 0.966f ) ;
+   mri_clear_data_pointer(qim) ; mri_free(qim) ;
+   if( ctop > 4.321f*cbot ) ctop = 4.321f*cbot ;
+   if( mmm < 0.0f ){ cbot = 1.0f ; ctop = 0.0f; }  /* bad */
+   rr.a = cbot ; rr.b = ctop ; return rr ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void set_2Dhist_xyclip( int nval , float *xval , float *yval )
+{
+   float_pair xcc , ycc ;
+
+   use_xyclip = 0 ;
+   if( nval < 666 || xval == NULL || yval == NULL ) return ;
+
+   xcc = clipate( nval , xval ) ;
+   ycc = clipate( nval , yval ) ;
+
+   if( xcc.a >= xcc.b || ycc.a >= ycc.b ) return ;
+
+   use_xyclip = 1 ; nxybin = 0 ;
+   xclip_bot  = xcc.a ; xclip_top = xcc.b ;
+   yclip_bot  = ycc.a ; yclip_top = ycc.b ;
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+int get_2Dhist_xyclip( float *xbc , float *xtc , float *ybc , float *ytc )
+{
+   *xbc = xclip_bot ; *xtc = xclip_top ;
+   *ybc = yclip_bot ; *ytc = yclip_top ; return use_xyclip ;
+}
+
+/*--------------------------------------------------------------------------*/
+
 static int eqhighate( int nb , int nval , float *xar , float *xb )
 {
    float *xd , xbot,xtop , frac,fi , xtest ;
@@ -682,11 +737,13 @@ void build_2Dhist( int n , float xbot,float xtop,float *x ,
 {
    register int ii,jj,kk ;
    float xb,xi , yb,yi , xx,yy , x1,y1 , nbb , ww ;
-   byte *good ; int ngood ;
+   byte *good ; int ngood , xyclip , nbm ;
+
+ENTRY("build_2Dhist") ;
 
    /* bad inputs? */
 
-   if( n <= 1 || x == NULL || y == NULL ){ clear_2Dhist(); return; }
+   if( n <= 1 || x == NULL || y == NULL ){ clear_2Dhist(); EXRETURN; }
 
    /* get the min..max range for x data? */
 
@@ -707,7 +764,7 @@ void build_2Dhist( int n , float xbot,float xtop,float *x ,
          else if( x[ii] < xbot ) xbot = x[ii] ;
        }
    }
-   if( xbot >= xtop ){ clear_2Dhist(); free(good); return; }
+   if( xbot >= xtop ){ clear_2Dhist(); free(good); EXRETURN; }
 
    /* get the min..max range for y data? */
 
@@ -724,7 +781,7 @@ void build_2Dhist( int n , float xbot,float xtop,float *x ,
          else if( y[ii] < ybot ) ybot = y[ii] ;
        }
    }
-   if( ybot >= ytop ){ clear_2Dhist(); free(good); return; }
+   if( ybot >= ytop ){ clear_2Dhist(); free(good); EXRETURN; }
 
    /*--- allocate space for 2D and 1D histograms ---*/
 
@@ -734,7 +791,7 @@ void build_2Dhist( int n , float xbot,float xtop,float *x ,
      nbin = (nhbin > 2) ? nhbin : (int)pow((double)n,hpow) ;
      if( nbin > 255 ) nbin = 255; else if( nbin < 3 ) nbin = 3;
    }
-   nbb = nbin-0.0003f ; nbp = nbin+1 ;
+   nbb = nbin-0.0003f ; nbp = nbin+1 ; nbm = nbin-1 ;
 
    FREEIF(xc) ; FREEIF(yc) ; FREEIF(xyc) ;
 
@@ -750,11 +807,15 @@ void build_2Dhist( int n , float xbot,float xtop,float *x ,
        good[ii] = 1 ; ngood++ ;
      }
    }
-   if( ngood < 3*nbin ){ clear_2Dhist(); free(good); return; }
+   if( ngood < 3*nbin ){ clear_2Dhist(); free(good); EXRETURN; }
 
    /*--------------- make the 2D and 1D histograms ---------------*/
 
-   if( nxybin <= 0 ){  /*---------- equal size bins ----------*/
+   xyclip = (nxybin <= 0) && use_xyclip &&
+            (xbot < xclip_bot) && (xclip_bot < xclip_top) && (xclip_top < xtop) &&
+            (ybot < yclip_bot) && (yclip_bot < yclip_top) && (yclip_top < ytop) ;
+
+   if( nxybin <= 0 && !xyclip ){  /*------------ equal size bins ------------*/
 
      xb = xbot ; xi = nbb/(xtop-xbot) ;
      yb = ybot ; yi = nbb/(ytop-xbot) ; nww = 0.0f ;
@@ -779,7 +840,39 @@ void build_2Dhist( int n , float xbot,float xtop,float *x ,
 #endif
      }
 
-   } else {  /*--------- unequal size bins ---------*/
+   } else if( xyclip ){  /*------------ mostly equal bins ----------------*/
+
+     float xbc=xclip_bot , xtc=xclip_top , ybc=yclip_bot , ytc=yclip_top ;
+
+     xi = (nbin-2.000001f)/(xtc-xbc) ;
+     yi = (nbin-2.000001f)/(ytc-ybc) ; nww = 0.0f ;
+     for( ii=0 ; ii < n ; ii++ ){
+       if( !good[ii] ) continue ;
+       xx = x[ii] ;
+            if( xx < xbc ){ jj = 0   ; xx = 0.0f ; }
+       else if( xx > xtc ){ jj = nbm ; xx = 1.0f ; }
+       else               { xx = 1.0f+(xx-xbc)*xi; jj = (int)xx; xx = xx - jj; }
+       yy = y[ii] ;
+            if( yy < ybc ){ kk = 0   ; yy = 0.0f ; }
+       else if( yy > ytc ){ kk = nbm ; yy = 1.0f ; }
+       else               { yy = 1.0f+(yy-ybc)*yi; kk = (int)yy; yy = yy - kk; }
+
+       x1 = 1.0f-xx ; y1 = 1.0f-yy ; ww = WW(ii) ; nww += ww ;
+
+#ifdef LINHIST
+       xc[jj] +=  x1*ww ; xc[jj+1] +=  xx*ww ;
+       yc[kk] += (y1*ww); yc[kk+1] += (yy*ww);
+
+       XYC(jj  ,kk  ) += x1*(y1*ww) ;
+       XYC(jj+1,kk  ) += xx*(y1*ww) ;
+       XYC(jj  ,kk+1) += x1*(yy*ww) ;
+       XYC(jj+1,kk+1) += xx*(yy*ww) ;
+#else
+       xc[jj] += ww ; yc[kk] += ww ; XYC(jj,kk) += ww ;
+#endif
+     }
+
+   } else {  /*-------------------- unequal size bins --------------------*/
 
      float *xdup, *ydup, *xv, *yv, *wv, frac,val,xt,yt ;
      int   *xn, *yn, *xin, *yin , ib,nb , maxsort ;
@@ -890,7 +983,7 @@ void build_2Dhist( int n , float xbot,float xtop,float *x ,
      for( ii=0 ; ii < nbq ; ii++ ){ xyc[ii] *= ni; }
    }
 
-   free(good); return;
+   free(good); EXRETURN;
 }
 
 /*--------------------------------------------------------------------------*/

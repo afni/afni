@@ -580,6 +580,7 @@ int main( int argc , char *argv[] )
         "                 to 'pp' with this option.\n"
         " -histbin nn   = Or you can just set the number of bins directly to 'nn'.\n"
         " -eqbin   nn   = Use equalized marginal histograms with 'nn' bins.\n"
+        " -clbin   nn   = Use 'nn' equal-spaced bins except for the bot and top.\n"
         " -wtmrad  mm   = Set autoweight/mask median filter radius to 'mm' voxels.\n"
         " -wtgrad  gg   = Set autoweight/mask Gaussian filter radius to 'gg' voxels.\n"
         " -nmsetup nn   = Use 'nn' points for the setup matching [default=23456]\n"
@@ -760,6 +761,13 @@ int main( int argc , char *argv[] )
        hist_nbin = (int)strtod(argv[iarg],NULL) ;
        hist_mode = 0 ; hist_param = 0.0f ;
        set_2Dhist_hbin( hist_nbin ) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-clbin") == 0 ){   /* SECRET OPTION - 08 May 2007 */
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       hist_mode  = GA_HIST_CLEQWD ;
+       hist_param = (float)strtod(argv[iarg],NULL) ;
        iarg++ ; continue ;
      }
 
