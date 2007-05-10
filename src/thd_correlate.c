@@ -584,14 +584,15 @@ void set_2Dhist_xybin_eqwide( int nb, float xbot,float xtop,float ybot,float yto
 
 static float_pair clipate( int nval , float *xar )
 {
-   MRI_IMAGE *qim ; float cbot,ctop, mmm ; float_pair rr ;
+   MRI_IMAGE *qim; float cbot,ctop, mmm , *qar; float_pair rr; int ii,nq;
 
-   qim = mri_new_vol_empty( nval,1,1 , MRI_float ) ;
-   mri_fix_data_pointer( xar , qim ) ;
+   qim = mri_new_vol( nval,1,1 , MRI_float ) ; qar = MRI_FLOAT_PTR(qim) ;
+   for( ii=nq=0 ; ii < nval ; ii++ ) if( GOODVAL(xar[ii]) ) qar[nq++] = xar[ii];
+   qim->nx = nq ;
    mmm  = mri_min( qim ) ;
    cbot = THD_cliplevel( qim , 0.345f ) ;
    ctop = mri_quantile ( qim , 0.966f ) ;
-   mri_clear_data_pointer(qim) ; mri_free(qim) ;
+   mri_free(qim) ;
    if( ctop > 4.321f*cbot ) ctop = 4.321f*cbot ;
    if( mmm < 0.0f ){ cbot = 1.0f ; ctop = 0.0f; }  /* bad */
    rr.a = cbot ; rr.b = ctop ; return rr ;
@@ -630,35 +631,36 @@ int get_2Dhist_xyclip( float *xbc , float *xtc , float *ybc , float *ytc )
 static int eqhighate( int nb , int nval , float *xar , float *xb )
 {
    float *xd , xbot,xtop , frac,fi , xtest ;
-   int ii, pp, pbot,ptop , bsiz , pstart,pend ;
+   int ii, pp, pbot,ptop , bsiz , pstart,pend , nxd ;
 
    xd = (float *)malloc(sizeof(float)*nval) ;
-   memcpy( xd , xar , sizeof(float)*nval ) ;
-   qsort_float( nval , xd ) ;
+   for( ii=nxd=0 ; ii < nval ; ii++ ) if( GOODVAL(xar[ii]) ) xd[nxd++] = xar[ii];
+   if( nxd < 7*nb ){ free(xd); return 0; }  /* bad */
+   qsort_float( nxd , xd ) ;
 
    /** scan for plateaus = runs of constant values longer than
                            nominal bin width, at the bottom and top **/
 
    xbot = xb[0]  = xd[0] ;
-   xtop = xb[nb] = xd[nval-1] ; if( xtop <= xbot ){ free(xd); return 0; }
-   bsiz = (nval/nb) ;
+   xtop = xb[nb] = xd[nxd-1] ; if( xtop <= xbot ){ free(xd); return 0; }
+   bsiz = (nxd/nb) ;
 
    xtest = xbot + (xtop-xbot)/(100.0f*nb) ;
-   for( pp=1 ; pp < nval && xd[pp] < xtest ; pp++ ) ; /*nada*/
-   if( pp == nval ){ free(xd); return 0; }  /* data is constant? */
+   for( pp=1 ; pp < nxd && xd[pp] < xtest ; pp++ ) ; /*nada*/
+   if( pp == nxd ){ free(xd); return 0; }  /* data is constant? */
    pbot = (pp > bsiz) ? pp : 0 ;
 
    xtest = xtop - (xtop-xbot)/(100.0f*nb) ;
-   for( pp=nval-2 ; pp > 0 && xd[pp] > xtest ; pp-- ) ; /*nada*/
+   for( pp=nxd-2 ; pp > 0 && xd[pp] > xtest ; pp-- ) ; /*nada*/
    if( pp <= pbot ){ free(xd); return 0; }  /* something screwy */
-   ptop = (nval-1-pp > bsiz) ? pp : nval-1 ;
+   ptop = (nxd-1-pp > bsiz) ? pp : nxd-1 ;
 
    if( pbot > 0 ){
      xb[1] = 0.999999f*xd[pbot] + 0.000001f*xbot ; pstart = 2 ;
    } else {
      pstart = 1 ;
    }
-   if( ptop < nval-1 ){
+   if( ptop < nxd-1 ){
      xb[nb-1] = 0.999999f*xd[ptop] + 0.000001f*xtop ; pend = nb-2 ;
    } else {
      pend = nb-1 ;
@@ -990,6 +992,9 @@ ENTRY("build_2Dhist") ;
 #endif  /* USE_OLD_2DHIST */
 /*--------------------------------------------------------------------------*/
 
+static int ignore_zz = 0 ;
+void THD_correlate_ignore_zerozero( int z ){ ignore_zz = z ; }
+
 /*--------------------------------------------------------------------------*/
 /*! Compute the mutual info between two vectors, sort of.  [16 Aug 2006]
 ----------------------------------------------------------------------------*/
@@ -1010,6 +1015,7 @@ float THD_mutual_info_scl( int n , float xbot,float xtop,float *x ,
    val = 0.0f ;
    for( ii=0 ; ii < nbp ; ii++ ){
     for( jj=0 ; jj < nbp ; jj++ ){
+     if( ii==0 && jj==0 && ignore_zz ) continue ;
      if( XYC(ii,jj) > 0.0f )
       val += XYC(ii,jj) * logf( XYC(ii,jj)/(xc[ii]*yc[jj]) ) ;
    }}
@@ -1048,6 +1054,7 @@ float THD_norm_mutinf_scl( int n , float xbot,float xtop,float *x ,
      if( xc[ii] > 0.0f ) denom += xc[ii] * logf( xc[ii] ) ;
      if( yc[ii] > 0.0f ) denom += yc[ii] * logf( yc[ii] ) ;
      for( jj=0 ; jj < nbp ; jj++ ){
+       if( ii==0 && jj==0 && ignore_zz ) continue ;
        if( XYC(ii,jj) > 0.0f ) numer += XYC(ii,jj) * logf( XYC(ii,jj) );
      }
    }

@@ -8,7 +8,7 @@ int main( int argc , char *argv[] )
    byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
    char *outfile = NULL ;
    double fx,fy,fz , cx,cy,cz ; int nx,ny,nz ;
-   int geom=1 , demed=0 , unif=0 ;
+   int geom=1 , demed=0 , unif=0 , corder=0 ;
 
    /*---- for the clueless who wish to become clueful ----*/
 
@@ -50,6 +50,8 @@ int main( int argc , char *argv[] )
       "        **N.B.: I recommend this option, and it is not the default\n"
       "                only for historical compatibility reasons.  It may\n"
       "                become the default someday soon. Depending on my mood.\n"
+      "  -detrend [q]= Instead of demed (0th order detrending), detrend to\n"
+      "                order 'q'.  If q is not given, the program picks q=NT/30.\n"
       "\n"
       "  -geom      }= If the input dataset has more than one sub-brick,\n"
       "    *OR*     }= compute the final estimate as the geometric mean\n"
@@ -102,6 +104,15 @@ int main( int argc , char *argv[] )
    /*---- loop over options ----*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcmp(argv[iarg],"-detrend") == 0 ){          /* 10 May 2007 */
+       corder = -1 ;
+       if( iarg < argc-1 && isdigit(argv[iarg+1][0]) ){
+         corder = (int)strtod(argv[++iarg],NULL) ;
+         if( corder == 0 ) demed = 1 ;
+       }
+       iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-2dif") == 0 ){             /* 20 Nov 2006 */
        mri_fwhm_setfester( mri_estimate_FWHM_12dif ) ;
@@ -175,8 +186,22 @@ int main( int argc , char *argv[] )
      CHECK_OPEN_ERROR(inset,argv[iarg]) ;
    }
 
-   if( (demed || unif) && DSET_NVALS(inset) < 2 )
-     WARNING_message("-demed and/or -unif ignored: only 1 input sub-brick") ;
+   if( (demed || unif || corder ) && DSET_NVALS(inset) < 4 ){
+     WARNING_message(
+       "-demed and/or -corder and/or -unif ignored: only %d input sub-bricks",
+       DSET_NVALS(inset) ) ;
+     demed = corder = unif = 0 ;
+   }
+
+   /* mangle demed so that
+        == 0 means don't do any detrending
+        >  0 means de-median (the OLDE way)
+        <  0 means detrend with quadratic plus trig functions */
+
+   if( corder < 0 ) corder = DSET_NVALS(inset) / 30 ;
+   if( corder > 0 && corder+3 >= DSET_NVALS(inset) )
+     ERROR_exit("-corder %d is too big for this dataset",corder) ;
+   if( corder > 0 ) demed = -corder ;
 
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
