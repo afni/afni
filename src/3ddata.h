@@ -3624,9 +3624,9 @@ extern THD_3dim_dataset * THD_copy_dset_subs( THD_3dim_dataset * , int * ) ;
    "  'fred.1D[5,9,17]'       ==> use columns #5, #9, and #12\n"              \
    "  'fred.1D[5..8]'         ==> use columns #5, #6, #7, and #8\n"           \
    "  'fred.1D[5..13(2)]'     ==> use columns #5, #7, #9, #11, and #13\n"     \
-   "Sub-brick indexes start at 0.  You can use the character '$'\n"           \
-   "to indicate the last sub-brick in a dataset; for example, you\n"          \
-   "can select every third sub-brick by using the selection list\n"           \
+   "Column indices start at 0.  You can use the character '$'\n"           \
+   "to indicate the last column in a 1D file; for example, you\n"          \
+   "can select every third column in a 1D file by using the selection list\n"           \
    "  'fred.1D[0..$(3)]'      ==> use columns #0, #3, #6, #9, ....\n"         \
    "\n"                                                                       \
    "** ROW SELECTION WITH {} **\n"                                            \
