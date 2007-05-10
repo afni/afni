@@ -550,6 +550,8 @@ int main( int argc , char *argv[] )
         "===========================================\n"
         "TOP SECRET HIDDEN OPTIONS (-HELP or -POMOC)\n"
         "===========================================\n"
+        "** N.B.: Some of these are experimental ***\n"
+        "===========================================\n"
         " -savehist sss = Save start and final 2D histograms as PGM\n"
         "                 files, with prefix 'sss' (cost: cr mi nmi hel).\n"
         " -seed iii     = Set random number seed (for coarse startup search)\n"
@@ -588,7 +590,7 @@ int main( int argc , char *argv[] )
        ) ;
      } else {
        printf("\n"
-              "[[[[[ To see a few super-advanced options, use '-HELP'. ]]]]]\n") ;
+              "[[[[[ To see a few super-advanced or experimental options, use '-HELP'. ]]]]]\n") ;
      }
 
      printf("\n"); exit(0);
@@ -769,6 +771,10 @@ int main( int argc , char *argv[] )
        hist_mode  = GA_HIST_CLEQWD ;
        hist_param = (float)strtod(argv[iarg],NULL) ;
        iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-izz") == 0 ){    /* EXPERIMENTAL!! */
+       THD_correlate_ignore_zerozero(1) ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-eqbin") == 0 ){   /* SECRET OPTION - 08 May 2007 */

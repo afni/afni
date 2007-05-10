@@ -337,7 +337,7 @@ ENTRY("THD_estimate_FWHM_all") ;
    outar = MRI_FLOAT_PTR(outim) ;
    nvox  = DSET_NVOX(dset) ;
 
-   if( unif  ){
+   if( unif ){
      MRI_IMARR *imar ;
      demed = 1 ;
      imar  = THD_medmad_bricks(dset) ;

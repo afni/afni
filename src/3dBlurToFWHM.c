@@ -31,7 +31,7 @@ int main( int argc , char *argv[] )
    float     *fxar=NULL , *fyar=NULL , *fzar=NULL ;
    float dx,dy,dz , hx,hy,hz , qx,qy,qz ;
    float gx,gy,gz , val , maxfxyz , maxfx,maxfy,maxfz ;
-   int   nite , bmeqin=0 , maxite=66 , numfxyz , nd,nblur , xdone,ydone,zdone ;
+   int   nite , bmeqin=0 , maxite=0 , numfxyz , nd,nblur , xdone,ydone,zdone ;
    int   xstall , ystall , zstall ;
    float bx,by,bz ;
    float last_fwx=0.0f , last_fwy=0.0f , last_fwz=0.0f ;
@@ -150,7 +150,7 @@ int main( int argc , char *argv[] )
       "  used to calculate FWHMz.\n"
       "\n"
       "ADVANCED OPTIONS:\n"
-      " -maxite  ccc = Set maximum number of iterations to 'ccc' [Default=66].\n"
+      " -maxite  ccc = Set maximum number of iterations to 'ccc' [Default=variable].\n"
       " -rate    rrr = The value of 'rrr' should be a number between\n"
       "                0.05 and 1.0, inclusive.  It is a factor to slow\n"
       "                down the overall blurring rate and thus require\n"
@@ -356,6 +356,13 @@ int main( int argc , char *argv[] )
      fwhm_2D = 1 ;
    }
 
+   if( maxite <= 0 ){
+     if( fwhm_2D ) maxite = (int)( 66.6 * fwhm_goal / sqrt(dx*dy) ) ;
+     else          maxite = (int)( 66.6 * fwhm_goal / cbrt(dx*dy*dz) ) ;
+     if( maxite < 66 ) maxite = 66 ;
+     INFO_message("Max number iterations set to %d",maxite) ;
+   }
+
    /*--- deal with mask or automask ---*/
 
    if( mask != NULL ){
@@ -439,15 +446,21 @@ int main( int argc , char *argv[] )
    } else {
      MRI_IMAGE *smed ;
      float *mar , *sar ;
-     int ntouse , nvb=DSET_NVALS(bmset) , ibot , idel ;
+     int ntouse , nvb=DSET_NVALS(bmset) , ibot , idel , nzs ;
 
      imar = THD_medmad_bricks(bmset) ;
      bmed = IMARR_SUBIM(imar,0) ;        /* 11 Dec 2006: -do_unif: */
      smed = IMARR_SUBIM(imar,1) ;        /* normalize each voxel   */
      mar  = MRI_FLOAT_PTR(bmed) ;        /* by 1/MAD, to allow for */
      sar  = MRI_FLOAT_PTR(smed) ;        /* spatial variability    */
+
+     for( nzs=ii=0 ; ii < nvox ; ii++ )                 /* 10 May 2007 */
+       if( sar[ii] == 0.0f ){ mask[ii] = 0; nzs++ ; }
+     if( nzs > 0 ) INFO_message("Removed %d voxels with 0 variance from mask",nzs) ;
+
      if( do_unif )
        for( ii=0 ; ii < nvox ; ii++ ) if( sar[ii] != 0.0f ) sar[ii] = 1.0/sar[ii] ;
+
      if( nbhd != NULL ){
        ntouse = (int)ceil(9999.9999/nbhd->num_pt) ;
        ntouse = MAX(2,ntouse) ;
