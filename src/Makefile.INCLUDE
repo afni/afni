@@ -8,7 +8,7 @@ F2C = f2c -A
 ## 07 Dec 2005: modify the include flags here
 
 INFLAGS  = $(IFLAGS) -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src $(USE_ZLIB)
-ISFLAGS  = $(IFLAGS) -I../nifti/niftilib -I../nifti/znzlib -I../3DEdge/src $(USE_ZLIB)
+ISFLAGS  = $(IFLAGS) -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../3DEdge/src $(USE_ZLIB)
 
 DOCS     = ../doc/ps/*.ps ../doc/README/README* AFNI.changes.cox   \
            rickr/AFNI.changes.rickr rhammett/AFNI.changes.rhammett \
@@ -750,7 +750,7 @@ qm:qm.o
 	$(RM) $@
 	$(CC) -o qm qm.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
-3dAllineate:3dAllineate.o mri_genalign.c thd_correlate.c
+3dAllineate:3dAllineate.o mri_genalign.o thd_correlate.o
 	$(RM) $@
 	$(CCFAST) -o 3dAllineate 3dAllineate.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
@@ -1454,21 +1454,6 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_genalign.o mri_clusterize.o mri_nbistats.o mri_fwhm.o           \
            mri_blur3d_variable.o mri_purger.o
 
-CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
-           cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \
-           cdf_12.o cdf_13.o cdf_14.o cdf_15.o cdf_16.o cdf_17.o \
-           cdf_18.o cdf_19.o cdf_20.o cdf_21.o cdf_22.o cdf_23.o \
-           cdf_24.o cdf_25.o cdf_26.o cdf_27.o cdf_28.o cdf_29.o \
-           cdf_30.o cdf_31.o cdf_32.o cdf_33.o cdf_34.o cdf_35.o \
-           cdf_36.o cdf_37.o cdf_38.o cdf_39.o cdf_40.o cdf_41.o \
-           cdf_42.o cdf_43.o cdf_44.o cdf_45.o cdf_46.o cdf_47.o \
-           cdf_48.o cdf_49.o cdf_50.o cdf_51.o cdf_52.o cdf_53.o \
-           cdf_54.o cdf_55.o cdf_56.o cdf_57.o cdf_58.o cdf_59.o \
-           cdf_60.o cdf_61.o cdf_62.o cdf_63.o cdf_64.o cdf_65.o \
-           cdf_66.o cdf_67.o cdf_68.o cdf_69.o cdf_70.o cdf_71.o \
-           cdf_72.o cdf_73.o cdf_74.o cdf_75.o cdf_76.o cdf_77.o \
-           cdf_78.o cdf_79.o cdf_80.o
-
 THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_auxdata.o thd_editdaxes.o thd_initdblk.o thd_sarr.o  \
            thd_bstats.o thd_fdbrick.o thd_initdkptr.o thd_statpval.o \
@@ -1546,11 +1531,11 @@ NETCDF_OBJS =  netcdf_attr.o   netcdf_dim.o   netcdf_error.o netcdf_libvers.o \
 
 SUMA_OBJS = suma_datasets.o suma_algorithms.o
 
-libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS)                \
-         $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)             \
+libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                \
+         $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS) \
          $(SUMA_OBJS) niml.h mrilib.h 3ddata.h
 	$(RM) $@
-	$(AR) q libmri.a $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS) \
+	$(AR) q libmri.a $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS) \
 		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS) $(SUMA_OBJS)
 	$(RANLIB) libmri.a
 
@@ -1887,9 +1872,6 @@ lib3DEdge.a:
 eis_bakvec.o:
 	( cd eispack/ ; $(MAKE) all 'CC=$(CCFAST)' 'CCSVD=$(CCSVD)' ; $(MV) *.o .. ; )
 
-cdf_00.o:
-	( cd cdflib/ ; $(MAKE) all 'CC=$(CC)' ; $(MV) *.o .. ; )
-
 #######
 # Ditto for NIML objects
 
@@ -2199,7 +2181,7 @@ nifti_stats.o:nifti/utils/nifti_stats.c
 
 nifticdf.o:nifti/nifticdf/nifticdf.c
 	$(RM) $@
-	$(CC) -c nifti/nifticdf/nifticdf.c $(INFLAGS)
+	$(CC) -D__COMPILE_UNUSED_FUNCTIONS__ -c nifti/nifticdf/nifticdf.c $(INFLAGS)
 
 nifti_statlib.o:nifti/utils/nifti_stats.c nifti_statlib.c
 	$(RM) $@
