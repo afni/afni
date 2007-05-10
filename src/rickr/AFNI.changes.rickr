@@ -2010,5 +2010,5 @@
 10 May 2007:
   * modified nifticdf.[ch], mrilib.h, Makefile.INCLUDE, SUMA_Makefile_NoDev
         - use cdflib functions from nifticdf, not from cdflib directory
-  * will delete cdflib directory and cdflib.h
+  * removed cdflib directory and cdflib.h
 
