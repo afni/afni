@@ -148,7 +148,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
 PY_DIR = python_scripts
 PY_SCRIPTS = afni_base.py @DoPerRoi.py
 
-LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h       \
+LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h                \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h        \
              thd_compress.h afni_warp.h coxplot.h f2c.h volpack.h mcw_malloc.h    \
              multivector.h afni_environ.h niml.h cs_sort_template.h vol2surf.h
