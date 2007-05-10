@@ -1174,7 +1174,11 @@ extern floatvecvec * SYM_expand_ranges( int, int, SYM_irange *, char * );
 extern int SYM_expand_errcount(void) ; /* 03 May 2007 */
 
 /*-----------------  30 Oct 1996: incorporation of cdflib ----------------*/
-#include "cdflib.h"
+/*-----------------  09 May 2007: get them from nifticdf  ----------------*/
+#ifndef __COMPILE_UNUSED_FUNCTIONS__
+#define __COMPILE_UNUSED_FUNCTIONS__
+#endif
+#include "nifticdf.h"    /* was cdflib.h */
 /*------------------------------------------------------------------------*/
 
 /*-----------------  01 Feb 1998: incoroporation of mcw_glob -------------*/
