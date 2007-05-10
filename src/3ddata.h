@@ -3849,7 +3849,11 @@ extern void THD_cubic_detrend    ( int, float * ) ;  /* 15 Nov 1999 */
 extern void THD_const_detrend    ( int, float *, float * ); /* 24 Aug 2001 */
 void THD_linear_detrend_complex  ( int, complex * ); /* 05 Mar 2007 */
 
-extern void THD_generic_detrend( int, float *, int, int, float ** ) ;
+extern void THD_generic_detrend_LSQ( int, float *, int, int, float **, float *) ;
+extern void THD_generic_detrend_L1 ( int, float *, int, int, float **, float *) ;
+extern void THD_generic_retrend    ( int, float *, int, int, float **, float *) ;
+
+extern MRI_IMARR * THD_time_fit_dataset( THD_3dim_dataset *, int, float **, int );
 
 #define DETREND_linear(n,f)    THD_linear_detrend(n,f,NULL,NULL)
 #define DETREND_quadratic(n,f) THD_quadratic_detrend(n,f,NULL,NULL,NULL)
@@ -4328,6 +4332,8 @@ extern float quadrant_corr        ( int , float * , float , float * );
 extern float THD_mutual_info_scl( int, float,float,float *,    /* 16 Aug 2006 */
                                        float,float,float *, float * ) ;
 extern float THD_mutual_info( int , float *, float * ) ;
+
+extern void THD_correlate_ignore_zerozero(int) ;
 
 extern float THD_corr_ratio_scl( int, float,float,float *,     /* 23 Aug 2006 */
                                       float,float,float *, float * ) ;

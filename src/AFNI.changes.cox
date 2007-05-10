@@ -6240,3 +6240,7 @@
 
 09 May 2007
  * New advanced histogram options '-clbin' and '-eqbin' for 3dAllineate.
+
+10 May 2007
+ * -izz option to 3dAllineate.
+ * L1 detrending in thd_detrend.c (and retrending).

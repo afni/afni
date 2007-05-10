@@ -218,8 +218,8 @@ int main( int argc , char *argv[] )
       xsim = THD_extract_series(ii,xset,0) ; xsar = MRI_FLOAT_PTR(xsim) ;
       ysim = THD_extract_series(ii,yset,0) ; ysar = MRI_FLOAT_PTR(ysim) ;
 
-      THD_generic_detrend( nvals,xsar, polort, nort,fort ) ;  /* 13 Mar 2003 */
-      THD_generic_detrend( nvals,ysar, polort, nort,fort ) ;
+      (void)THD_generic_detrend_LSQ( nvals,xsar, polort, nort,fort,NULL ) ;  /* 13 Mar 2003 */
+      (void)THD_generic_detrend_LSQ( nvals,ysar, polort, nort,fort,NULL ) ;
 
       switch( method ){                    /* correlate */
          default:
