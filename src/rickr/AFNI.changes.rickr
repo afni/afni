@@ -2008,7 +2008,7 @@
         - rename -regress_no_stim_times to -regress_use_stim_files
 
 10 May 2007:
-  * modified nifti/nifticdf/nifticdf.[ch], mrilib.h, Makefile.INCLUDE
+  * modified nifticdf.[ch], mrilib.h, Makefile.INCLUDE, SUMA_Makefile_NoDev
         - use cdflib functions from nifticdf, not from cdflib directory
   * will delete cdflib directory and cdflib.h
 
