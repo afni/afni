@@ -3,12 +3,13 @@
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL ;
-   int iarg=1 , ii , nvals ;
+   int iarg=1 , ii , nvals,nvox , ncon ;
    MRI_IMAGE *outim ; float *outar ;
    byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
    char *outfile = NULL ;
    double fx,fy,fz , cx,cy,cz ; int nx,ny,nz ;
    int geom=1 , demed=0 , unif=0 , corder=0 ;
+   char *newprefix=NULL ;
 
    /*---- for the clueless who wish to become clueful ----*/
 
@@ -52,6 +53,10 @@ int main( int argc , char *argv[] )
       "                become the default someday soon. Depending on my mood.\n"
       "  -detrend [q]= Instead of demed (0th order detrending), detrend to\n"
       "                order 'q'.  If q is not given, the program picks q=NT/30.\n"
+      "                -detrend disables -demed, and includes -unif.\n"
+      "  -detprefix d= Save the detrended file into a dataset with prefix 'd'.\n"
+      "                Used mostly to figure out what the hell is going on,\n"
+      "                when funky results transpire.\n"
       "\n"
       "  -geom      }= If the input dataset has more than one sub-brick,\n"
       "    *OR*     }= compute the final estimate as the geometric mean\n"
@@ -109,13 +114,15 @@ int main( int argc , char *argv[] )
        corder = -1 ;
        if( iarg < argc-1 && isdigit(argv[iarg+1][0]) ){
          corder = (int)strtod(argv[++iarg],NULL) ;
-         if( corder == 0 ) demed = 1 ;
+         if( corder == 0 ){
+           demed = 1 ; INFO_message("-detrend 0 replaced by -demed") ;
+         }
        }
        iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-2dif") == 0 ){             /* 20 Nov 2006 */
-       mri_fwhm_setfester( mri_estimate_FWHM_12dif ) ;
+       mri_fwhm_setfester( mri_estimate_FWHM_12dif ) ;  /* secret option */
        iarg++ ; continue ;
      }
 
@@ -174,6 +181,10 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     if( strcmp(argv[iarg],"-detprefix") == 0 ){
+       newprefix = argv[++iarg] ; iarg++ ; continue ;
+     }
+
      ERROR_exit("Uknown option '%s'",argv[iarg]) ;
 
    } /*--- end of loop over options ---*/
@@ -193,17 +204,17 @@ int main( int argc , char *argv[] )
      demed = corder = unif = 0 ;
    }
 
-   /* mangle demed so that
-        == 0 means don't do any detrending
-        >  0 means de-median (the OLDE way)
-        <  0 means detrend with quadratic plus trig functions */
+   if( demed && corder ){
+     demed = 0 ; WARNING_message("-demed is overriden by -corder") ;
+   }
 
    if( corder < 0 ) corder = DSET_NVALS(inset) / 30 ;
-   if( corder > 0 && corder+3 >= DSET_NVALS(inset) )
+   if( corder > 0 && 2*corder+3 >= DSET_NVALS(inset) )
      ERROR_exit("-corder %d is too big for this dataset",corder) ;
-   if( corder > 0 ) demed = -corder ;
 
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
+
+   nvals = DSET_NVALS(inset) ; nvox = DSET_NVOX(inset) ;
 
    if( mask != NULL ){
      if( mask_nx != DSET_NX(inset) ||
@@ -219,13 +230,77 @@ int main( int argc , char *argv[] )
      mmm = THD_countmask( DSET_NVOX(inset) , mask ) ;
      INFO_message("Number of voxels in automask = %d",mmm) ;
      if( mmm < 16 ) ERROR_exit("Automask is too small to process") ;
+   } else {
+     mask = (byte *)malloc(sizeof(byte)*nvox) ;
+     memset(mask,1,sizeof(byte)*nvox) ;
+   }
+   if( demed || corder || unif ){
+     for( ncon=ii=0 ; ii < nvox ; ii++ ){
+       if( mask[ii] && THD_voxel_is_constant(ii,inset) ){ mask[ii] = 0; ncon++; }
+     }
+     if( ncon > 0 )
+       WARNING_message("removed %d voxels from mask because they are constant in time",ncon) ;
    }
 
-   /*-- do the work --*/
+   /*-- if detrending, do that now --*/
+
+   if( corder > 0 ){
+     int nref=2*corder+3 , jj,iv,kk ;
+     float **ref , tm,fac,fq ;
+     THD_3dim_dataset *newset ;
+
+     INFO_message("detrending start: %d baseline funcs, %d time points",nref,nvals) ;
+
+     /* make ref[][] arrays */
+
+     ref=(float **)malloc(sizeof(float *)*nref) , tm,fac,fq ;
+     for( jj=0 ; jj < nref ; jj++ )
+       ref[jj] = (float *) malloc( sizeof(float) * nvals ) ;
+
+     /* ref[0]: r(t) = 1 */
+     for( iv=0 ; iv < nvals ; iv++ ) ref[0][iv] = 1.0 ;
+
+     /* ref[1]: r(t) = t - tmid */
+     tm = 0.5 * (nvals-1.0f) ; fac = 2.0f / nvals ;
+     for( iv=0 ; iv < nvals ; iv++ ) ref[1][iv] = (iv-tm)*fac ;
+
+     /* ref[2]: r(t) = (t-tmid)**2 */
+     fac = fac*fac ;
+     for( iv=0 ; iv < nvals ; iv++ ) ref[2][iv] = (iv-tm)*(iv-tm)*fac ;
+
+     /* higher order ref[jj]: */
+     for( jj=3,kk=1 ; kk <= corder ; kk++ ){
+       fq = (2.0*PI*kk)/nvals ;
+
+       /* r(t) = sin(2*PI*k*t/N) */
+       for( iv=0 ; iv < nvals ; iv++ ) ref[jj][iv] = sin(fq*iv) ;
+       jj++ ;
+
+       /* r(t) = cos(2*PI*k*t/N) */
+       for( iv=0 ; iv < nvals ; iv++ ) ref[jj][iv] = cos(fq*iv) ;
+       jj++ ;
+     }
+
+     newset = THD_detrend_dataset( inset , nref , ref , 2 , 1 , mask , NULL ) ;
+     if( newset == NULL ) ERROR_exit("detrending failed!") ;
+
+     for(jj=0;jj<nref;jj++) free(ref[jj]) ;
+     free(ref); DSET_delete(inset); inset=newset;
+     demed = unif = 0 ;
+     INFO_message("detrending done") ;
+
+     if( newprefix != NULL ){    /** for debugging **/
+       EDIT_dset_items(newset,ADN_prefix,newprefix,NULL) ;
+       (void)THD_deconflict_prefix(newset) ;
+       DSET_write(newset) ; WROTE_DSET(newset) ;
+     }
+   }
+
+   /*-- do the FWHM-izing work --*/
 
    outim = THD_estimate_FWHM_all( inset , mask , demed,unif ) ;
 
-   DSET_unload(inset) ; nvals = DSET_NVALS(inset) ;
+   DSET_unload(inset) ;
 
    if( outim == NULL ) ERROR_exit("Function THD_estimate_FWHM_all() fails?!") ;
 

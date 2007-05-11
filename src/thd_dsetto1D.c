@@ -188,6 +188,23 @@ ENTRY("THD_extract_array") ;
    RETURN(0);
 }
 
+/*----------------------------------------------------------------------------*/
+
+int THD_voxel_is_constant( int ind , THD_3dim_dataset *dset )
+{
+   float *far ; int ii,nvox,nvals ;
+
+   if( !ISVALID_DSET(dset) ) return 1 ;
+   if( ind < 0 || ind >= DSET_NVOX(dset) ) return 1 ;
+
+   nvals = DSET_NVALS(dset) ; if( nvals == 1 ) return 1 ;
+   far = (float *)malloc(sizeof(float)*nvals) ;
+   ii = THD_extract_array( ind , dset , 0 , far ) ;
+   if( ii < 0 ){ free(far); return 1; }
+   for( ii=1 ; ii < nvals && far[ii]==far[0]; ii++ ) ; /*nada*/
+   free(far) ; return (ii==nvals) ;
+}
+
 /*----------------------------------------------------------------------------
    04 Feb 2000: do a bunch of timeseries at once (for efficiency)
    27 Feb 2003: rearranged slightly for more efficiency
