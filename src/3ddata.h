@@ -3837,6 +3837,8 @@ extern MRI_IMAGE * THD_extract_float_brick( int , THD_3dim_dataset * ) ;
 
 extern void THD_insert_series( int, THD_3dim_dataset *, int, int, void *, int );
 
+extern int THD_voxel_is_constant( int ind , THD_3dim_dataset *dset ) ;
+
 /*--------------- routines that are in thd_detrend.c ---------------*/
 
 extern void get_linear_trend     ( int, float *, float *, float * ) ;
@@ -3853,7 +3855,19 @@ extern void THD_generic_detrend_LSQ( int, float *, int, int, float **, float *) 
 extern void THD_generic_detrend_L1 ( int, float *, int, int, float **, float *) ;
 extern void THD_generic_retrend    ( int, float *, int, int, float **, float *) ;
 
-extern MRI_IMARR * THD_time_fit_dataset( THD_3dim_dataset *, int, float **, int );
+extern MRI_IMARR * THD_time_fit_dataset( THD_3dim_dataset *, int, float **, int , byte *);
+extern void THD_extract_detrended_array( THD_3dim_dataset * ,
+                                         int, float **, MRI_IMARR *,
+                                         int, int, float * ) ;
+
+extern THD_3dim_dataset * THD_detrend_dataset( THD_3dim_dataset *dset ,
+                                               int nref , float **ref ,
+                                               int meth , int scl ,
+                                               byte *mask , MRI_IMARR **imar ) ;
+
+extern int THD_retrend_dataset( THD_3dim_dataset *dset ,
+                                int nref , float **ref ,
+                                int scl , byte *mask , MRI_IMARR *imar ) ;
 
 #define DETREND_linear(n,f)    THD_linear_detrend(n,f,NULL,NULL)
 #define DETREND_quadratic(n,f) THD_quadratic_detrend(n,f,NULL,NULL,NULL)

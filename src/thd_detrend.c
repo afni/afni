@@ -6,6 +6,11 @@
 
 #include "mrilib.h"
 
+#ifdef SOLARIS
+# define sqrtf sqrt
+# define logf  log
+#endif
+
 /*-------------------------------------------------------------------------*/
 
 void THD_const_detrend( int npt, float *xx, float *xx0 ) /* 24 Aug 2001 */
@@ -459,19 +464,42 @@ void THD_generic_retrend( int npt , float *far ,
    free(ref) ; return ;
 }
 
-/*-----------------------------------------------------------------------*/
+#undef  INMASK
+#define INMASK(i) (mask != NULL && mask[i])
+/*----------------------------------------------------------------------------*/
+/* Fits each voxel time series to a linear model:
+
+                 nref-1
+     z[i][t] = SUM     ref[q][t] * fit[q][i]
+                 q=0
+
+   where
+    - i = voxel index      0..DSET_NVOX(dset)-1
+    - t = time index       0..DSET_NVALS(dset)-1
+    - q = reference index  0..nref-1
+    - Fitting is done in the L-p sense, where p=meth (1 or 2).
+    - The dataset itself is not modified.
+    _ Return value is the nref fit images, plus 1 extra image that is
+      the MAD of the residuals for meth=1 and the standard deviation for meth=2.
+    - In float format, of course.
+    - If NULL is returned, something bad happened.
+    - Also see function THD_medmad_bricks().
+------------------------------------------------------------------------------*/
 
 MRI_IMARR * THD_time_fit_dataset( THD_3dim_dataset *dset ,
-                                  int nref , float **ref , int meth )
+                                  int nref , float **ref , int meth , byte *mask )
 {
-   int ii , nvox,nval , qq ;
-   float *far , *fit ;
+   int ii , nvox,nval , qq,tt ;
+   float *far , *fit , *var , val ;
    MRI_IMARR *imar ; MRI_IMAGE *qim ; float **fitar ;
 
 ENTRY("THD_time_fit_dataset") ;
 
-   if( !ISVALID_DSET(dset) || nref < 1 || ref == NULL ) RETURN(NULL) ;
+   if( !ISVALID_DSET(dset) ||
+       nref < 1 || nref >= DSET_NVALS(dset) || ref == NULL ) RETURN(NULL) ;
    DSET_load(dset) ; if( !DSET_LOADED(dset) ) RETURN(NULL) ;
+
+   /* construct output images */
 
    INIT_IMARR(imar) ;
    fitar = (float **)malloc(sizeof(float *)*nref) ;
@@ -480,26 +508,170 @@ ENTRY("THD_time_fit_dataset") ;
      fitar[qq] = MRI_FLOAT_PTR(qim) ;
      ADDTO_IMARR(imar,qim) ;
    }
+   qim = mri_new_conforming( DSET_BRICK(dset,0) , MRI_float ) ;
+   var = MRI_FLOAT_PTR(qim) ;
+   ADDTO_IMARR(imar,qim) ;
 
    nvox = DSET_NVOX(dset) ; nval = DSET_NVALS(dset) ;
    far  = (float *)malloc(sizeof(float)*nval) ;
    fit  = (float *)malloc(sizeof(float)*nref) ;
    for( ii=0 ; ii < nvox ; ii++ ){
-     qq = THD_extract_array( ii , dset , 0 , far ) ;
+     if( !INMASK(ii) ) continue ;
+     qq = THD_extract_array( ii , dset , 0 , far ) ;  /* get data */
      if( qq == 0 ){
-       switch(meth){
+       switch(meth){                                  /* get fit */
          default:
-         case 2:
-           THD_generic_detrend_LSQ( nval , far , -1 , nref,ref , fit ) ;
+         case 2: THD_generic_detrend_LSQ( nval, far, -1, nref,ref, fit ); break;
+         case 1: THD_generic_detrend_L1 ( nval, far, -1, nref,ref, fit ); break;
+       }
+       for( qq=0 ; qq < nref ; qq++ ) fitar[qq][ii] = fit[qq] ; /* save fit */
+
+       /* at this point, far[] contains the residuals */
+
+       switch(meth){                    /* get stdev or MAD */
+         default:
+         case 2:{
+           register float mm,vv ;
+           for( mm=0.0,tt=0 ; tt < nval ; tt++ ) mm += far[tt] ;
+           mm /= nval ;
+           for( vv=0.0,tt=0 ; tt < nval ; tt++ ) vv += (far[tt]-mm)*(far[tt]-mm) ;
+           var[ii] = sqrtf( vv/(nval-1.0) ) ;
+         }
          break ;
 
-         case 1:
-           THD_generic_detrend_L1 ( nval , far , -1 , nref,ref , fit ) ;
+         case 1:{
+           for( tt=0 ; tt < nval ; tt++ ) far[tt] = fabsf(far[tt]) ;
+           var[ii] = qmed_float( nval , far ) ;
+         }
          break ;
        }
-       for( qq=0 ; qq < nref ; qq++ ) fitar[qq][ii] = fit[qq] ;
      }
    }
 
    free(fit); free(far); free(fitar); RETURN(imar);
+}
+
+/*----------------------------------------------------------------------------*/
+/* Get the time series data array at voxel #ii, detrended by the fit
+   from THD_time_fit_dataset().  If scl != 0, also scale the result
+   by the reciprocal of the stdev or MAD (last sub-brick in imar).
+------------------------------------------------------------------------------*/
+
+void THD_extract_detrended_array( THD_3dim_dataset *dset ,
+                                  int nref, float **ref, MRI_IMARR *imar,
+                                  int ii, int scl, float *far )
+{
+   int tt , nval , qq ;
+   float val , **fitar , *var ;
+   MRI_IMAGE *qim ;
+
+ENTRY("THD_extract_detrended_array") ;
+
+   if( !ISVALID_DSET(dset) ||
+       nref < 1            || ref == NULL                ||
+       imar == NULL        || IMARR_COUNT(imar) < nref+1 ||
+       ii < 0              || ii >= DSET_NVOX(dset)      || far == NULL ) EXRETURN ;
+
+   qq = THD_extract_array( ii , dset , 0 , far ) ;  /* get data */
+   if( qq < 0 ) EXRETURN ;
+   nval = DSET_NVALS(dset) ;
+
+   fitar = (float **)malloc(sizeof(float *)*nref) ;
+   for( qq=0 ; qq < nref ; qq++ ){
+     qim = IMARR_SUBIM(imar,qq) ; fitar[qq] = MRI_FLOAT_PTR(qim) ;
+   }
+   qim = IMARR_SUBIM(imar,nref) ; var = MRI_FLOAT_PTR(qim) ;
+
+   for( tt=0 ; tt < nval ; tt++ ){  /* get residuals */
+     val = far[tt] ;
+     for( qq=0 ; qq < nref ; qq++ ) val -= ref[qq][tt] * fitar[qq][ii] ;
+     far[tt] = val ;
+   }
+
+   if( scl && var[ii] > 0.0f ){
+     val = 1.0f / var[ii] ;
+     for( tt=0 ; tt < nval ; tt++ ) far[tt] *= val ;
+   }
+
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+THD_3dim_dataset * THD_detrend_dataset( THD_3dim_dataset *dset ,
+                                        int nref , float **ref ,
+                                        int meth , int scl ,
+                                        byte *mask , MRI_IMARR **imar )
+{
+   MRI_IMARR *qmar ;
+   int ii,jj,kk , nvals,nvox , iv ;
+   float *var ;
+   THD_3dim_dataset *newset ;
+
+ENTRY("THD_detrend_dataset") ;
+
+   if( !ISVALID_DSET(dset) ) RETURN(NULL) ;
+   nvals = DSET_NVALS(dset) ; nvox = DSET_NVOX(dset) ;
+
+   qmar = THD_time_fit_dataset( dset , nref,ref , meth , mask ) ;
+   if( qmar == NULL ) RETURN(NULL) ;
+
+   newset = EDIT_empty_copy(dset) ;
+   for( iv=0 ; iv < nvals ; iv++ )
+     EDIT_substitute_brick( newset , iv , MRI_float , NULL ) ;
+
+   var = (float *)malloc(sizeof(float)*nvals) ;
+   for( ii=0 ; ii < nvox ; ii++ ){
+     if( mask == NULL || mask[ii] )
+       THD_extract_detrended_array( dset , nref,ref , qmar , ii,scl , var ) ;
+     else
+       memset(var,0,sizeof(float)*nvals) ;
+     THD_insert_series( ii , newset , nvals , MRI_float , var , 0 ) ;
+   }
+
+   free(var) ;
+   if( imar != NULL ) *imar = qmar ;
+   else               DESTROY_IMARR(qmar) ;
+
+   RETURN(newset) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+int THD_retrend_dataset( THD_3dim_dataset *dset ,
+                         int nref , float **ref ,
+                         int scl , byte *mask , MRI_IMARR *imar )
+{
+   int ii,qq,tt , nvals,nvox ;
+   MRI_IMAGE *qim ; float **fitar , *far , fac , *var , val ;
+
+ENTRY("THD_retrend_dataset") ;
+
+   if( !ISVALID_DSET(dset) ||
+       nref < 1            || ref == NULL ||
+       imar == NULL        || IMARR_COUNT(imar) <= nref ) RETURN(0) ;
+
+   nvals = DSET_NVALS(dset) ; nvox = DSET_NVOX(dset) ;
+
+   fitar = (float **)malloc(sizeof(float *)*nref) ;
+   for( qq=0 ; qq < nref ; qq++ ){
+     qim = IMARR_SUBIM(imar,qq) ; fitar[qq] = MRI_FLOAT_PTR(qim) ;
+   }
+   qim = IMARR_SUBIM(imar,nref) ; var = MRI_FLOAT_PTR(qim) ;
+
+   far  = (float *)malloc(sizeof(float)*nvals) ;
+   for( ii=0 ; ii < nvox ; ii++ ){
+     if( mask != NULL && !mask[ii] ) continue ;
+     qq = THD_extract_array( ii , dset , 0 , far ) ;  /* get data */
+     if( qq < 0 ) continue ;
+     fac = (scl) ? var[ii] : 1.0f ;
+     for( tt=0 ; tt < nvals ; tt++ ){  /* add fit back in */
+       val = far[tt] * fac ;
+       for( qq=0 ; qq < nref ; qq++ ) val += ref[qq][tt] * fitar[qq][ii] ;
+       far[tt] = val ;
+     }
+     THD_insert_series( ii , dset , nvals , MRI_float , var , 0 ) ;
+   }
+
+   free(far) ; free(fitar) ; RETURN(1) ;
 }
