@@ -470,3 +470,75 @@ void THD_coorder_to_dicom( THD_coorder * cord ,
 
    return ;
 }
+
+/*---------------------------------------------------------------------
+   Return rotation and shift param. to go from i, j, k to Cardinal
+   Dicom x,y,z (non-oblique)
+-----------------------------------------------------------------------*/
+void THD_dicom_card_xform (THD_3dim_dataset * dset ,
+                      THD_dmat33 *tmat, THD_dfvec3 *dics )
+{
+
+   THD_dfvec3 dicr;
+   
+   /* rotation business */
+   switch( dset->daxes->xxorient ){
+      case ORI_R2L_TYPE:
+      case ORI_L2R_TYPE: 
+           tmat->mat[0][0] = dset->daxes->xxdel ; tmat->mat[0][1] = tmat->mat[0][2] = 0.0;
+         dics->xyz[0] = dset->daxes->xxorg;      
+         break ;
+      case ORI_P2A_TYPE:
+      case ORI_A2P_TYPE: 
+           tmat->mat[1][0] = dset->daxes->xxdel ; tmat->mat[1][1] = tmat->mat[1][2] = 0.0;
+         dics->xyz[1] = dset->daxes->xxorg;      
+         break ;
+      case ORI_I2S_TYPE:
+      case ORI_S2I_TYPE: 
+           tmat->mat[2][0] = dset->daxes->xxdel ; tmat->mat[2][1] = tmat->mat[2][2] = 0.0;
+         dics->xyz[2] = dset->daxes->xxorg;      
+         break ;
+      default: THD_FATAL_ERROR("illegal xxorient code") ;
+   }
+
+   switch( dset->daxes->yyorient ){
+      case ORI_R2L_TYPE:
+      case ORI_L2R_TYPE: 
+           tmat->mat[0][1] = dset->daxes->yydel ; tmat->mat[0][0] = tmat->mat[0][2] = 0.0;
+         dics->xyz[0] = dset->daxes->yyorg;      
+         break ;
+      case ORI_P2A_TYPE:
+      case ORI_A2P_TYPE: 
+           tmat->mat[1][1] = dset->daxes->yydel ; tmat->mat[1][0] = tmat->mat[1][2] = 0.0;
+         dics->xyz[1] = dset->daxes->yyorg;      
+         break ;
+      case ORI_I2S_TYPE:
+      case ORI_S2I_TYPE: 
+           tmat->mat[2][1] = dset->daxes->yydel ; tmat->mat[2][0] = tmat->mat[2][2] = 0.0;
+         dics->xyz[2] = dset->daxes->yyorg;      
+         break ;
+      
+      default: THD_FATAL_ERROR("illegal yyorient code") ;
+   }
+
+   switch( dset->daxes->zzorient ){
+      case ORI_R2L_TYPE:
+      case ORI_L2R_TYPE: 
+           tmat->mat[0][2] = dset->daxes->zzdel ; tmat->mat[0][0] = tmat->mat[0][1] = 0.0;
+         dics->xyz[0] = dset->daxes->zzorg;      
+         break ;
+      case ORI_P2A_TYPE:
+      case ORI_A2P_TYPE: 
+           tmat->mat[1][2] = dset->daxes->zzdel ; tmat->mat[1][0] = tmat->mat[1][1] = 0.0;
+         dics->xyz[1] = dset->daxes->zzorg;      
+         break ;
+      case ORI_I2S_TYPE:
+      case ORI_S2I_TYPE: 
+           tmat->mat[2][2] = dset->daxes->zzdel ; tmat->mat[2][0] = tmat->mat[2][1] = 0.0;
+         dics->xyz[2] = dset->daxes->zzorg;      
+         break ;
+      default: THD_FATAL_ERROR("illegal zzorient code") ;
+   }
+   
+   return  ;
+}
