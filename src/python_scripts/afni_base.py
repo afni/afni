@@ -236,7 +236,7 @@ class shell_com:
       self.se = ''
       #If command line is long, trim it, if possible
       l1 = len(self.com)
-      if (l1 > 100):
+      if (l1 > 80):
          self.trimcom = self.trim()
          #if (len(self.com) < l1):
          #print "Command trimmed to: %s" % (self.com)
@@ -256,6 +256,9 @@ class shell_com:
       elif eo == "dry_run":
          print "#Would be running%s:\n   cd %s\n   %s" % (ms, self.dir, self.trimcom)
          sys.stdout.flush()
+         self.out()
+      else:
+         self.run()
          self.out()
       return
    def trim(self):

@@ -38,7 +38,7 @@
   Global variables, constants, and data structures.
 */
 
-#define MAX_STRING_LENGTH 80
+#define MAX_STRING_LENGTH THD_MAX_NAME
 
 static THD_3dim_dataset * anat_dset = NULL;     /* input anatomical dataset  */
 char * commandline = NULL ;                /* command line for history notes */
