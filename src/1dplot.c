@@ -96,6 +96,8 @@ int main( int argc , char *argv[] )
             "        echo 2 4.5 -1 | 1dplot -plabel 'test_underscore' -stdin\n"
             "              versus\n"
             "        echo 2 4.5 -1 | 1dplot -plabel 'test\\_underscore' -stdin\n"
+            " -title pp = Same as -plabel, but only works with -ps option.\n"
+            "             Consider using -plabel instead.\n"
             "\n"
             " -stdin     = Don't read from tsfile; instead, read from\n"
             "              stdin and plot it. You cannot combine input\n"
@@ -258,6 +260,14 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-plabel") == 0 ){
         title = argv[++iarg] ;
         iarg++ ; continue ;
+     }
+     
+     if( strcmp(argv[iarg],"-title") == 0 ){ /* this option normally gets eaten by XtVaAppInitialize */
+        fprintf(stderr,                      /* unless that is one is using -ps! So keep it here, it */
+         "Consider using -plabel, -title "   /* don't hurt. */                                         
+         "only works with -ps option.\n"  ); 
+        title = argv[++iarg] ;                  
+        iarg++ ; continue ;                  
      }
 
      if( strcmp(argv[iarg],"-xlabel") == 0 ){
