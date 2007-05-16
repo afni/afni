@@ -24,7 +24,8 @@ static int model_search = 0;    /* search for best model */
 static int max_paths = 1000;    /* maximum number of paths to try in model search */
 static double stop_cost = 0.1;  /* stop searching if cost function drops below this value */
 static int grow_all = 0;        /* search for models over all possible combinations */
-
+static double theta_ll = -1.0;  /* lower limit for theta */
+static double theta_ul = 1.0;   /* upper limit for theta */
 static sqrmat *kmat;            /* matrix of path coefficients (thetas) */
 static sqrmat *theta_init_mat;  /* coded initial matrix of path coefficients */
 static sqrmat *psi_mat;             /* variance vector in square matrix form-user provided as 1D vector */
@@ -101,6 +102,8 @@ main (int argc, char *argv[])
               "   -max_iter n = maximum number of iterations for convergence (Default=10000).\n"
               "    Values can range from 1 to any positive integer less than 10000.\n"
               "   -nrand n = number of random trials before optimization (Default = 100)\n"
+              "   -limits m.mmm n.nnn = lower and upper limits for connection coefficients\n"
+              "    (Default = -1.0 to 1.0)\n"
               "   -verbose nnnnn = print info every nnnnn steps\n\n"
 	      " Model search options:\n"
 	      " Look for best model. The initial connection matrix file must follow these\n"
@@ -184,7 +187,7 @@ main (int argc, char *argv[])
 	   if(++nopt >=argc ){
 	      ERROR_exit("Error - need an argument after -DF!");
 	   }
-         DF = (double) atof(argv[nopt]);
+         DF =  strtod(argv[nopt], NULL);
 	 nopt++; continue;
       }
 
@@ -212,6 +215,18 @@ main (int argc, char *argv[])
           nopt++;
 	  continue;
         }
+     if (strcmp (argv[nopt], "-limits") == 0) {
+	   if(argc > nopt+3){
+	      ERROR_exit("*** Error - need two arguments after -limits!");
+	   }
+           theta_ll = strtod(argv[++nopt], NULL);
+           theta_ul = strtod(argv[++nopt], NULL);
+           if(theta_ul <= theta_ll) {
+              ERROR_exit("*** Error - limits can not be equal, and lower must be less than upper limit!");
+           }
+           nopt++;
+           continue;
+       }
 	
      if (strcmp (argv[nopt], "-verbose") == 0)
         {
@@ -257,7 +272,7 @@ main (int argc, char *argv[])
 	   if(++nopt >=argc ){
 	      ERROR_exit("Error - need an argument after -stop_cost!");
 	   }
-           stop_cost = (double) atof(argv[nopt]);
+           stop_cost = strtod(argv[nopt], NULL);
 	   if (stop_cost <= 0.0 ) {
 	      ERROR_exit("Error - stop_cost must be greater than 0");
            }
@@ -748,10 +763,11 @@ static double ComputeThetawithPowell() /*compute connection matrix */
       ERROR_exit("Error - Can not allocate memory for constraints!");
    }
    
+   /* set up lower and upper limits for search */
    for(i=0;i<ntheta;i++) {
       *(x+i) = 0.0;
-      *(thetamin+i) = -1.0;
-      *(thetamax+i) = 1.0;
+      *(thetamin+i) = theta_ll;
+      *(thetamax+i) = theta_ul;
    }
    fill_theta(ntheta, x);   /* put initial values from theta matrix */
    if(!model_search)
