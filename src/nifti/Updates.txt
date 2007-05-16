@@ -1,7 +1,7 @@
 
 Updates to the niftilb C package
 
-
+-----------------------------------------------------------------
 Updates in version 0.3 April 12, 2006
 
     - added const in appropriate function parameter locations
@@ -17,3 +17,29 @@ Updates in version 0.3 April 12, 2006
     - nifti_tool: added check_hdr and check_nim action options
 
 -----------------------------------------------------------------
+Updates in version 0.4 September 6, 2006
+
+    - for testing, added Testing/Data, Testing/niftilib/nifti_test2.c and
+        Testing/Data/ATestReferenceImageForReadingAndWriting.nii.gz
+      - modified Testing/niftilib/nifti_test.c for better code coverage
+    - added switch for not building unused funcs in nifti_stats.c
+    - modified nifti1_io.c: free(hstr) and clear ext vars
+    - fixed nt=0 case from 1.17 change in nifti_alloc_NBL_mem()
+    - fixed nifti_findhdrname() logic for efirst
+    - all fsliolib files: updated header to make public domain clear
+    - added nifti_set_skip_blank_ext()
+
+-----------------------------------------------------------------
+Updates in version 0.5 May 21, 2007
+
+    - fixed duplication of incuding utils directory for CMake
+    - syncronized with developments in ITK to prepare for building and
+      tar/rpm/dmg packaging with new versions of cmake
+    - added more typecasting to remove compiler warnings
+    - fslio.c: check for NULL return from nifti_image_read()
+    - creation of nifticdf directory, to separate cdf library functions
+      from utils/nifti_stats.c
+    - make system update for nifticdf
+    - modified CMakeBuild system to be compliant with new CPACK mechanism
+      of generating binary distributions
+

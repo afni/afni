@@ -8,7 +8,7 @@
  * example is for you.
  *
  * This code does not deal with wrong-endian data, compressed data,
- * the new qform/sform orientation codes, parsing filesnames, volume-
+ * the new qform/sform orientation codes, parsing filenames, volume-
  * wise or timecourse-wise data access or any of a million other very useful
  * things that are in the niftilib i/o reference libraries.
  * We encourage people to use the niftilib reference library and send
