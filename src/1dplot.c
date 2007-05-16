@@ -98,6 +98,8 @@ int main( int argc , char *argv[] )
             "        echo 2 4.5 -1 | 1dplot -plabel 'test\\_underscore' -stdin\n"
             " -title pp = Same as -plabel, but only works with -ps option.\n"
             "             Consider using -plabel instead.\n"
+            "             [In X11 mode, the X11 startup 'consumes' the '-title' ]\n"
+            "             [before the program scans the command line for options]\n"
             "\n"
             " -stdin     = Don't read from tsfile; instead, read from\n"
             "              stdin and plot it. You cannot combine input\n"
