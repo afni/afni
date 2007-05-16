@@ -166,3 +166,9 @@ standards. Made help clearer for @DTI_studio_reposition.
  * minor output, option name and help changes to 1dSEM
 08 May 2007
  * [with rickr] count can skip in a funny way
+09 May 2007
+ * minor changes to thd_mastery to allow simplified count commands in sub-brick
+selectors already implemented in thd_intlist.c and slightly modified help strings
+in 3ddata.h
+16 May 2007
+ * 1dSEM - changeable limits for connection coefficients
