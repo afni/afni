@@ -2012,3 +2012,7 @@
         - use cdflib functions from nifticdf, not from cdflib directory
   * removed cdflib directory and cdflib.h
 
+16 May 2007:
+  * modified nifti/Updates.txt in preparation of nifticlib-0.5 release
+  * modified nifti1_read_write.c for Kate, to fix comment typo
+
