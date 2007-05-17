@@ -150,7 +150,7 @@ main (int argc, char *argv[])
 	      "   To search models by growing from the best single coefficient model\n"
 	      "     up to 12 coefficients\n"
               "    1dSEM -theta testthetas_ms.1D -C testcorr.1D -psi testpsi.1D \\ \n"
-              "    -nrand 100 -DF 30 -model_search -max_paths 12\n"
+              "    -limits -2 2 -nrand 100 -DF 30 -model_search -max_paths 12\n"
 	      "   To search all possible models up to 8 coefficients:\n"
               "    1dSEM -theta testthetas_ms.1D -C testcorr.1D -psi testpsi.1D \\ \n"
               "    -nrand 10 -DF 30 -stop_cost 0.1 -grow_all -max_paths 8 | & tee testgrow.txt\n\n"
@@ -216,7 +216,7 @@ main (int argc, char *argv[])
 	  continue;
         }
      if (strcmp (argv[nopt], "-limits") == 0) {
-	   if(argc > nopt+3){
+	   if(argc < (nopt+3)){
 	      ERROR_exit("*** Error - need two arguments after -limits!");
 	   }
            theta_ll = strtod(argv[++nopt], NULL);
