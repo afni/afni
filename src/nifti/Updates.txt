@@ -30,7 +30,7 @@ Updates in version 0.4 September 6, 2006
     - added nifti_set_skip_blank_ext()
 
 -----------------------------------------------------------------
-Updates in version 0.5 May 21, 2007
+Updates in version 0.5 May 17, 2007
 
     - fixed duplication of incuding utils directory for CMake
     - syncronized with developments in ITK to prepare for building and
@@ -42,4 +42,5 @@ Updates in version 0.5 May 21, 2007
     - make system update for nifticdf
     - modified CMakeBuild system to be compliant with new CPACK mechanism
       of generating binary distributions
+    - modifed Makefiles to use ARCH in more cases
 
