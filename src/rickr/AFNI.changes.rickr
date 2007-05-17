@@ -2016,3 +2016,8 @@
   * modified nifti/Updates.txt in preparation of nifticlib-0.5 release
   * modified nifti1_read_write.c for Kate, to fix comment typo
 
+17 May 2007: nifti update for release 0.5
+  * modified Clibs/CMakeLists.txt, set MINOR to 5
+  * modified Makefile, examples/Makefile, utils/Makefile to apply ARCH
+      variable for easier building
+

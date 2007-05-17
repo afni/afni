@@ -44,22 +44,27 @@ ZLIB_INC	=	-I/usr/include
 ZLIB_PATH	=	-L/usr/lib
 ZLIB_LIBS 	= 	$(ZLIB_PATH) -lm -lz 
 
+##############################################################
+# platform specific redefines (to use, set ARCH appropriately)
 
+## ARCH = X86_64
 
-## Platform specific redefines
-
-## SGI 32bit
-##ZLIB_INC	=	-I/usr/freeware/include
-##ZLIB_PATH	=	-L/usr/freeware/lib32
-##RANLIB		=	echo "ranlib not needed"
-
-
-## RedHat Fedora Linux
-## ZLIB_INC	=	-I/usr/include
-## ZLIB_PATH	=	-L/usr/lib
-
-
-
+ifeq ($(ARCH),SGI) ## SGI 32bit
+ZLIB_INC	=	-I/usr/freeware/include
+ZLIB_PATH	=	-L/usr/freeware/lib32
+RANLIB		=	echo "ranlib not needed"
+else
+ifeq ($(ARCH),I386) ## 32-bit Linux
+ZLIB_INC	=	-I/usr/include
+ZLIB_PATH	=	-L/usr/lib
+else
+ifeq ($(ARCH),X86_64) ## 64-bit Linux
+ZLIB_INC	=
+ZLIB_PATH	=
+ZLIB_LIBS 	= 	$(ZLIB_PATH) -lm -lz 
+endif
+endif
+endif
 
 
 #################################################################
