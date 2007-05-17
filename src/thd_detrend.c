@@ -464,6 +464,49 @@ void THD_generic_retrend( int npt , float *far ,
    free(ref) ; return ;
 }
 
+/*----------------------------------------------------------------------------*/
+
+float ** THD_build_trigref( int corder , int nvals )
+{
+   int nref=2*corder+3 , jj,iv,kk ;
+   float **ref , tm,fac,fq ;
+
+ENTRY("THD_build_trigref") ;
+
+   if( corder < 0 || nvals >= nref ) RETURN(NULL) ;
+
+   ref=(float **)malloc(sizeof(float *)*nref) ;
+   for( jj=0 ; jj < nref ; jj++ )
+     ref[jj] = (float *) malloc( sizeof(float) * nvals ) ;
+
+   /* ref[0]: r(t) = 1 */
+   for( iv=0 ; iv < nvals ; iv++ ) ref[0][iv] = 1.0f ;
+
+   /* ref[1]: r(t) = t - tmid */
+   tm = 0.5f * (nvals-1.0f) ; fac = 2.0f / nvals ;
+   for( iv=0 ; iv < nvals ; iv++ ) ref[1][iv] = (iv-tm)*fac ;
+
+   /* ref[2]: r(t) = (t-tmid)**2 */
+   fac = fac*fac ;
+   for( iv=0 ; iv < nvals ; iv++ ) ref[2][iv] = (iv-tm)*(iv-tm)*fac ;
+
+   /* higher order ref[jj]: */
+   for( jj=3,kk=1 ; kk <= corder ; kk++ ){
+     fq = (2.0*PI*kk)/nvals ;
+
+     /* r(t) = sin(2*PI*k*t/N) */
+     for( iv=0 ; iv < nvals ; iv++ ) ref[jj][iv] = sin(fq*iv) ;
+     jj++ ;
+
+     /* r(t) = cos(2*PI*k*t/N) */
+     for( iv=0 ; iv < nvals ; iv++ ) ref[jj][iv] = cos(fq*iv) ;
+     jj++ ;
+   }
+
+   RETURN(ref) ;
+}
+
+/*----------------------------------------------------------------------------*/
 #undef  INMASK
 #define INMASK(i) (mask != NULL && mask[i])
 /*----------------------------------------------------------------------------*/
