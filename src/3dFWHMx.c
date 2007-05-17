@@ -251,35 +251,8 @@ int main( int argc , char *argv[] )
 
      INFO_message("detrending start: %d baseline funcs, %d time points",nref,nvals) ;
 
-     /* make ref[][] arrays */
-
-     ref=(float **)malloc(sizeof(float *)*nref) , tm,fac,fq ;
-     for( jj=0 ; jj < nref ; jj++ )
-       ref[jj] = (float *) malloc( sizeof(float) * nvals ) ;
-
-     /* ref[0]: r(t) = 1 */
-     for( iv=0 ; iv < nvals ; iv++ ) ref[0][iv] = 1.0 ;
-
-     /* ref[1]: r(t) = t - tmid */
-     tm = 0.5 * (nvals-1.0f) ; fac = 2.0f / nvals ;
-     for( iv=0 ; iv < nvals ; iv++ ) ref[1][iv] = (iv-tm)*fac ;
-
-     /* ref[2]: r(t) = (t-tmid)**2 */
-     fac = fac*fac ;
-     for( iv=0 ; iv < nvals ; iv++ ) ref[2][iv] = (iv-tm)*(iv-tm)*fac ;
-
-     /* higher order ref[jj]: */
-     for( jj=3,kk=1 ; kk <= corder ; kk++ ){
-       fq = (2.0*PI*kk)/nvals ;
-
-       /* r(t) = sin(2*PI*k*t/N) */
-       for( iv=0 ; iv < nvals ; iv++ ) ref[jj][iv] = sin(fq*iv) ;
-       jj++ ;
-
-       /* r(t) = cos(2*PI*k*t/N) */
-       for( iv=0 ; iv < nvals ; iv++ ) ref[jj][iv] = cos(fq*iv) ;
-       jj++ ;
-     }
+     ref = THD_build_trigref( corder , nvals ) ;
+     if( ref == NULL ) ERROR_exit("THD_build_trigref failed!") ;
 
      newset = THD_detrend_dataset( inset , nref , ref , 2 , 1 , mask , NULL ) ;
      if( newset == NULL ) ERROR_exit("detrending failed!") ;
