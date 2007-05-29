@@ -6244,3 +6244,6 @@
 10 May 2007
  * -izz option to 3dAllineate.
  * L1 detrending in thd_detrend.c (and retrending).
+
+29 May 2007
+ * Enforce RadioAlwaysOne behaviour on marks toggles.
