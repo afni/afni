@@ -369,12 +369,15 @@ void symeigval_double( int n , double *a , double *e )
 
    /*-- here, deal with general n > 3 --*/
 
-   fv1 = (double *) malloc(sizeof(double)*n) ;  /* workspaces */
-   fv2 = (double *) malloc(sizeof(double)*n) ;
+   fv1 = (double *) malloc(sizeof(double)*(n+9)) ;  /* workspaces */
+   fv2 = (double *) malloc(sizeof(double)*(n+9)) ;
 
    nm = n ; matz = 0 ; ierr = 0 ;
 
    rs_( &nm , &nm , a , e , &matz , a , fv1 , fv2 , &ierr ) ;
+
+   if( ierr != 0 )
+     fprintf(stderr,"** ERROR: symeigval_double error code = %d\n",(int)ierr) ;
 
    free((void *)fv1) ; free((void *)fv2) ;
    return ;
