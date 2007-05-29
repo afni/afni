@@ -5103,9 +5103,22 @@ ENTRY("calculate_results") ;
             ixyz_bot = proc_vox_bot[pp] ;   /* these 3 variables   */
             ixyz_top = proc_vox_top[pp] ;   /* are for the process */
             proc_ind = pp ;                 /* we're about to fork */
+            errno    = 0 ;
             newpid   = fork() ;
-            if( newpid == -1 )
-              ERROR_exit("Can't fork job #%d! Danger, Wil Robinson!",pp);
+            if( newpid == -1 ){
+              ERROR_message("Can't fork job #%d! Danger, Wil Robinson!",pp);
+              if( errno != 0 ) perror("** Unix ERROR message") ;
+              if( pp > 1 ){
+                int qq ;
+                for( qq=1 ; qq < pp ; qq++ ){
+                  ERROR_message("Killing fork-ed job %d (pid=%u)",
+                                qq , (unsigned int)proc_pid[qq]   ) ;
+                  kill(    proc_pid[qq] ,SIGTERM   ) ; iochan_sleep(10) ;
+                  waitpid( proc_pid[pp] , NULL , 0 ) ;
+                }
+              }
+              ERROR_exit("3dDeconvolve main process now stopping -- SORRY") ;
+            }
 
             if( newpid == 0 ) break ;   /* I'm the child */
             proc_pid[pp] = newpid ;     /* I'm the parent */
@@ -8162,6 +8175,7 @@ static float basis_gam( float x, float b, float c, float top, void *q )
 }
 
 /*--------------------------------------------------------------------------*/
+/* SPM2 basis functions (corrected 29 May 2007, I hope) */
 
 #undef  SPM_A1
 #undef  SPM_A2
@@ -8169,7 +8183,7 @@ static float basis_gam( float x, float b, float c, float top, void *q )
 #undef  SPM_P2
 
 #define SPM_A1 0.0083333333    /* A * exp(-x) * x^P */
-#define SPM_P1 4.0
+#define SPM_P1 5.0             /* not 4.0 -- 29 May 2007 ! */
 #define SPM_A2 1.274527e-13
 #define SPM_P2 15.0
 
@@ -8179,6 +8193,8 @@ static float basis_spmg1( float x, float a, float b, float c, void *q )
    return (float)(exp(-x)*( SPM_A1*pow(x,SPM_P1)
                            -SPM_A2*pow(x,SPM_P2) )) ;
 }
+
+/*--------------------------- d/dx of the above ----------------------------*/
 
 static float basis_spmg2( float x, float a, float b, float c, void *q )
 {

@@ -6247,3 +6247,6 @@
 
 29 May 2007
  * Enforce RadioAlwaysOne behaviour on marks toggles.
+ * Modify 3dDeconvolve to do proper kill-off of children when fork() fails.
+ * Fix SPMG model power from 4 to 5.
+ * Modify symeigval_double() to report nonzero error code from rs_().
