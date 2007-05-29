@@ -321,6 +321,30 @@ ENTRY("populate_nifti_image") ;
   nim->qto_xyz.m[1][3] = nim->qoffset_y ;
   nim->qto_xyz.m[2][3] = nim->qoffset_z ;
 
+
+  /*-- from the same above info, set the sform matrix to equal the qform --*/
+  /* KRH 7/6/05 - using sform to duplicate qform for
+                           interoperability with FSL                       */
+  /* update with oblique transformation if available DRG 24 May 2007 */
+  /* check for valid transformation matrix */
+  if(!ISVALID_MAT44(dset->daxes->ijk_to_dicom_real)) {
+     nim->sto_xyz = nim->qto_xyz; /* copy qform to sform */
+  }
+  else {
+      /* fill in sform with AFNI daxes transformation matrix */
+      nim->sto_xyz = dset->daxes->ijk_to_dicom_real;
+     /* negate first two rows of sform for NIFTI - LPI standard versus
+                                            AFNI RAI "DICOM" standard */
+     for( ii = 0; ii < 2; ii++) {
+	for (jj = 0 ; jj < 4; jj++) {
+            nim->sto_xyz.m[ii][jj] = -(nim->sto_xyz.m[ii][jj]);
+	}
+     }
+     /* update qform too with struct copy from sform*/
+     nim->qto_xyz= nim->sto_xyz ;
+
+  }
+
   /*-- from the above info, calculate the quaternion qform --*/
 
   STATUS("set quaternion") ;
@@ -328,15 +352,6 @@ ENTRY("populate_nifti_image") ;
   nifti_mat44_to_quatern( nim->qto_xyz , &nim->quatern_b, &nim->quatern_c, &nim->quatern_d,
                     &dumqx, &dumqy, &dumqz, &dumdx, &dumdy, &dumdz, &nim->qfac ) ;
 
-  /*-- from the same above info, set the sform matrix to equal the qform --*/
-  /* KRH 7/6/05 - using sform to duplicate qform for
-                           interoperability with FSL                       */
-
-  for ( ii = 0 ; ii < 3 ; ii++ ) {
-    for ( jj = 0 ; jj < 4 ; jj++ ) {
-      nim->sto_xyz.m[ii][jj] = nim->qto_xyz.m[ii][jj] ;
-    }
-  }
 
   /*-- verify dummy quaternion parameters --*/
 
