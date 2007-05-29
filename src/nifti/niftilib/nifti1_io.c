@@ -3830,11 +3830,11 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
       if( g_opts.debug > 1 ){
          fprintf(stderr,"+d found extension #%d, code = 0x%x, size = %d\n",
                  count, extn.ecode, extn.esize);
-         if( extn.ecode == NIFTI_ECODE_AFNI )          /* ~XML */
+         if( extn.ecode == NIFTI_ECODE_AFNI && g_opts.debug > 2 ) /* ~XML */
             fprintf(stderr,"   AFNI extension: %.*s\n",
                     extn.esize-8,extn.edata);
-         else if( extn.ecode == NIFTI_ECODE_COMMENT )  /* TEXT */
-            fprintf(stderr,"   COMMENT extension: %.*s\n",
+         else if( extn.ecode == NIFTI_ECODE_COMMENT && g_opts.debug > 2 )
+            fprintf(stderr,"   COMMENT extension: %.*s\n",        /* TEXT */
                     extn.esize-8,extn.edata);
       }
       remain -= extn.esize;
@@ -4048,7 +4048,7 @@ static int nifti_read_next_extension( nifti1_extension * nex, nifti_image *nim,
    }
 
    /* success! */
-   if( g_opts.debug > 1 )
+   if( g_opts.debug > 2 )
       fprintf(stderr,"+d successfully read extension, code %d, size %d\n",
               nex->ecode, nex->esize);
 
