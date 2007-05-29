@@ -6,6 +6,7 @@
 #include "mrilib.h"
 
 /*--------------------------------------------------------------------------*/
+#undef DEBUG_ON
 
 #define MATVEC_FOR 1
 #define MATVEC_BAC 2
@@ -55,7 +56,11 @@ int main( int argc , char * argv[] )
 
    THD_coorder cord ;
    ATR_float *atr_matfor=NULL , *atr_matinv=NULL ;
-
+   THD_dmat33 tmat ;
+   THD_dfvec3 tvec ;
+   mat44 Tw, Tc, Tw_inv, inv_Tc, Tr;
+   int oblique_flag = 0;
+   THD_3dim_dataset *oblparset=NULL ;
 #if 0
    MRI_IMAGE *matflim=NULL ;
    float     *matflar=NULL ;
@@ -102,8 +107,7 @@ int main( int argc , char * argv[] )
             "                     which must have been created by program\n"
             "                     3dWarpDrive.  In this way, you can apply\n"
             "                     a transformation matrix computed from\n"
-            "                     in 3dWarpDrive to another dataset.\n"
-            "\n"
+            "                     in 3dWarpDrive to another dataset.\n\n"
             "     ** N.B.: The above option is analogous to the -rotparent\n"
             "                option in program 3drotate.  Use of -matparent\n"
             "                should be limited to datasets whose spatial\n"
@@ -111,10 +115,24 @@ int main( int argc , char * argv[] )
             "                was used for input to 3dWarpDrive (i.e., the\n"
             "                input to 3dWarp should overlay properly with\n"
             "                the input to 3dWarpDrive that generated the\n"
-            "                -matparent dataset).\n"
-            "              Sample usages:\n"
-            " 3dWarpDrive -affine_general -base d1+orig -prefix d2WW -twopass -input d2+orig\n"
-            " 3dWarp      -matparent d2WW+orig -prefix epi2WW epi2+orig\n"
+            "                -matparent dataset).\n\n"
+  "  -card2oblique obl_dset or \n"
+  "  -oblique_parent obl_dset = Read in the oblique transformation matrix\n"
+  "     from an oblique dataset and make cardinal dataset oblique to match.\n"
+  "  -deoblique or\n"
+  "  -oblique2card = Transform an oblique dataset to a cardinal dataset\n"
+  "     Both these oblique transformation options require a new grid for the\n"
+  "     output as specified with the -newgrid or -gridset options\n"
+  "     or a new grid will be assigned based on the minimum voxel spacing\n"
+  "    ** N.B.: EPI time series data should be time shifted with 3dTshift before"
+  "                rotating the volumes to a cardinal direction\n\n"
+  "Sample usages:\n"
+  " 3dWarpDrive -affine_general -base d1+orig -prefix d2WW -twopass"
+    " -input d2+orig\n"
+  " 3dWarp -matparent d2WW+orig -prefix epi2WW epi2+orig\n\n"
+  " 3dWarp -card2oblique oblique_epi+orig -prefix oblique_anat card_anat+orig\n"
+  " 3dWarp -oblique2card -prefix card_epi_tshift -newgrid 3.5 epi_tshift+orig\n"
+  "\n"
 #if 0
             "\n"
             "  -matfile mname  = Read in the file 'mname', which consists\n"
@@ -397,6 +415,23 @@ int main( int argc , char * argv[] )
        matdefined = 1 ; nopt++ ; continue ;
      }
 
+     if((strncmp(argv[nopt],"-oblique_parent",15) == 0 ) || \
+        (strncmp(argv[nopt],"-card2oblique",13) == 0 )) {
+       if( matdefined )
+         ERROR_exit("-oblique_parent: Matrix already defined!\n");
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after -oblique_parent!\n");
+       oblparset = THD_open_dataset( argv[nopt] ) ;
+       if( oblparset == NULL )
+         ERROR_exit("Can't open -oblique_parent %s\n",argv[nopt]);
+       oblique_flag = 2;  matdefined = 1; nopt++ ; continue ;
+     }
+
+     if((strncmp(argv[nopt],"-deoblique",10) == 0 ) ||
+       ( strncmp(argv[nopt],"-oblique2card",13) == 0 )){
+        oblique_flag = 1; matdefined = 1; nopt++ ; continue ;
+     }
+
      /*-----*/
 
      ERROR_exit("Unknown option %s\n",argv[nopt]) ;
@@ -464,6 +499,66 @@ int main( int argc , char * argv[] )
    } else if( newgset != NULL ){
      newggg = newgset      ; gflag = WARP3D_NEWDSET ;
    }
+   if(oblique_flag) {
+      ATR_float *atr ; float *matar, dm ;
+      if(oblique_flag==1)   /* if deobliquing, everything is in the same dataset */
+         oblparset = inset;
+
+      atr = THD_find_float_atr( oblparset->dblk, "IJK_TO_DICOM_REAL" );
+      if( atr != NULL ) atr_matinv = (ATR_float *)THD_copy_atr( (ATR_any *)atr ) ;
+      if( atr_matinv == NULL ||  atr_matinv->nfl < 12 )
+         ERROR_exit("Oblique parent dataset doesn't have oblique "
+                    "transformation attributes!?\n");
+      /* load oblique transformation matrix */
+      matar = atr_matinv->fl ;
+      LOAD_MAT44(Tr, matar[0], matar[1], matar[2], matar[3],
+                     matar[4], matar[5], matar[6], matar[7],
+                     matar[8], matar[9], matar[10], matar[11]);
+
+
+      /* load DICOM (RAI) cardinal transformation matrix */
+      THD_dicom_card_xform(oblparset, &tmat, &tvec); 
+      LOAD_MAT44(Tc, tmat.mat[0][0], tmat.mat[0][1], tmat.mat[0][2], tvec.xyz[0],
+                     tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
+		     tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
+      inv_Tc = MAT44_INV(Tc);
+      Tw = MAT44_MUL(Tr, inv_Tc);
+
+      if(oblique_flag==2) /* if changing cardinal to oblique */
+         DSET_delete(oblparset) ;  /* don't need oblique parent dataset anymore */
+
+#ifdef DEBUG_ON
+DUMP_MAT44("Tr",Tr);
+DUMP_MAT44("Tc",Tc);
+DUMP_MAT44("Tw",Tw);
+#endif
+      if(oblique_flag==1)
+         matar = &Tw.m[0][0];
+      else {
+         Tw_inv = MAT44_INV(Tw);
+         matar = &Tw_inv.m[0][0];
+#ifdef DEBUG_ON
+DUMP_MAT44("Tw_inv",Tw_inv);
+#endif
+      }
+      LOAD_MAT  ( dicom_in2out.mm, matar[0],matar[1],matar[2],
+                                   matar[4],matar[5],matar[6],
+                                   matar[8],matar[9],matar[10] ) ;
+      LOAD_FVEC3( dicom_in2out.vv, matar[3],matar[7],matar[11] ) ;
+
+      dm = MAT_DET( dicom_in2out.mm ) ;
+      if( dm == 0.0 )
+        ERROR_exit("Determinant of matrix is 0\n");
+
+      dicom_out2in = INV_VECMAT( dicom_in2out ) ;
+
+      use_matvec = MATVEC_FOR ; matdefined = 1 ;
+      if(newggg==NULL) {
+         ddd_newgrid = DSET_MIN_DEL(inset);
+         newggg = &ddd_newgrid ; gflag = WARP3D_NEWGRID ;
+         INFO_message("Using minimum spacing of %f mm for new grid spacing",ddd_newgrid);
+      }
+    }   
 
    if( use_matvec ){
      outset = THD_warp3D_affine( inset , dicom_out2in ,
@@ -478,7 +573,13 @@ int main( int argc , char * argv[] )
      ERROR_exit("THD_warp3D() fails for some reason!\n") ;
 
    /*-- polish up the new dataset info --*/
-
+   /* if deobliquing, clear the oblique transformation matrix */
+   /* really should update with new info, but clear for now */
+   /* make invalid by setting lower right element to 0 */
+   if(oblique_flag==1) { 
+     ZERO_MAT44(outset->daxes->ijk_to_dicom_real);
+     outset->daxes->ijk_to_dicom_real.m[0][0] = 0.0;
+   }
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dWarp" , argc,argv , outset ) ;
 

@@ -19,6 +19,7 @@ THD_3dim_dataset * THD_open_nifti( char *pathname )
    THD_ivec3 orixyz , nxyz ;
    THD_fvec3 dxyz , orgxyz ;
    THD_mat33 R ;
+   mat44 ijk_to_dicom44 ;
    char *ppp , prefix[THD_MAX_PREFIX] ;
    char form_priority = 'S' ;             /* 23 Mar 2006 */
 
@@ -210,6 +211,19 @@ ENTRY("THD_open_nifti") ;
                   nim->qto_xyz.m[2][1] ,  /* [damn fault!!!!!] */
                   nim->qto_xyz.m[2][2]  ) ;
 
+     LOAD_MAT44(ijk_to_dicom44, -nim->qto_xyz.m[0][0] ,  /* negate x and y   */
+                 -nim->qto_xyz.m[0][1] ,  /* coefficients,    */
+                 -nim->qto_xyz.m[0][2] ,  /* since AFNI works */
+                  0.0,
+                 -nim->qto_xyz.m[1][0] ,  /* with RAI coords, */
+                 -nim->qto_xyz.m[1][1] ,  /* but NIFTI uses   */
+                 -nim->qto_xyz.m[1][2] ,  /* LPI coordinates. */
+                  0.0,
+                  nim->qto_xyz.m[2][0] ,  /* [Which is my own] */
+                  nim->qto_xyz.m[2][1] ,  /* [damn fault!!!!!] */
+                  nim->qto_xyz.m[2][2] ,  
+                  0.0  ) ;
+
      orixyz = THD_matrix_to_orientation( R ) ;   /* compute orientation codes */
 
      iview = ((nim->qform_code == NIFTI_XFORM_TALAIRACH ) ||
@@ -357,6 +371,19 @@ ENTRY("THD_open_nifti") ;
                         (ORIENT_sign[orixyz.ijk[1]]=='+') ? dytmp : -dytmp ,
                         (ORIENT_sign[orixyz.ijk[2]]=='+') ? dztmp : -dztmp ) ;
 
+     LOAD_MAT44(ijk_to_dicom44, -nim->qto_xyz.m[0][0] ,  /* negate x and y   */
+                 -nim->sto_xyz.m[0][1] ,  /* coefficients,    */
+                 -nim->sto_xyz.m[0][2] ,  /* since AFNI works */
+                  0.0,
+                 -nim->sto_xyz.m[1][0] ,  /* with RAI coords, */
+                 -nim->sto_xyz.m[1][1] ,  /* but NIFTI uses   */
+                 -nim->sto_xyz.m[1][2] ,  /* LPI coordinates. */
+                  0.0,
+                  nim->sto_xyz.m[2][0] ,  /* [Which is my own] */
+                  nim->sto_xyz.m[2][1] ,  /* [damn fault!!!!!] */
+                  nim->sto_xyz.m[2][2] ,  
+                  0.0  ) ;
+
    } else { /* NO SPATIAL XFORM. BAD BAD BAD BAD BAD BAD. */
 
      float dxtmp, dytmp, dztmp ;
@@ -391,12 +418,23 @@ ENTRY("THD_open_nifti") ;
      LOAD_FVEC3( orgxyz , 0 ,
                           0 ,
                           0 ) ;
+     /* put scaled identity matrix by default */
+     LOAD_MAT44(ijk_to_dicom44, dxtmp, 0.0, 0.0, 0.0,  
+                                0.0, dytmp, 0.0, 0.0,
+                                0.0, 0.0, dztmp, 0.0 );
    }
+
+   ijk_to_dicom44.m[0][3] = orgxyz.xyz[0];   /* update origins in last column */
+   ijk_to_dicom44.m[1][3] = orgxyz.xyz[1];   /* negated somewhere else */
+   ijk_to_dicom44.m[2][3] = orgxyz.xyz[2];
 
 
    /*-- make an AFNI dataset! --*/
 
    dset = EDIT_empty_copy(NULL) ;
+   /* copy structure to dataset structure */
+
+      
 
    ppp  = THD_trailname(pathname,0) ;               /* strip directory */
    MCW_strncpy( prefix , ppp , THD_MAX_PREFIX ) ;   /* to make prefix */
