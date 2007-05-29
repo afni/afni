@@ -1350,7 +1350,8 @@ typedef struct {
       mat44 dicom_to_ijk ;  /* inverse of above */
       float dicom_xxmin , dicom_yymin , dicom_zzmin ;
       float dicom_xxmax , dicom_yymax , dicom_zzmax ;
-
+      /*** 18 May 2007: obliquity */
+      mat44 ijk_to_dicom_real ;  /* matrix to convert ijk to DICOM for obliquity*/
    /* pointers to other stuff */
 
       XtPointer parent ;    /*!< Dataset that "owns" this struct */
@@ -2717,6 +2718,12 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 
 #define DSET_DZ(ds) ((ds)->daxes->zzdel)
 
+/*! Return minimum grid spacing in 2 dimensions for dataset ds */
+#define DSET_MIN_DELXY(ds) ((fabs(DSET_DX(ds)) < (fabs(DSET_DY(ds))) ) ?  \
+     fabs(DSET_DX(ds)) : fabs(DSET_DY(ds)) )
+/*! Return minimum grid spacing in 3 dimensions for dataset ds */
+#define DSET_MIN_DEL(ds) ((DSET_MIN_DELXY(ds)<fabs(DSET_DZ(ds))) ? \
+     DSET_MIN_DELXY(ds) : fabs(DSET_DZ(ds)))
 /*! Return grid origin along x-axis of dataset ds */
 
 #define DSET_XORG(ds) ((ds)->daxes->xxorg)  /* 29 Aug 2001 */

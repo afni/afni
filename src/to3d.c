@@ -5,6 +5,8 @@
 ******************************************************************************/
 
 #include "to3d.h"
+extern void mri_read_dicom_reset_obliquity();
+extern void mri_read_dicom_get_obliquity(float *);
 
 #define LABEL_ARG(str) \
   XtVaTypedArg , XmNlabelString , XmRString , (str) , strlen(str)+1
@@ -4034,7 +4036,7 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
    /*--- read 1st file to get sizes ---*/
 
    CLEAR_MRILIB_globals ;  /* 12 Mar 2001 */
-
+   mri_read_dicom_reset_obliquity();  /* clear any previous obliquity info */
    if( argopt.delay_input )
       arr = mri_read_file_delay( gname[0] ) ;
    else
@@ -4498,13 +4500,15 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
    daxes->yyorient = user_inputs.yorient ;
    daxes->zzorient = user_inputs.zorient ;
 
+   /*--- 18 May 2007: set obliquity coordinates in header */
+   mri_read_dicom_get_obliquity((float *) &(daxes->ijk_to_dicom_real)); /*pass 16 element float */
+
    /*--- 15 Dec 2005: set the coordinate matrices in the header as well ---*/
 
    THD_set_daxes_to_dicomm(daxes) ;
-
+ 
    if( !ISVALID_MAT44(daxes->ijk_to_dicom) ) THD_daxes_to_mat44(daxes) ;
-
-   /*-----*/
+    /*-----*/
 
    dset->type      = user_inputs.dataset_type ;
    dset->view_type = user_inputs.view_type ;

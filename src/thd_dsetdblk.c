@@ -274,6 +274,15 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    if( !ISVALID_MAT44(daxes->ijk_to_dicom) )
      THD_daxes_to_mat44( daxes ) ;
 
+   atr_flo = THD_find_float_atr( blk, "IJK_TO_DICOM_REAL" );
+   /* load oblique transformation matrix */
+   if(atr_flo) {
+     LOAD_MAT44(daxes->ijk_to_dicom_real, \
+         atr_flo->fl[0], atr_flo->fl[1], atr_flo->fl[2], atr_flo->fl[3], \
+         atr_flo->fl[4], atr_flo->fl[5], atr_flo->fl[6], atr_flo->fl[7], \
+         atr_flo->fl[8], atr_flo->fl[9], atr_flo->fl[10], atr_flo->fl[11]);
+   }
+
    /*------------------------------------*/
    /*-- read set of markers (optional) --*/
    /*------------------------------------*/

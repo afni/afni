@@ -129,6 +129,21 @@ static float tempRWC ;
      tempA_fvec3.xyz[1] = (a).xyz[1] + (b).xyz[1] , \
      tempA_fvec3.xyz[2] = (a).xyz[2] + (b).xyz[2] , tempA_fvec3 )
 
+  /*! Return THD_fvec3 elementwise multiplication aj * bj */
+
+#define MULT_FVEC3(a,b) \
+   ( tempA_fvec3.xyz[0] = (a).xyz[0] * (b).xyz[0] , \
+     tempA_fvec3.xyz[1] = (a).xyz[1] * (b).xyz[1] , \
+     tempA_fvec3.xyz[2] = (a).xyz[2] * (b).xyz[2] , tempA_fvec3 )
+
+  /*! Return THD_fvec3 aj* b where b is a scalar */
+
+#define SCALE_FVEC3(a,b) \
+   ( tempA_fvec3.xyz[0] = (a).xyz[0] * (b) , \
+     tempA_fvec3.xyz[1] = (a).xyz[1] * (b) , \
+     tempA_fvec3.xyz[2] = (a).xyz[2] * (b) , tempA_fvec3 )
+
+
   /*! Return THD_fvec3 a/|a| (unit vector). */
 
 #define NORMALIZE_FVEC3(a) \
@@ -158,7 +173,7 @@ static float tempRWC ;
 #define DOT_FVEC3(a,b) \
    ((a).xyz[0]*(b).xyz[0] + (a).xyz[1]*(b).xyz[1] + (a).xyz[2]*(b).xyz[2])
 
-  /* scale and add two vectors: fa * a + fb * b */
+   /* scale and add two vectors: fa * a + fb * b */
 
 #define SCLADD_FVEC3(fa,a,fb,b) \
   ( tempA_fvec3.xyz[0] = (fa)*(a).xyz[0] + (fb)*(b).xyz[0] , \

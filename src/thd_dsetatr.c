@@ -157,6 +157,18 @@ ENTRY("THD_set_dataset_attributes") ;
      THD_set_float_atr( blk , "IJK_TO_DICOM" , 12 , ftemp ) ;
    }
 
+   /*-- write matrix for (i,j,k) to DICOM real (x,y,z) conversion [18 May 2007] --*/
+   /* to store obliquity information */
+   if( !ISVALID_MAT44(daxes->ijk_to_dicom_real) ) THD_daxes_to_mat44( daxes ) ;
+
+   if( ISVALID_MAT44(daxes->ijk_to_dicom_real) ){
+     UNLOAD_MAT44(daxes->ijk_to_dicom_real, ftemp[0],ftemp[1],ftemp[2],ftemp[3],
+                                       ftemp[4],ftemp[5],ftemp[6],ftemp[7],
+                                       ftemp[8],ftemp[9],ftemp[10],ftemp[11] );
+     THD_set_float_atr( blk , "IJK_TO_DICOM_REAL" , 12 , ftemp ) ;
+   }
+
+
    /*----- write markers, if present -----*/
 
    if( dset->markers != NULL ){
