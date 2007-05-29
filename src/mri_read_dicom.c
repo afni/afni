@@ -1765,11 +1765,10 @@ Clear_obl_info(oblique_info *obl_info)
    obl_info->mos_ix = obl_info->mos_nx = obl_info->mos_ny = obl_info->mos_nslice = 1;
    obl_info->nx = obl_info->ny = 1;
    obl_info_set = 0;
+   /* make all elements zero flagging it hasn't been computed yet */
+   /* lower right corner of valid MAT44 matrix is 1.0, so this is invalid */
    for(i=0;i<4;i++) {
       for(j=0;j<4;j++) {
-         if(i==j)
-            obl_info->Tr_dicom[i][j] = 1.0;
-         else
             obl_info->Tr_dicom[i][j] = 0.0;
       }
    }
