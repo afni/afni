@@ -729,7 +729,7 @@ STATUS("making imag->rowcol") ;
 
    XtVaSetValues( imag->popmenu ,
                      XmNradioBehavior , True ,
-                     XmNradioAlwaysOne , False ,
+                     XmNradioAlwaysOne , True  ,
                      XmNspacing      , 1 ,
                      XmNmarginHeight , 0 ,
                      XmNmarginWidth  , 0 ,
@@ -2031,7 +2031,7 @@ STATUS("making marks->rowcol") ;
 
    XtVaSetValues( marks->tog_rowcol ,
                      XmNradioBehavior , True ,
-                     XmNradioAlwaysOne , False ,
+                     XmNradioAlwaysOne , True  ,
                      XmNspacing      , 1 ,
                      XmNmarginHeight , 0 ,
                      XmNmarginWidth  , 0 ,

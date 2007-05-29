@@ -6400,9 +6400,8 @@ STATUS("voxel coordinates") ;
 void AFNI_marktog_CB( Widget w ,
                       XtPointer client_data , XtPointer call_data )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
-   XmToggleButtonCallbackStruct * cbs =
-         (XmToggleButtonCallbackStruct *) call_data ;
+   Three_D_View *im3d                = (Three_D_View *)client_data ;
+   XmToggleButtonCallbackStruct *cbs = (XmToggleButtonCallbackStruct *)call_data;
 
    int bval , ip , xx=-1 , yy=-1 , zz=-1 ;
    Widget * other_tog ;
@@ -6415,6 +6414,7 @@ ENTRY("AFNI_marktog_CB") ;
 
       default:  XBell(XtDisplay(w),100) ; EXRETURN ;  /* error */
 
+      /** case XmCR_ACTIVATE: **/
       case XmCR_DISARM:   /* button on the control panel */
          bval      = AFNI_first_tog( MARKS_MAXNUM ,
                                      im3d->vwid->marks->tog ) ;
