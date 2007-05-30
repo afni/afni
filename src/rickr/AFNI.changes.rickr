@@ -2021,3 +2021,4 @@
   * modified Makefile, examples/Makefile, utils/Makefile to apply ARCH
       variable for easier building
 
+30 May 2007: nifti CMakeList updates from Michael Hanke

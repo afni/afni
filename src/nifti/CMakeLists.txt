@@ -7,6 +7,21 @@ INCLUDE(${CMAKE_ROOT}/Modules/Dart.cmake)
 SUBDIRS(znzlib niftilib)
 ADD_DEFINITIONS(-DHAVE_ZLIB)
 
+# Set default shared library version
+# This library version will be applied to all libraries in the package
+# unless it is not explicitely for a certain lib.
+IF (NOT DEFINED NIFTI_SHAREDLIB_VERSION)
+  SET ( NIFTI_SHAREDLIB_VERSION 0.0.0 )
+ENDIF (NOT DEFINED NIFTI_SHAREDLIB_VERSION)
+
+# add option to build shared libraries. The default is OFF to maintain the
+# current build behavior
+OPTION ( BUILD_SHARED_LIBS "Toggle building shared libraries")
+
+# Michael Hanke 2007-04-25 Note:
+# 'Utilities' is merged into the include install path to be able to easily
+# install into any other path if necessary. For the same reason lib, bin and
+# include dir for standalone builds are only set if not yet defined.
 
 ###  USE AS PART OF ITK
 IF("${ITK_VERSION_MAJOR}" GREATER 0.0)
@@ -15,7 +30,7 @@ IF("${ITK_VERSION_MAJOR}" GREATER 0.0)
   SET(PACKAGE_PREFIX "ITK")
   SET(NIFTI_INSTALL_LIB_DIR "${ITK_INSTALL_LIB_DIR_CM24}")
   SET(NIFTI_INSTALL_BIN_DIR "${ITK_INSTALL_BIN_DIR_CM24}")
-  SET(NIFTI_INSTALL_INCLUDE_DIR "${ITK_INSTALL_INCLUDE_DIR_CM24}")
+  SET(NIFTI_INSTALL_INCLUDE_DIR "${ITK_INSTALL_INCLUDE_DIR_CM24}/Utilities")
   SET(NIFTI_ZLIB_LIBRARIES ${ITK_ZLIB_LIBRARIES})
   SET(NIFTI_INSTALL_NO_DEVELOPMENT ${ITK_INSTALL_NO_DEVELOPMENT})
   SET(NIFTI_INSTALL_NO_LIBRARIES ${ITK_INSTALL_NO_LIBRARIES})
@@ -25,9 +40,15 @@ ELSE("${ITK_VERSION_MAJOR}" GREATER 0.0)
 #  MESSAGE(STATUS "---------------------SYSTEM ZLIB ${ZLIB_LIBRARY}")
   SET(NIFTI_ZLIB_LIBRARIES ${ZLIB_LIBRARIES})
   SET(PACKAGE_PREFIX "")
-  SET(NIFTI_INSTALL_LIB_DIR "lib")
-  SET(NIFTI_INSTALL_BIN_DIR "bin")
-  SET(NIFTI_INSTALL_INCLUDE_DIR "include")
+  IF(NOT DEFINED NIFTI_INSTALL_LIB_DIR)
+    SET(NIFTI_INSTALL_LIB_DIR "lib")
+  ENDIF(NOT DEFINED NIFTI_INSTALL_LIB_DIR)
+  IF(NOT DEFINED NIFTI_INSTALL_BIN_DIR)
+    SET(NIFTI_INSTALL_BIN_DIR "bin")
+  ENDIF(NOT DEFINED NIFTI_INSTALL_BIN_DIR)
+  IF(NOT DEFINED NIFTI_INSTALL_BIN_DIR)
+    SET(NIFTI_INSTALL_INCLUDE_DIR "include/Utilities")
+  ENDIF(NOT DEFINED NIFTI_INSTALL_BIN_DIR)
   SET(NIFTI_INSTALL_NO_DEVELOPMENT 0)
   SET(NIFTI_INSTALL_NO_LIBRARIES 0)
 
@@ -37,9 +58,13 @@ ELSE("${ITK_VERSION_MAJOR}" GREATER 0.0)
 
   OPTION(USE_FSL_CODE "If OFF, The copyright of this code is questionable for inclusion with nifti." OFF)
   MARK_AS_ADVANCED(USE_FSL_CODE)
+
+  # the order of subdirs is important! fsliolob has to preceed examples
+  # as otherwise FSLIOLIB_SOURCE_DIR is undefined and hence the examples
+  # will fail to compile
   IF(USE_FSL_CODE)
-    SUBDIRS(examples)
     SUBDIRS(fsliolib)
+    SUBDIRS(examples)
   ENDIF(USE_FSL_CODE)
   ENABLE_TESTING()
 ENDIF("${ITK_VERSION_MAJOR}" GREATER 0.0)
