@@ -1441,6 +1441,7 @@ extern mat44 THD_resample_mat44( mat44 , int,int,int ,
 /******* Function below is not in nifti1_io.c, due to some oversight ******/
 
 extern mat44 THD_mat44_mul( mat44 A , mat44 B ) ;      /* matrix multiply */
+static mat44 tempA_mat44 ;
 
 #undef  MAT44_MUL
 #define MAT44_MUL THD_mat44_mul
@@ -1491,6 +1492,44 @@ extern mat44 THD_mat44_mul( mat44 A , mat44 B ) ;      /* matrix multiply */
      AA.m[0][2] = -AA.m[0][2] , AA.m[0][3] = -AA.m[0][3] ,  \
     AA.m[1][0] = -AA.m[1][0] , AA.m[1][1] = -AA.m[1][1] ,   \
      AA.m[1][2] = -AA.m[1][2] , AA.m[1][3] = -AA.m[1][3] )
+
+#undef MAT44_SUB
+#define MAT44_SUB(AA,BB)                                       \
+ ( tempA_mat44.m[0][0] = (AA).m[0][0] - (BB).m[0][0] , \
+   tempA_mat44.m[1][0] = (AA).m[1][0] - (BB).m[1][0] , \
+   tempA_mat44.m[2][0] = (AA).m[2][0] - (BB).m[2][0] , \
+   tempA_mat44.m[3][0] = (AA).m[3][0] - (BB).m[3][0] , \
+   tempA_mat44.m[0][1] = (AA).m[0][1] - (BB).m[0][1] , \
+   tempA_mat44.m[1][1] = (AA).m[1][1] - (BB).m[1][1] , \
+   tempA_mat44.m[2][1] = (AA).m[2][1] - (BB).m[2][1] , \
+   tempA_mat44.m[3][1] = (AA).m[3][1] - (BB).m[3][1] , \
+   tempA_mat44.m[0][2] = (AA).m[0][2] - (BB).m[0][2] , \
+   tempA_mat44.m[1][2] = (AA).m[1][2] - (BB).m[1][2] , \
+   tempA_mat44.m[2][2] = (AA).m[2][2] - (BB).m[2][2] , \
+   tempA_mat44.m[3][2] = (AA).m[3][2] - (BB).m[3][2] , \
+   tempA_mat44.m[0][3] = (AA).m[0][3] - (BB).m[0][3] , \
+   tempA_mat44.m[1][3] = (AA).m[1][3] - (BB).m[1][3] , \
+   tempA_mat44.m[2][3] = (AA).m[2][3] - (BB).m[2][3] , \
+   tempA_mat44.m[3][3] = (AA).m[3][3] - (BB).m[3][3] , tempA_mat44 )
+
+#undef MAT44_NORM
+#define MAT44_NORM(AA)             \
+ sqrt( (AA).m[0][0]*(AA).m[0][0] + \
+       (AA).m[0][1]*(AA).m[0][1] + \
+       (AA).m[0][2]*(AA).m[0][2] + \
+       (AA).m[0][3]*(AA).m[0][3] + \
+       (AA).m[1][0]*(AA).m[1][0] + \
+       (AA).m[1][1]*(AA).m[1][1] + \
+       (AA).m[1][2]*(AA).m[1][2] + \
+       (AA).m[1][3]*(AA).m[1][3] + \
+       (AA).m[2][0]*(AA).m[2][0] + \
+       (AA).m[2][1]*(AA).m[2][1] + \
+       (AA).m[2][2]*(AA).m[2][2] + \
+       (AA).m[2][3]*(AA).m[2][3] + \
+       (AA).m[3][0]*(AA).m[3][0] + \
+       (AA).m[3][1]*(AA).m[3][1] + \
+       (AA).m[3][2]*(AA).m[3][2] + \
+       (AA).m[3][3]*(AA).m[3][3]  )
 
 /* load a mat33 matrix */
 
