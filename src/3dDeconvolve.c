@@ -381,6 +381,8 @@ static int goforit = 0 ;  /* 07 Mar 2007 */
 static int badlev  = 0 ;
 static int floatout= 0 ;  /* 13 Mar 2007 */
 
+static int allzero_OK = 0 ;  /* 30 May 2007 */
+
 struct DC_options ;  /* incomplete struct definition */
 
 void do_xrestore_stuff( int, char **, struct DC_options * ) ;
@@ -713,6 +715,9 @@ void display_help_menu()
     "                      That is, if you use -GOFORIT 7 and 9 '!!'        \n"
     "                      matrix warnings appear, then the program will    \n"
     "                      not run.  If 'g' is not present, 1 is used.      \n"
+    "[-allzero_OK]        Don't consider all zero matrix columns to be      \n"
+    "                      the type of error that -GOFORIT is needed to     \n"
+    "                      ignore.                                          \n"
     "                                                                       \n"
     "**** Input stimulus options:                                           \n"
     "-num_stimts num      num = number of input stimulus time series        \n"
@@ -1171,6 +1176,10 @@ void get_options
         else
           goforit++ ;
         continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-allzero_OK") == 0 ){  /* 30 May 2007 */
+        allzero_OK++ ; use_psinv = 1 ; nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-singvals") == 0 ){  /* 13 Aug 2004 */
@@ -2080,6 +2089,8 @@ void get_options
   /*----- 23 Mar 2007: full first stuff? -----*/
 
   if( option_data->fout ) option_data->do_fullf = 1 ;
+
+  if( allzero_OK ) use_psinv = 1 ;   /* 30 May 2007 */
 
   /*----- Set number of GLTs actually present -----*/
   option_data->num_glt = iglt;
@@ -4817,10 +4828,10 @@ ENTRY("calculate_results") ;
           WARNING_message("!! * Columns %d and %d are nearly collinear!",
                   iar[2*k],iar[2*k+1] ) ; nerr++ ; badlev++ ;
         } else {
-          WARNING_message("!! * Column %d is all zeros: %s",
-                  iar[2*k] ,
-                  use_psinv ? "SVD on => will be kept"
-                            : "SVD off => will be excised" ) ; badlev++ ;
+          char *ww = (allzero_OK) ? ("  ") : ("!!") ;
+          WARNING_message("%s * Column %d is all zeros",
+                  ww , iar[2*k] ) ;
+          if( !allzero_OK ) badlev++ ;
         }
       }
       if( nerr > 0 && AFNI_yesenv("AFNI_3dDeconvolve_nodup") )

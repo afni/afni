@@ -6253,3 +6253,4 @@
 
 30 May 2007
  * Modify 3dDeconvolve mmap() usage to include MAP_NORESERVE flag.
+ * Add -allzero_OK option to 3dDeconvolve.c.
