@@ -3711,8 +3711,15 @@ void proc_finalize_shm_volumes(void)
 
 #ifdef MAP_ANON  /** 24 Oct 2005: use mmap() instead of shmem **/
 
+#undef MY_MMAP_FLAGS
+#ifdef MAP_NORESERVE  /* Solaris */
+# define MY_MMAP_FLAGS (MAP_ANON | MAP_SHARED | MAP_NORESERVE)
+#else
+# define MY_MMAP_FLAGS (MAP_ANON | MAP_SHARED)
+#endif
+
    proc_shmptr = mmap( (void *)0 , (size_t)psum ,
-                       PROT_READ | PROT_WRITE , MAP_ANON | MAP_SHARED ,
+                       PROT_READ | PROT_WRITE , MY_MMAP_FLAGS ,
                        -1 , 0 ) ;
    if( proc_shmptr == NULL || proc_shmptr == (void *)(-1) ){
      perror("** FATAL ERROR: Can't create shared mmap() segment\n"
