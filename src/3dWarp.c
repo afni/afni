@@ -558,7 +558,22 @@ DUMP_MAT44("Tw_inv",Tw_inv);
          newggg = &ddd_newgrid ; gflag = WARP3D_NEWGRID ;
          INFO_message("Using minimum spacing of %f mm for new grid spacing",ddd_newgrid);
       }
-    }   
+    }
+   /* if data is not being deobliqued or obliquified */
+   if(!oblique_flag) {
+     if(ISVALID_MAT44(inset->daxes->ijk_to_dicom_real)) {
+         THD_dicom_card_xform(inset, &tmat, &tvec); 
+         LOAD_MAT44(Tc, 
+          tmat.mat[0][0], tmat.mat[0][1], tmat.mat[0][2], tvec.xyz[0],
+          tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
+          tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
+         Tr = MAT44_SUB(Tc,inset->daxes->ijk_to_dicom_real);
+         if(MAT44_NORM(Tr)>0.001) {
+            WARNING_message("Deoblique datasets with 3dWarp before proceeding"
+               " with other transformations");
+         }
+      }
+   }
 
    if( use_matvec ){
      outset = THD_warp3D_affine( inset , dicom_out2in ,
@@ -576,10 +591,23 @@ DUMP_MAT44("Tw_inv",Tw_inv);
    /* if deobliquing, clear the oblique transformation matrix */
    /* really should update with new info, but clear for now */
    /* make invalid by setting lower right element to 0 */
+#if 0
    if(oblique_flag==1) { 
      ZERO_MAT44(outset->daxes->ijk_to_dicom_real);
      outset->daxes->ijk_to_dicom_real.m[0][0] = 0.0;
    }
+#endif
+
+   if(oblique_flag) {
+      /* recompute Tc (Cardinal transformation matrix for new grid output */
+      THD_dicom_card_xform(outset, &tmat, &tvec); 
+      LOAD_MAT44(Tc, 
+          tmat.mat[0][0], tmat.mat[0][1], tmat.mat[0][2], tvec.xyz[0],
+          tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
+          tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
+      outset->daxes->ijk_to_dicom_real = Tc;
+   }
+
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dWarp" , argc,argv , outset ) ;
 
