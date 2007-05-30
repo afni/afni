@@ -34,8 +34,8 @@ static int   TT_voxel      = -1 ;  /* 0-based (but 1-based on cmd, like ANOVA)  
 
 #define MEGA  1048576  /* 2^20 */
 
-static THD_string_array * TT_set1 = NULL ;  /* sets of dataset names */
-static THD_string_array * TT_set2 = NULL ;
+static THD_string_array *TT_set1 = NULL ;  /* sets of dataset names */
+static THD_string_array *TT_set2 = NULL ;
 
 static char TT_session[THD_MAX_NAME]  = "./" ;
 static char TT_prefix[THD_MAX_PREFIX] = "tdif" ;
@@ -252,7 +252,49 @@ DUMP2 ;
    }  /* end of loop over options */
 
    if( strlen(TT_label) == 0 ){
-      MCW_strncpy(TT_label,TT_prefix,THD_MAX_LABEL) ;
+     MCW_strncpy(TT_label,TT_prefix,THD_MAX_LABEL) ;
+   }
+
+   /*--- 30 May 2007: check TT_set? for .HEAD / .BRIK duplicates ---*/
+
+   if( TT_set1 != NULL && TT_set1->num > 1 ){
+     int ns=TT_set1->num , ii,li,lj,nw=0 ; char *di, *dj ;
+     for( ii=0 ; ii < ns-1 ; ii++ ){
+       di = strdup(TT_set1->ar[ii]  ) ; li = strlen(di) ;
+       dj = strdup(TT_set1->ar[ii+1]) ; lj = strlen(dj) ;
+            if( strcmp(di+li-5,".HEAD"   ) == 0 ) di[li-5] = '\0' ;
+       else if( strcmp(di+li-5,".BRIK"   ) == 0 ) di[li-5] = '\0' ;
+       else if( strcmp(di+li-8,".BRIK.gz") == 0 ) di[li-8] = '\0' ;
+            if( strcmp(dj+lj-5,".HEAD"   ) == 0 ) dj[lj-5] = '\0' ;
+       else if( strcmp(dj+lj-5,".BRIK"   ) == 0 ) dj[lj-5] = '\0' ;
+       else if( strcmp(dj+lj-8,".BRIK.gz") == 0 ) dj[lj-8] = '\0' ;
+       if( strcmp(di,dj) == 0 ){
+         WARNING_message("-set1: Datasets '%s' and '%s' are the same?!?",
+                         TT_set1->ar[ii] , TT_set1->ar[ii+1]    ) ; nw++ ;
+       }
+       free(dj) ; free(di) ;
+     }
+     if( nw > 0 ) fprintf(stderr,"\n") ;
+   }
+
+   if( TT_set2 != NULL && TT_set2->num > 1 ){
+     int ns=TT_set2->num , ii,li,lj,nw=0 ; char *di, *dj ;
+     for( ii=0 ; ii < ns-1 ; ii++ ){
+       di = strdup(TT_set2->ar[ii]  ) ; li = strlen(di) ;
+       dj = strdup(TT_set2->ar[ii+1]) ; lj = strlen(dj) ;
+            if( strcmp(di+li-5,".HEAD"   ) == 0 ) di[li-5] = '\0' ;
+       else if( strcmp(di+li-5,".BRIK"   ) == 0 ) di[li-5] = '\0' ;
+       else if( strcmp(di+li-8,".BRIK.gz") == 0 ) di[li-8] = '\0' ;
+            if( strcmp(dj+lj-5,".HEAD"   ) == 0 ) dj[lj-5] = '\0' ;
+       else if( strcmp(dj+lj-5,".BRIK"   ) == 0 ) dj[lj-5] = '\0' ;
+       else if( strcmp(dj+lj-8,".BRIK.gz") == 0 ) dj[lj-8] = '\0' ;
+       if( strcmp(di,dj) == 0 ){
+         WARNING_message("-set2: Datasets '%s' and '%s' are the same?!?",
+                         TT_set2->ar[ii] , TT_set2->ar[ii+1]    ) ; nw++ ;
+       }
+       free(dj) ; free(di) ;
+     }
+     if( nw > 0 ) fprintf(stderr,"\n") ;
    }
 
    /*--- check arguments for consistency ---*/
