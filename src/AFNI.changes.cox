@@ -6250,3 +6250,6 @@
  * Modify 3dDeconvolve to do proper kill-off of children when fork() fails.
  * Fix SPMG model power from 4 to 5.
  * Modify symeigval_double() to report nonzero error code from rs_().
+
+30 May 2007
+ * Modify 3dDeconvolve mmap() usage to include MAP_NORESERVE flag.
