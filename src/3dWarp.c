@@ -12,6 +12,7 @@
 #define MATVEC_BAC 2
 
 static THD_vecmat dicom_in2out , dicom_out2in ;  /* coordinate warps */
+float compute_oblique_angle(mat44 ijk_to_dicom44);
 
 /*--------------------------------------------------------------------------*/
 
@@ -61,6 +62,7 @@ int main( int argc , char * argv[] )
    mat44 Tw, Tc, Tw_inv, inv_Tc, Tr;
    int oblique_flag = 0;
    THD_3dim_dataset *oblparset=NULL ;
+   float angle;
 #if 0
    MRI_IMAGE *matflim=NULL ;
    float     *matflar=NULL ;
@@ -562,6 +564,8 @@ DUMP_MAT44("Tw_inv",Tw_inv);
    /* if data is not being deobliqued or obliquified */
    if(!oblique_flag) {
      if(ISVALID_MAT44(inset->daxes->ijk_to_dicom_real)) {
+       angle = compute_oblique_angle(inset->daxes->ijk_to_dicom_real);
+       if(angle>0.0) {  
          THD_dicom_card_xform(inset, &tmat, &tvec); 
          LOAD_MAT44(Tc, 
           tmat.mat[0][0], tmat.mat[0][1], tmat.mat[0][2], tvec.xyz[0],
@@ -572,6 +576,7 @@ DUMP_MAT44("Tw_inv",Tw_inv);
             WARNING_message("Deoblique datasets with 3dWarp before proceeding"
                " with other transformations");
          }
+       }
       }
    }
 
@@ -627,4 +632,50 @@ DUMP_MAT44("Tw_inv",Tw_inv);
    DSET_delete( inset ) ;
    DSET_write( outset ) ; if( verb ) WROTE_DSET(outset) ;
    exit(0) ;
+}
+
+
+#define MAXNUM(a,b) ( (a) > (b) ? (a):(b))
+#define MAX3(a,b,c) ( (MAXNUM(a,b)) > (MAXNUM(a,c)) ? (MAXNUM(a,b)):(MAXNUM(a,c)))
+#define MINNUM(a,b) ( (a) < (b) ? (a):(b))
+#define MIN3(a,b,c) ( (MINNUM(a,b)) < (MINNUM(a,c)) ? (MINNUM(a,b)):(MINNUM(a,c)))
+/* compute angle of greatest obliquity given transformation matrix */
+float compute_oblique_angle(mat44 ijk_to_dicom44)
+{
+   float dxtmp, dytmp, dztmp ;
+   float xmax, ymax, zmax ;
+   float fig_merit, ang_merit ;
+
+
+   dxtmp = sqrt ( ijk_to_dicom44.m[0][0] * ijk_to_dicom44.m[0][0] +
+                  ijk_to_dicom44.m[1][0] * ijk_to_dicom44.m[1][0] +
+                  ijk_to_dicom44.m[2][0] * ijk_to_dicom44.m[2][0] ) ;
+
+   xmax = MAX3(fabs(ijk_to_dicom44.m[0][0]),fabs(ijk_to_dicom44.m[1][0]),fabs(ijk_to_dicom44.m[2][0])) / dxtmp ;
+
+   dytmp = sqrt ( ijk_to_dicom44.m[0][1] * ijk_to_dicom44.m[0][1] +
+                  ijk_to_dicom44.m[1][1] * ijk_to_dicom44.m[1][1] +
+                  ijk_to_dicom44.m[2][1] * ijk_to_dicom44.m[2][1] ) ;
+
+   ymax = MAX3(fabs(ijk_to_dicom44.m[0][1]),
+               fabs(ijk_to_dicom44.m[1][1]),
+               fabs(ijk_to_dicom44.m[2][1])) / dytmp ;
+
+   dztmp = sqrt ( ijk_to_dicom44.m[0][2] * ijk_to_dicom44.m[0][2] +
+                  ijk_to_dicom44.m[1][2] * ijk_to_dicom44.m[1][2] +
+                  ijk_to_dicom44.m[2][2] * ijk_to_dicom44.m[2][2] ) ;
+
+   zmax = MAX3(fabs(ijk_to_dicom44.m[0][2]),
+               fabs(ijk_to_dicom44.m[1][2]),
+               fabs(ijk_to_dicom44.m[2][2])) / dztmp ;
+
+   fig_merit = MIN3(xmax,ymax,zmax) ;
+   ang_merit = acos (fig_merit) * 180.0 / 3.141592653 ;
+
+   if (fabs(ang_merit) > .01) {
+     INFO_message("%f degrees from plumb.\n",ang_merit ) ;
+   }
+   else 
+      ang_merit = 0.0;
+   return(ang_merit);
 }

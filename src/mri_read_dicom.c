@@ -1756,13 +1756,14 @@ Clear_obl_info(oblique_info *obl_info)
 {
    int i,j;
 
-   LOAD_FVEC3(obl_info->dfpos1,0,0,0);   
-   LOAD_FVEC3(obl_info->dfpos2,0,0,0);   
-   LOAD_FVEC3(obl_info->del,0,0,0);   
-   LOAD_FVEC3(obl_info->xvec,0,0,0);   
-   LOAD_FVEC3(obl_info->yvec,0,0,0);   
+   LOAD_FVEC3(obl_info->dfpos1,0.0,0.0,0.0);   
+   LOAD_FVEC3(obl_info->dfpos2,0.0,0.0,0.0);   
+   LOAD_FVEC3(obl_info->del,0.0,0.0,0.0);   
+   LOAD_FVEC3(obl_info->xvec,0.0,0.0,0.0);   
+   LOAD_FVEC3(obl_info->yvec,0.0,0.0,0.0);   
    obl_info->mosaic = 0;
-   obl_info->mos_ix = obl_info->mos_nx = obl_info->mos_ny = obl_info->mos_nslice = 1;
+   obl_info->mos_ix = obl_info->mos_nx = obl_info->mos_ny = 
+      obl_info->mos_nslice = 1;
    obl_info->nx = obl_info->ny = 1;
    obl_info_set = 0;
    /* make all elements zero flagging it hasn't been computed yet */
@@ -1782,8 +1783,10 @@ Fill_obl_info(oblique_info *obl_info, char **epos, Siemens_extra_info *siem)
     float *xyz ; int qq ;
     char *ddd;
     float dx, dy, th, sp, dz;
-    float xc1, xc2, xc3, yc1, yc2, yc3, xn, yn;
+/*    float xc1, xc2, xc3, yc1, yc2, yc3, xn, yn;*/
     int nx, ny, mos_ix, mos_iy;
+    int ii;
+    THD_fvec3 xc, yc;
 
     if(obl_info_set) /* if already set all parameters for first slice */
        xyz = obl_info->dfpos2.xyz;   /* only need to set ImagePosition for 2nd slice */
@@ -1819,18 +1822,28 @@ Fill_obl_info(oblique_info *obl_info, char **epos, Siemens_extra_info *siem)
    if(epos[E_IMAGE_ORIENTATION] != NULL ){
      ddd = strstr(epos[E_IMAGE_ORIENTATION],"//") ;
      if( ddd != NULL ){
-       qq = sscanf(ddd+2,"%f\\%f\\%f\\%f\\%f\\%f",&xc1,&xc2,&xc3,&yc1,&yc2,&yc3) ;
-       xn = sqrt( xc1*xc1 + xc2*xc2 + xc3*xc3 ) ; /* vector norms */
-       yn = sqrt( yc1*yc1 + yc2*yc2 + yc3*yc3 ) ;
-       if( qq == 6 && xn > 0.0 && yn > 0.0 ){     /* both vectors OK */
-
-         xc1 /= xn ; xc2 /= xn ; xc3 /= xn ;      /* normalize vectors */
-         yc1 /= yn ; yc2 /= yn ; yc3 /= yn ;
+       qq = sscanf(ddd+2,"%f\\%f\\%f\\%f\\%f\\%f",
+          &xc.xyz[0], &xc.xyz[1], &xc.xyz[2],
+          &yc.xyz[0], &yc.xyz[1], &yc.xyz[2]);
+       /* check if both vectors OK */
+       if( qq == 6 && SIZE_FVEC3(xc) > 0.0 && SIZE_FVEC3(yc) > 0.0 ){
+          NORMALIZE_FVEC3(xc);
+          NORMALIZE_FVEC3(yc);
+          /* if the values are close to 0 or 1 make it so */
+          for(ii=0;ii<3;ii++) {
+             if(ALMOST(xc.xyz[ii],0.0))
+                xc.xyz[ii] = 0.0;
+             if(ALMOST(xc.xyz[ii],1.0))
+                xc.xyz[ii] = 1.0;
+             if(ALMOST(yc.xyz[ii],0.0))
+                yc.xyz[ii] = 0.0;
+             if(ALMOST(yc.xyz[ii],1.0))
+                yc.xyz[ii] = 1.0;
+          }
+          obl_info->xvec = xc;
+          obl_info->yvec = yc;
        }
       }
-   LOAD_FVEC3(obl_info->xvec, xc1, xc2, xc3);
-   LOAD_FVEC3(obl_info->yvec, yc1, yc2, yc3);
-
    }
 
     /* handle Siemens mosaic data */
@@ -1906,7 +1919,7 @@ static float *ComputeObliquity(oblique_info *obl_info)
    float fac;
    int altsliceinfo = 0;
    Siemens_extra_info *siem; 
-   int i,j;
+   int ii,jj;
    double Cxx, Cxy, Cxz;
    /* compute cross product of image orientation vectors*/
    vec3 = CROSS_FVEC3(obl_info->xvec, obl_info->yvec);
@@ -2068,7 +2081,15 @@ DUMP_FVEC3("dc4", dc4);
    obl_info->Tr_dicom[0][3] = Orgin.xyz[0];
    obl_info->Tr_dicom[1][3] = Orgin.xyz[1];
    obl_info->Tr_dicom[2][3] = Orgin.xyz[2];
-
+   /* adjust for rounding errors by setting values close to 0 or 1 to 0 or 1 */
+   for(ii=0;ii<4;ii++) {
+      for(jj=0;jj<4;jj++) {
+         if(ALMOST(obl_info->Tr_dicom[ii][jj], 0.0))
+            obl_info->Tr_dicom[ii][jj] = 0.0;
+         if(ALMOST(obl_info->Tr_dicom[ii][jj], 1.0))
+            obl_info->Tr_dicom[ii][jj] = 1.0;
+      }
+   }
 
 #ifdef DEBUG_ON
 DUMP_FVEC3("Image Position", obl_info->dfpos1);
@@ -2083,7 +2104,8 @@ DUMP_FVEC3("Origin", Orgin);
 
 
 #if 0
-   /* compute dot product with 0,1,0 axis - put 1 in maximum index (closest major axis) */
+   /* compute dot product with 0,1,0 axis - put 1 in maximum index 
+      (closest major axis) */
    vec4.xyz[0] = 0.0; vec4.xyz[1] = 0.0; vec4.xyz[2] = 0.0;
    vec4.xyz[MAXINDEX_FVEC3(vec2)] = 1.0;
 DUMP_FVEC3("vec4", vec4);
@@ -2114,7 +2136,9 @@ void mri_read_dicom_get_obliquity(float *Tr)
    int i,j;
 
    fptr = Tr;
-   ComputeObliquity(&obl_info);
+   if(obl_info_set)  /* if oblique info is filled in, even partially */
+     ComputeObliquity(&obl_info); /* compute proper transformation or warn */
+                /* otherwise just ignore it-no warnings (for non-DICOM data) */
    for(i=0;i<4;i++)
       for(j=0;j<4;j++)
           *fptr++ = obl_info.Tr_dicom[i][j];
