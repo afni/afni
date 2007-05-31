@@ -257,44 +257,14 @@ DUMP2 ;
 
    /*--- 30 May 2007: check TT_set? for .HEAD / .BRIK duplicates ---*/
 
-   if( TT_set1 != NULL && TT_set1->num > 1 ){
-     int ns=TT_set1->num , ii,li,lj,nw=0 ; char *di, *dj ;
-     for( ii=0 ; ii < ns-1 ; ii++ ){
-       di = strdup(TT_set1->ar[ii]  ) ; li = strlen(di) ;
-       dj = strdup(TT_set1->ar[ii+1]) ; lj = strlen(dj) ;
-            if( strcmp(di+li-5,".HEAD"   ) == 0 ) di[li-5] = '\0' ;
-       else if( strcmp(di+li-5,".BRIK"   ) == 0 ) di[li-5] = '\0' ;
-       else if( strcmp(di+li-8,".BRIK.gz") == 0 ) di[li-8] = '\0' ;
-            if( strcmp(dj+lj-5,".HEAD"   ) == 0 ) dj[lj-5] = '\0' ;
-       else if( strcmp(dj+lj-5,".BRIK"   ) == 0 ) dj[lj-5] = '\0' ;
-       else if( strcmp(dj+lj-8,".BRIK.gz") == 0 ) dj[lj-8] = '\0' ;
-       if( strcmp(di,dj) == 0 ){
-         WARNING_message("-set1: Datasets '%s' and '%s' are the same?!?",
-                         TT_set1->ar[ii] , TT_set1->ar[ii+1]    ) ; nw++ ;
-       }
-       free(dj) ; free(di) ;
-     }
-     if( nw > 0 ) fprintf(stderr,"\n") ;
+   if( TT_set1 != NULL ){
+     kk = THD_check_for_duplicates( TT_set1->num , TT_set1->ar , 1 ) ;
+     if( kk > 0 ) fprintf(stderr,"\n") ;
    }
 
-   if( TT_set2 != NULL && TT_set2->num > 1 ){
-     int ns=TT_set2->num , ii,li,lj,nw=0 ; char *di, *dj ;
-     for( ii=0 ; ii < ns-1 ; ii++ ){
-       di = strdup(TT_set2->ar[ii]  ) ; li = strlen(di) ;
-       dj = strdup(TT_set2->ar[ii+1]) ; lj = strlen(dj) ;
-            if( strcmp(di+li-5,".HEAD"   ) == 0 ) di[li-5] = '\0' ;
-       else if( strcmp(di+li-5,".BRIK"   ) == 0 ) di[li-5] = '\0' ;
-       else if( strcmp(di+li-8,".BRIK.gz") == 0 ) di[li-8] = '\0' ;
-            if( strcmp(dj+lj-5,".HEAD"   ) == 0 ) dj[lj-5] = '\0' ;
-       else if( strcmp(dj+lj-5,".BRIK"   ) == 0 ) dj[lj-5] = '\0' ;
-       else if( strcmp(dj+lj-8,".BRIK.gz") == 0 ) dj[lj-8] = '\0' ;
-       if( strcmp(di,dj) == 0 ){
-         WARNING_message("-set2: Datasets '%s' and '%s' are the same?!?",
-                         TT_set2->ar[ii] , TT_set2->ar[ii+1]    ) ; nw++ ;
-       }
-       free(dj) ; free(di) ;
-     }
-     if( nw > 0 ) fprintf(stderr,"\n") ;
+   if( TT_set2 != NULL ){
+     kk = THD_check_for_duplicates( TT_set2->num , TT_set2->ar , 1 ) ;
+     if( kk > 0 ) fprintf(stderr,"\n") ;
    }
 
    /*--- check arguments for consistency ---*/
@@ -343,10 +313,7 @@ printf("*** finished with options\n") ;
 
 void TT_syntax(char * msg)
 {
-   if( msg != NULL ){
-      fprintf(stderr,"*** %s\n",msg) ;
-      exit(1) ;
-   }
+   if( msg != NULL ) ERROR_exit("3dttest: %s",msg) ;
 
    printf(
     "Gosset (Student) t-test sets of 3D datasets\n"
@@ -512,10 +479,8 @@ int main( int argc , char * argv[] )
    /*-- read first dataset in set2 to get dimensions, etc. --*/
 
    dset = THD_open_dataset( TT_set2->ar[0] ) ;  /* 20 Dec 1999  BDW */
-   if( ! ISVALID_3DIM_DATASET(dset) ){
-      fprintf(stderr,"*** Unable to open dataset file %s\n",TT_set2->ar[0]);
-      exit(1) ;
-   }
+   if( ! ISVALID_3DIM_DATASET(dset) )
+      ERROR_exit("Unable to open dataset file %s\n",TT_set2->ar[0]);
 
    nx = dset->daxes->nxx ;
    ny = dset->daxes->nyy ;
@@ -564,18 +529,13 @@ printf(" ** datum = %s\n",MRI_TYPE_name[output_datum]) ;
                            ADN_datum_all , output_datum ,
                          ADN_none ) ;
 
-   if( iv > 0 ){
-      fprintf(stderr,
-              "*** %d errors in attempting to create output dataset!\n",iv ) ;
-      exit(1) ;
-   }
+   if( iv > 0 )
+     ERROR_exit("%d errors in attempting to create output dataset!\n",iv ) ;
 
-   if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
-      fprintf(stderr,
-              "*** Output dataset file %s already exists--cannot continue!\a\n",
+   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
+      ERROR_exit(
+              "Output dataset file %s already exists--cannot continue!\a",
               new_dset->dblk->diskptr->header_name ) ;
-      exit(1) ;
-   }
 
 #ifdef TTDEBUG
 printf("*** deleting exemplar dataset\n") ;
@@ -653,12 +613,10 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
                        ADN_datum_all , MRI_float ,
                       ADN_none ) ;
 
-     if( THD_is_file(dof_dset->dblk->diskptr->header_name) ){
-        fprintf(stderr,
-                "*** -dof_prefix dataset file %s already exists--cannot continue!\a\n",
+     if( THD_is_file(dof_dset->dblk->diskptr->header_name) )
+        ERROR_exit(
+                "-dof_prefix dataset file %s already exists--cannot continue!\a",
                 dof_dset->dblk->diskptr->header_name ) ;
-        exit(1) ;
-     }
 
      EDIT_substitute_brick( dof_dset , 0 , MRI_float , dofbrik ) ;
    }
@@ -679,11 +637,9 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
    mri_fix_data_pointer( vsp  , DSET_BRICK(new_dset,1) ) ;  /* to new dataset */
 
    /** only short and float are allowed for output **/
-   if( output_datum != MRI_short && output_datum != MRI_float ) {
-      fprintf(stderr,"Illegal output data type %d = %s!\n",
-                     output_datum , MRI_TYPE_name[output_datum] ) ;
-      exit(1) ;
-   }
+   if( output_datum != MRI_short && output_datum != MRI_float ) 
+      ERROR_exit("Illegal output data type %d = %s!",
+                 output_datum , MRI_TYPE_name[output_datum] ) ;
 
    num2_inv = 1.0 / num2 ;  num2m1_inv = 1.0 / (num2-1) ;
    if( num1 > 0 ){
