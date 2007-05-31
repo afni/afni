@@ -44,6 +44,8 @@ ENTRY("THD_open_tcat") ;
      RETURN(dset_out) ;
    }
 
+   (void)THD_check_for_duplicates( sar->num , sar->str , 1 ) ;  /* 31 May 2007 */
+
    for( nerr=0,dd=1 ; dd < ndset_in ; dd++ ){
      if( DSET_NX(dset_in[0]) != DSET_NX(dset_in[dd]) ||
          DSET_NY(dset_in[0]) != DSET_NY(dset_in[dd]) ||
