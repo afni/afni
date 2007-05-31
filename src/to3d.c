@@ -4501,7 +4501,7 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
    daxes->zzorient = user_inputs.zorient ;
 
    /*--- 18 May 2007: set obliquity coordinates in header */
-   mri_read_dicom_get_obliquity((float *) &(daxes->ijk_to_dicom_real)); /*pass 16 element float */
+   mri_read_dicom_get_obliquity(&(daxes->ijk_to_dicom_real.m[0][0])); /*pass 16 element float */
 
    /*--- 15 Dec 2005: set the coordinate matrices in the header as well ---*/
 

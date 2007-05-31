@@ -282,6 +282,10 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
          atr_flo->fl[4], atr_flo->fl[5], atr_flo->fl[6], atr_flo->fl[7], \
          atr_flo->fl[8], atr_flo->fl[9], atr_flo->fl[10], atr_flo->fl[11]);
    }
+   else {
+     ZERO_MAT44(daxes->ijk_to_dicom_real);  /* clear values */
+     daxes->ijk_to_dicom_real.m[3][3] = 0.0;  /* and make invalid */
+   }
 
    /*------------------------------------*/
    /*-- read set of markers (optional) --*/
