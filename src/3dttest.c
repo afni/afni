@@ -193,8 +193,7 @@ DUMP2 ;
          if( *ch != '\0' || TT_pthresh <= 0.0 || TT_pthresh > 0.99999 )
             TT_syntax("value after -pthresh is illegal!") ;
 
-         fprintf(stderr,
-                 "*** -pthresh not implemented yet, will ignore!\n" ) ;
+         WARNING_message( "-pthresh not implemented yet, will ignore!") ;
          TT_pthresh = 0.0 ;
 
          nopt++ ; continue ;  /* skip to next arg */
@@ -246,8 +245,7 @@ DUMP2 ;
 
       /**** unknown switch ****/
 
-      fprintf(stderr,"*** unrecognized option %s\n",argv[nopt]) ;
-      exit(1) ;
+      ERROR_exit("unrecognized option %s",argv[nopt]) ;
 
    }  /* end of loop over options */
 
@@ -300,7 +298,7 @@ DUMP2 ;
       TT_syntax("-base1 and -unpooled are mutually exclusive!") ;
 
    if( TT_pooled == 1 && TT_dof_prefix[0] != '\0' )  /* 27 Dec 2002 */
-      fprintf(stderr,"** WARNING: -dof_prefix is used only with -unpooled!\n");
+      WARNING_message("-dof_prefix is used only with -unpooled!");
 
 #ifdef TTDEBUG
 printf("*** finished with options\n") ;
@@ -480,7 +478,7 @@ int main( int argc , char * argv[] )
 
    dset = THD_open_dataset( TT_set2->ar[0] ) ;  /* 20 Dec 1999  BDW */
    if( ! ISVALID_3DIM_DATASET(dset) )
-      ERROR_exit("Unable to open dataset file %s\n",TT_set2->ar[0]);
+      ERROR_exit("Unable to open dataset file %s",TT_set2->ar[0]);
 
    nx = dset->daxes->nxx ;
    ny = dset->daxes->nyy ;
@@ -530,7 +528,7 @@ printf(" ** datum = %s\n",MRI_TYPE_name[output_datum]) ;
                          ADN_none ) ;
 
    if( iv > 0 )
-     ERROR_exit("%d errors in attempting to create output dataset!\n",iv ) ;
+     ERROR_exit("%d errors in attempting to create output dataset!",iv ) ;
 
    if( THD_is_file(new_dset->dblk->diskptr->header_name) )
       ERROR_exit(
@@ -638,7 +636,7 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
 
    /** only short and float are allowed for output **/
    if( output_datum != MRI_short && output_datum != MRI_float ) 
-      ERROR_exit("Illegal output data type %d = %s!",
+      ERROR_exit("Illegal output data type %d = %s",
                  output_datum , MRI_TYPE_name[output_datum] ) ;
 
    num2_inv = 1.0 / num2 ;  num2m1_inv = 1.0 / (num2-1) ;
@@ -650,21 +648,21 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
 
 /** macro to open a dataset and make it ready for processing **/
 
-#define DOPEN(ds,name)                                                               \
-   do{ int pv ; (ds) = THD_open_dataset((name)) ;  /* 16 Sep 1999 */                 \
-       if( !ISVALID_3DIM_DATASET((ds)) ){                                            \
-          fprintf(stderr,"*** Can't open dataset: %s\n",(name)) ; exit(1) ; }        \
-       if( (ds)->daxes->nxx!=nx || (ds)->daxes->nyy!=ny || (ds)->daxes->nzz!=nz ){   \
-          fprintf(stderr,"*** Axes mismatch: %s\n",(name)) ; exit(1) ; }             \
-       if( DSET_NUM_TIMES((ds)) > 1 ){                                               \
-         fprintf(stderr,"*** Can't use time-dependent data: %s\n",(name));exit(1); } \
-       if( TT_use_editor ) EDIT_one_dataset( (ds), &TT_edopt ) ;                     \
-       else                DSET_load((ds)) ;                                         \
-       pv = DSET_PRINCIPAL_VALUE((ds)) ;                                             \
-       if( DSET_ARRAY((ds),pv) == NULL ){                                            \
-          fprintf(stderr,"*** Can't access data: %s\n",(name)) ; exit(1); }          \
-       if( DSET_BRICK_TYPE((ds),pv) == MRI_complex ){                                \
-          fprintf(stderr,"*** Can't use complex data: %s\n",(name)) ; exit(1); }     \
+#define DOPEN(ds,name)                                                            \
+   do{ int pv ; (ds) = THD_open_dataset((name)) ;  /* 16 Sep 1999 */              \
+       if( !ISVALID_3DIM_DATASET((ds)) )                                          \
+          ERROR_exit("Can't open dataset: %s",(name)) ;                           \
+       if( (ds)->daxes->nxx!=nx || (ds)->daxes->nyy!=ny || (ds)->daxes->nzz!=nz ) \
+          ERROR_exit("Axes mismatch: %s",(name)) ;                                \
+       if( DSET_NUM_TIMES((ds)) > 1 )                                             \
+         ERROR_exit("Can't use time-dependent data: %s",(name)) ;                 \
+       if( TT_use_editor ) EDIT_one_dataset( (ds), &TT_edopt ) ;                  \
+       else                DSET_load((ds)) ;                                      \
+       pv = DSET_PRINCIPAL_VALUE((ds)) ;                                          \
+       if( DSET_ARRAY((ds),pv) == NULL )                                          \
+          ERROR_exit("Can't access data: %s",(name)) ;                            \
+       if( DSET_BRICK_TYPE((ds),pv) == MRI_complex )                              \
+          ERROR_exit("Can't use complex data: %s",(name)) ;                       \
        break ; } while (0)
 
 #if 0   /* can do it directly now (without offsets)  13 Dec 2005 [rickr] */
@@ -672,7 +670,7 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
 
 #define SUB_POINTER(ds,vv,ind,ptr)                                            \
    do{ switch( DSET_BRICK_TYPE((ds),(vv)) ){                                  \
-         default: fprintf(stderr,"\n*** Illegal datum! ***\n");exit(1);       \
+         default: ERROR_exit("Illegal datum! ***");                           \
             case MRI_short:{ short * fim = (short *) DSET_ARRAY((ds),(vv)) ;  \
                             (ptr) = (void *)( fim + (ind) ) ;                 \
             } break ;                                                         \
@@ -1010,7 +1008,7 @@ printf(" ** fimfac for mean, t-stat = %g, %g\n",dd, fimfac) ;
 
    if( dof_dset != NULL ){                                  /* 27 Dec 2002 */
      DSET_write( dof_dset ) ;
-     fprintf(stderr,"--- Wrote unpooled DOF dataset into %s\n", DSET_BRIKNAME(dof_dset) ) ;
+     WROTE_DSET( dof_dset ) ;
    }
 
    exit(0) ;
