@@ -3474,6 +3474,8 @@ extern THD_string_array * THD_get_all_subdirs( int , char * ) ;
 extern THD_string_array * THD_normalize_flist( THD_string_array * ) ;
 extern THD_string_array * THD_get_wildcard_filenames( char * ) ;
 
+extern int THD_check_for_duplicates( int, char **, int ) ; /* 31 May 2007 */
+
 extern time_t THD_file_mtime( char * ) ; /* 05 Dec 2001 */
 
 extern THD_string_array * THD_get_all_executables( char * ) ;    /* 26 Jun 2001 */
