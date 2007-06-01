@@ -2219,11 +2219,11 @@ void get_options
 
   if( abc_CENSOR != NULL ){
     int ic , rr , nzr=0 ;
-    for( ic=0 ; ic < num_CENSOR ; ic++ ) /* count number with run=0 */
+    for( ic=0 ; ic < num_CENSOR ; ic++ ) /* count number with run != 0 */
       if( abc_CENSOR[ic].i ) nzr++ ;
     if( nzr > 0 && nzr < num_CENSOR )
       WARNING_message("%d -CENSORTR commands have run: numbers and %d do not!" ,
-                      num_CENSOR-nzr , nzr ) ;
+                      nzr , num_CENSOR-nzr ) ;
   }
 
   /*-- check if we can continue! --*/
