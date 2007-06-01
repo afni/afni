@@ -13,7 +13,7 @@ ISFLAGS  = $(IFLAGS) -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -
 DOCS     = ../doc/ps/*.ps ../doc/README/README* AFNI.changes.cox   \
            rickr/AFNI.changes.rickr rhammett/AFNI.changes.rhammett \
            AFNI.changes.dglen
-MINDOCS  = AFNI.changes.cox
+MINDOCS  = AFNI.changes.cox rickr/AFNI.changes.rickr AFNI.changes.dglen
 
 IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o
 
