@@ -2022,6 +2022,8 @@
       variable for easier building
 
 30 May 2007: nifti CMakeList updates from Michael Hanke
-01 Jun 2007: modified afni_proc.py, db_mod.py:
+01 Jun 2007:
+  * modified afni_proc.py, db_mod.py:
         - changed Xmat.1D to X.xmat.1D, apply -xjpeg in 3dDeconvolve
+  * modified nifti/Makefile, README for nifticlib-0.5 release
 
