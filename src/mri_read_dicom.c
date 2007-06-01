@@ -1266,10 +1266,11 @@ fprintf(stderr,"SLICE_LOCATION = %f\n",zz) ;
    if(obl_info_set<2)
          Fill_obl_info(&obl_info, epos, &sexinfo);
 
-   RETURN( imar );
+   free(ppp); RETURN( imar );
 }
 
-/* compute slice thickness from DICOM header */
+/*---------- compute slice thickness from DICOM header ----------*/
+
 static float get_dz(  char **epos)
 {
   int stupid_ge_fix , no_stupidity ;
@@ -1539,7 +1540,7 @@ ENTRY("mri_imcount_dicom") ;
 
    } /* end of if str_sexinfo != NULL */
 
-   free(ppp) ; RETURN(nz);
+   free(ppp); RETURN(nz);
 }
 
 /*--------------------------------------------------------------------------------*/
