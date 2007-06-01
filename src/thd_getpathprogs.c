@@ -95,7 +95,7 @@ ENTRY("THD_getpathprogs") ;
          if( ename[ii-1] != '/' ){                    /* a trailing '/' on it */
             ename[ii]  = '/' ; ename[ii+1] = '\0' ;
          }
-	 if( !THD_is_directory(ename) ) continue ;    /* 25 Feb 2002 */
+         if( !THD_is_directory(ename) ) continue ;    /* 25 Feb 2002 */
 
          /* 04 Feb 2002: check if we already searched this directory */
 
