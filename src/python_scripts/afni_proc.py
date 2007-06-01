@@ -1043,9 +1043,12 @@ g_history = """
          - change read_options() to be compatible with python version 2.2
          - '-basis_normall 1' is no longer used by default
          - rename -regress_no_stim_times to -regress_use_stim_files
+    1.23 Jun 01, 2007 :
+         - changed name of Xmat to X.xmat.1D
+         - by default, apply -xjpeg in 3dDeconvolve
 """
 
-g_version = "version 1.22, May 8, 2007"
+g_version = "version 1.23, Jun 1, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions

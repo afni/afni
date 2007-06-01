@@ -695,7 +695,7 @@ def db_cmd_regress(proc, block):
     # add misc options
     cmd = cmd + iresp
     cmd = cmd + other_opts
-    cmd = cmd + "    -fout -tout -x1D Xmat.x1D  \\\n"
+    cmd = cmd + "    -fout -tout -x1D X.xmat.1D -xjpeg X.jpg \\\n"
     cmd = cmd + fitts
     cmd = cmd + "    -bucket stats.$subj\n\n\n"
 
@@ -710,7 +710,7 @@ def db_cmd_regress(proc, block):
         cmd = cmd + "# create ideal files for each stim type\n"
         first = (polort+1) * proc.runs
         for ind in range(len(labels)):
-            cmd = cmd + "1dcat Xmat.x1D'[%d]' > ideal_%s.1D\n" % \
+            cmd = cmd + "1dcat X.xmat.1D'[%d]' > ideal_%s.1D\n" % \
                         (first+ind, labels[ind])
         cmd = cmd + '\n'
 
@@ -719,7 +719,7 @@ def db_cmd_regress(proc, block):
         first = (polort+1) * proc.runs
         last = first + len(proc.stims) - 1
         cmd = cmd + "# create ideal file by adding ideal regressors\n"
-        cmd = cmd + "3dTstat -sum -prefix %s Xmat.x1D'[%d..%d]'\n\n" % \
+        cmd = cmd + "3dTstat -sum -prefix %s X.xmat.1D'[%d..%d]'\n\n" % \
                     (opt.parlist[0], first, last)
 
     proc.pblabel = block.label  # set 'previous' block label
