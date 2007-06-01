@@ -6255,3 +6255,7 @@
  * Modify 3dDeconvolve mmap() usage to include MAP_NORESERVE flag.
  * Add -allzero_OK option to 3dDeconvolve.c.
  * Make 3dttest check for duplicate dataset filenames.
+
+01 Jun 2007
+ * Modifiy mri_dicom_hdr.c to use a larger buffer for RWC_printf() function,
+     which may help with really big DICOM header files.

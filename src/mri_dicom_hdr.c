@@ -125,7 +125,7 @@ int g_readpreamble = FALSE;                /* 18 May 2006 [rickr] */
 static char *pbuf = NULL ;
 static int  npbuf = 0 ;
 
-#define NPBUF 1024
+#define NPBUF 2048
 
 static void RWC_clear_pbuf(void)
 {
@@ -154,7 +154,7 @@ static int RWC_printf( char *fmt , ... )
 
    lpbuf = strlen(pbuf) ;
    if( lpbuf+nsbuf+8 > npbuf ){
-     npbuf += NPBUF; pbuf = AFREALL( pbuf, char, npbuf);
+     npbuf += NPBUF + npbuf/4 ; pbuf = AFREALL( pbuf, char, npbuf) ;
    }
 
    strcat(pbuf,sbuf) ;
