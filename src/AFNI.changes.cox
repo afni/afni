@@ -6259,3 +6259,7 @@
 01 Jun 2007
  * Modifiy mri_dicom_hdr.c to use a larger buffer for RWC_printf() function,
      which may help with really big DICOM header files.
+
+04 Jun 2007
+ * Modify 3dDeconvolve.c to use .xmat.1D instead of .x1D as output filename
+     for matrices.

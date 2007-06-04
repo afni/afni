@@ -33,7 +33,7 @@ int main( int argc , char * argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf(
        "Usage: 3dSynthesize options\n"
-       "Reads a '-cbucket' dataset and a '.x1D' matrix from 3dDeconvolve,\n"
+       "Reads a '-cbucket' dataset and a '.xmat.1D' matrix from 3dDeconvolve,\n"
        "and synthesizes a fit dataset using selected sub-bricks and\n"
        "matrix columns.\n"
        "\n"
@@ -73,7 +73,7 @@ int main( int argc , char * argv[] )
        "                 More than one '-select sss' option can be used, or\n"
        "                 you can put more than one string after the '-select',\n"
        "                 as in this example:\n"
-       "                   3dSynthesize -matrix fred.x1D -cbucket fred+orig \\\n"
+       "                   3dSynthesize -matrix fred.xmat.1D -cbucket fred+orig \\\n"
        "                                -select baseline FaceStim -prefix FS\n"
        "                 which synthesizes the baseline and 'FaceStim'\n"
        "                 responses together, ignoring any other stimuli\n"
@@ -92,8 +92,8 @@ int main( int argc , char * argv[] )
        "-- Each column in the matrix file is a time series.\n"
        "-- The sub-bricks of the dataset give the weighting coefficients\n"
        "   for these time series, at each voxel.\n"
-       "-- To see the column labels stored in matrix file 'fred.x1D', type\n"
-       "   the Unix command 'grep ColumnLabels fred.x1D'; sample output:\n"
+       "-- To see the column labels stored in matrix file 'fred.xmat.1D', type\n"
+       "   the Unix command 'grep ColumnLabels fred.xmat.1D'; sample output:\n"
        " # ColumnLabels = \"Run#1Pol#0 ; Run#1Pol#1 ; Run#2Pol#0 ; Run#2Pol#1 ;\n"
        "                   FaceStim#0 ; FaceStim#1 ; HouseStim#0 ; HouseStim#1\"\n"
        "   which shows the 4 '-polort 1' baseline parameters from 2 separate\n"
