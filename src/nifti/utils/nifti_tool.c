@@ -133,17 +133,25 @@ static char * g_history[] =
   "1.12 02 Mar 2006 [rickr]\n"
   "   - in act_cbl(), check for nt = 0 because of niftilib update 1.17\n",
   "1.13 24 Apr 2006 [rickr] - act_disp_ci(): remove time series length check\n",
+  "1.14 04 Jun 2007 [rickr] - free_opts_mem(), to appease valgrind\n",
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 1.13 (April 24, 2006)";
+static char g_version[] = "version 1.14 (June 4, 2007)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
 #include "nifti1_io.h"
 #include "nifti_tool.h"
 
+/* local prototypes */
+static int free_opts_mem( nt_opts * nopt );
+
 #define NTL_FERR(func,msg,file)                                      \
             fprintf(stderr,"** ERROR (%s): %s '%s'\n",func,msg,file)
+
+/* val may be a function call, so evalulate first, and return result */
+#define FREE_RETURN(val) \
+        do{ int tval=(val); free_opts_mem(&opts); return tval; } while(0)
 
 /* these are effectively constant, and are built only for verification */
 field_s g_hdr_fields[NT_HDR_NUM_FIELDS];    /* nifti_1_header fields */
@@ -155,47 +163,47 @@ int main( int argc, char * argv[] )
    int     rv;
 
    if( (rv = process_opts(argc, argv, &opts)) != 0)
-      return rv;
+      FREE_RETURN(rv);  /* free opts memory, and return */
 
    if( (rv = verify_opts(&opts, argv[0])) != 0 )
-      return rv;
+      FREE_RETURN(rv);
 
    /* now perform the requested action(s) */
 
    if( (rv = fill_hdr_field_array(g_hdr_fields)) != 0 )
-      return rv;
+      FREE_RETURN(rv);
 
    if( (rv = fill_nim_field_array(g_nim_fields)) != 0 )
-      return rv;
+      FREE_RETURN(rv);
 
    /* 'check' functions, first */
    if( opts.check_hdr || opts.check_nim ) /* allow for both */
-      return act_check_hdrs(&opts);
+      FREE_RETURN( act_check_hdrs(&opts) );
 
-   /* copy or dts functions */
-   if( opts.cbl )             return act_cbl(&opts);  /* just return */
-   if( opts.cci )             return act_cci(&opts);
-   if( opts.dts || opts.dci ) return act_disp_ci(&opts);
+   /* copy or dts functions  -- do not continue after these */
+   if( opts.cbl )             FREE_RETURN( act_cbl(&opts) );
+   if( opts.cci )             FREE_RETURN( act_cci(&opts) );
+   if( opts.dts || opts.dci ) FREE_RETURN( act_disp_ci(&opts) );
 
    /* perform modifications early, in case we allow multiple actions */
-   if( opts.strip     && ((rv = act_strip    (&opts)) != 0) ) return rv;
+   if( opts.strip     && ((rv = act_strip    (&opts)) != 0) ) FREE_RETURN(rv);
 
-   if( opts.add_exts  && ((rv = act_add_exts (&opts)) != 0) ) return rv;
-   if( opts.rm_exts   && ((rv = act_rm_ext   (&opts)) != 0) ) return rv;
+   if( opts.add_exts  && ((rv = act_add_exts (&opts)) != 0) ) FREE_RETURN(rv);
+   if( opts.rm_exts   && ((rv = act_rm_ext   (&opts)) != 0) ) FREE_RETURN(rv);
 
-   if( opts.mod_hdr   && ((rv = act_mod_hdrs (&opts)) != 0) ) return rv;
-   if( opts.mod_nim   && ((rv = act_mod_nims (&opts)) != 0) ) return rv;
+   if( opts.mod_hdr   && ((rv = act_mod_hdrs (&opts)) != 0) ) FREE_RETURN(rv);
+   if( opts.mod_nim   && ((rv = act_mod_nims (&opts)) != 0) ) FREE_RETURN(rv);
 
    /* if a diff, return wither a difference exists (like the UNIX command) */
-   if( opts.diff_hdr  && ((rv = act_diff_hdrs(&opts)) != 0) ) return rv;
-   if( opts.diff_nim  && ((rv = act_diff_nims(&opts)) != 0) ) return rv;
+   if( opts.diff_hdr  && ((rv = act_diff_hdrs(&opts)) != 0) ) FREE_RETURN(rv);
+   if( opts.diff_nim  && ((rv = act_diff_nims(&opts)) != 0) ) FREE_RETURN(rv);
 
    /* last action type is display */
-   if( opts.disp_exts && ((rv = act_disp_exts(&opts)) != 0) ) return rv;
-   if( opts.disp_hdr  && ((rv = act_disp_hdrs(&opts)) != 0) ) return rv;
-   if( opts.disp_nim  && ((rv = act_disp_nims(&opts)) != 0) ) return rv;
+   if( opts.disp_exts && ((rv = act_disp_exts(&opts)) != 0) ) FREE_RETURN(rv);
+   if( opts.disp_hdr  && ((rv = act_disp_hdrs(&opts)) != 0) ) FREE_RETURN(rv);
+   if( opts.disp_nim  && ((rv = act_disp_nims(&opts)) != 0) ) FREE_RETURN(rv);
 
-   return 0;
+   FREE_RETURN(0);
 }
 
 /*----------------------------------------------------------------------
@@ -3372,3 +3380,20 @@ int act_cci( nt_opts * opts )
    return 0;
 }
 
+
+/*----------------------------------------------------------------------
+ * free all of the lists in the struct
+ * note: strings were not allocated
+ *----------------------------------------------------------------------*/
+static int free_opts_mem( nt_opts * nopt )
+{
+    if( !nopt ) return 1;
+
+    if( nopt->elist.list   ) free(nopt->elist.list);
+    if( nopt->etypes.list  ) free(nopt->etypes.list);
+    if( nopt->flist.list   ) free(nopt->flist.list);
+    if( nopt->vlist.list   ) free(nopt->vlist.list);
+    if( nopt->infiles.list ) free(nopt->infiles.list);
+
+    return 0;
+}
