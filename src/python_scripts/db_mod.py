@@ -393,6 +393,10 @@ def db_mod_scale(block, proc, user_opts):     # no options at this time
             block.valid = 0
             return 1
 
+    # if the user does not want a max, use 0
+    if user_opts.find_opt('-scale_no_max') and bopt:
+        bopt.parlist[0] = 0
+
     block.valid = 1
 
 def db_cmd_scale(proc, block):

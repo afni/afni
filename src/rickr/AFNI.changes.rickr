@@ -2030,4 +2030,5 @@
 04 Jun 2007:
   * modified nifti1_io.c: noted release 0.5 in history
   * modified nifti_tool.c: added free_opts_mem() to appease valgrind
+  * modified afni_proc.py, db_mod.py: added -scale_no_max
 
