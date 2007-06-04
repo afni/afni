@@ -869,7 +869,7 @@ void display_help_menu()
     "[-quiet]             Flag to suppress most screen output               \n"
     "[-xout]              Flag to write X and inv(X'X) matrices to screen   \n"
     "[-xjpeg filename]    Write a JPEG file graphing the X matrix           \n"
-    "[-x1D filename]      Save X matrix to a .x1D (ASCII) file [default]    \n"
+    "[-x1D filename]      Save X matrix to a .xmat.1D (ASCII) file [default]\n"
     "[-nox1D]             Don't save X matrix                               \n"
     "[-progress n]        Write statistical results for every nth voxel     \n"
     "[-fdisp fval]        Write statistical results for those voxels        \n"
@@ -1210,7 +1210,7 @@ void get_options
         MTEST (option_data->x1D_filename);
         strcpy (option_data->x1D_filename, argv[nopt]);
         if( strstr(option_data->x1D_filename,"1D") == NULL )
-          strcat( option_data->x1D_filename , ".x1D" ) ;
+          strcat( option_data->x1D_filename , ".xmat.1D" ) ;
         nopt++; continue;
       }
 
@@ -2130,7 +2130,7 @@ void get_options
     }
     option_data->x1D_filename = malloc(strlen(pref)+32) ;
     strcpy(option_data->x1D_filename,pref) ;
-    strcat(option_data->x1D_filename,".x1D") ;
+    strcat(option_data->x1D_filename,".xmat.1D") ;
     free(pref) ;
   }
 
@@ -4904,9 +4904,10 @@ ENTRY("calculate_results") ;
   if( nodata && option_data->x1D_filename != NULL ){
     char fn[THD_MAX_NAME] , *jpt ;
     strcpy(fn,option_data->x1D_filename) ;
-                       jpt = strstr(fn,".x1D") ;
+                       jpt = strstr(fn,".xmat") ;
+    if( jpt == NULL )  jpt = strstr(fn,".1D") ;
     if( jpt == NULL )  jpt = fn + strlen(fn) ;
-    strcpy(jpt,"_XtXinv.x1D") ;
+    strcpy(jpt,"_XtXinv.xmat.1D") ;
     ONED_matrix_save( xtxinv_full , fn , NULL ) ;  /* no column metadata */
   }
 
