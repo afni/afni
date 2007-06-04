@@ -712,9 +712,17 @@ g_help_string = """
             short (2-byte integer) dataset, a large range of values means
             bits of accuracy are lost for the representation.
 
-            The user may remove the limit by applying a value <= 0.
+            No max will be applied if MAX is <= 100.
 
             Please see 'DATASET TYPES' in the output of '3dcalc -help'.
+            See also -scale_no_max.
+
+        -scale_no_max           : do not apply a limit to the scaled values
+
+            The default limit for scaled data is 200.  Use of this option will
+            remove any limit from being applied.
+
+            See also -scale_max_val.
 
         -regress_basis BASIS    : specify the regression basis function
 
@@ -1046,9 +1054,10 @@ g_history = """
     1.23 Jun 01, 2007 :
          - changed name of Xmat to X.xmat.1D
          - by default, apply -xjpeg in 3dDeconvolve
+    1.24 Jun 04 2007 : added -scale_no_max
 """
 
-g_version = "version 1.23, Jun 1, 2007"
+g_version = "version 1.24, Jun 4, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -1175,6 +1184,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-mask_dilate', 1, [])
 
         self.valid_opts.add_opt('-scale_max_val', 1, [])
+        self.valid_opts.add_opt('-scale_no_max', 0, [])
 
         self.valid_opts.add_opt('-regress_basis', 1, [])
         self.valid_opts.add_opt('-regress_basis_normall', 1, [])
