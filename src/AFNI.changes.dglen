@@ -176,3 +176,7 @@ in 3ddata.h
  * oblique dataset handling. Bigger changes in mri_read_dicom, to3d, 3dWarp.
 Also smaller changes in thd_niftiwrite and read, 3ddata.h, vecmat.h, 
 thd_dsetatrc, thd_dsetdblk.c
+4 Jun 2007
+ * Initialization bug in obliquity code on some systems, other minor changes 
+for obliquity too
+
