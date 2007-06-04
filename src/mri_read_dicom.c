@@ -214,7 +214,7 @@ ENTRY("mri_read_dicom") ;
    /* extract header info from file into a string
       - cf. mri_dicom_hdr.[ch]
       - run 'dicom_hdr -noname fname' to see the string format */
-
+   sexinfo.mosaic_num = 1;           /* initialize to non-mosaic */
    mri_dicom_nohex(1) ;              /* don't print ints in hex mode */
    mri_dicom_noname(1) ;             /* don't print names, just tags */
    ppp = mri_dicom_header( fname ) ; /* print header to malloc()-ed string */
@@ -1789,6 +1789,7 @@ Fill_obl_info(oblique_info *obl_info, char **epos, Siemens_extra_info *siem)
     int ii;
     THD_fvec3 xc, yc;
 
+    ENTRY("Fill_obl_info");
     if(obl_info_set) /* if already set all parameters for first slice */
        xyz = obl_info->dfpos2.xyz;   /* only need to set ImagePosition for 2nd slice */
     else 
@@ -1804,10 +1805,9 @@ Fill_obl_info(oblique_info *obl_info, char **epos, Siemens_extra_info *siem)
 
     if(obl_info_set) {
        obl_info_set = 2;
-       return;
+       EXRETURN;
      }
 
-    obl_info_set = 1;
 
     if( epos[E_PIXEL_SPACING] != NULL ){
       ddd = strstr(epos[E_PIXEL_SPACING],"//") ;
@@ -1836,16 +1836,22 @@ Fill_obl_info(oblique_info *obl_info, char **epos, Siemens_extra_info *siem)
                 xc.xyz[ii] = 0.0;
              if(ALMOST(xc.xyz[ii],1.0))
                 xc.xyz[ii] = 1.0;
+             if(ALMOST(xc.xyz[ii],-1.0))
+                xc.xyz[ii] = -1.0;
              if(ALMOST(yc.xyz[ii],0.0))
                 yc.xyz[ii] = 0.0;
              if(ALMOST(yc.xyz[ii],1.0))
                 yc.xyz[ii] = 1.0;
+             if(ALMOST(yc.xyz[ii],-1.0))
+                yc.xyz[ii] = -1.0;
+
           }
           obl_info->xvec = xc;
           obl_info->yvec = yc;
        }
       }
    }
+    obl_info_set = 1;
 
     /* handle Siemens mosaic data */
    if(siem->mosaic_num>1) {
@@ -1898,12 +1904,12 @@ static int CheckObliquity(float xc1, float xc2, float xc3, float yc1, float yc2,
 {
    int obliqueflag = 0;
    /* any values not 1 or 0 or really close mean the data is oblique */
-   if ((!ALMOST(xc1,1.0) && !ALMOST(xc1,0.0)) || 
-       (!ALMOST(xc2,1.0) && !ALMOST(xc2,0.0)) ||
-       (!ALMOST(xc3,1.0) && !ALMOST(xc3,0.0)) ||
-       (!ALMOST(yc1,1.0) && !ALMOST(yc1,0.0)) ||
-       (!ALMOST(yc2,1.0) && !ALMOST(yc2,0.0)) ||
-       (!ALMOST(yc3,1.0) && !ALMOST(yc3,0.0)) ) 
+   if ((!ALMOST(fabs(xc1),1.0) && !ALMOST(xc1,0.0)) || 
+       (!ALMOST(fabs(xc2),1.0) && !ALMOST(xc2,0.0)) ||
+       (!ALMOST(fabs(xc3),1.0) && !ALMOST(xc3,0.0)) ||
+       (!ALMOST(fabs(yc1),1.0) && !ALMOST(yc1,0.0)) ||
+       (!ALMOST(fabs(yc2),1.0) && !ALMOST(yc2,0.0)) ||
+       (!ALMOST(fabs(yc3),1.0) && !ALMOST(yc3,0.0)) ) 
       obliqueflag = 1;
    return(obliqueflag);
 }
@@ -1922,6 +1928,8 @@ static float *ComputeObliquity(oblique_info *obl_info)
    Siemens_extra_info *siem; 
    int ii,jj;
    double Cxx, Cxy, Cxz;
+
+   ENTRY("ComputeObliquity");
    /* compute cross product of image orientation vectors*/
    vec3 = CROSS_FVEC3(obl_info->xvec, obl_info->yvec);
 
@@ -1996,7 +2004,7 @@ DUMP_FVEC3("dc4", dc4);
 
 
    if(!obl_info->mosaic) {
-       return(&(obl_info->Tr_dicom[0][0]));
+       RETURN(&(obl_info->Tr_dicom[0][0]));
    }
    /* for Siemens mosaic data, seen two cases */
 #ifdef DEBUG_ON
@@ -2089,6 +2097,8 @@ DUMP_FVEC3("dc4", dc4);
             obl_info->Tr_dicom[ii][jj] = 0.0;
          if(ALMOST(obl_info->Tr_dicom[ii][jj], 1.0))
             obl_info->Tr_dicom[ii][jj] = 1.0;
+         if(ALMOST(obl_info->Tr_dicom[ii][jj], -1.0))
+            obl_info->Tr_dicom[ii][jj] = -1.0;
       }
    }
 
@@ -2101,7 +2111,7 @@ DUMP_FVEC3("Center of Mosaic", Cm);
 DUMP_FVEC3("Origin", Orgin);
 #endif
 
-   return(&(obl_info->Tr_dicom[0][0]));
+   RETURN(&(obl_info->Tr_dicom[0][0]));
 
 
 #if 0
@@ -2118,7 +2128,7 @@ DUMP_FVEC3("vec4", vec4);
    if(aangle<0.001)
       angle = 0.0;
 
-   return(angle);
+   RETURN(angle);
 #endif
 
 }
