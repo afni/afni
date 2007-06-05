@@ -292,9 +292,10 @@ static char * gni_history[] =
   "   - was reminded to actually add nifti_set_skip_blank_ext()\n"
   "   - init g_opts.skip_blank_ext to 0\n"
   "1.22 01 Jun 2007 nifticlib-0.5 release\n",
+  "1.23 05 Jun 2007 nifti_add_exten_to_list: revert on failure, free old list\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.22,  1 Jun, 2007)";
+static char gni_version[] = "nifti library version 1.23,  5 Jun, 2007)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1, 0 };
@@ -3886,7 +3887,7 @@ int nifti_add_extension(nifti_image *nim, const char * data, int len, int ecode)
 /* nifti_add_exten_to_list     - add a new nifti1_extension to the list
 
    We will append via "malloc, copy and free", because on an error,
-   the old data pointers must all be released (sorry realloc(), only
+   the list will revert to the previous one (sorry realloc(), only
    quality dolphins get to become part of St@rk!st brand tunafish).
 
    return 0 on success, -1 on error (and free the entire list)
@@ -3906,14 +3907,15 @@ static int nifti_add_exten_to_list( nifti1_extension *  new_ext,
               new_length, new_length*(int)sizeof(nifti1_extension));
       if( !tmplist ) return -1;  /* no old list to lose */
 
-      for ( count = 0; count < new_length-1; count++ )
-         if( tmplist[count].edata ) free(tmplist[count].edata);
-      free(tmplist);
+      *list = tmplist;  /* reset list to old one */
       return -1;
    }
 
-   /* we have memory, so copy the old and insert the new */
-   memcpy(*list, tmplist, (new_length-1)*sizeof(nifti1_extension));
+   /* if an old list exists, copy the pointers and free the list */
+   if( tmplist ){
+      memcpy(*list, tmplist, (new_length-1)*sizeof(nifti1_extension));
+      free(tmplist);
+   }
 
    /* for some reason, I just don't like struct copy... */
    (*list)[new_length-1].esize = new_ext->esize;
