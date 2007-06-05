@@ -48,12 +48,13 @@ int main( int argc , char *argv[] )
       "                then normalize each voxel's time series to have\n"
       "                the same MAD before processing FWHM.  Implies -demed.\n"
       "                [Default = don't do this]\n"
-      "        **N.B.: I recommend this option, and it is not the default\n"
-      "                only for historical compatibility reasons.  It may\n"
-      "                become the default someday soon. Depending on my mood.\n"
       "  -detrend [q]= Instead of demed (0th order detrending), detrend to\n"
       "                order 'q'.  If q is not given, the program picks q=NT/30.\n"
       "                -detrend disables -demed, and includes -unif.\n"
+      "        **N.B.: I recommend this option, and it is not the default\n"
+      "                only for historical compatibility reasons.  It may\n"
+      "                become the default someday. Depending on my mood.\n"
+      "                It is already the default in program 3dBlurToFWHM.\n"
       "  -detprefix d= Save the detrended file into a dataset with prefix 'd'.\n"
       "                Used mostly to figure out what the hell is going on,\n"
       "                when funky results transpire.\n"
@@ -234,7 +235,7 @@ int main( int argc , char *argv[] )
      mask = (byte *)malloc(sizeof(byte)*nvox) ;
      memset(mask,1,sizeof(byte)*nvox) ;
    }
-   if( demed || corder || unif ){
+   if( nvals > 3 ){
      for( ncon=ii=0 ; ii < nvox ; ii++ ){
        if( mask[ii] && THD_voxel_is_constant(ii,inset) ){ mask[ii] = 0; ncon++; }
      }

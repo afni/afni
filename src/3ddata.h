@@ -3128,6 +3128,11 @@ static char tmp_dblab[8] ;
   do{ if( (db)->malloc_type==DATABLOCK_MEM_MMAP && (db)->total_bytes>TWOGIG ) \
         (db)->malloc_type = DATABLOCK_MEM_MALLOC ; } while(0)
 
+/*---------------------------------------------------------------------------*/
+
+extern void THD_patch_dxyz_all( THD_3dim_dataset * ) ;       /* 05 Jun 2007 */
+extern void THD_patch_dxyz_one( THD_3dim_dataset * , int ) ;
+
 /*------------- a dynamic array type for 3D datasets ---------------*/
 
 /*! A dynamic array type for AFNI datasets.
@@ -3903,7 +3908,7 @@ extern void THD_generic_detrend_LSQ( int, float *, int, int, float **, float *) 
 extern void THD_generic_detrend_L1 ( int, float *, int, int, float **, float *) ;
 extern void THD_generic_retrend    ( int, float *, int, int, float **, float *) ;
 
-extern MRI_IMARR * THD_time_fit_dataset( THD_3dim_dataset *, int, float **, int , byte *);
+extern MRI_IMARR * THD_time_fit_dataset( THD_3dim_dataset *, int, float **, int, byte *);
 extern void THD_extract_detrended_array( THD_3dim_dataset * ,
                                          int, float **, MRI_IMARR *,
                                          int, int, float * ) ;

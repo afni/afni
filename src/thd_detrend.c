@@ -473,7 +473,10 @@ float ** THD_build_trigref( int corder , int nvals )
 
 ENTRY("THD_build_trigref") ;
 
-   if( corder < 0 || nvals >= nref ) RETURN(NULL) ;
+   if( corder < 0 || nvals <= nref ){
+     ERROR_message("THD_build_trigref: corder=%d  nvals=%d",corder,nvals) ;
+     RETURN(NULL) ;
+   }
 
    ref=(float **)malloc(sizeof(float *)*nref) ;
    for( jj=0 ; jj < nref ; jj++ )
@@ -525,8 +528,8 @@ ENTRY("THD_build_trigref") ;
     _ Return value is the nref fit images, plus 1 extra image that is
       the MAD of the residuals for meth=1 and the standard deviation for meth=2.
     - In float format, of course.
-    - If NULL is returned, something bad happened.
-    - Also see function THD_medmad_bricks().
+    - If NULL is returned, something bad happened.  Be afraid.
+    - Also see function THD_medmad_bricks() for something simpler & similar.
 ------------------------------------------------------------------------------*/
 
 MRI_IMARR * THD_time_fit_dataset( THD_3dim_dataset *dset ,
@@ -640,6 +643,19 @@ ENTRY("THD_extract_detrended_array") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/* Detrend a dataset:
+    - dset  = input time series dataset (nvals long)
+    - nref  = number of ref vectors
+    - ref   = reference vectors [0..nref-1][0..nvals-1]
+    - meth  = 1 or 2 (for L_p fitting, where p=meth)
+    - scl   = if 1, scale data by reciprocal of MAD or stdev (meth=1 or 2)
+    - mask  = if not NULL, byte mask; voxel outside the mask are set to 0
+    - imar  = if not NULL, coefficient images from THD_time_fit_dataset()
+
+  Output is in float format, of course.  If NULL is returned, something bad
+  transpired, and your mother will get an e-mail explaining how stupid
+  you were.
+------------------------------------------------------------------------------*/
 
 THD_3dim_dataset * THD_detrend_dataset( THD_3dim_dataset *dset ,
                                         int nref , float **ref ,
@@ -660,8 +676,10 @@ ENTRY("THD_detrend_dataset") ;
    if( qmar == NULL ) RETURN(NULL) ;
 
    newset = EDIT_empty_copy(dset) ;
-   for( iv=0 ; iv < nvals ; iv++ )
+   for( iv=0 ; iv < nvals ; iv++ ){
      EDIT_substitute_brick( newset , iv , MRI_float , NULL ) ;
+     EDIT_BRICK_FACTOR( newset , iv , 0.0f ) ;  /* 04 Jun 2007 */
+   }
 
    var = (float *)malloc(sizeof(float)*nvals) ;
    for( ii=0 ; ii < nvox ; ii++ ){
@@ -680,6 +698,7 @@ ENTRY("THD_detrend_dataset") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/* Can be used as a sort-of inverse to THD_detrend_dataset() */
 
 int THD_retrend_dataset( THD_3dim_dataset *dset ,
                          int nref , float **ref ,
@@ -713,7 +732,7 @@ ENTRY("THD_retrend_dataset") ;
        for( qq=0 ; qq < nref ; qq++ ) val += ref[qq][tt] * fitar[qq][ii] ;
        far[tt] = val ;
      }
-     THD_insert_series( ii , dset , nvals , MRI_float , var , 0 ) ;
+     THD_insert_series( ii , dset , nvals , MRI_float , far , 0 ) ;
    }
 
    free(far) ; free(fitar) ; RETURN(1) ;

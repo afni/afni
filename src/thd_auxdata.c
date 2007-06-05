@@ -309,3 +309,28 @@ void THD_append_dataset_keywords( THD_3dim_dataset *dset , char *str )
    }
    return ;
 }
+
+/*---------------------------------------------------------------------------*/
+
+void THD_patch_dxyz_one( THD_3dim_dataset *dset , int iv )
+{
+   float dx,dy,dz ;
+   MRI_IMAGE *qm ;
+
+   dx = fabsf(DSET_DX(dset)) ;
+   dy = fabsf(DSET_DY(dset)) ;
+   dz = fabsf(DSET_DZ(dset)) ;
+   qm = DSET_BRICK(dset,iv) ;
+   qm->dx = dx ; qm->dy = dy ; qm->dz = dz ;
+
+   return ;
+}
+
+void THD_patch_dxyz_all( THD_3dim_dataset *dset )
+{
+   int ii , nvals ;
+   if( !ISVALID_DSET(dset) ) return ;
+   nvals = DSET_NVALS(dset) ;
+   for( ii=0 ; ii < nvals ; ii++ ) THD_patch_dxyz_one(dset,ii) ;
+   return ;
+}
