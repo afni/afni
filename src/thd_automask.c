@@ -471,7 +471,7 @@ ENTRY("THD_mask_fillin_completely") ;
   do{ ijk = THREE_TO_IJK(i,j,k,nx,nxy) ;                        \
       if( mmm[ijk] ){                                           \
         if( nnow == nall ){ /* increase array lengths */        \
-          nall += dall ;                                        \
+          nall += dall + nall/4 ;                               \
           inow = (short *) realloc(inow,sizeof(short)*nall) ;   \
           jnow = (short *) realloc(jnow,sizeof(short)*nall) ;   \
           know = (short *) realloc(know,sizeof(short)*nall) ;   \

@@ -798,9 +798,10 @@ ENTRY("build_2Dhist") ;
    }
    nbb = nbin-0.0003f ; nbp = nbin+1 ; nbm = nbin-1 ;
 
-   STATUS("malloc-ing") ;
+   STATUS("free-ing") ;
    FREEIF(xc) ; FREEIF(yc) ; FREEIF(xyc) ;
 
+   STATUS("malloc-ing") ;
    xc  = (float *)calloc(sizeof(float),nbp) ;
    yc  = (float *)calloc(sizeof(float),nbp) ;
    xyc = (float *)calloc(sizeof(float),nbp*nbp) ;
