@@ -2032,3 +2032,8 @@
   * modified nifti_tool.c: added free_opts_mem() to appease valgrind
   * modified afni_proc.py, db_mod.py: added -scale_no_max
 
+05 Jun 2007:
+  * modified nifti1_io.c: nifti_add_exten_to_list:
+        - revert on failure, free old list
+  * modified nifti_tool.c: act_check_hdrs: free(nim)->nifti_image_free()
+

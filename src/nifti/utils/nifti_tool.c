@@ -134,9 +134,10 @@ static char * g_history[] =
   "   - in act_cbl(), check for nt = 0 because of niftilib update 1.17\n",
   "1.13 24 Apr 2006 [rickr] - act_disp_ci(): remove time series length check\n",
   "1.14 04 Jun 2007 [rickr] - free_opts_mem(), to appease valgrind\n",
+  "1.15 05 Jun 2007 [rickr] - act_check_hdrs: free(nim)->nifti_image_free()\n",
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 1.14 (June 4, 2007)";
+static char g_version[] = "version 1.15 (June 5, 2007)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -1947,7 +1948,7 @@ int act_check_hdrs( nt_opts * opts )
              printf("nifti_image FAILURE for file %s\n",
                     opts->infiles.list[filenum]);
 
-          free(nim);
+          nifti_image_free(nim);
       }
 
       free(nhdr);
