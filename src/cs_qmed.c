@@ -29,7 +29,7 @@ static float median_float9(float *) ;
 #undef  SWAP
 #define SWAP(x,y) (temp=x,x=y,y=temp)
 
-float qmed_float( int n , float * ar )
+float qmed_float( int n , float *ar )
 {
    register int i , j ;           /* scanning indices */
    register float temp , pivot ;  /* holding places */
