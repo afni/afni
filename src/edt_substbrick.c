@@ -61,6 +61,8 @@ ENTRY("EDIT_substitute_brick") ;
 
    DSET_CRUSH_BSTAT(dset,ival) ;
 
+   THD_patch_dxyz_one(dset,ival) ;  /* 05 Jun 2007 */
+
    EXRETURN ;
 }
 

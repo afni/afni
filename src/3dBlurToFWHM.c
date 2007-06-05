@@ -47,6 +47,11 @@ int main( int argc , char *argv[] )
    int bmall=0,do_unif=0 ;           /* 11 Dec 2006 */
    MRI_IMARR *imar ; MRI_IMAGE *imed, *imad ; float *imedar, *imadar, *bar ;
 
+   int corder_bm=-1 , corder_in=0 ;   /* 04 Jun 2007: detrending */
+   MRI_IMARR *corder_inar=NULL ; MRI_IMAGE *corder_invv ;
+   float **corder_inref=NULL ;
+   int corder_inrefnum=0 ;
+
    /*-- help the pitifully ignorant luser? --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -73,7 +78,7 @@ int main( int argc , char *argv[] )
       "                   the mask will be set to zero in the output.\n"
       " -automask       = Create an automask from the input dataset.\n"
       "                  **N.B.: Not useful if the input dataset has\n"
-      "                          been detrended!\n"
+      "                          been detrended before input!\n"
       " -FWHM       f   = Blur until the 3D FWHM is 'f'.\n"
       " -FWHMxy     f   = Blur until the 2D (x,y)-plane FWHM is 'f'.\n"
       "                   No blurring is done along the z-axis.\n"
@@ -103,9 +108,9 @@ int main( int argc , char *argv[] )
       "  the residuals left over after the GLM fitted signal model is subtracted\n"
       "  out from each voxel's time series.\n"
       "You CAN give a multi-brick EPI dataset as the -blurmaster dataset; the\n"
-      "  median of each voxel's time series will be removed (like the -demed option\n"
-      "  in 3dFWHMx) which will tend to remove the spatial structure.  This makes\n"
-      "  it practicable to make the input and blurmaster datasets be the same,\n"
+      "  dataset will be detrended in time (like the -detrend option in 3dFWHMx)\n"
+      "  which will tend to remove the spatial structure.  This makes it\n"
+      "  practicable to make the input and blurmaster datasets be the same,\n"
       "  without having to create a detrended or residual dataset beforehand.\n"
       "  Considering the accuracy of blurring estimates, this is probably good\n"
       "  enough for government work [that is an insider's joke].\n"
@@ -168,9 +173,14 @@ int main( int argc , char *argv[] )
       "                with dataset prefix 'bbb' [for debugging purposes].\n"
       " -bmall       = Use all blurmaster sub-bricks.\n"
       "                [Default: a subset will be chosen, for speed]\n"
-      " -unif        = Uniformize the voxel-wise MAD in the blurmaster and\n"
+      " -unif        = Uniformize the voxel-wise MAD in the blurmaster AND\n"
       "                input datasets prior to blurring.  Will be restored\n"
       "                in the output dataset.\n"
+      " -detrend     = Detrend blurmaster dataset to order NT/30 before starting.\n"
+      " -nodetrend   = Turn off detrending of blurmaster.\n"
+      "               ** N.B.: '-detrend' is the new default [05 Jun 2007]!\n"
+      " -detin       = Also detrend input before blurring it, then retrend\n"
+      "                it afterwards. [Off by default]\n"
       " -temper      = Try harder to make the smoothness spatially uniform.\n"
       "\n"
       "-- Author: The Dreaded Emperor Zhark - Nov 2006\n"
@@ -186,6 +196,21 @@ int main( int argc , char *argv[] )
    /*---- loop over options ----*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcmp(argv[iarg],"-nodetrend") == 0 ){        /* 05 Jun 2007 */
+       corder_bm = corder_in = 0 ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-detin") == 0 ){            /* 05 Jun 2007 */
+       corder_bm = corder_in = -1 ; do_unif = 0 ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-detrend") == 0 ){          /* 04 Jun 2007 */
+       corder_bm = -1 ; do_unif = 0 ;
+       iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-rate") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-rate'") ;
@@ -438,15 +463,50 @@ int main( int argc , char *argv[] )
 
    DSET_load(bmset) ; CHECK_LOAD_ERROR(bmset) ;
    INIT_IMARR(bmar) ;
+
+   if( corder_bm ) do_unif = 0 ;
+   if( corder_bm < 0 ) corder_bm = DSET_NVALS(bmset) / 30 ;
+#if 0
+   if( corder_bm > 0 && 2*corder_bm+3 >= DSET_NVALS(bmset) )
+     ERROR_exit("-corder %d is too big for blurmaster dataset",corder_bm) ;
+#endif
+
    if( DSET_NVALS(bmset) == 1 ){
-     bmed = THD_median_brick(bmset) ;
+
+     bmed = THD_median_brick(bmset) ;   /* scaled to floats, if need be */
      ADDTO_IMARR(bmar,bmed) ;
      if( do_unif )
        WARNING_message("Can't apply -unif: only 1 sub-brick in blurmaster dataset") ;
+     else if( corder_bm > 0 ){
+       WARNING_message("Can't apply -detrend: only 1 sub-brick in blurmaster dataset") ;
+       corder_bm = 0 ;
+     }
+
    } else {
+
      MRI_IMAGE *smed ;
      float *mar , *sar ;
      int ntouse , nvb=DSET_NVALS(bmset) , ibot , idel , nzs ;
+
+     if( corder_bm > 0 ){                                  /*--- 04 Jun 2007 ---*/
+       int nref=2*corder_bm+3, jj,iv,kk ;
+       float **ref , tm,fac,fq ;
+       THD_3dim_dataset *newset ;
+       INFO_message("detrending blurmaster: %d ref funcs, %d time points",nref,nvb) ;
+
+       ref = THD_build_trigref( corder_bm , nvb ) ;
+       if( ref == NULL ) ERROR_exit("THD_build_trigref failed!") ;
+
+       newset = THD_detrend_dataset( bmset, nref,ref , 2,1 , mask , NULL ) ;
+       if( newset == NULL ) ERROR_exit("detrending failed!?") ;
+
+       if( !bmeqin ) DSET_delete(bmset) ;
+       bmset = newset ;
+       ININFO_message("detrending of blurmaster complete") ;
+
+       for( jj=0 ; jj < nref ; jj++ ) free(ref[jj]) ;
+       free(ref) ;
+     }
 
      imar = THD_medmad_bricks(bmset) ;
      bmed = IMARR_SUBIM(imar,0) ;        /* 11 Dec 2006: -do_unif: */
@@ -455,8 +515,9 @@ int main( int argc , char *argv[] )
      sar  = MRI_FLOAT_PTR(smed) ;        /* spatial variability    */
 
      for( nzs=ii=0 ; ii < nvox ; ii++ )                 /* 10 May 2007 */
-       if( sar[ii] == 0.0f ){ mask[ii] = 0; nzs++ ; }
-     if( nzs > 0 ) INFO_message("Removed %d voxels with 0 variance from mask",nzs) ;
+       if( mask[ii] && sar[ii] == 0.0f ){ mask[ii] = 0; nzs++ ; }
+     if( nzs > 0 )
+       INFO_message("Removed %d voxels with 0 MAD in blurmaster from mask",nzs) ;
 
      if( do_unif )
        for( ii=0 ; ii < nvox ; ii++ ) if( sar[ii] != 0.0f ) sar[ii] = 1.0/sar[ii] ;
@@ -478,7 +539,7 @@ int main( int argc , char *argv[] )
        bar  = MRI_FLOAT_PTR(bmim) ;
        if( do_unif )
          for( ii=0 ; ii < nvox ; ii++ ) bar[ii] = (bar[ii]-mar[ii])*sar[ii] ;
-       else
+       else if( corder_bm == 0 )
          for( ii=0 ; ii < nvox ; ii++ ) bar[ii] = bar[ii]-mar[ii] ;
        ADDTO_IMARR(bmar,bmim) ;
        if( !bmeqin ) DSET_unload_one(bmset,ibm) ;
@@ -494,8 +555,49 @@ int main( int argc , char *argv[] )
 
    /*--- pre-process input dataset ---*/
 
+#if 1
+   if( corder_in < 0 ) corder_in = DSET_NVALS(inset) / 30 ;
+#else
+   corder_in = 0 ;
+#endif
+
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
-   if( do_unif ){
+
+   outset = EDIT_empty_copy( inset ) ;   /* moved here 04 Jun 2007 */
+   EDIT_dset_items( outset , ADN_prefix , prefix , ADN_none ) ;
+   tross_Copy_History( inset , outset ) ;
+   tross_Make_History( "3dBlurToFWHM" , argc,argv , outset ) ;
+
+   if( corder_in > 0 ){  /* 04 Jun 2007 -- detrend input (but don't scale) */
+
+     int jj,iv,kk , nvi = DSET_NVALS(inset) , nzs ;
+     float tm,fac,fq , *vv,*ww , vmed ;
+     THD_3dim_dataset *newset ;
+
+     corder_inrefnum = 2*corder_in+3 ;
+     INFO_message("detrending input: %d ref funcs, %d time points",corder_inrefnum,nvi) ;
+
+     corder_inref = THD_build_trigref( corder_in , nvi ) ;
+     if( corder_inref == NULL ) ERROR_exit("THD_build_trigref failed!") ;
+
+     newset = THD_detrend_dataset( inset, corder_inrefnum,corder_inref ,
+                                   2,0 , mask , &corder_inar ) ;
+     if( newset == NULL ) ERROR_exit("detrending failed!?") ;
+     corder_invv = IMARR_SUBIM(corder_inar,corder_inrefnum) ;
+     vv = MRI_FLOAT_PTR(corder_invv) ;
+     ww = (float *)malloc(sizeof(float)*nvox) ;
+     for( ii=jj=0 ; ii < nvox ; ii++ ) if( mask[ii] ) ww[jj++] = vv[ii] ;
+     vmed = 0.05 * qmed_float(jj,ww) ; free(ww) ;
+     for( nzs=ii=0 ; ii < nvox ; ii++ )
+       if( mask[ii] && vv[ii] < vmed ){ mask[ii] = 0; nzs++ ; }
+     if( nzs > 0 )
+       INFO_message("Removed %d voxels with small input stdev from mask",nzs) ;
+
+     DSET_delete(inset) ; inset = newset ;
+     ININFO_message("detrending of input complete") ;
+
+   } else if( do_unif ){
+
      int nvi = DSET_NVALS(inset) ;
      if( nvi < 3 ){
        WARNING_message(
@@ -890,6 +992,10 @@ int main( int argc , char *argv[] )
      for( ii=0 ; ii < IMARR_COUNT(dsar) ; ii++ )
        mri_blur3D_variable( IMARR_SUBIM(dsar,ii) , mask , fxim,fyim,fzim ) ;
 
+#if 0
+     (void)mriarr_estimate_FWHM_1dif( dsar , mask , do_unif ) ;
+#endif
+
    } /*-- loop back to estimate smoothness, etc --*/
 
    /*----- toss some trash ---*/
@@ -900,12 +1006,8 @@ int main( int argc , char *argv[] )
    if( fyim != NULL ) mri_free(fyim) ;
    if( fzim != NULL ) mri_free(fzim) ;
 
-   /*--- create the output dataset ---*/
+   /*--- put blurred data into the output dataset ---*/
 
-   outset = EDIT_empty_copy( inset ) ;
-   EDIT_dset_items( outset , ADN_prefix , prefix , ADN_none ) ;
-   tross_Copy_History( inset , outset ) ;
-   tross_Make_History( "3dBlurToFWHM" , argc,argv , outset ) ;
    for( ids=0 ; ids < DSET_NVALS(outset) ; ids++ ){
      bar = MRI_FLOAT_PTR( IMARR_SUBIM(dsar,ids) ) ;
      if( do_unif ){
@@ -914,6 +1016,13 @@ int main( int argc , char *argv[] )
      }
      EDIT_substitute_brick( outset , ids , MRI_float , bar ) ;
    }
+#if 1
+   if( corder_inrefnum > 0 ){
+     INFO_message("re-trending output dataset") ;
+     THD_retrend_dataset( outset , corder_inrefnum,corder_inref ,
+                          0 , mask , corder_inar ) ;
+   }
+#endif
    DSET_write(outset) ;
    WROTE_DSET(outset) ;
 
@@ -927,6 +1036,8 @@ int main( int argc , char *argv[] )
      sprintf(buf+strlen(buf)," -arith") ;
      if( do_unif )
        sprintf(buf+strlen(buf)," -unif") ;
+     else if( corder_bm > 0 )
+       sprintf(buf+strlen(buf)," -detrend") ;
      if( automask )
        sprintf(buf+strlen(buf)," -automask") ;
      else if( mset != NULL )
