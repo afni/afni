@@ -749,6 +749,7 @@ ENTRY("build_2Dhist") ;
 
    /* get the min..max range for x data? */
 
+   STATUS("compute good[]") ;
    good = (byte *)malloc(sizeof(byte)*n) ;         /* 28 Feb 2007 */
    for( ii=0 ; ii < n ; ii++ )
      good[ii] = GOODVAL(x[ii]) && GOODVAL(y[ii]) ;
@@ -760,6 +761,7 @@ ENTRY("build_2Dhist") ;
 #endif
    } else if( xbot >= xtop ){              /* equal bins, and must find range */
      xbot = WAY_BIG ; xtop = -WAY_BIG ;
+     STATUS("compute xbot..xtop") ;
      for( ii=0 ; ii < n ; ii++ )
        if( good[ii] ){
               if( x[ii] > xtop ) xtop = x[ii] ;
@@ -777,6 +779,7 @@ ENTRY("build_2Dhist") ;
 #endif
    } else if( ybot >= ytop ){
      ybot = WAY_BIG ; ytop = -WAY_BIG ;
+     STATUS("compute ybot..ytop") ;
      for( ii=0 ; ii < n ; ii++ )
        if( good[ii] ){
               if( y[ii] > ytop ) ytop = y[ii] ;
@@ -795,6 +798,7 @@ ENTRY("build_2Dhist") ;
    }
    nbb = nbin-0.0003f ; nbp = nbin+1 ; nbm = nbin-1 ;
 
+   STATUS("malloc-ing") ;
    FREEIF(xc) ; FREEIF(yc) ; FREEIF(xyc) ;
 
    xc  = (float *)calloc(sizeof(float),nbp) ;
@@ -803,6 +807,7 @@ ENTRY("build_2Dhist") ;
 
    /*-- count number of good values left in range (in both x and y) --*/
 
+   STATUS("counting") ;
    memset(good,0,n) ;
    for( ngood=ii=0 ; ii < n ; ii++ ){
      if( RANGVAL(x[ii],xbot,xtop) && RANGVAL(y[ii],ybot,ytop) && WW(ii) > 0.0f ){
@@ -819,6 +824,7 @@ ENTRY("build_2Dhist") ;
 
    if( nxybin <= 0 && !xyclip ){  /*------------ equal size bins ------------*/
 
+     STATUS("equal size bins") ;
      xb = xbot ; xi = nbb/(xtop-xbot) ;
      yb = ybot ; yi = nbb/(ytop-xbot) ; nww = 0.0f ;
      for( ii=0 ; ii < n ; ii++ ){
@@ -846,6 +852,7 @@ ENTRY("build_2Dhist") ;
 
      float xbc=xclip_bot , xtc=xclip_top , ybc=yclip_bot , ytc=yclip_top ;
 
+     STATUS("mostly equal bins") ;
      xi = (nbin-2.000001f)/(xtc-xbc) ;
      yi = (nbin-2.000001f)/(ytc-ybc) ; nww = 0.0f ;
      for( ii=0 ; ii < n ; ii++ ){
@@ -892,6 +899,7 @@ ENTRY("build_2Dhist") ;
 
      /* outer loop: process points starting at index = ib */
 
+     STATUS("unequal sized bins") ;
      nww = 0.0f ;
      for( ib=0 ; ib < n ; ){
 
@@ -979,6 +987,7 @@ ENTRY("build_2Dhist") ;
 
    if( nww > 0.0f ){
      register float ni ; register int nbq ;
+     STATUS("scaling") ;
      ni = 1.0f / nww ;
      for( ii=0 ; ii < nbp ; ii++ ){ xc[ii]  *= ni; yc[ii] *= ni; }
      nbq = nbp*nbp ;
