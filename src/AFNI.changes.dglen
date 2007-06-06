@@ -179,4 +179,6 @@ thd_dsetatrc, thd_dsetdblk.c
 4 Jun 2007
  * Initialization bug in obliquity code on some systems, other minor changes 
 for obliquity too
+6 Jun 2007
+ * NIFTI read creates oblique transformation structure
 
