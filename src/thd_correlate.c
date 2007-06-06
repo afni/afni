@@ -738,7 +738,7 @@ void build_2Dhist( int n , float xbot,float xtop,float *x ,
                            float ybot,float ytop,float *y , float *w )
 {
    register int ii,jj,kk ;
-   float xb,xi , yb,yi , xx,yy , x1,y1 , nbb , ww ;
+   float xb,xi , yb,yi , xx,yy , x1,y1 , ww ;
    byte *good ; int ngood , xyclip , nbm ;
 
 ENTRY("build_2Dhist") ;
@@ -796,7 +796,7 @@ ENTRY("build_2Dhist") ;
      nbin = (nhbin > 2) ? nhbin : (int)pow((double)n,hpow) ;
      if( nbin > 255 ) nbin = 255; else if( nbin < 3 ) nbin = 3;
    }
-   nbb = nbin-0.0003f ; nbp = nbin+1 ; nbm = nbin-1 ;
+   nbp = nbin+1 ; nbm = nbin-1 ;
 
    STATUS("free-ing") ;
    FREEIF(xc) ; FREEIF(yc) ; FREEIF(xyc) ;
@@ -826,8 +826,8 @@ ENTRY("build_2Dhist") ;
    if( nxybin <= 0 && !xyclip ){  /*------------ equal size bins ------------*/
 
      STATUS("equal size bins") ;
-     xb = xbot ; xi = nbb/(xtop-xbot) ;
-     yb = ybot ; yi = nbb/(ytop-xbot) ; nww = 0.0f ;
+     xb = xbot ; xi = nbm/(xtop-xbot) ;
+     yb = ybot ; yi = nbm/(ytop-xbot) ; nww = 0.0f ;
      for( ii=0 ; ii < n ; ii++ ){
        if( !good[ii] ) continue ;
        xx = (x[ii]-xb)*xi ;
