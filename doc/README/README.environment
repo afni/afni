@@ -2343,7 +2343,10 @@ As of 06 Jun 2007, when AFNI programs write datasets to disk, they will check if
 the filename already exists; if so, then the filename will be 'deconflicted' --
 changed to a filename that does not conflict with an existing file.  For example,
 "fred+orig" could be changed to "fred_AA1+orig".  If you do NOT want this
-automatic deconflicting, then set this variable to YES.
+automatic deconflicting, then set this variable to YES -- in that case, dataset
+files will be overwritten if a conflict occurs.  If you want the program to
+stop when it finds an output conflict and NOT write anything, then set this
+variable to DEATH (or anything starting with a 'D').
 
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
