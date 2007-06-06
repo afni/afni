@@ -6268,3 +6268,8 @@
  * Modify 3dBlurToFWHM.c and 3dFWHMx.c to use detrending.
  * Add THD_patch_dxyz_* functions to thd_auxdata.c, to make sure MRI_IMAGE's
      in a dataset have the correct dx,dy,dz fields.
+
+06 Jun 2007
+ * Modify thd_writedset.c to always do THD_deconflict_prefix(), unless told
+     not to by AFNI_DONT_DECONFLICT.
+ * Modify thd_correlate.c build_2Dhist() to avoid histogram overflow (oops).

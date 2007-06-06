@@ -83,6 +83,17 @@ ENTRY("THD_write_3dim_dataset") ;
 
    THD_set_dataset_attributes( dset ) ;
 
+   /*----- 06 Jun 2007: deconflict dataset name? -----*/
+
+   if( !AFNI_yesenv("AFNI_DONT_DECONFLICT") ){
+     char pfx[THD_MAX_PREFIX] ;
+     MCW_strncpy( pfx , DSET_PREFIX(dset) , THD_MAX_PREFIX ) ;
+     ii = THD_deconflict_prefix( dset ) ;
+     if( ii )
+       WARNING_message("changed output dataset name from %s to %s",
+                       pfx , DSET_PREFIX(dset) ) ;
+   }
+
    /*------ 06 Apr 2005: write a NIFTI-1 dataset??? -----*/
    /*       11 Oct 2005: allow .hdr suffix also          */
 
