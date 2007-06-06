@@ -432,9 +432,8 @@ ENTRY("THD_open_nifti") ;
    /*-- make an AFNI dataset! --*/
 
    dset = EDIT_empty_copy(NULL) ;
-   /* copy structure to dataset structure */
-
-      
+   /* copy transformation matrix to dataset structure */
+   dset->daxes->ijk_to_dicom_real = ijk_to_dicom44;
 
    ppp  = THD_trailname(pathname,0) ;               /* strip directory */
    MCW_strncpy( prefix , ppp , THD_MAX_PREFIX ) ;   /* to make prefix */
