@@ -3896,7 +3896,6 @@ static int nifti_add_exten_to_list( nifti1_extension *  new_ext,
                                     nifti1_extension ** list, int new_length )
 {
    nifti1_extension * tmplist;
-   int                count;
   
    tmplist = *list;
    *list = (nifti1_extension *)malloc(new_length * sizeof(nifti1_extension));
