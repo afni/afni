@@ -240,6 +240,7 @@ THD_3dim_dataset * MAKER_4D_to_typed_fith( THD_3dim_dataset * old_dset ,
            ADN_none ) ;
 
    if( ii != 0 ){
+      ERROR_message("Error creating dataset '%s'",new_prefix) ;
       THD_delete_3dim_dataset( new_dset , False ) ;  /* some error above */
       FREE_WORKSPACE ; return NULL ;
    }

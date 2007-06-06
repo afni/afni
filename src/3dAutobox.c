@@ -97,12 +97,14 @@ int main( int argc , char * argv[] )
                             -ym, yp-ny, 
                             -zm, zp-nz,
                             prefix , ZPAD_IJK ) ;
+#if 0
          if( THD_is_file(DSET_HEADNAME(outset)) ){
             fprintf(stderr,
                     "** 3dAutobox: output file %s already exists - FATAL ERROR!\n",
                     DSET_HEADNAME(outset) ) ;
             exit(1) ;
          }
+#endif
 
          if( outset == NULL ){
             fprintf(stderr,"** 3dAutobox: Some error occurred in processing!\n") ;

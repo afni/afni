@@ -295,12 +295,14 @@ int main( int argc , char * argv[] )
                       ADN_nsl       , 0 , /* kill time offsets  */
                     ADN_none ) ;
 
+#if 0
    /* can't re-write existing dataset */
    if( THD_is_file(DSET_HEADNAME(new_dset)) ){
      fprintf(stderr,"** Fatal error: dataset %s already exists!\n",
              DSET_HEADNAME(new_dset) ) ;
      exit(1) ;
    }
+#endif
 
    THD_force_malloc_type( new_dset->dblk , DATABLOCK_MEM_MALLOC ) ;
 

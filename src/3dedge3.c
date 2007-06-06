@@ -161,12 +161,14 @@ int main( int argc , char * argv[] )
                              ADN_datum_all , datum ,
                           ADN_none ) ;
 
+#if 0
          if( THD_is_file(outset->dblk->diskptr->header_name) ){
             fprintf(stderr,
                     "*** Output file %s already exists -- cannot continue!\n",
                     outset->dblk->diskptr->header_name ) ;
             exit(1) ;
          }
+#endif
 
       } 
       

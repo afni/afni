@@ -1719,9 +1719,10 @@ int main( int argc , char *argv[] )
        THD_daxes_to_mat44(dset_base->daxes) ;
      stup.base_cmat = dset_base->daxes->ijk_to_dicom ;
 
-     if( MAT44_DET(stup.base_cmat) * MAT44_DET(stup.targ_cmat) < 0.0f )
+     if( MAT44_DET(stup.base_cmat) * MAT44_DET(stup.targ_cmat) < 0.0f ){
        WARNING_message("base and source datasets have different handedness!") ;
        WARNING_message("Alignment will proceed, but examine results carefully!");
+     }
    } else {
      stup.base_cmat = stup.targ_cmat ;
    }

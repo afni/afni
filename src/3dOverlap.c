@@ -96,12 +96,14 @@ int main( int argc , char * argv[] )
          tross_Copy_History( xset , oset ) ;
          tross_Make_History( "3dOverlap" , argc,argv , oset ) ;
 
+#if 0
          if( THD_is_file(DSET_HEADNAME(oset)) ){
             fprintf(stderr,
                     "** Output file %s already exists -- will not overwrite!\n",
                     DSET_HEADNAME(oset) ) ;
             DSET_delete(oset) ; oset = NULL ; psave = NULL ;
           }
+#endif
       }
 
       DSET_delete(xset) ;

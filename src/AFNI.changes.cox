@@ -6271,5 +6271,6 @@
 
 06 Jun 2007
  * Modify thd_writedset.c to always do THD_deconflict_prefix(), unless told
-     not to by AFNI_DONT_DECONFLICT.
+     not to by AFNI_DONT_DECONFLICT.  Modify a bunch of 3d programs to NOT
+     check for filename conflict on output.
  * Modify thd_correlate.c build_2Dhist() to avoid histogram overflow (oops).

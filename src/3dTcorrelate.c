@@ -184,11 +184,13 @@ int main( int argc , char *argv[] )
                       ADN_func_type , FUNC_BUCK_TYPE ,
                     ADN_none ) ;
 
+#if 0
    if( THD_is_file(DSET_HEADNAME(cset)) ){
       fprintf(stderr,"** Output dataset %s already exists!\n",
               DSET_HEADNAME(cset)) ;
       exit(1) ;
    }
+#endif
 
    EDIT_BRICK_TO_FICO(cset,0,nvals,1,polort+1+nort) ;  /* stat params */
    EDIT_BRICK_FACTOR(cset,0,0.0) ;                     /* to be safe  */

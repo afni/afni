@@ -516,11 +516,13 @@ int main( int argc , char * argv[] )
    /* can't re-write existing dataset, unless glueing is used */
 
    if (! BUCK_glue){
+#if 0
      if( THD_is_file(DSET_HEADNAME(new_dset)) ){
        fprintf(stderr,"*** Fatal error: file %s already exists!\n",
                DSET_HEADNAME(new_dset) ) ;
        exit(1) ;
      }
+#endif
    } else {   /* if glueing is used, make the 'new'
                  dataset have the same idcode as the old one */
 
@@ -651,6 +653,7 @@ int main( int argc , char * argv[] )
    if( ! BUCK_dry ){
       if( BUCK_verb ) fprintf(stderr,"-verb: loading statistics\n") ;
       THD_load_statistics( new_dset ) ;
+      if( BUCK_glue ) putenv("AFNI_DONT_DECONFLICT=YES") ;
       THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
       if( BUCK_verb ) fprintf(stderr,"-verb: wrote output: %s\n",DSET_BRIKNAME(new_dset)) ;
    }
