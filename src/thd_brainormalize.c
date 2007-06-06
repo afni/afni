@@ -252,7 +252,7 @@ short * THD_mask_distize( int nx, int ny, int nz, byte *mmm, byte *ccc )
   do{ ijk = (i)+(j)*nx+(k)*nxy ;                                      \
       if( mmm[ijk] ){                                                 \
         if( nnow == nall ){ /* increase array lengths */              \
-          nall += DALL ;                                              \
+          nall += DALL + nall/4 ;                                     \
           inow = (short *) realloc((void *)inow,sizeof(short)*nall) ; \
           jnow = (short *) realloc((void *)jnow,sizeof(short)*nall) ; \
           know = (short *) realloc((void *)know,sizeof(short)*nall) ; \
