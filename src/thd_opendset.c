@@ -389,6 +389,7 @@ ENTRY("THD_dataset_headname") ;
 /* given a filename, return one STORAGE_BY_* value from 3ddata.h
  *                                           20 Apr 2006 [rickr] */
 int storage_mode_from_filename( char * fname )
+
 {
 ENTRY("storage_mode_from_filename");
 
@@ -436,6 +437,7 @@ ENTRY("storage_mode_from_filename");
 /* given a filename, return a pointer to the extension
  * (from file_extension_list)
  *                                  28 Jun 2006 [rickr] */
+
 char * find_filename_extension( char * fname )
 {
     char ** eptr;
@@ -459,6 +461,7 @@ ENTRY("find_filename_extension");
 /* ------------------------------------------------------------- */
 /* given a filename, return 1 if it has a know extension that is
  * not an AFNI extension                     20 Apr 2006 [rickr] */
+
 int has_known_non_afni_extension( char * fname )
 {
     int mode;
@@ -475,4 +478,3 @@ ENTRY("has_known_non_afni_extension");
 
     RETURN(1); /* otherwise, we recognize it as non-AFNI */
 }
-
