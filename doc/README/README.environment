@@ -2336,6 +2336,15 @@ the front, but some window managers (I'm looking at you, FC5) don't allow
 this action.  So this provides a way to kill the window, at least, if you've
 lost it in desktop hell somewhere.
 
+------------------------------
+Variable: AFNI_DONT_DECONFLICT
+------------------------------
+As of 06 Jun 2007, when AFNI programs write datasets to disk, they will check if
+the filename already exists; if so, then the filename will be 'deconflicted' --
+changed to a filename that does not conflict with an existing file.  For example,
+"fred+orig" could be changed to "fred_AA1+orig".  If you do NOT want this
+automatic deconflicting, then set this variable to YES.
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
