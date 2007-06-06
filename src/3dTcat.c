@@ -151,20 +151,19 @@ void TCAT_read_opts( int argc , char *argv[] )
       /**** -glueto fname ****/
 
       if( strncmp(argv[nopt],"-glueto",5) == 0 ){
-	 if( strncmp(TCAT_output_prefix, "tcat", 5) != 0 ){
-            fprintf(stderr,"*** -prefix and -glueto options are not compatible\n");
-	    exit(1) ;
-	 }
-	 if( strncmp(TCAT_session, "./", 5) != 0 ){
-            fprintf(stderr,
-		    "*** -session and -glueto options are not compatible\n");
-	    exit(1) ;
-	 }
-	 TCAT_glue = 1 ;
-         nopt++ ;
-         if( nopt >= argc ){
-            fprintf(stderr,"*** need argument after -glueto!\n") ; exit(1) ;
-         }
+        if( strncmp(TCAT_output_prefix, "tcat", 5) != 0 ){
+          fprintf(stderr,"*** -prefix and -glueto options are not compatible\n");
+          exit(1) ;
+        }
+        if( strncmp(TCAT_session, "./", 5) != 0 ){
+          fprintf(stderr,"*** -session and -glueto options are not compatible\n");
+	       exit(1) ;
+	     }
+        TCAT_glue = 1 ;
+        nopt++ ;
+        if( nopt >= argc ){
+          fprintf(stderr,"*** need argument after -glueto!\n") ; exit(1) ;
+        }
 
 	 /*----- Verify that file name ends in View Type -----*/
 	 ok = 1;
@@ -329,7 +328,7 @@ int * TCAT_get_subv( int nvals , char *str )
       return(get_count_intlist ( str, &ii));
    }
 
-   
+
    /*** loop through each sub-selector until end of input ***/
 
    slen = strlen(str) ;
@@ -486,7 +485,7 @@ void TCAT_Syntax(void)
     "This would be most useful when randomizing (shuffling) the order of\n"
     "the sub-bricks. Example:\n"
     "  fred+orig[count -seed 2 5 11 s] is equivalent to something like:\n"
-    "  fred+orig[ 6, 5, 11, 10, 9, 8, 7] \n" 
+    "  fred+orig[ 6, 5, 11, 10, 9, 8, 7] \n"
     "You could also do: fred+orig[`count -seed 2 -digits 1 -suffix ',' 5 11 s`]\n"
     "but if you have lots of numbers, the command line would get too\n"
     "long for the shell to process it properly. Omit the seed option if\n"
@@ -633,11 +632,13 @@ int main( int argc , char * argv[] )
    /* can't re-write existing dataset, unless glueing is used */
 
    if (! TCAT_glue){
+#if 0
      if( THD_is_file(DSET_HEADNAME(new_dset)) ){
        fprintf(stderr,"*** Fatal error: file %s already exists!\n",
-	       DSET_HEADNAME(new_dset) ) ;
+          DSET_HEADNAME(new_dset) ) ;
        exit(1) ;
      }
+#endif
    } else {   /* if glueing is used, make the 'new'
                  dataset have the same idcode as the old one */
 
@@ -691,13 +692,13 @@ int main( int argc , char * argv[] )
             EDIT_substitute_brick( new_dset , ivout ,
                                    DSET_BRICK_TYPE(dset,jv) , DSET_ARRAY(dset,jv) ) ;
 
-	    /*----- If this sub-brick is from a bucket dataset,
+       /*----- If this sub-brick is from a bucket dataset,
                     preserve the label for this sub-brick -----*/
 
-	    if( ISBUCKET(dset) )
-	      sprintf (buf, "%s", DSET_BRICK_LABEL(dset,jv));
-	    else
-	      sprintf(buf,"%.12s[%d]",DSET_PREFIX(dset),jv) ;
+       if( ISBUCKET(dset) )
+         sprintf (buf, "%s", DSET_BRICK_LABEL(dset,jv));
+       else
+         sprintf(buf,"%.12s[%d]",DSET_PREFIX(dset),jv) ;
             EDIT_dset_items( new_dset, ADN_brick_label_one+ivout, buf, ADN_none );
 
             sprintf(buf,"%s[%d]",DSET_FILECODE(dset),jv) ;
@@ -966,7 +967,7 @@ fprintf(stderr,"kk=%d iv=%d bar=%g rlt0=%g rlt1=%g qq=%g qmid=%g val=%g\n",
    if( ! TCAT_dry ){
       if( TCAT_verb ) fprintf(stderr,"-verb: computing sub-brick statistics\n") ;
       THD_load_statistics( new_dset ) ;
-
+      if( TCAT_glue ) putenv("AFNI_DONT_DECONFLICT=YES") ;
       THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
       if( TCAT_verb ) fprintf(stderr,"-verb: Wrote output to %s\n",
                               DSET_BRIKNAME(new_dset) ) ;

@@ -393,7 +393,8 @@ void check_one_output_file
 	       ierror);
       UN_error (message);
     }
-  
+ 
+#if 0 
   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
     {
       sprintf (message,
@@ -402,6 +403,7 @@ void check_one_output_file
 	       new_dset->dblk->diskptr->header_name);
       UN_error (message);
     }
+#endif
   
   /*----- deallocate memory -----*/   
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
@@ -438,12 +440,14 @@ void verify_inputs
   }
 
 
+#if 0
   if( THD_is_file(option_data->new_dset->dblk->diskptr->header_name) ){
     fprintf(stderr,
 	    "*** Output dataset file %s already exists--cannot continue!\a\n",
 	    option_data->new_dset->dblk->diskptr->header_name ) ;
     exit(1) ;
   }
+#endif
 
 
 

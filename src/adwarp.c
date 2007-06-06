@@ -920,11 +920,17 @@ int main( int argc , char *argv[] )
                  "++ Warning: overwriting dataset %s and %s\n",
                  DSET_HEADNAME(new_dset), DSET_BRIKNAME(new_dset) ) ;
       } else {
+#if 0
          fprintf(stderr,
                  "** Error: can't overwrite dataset %s and %s\n"
                  "          unless you use the -force option!\n" ,
                  DSET_HEADNAME(new_dset), DSET_BRIKNAME(new_dset) ) ;
          exit(1) ;
+#else
+         THD_deconflict_prefix(new_dset) ;
+         WARNING_message("Changed dataset name to '%s' to avoid conflict",
+                         DSET_BRIKNAME(new_dset) ) ;
+#endif
       }
    }
 

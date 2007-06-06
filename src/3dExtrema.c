@@ -1544,7 +1544,8 @@ void write_bucket ()
 	      ierror);
       EX_error (message);
     }
-  
+ 
+#if 0 
   if (THD_is_file(DSET_HEADNAME(new_dset))) 
     {
       sprintf (message,
@@ -1552,6 +1553,7 @@ void write_bucket ()
 	      DSET_HEADNAME(new_dset));
       EX_error (message);
     }
+#endif
 
 
   /*----- Allocate memory -----*/

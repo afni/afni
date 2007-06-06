@@ -364,9 +364,11 @@ void initialize
 
   /*----- check for valid inputs -----*/
   check_for_valid_inputs (*option_data);
-    
+ 
+#if 0   
   /*----- check whether output files already exist -----*/
   check_one_output_file (*option_data, (*option_data)->outfile);
+#endif
 
   /*----- allocate memory -----*/
   *delta = (float *) malloc(sizeof(float) * (*option_data)->nxyz);

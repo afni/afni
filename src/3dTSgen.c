@@ -765,9 +765,11 @@ void check_for_valid_inputs
       NLfit_error("Must have mininum constraints <= maximum constraints");
       
 
+#if 0
   /*----- check whether any of the output files already exist -----*/
   check_output_files (input_filename, output_filename, 
 		      ncoef_filename, scoef_filename, bucket_filename);
+#endif
 
 }
 

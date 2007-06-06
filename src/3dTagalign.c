@@ -451,12 +451,14 @@ int main( int argc , char * argv[] )
                          ADN_label1 , prefix ,
                       ADN_none ) ;
 
+#if 0
      if( THD_is_file(dset->dblk->diskptr->header_name) ){
         fprintf(stderr,
                 "** Output file %s already exists -- cannot continue!\n",
                 dset->dblk->diskptr->header_name ) ;
         exit(1) ;
      }
+#endif
 
      tross_Make_History( "3dTagalign" , argc,argv , dset ) ;
 

@@ -248,12 +248,14 @@ int main( int argc , char *argv[] )
    /*-- set some information into the new dataset's header --*/
 
    EDIT_dset_items( new_dset , ADN_prefix , VL_prefix , ADN_none ) ;
+#if 0
    if( THD_is_file( DSET_HEADNAME(new_dset) ) ){
      fprintf(stderr,
              "** Output file %s already exists -- cannot continue!\n",
              DSET_HEADNAME(new_dset) ) ;
      exit(1) ;
    }
+#endif
 
    tross_Copy_History( VL_dset , new_dset ) ;
    tross_Make_History( "3dvolreg" , argc,argv , new_dset ) ;
