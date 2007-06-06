@@ -418,7 +418,7 @@ main (int argc, char *argv[])
 static void ModelSearch(int p, char **roilabels)
 {
    int j,k,n, nelements, max_i,max_j;
-   int i, nmodels, maxmodel, kk;
+   int i, nmodels, maxmodel, kk, nreq;
    double eta, temp, dfdt, d2fdt2, temp2;
    sqrmat *invsigma, *sigma, *Si_mat, *newsigma, *invsigmaexp;
    sqrmat *tempmat, *tempmat2, *tempmat3, *newinvsigma;
@@ -446,8 +446,10 @@ static void ModelSearch(int p, char **roilabels)
       nmodels = maxmodel;
       
    kk = n*(n+1)/2;
-   ntheta = count_nonzero_sm(theta_init_mat);
-   if(ntheta!=0) {
+   nreq = ntheta = count_nonzero_sm(theta_init_mat);
+   INFO_message("Number of required coefficients is %d\n", nreq);
+
+   if(nreq!=0) {
       cost = ComputeThetawithPowell();  /* calculate connection coefficients - minimum model */
       INFO_message("cost = %g\n", cost);
       chisq0 = cost * (DF - 1.0);
@@ -462,7 +464,7 @@ static void ModelSearch(int p, char **roilabels)
    }
    INFO_message("Chi Square 0 = %f  for minimum fit\n", chisq0);
    INFO_message("-------------------------------------------------------------------------------\n\n");
-   for(i=0;(i<nmodels)&&(cost>stop_cost);i++) {     /* for all possible combinations or maximum */
+   for(i=0;(i<nmodels-nreq)&&(cost>stop_cost);i++) {     /* for all possible combinations or maximum */
       invsigma = ComputeInvSigma();  /* more efficient and safer to calculate inverse first */
       /* use inverse of the inverse sigma matrix for nice symmetric matrix */  
       sigma = sm_inverse(invsigma);  
@@ -473,14 +475,14 @@ static void ModelSearch(int p, char **roilabels)
          for(k=0;k<p;k++) { 
             if(NAT(j,k)==2.0) { /* allow user to exclude elements and don't do already modeled elements */
 
- temp2 = MAT(j,k);
- NAT(j,k) = 1.0;	    
- cost = ComputeThetawithPowell();  /* recompute the optimization */ 
- if(cost<mincost) {
-     mincost = cost;
-     max_i = j;
-     max_j = k;
-    }
+	       temp2 = MAT(j,k);
+	       NAT(j,k) = 1.0;	    
+	       cost = ComputeThetawithPowell();  /* recompute the optimization */ 
+	       if(cost<mincost) {
+		   mincost = cost;
+		   max_i = j;
+		   max_j = k;
+		  }
  #if 0
  	       temp = MAT(j,k);
 	       MAT(j,k)+= eta;
@@ -508,9 +510,9 @@ static void ModelSearch(int p, char **roilabels)
                KILL_SQRMAT(tempmat3);
 #endif	       
 	       
- NAT(j,k) = 2.0;
- MAT(j,k) = temp2;
- ntheta = count_nonzero_sm(theta_init_mat);
+	       NAT(j,k) = 2.0;
+	       MAT(j,k) = temp2;
+	       ntheta = count_nonzero_sm(theta_init_mat);
 
 	    }
 	 }
