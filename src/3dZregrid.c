@@ -269,11 +269,13 @@ int main( int argc , char * argv[] )
 
    nset = EDIT_empty_copy( dset ) ;
    EDIT_dset_items( nset , ADN_prefix , prefix , ADN_none ) ;
+#if 0
    if( THD_is_file( DSET_HEADNAME(nset) ) ){
       fprintf(stderr,"** Output file %s exists -- cannot overwrite!\n",
               DSET_HEADNAME(nset) ) ;
       exit(1) ;
    }
+#endif
 
    tross_Copy_History( dset , nset ) ;
    tross_Make_History( "3dZregrid" , argc,argv , nset ) ;

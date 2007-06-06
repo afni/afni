@@ -161,6 +161,7 @@ int main( int argc , char * argv[] )
       exit(1) ;
    }
 
+#if 0
 STATUS("checking output filename") ;
 
    if( THD_is_file(DSET_HEADNAME(outset)) ){
@@ -169,6 +170,7 @@ STATUS("checking output filename") ;
               DSET_HEADNAME(outset) ) ;
       exit(1) ;
    }
+#endif
 
 STATUS("making history") ;
 

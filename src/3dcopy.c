@@ -239,9 +239,11 @@ int main( int argc , char *argv[] )
 
       /*-- check if new header already exists --*/
 
+#if 0
       if( THD_is_file( DSET_HEADNAME(dset[ii]) ) )
          ERROR_exit("Output dataset %s already exists! - EXIT\n",
                  DSET_HEADNAME(dset[ii]) ) ;
+#endif
 
       /*-- check if current dataset has a warp
            parent in one of the previous datasets;

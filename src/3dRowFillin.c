@@ -87,11 +87,13 @@ int main( int argc , char * argv[] )
 
    outset = EDIT_empty_copy( inset ) ;
    EDIT_dset_items( outset , ADN_prefix , prefix , ADN_none ) ;
+#if 0
    if( THD_is_file( DSET_HEADNAME(outset) ) ){
       fprintf(stderr,"** Output file %s exists -- cannot overwrite!\n",
               DSET_HEADNAME(outset) ) ;
       exit(1) ;
    }
+#endif
 
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dRowFillin" , argc,argv , outset ) ;

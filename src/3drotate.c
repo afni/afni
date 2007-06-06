@@ -910,12 +910,14 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
                        ADN_prefix , new_prefix ,
                        ADN_label1 , new_prefix ,
                     ADN_none ) ;
+#if 0
    if( THD_is_file(dset->dblk->diskptr->header_name) ){
      fprintf(stderr,
              "** ERROR: Output file %s already exists -- cannot continue!\n",
              dset->dblk->diskptr->header_name ) ;
      exit(1) ;
    }
+#endif
 
    /* old history is already in the dataset */
 

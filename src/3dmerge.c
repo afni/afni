@@ -980,6 +980,7 @@ int main( int argc , char * argv[] )
       if( MRG_datum >= 0 ) output_datum = MRG_datum ;
       else                 output_datum = input_datum ;
 
+#if 0
       /** 17 Sep 1998: Move the creation of the new dataset
                        to AFTER the editing operations, so that any
                        dataset parameter changes in EDIT_one_dataset
@@ -1002,6 +1003,7 @@ int main( int argc , char * argv[] )
       }
 
       THD_delete_3dim_dataset( new_dset , False ) ;  /* toss this junk */
+#endif
 
       /* 05 Jul 2002: illegal uses of -keepthr? */
 
@@ -1288,12 +1290,14 @@ int main( int argc , char * argv[] )
        break ;
    }
 
+#if 0
    if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
       fprintf(stderr,
               "*** Output file %s already exists -- cannot continue!\n",
               new_dset->dblk->diskptr->header_name ) ;
       exit(1) ;
    }
+#endif
 
    if( ! MRG_be_quiet && MRG_keepthr )
       printf("-- ignoring -keepthr option\n") ;

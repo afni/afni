@@ -589,7 +589,8 @@ THD_3dim_dataset * form_clusters ()
 	      ierror);
       SC_error (message);
     }
-  
+ 
+#if 0 
   if (THD_is_file(DSET_HEADNAME(new_dset))) 
     {
       sprintf (message,
@@ -597,6 +598,7 @@ THD_3dim_dataset * form_clusters ()
 	      DSET_HEADNAME(new_dset));
       SC_error (message);
     }
+#endif
 
 
   /*----- Allocate memory -----*/

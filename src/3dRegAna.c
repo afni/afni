@@ -2073,9 +2073,11 @@ void initialize_program
   /*----- check for valid inputs -----*/
   check_for_valid_inputs (xdata, regmodel, option_data);
 
-    
+   
+#if 0 
   /*----- check whether any of the output files already exist -----*/
   check_output_files (option_data); 
+#endif
  
 
   /*----- check whether temporary files already exist  -----*/

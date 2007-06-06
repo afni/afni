@@ -491,8 +491,10 @@ int main( int argc , char *argv[] )
    if( TS_oset == NULL ) TS_syntax("Can't copy input dataset!") ;
    DSET_unload( TS_dset ) ;
 
+#if 0
    if( THD_is_file(DSET_HEADNAME(TS_oset)) )
       TS_syntax("output dataset already exists!") ;
+#endif
 
    tross_Copy_History( TS_dset , TS_oset ) ;
    tross_Make_History( "3dTshift" , argc,argv , TS_oset ) ;
