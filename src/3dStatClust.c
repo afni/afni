@@ -590,15 +590,13 @@ THD_3dim_dataset * form_clusters ()
       SC_error (message);
     }
  
-#if 0 
-  if (THD_is_file(DSET_HEADNAME(new_dset))) 
+  if ( THD_deathcon() && THD_is_file(DSET_HEADNAME(new_dset))) 
     {
       sprintf (message,
 	      " Output dataset file %s already exists--cannot continue! ",
 	      DSET_HEADNAME(new_dset));
       SC_error (message);
     }
-#endif
 
 
   /*----- Allocate memory -----*/

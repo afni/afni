@@ -182,11 +182,9 @@ int main( int argc , char *argv[] )
                          ADN_func_type , FUNC_FIM_TYPE ,
                        ADN_none ) ;
 
-#if 0
-      if( THD_is_file(DSET_HEADNAME(oset)) ){
+      if( THD_deathcon() && THD_is_file(DSET_HEADNAME(oset)) ){
         fprintf(stderr,"** ERROR: -save dataset already exists!\n"); exit(1);
       }
-#endif
 
       tross_Copy_History( oset , dset ) ;
       tross_Make_History( "3dToutcount" , argc , argv , oset ) ;

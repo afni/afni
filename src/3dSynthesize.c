@@ -367,10 +367,8 @@ int main( int argc , char * argv[] )
                       ADN_func_type , ANAT_OMRI_TYPE ,
                     ADN_none ) ;
 
-#if 0
-   if( THD_is_file(DSET_HEADNAME(outset)) )
+   if( THD_deathcon() && THD_is_file(DSET_HEADNAME(outset)) )
      ERROR_exit("Output dataset already exists: %s\n",DSET_HEADNAME(outset)) ;
-#endif
 
    tross_Copy_History( outset , inset ) ;
    tross_Make_History( "3dSynthesize" , argc , argv , outset ) ;

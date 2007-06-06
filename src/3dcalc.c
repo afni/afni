@@ -1569,11 +1569,9 @@ int main( int argc , char *argv[] )
    else if( ISANATBUCKET(new_dset) ) /* 30 Nov 1997 */
       EDIT_dset_items( new_dset , ADN_func_type , ANAT_EPI_TYPE , ADN_none ) ;
 
-#if 0
-   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
+   if( THD_deathcon() && THD_is_file(new_dset->dblk->diskptr->header_name) )
      ERROR_exit("Output file %s already exists -- cannot continue!\n",
                 new_dset->dblk->diskptr->header_name ) ;
-#endif
 
    for (ids=0; ids<26; ids++)
      atoz[ids] = (double *) malloc(sizeof(double) * VSIZE ) ;

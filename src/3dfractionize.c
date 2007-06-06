@@ -273,14 +273,12 @@ int main( int argc , char * argv[] )
    if( ISFUNC(dset) )
       EDIT_dset_items( dset , ADN_func_type,FUNC_FIM_TYPE , ADN_none ) ;
 
-#if 0
-   if( THD_is_file(dset->dblk->diskptr->header_name) ){
+   if( THD_deathcon() && THD_is_file(dset->dblk->diskptr->header_name) ){
       fprintf(stderr,
               "** Output file %s already exists -- cannot continue!\n",
               dset->dblk->diskptr->header_name ) ;
       exit(1) ;
    }
-#endif
 
    DSET_delete( tset ) ;  /* don't need template any more */
 

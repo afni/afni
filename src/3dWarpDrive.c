@@ -1088,10 +1088,8 @@ int main( int argc , char * argv[] )
        EDIT_BRICK_FACTOR( outset , kim , 0.0 ) ;
    }
 
-#if 0
-   if( THD_is_file( DSET_HEADNAME(outset) ) )
+   if( THD_deathcon() && THD_is_file( DSET_HEADNAME(outset) ) )
      ERROR_exit("Output file %s already exists!\n",DSET_HEADNAME(outset) ) ;
-#endif
 
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dWarpDrive" , argc,argv , outset ) ;

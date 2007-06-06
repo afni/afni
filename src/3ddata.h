@@ -250,7 +250,7 @@ typedef struct {
 
 #define ADDTO_XTARR(name,bblk)                                 \
    { if( (name)->num == (name)->nall ){                        \
-      (name)->nall += INC_XTARR ;                              \
+      (name)->nall += INC_XTARR + (name)->nall/8 ;             \
       (name)->ar    = (XtPointer *)                            \
                        XtRealloc( (char *) (name)->ar ,        \
                           sizeof(XtPointer) * (name)->nall ) ; \
@@ -324,7 +324,7 @@ typedef struct {
 
 #define ADDTO_SARR(name,str)                                          \
  do{ if( (name)->num == (name)->nall ){                               \
-      (name)->nall += INC_SARR ;                                      \
+      (name)->nall += INC_SARR + (name)->nall/8 ;                     \
       (name)->ar    = (char **) XtRealloc( (char *) (name)->ar ,      \
                                  sizeof(char *) * (name)->nall ) ;    \
      }                                                                \
@@ -1231,7 +1231,7 @@ typedef struct {
 
 #define ADDTO_DBARR(name,bblk)                                     \
    { if( (name)->num == (name)->nall ){                            \
-      (name)->nall += INC_DBARR ;                                  \
+      (name)->nall += INC_DBARR + (name)->nall/8 ;                 \
       (name)->ar    = (THD_datablock **)                           \
                        XtRealloc( (char *) (name)->ar ,            \
                         sizeof(THD_datablock *) * (name)->nall ) ; \
@@ -3049,6 +3049,8 @@ static char tmp_dblab[8] ;
 #define DSET_write(ds)  ( THD_load_statistics( (ds) ) ,                    \
                           THD_write_3dim_dataset( NULL,NULL , (ds),True ) )
 
+extern int THD_deathcon(void) ; /* 06 Jun 2007 */
+
 /*! Write only the dataset header to disk, for dataset ds */
 
 #define DSET_write_header(ds)  THD_write_3dim_dataset( NULL,NULL , (ds),False )
@@ -3161,7 +3163,7 @@ typedef struct THD_3dim_dataset_array {
 
 #define ADDTO_3DARR(name,ddset)                                       \
    { if( (name)->num == (name)->nall ){                               \
-      (name)->nall += INC_3DARR ;                                     \
+      (name)->nall += INC_3DARR + (name)->nall/8 ;                    \
       (name)->ar    = (THD_3dim_dataset **)                           \
                        XtRealloc( (char *) (name)->ar ,               \
                         sizeof(THD_3dim_dataset *) * (name)->nall ) ; \

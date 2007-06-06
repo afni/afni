@@ -1545,15 +1545,13 @@ void write_bucket ()
       EX_error (message);
     }
  
-#if 0 
-  if (THD_is_file(DSET_HEADNAME(new_dset))) 
+  if ( THD_deathcon() && THD_is_file(DSET_HEADNAME(new_dset)) ) 
     {
       sprintf (message,
 	      " Output dataset file %s already exists--cannot continue! ",
 	      DSET_HEADNAME(new_dset));
       EX_error (message);
     }
-#endif
 
 
   /*----- Allocate memory -----*/

@@ -419,10 +419,8 @@ int main( int argc , char * argv[] )
                     ADN_none ) ;
    }
 
-#if 0
-   if( THD_is_file(DSET_HEADNAME(dset)) )
+   if( THD_deathcon() && THD_is_file(DSET_HEADNAME(dset)) )
       Syntax("Output dataset already exists -- can't overwrite") ;
-#endif
 
    if (do_head_only) {
       DSET_write_header(dset);

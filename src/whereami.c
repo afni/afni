@@ -767,12 +767,11 @@ int main(int argc, char **argv)
                           ADN_prefix    , mskpref,
                            ADN_none ) ;
                   }
-#if 0
-                  if( THD_is_file(DSET_HEADNAME(maskset)) ) {
+                  if( THD_deathcon() && THD_is_file(DSET_HEADNAME(maskset)) ) {
                      ERROR_message("Output dataset %s already exists -- can't overwrite", DSET_HEADNAME(maskset)) ;
                      exit(1);
                   }
-#endif
+
                   if (LocalHead) {
                      fprintf(stderr,"Writing ROI mask to %s...\n", DSET_HEADNAME(maskset));
                   }

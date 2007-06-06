@@ -2074,10 +2074,8 @@ void initialize_program
   check_for_valid_inputs (xdata, regmodel, option_data);
 
    
-#if 0 
   /*----- check whether any of the output files already exist -----*/
-  check_output_files (option_data); 
-#endif
+  if( THD_deathcon() ) check_output_files (option_data); 
  
 
   /*----- check whether temporary files already exist  -----*/

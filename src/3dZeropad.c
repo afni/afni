@@ -420,14 +420,12 @@ int main( int argc , char * argv[] )
                          add_I, add_S, add_A, add_P, add_L, add_R,
                          prefix , flag ) ;
 
-#if 0
-   if( THD_is_file(DSET_HEADNAME(outset)) ){
+   if( THD_deathcon() && THD_is_file(DSET_HEADNAME(outset)) ){
       fprintf(stderr,
               "** 3dZeropad: output file %s already exists - FATAL ERROR!\n",
               DSET_HEADNAME(outset) ) ;
       exit(1) ;
    }
-#endif
 
    if( outset == NULL ){
       fprintf(stderr,"** 3dZeropad: Some error occurred in processing!\n") ;

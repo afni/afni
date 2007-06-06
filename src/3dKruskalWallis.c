@@ -383,10 +383,8 @@ void initialize
   /*----- check for valid inputs -----*/
   check_for_valid_inputs (*option_data);
  
-#if 0   
   /*----- check whether output files already exist -----*/
-  check_one_output_file (*option_data, (*option_data)->outfile);
-#endif
+  if( THD_deathcon() ) check_one_output_file (*option_data, (*option_data)->outfile);
 
   /*----- allocate memory -----*/
   *best = (float *) malloc(sizeof(float) * (*option_data)->nxyz);

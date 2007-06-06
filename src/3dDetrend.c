@@ -434,10 +434,8 @@ int main( int argc , char * argv[] )
 
    /* can't re-write existing dataset */
 
-#if 0
-   if( THD_is_file(DSET_HEADNAME(new_dset)) )
+   if( THD_deathcon() && THD_is_file(DSET_HEADNAME(new_dset)) )
      ERROR_exit("File %s already exists!\n",DSET_HEADNAME(new_dset) ) ;
-#endif
 
    /* read input in, and attach its bricks to the output dataset */
    /* (not good in a plugin, but OK in a standalone program!)    */

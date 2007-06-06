@@ -598,9 +598,7 @@ void * initialize_program (int argc, char * argv[])
 
 
       /*----- Check whether output dataset already exists -----*/
-#if 0
-      check_one_output_file (FDR_dset, FDR_output_prefix);
-#endif
+      if( THD_deathcon() ) check_one_output_file (FDR_dset, FDR_output_prefix);
     }
 
 
