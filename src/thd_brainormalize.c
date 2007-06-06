@@ -177,7 +177,7 @@ static int mask_count( int nvox , byte *mmm )
   do{ ijk = (i)+(j)*nx+(k)*nxy ;                                    \
       if( mmm[ijk] == 0 ) break ;                                   \
       if( nnow == nall ){ /* increase array lengths */              \
-        nall += DALL ;                                              \
+        nall += DALL + nall/8 ;                                     \
         inow = (short *) realloc((void *)inow,sizeof(short)*nall) ; \
         jnow = (short *) realloc((void *)jnow,sizeof(short)*nall) ; \
         know = (short *) realloc((void *)know,sizeof(short)*nall) ; \
@@ -741,7 +741,7 @@ typedef struct { int num, nall, depth, *ivox; } basin ;
 #define INIT_BASIN(iv)                                       \
  { register int qb=nbtop;                                    \
    if( qb >= nball ){                                        \
-     register int qqb=nball+DBALL,zb ;                       \
+     register int qqb=1.2*nball+DBALL,zb ;                   \
      baslist = (basin **)realloc((void *)baslist,            \
                                  sizeof(basin *)*qqb) ;      \
      for( zb=nball ; zb < qqb ; zb++ ) baslist[zb] = NULL ;  \

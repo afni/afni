@@ -30,7 +30,7 @@ typedef struct {
 #define ADDTO_TSARR(name,tsname) \
  do{ int nn ;                                                                               \
      if( (name)->num == (name)->nall ){                                                     \
-       (name)->nall += INC_TSARR ; nn = sizeof(time_series *) * (name)->nall ;              \
+       (name)->nall += INC_TSARR+(name)->nall/16; nn = sizeof(time_series *) * (name)->nall;\
        (name)->tsarr = ((name)->tsarr == NULL) ? (time_series **)malloc(nn)                 \
                                                : (time_series **)realloc((name)->tsarr,nn); \
        if( name->tsarr == NULL ){                                                           \

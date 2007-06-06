@@ -516,13 +516,11 @@ int main( int argc , char * argv[] )
    /* can't re-write existing dataset, unless glueing is used */
 
    if (! BUCK_glue){
-#if 0
-     if( THD_is_file(DSET_HEADNAME(new_dset)) ){
+     if( THD_deathcon() && THD_is_file(DSET_HEADNAME(new_dset)) ){
        fprintf(stderr,"*** Fatal error: file %s already exists!\n",
                DSET_HEADNAME(new_dset) ) ;
        exit(1) ;
      }
-#endif
    } else {   /* if glueing is used, make the 'new'
                  dataset have the same idcode as the old one */
 

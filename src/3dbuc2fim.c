@@ -396,13 +396,11 @@ int main( int argc , char * argv[] )
                     ADN_none ) ;
 
 
-#if 0
-   if( THD_is_file(DSET_HEADNAME(new_dset)) ){
+   if( THD_deathcon() && THD_is_file(DSET_HEADNAME(new_dset)) ){
      fprintf(stderr,"*** Fatal error: file %s already exists!\n",
 	     DSET_HEADNAME(new_dset) ) ;
      exit(1) ;
    }
-#endif
 
    THD_force_malloc_type( new_dset->dblk , DATABLOCK_MEM_MALLOC ) ;
 

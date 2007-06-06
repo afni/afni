@@ -530,12 +530,10 @@ printf(" ** datum = %s\n",MRI_TYPE_name[output_datum]) ;
    if( iv > 0 )
      ERROR_exit("%d errors in attempting to create output dataset!",iv ) ;
 
-#if 0
-   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
+   if( THD_deathcon() && THD_is_file(new_dset->dblk->diskptr->header_name) )
       ERROR_exit(
               "Output dataset file %s already exists--cannot continue!\a",
               new_dset->dblk->diskptr->header_name ) ;
-#endif
 
 #ifdef TTDEBUG
 printf("*** deleting exemplar dataset\n") ;

@@ -1519,15 +1519,14 @@ void check_for_valid_inputs
     NLfit_error ("Must have nbest <= nrand");
 
 
-#if 0
   /*----- check whether any of the output files already exist -----*/
-  check_output_files (freg_filename, frsqr_filename, 
+  if( THD_deathcon() )
+   check_output_files (freg_filename, frsqr_filename, 
                 fsmax_filename, ftmax_filename,
                 fpmax_filename, farea_filename, fparea_filename,
                 fncoef_filename, fscoef_filename,
                 tncoef_filename, tscoef_filename, bucket_filename, 
                 sfit_filename, snfit_filename, dset_time);
-#endif
 
 }
 

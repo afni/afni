@@ -85,13 +85,18 @@ ENTRY("THD_write_3dim_dataset") ;
 
    /*----- 06 Jun 2007: deconflict dataset name? -----*/
 
-   if( !AFNI_yesenv("AFNI_DONT_DECONFLICT") ){
+   ppp = my_getenv("AFNI_DONT_DECONFLICT") ;
+   if( ppp == NULL || toupper(*ppp) != 'Y' ){
      char pfx[THD_MAX_PREFIX] ;
      MCW_strncpy( pfx , DSET_PREFIX(dset) , THD_MAX_PREFIX ) ;
      ii = THD_deconflict_prefix( dset ) ;
-     if( ii )
-       WARNING_message("changed output dataset name from %s to %s",
-                       pfx , DSET_PREFIX(dset) ) ;
+     if( ii ){
+       if( ppp == NULL || toupper(*ppp) != 'D' )
+         WARNING_message("changed output dataset name from '%s' to '%s'",
+                         pfx , DSET_PREFIX(dset) ) ;
+       else
+         ERROR_exit("output dataset name '%s' conflicts with existing file",pfx) ;
+     }
    }
 
    /*------ 06 Apr 2005: write a NIFTI-1 dataset??? -----*/
@@ -180,4 +185,13 @@ ENTRY("THD_write_3dim_dataset") ;
    /*----- write datablock to disk in AFNI .HEAD/.BRIK format -----*/
 
    RETURN( THD_write_datablock(blk,write_brick) ) ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+int THD_deathcon(void)  /* 06 Jun 2007 */
+{
+   char *ppp = my_getenv("AFNI_DONT_DECONFLICT") ;
+   if( ppp != NULL && *ppp == 'D' ) return 1 ;
+   return 0 ;
 }

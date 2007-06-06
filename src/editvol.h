@@ -85,18 +85,18 @@ typedef struct {
 
 /*! Add point (ii,jj,kk) with magnitude mm to a MCW_cluster. */
 
-#define ADDTO_CLUSTER(cc,ii,jj,kk,m) \
-  do{ int nn ;                                              \
-      if( (cc)->num_pt == (cc)->num_all ){                  \
-         (cc)->num_all = 1.25*(cc)->num_all + INC_CLUSTER ; \
-         nn = (cc)->num_all ;                               \
-         (cc)->i=(short *)   XtRealloc((char *)(cc)->i,sizeof(short)*nn  );\
-         (cc)->j=(short *)   XtRealloc((char *)(cc)->j,sizeof(short)*nn  );\
-         (cc)->k=(short *)   XtRealloc((char *)(cc)->k,sizeof(short)*nn  );\
-         (cc)->mag=(float *) XtRealloc((char *)(cc)->mag,sizeof(float)*nn);\
-         DBMALL(nn) ; }                      \
-      nn = (cc)->num_pt ; ((cc)->num_pt)++ ; \
-      (cc)->i[nn] = (ii) ; (cc)->j[nn] = (jj) ; (cc)->k[nn] = (kk) ; \
+#define ADDTO_CLUSTER(cc,ii,jj,kk,m)                                        \
+  do{ int nn ;                                                              \
+      if( (cc)->num_pt == (cc)->num_all ){                                  \
+         (cc)->num_all = 1.25*(cc)->num_all + INC_CLUSTER ;                 \
+         nn = (cc)->num_all ;                                               \
+         (cc)->i=(short *)   XtRealloc((char *)(cc)->i,sizeof(short)*nn  ); \
+         (cc)->j=(short *)   XtRealloc((char *)(cc)->j,sizeof(short)*nn  ); \
+         (cc)->k=(short *)   XtRealloc((char *)(cc)->k,sizeof(short)*nn  ); \
+         (cc)->mag=(float *) XtRealloc((char *)(cc)->mag,sizeof(float)*nn); \
+         DBMALL(nn) ; }                                                     \
+      nn = (cc)->num_pt ; ((cc)->num_pt)++ ;                                \
+      (cc)->i[nn] = (ii) ; (cc)->j[nn] = (jj) ; (cc)->k[nn] = (kk) ;        \
       (cc)->mag[nn] = (m) ; break ; } while(0)
 
 #define ISOVALUE_MODE  1
@@ -119,13 +119,13 @@ typedef struct {
 
 /*! Add a MCW_cluster to a MCW_cluster_array. */
 
-#define ADDTO_CLARR(cl,cc)                  \
-  do{ int nn ;                              \
-      if( (cl)->num_clu == (cl)->num_all ){ \
-         (cl)->num_all += INC_CLUSTER ; nn = (cl)->num_all ;           \
-         (cl)->clar = (MCW_cluster **) XtRealloc( (char *)(cl)->clar , \
-                                                 sizeof(MCW_cluster *) * nn ) ;\
-      } \
+#define ADDTO_CLARR(cl,cc)                                                     \
+  do{ int nn ;                                                                 \
+      if( (cl)->num_clu == (cl)->num_all ){                                    \
+         (cl)->num_all += INC_CLUSTER+(cl)->num_all/16; nn = (cl)->num_all ;   \
+         (cl)->clar = (MCW_cluster **) XtRealloc( (char *)(cl)->clar ,         \
+                                                 sizeof(MCW_cluster *) * nn ); \
+      }                                                                        \
       (cl)->clar[((cl)->num_clu)++] = (cc) ; break ; } while(0)
 
 /*! Delete a MCW_cluster_array (including all MCW_cluster inside). */
@@ -576,13 +576,13 @@ extern MRI_IMARR * mri_get_indexed_nbhd( MRI_IMAGE *, byte *,
 extern MRI_IMAGE * mri_localstat( MRI_IMAGE *, byte *, MCW_cluster *, int ) ;
 extern THD_3dim_dataset * THD_localstat( THD_3dim_dataset *, byte *,
                                          MCW_cluster *, int, int *) ;
-extern void THD_localstat_verb(int) ; 
+extern void THD_localstat_verb(int) ;
 
 extern MRI_IMAGE * mri_localbistat( MRI_IMAGE *, MRI_IMAGE *,
                                     byte *, MCW_cluster *, int ) ;
 extern THD_3dim_dataset * THD_localbistat( THD_3dim_dataset *, THD_3dim_dataset *,
                                            byte *, MCW_cluster *, int, int *) ;
-extern void THD_localbistat_verb(int) ; 
+extern void THD_localbistat_verb(int) ;
 
 #ifdef  __cplusplus
 }
