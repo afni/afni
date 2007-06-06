@@ -1249,10 +1249,8 @@ void check_for_valid_inputs
 	  }
 
 
-#if 0
   /*----- Check whether any of the output files already exist -----*/
-  check_output_files (option_data, dset_time);
-#endif
+  if( THD_deathcon() ) check_output_files (option_data, dset_time);
 
 }
 

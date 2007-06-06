@@ -236,10 +236,8 @@ int main( int argc , char * argv[] )
                       ADN_datum_all , datum ,
                     ADN_none ) ;
 
-#if 0
-   if( THD_is_file(DSET_HEADNAME(oset)) )
+   if( THD_deathcon() && THD_is_file(DSET_HEADNAME(oset)) )
      ERROR_exit("output dataset already exists: %s",DSET_HEADNAME(oset));
-#endif
 
    tross_Copy_History( oset , dset ) ;
    tross_Make_History( "3dDespike" , argc , argv , oset ) ;

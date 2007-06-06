@@ -54,7 +54,7 @@ typedef struct {
 /* macros to manipulate a plot */
 
 #define INC_MEMPLOT 64
-#define EXP_MEMPLOT 1.1
+#define EXP_MEMPLOT 1.2
 #define NXY_MEMPLOT 6
 
 #define INIT_MEMPLOT(name,id)                                                    \
@@ -68,22 +68,22 @@ typedef struct {
 
 /* put a line at the end of the plot [15 Nov 2001: maybe in the middle]  */
 
-#define ADDTO_MEMPLOT(name,x1,y1,x2,y2,col,th)                                                \
-  do{ int nn , ll=(name)->insert_at ;                                                         \
-      if( ll >= 0 && ll < (name)->nxyline ){                                                  \
-         nn = NXY_MEMPLOT * ll ;                                                              \
-         (name)->xyline[nn++] = (x1) ; (name)->xyline[nn++] = (y1) ;                          \
-         (name)->xyline[nn++] = (x2) ; (name)->xyline[nn++] = (y2) ;                          \
-         (name)->xyline[nn++] = (col); (name)->xyline[nn++] = (th) ; break ;                  \
-      }                                                                                       \
-      if( (name)->nxyline == (name)->nxyline_all ){                                           \
-        nn = (name)->nxyline_all = EXP_MEMPLOT * (name)->nxyline_all + INC_MEMPLOT ;          \
-        (name)->xyline = (float *) realloc( (name)->xyline , sizeof(float)*NXY_MEMPLOT*nn ) ; \
-      }                                                                                       \
-      nn = NXY_MEMPLOT * (name)->nxyline ;                                                    \
-      (name)->xyline[nn++] = (x1) ; (name)->xyline[nn++] = (y1) ;                             \
-      (name)->xyline[nn++] = (x2) ; (name)->xyline[nn++] = (y2) ;                             \
-      (name)->xyline[nn++] = (col); (name)->xyline[nn++] = (th) ; (name)->nxyline ++ ;        \
+#define ADDTO_MEMPLOT(name,x1,y1,x2,y2,col,th)                                             \
+  do{ int nn , ll=(name)->insert_at ;                                                      \
+      if( ll >= 0 && ll < (name)->nxyline ){                                               \
+         nn = NXY_MEMPLOT * ll ;                                                           \
+         (name)->xyline[nn++] = (x1) ; (name)->xyline[nn++] = (y1) ;                       \
+         (name)->xyline[nn++] = (x2) ; (name)->xyline[nn++] = (y2) ;                       \
+         (name)->xyline[nn++] = (col); (name)->xyline[nn++] = (th) ; break ;               \
+      }                                                                                    \
+      if( (name)->nxyline == (name)->nxyline_all ){                                        \
+        nn = (name)->nxyline_all = EXP_MEMPLOT * (name)->nxyline_all + INC_MEMPLOT ;       \
+        (name)->xyline = (float *)realloc( (name)->xyline, sizeof(float)*NXY_MEMPLOT*nn ); \
+      }                                                                                    \
+      nn = NXY_MEMPLOT * (name)->nxyline ;                                                 \
+      (name)->xyline[nn++] = (x1) ; (name)->xyline[nn++] = (y1) ;                          \
+      (name)->xyline[nn++] = (x2) ; (name)->xyline[nn++] = (y2) ;                          \
+      (name)->xyline[nn++] = (col); (name)->xyline[nn++] = (th) ; (name)->nxyline ++ ;     \
   } while(0)
 
 /* this is fatal */

@@ -162,13 +162,11 @@ int main( int argc , char *argv[] )
                       ADN_none ) ;
    }
 
-#if 0
-   if( THD_is_file(DSET_HEADNAME(cset)) ){
+   if( THD_deathcon() && THD_is_file(DSET_HEADNAME(cset)) ){
       fprintf(stderr,"** Output dataset %s already exists!\n",
               DSET_HEADNAME(cset)) ;
       exit(1) ;
    }
-#endif
 
    { double nb = (double)(xset->dblk->total_bytes) ;
      nb += (double)(nmask) * (double)(nvox) * sizeof(short) ;

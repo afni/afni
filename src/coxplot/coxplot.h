@@ -54,7 +54,7 @@ typedef struct {
 /* macros to manipulate a plot */
 
 #define INC_MEMPLOT 64
-#define EXP_MEMPLOT 1.1
+#define EXP_MEMPLOT 1.2
 #define NXY_MEMPLOT 6
 
 #define INIT_MEMPLOT(name,id)                                                    \
@@ -68,22 +68,22 @@ typedef struct {
 
 /* put a line at the end of the plot [15 Nov 2001: maybe in the middle]  */
 
-#define ADDTO_MEMPLOT(name,x1,y1,x2,y2,col,th)                                                \
-  do{ int nn , ll=(name)->insert_at ;                                                         \
-      if( ll >= 0 && ll < (name)->nxyline ){                                                  \
-         nn = NXY_MEMPLOT * ll ;                                                              \
-         (name)->xyline[nn++] = (x1) ; (name)->xyline[nn++] = (y1) ;                          \
-         (name)->xyline[nn++] = (x2) ; (name)->xyline[nn++] = (y2) ;                          \
-         (name)->xyline[nn++] = (col); (name)->xyline[nn++] = (th) ; break ;                  \
-      }                                                                                       \
-      if( (name)->nxyline == (name)->nxyline_all ){                                           \
-        nn = (name)->nxyline_all = EXP_MEMPLOT * (name)->nxyline_all + INC_MEMPLOT ;          \
-        (name)->xyline = (float *) realloc( (name)->xyline , sizeof(float)*NXY_MEMPLOT*nn ) ; \
-      }                                                                                       \
-      nn = NXY_MEMPLOT * (name)->nxyline ;                                                    \
-      (name)->xyline[nn++] = (x1) ; (name)->xyline[nn++] = (y1) ;                             \
-      (name)->xyline[nn++] = (x2) ; (name)->xyline[nn++] = (y2) ;                             \
-      (name)->xyline[nn++] = (col); (name)->xyline[nn++] = (th) ; (name)->nxyline ++ ;        \
+#define ADDTO_MEMPLOT(name,x1,y1,x2,y2,col,th)                                             \
+  do{ int nn , ll=(name)->insert_at ;                                                      \
+      if( ll >= 0 && ll < (name)->nxyline ){                                               \
+         nn = NXY_MEMPLOT * ll ;                                                           \
+         (name)->xyline[nn++] = (x1) ; (name)->xyline[nn++] = (y1) ;                       \
+         (name)->xyline[nn++] = (x2) ; (name)->xyline[nn++] = (y2) ;                       \
+         (name)->xyline[nn++] = (col); (name)->xyline[nn++] = (th) ; break ;               \
+      }                                                                                    \
+      if( (name)->nxyline == (name)->nxyline_all ){                                        \
+        nn = (name)->nxyline_all = EXP_MEMPLOT * (name)->nxyline_all + INC_MEMPLOT ;       \
+        (name)->xyline = (float *)realloc( (name)->xyline, sizeof(float)*NXY_MEMPLOT*nn ); \
+      }                                                                                    \
+      nn = NXY_MEMPLOT * (name)->nxyline ;                                                 \
+      (name)->xyline[nn++] = (x1) ; (name)->xyline[nn++] = (y1) ;                          \
+      (name)->xyline[nn++] = (x2) ; (name)->xyline[nn++] = (y2) ;                          \
+      (name)->xyline[nn++] = (col); (name)->xyline[nn++] = (th) ; (name)->nxyline ++ ;     \
   } while(0)
 
 /* this is fatal */
@@ -150,6 +150,10 @@ typedef struct {
          free((cd)) ; (cd) = NULL ; } } while(0)
 
 /*----- prototypes -----*/
+
+#ifdef  __cplusplus
+extern "C" {
+#endif
 
 extern MEM_plotdata * find_memplot( char * ) ;
 extern int            create_memplot( char * , float ) ;
@@ -303,10 +307,18 @@ extern void ps_setrgb( float , float , float ) ;           /* set color */
 extern void ps_setwidth( float ) ;                         /* set linewidth */
 extern void ps_rect( int,int,int,int) ;                    /* filled rectangle */
 
+#ifdef  __cplusplus
+}
+#endif
+
 /*-- routines from PLOTPAK, after running through f2c --*/
 
 #include "f2c.h"
 #undef complex
+
+#ifdef  __cplusplus
+extern "C" {
+#endif
 
 extern int color_(integer *ncol);
 extern int fcolor_( real *cr, real *cg, real *cb );
@@ -422,5 +434,9 @@ EXT struct {
     integer ndash;
     real xldash[8], xid;
 } zzdash_;
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif

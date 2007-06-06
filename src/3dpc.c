@@ -615,8 +615,7 @@ int main( int argc , char * argv[] )
                                                     : FUNC_BUCK_TYPE ,
                     ADN_none ) ;
 
-#if 0
-   if( THD_is_file(DSET_HEADNAME(new_dset)) ){
+   if( THD_deathcon() && THD_is_file(DSET_HEADNAME(new_dset)) ){
       fprintf(stderr,
               "\n*** Output dataset %s already exists--will be destroyed!\n",
               DSET_HEADNAME(new_dset) ) ;
@@ -625,7 +624,6 @@ int main( int argc , char * argv[] )
       printf("--- output dataset %s" , DSET_BRIKNAME(new_dset) ) ;
       fflush(stdout) ;
    }
-#endif
 
    fout = (float *) malloc( sizeof(float) * nn ) ; /* output buffer */
 

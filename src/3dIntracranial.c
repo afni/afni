@@ -607,14 +607,12 @@ void write_afni_data
   }
 
 
-#if 0
-  if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
+  if( THD_deathcon() && THD_is_file(new_dset->dblk->diskptr->header_name) ){
     fprintf(stderr,
 	    "*** Output dataset file %s already exists--cannot continue!\a\n",
 	    new_dset->dblk->diskptr->header_name ) ;
     exit(1) ;
   }
-#endif
 
 
   /*----- attach bricks to new data set -----*/
