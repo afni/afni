@@ -24,6 +24,7 @@
 byte * THD_makemask( THD_3dim_dataset *mask_dset ,
                      int miv , float mask_bot , float mask_top )
 {
+   float maxval ;  /* for computing limits for an empty mask */
    byte *mmm = NULL ;
    int nvox , ii ;
    int empty = 0 ; /* do we return an empty mask */
@@ -48,9 +49,9 @@ byte * THD_makemask( THD_3dim_dataset *mask_dset ,
          float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          if( mask_bot <= mask_top ){
-            /* maybe this mask is empty */
-            if( mask_bot/mfac >  MRI_TYPE_maxval[MRI_short] ||
-                mask_top/mfac < -MRI_TYPE_maxval[MRI_short] ) empty = 1 ;
+            /* maybe this mask is empty, allow for rounding */
+            maxval = MRI_TYPE_maxval[MRI_short] + 0.5 ;
+            if( mask_bot/mfac >= maxval || mask_top/mfac <= -maxval ) empty=1;
 
             mbot = SHORTIZE(mask_bot/mfac) ;
             mtop = SHORTIZE(mask_top/mfac) ;
@@ -71,8 +72,10 @@ byte * THD_makemask( THD_3dim_dataset *mask_dset ,
          float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          if( mask_bot <= mask_top && mask_top > 0.0 ){
-            /* maybe mask is empty (top <= 0 is flag for full mask) */
-            if( mask_bot/mfac > MRI_TYPE_maxval[MRI_byte] ) empty = 1 ;
+            /* maybe this mask is empty, allow for rounding */
+            /* (top <= 0 is flag for full mask)             */
+            maxval = MRI_TYPE_maxval[MRI_byte] + 0.5 ;
+            if( mask_bot/mfac >= maxval ) empty = 1;
 
             mbot = BYTEIZE(mask_bot/mfac) ;
             mtop = BYTEIZE(mask_top/mfac) ;
@@ -116,6 +119,7 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
                      int miv , float mask_bot , float mask_top,
                      byte *cmask )
 {
+   float maxval ;  /* for computing limits for an empty mask */
    int nvox , ii, nonzero=-1 , empty = 0 ;
 
    if( !ISVALID_DSET(mask_dset)    ||
@@ -138,9 +142,9 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
          float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          if( mask_bot <= mask_top ){
-            /* maybe this mask is empty */
-            if( mask_bot/mfac >  MRI_TYPE_maxval[MRI_short] ||
-                mask_top/mfac < -MRI_TYPE_maxval[MRI_short] ) empty = 1 ;
+            /* maybe this mask is empty, allow for rounding */
+            maxval = MRI_TYPE_maxval[MRI_short] + 0.5 ;
+            if( mask_bot/mfac >= maxval || mask_top/mfac <= -maxval ) empty=1;
 
             mbot = SHORTIZE(mask_bot/mfac) ;
             mtop = SHORTIZE(mask_top/mfac) ;
@@ -168,8 +172,10 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
          float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          if( mask_bot <= mask_top && mask_top > 0.0 ){
-            /* maybe mask is empty (top <= 0 is flag for full mask) */
-            if( mask_bot/mfac > MRI_TYPE_maxval[MRI_byte] ) empty = 1 ;
+            /* maybe this mask is empty, allow for rounding */
+            /* (top <= 0 is flag for full mask)             */
+            maxval = MRI_TYPE_maxval[MRI_byte] + 0.5 ;
+            if( mask_bot/mfac >= maxval ) empty = 1;
 
             mbot = BYTEIZE(mask_bot/mfac) ;
             mtop = BYTEIZE(mask_top/mfac) ;
