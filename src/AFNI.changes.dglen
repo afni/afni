@@ -181,4 +181,4 @@ thd_dsetatrc, thd_dsetdblk.c
 for obliquity too
 6 Jun 2007
  * NIFTI read creates oblique transformation structure
-
+ * minor fix to 1dSEM for tree growth stop conditions
