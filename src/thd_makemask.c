@@ -26,6 +26,7 @@ byte * THD_makemask( THD_3dim_dataset *mask_dset ,
 {
    byte *mmm = NULL ;
    int nvox , ii ;
+   int empty = 0 ; /* do we return an empty mask */
 
    if( !ISVALID_DSET(mask_dset)    ||
        miv < 0                     ||
@@ -47,14 +48,20 @@ byte * THD_makemask( THD_3dim_dataset *mask_dset ,
          float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          if( mask_bot <= mask_top ){
+            /* maybe this mask is empty */
+            if( mask_bot/mfac >  MRI_TYPE_maxval[MRI_short] ||
+                mask_top/mfac < -MRI_TYPE_maxval[MRI_short] ) empty = 1 ;
+
             mbot = SHORTIZE(mask_bot/mfac) ;
             mtop = SHORTIZE(mask_top/mfac) ;
          } else {
             mbot = (short) -MRI_TYPE_maxval[MRI_short] ;
             mtop = (short)  MRI_TYPE_maxval[MRI_short] ;
          }
-         for( ii=0 ; ii < nvox ; ii++ )
-            if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ) mmm[ii]=1;
+         if( !empty )   /* 6 Jun 2007 */
+            for( ii=0 ; ii < nvox ; ii++ )
+               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 )
+                  mmm[ii]=1;
       }
       break ;
 
@@ -64,14 +71,19 @@ byte * THD_makemask( THD_3dim_dataset *mask_dset ,
          float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          if( mask_bot <= mask_top && mask_top > 0.0 ){
+            /* maybe mask is empty (top <= 0 is flag for full mask) */
+            if( mask_bot/mfac > MRI_TYPE_maxval[MRI_byte] ) empty = 1 ;
+
             mbot = BYTEIZE(mask_bot/mfac) ;
             mtop = BYTEIZE(mask_top/mfac) ;
          } else {
             mbot = 0 ;
             mtop = (byte) MRI_TYPE_maxval[MRI_short] ;
          }
-         for( ii=0 ; ii < nvox ; ii++ )
-            if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ) mmm[ii]=1;
+         if( !empty )   /* 6 Jun 2007 */
+            for( ii=0 ; ii < nvox ; ii++ )
+               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 )
+                  mmm[ii]=1;
       }
       break ;
 
@@ -104,7 +116,7 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
                      int miv , float mask_bot , float mask_top,
                      byte *cmask )
 {
-   int nvox , ii, nonzero=-1 ;
+   int nvox , ii, nonzero=-1 , empty = 0 ;
 
    if( !ISVALID_DSET(mask_dset)    ||
        miv < 0                     ||
@@ -126,13 +138,19 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
          float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          if( mask_bot <= mask_top ){
+            /* maybe this mask is empty */
+            if( mask_bot/mfac >  MRI_TYPE_maxval[MRI_short] ||
+                mask_top/mfac < -MRI_TYPE_maxval[MRI_short] ) empty = 1 ;
+
             mbot = SHORTIZE(mask_bot/mfac) ;
             mtop = SHORTIZE(mask_top/mfac) ;
          } else {
             mbot = (short) -MRI_TYPE_maxval[MRI_short] ;
             mtop = (short)  MRI_TYPE_maxval[MRI_short] ;
          }
-         if (cmask)  {
+         if (empty) {  /* if empty, clear result   6 Jun 2007 */
+            for( ii=0 ; ii < nvox ; ii++ ) mar[ii] = 0;
+         } else if (cmask)  {
             for( ii=0 ; ii < nvox ; ii++ )
                if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 && cmask[ii]) { mar[ii]=1; ++nonzero; }
                else { mar[ii] = 0; }
@@ -150,13 +168,18 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
          float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          if( mask_bot <= mask_top && mask_top > 0.0 ){
+            /* maybe mask is empty (top <= 0 is flag for full mask) */
+            if( mask_bot/mfac > MRI_TYPE_maxval[MRI_byte] ) empty = 1 ;
+
             mbot = BYTEIZE(mask_bot/mfac) ;
             mtop = BYTEIZE(mask_top/mfac) ;
          } else {
             mbot = 0 ;
             mtop = (byte) MRI_TYPE_maxval[MRI_short] ;
          }
-         if (cmask) {
+         if (empty) {  /* if empty, clear result   6 Jun 2007 */
+            for( ii=0 ; ii < nvox ; ii++ ) mar[ii] = 0;
+         } else if (cmask) {
             for( ii=0 ; ii < nvox ; ii++ )
                if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 && cmask[ii]){ mar[ii]=1; ++nonzero; }
                else { mar[ii] = 0; }
