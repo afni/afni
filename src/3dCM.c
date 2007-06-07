@@ -134,6 +134,7 @@ int main( int argc , char * argv[] )
 
 	 if(DSET_IS_BRIK(xset)) {
            INFO_message("Rewriting header %s",DSET_HEADNAME(xset)) ;
+           putenv("AFNI_DONT_DECONFLICT=YES") ;
            DSET_write_header( xset ) ;
 	 }
 	 else {     /* for other dataset types like NIFTI, rewrite whole dset */

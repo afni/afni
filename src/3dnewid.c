@@ -86,6 +86,7 @@ int main( int argc , char * argv[] )
       dset->idcode = MCW_new_idcode() ;
       sprintf(str,"3dnewid %s\n",argv[iarg]) ;
       tross_Append_History( dset , str) ;
+      putenv("AFNI_DONT_DECONFLICT=YES") ;
       THD_write_3dim_dataset( NULL , NULL , dset , False ) ;
       THD_delete_3dim_dataset( dset , False ) ;
    }

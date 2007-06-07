@@ -239,7 +239,7 @@ int main( int argc , char *argv[] )
 
       /*-- check if new header already exists --*/
 
-      if( THD_deathcon() && THD_is_file( DSET_HEADNAME(dset[ii]) ) )
+      if( THD_is_file( DSET_HEADNAME(dset[ii]) ) )
          ERROR_exit("Output dataset %s already exists! - EXIT\n",
                  DSET_HEADNAME(dset[ii]) ) ;
 

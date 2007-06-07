@@ -1278,6 +1278,7 @@ int main( int argc , char * argv[] )
          "AFNI_CROSSHAIR_LINES"      , "YES"    ,
          "AFNI_ALWAYS_LOCK"          , "YES"    ,
          "AFNI_IMAGE_SAVESQUARE"     , "YES"    ,
+         "AFNI_DONT_DECONFLICT"      , "YES"    ,  /* 07 Jun 2007 */
 #ifdef DARWIN
          "AFNI_X11_REDECORATE"       , "NO"     ,  /* 27 Dec 2004 */
 #endif
