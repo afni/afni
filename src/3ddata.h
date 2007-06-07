@@ -4075,6 +4075,11 @@ extern THD_dvecmat DLSQ_rotscl   ( int, THD_dfvec3 *, THD_dfvec3 *, int      );
 
 extern THD_dvecmat THD_read_dvecmat( char * , int ) ;  /* THD_read_vecmat.c */
 
+  /* cf. thd_coords.c for cardinal transformation matrix */
+extern void THD_dicom_card_xform (THD_3dim_dataset * dset ,
+                      THD_dmat33 *tmat, THD_dfvec3 *dics );
+
+
   /* cf. thd_tmask.c */
 
 #define TM_IXY 2  /* fixdir-1 for each plane */

@@ -13,6 +13,7 @@
 
 static THD_vecmat dicom_in2out , dicom_out2in ;  /* coordinate warps */
 float compute_oblique_angle(mat44 ijk_to_dicom44);
+static void Compute_Deoblique_Transformation(THD_3dim_dataset *dset,mat44 *Tw);
 
 /*--------------------------------------------------------------------------*/
 
@@ -41,15 +42,11 @@ void warp_dicom_out2in( float  xin , float  yin , float  zin ,
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset *inset , *outset=NULL , *newgset=NULL ;
-   int nxin,nyin,nzin,nxyzin,nvals , ival ;
-   int nxout,nyout,nzout,nxyzout ;
    char * prefix = "warped" ;
    int nopt=1 , verb=0 , zpad=0 , fsl=0 ;
    int use_matvec=0 ;
-   float xbot,xtop , ybot,ytop , zbot,ztop ;
    int use_newgrid=0 ;
-   float ddd_newgrid=0.0 , fac ;
-   MRI_IMAGE *inim , *outim , *wim ;
+   float ddd_newgrid=0.0 ;
    void *newggg=NULL ; int gflag=0 ;
 
    int tta2mni=0 , mni2tta=0 ;   /* 11 Mar 2004 */
@@ -59,7 +56,7 @@ int main( int argc , char * argv[] )
    ATR_float *atr_matfor=NULL , *atr_matinv=NULL ;
    THD_dmat33 tmat ;
    THD_dfvec3 tvec ;
-   mat44 Tw, Tc, Tw_inv, inv_Tc, Tr;
+   mat44 Tw, Tc, Tw_inv, Tr, Tw2;
    int oblique_flag = 0;
    THD_3dim_dataset *oblparset=NULL ;
    float angle;
@@ -501,47 +498,36 @@ int main( int argc , char * argv[] )
    } else if( newgset != NULL ){
      newggg = newgset      ; gflag = WARP3D_NEWDSET ;
    }
+
+    /* handling oblique and deoblique cases */
    if(oblique_flag) {
-      ATR_float *atr ; float *matar, dm ;
+      float *matar, dm;
       if(oblique_flag==1)   /* if deobliquing, everything is in the same dataset */
          oblparset = inset;
+      Compute_Deoblique_Transformation(oblparset, &Tw);
 
-      atr = THD_find_float_atr( oblparset->dblk, "IJK_TO_DICOM_REAL" );
-      if( atr != NULL ) atr_matinv = (ATR_float *)THD_copy_atr( (ATR_any *)atr ) ;
-      if( atr_matinv == NULL ||  atr_matinv->nfl < 12 )
-         ERROR_exit("Oblique parent dataset doesn't have oblique "
-                    "transformation attributes!?\n");
-      /* load oblique transformation matrix */
-      matar = atr_matinv->fl ;
-      LOAD_MAT44(Tr, matar[0], matar[1], matar[2], matar[3],
-                     matar[4], matar[5], matar[6], matar[7],
-                     matar[8], matar[9], matar[10], matar[11]);
-
-
-      /* load DICOM (RAI) cardinal transformation matrix */
-      THD_dicom_card_xform(oblparset, &tmat, &tvec); 
-      LOAD_MAT44(Tc, tmat.mat[0][0], tmat.mat[0][1], tmat.mat[0][2], tvec.xyz[0],
-                     tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
-		     tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
-      inv_Tc = MAT44_INV(Tc);
-      Tw = MAT44_MUL(Tr, inv_Tc);
-
-      if(oblique_flag==2) /* if changing cardinal to oblique */
-         DSET_delete(oblparset) ;  /* don't need oblique parent dataset anymore */
-
-#ifdef DEBUG_ON
-DUMP_MAT44("Tr",Tr);
-DUMP_MAT44("Tc",Tc);
-DUMP_MAT44("Tw",Tw);
-#endif
-      if(oblique_flag==1)
+      if(oblique_flag==1)   /* deoblique case*/
          matar = &Tw.m[0][0];
-      else {
+      else {               /* obliquing case */
+         DSET_delete(oblparset) ;  /* don't need oblique parent dataset anymore */
          Tw_inv = MAT44_INV(Tw);
          matar = &Tw_inv.m[0][0];
 #ifdef DEBUG_ON
 DUMP_MAT44("Tw_inv",Tw_inv);
 #endif
+	 if(ISVALID_MAT44(inset->daxes->ijk_to_dicom_real)) {
+	   angle = compute_oblique_angle(inset->daxes->ijk_to_dicom_real);
+	   if(angle>0.0) {
+              INFO_message("Need to deoblique original dataset before obliquing\n");
+              INFO_message("  Combining oblique transformations");
+              Compute_Deoblique_Transformation(inset, &Tw2);
+              Tw = MAT44_MUL(Tw_inv, Tw2);
+#ifdef DEBUG_ON
+DUMP_MAT44("Twcombined", Tw);
+#endif
+              matar = &Tw.m[0][0];
+           }
+         }
       }
       LOAD_MAT  ( dicom_in2out.mm, matar[0],matar[1],matar[2],
                                    matar[4],matar[5],matar[6],
@@ -678,4 +664,40 @@ float compute_oblique_angle(mat44 ijk_to_dicom44)
    else 
       ang_merit = 0.0;
    return(ang_merit);
+}
+
+
+/* compute the transformation for deobliquing a dataset */
+/* the IJK_TO_DICOM_REAL matrix must be stored in the dataset structure */
+static void
+Compute_Deoblique_Transformation(THD_3dim_dataset *dset, mat44 *Tw)
+{
+   THD_dmat33 tmat ;
+   THD_dfvec3 tvec ;
+   mat44 Tw_temp, Tc, inv_Tc, Tr;
+
+   ENTRY("Compute_Deoblique_Transformation");
+   if(!ISVALID_MAT44(dset->daxes->ijk_to_dicom_real)) {
+      ERROR_exit("Oblique parent dataset doesn't have oblique "
+                 "transformation attributes!?\n");
+   }
+   /* load oblique transformation matrix */
+   Tr = dset->daxes->ijk_to_dicom_real;
+
+   /* load DICOM (RAI) cardinal transformation matrix */
+   THD_dicom_card_xform(dset, &tmat, &tvec); 
+   LOAD_MAT44(Tc, tmat.mat[0][0], tmat.mat[0][1], tmat.mat[0][2], tvec.xyz[0],
+                  tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
+		  tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
+   inv_Tc = MAT44_INV(Tc);
+   Tw_temp = MAT44_MUL(Tr, inv_Tc);
+   *Tw = Tw_temp;
+
+#ifdef DEBUG_ON
+   DUMP_MAT44("Tr",Tr);
+   DUMP_MAT44("Tc",Tc);
+   DUMP_MAT44("Tw",Tw_temp);
+#endif
+
+   EXRETURN;
 }
