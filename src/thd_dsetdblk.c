@@ -597,8 +597,12 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
      nvals  = (isfunc) ? FUNC_nvals[dset->func_type]
                        : ANAT_nvals[dset->func_type]  ;
 
-     if( nvals != 1 )
-       DSET_ERR("Illegal time-dependent dataset and func_type combination!") ;
+     if( nvals != 1 ){
+       WARNING_message("Illegal 3D+time dataset & func_type combination: '%s'" ,
+                       DSET_HEADNAME(dset) ) ;
+       if( dset->taxis->toff_sl != NULL ) myXtFree(dset->taxis->toff_sl) ;
+       myXtFree(dset->taxis) ;
+     }
 
      /** 15 Aug 2005: don't allow milliseconds on input any more **/
 
