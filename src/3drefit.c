@@ -1216,15 +1216,15 @@ int main( int argc , char * argv[] )
           op[0] = xop = daxes->xxorg + (daxes->xxdel-dxp)*0.5f*(daxes->nxx-1) ;
           op[1] = yop = daxes->yyorg + (daxes->yydel-dyp)*0.5f*(daxes->nyy-1) ;
           op[2] = zop = daxes->zzorg + (daxes->zzdel-dzp)*0.5f*(daxes->nzz-1) ;
-          oo[0] = daxes->xxorg ; 
-          oo[1] = daxes->yyorg ; 
-          oo[2] = daxes->zzorg ; 
+          oo[0] = daxes->xxorg ;
+          oo[1] = daxes->yyorg ;
+          oo[2] = daxes->zzorg ;
           shift[0] = op[rl-1] - xyzscale * oo[rl-1] ;   /* RL shift */
           shift[1] = op[ap-1] - xyzscale * oo[ap-1] ;   /* AP shift */
           shift[2] = op[is-1] - xyzscale * oo[is-1] ;   /* IS shift */
 
         } else {           /* for later datasets */
-          
+
           xop = xyzscale * daxes->xxorg + shift[daxes->xxorient/2] ;
           yop = xyzscale * daxes->yyorg + shift[daxes->yyorient/2] ;
           zop = xyzscale * daxes->zzorg + shift[daxes->zzorient/2] ;
@@ -1549,6 +1549,7 @@ int main( int argc , char * argv[] )
 
       if( write_output ) DSET_load(dset) ;    /* 20 Jun 2006 */
 
+      putenv("AFNI_DONT_DECONFLICT=YES") ;    /* 07 Jun 2007 */
       THD_write_3dim_dataset( NULL,NULL , dset , write_output ) ;
       THD_delete_3dim_dataset( dset , False ) ;
 

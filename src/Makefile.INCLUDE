@@ -1038,6 +1038,10 @@ to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
 	$(CC) -o 1dtranspose 1dtranspose.o $(LFLAGS) $(LLIBS)
 
+1dGentimes:1dGentimes.o
+	$(RM) $@
+	$(CC) -o 1dGentimes 1dGentimes.o $(LFLAGS) $(LLIBS)
+
 afni_vcheck:afni_vcheck.o
 	$(RM) $@
 	$(CC) -o afni_vcheck afni_vcheck.o $(LFLAGS) $(LLIBS)
