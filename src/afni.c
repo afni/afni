@@ -5565,9 +5565,10 @@ void AFNI_range_setter( Three_D_View *im3d , MCW_imseq *seq )
    int ival ;
    FD_brick *br ;
    THD_3dim_dataset *ds ;
+   static int first=1 ;
 
    if( !IM3D_OPEN(im3d) || !ISQ_VALID(seq)    ) return ;
-   if( !AFNI_yesenv("AFNI_IMAGE_GLOBALRANGE") ) return ;
+   if( !AFNI_yesenv("AFNI_IMAGE_GLOBALRANGE") ){ first=1; return ; }
 
    br = (FD_brick *)im3d->b123_ulay ; if( br == NULL ) return ;
    ds = br->dset ;                    if( ds == NULL ) return ;
@@ -5582,6 +5583,12 @@ void AFNI_range_setter( Three_D_View *im3d , MCW_imseq *seq )
    if( ISVALID_STATISTIC(ds->stats) && ISVALID_BSTAT(ds->stats->bstat[ival]) ){
      rng[0] = ds->stats->bstat[ival].min ;
      rng[1] = ds->stats->bstat[ival].max ;
+     if( first ){
+       INFO_message(
+        "AFNI_IMAGE_GLOBALRANGE is YES ==> reset image range to %g .. %g",
+        rng[0],rng[1] ) ;
+       first = 0 ;
+     }
    }
    rng[2] = 1.0f ;  /* 21 Dec 2006: do NOT redisplay image */
 
