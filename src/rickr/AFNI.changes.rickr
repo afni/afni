@@ -2040,4 +2040,7 @@
 06 Jun 2007:
   * modified thd_makemask.c: THD_makemask() and THD_makedsetmask()
         - for short and byte datasets, check for empty mask
+07 Jun 2007:
+  * modified nifti1_io.c: nifti_copy_extensions: use esize-8 for data size
+  * modified nifti1.h: note that edata is of length esize-8
 

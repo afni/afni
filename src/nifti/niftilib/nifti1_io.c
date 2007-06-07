@@ -293,9 +293,10 @@ static char * gni_history[] =
   "   - init g_opts.skip_blank_ext to 0\n"
   "1.22 01 Jun 2007 nifticlib-0.5 release\n",
   "1.23 05 Jun 2007 nifti_add_exten_to_list: revert on failure, free old list\n"
+  "1.24 07 Jun 2007 nifti_copy_extensions: use esize-8 for data size\n",
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.23,  5 Jun, 2007)";
+static char gni_version[] = "nifti library version 1.24,  7 Jun, 2007)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1, 0 };
@@ -4811,7 +4812,8 @@ int nifti_copy_extensions(nifti_image * nim_dest, const nifti_image * nim_src)
       if( g_opts.debug > 2 )
          fprintf(stderr,"+d dup'ing ext #%d of size %d (from size %d)\n",
                  c, size, old_size);
-      data = (char *)calloc(size,sizeof(char));  /* calloc, maybe size > old */
+      /* data length is size-8, as esize includes space for esize and ecode */
+      data = (char *)calloc(size-8,sizeof(char));      /* maybe size > old */
       if( !data ){
          fprintf(stderr,"** failed to alloc %d bytes for extention\n", size);
          if( c == 0 ) { free(nim_dest->ext_list); nim_dest->ext_list = NULL; }
@@ -4822,7 +4824,7 @@ int nifti_copy_extensions(nifti_image * nim_dest, const nifti_image * nim_src)
       nim_dest->ext_list[c].esize = size;
       nim_dest->ext_list[c].ecode = nim_src->ext_list[c].ecode;
       nim_dest->ext_list[c].edata = data;
-      memcpy(data, nim_src->ext_list[c].edata, old_size);
+      memcpy(data, nim_src->ext_list[c].edata, old_size-8);
 
       nim_dest->num_ext++;
    }
