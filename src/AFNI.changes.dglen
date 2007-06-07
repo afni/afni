@@ -176,9 +176,11 @@ in 3ddata.h
  * oblique dataset handling. Bigger changes in mri_read_dicom, to3d, 3dWarp.
 Also smaller changes in thd_niftiwrite and read, 3ddata.h, vecmat.h, 
 thd_dsetatrc, thd_dsetdblk.c
-4 Jun 2007
+04 Jun 2007
  * Initialization bug in obliquity code on some systems, other minor changes 
 for obliquity too
-6 Jun 2007
+06 Jun 2007
  * NIFTI read creates oblique transformation structure
  * minor fix to 1dSEM for tree growth stop conditions
+07 Jun 2007
+ * added ability for 3dWarp to obliquidate an already oblique dataset
