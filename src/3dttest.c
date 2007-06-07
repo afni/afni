@@ -524,6 +524,7 @@ printf(" ** datum = %s\n",MRI_TYPE_name[output_datum]) ;
                            ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE : GEN_FUNC_TYPE ,
                            ADN_func_type , FUNC_TT_TYPE ,
                            ADN_nvals , FUNC_nvals[FUNC_TT_TYPE] ,
+                           ADN_ntt , 0 ,                           /* 07 Jun 2007 */
                            ADN_datum_all , output_datum ,
                          ADN_none ) ;
 
