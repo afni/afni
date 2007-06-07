@@ -641,8 +641,10 @@ static void NOTES_save_CB( Widget w, XtPointer client_data, XtPointer call_data 
 
    /* now save notes */
 
-   if( nnew > 0 )
+   if( nnew > 0 ){
+      putenv("AFNI_DONT_DECONFLICT=YES") ;
       DSET_write_header(dset) ;
+   }
    else if( w != NULL )
       (void) MCW_popup_message( save_pb ,
                                 " \n Nothing has changed! \n " ,
