@@ -1272,32 +1272,18 @@ int main( int argc , char * argv[] )
 
    /** set default values of some environment variables [22 Jun 2004] **/
 
-   { char **ed , *eqn ;
-     static char *edef[] = {
-         "AFNI_SUMA_LINECOLOR"       , "blue3"  ,
-         "AFNI_CROSSHAIR_LINES"      , "YES"    ,
-         "AFNI_ALWAYS_LOCK"          , "YES"    ,
-         "AFNI_IMAGE_SAVESQUARE"     , "YES"    ,
-         "AFNI_DONT_DECONFLICT"      , "YES"    ,  /* 07 Jun 2007 */
-#ifdef DARWIN
-         "AFNI_X11_REDECORATE"       , "NO"     ,  /* 27 Dec 2004 */
-#endif
+   putenv("AFNI_CROSSHAIR_LINES=YES") ;
+   putenv("AFNI_ALWAYS_LOCK=YES") ;
+   putenv("AFNI_IMAGE_SAVESQUARE=YES") ;
+   putenv("AFNI_DONT_DECONFLICT=YES") ;  /* 07 Jun 2007 */
+   putenv("AFNI_X11_REDECORATE=NO") ;
 
 #if 0
-         "AFNI_IMAGE_LABEL_MODE"     , "1"      ,
-         "AFNI_IMAGE_LABEL_SIZE"     , "2"      ,
-         "AFNI_IMAGE_LABEL_SETBACK"  , "01"     ,
-         "AFNI_IMAGE_LABEL_COLOR"    , "yellow" ,
+   putenv("AFNI_IMAGE_LABEL_MODE=1") ;
+   putenv("AFNI_IMAGE_LABEL_SIZE=2") ;
+   putenv("AFNI_IMAGE_LABEL_SETBACK=01") ;
+   putenv("AFNI_IMAGE_LABEL_COLOR=yellow") ;
 #endif
-       NULL } ;
-
-     for( ed=edef ; *ed != NULL && *(ed+1) != NULL ; ed+=2 ){
-       if( getenv(*ed) == NULL ){
-         eqn = (char *)malloc(128) ;
-         sprintf(eqn,"%s=%s",*ed,*(ed+1)) ; putenv(eqn) ;
-       }
-     }
-   }
 
    /** Start the debug traceback stuff **/
 
@@ -1779,7 +1765,7 @@ STATUS("call 14") ;
           if( new_thresh > 0.0f ) AFNI_set_threshold(MAIN_im3d,new_thresh) ;
         }
 
-
+        putenv("AFNI_DONT_DECONFLICT=YES") ;  /* 07 Jun 2007 */
         REPORT_PROGRESS("\n") ;
       }
       break ;
