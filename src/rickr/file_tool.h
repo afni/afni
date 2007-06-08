@@ -13,6 +13,12 @@
 #define MOD_F4            30            /* real mods */
 #define MOD_F8            31
 
+#define SCR_SHOW_BAD_BS 0x01            /* script display */
+#define SCR_SHOW_FILE   0x02            /* script display */
+
+#define SCR_MOD_BADBS   0x10            /* script mods  */
+#define SCR_MOD_FILE    0x20            /* script mods  */
+
 #define USE_SHORT          0
 #define USE_LONG           1
 #define USE_VERSION        2
@@ -63,7 +69,8 @@ typedef struct
     int     data_len;      /* bytes of data in mod_data          */
     int     ge_disp;      /* do we display ge_values            */
     int     ge4_disp;    /* option bits for GEMS 4.x type      */
-    int     ndisp;      /* option bits for numeric display    */
+    int     script;     /* inputs are scripts: bit mask       */
+    int     ndisp;     /* option bits for numeric display    */
 
     int     swap;             /* do we need to swap bytes   */
     int     modify;          /* do we modify the data?     */
@@ -96,12 +103,17 @@ int  read_ge_header    ( char * pathname, ge_header_info * hi, ge_extras * E,
 int  process_file      ( char * pathname, param_t * p );
 int  process_ge        ( char * pathname, param_t * p );
 int  process_ge4       ( char * pathname, param_t * p );
+int  read_file         ( char * filename, char ** fdata, int * flen );
 int  set_params        ( param_t * p, int argc, char * argv[] );
+
+int  scr_show_file     ( char * filename, param_t * p );
+int  scr_show_bad_bs   ( char * filename, param_t * p );
+
 
 int  help_full         ( char * prog );
 int  help_ge_structs   ( char * prog );
 int  usage             ( char * prog, int level );
-int  write_data_to_file( FILE * fp, char * filename, param_t * p );
+int  write_data_to_file( FILE * fp, char * filename, param_t * p, int length );
 
 unsigned long THD_filesize  ( char * pathname );
 
