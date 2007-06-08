@@ -1913,6 +1913,25 @@ the "Disp" control panel.  This setting also applies to all image
 viewers.  If you set this in the "Edit Environment" control, it will
 apply to all open image viewers immediately, as well as to any image
 viewers opened later.
+  It is important to realize that if you use the 'Display Range'
+popup to set the bot-top range for the grayscale, these settings
+will override the global range UNTIL you switch datasets or switch
+sub-bricks within a dataset.  At that point, the global range for
+the new volume will be enforced.  This change can be confusing.
+Therefore, the info label beneath the slider shows the source of
+the bot-top grayscale values:
+  [2%-98%]  = from the 2% to 98% points on the slice histogram
+  [Min2Max] = from the 0% to 100% points on the slice histogram
+  [Glob]    = set from the entire volume min and max values
+  [User]    = set by the user from 'Display Range'
+  absent    = not applicable (e.g., underlay image is RGB)
+The popup 'hint' for the grayscale bar shows the current values
+of the bot-top range, if you want to know what numbers correspond
+to the image at which you are gazing so fondly.
+  Finally, note that when a montage is built, the number-to-grayscale
+algorithm is applied to each slice separately, and then the montage
+is assembled.  For [2%-98%] and [Min2Max], this fact means that each
+slice will (probably) have a separate grayscale conversion range.
 
 ----------------------------
 Variable: AFNI_DRAW_UNDOSIZE (editable)
