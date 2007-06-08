@@ -1558,7 +1558,7 @@ if( PRINT_TRACING ){
 
    newseq->rng_bot   = newseq->rng_top = newseq->rng_ztop = 0 ;
    newseq->flat_bot  = newseq->flat_top = 0.0 ;
-   newseq->sharp_fac = 0.60 ;
+   newseq->sharp_fac = 0.60 ; newseq->rng_extern = 0 ;
 
    newseq->zer_color = 0 ;
    ii = DC_find_overlay_color( newseq->dc , getenv("AFNI_IMAGE_ZEROCOLOR") ) ;
@@ -2784,7 +2784,8 @@ ENTRY("ISQ_process_mri") ;
                       seq->dc->ncol_im , seq->scl,seq->lev ) ;
            clbot = seq->clbot = seq->rng_bot ;
            cltop = seq->cltop = seq->rng_top ;
-           strcpy(seq->scl_label,"[User]") ;
+           if( seq->rng_extern ) strcpy(seq->scl_label,"[Glob]") ;
+           else                  strcpy(seq->scl_label,"[User]") ;
          }
          break ; /* end of user input range scaling */
 
@@ -4592,16 +4593,17 @@ ENTRY("ISQ_draw_winfo") ;
 
      if( seq->last_image_type == MRI_complex ){
        switch( seq->opt.cx_code ){
-         case ISQ_CX_MAG:   strcat( buf , "[mag]"  ) ; break ;
-         case ISQ_CX_PHASE: strcat( buf , "[arg]"  ) ; break ;
-         case ISQ_CX_REAL:  strcat( buf , "[real]" ) ; break ;
-         case ISQ_CX_IMAG:  strcat( buf , "[imag]" ) ; break ;
+         case ISQ_CX_MAG:   strcat( buf , "[mag]" ) ; break ;
+         case ISQ_CX_PHASE: strcat( buf , "[arg]" ) ; break ;
+         case ISQ_CX_REAL:  strcat( buf , "[re]"  ) ; break ;
+         case ISQ_CX_IMAG:  strcat( buf , "[im]"  ) ; break ;
        }
      }
    }
    ibuf = strlen(buf) ;
 
    nn = seq->im_nr ;  if( nn < 0 ) EXRETURN ;
+
    st = &( seq->imstat[nn] ) ;
 #if 0
    if( st->one_done ){
@@ -6685,6 +6687,7 @@ ENTRY("drive_MCW_imseq") ;
           seq->rng_bot = seq->rng_top = seq->rng_ztop = 0.0f ;
         } else {
           seq->rng_bot = rng[0] ; seq->rng_top = rng[1] ; seq->rng_ztop = 0.0 ;
+          seq->rng_extern = 1 ;
         }
         if( rng == NULL || rng[2] == 0.0f )
           ISQ_redisplay( seq , -1 , isqDR_display ) ;
@@ -7935,6 +7938,7 @@ ENTRY("ISQ_set_rng_CB") ;
    if( ! ISQ_REALZ(seq) || w == NULL || ! XtIsWidget(w) ) EXRETURN ;
 
    seq->rng_bot = seq->rng_top = seq->rng_ztop = 0.0 ;
+   seq->rng_extern = 0 ;
    sscanf( cbs->cval , "%f%f%f" ,
            &(seq->rng_bot) , &(seq->rng_top) , &(seq->rng_ztop) ) ;
    ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */
