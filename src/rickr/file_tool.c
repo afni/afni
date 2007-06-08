@@ -1,6 +1,4 @@
 
-#define VERSION         "3.2a (March 22, 2005)"
-
 /*----------------------------------------------------------------------
  * file_tool.c  - display or modify (binary?) info in files
  *
@@ -38,6 +36,11 @@
  *        -ge4_series          display GEMS 4.x series header
  *        -ge4_image           display GEMS 4.x image header
  *
+ *     script file options:
+ *
+ *        -show_bad_backslash  show any lines with only whitespace after '\'
+ *        -show_file_type      show whether UNIX, Mac or MS file type
+ *
  *     raw ascii options:
  *
  *        -length   LENGTH     number of bytes to display/modify
@@ -63,7 +66,7 @@
  *    file_tool -offset 100 -length 32 -quiet -infiles file1 file2
  *    file_tool -disp_int2 -swap -offset 1024 -length 16 -infiles file3
  *    file_tool -mod_data "hi there" -offset 2515 -length 8 -infiles I.*
- *    file_tool -debug 1 -mod_data x -mod_type val -offset 2515 \
+ *    file_tool -debug 1 -mod_data x -mod_type char -offset 2515 \
  *              -length 21 -infiles I.*
  *----------------------------------------------------------------------
 */
@@ -73,46 +76,45 @@ static char g_history[] =
  " file_tool history:\n"
  "\n"
  " 1.0  September 11, 2002\n"
- "   - initial release\n"
+ "      - initial release\n"
  "\n"
  " 1.1  February 26, 2003\n"
- "   - added -quiet option\n"
- "   - use dynamic allocation for data to read\n"
+ "      - added -quiet option\n"
+ "      - use dynamic allocation for data to read\n"
  "\n"
  " 1.2  May 06, 2003  (will go to 2.0 after more changes are made)\n"
- "   - added interface for reading GEMS 4.x formatted image files\n"
- "   - added corresponding options -ge4_all, -ge4_image, -ge4_series\n"
- "   - added options to display raw numeric data:\n"
- "       disp_int2, disp_int4, disp_real4\n"
- "   - changed local version of l_THD_filesize to THD_filesize, as\n"
- "     the ge4_ functions may get that from mrilib.\n"
+ "      - added interface for reading GEMS 4.x formatted image files\n"
+ "      - added corresponding options -ge4_all, -ge4_image, -ge4_series\n"
+ "      - added options to display raw numeric data:\n"
+ "          disp_int2, disp_int4, disp_real4\n"
+ "      - changed local version of l_THD_filesize to THD_filesize, as\n"
+ "        the ge4_ functions may get that from mrilib.\n"
  "\n"
  " 2.0  May 29, 2003\n"
- "   - added information for ge4 study header\n"
- "   - added option -ge4_study\n"
+ "      - added information for ge4 study header\n"
+ "      - added option -ge4_study\n"
  "\n"
  " 2.1  June 02, 2003\n"
- "   - changed format of call to ge4_read_header()\n"
- "   - made swap_[24]() static\n"
+ "      - changed format of call to ge4_read_header()\n"
+ "      - made swap_[24]() static\n"
  "\n"
  " 2.2  July 27, 2003\n"
- "   - wrap unknown printed strings in NULL check\n"
+ "      - wrap unknown printed strings in NULL check\n"
  "\n"
  " 3.0  March 17, 2004\n"
- "   - added binary editing (gee, that's why I wrote it 18 months ago...)\n"
- "     (see -mod_type s/uint1, s/uint2, s/uint4, float4, float8\n"
- "   - added '-ge_off' option, to display file offsets for some GEMS fields\n"
- "   - added '-hist' option, to display this history\n"
+ "      - added binary editing (gee, that's why I wrote it 18 months ago...)\n"
+ "        (see -mod_type s/uint1, s/uint2, s/uint4, float4, float8\n"
+ "      - added '-ge_off' option, to display offsets for some GEMS fields\n"
+ "      - added '-hist' option, to display this history\n"
  "\n"
- " 3.1  March 17, 2004\n"
- "   - only check length against data_len for string mods\n"
- "\n"
+ " 3.1  March 17, 2004  - only check length against data_len for string mods\n"
  " 3.2  March 24, 2004\n"
- "   - only check max length when modifying data (thanks, PSFB)\n"
- "\n"
- " 3.2a March 22, 2005\n"
- "   - removed all tabs\n"
+ "      - only check max length when modifying data (thanks, PSFB)\n"
+ " 3.2a March 22, 2005  - removed all tabs\n"
+ " 3.3  June 8, 2007    - added -show_bad_backslash and -show_file_type\n"
  "----------------------------------------------------------------------\n";
+
+#define VERSION         "3.3 (Jun 8, 2007)"
 
 
 /* ----------------------------------------------------------------------
@@ -183,12 +185,196 @@ attack_files( param_t * p )
             if ( (rv = process_ge4( p->flist[fc], p )) != 0 )
                 return rv;
         }
+        else if ( p->script )
+        {
+            if ( (rv = process_script( p->flist[fc], p )) != 0 )
+                return rv;
+        }
         else if ( ( rv = process_file( p->flist[fc], p) ) != 0 )
             return rv;
     }
 
     return 0;
 }
+
+
+/*------------------------------------------------------------
+ * Do the processing for script files:
+ *------------------------------------------------------------
+*/
+int
+process_script( char * filename, param_t * p )
+{
+    int rv;
+
+    if (       p->script & SCR_SHOW_FILE  ) rv = scr_show_file  (filename, p);
+    if (!rv && p->script & SCR_SHOW_BAD_BS) rv = scr_show_bad_bs(filename, p);
+
+    return rv;
+}
+
+
+/*------------------------------------------------------------
+ * Scan file for: '\\' then whitespace then '\n'
+ *------------------------------------------------------------*/
+int
+scr_show_bad_bs( char * filename, param_t * p )
+{
+    static char * fdata = NULL;
+    static int    flen  = 0;
+    char        * line_start, *cp;
+    int           count, cur, bcount = 0, bad = 0;
+    int           lnum = 1;
+
+    if( read_file( filename, &fdata, &flen ) < 0 ) return -1;
+
+    if( p->debug ) fprintf(stderr,"--- file %s ---\n",filename);
+
+    line_start = fdata;
+    for( count = 0; count < flen; /* in loop */ )
+    {
+        /* note beginning of line (it's the next char) */
+        if( fdata[count] == '\n' ){  line_start = fdata+count+1;  lnum++; }
+
+        if( fdata[count] != '\\' ){ count++; continue; }
+
+        /* found a '\\' char, count it and look beyond */
+        bcount++; count++;
+
+        /* skip any whitespace */
+        cur = count;
+        while( fdata[count] != '\n' && isspace(fdata[count]) ) count++;
+
+        if( count == cur || fdata[count] != '\n' )  /* we're okay */
+            continue;
+
+        bad++;
+
+        /* this line is bad, and we're looking at '\n' */
+        if( !p->quiet )
+        {
+            printf("bad line @ %4d: ", lnum);
+            for( cp = line_start; cp <= fdata+count; cp++)
+                putchar(*cp);
+        }
+    }
+
+    if(p->debug > 0) fprintf(stderr,"file %s: %d bad lines\n",filename,bad);
+    if(bad > 255) bad = 255;  /* limit on exit status */
+
+    return bad;
+}
+
+
+/*------------------------------------------------------------
+ * Scan file for 0x0d characters ('\r').
+ *     dos:  \r\n
+ *     mac:  \r
+ *     unix: else
+ *------------------------------------------------------------*/
+int
+scr_show_file( char * filename, param_t * p )
+{
+    static char * fdata = NULL;
+    static int    flen  = 0;
+    char        * cp;
+    int           length, count, bin = 0;
+
+    if( p->debug ) fprintf(stderr,"--- file %s ---\n",filename);
+
+    if( (length = read_file( filename, &fdata, &flen )) < 0 ) return -1;
+
+    if( p->debug ) fprintf(stderr,"file length = %d\n", length);
+
+    for( cp = fdata, count = 0; count < length; count++ )
+    {
+        if( !isprint(cp[count]) && !isspace(cp[count]) )
+        {
+            if( bin == 0 )
+            {
+                bin = 1;
+                if( !p->quiet )
+                    fprintf(stderr,"file '%s' has non-printable chars",
+                            filename);
+            }
+            if( p->debug ) fprintf(stderr,": %d (0x%0x)",cp[count],cp[count]);
+            else           fputc('\n',stderr);
+        }
+
+        if( cp[count] != '\r' ) continue;
+
+        if( count <= length && cp[count+1] == '\n' )      /* dos type */
+        {
+            if( p->debug )
+                fprintf(stderr,"found 0x0d0a char pair at offset %d\n",count);
+            printf("%s file type: DOS\n", filename);
+            return 0;
+        }
+        else                                            /* mac type */
+        {
+            if( p->debug )
+                fprintf(stderr,"found 0x0d char at offset %d\n",count);
+            printf("%s file type: MAC\n", filename);
+            return 0;
+        }
+    }
+
+    printf("%s file type: UNIX\n", filename);
+    return 0;
+}
+
+
+/*------------------------------------------------------------
+ * Inhale the file.  Update fdata and flen if need be.
+ * return the file size
+ *------------------------------------------------------------*/
+int
+read_file( char * filename, char ** fdata, int * flen )
+{
+    FILE * fp;
+    int    length, nbytes;
+
+    if( !filename || !fdata || !flen )
+    {
+        fprintf(stderr,"** read_file: bad Ptrs %p,%p,%p\n",filename,fdata,flen);
+        return -1;
+    }
+
+    length = THD_filesize(filename);
+
+    /* see if we need to update space */
+    if ( *flen < length )
+    {
+        *fdata = (char*) realloc( *fdata, length * sizeof(char) );
+        if ( *fdata == NULL )
+        {
+            fprintf( stderr, "failure: cannot allocate %d bytes for data\n",
+                     length );
+            return -1;
+        }
+        *flen = length;
+    }
+
+    /* open, read, close */
+    if ( (fp = fopen( filename, "r" )) == NULL )
+    {
+        fprintf( stderr, "failure: cannot open <%s> for 'r'\n", filename );
+        return -1;
+    }
+
+    nbytes = fread( *fdata, 1, length, fp );
+    fclose( fp );
+
+    if ( nbytes != length )
+    {
+        fprintf( stderr, "failure: read only %d of %d bytes from file '%s'\n",
+                 nbytes, length, filename );
+        return -1;
+    }
+
+    return length;
+}
+
 
 
 /*------------------------------------------------------------
@@ -284,23 +470,30 @@ process_file( char * filename, param_t * p )
 {
     FILE        * fp;
     static char * fdata = NULL;
+    static int    flen  = 0;
     int           nbytes;
+    int           length;  /* either p->length or file size */
 
+    /* if passed length was not given, init to filesize */
+    if ( p->length > 0 ) length = p->length;
+    else                 length = THD_filesize(filename);
+   
     if ( (fp = fopen( filename, "r+" )) == NULL )
     {
         fprintf( stderr, "failure: cannot open <%s> for 'rw'\n", filename );
         return -1;
     }
 
-    if ( fdata == NULL )
+    if ( flen < length )
     {
-        fdata = (char*) calloc( p->length, sizeof(char) );
+        fdata = (char*) realloc( fdata, length * sizeof(char) );
         if ( fdata == NULL )
         {
             fprintf( stderr, "failure: cannot allocate %d bytes for data\n",
-                     p->length );
+                     length );
             return -1;
         }
+        flen = length;
     }
 
     if ( fseek( fp, p->offset, SEEK_SET ) )
@@ -311,10 +504,10 @@ process_file( char * filename, param_t * p )
         return -1;
     }
 
-    if ( (nbytes = fread( fdata, 1, p->length, fp )) != p->length )
+    if ( (nbytes = fread( fdata, 1, length, fp )) != length )
     {
         fprintf( stderr, "failure: read only %d of %d bytes from file '%s'\n",
-                 nbytes, p->length, filename );
+                 nbytes, length, filename );
         fclose( fp );
         return -1;
     }
@@ -334,10 +527,10 @@ process_file( char * filename, param_t * p )
                 return -1;
             }
         }
-        else if ( (nbytes = fwrite(fdata, 1, p->length, stdout)) != p->length )
+        else if ( (nbytes = fwrite(fdata, 1, length, stdout)) != length )
         {
             fprintf( stderr, "\nfailure: wrote only %d of %d bytes to '%s'\n",
-                     nbytes, p->length, "stdout" );
+                     nbytes, length, "stdout" );
             fclose( fp );
             return -1;
         }
@@ -355,7 +548,7 @@ process_file( char * filename, param_t * p )
             return -1;
         }
 
-        if ( (nbytes = write_data_to_file( fp, filename, p ) ) < 0 )
+        if ( (nbytes = write_data_to_file( fp, filename, p, length ) ) < 0 )
         {
             fclose( fp );
             return -1;
@@ -364,7 +557,7 @@ process_file( char * filename, param_t * p )
         if ( p->debug > 0 )
         {
             printf( "wrote '%s' (%d bytes) to file '%s', position %ld\n",
-                    p->mod_data, p->length, filename, p->offset );
+                    p->mod_data, length, filename, p->offset );
         }
     }
 
@@ -381,7 +574,7 @@ process_file( char * filename, param_t * p )
  *                    -1 : on error
  *------------------------------------------------------------
 */
-int write_data_to_file( FILE * fp, char * filename, param_t * p )
+int write_data_to_file( FILE * fp, char * filename, param_t * p, int length )
 {
     double   dval;
     char   * outp, * inp, * endp;
@@ -399,7 +592,7 @@ int write_data_to_file( FILE * fp, char * filename, param_t * p )
     /* deal with characters separately */
     if ( p->mod_type == MOD_STR || p->mod_type == MOD_CHAR )
     {
-        int remaining = p->length - p->data_len; /* note remainder (if any) */
+        int remaining = length - p->data_len; /* note remainder (if any) */
 
         if ( (nbytes=fwrite(p->mod_data, 1, p->data_len, fp)) != p->data_len )
         {
@@ -413,7 +606,7 @@ int write_data_to_file( FILE * fp, char * filename, param_t * p )
         for ( c = 0; c < remaining; c++ )
             fputc( '\0', fp );
 
-        return p->length;
+        return length;
     }
 
     if ( p->debug > 1 ) fprintf(stderr,"++ values: ");
@@ -421,8 +614,8 @@ int write_data_to_file( FILE * fp, char * filename, param_t * p )
     /* now write numerical values into g_rep_output_data */
     outp = g_rep_output_data;
     inp  = p->mod_data;
-    memset(outp, 0, p->length);
-    for ( c = 0; (c+dsize) <= p->length; c += dsize, outp += dsize )
+    memset(outp, 0, length);
+    for ( c = 0; (c+dsize) <= length; c += dsize, outp += dsize )
     {
         dval = strtod( inp, &endp );
 
@@ -478,15 +671,15 @@ int write_data_to_file( FILE * fp, char * filename, param_t * p )
     if ( p->debug > 1 ) fputc('\n', stderr);
 
     /* now just write the data out */
-    nbytes = fwrite(g_rep_output_data, 1, p->length, fp);
-    if ( nbytes != p->length )
+    nbytes = fwrite(g_rep_output_data, 1, length, fp);
+    if ( nbytes != length )
     {
         fprintf(stderr,"** wrote only %d of %d bytes of binary data\n",
-                nbytes, p->length);
+                nbytes, length);
         return nbytes;
     }
 
-    return p->length;
+    return length;
 }
 
 int mtype_size( int type )
@@ -657,6 +850,14 @@ set_params( param_t * p, int argc, char * argv[] )
         {
             p->quiet = 1;
         }
+        else if ( ! strncmp(argv[ac], "-show_bad_backslash", 9 ) )
+        {
+            p->script |= SCR_SHOW_BAD_BS;
+        }
+        else if ( ! strncmp(argv[ac], "-show_file_type", 10 ) )
+        {
+            p->script |= SCR_SHOW_FILE;
+        }
         else if ( ! strncmp(argv[ac], "-swap_bytes", 3 ) )
         {
             p->swap = 1;
@@ -739,6 +940,13 @@ set_params( param_t * p, int argc, char * argv[] )
         return -1;
     }
 
+    /* if script, do not allow many other options */
+    if ( p->script && ( p->ge_disp || p->ge4_disp || p->ndisp || p->mod_data ) )
+    {
+        fputs( "error: no other operations with script\n",stderr);
+        return -1;
+    }
+
     /* if only displaying GE data, no further check are necessary */
     if ( p->ge_disp || p->ge4_disp )
         return 0;
@@ -753,11 +961,8 @@ set_params( param_t * p, int argc, char * argv[] )
     else
         p->modify = 0;                             /* be explicit */
 
-    if ( p->length <= 0 )
-    {
-        fputs( "error: missing '-length' option\n", stderr );
-        return -1;
-    }
+    if ( p->length <= 0 && p->debug > 0 )
+        fputs( "warning: missing '-length' option, using file len\n", stderr );
 
     if ( p->modify )
     {
@@ -1045,6 +1250,20 @@ help_full( char * prog )
         "      -ge4_image       : display GEMS 4.x image header\n"
         "      -ge4_series      : display GEMS 4.x series header\n"
         "      -ge4_study       : display GEMS 4.x study header\n"
+        "\n"
+        "  script file options:\n"
+        "\n"
+        "      -show_bad_backslash : show lines with whitespace after '\\'\n"
+        "\n"
+        "          This is meant to find problems in script files where the\n"
+        "          script programmer has spaces or tabs after a final '\\'\n"
+        "          on the line.  That would break the line continuation.\n"
+        "\n"
+        "      -show_file_type  : print file type of UNIX, Mac or DOS\n"
+        "\n"
+        "          Shell scripts need to be UNIX type files.  This option\n"
+        "          will inform the programmer if there are end of line\n"
+        "          characters that define an alternate file type.\n"
         "\n"
         "  raw ascii options:\n"
         "\n"
