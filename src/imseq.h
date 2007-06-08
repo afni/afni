@@ -357,7 +357,7 @@ typedef struct MCW_imseq {
      Widget wbar_menu , wbar_rng_but , wbar_zer_but  , wbar_flat_but ,
             wbar_sharp_but ;
      float  rng_bot,rng_top,rng_ztop , flat_bot,flat_top , sharp_fac ;
-     int    zer_color ;
+     int    zer_color , rng_extern ;
 
      MCW_arrowval * arrow[NARROW] ; /* arrow controls */
 

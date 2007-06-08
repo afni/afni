@@ -1766,6 +1766,7 @@ STATUS("call 14") ;
         }
 
         putenv("AFNI_DONT_DECONFLICT=YES") ;  /* 07 Jun 2007 */
+        putenv("AFNI_IS_RUNNING=YES") ;       /* 08 Jun 2007 */
         REPORT_PROGRESS("\n") ;
       }
       break ;
