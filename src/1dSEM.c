@@ -1,10 +1,11 @@
-/*********************** 1dSEM.c **********************************************/
-/* Author: Daniel Glen, 16 Nov 2006 */
+/*********************** 1dSEM.c *****************************************/
+/* Author: Daniel Glen, 16 Nov 2006                                      */
 /* computes STRUCTURAL EQUATION MODEL (SEM) parameters from the mean     */
-/* time courses of 2-10 ROIS                                             */
-/* This version uses the  Powell NEWUOA optimization method to fit the */
-/* parameters */
-
+/* time courses of 2-n ROIS                                              */
+/* This version uses the  Powell NEWUOA optimization method to fit the   */
+/* parameters. Various methods are used to verify a model or search for  */
+/* the best model                                                        */
+/*************************************************************************/
 #include "matrix.h"
 #include "afni.h"
 #include "sqrmat.h"
@@ -24,6 +25,7 @@ static int model_search = 0;    /* search for best model */
 static int max_paths = 1000;    /* maximum number of paths to try in model search */
 static double stop_cost = 0.1;  /* stop searching if cost function drops below this value */
 static int grow_all = 0;        /* search for models over all possible combinations */
+static int leafpicker = 0;      /* optimize forest growth over multiple parameter combinations */
 static double theta_ll = -1.0;  /* lower limit for theta */
 static double theta_ul = 1.0;   /* upper limit for theta */
 static sqrmat *kmat;            /* matrix of path coefficients (thetas) */
@@ -42,6 +44,7 @@ static void GrowModel(int, int, int, int *, int *, int, double *, sqrmat *, sqrm
 static double ComputeThetawithPowell(void);
 static sqrmat *ComputeInvSigma(void);
 static sqrmat *ComputeInvSigmaExp(sqrmat *invSigma);
+static double SEM_cost_fun(sqrmat *thetamat);
 
 static void fill_kmat(int n,double *x);
 static void fill_theta(int nx,double *x);
@@ -78,84 +81,91 @@ main (int argc, char *argv[])
   double *mat;
   char **roilabels=NULL;
   double chisq, cost;
+  int calccost = 0;
   
    /*----- Read command line -----*/
   if (argc < 2 || strcmp (argv[1], "-help") == 0)
     {
       printf ("Usage: 1dSEM [options] -theta 1dfile -C 1dfile -psi 1dfile -DF nn.n\n"
-	      "Computes path coefficients for connection matrix in Structural Equation\n"
-	      "    Modeling (SEM)\n"
-	      " The program takes as input :\n"
-	      "    1. A 1D file with an initial representation of the connection matrix\n"
-	      "       with a 1 for each interaction component to be modeled and a 0 if\n"
-	      "       if it is not to be modeled. This matrix should be PxP rows and column\n"
-	      "    2. A 1D file of the C, correlation matrix, also with dimensions PxP\n"
-	      "    3. A 1D file of the residual variance vector, psi\n"
-	      "    4. The degrees of freedom, DF\n\n"
+              "Computes path coefficients for connection matrix in Structural Equation\n"
+              "    Modeling (SEM)\n"
+              " The program takes as input :\n"
+              "    1. A 1D file with an initial representation of the connection matrix\n"
+              "       with a 1 for each interaction component to be modeled and a 0 if\n"
+              "       if it is not to be modeled. This matrix should be PxP rows and column\n"
+              "    2. A 1D file of the C, correlation matrix, also with dimensions PxP\n"
+              "    3. A 1D file of the residual variance vector, psi\n"
+              "    4. The degrees of freedom, DF\n\n"
               "    Output is printed to the terminal and may be redirected to a 1D file\n"
-	      "    The path coefficient matrix is printed for each matrix computed\n"
-	      " Options:\n"
-	      "   -theta file.1D = connection matrix 1D file with initial representation\n"
-	      "   -C file.1D = correlation matrix 1D file\n"
-	      "   -psi file.1D = residual variance vector 1D file\n"
-	      "   -DF nn.n = degrees of freedom\n"
+              "    The path coefficient matrix is printed for each matrix computed\n"
+              " Options:\n"
+              "   -theta file.1D = connection matrix 1D file with initial representation\n"
+              "   -C file.1D = correlation matrix 1D file\n"
+              "   -psi file.1D = residual variance vector 1D file\n"
+              "   -DF nn.n = degrees of freedom\n"
               "   -max_iter n = maximum number of iterations for convergence (Default=10000).\n"
               "    Values can range from 1 to any positive integer less than 10000.\n"
               "   -nrand n = number of random trials before optimization (Default = 100)\n"
               "   -limits m.mmm n.nnn = lower and upper limits for connection coefficients\n"
               "    (Default = -1.0 to 1.0)\n"
+              "   -calccost = no modeling at all, just calculate the cost function for the\n"
+              "    coefficients as given in the theta file. This may be useful for verifying\n"
+              "    published results\n"
               "   -verbose nnnnn = print info every nnnnn steps\n\n"
-	      " Model search options:\n"
-	      " Look for best model. The initial connection matrix file must follow these\n"
+              " Model search options:\n"
+              " Look for best model. The initial connection matrix file must follow these\n"
               "   specifications. Each entry must be 0 for entries excluded from the model,\n"
-	      "   1 for each required entry in the minimum model, 2 for each possible path\n"
-	      "   to try.\n"
+              "   1 for each required entry in the minimum model, 2 for each possible path\n"
+              "   to try.\n"
               "   -tree_growth or \n"
-	      "   -model_search = search for best model by growing a model for one additional\n"
-	      "    coefficient from the previous model for n-1 coefficients. If the initial\n"
-	      "    theta matrix has no required coefficients, the initial model will grow from\n"
-	      "    the best model for a single coefficient\n"
-	      "   -max_paths n = maximum number of paths to include (Default = 1000)\n"
-	      "   -stop_cost n.nnn = stop searching for paths when cost function is below\n"
-	      "    this value (Default = 0.1)\n"
+              "   -model_search = search for best model by growing a model for one additional\n"
+              "    coefficient from the previous model for n-1 coefficients. If the initial\n"
+              "    theta matrix has no required coefficients, the initial model will grow from\n"
+              "    the best model for a single coefficient\n"
+              "   -max_paths n = maximum number of paths to include (Default = 1000)\n"
+              "   -stop_cost n.nnn = stop searching for paths when cost function is below\n"
+              "    this value (Default = 0.1)\n"
               "   -forest_growth or \n"
-	      "   -grow_all = search over all possible models by comparing models at\n"
-	      "    incrementally increasing number of path coefficients. This\n"
-	      "    algorithm searches all possible combinations; for the number of coeffs\n"
-	      "    this method can be exceptionally slow, especially as the number of\n"
-	      "    coefficients gets larger, for example at n>=9.\n"
-              " This program uses a Powell optimization algorithm to find the connection\n"
+              "   -grow_all = search over all possible models by comparing models at\n"
+              "    incrementally increasing number of path coefficients. This\n"
+              "    algorithm searches all possible combinations; for the number of coeffs\n"
+              "    this method can be exceptionally slow, especially as the number of\n"
+              "    coefficients gets larger, for example at n>=9.\n"
+              "   -leafpicker = relevant only for forest growth searches. Expands the search\n"
+              "    optimization to look at multiple paths to avoid local minimum. This method\n"
+              "    is the default technique for tree growth and standard coefficient searches\n"
+              " This program uses a \nPowell optimization algorithm to find the connection\n"
               "   coefficients for any particular model.\n\n"
               " References:\n"
               "   Powell, MJD, \"The NEWUOA software for unconstrained optimization without\n"
               "    derivatives\", Technical report DAMTP 2004/NA08, Cambridge University\n"
               "    Numerical Analysis Group -- http://www.damtp.cam.ac.uk/user/na/reports.html\n\n"
-	      "   Bullmore, ET, Horwitz, B, Honey, GD, Brammer, MJ, Williams, SCR, Sharma, T,\n"
-	      "    How Good is Good Enough in Path Analysis of fMRI Data?\n"
-	      "    NeuroImage 11, 289-301 (2000)\n\n"
+              "   Bullmore, ET, Horwitz, B, Honey, GD, Brammer, MJ, Williams, SCR, Sharma, T,\n"
+              "    How Good is Good Enough in Path Analysis of fMRI Data?\n"
+              "    NeuroImage 11, 289-301 (2000)\n\n"
               "   Stein, JL, et al., A validated network of effective amygdala connectivity,\n"
               "    NeuroImage (2007), doi:10.1016/j.neuroimage.2007.03.022\n\n"
-	      " The initial representation in the theta file is non-zero for each element\n"
-	      "   to be modeled. The 1D file can have leading columns for labels that will\n"
-	      "   be used in the output. Label rows must be commented with the # symbol\n"
-	      " If using any of the model search options, the theta file should have a '1' for each\n"
-	      "   required coefficient, '0' for each excluded coefficient, '2' for an optional\n"
-	      "   coefficient. Excluded coefficients are not modeled. Required coefficients\n"
-	      "   are included in every computed model.\n\n"
+              " The initial representation in the theta file is non-zero for each element\n"
+              "   to be modeled. The 1D file can have leading columns for labels that will\n"
+              "   be used in the output. Label rows must be commented with the # symbol\n"
+              " If using any of the model search options, the theta file should have a '1' for each\n"
+              "   required coefficient, '0' for each excluded coefficient, '2' for an optional\n"
+              "   coefficient. Excluded coefficients are not modeled. Required coefficients\n"
+              "   are included in every computed model.\n\n"
               " N.B. - Connection directionality in the path connection matrices is from column\n"
               "   to row of the output connection coefficient matrices.\n\n"
               " Examples:\n"
               "   To confirm a specific model:\n"
               "    1dSEM -theta inittheta.1D -C SEMCorr.1D -psi SEMvar.1D -DF 30\n"
-	      "   To search models by growing from the best single coefficient model\n"
-	      "     up to 12 coefficients\n"
+              "   To search models by growing from the best single coefficient model\n"
+              "     up to 12 coefficients\n"
               "    1dSEM -theta testthetas_ms.1D -C testcorr.1D -psi testpsi.1D \\ \n"
               "    -limits -2 2 -nrand 100 -DF 30 -model_search -max_paths 12\n"
-	      "   To search all possible models up to 8 coefficients:\n"
+              "   To search all possible models up to 8 coefficients:\n"
               "    1dSEM -theta testthetas_ms.1D -C testcorr.1D -psi testpsi.1D \\ \n"
               "    -nrand 10 -DF 30 -stop_cost 0.1 -grow_all -max_paths 8 | & tee testgrow.txt\n\n"
-	      "   For more information, see http://afni.nimh.nih.gov/sscc/gangc/PathAna.html\n"
-	      "\n");
+              "   For more information, see http://afni.nimh.nih.gov/sscc/gangc/PathAna.html\n"
+              "\n");
 
       exit (0);
     }
@@ -184,41 +194,41 @@ main (int argc, char *argv[])
       }
 
       if(strcmp(argv[nopt], "-DF") == 0 ) {
-	   if(++nopt >=argc ){
-	      ERROR_exit("Error - need an argument after -DF!");
-	   }
+           if(++nopt >=argc ){
+              ERROR_exit("Error - need an argument after -DF!");
+           }
          DF =  strtod(argv[nopt], NULL);
-	 nopt++; continue;
+         nopt++; continue;
       }
 
       if (strcmp (argv[nopt], "-max_iter") == 0)
         {
-	   if(++nopt >=argc ){
-	      ERROR_exit("Error - need an argument after -max_iter!");
-	   }
+           if(++nopt >=argc ){
+              ERROR_exit("Error - need an argument after -max_iter!");
+           }
            max_iter = strtol(argv[nopt], NULL, 10);
-	   if ((max_iter <-1)||(max_iter>100000)) {
-	      ERROR_exit("Error - max_iter must be between -1 and 100,000");
+           if ((max_iter <-1)||(max_iter>100000)) {
+              ERROR_exit("Error - max_iter must be between -1 and 100,000");
            }
           nopt++;
-	  continue;
+          continue;
         }
       if (strcmp (argv[nopt], "-nrand") == 0)
         {
-	   if(++nopt >=argc ){
-	      ERROR_exit("Error - need an argument after -nrand!");
-	   }
+           if(++nopt >=argc ){
+              ERROR_exit("Error - need an argument after -nrand!");
+           }
            nrand = strtol(argv[nopt], NULL, 10);
-	   if ((nrand <0)||(nrand>100000)) {
-	      ERROR_exit("Error - nrand must be between 0 and 100,000");
+           if ((nrand <0)||(nrand>100000)) {
+              ERROR_exit("Error - nrand must be between 0 and 100,000");
            }
           nopt++;
-	  continue;
+          continue;
         }
      if (strcmp (argv[nopt], "-limits") == 0) {
-	   if(argc < (nopt+3)){
-	      ERROR_exit("*** Error - need two arguments after -limits!");
-	   }
+           if(argc < (nopt+3)){
+              ERROR_exit("*** Error - need two arguments after -limits!");
+           }
            theta_ll = strtod(argv[++nopt], NULL);
            theta_ul = strtod(argv[++nopt], NULL);
            if(theta_ul <= theta_ll) {
@@ -227,64 +237,70 @@ main (int argc, char *argv[])
            nopt++;
            continue;
        }
-	
+        
      if (strcmp (argv[nopt], "-verbose") == 0)
         {
-	   if(++nopt >=argc ){
-	      ERROR_exit("*** Error - need an argument after -verbose!");
-	   }
+           if(++nopt >=argc ){
+              ERROR_exit("*** Error - need an argument after -verbose!");
+           }
            verbose = strtol(argv[nopt], NULL, 10);
-	   if (verbose<=0) {
-	      ERROR_exit("Error - verbose steps must be a positive number !");
+           if (verbose<=0) {
+              ERROR_exit("Error - verbose steps must be a positive number !");
            }
           nopt++;
-	  continue;
+          continue;
         }
 
       if((strcmp(argv[nopt], "-model_search") == 0 )||   \
          (strcmp(argv[nopt], "-tree_growth") == 0 ) ) {
          model_search = 1;
-	 nopt++; continue;
+         nopt++; continue;
       }
 
       if((strcmp(argv[nopt], "-grow_all") == 0 ) ||      \
          (strcmp(argv[nopt], "-forest_growth") == 0 ) ) {
          grow_all = 1;
          model_search = 1;
-	 nopt++; continue;
+         nopt++; continue;
       }
 
       if (strcmp (argv[nopt], "-max_paths") == 0)
         {
-	   if(++nopt >=argc ){
-	      ERROR_exit("Error - need an argument after -max_paths!");
-	   }
+           if(++nopt >=argc ){
+              ERROR_exit("Error - need an argument after -max_paths!");
+           }
            max_paths = strtol(argv[nopt], NULL, 10);
-	   if (max_paths <=0 ) {
-	      ERROR_exit("Error - max_paths must be greater than 0");
+           if (max_paths <=0 ) {
+              ERROR_exit("Error - max_paths must be greater than 0");
            }
           nopt++;
-	  continue;
+          continue;
         }
 
       if (strcmp (argv[nopt], "-stop_cost") == 0)
         {
-	   if(++nopt >=argc ){
-	      ERROR_exit("Error - need an argument after -stop_cost!");
-	   }
+           if(++nopt >=argc ){
+              ERROR_exit("Error - need an argument after -stop_cost!");
+           }
            stop_cost = strtod(argv[nopt], NULL);
-	   if (stop_cost <= 0.0 ) {
-	      ERROR_exit("Error - stop_cost must be greater than 0");
+           if (stop_cost <= 0.0 ) {
+              ERROR_exit("Error - stop_cost must be greater than 0");
            }
           nopt++;
-	  continue;
+          continue;
         }
 
+      if(strcmp(argv[nopt], "-leafpicker") == 0) {
+         leafpicker = 1;
+         nopt++; continue;
+      }
 
+      if(strcmp(argv[nopt], "-calccost") == 0) {
+         calccost = 1;
+         nopt++; continue;
+      }
 
-
-
-	ERROR_exit("Error - unknown option %s", argv[nopt]);
+      ERROR_exit("Error - unknown option %s", argv[nopt]);
     }
 
    /*----- read input datasets -----*/
@@ -347,7 +363,7 @@ main (int argc, char *argv[])
    im_to_sqrmat(corr_matrix, corr_sq_mat);   /* copy from mri_image structure to square matrix */
    if(verbose)
       DUMP_SQRMAT("Correlation Matrix", corr_sq_mat);
-   LTtoSymSM(corr_sq_mat);  /* symmetrize the correlation matrix in case it isn't */
+   LTtoSymSM(corr_sq_mat); /* symmetrize correlation matrix in case it isn't */
    if(verbose)
       DUMP_SQRMAT("Correlation Matrix - symmetrized", corr_sq_mat);
 
@@ -363,7 +379,8 @@ main (int argc, char *argv[])
       mri_free (psi_vector);
       mri_free (corr_matrix);
       mri_free (theta_init_matrix);
-      ERROR_message("Error - only 1 column in Psi vector file allowed and rows must match");
+      ERROR_message("Error - only 1 column in Psi vector file"
+                    "allowed and rows must match");
       ERROR_exit(" %d, %d rows and columns found in psi vector file", Cx, Cy);
     }
 
@@ -375,26 +392,40 @@ main (int argc, char *argv[])
      MAT(i,i) = (double) *(imptr + i);
    if(verbose)
       DUMP_SQRMAT("Psi Matrix", psi_mat);
-   InitGlobals (Px);	/* initialize all the matrices and vectors */
+   InitGlobals (Px);        /* initialize all the matrices and vectors */
 
    INFO_message("Connection directionality is from column to row");
+   if(calccost) {          /* optionally compute cost of input coefficients */
+      cost = SEM_cost_fun(theta_init_mat);
+      INFO_message("Cost for given coefficient matrix is %g\n", cost);
+      chisq = cost * (DF-1.0);   /* compute chi square statistic */
+      INFO_message("Chi Square = %g\n", chisq);
+
+      if(roilabels)
+         DUMP_SQRMAT_LABELED("Given Connection coefficients", kmat,roilabels);
+      else
+         DUMP_SQRMAT("Given Connection coefficients", kmat);
+      INFO_message("-----------------------------------------"
+                   "--------------------------------------\n\n");
+
+   }
 
    if(model_search) {
       if(grow_all)
          GrowAllModels(roilabels);   
       else
          ModelSearch(Px,roilabels);
-   }	 
+   }         
    else {
-	 cost  = ComputeThetawithPowell();  /* calculate connection coefficients */
-	 INFO_message("Cost is %g\n", cost);
-	 chisq = cost * (DF-1.0);   /* compute chi square statistic for minimum fit */
-	 INFO_message("Chi Square = %g\n", chisq);
+         cost  = ComputeThetawithPowell();  /* calculate connection coefficients */
+         INFO_message("Cost is %g\n", cost);
+         chisq = cost * (DF-1.0);   /* compute chi square statistic for minimum fit */
+         INFO_message("Chi Square = %g\n", chisq);
 
-	 if(roilabels)
-	    DUMP_SQRMAT_LABELED("Connection coefficients", kmat,roilabels);
-	 else
-	    DUMP_SQRMAT("Connection coefficients", kmat);
+         if(roilabels)
+            DUMP_SQRMAT_LABELED("Connection coefficients", kmat,roilabels);
+         else
+            DUMP_SQRMAT("Connection coefficients", kmat);
    }
 
 
@@ -455,7 +486,7 @@ static void ModelSearch(int p, char **roilabels)
       chisq0 = cost * (DF - 1.0);
       chisq2 = chisq0 / 2.0;
       if(roilabels)
-	 DUMP_SQRMAT_LABELED("Connection coefficients - minimum model", kmat,roilabels);
+         DUMP_SQRMAT_LABELED("Connection coefficients - minimum model", kmat,roilabels);
       else
          DUMP_SQRMAT("Connection coefficients - minimum model", kmat);
    }
@@ -475,47 +506,47 @@ static void ModelSearch(int p, char **roilabels)
          for(k=0;k<p;k++) { 
             if(NAT(j,k)==2.0) { /* allow user to exclude elements and don't do already modeled elements */
 
-	       temp2 = MAT(j,k);
-	       NAT(j,k) = 1.0;	    
-	       cost = ComputeThetawithPowell();  /* recompute the optimization */ 
-	       if(cost<mincost) {
-		   mincost = cost;
-		   max_i = j;
-		   max_j = k;
-		  }
+               temp2 = MAT(j,k);
+               NAT(j,k) = 1.0;            
+               cost = ComputeThetawithPowell();  /* recompute the optimization */ 
+               if(cost<mincost) {
+                   mincost = cost;
+                   max_i = j;
+                   max_j = k;
+                  }
  #if 0
- 	       temp = MAT(j,k);
-	       MAT(j,k)+= eta;
-	       newinvsigma = ComputeInvSigma();
+                temp = MAT(j,k);
+               MAT(j,k)+= eta;
+               newinvsigma = ComputeInvSigma();
                newsigma = sm_inverse(newinvsigma);
-	       MAT(j,k) = temp;
-	       Si_mat = sm_subtract(newsigma,sigma);  /* perturbation matrix */
-	       sm_scale(Si_mat, 1.0/eta, 0);       /* Si = (sigma(thetai+deltai) - sigma)/eta */
-	       tempmat = sm_mult(invsigmaexp, Si_mat);
-	       dfdt = sm_trace(tempmat) / 2.0;
+               MAT(j,k) = temp;
+               Si_mat = sm_subtract(newsigma,sigma);  /* perturbation matrix */
+               sm_scale(Si_mat, 1.0/eta, 0);       /* Si = (sigma(thetai+deltai) - sigma)/eta */
+               tempmat = sm_mult(invsigmaexp, Si_mat);
+               dfdt = sm_trace(tempmat) / 2.0;
                KILL_SQRMAT(tempmat);
-	       
+               
                tempmat = sm_mult(invsigma, Si_mat);
-	       tempmat2 = sm_mult(tempmat, invsigma);
-	       tempmat3 = sm_mult(tempmat2, Si_mat);
-	       d2fdt2 = sm_trace(tempmat3) / 2.0;
+               tempmat2 = sm_mult(tempmat, invsigma);
+               tempmat3 = sm_mult(tempmat2, Si_mat);
+               d2fdt2 = sm_trace(tempmat3) / 2.0;
                MI = (dfdt * dfdt / d2fdt2) / 2.0;
-	       if(MI>maxMI) {
-	          maxMI = MI;
-		  max_i = j;
-		  max_j = k;
-	       }	  
+               if(MI>maxMI) {
+                  maxMI = MI;
+                  max_i = j;
+                  max_j = k;
+               }          
                KILL_SQRMAT(tempmat);
                KILL_SQRMAT(tempmat2);
                KILL_SQRMAT(tempmat3);
-#endif	       
-	       
-	       NAT(j,k) = 2.0;
-	       MAT(j,k) = temp2;
-	       ntheta = count_nonzero_sm(theta_init_mat);
+#endif               
+               
+               NAT(j,k) = 2.0;
+               MAT(j,k) = temp2;
+               ntheta = count_nonzero_sm(theta_init_mat);
 
-	    }
-	 }
+            }
+         }
       }
       if((max_i<0)||(max_j<0)) {
          INFO_message("Error finding maximum direction\n");
@@ -560,7 +591,7 @@ GrowAllModels(char **roilabels)
       chisq0 = cost * (DF - 1.0);
       chisq2 = chisq0 / 2.0;
       if(roilabels)
-	 DUMP_SQRMAT_LABELED("Connection coefficients", kmat,roilabels);
+         DUMP_SQRMAT_LABELED("Connection coefficients", kmat,roilabels);
       else
          DUMP_SQRMAT("Connection coefficients", kmat);
    }
@@ -629,12 +660,12 @@ GrowModel(int lastindex, int depth, int stopdepth, int *thetavec, int *minvec, i
       if(depth==stopdepth) {
          UpdatethetawithArray(thetavec,theta0_mat);
          cost = ComputeThetawithPowell();
-	 if(cost<*mincost) {
-	    *mincost = cost;
-	    memcpy(minvec, thetavec, npts*sizeof(int));
+         if(cost<*mincost) {
+            *mincost = cost;
+            memcpy(minvec, thetavec, npts*sizeof(int));
             EQUIV_SQRMAT(kmat,bestkmat);
-	 }
-	}
+         }
+        }
       else {
          GrowModel(ii,depth+1,stopdepth, thetavec, minvec, npts, mincost, theta0_mat, bestkmat);
       }
@@ -750,6 +781,33 @@ double SEM_Powell_cost_fun(int n, double *x)
 }
  
 
+/* compute cost for a given coefficient matrix */
+static double
+SEM_cost_fun(sqrmat *thetamat)
+{
+   static double F = 0.0; /* the cost (error) using these parameters,x */
+   double lndet_kkt, C_inv_sigma;
+   sqrmat *inv_sigma;
+ 
+   /* *kmat = *thetamat; */   /* copy structure of initial theta matrix to kmat */
+   EQUIV_SQRMAT(thetamat, kmat);
+   /* Sigma^-1 = (I-K)^T Psi^-1 (I-K)   - this we need*/
+   inv_sigma = ComputeInvSigma();
+ 
+   /* ln det[Sigma] = ln det[Psi] - ln det[I-K-K'+KK'] */
+   /* ln det[Psi] = sum_i(log(Psi_ii)) */ /* calculated once */
+   lndet_kkt = sm_lndet_iktk(kmat);
+    
+   C_inv_sigma = sm_dot(corr_sq_mat, inv_sigma);
+   F =  F_fixed - lndet_kkt + C_inv_sigma; 
+   /* free up any temporary matrices */
+   KILL_SQRMAT(inv_sigma);
+   
+   return(F);
+}
+ 
+
+
 /*! compute using optimization method by Powell, 2004*/
 static double ComputeThetawithPowell() /*compute connection matrix */
 {
@@ -775,7 +833,7 @@ static double ComputeThetawithPowell() /*compute connection matrix */
    if(!model_search)
       INFO_message("Finding optimal theta values\n");
    SEM_Powell_cost_fun(0,x);  /* reset iteration counter */
-   if(grow_all) {
+   if(grow_all && !leafpicker) {
       /* use constrained Powell optimization - not multiple path version for speed */
       icalls = powell_newuoa_con(ntheta, x, thetamin, thetamax, nrand, 0.1, 0.0001, max_iter, SEM_Powell_cost_fun);
       cost = SEM_Powell_cost_fun(0,x); /* get final cost */
@@ -854,21 +912,21 @@ static void fill_kmat(int nx,double *x)
         usespot = 0;
         if(!model_search) {
            if(NAT(i,j)!=0.0)
-	     usespot = 1;
-	 }
-	else {
-	   if(NAT(i,j)==1.0)
-	      usespot = 1;
-	}
-	if(usespot)
-	    {
+             usespot = 1;
+         }
+        else {
+           if(NAT(i,j)==1.0)
+              usespot = 1;
+        }
+        if(usespot)
+            {
             MAT(i,j) = *thetaptr++;
-	    nfill++;
-	    if(nfill>nx)
-	       EXRETURN;
-	}
-	else
-	    MAT(i,j) = 0.0;
+            nfill++;
+            if(nfill>nx)
+               EXRETURN;
+        }
+        else
+            MAT(i,j) = 0.0;
      }
   }
   
@@ -893,19 +951,19 @@ static void fill_theta(int nx,double *x)
      for(j=0;j<n;j++) {
         usespot = 0; 
         if(model_search) {   /* for model search, use values of 1 to model */
-	   if(NAT(i,j)==1.0)
+           if(NAT(i,j)==1.0)
               usespot = 1;
         }
         else {
            if(NAT(i,j)!= 0.0)
               usespot = 1;
-	}
+        }
         if(usespot) {
             *thetaptr++ = MAT(i,j);
-	    nfill++;
-	    if(nfill>nx)
-	       EXRETURN;
-	}
+            nfill++;
+            if(nfill>nx)
+               EXRETURN;
+        }
      }
   }
   
@@ -929,8 +987,8 @@ UpdatethetawithArray(int *thetavec, sqrmat *theta0_mat)
    for(i=0;i<n;i++) {
       for(j=0;j<n;j++) {
          if(NAT(i,j)!=0.0) {   /* skip diagonals and other exclusions*/
-	    MAT(i,j) = (double) *thetaptr++;  /* thetavec has all included points 0 or 1 */
-	 }
+            MAT(i,j) = (double) *thetaptr++;  /* thetavec has all included points 0 or 1 */
+         }
       }
    }
    EXRETURN;
@@ -951,12 +1009,12 @@ UpdateArraywiththeta(int *thetavec, sqrmat *theta0_mat)
    for(i=0;i<n;i++) {
       for(j=0;j<n;j++) {
          if(MAT(i,j)!=0.0) {   /* skip diagonals and other exclusions*/
-	    if(MAT(i,j)==1.0)  /* set vector only for required coeffs*/
-  	       *thetaptr = 1;
-	    else
-	       *thetaptr = 0;
-	    thetaptr++;   
-	 }
+            if(MAT(i,j)==1.0)  /* set vector only for required coeffs*/
+                 *thetaptr = 1;
+            else
+               *thetaptr = 0;
+            thetaptr++;   
+         }
       }
    }
    EXRETURN;
@@ -1052,8 +1110,8 @@ comp_lndet_diagsm(sqrmat *smat)
    mat = smat->mat;
    for(i=0; i<n;i++){
          diag_el = MAT(i,i);
-	 if(diag_el<=0)
-	    RETURN(0);
+         if(diag_el<=0)
+            RETURN(0);
          sum += log(diag_el);
    }
    RETURN(sum);
@@ -1073,12 +1131,12 @@ count_nonzero_sm(sqrmat *smat)
 
    for(i=0; i<n;i++){
       for(j=0; j<n;j++){
-	if(MAT(i,j)) {
-	   if(!model_search)
-  	      sum++;
+        if(MAT(i,j)) {
+           if(!model_search)
+                sum++;
            else 
               if(MAT(i,j) == 1.0)
-		sum++;
+                sum++;
         }
       }
    }
@@ -1100,7 +1158,7 @@ count_value_sm(sqrmat *smat, double value)
    for(i=0; i<n;i++){
       for(j=0; j<n;j++){
            if(MAT(i,j) == value)
-      	      sum++;
+                    sum++;
       }
    }
 
@@ -1143,7 +1201,7 @@ inv_diag_sm(sqrmat *smat)
       temp = MAT(i,i);
       if(temp==0.0) {   /* check for division by 0 */
          KILL_SQRMAT(tmat);
-	 RETURN(NULL);
+         RETURN(NULL);
       } 
       NAT(i,i) = 1.0/temp;
    }
@@ -1204,7 +1262,7 @@ static char ** read_labels(char * file_str, int nrows)
          ptr = my_fgets( tempstr , LBUF , filehdl ) ;  /* read in non-comment line*/
          if( ptr==NULL || *ptr=='\0' ) break ; /* failure --> end of data */
          roi_label[i] = (char *) malloc(sizeof(char) * strlen(tempstr));
-	 sscanf(ptr,"%s",roi_label[i]);
+         sscanf(ptr,"%s",roi_label[i]);
     }
    fclose(filehdl);   
    RETURN(roi_label);
