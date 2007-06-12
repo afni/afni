@@ -4694,9 +4694,14 @@ nifti_image* nifti_simple_init_nim(void)
 
 /*----------------------------------------------------------------------*/
 /*! basic initialization of a nifti_1_header struct (with given dimensions)
- *
- * if arg_dims is NULL, apply defaults for a 1x1x1 image
- * if arg_dtype is not valid, use DT_FLOAT32
+
+   Return an allocated nifti_1_header struct, based on the given
+   dimensions and datatype.
+ 
+   \param arg_dims  : optional dim[8] array (default {3,1,1,1,0,0,0,0})
+   \param arg_dtype : optional datatype (default DT_FLOAT32)
+
+   \return pointer to allocated nifti_1_header struct
 *//*--------------------------------------------------------------------*/
 nifti_1_header * nifti_make_new_header(const int arg_dims[], int arg_dtype)
 {
@@ -4766,11 +4771,16 @@ nifti_1_header * nifti_make_new_header(const int arg_dims[], int arg_dtype)
 
 
 /*----------------------------------------------------------------------*/
-/*----------------------------------------------------------------------*/
 /*! basic creation of a nifti_image struct
- *
- * if dims or datatype are no set/valid, make assume 1x1x1 float32
- * optionally, fill with zero'd data
+
+   Create a nifti_image from the given dimensions and data type.
+   Optinally, allocate zero-filled data.
+  
+   \param dims      : optional dim[8]   (default {3,1,1,1,0,0,0,0})
+   \param datatype  : optional datatype (default DT_FLOAT32)
+   \param data_fill : if flag is set, allocate zero-filled data for image
+
+   \return pointer to allocated nifti_image struct
 *//*--------------------------------------------------------------------*/
 nifti_image * nifti_make_new_nim(const int dims[], int datatype, int data_fill)
 {

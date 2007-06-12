@@ -135,13 +135,13 @@ static char * g_history[] =
   "1.13 24 Apr 2006 [rickr] - act_disp_ci(): remove time series length check\n",
   "1.14 04 Jun 2007 [rickr] - free_opts_mem(), to appease valgrind\n",
   "1.15 05 Jun 2007 [rickr] - act_check_hdrs: free(nim)->nifti_image_free()\n",
-  "1.16 11 Jun 2007 [rickr] - allow creation of datasets via MAKE_IM\n",
+  "1.16 12 Jun 2007 [rickr] - allow creation of datasets via MAKE_IM\n",
   "   - added nt_image_read, nt_read_header and nt_read_bricks\n"
   "     to wrap nifti read functions, allowing creation of new datasets\n"
   "   - added -make_im, -new_dim, -new_datatype and -copy_im\n"
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 1.16 (June 11, 2007)";
+static char g_version[] = "version 1.16 (June 12, 2007)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
