@@ -2057,4 +2057,5 @@
           to wrap nifti read functions, allowing creation of new datasets
         - added -make_im, -new_dim, -new_datatype and -copy_im
   * modified nifti1_test.c: added trailing nifti_image_free(nim)
+  * modified thd_niftiread.c: to allow nx = ny = 1
 
