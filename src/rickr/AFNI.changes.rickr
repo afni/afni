@@ -2047,3 +2047,14 @@
 08 Jun 2007:
   * modified file_tool.[ch]: added -show_bad_backslash and -show_file_type
 
+11 Jun 2007: updates for new image creation
+  * modified nifti1_io.[ch]:
+        - added nifti_make_new_header() - to create from dims/dtype
+        - added nifti_make_new_nim() - to create from dims/dtype/fill
+        - added nifti_is_valid_datatype(), and more debug info
+  * modified nifti_tool.[ch]:
+        - added nt_image_read, nt_read_header and nt_read_bricks
+          to wrap nifti read functions, allowing creation of new datasets
+        - added -make_im, -new_dim, -new_datatype and -copy_im
+  * modified nifti1_test.c: added trailing nifti_image_free(nim)
+

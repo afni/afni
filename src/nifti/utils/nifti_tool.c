@@ -135,9 +135,13 @@ static char * g_history[] =
   "1.13 24 Apr 2006 [rickr] - act_disp_ci(): remove time series length check\n",
   "1.14 04 Jun 2007 [rickr] - free_opts_mem(), to appease valgrind\n",
   "1.15 05 Jun 2007 [rickr] - act_check_hdrs: free(nim)->nifti_image_free()\n",
+  "1.16 11 Jun 2007 [rickr] - allow creation of datasets via MAKE_IM\n",
+  "   - added nt_image_read, nt_read_header and nt_read_bricks\n"
+  "     to wrap nifti read functions, allowing creation of new datasets\n"
+  "   - added -make_im, -new_dim, -new_datatype and -copy_im\n"
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 1.15 (June 5, 2007)";
+static char g_version[] = "version 1.16 (June 11, 2007)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -219,6 +223,11 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
    opts->prefix = NULL;
    opts->debug = 1;  /* init debug level to basic output */
 
+   /* init options for creating a new dataset via "MAKE_IM" */
+   opts->new_datatype = NIFTI_TYPE_INT16;
+   opts->new_dim[0] = 3;
+   opts->new_dim[1] = 1;  opts->new_dim[2] = 1;  opts->new_dim[3] = 1;
+
    if( argc < 2 ) return usage(argv[0], USE_SHORT);
 
    /* terminal options are first, the rest are sorted */
@@ -267,6 +276,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       else if( ! strncmp(argv[ac], "-check_nim", 10) )
          opts->check_nim = 1;
       else if( ! strncmp(argv[ac], "-copy_brick_list", 11) ||
+               ! strncmp(argv[ac], "-copy_im", 10) ||
                ! strncmp(argv[ac], "-cbl", 4) )
       {
          opts->cbl = 1;
@@ -371,6 +381,10 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          if( count > 0 && ac < argc ) ac--;  /* more options to process */
          if( g_debug > 2 ) fprintf(stderr,"+d have %d file names\n", count);
       }
+      else if( ! strncmp(argv[ac], "-make_image", 8) )
+      {
+         opts->make_im = 1;  /* will setup later, as -cbl and MAKE_IM */
+      }
       else if( ! strncmp(argv[ac], "-mod_field", 6) )
       {
          ac++;
@@ -386,6 +400,28 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          opts->mod_nim = 1;
       else if( ! strncmp(argv[ac], "-keep_hist", 5) )
          opts->keep_hist = 1;
+      else if( ! strncmp(argv[ac], "-new_dim", 8) )
+      {
+         /* we need to read in the 8 dimension values */
+         int index;
+         for( index = 0; index < 8; index++ )
+         {
+            ac++;
+            CHECK_NEXT_OPT_MSG(ac,argc,"-new_dim","8 dim values are requred");
+            if( ! isdigit(argv[ac][0]) && strcmp(argv[ac],"-1") ){
+               fprintf(stderr,"** -new_dim param %d (= '%s') is not a valid\n"
+                       "   consider: 'nifti_tool -help'\n",index,argv[ac]);
+               return 1;
+            }
+            opts->new_dim[index] = atoi(argv[ac]);
+         }
+      }
+      else if( ! strncmp(argv[ac], "-new_datatype", 10) )
+      {
+         ac++;
+         CHECK_NEXT_OPT(ac, argc, "-new_datatype");
+         opts->new_datatype = atoi(argv[ac]);
+      }
       else if( ! strncmp(argv[ac], "-overwrite", 6) )
          opts->overwrite = 1;
       else if( ! strncmp(argv[ac], "-prefix", 4) )
@@ -424,6 +460,18 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          fprintf(stderr,"** unknown option: '%s'\n", argv[ac]);
          return 1;
       }
+   }
+
+   if( opts->make_im )
+   {
+      if( opts->infiles.len > 0 )
+      {
+         fprintf(stderr,"** -infiles is invalid when using -make_im\n");
+         return 1;
+      }
+      /* apply -make_im via -cbl and "MAKE_IM" */
+      opts->cbl = 1;
+      if( add_string(&opts->infiles, NT_MAKE_IM_NAME) ) return 1;
    }
 
    /* verify for programming purposes */
@@ -764,6 +812,8 @@ int use_full(char * prog)
    "  one can copy    - an arbitrary list of dataset volumes (time points)\n"
    "                  - a dataset, collapsing across arbitrary dimensions\n"
    "                    (restricting those dimensions to the given indices)\n"
+   "\n"
+   "  one can create  - a new dataset out of nothing\n"
    "\n");
    printf(
    "  Note: to learn about which fields exist in either of the structures,\n"
@@ -793,6 +843,10 @@ int use_full(char * prog)
    printf(
    "    nifti_tool -copy_brick_list -infiles f1'[indices...]'\n"
    "    nifti_tool -copy_collapsed_image I J K T U V W -infiles f1\n"
+   "    nifti_tool -copy_im -infiles f1\n"
+   "\n");
+   printf(
+   "    nifti_tool -make_im -prefix new_im.nii\n"
    "\n");
    printf(
    "    nifti_tool -disp_hdr [-field FIELDNAME] [...] -infiles f1 ...\n"
@@ -831,6 +885,8 @@ int use_full(char * prog)
    "\n"
    "       nifti_tool -diff_hdr -field dim -field intent_code  \\\n"
    "                  -infiles dset0.nii dset1.nii \n"
+   "       nifti_tool -diff_hdr -new_dims 3 10 20 30 0 0 0 0   \\\n"
+   "                  -infiles my_dset.nii MAKE_IM \n"
    "\n"
    "    display structures or fields:\n"
    "\n");
@@ -843,6 +899,17 @@ int use_full(char * prog)
    "       nifti_tool -disp_ts 23 0 172 -infiles dset1_time.nii\n"
    "\n"
    "       nifti_tool -disp_ci 23 0 172 -1 0 0 0 -infiles dset1_time.nii\n"
+   "\n");
+   printf(
+   "    create a new dataset from nothing:\n"
+   "\n"
+   "       nifti_tool -make_im -prefix new_im.nii \n"
+   "       nifti_tool -make_im -prefix float_im.nii \\\n"
+   "                  -new_dims 3 10 20 30 0 0 0 0  -new_datatype 16\n");
+   printf(
+   "       nifti_tool -mod_hdr -mod_field descrip 'dataset with mods'  \\\n"
+   "                  -new_dims 3 10 20 30 0 0 0 0                     \\\n"
+   "                  -prefix new_desc.nii -infiles MAKE_IM\n"
    "\n");
    printf(
    "    copy brick list, or copy collapsed image:\n"
@@ -926,6 +993,49 @@ int use_full(char * prog)
    printf(
    "  ------------------------------\n");
 
+   printf(
+   "\n"
+   "  options for create action:\n"
+   "\n");
+   printf(
+   "    -make_im           : create a new dataset from nothing\n"
+   "\n"
+   "       With this the user can create a new dataset of a basic style,\n"
+   "       which can then be modified with other options.  This will create\n"
+   "       zero-filled data of the appropriate size.\n"
+   "       \n");
+   printf(
+   "       The default is a 1x1x1 image of shorts.  These settings can be\n"
+   "       modified with the -new_dim option, to set the 8 dimension values,\n"
+   "       and the -new_datatype, to provide the integral type for the data.\n"
+   "\n");
+   printf(
+   "       See -new_dim, -new_datatype and -infiles for more information.\n"
+   "       \n"
+   "       Note that any -infiles dataset of the name MAKE_IM will also be\n"
+   "       created on the fly.\n"
+   "\n");
+   printf(
+   "    -new_dim D0 .. D7  : specify the dim array for the a new dataset.\n"
+   "\n"
+   "         e.g. -new_dim 4 64 64 27 120 0 0 0\n"
+   "\n"
+   "       This dimension list will apply to any dataset created via\n"
+   "       MAKE_IM or -make_im.  All 8 values are required.  Recall that\n"
+   "       D0 is the number of dimensions, and D1 through D7 are the sizes.\n"
+   "       \n");
+   printf(
+   "    -new_datatype TYPE : specify the dim array for the a new dataset.\n"
+   "\n"
+   "         e.g. -new_datatype 16\n"
+   "         default: -new_datatype 4   (short)\n"
+   "\n"
+   "       This dimension list will apply to any dataset created via\n"
+   "       MAKE_IM or -make_im.  TYPE should be one of the NIFTI_TYPE_*\n"
+   "       numbers, from nifti1.h.\n"
+   "       \n");
+   printf(
+   "  ------------------------------\n");
    printf(
    "\n"
    "  options for copy actions:\n"
@@ -1321,6 +1431,10 @@ int use_full(char * prog)
    "       appropriate files (such as .nii or .hdr).\n"
    "\n");
    printf(
+   "       Note: if the filename has the form MAKE_IM, then a new dataset\n"
+   "       will be created, without the need for file input.\n"
+   "\n");
+   printf(
    "       See '-mod_hdr', above, for complete examples.\n"
    "\n"
    "       e.g. nifti_tool -infiles file0.nii\n"
@@ -1467,22 +1581,26 @@ int disp_nt_opts(char * mesg, nt_opts * opts)
                   "   add_exts, rm_exts    = %d, %d\n"
                   "   mod_hdr,  mod_nim    = %d, %d\n"
                   "   cbl, cci             = %d, %d\n"
-                  "   dts, dci_lines       = %d, %d\n",
+                  "   dts, dci_lines       = %d, %d\n"
+                  "   make_im              = %d\n",
             (void *)opts,
             opts->check_hdr, opts->check_nim,
             opts->diff_hdr, opts->diff_nim, opts->disp_hdr, opts->disp_nim,
             opts->disp_exts, opts->add_exts, opts->rm_exts,
             opts->mod_hdr, opts->mod_nim, opts->cbl, opts->cci,
-            opts->dts, opts->dci_lines );
+            opts->dts, opts->dci_lines, opts->make_im );
 
    fprintf(stderr,"   ci_dims[8]          = ");
    disp_raw_data(opts->ci_dims, DT_INT32, 8, ' ', 1);
+   fprintf(stderr,"   new_dim[8]          = ");
+   disp_raw_data(opts->new_dim, DT_INT32, 8, ' ', 1);
 
    fprintf(stderr,"\n"
+                  "   new_datatype        = %d\n"
                   "   debug, keep_hist    = %d, %d\n"
                   "   overwrite           = %d\n"
                   "   prefix              = '%s'\n",
-            opts->debug, opts->keep_hist, opts->overwrite,
+            opts->new_datatype, opts->debug, opts->keep_hist, opts->overwrite,
             opts->prefix ? opts->prefix : "(NULL)" );
 
    fprintf(stderr,"   elist   (length %d)  :\n", opts->elist.len);
@@ -1537,7 +1655,7 @@ int act_add_exts( nt_opts * opts )
 
    for( fc = 0; fc < opts->infiles.len; fc++ )
    {
-      nim = nifti_image_read( opts->infiles.list[fc], 1 );
+      nim = nt_image_read( opts, opts->infiles.list[fc], 1 );
       if( !nim ) return 1;  /* errors come from the library */
 
       for( ec = 0; ec < opts->elist.len; ec++ ){
@@ -1600,7 +1718,7 @@ int act_strip( nt_opts * opts )
 
    for( fc = 0; fc < opts->infiles.len; fc++ )
    {
-      nim = nifti_image_read( opts->infiles.list[fc], 1 );
+      nim = nt_image_read( opts, opts->infiles.list[fc], 1 );
       if( !nim ) return 1;  /* errors come from the library */
 
       /* now remove the extensions */
@@ -1667,7 +1785,7 @@ int act_rm_ext( nt_opts * opts )
 
    for( fc = 0; fc < opts->infiles.len; fc++ )
    {
-      nim = nifti_image_read( opts->infiles.list[fc], 1 );
+      nim = nt_image_read( opts, opts->infiles.list[fc], 1 );
       if( !nim ) return 1;  /* errors come from the library */
 
       /* now remove the extensions */
@@ -1816,10 +1934,10 @@ int act_diff_hdrs( nt_opts * opts )
 
    /* get the nifiti headers (but do not validate them) */
 
-   nhdr0 = nifti_read_header(opts->infiles.list[0], NULL, 0);
+   nhdr0 = nt_read_header(opts, opts->infiles.list[0], NULL, 0);
    if( ! nhdr0 ) return 1;  /* errors have been printed */
 
-   nhdr1 = nifti_read_header(opts->infiles.list[1], NULL, 0);
+   nhdr1 = nt_read_header(opts, opts->infiles.list[1], NULL, 0);
    if( ! nhdr1 ){ free(nhdr0); return 1; }
 
    if( g_debug > 1 )
@@ -1868,10 +1986,10 @@ int act_diff_nims( nt_opts * opts )
 
    /* get the nifiti images */
 
-   nim0 = nifti_image_read(opts->infiles.list[0], 0);
+   nim0 = nt_image_read(opts, opts->infiles.list[0], 0);
    if( ! nim0 ) return 1;  /* errors have been printed */
 
-   nim1 = nifti_image_read(opts->infiles.list[1], 0);
+   nim1 = nt_image_read(opts, opts->infiles.list[1], 0);
    if( ! nim1 ){ free(nim0); return 1; }
 
    if( g_debug > 1 )
@@ -1913,7 +2031,7 @@ int act_check_hdrs( nt_opts * opts )
    for( filenum = 0; filenum < opts->infiles.len; filenum++ )
    {
       /* do not validate the header structure */
-      nhdr = nifti_read_header(opts->infiles.list[filenum], NULL, 0);
+      nhdr = nt_read_header(opts, opts->infiles.list[filenum], NULL, 0);
       if( !nhdr ) continue;  /* errors are printed from library */
 
       if( opts->check_hdr )
@@ -1973,7 +2091,7 @@ int act_disp_exts( nt_opts * opts )
 
    for( fc = 0; fc < opts->infiles.len; fc++ )
    {
-      nim = nifti_image_read(opts->infiles.list[fc], 0);
+      nim = nt_image_read(opts, opts->infiles.list[fc], 0);
       if( !nim ) return 1;  /* errors are printed from library */
 
       if( g_debug > 0 )
@@ -2012,7 +2130,7 @@ int act_disp_hdrs( nt_opts * opts )
    for( filenum = 0; filenum < opts->infiles.len; filenum++ )
    {
       /* do not validate the header structure */
-      nhdr = nifti_read_header(opts->infiles.list[filenum], NULL, 0);
+      nhdr = nt_read_header(opts, opts->infiles.list[filenum], NULL, 0);
       if( !nhdr ) return 1;  /* errors are printed from library */
 
       if( g_debug > 0 )
@@ -2062,7 +2180,7 @@ int act_disp_nims( nt_opts * opts )
 
    for( filenum = 0; filenum < opts->infiles.len; filenum++ )
    {
-      nim = nifti_image_read(opts->infiles.list[filenum], 0);
+      nim = nt_image_read(opts, opts->infiles.list[filenum], 0);
       if( !nim ) return 1;  /* errors are printed from library */
                                                                                 
       if( g_debug > 0 )
@@ -2120,7 +2238,7 @@ int act_mod_hdrs( nt_opts * opts )
       }
 
       /* do not validate the header structure */
-      nhdr = nifti_read_header(fname, &swap, 0);
+      nhdr = nt_read_header(opts, fname, &swap, 0);
       if( !nhdr ) return 1;
 
       if( g_debug > 1 )
@@ -2143,7 +2261,7 @@ int act_mod_hdrs( nt_opts * opts )
       /* possibly duplicate the current dataset before writing new header */
       if( opts->prefix )
       {
-         nim = nifti_image_read(fname, 1); /* get data */
+         nim = nt_image_read(opts, fname, 1); /* get data */
          if( !nim ) {
             fprintf(stderr,"** failed to dup file '%s' before modifying\n",
                     fname);
@@ -2196,7 +2314,7 @@ int act_mod_nims( nt_opts * opts )
 
    for( filec = 0; filec < opts->infiles.len; filec++ )
    {
-      nim = nifti_image_read(opts->infiles.list[filec], 1); /* with data */
+      nim = nt_image_read(opts, opts->infiles.list[filec], 1); /* with data */
 
       if( g_debug > 1 )
          fprintf(stderr,"-d modifying %d fields from '%s' image\n",
@@ -3101,7 +3219,7 @@ int act_disp_ci( nt_opts * opts )
    for( filenum = 0; filenum < opts->infiles.len; filenum++ )
    {
       err = 0;
-      nim = nifti_image_read(opts->infiles.list[filenum], 0);
+      nim = nt_image_read(opts, opts->infiles.list[filenum], 0);
       if( !nim ) continue;  /* errors are printed from library */
       if( opts->dts && nim->ndim != 4 )
       {
@@ -3278,7 +3396,7 @@ int act_cbl( nt_opts * opts )
    if( g_debug > 1 )
       fprintf(stderr,"+d -cbl: using '%s' for selection string\n", selstr);
 
-   nim = nifti_image_read(fname, 0);  /* get image */
+   nim = nt_image_read(opts, fname, 0);  /* get image */
    if( !nim ) return 1;
       
    /* since nt can be zero now (sigh), check for it   02 Mar 2006 [rickr] */
@@ -3289,7 +3407,7 @@ int act_cbl( nt_opts * opts )
       free(fname);  free(selstr);  return 1;
    }
 
-   nim = nifti_image_read_bricks(fname, blist[0], blist+1, &NBL);
+   nim = nt_read_bricks(opts, fname, blist[0], blist+1, &NBL);
    free(blist);  /* with this */
    if( !nim ){  free(fname);  free(selstr);  return 1; }
 
@@ -3343,7 +3461,7 @@ int act_cci( nt_opts * opts )
       return 1;
    }
 
-   nim = nifti_image_read(opts->infiles.list[0], 0);
+   nim = nt_image_read(opts, opts->infiles.list[0], 0);
    if( !nim ) return 1;
    nim->data = NULL;    /* just to be sure */
       
@@ -3398,3 +3516,157 @@ static int free_opts_mem( nt_opts * nopt )
 
     return 0;
 }
+
+
+/*----------------------------------------------------------------------
+ * wrapper for nifti_image_read
+ *
+ * this adds the option to generage an empty image, if the
+ * filename starts with "MAKE_IM"
+ *----------------------------------------------------------------------*/
+nifti_image * nt_image_read( nt_opts * opts, char * fname, int doread )
+{
+    if( !opts || !fname  ) {
+        fprintf(stderr,"** nt_image_read: bad params (%p,%p)\n",
+                (void *)opts, (void *)fname);
+        return NULL;
+    }
+
+    /* if the user does not want an empty image, do normal image_read */
+    if( strncmp(fname,NT_MAKE_IM_NAME,strlen(NT_MAKE_IM_NAME)) ) {
+        if(g_debug > 1)
+            fprintf(stderr,"-d calling nifti_image_read(%s,%d)\n",fname,doread);
+        return nifti_image_read(fname, doread);
+    }
+
+    /* so generate an emtpy image */
+    if(g_debug > 1) {
+        fprintf(stderr,"+d NT_IR: generating EMPTY IMAGE from %s...\n",fname);
+        if(g_debug > 2) {
+            printf("   new_dim[8] = ");
+            disp_raw_data(opts->new_dim, DT_INT32, 8, ' ', 1);
+            printf("   new_datatype = %d\n", opts->new_datatype);
+            fflush(stdout);
+        }
+    }
+
+    /* create a new nifti_image, complete with zero'd data */
+    return nifti_make_new_nim(opts->new_dim, opts->new_datatype, 1);
+}
+
+
+/*----------------------------------------------------------------------
+ * wrapper for nifti_read_header
+ *
+ * this adds the option to generage an empty image, if the
+ * filename starts with "MAKE_IM"
+ *----------------------------------------------------------------------*/
+nifti_1_header * nt_read_header(nt_opts * opts, char * fname, int * swapped,
+                                int check)
+{
+    /* swapped is not necessary */
+    if( !opts || !fname ) {
+        fprintf(stderr,"** nt_read_header: bad params (%p,%p)\n",
+                (void *)opts,(void *)fname);
+        return NULL;
+    }
+
+    /* if the user does not want an empty image, do normal image_read */
+    if( strncmp(fname,NT_MAKE_IM_NAME,strlen(NT_MAKE_IM_NAME)) ) {
+        if(g_debug > 1)
+            fprintf(stderr,"-d calling nifti_read_header(%s,...)\n", fname);
+        return nifti_read_header(fname, swapped, check);
+    }
+
+    /* so generate an emtpy image */
+    if(g_debug > 1) {
+        fprintf(stderr,"+d NT_RH: generating EMPTY IMAGE from %s...\n",fname);
+        if(g_debug > 2) {
+            printf("   new_dim[8] = ");
+            disp_raw_data(opts->new_dim, DT_INT32, 8, ' ', 1);
+            printf("   new_datatype = %d\n", opts->new_datatype);
+            fflush(stdout);
+        }
+    }
+
+    /* return creation of new header */
+    return nifti_make_new_header(opts->new_dim, opts->new_datatype);
+}
+
+
+
+/*----------------------------------------------------------------------
+ * wrapper for nifti_read_header
+ *
+ * this adds the option to generage an empty image, if the
+ * filename starts with "MAKE_IM"
+ *----------------------------------------------------------------------*/
+nifti_image * nt_read_bricks(nt_opts * opts, char * fname, int len, int * list,
+                             nifti_brick_list * NBL)
+{
+    nifti_image * nim;
+    int           c;
+
+    /* swapped is not necessary */
+    if( !opts || !fname || !NBL ) {
+        fprintf(stderr,"** nt_read_bricks: bad params (%p,%p,%p)\n",
+                (void *)opts, (void *)fname, (void *)NBL);
+        return NULL;
+    }
+
+    /* if the user does not want an empty image, do normal read_bricks */
+    if( strncmp(fname,NT_MAKE_IM_NAME,strlen(NT_MAKE_IM_NAME)) ) {
+        if(g_debug > 1)
+           fprintf(stderr,"-d calling nifti_image_read_bricks(%s,...)\n",fname);
+        return nifti_image_read_bricks(fname, len, list, NBL);
+    }
+
+    /* so generate an emtpy image */
+    if(g_debug > 1) {
+        fprintf(stderr,"+d NT_RB: generating EMPTY IMAGE from %s...\n",fname);
+        if(g_debug > 2) {
+            printf("   new_dim[8] = ");
+            disp_raw_data(opts->new_dim, DT_INT32, 8, ' ', 1);
+            printf("   new_datatype = %d\n", opts->new_datatype);
+            if( list && len > 0 ) {
+                printf("   brick_list[%d] = ", len);
+                disp_raw_data(list, DT_INT32, len, ' ', 1);
+            }
+            fflush(stdout);  /* disp_raw_data uses stdout */
+        }
+    }
+
+    /* first, get nim struct without data */
+    nim = nifti_make_new_nim(opts->new_dim, opts->new_datatype, 0);
+    if( !nim ) {
+        fprintf(stderr,"** nt_read_bricks, nifti_make_new_nim failure\n");
+        return NULL;
+    }
+
+    /* now populate NBL (can be based only on len and nim) */
+    NBL->nbricks = len;
+    NBL->bsize = nim->nbyper * nim->nvox;
+    NBL->bricks = (void **)calloc(NBL->nbricks, sizeof(void *));
+    if( !NBL->bricks ){
+        fprintf(stderr,"** NRB: failed to alloc %d pointers\n",NBL->nbricks);
+        nifti_image_free(nim);
+        return NULL;
+    }
+
+    if(g_debug > 1)
+        fprintf(stderr,"+d NRB, allocating %d bricks of %d bytes...\n",
+                NBL->nbricks, NBL->bsize);
+
+    /* now allocate the data pointers */
+    for( c = 0; c < len; c++ ) {
+        NBL->bricks[c] = calloc(1, NBL->bsize);
+        if( !NBL->bricks[c] ){
+            fprintf(stderr,"** NRB: failed to alloc brick %d of %d bytes\n",
+                    c, NBL->bsize);
+            nifti_free_NBL(NBL); nifti_image_free(nim); return NULL;
+        }
+    }
+
+    return nim;
+}
+
