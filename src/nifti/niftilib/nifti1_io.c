@@ -4781,6 +4781,7 @@ nifti_image * nifti_make_new_nim(const int dims[], int datatype, int data_fill)
    if( !nhdr ) return NULL;  /* error already printed */
 
    nim = nifti_convert_nhdr2nim(*nhdr,NULL);
+   free(nhdr);               /* in any case, we are done with this */
    if( !nim ){
       fprintf(stderr,"** NMNN: nifti_convert_nhdr2nim failure\n");
       return NULL;
