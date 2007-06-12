@@ -40,7 +40,8 @@ ENTRY("THD_open_nifti") ;
 
    /* we must have at least 2 spatial dimensions */
 
-   if( nim->nx < 2 || nim->ny < 2 ) RETURN(NULL) ;
+   /* this should be okay     11 Jun 2007 */
+   /* if( nim->nx < 2 || nim->ny < 2 ) RETURN(NULL) ; */
 
    /* 4th dimension = time; 5th dimension = bucket:
       these are mutually exclusive in AFNI at present */
