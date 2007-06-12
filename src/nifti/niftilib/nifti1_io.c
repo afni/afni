@@ -294,13 +294,13 @@ static char * gni_history[] =
   "1.22 01 Jun 2007 nifticlib-0.5 release\n",
   "1.23 05 Jun 2007 nifti_add_exten_to_list: revert on failure, free old list\n"
   "1.24 07 Jun 2007 nifti_copy_extensions: use esize-8 for data size\n"
-  "1.25 11 Jun 2007 [rickr] EMPTY_IMAGE creation\n",
+  "1.25 12 Jun 2007 [rickr] EMPTY_IMAGE creation\n",
   "   - added nifti_make_new_header() - to create from dims/dtype\n"
   "   - added nifti_make_new_nim() - to create from dims/dtype/fill\n"
   "   - added nifti_is_valid_datatype(), and more debug info\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.25, 11 Jun, 2007)";
+static char gni_version[] = "nifti library version 1.25, 12 Jun, 2007)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1, 0 };
@@ -4790,7 +4790,7 @@ nifti_image * nifti_make_new_nim(const int dims[], int datatype, int data_fill)
       fprintf(stderr,"+d nifti_make_new_nim, data_fill = %d\n",data_fill);
 
    if( data_fill ) {
-      nim->data = calloc(nim->nvox, sizeof(char));
+      nim->data = calloc(nim->nvox, nim->nbyper);
 
       /* if we cannot allocate data, take ball and go home */
       if( !nim->data ) {
@@ -5151,7 +5151,7 @@ znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
    }
    else {
       if( g_opts.debug > 2 )
-         fprintf(stderr,"+d opening output file '%s'\n",nim->fname);
+         fprintf(stderr,"+d opening output file %s [%s]\n",nim->fname,opts);
       fp = znzopen( nim->fname , opts , nifti_is_gzfile(nim->fname) ) ;
       if( znz_isnull(fp) ){
          LNI_FERR(func,"cannot open output file",nim->fname);
