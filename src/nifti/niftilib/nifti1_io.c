@@ -293,10 +293,14 @@ static char * gni_history[] =
   "   - init g_opts.skip_blank_ext to 0\n"
   "1.22 01 Jun 2007 nifticlib-0.5 release\n",
   "1.23 05 Jun 2007 nifti_add_exten_to_list: revert on failure, free old list\n"
-  "1.24 07 Jun 2007 nifti_copy_extensions: use esize-8 for data size\n",
+  "1.24 07 Jun 2007 nifti_copy_extensions: use esize-8 for data size\n"
+  "1.25 11 Jun 2007 [rickr] EMPTY_IMAGE creation\n",
+  "   - added nifti_make_new_header() - to create from dims/dtype\n"
+  "   - added nifti_make_new_nim() - to create from dims/dtype/fill\n"
+  "   - added nifti_is_valid_datatype(), and more debug info\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.24,  7 Jun, 2007)";
+static char gni_version[] = "nifti library version 1.25, 11 Jun, 2007)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1, 0 };
@@ -2784,6 +2788,36 @@ int is_valid_nifti_type( int nifti_type )
 
 
 /*--------------------------------------------------------------------------*/
+/*! check whether the given type is on the "approved" list
+
+    The type is explicitly checked against the NIFTI_TYPE_* list
+    in nifti1.h.
+
+    \return 1 if dtype is valid, 0 otherwise
+    \sa NIFTI_TYPE_* codes in nifti1.h
+*//*------------------------------------------------------------------------*/
+int nifti_is_valid_datatype( int dtype )
+{
+   if( dtype == NIFTI_TYPE_UINT8        ||
+       dtype == NIFTI_TYPE_INT16        ||
+       dtype == NIFTI_TYPE_INT32        ||
+       dtype == NIFTI_TYPE_FLOAT32      ||
+       dtype == NIFTI_TYPE_COMPLEX64    ||
+       dtype == NIFTI_TYPE_FLOAT64      ||
+       dtype == NIFTI_TYPE_RGB24        ||
+       dtype == NIFTI_TYPE_INT8         ||
+       dtype == NIFTI_TYPE_UINT16       ||
+       dtype == NIFTI_TYPE_UINT32       ||
+       dtype == NIFTI_TYPE_INT64        ||
+       dtype == NIFTI_TYPE_UINT64       ||
+       dtype == NIFTI_TYPE_FLOAT128     ||
+       dtype == NIFTI_TYPE_COMPLEX128   ||
+       dtype == NIFTI_TYPE_COMPLEX256 ) return 1;
+   return 0;
+}
+
+
+/*--------------------------------------------------------------------------*/
 /*! set the nifti_type field based on fname and iname
 
     Note that nifti_type is changed only when it does not match
@@ -3008,7 +3042,7 @@ int disp_nifti_1_header( const char * info, const nifti_1_header * hp )
   
    \return an allocated nifti_image, or NULL on failure
 *//*--------------------------------------------------------------------*/
-nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
+nifti_image* nifti_convert_nhdr2nim(nifti_1_header nhdr,
                                     const char * fname)
 {
    int   ii , doswap , ioff ;
@@ -3792,7 +3826,7 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
             fprintf(stderr,"-d no extender in '%s' is okay, as "
                            "skip_blank_ext is set\n",nim->fname);
          else
-            fprintf(stderr,"-d no space for extensions\n");
+            fprintf(stderr,"-d remain=%d, no space for extensions\n",remain);
       }
       return 0;
    }
@@ -4343,6 +4377,9 @@ size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot,
     /* memset( (char *)(dataptr)+ii , 0 , ntot-ii ) ;  now failure [rickr] */
     return -1 ;
   }
+
+  if( g_opts.debug > 2 )
+    fprintf(stderr,"+d nifti_read_buffer: read %d bytes\n",(unsigned int)ii);
   
   /* byte swap array if needed */
   
@@ -4646,9 +4683,124 @@ nifti_image* nifti_simple_init_nim(void)
    nifti_datatype_sizes( nhdr.datatype , &nbyper, &swapsize );
    nhdr.bitpix   = 8 * nbyper ;
 
+   strcpy(nhdr.magic, "n+1");  /* init to single file */
+
    nim = nifti_convert_nhdr2nim(nhdr,NULL);
    nim->fname = NULL;
    nim->iname = NULL;
+   return nim;
+}
+
+
+/*----------------------------------------------------------------------*/
+/*! basic initialization of a nifti_1_header struct (with given dimensions)
+ *
+ * if arg_dims is NULL, apply defaults for a 1x1x1 image
+ * if arg_dtype is not valid, use DT_FLOAT32
+*//*--------------------------------------------------------------------*/
+nifti_1_header * nifti_make_new_header(const int arg_dims[], int arg_dtype)
+{
+   nifti_1_header * nhdr;
+   const int        default_dims[8] = { 3, 1, 1, 1, 0, 0, 0, 0 };
+   const int      * dim;  /* either passed or default dims  */
+   int              dtype; /* either passed or default dtype */
+   int              c, nbyper, swapsize;
+  
+   /* if arg_dims is passed, apply it */
+   if( arg_dims ) dim = arg_dims;
+   else           dim = default_dims;
+
+   /* validate dim: if there is any problem, apply default_dims */
+   if( dim[0] < 1 || dim[0] > 7 ) {
+      fprintf(stderr,"** nifti_simple_hdr_with_dims: bad dim[0]=%d\n",dim[0]);
+      dim = default_dims;
+   } else {
+      for( c = 1; c <= dim[0]; c++ )
+         if( dim[c] < 1 )
+         {
+            fprintf(stderr,
+                "** nifti_simple_hdr_with_dims: bad dim[%d]=%d\n",c,dim[c]);
+            dim = default_dims;
+            break;
+         }
+   }
+
+   /* validate dtype, too */
+   dtype = arg_dtype;
+   if( ! nifti_is_valid_datatype(dtype) ) {
+      fprintf(stderr,"** nifti_simple_hdr_with_dims: bad dtype %d\n",dtype);
+      dtype = DT_FLOAT32;
+   }
+
+   /* now populate the header struct */
+
+   if( g_opts.debug > 1 )
+      fprintf(stderr,"+d nifti_make_new_header, dim[0] = %d, datatype = %d\n",
+              dim[0], dtype);
+
+   nhdr = (nifti_1_header *)calloc(1,sizeof(nifti_1_header));
+   if( !nhdr ){
+      fprintf(stderr,"** nifti_make_new_header: failed to alloc hdr\n");
+      return NULL;
+   }
+  
+   nhdr->sizeof_hdr = sizeof(nifti_1_header) ;
+   nhdr->regular    = 'r' ;           /* for some stupid reason */
+
+   /* init dim and pixdim */
+   nhdr->dim[0] = dim[0] ;
+   nhdr->pixdim[0] = 0.0;
+   for( c = 1; c <= dim[0]; c++ ) {
+      nhdr->dim[c] = dim[c];
+      nhdr->pixdim[c] = 1.0;
+   }
+
+   nhdr->datatype = dtype ;
+   nifti_datatype_sizes( nhdr->datatype , &nbyper, &swapsize );
+   nhdr->bitpix   = 8 * nbyper ;
+
+   strcpy(nhdr->magic, "n+1");  /* init to single file */
+
+   return nhdr;
+}
+
+
+/*----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------*/
+/*! basic creation of a nifti_image struct
+ *
+ * if dims or datatype are no set/valid, make assume 1x1x1 float32
+ * optionally, fill with zero'd data
+*//*--------------------------------------------------------------------*/
+nifti_image * nifti_make_new_nim(const int dims[], int datatype, int data_fill)
+{
+   nifti_image    * nim;
+   nifti_1_header * nhdr;
+
+   nhdr = nifti_make_new_header(dims, datatype);
+   if( !nhdr ) return NULL;  /* error already printed */
+
+   nim = nifti_convert_nhdr2nim(*nhdr,NULL);
+   if( !nim ){
+      fprintf(stderr,"** NMNN: nifti_convert_nhdr2nim failure\n");
+      return NULL;
+   }
+
+   if( g_opts.debug > 1 )
+      fprintf(stderr,"+d nifti_make_new_nim, data_fill = %d\n",data_fill);
+
+   if( data_fill ) {
+      nim->data = calloc(nim->nvox, sizeof(char));
+
+      /* if we cannot allocate data, take ball and go home */
+      if( !nim->data ) {
+         fprintf(stderr,"** NMNN: failed to alloc %d bytes for data\n",
+                 nim->nvox);
+         nifti_image_free(nim);
+         nim = NULL;
+      }
+   }
+
    return nim;
 }
 
