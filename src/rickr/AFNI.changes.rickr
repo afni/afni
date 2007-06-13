@@ -2059,3 +2059,5 @@
   * modified nifti1_test.c: added trailing nifti_image_free(nim)
   * modified thd_niftiread.c: to allow nx = ny = 1
 
+13 Jun 2007: nifti_tool.c help update
+
