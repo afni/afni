@@ -676,7 +676,7 @@ ENTRY("adwarp_refashion_dataset") ;
   dkptr->dimsizes[2] = dset->daxes->nzz ;       /* daxes don't match! */
 
   /* write the header out */
-
+ 
   good = THD_write_3dim_dataset( NULL,NULL , dset , False ) ;
   if( !good ){
     fprintf(stderr,"\a\n*** cannot write dataset header ***\n") ;
@@ -866,7 +866,8 @@ STATUS("have new image") ;
   THD_load_statistics( dset ) ;
 
   STATUS("rewriting header") ;
-
+  /* allow overwriting header  */
+  putenv("AFNI_DONT_DECONFLICT=YES") ;
   (void) THD_write_3dim_dataset( NULL,NULL , dset , False ) ;
 
   STATUS("purging datablock") ;
