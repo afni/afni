@@ -184,3 +184,11 @@ for obliquity too
  * minor fix to 1dSEM for tree growth stop conditions
 07 Jun 2007
  * added ability for 3dWarp to obliquidate an already oblique dataset
+11 Jun 2007
+ * deeper searches for forest growth in 1dSEM with new leafpicker option.
+Compute cost of input coefficient matrix data in 1dSEM to verify published data with
+calccost option. Easier to read output data for 1dSEM (sqrmat.h)
+13 Jun 2007
+ * fixes for rewriting dataset header in 3dNotes, 3dCM and adwarp (effect of
+deconflicting changes)
+
