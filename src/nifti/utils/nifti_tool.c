@@ -139,9 +139,10 @@ static char * g_history[] =
   "   - added nt_image_read, nt_read_header and nt_read_bricks\n"
   "     to wrap nifti read functions, allowing creation of new datasets\n"
   "   - added -make_im, -new_dim, -new_datatype and -copy_im\n"
+  "1.17 13 Jun 2007 [rickr] - added help for -copy_im, enumerate examples\n",
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 1.16 (June 12, 2007)";
+static char g_version[] = "version 1.17 (June 13, 2007)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -874,74 +875,71 @@ int use_full(char * prog)
    "\n"
    "  selected examples:\n"
    "\n"
-   "    checks header (for problems):\n"
+   "    A. checks header (for problems):\n"
    "\n"
-   "       nifti_tool -check_hdr -infiles dset0.nii dset1.nii\n"
-   "       nifti_tool -check_hdr -infiles *.nii *.hdr\n"
-   "       nifti_tool -check_hdr -quiet -infiles *.nii *.hdr\n"
+   "      1. nifti_tool -check_hdr -infiles dset0.nii dset1.nii\n"
+   "      2. nifti_tool -check_hdr -infiles *.nii *.hdr\n"
+   "      3. nifti_tool -check_hdr -quiet -infiles *.nii *.hdr\n"
    "\n");
    printf(
-   "    show header differences:\n"
+   "    B. show header differences:\n"
    "\n"
-   "       nifti_tool -diff_hdr -field dim -field intent_code  \\\n"
-   "                  -infiles dset0.nii dset1.nii \n"
-   "       nifti_tool -diff_hdr -new_dims 3 10 20 30 0 0 0 0   \\\n"
-   "                  -infiles my_dset.nii MAKE_IM \n"
+   "      1. nifti_tool -diff_hdr -field dim -field intent_code  \\\n"
+   "                    -infiles dset0.nii dset1.nii \n"
+   "      2. nifti_tool -diff_hdr -new_dims 3 10 20 30 0 0 0 0   \\\n"
+   "                    -infiles my_dset.nii MAKE_IM \n"
    "\n"
-   "    display structures or fields:\n"
+   "    C. display structures or fields:\n"
    "\n");
    printf(
-   "       nifti_tool -disp_hdr -infiles dset0.nii dset1.nii dset2.nii\n"
-   "       nifti_tool -disp_hdr -field dim -field descrip -infiles dset0.nii\n"
-   "\n"
-   "       nifti_tool -disp_exts -infiles dset0.nii dset1.nii dset2.nii\n"
-   "\n"
-   "       nifti_tool -disp_ts 23 0 172 -infiles dset1_time.nii\n"
-   "\n"
-   "       nifti_tool -disp_ci 23 0 172 -1 0 0 0 -infiles dset1_time.nii\n"
+   "      1. nifti_tool -disp_hdr -infiles dset0.nii dset1.nii dset2.nii\n"
+   "      2. nifti_tool -disp_hdr -field dim -field descrip -infiles dset.nii\n"
+   "      3. nifti_tool -disp_exts -infiles dset0.nii dset1.nii dset2.nii\n"
+   "      4. nifti_tool -disp_ts 23 0 172 -infiles dset1_time.nii\n"
+   "      5. nifti_tool -disp_ci 23 0 172 -1 0 0 0 -infiles dset1_time.nii\n"
    "\n");
    printf(
-   "    create a new dataset from nothing:\n"
+   "    D. create a new dataset from nothing:\n"
    "\n"
-   "       nifti_tool -make_im -prefix new_im.nii \n"
-   "       nifti_tool -make_im -prefix float_im.nii \\\n"
-   "                  -new_dims 3 10 20 30 0 0 0 0  -new_datatype 16\n");
+   "      1. nifti_tool -make_im -prefix new_im.nii \n"
+   "      2. nifti_tool -make_im -prefix float_im.nii \\\n"
+   "                    -new_dims 3 10 20 30 0 0 0 0  -new_datatype 16\n");
    printf(
-   "       nifti_tool -mod_hdr -mod_field descrip 'dataset with mods'  \\\n"
-   "                  -new_dims 3 10 20 30 0 0 0 0                     \\\n"
-   "                  -prefix new_desc.nii -infiles MAKE_IM\n"
+   "      3. nifti_tool -mod_hdr -mod_field descrip 'dataset with mods'  \\\n"
+   "                    -new_dims 3 10 20 30 0 0 0 0                     \\\n"
+   "                    -prefix new_desc.nii -infiles MAKE_IM\n"
    "\n");
    printf(
-   "    copy brick list, or copy collapsed image:\n"
+   "    E. copy dataset, brick list or collapsed image:\n"
    "\n"
-   "       nifti_tool -cbl -prefix new_07.nii -infiles dset0.nii'[0,7]'\n"
-   "       nifti_tool -cbl -prefix new_partial.nii \\\n"
-   "                  -infiles dset0.nii'[3..$(2)]'\n"
+   "      1. nifti_tool -copy_im -prefix new.nii -infiles dset0.nii\n"
+   "      2. nifti_tool -cbl -prefix new_07.nii -infiles dset0.nii'[0,7]'\n"
+   "      3. nifti_tool -cbl -prefix new_partial.nii \\\n"
+   "                    -infiles dset0.nii'[3..$(2)]'\n"
    "\n"
-   "       nifti_tool -cci 5 4 17 -1 -1 -1 -1 -prefix new_5_4_17.nii\n"
-   "       nifti_tool -cci 5 0 17 -1 -1 2 -1  -keep_hist \\\n"
+   "      4. nifti_tool -cci 5 4 17 -1 -1 -1 -1 -prefix new_5_4_17.nii\n"
+   "      5. nifti_tool -cci 5 0 17 -1 -1 2 -1  -keep_hist \\\n"
    "                    -prefix new_5_0_17_2.nii\n"
    "\n");
    printf(
-   "    modify the header:\n"
+   "    F. modify the header:\n"
    "\n"
-   "       nifti_tool -mod_hdr -prefix dnew -infiles dset0.nii  \\\n"
-   "                  -mod_field dim '4 64 64 20 30 1 1 1 1'\n"
-   "       nifti_tool -mod_hdr -prefix dnew -infiles dset0.nii  \\\n"
-   "                  -mod_field descrip 'beer, brats and cheese, mmmmm...'\n"
+   "      1. nifti_tool -mod_hdr -prefix dnew -infiles dset0.nii  \\\n"
+   "                    -mod_field dim '4 64 64 20 30 1 1 1 1'\n"
+   "      2. nifti_tool -mod_hdr -prefix dnew -infiles dset0.nii  \\\n"
+   "                    -mod_field descrip 'beer, brats and cheese, mmmmm...'\n"
    "\n");
    printf(
-   "    strip, add or remove extensions:\n"
+   "    G. strip, add or remove extensions:\n"
    "\n"
-   "       nifti_tool -strip -overwrite -infiles *.nii\n"
-   "\n"
-   "       nifti_tool -add_comment 'converted from MY_AFNI_DSET+orig' \\\n"
-   "                  -prefix dnew -infiles dset0.nii\n"
+   "      1. nifti_tool -strip -overwrite -infiles *.nii\n"
+   "      2. nifti_tool -add_comment 'converted from MY_AFNI_DSET+orig' \\\n"
+   "                    -prefix dnew -infiles dset0.nii\n"
    "\n");
    printf(
-   "       nifti_tool -rm_ext ALL -prefix dset1 -infiles dset0.nii\n"
-   "       nifti_tool -rm_ext 2 -rm_ext 3 -rm_ext 5 -overwrite \\\n"
-   "                  -infiles dset0.nii\n"
+   "      3. nifti_tool -rm_ext ALL -prefix dset1 -infiles dset0.nii\n"
+   "      4. nifti_tool -rm_ext 2 -rm_ext 3 -rm_ext 5 -overwrite \\\n"
+   "                    -infiles dset0.nii\n"
    "\n"
    "  ------------------------------\n");
    printf(
@@ -1042,6 +1040,7 @@ int use_full(char * prog)
    "\n"
    "    -copy_brick_list   : copy a list of volumes to a new dataset\n"
    "    -cbl               : (a shorter, alternative form)\n"
+   "    -copy_im           : (a shorter, alternative form)\n"
    "\n");
    printf(
    "       This action allows the user to copy a list of volumes (over time)\n"
@@ -1071,8 +1070,12 @@ int use_full(char * prog)
    "             e.g. -infiles dset0.nii'[2..95(3)]'\n"
    "\n");
    printf(
-   "       This functionality applies only to 4-dimensional datasets.\n"
+   "       This functionality applies only to 3 or 4-dimensional datasets.\n"
    "\n"
+   "       e.g. to copy a dataset:\n"
+   "       nifti_tool -copy_im -prefix new.nii -infiles dset0.nii\n"
+   "\n");
+   printf(
    "       e.g. to copy sub-bricks 0 and 7:\n"
    "       nifti_tool -cbl -prefix new_07.nii -infiles dset0.nii'[0,7]'\n"
    "\n"
