@@ -12,7 +12,7 @@
 #define MATVEC_BAC 2
 
 static THD_vecmat dicom_in2out , dicom_out2in ;  /* coordinate warps */
-float compute_oblique_angle(mat44 ijk_to_dicom44);
+/*float compute_oblique_angle(mat44 ijk_to_dicom44);*/
 static void Compute_Deoblique_Transformation(THD_3dim_dataset *dset,mat44 *Tw);
 
 /*--------------------------------------------------------------------------*/
@@ -516,7 +516,7 @@ int main( int argc , char * argv[] )
 DUMP_MAT44("Tw_inv",Tw_inv);
 #endif
 	 if(ISVALID_MAT44(inset->daxes->ijk_to_dicom_real)) {
-	   angle = compute_oblique_angle(inset->daxes->ijk_to_dicom_real);
+	   angle = THD_compute_oblique_angle(inset->daxes->ijk_to_dicom_real, 0);
 	   if(angle>0.0) {
               INFO_message("Need to deoblique original dataset before obliquing\n");
               INFO_message("  Combining oblique transformations");
@@ -550,7 +550,7 @@ DUMP_MAT44("Twcombined", Tw);
    /* if data is not being deobliqued or obliquified */
    if(!oblique_flag) {
      if(ISVALID_MAT44(inset->daxes->ijk_to_dicom_real)) {
-       angle = compute_oblique_angle(inset->daxes->ijk_to_dicom_real);
+       angle = THD_compute_oblique_angle(inset->daxes->ijk_to_dicom_real,1);
        if(angle>0.0) {  
          THD_dicom_card_xform(inset, &tmat, &tvec); 
          LOAD_MAT44(Tc, 
@@ -621,6 +621,7 @@ DUMP_MAT44("Twcombined", Tw);
 }
 
 
+#if 0
 #define MAXNUM(a,b) ( (a) > (b) ? (a):(b))
 #define MAX3(a,b,c) ( (MAXNUM(a,b)) > (MAXNUM(a,c)) ? (MAXNUM(a,b)):(MAXNUM(a,c)))
 #define MINNUM(a,b) ( (a) < (b) ? (a):(b))
@@ -665,6 +666,7 @@ float compute_oblique_angle(mat44 ijk_to_dicom44)
       ang_merit = 0.0;
    return(ang_merit);
 }
+#endif
 
 
 /* compute the transformation for deobliquing a dataset */
