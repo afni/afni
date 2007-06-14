@@ -191,4 +191,10 @@ calccost option. Easier to read output data for 1dSEM (sqrmat.h)
 13 Jun 2007
  * fixes for rewriting dataset header in 3dNotes, 3dCM and adwarp (effect of
 deconflicting changes)
+14 Jun 2007
+ * fixes for obliquity handling effects on non-oblique data in places, 
+most obvious in NIFTI files where the coordinates are changed as in 3drefit,
+3dCM, 3drotate, 3dresample. Also fix for NIFTI reading of sform.
+
+
 

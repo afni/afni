@@ -40,8 +40,7 @@ ENTRY("THD_open_nifti") ;
 
    /* we must have at least 2 spatial dimensions */
 
-   /* this should be okay     11 Jun 2007 */
-   /* if( nim->nx < 2 || nim->ny < 2 ) RETURN(NULL) ; */
+   if( nim->nx < 2 || nim->ny < 2 ) RETURN(NULL) ;
 
    /* 4th dimension = time; 5th dimension = bucket:
       these are mutually exclusive in AFNI at present */
@@ -215,15 +214,15 @@ ENTRY("THD_open_nifti") ;
      LOAD_MAT44(ijk_to_dicom44, -nim->qto_xyz.m[0][0] ,  /* negate x and y   */
                  -nim->qto_xyz.m[0][1] ,  /* coefficients,    */
                  -nim->qto_xyz.m[0][2] ,  /* since AFNI works */
-                  0.0,
+                 -nim->qto_xyz.m[0][3] ,
                  -nim->qto_xyz.m[1][0] ,  /* with RAI coords, */
                  -nim->qto_xyz.m[1][1] ,  /* but NIFTI uses   */
                  -nim->qto_xyz.m[1][2] ,  /* LPI coordinates. */
-                  0.0,
+                 -nim->qto_xyz.m[1][3] ,
                   nim->qto_xyz.m[2][0] ,  /* [Which is my own] */
                   nim->qto_xyz.m[2][1] ,  /* [damn fault!!!!!] */
                   nim->qto_xyz.m[2][2] ,  
-                  0.0  ) ;
+                  nim->qto_xyz.m[2][3] ) ;
 
      orixyz = THD_matrix_to_orientation( R ) ;   /* compute orientation codes */
 
@@ -372,18 +371,18 @@ ENTRY("THD_open_nifti") ;
                         (ORIENT_sign[orixyz.ijk[1]]=='+') ? dytmp : -dytmp ,
                         (ORIENT_sign[orixyz.ijk[2]]=='+') ? dztmp : -dztmp ) ;
 
-     LOAD_MAT44(ijk_to_dicom44, -nim->qto_xyz.m[0][0] ,  /* negate x and y   */
+     LOAD_MAT44(ijk_to_dicom44, -nim->sto_xyz.m[0][0] ,  /* negate x and y   */
                  -nim->sto_xyz.m[0][1] ,  /* coefficients,    */
                  -nim->sto_xyz.m[0][2] ,  /* since AFNI works */
-                  0.0,
+                 -nim->sto_xyz.m[0][3] ,
                  -nim->sto_xyz.m[1][0] ,  /* with RAI coords, */
                  -nim->sto_xyz.m[1][1] ,  /* but NIFTI uses   */
                  -nim->sto_xyz.m[1][2] ,  /* LPI coordinates. */
-                  0.0,
+                 -nim->sto_xyz.m[1][3] ,
                   nim->sto_xyz.m[2][0] ,  /* [Which is my own] */
                   nim->sto_xyz.m[2][1] ,  /* [damn fault!!!!!] */
                   nim->sto_xyz.m[2][2] ,  
-                  0.0  ) ;
+                  nim->sto_xyz.m[2][3] ) ;
 
    } else { /* NO SPATIAL XFORM. BAD BAD BAD BAD BAD BAD. */
 
@@ -425,9 +424,6 @@ ENTRY("THD_open_nifti") ;
                                 0.0, 0.0, dztmp, 0.0 );
    }
 
-   ijk_to_dicom44.m[0][3] = orgxyz.xyz[0];   /* update origins in last column */
-   ijk_to_dicom44.m[1][3] = orgxyz.xyz[1];   /* negated somewhere else */
-   ijk_to_dicom44.m[2][3] = orgxyz.xyz[2];
 
 
    /*-- make an AFNI dataset! --*/
