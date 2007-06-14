@@ -43,6 +43,10 @@ void THD_set_dataset_attributes( THD_3dim_dataset *dset )
    int atrank[ATRSIZE_DATASET_RANK] , atdims[ATRSIZE_DATASET_DIMENSIONS] ;
    MRI_IMAGE *im ;
    int save_order ;
+   THD_dmat33 tmat ;
+   THD_dfvec3 tvec ;
+   mat44 Tc, Tr;
+   float angle;
 
 ENTRY("THD_set_dataset_attributes") ;
 
@@ -160,6 +164,21 @@ ENTRY("THD_set_dataset_attributes") ;
    /*-- write matrix for (i,j,k) to DICOM real (x,y,z) conversion [18 May 2007] --*/
    /* to store obliquity information */
    if( !ISVALID_MAT44(daxes->ijk_to_dicom_real) ) THD_daxes_to_mat44( daxes ) ;
+
+   /* if cardinal matrix,compute Tc (Cardinal transformation matrix) */
+   angle = THD_compute_oblique_angle(daxes->ijk_to_dicom_real, 0);
+   if(angle==0.0){
+      THD_dicom_card_xform(dset, &tmat, &tvec); 
+      LOAD_MAT44(Tc, 
+          tmat.mat[0][0], tmat.mat[0][1], tmat.mat[0][2], tvec.xyz[0],
+          tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
+          tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
+      Tr = MAT44_SUB(Tc, daxes->ijk_to_dicom_real);
+      if((MAT44_NORM(Tr)>0.001) && (MAT44_NORM(daxes->ijk_to_dicom_real))){
+         WARNING_message("Transformation matrix changed from original");
+      }
+      daxes->ijk_to_dicom_real = Tc;
+   }
 
    if( ISVALID_MAT44(daxes->ijk_to_dicom_real) ){
      UNLOAD_MAT44(daxes->ijk_to_dicom_real, ftemp[0],ftemp[1],ftemp[2],ftemp[3],

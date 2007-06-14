@@ -542,3 +542,50 @@ void THD_dicom_card_xform (THD_3dim_dataset * dset ,
    
    return  ;
 }
+
+#define MAXNUM(a,b) ( (a) > (b) ? (a):(b))
+#define MAX3(a,b,c) ( (MAXNUM(a,b)) > (MAXNUM(a,c)) ? (MAXNUM(a,b)):(MAXNUM(a,c)))
+#define MINNUM(a,b) ( (a) < (b) ? (a):(b))
+#define MIN3(a,b,c) ( (MINNUM(a,b)) < (MINNUM(a,c)) ? (MINNUM(a,b)):(MINNUM(a,c)))
+/* compute angle of greatest obliquity given transformation matrix */
+float THD_compute_oblique_angle(mat44 ijk_to_dicom44, int verbose)
+{
+   float dxtmp, dytmp, dztmp ;
+   float xmax, ymax, zmax ;
+   float fig_merit, ang_merit ;
+
+
+   dxtmp = sqrt ( ijk_to_dicom44.m[0][0] * ijk_to_dicom44.m[0][0] +
+                  ijk_to_dicom44.m[1][0] * ijk_to_dicom44.m[1][0] +
+                  ijk_to_dicom44.m[2][0] * ijk_to_dicom44.m[2][0] ) ;
+
+   xmax = MAX3(fabs(ijk_to_dicom44.m[0][0]),fabs(ijk_to_dicom44.m[1][0]),fabs(ijk_to_dicom44.m[2][0])) / dxtmp ;
+
+   dytmp = sqrt ( ijk_to_dicom44.m[0][1] * ijk_to_dicom44.m[0][1] +
+                  ijk_to_dicom44.m[1][1] * ijk_to_dicom44.m[1][1] +
+                  ijk_to_dicom44.m[2][1] * ijk_to_dicom44.m[2][1] ) ;
+
+   ymax = MAX3(fabs(ijk_to_dicom44.m[0][1]),
+               fabs(ijk_to_dicom44.m[1][1]),
+               fabs(ijk_to_dicom44.m[2][1])) / dytmp ;
+
+   dztmp = sqrt ( ijk_to_dicom44.m[0][2] * ijk_to_dicom44.m[0][2] +
+                  ijk_to_dicom44.m[1][2] * ijk_to_dicom44.m[1][2] +
+                  ijk_to_dicom44.m[2][2] * ijk_to_dicom44.m[2][2] ) ;
+
+   zmax = MAX3(fabs(ijk_to_dicom44.m[0][2]),
+               fabs(ijk_to_dicom44.m[1][2]),
+               fabs(ijk_to_dicom44.m[2][2])) / dztmp ;
+
+   fig_merit = MIN3(xmax,ymax,zmax) ;
+   ang_merit = acos (fig_merit) * 180.0 / 3.141592653 ;
+
+   if ((fabs(ang_merit) > .01) && verbose) {
+     INFO_message("%f degrees from plumb.\n",ang_merit ) ;
+   }
+   else 
+      ang_merit = 0.0;
+   return(ang_merit);
+}
+
+
