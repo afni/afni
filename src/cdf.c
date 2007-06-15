@@ -47,6 +47,15 @@ void Syntax(void)
           " COMMAND: cdf -p2t fift 0.001 8 200\n"
           " OUTPUT:  t = 3.4343\n"
           "\n"
+          "The same functionality is also available in 3dcalc, 1deval, and\n"
+          "ccalc, using functions such as 'fift_t2p(t,a,b)'.  In particular,\n"
+          "if you are scripting, ccalc is probably better to use than cdf,\n"
+          "since the output of\n"
+          "  ccalc -expr 'fitt_t2p(3,20)'\n"
+          "is the string '0.007076', while the output of\n"
+          "  cdf -t2p fitt 3 20\n"
+          "is the string 'p = 0.0070759'.\n"
+          "\n"
          ) ;
    exit(0) ;
 }
