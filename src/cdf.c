@@ -17,6 +17,7 @@ void Syntax(void)
           "This program does various conversions using the cumulative distribution\n"
           "function (cdf) of certain canonical probability functions.  The optional\n"
           "'-v' indicates to be verbose -- this is for debugging purposes, mostly.\n"
+          "Use this option if you get results you don't understand!\n"
           "\n"
           "Usage 1: Converts a statistic 't' to a tail probability.\n"
           "Usage 2: Converts a tail probability 'p' to a statistic.\n"
@@ -36,21 +37,32 @@ void Syntax(void)
          printf("       %4s  %-11.11s  %s\n",
                 FUNC_prefixstr[ii] , FUNC_typestr[ii]+6 , FUNC_label_stat_aux[ii] ) ;
    }
-
-   printf("\n") ; exit(0) ;
+ 
+   printf("\nEXAMPLES:\n"
+          " Goal:    find p-value for t-statistic of 5.5 with 30 degrees of freedom\n"
+          " COMMAND: cdf -t2p fitt 5.5 30\n"
+          " OUTPUT:  p = 5.67857e-06\n"
+          "\n"
+          " Goal:    find F(8,200) threshold that gives a p-value of 0.001\n"
+          " COMMAND: cdf -p2t fift 0.001 8 200\n"
+          " OUTPUT:  t = 3.4343\n"
+          "\n"
+         ) ;
+   exit(0) ;
 }
 
 static char * Usage_str[3] = { "-t2p = statistic-to-probability" ,
                                "-p2t = probability-to-statistic" ,
                                "-t2z = statistic-to-N(0,1) [z-score]" } ;
 
+static char * Value_str[3] = { "statistic" , "p-value" , "statistic" } ;
 
-int main( int argc , char * argv[] )
+int main( int argc , char *argv[] )
 {
    int usage = -1 , statcode = -1 , ii,fc,iarg , npar , verb=0 ;
    float stat , prob , val ;
    float par[MAX_STAT_AUX] ;
-   char * cpt ;
+   char *cpt , *statname ;
 
    if( argc < 4 || strcmp(argv[1],"-help") == 0 ) Syntax() ;
 
@@ -65,7 +77,7 @@ int main( int argc , char * argv[] )
    if( usage < 0 ){
       fprintf(stderr,"Don't recognize usage code: %s\n",argv[iarg]) ; exit(1) ;
    }
-   if( verb ) printf("*** usage=%d: %s\n",usage,Usage_str[usage-1]) ;
+   if( verb ) printf("++ usage=%d: %s\n",usage,Usage_str[usage-1]) ;
 
    iarg++ ;
 
@@ -80,13 +92,14 @@ int main( int argc , char * argv[] )
    if( statcode < 0 ){
       fprintf(stderr,"Don't recognize statname: %s\n",argv[iarg]) ; exit(1) ;
    }
-   if( verb ) printf("*** statcode=%d  type=%s\n",statcode,FUNC_typestr[ii]+6) ;
+   statname = FUNC_typestr[ii]+6 ;
+   if( verb ) printf("++ statcode=%d  type=%s\n",statcode,statname) ;
    iarg++ ;
 
    stat = strtod( argv[iarg] , &cpt ) ;
    if( usage == 2 ) prob = stat ;
 
-   if( verb ) printf("*** value=%g\n",stat) ;
+   if( verb ) printf("++ %s value=%g\n",Value_str[usage-1],stat) ;
 
    if( *cpt != '\0' ){
       fprintf(stderr,"Illegal numeric parameter: %s\n",argv[iarg]) ; exit(1) ;
@@ -103,7 +116,7 @@ int main( int argc , char * argv[] )
    npar = ii ;
 
    if( verb ){
-      printf("*** npar=%d  parameters=",npar) ;
+      printf("++ number of %s parameters=%d  parameter list=",statname,npar) ;
       for( ii=0 ; ii < npar ; ii++ ) printf("%g ",par[ii]) ;
       printf("\n") ;
    }
