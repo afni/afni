@@ -34,24 +34,38 @@
 #define METH_ARGABSMAX    16  /* KRH 4 Aug 2005 */
 
 #define METH_SUM          17  /* RWCox 24 Apr 2006 */
+#define METH_DURATION     18  /* DRG 15 Jun 2007 */
+#define METH_CENTROID     19
+#define METH_CENTDURATION 20
 
-#define MAX_NUM_OF_METHS  20
+#define METH_ABSSUM       21
+
+#define MAX_NUM_OF_METHS  22
+
 static int meth[MAX_NUM_OF_METHS]  = {METH_MEAN};
 static int nmeths                  = 0;
 static char prefix[THD_MAX_PREFIX] = "stat" ;
 static int datum                   = MRI_float ;
+static float basepercent           = 0.5;  /* 50% assumed for duration unless user specified */
+
 static char *meth_names[] = {
    "Mean"          , "Slope"        , "Std Dev"       , "Coef of Var" ,
    "Median"        , "Med Abs Dev"  , "Max"           , "Min"         ,
    "Durbin-Watson" , "Std Dev(NOD)" , "Coef Var(NOD)" , "AutoCorr"    ,
    "AutoReg"       , "Absolute Max" , "ArgMax"        , "ArgMin"      ,
-   "ArgAbsMax"     , "Sum"
+   "ArgAbsMax"     , "Sum"          , "Duration"      , "Centroid"    ,
+   "CentDuration"  , "Absolute Sum"
 };
+
 static void STATS_tsfunc( double tzero , double tdelta ,
                          int npts , float ts[] , double ts_mean ,
                          double ts_slope , void *ud , int nbriks, float *val ) ;
 
 static void autocorr( int npts, float ints[], int numVals, float outcoeff[] ) ;
+
+static int Calc_duration(float *ts, int npts, float vmax, int max_index);
+static float Calc_centroid(float *ts, int npts);
+
 
 int main( int argc , char *argv[] )
 {
@@ -72,6 +86,7 @@ int main( int argc , char *argv[] )
              "Statistics Options:\n"
              " -mean   = compute mean of input voxels\n"
              " -sum    = compute sum of input voxels\n"
+             " -abssum = compute absolute sum of input voxels\n"
              " -slope  = compute mean slope of input voxels vs. time\n"
              " -stdev  = compute standard deviation of input voxels\n"
              "             [N.B.: this is computed after    ]\n"
@@ -94,6 +109,10 @@ int main( int argc , char *argv[] )
              " -argmin    = index of minimum of input voxels [undetrended]\n"
              " -argmax    = index of maximum of input voxels [undetrended]\n"
              " -argabsmax = index of absolute maximum of input voxels [undetrended]\n"
+             " -duration  = compute number of points around max above a threshold\n"
+             "              Use basepercent option to set limits\n"
+             " -centroid  = compute centroid of data time curves (sum(i*f(i)) / sum(f(i)\n"
+             " -centduration = compute duration using centroid's index as center\n"
              "\n"
              " -autocorr n = compute autocorrelation function and return\n"
              "               first n coefficients\n"
@@ -108,6 +127,7 @@ int main( int argc , char *argv[] )
              " -datum d  = use data type 'd' for the type of storage\n"
              "               of the output, where 'd' is one of\n"
              "               'byte', 'short', or 'float' [DEFAULT=float]\n"
+             " -basepercent nn = percentage of maximum for duration calculation\n"
              "\n"
              "If you want statistics on a detrended dataset and the option\n"
              "doesn't allow that, you can use program 3dDetrend first.\n"
@@ -158,6 +178,12 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[nopt],"-sum") == 0 ){
          meth[nmeths++] = METH_SUM ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-abssum") == 0 ){
+         meth[nmeths++] = METH_ABSSUM ;
          nbriks++ ;
          nopt++ ; continue ;
       }
@@ -232,6 +258,23 @@ int main( int argc , char *argv[] )
          nopt++ ; continue ;
       }
 
+      if( strcmp(argv[nopt],"-duration") == 0 ){
+         meth[nmeths++] = METH_DURATION ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-centroid") == 0 ){
+         meth[nmeths++] = METH_CENTROID ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-centduration") == 0 ){
+         meth[nmeths++] = METH_CENTDURATION ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+
+
       if( strcmp(argv[nopt],"-autocorr") == 0 ){
          meth[nmeths++] = METH_AUTOCORR ;
          if( ++nopt >= argc ) ERROR_exit("-autocorr needs an argument!\n");
@@ -282,6 +325,14 @@ int main( int argc , char *argv[] )
          }
          nopt++ ; continue ;
       }
+
+     /* base percentage for duration calcs */
+     if (strcmp (argv[nopt], "-basepercent") == 0) {
+         if( ++nopt >= argc ) ERROR_exit("-basepercent needs an argument!\n");
+         basepercent = strtod(argv[nopt], NULL);
+         if(basepercent>1) basepercent /= 100.0;  /* assume integer percent if >1*/
+         nopt++;  continue;
+        }
 
       /*-- Quien sabe'? --*/
 
@@ -421,6 +472,15 @@ static void STATS_tsfunc( double tzero, double tdelta ,
 
       case METH_SUM:   val[out_index] = ts_mean * npts; break; /* 24 Apr 2006 */
 
+      case METH_ABSSUM:{              /* 18 Jun 2006 */
+        register int ii ;
+        register float sum ;
+        sum = 0.0;
+        for(ii=0; ii< npts; ii++) sum += fabs(ts[ii]);
+        val[out_index] = sum;
+      }
+      break;
+
       case METH_SLOPE: val[out_index] = ts_slope ; break ;
 
       case METH_CVAR_NOD:
@@ -507,10 +567,13 @@ static void STATS_tsfunc( double tzero, double tdelta ,
       }
       break ;
 
+      case METH_DURATION:
       case METH_ABSMAX:
       case METH_ARGMAX:
       case METH_ARGABSMAX:
-      case METH_MAX:{
+      case METH_MAX:
+      case METH_CENTDURATION:
+      case METH_CENTROID:{
          register int ii, outdex=0 ;
          register float vm=ts[0] ;
          if ((meth[meth_index] == METH_ABSMAX) || (meth[meth_index] == METH_ARGABSMAX)) {
@@ -529,14 +592,37 @@ static void STATS_tsfunc( double tzero, double tdelta ,
              }
            }
          }
+	 switch( meth[meth_index] ){
+            default:
+            case METH_ABSMAX:
+            case METH_MAX:
+               val[out_index] = vm ;
+            break;
 
-         if ((meth[meth_index] == METH_ABSMAX) || (meth[meth_index] == METH_MAX)) {
-           val[out_index] = vm ;
-         } else {
-           val[out_index] = outdex ;
+            case METH_DURATION:
+              val[out_index] = Calc_duration(ts, npts, vm, outdex);
+            break;
+
+            case METH_ARGMAX:
+            case METH_ARGABSMAX:
+              val[out_index] = outdex ;
+            break;
+
+            case METH_CENTROID:
+            case METH_CENTDURATION: {
+              float cm;
+              cm = Calc_centroid(ts, npts);
+              if(meth[meth_index]== METH_CENTDURATION)
+                 val[out_index] = Calc_duration(ts, npts, vm, (int) cm);
+              else
+                 val[out_index] = cm;
+            }
+            break;
          }
       }
       break ;
+
+
 
       case METH_AUTOCORR:{
         int numVals;
@@ -715,3 +801,55 @@ static void autocorr( int npts, float in_ts[], int numVals, float outcoeff[] )
   free(cxar);
   cxar = NULL;
 }
+
+/* calculate the duration of a peak in number of subbricks */
+/* duration is the number of points at or above the threshold*/
+static int
+Calc_duration(float ts[], int npts, float vmax, int max_index)
+{
+   float minlimit;
+   int onset, offset, duration, i;
+   ENTRY("Calc_duration");
+   /* find beginning - onset - first point before max that falls below min */
+   minlimit = basepercent * vmax;
+   i = max_index;   /* for centroid option we need to start at max_index*/
+   onset = -1;
+   offset = npts;
+   while(i>=0) {
+     if(ts[i]<minlimit) {
+        onset = i;
+        break;
+     }
+     i--;
+   }
+
+   /* find end of peak - offset - first point after max that falls below min */
+   /*  this starting index needs to be the same for centroid or peak*/
+   i = max_index + 1;  
+   while(i<npts) {
+     if(ts[i]<minlimit) {
+        offset = i;
+        break;
+     }
+     i++;
+   }
+   RETURN(offset - onset -1);
+}
+
+/* calculate the centroid of a time series*/
+/* centroid or center of mass is defined as Sum(i*f(i)) / Sum(f(i)) */
+static float
+Calc_centroid(float ts[], int npts)
+{
+   int i;
+   float sum=0, tvsum = 0;
+
+   ENTRY("Calc_centroid");
+   for(i=0;i<npts;i++) {
+     sum += ts[i];
+     tvsum += i*ts[i];
+   }
+
+   RETURN(tvsum / sum);
+}
+
