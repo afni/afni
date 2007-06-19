@@ -11,8 +11,8 @@ int main( int argc , char *argv[] )
    int nvox , nvals , ii , polort=1 ;
    MRI_IMAGE *xsim , *ysim ;
    float     *xsar , *ysar , *car ;
-   char * prefix = "Tcorr" ;
-   byte * mmm=NULL ;
+   char *prefix = "Tcorr" ;
+   byte *mmm=NULL ;
    MRI_IMAGE *im_ort=NULL ;            /* 13 Mar 2003 */
    int nort=0 ; float **fort=NULL ;
 
