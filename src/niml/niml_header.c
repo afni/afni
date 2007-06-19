@@ -384,6 +384,27 @@ NI_str_array * NI_decode_string_list( char *ss , char *sep )
 }
 
 /*--------------------------------------------------------------------*/
+/*! Decode a string that gives a list of floats [10 Jun 2007]. */
+
+NI_float_array * NI_decode_float_list( char *ss , char *sep )
+{
+   NI_float_array *far ; float *ar ; int num , jj ;
+   NI_str_array *sar ;
+
+   sar = NI_decode_string_list( ss , sep ) ;
+   if( sar == NULL ) return NULL ;
+
+   far = NI_malloc(NI_float_array,sizeof(NI_float_array)) ;
+   num = far->num = sar->num ;
+   ar  = far->ar  = NI_malloc(float,sizeof(float)*num) ;
+
+   for( jj=0 ; jj < num ; jj++ )
+     ar[jj] = (float)strtod( sar->str[jj] , NULL ) ;
+
+   NI_delete_str_array(sar) ; return far ;
+}
+
+/*--------------------------------------------------------------------*/
 /*! Decode a ni_dimen string into an array of integers.
   Returns NULL if the input is bad bad bad.
 ----------------------------------------------------------------------*/

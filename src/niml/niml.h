@@ -1185,6 +1185,17 @@ extern NI_str_array * NI_decode_string_list( char *ss , char *sep ) ;
 #define NI_decode_str_array NI_decode_string_list
 
 /*-------------------------------------------------------------------------*/
+/*! An array of floats. */
+
+typedef struct { int num; float *ar; } NI_float_array ;
+
+#define NI_delete_float_array(far) \
+  do{ if( (far)->ar != NULL ) NI_free((far)->ar); NI_free(far); } while(0)
+
+extern NI_float_array * NI_decode_float_list( char *ss , char* sep ) ;
+#define NI_decode_float_array NI_decode_float_list
+
+/*-------------------------------------------------------------------------*/
 /* Registry stuff -- niml_registry.c [25 Feb 2005] */
 
 extern void * NI_registry_malloc          ( char *, char *, size_t ) ;
