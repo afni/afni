@@ -151,6 +151,8 @@ void Syntax(char *str)
     "                  the header.  This includes the History Note, other text\n"
     "                  Notes, keywords, and labels.\n"
     "\n"
+    "  -deoblique      Replace transformation matrix in header with cardinal "
+                      "matrix\n\n"
     "  -byteorder bbb  Sets the byte order string in the header.\n"
     "                  Allowable values for 'bbb' are:\n"
     "                     LSB_FIRST   MSB_FIRST   NATIVE_ORDER\n"
@@ -236,7 +238,7 @@ void Syntax(char *str)
    if( (ii-FIRST_ANAT_TYPE)%2 == 1 ) printf("\n") ;
 
    printf(           /* 08 Jun 2004 */
-    "-copyaux auxset   Copies the 'auxiliary' data from dataset 'auxset'\n"
+    "  -copyaux auxset Copies the 'auxiliary' data from dataset 'auxset'\n"
     "                  over the auxiliary data for the dataset being\n"
     "                  modified.  Auxiliary data comprises sub-brick labels,\n"
     "                  keywords, and statistics codes.\n"
@@ -273,13 +275,13 @@ void Syntax(char *str)
     "  -vr_mat val1 ... val12  Use these twelve values for VOLREG_MATVEC_index.\n"
     "  -vr_mat_ind index       Index of VOLREG_MATVEC_index field to be modified.\n"
     "                          Optional, default index is 0.\n"
-    "                          NB: You can only modify one VOLREG_MATVEC_index at a time\n"
+    "NB: You can only modify one VOLREG_MATVEC_index at a time\n"
     "  -vr_center_old x y z    Use these 3 values for VOLREG_CENTER_OLD.\n"
     "  -vr_center_base x y z   Use these 3 values for VOLREG_CENTER_BASE.\n"
     "\n"
    );
 
-   printf("++ Last program update: 08 Jul 2005\n");
+   printf("++ Last program update: 20 Jun 2007\n");
 
    exit(0) ;
 }
@@ -324,7 +326,7 @@ int main( int argc , char * argv[] )
    Boolean write_output ;            /* 20 Jun 2006 [rickr] */
    int keepcen        = 0 ;          /* 17 Jul 2006 [RWCox] */
    float xyzscale     = 0.0f ;       /* 17 Jul 2006 */
-
+   int deoblique  = 0;               /* 20 Jun 2007 [drg] */
    int   ndone=0 ;                   /* 18 Jul 2006 */
    int   verb =0 ;
 #define VINFO(x) if(verb)ININFO_message(x)
@@ -353,6 +355,9 @@ int main( int argc , char * argv[] )
    int saveatr = 1;
    int atrmod = 0;  /* if no ATR is modified, don't overwrite normal changes */
                                                       /* 28 Jul 2006 [rickr] */
+   THD_dmat33 tmat ;
+   THD_dfvec3 tvec ;
+
 
    /*-------------------------- help me if you can? --------------------------*/
 
@@ -998,6 +1003,14 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;  /* go to next arg */
       }
 
+      /*----- -deoblique option [20 Jun 2007] -----*/
+
+      if( strcmp(argv[iarg],"-deoblique") == 0 ){
+         deoblique = 1 ;
+         new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
+      }
+
+
       /** anything else must be a -type **/
       /*  try the anatomy prefixes */
 
@@ -1303,6 +1316,16 @@ int main( int argc , char * argv[] )
       if( new_zdel || new_orient )
          daxes->zzdel = (ORIENT_sign[daxes->zzorient] == '+') ? (zdel) : (-zdel) ;
 
+      /*-- deoblique - assume the data is cardinal  6/20/2007 */
+      /* this should be after any other axis, orientation, origin, voxel size changes */
+      if(deoblique) {
+         /* replace transformation matrix with cardinal form */
+	 THD_dicom_card_xform(dset, &tmat, &tvec); 
+	 LOAD_MAT44(dset->daxes->ijk_to_dicom_real, 
+             tmat.mat[0][0], tmat.mat[0][1], tmat.mat[0][2], tvec.xyz[0],
+             tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
+             tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
+      }
       /*-- change time axis --*/
 
       if( new_TR ){
