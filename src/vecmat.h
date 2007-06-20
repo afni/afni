@@ -104,7 +104,7 @@ static float tempRWC ;
 
 /*! Debug printout of a THD_vecmat. */
 
-#define DUMP_VECMAT(str,vvmm) ( DUMP_MAT33(str,vvmm.mm) , DUMP_FVEC3(str,vvmm.vv) )
+#define DUMP_VECMAT(str,vvmm) ( DUMP_MAT33(str,(vvmm).mm) , DUMP_FVEC3(str,(vvmm).vv) )
 
 /*--- macros for operations on floating 3 vectors,
       with heavy use of the comma operator and structure assignment! ---*/
@@ -459,8 +459,8 @@ typedef struct {    /* 3x3 matrix + 3-vector [16 Jul 2000] */
                                  (y)=(fv).xyz[1], \
                                  (z)=(fv).xyz[2]   )
 
-#define DFVEC3_TO_FVEC3(dv,fv) LOAD_FVEC3(fv,dv.xyz[0],dv.xyz[1],dv.xyz[2])
-#define FVEC3_TO_DFVEC3(fv,dv) LOAD_DFVEC3(dv,fv.xyz[0],fv.xyz[1],fv.xyz[2])
+#define DFVEC3_TO_FVEC3(dv,fv) LOAD_FVEC3(fv,(dv).xyz[0],(dv).xyz[1],(dv).xyz[2])
+#define FVEC3_TO_DFVEC3(fv,dv) LOAD_DFVEC3(dv,(fv).xyz[0],(fv).xyz[1],(fv).xyz[2])
 
 static THD_dfvec3 tempA_dfvec3 , tempB_dfvec3 ;
 static THD_dmat33 tempA_dmat33 , tempB_dmat33 ;
@@ -482,7 +482,7 @@ static double dtempRWC ;
            (A).mat[1][0] , (A).mat[1][1] , (A).mat[1][2] , \
            (A).mat[2][0] , (A).mat[2][1] , (A).mat[2][2]  )
 
-#define DUMP_DVECMAT(str,vvmm) ( DUMP_DMAT33(str,vvmm.mm) , DUMP_DFVEC3(str,vvmm.vv) )
+#define DUMP_DVECMAT(str,vvmm) ( DUMP_DMAT33(str,(vvmm).mm) , DUMP_DFVEC3(str,(vvmm).vv) )
 
   /*! Convert from dmat33 to mat33 (double to single precision) */
 
