@@ -197,6 +197,7 @@ most obvious in NIFTI files where the coordinates are changed as in 3drefit,
 3dCM, 3drotate, 3dresample. Also fix for NIFTI reading of sform.
 18 Jun 2007
  * duration, centroid and absolute sum calculations added to 3dTstat
-
+20 Jun 2007
+ * added -deoblique option to 3drefit to remove obliquity from dataset
 
 
