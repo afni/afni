@@ -809,7 +809,7 @@ static int
 Calc_duration(float ts[], int npts, float vmax, int max_index)
 {
    float minlimit;
-   int onset, offset, duration, i;
+   int onset, offset, i;
    ENTRY("Calc_duration");
    /* find beginning - onset - first point before max that falls below min */
    minlimit = basepercent * vmax;
@@ -843,7 +843,7 @@ static float
 Calc_centroid(float ts[], int npts)
 {
    int i;
-   float sum=0, tvsum = 0;
+   double sum=0.0, tvsum = 0.0;
 
    ENTRY("Calc_centroid");
    for(i=0;i<npts;i++) {
