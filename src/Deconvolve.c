@@ -230,6 +230,9 @@ double legendre( double x , int m )   /* Legendre polynomials over [-1,1] */
 # define ITOP(ss) max_lag[ss]
 #endif
 
+static matrix xfull ;    /* X matrix for init_indep_var_matrix() below */
+static int is_xfull=0 ;
+
 /*---------------------------------------------------------------------------*/
 /*
    Initialize independent variable X matrix
@@ -266,7 +269,6 @@ int init_indep_var_matrix
 			       for a block (run) */
 
   float * stim_array;       /* stimulus function time series */
-  matrix x;                 /* X matrix */
 
   int mold ;                /* 12 Aug 2004 */
   int ibot,itop ;
@@ -276,9 +278,11 @@ ENTRY("init_indep_var_matrix") ;
 
   /*----- Initialize X matrix -----*/
 
+  if( is_xfull ){ matrix_destroy(&xfull); is_xfull=0; }
+
 STATUS("create x matrix" ) ;
-  matrix_initialize (&x);
-  matrix_create (nt, p, &x);
+  matrix_initialize (&xfull);
+  matrix_create (nt, p, &xfull);
 
 
   /*----- Set up columns of X matrix corresponding to
@@ -306,14 +310,14 @@ if(PRINT_TRACING){
 
        if( !legendre_polort ){                /* the old way: powers */
 	      for (m = mfirst;  m < mlast;  m++)
-	        x.elts[n][m] = pow ((double)(n-nfirst), (double)(m-mfirst));
+	        xfull.elts[n][m] = pow ((double)(n-nfirst), (double)(m-mfirst));
 
        } else {            /* 15 Jul 2004: the new way: Legendre - RWCox */
 
          double xx , aa=2.0/(nlast-nfirst-1.0) ; /* map nfirst..nlast-1 */
          for( m=mfirst ; m < mlast ; m++ ){      /* to interval [-1,1] */
            xx = aa*(n-nfirst) - 1.0 ;
-           x.elts[n][m] = legendre( xx , m-mfirst ) ;
+           xfull.elts[n][m] = legendre( xx , m-mfirst ) ;
          }
        }
       }
@@ -322,9 +326,9 @@ if(PRINT_TRACING){
         float sum ;
         for( m=mfirst+1 ; m < mlast ; m++ ){
           sum = 0.0f ;
-          for( n=nfirst ; n < nlast ; n++ ) sum += x.elts[n][m] ;
+          for( n=nfirst ; n < nlast ; n++ ) sum += xfull.elts[n][m] ;
           sum /= (nlast-nfirst) ;
-          for( n=nfirst ; n < nlast ; n++ ) x.elts[n][m] -= sum ;
+          for( n=nfirst ; n < nlast ; n++ ) xfull.elts[n][m] -= sum ;
         }
       }
     }
@@ -347,7 +351,7 @@ if( PRINT_TRACING ){
   STATUS(str) ;
 }
       for( jj=0 ; jj < nf ; jj++ ){
-        for( n=0 ; n < nt ; n++ ) x.elts[n][m] = bv[n+jj*nt] ;
+        for( n=0 ; n < nt ; n++ ) xfull.elts[n][m] = bv[n+jj*nt] ;
         m++ ;
       }
     }
@@ -370,9 +374,9 @@ if( PRINT_TRACING ){
 	     for (n = 0;  n < nt;  n++)
 	     {
 	       if (n*nptr[is] < ilag)
-		        x.elts[n][m] = 0.0;
+		        xfull.elts[n][m] = 0.0;
 	       else
-		        x.elts[n][m] = stim_array[n*nptr[is]-ilag];
+		        xfull.elts[n][m] = stim_array[n*nptr[is]-ilag];
 	     }
 	     m++;
 	   }
@@ -385,9 +389,9 @@ if( PRINT_TRACING ){
 STATUS("  remove baseline mean") ;
         for( mm=mold ; mm < m ; mm++ ){
           sum = 0.0f ;
-          for( n=0 ; n < nt ; n++ ) sum += x.elts[n][mm] ;
+          for( n=0 ; n < nt ; n++ ) sum += xfull.elts[n][mm] ;
           sum /= nt ;
-          for( n=0 ; n < nt ; n++ ) x.elts[n][mm] -= sum ;
+          for( n=0 ; n < nt ; n++ ) xfull.elts[n][mm] -= sum ;
         }
       }
 #ifdef USE_BASIS
@@ -401,12 +405,11 @@ STATUS("  remove baseline mean") ;
 
 STATUS("extract xgood matrix") ;
 
-  matrix_extract_rows (x, N, good_list, xgood);
-  matrix_destroy (&x);
+  matrix_extract_rows (xfull, N, good_list, xgood);
 
+  is_xfull = 1 ;  /* original X matrix saved in xfull */
 
   RETURN (1);
-
 }
 
 

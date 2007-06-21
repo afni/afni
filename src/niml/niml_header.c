@@ -405,6 +405,63 @@ NI_float_array * NI_decode_float_list( char *ss , char *sep )
 }
 
 /*--------------------------------------------------------------------*/
+
+char * NI_encode_float_list( NI_float_array *far , char *sep )
+{
+   float *ar ; int num,jj,ff ; char *car , cc='\0' , fbuf[32] ;
+
+   if( far == NULL || far->num < 1 ) return NULL ;
+   if( sep != NULL ) cc = *sep ;
+   if( cc  == '\0' ) cc = ',' ;
+
+   num = far->num ; ar = far->ar ;
+   car = NI_malloc(char,sizeof(char)*num*16) ; *car = '\0' ;
+   for( jj=0 ; jj < num ; jj++ ){
+     sprintf(fbuf,"%12.6g",ar[jj]) ;
+     for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) fbuf[ff] = '\0' ;
+     for( ff=0 ; fbuf[ff] == ' ' ; ff++ ) ;
+     if( jj < num-1 ) sprintf(car+strlen(car),"%s%c",fbuf+ff,cc) ;
+     else             sprintf(car+strlen(car),"%s"  ,fbuf+ff   ) ;
+   }
+
+   return car ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Decode a string that gives a list of ints [21 Jun 2007]. */
+
+NI_int_array * NI_decode_int_list( char *ss , char *sep )
+{
+   NI_int_array *far ; int *ar, num,jj , vv,ww,nadd,aa,da; char *cc,*dd  ;
+   NI_str_array *sar ;
+
+   sar = NI_decode_string_list( ss , sep ) ;
+   if( sar == NULL ) return NULL ;
+
+   far = NI_malloc(NI_int_array,sizeof(NI_int_array)) ;
+   num = 0 ;
+   ar  = NULL ;
+
+   for( jj=0 ; jj < sar->num ; jj++ ){
+     cc = sar->str[jj] ; dd = strstr(cc,"..") ;
+     if( dd == NULL ){
+       ww = vv = (int)strtol( cc , NULL , 10 ) ;
+     } else {
+       vv = (int)strtol( cc  , NULL , 10 ) ;
+       ww = (int)strtol( dd+2, NULL , 10 ) ;
+     }
+     nadd = ww-vv ; da = 1 ;
+     if( nadd < 0 ){ nadd = -nadd; da = -1; }
+     nadd++ ;
+     ar = NI_realloc( ar , int , sizeof(int)*(num+nadd) ) ;
+     for( aa=vv ; aa != ww+da ; aa += da ) ar[num++] = aa ;
+   }
+
+   NI_delete_str_array(sar) ;
+   far->num = num ; far->ar = ar ; return far ;
+}
+
+/*--------------------------------------------------------------------*/
 /*! Decode a ni_dimen string into an array of integers.
   Returns NULL if the input is bad bad bad.
 ----------------------------------------------------------------------*/

@@ -1193,7 +1193,20 @@ typedef struct { int num; float *ar; } NI_float_array ;
   do{ if( (far)->ar != NULL ) NI_free((far)->ar); NI_free(far); } while(0)
 
 extern NI_float_array * NI_decode_float_list( char *ss , char* sep ) ;
+extern char *           NI_encode_float_list( NI_float_array *, char * ) ;
 #define NI_decode_float_array NI_decode_float_list
+
+/*-------------------------------------------------------------------------*/
+/*! An array of ints. */
+
+typedef struct { int num; int *ar; } NI_int_array ;
+
+#define NI_delete_int_array(iar) \
+  do{ if( (iar)->ar != NULL ) NI_free((iar)->ar); NI_free(iar); } while(0)
+
+extern NI_int_array * NI_decode_int_list( char *ss , char* sep ) ;
+extern char *         NI_encode_int_list( NI_int_array * , char * ) ;
+#define NI_decode_int_array NI_decode_int_list
 
 /*-------------------------------------------------------------------------*/
 /* Registry stuff -- niml_registry.c [25 Feb 2005] */

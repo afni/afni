@@ -350,7 +350,7 @@
 /*------------ prototypes for routines far below (RWCox) ------------------*/
 
 void JPEG_matrix_gray( matrix X, char *fname );        /* save X matrix to JPEG */
-void ONED_matrix_save( matrix X, char *fname, void *,int,int * ); /* save X matrix to .1D */
+void ONED_matrix_save( matrix X, char *fname, void *,int,int *, matrix *Xf ); /* save X matrix to .1D */
 
 void XSAVE_output( char * ) ;                      /* save X matrix into file */
 
@@ -1306,7 +1306,9 @@ void get_options
 
       /*-----  -CENSOR clist -----*/
 
-      if( strncmp(argv[nopt],"-CENSOR",7) == 0 ){   /* RWCox - 01 Mar 2007 */
+      if( strncmp(argv[nopt],"-CENSOR",7)   == 0 ||
+          strncmp(argv[nopt],"-censorTR",9) == 0   ){   /* RWCox - 01 Mar 2007 */
+
         NI_str_array *nsar ;
         char *src=malloc(1), *cpt, *dpt ;
         int ns, r,a,b, nerr=0 ; int_triple rab ;
@@ -4815,7 +4817,8 @@ ENTRY("calculate_results") ;
     void *cd=(void *)coldat ; int *gl=good_list ;
     if( AFNI_noenv("AFNI_3dDeconvolve_NIML") &&
         strstr(option_data->x1D_filename,"niml") == NULL ) cd = NULL ;
-    ONED_matrix_save( xdata , option_data->x1D_filename , cd , N,gl ) ;
+    ONED_matrix_save( xdata , option_data->x1D_filename , cd , N,gl ,
+                      (is_xfull) ? &xfull : NULL ) ;
   }
 
 
@@ -4910,7 +4913,7 @@ ENTRY("calculate_results") ;
     if( jpt == NULL )  jpt = strstr(fn,".1D") ;
     if( jpt == NULL )  jpt = fn + strlen(fn) ;
     strcpy(jpt,"_XtXinv.xmat.1D") ;
-    ONED_matrix_save( xtxinv_full,fn, NULL,0,NULL ) ; /* no column metadata */
+    ONED_matrix_save( xtxinv_full,fn, NULL,0,NULL,NULL ) ; /* no column metadata */
   }
 
   /*----- Save some of this stuff for later, dude -----*/
@@ -5002,7 +5005,7 @@ ENTRY("calculate_results") ;
                          jpt = strstr(fn,".1D") ; jsuf = ".1D" ;
       if( jpt == NULL )  jpt = fn + strlen(fn) ;
       strcpy(jpt,"_psinv") ; strcat(fn,jsuf) ;
-      ONED_matrix_save( xpsinv , fn , NULL,0,NULL ) ; /* no column metadata */
+      ONED_matrix_save( xpsinv , fn , NULL,0,NULL,NULL ) ; /* no column metadata */
     }
 #endif
 
@@ -7001,12 +7004,22 @@ void JPEG_matrix_gray( matrix X , char *fname )
 /*----------------------------------------------------------------------------*/
 /*! Save matrix to a .1D text file */
 
-void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl )
+void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
+                       matrix *Xff )
 {
    int nx=X.rows , ny=X.cols , ii,jj ;
    column_metadata *cd = (column_metadata *)xd ;
+   matrix Xf ; int nxf=0,nyf ;
 
    if( fname == NULL || *fname == '\0' ) return ;
+
+   if( Xff != NULL ){
+     Xf = *Xff ; nxf = Xf.rows ; nyf = Xf.cols ;
+     if( nyf != ny ){
+       WARNING_message("X matrix save: ncol(X)=%d but ncol(Xf)=%d ?",ny,nyf) ;
+       nxf = 0 ;
+     }
+   }
 
    if( cd == NULL ){  /*---- standard save, plain text ----*/
 
