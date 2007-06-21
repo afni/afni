@@ -1,5 +1,11 @@
 #include "mrilib.h"
 
+#define CENFILL_ZERO  0
+#define CENFILL_NBHR  1
+#define CENFILL_MODEL 2
+#define CENFILL_NONE  3
+#define CENFILL_DSET  4
+
 /*----------------------------------------------------------------------*/
 
 static int is_numeric( char *str )
@@ -27,6 +33,9 @@ int main( int argc , char * argv[] )
    int                           *cgrp_val=NULL ;
    int *ilist, nadd , nilist , ll , dry=0 , nelim=0 , nerr ;
    float **clist , *tsar , *cfar ;
+
+   int cenfill_mode=CENFILL_ZERO ;
+   THD_3dim_dataset *cenfill_dset=NULL ;
 
    /*----- Read command line -----*/
 
@@ -83,6 +92,20 @@ int main( int argc , char * argv[] )
        "                 of TR is read from the header of the matrix file.\n"
        " -prefix ppp  = Output result into dataset with name 'ppp'.\n"
        "\n"
+       " -cenfill xxx = Determines how censored time points from the\n"
+       "                 3dDeconvolve run will be filled.  'xxx' is one of:\n"
+       "                   zero    = 0s will be put in at all censored times\n"
+       "                   nbhr    = average of non-censored neighbor times\n"
+#if 0
+       "                   model   = compute the model at censored times\n"
+#endif
+       "                   none    = don't put the censored times in at all\n"
+       "                   dataset = take the censored values from this dataset\n"
+       "                             (usually should be 3dDeconvolve's input)\n"
+       "                 If you don't give some -cenfill option, the default\n"
+       "                 operation is 'zero'.  This default is different than\n"
+       "                 previous versions, which did 'none'.\n"
+       "\n"
        "NOTES:\n"
        "-- You could do the same thing in 3dcalc, but this way is simpler\n"
        "   and faster.  But less flexible, of course.\n"
@@ -122,6 +145,33 @@ int main( int argc , char * argv[] )
 
    iarg = 1 ;
    while( iarg < argc ){
+
+      /** -cenfill xxx **/
+
+      if( strcmp(argv[iarg],"-cenfill") == 0 ){   /* 21 Jun 2007 */
+        iarg++ ;
+        if( cenfill_dset != NULL )
+          ERROR_exit("Can't use -cenfill twice!") ;
+        if( strcmp(argv[iarg],"zero") == 0 ){
+          cenfill_mode = CENFILL_ZERO ;
+        } else if( strcmp(argv[iarg],"none") == 0 ){
+          cenfill_mode = CENFILL_NONE ;
+        } else if( strcmp(argv[iarg],"model") == 0 ){
+          cenfill_mode = CENFILL_MODEL ;
+          ERROR_exit("-cenfill model NOT YET IMPLEMENTED!") ;
+        } else if( strcmp(argv[iarg],"nbhr") == 0 ){
+          cenfill_mode = CENFILL_NBHR ;
+        } else {
+          cenfill_mode = CENFILL_DSET ;
+          cenfill_dset = THD_open_dataset( argv[iarg] ) ;
+          if( !ISVALID_DSET(cenfill_dset) )
+            ERROR_exit("Can't open -cenfill dataset '%s'",argv[iarg]) ;
+          DSET_load(cenfill_dset) ;
+          if( !DSET_LOADED(cenfill_dset) )
+            ERROR_exit("Can't load -cenfill dataset '%s'",argv[iarg]) ;
+        }
+        iarg++ ; continue ;
+      }
 
       /** -TR or -dt **/
 
