@@ -23,18 +23,20 @@ int main( int argc , char * argv[] )
 {
    THD_3dim_dataset *inset=NULL , *outset ;
    NI_element *nelmat=NULL ;
-   int nrow,ncol , nxyz , ii,jj,kk , iarg ;
+   int nrow,ncol , nxyz , ii,jj,kk , iarg , nrowfull=0 , nrowout ;
    char *prefix  = "Synthesize" ;
    int   nselect = 0 ;
    char **select = NULL ;
-   char *cdt , *cgrp , *clab , *ccc ;
+   char *cdt , *cgrp , *clab , *ccc , *cgl ;
    float  dt=0.0f ;
-   NI_str_array *clab_sar=NULL , *cgrp_sar=NULL ;
-   int                           *cgrp_val=NULL ;
+   NI_str_array *clab_sar=NULL ;
+   int          *cgrp_val=NULL ;
+   int Ngoodlist , *goodlist=NULL , Nbadlist , *badlist=NULL ;
    int *ilist, nadd , nilist , ll , dry=0 , nelim=0 , nerr ;
-   float **clist , *tsar , *cfar ;
+   float **clist , *tsar , *cfar , tval ;
+   NI_int_array *niar ;
 
-   int cenfill_mode=CENFILL_ZERO ;
+   int cenfill_mode=CENFILL_NONE ;
    THD_3dim_dataset *cenfill_dset=NULL ;
 
    /*----- Read command line -----*/
@@ -105,6 +107,7 @@ int main( int argc , char * argv[] )
        "                 If you don't give some -cenfill option, the default\n"
        "                 operation is 'zero'.  This default is different than\n"
        "                 previous versions, which did 'none'.\n"
+       " **N.B.: at this time, only 'zero' and 'none' are implemented!\n"
        "\n"
        "NOTES:\n"
        "-- You could do the same thing in 3dcalc, but this way is simpler\n"
@@ -257,7 +260,19 @@ int main( int argc , char * argv[] )
      ERROR_exit("-matrix has %d columns but -cbucket has %d sub-bricks!?",
                 nelmat->vec_num , ncol ) ;
 
-   if( !nelim ){
+   if( nelim ){  /* no NIML header to get */
+
+     if( cenfill_mode != CENFILL_NONE ){
+       WARNING_message("raw .1D input ==> using -cenfill none") ;
+       cenfill_mode = CENFILL_NONE ;
+       if( cenfill_dset != NULL ){ DSET_delete(cenfill_dset); cenfill_dset=NULL; }
+     }
+     Ngoodlist = nrow ; goodlist = (int *)malloc(sizeof(int)*nrow) ;
+     for( ii=0 ; ii < nrow ; ii++ ) goodlist[ii] = ii ;
+     Nbadlist = 0 ; badlist = NULL ; nrowfull = nrow ;
+
+   } else {      /* get data from NIML header */
+
      clab = NI_get_attribute( nelmat , "ColumnLabels" ) ;
      if( clab == NULL )
        ERROR_exit("-matrix is missing 'ColumnLabels' attribute!?") ;
@@ -268,18 +283,45 @@ int main( int argc , char * argv[] )
      cgrp = NI_get_attribute( nelmat , "ColumnGroups" ) ;
      if( cgrp == NULL )
        ERROR_exit("-matrix is missing 'ColumnGroups' attribute!?") ;
-     cgrp_sar = NI_decode_string_list( cgrp , ";" ) ;
-     if( cgrp_sar == NULL || cgrp_sar->num < ncol )
+     niar = NI_decode_int_list( cgrp , ";,") ;
+     if( niar == NULL || niar->num < ncol )
        ERROR_exit("-matrix 'ColumnGroups' badly formatted!?") ;
-     cgrp_val = (int *)malloc(sizeof(int)*ncol) ;
-     for( ii=0 ; ii < ncol ; ii++ )
-       cgrp_val[ii] = (int)strtod(cgrp_sar->str[ii],NULL) ;
+     cgrp_val = niar->ar ;
+
+     cgl = NI_get_attribute( nelmat , "GoodList" ) ;
+     if( cgl == NULL || cenfill_mode == CENFILL_NONE ){
+       if( cenfill_mode != CENFILL_NONE )
+         ERROR_exit("-matrix is missing 'GoodList': can't do -cenfill") ;
+       Ngoodlist = nrow ; goodlist = (int *)malloc(sizeof(int)*nrow) ;
+       for( ii=0 ; ii < nrow ; ii++ ) goodlist[ii] = ii ;
+       Nbadlist = 0 ; badlist = NULL ; nrowfull = nrow ;
+     } else {
+       int *qlist ;
+       niar = NI_decode_int_list( cgl , ";,") ;
+       if( niar == NULL || niar->num < nrow )
+         ERROR_exit("-matrix 'GoodList' badly formatted?") ;
+       Ngoodlist = niar->num ; goodlist = niar->ar ;
+       cgl = NI_get_attribute( nelmat , "NRowFull" ) ;
+       if( cgl != NULL ) nrowfull = (int)strtol(cgl,NULL,10) ;
+       else              nrowfull = goodlist[Ngoodlist-1]+1 ;
+       qlist = (int *)calloc(sizeof(int),nrowfull) ;
+       for( ii=0 ; ii < nrow ; ii++ ) qlist[goodlist[ii]] = 1 ;
+       for( ii=jj=0 ; ii < nrowfull ; ii++ ) if( !qlist[ii] ) jj++ ;
+       Nbadlist = jj ;
+       if( Nbadlist > 0 ){
+         badlist = (int *)malloc(sizeof(int)*Nbadlist) ;
+         for( ii=jj=0 ; ii < nrowfull ; ii++ )
+           if( !qlist[ii] ) badlist[jj++] = ii ;
+       }
+       free((void *)qlist) ;
+     }
 
      if( dt <= 0.0f ){
        cdt = NI_get_attribute( nelmat , "RowTR" ) ;
        if( cdt != NULL ) dt = (float)strtod(cdt,NULL) ;
      }
    }
+
    if( dt <= 0.0f ){
      dt = 1.0f ; WARNING_message("Using default TR=1.0") ;
    }
@@ -404,13 +446,14 @@ int main( int argc , char * argv[] )
 
    /*-- create empty output 3D+time dataset --*/
 
-   outset = EDIT_empty_copy( inset ) ;
+   outset  = EDIT_empty_copy( inset ) ;
+   nrowout = (cenfill_mode == CENFILL_NONE) ? nrow : nrowfull ;
    EDIT_dset_items( outset ,
                       ADN_prefix    , prefix ,
                       ADN_brick_fac , NULL ,
                       ADN_datum_all , MRI_float ,
-                      ADN_nvals     , nrow ,
-                      ADN_ntt       , nrow ,
+                      ADN_nvals     , nrowout ,
+                      ADN_ntt       , nrowout ,
                       ADN_ttdel     , dt ,
                       ADN_tunits    , UNITS_SEC_TYPE ,
                       ADN_type      , HEAD_ANAT_TYPE ,
@@ -427,10 +470,10 @@ int main( int argc , char * argv[] )
 
    /* create bricks (will be filled with zeros) */
 
-   for( jj=0 ; jj < nrow ; jj++ )
+   for( jj=0 ; jj < nrowout ; jj++ )
      EDIT_substitute_brick( outset , jj , MRI_float , NULL ) ;
 
-   tsar = (float *)calloc(sizeof(float),nrow+1) ;
+   tsar = (float *)calloc(sizeof(float),nrowout+1) ;
    cfar = (float *)calloc(sizeof(float),ncol+1) ;
 
    for( kk=0 ; kk < nxyz ; kk++ ){   /* kk = voxel index */
@@ -443,16 +486,32 @@ int main( int argc , char * argv[] )
 
       /* add up matrix columns with the given weights */
 
+      memset( tsar , 0 , sizeof(float)*(nrowout+1) ) ;
       for( jj=0 ; jj < nrow ; jj++ ){
-        tsar[jj] = 0.0f ;
+        tval = 0.0f ;
         for( ii=0 ; ii < ncol ; ii++ )
-          if( ilist[ii] ) tsar[jj] += cfar[ii]*clist[ii][jj] ;
+          if( ilist[ii] ) tval += cfar[ii]*clist[ii][jj] ;
+        tsar[goodlist[jj]] = tval ;
+      }
+
+      /* deal with cenfill now */
+
+      switch( cenfill_mode ){
+        default:
+        case CENFILL_NONE:
+        case CENFILL_ZERO: break ;
+
+        case CENFILL_NBHR: break ;
+
+        case CENFILL_DSET: break ;
+
+        case CENFILL_MODEL: break ;
       }
 
       /* put result time series into output dataset */
 
       THD_insert_series( kk , outset ,
-                         nrow , MRI_float , tsar , 1 ) ;
+                         nrowout , MRI_float , tsar , 1 ) ;
    }
 
    /** write output, and let freedom ring!! **/

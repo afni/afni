@@ -7054,11 +7054,12 @@ void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
      NI_set_attribute( nel,"ColumnMasks",lab ); free((void *)lab); lab = NULL;
 #endif
 #if 1
-     for( jj=0 ; jj < ny ; jj++ ){
-       sprintf(lll,"%d",cd[jj].group) ; if( jj < ny-1 ) strcat(lll,";") ;
-       lab = THD_zzprintf( lab , "%s" , lll ) ;
+     { NI_int_array iar ;
+       iar.num = ny ; iar.ar = (int *)malloc(sizeof(int)*ny) ;
+       for( jj=0 ; jj < ny ; jj++ ) iar.ar[jj] = cd[jj].group ;
+       lab = NI_encode_int_list( &iar , "," ) ;
+       NI_set_attribute( nel,"ColumnGroups",lab ); NI_free((void *)lab); lab = NULL;
      }
-     NI_set_attribute( nel,"ColumnGroups",lab ); free((void *)lab); lab = NULL;
 #endif
 #if 1
      lab = THD_zzprintf( lab , "%g" , basis_TR ) ;
@@ -7070,6 +7071,10 @@ void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
        iar.num = Ngl ; iar.ar = gl ;
        lab = NI_encode_int_list( &iar , "," ) ;
        NI_set_attribute( nel, "GoodList", lab ); NI_free((void *)lab); lab = NULL;
+     }
+     if( nxf > 0 ){
+       sprintf(lll,"%d",nxf) ;
+       NI_set_attribute( nel , "NRowFull" , lll ) ;
      }
 #endif
      NI_write_element_tofile( fname, nel, NI_HEADERSHARP_FLAG | NI_TEXT_MODE );
