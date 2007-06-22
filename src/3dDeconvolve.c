@@ -7066,11 +7066,10 @@ void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
 #endif
 #if 1
      if( Ngl > 0 && gl != NULL ){
-       for( jj=0 ; jj < Ngl ; jj++ ){
-         sprintf(lll,"%d",gl[jj]) ; if( jj < Ngl-1 ) strcat(lll,";") ;
-         lab = THD_zzprintf( lab , "%s" , lll ) ;
-       }
-       NI_set_attribute( nel, "GoodList", lab ); free((void *)lab); lab = NULL;
+       NI_int_array iar ;
+       iar.num = Ngl ; iar.ar = gl ;
+       lab = NI_encode_int_list( &iar , "," ) ;
+       NI_set_attribute( nel, "GoodList", lab ); NI_free((void *)lab); lab = NULL;
      }
 #endif
      NI_write_element_tofile( fname, nel, NI_HEADERSHARP_FLAG | NI_TEXT_MODE );
