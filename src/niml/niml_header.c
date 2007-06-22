@@ -424,6 +424,8 @@ char * NI_encode_float_list( NI_float_array *far , char *sep )
      else             sprintf(car+strlen(car),"%s"  ,fbuf+ff   ) ;
    }
 
+   num = strlen(car) ;
+   car = NI_realloc( car , char , sizeof(char)*(num+1) ) ;
    return car ;
 }
 
@@ -432,13 +434,13 @@ char * NI_encode_float_list( NI_float_array *far , char *sep )
 
 NI_int_array * NI_decode_int_list( char *ss , char *sep )
 {
-   NI_int_array *far ; int *ar, num,jj , vv,ww,nadd,aa,da; char *cc,*dd  ;
+   NI_int_array *iar ; int *ar, num,jj , vv,ww,nadd,aa,da; char *cc,*dd  ;
    NI_str_array *sar ;
 
    sar = NI_decode_string_list( ss , sep ) ;
    if( sar == NULL ) return NULL ;
 
-   far = NI_malloc(NI_int_array,sizeof(NI_int_array)) ;
+   iar = NI_malloc(NI_int_array,sizeof(NI_int_array)) ;
    num = 0 ;
    ar  = NULL ;
 
@@ -458,7 +460,44 @@ NI_int_array * NI_decode_int_list( char *ss , char *sep )
    }
 
    NI_delete_str_array(sar) ;
-   far->num = num ; far->ar = ar ; return far ;
+   iar->num = num ; iar->ar = ar ; return iar ;
+}
+
+/*--------------------------------------------------------------------*/
+
+char * NI_encode_int_list( NI_int_array *iar , char *sep )
+{
+   int *ar ; int ii,num,jj ; char *car , cc='\0' , fbuf[32] ;
+
+   if( iar == NULL || iar->num < 1 ) return NULL ;
+   if( sep != NULL ) cc = *sep ;
+   if( cc  == '\0' ) cc = ',' ;
+
+   num = iar->num ; ar = iar->ar ;
+   car = NI_malloc(char,sizeof(char)*num*9) ; *car = '\0' ;
+printf("NI_encode_int_list: num=%d\n",num) ;
+
+   for( jj=0 ; jj < num ; ){
+     for( ii=jj+1 ; ii < num && ar[ii]-ar[ii-1]==1 ; ii++ ) ; /*nada*/
+
+printf("  ar[%d]=%d  ar[%d]=%d\n",jj,ar[jj],ii-1,ar[ii-1]) ;
+
+     if( ii == jj+1 )
+       sprintf(fbuf,"%d",ar[jj]);                 /* encode one value */
+     else if( ii == jj+2 )
+       sprintf(fbuf,"%d%c%d",ar[jj],cc,ar[jj+1]); /* encode 2 values */
+     else
+       sprintf(fbuf,"%d..%d",ar[jj],ar[ii-1]);    /* encode values [jj..ii-1] */
+printf("  fbuf = %s\n",fbuf) ;
+     jj = ii ;
+     if( jj < num ) sprintf(car+strlen(car),"%s%c",fbuf,cc) ;
+     else           sprintf(car+strlen(car),"%s"  ,fbuf   ) ;
+   }
+printf("  done: '%s'\n",car) ;
+
+   num = strlen(car) ;
+   car = NI_realloc( car , char , sizeof(char)*(num+1) ) ;
+   return car ;
 }
 
 /*--------------------------------------------------------------------*/
