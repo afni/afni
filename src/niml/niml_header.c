@@ -434,7 +434,7 @@ char * NI_encode_float_list( NI_float_array *far , char *sep )
 
 NI_int_array * NI_decode_int_list( char *ss , char *sep )
 {
-   NI_int_array *iar ; int *ar, num,jj , vv,ww,nadd,aa,da; char *cc,*dd  ;
+   NI_int_array *iar ; int *ar, num,jj , vv,ww,nadd,aa,da,ii; char *cc,*dd  ;
    NI_str_array *sar ;
 
    sar = NI_decode_string_list( ss , sep ) ;
@@ -447,16 +447,24 @@ NI_int_array * NI_decode_int_list( char *ss , char *sep )
    for( jj=0 ; jj < sar->num ; jj++ ){
      cc = sar->str[jj] ; dd = strstr(cc,"..") ;
      if( dd == NULL ){
-       ww = vv = (int)strtol( cc , NULL , 10 ) ;
-     } else {
+       dd = strstr(cc,"@") ;
+       if( dd == NULL ){               /* a single number */
+         vv = (int)strtol( cc , NULL , 10 ) ;
+         nadd = 1 ; da = 0 ;
+       } else {                        /* repetitions of the same number */
+         aa = sscanf(cc,"%d@%d",&nadd,&vv) ;
+         if( nadd <= 0 ) continue ;    /* bad */
+         da = 0 ;
+       }
+     } else {                          /* a sequence of numbers */
        vv = (int)strtol( cc  , NULL , 10 ) ;
        ww = (int)strtol( dd+2, NULL , 10 ) ;
+       nadd = ww-vv ; da = 1 ;
+       if( nadd < 0 ){ nadd = -nadd; da = -1; }
+       nadd++ ;
      }
-     nadd = ww-vv ; da = 1 ;
-     if( nadd < 0 ){ nadd = -nadd; da = -1; }
-     nadd++ ;
      ar = NI_realloc( ar , int , sizeof(int)*(num+nadd) ) ;
-     for( aa=vv ; aa != ww+da ; aa += da ) ar[num++] = aa ;
+     for( aa=vv,ii=0 ; ii < nadd ; ii++,aa+=da ) ar[num++] = aa ;
    }
 
    NI_delete_str_array(sar) ;
@@ -475,25 +483,33 @@ char * NI_encode_int_list( NI_int_array *iar , char *sep )
 
    num = iar->num ; ar = iar->ar ;
    car = NI_malloc(char,sizeof(char)*num*9) ; *car = '\0' ;
-printf("NI_encode_int_list: num=%d\n",num) ;
 
    for( jj=0 ; jj < num ; ){
-     for( ii=jj+1 ; ii < num && ar[ii]-ar[ii-1]==1 ; ii++ ) ; /*nada*/
 
-printf("  ar[%d]=%d  ar[%d]=%d\n",jj,ar[jj],ii-1,ar[ii-1]) ;
+     /** last one?  just do it and quit */
+     if( jj == num-1 ){
+       sprintf(car+strlen(car),"%d",ar[jj]) ; break ;
+     }
 
-     if( ii == jj+1 )
-       sprintf(fbuf,"%d",ar[jj]);                 /* encode one value */
-     else if( ii == jj+2 )
-       sprintf(fbuf,"%d%c%d",ar[jj],cc,ar[jj+1]); /* encode 2 values */
-     else
-       sprintf(fbuf,"%d..%d",ar[jj],ar[ii-1]);    /* encode values [jj..ii-1] */
-printf("  fbuf = %s\n",fbuf) ;
+     /* scan for identical sequence */
+     for( ii=jj+1 ; ii < num && ar[ii]-ar[ii-1]==0 ; ii++ ) ; /*nada*/
+
+     if( ii > jj+1 ){                             /* encode values [jj..ii-1] */
+       sprintf(fbuf,"%d@%d",ii-jj,ar[jj]) ;
+     } else {                                     /* scan for increasing sequence */
+       for( ii=jj+1 ; ii < num && ar[ii]-ar[ii-1]==1 ; ii++ ) ; /*nada*/
+
+       if( ii == jj+1 )
+         sprintf(fbuf,"%d",ar[jj]);                 /* encode one value */
+       else if( ii == jj+2 )
+         sprintf(fbuf,"%d%c%d",ar[jj],cc,ar[jj+1]); /* encode 2 values */
+       else
+         sprintf(fbuf,"%d..%d",ar[jj],ar[ii-1]);    /* encode values [jj..ii-1] */
+     }
      jj = ii ;
      if( jj < num ) sprintf(car+strlen(car),"%s%c",fbuf,cc) ;
      else           sprintf(car+strlen(car),"%s"  ,fbuf   ) ;
    }
-printf("  done: '%s'\n",car) ;
 
    num = strlen(car) ;
    car = NI_realloc( car , char , sizeof(char)*(num+1) ) ;
