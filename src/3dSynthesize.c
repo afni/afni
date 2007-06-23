@@ -31,7 +31,8 @@ int main( int argc , char * argv[] )
    float  dt=0.0f ;
    NI_str_array *clab_sar=NULL ;
    int          *cgrp_val=NULL ;
-   int Ngoodlist , *goodlist=NULL , Nbadlist , *badlist=NULL ;
+   int Ngoodlist, *goodlist=NULL, Nbadlist, *badlist=NULL;
+   int *nbblist=NULL , *nbtlist=NULL ;
    int *ilist, nadd , nilist , ll , dry=0 , nelim=0 , nerr ;
    float **clist , *tsar , *cfar , tval ;
    NI_int_array *niar ;
@@ -97,27 +98,36 @@ int main( int argc , char * argv[] )
        " -cenfill xxx = Determines how censored time points from the\n"
        "                 3dDeconvolve run will be filled.  'xxx' is one of:\n"
        "                   zero    = 0s will be put in at all censored times\n"
-       "                   nbhr    = average of non-censored neighbor times\n"
+       "                   nbhr    = average of non-censored neighboring times\n"
+       "                   none    = don't put the censored times in at all\n"
 #if 0
        "                   model   = compute the model at censored times\n"
-#endif
-       "                   none    = don't put the censored times in at all\n"
        "                   dataset = take the censored values from this dataset\n"
        "                             (usually should be 3dDeconvolve's input)\n"
+#endif
        "                 If you don't give some -cenfill option, the default\n"
        "                 operation is 'zero'.  This default is different than\n"
        "                 previous versions, which did 'none'.\n"
-       " **N.B.: at this time, only 'zero' and 'none' are implemented!\n"
+       "          **N.B.: You might like the program to compute the model fit\n"
+       "                  at the censored times, like it does at all others.\n"
+       "                  At present, this can't be done, since the censored\n"
+       "                  matrix rows are not stored in the .xmat.1D file.\n"
+       "                  Maybe someday.\n"
        "\n"
        "NOTES:\n"
        "-- You could do the same thing in 3dcalc, but this way is simpler\n"
        "   and faster.  But less flexible, of course.\n"
        "-- The output dataset is always stored as floats.\n"
-       "-- The input dataset must have the same number of sub-bricks as\n"
+       "-- The -cbucket dataset must have the same number of sub-bricks as\n"
        "   the input matrix has columns.\n"
        "-- Each column in the matrix file is a time series.\n"
-       "-- The sub-bricks of the dataset give the weighting coefficients\n"
-       "   for these time series, at each voxel.\n"
+       "-- The sub-bricks of the -cbucket dataset give the weighting\n"
+       "   coefficients for these time series, at each voxel.\n"
+       "-- If you want to calculate a time series dataset wherein the original\n"
+       "   time series data has the baseline subtracted, then you could\n"
+       "   use 3dSynthesize to compute the baseline time series dataset, and\n"
+       "   then use 3dcalc to subtract that dataset from the original dataset.\n"
+       "   Other similar applications are left to your imagination.\n"
        "-- To see the column labels stored in matrix file 'fred.xmat.1D', type\n"
        "   the Unix command 'grep ColumnLabels fred.xmat.1D'; sample output:\n"
        " # ColumnLabels = \"Run#1Pol#0 ; Run#1Pol#1 ; Run#2Pol#0 ; Run#2Pol#1 ;\n"
@@ -130,7 +140,7 @@ int main( int argc , char * argv[] )
        "   file, without the header, you can still use 3dSynthesize, but then\n"
        "   you can only use numeric '-select' options (or 'all').\n"
        "-- When using a 'raw' matrix, you'll probably also want the '-TR' option.\n"
-       "-- When putting more than one string after '-select', do NOT put\n"
+       "-- When putting more than one string after '-select', do NOT combine\n"
        "   these separate strings in quotes.  If you do, they will be seen\n"
        "   as a single string, which probably won't match anything.\n"
        "-- Author: RWCox -- March 2007\n"
@@ -165,6 +175,7 @@ int main( int argc , char * argv[] )
         } else if( strcmp(argv[iarg],"nbhr") == 0 ){
           cenfill_mode = CENFILL_NBHR ;
         } else {
+#if 0
           cenfill_mode = CENFILL_DSET ;
           cenfill_dset = THD_open_dataset( argv[iarg] ) ;
           if( !ISVALID_DSET(cenfill_dset) )
@@ -172,6 +183,9 @@ int main( int argc , char * argv[] )
           DSET_load(cenfill_dset) ;
           if( !DSET_LOADED(cenfill_dset) )
             ERROR_exit("Can't load -cenfill dataset '%s'",argv[iarg]) ;
+#else
+          ERROR_exit("-cenfill '%s' is unrecognized",argv[iarg]) ;
+#endif
         }
         iarg++ ; continue ;
       }
@@ -310,8 +324,17 @@ int main( int argc , char * argv[] )
        Nbadlist = jj ;
        if( Nbadlist > 0 ){
          badlist = (int *)malloc(sizeof(int)*Nbadlist) ;
+         nbblist = (int *)malloc(sizeof(int)*Nbadlist) ;
+         nbtlist = (int *)malloc(sizeof(int)*Nbadlist) ;
          for( ii=jj=0 ; ii < nrowfull ; ii++ )
            if( !qlist[ii] ) badlist[jj++] = ii ;
+         for( jj=0 ; jj < Nbadlist ; jj++ ){
+           ii = badlist[jj] ;
+           for( kk=ii-1 ; kk >= 0 && !qlist[kk] ; kk-- ) ; /*nada*/
+           nbblist[jj] = kk ;
+           for( kk=ii+1 ; kk < nrowfull && !qlist[kk] ; kk++ ) ; /*nada*/
+           nbtlist[jj] = (kk < nrowfull) ? kk : -1 ;
+         }
        }
        free((void *)qlist) ;
      }
@@ -501,7 +524,16 @@ int main( int argc , char * argv[] )
         case CENFILL_NONE:
         case CENFILL_ZERO: break ;
 
-        case CENFILL_NBHR: break ;
+        case CENFILL_NBHR:
+          for( jj=0 ; jj < Nbadlist ; jj++ ){
+            ii = nbblist[jj] ; kk = nbtlist[jj] ;
+            if( ii >=0 && kk >= 0 ) tval = 0.5f*(tsar[ii]+tsar[kk]) ;
+            else if( ii >= 0 )      tval = tsar[ii] ;
+            else if( kk >= 0 )      tval = tsar[kk] ;
+            else                    tval = 0.0f ;
+            tsar[badlist[jj]] = tval ;
+          }
+        break ;
 
         case CENFILL_DSET: break ;
 
