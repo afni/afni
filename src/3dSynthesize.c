@@ -23,7 +23,7 @@ int main( int argc , char * argv[] )
 {
    THD_3dim_dataset *inset=NULL , *outset ;
    NI_element *nelmat=NULL ;
-   int nrow,ncol , nxyz , ii,jj,kk , iarg , nrowfull=0 , nrowout ;
+   int nrow,ncol , nxyz , ii,jj,kk,mm , iarg , nrowfull=0 , nrowout ;
    char *prefix  = "Synthesize" ;
    int   nselect = 0 ;
    char **select = NULL ;
@@ -37,8 +37,9 @@ int main( int argc , char * argv[] )
    float **clist , *tsar , *cfar , tval ;
    NI_int_array *niar ;
 
-   int cenfill_mode=CENFILL_NONE ;
+   int cenfill_mode=CENFILL_ZERO ;
    THD_3dim_dataset *cenfill_dset=NULL ;
+   int nspk ;
 
    /*----- Read command line -----*/
 
@@ -110,9 +111,8 @@ int main( int argc , char * argv[] )
        "                 previous versions, which did 'none'.\n"
        "          **N.B.: You might like the program to compute the model fit\n"
        "                  at the censored times, like it does at all others.\n"
-       "                  At present, this can't be done, since the censored\n"
-       "                  matrix rows are not stored in the .xmat.1D file.\n"
-       "                  Maybe someday.\n"
+       "                  This can be done if you input the matrix file saved\n"
+       "                  by the '-x1D_uncensored' option in 3dDeconvolve.\n"
        "\n"
        "NOTES:\n"
        "-- You could do the same thing in 3dcalc, but this way is simpler\n"
@@ -120,14 +120,15 @@ int main( int argc , char * argv[] )
        "-- The output dataset is always stored as floats.\n"
        "-- The -cbucket dataset must have the same number of sub-bricks as\n"
        "   the input matrix has columns.\n"
-       "-- Each column in the matrix file is a time series.\n"
+       "-- Each column in the matrix file is a time series, used to model\n"
+       "   some component of the data time series at each voxel.\n"
        "-- The sub-bricks of the -cbucket dataset give the weighting\n"
-       "   coefficients for these time series, at each voxel.\n"
+       "   coefficients for these model time series, at each voxel.\n"
        "-- If you want to calculate a time series dataset wherein the original\n"
        "   time series data has the baseline subtracted, then you could\n"
        "   use 3dSynthesize to compute the baseline time series dataset, and\n"
        "   then use 3dcalc to subtract that dataset from the original dataset.\n"
-       "   Other similar applications are left to your imagination.\n"
+       "-- Other similar applications are left to your imagination.\n"
        "-- To see the column labels stored in matrix file 'fred.xmat.1D', type\n"
        "   the Unix command 'grep ColumnLabels fred.xmat.1D'; sample output:\n"
        " # ColumnLabels = \"Run#1Pol#0 ; Run#1Pol#1 ; Run#2Pol#0 ; Run#2Pol#1 ;\n"
@@ -136,13 +137,14 @@ int main( int argc , char * argv[] )
        "   imaging runs, and then 2 parameters each for 'FaceStim' and\n"
        "   'HouseStim'.\n"
        "-- The matrix file written by 3dDeconvolve has an XML-ish header\n"
-       "   before the columns of numbers.  If you generate your own 'raw' matrix\n"
-       "   file, without the header, you can still use 3dSynthesize, but then\n"
-       "   you can only use numeric '-select' options (or 'all').\n"
+       "   before the columns of numbers, stored in '#' comment lines.\n"
+       "   If you want to generate your own 'raw' matrix file, without this\n"
+       "   header, you can still use 3dSynthesize, but then you can only use\n"
+       "   numeric '-select' options (or 'all').\n"
        "-- When using a 'raw' matrix, you'll probably also want the '-TR' option.\n"
        "-- When putting more than one string after '-select', do NOT combine\n"
-       "   these separate strings in quotes.  If you do, they will be seen\n"
-       "   as a single string, which probably won't match anything.\n"
+       "   these separate strings togther in quotes.  If you do, they will be\n"
+       "   seen as a single string, which almost surely won't match anything.\n"
        "-- Author: RWCox -- March 2007\n"
       ) ;
       exit(0) ;
@@ -165,14 +167,16 @@ int main( int argc , char * argv[] )
         iarg++ ;
         if( cenfill_dset != NULL )
           ERROR_exit("Can't use -cenfill twice!") ;
-        if( strcmp(argv[iarg],"zero") == 0 ){
+        if( strcasecmp(argv[iarg],"zero") == 0 ){
           cenfill_mode = CENFILL_ZERO ;
-        } else if( strcmp(argv[iarg],"none") == 0 ){
+        } else if( strcasecmp(argv[iarg],"none") == 0 ){
           cenfill_mode = CENFILL_NONE ;
-        } else if( strcmp(argv[iarg],"model") == 0 ){
+#if 0
+        } else if( strcasecmp(argv[iarg],"model") == 0 ){
           cenfill_mode = CENFILL_MODEL ;
           ERROR_exit("-cenfill model NOT YET IMPLEMENTED!") ;
-        } else if( strcmp(argv[iarg],"nbhr") == 0 ){
+#endif
+        } else if( strcasecmp(argv[iarg],"nbhr") == 0 ){
           cenfill_mode = CENFILL_NBHR ;
         } else {
 #if 0
@@ -305,10 +309,10 @@ int main( int argc , char * argv[] )
      cgl = NI_get_attribute( nelmat , "GoodList" ) ;
      if( cgl == NULL || cenfill_mode == CENFILL_NONE ){
        if( cenfill_mode != CENFILL_NONE )
-         ERROR_exit("-matrix is missing 'GoodList': can't do -cenfill") ;
+         WARNING_message("-matrix is missing 'GoodList': can't do -cenfill") ;
        Ngoodlist = nrow ; goodlist = (int *)malloc(sizeof(int)*nrow) ;
        for( ii=0 ; ii < nrow ; ii++ ) goodlist[ii] = ii ;
-       Nbadlist = 0 ; badlist = NULL ; nrowfull = nrow ;
+       Nbadlist = 0; badlist = NULL; nrowfull = nrow; cenfill_mode = CENFILL_NONE;
      } else {
        int *qlist ;
        niar = NI_decode_int_list( cgl , ";,") ;
@@ -457,12 +461,11 @@ int main( int argc , char * argv[] )
    if( nilist == 0 )
      ERROR_exit("No columns selected for dataset synthesis!") ;
 
-   INFO_message("Index list: %d nonzero entries",nilist) ;
-   fprintf(stderr,"++ ") ;
-   for( ii=0 ; ii < ncol ; ii++ ) if( ilist[ii] ) fprintf(stderr," %d",ii) ;
-   fprintf(stderr,"\n") ;
-
    if( dry ){
+     INFO_message("Index list: %d nonzero entries",nilist) ;
+     fprintf(stderr,"++ ") ;
+     for( ii=0 ; ii < ncol ; ii++ ) if( ilist[ii] ) fprintf(stderr," %d",ii) ;
+     fprintf(stderr,"\n") ;
      INFO_message("3dSynthesize exits: -dry option was given") ;
      exit(0) ;
    }
@@ -499,7 +502,19 @@ int main( int argc , char * argv[] )
    tsar = (float *)calloc(sizeof(float),nrowout+1) ;
    cfar = (float *)calloc(sizeof(float),ncol+1) ;
 
+   INFO_message("Output has %d time points at TR=%g",nrowout,dt) ;
+   if( Nbadlist > 0 ){
+    if( cenfill_mode == CENFILL_NONE )
+      INFO_message("Input had %d time points censored; these are NOT filled",Nbadlist);
+    else
+      INFO_message("Input had %d time points censored; these are filled in",Nbadlist);
+   }
+
+   nspk = nxyz / 51 ;
+   fprintf(stderr,"++ Calculating: ") ;
    for( kk=0 ; kk < nxyz ; kk++ ){   /* kk = voxel index */
+
+      if( nspk > 0 && kk > 0 && kk%nspk == 0 ) fprintf(stderr,".") ;
 
       /* get kk-th voxel's coefficient array into cfar */
 
@@ -526,10 +541,10 @@ int main( int argc , char * argv[] )
 
         case CENFILL_NBHR:
           for( jj=0 ; jj < Nbadlist ; jj++ ){
-            ii = nbblist[jj] ; kk = nbtlist[jj] ;
-            if( ii >=0 && kk >= 0 ) tval = 0.5f*(tsar[ii]+tsar[kk]) ;
+            ii = nbblist[jj] ; mm = nbtlist[jj] ;
+            if( ii >=0 && mm >= 0 ) tval = 0.5f*(tsar[ii]+tsar[mm]) ;
             else if( ii >= 0 )      tval = tsar[ii] ;
-            else if( kk >= 0 )      tval = tsar[kk] ;
+            else if( mm >= 0 )      tval = tsar[mm] ;
             else                    tval = 0.0f ;
             tsar[badlist[jj]] = tval ;
           }
@@ -545,6 +560,7 @@ int main( int argc , char * argv[] )
       THD_insert_series( kk , outset ,
                          nrowout , MRI_float , tsar , 1 ) ;
    }
+   fprintf(stderr,"!\n") ;
 
    /** write output, and let freedom ring!! **/
 

@@ -577,6 +577,7 @@ typedef struct DC_options
   char *xjpeg_filename; /* plot file for -xjpeg option [21 Jul 2004] */
   char *x1D_filename;   /* save filename for -x1D option [28 Mar 2006] */
   int nox1D ;           /* 20 Mar 2007 */
+  char *x1D_unc ;       /* 25 Jun 2007 */
 
   int automask ;        /* flag to do automasking [15 Apr 2005] */
 
@@ -871,6 +872,8 @@ void display_help_menu()
     "[-xjpeg filename]    Write a JPEG file graphing the X matrix           \n"
     "[-x1D filename]      Save X matrix to a .xmat.1D (ASCII) file [default]\n"
     "[-nox1D]             Don't save X matrix                               \n"
+    "[-x1D_uncensored ff  Save X matrix to a .xmat.1D file, but WITHOUT     \n"
+    "                     ANY CENSORING.  Might be useful in 3dSynthesize.  \n"
     "[-progress n]        Write statistical results for every nth voxel     \n"
     "[-fdisp fval]        Write statistical results for those voxels        \n"
     "                       whose full model F-statistic is > fval          \n"
@@ -942,6 +945,7 @@ void initialize_options
 
   option_data->xjpeg_filename = NULL ;  /* 21 Jul 2004 */
   option_data->x1D_filename   = NULL ;
+  option_data->x1D_unc        = NULL ;
   option_data->nox1D          = 0 ;
 
   /*----- Initialize stimulus options -----*/
@@ -1216,6 +1220,19 @@ void get_options
 
       if( strcmp(argv[nopt],"-nox1D") == 0 ){  /* 20 Mar 2007 */
         option_data->nox1D = 1 ; nopt++ ; continue ;
+      }
+
+      /*-----   -x1D_unc filename  ------*/
+      if (strncmp(argv[nopt], "-x1D_unc",8) == 0)   /* 25 Jun 2007 */
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -x1D_uncensored ");
+        option_data->x1D_unc = malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->x1D_unc);
+        strcpy (option_data->x1D_unc, argv[nopt]);
+        if( strstr(option_data->x1D_unc,"1D") == NULL )
+          strcat( option_data->x1D_unc , ".xmat.1D" ) ;
+        nopt++; continue;
       }
 
       /*-----   -input filename   -----*/
@@ -4820,7 +4837,12 @@ ENTRY("calculate_results") ;
     ONED_matrix_save( xdata , option_data->x1D_filename , cd , N,gl ,
                       (is_xfull) ? &xfull : NULL ) ;
   }
-
+  if( is_xfull && option_data->x1D_unc != NULL ){   /* 25 Mar 2007 */
+    void *cd=(void *)coldat ; int *gl=good_list ;
+    if( AFNI_noenv("AFNI_3dDeconvolve_NIML") &&
+        strstr(option_data->x1D_filename,"niml") == NULL ) cd = NULL ;
+    ONED_matrix_save( xfull , option_data->x1D_unc , cd , xfull.rows,NULL , &xfull ) ;
+  }
 
   /*----- 14 Jul 2004: check matrix for bad columns - RWCox -----*/
 
@@ -7066,11 +7088,17 @@ void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
      NI_set_attribute( nel, "RowTR", lab ); free((void *)lab); lab = NULL;
 #endif
 #if 1
-     if( Ngl > 0 && gl != NULL ){
+     if( Ngl > 0 ){
        NI_int_array iar ;
-       iar.num = Ngl ; iar.ar = gl ;
+       iar.num = Ngl ;
+       if( gl != NULL ) iar.ar = gl ;
+       else {
+         iar.ar = (int *)malloc(sizeof(int)*Ngl) ;
+         for( jj=0 ; jj < Ngl ; jj++ ) iar.ar[jj] = jj ;
+       }
        lab = NI_encode_int_list( &iar , "," ) ;
        NI_set_attribute( nel, "GoodList", lab ); NI_free((void *)lab); lab = NULL;
+       if( iar.ar != gl ) free((void *)iar.ar) ;
      }
      if( nxf > 0 ){
        sprintf(lll,"%d",nxf) ;
