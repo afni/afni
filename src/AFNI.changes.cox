@@ -6274,3 +6274,7 @@
      not to by AFNI_DONT_DECONFLICT.  Modify a bunch of 3d programs to NOT
      check for filename conflict on output.
  * Modify thd_correlate.c build_2Dhist() to avoid histogram overflow (oops).
+
+25 Jun 2007
+ * Changes to 3dDeconvolve and 3dSynthesize so that censored time points
+     can be reconstructed in some fashion in the latter program.
