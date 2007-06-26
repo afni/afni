@@ -202,6 +202,25 @@ THD_fvec3 mri_nstat_fwhmxyz( int xx, int yy, int zz,
 }
 
 /*--------------------------------------------------------------------------*/
+
+float mri_nstat_fwhmbar( int xx, int yy, int zz,
+                         MRI_IMAGE *im, byte *mask, MCW_cluster *nbhd )
+{
+   THD_fvec3 fw ;
+   float fx,fy,fz , sum ; int nsum ;
+
+   fw = mri_nstat_fwhmxyz( xx,yy,zz , im,mask,nbhd ) ;
+   UNLOAD_FVEC3(fw,fx,fy,fz) ;
+
+   sum = 0.0f ; nsum = 0 ;
+   if( fx > 0.0f ){ sum += fx ; nsum++ ; }
+   if( fy > 0.0f ){ sum += fy ; nsum++ ; }
+   if( fz > 0.0f ){ sum += fz ; nsum++ ; }
+   if( nsum > 0 ) sum /= nsum ;
+   return sum ;
+}
+
+/*--------------------------------------------------------------------------*/
 /*! Compute a local statistic at each voxel of an image, possibly with
     a mask; 'local' is defined with a neighborhood; 'statistic' is defined
     by an NSTAT_ code.
@@ -310,12 +329,14 @@ ENTRY("THD_localstat") ;
          if( need_nbim )
            nbim = THD_get_dset_nbhd( dset,iv , mask,ii,jj,kk , nbhd ) ;
          for( cc=0 ; cc < ncode ; cc++ ){
-           if( code[cc] != NSTAT_FWHMx ){
-             aar[cc][ijk] = mri_nstat( code[cc] , nbim ) ;
-           } else {
+           if( code[cc] == NSTAT_FWHMbar ){
+             aar[cc][ijk] = mri_nstat_fwhmbar( ii,jj,kk , dsim,mask,nbhd ) ;
+           } else if( code[cc] == NSTAT_FWHMx ){
              fwv = mri_nstat_fwhmxyz( ii,jj,kk , dsim,mask,nbhd ) ;
              UNLOAD_FVEC3( fwv, aar[cc][ijk],aar[cc+1][ijk],aar[cc+2][ijk] ) ;
              cc += 2 ;  /* skip FWHMy and FWHMz codes */
+           } else {
+             aar[cc][ijk] = mri_nstat( code[cc] , nbim ) ;
            }
          }
          if( nbim != NULL ){ mri_free(nbim); nbim = NULL; }
