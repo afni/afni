@@ -72,11 +72,13 @@ int main( int argc , char *argv[] )
       "                          the mean and stdev outputs.\n"
       "               * FWHM   = compute (like 3dFWHM) image smoothness\n"
       "                          inside each voxel's neighborhood.  Results\n"
-      "                          are in 3 sub-bricks: FWHMx, FHWMy, and FWHM.\n"
+      "                          are in 3 sub-bricks: FWHMx, FHWMy, and FWHMz.\n"
       "                          Places where an output is -1 are locations\n"
       "                          where the FWHM value could not be computed\n"
       "                          (e.g., outside the mask).\n"
-      "               * ALL    = all of the above, in that order\n"
+      "               * FWHMbar= Compute just the average of the 3 FWHM values\n"
+      "                          (normally would NOT do this with FWHM also).\n"
+      "               * ALL    = all of the above, in that order (except FWHMbar).\n"
       "               More than one '-stat' option can be used.\n"
       "\n"
       " -mask mset  = Read in dataset 'mset' and use the nonzero voxels\n"
@@ -166,6 +168,7 @@ int main( int argc , char *argv[] )
                                                code[ncode++] = NSTAT_FWHMy ;
                                                code[ncode++] = NSTAT_FWHMz ;
                                                do_fwhm++                   ;}
+       else if( strcasecmp(cpt,"fwhmbar")==0 ) code[ncode++] = NSTAT_FWHMbar;
        else if( strcasecmp(cpt,"ALL")   == 0 ){
          code[ncode++] = NSTAT_MEAN  ; code[ncode++] = NSTAT_SIGMA ;
          code[ncode++] = NSTAT_VAR   ; code[ncode++] = NSTAT_CVAR  ;
