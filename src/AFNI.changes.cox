@@ -6278,3 +6278,6 @@
 25 Jun 2007
  * Changes to 3dDeconvolve and 3dSynthesize so that censored time points
      can be reconstructed in some fashion in the latter program.
+
+26 Jun 2007
+ * Boxed plots in afni_graph.[ch].  Probably a can of worms.

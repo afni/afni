@@ -525,7 +525,7 @@ ENTRY("new_MCW_grapher") ;
    /***** 16 June 1997: Colors submenu *****/
 
    { static char * bbox_label[1] = { "Use Thick Lines" } ;
-     static char * pts_label[2]  = { "Graph Points" , "Points+Lines" } ;
+     static char * pts_label[3]  = { "Graph Points" , "Points+Lines" , "Boxes" } ;
      char     toplabel[64] ;
      XmString xstr ;
 
@@ -606,9 +606,10 @@ ENTRY("new_MCW_grapher") ;
         /* 01 Aug 1998: allow points+lines to be drawn as well   */
 
         if( grapher->points_index[ii] >= 0 ){
+           int nbut = (ii==4) ? 3 : 2 ;
            grapher->opt_points_bbox[ii] =
               new_MCW_bbox( grapher->opt_colors_menu ,
-                            2 , pts_label , MCW_BB_radio_zero , MCW_BB_noframe ,
+                            nbut , pts_label , MCW_BB_radio_zero , MCW_BB_noframe ,
                             GRA_thick_CB , (XtPointer) grapher ) ;
            MCW_reghint_children(  grapher->opt_points_bbox[ii]->wrowcol ,
                                   "Plot graph as Points only, or as Points and Lines" ) ;
@@ -2139,7 +2140,10 @@ STATUS("starting time series graph loop") ;
           /** Compute X11 line coords from pixel heights in plot[].
               N.B.: X11 y is DOWN the screen, but plot[] is UP the screen **/
 
-          ftemp = grapher->gx / (pnum-1.0) ;  /* x scale factor */
+          if( DATA_BOXED(grapher) )
+            ftemp = grapher->gx / (float)pnum ; /* x scale factor */
+          else
+            ftemp = grapher->gx / (pnum-1.0) ;  /* x scale factor */
 
           /* X11 box for graph:
              x = xorigin[ix][iy]          .. xorigin[ix][iy]+gx    (L..R)
@@ -2152,7 +2156,8 @@ STATUS("starting time series graph loop") ;
                          timeseries that ranges between 0 and 1 */
 
 #define XPIX(ii)                                                        \
-   ( (grapher->xax_tsim != NULL && (ii) < grapher->xax_tsim->nx)        \
+   ( (grapher->xax_tsim != NULL && (ii) < grapher->xax_tsim->nx &&      \
+                                   !DATA_BOXED(grapher)            )    \
      ? (MRI_FLOAT_PTR(grapher->xax_tsim)[MAX((ii),ibot)] * grapher->gx) \
      : (((ii)-pbot) * ftemp) )
 
@@ -2172,6 +2177,21 @@ STATUS("starting time series graph loop") ;
             XDrawLines( grapher->dc->display ,
                         grapher->fd_pxWind , grapher->dc->myGC ,
                         a_line , qnum ,  CoordModeOrigin ) ;
+          }
+          if( DATA_BOXED(grapher) ){          /* 26 Jun 2007 */
+            XPoint *q_line; short xp ;
+            q_line = (XPoint *)malloc(sizeof(XPoint)*4*qnum+1) ;
+            for( i=0 ; i < qnum ; i++ ){
+              xp = (short)(a_line[i].x + ftemp) ;
+              q_line[4*i+0].x = a_line[i].x ; q_line[4*i+0].y = yoff ;
+              q_line[4*i+1].x = a_line[i].x ; q_line[4*i+1].y = a_line[i].y ;
+              q_line[4*i+2].x = xp          ; q_line[4*i+2].y = a_line[i].y ;
+              q_line[4*i+3].x = xp          ; q_line[4*i+3].y = yoff ;
+            }
+            XDrawLines( grapher->dc->display ,
+                        grapher->fd_pxWind , grapher->dc->myGC ,
+                        q_line , 4*qnum ,  CoordModeOrigin ) ;
+            free((void *)q_line) ;
           }
 
          /* 22 July 1996: save central graph data for later use */
@@ -5830,16 +5850,19 @@ ENTRY("GRA_thick_CB") ;
 
    /* 09 Jan 1998 */
 
-   for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ )
-      if( grapher->opt_points_bbox[ii] != NULL &&
-          ( w == grapher->opt_points_bbox[ii]->wbut[0] ||
-            w == grapher->opt_points_bbox[ii]->wbut[1]   ) ) break ;
+   for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ ){
+     if( grapher->opt_points_bbox[ii] != NULL ){
+       for( jj=0 ; jj < grapher->opt_points_bbox[ii]->nbut ; jj++ )
+         if( w == grapher->opt_points_bbox[ii]->wbut[jj] ) break ;
+       if( jj < grapher->opt_points_bbox[ii]->nbut ) break ;
+     }
+   }
 
    if( ii < NUM_COLOR_ITEMS ){
-      jj = grapher->points_index[ii] ;
-      grapher->points_index[ii] = MCW_val_bbox( grapher->opt_points_bbox[ii] ) ;
-      if( jj != grapher->points_index[ii] ) redraw_graph( grapher , 0 ) ;
-      EXRETURN ;
+     jj = grapher->points_index[ii] ;
+     grapher->points_index[ii] = MCW_val_bbox( grapher->opt_points_bbox[ii] ) ;
+     if( jj != grapher->points_index[ii] ) redraw_graph( grapher , 0 ) ;
+     EXRETURN ;
    }
 
    EXRETURN ;  /* should not be reached */

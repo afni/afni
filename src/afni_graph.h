@@ -345,7 +345,7 @@ static int gr_unfim[NUM_COLOR_ITEMS] = { 0,0,0,0,0,1,1,1,0 } ;  /* Oct 1999 */
 #define BG_POINTS(gr)     ((gr)->points_index[1] != 0)
 #define GRID_POINTS(gr)   ((gr)->points_index[2] != 0)
 #define TEXT_POINTS(gr)   ((gr)->points_index[3] != 0)
-#define DATA_POINTS(gr)   ((gr)->points_index[4] != 0)
+#define DATA_POINTS(gr)   ((gr)->points_index[4] == 1 || (gr)->points_index[4] == 2)
 #define IDEAL_POINTS(gr)  ((gr)->points_index[5] != 0)
 #define ORT_POINTS(gr)    ((gr)->points_index[6] != 0)
 #define IGNORE_POINTS(gr) ((gr)->points_index[7] != 0)
@@ -355,11 +355,13 @@ static int gr_unfim[NUM_COLOR_ITEMS] = { 0,0,0,0,0,1,1,1,0 } ;  /* Oct 1999 */
 #define BG_LINES(gr)     ((gr)->points_index[1] != 1)
 #define GRID_LINES(gr)   ((gr)->points_index[2] != 1)
 #define TEXT_LINES(gr)   ((gr)->points_index[3] != 1)
-#define DATA_LINES(gr)   ((gr)->points_index[4] != 1)
+#define DATA_LINES(gr)   ((gr)->points_index[4] == 0 || (gr)->points_index[4] == 2)
 #define IDEAL_LINES(gr)  ((gr)->points_index[5] != 1)
 #define ORT_LINES(gr)    ((gr)->points_index[6] != 1)
 #define IGNORE_LINES(gr) ((gr)->points_index[7] != 1)
 #define DPLOT_LINES(gr)  ((gr)->points_index[8] != 1)
+
+#define DATA_BOXED(gr)   ((gr)->points_index[4] == 4)  /* 26 Jun 2007 */
 
 extern void GRA_color_CB( MCW_arrowval * , XtPointer ) ;
 extern void GRA_thick_CB( Widget , XtPointer , XtPointer ) ;
