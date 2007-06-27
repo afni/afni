@@ -21,7 +21,7 @@ def db_mod_tcat(block, proc, user_opts):
         if errs == 0 and bopt.parlist[0] > 0:
           print                                                              \
             '-----------------------------------------------------------\n'  \
-            '** warning: removing first %d TRs from beginning of each run\n' \
+            'warning: removing first %d TRs from beginning of each run\n'    \
             '   --> it is essential that stimulus timing files match the\n'  \
             '       removal of these TRs\n'                                  \
             '-----------------------------------------------------------'    \

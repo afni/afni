@@ -2062,3 +2062,7 @@
 13 Jun 2007: nifti_tool.c help update, file_tool.c help update
 22 Jun 2007: modified linux_xorg7 and _64 Makefiles to link motif statically
 
+27 Jun 2007:
+  * modified afni_base.py, afni_proc.py, afni_util.py, db_mod.py:
+        - on error, display failed command
+

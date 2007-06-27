@@ -42,6 +42,26 @@ def quotize_list(list, opt_prefix, skip_first=0):
 
     return newlist
 
+# given an argument list (such as argv), create a command string,
+# including any prefix and/or suffix
+def args_as_command(args, prefix='', suffix=''):
+    if len(args) < 1: return
+
+    cstr = "%s %s\n" % (os.path.basename(args[0]),
+                            ' '.join(quotize_list(args[1:],'')))
+    fstr = add_line_wrappers('%s%s%s' % (prefix,cstr,suffix))
+
+    return fstr
+
+# print the given argument list as a command
+# (this allows users to see wildcard expansions, for example)
+def show_args_as_command(args, note='command:'):
+  print args_as_command(args,
+     "----------------------------------------------------------------------\n"
+     "%s\n\n    " % note,
+     "----------------------------------------------------------------------"
+  )
+
 # given a list of text elements, create a list of afni_name elements,
 # and check for unique prefixes
 def uniq_list_as_dsets(dsets, showerr=0):
@@ -191,7 +211,8 @@ def add_line_wrappers(commands):
 
         # command needs wrapping
         new_cmd += insert_wrappers(commands, posn, end)
-        posn = end + 1
+
+        posn = end + 1     # else, update posn and continue
 
     # wrappers are in, now align them
     return align_wrappers(new_cmd + commands[posn:])

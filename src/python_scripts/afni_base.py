@@ -321,8 +321,8 @@ class shell_com:
 def read_attribute(dset, atr):
     [so, se] = shell_exec('3dAttribute %s %s' % (atr, dset))
     if len(so) == 0:
-        print '** 3dAttribute exec failure for "%s %s":' % (atr, dset)
-        print se
+        print '** 3dAttribute exec failure for "%s %s"' % (atr, dset)
+        if len(se) > 0: print se
         return None
     list = so[0].split()
     if len(list) > 0: return list
