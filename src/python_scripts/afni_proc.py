@@ -1055,9 +1055,10 @@ g_history = """
          - changed name of Xmat to X.xmat.1D
          - by default, apply -xjpeg in 3dDeconvolve
     1.24 Jun 04 2007 : added -scale_no_max
+    1.25 Jun 27 2007 : on error, display failed command
 """
 
-g_version = "version 1.24, Jun 4, 2007"
+g_version = "version 1.25, Jun 27, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -1227,33 +1228,32 @@ class SubjProcSream:
             return 1  # failure
 
         # apply the user options
-        if self.apply_initial_opts(self.user_opts): return 1
+        rv = self.apply_initial_opts(self.user_opts)
+        if rv != None: return rv
 
         # update out_dir now (may combine option results)
         if self.out_dir == '': self.out_dir = '%s.results' % self.subj_label
         self.od_var = '$output_dir'
 
+        if self.verb > 1: show_args_as_command(sys.argv, "executing command:")
         if self.verb > 3: self.show('end get_user_opts ')
 
-    # apply the general options
+    # apply the general options - many terminate program
     def apply_initial_opts(self, opt_list):
-        opt = opt_list.find_opt('-verb')    # set and use verb
+        opt = opt_list.find_opt('-verb')   # set and use verb
         if opt != None: self.verb = int(opt.parlist[0])
 
-        opt = opt_list.find_opt('-help')    # does the user want help?
-        if opt != None:
+        if opt_list.find_opt('-help'):     # just print help
             print g_help_string
-            return 1  # terminate
+            return 0  # gentle termination
         
-        opt = opt_list.find_opt('-hist')    # print the history
-        if opt != None:
+        if opt_list.find_opt('-hist'):     # print the history
             print g_history
-            return 1  # terminate
+            return 0  # gentle termination
         
-        opt = opt_list.find_opt('-ver')    # show the version string
-        if opt != None:
+        if opt_list.find_opt('-ver'):      # show the version string
             print g_version
-            return 1  # terminate
+            return 0  # gentle termination
         
         opt = opt_list.find_opt('-subj_id')
         if opt != None: self.subj_id = opt.parlist[0]
@@ -1395,7 +1395,9 @@ class SubjProcSream:
         # updated by 'tcat' opteration (and -remove_trs option)
         dset = self.dsets[0].rpv()
         list = read_attribute(dset, 'TAXIS_NUMS')
-        if list == None: return 1
+        if list == None:
+            print "** failed to find the number of TRs from dset '%s'" % dset
+            return 1
         try: self.reps = int(list[0])
         except:
             print "** reps '%s' is not an int?" % list[0]
@@ -1409,7 +1411,9 @@ class SubjProcSream:
         if units != 77001 and units != 77002: units = 77002
 
         list = read_attribute(dset, 'TAXIS_FLOATS')
-        if list == None: return 1
+        if list == None:
+            print "** failed to find the TR length from dset '%s'" % dset
+            return 1
         try: self.tr = float(list[1])
         except:
             print "** TR '%s' is not a float?" % list[0]
@@ -1604,13 +1608,18 @@ def run_proc():
     ps.init_opts()
 
     rv = ps.get_user_opts()
-    if rv != None: return rv
+    if rv != None:  # 0 is a valid return
+        if rv != 0:
+            show_args_as_command(sys.argv, "** failed command (get_user_opts):")
+        return rv
 
-    rv = ps.create_blocks()
-    if rv != None: return rv
+    if ps.create_blocks():
+        show_args_as_command(sys.argv, "** failed command (create_blocks):")
+        return rv
 
-    rv = ps.create_script()
-    if rv != None: return rv
+    if ps.create_script():
+        show_args_as_command(sys.argv, "** failed command (create_script):")
+        return rv
 
 # main
 if __name__ == '__main__':
