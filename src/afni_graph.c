@@ -524,8 +524,8 @@ ENTRY("new_MCW_grapher") ;
 
    /***** 16 June 1997: Colors submenu *****/
 
-   { static char * bbox_label[1] = { "Use Thick Lines" } ;
-     static char * pts_label[3]  = { "Graph Points" , "Points+Lines" , "Boxes" } ;
+   { static char *bbox_label[1] = { "Use Thick Lines" } ;
+     static char *pts_label[3]  = { "Graph Points" , "Points+Lines" , "Boxes" } ;
      char     toplabel[64] ;
      XmString xstr ;
 
@@ -612,7 +612,7 @@ ENTRY("new_MCW_grapher") ;
                             nbut , pts_label , MCW_BB_radio_zero , MCW_BB_noframe ,
                             GRA_thick_CB , (XtPointer) grapher ) ;
            MCW_reghint_children(  grapher->opt_points_bbox[ii]->wrowcol ,
-                                  "Plot graph as Points only, or as Points and Lines" ) ;
+                                  "How to plot graph data" ) ;
 
            if( grapher->points_index[ii] )
               MCW_set_bbox( grapher->opt_points_bbox[ii] ,
@@ -5830,7 +5830,7 @@ ENTRY("GRA_color_CB") ;
 
 void GRA_thick_CB( Widget w , XtPointer cd , XtPointer call_data )
 {
-   MCW_grapher * grapher = (MCW_grapher *) cd ;
+   MCW_grapher *grapher = (MCW_grapher *) cd ;
    int ii , jj ;
 
 ENTRY("GRA_thick_CB") ;
@@ -5838,14 +5838,14 @@ ENTRY("GRA_thick_CB") ;
    if( ! GRA_VALID(grapher) ) EXRETURN ;
 
    for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ )
-      if( grapher->opt_thick_bbox[ii] != NULL &&
-          w == grapher->opt_thick_bbox[ii]->wbut[0] ) break ;
+     if( grapher->opt_thick_bbox[ii] != NULL &&
+        w == grapher->opt_thick_bbox[ii]->wbut[0] ) break ;
 
    if( ii < NUM_COLOR_ITEMS ){
-      jj = grapher->thick_index[ii] ;
-      grapher->thick_index[ii] = MCW_val_bbox( grapher->opt_thick_bbox[ii] ) ;
-      if( jj != grapher->thick_index[ii] ) redraw_graph( grapher , 0 ) ;
-      EXRETURN ;
+     jj = grapher->thick_index[ii] ;
+     grapher->thick_index[ii] = MCW_val_bbox( grapher->opt_thick_bbox[ii] ) ;
+     if( jj != grapher->thick_index[ii] ) redraw_graph( grapher , 0 ) ;
+     EXRETURN ;
    }
 
    /* 09 Jan 1998 */
