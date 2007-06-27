@@ -2065,4 +2065,5 @@
 27 Jun 2007:
   * modified afni_base.py, afni_proc.py, afni_util.py, db_mod.py:
         - on error, display failed command
+  * modifed Makefile_linux_xorg7 and xorg7_64 for static linking in SUMA
 
