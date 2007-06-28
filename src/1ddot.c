@@ -22,6 +22,7 @@ int main( int argc , char *argv[] )
             " -one  =  Make 1st vector be all 1's.\n"
             " -dem  =  Remove mean from all vectors (conflicts with '-one')\n"
             " -cov  =  Compute with covariance matrix instead of correlation\n"
+            " -inn  =  Computed with inner product matrix instead\n"
             " -terse=  Output only the correlation or covariance matrix\n"
             "          and without any of the garnish. \n"
            ) ;
@@ -42,13 +43,17 @@ int main( int argc , char *argv[] )
      }
 
      if( strncmp(argv[iarg],"-cov",4) == 0 ){
-       docov = 1 ; iarg++ ; continue ;
+       docov=1 ; iarg++ ; continue ;
      }
-     
+
+     if( strncmp(argv[iarg],"-inn",4) == 0 ){
+       docov=2 ; iarg++ ; continue ;
+     }
+
      if( strncmp(argv[iarg],"-terse",4) == 0 ){
        doterse = 1 ; iarg++ ; continue ;
      }
-     
+
      fprintf(stderr,"** Unknown option: %s\n",argv[iarg]); exit(1);
    }
 
@@ -81,7 +86,7 @@ int main( int argc , char *argv[] )
    }
    jj = 0 ;
    if( do_one ){
-     if (!doterse) printf("00..00: all ones\n") ; 
+     if (!doterse) printf("00..00: all ones\n") ;
      jj = 1 ;
    }
    for( mm=0 ; mm < IMARR_COUNT(tar) ; mm++ ){
@@ -132,7 +137,12 @@ int main( int argc , char *argv[] )
      }
    }
 
-   matname = (docov) ? "Covariance" : "Correlation" ;
+   switch(docov){
+     default:
+     case 2:  matname = "InnerProduct" ; break ;
+     case 1:  matname = "Covariance"   ; break ;
+     case 0:  matname = "Correlation"  ; break ;
+   }
 
    /* create matrix from dot product of vectors */
 
@@ -148,16 +158,16 @@ int main( int argc , char *argv[] )
    }
 
    /* normalize */
-   if (docov) {
+   if (docov==1) {
       for( kk=0 ; kk < nvec ; kk++ ){
          for( jj=0 ; jj <= kk ; jj++ ){
             sum = amat[jj+nvec*kk] / (double) (nx-1);
             amat[jj+nvec*kk] = sum;
             if( jj < kk ) amat[kk+nvec*jj] = sum ;
          }
-      } 
+      }
    }
-   
+
    /* print matrix out */
 
    if (!doterse) {
@@ -173,9 +183,9 @@ int main( int argc , char *argv[] )
      for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.5f",amat[jj+kk*nvec]) ;
      printf("\n") ;
    }
-   
+
    if (doterse) exit(0) ; /* au revoir */
-   
+
    /* compute eigendecomposition */
 
    eval = (double *) malloc( sizeof(double)*nvec ) ;
@@ -194,7 +204,7 @@ int main( int argc , char *argv[] )
    }
 
    /* compute matrix inverse */
-   if (eval[jj] < 1.0e-10) {
+   if ( eval[0]/eval[nvec-1] < 1.0e-10) {
       printf("\n"
              "-- WARNING: Matrix is near singular,\n"
              "            rubbish likely for inverses ahead.\n");
@@ -223,6 +233,13 @@ int main( int argc , char *argv[] )
      for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.5f",bmat[jj+kk*nvec]) ;
      printf("\n") ;
    }
+
+   /* square roots of diagonals of the above */
+
+   printf("\n") ;
+   printf("++ %s sqrt(diagonal)\n   ",matname) ;
+   for( jj=0 ; jj < nvec ; jj++ ) printf(" %9.5f",sqrt(bmat[jj+jj*nvec])) ;
+   printf("\n") ;
 
    /* normalize matrix inverse */
 
