@@ -6278,9 +6278,11 @@
 25 Jun 2007
  * Changes to 3dDeconvolve and 3dSynthesize so that censored time points
      can be reconstructed in some fashion in the latter program.
+ * -x1D_uncensored in 3dDeconvolve.
 
 26 Jun 2007
  * Boxed plots in afni_graph.[ch].  Probably a can of worms.
 
 28 Jun 2007
- * Threshold on/off in thr_label popup menu in Define Overlay.
+ * Threshold on/off in reactivated thr_label popup menu in Define Overlay.
+ * -x1D_stop in 3dDeconvolve.
