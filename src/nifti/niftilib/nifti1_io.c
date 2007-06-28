@@ -3042,7 +3042,7 @@ int disp_nifti_1_header( const char * info, const nifti_1_header * hp )
   
    \return an allocated nifti_image, or NULL on failure
 *//*--------------------------------------------------------------------*/
-nifti_image* nifti_convert_nhdr2nim(nifti_1_header nhdr,
+nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
                                     const char * fname)
 {
    int   ii , doswap , ioff ;
@@ -3640,7 +3640,7 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
 
    /* keep file open so we can check for exts. after nifti_convert_nhdr2nim() */
 
-   if( ii < sizeof(nhdr) ){
+   if( ii < (unsigned int) sizeof(nhdr) ){
       if( g_opts.debug > 0 ){
          LNI_FERR(fname,"bad binary header read for file", hfile);
          fprintf(stderr,"  - read %d of %d bytes\n",ii, (int)sizeof(nhdr));
