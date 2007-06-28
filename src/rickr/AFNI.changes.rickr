@@ -2067,3 +2067,6 @@
         - on error, display failed command
   * modifed Makefile_linux_xorg7 and xorg7_64 for static linking in SUMA
 
+28 Jun 2007: minor changes from HJ
+  * modified CMakeLists.txt, niftilib/CMakeLists.txt, nifti1_io.c
+
