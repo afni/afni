@@ -1042,6 +1042,10 @@ to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
 	$(CC) -o 1dGentimes 1dGentimes.o $(LFLAGS) $(LLIBS)
 
+1dRansplit:1dRansplit.o
+	$(RM) $@
+	$(CC) -o 1dRansplit 1dRansplit.o $(LFLAGS) $(LLIBS)
+
 afni_vcheck:afni_vcheck.o
 	$(RM) $@
 	$(CC) -o afni_vcheck afni_vcheck.o $(LFLAGS) $(LLIBS)
