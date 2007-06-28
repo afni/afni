@@ -1226,7 +1226,7 @@ void get_options
       }
 
       if( strcmp(argv[nopt],"-x1D_stop") == 0 ){  /* 20 Mar 2007 */
-        option_data->x1D_stop = 0; option_data->nox1D = 0; nopt++; continue;
+        option_data->x1D_stop = 1; option_data->nox1D = 0; nopt++; continue;
       }
 
       /*-----   -x1D_unc filename  ------*/
@@ -2118,6 +2118,11 @@ void get_options
 
   if( allzero_OK ) use_psinv = 1 ;   /* 30 May 2007 */
 
+  if( option_data->x1D_stop ){       /* 28 Jun 2007 */
+    option_data->automask = 0 ;
+    option_data->nox1D    = 0 ;
+  }
+
   /*----- Set number of GLTs actually present -----*/
   option_data->num_glt = iglt;
 
@@ -2521,10 +2526,12 @@ ENTRY("read_input_data") ;
 
   else if (option_data->input_filename != NULL) /*----- 3d+time dataset -----*/
     {
-      if( verb ) INFO_message("reading dataset %s",option_data->input_filename);
       *dset_time = THD_open_dataset (option_data->input_filename);
       CHECK_OPEN_ERROR(*dset_time,option_data->input_filename);
-      DSET_load(*dset_time) ; CHECK_LOAD_ERROR(*dset_time) ;
+      if( !option_data->x1D_stop ){
+        if( verb ) INFO_message("loading dataset %s",option_data->input_filename);
+        DSET_load(*dset_time) ; CHECK_LOAD_ERROR(*dset_time) ;
+      }
       if( (*dset_time)->taxis == NULL )
         WARNING_message("dataset '%s' has no time axis",
                        option_data->input_filename) ;
@@ -2609,7 +2616,7 @@ ENTRY("read_input_data") ;
 
       if (option_data->mask_filename != NULL)   /* read mask from file */
          {
-           THD_3dim_dataset * mask_dset = NULL;
+           THD_3dim_dataset *mask_dset = NULL;
 
            /*----- Read the input mask dataset -----*/
            mask_dset = THD_open_dataset (option_data->mask_filename);
