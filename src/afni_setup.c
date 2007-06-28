@@ -1108,7 +1108,7 @@ ENTRY("AFNI_clu_CB") ;
    EXRETURN ;  /* should be unreachable */
 }
 
-#if 0
+#if 1
 /*-----------------------------------------------------------------
   Event handler to find #3 button press for thr_label popup;
   just pops up the menu for the user's gratification.
@@ -1135,6 +1135,25 @@ ENTRY("AFNI_thr_EV") ;
       break ;
    }
 
+   EXRETURN ;
+}
+
+void AFNI_thronoff_change_CB( Widget w , XtPointer cd , XtPointer calld )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   int qq , pp ;
+
+ENTRY("AFNI_thronoff_change_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   qq = im3d->vinfo->thr_onoff ;
+   pp = MCW_val_bbox( im3d->vwid->func->thr_onoff_bbox ) ;
+
+   if( pp != qq ){
+     im3d->vinfo->thr_onoff = pp ;
+     if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
+   }
    EXRETURN ;
 }
 #endif

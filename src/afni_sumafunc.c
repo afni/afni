@@ -77,7 +77,7 @@ ENTRY("AFNI_vnlist_func_overlay") ;
 
    /* get the component images */
 
-   need_thr = im3d->vinfo->func_threshold > 0.0 ;
+   need_thr = (im3d->vinfo->func_threshold > 0.0) && im3d->vinfo->thr_onoff ;
 
    if( need_thr ) im_thr = DSET_BRICK(fdset,ival) ;
    else           im_thr = NULL ;
