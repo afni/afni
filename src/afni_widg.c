@@ -2517,7 +2517,8 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->thr_label , "Type of threshold statistic" ) ;
 #endif
 
-#if 0
+#if 1
+   { static char *onofflabel[] = { "Use Threshold?" } ;
    /**-- 05 Sep 2006: menu hidden on the thr_label --**/
 
 #ifdef BAD_BUTTON3_POPUPS
@@ -2528,7 +2529,9 @@ STATUS("making func->rowcol") ;
 
    SAVEUNDERIZE(XtParent(func->thr_menu)) ;
    VISIBILIZE_WHEN_MAPPED(func->thr_menu) ;
+#if 0
    if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(func->thr_menu) ;
+#endif
 
    XtInsertEventHandler( func->thr_label ,       /* handle events in label */
 
@@ -2543,7 +2546,7 @@ STATUS("making func->rowcol") ;
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , func->thr_menu ,
-               LABEL_ARG("-Volume Edit-") ,
+               LABEL_ARG("--- Cancel ---") ,
                XmNrecomputeSize , False ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
@@ -2552,30 +2555,15 @@ STATUS("making func->rowcol") ;
             "dialog" , xmSeparatorWidgetClass , func->thr_menu ,
              XmNseparatorType , XmSINGLE_LINE , NULL ) ;
 
-   func->thr_clear_pb =
-      XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , func->thr_menu ,
-            LABEL_ARG("*Clear Edit") ,
-            XmNtraversalOn , True  ,
-            XmNinitialResourcesPersistent , False ,
-         NULL ) ;
-   XtAddCallback( func->thr_clear_pb , XmNactivateCallback ,
-                  AFNI_thr_CB , im3d ) ;
-   MCW_register_hint( func->thr_clear_pb , "Turn off Volume Edit" ) ;
-   im3d->vedset.code = 0 ; im3d->vedset.ival = -1 ;
-
-   func->thr_cluster_pb =
-      XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , func->thr_menu ,
-            LABEL_ARG(" Clusterize") ,
-            XmNtraversalOn , True  ,
-            XmNinitialResourcesPersistent , False ,
-         NULL ) ;
-   XtAddCallback( func->thr_cluster_pb , XmNactivateCallback ,
-                  AFNI_thr_CB , im3d ) ;
-   MCW_register_hint( func->thr_cluster_pb , "Cluster edit overlay" ) ;
+   func->thr_onoff_bbox = new_MCW_bbox( func->thr_menu ,
+                                        1 , onofflabel ,
+                                        MCW_BB_check , MCW_BB_noframe ,
+                                        AFNI_thronoff_change_CB , (XtPointer)im3d ) ;
+   im3d->vinfo->thr_onoff = 1 ;
+   MCW_set_bbox( func->thr_onoff_bbox , 1 ) ;
 
    /*---- end of thr_menu creation ----*/
+   }
 #endif
 
    FIX_SCALE_VALUE(im3d) ;
@@ -5147,6 +5135,7 @@ ENTRY("AFNI_initialize_controller") ;
    POPUP_cursorize( im3d->vwid->func->inten_label ) ;
    POPUP_cursorize( im3d->vwid->picture ) ;
    POPUP_cursorize( imag->crosshair_label ) ;
+   POPUP_cursorize( im3d->vwid->func->thr_label ) ;
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;

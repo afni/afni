@@ -135,7 +135,8 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
     /*-------------------- mask from threshold --------------------*/
     go->gpt_index = -1; go->gpt_thresh = 0.0;   /* init threshold options */
     cmask = NULL;
-    if( im3d->vinfo->func_threshold > 0.0 )	/* then want a threshold */
+    if( im3d->vinfo->func_threshold > 0.0 &&
+        im3d->vinfo->thr_onoff )	            /* then want a threshold */
     {
 	MRI_IMAGE * im_thr;
         float       thresh;

@@ -240,6 +240,7 @@ typedef struct {
       float      func_thresh_top ;              /* 23 Jul 1997 */
       int        func_resam_mode , anat_resam_mode , pts_color ;
       int        thr_resam_mode ;               /* 09 Dec 1997 */
+      int        thr_onoff ;                    /* 28 Jun 2007 */
 
       /* 3/24/95: range data for conversion of pbar
                   values to thresholding values in the data */
@@ -473,6 +474,9 @@ typedef struct {
 
       Widget thr_rowcol , thr_label , thr_scale , thr_pval_label ;
       MCW_arrowval * thr_top_av ;
+
+      Widget thr_menu ;
+      MCW_bbox *thr_onoff_bbox ;
 
       Widget inten_rowcol , inten_label ;
       MCW_pbar     * inten_pbar ;
