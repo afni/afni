@@ -578,6 +578,7 @@ typedef struct DC_options
   char *x1D_filename;   /* save filename for -x1D option [28 Mar 2006] */
   int nox1D ;           /* 20 Mar 2007 */
   char *x1D_unc ;       /* 25 Jun 2007 */
+  int x1D_stop ;        /* 28 Jun 2007 */
 
   int automask ;        /* flag to do automasking [15 Apr 2005] */
 
@@ -874,6 +875,7 @@ void display_help_menu()
     "[-nox1D]             Don't save X matrix                               \n"
     "[-x1D_uncensored ff  Save X matrix to a .xmat.1D file, but WITHOUT     \n"
     "                     ANY CENSORING.  Might be useful in 3dSynthesize.  \n"
+    "[-x1D_stop]          Stop running after writing .xmat.1D files.        \n"
     "[-progress n]        Write statistical results for every nth voxel     \n"
     "[-fdisp fval]        Write statistical results for those voxels        \n"
     "                       whose full model F-statistic is > fval          \n"
@@ -947,6 +949,7 @@ void initialize_options
   option_data->x1D_filename   = NULL ;
   option_data->x1D_unc        = NULL ;
   option_data->nox1D          = 0 ;
+  option_data->x1D_stop       = 0 ;
 
   /*----- Initialize stimulus options -----*/
   option_data->num_stimts = 0;
@@ -1220,6 +1223,10 @@ void get_options
 
       if( strcmp(argv[nopt],"-nox1D") == 0 ){  /* 20 Mar 2007 */
         option_data->nox1D = 1 ; nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-x1D_stop") == 0 ){  /* 20 Mar 2007 */
+        option_data->x1D_stop = 0; option_data->nox1D = 0; nopt++; continue;
       }
 
       /*-----   -x1D_unc filename  ------*/
@@ -4842,6 +4849,10 @@ ENTRY("calculate_results") ;
     if( AFNI_noenv("AFNI_3dDeconvolve_NIML") &&
         strstr(option_data->x1D_filename,"niml") == NULL ) cd = NULL ;
     ONED_matrix_save( xfull , option_data->x1D_unc , cd , xfull.rows,NULL , &xfull ) ;
+  }
+  if( option_data->x1D_stop ){   /* 28 Jun 2007 */
+    INFO_message("3dDeconvolve exits: -x1D_stop option was given") ;
+    exit(0) ;
   }
 
   /*----- 14 Jul 2004: check matrix for bad columns - RWCox -----*/
