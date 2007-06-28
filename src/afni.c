@@ -5708,7 +5708,7 @@ DUMP_IVEC3("  new_id",new_id) ;
 
    /*--- 05 Sep 2006: volume edit on demand? ---*/
 
-   if( IM3D_IMAGIZED(im3d) ){
+   if( IM3D_IMAGIZED(im3d) && im3d->vinfo->thr_onoff ){
      if( VEDIT_good(im3d->vedset) ){
        im3d->vedset.ival = im3d->vinfo->fim_index ;
        switch( VEDIT_CODE(im3d->vedset) ){

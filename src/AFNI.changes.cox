@@ -6281,3 +6281,6 @@
 
 26 Jun 2007
  * Boxed plots in afni_graph.[ch].  Probably a can of worms.
+
+28 Jun 2007
+ * Threshold on/off in thr_label popup menu in Define Overlay.

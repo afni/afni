@@ -1041,7 +1041,7 @@ ENTRY("AFNI_func_overlay") ;
 
    LOAD_DSET_VIEWS(im3d) ; /* 02 Nov 1996 */
 
-   need_thr = im3d->vinfo->func_threshold > 0.0 ;
+   need_thr = (im3d->vinfo->func_threshold > 0.0) && im3d->vinfo->thr_onoff ;
 
    /* 29 Mar 2005: make sure statistics of overlay dataset are ready */
 
