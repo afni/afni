@@ -525,7 +525,7 @@ ENTRY("new_MCW_grapher") ;
    /***** 16 June 1997: Colors submenu *****/
 
    { static char *bbox_label[1] = { "Use Thick Lines" } ;
-     static char *pts_label[3]  = { "Graph Points" , "Points+Lines" , "Boxes" } ;
+     static char *pts_label[3]  = { "Graph Points" , "Points+Lines" , "Boxes [B]" } ;
      char     toplabel[64] ;
      XmString xstr ;
 
@@ -3283,7 +3283,16 @@ STATUS(str); }
       }
       break ;
 
-      case 't':{                                                  /* 22 Sep 2000 */
+      case 'B':{                                        /* 29 Jun 2007 */
+        int bbb=grapher->points_index[4] , ccc ;
+        ccc = (bbb==4) ? 0 : 4 ;
+        MCW_set_bbox( grapher->opt_points_bbox[4] , ccc ) ;
+        grapher->points_index[4] = ccc ;
+        if( !grapher->textgraph ) redraw_graph( grapher , 0 ) ;
+      }
+      break ;
+
+      case 't':{                                        /* 22 Sep 2000 */
         int bbb = ! grapher->textgraph ;
         MCW_set_bbox( grapher->opt_textgraph_bbox , bbb ) ;
         grapher->textgraph = bbb ;
