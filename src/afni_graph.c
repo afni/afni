@@ -1674,7 +1674,7 @@ void plot_graphs( MCW_grapher *grapher , int code )
    MRI_IMAGE *tsim ;
    MRI_IMARR *tsimar ;
    float     *tsar ;
-   float       tsbot=0.0 , ftemp , tstop ;
+   float       tsbot=0.0 , ftemp,fwid,foff , tstop ;
    int i, m, index, ix, iy, xtemp,ytemp,ztemp , xoff,yoff , its,ibot,itop;
    int ptop,pbot,pnum,qnum , tbot,ttop,tnum , ntmax ;  /* 17 Mar 2004 */
 
@@ -2156,8 +2156,7 @@ STATUS("starting time series graph loop") ;
                          timeseries that ranges between 0 and 1 */
 
 #define XPIX(ii)                                                        \
-   ( (grapher->xax_tsim != NULL && (ii) < grapher->xax_tsim->nx &&      \
-                                   !DATA_BOXED(grapher)            )    \
+   ( (grapher->xax_tsim != NULL && (ii) < grapher->xax_tsim->nx)        \
      ? (MRI_FLOAT_PTR(grapher->xax_tsim)[MAX((ii),ibot)] * grapher->gx) \
      : (((ii)-pbot) * ftemp) )
 
@@ -2179,19 +2178,18 @@ STATUS("starting time series graph loop") ;
                         a_line , qnum ,  CoordModeOrigin ) ;
           }
           if( DATA_BOXED(grapher) ){          /* 26 Jun 2007 */
-            XPoint *q_line; short xp ;
-            q_line = (XPoint *)malloc(sizeof(XPoint)*4*qnum+1) ;
+            XPoint q_line[4] ; short xb,xt ; float delt=ftemp/tsim->ny ;
             for( i=0 ; i < qnum ; i++ ){
-              xp = (short)(a_line[i].x + ftemp) ;
-              q_line[4*i+0].x = a_line[i].x ; q_line[4*i+0].y = yoff ;
-              q_line[4*i+1].x = a_line[i].x ; q_line[4*i+1].y = a_line[i].y ;
-              q_line[4*i+2].x = xp          ; q_line[4*i+2].y = a_line[i].y ;
-              q_line[4*i+3].x = xp          ; q_line[4*i+3].y = yoff ;
+              xb = (short)(a_line[i].x + tt*delt + 0.49f) ;
+              xt = (short)(xb + delt-0.99f) ;
+              q_line[0].x = xb ; q_line[0].y = yoff ;
+              q_line[1].x = xb ; q_line[1].y = a_line[i].y ;
+              q_line[2].x = xt ; q_line[2].y = a_line[i].y ;
+              q_line[3].x = xt ; q_line[3].y = yoff ;
+              XDrawLines( grapher->dc->display ,
+                          grapher->fd_pxWind , grapher->dc->myGC ,
+                          q_line , 4 ,  CoordModeOrigin ) ;
             }
-            XDrawLines( grapher->dc->display ,
-                        grapher->fd_pxWind , grapher->dc->myGC ,
-                        q_line , 4*qnum ,  CoordModeOrigin ) ;
-            free((void *)q_line) ;
           }
 
          /* 22 July 1996: save central graph data for later use */

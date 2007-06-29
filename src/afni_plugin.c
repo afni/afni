@@ -3018,7 +3018,7 @@ ENTRY("PLUGIN_dset_check") ;
 
    if( ((1 << dset->func_type) & type_mask) == 0 ) RETURN(0) ;
 
-   itmp = (DSET_NUM_TIMES(dset) > 1) ? DIMEN_4D_MASK : DIMEN_3D_MASK ;
+   itmp = (DSET_NVALS(dset) > 1) ? DIMEN_4D_MASK : DIMEN_3D_MASK ;
    if( (itmp & ctrl_mask) == 0 ) RETURN(0) ;
 
    if( !DSET_INMEMORY(dset) && (ctrl_mask & WARP_ON_DEMAND_MASK) == 0 ) RETURN(0) ;
