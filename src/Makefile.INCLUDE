@@ -75,7 +75,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
-           3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty                \
+           3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -642,6 +642,12 @@ d3dmerge:3dmerge.c
 	$(CC) -o 3dedge3 3dedge3.o -I3DEdge/src            \
               $(LFLAGS) -l3DEdge -lmri -lf2c $(LLIBS)
 
+### From Stephen Laconte
+3dsvm:svm/svm_common.c svm/svm_learn.c svm/3dsvm_common.c svm/svm_hideo.c svm/3dsvm.c
+	( cd svm/   ;  \
+	  $(CC) -o 3dsvm svm_common.c svm_learn.c 3dsvm_common.c svm_hideo.c 3dsvm.c -I.. $(ISFLAGS) -L.. $(LFLAGS) $(LLIBS)  ;  \
+	  $(CP) 3dsvm ..  ;  \
+	  cd .. ;)
 whereami:whereami.c
 	$(RM) $@
 	$(CC) -o whereami whereami.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(AFWARPOBJS) -lrickr -lmri -lf2c $(LLIBS)
@@ -1594,7 +1600,7 @@ models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO)  \
 
 # Contributed plugins go last, since they might not compile well
 
-contrib_plugins: ziad_plugins birn_plugins kummer_plugins \
+contrib_plugins: ziad_plugins birn_plugins kummer_plugins laconte_plugins \
                  rickr_plugins tross_plugins belmonte_plugins fredtam_plugins
 
 ziad_plugins: plug_3Ddump_V2.$(SO) plug_4Ddump.$(SO) \
@@ -1613,6 +1619,8 @@ rickr_plugins: plug_roiedit.$(SO) plug_hemisub.$(SO) \
 tross_plugins: plug_fourier.$(SO)
 
 belmonte_plugins: plug_threshold.$(SO) plug_permtest.$(SO)
+
+laconte_plugins: plug_3dsvm.$(SO)
 
 install_plugins: $(INSTALLDIR)
 	$(MV) *.$(PLUGIN_SUFFIX) $(INSTALLDIR)
@@ -1655,6 +1663,15 @@ plug_retroicor.$(SO):plug_retroicor.c retroicor.o
 
 plug_render.$(SO):mri_render.h
 
+### From Stephen Laconte
+plug_3dsvm.$(SO):svm/plug_3dsvm.c svm/svm_common.c svm/svm_learn.c svm/3dsvm_common.c svm/svm_hideo.c
+	(  cd svm;   \
+	   $(RM) $@ ;  \
+		$(PLUGIN_CC) -c plug_3dsvm.c 3dsvm_common.c svm_common.c svm_learn.c svm_hideo.c $(ISFLAGS)  -I.. ;  \
+		$(LD) $(PLUGIN_LFLAGS) -o plug_3dsvm.$(SO) plug_3dsvm.o 3dsvm_common.o svm_common.o svm_learn.o svm_hideo.o -L. -L.. ; \
+	   cp plug_3dsvm.$(SO) ..  ;  \
+	   cd .. ;  )
+      
 # Stuff for plugins on CYGWIN:
 # Each plugin must be listed here and have 2 corresponding lines in fixed_plugins.h
 #
