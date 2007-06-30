@@ -2070,3 +2070,9 @@
 28 Jun 2007: minor changes from HJ
   * modified CMakeLists.txt, niftilib/CMakeLists.txt, nifti1_io.c
 
+29 Jun 2007: file_tool can work with ANALYZE headers
+  * added fields.[ch], incorportating field lists from nifti_tool
+  * modified file_tool.[ch]:
+        - added options -def_ana_hdr, -diff_ana_hdrs, -disp_ana_hdr, -hex
+  * modified rickr/Makefile: file_tool depends on fields.[ch]
+
