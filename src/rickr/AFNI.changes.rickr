@@ -2075,4 +2075,5 @@
   * modified file_tool.[ch]:
         - added options -def_ana_hdr, -diff_ana_hdrs, -disp_ana_hdr, -hex
   * modified rickr/Makefile: file_tool depends on fields.[ch]
+  * modified 3dANOVA.h: set MAX_OBS to 300, for T. Holroyd
 
