@@ -1,91 +1,79 @@
-# This Makefile works on Linux.
-# This is for compiling with GCC 3.3, on a 64-bit CPU.
 
-# CPROF = -pg -g
-USE_ZLIB = -DHAVE_ZLIB
-LZLIB    = -lz
+RICKR_OBJS = r_idisp.o r_misc.o r_new_resam_dset.o
 
-CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF)
+RICKR_HDRS = r_idisp.h r_misc.h r_new_resam_dset.h
+RICKR_SRCS = r_idisp.c r_misc.c r_new_resam_dset.c
 
-CC     = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
-CCVOL  = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA)
-CCFAST = /usr/bin/gcc -O3 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA) -DUSE_ACML
+IMON_OBJS  = l_mcw_glob.o realtime.o
 
-# The following line includes compiling for the SSE operations.
-# However, I found that it actually makes things worse in some test code.
-# Your mileage may vary.
+AFNI_WARP_OBJS = ../afni_warp.o ../afni_slice_byte.o ../afni_slice_short.o  \
+		 ../afni_slice_float.o ../afni_slice_complex.o              \
+		 ../afni_slice_rgbyte.o
 
-# CCFAST = /usr/bin/gcc -O3 -march=i686 -ffast-math -mmmx -msse -mfpmath=sse -DLINUX2 $(CEXTRA)
+WARN_OPT = 
 
-CCMIN  = /usr/bin/gcc -m64 $(CPROF)
-CCD    = $(CC) $(CCDEBS)
-IFLAGS = -I. -I/usr/X11R6/include -I/opt/acml3.1.0/gnu64/include
-LFLAGS = -L. -L/usr/X11R6/lib64 /opt/acml3.1.0/gnu64/lib/libacml.a
+librickr.a: $(RICKR_OBJS)
+	rm -f librickr.a
+	ar q librickr.a $(RICKR_OBJS)
+	$(RANLIB) librickr.a
 
-CCSVD  = /usr/bin/gcc -O0 -m64 -fPIC
 
-PLUGIN_SUFFIX = so
-PLUGIN_LFLAGS = -shared -fPIC
-PLUGIN_CC     = $(CC)
-# PLFLAGS       = -rdynamic -L. -L/usr/X11R6/lib
-PLFLAGS       = -rdynamic -L. -L/usr/X11R6/lib64
+$(RICKR_OBJS): $(RICKR_HDRS) $(RICKR_SRCS)
 
-SHOWOFF = -DSHOWOFF=linux_gcc33_64
 
-AR     = /usr/bin/ar
-RANLIB = /usr/bin/ranlib
-TAR    = /bin/tar
-MKDIR  = /bin/mkdir
-GZIP   = /bin/gzip
-LD     = /usr/bin/gcc $(CPROF)
+clean:
+	$(RM) *.o
 
-RM = /bin/rm -f
-MV = /bin/mv -f
-CP = /bin/cp -f
+3dresample: 3dresample.o
+	$(RM) $@
+	$(CC) -o 3dresample 3dresample.o $(AFNI_WARP_OBJS)	\
+		 $(LFLAGS) -L.. -lrickr $(LLIBS) -lm
 
-LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+file_tool: file_tool.o file_tool.h fields.o fields.h
+	$(RM) $@
+	$(CC) -o file_tool file_tool.o fields.o ../ge4_header.o -lm
 
-INSTALLDIR = ./linux_gcc33_64
-LIBDIR = $(INSTALLDIR)
+Imon: Imon.o $(IMON_OBJS) Imon.h realtime.h
+	$(RM) $@
+	$(CC) -o Imon Imon.o $(IMON_OBJS) ../thd_iochan.o $(LFLAGS) -L.. -lm $(EXTRA_LIBS_2)
 
-#INSTALL_PREREQ = suma
-INSTALL_PREREQ = suma_gts
+Dimon: Dimon.o dimon_afni.o mri_dicom_hdr.o $(IMON_OBJS)
+	$(RM) $@
+	$(CC) -o Dimon Dimon.o dimon_afni.o mri_dicom_hdr.o ../thd_iochan.o $(IMON_OBJS) $(LFLAGS) -L.. -lm $(EXTRA_LIBS_2)
 
-# for dynamic linking
+serial_helper: serial_helper.o
+	$(RM) $@
+	$(CC) -o serial_helper serial_helper.o -L.. -lm $(EXTRA_LIBS_2)
 
-# LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm  -ldl -lc
+# ----------------------------------------------------------------------
+# local Imon objects need mcw_glob, but without MCW_MALLOC
 
-# for static linking to Motif, dynamic to all else
+Imon.o: Imon.c Imon.h
+	$(RM) $@
+	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c Imon.c -I.. $(IFLAGS)
 
-LLIBS  = -lmri /usr/X11R6/lib64/libXm.a -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 $(LZLIB) -lm  -ldl -lc
+Dimon.o: Dimon.c Imon.h
+	$(RM) $@
+	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c Dimon.c -I.. $(IFLAGS)
 
-# for static linking, as far as possible
+dimon_afni.o: dimon_afni.c ../mri_image.h
+	$(RM) $@
+	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c dimon_afni.c -I.. $(IFLAGS)
 
-# LLIBS = -lmri -ldl               \
-#         /usr/X11R6/lib/libXm.a   \
-#        /usr/X11R6/lib/libXpm.a  \
-#        /usr/X11R6/lib/libXext.a \
-#        /usr/X11R6/lib/libXmu.a  \
-#        /usr/X11R6/lib/libXt.a   \
-#        /usr/X11R6/lib/libSM.a   \
-#        /usr/X11R6/lib/libICE.a  \
-#        /usr/X11R6/lib/libX11.a  \
-#        /usr/lib/libm.a          \
-#        /usr/lib/libc.a
+l_mcw_glob.o: l_mcw_glob.c l_mcw_glob.h
+	$(RM) $@
+	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c l_mcw_glob.c -I.. $(IFLAGS)
 
-# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-# For suma (NO STATIC LINKING OF GL libs)
-SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/usr/include/glib-1.2 -I/usr/lib64/glib/include
-SUMA_LINK_PATH = -L/usr/lib64 -L/usr/X11R6/lib64 -L../
-#use -lGLw if you have libGLw.a or libGLw.so* or 
-#  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
-SUMA_LINK_LIB = -lXm -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 $(LZLIB) -lm 
-SUMA_MAKEFILE_NAME = SUMA_Makefile
-SUMA_BIN_ARCHIVE = SUMA_Linux.tar
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+mri_dicom_hdr.o: ../mri_dicom_hdr.c
+	$(RM) $@
+	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -DFOR_DIMON -c ../mri_dicom_hdr.c -I.. $(IFLAGS)
 
-###############################################################
+realtime.o: realtime.c realtime.h
+	$(RM) $@
+	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c realtime.c -I.. $(IFLAGS)
+# -------------- end local Imon objects --------------------------------
 
-MAKE = make
-include Makefile.INCLUDE
+.c.o:
+	$(RM) $@
+	$(CC) $(WARN_OPT) -c $*.c -I.. $(IFLAGS)
+
