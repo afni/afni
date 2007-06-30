@@ -39,6 +39,13 @@
 #define NDISP_REAL4     0x04
 #define NDISP_ALL       0xff
 
+#define FT_SINGLE_COMMAND  128
+/* ANALYZE values */
+#define FT_DISP_HDR          1
+#define FT_MOD_HDR           2
+#define FT_DEFINE_HDR      132  /* FT_SINGLE_COMMAND + 4 */
+#define FT_DIFF_HDRS       136  /* FT_SINGLE_COMMAND + 8 */
+
 #define CHECK_NULL_STR(str) ( str ? str : "(nil)" )
 
                                   /* from Ifile.c ...                  */
@@ -70,7 +77,8 @@ typedef struct
     int     ge_disp;      /* do we display ge_values            */
     int     ge4_disp;    /* option bits for GEMS 4.x type      */
     int     script;     /* inputs are scripts: bit mask       */
-    int     ndisp;     /* option bits for numeric display    */
+    int     analyze;   /* process ANALYZE file(s)            */
+    int     ndisp;    /* option bits for numeric display    */
 
     int     swap;             /* do we need to swap bytes   */
     int     modify;          /* do we modify the data?     */
@@ -78,7 +86,8 @@ typedef struct
     long    offset;        /* starting location          */
     int     length;       /* bytes to display or modify */
     int     quiet;       /* do not display header info */
-    char  * mod_data;   /* new data                   */
+    int     hex;        /* display data values in hex */
+    char  * mod_data;  /* new data                   */
 } param_t;
 
 typedef struct                    /* file offsets for various fields   */
@@ -98,12 +107,18 @@ int  disp_numeric_data ( char * data, param_t * p, FILE * fp );
 int  disp_param_data   ( param_t * p );
 int  mtype_size        ( int type );
 
+int  read_analyze_file ( param_t * p, field_s * fields, ft_analyze_header * hdr,
+                         char * fname );
 int  read_ge_header    ( char * pathname, ge_header_info * hi, ge_extras * E,
                          ge_off * off );
+
+int  process_analyze   ( param_t * p, int index );
 int  process_file      ( char * pathname, param_t * p );
 int  process_ge        ( char * pathname, param_t * p );
 int  process_ge4       ( char * pathname, param_t * p );
+int  process_script    ( char * filename, param_t * p );
 int  read_file         ( char * filename, char ** fdata, int * flen );
+int  read_partial_file ( char * filename, void * fdata, int len );
 int  set_params        ( param_t * p, int argc, char * argv[] );
 
 int  scr_show_file     ( char * filename, param_t * p );
