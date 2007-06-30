@@ -113,26 +113,35 @@ static char g_history[] =
  " 3.2a March 22, 2005  - removed all tabs\n"
  " 3.3  June 8, 2007    - added -show_bad_backslash and -show_file_type\n"
  " 3.4  June 8, 2007    - added examples for 3.3 update\n"
+ " 3.5  June 29, 2007   - added ability to work with ANALYZE files\n"
+ "      - added '-def_ana_hdr' to show the definition of an ANALYZE header\n"
+ "      - added '-diff_ana_hdrs' to show differences between 2 headers\n"
+ "      - added '-disp_ana_hdr' to display the contents of each header\n"
+ "      - added '-hex' to show field output in hexidecimal\n"
+ "      - file_tool now depends on new files fields.[ch]\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.4 (Jun 13, 2007)"
+#define VERSION         "3.5 (Jun 29, 2007)"
 
 
 /* ----------------------------------------------------------------------
  * todo:
  *
  * - add option '-help_ge4'
+ * - add options '-mod_ana_hdr', '-mod_field'
  * ----------------------------------------------------------------------
 */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <math.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "fields.h"
 #include "file_tool.h"
 #include "ge4_header.h"
 
@@ -174,6 +183,9 @@ attack_files( param_t * p )
 {
     int fc, rv;
 
+    if ( p->analyze & FT_SINGLE_COMMAND )
+        return process_analyze( p, -1 );
+
     for ( fc = 0; fc < p->num_files; fc++ )
     {
         if ( p->ge_disp )
@@ -191,6 +203,11 @@ attack_files( param_t * p )
             if ( (rv = process_script( p->flist[fc], p )) != 0 )
                 return rv;
         }
+        else if ( p->analyze )
+        {
+            if ( (rv = process_analyze( p, fc )) != 0 )
+                return rv;
+        }
         else if ( ( rv = process_file( p->flist[fc], p) ) != 0 )
             return rv;
     }
@@ -206,7 +223,7 @@ attack_files( param_t * p )
 int
 process_script( char * filename, param_t * p )
 {
-    int rv;
+    int rv = 0;
 
     if (       p->script & SCR_SHOW_FILE  ) rv = scr_show_file  (filename, p);
     if (!rv && p->script & SCR_SHOW_BAD_BS) rv = scr_show_bad_bs(filename, p);
@@ -322,6 +339,146 @@ scr_show_file( char * filename, param_t * p )
 
     printf("%s file type: UNIX\n", filename);
     return 0;
+}
+
+
+/*------------------------------------------------------------
+ * process an ANALYZE file
+ *
+ * if index >= 0, process a single file, else process both files
+ *------------------------------------------------------------
+*/
+int
+process_analyze( param_t * p, int index )
+{
+    static field_s    * afield = NULL;
+    ft_analyze_header   hdr;
+    ft_analyze_header   hdr2;
+    int                 c, ndiff;
+
+    /* if we haven't already done so, generate the field structure */
+    if( ! afield ) {
+        set_field_verb(p->debug + 1); /* set verbose level, too */
+
+        afield = make_ana_field_array();
+        if( ! afield) {
+            fprintf(stderr,"** process_analyse: failed make_ana_field_array\n");
+            return 1;
+        }
+    }
+
+    if( p->analyze == FT_DISP_HDR ) {
+        if( index < 0 || index >= p->num_files ) {
+            fprintf(stderr,"** bad file index %d of %d\n", index, p->num_files);
+            return 1;
+        }
+
+        read_analyze_file(p, afield, &hdr, p->flist[index]);
+        disp_field("\nall fields:\n",afield, &hdr, FT_ANA_NUM_FIELDS,
+                   p->debug, p->hex);
+    }
+    if( p->analyze == FT_DEFINE_HDR ) {
+        disp_field_s_list("analyze_fields: ", afield, FT_ANA_NUM_FIELDS);
+    }
+    else if ( p->analyze == FT_DIFF_HDRS ) {
+        if( p->num_files != 2 ) {
+            fprintf(stderr,"** -diff_ana_hdrs requires exactly 2 files\n");
+            return 1;
+        }
+        read_analyze_file(p, afield, &hdr, p->flist[0]);
+        read_analyze_file(p, afield, &hdr2, p->flist[1]);
+        if( !p->quiet )
+            fprintf(stderr, "ANALYZE diff for %s and %s:\n",
+                p->flist[0], p->flist[1]);
+        ndiff = 0;
+        for( c = 0; c < FT_ANA_NUM_FIELDS; c++ )
+            if( diff_field(afield+c, &hdr, &hdr2, 1) )
+            {
+                disp_field(NULL, afield+c, &hdr,  1, ndiff==0, p->hex);
+                disp_field(NULL, afield+c, &hdr2, 1, 0, p->hex);
+                ndiff++;
+            }
+    }
+
+    return 0;
+}
+
+
+/* return 0 on success */
+int read_analyze_file(param_t * p, field_s * fields, ft_analyze_header * hdr,
+                      char * fname)
+{
+    int size = sizeof(*hdr);
+    if( read_partial_file(fname, hdr, size) < size ) {
+        fprintf(stderr,"** ft_read_analyze failure for '%s'\n", fname);
+        return 1;
+    }
+                                                                            
+    if( ! p->quiet )
+        fprintf(stderr,"\nANALYZE header file '%s', %d fields\n",
+                fname, FT_ANA_NUM_FIELDS);
+                                                                            
+    /* check for byte-swapping */
+    if( hdr->sizeof_hdr != 348 ) {
+        if( p->debug )
+            fprintf(stderr,"+d swapping ANALYZE header in '%s'\n", fname);
+
+        swap_fields(fields, (void *)hdr, FT_ANA_NUM_FIELDS);
+
+        if( hdr->sizeof_hdr != 348 )
+        {
+            fprintf(stderr,"** swapping does not help, reverting...\n");
+            swap_fields(fields, (void *)hdr, FT_ANA_NUM_FIELDS);
+        }
+        else if( p->debug )
+            fprintf(stderr,"-d swapping was successful\n");
+    }
+
+    return 0;
+}
+
+/*------------------------------------------------------------
+ * Inhale len bytes of the file.  Return the number of bytes
+ * read (might be less than len).
+ *------------------------------------------------------------*/
+int
+read_partial_file( char * filename, void * fdata, int len )
+{
+    FILE * fp;
+    int    length, nbytes;
+
+    if( !filename || !fdata || len <= 0 )
+    {
+        fprintf(stderr,"** RPF: bad ptrs %p,%p,%d\n",filename,fdata,len);
+        return -1;
+    }
+
+    length = THD_filesize(filename);
+    if( len < length ) length = len;  /* number of bytes to attempt */
+
+    if( len > length ) {
+        fprintf(stderr,"warning: requested %d bytes of %d byte file '%s'\n",
+                len, length, filename);
+    }
+
+    /* open, read, close */
+    if ( (fp = fopen( filename, "r" )) == NULL )
+    {
+        fprintf( stderr, "RPF failure: cannot open <%s> for 'r'\n", filename );
+        return -1;
+    }
+
+    nbytes = fread( fdata, 1, length, fp );
+    fclose( fp );
+
+    if ( nbytes != length )
+    {
+        fprintf( stderr, "failure: read only %d of %d bytes from file '%s'\n",
+                 nbytes, length, filename );
+        return -1;
+    }
+
+    return length;
 }
 
 
@@ -732,18 +889,17 @@ set_params( param_t * p, int argc, char * argv[] )
 
     for ( ac = 1; ac < argc; ac++ )
     {
-        /* check for -help_ge before -help, to allow for only -h */
         if ( ! strncmp(argv[ac], "-help_ge", 8 ) )
         {
             usage( argv[0], USE_GE );
             return -1;
         }
-        else if ( ! strncmp(argv[ac], "-help", 3 ) )
+        else if ( ! strncmp(argv[ac], "-help", 5 ) )
         {
             usage( argv[0], USE_LONG );
             return -1;
         }
-        else if ( ! strncmp(argv[ac], "-hist", 3 ) )
+        else if ( ! strncmp(argv[ac], "-hist", 5 ) )
         {
             usage( argv[0], USE_HISTORY );
             return -1;
@@ -760,11 +916,23 @@ set_params( param_t * p, int argc, char * argv[] )
             }
 
             p->debug = atoi(argv[++ac]);
-            if ( (p->debug < 0) || (p->debug > 2) )
+            if ( (p->debug < 0) || (p->debug > 5) )
             {
                 fprintf( stderr, "invalid debug level <%d>\n", p->debug );
                 return -1;
             }
+        }
+        else if ( ! strncmp(argv[ac], "-def_ana_hdr", 12 ) )
+        {
+            p->analyze |= FT_DEFINE_HDR;
+        }
+        else if ( ! strncmp(argv[ac], "-diff_ana_hdrs", 13 ) )
+        {
+            p->analyze |= FT_DIFF_HDRS;
+        }
+        else if ( ! strncmp(argv[ac], "-disp_ana_hdr", 13 ) )
+        {
+            p->analyze |= FT_DISP_HDR;
         }
         else if ( ! strncmp(argv[ac], "-disp_int2", 10 ) )
         {
@@ -777,6 +945,10 @@ set_params( param_t * p, int argc, char * argv[] )
         else if ( ! strncmp(argv[ac], "-disp_real4", 11 ) )
         {
             p->ndisp |= NDISP_REAL4;
+        }
+        else if ( ! strncmp(argv[ac], "-hex", 4 ) )
+        {
+            p->hex = 1;
         }
         else if ( ! strncmp(argv[ac], "-mod_data", 6 ) )
         {
@@ -935,7 +1107,7 @@ set_params( param_t * p, int argc, char * argv[] )
     if ( p->debug > 1 )
         disp_param_data( p );
 
-    if ( p->num_files <= 0 )
+    if ( p->num_files <= 0 && !(p->analyze & FT_DEFINE_HDR) )
     {
         fputs( "error: missing '-infiles' option\n", stderr );
         return -1;
@@ -948,8 +1120,8 @@ set_params( param_t * p, int argc, char * argv[] )
         return -1;
     }
 
-    /* if only displaying GE data, no further check are necessary */
-    if ( p->ge_disp || p->ge4_disp )
+    /* if only displaying GE/ANALYZE data, no further check are necessary */
+    if ( p->ge_disp || p->ge4_disp || p->analyze == FT_DISP_HDR )
         return 0;
 
     /* now do all other tests for displaying/modifying generic file data */
@@ -1173,6 +1345,24 @@ help_full( char * prog )
         "\n"
         "      %s -disp_real4 -offset 100 -length 32 -infiles file1 file2\n"
         "\n"
+        "   ----- ANALYZE file checking examples -----\n"
+        "\n"
+        "   1. define the field contents of an ANALYZE header\n"
+        "\n"
+        "      %s -def_ana_hdr\n"
+        "\n"
+        "   2. display the field contents of an ANALYZE file\n"
+        "\n"
+        "      %s -disp_ana_hdr -infiles dset.hdr\n"
+        "\n"
+        "   3. display field differences between 2 ANALYZE headers\n"
+        "\n"
+        "      %s -diff_ana_hdrs -infiles dset1.hdr dset2.hdr\n"
+        "\n"
+        "   4. display field differences between 2 ANALYZE headers (in HEX)\n"
+        "\n"
+        "      %s -diff_ana_hdrs -hex -infiles dset1.hdr dset2.hdr\n"
+        "\n"
         "   ----- script file checking examples -----\n"
         "\n"
         "   1. in each file, check whether it is a UNIX file type\n"
@@ -1261,6 +1451,13 @@ help_full( char * prog )
         "      -ge4_image       : display GEMS 4.x image header\n"
         "      -ge4_series      : display GEMS 4.x series header\n"
         "      -ge4_study       : display GEMS 4.x study header\n"
+        "\n"
+        "  ANALYZE info options:\n"
+        "\n"
+        "      -def_ana_hdr     : display the definition of an ANALYZE header\n"
+        "      -diff_ana_hdrs   : display field differences between 2 headers\n"
+        "      -disp_ana_hdr    : display ANALYZE headers\n"
+        "      -hex             : display field values in hexidecimal\n"
         "\n"
         "  script file options:\n"
         "\n"
@@ -1369,7 +1566,7 @@ help_full( char * prog )
         "\n",
         prog, prog,
         prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
-        prog, prog, prog, prog,
+        prog, prog, prog, prog, prog, prog, prog, prog,
         VERSION, __DATE__
         );
 
