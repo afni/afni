@@ -656,6 +656,27 @@ void ft_datatype_sizes( int datatype , int *nbyper, int *swapsize )
 }
 
 
+/*----------------------------------------------------------------------
+ * - do not duplicate the string
+ * - only bother to alloc one pointer at a time (don't need efficiency here)
+ * - return 0 on success
+ *----------------------------------------------------------------------*/
+int add_string(str_list * slist, char * str)
+{
+   if( slist->len == 0 ) slist->list = NULL;  /* just to be safe */
+   slist->len++;
+   slist->list = (char **)realloc(slist->list,slist->len*sizeof(char *));
+   if( ! slist->list ){
+      fprintf(stderr,"** failed to alloc %d (char *) elements\n",slist->len);
+      return -1;
+   }
+
+   slist->list[slist->len-1] = str;
+
+   return 0;
+}
+
+
 /* ---------------------------------------------------------------------- */
 /* end nifti_tool.c functions                                             */
 /* ---------------------------------------------------------------------- */

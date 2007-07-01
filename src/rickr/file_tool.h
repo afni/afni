@@ -39,14 +39,27 @@
 #define NDISP_REAL4     0x04
 #define NDISP_ALL       0xff
 
-#define FT_SINGLE_COMMAND  128
+#define FT_SINGLE_COMMAND   32
 /* ANALYZE values */
 #define FT_DISP_HDR          1
 #define FT_MOD_HDR           2
-#define FT_DEFINE_HDR      132  /* FT_SINGLE_COMMAND + 4 */
-#define FT_DIFF_HDRS       136  /* FT_SINGLE_COMMAND + 8 */
+#define FT_DEFINE_HDR       32  /* single commands start here */
+#define FT_DIFF_HDRS        64
 
 #define CHECK_NULL_STR(str) ( str ? str : "(nil)" )
+#define CHECK_NEXT_OPT(n,m,str)                                     \
+   do { if ( (n) >= (m) ) {                                          \
+           fprintf(stderr,"** option '%s': missing parameter\n",str); \
+           fprintf(stderr,"   consider: 'file_tool -help'\n");         \
+           return -1;      }                                            \
+      } while(0)
+
+#define CHECK_NEXT_OPT2(n,m,s1,s2)                                           \
+   do { if ( (n) >= (m) ) {                                                  \
+           fprintf(stderr,"** option '%s': missing parameter '%s'\n",s1,s2); \
+           fprintf(stderr,"   consider: 'file_tool -help'\n");               \
+           return -1;      }                                                 \
+      } while(0)
 
                                   /* from Ifile.c ...                  */
 typedef struct                    /* stuff extracted from GE 5.x image */
@@ -80,6 +93,9 @@ typedef struct
     int     analyze;   /* process ANALYZE file(s)            */
     int     ndisp;    /* option bits for numeric display    */
 
+    str_list mod_fields;         /* list of fields to modify   */
+    str_list mod_list;          /* list of values to apply    */
+
     int     swap;             /* do we need to swap bytes   */
     int     modify;          /* do we modify the data?     */
     int     mod_type;       /* a string or repeated value */
@@ -87,7 +103,9 @@ typedef struct
     int     length;       /* bytes to display or modify */
     int     quiet;       /* do not display header info */
     int     hex;        /* display data values in hex */
-    char  * mod_data;  /* new data                   */
+    int     overwrite; /* overwrite output file(s)?  */
+    char  * mod_data; /* new data (change to list?) */
+    char  * prefix;  /* prefix for any output file */
 } param_t;
 
 typedef struct                    /* file offsets for various fields   */
@@ -105,6 +123,8 @@ int  check_mod_type    ( char * name );
 int  check_usage       ( int argc, char * argv[] );
 int  disp_numeric_data ( char * data, param_t * p, FILE * fp );
 int  disp_param_data   ( param_t * p );
+int  file_exists       ( char * fname );
+int  mod_analyze_hdr   ( param_t *p, field_s * fields, int index );
 int  mtype_size        ( int type );
 
 int  read_analyze_file ( param_t * p, field_s * fields, ft_analyze_header * hdr,

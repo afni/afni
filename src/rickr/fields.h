@@ -100,6 +100,7 @@ void      set_field_verb        ( int );
 
 field_s * make_ana_field_array  ( void );
 
+int       add_string            ( str_list *, char * );
 int       check_total_size      ( char *, field_s *, int, int );
 int       clear_float_zeros     ( char * str );
 

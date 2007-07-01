@@ -119,16 +119,19 @@ static char g_history[] =
  "      - added '-disp_ana_hdr' to display the contents of each header\n"
  "      - added '-hex' to show field output in hexidecimal\n"
  "      - file_tool now depends on new files fields.[ch]\n"
+ " 3.6  July 1, 2007    - added ability to modify fields of an ANALYZE file\n"
+ "      - added '-mod_ana_hdr' to modiefy fields of an ANALYZE header file\n"
+ "      - added '-mod_field' to specify a field and it value(s)\n"
+ "      - added '-overwrite' and '-prefix' to specify output\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.5 (Jun 29, 2007)"
+#define VERSION         "3.6 (July 1, 2007)"
 
 
 /* ----------------------------------------------------------------------
  * todo:
  *
  * - add option '-help_ge4'
- * - add options '-mod_ana_hdr', '-mod_field'
  * ----------------------------------------------------------------------
 */
 
@@ -183,7 +186,7 @@ attack_files( param_t * p )
 {
     int fc, rv;
 
-    if ( p->analyze & FT_SINGLE_COMMAND )
+    if ( p->analyze >= FT_SINGLE_COMMAND )
         return process_analyze( p, -1 );
 
     for ( fc = 0; fc < p->num_files; fc++ )
@@ -373,11 +376,11 @@ process_analyze( param_t * p, int index )
             return 1;
         }
 
-        read_analyze_file(p, afield, &hdr, p->flist[index]);
+        if( read_analyze_file(p, afield, &hdr, p->flist[index]) ) return 1;
         disp_field("\nall fields:\n",afield, &hdr, FT_ANA_NUM_FIELDS,
                    p->debug, p->hex);
     }
-    if( p->analyze == FT_DEFINE_HDR ) {
+    else if( p->analyze == FT_DEFINE_HDR ) {
         disp_field_s_list("analyze_fields: ", afield, FT_ANA_NUM_FIELDS);
     }
     else if ( p->analyze == FT_DIFF_HDRS ) {
@@ -385,22 +388,81 @@ process_analyze( param_t * p, int index )
             fprintf(stderr,"** -diff_ana_hdrs requires exactly 2 files\n");
             return 1;
         }
-        read_analyze_file(p, afield, &hdr, p->flist[0]);
-        read_analyze_file(p, afield, &hdr2, p->flist[1]);
+        if( read_analyze_file(p, afield, &hdr, p->flist[0]) ) return 1;
+        if( read_analyze_file(p, afield, &hdr2, p->flist[1]) ) return 1;
         if( !p->quiet )
             fprintf(stderr, "ANALYZE diff for %s and %s:\n",
                 p->flist[0], p->flist[1]);
         ndiff = 0;
         for( c = 0; c < FT_ANA_NUM_FIELDS; c++ )
-            if( diff_field(afield+c, &hdr, &hdr2, 1) )
-            {
+            if( diff_field(afield+c, &hdr, &hdr2, 1) ) {
                 disp_field(NULL, afield+c, &hdr,  1, ndiff==0, p->hex);
                 disp_field(NULL, afield+c, &hdr2, 1, 0, p->hex);
                 ndiff++;
             }
     }
+    else if ( p->analyze == FT_MOD_HDR ) {
+        return mod_analyze_hdr(p, afield, index);
+    }
 
     return 0;
+}
+
+/* perform -mod_field action on ANALYZE header */
+int mod_analyze_hdr(param_t *p, field_s * fields, int index)
+{
+    ft_analyze_header   hdr;
+    FILE              * fp = NULL;
+    char              * fname;
+    int                 nbytes;
+
+    if( !p || !fields ){ fprintf(stderr,"** MAH: bad params\n"); return 1; }
+
+    if( read_analyze_file(p, fields, &hdr, p->flist[index]) )    return 1;
+    if( modify_many_fields(&hdr, &p->mod_fields, &p->mod_list, fields,
+                           FT_ANA_NUM_FIELDS ) )                 return 1;
+
+    if( p->overwrite ){
+        fname = p->flist[index];
+        fp = fopen(fname, "r+");
+        if( !fp ) {
+            fprintf(stderr,"** failed to open '%s' for 'r+'\n",fname);
+            return 1;
+        }
+    } else {
+        fname = p->prefix;
+        if( file_exists(fname) ){
+            fprintf(stderr,"** output file '%s' already exists\n",fname);
+            return 1;
+        }
+        fp = fopen(fname, "w");
+        if( !fp ) {
+            fprintf(stderr,"** failed to open '%s' for 'w'\n",fname);
+            return 1;
+        }
+    }
+
+    /* and write results */
+    if(p->debug > 0) fprintf(stderr,"writing ANALYZE hdr to '%s'\n", fname);
+    nbytes = fwrite(&hdr,1, sizeof(hdr), fp);
+    fclose(fp);
+
+    if( nbytes != sizeof(hdr) ) {
+        fprintf(stderr,"** wrote only %d of %d bytes to %s\n",
+        nbytes, (int)sizeof(hdr), fname);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+int file_exists( char * fname )
+{
+    struct stat buf;
+    if( !fname ) return 0;
+    if( stat(fname, &buf) ) return 0;
+    return (buf.st_mode & S_IFREG) != 0;
 }
 
 
@@ -414,7 +476,7 @@ int read_analyze_file(param_t * p, field_s * fields, ft_analyze_header * hdr,
         return 1;
     }
                                                                             
-    if( ! p->quiet )
+    if( p->debug > 0 )
         fprintf(stderr,"\nANALYZE header file '%s', %d fields\n",
                 fname, FT_ANA_NUM_FIELDS);
                                                                             
@@ -924,15 +986,15 @@ set_params( param_t * p, int argc, char * argv[] )
         }
         else if ( ! strncmp(argv[ac], "-def_ana_hdr", 12 ) )
         {
-            p->analyze |= FT_DEFINE_HDR;
+            p->analyze = FT_DEFINE_HDR;
         }
         else if ( ! strncmp(argv[ac], "-diff_ana_hdrs", 13 ) )
         {
-            p->analyze |= FT_DIFF_HDRS;
+            p->analyze = FT_DIFF_HDRS;
         }
         else if ( ! strncmp(argv[ac], "-disp_ana_hdr", 13 ) )
         {
-            p->analyze |= FT_DISP_HDR;
+            p->analyze = FT_DISP_HDR;
         }
         else if ( ! strncmp(argv[ac], "-disp_int2", 10 ) )
         {
@@ -950,32 +1012,31 @@ set_params( param_t * p, int argc, char * argv[] )
         {
             p->hex = 1;
         }
-        else if ( ! strncmp(argv[ac], "-mod_data", 6 ) )
+        else if ( ! strncmp(argv[ac], "-mod_data", 8 ) )
         {
-            if ( (ac+1) >= argc )
-            {
-                fputs( "missing option parameter: DATA\n"
-                       "option usage: -mod_data DATA\n"
-                       "    where DATA is the replacement string or numbers\n",
-                       stderr );
-                return -1; 
-            }
-
             ac++;
+            CHECK_NEXT_OPT2(ac, argc, "-mod_data", "DATA");
+
             p->mod_data = argv[ac];
         }
-        else if ( ! strncmp(argv[ac], "-mod_type", 6 ) )
+        else if( ! strncmp(argv[ac], "-mod_field", 8) )
         {
-            if ( (ac+1) >= argc )
-            {
-                fputs( "missing option parameter: TYPE\n"
-                       "option usage: -mod_type TYPE\n"
-                       "    where TYPE is 'val' or 'str'\n",
-                       stderr );
-                return -1;
-            }
-
             ac++;
+            CHECK_NEXT_OPT2(ac, argc, "-mod_field", "FIELD and VALUE");
+            if( add_string(&p->mod_fields, argv[ac]) ) return 1;
+            ac++;
+            CHECK_NEXT_OPT2(ac, argc, "-mod_field", "VALUE");
+            if( add_string(&p->mod_list, argv[ac]) ) return 1;
+        }
+        else if( ! strncmp(argv[ac], "-mod_ana_hdr", 8) )
+        {
+            p->analyze |= FT_MOD_HDR;
+        }
+        else if ( ! strncmp(argv[ac], "-mod_type", 8 ) )
+        {
+            ac++;
+            CHECK_NEXT_OPT2(ac,argc, "-mod_type", "TYPE");
+
             if ( (p->mod_type = check_mod_type(argv[ac])) == MOD_INVALID )
             {
                 fputs( "option usage: -mod_type TYPE\n", stderr );
@@ -985,16 +1046,10 @@ set_params( param_t * p, int argc, char * argv[] )
         }
         else if ( ! strncmp(argv[ac], "-offset", 4 ) )
         {
-            if ( (ac+1) >= argc )
-            {
-                fputs( "missing option parameter: OFFSET\n"
-                       "option usage: -offset OFFSET\n"
-                       "    where OFFSET is the file offset\n",
-                       stderr );
-                return -1;
-            }
+            ac++;
+            CHECK_NEXT_OPT2(ac, argc, "-offset", "OFFSET");
 
-            p->offset = atoi(argv[++ac]);
+            p->offset = atoi(argv[ac]);
             if ( p->offset < 0 )
             {
                 fprintf( stderr, "bad file OFFSET <%ld>\n", p->offset );
@@ -1003,16 +1058,10 @@ set_params( param_t * p, int argc, char * argv[] )
         }
         else if ( ! strncmp(argv[ac], "-length", 4 ) )
         {
-            if ( (ac+1) >= argc )
-            {
-                fputs( "missing option parameter: LENGTH\n"
-                       "option usage: -length LENGTH\n"
-                       "    where LENGTH is the length to display or modify\n",
-                       stderr );
-                return -1;
-            }
+            ac++;
+            CHECK_NEXT_OPT2(ac, argc, "-length", "LENGTH");
 
-            p->length = atoi(argv[++ac]);
+            p->length = atoi(argv[ac]);
             if ( p->length < 0 )
             {
                 fprintf( stderr, "bad LENGTH <%d>\n", p->length );
@@ -1022,6 +1071,16 @@ set_params( param_t * p, int argc, char * argv[] )
         else if ( ! strncmp(argv[ac], "-quiet", 2 ) )
         {
             p->quiet = 1;
+        }
+        else if ( ! strncmp(argv[ac], "-overwrite", 6 ) )
+        {
+            p->overwrite = 1;
+        }
+        else if ( ! strncmp(argv[ac], "-prefix", 7 ) )
+        {
+            ac++;
+            CHECK_NEXT_OPT(ac, argc, "-prefix");
+            p->prefix = argv[ac];
         }
         else if ( ! strncmp(argv[ac], "-show_bad_backslash", 9 ) )
         {
@@ -1051,10 +1110,13 @@ set_params( param_t * p, int argc, char * argv[] )
             }
 
             ac++;
-            p->num_files = argc - ac;
-            p->flist     = argv + ac;
 
-            break;      /* input files finish the argument list */
+            p->flist = argv + ac;
+            while( ac < argc && argv[ac][0] != '-' ) {
+                p->num_files++;
+                ac++;
+            }
+            ac--;       /* back up to last good option */
         }
         /* continue with GE info displays */
         else if ( ! strncmp(argv[ac], "-ge_all", 7 ) )
@@ -1107,7 +1169,7 @@ set_params( param_t * p, int argc, char * argv[] )
     if ( p->debug > 1 )
         disp_param_data( p );
 
-    if ( p->num_files <= 0 && !(p->analyze & FT_DEFINE_HDR) )
+    if ( p->num_files <= 0 && p->analyze != FT_DEFINE_HDR )
     {
         fputs( "error: missing '-infiles' option\n", stderr );
         return -1;
@@ -1119,9 +1181,47 @@ set_params( param_t * p, int argc, char * argv[] )
         fputs( "error: no other operations with script\n",stderr);
         return -1;
     }
+    /* allow at most one action type (zero is char display) */
+    {
+        int nact = 0;
+        if( p->script )    nact++;
+        if( p->ge_disp )   nact++;
+        if( p->ge4_disp )  nact++;
+        if( p->ndisp )     nact++;
+        if( p->mod_data )  nact++;
+        if( p->analyze )   nact++;
+        if( nact > 1 ){
+            fprintf(stderr,"** only one action option allowed\n");
+            return -1;
+        }
+    }
 
-    /* if only displaying GE/ANALYZE data, no further check are necessary */
-    if ( p->ge_disp || p->ge4_disp || p->analyze == FT_DISP_HDR )
+    /* check ANALYZE options separately */
+    if( p->analyze )
+    {
+        if( p->analyze == FT_MOD_HDR ) {
+            if( p->mod_list.len <= 0 ) {
+                fprintf(stderr,"** '-mod_ana_hdr' requires '-mod_field'\n");
+                return -1;
+            }
+            if( p->num_files > 1 && !p->overwrite ) {
+                fprintf(stderr,"** multiple mod files requires -overwrite\n");
+                return -1;
+            }
+            if( !p->prefix && !p->overwrite ) {
+                fprintf(stderr,"** missing '-prefix' option\n");
+                return -1;
+            }
+            if( p->prefix && p->overwrite ) {
+                fprintf(stderr,"** choose only one of -prefix/-overwrite\n");
+                return -1;
+            }
+        }
+        return 0;
+    }
+
+    /* if only displaying data, no further check are necessary */
+    if ( p->ge_disp || p->ge4_disp )
         return 0;
 
     /* now do all other tests for displaying/modifying generic file data */
@@ -1363,6 +1463,13 @@ help_full( char * prog )
         "\n"
         "      %s -diff_ana_hdrs -hex -infiles dset1.hdr dset2.hdr\n"
         "\n"
+        "   5. modify some fields of an ANALYZE file\n"
+        "\n"
+        "      %s -mod_ana_hdr -prefix new.hdr -mod_field smin 0   \\\n"
+        "         -mod_field descrip 'test ANALYZE file'           \\\n"
+        "         -mod_field pixdim '0 2.1 3.1 4 0 0 0 0 0'        \\\n"
+        "         -infiles old.hdr\n"
+        "\n"
         "   ----- script file checking examples -----\n"
         "\n"
         "   1. in each file, check whether it is a UNIX file type\n"
@@ -1458,6 +1565,11 @@ help_full( char * prog )
         "      -diff_ana_hdrs   : display field differences between 2 headers\n"
         "      -disp_ana_hdr    : display ANALYZE headers\n"
         "      -hex             : display field values in hexidecimal\n"
+        "      -mod_ana_hdr     : modify ANALYZE headers\n"
+        "      -mod_field       : specify a field and value(s) to modify\n"
+        "\n"
+        "      -prefix          : specify and output filename\n"
+        "      -overwrite       : specify to overwrite the input file(s)\n"
         "\n"
         "  script file options:\n"
         "\n"
@@ -1566,7 +1678,7 @@ help_full( char * prog )
         "\n",
         prog, prog,
         prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
-        prog, prog, prog, prog, prog, prog, prog, prog,
+        prog, prog, prog, prog, prog, prog, prog, prog, prog, 
         VERSION, __DATE__
         );
 
