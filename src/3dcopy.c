@@ -71,6 +71,7 @@ int main( int argc , char *argv[] )
    while( nopt < argc && argv[nopt][0] == '-' ){
      if( strcmp(argv[nopt],"-verb")   == 0 ){ verb   = 1; nopt++; continue; }
      if( strcmp(argv[nopt],"-denote") == 0 ){ denote = 1; nopt++; continue; }
+     ERROR_exit("unknown option: %s\n", argv[nopt]);
    }
    if( nopt+1 >= argc )
      ERROR_exit("3dcopy needs input AND output filenames!\n") ;
