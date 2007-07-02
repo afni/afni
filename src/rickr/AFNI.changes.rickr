@@ -2086,4 +2086,5 @@
 02 Jul 2007:
   * modified thd_niftiread.c: changed missing xform error to warning
   * modified model_demri_3.c: return on first_time errors
+  * modified 3dcopy.c: complain and exit on unknown option
 
