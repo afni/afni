@@ -141,7 +141,7 @@ void signal_model (
 
         /* verify TR (maybe we don't need TR) */
         if( !errs && P.TR != x_array[1][1] - x_array[1][0] )
-            fprintf(stderr, "** warning: TR (%f) != x_array time (%f)\n",
+            fprintf(stderr, "warning: TR (%f) != x_array time (%f), using TR\n",
                     P.TR, x_array[1][1] - x_array[1][0]);
 
         /* verify time series length */
@@ -160,6 +160,7 @@ void signal_model (
             first_call = 2;  /* prevent progression, but don't exit */
             memset(ts_array, 0, ts_len*sizeof(float));
             fprintf(stderr,"** MD3: failing out, and clearing time series\n");
+            return;
         }
         else
             first_call = 0;
