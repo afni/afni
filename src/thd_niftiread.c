@@ -188,7 +188,7 @@ ENTRY("THD_open_nifti") ;
      else if (nim->sform_code > 0){ use_qform = 0 ; use_sform = 1 ; }
      else {
                                     use_qform = 0 ; use_sform = 0 ;
-     ERROR_message(
+     WARNING_message(
       "NO spatial transform (neither qform nor sform), in NIfTI file '%s'" ,
       pathname ) ;
    }
