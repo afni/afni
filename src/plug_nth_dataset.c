@@ -180,12 +180,12 @@ ENTRY( "DSETN_main" ) ;
         idc      = PLUTO_get_idcode(plint) ;
         dset[id] = PLUTO_find_dset(idc) ;
 
-	if ( ! ISVALID_DSET( dset[id] ) )
-	    RETURN("******************************\n"
-		   "DSETN_main:  bad input dataset\n"
-		   "******************************") ;
+        if ( ! ISVALID_DSET( dset[id] ) )
+         RETURN("******************************\n"
+                "DSETN_main:  bad input dataset\n"
+                "******************************") ;
 
-	g_id[id] = *idc ;
+g_id[id] = *idc ;
         ovc [id] = PLUTO_get_overlaycolor(plint) ;
         id++ ; continue ;
       }
@@ -210,19 +210,19 @@ ENTRY( "DSETN_main" ) ;
 
    }
 
-   if ( id <= 0 )			/* no data - nothing to do */
+   if ( id <= 0 )	/* no data - nothing to do */
        RETURN( NULL ) ;
 
-   g_valid_data = 1 ;			/* valid data, woohooo!    */
+   g_valid_data = 1 ;	/* valid data, woohooo!    */
 
    if ( g_dset_recv < 0 )
        g_dset_recv = AFNI_receive_init( plint->im3d, RECEIVE_DSETCHANGE_MASK,
-					DSETN_dset_recv, plint ,
-                                       "DSETN_dset_recv" ) ;
+                                        DSETN_dset_recv, plint ,
+                                        "DSETN_dset_recv" ) ;
    if ( g_dset_recv < 0 )
      RETURN("*************************************\n"
- 	    "DSETN_main:  failed AFNI_receive_init\n"
-	    "*************************************") ;
+            "DSETN_main:  failed AFNI_receive_init\n"
+            "*************************************") ;
 
    PLUTO_force_redisplay() ;
    RETURN( NULL );
@@ -238,17 +238,15 @@ ENTRY( "DSETN_dset_recv" );
 
     switch ( why )
     {
-	default:
-	{
+     default:{
 	    fprintf( stderr, "warning: DSETN_dset_recv() called with invalid "
-			     "why code, %d\n", why );
-	    EXRETURN;
-	}
+                "why code, %d\n", why );
+       EXRETURN;
+     }
 
-	case RECEIVE_ALTERATION:   /* may take effect before DSETCHANGE */
-	case RECEIVE_DSETCHANGE:
-	{
-	    /* start by noting the number of valid data sets */
+     case RECEIVE_ALTERATION:   /* may take effect before DSETCHANGE */
+     case RECEIVE_DSETCHANGE:{
+       /* start by noting the number of valid data sets */
 	    int num_valid = set_global_dsets_from_ids( );
 
 	    if ( g_valid_data != 1 || num_valid <= 0 )
