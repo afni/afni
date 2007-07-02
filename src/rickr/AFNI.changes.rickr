@@ -2083,3 +2083,5 @@
   * modified fields.[ch]: added add_string (from nifti_tool.c)
   * modified file_tool.[ch]: added ability to modify fields of an ANALYZE file
 
+02 Jul 2007: modified thd_niftiread.c: changed missing xform error to warning
+
