@@ -82,6 +82,16 @@
   Message-Digest Algorithm.  See file "thd_md5.c" for the RSA Copyright
   notice.
 
+  The SVM-light software included is by Thorsten Joachims of Cornell
+  University, and is redistributed in the AFNI package by permission.
+  If you use this software, please cite the paper
+      T. Joachims, Making large-Scale SVM Learning Practical.
+        Advances in Kernel Methods - Support Vector Learning,
+        B. Scholkopf and C. Burges and A. Smola (ed.), MIT-Press, 1999. 
+  The SVM-light software is free only for non-commercial use. It must not be
+  distributed without prior permission of the author. The author is not
+  responsible for implications from the use of this software.
+
   The sonnets of William Shakespeare are not copyrighted.  At that time --
   the most creative literary period in history -- there was no copyright.
   Whoever says that copyright is NECESSARY to ensure artistic and/or

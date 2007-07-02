@@ -83,6 +83,16 @@ static char * license[] = {
    "  Message-Digest Algorithm.  See file \"thd_md5.c\" for the RSA Copyright\n" ,
    "  notice.\n" ,
    "\n" ,
+   "  The SVM-light software included is by Thorsten Joachims of Cornell\n" ,
+   "  University, and is redistributed in the AFNI package by permission.\n" ,
+   "  If you use this software, please cite the paper\n" ,
+   "      T. Joachims, Making large-Scale SVM Learning Practical.\n" ,
+   "        Advances in Kernel Methods - Support Vector Learning,\n" ,
+   "        B. Scholkopf and C. Burges and A. Smola (ed.), MIT-Press, 1999. \n" ,
+   "  The SVM-light software is free only for non-commercial use. It must not be\n" ,
+   "  distributed without prior permission of the author. The author is not\n" ,
+   "  responsible for implications from the use of this software.\n" ,
+   "\n" ,
    "  The sonnets of William Shakespeare are not copyrighted.  At that time --\n" ,
    "  the most creative literary period in history -- there was no copyright.\n" ,
    "  Whoever says that copyright is NECESSARY to ensure artistic and/or\n" ,
@@ -477,4 +487,4 @@ static char * license[] = {
    "     POSSIBILITY OF SUCH DAMAGES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_license 477
+#define NUM_license 487
