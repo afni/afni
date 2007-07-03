@@ -466,6 +466,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dLocalBistat 3dLocalBistat.o $(LFLAGS) $(LLIBS)
 
+3dLocalSVD:3dLocalSVD.o
+	$(RM) $@
+	$(CC) -o 3dLocalSVD 3dLocalSVD.o $(LFLAGS) $(LLIBS) -lf2c
+
 3dBlurToFWHM:3dBlurToFWHM.o
 	$(RM) $@
 	$(CC) -o 3dBlurToFWHM 3dBlurToFWHM.o $(LFLAGS) $(LLIBS)
