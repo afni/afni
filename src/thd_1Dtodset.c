@@ -10,7 +10,7 @@
 /*---------------------------------------------------------------
   Routine to send a time-series (fixed index, variable ival)
   into a dataset - inverse function to THD_extract_series.
-     ixyz = spatial index of desired voxel
+     ind  = spatial index of desired voxel
           = ix + jy * n1 + kz * n1*n2
      npt  = # of points in array
      typ  = type of data in array [MRI_byte, MRI_short, MRI_float, MRI_complex]
