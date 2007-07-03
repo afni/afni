@@ -199,12 +199,19 @@ void signal_model (
 
     if( R1I_data_ptr )
     {
+        static int bad_count = 0;       /* print warnings of powers of 10 */
+        static int obnox_level = 1;
+
         P.ijk = AFNI_needs_dset_ijk();
         P.RIT = R1I_data_ptr[P.ijk];  /*  get R1I voxelwise from dataset */
         if( P.RIT < 0.02 || P.RIT > 20 )
         {
-            if( P.debug > 1 )
-                fprintf(stderr,"** warning, bad RIT value %f\n", P.RIT);
+            bad_count++;
+            if( P.debug > 1 && bad_count == obnox_level ){
+                fprintf(stderr,"** warning, bad RIT value %f (# %d)\n",
+                        P.RIT, bad_count);
+                obnox_level *= 10;
+            }
             memset(ts_array, 0, ts_len*sizeof(float));
             return;
             /* do something here?  panic into error?? */
@@ -583,6 +590,16 @@ static int get_Mp_array(demri_params * P, int * mp_len)
     {
         fprintf(stderr,"** failed to open Mp file %s\n", envp);
         return 1;
+    }
+
+    /* nx == 1 and ny > 1, take the transpose */
+    if( im->nx == 1 && im->ny > 1 )
+    {
+        MRI_IMAGE * flim = mri_transpose(im);
+        mri_free(im);
+        im = flim;
+        if( !im ) { fprintf(stderr,"** MP trans failure\n"); return 1; }
+        fprintf(stderr,"+d taking transpose of MP file, new len = %d\n",im->nx);
     }
 
     P->mcp = MRI_FLOAT_PTR(im);        /* do not free this */
