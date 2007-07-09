@@ -13,8 +13,8 @@ static float get_best_shiftrot( MRI_warp3D_align_basis *bas ,
                                 float *roll , float *pitch , float *yaw ,
                                 int   *dxp  , int   *dyp   , int   *dzp  ) ;
 
-static int VL_coarse_del = 10 ;  /* variables for the above, */
-static int VL_coarse_num =  2 ;  /* copied from 3dvolreg.c   */
+static int VL_coarse_del = 12 ;  /* variables for the above, */
+static int VL_coarse_num =  3 ;  /* copied from 3dvolreg.c   */
 static int VL_coarse_rot =  0 ;
 /*--------------------------------------------------------------------------*/
 

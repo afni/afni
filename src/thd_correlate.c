@@ -1,10 +1,5 @@
 #include "mrilib.h"
 
-#ifdef SOLARIS
-# define sqrtf sqrt
-# define logf  log
-#endif
-
 /*==============================================================================*/
 /*========== The following functions were moved from afni_fimfunc.c -===========*/
 /*==============================================================================*/

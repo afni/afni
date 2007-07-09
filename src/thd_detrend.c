@@ -6,11 +6,6 @@
 
 #include "mrilib.h"
 
-#ifdef SOLARIS
-# define sqrtf sqrt
-# define logf  log
-#endif
-
 /*-------------------------------------------------------------------------*/
 
 void THD_const_detrend( int npt, float *xx, float *xx0 ) /* 24 Aug 2001 */
