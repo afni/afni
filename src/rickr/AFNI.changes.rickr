@@ -2091,3 +2091,5 @@
 03 Jul 2007:
   * modified model_demri_3.c: allow MP file as row
 
+10 Jul 2007: modified thd_coords.c: moved verbose under fabs(ang_merit)
+
