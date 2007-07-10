@@ -580,8 +580,8 @@ float THD_compute_oblique_angle(mat44 ijk_to_dicom44, int verbose)
    fig_merit = MIN3(xmax,ymax,zmax) ;
    ang_merit = acos (fig_merit) * 180.0 / 3.141592653 ;
 
-   if ((fabs(ang_merit) > .01) && verbose) {
-     INFO_message("%f degrees from plumb.\n",ang_merit ) ;
+   if (fabs(ang_merit) > .01) {
+     if ( verbose ) INFO_message("%f degrees from plumb.\n",ang_merit ) ;
    }
    else 
       ang_merit = 0.0;
