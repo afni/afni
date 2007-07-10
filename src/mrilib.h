@@ -15,14 +15,6 @@
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #endif
 
-#ifdef SOLARIS  /* fix various SOLARIS stupidities */
-# define fabsf fabs
-# define sqrtf sqrt
-# define cbrtf cbrt
-# define logf  log
-# define powf  pow
-#endif
-
 extern char MRILIB_orients[] ;          /* 12 Mar 2001 */
 extern float MRILIB_zoff ;              /* global variables from mri_read.c */
 extern float MRILIB_tr ;                /* 03 Dec 2001 */

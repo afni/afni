@@ -276,10 +276,6 @@ ENTRY("mri_invert_inplace") ;
 
 /*-----------------------------------------------------------------------------*/
 
-#ifdef SOLARIS
-# define powf pow
-#endif
-
 /*** Am not sure if this works properly! ***/
 
 void mri_gamma_rgb_inplace( float gam , MRI_IMAGE *im )  /* 15 Jan 2007 */

@@ -263,6 +263,17 @@ extern long   strtol() ;
 # define DYNAMIC_LOADING_VIA_DL
 # define USE_LOCKF
 # define DONT_USE_MATRIX_MAT  /* 04 Mar 2005 */
+
+# define fabsf  fabs          /* 09 Jul 2007 */
+# define sqrtf  sqrt          /* to deal with lameness of Solaris */
+# define cbrtf  cbrt
+# define logf   log
+# define powf   pow
+# define sinf   sin
+# define cosf   cos
+# define floorf floor
+# define ceilf  ceil
+
 #endif
 
 /*** IBM RS6000 courtesy Doug Morris of UIUC ***/

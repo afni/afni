@@ -713,7 +713,7 @@ static float *N_pbot , *N_psiz ;
 
 static float *N_pv ;
 
-#ifdef SOLARIS
+#if defined(SOLARIS) && !defined(floorf)
 #define floorf floor   /* is Solaris lame, or what? */
 #endif
 
