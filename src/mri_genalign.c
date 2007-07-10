@@ -17,12 +17,6 @@
 
 static GA_setup *gstup = NULL ;
 
-/* for stupid primitive compilers */
-
-#ifdef SOLARIS
-#define floorf floor
-#endif
-
 /*---------------------------------------------------------------------------*/
 static int verb = 0 ;
 void mri_genalign_verbose(int v){ verb = v ; }
