@@ -349,7 +349,8 @@ int main( int argc , char *argv[] )
    if( fwhm_goal == 0.0f )
      ERROR_exit("No -FWHM option given! What do you want?") ;
 
-   fwhm_subgoal = 0.95f*fwhm_goal ;
+   fwhm_subgoal = 0.95f*fwhm_goal ;  /* stop one axis if it gets 95% of the way */
+                                     /* while the other axes need to catch up   */
    blurfac      = blurmax ;
 
    if( inset == NULL ){
@@ -638,20 +639,20 @@ int main( int argc , char *argv[] )
    fxim = mri_new_conforming( IMARR_SUBIM(bmar,0) , MRI_float ) ;
    fxar = MRI_FLOAT_PTR(fxim) ;
    gx   = fwhm_goal - 0.011f*dx ; numfxyz++ ;
-   hx   = 0.9f*gx ; qx = 1.0f/(gx-hx) ;
+   hx   = 0.8f*gx ; qx = 1.0f/(gx-hx) ;
 
    fyim = mri_new_conforming( IMARR_SUBIM(bmar,0) , MRI_float ) ;
    fyar = MRI_FLOAT_PTR(fyim) ;
    gy   = fwhm_goal - 0.011f*dy ; numfxyz++ ;
-   hy   = 0.9f*gy ; qy = 1.0f/(gy-hy) ;
+   hy   = 0.8f*gy ; qy = 1.0f/(gy-hy) ;
 
    if( !fwhm_2D ){
      fzim = mri_new_conforming( IMARR_SUBIM(bmar,0) , MRI_float ) ;
      fzar = MRI_FLOAT_PTR(fzim) ;
      gz   = fwhm_goal - 0.011f*dz ; numfxyz++ ;
-     hz   = 0.9f*gz ; qz = 1.0f/(gz-hz) ;
+     hz   = 0.8f*gz ; qz = 1.0f/(gz-hz) ;
    }
-   maxfxyz    = blurfac / numfxyz ;
+   maxfxyz    = blurfac / numfxyz ;  /* maximum lambda */
 #if 0
    fwhm_goal *= 0.995f ;            /* fudge factor */
 #endif
@@ -665,7 +666,7 @@ int main( int argc , char *argv[] )
 
    for( nite=1 ; nite <= maxite ; nite++ ){
 
-     /*--- global smoothness estimation ---*/
+     /*--- global smoothness estimation into bx,by,bz ---*/
 
      fw = mriarr_estimate_FWHM_1dif( bmar , mask , do_unif ) ;
 
@@ -673,6 +674,9 @@ int main( int argc , char *argv[] )
      if( bx <= 0.0f ) bx = dx ;  /* should not happen */
      if( by <= 0.0f ) by = dy ;
      if( bz <= 0.0f ) bz = dz ;
+
+     /*--- test for progress towards our goal ---*/
+
      if( fwhm_2D ){
        val = (float)sqrt(bx*by) ;
        if( verb )
@@ -682,7 +686,7 @@ int main( int argc , char *argv[] )
          if( verb ) INFO_message("** Passes 2D threshold sqrt(FWHMx*FWHMy) ==> done!");
          break;
        }
-       if( nite > 3 && bx < last_fwx && by < last_fwy ){
+       if( nite > 3 && bx < last_fwx && by < last_fwy ){  /* negative progress? */
          nbail++ ;
          if( nbail == BAILOUT ){
            if( verb ) INFO_message("** Bailing out for sluggish progress!") ;
@@ -691,14 +695,14 @@ int main( int argc , char *argv[] )
            if( verb ) INFO_message("** Progress is slow for some reason?!") ;
          }
        } else nbail = 0 ;
-       xdone   = (bx >= fwhm_goal) ;
-       ydone   = (by >= fwhm_goal) ;
+       xdone   = (bx >= fwhm_goal) ;  /* is x done? */
+       ydone   = (by >= fwhm_goal) ;  /* is y done? */
        zdone   = 1 ;
-       xalmost = (!xdone && bx >= DFGOALC*fwhm_goal) ;
-       yalmost = (!ydone && by >= DFGOALC*fwhm_goal) ;
+       xalmost = (!xdone && bx >= DFGOALC*fwhm_goal) ;  /* is x 80% done? */
+       yalmost = (!ydone && by >= DFGOALC*fwhm_goal) ;  /* is y 80% done? */
        zalmost = 0 ;
-       xstall  = (!xdone && (bx < last_fwx && nbail==BAILOUT)) ;
-       ystall  = (!ydone && (by < last_fwy && nbail==BAILOUT)) ;
+       xstall  = (!xdone && (bx < last_fwx && nbail==BAILOUT)) ;  /* is x going backwards? */
+       ystall  = (!ydone && (by < last_fwy && nbail==BAILOUT)) ;  /* is y going backwards? */
        zstall  = 1 ;
      } else {
        val = (float)cbrt(bx*by*bz) ;
@@ -710,7 +714,7 @@ int main( int argc , char *argv[] )
            INFO_message("** Passes 3D threshold cbrt(FWHMx*FWHMy*FWHMz) ==> done!");
          break;
        }
-       if( nite > 3 && bx < last_fwx && by < last_fwy && bz < last_fwz ){
+       if( nite > 3 && bx < last_fwx && by < last_fwy && bz < last_fwz ){  /* negative progress? */
          nbail++ ;
          if( nbail == BAILOUT ){
            if( verb ) INFO_message("** Bailing out for sluggish progress!") ;
@@ -719,18 +723,18 @@ int main( int argc , char *argv[] )
            if( verb ) INFO_message("** Progress is slow for some reason?!") ;
          }
        } else nbail = 0 ;
-       xdone   = (bx >= fwhm_goal) ;
-       ydone   = (by >= fwhm_goal) ;
-       zdone   = (bz >= fwhm_goal) ;
-       xalmost = (!xdone && bx >= DFGOALC*fwhm_goal) ;
-       yalmost = (!ydone && by >= DFGOALC*fwhm_goal) ;
-       zalmost = (!zdone && bz >= DFGOALC*fwhm_goal) ;
-       xstall  = (!xdone && (bx < last_fwx && nbail==BAILOUT)) ;
-       ystall  = (!ydone && (by < last_fwy && nbail==BAILOUT)) ;
-       zstall  = (!zdone && (bz < last_fwz && nbail==BAILOUT)) ;
+       xdone   = (bx >= fwhm_goal) ;                     /* is x done? */
+       ydone   = (by >= fwhm_goal) ;                     /* is y done? */
+       zdone   = (bz >= fwhm_goal) ;                     /* is z done? */
+       xalmost = (!xdone && bx >= DFGOALC*fwhm_goal) ;   /* is x 80% done? */
+       yalmost = (!ydone && by >= DFGOALC*fwhm_goal) ;   /* is y 80% done? */
+       zalmost = (!zdone && bz >= DFGOALC*fwhm_goal) ;   /* is z 80% done? */
+       xstall  = (!xdone && (bx < last_fwx && nbail==BAILOUT)) ; /* is x going backwards? */
+       ystall  = (!ydone && (by < last_fwy && nbail==BAILOUT)) ; /* is y going backwards? */
+       zstall  = (!zdone && (bz < last_fwz && nbail==BAILOUT)) ; /* is z going backwards? */
      }
 
-     /* these should not happen, but just in case ... */
+     /* these cases should not happen, but just in case ... */
      if( xdone && ydone && zdone ){
        if( verb ) INFO_message("** All axes done!") ;
        break ;
@@ -740,18 +744,19 @@ int main( int argc , char *argv[] )
        break ;
      }
 
-     /** if one axis is very close, stop it now **/
+     /** if one axis is very close but others still need work, stop that one now **/
 
      if( fwhm_2D && !xdone && !ydone ){
-            if( by > 1.01f*bx && by >= fwhm_subgoal ) ydone = 1;
-       else if( bx > 1.01f*by && bx >= fwhm_subgoal ) xdone = 1;
+            if( by > 1.01f*bx && by >= fwhm_subgoal ) ydone = 1;  /* stop y */
+       else if( bx > 1.01f*by && bx >= fwhm_subgoal ) xdone = 1;  /* stop y */
      } else if( !fwhm_2D && !xdone && !ydone && !zdone ){
-            if( bz > 1.01f*by & bz > 1.01f*bx && bz >= fwhm_subgoal ) zdone = 1;
-       else if( by > 1.01f*bx & by > 1.01f*bz && by >= fwhm_subgoal ) ydone = 1;
-       else if( bx > 1.01f*by & bx > 1.01f*bz && bx >= fwhm_subgoal ) xdone = 1;
+            if( bz > 1.01f*by & bz > 1.01f*bx && bz >= fwhm_subgoal ) zdone = 1; /* stop z */
+       else if( by > 1.01f*bx & by > 1.01f*bz && by >= fwhm_subgoal ) ydone = 1; /* stop y */
+       else if( bx > 1.01f*by & bx > 1.01f*bz && bx >= fwhm_subgoal ) xdone = 1; /* stop x */
      }
 
-     /** if global blurring is going too fast, slow it down **/
+     /** if global blurring is going too fast
+         (more than 20% progress per iteration), slow it down **/
 
      if( nite > 1 ){
        float bfac=1.0f , dfg=DFGOAL*fwhm_goal ;
@@ -769,7 +774,7 @@ int main( int argc , char *argv[] )
            ININFO_message(" Slowing overall blur rate by factor of %.3f",bfac) ;
      }
 
-     /** if near the goal, slow it down **/
+     /** if near the goal in any direction, slow that direction's blurring down **/
 
      maxfx = maxfxyz * xrat ;
      if( xdone || xstall ){
