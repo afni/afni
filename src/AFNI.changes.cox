@@ -6290,3 +6290,8 @@
 29 Jun 2007
  * Boxed plots work with Dataset#N now, in glorious colors and thinned.
      But not with Double Plot.
+
+11 Jul 2007
+ * Minor tweaks to algorithm for setting voxel-dependent blur factors in
+     3dBlurToFWHM.c.
+ * Various #define's for SOLARIS bad functions like fabsf() in 64 bit mode.
