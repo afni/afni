@@ -6295,3 +6295,6 @@
  * Minor tweaks to algorithm for setting voxel-dependent blur factors in
      3dBlurToFWHM.c.
  * Various #define's for SOLARIS bad functions like fabsf() in 64 bit mode.
+
+16 Jul 2007
+ * Add -stim_time_IM to 3dDeconvolve.c, to get individual event amplitudes.
