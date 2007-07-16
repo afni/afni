@@ -586,6 +586,8 @@ extern void   mri_unpurge  ( MRI_IMAGE * ) ;
 extern void   mri_killpurge( MRI_IMAGE * ) ;
 extern char * mri_purge_get_tmpdir(void) ;    /* 21 Dec 2006 */
 
+extern int mri_counter( MRI_IMAGE * , float , float ) ; /* 16 Jul 2007 */
+
 #define MRI_IS_PURGED(iq) \
   ( (iq)!=NULL && (iq)->fondisk==IS_PURGED && (iq)->fname!=NULL )
 
