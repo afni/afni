@@ -310,9 +310,15 @@ pcorsh.o:pcor.c pcor.h
 	$(CC) -c pcorsh.c $(INFLAGS) -DREF_FLOAT_SINGLE -DVOX_SHORT
 	$(RM) pcorsh.c
 
-FD2:FD2.o ts.o mcw.o overfim.o pcorsh.o csfft_AJ.o
+# FD2:FD2.o ts.o mcw.o overfim.o pcorsh.o csfft_AJ.o
+# 	$(RM) $@
+# 	$(CC) -o FD2 FD2.o mcw.o overfim.o ts.o pcorsh.o csfft_AJ.o $(LFLAGS) $(LLIBS)
+
+FD2.o:FD2.c FD2_inc.c
+
+FD2:FD2.o ts.o mcw.o overfim.o pcorsh.o csfft_AJ.o FD2_inc.c
 	$(RM) $@
-	$(CC) -o FD2 FD2.o mcw.o overfim.o ts.o pcorsh.o csfft_AJ.o $(LFLAGS) $(LLIBS)
+	$(CC) -o FD2 FD2.o mcw.o overfim.o ts.o pcorsh.o csfft_AJ.o $(LFLAGS) -lX11 -lm -lc
 
 dFD2:dFD2.o ts.o mcw.o overfim.o pcorsh.o
 	$(RM) $@

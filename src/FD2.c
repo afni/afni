@@ -26,7 +26,8 @@
 
 #undef USE_TRACING  /* not for use in this old program */
 
-#include "mrilib.h"
+#include "FD2_inc.c"  /* 16 Jul 2007 -- to avoid use of mrilib */
+
 #include "overfim.h"
 #include "pcor.h"
 
@@ -6449,9 +6450,11 @@ void RWC_setup_fims( imflag )
 
    nref = RWC_numort + RWC_polort + 2 ;
 
+#if 0
    if( DFILT_code == DFILT_TIME ){
       nref += DFILT_NREF ;     /* number of refs from DFILT      */
    }
+#endif
 
    if( LSQ_ref[0] == NULL ){
       for( ii=0 ; ii < MAX_TOTAL_REF ; ii++ )
@@ -6496,6 +6499,7 @@ void RWC_setup_fims( imflag )
 
 /*** find first "good" image and initialize DFILT, if needed ***/
 
+#if 0
    if( DFILT_code == DFILT_TIME ){
       int good ;
       int ii , jj , nx , ny , joff ;
@@ -6544,6 +6548,7 @@ void RWC_setup_fims( imflag )
 
       mri_free( flim ) ;
    }
+#endif
 
 /*** put images thru the fim wringer ***/
 
@@ -6569,6 +6574,7 @@ void RWC_setup_fims( imflag )
       for( ii=0 ; ii < RWC_numort ; ii++ )
          current_refs[ii+RWC_polort+1] = RWC_ort[ii]->ts[kim] ;
 
+#if 0
       if( DFILT_code == DFILT_TIME ){  /* fit current image to ref images */
          MRI_IMAGE * blim ;
          float * fit ;
@@ -6587,6 +6593,7 @@ void RWC_setup_fims( imflag )
          }
          free(fit) ;
       }
+#endif
 
       current_refs[nref-1] = id[kim] ;       /* load ideal as last ref */
 
