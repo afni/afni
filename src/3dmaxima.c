@@ -11,9 +11,10 @@ static char * g_history[] =
     "  1.0  06 Oct 2005 [rickr]  - initial release of 3dmaxima",
     "    - for now, no improvements over plug_maxima",
     "  1.1  18 Aug 2006 [rickr]  - added -coords_only option",
+    "  1.2  17 Jul 2007 [rickr]  - fixed -n_style_sort option use",
 };
 
-#define MAXIMA_VERSION "1.1 (August 18, 2005)"
+#define MAXIMA_VERSION "1.2 (July 17, 2007)"
 
 static char * g_help[] =
 {
@@ -346,11 +347,11 @@ ENTRY("process_args");
 	}
 	else if( ! strcmp( argv[ac], "-n_style_sort" ) )
 	{
-	    style = 0;
+	    style = MAX_SORT_N_REMOVE_STYLE;
 	}
 	else if( ! strcmp( argv[ac], "-n_style_weight_ave" ) )
 	{
-	    style = 1;
+	    style = MAX_WEIGHTED_AVE_STYLE;
 	}
 	else if( ! strcmp( argv[ac], "-neg_ext" ) )
 	{
