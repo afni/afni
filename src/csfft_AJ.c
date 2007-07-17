@@ -1,4 +1,9 @@
-#include "mrilib.h"
+#include <math.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct complex { float r , i ; } complex ;
 
 /*--------------------------------------------------------------------
   This is the older FFT routine by AJ and RWC,
