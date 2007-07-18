@@ -2092,7 +2092,7 @@
 10 Jul 2007: modified thd_coords.c: moved verbose under fabs(ang_merit)
 17 Jul 2007: modified 3dmaxima.c: fixed -n_style_sort option use
 
-18 Jul 2007: first GIFTI files added
+18 Jul 2007: first GIFTI files added (v 0.0)
   * added gifti directory and simple Makefile
   * added gifti.[ch]     : main programmer library functions
   * added gifti_xml.[ch] : XML functions, to be called from gifti.c

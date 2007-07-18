@@ -5,6 +5,19 @@
 #include "gifti.h"
 #include "gifti_xml.h"  /* not for general consumption */
 
+/*! global history and version strings, for printing */
+static char * ggi_history[] =
+{
+  "----------------------------------------------------------------------\n"
+  "history (of gifti library changes):\n"
+  "\n",
+  "0.0  18 July, 2007\n"
+  "     (Rick Reynolds of the National Institutes of Health, SSCC/DIRP/NIMH)\n"
+  "     - initial version\n"
+};
+
+static char ggi_version[] = "gifti library version 0.0, 18 July, 2007";
+
 /* ---------------------------------------------------------------------- */
 /* global lists of XML strings */
 
@@ -775,5 +788,18 @@ int gifti_DA_rows_cols(DataArray * da, int * rows, int * cols)
     }
                                                                                 
     return 0;
+}
+
+
+void gifti_disp_lib_hist(void)
+{
+   int c, len = sizeof(ggi_history)/sizeof(char *);
+   for( c = 0; c < len; c++ )
+       fputs(ggi_history[c], stdout);
+}
+
+void gifti_disp_lib_version(void)
+{
+    printf("%s, compiled %s\n", ggi_version, __DATE__);
 }
 
