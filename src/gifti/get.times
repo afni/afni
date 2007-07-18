@@ -1,0 +1,16 @@
+#!/bin/tcsh
+
+# either include the names of the gifti files on the command line,
+# or be sitting in the directory with them
+
+if ( $#argv > 1 ) then
+    set files = ( $argv )
+else
+    set files = ( gifti.*.gii )
+endif
+
+foreach file ( $files )
+    echo "----------------  $file  ----------------"
+    /usr/bin/time etest -infile $file
+    if( $status ) echo "****** FAILURE ********"
+end
