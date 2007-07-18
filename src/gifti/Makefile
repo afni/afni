@@ -4,8 +4,8 @@
 CFLAGS = -Wall -g
 CC     = gcc
 
-etest: etest.o gifti.o gifti_xml.o
-	$(CC) $(CFLAGS) -o etest -lexpat etest.o gifti.o gifti_xml.o
+gtest: gtest.o gifti.o gifti_xml.o
+	$(CC) $(CFLAGS) -o gtest -lexpat gtest.o gifti.o gifti_xml.o
 
 %.o: %.c %.h
 	$(CC) $(CFLAGS) -c $<

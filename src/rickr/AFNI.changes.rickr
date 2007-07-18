@@ -2099,4 +2099,5 @@
   * added etest.[ch]     : a sample test of the library files
   * added get.times      : a script to time reading of gifti images
   * added test.io        : a script to test GIFTI->GIFTI I/O
+  * modified Makefile.INCLUDE : to copy gifti directory for afni_src.tgz
 
