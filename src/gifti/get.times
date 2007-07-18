@@ -11,6 +11,6 @@ endif
 
 foreach file ( $files )
     echo "----------------  $file  ----------------"
-    /usr/bin/time etest -infile $file
+    /usr/bin/time gtest -infile $file
     if( $status ) echo "****** FAILURE ********"
 end
