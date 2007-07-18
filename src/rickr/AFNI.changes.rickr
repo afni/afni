@@ -2096,7 +2096,7 @@
   * added gifti directory and simple Makefile
   * added gifti.[ch]     : main programmer library functions
   * added gifti_xml.[ch] : XML functions, to be called from gifti.c
-  * added etest.[ch]     : a sample test of the library files
+  * added gtest.[ch]     : a sample test of the library files
   * added get.times      : a script to time reading of gifti images
   * added test.io        : a script to test GIFTI->GIFTI I/O
   * modified Makefile.INCLUDE : to copy gifti directory for afni_src.tgz
