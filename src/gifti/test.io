@@ -11,7 +11,7 @@ endif
 
 foreach file ( $files )
     echo -n "$file : "
-    etest -infile $file -gfile new.gii
+    gtest -infile $file -gfile new.gii
     if( $status ) then
         echo "****** FAILURE ********"
     else
