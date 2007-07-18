@@ -166,6 +166,9 @@ int    gifti_free_DataArray     (DataArray * darray);
 int    gifti_free_LabelTable    (LabelTable * t);
 int    gifti_free_nvpairs       (nvpairs * p);
 
+void   gifti_disp_lib_hist       (void);
+void   gifti_disp_lib_version    (void);
+
 int    gifti_disp_nvpairs        (const char *mesg, nvpairs *p);
 int    gifti_disp_LabelTable     (const char *mesg, LabelTable *p);
 int    gifti_disp_CoordSystem    (const char *mesg, CoordSystem *p);
