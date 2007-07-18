@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "gifti.h"
-#include "etest.h"
+#include "gtest.h"
 
 int show_help()
 {
