@@ -311,7 +311,7 @@ static int epush( gxml_data * xd, int etype, const char * ename,
         return 1;
     }
 
-    if( xd->verb > 3 ) {       /* maybe we want to print something */
+    if( xd->verb > 2 ) {       /* maybe we want to print something */
         show_depth(xd->depth, 1, stderr);
         fprintf(stderr,"+d push %02d: '%s'\n", etype, enames[etype]);
     }

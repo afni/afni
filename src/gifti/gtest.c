@@ -9,18 +9,41 @@ int show_help()
 {
     fprintf(stderr,
         "------------------------------------------------------------\n"
-        "gtest  - test reading a GIFTI dataset\n"
+        "gtest  - test reading/writing a GIFTI dataset\n"
+        "\n"
+        "    examples:\n"
+        "        1. read in a GIFTI dataset (verbose, show output?)\n"
+        "\n"
+        "            gtest -infile dset.gii\n"
+        "            gtest -infile dset.gii -verb 3\n"
+        "            gtest -infile dset.gii -show\n"
+        "\n"
+        "        2. copy a GIFTI dataset (check differences?)\n"
+        "\n"
+        "            gtest -infile dset.gii -gfile copy.gii\n"
+        "            diff dset.gii copy.gii\n"
+        "\n"
+        "        3. create .asc surfaces dataset (surf.asc)\n"
+        "\n"
+        "            gtest -infile pial.gii -prefix surf\n"
+        "\n"
+        "        4. create .1D time series surface dataset (surf.1D)\n"
+        "\n"
+        "            gtest -infile time_series.gii -prefix surf\n"
         "\n"
         "    options:\n"
         "       -help           : show this help\n"
+        "\n"
         "       -buf_size       : set buffer size\n"
         "                         e.g. -buf_size 1024\n"
-        "       -gfile          : write out dataset as gifti image\n"
+        "       -gfile   OUTPUT : write out dataset as gifti image\n"
+        "       -ghist          : show giftilib history\n"
+        "       -gver           : show giftilib version\n"
+        "       -infile  INPUT  : write out dataset as gifti image\n"
         "       -no_data        : do not write out data\n"
-        "       -prefix         : write out dataset(s) as surf images\n"
-        "       -show           : show final image (use twice for darray)\n"
-        "       -verb           : set verbose level\n"
-        "                         e.g. -verb 3\n"
+        "       -prefix  OUTPUT : write out dataset(s) as surf images\n"
+        "       -show           : show final gifti image\n"
+        "       -verb    VERB   : set verbose level\n"
         "------------------------------------------------------------\n"
         );
     return 0;
@@ -43,6 +66,12 @@ int main( int argc, char * argv[] )
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-buf_size");
             if( gifti_set_xml_buf_size(atoi(argv[ac])) ) return 1;
+        } else if( !strcmp(argv[ac], "-ghist") ) {
+            gifti_disp_lib_hist();
+            return 0;
+        } else if( !strcmp(argv[ac], "-gver") ) {
+            gifti_disp_lib_version();
+            return 0;
         } else if( !strcmp(argv[ac], "-gfile") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-gfile");
@@ -61,7 +90,7 @@ int main( int argc, char * argv[] )
             CHECK_NEXT_OPT(ac, argc, "-prefix");
             prefix = argv[ac];
         } else if( !strcmp(argv[ac], "-show") ) {
-            show++;
+            show = 1;
         } else if( !strcmp(argv[ac], "-verb") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-verb");
@@ -85,7 +114,7 @@ int main( int argc, char * argv[] )
         return 1;
     }
 
-    if( show ) gifti_disp_gifti_image("FINAL IMAGE", gim, show>1 );
+    if( show ) gifti_disp_gifti_image("FINAL IMAGE", gim, 1 );
 
     if( gfile ) gifti_write_image(gim, gfile, data);
     if( prefix ) write_as_ascii(gim, prefix);
