@@ -147,8 +147,10 @@ int write_as_ascii(gifti_image * gim, char * prefix)
     }
 
     /* write time series file, *.1D */
-    if( len > 0 )
+    if( len > 0 ) {
         (void) write_1D_file(da_list, len, prefix, 1); 
+        free(da_list);
+    }
     else
         fprintf(stderr,"** no functionals in gifti_image\n");
 
