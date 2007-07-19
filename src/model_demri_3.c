@@ -45,6 +45,7 @@ typedef struct
     int      nfirst;            /* num TRs used to compute mean Mp,0 */
     int      ijk;               /* voxel index*/
     int      debug;
+    int      counter;           /* count iterations */
 
     double * comp;              /* computation data, and elist */
     double * elist;             /* (for easy allocation, etc.) */
@@ -59,7 +60,7 @@ static int alloc_param_arrays(demri_params * P, int len);
 static int compute_ts       (demri_params *P, float *ts, int ts_len);
 static int c_from_ct_cp     (demri_params * P, int len);
 static int convert_mp_to_cp (demri_params * P, int mp_len);
-static int ct_from_cp       (demri_params * P, int len);
+static int ct_from_cp       (demri_params * P, double *, float *, int, int);
 static int disp_demri_params(char * mesg, demri_params * p );
 static int get_env_params   (demri_params * P);
 static int get_Mp_array     (demri_params * P, int * mp_len);
@@ -67,6 +68,9 @@ static int get_time_in_seconds(char * str, float * time);
 static int model_help       (void);
 static int Mx_from_R1       (demri_params * P, float * ts, int len);
 static int R1_from_c        (demri_params * P, int len);
+
+static void print_doubles(char * mesg, double * list, int len);
+static void print_floats (char * mesg, float  * list, int len);
 
 /*----------------------------------------------------------------------
 
@@ -123,7 +127,7 @@ void signal_model (
 )
 {
     static demri_params P = {0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                             0.0, 0, 0, 0,  NULL, NULL, NULL };
+                             0.0, 0, 0, 0, 0,  NULL, NULL, NULL };
     static int          first_call = 1;
     int                 mp_len;      /* length of mcp list */
     int                 rv, errs = 0;
@@ -219,7 +223,9 @@ void signal_model (
         if(P.debug > 3) printf("Voxel index %d, R1I value %f\n", P.ijk, P.RIT); 
     }
 
+    if(P.debug>1 && P.counter==0) disp_demri_params("before compute_ts: ", &P);
     (void)compute_ts( &P, ts_array, ts_len );
+    P.counter++;  /* a valid iteration */
 
     if( (rv = thd_floatscan(ts_len, ts_array)) > 0 )
     {
@@ -246,7 +252,7 @@ void signal_model (
 */
 static int compute_ts( demri_params * P, float * ts, int ts_len )
 {
-    if( ct_from_cp(P, ts_len) ) return 1;
+    if( ct_from_cp(P, P->comp, P->mcp, P->nfirst, ts_len) ) return 1;
 
     if( c_from_ct_cp(P, ts_len) ) return 1;
 
@@ -262,10 +268,13 @@ static int compute_ts( demri_params * P, float * ts, int ts_len )
 
     Ct[n] = Ktrans * ( sum [ Cp[k] * exp( -kep(n-k)*TF )
             ------                 * ( exp(kep*TF/2) - exp(-kep*TF/2) ) ]
-             kep       + Cp[n] * (1 - exp(-kep*TF/2)) )
+             kep
+                       + (Cp[m] + Cp[n]) * (1 - exp(-kep*TF/2)) )
 
-    where sum is over k=m..n-1 (m is nfirst), and n is over 0..len-1
-    note: Cp[n] = Ct[n] = 0, for n in {0..m-1}
+    where sum is over k=m+1..n-1 (m is nfirst), and n is over m..len-1
+    note: Cp[n] = Ct[n] = 0, for n in {0..m}  (m also, since that is time=0)
+    note: (Cp[m]+Cp[n])*... reflects the first and last half intervals,
+          while the sum reflects all the interior, full intervals
 
         Let P1  = Ktrans / kep
             P2  = exp(kep*TF/2) - exp(-kep*TF/2)
@@ -274,25 +283,23 @@ static int compute_ts( demri_params * P, float * ts, int ts_len )
             P4  = 1 - exp(-kep*TF/2)
                 = 1 - exp(P3/2)
 
-    Ct[n] = P1*P2 * sum [ Cp[k] * exp(P3*(n-k)) ] + P1*P4 * Cp[n]
+    Ct[n] = P1*P2 * sum [ Cp[k] * exp(P3*(n-k)) ] + P1*P4 * (Cp[m]+Cp[n])
     note: in exp_list, max power is (P3*(len-1-m)), m is nfirst
     note: Ct is stored in P->comp
     
     ** This is the only place that the dataset TR (which we label as TF,
        the inter-frame TR) is used in this model.
 */
-static int ct_from_cp(demri_params * P, int len)
+static int ct_from_cp(demri_params * P, double * ct, float * cp,
+                      int nfirst, int len)
 {
-    static int   first = 1;
-    double     * ct = P->comp;
     double     * elist = P->elist;
     double       P12, P3, P14;
     double       dval;
-    float      * cp = P->mcp;
     int          k, n;
 
-    /* we don't need to fill with zeros every time, but be explicit */
-    if( first ){ for(n=0; n < P->nfirst; n++) ct[n] = 0.0;  first = 0; }
+    /* init first elements to 0 */
+    for(n=0; n < nfirst; n++) ct[n] = 0.0;
 
     /* assign P*, and then fill elist[] from P3 */
     P12  = P->K / P->kep;               /* P1 for now */
@@ -307,16 +314,21 @@ static int ct_from_cp(demri_params * P, int len)
     /* fill elist with powers of e(P3*i), i = 1..len-1-nfirst */
     elist[0] = 1.0;
     dval = exp(P3); /* first val, elist[i] is a power of this */
-    for( k = 1; k < len - P->nfirst; k++ )   /* fill the list */
+    for( k = 1; k < len - nfirst; k++ )   /* fill the list */
         elist[k] = dval * elist[k-1];
     
-    for( n = P->nfirst; n < len; n++ )   /* ct[k] = 0, for k < nfirst */
+    ct[nfirst] = 0;  /* == integral over 0 time */
+    for( n = nfirst+1; n < len; n++ )   /* ct[k] = 0, for k < nfirst */
     {
         dval = 0.0;   /* dval is sum here */
-        for( k = P->nfirst; k < n; k++ )
+        for( k = nfirst+1; k < n; k++ )
             dval += cp[k]*elist[n-k];
-        ct[n] = P12 * dval + P14 * cp[n];
+        ct[n] = P12 * dval + P14 * (cp[n]+cp[nfirst]);
     }
+
+    /* maybe print out the array */
+    if( P->debug > 1 && P->counter == 0)
+        print_doubles("+d ct from cp : ", ct, len);
 
     /* return tissue concentration of Gd over time (in ct[] via P->comp[]) */
 
@@ -336,6 +348,11 @@ static int c_from_ct_cp(demri_params * P, int len)
     int      n;
     for( n = P->nfirst; n < len; n++ )
         C[n] += P->fvp * cp[n];         /* C already holds Ct */
+
+    /* maybe print out the array */
+    if( P->debug > 1 && P->counter == 0)
+        print_doubles("+d c from ct/cp : ", C, len);
+
     return 0;
 }
 
@@ -352,6 +369,11 @@ static int R1_from_c(demri_params * P, int len)
     
     for( n = P->nfirst; n < len; n++ ) 
         R1[n] = P->RIT + P->r1 * R1[n];
+
+    /* maybe print out the array */
+    if( P->debug > 1 && P->counter == 0)
+        print_doubles("+d R1 from C : ", R1, len);
+
     return 0;
 }
 
@@ -395,6 +417,10 @@ static int Mx_from_R1(demri_params * P, float * ts, int len)
         e = exp(-R1[n] * P->TR);
         ts[n] = (1 - e)*P1c / ( (1-cos0*e) * P1);
     }
+
+    /* maybe print out the array */
+    if( P->debug > 1 && P->counter == 0)
+        print_floats("+d Mx from R1 : ", ts, len);
 
     return 0;
 }
@@ -885,3 +911,20 @@ static int get_time_in_seconds( char * str, float * time )
     return 0;
 }
 
+static void print_doubles(char * mesg, double * list, int len)
+{
+    int c;
+    fputs(mesg, stderr);
+    for( c = 0; c < len; c++ )
+        fprintf(stderr,"  %s", MV_format_fval(list[c]));
+    fputc('\n', stderr);
+}
+
+static void print_floats(char * mesg, float * list, int len)
+{
+    int c;
+    fputs(mesg, stderr);
+    for( c = 0; c < len; c++ )
+        fprintf(stderr,"  %s", MV_format_fval(list[c]));
+    fputc('\n', stderr);
+}
