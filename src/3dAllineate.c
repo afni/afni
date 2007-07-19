@@ -106,6 +106,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset_targ = NULL ;
    THD_3dim_dataset *dset_mast = NULL ;
    THD_3dim_dataset *dset_weig = NULL ;
+   int targ_mast               = 0 ;            /* for -master SOURCE */
    int auto_weight             = 3 ;            /* -autobbox == default */
    char *auto_string           = "-autobox" ;
    int auto_dilation           = 0 ;            /* for -automask+N */
@@ -461,6 +462,8 @@ int main( int argc , char *argv[] )
        "               to the base image.  Therefore, the coordinate system\n"
        "               of the master dataset is interpreted as being in the\n"
        "               reference system of the base image.\n"
+       "       **N.B.: If 'mmm' is the string 'SOURCE', then the source dataset\n"
+       "               is used as the master for the output dataset grid.\n"
 #if 0
        " -dxyz del   = Write the output dataset using grid spacings of\n"
        "               'del' mm.  If this option is NOT given, then the\n"
@@ -678,10 +681,16 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strncmp(argv[iarg],"-master",6) == 0 ){
-       if( dset_mast != NULL ) ERROR_exit("Can't have multiple %s options!",argv[iarg]) ;
+       if( dset_mast != NULL || targ_mast )
+         ERROR_exit("Can't have multiple %s options!",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
-       dset_mast = THD_open_dataset( argv[iarg] ) ;
-       if( dset_mast == NULL ) ERROR_exit("can't open -master dataset '%s'",argv[iarg]);
+       if( strcmp(argv[iarg],"SOURCE") == 0 ){  /* 19 Jul 2007 */
+         targ_mast = 1 ;
+       } else {
+         dset_mast = THD_open_dataset( argv[iarg] ) ;
+         if( dset_mast == NULL )
+           ERROR_exit("can't open -master dataset '%s'",argv[iarg]);
+       }
        iarg++ ; continue ;
      }
 
@@ -1486,6 +1495,9 @@ int main( int argc , char *argv[] )
        ERROR_exit("Can't open source dataset '%s'",argv[iarg]) ;
    }
 
+   if( targ_mast && dset_mast == NULL )       /* 19 Jul 2007:   */
+     dset_mast = dset_targ ;                  /* -master SOURCE */
+
    if( replace_base && DSET_NVALS(dset_targ) == 1 ) replace_base = 0 ;
 
    /* check target data type */
@@ -1504,7 +1516,7 @@ int main( int argc , char *argv[] )
      if( prefix == NULL ) ERROR_exit("-1Dapply also needs -prefix!") ;
      wtprefix = fname_1D = NULL ; zeropad = 0 ; auto_weight = 0 ;
      if( dset_weig != NULL ){ DSET_delete(dset_weig); dset_weig=NULL; }
-     if( dset_mast != NULL )
+     if( dset_mast == NULL )
        WARNING_message("You might want to use '-master' when using '-1Dapply'") ;
    }
 
