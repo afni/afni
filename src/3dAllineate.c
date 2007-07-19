@@ -106,7 +106,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset_targ = NULL ;
    THD_3dim_dataset *dset_mast = NULL ;
    THD_3dim_dataset *dset_weig = NULL ;
-   int targ_mast               = 0 ;            /* for -master SOURCE */
+   int tb_mast                 = 0 ;            /* for -master SOURCE/BASE */
    int auto_weight             = 3 ;            /* -autobbox == default */
    char *auto_string           = "-autobox" ;
    int auto_dilation           = 0 ;            /* for -automask+N */
@@ -681,11 +681,13 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strncmp(argv[iarg],"-master",6) == 0 ){
-       if( dset_mast != NULL || targ_mast )
+       if( dset_mast != NULL || tb_mast )
          ERROR_exit("Can't have multiple %s options!",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        if( strcmp(argv[iarg],"SOURCE") == 0 ){  /* 19 Jul 2007 */
-         targ_mast = 1 ;
+         tb_mast = 1 ;
+       } else if( strcmp(argv[iarg],"BASE") == 0 ){
+         tb_mast = 2 ;
        } else {
          dset_mast = THD_open_dataset( argv[iarg] ) ;
          if( dset_mast == NULL )
@@ -1495,8 +1497,10 @@ int main( int argc , char *argv[] )
        ERROR_exit("Can't open source dataset '%s'",argv[iarg]) ;
    }
 
-   if( targ_mast && dset_mast == NULL )       /* 19 Jul 2007:   */
-     dset_mast = dset_targ ;                  /* -master SOURCE */
+   switch( tb_mast ){                        /* 19 Jul 2007 */
+     case 1: dset_mast = dset_targ ; break ;
+     case 2: dset_mast = dset_base ; break ;
+   }
 
    if( replace_base && DSET_NVALS(dset_targ) == 1 ) replace_base = 0 ;
 
