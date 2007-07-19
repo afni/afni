@@ -329,7 +329,7 @@ typedef struct {
                                  sizeof(char *) * (name)->nall ) ;    \
      }                                                                \
      if( (str) != NULL ){                                             \
-      (name)->ar[(name)->num] = (char *) XtMalloc( strlen((str))+1 ) ;\
+      (name)->ar[(name)->num] = (char *) XtMalloc( strlen((str))+1 ); \
       strcpy( (name)->ar[(name)->num] , (str) ) ;                     \
       ADDTO_KILL((name)->kl,(name)->ar[(name)->num]) ;                \
       ((name)->num)++ ;                                               \
@@ -348,6 +348,13 @@ typedef struct {
      KILL_KILL((name)->kl) ;  \
      myXtFree( (name)->ar ) ; \
      myXtFree( (name) ) ; } } while(0)
+
+/*! Print all entries in a dynamic string array */
+
+#define PRINTF_SARR(name,lll)                                            \
+ do{ int qq ; printf("%s:",(lll)) ;                                      \
+     for( qq=0; qq < (name)->num; qq++ ) printf(" '%s'",(name)->ar[qq]); \
+     printf("\n") ; } while(0)
 
 extern int SARR_find_string( THD_string_array * sar , char * str ) ;
 extern int SARR_find_substring( THD_string_array * sar , char * sub ) ;
@@ -3554,6 +3561,8 @@ extern THD_3dim_dataset * THD_open_nifti( char * ) ;        /* 28 Aug 2003 */
 extern THD_3dim_dataset * THD_open_mpeg( char * ) ;         /* 03 Dec 2003 */
 extern THD_3dim_dataset * THD_open_tcat( char * ) ;         /* 04 Aug 2004 */
 extern THD_3dim_dataset * THD_open_niml( char * ) ;         /* 01 Jun 2006 */
+
+extern THD_string_array * THD_multiplex_dataset( char * ) ; /* 19 Jul 2007 */
 
 extern THD_3dim_dataset * THD_niml_3D_to_dataset( NI_element *, char * ) ;
 extern THD_3dim_dataset * THD_ni_surf_dset_to_afni( NI_group *, int ) ;
