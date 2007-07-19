@@ -575,7 +575,9 @@ ENTRY("THD_copy_dset_subs");
 
 /*------------------------------------------------------------------------*/
 /* Given a dataset selector like "name[1..3]", return individual selectors
-   like "name[1]", "name[2]", "name[3]".  [19 Jul 2007 - RWCox]
+   like "name[1]", "name[2]", "name[3]".  The reason for this is for older
+   programs like 3dttest that operate on a list of single brick datasets.
+   [19 Jul 2007 - RWCox]
 --------------------------------------------------------------------------*/
 
 THD_string_array * THD_multiplex_dataset( char *pathname )

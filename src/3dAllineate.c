@@ -215,6 +215,18 @@ int main( int argc , char *argv[] )
        "               (In this mode of operation, there is no optimization  )\n"
        "               (of the cost function by changing the warp parameters;)\n"
        "               (previously computed parameters are applied directly. )\n"
+       "         *N.B.: If you use -1Dapply, you may also want to use\n"
+       "                 -master to control the grid on which the new\n"
+       "                 dataset is written -- the base dataset from the\n"
+       "                 original 3dAllineate run would be a good possibility.\n"
+       "                 Otherwise, the new dataset will be written out on the\n"
+       "                 3D grid coverage of the source dataset, and this\n"
+       "                 might result in clipping off part of the image.\n"
+       "         *N.B.: Each row in the 'aa' file contains the parameters for\n"
+       "                 transforming one sub-brick in the source dataset.\n"
+       "                 If there are more sub-bricks in the source dataset\n"
+       "                 than there are rows in the 'aa' file, then the last\n"
+       "                 row is used repeatedly.\n"
        "\n"
        " -cost ccc   = Defines the 'cost' function that defines the matching\n"
        "               between the source and the base; 'ccc' is one of\n"
@@ -1492,6 +1504,8 @@ int main( int argc , char *argv[] )
      if( prefix == NULL ) ERROR_exit("-1Dapply also needs -prefix!") ;
      wtprefix = fname_1D = NULL ; zeropad = 0 ; auto_weight = 0 ;
      if( dset_weig != NULL ){ DSET_delete(dset_weig); dset_weig=NULL; }
+     if( dset_mast != NULL )
+       WARNING_message("You might want to use '-master' when using '-1Dapply'") ;
    }
 
    /* if no base input, target should have more than 1 sub-brick */
@@ -1753,11 +1767,12 @@ int main( int argc , char *argv[] )
    }
 
    if( apply_1D != NULL && apply_nx < stup.wfunc_numpar )
-     ERROR_exit("-1Dapply '%s': %d is not enough parameters per row",
+     ERROR_exit("-1Dapply '%s': %d isn't enough parameters per row for desired warp",
                 apply_1D,apply_nx);
    if( apply_1D != NULL && apply_ny < DSET_NVALS(dset_targ) )
-     ERROR_exit("-1Dapply '%s': %d is not enough columns",
-                apply_1D,apply_ny);
+     WARNING_message(
+      "-1Dapply '%s': %d isn't enough rows for source dataset -- last row will repeat",
+      apply_1D,apply_ny);
 
 #define DEFPAR(p,nm,bb,tt,id,dd,ll)               \
  do{ stup.wfunc_param[p].min      = (bb) ;        \
@@ -2000,9 +2015,16 @@ int main( int argc , char *argv[] )
      /* if we are just applying input parameters, set up for that now */
 
      if( apply_1D != NULL ){
+       int rr ;
        if( verb > 1 ) INFO_message("using -1Dapply parameters") ;
+       rr = kk ;
+       if( rr >= apply_ny ){  /* 19 Jul 2007 */
+         rr = apply_ny-1 ;
+         WARNING_message("Re-using row #%d of -1Dapply '%s' for sub-brick #%d",
+           rr+1 , apply_1D , kk+1 ) ;
+       }
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
-         stup.wfunc_param[jj].val_out = APL(jj,kk) ;
+         stup.wfunc_param[jj].val_out = APL(jj,rr) ;
        stup.interp_code   = final_interp ;
        stup.smooth_code   = 0 ;
        stup.npt_match     = 11 ;
