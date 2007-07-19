@@ -6298,3 +6298,6 @@
 
 16 Jul 2007
  * Add -stim_time_IM to 3dDeconvolve.c, to get individual event amplitudes.
+
+19 Jul 2007
+ * Add THD_multiplex_dataset() to thd_mastery.c, and thence 3dttest.c.

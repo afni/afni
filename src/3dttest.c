@@ -96,6 +96,7 @@ DUMP1 ;
          ival = strtol( argv[nopt] , NULL , 10 ) ;
          if( ival <= 0 ) TT_syntax("illegal argument after -workmem!") ;
          TT_workmem = ival ;
+         INFO_message("-workmem option is now obsolete\n") ;
          nopt++ ; continue ;
       }
 
@@ -218,28 +219,55 @@ DUMP2 ;
       /** -set1 file file ... **/
 
       if( strncmp(argv[nopt],"-set1",6) == 0 ){
+         int eee=0 ;
          if( TT_use_bval == 1 ) TT_syntax("-set1 with -base1 illegal!");
          TT_use_bval = -1 ;
          INIT_SARR( TT_set1 ) ;
          for( kk=nopt+1 ; kk < argc ; kk++ ){
+#if 1
+            if( argv[kk][0] == '-' ) break ;
+#else
             if( strncmp(argv[kk],"-set2",6) == 0 ) break ;
-            ADDTO_SARR( TT_set1 , argv[kk] ) ;
+#endif
+            if( strstr(argv[kk],"[") == NULL ){
+              ADDTO_SARR( TT_set1 , argv[kk] ) ;
+            } else {
+              THD_string_array *ss = THD_multiplex_dataset(argv[kk]); int qq;
+              if( ss == NULL ) ERROR_exit("Can't deal with '%s'",argv[kk]) ;
+              for( qq=0 ; qq < SARR_NUM(ss) ; qq++ )
+                ADDTO_SARR(TT_set1,SARR_STRING(ss,qq)) ;
+              DESTROY_SARR(ss) ; eee++ ;
+            }
          }
 
          if( kk >= argc )       TT_syntax("-set1 not followed by -set2") ;
          if( kk-1-nopt <= 0 )   TT_syntax("-set1 has no datasets after it") ;
          if( TT_set1->num < 2 ) TT_syntax("-set1 doesn't have enough datasets") ;
+         if( eee ) PRINTF_SARR(TT_set1,"++ Expanded -set1:") ;
          nopt = kk ; continue ; /* skip to arg that matched -set2 */
       }
 
       /** -set2 file file ... */
 
       if( strncmp(argv[nopt],"-set2",6) == 0 ){
+         int eee=0 ;
          INIT_SARR( TT_set2 ) ;
          for( kk=nopt+1 ; kk < argc ; kk++ ){
-            ADDTO_SARR( TT_set2 , argv[kk] ) ;
+#if 1
+            if( argv[kk][0] == '-' ) break ;
+#endif
+            if( strstr(argv[kk],"[") == NULL ){
+              ADDTO_SARR( TT_set2 , argv[kk] ) ;
+            } else {
+              THD_string_array *ss = THD_multiplex_dataset(argv[kk]); int qq;
+              if( ss == NULL ) ERROR_exit("Can't deal with '%s'",argv[kk]) ;
+              for( qq=0 ; qq < SARR_NUM(ss) ; qq++ )
+                ADDTO_SARR(TT_set2,SARR_STRING(ss,qq)) ;
+              DESTROY_SARR(ss) ; eee++ ;
+            }
          }
          if( TT_set2->num < 2 ) TT_syntax("-set2 doesn't have enough datasets") ;
+         if( eee ) PRINTF_SARR(TT_set2,"++ Expanded -set2:") ;
          break ;  /* end of possible inputs */
       }
 
@@ -378,10 +406,12 @@ void TT_syntax(char * msg)
     "                         at which to threshold the output, per voxel.\n"
     "                         N.B.: NOT IMPLEMENTED YET!\n"
 #endif
+#if 0
     "  -workmem mega      = 'mega' specifies the number of megabytes of RAM\n"
     "                         to use for statistical workspace.  It defaults\n"
     "                         to 12.  The program will run faster if this is\n"
     "                         larger (see the NOTES section below).\n"
+#endif
     "\n"
     "  -voxel voxel       = like 3dANOVA, get screen output for a given voxel.\n"
     "                         This is 1-based, as with 3dANOVA.\n"
@@ -408,6 +438,7 @@ void TT_syntax(char * msg)
     "                       in the notes below.\n"
     "\n"
     "NOTES:\n"
+#if 0
     " ** To economize on memory, 3dttest makes multiple passes through\n"
     "      the input datasets.  On each pass, the entire editing process\n"
     "      will be carried out again.  For efficiency's sake, it is\n"
@@ -418,6 +449,7 @@ void TT_syntax(char * msg)
     "      memory in its entirety (so that the disk file is not altered).\n"
     "      This will increase the memory needs of the program far beyond\n"
     "      the level set by the -workmem option.\n"
+#endif
     " ** The input datasets are specified by their .HEAD files,\n"
     "      but their .BRIK files must exist also! This program cannot\n"
     "      'warp-on-demand' from other datasets.\n"
@@ -546,10 +578,7 @@ printf("*** deleting exemplar dataset\n") ;
 
 #define MTEST(ptr) \
    if((ptr)==NULL) \
-      ( fprintf(stderr,"*** Cannot allocate memory for statistics!\n"                \
-                       "*** Try using the -workmem option to reduce memory needs,\n" \
-                       "*** or create more swap space in the operating system.\n"    \
-                ), exit(0) )
+      ( fprintf(stderr,"*** Cannot allocate memory for statistics!\n"), exit(0) )
 
    /*-- make space for the t-test computations --*/
 
