@@ -59,7 +59,8 @@ int main( int argc , char * argv[] )
    mat44 Tw, Tc, Tw_inv, Tr, Tw2;
    int oblique_flag = 0;
    THD_3dim_dataset *oblparset=NULL ;
-   float angle;
+   float angle; 
+   float matar[12] ; char anam[64] ;
 #if 0
    MRI_IMAGE *matflim=NULL ;
    float     *matflar=NULL ;
@@ -610,9 +611,27 @@ DUMP_MAT44("Twcombined", Tw);
 
    /*- 03 Aug 2005: save WARPDRIVE attributes, if present -*/
 
-   if( atr_matfor != NULL ) THD_insert_atr( outset->dblk, (ATR_any *)atr_matfor );
-   if( atr_matinv != NULL ) THD_insert_atr( outset->dblk, (ATR_any *)atr_matinv );
+   if( atr_matfor != NULL ) {
+      THD_insert_atr( outset->dblk, (ATR_any *)atr_matfor );
+   } else if( use_matvec ){ /* put in the new matrix ZSS July 19 07*/
+      UNLOAD_MAT(dicom_out2in.mm,matar[0],matar[1],matar[2],
+                            matar[4],matar[5],matar[6],
+                            matar[8],matar[9],matar[10] ) ;
+       UNLOAD_FVEC3(dicom_out2in.vv,matar[3],matar[7],matar[11]) ;
+       sprintf(anam,"WARPDRIVE_MATVEC_FOR_%06d",0) ;
+       THD_set_float_atr( outset->dblk , anam , 12 , matar ) ;
 
+   }
+   if( atr_matinv != NULL ) {
+      THD_insert_atr( outset->dblk, (ATR_any *)atr_matinv );
+   } else if( use_matvec ){ /* put in the new matrix ZSS July 19 07*/
+       UNLOAD_MAT(dicom_in2out.mm,matar[0],matar[1],matar[2],
+                            matar[4],matar[5],matar[6],
+                            matar[8],matar[9],matar[10] ) ;
+       UNLOAD_FVEC3(dicom_in2out.vv,matar[3],matar[7],matar[11]) ;
+       sprintf(anam,"WARPDRIVE_MATVEC_INV_%06d",0) ;
+       THD_set_float_atr( outset->dblk , anam , 12 , matar ) ;
+   }
    /*- actually do the writositing -*/
 
    DSET_delete( inset ) ;
