@@ -2102,4 +2102,5 @@
   * modified Makefile.INCLUDE : to copy gifti directory for afni_src.tgz
 
 19 Jul 2007: modified model_demri_3.c: minor tweak to ct(t) equation
+20 Jul 2007: modifed Makefile.INCLUDE, gifti/Makefile, for building gtest
 

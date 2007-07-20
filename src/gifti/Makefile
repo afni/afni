@@ -1,12 +1,14 @@
 
 # quick and dirty for now...
 
-CFLAGS = -Wall -g
+# CFLAGS = -Wall -g
 CC     = gcc
 
 gtest: gtest.o gifti.o gifti_xml.o
-	$(CC) $(CFLAGS) -o gtest -lexpat gtest.o gifti.o gifti_xml.o
+	$(RM) $@
+	$(CC) -o $@ $(LFLAGS) -lexpat gtest.o gifti.o gifti_xml.o
 
 %.o: %.c %.h
-	$(CC) $(CFLAGS) -c $<
+	$(RM) $@
+	$(CC) $(IFLAGS) -c $<
 
