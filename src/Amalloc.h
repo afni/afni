@@ -111,7 +111,7 @@
 /************************************************************************
      Macros to call functions with arguments of general types
      specified in the macro call, with various numbers of arguments.
-     Functions returninothing (_VOID_) or return a value (_VALU_).
+     Functions return nothing (_VOID_) or return a value (_VALU_).
 ************************************************************************/
 
 /*---------------------------------------------------------------------*/
