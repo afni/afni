@@ -2734,11 +2734,11 @@ ENTRY("read_input_data") ;
        default:                           /* user supplied non-negative polort */
          if( option_data->polort < ilen )
            WARNING_message(
-            "Input polort=%d; Imaging duration=%.1f s; Recommended minimum polort=%d",
+            "Input polort=%d; Longest run=%.1f s; Recommended minimum polort=%d",
             option_data->polort , dmax , ilen ) ;
          else
            INFO_message(
-            "Input polort=%d; Imaging duration=%.1f s; Recommended minimum polort=%d ++ OK ++",
+            "Input polort=%d; Longest run=%.1f s; Recommended minimum polort=%d ++ OK ++",
             option_data->polort , dmax , ilen ) ;
        break ;
 
