@@ -1865,6 +1865,12 @@ serial_writer: rickr/serial_writer.c
 	$(RM) $@
 	$(CCMIN) -o serial_writer rickr/serial_writer.c
 
+gtest:
+	( cd gifti ; 							\
+	$(MAKE) gtest 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'         \
+	                'LFLAGS=$(LFLAGS)' ;                            \
+	$(MV) gtest .. ; )
+
 #######
 # rendering library
 
