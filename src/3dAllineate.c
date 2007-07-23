@@ -26,6 +26,9 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 #define WARP_SCALE    3
 #define WARP_AFFINE   4
 
+#define APPLY_PARAM   1   /* 23 Jul 2007 */
+#define APPLY_AFF12   2
+
 static float wt_medsmooth = 2.25f ;   /* for mri_weightize() */
 static float wt_gausmooth = 4.50f ;
 
@@ -92,11 +95,12 @@ int main( int argc , char *argv[] )
    int skip_first=0 , didtwo , targ_kind ;
    double ctim , rad , conv_rad ;
    float **parsave=NULL ;
+   mat44 *matsave=NULL , targ_cmat,base_cmat,base_cmat_inv,targ_cmat_inv, qmat,wmat ;
    MRI_IMAGE *apply_im = NULL ;
    float *apply_far    = NULL ;
-   int apply_nx, apply_ny , nparam_free , diffblur=1 ;
+   int apply_nx, apply_ny , apply_mode=0 , nparam_free , diffblur=1 ;
    float cost, cost_ini ;
-   mat44 cmat_bout , cmat_tout ;
+   mat44 cmat_bout , cmat_tout , aff12_ijk , aff12_xyz ;
    int   nxout,nyout,nzout ;
    float dxout,dyout,dzout ;
 
@@ -121,7 +125,8 @@ int main( int argc , char *argv[] )
    int zeropad                 = 1 ;            /* on by default */
    char *prefix                = NULL ;         /* off by default */
    char *wtprefix              = NULL ;         /* off by default */
-   char *fname_1D              = NULL ;         /* off by default */
+   char *param_save_1D         = NULL ;         /* off by default */
+   char *matrix_save_1D        = NULL ;         /* 23 Jul 2007 */
    char *apply_1D              = NULL ;         /* off by default */
    int interp_code             = MRI_LINEAR ;
    int npt_match               = -47 ;          /* 47%, that is */
@@ -198,36 +203,51 @@ int main( int argc , char *argv[] )
        " -prefix ppp = Output the resulting dataset to file 'ppp'.  If this\n"
        "   *OR*        option is NOT given, no dataset will be output!  The\n"
        " -out ppp      transformation to align the source to the base will\n"
-       "               be estimated, but not applied.  (By default, the new\n"
-       "               dataset is computed on the grid of the base dataset,\n"
-       "               and it will be stored in float format.)\n"
+       "               be estimated, but not applied.  You can save the transformation\n"
+       "               for later use using the '-1Dmatrix_save' option.\n"
+       "        *N.B.: By default, the new dataset is computed on the grid of the\n"
+       "                base dataset; see the '-master' option to change this grid.\n"
        "\n"
        " -floatize   = Write result dataset as floats.  Internal calculations\n"
        "               are all done on float copies of the input datasets.\n"
        "               [Default=convert output dataset to data format of]\n"
        "               [        source dataset, without any scale factor]\n"
        "\n"
-       " -1Dfile fff = Save the warp parameters in ASCII (.1D) format into\n"
-       "               file 'fff' (1 row per sub-brick in source).\n"
+       " -1Dparam_save ff   = Save the warp parameters in ASCII (.1D) format into\n"
+       "                      file 'ff' (1 row per sub-brick in source).\n"
+       "               *N.B.: A historical synonym for this option is '-1Dfile'.\n"
        "\n"
-       " -1Dapply aa = Read warp parameters from file 'aa', apply them to the\n"
-       "               source dataset, and produce a new dataset.\n"
-       "               (Must also use the '-prefix' option for this to work! )\n"
-       "               (In this mode of operation, there is no optimization  )\n"
-       "               (of the cost function by changing the warp parameters;)\n"
-       "               (previously computed parameters are applied directly. )\n"
-       "         *N.B.: If you use -1Dapply, you may also want to use\n"
-       "                 -master to control the grid on which the new\n"
-       "                 dataset is written -- the base dataset from the\n"
-       "                 original 3dAllineate run would be a good possibility.\n"
-       "                 Otherwise, the new dataset will be written out on the\n"
-       "                 3D grid coverage of the source dataset, and this\n"
-       "                 might result in clipping off part of the image.\n"
-       "         *N.B.: Each row in the 'aa' file contains the parameters for\n"
-       "                 transforming one sub-brick in the source dataset.\n"
-       "                 If there are more sub-bricks in the source dataset\n"
-       "                 than there are rows in the 'aa' file, then the last\n"
-       "                 row is used repeatedly.\n"
+       " -1Dparam_apply aa  = Read warp parameters from file 'aa', apply them to the\n"
+       "                      source dataset, and produce a new dataset.\n"
+       "                      (Must also use the '-prefix' option for this to work! )\n"
+       "                      (In this mode of operation, there is no optimization  )\n"
+       "                      (of the cost function by changing the warp parameters;)\n"
+       "                      (previously computed parameters are applied directly. )\n"
+       "               *N.B.: A historical synonym for this is '-1Dapply'.\n"
+       "               *N.B.: If you use -1Dparam_apply, you may also want to use\n"
+       "                       -master to control the grid on which the new\n"
+       "                       dataset is written -- the base dataset from the\n"
+       "                       original 3dAllineate run would be a good possibility.\n"
+       "                       Otherwise, the new dataset will be written out on the\n"
+       "                       3D grid coverage of the source dataset, and this\n"
+       "                       might result in clipping off part of the image.\n"
+       "               *N.B.: Each row in the 'aa' file contains the parameters for\n"
+       "                       transforming one sub-brick in the source dataset.\n"
+       "                       If there are more sub-bricks in the source dataset\n"
+       "                       than there are rows in the 'aa' file, then the last\n"
+       "                       row is used repeatedly.\n"
+       "\n"
+       " -1Dmatrix_save ff  = Save the transformation matrix for each sub-brick into\n"
+       "                      file 'ff' (1 row per sub-brick in the source dataset).\n"
+       "                      If 'ff' does NOT end in '.1D', then the program will\n"
+       "                      append '.aff12.1D' to 'ff' to make the output filename.\n"
+       "               *N.B.: This matrix is the coordinate transformation from base\n"
+       "                      to source DICOM coordinates.  To get the inverse matrix\n"
+       "                      (source to base), use the cat_matvec program.\n"
+       "\n"
+       " -1Dmatrix_apply aa = Use the matrices in file 'aa' to define the spatial\n"
+       "                      transformations to be applied.  Also see program\n"
+       "                      cat_matvec for ways to manipulate these matrix files.\n"
        "\n"
        " -cost ccc   = Defines the 'cost' function that defines the matching\n"
        "               between the source and the base; 'ccc' is one of\n"
@@ -523,11 +543,13 @@ int main( int argc , char *argv[] )
       "  -parfix 5 0  -parfix 6 0\n"
       "and to disable out of slice translation:\n"
       "  -parfix 3 0\n"
-      "NOTE WELL: If you use '-EPI', then the output warp parameters apply\n"
-      "           to the (freq,phase,slice) xyz coordinates, NOT to the DICOM\n"
-      "           xyz coordinates, so equivalent transformations will be\n"
-      "           expressed with different sets of parameters entirely\n"
-      "           than if you don't use '-EPI'!\n"
+      "NOTE WELL: If you use '-EPI', then the output warp parameters (e.g., in\n"
+      "           '-1Dparam_save') apply to the (freq,phase,slice) xyz coordinates,\n"
+      "           NOT to the DICOM xyz coordinates, so equivalent transformations\n"
+      "           will be expressed with different sets of parameters entirely\n"
+      "           than if you don't use '-EPI'!  This comment does NOT apply\n"
+      "           to the output of '-1Dmatrix_save', since that matrix is\n"
+      "           defined relative to the RAI (DICOM) spatial coordinates.\n"
      ) ;
 
      printf(
@@ -1005,18 +1027,43 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strncmp(argv[iarg],"-1Dfile",5) == 0 ){
-       if( fname_1D != NULL ) ERROR_exit("Can't have multiple %s options!",argv[iarg]);
+     if( strncmp(argv[iarg],"-1Dfile",5) == 0 || strncmp(argv[iarg],"-1Dparam_save",12) == 0 ){
+       if( param_save_1D != NULL ) ERROR_exit("Can't have multiple %s options!",argv[iarg]);
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        if( !THD_filename_ok(argv[iarg]) )
          ERROR_exit("badly formed filename: %s '%s'",argv[iarg-1],argv[iarg]) ;
-       fname_1D = argv[iarg] ; iarg++ ; continue ;
+       if( STRING_HAS_SUFFIX(argv[iarg],".1D") ){
+         param_save_1D = argv[iarg] ;
+       } else {
+         param_save_1D = calloc(sizeof(char*),strlen(argv[iarg])+16) ;
+         strcpy(param_save_1D,argv[iarg]) ; strcat(param_save_1D,".param.1D") ;
+       }
+       iarg++ ; continue ;
      }
 
      /*-----*/
 
-     if( strncmp(argv[iarg],"-1Dapply",5) == 0 ){
-       if( apply_1D != NULL ) ERROR_exit("Can't have multiple %s options!",argv[iarg]);
+     if( strncmp(argv[iarg],"-1Dmatrix_save",13) == 0 ){
+       if( matrix_save_1D != NULL ) ERROR_exit("Can't have multiple %s options!",argv[iarg]);
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       if( !THD_filename_ok(argv[iarg]) )
+         ERROR_exit("badly formed filename: %s '%s'",argv[iarg-1],argv[iarg]) ;
+       if( STRING_HAS_SUFFIX(argv[iarg],".1D") ){
+         matrix_save_1D = argv[iarg] ;
+       } else {
+         matrix_save_1D = calloc(sizeof(char*),strlen(argv[iarg])+16) ;
+         strcpy(matrix_save_1D,argv[iarg]) ; strcat(matrix_save_1D,".aff12.1D") ;
+       }
+       iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+#undef  APL
+#define APL(i,j) apply_far[(i)+(j)*apply_nx] /* i=param index, j=row index */
+     if( strncmp(argv[iarg],"-1Dapply",5) == 0 || strncmp(argv[iarg],"-1Dparam_apply",13) == 0 ){
+       if( apply_1D != NULL || apply_mode != 0 )
+         ERROR_exit("Can't have multiple 'apply' options!") ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        if( !THD_filename_ok(argv[iarg]) )
          ERROR_exit("badly formed filename: %s '%s'",argv[iarg-1],argv[iarg]) ;
@@ -1026,10 +1073,31 @@ int main( int argc , char *argv[] )
        apply_far = MRI_FLOAT_PTR(apply_im) ;
        apply_nx  = apply_im->nx ;  /* # of values per row */
        apply_ny  = apply_im->ny ;  /* number of rows */
+       apply_mode = APPLY_PARAM ;
        iarg++ ; continue ;
      }
-#undef  APL
-#define APL(i,j) apply_far[(i)+(j)*apply_nx] /* i=param index, j=row index */
+
+     /*-----*/
+
+     if( strncmp(argv[iarg],"-1Dmatrix_apply",13) == 0 ){
+       if( apply_1D != NULL || apply_mode != 0 )
+         ERROR_exit("Can't have multiple 'apply' options!") ;
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       if( !THD_filename_ok(argv[iarg]) )
+         ERROR_exit("badly formed filename: %s '%s'",argv[iarg-1],argv[iarg]) ;
+       apply_1D = argv[iarg] ; qim = mri_read_1D(apply_1D) ;
+       if( qim == NULL ) ERROR_exit("Can't read -1Dmatrix_apply '%s'",apply_1D) ;
+       apply_im  = mri_transpose(qim); mri_free(qim);
+       apply_far = MRI_FLOAT_PTR(apply_im) ;
+       apply_nx  = apply_im->nx ;  /* # of values per row */
+       apply_ny  = apply_im->ny ;  /* number of rows */
+       apply_mode = APPLY_AFF12 ;
+       if( apply_nx < 12 )
+         ERROR_exit("Less than 12 numbers per row in -1Dmatrix_apply '%s'",apply_1D) ;
+       else if( apply_nx > 12 )
+         WARNING_message("More than 12 numbers per row in -1Dmatrix_apply '%s'",apply_1D) ;
+       iarg++ ; continue ;
+     }
 
      /*-----*/
 
@@ -1517,11 +1585,11 @@ int main( int argc , char *argv[] )
    /*-- if applying a set of parameters, some options are turned off --*/
 
    if( apply_1D != NULL ){
-     if( prefix == NULL ) ERROR_exit("-1Dapply also needs -prefix!") ;
-     wtprefix = fname_1D = NULL ; zeropad = 0 ; auto_weight = 0 ;
+     if( prefix == NULL ) ERROR_exit("-1D*_apply also needs -prefix!") ;
+     wtprefix = param_save_1D = matrix_save_1D = NULL ; zeropad = 0 ; auto_weight = 0 ;
      if( dset_weig != NULL ){ DSET_delete(dset_weig); dset_weig=NULL; }
      if( dset_mast == NULL )
-       WARNING_message("You might want to use '-master' when using '-1Dapply'") ;
+       WARNING_message("You might want to use '-master' when using '-1D*_apply'") ;
    }
 
    /* if no base input, target should have more than 1 sub-brick */
@@ -1757,6 +1825,9 @@ int main( int argc , char *argv[] )
      stup.base_cmat = stup.targ_cmat ;
    }
 
+   targ_cmat = stup.targ_cmat; targ_cmat_inv = MAT44_INV(targ_cmat); /* 23 Jul 2007 */
+   base_cmat = stup.base_cmat; base_cmat_inv = MAT44_INV(base_cmat);
+
    /* modify base_cmat to allow for zeropad? */
 
    if( pad_xm > 0 || pad_ym > 0 || pad_zm > 0 )
@@ -1782,12 +1853,12 @@ int main( int argc , char *argv[] )
      case WARP_AFFINE:  stup.wfunc_numpar = 12 ; break ;
    }
 
-   if( apply_1D != NULL && apply_nx < stup.wfunc_numpar )
-     ERROR_exit("-1Dapply '%s': %d isn't enough parameters per row for desired warp",
+   if( apply_1D != NULL && apply_mode == APPLY_PARAM && apply_nx < stup.wfunc_numpar )
+     ERROR_exit("-1Dparam_apply '%s': %d isn't enough parameters per row for desired warp",
                 apply_1D,apply_nx);
    if( apply_1D != NULL && apply_ny < DSET_NVALS(dset_targ) )
      WARNING_message(
-      "-1Dapply '%s': %d isn't enough rows for source dataset -- last row will repeat",
+      "-1D*_apply '%s': %d isn't enough rows for source dataset -- last row will repeat",
       apply_1D,apply_ny);
 
 #define DEFPAR(p,nm,bb,tt,id,dd,ll)               \
@@ -1990,17 +2061,20 @@ int main( int argc , char *argv[] )
 #define PARINI(ss) PARDUMP(ss,val_init)
 
    if( verb && apply_1D == NULL )
-     INFO_message("======== Allineation: %s =======",
-                  meth_username[meth_code-1] ) ;
+     INFO_message("======== Allineation of %d sub-bricks using %s =======",
+                  DSET_NVALS(dset_targ) , meth_username[meth_code-1] ) ;
    else
-     INFO_message("======== Processing %d sub-bricks ========",
+     INFO_message("======== Applying transformation to %d sub-bricks ========",
                   DSET_NVALS(dset_targ) ) ;
 
    if( verb > 1 ) mri_genalign_verbose(verb-1) ;
 
    /*-- array in which to save parameters for later waterboarding --*/
 
-   parsave = (float **)malloc(sizeof(float *)*DSET_NVALS(dset_targ)) ;
+   if( param_save_1D != NULL || apply_mode != APPLY_AFF12 )
+     parsave = (float **)malloc(sizeof(float *)*DSET_NVALS(dset_targ)) ;
+   if( matrix_save_1D != NULL || apply_mode != APPLY_AFF12  )
+     matsave = (mat44 * )malloc(sizeof(mat44  )*DSET_NVALS(dset_targ)) ; /* 23 Jul 2007 */
 
    /***-------------------- loop over target sub-bricks --------------------***/
 
@@ -2011,7 +2085,7 @@ int main( int argc , char *argv[] )
 
      stup.match_code = meth_code ;
 
-     if( kk == 0 && skip_first ){  /* skip first image since it == im_base */
+     if( apply_1D == NULL && kk == 0 && skip_first ){  /* skip first image since it == im_base */
        if( verb )
          INFO_message("===== Skip sub-brick #0: it's also base image =====") ;
        DSET_unload_one(dset_targ,0) ;
@@ -2031,22 +2105,34 @@ int main( int argc , char *argv[] )
      /* if we are just applying input parameters, set up for that now */
 
      if( apply_1D != NULL ){
-       int rr ;
-       if( verb > 1 ) INFO_message("using -1Dapply parameters") ;
-       rr = kk ;
+       int rr=kk ;
        if( rr >= apply_ny ){  /* 19 Jul 2007 */
          rr = apply_ny-1 ;
-         WARNING_message("Re-using row #%d of -1Dapply '%s' for sub-brick #%d",
-           rr+1 , apply_1D , kk+1 ) ;
+         WARNING_message("Re-using final row of -1D*_apply '%s' for sub-brick #%d",
+                         apply_1D , kk ) ;
        }
-       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
-         stup.wfunc_param[jj].val_out = APL(jj,rr) ;
-       stup.interp_code   = final_interp ;
-       stup.smooth_code   = 0 ;
-       stup.npt_match     = 11 ;
+       stup.interp_code = final_interp ;
+       stup.smooth_code = 0 ;
+       stup.npt_match   = 11 ;
        mri_genalign_scalar_setup( im_bset , NULL , im_targ , &stup ) ;
        im_bset = NULL ;  /* after setting base, don't need to set it again */
        mri_free(im_targ) ; im_targ = NULL ;
+
+       switch( apply_mode ){
+         default:
+         case APPLY_PARAM:
+           if( verb > 1 ) INFO_message("using -1Dparam_apply parameters") ;
+           for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+             stup.wfunc_param[jj].val_out = APL(jj,rr) ;
+         break ;
+
+         case APPLY_AFF12:
+           if( verb > 1 ) INFO_message("using -1Dmatrix_apply matrix") ;
+           LOAD_MAT44_AR( aff12_xyz , &APL(0,rr) ) ;
+           wmat      = MAT44_MUL(aff12_xyz,base_cmat) ;
+           aff12_ijk = MAT44_MUL(targ_cmat_inv,wmat) ;
+         break ;
+       }
        goto WRAP_IT_UP_BABY ;
      }
 
@@ -2427,28 +2513,56 @@ int main( int argc , char *argv[] )
 
      /* save parameters for the historical record */
 
-     parsave[kk] = (float *)malloc(sizeof(float)*stup.wfunc_numpar) ;
-     for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
-       parsave[kk][jj] = stup.wfunc_param[jj].val_out ;
+     if( parsave != NULL ){
+       parsave[kk] = (float *)malloc(sizeof(float)*stup.wfunc_numpar) ;
+       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+         parsave[kk][jj] = stup.wfunc_param[jj].val_out ;
+     }
+
+     if( matsave != NULL ){
+       mri_genalign_affine_get_gammaijk( &qmat ) ;  /* 23 Jul 2007 */
+       wmat = MAT44_MUL(targ_cmat,qmat) ;
+       matsave[kk] = MAT44_MUL(wmat,base_cmat_inv) ;
+     }
 
      /** store warped volume into the output dataset **/
 
      if( dset_out != NULL ){
-
-       AL_setup_warp_coords( epi_targ,epi_fe,epi_pe,epi_se,
-                             nxyz_dout, dxyz_dout, cmat_bout,
-                             nxyz_targ, dxyz_targ, cmat_tout ) ;
-
        if( verb > 1 ) INFO_message("Computing output image") ;
-       im_targ = mri_genalign_scalar_warpone(
-                             stup.wfunc_numpar , parsave[kk] , stup.wfunc ,
-                             stup.ajim ,
-                             nxout , nyout , nzout , final_interp ) ;
+
+       switch( apply_mode ){
+         default:
+         case APPLY_PARAM:
+           AL_setup_warp_coords( epi_targ,epi_fe,epi_pe,epi_se,
+                                 nxyz_dout, dxyz_dout, cmat_bout,
+                                 nxyz_targ, dxyz_targ, cmat_tout ) ;
+
+           im_targ = mri_genalign_scalar_warpone(
+                                 stup.wfunc_numpar , parsave[kk] , stup.wfunc ,
+                                 stup.ajim , nxout,nyout,nzout, final_interp ) ;
+         break ;
+
+         case APPLY_AFF12:{
+           float ap[12] ;
+           UNLOAD_MAT44_AR(aff12_ijk,ap) ;
+           im_targ = mri_genalign_scalar_warpone(
+                                 12 , ap , mri_genalign_mat44 ,
+                                 stup.ajim , nxout,nyout,nzout, final_interp ) ;
+         }
+         break ;
+       }
 
        /* 04 Apr 2007: save matrix into dataset header */
 
        { static mat44 gam , gami ; char anam[64] ; float matar[12] ;
-         mri_genalign_affine_get_gammaxyz( &gam ) ;
+
+         if( matsave != NULL ){
+           gam = matsave[kk] ;
+         } else if( apply_mode == APPLY_AFF12 ){
+           gam = aff12_xyz ;
+         } else {
+           mri_genalign_affine_get_gammaxyz( &gam ) ;
+         }
          if( ISVALID_MAT44(gam) ){
            sprintf(anam,"ALLINEATE_MATVEC_B2S_%06d",kk) ;
            UNLOAD_MAT44_AR(gam,matar) ;
@@ -2507,11 +2621,11 @@ int main( int argc , char *argv[] )
 
    /*--- save parameters to a file, if desired ---*/
 
-   if( fname_1D != NULL ){
+   if( param_save_1D != NULL && parsave != NULL ){
      FILE *fp ;
-     fp = (strcmp(fname_1D,"-") == 0) ?  stdout
-                                      : fopen(fname_1D,"w") ;
-     if( fp == NULL ) ERROR_exit("Can't open -1Dfile %s for output!?",fname_1D);
+     fp = (strcmp(param_save_1D,"-") == 0) ? stdout
+                                           : fopen(param_save_1D,"w") ;
+     if( fp == NULL ) ERROR_exit("Can't open -1Dparam_save %s for output!?",param_save_1D);
      fprintf(fp,"# 3dAllineate parameters:\n") ;
      fprintf(fp,"#") ;
      for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
@@ -2523,15 +2637,36 @@ int main( int argc , char *argv[] )
        fprintf(fp,"\n") ;                           /* oops */
      }
      if( fp != stdout ){
-       fclose(fp) ; if( verb ) INFO_message("Wrote -1Dfile %s",fname_1D) ;
+       fclose(fp) ; if( verb ) INFO_message("Wrote -1Dparam_save %s",param_save_1D) ;
+     }
+   }
+
+   if( matrix_save_1D != NULL && matsave != NULL ){
+     FILE *fp ;
+     float a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34 ;
+     fp = (strcmp(matrix_save_1D,"-") == 0) ? stdout
+                                            : fopen(matrix_save_1D,"w") ;
+     if( fp == NULL ) ERROR_exit("Can't open -1Dmatrix_save %s for output!?",matrix_save_1D);
+     fprintf(fp,"# 3dAllineate matrices (DICOM-to-DICOM):\n") ;
+     fprintf(fp,"#") ;
+     for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
+       UNLOAD_MAT44(matsave[kk],a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34) ;
+       fprintf(fp," %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n",
+                  a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34 ) ;
+     }
+     if( fp != stdout ){
+       fclose(fp) ; if( verb ) INFO_message("Wrote -1Dmatrix_save %s",matrix_save_1D) ;
      }
    }
 
    /*---------- FREE AT LAST, FREE AT LAST ----------*/
 
    FREE_GA_setup(&stup) ;
-   for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ) free((void *)parsave[kk]) ;
-   free((void *)parsave) ;
+   if( parsave != NULL ){
+     for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ) free((void *)parsave[kk]) ;
+     free((void *)parsave) ;
+   }
+   if( matsave != NULL ) free((void *)matsave) ;
 
    if( verb ) INFO_message("total CPU time = %.1f sec\n",COX_cpu_time()) ;
    if( PRINT_TRACING ) MCHECK ;

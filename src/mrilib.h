@@ -1440,6 +1440,9 @@ extern void mri_genalign_affine( int, float *,
                                       float *, float *, float * ) ;
 extern MRI_IMAGE * mri_genalign_scalar_warpim( GA_setup * ) ;
 extern void mri_genalign_verbose(int) ;
+extern void mri_genalign_mat44( int, float *,
+                                int, float *, float *, float *,
+                                     float *, float *, float * ) ;
 
 extern void GA_reset_fit_callback( void (*fc)(int,double*) ) ;
 extern void GA_do_dots(int) ;
