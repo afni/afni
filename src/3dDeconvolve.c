@@ -1535,7 +1535,7 @@ void get_options
       }
 
       /*-----   -float, etc.   -----*/
-      if( strcmp(argv[nopt],"-float") == 0 ){    /* 13 Mar 2007 */
+      if( strncmp(argv[nopt],"-float",6) == 0 ){    /* 13 Mar 2007 */
         floatout = 1 ; nopt++ ; continue ;
       }
       if( strcmp(argv[nopt],"-short") == 0 ){

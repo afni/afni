@@ -1858,3 +1858,35 @@ void mri_genalign_affine( int npar, float *wpar ,
 
    return ;
 }
+
+/*--------------------------------------------------------------------------*/
+/*! Similar to mri_genalign_affine(), but the 12 parameters are the matrix
+    directly, with no intermediary physical interpretations as angles, etc.
+----------------------------------------------------------------------------*/
+
+void mri_genalign_mat44( int npar, float *wpar,
+                         int npt , float *xi, float *yi, float *zi ,
+                                   float *xo, float *yo, float *zo  )
+{
+   static mat44 gam ;  /* saved general affine matrix */
+   THD_fvec3 v , w ;
+   int ii ;
+
+   /** new parameters ==> setup matrix */
+
+   if( npar > 12 && wpar != NULL )
+     LOAD_MAT44(gam,wpar[0],wpar[1],wpar[2] ,wpar[3] ,
+                    wpar[4],wpar[5],wpar[6] ,wpar[7] ,
+                    wpar[8],wpar[9],wpar[10],wpar[11] ) ;
+
+   /* nothing to transform? */
+
+   if( npt <= 0 || xi == NULL || xo == NULL ) return ;
+
+   /* mutiply matrix times input vectors */
+
+   for( ii=0 ; ii < npt ; ii++ )
+     MAT44_VEC( gam , xi[ii],yi[ii],zi[ii] , xo[ii],yo[ii],zo[ii] ) ;
+
+   return ;
+}
