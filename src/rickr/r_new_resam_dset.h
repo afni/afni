@@ -7,7 +7,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 
 THD_3dim_dataset * r_new_resam_dset ( THD_3dim_dataset * din,
         THD_3dim_dataset * min, double dx, double dy, double dz,
-        char orient [], int resam_mode, int * sublist );
+        char orient [], int resam_mode, int * sublist, int get_data );
 int     r_dxyz_mod_dataxes    ( double dx, double dy, double dz,
                                 THD_dataxes * daxin, THD_dataxes * daxout );
 int     r_fill_resampled_data_brick( THD_3dim_dataset * dset, int resam_mode );

@@ -27,6 +27,9 @@
  *
  * 2005.08.03
  *   - allow dxyz to override those from master
+ *
+ * 2007.07.24
+ *   - added get_data parameter
  *----------------------------------------------------------------------
 */
 
@@ -60,6 +63,7 @@ static char * this_file = "r_new_resam_dset.c";
  *   - resam    : resampling mode
  *   - sublist  : list of sub-bricks to resample (all if NULL)
  *                {first element of sublist is the number of sub-bricks}
+ *   - get_data : if set, fill output dataset with data
  *
  * output       : a pointer to the resulting THD_3dim_dataset
  *                (or NULL, on failure)
@@ -79,7 +83,8 @@ THD_3dim_dataset * r_new_resam_dset
         double             dz,          /* delta for new z-axis         */
         char               orient [],   /* new orientation code         */
         int                resam,       /* mode to resample with        */
-        int              * sublist      /* list of sub-bricks to resam  */
+        int              * sublist,     /* list of sub-bricks to resam  */
+        int                get_data     /* do we include data with dset */
     )
 {
     THD_3dim_dataset * dout;
@@ -183,7 +188,17 @@ THD_3dim_dataset * r_new_resam_dset
 
     dout->daxes->parent   = (XtPointer)dout;    /* parent is new dset    */
 
-    if ( r_fill_resampled_data_brick( dout, resam ) != 0 )
+    /* moved from "fill", in case data is not added   24 Jul 2007 [rickr] */
+    /* a basic warp is needed if header is written out - PLUTO_add_dset() */
+    dout->warp  = myXtNew( THD_warp );
+    *dout->warp = IDENTITY_WARP;
+    ADDTO_KILL( dout->kl, dout->warp );
+
+    dout->dblk->diskptr->byte_order   = mri_short_order();
+    dout->dblk->diskptr->storage_mode = STORAGE_BY_BRICK;
+    /* end move */
+
+    if ( get_data && r_fill_resampled_data_brick( dout, resam ) )
     {
         THD_delete_3dim_dataset( dout, FALSE );
         dout = NULL;
@@ -204,7 +219,6 @@ THD_3dim_dataset * r_new_resam_dset
 */
 int r_fill_resampled_data_brick( THD_3dim_dataset * dset, int resam )
 {
-    THD_diskptr * diskptr = dset->dblk->diskptr;
     MRI_IMAGE   * im;
     char        * newdata, * dptr;
     float         bfac;
@@ -221,17 +235,9 @@ int r_fill_resampled_data_brick( THD_3dim_dataset * dset, int resam )
 
     DSET_lock(dset);          /* since it will just sit in memory for now */
 
-    /* a basic warp is needed if header is written out - PLUTO_add_dset() */
-    dset->warp  = myXtNew( THD_warp );
-    *dset->warp = IDENTITY_WARP;
-    ADDTO_KILL( dset->kl, dset->warp );
-
-    diskptr->byte_order   = mri_short_order();
-    diskptr->storage_mode = STORAGE_BY_BRICK;
-
     /* note new dimensions */
     nx = dset->daxes->nxx;  ny = dset->daxes->nyy;  nz = dset->daxes->nzz;
-    nv = diskptr->nvals;
+    nv = dset->dblk->diskptr->nvals;
 
     nxy  = nx * ny;
     nxyz = nx * ny * nz;

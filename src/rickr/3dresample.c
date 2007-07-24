@@ -111,7 +111,7 @@ int main( int argc , char * argv[] )
 
     /* actually resample and/or reorient the dataset */
     dout = r_new_resam_dset( opts.dset, opts.mset, opts.dx, opts.dy, opts.dz,
-                             opts.orient, opts.resam, NULL);
+                             opts.orient, opts.resam, NULL, 1);
     if ( dout == NULL )
     {
         fprintf( stderr, "failure to resample dataset, exiting...\n" );
