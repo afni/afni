@@ -660,11 +660,11 @@ d3dmerge:3dmerge.c
 	  cd .. ;)
 whereami:whereami.c
 	$(RM) $@
-	$(CC) -o whereami whereami.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(AFWARPOBJS) -lrickr -lmri -lf2c $(LLIBS)
+	$(CC) -o whereami whereami.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(AFWARPOBJS) -lmri -lf2c $(LLIBS)
 
 3dSegment:3dSegment.c
 	$(RM) $@
-	$(CC) -o 3dSegment 3dSegment.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(AFWARPOBJS) -lrickr -lmri -lf2c $(LLIBS)
+	$(CC) -o 3dSegment 3dSegment.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(AFWARPOBJS) -lmri -lf2c $(LLIBS)
 
 3dUniformize:3dUniformize.o
 	$(RM) $@
@@ -1174,7 +1174,7 @@ iochan_relay:iochan_relay.o
 
 3dSpatNorm:3dSpatNorm.o
 	$(RM) $@
-	$(CC) -o 3dSpatNorm 3dSpatNorm.o $(AFWARPOBJS) $(LFLAGS) -lrickr $(LLIBS)
+	$(CC) -o 3dSpatNorm 3dSpatNorm.o $(AFWARPOBJS) $(LFLAGS) $(LLIBS)
 
 ### These programs are from Fred Tam
 
@@ -1194,7 +1194,7 @@ suma_algorithms.o: suma_algorithms.c
 testdsetio: SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_algorithms.o
 	$(RM) $@
 	$(CC) -o testdsetio SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_algorithms.o \
-            -ISUMA/ $(INFLAGS) $(AFWARPOBJS) $(LFLAGS) -lrickr $(LLIBS)
+            -ISUMA/ $(INFLAGS) $(AFWARPOBJS) $(LFLAGS) $(LLIBS)
 
 ### Sort of clean
 
@@ -1527,9 +1527,7 @@ EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
 CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_addto_args.o multivector.o afni_environ.o cs_qmed.o          \
            cs_sort_fv.o cs_laguerre.o machdep.o cs_qhull.o afni_logger.o   \
-           afni_suma.o vol2surf.o cl1.o nifti1_io.o znzlib.o cs_misc.o     \
-           list_struct.o nifti_statlib.o powell_int.o powell_newuoa.o      \
-           nifticdf.o cs_sort_dv.o
+           cl1.o cs_misc.o powell_int.o powell_newuoa.o cs_sort_dv.o
 
 EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
            eis_bandv.o eis_bisect.o eis_bqr.o eis_cbabk2.o eis_cbal.o      \
@@ -1555,12 +1553,17 @@ NETCDF_OBJS =  netcdf_attr.o   netcdf_dim.o   netcdf_error.o netcdf_libvers.o \
 
 SUMA_OBJS = suma_datasets.o suma_algorithms.o
 
+MISC_OBJS  = afni_suma.o vol2surf.o nifti1_io.o znzlib.o list_struct.o  \
+	     nifti_statlib.o nifticdf.o r_new_resam_dset.o r_idisp.o    \
+	     r_misc.o
+
 libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                \
          $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS) \
-         $(SUMA_OBJS) niml.h mrilib.h 3ddata.h
+         $(SUMA_OBJS) $(MISC_OBJS) niml.h mrilib.h 3ddata.h
 	$(RM) $@
-	$(AR) q libmri.a $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS) \
-		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS) $(SUMA_OBJS)
+	$(AR) q libmri.a $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)        \
+		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)  \
+		$(SUMA_OBJS) $(MISC_OBJS)
 	$(RANLIB) libmri.a
 
 libmrix.a:$(IMOBJS) imseq.h display.h xim.h bbox.h xutil.h
@@ -1653,10 +1656,10 @@ plug_drealtime.$(SO):plug_realtime.c
 	$(PLUGIN_CCD) -c plug_realtime.c $(INFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_drealtime.$(SO) plug_realtime.o
 
-plug_crender.$(SO):plug_crender.c librickr.a
+plug_crender.$(SO):plug_crender.c
 	$(RM) $@
 	$(PLUGIN_CC) -c plug_crender.c $(INFLAGS)
-	$(LD) $(PLUGIN_LFLAGS) -o plug_crender.$(SO) plug_crender.o -L. -lrickr
+	$(LD) $(PLUGIN_LFLAGS) -o plug_crender.$(SO) plug_crender.o -L. 
 
 plug_maxima.$(SO):plug_maxima.c maxima.o
 	$(RM) $@
@@ -1786,13 +1789,23 @@ coxplot.tgz:
 	$(TAR) cf - ./coxplot | $(GZIP) -9v > coxplot.tgz
 
 #######
-# rickr library
+# rickr objects
 
-librickr.a:
-	( cd rickr ; 							\
-	$(MAKE) librickr.a clean 'RM=$(RM)' 'CC=$(CC)'			\
-			      'RANLIB=$(RANLIB)' 'IFLAGS=$(ISFLAGS)' ;	\
-	$(MV) librickr.a .. ; )
+3dresample.o: rickr/3dresample.c
+	$(RM) $@
+	$(CC) -c $< $(INFLAGS)
+
+r_new_resam_dset.o: rickr/r_new_resam_dset.c rickr/r_new_resam_dset.h
+	$(RM) $@
+	$(CC) -c $< $(INFLAGS)
+
+r_idisp.o: rickr/r_idisp.c rickr/r_idisp.h
+	$(RM) $@
+	$(CC) -c $< $(INFLAGS)
+
+r_misc.o: rickr/r_misc.c rickr/r_misc.h
+	$(RM) $@
+	$(CC) -c $< $(INFLAGS)
 
 #######
 # rickr programs
@@ -1801,13 +1814,11 @@ librickr.a:
 	$(RM) $@
 	$(CC) -o 3dmaxima 3dmaxima.o maxima.o $(LFLAGS) $(LLIBS)
 
-3dresample: librickr.a libmri.a $(AFWARPOBJS)
-	( cd rickr ; 							\
-	$(MAKE) 3dresample 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'     \
-	                'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;		\
-	$(MV) 3dresample .. ; )
+3dresample: 3dresample.o libmri.a $(AFWARPOBJS)
+	$(RM) $@
+	$(CC) -o 3dresample 3dresample.o $(AFWARPOBJS) $(LFLAGS) $(LLIBS)
 
-3dresample.exe: librickr.a libmri.a $(AFWARPOBJS)
+3dresample.exe: libmri.a $(AFWARPOBJS)
 	( cd rickr ; 							\
 	$(MAKE) 3dresample 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'     \
 	                'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;		\
@@ -2294,7 +2305,7 @@ libgts.a:
 
 ###
 #link executables but check for libraries first and create them if needed	
-suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
+suma_exec:libSUMA.a libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset 3dVol2Surf \
 	3dSurf2Vol SurfMeasures ConvertSurface ConvertDset SurfClust IsoSurface ConvexHull MapIcosahedron CreateIcosahedron SurfaceMetrics \
@@ -2329,7 +2340,7 @@ suma_gts_progs: libgts.a
 
 ###
 #run make all in SUMA directory, USE FOR DEVELOPMENT ONLY	
-suma_all:libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
+suma_all:libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) all 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
@@ -2345,7 +2356,7 @@ suma_all:libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a 
 
 ###
 #run make anew in SUMA directory, USE FOR DEVELOPMENT ONLY	
-suma_anew:libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
+suma_anew:libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) anew 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
@@ -2442,7 +2453,7 @@ suma_link:
 	( cd SUMA ;	\
 	tar -xf $(SUMA_BIN_ARCHIVE)	;\
 	touch *.a	;\
-	$(CP) libmri.a librickr.a libmrix.a libcoxplot.a libf2c.a ../	;\
+	$(CP) libmri.a libmrix.a libcoxplot.a libf2c.a ../	;\
 	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol SurfMeasures ScaleToMap MapIcosahedron \
    CreateIcosahedron CompareSurfaces ConvertSurface ConvertDset SurfClust IsoSurface ConvexHull SurfaceMetrics SurfSmooth inspec \
    quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask\
