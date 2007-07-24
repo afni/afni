@@ -1874,10 +1874,7 @@ void mri_genalign_mat44( int npar, float *wpar,
 
    /** new parameters ==> setup matrix */
 
-   if( npar > 12 && wpar != NULL )
-     LOAD_MAT44(gam,wpar[0],wpar[1],wpar[2] ,wpar[3] ,
-                    wpar[4],wpar[5],wpar[6] ,wpar[7] ,
-                    wpar[8],wpar[9],wpar[10],wpar[11] ) ;
+   if( npar >= 12 && wpar != NULL ) LOAD_MAT44_AR(gam,wpar) ;
 
    /* nothing to transform? */
 
