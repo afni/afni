@@ -1,6 +1,5 @@
 /**** TO DO (someday, maybe):
         -matini
-         -dxyz
          center of mass: use to set center of range?
 ****/
 
@@ -11,6 +10,7 @@
 
 /*----------------------------------------------------------------------------*/
 #include "mrilib.h"
+#include "rickr/r_new_resam_dset.h"
 #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -95,12 +95,13 @@ int main( int argc , char *argv[] )
    int skip_first=0 , didtwo , targ_kind , skipped=0 ;
    double ctim , rad , conv_rad ;
    float **parsave=NULL ;
-   mat44 *matsave=NULL , targ_cmat,base_cmat,base_cmat_inv,targ_cmat_inv, qmat,wmat ;
+   mat44 *matsave=NULL ;
+   mat44 targ_cmat,base_cmat,base_cmat_inv,targ_cmat_inv,mast_cmat,mast_cmat_inv, qmat,wmat ;
    MRI_IMAGE *apply_im = NULL ;
    float *apply_far    = NULL ;
    int apply_nx, apply_ny , apply_mode=0 , nparam_free , diffblur=1 ;
    float cost, cost_ini ;
-   mat44 cmat_bout , cmat_tout , aff12_ijk , aff12_xyz ;
+   mat44 cmat_bout , cmat_tout , aff12_xyz ;
    int   nxout,nyout,nzout ;
    float dxout,dyout,dzout ;
 
@@ -114,7 +115,7 @@ int main( int argc , char *argv[] )
    int auto_weight             = 3 ;            /* -autobbox == default */
    char *auto_string           = "-autobox" ;
    int auto_dilation           = 0 ;            /* for -automask+N */
-   float dxyz_mast             = 0.0f ;         /* not implemented */
+   double dxyz_mast            = 0.0f ;         /* implemented 24 Jul 2007 */
    int meth_code               = GA_MATCH_HELLINGER_SCALAR ;
    int sm_code                 = GA_SMOOTH_GAUSSIAN ;
    float sm_rad                = 0.0f ;
@@ -202,11 +203,13 @@ int main( int argc , char *argv[] )
        "\n"
        " -prefix ppp = Output the resulting dataset to file 'ppp'.  If this\n"
        "   *OR*        option is NOT given, no dataset will be output!  The\n"
-       " -out ppp      transformation to align the source to the base will\n"
-       "               be estimated, but not applied.  You can save the transformation\n"
+       " -out ppp      transformation matrix to align the source to the base will\n"
+       "               be estimated, but not applied.  You can save the matrix\n"
        "               for later use using the '-1Dmatrix_save' option.\n"
        "        *N.B.: By default, the new dataset is computed on the grid of the\n"
        "                base dataset; see the '-master' option to change this grid.\n"
+       "        *N.B.: If 'ppp' is 'NULL', then no output dataset will be produced.\n"
+       "                This option is for compatibility with 3dvolreg.\n"
        "\n"
        " -floatize   = Write result dataset as floats.  Internal calculations\n"
        "               are all done on float copies of the input datasets.\n"
@@ -242,8 +245,9 @@ int main( int argc , char *argv[] )
        "                      If 'ff' does NOT end in '.1D', then the program will\n"
        "                      append '.aff12.1D' to 'ff' to make the output filename.\n"
        "               *N.B.: This matrix is the coordinate transformation from base\n"
-       "                      to source DICOM coordinates.  To get the inverse matrix\n"
-       "                      (source to base), use the cat_matvec program.\n"
+       "                       to source DICOM coordinates.  To get the inverse matrix\n"
+       "                       (source to base), use the cat_matvec program, as in\n"
+       "                         cat_matvec fred.aff12.1D -I\n"
        "\n"
        " -1Dmatrix_apply aa = Use the matrices in file 'aa' to define the spatial\n"
        "                      transformations to be applied.  Also see program\n"
@@ -481,14 +485,15 @@ int main( int argc , char *argv[] )
        "       **N.B.: 3dAllineate transforms the source dataset to be 'similar'\n"
        "               to the base image.  Therefore, the coordinate system\n"
        "               of the master dataset is interpreted as being in the\n"
-       "               reference system of the base image.\n"
+       "               reference system of the base image.  It is thus vital\n"
+       "               that these finite 3D volumes overlap, or you will lose data!\n"
        "       **N.B.: If 'mmm' is the string 'SOURCE', then the source dataset\n"
        "               is used as the master for the output dataset grid.\n"
-#if 0
-       " -dxyz del   = Write the output dataset using grid spacings of\n"
-       "               'del' mm.  If this option is NOT given, then the\n"
-       "               grid spacings in the master dataset will be used.\n"
-#endif
+       "               You can also use 'BASE', which is of course the default.\n"
+       "\n"
+       " -mast_dxyz del = Write the output dataset using grid spacings of\n"
+       "                  'del' mm.  If this option is NOT given, then the\n"
+       "                  grid spacings in the master dataset will be used.\n"
      ) ;
 
      printf(
@@ -683,11 +688,13 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strcmp(argv[iarg],"-dxyz") == 0 ){
+     if( strcmp(argv[iarg],"-mast_dxyz") == 0 || strcmp(argv[iarg],"-dxyz_mast") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
-       dxyz_mast = (float)strtod(argv[iarg],NULL) ;
-       if( dxyz_mast <= 0.0f )
-         ERROR_exit("Illegal value '%s' after -dxyz",argv[iarg]) ;
+       dxyz_mast = strtod(argv[iarg],NULL) ;
+       if( dxyz_mast <= 0.0 )
+         ERROR_exit("Illegal value '%s' after -mast_dxyz",argv[iarg]) ;
+       if( dxyz_mast <= 0.5 )
+         WARNING_message("Small value %g after -mast_dxyz",dxyz_mast) ;
        iarg++ ; continue ;
      }
 
@@ -1022,7 +1029,9 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        if( !THD_filename_ok(argv[iarg]) )
          ERROR_exit("badly formed filename: '%s' '%s'",argv[iarg-1],argv[iarg]) ;
-       prefix = argv[iarg] ; iarg++ ; continue ;
+       if( strcmp(argv[iarg],"NULL") == 0 ) prefix = NULL ;
+       else                                 prefix = argv[iarg] ;
+       iarg++ ; continue ;
      }
 
      /*-----*/
@@ -1061,7 +1070,10 @@ int main( int argc , char *argv[] )
 
 #undef  APL
 #define APL(i,j) apply_far[(i)+(j)*apply_nx] /* i=param index, j=row index */
-     if( strncmp(argv[iarg],"-1Dapply",5) == 0 || strncmp(argv[iarg],"-1Dparam_apply",13) == 0 ){
+
+     if( strncmp(argv[iarg],"-1Dapply",5)        == 0 ||
+         strncmp(argv[iarg],"-1Dparam_apply",13) == 0   ){
+
        if( apply_1D != NULL || apply_mode != 0 )
          ERROR_exit("Can't have multiple 'apply' options!") ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
@@ -1586,9 +1598,14 @@ int main( int argc , char *argv[] )
 
    if( apply_1D != NULL ){
      if( prefix == NULL ) ERROR_exit("-1D*_apply also needs -prefix!") ;
+     if( param_save_1D  != NULL ) WARNING_message("-1D*_apply: Can't do -1Dparam_save") ;
+     if( matrix_save_1D != NULL ) WARNING_message("-1D*_apply: Can't do -1Dmatrix_save") ;
      wtprefix = param_save_1D = matrix_save_1D = NULL ; zeropad = 0 ; auto_weight = 0 ;
-     if( dset_weig != NULL ){ DSET_delete(dset_weig); dset_weig=NULL; }
-     if( dset_mast == NULL )
+     if( dset_weig != NULL ){
+       WARNING_message("-1D*_apply: Ignoring weight dataset") ;
+       DSET_delete(dset_weig) ; dset_weig=NULL ;
+     }
+     if( dset_mast == NULL && dxyz_mast == 0.0 )
        WARNING_message("You might want to use '-master' when using '-1D*_apply'") ;
    }
 
@@ -1599,7 +1616,7 @@ int main( int argc , char *argv[] )
        ERROR_exit("No base dataset AND source dataset has only 1 sub-brick") ;
 
      WARNING_message("No -base dataset: using sub-brick #0 of source") ;
-     skip_first = 1 ;  /* don't register sub-brick #0 of targ */
+     skip_first = 1 ;  /* don't register sub-brick #0 of targ to itself! */
    }
 
    if( final_interp < 0 ) final_interp = interp_code ;  /* default */
@@ -1853,13 +1870,20 @@ int main( int argc , char *argv[] )
      case WARP_AFFINE:  stup.wfunc_numpar = 12 ; break ;
    }
 
-   if( apply_1D != NULL && apply_mode == APPLY_PARAM && apply_nx < stup.wfunc_numpar )
-     ERROR_exit("-1Dparam_apply '%s': %d isn't enough parameters per row for desired warp",
-                apply_1D,apply_nx);
-   if( apply_1D != NULL && apply_ny < DSET_NVALS(dset_targ) )
-     WARNING_message(
-      "-1D*_apply '%s': %d isn't enough rows for source dataset -- last row will repeat",
-      apply_1D,apply_ny);
+   /*-- check if -1Dapply_param is giving us enough parameters for this warp --*/
+
+   if( apply_1D != NULL ){
+     if( apply_mode == APPLY_PARAM && apply_nx < stup.wfunc_numpar )
+       ERROR_exit("-1Dparam_apply '%s': %d isn't enough parameters per row for desired warp",
+                  apply_1D,apply_nx);
+
+     if( apply_ny < DSET_NVALS(dset_targ) )
+       WARNING_message(
+        "-1D*_apply '%s': %d isn't enough rows for source dataset -- last row will repeat",
+        apply_1D,apply_ny);
+   }
+
+   /*-- macro to set up control values for a given parameter --*/
 
 #define DEFPAR(p,nm,bb,tt,id,dd,ll)               \
  do{ stup.wfunc_param[p].min      = (bb) ;        \
@@ -1878,9 +1902,9 @@ int main( int argc , char *argv[] )
    yyy = 0.321 * (ny_base-1) * dy_base ;
    zzz = 0.321 * (nz_base-1) * dz_base ;
 
-   /* we define all 12 affine parameters, though not all may be used */
+   /*-- we now define all 12 affine parameters, though not all may be used --*/
 
-   DEFPAR( 0, "x-shift" , -xxx , xxx , 0.0 , 0.0 , 0.0 ) ;
+   DEFPAR( 0, "x-shift" , -xxx , xxx , 0.0 , 0.0 , 0.0 ) ;    /* mm */
    DEFPAR( 1, "y-shift" , -yyy , yyy , 0.0 , 0.0 , 0.0 ) ;
    DEFPAR( 2, "z-shift" , -zzz , zzz , 0.0 , 0.0 , 0.0 ) ;
 
@@ -1903,10 +1927,10 @@ int main( int argc , char *argv[] )
      stup.wfunc_param[ 8].fixed = 2 ;
      stup.wfunc_param[10].fixed = 2 ;
      stup.wfunc_param[11].fixed = 2 ;
-     if( verb ) INFO_message("2D input ==> froze z-parameters") ;
+     if( verb ) INFO_message("base dataset is 2D ==> froze z-parameters") ;
    }
 
-   /* apply any parameter-altering user commands */
+   /*-- apply any parameter-altering user commands --*/
 
    for( ii=0 ; ii < nparopt ; ii++ ){
      jj = paropt[ii].np ;
@@ -1951,24 +1975,24 @@ int main( int argc , char *argv[] )
 
    /* check to see if we have free parameters so we can actually do something */
 
-   for( ii=jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+   for( ii=jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* count free params */
      if( !stup.wfunc_param[jj].fixed ) ii++ ;
    if( ii == 0 ) ERROR_exit("No free parameters for aligning datasets?!!") ;
    nparam_free = ii ;
    if( verb > 1 ) ININFO_message("%d free parameters",ii) ;
 
-   /* should have some free parameters in the first 6 if using twopass */
+   /*-- should have some free parameters in the first 6 if using twopass --*/
 
    if( twopass ){
      for( ii=jj=0 ; jj < stup.wfunc_numpar && jj < 6 ; jj++ )
        if( !stup.wfunc_param[jj].fixed ) ii++ ;
      if( ii == 0 ){
-       WARNING_message("Disabling twopass because no free parameters!?");
+       WARNING_message("Disabling twopass because no free parameters in first 6!?");
        twopass = 0 ;
      }
    }
 
-   /** set convergence radius for parameter search **/
+   /*-- set convergence radius for parameter search --*/
 
    if( im_weig == NULL ){
      xxx = 0.5f * (nx_base-1) * dx_base ;
@@ -2001,17 +2025,39 @@ int main( int argc , char *argv[] )
    conv_rad = MIN(zzz,0.001) ; conv_rad = MAX(conv_rad,0.00001) ;
    if( verb > 1 ) INFO_message("Normalized convergence radius = %.6f",conv_rad) ;
 
-   /*** create shell of output dataset ***/
+   /*****------ create shell of output dataset ------*****/
 
    if( prefix == NULL ){
      WARNING_message("No output dataset will be calculated") ;
+     if( dxyz_mast > 0.0 )
+       WARNING_message("-mast_dxyz %g option was meaningless!",dxyz_mast) ;
    } else {
      if( dset_mast == NULL ){
-       if( dset_base != NULL ) dset_mast = dset_base ;
-       else                    dset_mast = dset_targ ;
+       if( dset_base != NULL ){
+         if( verb ) INFO_message("master dataset for output = base") ;
+         dset_mast = dset_base ;
+       } else {
+         if( verb ) INFO_message("master dataset for output = source") ;
+         dset_mast = dset_targ ;
+       }
+     }
+     if( dxyz_mast > 0.0 ){   /* 24 Jul 2007 */
+       THD_3dim_dataset *qset ;
+       qset = r_new_resam_dset( dset_mast , NULL ,
+                                dxyz_mast,dxyz_mast,dxyz_mast ,
+                                NULL , RESAM_NN_TYPE , NULL , 0 ) ;
+       if( qset != NULL ){
+         dset_mast = qset ;
+         THD_daxes_to_mat44(dset_mast->daxes) ;
+         if( verb )
+           INFO_message("changing output grid spacing to %.3f mm",dxyz_mast) ;
+       }
      }
      if( !ISVALID_MAT44(dset_mast->daxes->ijk_to_dicom) )
        THD_daxes_to_mat44(dset_mast->daxes) ;
+
+     mast_cmat     = dset_mast->daxes->ijk_to_dicom ;  /* 24 Jul 2007 */
+     mast_cmat_inv = MAT44_INV(mast_cmat) ;
 
      dset_out = EDIT_empty_copy( dset_mast ) ;
      EDIT_dset_items( dset_out ,
@@ -2048,6 +2094,8 @@ int main( int argc , char *argv[] )
 
    /***---------------------- start alignment process ----------------------***/
 
+/* macros for verbosity */
+
 #undef  PARDUMP
 #define PARDUMP(ss,xxx)                                     \
   do{ fprintf(stderr," + %s Parameters =",ss) ;             \
@@ -2060,19 +2108,22 @@ int main( int argc , char *argv[] )
 #undef  PARINI
 #define PARINI(ss) PARDUMP(ss,val_init)
 
+   /*-- the annunciation --*/
+
    if( verb && apply_1D == NULL )
-     INFO_message("======== Allineation of %d sub-bricks using %s =======",
+     INFO_message("======= Allineation of %d sub-bricks using %s =======",
                   DSET_NVALS(dset_targ) , meth_username[meth_code-1] ) ;
    else
-     INFO_message("======== Applying transformation to %d sub-bricks ========",
+     INFO_message("========== Applying transformation to %d sub-bricks ==========",
                   DSET_NVALS(dset_targ) ) ;
 
-   if( verb > 1 ) mri_genalign_verbose(verb-1) ;
+   if( verb > 1 ) mri_genalign_verbose(verb-1) ;  /* inside mri_genalign.c */
 
    /*-- array in which to save parameters for later waterboarding --*/
 
    if( param_save_1D != NULL || apply_mode != APPLY_AFF12 )
      parsave = (float **)malloc(sizeof(float *)*DSET_NVALS(dset_targ)) ;
+
    if( matrix_save_1D != NULL || apply_mode != APPLY_AFF12  )
      matsave = (mat44 * )malloc(sizeof(mat44  )*DSET_NVALS(dset_targ)) ; /* 23 Jul 2007 */
 
@@ -2081,34 +2132,38 @@ int main( int argc , char *argv[] )
    im_bset = im_base ;  /* base image for first loop */
    im_wset = im_weig ;
 
-   aff12_xyz.m[3][3] = aff12_ijk.m[3][3] = 0.0f ;  /* 23 Jul 2007 */
-
    for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
 
      stup.match_code = meth_code ;
 
+     ZERO_MAT44(aff12_xyz) ; /* 23 Jul 2007: invalidate */
+
      skipped = 0 ;
-     if( apply_1D == NULL && kk == 0 && skip_first ){  /* skip first image since it == im_base */
+     if( kk == 0 && skip_first ){  /* skip first image since it == im_base */
        if( verb )
-         INFO_message("===== Skip sub-brick #0: it's also base image =====") ;
+         INFO_message("========== Skipping sub-brick #0: it's also base image ==========") ;
        DSET_unload_one(dset_targ,0) ;
+
+       /* load parameters with identity transform */
+
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )   /* for -1Dfile output */
          stup.wfunc_param[jj].val_out = stup.wfunc_param[jj].ident ;
+
+       /* load aff12_xyz matrix with identity transform [23 Jul 2007] */
+
        LOAD_DIAG_MAT44(aff12_xyz,1.0f,1.0f,1.0f) ;
-       wmat      = MAT44_MUL(aff12_xyz,base_cmat) ;
-       aff12_ijk = MAT44_MUL(targ_cmat_inv,wmat) ;
        skipped = 1 ; goto WRAP_IT_UP_BABY ;
      }
 
      /* make copy of target brick, and deal with that */
 
-     if( verb ) INFO_message("===== sub-brick #%d =====",kk) ;
+     if( verb ) INFO_message("========== sub-brick #%d ==========",kk) ;
 
      im_targ = mri_scale_to_float( DSET_BRICK_FACTOR(dset_targ,kk) ,
                                    DSET_BRICK(dset_targ,kk)         ) ;
      DSET_unload_one(dset_targ,kk) ;
 
-     /* if we are just applying input parameters, set up for that now */
+     /*** if we are just applying input parameters, set up for that now ***/
 
      if( apply_1D != NULL ){
        int rr=kk ;
@@ -2124,19 +2179,17 @@ int main( int argc , char *argv[] )
        im_bset = NULL ;  /* after setting base, don't need to set it again */
        mri_free(im_targ) ; im_targ = NULL ;
 
-       switch( apply_mode ){
+       switch( apply_mode ){   /* 23 Jul 2007 */
          default:
-         case APPLY_PARAM:
+         case APPLY_PARAM:     /* load parameters from file into structure */
            if( verb > 1 ) INFO_message("using -1Dparam_apply parameters") ;
            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
              stup.wfunc_param[jj].val_out = APL(jj,rr) ;
          break ;
 
-         case APPLY_AFF12:
+         case APPLY_AFF12:     /* load matrix from file into aff12_xyz */
            if( verb > 1 ) INFO_message("using -1Dmatrix_apply matrix") ;
-           LOAD_MAT44_AR( aff12_xyz , &APL(0,rr) ) ;
-           wmat      = MAT44_MUL(aff12_xyz,base_cmat) ;
-           aff12_ijk = MAT44_MUL(targ_cmat_inv,wmat) ;
+           LOAD_MAT44_AR( aff12_xyz , &APL(0,rr) ) ;    /* DICOM coord matrix */
          break ;
        }
        goto WRAP_IT_UP_BABY ;
@@ -2513,6 +2566,12 @@ int main( int argc , char *argv[] )
        meth_code = replace_meth; replace_meth = 0;
      }
 
+     /* get DICOM coord transformation matrix [23 Jul 2007] */
+
+      mri_genalign_affine_get_gammaijk( &qmat ) ;
+      wmat = MAT44_MUL(targ_cmat,qmat) ;
+      aff12_xyz = MAT44_MUL(wmat,base_cmat_inv) ;  /* DICOM coord matrix */
+
      /*--- at this point, val_out contains alignment parameters ---*/
 
    WRAP_IT_UP_BABY: /***** goto target !!!!! *****/
@@ -2525,13 +2584,13 @@ int main( int argc , char *argv[] )
          parsave[kk][jj] = stup.wfunc_param[jj].val_out ;
      }
 
+     /* save matrix for the hysterical record [23 Jul 2007] */
+
      if( matsave != NULL ){
-       if( skipped ) LOAD_DIAG_MAT44(matsave[kk],1.0f,1.0f,1.0f) ;
-       else {
-         mri_genalign_affine_get_gammaijk( &qmat ) ;  /* 23 Jul 2007 */
-         wmat = MAT44_MUL(targ_cmat,qmat) ;
-         matsave[kk] = MAT44_MUL(wmat,base_cmat_inv) ;
-        }
+       if( ISVALID_MAT44(aff12_xyz) )
+         matsave[kk] = aff12_xyz ;
+       else
+         LOAD_DIAG_MAT44(matsave[kk],1.0f,1.0f,1.0f) ;
      }
 
      /** store warped volume into the output dataset **/
@@ -2553,7 +2612,9 @@ int main( int argc , char *argv[] )
 
          case APPLY_AFF12:{
            float ap[12] ;
-           UNLOAD_MAT44_AR(aff12_ijk,ap) ;
+           wmat = MAT44_MUL(aff12_xyz,mast_cmat) ;
+           qmat = MAT44_MUL(targ_cmat_inv,wmat) ;  /* index transform matrix */
+           UNLOAD_MAT44_AR(qmat,ap) ;
            im_targ = mri_genalign_scalar_warpone(
                                  12 , ap , mri_genalign_mat44 ,
                                  stup.ajim , nxout,nyout,nzout, final_interp ) ;
@@ -2565,13 +2626,13 @@ int main( int argc , char *argv[] )
 
        { static mat44 gam , gami ; char anam[64] ; float matar[12] ;
 
-         if( matsave != NULL ){
+         if( matsave != NULL )
            gam = matsave[kk] ;
-         } else if( apply_mode == APPLY_AFF12 ){
+         else if( ISVALID_MAT44(aff12_xyz) )
            gam = aff12_xyz ;
-         } else {
+         else
            mri_genalign_affine_get_gammaxyz( &gam ) ;
-         }
+
          if( ISVALID_MAT44(gam) ){
            sprintf(anam,"ALLINEATE_MATVEC_B2S_%06d",kk) ;
            UNLOAD_MAT44_AR(gam,matar) ;
@@ -2583,7 +2644,7 @@ int main( int argc , char *argv[] )
          }
        }
 
-       /* save without scaling factor */
+       /* save sub-brick without scaling factor */
 
        if( floatize || targ_kind == MRI_float ){
          EDIT_substitute_brick( dset_out,kk,MRI_float, MRI_FLOAT_PTR(im_targ) );
@@ -2602,11 +2663,13 @@ int main( int argc , char *argv[] )
      if( verb > 5 ) mcw_malloc_dump() ;
      if( verb > 1 ){
        long long nb = mcw_malloc_total() ;
-       if( nb > 0 ) INFO_message("Memory usage = %lld",nb) ;
+       if( nb > 0 ) INFO_message("Memory usage now = %lld",nb) ;
      }
 #endif
 
    } /***------------- end of loop over target sub-bricks ------------------***/
+
+   /*--- unload stuff we no longer need ---*/
 
    DSET_unload(dset_targ) ;
    mri_free(im_base) ; mri_free(im_weig) ; mri_free(im_mask) ;
@@ -2620,7 +2683,7 @@ int main( int argc , char *argv[] )
      if( verb > 5 ) mcw_malloc_dump() ;
      if( verb > 1 ){
        long long nb = mcw_malloc_total() ;
-       if( nb > 0 ) INFO_message("Memory usage = %lld",nb) ;
+       if( nb > 0 ) INFO_message("Memory usage now = %lld",nb) ;
      }
 #endif
 
@@ -2650,6 +2713,8 @@ int main( int argc , char *argv[] )
      }
    }
 
+   /*--- save matrices to disk, if so ordered by the omniscient user ---*/
+
    if( matrix_save_1D != NULL && matsave != NULL ){
      FILE *fp ;
      float a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34 ;
@@ -2659,8 +2724,9 @@ int main( int argc , char *argv[] )
      fprintf(fp,"# 3dAllineate matrices (DICOM-to-DICOM, row-by-row):\n") ;
      for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
        UNLOAD_MAT44(matsave[kk],a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34) ;
-       fprintf(fp," %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n",
-                  a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34 ) ;
+       fprintf(fp,
+               " %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g\n",
+               a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34 ) ;
      }
      if( fp != stdout ){
        fclose(fp) ; if( verb ) INFO_message("Wrote -1Dmatrix_save %s",matrix_save_1D) ;
