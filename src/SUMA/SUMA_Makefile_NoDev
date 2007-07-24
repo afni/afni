@@ -3,7 +3,7 @@
 MAKE = make
 SUMALIB = libSUMA.a
 SUMAGTSLIB = libSUMAGTS.a
-AFNILIB = -lrickr -lmrix -lcoxplot -lmri -lf2c -l3DEdge
+AFNILIB = -lmrix -lcoxplot -lmri -lf2c -l3DEdge
 MAINCODE = SUMA
 SUMALIBLIST = libSUMA.a libglut.a libply.a 
 

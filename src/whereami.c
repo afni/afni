@@ -797,7 +797,7 @@ int main(int argc, char **argv)
       char tmps[20];
       
       /* load the mask dset */
-	   if (!(mset_orig = THD_open_dataset (bmsk))) {
+      if (!(mset_orig = THD_open_dataset (bmsk))) {
          fprintf(stderr,"** Error: Failed to open mask set %s.\n", bmsk);
          return(1);
       } 
@@ -838,7 +838,7 @@ int main(int argc, char **argv)
       for (iroi=0; iroi<n_unq; ++iroi) {
          if (dobin) {
             mset = mset_orig;
-	         /* turn the mask dataset to zeros and 1s */
+          /* turn the mask dataset to zeros and 1s */
             if ((nonzero = THD_makedsetmask( mset , 0 , 1.0, 0.0 , cmask)) < 0) {  /* get all non-zero values */
                   fprintf(stderr,"** Error: No mask for you.\n");
                   return(1);
@@ -875,7 +875,7 @@ int main(int argc, char **argv)
                               "What's cracking?.\n", adh.maxindexcode);
             }  
             /* resample mask per atlas, use linear interpolation, cut-off at 0.5 */
-            rset = r_new_resam_dset ( mset, adh.dset,	0,	0,	0,	NULL, MRI_LINEAR, NULL);
+            rset = r_new_resam_dset ( mset, adh.dset, 0, 0, 0, NULL, MRI_LINEAR, NULL, 1);
             if (!rset) {
                fprintf(stderr,"** Error: Failed to reslice!?\n"); return(1);
             }
