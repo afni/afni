@@ -92,7 +92,7 @@ int main( int argc , char *argv[] )
    int pad_xm=0,pad_xp=0 , pad_ym=0,pad_yp=0 , pad_zm=0,pad_zp=0 ;
    int tfdone=0;  /* stuff for -twofirst */
    float tfparm[PARAM_MAXTRIAL+1][MAXPAR];
-   int skip_first=0 , didtwo , targ_kind ;
+   int skip_first=0 , didtwo , targ_kind , skipped=0 ;
    double ctim , rad , conv_rad ;
    float **parsave=NULL ;
    mat44 *matsave=NULL , targ_cmat,base_cmat,base_cmat_inv,targ_cmat_inv, qmat,wmat ;
@@ -2081,17 +2081,23 @@ int main( int argc , char *argv[] )
    im_bset = im_base ;  /* base image for first loop */
    im_wset = im_weig ;
 
+   aff12_xyz.m[3][3] = aff12_ijk.m[3][3] = 0.0f ;  /* 23 Jul 2007 */
+
    for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
 
      stup.match_code = meth_code ;
 
+     skipped = 0 ;
      if( apply_1D == NULL && kk == 0 && skip_first ){  /* skip first image since it == im_base */
        if( verb )
          INFO_message("===== Skip sub-brick #0: it's also base image =====") ;
        DSET_unload_one(dset_targ,0) ;
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )   /* for -1Dfile output */
          stup.wfunc_param[jj].val_out = stup.wfunc_param[jj].ident ;
-       goto WRAP_IT_UP_BABY ;
+       LOAD_DIAG_MAT44(aff12_xyz,1.0f,1.0f,1.0f) ;
+       wmat      = MAT44_MUL(aff12_xyz,base_cmat) ;
+       aff12_ijk = MAT44_MUL(targ_cmat_inv,wmat) ;
+       skipped = 1 ; goto WRAP_IT_UP_BABY ;
      }
 
      /* make copy of target brick, and deal with that */
@@ -2520,9 +2526,12 @@ int main( int argc , char *argv[] )
      }
 
      if( matsave != NULL ){
-       mri_genalign_affine_get_gammaijk( &qmat ) ;  /* 23 Jul 2007 */
-       wmat = MAT44_MUL(targ_cmat,qmat) ;
-       matsave[kk] = MAT44_MUL(wmat,base_cmat_inv) ;
+       if( skipped ) LOAD_DIAG_MAT44(matsave[kk],1.0f,1.0f,1.0f) ;
+       else {
+         mri_genalign_affine_get_gammaijk( &qmat ) ;  /* 23 Jul 2007 */
+         wmat = MAT44_MUL(targ_cmat,qmat) ;
+         matsave[kk] = MAT44_MUL(wmat,base_cmat_inv) ;
+        }
      }
 
      /** store warped volume into the output dataset **/
@@ -2647,8 +2656,7 @@ int main( int argc , char *argv[] )
      fp = (strcmp(matrix_save_1D,"-") == 0) ? stdout
                                             : fopen(matrix_save_1D,"w") ;
      if( fp == NULL ) ERROR_exit("Can't open -1Dmatrix_save %s for output!?",matrix_save_1D);
-     fprintf(fp,"# 3dAllineate matrices (DICOM-to-DICOM):\n") ;
-     fprintf(fp,"#") ;
+     fprintf(fp,"# 3dAllineate matrices (DICOM-to-DICOM, row-by-row):\n") ;
      for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
        UNLOAD_MAT44(matsave[kk],a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34) ;
        fprintf(fp," %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n",
