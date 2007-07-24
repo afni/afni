@@ -4061,6 +4061,8 @@ extern THD_mat33  SNGL_mat_to_dicomm( THD_3dim_dataset * ) ; /* 28 Aug 2002 */
 
 extern THD_dvecmat THD_rotcom_to_matvec( THD_3dim_dataset * , char * ) ;
 
+extern THD_dvecmat invert_dvecmat( THD_dvecmat avm ) ; /* 24 Jul 2007 */
+
   /*-- see thd_rot3d.c for these routines --*/
 
 extern void THD_rota_method( int ) ;

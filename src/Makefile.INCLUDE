@@ -768,7 +768,9 @@ qm:qm.o
 
 3dAllineate:3dAllineate.o mri_genalign.o thd_correlate.o
 	$(RM) $@
-	$(CCFAST) -o 3dAllineate 3dAllineate.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+	$(CCFAST) -o 3dAllineate 3dAllineate.o \
+				afni_warp.o afni_slice_byte.o afni_slice_short.o afni_slice_float.o \
+				afni_slice_complex.o afni_slice_rgbyte.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dAcost:3dAcost.o
 	$(RM) $@

@@ -236,3 +236,15 @@ ENTRY("THD_read_dvecmat") ;
 
    dvm.vv = tvec ; dvm.mm = tmat ; RETURN(dvm) ;
 }
+
+/*-------------------------------------------------------------------------------*/
+
+THD_dvecmat invert_dvecmat( THD_dvecmat avm )  /* 24 Jul 2007 */
+{
+   THD_dvecmat bvm ;
+   THD_dmat33 imat ; THD_dfvec3 ivec ;
+   imat = DMAT_INV(avm.mm) ;             /* matrix inverse */
+   ivec = DMATVEC(imat,avm.vv) ;         /* multiply inverse into vector */
+   NEGATE_DFVEC3(ivec) ;
+   bvm.mm = imat ; bvm.vv = ivec ; return bvm ;
+}

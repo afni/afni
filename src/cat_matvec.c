@@ -7,15 +7,20 @@
 #include "mrilib.h"
 #include "vecmat.h"
 
+/*-------------------------------------------------------------------------------*/
+
 int main( int argc , char * argv[] )
 {
    int iarg=1 , nn , invert,nadd , polar, i, j;
-   THD_dmat33 tmat , qmat , imat ;
-   THD_dfvec3 tvec , qvec , ivec ;
+   THD_dmat33 *tmat , qmat , imat ;
+   THD_dfvec3 *tvec , qvec , ivec ;
+   int ntmat ;
    FILE *fp ;
-   double dd[12] ;
-   THD_dvecmat dvm ;
+   THD_dvecmat *dvm , qvm ; int ndvm ;
    int matout=0 ;
+   MRI_IMAGE *multi_im=NULL ;
+   float     *multi_far=NULL ;
+   int        multi_nx, multi_ny , dd ;  /* nx=# of values per row, ny=# of rows */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: cat_matvec [-MATRIX] matvec_spec matvec_spec ...\n"
@@ -25,7 +30,7 @@ int main( int argc , char * argv[] )
              "\n"
              "  mfile [-opkey]\n"
              "\n"
-             "'mfile' specifies the matrix, and can take 4 forms:\n"
+             "'mfile' specifies the matrix, and can take 4(ish) forms:\n"
              "\n"
              "=== FORM 1 ===\n"
              "mfile is the name of an ASCII file with 12 numbers arranged\n"
@@ -36,6 +41,16 @@ int main( int argc , char * argv[] )
              "where each 'uij' and 'vi' is a number.  The 3x3 matrix [uij]\n"
              "is the matrix of the transform, and the 3-vector [vi] is the\n"
              "shift.  The transform is [xnew] = [uij]*[xold] + [vi].\n"
+             "\n"
+             "=== FORM 1a === [added 24 Jul 2007]\n"
+             "mfile is the name of an ASCII file with multiple rows, each\n"
+             "containing 12 numbers in the order\n"
+             "  u11 u12 u13 v1 u21 u22 u23 v2 u31 u32 u33 v3\n"
+             "The filename must end in the characters '.aff12.1D', as output\n"
+             "by the '-1Dmatrix_save' option in 3dAllineate and 3dvolreg.\n"
+             "Each row of this file is treated as a separate matrix, and\n"
+             "multiple matrices will be computed.\n"
+             "** N.B.: At most ONE input matrix can be in this format! **\n"
              "\n"
              "=== FORM 2 ===\n"
              "mfile is of the form 'dataset::attribute', where 'dataset'\n"
@@ -87,10 +102,10 @@ int main( int argc , char * argv[] )
              "       of the mfile. This would result in an orthogonal\n"
              "       matrix (rotation only, no scaling) Q that is closest,\n"
              "       in the Frobenius distance sense, to the input matrix A.\n"
-             "    Note: if A = R *S * E, where R, S and E are the Rotation,\n"
+             "    Note: if A = R * S * E, where R, S and E are the Rotation,\n"
              "       Scale, and shEar matrices, respctively, Q does not \n"
              "       necessarily equal R because of interaction; Each of R,\n"
-             "       S and E affects most of columns in matrix A.\n"
+             "       S and E affects most of the columns in matrix A.\n"
              "\n"
              "  -IP = -I followed by -P\n"
              "\n"
@@ -105,6 +120,9 @@ int main( int argc , char * argv[] )
              "      be written to stdout in the 'MATRIX(...)' format (FORM 3).\n"
              "      This feature could be used, with clever scripting, to input\n"
              "      a matrix directly on the command line to program 3dWarp.\n"
+             "N.B.: If form 1a (.aff12.1D) is used to compute multiple matrices,\n"
+             "      then the output matrices are written to stdout, one matrix\n"
+             "      per line.\n"
            ) ;
       exit(0) ;
    }
@@ -113,8 +131,11 @@ int main( int argc , char * argv[] )
 
    machdep() ;
 
-   LOAD_DIAG_DMAT(tmat,1.0,1.0,1.0) ;
-   LOAD_DFVEC3(tvec,0.0,0.0,0.0) ;
+   ntmat = 1 ;
+   tmat = (THD_dmat33 *)malloc(sizeof(THD_dmat33)) ;
+   tvec = (THD_dfvec3 *)malloc(sizeof(THD_dfvec3)) ;
+   LOAD_DIAG_DMAT(tmat[0],1.0,1.0,1.0) ;
+   LOAD_DFVEC3   (tvec[0],0.0,0.0,0.0) ;
 
    /* loop and read arguments, process them */
 
@@ -123,6 +144,8 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[iarg],"-MATRIX") == 0 ){
         matout = 1 ;  iarg++ ; continue ;
       }
+
+      /* check for opcodes that follow the next argument */
  
       nadd = 1 ; invert = 0 ; polar = 0;
       if( iarg+1 < argc ) {   
@@ -134,48 +157,125 @@ int main( int argc , char * argv[] )
             invert = 1; polar = 1 ; nadd = 2 ;
          }
       }
-      dvm = THD_read_dvecmat( argv[iarg] , invert ) ;
-      if( SIZE_DMAT(dvm.mm) == 0.0 )
-        ERROR_exit("can't read mfile %s\n",argv[iarg]) ;
-        
-      if (polar) {   /* do a polar decomposition */
-         mat33 A, M;
-         for (i=0;i<3;++i) for (j=0;j<3;++j) A.m[i][j] = (float) dvm.mm.mat[i][j];   /* loss of precision, sorry Joe. */
-         M = nifti_mat33_polar( A );
-         for (i=0;i<3;++i) for (j=0;j<3;++j) dvm.mm.mat[i][j] = (double) M.m[i][j];
-      }
-      qmat = dvm.mm ; qvec = dvm.vv ;
 
-      iarg += nadd ;
+      /* read matrix (or matrices) */
+
+      if( STRING_HAS_SUFFIX(argv[iarg],".aff12.1D") ){  /* 24 Jul 2007: multiple */
+        MRI_IMAGE *qim ;
+        qim = mri_read_1D(argv[iarg]) ;
+        if( qim == NULL ) ERROR_exit("Can't read file '%s'",argv[iarg]) ;
+        multi_im  = mri_transpose(qim); mri_free(qim);
+        multi_far = MRI_FLOAT_PTR(multi_im) ;
+        multi_nx  = multi_im->nx ;  /* # of values per row */
+        multi_ny  = multi_im->ny ;  /* number of rows */
+        if( multi_nx < 12 || multi_nx > 12 )
+          ERROR_exit("File '%s' has %d values per row, which isn't 12",argv[iarg],multi_nx) ;
+
+#undef  APL
+#define APL(i,j) multi_far[(i)+(j)*multi_nx] /* i=param index, j=row index */
+
+        /* load matrices from data just read */
+
+        if( ntmat > 1 && multi_ny > 1 )
+          ERROR_exit("%s : can't have 2 multi-line '.aff12.1D' files!",argv[iarg]) ;
+
+        ndvm = multi_ny ;
+        dvm  = (THD_dvecmat *)malloc(sizeof(THD_dvecmat)*ndvm) ;
+        for( dd=0 ; dd < ndvm ; dd++ ){
+          LOAD_DMAT(qvm.mm , APL(0,dd) , APL(1,dd) , APL( 2,dd) ,
+                             APL(4,dd) , APL(5,dd) , APL( 6,dd) ,
+                             APL(8,dd) , APL(9,dd) , APL(10,dd)  ) ;
+          LOAD_DFVEC3(qvm.vv , APL(3,dd) , APL(7,dd) , APL(11,dd) ) ;
+
+          if( invert ) dvm[dd] = invert_dvecmat(qvm) ;
+          else         dvm[dd] = qvm ;
+        }
+
+        /* replicate tmat/tvec matrix/vector */
+
+        if( ntmat == 1 && ndvm > 1 ){
+          qmat = tmat[0] ; qvec = tvec[0] ;
+          tmat = (THD_dmat33 *)realloc(tmat,sizeof(THD_dmat33)*ndvm) ;
+          tvec = (THD_dfvec3 *)realloc(tvec,sizeof(THD_dfvec3)*ndvm) ;
+          for( dd=1 ; dd < ndvm ; dd++ ){ tmat[dd] = qmat; tvec[dd] = qvec; }
+          ntmat = ndvm ;
+        }
+
+      } else {  /* one matrix (ye olde way) */
+
+        qvm = THD_read_dvecmat( argv[iarg] , invert ) ;
+        if( SIZE_DMAT(qvm.mm) == 0.0 )
+          ERROR_exit("Can't read matrix from '%s'\n",argv[iarg]) ;
+
+        ndvm   = 1 ;
+        dvm    = (THD_dvecmat *)malloc(sizeof(THD_dvecmat)) ;
+        dvm[0] = qvm ;
+      }
+
+      if (polar) {   /* do a polar decomposition */
+        mat33 A, M;
+        for( dd=0 ; dd < ndvm ; dd++ ){
+          for (i=0;i<3;++i) for (j=0;j<3;++j) A.m[i][j] = (float)dvm[dd].mm.mat[i][j];
+          M = nifti_mat33_polar( A );
+          for (i=0;i<3;++i) for (j=0;j<3;++j) dvm[dd].mm.mat[i][j] = (double)M.m[i][j];
+        }
+      }
 
       /* multiply into accumulating transformation */
 
-      imat = DMAT_MUL( qmat , tmat ) ;
-      ivec = DMATVEC( qmat , tvec ) ;
-      tvec = ADD_DFVEC3( qvec , ivec ) ;
-      tmat = imat ;
+      if( ndvm == ntmat ){
+        for( dd=0 ; dd < ndvm ; dd++ ){
+          qmat = dvm[dd].mm ; qvec = dvm[dd].vv ;
+          imat = DMAT_MUL( qmat , tmat[dd] ) ;
+          ivec = DMATVEC ( qmat , tvec[dd] ) ;
+          tvec[dd] = ADD_DFVEC3( qvec , ivec ) ;
+          tmat[dd] = imat ;
+        }
+      } else if( ndvm == 1 ){
+        for( dd=0 ; dd < ntmat ; dd++ ){
+          qmat = dvm[0].mm ; qvec = dvm[0].vv ;
+          imat = DMAT_MUL( qmat , tmat[dd] ) ;
+          ivec = DMATVEC ( qmat , tvec[dd] ) ;
+          tvec[dd] = ADD_DFVEC3( qvec , ivec ) ;
+          tmat[dd] = imat ;
+        }
+      } else {
+        ERROR_exit("WTF?! ndvm=%d ntmat=%d",ndvm,ntmat) ;
+      }
+
+      iarg += nadd ;  /* move on, nothing to see here */
    }
 
    /* write results to stdout */
 
    if( matout ){
      char buf[1024] ; int ii, lb ;
-     sprintf(buf,"MATRIX(%13.6g,%13.6g,%13.6g,%13.6g,"
-                        "%13.6g,%13.6g,%13.6g,%13.6g,"
-                        "%13.6g,%13.6g,%13.6g,%13.6g)" ,
-       tmat.mat[0][0] , tmat.mat[0][1] , tmat.mat[0][2] , tvec.xyz[0] ,
-       tmat.mat[1][0] , tmat.mat[1][1] , tmat.mat[1][2] , tvec.xyz[1] ,
-       tmat.mat[2][0] , tmat.mat[2][1] , tmat.mat[2][2] , tvec.xyz[2]  ) ;
-     for( ii=0 ; buf[ii] != '\0' ; ii++ )
-       if( !isspace(buf[ii]) ) putchar(buf[ii]) ;
-     putchar('\n') ;
-   } else {
+     for( dd=0 ; dd < ntmat ; dd++ ){
+       sprintf(buf,"MATRIX(%13.6g,%13.6g,%13.6g,%13.6g,"
+                          "%13.6g,%13.6g,%13.6g,%13.6g,"
+                          "%13.6g,%13.6g,%13.6g,%13.6g)" ,
+         tmat[dd].mat[0][0], tmat[dd].mat[0][1], tmat[dd].mat[0][2], tvec[dd].xyz[0],
+         tmat[dd].mat[1][0], tmat[dd].mat[1][1], tmat[dd].mat[1][2], tvec[dd].xyz[1],
+         tmat[dd].mat[2][0], tmat[dd].mat[2][1], tmat[dd].mat[2][2], tvec[dd].xyz[2] ) ;
+       for( ii=0 ; buf[ii] != '\0' ; ii++ )
+         if( !isspace(buf[ii]) ) putchar(buf[ii]) ;
+       putchar('\n') ;
+     }
+   } else if( ntmat == 1 ){
      printf("%13.6g %13.6g %13.6g %13.6g\n"
             "%13.6g %13.6g %13.6g %13.6g\n"
             "%13.6g %13.6g %13.6g %13.6g\n" ,
-       tmat.mat[0][0] , tmat.mat[0][1] , tmat.mat[0][2] , tvec.xyz[0] ,
-       tmat.mat[1][0] , tmat.mat[1][1] , tmat.mat[1][2] , tvec.xyz[1] ,
-       tmat.mat[2][0] , tmat.mat[2][1] , tmat.mat[2][2] , tvec.xyz[2]  ) ;
+       tmat[0].mat[0][0], tmat[0].mat[0][1], tmat[0].mat[0][2], tvec[0].xyz[0],
+       tmat[0].mat[1][0], tmat[0].mat[1][1], tmat[0].mat[1][2], tvec[0].xyz[1],
+       tmat[0].mat[2][0], tmat[0].mat[2][1], tmat[0].mat[2][2], tvec[0].xyz[2] ) ;
+   } else {
+     for( dd=0 ; dd < ntmat ; dd++ )
+       printf("%13.6g %13.6g %13.6g %13.6g "
+              "%13.6g %13.6g %13.6g %13.6g "
+              "%13.6g %13.6g %13.6g %13.6g\n" ,
+         tmat[dd].mat[0][0], tmat[dd].mat[0][1], tmat[dd].mat[0][2], tvec[dd].xyz[0],
+         tmat[dd].mat[1][0], tmat[dd].mat[1][1], tmat[dd].mat[1][2], tvec[dd].xyz[1],
+         tmat[dd].mat[2][0], tmat[dd].mat[2][1], tmat[dd].mat[2][2], tvec[dd].xyz[2] ) ;
    }
    exit(0) ;
 }

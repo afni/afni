@@ -73,6 +73,9 @@ static int VL_tshift        = 0 ,                /* 15 Feb 2001 */
 
 static int VL_sinit = 1 ;                        /* 22 Mar 2004 */
 
+static char *VL_matrix_save_1D = NULL ;          /* 24 Jul 2007 */
+static FILE *VL_msfp = NULL ;
+
 /******* prototypes *******/
 
 void VL_syntax(void) ;
@@ -107,6 +110,7 @@ int main( int argc , char *argv[] )
 
    float *dx_1,*dy_1,*dz_1, *roll_1,*yaw_1,*pitch_1 ;  /* 11 Sep 2000 */
    int   nx,ny,nz ;
+   int   null_output=0 ;
 
    static char * modes[] = {
         "-NN" , "-linear" , "-cubic" , "-Fourier" , "-quintic" , "-heptic" } ;
@@ -133,7 +137,6 @@ int main( int argc , char *argv[] )
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
    }
-
 
    Argc = argc ; Argv = argv ; Iarg = 1 ;
    VL_command_line() ;
@@ -247,12 +250,15 @@ int main( int argc , char *argv[] )
 
    /*-- set some information into the new dataset's header --*/
 
-   EDIT_dset_items( new_dset , ADN_prefix , VL_prefix , ADN_none ) ;
-   if( THD_deathcon() && THD_is_file( DSET_HEADNAME(new_dset) ) ){
-     fprintf(stderr,
-             "** Output file %s already exists -- cannot continue!\n",
-             DSET_HEADNAME(new_dset) ) ;
-     exit(1) ;
+   if( strcmp(VL_prefix,"NULL") == 0 ){  /* 24 Jul 2007 */
+     WARNING_message("No output dataset will be calculated") ;
+     null_output = 1 ;
+   } else {
+     EDIT_dset_items( new_dset , ADN_prefix , VL_prefix , ADN_none ) ;
+     if( THD_deathcon() && THD_is_file( DSET_HEADNAME(new_dset) ) ){
+       ERROR_exit("Output file %s already exists -- cannot continue!\n",
+                  DSET_HEADNAME(new_dset) ) ;
+     }
    }
 
    tross_Copy_History( VL_dset , new_dset ) ;
@@ -837,7 +843,7 @@ int main( int argc , char *argv[] )
          /* zero pad before final transformation? */
 
          if( npadd ){
-           MRI_IMAGE * qim = mri_zeropad_3D( 0,0,0,0,npad_neg,npad_pos , fim ) ;
+           MRI_IMAGE *qim = mri_zeropad_3D( 0,0,0,0,npad_neg,npad_pos , fim ) ;
            if( qim == NULL ){
              fprintf(stderr,"** Can't zeropad at kim=%d -- FATAL ERROR!\n",kim);
              exit(1) ;
@@ -905,32 +911,34 @@ int main( int argc , char *argv[] )
            converting it to the correct type, if necessary
            (the new registered brick in "tim" is stored as floats). --*/
 
-      switch( qim->kind ){
+      if( tim != NULL && !null_output ){
+        switch( qim->kind ){
 
-        case MRI_float:
-          EDIT_substitute_brick( new_dset, kim, MRI_float, MRI_FLOAT_PTR(tim) );
-          mri_fix_data_pointer( NULL , tim ) ; mri_free( tim ) ;
-        break ;
+          case MRI_float:
+            EDIT_substitute_brick( new_dset, kim, MRI_float, MRI_FLOAT_PTR(tim) );
+            mri_fix_data_pointer( NULL , tim ) ; mri_free( tim ) ;
+          break ;
 
-        case MRI_short:
-          fim = mri_to_short(1.0,tim) ; mri_free( tim ) ;
-          EDIT_substitute_brick( new_dset, kim, MRI_short, MRI_SHORT_PTR(fim) );
-          mri_fix_data_pointer( NULL , fim ) ; mri_free( fim ) ;
-        break ;
+          case MRI_short:
+            fim = mri_to_short(1.0,tim) ; mri_free( tim ) ;
+            EDIT_substitute_brick( new_dset, kim, MRI_short, MRI_SHORT_PTR(fim) );
+            mri_fix_data_pointer( NULL , fim ) ; mri_free( fim ) ;
+          break ;
 
-        case MRI_byte:
-          fim = mri_to_byte(tim) ; mri_free( tim ) ;
-          EDIT_substitute_brick( new_dset, kim, MRI_byte, MRI_BYTE_PTR(fim) ) ;
-          mri_fix_data_pointer( NULL , fim ) ; mri_free( fim ) ;
-        break ;
+          case MRI_byte:
+            fim = mri_to_byte(tim) ; mri_free( tim ) ;
+            EDIT_substitute_brick( new_dset, kim, MRI_byte, MRI_BYTE_PTR(fim) ) ;
+            mri_fix_data_pointer( NULL , fim ) ; mri_free( fim ) ;
+          break ;
 
-        /*-- should not ever get here, but who knows? --*/
+          /*-- should not ever get here, but who knows? --*/
 
-        default:
-          fprintf(stderr,"\n*** Can't register bricks of type %s\n",
-                  MRI_TYPE_name[qim->kind] ) ;
-          exit(1) ;
-      }
+          default:
+            fprintf(stderr,"\n*** Can't register bricks of type %s\n",
+                    MRI_TYPE_name[qim->kind] ) ;
+            exit(1) ;
+        }
+      } else if( tim != NULL ) mri_free(tim) ; /* 24 Jul 2007 */
 
       DSET_unload_one( VL_dset , kim ) ;      /* don't need this anymore */
 
@@ -1048,6 +1056,12 @@ int main( int argc , char *argv[] )
          VL_dmaxar = (float *)calloc(sizeof(float),imcount) ;
      }
 
+     if( VL_matrix_save_1D != NULL ){             /* 24 Jul 2007 */
+       VL_msfp = fopen(VL_matrix_save_1D,"w") ;
+       fprintf(VL_msfp,
+               "# 3dvolreg matrices (DICOM-to-DICOM, row-by-row):\n") ;
+     }
+
      for( kim=0 ; kim < imcount ; kim++ ){
         sprintf(anam,"VOLREG_ROTCOM_%06d",kim) ;
         sprintf(sbuf,"-rotate %.4fI %.4fR %.4fA -ashift %.4fS %.4fL %.4fP" ,
@@ -1074,6 +1088,19 @@ int main( int argc , char *argv[] )
         sprintf(anam,"VOLREG_MATVEC_%06d",kim) ;
         THD_set_float_atr( new_dset->dblk , anam , 12 , matar ) ;
 
+        if( VL_msfp != NULL ){  /* 24 Jul 2007 */
+          THD_dvecmat vm , ivm ;
+          vm.mm = rmat ; LOAD_DFVEC3(vm.vv,matar[3],matar[7],matar[11]) ;
+          ivm = invert_dvecmat(vm) ;
+
+          fprintf(VL_msfp,"%13.6g %13.6g %13.6g %13.6g "
+                           "%13.6g %13.6g %13.6g %13.6g "
+                           "%13.6g %13.6g %13.6g %13.6g\n" ,
+          ivm.mm.mat[0][0], ivm.mm.mat[0][1], ivm.mm.mat[0][2], ivm.vv.xyz[0],
+          ivm.mm.mat[1][0], ivm.mm.mat[1][1], ivm.mm.mat[1][2], ivm.vv.xyz[1],
+          ivm.mm.mat[2][0], ivm.mm.mat[2][1], ivm.mm.mat[2][2], ivm.vv.xyz[2] ) ;
+        }
+
         /* 04 Aug 2006: max displacement calculation */
 
         if( VL_maxdisp > 0 ){
@@ -1097,6 +1124,7 @@ int main( int argc , char *argv[] )
           if( VL_dmaxar != NULL ) VL_dmaxar[kim] = dmax ;
         }
      }
+     if( VL_msfp != NULL ) fclose(VL_msfp) ;  /* 24 Jul 2007 */
      if( VL_maxdisp > 0 ){
        if( VL_verbose ) fprintf(stderr,"\n") ;
        INFO_message("Max displacement in automask = %.2f (mm) at sub-brick %d",VL_dmax,VL_dmaxi);
@@ -1126,10 +1154,12 @@ int main( int argc , char *argv[] )
 
    /*-- save new dataset to disk --*/
 
-   DSET_write(new_dset) ;
-   if( VL_verbose )
-     fprintf(stderr,"++ Wrote dataset to disk in %s",DSET_BRIKNAME(new_dset));
-   if( VL_verbose ) fprintf(stderr,"\n") ;
+   if( !null_output ){
+     DSET_write(new_dset) ;
+     if( VL_verbose )
+       fprintf(stderr,"++ Wrote dataset to disk in %s",DSET_BRIKNAME(new_dset));
+     if( VL_verbose ) fprintf(stderr,"\n") ;
+   }
 
    /*-- save movement parameters to disk --*/
 
@@ -1210,6 +1240,7 @@ void VL_syntax(void)
     "  -prefix fname   Use 'fname' for the output dataset prefix.\n"
     "                    The program tries not to overwrite an existing dataset.\n"
     "                    Default = 'volreg'.\n"
+    "              N.B.: If the prefix is 'NULL', no output dataset will be written.\n"
     "\n"
     "  -base n         Sets the base brick to be the 'n'th sub-brick\n"
     "                    from the input dataset (indexing starts at 0).\n"
@@ -1249,6 +1280,20 @@ void VL_syntax(void)
     "                  the data against correlation with the movements.\n"
     "                  This type of analysis can be useful in removing\n"
     "                  errors made in the interpolation.\n"
+    "\n"
+    "  -1Dmatrix_save ff = Save the matrix transformation from base to input\n"
+    "                      coordinates in file 'ff' (1 row per sub-brick in\n"
+    "                      the input dataset).  If 'ff' does NOT end in '.1D',\n"
+    "                      then the program will append '.aff12.1D' to 'ff' to\n"
+    "                      make the output filename.\n"
+    "               *N.B.: This matrix is the coordinate transformation from base\n"
+    "                      to input DICOM coordinates.  To get the inverse matrix\n"
+    "                      (input to base), use the cat_matvec program, as in\n"
+    "                        cat_matvec fred.aff12.1D -I\n"
+    "               *N.B.: This matrix is the inverse of the matrix stored in\n"
+    "                      the output dataset VOLREG_MATVEC_* attributes.\n"
+    "                      The base-to-input convention followed with this\n"
+    "                      option corresponds to the convention in 3dAllineate.\n"
     "\n"
     "  -rotcom         Write the fragmentary 3drotate commands needed to\n"
     "                  perform the realignments to stdout; for example:\n"
@@ -1468,6 +1513,22 @@ void VL_command_line(void)
       }
       if( strcmp(Argv[Iarg],"-maxdisp1D") == 0 ){
         VL_maxdisp = 1 ; strcpy(VL_dmaxfile,Argv[++Iarg]) ;
+        Iarg++ ; continue ;
+      }
+
+      /** -1Dmatrix_save [24 Jul 2007] **/
+
+      if( strcmp(Argv[Iarg],"-1Dmatrix_save") == 0 ){
+        if( VL_matrix_save_1D != NULL ) ERROR_exit("Can't have multiple %s options!",Argv[Iarg]);
+        if( ++Iarg >= Argc ) ERROR_exit("no argument after '%s'!",Argv[Iarg-1]) ;
+        if( !THD_filename_ok(Argv[Iarg]) )
+          ERROR_exit("badly formed filename: %s '%s'",Argv[Iarg-1],Argv[Iarg]) ;
+        if( STRING_HAS_SUFFIX(Argv[Iarg],".1D") ){
+          VL_matrix_save_1D = Argv[Iarg] ;
+        } else {
+          VL_matrix_save_1D = calloc(sizeof(char*),strlen(Argv[Iarg])+16) ;
+          strcpy(VL_matrix_save_1D,Argv[Iarg]) ; strcat(VL_matrix_save_1D,".aff12.1D") ;
+        }
         Iarg++ ; continue ;
       }
 
