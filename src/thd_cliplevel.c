@@ -130,13 +130,19 @@ ENTRY("THD_cliplevel") ;
 }
 
 /*-------------------------------------------------------------------------*/
+/* (1) apply THD_cliplevel() algorithm above to absolute values.
+   (2) also, if mfrac < 0, then find 90% point on CDF of absolute values
+       and return smaller of this or the THD_cliplevel() result.
+   Purpose is to find some reasonable place to threshold an image for
+   visual effect only.
+---------------------------------------------------------------------------*/
 
 float THD_cliplevel_abs( MRI_IMAGE *im , float mfrac )
 {
    MRI_IMAGE *fim ;
    register float *far ;
    register int ii ;
-   float val,tv ; int dotwo ;
+   float val,tv ; int dotwo=0 ;
 
 ENTRY("THD_cliplevel_abs") ;
    if( im == NULL ) RETURN(0.0f) ;

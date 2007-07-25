@@ -477,6 +477,7 @@ typedef struct {
 
       Widget thr_menu ;
       MCW_bbox *thr_onoff_bbox ;
+      Widget thr_autothresh_pb ;
 
       Widget inten_rowcol , inten_label ;
       MCW_pbar     * inten_pbar ;
@@ -520,6 +521,8 @@ typedef struct {
 
       MCW_bbox * see_ttatlas_bbox ;     /* 25 Jul 2001 */
 } AFNI_function_widgets ;
+
+extern void AFNI_func_autothresh_CB(Widget,XtPointer,XtPointer) ; /* 25 Jul 2007 */
 
 #define PBAR_MODEBUT  0
 #define PBAR_MODEPOS  (1 << PBAR_MODEBUT)

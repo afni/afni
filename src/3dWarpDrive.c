@@ -374,9 +374,9 @@ int main( int argc , char * argv[] )
    int kim , nvals , kpar , np , nfree ;
    MRI_IMAGE *qim , *tim , *fim ;
    float clip_baset=0.0f , clip_inset=0.0f ;
-   char *W_1Dfile=NULL ;                      /* 04 Jan 2005 */
+   char *W_1Dfile=NULL ;                          /* 04 Jan 2005 */
    float **parsave=NULL ;
-   int output_float=0 ;                      /* 06 Jul 2005 */
+   int output_float=0 ;                           /* 06 Jul 2005 */
    char *base_idc=NULL , *wt_idc=NULL ;
    int ctstart = NI_clock_time() ;
    float i_xcm,i_ycm,i_zcm , b_xcm,b_ycm,b_zcm ;  /* 26 Sep 2005 */
@@ -384,6 +384,9 @@ int main( int argc , char * argv[] )
    char *W_summfile=NULL ; FILE *summfp=NULL ;
    int   init_set=0 ;                             /* 06 Dec 2005 */
    float init_val[12] ;
+   char *matrix_save_1D=NULL ;                    /* 25 Jul 2007 */
+   FILE *msfp=NULL ;
+   int null_output=0 ;
 
    /*-- help? --*/
 
@@ -423,6 +426,7 @@ int main( int argc , char * argv[] )
             "\n"
             "  -verb       = Print out lots of information along the way.\n"
             "  -prefix ppp = Sets the prefix of the output dataset.\n"
+            "                If 'ppp' is 'NULL', no output dataset is written.\n"
             "  -input ddd  = You can put the input dataset anywhere in the\n"
             "                  command line option list by using the '-input'\n"
             "                  option, instead of always putting it last.\n"
@@ -461,6 +465,16 @@ int main( int argc , char * argv[] )
             "  -coarserot    = Initialize shift+rotation parameters by a\n"
             "                   brute force coarse search, as in the similar\n"
             "                   3dvolreg option.\n"
+            "\n"
+            "  -1Dmatrix_save ff = Save base-to-input transformation matrices\n"
+            "                      in file 'ff' (1 row per sub-brick in the input\n"
+            "                      dataset).  If 'ff' does NOT end in '.1D', then\n"
+            "                      the program will append '.aff12.1D' to 'ff' to\n"
+            "                      make the output filename.\n"
+            "          *N.B.: This matrix is the coordinate transformation from base\n"
+            "                 to input DICOM coordinates.  To get the inverse matrix\n"
+            "                 (input-to-base), use the cat_matvec program, as in\n"
+            "                   cat_matvec fred.aff12.1D -I\n"
             "\n"
             "----------------------\n"
             "AFFINE TRANSFORMATIONS:\n"
@@ -582,6 +596,22 @@ int main( int argc , char * argv[] )
      if( strcmp(argv[nopt],"-coarserot") == 0 ){  /* 05 Dec 2005 */
        if( VL_coarse_rot ) INFO_message("-coarserot is already on") ;
        VL_coarse_rot = 1 ; nopt++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcmp(argv[nopt],"-1Dmatrix_save") == 0 ){
+       if( ++nopt >= argc )
+         ERROR_exit("Need 1 parameter afer -1Dmatrix_save!\n");
+       if( !THD_filename_ok(argv[nopt]) )
+         ERROR_exit("badly formed filename: %s '%s'",argv[nopt-1],argv[nopt]) ;
+       if( STRING_HAS_SUFFIX(argv[nopt],".1D") ){
+         matrix_save_1D = strdup(argv[nopt]) ;
+       } else {
+         matrix_save_1D = calloc(sizeof(char),strlen(argv[nopt])+16) ;
+         strcpy(matrix_save_1D,argv[nopt]); strcat(matrix_save_1D,".aff12.1D");
+       }
+       nopt++ ; continue ;
      }
 
      /*-----*/
@@ -724,7 +754,8 @@ int main( int argc , char * argv[] )
          ERROR_exit("Need an argument after -prefix!\n");
        if( !THD_filename_ok(argv[nopt]) )
          ERROR_exit("-prefix argument is invalid!\n");
-       prefix = argv[nopt] ; nopt++ ; continue ;
+       prefix = argv[nopt] ; if( strcmp(prefix,"NULL") == 0 ) null_output = 1 ;
+       nopt++ ; continue ;
      }
 
      /*-----*/
@@ -1080,7 +1111,7 @@ int main( int argc , char * argv[] )
 
    outset = EDIT_empty_copy( inset ) ;
 
-   EDIT_dset_items( outset , ADN_prefix , prefix , ADN_none ) ;
+   EDIT_dset_items( outset , ADN_prefix,prefix , ADN_none ) ;
 
    if( output_float ){
      EDIT_dset_items( outset , ADN_datum_all , MRI_float , ADN_none ) ;
@@ -1267,7 +1298,7 @@ int main( int argc , char * argv[] )
 
    if( abas.verb ) INFO_message("Beginning alignment loop\n") ;
 
-   /** loop over input sub-bricks **/
+   /**--------------- loop over input sub-bricks ---------------**/
 
    for( kim=0 ; kim < nvals ; kim++ ){
 
@@ -1311,7 +1342,8 @@ int main( int argc , char * argv[] )
       }
      /** convert output image from float to whatever **/
 
-     switch( DSET_BRICK_TYPE(outset,kim) ){
+     if( !null_output ){
+       switch( DSET_BRICK_TYPE(outset,kim) ){
 
          default:
            ERROR_message("Can't store bricks of type %s\n",
@@ -1345,8 +1377,12 @@ int main( int argc , char * argv[] )
            EDIT_substitute_brick( outset, kim, MRI_byte, MRI_BYTE_PTR(fim) ) ;
            mri_fix_data_pointer( NULL , fim ) ; mri_free( fim ) ;
          break ;
-      }
-   }
+       }
+     } else {
+       mri_free(tim) ; tim = NULL ;  /* 25 Jul 2007 */
+     }
+
+   } /* end of loop over input sub-bricks */
    DSET_unload( inset ) ;
 
    if( summfp != NULL && summfp != stdout ){ fclose(summfp); summfp = NULL; }
@@ -1372,6 +1408,12 @@ int main( int argc , char * argv[] )
 
      for( kpar=0 ; kpar < 12 ; kpar++ ) parvec[kpar] = 0.0 ;
 
+     if( matrix_save_1D != NULL ){
+       msfp = fopen(matrix_save_1D,"w") ;
+       fprintf(msfp,
+               "# 3dWarpDrive matrices (DICOM-to-DICOM, row-by-row):\n") ;
+     }
+
      for( kim=0 ; kim < nvals ; kim++ ){
        for( kpar=0 ; kpar < abas.nparam ; kpar++ )  {/* load params */
          parvec[kpar] = parsave[kpar][kim] ;
@@ -1384,6 +1426,14 @@ int main( int argc , char * argv[] )
        UNLOAD_FVEC3(mv_for.vv,matar[3],matar[7],matar[11]) ;
        sprintf(anam,"WARPDRIVE_MATVEC_FOR_%06d",kim) ;
        THD_set_float_atr( outset->dblk , anam , 12 , matar ) ;
+
+       if( msfp != NULL )                            /* 25 Jul 2007 */
+          fprintf(msfp,"%13.6g %13.6g %13.6g %13.6g "
+                       "%13.6g %13.6g %13.6g %13.6g "
+                       "%13.6g %13.6g %13.6g %13.6g\n" ,
+                  matar[0],matar[1],matar[ 2],matar[ 3],
+                  matar[4],matar[5],matar[ 6],matar[ 7],
+                  matar[8],matar[9],matar[10],matar[11] ) ;
 
        UNLOAD_MAT(mv_inv.mm,matar[0],matar[1],matar[2],
                             matar[4],matar[5],matar[6],
@@ -1412,12 +1462,17 @@ int main( int argc , char * argv[] )
        sprintf(anam,"WARPDRIVE_ROTMAT_INV_%06d",kim) ;
        THD_set_float_atr( outset->dblk , anam , 12 , matar ) ;
      }
+     if( msfp != NULL ) fclose(msfp) ;
    }
 
    /*-- write the results to disk for all of history to see --*/
 
-   DSET_write( outset ) ;  DSET_unload( outset ) ;
-   if( abas.verb ) WROTE_DSET(outset) ;
+   if( !null_output ){
+     DSET_write( outset ) ;  DSET_unload( outset ) ;
+     if( abas.verb ) WROTE_DSET(outset) ;
+   } else {
+     INFO_message("-prefix NULL was given ==> no output dataset written") ;
+   }
 
    if( W_1Dfile != NULL ){
      FILE *fp ;

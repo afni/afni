@@ -1526,7 +1526,7 @@ void VL_command_line(void)
         if( STRING_HAS_SUFFIX(Argv[Iarg],".1D") ){
           VL_matrix_save_1D = Argv[Iarg] ;
         } else {
-          VL_matrix_save_1D = calloc(sizeof(char*),strlen(Argv[Iarg])+16) ;
+          VL_matrix_save_1D = calloc(sizeof(char),strlen(Argv[Iarg])+16) ;
           strcpy(VL_matrix_save_1D,Argv[Iarg]) ; strcat(VL_matrix_save_1D,".aff12.1D") ;
         }
         Iarg++ ; continue ;

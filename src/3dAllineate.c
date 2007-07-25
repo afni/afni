@@ -162,6 +162,7 @@ int main( int argc , char *argv[] )
    int ignout                  = 0 ;            /* 28 Feb 2007 */
    int    hist_mode            = 0 ;            /* 08 May 2007 */
    float  hist_param           = 0.0f ;
+   int    hist_setbyuser       = 0 ;
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -252,6 +253,27 @@ int main( int argc , char *argv[] )
        " -1Dmatrix_apply aa = Use the matrices in file 'aa' to define the spatial\n"
        "                      transformations to be applied.  Also see program\n"
        "                      cat_matvec for ways to manipulate these matrix files.\n"
+       "               *N.B.: You probably want to use either -base or -master\n"
+       "                      with either *_apply option, so that the coordinate\n"
+       "                      system that the matrix refers to is correctly loaded.\n"
+       "\n"
+       " ** Suggested application of -1Dmatrix_* options:\n"
+       " **  (1) Use '3dTstat -mean' to compute the mean EPI time series volume;\n"
+       " **      call this 'EPIbar'\n"
+       " **  (2) Use '3dvolreg -base EPIbar+orig -1Dmatrix_save vv.aff12.1D -prefix NULL'\n"
+       " **      to compute the matrices that register each EPI sub-brick to the\n"
+       " **      mean EPI volume\n"
+       " **  (3) Use '3dAllineate -base astrip+orig -source EPIbar+orig -1Dmatrix_save aa.aff12.1D'\n"
+       " **      to compute the matrix that registers the mean EPI volume to a skull-\n"
+       " **      stripped anatomical dataset.  Neither (2) or (3) need to produce any\n"
+       " **      output datasets.\n"
+       " **  (4) Use 'cat_matvec aa.aff12.1D vv.aff12.1D > a2v.aff12.1D' to catenate\n"
+       " **      the transformations from astrip+orig to EPIbar+orig and thence to\n"
+       " **      each volume in the EPI time series.\n"
+       " **  (5) Use '3dAllineate -1Dmatrix_apply a2v.aff12.1D' to align the EPI time\n"
+       " **      series to the anatomy directly.\n"
+       " ** For multi-day studies on the same subject, each day would be\n"
+       " ** registered to the SAME (first day?) anatomical volume in step (3).\n"
        "\n"
        " -cost ccc   = Defines the 'cost' function that defines the matching\n"
        "               between the source and the base; 'ccc' is one of\n"
@@ -494,6 +516,12 @@ int main( int argc , char *argv[] )
        " -mast_dxyz del = Write the output dataset using grid spacings of\n"
        "                  'del' mm.  If this option is NOT given, then the\n"
        "                  grid spacings in the master dataset will be used.\n"
+       "                  This option is useful when registering low resolution\n"
+       "                  data (e.g., EPI time series) to high resolution\n"
+       "                  datasets (e.g., MPRAGE) where you don't want to\n"
+       "                  consume vast amounts of disk space interpolating\n"
+       "                  the low resolution data to some artificially fine\n"
+       "                  spatial grid.\n"
      ) ;
 
      printf(
@@ -627,6 +655,9 @@ int main( int argc , char *argv[] )
         " -clbin   nn   = Use 'nn' equal-spaced bins except for the bot and top,\n"
         "                 which will be clipped (thus the 'cl').  If nn is 0, the\n"
         "                 program will pick the number of bins for you.\n"
+        "                 **N.B.: '-clbin 0' is now the default [25 Jul 2007];\n"
+        "                         if you want the old all-equal-spaced bins, use\n"
+        "                         '-histbin 0'.\n"
         " -wtmrad  mm   = Set autoweight/mask median filter radius to 'mm' voxels.\n"
         " -wtgrad  gg   = Set autoweight/mask Gaussian filter radius to 'gg' voxels.\n"
         " -nmsetup nn   = Use 'nn' points for the setup matching [default=23456]\n"
@@ -815,7 +846,7 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-histbin") == 0 ){   /* SECRET OPTION */
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        hist_nbin = (int)strtod(argv[iarg],NULL) ;
-       hist_mode = 0 ; hist_param = 0.0f ;
+       hist_mode = 0 ; hist_param = 0.0f ; hist_setbyuser = 1 ;
        set_2Dhist_hbin( hist_nbin ) ;
        iarg++ ; continue ;
      }
@@ -823,7 +854,7 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-clbin") == 0 ){   /* SECRET OPTION - 08 May 2007 */
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        hist_mode  = GA_HIST_CLEQWD ;
-       hist_param = (float)strtod(argv[iarg],NULL) ;
+       hist_param = (float)strtod(argv[iarg],NULL) ; hist_setbyuser = 1 ;
        iarg++ ; continue ;
      }
 
@@ -834,10 +865,10 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-eqbin") == 0 ){   /* SECRET OPTION - 08 May 2007 */
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        hist_mode  = GA_HIST_EQHIGH ;
-       hist_param = (float)strtod(argv[iarg],NULL) ;
+       hist_param = (float)strtod(argv[iarg],NULL) ; hist_setbyuser = 1 ;
        if( hist_param < 3.0f || hist_param > 255.0f ){
          WARNING_message("'-eqbin %f' is illegal -- ignoring",hist_param) ;
-         hist_mode = 0 ; hist_param = 0.0f ;
+         hist_mode = 0 ; hist_param = 0.0f ; hist_setbyuser = 0 ;
        }
        iarg++ ; continue ;
      }
@@ -1565,6 +1596,15 @@ int main( int argc , char *argv[] )
      meth_check = -1 ;
    }
 
+   if( !hist_setbyuser ){   /* 25 Jul 2007 */
+     switch( meth_code ){
+       case GA_MATCH_SPEARMAN_SCALAR:
+       case GA_MATCH_PEARSON_SCALAR:  hist_mode = 0 ; break ;
+
+       default: hist_mode  = GA_HIST_CLEQWD ; break ;
+     }
+   }
+
    if( warp_freeze ) twofirst = 1 ;  /* 10 Oct 2006 */
 
    /* open target from last argument, if not already open */
@@ -1651,6 +1691,7 @@ int main( int argc , char *argv[] )
      if( im_base->nx < 2 || im_base->ny < 2 )
        ERROR_exit("Base dataset has nx=%d ny=%d ???",nx_base,ny_base) ;
    } else {
+     INFO_message("no -base option ==> base is #0 sub-brick of source") ;
      im_base = mri_scale_to_float( DSET_BRICK_FACTOR(dset_targ,0) ,
                                    DSET_BRICK(dset_targ,0)         ) ;
      dx_base = dx_targ; dy_base = dy_targ; dz_base = dz_targ;
@@ -2566,11 +2607,23 @@ int main( int argc , char *argv[] )
        meth_code = replace_meth; replace_meth = 0;
      }
 
-     /* get DICOM coord transformation matrix [23 Jul 2007] */
+     /*-- get final DICOM coord transformation matrix [23 Jul 2007] --*/
 
-      mri_genalign_affine_get_gammaijk( &qmat ) ;
-      wmat = MAT44_MUL(targ_cmat,qmat) ;
-      aff12_xyz = MAT44_MUL(wmat,base_cmat_inv) ;  /* DICOM coord matrix */
+     { float par[MAXPAR] ;
+       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+         par[jj] = stup.wfunc_param[jj].val_out ;
+       mri_genalign_affine( stup.wfunc_numpar , par , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
+       mri_genalign_affine_get_gammaijk( &qmat ) ;
+       wmat = MAT44_MUL(targ_cmat,qmat) ;
+       aff12_xyz = MAT44_MUL(wmat,base_cmat_inv) ;  /* DICOM coord matrix */
+     }
+
+DUMP_MAT44("targ_cmat",targ_cmat) ;
+DUMP_MAT44("targ_cmat_inv",targ_cmat_inv) ;
+DUMP_MAT44("base_cmat",base_cmat) ;
+DUMP_MAT44("base_cmat_inv",base_cmat_inv) ;
+DUMP_MAT44("aff12_xyz",aff12_xyz) ;
+DUMP_MAT44("aff12_ijk",qmat) ;
 
      /*--- at this point, val_out contains alignment parameters ---*/
 
@@ -2612,9 +2665,11 @@ int main( int argc , char *argv[] )
 
          case APPLY_AFF12:{
            float ap[12] ;
+DUMP_MAT44("aff12_xyz",aff12_xyz) ;
            wmat = MAT44_MUL(aff12_xyz,mast_cmat) ;
            qmat = MAT44_MUL(targ_cmat_inv,wmat) ;  /* index transform matrix */
            UNLOAD_MAT44_AR(qmat,ap) ;
+DUMP_MAT44("aff12_ijk",qmat) ;
            im_targ = mri_genalign_scalar_warpone(
                                  12 , ap , mri_genalign_mat44 ,
                                  stup.ajim , nxout,nyout,nzout, final_interp ) ;

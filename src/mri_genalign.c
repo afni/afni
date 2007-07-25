@@ -1840,7 +1840,6 @@ void mri_genalign_affine( int npar, float *wpar ,
                                     float *xo, float *yo, float *zo  )
 {
    static mat44 gam ;  /* saved general affine matrix */
-   THD_fvec3 v , w ;
    int ii ;
 
    /** new parameters ==> setup matrix */
@@ -1861,7 +1860,7 @@ void mri_genalign_affine( int npar, float *wpar ,
 
 /*--------------------------------------------------------------------------*/
 /*! Similar to mri_genalign_affine(), but the 12 parameters are the matrix
-    directly, with no intermediary physical interpretations as angles, etc.
+    directly, with no physical interpretations such as angles, etc.
 ----------------------------------------------------------------------------*/
 
 void mri_genalign_mat44( int npar, float *wpar,
@@ -1869,7 +1868,6 @@ void mri_genalign_mat44( int npar, float *wpar,
                                    float *xo, float *yo, float *zo  )
 {
    static mat44 gam ;  /* saved general affine matrix */
-   THD_fvec3 v , w ;
    int ii ;
 
    /** new parameters ==> setup matrix */
