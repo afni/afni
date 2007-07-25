@@ -2562,6 +2562,19 @@ STATUS("making func->rowcol") ;
    im3d->vinfo->thr_onoff = 1 ;
    MCW_set_bbox( func->thr_onoff_bbox , 1 ) ;
 
+   /* AutoThreshold button */
+
+   func->thr_autothresh_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->thr_menu ,
+            LABEL_ARG("AutoThreshold") ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->thr_autothresh_pb , XmNactivateCallback ,
+                  AFNI_func_autothresh_CB , im3d ) ;
+   MCW_register_hint( func->thr_autothresh_pb , "Compute threshold automatically NOW" ) ;
+
    /*---- end of thr_menu creation ----*/
    }
 #endif

@@ -581,16 +581,19 @@ static float_pair clipate( int nval , float *xar )
 {
    MRI_IMAGE *qim; float cbot,ctop, mmm , *qar; float_pair rr; int ii,nq;
 
+ENTRY("clipate") ;
+
    qim = mri_new_vol( nval,1,1 , MRI_float ) ; qar = MRI_FLOAT_PTR(qim) ;
    for( ii=nq=0 ; ii < nval ; ii++ ) if( GOODVAL(xar[ii]) ) qar[nq++] = xar[ii];
-   qim->nx = nq ;
+   qim->nx = qim->nvox = nq ;
+   if( nq < 666 ){ rr.a = 1.0f; rr.b = 0.0f; mri_free(qim); RETURN(rr); }
    mmm  = mri_min( qim ) ;
    cbot = THD_cliplevel( qim , 0.345f ) ;
    ctop = mri_quantile ( qim , 0.966f ) ;
    mri_free(qim) ;
    if( ctop > 4.321f*cbot ) ctop = 4.321f*cbot ;
    if( mmm < 0.0f ){ cbot = 1.0f ; ctop = 0.0f; }  /* bad */
-   rr.a = cbot ; rr.b = ctop ; return rr ;
+   rr.a = cbot ; rr.b = ctop ; RETURN(rr) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -599,18 +602,20 @@ void set_2Dhist_xyclip( int nval , float *xval , float *yval )
 {
    float_pair xcc , ycc ;
 
+ENTRY("set_2Dhist_xyclip") ;
+
    use_xyclip = 0 ;
-   if( nval < 666 || xval == NULL || yval == NULL ) return ;
+   if( nval < 666 || xval == NULL || yval == NULL ) EXRETURN ;
 
    xcc = clipate( nval , xval ) ;
    ycc = clipate( nval , yval ) ;
 
-   if( xcc.a >= xcc.b || ycc.a >= ycc.b ) return ;
+   if( xcc.a >= xcc.b || ycc.a >= ycc.b ) EXRETURN ;
 
    use_xyclip = 1 ; nxybin = 0 ;
    xclip_bot  = xcc.a ; xclip_top = xcc.b ;
    yclip_bot  = ycc.a ; yclip_top = ycc.b ;
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
