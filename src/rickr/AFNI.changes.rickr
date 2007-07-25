@@ -2111,3 +2111,5 @@
         - removed librickr.a (objects go into libmri.a)
         - added get_data param to r_new_resam_dset()
 
+25 Jul 2007: modified svm/3dsvm_common.c to use rint (aot rintf (re: solaris))
+

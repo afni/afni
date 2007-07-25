@@ -1056,7 +1056,7 @@ void test_routine (ASLoptions *options, MODEL *model, THD_3dim_dataset *dsetTest
       multiclass_dist[j] += dist[j];
       dist[j] = 0.5*( dist[j] + 1 ); /* convert output prediction to {0,1} class scale */
       if(options->classout) {  /* output integer class memberships */
-	dist[j] = rintf(dist[j]); /*round*/
+	dist[j] = rint(dist[j]); /* round (no rintf) */
 	if(dist[j] > 1) dist[j] = 1.0;
 	if(dist[j] < 0) dist[j] = 0.0;
       }
