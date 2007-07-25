@@ -75,6 +75,23 @@ ENTRY("AFNI_get_autothresh") ;
 }
 
 /*-----------------------------------------------------------------------*/
+/*! 25 Jul 2007 */
+
+void AFNI_func_autothresh_CB( Widget w, XtPointer cd, XtPointer cb)
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   float new_thresh ;
+
+ENTRY("AFNI_func_autothresh_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
+   new_thresh = AFNI_get_autothresh(im3d) ;
+   if( new_thresh > 0.0f ) AFNI_set_threshold(im3d,new_thresh) ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
 /*! Set the threshold and slider.  [05 Mar 2007]
 -------------------------------------------------------------------------*/
 

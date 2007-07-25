@@ -6303,3 +6303,9 @@
  * Add THD_multiplex_dataset() to thd_mastery.c, and thence 3dttest.c.
  * Modify 3dAllineate to re-use last row of -1Dapply input if needed, and
      also to print a warning that -master may be needed with -1Dapply.
+
+25 Jul 2007
+ * Modify 3dAllineate, 3dvolreg, and 3dWarpDrive to output base-to-source matrices.
+ * Modify cat_matvec to deal with files of multiple matrices.
+ * Modify 3dAllineate to make '-clbin 0' the default.
+ * Modify afni to add an AutoThreshold button to the threshold popup menu.

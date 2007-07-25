@@ -620,12 +620,14 @@ float mri_quantile( MRI_IMAGE *im , float alpha )
    int ii , nvox ;
    float fi , quan ;
 
+ENTRY("mri_quantile") ;
+
    /*** sanity checks ***/
 
-   if( im == NULL ) return 0.0 ;
+   if( im == NULL ) RETURN( 0.0 );
 
-   if( alpha <= 0.0 ) return (float) mri_min(im) ;
-   if( alpha >= 1.0 ) return (float) mri_max(im) ;
+   if( alpha <= 0.0 ) RETURN( (float) mri_min(im) );
+   if( alpha >= 1.0 ) RETURN( (float) mri_max(im) );
 
    nvox = im->nvox ;
 
@@ -671,7 +673,7 @@ float mri_quantile( MRI_IMAGE *im , float alpha )
       break ;
    }
 
-   return quan ;
+   RETURN( quan );
 }
 
 /*-------------------------------------------------------------------*/
@@ -685,12 +687,14 @@ float_pair mri_twoquantiles( MRI_IMAGE *im, float alpha, float beta )
    float_pair qt = {0.0f,0.0f} ;
    float qalph=WAY_BIG,qbeta=WAY_BIG ;
 
+ENTRY("mri_twoquantiles") ;
+
    /*** sanity checks ***/
 
-   if( im == NULL ) return qt ;
+   if( im == NULL ) RETURN( qt );
 
    if( alpha == beta ){
-     qt.a = qt.b = mri_quantile(im,alpha) ; return qt ;
+     qt.a = qt.b = mri_quantile(im,alpha) ; RETURN( qt );
    }
 
         if( alpha <= 0.0f ) qalph = (float) mri_min(im) ;
@@ -699,7 +703,7 @@ float_pair mri_twoquantiles( MRI_IMAGE *im, float alpha, float beta )
    else if( beta  >= 1.0f ) qbeta = (float) mri_max(im) ;
 
    if( qalph != WAY_BIG && qbeta != WAY_BIG ){
-     qt.a = qalph; qt.b = qbeta; return qt;
+     qt.a = qalph; qt.b = qbeta; RETURN(qt);
    }
 
    nvox = im->nvox ;
@@ -762,5 +766,5 @@ float_pair mri_twoquantiles( MRI_IMAGE *im, float alpha, float beta )
       break ;
    }
 
-   qt.a = qalph; qt.b = qbeta; return qt;
+   qt.a = qalph; qt.b = qbeta; RETURN(qt);
 }
