@@ -2115,3 +2115,5 @@
   * modified svm/3dsvm_common.c to use rint (aot rintf (re: solaris))
   * modified model_demri_3.c: help update
 
+26 Jul 2007: modified Makefile.INCLUDE to not use $< variable
+

@@ -1795,19 +1795,19 @@ coxplot.tgz:
 
 3dresample.o: rickr/3dresample.c
 	$(RM) $@
-	$(CC) -c $< $(INFLAGS)
+	$(CC) -c rickr/3dresample.c $(INFLAGS)
 
 r_new_resam_dset.o: rickr/r_new_resam_dset.c rickr/r_new_resam_dset.h
 	$(RM) $@
-	$(CC) -c $< $(INFLAGS)
+	$(CC) -c rickr/r_new_resam_dset.c $(INFLAGS)
 
 r_idisp.o: rickr/r_idisp.c rickr/r_idisp.h
 	$(RM) $@
-	$(CC) -c $< $(INFLAGS)
+	$(CC) -c rickr/r_idisp.c $(INFLAGS)
 
 r_misc.o: rickr/r_misc.c rickr/r_misc.h
 	$(RM) $@
-	$(CC) -c $< $(INFLAGS)
+	$(CC) -c rickr/r_misc.c $(INFLAGS)
 
 #######
 # rickr programs
