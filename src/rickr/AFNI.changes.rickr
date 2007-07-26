@@ -2119,4 +2119,5 @@
   * modified Makefile.INCLUDE to not use $< variable
   * modified 3dDeconvolve.c: -stim_times with exactly 0 good times is okay
   * modified svm/plug_3dsvm.c: moved variable definitions to block tops
+  * modified Dimon.c, Imon.c: help typos
 

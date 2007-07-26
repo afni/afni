@@ -102,7 +102,7 @@ static char g_history[] =
  "    (so now all functions work with either 1 or 2 input surfaces)\n"
  "\n"
  "3.1  January 23, 2004 [rickr]\n"
- "  - SUMA_isINHmappable() is depricated, check with AnatCorrect field\n"
+ "  - SUMA_isINHmappable() is depreciated, check with AnatCorrect field\n"
  "  - reversed order of output for '-hist' option\n"
  "\n"
  "3.2  February 10, 2004 [rickr]\n"
@@ -2195,7 +2195,7 @@ ENTRY("s2v_map_type");
 
     if ( sizeof(gs2v_map_names) / sizeof(char *) != (int)E_SMAP_FINAL )
     {
-        fprintf( stderr, "** error:  gs2v_map_names/s2v_map_num mis-match\n");
+        fprintf( stderr, "** error:  gs2v_map_names/s2v_map_num mismatch\n");
         RETURN((int)E_SMAP_INVALID);
     }
 
@@ -2484,7 +2484,7 @@ ENTRY("usage");
             "\n"
             "    2. Map the cortical grey ribbon (between the white matter\n"
             "       surface and the pial surface) to an AFNI volume, where\n"
-            "       the resulting volume is restriced to the mask implied by\n"
+            "       the resulting volume is restricted to the mask implied by\n"
             "       the -cmask option.\n"
             "\n"
             "       Surface data will come from the file sdata_10.1D, which\n"
@@ -2542,9 +2542,9 @@ ENTRY("usage");
             "       -f_pn_fr       0.1                                    \\\n"
             "       -prefix       fred_surf_max_abs\n"
             "\n"
-            "    4. This is simliar to example 2.  Here, the surface nodes\n"
+            "    4. This is similar to example 2.  Here, the surface nodes\n"
             "       (coordinates) come from 'surf_coords_2.1D'.  But these\n"
-            "       coordinates do not happen to be in Dicomm orientation,\n"
+            "       coordinates do not happen to be in Dicom orientation,\n"
             "       they are in the same orientation as the grid parent, so\n"
             "       the '-sxyz_orient_as_gpar' option is applied.\n"
             "\n"
@@ -2628,7 +2628,7 @@ ENTRY("usage");
             "        For instance, given a spec file that has only the left\n"
             "        hemisphere in it, 'pial' should produce a unique match\n"
             "        with lh.pial.asc.  But if both hemispheres are included,\n"
-            "        then 'pial' would not be unique (matching rh.pail.asc,\n"
+            "        then 'pial' would not be unique (matching rh.pial.asc,\n"
             "        also).  In that case, 'lh.pial' would be better.\n"
             "\n"
             "    -sv SURFACE_VOLUME     : AFNI dataset\n"
@@ -2861,7 +2861,7 @@ ENTRY("usage");
             "        The letters 'a' through 'z' may be used as input, and\n"
             "        refer to columns 1 through 26 of the data file (where\n"
             "        column 0 is a surface node index).  The data file must\n"
-            "        have enough columns to support the expression.  Is is\n"
+            "        have enough columns to support the expression.  It is\n"
             "        valid to have a constant expression without a data file.\n"
             "\n"
             "    -datum DTYPE           : set data type in output dataset\n"
