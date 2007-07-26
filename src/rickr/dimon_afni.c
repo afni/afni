@@ -13,7 +13,7 @@
 /*----------------------------------------------------------------------
  * dimon_afni.c
  *
- * This is mostly mri_read_dicom.c, plus some funtions solen from
+ * This is mostly mri_read_dicom.c, plus some functions solen from
  * other files.  It is for reading Dicom files, but without having
  * to link libmri.a (and also libXm, to be specific).
  *
@@ -30,7 +30,7 @@
  *   - WINDOW is ignored
  *   - sexinfo is ignored
  *   - mosaics are not allowed (this is used for slice processing only)
- *   - no mri_new() call, intialize fields here
+ *   - no mri_new() call, initialize fields here
  *   - a data pointer may be passed in (as NULL if no data is to be read)
  *   - more E_ fields are now required
  *

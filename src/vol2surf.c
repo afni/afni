@@ -351,7 +351,7 @@ ENTRY("compact_results");
 
     if ( sd->nused == sd->nalloc ) RETURN(0);   /* we're good */
 
-    /* otherwise, realloc everthing */
+    /* otherwise, realloc everything */
 
     sd->nalloc = sd->nused;
 
@@ -1018,7 +1018,7 @@ ENTRY("v2s_apply_filter");
     if ( rr->ims.num <= 0 )
         RETURN(0.0);
 
-    /* if sorting is required for resutls, do it now */
+    /* if sorting is required for results, do it now */
     if ( v2s_map_needs_sort( sopt->map ) )
     {
         if ( float_list_alloc( &flist, &ind_list, rr->ims.num, 0 ) != 0 )
@@ -2170,7 +2170,7 @@ ENTRY("v2s_map_type");
                                                                                 
     if ( sizeof(gv2s_map_names) / sizeof(char *) != (int)E_SMAP_FINAL )
     {
-        fprintf( stderr, "** error:  gv2s_map_names/v2s_map_num mis-match\n");
+        fprintf( stderr, "** error:  gv2s_map_names/v2s_map_num mismatch\n");
         RETURN((int)E_SMAP_INVALID);
     }
                                                                                 

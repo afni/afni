@@ -6,7 +6,7 @@
  * to the SURF_VOL (surface volume) AFNI dataset.  These coordinates are
  * then matched to voxels in other AFNI datasets.  So given any other
  * AFNI dataset, this program can output all of the sub-brick values that
- * correspond to each of the suface locations.  The user also has options
+ * correspond to each of the surface locations.  The user also has options
  * to mask regions for output.
  *
  * usage:
@@ -150,7 +150,7 @@ static char g_history[] =
     "  - added example with normals to help, along with option descriptions\n"
     "\n"
     "4.0  January 23, 2004  [rickr]\n"
-    "  - SUMA_isINHmappable() is depricated, check with AnatCorrect field\n"
+    "  - SUMA_isINHmappable() is deprecated, check with AnatCorrect field\n"
     "  - version -> 4.0 to celebrate normals :)\n"
     "\n"
     "4.1  February 10, 2004  [rickr]\n"
@@ -2412,7 +2412,7 @@ ENTRY("usage");
             "                             (NI_SURF_DSET foramt)\n"
             "\n"
             "        These options are used to restrict output.  They are\n"
-            "        simlilar to the -skip_col_* options, but are used to\n"
+            "        similar to the -skip_col_* options, but are used to\n"
             "        choose columns to output (they are for convenience, so\n"
             "        the user need not apply many -skip_col options).\n"
             "\n"

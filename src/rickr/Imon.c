@@ -123,7 +123,7 @@ static char g_history[] =
  *     This program is intended to be run during a scanning session
  *     on a GE scanner, to monitor the collection of I-files.  The
  *     user will be notified of any missing slice or any slice that
- *     is aquired out of order.
+ *     is acquired out of order.
  *
  *     It is recommended that the user runs 'Imon' before scanning
  *     begins, and then watches for error messages during the
@@ -2064,7 +2064,7 @@ static int usage ( char * prog, int level )
           "    This program is intended to be run during a scanning session\n"
           "    on a GE scanner, to monitor the collection of I-files.  The\n"
           "    user will be notified of any missing slice or any slice that\n"
-          "    is aquired out of order.\n"
+          "    is acquired out of order.\n"
           "\n"
           "    It is recommended that the user runs '%s' just after the\n"
           "    scanner is first prepped, and then watches for error messages\n"
@@ -2117,7 +2117,7 @@ static int usage ( char * prog, int level )
           "    motion correction graph (only).  And the GRAPH_EXPR command\n"
           "    is used to replace the 6 default motion correction graphs with\n"
           "    a single graph, according to the given expression, the square\n"
-          "    root of the average squared entry of the 3 rotaion parameters,\n"
+          "    root of the average squared entry of the 3 rotation params,\n"
           "    roll, pitch and yaw, ignoring the 3 shift parameters, dx, dy\n"
           "    and dz.\n"
           "\n"
@@ -2169,7 +2169,7 @@ static int usage ( char * prog, int level )
           "        With this option, the user tells '%s' to use the real-time\n"
           "        facility, passing each volume of images to an existing\n"
           "        afni process on some machine (as specified by the '-host'\n"
-          "        option).  Whenever a new volume is aquired, it will be\n"
+          "        option).  Whenever a new volume is acquired, it will be\n"
           "        sent to the afni program for immediate update.\n"
           "\n"
           "        Note that afni must also be started with the '-rt' option\n"
@@ -2204,7 +2204,7 @@ static int usage ( char * prog, int level )
           "        running afni.  Images will be sent to afni on this machine\n"
           "        during the execution of '%s'.\n"
           "\n"
-          "        Note that the enviroment variable AFNI_TRUSTHOST must be\n"
+          "        Note that the environment variable AFNI_TRUSTHOST must be\n"
           "        set on the machine running afni.  Set this equal to the\n"
           "        name of the machine running Imon (so that afni knows to\n"
           "        accept the data from the sending machine).\n"
@@ -2254,7 +2254,7 @@ static int usage ( char * prog, int level )
           "        the default is 'alt'\n"
           "\n"
           "        This options allows the user to alter the slice\n"
-          "        acquisition order in real-time mode, simliar to the slice\n"
+          "        acquisition order in real-time mode, similar to the slice\n"
           "        pattern of the '-sp' option.  The main differences are:\n"
           "            o  only two choices are presently available\n"
           "            o  the syntax is intentionally different (from that\n"
@@ -2837,7 +2837,7 @@ static int check_im_byte_order( int * order, vol_t * v, param_t * p )
 
     if ( (order == NULL) || (v == NULL) || (p == NULL) )
     {
-        fprintf( stderr, "** invalid paramters to CIBO (%p,%p,%p)\n",
+        fprintf( stderr, "** invalid parameters to CIBO (%p,%p,%p)\n",
                  order, v, p );
         return -1;
     }
@@ -2879,7 +2879,7 @@ static int complete_orients_str( vol_t * v, param_t * p )
 
     if ( (v == NULL) || (p == NULL) )
     {
-        fprintf( stderr, "** invalid paramters to COS (%p,%p)\n", v, p );
+        fprintf( stderr, "** invalid parameters to COS (%p,%p)\n", v, p );
         return -1;
     }
 
