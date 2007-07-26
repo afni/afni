@@ -1656,8 +1656,11 @@ void get_options
         if( *suf == '\0' || strcmp(suf,"_IM") == 0 ){   /* 1 number per time */
           basis_times[k] = mri_read_ascii_ragged( argv[nopt] , basis_filler ) ;
           nc = mri_counter( basis_times[k] , 0.0f , 1.0e+9 ) ;
-          if( nc <= 0 )
-            ERROR_exit("'%s %d' can't read good data from file '%s'",
+          if( nc == 0 )  /* 0 is okay, < 0 is not   26 Jul 2007 [rickr] */
+            WARNING_message("'%s %d' can't read good data from file '%s'",
+                       sopt , ival , argv[nopt] ) ;
+          else if( nc < 0 )
+            ERROR_exit("'%s %d' can't read any data from file '%s'",
                        sopt , ival , argv[nopt] ) ;
         } else {                 /* 2 numbers per time */
           basis_times[k] = mri_read_ascii_ragged_complex(argv[nopt],basis_filler);
