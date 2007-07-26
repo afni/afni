@@ -199,5 +199,7 @@ most obvious in NIFTI files where the coordinates are changed as in 3drefit,
  * duration, centroid and absolute sum calculations added to 3dTstat
 20 Jun 2007
  * added -deoblique option to 3drefit to remove obliquity from dataset
+26 Jul 2007
+ * clarified help in 3dExtrema, and fixed a couple typos
 
 
