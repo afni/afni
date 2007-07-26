@@ -1720,12 +1720,23 @@ static mat44 rot_matrix( int ax1, double th1,
 }
 
 /*--------------------------------------------------------------------------*/
+static int pgmat=0 ;
+void mri_genalign_set_pgmat( int p ){ pgmat = p; }
+
+/*--------------------------------------------------------------------------*/
 
 static mat44 GA_setup_affine( int npar , float *parvec )
 {
    mat44 ss,dd,uu,aa,bb , gam ;
    THD_fvec3 vv ;
    float     a,b,c , p,q,r ;
+
+   if( pgmat ){
+     int ii ;
+     printf("GA_setup_affine params:") ;
+     for( ii=0 ; ii < npar ; ii++ ) printf(" %g",parvec[ii]) ;
+     printf("\n") ;
+   }
 
    /* uu = rotation */
 
@@ -1738,6 +1749,8 @@ static mat44 GA_setup_affine( int npar , float *parvec )
    else
      LOAD_DIAG_MAT44( uu , 1.0f,1.0f,1.0f ) ;
 
+   if( pgmat ) DUMP_MAT44("GA_setup_affine uu",uu) ;
+
    /* dd = scaling */
 
    a = b = c = 1.0f ;
@@ -1745,6 +1758,8 @@ static mat44 GA_setup_affine( int npar , float *parvec )
    if( npar >= 8 ){ b = parvec[7]; if( b <= 0.10f || b >= 10.0f ) b = 1.0f; }
    if( npar >= 9 ){ c = parvec[8]; if( c <= 0.10f || c >= 10.0f ) c = 1.0f; }
    LOAD_DIAG_MAT44( dd , a,b,c ) ;
+
+   if( pgmat ) DUMP_MAT44("GA_setup_affine dd",dd) ;
 
    /* ss = shear */
 
@@ -1785,6 +1800,8 @@ static mat44 GA_setup_affine( int npar , float *parvec )
    ss.m[ksm][jsm] = c ;
 #endif
 
+   if( pgmat ) DUMP_MAT44("GA_setup_affine ss",ss) ;
+
    /* multiply them, as ordered */
 
    switch( matorder ){
@@ -1811,9 +1828,14 @@ static mat44 GA_setup_affine( int npar , float *parvec )
    }
    LOAD_MAT44_VEC( gam , a,b,c ) ;
 
+   if( pgmat ) DUMP_MAT44("GA_setup_affine gam (xyz)",gam) ;
+
    /* before and after transformations? */
 
    aff_gamxyz = gam ;
+
+   if( pgmat && aff_use_before ) DUMP_MAT44("GA_setup_affine before",aff_before) ;
+   if( pgmat && aff_use_after  ) DUMP_MAT44("GA_setup_affine after ",aff_after ) ;
 
    if( aff_use_before ) gam = MAT44_MUL( gam , aff_before ) ;
    if( aff_use_after  ) gam = MAT44_MUL( aff_after , gam  ) ;
@@ -1827,6 +1849,8 @@ static mat44 GA_setup_affine( int npar , float *parvec )
                           DUMP_MAT44("gam   ",gam       ) ;
    }
 #endif
+
+   if( pgmat ) DUMP_MAT44("GA_setup_affine gam (ijk)",gam) ;
 
    return gam ;
 }
@@ -1844,7 +1868,10 @@ void mri_genalign_affine( int npar, float *wpar ,
 
    /** new parameters ==> setup matrix */
 
-   if( npar > 0 && wpar != NULL ) gam = GA_setup_affine( npar , wpar ) ;
+   if( npar > 0 && wpar != NULL ){
+     gam = GA_setup_affine( npar , wpar ) ;
+     if( pgmat ) DUMP_MAT44("mri_genalign_affine",gam) ;
+   }
 
    /* nothing to transform? */
 
@@ -1872,7 +1899,10 @@ void mri_genalign_mat44( int npar, float *wpar,
 
    /** new parameters ==> setup matrix */
 
-   if( npar >= 12 && wpar != NULL ) LOAD_MAT44_AR(gam,wpar) ;
+   if( npar >= 12 && wpar != NULL ){
+     LOAD_MAT44_AR(gam,wpar) ;
+     if( pgmat ) DUMP_MAT44("mri_genalign_mat44",gam) ;
+   }
 
    /* nothing to transform? */
 
