@@ -1505,6 +1505,13 @@ void VL_command_line(void)
 
    while( Iarg < Argc && Argv[Iarg][0] == '-' ){
 
+      if( strcmp(Argv[Iarg],"-input") == 0 || strcmp(Argv[Iarg],"-source") == 0 ){
+        if( VL_dset != NULL ) ERROR_exit("Can't have 2 '%s' options!",Argv[Iarg]) ;
+        VL_dset = THD_open_dataset( Argv[++Iarg] ) ;
+        if( VL_dset == NULL ) ERROR_exit("Can't open input dataset '%s'",Argv[Iarg]) ;
+        Iarg++ ; continue ;
+      }
+
       if( strcmp(Argv[Iarg],"-maxdisp") == 0 ){  /* 03 Aug 2006 */
         VL_maxdisp = 1 ; Iarg++ ; continue ;
       }
@@ -1968,13 +1975,16 @@ void VL_command_line(void)
 
    /*** Open the dataset to be registered ***/
 
-   if( Iarg >= Argc ){
-      fprintf(stderr,"** Too few arguments!?  Last=%s\n",Argv[Argc-1]) ; exit(1) ;
-   } else if( Iarg < Argc-1 ){
-      fprintf(stderr,"** Too many arguments?!  Dataset=%s?\n",Argv[Iarg]) ; exit(1) ;
-   }
 
-   VL_dset = THD_open_dataset( Argv[Iarg] ) ;
+   if( VL_dset == NULL ){
+          if( Iarg >= Argc  ) ERROR_exit("Too few arguments!?  Last=%s",Argv[Argc-1]);
+     else if( Iarg < Argc-1 ) ERROR_exit("Too many arguments?!  Dataset=%s?",Argv[Iarg]);
+
+     VL_dset = THD_open_dataset( Argv[Iarg] ) ;
+
+   } else if( Iarg < Argc ){
+     WARNING_message("Skipping argument(s) after last option? '%s'",Argv[Iarg]) ;
+   }
 
    /** Check for errors **/
 
