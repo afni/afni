@@ -52,10 +52,12 @@ DEFINE_PLUGIN_PROTOTYPE
 
 PLUGIN_interface* PLUGIN_init( int ncall )
 {
+	PLUGIN_interface* plint;
+	char* strlist[1] = {"Linear"};
 	if (ncall > 0) return NULL;	//only one interface
 
 	//create new interface
-	PLUGIN_interface* plint = PLUTO_new_interface("3dsvm",
+	plint = PLUTO_new_interface("3dsvm",
 						      "3dsvm - An AFNI SVM Light Plugin",
 						      plugin_helpstring, PLUGIN_CALL_VIA_MENU, ASL_main);
 	PLUTO_add_hint( plint , "Perform SVM Light learning/classification with AFNI datasets.");
@@ -75,7 +77,6 @@ PLUGIN_interface* PLUGIN_init( int ncall )
 	PLUTO_add_dataset( plint,"Mask",           /* MASK DATASET CHOOSER */
 			   ANAT_ALL_MASK,FUNC_ALL_MASK,
 			   DIMEN_ALL_MASK | BRICK_BYTE_MASK );
-	char* strlist[1] = {"Linear"};
 	PLUTO_add_string( plint, "Kernel", 1, strlist, 0 );         /* kernel chooser */
 	PLUTO_add_number( plint, "C", 0, 1000, 0, 100, 1 );           /* svm light's "c" factor */
 
@@ -109,11 +110,9 @@ PLUGIN_interface* PLUGIN_init( int ncall )
 
 static char* ASL_main( PLUGIN_interface* plint )
 {
-  /* PRINT OUT SVM LIGHT COPYRIGHT */
-  copyright_notice();
-
   /*---------- DECLARATIONS ----------*/
   enum modes mode = NOTHING;
+  long verbosity = 0;
 
   ASLoptions options;
   KERNEL_PARM kernel_parm;       /* */
@@ -146,6 +145,9 @@ static char* ASL_main( PLUGIN_interface* plint )
   char trnFlag=0, tstFlag=0, optionOKflag;
   char errorString[LONG_STRING];
   char *err;
+
+  /* PRINT OUT SVM LIGHT COPYRIGHT */
+  copyright_notice();
 
   strcpy(errorString,"OK");
   argvAppend(myargv,&myargc,FAKE_COMMAND,"");  /* is there a way to get the filename without the find_dset */
@@ -304,8 +306,7 @@ static char* ASL_main( PLUGIN_interface* plint )
     }
   }
 
-
-  long verbosity = 1;
+  verbosity = 1;
 
   /*----- TRAIN ROUTINE ---------------*/
   if( mode == TRAIN || mode == TRAIN_AND_TEST ) {
