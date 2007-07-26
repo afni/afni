@@ -89,6 +89,8 @@ int main( int argc , char * argv[] )
              "the catenated transformation is\n"
              "  matrix = [A][U]   vector = [A][v] + [b]\n"
              "That is, the second mfile transformation follows the first.\n"
+             "** Thus, the order of matrix multiplication is exactly the  **\n"
+             "** opposite of the order of the inputs on the command line! **\n"
              "\n"
              "The optional 'opkey' (operation key) following each mfile\n"
              "starts with a '-', and then is a set of letters telling how\n"

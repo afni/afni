@@ -1657,7 +1657,7 @@ void get_options
           basis_times[k] = mri_read_ascii_ragged( argv[nopt] , basis_filler ) ;
           nc = mri_counter( basis_times[k] , 0.0f , 1.0e+9 ) ;
           if( nc == 0 )  /* 0 is okay, < 0 is not   26 Jul 2007 [rickr] */
-            WARNING_message("'%s %d' can't read good data from file '%s'",
+            WARNING_message("'%s %d' didn't read any good times from file '%s'",
                        sopt , ival , argv[nopt] ) ;
           else if( nc < 0 )
             ERROR_exit("'%s %d' can't read any data from file '%s'",

@@ -1443,6 +1443,7 @@ extern void mri_genalign_verbose(int) ;
 extern void mri_genalign_mat44( int, float *,
                                 int, float *, float *, float *,
                                      float *, float *, float * ) ;
+extern void mri_genalign_set_pgmat( int ) ;
 
 extern void GA_reset_fit_callback( void (*fc)(int,double*) ) ;
 extern void GA_do_dots(int) ;

@@ -258,22 +258,23 @@ int main( int argc , char *argv[] )
        "                      system that the matrix refers to is correctly loaded.\n"
        "\n"
        " ** Suggested application of -1Dmatrix_* options:\n"
-       " **  (1) Use '3dTstat -mean' to compute the mean EPI time series volume;\n"
-       " **      call this 'EPIbar'\n"
-       " **  (2) Use '3dvolreg -base EPIbar+orig -1Dmatrix_save vv.aff12.1D -prefix NULL'\n"
-       " **      to compute the matrices that register each EPI sub-brick to the\n"
-       " **      mean EPI volume\n"
-       " **  (3) Use '3dAllineate -base astrip+orig -source EPIbar+orig -1Dmatrix_save aa.aff12.1D'\n"
-       " **      to compute the matrix that registers the mean EPI volume to a skull-\n"
-       " **      stripped anatomical dataset.  Neither (2) or (3) need to produce any\n"
-       " **      output datasets.\n"
-       " **  (4) Use 'cat_matvec aa.aff12.1D vv.aff12.1D > a2v.aff12.1D' to catenate\n"
-       " **      the transformations from astrip+orig to EPIbar+orig and thence to\n"
-       " **      each volume in the EPI time series.\n"
-       " **  (5) Use '3dAllineate -1Dmatrix_apply a2v.aff12.1D' to align the EPI time\n"
-       " **      series to the anatomy directly.\n"
+       " ** Suppose you want to register an EPI time series to itself, and at the\n"
+       " ** same step align it to a skull-stripped anatomical. The following script\n"
+       " ** is an example:\n"
+       " **   3dTstat -mean -prefix v2_bar v2_time+orig\n"
+       " **   3dAllineate -base astrip+orig -1Dmatrix_save as_to_vb.aff12.1D \\\n"
+       " **               -input v2_bar+orig -EPI\n"
+       " **   3dvolreg -prefix NULL -1Dmatrix_save vb_to_v2.aff12.1D \\\n"
+       " **            -base v2_bar+orig -input v2_time+orig -cubic\n"
+       " **   cat_matvec as_to_vb.aff12.1D vb_to_v2.aff12.1D > as_to_v2.aff12.1D\n"
+       " **   3dAllineate -master astrip+orig -mast_dxyz 2.0 \\\n"
+       " **               -1Dmatrix_apply as_to_v2.aff12.1D -input v2_time+orig \\\n"
+       " **               -final quintic -prefix v2_reg\n"
        " ** For multi-day studies on the same subject, each day would be\n"
-       " ** registered to the SAME (first day?) anatomical volume in step (3).\n"
+       " ** registered to the SAME (first day?) anatomical volume.\n"
+       " **\n"
+       " ** When you understand the above, you have advanced another step **\n"
+       " ** on the long and winding road to becoming a Jedi AFNI Master.  **\n"
        "\n"
        " -cost ccc   = Defines the 'cost' function that defines the matching\n"
        "               between the source and the base; 'ccc' is one of\n"
@@ -1883,13 +1884,13 @@ int main( int argc , char *argv[] )
      stup.base_cmat = stup.targ_cmat ;
    }
 
-   targ_cmat = stup.targ_cmat; targ_cmat_inv = MAT44_INV(targ_cmat); /* 23 Jul 2007 */
-   base_cmat = stup.base_cmat; base_cmat_inv = MAT44_INV(base_cmat);
-
    /* modify base_cmat to allow for zeropad? */
 
    if( pad_xm > 0 || pad_ym > 0 || pad_zm > 0 )
      MAT44_EXTEND_IJK( stup.base_cmat , pad_xm,pad_ym,pad_zm ) ;
+
+   targ_cmat = stup.targ_cmat; targ_cmat_inv = MAT44_INV(targ_cmat); /* 23 Jul 2007 */
+   base_cmat = stup.base_cmat; base_cmat_inv = MAT44_INV(base_cmat);
 
    /*---------- define warp 'before' and 'after' matrices ----------*/
 
@@ -2612,18 +2613,23 @@ int main( int argc , char *argv[] )
      { float par[MAXPAR] ;
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
          par[jj] = stup.wfunc_param[jj].val_out ;
+#if 0
+mri_genalign_set_pgmat(1) ;
+#endif
        mri_genalign_affine( stup.wfunc_numpar , par , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
        mri_genalign_affine_get_gammaijk( &qmat ) ;
        wmat = MAT44_MUL(targ_cmat,qmat) ;
        aff12_xyz = MAT44_MUL(wmat,base_cmat_inv) ;  /* DICOM coord matrix */
      }
 
+#if 0
 DUMP_MAT44("targ_cmat",targ_cmat) ;
 DUMP_MAT44("targ_cmat_inv",targ_cmat_inv) ;
 DUMP_MAT44("base_cmat",base_cmat) ;
 DUMP_MAT44("base_cmat_inv",base_cmat_inv) ;
 DUMP_MAT44("aff12_xyz",aff12_xyz) ;
 DUMP_MAT44("aff12_ijk",qmat) ;
+#endif
 
      /*--- at this point, val_out contains alignment parameters ---*/
 
@@ -2650,6 +2656,9 @@ DUMP_MAT44("aff12_ijk",qmat) ;
 
      if( dset_out != NULL ){
        if( verb > 1 ) INFO_message("Computing output image") ;
+#if 0
+mri_genalign_set_pgmat(1) ;
+#endif
 
        switch( apply_mode ){
          default:
@@ -2665,11 +2674,15 @@ DUMP_MAT44("aff12_ijk",qmat) ;
 
          case APPLY_AFF12:{
            float ap[12] ;
+#if 0
 DUMP_MAT44("aff12_xyz",aff12_xyz) ;
+#endif
            wmat = MAT44_MUL(aff12_xyz,mast_cmat) ;
            qmat = MAT44_MUL(targ_cmat_inv,wmat) ;  /* index transform matrix */
            UNLOAD_MAT44_AR(qmat,ap) ;
+#if 0
 DUMP_MAT44("aff12_ijk",qmat) ;
+#endif
            im_targ = mri_genalign_scalar_warpone(
                                  12 , ap , mri_genalign_mat44 ,
                                  stup.ajim , nxout,nyout,nzout, final_interp ) ;
