@@ -297,10 +297,11 @@ static char * gni_history[] =
   "1.25 12 Jun 2007 [rickr] EMPTY_IMAGE creation\n",
   "   - added nifti_make_new_header() - to create from dims/dtype\n"
   "   - added nifti_make_new_nim() - to create from dims/dtype/fill\n"
-  "   - added nifti_is_valid_datatype(), and more debug info\n"
+  "   - added nifti_is_valid_datatype(), and more debug info\n",
+  "1.26 27 Jul 2007 [rickr] handle single volumes > 2^31 bytes (but < 2^32)\n",
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.25, 12 Jun, 2007)";
+static char gni_version[] = "nifti library version 1.26, 27 Jul, 2007)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1, 0 };
@@ -629,7 +630,7 @@ int nifti_image_load_bricks( nifti_image * nim , int nbricks,
       blist = NULL; /* pretend nothing was passed */
    }
 
-   if( blist && ! valid_nifti_brick_list( nim, nbricks, blist, g_opts.debug>0 ) )
+   if( blist && ! valid_nifti_brick_list(nim, nbricks, blist, g_opts.debug>0) )
       return -1;
 
    /* for efficiency, let's read the file in order */
@@ -696,9 +697,10 @@ void nifti_free_NBL( nifti_brick_list * NBL )
 static int nifti_load_NBL_bricks( nifti_image * nim , int * slist, int * sindex,
                                   nifti_brick_list * NBL, znzFile fp )
 {
-   int c, rv;
-   int oposn, fposn;      /* orig and current file positions */
-   int prev, isrc, idest; /* previous and current sub-brick, and new index */
+   size_t rv;
+   int    c;
+   int    oposn, fposn;      /* orig and current file positions */
+   int    prev, isrc, idest; /* previous and current sub-brick, and new index */
 
    oposn = znztell(fp);  /* store current file position */
    fposn = oposn;
@@ -718,8 +720,9 @@ static int nifti_load_NBL_bricks( nifti_image * nim , int * slist, int * sindex,
          }
       }
       if( g_opts.debug > 1 )
-         fprintf(stderr,"+d read %d default bricks from file %s\n",
-                 NBL->nbricks, nim->iname ? nim->iname : nim->fname );
+         fprintf(stderr,"+d read %d default %u-byte bricks from file %s\n",
+                 NBL->nbricks, (unsigned int)NBL->bsize,
+                 nim->iname ? nim->iname:nim->fname );
       return 0;
    }
 
@@ -737,8 +740,8 @@ static int nifti_load_NBL_bricks( nifti_image * nim , int * slist, int * sindex,
        if( isrc != prev ){
 
           /* if we are not looking at the correct sub-brick, scan forward */
-          if( fposn != (oposn + isrc*NBL->bsize) ){
-             fposn = oposn + isrc*NBL->bsize;
+          if( fposn != (oposn + isrc*(int)NBL->bsize) ){
+             fposn = oposn + isrc*(int)NBL->bsize;
              if( znzseek(fp, fposn, SEEK_SET) < 0 ){
                 fprintf(stderr,"** failed to locate brick %d in file '%s'\n",
                         isrc, nim->iname ? nim->iname : nim->fname);
@@ -753,7 +756,7 @@ static int nifti_load_NBL_bricks( nifti_image * nim , int * slist, int * sindex,
                      isrc, nim->iname ? nim->iname : nim->fname);
              return -1;
           }
-          fposn += NBL->bsize;
+          fposn += (int)NBL->bsize;
        } else {
           /* we have already read this sub-brick, just copy the previous one */
           /* note that this works because they are sorted */
@@ -785,7 +788,7 @@ static int nifti_alloc_NBL_mem(nifti_image * nim, int nbricks,
           nbl->nbricks *= nim->dim[c];
    }
 
-   nbl->bsize   = nim->nx * nim->ny * nim->nz * nim->nbyper;  /* bytes */
+   nbl->bsize   = (size_t)nim->nx * nim->ny * nim->nz * nim->nbyper;/* bytes */
    nbl->bricks  = (void **)malloc(nbl->nbricks * sizeof(void *));
 
    if( ! nbl->bricks ){
@@ -796,8 +799,8 @@ static int nifti_alloc_NBL_mem(nifti_image * nim, int nbricks,
    for( c = 0; c < nbl->nbricks; c++ ){
       nbl->bricks[c] = (void *)malloc(nbl->bsize);
       if( ! nbl->bricks[c] ){
-         fprintf(stderr,"** NANM: failed to alloc %d bytes for brick %d\n",
-                 nbl->bsize, c);
+         fprintf(stderr,"** NANM: failed to alloc %u bytes for brick %d\n",
+                 (unsigned int)nbl->bsize, c);
          /* so free and clear everything before returning */
          while( c > 0 ){
             c--;
@@ -811,8 +814,8 @@ static int nifti_alloc_NBL_mem(nifti_image * nim, int nbricks,
    }
 
    if( g_opts.debug > 2 )
-      fprintf(stderr,"+d NANM: alloc'd %d bricks of %d bytes for NBL\n",
-              nbl->nbricks, nbl->bsize);
+      fprintf(stderr,"+d NANM: alloc'd %d bricks of %u bytes for NBL\n",
+              nbl->nbricks, (unsigned int)nbl->bsize);
 
    return 0;
 }
@@ -4379,7 +4382,7 @@ size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot,
   }
 
   if( g_opts.debug > 2 )
-    fprintf(stderr,"+d nifti_read_buffer: read %d bytes\n",(unsigned int)ii);
+    fprintf(stderr,"+d nifti_read_buffer: read %ld bytes\n", ii);
   
   /* byte swap array if needed */
   
@@ -4395,7 +4398,7 @@ size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot,
     
     case NIFTI_TYPE_FLOAT32:
     case NIFTI_TYPE_COMPLEX64:{
-        register float *far = (float *)dataptr ; register int jj,nj ;
+        register float *far = (float *)dataptr ; register unsigned int jj,nj ;
         nj = ntot / sizeof(float) ;
         for( jj=0 ; jj < nj ; jj++ )   /* count fixes 30 Nov 2004 [rickr] */
            if( !IS_GOOD_FLOAT(far[jj]) ){
@@ -4561,8 +4564,8 @@ int nifti_write_all_data(znzFile fp, nifti_image * nim,
          return -1;
       }
 
-      ss = nifti_write_buffer(fp,nim->data,nim->nbyper * nim->nvox);
-      if (ss < (size_t)(nim->nbyper * nim->nvox)){
+      ss = nifti_write_buffer(fp,nim->data,(size_t)nim->nbyper * nim->nvox);
+      if (ss < (size_t)nim->nbyper * nim->nvox){
          fprintf(stderr,
             "** ERROR: NWAD: wrote only %d of %d bytes to file\n",
             (int)ss, nim->nbyper * nim->nvox);
@@ -4570,11 +4573,11 @@ int nifti_write_all_data(znzFile fp, nifti_image * nim,
       }
 
       if( g_opts.debug > 1 )
-         fprintf(stderr,"+d wrote single image of %d bytes\n",(int)ss);
+         fprintf(stderr,"+d wrote single image of %ld bytes\n", ss);
    } else {
       if( ! NBL->bricks || NBL->nbricks <= 0 || NBL->bsize <= 0 ){
-         fprintf(stderr,"** NWAD: no brick data to write (%p,%d,%d)\n",
-                 (void *)NBL->bricks, NBL->nbricks, NBL->bsize);
+         fprintf(stderr,"** NWAD: no brick data to write (%p,%d,%u)\n",
+                 (void *)NBL->bricks, NBL->nbricks, (unsigned int)NBL->bsize);
          return -1;
       }
 
@@ -4582,14 +4585,14 @@ int nifti_write_all_data(znzFile fp, nifti_image * nim,
          ss = nifti_write_buffer(fp, NBL->bricks[bnum], NBL->bsize);
          if( ss < (size_t)NBL->bsize ){
             fprintf(stderr,
-               "** NWAD ERROR: wrote %d of %d bytes of brick %d of %d to file",
-               (int)ss, NBL->bsize, bnum+1, NBL->nbricks);
+              "** NWAD ERROR: wrote %ld of %u bytes of brick %d of %d to file",
+               ss, (unsigned int)NBL->bsize, bnum+1, NBL->nbricks);
             return -1;
          }
       }
       if( g_opts.debug > 1 )
-         fprintf(stderr,"+d wrote image of %d brick(s), each of %d bytes\n",
-                 NBL->nbricks, NBL->bsize);
+         fprintf(stderr,"+d wrote image of %d brick(s), each of %u bytes\n",
+                 NBL->nbricks, (unsigned int)NBL->bsize);
    }
 
    /* mark as being in this CPU byte order */
@@ -6233,7 +6236,7 @@ static int rci_read_data(nifti_image * nim, int * pivots, int * prods,
 
    /* base case: actually read the data */
    if( nprods == 1 ){
-      int nread, bytes;
+      size_t nread, bytes;
 
       /* make sure things look good here */
       if( *pivots != 0 ){
@@ -6243,14 +6246,14 @@ static int rci_read_data(nifti_image * nim, int * pivots, int * prods,
 
       /* so just seek and read (prods[0] * nbyper) bytes from the file */
       znzseek(fp, base_offset, SEEK_SET);
-      bytes = prods[0] * nim->nbyper;
+      bytes = (size_t)prods[0] * nim->nbyper;
       nread = nifti_read_buffer(fp, data, bytes, nim);
       if( nread != bytes ){
-         fprintf(stderr,"** rciRD: read only %d of %d bytes from '%s'\n",
+         fprintf(stderr,"** rciRD: read only %ld of %ld bytes from '%s'\n",
                  nread, bytes, nim->fname);
          return -1;
       } else if( g_opts.debug > 3 )
-         fprintf(stderr,"+d successful read of %d bytes at offset %d\n",
+         fprintf(stderr,"+d successful read of %ld bytes at offset %d\n",
                  bytes, base_offset);
 
       return 0;  /* done with base case - return success */

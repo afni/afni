@@ -162,18 +162,18 @@ ENTRY("populate_nifti_image") ;
     }
   } else {  /* we only have one brick */
     STATUS("3D dataset") ;
-    if( options.debug_level > 1 ) fprintf(stderr,"ONLY ONE BRICK!!!\n") ;
+    if( options.debug_level > 1 ) fprintf(stderr,"-- PNI: write one brick\n") ;
     type0 = DSET_BRICK_TYPE(dset,0);
     fac0  = DSET_BRICK_FACTOR(dset,0) ;
     if (ISFUNC(dset)) {
       STATUS("functional dataset") ;
       if( options.debug_level > 1 )
-        fprintf(stderr,"ONLY ONE BRICK, AND IT'S FUNCTIONAL!!!\n") ;
+        fprintf(stderr,"-- PNI: functional brick\n") ;
       nim->intent_code = DSET_BRICK_STATCODE(dset,0);
       if (nim->intent_code < 0) nim->intent_code = dset->func_type ;
       if (nim->intent_code < 0) nim->intent_code = NIFTI_INTENT_NONE ;
       if( options.debug_level > 1 )
-        fprintf(stderr,"ONLY ONE BRICK, AND ITS FUNCTIONAL STAT CODE IS %d !!!\n",nim->intent_code) ;
+        fprintf(stderr,"-- PNI: stat code = %d !!!\n",nim->intent_code) ;
       if(PRINT_TRACING){
         char str[256]; sprintf(str,"intent_code = %d",nim->intent_code);STATUS(str);
       }

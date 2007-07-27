@@ -158,9 +158,9 @@ typedef struct {                /*!< Image storage struct **/
 
 /* struct for return from nifti_image_read_bricks() */
 typedef struct {
-  int     nbricks;    /* the number of allocated pointers in 'bricks' */
-  int     bsize;      /* the length of each data block, in bytes      */
-  void ** bricks;     /* array of pointers to data blocks             */
+  int       nbricks;    /* the number of allocated pointers in 'bricks' */
+  size_t    bsize;      /* the length of each data block, in bytes      */
+  void   ** bricks;     /* array of pointers to data blocks             */
 } nifti_brick_list;
 
 
