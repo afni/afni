@@ -6309,3 +6309,7 @@
  * Modify cat_matvec to deal with files of multiple matrices.
  * Modify 3dAllineate to make '-clbin 0' the default.
  * Modify afni to add an AutoThreshold button to the threshold popup menu.
+
+27 Jul 2007
+ * Add 'SPMG3' to 3dDeconvolve.c.
+ * Fix bug in -1Dmatrix_save in 3dAllineate, when dealing with zero-padded base.
