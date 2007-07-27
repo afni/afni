@@ -140,6 +140,7 @@ static char * g_history[] =
   "     to wrap nifti read functions, allowing creation of new datasets\n"
   "   - added -make_im, -new_dim, -new_datatype and -copy_im\n"
   "1.17 13 Jun 2007 [rickr] - added help for -copy_im, enumerate examples\n",
+  "1.18 23 Jun 2007 [rickr] - main returns 0 on -help, -hist, -ver\n"
   "----------------------------------------------------------------------\n"
 };
 static char g_version[] = "version 1.17 (June 13, 2007)";
@@ -168,8 +169,11 @@ int main( int argc, char * argv[] )
    nt_opts opts;
    int     rv;
 
-   if( (rv = process_opts(argc, argv, &opts)) != 0)
-      FREE_RETURN(rv);  /* free opts memory, and return */
+   if( (rv = process_opts(argc, argv, &opts)) != 0)  /* then return */
+   {
+      if( rv < 0 ) FREE_RETURN(1);  /* free opts memory, and return */
+      else         FREE_RETURN(0);  /* valid usage */
+   }
 
    if( (rv = verify_opts(&opts, argv[0])) != 0 )
       FREE_RETURN(rv);
@@ -260,16 +264,16 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       {
          ac++;
          CHECK_NEXT_OPT(ac, argc, "-add_afni_ext");
-         if( add_string(&opts->elist, argv[ac]) ) return 1; /* add extension */
-         if( add_int(&opts->etypes, NIFTI_ECODE_AFNI) ) return 1;
+         if( add_string(&opts->elist, argv[ac]) ) return -1; /* add extension */
+         if( add_int(&opts->etypes, NIFTI_ECODE_AFNI) ) return -1;
          opts->add_exts = 1;
       }
       else if( ! strncmp(argv[ac], "-add_comment_ext", 9) )
       {
          ac++;
          CHECK_NEXT_OPT(ac, argc, "-add_comment_ext");
-         if( add_string(&opts->elist, argv[ac]) ) return 1; /* add extension */
-         if( add_int(&opts->etypes, NIFTI_ECODE_COMMENT) ) return 1;
+         if( add_string(&opts->elist, argv[ac]) ) return -1; /* add extension */
+         if( add_int(&opts->etypes, NIFTI_ECODE_COMMENT) ) return -1;
          opts->add_exts = 1;
       }
       else if( ! strncmp(argv[ac], "-check_hdr", 10) )
@@ -295,7 +299,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
             if( ! isdigit(argv[ac][0]) && strcmp(argv[ac],"-1") ){
                fprintf(stderr,"** -cci param %d (= '%s') is not a valid\n"
                        "   consider: 'nifti_tool -help'\n",index,argv[ac]);
-               return 1;
+               return -1;
             }
             opts->ci_dims[index] = atoi(argv[ac]);
          }
@@ -337,7 +341,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
             if( ! isdigit(argv[ac][0]) && strcmp(argv[ac],"-1") ){
                fprintf(stderr,"** -disp_ci param %d (= '%s') is not a valid\n"
                        "   consider: 'nifti_tool -help'\n",index,argv[ac]);
-               return 1;
+               return -1;
             }
             opts->ci_dims[index] = atoi(argv[ac]);
          }
@@ -356,7 +360,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
             if( ! isdigit(argv[ac][0]) ){
                fprintf(stderr,"** -dts param %d (= '%s') is not a number\n"
                        "   consider: 'nifti_tool -help'\n",index,argv[ac]);
-               return 1;
+               return -1;
             }
             opts->ci_dims[index] = atoi(argv[ac]);
          }
@@ -370,7 +374,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       {
          ac++;
          CHECK_NEXT_OPT(ac, argc, "-field");
-         if( add_string(&opts->flist, argv[ac]) ) return 1; /* add field */
+         if( add_string(&opts->flist, argv[ac]) ) return -1; /* add field */
       }
       else if( ! strncmp(argv[ac], "-infiles", 3) )
       {
@@ -378,7 +382,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          /* for -infiles, get all next arguments until a '-' or done */
          ac++;
          for( count = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, count++ )
-            if( add_string(&opts->infiles, argv[ac]) ) return 1; /* add field */
+            if( add_string(&opts->infiles, argv[ac]) ) return -1;/* add field */
          if( count > 0 && ac < argc ) ac--;  /* more options to process */
          if( g_debug > 2 ) fprintf(stderr,"+d have %d file names\n", count);
       }
@@ -390,10 +394,10 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       {
          ac++;
          CHECK_NEXT_OPT(ac, argc, "-mod_field");
-         if( add_string(&opts->flist, argv[ac]) ) return 1; /* add field */
+         if( add_string(&opts->flist, argv[ac]) ) return -1; /* add field */
          ac++;
          CHECK_NEXT_OPT(ac, argc, "-mod_field (2)");
-         if( add_string(&opts->vlist, argv[ac]) ) return 1; /* add value */
+         if( add_string(&opts->vlist, argv[ac]) ) return -1; /* add value */
       }
       else if( ! strncmp(argv[ac], "-mod_hdr", 7) )
          opts->mod_hdr = 1;
@@ -412,7 +416,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
             if( ! isdigit(argv[ac][0]) && strcmp(argv[ac],"-1") ){
                fprintf(stderr,"** -new_dim param %d (= '%s') is not a valid\n"
                        "   consider: 'nifti_tool -help'\n",index,argv[ac]);
-               return 1;
+               return -1;
             }
             opts->new_dim[index] = atoi(argv[ac]);
          }
@@ -439,7 +443,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          CHECK_NEXT_OPT(ac, argc, "-rm_ext");
          if( strcmp(argv[ac],"ALL") == 0 )  /* special case, pass -1 */
          {
-            if( add_string(&opts->elist, "-1") ) return 1;
+            if( add_string(&opts->elist, "-1") ) return -1;
          }
          else
          {
@@ -448,9 +452,9 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
                fprintf(stderr,
                     "** '-rm_ext' requires an extension index (read '%s')\n",
                     argv[ac]);
-               return 1;
+               return -1;
             }
-            if( add_string(&opts->elist, argv[ac]) ) return 1;
+            if( add_string(&opts->elist, argv[ac]) ) return -1;
          }
          opts->rm_exts = 1;
       }
@@ -459,7 +463,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       else
       {
          fprintf(stderr,"** unknown option: '%s'\n", argv[ac]);
-         return 1;
+         return -1;
       }
    }
 
@@ -468,11 +472,11 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       if( opts->infiles.len > 0 )
       {
          fprintf(stderr,"** -infiles is invalid when using -make_im\n");
-         return 1;
+         return -1;
       }
       /* apply -make_im via -cbl and "MAKE_IM" */
       opts->cbl = 1;
-      if( add_string(&opts->infiles, NT_MAKE_IM_NAME) ) return 1;
+      if( add_string(&opts->infiles, NT_MAKE_IM_NAME) ) return -1;
    }
 
    /* verify for programming purposes */
@@ -480,7 +484,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
    {
       fprintf(stderr,"** ext list length (%d) != etype length (%d)\n",
               opts->elist.len, opts->etypes.len);
-      return 1;
+      return -1;
    }
 
    g_debug = opts->debug;
@@ -730,6 +734,7 @@ int usage(char * prog, int level)
    {
       fprintf(stdout,"usage %s [options] -infiles files...\n", prog);
       fprintf(stdout,"usage %s -help\n", prog);
+      return -1;
    }
    else if( level == USE_FULL )
       use_full("nifti_tool");  /* let's not allow paths in here */
@@ -755,8 +760,10 @@ int usage(char * prog, int level)
    }
    else if( level == USE_VERSION )
       fprintf(stdout, "%s, %s\n", prog, g_version);
-   else
+   else {
       fprintf(stdout,"** illegal level for usage(): %d\n", level);
+      return -1;
+   }
 
    return 1;
 }
@@ -3657,15 +3664,15 @@ nifti_image * nt_read_bricks(nt_opts * opts, char * fname, int len, int * list,
     }
 
     if(g_debug > 1)
-        fprintf(stderr,"+d NRB, allocating %d bricks of %d bytes...\n",
-                NBL->nbricks, NBL->bsize);
+        fprintf(stderr,"+d NRB, allocating %d bricks of %u bytes...\n",
+                NBL->nbricks, (unsigned)NBL->bsize);
 
     /* now allocate the data pointers */
     for( c = 0; c < len; c++ ) {
         NBL->bricks[c] = calloc(1, NBL->bsize);
         if( !NBL->bricks[c] ){
-            fprintf(stderr,"** NRB: failed to alloc brick %d of %d bytes\n",
-                    c, NBL->bsize);
+            fprintf(stderr,"** NRB: failed to alloc brick %d of %u bytes\n",
+                    c, (unsigned)NBL->bsize);
             nifti_free_NBL(NBL); nifti_image_free(nim); return NULL;
         }
     }
