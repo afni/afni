@@ -2699,7 +2699,7 @@ DUMP_MAT44("aff12_ijk",qmat) ;
          else if( ISVALID_MAT44(aff12_xyz) )
            gam = aff12_xyz ;
          else
-           mri_genalign_affine_get_gammaxyz( &gam ) ;
+           mri_genalign_affine_get_gammaxyz( &gam ) ;  /* should not happen */
 
          if( ISVALID_MAT44(gam) ){
            sprintf(anam,"ALLINEATE_MATVEC_B2S_%06d",kk) ;
