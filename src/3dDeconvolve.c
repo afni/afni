@@ -743,17 +743,15 @@ void display_help_menu()
     "   'Rmodel' argument, which can be one of                              \n"
     "     'GAM(p,q)'    = 1 parameter gamma variate                         \n"
     "     'SPMG'        = 2 parameter SPM gamma variate + derivative        \n"
-    "     'POLY(b,c,n)' = n parameter polynomial expansion                  \n"
+    "     'SPMG3'       = 3 parameter SPM basis function set                \n"
+    "     'POLY(b,c,n)' = n parameter Legendre polynomial expansion         \n"
     "     'SIN(b,c,n)'  = n parameter sine series expansion                 \n"
     "     'TENT(b,c,n)' = n parameter tent function expansion               \n"
+    "    'CSPLIN(b,c,n)'= n parameter cubic spline function expansion       \n"
     "     'BLOCK(d,p)'  = 1 parameter block stimulus of duration 'd'        \n"
     "                     (can also be called 'IGFUN' which stands)         \n"
     "                     (for 'incomplete gamma function'        )         \n"
     "     'EXPR(b,c) exp1 ... expn' = n parameter; arbitrary expressions    \n"
-#define USE_CSPLIN
-#ifdef  USE_CSPLIN
-    "     'CSPLIN(b,c,n)'= n parameter cubic spline function expansion      \n"
-#endif
     "                                                                       \n"
     "[-stim_times_AM1 k tname Rmodel]                                       \n"
     "   Similar, but generates an amplitude modulated response model.       \n"
@@ -8302,7 +8300,7 @@ static float basis_gam( float x, float b, float c, float top, void *q )
 }
 
 /*--------------------------------------------------------------------------*/
-/* SPM2 basis functions (corrected 29 May 2007, I hope) */
+/* SPMG basis functions (corrected 29 May 2007, I hope) */
 
 #undef  SPM_A1
 #undef  SPM_A2
@@ -8328,6 +8326,23 @@ static float basis_spmg2( float x, float a, float b, float c, void *q )
    if( x <= 0.0f || x >= 25.0f ) return 0.0f ;
    return (float)(exp(-x)*( SPM_A1*pow(x,SPM_P1-1.0)*(SPM_P1-x)
                            -SPM_A2*pow(x,SPM_P2-1.0)*(SPM_P2-x) )) ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+#undef  SPM_A3
+#undef  SPM_P3
+#define SPM_A3 0.00869011   /* SPMG3 added 27 Jul 2007 -- per Gang Chen */
+#define SPM_P3 4.94057
+
+static float basis_spmg3( float x, float a, float b, float c, void *q )
+{
+   float d0 , cc ;
+   if( x <= 0.0f || x >= 25.0f ) return 0.0f ;
+   d0 =   SPM_A3 * pow(x,SPM_P3) * exp(-x/1.01)
+        - SPM_A2 * pow(x,SPM_P2) * exp(-x)     ;
+   cc = basis_spmg1( x,a,b,c,q ) ;
+   return (100.0f*(cc-d0)) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -8725,11 +8740,12 @@ basis_expansion * basis_parser( char *sym )
        be->bfunc[nn].c = (float)nn ;
      }
 
-   /*--- SPMG ---*/
+   /*--- SPMG ---*/  /*--- or SPMG3 [27 Jul 2007] ---*/
 
    } else if( strncmp(scp,"SPMG",4) == 0 ){
+     int nb = (scp[4]=='3') ? 3 : 2 ;       /* 27 Jul 2007 */
 
-     be->nfunc = 2 ;
+     be->nfunc = nb ;                       /* no longer fixed at 2 */
      be->tbot  = 0.0f ; be->ttop = 25.0f ;
      be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
      be->bfunc[0].f = basis_spmg1 ;
@@ -8740,6 +8756,12 @@ basis_expansion * basis_parser( char *sym )
      be->bfunc[1].a = 0.0f ;
      be->bfunc[1].b = 0.0f ;
      be->bfunc[1].c = 0.0f ;
+     if( nb == 3 ){                         /* 27 Jul 2007 */
+       be->bfunc[2].f = basis_spmg3 ;
+       be->bfunc[2].a = 0.0f ;
+       be->bfunc[2].b = 0.0f ;
+       be->bfunc[2].c = 0.0f ;
+     }
 
    /*--- BLOCKn(duration,peak) for n=4 or 5 ---*/
 
