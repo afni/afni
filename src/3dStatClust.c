@@ -136,7 +136,6 @@ void SC_error (char * message)
   Include source code files.
 */
 
-#include "matrix.c"
 #include "StatClust.c"
 
 

@@ -2126,5 +2126,10 @@
   * modified nifti_tool.c: return 0 on -help, -hist, -ver
   * modified thd_niftiwrite.c: replace some all-caps prints
 
-28 Jul 2008: modified nifti1_io.[ch]: handle multiple volumes > 2^32 bytes
+28 Jul 2008:
+  * modified nifti1_io.[ch]: handle multiple volumes > 2^32 bytes
+  * modified: 1dSEM.c 2dImReg.c 3dDTtoDWI.c  3dDWItoDT.c 3dNLfim.c
+              3dStatClust.c 3dTSgen.c 3dUniformize.c RSFgen.c RegAna.c
+              plug_nlfit.c matrix.[ch] Makefile.INCLUDE SUMA/SUMA_MiscFunc.c
+        - moved matrix.c to libmri.a
 

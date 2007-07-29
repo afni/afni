@@ -68,6 +68,9 @@
    - These are intended to be the fast method for doing these things. **/
 /*---------------------------------------------------------------------*/
 
+#include "mrilib.h"
+#include "matrix.h"
+
 #undef SETUP_BLAS1  /* define this to use BLAS-1 functions */
 #undef SETUP_BLAS2  /* define this to use BLAS-2 functions */
 #undef DOTP
@@ -339,7 +342,7 @@ void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
 {
   int i, j;
 
-  MRI_IMAGE * im, * flim;  /* pointers to image structures
+  MRI_IMAGE * flim;  /* pointer to image structure
 			      -- used to read ASCII file */
   float * far;             /* pointer to MRI_IMAGE floating point data */
   char message [80];       /* error message */
@@ -424,7 +427,7 @@ void array_to_matrix (int rows, int cols, float ** f, matrix * m)
 
 void matrix_equate (matrix a, matrix * b)
 {
-  register int i, j;
+  register int i;
   register int rows, cols;
 
   rows = a.rows;
@@ -864,8 +867,6 @@ void vector_destroy (vector * v)
 
 void vector_create (int dim, vector * v)
 {
-  register int i;
-
   vector_destroy (v);
 
   if (dim < 0)  matrix_error ("Illegal dimensions for new vector");
@@ -880,10 +881,8 @@ void vector_create (int dim, vector * v)
 }
 
 /*---------------------------------------------------------------------------*/
-static void vector_create_noinit(int dim, vector * v)  /* 28 Dec 2001: RWCox */
+void vector_create_noinit(int dim, vector * v)  /* 28 Dec 2001: RWCox */
 {
-  register int i;
-
   vector_destroy (v);
 
   if (dim < 0)  matrix_error ("Illegal dimensions for new vector");
@@ -932,7 +931,7 @@ void vector_sprint (char * s, vector v)
 
 void vector_equate (vector a, vector * b)
 {
-  register int i, dim;
+  register int dim;
 
   dim = a.dim;
 
