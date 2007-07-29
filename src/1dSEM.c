@@ -9,7 +9,6 @@
 #include "matrix.h"
 #include "afni.h"
 #include "sqrmat.h"
-#include "matrix.c"
 
 #define TINYNUMBER 1E-10
 #define SMALLNUMBER 1E-4

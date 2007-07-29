@@ -48,10 +48,6 @@ static int use_psinv = 1 ;  /* 19 Jul 2004 */
 
 /*---------------------------------------------------------------------------*/
 
-#ifndef FLOATIZE
-# include "matrix.c"
-#endif
-
 void RA_error (char * message);  /* prototype */
 
 
