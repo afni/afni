@@ -83,8 +83,6 @@ typedef struct IR_options      /* user input options */
 } IR_options;
 
 
-#include "matrix.c"
-
 
 /*---------------------------------------------------------------------------*/
 /*

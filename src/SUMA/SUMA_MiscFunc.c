@@ -1,5 +1,4 @@
 #include "SUMA_suma.h"
-#include "../matrix.c"
 
 extern SUMA_CommonFields *SUMAg_CF; 
 

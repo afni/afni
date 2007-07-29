@@ -157,7 +157,6 @@
 #include "simplex.h"
 #include "NLfit.h"
 
-#include "matrix.c"
 #include "simplex.c"   /* 20 Jul 2006 - now includes NEWUOA variables [N_*] */
 #include "NLfit.c"
 

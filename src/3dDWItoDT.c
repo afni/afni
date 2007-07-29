@@ -8,7 +8,6 @@
 #include "thd_shear3d.h"
 /*#ifndef FLOATIZE*/
 # include "matrix.h"
-# include "matrix.c"
 /*#endif*/
 #include "afni.h"
 

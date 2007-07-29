@@ -64,7 +64,6 @@
 #include "simplex.h"
 #include "NLfit.h"
 
-#include "matrix.c"
 #include "simplex.c"
 #include "NLfit.c"
 
