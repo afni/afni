@@ -299,9 +299,10 @@ static char * gni_history[] =
   "   - added nifti_make_new_nim() - to create from dims/dtype/fill\n"
   "   - added nifti_is_valid_datatype(), and more debug info\n",
   "1.26 27 Jul 2007 [rickr] handle single volumes > 2^31 bytes (but < 2^32)\n",
+  "1.27 28 Jul 2007 [rickr] nim->nvox, NBL-bsize are now type size_t\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.26, 27 Jul, 2007)";
+static char gni_version[] = "nifti library version 1.27, 28 Jul, 2007)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1, 0 };
@@ -685,7 +686,7 @@ void nifti_free_NBL( nifti_brick_list * NBL )
       NBL->bricks = NULL;
    }
 
-   NBL->nbricks = NBL->bsize = 0;
+   NBL->bsize = NBL->nbricks = 0;
 }
 
 
@@ -697,9 +698,9 @@ void nifti_free_NBL( nifti_brick_list * NBL )
 static int nifti_load_NBL_bricks( nifti_image * nim , int * slist, int * sindex,
                                   nifti_brick_list * NBL, znzFile fp )
 {
+   size_t oposn, fposn;      /* orig and current file positions */
    size_t rv;
    int    c;
-   int    oposn, fposn;      /* orig and current file positions */
    int    prev, isrc, idest; /* previous and current sub-brick, and new index */
 
    oposn = znztell(fp);  /* store current file position */
@@ -740,8 +741,8 @@ static int nifti_load_NBL_bricks( nifti_image * nim , int * slist, int * sindex,
        if( isrc != prev ){
 
           /* if we are not looking at the correct sub-brick, scan forward */
-          if( fposn != (oposn + isrc*(int)NBL->bsize) ){
-             fposn = oposn + isrc*(int)NBL->bsize;
+          if( fposn != (oposn + isrc*NBL->bsize) ){
+             fposn = oposn + isrc*NBL->bsize;
              if( znzseek(fp, fposn, SEEK_SET) < 0 ){
                 fprintf(stderr,"** failed to locate brick %d in file '%s'\n",
                         isrc, nim->iname ? nim->iname : nim->fname);
@@ -756,7 +757,7 @@ static int nifti_load_NBL_bricks( nifti_image * nim , int * slist, int * sindex,
                      isrc, nim->iname ? nim->iname : nim->fname);
              return -1;
           }
-          fposn += (int)NBL->bsize;
+          fposn += NBL->bsize;
        } else {
           /* we have already read this sub-brick, just copy the previous one */
           /* note that this works because they are sorted */
@@ -808,7 +809,7 @@ static int nifti_alloc_NBL_mem(nifti_image * nim, int nbricks,
          }
          free(nbl->bricks);
          nbl->bricks = NULL;
-         nbl->nbricks = nbl->bsize = 0;
+         nbl->bsize = nbl->nbricks = 0;
          return -1;
       }
    }
@@ -4227,8 +4228,8 @@ static znzFile nifti_image_load_prep( nifti_image *nim )
    {
       if ( g_opts.debug > 0 ){
          if( !nim ) fprintf(stderr,"** ERROR: N_image_load: no nifti image\n");
-         else fprintf(stderr,"** ERROR: N_image_load: bad params (%p,%d,%d)\n",
-                      nim->iname, nim->nbyper, nim->nvox);
+         else fprintf(stderr,"** ERROR: N_image_load: bad params (%p,%d,%u)\n",
+                      nim->iname, nim->nbyper, (unsigned)nim->nvox);
       }
       return NULL;
    }
@@ -4564,11 +4565,11 @@ int nifti_write_all_data(znzFile fp, nifti_image * nim,
          return -1;
       }
 
-      ss = nifti_write_buffer(fp,nim->data,(size_t)nim->nbyper * nim->nvox);
-      if (ss < (size_t)nim->nbyper * nim->nvox){
+      ss = nifti_write_buffer(fp,nim->data,nim->nbyper * nim->nvox);
+      if (ss < nim->nbyper * nim->nvox){
          fprintf(stderr,
-            "** ERROR: NWAD: wrote only %d of %d bytes to file\n",
-            (int)ss, nim->nbyper * nim->nvox);
+            "** ERROR: NWAD: wrote only %d of %u bytes to file\n",
+            (int)ss, (unsigned)(nim->nbyper * nim->nvox));
          return -1;
       }
 
@@ -4583,7 +4584,7 @@ int nifti_write_all_data(znzFile fp, nifti_image * nim,
 
       for( bnum = 0; bnum < NBL->nbricks; bnum++ ){
          ss = nifti_write_buffer(fp, NBL->bricks[bnum], NBL->bsize);
-         if( ss < (size_t)NBL->bsize ){
+         if( ss < NBL->bsize ){
             fprintf(stderr,
               "** NWAD ERROR: wrote %ld of %u bytes of brick %d of %d to file",
                ss, (unsigned int)NBL->bsize, bnum+1, NBL->nbricks);
@@ -4808,8 +4809,8 @@ nifti_image * nifti_make_new_nim(const int dims[], int datatype, int data_fill)
 
       /* if we cannot allocate data, take ball and go home */
       if( !nim->data ) {
-         fprintf(stderr,"** NMNN: failed to alloc %d bytes for data\n",
-                 nim->nvox);
+         fprintf(stderr,"** NMNN: failed to alloc %u bytes for data\n",
+                 (unsigned)nim->nvox);
          nifti_image_free(nim);
          nim = NULL;
       }
@@ -5556,7 +5557,7 @@ char *nifti_image_to_ascii( const nifti_image *nim )
    sprintf( buf+strlen(buf) , "  datatype_name = '%s'\n" ,
                               nifti_datatype_string(nim->datatype) ) ;
 
-   sprintf( buf+strlen(buf) , "  nvox = '%d'\n" , nim->nvox ) ;
+   sprintf( buf+strlen(buf) , "  nvox = '%u'\n" , (unsigned)nim->nvox ) ;
    sprintf( buf+strlen(buf) , "  nbyper = '%d'\n" , nim->nbyper ) ;
 
    sprintf( buf+strlen(buf) , "  byteorder = '%s'\n" ,
@@ -5946,8 +5947,8 @@ nifti_image *nifti_image_from_ascii( const char *str, int * bytes_read )
    nim->dim[6] = nim->nv ; nim->pixdim[6] = nim->dv ;
    nim->dim[7] = nim->nw ; nim->pixdim[7] = nim->dw ;
 
-   nim->nvox =  nim->nx * nim->ny * nim->nz
-              * nim->nt * nim->nu * nim->nv * nim->nw ;
+   nim->nvox = (size_t)nim->nx * nim->ny * nim->nz
+                     * nim->nt * nim->nu * nim->nv * nim->nw ;
 
    if( nim->qform_code > 0 )
      nim->qto_xyz = nifti_quatern_to_mat44(
@@ -6012,7 +6013,8 @@ int nifti_nim_is_valid(nifti_image * nim, int complain)
 *//*-------------------------------------------------------------------------*/
 int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
 {
-   int c, prod, errs = 0;
+   size_t prod;
+   int    c, errs = 0;
 
    /**- start with dim[0]: failure here is considered terminal */
    if( nim->dim[0] <= 0 || nim->dim[0] > 7 ){
@@ -6060,8 +6062,8 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
    }
    if( prod != nim->nvox ){
       if( ! complain ) return 0;
-      fprintf(stderr,"** NVd: nvox does not match dimension product (%d, %d)\n",
-              nim->nvox, prod);
+      fprintf(stderr,"** NVd: nvox does not match dimension product (%u, %u)\n",
+              (unsigned)nim->nvox, (unsigned)prod);
       errs++;
    }
 

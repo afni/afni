@@ -143,7 +143,7 @@ static char * g_history[] =
   "1.18 23 Jun 2007 [rickr] - main returns 0 on -help, -hist, -ver\n"
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 1.17 (June 13, 2007)";
+static char g_version[] = "version 1.18 (June 23, 2007)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
