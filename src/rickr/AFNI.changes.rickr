@@ -2126,3 +2126,5 @@
   * modified nifti_tool.c: return 0 on -help, -hist, -ver
   * modified thd_niftiwrite.c: replace some all-caps prints
 
+28 Jul 2008: modified nifti1_io.[ch]: handle multiple volumes > 2^32 bytes
+

@@ -82,7 +82,7 @@ typedef struct {                /*!< Image storage struct **/
   int nv ;                      /*!< dimensions of grid array             */
   int nw ;                      /*!< dimensions of grid array             */
   int dim[8] ;                  /*!< dim[0]=ndim, dim[1]=nx, etc.         */
-  int nvox ;                    /*!< number of voxels = nx*ny*nz*...*nw   */
+  size_t nvox ;                    /*!< number of voxels = nx*ny*nz*...*nw   */
   int nbyper ;                  /*!< bytes per voxel, matches datatype    */
   int datatype ;                /*!< type of data in voxels: DT_* code    */
 
