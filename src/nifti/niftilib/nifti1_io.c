@@ -300,9 +300,10 @@ static char * gni_history[] =
   "   - added nifti_is_valid_datatype(), and more debug info\n",
   "1.26 27 Jul 2007 [rickr] handle single volumes > 2^31 bytes (but < 2^32)\n",
   "1.27 28 Jul 2007 [rickr] nim->nvox, NBL-bsize are now type size_t\n"
+  "1.28 30 Jul 2007 [rickr] size_t updates\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.27, 28 Jul, 2007)";
+static char gni_version[] = "nifti library version 1.28, 30 Jul, 2007)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1, 0 };
@@ -329,7 +330,7 @@ static int  nifti_copynsort(int nbricks, const int *blist, int **slist,
 
 /* for nifti_read_collapsed_image: */
 static int  rci_read_data(nifti_image *nim, int *pivots, int *prods, int nprods,
-                     const int dims[], char *data, znzFile fp, int base_offset);
+                  const int dims[], char *data, znzFile fp, size_t base_offset);
 static int  rci_alloc_mem(void ** data, int prods[8], int nprods, int nbyper );
 static int  make_pivot_list(nifti_image * nim, const int dims[], int pivots[],
                             int prods[], int * nprods );
@@ -700,15 +701,16 @@ static int nifti_load_NBL_bricks( nifti_image * nim , int * slist, int * sindex,
 {
    size_t oposn, fposn;      /* orig and current file positions */
    size_t rv;
+   long   test;
    int    c;
    int    prev, isrc, idest; /* previous and current sub-brick, and new index */
 
-   oposn = znztell(fp);  /* store current file position */
-   fposn = oposn;
-   if( fposn < 0 ){
+   test = znztell(fp);  /* store current file position */
+   if( test < 0 ){
       fprintf(stderr,"** load bricks: ztell failed??\n");
       return -1;
    }
+   fposn = oposn = test;
 
    /* first, handle the default case, no passed blist */
    if( !slist ){
@@ -4265,8 +4267,8 @@ static znzFile nifti_image_load_prep( nifti_image *nim )
 
    /**- seek to the appropriate read position */
    if( znzseek(fp , ioff , SEEK_SET) < 0 ){
-      fprintf(stderr,"** could not seek to offset %d in file '%s'\n",
-              (int)ioff, nim->iname);
+      fprintf(stderr,"** could not seek to offset %u in file '%s'\n",
+              (unsigned)ioff, nim->iname);
       znzclose(fp);
       return NULL;
    }
@@ -4383,7 +4385,7 @@ size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot,
   }
 
   if( g_opts.debug > 2 )
-    fprintf(stderr,"+d nifti_read_buffer: read %ld bytes\n", ii);
+    fprintf(stderr,"+d nifti_read_buffer: read %u bytes\n", (unsigned)ii);
   
   /* byte swap array if needed */
   
@@ -4399,7 +4401,7 @@ size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot,
     
     case NIFTI_TYPE_FLOAT32:
     case NIFTI_TYPE_COMPLEX64:{
-        register float *far = (float *)dataptr ; register unsigned int jj,nj ;
+        register float *far = (float *)dataptr ; register size_t jj,nj ;
         nj = ntot / sizeof(float) ;
         for( jj=0 ; jj < nj ; jj++ )   /* count fixes 30 Nov 2004 [rickr] */
            if( !IS_GOOD_FLOAT(far[jj]) ){
@@ -4411,7 +4413,7 @@ size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot,
     
     case NIFTI_TYPE_FLOAT64:
     case NIFTI_TYPE_COMPLEX128:{
-        register double *far = (double *)dataptr ; register int jj,nj ;
+        register double *far = (double *)dataptr ; register size_t jj,nj ;
         nj = ntot / sizeof(double) ;
         for( jj=0 ; jj < nj ; jj++ )   /* count fixes 30 Nov 2004 [rickr] */
            if( !IS_GOOD_FLOAT(far[jj]) ){
@@ -4568,17 +4570,17 @@ int nifti_write_all_data(znzFile fp, nifti_image * nim,
       ss = nifti_write_buffer(fp,nim->data,nim->nbyper * nim->nvox);
       if (ss < nim->nbyper * nim->nvox){
          fprintf(stderr,
-            "** ERROR: NWAD: wrote only %d of %u bytes to file\n",
-            (int)ss, (unsigned)(nim->nbyper * nim->nvox));
+            "** ERROR: NWAD: wrote only %u of %u bytes to file\n",
+            (unsigned)ss, (unsigned)(nim->nbyper * nim->nvox));
          return -1;
       }
 
       if( g_opts.debug > 1 )
-         fprintf(stderr,"+d wrote single image of %ld bytes\n", ss);
+         fprintf(stderr,"+d wrote single image of %u bytes\n", (unsigned)ss);
    } else {
       if( ! NBL->bricks || NBL->nbricks <= 0 || NBL->bsize <= 0 ){
          fprintf(stderr,"** NWAD: no brick data to write (%p,%d,%u)\n",
-                 (void *)NBL->bricks, NBL->nbricks, (unsigned int)NBL->bsize);
+                 (void *)NBL->bricks, NBL->nbricks, (unsigned)NBL->bsize);
          return -1;
       }
 
@@ -4586,8 +4588,8 @@ int nifti_write_all_data(znzFile fp, nifti_image * nim,
          ss = nifti_write_buffer(fp, NBL->bricks[bnum], NBL->bsize);
          if( ss < NBL->bsize ){
             fprintf(stderr,
-              "** NWAD ERROR: wrote %ld of %u bytes of brick %d of %d to file",
-               ss, (unsigned int)NBL->bsize, bnum+1, NBL->nbricks);
+              "** NWAD ERROR: wrote %u of %u bytes of brick %d of %d to file",
+               (unsigned)ss, (unsigned)NBL->bsize, bnum+1, NBL->nbricks);
             return -1;
          }
       }
@@ -6225,14 +6227,15 @@ int nifti_read_collapsed_image( nifti_image * nim, const int dims [8],
    return 0 on success, < 0 on failure
 */
 static int rci_read_data(nifti_image * nim, int * pivots, int * prods,
-         int nprods, const int dims[], char * data, znzFile fp, int base_offset)
+      int nprods, const int dims[], char * data, znzFile fp, size_t base_offset)
 {
-   int c, sublen, offset, read_size;
+   size_t sublen, offset, read_size;
+   int    c;
 
    /* bad check first - base_offset may not have been checked */
    if( base_offset < 0 || nprods <= 0 ){
-      fprintf(stderr,"** rci_read_data, bad params, %d,%d\n",
-              nprods, base_offset);
+      fprintf(stderr,"** rci_read_data, bad params, %d,%u\n",
+              nprods, (unsigned)base_offset);
       return -1;
    }
 
@@ -6251,12 +6254,12 @@ static int rci_read_data(nifti_image * nim, int * pivots, int * prods,
       bytes = (size_t)prods[0] * nim->nbyper;
       nread = nifti_read_buffer(fp, data, bytes, nim);
       if( nread != bytes ){
-         fprintf(stderr,"** rciRD: read only %ld of %ld bytes from '%s'\n",
-                 nread, bytes, nim->fname);
+         fprintf(stderr,"** rciRD: read only %u of %u bytes from '%s'\n",
+                 (unsigned)nread, (unsigned)bytes, nim->fname);
          return -1;
       } else if( g_opts.debug > 3 )
-         fprintf(stderr,"+d successful read of %ld bytes at offset %d\n",
-                 bytes, base_offset);
+         fprintf(stderr,"+d successful read of %u bytes at offset %u\n",
+                 (unsigned)bytes, (unsigned)base_offset);
 
       return 0;  /* done with base case - return success */
    }
@@ -6275,12 +6278,14 @@ static int rci_read_data(nifti_image * nim, int * pivots, int * prods,
       /* offset is (c * sub-block size (including pivot dim))   */
       /*         + (dims[] index into pivot sub-block)          */
       /* the unneeded multiplication is to make this more clear */
-      offset = c * sublen * nim->dim[*pivots] + sublen * dims[*pivots];
+      offset = (size_t)c * sublen * nim->dim[*pivots] +
+               (size_t)sublen * dims[*pivots];
       offset *= nim->nbyper;
 
       if( g_opts.debug > 3 )
-         fprintf(stderr,"-d reading %d bytes, foff %d + %d, doff %d\n",
-                 read_size, base_offset, offset, c*read_size);
+         fprintf(stderr,"-d reading %u bytes, foff %u + %u, doff %u\n",
+                 (unsigned)read_size, (unsigned)base_offset, (unsigned)offset,
+                 (unsigned)(c*read_size));
 
       /* now read the next level down, adding this offset */
       if( rci_read_data(nim, pivots+1, prods+1, nprods-1, dims,
