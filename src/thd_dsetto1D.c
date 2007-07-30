@@ -64,7 +64,7 @@ ENTRY("THD_extract_series") ;
   Return value is 0 for all is good, -1 for all is bad.
   If raw == 0, uar is of type float.
   If raw != 0, uar is of the same type as the dataset brick
-    (the user need to know the type ahead of time if raw != 0).
+    (the user needs to know the type ahead of time if raw != 0).
   Data goes into a user-supplied array.
 -----------------------------------------------------------------------------*/
 

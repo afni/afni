@@ -1450,8 +1450,13 @@ extern mat44 THD_resample_mat44( mat44 , int,int,int ,
 extern mat44 THD_mat44_mul( mat44 A , mat44 B ) ;      /* matrix multiply */
 static mat44 tempA_mat44 ;
 
+extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
+
 #undef  MAT44_MUL
 #define MAT44_MUL THD_mat44_mul
+
+#undef  MAT44_SQRT
+#define MAT44_SQRT THD_mat44_sqrt
 
 #undef  MAT44_INV
 #define MAT44_INV nifti_mat44_inverse
@@ -1477,7 +1482,10 @@ static mat44 tempA_mat44 ;
 #define ZERO_MAT44(AA) LOAD_DIAG_MAT44(AA,0.0,0.0,0.0)
 
 #undef  LOAD_MAT44_VEC
-#define LOAD_MAT44_VEC(AA,x,y,z) ( AA.m[0][3]=x , AA.m[1][3]=y , AA.m[2][3]=z )
+#define LOAD_MAT44_VEC(AA,x,y,z) ( AA.m[0][3]=(x) , AA.m[1][3]=(y) , AA.m[2][3]=(z) )
+
+#undef  UNLOAD_MAT44_VEC
+#define UNLOAD_MAT44_VEC(AA,x,y,z) ( (x)=AA.m[0][3] , (y)=AA.m[1][3] , (z)=AA.m[2][3] )
 
 #undef  UNLOAD_MAT44
 #define UNLOAD_MAT44(AA,a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34)  \
@@ -1574,6 +1582,12 @@ static mat44 tempA_mat44 ;
  LOAD_MAT44(AA,vm.mm.mat[0][0],vm.mm.mat[0][1],vm.mm.mat[0][2],vm.vv.xyz[0],  \
                vm.mm.mat[1][0],vm.mm.mat[1][1],vm.mm.mat[1][2],vm.vv.xyz[1],  \
                vm.mm.mat[2][0],vm.mm.mat[2][1],vm.mm.mat[2][2],vm.vv.xyz[2] )
+
+#undef  MAT44_TO_VECMAT
+#define MAT44_TO_VECMAT(AA,vm)                                                  \
+ UNLOAD_MAT44(AA,vm.mm.mat[0][0],vm.mm.mat[0][1],vm.mm.mat[0][2],vm.vv.xyz[0],  \
+                 vm.mm.mat[1][0],vm.mm.mat[1][1],vm.mm.mat[1][2],vm.vv.xyz[1],  \
+                 vm.mm.mat[2][0],vm.mm.mat[2][1],vm.mm.mat[2][2],vm.vv.xyz[2] )
 
 /* apply a mat44 matrix to a 3 vector (x,y,z) to produce (a,b,c) */
 
@@ -4062,6 +4076,7 @@ extern THD_mat33  SNGL_mat_to_dicomm( THD_3dim_dataset * ) ; /* 28 Aug 2002 */
 extern THD_dvecmat THD_rotcom_to_matvec( THD_3dim_dataset * , char * ) ;
 
 extern THD_dvecmat invert_dvecmat( THD_dvecmat avm ) ; /* 24 Jul 2007 */
+extern THD_dvecmat sqrt_dvecmat( THD_dvecmat avm ) ;   /* 30 Jul 2007 */
 
   /*-- see thd_rot3d.c for these routines --*/
 

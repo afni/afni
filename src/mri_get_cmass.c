@@ -6,6 +6,7 @@
   12 Nov 2001:
   Get the center of mass of a 2D image;
   store it in the user-supplied locations *xcm, *ycm.
+  Note that *xcm and *ycm are the INDEX center of mass coordinates.
 ----------------------------------------------------------------------*/
 
 void mri_get_cmass_2D( MRI_IMAGE *im , float *xcm , float *ycm )
@@ -24,7 +25,7 @@ ENTRY("mri_get_cmass_2D") ;
    far = MRI_FLOAT_PTR(flim) ;
    nx  = im->nx ; ny = im->ny ;
 
-   sum = xx = yy = 0.0 ;
+   sum = xx = yy = 0.0f ;
    for( jj=0 ; jj < ny ; jj++ ){
       joff = jj * nx ;
       for( ii=0 ; ii < nx ; ii++ ){
@@ -34,15 +35,16 @@ ENTRY("mri_get_cmass_2D") ;
          yy  += val * jj ;
       }
    }
-
-   if( sum > 0.0 ){ xx /= sum ; yy /= sum ; }
-
    if( flim != im ) mri_free(flim) ;
+
+   if( sum > 0.0f ){ xx /= sum ; yy /= sum ; }
+   else            { xx = 0.5f*(nx-1); yy=0.5f*(ny-1); }
 
    *xcm = xx ; *ycm = yy ; EXRETURN ;
 }
 
 /*--------------------------------------------------------------------*/
+/*! Get the center of mass of a 3D image (in index coordinates). */
 
 void mri_get_cmass_3D( MRI_IMAGE *im, float *xcm, float *ycm, float *zcm )
 {
@@ -74,11 +76,10 @@ ENTRY("mri_get_cmass_3D") ;
        }
      }
    }
+   if( flim != im ) mri_free(flim) ;
 
    if( sum > 0.0f ){ xx /= sum ; yy /= sum ; zz /= sum ; }
-   else           { xx = 0.5f*(nx-1); yy=0.5f*(ny-1); zz=0.5f*(nz-1); }
-
-   if( flim != im ) mri_free(flim) ;
+   else            { xx = 0.5f*(nx-1); yy=0.5f*(ny-1); zz=0.5f*(nz-1); }
 
    *xcm = xx ; *ycm = yy ; *zcm = zz ; EXRETURN ;
 }
