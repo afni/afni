@@ -45,3 +45,10 @@ Updates in version 0.5 May 17, 2007
     - modified CMake system to build shared libraries
     - modified Makefiles to use ARCH in more cases
 
+-----------------------------------------------------------------
+Newer updates
+
+    - allowed for datasets with a single volume > 2^31 bytes
+    - allowed for datasets with total size > 2^32 bytes
+    - added regression testing under Testing/nifti.regress_test
+

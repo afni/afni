@@ -2133,3 +2133,11 @@
               plug_nlfit.c matrix.[ch] Makefile.INCLUDE SUMA/SUMA_MiscFunc.c
         - moved matrix.c to libmri.a
 
+30 Jul 2008: nifti updates for regression testing
+  * modified Makefile, README, Updates.txt
+  * added Testing/Makefile, and under new Testing/nifti.regress_test directory:
+        README, @test, @show.diffs, and under new commands directory:
+            c01.versions, c02.nt.help, c03.hist, c04.disp.anat0.info,
+            c05.mod.hdr, c06.add.ext, c07.cbl.4bricks, c08.dts.19.36.11,
+            c09.dts4.compare, c10a.dci.run.210, c10.dci.ts4, c11.add.comment,
+            c12.check.comments, c13.check.hdrs, c14.make.dsets, c15.new.files 
