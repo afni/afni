@@ -2141,3 +2141,5 @@
             c05.mod.hdr, c06.add.ext, c07.cbl.4bricks, c08.dts.19.36.11,
             c09.dts4.compare, c10a.dci.run.210, c10.dci.ts4, c11.add.comment,
             c12.check.comments, c13.check.hdrs, c14.make.dsets, c15.new.files 
+  * modified gifti/gtest.c, Makefile: init gfile, add CFLAGS
+

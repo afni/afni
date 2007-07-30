@@ -52,7 +52,7 @@ int show_help()
 int main( int argc, char * argv[] )
 {
     gifti_image * gim;
-    char        * infile = NULL, * prefix = NULL, * gfile;
+    char        * infile = NULL, * prefix = NULL, * gfile = NULL;
     int           ac, show = 0, data = 1;
 
     if( argc <= 1 ) {
