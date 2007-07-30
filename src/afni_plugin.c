@@ -4711,6 +4711,8 @@ int PLUTO_set_v2s_addrs(void ** vopt, char *** maps, char ** hist)
 
 #include "cox_render.h"  /* 14 Feb 2002 */
 
+extern void matrix_initialize(void *);  /* 30 Jul 2007 */
+
 static vptr_func * forced_loads[] = {
 #ifndef NO_DYNAMIC_LOADING
    (vptr_func *) startup_lsqfit ,
@@ -4742,6 +4744,7 @@ static vptr_func * forced_loads[] = {
    (vptr_func *) cl1_solve ,              /* 07 Aug 2002 */
    (vptr_func *) new_Dtable ,             /* 20 Oct 2003 */
    (vptr_func *) powell_newuoa ,          /* 24 Jul 2006 */
+   (vptr_func *) matrix_initialize ,      /* 30 Jul 2007 */
 #endif
 NULL } ;
 
