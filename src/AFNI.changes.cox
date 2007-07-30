@@ -6313,3 +6313,10 @@
 27 Jul 2007
  * Add 'SPMG3' to 3dDeconvolve.c.
  * Fix bug in -1Dmatrix_save in 3dAllineate, when dealing with zero-padded base.
+
+30 Jul 2007
+ * Modify thd_read_vecmat.c to use mri_read_double_ascii() to read a file rather
+     than read it directly.  This way, comments will be skipped properly and 
+     the '1D: ...' format can be used.
+ * Fix afni_plugin.c to initialize loading of matrix_initialize(), to fix a
+     problem left in plug_deconvolve.c by RCR's matrix.c changes.
