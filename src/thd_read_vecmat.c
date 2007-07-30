@@ -11,8 +11,6 @@ THD_dvecmat THD_read_dvecmat( char *fname , int invert )
    THD_dvecmat dvm ;
    THD_dmat33 tmat ;
    THD_dfvec3 tvec ;
-   FILE *fp ;
-   double dd[12] ;
    int  nn , loaded=0 ;
 
 ENTRY("THD_read_dvecmat") ;
@@ -45,7 +43,7 @@ ENTRY("THD_read_dvecmat") ;
 
      if (strstr(cc,"IJK_TO_CARD_DICOM")) {  /* return the matrix that turns i,j,k to mm RAI ZSS May 07*/
         THD_dicom_card_xform(dset, &tmat, &tvec);
-     } else { 
+     } else {
         ss = strstr(cc,"[") ;
         if( ss != NULL ){
           *ss = '\0'; ss++; iss = (int)strtol(ss,NULL,10); if( iss < 0 ) iss = 0;
@@ -92,7 +90,7 @@ ENTRY("THD_read_dvecmat") ;
 
       {
          /* ZSS: Dec 27, the year of our Lord when the War on Christmas was raging */
-         /* Need to include VOLREG_CENTER_OLD, VOLREG_CENTER_BASE, 
+         /* Need to include VOLREG_CENTER_OLD, VOLREG_CENTER_BASE,
                             ROTATE_CENTER_OLD, ROTATE_CENTER_BASE, if applicable. */
          /* Do we have a ROTATE or VOLREG attribute ?*/
          incl = 0;
@@ -152,7 +150,7 @@ ENTRY("THD_read_dvecmat") ;
          }
       }
    }
-    free(dname) ; DSET_delete(dset) ;
+   free(dname) ; DSET_delete(dset) ;
 
    /*-- 14 Feb 2001: filename is "-rotate a b c -[ab]shift x y z" string --*/
 
@@ -164,8 +162,8 @@ ENTRY("THD_read_dvecmat") ;
    /*-- MATRIX(...) --*/
 
    } else if( strncmp(fname,"MATRIX(",7) == 0 ){
-     float matar[12] ; int nn ;
-     nn = sscanf(fname,"MATRIX(%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+     double matar[12] ; int nn ;
+     nn = sscanf(fname,"MATRIX(%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
                        matar+0 , matar+1 , matar+2 , matar+3 ,
                        matar+4 , matar+5 , matar+6 , matar+7 ,
                        matar+8 , matar+9 , matar+10, matar+11 ) ;
@@ -182,42 +180,24 @@ ENTRY("THD_read_dvecmat") ;
 
    } else {  /*== read numbers from file ==*/
 
-      fp = fopen( fname , "r" ) ;
-      if( fp == NULL ){
-         ERROR_message(
-                 "THD_read_dvecmat: can't open file %s\n",
-                 fname) ;
-         dvm.vv = tvec ; dvm.mm = tmat ; RETURN(dvm) ;
-      }
-
-      nn = fscanf(fp,"%lf %lf %lf %lf"      /* try to get 12 numbers */
-                     "%lf %lf %lf %lf"
-                     "%lf %lf %lf %lf" ,
-                  dd+0,dd+1,dd+2 ,dd+3,
-                  dd+4,dd+5,dd+6 ,dd+7,
-                  dd+8,dd+9,dd+10,dd+11 ) ;
-
-      switch( nn ){  /* how many did we actually read? */
-
-         default:
-            ERROR_message(
-                    "THD_read_dvecmat: can't read matrix+vector from file %s\n",
-                    fname) ;
-            dvm.vv = tvec ; dvm.mm = tmat ; RETURN(dvm) ;
-         break ; /* unreachable */
-
-         case 12: LOAD_DMAT(tmat,dd[0],dd[1],dd[2],    /* 12 ==> matrix+vector */
-                                 dd[4],dd[5],dd[6],
-                                 dd[8],dd[9],dd[10] ) ;
-                  LOAD_DFVEC3(tvec,dd[3],dd[7],dd[11]) ;
-         break ;
-
-         case 9:  LOAD_DMAT(tmat,dd[0],dd[1],dd[2],    /*  9 ==> matrix only */
-                                 dd[3],dd[4],dd[5],
-                                 dd[6],dd[7],dd[8] ) ;
-                  LOAD_DFVEC3(tvec,0,0,0) ;
-         break ;
-      }
+     MRI_IMAGE *dim; double *dar;
+     dim = mri_read_double_ascii( fname ) ;
+     if( dim == NULL || dim->nvox < 9 ){
+       ERROR_message("THD_read_dvecmat: can't read matrix+vector from '%s'\n",
+                     fname) ;
+       dvm.vv = tvec ; dvm.mm = tmat ; RETURN(dvm) ;
+     }
+     dar = MRI_DOUBLE_PTR(dim) ;
+     if( dim->nvox < 12 ){
+       LOAD_DMAT(tmat,dar[0],dar[1],dar[2],    /* 9 == matrix only */
+                      dar[3],dar[4],dar[5],
+                      dar[6],dar[7],dar[8] ) ;
+     } else {
+       LOAD_DMAT(tmat,dar[0],dar[1],dar[2],    /* 12 ==> matrix+vector */
+                      dar[4],dar[5],dar[6],
+                      dar[8],dar[9],dar[10] ) ;
+       LOAD_DFVEC3(tvec,dar[3],dar[7],dar[11]) ;
+     }
    }
 
    /*-- invert the transformation we just read?            --*/
