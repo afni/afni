@@ -228,3 +228,14 @@ THD_dvecmat invert_dvecmat( THD_dvecmat avm )  /* 24 Jul 2007 */
    NEGATE_DFVEC3(ivec) ;
    bvm.mm = imat ; bvm.vv = ivec ; return bvm ;
 }
+
+/*-------------------------------------------------------------------------------*/
+
+THD_dvecmat sqrt_dvecmat( THD_dvecmat avm )  /* 30 Jul 2007 */
+{
+   mat44 A , B ; THD_dvecmat bvm ;
+   VECMAT_TO_MAT44( avm , A ) ;
+   B = MAT44_SQRT( A ) ;
+   MAT44_TO_VECMAT( B , bvm ) ;
+   return bvm ;
+}

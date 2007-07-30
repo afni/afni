@@ -88,7 +88,7 @@ int main( int argc , char *argv[] )
    int   nxyz_base[3] , nxyz_targ[3] , nxyz_dout[3] ;
    float dxyz_base[3] , dxyz_targ[3] , dxyz_dout[3] ;
    int nvox_base ;
-   float v1,v2 , xxx,yyy,zzz,siz ;
+   float v1,v2 , xxx_p,yyy_p,zzz_p,siz , xxx_m,yyy_m,zzz_m , xxx,yyy,zzz , xc,yc,zc ;
    int pad_xm=0,pad_xp=0 , pad_ym=0,pad_yp=0 , pad_zm=0,pad_zp=0 ;
    int tfdone=0;  /* stuff for -twofirst */
    float tfparm[PARAM_MAXTRIAL+1][MAXPAR];
@@ -163,6 +163,7 @@ int main( int argc , char *argv[] )
    int    hist_mode            = 0 ;            /* 08 May 2007 */
    float  hist_param           = 0.0f ;
    int    hist_setbyuser       = 0 ;
+   int    do_cmass             = 0 ;            /* 30 Jul 2007 */
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -663,6 +664,8 @@ int main( int argc , char *argv[] )
         " -wtgrad  gg   = Set autoweight/mask Gaussian filter radius to 'gg' voxels.\n"
         " -nmsetup nn   = Use 'nn' points for the setup matching [default=23456]\n"
         " -ignout       = Ignore voxels outside the warped source dataset.\n"
+        " -cmass        = Use the center-of-mass calculation to bracket the shifts.\n"
+        " -nocmass      = Don't use the center-of-mass calculation.\n"
        ) ;
      } else {
        printf("\n"
@@ -687,6 +690,15 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     /*-----*/
+
+     if( strcmp(argv[iarg],"-cmass") == 0 ){                /* SECRET OPTION */
+       do_cmass = 1 ; iarg++ ; continue ;                   /* 30 Jul 2007  */
+     }
+     if( strcmp(argv[iarg],"-nocmass") == 0 ){
+       do_cmass = 0 ; iarg++ ; continue ;
+     }
 
      /*-----*/
 
@@ -1696,6 +1708,9 @@ int main( int argc , char *argv[] )
      im_base = mri_scale_to_float( DSET_BRICK_FACTOR(dset_targ,0) ,
                                    DSET_BRICK(dset_targ,0)         ) ;
      dx_base = dx_targ; dy_base = dy_targ; dz_base = dz_targ;
+     if( do_cmass ){                                          /* 30 Jul 2007 */
+       WARNING_message("no base dataset ==> -cmass is disabled"); do_cmass = 0;
+     }
    }
    nx_base = im_base->nx ;
    ny_base = im_base->ny ; nxy_base  = nx_base *ny_base ;
@@ -1944,11 +1959,32 @@ int main( int argc , char *argv[] )
    yyy = 0.321 * (ny_base-1) * dy_base ;
    zzz = 0.321 * (nz_base-1) * dz_base ;
 
+   /*-- 30 Jul 2007: center-of-mass sets range of shifts --*/
+
+   if( do_cmass ){
+     float xtarg,ytarg,ztarg , xbase,ybase,zbase ;
+     mri_get_cmass_3D( im_base , &xc,&yc,&zc ) ;
+     MAT44_VEC( base_cmat , xc,yc,zc , xbase,ybase,zbase ) ;
+     im_targ = THD_median_brick( dset_targ ) ;
+     mri_get_cmass_3D( im_targ , &xc,&yc,&zc ) ; mri_free(im_targ) ;
+     MAT44_VEC( targ_cmat , xc,yc,zc , xtarg,ytarg,ztarg ) ;
+     xc = xtarg-xbase ; yc = ytarg-ybase ; zc = ztarg-zbase ;
+   } else {
+     xc = yc = zc = 0.0f ;
+   }
+   xxx_p = xc + xxx ; xxx_m = xc - xxx ;
+   yyy_p = yc + yyy ; yyy_m = yc - yyy ;
+   zzz_p = zc + zzz ; zzz_m = zc - zzz ;
+
+   if( verb > 2 )
+     INFO_message("shift param range: %.1f..%.1f %.1f..%.1f %.1f..%.1f",
+                  xxx_m,xxx_p , yyy_m,yyy_p , zzz_m,zzz_p ) ;
+
    /*-- we now define all 12 affine parameters, though not all may be used --*/
 
-   DEFPAR( 0, "x-shift" , -xxx , xxx , 0.0 , 0.0 , 0.0 ) ;    /* mm */
-   DEFPAR( 1, "y-shift" , -yyy , yyy , 0.0 , 0.0 , 0.0 ) ;
-   DEFPAR( 2, "z-shift" , -zzz , zzz , 0.0 , 0.0 , 0.0 ) ;
+   DEFPAR( 0, "x-shift" , xxx_m , xxx_p , 0.0 , 0.0 , 0.0 ) ;    /* mm */
+   DEFPAR( 1, "y-shift" , yyy_m , yyy_p , 0.0 , 0.0 , 0.0 ) ;
+   DEFPAR( 2, "z-shift" , zzz_m , zzz_p , 0.0 , 0.0 , 0.0 ) ;
 
    DEFPAR( 3, "z-angle" , -30.0 , 30.0 , 0.0 , 0.0 , 0.0 ) ;  /* degrees */
    DEFPAR( 4, "x-angle" , -30.0 , 30.0 , 0.0 , 0.0 , 0.0 ) ;
