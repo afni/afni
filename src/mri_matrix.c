@@ -30,7 +30,7 @@ ENTRY("mri_matrix_mult") ;
    if( imb->nx != mm ){
      ERROR_message("mri_matrix_mult( %d X %d , %d X %d )?",
                    ima->nx , ima->ny , imb->nx , imb->ny ) ;
-     RETURN( NULL);
+     RETURN( NULL );
    }
 
 #undef  A
@@ -75,7 +75,7 @@ ENTRY("mri_matrix_multranA") ;
    if( imb->nx != mm ){
      ERROR_message("mri_matrix_multranA( %d X %d , %d X %d )?",
                    ima->nx , ima->ny , imb->nx , imb->ny ) ;
-     RETURN( NULL);
+     RETURN( NULL );
    }
 
 #undef  A
@@ -120,7 +120,7 @@ ENTRY("mri_matrix_multranB") ;
    if( imb->ny != mm ){
      ERROR_message("mri_matrix_multranB( %d X %d , %d X %d )?",
                    ima->nx , ima->ny , imb->nx , imb->ny ) ;
-     RETURN( NULL);
+     RETURN( NULL );
    }
 
 #undef  A
@@ -399,7 +399,7 @@ ENTRY("mri_matrix_psinv") ;
      }
    }
 
-   RETURN( imp);
+   RETURN( imp );
 }
 
 /*----------------------------------------------------------------------------*/
@@ -429,6 +429,88 @@ ENTRY("mri_matrix_ortproj") ;
    }
 
    RETURN(imt) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+float mri_matrix_size( MRI_IMAGE *imc )
+{
+   int nxy , ii ;
+   float sum , *car ;
+
+   if( imc == NULL || imc->kind != MRI_float ) RETURN(-1.0f) ;
+   nxy = imc->nx * imc->ny ; car = MRI_FLOAT_PTR(imc) ;
+   sum = 0.0f ;
+   for( ii=0 ; ii < nxy ; ii++ ) sum += fabs(car[ii]) ;
+   sum /= nxy ; return sum ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_matrix_sqrt( MRI_IMAGE *imc )  /* 30 Jul 2007 */
+{
+   float gam , fa,fb , csiz ;
+   int nn , ite , ii ;
+   MRI_IMAGE *imy , *imz , *imyinv,*imzinv ;
+   float     *yar , *zar , *car ;
+
+   if( imc == NULL || imc->kind != MRI_float ) RETURN(NULL) ;
+   nn = imc->nx ; if( nn != imc->ny ) RETURN(NULL) ;
+   if( nn == 1 ){
+     car = MRI_FLOAT_PTR(imc); if( car[0] < 0.0f ) RETURN(NULL) ;
+     imz = mri_new(1,1,MRI_float); zar = MRI_FLOAT_PTR(imz);
+     zar[0] = sqrt(car[0]) ; RETURN(imz) ;
+   }
+
+   imz = mri_new(nn,nn,MRI_float) ; zar = MRI_FLOAT_PTR(imz) ;
+   csiz = mri_matrix_size(imc) ; if( csiz <= 0.0f ) RETURN(imz) ;
+   imy = mri_copy(imc) ;
+   for( ii=0 ; ii < nn ; ii++ ) zar[ii+ii*nn] = 1.0f ;
+
+   for( ite=0 ; ite < 50 ; ite++ ){
+     imyinv = mri_matrix_psinv( imy , NULL , 0.0f ) ;
+     if( imyinv == NULL ){
+       ERROR_message("mri_matrix_sqrt() fails at ite=%d",ite);
+       mri_free(imz); mri_free(imy); RETURN(NULL);
+     }
+     if( ite == 0 ) imzinv = mri_copy(imz) ;
+     else           imzinv = mri_matrix_psinv( imz , NULL , 0.0f ) ;
+     if( imzinv == NULL ){
+       ERROR_message("mri_matrix_sqrt() fails at ite=%d",ite);
+       mri_free(imz); mri_free(imy); mri_free(imyinv); RETURN(NULL);
+     }
+     gam = 1.0f ;
+     fa = 0.5f*gam ; fb = 0.5f/gam ;
+     imy = mri_matrix_sadd( fa,imy , fb,imzinv ) ;
+     imz = mri_matrix_sadd( fa,imz , fb,imyinv ) ;
+     mri_free(imyinv) ; mri_free(imzinv) ;
+     if( ite > 2 ){
+       imyinv = mri_matrix_mult( imy , imy ) ;
+       imyinv = mri_matrix_sadd( 1.0f,imyinv , -1.0f,imc ) ;
+       fa = mri_matrix_size(imyinv) ; mri_free(imyinv) ;
+       if( fa <= 5.e-6*csiz ){ mri_free(imz); RETURN(imy); }
+     }
+   }
+   mri_free(imz) ; mri_free(imy) ; RETURN(NULL) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+mat44 THD_mat44_sqrt( mat44 A )  /* 30 Jul 2007 */
+{
+   MRI_IMAGE *imc, *imx ; float *far ; mat44 X ;
+
+   imc = mri_new(4,4,MRI_float) ; far = MRI_FLOAT_PTR(imc) ;
+   UNLOAD_MAT44_AR( A , far ) ;
+   far[12] = far[13] = far[14] = 0.0f ; far[15] = 1.0f ;
+   imx = mri_matrix_sqrt(imc) ; mri_free(imc) ;
+   if( imx == NULL ){
+     LOAD_DIAG_MAT44(X,0,0,0) ; /* error! */
+   } else {
+     far = MRI_FLOAT_PTR(imx) ;
+     LOAD_MAT44_AR(X,far) ; mri_free(imx) ;
+   }
+   return X ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -754,6 +836,17 @@ ENTRY("mri_matrix_evalrpn") ;
         ADDTO_IMARR(imstk,imc) ;
       }
 
+      /** matrix square root **/
+
+      else if( strncasecmp(cmd,"&Sqrt",5) == 0 ){
+        if( nstk < 1 ) ERREX("no matrix") ;
+        ima = IMARR_SUBIM(imstk,nstk-1) ;
+        imc = mri_matrix_sqrt( ima ) ;
+        if( imc == NULL ) ERREX("can't compute") ;
+        TRUNCATE_IMARR(imstk,nstk-1) ;
+        ADDTO_IMARR(imstk,imc) ;
+      }
+
       /** orthogonal projection onto column space **/
 
       else if( strncasecmp(cmd,"&Pproj",6) == 0 ){
@@ -917,8 +1010,13 @@ char * mri_matrix_evalrpn_help(void)
     "                    current top matrix, OR\n"
     "                 =X to indicate the (1,1) element of the\n"
     "                    matrix named X\n"
-    " &Psinv     == replace top matrix with its pseudoinverse\n"
+    " &Psinv     == replace top matrix with its pseudo-inverse\n"
     "                 [computed via SVD, not via inv(A'*A)*A']\n"
+    " &Sqrt      == replace top matrix with its square root\n"
+    "                 [computed via Denman & Beavers iteration]\n"
+    "               N.B.: not all real matrices have real square\n"
+    "                 roots, and &Sqrt will fail if you push it\n"
+    "               N.B.: the matrix must be square!\n"
     " &Pproj     == replace top matrix with the projection onto\n"
     "                 its column space; Input=A; Output = A*Psinv(A)\n"
     "               N.B.: result P is symmetric and P*P=P\n"

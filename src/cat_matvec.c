@@ -11,7 +11,7 @@
 
 int main( int argc , char * argv[] )
 {
-   int iarg=1 , nn , invert,nadd , polar, i, j;
+   int iarg=1 , nn , invert,nadd , polar, do_sqrt, i, j;
    THD_dmat33 *tmat , qmat , imat ;
    THD_dfvec3 *tvec , qvec , ivec ;
    int ntmat ;
@@ -111,6 +111,9 @@ int main( int argc , char * argv[] )
              "\n"
              "  -IP = -I followed by -P\n"
              "\n"
+             "  -S = square root of the matrix\n"
+             "    Note: not all matrices have square roots!\n"
+             "\n"
              "The transformation resulting by catenating the transformations\n"
              "is written to stdout in the same 3x4 ASCII file format.  This can\n"
              "be used as input to '3drotate -matvec_dicom' (provided [uij] is a\n"
@@ -149,7 +152,7 @@ int main( int argc , char * argv[] )
 
       /* check for opcodes that follow the next argument */
  
-      nadd = 1 ; invert = 0 ; polar = 0;
+      nadd = 1; invert = 0; polar = 0; do_sqrt = 0;
       if( iarg+1 < argc ) {   
          if (strcmp(argv[iarg+1],"-I") == 0 ){
             invert = 1 ; nadd = 2 ;
@@ -157,6 +160,8 @@ int main( int argc , char * argv[] )
             polar = 1 ; nadd = 2 ;
          } else if (strcmp(argv[iarg+1],"-IP") == 0 ){
             invert = 1; polar = 1 ; nadd = 2 ;
+         } else if( strcmp(argv[iarg+1],"-S") == 0 ){
+            do_sqrt = 1 ; nadd = 2 ;
          }
       }
 
@@ -189,8 +194,9 @@ int main( int argc , char * argv[] )
                              APL(8,dd) , APL(9,dd) , APL(10,dd)  ) ;
           LOAD_DFVEC3(qvm.vv , APL(3,dd) , APL(7,dd) , APL(11,dd) ) ;
 
-          if( invert ) dvm[dd] = invert_dvecmat(qvm) ;
-          else         dvm[dd] = qvm ;
+               if( invert  ) dvm[dd] = invert_dvecmat(qvm) ;
+          else if( do_sqrt ) dvm[dd] = sqrt_dvecmat(qvm) ;
+          else               dvm[dd] = qvm ;
         }
 
         /* replicate tmat/tvec matrix/vector */
@@ -208,6 +214,7 @@ int main( int argc , char * argv[] )
         qvm = THD_read_dvecmat( argv[iarg] , invert ) ;
         if( SIZE_DMAT(qvm.mm) == 0.0 )
           ERROR_exit("Can't read matrix from '%s'\n",argv[iarg]) ;
+        if( do_sqrt ) qvm = sqrt_dvecmat(qvm) ;
 
         ndvm   = 1 ;
         dvm    = (THD_dvecmat *)malloc(sizeof(THD_dvecmat)) ;

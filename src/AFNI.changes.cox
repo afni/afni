@@ -6320,3 +6320,4 @@
      the '1D: ...' format can be used.
  * Fix afni_plugin.c to initialize loading of matrix_initialize(), to fix a
      problem left in plug_deconvolve.c by RCR's matrix.c changes.
+ * Matrix square root in mri_matrix.c, and thence to 1dmatcalc and cat_matvec.
