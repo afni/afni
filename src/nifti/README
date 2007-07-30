@@ -43,8 +43,9 @@ docs     -- destination directory Doxygen html (created via "make doc")
 
 Example directories
 -------------------
-examples -- directory containing sample code using nifti reference library
+examples  -- directory containing sample code using nifti reference library
 real_easy -- code snippets to read nifti-1 files, not using nifti ref. lib.
+Testing   -- directory containing code to test the libraries
 
 
 Instructions to build
