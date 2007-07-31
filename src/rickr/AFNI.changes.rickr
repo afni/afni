@@ -2126,14 +2126,14 @@
   * modified nifti_tool.c: return 0 on -help, -hist, -ver
   * modified thd_niftiwrite.c: replace some all-caps prints
 
-28 Jul 2008:
+28 Jul 2007:
   * modified nifti1_io.[ch]: handle multiple volumes > 2^32 bytes
   * modified: 1dSEM.c 2dImReg.c 3dDTtoDWI.c  3dDWItoDT.c 3dNLfim.c
               3dStatClust.c 3dTSgen.c 3dUniformize.c RSFgen.c RegAna.c
               plug_nlfit.c matrix.[ch] Makefile.INCLUDE SUMA/SUMA_MiscFunc.c
         - moved matrix.c to libmri.a
 
-30 Jul 2008: nifti updates for regression testing
+30 Jul 2007: nifti updates for regression testing
   * modified Makefile, README, Updates.txt
   * added Testing/Makefile, and under new Testing/nifti.regress_test directory:
         README, @test, @show.diffs, and under new commands directory:
@@ -2143,3 +2143,10 @@
             c12.check.comments, c13.check.hdrs, c14.make.dsets, c15.new.files 
   * modified gifti/gtest.c, Makefile: init gfile, add CFLAGS
 
+31 Jul 2007:
+  * modified 3dAllineate.c, 3dresample.c, 3dSegment.c, 3dSpatNorm.c,
+             afni_plugin.c, Makefile.INCLUDE, mrilib.h, plug_crender.c,
+             rickr/3dresample.c, rickr/r_new_resam_dset.c,
+             SUMA/SUMA_3dSkullStrip.c, whereami.c
+        - included r_new_resam_dset, r_hex_str_to_long, r_idisp_fd_brick
+          in forced_loads[]

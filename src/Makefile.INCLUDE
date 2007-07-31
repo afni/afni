@@ -1213,7 +1213,8 @@ cleanest:
 	$(RM) `find . -name \*.o -print`
 	$(RM) `find . -name \*.so -print`
 	$(RM) `find . -name \*.a -print`
-	$(RM) $(PROGRAMS) SUMA/SUMA_MacOSX.tar
+	$(RM) $(PROGRAMS)
+	$(RM) SUMA/SUMA_*.tar
 
 # CYGWIN: remove the fixed plugins as well
 
