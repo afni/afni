@@ -70,7 +70,6 @@ static char g_cren_hist[] =
 #include "parser.h"
 #include <ctype.h>
 
-#include "rickr/r_new_resam_dset.h"
 #include "rickr/r_idisp.h"
 
 #ifndef ALLOW_PLUGINS
