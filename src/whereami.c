@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "thd_ttatlas_query.h"
-#include "rickr/r_new_resam_dset.h"
 
 static int           have_dseTT = -1   ;
 static THD_3dim_dataset * dseTT = NULL ;

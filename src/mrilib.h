@@ -1204,6 +1204,10 @@ extern int SYM_expand_errcount(void) ; /* 03 May 2007 */
 #include "multivector.h"   /* 18 May 1999 addition */
 
 #include "afni_environ.h"  /* 07 Jun 1999 addition */
+
+#include "rickr/r_new_resam_dset.h" /* 31 Jul 2007 */
+#include "rickr/r_idisp.h"
+#include "rickr/r_misc.h"
 /*------------------------------------------------------------------------*/
 /*--- Functions in mri_matrix.c (matrix operations, stored as images) ----*/
 

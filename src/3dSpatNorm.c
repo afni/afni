@@ -1,6 +1,5 @@
 #include "mrilib.h"
 #include "thd_brainormalize.h"
-#include "rickr/r_new_resam_dset.h"
 
 int main( int argc , char *argv[] )
 {

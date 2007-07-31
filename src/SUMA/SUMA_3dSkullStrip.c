@@ -1,6 +1,5 @@
 #include "SUMA_suma.h"
 #include "../thd_brainormalize.h"
-#include "../rickr/r_new_resam_dset.h"
 #undef STAND_ALONE
 
 #if defined SUMA_BrainWrap_STANDALONE

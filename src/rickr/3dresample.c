@@ -1,5 +1,4 @@
 #include "mrilib.h"
-#include "r_new_resam_dset.h"
 #include "r_idisp.h"
 
 #define MAIN
