@@ -17,13 +17,13 @@ int main( int argc , char * argv[] )
    int ntmat ;
    FILE *fp ;
    THD_dvecmat *dvm , qvm ; int ndvm ;
-   int matout=0 ;
+   int matout=0 , oneline=0 ;
    MRI_IMAGE *multi_im=NULL ;
    float     *multi_far=NULL ;
    int        multi_nx, multi_ny , dd ;  /* nx=# of values per row, ny=# of rows */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: cat_matvec [-MATRIX] matvec_spec matvec_spec ...\n"
+      printf("Usage: cat_matvec [-MATRIX | -ONELINE] matvec_spec matvec_spec ...\n"
              "\n"
              "Catenates 3D rotation+shift matrix+vector transformations.\n"
              "Each matvec_spec is of the form\n"
@@ -125,6 +125,8 @@ int main( int argc , char * argv[] )
              "      be written to stdout in the 'MATRIX(...)' format (FORM 3).\n"
              "      This feature could be used, with clever scripting, to input\n"
              "      a matrix directly on the command line to program 3dWarp.\n"
+             "N.B.: The '-ONELINE' option indicates that the resulting matrix\n"
+             "      will simply be written as 12 numbers on one line.\n"
              "N.B.: If form 1a (.aff12.1D) is used to compute multiple matrices,\n"
              "      then the output matrices are written to stdout, one matrix\n"
              "      per line.\n"
@@ -147,7 +149,10 @@ int main( int argc , char * argv[] )
    while( iarg < argc ){
 
       if( strcmp(argv[iarg],"-MATRIX") == 0 ){
-        matout = 1 ;  iarg++ ; continue ;
+        oneline = 0 ; matout = 1 ;  iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-ONELINE") == 0 ){
+        oneline = 1 ; matout = 0 ; iarg++ ; continue ;
       }
 
       /* check for opcodes that follow the next argument */
@@ -270,7 +275,7 @@ int main( int argc , char * argv[] )
          if( !isspace(buf[ii]) ) putchar(buf[ii]) ;
        putchar('\n') ;
      }
-   } else if( ntmat == 1 ){
+   } else if( ntmat == 1 && !oneline ){
      printf("%13.6g %13.6g %13.6g %13.6g\n"
             "%13.6g %13.6g %13.6g %13.6g\n"
             "%13.6g %13.6g %13.6g %13.6g\n" ,
