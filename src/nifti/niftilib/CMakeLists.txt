@@ -2,6 +2,9 @@
 #Please contact hans-johnson@uiowa.edu for making enhancments/corrections
 PROJECT(NIFTILIB)
 
+# use custom so revision
+SET( NIFTILIB_SHAREDLIB_VERSION "1.0.0" )
+
 # Apply the common nifti library version by default. To change this behaviour
 # simply define NIFTILIB_SHAREDLIB_VERSION before this line
 IF (NOT DEFINED NIFTILIB_SHAREDLIB_VERSION)
@@ -10,10 +13,6 @@ ENDIF (NOT DEFINED NIFTILIB_SHAREDLIB_VERSION)
 
 # Extract soname from version string.
 STRING( REGEX MATCH "^[0-9]+" NIFTILIB_SHAREDLIB_SOVERSION ${NIFTILIB_SHAREDLIB_VERSION})
-
-# use custom so revision
-SET( NIFTILIB_SHAREDLIB_VERSION "${NIFTILIB_SHAREDLIB_SOVERSION}.1.0" )
-
 
 INCLUDE_DIRECTORIES(${ZNZLIB_SOURCE_DIR})
 SET(NIFTILIB_SRC nifti1_io.c)
