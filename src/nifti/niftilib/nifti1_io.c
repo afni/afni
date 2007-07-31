@@ -6233,9 +6233,8 @@ static int rci_read_data(nifti_image * nim, int * pivots, int * prods,
    int    c;
 
    /* bad check first - base_offset may not have been checked */
-   if( base_offset < 0 || nprods <= 0 ){
-      fprintf(stderr,"** rci_read_data, bad params, %d,%u\n",
-              nprods, (unsigned)base_offset);
+   if( nprods <= 0 ){
+      fprintf(stderr,"** rci_read_data, bad prods, %d\n", nprods);
       return -1;
    }
 
