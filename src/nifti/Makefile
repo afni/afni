@@ -155,7 +155,7 @@ regress_data:
 	(cd $(TESTING); $(MAKE) regress_data 'RM=$(RM)' 'TAR=$(TAR)'; )
 	@echo ""
 	@echo Regression testing data installed.
-	@echo See Testing/nifti.regress_test/README for details.
+	@echo See Testing/README_regress for details.
 	@echo ""
 
 $(INSTALL_BIN_DIR):
