@@ -33,9 +33,6 @@
  *      - MRI_IMAGE
  *      - MRI_IMARR
  *
- *   cox_render.h:
- *      - CREN_stuff
- *
  *   raw data types:
  *      - mat33d
  *      - mat33f
@@ -486,44 +483,3 @@ int r_idisp_thd_dataxes( char * info, THD_dataxes * dp )
 }
 
 
-/*----------------------------------------------------------------------
- *                cox_render.h
- *----------------------------------------------------------------------
-*/
-
-#ifdef _COX_RENDER_HEADER_        /* be sure we can compile this */
-
-int r_idisp_cren_stuff( char * info, CREN_stuff * cp )
-{
-    if ( info )
-        fputs( info, stdout );
-
-    if ( cp == NULL )
-    {
-        printf( "r_idisp_thd_dataxes: cp == NULL\n" );
-        return -1;
-    }
-
-    printf( "CREN_stuff structure at %p\n"
-            "   type = %d, nx = %d, ny = %d, nz = %d\n"
-            "   dx = %7.3f, dy = %7.3f, dz = %7.3f\n"
-            "   vox = %p, vtm = %p\n"
-            "   nrgb = %d, opargb = %7.3f, min_opacity = %7.3f\n"
-            /* rmap, gmap, bmap, imap,   opamap */
-            "   ax1 = %d, ax2 = %d, ac3 = %d\n"
-            "   th1 = %7.3f, th2 = %7.3f, th3 = %7.3f\n"
-            /* THD_mat33 skewmat */
-            "   newvox = %d, newopa = %d, newangles = %d\n"
-            "   renmode = %d, intmode = %d\n",
-            cp,
-            cp->type, cp->nx, cp->ny, cp->nz, cp->dx, cp->dy, cp->dz,
-            cp->vox, cp->vtm,
-            cp->nrgb, cp->opargb, cp->min_opacity,
-            cp->ax1, cp->ax2, cp->ax3, cp->th1, cp->th2, cp->th3,
-            cp->newvox, cp->newopa, cp->newangles, cp->renmode, cp->intmode
-          );
-
-    return 0;
-}
-
-#endif  /* _COX_RENDER_HEADER_ */

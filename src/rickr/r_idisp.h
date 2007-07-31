@@ -32,14 +32,6 @@ int r_idisp_vec3f      ( char * info, float  * vec );
 int r_idisp_vec3i      ( char * info, int    * vec );
 
 
-/*   ---  cox_render.h ---          */
-
-#ifdef _COX_RENDER_HEADER_
-
-int r_idisp_cren_stuff  ( char * info, CREN_stuff * cp );
-
-#endif /* _COX_RENDER_HEADER_ */
-
 #ifdef  __cplusplus
 }
 #endif

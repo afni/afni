@@ -2150,3 +2150,4 @@
              SUMA/SUMA_3dSkullStrip.c, whereami.c
         - included r_new_resam_dset, r_hex_str_to_long, r_idisp_fd_brick
           in forced_loads[]
+  * modified r_idisp.[ch]: nuked unused r_idisp_cren_stuff
