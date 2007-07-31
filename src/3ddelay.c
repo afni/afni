@@ -32,6 +32,7 @@ static char * method_strings[] = { "Seconds" , "Degrees" , "Radians"} ;
 static char * yn_strings[] = { "n" , "y" }; 
 
 /* for printing potentially NULL strings         22 July 2005 [rickr] */
+#undef  CHECK_NULL_STR
 #define CHECK_NULL_STR(str) (str) ? (str) : "(NULL)"
 
 /*#define ZDBG*/

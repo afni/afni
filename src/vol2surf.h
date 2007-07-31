@@ -28,7 +28,9 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #define V2S_SKIP_VALS            64     /* never skip first result value */
 #define V2S_SKIP_ALL            127
 
+#undef  CHECK_NULL_STR
 #define CHECK_NULL_STR(str)  ( str ? str : "<NULL>" )
+#undef  CHECK_EMPTY_STR
 #define CHECK_EMPTY_STR(str) ( str[0] ? str : "<empty>" )
 
 /* surface to voxel mapping codes, along with command-line strings */

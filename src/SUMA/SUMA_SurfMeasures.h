@@ -27,6 +27,7 @@
 
 #define RANGE(a,b,c) do {if ((b)<(a)) (b)=(a); if ((b)>(c)) (b)=(c);} while (0)
 
+#undef  CHECK_NULL_STR
 #define CHECK_NULL_STR(str) ( str ? str : "(NULL)" )
 
 /* measure codes, to match g_smeasure_names */

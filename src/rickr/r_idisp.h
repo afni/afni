@@ -6,6 +6,7 @@
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #endif
 
+#undef  CHECK_NULL_STR
 #define CHECK_NULL_STR(str) ( str ? str : "(nil)" )
 
 /*    --- 3ddata.h ---              */
