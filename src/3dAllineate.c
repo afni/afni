@@ -1,6 +1,5 @@
 /**** TO DO (someday, maybe):
         -matini
-         center of mass: use to set center of range?
 ****/
 
 /****** N.B.: What used to be 'target' is now 'source' to users,
@@ -10,6 +9,7 @@
 
 /*----------------------------------------------------------------------------*/
 #include "mrilib.h"
+#include "rickr/r_new_resam_dset.h"
 #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -163,7 +163,7 @@ int main( int argc , char *argv[] )
    int    hist_mode            = 0 ;            /* 08 May 2007 */
    float  hist_param           = 0.0f ;
    int    hist_setbyuser       = 0 ;
-   int    do_cmass             = 0 ;            /* 30 Jul 2007 */
+   int    do_cmass             = 1 ;            /* 30 Jul 2007 */
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -667,7 +667,11 @@ int main( int argc , char *argv[] )
         " -nmsetup nn   = Use 'nn' points for the setup matching [default=23456]\n"
         " -ignout       = Ignore voxels outside the warped source dataset.\n"
         " -cmass        = Use the center-of-mass calculation to bracket the shifts.\n"
+        "                   [On by default]\n"
         " -nocmass      = Don't use the center-of-mass calculation.\n"
+        "                   (You would want to disable the C-o-M calculation if the  )\n"
+        "                   (source sub-bricks have very different spatial locations,)\n"
+        "                   (since the source C-o-M is calculated from all sub-bricks)\n"
        ) ;
      } else {
        printf("\n"
@@ -1665,7 +1669,7 @@ int main( int argc , char *argv[] )
        DSET_delete(dset_weig) ; dset_weig=NULL ;
      }
      if( dset_mast == NULL && dxyz_mast == 0.0 )
-       WARNING_message("You might want to use '-master' when using '-1D*_apply'") ;
+       INFO_message("You might want to use '-master' when using '-1D*_apply'") ;
    }
 
    /* if no base input, target should have more than 1 sub-brick */
@@ -1714,7 +1718,7 @@ int main( int argc , char *argv[] )
      im_base = mri_scale_to_float( DSET_BRICK_FACTOR(dset_targ,0) ,
                                    DSET_BRICK(dset_targ,0)         ) ;
      dx_base = dx_targ; dy_base = dy_targ; dz_base = dz_targ;
-     if( do_cmass ){                                          /* 30 Jul 2007 */
+     if( do_cmass && apply_mode == 0 ){   /* 30 Jul 2007 */
        WARNING_message("no base dataset ==> -cmass is disabled"); do_cmass = 0;
      }
    }
@@ -1982,7 +1986,7 @@ int main( int argc , char *argv[] )
    yyy_p = yc + yyy ; yyy_m = yc - yyy ;
    zzz_p = zc + zzz ; zzz_m = zc - zzz ;
 
-   if( verb > 2 )
+   if( verb > 2 && apply_mode == 0 )
      INFO_message("shift param range: %.1f..%.1f %.1f..%.1f %.1f..%.1f",
                   xxx_m,xxx_p , yyy_m,yyy_p , zzz_m,zzz_p ) ;
 
@@ -1991,6 +1995,11 @@ int main( int argc , char *argv[] )
    DEFPAR( 0, "x-shift" , xxx_m , xxx_p , 0.0 , 0.0 , 0.0 ) ;    /* mm */
    DEFPAR( 1, "y-shift" , yyy_m , yyy_p , 0.0 , 0.0 , 0.0 ) ;
    DEFPAR( 2, "z-shift" , zzz_m , zzz_p , 0.0 , 0.0 , 0.0 ) ;
+   if( do_cmass ){                                            /* 31 Jul 2007 */
+     if( nx_base > 1 ) stup.wfunc_param[0].val_pinit = xc ;
+     if( ny_base > 1 ) stup.wfunc_param[1].val_pinit = yc ;
+     if( nz_base > 1 ) stup.wfunc_param[2].val_pinit = zc ;
+   }
 
    DEFPAR( 3, "z-angle" , -30.0 , 30.0 , 0.0 , 0.0 , 0.0 ) ;  /* degrees */
    DEFPAR( 4, "x-angle" , -30.0 , 30.0 , 0.0 , 0.0 , 0.0 ) ;
@@ -2368,18 +2377,19 @@ int main( int argc , char *argv[] )
               if( stup.npt_match < 666   ) stup.npt_match = 666 ;
          else if( stup.npt_match > 99999 ) stup.npt_match = 99999 ;
 
-         /* now optimize the tbest values saved already */
+         /*-- now refine the tbest values saved already --*/
 
          tb = MIN(tbest,stup.wfunc_ntrial) ; nfunc=0 ;
-         if( verb ) ININFO_message("- Start %d coarse optimizations",tb) ;
          if( verb > 1 ) ctim = COX_cpu_time() ;
 
          for( ib=0 ; ib < tb ; ib++ )
            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
              tfparm[ib][jj] = stup.wfunc_param[jj].val_trial[ib] ;
 
-         rad = 0.0345 ;
-         for( rr=0 ; rr < 2 ; rr++ , rad*=0.234 ){ /* refine w/ less smooth */
+         rad = 0.0369 ;
+         for( rr=0 ; rr < 2 ; rr++ , rad*=0.234 ){ /* refine with less smooth */
+           if( verb > 1 )
+             INFO_message("Start refinement #%d on %d coarse parameter sets",rr+1,tb);
            stup.smooth_radius_base *= 0.567 ;
            stup.smooth_radius_targ *= 0.567 ;
            mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
@@ -2387,16 +2397,16 @@ int main( int argc , char *argv[] )
            for( ib=0 ; ib < tb ; ib++ ){                  /* loop over trials */
              for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* load parameters */
                stup.wfunc_param[jj].val_init = tfparm[ib][jj] ;
-             nfunc += mri_genalign_scalar_optim( &stup , rad , 0.1*rad , 6666 ) ;
+             nfunc += mri_genalign_scalar_optim( &stup , rad , 0.0678*rad , 666 ) ;
              for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* save best params */
                tfparm[ib][jj] = stup.wfunc_param[jj].val_out ;
              if( verb > 1 ) ININFO_message("- #%d has cost=%f",ib+1,stup.vbest) ;
            }
          }
-         if( verb > 1 ) ININFO_message("- Coarse CPU time = %.1f s; funcs = %d",
+         if( verb > 1 ) ININFO_message("- refinement CPU time = %.1f s; funcs = %d",
                                        COX_cpu_time()-ctim,nfunc ) ;
 
-         tfdone = tb ;  /* number we've save in tfparm */
+         tfdone = tb ;  /* number we've saved in tfparm */
 
        /*- just optimize at coarse setup from default initial parameters -*/
 
@@ -2404,14 +2414,14 @@ int main( int argc , char *argv[] )
 
          if( verb     ) ININFO_message("- Start coarse optimization") ;
          if( verb > 1 ) ctim = COX_cpu_time() ;
-         nfunc = mri_genalign_scalar_optim( &stup , 0.05 , 0.005 , 6666 ) ;
+         nfunc = mri_genalign_scalar_optim( &stup , 0.05 , 0.005 , 666 ) ;
          stup.npt_match = ntask / 10 ;
               if( stup.npt_match < 666   ) stup.npt_match = 666 ;
          else if( stup.npt_match > 55555 ) stup.npt_match = 55555 ;
          stup.smooth_radius_base *= 0.666 ;
          stup.smooth_radius_targ *= 0.666 ;
          mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
-         nfunc += mri_genalign_scalar_optim( &stup , 0.02 , 0.002 , 6666 ) ;
+         nfunc += mri_genalign_scalar_optim( &stup , 0.02 , 0.002 , 666 ) ;
          if( verb > 1 ) ININFO_message("- Coarse CPU time = %.1f s; funcs = %d",
                                        COX_cpu_time()-ctim,nfunc) ;
          if( verb     ) ININFO_message("- Coarse optimization:  best cost=%f",
