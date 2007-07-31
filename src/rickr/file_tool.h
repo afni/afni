@@ -46,6 +46,7 @@
 #define FT_DEFINE_HDR       32  /* single commands start here */
 #define FT_DIFF_HDRS        64
 
+#undef  CHECK_NULL_STR
 #define CHECK_NULL_STR(str) ( str ? str : "(nil)" )
 #define CHECK_NEXT_OPT(n,m,str)                                     \
    do { if ( (n) >= (m) ) {                                          \

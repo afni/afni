@@ -18,6 +18,7 @@
 #define S2V_DEBUG_MAX_LEV         5
 #define S2V_DEBUG_TEST_NODE       7
 
+#undef  CHECK_NULL_STR
 #define CHECK_NULL_STR(str) ((str) ? (str) : "(NULL)")
 
 /* surface to voxel mapping codes, along with command-line strings */
