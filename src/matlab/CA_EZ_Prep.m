@@ -20,7 +20,7 @@ FuncName = 'CA_EZ_Prep';
 MapMPM = [];
 MapML = [];
 
-toolbox_dir = '/Volumes/elrond0/home4/users/ziad/Programs/matlab/spm2/toolbox/Anatomy';
+toolbox_dir = '/Volumes/afni/home4/users/ziad/Programs/matlab/spm2/toolbox/Anatomy';
 
 if (exist(toolbox_dir) ~= 7),
    fprintf(2,'Toolbox directory %s not found\nPick a new one:', toolbox_dir);
@@ -133,7 +133,7 @@ if (~isempty(which('se_note'))),
       nref = 0;
       l = 1;
       for (i=1:1:length(h)),
-         tmp = get(h(i),'String');
+         tmp = get(h(i),'String')
          if (~isempty(tmp)),
             k = k + 1;
             cs(k).s = tmp;
@@ -165,8 +165,10 @@ if (~isempty(which('se_note'))),
       % find the corresponding references
       ti = char(cs(ref(1)).s); ar = char(cs(ref(2)).s);
       if (nref ~= 2 || (size(ar,1) ~= size(ti,1))),
-         fprintf(2,'Unexpected number of ref strings or some mismatch (%d, %d, %d)\n', nref, size(ar,1), size(ti,1));
-         return;
+         fprintf(2,'Warning:\nUnexpected number of ref strings or some mismatch (%d, %d, %d)\nYou have to edit thd_ttat', nref, size(ar,1), size(ti,1));
+         sdecl = sprintf('char CA_EZ_REF_STR[128][256]');
+         sdecl2 = sprintf('char CA_EZ_VERSION_STR[128]');
+         %return;
       else
          k = 1;
          l = 1;
