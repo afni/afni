@@ -6324,3 +6324,4 @@
 
 31 Jul 2007
  * Make -cmass the default in 3dAllineate.c.
+ * Also add '+clip' feature to '-autoweight' in 3dAllineate.c.
