@@ -2151,3 +2151,6 @@
         - included r_new_resam_dset, r_hex_str_to_long, r_idisp_fd_brick
           in forced_loads[]
   * modified r_idisp.[ch]: nuked unused r_idisp_cren_stuff
+  * modified nifti/Makefile, Testing/Makefile, Testing/README_regress, and
+        renamed to nifti_regress_test, all to remove '.' from dir names
+
