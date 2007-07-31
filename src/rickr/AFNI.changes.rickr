@@ -2153,4 +2153,5 @@
   * modified r_idisp.[ch]: nuked unused r_idisp_cren_stuff
   * modified nifti/Makefile, Testing/Makefile, Testing/README_regress, and
         renamed to nifti_regress_test, all to remove '.' from dir names
+  * modified afni_func.c: watch for overflow in jj if ar_fim is garbage
 
