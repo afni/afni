@@ -1,5 +1,8 @@
 #include "mrilib.h"
 
+/****** functions used mostly in 1dmatcalc.c, but elsewhere as well ******/
+/***** these functions operate on matrices stored in 2D float images *****/
+
 /*-----------------------------------------------------------------------*/
 /*! Compute the product of two matrices, stored in 2D float images.
 -------------------------------------------------------------------------*/
@@ -150,6 +153,9 @@ ENTRY("mri_matrix_multranB") ;
 }
 
 /*-----------------------------------------------------------------------*/
+/*! Multiply matrix in ima by scalar fa, matrix in imb by scalar fb,
+    and add the results.  Used for general purpose matrix add/subtract.
+-------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_matrix_sadd( float fa, MRI_IMAGE *ima, float fb, MRI_IMAGE *imb )
 {
@@ -178,6 +184,7 @@ ENTRY("mri_matrix_sadd") ;
 }
 
 /*-----------------------------------------------------------------------*/
+/*! Multiply matrix in ima by scalar fa. */
 
 MRI_IMAGE * mri_matrix_scale( float fa, MRI_IMAGE *ima )
 {
@@ -213,7 +220,7 @@ void mri_matrix_psinv_svd( int i ){ force_svd = i; }
                           -1
       [imc' imc + alpha I]   imc'    (where ' = transpose)
 
-    This can be used to solve the penalized least squares problem.
+    This result can be used to solve the penalized least squares problem.
 -------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_matrix_psinv( MRI_IMAGE *imc , float *wt , float alpha )
@@ -432,8 +439,9 @@ ENTRY("mri_matrix_ortproj") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/*! Return the average absolute value of the entries of the matrix. */
 
-float mri_matrix_size( MRI_IMAGE *imc )
+float mri_matrix_size( MRI_IMAGE *imc )  /* 30 Jul 2007 */
 {
    int nxy , ii ;
    float sum , *car ;
@@ -446,6 +454,7 @@ float mri_matrix_size( MRI_IMAGE *imc )
 }
 
 /*----------------------------------------------------------------------------*/
+/*! Compute the square root of a matrix, iteratively. */
 
 MRI_IMAGE * mri_matrix_sqrt( MRI_IMAGE *imc )  /* 30 Jul 2007 */
 {
@@ -467,6 +476,8 @@ MRI_IMAGE * mri_matrix_sqrt( MRI_IMAGE *imc )  /* 30 Jul 2007 */
    imy = mri_copy(imc) ;
    for( ii=0 ; ii < nn ; ii++ ) zar[ii+ii*nn] = 1.0f ;
 
+   /** start iterations: usually 3-5 is enough **/
+
    for( ite=0 ; ite < 50 ; ite++ ){
      imyinv = mri_matrix_psinv( imy , NULL , 0.0f ) ;
      if( imyinv == NULL ){
@@ -479,12 +490,12 @@ MRI_IMAGE * mri_matrix_sqrt( MRI_IMAGE *imc )  /* 30 Jul 2007 */
        ERROR_message("mri_matrix_sqrt() fails at ite=%d",ite);
        mri_free(imz); mri_free(imy); mri_free(imyinv); RETURN(NULL);
      }
-     gam = 1.0f ;
+     gam = 1.0f ;  /* someday, could put a scaling calculation in for gam */
      fa = 0.5f*gam ; fb = 0.5f/gam ;
      imy = mri_matrix_sadd( fa,imy , fb,imzinv ) ;
      imz = mri_matrix_sadd( fa,imz , fb,imyinv ) ;
      mri_free(imyinv) ; mri_free(imzinv) ;
-     if( ite > 2 ){
+     if( ite > 2 ){  /* check for convergence: see if imy*imy-imc is small */
        imyinv = mri_matrix_mult( imy , imy ) ;
        imyinv = mri_matrix_sadd( 1.0f,imyinv , -1.0f,imc ) ;
        fa = mri_matrix_size(imyinv) ; mri_free(imyinv) ;
@@ -495,6 +506,7 @@ MRI_IMAGE * mri_matrix_sqrt( MRI_IMAGE *imc )  /* 30 Jul 2007 */
 }
 
 /*----------------------------------------------------------------------------*/
+/*! Square root of a mat44 struct (3x3 matrix + 3 vect). */
 
 mat44 THD_mat44_sqrt( mat44 A )  /* 30 Jul 2007 */
 {
@@ -515,7 +527,7 @@ mat44 THD_mat44_sqrt( mat44 A )  /* 30 Jul 2007 */
 
 /*----------------------------------------------------------------------------*/
 /*! Legendre polynomial of non-negative order m evaluated at x;
-    x may be any real number, but the main use is for -1 <= x <= 1 (duh).
+    x may be any real number, but the main use is for -1 <= x <= 1 (duuuh).
 ------------------------------------------------------------------------------*/
 
 double Plegendre( double x , int m )
@@ -526,7 +538,7 @@ double Plegendre( double x , int m )
 
    switch( m ){                /*** direct formulas for P_m(x) for m=0..20 ***/
     case 0: return 1.0 ;       /* that was easy */
-    case 1: return x ;
+    case 1: return x ;         /* also easy */
     case 2: return (3.0*x*x-1.0)/2.0 ;
     case 3: return (5.0*x*x-3.0)*x/2.0 ;
     case 4: return ((35.0*x*x-30.0)*x*x+3.0)/8.0 ;
