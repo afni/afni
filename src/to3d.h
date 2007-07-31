@@ -65,6 +65,7 @@ typedef struct {
 #define INCODE_FOV   100
 #define INCODE_SLAB  200
 
+#undef  ORCODE
 #define ORCODE(aa)                         \
   ( ((aa)=='R'||(aa)=='r') ? ORI_R2L_TYPE  \
    :((aa)=='L'||(aa)=='l') ? ORI_L2R_TYPE  \
