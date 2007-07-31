@@ -33,7 +33,7 @@ static float wt_gausmooth = 4.50f ;
 
 static int verb           = 1 ;       /* somewhat on by default (please keep this the default: ZSS) */
 
-MRI_IMAGE * mri_weightize( MRI_IMAGE *, int , int ) ;  /* prototype */
+MRI_IMAGE * mri_weightize( MRI_IMAGE *, int , int , float ) ;  /* prototype */
 
 void AL_setup_warp_coords( int,int,int,int ,
                            int *, float *, mat44,
@@ -112,6 +112,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset_weig = NULL ;
    int tb_mast                 = 0 ;            /* for -master SOURCE/BASE */
    int auto_weight             = 3 ;            /* -autobbox == default */
+   float auto_wclip            = 0.0f ;         /* 31 Jul 2007 */
    char *auto_string           = "-autobox" ;
    int auto_dilation           = 0 ;            /* for -automask+N */
    double dxyz_mast            = 0.0f ;         /* implemented 24 Jul 2007 */
@@ -387,6 +388,8 @@ int main( int argc , char *argv[] )
        "\n"
        " -autoweight = Compute a weight function using the 3dAutomask\n"
        "               algorithm plus some blurring of the base image.\n"
+       "       **N.B.: '-autoweight+100' means to zero out all voxels\n"
+       "               with values below 100 before computing the weight.\n"
       ) ;
       if( visible_noweights ){
         printf(
@@ -810,15 +813,19 @@ int main( int argc , char *argv[] )
      }
 
      /*-----*/
-     if( strncmp(argv[iarg],"-autoweight",8) == 0 ){
+
+     if( strncmp(argv[iarg],"-autoweight",11) == 0 ){
        if( dset_weig != NULL ) ERROR_exit("Can't use -autoweight AND -weight!") ;
-       auto_weight = 1 ; auto_string = "-autoweight" ; iarg++ ; continue ;
+       auto_weight = 1 ; auto_string = argv[iarg] ;
+       if( auto_string[11] == '+' && auto_string[12] != '\0' )  /* 31 Jul 2007 */
+         auto_wclip = (float)strtod(auto_string+12,NULL) ;
+       iarg++ ; continue ;
      }
 
      if( strncmp(argv[iarg],"-automask",9) == 0 ){
        if( dset_weig != NULL ) ERROR_exit("Can't use -automask AND -weight!") ;
        auto_weight = 2 ; auto_string = argv[iarg] ;
-       if( auto_string[9] == '+' )
+       if( auto_string[9] == '+' && auto_string[10] != '\0' )
          auto_dilation = (int)strtod(auto_string+10,NULL) ;
        iarg++ ; continue ;
      }
@@ -1810,7 +1817,7 @@ int main( int argc , char *argv[] )
        ERROR_exit("-weight and base volumes don't match grid dimensions!") ;
 
    } else if( auto_weight ){  /* manufacture weight from the base */
-     if( meth_noweight[meth_code-1] && auto_weight == 1 ){
+     if( meth_noweight[meth_code-1] && auto_weight == 1 && auto_wclip == 0.0f ){
        WARNING_message("Cost function '%s' uses -automask NOT -autoweight",
                        meth_longname[meth_code-1] ) ;
        auto_weight = 2 ;
@@ -1818,7 +1825,7 @@ int main( int argc , char *argv[] )
        INFO_message("Computing %s",auto_string) ;
      }
      if( verb > 1 ) ctim = COX_cpu_time() ;
-     im_weig = mri_weightize( im_base , auto_weight , auto_dilation ) ;
+     im_weig = mri_weightize( im_base , auto_weight , auto_dilation , auto_wclip ) ;
      if( verb > 1 ) INFO_message("%s CPU time = %.1f s" ,
                                  auto_string , COX_cpu_time()-ctim ) ;
    }
@@ -2865,7 +2872,7 @@ DUMP_MAT44("aff12_ijk",qmat) ;
     If acod == 2, then make a binary mask at the end.
 -----------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod , int ndil )
+MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod , int ndil , float aclip )
 {
    float *wf,clip,clip2 ;
    int xfade,yfade,zfade , nx,ny,nz,nxy,nxyz , ii,jj,kk,ff ;
@@ -2899,6 +2906,17 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod , int ndil )
    for( kk=0 ; kk < nz ; kk++ )
     for( ii=0 ; ii < nx ; ii++ )
      for( ff=0 ; ff < yfade ; ff++ ) WW(ii,ff,kk) = WW(ii,ny-1-ff,kk) = 0.0f;
+
+   if( aclip > 0.0f ){  /* 31 Jul 2007 */
+     int nleft , nclip ;
+     for( nclip=nleft=ii=0 ; ii < nxyz ; ii++ ){
+       if( wf[ii] > 0.0f ){
+         if( wf[ii] < aclip){ nclip++; wf[ii] = 0.0f; } else nleft++ ;
+       }
+     }
+     if( verb > 1 ) ININFO_message("Weightize: user clip=%g #clipped=%d #left=%d",
+                                   aclip,nclip,nleft) ;
+   }
 
    /*-- squash super-large values down to reasonability --*/
 
