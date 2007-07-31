@@ -28,6 +28,7 @@
 #define WRITE_ERR(str) \
   { fprintf(stderr,"*** Datablock write error: %s\n",str); return False; }
 
+#undef  ORCODE
 #define ORCODE(aa)                         \
   ( ((aa)=='R'||(aa)=='r') ? ORI_R2L_TYPE  \
    :((aa)=='L'||(aa)=='l') ? ORI_L2R_TYPE  \
