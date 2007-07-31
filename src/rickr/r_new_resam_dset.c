@@ -35,7 +35,6 @@
 
 #include "mrilib.h"
 #include "r_misc.h"
-#include "r_new_resam_dset.h"
 
 /* local #defines and function definitions */
 
