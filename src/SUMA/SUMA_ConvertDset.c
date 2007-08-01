@@ -54,7 +54,7 @@ void usage_ConverDset()
             "                      in the input dset. With this option, the indexing\n"
             "                      is assumed to be implicit (0,1,2,3.... for rows 0,1\n"
             "                      2,3,...). If that is not the case, use -node_index_1D\n"
-            "                      option below. "
+            "                      option below. \n"
             "     -node_index_1D INDEX.1D: Specify file containing node indices\n"
             "                              Use this to provide node indices with \n"
             "                              a .1D dset. In many cases for .1D data\n"
