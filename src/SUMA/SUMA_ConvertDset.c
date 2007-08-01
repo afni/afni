@@ -51,9 +51,14 @@ void usage_ConverDset()
             "     -input DSET: Input dataset to be converted.\n"
             "  Optional parameters:\n"
             "     -add_node_index: Add a node index element if one does not exist\n"
+            "                      in the input dset. With this option, the indexing\n"
+            "                      is assumed to be implicit (0,1,2,3.... for rows 0,1\n"
+            "                      2,3,...). If that is not the case, use -node_index_1D\n"
+            "                      option below. "
             "     -node_index_1D INDEX.1D: Specify file containing node indices\n"
             "                              Use this to provide node indices with \n"
-            "                              a .1D dset\n"
+            "                              a .1D dset. In many cases for .1D data\n"
+            "                              this option is DSET.1D'[0]'\n"
             "     -node_select_1D MASK.1D: Specify the nodes you want to keep in the\n"
             "                              output.\n" 
             "     -i_TYPE: TYPE of input datasets\n"
@@ -83,13 +88,13 @@ void usage_ConverDset()
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ConvertDset"};
-   int kar, brk, i_input, i, j, *Ti=NULL, *indexmap = NULL, force_node_index ;
+   int kar, brk, i_input, i, j, *Ti=NULL, *indexmap = NULL, add_node_index ;
    byte *Tb=NULL;
    float *fv = NULL;
    SUMA_DSET_FORMAT iform, oform;
    SUMA_DSET *dset = NULL, *dseti=NULL, *dset_m = NULL;
    char *NameOut, *prfx = NULL, *prefix = NULL;
-   char *add_node_index = NULL, *node_mask = NULL;
+   char *node_index_1d = NULL, *node_mask = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
@@ -101,12 +106,12 @@ int main (int argc,char *argv[])
       exit (1);
    }
 
-   force_node_index = 0;
+   add_node_index = 0;
    iform = SUMA_NO_DSET_FORMAT;
    oform = SUMA_NO_DSET_FORMAT;
    i_input = -1;
    prfx = NULL;
-   add_node_index = NULL;
+   node_index_1d = NULL;
    node_mask = NULL;
    kar = 1;
    brk = NOPE;
@@ -264,7 +269,7 @@ int main (int argc,char *argv[])
             exit(1);
          }
          ++kar;
-         add_node_index = argv[kar];
+         node_index_1d = argv[kar];
          brk = YUP;
       }
       
@@ -282,7 +287,7 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-add_node_index") == 0))
       {
          
-         force_node_index = 1;
+         add_node_index = 1;
          brk = YUP;
       }
       
@@ -332,9 +337,9 @@ int main (int argc,char *argv[])
          SUMA_RETURN(1); 
       }
 
-      if (add_node_index) { /* add a node index column */
+      if (node_index_1d) { /* add a node index column */
          iform = SUMA_1D;
-         if (!(dseti = SUMA_LoadDset_s (add_node_index, &iform, 0))) {
+         if (!(dseti = SUMA_LoadDset_s (node_index_1d, &iform, 0))) {
             SUMA_S_Err("Failed to load node index dset");
             exit(1);
          } 
@@ -348,7 +353,9 @@ int main (int argc,char *argv[])
          } 
          Ti = (int *) SUMA_calloc(SDSET_VECFILLED(dseti), sizeof(int));
          fv = (float *)dseti->dnel->vec[0];
-         for (j=0; j<SDSET_VECFILLED(dseti); ++j) Ti[j] = (int)fv[j];
+         for (j=0; j<SDSET_VECFILLED(dseti); ++j) {
+            Ti[j] = (int)fv[j];
+         }
          if (!SUMA_AddDsetNelCol (dset, "Node Index", SUMA_NODE_INDEX, (void *)Ti, NULL, 1)) {
             SUMA_SL_Err("Failed to add column");
             if (Ti) SUMA_free(Ti); Ti = NULL;
@@ -358,7 +365,7 @@ int main (int argc,char *argv[])
          SUMA_FreeDset(dseti); dseti = NULL;
       }
       
-      if (force_node_index) {
+      if (add_node_index) {
          if (!SUMA_PopulateDsetNodeIndexNel(dset)) {
             SUMA_S_Err("Failed to add node index column");
             exit(1);
@@ -379,9 +386,11 @@ int main (int argc,char *argv[])
          Ti = (int *) SUMA_calloc(SDSET_VECFILLED(dseti), sizeof(int));
          fv = (float *)dseti->dnel->vec[0];
          for (j=0; j<SDSET_VECFILLED(dseti); ++j) Ti[j] = (int)fv[j];
-         
          if (!(dset_m = SUMA_MaskedByNodeIndexCopyofDset(dset, Ti, SDSET_VECFILLED(dseti),  NULL, 1, 0))) {
-            SUMA_S_Err("Failed to mask dset by node indices");
+            SUMA_S_Err("Failed to mask dset by node indices\n");
+            SUMA_S_Note(   "If your input dataset did not have a node index \n"
+                           "explicitly defined, use -add_node_index or\n"
+                           "-node_index_1D options to specify node indices.\n" )
             exit(1);
          }
          
