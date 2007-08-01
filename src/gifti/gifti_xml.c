@@ -525,36 +525,22 @@ static int push_label(gxml_data * xd, const char ** attr)
 static int push_darray(gxml_data * xd, const char ** attr)
 {
     DataArray * da;
-    int         c, buf_size;
+    int         buf_size;
 
     if( gifti_add_empty_darray(xd->gim) ) return 1;
 
     da = xd->gim->darray[xd->gim->numDA-1];  /* get new pointer */
 
-    /* insert attributes - if unknown, store with extras */
-    clear_nvpairs(&da->ex_atrs);        /* must to first */
-    for(c = 0; attr[c]; c += 2 ) {
-        if( gifti_str2attr_darray(da, attr[c],attr[c+1]) )
-            if( gifti_add_to_nvpairs(&da->ex_atrs,attr[c],attr[c+1]) )
-                return 1;
-    }
-
-    /* clear elements */
-    clear_nvpairs(&da->meta);
-    da->coordsys = NULL;
-    da->data = NULL;
-
-    /* and init extras */
-    da->nvals = gifti_darray_nvals(da);
-    gifti_datatype_sizes(da->datatype, &da->nbyper, NULL); /* set nbyper */
+    /* fill the struct from the attributes */
+    if( gifti_init_darray_from_attrs(da, attr) ) return 1;
 
     /* make a request to potentially update the XML buffer size */
     if( da->nvals>0 && da->nbyper>0 ) {
         buf_size = partial_buf_size(da->nvals*da->nbyper);
         if( buf_size != xd->buf_size ) {
             if( xd->verb > 2 )
-                fprintf(stderr,"+d update XML buf size, %d to %d (for %d)\n",
-                    xd->buf_size, buf_size, da->nvals*da->nbyper);
+                fprintf(stderr,"+d update XML buf size, %d to %d (for %u)\n",
+                    xd->buf_size, buf_size, (unsigned)da->nvals*da->nbyper);
             xd->buf_size = buf_size;
         }
     }
@@ -589,18 +575,19 @@ static int push_data(gxml_data * xd)
 
     /* allocate space for data */
     if( da->nvals <= 0 || da->nbyper <= 0 ) {
-        fprintf(stderr,"** PD: bad vals,bytes = %d, %d\n",da->nvals,da->nbyper);
+        fprintf(stderr,"** PD: bad vals,bytes = %u, %d\n",
+                (unsigned)da->nvals,da->nbyper);
         return 1;
     }
 
-    da->data = calloc(da->nbyper, da->nvals);
+    da->data = calloc(da->nvals, da->nbyper);
     if( ! da->data ) {
-        fprintf(stderr,"** PD: failed to alloc %d bytes for darray[%d]\n",
-                da->nvals*da->nbyper, xd->gim->numDA-1);
+        fprintf(stderr,"** PD: failed to alloc %u bytes for darray[%d]\n",
+                (unsigned)da->nvals*da->nbyper, xd->gim->numDA-1);
         return 1;
     } else if ( xd->verb > 3 )
-        fprintf(stderr,"+d PD: alloc %d bytes for darray[%d]\n",
-                da->nvals*da->nbyper, xd->gim->numDA-1);
+        fprintf(stderr,"+d PD: alloc %u bytes for darray[%d]\n",
+                (unsigned)da->nvals*da->nbyper, xd->gim->numDA-1);
 
     return 0;
 }
@@ -1550,8 +1537,9 @@ static int gxml_write_gifti(gxml_data * xd, FILE * fp)
 
 static int ewrite_darray(gxml_data * xd, DataArray * da, FILE * fp)
 {
-    int spaces = xd->skip * xd->depth;
-    int offset;
+    int  spaces = xd->skip * xd->depth;
+    int  offset, c;
+    char dimstr[5] = "Dim0";
 
     if( xd->verb > 3 ) fprintf(stderr,"+d write DataArray\n");
 
@@ -1568,12 +1556,10 @@ static int ewrite_darray(gxml_data * xd, DataArray * da, FILE * fp)
     ewrite_str_attr("ArrayIndexingOrder",gifti_index_order_list[da->ind_ord],
                     offset,0,fp);
     ewrite_int_attr("Dimensionality", da->num_dim, offset, 0, fp);
-    ewrite_int_attr("Dim0", da->dim0, offset, 0, fp);
-    if( da->dim1 > 0 ) ewrite_int_attr("Dim1", da->dim1, offset, 0, fp);
-    if( da->dim2 > 0 ) ewrite_int_attr("Dim2", da->dim2, offset, 0, fp);
-    if( da->dim3 > 0 ) ewrite_int_attr("Dim3", da->dim3, offset, 0, fp);
-    if( da->dim4 > 0 ) ewrite_int_attr("Dim4", da->dim4, offset, 0, fp);
-    if( da->dim5 > 0 ) ewrite_int_attr("Dim5", da->dim5, offset, 0, fp);
+    for( c = 0; c < da->num_dim; c++ ) {
+        ewrite_int_attr(dimstr, da->dims[c], offset, 0, fp);
+        dimstr[3]++;  /* too devious??  iterate '0', '1', ... */
+    }
     ewrite_str_attr("Encoding", gifti_encoding_list[da->encoding],offset,0,fp);
     ewrite_str_attr("Endian", gifti_endian_list[da->endian],offset,0,fp);
     fprintf(fp, ">\n");

@@ -209,8 +209,8 @@ int write_1D_file(DataArray ** dlist, int len, char * prefix, int add_suf)
         for( c = 0; c < len; c++ ) {
             vlist[c] = dlist[c]->data;
             if( dlist[c]->nvals != dlist[0]->nvals ) {
-                fprintf(stderr,"** d[%d] has %d vals, but d[0] has %d\n",
-                        c, dlist[c]->nvals, dlist[0]->nvals);
+                fprintf(stderr,"** d[%d] has %u vals, but d[0] has %u\n",
+                        c,(unsigned)dlist[c]->nvals,(unsigned)dlist[0]->nvals);
                 free(vlist);
                 return 1;
             } else if (dlist[c]->datatype != dlist[0]->datatype) {
@@ -228,7 +228,8 @@ int write_1D_file(DataArray ** dlist, int len, char * prefix, int add_suf)
             return 1;
         }
 
-        fprintf(stderr,"+d 1D write, RxC = %d x %d\n", dlist[0]->nvals, len);
+        fprintf(stderr,"+d 1D write, RxC = %u x %d\n",
+                (unsigned)dlist[0]->nvals, len);
         ewrite_many_lines(vlist, dlist[0]->datatype,len, dlist[0]->nvals, 0,fp);
                           
         free(vlist);
@@ -408,11 +409,12 @@ int ewrite_data_line(void * data, int type, int row, int cols, int spaces,
 
 
 /* write out as cols by rows (else we'd use ewrite_data_line) */
-int ewrite_many_lines(void ** data, int type, int cols, int rows, int spaces,
-                      FILE * fp)
+int ewrite_many_lines(void ** data, int type, size_t cols, size_t rows,
+                      int spaces, FILE * fp)
 {
-    int r, c;
-    if( !data || rows <= 0 || cols <= 0 || !fp ) return 1;
+    size_t r, c;
+
+    if( !data || rows == 0 || cols == 0 || !fp ) return 1;
 
     fprintf(fp, "%*s", spaces, " ");
     switch( type ) {

@@ -2155,3 +2155,8 @@
         renamed to nifti_regress_test, all to remove '.' from dir names
   * modified afni_func.c: watch for overflow in jj if ar_fim is garbage
 
+01 Aug 2007:
+  * modified gifti.[ch], gifti_xml.c, gtest.[ch]
+        - changed dim0..dim5 to dims[], and nvals to size_t
+        - added gifti_init_darray_from_attrs and some validation functions
+
