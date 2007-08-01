@@ -1754,17 +1754,42 @@ SUMA_DSET * SUMA_MaskedByNodeIndexCopyofDset(SUMA_DSET *odset, int *indexlist, i
    SUMA_DSET *dset_m = NULL;
    byte *Tb = NULL;
    int *indexmap = NULL, j=0;
-   
+   float range[2];
+   int loc[2];
    SUMA_ENTRY;
    
-   if (!(indexmap = SUMA_CreateNodeIndexToRowIndexMap(odset))) {
+   if (!(indexmap = SUMA_CreateNodeIndexToRowIndexMap(odset, -1))) {
       SUMA_S_Err("Failed to get indexmap");
       SUMA_RETURN(NULL);
    }
     
+   
+   #if 0
+   /* get the range of valid nodes */
+   if (!SUMA_GetDsetNodeIndexColRange(odset, range, loc, 1)) {
+      SUMA_S_Err("Failed to get node range!");
+      SUMA_RETURN(NULL);  
+   }
+
+   Tb = (byte *) SUMA_calloc(SDSET_VECLEN(odset), sizeof(byte));
+   /* turn indexlist to a byte mask */
+   if (!(bm = SUMA_indexlist_2_bytemask(indexlist, N_indexlist, SUMA_MAX_PAIR(SDSET_VECLEN(odset), (range[1]+1)), NULL))) {
+      SUMA_S_Err("Failed to create bytemask!");
+      SUMA_free(Tb); Tb = NULL;
+      SUMA_RETURN(NULL);
+   }
+   for (j=0; j<SDSET_VECLEN(odset); ++j) {
+      if (indexlist[j] < SDSET_VECLEN(odset) && bm[ind[j]]) { 
+         Tb[j] = 1;
+      } 
+   }
+   
+   SUMA_free(indexmap); indexmap = NULL;
+   SUMA_free(bm); bm=NULL; 
+   #else
    Tb = (byte *) SUMA_calloc(SDSET_VECLEN(odset), sizeof(byte));
    for (j=0; j<N_indexlist; ++j) {
-      if (indexlist[j] < SDSET_VECFILLED(odset)) { 
+      if (indexmap[indexlist[j]] >=0 && indexmap[indexlist[j]] < SDSET_VECFILLED(odset)) { 
          Tb[indexmap[indexlist[j]]] = 1;
       } else {
          SUMA_S_Warn("Nodes in indexlist exceed odset->dnel->vec_filled\n"
@@ -1772,7 +1797,10 @@ SUMA_DSET * SUMA_MaskedByNodeIndexCopyofDset(SUMA_DSET *odset, int *indexlist, i
                      "Warning will not be repeated in this call.");
       }
    }
+   
    SUMA_free(indexmap); indexmap = NULL;
+   #endif
+   
    if (!(dset_m = SUMA_MaskedCopyofDset(odset, Tb, colmask, masked_only, keep_node_index ))) {
       SUMA_S_Err("Failed to mask dset by node indices");
       SUMA_free(Tb); Tb = NULL;
@@ -1866,6 +1894,12 @@ SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, byte *rowmask, byte *colmask
             /* good time to deal with node index element */
             if ((ind = SDSET_NODE_INDEX_COL(odset))) {
                rti = NI_rowtype_find_code(SUMA_ColType2TypeCast(SUMA_NODE_INDEX)) ;
+               if (LocalHead) {
+                  char *ss=NULL;
+                  SUMA_ShowNel((void*)odset->inel);
+                  ss = SUMA_ShowMeSome(ind, SUMA_int, SDSET_VECLEN(odset), -1, NULL);
+                  SUMA_S_Note(ss); SUMA_free(ss); ss = NULL;
+               }
                if (keep_node_index && !masked_only) {
                   /* preserve all rows */
                   ncoli = SUMA_Copy_Part_Column(ind, rti, SDSET_VECLEN(odset), NULL, masked_only, &n_incopy);
@@ -1875,6 +1909,12 @@ SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, byte *rowmask, byte *colmask
                if (!ncoli) {
                   SUMA_SL_Err("No index data got copied.");
                   SUMA_RETURN(ndset);
+               }
+               if (LocalHead) {
+                  char *ss=NULL;
+                  SUMA_ShowNel((void*)odset->inel);
+                  ss = SUMA_ShowMeSome(ncoli, SUMA_int, n_incopy, -1, NULL);
+                  SUMA_S_Note(ss); SUMA_free(ss); ss = NULL;
                }
                if (!SUMA_AddDsetNelCol (ndset, NI_get_attribute(odset->inel,"COLMS_LABS"), SUMA_NODE_INDEX, ncoli, NULL ,1)) {
                   SUMA_SL_Crit("Failed in SUMA_AddDsetNelCol");
@@ -3981,12 +4021,15 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node, int N_Node)
    returns indexmap, such that indexmap[node] = row which means that
    data for node 'node' is in row 'row' of the dset
    if indexmap[node] = -1 then the node does not exist in the dset
+   indexmap is as large as the MAX(largest index in the node list in dset , maxind, SDSET_VECLEN(dset))
    free indexmap with SUMA_free
 */
-int *SUMA_CreateNodeIndexToRowIndexMap(SUMA_DSET *dset)
+int *SUMA_CreateNodeIndexToRowIndexMap(SUMA_DSET *dset, int maxind)
 {
    static char FuncName[]={"SUMA_CreateNodeIndexToRowIndexMap"};
    int *indexmap=NULL, j=0, *nip=NULL;
+   int maxn = -1, loc[2];
+   float range[2];
    
    SUMA_ENTRY;
    
@@ -3994,14 +4037,23 @@ int *SUMA_CreateNodeIndexToRowIndexMap(SUMA_DSET *dset)
       SUMA_S_Err("Failed to find node index column in dset");
       SUMA_RETURN(indexmap);
    }
- 
+   
+   /* get the range of valid nodes */
+   if (!SUMA_GetDsetNodeIndexColRange(dset, range, loc, 1)) {
+      SUMA_S_Err("Failed to get node range!");
+      SUMA_RETURN(NULL);  
+   }
+
+   maxn = SUMA_MAX_PAIR(maxind+1, SDSET_VECLEN(dset));
+   maxn = SUMA_MAX_PAIR(maxn, range[1]+1);
+   
    /* find the mapping of a node index to a row */
-   indexmap = (int *)SUMA_calloc(SDSET_VECLEN(dset), sizeof(int));
+   indexmap = (int *)SUMA_calloc(maxn, sizeof(int));
    if (!indexmap) {
       SUMA_S_Crit("Failed to allocate");
       SUMA_RETURN(NULL);
    }
-   for (j=0; j<SDSET_VECLEN(dset); ++j)  indexmap[j] = -1;
+   for (j=0; j<maxn; ++j)  indexmap[j] = -1;
    for (j=0; j<SDSET_VECFILLED(dset); ++j) indexmap[nip[j]] = j; /* indexmap[node] hold the row in the dset that contains data for node */
       
    SUMA_RETURN(indexmap);
@@ -4667,7 +4719,7 @@ byte * SUMA_load_all_command_masks(char *bmaskname, char *nmaskname, char *cmask
 byte * SUMA_indexlist_2_bytemask(int *ind_list, int N_ind_list, int N_mask, int *N_inmask)   
 {
    static char FuncName[]={"SUMA_indexlist_2_bytemask"};
-   int i = 0, cnt; 
+   int i = 0, cnt, ign = 0; 
    byte *bmask = NULL;
 
    SUMA_ENTRY; 
@@ -4689,13 +4741,134 @@ byte * SUMA_indexlist_2_bytemask(int *ind_list, int N_ind_list, int N_mask, int 
          bmask[ind_list[i]] = 1;
          ++cnt;
       } else {
-         SUMA_S_Warn("Values in ind_list exceed N_mask!\nIndices ignored.");
+         if (!ign) {
+            SUMA_S_Warn("Values in ind_list exceed N_mask!\n"); 
+         }
+         ++ign;
       }
    }
 
+   if (ign) {
+      fprintf(SUMA_STDERR,"%s:   %d values in indexlist ignored because they are >= N_mask of %d\n", FuncName, ign, N_mask);
+   }
+   
    BYE:
    if (N_inmask) *N_inmask = cnt;
    SUMA_RETURN(bmask);
+}
+
+/*!
+   \brief c = SUMA_DsetCol2FloatFullSortedColumn (
+                        dset, ico, nmaskp, fillval,
+                        N_Node, N_inmaskp, MergeMask);
+           Returns a float copy 'c' column 'ico' in a dset
+           If 'dset' is sparse, the copy is filled such that
+           c[i] has the value for node i. 
+   \param dset (SUMA_DSET *) Dataset pointer
+   \param ico (int) column desired from dset
+   \param nmaskp (byte **) pointer to node mask vector.
+
+                 If you have a node mask nmask (byte *) that
+                 you want applied to 'c' then pass &nmask to
+                 this function. nmask is internally modified
+                 so that nmask[i] is set to 0 if node 'i' does 
+                 have entries in dset.
+
+                 If you do not have a node mask (i.e. you want
+                 to use all nodes) then you can set nmask = NULL
+                 and pass &nmask to this function nonetheless.
+                 When the function returns, it will have set
+                 nmask to reflect the nodes present in dset.
+
+                 The previous two conditions apply the first time 
+                 you are calling this function with a particular 
+                 sparse dset. For subsequent calls, your nmask
+                 will not change, so you can pass NULL for nmaskp.
+                 
+                 Note that if you specify no mask to begin with 
+                 and dset is not sparse, then you'll *nmaskp will
+                 be NULL on return
+   \param  fillval (float) value to put in c[i] where i is a node
+                 not present in the dset.
+   \param  N_Node (int) Total number of nodes in surface where dset
+                        is defined
+   \param  N_inmask (int *) To contain the total number of nodes in 
+                            *nmaskp. If nmaskp was set to NULL then
+                            *N_inmask = -1
+   \param MergeMask (SUMA_Boolean) A flag to indicate that node mask
+                                   merger is needed. Set to YUP the 
+                                   first time you call this function
+                                   for a particular dataset. 
+   \sa   SUMA_MakeSparseColumnFullSorted and   SUMA_DsetCol2Float    
+*/       
+float * SUMA_DsetCol2FloatFullSortedColumn(  SUMA_DSET *dset, int ico, byte **nmaskp, float fillval,
+                                             int N_Node, int *N_inmask, SUMA_Boolean MergeMask)
+{
+   static char FuncName[]={"SUMA_DsetCol2FloatFullSortedColumn"};
+   float *fin_orig = NULL;
+   byte *locmask = NULL;
+   byte *nmask = NULL;
+   int n=0, N_nmask=0, jj=0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (nmaskp) nmask = *nmaskp;
+   *N_inmask =  -1;
+
+   /* get a float copy of the data column */
+   fin_orig = SUMA_DsetCol2Float (dset, ico , 1);
+   if (!fin_orig) {
+      SUMA_SL_Crit("Failed to get copy of column. Woe to thee!");
+      SUMA_RETURN(NULL);
+   }
+
+   /* make sure column is not sparse, one value per node */
+   if (MergeMask) { /* masks may need merging */
+      SUMA_LH( "Mask merger");
+      locmask = NULL;
+      if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(dset), fillval, &locmask, dset, N_Node)) {
+         SUMA_S_Err("Failed to get full column vector");
+         SUMA_RETURN(NULL);
+      }
+      if (locmask) {
+         SUMA_LH( "Something was filled in SUMA_MakeSparseColumnFullSorted\n" );
+         /* something was filled in good old SUMA_MakeSparseColumnFullSorted */
+         if (nmask) {   /* combine locmask with nmask */
+            SUMA_LH( "Merging masks\n" );
+            for (jj=0; jj < N_Node; ++jj) { if (nmask[jj] && !locmask[jj]) nmask[jj] = 0; }   
+         } else { nmask = locmask; }
+      } 
+      if (nmask) {
+         N_nmask = 0;
+         for (n=0; n<N_Node; ++n) { if (nmask[n]) ++ N_nmask; }
+         if (LocalHead) fprintf(SUMA_STDERR, "%s: Node mask has %d nodes in mask)\n", FuncName, N_nmask);
+         if (!N_nmask) {
+            SUMA_S_Warn("Empty mask, nothing to do");
+         }
+      } else {
+         N_nmask = N_Node;
+      }
+      if (nmaskp) { /* return the mask that we have created or modified*/
+         *nmaskp = nmask; 
+         if (locmask && nmask != locmask) { /* free locally created mask */
+            SUMA_free(locmask);
+         }
+         locmask = NULL;
+      }
+      *N_inmask = N_nmask; 
+   } else {
+      SUMA_LH( "going to SUMA_MakeSparseColumnFullSorted");
+      if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(dset), fillval, NULL, dset, N_Node)) {
+         SUMA_S_Err("Failed to get full column vector");
+         SUMA_RETURN(NULL);
+      }
+      /* no need for reworking nmask and locmask on this pass...*/
+      *N_inmask =  -1; /* nothing to do */
+   }
+
+
+   SUMA_RETURN(fin_orig);
 }
 
 /*!
@@ -4712,6 +4885,8 @@ byte * SUMA_indexlist_2_bytemask(int *ind_list, int N_ind_list, int N_mask, int 
    \param SO (SUMA_SurfaceObject *) 
    \return  YUP: OK
             NOPE: NOK 
+            
+   \sa SUMA_DsetCol2FloatFullSortedColumn  
 */
 SUMA_Boolean SUMA_MakeSparseColumnFullSorted(float **vp, int N_v, float mask_val, byte **bmp, SUMA_DSET *dset, int N_Node)
 {
@@ -4807,26 +4982,28 @@ SUMA_Boolean SUMA_MakeSparseColumnFullSorted(float **vp, int N_v, float mask_val
  
 /*!
    \brief Copies the contents of a float vector into a NI_element column 
-   SUMA_Float2DsetCol (dset,  ind,  V, FilledOnly);
+   SUMA_Float2DsetCol (dset,  ind,  V, FilledOnly, replacemask);
    
    \param nel (NI_element *)
    \param ind (int) index of column to be filled with values in V
    \param V (float *) vector containing the column's contents (see number of values copied below).
    \param FilledOnly (int) 0 = copy from index 0 to dset->dnel->vec_len or SDSET_VECLEN(dset)
                            1 = copy from index 0 to dset->dnel->vec_filled or SDSET_VECFILLED(dset)
-   
+   \param replacemask (byte *) if not null, then copy value in index i only IF replacemask[i] == 1
+                               if null, copy all indices i
    The values in V replace those in nel!
    No new columns in nel are created.
    
    \sa SUMA_DsetCol2Float 
 */
-int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind, float *V, int FilledOnly)
+int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind, float *V, int FilledOnly, byte *replacemask)
 {
    static char FuncName[]={"SUMA_Float2DsetCol"};
    int i = -1, N_read = -1, *iv = NULL, *nip=NULL;
    float *fv = NULL;
    SUMA_COL_TYPE ctp;
    SUMA_VARTYPE vtp;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
       
@@ -4843,19 +5020,31 @@ int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind, float *V, int FilledOnly)
       N_read = SDSET_VECLEN(dset);
    }
    
+   if (LocalHead) SUMA_ShowDset(dset, 0, NULL);
+   
    ctp = SUMA_TypeOfDsetColNumb(dset, ind); 
    vtp = SUMA_ColType2TypeCast (ctp) ;
    nip = SUMA_GetNodeDef(dset);
    switch (vtp) {
       case SUMA_int:
          iv = (int *)dset->dnel->vec[ind];
-         if (nip)  for (i=0; i<N_read; ++i) iv[i] = (int)V[nip[i]];
-         else for (i=0; i<N_read; ++i) iv[i] = (int)V[i];
+         if (!replacemask) {
+            if (nip)  for (i=0; i<N_read; ++i) iv[i] = (int)V[nip[i]];
+            else for (i=0; i<N_read; ++i) iv[i] = (int)V[i];
+         } else {
+            if (nip)  for (i=0; i<N_read; ++i) if (replacemask[nip[i]]) iv[i] = (int)V[nip[i]];
+            else for (i=0; i<N_read; ++i) if (replacemask[i]) iv[i] = (int)V[i];
+         }
          break;
       case SUMA_float:
          fv = (float *)dset->dnel->vec[ind];
-         if (nip)  for (i=0; i<N_read; ++i) fv[i] = V[nip[i]];
-         else for (i=0; i<N_read; ++i) fv[i] = V[i];
+         if (!replacemask) {
+            if (nip)  for (i=0; i<N_read; ++i) fv[i] = V[nip[i]];
+            else for (i=0; i<N_read; ++i) fv[i] = V[i];
+         } else {
+            if (nip)  for (i=0; i<N_read; ++i) if (replacemask[nip[i]]) fv[i] = V[nip[i]];
+            else for (i=0; i<N_read; ++i) if (replacemask[i]) fv[i] = V[i];
+         }
          break;
       default:
          SUMA_SL_Err("This type is not supported.\n");
@@ -4891,6 +5080,7 @@ float * SUMA_DsetCol2Float (SUMA_DSET *dset, int ind, int FilledOnly)
    float *V=NULL, *fv = NULL;
    SUMA_COL_TYPE ctp;
    SUMA_VARTYPE vtp;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
       
@@ -4927,7 +5117,7 @@ float * SUMA_DsetCol2Float (SUMA_DSET *dset, int ind, int FilledOnly)
          SUMA_RETURN(NULL);
          break;
    }
-      
+   
    SUMA_RETURN(V);
 }
 
@@ -7166,6 +7356,30 @@ SUMA_Boolean SUMA_NewDsetID (SUMA_DSET *dset)
    if (!dset->ngr) SUMA_RETURN(NOPE);
    
    NI_set_attribute(dset->ngr, "self_idcode", stmp);
+   
+   SUMA_RETURN(YUP);
+}
+
+SUMA_Boolean SUMA_NewDsetID2 (SUMA_DSET *dset, char *str)
+{
+   static char FuncName[]={"SUMA_NewDsetID2"};
+   char *namecode;
+   
+   SUMA_ENTRY;
+   
+   if (!dset) SUMA_RETURN(NOPE);
+   if (!dset->ngr) SUMA_RETURN(NOPE);
+   if (str) {
+      namecode = UNIQ_hashcode(str);  /* from str */
+      NI_set_attribute (dset->ngr, "self_idcode", namecode); 
+      SUMA_free(namecode); namecode = NULL;
+   } else if (NI_get_attribute(dset->ngr, "filename")) {
+      namecode = UNIQ_hashcode(NI_get_attribute(dset->ngr, "filename")); /* from filename */
+      NI_set_attribute (dset->ngr, "self_idcode", namecode); 
+   } else {
+      SUMA_NewDsetID (dset);
+   }
+   
    
    SUMA_RETURN(YUP);
 }
