@@ -58,17 +58,25 @@
  " ** This software comes with no warranties of any kind whatsoever,    **\n"  \
  " ** and may not be useful for anything.  Use it at your own risk!     **\n"  \
  " ** If these terms are not acceptable, you aren't allowed to use AFNI.**\n"  \
- " ** See 'Define Datamode->Misc->License Info' for more details.       **\n\n"
+ " ** See 'Define Datamode->Misc->License Info' for more details.       **\n\n"\
+ " **** If you DO find AFNI useful, please cite this paper:\n"                 \
+ "      RW Cox. AFNI: Software for analysis and visualization of functional\n" \
+ "      magnetic resonance neuroimages.\n"                                     \
+ "      Computers and Biomedical Research, 29:162-173, 1996.\n\n"
 #else
 #define ANNOUNCEMENT                                                           \
  "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
- "This is Version " VERSION               "\n\n"                               \
+ "This is Version " VERSION " -- compiled " __DATE__  "\n\n"                   \
  " ** This software was designed to be used only for research purposes. **\n"  \
  " ** Clinical uses are not recommended, and have never been evaluated. **\n"  \
  " ** This software comes with no warranties of any kind whatsoever,    **\n"  \
  " ** and may not be useful for anything.  Use it at your own risk!     **\n"  \
  " ** If these terms are not acceptable, you aren't allowed to use AFNI.**\n"  \
- " ** See 'Define Datamode->Misc->License Info' for more details.       **\n\n"
+ " ** See 'Define Datamode->Misc->License Info' for more details.       **\n\n"\
+ " **** If you DO find AFNI useful, please cite this paper:\n"                 \
+ "      RW Cox. AFNI: Software for analysis and visualization of functional\n" \
+ "      magnetic resonance neuroimages.\n"                                     \
+ "      Computers and Biomedical Research, 29:162-173, 1996.\n\n"
 #endif
 
 #define USE_FRIENDS
