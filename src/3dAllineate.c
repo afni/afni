@@ -404,6 +404,8 @@ int main( int argc , char *argv[] )
        "               will be printed if you run into this situation.\n"
        "               If a clip level '+xxx' is appended to '-autoweight',\n"
        "               then the conversion into '-automask' will NOT happen.\n"
+       "               Thus, using a small positive '+xxx' can be used trick\n"
+       "               -autoweight into working on any cost function.\n"
         ) ;
       }
       printf(
@@ -1722,7 +1724,8 @@ int main( int argc , char *argv[] )
      if( im_base->nx < 2 || im_base->ny < 2 )
        ERROR_exit("Base dataset has nx=%d ny=%d ???",nx_base,ny_base) ;
    } else {
-     INFO_message("no -base option ==> base is #0 sub-brick of source") ;
+     if( apply_mode == 0 )
+       INFO_message("no -base option ==> base is #0 sub-brick of source") ;
      im_base = mri_scale_to_float( DSET_BRICK_FACTOR(dset_targ,0) ,
                                    DSET_BRICK(dset_targ,0)         ) ;
      dx_base = dx_targ; dy_base = dy_targ; dz_base = dz_targ;
@@ -1770,7 +1773,7 @@ int main( int argc , char *argv[] )
      zeropad = (pad_xm > 0 || pad_xp > 0 ||
                 pad_ym > 0 || pad_yp > 0 || pad_zm > 0 || pad_zp > 0) ;
 
-     if( verb ){
+     if( verb && apply_mode == 0 ){
        if( zeropad ){
          if( pad_xm > 0 || pad_xp > 0 )
            INFO_message("Zero-pad: xbot=%d xtop=%d",pad_xm,pad_xp) ;
@@ -1884,7 +1887,8 @@ int main( int argc , char *argv[] )
    } else {
       npt_match = (int)(nmask_frac*(double)nmask);
    }
-   if( verb ) INFO_message("Number of points for matching = %d",npt_match) ;
+   if( verb && apply_mode == 0 )
+     INFO_message("Number of points for matching = %d",npt_match) ;
 
    /*------ setup alignment structure parameters ------*/
 
@@ -1949,8 +1953,9 @@ int main( int argc , char *argv[] )
 
    if( apply_1D != NULL ){
      if( apply_mode == APPLY_PARAM && apply_nx < stup.wfunc_numpar )
-       ERROR_exit("-1Dparam_apply '%s': %d isn't enough parameters per row for desired warp",
-                  apply_1D,apply_nx);
+       ERROR_exit(
+         "-1Dparam_apply '%s': %d isn't enough parameters per row for desired warp",
+         apply_1D,apply_nx);
 
      if( apply_ny < DSET_NVALS(dset_targ) )
        WARNING_message(
@@ -2028,7 +2033,8 @@ int main( int argc , char *argv[] )
      stup.wfunc_param[ 8].fixed = 2 ;
      stup.wfunc_param[10].fixed = 2 ;
      stup.wfunc_param[11].fixed = 2 ;
-     if( verb ) INFO_message("base dataset is 2D ==> froze z-parameters") ;
+     if( verb && apply_mode == 0 )
+       INFO_message("base dataset is 2D ==> froze z-parameters") ;
    }
 
    /*-- apply any parameter-altering user commands --*/
@@ -2080,7 +2086,7 @@ int main( int argc , char *argv[] )
      if( !stup.wfunc_param[jj].fixed ) ii++ ;
    if( ii == 0 ) ERROR_exit("No free parameters for aligning datasets?!!") ;
    nparam_free = ii ;
-   if( verb > 1 ) ININFO_message("%d free parameters",ii) ;
+   if( verb > 1 && apply_mode == 0 ) ININFO_message("%d free parameters",ii) ;
 
    /*-- should have some free parameters in the first 6 if using twopass --*/
 
@@ -2124,7 +2130,8 @@ int main( int argc , char *argv[] )
      zzz = MIN(zzz,yyy) ;
    }
    conv_rad = MIN(zzz,0.001) ; conv_rad = MAX(conv_rad,0.00001) ;
-   if( verb > 1 ) INFO_message("Normalized convergence radius = %.6f",conv_rad) ;
+   if( verb > 1 && apply_mode == 0 )
+     INFO_message("Normalized convergence radius = %.6f",conv_rad) ;
 
    /*****------ create shell of output dataset ------*****/
 
@@ -2283,13 +2290,13 @@ int main( int argc , char *argv[] )
        switch( apply_mode ){   /* 23 Jul 2007 */
          default:
          case APPLY_PARAM:     /* load parameters from file into structure */
-           if( verb > 1 ) INFO_message("using -1Dparam_apply parameters") ;
+           if( verb > 1 ) INFO_message("using -1Dparam_apply") ;
            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
              stup.wfunc_param[jj].val_out = APL(jj,rr) ;
          break ;
 
          case APPLY_AFF12:     /* load matrix from file into aff12_xyz */
-           if( verb > 1 ) INFO_message("using -1Dmatrix_apply matrix") ;
+           if( verb > 1 ) INFO_message("using -1Dmatrix_apply") ;
            LOAD_MAT44_AR( aff12_xyz , &APL(0,rr) ) ;    /* DICOM coord matrix */
          break ;
        }
