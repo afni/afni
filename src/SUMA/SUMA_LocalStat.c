@@ -1321,7 +1321,7 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
          }
          
          /* add this column to the output dset */
-         if (!SUMA_Float2DsetCol (dout, icols[k], fout, 1)) {
+         if (!SUMA_Float2DsetCol (dout, icols[k], fout, 1, nmask)) {
             SUMA_S_Err("Failed to update dset's values");
             SUMA_RETURN(NOPE);      
          }
