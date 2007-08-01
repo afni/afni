@@ -31,7 +31,7 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 static float wt_medsmooth = 2.25f ;   /* for mri_weightize() */
 static float wt_gausmooth = 4.50f ;
 
-static int verb           = 1 ;       /* somewhat on by default (please keep this the default: ZSS) */
+static int verb = 1 ; /* somewhat on by default */
 
 MRI_IMAGE * mri_weightize( MRI_IMAGE *, int , int , float ) ;  /* prototype */
 
@@ -348,11 +348,16 @@ int main( int argc , char *argv[] )
        "               resolution pass first.  Useful if you know that only\n"
        "               small amounts of image alignment are needed.\n"
        "               [The default is to use both passes.]\n"
-       " -twopass    = Use a two pass alignment strategy, first searching\n"
-       "               for a large rotation+shift and then refining the\n"
-       "               alignment.  [Two passes are used by default.]\n"
+       " -twopass    = Use a two pass alignment strategy, first searching for\n"
+       "               a large rotation+shift and then refining the alignment.\n"
+       "               [Two passes are used by default for the first sub-brick]\n"
+       "               [in the source dataset, and then one pass for the others.]\n"
+       "               ['-twopass' will do two passes for ALL source sub-bricks.]\n"
        " -twoblur rr = Set the blurring radius for the first pass to 'rr'\n"
        "               millimeters.  [Default == 11 mm]\n"
+       "       **N.B.: You may want to change this from the default if\n"
+       "               your voxels are unusually small or unusually large\n"
+       "               (e.g., outside the range 1-4 mm on each axis).\n"
        " -twofirst   = Use -twopass on the first image to be registered, and\n"
        "               then on all subsequent images, use the results from\n"
        "               the first image's coarse pass to start the fine pass.\n"
@@ -360,16 +365,17 @@ int main( int argc , char *argv[] )
        "               (source and the base, but only small motions within   )\n"
        "               (the source dataset itself; since the coarse pass can )\n"
        "               (be slow, doing it only once makes sense in this case.)\n"
-       "               [-twofirst is on by default; '-twopass' turns it off.]\n"
+       "       **N.B.: [-twofirst is on by default; '-twopass' turns it off.]\n"
        " -twobest bb = In the coarse pass, use the best 'bb' set of initial\n"
        "               points to search for the starting point for the fine\n"
        "               pass.  If bb==0, then no search is made for the best\n"
        "               starting point, and the identity transformation is\n"
        "               used as the starting point.  [Default=4; min=0 max=7]\n"
+       "       **N.B.: Setting bb=0 will make things run faster, but less reliably.\n"
        " -fineblur x = Set the blurring radius to use in the fine resolution\n"
        "               pass to 'x' mm.  [Default == 0 mm]\n"
        "   **NOTES ON\n"
-       "   **STRATEGY: * If you expect only small-ish (< 5 mm?) image movements,\n"
+       "   **STRATEGY: * If you expect only small-ish (< 2 voxels?) image movement,\n"
        "                 then using '-onepass' or '-twobest 0' makes sense.\n"
        "               * If you expect large-ish image movements, then do not\n"
        "                 use '-onepass' or '-twobest 0'; the purpose of the\n"
@@ -377,8 +383,8 @@ int main( int argc , char *argv[] )
        "                 rotations/shifts with which to start the coarse\n"
        "                 optimization round.\n"
        "               * If you have multiple sub-bricks in the source dataset,\n"
-       "                 then '-twofirst' makes sense if you don't expect large\n"
-       "                 movements WITHIN the source, but expect large movements\n"
+       "                 then the default '-twofirst' makes sense if you don't expect\n"
+       "                 large movements WITHIN the source, but expect large motions\n"
        "                 between the source and base.\n"
        "               * '-fineblur' is experimental, and if you use it, the\n"
        "                 value should probably be small (1 mm?).\n"
@@ -396,6 +402,8 @@ int main( int argc , char *argv[] )
        "       **N.B.: Some cost functions do not allow -autoweight, and\n"
        "               will use -automask instead.  A warning message\n"
        "               will be printed if you run into this situation.\n"
+       "               If a clip level '+xxx' is appended to '-autoweight',\n"
+       "               then the conversion into '-automask' will NOT happen.\n"
         ) ;
       }
       printf(
@@ -415,7 +423,7 @@ int main( int argc , char *argv[] )
        "               the base dataset.\n"
        "       **N.B.: Even if a method does not allow -autoweight, you CAN\n"
        "               use a weight dataset that is not 0/1 valued.  The\n"
-       "               risk is yours, of course (as always in AFNI).\n"
+       "               risk is yours, of course (** as always in AFNI **).\n"
        " -wtprefix p = Write the weight volume to disk as a dataset with\n"
        "               prefix name 'p'.  Used with '-autoweight/mask', this option\n"
        "               lets you see what voxels were important in the allineation.\n"
@@ -2361,8 +2369,9 @@ int main( int argc , char *argv[] )
            }
          }
 
-         /* do the startup parameter search;
-            saves best params in val_init (and val_out), plus a few more in val_trial */
+         /* do the startup parameter search:
+              saves best param set in val_init (and val_out),
+              plus a few more good sets in val_trial for refinement */
 
          if( verb > 1 ) ctim = COX_cpu_time() ;
          mri_genalign_scalar_ransetup( &stup , 31 ) ;
@@ -2377,7 +2386,7 @@ int main( int argc , char *argv[] )
               if( stup.npt_match < 666   ) stup.npt_match = 666 ;
          else if( stup.npt_match > 99999 ) stup.npt_match = 99999 ;
 
-         /*-- now refine the tbest values saved already --*/
+         /*-- now refine the tbest values saved already (from val_trial) --*/
 
          tb = MIN(tbest,stup.wfunc_ntrial) ; nfunc=0 ;
          if( verb > 1 ) ctim = COX_cpu_time() ;
@@ -2386,12 +2395,12 @@ int main( int argc , char *argv[] )
            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
              tfparm[ib][jj] = stup.wfunc_param[jj].val_trial[ib] ;
 
-         rad = 0.0369 ;
+         rad = 0.0345 ;
          for( rr=0 ; rr < 2 ; rr++ , rad*=0.234 ){ /* refine with less smooth */
            if( verb > 1 )
              INFO_message("Start refinement #%d on %d coarse parameter sets",rr+1,tb);
-           stup.smooth_radius_base *= 0.567 ;
-           stup.smooth_radius_targ *= 0.567 ;
+           stup.smooth_radius_base *= 0.4567 ;
+           stup.smooth_radius_targ *= 0.4567 ;
            mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
 
            for( ib=0 ; ib < tb ; ib++ ){                  /* loop over trials */
@@ -2400,28 +2409,34 @@ int main( int argc , char *argv[] )
              nfunc += mri_genalign_scalar_optim( &stup , rad , 0.0678*rad , 666 ) ;
              for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* save best params */
                tfparm[ib][jj] = stup.wfunc_param[jj].val_out ;
-             if( verb > 1 ) ININFO_message("- #%d has cost=%f",ib+1,stup.vbest) ;
+             if( verb > 1 )
+               ININFO_message("- param set #%d has cost=%f",ib+1,stup.vbest) ;
            }
          }
-         if( verb > 1 ) ININFO_message("- refinement CPU time = %.1f s; funcs = %d",
-                                       COX_cpu_time()-ctim,nfunc ) ;
+         if( verb > 1 )
+           ININFO_message("- Total refinement CPU time = %.1f s; funcs = %d",
+                          COX_cpu_time()-ctim,nfunc ) ;
 
          tfdone = tb ;  /* number we've saved in tfparm */
 
        /*- just optimize at coarse setup from default initial parameters -*/
 
-       } else {  /* if user did '-twobest 0' */
+       } else {  /* if stoopid user did '-twobest 0' */
 
          if( verb     ) ININFO_message("- Start coarse optimization") ;
          if( verb > 1 ) ctim = COX_cpu_time() ;
          nfunc = mri_genalign_scalar_optim( &stup , 0.05 , 0.005 , 666 ) ;
          stup.npt_match = ntask / 10 ;
               if( stup.npt_match < 666   ) stup.npt_match = 666 ;
-         else if( stup.npt_match > 55555 ) stup.npt_match = 55555 ;
+         else if( stup.npt_match > 66666 ) stup.npt_match = 66666 ;
          stup.smooth_radius_base *= 0.666 ;
          stup.smooth_radius_targ *= 0.666 ;
          mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
-         nfunc += mri_genalign_scalar_optim( &stup , 0.02 , 0.002 , 666 ) ;
+         nfunc += mri_genalign_scalar_optim( &stup , 0.0333 , 0.00333 , 666 ) ;
+         stup.smooth_radius_base *= 0.666 ;
+         stup.smooth_radius_targ *= 0.666 ;
+         mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
+         nfunc += mri_genalign_scalar_optim( &stup , 0.0166 , 0.00166 , 666 ) ;
          if( verb > 1 ) ININFO_message("- Coarse CPU time = %.1f s; funcs = %d",
                                        COX_cpu_time()-ctim,nfunc) ;
          if( verb     ) ININFO_message("- Coarse optimization:  best cost=%f",
@@ -2447,11 +2462,20 @@ int main( int argc , char *argv[] )
      if( verb ) INFO_message("Fine pass begins") ;
      stup.interp_code = interp_code ;
      stup.smooth_code = sm_code ;
-     if( fine_rad > 0.0f ){
+
+     /* setup smoothing */
+
+     if( fine_rad > 0.0f ){  /* if ordered by user */
        stup.smooth_radius_base = stup.smooth_radius_targ = fine_rad ;
-     } else if( diffblur ){
-       float br=cbrt(dx_base*dy_base*dz_base) ;  /* base voxel size */
-       float tr=cbrt(dx_targ*dy_targ*dz_targ) ;  /* targ voxel size */
+     } else if( diffblur ){  /* if base finer resolution than target */
+       float br,tr ;
+       if( nz_base > 1 ){
+         br = cbrt(dx_base*dy_base*dz_base) ;  /* base voxel size */
+         tr = cbrt(dx_targ*dy_targ*dz_targ) ;  /* targ voxel size */
+       } else {
+         br = sqrt(dx_base*dy_base) ;
+         tr = sqrt(dx_targ*dy_targ) ;
+       }
        stup.smooth_radius_targ = 0.0f ;
        stup.smooth_radius_base = (tr <= 1.1f*br) ? 0.0f
                                                  : sqrt(tr*tr-br*br) ;

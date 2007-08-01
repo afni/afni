@@ -3145,6 +3145,18 @@ void Syntax()
      " correct combination of geometry specifiers to use.  For example,\n"
      " a common type of run at MCW would be entered as\n"
      "    -xFOV 120L-R -yFOV 120A-P -zSLAB 60S-50I\n"
+     "\n"
+     " **NOTE WELL: -xFOV 240L-R does not mean a Field-of-View that is 240 mm\n"
+     "               wide!  It means one that stretches from 240R to 240L, and\n"
+     "               so is 480 mm wide.\n"
+     "              The 'FOV' indicates that this direction was acquired with\n"
+     "               with Fourier encoding, and so the distances are naturally\n"
+     "               specified from the edge of the volume.\n"
+     "              The 'SLAB' indicates that this direction was acquired with\n"
+     "               slice encoding (by the RF excitation), and so distances\n"
+     "               are naturally specified by the center of the slices.\n"
+     "              For non-MRI data (e.g., CT), I'm not sure what the correct\n"
+     "               input format to use here would be -- be careful out there!\n"
    ) ;
 
    printf(
