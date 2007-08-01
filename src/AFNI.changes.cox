@@ -6325,3 +6325,7 @@
 31 Jul 2007
  * Make -cmass the default in 3dAllineate.c.
  * Also add '+clip' feature to '-autoweight' in 3dAllineate.c.
+
+01 Aug 2007
+ * Modify to3d.c to warn users of '-xFOV 120A-P' (e.g.) that this is a 240 mm
+    field of view (warn in the -help output, and in the program running).
