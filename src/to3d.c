@@ -2301,7 +2301,12 @@ ENTRY("T3D_initialize_user_data") ;
              WarningError("need 2nd orientation code in -xFOV/-xSLAB!") ;
            if( xin_top < 0.0 )
              WarningError("need nonegative 2nd dimension in -xFOV/-xSLAB!") ;
-           if( xin_top == WAY_BIG ) xin_top = xin_bot ;
+           if( xin_top == WAY_BIG ){
+             xin_top = xin_bot ;
+             if( xincode == INCODE_FOV )
+               INFO_message("%s: FOV width is %g mm",
+                            Argv[nopt-1],2*fabs(xin_bot));
+           }
          }
 #endif
 
@@ -2434,7 +2439,12 @@ printf("decoded %s to give xincode=%d bot=%f top=%f\n",Argv[nopt],
              WarningError("need 2nd orientation code in -yFOV/-ySLAB!") ;
            if( yin_top < 0.0 )
              WarningError("need nonegative 2nd dimension in -yFOV/-ySLAB!") ;
-           if( yin_top == WAY_BIG ) yin_top = yin_bot ;
+           if( yin_top == WAY_BIG ){
+             yin_top = yin_bot ;
+             if( yincode == INCODE_FOV )
+               INFO_message("%s: FOV width is %g mm",
+                            Argv[nopt-1],2*fabs(yin_bot));
+           }
          }
 #endif
 
@@ -2567,7 +2577,12 @@ printf("decoded %s to give yincode=%d bot=%f top=%f\n",Argv[nopt],
              WarningError("need 2nd orientation code in -zFOV/-zSLAB!") ;
            if( zin_top < 0.0 )
              WarningError("need nonegative 2nd dimension in -zFOV/-zSLAB!") ;
-           if( zin_top == WAY_BIG ) zin_top = zin_bot ;
+           if( zin_top == WAY_BIG ){
+             zin_top = zin_bot ;
+             if( zincode == INCODE_FOV )
+               INFO_message("%s: FOV width is %g mm",
+                            Argv[nopt-1],2*fabs(zin_bot));
+           }
          }
 #endif
 
