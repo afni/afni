@@ -709,7 +709,7 @@ If you want to have some index before the entries, use SUMA_WRITE_IND_ARRAY_1D*/
    FILE * m_fp = fopen(name,"w");  \
    if (m_fp) { \
       fprintf(m_fp,"# Output from %s, %d values (%d per line).\n", FuncName, Nel, 1);  \
-      for (m_kkk=0; m_kkk<Nel; ++m_kkk) { if (!(m_kkk % m)) fprintf(m_fp,"\n"); fprintf(m_fp,"%f   ", v[m_kkk]); }\
+      for (m_kkk=0; m_kkk<Nel; ++m_kkk) { if (!(m_kkk % m)) fprintf(m_fp,"\n"); fprintf(m_fp,"%f   ", (double)v[m_kkk]); }\
       fclose(m_fp); \
    }  \
 }
@@ -723,9 +723,9 @@ If ind is NULL, then the index will be the line number.
    if (m_fp) { \
       fprintf(m_fp,"# Output from %s, index followed by %d values (%d per line).\n", FuncName, Nel, 1);  \
       if (!ind) {  \
-         for (m_kkk=0; m_kkk<Nel; ++m_kkk) { if (!(m_kkk % m)) fprintf(m_fp,"\n%d   ", m_kkk/m); fprintf(m_fp,"%f   ", v[m_kkk]); }\
+         for (m_kkk=0; m_kkk<Nel; ++m_kkk) { if (!(m_kkk % m)) fprintf(m_fp,"\n%d   ", m_kkk/m); fprintf(m_fp,"%f   ", (double)v[m_kkk]); }\
       } else {\
-         for (m_kkk=0; m_kkk<Nel; ++m_kkk) { if (!(m_kkk % m)) fprintf(m_fp,"\n%d   ", ind[m_kkk/m]); fprintf(m_fp,"%f   ", v[m_kkk]); }\
+         for (m_kkk=0; m_kkk<Nel; ++m_kkk) { if (!(m_kkk % m)) fprintf(m_fp,"\n%d   ", ind[m_kkk/m]); fprintf(m_fp,"%f   ", (double)v[m_kkk]); }\
       }  \
       fclose(m_fp); \
    }  \
@@ -1072,7 +1072,7 @@ int SUMA_FillNelCol (NI_element *nel, char *col_label,
                      void *col_attr, int stride); 
 int *SUMA_GetDsetColIndex (SUMA_DSET *dset, SUMA_COL_TYPE tp, int *N_i);
 int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i);
-int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind, float *V, int FilledOnly);
+int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind, float *V, int FilledOnly, byte *replacemask);
 float * SUMA_DsetCol2Float (SUMA_DSET *dset, int ind, int FilledOnly);
 float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly);
 int SUMA_GetDsetColRange(SUMA_DSET *dset, int col_index, float range[2], int loc[2]);
@@ -1102,6 +1102,7 @@ int SUMA_is_AllNumeric_dset(SUMA_DSET *dset);
 int SUMA_is_AllNumeric_ngr(NI_group *ngr) ;
 int SUMA_is_AllNumeric_nel(NI_element *nel);
 SUMA_Boolean SUMA_NewDsetID (SUMA_DSET *dset);
+SUMA_Boolean SUMA_NewDsetID2 (SUMA_DSET *dset, char *str);
 char *SUMA_DsetColLabelCopy(SUMA_DSET *dset, int i, int addcolnum);
 char *SUMA_ColLabelCopy(NI_element *nel, int i, int addcolnum);
 SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, byte *rowmask, byte *colmask, int masked_only, int keep_node_index);
@@ -1131,9 +1132,11 @@ int SUMA_NewMxAllocVec(SUMA_MX_VEC *mxv) ;
 SUMA_MX_VEC *SUMA_NewMxNullVec(SUMA_VARTYPE tp, int N_dims, int *dims, byte first_dim_first);
 SUMA_MX_VEC *SUMA_VecToMxVec(SUMA_VARTYPE tp, int N_dims, int *dims, byte first_dim_first, void *vec);
 int * SUMA_FindNumericDataDsetCols(SUMA_DSET *dset, int *N_icols);
+float * SUMA_DsetCol2FloatFullSortedColumn(  SUMA_DSET *dset, int ico, byte **nmaskp, float fillval,
+                                             int N_Node, int *N_inmask, SUMA_Boolean MergeMask);
 SUMA_Boolean SUMA_MakeSparseColumnFullSorted(float **vp, int N_v, float mask_val, byte **bmp, SUMA_DSET *dset, int N_Node);
 SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, int N_Node); 
-int *SUMA_CreateNodeIndexToRowIndexMap(SUMA_DSET *dset);
+int *SUMA_CreateNodeIndexToRowIndexMap(SUMA_DSET *dset, int maxind);
 SUMA_DSET * SUMA_ngr_2_dset(NI_group *nini);
 SUMA_Boolean SUMA_LabelDset(SUMA_DSET *dset, char *lbl);
 SUMA_Boolean SUMA_RenameDset(SUMA_DSET *dset, char *filename);
