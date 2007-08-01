@@ -14,9 +14,13 @@ static char * ggi_history[] =
   "0.0  18 July, 2007\n"
   "     (Rick Reynolds of the National Institutes of Health, SSCC/DIRP/NIMH)\n"
   "     - initial version\n"
+  "0.1  31 July, 2007\n",
+  "     - changed dim0..dim5 to dims[]\n"
+  "     - changed nvals to size_t\n"
+  "     - added gifti_init_darray_from_attrs and some validation functions\n"
 };
 
-static char ggi_version[] = "gifti library version 0.0, 18 July, 2007";
+static char ggi_version[] = "gifti library version 0.1, 31 July, 2007";
 
 /* ---------------------------------------------------------------------- */
 /* global lists of XML strings */
@@ -268,6 +272,217 @@ int gifti_free_CoordSystem( CoordSystem * cs )
     return 0;
 }
 
+int gifti_init_darray_from_attrs(DataArray * da, const char ** attr)
+{
+    int c;
+
+    if( !da || !attr ) {
+        if(G.verb>0) fprintf(stderr,"** G_IDFA: bad params (%p,%p)\n",da,attr);
+        return 1;
+    }
+
+    /* init to something kinder and gentler */
+    for(c = 0; c < GIFTI_DARRAY_DIM_LEN; c++ ) da->dims[c] = 1;
+
+    /* insert attributes - if unknown, store with extras */
+    clear_nvpairs(&da->ex_atrs); /* prepare for unknow attributes */
+    for(c = 0; attr[c]; c += 2 ) {
+        if( gifti_str2attr_darray(da, attr[c],attr[c+1]) )
+            if( gifti_add_to_nvpairs(&da->ex_atrs,attr[c],attr[c+1]) )
+                return 1;
+    }
+
+    /* clear elements */
+    clear_nvpairs(&da->meta);
+    da->coordsys = NULL;
+    da->data = NULL;
+
+    /* and init extras */
+
+    da->nvals = gifti_darray_nvals(da);
+    gifti_datatype_sizes(da->datatype, &da->nbyper, NULL); /* set nbyper */
+
+    (void)gifti_valid_darray(da, G.verb>0);              /* just a check */
+
+    return 0;
+}
+
+/* check for consistency - rcr - write */
+int gifti_valid_darray(DataArray * da, int whine)
+{
+    int errs = 0;
+
+    if( !da ) {
+        if( whine || G.verb > 1 ) fprintf(stderr,"** invalid darray pointer\n");
+        return 0;
+    }
+
+    if( da->category <= GIFTI_CAT_UNDEF || da->category > GIFTI_CAT_MAX ) {
+        if( whine || G.verb > 1 )
+            fprintf(stderr,"** invalid darray category = %d\n", da->category);
+        errs++;
+    }
+
+    if( ! gifti_valid_datatype(da->datatype, whine) ) /* message printed */
+        errs++;
+
+    if( da->location<=GIFTI_DATALOC_UNDEF || da->location>GIFTI_DATALOC_MAX ) {
+        if( whine || G.verb > 1 )
+            fprintf(stderr,"** invalid darray location = %d\n", da->location);
+        errs++;
+    }
+
+    if( da->ind_ord<=GIFTI_IND_ORD_UNDEF || da->ind_ord>GIFTI_IND_ORD_MAX ) {
+        if( whine || G.verb > 1 )
+            fprintf(stderr,"** invalid darray ind_ord = %d\n", da->ind_ord);
+        errs++;
+    }
+
+    if( ! gifti_valid_num_dim(da->num_dim, whine) ) /* message printed */
+        errs++;
+
+    if( ! gifti_valid_dims(da, whine) ) /* message printed */
+        errs++;
+
+    if( da->encoding<=GIFTI_ENCODING_UNDEF || da->encoding>GIFTI_ENCODING_MAX ){
+        if( whine || G.verb > 1 )
+            fprintf(stderr,"** invalid darray encoding = %d\n", da->encoding);
+        errs++;
+    }
+
+    if( da->endian<=GIFTI_ENDIAN_UNDEF || da->endian>GIFTI_ENDIAN_MAX ) {
+        if( whine || G.verb > 1 )
+            fprintf(stderr,"** invalid darray endian = %d\n", da->endian);
+        errs++;
+    }
+
+    /* of sub-element, only verify MetaData */
+    if( ! gifti_valid_nvpairs(&da->meta, whine) ) /* message printed */
+        errs++;
+
+    if( da->nvals <= 0 ) {
+        if( whine || G.verb > 1 )
+            fprintf(stderr,"** invalid darray nvals = %u\n",
+                    (unsigned)da->nvals );
+        errs++;
+    }
+
+    if( ! gifti_valid_nbyper(da->nbyper, whine) ) /* message printed */
+        errs++;
+
+    if( ! gifti_valid_nvpairs(&da->ex_atrs, whine) ) /* message printed */
+        errs++;
+
+    if( errs ) return 0;
+
+    return 1;
+}
+
+/* check for set pointers */
+int gifti_valid_nvpairs(nvpairs * nvp, int whine)
+{
+    int c;
+
+    if( !nvp ) {
+        if( G.verb>0 || whine ) fprintf(stderr,"** invalid nvpairs pointer\n");
+        return 0;
+    }
+
+    if( nvp->length < 0 ) {
+        if( G.verb > 1 || whine )
+            fprintf(stderr,"** invalid nvpair length = %d\n", nvp->length);
+        return 0;
+    }
+
+    if( nvp->length == 0 ) return 1;    /* quick case: valid */
+
+    if( !nvp->name || !nvp->value ){
+        if( G.verb > 1 || whine )
+            fprintf(stderr,"** invalid nvpair name, value = %p, %p\n",
+                    nvp->name, nvp->value);
+        return 0;
+    }
+
+    /* quit on first error */
+    for( c = 0; c < nvp->length; c++ ) {
+        if( ! nvp->name[c] ) {
+            if( G.verb > 1 || whine )
+                fprintf(stderr,"** invalid nvpair name[%d]\n", c);
+            return 0;
+        }
+        if( ! nvp->value[c] ) {
+            if( G.verb > 1 || whine )
+                fprintf(stderr,"** invalid nvpair value[%d]\n", c);
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+/* just check bounds */
+int gifti_valid_num_dim(int num_dim, int whine)
+{
+    if( num_dim <= 0 || num_dim > GIFTI_DARRAY_DIM_LEN ) {
+        if( G.verb > 1 || whine )
+            fprintf(stderr,"** invalid num_dim = %d\n", num_dim);
+        return 0;
+    }
+    return 1;
+}
+
+/* check list */
+int gifti_valid_datatype(int dtype, int whine)
+{
+    int c;
+
+    /* check for valid */
+    for( c = sizeof(gifti_type_list) / sizeof(gifti_type_ele) - 1; c > 0; c-- )
+        if( dtype == gifti_type_list[c].type ) return 1;
+
+    if( whine || G.verb > 1 )
+        fprintf(stderr,"** invalid datatype value %d\n", dtype);
+
+    return 0;
+}
+
+/* check list */
+int gifti_valid_nbyper(int nbyper, int whine)
+{
+    int c;
+
+    /* check for valid */
+    for( c = sizeof(gifti_type_list) / sizeof(gifti_type_ele) - 1; c > 0; c-- )
+        if( nbyper == gifti_type_list[c].nbyper ) return 1;
+
+    if( whine || G.verb > 1 )
+        fprintf(stderr,"** invalid nbyper value %d\n", nbyper);
+
+    return 0;
+}
+
+int gifti_valid_dims(DataArray * da, int whine)
+{
+    int c;
+
+    if( !da ) {
+        if( G.verb > 0 ) fprintf(stderr,"** GVD: no DataArray\n");
+        return 0;
+    }
+
+    if( ! gifti_valid_num_dim( da->num_dim, whine ) )
+        return 0;
+
+    for( c = 0; c < da->num_dim; c++ )
+        if( da->dims[c] <= 0 ) {
+            if( G.verb > 1 || whine )
+                fprintf(stderr,"** invalid dims[%d] = %d\n", c, da->dims[c]);
+            return 0;
+        }
+
+    return 1;
+}
+
 int gifti_str2attr_darray(DataArray * DA, const char *attr, const char *value)
 {
     if( !DA || !attr || !value ) {
@@ -288,12 +503,12 @@ int gifti_str2attr_darray(DataArray * DA, const char *attr, const char *value)
     else if( !strcmp(attr, "ArrayIndexingOrder") )
         DA->ind_ord = gifti_str2ind_ord(value);
     else if( !strcmp(attr, "Dimensionality") ) DA->num_dim = atoi(value);
-    else if( !strcmp(attr, "Dim0") )           DA->dim0    = atoi(value);
-    else if( !strcmp(attr, "Dim1") )           DA->dim1    = atoi(value);
-    else if( !strcmp(attr, "Dim2") )           DA->dim2    = atoi(value);
-    else if( !strcmp(attr, "Dim3") )           DA->dim3    = atoi(value);
-    else if( !strcmp(attr, "Dim4") )           DA->dim4    = atoi(value);
-    else if( !strcmp(attr, "Dim5") )           DA->dim5    = atoi(value);
+    else if( !strcmp(attr, "Dim0") )           DA->dims[0] = atoi(value);
+    else if( !strcmp(attr, "Dim1") )           DA->dims[1] = atoi(value);
+    else if( !strcmp(attr, "Dim2") )           DA->dims[2] = atoi(value);
+    else if( !strcmp(attr, "Dim3") )           DA->dims[3] = atoi(value);
+    else if( !strcmp(attr, "Dim4") )           DA->dims[4] = atoi(value);
+    else if( !strcmp(attr, "Dim5") )           DA->dims[5] = atoi(value);
     else if( !strcmp(attr, "Encoding") ) 
         DA->encoding = gifti_str2encoding(value);
     else if( !strcmp(attr, "Endian") )
@@ -561,9 +776,7 @@ int gifti_disp_DataArray(const char * mesg, DataArray * p, int subs)
                    "    location %d = %s\n"
                    "    ind_ord  %d = %s\n"
                    "    num_dim    = %d\n"
-                   "    Dim0, Dim1 = %d, %d\n"
-                   "    Dim2, Dim3 = %d, %d\n"
-                   "    Dim4, Dim5 = %d, %d\n"
+                   "    dims       = %d, %d, %d, %d, %d, %d\n"
                    "    encoding %d = %s\n"
                    "    endian   %d = %s\n",
                 p->category, gifti_category_list[p->category],
@@ -571,7 +784,8 @@ int gifti_disp_DataArray(const char * mesg, DataArray * p, int subs)
                 p->location, gifti_dataloc_list[p->location],
                 p->ind_ord, gifti_index_order_list[p->ind_ord],
                 p->num_dim,
-                p->dim0, p->dim1, p->dim2, p->dim3, p->dim4, p->dim5,
+                p->dims[0], p->dims[1], p->dims[2],
+                p->dims[3], p->dims[4], p->dims[5],
                 p->encoding, gifti_encoding_list[p->encoding],
                 p->endian, gifti_endian_list[p->endian]
            );
@@ -580,9 +794,9 @@ int gifti_disp_DataArray(const char * mesg, DataArray * p, int subs)
     if( subs ) gifti_disp_CoordSystem("darray->coordsys", p->coordsys);
                 
     fprintf(stderr,"    data       = %p\n"
-                   "    nvals      = %d\n"
+                   "    nvals      = %u\n"
                    "    nbyper     = %d\n",
-                p->data, p->nvals, p->nbyper);
+                p->data, (unsigned)p->nvals, p->nbyper);
 
     if( subs ) gifti_disp_nvpairs("darray->ex_atrs", &p->ex_atrs);
     fprintf(stderr,"--------------------------------------------------\n");
@@ -661,23 +875,19 @@ void gifti_datatype_sizes(int datatype, int *nbyper, int *swapsize)
     if( swapsize ) *swapsize = 0;
 }
 
-int gifti_darray_nvals(DataArray * da)
+size_t gifti_darray_nvals(DataArray * da)
 {
-    int ndim = 1;
+    size_t ndim = 1;
+    int    c;
 
     if(!da){ fprintf(stderr,"** GDND, no ptr\n"); return 0; }
 
-    if( da->num_dim < 1 || da->num_dim > 6 ) {
+    if( ! gifti_valid_num_dim(da->num_dim, 0) ) {
         fprintf(stderr,"** DataArray has illegal num_dim = %d\n", da->num_dim);
         return 0;
     }
 
-    if( da->num_dim > 0 ) ndim *= da->dim0;
-    if( da->num_dim > 1 ) ndim *= da->dim1;
-    if( da->num_dim > 2 ) ndim *= da->dim2;
-    if( da->num_dim > 3 ) ndim *= da->dim3;
-    if( da->num_dim > 4 ) ndim *= da->dim4;
-    if( da->num_dim > 5 ) ndim *= da->dim5;
+    for( c = 0; c < da->num_dim; c++ ) ndim *= da->dims[c];
 
     if( ndim <= 0 ) {
         gifti_disp_DataArray("** bad Dim list in ", da, 0);
@@ -764,27 +974,23 @@ int gifti_find_DA_list(gifti_image * gim, int category, DataArray *** list,
 
 int gifti_DA_rows_cols(DataArray * da, int * rows, int * cols)
 {
-    *rows = da->dim0;  /* init */
+    *rows = da->dims[0];  /* init */
     *cols = 1;
                                                                                 
     if( da->num_dim == 1 ) return 0;  /* use default */
                                                                                 
     if( da->ind_ord == GIFTI_IND_ORD_HIGH2LOW ) {
-        /* treat Dim0 as nodes (they change most slowly) */
-        *rows = da->dim0;
-        *cols = (*rows) ? da->nvals / *rows : 1; /* be safe */
+        /* treat Dim[0] as nodes (they change most slowly) */
+        *rows = da->dims[0];
+        *cols = (*rows) ? da->nvals / *rows : 1;    /* be safe */
     } else {
-        if( da->num_dim == 1 ) *rows = da->dim0;
-        else if( da->num_dim == 2 ) *rows = da->dim1;
-        else if( da->num_dim == 3 ) *rows = da->dim2;
-        else if( da->num_dim == 4 ) *rows = da->dim3;
-        else if( da->num_dim == 5 ) *rows = da->dim4;
-        else if( da->num_dim == 6 ) *rows = da->dim5;
-        else {
-            fprintf(stderr,"** DARC, bad dimensions\n");
+        if( ! gifti_valid_num_dim(da->num_dim, 1) ){
+            fprintf(stderr,"** cannot assign DA_rows_cols");
             return 1;
         }
-        *cols = (*rows) ? da->nvals / *rows : 1;
+
+        *rows = da->dims[da->num_dim-1];  /* take highest index */
+        *cols = (*rows > 0) ? da->nvals / *rows : 1;
     }
                                                                                 
     return 0;

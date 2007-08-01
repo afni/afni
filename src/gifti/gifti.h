@@ -40,6 +40,8 @@
 #define GIFTI_ENDIAN_LITTLE      2
 #define GIFTI_ENDIAN_MAX         2
 
+#define GIFTI_DARRAY_DIM_LEN     6  /* length of dims[] array */
+
 /* global declarations of matching lists */
 extern char * gifti_index_order_list[];
 extern char * gifti_category_list[];
@@ -83,9 +85,7 @@ typedef struct {
     int           location;     /* Internal or External                 */
     int           ind_ord;      /* lowest Dim to highest, or reverse    */
     int           num_dim;      /* level of DimX applied                */
-    int           dim0, dim1;   /* dimension lengths                    */
-    int           dim2, dim3;
-    int           dim4, dim5;
+    int           dims[6];      /* dimension lengths (first num_dim set)*/
     int           encoding;     /* format of Data on disk               */
     int           endian;       /* endian, if binary Encoding           */
 
@@ -95,7 +95,7 @@ typedef struct {
     void        * data;         /* unencoded, uncompressed, swapped?    */
 
     /* extras */
-    int           nvals;        /* number of values (product of Dims)   */
+    size_t        nvals;        /* number of values (product of Dims)   */
     int           nbyper;       /* number of bytes per value            */
     nvpairs       ex_atrs;      /* extra attributes                     */
 } DataArray;
@@ -138,7 +138,7 @@ int gifti_write_image(gifti_image * gim, const char * fname, int write_data);
 int    gifti_free_image         (gifti_image * gim );
 /* end main interface protos */
 
-int    gifti_darray_nvals       (DataArray * da);
+size_t gifti_darray_nvals       (DataArray * da);
 void   gifti_datatype_sizes     (int datatype, int *nbyper, int *swapsize);
 char * gifti_datatype2str       (int type);
 int    gifti_gim_DA_size        (gifti_image * p, int in_mb);
@@ -160,11 +160,22 @@ int    gifti_add_empty_darray   (gifti_image * gim);
 int    gifti_add_to_nvpairs     (nvpairs * p, const char * name,
                                               const char * value);
 
+int    gifti_init_darray_from_attrs(DataArray * da, const char ** attr);
+
 int    gifti_free_CoordSystem   (CoordSystem * cs);
 int    gifti_free_DataArray_list(DataArray ** darray, int numDA);
 int    gifti_free_DataArray     (DataArray * darray);
 int    gifti_free_LabelTable    (LabelTable * t);
 int    gifti_free_nvpairs       (nvpairs * p);
+
+int    gifti_valid_darray       (DataArray * da, int whine);
+int    gifti_valid_datatype     (int dtype, int whine);
+int    gifti_valid_dims         (DataArray * da, int whine);
+int    gifti_valid_nbyper       (int nbyper, int whine);
+int    gifti_valid_num_dim      (int num_dim, int whine);
+int    gifti_valid_nvpairs      (nvpairs * nvp, int whine);
+int    gifti_validate_dims      (DataArray * da, int whine);
+
 
 void   gifti_disp_lib_hist       (void);
 void   gifti_disp_lib_version    (void);
