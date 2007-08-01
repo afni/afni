@@ -4181,7 +4181,7 @@ SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt,
       if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL;
       
       /* Now we need to shove the filtered data back into the dset */
-      if (!SUMA_Float2DsetCol (dset, icols[k], fout_final, SO->N_Node)) {
+      if (!SUMA_Float2DsetCol (dset, icols[k], fout_final, SO->N_Node,nmask)) {
          SUMA_S_Err("Failed to update dset's values");
          SUMA_RETURN(NOPE);      
       }
@@ -4547,7 +4547,7 @@ SUMA_Boolean SUMA_Chung_Smooth_05_dset (SUMA_SurfaceObject *SO, float **wgt,
       }
       
       /* Now we need to shove the filtered data back into the dset */
-      if (!SUMA_Float2DsetCol (dset, icols[k], fout_final, SO->N_Node)) {
+      if (!SUMA_Float2DsetCol (dset, icols[k], fout_final, SO->N_Node, nmask)) {
          SUMA_S_Err("Failed to update dset's values");
          SUMA_RETURN(NOPE);      
       }
@@ -5021,7 +5021,7 @@ SUMA_Boolean SUMA_Offset_Smooth_dset( SUMA_SurfaceObject *SO,
          fout = fbuf;
       } else fout = fout_final;
       
-      if (!SUMA_Float2DsetCol (dset, icols[k], fout, SO->N_Node)) {
+      if (!SUMA_Float2DsetCol (dset, icols[k], fout, SO->N_Node, nmask)) {
          SUMA_S_Err("Failed to update dset's values");
          SUMA_RETURN(NOPE);      
       }
