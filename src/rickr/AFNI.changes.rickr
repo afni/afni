@@ -2160,3 +2160,5 @@
         - changed dim0..dim5 to dims[], and nvals to size_t
         - added gifti_init_darray_from_attrs and some validation functions
 
+02 Aug 2007: modified file_tool.[ch]: added -disp_hex, -disp_hex{1,2,4}
+
