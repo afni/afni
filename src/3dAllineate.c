@@ -327,6 +327,8 @@ int main( int argc , char *argv[] )
        "               [Using '-VERB' will give even more prolix reports.]\n"
        " -quiet      = Don't print out verbose stuff.\n"
        " -usetemp    = Write intermediate stuff to disk, to economize on RAM.\n"
+       "               Using this will slow the program down, but may make it\n"
+       "               possible to register datasets that need lots of space.\n"
        "       **N.B.: Temporary files are written to the directory given\n"
        "               in environment variable TMPDIR, or in /tmp, or in ./\n"
        "               (preference in that order).  If the program crashes,\n"
