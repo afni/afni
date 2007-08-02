@@ -61,7 +61,7 @@ int main( int argc , char * argv[] )
              "    Can not be combined with -mask\n"
 	          "  -percentile p0 ps p1 write the percentile values starting\n"
              "              at p0%% and ending at p1%% at a step of ps%%\n"
-             "              Output is of the the form p%% value   p%% value ...\n"
+             "              Output is of the form p%% value   p%% value ...\n"
              "              Percentile values are output first. Only one sub-brick\n"
              "              is accepted as input with this option.\n"
              "              Write the author if you REALLY need this option\n"
