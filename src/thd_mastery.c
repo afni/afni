@@ -71,8 +71,9 @@ ENTRY("THD_open_dataset") ;
    }
 
    /*-- 04 Aug 2004: allow input of a list of dataset, separated by spaces --*/
-
-   if( strchr(pathname,' ') != NULL ){
+   /*  unless a count command is used inside the brackets 9 May 2007 drg*/
+   if((strchr(pathname,' ') != NULL ) && 
+      (strstr(pathname,"[count ")==NULL)){
      dset = THD_open_tcat( pathname ) ;
      if( ISVALID_DSET(dset) &&
         !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
