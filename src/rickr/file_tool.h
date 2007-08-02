@@ -34,9 +34,12 @@
 #define GE_OFF          0x20
 
 #define NDISP_NONE         0
-#define NDISP_INT2      0x01
-#define NDISP_INT4      0x02
-#define NDISP_REAL4     0x04
+#define NDISP_HEX1         1
+#define NDISP_HEX2         2
+#define NDISP_HEX4         3
+#define NDISP_INT2         4
+#define NDISP_INT4         5
+#define NDISP_REAL4        6
 #define NDISP_ALL       0xff
 
 #define FT_SINGLE_COMMAND   32
