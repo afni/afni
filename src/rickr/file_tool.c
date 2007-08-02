@@ -123,9 +123,10 @@ static char g_history[] =
  "      - added '-mod_ana_hdr' to modiefy fields of an ANALYZE header file\n"
  "      - added '-mod_field' to specify a field and it value(s)\n"
  "      - added '-overwrite' and '-prefix' to specify output\n"
+ " 3.7  August 2, 2007 - added -disp_hex, -disp_hex{1,2,4}\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.6 (July 1, 2007)"
+#define VERSION         "3.7 (August 2, 2007)"
 
 
 /* ----------------------------------------------------------------------
@@ -996,17 +997,30 @@ set_params( param_t * p, int argc, char * argv[] )
         {
             p->analyze = FT_DISP_HDR;
         }
+        else if ( ! strcmp(argv[ac], "-disp_hex") ||
+                  ! strncmp(argv[ac], "-disp_hex1", 10 ) )
+        {
+            p->ndisp = NDISP_HEX1;
+        }
+        else if ( ! strncmp(argv[ac], "-disp_hex2", 10 ) )
+        {
+            p->ndisp = NDISP_HEX2;
+        }
+        else if ( ! strncmp(argv[ac], "-disp_hex4", 10 ) )
+        {
+            p->ndisp = NDISP_HEX4;
+        }
         else if ( ! strncmp(argv[ac], "-disp_int2", 10 ) )
         {
-            p->ndisp |= NDISP_INT2;
+            p->ndisp = NDISP_INT2;
         }
         else if ( ! strncmp(argv[ac], "-disp_int4", 10 ) )
         {
-            p->ndisp |= NDISP_INT4;
+            p->ndisp = NDISP_INT4;
         }
         else if ( ! strncmp(argv[ac], "-disp_real4", 11 ) )
         {
-            p->ndisp |= NDISP_REAL4;
+            p->ndisp = NDISP_REAL4;
         }
         else if ( ! strncmp(argv[ac], "-hex", 4 ) )
         {
@@ -1445,6 +1459,10 @@ help_full( char * prog )
         "\n"
         "      %s -disp_real4 -offset 100 -length 32 -infiles file1 file2\n"
         "\n"
+        "   3. display 8 2-byte hex integers, 100 bytes into each file:\n"
+        "\n"
+        "      %s -disp_hex2 -offset 100 -length 16 -infiles file1 file2\n"
+        "\n"
         "   ----- ANALYZE file checking examples -----\n"
         "\n"
         "   1. define the field contents of an ANALYZE header\n"
@@ -1659,17 +1677,17 @@ help_full( char * prog )
         "\n"
         "  numeric options:\n"
         "\n"
-        "    -disp_int2         : display 2-byte integers\n"
-        "                       : e.g. -disp_int2\n"
+        "    -disp_hex          : display bytes in hex\n"
+        "    -disp_hex1         : display bytes in hex\n"
+        "    -disp_hex2         : display 2-byte integers in hex\n"
+        "    -disp_hex4         : display 4-byte integers in hex\n"
         "\n"
+        "    -disp_int2         : display 2-byte integers\n"
         "    -disp_int4         : display 4-byte integers\n"
-        "                       : e.g. -disp_int4\n"
         "\n"
         "    -disp_real4        : display 4-byte real numbers\n"
-        "                       : e.g. -disp_real4\n"
         "\n"
         "    -swap_bytes        : use byte-swapping on numbers\n"
-        "                       : e.g. -swap_bytes\n"
         "\n"
         "          If this option is used, then byte swapping is done on any\n"
         "          multi-byte numbers read from or written to the file.\n"
@@ -1678,7 +1696,7 @@ help_full( char * prog )
         "\n",
         prog, prog,
         prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
-        prog, prog, prog, prog, prog, prog, prog, prog, prog, 
+        prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
         VERSION, __DATE__
         );
 
@@ -1951,8 +1969,34 @@ disp_numeric_data( char * data, param_t * p, FILE * fp )
     if ( p->length <= 0 || p->ndisp == 0 )
         return 0;
 
-    /* print out shorts */
-    if ( p->ndisp & NDISP_INT2 )
+    if ( p->ndisp == NDISP_HEX1 ) /* print out hex */
+    {
+        fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
+        disp_raw_data(data, 2 /* DT_UINT8 */, p->length, ' ', 1, 1);
+    }
+    else if ( p->ndisp == NDISP_HEX2 ) /* print 2 byte hex */
+    {
+        if ( p->swap ) {
+            short * ptr = (short *)data;
+            for ( c = 0; c < p->length/2; c++, ptr++ )
+                swap_2( ptr );
+        }
+
+        fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
+        disp_raw_data(data, 512 /* DT_UINT16 */, p->length/2, ' ', 1, 1);
+    }
+    else if ( p->ndisp == NDISP_HEX4 ) /* print 4 byte hex */
+    {
+        if ( p->swap ) {
+            int * ptr = (int *)data;
+            for ( c = 0; c < p->length/2; c++, ptr++ )
+                swap_4( ptr );
+        }
+
+        fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
+        disp_raw_data(data, 768 /* DT_UINT32 */, p->length/4, ' ', 1, 1);
+    }
+    else if ( p->ndisp == NDISP_INT2 ) /* print out shorts */
     {
         short * sp = (short *)data;
 
@@ -1965,9 +2009,7 @@ disp_numeric_data( char * data, param_t * p, FILE * fp )
         }
         fputc( '\n', fp );
     }
-
-    /* print out ints */
-    if ( p->ndisp & NDISP_INT4 )
+    else if ( p->ndisp == NDISP_INT4 ) /* print out ints */
     {
         int * ip = (int *)data;
 
@@ -1980,9 +2022,7 @@ disp_numeric_data( char * data, param_t * p, FILE * fp )
         }
         fputc( '\n', fp );
     }
-
-    /* print out floats */
-    if ( p->ndisp & NDISP_REAL4 )
+    else if ( p->ndisp == NDISP_REAL4 ) /* print out floats */
     {
         float * rp = (float *)data;
 
