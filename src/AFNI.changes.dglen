@@ -201,5 +201,8 @@ most obvious in NIFTI files where the coordinates are changed as in 3drefit,
  * added -deoblique option to 3drefit to remove obliquity from dataset
 26 Jul 2007
  * clarified help in 3dExtrema, and fixed a couple typos
+02 Aug 2007
+ * updated Talairach atlas for Eickhoff-Zilles 1.5 release
+ * updated help in whereami for clarification
 
 
