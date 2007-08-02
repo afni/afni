@@ -1971,7 +1971,7 @@ disp_numeric_data( char * data, param_t * p, FILE * fp )
 
     if ( p->ndisp == NDISP_HEX1 ) /* print out hex */
     {
-        fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
+        if( !p->quiet) fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
         disp_raw_data(data, 2 /* DT_UINT8 */, p->length, ' ', 1, 1);
     }
     else if ( p->ndisp == NDISP_HEX2 ) /* print 2 byte hex */
@@ -1982,7 +1982,7 @@ disp_numeric_data( char * data, param_t * p, FILE * fp )
                 swap_2( ptr );
         }
 
-        fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
+        if( !p->quiet) fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
         disp_raw_data(data, 512 /* DT_UINT16 */, p->length/2, ' ', 1, 1);
     }
     else if ( p->ndisp == NDISP_HEX4 ) /* print 4 byte hex */
@@ -1993,14 +1993,14 @@ disp_numeric_data( char * data, param_t * p, FILE * fp )
                 swap_4( ptr );
         }
 
-        fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
+        if( !p->quiet) fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
         disp_raw_data(data, 768 /* DT_UINT32 */, p->length/4, ' ', 1, 1);
     }
     else if ( p->ndisp == NDISP_INT2 ) /* print out shorts */
     {
         short * sp = (short *)data;
 
-        fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
+        if( !p->quiet) fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
         for ( c = 0; c < p->length/2; c++, sp++ )
         {
             if ( p->swap )
@@ -2013,7 +2013,7 @@ disp_numeric_data( char * data, param_t * p, FILE * fp )
     {
         int * ip = (int *)data;
 
-        fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
+        if( !p->quiet) fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
         for ( c = 0; c < p->length/4; c++, ip++ )
         {
             if ( p->swap )
@@ -2026,7 +2026,7 @@ disp_numeric_data( char * data, param_t * p, FILE * fp )
     {
         float * rp = (float *)data;
 
-        fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
+        if( !p->quiet) fprintf( fp, "0x%4x : ", (unsigned int)p->offset );
         for ( c = 0; c < p->length/4; c++, rp++ )
         {
             if ( p->swap )
