@@ -1845,7 +1845,7 @@ SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, byte *rowmask, byte *colmask
 {
    static char FuncName[]={"SUMA_MaskedCopyofDset"};
    int n_incopy = -1, i;
-   char *new_name=NULL, idcode[SUMA_IDCODE_LENGTH], *lblcp;
+   char *new_name=NULL, idcode[SUMA_IDCODE_LENGTH], *lblcp=NULL;
    SUMA_DSET *ndset=NULL;
    NI_rowtype *rt=NULL, *rti=NULL;
    SUMA_COL_TYPE ctp = SUMA_ERROR_COL_TYPE;
@@ -1896,9 +1896,10 @@ SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, byte *rowmask, byte *colmask
                rti = NI_rowtype_find_code(SUMA_ColType2TypeCast(SUMA_NODE_INDEX)) ;
                if (LocalHead) {
                   char *ss=NULL;
+                  SUMA_LH("Pre copy");
                   SUMA_ShowNel((void*)odset->inel);
                   ss = SUMA_ShowMeSome(ind, SUMA_int, SDSET_VECLEN(odset), -1, NULL);
-                  SUMA_S_Note(ss); SUMA_free(ss); ss = NULL;
+                  SUMA_S_Note(ss); if (ss) SUMA_free(ss); ss = NULL;
                }
                if (keep_node_index && !masked_only) {
                   /* preserve all rows */
@@ -1912,9 +1913,10 @@ SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, byte *rowmask, byte *colmask
                }
                if (LocalHead) {
                   char *ss=NULL;
+                  SUMA_LH("Post copy");
                   SUMA_ShowNel((void*)odset->inel);
                   ss = SUMA_ShowMeSome(ncoli, SUMA_int, n_incopy, -1, NULL);
-                  SUMA_S_Note(ss); SUMA_free(ss); ss = NULL;
+                  SUMA_S_Note(ss); if (ss) SUMA_free(ss); ss = NULL;
                }
                if (!SUMA_AddDsetNelCol (ndset, NI_get_attribute(odset->inel,"COLMS_LABS"), SUMA_NODE_INDEX, ncoli, NULL ,1)) {
                   SUMA_SL_Crit("Failed in SUMA_AddDsetNelCol");
