@@ -585,6 +585,7 @@ extern void   mri_purge    ( MRI_IMAGE * ) ;  /* 20 Dec 2006 */
 extern void   mri_unpurge  ( MRI_IMAGE * ) ;
 extern void   mri_killpurge( MRI_IMAGE * ) ;
 extern char * mri_purge_get_tmpdir(void) ;    /* 21 Dec 2006 */
+extern char * mri_purge_get_tsuf(void) ;      /* 02 Aug 2007 */
 
 extern int mri_counter( MRI_IMAGE * , float , float ) ; /* 16 Jul 2007 */
 

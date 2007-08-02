@@ -1041,24 +1041,38 @@ float THD_hellinger( int n , float *x , float *y )
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Compute the Hellinger metric and the normalized mutual info.
+/*! Compute the Hellinger metric, mutual info, and normalized MI,
+    and return all 3 (in that order in the output vector).  Computed
+    using the 1D and 2D histograms from build_2Dhist().
+
+    These values all measure the closeness of the joint histogram to
+    the product of the marginals:
+      - Hellinger is smaller when the joint is closer to the marginals' product
+      - MI is also smaller when the joint is closer to the marginal's product
+      - NMI is larger when the joint is closer to the marginal's product
+
+    As measures of association (generalized correlation): more closely
+    associated variables correspond to larger Hellinger and MI, and to
+    smaller NMI.
 ----------------------------------------------------------------------------*/
 
-float_pair THD_helnmi_scl( int n , float xbot,float xtop,float *x ,
-                                   float ybot,float ytop,float *y , float *w )
+THD_fvec3 THD_helnmi_scl( int n , float xbot,float xtop,float *x ,
+                                  float ybot,float ytop,float *y , float *w )
 {
    register int ii,jj ;
-   register float val , pq , denom,numer ;
-   float_pair hm={0.0f,0.0f} ;
+   register float hel , pq , denom,numer ;
+   float mi , nmi ;
+   THD_fvec3 hmi ;
 
    /*-- build 2D histogram --*/
 
+   LOAD_FVEC3(hmi,0.0f,0.0f,0.0f) ;
    build_2Dhist( n,xbot,xtop,x,ybot,ytop,y,w ) ;
-   if( nbin <= 0 || nww <= 0 ) return hm ;  /* something bad happened! */
+   if( nbin <= 0 || nww <= 0 ) return hmi ;  /* something bad happened! */
 
    /*-- compute from histogram --*/
 
-   val = denom = numer = 0.0f ;
+   hel = denom = numer = 0.0f ;
    for( ii=0 ; ii < nbp ; ii++ ){
      if( xc[ii] > 0.0f ) denom += xc[ii] * logf( xc[ii] ) ;
      if( yc[ii] > 0.0f ) denom += yc[ii] * logf( yc[ii] ) ;
@@ -1066,19 +1080,21 @@ float_pair THD_helnmi_scl( int n , float xbot,float xtop,float *x ,
        /*** if( ii==0 && jj==0 && ignore_zz ) continue ; ***/
        pq = XYC(ii,jj) ;
        if( pq > 0.0f ){
-         val   += sqrtf( pq * xc[ii] * yc[jj] ) ;
+         hel   += sqrtf( pq * xc[ii] * yc[jj] ) ;
          numer += pq * logf( pq );
        }
      }
    }
-   hm.a = 1.0f-val ;
-   if( denom != 0.0f ) hm.b = numer/denom ;
-   return hm ;
+   hel = 1.0f-hel ;
+   nmi = (denom != 0.0f) ? numer/denom : 0.0f ;
+   mi  = numer - denom ;
+   LOAD_FVEC3( hmi , hel,mi,nmi ) ; return hmi ;
 }
 
 /*--------------------------------------------------------------------------*/
+/*! see THD_helnmi_scl(). */
 
-float_pair THD_helnmi( int n , float *x , float *y )
+THD_fvec3 THD_helnmi( int n , float *x , float *y )
 {
    return THD_helnmi_scl( n, 1.0f,-1.0f, x, 1.0f,-1.0f, y, NULL ) ;
 }

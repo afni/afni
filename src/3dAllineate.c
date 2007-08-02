@@ -65,13 +65,13 @@ static char *meth_longname[NMETH] =    /* long names for prolix users */
 
 static char *meth_username[NMETH] =    /* descriptive names */
   { "Least Squares [Pearson Correlation]"   ,
-    "Spearman [rank] Correlation"           ,
-    "Mutual Information [H(b)+H(t)-H(b,t)]" ,
-    "Correlation Ratio (Sym *)"             ,
-    "Normalized MI [H(b,t)/(H(b)+H(t))]"    ,
-    "Joint Entropy [H(b,t)]"                ,
+    "Spearman [rank] Correlation"           ,  /* hidden */
+    "Mutual Information [H(b)+H(s)-H(b,s)]" ,
+    "Correlation Ratio (Symmetrized*)"      ,
+    "Normalized MI [H(b,s)/(H(b)+H(s))]"    ,
+    "Joint Entropy [H(b,s)]"                ,  /* hidden */
     "Hellinger metric"                      ,
-    "Correlation Ratio (Sym +)"             ,
+    "Correlation Ratio (Symmetrized+)"      ,
     "Correlation Ratio (Unsym)"              } ;
 /*---------------------------------------------------------------------------*/
 
@@ -931,10 +931,7 @@ int main( int argc , char *argv[] )
      }
 
      if( strcmp(argv[iarg],"-usetemp") == 0 ){  /* 20 Dec 2006 */
-       char *pg = mri_purge_get_tmpdir() ;
-       usetemp = 1 ; iarg++ ;
-       INFO_message("-usetemp: if program crashes, do /bin/rm -f %s/TIM_*",pg);
-       continue ;
+       usetemp = 1 ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -2537,7 +2534,7 @@ int main( int argc , char *argv[] )
        stup.interp_code = MRI_LINEAR ;
        stup.npt_match   = MIN(499999,npt_match) ;
        mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;
-       if( verb > 1 ) ININFO_message("- start Intrmed optimization") ;
+       if( verb > 1 ) ININFO_message("- start Intrmediate optimization") ;
        nfunc = mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 6666 );
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
          pini[jj] = stup.wfunc_param[jj].val_init ;
