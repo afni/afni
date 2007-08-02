@@ -1039,3 +1039,46 @@ float THD_hellinger( int n , float *x , float *y )
 {
    return THD_hellinger_scl( n, 1.0f,-1.0f, x, 1.0f,-1.0f, y, NULL ) ;
 }
+
+/*--------------------------------------------------------------------------*/
+/*! Compute the Hellinger metric and the normalized mutual info.
+----------------------------------------------------------------------------*/
+
+float_pair THD_helnmi_scl( int n , float xbot,float xtop,float *x ,
+                                   float ybot,float ytop,float *y , float *w )
+{
+   register int ii,jj ;
+   register float val , pq , denom,numer ;
+   float_pair hm={0.0f,0.0f} ;
+
+   /*-- build 2D histogram --*/
+
+   build_2Dhist( n,xbot,xtop,x,ybot,ytop,y,w ) ;
+   if( nbin <= 0 || nww <= 0 ) return hm ;  /* something bad happened! */
+
+   /*-- compute from histogram --*/
+
+   val = denom = numer = 0.0f ;
+   for( ii=0 ; ii < nbp ; ii++ ){
+     if( xc[ii] > 0.0f ) denom += xc[ii] * logf( xc[ii] ) ;
+     if( yc[ii] > 0.0f ) denom += yc[ii] * logf( yc[ii] ) ;
+     for( jj=0 ; jj < nbp ; jj++ ){
+       /*** if( ii==0 && jj==0 && ignore_zz ) continue ; ***/
+       pq = XYC(ii,jj) ;
+       if( pq > 0.0f ){
+         val   += sqrtf( pq * xc[ii] * yc[jj] ) ;
+         numer += pq * logf( pq );
+       }
+     }
+   }
+   hm.a = 1.0f-val ;
+   if( denom != 0.0f ) hm.b = numer/denom ;
+   return hm ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+float_pair THD_helnmi( int n , float *x , float *y )
+{
+   return THD_helnmi_scl( n, 1.0f,-1.0f, x, 1.0f,-1.0f, y, NULL ) ;
+}
