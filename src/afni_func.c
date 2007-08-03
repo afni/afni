@@ -28,13 +28,14 @@ ENTRY("AFNI_see_func_CB") ;
    new_val = MCW_val_bbox( im3d->vwid->view->see_func_bbox ) ;
 
    if( old_val != new_val ){
-      im3d->vinfo->func_visible = (new_val == 1) ? True : False ;
-      if( ! ISVALID_3DIM_DATASET(im3d->fim_now) ){             /* 29 Apr 1997 */
-         im3d->vinfo->func_visible = False ;
-         MCW_set_bbox( im3d->vwid->view->see_func_bbox , 0 ) ; /* 29 Jan 1999 */
-      }
-      AFNI_disable_suma_overlay( 0 ) ; /* 16 Jun 2003 */
-      AFNI_redisplay_func( im3d ) ;    /* 05 Mar 2002 */
+     im3d->vinfo->func_visible = (new_val == 1) ? True : False ;
+     if( ! ISVALID_3DIM_DATASET(im3d->fim_now) ){             /* 29 Apr 1997 */
+       im3d->vinfo->func_visible = False ;
+       MCW_set_bbox( im3d->vwid->view->see_func_bbox , 0 ) ; /* 29 Jan 1999 */
+     }
+     AFNI_disable_suma_overlay( 0 ) ; /* 16 Jun 2003 */
+     AFNI_redisplay_func( im3d ) ;    /* 05 Mar 2002 */
+     im3d->vinfo->func_visible_count++ ; /* 03 Aut 2007 */
    }
 
    RESET_AFNI_QUIT(im3d) ;
@@ -2249,7 +2250,7 @@ ENTRY("AFNI_choose_dataset_CB") ;
 void AFNI_finalize_dataset_CB( Widget wcall ,
                                XtPointer cd , MCW_choose_cbs *cbs )
 {
-   Three_D_View *im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *)cd ;
    int old_sess , old_anat , old_func , old_view ;
    int new_sess=-1 , new_anat=-1 , new_func=-1 , new_view=-1 ;
    int ii , vv , ff ;
@@ -2425,6 +2426,13 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       }
       if( new_anat < 0 ){
          XBell( im3d->dc->display , 100 ) ; EXRETURN ;  /* bad! */
+      }
+
+      /* 03 Aug 2007: turn 'See Overlay' on? */
+
+      if( !im3d->vinfo->func_visible && im3d->vinfo->func_visible_count == 0 ){
+        MCW_set_bbox( im3d->vwid->view->see_func_bbox , 1 ) ;
+        AFNI_see_func_CB( NULL , im3d , NULL ) ;
       }
 
    /*--- switch to Hell? ---*/

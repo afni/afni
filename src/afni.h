@@ -236,6 +236,7 @@ typedef struct {
 
       Boolean    func_visible , force_anat_wod , force_func_wod ,
                  pts_visible , show_voxind ;
+      int        func_visible_count ;
       float      func_threshold , resam_vox ;
       float      func_thresh_top ;              /* 23 Jul 1997 */
       int        func_resam_mode , anat_resam_mode , pts_color ;
