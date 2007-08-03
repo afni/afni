@@ -204,5 +204,7 @@ most obvious in NIFTI files where the coordinates are changed as in 3drefit,
 02 Aug 2007
  * updated Talairach atlas for Eickhoff-Zilles 1.5 release
  * updated help in whereami for clarification
-
+03 Aug 2007
+ * user input fix for 3dAutobox limits, added -noclust option too to keep any
+non-zero voxels
 
