@@ -223,8 +223,8 @@ void AFNI_syntax(void)
      "                  command strings will need to be enclosed in quotes.\n"
      "            N.B.: You can also put startup commands (one per line) in\n"
      "                  the file '~/.afni.startup_script'.  For example,\n"
-     "                    SEE_OVERLAY A.+\n"
-     "                  to always turn the 'See Overlay' button on.\n"
+     "                    OPEN_WINDOW axialimage\n"
+     "                  to always open the axial image window on startup.\n"
      "   -comsep 'c'  Use character 'c' as a separator for commands.\n"
      "                  In this way, you can put multiple commands in\n"
      "                  a single '-com' option.  Default separator is ';'.\n"
@@ -8440,6 +8440,10 @@ ENTRY("AFNI_imag_pop_CB") ;
             CAN_TALTO(im3d)                                 ){
 
       TTRR_popup( im3d ) ;
+      if( im3d->vinfo->see_ttatlas == 0 ){  /* 03 Aug 2007: for the Daniel */
+        MCW_set_bbox( im3d->vwid->func->see_ttatlas_bbox , 1 ) ;
+        im3d->vinfo->see_ttatlas = 1 ;
+      }
    }
 
    /*---- 05 Nov 2003: start the Edit Environment pseudo-plugin ----*/
