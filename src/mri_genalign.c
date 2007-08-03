@@ -707,6 +707,10 @@ ENTRY("GA_scalar_fitter") ;
       val = 1.0 - fabs(val) ;
     break ;
 
+    case GA_MATCH_PEARSON_SIGNED:
+      val = (double)THD_pearson_corr_wt( gstup->npt_match, avm, bvm,wvm ) ;
+    break ;
+
     case GA_MATCH_SPEARMAN_SCALAR:  /* rank-order (Spearman) correlation */
       val = (double)spearman_rank_corr( gstup->npt_match, avm,
                                         gstup->bvstat   , bvm ) ;
