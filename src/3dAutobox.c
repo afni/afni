@@ -11,6 +11,9 @@ void help_autobox()
              "-input DATASET: An alternate way to specify the input dataset.\n"
              "                The default method is to pass DATASET as\n"
              "                the last parameter on the command line.\n"
+             "-noclust      : Don't do any clustering to find box. Any non-zero\n"
+             "                voxel will be preserved in cropped volume.\n"
+             "                The default uses some clustering to find cropping\n"
              "\n"
             ) ;
    return;
@@ -54,6 +57,12 @@ int main( int argc , char * argv[] )
          }
          iarg++ ; continue ;
       }
+
+      if( strcmp(argv[iarg],"-noclust") == 0 ){
+         MRI_autobbox_clust(0) ;
+         iarg++ ; continue ;
+      }
+
       
       /*- wsshappenin? -*/
       
@@ -93,9 +102,9 @@ int main( int argc , char * argv[] )
 
       if (prefix){
          outset = THD_zeropad( dset ,
-                            -xm, xp-nx, 
-                            -ym, yp-ny, 
-                            -zm, zp-nz,
+                            -xm, xp-nx+1, 
+                            -ym, yp-ny+1, 
+                            -zm, zp-nz+1,
                             prefix , ZPAD_IJK ) ;
          if( THD_deathcon() && THD_is_file(DSET_HEADNAME(outset)) ){
             fprintf(stderr,
