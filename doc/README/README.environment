@@ -2367,6 +2367,12 @@ files will be overwritten if a conflict occurs.  If you want the program to
 stop when it finds an output conflict and NOT write anything, then set this
 variable to DEATH (or anything starting with a 'D').
 
+--------------------------
+Variable: AFNI_SEE_OVERLAY
+--------------------------
+If this variable is set to YES, then the 'See Overlay' button will be turned
+on when a new AFNI controller is opened.
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
