@@ -44,24 +44,24 @@ void AL_setup_warp_coords( int,int,int,int ,
 #define NMETH GA_MATCH_METHNUM_SCALAR  /* cf. mrilib.h */
 
 static int meth_visible[NMETH] =       /* 1 = show in -help; 0 = don't show */
-  { 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1 } ;
-/* ls  sp  mi  crM nmi je  hel crA crU */
+  { 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1  , 0   } ;
+/* ls  sp  mi  crM nmi je  hel crA crU  lss */
 
 static int meth_noweight[NMETH] =      /* 1 = don't allow weights, just masks */
-  { 0 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 } ;
-/* ls  sp  mi  crM nmi je  hel crA crU */
+  { 0 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 , 0 } ;
+/* ls  sp  mi  crM nmi je  hel crA crU lss */
 
 static int visible_noweights ;
 
 static char *meth_shortname[NMETH] =   /* short names for terse cryptic users */
-  { "ls" , "sp" , "mi" , "crM" , "nmi" , "je" , "hel" , "crA" , "crU" } ;
+  { "ls" , "sp" , "mi" , "crM" , "nmi" , "je" , "hel" , "crA" , "crU" , "lss" } ;
 
 static char *meth_longname[NMETH] =    /* long names for prolix users */
   { "leastsq"         , "spearman"     ,
     "mutualinfo"      , "corratio_mul" ,
     "norm_mutualinfo" , "jointentropy" ,
     "hellinger"       ,
-    "corratio_add"    , "corratio_uns"  } ;
+    "corratio_add"    , "corratio_uns" , "signedPcor" } ;
 
 static char *meth_username[NMETH] =    /* descriptive names */
   { "Least Squares [Pearson Correlation]"   ,
@@ -72,7 +72,8 @@ static char *meth_username[NMETH] =    /* descriptive names */
     "Joint Entropy [H(b,s)]"                ,  /* hidden */
     "Hellinger metric"                      ,
     "Correlation Ratio (Symmetrized+)"      ,
-    "Correlation Ratio (Unsym)"              } ;
+    "Correlation Ratio (Unsym)"             ,
+    "Signed Pearson Correlation"             } ; /* hidden */
 /*---------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
@@ -957,7 +958,7 @@ int main( int argc , char *argv[] )
          meth_code = jj = ii+1 ; break ;
        }
      }
-     if( jj > 0 ){ iarg++ ; continue ; }
+     if( jj > 0 ){ iarg++ ; continue ; }  /* there was a match */
 
      /** -longname **/
 
@@ -966,7 +967,7 @@ int main( int argc , char *argv[] )
          meth_code = jj = ii+1 ; break ;
        }
      }
-     if( jj > 0 ){ iarg++ ; continue ; }
+     if( jj > 0 ){ iarg++ ; continue ; }  /* there was a match */
 
      /** -cost shortname  *OR*  -cost longname **/
 
@@ -978,14 +979,14 @@ int main( int argc , char *argv[] )
            meth_code = jj = ii+1 ; break ;
          }
        }
-       if( jj > 0 ){ iarg++ ; continue ; }
+       if( jj > 0 ){ iarg++ ; continue ; } /* there was a match */
 
        for( jj=ii=0 ; ii < NMETH ; ii++ ){
          if( strncmp(argv[iarg],meth_longname[ii],7) == 0 ){
            meth_code = jj = ii+1 ; break ;
          }
        }
-       if( jj >=0 ){ iarg++ ; continue ; }
+       if( jj >=0 ){ iarg++ ; continue ; } /* there was a match */
 
        ERROR_exit("Unknown code '%s' after -cost!",argv[iarg]) ;
      }

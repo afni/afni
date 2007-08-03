@@ -1346,7 +1346,9 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 #define GA_MATCH_CRAT_SADD_SCALAR   8  /* Correlation Ratio: Sym Add */
 #define GA_MATCH_CRAT_USYM_SCALAR   9  /* Correlation Ratio: Unsym */
 
-#define GA_MATCH_METHNUM_SCALAR     9  /* Largest value in sequence above */
+#define GA_MATCH_PEARSON_SIGNED    10  /* experimental */
+
+#define GA_MATCH_METHNUM_SCALAR    10  /* Largest value in sequence above */
 
  /* methods for smoothing images */
 
