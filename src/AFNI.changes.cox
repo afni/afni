@@ -6329,3 +6329,8 @@
 01 Aug 2007
  * Modify to3d.c to warn users of '-xFOV 120A-P' (e.g.) that this is a 240 mm
     field of view (warn in the -help output, and in the program running).
+
+03 Aug 2007
+ * AFNI_SEE_OVERLAY environment variable.
+ * Turn overlay on when user first-time switches Overlay, and turn TTatlas
+     colors on when user pops up atlas color chooser panel.
