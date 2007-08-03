@@ -2368,6 +2368,12 @@ static char * readme_env[] = {
    "stop when it finds an output conflict and NOT write anything, then set this\n" ,
    "variable to DEATH (or anything starting with a 'D').\n" ,
    "\n" ,
+   "--------------------------\n" ,
+   "Variable: AFNI_SEE_OVERLAY\n" ,
+   "--------------------------\n" ,
+   "If this variable is set to YES, then the 'See Overlay' button will be turned\n" ,
+   "on when a new AFNI controller is opened.\n" ,
+   "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- variables specific to NIML I/O\n" ,
    "----------------------------------------------------------------------\n" ,
@@ -2512,4 +2518,4 @@ static char * readme_env[] = {
    "in 3dDeconvolve by the \"-gltsym\" option will be printed to the screen\n" ,
    "when the program starts up.\n" ,
    NULL } ;
-#define NUM_readme_env 2512
+#define NUM_readme_env 2518
