@@ -1590,13 +1590,20 @@ SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
 	      parser.o
 
 # same as .a, but build as a shared object
-libmri.so:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                \
-         $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS) \
-         $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h mrilib.h 3ddata.h
+libmri.so:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                               \
+          $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)                \
+          $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h mrilib.h 3ddata.h   \
+          shared_netcdf_attr 
 	$(RM) $@
 	$(CC) -shared -fPIC -o libmri.so $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS) \
-		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)  \
+		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)           \
 		$(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS)  
+	$(RM) netcdf_attr.o
+
+# remake netcdf objects with PIC
+shared_netcdf_attr:
+	$(RM) netcdf_attr.o
+	$(MAKE) netcdf_attr.o CCMIN="${CCMIN} -fPIC"
 
 # same as .a, but build as a shared object
 libmrix.a:$(IMOBJS) imseq.h display.h xim.h bbox.h xutil.h
