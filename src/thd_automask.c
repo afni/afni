@@ -825,6 +825,11 @@ void THD_mask_dilate( int nx, int ny, int nz, byte *mmm , int ndil )
    free(nnn) ; return ;
 }
 
+/* clip in autobox by default but allow turning it off */
+/* thanks Judd */
+static int bbox_clip=1 ;
+void THD_autobbox_clip( int c ){ bbox_clip = c; }
+
 /*---------------------------------------------------------------------*/
 /*! Find a bounding box for the main cluster of large-ish voxels.
     [xm..xp] will be box for x index, etc.
@@ -844,10 +849,11 @@ ENTRY("THD_autobbox") ;
    mar  = MRI_FLOAT_PTR(medim) ;
    nvox = medim->nvox ;
    for( ii=0 ; ii < nvox ; ii++ ) mar[ii] = fabs(mar[ii]) ;
-
-   clip_val = THD_cliplevel(medim,clfrac) ;
-   for( ii=0 ; ii < nvox ; ii++ )
-     if( mar[ii] < clip_val ) mar[ii] = 0.0 ;
+   if( bbox_clip ){
+      clip_val = THD_cliplevel(medim,clfrac) ;
+      for( ii=0 ; ii < nvox ; ii++ )
+	if( mar[ii] < clip_val ) mar[ii] = 0.0 ;
+   }
 
    MRI_autobbox( medim , xm,xp , ym,yp , zm,zp ) ;
 

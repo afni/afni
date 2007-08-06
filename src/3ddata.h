@@ -4009,6 +4009,7 @@ extern void THD_autobbox( THD_3dim_dataset * ,             /* 06 Jun 2002 */
 extern void MRI_autobbox( MRI_IMAGE * ,
                           int *, int * , int *, int * , int *, int * ) ;
 extern void MRI_autobbox_clust( int ) ;                    /* 20 Sep 2006 */
+extern void THD_autobbox_clip( int ) ;                     /* 06 Aug 2007 */
 
 extern void THD_automask_set_clipfrac( float f ) ;         /* 20 Mar 2006 */
 extern void THD_automask_set_peelcounts( int,int ) ;       /* 24 Oct 2006 */
