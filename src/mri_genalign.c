@@ -605,6 +605,25 @@ void GA_do_cost(int x, byte use_tab){
    }
 }
 
+void GA_fitter_params( int n , double *mpar )
+{
+  int ii , pp ; double wpar , v ; int npar = gstup->wfunc_numpar ;
+  printf(" + Cost=%g Param=",fit_vbest) ;
+  for( ii=pp=0 ; ii < npar ; ii++ ){
+    if( !gstup->wfunc_param[ii].fixed ){  /* variable param */
+      v = mpar[pp++] ;
+      wpar = gstup->wfunc_param[ii].min        /* scale to true range */
+            +gstup->wfunc_param[ii].siz * PRED01(v) ;
+      printf("%g ",wpar) ;
+    }
+  }
+  printf("\n") ; fflush(stdout) ;
+}
+void GA_do_params( int x ){
+   GA_reset_fit_callback( (x)?GA_fitter_params:NULL );
+}
+
+
 /*---------------------------------------------------------------------------*/
 
 static void GA_setup_2Dhistogram( float *xar , float *yar )  /* 08 May 2007 */
@@ -1326,7 +1345,9 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    }
    for( ngtot=1,qq=0 ; qq < nfr ; qq++ ) ngtot *= ngrid ;
 
-   icod = stup->interp_code ; stup->interp_code = MRI_NN ;
+   icod = stup->interp_code ;
+   stup->interp_code = MRI_NN ;
+   if( AFNI_yesenv("AFNI_TWOPASS_LIN") ) stup->interp_code = MRI_LINEAR ;
 
    wpar = (double *)calloc(sizeof(double),nfr) ;
    spar = (double *)calloc(sizeof(double),nfr) ;
