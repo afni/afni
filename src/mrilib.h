@@ -1455,6 +1455,7 @@ extern void mri_genalign_set_pgmat( int ) ;
 extern void GA_reset_fit_callback( void (*fc)(int,double*) ) ;
 extern void GA_do_dots(int) ;
 extern void GA_do_cost(int, byte) ;
+extern void GA_do_params(int) ;
 extern float mri_genalign_scalar_cost( GA_setup * ) ;
 extern void GA_set_outval( float ) ;   /* 28 Feb 2007 */
 

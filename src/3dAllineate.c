@@ -502,11 +502,13 @@ int main( int argc , char *argv[] )
        "                 for initial parameters.\n"
        "\n"
        " -maxrot dd    = Allow maximum rotation of 'dd' degrees.  Equivalent\n"
-       "                 to '-parfix 4 -dd dd -parang 5 -dd dd -parang 6 -dd dd'\n"
+       "                 to '-parang 4 -dd dd -parang 5 -dd dd -parang 6 -dd dd'\n"
        "                 [Default=30 degrees]\n"
        " -maxshf dd    = Allow maximum shift of 'dd' millimeters.  Equivalent\n"
-       "                 to '-parang 1 -dd dd -parang 2 -dd dd -paran2 6 -dd dd'\n"
+       "                 to '-parang 1 -dd dd -parang 2 -dd dd -parang 3 -dd dd'\n"
        "                 [Default=33%% of the size of the base image]\n"
+       "         **N.B.: This max shift setting is relative to the center-of-mass\n"
+       "                 shift, unless the '-nocmass' option is given.\n"
        " -maxscl dd    = Allow maximum scaling factor to be 'dd'.  Equivalent\n"
        "                 to '-parang 7 1/dd dd -parang 8 1/dd dd -paran2 9 1/dd dd'\n"
        "                 [Default=1.2=image can go up or down 20%% in size]\n"
@@ -1992,6 +1994,8 @@ int main( int argc , char *argv[] )
      mri_get_cmass_3D( im_targ , &xc,&yc,&zc ) ; mri_free(im_targ) ;
      MAT44_VEC( targ_cmat , xc,yc,zc , xtarg,ytarg,ztarg ) ;
      xc = xtarg-xbase ; yc = ytarg-ybase ; zc = ztarg-zbase ;
+     if( verb > 2 && apply_mode == 0 )
+       INFO_message("center of mass shifts = %.1f %.1f %.1f",xc,yc,zc) ;
    } else {
      xc = yc = zc = 0.0f ;
    }
@@ -2065,14 +2069,24 @@ int main( int argc , char *argv[] )
                                  stup.wfunc_param[jj].val_pinit ) ;
          break;
 
-         case PARC_RAN: stup.wfunc_param[jj].fixed     = 0 ;
-                        stup.wfunc_param[jj].min       = paropt[ii].vb;
-                        stup.wfunc_param[jj].max       = paropt[ii].vt;
-         if( verb > 1 )
-           ININFO_message("Range param#%d [%s] = %f .. %f",
-                          jj+1 , stup.wfunc_param[jj].name ,
-                                 stup.wfunc_param[jj].min  ,
-                                 stup.wfunc_param[jj].max   ) ;
+         case PARC_RAN:{
+           float vb = paropt[ii].vb , vt = paropt[ii].vt ;
+           if( do_cmass ){  /* 06 Aug 2007 */
+             switch(jj){
+               case 0: vb += xc ; vt += xc ; break ;
+               case 1: vb += yc ; vt += yc ; break ;
+               case 2: vb += zc ; vt += zc ; break ;
+             }
+           }
+           stup.wfunc_param[jj].fixed = 0 ;
+           stup.wfunc_param[jj].min   = vb;
+           stup.wfunc_param[jj].max   = vt;
+           if( verb > 1 )
+             ININFO_message("Range param#%d [%s] = %f .. %f",
+                            jj+1 , stup.wfunc_param[jj].name ,
+                                   stup.wfunc_param[jj].min  ,
+                                   stup.wfunc_param[jj].max   ) ;
+         }
          break;
        }
      } else {
@@ -2537,7 +2551,8 @@ int main( int argc , char *argv[] )
        stup.interp_code = MRI_LINEAR ;
        stup.npt_match   = MIN(499999,npt_match) ;
        mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;
-       if( verb > 1 ) ININFO_message("- start Intrmediate optimization") ;
+       if( verb > 1 ) ININFO_message("- start Intermediate optimization") ;
+       if( verb > 2 ) GA_do_params(1) ;
        nfunc = mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 6666 );
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
          pini[jj] = stup.wfunc_param[jj].val_init ;
@@ -2563,12 +2578,12 @@ int main( int argc , char *argv[] )
 
      /* now do the final final optimization, with the correct interp mode */
 
-     if( verb > 2 ) GA_do_cost(1, (byte)(verb-2));
+     if( verb > 2 ) GA_do_params(1) ;
 
      nfunc += mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
 
      if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ;
-     if( verb > 2 ) GA_do_cost(0, (byte)(verb-2));
+     if( verb > 2 ) GA_do_params(1) ;
      if( verb > 1 ) ININFO_message("- Fine CPU time = %.1f s",
                                    COX_cpu_time()-ctim) ;
      if( verb ) ININFO_message("- Fine Optimization took %d trials; final cost=%f",
