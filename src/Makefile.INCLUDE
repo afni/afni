@@ -1569,10 +1569,9 @@ libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                \
 		$(SUMA_OBJS) $(MISC_OBJS)
 	$(RANLIB) libmri.a
 
-libmrix.a:$(IMOBJS) imseq.h display.h xim.h bbox.h xutil.h
-	$(RM) libmrix.a
-	$(AR) q libmrix.a $(IMOBJS)
-	$(RANLIB) libmrix.a
+libmrix.so:$(IMOBJS) imseq.h display.h xim.h bbox.h xutil.h
+	$(RM) $@
+	$(CC) -shared -fPIC -o libmrix.so $(IMOBJS)
 
 ### Dependencies for above
 
@@ -1582,6 +1581,36 @@ thd_iochan.o:thd_iochan.h
 mcw_malloc.o:mcw_malloc.h
 afni_environ.o:afni_environ.h
 vol2surf.o:vol2surf.h
+
+###################################################################
+# shared objects (go into the shared_lib directory)
+
+SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
+	      afni_slice_float.o afni_slice_complex.o afni_slice_rgbyte.o  \
+	      parser.o
+
+# same as .a, but build as a shared object
+libmri.so:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                \
+         $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS) \
+         $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h mrilib.h 3ddata.h
+	$(RM) $@
+	$(CC) -shared -fPIC -o libmri.so $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS) \
+		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)  \
+		$(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS)  
+
+# same as .a, but build as a shared object
+libmrix.a:$(IMOBJS) imseq.h display.h xim.h bbox.h xutil.h
+	$(RM) libmrix.a
+	$(AR) q libmrix.a $(IMOBJS)
+	$(RANLIB) libmrix.a
+
+shared_dir: shared_lib
+
+shared_lib:
+	$(MKDIR) shared_lib
+
+shared_objs: shared_dir libmri.so libmrix.so
+	$(MV) libmri.so libmrix.so shared_lib
 
 ###################################################################
 # Plugin stuff
