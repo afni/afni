@@ -1604,13 +1604,8 @@ libmrix.a:$(IMOBJS) imseq.h display.h xim.h bbox.h xutil.h
 	$(AR) q libmrix.a $(IMOBJS)
 	$(RANLIB) libmrix.a
 
-shared_dir: shared_lib
-
-shared_lib:
-	$(MKDIR) shared_lib
-
-shared_objs: shared_dir libmri.so libmrix.so
-	$(MV) libmri.so libmrix.so shared_lib
+shared_objs: $(INSTALLDIR) libmri.so libmrix.so
+	$(MV) libmri.so libmrix.so $(INSTALLDIR)
 
 ###################################################################
 # Plugin stuff
