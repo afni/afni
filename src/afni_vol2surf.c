@@ -280,7 +280,10 @@ ENTRY("map_v2s_results");
 	    if ( zbot && fval < 0 ) continue;
 
 	    /* note the color panel index, and bound it in [0,NPANE_BIG-1] */
-	    ival = (int)(fac * (btop - fval) + 0.49);
+            if( fval >= btop ) ival = 0;        /* guard against overflow */
+            else if ( fval <= bbot ) ival = NPANE_BIG - 1;
+            else ival = (int)(fac * (btop - fval) + 0.49);
+
 	    if ( ival < 0 ) ival = 0;
 	    if ( ival >= NPANE_BIG ) ival = NPANE_BIG - 1;
 
