@@ -207,4 +207,6 @@ most obvious in NIFTI files where the coordinates are changed as in 3drefit,
 03 Aug 2007
  * user input fix for 3dAutobox limits, added -noclust option too to keep any
 non-zero voxels
+06 Aug 2007
+ * 3dAutobox can also ignore automatic clip level
 

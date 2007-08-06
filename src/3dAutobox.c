@@ -59,7 +59,8 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[iarg],"-noclust") == 0 ){
-         MRI_autobbox_clust(0) ;
+         MRI_autobbox_clust(0) ;  /* turn of clustering and clipping */
+         THD_autobbox_clip(0) ;
          iarg++ ; continue ;
       }
 
