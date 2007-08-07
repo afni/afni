@@ -1395,7 +1395,7 @@ typedef struct {
   byte *bmask     ;
   MRI_IMAGE *bwght ;
 
-  MRI_IMAGE *ajim , *ajims ;
+  MRI_IMAGE *ajim , *ajims , *ajmask , *ajimor;
   float ajbot,ajtop , ajclip ;
   int dim_avec , abdim ;
 
@@ -1406,12 +1406,14 @@ typedef struct {
   float hist_param ;           /* set by user */
   int need_hist_setup ;
 
+#if 0
                              /*** NOT USED YET ***/
   int kernel_code ;            /* set by user */
   float kernel_radius ;        /* set by user */
   int npt_sum ;                /* set by user */
   intvec *is, *js, *ks ;
   floatvec *bvs ;            /********************/
+#endif
 
   int          wfunc_numpar ;  /* set by user */
   GA_param    *wfunc_param ;   /* set by user */
@@ -1435,6 +1437,7 @@ typedef struct {
        KILL_floatvec((st)->im); KILL_floatvec((st)->jm);                    \
        KILL_floatvec((st)->km); KILL_floatvec((st)->bvm);                   \
        KILL_floatvec((st)->wvm); IFREE((st)->wfunc_param) ;                 \
+       mri_free((st)->ajmask); mri_free((st)->ajimor);                      \
      }                                                                      \
  } while(0)
 
@@ -1451,6 +1454,8 @@ extern void mri_genalign_mat44( int, float *,
                                 int, float *, float *, float *,
                                      float *, float *, float * ) ;
 extern void mri_genalign_set_pgmat( int ) ;
+
+void mri_genalign_set_targmask( MRI_IMAGE *, GA_setup * ) ; /* 07 Aug 2007 */
 
 extern void GA_reset_fit_callback( void (*fc)(int,double*) ) ;
 extern void GA_do_dots(int) ;
