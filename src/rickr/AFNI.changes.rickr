@@ -2161,8 +2161,8 @@
         - added gifti_init_darray_from_attrs and some validation functions
 
 02 Aug 2007: modified file_tool.[ch]: added -disp_hex, -disp_hex{1,2,4}
-
 06 Aug 2007:
   * modified Makefile.INCLUDE: added targets libmri.so, libmrix.so
   * modified afni_vol2surf.c, afni_func.c: better overflow guards
+07 Aug 2007: help update to 3dresample
 
