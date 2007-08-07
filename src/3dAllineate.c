@@ -80,9 +80,9 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset_out=NULL ;
    MRI_IMAGE *im_base, *im_targ, *im_weig=NULL, *im_mask=NULL, *qim ;
-   MRI_IMAGE *im_bset, *im_wset ;
+   MRI_IMAGE *im_bset, *im_wset, *im_tmask=NULL ;
    GA_setup stup ;
-   int iarg , ii,jj,kk , nmask=0 , nfunc , rr , ntask ;
+   int iarg , ii,jj,kk , nmask=0 , nfunc , rr , ntask , ntmask=0 ;
    int   nx_base,ny_base,nz_base , nx_targ,ny_targ,nz_targ , nxy_base ;
    float dx_base,dy_base,dz_base , dx_targ,dy_targ,dz_targ ;
    int   nxyz_base[3] , nxyz_targ[3] , nxyz_dout[3] ;
@@ -165,6 +165,10 @@ int main( int argc , char *argv[] )
    float  hist_param           = 0.0f ;
    int    hist_setbyuser       = 0 ;
    int    do_cmass             = 1 ;            /* 30 Jul 2007 */
+
+   int auto_tdilation          = 0 ;            /* for -source_automask+N */
+   int auto_tmask              = 0 ;
+   char *auto_tstring          = NULL ;
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -443,6 +447,14 @@ int main( int argc , char *argv[] )
             printf("     %-4s   %s\n", meth_shortname[ii] ,
                                        meth_noweight[ii] ? "NO" : "YES" ) ;
       }
+
+      printf(
+       "\n"
+       " -source_mask sss = Mask the source (input) dataset, using 'sss'.\n"
+       " -source_automask = Automatically mask the source dataset.\n"
+       "                      [By default, all voxels in the source]\n"
+       "                      [dataset are used in the matching.   ]\n"
+      ) ;
 
       printf(
        "\n"
@@ -852,6 +864,42 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-autobox") == 0 ){
        auto_weight = 3 ; auto_string = "-autobox" ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcmp(argv[iarg],"-source_mask") == 0 ){  /* 07 Aug 2007 */
+       byte *mmm ; THD_3dim_dataset *dset_tmask ;
+       if( im_tmask != NULL )
+         ERROR_exit("Can't use -source_mask twice!") ;
+       if( auto_tmask )
+         ERROR_exit("Can't use -source_mask AND -source_automask!") ;
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
+       dset_tmask = THD_open_dataset( argv[iarg] ) ;
+       if( dset_tmask == NULL )
+         ERROR_exit("can't open -source_mask dataset '%s'",argv[iarg]);
+       mmm = THD_makemask( dset_tmask , 0 , 1.0f,-1.0f ) ;
+       DSET_delete(dset_tmask) ;
+       if( mmm == NULL )
+         ERROR_exit("Can't use -source_mask '%s' for some reason",argv[iarg]) ;
+       im_tmask = mri_new_vol_empty(
+                   DSET_NX(dset_tmask),DSET_NY(dset_tmask),DSET_NZ(dset_tmask) ,
+                   MRI_byte ) ;
+       mri_fix_data_pointer( mmm , im_tmask ) ;
+       ntmask = THD_countmask( im_tmask->nvox , mmm ) ;
+       if( ntmask < 666 )
+         ERROR_exit("Too few (%d) voxels in -source_mask!",ntmask) ;
+       if( verb ) INFO_message("%d voxels in -source_mask",ntmask) ;
+       iarg++ ; continue ;
+     }
+
+     if( strncmp(argv[iarg],"-source_automask",16) == 0 ){  /* 07 Aug 2007 */
+       if( im_tmask != NULL )
+         ERROR_exit("Can't use -source_automask AND -source_mask!") ;
+       auto_tmask = 1 ; auto_tstring = argv[iarg] ;
+       if( auto_tstring[16] == '+' && auto_string[17] != '\0' )
+         auto_tdilation = (int)strtod(auto_tstring+17,NULL) ;
+       iarg++ ; continue ;
      }
 
      /*-----*/
@@ -1339,13 +1387,14 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strcmp(argv[iarg],"-maxscl") == 0 ){
-       float vv , vvi ;
+       float vv , vvi ; char *cpt ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        if( nparopt+2 >= MAXPAR ) ERROR_exit("too many -par... options!") ;
-       vv = (float)strtod(argv[iarg],NULL) ;
+       vv = (float)strtod(argv[iarg],&cpt) ;
+       if( *cpt == '%' ) vv = 1.0f + 0.01*vv ;
        if( vv == 1.0f || vv > 2.0f || vv < 0.5f )
          ERROR_exit("-maxscl %f is illegal!",vv) ;
-       if( vv > 1.0f ){ vvi = 1.0f/vvi; }
+       if( vv > 1.0f ){ vvi = 1.0f/vv; }
        else           { vvi = vv ; vv = 1.0f/vvi ; }
        paropt[nparopt].np   = 6 ;
        paropt[nparopt].code = PARC_RAN ;
@@ -1675,10 +1724,15 @@ int main( int argc , char *argv[] )
      if( prefix == NULL ) ERROR_exit("-1D*_apply also needs -prefix!") ;
      if( param_save_1D  != NULL ) WARNING_message("-1D*_apply: Can't do -1Dparam_save") ;
      if( matrix_save_1D != NULL ) WARNING_message("-1D*_apply: Can't do -1Dmatrix_save") ;
-     wtprefix = param_save_1D = matrix_save_1D = NULL ; zeropad = 0 ; auto_weight = 0 ;
+     wtprefix = param_save_1D = matrix_save_1D = NULL ;
+     zeropad = 0 ; auto_weight = auto_tmask = 0 ;
      if( dset_weig != NULL ){
        WARNING_message("-1D*_apply: Ignoring weight dataset") ;
        DSET_delete(dset_weig) ; dset_weig=NULL ;
+     }
+     if( im_tmask != NULL ){
+       WARNING_message("-1D*_apply: Ignoring -source_mask") ;
+       mri_free(im_tmask) ; im_tmask = NULL ;
      }
      if( dset_mast == NULL && dxyz_mast == 0.0 )
        INFO_message("You might want to use '-master' when using '-1D*_apply'") ;
@@ -1713,7 +1767,36 @@ int main( int argc , char *argv[] )
    if( nx_targ < 2 || ny_targ < 2 )
      ERROR_exit("Target dataset has nx=%d ny=%d ???",nx_targ,ny_targ) ;
 
-   /* load base if defined */
+   /*-- 07 Aug 2007: make target automask? --*/
+
+   if( auto_tmask ){
+
+     byte *mmm ; int ndil=auto_tdilation ;
+     mmm = THD_automask( dset_targ ) ;
+     if( mmm == NULL )
+       ERROR_exit("Can't make -source_automask for some reason!") ;
+     im_tmask = mri_new_vol_empty( nx_targ,ny_targ,nz_targ , MRI_byte ) ;
+     mri_fix_data_pointer( mmm , im_tmask ) ;
+     if( ndil > 0 ){
+       for( ii=0 ; ii < ndil ; ii++ ){
+         THD_mask_dilate     ( nx_targ,ny_targ,nz_targ , mmm , 3 ) ;
+         THD_mask_fillin_once( nx_targ,ny_targ,nz_targ , mmm , 2 ) ;
+       }
+     }
+     ntmask = THD_countmask( im_tmask->nvox , mmm ) ;
+     if( ntmask < 666 )
+       ERROR_exit("Too few (%d) voxels in %s!",ntmask,auto_tstring) ;
+     if( verb )
+       INFO_message("%d voxels in %s",ntmask,auto_tstring) ;
+
+   } else if( im_tmask != NULL ){  /*-- check -source_mask vs. target --*/
+
+     if( im_tmask->nx != nx_targ ||
+         im_tmask->ny != ny_targ || im_tmask->nz != nz_targ )
+       ERROR_exit("-source_mask and -source datasets have different dimensions!") ;
+   }
+
+   /*-- load base dataset if defined --*/
 
    if( dset_base != NULL ){
      DSET_load(dset_base) ; CHECK_LOAD_ERROR(dset_base) ;
@@ -1980,9 +2063,21 @@ int main( int argc , char *argv[] )
      stup.wfunc_param[p].fixed  = 0 ;             \
  } while(0)
 
-   xxx = 0.321 * (nx_base-1) * dx_base ;  /* range of shifts allowed */
-   yyy = 0.321 * (ny_base-1) * dy_base ;
-   zzz = 0.321 * (nz_base-1) * dz_base ;
+   /*-- compute range of shifts allowed --*/
+
+   xxx = 0.321 * (nx_base-1) ;
+   yyy = 0.321 * (ny_base-1) ;
+   zzz = 0.321 * (nz_base-1) ; xxx_m = yyy_m = zzz_m = 0.0f ;
+   for( ii=-1 ; ii <= 1 ; ii+=2 ){
+    for( jj=-1 ; jj <= 1 ; jj+=2 ){
+      for( kk=-1 ; kk <= 1 ; kk+=2 ){
+        MAT33_VEC( base_cmat , (ii*xxx),(jj*yyy),(kk*zzz) ,
+                   xxx_p,yyy_p,zzz_p ) ;
+        xxx_p = fabsf(xxx_p); yyy_p = fabsf(yyy_p); zzz_p = fabsf(zzz_p);
+        xxx_m = MAX(xxx_m,xxx_p);
+        yyy_m = MAX(yyy_m,yyy_p); zzz_m = MAX(zzz_m,zzz_p);
+   }}}
+   xxx = xxx_m ; yyy = yyy_m ; zzz = zzz_m ;
 
    /*-- 30 Jul 2007: center-of-mass sets range of shifts --*/
 
@@ -2004,7 +2099,7 @@ int main( int argc , char *argv[] )
    zzz_p = zc + zzz ; zzz_m = zc - zzz ;
 
    if( verb > 2 && apply_mode == 0 )
-     INFO_message("shift param range: %.1f..%.1f %.1f..%.1f %.1f..%.1f",
+     INFO_message("shift param auto-range: %.1f..%.1f %.1f..%.1f %.1f..%.1f",
                   xxx_m,xxx_p , yyy_m,yyy_p , zzz_m,zzz_p ) ;
 
    /*-- we now define all 12 affine parameters, though not all may be used --*/
@@ -2253,6 +2348,11 @@ int main( int argc , char *argv[] )
 
    im_bset = im_base ;  /* base image for first loop */
    im_wset = im_weig ;
+
+   if( im_tmask != NULL ){
+     mri_genalign_set_targmask( im_tmask , &stup ) ;  /* 07 Aug 2007 */
+     mri_free(im_tmask) ; im_tmask = NULL ;
+   }
 
    for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
 
@@ -2685,15 +2785,16 @@ int main( int argc , char *argv[] )
      /*--- do we replace the base image with warped first target image? ---*/
 
      if( replace_base ){
-       float pp[MAXPAR] ;
+       float pp[MAXPAR] ; MRI_IMAGE *aim ;
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
          pp[jj] = stup.wfunc_param[jj].val_out ;
        mri_free(im_base) ;
        if( verb > 1 ) INFO_message("Computing replacement base image") ;
+       aim = (stup.ajimor != NULL) ? stup.ajimor : stup.ajim ;
        im_base =
         im_bset = mri_genalign_scalar_warpone(
                              stup.wfunc_numpar , pp , stup.wfunc ,
-                             stup.ajim, nx_base,ny_base,nz_base, final_interp );
+                             aim, nx_base,ny_base,nz_base, final_interp );
 #if 0
        im_wset = im_weig ;  /* not needed, since stup 'remembers' the weight */
 #endif
@@ -2753,6 +2854,7 @@ DUMP_MAT44("aff12_ijk",qmat) ;
      /** store warped volume into the output dataset **/
 
      if( dset_out != NULL ){
+       MRI_IMAGE *aim = (stup.ajimor != NULL) ? stup.ajimor : stup.ajim ;
        if( verb > 1 ) INFO_message("Computing output image") ;
 #if 0
 mri_genalign_set_pgmat(1) ;
@@ -2767,7 +2869,7 @@ mri_genalign_set_pgmat(1) ;
 
            im_targ = mri_genalign_scalar_warpone(
                                  stup.wfunc_numpar , parsave[kk] , stup.wfunc ,
-                                 stup.ajim , nxout,nyout,nzout, final_interp ) ;
+                                 aim , nxout,nyout,nzout, final_interp ) ;
          break ;
 
          case APPLY_AFF12:{
@@ -2783,7 +2885,7 @@ DUMP_MAT44("aff12_ijk",qmat) ;
 #endif
            im_targ = mri_genalign_scalar_warpone(
                                  12 , ap , mri_genalign_mat44 ,
-                                 stup.ajim , nxout,nyout,nzout, final_interp ) ;
+                                 aim , nxout,nyout,nzout, final_interp ) ;
          }
          break ;
        }
@@ -2842,6 +2944,7 @@ DUMP_MAT44("aff12_ijk",qmat) ;
 
    MRI_FREE(stup.bsim); MRI_FREE(stup.bsims);
    MRI_FREE(stup.ajim); MRI_FREE(stup.ajims); MRI_FREE(stup.bwght);
+   MRI_FREE(stup.ajimor);
 
    /***--- write output dataset to disk? ---***/
 

@@ -498,6 +498,11 @@ ENTRY("GA_get_warped_values") ;
 
    gstup->wfunc( npar , wpar , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
 
+   /* choose image from which to extract data */
+
+   aim = (gstup->ajims != NULL && mpar != NULL ) ? gstup->ajims /* smoothed */
+                                                 : gstup->ajim; /* unsmooth */
+
    /*--- do (up to) NPER points at a time ---*/
 
    for( pp=0 ; pp < npt ; pp+=NPER ){
@@ -521,11 +526,6 @@ ENTRY("GA_get_warped_values") ;
 
      gstup->wfunc( npar , NULL ,
                    npp  , imf,jmf,kmf , imw,jmw,kmw ) ;
-
-     /* choose image from which to extract data */
-
-     aim = (gstup->ajims != NULL && mpar != NULL ) ? gstup->ajims /* smoothed */
-                                                   : gstup->ajim; /* unsmooth */
 
      /* interpolate target image at warped points */
 
@@ -910,7 +910,38 @@ ENTRY("mri_genalign_scalar_setup") ;
      }
      stup->targ_imat = MAT44_INV( stup->targ_cmat ) ;
      if( stup->ajims != NULL ){ mri_free(stup->ajims); stup->ajims = NULL; }
-   }
+
+     /* 07 Aug 2007: deal with target mask */
+
+     if( stup->ajimor != NULL ){ mri_free(stup->ajimor); stup->ajimor = NULL; }
+
+     if( stup->ajmask != NULL && stup->ajmask->nvox != stup->ajim->nvox ){
+       WARNING_message("mri_genalign_scalar_setup: target image/mask mismatch") ;
+       mri_free(stup->ajmask) ; stup->ajmask = NULL ;
+     }
+     if( stup->ajmask != NULL ){
+       float *af, *qf ; byte *mmm ; float_pair quam ; float ubot,usiz , u1,u2;
+       MRI_IMAGE *qim ; int nvox,pp ;
+       stup->ajimor = mri_copy(stup->ajim) ;
+       if( stup->usetemp ) mri_purge( stup->ajimor ) ;
+       af  = MRI_FLOAT_PTR(stup->ajim) ;
+       mmm = MRI_BYTE_PTR (stup->ajmask) ;
+       qim = mri_new_conforming(stup->ajim,MRI_float);
+       qf  = MRI_FLOAT_PTR(qim); nvox = qim->nvox;
+       for( ii=pp=0 ; ii < nvox ; ii++ ){ if( mmm[ii] ) qf[pp++] = af[ii] ; }
+       qim->nvox = pp; quam = mri_twoquantiles(qim,0.05f,0.95f); mri_free(qim);
+       ubot = quam.a ; usiz = (quam.b - quam.a)*0.5f ;
+       if( usiz > 0.0f ){
+         if( verb > 2 ) ININFO_message("source mask: ubot=%g usiz=%g",ubot,usiz);
+         for( ii=0 ; ii < nvox ; ii++ ){
+           if( !mmm[ii] ){
+             u1 = (float)drand48(); u2 = (float)drand48();
+             af[ii] = ubot + usiz*(u1+u2) ;
+           }
+         }
+       }
+     }
+   } /* end of processing input targim */
 
    /* smooth images if needed
       13 Oct 2006: separate smoothing radii for base and target */
@@ -1159,6 +1190,29 @@ ENTRY("mri_genalign_scalar_setup") ;
 
    if( verb > 1 ) ININFO_message("* Exit alignment setup routine") ;
    stup->setup = SMAGIC ;
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Set the byte mask for the target (or unset it).
+    Should be done BEFORE mri_genalign_scalar_setup().  [07 Aug 2007] */
+
+void mri_genalign_set_targmask( MRI_IMAGE *im_tmask , GA_setup *stup )
+{
+ENTRY("mri_genalign_set_targmask") ;
+   if( stup == NULL ) EXRETURN ;
+   if( stup->ajmask != NULL ){ mri_free(stup->ajmask); stup->ajmask = NULL; }
+   if( im_tmask != NULL ){
+     if( stup->ajim != NULL ){
+       if( im_tmask->nvox != stup->ajim->nvox ){
+         ERROR_message("mri_genalign_set_targmask: image mismatch!") ;
+         EXRETURN ;
+       } else {
+         WARNING_message("mri_genalign_set_targmask: called after setup()?!") ;
+       }
+     }
+     stup->ajmask = mri_copy(im_tmask) ;
+   }
    EXRETURN ;
 }
 
