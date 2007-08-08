@@ -242,6 +242,7 @@ typedef struct {
       int        func_resam_mode , anat_resam_mode , pts_color ;
       int        thr_resam_mode ;               /* 09 Dec 1997 */
       int        thr_onoff ;                    /* 28 Jun 2007 */
+      int        thr_sign ;                     /* 08 Aug 2007 */
 
       /* 3/24/95: range data for conversion of pbar
                   values to thresholding values in the data */
@@ -479,6 +480,7 @@ typedef struct {
       Widget thr_menu ;
       MCW_bbox *thr_onoff_bbox ;
       Widget thr_autothresh_pb ;
+      MCW_arrowval *thr_sign_av ;  /* 08 Aug 2007 */
 
       Widget inten_rowcol , inten_label ;
       MCW_pbar     * inten_pbar ;
@@ -524,6 +526,7 @@ typedef struct {
 } AFNI_function_widgets ;
 
 extern void AFNI_func_autothresh_CB(Widget,XtPointer,XtPointer) ; /* 25 Jul 2007 */
+extern void AFNI_func_thrsign_CB( MCW_arrowval * , XtPointer ) ;  /* 08 Aug 2007 */
 
 #define PBAR_MODEBUT  0
 #define PBAR_MODEPOS  (1 << PBAR_MODEBUT)
@@ -1425,7 +1428,7 @@ extern void AFNI_force_adoption  ( THD_session * , Boolean ) ;
 
 extern MRI_IMAGE * AFNI_func_overlay( int , FD_brick * ) ;
 
-extern MRI_IMAGE * AFNI_newfunc_overlay( MRI_IMAGE *, float ,  /* 30 Jan 2003 */
+extern MRI_IMAGE * AFNI_newfunc_overlay( MRI_IMAGE *, float,float ,  /* 30 Jan 2003 */
                                          MRI_IMAGE *,
                                          float,float, rgbyte * ) ;
 
