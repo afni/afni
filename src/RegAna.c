@@ -42,6 +42,9 @@
   Mod:     If use_psinv is 1, use matrix_psinv() instead of inversion.
   Date     19 Jul 2004 -- RWCox
 
+  Mod:     Changed EPSILON values from 10e-5 to 10e-12, to prevent setting
+           valid output to zero when beta weights are small
+  Date     08 Aug 2007 -- rickr
 */
 
 static int use_psinv = 1 ;  /* 19 Jul 2004 */
@@ -378,7 +381,7 @@ float calc_flof
 )
 
 {
-  const float EPSILON = 1.0e-5;      /* protection against divide by zero */
+  const float EPSILON = 1.0e-12;      /* protection against divide by zero */
   float mspe;                 /* mean square error due to pure error */
   float sslf;                 /* error sum of squares due to lack of fit */
   float mslf;                 /* mean square error due to lack of fit */
@@ -486,7 +489,7 @@ void calc_tcoef
 
 {
   const float MAXT = 1000.0;         /* maximum value for t-statistic */
-  const float EPSILON = 1.0e-5;      /* protection against divide by zero */
+  const float EPSILON = 1.0e-12;      /* protection against divide by zero */
   int df;                     /* error degrees of freedom */
   float mse;                  /* mean square error */
   register int i;             /* parameter index */
@@ -548,7 +551,7 @@ float calc_freg
 
 {
   const float MAXF = 1000.0;         /* maximum value for F-statistic */
-  const float EPSILON = 1.0e-5;      /* protection against divide by zero */
+  const float EPSILON = 1.0e-12;      /* protection against divide by zero */
   float msef;                 /* mean square error for the full model */
   float msreg;                /* mean square due to the regression */
   float freg;                 /* F-statistic for the full regression model */
@@ -593,7 +596,7 @@ float calc_rsqr
 )
 
 {
-  const float EPSILON = 1.0e-5;     /* protection against divide by zero */
+  const float EPSILON = 1.0e-12;     /* protection against divide by zero */
   float rsqr;                       /* coeff. of multiple determination R^2  */
 
 
