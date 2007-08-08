@@ -106,6 +106,11 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_option( plint , "Aboot" , "Aboot" , FALSE ) ;
    PLUTO_add_number( plint , "Radius" , 2,100,0,10,1 ) ;
 
+   /*-- fifth line of input [08 Aug 2007] --*/
+
+   PLUTO_add_option( plint , "Percent" , "Percent" , FALSE ) ;
+   PLUTO_add_number( plint , "Percent" , 1,100,0,10,1 ) ;
+
    return plint ;
 }
 
@@ -130,6 +135,7 @@ char * SCAT_main( PLUGIN_interface *plint )
    int miv=0 ;
 
    float hrad=0.0f ;   /* 30 Oct 2006 */
+   float perc=0.0f ;   /* 08 Aug 2007 */
 
    /*--------------------------------------------------------------------*/
    /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
@@ -240,6 +246,13 @@ char * SCAT_main( PLUGIN_interface *plint )
          continue ;
       }
 
+      /*-- 08 Aug 2007: Percent --*/
+
+      if( strcmp(tag,"Percent") == 0 ){
+         perc = PLUTO_get_number(plint) ;
+         continue ;
+      }
+
    }
 
    /*------------------------------------------------------*/
@@ -287,7 +300,6 @@ char * SCAT_main( PLUGIN_interface *plint )
                                       " Aboot Radius too small\n"
                                       " for this dataset!\n"     ) ;
       } else {
-         char buf[256] ;
          ADDTO_CLUSTER(cl,0,0,0,0) ;
          di = cl->i ; dj = cl->j ; dk = cl->k ; nd = cl->num_pt ;
          nx = DSET_NX(xdset) ; nx1 = nx-1 ;
@@ -310,11 +322,32 @@ char * SCAT_main( PLUGIN_interface *plint )
            free(mmm) ;
            return " \n*** Less than 3 voxels survive the mask+radius! ***\n" ;
          }
-         sprintf(buf," \n"
-                     " %d voxels in the mask+radius\n"
-                     " out of %d dataset voxels\n ",mcount,nvox) ;
-         PLUTO_popup_transient(plint,buf) ;
+         if( perc == 0.0f || perc == 100.0f ){
+           char buf[256] ;
+           sprintf(buf," \n"
+                       " %d voxels in the mask+radius\n"
+                       " out of %d dataset voxels\n ",mcount,nvox) ;
+           PLUTO_popup_transient(plint,buf) ;
+         }
       }
+   }
+
+   /* 08 Aug 2007: modify mask by randomly selecting a percentage of it */
+
+   if( perc > 0.0f && perc < 100.0f ){
+     double pp = 0.01 * perc ; char buf[256] ;
+     for( ii=0 ; ii < nvox ; ii++ ){
+       if( mmm[ii] && drand48() > pp ) mmm[ii] = 0 ;
+     }
+     mcount = THD_countmask( nvox , mmm ) ;
+     if( mcount < 3 ){
+       free(mmm) ;
+       return " \n*** Less than 3 voxels survive the percenting! ***\n" ;
+     }
+     sprintf(buf," \n"
+                 " %d voxels in mask after percenting\n"
+                 " out of %d dataset voxels\n ",mcount,nvox) ;
+     PLUTO_popup_transient(plint,buf) ;
    }
 
    /*-- allocate the space for the data to be plotted --*/
