@@ -2170,4 +2170,5 @@
   * modified RegAna.c: changed the 4 EPSILON values to 10e-12 (from 10e-5),
         to allow division by smaller sums of errors, to prevent setting
         valid output to zero
+  * modified nifti1_io.c: for list, valid_nifti_brick_list requires 3 dims
 
