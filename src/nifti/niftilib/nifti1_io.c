@@ -301,9 +301,10 @@ static char * gni_history[] =
   "1.26 27 Jul 2007 [rickr] handle single volumes > 2^31 bytes (but < 2^32)\n",
   "1.27 28 Jul 2007 [rickr] nim->nvox, NBL-bsize are now type size_t\n"
   "1.28 30 Jul 2007 [rickr] size_t updates\n"
+  "1.29 08 Aug 2007 [rickr] for list, valid_nifti_brick_list requires 3 dims\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.28, 30 Jul, 2007)";
+static char gni_version[] = "nifti library version 1.29 (08 Aug, 2007)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1, 0 };
@@ -929,6 +930,13 @@ int valid_nifti_brick_list(nifti_image * nim , int nbricks,
    if( nbricks <= 0 || !blist ){
       if( disp_error || g_opts.debug > 1 )
          fprintf(stderr,"** valid_nifti_brick_list: no brick list to check\n");
+      return 0;
+   }
+
+   if( nim->dim[0] < 3 ){
+      if( disp_error || g_opts.debug > 1 )
+         fprintf(stderr,"** cannot read explict brick list from %d-D dataset\n",
+                 nim->dim[0]);
       return 0;
    }
 
@@ -6051,6 +6059,12 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
                      nim->nt, nim->nu, nim->nv, nim->nw );
    }
 
+   if( g_opts.debug > 2 ){
+      fprintf(stderr,"-d check dim[%d] =", nim->dim[0]);
+      for( c = 0; c < 7; c++ ) fprintf(stderr," %d", nim->dim[c]);
+      fputc('\n', stderr);
+   }
+
    /**- check the dimensions, and that their product matches nvox */
    prod = 1;
    for( c = 1; c <= nim->dim[0]; c++ ){
@@ -6064,8 +6078,8 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
    }
    if( prod != nim->nvox ){
       if( ! complain ) return 0;
-      fprintf(stderr,"** NVd: nvox does not match dimension product (%u, %u)\n",
-              (unsigned)nim->nvox, (unsigned)prod);
+      fprintf(stderr,"** NVd: nvox does not match %d-dim product (%u, %u)\n",
+              nim->dim[0], (unsigned)nim->nvox, (unsigned)prod);
       errs++;
    }
 
