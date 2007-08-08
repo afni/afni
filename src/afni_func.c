@@ -1217,9 +1217,8 @@ STATUS("had to convert im_fim to floats?????") ;
        then create an RGB overlay in a separate function **/
 
    if( pbar->bigmode ){
-     float thresh ;
-     thresh =  im3d->vinfo->func_threshold
-             * im3d->vinfo->func_thresh_top / scale_thr ;
+     float thresh =  im3d->vinfo->func_threshold
+                   * im3d->vinfo->func_thresh_top / scale_thr ;
      float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
 
 if( PRINT_TRACING && im_thr != NULL )
