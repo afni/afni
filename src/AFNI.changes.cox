@@ -6334,3 +6334,6 @@
  * AFNI_SEE_OVERLAY environment variable.
  * Turn overlay on when user first-time switches Overlay, and turn TTatlas
      colors on when user pops up atlas color chooser panel.
+
+08 Aug 2007
+ * Add threshold signage feature to AFNI threshold menu ("Pos & Neg", etc).

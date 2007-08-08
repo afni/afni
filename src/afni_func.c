@@ -35,7 +35,7 @@ ENTRY("AFNI_see_func_CB") ;
      }
      AFNI_disable_suma_overlay( 0 ) ; /* 16 Jun 2003 */
      AFNI_redisplay_func( im3d ) ;    /* 05 Mar 2002 */
-     im3d->vinfo->func_visible_count++ ; /* 03 Aut 2007 */
+     im3d->vinfo->func_visible_count++ ; /* 03 Aug 2007 */
    }
 
    RESET_AFNI_QUIT(im3d) ;
@@ -89,6 +89,23 @@ ENTRY("AFNI_func_autothresh_CB") ;
 
    new_thresh = AFNI_get_autothresh(im3d) ;
    if( new_thresh > 0.0f ) AFNI_set_threshold(im3d,new_thresh) ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! 08 Aug 2007 */
+
+void AFNI_func_thrsign_CB( MCW_arrowval *av , XtPointer cd )
+{
+   Three_D_View *im3d = (Three_D_View *) cd ;
+
+ENTRY("AFNI_func_thrsign_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
+   im3d->vinfo->thr_sign = av->ival ;
+   AFNI_redisplay_func( im3d ) ;
+   AFNI_set_window_titles( im3d ) ;
    EXRETURN ;
 }
 
@@ -1024,6 +1041,13 @@ static void mri_edgize( MRI_IMAGE *im )
 #undef  ZREG
 #define ZREJ(val) (reject_zero && (val)==0)   /* 20 Apr 2005 */
 
+#undef  THBOT
+#undef  THTOP
+#undef  THBIG
+#define THBIG    1.e+9f
+#define THBOT(t) ((thrsign==0 || thrsign==2) ? (-(t)) : (-THBIG))
+#define THTOP(t) ((thrsign==0 || thrsign==1) ? (t)    :  (THBIG))
+
 /*-----------------------------------------------------------------------*/
 /*!  Make a functional overlay -- very simple routine at present;
    n = slice index , br_fim = data structure to extract slice from.
@@ -1044,6 +1068,7 @@ MRI_IMAGE * AFNI_func_overlay( int n , FD_brick *br_fim )
    MCW_pbar *pbar ;
    int simult_thr , need_thr ;
    int reject_zero = !AFNI_yesenv("AFNI_OVERLAY_ZERO") ; /* 20 Apr 2005 */
+   int thrsign ; /* 08 Aug 2007 */
 
 ENTRY("AFNI_func_overlay") ;
 
@@ -1060,6 +1085,7 @@ ENTRY("AFNI_func_overlay") ;
    LOAD_DSET_VIEWS(im3d) ; /* 02 Nov 1996 */
 
    need_thr = (im3d->vinfo->func_threshold > 0.0) && im3d->vinfo->thr_onoff ;
+   thrsign  = im3d->vinfo->thr_sign ; /* 08 Aug 2007 */
 
    /* 29 Mar 2005: make sure statistics of overlay dataset are ready */
 
@@ -1070,10 +1096,10 @@ ENTRY("AFNI_func_overlay") ;
    /* get the threshold image? */
 
    if( need_thr ){
-STATUS("fetch im_thr") ;
+     STATUS("fetch im_thr") ;
      im_thr = FD_warp_to_mri( n , ival , br_fim ) ;
    } else{
-STATUS("don't need im_thr") ;
+     STATUS("don't need im_thr") ;
      im_thr = NULL ;
    }
 
@@ -1093,10 +1119,10 @@ STATUS("don't need im_thr") ;
        ind = DSET_NVALS(br_fim->dset) - 1 ;
 
      if( im_thr != NULL && ind == ival ){   /* 06 Feb 2003: allow for */
-STATUS("copy im_thr to im_fim") ;
+       STATUS("copy im_thr to im_fim") ;
        im_fim = mri_copy( im_thr ) ;        /* func image = thr image */
      } else {
-STATUS("fetch im_fim") ;
+       STATUS("fetch im_fim") ;
        im_fim = FD_warp_to_mri( n, ind, br_fim ) ;  /* get func image */
      }
      scale_factor = im3d->vinfo->fim_range ;
@@ -1114,7 +1140,7 @@ STATUS("fetch im_fim") ;
                            im_thr->kind == MRI_byte    ) ){
 
      MRI_IMAGE *qim = mri_to_float(im_thr) ;
-STATUS("scaled im_thr to floats") ;
+     STATUS("scaled im_thr to floats") ;
      mri_free(im_thr) ; im_thr = qim ; scale_thr = 1.0f ;
    }
 
@@ -1123,8 +1149,8 @@ STATUS("scaled im_thr to floats") ;
    /* if component images not good, quit now */
 
    if( im_fim == NULL ){
-STATUS("couldn't get Func image!") ;
-      KILL_1MRI(im_thr) ; RETURN(NULL) ;
+     STATUS("couldn't get Func image!") ;
+     KILL_1MRI(im_thr) ; RETURN(NULL) ;
    }
 
    /* 15 Apr 2002: allow overlay image to be pure RBG (no colorscale) */
@@ -1135,7 +1161,8 @@ STATUS("couldn't get Func image!") ;
      if( im_thr != NULL && im_thr != im_fim ){     /* 20 Dec 2004: threshold */
        float thresh = im3d->vinfo->func_threshold
                     * im3d->vinfo->func_thresh_top / scale_thr ;
-       mri_threshold( -thresh,thresh , im_thr , im_fim ) ;  /* in place */
+       float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
+       mri_threshold( thb,tht , im_thr , im_fim ) ;  /* in place */
      }
 
      /* 27 Apr 2005: transform RGB func image in place? */
@@ -1193,6 +1220,7 @@ STATUS("had to convert im_fim to floats?????") ;
      float thresh ;
      thresh =  im3d->vinfo->func_threshold
              * im3d->vinfo->func_thresh_top / scale_thr ;
+     float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
 
 if( PRINT_TRACING && im_thr != NULL )
 { char str[256] ; float tmax ;
@@ -1205,7 +1233,7 @@ if( PRINT_TRACING && im_thr != NULL )
           im3d->vinfo->func_threshold,im3d->vinfo->func_thresh_top); STATUS(str);
 }
 
-     im_ov = AFNI_newfunc_overlay( im_thr , thresh ,
+     im_ov = AFNI_newfunc_overlay( im_thr , thb,tht ,
                                    im_fim ,
                                    scale_factor*pbar->bigbot ,
                                    scale_factor*pbar->bigtop ,
@@ -1251,9 +1279,10 @@ STATUS("bad im_fim->kind!") ;
          if( simult_thr ){
            float thresh = im3d->vinfo->func_threshold
                         * im3d->vinfo->func_thresh_top / scale_thr ;
+           float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
            short *ar_thr = MRI_SHORT_PTR(im_thr) ;
            for( ii=0 ; ii < npix ; ii++ ){
-             if( (ar_thr[ii] > -thresh && ar_thr[ii] < thresh) || ZREJ(ar_fim[ii]) ){
+             if( (ar_thr[ii] > thb && ar_thr[ii] < tht) || ZREJ(ar_fim[ii]) ){
                ar_ov[ii] = 0 ;
              } else {
                for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
@@ -1284,10 +1313,11 @@ STATUS("bad im_fim->kind!") ;
          if( simult_thr ){
            float thresh = im3d->vinfo->func_threshold
                          * im3d->vinfo->func_thresh_top / scale_thr ;
+           float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
            byte *ar_thr = MRI_BYTE_PTR(im_thr) ;
 
            for( ii=0 ; ii < npix ; ii++ ){
-             if( ar_thr[ii] < thresh || ZREJ(ar_fim[ii]) ){
+             if( ar_thr[ii] < tht || ZREJ(ar_fim[ii]) ){  /* assuming thb <= 0 */
                ar_ov[ii] = 0 ;
              } else {
                for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
@@ -1316,10 +1346,11 @@ STATUS("bad im_fim->kind!") ;
 
          if( simult_thr ){
            float thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
+           float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
            float *ar_thr = MRI_FLOAT_PTR(im_thr) ;
 
            for( ii=0 ; ii < npix ; ii++ ){
-             if( (ar_thr[ii] > -thresh && ar_thr[ii] < thresh) || ZREJ(ar_fim[ii])  ){
+             if( (ar_thr[ii] > thb && ar_thr[ii] < tht) || ZREJ(ar_fim[ii])  ){
                ar_ov[ii] = 0 ;
              } else {
                for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
@@ -1349,29 +1380,32 @@ STATUS("bad im_fim->kind!") ;
        case MRI_short:{
          float thresh = im3d->vinfo->func_threshold
                       * im3d->vinfo->func_thresh_top / scale_thr ;
+         float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
          short *ar_thr = MRI_SHORT_PTR(im_thr) ;
 
          for( ii=0 ; ii < npix ; ii++ )
-           if( ar_thr[ii] > -thresh && ar_thr[ii] < thresh ) ar_ov[ii] = 0 ;
+           if( ar_thr[ii] > thb && ar_thr[ii] < tht ) ar_ov[ii] = 0 ;
        }
        break ;
 
        case MRI_byte:{
          float thresh = im3d->vinfo->func_threshold
                       * im3d->vinfo->func_thresh_top / scale_thr ;
+         float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
          byte *ar_thr = MRI_BYTE_PTR(im_thr) ;
 
-         for( ii=0 ; ii < npix ; ii++ )
-           if( ar_thr[ii] < thresh ) ar_ov[ii] = 0 ;
+         for( ii=0 ; ii < npix ; ii++ )  /* assuming thb <= 0 */
+           if( ar_thr[ii] < tht ) ar_ov[ii] = 0 ;
        }
        break ;
 
        case MRI_float:{
          float thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
+         float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
          float *ar_thr = MRI_FLOAT_PTR(im_thr) ;
 
          for( ii=0 ; ii < npix ; ii++ )
-           if( ar_thr[ii] > -thresh && ar_thr[ii] < thresh ) ar_ov[ii] = 0 ;
+           if( ar_thr[ii] > thb && ar_thr[ii] < tht ) ar_ov[ii] = 0 ;
        }
        break ;
      }
@@ -1398,13 +1432,16 @@ CLEANUP:
 /*-----------------------------------------------------------------------*/
 /*! Make a functional overlay the new way (30 Jan 2003):
     - im_thr = threshold image (may be NULL)
-    - thresh = pixels with values in im_thr below this don't get overlay
+    - thbot  = pixels with values in im_thr in range (thbot..thtop)
+    - thtop  =  don't get overlay
     - im_fim = image to make overlay from (may not be NULL)
     - fimbot = pixel value to map to fimcolor[0]
     - fimtop = pixel value to map to fimcolor[NPANE_BIG-1]
+
+  [08 Aug 2007 -- change 'thresh' to 'thbot,thtop']
 -------------------------------------------------------------------------*/
 
-MRI_IMAGE * AFNI_newfunc_overlay( MRI_IMAGE *im_thr , float thresh ,
+MRI_IMAGE * AFNI_newfunc_overlay( MRI_IMAGE *im_thr , float thbot,float thtop,
                                   MRI_IMAGE *im_fim ,
                                   float fimbot, float fimtop, rgbyte *fimcolor )
 {
@@ -1413,6 +1450,7 @@ MRI_IMAGE * AFNI_newfunc_overlay( MRI_IMAGE *im_thr , float thresh ,
    int ii , npix , zbot , jj ;
    float fac , val ;
    int reject_zero = !AFNI_yesenv("AFNI_OVERLAY_ZERO") ; /* 20 Apr 2005 */
+   int dothr = (thbot < thtop) ;                         /* 08 Aug 2007 */
 
 ENTRY("AFNI_newfunc_overlay") ;
 
@@ -1490,36 +1528,36 @@ ENTRY("AFNI_newfunc_overlay") ;
 
    /** now apply threshold, if any **/
 
-   if( thresh > 0.0 && im_thr != NULL ){
+   if( dothr && im_thr != NULL ){
      switch( im_thr->kind ){
 
        case MRI_short:{
-         float thr = thresh ;
-         short *ar_thr = MRI_SHORT_PTR(im_thr) ;
+         register float thb=thbot , tht=thtop ;
+         register short *ar_thr = MRI_SHORT_PTR(im_thr) ;
 
          for( ii=0 ; ii < npix ; ii++ ){
-           if( ar_thr[ii] > -thr && ar_thr[ii] < thr )
+           if( ar_thr[ii] > thb && ar_thr[ii] < tht )
              ovar[3*ii] = ovar[3*ii+1] = ovar[3*ii+2] = 0 ;
          }
        }
        break ;
 
        case MRI_byte:{
-         float thr = thresh ;
-         byte *ar_thr = MRI_BYTE_PTR(im_thr) ;
+         register float thb=thbot , tht=thtop ;
+         register byte *ar_thr = MRI_BYTE_PTR(im_thr) ;
 
-         for( ii=0 ; ii < npix ; ii++ )
-           if( ar_thr[ii] < thr )
+         for( ii=0 ; ii < npix ; ii++ )  /* assuming thb <= 0 always */
+           if( ar_thr[ii] < tht )
              ovar[3*ii] = ovar[3*ii+1] = ovar[3*ii+2] = 0 ;
        }
        break ;
 
        case MRI_float:{
-         float thr = thresh ;
-         float *ar_thr = MRI_FLOAT_PTR(im_thr) ;
+         register float thb=thbot , tht=thtop ;
+         register float *ar_thr = MRI_FLOAT_PTR(im_thr) ;
 
          for( ii=0 ; ii < npix ; ii++ )
-           if( ar_thr[ii] > -thr && ar_thr[ii] < thr )
+           if( ar_thr[ii] > thb && ar_thr[ii] < tht )
              ovar[3*ii] = ovar[3*ii+1] = ovar[3*ii+2] = 0 ;
        }
        break ;
@@ -1934,7 +1972,7 @@ char * AFNI_controller_label( Three_D_View *im3d )
    int ic ;
 
    ic = AFNI_controller_index( im3d ) ;
-   if( ic < 0 || ic > 26 ) strcpy (str,"   ") ;
+   if( ic < 0 || ic > 26 ) strcpy (str,"    ") ;
    else                    sprintf(str,"[%c] ",clabel[ic]) ;
    return str ;
 }
@@ -1953,18 +1991,22 @@ void AFNI_set_window_titles( Three_D_View *im3d )
 {
    Boolean redo_title ;
    char ttl[THD_MAX_NAME] , nam[THD_MAX_NAME] ;
-   char *tnam ;
+   char *tnam , *clab ;
+   char signum ; /* 08 Aug 2007 */
 
 ENTRY("AFNI_set_window_titles") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
+   signum  = (im3d->vinfo->thr_sign==0) ? ' '
+            :(im3d->vinfo->thr_sign==1) ? '+' : '-' ;
+   clab    = AFNI_controller_label(im3d) ;
+   clab[3] = signum ; clab[4] = '\0' ;
+
    if( im3d->anat_wod_flag )
-     sprintf(ttl , "{warp} %s%s: " ,
-             AFNI_controller_label(im3d),GLOBAL_argopt.title_name) ;
+     sprintf(ttl , "{warp} %s%s: " , clab,GLOBAL_argopt.title_name) ;
    else
-     sprintf(ttl , "%s%s: " ,
-             AFNI_controller_label(im3d),GLOBAL_argopt.title_name) ;
+     sprintf(ttl , "%s%s: " , clab,GLOBAL_argopt.title_name) ;
 
    if( USE_TITLE2(im3d->anat_now) ){
      strcat( ttl , im3d->anat_now->label2 ) ;
