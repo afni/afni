@@ -2577,6 +2577,29 @@ STATUS("making func->rowcol") ;
                   AFNI_func_autothresh_CB , im3d ) ;
    MCW_register_hint( func->thr_autothresh_pb , "Compute threshold automatically NOW" ) ;
 
+   /* Threshold sign arrowval [08 Aug 2007] */
+
+   { static char *thr_sign_label[3] = { "Pos & Neg",
+                                        "Pos only" ,
+                                        "Neg only"  } ;
+     im3d->vinfo->thr_sign = 0 ;  /* default = "Pos & Neg" */
+     func->thr_sign_av =
+        new_MCW_arrowval(
+           func->thr_menu ,        /* parent */
+           "Sign" ,                /* label */
+           AVOPT_STYLE ,           /* arrow directions */
+           0  ,                    /* min value */
+           2  ,                    /* max value */
+           im3d->vinfo->thr_sign , /* init value */
+           MCW_AV_editext ,        /* input/output text display */
+           0 ,                     /* 0 decimal shift */
+           AFNI_func_thrsign_CB ,  /* routine to call after click */
+           (XtPointer) im3d ,      /* data to pass */
+           MCW_av_substring_CB ,   /* text creation routine */
+           thr_sign_label          /* data for above */
+        ) ;
+    }
+
    /*---- end of thr_menu creation ----*/
    }
 #endif
@@ -3141,7 +3164,7 @@ STATUS("making func->rowcol") ;
 
    /*-- 26 Mar 2007: rowcol for clustering stuff --*/
 
-   func->ulaclu_rowcol = 
+   func->ulaclu_rowcol =
       XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , func->options_rowcol ,
             XmNorientation , XmHORIZONTAL ,
