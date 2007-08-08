@@ -2563,6 +2563,8 @@ STATUS("making func->rowcol") ;
                                         AFNI_thronoff_change_CB , (XtPointer)im3d ) ;
    im3d->vinfo->thr_onoff = 1 ;
    MCW_set_bbox( func->thr_onoff_bbox , 1 ) ;
+   MCW_reghint_children( func->thr_onoff_bbox->wrowcol ,
+                         "Temporarily ignore threshold?" ) ;
 
    /* AutoThreshold button */
 
@@ -2598,6 +2600,8 @@ STATUS("making func->rowcol") ;
            MCW_av_substring_CB ,   /* text creation routine */
            thr_sign_label          /* data for above */
         ) ;
+      MCW_reghint_children( func->thr_sign_av->wrowcol ,
+                            "show Positives, Negatives, or Both?" ) ;
     }
 
    /*---- end of thr_menu creation ----*/
