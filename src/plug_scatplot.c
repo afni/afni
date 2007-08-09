@@ -106,10 +106,13 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_option( plint , "Aboot" , "Aboot" , FALSE ) ;
    PLUTO_add_number( plint , "Radius" , 2,100,0,10,1 ) ;
 
-   /*-- fifth line of input [08 Aug 2007] --*/
+   /*-- fifth and sixth lines of input [08 Aug 2007] --*/
 
    PLUTO_add_option( plint , "Percent" , "Percent" , FALSE ) ;
    PLUTO_add_number( plint , "Percent" , 1,100,0,10,1 ) ;
+
+   PLUTO_add_option( plint , "Label" , "Label" , FALSE ) ;
+   PLUTO_add_string( plint , "Label" , 0,NULL , 16 ) ;
 
    return plint ;
 }
@@ -136,6 +139,7 @@ char * SCAT_main( PLUGIN_interface *plint )
 
    float hrad=0.0f ;   /* 30 Oct 2006 */
    float perc=0.0f ;   /* 08 Aug 2007 */
+   char *label=NULL ;  /* 09 Aug 2007 */
 
    /*--------------------------------------------------------------------*/
    /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
@@ -253,6 +257,13 @@ char * SCAT_main( PLUGIN_interface *plint )
          continue ;
       }
 
+      /*-- 09 Aug 2007: Label --*/
+
+      if( strcmp(tag,"Label") == 0 ){
+        char *ll = PLUTO_get_string(plint) ;
+        if( ll != NULL ) label = strdup(ll) ;
+        continue ;
+      }
    }
 
    /*------------------------------------------------------*/
@@ -508,7 +519,9 @@ char * SCAT_main( PLUGIN_interface *plint )
        pcor = xyq/sqrt(xq*yq); a = xyq/xq; b = (xq*ybar-xbar*xyq)/xq; }
    }
 
-   if( mask_dset == NULL ){
+   if( label != NULL ){
+     strcpy(tlab,label) ;   /* 09 Aug 2007 */
+   } else if( mask_dset == NULL ){
       sprintf(tlab,"Scatter Plot: %d Voxels",mcount) ;
    } else {
       sprintf(tlab,"\\noesc Scatter Plot: %d Voxels (%s)",
@@ -525,5 +538,6 @@ char * SCAT_main( PLUGIN_interface *plint )
 
    /*-- go home to papa --*/
 
+   if( label != NULL ) free(label) ;
    free(xar) ; free(yar) ; return NULL ;
 }
