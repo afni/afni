@@ -8,8 +8,6 @@
 # include <sunperf.h>
 #endif
 
-#define USE_CSPLIN       /* how did this get lost? [10 Aug 2007]*/
-
 /*---------------------------------------------------------------------------*/
 /*
   Program to calculate the deconvolution of a measurement 3d+time dataset
@@ -753,10 +751,8 @@ void display_help_menu()
     "                       from times b..c after stimulus time             \n"
     "     'TENT(b,c,n)' = n parameter tent function expansion               \n"
     "                       from times b..c after stimulus time             \n"
-#ifdef USE_CSPLIN
     "    'CSPLIN(b,c,n)'= n parameter cubic spline function expansion       \n"
     "                       from times b..c after stimulus time             \n"
-#endif
     "     'BLOCK(d,p)'  = 1 parameter block stimulus of duration 'd'        \n"
     "                     (can also be called 'IGFUN' which stands)         \n"
     "                     (for 'incomplete gamma function'        )         \n"
@@ -8233,7 +8229,6 @@ static float basis_tent( float x, float bot, float mid, float top, void *q )
                               return (top-x)/(top-mid) ;
 }
 
-#ifdef USE_CSPLIN
 /*--------------------------------------------------------------------------*/
 #undef  CA
 #define CA  0.5f   /* negative of slope at x=0 */
@@ -8261,7 +8256,6 @@ static float basis_csplin( float x, float a, float dx, float flag, void *q )
    if( y < bot || y > top ) return 0.0f ;
    return hh_csplin(y) ;
 }
-#endif /* USE_CSPLIN */
 
 /*--------------------------------------------------------------------------*/
 /* Basis function that is 1 inside the bot..top interval, 0 outside of it.
@@ -8616,7 +8610,6 @@ basis_expansion * basis_parser( char *sym )
      be->bfunc[nord-1].b = top ;
      be->bfunc[nord-1].c = top + 0.001*dx ;
 
-#ifdef USE_CSPLIN
    /*--- CSPLIN(bot,top,order) ---*/
 
    } else if( strcmp(scp,"CSPLIN") == 0 ){   /* 15 Mar 2007 */
@@ -8650,7 +8643,6 @@ basis_expansion * basis_parser( char *sym )
      be->bfunc[1].c      = -1.0f ;
      be->bfunc[nord-2].c =  1.0f ;
      be->bfunc[nord-1].c =  2.0f ;
-#endif /* USE_CSPLIN */
 
    /*--- TRIG(bot,top,order) ---*/
 
