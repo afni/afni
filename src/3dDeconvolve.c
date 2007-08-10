@@ -8,6 +8,8 @@
 # include <sunperf.h>
 #endif
 
+#define USE_CSPLIN       /* how did this get lost? [10 Aug 2007]*/
+
 /*---------------------------------------------------------------------------*/
 /*
   Program to calculate the deconvolution of a measurement 3d+time dataset
@@ -751,8 +753,10 @@ void display_help_menu()
     "                       from times b..c after stimulus time             \n"
     "     'TENT(b,c,n)' = n parameter tent function expansion               \n"
     "                       from times b..c after stimulus time             \n"
+#ifdef USE_CSPLIN
     "    'CSPLIN(b,c,n)'= n parameter cubic spline function expansion       \n"
     "                       from times b..c after stimulus time             \n"
+#endif
     "     'BLOCK(d,p)'  = 1 parameter block stimulus of duration 'd'        \n"
     "                     (can also be called 'IGFUN' which stands)         \n"
     "                     (for 'incomplete gamma function'        )         \n"
