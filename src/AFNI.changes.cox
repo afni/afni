@@ -6337,3 +6337,7 @@
 
 08 Aug 2007
  * Add threshold signage feature to AFNI threshold menu ("Pos & Neg", etc).
+
+14 Aug 2007
+ * Modify 3dDeconvolve.c to allow 'POLY' model to have order up to 20.
+ * Modify 3dLocalBistat.c to allow '-weight' option for '-pearson' statistic.

@@ -11,6 +11,17 @@ void mri_nbistat_setclip( float hb1, float ht1 , float hb2, float ht2 )
 }
 
 /*--------------------------------------------------------------------------*/
+static MRI_IMAGE *wim = NULL ;
+static MRI_IMAGE *wnim = NULL ;
+
+void mri_bistat_setweight( MRI_IMAGE *wm )  /* 14 Aug 2007 */
+{
+   if( wim != NULL ){ mri_free(wim); wim = NULL; }
+   if( wm != NULL ){ wim = mri_to_float(wm); }
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
 /*! Input = 2 1D images, and an NBISTAT_ code to compute some statistic.
    Output = statistic's value.
 ----------------------------------------------------------------------------*/
@@ -54,7 +65,11 @@ float mri_nbistat( int code , MRI_IMAGE *im , MRI_IMAGE *jm )
        outval = THD_quadrant_corr( npt , far , gar ) ; break ;
 
      case NBISTAT_PEARSON_CORR:
-       outval = THD_pearson_corr( npt , far , gar ) ; break ;
+       if( wnim == NULL )
+         outval = THD_pearson_corr( npt , far , gar ) ;
+       else
+         outval = THD_pearson_corr_wt( npt , far , gar , MRI_FLOAT_PTR(wnim) ) ;
+       break ;
 
      case NBISTAT_MUTUAL_INFO:
        outval = THD_mutual_info( npt , far , gar ) ; break ;
@@ -194,9 +209,11 @@ ENTRY("THD_localbistat") ;
          if( vstep && ijk%vstep==vstep-1 ) vstep_print() ;
          nbim = THD_get_dset_nbhd( dset,iv , mask,ii,jj,kk , nbhd ) ;
          nbjm = THD_get_dset_nbhd( eset,iv , mask,ii,jj,kk , nbhd ) ;
+         if( wim != NULL ) wnim = mri_get_nbhd( wim , mask,ii,jj,kk , nbhd ) ;
          for( cc=0 ; cc < ncode ; cc++ )
            aar[cc][ijk] = mri_nbistat( code[cc] , nbim,nbjm ) ;
          mri_free(nbim) ; mri_free(nbjm) ;
+         if( wnim != NULL ){ mri_free(wnim); wnim = NULL; }
      }}}
 
      DSET_unload_one(dset,iv) ; DSET_unload_one(eset,iv)  ;
