@@ -32,6 +32,9 @@ void THD_automask_set_peelcounts( int p , int t )
 static int gradualize = 1 ;
 void THD_automask_set_gradualize( int n ){ gradualize = n; }
 
+static int cheapo = 0 ;
+void THD_automask_set_cheapo( int n ){ cheapo = n; } /* 13 Aug 2007 */
+
 /*---------------------------------------------------------------------*/
 
 static int mask_count( int nvox , byte *mmm )
@@ -151,7 +154,7 @@ ENTRY("mri_automask_image") ;
 
    if( verb ) ININFO_message("Number voxels above clip level = %d\n",nmm) ;
    if( im != medim && (!exterior_clip || nmm==0) ){ mri_free(medim); medim=NULL; }
-   if( nmm == 0 ) RETURN(mmm) ;  /* should not happen */
+   if( nmm == 0 ){ cheapo=0; RETURN(mmm); }  /* should not happen */
 
    /*-- 10 Apr 2002: only keep the largest connected component --*/
 
@@ -186,6 +189,12 @@ ENTRY("mri_automask_image") ;
        jj += ii = THD_mask_fillin_once( nx,ny,nz , mmm , 1 ) ;
      }
    }
+
+   if( cheapo ){
+     if( medim != im ) mri_free(medim) ;  /* 13 Aug 2007 */
+     cheapo = 0 ; RETURN(mmm) ;
+   }
+
    if( jj > 0 && verb )
     ININFO_message("Filled %5d voxels in small holes; now have %d voxels\n",
             jj , mask_count(nvox,mmm) ) ;

@@ -92,7 +92,7 @@ int main( int argc , char *argv[] )
    int pad_xm=0,pad_xp=0 , pad_ym=0,pad_yp=0 , pad_zm=0,pad_zp=0 ;
    int tfdone=0;  /* stuff for -twofirst */
    float tfparm[PARAM_MAXTRIAL+1][MAXPAR];
-   int skip_first=0 , didtwo , targ_kind , skipped=0 ;
+   int skip_first=0 , didtwo , targ_kind , skipped=0 , nptwo=6 ;
    double ctim , rad , conv_rad ;
    float **parsave=NULL ;
    mat44 *matsave=NULL ;
@@ -164,7 +164,7 @@ int main( int argc , char *argv[] )
    int    hist_mode            = 0 ;            /* 08 May 2007 */
    float  hist_param           = 0.0f ;
    int    hist_setbyuser       = 0 ;
-   int    do_cmass             = 1 ;            /* 30 Jul 2007 */
+   int    do_cmass             = 0 ;            /* 30 Jul 2007 */
 
    int auto_tdilation          = 0 ;            /* for -source_automask+N */
    int auto_tmask              = 0 ;
@@ -399,6 +399,25 @@ int main( int argc , char *argv[] )
 
       printf(
        "\n"
+       " -cmass        = Use the center-of-mass calculation to bracket the shifts.\n"
+       "                   [This option is OFF by default]\n"
+       "                 If given in the form '-cmass+xy' (for example), means to\n"
+       "                 do the CoM calculation in the x- and y-directions, but\n"
+       "                 not the z-direction.\n"
+       " -nocmass      = Don't use the center-of-mass calculation. [The default]\n"
+       "                  (You would not want to use the C-o-M calculation if the  )\n"
+       "                  (source sub-bricks have very different spatial locations,)\n"
+       "                  (since the source C-o-M is calculated from all sub-bricks)\n"
+       " **EXAMPLE: You have a limited coverage set of axial EPI slices you want to\n"
+       "            register into a larger head volume (after 3dSkullStrip, of course).\n"
+       "            In this case, '-cmass+xy' makes sense, allowing CoM adjustment\n"
+       "            along the x = R-L and y = A-P directions, but not along the\n"
+       "            z = I-S direction, since the EPI doesn't cover the whole brain\n"
+       "            along that axis.\n"
+      ) ;
+
+      printf(
+       "\n"
        " -autoweight = Compute a weight function using the 3dAutomask\n"
        "               algorithm plus some blurring of the base image.\n"
        "       **N.B.: '-autoweight+100' means to zero out all voxels\n"
@@ -520,7 +539,7 @@ int main( int argc , char *argv[] )
        "                 to '-parang 1 -dd dd -parang 2 -dd dd -parang 3 -dd dd'\n"
        "                 [Default=33%% of the size of the base image]\n"
        "         **N.B.: This max shift setting is relative to the center-of-mass\n"
-       "                 shift, unless the '-nocmass' option is given.\n"
+       "                 shift, if the '-cmass' option is used.\n"
        " -maxscl dd    = Allow maximum scaling factor to be 'dd'.  Equivalent\n"
        "                 to '-parang 7 1/dd dd -parang 8 1/dd dd -paran2 9 1/dd dd'\n"
        "                 [Default=1.2=image can go up or down 20%% in size]\n"
@@ -693,12 +712,6 @@ int main( int argc , char *argv[] )
         " -wtgrad  gg   = Set autoweight/mask Gaussian filter radius to 'gg' voxels.\n"
         " -nmsetup nn   = Use 'nn' points for the setup matching [default=23456]\n"
         " -ignout       = Ignore voxels outside the warped source dataset.\n"
-        " -cmass        = Use the center-of-mass calculation to bracket the shifts.\n"
-        "                   [On by default]\n"
-        " -nocmass      = Don't use the center-of-mass calculation.\n"
-        "                   (You would want to disable the C-o-M calculation if the  )\n"
-        "                   (source sub-bricks have very different spatial locations,)\n"
-        "                   (since the source C-o-M is calculated from all sub-bricks)\n"
        ) ;
      } else {
        printf("\n"
@@ -726,8 +739,17 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strcmp(argv[iarg],"-cmass") == 0 ){                /* SECRET OPTION */
-       do_cmass = 1 ; iarg++ ; continue ;                   /* 30 Jul 2007  */
+     if( strncmp(argv[iarg],"-cmass",6) == 0 ){
+       if( argv[iarg][6] == '+' ){
+         do_cmass =    (strchr(argv[iarg]+6,'x') != NULL)
+                   + 2*(strchr(argv[iarg]+6,'y') != NULL)
+                   + 4*(strchr(argv[iarg]+6,'z') != NULL) ;
+         if( do_cmass == 0 )
+           ERROR_exit("Don't understand coordinates in '%s",argv[iarg]) ;
+       } else {
+         do_cmass = 7 ;  /* all coords */
+       }
+       iarg++ ; continue ;
      }
      if( strcmp(argv[iarg],"-nocmass") == 0 ){
        do_cmass = 0 ; iarg++ ; continue ;
@@ -2083,14 +2105,19 @@ int main( int argc , char *argv[] )
 
    if( do_cmass ){
      float xtarg,ytarg,ztarg , xbase,ybase,zbase ;
+
      mri_get_cmass_3D( im_base , &xc,&yc,&zc ) ;
      MAT44_VEC( base_cmat , xc,yc,zc , xbase,ybase,zbase ) ;
      im_targ = THD_median_brick( dset_targ ) ;
      mri_get_cmass_3D( im_targ , &xc,&yc,&zc ) ; mri_free(im_targ) ;
      MAT44_VEC( targ_cmat , xc,yc,zc , xtarg,ytarg,ztarg ) ;
      xc = xtarg-xbase ; yc = ytarg-ybase ; zc = ztarg-zbase ;
-     if( verb > 2 && apply_mode == 0 )
+     if( (do_cmass & 1) == 0 ) xc = 0.0f ;
+     if( (do_cmass & 2) == 0 ) yc = 0.0f ;
+     if( (do_cmass & 4) == 0 ) zc = 0.0f ;
+     if( verb > 2 && apply_mode == 0 ){
        INFO_message("center of mass shifts = %.1f %.1f %.1f",xc,yc,zc) ;
+     }
    } else {
      xc = yc = zc = 0.0f ;
    }
@@ -2481,11 +2508,13 @@ int main( int argc , char *argv[] )
 
          /* startup search only allows up to 6 parameters, so freeze excess */
 
-         if( nparam_free > 6 ){
+         nptwo = (int)AFNI_numenv("AFNI_TWOPASS_NUM") ;
+         if( nptwo < 1 || nptwo > 6 ) nptwo = 6 ;
+         if( nparam_free > nptwo ){
            for( ii=jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
              if( !stup.wfunc_param[jj].fixed ){
                ii++ ;  /* number free so far */
-               if( ii > 6 ) stup.wfunc_param[jj].fixed = 1 ;  /* temp freeze */
+               if( ii > nptwo ) stup.wfunc_param[jj].fixed = 1 ;  /* temp freeze */
              }
            }
          }
@@ -3220,6 +3249,78 @@ void AL_setup_warp_coords( int epi_targ , int epi_fe, int epi_pe, int epi_se,
 
    return ;
 }
+
+/*----------------------------------------------------------------------------*/
+#if 0
+#undef  MMM
+#define MMM(i,j,k) mmm[(i)+(j)*nx+(k)*nxy]
+
+int * mri_edgesize( MRI_IMAGE *im )  /* 13 Aug 2007 */
+{
+   byte *mmm ;
+   int ii,jj,kk , nx,ny,nz , nxy ;
+   static int eijk[6] ;
+
+ENTRY("mri_edgesize") ;
+
+   if( im == NULL ) RETURN( NULL );
+
+   nx = im->nx ; ny = im->ny ; nz = im->nz ; nxy = nx*ny ;
+
+   STATUS("automask-ing on the cheap") ;
+
+   THD_automask_set_cheapo(1) ;
+   mmm = mri_automask_image( im ) ;
+   if( mmm == NULL ) RETURN( NULL );
+
+   /* check i-direction */
+
+   STATUS("check i-direction") ;
+
+   for( ii=0 ; ii < nx ; ii++ ){
+     for( kk=0 ; kk < nz ; kk++ ){
+       for( jj=0 ; jj < ny ; jj++ ) if( MMM(ii,jj,kk) ) goto I1 ;
+   }}
+ I1: eijk[0] = ii ;
+   for( ii=nx-1 ; ii >= 0 ; ii-- ){
+     for( kk=0 ; kk < nz ; kk++ ){
+       for( jj=0 ; jj < ny ; jj++ ) if( MMM(ii,jj,kk) ) goto I2 ;
+   }}
+ I2: eijk[1] = nx-1-ii ;
+
+   /* check j-direction */
+
+   STATUS("check j-direction") ;
+
+   for( jj=0 ; jj < ny ; jj++ ){
+     for( kk=0 ; kk < nz ; kk++ ){
+       for( ii=0 ; ii < nx ; ii++ ) if( MMM(ii,jj,kk) ) goto J1 ;
+   }}
+ J1: eijk[2] = jj ;
+     for( jj=ny-1 ; jj >= 0 ; jj-- ){
+       for( kk=0 ; kk < nz ; kk++ ){
+         for( ii=0 ; ii < nx ; ii++ ) if( MMM(ii,jj,kk) ) goto J2 ;
+     }}
+ J2: eijk[3] = ny-1-jj ;
+
+   /* check k-direction */
+
+   STATUS("check k-direction") ;
+
+   for( kk=0 ; kk < nz ; kk++ ){
+     for( jj=0 ; jj < ny ; jj++ ){
+       for( ii=0 ; ii < nx ; ii++ ) if( MMM(ii,jj,kk) ) goto K1 ;
+   }}
+ K1: eijk[4] = kk ;
+   for( kk=nz-1 ; kk >= 0 ; kk-- ){
+     for( jj=0 ; jj < ny ; jj++ ){
+       for( ii=0 ; ii < nx ; ii++ ) if( MMM(ii,jj,kk) ) goto K2 ;
+   }}
+ K2: eijk[5] = nz-1-kk ;
+
+   free(mmm) ; RETURN( eijk );
+}
+#endif
 
 /******************************************************************************
 *******************************************************************************

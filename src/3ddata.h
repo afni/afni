@@ -4014,6 +4014,7 @@ extern void THD_autobbox_clip( int ) ;                     /* 06 Aug 2007 */
 extern void THD_automask_set_clipfrac( float f ) ;         /* 20 Mar 2006 */
 extern void THD_automask_set_peelcounts( int,int ) ;       /* 24 Oct 2006 */
 extern void THD_automask_set_gradualize( int ) ;
+extern void THD_automask_set_cheapo( int n ) ;             /* 13 Aug 2007 */
 
 extern int THD_mask_fillin_completely( int,int,int, byte *, int ) ; /* 19 Apr 2002 */
 extern int THD_mask_fillin_once      ( int,int,int, byte *, int ) ;
