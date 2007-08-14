@@ -747,6 +747,7 @@ void display_help_menu()
     "     'SPMG3'       = 3 parameter SPM basis function set                \n"
     "     'POLY(b,c,n)' = n parameter Legendre polynomial expansion         \n"
     "                       from times b..c after stimulus time             \n"
+    "                       [Max value of n is 20]                          \n"
     "     'SIN(b,c,n)'  = n parameter sine series expansion                 \n"
     "                       from times b..c after stimulus time             \n"
     "     'TENT(b,c,n)' = n parameter tent function expansion               \n"
@@ -8469,20 +8470,20 @@ static float basis_block5( float t, float T, float peak, float junk, void *q )
 /*--------------------------------------------------------------------------*/
 /* Legendre polynomial basis function
     - 0 for x outside range bot..top
-    - P_n(x), x scaled to be -1..1 over range bot..top
+    - P_n(x), x scaled to be -1..1 over range bot..top (for integer n >= 0)
 ----------------------------------------------------------------------------*/
 
 static float basis_legendre( float x, float bot, float top, float n, void *q )
 {
-   float xq ;
+   float xq ; int m ;
 
    x = 2.0f*(x-bot)/(top-bot) - 1.0f ;  /* now in range -1..1 */
 
    if( x < -1.0f || x > 1.0f ) return 0.0f ;
 
-   xq = x*x ;
+   xq = x*x ; m = (int)n ; if( m < 0 ) return 0.0f ;
 
-   switch( (int)n ){
+   switch( m ){
     case 0: return 1.0f ;
     case 1: return x ;
     case 2: return (3.0f*xq-1.0f)/2.0f ;
@@ -8497,13 +8498,100 @@ static float basis_legendre( float x, float bot, float top, float n, void *q )
 
     case 9: return ((((12155.0f*xq-25740.0f)*xq+18018.0f)*xq-4620.0f)*xq+315.0f)
                   *x/128.0f ;
-   }
 
-   return 0.0f ;   /* should never be reached */
+    /** orders above 9 added 14 Aug 2007 **/
+
+    case 10:
+      return -0.24609375e0 + (0.1353515625e2 + (-0.1173046875e3 +
+              (0.3519140625e3 + (-0.42732421875e3 + 0.18042578125e3 * xq)
+             * xq) * xq) * xq) * xq;
+
+    case 11:
+      return (-0.270703125e1 + (0.5865234375e2 + (-0.3519140625e3 +
+             (0.8546484375e3 + (-0.90212890625e3 + 0.34444921875e3 * xq)
+             * xq) * xq) * xq) * xq) * x;
+
+    case 12:
+      return 0.2255859375e0 + (-0.17595703125e2 + (0.2199462890625e3 +
+             (-0.99708984375e3 + (0.20297900390625e4 + (-0.1894470703125e4
+             + 0.6601943359375e3 * xq) * xq) * xq) * xq) * xq)
+             * xq;
+
+    case 13:
+      return (0.29326171875e1 + (-0.87978515625e2 + (0.7478173828125e3 +
+             (-0.270638671875e4 + (0.47361767578125e4 + (-0.3961166015625e4
+             + 0.12696044921875e4 * xq) * xq) * xq) * xq) * xq)
+            * xq) * x;
+
+    case 14:
+      return -0.20947265625e0 + (0.2199462890625e2 + (-0.37390869140625e3 +
+             (0.2368088378906250e4 + (-0.710426513671875e4 +
+             (0.1089320654296875e5 + (-0.825242919921875e4 +
+            0.244852294921875e4 * xq) * xq) * xq) * xq) * xq)
+           * xq) * xq;
+
+    case 15:
+      return (-0.314208984375e1 + (0.12463623046875e3 + (-0.142085302734375e4
+            + (0.7104265136718750e4 + (-0.1815534423828125e5 +
+              (0.2475728759765625e5 + (-0.1713966064453125e5 +
+               0.473381103515625e4 * xq) * xq) * xq) * xq)
+             * xq) * xq) * xq) * x;
+
+    case 16:
+      return 0.196380615234375e0 + (-0.26707763671875e2 + (0.5920220947265625e3
+            + (-0.4972985595703125e4 + (0.2042476226806641e5 +
+              (-0.4538836059570312e5 + (0.5570389709472656e5 +
+              (-0.3550358276367188e5 + 0.9171758880615234e4 * xq) * xq)
+            * xq) * xq) * xq) * xq) * xq) * xq;
+
+    case 17:
+      return (0.3338470458984375e1 + (-0.1691491699218750e3 +
+             (0.2486492797851562e4 + (-0.1633980981445312e5 +
+             (0.5673545074462891e5 + (-0.1114077941894531e6 +
+             (0.1242625396728516e6 + (-0.7337407104492188e5 +
+              0.1780400253295898e5 * xq) * xq) * xq) * xq)
+           * xq) * xq) * xq) * xq) * x;
+
+    case 18:
+      return -0.1854705810546875e0 + (0.3171546936035156e2 +
+            (-0.8880331420898438e3 + (0.9531555725097656e4 +
+            (-0.5106190567016602e5 + (0.1531857170104980e6 +
+            (-0.2692355026245117e6 + (0.2751527664184570e6 +
+            (-0.1513340215301514e6 + 0.3461889381408691e5 * xq) * xq)
+           * xq) * xq) * xq) * xq) * xq) * xq) * xq;
+
+    case 19:
+      return (-0.3523941040039062e1 + (0.2220082855224609e3 +
+             (-0.4084952453613281e4 + (0.3404127044677734e5 +
+             (-0.1531857170104980e6 + (0.4038532539367676e6 +
+             (-0.6420231216430664e6 + (0.6053360861206055e6 +
+             (-0.3115700443267822e6 + 0.6741574058532715e5 * xq) * xq)
+          * xq) * xq) * xq) * xq) * xq) * xq) * xq) * x;
+
+    case 20:
+      return 0.1761970520019531e0 + (-0.3700138092041016e2 +
+            (0.1276547641754150e4 + (-0.1702063522338867e5 +
+            (0.1148892877578735e6 + (-0.4442385793304443e6 +
+            (0.1043287572669983e7 + (-0.1513340215301514e7 +
+            (0.1324172688388824e7 + (-0.6404495355606079e6 +
+             0.1314606941413879e6 * xq) * xq) * xq) * xq) * xq)
+            * xq) * xq) * xq) * xq) * xq;
+
+   } /* end of switch on m */
+
+   /** if here, m > 20 ==> use recurrence relation **/
+
+   { float pk, pkm1, pkm2 ; int k ;
+     pkm2 = basis_legendre( x , -1.0f , 1.0f , 19.0f , NULL ) ;
+     pkm1 = basis_legendre( x , -1.0f , 1.0f , 20.0f , NULL ) ;
+     for( k=21 ; k <= m ; k++ , pkm2=pkm1 , pkm1=pk )
+       pk = ((2.0f*k-1.0f)*x*pkm1 - (k-1.0f)*pkm2)/k ;
+     return pk ;
+   }
 }
 
 #undef  POLY_MAX
-#define POLY_MAX 9  /* max order allowed in function above */
+#define POLY_MAX 20  /* max order allowed in function above */
 
 /*--------------------------------------------------------------------------*/
 #define ITT 19

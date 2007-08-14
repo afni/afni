@@ -7,7 +7,7 @@
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *inset=NULL , *jnset=NULL , *outset ;
+   THD_3dim_dataset *inset=NULL , *jnset=NULL , *outset , *wset=NULL;
    int ncode=0 , code[MAX_NCODE] , iarg=1 , ii ;
    MCW_cluster *nbhd=NULL ;
    byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
@@ -80,6 +80,7 @@ int main( int argc , char *argv[] )
       " -automask   = Compute the mask as in program 3dAutomask.\n"
       "               -mask and -automask are mutually exclusive: that is,\n"
       "               you can only specify one mask.\n"
+      " -weight ws  = Use dataset 'ws' as a weight.  Only applies to 'pearson'.\n"
       "\n"
       " -prefix ppp = Use string 'ppp' as the prefix for the output dataset.\n"
       "               The output dataset is always stored as floats.\n"
@@ -184,6 +185,15 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     if( strcmp(argv[iarg],"-weight") == 0 ){  /* 14 Aug 2007 */
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '-weight'") ;
+       if( wset != NULL ) ERROR_exit("Can't have two weight inputs") ;
+       wset = THD_open_dataset( argv[iarg] ) ;
+       CHECK_OPEN_ERROR(wset,argv[iarg]) ;
+       DSET_load(wset) ; CHECK_LOAD_ERROR(wset) ;
+       iarg++ ; continue ;
+     }
+
      if( strcmp(argv[iarg],"-automask") == 0 ){
        if( mask != NULL ) ERROR_exit("Can't have -automask and -mask") ;
        automask = 1 ;
@@ -284,6 +294,20 @@ int main( int argc , char *argv[] )
      mmm = THD_countmask( nvox , mask ) ;
      INFO_message("Number of voxels in automask = %d",mmm) ;
      if( mmm < 11 ) ERROR_exit("Automask is too small to process") ;
+   }
+
+   if( wset != NULL ){ /* 14 Aug 2007 */
+     MRI_IMAGE *wim ; float *war ;
+     if( DSET_NVOX(wset) != DSET_NVOX(inset) )
+       ERROR_exit("-weight dataset mismatch with input datasets!") ;
+     wim = mri_scale_to_float( DSET_BRICK_FACTOR(wset,0), DSET_BRICK(wset,0) );
+     war = MRI_FLOAT_PTR(wim) ;
+     DSET_delete(wset) ;
+     if( mask != NULL ){
+       int nvox = DSET_NVOX(inset) ;
+       for( ii=0 ; ii < nvox ; ii++ ) if( !mask[ii] ) war[ii] = 0.0f ;
+     }
+     mri_bistat_setweight( wim ) ; mri_free(wim) ;
    }
 
    /*---- create neighborhood -----*/
