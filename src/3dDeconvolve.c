@@ -2794,7 +2794,20 @@ ENTRY("read_input_data") ;
         aar = MRI_FLOAT_PTR(aim);   tar = MRI_FLOAT_PTR(bim);
         FREE_IMARR(qimar);
       } else {
+        int nzo , nsm ;
         tar = MRI_FLOAT_PTR(tim);  /* just times, no paired value */
+        for( nsm=nzo=ii=0 ; ii < tim->nvox ; ii++ ){
+          if( tar[ii] < 1.e+9 ){
+            nsm++ ;
+            if( tar[ii] == 0.0f || tar[ii] == 1.0f ) nzo++ ;
+          }
+        }
+        if( nzo > 0 && nzo == nsm )
+          WARNING_message("%s %d has all times equal to 0 or 1 ?!?!",
+                          be->option , is+1 ) ;
+        else if( nsm == 0 )
+          WARNING_message("%s %d has all times equal to '*' ?!?!",
+                          be->option , is+1 ) ;
       }
 
       ngood = 0 ;                  /* number of good time values found */

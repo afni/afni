@@ -1334,6 +1334,18 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 /*--------------------------------------------------------------------*/
 /** July 2006: stuff for generic alignment functions: mri_genalign.c **/
 
+  /* definition of various convex neighborhoods */
+
+#define BLOK_BALL 1  /* sphere of radius sqrt(siz) */
+#define BLOK_RECT 2  /* cube of half-edge siz */
+#define BLOK_RHDD 3  /* rhombic dodecahedron of half-length siz */
+
+typedef struct {
+  int type ;            /* one of the BLOK codes above */
+  float xs , ys , zs ;  /* scaling factor to convert indexes to units */
+  float siz ;           /* size of this BLOK */
+} BLOK_type ;
+
  /* methods for matching scalar-valued images */
 
 #define GA_MATCH_PEARSON_SCALAR     1  /* least squares, more-or-less */
