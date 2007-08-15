@@ -136,3 +136,43 @@ MCW_cluster * MCW_rectmask( float dx, float dy, float dz,
 
    return mask ;
 }
+
+/*----------------------------------------------------------------------*/
+/*! Like MCW_rectmask(), but builds a rhombic dodecahedron. */
+
+MCW_cluster * MCW_rhddmask( float dx, float dy, float dz, float radius )
+{
+   int ii, jj, kk, idx, jdy, kdz ;
+   float a,b,c ;
+   MCW_cluster *mask;
+
+   if( radius <= 0.0 ){                   /* 30 Apr 2002 */
+     dx = dy = dz = 1.0f ; radius = 1.01f ;
+   } else {
+     if( dx <= 0.0f ) dx = 1.0f ;
+     if( dy <= 0.0f ) dy = 1.0f ;
+     if( dz <= 0.0f ) dz = 1.0f ;
+   }
+
+   idx = (int)(radius/dx) ;
+   jdy = (int)(radius/dy) ;
+   kdz = (int)(radius/dz) ;
+
+   INIT_CLUSTER(mask) ;
+
+   for( kk=-kdz ; kk <= kdz ; kk++ ){
+    c = kk*dz ;
+    for( jj=-jdy ; jj <= jdy ; jj++ ){
+     b = jj*dy ;
+     for( ii=-idx ; ii <= idx ; ii++ ){
+       a = ii*dx ;
+       if( fabsf(a+b) <= radius &&
+           fabsf(a-b) <= radius &&
+           fabsf(a+c) <= radius &&
+           fabsf(a-c) <= radius &&
+           fabsf(b+c) <= radius &&
+           fabsf(b-c) <= radius   ) ADDTO_CLUSTER( mask , ii,jj,kk , 0 ) ;
+   }}}
+
+   return mask ;
+}
