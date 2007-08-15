@@ -4,6 +4,7 @@
 
 #define NTYPE_SPHERE 1
 #define NTYPE_RECT   2
+#define NTYPE_RHDD   3
 
 int main( int argc , char *argv[] )
 {
@@ -51,6 +52,7 @@ int main( int argc , char *argv[] )
       "                    extends plus-and-minus abs(a) voxels in the\n"
       "                    x-direction, rather than plus-and-minus a mm.\n"
       "                    Mutatis mutandum for negative 'b' and/or 'c'.\n"
+      "               * 'RHDD(r)' is a rhombic dodecahedron of 'radius' r.\n"
       "\n"
       " -stat sss   = Compute the statistic named 'sss' on the values\n"
       "               extracted from the region around each voxel:\n"
@@ -239,6 +241,10 @@ int main( int argc , char *argv[] )
          sscanf( cpt+7 , "%f" , &na ) ;
          if( na == 0.0f ) ERROR_exit("Can't have a SPHERE of radius 0") ;
          ntype = NTYPE_SPHERE ;
+       } else if( strncasecmp(cpt,"RHDD",4) == 0 ){
+         sscanf( cpt+5 , "%f" , &na ) ;
+         if( na == 0.0f ) ERROR_exit("Can't have a RHDD of radius 0") ;
+         ntype = NTYPE_RHDD ;
        } else if( strncasecmp(cpt,"RECT",4) == 0 ){
          sscanf( cpt+5 , "%f,%f,%f" , &na,&nb,&nc ) ;
          if( na == 0.0f && nb == 0.0f && nc == 0.0f )
@@ -250,7 +256,7 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-     ERROR_exit("Uknown option '%s'",argv[iarg]) ;
+     ERROR_exit("Unknown option '%s'",argv[iarg]) ;
 
    } /*--- end of loop over options ---*/
 
@@ -261,9 +267,10 @@ int main( int argc , char *argv[] )
 
    /*---- deal with input datasets ----*/
 
-   if( iarg >= argc-1 ) ERROR_exit("No input dataset on command line?") ;
+   if( iarg > argc-1 ) ERROR_exit("No first input dataset on command line?") ;
    inset = THD_open_dataset( argv[iarg] ) ; CHECK_OPEN_ERROR(inset,argv[iarg]) ;
    iarg++ ;
+   if( iarg > argc-1 ) ERROR_exit("No second input dataset on command line?") ;
    jnset = THD_open_dataset( argv[iarg] ) ; CHECK_OPEN_ERROR(jnset,argv[iarg]) ;
    if( jnset == NULL  ) ERROR_exit("Can't open dataset '%s'",argv[iarg]) ;
    if( DSET_NVOX(jnset)  != DSET_NVOX(inset) )
@@ -323,6 +330,16 @@ int main( int argc , char *argv[] )
                         dy = fabsf(DSET_DY(inset)) ;
                         dz = fabsf(DSET_DZ(inset)) ; }
        nbhd = MCW_spheremask( dx,dy,dz , na ) ;
+     }
+     break ;
+
+     case NTYPE_RHDD:{
+       float dx , dy , dz ;
+       if( na < 0.0f ){ dx = dy = dz = 1.0f ; na = -na ; }
+       else           { dx = fabsf(DSET_DX(inset)) ;
+                        dy = fabsf(DSET_DY(inset)) ;
+                        dz = fabsf(DSET_DZ(inset)) ; }
+       nbhd = MCW_rhddmask( dx,dy,dz , na ) ;
      }
      break ;
 
