@@ -1336,15 +1336,43 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 
   /* definition of various convex neighborhoods */
 
-#define BLOK_BALL 1  /* sphere of radius sqrt(siz) */
-#define BLOK_RECT 2  /* cube of half-edge siz */
-#define BLOK_RHDD 3  /* rhombic dodecahedron of half-length siz */
+#define GA_BLOK_BALL 1  /* sphere of radius sqrt(siz) */
+#define GA_BLOK_CUBE 2  /* cube of half-edge siz */
+#define GA_BLOK_RHDD 3  /* rhombic dodecahedron of half-length siz */
+
+#define GA_BLOK_inside_ball(a,b,c,siz) \
+  ( ((a)*(a)+(b)*(b)+(c)*(c)) <= (siz) )
+
+#define GA_BLOK_inside_cube(a,b,c,siz) \
+  ( fabsf((a))<=(siz) && fabsf((b))<=(siz) && fabsf((c))<=(siz) )
+
+#define GA_BLOK_inside_rhdd(a,b,c,siz)                 \
+  ( fabsf((a)+(b))<=(siz) && fabsf((a)-(b))<=(siz) &&  \
+    fabsf((a)+(c))<=(siz) && fabsf((a)-(c))<=(siz) &&  \
+    fabsf((b)+(c))<=(siz) && fabsf((b)-(c))<=(siz)   )
 
 typedef struct {
-  int type ;            /* one of the BLOK codes above */
-  float xs , ys , zs ;  /* scaling factor to convert indexes to units */
-  float siz ;           /* size of this BLOK */
-} BLOK_type ;
+  int   type ;   /* type of GA_BLOK */
+  float siz ;    /* siz parameter (radius**2 , half-edge, half-axis) */
+  int   num ;    /* number of GA_BLOKs */
+  float x_000 , dx_p , dx_q , dx_r , *xcen ;  /* x coords of centers */
+  float y_000 , dy_p , dy_q , dy_r , *ycen ;  /* y coords of centers */
+  float z_000 , dz_p , dz_q , dz_r , *zcen ;  /* z coords of centers */
+  int *nelm , *nalm ;
+  int **elm ;
+} GA_BLOK_set ;
+
+#define GA_BLOK_ADDTO_intar(nar,nal,ar,val)                                 \
+ do{ if( (nar) == (nal) ){                                                  \
+       (nal) = 1.2*(nal)+16; (ar) = (int *)realloc((ar),sizeof(int)*(nal)); \
+     }                                                                      \
+     (ar)[(nar)++] = (val);                                                 \
+ } while(0)
+
+#define GA_BLOK_CLIP_intar(nar,nal,ar)                               \
+ do{ if( (nar) < (nal) && (nar) > 0 ){                               \
+       (nal) = (nar); (ar) = (int *)realloc((ar),sizeof(int)*(nal)); \
+ }} while(0)
 
  /* methods for matching scalar-valued images */
 

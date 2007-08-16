@@ -2794,12 +2794,15 @@ ENTRY("read_input_data") ;
         aar = MRI_FLOAT_PTR(aim);   tar = MRI_FLOAT_PTR(bim);
         FREE_IMARR(qimar);
       } else {
-        int nzo , nsm ;
         tar = MRI_FLOAT_PTR(tim);  /* just times, no paired value */
-        for( nsm=nzo=ii=0 ; ii < tim->nvox ; ii++ ){
+      }
+
+      { /* check if all input times are 0s or 1s (a mistake) [15 Aug 2007] */
+        int nzo , nsm ;
+        for( nsm=nzo=ii=0 ; ii < nx*ny ; ii++ ){
           if( tar[ii] < 1.e+9 ){
-            nsm++ ;
-            if( tar[ii] == 0.0f || tar[ii] == 1.0f ) nzo++ ;
+            nsm++ ;                               /* number of 'small' values */
+            if( tar[ii] == 0.0f || tar[ii] == 1.0f ) nzo++ ; /* number of 0-1 */
           }
         }
         if( nzo > 0 && nzo == nsm )
@@ -2863,6 +2866,25 @@ ENTRY("read_input_data") ;
              be->option , is+1 , jj+1 , nout , tmax ) ;
         }
       } /* end of converting times into indexes */
+
+      if( ngood > 1 ){  /* check for duplicates [16 Aug 2007] */
+        int ndup=0 , nndup=0 ; float qt , dt ;
+        for( ii=0 ; ii < ngood ; ii++ ){
+          qt = qar[ii] ;
+          for( jj=0 ; jj < ngood ; jj++ ){
+            if( jj == ii ) continue ;
+            dt = fabsf(qt-qar[jj]) ;
+                 if( dt == 0.0f ) ndup++ ;
+            else if( dt < 0.05f ) nndup++ ;
+          }
+        }
+        if( ndup > 0 || nndup > 0 )
+          WARNING_message(
+            "'%s %d' file '%s' has %d duplicate and %d near-duplicate times ???",
+            be->option , is+1 , option_data->stim_filename[is] , ndup,nndup ) ;
+        if( nndup > 0 )
+          INFO_message("Where 'near-duplicate' means within 5% of one TR") ;
+      }
 
       /* create qim image to hold time indexes (and paired vals, if present) */
 
