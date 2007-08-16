@@ -6341,3 +6341,7 @@
 14 Aug 2007
  * Modify 3dDeconvolve.c to allow 'POLY' model to have order up to 20.
  * Modify 3dLocalBistat.c to allow '-weight' option for '-pearson' statistic.
+
+16 Aug 2007
+ * Modify 3dDeconvolve.c to check -stim_times files for 0-1 inputs and for
+     duplicate times.
