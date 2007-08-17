@@ -696,6 +696,249 @@ ENTRY("GA_setup_2Dhistogram") ;
    gstup->need_hist_setup = 0 ; EXRETURN ;
 }
 
+/*===========================================================================*/
+/*--- Stuff for storing sub-bloks of data points for localized cost funcs ---*/
+
+typedef struct { int num , *nelm , **elm ; } GA_BLOK_set ;
+
+#undef  FAS
+#define FAS(a,s) ( (a) <= (s) && (a) >= -(s) )
+
+#define GA_BLOK_inside_ball(a,b,c,siz) \
+  ( ((a)*(a)+(b)*(b)+(c)*(c)) <= (siz) )
+
+#define GA_BLOK_inside_cube(a,b,c,siz) \
+  ( FAS((a),(siz)) && FAS((b),(siz)) && FAS((c),(siz)) )
+
+#define GA_BLOK_inside_rhdd(a,b,c,siz)              \
+  ( FAS((a)+(b),(siz)) && FAS((a)-(b),(siz)) &&     \
+    FAS((a)+(c),(siz)) && FAS((a)-(c),(siz)) &&     \
+    FAS((b)+(c),(siz)) && FAS((b)-(c),(siz))   )
+
+#define GA_BLOK_inside(bt,a,b,c,s)                              \
+ (  ((bt)==GA_BLOK_BALL) ? GA_BLOK_inside_ball((a),(b),(c),(s)) \
+  : ((bt)==GA_BLOK_CUBE) ? GA_BLOK_inside_cube((a),(b),(c),(s)) \
+  : ((bt)==GA_BLOK_RHDD) ? GA_BLOK_inside_rhdd((a),(b),(c),(s)) \
+  : 0 )
+
+#define GA_BLOK_ADDTO_intar(nar,nal,ar,val)                                 \
+ do{ if( (nar) == (nal) ){                                                  \
+       (nal) = 1.2*(nal)+16; (ar) = (int *)realloc((ar),sizeof(int)*(nal)); \
+     }                                                                      \
+     (ar)[(nar)++] = (val);                                                 \
+ } while(0)
+
+#define GA_BLOK_CLIP_intar(nar,nal,ar)                               \
+ do{ if( (nar) < (nal) && (nar) > 0 ){                               \
+       (nal) = (nar); (ar) = (int *)realloc((ar),sizeof(int)*(nal)); \
+ }} while(0)
+
+#define GA_BLOK_KILL(gbs)                                            \
+ do{ int ee ;                                                        \
+     if( (gbs)->nelm != NULL ) free((gbs)->nelm) ;                   \
+     if( (gbs)->elm != NULL ){                                       \
+       for( ee=0 ; ee < (gbs)->num ; ee++ )                          \
+         if( (gbs)->elm[ee] != NULL ) free((gbs)->elm[ee]) ;         \
+       free((gbs)->elm) ;                                            \
+     }                                                               \
+     free((gbs)) ;                                                   \
+ } while(0)
+
+/*----------------------------------------------------------------------------*/
+/*! Fill a struct with list of points contained in sub-bloks of the base. */
+
+static GA_BLOK_set * create_GA_BLOK_set( int   nx , int   ny , int   nz ,
+                                         float dx , float dy , float dz ,
+                                         int npt , float *im, float *jm, float *km ,
+                                         int bloktype , float blokrad )
+{
+   GA_BLOK_set *gbs ;
+   float dxp,dyp,dzp , dxq,dyq,dzq , dxr,dyr,dzr , xt,yt,zt ;
+   float xx,yy,zz , uu,vv,ww , siz ;
+   THD_mat33 latmat , invlatmat ; THD_fvec3 pqr , xyz ;
+   int pb,pt , qb,qt , rb,rt , pp,qq,rr , nblok,nball , ii , nxy ;
+   int aa,bb,cc , dd,ss , np,nq,nr,npq , *nalm , ntot ;
+
+ENTRY("create_GA_BLOK_set") ;
+
+   if( nx < 3 || ny < 3 || nz < 1 ) RETURN(NULL) ;
+   if( dx <= 0.0f ) dx = 1.0f ;
+   if( dy <= 0.0f ) dy = 1.0f ;
+   if( dz <= 0.0f ) dz = 1.0f ;
+
+   if( npt <= 0 || im == NULL || jm == NULL || km == NULL ){
+     im = jm = km = NULL ; npt = 0 ;
+   }
+
+   /* create output struct */
+
+   gbs = (GA_BLOK_set *)calloc(sizeof(GA_BLOK_set),1) ;
+
+   /* mark type of blok being stored */
+
+   /* Create lattice vectors for translated bloks:
+      The (p,q,r)-th blok -- for integral p,q,r -- is at (x,y,z) offset
+        (dxp,dyp,dzp)*p + (dxq,dyq,dzq)*q + (dxr,dyr,dzr)*r
+      Also set the 'siz' parameter for the blok, to test for inclusion. */
+
+   switch( bloktype ){
+
+     /* balls go on a hexagonal close packed lattice,
+        but with lattice spacing reduced to avoid gaps
+        (of course, then the balls overlap -- c'est la geometrie) */
+
+     case GA_BLOK_BALL:{
+       float s3=1.73205f ,           /* sqrt(3) */
+             s6=2.44949f ,           /* sqrt(6) */
+             a =blokrad*0.866025f ;  /* shrink spacing to avoid gaps */
+       siz = blokrad*blokrad ;
+       /* hexagonal close packing basis vectors for sphere of radius a */
+       dxp = 2.0f * a ; dyp = 0.0f  ; dzp = 0.0f             ;
+       dxq = a        ; dyq = a * s3; dzq = 0.0f             ;
+       dxr = a        ; dyr = a / s3; dzr = a * 0.666667f*s6 ;
+     }
+     break ;
+
+     /* cubes go on a simple cubical lattice, spaced so faces touch */
+
+     case GA_BLOK_CUBE:{
+       float a =  blokrad ;
+       siz = a ;
+       dxp = a   ; dyp = 0.0f; dzp = 0.0f ;
+       dxq = 0.0f; dyq = a   ; dzq = 0.0f ;
+       dxr = 0.0f; dyr = 0.0f; dzr = a    ;
+     }
+     break ;
+
+     /* rhombic dodecahedra go on their own hexagonal lattice,
+        spaced so that faces touch (i.e., no volumetric overlap) */
+
+     case GA_BLOK_RHDD:{
+       float a = blokrad ;
+       siz = a ;
+       dxp = a   ; dyp = a   ; dzp = 0.0f ;
+       dxq = 0.0f; dyq = a   ; dzq = a    ;
+       dxr = a   ; dyr = 0.0f; dzr = a    ;
+     }
+     break ;
+
+     default: free(gbs) ; RETURN(NULL) ;
+   }
+
+   /* find range of (p,q,r) indexes needed to cover volume,
+      by checking out all 7 corners besides (0,0,0) */
+
+   LOAD_MAT( latmat, dxp , dxq , dxr ,
+                     dyp , dyq , dyr ,
+                     dzp , dzq , dzr  ) ; invlatmat = MAT_INV(latmat) ;
+
+   xt = (nx-1)*dx ; yt = (ny-1)*dy ; zt = (nz-1)*dz ;
+   pb = pt = qb = qt = rb = rt = 0 ;
+
+   LOAD_FVEC3(xyz , xt,0.0f,0.0f ); pqr = MATVEC( invlatmat , xyz ) ;
+   pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
+   qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
+   rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
+
+   LOAD_FVEC3(xyz , xt,yt,0.0f )  ; pqr = MATVEC( invlatmat , xyz ) ;
+   pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
+   qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
+   rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
+
+   LOAD_FVEC3(xyz , xt,0.0f,zt )  ; pqr = MATVEC( invlatmat , xyz ) ;
+   pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
+   qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
+   rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
+
+   LOAD_FVEC3(xyz , xt,yt,zt )    ; pqr = MATVEC( invlatmat , xyz ) ;
+   pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
+   qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
+   rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
+
+   LOAD_FVEC3(xyz , 0.0f,yt,0.0f ); pqr = MATVEC( invlatmat , xyz ) ;
+   pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
+   qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
+   rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
+
+   LOAD_FVEC3(xyz , 0.0f,0.0f,zt ); pqr = MATVEC( invlatmat , xyz ) ;
+   pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
+   qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
+   rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
+
+   LOAD_FVEC3(xyz , 0.0f,yt,zt )  ; pqr = MATVEC( invlatmat , xyz ) ;
+   pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
+   qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
+   rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
+
+   /* Lattice index range is (p,q,r) = (pb..pt,qb..qt,rb..rt) inclusive */
+
+   np = pt-pb+1 ;
+   nq = qt-qb+1 ; npq = np*nq ;
+   nr = rt-rb+1 ;
+   gbs->num = nblok = npq*nr ;
+
+   /* Now have list of bloks, so put points into each blok list */
+
+   gbs->nelm = (int *) calloc(sizeof(int)  ,nblok) ;
+        nalm = (int *) calloc(sizeof(int)  ,nblok) ;
+   gbs->elm  = (int **)calloc(sizeof(int *),nblok) ;
+
+   nxy = nx*ny ; if( npt == 0 ) npt = nxy*nz ;
+
+   for( ntot=ii=0 ; ii < npt ; ii++ ){
+     if( im != NULL ){
+       pp = (int)im[ii]; qq = (int)jm[ii]; rr = (int)km[ii];
+       ss = pp+qq*nx+rr*nxy;
+     } else {
+       pp = ii%nx ; rr = ii/nxy ; qq = (ii-rr*nxy)/nx ; ss = ii ;
+     }
+     xx = pp*dx ; yy = qq*dy ; zz = rr*dz ; /* spatial coordinates */
+     LOAD_FVEC3( xyz , xx,yy,zz ) ;
+     pqr = MATVEC( invlatmat , xyz ) ;      /* lattice coordinates */
+     pp = (int)floorf(pqr.xyz[0]+.499f) ;   /* integer lattice coords */
+     qq = (int)floorf(pqr.xyz[1]+.499f) ;
+     rr = (int)floorf(pqr.xyz[2]+.499f) ;
+     for( cc=rr-1 ; cc <= rr+1 ; cc++ ){    /* search nearby bloks */
+       if( cc < rb || cc > rt ) continue ;
+       for( bb=qq-1 ; bb <= qq+1 ; bb++ ){
+         if( bb < qb || bb > qt ) continue ;
+         for( aa=pp-1 ; aa <= pp+1 ; aa++ ){
+           if( aa < pb || aa > pt ) continue ;
+           LOAD_FVEC3( pqr , aa,bb,cc ) ;  /* compute center of this */
+           xyz = MATVEC( latmat , pqr ) ;  /* blok into xyz vector  */
+           uu = xx - xyz.xyz[0] ;    /* point coords relative to blok center */
+           vv = yy - xyz.xyz[1] ;
+           ww = zz - xyz.xyz[2] ;
+           if( GA_BLOK_inside( bloktype , uu,vv,ww , siz ) ){
+             dd = (aa-pb) + (bb-qb)*np + (cc-rb)*npq ; /* blok index */
+             GA_BLOK_ADDTO_intar( gbs->nelm[dd], nalm[dd], gbs->elm[dd], ss ) ;
+             ntot++ ;
+           }
+         }
+       }
+     }
+   }
+
+   for( ii=0 ; ii < nblok ; ii++ )
+     GA_BLOK_CLIP_intar( gbs->nelm[dd] , nalm[dd] , gbs->elm[dd] ) ;
+   free(nalm) ;
+
+   if( verb > 1 ){
+     INFO_message("%d total points stored in GA_BLOK_set of %d bloks",
+                  ntot , nblok ) ;
+     for( rr=rb ; rr <= rt ; rr++ ){
+      for( qq=qb ; qq <= qt ; qq++ ){
+       for( pp=pb ; pp <= pt ; pp++ ){
+         if( gbs->nelm[(pp-pb)+(qq-qb)*np+(rr-rb)*npq] > 0 )
+          ININFO_message("blok (%d,%d,%d) has %d points",
+                         pp,qq,rr , gbs->nelm[(pp-pb)+(qq-qb)*np+(rr-rb)*npq] );
+     }}}
+   }
+
+   RETURN(gbs) ;
+}
+/*======================== End of BLOK-iness functionality ==================*/
+
 /*---------------------------------------------------------------------------*/
 /*! Fit metric for matching base and target image value pairs.
     (Smaller is a better match.)  For use as a NEWUOA optimization function.
@@ -1182,6 +1425,16 @@ ENTRY("mri_genalign_scalar_setup") ;
          STATUS("doing spearman_rank_prepare") ;
          stup->bvstat = spearman_rank_prepare( stup->npt_match, stup->bvm->ar );
        break ;
+     }
+
+     if( stup->bloktype > 0 && stup->blokrad > 0.0f ){
+       if( stup->blokset != NULL ) GA_BLOK_KILL( (GA_BLOK_set *)stup->blokset ) ;
+       stup->blokset = (void *)create_GA_BLOK_set(
+                                 stup->bsim->nx , stup->bsim->ny , stup->bsim->nz ,
+                                 1.0f , 1.0f , 1.0f ,
+                                 stup->npt_match ,
+                                   stup->im->ar , stup->jm->ar , stup->km->ar ,
+                                 stup->bloktype , stup->blokrad ) ;
      }
 
    } /* end of if(need_pts) */
