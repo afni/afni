@@ -2007,6 +2007,14 @@ int main( int argc , char *argv[] )
    stup.hist_mode  = hist_mode ;   /* 08 May 2007 */
    stup.hist_param = hist_param ;
 
+   { char *eee = getenv("BLOK") ;  /* 17 Aug 2007: for testing purposes */
+     if( eee != NULL ){
+       int bt=0 ; float br=0.0f ;
+       sscanf(eee,"%d%f",&bt,&br) ;
+       if( bt > 0 && br > 0.0f ){ stup.bloktype=bt; stup.blokrad = br; }
+     }
+   }
+
    /* spatial coordinates: 'cmat' transforms from ijk to xyz */
 
    if( !ISVALID_MAT44(dset_targ->daxes->ijk_to_dicom) )
