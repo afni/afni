@@ -750,14 +750,14 @@ typedef struct { int num , *nelm , **elm ; } GA_BLOK_set ;
 static GA_BLOK_set * create_GA_BLOK_set( int   nx , int   ny , int   nz ,
                                          float dx , float dy , float dz ,
                                          int npt , float *im, float *jm, float *km ,
-                                         int bloktype , float blokrad )
+                                         int bloktype , float blokrad , int minel )
 {
    GA_BLOK_set *gbs ;
    float dxp,dyp,dzp , dxq,dyq,dzq , dxr,dyr,dzr , xt,yt,zt ;
    float xx,yy,zz , uu,vv,ww , siz ;
    THD_mat33 latmat , invlatmat ; THD_fvec3 pqr , xyz ;
    int pb,pt , qb,qt , rb,rt , pp,qq,rr , nblok,nball , ii , nxy ;
-   int aa,bb,cc , dd,ss , np,nq,nr,npq , *nalm , ntot ;
+   int aa,bb,cc , dd,ss , np,nq,nr,npq , *nelm,*nalm,**elm , ntot,nsav,ndup ;
 
 ENTRY("create_GA_BLOK_set") ;
 
@@ -770,13 +770,9 @@ ENTRY("create_GA_BLOK_set") ;
      im = jm = km = NULL ; npt = 0 ;
    }
 
-   /* create output struct */
-
-   gbs = (GA_BLOK_set *)calloc(sizeof(GA_BLOK_set),1) ;
-
    /* mark type of blok being stored */
 
-   /* Create lattice vectors for translated bloks:
+   /* Create lattice vectors to generate translated bloks:
       The (p,q,r)-th blok -- for integral p,q,r -- is at (x,y,z) offset
         (dxp,dyp,dzp)*p + (dxq,dyq,dzq)*q + (dxr,dyr,dzr)*r
       Also set the 'siz' parameter for the blok, to test for inclusion. */
@@ -804,9 +800,9 @@ ENTRY("create_GA_BLOK_set") ;
      case GA_BLOK_CUBE:{
        float a =  blokrad ;
        siz = a ;
-       dxp = a   ; dyp = 0.0f; dzp = 0.0f ;
-       dxq = 0.0f; dyq = a   ; dzq = 0.0f ;
-       dxr = 0.0f; dyr = 0.0f; dzr = a    ;
+       dxp = 2*a ; dyp = 0.0f; dzp = 0.0f ;
+       dxq = 0.0f; dyq = 2*a ; dzq = 0.0f ;
+       dxr = 0.0f; dyr = 0.0f; dzr = 2*a  ;
      }
      break ;
 
@@ -822,18 +818,18 @@ ENTRY("create_GA_BLOK_set") ;
      }
      break ;
 
-     default: free(gbs) ; RETURN(NULL) ;
+     default:  RETURN(NULL) ;  /** should not happen! **/
    }
 
    /* find range of (p,q,r) indexes needed to cover volume,
-      by checking out all 7 corners besides (0,0,0) */
+      by checking out all 7 corners besides (0,0,0) (where p=q=r=0) */
 
    LOAD_MAT( latmat, dxp , dxq , dxr ,
                      dyp , dyq , dyr ,
                      dzp , dzq , dzr  ) ; invlatmat = MAT_INV(latmat) ;
 
    xt = (nx-1)*dx ; yt = (ny-1)*dy ; zt = (nz-1)*dz ;
-   pb = pt = qb = qt = rb = rt = 0 ;
+   pb = pt = qb = qt = rb = rt = 0 ;  /* initialize (p,q,r) bot, top values */
 
    LOAD_FVEC3(xyz , xt,0.0f,0.0f ); pqr = MATVEC( invlatmat , xyz ) ;
    pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
@@ -872,70 +868,155 @@ ENTRY("create_GA_BLOK_set") ;
 
    /* Lattice index range is (p,q,r) = (pb..pt,qb..qt,rb..rt) inclusive */
 
-   np = pt-pb+1 ;
+   np = pt-pb+1 ;                /* number of p values to consider */
    nq = qt-qb+1 ; npq = np*nq ;
    nr = rt-rb+1 ;
-   gbs->num = nblok = npq*nr ;
+   nblok = npq*nr ;              /* total number of bloks to consider */
 
    /* Now have list of bloks, so put points into each blok list */
 
-   gbs->nelm = (int *) calloc(sizeof(int)  ,nblok) ;
-        nalm = (int *) calloc(sizeof(int)  ,nblok) ;
-   gbs->elm  = (int **)calloc(sizeof(int *),nblok) ;
+   nelm = (int *) calloc(sizeof(int)  ,nblok) ;  /* # pts in each blok */
+   nalm = (int *) calloc(sizeof(int)  ,nblok) ;  /* # malloc-ed in each blok */
+   elm  = (int **)calloc(sizeof(int *),nblok) ;  /* list of pts in each blok */
 
    nxy = nx*ny ; if( npt == 0 ) npt = nxy*nz ;
 
-   for( ntot=ii=0 ; ii < npt ; ii++ ){
+   for( ndup=ntot=ii=0 ; ii < npt ; ii++ ){
      if( im != NULL ){
-       pp = (int)im[ii]; qq = (int)jm[ii]; rr = (int)km[ii];
-       ss = pp+qq*nx+rr*nxy;
+       pp = (int)im[ii]; qq = (int)jm[ii]; rr = (int)km[ii]; /* xyz indexes */
      } else {
-       pp = ii%nx ; rr = ii/nxy ; qq = (ii-rr*nxy)/nx ; ss = ii ;
+       pp = ii%nx ; rr = ii/nxy ; qq = (ii-rr*nxy)/nx ;
      }
-     xx = pp*dx ; yy = qq*dy ; zz = rr*dz ; /* spatial coordinates */
+     ss = ii ; /* index in 1D array */
+     xx = pp*dx ; yy = qq*dy ; zz = rr*dz ; /* xyz spatial coordinates */
      LOAD_FVEC3( xyz , xx,yy,zz ) ;
-     pqr = MATVEC( invlatmat , xyz ) ;      /* lattice coordinates */
+     pqr = MATVEC( invlatmat , xyz ) ;      /* float lattice coordinates */
      pp = (int)floorf(pqr.xyz[0]+.499f) ;   /* integer lattice coords */
      qq = (int)floorf(pqr.xyz[1]+.499f) ;
-     rr = (int)floorf(pqr.xyz[2]+.499f) ;
+     rr = (int)floorf(pqr.xyz[2]+.499f) ; nsav = 0 ;
      for( cc=rr-1 ; cc <= rr+1 ; cc++ ){    /* search nearby bloks */
-       if( cc < rb || cc > rt ) continue ;
+       if( cc < rb || cc > rt ) continue ;  /* for inclusion of (xx,yy,zz) */
        for( bb=qq-1 ; bb <= qq+1 ; bb++ ){
          if( bb < qb || bb > qt ) continue ;
          for( aa=pp-1 ; aa <= pp+1 ; aa++ ){
            if( aa < pb || aa > pt ) continue ;
            LOAD_FVEC3( pqr , aa,bb,cc ) ;  /* compute center of this */
            xyz = MATVEC( latmat , pqr ) ;  /* blok into xyz vector  */
-           uu = xx - xyz.xyz[0] ;    /* point coords relative to blok center */
+           uu = xx - xyz.xyz[0] ;    /* xyz coords relative to blok center */
            vv = yy - xyz.xyz[1] ;
            ww = zz - xyz.xyz[2] ;
            if( GA_BLOK_inside( bloktype , uu,vv,ww , siz ) ){
              dd = (aa-pb) + (bb-qb)*np + (cc-rb)*npq ; /* blok index */
-             GA_BLOK_ADDTO_intar( gbs->nelm[dd], nalm[dd], gbs->elm[dd], ss ) ;
-             ntot++ ;
+             GA_BLOK_ADDTO_intar( nelm[dd], nalm[dd], elm[dd], ss ) ;
+             ntot++ ; nsav++ ;
            }
          }
        }
      }
+     if( nsav > 1 ) ndup++ ;
    }
 
-   for( ii=0 ; ii < nblok ; ii++ )
-     GA_BLOK_CLIP_intar( gbs->nelm[dd] , nalm[dd] , gbs->elm[dd] ) ;
+   if( minel < 9 ){
+     for( minel=dd=0 ; dd < nblok ; dd++ ) minel = MAX(minel,nelm[dd]) ;
+     minel = (int)(0.456*minel)+1 ;
+   }
+
+   /* now cast out bloks that have too few points,
+      and truncate those arrays that pass the threshold */
+
+   for( nsav=dd=0 ; dd < nblok ; dd++ ){
+     if( nelm[dd] < minel ){
+       if( elm[dd] != NULL ){ free(elm[dd]); elm[dd] = NULL; }
+       nelm[dd] = 0 ;
+     } else {
+       GA_BLOK_CLIP_intar( nelm[dd] , nalm[dd] , elm[dd] ) ; nsav++ ;
+     }
+   }
    free(nalm) ;
 
-   if( verb > 1 ){
-     INFO_message("%d total points stored in GA_BLOK_set of %d bloks",
-                  ntot , nblok ) ;
-     for( rr=rb ; rr <= rt ; rr++ ){
-      for( qq=qb ; qq <= qt ; qq++ ){
-       for( pp=pb ; pp <= pt ; pp++ ){
-         if( gbs->nelm[(pp-pb)+(qq-qb)*np+(rr-rb)*npq] > 0 )
-          ININFO_message("blok (%d,%d,%d) has %d points",
-                         pp,qq,rr , gbs->nelm[(pp-pb)+(qq-qb)*np+(rr-rb)*npq] );
-     }}}
+   if( nsav == 0 ){  /* didn't find any arrays to keep!? */
+     ERROR_message("create_GA_BLOK_set can't get bloks with %d elements",minel);
+     free(nelm) ; free(elm) ; RETURN(NULL) ;
    }
 
+   /* create output struct */
+
+   gbs = (GA_BLOK_set *)malloc(sizeof(GA_BLOK_set)) ;
+   gbs->num  = nsav ;
+   gbs->nelm = (int *) calloc(sizeof(int)  ,nsav) ;
+   gbs->elm  = (int **)calloc(sizeof(int *),nsav) ;
+   for( ntot=nsav=dd=0 ; dd < nblok ; dd++ ){
+     if( nelm[dd] > 0 && elm[dd] != NULL ){
+       gbs->nelm[nsav] = nelm[dd] ; ntot += nelm[dd] ;
+       gbs->elm [nsav] = elm[dd]  ; nsav++ ;
+     }
+   }
+   free(nelm) ; free(elm) ;
+
+   if( verb > 1 )
+     ININFO_message("%d total points stored in partition comprising %d bloks",
+                    ntot , gbs->num ) ;
+
    RETURN(gbs) ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
+{
+   GA_BLOK_set *gbs ;
+   int nblok , nelm , *elm , dd , ii,jj , nm ;
+   float xv,yv,xy,xm,ym,vv,ww,ws , pcor , wt , psum ;
+
+   if( gstup->blokset == NULL ){
+     gstup->blokset = (void *)create_GA_BLOK_set(
+                                gstup->bsim->nx, gstup->bsim->ny, gstup->bsim->nz,
+                                1.0f , 1.0f , 1.0f ,
+                                gstup->npt_match ,
+                                 gstup->im->ar , gstup->jm->ar , gstup->km->ar ,
+                                gstup->bloktype , gstup->blokrad , gstup->blokmin ) ;
+     if( gstup->blokset == NULL )
+       ERROR_exit("Can't create GA_BLOK_set?!?") ;
+   }
+   gbs = (GA_BLOK_set *)gstup->blokset ;
+   nblok = gbs->num ; nm = gstup->npt_match ;
+   if( nblok < 1 ) ERROR_exit("Bad GA_BLOK_set?!") ;
+
+   for( dd=0 ; dd < nblok ; dd++ ){
+     nelm = gbs->nelm[dd] ; elm = gbs->elm[dd] ;
+     if( wvm == NULL ){
+       xv=yv=xy=xm=ym=0.0f ; /*** ws = nelm ; ***/
+       for( ii=0 ; ii < nelm ; ii++ ){
+         jj = elm[ii] ;
+         xm += avm[jj] ; ym += bvm[jj] ;
+       }
+       xm /= nelm ; ym /= nelm ;
+       for( ii=0 ; ii < nelm ; ii++ ){
+         jj = elm[ii] ;
+         vv = avm[jj]-xm ; ww = bvm[jj]-ym ;
+         xv += vv*vv ; yv += ww*ww ; xy += vv*ww ;
+       }
+     } else {
+       xv=yv=xy=xm=ym=ws=0.0f ;
+       for( ii=0 ; ii < nelm ; ii++ ){
+         jj = elm[ii] ;
+         wt = wvm[jj] ; ws += wt ;
+         xm += avm[jj]*wt ; ym += bvm[jj]*wt ;
+       }
+       xm /= ws ; ym /= ws ;
+       for( ii=0 ; ii < nelm ; ii++ ){
+         jj = elm[ii] ;
+         wt = wvm[jj] ; vv = avm[jj]-xm ; ww = bvm[jj]-ym ;
+         xv += wt*vv*vv ; yv += wt*ww*ww ; xy += wt*vv*ww ;
+       }
+     }
+     if( xv <= 0.0f || yv <= 0.0f ) continue ;  /* skip this */
+     pcor = xy/sqrtf(xv*yv) ;
+     pcor = logf( (1.0f+pcor)/(1.0f-pcor) ) ;
+     psum += pcor * fabsf(pcor) ;
+   }
+
+   return (psum/nblok) ;
 }
 /*======================== End of BLOK-iness functionality ==================*/
 
@@ -971,6 +1052,10 @@ ENTRY("GA_scalar_fitter") ;
 
     case GA_MATCH_PEARSON_SIGNED:
       val = (double)THD_pearson_corr_wt( gstup->npt_match, avm, bvm,wvm ) ;
+    break ;
+
+    case GA_MATCH_PEARSON_LOCALS:
+      val = (double)GA_pearson_local( gstup->npt_match, avm, bvm,wvm ) ;
     break ;
 
     case GA_MATCH_SPEARMAN_SCALAR:  /* rank-order (Spearman) correlation */
@@ -1427,17 +1512,12 @@ ENTRY("mri_genalign_scalar_setup") ;
        break ;
      }
 
-     if( stup->bloktype > 0 && stup->blokrad > 0.0f ){
-       if( stup->blokset != NULL ) GA_BLOK_KILL( (GA_BLOK_set *)stup->blokset ) ;
-       stup->blokset = (void *)create_GA_BLOK_set(
-                                 stup->bsim->nx , stup->bsim->ny , stup->bsim->nz ,
-                                 1.0f , 1.0f , 1.0f ,
-                                 stup->npt_match ,
-                                   stup->im->ar , stup->jm->ar , stup->km->ar ,
-                                 stup->bloktype , stup->blokrad ) ;
-     }
-
    } /* end of if(need_pts) */
+
+   if( stup->blokset != NULL ){                      /* 20 Aug 2007 */
+     GA_BLOK_KILL( (GA_BLOK_set *)(stup->blokset) ) ;
+     stup->blokset = NULL ;
+   }
 
    stup->need_hist_setup = 1 ;   /* 08 May 2007 */
 

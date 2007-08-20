@@ -1354,8 +1354,9 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 #define GA_MATCH_CRAT_USYM_SCALAR   9  /* Correlation Ratio: Unsym */
 
 #define GA_MATCH_PEARSON_SIGNED    10  /* experimental */
+#define GA_MATCH_PEARSON_LOCALS    11  /* experimental */
 
-#define GA_MATCH_METHNUM_SCALAR    10  /* Largest value in sequence above */
+#define GA_MATCH_METHNUM_SCALAR    11  /* Largest value in sequence above */
 
  /* methods for smoothing images */
 
@@ -1392,7 +1393,7 @@ typedef struct {
   mat44 base_imat , targ_imat ;
   int usetemp ;                 /* set by user */
 
-  int   bloktype;               /* set by user */
+  int   bloktype, blokmin ;     /* set by user */
   float blokrad ;               /* set by user */
   void *blokset ;
 
