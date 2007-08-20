@@ -44,24 +44,24 @@ void AL_setup_warp_coords( int,int,int,int ,
 #define NMETH GA_MATCH_METHNUM_SCALAR  /* cf. mrilib.h */
 
 static int meth_visible[NMETH] =       /* 1 = show in -help; 0 = don't show */
-  { 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1  , 0   } ;
-/* ls  sp  mi  crM nmi je  hel crA crU  lss */
+  { 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0  } ;
+/* ls  sp  mi  crM nmi je  hel crA crU lss lpc */
 
 static int meth_noweight[NMETH] =      /* 1 = don't allow weights, just masks */
-  { 0 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 , 0 } ;
-/* ls  sp  mi  crM nmi je  hel crA crU lss */
+  { 0 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 , 0 , 0  } ;
+/* ls  sp  mi  crM nmi je  hel crA crU lss lpc */
 
 static int visible_noweights ;
 
 static char *meth_shortname[NMETH] =   /* short names for terse cryptic users */
-  { "ls" , "sp" , "mi" , "crM" , "nmi" , "je" , "hel" , "crA" , "crU" , "lss" } ;
+  { "ls" , "sp" , "mi" , "crM" , "nmi" , "je" , "hel" , "crA" , "crU" , "lss" , "lpc" } ;
 
 static char *meth_longname[NMETH] =    /* long names for prolix users */
   { "leastsq"         , "spearman"     ,
     "mutualinfo"      , "corratio_mul" ,
     "norm_mutualinfo" , "jointentropy" ,
     "hellinger"       ,
-    "corratio_add"    , "corratio_uns" , "signedPcor" } ;
+    "corratio_add"    , "corratio_uns" , "signedPcor" , "localPcor" } ;
 
 static char *meth_username[NMETH] =    /* descriptive names */
   { "Least Squares [Pearson Correlation]"   ,
@@ -73,7 +73,8 @@ static char *meth_username[NMETH] =    /* descriptive names */
     "Hellinger metric"                      ,
     "Correlation Ratio (Symmetrized+)"      ,
     "Correlation Ratio (Unsym)"             ,
-    "Signed Pearson Correlation"             } ; /* hidden */
+    "Signed Pearson Correlation"            ,  /* hidden */
+    "Local Pearson Correlation"           } ;  /* hidden */
 /*---------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
@@ -169,6 +170,10 @@ int main( int argc , char *argv[] )
    int auto_tdilation          = 0 ;            /* for -source_automask+N */
    int auto_tmask              = 0 ;
    char *auto_tstring          = NULL ;
+
+   int bloktype                = GA_BLOK_RHDD ; /* 20 Aug 2007 */
+   float blokrad               = 6.54321f ;
+   int blokmin                 = 0 ;
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -1688,6 +1693,27 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
+     if( strcmp(argv[iarg],"-blok") == 0 ){
+       int ia ;
+       if( ++iarg >= argc ) ERROR_exit("Need argument after -blok") ;
+       if( strncmp(argv[iarg],"SPHERE(",7) == 0 ){
+         ia = 7 ; bloktype = GA_BLOK_BALL ;
+       } else if( strncmp(argv[iarg],"BALL(",5) == 0 ){
+         ia = 5 ; bloktype = GA_BLOK_BALL ;
+       } else if( strncmp(argv[iarg],"RECT(",5) == 0 ){
+         ia = 5 ; bloktype = GA_BLOK_CUBE ;
+       } else if( strncmp(argv[iarg],"CUBE(",5) == 0 ){
+         ia = 5 ; bloktype = GA_BLOK_CUBE ;
+       } else if( strncmp(argv[iarg],"RHDD(",5) == 0 ){
+         ia = 5 ; bloktype = GA_BLOK_RHDD ;
+       } else {
+         ERROR_exit("Illegal argument after -blok") ;
+       }
+       blokrad = (float)strtod(argv[iarg]+ia,NULL) ;
+     }
+
+     /*-----*/
+
      ERROR_exit("Unknown and Illegal option '%s'",argv[iarg]) ;
    }
 
@@ -2007,13 +2033,12 @@ int main( int argc , char *argv[] )
    stup.hist_mode  = hist_mode ;   /* 08 May 2007 */
    stup.hist_param = hist_param ;
 
-   { char *eee = getenv("BLOK") ;  /* 17 Aug 2007: for testing purposes */
-     if( eee != NULL ){
-       int bt=0 ; float br=0.0f ;
-       sscanf(eee,"%d%f",&bt,&br) ;
-       if( bt > 0 && br > 0.0f ){ stup.bloktype=bt; stup.blokrad = br; }
-     }
-   }
+   stup.blokset = NULL ;
+   stup.bloktype = bloktype ; stup.blokrad = blokrad ; stup.blokmin = 0 ;
+   if( meth_code == GA_MATCH_PEARSON_LOCALS )
+     INFO_message("Local correlation: blok type = '%s(%g)'",
+           (bloktype==GA_BLOK_BALL) ? "BALL"
+          :(bloktype==GA_BLOK_CUBE) ? "CUBE" : "RHDD" , blokrad ) ;
 
    /* spatial coordinates: 'cmat' transforms from ijk to xyz */
 
