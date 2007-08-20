@@ -173,9 +173,10 @@ ENTRY("THD_set_dataset_attributes") ;
           tmat.mat[0][0], tmat.mat[0][1], tmat.mat[0][2], tvec.xyz[0],
           tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
           tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
-      Tr = MAT44_SUB(Tc, daxes->ijk_to_dicom_real);
-      if((MAT44_NORM(Tr)>0.001) && (MAT44_NORM(daxes->ijk_to_dicom_real))){
-         WARNING_message("Transformation matrix changed from original");
+      if(MAT44_NORM(daxes->ijk_to_dicom_real)>1.001){
+         Tr = MAT44_SUB(Tc, daxes->ijk_to_dicom_real);
+         if(MAT44_NORM(Tr)>0.001)
+            WARNING_message("Transformation matrix changed from original");
       }
       daxes->ijk_to_dicom_real = Tc;
    }
