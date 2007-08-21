@@ -48,7 +48,9 @@ Updates in version 0.5 May 17, 2007
 -----------------------------------------------------------------
 Newer updates
 
-    - allowed for datasets with a single volume > 2^31 bytes
-    - allowed for datasets with total size > 2^32 bytes
-    - added regression testing under Testing/nifti.regress_test
+    - RR allowed for datasets with a single volume > 2^31 bytes
+    - RR allowed for datasets with total size > 2^32 bytes
+    - RR added regression testing under Testing/nifti_regress_test
+    - KF added upper level packaging directory and put Andy Loenings's 
+         rpm spec file in it
 
