@@ -3200,7 +3200,7 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
 
 void AFNI_rescan_CB( Widget w, XtPointer cd, XtPointer cb )
 {
-   Three_D_View *im3d = (Three_D_View *) cd , *qq3d ;
+   Three_D_View *im3d = (Three_D_View *)cd , *qq3d ;
    int cc ;
    char str[256+THD_MAX_NAME] ;
 

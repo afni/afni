@@ -336,7 +336,10 @@ ENTRY("AFNI_rescan_controller") ;
    if( ic < 0 ) ic = 0 ;                       /* default = A */
 
    im3d = GLOBAL_library.controllers[ic] ;
-   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+   if( !IM3D_OPEN(im3d) ){
+     im3d = AFNI_find_open_controller() ;
+     if( im3d == NULL ) RETURN(-1) ;
+   }
 
    /* same callback as Rescan This */
 
