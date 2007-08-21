@@ -966,25 +966,30 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
 {
    GA_BLOK_set *gbs ;
    int nblok , nelm , *elm , dd , ii,jj , nm ;
-   float xv,yv,xy,xm,ym,vv,ww,ws , pcor , wt , psum ;
+   float xv,yv,xy,xm,ym,vv,ww,ws , pcor , wt , psum=0.0f ;
 
    if( gstup->blokset == NULL ){
+     float rad = gstup->blokrad ;
+     if( gstup->smooth_code > 0 && gstup->smooth_radius_base > 0.0f ) rad *= 1.2f;
      gstup->blokset = (void *)create_GA_BLOK_set(
                                 gstup->bsim->nx, gstup->bsim->ny, gstup->bsim->nz,
-                                1.0f , 1.0f , 1.0f ,
+                                1.0f , 1.0f , 1.0f ,  /* voxel units, not mm! */
                                 gstup->npt_match ,
                                  gstup->im->ar , gstup->jm->ar , gstup->km->ar ,
-                                gstup->bloktype , gstup->blokrad , gstup->blokmin ) ;
+                                gstup->bloktype , rad , gstup->blokmin ) ;
      if( gstup->blokset == NULL )
        ERROR_exit("Can't create GA_BLOK_set?!?") ;
    }
+
    gbs = (GA_BLOK_set *)gstup->blokset ;
    nblok = gbs->num ; nm = gstup->npt_match ;
    if( nblok < 1 ) ERROR_exit("Bad GA_BLOK_set?!") ;
 
    for( dd=0 ; dd < nblok ; dd++ ){
-     nelm = gbs->nelm[dd] ; elm = gbs->elm[dd] ;
-     if( wvm == NULL ){
+     nelm = gbs->nelm[dd] ; if( nelm < 9 ) continue ;
+     elm = gbs->elm[dd] ;
+
+     if( wvm == NULL ){   /*** unweighted correlation ***/
        xv=yv=xy=xm=ym=0.0f ; /*** ws = nelm ; ***/
        for( ii=0 ; ii < nelm ; ii++ ){
          jj = elm[ii] ;
@@ -996,7 +1001,8 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
          vv = avm[jj]-xm ; ww = bvm[jj]-ym ;
          xv += vv*vv ; yv += ww*ww ; xy += vv*ww ;
        }
-     } else {
+
+     } else {             /*** weighted correlation ***/
        xv=yv=xy=xm=ym=ws=0.0f ;
        for( ii=0 ; ii < nelm ; ii++ ){
          jj = elm[ii] ;
@@ -1010,13 +1016,14 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
          xv += wt*vv*vv ; yv += wt*ww*ww ; xy += wt*vv*ww ;
        }
      }
-     if( xv <= 0.0f || yv <= 0.0f ) continue ;  /* skip this */
-     pcor = xy/sqrtf(xv*yv) ;
-     pcor = logf( (1.0f+pcor)/(1.0f-pcor) ) ;
-     psum += pcor * fabsf(pcor) ;
+
+     if( xv <= 0.0f || yv <= 0.0f ) continue ;  /* skip this blok */
+     pcor = xy/sqrtf(xv*yv) ;                   /* correlation */
+     pcor = logf( (1.0f+pcor)/(1.0f-pcor) ) ;   /* 2*arctanh() */
+     psum += pcor * fabsf(pcor) ;               /* emphasize larger values */
    }
 
-   return (psum/nblok) ;
+   return (0.25f*psum/nblok) ; /* averaged stretched emphasized correlations */
 }
 /*======================== End of BLOK-iness functionality ==================*/
 

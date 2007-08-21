@@ -6345,3 +6345,7 @@
 16 Aug 2007
  * Modify 3dDeconvolve.c to check -stim_times files for 0-1 inputs and for
      duplicate times.
+
+20 Aug 2007
+ * First version of '-lpc' Local Pearson Correlation cost function in
+     3dAllineate.c, with rhombic dodecahedra as the default building bloks.
