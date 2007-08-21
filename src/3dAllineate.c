@@ -717,6 +717,9 @@ int main( int argc , char *argv[] )
         " -wtgrad  gg   = Set autoweight/mask Gaussian filter radius to 'gg' voxels.\n"
         " -nmsetup nn   = Use 'nn' points for the setup matching [default=23456]\n"
         " -ignout       = Ignore voxels outside the warped source dataset.\n"
+        " -blok bbb     = Blok definition for the '-lpc' (Local Pearson Correlation)\n"
+        "                 cost function.  'bbb' is 'BALL(r)' or 'CUBE(r)' or 'RHDD(r)'\n"
+        "                 where 'r' is the radius in voxel units.\n"
        ) ;
      } else {
        printf("\n"
@@ -1693,7 +1696,7 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strcmp(argv[iarg],"-blok") == 0 ){
+     if( strcmp(argv[iarg],"-blok") == 0 ){   /* hidden */
        int ia ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after -blok") ;
        if( strncmp(argv[iarg],"SPHERE(",7) == 0 ){
@@ -1710,6 +1713,7 @@ int main( int argc , char *argv[] )
          ERROR_exit("Illegal argument after -blok") ;
        }
        blokrad = (float)strtod(argv[iarg]+ia,NULL) ;
+       iarg++ ; continue ;
      }
 
      /*-----*/
