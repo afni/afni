@@ -1532,7 +1532,7 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
    tempA_mat44.m[2][3] = (AA).m[2][3] - (BB).m[2][3] , \
    tempA_mat44.m[3][3] = (AA).m[3][3] - (BB).m[3][3] , tempA_mat44 )
 
-#undef MAT44_NORM
+#undef  MAT44_NORM
 #define MAT44_NORM(AA)             \
  sqrt( (AA).m[0][0]*(AA).m[0][0] + \
        (AA).m[0][1]*(AA).m[0][1] + \
@@ -1550,6 +1550,18 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
        (AA).m[3][1]*(AA).m[3][1] + \
        (AA).m[3][2]*(AA).m[3][2] + \
        (AA).m[3][3]*(AA).m[3][3]  )
+
+#undef  MAT44_COLNORM
+#define MAT44_COLNORM(AA,j)            \
+ sqrt( (AA).m[0][(j)]*(AA).m[0][(j)] + \
+       (AA).m[1][(j)]*(AA).m[1][(j)] + \
+       (AA).m[2][(j)]*(AA).m[2][(j)]  )
+
+#undef  MAT44_ROWNORM
+#define MAT44_ROWNORM(i)               \
+ sqrt( (AA).m[(i)][0]*(AA).m[(i)][0] + \
+       (AA).m[(i)][1]*(AA).m[(i)][1] + \
+       (AA).m[(i)][2]*(AA).m[(i)][2]  )
 
 /* load a mat33 matrix */
 

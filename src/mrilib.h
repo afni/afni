@@ -1340,6 +1340,9 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 #define GA_BLOK_CUBE 2  /* cube */
 #define GA_BLOK_RHDD 3  /* rhombic dodecahedron */
 
+#define GA_BLOK_STRING(b) \
+ ( ((b)==GA_BLOK_BALL) ? "BALL" : ((b)==GA_BLOK_CUBE) ? "CUBE" : "RHDD" )
+
  /* method codes for matching scalar-valued images */
 
 #define GA_MATCH_PEARSON_SCALAR     1  /* least squares, more-or-less */
@@ -1355,8 +1358,9 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 
 #define GA_MATCH_PEARSON_SIGNED    10  /* experimental */
 #define GA_MATCH_PEARSON_LOCALS    11  /* experimental */
+#define GA_MATCH_PEARSON_LOCALA    12  /* experimental */
 
-#define GA_MATCH_METHNUM_SCALAR    11  /* Largest value in sequence above */
+#define GA_MATCH_METHNUM_SCALAR    12  /* Largest value in sequence above */
 
  /* methods for smoothing images */
 
@@ -1391,6 +1395,8 @@ typedef struct {
   int interp_code ;             /* set by user */
   mat44 base_cmat , targ_cmat ; /* set by user */
   mat44 base_imat , targ_imat ;
+  float base_di,base_dj,base_dk ;
+  float targ_di,targ_dj,targ_dk ;
   int usetemp ;                 /* set by user */
 
   int   bloktype, blokmin ;     /* set by user */
