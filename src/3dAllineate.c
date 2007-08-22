@@ -44,24 +44,25 @@ void AL_setup_warp_coords( int,int,int,int ,
 #define NMETH GA_MATCH_METHNUM_SCALAR  /* cf. mrilib.h */
 
 static int meth_visible[NMETH] =       /* 1 = show in -help; 0 = don't show */
-  { 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0  } ;
-/* ls  sp  mi  crM nmi je  hel crA crU lss lpc */
+  { 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 , 0  } ;
+/* ls  sp  mi  crM nmi je  hel crA crU lss lpc lpa */
 
 static int meth_noweight[NMETH] =      /* 1 = don't allow weights, just masks */
-  { 0 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 , 0 , 0  } ;
-/* ls  sp  mi  crM nmi je  hel crA crU lss lpc */
+  { 0 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 , 0 , 0 , 0  } ;
+/* ls  sp  mi  crM nmi je  hel crA crU lss lpc lpa */
 
 static int visible_noweights ;
 
 static char *meth_shortname[NMETH] =   /* short names for terse cryptic users */
-  { "ls" , "sp" , "mi" , "crM" , "nmi" , "je" , "hel" , "crA" , "crU" , "lss" , "lpc" } ;
+  { "ls", "sp", "mi", "crM", "nmi", "je", "hel", "crA", "crU", "lss", "lpc", "lpa" } ;
 
 static char *meth_longname[NMETH] =    /* long names for prolix users */
   { "leastsq"         , "spearman"     ,
     "mutualinfo"      , "corratio_mul" ,
     "norm_mutualinfo" , "jointentropy" ,
     "hellinger"       ,
-    "corratio_add"    , "corratio_uns" , "signedPcor" , "localPcor" } ;
+    "corratio_add"    , "corratio_uns" , "signedPcor" ,
+    "localPcorSigned" , "localPcorAbs" } ;
 
 static char *meth_username[NMETH] =    /* descriptive names */
   { "Least Squares [Pearson Correlation]"   ,
@@ -74,7 +75,8 @@ static char *meth_username[NMETH] =    /* descriptive names */
     "Correlation Ratio (Symmetrized+)"      ,
     "Correlation Ratio (Unsym)"             ,
     "Signed Pearson Correlation"            ,  /* hidden */
-    "Local Pearson Correlation"           } ;  /* hidden */
+    "Local Pearson Correlation Signed"      ,  /* hidden */
+    "Local Pearson Correlation Abs"       } ;  /* hidden */
 /*---------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
@@ -719,11 +721,19 @@ int main( int argc , char *argv[] )
         " -ignout       = Ignore voxels outside the warped source dataset.\n"
         " -blok bbb     = Blok definition for the '-lpc' (Local Pearson Correlation)\n"
         "                 cost function.  'bbb' is 'BALL(r)' or 'CUBE(r)' or 'RHDD(r)'\n"
-        "                 where 'r' is the radius in voxel units.\n"
+        "                 where 'r' is the radius in mm.\n"
        ) ;
-     } else {
        printf("\n"
-              "[[[[[ To see a few super-advanced or experimental options, use '-HELP'. ]]]]]\n") ;
+              " Hidden experimental cost functions:\n") ;
+       for( ii=0 ; ii < NMETH ; ii++ )
+        if( !meth_visible[ii] )
+          printf( "           %-4s *OR*  %-16s= %s\n" ,
+                  meth_shortname[ii] , meth_longname[ii] , meth_username[ii] );
+
+     } else {
+       printf(
+        "\n"
+        "[[[ To see a few advanced/experimental options, use '-HELP'. ]]]\n");
      }
 
      printf("\n"); exit(0);
@@ -2039,10 +2049,10 @@ int main( int argc , char *argv[] )
 
    stup.blokset = NULL ;
    stup.bloktype = bloktype ; stup.blokrad = blokrad ; stup.blokmin = 0 ;
-   if( meth_code == GA_MATCH_PEARSON_LOCALS )
+   if( meth_code == GA_MATCH_PEARSON_LOCALS ||
+       meth_code == GA_MATCH_PEARSON_LOCALA   )
      INFO_message("Local correlation: blok type = '%s(%g)'",
-           (bloktype==GA_BLOK_BALL) ? "BALL"
-          :(bloktype==GA_BLOK_CUBE) ? "CUBE" : "RHDD" , blokrad ) ;
+                  GA_BLOK_STRING(bloktype) , blokrad        ) ;
 
    /* spatial coordinates: 'cmat' transforms from ijk to xyz */
 

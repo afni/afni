@@ -954,8 +954,8 @@ ENTRY("create_GA_BLOK_set") ;
    free(nelm) ; free(elm) ;
 
    if( verb > 1 )
-     ININFO_message("%d total points stored in partition comprising %d bloks",
-                    ntot , gbs->num ) ;
+     ININFO_message("%d total points stored in %d '%s(%g)' bloks",
+                    ntot , gbs->num , GA_BLOK_STRING(bloktype) , blokrad ) ;
 
    RETURN(gbs) ;
 }
@@ -969,11 +969,14 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
    float xv,yv,xy,xm,ym,vv,ww,ws , pcor , wt , psum=0.0f ;
 
    if( gstup->blokset == NULL ){
-     float rad = gstup->blokrad ;
-     if( gstup->smooth_code > 0 && gstup->smooth_radius_base > 0.0f ) rad *= 1.2f;
+     float rad=gstup->blokrad , mrad ;
+     if( gstup->smooth_code > 0 && gstup->smooth_radius_base > 0.0f )
+       rad = sqrt( rad*rad +SQR(gstup->smooth_radius_base) ) ;
+     mrad = 1.2345f*(gstup->base_di + gstup->base_dj + gstup->base_dk) ;
+     rad  = MAX(rad,mrad) ;
      gstup->blokset = (void *)create_GA_BLOK_set(
                                 gstup->bsim->nx, gstup->bsim->ny, gstup->bsim->nz,
-                                1.0f , 1.0f , 1.0f ,  /* voxel units, not mm! */
+                                gstup->base_di , gstup->base_dj , gstup->base_dk ,
                                 gstup->npt_match ,
                                  gstup->im->ar , gstup->jm->ar , gstup->km->ar ,
                                 gstup->bloktype , rad , gstup->blokmin ) ;
@@ -1063,6 +1066,11 @@ ENTRY("GA_scalar_fitter") ;
 
     case GA_MATCH_PEARSON_LOCALS:
       val = (double)GA_pearson_local( gstup->npt_match, avm, bvm,wvm ) ;
+    break ;
+
+    case GA_MATCH_PEARSON_LOCALA:
+      val = (double)GA_pearson_local( gstup->npt_match, avm, bvm,wvm ) ;
+      val = 1.0 - fabs(val) ;
     break ;
 
     case GA_MATCH_SPEARMAN_SCALAR:  /* rank-order (Spearman) correlation */
@@ -1223,6 +1231,9 @@ ENTRY("mri_genalign_scalar_setup") ;
                        -(stup->bsim->nz-1)*0.5f*stup->bsim->dz  ) ;
      }
      stup->base_imat = MAT44_INV( stup->base_cmat ) ;
+     stup->base_di = MAT44_COLNORM(stup->base_cmat,0) ;  /* 22 Aug 2007 */
+     stup->base_dj = MAT44_COLNORM(stup->base_cmat,1) ;
+     stup->base_dk = MAT44_COLNORM(stup->base_cmat,2) ;
      if( stup->bsims != NULL ){ mri_free(stup->bsims); stup->bsims = NULL; }
    }
    nx = stup->bsim->nx; ny = stup->bsim->ny; nz = stup->bsim->nz; nxy = nx*ny;
@@ -1244,6 +1255,9 @@ ENTRY("mri_genalign_scalar_setup") ;
                        -(stup->ajim->nz-1)*0.5f*stup->ajim->dz  ) ;
      }
      stup->targ_imat = MAT44_INV( stup->targ_cmat ) ;
+     stup->targ_di = MAT44_COLNORM(stup->targ_cmat,0) ;  /* 22 Aug 2007 */
+     stup->targ_dj = MAT44_COLNORM(stup->targ_cmat,1) ;
+     stup->targ_dk = MAT44_COLNORM(stup->targ_cmat,2) ;
      if( stup->ajims != NULL ){ mri_free(stup->ajims); stup->ajims = NULL; }
 
      /* 07 Aug 2007: deal with target mask */
