@@ -2047,13 +2047,6 @@ int main( int argc , char *argv[] )
    stup.hist_mode  = hist_mode ;   /* 08 May 2007 */
    stup.hist_param = hist_param ;
 
-   stup.blokset = NULL ;
-   stup.bloktype = bloktype ; stup.blokrad = blokrad ; stup.blokmin = 0 ;
-   if( meth_code == GA_MATCH_PEARSON_LOCALS ||
-       meth_code == GA_MATCH_PEARSON_LOCALA   )
-     INFO_message("Local correlation: blok type = '%s(%g)'",
-                  GA_BLOK_STRING(bloktype) , blokrad        ) ;
-
    /* spatial coordinates: 'cmat' transforms from ijk to xyz */
 
    if( !ISVALID_MAT44(dset_targ->daxes->ijk_to_dicom) )
@@ -2073,6 +2066,18 @@ int main( int argc , char *argv[] )
      }
    } else {
      stup.base_cmat = stup.targ_cmat ;
+   }
+
+   stup.blokset = NULL ;
+   if( meth_code == GA_MATCH_PEARSON_LOCALS ||
+       meth_code == GA_MATCH_PEARSON_LOCALA   ){
+     float mr = 1.23f * ( MAT44_COLNORM(stup.base_cmat,0)
+                         +MAT44_COLNORM(stup.base_cmat,1)
+                         +MAT44_COLNORM(stup.base_cmat,2) ) ;
+     if( blokrad < mr ) blokrad = mr ;
+     stup.bloktype = bloktype ; stup.blokrad = blokrad ; stup.blokmin = 0 ;
+     INFO_message("Local correlation: blok type = '%s(%g)'",
+                  GA_BLOK_STRING(bloktype) , blokrad        ) ;
    }
 
    /* modify base_cmat to allow for zeropad? */
