@@ -12,7 +12,8 @@ void Syntax(void)
     "Prints out sort-of-useful information from a 3D dataset's header\n"
     "Usage: 3dinfo [-verb OR -short] dataset [dataset ...]\n"
     "  -verb means to print out lots of stuff\n"
-    "  -short means to print out less stuff\n"
+    "  -VERB means even more stuff\n"
+    "  -short means to print out less stuff [now the default]\n"
     "\n"
     "Alternative Usage (without either of the above options):\n"
     "  3dinfo -label2index label dataset\n"
@@ -31,7 +32,7 @@ void Syntax(void)
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset ;
-   int iarg , verbose = 0 ;
+   int iarg , verbose = -1 ;
    char *outbuf ;
    char *labelName = NULL;
 
@@ -40,17 +41,18 @@ int main( int argc , char *argv[] )
    mainENTRY("3dinfo main") ; machdep() ; PRINT_VERSION("3dinfo") ;
 
    iarg = 1 ;
-        if( strncmp(argv[iarg],"-verb" ,5) == 0 ){ verbose =  1; iarg++; }
+        if( strncmp(argv[iarg],"-verb" ,5) == 0 ){ verbose =  0; iarg++; }
+        if( strncmp(argv[iarg],"-VERB" ,5) == 0 ){ verbose =  1; iarg++; }
    else if( strncmp(argv[iarg],"-short",5) == 0 ){ verbose = -1; iarg++; }
 
    else if ( strncmp(argv[iarg],"-label2",7) == 0 )
    {
-       iarg++;
-       if (iarg >= argc)
-           ERROR_exit( "3dinfo needs an argument after -label2number\n");
-       labelName = malloc(sizeof(char) * 2048);
-       strcpy(labelName, argv[iarg]);
-       iarg++;
+      iarg++;
+      if (iarg >= argc)
+         ERROR_exit( "3dinfo needs an argument after -label2number\n");
+      labelName = malloc(sizeof(char) * 2048);
+      strcpy(labelName, argv[iarg]);
+      iarg++;
    }
 
 
