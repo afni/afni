@@ -1020,10 +1020,11 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
        }
      }
 
-     if( xv <= 0.0f || yv <= 0.0f ) continue ;  /* skip this blok */
-     pcor = xy/sqrtf(xv*yv) ;                   /* correlation */
-     pcor = logf( (1.0f+pcor)/(1.0f-pcor) ) ;   /* 2*arctanh() */
-     psum += pcor * fabsf(pcor) ;               /* emphasize larger values */
+     if( xv <= 0.0f || yv <= 0.0f ) continue ;      /* skip this blok */
+     pcor = xy/sqrtf(xv*yv) ;                       /* correlation */
+     if( pcor > 1.0f ) pcor = 1.0f; else if( pcor < -1.0f ) pcor = -1.0f;
+     pcor = logf( (1.0001f+pcor)/(1.0001f-pcor) ) ; /* 2*arctanh() */
+     psum += pcor * fabsf(pcor) ;                   /* emphasize large values */
    }
 
    return (0.25f*psum/nblok) ; /* averaged stretched emphasized correlations */
@@ -1127,8 +1128,12 @@ ENTRY("GA_scalar_fitter") ;
 
   free((void *)avm) ;    /* toss the trash */
 
-  if( fit_callback != NULL && val < fit_vbest ){  /* call user-supplied */
-    fit_vbest = val ; fit_callback(npar,mpar) ;   /* function if cost shrinks */
+  if( !finite(val) ){    /* 24 Aug 2007 */
+    val = BIGVAL ;
+  } else {
+    if( fit_callback != NULL && val < fit_vbest ){ /* call user-supplied */
+      fit_vbest = val ; fit_callback(npar,mpar) ;    /* function if cost shrinks */
+    }
   }
 
   RETURN( (double)val );
