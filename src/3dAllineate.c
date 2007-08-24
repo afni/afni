@@ -719,15 +719,16 @@ int main( int argc , char *argv[] )
         " -wtgrad  gg   = Set autoweight/mask Gaussian filter radius to 'gg' voxels.\n"
         " -nmsetup nn   = Use 'nn' points for the setup matching [default=23456]\n"
         " -ignout       = Ignore voxels outside the warped source dataset.\n"
-        " -blok bbb     = Blok definition for the '-lpc' (Local Pearson Correlation)\n"
-        "                 cost function.  'bbb' is 'BALL(r)' or 'CUBE(r)' or 'RHDD(r)'\n"
+        " -blok bbb     = Blok definition for the 'lp?' (Local Pearson) cost\n"
+        "                 functions; 'bbb' is 'BALL(r)' or 'CUBE(r)' or 'RHDD(r)'\n"
         "                 where 'r' is the radius in mm.\n"
+        "                 [Default is 'RHDD(6.54321)' (rhombic dodecahedron)]\n"
        ) ;
        printf("\n"
               " Hidden experimental cost functions:\n") ;
        for( ii=0 ; ii < NMETH ; ii++ )
         if( !meth_visible[ii] )
-          printf( "           %-4s *OR*  %-16s= %s\n" ,
+          printf( "   %-4s *OR*  %-16s= %s\n" ,
                   meth_shortname[ii] , meth_longname[ii] , meth_username[ii] );
 
      } else {
