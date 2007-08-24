@@ -2172,3 +2172,7 @@
         valid output to zero
   * modified nifti1_io.c: for list, valid_nifti_brick_list requires 3 dims
 
+24 Aug 2007:
+  * removed znzlib/config.h
+  * incorporated Hans Johnson's changes into nifti tree
+

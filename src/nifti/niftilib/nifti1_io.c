@@ -3083,6 +3083,19 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
    /**- determine if this is a NIFTI-1 compliant header */
 
    is_nifti = NIFTI_VERSION(nhdr) ;
+   /*
+    * before swapping header, record the Analyze75 orient code
+    */
+   if(!is_nifti)
+     {
+     /**- in analyze75, the orient code is at the same address as
+      *   qform_code, but it's just one byte
+      *   the qform_code will be zero, at which point you can check
+      *   analyze75_orient if you care to.
+      */
+     unsigned char c = *((char *)(&nhdr.qform_code));
+     nim->analyze75_orient = (analyze_75_orient_code)c;
+     }
    if( doswap ) {
       if ( g_opts.debug > 3 ) disp_nifti_1_header("-d ni1 pre-swap: ", &nhdr);
       swap_nifti_header( &nhdr , is_nifti ) ;
@@ -6230,6 +6243,220 @@ int nifti_read_collapsed_image( nifti_image * nim, const int dims [8],
               bytes, nim->fname);
 
    return bytes;
+}
+
+
+/* local function to find strides per dimension. assumes 7D size and
+** stride array.
+*/
+static void
+compute_strides(int *strides,const int *size,int nbyper)
+{
+  int i;
+  strides[0] = nbyper;
+  for(i = 1; i < 7; i++)
+    {
+    strides[i] = size[i-1] * strides[i-1];
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+/*! read an arbitrary subregion from a nifti image
+
+    This function may be used to read a single arbitary subregion of any
+    rectangular size from a nifti dataset, such as a small 5x5x5 subregion
+    around the center of a 3D image.
+
+    \param nim  given nifti_image struct, corresponding to the data file
+    \param start_index the index location of the first voxel that will be returned
+    \param region_size the size of the subregion to be returned
+    \param data pointer to data pointer (if *data is NULL, data will be
+                allocated, otherwise not)
+
+    Example: given  nim->dim[8] = {3, 64, 64, 64, 1, 1, 1, 1 } (3-D dataset)
+
+      if start_index[7] = { 29,  29, 29, 0, 0, 0, 0 } and
+         region_size[7] = {  5,   5,  5, 1, 1, 1, 1 }
+         -> read 5x5x5 region starting with the first voxel location at (29,29,29)
+
+    NOTE: If *data is not NULL, then it will be assumed that it points to
+          valid memory, sufficient to hold the results.  This is done for
+          speed and possibly repeated calls to this function.
+    \return
+        -  the total number of bytes read, or < 0 on failure
+        -  the read and byte-swapped data, in 'data'            </pre>
+
+    \sa nifti_image_read, nifti_image_free, nifti_image_read_bricks
+        nifti_image_load, nifti_read_collapsed_image
+*//*-------------------------------------------------------------------------*/
+int nifti_read_subregion_image( nifti_image * nim,
+                                int *start_index,
+                                int *region_size,
+                                void ** data )
+{
+  znzFile fp;                   /* file to read */
+  int i,j,k,l,m,n;              /* indices for dims */
+  long int bytes = 0;           /* total # bytes read */
+  int total_alloc_size;         /* size of buffer allocation */
+  char *readptr;                /* where in *data to read next */
+  int strides[7];               /* strides between dimensions */
+  int collapsed_dims[8];        /* for read_collapsed_image */
+  int *image_size;              /* pointer to dimensions in header */
+  long int initial_offset;
+  long int offset;              /* seek offset for reading current row */
+
+  /* probably ignored, but set to ndim for consistency*/
+  collapsed_dims[0] = nim->ndim;
+
+  /* build a dims array for collapsed image read */
+  for(i = 0; i < nim->ndim; i++)
+    {
+    /* if you take the whole extent in this dimension */
+    if(start_index[i] == 0 &&
+       region_size[i] == nim->dim[i+1])
+      {
+      collapsed_dims[i+1] = -1;
+      }
+    /* if you specify a single element in this dimension */
+    else if(region_size[i] == 1)
+      {
+      collapsed_dims[i+1] = start_index[i];
+      }
+    else
+      {
+      collapsed_dims[i+1] = -2; /* sentinel value */
+      }
+    }
+  /* fill out end of collapsed_dims */
+  for(i = nim->ndim ; i < 7; i++)
+    {
+    collapsed_dims[i+1] = -1;
+    }
+
+  /* check to see whether collapsed read is possible */
+  for(i = 1; i <= nim->ndim; i++)
+    {
+    if(collapsed_dims[i] == -2)
+      {
+      break;
+      }
+    }
+
+  /* if you get through all the dimensions without hitting 
+  ** a subrange of size > 1, a collapsed read is possible
+  */
+  if(i > nim->ndim)
+    {
+    return nifti_read_collapsed_image(nim, collapsed_dims, data);
+    }
+
+  /* point past first element of dim, which holds nim->ndim */
+  image_size = &(nim->dim[1]);
+
+  /* check region sizes for sanity */
+  for(i = 0; i < nim->ndim; i++)
+    {
+    if(start_index[i]  + region_size[i] > image_size[i])
+      {
+      if(g_opts.debug > 1)
+        {
+        fprintf(stderr,"region doesn't fit within image size\n");
+        }
+      return -1;
+      }
+    }
+
+  /* get the file open */
+  fp = nifti_image_load_prep( nim );
+  /* the current offset is just past the nifti header, save
+   * location so that SEEK_SET can be used below
+   */
+  initial_offset = znztell(fp);  
+  /* get strides*/
+  compute_strides(strides,image_size,nim->nbyper);
+
+  total_alloc_size = nim->nbyper; /* size of pixel */
+
+  /* find alloc size */
+  for(i = 0; i < nim->ndim; i++)
+    {
+    total_alloc_size *= region_size[i];
+    }
+  /* allocate buffer, if necessary */
+  if(*data == 0)
+    {
+    *data = (void *)malloc(total_alloc_size);
+    }
+
+  if(*data == 0)
+    {
+    if(g_opts.debug > 1)
+      {
+      fprintf(stderr,"allocation of %d bytes failed\n",total_alloc_size);
+      return -1;
+      }
+    }
+
+  /* point to start of data buffer as char * */
+  readptr = *((char **)data);
+  {
+  /* can't assume that start_index and region_size have any more than
+  ** nim->ndim elements so make local copies, filled out to seven elements
+  */
+  int si[7], rs[7];
+  for(i = 0; i < nim->ndim; i++)
+    {
+    si[i] = start_index[i];
+    rs[i] = region_size[i];
+    }
+  for(i = nim->ndim; i < 7; i++)
+    {
+    si[i] = 0;
+    rs[i] = 1;
+    }
+  /* loop through subregion and read a row at a time */
+  for(i = si[6]; i < (si[6] + rs[6]); i++)
+    {
+    for(j = si[5]; j < (si[5] + rs[5]); j++)
+      {
+      for(k = si[4]; k < (si[4] + rs[4]); k++)
+        {
+        for(l = si[3]; l < (si[3] + rs[3]); l++)
+          {
+          for(m = si[2]; m < (si[2] + rs[2]); m++)
+            {
+            for(n = si[1]; n < (si[1] + rs[1]); n++)
+              {
+              int nread,read_amount;
+              offset = initial_offset +
+                (i * strides[6]) +
+                (j * strides[5]) +
+                (k * strides[4]) +
+                (l * strides[3]) +
+                (m * strides[2]) +
+                (n * strides[1]) +
+                (si[0] * strides[0]);
+              znzseek(fp, offset, SEEK_SET); /* seek to current row */
+              read_amount = rs[0] * nim->nbyper; /* read a row of the subregion*/
+              nread = nifti_read_buffer(fp, readptr, read_amount, nim);
+              if(nread != read_amount)
+                {
+                if(g_opts.debug > 1)
+                  {
+                  fprintf(stderr,"read of %d bytes failed\n",read_amount);
+                  return -1;
+                  }
+                }
+              bytes += nread;
+              readptr += read_amount;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return bytes;
 }
 
 
