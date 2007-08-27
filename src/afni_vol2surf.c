@@ -315,7 +315,7 @@ ENTRY("map_v2s_results");
 	ovc[npanes] = im3d->vinfo->use_posfunc ? 0 : ovc[npanes-1];
 
 	/* get the actual RGB colors of each pane on the pbar */
-        for( ival=0 ; ival < npanes ; ival++ )
+        for( ival=0 ; ival <= npanes ; ival++ ) /* include npanes 27 Aug 2007 */
 	{
 	    ovc_r[ival] = DCOV_REDBYTE  (im3d->dc,ovc[ival]);
 	    ovc_g[ival] = DCOV_GREENBYTE(im3d->dc,ovc[ival]);
