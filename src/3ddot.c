@@ -3,16 +3,17 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include <string.h>
 
-double DSET_cor( THD_3dim_dataset *, THD_3dim_dataset *, byte *, int , double *) ;
+double DSET_cor( THD_3dim_dataset *, THD_3dim_dataset *, byte *, int ,
+                 double *,double *,double *,double *,double *,int * ) ;
 
 int main( int argc , char * argv[] )
 {
-   double dxy , sxy;
-   int narg , ndset , nvox , demean=0 , DoDot = 0;
+   double dxy , xbar,ybar,xxbar,yybar,xybar ;
+   int narg , ndset , nvox , demean=0 , mode=0 , nnn ;
    THD_3dim_dataset * xset , * yset , * mask_dset=NULL ;
    float mask_bot=666.0 , mask_top=-666.0 ;
    byte * mmm=NULL ;
@@ -39,7 +40,11 @@ int main( int argc , char * argv[] )
              "                 it won't be included, even if a < 0 < b.\n"
              "  -demean      Means to remove the mean from each volume\n"
              "                 prior to computing the correlation.\n"
-             "  -dodot       Return the dot product.\n"
+             "  -dodot       Return the dot product (unscaled).\n"
+             "  -docoef      Return the least square fit coefficients\n"
+             "                 {a,b} so that dset2 is approximately a + b*dset1\n"
+             "  -dosums      Return the 5 numbers xbar=<x> ybar=<y>\n"
+             "                 <(x-xbar)^2> <(y-ybar)^2> <(x-xbar)(y-ybar)>\n"
             ) ;
 
       printf("\n" MASTER_SHORTHELP_STRING ) ;
@@ -51,12 +56,16 @@ int main( int argc , char * argv[] )
    while( narg < argc && argv[narg][0] == '-' ){
 
       if( strncmp(argv[narg],"-demean",5) == 0 ){
-         demean++ ;
-         narg++ ; continue ;
+         demean++ ; narg++ ; continue ;
       }
       if( strncmp(argv[narg],"-dodot",4) == 0 ){
-         DoDot++ ;
-         narg++ ; continue ;
+         mode = 1 ; narg++ ; continue ;
+      }
+      if( strncmp(argv[narg],"-docoef",4) == 0 ){
+         mode = 2 ; narg++ ; continue ;
+      }
+      if( strncmp(argv[narg],"-dosums",4) == 0 ){
+         mode = 3 ; narg++ ; continue ;
       }
       if( strncmp(argv[narg],"-mask",5) == 0 ){
          if( mask_dset != NULL ){
@@ -79,20 +88,21 @@ int main( int argc , char * argv[] )
 
       if( strncmp(argv[narg],"-mrange",5) == 0 ){
          if( narg+2 >= argc ){
-            fprintf(stderr,"*** -mrange option requires 2 following arguments!\n")
-;
-             exit(1) ;
+           fprintf(stderr,"*** -mrange option requires 2 following arguments!\n") ;
+           exit(1) ;
          }
          mask_bot = strtod( argv[++narg] , NULL ) ;
          mask_top = strtod( argv[++narg] , NULL ) ;
          if( mask_top < mask_top ){
-            fprintf(stderr,"*** -mrange inputs are illegal!\n") ; exit(1) ;
+           fprintf(stderr,"*** -mrange inputs are illegal!\n") ; exit(1) ;
          }
          narg++ ; continue ;
       }
 
       fprintf(stderr,"*** Unknown option: %s\n",argv[narg]) ; exit(1) ;
    }
+
+   if( mode >= 2 ) demean = 1 ;
 
    /* should have at least 2 more arguments */
 
@@ -131,27 +141,49 @@ int main( int argc , char * argv[] )
       DSET_delete(mask_dset) ;
    }
 
-   dxy = DSET_cor( xset , yset , mmm , demean, &sxy ) ;
-   if (DoDot) {
-      printf("%g\n",dxy*sxy) ;
-   } else {
-      printf("%g\n",dxy) ;
+   dxy = DSET_cor( xset , yset , mmm , demean, 
+                   &xbar,&ybar,&xxbar,&yybar,&xybar , &nnn ) ;
+   if( nnn == 0 ) ERROR_exit("Can't compute for some reason!") ;
+   switch( mode ){
+     default: printf("%g\n",dxy) ; break ;
+
+     case 1:  printf("%g\n",xybar*nnn) ; break ;
+
+     case 2:{
+       double a,b ;
+       b = xybar / xxbar ;
+       a = ybar - b*xbar ;
+       printf("%g %g\n",a,b) ;
+     }
+     break ;
+
+     case 3:
+       printf("%g %g %g %g %g\n",xbar,ybar,xxbar,yybar,xybar) ;
+     break ;
    }
    exit(0) ;
 }
 
+/*------------------------------------------------------------------*/
+
+#undef  ASSIF
+#define ASSIF(p,v) do{ if( (p)!=NULL ) *(p)=(v) ; } while(0)
+
 double DSET_cor( THD_3dim_dataset *xset,
-                 THD_3dim_dataset *yset, byte *mmm , int dm, double *sxyr)
+                 THD_3dim_dataset *yset, byte *mmm , int dm,
+                 double *xbar, double *ybar,
+                 double *xxbar, double *yybar, double *xybar , int *npt )
 {
    double sumxx , sumyy , sumxy , tx,ty , dxy ;
-   void  *  xar , *  yar ;
-   float * fxar , * fyar ;
+   void  *xar , *yar ;
+   float *fxar , *fyar ;
    int ii , nxyz , ivx,ivy , itypx,itypy , fxar_new,fyar_new , nnn ;
 
    nxyz = DSET_NVOX(xset) ;
-   
-   if (sxyr) *sxyr = 0.0;
-   
+
+   ASSIF(npt,0) ; ASSIF(xbar,0.0) ; ASSIF(ybar,0.0) ;
+   ASSIF(xxbar,0.0) ; ASSIF(yybar,0.0) ; ASSIF(xybar,0.0) ;
+
    /* load bricks */
 
    DSET_load(xset); CHECK_LOAD_ERROR(xset);
@@ -159,11 +191,11 @@ double DSET_cor( THD_3dim_dataset *xset,
    itypx = DSET_BRICK_TYPE(xset,ivx) ;
    xar   = DSET_ARRAY(xset,ivx) ; if( xar == NULL ) return 0.0 ;
    if( itypx == MRI_float ){
-      fxar = (float *) xar ; fxar_new = 0 ;
+     fxar = (float *) xar ; fxar_new = 0 ;
    } else {
-      fxar = (float *) malloc( sizeof(float) * nxyz ) ; fxar_new = 1 ;
-      EDIT_coerce_type( nxyz , itypx,xar , MRI_float,fxar ) ;
-      PURGE_DSET( xset ) ;
+     fxar = (float *) malloc( sizeof(float) * nxyz ) ; fxar_new = 1 ;
+     EDIT_coerce_type( nxyz , itypx,xar , MRI_float,fxar ) ;
+     PURGE_DSET( xset ) ;
    }
 
    DSET_load(yset); CHECK_LOAD_ERROR(yset);
@@ -171,56 +203,49 @@ double DSET_cor( THD_3dim_dataset *xset,
    itypy = DSET_BRICK_TYPE(yset,ivy) ;
    yar   = DSET_ARRAY(yset,ivy) ; if( yar == NULL ) return 0.0 ;
    if( itypy == MRI_float ){
-      fyar = (float *) yar ; fyar_new = 0 ;
+     fyar = (float *) yar ; fyar_new = 0 ;
    } else {
-      fyar = (float *) malloc( sizeof(float) * nxyz ) ; fyar_new = 1 ;
-      EDIT_coerce_type( nxyz , itypy,yar , MRI_float,fyar ) ;
-      PURGE_DSET( yset ) ;
+     fyar = (float *) malloc( sizeof(float) * nxyz ) ; fyar_new = 1 ;
+     EDIT_coerce_type( nxyz , itypy,yar , MRI_float,fyar ) ;
+     PURGE_DSET( yset ) ;
    }
 
    /* 29 Feb 2000: remove mean? */
 
+   sumxx = sumyy = 0.0 ;
+   for( nnn=ii=0 ; ii < nxyz ; ii++ ){
+     if( mmm == NULL || mmm[ii] ){ sumxx += fxar[ii]; sumyy += fyar[ii]; nnn++; }
+   }
+   if( nnn < 5 ) return 0.0 ;             /* ERROR */
+   sumxx /= nnn ; sumyy /= nnn ;
+   ASSIF(xbar,sumxx) ; ASSIF(ybar,sumyy) ; ASSIF(npt,nnn) ;
    if( dm ){
-      sumxx = sumyy = 0.0 ;
-      for( nnn=ii=0 ; ii < nxyz ; ii++ ){
-         if( mmm == NULL || mmm[ii] ){
-            sumxx += fxar[ii] ; sumyy += fyar[ii] ; nnn++ ;
-         }
-      }
-      if( nnn < 5 ) return 0.0 ;             /* ERROR */
-      sumxx /= nnn ; sumyy /= nnn ;
-      for( ii=0 ; ii < nxyz ; ii++ ){
-         if( mmm == NULL || mmm[ii] ){
-            fxar[ii] -= sumxx ; fyar[ii] -= sumyy ;
-         }
-      }
+     for( ii=0 ; ii < nxyz ; ii++ ){
+       if( mmm == NULL || mmm[ii] ){ fxar[ii] -= sumxx; fyar[ii] -= sumyy; }
+     }
    }
 
    /* compute sums */
 
    sumxx = sumyy = sumxy = 0.0 ;
-
    for( ii=0 ; ii < nxyz ; ii++ ){
-      if( mmm == NULL || mmm[ii] ){
-         tx = fxar[ii] ; ty = fyar[ii] ;
-         sumxx += tx * tx ;
-         sumyy += ty * ty ;
-         sumxy += tx * ty ;
-      }
+     if( mmm == NULL || mmm[ii] ){
+       tx = fxar[ii] ; ty = fyar[ii] ;
+       sumxx += tx * tx ; sumyy += ty * ty ; sumxy += tx * ty ;
+     }
    }
+   sumxx /= nnn ; ASSIF(xxbar,sumxx) ;
+   sumyy /= nnn ; ASSIF(yybar,sumyy) ;
+   sumxy /= nnn ; ASSIF(xybar,sumxy) ;
 
    /* toss trash */
 
-   if( fxar_new ) free( fxar ) ;
-   if( fyar_new ) free( fyar ) ;
+   if( fxar_new ) free(fxar) ;
+   if( fyar_new ) free(fyar) ;
 
    /* compute result */
 
    dxy = sumxx * sumyy ; if( dxy <= 0.0 ) return 0.0 ;
-   if (sxyr) *sxyr = sqrt(dxy);
-   
-   dxy = sumxy / sqrt(dxy) ;
-   
-   
-   return dxy ;
+
+   dxy = sumxy / sqrt(dxy) ; return dxy ;
 }
