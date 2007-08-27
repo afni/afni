@@ -88,7 +88,7 @@ ENTRY("THD_dataset_info") ;
 
    if( dset->dblk->diskptr != NULL ){
     switch( dset->dblk->diskptr->storage_mode ){
-      default: 
+      default:
         outbuf = THD_zzprintf(outbuf,"Storage Mode:    Undefined\n") ; break ;
 
       case STORAGE_BY_BRICK:
@@ -260,7 +260,11 @@ ENTRY("THD_dataset_info") ;
    else                            nval_per = 1 ;                 /* 12 Feb 2002 */
 #else
    nval_per = dset->dblk->nvals ;
-   if( verbose < 0 ) nval_per = 1 ;                               /* 27 Mar 2002 */
+   if( verbose < 0 && nval_per > 1 ){
+     outbuf = THD_zzprintf(outbuf,
+                "  [[For info on all %d sub-bricks, use '3dinfo -verb']]\n",nval_per) ;
+     nval_per = 1 ;
+   }
 #endif
 
    /* print out stuff for each sub-brick */
