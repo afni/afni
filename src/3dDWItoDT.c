@@ -51,11 +51,13 @@ static int cumulative_flag = 0; /* calculate, display cumulative wts for gradien
 static int debug_briks = 0;     /* put Ed, Ed0 and Converge step sub-briks in output - user option */
 static int verbose = 0;         /* print out info every verbose number of voxels - user option */
 static int afnitalk_flag = 0;   /* show convergence in AFNI graph - user option */
-static int opt_method = 0;      /* use gradient descent instead of Powell's new optimize method*/
+static int opt_method = 2;      /* use gradient descent instead of Powell's new optimize method*/
+static int voxel_opt_method = 0; /* hybridize optimization between Powell and gradient descent */
 static int Powell_npts = 1;     /* number of points in input dataset for Powell optimization function */
 static float *Powell_ts;        /* pointer to time-wise voxel data for Powell optimization function */
 static double Powell_J;
-
+static double backoff_factor = 0.2; /* minimum allowable factor for lambda2,3 relative to
+                                 lambda1 eigenvalues*/
 static NI_stream_type * DWIstreamid = 0;     /* NIML stream ID */
 
 static void Form_R_Matrix (MRI_IMAGE * grad1Dptr);
@@ -88,7 +90,7 @@ static void DWI_AFNI_update_graph(double *Edgraph, double *dtau, int npts);
 static void vals_to_NIFTI(float *val);
 static void Save_Sep_DTdata(THD_3dim_dataset *, char *, int);
 static void Copy_dset_array(THD_3dim_dataset *, int,int,char *, int);
-static void ComputeDwithPowell(float *ts, float *val, int npts, int nbriks);
+static int ComputeDwithPowell(float *ts, float *val, int npts, int nbriks);
 
 int
 main (int argc, char *argv[])
@@ -152,7 +154,8 @@ main (int argc, char *argv[])
               "    to convergence loops. AFNI must have NIML communications on (afni -niml)\n\n"
               "   -sep_dsets = save tensor, eigenvalues,vectors,FA,MD in separate datasets\n\n"
 	      "   -opt mname =  if mname is 'powell', use Powell's 2004 method for optimization\n"
-	      "    if mname is 'gradient' use gradient descent method (default)\n"
+	      "    If mname is 'gradient' use gradient descent method. If mname is 'hybrid',\n"
+              "    use combination of methods.\n"
 	      "    MJD Powell, \"The NEWUOA software for unconstrained optimization without\n"
               "    derivatives\", Technical report DAMTP 2004/NA08, Cambridge University\n"
               "    Numerical Analysis Group -- http://www.damtp.cam.ac.uk/user/na/reports.html\n\n"
@@ -378,11 +381,24 @@ main (int argc, char *argv[])
 	    {
               opt_method = 1; /* use Powell's new optimize method instead of gradient descent*/
 	    }
+	  else if (strcmp(argv[nopt], "hybrid") == 0)
+	    {
+              opt_method = 2; /* use combination of Powell and gradient descent*/
+	    }
 	  else
 	    {
 	      ERROR_exit("-opt method '%s' is not supported!",
 		       argv[nopt]);
 	    }
+          nopt++;
+	  continue;
+        }
+
+      if (strcmp (argv[nopt], "-backoff") == 0)
+        {
+	  backoff_factor = strtod(argv[++nopt],NULL);
+          if(backoff_factor<=0.0 || backoff_factor>1.0)
+             ERROR_exit("-backoff factor must be > 0 and <= 1");
           nopt++;
 	  continue;
         }
@@ -793,7 +809,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 		void *ud, int nbriks, float *val)
 {
   int i, converge_step, converge, trialstep, ntrial, adjuststep, recordflag;
-  double orig_deltatau, EDold, J, dt;
+  double orig_deltatau, best_deltatau, EDold, J, dt;
   static int nvox, ncall, noisecall;
   register double i0;
   register double dv, dv0;
@@ -932,13 +948,23 @@ DWItoDT_tsfunc (double tzero, double tdelta,
      graphflag = 0;
 
   noisecall++;
- 
-  if(opt_method==1) { /* need to use Powell optimize method instead */
-    ComputeDwithPowell(ts, val, npts, nbriks); /*compute D tensor */
-    goto Other_Bricks;    /* compute the other bricks for eigenvalues and debugging */
-  }
+
   converge_step = 0;    /* allow up to max_iter=MAX_CONVERGE_STEPS (10) deltatau steps */
   max_converge_step = max_iter;   /* 1st time through set limit of converge steps to user option */
+
+  /* need to use Powell optimize method instead */
+  if( (opt_method==1) || ((opt_method==2) && (voxel_opt_method==1))) { 
+    converge_step = ComputeDwithPowell(ts, val, npts, nbriks); /*compute D tensor */
+    Dmatrix.elts[0][0] = val[0];
+    Dmatrix.elts[0][1] = val[1];
+    Dmatrix.elts[0][2] = val[2];
+    Dmatrix.elts[1][1] = val[3];
+    Dmatrix.elts[1][2] = val[4];
+    Dmatrix.elts[2][2] = val[5];
+
+    goto Other_Bricks;    /* compute the other bricks for eigenvalues and debugging */
+  }
+
   converge = 0;
   wtflag = reweight_flag;
 
@@ -969,12 +995,15 @@ DWItoDT_tsfunc (double tzero, double tdelta,
         {
       /* find trial step */
       /* first do trial step to find acceptable delta tau */
-      /* Take half of previous tau step to see if less error */
-      /* if there is less error than delta tau is acceptable */
+      /* first trial step is same size as previous time step */
+      /* Then take half of previous tau step to see if less error */
+      /* if there is less error, then delta tau is acceptable */
+      /* Stop at first time step giving less error */
       /* try halving up to 10 times, if it does not work, */
-      /* use first D from initial estimate */
+      /* use first D from initial estimate (previous iteration) */
         trialstep = 1;
         ntrial = 0;
+        orig_deltatau = best_deltatau = deltatau;
         while ((trialstep) && (ntrial < 10))
 	  {			/* allow up to 10 iterations to find trial step */
 	    ComputeHpHm (deltatau);
@@ -992,46 +1021,51 @@ DWItoDT_tsfunc (double tzero, double tdelta,
                 }
                                      
 	        EDold = ED;
-	        trialstep = 0;
+                best_deltatau = deltatau;
+                trialstep = 0;    /* leave trial stepping */
    	        Store_Computations (1, npts, wtflag);	/* Store current computations */
 	        }
             else {
                 Restore_Computations (0, npts, wtflag);	/* Restore trial 0 computations */
-                dt = deltatau / 2;
-	        deltatau = dt;	/* find first DeltaTau step with less error than 1st guess */
+	        deltatau = deltatau / 2;    /* find first DeltaTau step with less error than 1st guess */
    	        /* by trying smaller step sizes */
 	        ntrial++;
 	      }
 	  }
 
+        deltatau = best_deltatau;
 
 	/* end of finding trial step size */
         /* in trial step stage, already have result of deltatau step and may have
            already tried deltatau*2 if halved (ntrial>=1) */
 	if(ntrial <10) {
-	  orig_deltatau = deltatau;
+	  orig_deltatau = best_deltatau = deltatau;
           adjuststep = 1;
 
  	  for(i=0;i<2;i++) {
             if(i==0)
-	       deltatau = orig_deltatau*2;
+	       deltatau = orig_deltatau*2.0;
 	    else
-	       deltatau = orig_deltatau/2;
+	       deltatau = orig_deltatau/2.0;
 	       
             if((adjuststep==1) && ((i!=0) || (ntrial<2))) {   /* if didn't shrink in initial deltatau step above */
-              Restore_Computations (0, npts, wtflag);	/* Restore previous Tau step computations */
+              Restore_Computations (1, npts, wtflag);	/* Restore previous Tau step computations */
      	      ComputeHpHm (deltatau);
 	      ComputeNewD ();
               J = ComputeJ (ts, npts);	/* computes Intensity without noise,*/
                                         /*   Ed, Residuals */
               if(ED<EDold){
+                best_deltatau = deltatau;
                 adjuststep = 0;
                 Store_Computations(0, npts, wtflag);	/* Store Tau+dtau step computations */
                 EDold = ED;
 
-                if(recordflag==1)
-                  INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt*2 best", ncall, converge_step, deltatau, ED);
-
+                if(recordflag==1) {
+                  if(i==0)
+                    INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt*2 best", ncall, converge_step, deltatau, ED);
+                  else
+                    INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt/2 best", ncall, converge_step, deltatau, ED);
+                }
                 if(graphflag==1) {
                   dtau[graphpoint] = deltatau;
                   Edgraph[graphpoint] = ED;
@@ -1041,15 +1075,16 @@ DWItoDT_tsfunc (double tzero, double tdelta,
             }
           }
 
+          deltatau = best_deltatau;
+
           if(adjuststep!=0){            /* best choice was first Delta Tau */
 	     ED = EDold;
-	     deltatau = orig_deltatau;
   	     Restore_Computations (1,  npts, wtflag);	/* restore old computed matrices*/
 					   /*   D,Hp,Hm,F,R */
              Store_Computations(0, npts, wtflag);	/* Store Tau+dtau step computations */
+             if(recordflag==1)
+                INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt best", ncall, converge_step, deltatau, ED);
 	  }
-         if(recordflag==1)
-              INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt best", ncall, converge_step, deltatau, ED);
 
          if(graphflag==1) {
             dtau[graphpoint] = deltatau;
@@ -1063,8 +1098,6 @@ DWItoDT_tsfunc (double tzero, double tdelta,
           }
 
           matrix_copy (Dmatrix, &OldD);
-          if(recordflag==1)
-              printf("ncall= %d, converge_step=%d, deltatau=%f, ED=%f", ncall, converge_step, deltatau, ED);
 
          if(graphflag==1) {
             dtau[graphpoint] = deltatau;
@@ -1107,6 +1140,10 @@ Other_Bricks:
   if(eigs_flag) {                            /* if user wants eigenvalues in output dataset */
     udmatrix_to_vector(Dmatrix, &Dvector);
     EIG_func();                              /* calculate eigenvalues, eigenvectors here */
+    for(i=0;i<3;i++) {
+      if(fabs(eigs[i])<SMALLNUMBER)
+         eigs[i] = 0.0;
+    }
     for(i=0;i<12;i++)
       val[i+6] = eigs[i];
     /* calc FA */
@@ -1117,7 +1154,7 @@ Other_Bricks:
   /* testing information only */
   if(recordflag)
      INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f", ncall, converge_step, deltatau, ED);
-  if((debug_briks) && (opt_method==0) ){
+  if(debug_briks && ((opt_method==0) || ((opt_method==2) && (voxel_opt_method = 0)) )){
     val[nbriks-4] = converge_step;
     val[nbriks-3] = ED;
     val[nbriks-1] = ComputeJ(ts, npts);            /* compute J value */;
@@ -1210,7 +1247,8 @@ EIG_func ()
   for (i = 0; i < 3; i++)
     {
       eigs[i] = e[sortvector[i]];	/* copy sorted eigenvalues */
-
+      if(fabs (eigs[i]) < TINYNUMBER)
+         eigs[i] = 0.0;
       /* start filling in eigenvector values */
       astart = sortvector[i] * 3;	/* start index of double eigenvector */
       vstart = (i + 1) * 3;	/* start index of float val vector to copy eigenvector */
@@ -1237,7 +1275,7 @@ Calc_FA(float *val)
   /* calculate the Fractional Anisotropy, FA */
   /*   reference, Pierpaoli C, Basser PJ. Microstructural and physiological features 
        of tissues elucidated by quantitative-diffusion tensor MRI,J Magn Reson B 1996; 111:209-19 */
-  if((val[0]<=0.0)||(val[1]<=0.0)||(val[2]<=0.0)) {   /* any negative eigenvalues*/
+  if((val[0]<=0.0)||(val[1]<0.0)||(val[2]<0.0)) {   /* any negative eigenvalues*/
     RETURN(0.0);                                      /* should not see any for non-linear method. Set FA to 0 */  
   }
 
@@ -1321,12 +1359,17 @@ ComputeD0 ()
       EXRETURN;
     }
 
-  mu = 0.2 * eigs[0];
-  if (eigs[1] < mu)		/* set limit of eigenvalues to prevent */
+  mu = backoff_factor * eigs[0];
+  voxel_opt_method = 0;
+/*  mu = SMALLNUMBER;*/
+  if (eigs[1] < mu) {		/* set limit of eigenvalues to prevent */
      eigs[1] = mu;		/*     too much anisotropy */
-  if (eigs[2] < mu)
+     voxel_opt_method = 1;      /* switch to Powell optimization for this voxel */
+  }
+  if (eigs[2] < mu) {
      eigs[2] = mu;
-
+     voxel_opt_method = 1;
+  }
   /* D0 = U L UT */
 /*
                             [e10 l1    e20 l2    e30 l3]
@@ -2275,7 +2318,7 @@ double DT_Powell_optimize_fun(int n, double *x)
  
 
 /*! compute using optimization method by Powell, 2004*/
-static void ComputeDwithPowell(float *ts, float *val, int npts, int nbriks) /*compute D tensor */
+static int ComputeDwithPowell(float *ts, float *val, int npts, int nbriks) /*compute D tensor */
 /* ts is input time-wise voxel data, val is output tensor data, npts is number of time points */
 {
 /* assumes initial estimate for Dtensor already store in Dvector and Dmatrix above*/
@@ -2307,7 +2350,7 @@ static void ComputeDwithPowell(float *ts, float *val, int npts, int nbriks) /*co
       if(x[i]>tx) tx = x[i];
    }
   
-   icalls = powell_newuoa( 6 , x , 0.1*tx , 0.001 * tx , 99999 , DT_Powell_optimize_fun ) ;
+   icalls = powell_newuoa( 6 , x , 0.1*tx , 0.000001 * tx , 99999 , DT_Powell_optimize_fun ) ;
 
    
    if(reweight_flag) {
@@ -2316,6 +2359,14 @@ static void ComputeDwithPowell(float *ts, float *val, int npts, int nbriks) /*co
       for(i=0;i<6;i++) {          /* find the largest element of the initial D tensor */
          if(x[i]>tx) tx = x[i];
       }
+      /* parameters to powell_newuoa (not constrained)s
+         ndim = 6   Solving for D tensor with 6 elements 
+         x          variable for input and output (elements of D tensor)
+         rstart = 0.1*tx size of search region aoround initial value of x
+         rend = 0.001*tx size of final search region (desired accuracy)
+         maxcall = 99999 maximum number times to call cost functin
+         ufunc = DT_Powell_optimize_fun cost function 
+      */
       i = powell_newuoa( 6 , x , 0.1*tx , 0.001 * tx , 99999 , DT_Powell_optimize_fun ) ;
     }
     
@@ -2338,5 +2389,5 @@ static void ComputeDwithPowell(float *ts, float *val, int npts, int nbriks) /*co
    }
    free(x);
    
-   EXRETURN;
+   RETURN(icalls);
 }
