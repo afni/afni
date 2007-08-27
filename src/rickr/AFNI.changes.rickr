@@ -2165,7 +2165,6 @@
   * modified Makefile.INCLUDE: added targets libmri.so, libmrix.so
   * modified afni_vol2surf.c, afni_func.c: better overflow guards
 07 Aug 2007: help update to 3dresample
-
 08 Aug 2007:
   * modified RegAna.c: changed the 4 EPSILON values to 10e-12 (from 10e-5),
         to allow division by smaller sums of errors, to prevent setting
@@ -2175,4 +2174,6 @@
 24 Aug 2007:
   * removed znzlib/config.h
   * incorporated Hans Johnson's changes into nifti tree
+27 Aug 2007:
+  * modified afni_vol2surf.c, for non-big, include ovc[npanes], Mike B reported
 
