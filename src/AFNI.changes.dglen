@@ -209,4 +209,6 @@ most obvious in NIFTI files where the coordinates are changed as in 3drefit,
 non-zero voxels
 06 Aug 2007
  * 3dAutobox can also ignore automatic clip level
-
+27 Aug 2007
+ * modifications for 3dDWItoDT to improve handling of highly anisotropic voxels
+with new hybrid search method and bug fixes
