@@ -13,7 +13,7 @@ UTILS_PROGS	=	nifti_stats nifti_tool nifti1_test
 THIS_DIR	=	`basename ${PWD}`
 
 ## Note the TARFILE_NAME embeds the release version number
-TARFILE_NAME	=	nifticlib-0.5
+TARFILE_NAME	=	nifticlib-0.6
 
 
 ## Compiler  defines
@@ -31,7 +31,7 @@ CFLAGS		=	$(ANSI_FLAGS)
 RM		=	rm
 MV		=	mv
 CP		=	cp
-TAR		=	/usr/freeware/bin/tar
+TAR		=	/usr/local/pkg/gnu/bin/tar
 
 
 ## Installation
