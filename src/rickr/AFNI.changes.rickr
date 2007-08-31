@@ -2176,4 +2176,7 @@
   * incorporated Hans Johnson's changes into nifti tree
 27 Aug 2007:
   * modified afni_vol2surf.c, for non-big, include ovc[npanes], Mike B reported
+31 Aug 2007:
+  * added model_conv_diffgamma.c, for Rasmus
+  * modifed Makefile.INCLUDE, to add model_conv_diffgamma.so to the model list
 
