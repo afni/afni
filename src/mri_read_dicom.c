@@ -400,7 +400,7 @@ ENTRY("mri_read_dicom") ;
    eee = getenv("AFNI_DICOM_WINDOW") ;
    if( epos[E_WINDOW_CENTER] != NULL && epos[E_WINDOW_WIDTH] != NULL ){
      if( eee == NULL || toupper(*eee) != 'Y' ){
-       static int nwarn=0 ;
+       static int nwarn=NWMAX+1 ; /* never show these messages   31 Aug 2007 */
        if( nwarn < NWMAX )
          fprintf(stderr,
                  "++ DICOM WARNING: file %s has Window tags; setenv AFNI_DICOM_WINDOW YES to enforce them\n",
