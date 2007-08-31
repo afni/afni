@@ -1,14 +1,7 @@
 #include "3dsvm_common.h"
+#include "svm_learn.c"
 
 # define PROGRAM_NAME   "3dsvm"    /* name of this program - used to include commandline history in model */
-
-
-#if 0
-/* Globals */
-long nt;                       /* number of time points in dataset */
-long nvox;                     /* number of voxels per time point in dataset */
-long nvox_masked = 0;
-#endif
 
 /* from svm_classify.c - copied directly (print_help) for now since this file also has main in it */
 void print_help_classify(void)
@@ -1104,8 +1097,8 @@ void test_routine (ASLoptions *options, MODEL *model, THD_3dim_dataset *dsetTest
     if(verbosity >= 1)  printf("predictions for all categories written to %s\n",predictionsFile);
   }
 
-  if(options->testLabelFile[0] && (verbosity>=1)) {
-      if(verbosity >= 1) printf("Overall accuracy on multiclass test set: %.2f%% (%ld correct, %ld incorrect, %ld total)\n",(float)(correct)*100.0/nt,correct,incorrect,nt);
+  if(afniModel.class_count > 2 && (verbosity>=1)) {
+      printf("Overall accuracy on multiclass test set: %.2f%% (%ld correct, %ld incorrect, %ld total)\n",(float)(correct)*100.0/nt,correct,incorrect,nt);
   }
 
   freeModel( model, &afniModel);
@@ -1162,6 +1155,10 @@ void train_routine(MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *kernel_par
       exit(0);
     }
     DSET_load(dsetMask);
+    if( DSET_BRICK_TYPE(dsetMask,0) != MRI_byte ) {
+      fprintf(stderr, "mask file: %s is not a byte-format brik.\n", options->maskFile );
+      exit(0);
+    }
     dsetMaskArray = (MaskType*)DSET_ARRAY(dsetMask,0);
     for( i=0 ; i<nvox ; ++i ) {
       if( dsetMaskArray[i] )
@@ -1277,7 +1274,7 @@ void train_routine(MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *kernel_par
 
 }
 
-void input_parse(int argc,char *argv[],long *verbosity,
+void input_parse(int argc,char *argv[],long *main_verbosity,
     long *kernel_cache_size,LEARN_PARM *learn_parm,
     KERNEL_PARM *kernel_parm, ASLoptions* optionsData, enum modes *mode, char *errorString )
 {
@@ -1291,7 +1288,9 @@ void input_parse(int argc,char *argv[],long *verbosity,
   /* svmlight defaults */
   strcpy (learn_parm->predfile, "trans_predictions");
   strcpy (learn_parm->alphafile, "");
-  (*verbosity)=1;
+  (*main_verbosity)=1;
+  verbosity=1; //svm_light verbosity which is a little tricky as a static global and now the primary
+               // variable for functions in this file.
   learn_parm->biased_hyperplane=1;
   learn_parm->remove_inconsistent=0;
   learn_parm->skip_final_opt_check=0;
@@ -1336,7 +1335,7 @@ void input_parse(int argc,char *argv[],long *verbosity,
   for( i=1 ; i<argc ; ++i ) {
     parseFlag = 0;
     if( !strcmp(argv[i],"-z") ) { parseFlag = 1; ++i; strcpy(type,argv[i]); }
-    if( !strcmp(argv[i],"-v") ) { parseFlag = 1; ++i; (*verbosity)=atol(argv[i]); }
+    if( !strcmp(argv[i],"-v") ) { parseFlag = 1; ++i; (*main_verbosity)=atol(argv[i]); verbosity = *main_verbosity; }
     if( !strcmp(argv[i],"-b") ) { parseFlag = 1; ++i; learn_parm->biased_hyperplane=atol(argv[i]); }
     if( !strcmp(argv[i],"-i") ) { parseFlag = 1; ++i; learn_parm->remove_inconsistent=atol(argv[i]); }
     if( !strcmp(argv[i],"-f") ) { parseFlag = 1; ++i; learn_parm->skip_final_opt_check=!atol(argv[i]); }
@@ -1507,7 +1506,7 @@ void input_parse(int argc,char *argv[],long *verbosity,
     exit(0);
   }
 
-  if( (*verbosity) >=2) {
+  if( (*main_verbosity) >=2) {
     if(optionsData->labelFile[0]) printf("The label file is %s\n",optionsData->labelFile);
     if(optionsData->censorFile[0]) printf("The censor file is %s\n",optionsData->censorFile);
     if(optionsData->trainFile[0]) printf("The training dataset is %s\n",optionsData->trainFile);

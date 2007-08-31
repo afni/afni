@@ -3,6 +3,7 @@
 
 
 #include "3dsvm_common.h"
+#include "svm_common.h"
 
 int main( int argc, char *argv[] )
 {

@@ -655,7 +655,7 @@ d3dmerge:3dmerge.c
 ### From Stephen Laconte
 3dsvm:svm/svm_common.c svm/svm_learn.c svm/3dsvm_common.c svm/svm_hideo.c svm/3dsvm.c
 	( cd svm/   ;  \
-	  $(CC) -o 3dsvm svm_common.c svm_learn.c 3dsvm_common.c svm_hideo.c 3dsvm.c -I.. $(ISFLAGS) -L.. $(LFLAGS) $(LLIBS)  ;  \
+	  $(CC) -o 3dsvm 3dsvm_common.c svm_common.c svm_hideo.c 3dsvm.c -I.. $(ISFLAGS) -L.. $(LFLAGS) $(LLIBS)  ;  \
 	  $(CP) 3dsvm ..  ;  \
 	  cd .. ;)
 whereami:whereami.c
@@ -1714,8 +1714,8 @@ plug_render.$(SO):mri_render.h
 plug_3dsvm.$(SO):svm/plug_3dsvm.c svm/svm_common.c svm/svm_learn.c svm/3dsvm_common.c svm/svm_hideo.c
 	(  cd svm;   \
 	   $(RM) $@ ;  \
-		$(PLUGIN_CC) -c plug_3dsvm.c 3dsvm_common.c svm_common.c svm_learn.c svm_hideo.c $(ISFLAGS)  -I.. ;  \
-		$(LD) $(PLUGIN_LFLAGS) -o plug_3dsvm.$(SO) plug_3dsvm.o 3dsvm_common.o svm_common.o svm_learn.o svm_hideo.o -L. -L.. ; \
+		$(PLUGIN_CC) -c plug_3dsvm.c 3dsvm_common.c svm_common.c svm_hideo.c $(ISFLAGS)  -I.. ;  \
+		$(LD) $(PLUGIN_LFLAGS) -o plug_3dsvm.$(SO) plug_3dsvm.o 3dsvm_common.o svm_common.o svm_hideo.o -L. -L.. ; \
 	   cp plug_3dsvm.$(SO) ..  ;  \
 	   cd .. ;  )
       
