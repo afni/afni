@@ -13,8 +13,8 @@
 #ifdef VERSION  
   #undef VERSION
 #endif
-#include "svm_common.h"
-#include "svm_learn.h"
+//#include "svm_common.h"
+//#include "svm_learn.h"
 #include "mrilib.h"
 
 #define CLASS_MAX 20

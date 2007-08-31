@@ -5,6 +5,7 @@
 #define FAKE_COMMAND "3dsvm"
 
 #include "3dsvm_common.h"
+#include "svm_common.h"
 
 #ifndef ALLOW_PLUGINS
 	#error "Plugins not properly set up -- see machdep.h"
@@ -112,7 +113,6 @@ static char* ASL_main( PLUGIN_interface* plint )
 {
   /*---------- DECLARATIONS ----------*/
   enum modes mode = NOTHING;
-  long verbosity = 0;
 
   ASLoptions options;
   KERNEL_PARM kernel_parm;       /* */
@@ -168,8 +168,6 @@ static char* ASL_main( PLUGIN_interface* plint )
       }
       break;
     }
-
-    printf( "Option tag: %s\n",option_tag );
 
     if( strcmp(option_tag,"Training") == 0 ) trnFlag = 1; 
 
@@ -305,8 +303,6 @@ static char* ASL_main( PLUGIN_interface* plint )
 
     }
   }
-
-  verbosity = 1;
 
   /*----- TRAIN ROUTINE ---------------*/
   if( mode == TRAIN || mode == TRAIN_AND_TEST ) {
