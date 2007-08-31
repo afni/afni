@@ -352,7 +352,7 @@ static int model_help(void)
     "          e.g.  setenv AFNI_MODEL_HELP_CONVDIFFGAM YES\n"
     "\n"
     "          Set this Y/N variable to get this help, by running either\n"
-    "          afni or '3dNLfim -model ConvDiffGam'\n"
+    "          afni or '3dNLfim -signal ConvDiffGam'\n"
     "\n"
     "      AFNI_MODEL_DEBUG\n"
     "\n"
