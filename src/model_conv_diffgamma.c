@@ -1,8 +1,13 @@
 /*****************************************************************************
-Based on model_convgamma, but as a difference between 2 such curves.
-For Rasmus Birn.
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
 
-R. Reynolds                                             30 Aug 2007
+
+   Based on model_convgamma, but as a difference between 2 such curves.
+   For Rasmus Birn.
+
+   R. Reynolds                                             30 Aug 2007
 ******************************************************************************/
    
 #include "NLfit_model.h"
