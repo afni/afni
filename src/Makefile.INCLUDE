@@ -655,7 +655,7 @@ d3dmerge:3dmerge.c
 ### From Stephen Laconte
 3dsvm:svm/svm_common.c svm/svm_learn.c svm/3dsvm_common.c svm/svm_hideo.c svm/3dsvm.c
 	( cd svm/   ;  \
-	  $(CC) -o 3dsvm 3dsvm_common.c svm_common.c svm_hideo.c 3dsvm.c -I.. $(ISFLAGS) -L.. $(LFLAGS) $(LLIBS)  ;  \
+	  $(CC) -o 3dsvm 3dsvm_common.c svm_common.c svm_hideo.c svm_learn.c 3dsvm.c -I.. $(ISFLAGS) -L.. $(LFLAGS) $(LLIBS)  ;  \
 	  $(CP) 3dsvm ..  ;  \
 	  cd .. ;)
 whereami:whereami.c
