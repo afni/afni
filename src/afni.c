@@ -221,10 +221,6 @@ void AFNI_syntax(void)
      "                  the order they are given on the command line.\n"
      "            N.B.: Most commands to AFNI contain spaces, so the 'ccc'\n"
      "                  command strings will need to be enclosed in quotes.\n"
-     "            N.B.: You can also put startup commands (one per line) in\n"
-     "                  the file '~/.afni.startup_script'.  For example,\n"
-     "                    OPEN_WINDOW axialimage\n"
-     "                  to always open the axial image window on startup.\n"
      "   -comsep 'c'  Use character 'c' as a separator for commands.\n"
      "                  In this way, you can put multiple commands in\n"
      "                  a single '-com' option.  Default separator is ';'.\n"
@@ -5142,6 +5138,8 @@ static char * AFNI_image_help =
  "Button 1      = Set crosshair location\n"
  "Button 3      = Pop up image menu\n"
  "Shift+Button2 = drag crop region\n"
+ "Scrollwheel   = change slice up/down\n"
+ "Alt/Opt-Scrollwheel = adjust threshold\n"
  "\n"
  "q = close window         a = fix aspect ratio\n"
  "p = toggle panning mode  c = crop image mode\n"
@@ -5155,6 +5153,8 @@ static char * AFNI_image_help =
  "r/R = Ricochet image sequence up/down\n"
  "i/I = image fraction down/up\n"
  "z/Z = zoom out/in\n"
+ "o = toggle overlay on/off\n"      
+ "u = toggle background underlay/overlay\n"
  "Del = drawing undo       F2= drawing pencil\n"
  "Left/Right/Up/Down arrow keys\n"
  "    = move crosshairs OR pan image\n" ;
@@ -8440,10 +8440,6 @@ ENTRY("AFNI_imag_pop_CB") ;
             CAN_TALTO(im3d)                                 ){
 
       TTRR_popup( im3d ) ;
-      if( im3d->vinfo->see_ttatlas == 0 ){  /* 03 Aug 2007: for the Daniel */
-        MCW_set_bbox( im3d->vwid->func->see_ttatlas_bbox , 1 ) ;
-        im3d->vinfo->see_ttatlas = 1 ;
-      }
    }
 
    /*---- 05 Nov 2003: start the Edit Environment pseudo-plugin ----*/
