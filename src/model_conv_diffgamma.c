@@ -142,10 +142,10 @@ void conv_model( float *  gs      , int     ts_length ,
 
    max = test_n_truncate(fid0, ts_length);
    if( iter == g_diter || (iter == 0 && g_debug > 1) )
-      fprintf(stderr,"+d max 0 = %f\n", max);
+      fprintf(stderr,"+d max #0 = %f\n", max);
    max = test_n_truncate(fid1, ts_length);
    if( iter == g_diter || (iter == 0 && g_debug > 1) )
-      fprintf(stderr,"+d max 0 = %f\n", max);
+      fprintf(stderr,"+d max #1 = %f\n", max);
 
    /* find first and last nonzero value */
    for( nid_bot=0 ; nid_bot < ts_length ; nid_bot++ )
