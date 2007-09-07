@@ -2181,6 +2181,6 @@
   * modified Makefile.INCLUDE: add model_conv_diffgamma.so to the model list
   * modified mri_read_dicom.c: no more AFNI_DICOM_WINDOW warnings
 07 Sep 2007:
-  * modified Makefile.linux_xorg7 to work on Fedora7
+  * modified Makefile.linux_xorg7/_64 to work on Fedora7
   * modified model_conv_diffgamma.c: fix diff, never set ts[0] to 1
 
