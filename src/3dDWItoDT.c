@@ -1310,7 +1310,7 @@ Calc_MD(float *val)
   /* calculate the Fractional Anisotropy, FA */
   /*   reference, Pierpaoli C, Basser PJ. Microstructural and physiological features 
        of tissues elucidated by quantitative-diffusion tensor MRI,J Magn Reson B 1996; 111:209-19 */
-  if((val[0]<=0.0)||(val[1]<=0.0)||(val[2]<=0.0)) {   /* any negative eigenvalues*/
+  if((val[0]<=0.0)||(val[1]<0.0)||(val[2]<0.0)) {   /* any negative eigenvalues*/
     RETURN(0.0);                                      /* should not see any for non-linear method. Set FA to 0 */  
   }
   MD = (val[0] + val[1] + val[2]) / 3;
