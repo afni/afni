@@ -21,9 +21,9 @@ static int   * refin   = NULL ;  /* indexes of nonzero pts */
 
 void gamma_model( float * , int , float ** , float * ) ;
 
-static int disp_floats(char * mesg, float * p, int len);
-static int model_help(void);
-static int test_n_truncate(float * irf, int len);
+static int   disp_floats(char * mesg, float * p, int len);
+static int   model_help(void);
+static float test_n_truncate(float * irf, int len);
 
 void conv_model( float *  gs      , int     ts_length ,
                  float ** x_array , float * ts_array   );
@@ -98,7 +98,7 @@ void conv_model( float *  gs      , int     ts_length ,
                  float ** x_array , float * ts_array   )
 {
    int ii, jj,jbot,jtop , kk , nid_top,nid_bot ;
-   float top , val ;
+   float top , val , max ;
 
    static int     iter = -1;     /* iteration number */
 
@@ -140,8 +140,12 @@ void conv_model( float *  gs      , int     ts_length ,
    gamma_model( gs , ts_length , x_array , fid0 ) ;    /* first impulse */
    gamma_model( gs+4 , ts_length , x_array , fid1 ) ;  /* second impulse */
 
-   test_n_truncate(fid0, ts_length);
-   test_n_truncate(fid1, ts_length);
+   max = test_n_truncate(fid0, ts_length);
+   if( iter == g_diter || (iter == 0 && g_debug > 1) )
+      fprintf(stderr,"+d max 0 = %f\n", max);
+   max = test_n_truncate(fid1, ts_length);
+   if( iter == g_diter || (iter == 0 && g_debug > 1) )
+      fprintf(stderr,"+d max 0 = %f\n", max);
 
    /* find first and last nonzero value */
    for( nid_bot=0 ; nid_bot < ts_length ; nid_bot++ )
@@ -159,7 +163,7 @@ void conv_model( float *  gs      , int     ts_length ,
 
       jtop = ts_length - kk ; if( jtop > nid_top ) jtop = nid_top+1 ;
       for( jj=nid_bot ; jj < jtop ; jj++ )
-         ts_array[kk+jj] += val * ( fid0[jj] + fid1[jj] ) ;
+         ts_array[kk+jj] += val * ( fid0[jj] - fid1[jj] ) ;
    }
 
    if( iter == g_diter || (iter == 0 && g_debug > 1) ){
@@ -182,7 +186,7 @@ static int disp_floats(char * mesg, float * p, int len)
 
 
 /* Find max.  If 0, set irf[0] to 1.  Set values less than 0.01*max to 0.0. */
-static int test_n_truncate(float * irf, int len)
+static float test_n_truncate(float * irf, int len)
 {
    float max = 0.0, val;
    int   ind;
@@ -191,7 +195,8 @@ static int test_n_truncate(float * irf, int len)
    for( ind=0 ; ind < len ; ind++ ){
       val = fabs(irf[ind]) ; if( val > max ) max = val ;
    }
-   if( max == 0.0 ) irf[0] = 1.0 ;  /* very unlikely case */
+
+   /* if( max == 0.0 ) irf[0] = 1.0 ;   don't do this */
 
    /* truncate small values */
    max *= 0.001 ;
@@ -199,7 +204,7 @@ static int test_n_truncate(float * irf, int len)
       if( fabs(irf[ind]) < max ) irf[ind] = 0.0 ;
    }
 
-   return 0;
+   return max;
 }
 
 /*-----------------------------------------------------------------------*/
