@@ -375,7 +375,7 @@ static void EIG_tsfunc( double tzero, double tdelta ,
   /* calculate the Fractional Anisotropy, FA */
   /*   reference, Pierpaoli C, Basser PJ. Microstructural and physiological features 
        of tissues elucidated by quantitative-diffusion tensor MRI,J Magn Reson B 1996; 111:209-19 */
-  if((val[0]<=0.0)||(val[1]<=0.0)||(val[2]<=0.0)) {   /* any negative eigenvalues?*/
+  if((val[0]<=0.0)||(val[1]<0.0)||(val[2]<0.0)) {   /* any negative eigenvalues?*/
     val[12]=0.0;                                      /* set FA to 0 */  
     val[13]=0.0;                                      /* set MD to 0 */
     EXRETURN;

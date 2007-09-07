@@ -212,3 +212,9 @@ non-zero voxels
 27 Aug 2007
  * modifications for 3dDWItoDT to improve handling of highly anisotropic voxels
 with new hybrid search method and bug fixes
+28 Aug 2007
+ * added b-value and allowed 0 values in MD and FA calculations 3dDTeig and
+3dDWItoDT
+07 Sep 2007
+ * updated viewer help to include newer keyboard and mouse shortcuts
+
