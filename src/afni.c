@@ -229,6 +229,10 @@ void AFNI_syntax(void)
      "            N.B.: -comsep should come BEFORE any -com option that\n"
      "                  uses a non-semicolon separator!\n"
      "   Example: -com 'OPEN_WINDOW axialimage; SAVE_JPEG axialimage zork; QUIT'\n"
+     "   N.B.: You can also put startup commands (one per line) in\n"
+     "         the file '~/.afni.startup_script'.  For example,\n"
+     "            OPEN_WINDOW axialimage\n"
+     "         to always open the axial image window on startup.\n"
      "\n"
      " * If no session_directories are given, then the program will use\n"
      "    the current working directory (i.e., './').\n"
@@ -5149,12 +5153,12 @@ static char * AFNI_image_help =
  "[ = time index down 1    ] = time index up 1\n"
  "> = Page Up   = forward  1 image (e.g., slice)\n"
  "< = Page Down = backward 1 image (e.g., slice)\n"
+ "o = toggle (color) overlay on/off\n"      
+ "u = toggle background from underlay/overlay dataset\n"
  "v/V = Video image sequence up/down\n"
  "r/R = Ricochet image sequence up/down\n"
  "i/I = image fraction down/up\n"
  "z/Z = zoom out/in\n"
- "o = toggle overlay on/off\n"      
- "u = toggle background underlay/overlay\n"
  "Del = drawing undo       F2= drawing pencil\n"
  "Left/Right/Up/Down arrow keys\n"
  "    = move crosshairs OR pan image\n" ;
@@ -8440,6 +8444,11 @@ ENTRY("AFNI_imag_pop_CB") ;
             CAN_TALTO(im3d)                                 ){
 
       TTRR_popup( im3d ) ;
+
+      if( im3d->vinfo->see_ttatlas == 0 ){  /* 03 Aug 2007: for the Daniel */
+        MCW_set_bbox( im3d->vwid->func->see_ttatlas_bbox , 1 ) ;
+        im3d->vinfo->see_ttatlas = 1 ;
+      }
    }
 
    /*---- 05 Nov 2003: start the Edit Environment pseudo-plugin ----*/

@@ -6349,3 +6349,7 @@
 20 Aug 2007
  * First version of '-lpc' Local Pearson Correlation cost function in
      3dAllineate.c, with rhombic dodecahedra as the default building bloks.
+
+10 Sep 2007
+ * Minor changes to 3dAllineate.c: '-autoweight**1.5'.
+ * Re-insert older fixes to afni.c that were lost in CVS.
