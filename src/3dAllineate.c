@@ -121,6 +121,7 @@ int main( int argc , char *argv[] )
    float auto_wpow             = 1.0f ;         /* 10 Sep 2007 */
    char *auto_string           = "-autobox" ;
    int auto_dilation           = 0 ;            /* for -automask+N */
+   int wtspecified             = 0 ;            /* 10 Sep 2007 */
    double dxyz_mast            = 0.0f ;         /* implemented 24 Jul 2007 */
    int meth_code               = GA_MATCH_HELLINGER_SCALAR ;
    int sm_code                 = GA_SMOOTH_GAUSSIAN ;
@@ -456,7 +457,9 @@ int main( int argc , char *argv[] )
        " -autobox    = Expand the -automask function to enclose a rectangular\n"
        "               box that holds the irregular mask.\n"
        "       **N.B.: This is the default mode of operation!\n"
-       "               For intra-modality registration, -autoweight may be better!\n"
+       "               For intra-modality registration, '-autoweight' may be better!\n"
+       "               If the cost function is 'ls', then '-autoweight' will be\n"
+       "               the default, instead of '-autobox'.\n"
        " -nomask     = Don't compute the autoweight/mask; if -weight is not\n"
        "               also used, then every voxel will be counted equally.\n"
        " -weight www = Set the weighting for each voxel in the base dataset;\n"
@@ -874,7 +877,7 @@ int main( int argc , char *argv[] )
        nmask_frac = atof( argv[iarg] ) ;
        if( nmask_frac < 0.0f || nmask_frac > 1.0f )
          ERROR_exit("-weight_frac must be between 0.0 and 1.0 (have '%s')",argv[iarg]);
-       iarg++ ; continue ;
+       wtspecified = 1 ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -885,7 +888,7 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        dset_weig = THD_open_dataset( argv[iarg] ) ;
        if( dset_weig == NULL ) ERROR_exit("can't open -weight dataset '%s'",argv[iarg]);
-       iarg++ ; continue ;
+       wtspecified = 1 ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -900,7 +903,7 @@ int main( int argc , char *argv[] )
        cpt = strstr(auto_string,"**") ;
        if( cpt != NULL && *(cpt+2) != '\0' )      /* 10 Sep 2007 */
          auto_wpow = (float)strtod(cpt+2,NULL) ;
-       iarg++ ; continue ;
+       wtspecified = 1 ; iarg++ ; continue ;
      }
 
      if( strncmp(argv[iarg],"-automask",9) == 0 ){
@@ -908,16 +911,17 @@ int main( int argc , char *argv[] )
        auto_weight = 2 ; auto_string = argv[iarg] ;
        if( auto_string[9] == '+' && auto_string[10] != '\0' )
          auto_dilation = (int)strtod(auto_string+10,NULL) ;
-       iarg++ ; continue ;
+       wtspecified = 1 ; iarg++ ; continue ;
      }
 
      if( strncmp(argv[iarg],"-noauto",6) == 0 ||
          strncmp(argv[iarg],"-nomask",6) == 0   ){
-       auto_weight = 0 ; iarg++ ; continue ;
+       wtspecified = 1 ; auto_weight = 0 ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-autobox") == 0 ){
-       auto_weight = 3 ; auto_string = "-autobox" ; iarg++ ; continue ;
+       wtspecified = 1 ; auto_weight = 3 ; auto_string = "-autobox" ;
+       iarg++ ; continue ;
      }
 
      /*-----*/
@@ -1756,8 +1760,15 @@ int main( int argc , char *argv[] )
      meth_check = -1 ;
    }
 
+   if( meth_code == GA_MATCH_PEARSON_SCALAR && !wtspecified ){ /* 10 Sep 2007 */
+     auto_weight = 1 ;  /* for '-ls', use '-autoweight' */
+     if( verb ) INFO_message("Cost 'ls' ==> using '-autoweight' default") ;
+   }
+
    if( !hist_setbyuser ){   /* 25 Jul 2007 */
      switch( meth_code ){
+       case GA_MATCH_PEARSON_LOCALS:
+       case GA_MATCH_PEARSON_LOCALA:
        case GA_MATCH_SPEARMAN_SCALAR:
        case GA_MATCH_PEARSON_SCALAR:  hist_mode = 0 ; break ;
 
