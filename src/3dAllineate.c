@@ -33,7 +33,7 @@ static float wt_gausmooth = 4.50f ;
 
 static int verb = 1 ; /* somewhat on by default */
 
-MRI_IMAGE * mri_weightize( MRI_IMAGE *, int , int , float ) ;  /* prototype */
+MRI_IMAGE * mri_weightize( MRI_IMAGE *, int, int, float,float ) ;  /* prototype */
 
 void AL_setup_warp_coords( int,int,int,int ,
                            int *, float *, mat44,
@@ -99,7 +99,8 @@ int main( int argc , char *argv[] )
    double ctim , rad , conv_rad ;
    float **parsave=NULL ;
    mat44 *matsave=NULL ;
-   mat44 targ_cmat,base_cmat,base_cmat_inv,targ_cmat_inv,mast_cmat,mast_cmat_inv, qmat,wmat ;
+   mat44 targ_cmat,base_cmat,base_cmat_inv,targ_cmat_inv,mast_cmat,mast_cmat_inv,
+         qmat,wmat ;
    MRI_IMAGE *apply_im = NULL ;
    float *apply_far    = NULL ;
    int apply_nx, apply_ny , apply_mode=0 , nparam_free , diffblur=1 ;
@@ -117,6 +118,7 @@ int main( int argc , char *argv[] )
    int tb_mast                 = 0 ;            /* for -master SOURCE/BASE */
    int auto_weight             = 3 ;            /* -autobbox == default */
    float auto_wclip            = 0.0f ;         /* 31 Jul 2007 */
+   float auto_wpow             = 1.0f ;         /* 10 Sep 2007 */
    char *auto_string           = "-autobox" ;
    int auto_dilation           = 0 ;            /* for -automask+N */
    double dxyz_mast            = 0.0f ;         /* implemented 24 Jul 2007 */
@@ -145,7 +147,7 @@ int main( int argc , char *argv[] )
    float powell_mm             = 0.0f ;
    float powell_aa             = 0.0f ;
    float conv_mm               = 0.05 ;         /* millimeters */
-   float nmask_frac            = -1.0;          /* default settings for fraction of voxels to use */
+   float nmask_frac            = -1.0;          /* use default for voxel fraction */
    int matorder                = MATORDER_SDU ; /* matrix mult order */
    int smat                    = SMAT_LOWER ;   /* shear matrix triangle */
    int dcode                   = DELTA_AFTER ;  /* shift after */
@@ -428,7 +430,12 @@ int main( int argc , char *argv[] )
        " -autoweight = Compute a weight function using the 3dAutomask\n"
        "               algorithm plus some blurring of the base image.\n"
        "       **N.B.: '-autoweight+100' means to zero out all voxels\n"
-       "               with values below 100 before computing the weight.\n"
+       "                 with values below 100 before computing the weight.\n"
+       "               '-autoweight**1.5' means to compute the autoweight\n"
+       "                 and then raise it to the 1.5-th power (e.g., to\n"
+       "                 increase the weight of high-intensity regions).\n"
+       "               These two processing steps can be combined, as in\n"
+       "                 '-autoweight+100**1.5'\n"
       ) ;
       if( visible_noweights ){
         printf(
@@ -449,6 +456,7 @@ int main( int argc , char *argv[] )
        " -autobox    = Expand the -automask function to enclose a rectangular\n"
        "               box that holds the irregular mask.\n"
        "       **N.B.: This is the default mode of operation!\n"
+       "               For intra-modality registration, -autoweight may be better!\n"
        " -nomask     = Don't compute the autoweight/mask; if -weight is not\n"
        "               also used, then every voxel will be counted equally.\n"
        " -weight www = Set the weighting for each voxel in the base dataset;\n"
@@ -458,10 +466,10 @@ int main( int argc , char *argv[] )
        "               the base dataset.\n"
        "       **N.B.: Even if a method does not allow -autoweight, you CAN\n"
        "               use a weight dataset that is not 0/1 valued.  The\n"
-       "               risk is yours, of course (** as always in AFNI **).\n"
+       "               risk is yours, of course (!*! as always in AFNI !*!).\n"
        " -wtprefix p = Write the weight volume to disk as a dataset with\n"
        "               prefix name 'p'.  Used with '-autoweight/mask', this option\n"
-       "               lets you see what voxels were important in the allineation.\n"
+       "               lets you see what voxels were important in the algorithm.\n"
       ) ;
 
       if( visible_noweights > 0 ){
@@ -883,10 +891,15 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strncmp(argv[iarg],"-autoweight",11) == 0 ){
+       char *cpt ;
        if( dset_weig != NULL ) ERROR_exit("Can't use -autoweight AND -weight!") ;
        auto_weight = 1 ; auto_string = argv[iarg] ;
-       if( auto_string[11] == '+' && auto_string[12] != '\0' )  /* 31 Jul 2007 */
-         auto_wclip = (float)strtod(auto_string+12,NULL) ;
+       cpt = strstr(auto_string,"+") ;
+       if( cpt != NULL && *(cpt+1) != '\0' )      /* 31 Jul 2007 */
+         auto_wclip = (float)strtod(cpt+1,NULL) ;
+       cpt = strstr(auto_string,"**") ;
+       if( cpt != NULL && *(cpt+2) != '\0' )      /* 10 Sep 2007 */
+         auto_wpow = (float)strtod(cpt+2,NULL) ;
        iarg++ ; continue ;
      }
 
@@ -1984,7 +1997,7 @@ int main( int argc , char *argv[] )
        INFO_message("Computing %s",auto_string) ;
      }
      if( verb > 1 ) ctim = COX_cpu_time() ;
-     im_weig = mri_weightize( im_base , auto_weight , auto_dilation , auto_wclip ) ;
+     im_weig = mri_weightize(im_base,auto_weight,auto_dilation,auto_wclip,auto_wpow) ;
      if( verb > 1 ) INFO_message("%s CPU time = %.1f s" ,
                                  auto_string , COX_cpu_time()-ctim ) ;
    }
@@ -3101,9 +3114,10 @@ DUMP_MAT44("aff12_ijk",qmat) ;
 /*---------------------------------------------------------------------------*/
 /*! Turn an input image into a weighting factor (for -autoweight).
     If acod == 2, then make a binary mask at the end.
+    If acod == 3, then make a boxed binary mask at the end.
 -----------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod , int ndil , float aclip )
+MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float apow )
 {
    float *wf,clip,clip2 ;
    int xfade,yfade,zfade , nx,ny,nz,nxy,nxyz , ii,jj,kk,ff ;
@@ -3142,7 +3156,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod , int ndil , float aclip )
      int nleft , nclip ;
      for( nclip=nleft=ii=0 ; ii < nxyz ; ii++ ){
        if( wf[ii] > 0.0f ){
-         if( wf[ii] < aclip){ nclip++; wf[ii] = 0.0f; } else nleft++ ;
+         if( wf[ii] < aclip ){ nclip++; wf[ii] = 0.0f; } else nleft++ ;
        }
      }
      if( verb > 1 ) ININFO_message("Weightize: user clip=%g #clipped=%d #left=%d",
@@ -3152,12 +3166,12 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod , int ndil , float aclip )
    /*-- squash super-large values down to reasonability --*/
 
    clip = 3.0f * THD_cliplevel(qim,0.5f) ;
-   if( verb > 1 ) ININFO_message("Weightize: top clip=%g",clip) ;
+   if( verb > 1 ) ININFO_message("Weightize: (unblurred) top clip=%g",clip) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] > clip ) wf[ii] = clip ;
 
    /*-- blur a little: median then Gaussian;
           the idea is that the median filter smashes localized spikes,
-          then the Gaussian filter does some general smoothing.  --*/
+          then the Gaussian filter does a litte extra general smoothing. --*/
 
    mmm = (byte *)malloc( sizeof(byte)*nxyz ) ;
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] > 0.0f) ; /* mask */
@@ -3178,13 +3192,30 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im , int acod , int ndil , float aclip )
    clip  = 0.05f * mri_max(wim) ;
    clip2 = 0.33f * THD_cliplevel(wim,0.33f) ;
    clip  = MAX(clip,clip2) ;
-   if( verb > 1 ) ININFO_message("Weightize: bot clip=%g",clip) ;
+   if( verb > 1 ) ININFO_message("Weightize: (blurred) bot clip=%g",clip) ;
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] >= clip) ;
    THD_mask_clust( nx,ny,nz, mmm ) ;
    THD_mask_erode( nx,ny,nz, mmm, 1 ) ;  /* cf. thd_automask.c */
    THD_mask_clust( nx,ny,nz, mmm ) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( !mmm[ii] ) wf[ii] = 0.0f ;
    free((void *)mmm) ;
+
+   /*-- convert to 0..1 range [10 Sep 2007] --*/
+
+   clip = 0.0f ;
+   for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] > clip ) clip = wf[ii] ;
+   if( clip == 0.0f )
+     ERROR_exit("Can't compute autoweight: max value seen as 0") ;
+   clip = 1.0f / clip ;
+   for( ii=0 ; ii < nxyz ; ii++ ) wf[ii] *= clip ;
+
+   /*-- power? --*/
+
+   if( apow > 0.0f && apow != 1.0f ){
+     if( verb > 1 ) ININFO_message("Weightize: raising to %g power",apow) ;
+     for( ii=0 ; ii < nxyz ; ii++ )
+       if( wf[ii] > 0.0f ) wf[ii] = powf( wf[ii] , apow ) ;
+   }
 
    /*-- binarize (acod==2)?  boxize (acod==3)? --*/
 
