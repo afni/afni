@@ -6351,5 +6351,6 @@
      3dAllineate.c, with rhombic dodecahedra as the default building bloks.
 
 10 Sep 2007
- * Minor changes to 3dAllineate.c: '-autoweight**1.5'.
+ * Minor changes to 3dAllineate.c: '-autoweight**1.5' sub-option;
+     '-autoweight' now the default for '-ls' cost function.
  * Re-insert older fixes to afni.c that were lost in CVS.
