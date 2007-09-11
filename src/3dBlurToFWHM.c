@@ -157,11 +157,13 @@ int main( int argc , char *argv[] )
       "ADVANCED OPTIONS:\n"
       " -maxite  ccc = Set maximum number of iterations to 'ccc' [Default=variable].\n"
       " -rate    rrr = The value of 'rrr' should be a number between\n"
-      "                0.05 and 1.0, inclusive.  It is a factor to slow\n"
-      "                down the overall blurring rate and thus require\n"
-      "                more blurring steps.  This option should only be\n"
-      "                needed if the program over-smooths significantly\n"
-      "                (e.g., it overshoots the desired FWHM in Iteration #1).\n"
+      "                0.05 and 3.5, inclusive.  It is a factor to change\n"
+      "                the overall blurring rate (slower for rrr < 1) and thus\n"
+      "                require more or less blurring steps.  This option should only\n"
+      "                be needed to slow down the program if the it over-smooths\n"
+      "                significantly (e.g., it overshoots the desired FWHM in\n"
+      "                Iteration #1 or #2).  You can increase the speed by using\n"
+      "                rrr > 1, but be careful and examine the output.\n"
       " -nbhd    nnn = As in 3dLocalstat, specifies the neighborhood\n"
       "                used to compute local smoothness.\n"
       "                [Default = 'SPHERE(-4)' in 3D, 'SPHERE(-6)' in 2D]\n"
@@ -215,7 +217,7 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-rate") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-rate'") ;
        val = (float)strtod(argv[iarg],NULL) ;
-       if( val >= 0.05f && val <= 1.0f ) blurmax = BLURMAX * val ;
+       if( val >= 0.05f && val <= 3.555f ) blurmax = BLURMAX * val ;
        else ERROR_exit("Illegal value after '-rate': '%s'",argv[iarg]) ;
        iarg++ ; continue ;
      }
@@ -566,6 +568,7 @@ int main( int argc , char *argv[] )
 
    outset = EDIT_empty_copy( inset ) ;   /* moved here 04 Jun 2007 */
    EDIT_dset_items( outset , ADN_prefix , prefix , ADN_none ) ;
+   EDIT_dset_items( outset , ADN_brick_fac , NULL , ADN_none ) ;  /* 11 Sep 2007 */
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dBlurToFWHM" , argc,argv , outset ) ;
 

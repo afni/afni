@@ -6354,3 +6354,7 @@
  * Minor changes to 3dAllineate.c: '-autoweight**1.5' sub-option;
      '-autoweight' now the default for '-ls' cost function.
  * Re-insert older fixes to afni.c that were lost in CVS.
+
+11 Sep 2007 
+ * Modified 3dBlurToFWHM.c to remove scale factors from 'outset' if 'inset'
+     had them.  Oopsie.
