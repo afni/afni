@@ -4671,6 +4671,25 @@ STATUS("making prog->rowcol") ;
       prog->hidden_faces_pb = NULL ;
 #endif
 
+      /*----------*/
+
+#if !defined(NO_FRIVOLITIES)
+      prog->hidden_splashes_pb =           /* 12 Sep 2007 */
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                  LABEL_ARG("All AFNI Splashes") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , True  ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( prog->hidden_splashes_pb , XmNactivateCallback ,
+                     AFNI_hidden_CB , im3d ) ;
+#else
+      prog->hidden_splashes_pb = NULL ;
+#endif
+
+      /*----------*/
+
       prog->hidden_broutim_pb =            /* 06 Jun 2005 */
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
@@ -4681,6 +4700,8 @@ STATUS("making prog->rowcol") ;
                NULL ) ;
       XtAddCallback( prog->hidden_broutim_pb , XmNactivateCallback ,
                      AFNI_broutim_CB , im3d ) ;
+
+      /*----------*/
 
       prog->hidden_broutext_pb =            /* 21 Dec 2005 */
             XtVaCreateManagedWidget(

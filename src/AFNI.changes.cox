@@ -6358,3 +6358,6 @@
 11 Sep 2007 
  * Modified 3dBlurToFWHM.c to remove scale factors from 'outset' if 'inset'
      had them.  Oopsie.
+
+12 Sep 2007
+ * Added 'All AFNI Splashes' button to 'hidden' menu, just for fun.

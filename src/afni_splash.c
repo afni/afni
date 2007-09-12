@@ -16,6 +16,7 @@ void AFNI_splashdown (void){ return; }  /* for party poopers */
 void AFNI_splashup   (void){ return; }
 void AFNI_splashraise(void){ return; }
 void AFNI_faceup     (void){ return; }
+void AFNI_allsplash  (void){ return; }
 
 /* moved the functions into "FRIVOLTIES" section  30 Jun 2005 [rickr] */
 void AFNI_broutim_CB (Widget w, XtPointer cd, XtPointer cbs){ return; }
@@ -640,11 +641,12 @@ ENTRY("AFNI_find_jpegs") ;
 /*---------------------------------------------------------------------------*/
 
 static void *face_phan=NULL ;
-
 void AFNI_facedown( void *kd ){ face_phan = NULL; }
 
 #undef  NXY
 #define NXY 128  /* expected size of face images; trim or pad, as needed */
+
+#undef DO_DELAY
 
 static int gcd( int m , int n ){
   while( m > 0 ){
@@ -722,14 +724,110 @@ ENTRY("AFNI_faceup") ;
      }
      mri_free(fim) ;
 
+#ifdef DO_DELAY
      ctnew = NI_clock_time() ;      /* show 1 image every ddss ms [27 Dec 2004] */
      mmss  = ddss - (ctnew-ctold) ;
      ctold = ctnew ; ddss-- ;
      NI_sleep(mmss) ;
+#endif
    }
    if( face_phan != NULL ){
      PLUTO_imseq_retitle( face_phan , "Faces of AFNI" ) ;
      PLUTO_imseq_setim( face_phan , 0 ) ;
+   } else {
+     BEEPIT ;
+   }
+
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void *splash_phan=NULL ;
+void AFNI_allsplashdown( void *kd ){ splash_phan = NULL; }
+
+void AFNI_allsplash(void)   /* 12 Sep 2007 */
+{
+   MRI_IMAGE *im , *fim ;
+   int ii , nx,ny , nxdown,nxup , nydown,nyup ;
+   int ctold,ctnew,mmss , ddss ;
+   int jj , j0,dj=1 ;
+
+ENTRY("AFNI_allsplash") ;
+
+   if( num_splash <  0 ){ BEEPIT; EXRETURN; }
+   if( num_splash == 0 ){
+     num_splash = AFNI_find_jpegs( "splash_" , &fname_splash ) ;
+     if( num_splash <= 0 ){ BEEPIT; EXRETURN; }
+   }
+   if( splash_phan != NULL ){
+     PLUGIN_imseq *ph = (PLUGIN_imseq *)splash_phan ;
+     XMapRaised( XtDisplay(ph->seq->wtop) , XtWindow(ph->seq->wtop) ) ;
+     EXRETURN ;
+   }
+
+   ctold = NI_clock_time() ;
+
+   ddss = num_splash + 16449/num_splash ; if( ddss > 222 ) ddss = 222 ;
+
+   if( num_splash > 4 ){
+     ii = num_splash / 2 ;
+     do{ dj = 1 + lrand48() % ii ; } while( gcd(num_splash,dj) > 1 ) ;
+   }
+   j0 = lrand48() % num_splash ;
+
+   for( ii=0 ; ii < num_splash ; ii++ ){
+     jj = (j0 + ii*dj) % num_splash ;
+     im = mri_read_stuff( fname_splash[jj] ) ;
+     if( im == NULL ) continue ;
+     nx = im->nx ; ny = im->ny ;
+
+     nxdown = (NX_TOPOVER-nx) / 2 ; nxup = NX_TOPOVER - nx - nxdown ;
+     nydown = (NY_TOPOVER-ny) / 2 ; nyup = NY_TOPOVER - ny - nydown ;
+     if( nxdown != 0 || nydown != 0 || nxup != 0 || nyup != 0 ){
+       fim = mri_zeropad_2D( nxdown,nxup , nydown,nyup , im ) ;
+       if( fim != NULL ){ mri_free(im) ; im = fim ; }
+     }
+#if 0
+     fim = mri_dup2D(2,im) ; mri_free(im) ;  /* double size for fun */
+#else
+     fim = im ;
+#endif
+     if( splash_phan == NULL ){
+       int sxx,syy ; char *sen ; PLUGIN_imseq *ph ;
+
+       splash_phan = PLUTO_imseq_popim( fim,(generic_func *)AFNI_allsplashdown,NULL );
+       sxx = (GLOBAL_library.dc->width-4*NX_TOPOVER)/2 ; if( sxx < 1 ) sxx = 1 ;
+       syy = 100 ;
+       sen = getenv("AFNI_SPLASH_XY") ;
+       if( sen != NULL ){
+         int n,x,y ;
+         n = sscanf(sen,"%d:%d",&x,&y) ;
+         if( n == 2 && x >= 0 && x < GLOBAL_library.dc->width &&
+                       y >= 0 && y < GLOBAL_library.dc->height  ){
+            sxx = x ; syy = y ;
+         }
+       }
+       ph = (PLUGIN_imseq *)splash_phan ;
+       XtVaSetValues( ph->seq->wtop , XmNx,sxx , XmNy,syy , NULL ) ;
+       drive_MCW_imseq( ph->seq , isqDR_record_disable , (XtPointer)0 ) ;
+       drive_MCW_imseq( ph->seq , isqDR_periodicmont   , (XtPointer)1 ) ;
+
+     } else {
+       PLUTO_imseq_addto( splash_phan , fim ) ;
+     }
+     mri_free(fim) ;
+
+#ifdef DO_DELAY
+     ctnew = NI_clock_time() ;      /* show 1 image every ddss ms [27 Dec 2004] */
+     mmss  = ddss - (ctnew-ctold) ;
+     ctold = ctnew ; ddss-- ;
+     NI_sleep(mmss) ;
+#endif
+   }
+   if( splash_phan != NULL ){
+     PLUTO_imseq_retitle( splash_phan , "Splashings of AFNI" ) ;
+     PLUTO_imseq_setim( splash_phan , 0 ) ;
    } else {
      BEEPIT ;
    }

@@ -657,6 +657,7 @@ typedef struct {
    Widget hidden_browser_pb ;  /* 22 Apr 2005 */
    Widget hidden_broutim_pb ;  /* 06 Jun 2005 */
    Widget hidden_broutext_pb;  /* 21 Dec 2005 */
+   Widget hidden_splashes_pb;  /* 12 Sep 2007 */
 
 #endif  /* USE_HIDDEN */
 
@@ -1108,6 +1109,7 @@ extern void AFNI_splashup   (void) ;  /* 02 Aug 1999 */
 extern void AFNI_splashdown (void) ;
 extern void AFNI_splashraise(void) ;  /* 25 Sep 2000 */
 extern void AFNI_faceup     (void) ;  /* 17 Dec 2004 */
+extern void AFNI_allsplash  (void) ;  /* 12 Sep 2007 */
 extern int  AFNI_splash_isopen(void); /* 10 Nov 2005 */
 extern void AFNI_broutim_CB (Widget,XtPointer,XtPointer) ; /* 06 Jun 2005 */
 extern void AFNI_broutext_CB(Widget,XtPointer,XtPointer) ; /* 21 Dec 2005 */
