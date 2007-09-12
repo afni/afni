@@ -5667,6 +5667,13 @@ ENTRY("AFNI_hidden_CB") ;
      AFNI_faceup() ;
    }
 
+   /*------ Splashes!  [12 Sep 2007] -----*/
+
+   else if( w == im3d->vwid->prog->hidden_splashes_pb && w != NULL ){
+
+     AFNI_allsplash() ;
+   }
+
    /*------ Browser [22 Apr 2005] -----*/
 
    else if( w == im3d->vwid->prog->hidden_browser_pb && w != NULL &&
