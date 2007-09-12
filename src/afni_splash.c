@@ -703,7 +703,7 @@ ENTRY("AFNI_faceup") ;
        int sxx,syy ; char *sen ; PLUGIN_imseq *ph ;
 
        face_phan = PLUTO_imseq_popim( fim,(generic_func *)AFNI_facedown,NULL );
-       sxx = (GLOBAL_library.dc->width-4*NXY)/2 ; if( sxx < 1 ) sxx = 1 ;
+       sxx = (GLOBAL_library.dc->width-9*NXY)/2 ; if( sxx < 1 ) sxx = 1 ;
        syy = 100 ;
        sen = getenv("AFNI_SPLASH_XY") ;
        if( sen != NULL ){
@@ -788,17 +788,18 @@ ENTRY("AFNI_allsplash") ;
        fim = mri_zeropad_2D( nxdown,nxup , nydown,nyup , im ) ;
        if( fim != NULL ){ mri_free(im) ; im = fim ; }
      }
-#if 0
-     fim = mri_dup2D(2,im) ; mri_free(im) ;  /* double size for fun */
-#else
-     fim = im ;
-#endif
+     if( GLOBAL_library.dc->width >= 3*NX_TOPOVER ){  /* screen is big? */
+       fim = mri_dup2D(2,im) ; mri_free(im) ;    /* double size for fun */
+       im = mri_sharpen_rgb(0.27f,fim) ; mri_free(fim); fim = im ;
+     } else {
+       fim = im ;                                   /* small screen :-( */
+     }
      if( splash_phan == NULL ){
        int sxx,syy ; char *sen ; PLUGIN_imseq *ph ;
 
        splash_phan = PLUTO_imseq_popim( fim,(generic_func *)AFNI_allsplashdown,NULL );
-       sxx = (GLOBAL_library.dc->width-4*NX_TOPOVER)/2 ; if( sxx < 1 ) sxx = 1 ;
-       syy = 100 ;
+       sxx = (GLOBAL_library.dc->width-4*fim->nx)/2 ; if( sxx < 1 ) sxx = 1 ;
+       syy = 99 ;
        sen = getenv("AFNI_SPLASH_XY") ;
        if( sen != NULL ){
          int n,x,y ;
@@ -806,6 +807,7 @@ ENTRY("AFNI_allsplash") ;
          if( n == 2 && x >= 0 && x < GLOBAL_library.dc->width &&
                        y >= 0 && y < GLOBAL_library.dc->height  ){
             sxx = x ; syy = y ;
+            if( sxx > 100 ) sxx -= 100 ;
          }
        }
        ph = (PLUGIN_imseq *)splash_phan ;

@@ -8,12 +8,12 @@
 
 /*** 7D SAFE ***/
 
-/** int hist[256] **/
+/** declare int hist[256] **/
 
-void mri_histobyte( MRI_IMAGE * im , int * hist )
+void mri_histobyte( MRI_IMAGE *im , int *hist )
 {
    register int ih , npix , ii ;
-   byte * bar ;
+   byte *bar ;
 
 ENTRY("mri_histobyte") ;
 
@@ -24,8 +24,7 @@ ENTRY("mri_histobyte") ;
 
    for( ih=0 ; ih < 256 ; ih++ ) hist[ih] = 0 ;
 
-   for( ii=0 ; ii < npix ; ii++ )
-      hist[ bar[ii] ] ++ ;
+   for( ii=0 ; ii < npix ; ii++ ) hist[ bar[ii] ] ++ ;
 
    EXRETURN ;
 }

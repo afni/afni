@@ -7,10 +7,10 @@
 
 /*-------- for this one, declare 'int hist[65536]' --------*/
 
-void mri_histoshort_all( MRI_IMAGE * im , int * hist )
+void mri_histoshort_all( MRI_IMAGE *im , int *hist )
 {
    register int ih , npix , ii ;
-   short * sar ;
+   short *sar ;
 
 ENTRY("mri_histoshort_all") ;
 
@@ -29,10 +29,10 @@ ENTRY("mri_histoshort_all") ;
 
 /*-------- for this one, declare 'int hist[32768]' --------*/
 
-void mri_histoshort_nonneg( MRI_IMAGE * im , int * hist )
+void mri_histoshort_nonneg( MRI_IMAGE *im , int *hist )
 {
    register int ih , npix , ii ;
-   short * sar ;
+   short *sar ;
 
 ENTRY("mri_histoshort_nonneg") ;
 
