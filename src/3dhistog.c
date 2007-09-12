@@ -94,7 +94,7 @@ int main( int argc , char * argv[] )
    float vbot , vtop ;
    FILE *fout = NULL;
    int n_unq=0;
-   
+
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ){
       printf("Compute histogram of 3D Dataset\n"
              "Usage: 3dhistog [editing options] [histogram options] dataset\n"
@@ -134,7 +134,7 @@ int main( int argc , char * argv[] )
 
       exit(0) ;
    }
-   
+
    HI_read_opts( argc , argv ) ;
    nopt = HI_nopt ;
 
@@ -245,14 +245,14 @@ int main( int argc , char * argv[] )
          fprintf(stderr,"** ERROR: Output file %s exists, will not overwrite.\n", HI_unq) ;
       exit(1) ;
       }
-      fout = fopen(HI_unq,"w"); 
+      fout = fopen(HI_unq,"w");
       if (!fout) {
          fprintf(stderr,"** ERROR: Could not open %s for write operation.\nCheck your directory permissions\n", HI_unq) ;
       exit(1) ;
-      } 
+      }
    }
    if (!fout) HI_unq = NULL; /* safety valve */
-   
+
    for( iv_fim=iv_bot ; iv_fim <= iv_top ; iv_fim++ ){
      fimfac = DSET_BRICK_FACTOR(dset,iv_fim) ;
      if (fimfac == 0.0)  fimfac = 1.0;
@@ -278,8 +278,8 @@ int main( int argc , char * argv[] )
                fprintf(stderr,"** ERROR: Failed to uniquate.\n") ;
                exit(1) ;
             }
-            fprintf(fout,"# %d unique values in %s\n", n_unq, argv[iarg] );  
-            for (ii=0; ii<n_unq; ++ii) fprintf(fout,"%d\n", funq[ii]);  
+            fprintf(fout,"# %d unique values in %s\n", n_unq, argv[iarg] );
+            for (ii=0; ii<n_unq; ++ii) fprintf(fout,"%d\n", funq[ii]);
             fclose(fout); fout = NULL;
             free(funq); funq = NULL;
          }
@@ -303,8 +303,8 @@ int main( int argc , char * argv[] )
                fprintf(stderr,"** ERROR: Failed to uniquate.\n") ;
                exit(1) ;
             }
-            fprintf(fout,"# %d unique values in %s\n", n_unq, argv[iarg] );  
-            for (ii=0; ii<n_unq; ++ii) fprintf(fout,"%d\n", funq[ii]);  
+            fprintf(fout,"# %d unique values in %s\n", n_unq, argv[iarg] );
+            for (ii=0; ii<n_unq; ++ii) fprintf(fout,"%d\n", funq[ii]);
             fclose(fout); fout = NULL;
             free(funq); funq = NULL;
          }

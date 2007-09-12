@@ -1767,10 +1767,10 @@ typedef struct {
 /*! Collection of statistics about all sub-bricks. */
 
 typedef struct {
-   int type ;                     /*!< STATISTICS_TYPE */
-   int              nbstat ;      /*!< Number of entries below */
-   THD_brick_stats * bstat ;      /*!< Array of entries for all sub-bricks */
-   XtPointer parent ;             /*!< Owner of this object */
+   int type ;                    /*!< STATISTICS_TYPE */
+   int             nbstat ;      /*!< Number of entries below */
+   THD_brick_stats *bstat ;      /*!< Array of entries for all sub-bricks */
+   XtPointer parent ;            /*!< Owner of this object */
 } THD_statistics ;
 
 /*! Check if st is a valid THD_statistics struct. */
@@ -1790,6 +1790,22 @@ typedef struct {
 #define KILL_STATISTIC(st)          \
   do{ if( ISVALID_STATISTIC(st) ){  \
         XtFree((char *)(st)->bstat) ; XtFree((char *)(st)) ; } } while(0)
+
+/*--------------------------------------------------------------------*/
+
+typedef struct {
+  float hbot , htop , hdel ; int nbin ;
+  int *hist ;
+} THD_histogram ;
+
+#define HISTOGRAM_SET_TYPE 1743
+
+typedef struct {
+  int type ;
+  int           nbhist ;
+  THD_histogram *bhist ;
+  XtPointer parent ;
+} THD_histogram_set ;
 
 /*--------------------------------------------------------------------*/
 /*--------------------  Unique ID code for a 3D dataset  -------------*/
