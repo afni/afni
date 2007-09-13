@@ -173,6 +173,7 @@ int main( int argc , char * argv[] )
 
       if( strlen(expr) == 0 ) continue ;
       if( strstr(expr,"quit") != NULL ) exit(0) ;
+      if( strstr(expr,"exit") != NULL ) exit(0) ;
 
       if( strstr(expr,"=") != NULL ){
          kvar = toupper(expr[0]) - 'A' ;
