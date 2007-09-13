@@ -521,6 +521,12 @@ removed as soon as AFNI is ready to go.  By setting AFNI_SPLASHTIME
 to 0.0, you can have the splash screen removed as soon as possible
 (and the fade-out feature will be disabled).
 
+-----------------------------
+Variable: AFNI_SPLASH_ANIMATE
+-----------------------------
+If this variable is NO, then the splash screen animation will be disabled.
+Otherwise, it will run.
+
 --------------------------------
 Variable: AFNI_FIM_PERCENT_LIMIT (editable)
 --------------------------------
