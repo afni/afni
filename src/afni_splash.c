@@ -334,8 +334,8 @@ if(PRINT_TRACING){
 
       /* 21 Sep 2000 -- allow user to control splash position */
 
-      sxx = (GLOBAL_library.dc->width-NX_blank)/2 ;
-      syy = 100 ;
+      sxx = (GLOBAL_library.dc->width-3*NX_blank)/2 ; if( sxx < 0 ) sxx = 0 ;
+      syy = 99 ;
       sen = getenv("AFNI_SPLASH_XY") ;
       if( sen != NULL ){
         int n,x,y ;
