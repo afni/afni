@@ -35,8 +35,6 @@ static MRI_IMAGE * SPLASH_decodexx( int , int , int , int ,
 static MRI_IMAGE *imspl = NULL ;
 static void *handle = NULL ;
 
-#define SAVE_HANDLE
-
 /*----------------------------------------------------------------------------*/
 static int num_splashup = 0 ;  /* 14 Nov 2005 */
 int AFNI_splash_isopen(void)
@@ -45,6 +43,21 @@ int AFNI_splash_isopen(void)
    return (ppp != NULL && ISQ_REALZ(ppp->seq)) ? num_splashup : 0 ;
 }
 /*----------------------------------------------------------------------------*/
+static int gcd( int m , int n ){
+  while( m > 0 ){
+    if( n > m ){ int t=m; m=n; n=t; } /* swap */
+    m -= n;
+  }
+  return n;
+}
+static int find_relprime_random( int n ) /* find one relatively prime to n */
+{
+   int dj , n5=n/5 , n2=3*n5 ;
+   if( n5 < 2 ) return 1 ;
+   do{ dj = n5 + lrand48()%n2 ; } while( gcd(n,dj) > 1 ) ;
+   return dj ;
+}
+/*---------------------------------------------------------------------------*/
 
 #define USE_FADING
 
@@ -91,9 +104,6 @@ ENTRY("AFNI_splashdown") ;
     }
 #endif
     SPLASH_popup_image(handle,NULL);
-#ifndef SAVE_HANDLE
-    myXtFree(handle) ; /* get rid of window */
-#endif
    }
    mri_free(imspl) ; imspl = NULL ;
    do_write = ( (lrand48() >> 8) % 3 == 0 ) ? 2 : 1 ;
@@ -109,6 +119,45 @@ static char **fname_splash = NULL ;
 
 static int    num_face     =  0 ;   /* 28 Mar 2003 */
 static char **fname_face   = NULL ;
+
+static int    index_splash = -1 ;   /* 13 Sep 2007 */
+static int    delta_splash =  1 ;
+
+/*----------------------------------------------------------------------------*/
+
+static int AFNI_change_splash(void)  /* 13 Sep 2007 */
+{
+   MRI_IMAGE *imov ;
+   PLUGIN_impopper *ppp = (PLUGIN_impopper *)handle ;
+
+   if( imspl == NULL  || index_splash < 0 ||
+       num_splash < 2 || handle == NULL     ) return 0 ;
+
+   index_splash = (index_splash+delta_splash+num_splash)%(num_splash) ;
+
+   imov = mri_read_stuff( fname_splash[index_splash] ) ;
+   if( imov != NULL ){
+     mri_overlay_2D( imspl , imov , 0,0 ) ; mri_free(imov) ;
+     SPLASH_popup_image(handle,imspl) ;
+     drive_MCW_imseq( ppp->seq , isqDR_reimage , (XtPointer) 0 ) ;
+     return 1 ;
+   }
+   return 0 ;
+}
+
+#define SPLASH_TIMEOUT 1954
+
+static void AFNI_splash_timer_CB( XtPointer cd, XtIntervalId *id ) /* 13 Sep 2007 */
+{
+   Widget w=(Widget)cd ;
+
+   if( w == (Widget)NULL || AFNI_change_splash() == 0 ) return ;
+   (void) XtAppAddTimeOut( XtWidgetToApplicationContext(w) ,
+                           SPLASH_TIMEOUT , AFNI_splash_timer_CB , w ) ;
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
 
 void AFNI_splashup(void)
 {
@@ -236,14 +285,14 @@ if(PRINT_TRACING){
       if( (ncall > 0 || first_splash >= 0) && num_splash > 0 &&
           (ncall <= num_splash  || ((lrand48() >> 8 ) % 7) != 0) ){
 
-        static int np=-1 , dp ;
-        if( np < 0 || ncall < 2 ){
-          np = (first_splash >= 0) ? first_splash
+        if( index_splash < 0 || ncall < 2 ){
+          index_splash = (first_splash >= 0) ? first_splash
                                    : (lrand48() >> 8) % num_splash ;
-          dp = 2*((lrand48() >> 8)%2)-1 ;  /* -1 or +1 */
+          delta_splash = 2*((lrand48() >> 8)%2)-1 ;  /* -1 or +1 */
+          delta_splash *= find_relprime_random(num_splash) ; /* 13 Sep 2007 */
         } else
-          np = (np+dp+num_splash)%(num_splash) ;
-        imov = mri_read_stuff( fname_splash[np] ) ;
+          index_splash = (index_splash+delta_splash+num_splash)%(num_splash) ;
+        imov = mri_read_stuff( fname_splash[index_splash] ) ;
         if( imov != NULL ){
 #if 0
           reload_DC_colordef( GLOBAL_library.dc ) ;
@@ -256,7 +305,7 @@ if(PRINT_TRACING){
           STATUS("overlaying splash image") ;
           mri_overlay_2D( imspl , imov , 0,0 ) ; mri_free(imov) ;
         }
-        if( np == first_splash && first_face >= 0 ){   /* 21 Sep 2005 */
+        if( index_splash == first_splash && first_face >= 0 ){   /* 21 Sep 2005 */
           imov = mri_read_stuff( fname_face[first_face] ) ;
           if( imov != NULL ){
             nxov = imov->nx ; nyov = imov->ny ;
@@ -272,9 +321,6 @@ if(PRINT_TRACING){
       /*-- show the image at last! --*/
 
       handle = SPLASH_popup_image( handle, imspl ) ;
-#ifndef USE_FADING
-      mri_free(imspl) ; imspl = NULL ;
-#endif
 
       /* modify image display properties */
 
@@ -320,6 +366,12 @@ if(PRINT_TRACING){
       if( ncall > 0 ){
         drive_MCW_imseq( ppp->seq , isqDR_title , (XtPointer) "AFNI!" ) ;
         drive_MCW_imseq( ppp->seq , isqDR_reimage , (XtPointer)0 ) ;
+      }
+
+      if( ncall > 0 && !AFNI_noenv("AFNI_SPLASH_ANIMATE") ){
+        Widget w = ppp->seq->wtop ;
+        (void) XtAppAddTimeOut( XtWidgetToApplicationContext(w) ,
+                                SPLASH_TIMEOUT , AFNI_splash_timer_CB , w ) ;
       }
 
    /*--- destroy splash image ---*/
@@ -442,12 +494,10 @@ ENTRY("SPLASH_popup_image") ;
    /*-- input image is NULL ==> popdown, if applicable --*/
 
    if( im == NULL ){
-     if( imp != NULL )
-#ifdef SAVE_HANDLE
+     if( imp != NULL ){
+       STATUS("unrealizing splash window") ;
        drive_MCW_imseq( imp->seq , isqDR_unrealize , NULL ) ;
-#else
-       drive_MCW_imseq( imp->seq , isqDR_destroy , NULL ) ;
-#endif
+     }
 
      RETURN ((void *) imp) ;
    }
@@ -461,16 +511,20 @@ ENTRY("SPLASH_popup_image") ;
 
    /*-- input = non-null image ==> replace image --*/
 
+   STATUS("replacing splash image") ;
    mri_free( imp->im ) ;      /* toss old copy */
    imp->im = mri_copy( im ) ; /* make new copy */
 
    /*-- input = inactive popper handle ==> activate it --*/
 
-   if( imp->seq == NULL )
+   if( imp->seq == NULL ){
+     STATUS("opening new splash window") ;
      imp->seq = open_MCW_imseq( GLOBAL_library.dc ,
                                 SPLASH_imseq_getim , (XtPointer) imp ) ;
-   else
+   } else {
+     STATUS("realizing old splash window") ;
      drive_MCW_imseq( imp->seq , isqDR_realize , NULL ) ;
+   }
 
    /*-- unlike PLUTO_popup_image, actual popup is left to caller --*/
 
@@ -648,13 +702,7 @@ void AFNI_facedown( void *kd ){ face_phan = NULL; }
 
 #undef DO_DELAY
 
-static int gcd( int m , int n ){
-  while( m > 0 ){
-    if( n > m ){ int t=m; m=n; n=t; } /* swap */
-    m -= n;
-  }
-  return n;
-}
+/*---------------------------------------------------------------------------*/
 
 void AFNI_faceup(void)   /* 17 Dec 2004 */
 {
