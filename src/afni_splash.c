@@ -138,6 +138,27 @@ static int AFNI_change_splash(void)  /* 13 Sep 2007 */
    imov = mri_read_stuff( fname_splash[index_splash] ) ;
    if( imov != NULL ){
      mri_overlay_2D( imspl , imov , 0,0 ) ; mri_free(imov) ;
+     if( num_face > 1 ){
+       int dd=AFNI_find_todays_face() , nxov,nyov,ee ;
+       if( dd < 0 ) dd = (lrand48() >> 8) % num_face ;
+       imov = mri_read_stuff( fname_face[dd] ) ;
+       if( imov != NULL ){
+         nxov = imov->nx ; nyov = imov->ny ;
+         if( nxov <= MAX_XOVER && nyov <= MAX_YOVER ){
+           if( nxov < MAX_XOVER || nyov < MAX_YOVER ){
+             MRI_IMAGE *qim ;
+             dd = (MAX_XOVER-nxov)/2 ; ee = (MAX_YOVER-nyov)/2 ;
+             qim = mri_zeropad_2D( dd , MAX_XOVER-nxov-dd ,
+                                   ee , MAX_YOVER-nyov-ee , imov ) ;
+             mri_free(imov) ; imov = qim ; nxov = qim->nx ; nyov = qim->ny ;
+           }
+           dd = IXOVER + (MAX_XOVER-nxov)/2 ;
+           ee = JYOVER + (MAX_YOVER-nyov)/2 ;
+           mri_overlay_2D( imspl, imov, dd,ee );
+         }
+         mri_free(imov);
+       }
+     }
      SPLASH_popup_image(handle,imspl) ;
      drive_MCW_imseq( ppp->seq , isqDR_reimage , (XtPointer) 0 ) ;
      return 1 ;
