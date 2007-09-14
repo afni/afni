@@ -6644,6 +6644,7 @@ ENTRY("ISQ_but_cnorm_CB") ;
 *    isqDR_setimsave       (char *) suffix of image save mode
 
 *    isqDR_setrange        (float *) points to rng_bot,rng_top
+*    isqDR_settopclip      (float *) points to top_clip
 
 *    isqDR_keypress        (unsigned int) character or KeySym to send
 
@@ -6676,6 +6677,25 @@ ENTRY("drive_MCW_imseq") ;
                  drive_code) ;
          XBell( seq->dc->display , 100 ) ;
          RETURN( False );
+      }
+      break ;
+
+      /*--------- set top_clip [14 Sep 2007] ----------*/
+
+      case isqDR_settopclip:{
+        float *tc = (float *)drive_data ;
+        if( tc == NULL ){
+          seq->bot_clip = seq->top_clip = 0.0f ;
+        } else {
+          seq->top_clip = *tc ;
+          seq->bot_clip = 0.25f * seq->top_clip ;
+        }
+#if 0
+printf("top_clip = %g\n",seq->top_clip) ;
+#endif
+        if( tc == NULL )
+          ISQ_redisplay( seq , -1 , isqDR_display ) ;
+        RETURN( True ) ;
       }
       break ;
 

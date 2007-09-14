@@ -2771,6 +2771,7 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 /*! Check if have a 3D+time dataset. */
 
 #define HAS_TIMEAXIS(ds)         ( DSET_NUM_TIMES(ds) > 1 )
+#define DSET_HAS_TIMEAXIS HAS_TIMEAXIS
 
 /*! Return number of values stored at each time point for dataset ds.
 
@@ -2814,9 +2815,11 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 /*! Return minimum grid spacing in 2 dimensions for dataset ds */
 #define DSET_MIN_DELXY(ds) ((fabs(DSET_DX(ds)) < (fabs(DSET_DY(ds))) ) ?  \
      fabs(DSET_DX(ds)) : fabs(DSET_DY(ds)) )
+
 /*! Return minimum grid spacing in 3 dimensions for dataset ds */
 #define DSET_MIN_DEL(ds) ((DSET_MIN_DELXY(ds)<fabs(DSET_DZ(ds))) ? \
      DSET_MIN_DELXY(ds) : fabs(DSET_DZ(ds)))
+
 /*! Return grid origin along x-axis of dataset ds */
 
 #define DSET_XORG(ds) ((ds)->daxes->xxorg)  /* 29 Aug 2001 */
@@ -3114,6 +3117,11 @@ extern int THD_deathcon(void) ; /* 06 Jun 2007 */
     If return is 0 (false), you could try DSET_load(ds)
 */
 #define DSET_LOADED(ds) ( THD_count_databricks((ds)->dblk) == DSET_NVALS(ds) )
+
+/*! Check if a given brick is loaded [14 Sep 2007] */
+
+#define DSET_BRICK_LOADED(ds,iq) \
+ ( DSET_BRICK(ds,iq) != NULL && DSET_ARRAY(ds,iq) != NULL )
 
 /*! Lock dataset ds into memory */
 
