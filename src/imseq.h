@@ -518,6 +518,8 @@ typedef struct MCW_imseq {
      float rgb_offset ;
 
      char scl_label[16] ;                             /* 02 Nov 2005 */
+
+     float bot_clip , top_clip ;                      /* 14 Sep 2007 */
 } MCW_imseq ;
 
 #define ISQ_TIMERFUNC_INDEX  701
@@ -587,6 +589,7 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_setifrac      130
 #define isqDR_setrange      131
 #define isqDR_bgicon        132
+#define isqDR_settopclip    133  /* 14 Sep 2007 */
 
 #define isqDR_arrowpadhint  201
 #define isqDR_winfotext     202

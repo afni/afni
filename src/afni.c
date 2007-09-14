@@ -5578,17 +5578,21 @@ void AFNI_do_bkgd_lab( Three_D_View *im3d )
 
 void AFNI_range_setter( Three_D_View *im3d , MCW_imseq *seq )
 {
-   float rng[3] = { 0.0f, 0.0f, 0.0f } ;
+   float rng[3] = {0.0f,0.0f,0.0f} ;
    int ival ;
    FD_brick *br ;
    THD_3dim_dataset *ds ;
    static int first=1 ;
+   static THD_3dim_dataset *last_ds   = NULL ;
+   static int               last_ival = -1 ;
+   static float             last_tc   = 0.0f ;
 
-   if( !IM3D_OPEN(im3d) || !ISQ_VALID(seq)    ) return ;
-   if( !AFNI_yesenv("AFNI_IMAGE_GLOBALRANGE") ){ first=1; return ; }
+ENTRY("AFNI_range_setter") ;
 
-   br = (FD_brick *)im3d->b123_ulay ; if( br == NULL ) return ;
-   ds = br->dset ;                    if( ds == NULL ) return ;
+   if( !IM3D_OPEN(im3d) || !ISQ_VALID(seq) ) EXRETURN ;
+
+   br = (FD_brick *)im3d->b123_ulay ; if( br == NULL ) EXRETURN ;
+   ds = br->dset ;                    if( ds == NULL ) EXRETURN ;
 
    if( EQUIV_DSETS(ds,im3d->anat_now) )      /* underlay dataset */
      ival = im3d->vinfo->anat_index ;
@@ -5596,6 +5600,22 @@ void AFNI_range_setter( Three_D_View *im3d , MCW_imseq *seq )
      ival = im3d->vinfo->fim_index ;
    else
      ival = 0 ;                              /* shouldn't happen */
+
+   if( !EQUIV_DSETS(ds,last_ds) || last_ival != ival ){  /* 14 Sep 2007 */
+     float tc=0.0f ;
+     if( DSET_INMEMORY(ds) ){
+       if( !DSET_BRICK_LOADED(ds,ival) ) DSET_load(ds) ;
+       if( DSET_BRICK_LOADED(ds,ival) ){
+         float ff = DSET_BRICK_FACTOR(ds,ival) ;
+         tc = mri_topclip( DSET_BRICK(ds,ival) ) ;
+         if( ff > 0.0f ) tc *= ff ;
+       }
+     }
+     last_ds = ds ; last_ival = ival ; last_tc = tc ;
+   }
+   drive_MCW_imseq( seq , isqDR_settopclip , (XtPointer)(&last_tc) ) ;
+
+   if( !AFNI_yesenv("AFNI_IMAGE_GLOBALRANGE") ){ first=1; EXRETURN ; }
 
    if( ISVALID_STATISTIC(ds->stats) && ISVALID_BSTAT(ds->stats->bstat[ival]) ){
      rng[0] = ds->stats->bstat[ival].min ;
@@ -5610,7 +5630,7 @@ void AFNI_range_setter( Three_D_View *im3d , MCW_imseq *seq )
    rng[2] = 1.0f ;  /* 21 Dec 2006: do NOT redisplay image */
 
    drive_MCW_imseq( seq , isqDR_setrange , (XtPointer) rng ) ;
-   return ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------*/
