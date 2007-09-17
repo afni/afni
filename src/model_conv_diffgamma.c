@@ -19,11 +19,11 @@ static int     g_diter = -1 ;    /* debug iteration number */
 static float * refts   = NULL ;  /* reference time series */
 static int   * refin   = NULL ;  /* indexes of nonzero pts */
 
-void gamma_model( float * , int , float ** , float * ) ;
+void gamma_model( float * , int , float ** , float *, int, int ) ;
 
 static int   disp_floats(char * mesg, float * p, int len);
 static int   model_help(void);
-static float test_n_truncate(float * irf, int len);
+static float test_n_truncate(float * irf, int len, int debug);
 
 void conv_model( float *  gs      , int     ts_length ,
                  float ** x_array , float * ts_array   );
@@ -98,9 +98,11 @@ void conv_model( float *  gs      , int     ts_length ,
                  float ** x_array , float * ts_array   )
 {
    int ii, jj,jbot,jtop , kk , nid_top,nid_bot ;
-   float top , val , max ;
+   int cur_debug = 0;
+   float top , val , max0, max1 ;
 
    static int     iter = -1;     /* iteration number */
+   static int     do_scale = 0;  /* scale the curves by 1/height */
 
    static int     nid = 0 ;      /* number of pts in impulse */
    static float * fid0 = NULL ;  /* impulse response function */
@@ -115,13 +117,16 @@ void conv_model( float *  gs      , int     ts_length ,
       dval = AFNI_numenv("AFNI_MODEL_DEBUG");
       if( dval >= 1.0 ) g_debug = (int)dval;
       if(g_debug) fprintf(stderr,"\n+d TR = %f\n", x_array[1][1]-x_array[0][1]);
+      do_scale = ! AFNI_noenv("AFNI_CONVDIFFGAM_DO_SCALE");
    }
 
    /*** make sure there is a reference function to convolve with ***/
 
    if( refnum <= 0 ) conv_set_ref( 0 , NULL ) ;
 
-   if( iter == g_diter ) disp_floats("+d params: ", gs, 8);
+   /* to clean up, particularly as a parameter */
+   cur_debug =  (iter == g_diter || (iter == 0 && g_debug > 1));
+   if( cur_debug ) disp_floats("+d params: ", gs, 8);
 
    /*** initialize the output ***/
 
@@ -137,15 +142,12 @@ void conv_model( float *  gs      , int     ts_length ,
       fid1 = (float *) malloc( sizeof(float) * nid ) ;
    }
 
-   gamma_model( gs , ts_length , x_array , fid0 ) ;    /* first impulse */
-   gamma_model( gs+4 , ts_length , x_array , fid1 ) ;  /* second impulse */
+   /* compute first and second impulse functions */
+   gamma_model(gs,   ts_length, x_array, fid0, do_scale, cur_debug);
+   gamma_model(gs+4, ts_length, x_array, fid1, do_scale, cur_debug);
 
-   max = test_n_truncate(fid0, ts_length);
-   if( iter == g_diter || (iter == 0 && g_debug > 1) )
-      fprintf(stderr,"+d max #0 = %f\n", max);
-   max = test_n_truncate(fid1, ts_length);
-   if( iter == g_diter || (iter == 0 && g_debug > 1) )
-      fprintf(stderr,"+d max #1 = %f\n", max);
+   max0 = test_n_truncate(fid0, ts_length, cur_debug);
+   max1 = test_n_truncate(fid1, ts_length, cur_debug);
 
    /* find first and last nonzero value */
    for( nid_bot=0 ; nid_bot < ts_length ; nid_bot++ )
@@ -166,11 +168,7 @@ void conv_model( float *  gs      , int     ts_length ,
          ts_array[kk+jj] += val * ( fid0[jj] - fid1[jj] ) ;
    }
 
-   if( iter == g_diter || (iter == 0 && g_debug > 1) ){
-      disp_floats("+d model 0 : ", fid0,     ts_length);
-      disp_floats("+d model 1 : ", fid1,     ts_length);
-      disp_floats("+d conv    : ", ts_array, ts_length);
-   }
+   if( cur_debug ) disp_floats("+d conv    : ", ts_array, ts_length);
 
    return ;
 }
@@ -186,23 +184,26 @@ static int disp_floats(char * mesg, float * p, int len)
 
 
 /* Find max.  If 0, set irf[0] to 1.  Set values less than 0.01*max to 0.0. */
-static float test_n_truncate(float * irf, int len)
+static float test_n_truncate(float * irf, int len, int debug)
 {
    float max = 0.0, val;
-   int   ind;
+   int   ind, ccount;
 
    /* find max */
    for( ind=0 ; ind < len ; ind++ ){
       val = fabs(irf[ind]) ; if( val > max ) max = val ;
    }
 
+   if( debug ) fprintf(stderr,"+d  max = %f, ", max);
    /* if( max == 0.0 ) irf[0] = 1.0 ;   don't do this */
 
    /* truncate small values */
-   max *= 0.001 ;
+   max *= 0.0001 ;
+   ccount = 0;
    for( ind=0 ; ind < len ; ind++ ){
-      if( fabs(irf[ind]) < max ) irf[ind] = 0.0 ;
+      if( fabs(irf[ind]) < max ){ irf[ind] = 0.0; ccount++; }
    }
+   if( debug ) fprintf(stderr,"%d small vals cleared\n", ccount);
 
    return max;
 }
@@ -286,15 +287,18 @@ void gamma_model
   float * gs,                /* parameters for signal model */
   int ts_length,             /* length of time series data */
   float ** x_array,          /* independent variable matrix */
-  float * ts_array           /* estimated signal model time series */
+  float * ts_array,          /* estimated signal model time series */
+  int     do_scale,          /* scale curves by height */
+  int     debug              /* make some noise */
 )
 
 {
   int it;                           /* time index */
   float t;                          /* time */
-  float gsi , fac ;
+  double gsi , fac ;
 
-  if( gs[3] <= 0.0 || gs[2] <= 0.0 ){
+  if( gs[3] <= 0.0 || gs[2] <= 0.0 || gs[0] == 0.0 ){
+     if( debug ) fprintf(stderr,"-d clearing ts_array for small gs[0,2,3]\n");
      for( it=0 ; it < ts_length ; it++ ) ts_array[it] = 0.0 ;
      return ;
   }
@@ -302,12 +306,20 @@ void gamma_model
   /* fac is chosen to make the peak value equal to gs[0] */
 
   gsi = 1.0 / gs[3] ;
-  fac = gs[0] * exp( gs[2] * ( 1.0 - log(gs[2]*gs[3]) ) ) ;
+  if( do_scale ) fac = gs[0] * exp( gs[2] * ( 1.0 - log(gs[2]*gs[3]) ) ) ;
+  else           fac = gs[0];
+  
   for( it=0;  it < ts_length;  it++){
      t = x_array[it][1] - gs[1] ;
      ts_array[it] = (t <= 0.0) ? 0.0
                                : fac * exp( log(t) * gs[2] - t * gsi ) ;
   }
+
+  if( debug ){
+     if(do_scale) fprintf(stderr,"+d scaling from %f by %f\n", gs[0],fac/gs[0]);
+     else         fprintf(stderr,"+d no scaling done\n");
+  }
+
   return ;
 }
 
@@ -377,6 +389,15 @@ static int model_help(void)
     "\n"
     "          Set this numeric variable to output results at\n"
     "          the given iteration number.\n"
+    "\n"
+    "      AFNI_CONVDIFFGAM_DO_SCALE\n"
+    "\n"
+    "          e.g.  setenv AFNI_CONVDIFFGAM_DO_SCALE NO\n"
+    "\n"
+    "          Set this YES/NO variable to NO to prevent automatic scaling.\n"
+    "\n"
+    "          Without this, a0/a4 should be on the order of 1.0\n"
+    "          (if the input is close to a difference of exponentials).\n"
     "\n"
     "  ------------------------------\n"
     "\n"
