@@ -2183,4 +2183,5 @@
 07 Sep 2007:
   * modified Makefile.linux_xorg7/_64 to work on Fedora7
   * modified model_conv_diffgamma.c: fix diff, never set ts[0] to 1
+17 Sep 2007: modified 3dDeconvolve.c: show voxel loop when numjobs > 1
 
