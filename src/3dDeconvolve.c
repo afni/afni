@@ -5277,11 +5277,12 @@ ENTRY("calculate_results") ;
       if( proc_numjob == 1 && !option_data->quiet )
         INFO_message("Calculations starting; elapsed time=%.3f",COX_clock_time()) ;
 
-      vstep = nxyz / 50 ;
+      /* show voxel loop when numjob > 1        17 Sep 2007 [rickr] */
+      vstep = (ixyz_top - ixyz_bot) / 50 ;
       if( option_data->quiet        ||
           option_data->fdisp >= 0.0 ||
           option_data->progress > 0 ||
-          proc_numjob > 1             ) vstep = 0 ;
+          (proc_numjob > 1 && proc_ind != 0) ) vstep = 0 ;
 
       if( vstep > 0 ) fprintf(stderr,"++ voxel loop:") ;
 
