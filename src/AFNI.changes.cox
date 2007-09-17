@@ -6361,3 +6361,6 @@
 
 12 Sep 2007
  * Added 'All AFNI Splashes' button to 'hidden' menu, just for fun.
+
+17 Sep 2007
+ * Added 'Clipped' option to image grayscaling, in imseq.c and afni.c.
