@@ -5188,6 +5188,7 @@ void AFNI_view_xyz_CB( Widget w ,
    FD_brick    * brnew ;
    int mirror=0 ;
    int m2m=0 ;     /* 04 Nov 2003 */
+   int c2c=0 ;     /* 17 Sep 2007 */
 
 ENTRY("AFNI_view_xyz_CB") ;
 
@@ -5261,6 +5262,7 @@ ENTRY("AFNI_view_xyz_CB") ;
     /* button pressed and window not open, so prepare to open it */
 
     m2m = AFNI_yesenv("AFNI_IMAGE_MINTOMAX") ;
+    c2c = AFNI_yesenv("AFNI_IMAGE_CLIPPED") ;  /* 17 Sep 2007 */
 
     if( w == pb_xyz && sxyz == NULL ){         /* axial image */
        snew  = &(im3d->s123) ;
@@ -5329,7 +5331,7 @@ STATUS("realizing new image viewer") ;
       /* 09 Oct 1998: force L-R mirroring on axial and coronal images? */
       /* 04 Nov 2003: or min-to-max on grayscaling? */
 
-      if( mirror | m2m ){
+      if( mirror || m2m || c2c ){
          ISQ_options opt ;
 
 STATUS("setting image view to be L-R mirrored") ;
@@ -5337,6 +5339,7 @@ STATUS("setting image view to be L-R mirrored") ;
          ISQ_DEFAULT_OPT(opt) ;
          if( mirror ) opt.mirror = TRUE ;
          if( m2m    ) opt.scale_range = ISQ_RNG_MINTOMAX ;
+         if( c2c    ) opt.scale_range = ISQ_RNG_CLIPPED ;
          drive_MCW_imseq( *snew,isqDR_options  ,(XtPointer) &opt ) ;
       }
 

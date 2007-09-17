@@ -21,7 +21,6 @@
 # define DBG_trace 2
 #endif
 
-#define DPR(st) STATUS(st)
 #define DPRI(st,ijk) \
   if(PRINT_TRACING){ char str[256]; sprintf(str,"%s %d",st,ijk); STATUS(str); }
 
@@ -56,7 +55,7 @@ static MCW_action_item ISQ_disp_act[NACT_DISP] = {
 #define NBUT_DISP1  4  /* Rotation box */
 #define NBUT_DISP2  1  /* Mirror box */
 #define NBUT_DISP3  1  /* No overlay box */
-#define NBUT_DISP4  2  /* Range scaling box */
+#define NBUT_DISP4  3  /* Range scaling box */
 #define NBUT_DISP5  2  /* Auto- or Group- scale box */
 #define NBUT_DISP6  1  /* Free aspect box */
 #define NBUT_DISP7  2  /* Save box */          /* 26 Jul 2001: was 3, now 2 */
@@ -73,11 +72,26 @@ static MCW_action_item ISQ_disp_act[NACT_DISP] = {
 #define NTOG_IMP  7
 #define NTOG_CX   8
 
+#define ALLOW_CLIPPING(ss,tt)                                    \
+ do{ int za = (int)(tt) ;                                        \
+     int zb = ( ISQ_REALZ(ss) && (ss)->dialog != NULL &&         \
+                (ss)->dialog_starter == NBUT_DISP     &&         \
+                (ss)->bbox[NTOG_RNG] != NULL            ) ;      \
+     if(zb) SENSITIZE((ss)->bbox[NTOG_RNG]->wbut[2],za) ;        \
+     if( (ss)->opt.scale_range == ISQ_RNG_CLIPPED && !za ){      \
+       (ss)->opt.scale_range = ISQ_RNG_02TO98 ;                  \
+       if(zb) MCW_set_bbox((ss)->bbox[NTOG_RNG],ISQ_RNG_02TO98); \
+     } else if( za && (ss)->redo_clip ){                         \
+       (ss)->opt.scale_range = ISQ_RNG_CLIPPED ;                 \
+       if(zb) MCW_set_bbox((ss)->bbox[NTOG_RNG],ISQ_RNG_CLIPPED);\
+     }                                                           \
+ } while(0)
+
 static char * ISQ_dl1[NBUT_DISP1] = {
    "No Rotation" , "CCW 90" , "Rot 180" , "CW 90" } ;
 static char * ISQ_dl2[NBUT_DISP2] = { "+ LR Mirror" } ;
 static char * ISQ_dl3[NBUT_DISP3] = { "No Overlay" } ;
-static char * ISQ_dl4[NBUT_DISP4] = { "Min-to-Max" , "2%-to-98%" } ;
+static char * ISQ_dl4[NBUT_DISP4] = { "Min-to-Max" , "2%-to-98%" , "Clipped" } ;
 static char * ISQ_dl5[NBUT_DISP5] = { "Autoscale" , "Groupscale" } ;
 static char * ISQ_dl6[NBUT_DISP6] = { "Free Aspect" } ;
 static char * ISQ_dl7[NBUT_DISP7] = { "Nsize Save" , "PNM Save" } ;
@@ -129,12 +143,14 @@ static char * ISQ_bb3_hint[NBUT_DISP3] = {
 
 static char * ISQ_bb4_help[NBUT_DISP4] = {
  "Intensities mapped\nover full range of data\n(min->lowest,max->highest)" ,
- "Intensities mapped\nover partial range of data\n(%ages in data histogram)"
+ "Intensities mapped\nover partial range of data\n(%ages in data histogram)" ,
+ "Intensities mapped\nover auto-clipped range\nof data in all images"
 } ;
 
 static char * ISQ_bb4_hint[NBUT_DISP4] = {
  "Background intensity = min to max pixel values" ,
- "Background intensity = 2% to 98% pixel values"
+ "Background intensity = 2% to 98% pixel values"  ,
+ "Background intensity = auto-clipped from volume"
 } ;
 
 static char * ISQ_bb5_help[NBUT_DISP5] = {
@@ -1613,7 +1629,7 @@ STATUS("creation: widgets created") ;
    NORMAL_cursorize( newseq->wtop ) ;
 
 #else
-   newseq->valid = 1 ;  /* mark this structure as valid */
+   newseq->valid = 1 ;  /* mark this structure as valid but not realized */
 #endif
 
    newseq->ignore_redraws = 0 ;
@@ -1777,6 +1793,9 @@ STATUS("creation: widgets created") ;
    MCW_reghint_children( newseq->wbar_ticsiz_av->wrowcol ,
                          "Size of tick marks around image edges" ) ;
 
+   newseq->bot_clip = newseq->top_clip = 0.0f ; /* 17 Sep 2007 */
+   newseq->redo_clip = 0 ;
+
    /* 23 Jan 2003: set default save? */
 
    drive_MCW_imseq( newseq , isqDR_setimsave ,
@@ -1930,12 +1949,12 @@ if( PRINT_TRACING ){
    if( yy+hy/2 < 1 ) yp = 10 ; else yp = yy ;
 
    if( xp != xx || yp != yy )
-      XtVaSetValues( seq->wtop , XmNx , xp , XmNy , yp , NULL ) ;
+     XtVaSetValues( seq->wtop , XmNx , xp , XmNy , yp , NULL ) ;
 
    /* if there is a dialog, move it too [modified 05 Jan 1999] */
 
    if( seq->dialog != NULL && XtIsRealized( seq->dialog ) )
-      ISQ_place_dialog( seq ) ;
+     ISQ_place_dialog( seq ) ;
 
    EXRETURN ;
 }
@@ -2794,6 +2813,11 @@ ENTRY("ISQ_process_mri") ;
            ISQ_indiv_statistics *st = &( seq->imstat[nn] ) ;
            int scrang = seq->opt.scale_range ;
 
+           if( seq->bot_clip >= seq->top_clip && scrang == ISQ_RNG_CLIPPED ){
+             ALLOW_CLIPPING( seq , 0 ) ;
+             scrang = seq->opt.scale_range ;
+           }
+
            if( must_rescale ) st->one_done = False ;
 
            if( ! st->one_done ) ISQ_statify_one( seq , nn , lim ) ;
@@ -2825,6 +2849,15 @@ ENTRY("ISQ_process_mri") ;
                clbot = seq->clbot = st->per02 ;
                cltop = seq->cltop = st->per98 ;
                strcpy(seq->scl_label,"[2%-98%]") ;
+             break ;
+
+             case ISQ_RNG_CLIPPED:
+               ISQ_SCLEV( seq->bot_clip,seq->top_clip ,
+                          seq->dc->ncol_im , seq->scl,seq->lev ) ;
+               clbot = seq->clbot = seq->bot_clip ;
+               cltop = seq->cltop = seq->top_clip ;
+               strcpy(seq->scl_label,"[clipped]") ;
+               seq->redo_clip = 1 ;
              break ;
            }
          }
@@ -2893,7 +2926,7 @@ ENTRY("ISQ_process_mri") ;
 
       /*----- next, scale image as defined above -----*/
 
-DPR("scaling to shorts") ;
+STATUS("scaling to shorts") ;
 
                                /* scaling   to zero   clip bot  clip top */
                                /* --------  --------  --------  -------- */
@@ -2906,7 +2939,7 @@ DPR("scaling to shorts") ;
       double scl , lev ;
       float hbot,htop ;
 
-DPR("begin IMPROCessing") ;
+STATUS("begin IMPROCessing") ;
 
       qim = lim ;  /* at the start of each process stage,
                       qim is the image to process;
@@ -2943,7 +2976,7 @@ DPR("begin IMPROCessing") ;
       /*** flatten ***/
 
       if( (seq->opt.improc_code & ISQ_IMPROC_FLAT) != 0 ){
-DPR("call mri_flatten") ;
+STATUS("call mri_flatten") ;
          tim = mri_flatten( qim ) ;
          if( qim != lim ) mri_free(qim) ;
          qim = tim ;
@@ -2954,7 +2987,7 @@ DPR("call mri_flatten") ;
             float *qar = MRI_FLOAT_PTR(qim) ;
             int ii , npix = qim->nx * qim->ny ;
 
-DPR("clip flattened image") ;
+STATUS("clip flattened image") ;
 
             for( ii=0 ; ii < npix ; ii++ ){
                     if( qar[ii] < seq->flat_bot ) qar[ii] = seq->flat_bot ;
@@ -2966,7 +2999,7 @@ DPR("clip flattened image") ;
       /*** sharpen ***/
 
       if( (seq->opt.improc_code & ISQ_IMPROC_SHARP) != 0 ){
-DPR("call mri_sharpen") ;
+STATUS("call mri_sharpen") ;
          tim = mri_sharpen( seq->sharp_fac , 0 , qim ) ;
          if( qim != lim ) mri_free(qim) ;
          qim = tim ;
@@ -2978,12 +3011,12 @@ DPR("call mri_sharpen") ;
          int ii , npix ;
          float *tar ;
 
-DPR("call mri_edit_image") ;
+STATUS("call mri_edit_image") ;
          tim = mri_edit_image( 0.10 , 1.0 , qim ) ;   /* soft clip small values */
          if( qim != lim ) mri_free(qim) ;
          qim = tim ;
 
-DPR("call mri_sobel") ;
+STATUS("call mri_sobel") ;
          tim  = mri_sobel( 0 , 2 , qim ) ;            /* edge detect */
 
 #if 0
@@ -3005,7 +3038,7 @@ DPR("call mri_sobel") ;
 
       hbot = mri_min(qim) ; htop = mri_max(qim) ;
 
-DPR("scale to shorts") ;
+STATUS("scale to shorts") ;
       switch( seq->opt.scale_range ){
          default:
          case ISQ_RNG_MINTOMAX:
@@ -3019,15 +3052,24 @@ DPR("scale to shorts") ;
             static int hist[NHISTOG] ;
             float h02 , h98 ;
 
-DPR("call mri_histogram") ;
+STATUS("call mri_histogram") ;
             mri_histogram( qim , hbot,htop , True , NHISTOG,hist ) ;
-DPR("call ISQ_perpoints") ;
+STATUS("call ISQ_perpoints") ;
             ISQ_perpoints( hbot,htop , hist , &h02 , &h98 ) ;
             ISQ_SCLEV( h02,h98 , seq->dc->ncol_im , scl,lev ) ;
             seq->clbot = h02 ;  /* 29 Jul 2001 */
             seq->cltop = h98 ;
             strcpy(seq->scl_label,"[2%-98%]") ;
          }
+         break ;
+
+         case ISQ_RNG_CLIPPED:
+           ISQ_SCLEV( seq->bot_clip,seq->top_clip ,
+                      seq->dc->ncol_im , scl,lev ) ;
+           seq->clbot = seq->bot_clip ;
+           seq->cltop = seq->top_clip ;
+           strcpy(seq->scl_label,"[clipped]") ;
+           seq->redo_clip = 1 ;
          break ;
       }
 
@@ -3054,7 +3096,7 @@ DPR("call ISQ_perpoints") ;
 
    /*----- last, rotate/flip image to desired orientation -----*/
 
-DPR("call mri_flippo") ;
+STATUS("call mri_flippo") ;
    flipim = mri_flippo( ISQ_TO_MRI_ROT(seq->opt.rot) , seq->opt.mirror , newim ) ;
 
    if( newim != flipim ) KILL_1MRI(newim) ;  /* discard the trash */
@@ -4511,7 +4553,7 @@ ENTRY("ISQ_show_image") ;
    }
 
    if( seq->sized_xim != NULL ){
-DPR("putting sized_xim to screen");
+STATUS("putting sized_xim to screen");
 
 #if 0
 if( AFNI_yesenv("AFNI_IMSEQ_DEBUG") ){
@@ -4754,7 +4796,7 @@ ENTRY("ISQ_show_bar") ;
 
    if( seq->sized_xbar == NULL ){
       int nx , ny ;
-DPR("making sized_xbar");
+STATUS("making sized_xbar");
 
       MCW_widget_geom( seq->wbar , &nx , &ny , NULL,NULL ) ;
 
@@ -4763,7 +4805,7 @@ DPR("making sized_xbar");
 
 
    if( seq->sized_xbar != NULL ){
-DPR("putting sized_xbar to screen");
+STATUS("putting sized_xbar to screen");
 
      XPutImage( seq->dc->display , XtWindow(seq->wbar) , seq->dc->origGC ,
                 seq->sized_xbar , 0,0,0,0,
@@ -4961,7 +5003,7 @@ DPRI(" .. Expose; count=",event->count) ;
                                                             /* so let's un-hide it! */
                   XConfigureEvent nev ;
 
-DPR(" .. really a hidden resize") ;
+STATUS(" .. really a hidden resize") ;
 
                   nev.type = ConfigureNotify ; nev.width = nx ; nev.height = ny ;
                   ISQ_drawing_EV( w, client_data, (XEvent *) &nev, continue_to_dispatch ) ;
@@ -4984,7 +5026,7 @@ DPR(" .. really a hidden resize") ;
          int        nbuf ;
          KeySym     ks ;
 
-DPR(" .. KeyPress") ;
+STATUS(" .. KeyPress") ;
 
          ISQ_timer_stop(seq) ;  /* 03 Dec 2003 */
 
@@ -5042,7 +5084,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
          XButtonEvent *event = (XButtonEvent *) ev ;
          int bx,by , width,height , but ;
 
-DPR(" .. ButtonPress") ;
+STATUS(" .. ButtonPress") ;
 
          /* don't allow button presses in a recorder window, or in zoom-pan mode */
 
@@ -5583,8 +5625,8 @@ ENTRY("ISQ_but_disp_CB") ;
 
    for( ib=0 ; ib < NBOX_DISP ; ib++ ){
       int jh ;
-      char ** bbh = ISQ_bb_allhelp[ib] ;
-      char ** cch = ISQ_bb_allhint[ib] ;
+      char **bbh = ISQ_bb_allhelp[ib] ;
+      char **cch = ISQ_bb_allhint[ib] ;
 
       /*** 30 Oct 1996: transformations just above the IMPROC buttons ***/
 
@@ -5871,7 +5913,7 @@ ENTRY("ISQ_but_disp_CB") ;
 #endif
 
    if( seq->last_image_type != MRI_complex )
-      XtUnmanageChild( seq->bbox[NTOG_CX]->wtop ) ;
+     XtUnmanageChild( seq->bbox[NTOG_CX]->wtop ) ;
 
    XtManageChild( rcboxes ) ;
 
@@ -5892,6 +5934,8 @@ ENTRY("ISQ_but_disp_CB") ;
    ISQ_place_dialog( seq ) ;  /* 05 Jan 1999 */
 
    XtPopup( seq->dialog , XtGrabNone ) ; RWC_sleep(1);
+
+   if( seq->bot_clip >= seq->top_clip ) ALLOW_CLIPPING( seq , 0 ) ;
 
    ISQ_disp_options( seq , False ) ;  /* set toggles from option list */
    seq->save_opt = seq->opt ;         /* for use with Reset button */
@@ -5951,11 +5995,11 @@ ENTRY("ISQ_place_widget") ;
 
 void ISQ_disp_act_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
-   MCW_imseq * seq           = (MCW_imseq *) client_data ;
-   XmAnyCallbackStruct * cbs = (XmAnyCallbackStruct *) call_data ;
+   MCW_imseq *seq           = (MCW_imseq *)client_data ;
+   XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *)call_data ;
 
    int ib , close_window ;
-   char * wname ;
+   char *wname ;
    Boolean new_opt = False ;
 
 #ifdef FLASH_TOGGLE
@@ -5969,7 +6013,7 @@ ENTRY("ISQ_disp_act_CB") ;
    wname = XtName(w) ;
 
    for( ib=0 ; ib < NACT_DISP ; ib++ )           /* button index, if any */
-      if( strcmp(wname,ISQ_disp_act[ib].label) == 0 ) break ;
+     if( strcmp(wname,ISQ_disp_act[ib].label) == 0 ) break ;
 
    close_window = (ib == DISP_OK)  /* button to exit */
                  ||
@@ -6035,7 +6079,7 @@ ENTRY("ISQ_disp_act_CB") ;
   in the latter case, return False always (options ARE unchanged)
 ------------------------------------------------------------------------*/
 
-Boolean ISQ_disp_options( MCW_imseq * seq , Boolean set )
+Boolean ISQ_disp_options( MCW_imseq *seq , Boolean set )
 {
    int bval[NBOX_DISP] ;
    int ib ;
@@ -6043,14 +6087,14 @@ Boolean ISQ_disp_options( MCW_imseq * seq , Boolean set )
 ENTRY("ISQ_disp_options") ;
 
    if( !ISQ_VALID(seq) || seq->dialog==NULL || seq->dialog_starter!=NBUT_DISP )
-      RETURN(False) ;
+     RETURN(False) ;
 
-   if( set ){
+   if( set ){                         /* set structure from widgets */
       ISQ_options inopt = seq->opt ;
       Boolean changed ;
 
       for( ib=0 ; ib < NBOX_DISP ; ib++ )
-         bval[ib] = MCW_val_bbox( seq->bbox[ib] ) ;
+        bval[ib] = MCW_val_bbox( seq->bbox[ib] ) ;
 
       seq->opt.mirror      = ( bval[NTOG_MIR] & 1 ) != 0 ;
 
@@ -6102,7 +6146,7 @@ ENTRY("ISQ_disp_options") ;
 
       seq->opt.cx_code = bval[NTOG_CX] ;
 
-      /* sanity checks */
+      /*-- sanity checks --*/
 
       if( seq->opt.rot != ISQ_ROT_0   &&
           seq->opt.rot != ISQ_ROT_90  &&
@@ -6114,14 +6158,22 @@ ENTRY("ISQ_disp_options") ;
                                seq->opt.scale_group = inopt.scale_group ;
 
       if( seq->opt.scale_range != ISQ_RNG_MINTOMAX &&
-          seq->opt.scale_range != ISQ_RNG_02TO98 )
+          seq->opt.scale_range != ISQ_RNG_02TO98   &&
+          seq->opt.scale_range != ISQ_RNG_CLIPPED    )
                                seq->opt.scale_range = inopt.scale_range ;
+
+      if( seq->opt.scale_range == ISQ_RNG_CLIPPED ){  /* 17 Sep 2007 */
+        if( seq->bot_clip >= seq->top_clip ){
+          ALLOW_CLIPPING( seq , 0 ) ;
+        } else
+          seq->redo_clip = 1 ;
+      }
 
       changed = ! ISQ_OPT_EQUAL( seq->opt , inopt ) ;
 
       RETURN(changed) ;
 
-   } else {
+   } else {    /* set widgets from structure */
 
       bval[NTOG_MIR] = (seq->opt.mirror) ? 1 : 0 ;
       bval[NTOG_ROT] = seq->opt.rot ;
@@ -6130,6 +6182,13 @@ ENTRY("ISQ_disp_options") ;
 
       bval[NTOG_SCL] = seq->opt.scale_group ;
       bval[NTOG_RNG] = seq->opt.scale_range ;
+
+      if( seq->opt.scale_range == ISQ_RNG_CLIPPED &&
+          seq->bot_clip >= seq->top_clip            ){  /* 17 Sep 2007 */
+
+        ALLOW_CLIPPING( seq , 0 ) ;
+        bval[NTOG_RNG] = seq->opt.scale_range ;
+      }
 
       bval[NTOG_ASP] = (seq->opt.free_aspect) ? ISQ_ASPECT    : 0 ;
 
@@ -6144,7 +6203,7 @@ ENTRY("ISQ_disp_options") ;
       bval[NTOG_CX]  = seq->opt.cx_code ;
 
       for( ib=0 ; ib < NBOX_DISP ; ib++ )
-         MCW_set_bbox( seq->bbox[ib] , bval[ib] ) ;
+        MCW_set_bbox( seq->bbox[ib] , bval[ib] ) ;
 
       MCW_set_bbox( seq->save_one_bbox ,
                     (seq->opt.save_one) ? 1 : 0 ) ; /* 26 Jul 2001 */
@@ -6683,18 +6742,20 @@ ENTRY("drive_MCW_imseq") ;
       /*--------- set top_clip [14 Sep 2007] ----------*/
 
       case isqDR_settopclip:{
-        float *tc = (float *)drive_data ;
+        float *tc=(float *)drive_data ; int zz=0 ;
         if( tc == NULL ){
           seq->bot_clip = seq->top_clip = 0.0f ;
+          seq->redo_clip = 0 ;
         } else {
           seq->top_clip = *tc ;
           seq->bot_clip = 0.25f * seq->top_clip ;
+          zz = (seq->bot_clip < seq->top_clip) ;
         }
 #if 0
-printf("top_clip = %g\n",seq->top_clip) ;
+printf("set top_clip=%g  redo_clip=%d zz=%d\n",seq->top_clip,seq->redo_clip,zz);
 #endif
-        if( tc == NULL )
-          ISQ_redisplay( seq , -1 , isqDR_display ) ;
+        ALLOW_CLIPPING( seq , zz ) ;
+        if( tc == NULL ) ISQ_redisplay( seq , -1 , isqDR_display ) ;
         RETURN( True ) ;
       }
       break ;
@@ -7468,6 +7529,7 @@ static unsigned char record_bits[] = {
          if( seq->status->num_total == 1 )  /* 08 Aug 2001 */
            drive_MCW_imseq( seq , isqDR_onoffwid , (XtPointer) isqDR_offwid ) ;
 #endif
+         ALLOW_CLIPPING( seq , (seq->bot_clip < seq->top_clip) ) ;
          seq->valid = 2 ;
          RETURN( True );
       }
@@ -7875,6 +7937,10 @@ ENTRY("ISQ_setup_new") ;
  }
 
    seq->getaux = newaux ;
+
+   seq->bot_clip = seq->top_clip = 0.0f ;  /* 17 Sep 2007 */
+   if( seq->opt.scale_range == ISQ_RNG_CLIPPED ) seq->redo_clip = 1 ;
+   ALLOW_CLIPPING(seq,0) ;
 
    RETURN( True ) ;
 }
@@ -8558,7 +8624,7 @@ DPRI(" Making underlay cat2D from",nxyim) ;
       seq->imim = im = mri_cat2D( seq->mont_nx , seq->mont_ny ,     /* save this */
                                   seq->mont_gap , gapval , mar ) ;  /* underlay  */
 
-DPR("Destroying underlay image array") ;
+STATUS("Destroying underlay image array") ;
 
       DESTROY_IMARR(mar) ;
 
@@ -8661,7 +8727,7 @@ DPRI(" Making overlay cat2D from",nov) ;
          } else
             ovim = seq->ovim = NULL ;                         /* nothing */
 
-DPR("Destroying overlay image array") ;
+STATUS("Destroying overlay image array") ;
 
          DESTROY_IMARR( mar ) ;
       }
@@ -11450,10 +11516,17 @@ ENTRY("ISQ_handle_keypress") ;
 
      case 'm':{
        if( seq->dialog_starter==NBUT_DISP ){XBell(seq->dc->display,100); break;}
-       if( seq->opt.scale_range != ISQ_RNG_MINTOMAX )
-         seq->opt.scale_range = ISQ_RNG_MINTOMAX ;
-       else
-         seq->opt.scale_range = ISQ_RNG_02TO98 ;
+       switch( seq->opt.scale_range ){
+         default:
+         case ISQ_RNG_MINTOMAX: seq->opt.scale_range = ISQ_RNG_02TO98;  break;
+         case ISQ_RNG_CLIPPED:  seq->opt.scale_range = ISQ_RNG_MINTOMAX;break;
+         case ISQ_RNG_02TO98:
+           if( seq->bot_clip < seq->top_clip ){
+             seq->opt.scale_range = ISQ_RNG_CLIPPED; seq->redo_clip = 1 ;
+           } else
+             seq->opt.scale_range = ISQ_RNG_MINTOMAX;
+         break; 
+       }
 
        ISQ_redisplay( seq , -1 , isqDR_display ) ;
        busy=0 ; RETURN(1) ;

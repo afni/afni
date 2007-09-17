@@ -366,6 +366,12 @@ PLUGIN_interface * ENV_init(void)
                    "Set image viewers to do min-to-max grayscaling?" ,
                    NUM_yesno_list , yesno_list , NULL  ) ;
 
+#if 0
+   ENV_add_string( "AFNI_IMAGE_CLIPPED" ,
+                   "Set image viewers to do clipped grayscaling?" ,
+                   NUM_yesno_list , yesno_list , NULL  ) ;
+#endif
+
    ENV_add_string( "AFNI_IMAGE_GLOBALRANGE" ,
                    "Set image viewers to use 3D global data range min-to-max?" ,
                    NUM_yesno_list , yesno_list , ENV_globalrange  ) ;

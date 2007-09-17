@@ -145,7 +145,7 @@ typedef struct {
 
 #define ISQ_RNG_MINTOMAX  1
 #define ISQ_RNG_02TO98    2
-#define ISQ_RNG_USER      4  /* 04 Nov 2003 */
+#define ISQ_RNG_CLIPPED   4
 
 #define ISQ_ASPECT 1
 
@@ -520,6 +520,7 @@ typedef struct MCW_imseq {
      char scl_label[16] ;                             /* 02 Nov 2005 */
 
      float bot_clip , top_clip ;                      /* 14 Sep 2007 */
+     int   redo_clip ;                                /* 17 Sep 2007 */
 } MCW_imseq ;
 
 #define ISQ_TIMERFUNC_INDEX  701
