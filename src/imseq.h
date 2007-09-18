@@ -519,7 +519,7 @@ typedef struct MCW_imseq {
 
      char scl_label[16] ;                             /* 02 Nov 2005 */
 
-     float bot_clip , top_clip ;                      /* 14 Sep 2007 */
+     float top_clip ;                                 /* 14 Sep 2007 */
      int   redo_clip ;                                /* 17 Sep 2007 */
 } MCW_imseq ;
 

@@ -1793,7 +1793,7 @@ STATUS("creation: widgets created") ;
    MCW_reghint_children( newseq->wbar_ticsiz_av->wrowcol ,
                          "Size of tick marks around image edges" ) ;
 
-   newseq->bot_clip = newseq->top_clip = 0.0f ; /* 17 Sep 2007 */
+   newseq->top_clip = 0.0f ; /* 17 Sep 2007 */
    newseq->redo_clip = 0 ;
 
    /* 23 Jan 2003: set default save? */
@@ -2813,7 +2813,7 @@ ENTRY("ISQ_process_mri") ;
            ISQ_indiv_statistics *st = &( seq->imstat[nn] ) ;
            int scrang = seq->opt.scale_range ;
 
-           if( seq->bot_clip >= seq->top_clip && scrang == ISQ_RNG_CLIPPED ){
+           if( seq->top_clip <= 0.0f && scrang == ISQ_RNG_CLIPPED ){
              ALLOW_CLIPPING( seq , 0 ) ;
              scrang = seq->opt.scale_range ;
            }
@@ -2851,13 +2851,20 @@ ENTRY("ISQ_process_mri") ;
                strcpy(seq->scl_label,"[2%-98%]") ;
              break ;
 
-             case ISQ_RNG_CLIPPED:
-               ISQ_SCLEV( seq->bot_clip,seq->top_clip ,
+             case ISQ_RNG_CLIPPED:{
+               float bf=AFNI_numenv("AFNI_IMAGE_CLIPBOT") , bc ;
+               float tf=AFNI_numenv("AFNI_IMAGE_CLIPTOP") , tc ;
+               if( bf < 0.0f || bf > 0.5f ) bf = 0.25f ;
+               if( tf < 0.6f || bf > 1.9f ) tf = 1.00f ;
+               bc = bf * seq->top_clip ;
+               tc = tf * seq->top_clip ;
+               ISQ_SCLEV( bc,tc ,
                           seq->dc->ncol_im , seq->scl,seq->lev ) ;
-               clbot = seq->clbot = seq->bot_clip ;
-               cltop = seq->cltop = seq->top_clip ;
+               clbot = seq->clbot = bc ;
+               cltop = seq->cltop = tc ;
                strcpy(seq->scl_label,"[clipped]") ;
                seq->redo_clip = 1 ;
+             }
              break ;
            }
          }
@@ -3063,13 +3070,20 @@ STATUS("call ISQ_perpoints") ;
          }
          break ;
 
-         case ISQ_RNG_CLIPPED:
-           ISQ_SCLEV( seq->bot_clip,seq->top_clip ,
+         case ISQ_RNG_CLIPPED:{
+           float bf=AFNI_numenv("AFNI_IMAGE_CLIPBOT") , bc ;
+           float tf=AFNI_numenv("AFNI_IMAGE_CLIPTOP") , tc ;
+           if( bf < 0.0f || bf > 0.5f ) bf = 0.25f ;
+           if( tf < 0.6f || bf > 1.9f ) tf = 1.00f ;
+           bc = bf * seq->top_clip ;
+           tc = tf * seq->top_clip ;
+           ISQ_SCLEV( bc,tc ,
                       seq->dc->ncol_im , scl,lev ) ;
-           seq->clbot = seq->bot_clip ;
-           seq->cltop = seq->top_clip ;
+           seq->clbot = bc ;
+           seq->cltop = tc ;
            strcpy(seq->scl_label,"[clipped]") ;
            seq->redo_clip = 1 ;
+         }
          break ;
       }
 
@@ -5935,7 +5949,7 @@ ENTRY("ISQ_but_disp_CB") ;
 
    XtPopup( seq->dialog , XtGrabNone ) ; RWC_sleep(1);
 
-   if( seq->bot_clip >= seq->top_clip ) ALLOW_CLIPPING( seq , 0 ) ;
+   if( seq->top_clip <= 0.0f ) ALLOW_CLIPPING( seq , 0 ) ;
 
    ISQ_disp_options( seq , False ) ;  /* set toggles from option list */
    seq->save_opt = seq->opt ;         /* for use with Reset button */
@@ -6053,7 +6067,7 @@ ENTRY("ISQ_disp_act_CB") ;
    }
 
    if( new_opt ){
-      ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */
+     ISQ_redisplay( seq , -1 , isqDR_reimage ) ;  /* redo current image */
 
       /* 01 Dec 1999: perhaps redraw winfo label */
 
@@ -6157,16 +6171,20 @@ ENTRY("ISQ_disp_options") ;
           seq->opt.scale_group != ISQ_SCL_GRP )
                                seq->opt.scale_group = inopt.scale_group ;
 
+      if( seq->opt.scale_range != ISQ_RNG_CLIPPED ) seq->redo_clip = 0 ;
+DPRI("set scale_range =",seq->opt.scale_range) ;
+
       if( seq->opt.scale_range != ISQ_RNG_MINTOMAX &&
           seq->opt.scale_range != ISQ_RNG_02TO98   &&
           seq->opt.scale_range != ISQ_RNG_CLIPPED    )
                                seq->opt.scale_range = inopt.scale_range ;
 
       if( seq->opt.scale_range == ISQ_RNG_CLIPPED ){  /* 17 Sep 2007 */
-        if( seq->bot_clip >= seq->top_clip ){
+        if( seq->top_clip <= 0.0f ){
           ALLOW_CLIPPING( seq , 0 ) ;
-        } else
+        } else {
           seq->redo_clip = 1 ;
+        }
       }
 
       changed = ! ISQ_OPT_EQUAL( seq->opt , inopt ) ;
@@ -6184,7 +6202,7 @@ ENTRY("ISQ_disp_options") ;
       bval[NTOG_RNG] = seq->opt.scale_range ;
 
       if( seq->opt.scale_range == ISQ_RNG_CLIPPED &&
-          seq->bot_clip >= seq->top_clip            ){  /* 17 Sep 2007 */
+          seq->top_clip <= 0.0f                     ){  /* 17 Sep 2007 */
 
         ALLOW_CLIPPING( seq , 0 ) ;
         bval[NTOG_RNG] = seq->opt.scale_range ;
@@ -6744,12 +6762,9 @@ ENTRY("drive_MCW_imseq") ;
       case isqDR_settopclip:{
         float *tc=(float *)drive_data ; int zz=0 ;
         if( tc == NULL ){
-          seq->bot_clip = seq->top_clip = 0.0f ;
-          seq->redo_clip = 0 ;
+          seq->top_clip = 0.0f ; seq->redo_clip = 0 ;
         } else {
-          seq->top_clip = *tc ;
-          seq->bot_clip = 0.25f * seq->top_clip ;
-          zz = (seq->bot_clip < seq->top_clip) ;
+          seq->top_clip = *tc ; zz = (seq->top_clip > 0.0f) ;
         }
 #if 0
 printf("set top_clip=%g  redo_clip=%d zz=%d\n",seq->top_clip,seq->redo_clip,zz);
@@ -7529,7 +7544,7 @@ static unsigned char record_bits[] = {
          if( seq->status->num_total == 1 )  /* 08 Aug 2001 */
            drive_MCW_imseq( seq , isqDR_onoffwid , (XtPointer) isqDR_offwid ) ;
 #endif
-         ALLOW_CLIPPING( seq , (seq->bot_clip < seq->top_clip) ) ;
+         ALLOW_CLIPPING( seq , (0.0f < seq->top_clip) ) ;
          seq->valid = 2 ;
          RETURN( True );
       }
@@ -7938,7 +7953,7 @@ ENTRY("ISQ_setup_new") ;
 
    seq->getaux = newaux ;
 
-   seq->bot_clip = seq->top_clip = 0.0f ;  /* 17 Sep 2007 */
+   seq->top_clip = 0.0f ;  /* 17 Sep 2007 */
    if( seq->opt.scale_range == ISQ_RNG_CLIPPED ) seq->redo_clip = 1 ;
    ALLOW_CLIPPING(seq,0) ;
 
@@ -11521,10 +11536,11 @@ ENTRY("ISQ_handle_keypress") ;
          case ISQ_RNG_MINTOMAX: seq->opt.scale_range = ISQ_RNG_02TO98;  break;
          case ISQ_RNG_CLIPPED:  seq->opt.scale_range = ISQ_RNG_MINTOMAX;break;
          case ISQ_RNG_02TO98:
-           if( seq->bot_clip < seq->top_clip ){
+           if( 0.0f < seq->top_clip ){
              seq->opt.scale_range = ISQ_RNG_CLIPPED; seq->redo_clip = 1 ;
-           } else
+           } else {
              seq->opt.scale_range = ISQ_RNG_MINTOMAX;
+           }
          break; 
        }
 
