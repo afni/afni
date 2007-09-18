@@ -1585,24 +1585,34 @@ int DC_parse_color( MCW_DC *dc, char *str, float *rr, float *gg, float *bb )
 
    if( str == NULL || *str == '\0' ) return 1 ;
 
-   if( strncmp(str,"AJJ:",4) == 0 ){   /* 07 Feb 2003 */
+   if( strncmp(str,"AJJ:",4) == 0 ){                  /* 07 Feb 2003 */
      float ang=-6666.0 ;
      sscanf(str+4,"%f",&ang) ;
      if( ang != -6666.0 ){
        rgbyte col = DC_spectrum_AJJ( ang , 0.8 ) ;
-       *rr = col.r / 255.0 ;
-       *gg = col.g / 255.0 ;
-       *bb = col.b / 255.0 ;
+       *rr = col.r / 255.0f ; *gg = col.g / 255.0f ; *bb = col.b / 255.0f ;
        return 0 ;
      }
      return 1 ;
    }
 
-   ok = XParseColor( dc->display , dc->colormap , str, &cell ) ;
+   if( strncmp(str,"RGB:",4) == 0 ){                  /* 18 Sep 2007 */
+     float ir=-1.0f,ig=-1.0f,ib=-1.0f ; char s1,s2 ;
+     sscanf( str+4 ,"%f%c%f%c%f" , &ir,&s1,&ig,&s2,&ib ) ;
+     if( ir >= 0.0f && ig >= 0.0f && ib >= 0.0f ){
+       ir = MIN(ir,255.0f);  ig = MIN(ig,255.0f);  ib = MIN(ib,255.0f);
+      *rr = ir / 255.0f   ; *gg = ig / 255.0f   ; *bb = ib / 255.0f   ;
+      return 0 ;
+     }
+   }
+
+   /* let X11 try to understand the input string */
+
+   ok = XParseColor( dc->display , dc->colormap , str , &cell ) ;
    if( ok ){
-      *rr = cell.red   / 65535.0 ;
-      *gg = cell.green / 65535.0 ;
-      *bb = cell.blue  / 65535.0 ;
+      *rr = cell.red   / 65535.0f ;
+      *gg = cell.green / 65535.0f ;
+      *bb = cell.blue  / 65535.0f ;
       return 0 ;
    }
    return 1 ;
