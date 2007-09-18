@@ -1908,6 +1908,25 @@ to the "Min-to-Max" state rather than the default "2%-to-98%" state
 when they are opened.  If you set this in the "Edit Environment"
 control, it only affects image viewer windows opened after that point.
 
+----------------------------
+Variable: AFNI_IMAGE_CLIPPED (editable)
+----------------------------
+If this variable is set to YES, then image viewer windows will be set
+to the "Clipped" state rather than the default "2%-to-98%" state
+when they are opened.  If you set this in the "Edit Environment"
+control, it only affects image viewer windows opened after that point.
+
+----------------------------
+Variable: AFNI_IMAGE_CLIPBOT (editable)
+----------------------------
+In the "Clipped" mode, the top level of the grayscale image is computed
+as 3.11 times the 'cliplevel' as computed by the 3dClipLevel algorithm.
+The bottom level is then a fraction of this top level -- by default, the
+fraction is 0.25, but you can change this default by setting this variable
+to a value between 0.0 and 0.5 (inclusive).  You can also use variable
+AFNI_IMAGE_CLIPTOP to scale the default top level -- this variable can take
+values between 0.6 and 1.9 (inclusive) -- the default is 1.0.
+
 --------------------------------
 Variable: AFNI_IMAGE_GLOBALRANGE (editable)
 --------------------------------
