@@ -107,6 +107,8 @@
    AFNI_IMAGE_MAXFRAC         = 0.88  // maximum size of AFNI image window
 // AFNI_IMAGE_MINTOMAX        = NO    // YES=start Image window in Min-to-Max mode
 // AFNI_IMAGE_CLIPPED         = NO    // YES=start Image window in Clipped mode
+// AFNI_IMAGE_CLIPBOT         = 0.25  // bottom level scaling for Clipped mode
+// AFNI_IMAGE_CLIPTOP         = 1.0   // top level scaling for Clipped mode
 // AFNI_IMAGE_GLOBALRANGE     = NO    // YES=scale Image grayleves in 3D
    AFNI_KEEP_PANNING          = YES   // keep Pan mode turned on in Image windows
 // AFNI_IMAGE_LABEL_MODE      = 1     // draw labels in upper left of Image windows
