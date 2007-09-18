@@ -6364,3 +6364,7 @@
 
 17 Sep 2007
  * Added 'Clipped' option to image grayscaling, in imseq.c and afni.c.
+
+18 Sep 2007
+ * Added "RGB:r,g,b" format to DC_parse_color() in display.c.
+ * Fixed some bugs in 'Clipped' display.
