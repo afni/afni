@@ -108,6 +108,8 @@ int main( int argc , char *argv[] )
    mat44 cmat_bout , cmat_tout , aff12_xyz ;
    int   nxout,nyout,nzout ;
    float dxout,dyout,dzout ;
+   floatvec *allcost ;   /* 19 Sep 2007 */
+   float     allpar[MAXPAR] ;
 
    /*----- input parameters, to be filled in from the options -----*/
 
@@ -179,6 +181,8 @@ int main( int argc , char *argv[] )
    int bloktype                = GA_BLOK_RHDD ; /* 20 Aug 2007 */
    float blokrad               = 6.54321f ;
    int blokmin                 = 0 ;
+
+   int do_allcost              = 0 ;            /* 19 Sep 2007 */
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -734,6 +738,10 @@ int main( int argc , char *argv[] )
         "                 functions; 'bbb' is 'BALL(r)' or 'CUBE(r)' or 'RHDD(r)'\n"
         "                 where 'r' is the radius in mm.\n"
         "                 [Default is 'RHDD(6.54321)' (rhombic dodecahedron)]\n"
+        " -allcost      = Compute ALL available cost functions and print them\n"
+        "                 at various points.\n"
+        " -allcostX     = Compute and print ALL available cost functions for the\n"
+        "                 un-warped inputs, and then quit.\n"
        ) ;
        printf("\n"
               " Hidden experimental cost functions:\n") ;
@@ -766,6 +774,15 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     /*-----*/
+
+     if( strcmp(argv[iarg],"-allcost") == 0 ){   /* 19 Sep 2007 */
+       do_allcost = 1 ; iarg++ ; continue ;         /* SECRET OPTIONS */
+     }
+     if( strcmp(argv[iarg],"-allcostX") == 0 ){
+       do_allcost = -1 ; iarg++ ; continue ;
+     }
 
      /*-----*/
 
@@ -1823,6 +1840,10 @@ int main( int argc , char *argv[] )
      }
      if( dset_mast == NULL && dxyz_mast == 0.0 )
        INFO_message("You might want to use '-master' when using '-1D*_apply'") ;
+     if( do_allcost != 0   ){  /* 19 Sep 2007 */
+       do_allcost = 0 ;
+       WARNING_message("-allcost option illegal with -1D*_apply") ;
+     }
    }
 
    /* if no base input, target should have more than 1 sub-brick */
@@ -2051,7 +2072,7 @@ int main( int argc , char *argv[] )
    }
 
    /* number of points to use for matching */
-   if (nmask_frac < 0) {
+   if( nmask_frac < 0 ){
       ntask = DSET_NVOX(dset_targ) ;
       ntask = (ntask < nmask) ? (int)sqrt(ntask*(double)nmask) : nmask ;
       if( npt_match < 0 )   npt_match = (int)(-0.01f*npt_match*ntask) ;
@@ -2348,6 +2369,11 @@ int main( int argc , char *argv[] )
 
    /*****------ create shell of output dataset ------*****/
 
+   if( do_allcost == -1 && prefix != NULL ){  /* 19 Sep 2007 */
+     prefix = NULL ;
+     WARNING_message("-allcostX means -prefix is ignored!") ;
+   }
+
    if( prefix == NULL ){
      WARNING_message("No output dataset will be calculated") ;
      if( dxyz_mast > 0.0 )
@@ -2429,14 +2455,22 @@ int main( int argc , char *argv[] )
 #undef  PARINI
 #define PARINI(ss) PARDUMP(ss,val_init)
 
+#undef  PAR_CPY
+#define PAR_CPY(xxx)                              \
+  do{ for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ) \
+        allpar[jj] = stup.wfunc_param[jj].xxx ;   \
+  } while(0)
+
    /*-- the annunciation --*/
 
-   if( verb && apply_1D == NULL )
-     INFO_message("======= Allineation of %d sub-bricks using %s =======",
-                  DSET_NVALS(dset_targ) , meth_username[meth_code-1] ) ;
-   else
-     INFO_message("========== Applying transformation to %d sub-bricks ==========",
-                  DSET_NVALS(dset_targ) ) ;
+   if( do_allcost != -1 && verb ){
+     if( apply_1D == NULL )
+       INFO_message("======= Allineation of %d sub-bricks using %s =======",
+                    DSET_NVALS(dset_targ) , meth_username[meth_code-1] ) ;
+     else
+       INFO_message("========== Applying transformation to %d sub-bricks ==========",
+                    DSET_NVALS(dset_targ) ) ;
+   }
 
    if( verb > 1 ) mri_genalign_verbose(verb-1) ;  /* inside mri_genalign.c */
 
@@ -2467,7 +2501,7 @@ int main( int argc , char *argv[] )
      skipped = 0 ;
      if( kk == 0 && skip_first ){  /* skip first image since it == im_base */
        if( verb )
-         INFO_message("========== Skipping sub-brick #0: it's also base image ==========") ;
+         INFO_message("========== Skipping sub-brick #0: it's also base image ==========");
        DSET_unload_one(dset_targ,0) ;
 
        /* load parameters with identity transform */
@@ -2532,6 +2566,18 @@ int main( int argc , char *argv[] )
                            nxyz_base, dxyz_base, stup.base_cmat,
                            nxyz_targ, dxyz_targ, stup.targ_cmat ) ;
 
+     if( do_allcost != 0 ){
+       PAR_CPY(val_init) ;
+       stup.interp_code = MRI_LINEAR ;
+       stup.npt_match   = npt_match ;
+       mri_genalign_scalar_setup( im_bset , im_wset , im_targ , &stup ) ;
+       allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
+       for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
+         printf("allcost: %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
+       KILL_floatvec(allcost) ;
+       if( do_allcost == -1 ) continue ;  /* skip to next sub-brick */
+     }
+
      /*--- do coarse resolution pass? ---*/
 
      didtwo = 0 ;
@@ -2556,7 +2602,7 @@ int main( int argc , char *argv[] )
 
        if( save_hist != NULL ){  /* Save start 2D histogram: 28 Sep 2006 */
          int nbin ; float *xyc ;
-         (void)mri_genalign_scalar_cost( &stup ) ;
+         (void)mri_genalign_scalar_cost( &stup , NULL ) ; /* to force histo */
          nbin = retrieve_2Dhist( &xyc ) ;
          if( nbin > 0 && xyc != NULL ){
            char fname[256] ; MRI_IMAGE *fim ; double ftop ;
@@ -2721,18 +2767,28 @@ int main( int argc , char *argv[] )
      if( tfdone ){                           /* find best in tfparm array */
        int kb=0 , ib ; float cbest=1.e+33 ;
        for( ib=0 ; ib < tfdone ; ib++ ){
+#if 0
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
            stup.wfunc_param[jj].val_init = tfparm[ib][jj] ;
-         cost = mri_genalign_scalar_cost( &stup ) ;
+#endif
+         cost = mri_genalign_scalar_cost( &stup , tfparm[ib] ) ;
          if( verb > 1 ) ININFO_message("- cost(#%d)=%f %c",
                                        ib+1,cost,(cost<cbest)?'*':' ');
          if( cost < cbest ){ cbest=cost ; kb=ib ; }
        }
-       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
-         stup.wfunc_param[jj].val_init = tfparm[kb][jj] ;
+       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )        /* copy best set */
+         stup.wfunc_param[jj].val_init = tfparm[kb][jj] ; /* for fine work */
        cost_ini = cbest ;
      } else {
-       cost_ini = mri_genalign_scalar_cost( &stup ) ;
+       cost_ini = mri_genalign_scalar_cost( &stup , NULL ) ;
+     }
+
+     if( do_allcost != 0 ){
+       PAR_CPY(val_init) ;
+       allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
+       for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
+         printf("allcost: %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
+       KILL_floatvec(allcost) ;
      }
 
      if( verb > 1 ){
@@ -2767,7 +2823,7 @@ int main( int argc , char *argv[] )
        stup.interp_code = interp_code ;
        stup.npt_match   = npt_match ;
        mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;
-       cost = mri_genalign_scalar_cost( &stup ) ; /* interp_code, not LINEAR */
+       cost = mri_genalign_scalar_cost( &stup , NULL ) ; /* interp_code, not LINEAR */
        if( cost > cost_ini ){   /* should not happen, but it could since  */
          if( verb > 1 )         /* LINEAR cost optimized above isn't same */
            ININFO_message("- Intrmed cost = %f > Initial cost = %f :-(",cost,cost_ini);
@@ -2779,6 +2835,14 @@ int main( int argc , char *argv[] )
            ININFO_message("- Intrmed cost = %f  funcs = %d",cost,nfunc) ;
          }
          if( nfunc < 6666 ) rad *= 0.246 ;
+       }
+
+       if( do_allcost != 0 ){
+         PAR_CPY(val_init) ;
+         allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
+         for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
+           printf("allcost: %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
+         KILL_floatvec(allcost) ;
        }
      }
 
@@ -2797,11 +2861,19 @@ int main( int argc , char *argv[] )
 
      if( verb > 1 ) PAROUT("Final fine fit") ;
 
+     if( do_allcost != 0 ){
+       PAR_CPY(val_out) ;
+       allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
+       for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
+         printf("allcost: %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
+       KILL_floatvec(allcost) ;
+     }
+
 #if 0
      for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
        stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out ;
      mri_genalign_verbose(9) ;
-     cost = mri_genalign_scalar_cost( &stup ) ;
+     cost = mri_genalign_scalar_cost( &stup , NULL ) ;
      INFO_message("Recomputed final cost = %g",cost) ;
      if( verb > 1 ) mri_genalign_verbose(verb-1) ;
 #endif
@@ -2810,7 +2882,7 @@ int main( int argc , char *argv[] )
        int nbin ; float *xyc ;
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
          stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
-       (void)mri_genalign_scalar_cost( &stup ) ;
+       (void)mri_genalign_scalar_cost( &stup , NULL ) ; /* force histo */
        nbin = retrieve_2Dhist( &xyc ) ;
        if( nbin > 0 && xyc != NULL ){
          char fname[256] ; MRI_IMAGE *fim ; double ftop ;
