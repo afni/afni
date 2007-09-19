@@ -71,7 +71,11 @@ char * AFNI_suck_file( char *fname )
 
 static int afni_env_done = 0 ;
 
+/*---------------------------------------------------------------------------*/
+
 void AFNI_mark_environ_done(void){ afni_env_done = 1 ; return ; }
+
+/*---------------------------------------------------------------------------*/
 
 char * my_getenv( char *ename )
 {
@@ -83,6 +87,8 @@ char * my_getenv( char *ename )
    return getenv( ename ) ;
 }
 
+/*---------------------------------------------------------------------------*/
+
 void AFNI_process_environ( char *fname )
 {
    int   nbuf , nused , ii ;
@@ -91,14 +97,18 @@ void AFNI_process_environ( char *fname )
 
 ENTRY("AFNI_process_environ") ;
    if( fname != NULL ){
-      strcpy(str,fname) ;
+     strcpy(str,fname) ;
    } else {
-      char *home ;
-      if( afni_env_done ) EXRETURN ;
-      home = getenv("HOME") ;
-      if( home != NULL ){ strcpy(str,home) ; strcat(str,"/.afnirc") ; }
-      else              { strcpy(str,".afnirc") ; }
-      afni_env_done = 1 ;
+     char *home ;
+     if( afni_env_done ) EXRETURN ;
+     home = getenv("HOME") ;
+     if( home != NULL ){ strcpy(str,home) ; strcat(str,"/.afnirc") ; }
+     else              { strcpy(str,".afnirc") ; }
+     if( !THD_is_file(str) ){                      /* 19 Sep 2007 */
+       if( home != NULL ){ strcpy(str,home) ; strcat(str,"/AFNI.afnirc") ; }
+       else              { strcpy(str,"AFNI.afnirc") ; }
+     }
+     afni_env_done = 1 ;
    }
 
    fbuf = AFNI_suck_file( str ) ; if( fbuf == NULL ) EXRETURN ;
