@@ -1032,28 +1032,20 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
 /*======================== End of BLOK-iness functionality ==================*/
 
 /*---------------------------------------------------------------------------*/
-/*! Fit metric for matching base and target image value pairs.
-    (Smaller is a better match.)  For use as a NEWUOA optimization function.
+/*! Compute a particular fit cost function
+    - avm = target image values warped to base
+    - bvm = base image values
+    - wvm = weight image values
 -----------------------------------------------------------------------------*/
 
-static double GA_scalar_fitter( int npar , double *mpar )
+static double GA_scalar_costfun( int meth , int npt ,
+                                 float *avm , float *bvm , float *wvm )
 {
-  float val=0.0f ;
-  float *avm , *bvm , *wvm ;
+  double val=0.0f ;
 
-ENTRY("GA_scalar_fitter") ;
+ENTRY("GA_scalar_costfun") ;
 
-  avm = (float *)calloc(gstup->npt_match,sizeof(float)) ; /* target points at */
-  GA_get_warped_values( npar , mpar , avm ) ;             /* warped locations */
-
-  bvm = gstup->bvm->ar ;                                  /* base points */
-  wvm = (gstup->wvm != NULL) ? gstup->wvm->ar : NULL ;    /* weights */
-
-  if( gstup->need_hist_setup ) GA_setup_2Dhistogram( avm , bvm ) ;
-
-  /* compare the avm and bvm arrays in some way */
-
-  switch( gstup->match_code ){
+  switch( meth ){
 
     default:
     case GA_MATCH_PEARSON_SCALAR:   /* Pearson correlation coefficient */
@@ -1075,8 +1067,7 @@ ENTRY("GA_scalar_fitter") ;
     break ;
 
     case GA_MATCH_SPEARMAN_SCALAR:  /* rank-order (Spearman) correlation */
-      val = (double)spearman_rank_corr( gstup->npt_match, avm,
-                                        gstup->bvstat   , bvm ) ;
+      val = (double)THD_spearman_corr_nd( gstup->npt_match , avm,bvm ) ;
       val = 1.0 - fabs(val) ;
     break ;
 
@@ -1126,17 +1117,34 @@ ENTRY("GA_scalar_fitter") ;
     break ;
   }
 
+  if( !finite(val) ) val = BIGVAL ;
+  RETURN( val );
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Fit metric for matching base and target image value pairs.
+    (Smaller is a better match.)  For use as a NEWUOA optimization function.
+-----------------------------------------------------------------------------*/
+
+static double GA_scalar_fitter( int npar , double *mpar )
+{
+  double val ;
+  float *avm , *bvm , *wvm ;
+
+ENTRY("GA_scalar_fitter") ;
+
+  avm = (float *)calloc(gstup->npt_match,sizeof(float)) ; /* target points at */
+  GA_get_warped_values( npar , mpar , avm ) ;             /* warped locations */
+
+  bvm = gstup->bvm->ar ;                                  /* base points */
+  wvm = (gstup->wvm != NULL) ? gstup->wvm->ar : NULL ;    /* weights */
+
+  if( gstup->need_hist_setup ) GA_setup_2Dhistogram( avm , bvm ) ;
+
+  val = GA_scalar_costfun( gstup->match_code, gstup->npt_match, avm,bvm,wvm ) ;
+
   free((void *)avm) ;    /* toss the trash */
-
-  if( !finite(val) ){    /* 24 Aug 2007 */
-    val = BIGVAL ;
-  } else {
-    if( fit_callback != NULL && val < fit_vbest ){ /* call user-supplied */
-      fit_vbest = val ; fit_callback(npar,mpar) ;    /* function if cost shrinks */
-    }
-  }
-
-  RETURN( (double)val );
+  RETURN(val);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1531,12 +1539,14 @@ ENTRY("mri_genalign_scalar_setup") ;
 
      /* do match_code specific pre-processing of the extracted data */
 
+#if 0
      switch( stup->match_code ){
        case GA_MATCH_SPEARMAN_SCALAR:
          STATUS("doing spearman_rank_prepare") ;
          stup->bvstat = spearman_rank_prepare( stup->npt_match, stup->bvm->ar );
        break ;
      }
+#endif
 
    } /* end of if(need_pts) */
 
@@ -1687,8 +1697,10 @@ ENTRY("mri_genalign_scalar_optim") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/*! Get the cost function for the given setup. */
+/*---------------------------------------------------------------------------*/
 
-float mri_genalign_scalar_cost( GA_setup *stup )
+float mri_genalign_scalar_cost( GA_setup *stup , float *parm )
 {
    double *wpar , val ;
    int ii , qq ;
@@ -1707,10 +1719,11 @@ ENTRY("mri_genalign_scalar_cost") ;
       scaling to the range 0..1                          */
 
    wpar = (double *)calloc(sizeof(double),stup->wfunc_numfree) ;
+
    for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
      if( !stup->wfunc_param[qq].fixed ){
-       wpar[ii] = ( stup->wfunc_param[qq].val_init
-                   -stup->wfunc_param[qq].min    ) / stup->wfunc_param[qq].siz;
+       val = (parm == NULL) ? stup->wfunc_param[qq].val_init : parm[qq] ;
+       wpar[ii] = (val - stup->wfunc_param[qq].min) / stup->wfunc_param[qq].siz;
        if( wpar[ii] < 0.0 || wpar[ii] > 1.0 ) wpar[ii] = PRED01(wpar[ii]) ;
        ii++ ;
      }
@@ -1721,6 +1734,58 @@ ENTRY("mri_genalign_scalar_cost") ;
    val = GA_scalar_fitter( stup->wfunc_numfree , wpar ) ;
 
    free((void *)wpar) ; RETURN( (float)val );
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Return ALL cost functions for a given setup. */
+/*---------------------------------------------------------------------------*/
+
+floatvec * mri_genalign_scalar_allcosts( GA_setup *stup , float *parm )
+{
+   floatvec *costvec ;
+   double *wpar , val ;
+   float *avm , *bvm , *wvm ;
+   int ii , qq , meth ;
+
+ENTRY("mri_genalign_scalar_allcosts") ;
+
+   if( stup == NULL || stup->setup != SMAGIC ){
+     ERROR_message("Illegal call to mri_genalign_scalar_allcosts()") ;
+     RETURN(NULL) ;
+   }
+
+   GA_param_setup(stup) ;
+   if( stup->wfunc_numfree <= 0 ) RETURN(NULL);
+
+   /* copy initial warp parameters into local array wpar,
+      scaling to the range 0..1                          */
+
+   wpar = (double *)calloc(sizeof(double),stup->wfunc_numfree) ;
+   for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
+     if( !stup->wfunc_param[qq].fixed ){
+       val = (parm == NULL) ? stup->wfunc_param[qq].val_init : parm[qq] ;
+       wpar[ii] = (val - stup->wfunc_param[qq].min) / stup->wfunc_param[qq].siz;
+       if( wpar[ii] < 0.0 || wpar[ii] > 1.0 ) wpar[ii] = PRED01(wpar[ii]) ;
+       ii++ ;
+     }
+   }
+
+   gstup = stup ;
+
+   avm = (float *)calloc(stup->npt_match,sizeof(float)) ; /* target points at */
+   GA_get_warped_values( stup->wfunc_numfree,wpar,avm ) ; /* warped locations */
+
+   bvm = stup->bvm->ar ;                                 /* base points */
+   wvm = (stup->wvm != NULL) ? stup->wvm->ar : NULL ;    /* weights */
+
+   GA_setup_2Dhistogram( avm , bvm ) ;
+   MAKE_floatvec( costvec , GA_MATCH_METHNUM_SCALAR ) ;
+
+   for( meth=1 ; meth <= GA_MATCH_METHNUM_SCALAR ; meth++ )
+     costvec->ar[meth-1] = GA_scalar_costfun( meth, stup->npt_match, avm,bvm,wvm ) ;
+
+   free((void *)wpar); free((void *)avm);    /* toss the trash */
+   RETURN(costvec) ;
 }
 
 /*---------------------------------------------------------------------------*/

@@ -1479,8 +1479,10 @@ extern void GA_reset_fit_callback( void (*fc)(int,double*) ) ;
 extern void GA_do_dots(int) ;
 extern void GA_do_cost(int, byte) ;
 extern void GA_do_params(int) ;
-extern float mri_genalign_scalar_cost( GA_setup * ) ;
+extern float mri_genalign_scalar_cost( GA_setup * , float *) ;
 extern void GA_set_outval( float ) ;   /* 28 Feb 2007 */
+
+extern floatvec * mri_genalign_scalar_allcosts( GA_setup * , float * ); /* 19 Sep 2007 */
 
 #define MATORDER_SDU  1  /* matrix multiplication order: */
 #define MATORDER_SUD  2  /* S = shear matrix             */
