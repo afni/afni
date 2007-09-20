@@ -6372,3 +6372,4 @@
 20 Sep 2007
  * Add '-allcost' options to 3dAllineate.c and mri_genalign.c.
  * Neuter program 3dAcost.c.
+ * Environment variable AFNI_INDEX_SCROLLREV.
