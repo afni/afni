@@ -2406,6 +2406,13 @@ static char * readme_env[] = {
    "If this variable is set to YES, then the 'See Overlay' button will be turned\n" ,
    "on when a new AFNI controller is opened.\n" ,
    "\n" ,
+   "------------------------------\n" ,
+   "Variable: AFNI_INDEX_SCROLLREV\n" ,
+   "------------------------------\n" ,
+   "If this variable is set to YES, then the default direction of image slice\n" ,
+   "and time index scrolling will be reversed in the image and graph viewers,\n" ,
+   "respectively.\n" ,
+   "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- variables specific to NIML I/O\n" ,
    "----------------------------------------------------------------------\n" ,
@@ -2550,4 +2557,4 @@ static char * readme_env[] = {
    "in 3dDeconvolve by the \"-gltsym\" option will be printed to the screen\n" ,
    "when the program starts up.\n" ,
    NULL } ;
-#define NUM_readme_env 2550
+#define NUM_readme_env 2557
