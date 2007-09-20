@@ -6368,3 +6368,7 @@
 18 Sep 2007
  * Added "RGB:r,g,b" format to DC_parse_color() in display.c.
  * Fixed some bugs in 'Clipped' display.
+
+20 Sep 2007
+ * Add '-allcost' options to 3dAllineate.c and mri_genalign.c.
+ * Neuter program 3dAcost.c.

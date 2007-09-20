@@ -2,7 +2,22 @@
 
 /** Adapted from 3ddot.c -- 10 Oct 2006 -- RWCox **/
 
-int main( int argc , char * argv[] )
+#define DISABLE_PROGRAM
+
+#ifdef  DISABLE_PROGRAM
+int main( int argc , char *argv[] )
+{
+  printf("\n"
+    "  *** Program 3dAcost is no longer available.\n"
+    "  *** Use '3dAllineate -allcostX' instead;\n"
+    "  *** See the output of '3dAllineate -HELP' for more information.\n\n"
+  ) ;
+  exit(0) ;
+}
+
+#else
+
+int main( int argc , char *argv[] )
 {
    MRI_IMAGE *xim , *yim ;
    float     *xar , *yar , *war ;
@@ -276,3 +291,4 @@ int main( int argc , char * argv[] )
   
    exit(0) ;
 }
+#endif  /* DISABLE_PROGRAM */
