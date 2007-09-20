@@ -2187,3 +2187,5 @@
   * modified 3dDeconvolve.c: show voxel loop when numjobs > 1
   * modified model_conv_diffgamma.c: allow no scaling, add more debug
 
+20 Sep 2007: modified thd_opendset.c: THD_deconflict_nifti needs to use path
+
