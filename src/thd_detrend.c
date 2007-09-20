@@ -505,8 +505,8 @@ ENTRY("THD_build_trigref") ;
 }
 
 /*----------------------------------------------------------------------------*/
-#undef  INMASK
-#define INMASK(i) (mask != NULL && mask[i])
+ #undef  INMASK                                     /* ZSS: Changed from    */ 
+ #define INMASK(i) ((mask == NULL || mask[i]))      /*       mask != NULL   */
 /*----------------------------------------------------------------------------*/
 /* Fits each voxel time series to a linear model:
 
