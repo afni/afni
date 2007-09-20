@@ -39,6 +39,19 @@ void AL_setup_warp_coords( int,int,int,int ,
                            int *, float *, mat44,
                            int *, float *, mat44 ) ; /* prototype */
 
+#undef MEMORY_CHECK
+#ifdef USING_MCW_MALLOC
+# define MEMORY_CHECK                                              \
+   do{ if( verb > 5 ) mcw_malloc_dump() ;                          \
+       if( verb > 1 ){                                             \
+         long long nb = mcw_malloc_total() ;                       \
+         if( nb > 0 ) INFO_message("Memory usage now = %lld",nb) ; \
+       }                                                           \
+   } while(0)
+#else
+# define MEMORY_CHECK /*nada*/
+#endif
+
 /*----------------------------------------------------------------------------*/
 #undef  NMETH
 #define NMETH GA_MATCH_METHNUM_SCALAR  /* cf. mrilib.h */
@@ -778,7 +791,7 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strcmp(argv[iarg],"-allcost") == 0 ){   /* 19 Sep 2007 */
-       do_allcost = 1 ; iarg++ ; continue ;         /* SECRET OPTIONS */
+       do_allcost = 1 ; iarg++ ; continue ;      /* SECRET OPTIONS */
      }
      if( strcmp(argv[iarg],"-allcostX") == 0 ){
        do_allcost = -1 ; iarg++ ; continue ;
@@ -1793,6 +1806,19 @@ int main( int argc , char *argv[] )
      }
    }
 
+   if( do_allcost == -1 && prefix != NULL ){  /* 19 Sep 2007 */
+     prefix = NULL ;
+     WARNING_message("-allcostX means -prefix is ignored!") ;
+   }
+   if( do_allcost == -1 && param_save_1D != NULL ){
+     param_save_1D = NULL ;
+     WARNING_message("-allcostX means -1Dparam_save is ignored!") ;
+   }
+   if( do_allcost == -1 && matrix_save_1D != NULL ){
+     matrix_save_1D = NULL ;
+     WARNING_message("-allcostX means -1Dmatrix_save is ignored!") ;
+   }
+
    if( warp_freeze ) twofirst = 1 ;  /* 10 Oct 2006 */
 
    /* open target from last argument, if not already open */
@@ -1840,7 +1866,7 @@ int main( int argc , char *argv[] )
      }
      if( dset_mast == NULL && dxyz_mast == 0.0 )
        INFO_message("You might want to use '-master' when using '-1D*_apply'") ;
-     if( do_allcost != 0   ){  /* 19 Sep 2007 */
+     if( do_allcost ){  /* 19 Sep 2007 */
        do_allcost = 0 ;
        WARNING_message("-allcost option illegal with -1D*_apply") ;
      }
@@ -2369,11 +2395,6 @@ int main( int argc , char *argv[] )
 
    /*****------ create shell of output dataset ------*****/
 
-   if( do_allcost == -1 && prefix != NULL ){  /* 19 Sep 2007 */
-     prefix = NULL ;
-     WARNING_message("-allcostX means -prefix is ignored!") ;
-   }
-
    if( prefix == NULL ){
      WARNING_message("No output dataset will be calculated") ;
      if( dxyz_mast > 0.0 )
@@ -2477,10 +2498,10 @@ int main( int argc , char *argv[] )
    /*-- array in which to save parameters for later waterboarding --*/
 
    if( param_save_1D != NULL || apply_mode != APPLY_AFF12 )
-     parsave = (float **)malloc(sizeof(float *)*DSET_NVALS(dset_targ)) ;
+     parsave = (float **)calloc(sizeof(float *),DSET_NVALS(dset_targ)) ;
 
    if( matrix_save_1D != NULL || apply_mode != APPLY_AFF12  )
-     matsave = (mat44 * )malloc(sizeof(mat44  )*DSET_NVALS(dset_targ)) ; /* 23 Jul 2007 */
+     matsave = (mat44 * )calloc(sizeof(mat44  ),DSET_NVALS(dset_targ)) ; /* 23 Jul 2007 */
 
    /***-------------------- loop over target sub-bricks --------------------***/
 
@@ -2572,8 +2593,9 @@ int main( int argc , char *argv[] )
        stup.npt_match   = npt_match ;
        mri_genalign_scalar_setup( im_bset , im_wset , im_targ , &stup ) ;
        allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
+       INFO_message("allcost output: init #%d",kk) ;
        for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
-         printf("allcost: %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
+         printf("   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
        KILL_floatvec(allcost) ;
        if( do_allcost == -1 ) continue ;  /* skip to next sub-brick */
      }
@@ -2786,8 +2808,9 @@ int main( int argc , char *argv[] )
      if( do_allcost != 0 ){
        PAR_CPY(val_init) ;
        allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
+       INFO_message("allcost output: fine #%d",kk) ;
        for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
-         printf("allcost: %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
+         printf("   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
        KILL_floatvec(allcost) ;
      }
 
@@ -2840,8 +2863,9 @@ int main( int argc , char *argv[] )
        if( do_allcost != 0 ){
          PAR_CPY(val_init) ;
          allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
+         INFO_message("allcost output: intermed #%d",kk) ;
          for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
-           printf("allcost: %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
+           printf("   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
          KILL_floatvec(allcost) ;
        }
      }
@@ -2864,8 +2888,9 @@ int main( int argc , char *argv[] )
      if( do_allcost != 0 ){
        PAR_CPY(val_out) ;
        allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
+       INFO_message("allcost output: final #%d",kk) ;
        for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
-         printf("allcost: %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
+         printf("   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
        KILL_floatvec(allcost) ;
      }
 
@@ -3105,13 +3130,7 @@ DUMP_MAT44("aff12_ijk",qmat) ;
          mri_purge( DSET_BRICK(dset_out,kk) ) ;
      }
 
-#ifdef USING_MCW_MALLOC
-     if( verb > 5 ) mcw_malloc_dump() ;
-     if( verb > 1 ){
-       long long nb = mcw_malloc_total() ;
-       if( nb > 0 ) INFO_message("Memory usage now = %lld",nb) ;
-     }
-#endif
+     MEMORY_CHECK ;
 
    } /***------------- end of loop over target sub-bricks ------------------***/
 
@@ -3126,13 +3145,7 @@ DUMP_MAT44("aff12_ijk",qmat) ;
 
    /***--- write output dataset to disk? ---***/
 
-#ifdef USING_MCW_MALLOC
-     if( verb > 5 ) mcw_malloc_dump() ;
-     if( verb > 1 ){
-       long long nb = mcw_malloc_total() ;
-       if( nb > 0 ) INFO_message("Memory usage now = %lld",nb) ;
-     }
-#endif
+   MEMORY_CHECK ;
 
    if( dset_out != NULL ){
      DSET_write(dset_out); WROTE_DSET(dset_out); DSET_unload(dset_out);
@@ -3184,13 +3197,14 @@ DUMP_MAT44("aff12_ijk",qmat) ;
 
    FREE_GA_setup(&stup) ;
    if( parsave != NULL ){
-     for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ) free((void *)parsave[kk]) ;
+     for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ )
+       if( parsave[kk] != NULL ) free((void *)parsave[kk]) ;
      free((void *)parsave) ;
    }
    if( matsave != NULL ) free((void *)matsave) ;
 
    if( verb ) INFO_message("total CPU time = %.1f sec\n",COX_cpu_time()) ;
-   if( PRINT_TRACING ) MCHECK ;
+   MEMORY_CHECK ;
    exit(0) ;
 }
 
