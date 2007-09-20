@@ -273,19 +273,19 @@ ENTRY("THD_is_dataset") ;
 
 /*--------------------------------------------------------------------*/
 
-static int THD_deconflict_nifti( char *pfx )
+static int THD_deconflict_nifti( char *brick_name )
 {
    int lp , ls ; char suf[9] ;
    char aa,bb,cc ;
 
-   if( !THD_is_file(pfx) ) return 0 ;
+   if( !THD_is_file(brick_name) ) return 0 ;
 
-   lp = strlen(pfx) ;
-   if( STRING_HAS_SUFFIX(pfx,".nii") ){
+   lp = strlen(brick_name) ;
+   if( STRING_HAS_SUFFIX(brick_name,".nii") ){
      ls = lp-4 ; strcpy(suf,".nii") ;
-   } else if( STRING_HAS_SUFFIX(pfx,".nii.gz") ){
+   } else if( STRING_HAS_SUFFIX(brick_name,".nii.gz") ){
      ls = lp-7 ; strcpy(suf,".nii.gz") ;
-   } else if( STRING_HAS_SUFFIX(pfx,".hdr") ){
+   } else if( STRING_HAS_SUFFIX(brick_name,".hdr") ){
      ls = lp-4 ; strcpy(suf,".hdr") ;
    } else {
      ls = lp   ; strcpy(suf,"\0") ;
@@ -294,17 +294,19 @@ static int THD_deconflict_nifti( char *pfx )
    for( aa='A' ; aa <= 'Z' ; aa++ ){
     for( bb='A' ; bb <= 'Z' ; bb++ ){
      for( cc='1' ; cc <= '9' ; cc++ ){
-       pfx[ls  ] = '_' ;
-       pfx[ls+1] = aa  ;
-       pfx[ls+2] = bb  ;
-       pfx[ls+3] = cc  ;
-       pfx[ls+4] = '\0';
-       strcat(pfx,suf) ;
-       if( ! THD_is_file(pfx) ) return 1 ;
+       brick_name[ls  ] = '_' ;
+       brick_name[ls+1] = aa  ;
+       brick_name[ls+2] = bb  ;
+       brick_name[ls+3] = cc  ;
+       brick_name[ls+4] = '\0';
+       strcat(brick_name,suf) ;
+       if( ! THD_is_file(brick_name) ) return 1 ;
    }}}
 
-   if( ls > THD_MAX_PREFIX-45 ) ls = THD_MAX_PREFIX-45 ;
-   pfx[ls++] = '_' ; UNIQ_idcode_fill( pfx+ls ) ; strcat(pfx,suf) ;
+   if( ls > THD_MAX_NAME-45 ) ls = THD_MAX_NAME-45 ;
+   brick_name[ls++] = '_' ;
+   UNIQ_idcode_fill( brick_name+ls ) ;
+   strcat(brick_name,suf) ;
    return 1;
 }
 
@@ -326,8 +328,15 @@ ENTRY("THD_deconflict_prefix") ;
    MCW_strncpy( pfx , DSET_PREFIX(dset) , THD_MAX_PREFIX ) ;
 
    if( PREFIX_IS_NIFTI(pfx) ){
-     lp = THD_deconflict_nifti( pfx ) ;
-     if( lp > 0 ) EDIT_dset_items( dset , ADN_prefix , pfx , ADN_none ) ;
+     /* adjust brick_name */
+     EDIT_dset_items( dset , ADN_prefix , pfx , ADN_none ) ;
+
+     /* deconflict brick_name (to include path) */
+     lp = THD_deconflict_nifti( dset->dblk->diskptr->brick_name ) ;
+
+     /* reset names from adjusted brick_name */
+     if( lp > 0 ) EDIT_dset_items( dset , ADN_prefix ,
+                                   dset->dblk->diskptr->brick_name , ADN_none );
      RETURN(lp) ;
    }
 
