@@ -55,6 +55,8 @@ int main( int argc , char *argv[] )
       "                only for historical compatibility reasons.  It may\n"
       "                become the default someday. Depending on my mood.\n"
       "                It is already the default in program 3dBlurToFWHM.\n"
+      "        **N.B.: This is the same detrending as done in 3dDespike;\n"
+      "                using 2*q+3 basis functions for q > 0.\n"
       "  -detprefix d= Save the detrended file into a dataset with prefix 'd'.\n"
       "                Used mostly to figure out what the hell is going on,\n"
       "                when funky results transpire.\n"

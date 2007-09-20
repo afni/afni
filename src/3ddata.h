@@ -3989,6 +3989,7 @@ extern int THD_retrend_dataset( THD_3dim_dataset *dset ,
                                 int scl , byte *mask , MRI_IMARR *imar ) ;
 
 extern float ** THD_build_trigref( int corder , int nvals ) ;
+extern float ** THD_build_polyref( int nref   , int nvals ) ; /* 20 Sep 2007 */
 
 #define DETREND_linear(n,f)    THD_linear_detrend(n,f,NULL,NULL)
 #define DETREND_quadratic(n,f) THD_quadratic_detrend(n,f,NULL,NULL,NULL)
