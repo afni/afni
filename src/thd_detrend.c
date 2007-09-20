@@ -460,6 +460,35 @@ void THD_generic_retrend( int npt , float *far ,
 }
 
 /*----------------------------------------------------------------------------*/
+/*! Returns nref reference functions. */
+
+float ** THD_build_polyref( int nref , int nvals )  /* 20 Sep 2007 */
+{
+   int jj,iv,kk ;
+   float **ref ;
+   double fac , x ;
+
+ENTRY("THD_build_polyref") ;
+
+   if( nref < 1 || nvals <= nref ){
+     ERROR_message("THD_build_polyref: nref=%d  nvals=%d",nref,nvals) ;
+     RETURN(NULL) ;
+   }
+
+   fac = 2.0 / (nvals-1.0) ;
+   ref = (float **)malloc(sizeof(float *)*nref) ;
+   for( jj=0 ; jj < nref ; jj++ ){
+     ref[jj] = (float *) malloc( sizeof(float) * nvals ) ;
+     for( kk=0 ; kk < nvals ; kk++ ){
+       x = fac * kk - 1.0 ; ref[jj][kk] = Plegendre( x , jj ) ;
+     }
+   }
+
+   RETURN(ref) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Returns 2*corder+3 reference functions. */
 
 float ** THD_build_trigref( int corder , int nvals )
 {
@@ -473,7 +502,7 @@ ENTRY("THD_build_trigref") ;
      RETURN(NULL) ;
    }
 
-   ref=(float **)malloc(sizeof(float *)*nref) ;
+   ref = (float **)malloc(sizeof(float *)*nref) ;
    for( jj=0 ; jj < nref ; jj++ )
      ref[jj] = (float *) malloc( sizeof(float) * nvals ) ;
 
