@@ -446,11 +446,11 @@ dsetdup:dsetdup.o
 
 3dTcorrelate:3dTcorrelate.o
 	$(RM) $@
-	$(CC) -o 3dTcorrelate 3dTcorrelate.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dTcorrelate 3dTcorrelate.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
 3dAutoTcorrelate:3dAutoTcorrelate.o
 	$(RM) $@
-	$(CC) -o 3dAutoTcorrelate 3dAutoTcorrelate.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dAutoTcorrelate 3dAutoTcorrelate.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
 3dTagalign:3dTagalign.o
 	$(RM) $@
@@ -458,7 +458,7 @@ dsetdup:dsetdup.o
 
 3dTshift:3dTshift.o
 	$(RM) $@
-	$(CC) -o 3dTshift 3dTshift.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dTshift 3dTshift.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
 3dTstat:3dTstat.o
 	$(RM) $@
@@ -478,7 +478,7 @@ dsetdup:dsetdup.o
 
 3dBlurToFWHM:3dBlurToFWHM.o
 	$(RM) $@
-	$(CC) -o 3dBlurToFWHM 3dBlurToFWHM.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dBlurToFWHM 3dBlurToFWHM.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
 3dDFT:3dDFT.o
 	$(RM) $@
@@ -511,7 +511,7 @@ dsetdup:dsetdup.o
 
 3dTsmooth:3dTsmooth.o
 	$(RM) $@
-	$(CC) -o 3dTsmooth 3dTsmooth.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dTsmooth 3dTsmooth.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
 3dMean:3dMean.o
 	$(RM) $@
@@ -655,7 +655,7 @@ d3dmerge:3dmerge.c
 ### From Stephen Laconte
 3dsvm:svm/svm_common.c svm/svm_learn.c svm/3dsvm_common.c svm/svm_hideo.c svm/3dsvm.c
 	( cd svm/   ;  \
-	  $(CC) -o 3dsvm 3dsvm_common.c svm_common.c svm_hideo.c 3dsvm.c -I.. $(ISFLAGS) -L.. $(LFLAGS) $(LLIBS)  ;  \
+	  $(CC) -o 3dsvm 3dsvm_common.c svm_common.c svm_hideo.c 3dsvm.c -I.. $(ISFLAGS) -L.. $(LFLAGS) $(LLIBS) -lf2c -lmri ;  \
 	  $(CP) 3dsvm ..  ;  \
 	  cd .. ;)
 whereami:whereami.c
@@ -848,7 +848,7 @@ AlphaSim:AlphaSim.o
 
 3dFWHMx:3dFWHMx.o
 	$(RM) $@
-	$(CC) -o 3dFWHMx 3dFWHMx.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dFWHMx 3dFWHMx.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
 3dMannWhitney:3dMannWhitney.o
 	$(RM) $@
@@ -1070,7 +1070,7 @@ afni_vcheck:afni_vcheck.o
 
 1dfft:1dfft.o
 	$(RM) $@
-	$(CC) -o 1dfft 1dfft.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 1dfft 1dfft.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
 1dcat:1dcat.o
 	$(RM) $@
