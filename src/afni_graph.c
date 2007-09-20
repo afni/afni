@@ -2834,7 +2834,9 @@ STATUS("button press") ;
          /* 26 Feb 2007: Buttons 4 and 5 = scroll wheel = change time point */
 
          if( but == Button4 || but == Button5 ){
-           int tt = (but==Button4) ? grapher->time_index-1 : grapher->time_index+1 ;
+           int dd=(but==Button4)?-1:+1 , tt ;
+           if( AFNI_yesenv("AFNI_INDEX_SCROLLREV") ) dd = -dd ;
+           tt = grapher->time_index + dd ;
            EXRONE(grapher) ; GRA_timer_stop(grapher) ;
            if( tt >= 0 && tt < grapher->status->num_series ){
              if( grapher->status->send_CB != NULL ){

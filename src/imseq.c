@@ -5155,7 +5155,9 @@ STATUS(" .. ButtonPress") ;
              cbs.nim    = seq->im_nr ;
              SEND(seq,cbs) ;
            } else {                           /* no modifiers == change slice */
-             int nold=seq->im_nr , nnew=(but==Button4) ? nold-1 : nold+1;
+             int nold=seq->im_nr , dd=(but==Button4)?-1:+1 , nnew ;
+             if( AFNI_yesenv("AFNI_INDEX_SCROLLREV") ) dd = -dd ;
+             nnew = nold + dd ;
              ISQ_timer_stop(seq) ;
              if( nnew >= 0 && nnew < seq->status->num_total )
                ISQ_redisplay( seq , nnew , isqDR_display ) ;
