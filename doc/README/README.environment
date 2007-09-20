@@ -2405,6 +2405,13 @@ Variable: AFNI_SEE_OVERLAY
 If this variable is set to YES, then the 'See Overlay' button will be turned
 on when a new AFNI controller is opened.
 
+------------------------------
+Variable: AFNI_INDEX_SCROLLREV
+------------------------------
+If this variable is set to YES, then the default direction of image slice
+and time index scrolling will be reversed in the image and graph viewers,
+respectively.
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
