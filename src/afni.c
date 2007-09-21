@@ -7001,8 +7001,8 @@ STATUS("turning markers off") ;
       /* turn controls off */
 
 #if 0
-      SENSITIZE(  view->define_marks_pb , False ) ;
-      SENSITIZE(  view->see_marks_bbox->wrowcol , False ) ;
+      SENSITIZE( view->define_marks_pb , False ) ;
+      SENSITIZE( view->see_marks_bbox->wrowcol , False ) ;
 #endif
 
       marks->editable = False ;
@@ -7870,7 +7870,7 @@ static void fixscale( XtPointer client_data , XtIntervalId * id )
 
 void AFNI_define_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
+   Three_D_View *im3d = (Three_D_View *)client_data ;
    int vwarp ;
 
 ENTRY("AFNI_define_CB") ;
@@ -7881,8 +7881,8 @@ ENTRY("AFNI_define_CB") ;
 
    if( w == im3d->vwid->view->define_marks_pb ){
 
-      AFNI_viewing_widgets  * view  = im3d->vwid->view  ;
-      AFNI_marks_widgets    * marks = im3d->vwid->marks ;
+      AFNI_viewing_widgets  *view  = im3d->vwid->view  ;
+      AFNI_marks_widgets    *marks = im3d->vwid->marks ;
 
       if( XtIsManaged(marks->frame) == True ){  /* close it down */
 
@@ -7891,6 +7891,8 @@ STATUS("closing marks") ;
          AFNI_marks_action_CB( NULL , (XtPointer) im3d , NULL ) ;
 
       } else {                                  /* open it up */
+
+        static int first=1 ;  /* 21 Sep 2007 */
 
 STATUS("opening marks") ;
 
@@ -7969,8 +7971,19 @@ STATUS("opening marks") ;
          if( marks->old_visible != True &&
              im3d->anat_now->markers != NULL &&
              im3d->anat_now->markers->numset > 0 )
+           AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
 
-            AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
+         if( first && im3d->anat_now->markers == NULL ){ /* 21 Sep 2007 */
+           first = 0 ;
+           (void)MCW_popup_message(
+                  im3d->vwid->view->define_marks_pb ,
+                    " \n"
+                    " No Talairach markers defined for Underlay. \n"
+                    " You can add markers to a dataset via\n"
+                    "   3drefit -markers datasetname\n"
+                    " and then re-starting this AFNI program.\n" ,
+                  MCW_USER_KILL | MCW_TIMER_KILL ) ;
+         }
       }
 
       EXRETURN ;
