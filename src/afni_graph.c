@@ -3607,10 +3607,10 @@ STATUS("User pressed Done button: starting timeout") ;
 
    if( w == grapher->opt_pin_choose_pb ){   /* 19 Mar 2004 */
      char *lvec[2] = { "Bot" , "Top" } ;
-     int   ivec[2] ;
-     ivec[0] = grapher->pin_bot ; ivec[1] = grapher->pin_top ;
+     float fvec[2] ;
+     fvec[0] = grapher->pin_bot ; fvec[1] = grapher->pin_top ;
      MCW_choose_vector( grapher->option_rowcol , "Graph Pins: Bot..Top-1" ,
-                        2 , lvec,ivec ,
+                        2 , lvec,fvec ,
                         GRA_pin_choose_CB , (XtPointer) grapher ) ;
      EXRETURN ;
    }
