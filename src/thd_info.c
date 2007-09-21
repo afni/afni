@@ -260,11 +260,7 @@ ENTRY("THD_dataset_info") ;
    else                            nval_per = 1 ;                 /* 12 Feb 2002 */
 #else
    nval_per = dset->dblk->nvals ;
-   if( verbose < 0 && nval_per > 1 ){
-     outbuf = THD_zzprintf(outbuf,
-                "  [[For info on all %d sub-bricks, use '3dinfo -verb']]\n",nval_per) ;
-     nval_per = 1 ;
-   }
+   if( verbose < 0 && nval_per > 1 ) nval_per = 1 ;
 #endif
 
    /* print out stuff for each sub-brick */
@@ -320,6 +316,10 @@ ENTRY("THD_dataset_info") ;
       if( cpt != NULL && cpt[0] != '\0' )
          outbuf = THD_zzprintf(outbuf,"     keywords = %s\n",cpt) ;
    }
+   if( verbose < 0 && nval_per < dset->dblk->nvals )  /* 21 Sep 2007 */
+     outbuf = THD_zzprintf(outbuf,
+                "** For info on all %d sub-bricks, use '3dinfo -verb' **\n",
+                dset->dblk->nvals) ;
 
    /** print out dataset global statistical parameters **/
 
