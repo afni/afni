@@ -11596,7 +11596,7 @@ ENTRY("ISQ_handle_keypress") ;
        cbs.key    = (key == '[') ? -1 : +1 ;
        SEND(seq,cbs) ;
      }
-     break ;
+     break ;  /** N.B.: '{' and '}' are reserved for threshold changing! **/
 
      /* 23 Aug 2005: open some windows */
 
