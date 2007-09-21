@@ -6373,3 +6373,11 @@
  * Add '-allcost' options to 3dAllineate.c and mri_genalign.c.
  * Neuter program 3dAcost.c.
  * Environment variable AFNI_INDEX_SCROLLREV.
+
+21 Sep 2007
+ * Modified MCW_choose_vector() in bbox.c to make initvec a float array,
+     and then fixed the clusterize and graph pin stuff to match.
+ * Modified thd_info.c to print out a more prominent warning message
+     from 3dinfo.c when sub-brick stats are hidden from the user.
+ * Warning message popup when Define Markers is first opened on a
+     marker-less dataset.
