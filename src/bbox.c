@@ -1677,10 +1677,11 @@ ENTRY("MCW_choose_ovcolor") ;
 
 /*-------------------------------------------------------------------------*/
 /*! Get a bunch of values [19 Mar 2004].
+    Change initvec from int to float. [21 Sep 2007].
 ---------------------------------------------------------------------------*/
 
 void MCW_choose_vector( Widget wpar , char *label ,
-                        int nvec , char **labvec , int *initvec ,
+                        int nvec , char **labvec , float *initvec ,
                         gen_func *func , XtPointer func_data )
 {
    static Widget wpop = NULL , wrc ;
@@ -1771,7 +1772,7 @@ ENTRY("MCW_choose_vector") ;
                                 (labvec!=NULL) ? labvec[iv] : NULL ,
                                 MCW_AV_downup ,
                                 -99999,99999,
-                                (initvec!=NULL) ? initvec[iv] : 0 ,
+                                0 ,
                                 MCW_AV_edittext , 0 ,
                                 NULL , NULL , NULL , NULL ) ;
    }
@@ -1796,6 +1797,10 @@ ENTRY("MCW_choose_vector") ;
 
    RWC_visibilize_widget( wpop ) ;
    NORMAL_cursorize( wpop ) ;
+
+   if( initvec != NULL ){
+     for( iv=0 ; iv < nvec ; iv++ ) AV_assign_fval( av[iv] , initvec[iv] ) ;
+   }
 
    EXRETURN ;
 }

@@ -244,7 +244,7 @@ extern void   MCW_choose_integer( Widget , char * ,
                                   int,int,int , gen_func *, XtPointer );
 
 extern void   MCW_choose_vector ( Widget, char *,
-                                  int, char **, int *, gen_func *, XtPointer ) ;
+                                  int, char **, float *, gen_func *, XtPointer ) ;
 
 extern void   MCW_choose_string ( Widget, char *,
                                   char *, gen_func *, XtPointer );
