@@ -416,5 +416,40 @@ static char CB_CS[] = {
       "#022036 #012131 #00212c #002127 "
       "#002022 #001f1d #001d18 #001b14 "
       "#001810 #01160c #011209 #010f07 "
-      "#010b04 #010702 #000401 #000000 "
+      "#010b04 #010702 #000401 #010101 "
+};  /* changed last index to non-zero - not transparent */
+
+/* regular gray from white to black */
+static char GRAY_CS[] = {
+   "gray_scale "
+   "#ffffff #eeeeee #dddddd #cccccc "
+   "#bbbbbb #aaaaaa #999999 #888888 "
+   "#777777 #666666 #555555 #444444 "
+   "#333333 #222222 #111111 #010101 "
+};
+
+/* mirrored gray for +/- values */
+static char GRAY_CIRCLE_CS[] = {
+   "gray_circle "
+   "#ffffff #eeeeee #dddddd #cccccc "
+   "#bbbbbb #aaaaaa #999999 #888888 "
+   "#777777 #666666 #555555 #444444 "
+   "#333333 #222222 #111111 #010101 "
+   "#111111 #222222 #333333 #444444 "
+   "#555555 #666666 #777777 #888888 "
+   "#999999 #aaaaaa #bbbbbb #cccccc "
+   "#dddddd #eeeeee #ffffff "
+};
+/* mirrored and inverted gray for +/- values */
+static char GRAY_INV_CIRCLE_CS[] = {
+   "inverted_gray_circle "
+   "#010101 "
+   "#111111 #222222 #333333 #444444 "
+   "#555555 #666666 #777777 #888888 "
+   "#999999 #aaaaaa #bbbbbb #cccccc "
+   "#dddddd #eeeeee #ffffff "
+   "#eeeeee #dddddd #cccccc "
+   "#bbbbbb #aaaaaa #999999 #888888 "
+   "#777777 #666666 #555555 #444444 "
+   "#333333 #222222 #111111 #010101 "
 };

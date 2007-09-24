@@ -217,4 +217,7 @@ with new hybrid search method and bug fixes
 3dDWItoDT
 07 Sep 2007
  * updated viewer help to include newer keyboard and mouse shortcuts
-
+23 Sep 2007
+ * added some gray scales to overlay color scale choices, fixed small bug
+on lower limit of color scales in pbar.c and pbardefs.h. Also changed lowest
+index in cb_spiral, color-blind, color scale
