@@ -2194,4 +2194,5 @@
              afni.c plug_notes.c plug_tag.c readme_env.h thd_writedset.c:
         - changed AFNI_DONT_DECONFLICT to AFNI_DECONFLICT
         - modified default behavior to failure (from deconflict)
+  * modified 3dTshift.c: help fix for seqplus/seqminus
 
