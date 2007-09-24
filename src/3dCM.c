@@ -132,7 +132,7 @@ int main( int argc , char * argv[] )
          xset->daxes->yyorg = ov.xyz[1] ;
          xset->daxes->zzorg = ov.xyz[2] ;
          /* allow overwriting header for all types of output data */
-         putenv("AFNI_DONT_DECONFLICT=YES") ;
+         putenv("AFNI_DECONFLICT=OVERWRITE") ;
 	 if(DSET_IS_BRIK(xset)) {
            INFO_message("Rewriting header %s",DSET_HEADNAME(xset)) ;
            DSET_write_header( xset ) ;

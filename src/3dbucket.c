@@ -651,7 +651,7 @@ int main( int argc , char * argv[] )
    if( ! BUCK_dry ){
       if( BUCK_verb ) fprintf(stderr,"-verb: loading statistics\n") ;
       THD_load_statistics( new_dset ) ;
-      if( BUCK_glue ) putenv("AFNI_DONT_DECONFLICT=YES") ;
+      if( BUCK_glue ) putenv("AFNI_DECONFLICT=OVERWRITE") ;
       THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
       if( BUCK_verb ) fprintf(stderr,"-verb: wrote output: %s\n",DSET_BRIKNAME(new_dset)) ;
    }
