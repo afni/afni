@@ -85,17 +85,18 @@ ENTRY("THD_write_3dim_dataset") ;
 
    /*----- 06 Jun 2007: deconflict dataset name? -----*/
 
-   ppp = my_getenv("AFNI_DONT_DECONFLICT") ;
-   if( ppp == NULL || toupper(*ppp) != 'Y' ){
+   /* default is ERROR_exit */
+   ppp = my_getenv("AFNI_DECONFLICT") ;
+   if( ppp == NULL || toupper(*ppp) != 'O' ){
      char pfx[THD_MAX_PREFIX] ;
      MCW_strncpy( pfx , DSET_PREFIX(dset) , THD_MAX_PREFIX ) ;
      ii = THD_deconflict_prefix( dset ) ;
      if( ii ){
-       if( ppp == NULL || toupper(*ppp) != 'D' )
+       if( ppp && toupper(*ppp) == 'Y' )
          WARNING_message("changed output dataset name from '%s' to '%s'",
                          pfx , DSET_PREFIX(dset) ) ;
        else
-         ERROR_exit("output dataset name '%s' conflicts with existing file",pfx) ;
+        ERROR_exit("output dataset name '%s' conflicts with existing file",pfx);
      }
    }
 
@@ -191,7 +192,7 @@ ENTRY("THD_write_3dim_dataset") ;
 
 int THD_deathcon(void)  /* 06 Jun 2007 */
 {
-   char *ppp = my_getenv("AFNI_DONT_DECONFLICT") ;
-   if( ppp != NULL && *ppp == 'D' ) return 1 ;
+   char *ppp = my_getenv("AFNI_DECONFLICT") ;
+   if( ppp != NULL && *ppp == 'N' ) return 1 ;
    return 0 ;
 }

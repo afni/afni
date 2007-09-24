@@ -1777,7 +1777,7 @@ STATUS("call 14") ;
           if( new_thresh > 0.0f ) AFNI_set_threshold(MAIN_im3d,new_thresh) ;
         }
 
-        putenv("AFNI_DONT_DECONFLICT=YES") ;  /* 07 Jun 2007 */
+        putenv("AFNI_DECONFLICT=OVERWRITE") ; /* 24 Sep 2007 */
         putenv("AFNI_IS_RUNNING=YES") ;       /* 08 Jun 2007 */
         REPORT_PROGRESS("\n") ;
       }
