@@ -2189,3 +2189,9 @@
 
 20 Sep 2007: modified thd_opendset.c: THD_deconflict_nifti needs to use path
 
+24 Sep 2007:
+  * modified 3dbucket.c 3dCM.c 3dnewid.c 3dNotes.c 3drefit.c 3dTcat.c adwarp.c
+             afni.c plug_notes.c plug_tag.c readme_env.h thd_writedset.c:
+        - changed AFNI_DONT_DECONFLICT to AFNI_DECONFLICT
+        - modified default behavior to failure (from deconflict)
+
