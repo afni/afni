@@ -2387,9 +2387,9 @@ the front, but some window managers (I'm looking at you, FC5) don't allow
 this action.  So this provides a way to kill the window, at least, if you've
 lost it in desktop hell somewhere.
 
-------------------------------
+-------------------------
 Variable: AFNI_DECONFLICT
-------------------------------
+-------------------------
 When AFNI programs write datasets to disk, they will check whether the
 output filename already exists.  If it does, the AFNI programs will act
 based on the possible values of AFNI_DECONFLICT as follows:
