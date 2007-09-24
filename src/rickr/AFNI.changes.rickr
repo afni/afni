@@ -2195,4 +2195,5 @@
         - changed AFNI_DONT_DECONFLICT to AFNI_DECONFLICT
         - modified default behavior to failure (from deconflict)
   * modified 3dTshift.c: help fix for seqplus/seqminus
+  * modified AFNI.afnirc: set hints to YES as default
 
