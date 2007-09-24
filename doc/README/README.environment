@@ -2388,16 +2388,21 @@ this action.  So this provides a way to kill the window, at least, if you've
 lost it in desktop hell somewhere.
 
 ------------------------------
-Variable: AFNI_DONT_DECONFLICT
+Variable: AFNI_DECONFLICT
 ------------------------------
-As of 06 Jun 2007, when AFNI programs write datasets to disk, they will check if
-the filename already exists; if so, then the filename will be 'deconflicted' --
-changed to a filename that does not conflict with an existing file.  For example,
-"fred+orig" could be changed to "fred_AA1+orig".  If you do NOT want this
-automatic deconflicting, then set this variable to YES -- in that case, dataset
-files will be overwritten if a conflict occurs.  If you want the program to
-stop when it finds an output conflict and NOT write anything, then set this
-variable to DEATH (or anything starting with a 'D').
+When AFNI programs write datasets to disk, they will check whether the
+output filename already exists.  If it does, the AFNI programs will act
+based on the possible values of AFNI_DECONFLICT as follows:
+    NO/<none>   : do not modify the name or overwrite the file, but
+                  inform the user of the conflict, and exit
+    YES         : modify the filename, as stated below
+    OVERWRITE   : do not modify the filename, overwrite the dataset
+If AFNI_DECONFLICT is YES, then the filename will be changed to one that
+does not conflict with any existing file.  For example 'fred+orig' could
+be changed to 'fred_AA1+orig'.
+
+The default behavior is as 'NO', not to deconflict, but to exit.
+Some programs supply their own default.
 
 --------------------------
 Variable: AFNI_SEE_OVERLAY
