@@ -867,7 +867,7 @@ STATUS("have new image") ;
 
   STATUS("rewriting header") ;
   /* allow overwriting header  */
-  putenv("AFNI_DONT_DECONFLICT=YES") ;
+  putenv("AFNI_DECONFLICT=OVERWRITE") ;
   (void) THD_write_3dim_dataset( NULL,NULL , dset , False ) ;
 
   STATUS("purging datablock") ;

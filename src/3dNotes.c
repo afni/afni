@@ -271,7 +271,7 @@ int main (int argc, char * argv[]) {
    else {
            if(write_output) DSET_load(dset);  /* 21 Jun 2006 */
            /* allow overwriting header for all types of output data */
-           putenv("AFNI_DONT_DECONFLICT=YES") ;
+           putenv("AFNI_DECONFLICT=OVERWRITE") ;
            THD_write_3dim_dataset( NULL,NULL , dset , write_output ) ;
            THD_delete_3dim_dataset( dset , False ) ; 
    }

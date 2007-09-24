@@ -1287,7 +1287,7 @@ int main( int argc , char * argv[] )
    putenv("AFNI_CROSSHAIR_LINES=YES") ;
    putenv("AFNI_ALWAYS_LOCK=YES") ;
    putenv("AFNI_IMAGE_SAVESQUARE=YES") ;
-   putenv("AFNI_DONT_DECONFLICT=YES") ;  /* 07 Jun 2007 */
+   putenv("AFNI_DECONFLICT=OVERWRITE") ; /* 24 Sep 2007 */
    putenv("AFNI_X11_REDECORATE=NO") ;
 
 #if 0
