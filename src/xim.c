@@ -68,7 +68,7 @@ ENTRY("mri_to_XImage") ;
    Image = (unsigned char *) XtMalloc( (size_t) (w2*height) );
 
    ximage = XCreateImage( dc->display , dc->visual , dc->depth ,
-                          ZPixmap , 0 , Image , width,height , 8 , w2 ) ;
+                          ZPixmap , 0 , (char *)Image , width,height , 8 , w2 );
 
    if( ximage == NULL ){
      fprintf(stderr,"\n*** CANNOT create new XImage for display\n") ;
@@ -526,7 +526,7 @@ ENTRY("pixar_to_XImage") ;
    if( Image == NULL ) RETURN( NULL ) ;
 
    ximage = XCreateImage( dc->display , dc->visual , dc->depth ,
-                          ZPixmap , 0 , Image , width,height , 8 , w2 ) ;
+                          ZPixmap , 0 , (char *)Image , width,height , 8 , w2 );
    if( ximage == NULL ){ XtFree((char *)Image) ; RETURN( NULL ) ; }
 
    border = ximage->byte_order ;  /* byte order */

@@ -6947,7 +6947,7 @@ static unsigned char record_bits[] = {
             record_pixmap = XCreatePixmapFromBitmapData(
                               seq->dc->display ,
                               RootWindowOfScreen(seq->dc->screen) ,
-                              record_bits, record_width, record_height ,
+                              (char *)record_bits, record_width, record_height ,
                               seq->dc->ovc->pixov_brightest ,
                               seq->dc->ovc->pixov_darkest ,
                               DefaultDepthOfScreen(seq->dc->screen) ) ;
@@ -10589,7 +10589,7 @@ ENTRY("ISQ_getoverlay") ;
 
    if( tim == NULL ) RETURN(NULL) ;
 
-   /* cut out cropped region */
+   /*--- cut out cropped region, if any ---*/
 
    if( seq->cropit ){
      MRI_IMAGE *qim = mri_cut_2D( tim, seq->crop_xa,seq->crop_xb,

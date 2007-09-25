@@ -21,11 +21,11 @@
 ---------------------------------------------------------------------------*/
 
 MCW_bbox * new_MCW_bbox( Widget parent ,
-                         int num_but , char * label_but[] ,
+                         int num_but , char *label_but[] ,
                          int bb_type , int bb_frame ,
                          XtCallbackProc cb , XtPointer cb_data )
 {
-   MCW_bbox * bb ;
+   MCW_bbox *bb ;
    int ib , initial_value ;
    Widget rc_parent ;
    Arg wa[30] ;  int na ;
@@ -137,7 +137,7 @@ ENTRY("new_MCW_bbox") ;
 
 /*------------------------------------------------------------------------*/
 
-void MCW_bbox_hints( MCW_bbox * bb , int nh , char ** hh )
+void MCW_bbox_hints( MCW_bbox *bb , int nh , char **hh )
 {
    int ib ;
 
@@ -231,7 +231,7 @@ MCW_arrowval * new_MCW_arrowval( Widget parent ,
                                  str_func *text_proc  , XtPointer text_data
                                )
 {
-   MCW_arrowval * av = NULL ;
+   MCW_arrowval *av = NULL ;
    int asizx = 20 , asizy = 15 ;  /* arrow sizes */
 
 ENTRY("new_MCW_arrowval") ;
@@ -661,13 +661,13 @@ ENTRY("new_MCW_optmenu") ;
    The label and action callback remain the same.
 ------------------------------------------------------------------------------*/
 
-void refit_MCW_optmenu( MCW_arrowval * av ,
+void refit_MCW_optmenu( MCW_arrowval *av ,
                         int  minval , int maxval , int inival , int decim ,
-                        str_func * text_proc  , XtPointer text_data )
+                        str_func *text_proc  , XtPointer text_data )
 {
-   Widget * children , wbut , wmenu ;
+   Widget *children , wbut , wmenu ;
    int  num_children , ic , ival ;
-   char * butlabel , * blab ;
+   char *butlabel , *blab ;
    XmString xstr ;
    int maxbut ;   /* 23 Aug 2003 */
 
@@ -800,7 +800,7 @@ ENTRY("refit_MCW_optmenu") ;
   11 Dec 2001: Provide a Button 3 list to choose from for an optmenu
 ----------------------------------------------------------------------------*/
 
-static void optmenu_finalize( Widget w, XtPointer cd, MCW_choose_cbs * cbs )
+static void optmenu_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
 {
    MCW_arrowval *av = (MCW_arrowval *) cd ;
    int ival ;
@@ -993,13 +993,13 @@ ENTRY("optmenu_EV") ;
    Create a colormenu -- an optmenu with buttons colorized
 ----------------------------------------------------------------------------*/
 
-MCW_arrowval * new_MCW_colormenu( Widget parent , char * label , MCW_DC * dc ,
+MCW_arrowval * new_MCW_colormenu( Widget parent , char *label , MCW_DC *dc ,
                                   int min_col , int max_col , int ini_col ,
-                                  gen_func * delta_value, XtPointer delta_data
+                                  gen_func *delta_value, XtPointer delta_data
                                 )
 {
-   MCW_arrowval * av ;
-   Widget * children ;
+   MCW_arrowval *av ;
+   Widget *children ;
    int  num_children , ic , icol ;
 
 ENTRY("new_MCW_colormenu") ;
@@ -1023,9 +1023,9 @@ ENTRY("new_MCW_colormenu") ;
    RETURN(av) ;
 }
 
-char * MCW_av_substring_CB( MCW_arrowval * av , XtPointer cd )
+char * MCW_av_substring_CB( MCW_arrowval *av , XtPointer cd )
 {
-   char ** str = (char **) cd ;
+   char **str = (char **) cd ;
    return str[av->ival] ;
 }
 
@@ -1033,7 +1033,7 @@ char * MCW_av_substring_CB( MCW_arrowval * av , XtPointer cd )
 
 void AVOPT_press_CB( Widget wbut, XtPointer client_data, XtPointer call_data )
 {
-   MCW_arrowval * av = (MCW_arrowval *) client_data ;
+   MCW_arrowval *av = (MCW_arrowval *) client_data ;
    int newval ;
    XtPointer xval ;
 
@@ -1060,8 +1060,8 @@ void AVOPT_press_CB( Widget wbut, XtPointer client_data, XtPointer call_data )
 
 void AV_press_CB( Widget warrow, XtPointer client_data, XtPointer call_data )
 {
-   MCW_arrowval * av                 = (MCW_arrowval *) client_data ;
-   XmArrowButtonCallbackStruct * cbs =
+   MCW_arrowval *av                 = (MCW_arrowval *) client_data ;
+   XmArrowButtonCallbackStruct *cbs =
                         (XmArrowButtonCallbackStruct *) call_data ;
 
    XtIntervalId fake_id = 0 ;
@@ -1093,9 +1093,9 @@ void AV_press_CB( Widget warrow, XtPointer client_data, XtPointer call_data )
 
 /*------------------------------------------------------------------------*/
 
-void AV_timer_CB( XtPointer client_data , XtIntervalId * id )
+void AV_timer_CB( XtPointer client_data , XtIntervalId *id )
 {
-   MCW_arrowval * av = (MCW_arrowval *) client_data ;
+   MCW_arrowval *av = (MCW_arrowval *) client_data ;
    int newval ;
    double sval ;
 
@@ -1164,10 +1164,10 @@ void AV_timer_CB( XtPointer client_data , XtIntervalId * id )
 
 /*------------------------------------------------------------------------*/
 
-void AV_assign_ival( MCW_arrowval * av , int nval )
+void AV_assign_ival( MCW_arrowval *av , int nval )
 {
    int newival = nval ;
-   char * cval ;
+   char *cval ;
 
 ENTRY("AV_assign_ival") ;
 
@@ -1208,7 +1208,7 @@ ENTRY("AV_assign_ival") ;
 
    if( av->wmenu != NULL && ! av->block_assign_actions ){
 
-      Widget * children , wbut ;
+      Widget *children , wbut ;
       int  num_children , ic ;
 
       XtVaGetValues( av->wmenu ,
@@ -1231,7 +1231,7 @@ ENTRY("AV_assign_ival") ;
   format a floating value for output
 ---------------------------------------------------------------------------*/
 
-char * AV_default_text_CB( MCW_arrowval * av , XtPointer junk )
+char * AV_default_text_CB( MCW_arrowval *av , XtPointer junk )
 {
    static char buf[32] ;
 
@@ -1242,7 +1242,7 @@ char * AV_default_text_CB( MCW_arrowval * av , XtPointer junk )
 
 /*------------------------------------------------------------------------*/
 
-void AV_fval_to_char( float qval , char * buf )
+void AV_fval_to_char( float qval , char *buf )
 {
    float aval = fabs(qval) ;
    int lv ;
@@ -1333,10 +1333,10 @@ char * AV_uformat_fval( float fval )
 
 /*------------------------------------------------------------------------*/
 
-void AV_assign_fval( MCW_arrowval * av , float qval )
+void AV_assign_fval( MCW_arrowval *av , float qval )
 {
    double newfval = qval ;
-   char * cval ;
+   char *cval ;
 
    if( av == NULL ) return ; /* 01 Feb 2000 */
 
@@ -1379,10 +1379,10 @@ void AV_assign_fval( MCW_arrowval * av , float qval )
 /*----------------------------------------------------------------------*/
 
 void AV_leave_EV( Widget w , XtPointer client_data ,
-                  XEvent * ev , Boolean * continue_to_dispatch )
+                  XEvent *ev , Boolean *continue_to_dispatch )
 {
-   MCW_arrowval * av       = (MCW_arrowval *) client_data ;
-   XLeaveWindowEvent * lev = (XLeaveWindowEvent *) ev ;
+   MCW_arrowval *av       = (MCW_arrowval *) client_data ;
+   XLeaveWindowEvent *lev = (XLeaveWindowEvent *) ev ;
    XmAnyCallbackStruct cbs ;
 
    if( lev->type != LeaveNotify || av == NULL ) return ;
@@ -1395,12 +1395,12 @@ void AV_leave_EV( Widget w , XtPointer client_data ,
 
 void AV_textact_CB( Widget wtex, XtPointer client_data, XtPointer call_data )
 {
-   MCW_arrowval * av         = (MCW_arrowval *) client_data ;
-   XmAnyCallbackStruct * cbs = (XmAnyCallbackStruct *) call_data ;
+   MCW_arrowval *av         = (MCW_arrowval *) client_data ;
+   XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) call_data ;
 
    float sval ;
    int   ii ;
-   char * str ;
+   char *str ;
 
 ENTRY("AV_textact_CB") ;
 
@@ -1467,7 +1467,7 @@ EXRETURN ;
 
 #undef RECOLOR_OPTMENU
 
-char * MCW_DC_ovcolor_text( MCW_arrowval * av , MCW_DC * dc )
+char * MCW_DC_ovcolor_text( MCW_arrowval *av , MCW_DC *dc )
 {
    int ii = av->ival ;
    Widget wfix ;
@@ -1512,7 +1512,7 @@ char * MCW_DC_ovcolor_text( MCW_arrowval * av , MCW_DC * dc )
      ovc_init = initial overlay color index
 
      func = routine to call when a selection is made:
-             void func( Widget wpar,XtPointer func_data,MCW_choose_cbs * cbs )
+             void func( Widget wpar,XtPointer func_data,MCW_choose_cbs *cbs )
      func_data = data to pass to func
 
      The "ival" stored in the MCW_choose_cbs will be the index into the
@@ -1569,10 +1569,10 @@ static MCW_action_item OVC_act[] = {
 } ;
 
 #define NUM_LIST_MODES 2
-static char * list_modes[NUM_LIST_MODES] = { "Multiple" , "Extended" } ;
+static char *list_modes[NUM_LIST_MODES] = { "Multiple" , "Extended" } ;
 
-void MCW_choose_ovcolor( Widget wpar , MCW_DC * dc , int ovc_init ,
-                         gen_func * func , XtPointer func_data )
+void MCW_choose_ovcolor( Widget wpar , MCW_DC *dc , int ovc_init ,
+                         gen_func *func , XtPointer func_data )
 {
    static Widget wpop = NULL , wrc ;
    static MCW_arrowval *  av = NULL ;
@@ -1813,7 +1813,7 @@ ENTRY("MCW_choose_vector") ;
      label        = label for chooser
      bot,top,init = integers defining range and initial value
      func         = routine to call when a selection is made:
-            void func( Widget wpar,XtPointer func_data,MCW_choose_cbs * cbs )
+            void func( Widget wpar,XtPointer func_data,MCW_choose_cbs *cbs )
      func_data    = data to pass to func
 
      The "ival" stored in the MCW_choose_cbs will be the desired result.
@@ -1944,10 +1944,10 @@ ENTRY("MCW_choose_integer") ;
 ---------------------------------------------------------------------------*/
 
 MCW_arrowpad * new_MCW_arrowpad( Widget parent ,
-                                 gen_func * press_func, XtPointer press_data
+                                 gen_func *press_func, XtPointer press_data
                                )
 {
-   MCW_arrowpad * apad ;
+   MCW_arrowpad *apad ;
    int asizx = 20 , asizy = 20 ;  /* arrow sizes */
    int iar ;
 
@@ -2038,8 +2038,8 @@ ENTRY("new_MCW_arrowpad") ;
 
 void AP_press_CB( Widget wbut , XtPointer client_data , XtPointer call_data )
 {
-   MCW_arrowpad * apad               = (MCW_arrowpad *) client_data ;
-   XmArrowButtonCallbackStruct * cbs =
+   MCW_arrowpad *apad               = (MCW_arrowpad *) client_data ;
+   XmArrowButtonCallbackStruct *cbs =
              (XmArrowButtonCallbackStruct *) call_data ;
 
    XtIntervalId fake_id = 0 ;
@@ -2082,9 +2082,9 @@ void AP_press_CB( Widget wbut , XtPointer client_data , XtPointer call_data )
 
 /*-------------------------------------------------------------------------*/
 
-void AP_timer_CB( XtPointer client_data , XtIntervalId * id )
+void AP_timer_CB( XtPointer client_data , XtIntervalId *id )
 {
-   MCW_arrowpad * apad = (MCW_arrowpad *) client_data ;
+   MCW_arrowpad *apad = (MCW_arrowpad *) client_data ;
 
    /* call user callback */
 
@@ -2126,7 +2126,7 @@ void AP_timer_CB( XtPointer client_data , XtIntervalId * id )
      label          = label for chooser
      default_string = initial value
      func           = routine to call when a selection is made:
-            void func( Widget wpar,XtPointer func_data,MCW_choose_cbs * cbs )
+            void func( Widget wpar,XtPointer func_data,MCW_choose_cbs *cbs )
      func_data      = data to pass to func
 
      The "cval" stored in the MCW_choose_cbs will be the desired result.
@@ -2284,9 +2284,9 @@ static void MCW_set_listmax( Widget wpar )
 {
    if( list_max < 0 ){
 #if 0
-      char * xdef = XGetDefault( XtDisplay(wpar) , "AFNI" , "chooser_listmax" ) ;
+      char *xdef = XGetDefault( XtDisplay(wpar) , "AFNI" , "chooser_listmax" ) ;
 #else
-      char * xdef = RWC_getname( XtDisplay(wpar) , "chooser_listmax" ) ;
+      char *xdef = RWC_getname( XtDisplay(wpar) , "chooser_listmax" ) ;
 #endif
       if( xdef == NULL ) xdef = getenv("AFNI_MENU_COLSIZE") ;  /* 11 Dec 2001 */
       if( xdef != NULL )  list_max = strtol( xdef , NULL , 10 ) ;
@@ -2307,7 +2307,7 @@ static void MCW_set_listmax( Widget wpar )
      init         = index of initial string
      strlist      = array of char *, pointing to strings
      func         = routine to call when a selection is made:
-            void func( Widget wpar,XtPointer func_data,MCW_choose_cbs * cbs )
+            void func( Widget wpar,XtPointer func_data,MCW_choose_cbs *cbs )
      func_data    = data to pass to func
 
      The "ival" stored in the MCW_choose_cbs will be the desired result
@@ -2317,9 +2317,9 @@ static void MCW_set_listmax( Widget wpar )
    active at a time (per application).  This is a deliberate choice.
 ---------------------------------------------------------------------------*/
 
-void MCW_choose_strlist( Widget wpar , char * label ,
-                         int num_str , int init , char * strlist[] ,
-                         gen_func * func , XtPointer func_data )
+void MCW_choose_strlist( Widget wpar , char *label ,
+                         int num_str , int init , char *strlist[] ,
+                         gen_func *func , XtPointer func_data )
 {
    int initar[2] ;
    initar[0] = init ;
@@ -2332,9 +2332,9 @@ void MCW_choose_strlist( Widget wpar , char * label ,
 
 /*-------------------------------------------------------------------------*/
 
-void MCW_choose_multi_strlist( Widget wpar , char * label , int mode ,
-                               int num_str , int * init , char * strlist[] ,
-                               gen_func * func , XtPointer func_data )
+void MCW_choose_multi_strlist( Widget wpar , char *label , int mode ,
+                               int num_str , int *init , char *strlist[] ,
+                               gen_func *func , XtPointer func_data )
 {
    static Widget wpop = NULL , wrc ;
    static MCW_choose_data cd ;
@@ -2343,7 +2343,7 @@ void MCW_choose_multi_strlist( Widget wpar , char * label , int mode ,
    Widget wlist = NULL , wlab ;
    XmStringTable xmstr ;
    XmString xms ;
-   char * lbuf ;
+   char *lbuf ;
    int nvisible ;
    int bc = browse_select ;  /* 21 Feb 2007 */
 
@@ -2519,7 +2519,7 @@ ENTRY("MCW_choose_multi_strlist") ;
 
 /*--------------------------------------------------------------------*/
 
-void MCW_list_mode_CB( MCW_arrowval * av , XtPointer cd )
+void MCW_list_mode_CB( MCW_arrowval *av , XtPointer cd )
 {
    Widget wlist = (Widget) cd ;
 
@@ -2577,7 +2577,7 @@ static MCW_action_item TSC_act[] = {
      tsarr        = array of time series (1D images)
      init         = index of initial time series to select
      func         = routine to call when choice is made
-            void func( Widget wpar,XtPointer func_data,MCW_choose_cbs * cbs )
+            void func( Widget wpar,XtPointer func_data,MCW_choose_cbs *cbs )
      func_data    = data to pass to func
 
      The "ival" stored in the MCW_choose_cbs will the the index of the
@@ -2798,7 +2798,7 @@ if(PRINT_TRACING){
                     [may be changed by the user during operations]
      init         = index of initial string
      func         = routine to call when a selection is made:
-            void func( Widget wpar,XtPointer func_data,MCW_choose_cbs * cbs )
+            void func( Widget wpar,XtPointer func_data,MCW_choose_cbs *cbs )
      func_data    = data to pass to func
 
      The "ival" stored in the MCW_choose_cbs will be the desired result.
@@ -2807,9 +2807,9 @@ if(PRINT_TRACING){
    active at a time (per application).  This is a deliberate choice.
 ---------------------------------------------------------------------------*/
 
-void MCW_choose_editable_strlist( Widget wpar , char * label ,
-                                  THD_string_array * sar ,
-                                  int init , gen_func * func , XtPointer func_data )
+void MCW_choose_editable_strlist( Widget wpar , char *label ,
+                                  THD_string_array *sar ,
+                                  int init , gen_func *func , XtPointer func_data )
 {
    int initar[2] ;
    initar[0] = init ;
@@ -2820,10 +2820,10 @@ void MCW_choose_editable_strlist( Widget wpar , char * label ,
    return ;
 }
 
-void MCW_choose_multi_editable_strlist( Widget wpar , char * label , int mode ,
-                                        THD_string_array * sar ,
-                                        int * init ,
-                                        gen_func * func , XtPointer func_data )
+void MCW_choose_multi_editable_strlist( Widget wpar , char *label , int mode ,
+                                        THD_string_array *sar ,
+                                        int *init ,
+                                        gen_func *func , XtPointer func_data )
 {
    static Widget wpop = NULL , wrc , wrc2 ;
    static MCW_choose_data cd ;
@@ -2832,7 +2832,7 @@ void MCW_choose_multi_editable_strlist( Widget wpar , char * label , int mode ,
    Widget wlist = NULL , wlab , wtf , wadd ;
    XmStringTable xmstr ;
    XmString xms ;
-   char * lbuf ;
+   char *lbuf ;
    int nvisible ;
 
 ENTRY("MCW_choose_multi_editable_strlist") ;
@@ -2995,7 +2995,7 @@ ENTRY("MCW_choose_multi_editable_strlist") ;
    /* choosing mode, for multiple selections */
 
    if( mode == mcwCT_multi_mode ){
-      MCW_arrowval * av ;
+      MCW_arrowval *av ;
 
       (void) XtVaCreateManagedWidget(
                "menu" , xmSeparatorWidgetClass , wrc ,
@@ -3091,7 +3091,7 @@ ENTRY("MCW_choose_multi_editable_strlist") ;
 
 void MCW_stradd_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
-   MCW_choose_data * cd = (MCW_choose_data *) client_data ;
+   MCW_choose_data *cd = (MCW_choose_data *) client_data ;
    char *nstr = TEXT_GET( cd->wtf ) ;
    int id , nvisible , num_str ;
    XmString xms ;
@@ -3264,7 +3264,7 @@ ENTRY("MCW_choose_CB") ;
          if( done ) RWC_XtPopdown( cd->wpop ) ;
 
          if( call ){
-            int pos_count=0 , * pos_list=NULL , ib ;
+            int pos_count=0 , *pos_list=NULL , ib ;
             Boolean any ;
 
             cbs.reason = mcwCR_integer ;    /* set structure for call to user */
@@ -3355,7 +3355,7 @@ ENTRY("MCW_choose_CB") ;
 
       case mcwCT_timeseries:{                       /* timeseries chooser */
          Boolean done , call , flash , any , plot ;
-         int pos_count , * pos_list ;
+         int pos_count , *pos_list ;
 
 #ifdef AFNI_DEBUG
 printf("MCW_choose_CB: timeseries choice made\n") ;
@@ -3387,8 +3387,8 @@ printf("MCW_choose_CB: done=%d  call=%d  plot=%d  flash=%d\n",
          if( done ) RWC_XtPopdown( cd->wpop ) ;
 
          if( call || plot ){  /* must find out what is selected */
-            int pos_count , * pos_list , first ;
-            MRI_IMAGE * fim ;
+            int pos_count , *pos_list , first ;
+            MRI_IMAGE *fim ;
 
 #ifdef BBOX_DEBUG
 printf("MCW_choose_CB: querying list for choice\n") ;
@@ -3454,8 +3454,8 @@ printf("MCW_choose_CB: plotting selected timeseries\n") ;
                                             MCW_USER_KILL | MCW_TIMER_KILL ) ;
                   EXRETURN ;
                } else {
-                  float ** yar , * far = MRI_FLOAT_PTR(fim) ;
-                  char ** nar=NULL ;
+                  float **yar , *far = MRI_FLOAT_PTR(fim) ;
+                  char **nar=NULL ;
                   int jj ;
 
 #undef USE_NAR  /* use labels for each column?  (just to test the code) */
