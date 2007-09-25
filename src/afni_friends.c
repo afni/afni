@@ -544,6 +544,7 @@ static mday holiday[] = {
    {OCT, 2,"Anniversary of Saladin's capture of Jerusalem"           } ,
    {OCT, 2,"Groucho Marx's birthday"                                 } ,
    {OCT, 3,"Anniversary of reunification of Germany"                 } ,
+   {OCT, 4,"Anniversary of Sputnik launch"                           } ,
    {OCT, 6,"Anniversary of attack on Frodo at Weathertop"            } ,
    {OCT, 9,"Alfred Dreyfus's birthday"                               } ,
    {OCT,10,"Anniversary of Battle of Tours"                          } ,

@@ -4921,7 +4921,7 @@ ENTRY( "RCREND_open_imseq" );
       afni48ren_pixmap = XCreatePixmapFromBitmapData(
                             XtDisplay(shell) ,
                             RootWindowOfScreen(XtScreen(shell)) ,
-                            afni48ren_bits , afni48ren_width , afni48ren_height ,
+                            (char *)afni48ren_bits , afni48ren_width , afni48ren_height ,
                             bg_pix , fg_pix ,
                             DefaultDepthOfScreen(XtScreen(shell)) ) ;
 
