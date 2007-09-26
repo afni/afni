@@ -1,0 +1,61 @@
+#!/bin/tcsh -f 
+
+# NEEDS afni's class data archive AFNI_data3.tgz
+
+if ( ! -d AFNI_data3/afni/ ) then
+   echo "Directory ./AFNI_data3/afni  not found."
+   echo "You could be in the wrong directory,"
+   echo " or you may not have AFNI_data3 on disk."
+   echo "This directory is in archive:"
+   echo "http://afni.nimh.nih.gov/pub/dist/edu/data/AFNI_data3.tgz"
+   echo ""
+   goto END
+endif
+
+
+afni -niml -yesplugouts AFNI_data3/afni/  &
+
+plugout_drive  -com 'SWITCH_SESSION A.afni'  \
+               -com 'OPEN_WINDOW A.axialimage geom=600x600+416+44 \
+                     ifrac=0.8 opacity=9'  \
+               -com 'OPEN_WINDOW A.sagittalimage geom=+45+430 \
+                     ifrac=0.8 opacity=9' \
+               -com 'SWITCH_UNDERLAY anat'     \
+               -com 'SWITCH_OVERLAY strip'     \
+               -com 'SEE_OVERLAY +'               \
+               -com 'OPEN_WINDOW A.axialimage keypress=v'   \
+               -quit
+                                    
+echo "Hit Enter to pause movie and move on"
+set l = $<
+ 
+plugout_drive  -com 'OPEN_WINDOW A.axialimage keypress=space   \
+                                 geom=+56+44 mont=6x3:8'      \
+               -com 'SET_DICOM_XYZ A 0 20 40'                  \
+               -com 'SAVE_JPEG axialimage SavedAxiale.jpg'   \
+               -quit
+               
+echo "Hit Enter to view the saved image"
+set l = $<
+
+aiv SavedAxiale.jpg &
+
+echo "Hit Enter to examine time series."
+set l = $<
+
+#Now let us examine the time series
+plugout_drive  -com 'OPEN_WINDOW B.sagittalimage \
+                     geom=300x300+416+344 ifrac=0.8 opacity=9'  \
+               -com 'SWITCH_UNDERLAY B.epi_r1'             \
+               -com 'OPEN_WINDOW B.sagittalgraph   \
+                     geom=400x300+0+344   \
+                     keypress=v'           \
+               -quit
+
+echo "Hit Enter to pause movie and stop"
+set l = $<
+plugout_drive  -com 'OPEN_WINDOW B.sagittalgraph  keypress=space' \
+               -com 'QUIT' \
+               -quit   
+
+END:
