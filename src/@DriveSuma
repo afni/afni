@@ -1,5 +1,8 @@
+#!/bin/tcsh -f
 #Example commands for running DriveSuma
 #Creates a temporary directory called tmp_suma
+#You're better off cutting and pasting individual commands.
+#Otherwise script will run too fast.
 
 mkdir tmp_suma
 cd tmp_suma
@@ -8,6 +11,8 @@ cd tmp_suma
         CreateIcosahedron -rd 4
         suma -niml &
         echo 'Wait until suma is ready then proceed.'
+        set l = $<
+        echo '                  one more time.'
         set l = $<
         DriveSuma -com show_surf -label icoco \
                        -i_fs CreateIco_surf.asc
@@ -23,6 +28,9 @@ cd tmp_suma
             > somecoord.1D.coord ; rm xmess.1D
         DriveSuma -com node_xyz -label icoco \
                        -xyz_1D somecoord.1D.coord
+        
+        echo 'Hit Enter to proceed to viewer control actions.'
+        set l = $<
 
 #viewer_cont action
        DriveSuma -com  viewer_cont -key R -key ctrl+right
@@ -36,11 +44,19 @@ cd tmp_suma
                  -com  pause press enter to stop this misery \
                  -com  viewer_cont -key m 
 
+        echo 'Hit Enter to proceed to recorder control actions.'
+        echo 'If you have recorded too many images, saving'
+        echo 'a movie of all of them will take a while.'
+        set l = $<
+
 #recorder_cont action
        DriveSuma -com  recorder_cont -save_as allanimgif.agif \
                  -com  recorder_cont -save_as lastone.jpg \
                  -com  recorder_cont -save_as three.jpg -save_index 3\
                  -com  recorder_cont -save_as some.png -save_range 3 6
+
+        echo 'Hit Enter to proceed to surface control actions.'
+        set l = $<
 
 #surf_cont action
        echo 1 0 0 > bbr.1D.cmap; echo 1 1 1 >> bbr.1D.cmap; \
@@ -64,6 +80,9 @@ cd tmp_suma
        DriveSuma -com surf_cont -switch_dset blooby.curv.1D.dset \
                       -view_surf_cont n -I_range -0.05 0.14
        DriveSuma -com surf_cont -load_cmap bbr.1D.cmap
+
+        echo 'Hit Enter to quit.'
+        set l = $<
 
 #Adieu
        DriveSuma -com kill_suma
