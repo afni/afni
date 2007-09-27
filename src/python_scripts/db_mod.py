@@ -699,7 +699,7 @@ def db_cmd_regress(proc, block):
     # add misc options
     cmd = cmd + iresp
     cmd = cmd + other_opts
-    cmd = cmd + "    -fout -tout -x1D X.xmat.1D -xjpeg X.jpg \\\n"
+    cmd = cmd + "    -fout -tout -x1D Xmat.x1D -xjpeg Xmat.jpg \\\n"
     cmd = cmd + fitts
     cmd = cmd + "    -bucket stats.$subj\n\n\n"
 
