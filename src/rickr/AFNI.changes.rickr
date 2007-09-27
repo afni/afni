@@ -2197,5 +2197,3 @@
   * modified 3dTshift.c: help fix for seqplus/seqminus
   * modified AFNI.afnirc: set hints to YES as default
 
-27 Sep 2007: modified db_mod.py: applied the lost .x1D matrix file suffix
-
