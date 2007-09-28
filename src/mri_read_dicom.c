@@ -51,6 +51,8 @@ static int CheckObliquity(float xc1, float xc2, float xc3, float yc1, float yc2,
 
 static int obl_info_set = 0;
 
+static int debugprint = 0;
+
 /*-----------------------------------------------------------------------------------*/
 /* Save the Siemens extra info string in case the caller wants to get it. */
 
@@ -493,8 +495,9 @@ ENTRY("mri_read_dicom") ;
             }
   
 	   sexi_size = sexi_end - sexi_start + 19 ;
-	   sexi_tmp = AFMALL( char, sexi_size );
+	   sexi_tmp = AFMALL( char, sexi_size+1 );
 	   memcpy(sexi_tmp,sexi_start,sexi_size);
+           sexi_tmp[sexi_size] = '\0';
 	   free(str_sexinfo);
 	   str_sexinfo = sexi_tmp;
         }
@@ -1459,6 +1462,7 @@ ENTRY("mri_imcount_dicom") ;
    }
    if( nz == 0 ) nz = plen / (bpp*nx*ny) ;
 
+
    /*-- 28 Oct 2002: Check if this is a Siemens mosaic.        --*/
    /*-- 02 Dec 2002: Don't use Acquisition Matrix anymore;
                      instead, use the Siemens extra info
@@ -1480,6 +1484,12 @@ ENTRY("mri_imcount_dicom") ;
      }
    }
 
+  if(debugprint) {
+    printf("str_sexinfo initially set to %d\n", (int) str_sexinfo);
+    printf("length %d\n", (int) strlen(str_sexinfo));
+  }
+
+
    /* if assume_dicom_mosaic is not set, then require "MOSAIC" string */
    /*                                             13 Mar 2006 [rickr] */
    if( ( assume_dicom_mosaic ||
@@ -1495,6 +1505,9 @@ ENTRY("mri_imcount_dicom") ;
      if(sexi_start != NULL) {  /* search for end after start - drg,fredtam 23 Mar 2007 */
         sexi_start2 = strstr(sexi_start+21, "### ASCCONV BEGIN ###");
         sexi_end = strstr(sexi_start, "### ASCCONV END ###");
+        if(debugprint)
+           printf("sexi_start %d sexi_start2 %d sexi_end %d\n", 
+                  (int) sexi_start, (int) sexi_start2,(int) sexi_end);
         if (sexi_end != NULL) {
            char *sexi_tmp;
            int sexi_size;
@@ -1504,10 +1517,18 @@ ENTRY("mri_imcount_dicom") ;
             }
   
 	   sexi_size = sexi_end - sexi_start + 19 ;
-	   sexi_tmp = AFMALL( char, sexi_size );
+	   sexi_tmp = AFMALL( char, sexi_size+1 );
+           if(sexi_tmp==NULL)
+              ERROR_message("Could not allocate memory for Siemens info");
 	   memcpy(sexi_tmp,sexi_start,sexi_size);
+           sexi_tmp[sexi_size] = '\0';
 	   free(str_sexinfo);
 	   str_sexinfo = sexi_tmp;
+	   if(debugprint)  {
+	     printf("str_sexinfo now moved to %d\n", (int) str_sexinfo);
+	     printf("sexi_size %d\n", (int) sexi_size);
+	     printf("length %d\n", (int) strlen(str_sexinfo));
+	     }
         }
      }
 
@@ -1597,10 +1618,16 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
     * binary section                                     --KRH */
    nn = 0;
    ept = str;   /* use temporary pointer instead of passed pointer to Siemens */
+   if(debugprint){
+     printf("Siemens extra info 1\n");
+     printf("nn %d strlen str %d\n",  nn, (int) strlen(str));
+   }
+
    /* must be able to read at least 3 of the 4 parameters in slice information */
    while ((nn < 3) && (strlen(ept) > 20)) {  /* mod drg, fredtam */
      cpt = strstr( str , "sSliceArray.asSlice[" ) ; /* 20 characters minimum */
      if( cpt == NULL ) return ;
+
      /* interpret next string into
          snum = slice subscript (0,1,...)
          name = variable name
@@ -1609,9 +1636,9 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
 
      nn = sscanf( cpt , "sSliceArray.asSlice[%d].%1022s =%f%n" ,
                   &snum , name , &val , &mm ) ;
+
      ept = cpt + 20; /* skip to end of "false match", advance to next string KRH */
    }
-
 
    /*-- scan for coordinates, until can't find a good string to scan --*/
 
@@ -1676,7 +1703,6 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
 
      nn = sscanf( cpt , "sSliceArray.asSlice[%d].%1022s =%f%n" ,
                   &snum , name , &val , &mm ) ;
-
    }
 
    /* if got at least 1 slice info, mark data as being good */
@@ -1947,13 +1973,19 @@ static float *ComputeObliquity(oblique_info *obl_info)
       vec6 = NORMALIZE_FVEC3(dc3);
       fac = DOT_FVEC3(vec5, vec6);
       if(fac==0){
-	 WARNING_message("Bad DICOM header - assuming oblique scaling direction!");
+	 WARNING_message(
+          "Bad DICOM header - assuming oblique scaling direction!");
 	 fac = 1;
       }
       else {
+         if(ALMOST(fac, 1.0))
+            fac = 1.0;
+         if(ALMOST(fac, -1.0))
+            fac = -1.0;
+ 
 	 if((fac!=1)&&(fac!=-1)) {
-           WARNING_message("Image Positions do not lie in same direction as \
-   cross product vector - %f", fac);
+           WARNING_message("Image Positions do not lie in same direction as"
+            " cross product vector: %f", fac);
 	  }
 
 	 if(fac >0) fac = 1;
@@ -2058,9 +2090,14 @@ DUMP_FVEC3("dc4", dc4);
          obl_info->mos_sliceinfo = 0;
       }
       else {
-	 if((fac!=1)&&(fac!=-1)) {
+         if(ALMOST(fac, 1.0))
+            fac = 1.0;
+         if(ALMOST(fac, -1.0))
+            fac = -1.0;
+ 
+	 if((fac!=1.0)&&(fac!=-1.0)) {
            WARNING_message("Image Positions do not lie in same direction"
-             "as cross product vector - %f", fac);
+             " as cross product vector: %f", fac);
 	  }
 
 	 if(fac >0) fac = 1;
