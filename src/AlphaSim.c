@@ -109,6 +109,7 @@ void display_help_menu()
      "[-quiet]     suppress screen output                                   \n"
      "[-out file]  file = name of output file                               \n"
      "[-max_clust_size size]  size = maximum allowed voxels in a cluster    \n"
+     "[-seed S]     S  = random number seed\n"
      "\n"
      "Unix environment variables:\n"
      " Set AFNI_BLUR_FFT to YES to require blurring be done with FFTs\n"
@@ -148,7 +149,7 @@ void initialize_options (
 		 int * egfw, 
 		 int * power, int * ax, int * ay, int * az, float * zsep, 
 		 float * rmm, float * pthr, int * niter, int * quiet, 
-	         char ** outfilename)
+	         char ** outfilename, int * seed)
  
 {
   *nx = 0;                   /* number of voxels along x-axis */
@@ -172,6 +173,7 @@ void initialize_options (
   *niter = 0;                /* number of Monte Carlo simulations  */
   *quiet = 0;                /* generate screen output (default)  */
   *outfilename = NULL;       /* name of output file */
+  *seed = 1234567;           /* random number seed - user can override */
 }
 
 
@@ -187,12 +189,11 @@ void get_options (int argc, char ** argv,
 		  int * egfw, 
 		  int * power, int * ax, int * ay, int * az, float * zsep, 
 		  float * rmm, float * pthr, int * niter, int * quiet, 
-		  char ** outfilename)
+		  char ** outfilename, int * seed)
 {
   int nopt = 1;                  /* input option argument counter */
   int ival;                      /* integer input */
   float fval;                    /* float input */
-  char message[MAX_NAME_LENGTH];         /* error message */
   int mask_nx, mask_ny, mask_nz, mask_nvox;   /* mask dimensions */
   float  mask_dx, mask_dy, mask_dz;            
 
@@ -208,7 +209,7 @@ void get_options (int argc, char ** argv,
   /*----- initialize the input options -----*/
   initialize_options (nx, ny, nz, dx, dy, dz, filter, sigmax, sigmay, sigmaz,
 		      egfw, power, ax, ay, az, zsep, rmm, pthr, niter, quiet,
-		      outfilename); 
+		      outfilename, seed); 
 
   /*----- main loop over input options -----*/
   while (nopt < argc )
@@ -605,6 +606,18 @@ void get_options (int argc, char ** argv,
 	}
       
 
+      /*-----   -seed S  -----*/
+      if (strncmp(argv[nopt], "-seed", 5) == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)
+             AlphaSim_error ("need argument after -seed ");
+	  *seed = atoi(argv[nopt]);
+	  nopt++;
+	  continue;
+	}
+      
+
       /*----- unknown command -----*/
       AlphaSim_error ("unrecognized command line option ");
     }
@@ -697,7 +710,7 @@ void initialize (int argc, char ** argv,
 
   int which;
   double p, q, z, mean, sd;
-  int status;
+  int status, seed;
   double bound;
 
 
@@ -705,7 +718,7 @@ void initialize (int argc, char ** argv,
   get_options(argc, argv, 
 	      nx, ny, nz, dx, dy, dz, filter, sigmax, sigmay, sigmaz,
 	      egfw, power, ax, ay, az, zsep, rmm, pthr, niter, quiet, 
-	      outfilename);
+	      outfilename, &seed);
 
 
   /*----- check for valid inputs -----*/
@@ -778,7 +791,7 @@ void initialize (int argc, char ** argv,
     }
 
   /*----- initialize random number generator -----*/
-  srand48 (1234567);
+  srand48 (seed);
 
 }
 
@@ -1107,7 +1120,6 @@ void threshold_data (int nx, int ny, int nz, float * fim,
 		     float pthr, long * count, double * sum, double * sumsq,
 		     int quiet, int iter)
 {
-  const float EPSILON = 1.0e-8;
   int ixyz;
   int nxyz;
   float zthr;
@@ -1211,10 +1223,8 @@ void identify_clusters (int nx,  int ny,  int nz,
   MCW_cluster_array * clar;
   MCW_cluster * cl;
   int nxy;
-  int nxyz;                     /* total number of voxels */
-  int iclu, ipt;
+  int iclu;
   int size, max_size;
-  int count;
 
 
   /*----- initialize local variables -----*/
