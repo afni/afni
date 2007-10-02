@@ -2198,4 +2198,5 @@
   * modified AFNI.afnirc: set hints to YES as default
 
 27 Sep 2007: modified Makefile.INCLUDE: added @DriveAfni/Suma to SCRIPTS
+02 Oct 2007: modified AlphaSim.c: added -seed option
 
