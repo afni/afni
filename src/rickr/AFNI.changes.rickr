@@ -2199,4 +2199,7 @@
 
 27 Sep 2007: modified Makefile.INCLUDE: added @DriveAfni/Suma to SCRIPTS
 02 Oct 2007: modified AlphaSim.c: added -seed option
+03 Oct 2007:
+  * modified 3dDeconvolve: use default polort of just 1+floor(rtime/150)
+  * modified afni_proc.py, db_mod.py: apply same default polort
 
