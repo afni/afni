@@ -5437,7 +5437,8 @@ ENTRY("T3D_poperr") ;
       XFlush( XtDisplay(wset.topshell) ) ;
       sleep(1) ;
    } else {
-      fprintf(stderr,"%s\n",total_msg) ;
+/*      fprintf(stderr,"%s\n",total_msg) ;*/
+     ERROR_message(total_msg);  /* exit with error message */
    }
    EXRETURN ;
 }

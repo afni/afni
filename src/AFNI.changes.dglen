@@ -221,3 +221,12 @@ with new hybrid search method and bug fixes
  * added some gray scales to overlay color scale choices, fixed small bug
 on lower limit of color scales in pbar.c and pbardefs.h. Also changed lowest
 index in cb_spiral, color-blind, color scale
+28 Sep 2007
+ * fixed a couple bugs in mri_read_dicom to add null termination to the string
+containing Siemens extra info and allowed for cross-product normals for vectors to
+to line up with slice positions when vectors are slightly off 1.0
+02 Oct 2007
+ * added memory and dataset write error checks to mri_read_dicom and to3d
+03 Oct 2007
+ * added non-zero mean option to 3dTstat
+

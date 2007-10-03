@@ -711,7 +711,10 @@ ENTRY("mri_read_dicom") ;
 
      nvox = mos_nx*mos_ny*mos_nz ;         /* total number of voxels */
      dar  = (char*)calloc(bpp,nvox) ;            /* make space for super-image */
+     if(dar==NULL)   /* exit if can't allocate memory */
+        ERROR_message("Could not allocate memory for mosaic volume");
      fread( dar , bpp , nvox , fp ) ;    /* read data directly into it */
+
      if( swap ){                        /* swap bytes? */
        switch( bpp ){
          default: break ;
