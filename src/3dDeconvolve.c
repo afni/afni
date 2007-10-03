@@ -2735,9 +2735,8 @@ ENTRY("read_input_data") ;
      }
      if( dtloc <= 0.0f ) dtloc = 1.0f ;
      dmax = dtloc * lmax ;                /* duration of longest block */
-          if( dmax <= 150.0 ) ilen = 1 ;
-     else if( dmax <= 300.0 ) ilen = 2 ;
-     else                     ilen = 1+(int)floor(dmax/150.0) ;
+     /* removed special cases of 150->1, 300->2     3 Oct 2007 [rickr] */
+     ilen = 1+(int)floor(dmax/150.0) ;
      switch( option_data->polort ){
        default:                           /* user supplied non-negative polort */
          if( option_data->polort < ilen )

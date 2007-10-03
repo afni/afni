@@ -438,7 +438,7 @@ def db_cmd_scale(proc, block):
 def db_mod_regress(block, proc, user_opts):
     if len(block.opts.olist) == 0: # then init
         block.opts.add_opt('-regress_basis', 1, ['GAM'], setpar=1)
-        block.opts.add_opt('-regress_polort', 1, [2], setpar=1)
+        block.opts.add_opt('-regress_polort', 1, [-1], setpar=1)
         block.opts.add_opt('-regress_stim_files', -1, [])
         block.opts.add_opt('-regress_stim_labels', -1, [])
         block.opts.add_opt('-regress_stim_times', -1, [])
@@ -615,6 +615,11 @@ def db_cmd_regress(proc, block):
 
     opt = block.opts.find_opt('-regress_polort')
     polort = opt.parlist[0]
+    if ( polort < 0 ) :
+        polort = get_default_polort(proc.tr, proc.reps)
+        if proc.verb > 0:
+            print "+d updating polort to %d, from run len %.1f s" %  \
+                  (polort, proc.tr*proc.reps)
 
     if len(proc.stims) <= 0:   # be sure we have some stim files
         print "** missing stim files (-regress_stim_times/-regress_stim_files)"
@@ -855,6 +860,14 @@ def db_cmd_empty(proc, block):
     proc.pblabel = block.label  # set 'previous' block label
 
     return cmd
+
+# compute a default polort, as done in 3dDeconvolve
+def get_default_polort(tr, reps):
+    if tr <= 0 or reps <= 0:
+        print "** cannot guess polort from tr = %f, reps = %d" % (tr,reps)
+        return 2        # return some default
+    run_time = tr * reps
+    return 1+floor(run_time/150.0)
 
 # dummy main - should not be used
 if __name__ == '__main__':
