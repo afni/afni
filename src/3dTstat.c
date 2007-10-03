@@ -40,7 +40,9 @@
 
 #define METH_ABSSUM       21
 
-#define MAX_NUM_OF_METHS  22
+#define METH_NZMEAN       22  /* DRG 03 Oct 2007 */
+
+#define MAX_NUM_OF_METHS  23
 
 static int meth[MAX_NUM_OF_METHS]  = {METH_MEAN};
 static int nmeths                  = 0;
@@ -54,7 +56,7 @@ static char *meth_names[] = {
    "Durbin-Watson" , "Std Dev(NOD)" , "Coef Var(NOD)" , "AutoCorr"    ,
    "AutoReg"       , "Absolute Max" , "ArgMax"        , "ArgMin"      ,
    "ArgAbsMax"     , "Sum"          , "Duration"      , "Centroid"    ,
-   "CentDuration"  , "Absolute Sum"
+   "CentDuration"  , "Absolute Sum" , "Non-zero Mean"
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
@@ -114,6 +116,7 @@ int main( int argc , char *argv[] )
              " -centroid  = compute centroid of data time curves\n"
              "              (sum(i*f(i)) / sum(f(i)))\n"
              " -centduration = compute duration using centroid's index as center\n"
+             " -nzmean    = compute mean of non-zero voxels\n"
              "\n"
              " -autocorr n = compute autocorrelation function and return\n"
              "               first n coefficients\n"
@@ -275,6 +278,11 @@ int main( int argc , char *argv[] )
          nopt++ ; continue ;
       }
 
+      if( strcmp(argv[nopt],"-nzmean") == 0 ){
+         meth[nmeths++] = METH_NZMEAN ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
 
       if( strcmp(argv[nopt],"-autocorr") == 0 ){
          meth[nmeths++] = METH_AUTOCORR ;
@@ -425,7 +433,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
                           void *ud, int nbriks, float *val          )
 {
    static int nvox , ncall ;
-   int meth_index, ii , out_index;
+   int meth_index, ii , out_index, nzpts;
    float* ts_det;
 
    /** is this a "notification"? **/
@@ -623,7 +631,23 @@ static void STATS_tsfunc( double tzero, double tdelta ,
       }
       break ;
 
-
+      case METH_NZMEAN: {
+        register int ii ;
+        register float sum ;
+           sum = 0.0;
+           nzpts = 0;
+           for( ii=0 ; ii < npts ; ii++ ) {
+             if( ts[ii] != 0.0 ) {
+               sum += ts[ii] ;
+               nzpts++;
+             }
+           }
+           if(npts>0)
+              val[out_index] = sum / nzpts;
+           else
+              val[out_index] = 0.0;
+      }
+      break;
 
       case METH_AUTOCORR:{
         int numVals;
