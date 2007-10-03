@@ -281,8 +281,8 @@ g_help_string = """
 
         regress:  - use GAM regressor for each stim
                         (option: -regress_basis)
-                  - use quadratic baseline for each run
-                        (option: -regress_polort 2)
+                  - compute the baseline polynomial degree, based on run length
+                        (e.g. option: -regress_polort 2)
                   - output fit time series
                   - output ideal curves for GAM/BLOCK regressors
                   - output iresp curves for non-GAM/non-BLOCK regressors
@@ -864,13 +864,17 @@ g_help_string = """
 
         -regress_polort DEGREE  : specify the polynomial degree of baseline
 
-                e.g. -regress_polort 1
-                default: 2
+                e.g. -regress_polort 2
+                default: 1 + floor(run_length / 150.0)
 
             3dDeconvolve models the baseline for each run separately, using
             Legendre polynomials (by default).  This option specifies the
             degree of polynomial.  Note that this will create DEGREE * NRUNS
             regressors.
+
+            The default is computed from the length of a run, in seconds, as
+            shown above.  For example, if each run were 320 seconds, then the
+            default polort would be 3 (cubic).
 
             Please see '3dDeconvolve -help' for more information.
 
@@ -1056,6 +1060,7 @@ g_history = """
          - by default, apply -xjpeg in 3dDeconvolve
     1.24 Jun 04 2007 : added -scale_no_max
     1.25 Jun 27 2007 : on error, display failed command
+    1.26 Oct 03 2007 : set default polort based on run length (like 3dDecon)
 """
 
 g_version = "version 1.25, Jun 27, 2007"
