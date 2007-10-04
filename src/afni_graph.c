@@ -796,9 +796,7 @@ ENTRY("new_MCW_grapher") ;
       /* 08 Nov 1996: dplot = double plot */
       /* 07 Aug 2001: rewrite of dplot to make it have 3 states, not two */
 
-      { char * bbox_label[3] = { "DPlot Off" ,
-                                 "Overlay"   ,
-                                 "Plus/Minus" } ;
+      { char *bbox_label[3] = { "DPlot Off" , "Overlay" , "Plus/Minus" } ;
 
         OPT_MENU_PULLRIGHT(opt_dplot_menu,opt_dplot_cbut,
                            "Double Plot","Graph Dataset and Tran 1D?");
@@ -810,7 +808,7 @@ ENTRY("new_MCW_grapher") ;
         MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OFF ) ;
 
         MCW_reghint_children( grapher->opt_dplot_bbox->wrowcol ,
-                              "How to show 2 curves" ) ;
+                              "How to show 'Double Plot' curves" ) ;
       }
 
    } else {
@@ -1831,7 +1829,7 @@ STATUS("about to perform 0D transformation") ;
          /* 08 Nov 1996: double plotting, too */
 
          if( grapher->transform1D_func != NULL ){
-            MRI_IMAGE * qim ;                /* image to be transformed */
+            MRI_IMAGE *qim ;                /* image to be transformed */
 
             if( dplot ){                      /* copy and save original */
               qim = mri_to_float(tsim) ;       /* if double plot is on */
@@ -1844,7 +1842,7 @@ STATUS("about to perform 1D transformation") ;
 
             if( grapher->transform1D_flags & NEEDS_DSET_INDEX ){ /* 18 May 2000 */
 #ifdef BE_AFNI_AWARE
-               FD_brick *br = (FD_brick *) grapher->getaux ;
+               FD_brick *br = (FD_brick *)grapher->getaux ;
                THD_ivec3 id ;
                id = THD_fdind_to_3dind( br ,
                                         TEMP_IVEC3(xtemp,ytemp,grapher->zpoint) );
@@ -1869,7 +1867,7 @@ STATUS("about to perform 1D transformation") ;
                                         MRI_FLOAT_PTR(qim) ) ;
 #endif
               } else {
-                 char * quser = NULL ;
+                 char *quser = NULL ;
 #if 0
                  grapher->transform1D_func( qim->nx , qim->xo , qim->dx ,
                                             MRI_FLOAT_PTR(qim) , &quser ) ;
@@ -1901,9 +1899,16 @@ STATUS("about to perform 1D transformation") ;
               }
             }
 
+            /* 04 Oct 2007: discard transformations that did nothing */
+
+            if( dplot && mri_equal(tsim,qim) ){
+              mri_free(qim) ;
+              IMARR_SUBIM( dplot_imar , IMARR_COUNT(dplot_imar)-1 ) = NULL ;
+            }
+
             /* At this point, qim is transformed;
-               if dplot is on, then it is saved in dplot_imar;
-               if dplot is off, then qim == tsim, and it will be saved in tsimar, below */
+               if dplot is on, then it was saved in dplot_imar earlier;
+               if dplot is off, then qim==tsim, and it will be saved in tsimar, below */
 
          } /* end of transform1D */
 
@@ -5559,9 +5564,10 @@ char * GRA_transform_label( MCW_arrowval * av , XtPointer cd )
 /*-----------------------------------------------------------------------------*/
 /*! Will be called from both the 1D and 0D menus. */
 
-void GRA_transform_CB( MCW_arrowval * av , XtPointer cd )
+void GRA_transform_CB( MCW_arrowval *av , XtPointer cd )
 {
-   MCW_grapher * grapher = (MCW_grapher *) cd ;
+   MCW_grapher *grapher = (MCW_grapher *)cd ;
+   int set_dplot = 0 ;  /* 04 Oct 2007 */
 
 ENTRY("GRA_transform_CB") ;
 
@@ -5579,6 +5585,8 @@ ENTRY("GRA_transform_CB") ;
          grapher->transform0D_func  = grapher->status->transforms0D->funcs[av->ival-1];
          grapher->transform0D_index = av->ival ;
          grapher->transform0D_flags = grapher->status->transforms0D->flags[av->ival-1];
+
+         if( grapher->transform0D_flags & SET_DPLOT_OVERLAY ) set_dplot = 1 ;
 
          /* 21 Jul 2003: call the init function, if present */
 
@@ -5600,12 +5608,17 @@ ENTRY("GRA_transform_CB") ;
          grapher->transform1D_index = av->ival ;
          grapher->transform1D_flags = grapher->status->transforms1D->flags[av->ival-1];
 
+         if( grapher->transform1D_flags & SET_DPLOT_OVERLAY ) set_dplot = 1 ;
+
          /* 21 Jul 2003: call the init function, if present */
 
          if( grapher->status->transforms1D->func_init[av->ival-1] != NULL )
           grapher->status->transforms1D->func_init[av->ival-1]() ;
       }
    }
+
+   if( set_dplot == 1 )  /* 04 Oct 2007 */
+     MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OVERLAY ) ;
 
    redraw_graph( grapher , 0 ) ;
    EXRETURN ;

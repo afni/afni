@@ -94,11 +94,14 @@ static char *ez[2] = { "Extend" , "Zero" } ;
 
 static PLUGIN_interface *plint=NULL ;
 
+/*------ this function is called when the item is chosen from a menu ------*/
+
 static void DSETN_func_init(void)   /* 21 Jul 2003 */
 {
    PLUG_startup_plugin_CB( NULL , (XtPointer)plint , NULL ) ;
 }
 
+/*--------------------------------------------------------------------------*/
 
 DEFINE_PLUGIN_PROTOTYPE
 
@@ -111,7 +114,7 @@ ENTRY("PLUGIN_init:Dataset#N") ;
    if( ncall > 0 ) RETURN( NULL );  /* only one interface */
 
    AFNI_register_nD_function ( 1 , "Dataset#N" , (generic_func *)DSETN_func ,
-                               NEEDS_DSET_INDEX|PROCESS_MRI_IMAGE ) ;
+                               NEEDS_DSET_INDEX|PROCESS_MRI_IMAGE|SET_DPLOT_OVERLAY ) ;
    AFNI_register_nD_func_init( 1 , (generic_func *) DSETN_func_init ) ;  /* 21 Jul 2003 */
 
    plint = PLUTO_new_interface( "Dataset#N", "Controls 1D function Dataset#N",
@@ -331,9 +334,11 @@ ENTRY( "DSETN_func" );
    EXRETURN;
 }
 
+/*------------------------------------------------------------------------*/
+
 static int set_global_dsets_from_ids( void )
 {
-    THD_3dim_dataset * dptr;
+    THD_3dim_dataset *dptr;
     int idcount, num_valid = 0;
 
 ENTRY( "set_global_dsets_from_ids" );
