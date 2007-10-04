@@ -167,11 +167,14 @@ int main( int argc , char * argv[] )
          }
 #else
          printf("calc> ") ; fflush(stdout) ;
-         fgets(expr,900,stdin) ;
+         if( fgets(expr,900,stdin) == NULL ) {   /* quit on ctrl-D */
+            putchar('\n') ;
+            exit(0) ;
+         }
 #endif
       }
 
-      if( strlen(expr) == 0 ) continue ;
+      if( strlen(expr) == 0 || *expr == '\n' ) continue ;
       if( strstr(expr,"quit") != NULL ) exit(0) ;
       if( strstr(expr,"exit") != NULL ) exit(0) ;
 
