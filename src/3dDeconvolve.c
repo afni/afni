@@ -3512,6 +3512,9 @@ void check_for_valid_inputs
     for (is = 0;  is < num_stimts;  is++)
       if( basis_stim[is] == NULL && NFirst < (max_lag[is]+nptr[is]-1)/nptr[is] )
         NFirst = (max_lag[is]+nptr[is]-1)/nptr[is];
+    if( NFirst > 0 )  /* 04 Oct 2007: warn the user about this 'feature' */
+      INFO_message(
+       "First time point used in analysis = index #%d (from max maxlag)",NFirst) ;
   }
   NLast = option_data->NLast;
   if (NLast < 0)  NLast = nt;
