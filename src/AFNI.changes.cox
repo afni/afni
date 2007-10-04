@@ -6381,3 +6381,8 @@
      from 3dinfo.c when sub-brick stats are hidden from the user.
  * Warning message popup when Define Markers is first opened on a
      marker-less dataset.
+
+04 Oct 2007
+ * Modify afni_graph.c to turn Double Plot on when Dataset#N is invoked,
+     and to not double plot transformed time series that didn't change.
+ * Print 'NFirst > 0' informational message in 3dDeconvolve.c.
