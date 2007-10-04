@@ -168,6 +168,9 @@ typedef struct {
 /*! MCW_function_list possible bitmask flag */
 #define PROCESS_MRI_IMAGE 4
 
+/*! MCW_function_list possible bitmask flag */
+#define SET_DPLOT_OVERLAY 8
+
 /*! MCW_function_list possible func_code */
 #define FUNC_0D   0
 /*! MCW_function_list possible func_code */

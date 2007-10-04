@@ -90,7 +90,7 @@ ENTRY("PLUGIN_init:Dataset#2") ;
    if( ncall > 0 ) RETURN( NULL ) ;  /* only one interface */
 
    AFNI_register_nD_function ( 1 , "Dataset#2" , (generic_func *)DSET2_func ,
-                               NEEDS_DSET_INDEX ) ;
+                               NEEDS_DSET_INDEX | SET_DPLOT_OVERLAY ) ;
    AFNI_register_nD_func_init( 1 , (generic_func *)DSET2_func_init ) ;  /* 21 Jul 2003 */
 
    plint = PLUTO_new_interface( "Dataset#2" , "Controls 1D function Dataset#2" , helpstring ,
@@ -217,10 +217,10 @@ ENTRY( "DSET2_dset_recv" );
 
 /*----------------------------------------------------------------------------*/
 
-void DSET2_func( int num , double to,double dt, float * vec )
+void DSET2_func( int num , double to,double dt, float *vec )
 {
    int ii , ijk , jj ;
-   MRI_IMAGE * tsim ;
+   MRI_IMAGE *tsim ;
    float val ;
 
 ENTRY("DSET2_func") ;
