@@ -1015,7 +1015,7 @@ HELP:
 
 WARN_notice:
    #Check if templates are new
-   set info = `3dinfo $ref_in`
+   set info = `3dinfo -verb $ref_in`
    set vvv = `echo "$info" | grep 'Dataset in' | grep 'coordinate space'`
    if ("$vvv" == "") then
       set vers_str = "Old version of TT_avg152 template found."
