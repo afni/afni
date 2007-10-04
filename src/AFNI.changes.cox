@@ -6386,3 +6386,4 @@
  * Modify afni_graph.c to turn Double Plot on when Dataset#N is invoked,
      and to not double plot transformed time series that didn't change.
  * Print 'NFirst > 0' informational message in 3dDeconvolve.c.
+ * Change OPACITY_BOT from 0 to 1 in imseq.c.
