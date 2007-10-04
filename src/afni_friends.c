@@ -85,7 +85,10 @@ static AFNI_friend afni_friends[] = {
   { "E Ricciardi"    , (     2 |                              512       ) } ,
   { "N Vanello"      , (     2 |                              512       ) } ,
   { "B Feige"        , ( 1 |         8                                  ) } ,
-  { "K Murphy"       , (             8                      | 256       ) }
+  { "K Murphy"       , (             8 | 16                 | 256       ) } ,
+  { "A Martin"       , (     2                                          ) } ,
+  { "M Mur"          , (                                128             ) } ,
+  { "J Haxby"        , (     2                                          ) }
 } ;
 
 #define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))
@@ -738,6 +741,7 @@ char * AFNI_get_date_trivia(void)
    static char *monthlist[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" } ;
    static char dmy[32] ;
+   static int ncall=0 ;
 
    tt = time(NULL) ;         /* seconds since 01 Jan 1970 */
    lt = localtime( &tt ) ;   /* break into pieces */
@@ -774,8 +778,14 @@ char * AFNI_get_date_trivia(void)
    /* 1st Tuesday after 1st Monday in November */
 
    if( ntar < NTMAX && lt->tm_mon+1 == NOV && lt->tm_wday == 2 &&
-                       lt->tm_mday >= 2 && lt->tm_mday <= 8 )
+                       lt->tm_mday >= 2    && lt->tm_mday <= 8   )
       tar[ntar++] = "Election Day (USA)" ;
+
+   ncall++ ;
+   if( ntar == 0 || (ntar < NTMAX && ncall > 3) ){  /* 04 Oct 2007 */
+     char *fm = AFNI_get_friend() ;
+     tar[ntar++] = fm ;
+   }
 
    /**** select which one to return ***/
 

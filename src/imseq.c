@@ -675,7 +675,7 @@ static char * ISQ_arrow_hint[NARROW] = {
 #define DEFAULT_MAXFRAC 0.90
 
 #define OPACITY_FAC  0.11111  /* 06-07 Mar 2001: overlay opacity stuff */
-#define OPACITY_BOT  0
+#define OPACITY_BOT  1
 #define OPACITY_TOP  9
 
 #define ZOOM_BOT  1          /* 11 Mar 2002: zoom controls */
@@ -1192,7 +1192,7 @@ if( PRINT_TRACING ){
 
    if( newseq->dc->visual_class == TrueColor ){
      int iov = (int)rint(newseq->ov_opacity/OPACITY_FAC) ;
-     char * buf = ISQ_opacity_label(iov) ;
+     char *buf = ISQ_opacity_label(iov) ;
 
      /** 08 Mar 2001 - put a line between the arrows above and this control **/
 
@@ -1986,10 +1986,10 @@ char * ISQ_opacity_label( int val ) /* 07 Mar 2001 */
 
 /*-----------------------------------------------------------------------*/
 
-void ISQ_opacity_CB( MCW_arrowval * av , XtPointer cd ) /* 07 Mar 2001 */
+void ISQ_opacity_CB( MCW_arrowval *av , XtPointer cd ) /* 07 Mar 2001 */
 {
-   MCW_imseq * seq = (MCW_imseq *) cd ;
-   char * buf = ISQ_opacity_label(av->ival) ;
+   MCW_imseq *seq = (MCW_imseq *) cd ;
+   char *buf = ISQ_opacity_label(av->ival) ;
    XmString xstr = XmStringCreateLtoR( buf , XmFONTLIST_DEFAULT_TAG ) ;
 
    XtVaSetValues( av->wlabel , XmNlabelString , xstr , NULL ) ;
@@ -8467,9 +8467,9 @@ ENTRY("ISQ_montage_action_CB") ;
    Output image is MRI_short (underlay or overlay index), or MRI_rgb.
 -----------------------------------------------------------------------------*/
 
-MRI_IMAGE * ISQ_manufacture_one( int nim , int overlay , MCW_imseq * seq )
+MRI_IMAGE * ISQ_manufacture_one( int nim , int overlay , MCW_imseq *seq )
 {
-   MRI_IMAGE * im , * ovim , * tim ;
+   MRI_IMAGE *im , *ovim , *tim ;
    int nrold ;
 
 ENTRY("ISQ_manufacture_one") ;
@@ -8477,19 +8477,19 @@ ENTRY("ISQ_manufacture_one") ;
    if( ! ISQ_VALID(seq) ) RETURN( NULL );
 
    if( seq->mont_periodic ){
-      while( nim < 0 )                       nim += seq->status->num_total ;
-      while( nim >= seq->status->num_total ) nim -= seq->status->num_total ;
+     while( nim < 0 )                       nim += seq->status->num_total ;
+     while( nim >= seq->status->num_total ) nim -= seq->status->num_total ;
    } else {
-      if( nim < 0 || nim >= seq->status->num_total ) RETURN( NULL );
+     if( nim < 0 || nim >= seq->status->num_total ) RETURN( NULL );
    }
 
    /** Not an overlay image **/
 
    if( ! overlay ){
-      tim = ISQ_getimage( nim , seq ) ;
-      if( tim == NULL ) RETURN( NULL );
-      im = ISQ_process_mri( nim , seq , tim ) ; mri_free(tim) ;
-      RETURN( im );
+     tim = ISQ_getimage( nim , seq ) ;
+     if( tim == NULL ) RETURN( NULL );
+     im = ISQ_process_mri( nim , seq , tim ) ; mri_free(tim) ;
+     RETURN( im );
    }
 
    /** Get the overlay image **/
@@ -8501,8 +8501,8 @@ ENTRY("ISQ_manufacture_one") ;
    if( tim == NULL ) RETURN( NULL );
 
    if( !ISQ_GOOD_OVERLAY_TYPE(tim->kind) ){
-      fprintf(stderr,"\a\n*** Illegal overlay image kind=%d! ***\n",tim->kind) ;
-      mri_free(tim) ; RETURN( NULL );
+     fprintf(stderr,"\a\n*** Illegal overlay image kind=%d! ***\n",tim->kind) ;
+     mri_free(tim) ; RETURN( NULL );
    }
 
    ovim = mri_flippo( ISQ_TO_MRI_ROT(seq->opt.rot),seq->opt.mirror,tim ) ;
