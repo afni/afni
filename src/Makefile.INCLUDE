@@ -826,6 +826,10 @@ rtfeedme:rtfeedme.o
 	$(RM) $@
 	$(CC) -o 3dNLfim_n 3dNLfim_n.o $(PLFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
 
+3dNeocon:3dNeocon.o
+	$(RM) $@
+	$(CCFAST) -o 3dNeocon 3dNeocon.o $(PLFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 3dStatClust:3dStatClust.o
 	$(RM) $@
 	$(CC) -o 3dStatClust 3dStatClust.o $(PLFLAGS) -lmri -lf2c $(LLIBS)
