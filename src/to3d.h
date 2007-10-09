@@ -203,7 +203,7 @@ void T3D_set_dependent_geometries(void) ;
 void T3D_widgets_to_data(void) ;
 void T3D_data_to_widgets(void) ;
 
-void T3D_poperr(char *,char *) ;
+void T3D_poperr(char *,char *, Boolean) ;
 
 void T3D_fix_dataset_dimen(void) ;
 void Syntax() ;
