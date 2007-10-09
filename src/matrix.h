@@ -169,6 +169,8 @@ void matrix_equate (matrix a, matrix * b);
 
 void matrix_extract (matrix a, int p, int * list, matrix * b);
 
+#define matrix_extract_cols matrix_extract
+
 
 /*---------------------------------------------------------------------------*/
 /*
