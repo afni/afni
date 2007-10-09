@@ -3,7 +3,7 @@
 int main( int argc , char * argv[] )
 {
    int narg , nvox=0 , iv,ii,cnum ;
-   THD_3dim_dataset * xset , * oset=NULL ;
+   THD_3dim_dataset *xset , *oset=NULL , *fset=NULL ;
    byte *mmm=NULL ;
    short *ccc=NULL , ctop ;
    char *psave=NULL ;       /* 22 Feb 2001 */
@@ -65,10 +65,14 @@ int main( int argc , char * argv[] )
       CHECK_OPEN_ERROR(xset,argv[narg]) ;
       DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
 
+      if( fset == NULL ) fset = xset ;
+
       if( nvox == 0 ){
          nvox = DSET_NVOX(xset) ; ccc = calloc(sizeof(short),nvox) ;
       } else if( DSET_NVOX(xset) != nvox ){
-         fprintf(stderr,"*** Dataset %s doesn't match in size!\n",argv[narg]); exit(1);
+         ERROR_exit("Dataset %s doesn't match in first one in voxels!\n",argv[narg]);
+      } else if( !EQUIV_GRIDS(xset,fset) ){
+         WARNING_message("Dataset %s doesn't match first one's grid!",argv[narg]) ;
       }
 
       for( iv=0 ; iv < DSET_NVALS(xset) ; iv++ ){
@@ -104,7 +108,8 @@ int main( int argc , char * argv[] )
           }
       }
 
-      DSET_delete(xset) ;
+      if( xset != fset ) DSET_delete(xset) ;
+      else               DSET_unload(xset) ;
    }
 
    /* tot up the results */
