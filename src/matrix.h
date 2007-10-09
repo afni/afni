@@ -64,6 +64,12 @@ typedef struct vector
   double * elts;
 } vector;
 
+#undef  ISVALID_MATRIX
+#define ISVALID_MATRIX(m) ((m).rows > 0 && (m).cols > 0 && (m).elts != NULL)
+
+#undef  ISVALID_VECTOR
+#define ISVALID_VECTOR(v) ((v).dim > 0 && (v).elts != NULL)
+
 /*---------------------------------------------------------------------------*/
 /*
   Routine to print an error message and stop.
