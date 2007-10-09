@@ -62,6 +62,9 @@ typedef struct {
   linear_setup *prob ;
   float        *prob_toff ; /* time shift for each prob */
 
+  int   *nvec ; /* nvec[i] = # vectors (length=nfull) in prob #i */
+  float **vec ; /* vec[i]  = ptr to nvec[i] data vectors */
+
   int    num_hrf ;  /* number of HRF model functions we're finding */
   hrf_model *hrf ;  /* description of HRF model function */
 
@@ -116,6 +119,57 @@ void NCO_clear_linear_setup( linear_setup *ls , int dobase )
      matrix_destroy( &(ls->xtxinvxt_base) ) ;
    }
    return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+MRI_IMAGE * NCO_extract_slice( THD_3dim_dataset *dset, int ss,
+                               byte *mask, int ngood, int *goodlist )
+{
+   int ii,jj,kk,vv,uu,ww , nx,ny,nz , nt,ng , nin;
+   MRI_IMAGE *sim ; float *sar , *tar , *qar ;
+
+ENTRY("NCO_extract_slice") ;
+
+   DSET_load(dset);
+   if( !DSET_LOADED(dset) ) ERROR_exit("input dataset not loadable!?") ;
+   nx = DSET_NX(dset); ny = DSET_NY(dset);
+   nz = DSET_NZ(dset); nt = DSET_NVALS(dset);
+   if( ss < 0 || ss >= nz ) ERROR_exit("illegal slice index %d!?",ss) ;
+   ng = (ngood > 0 && goodlist != NULL) ? ngood : nt ;
+
+   vv = ss*nx*ny ;
+   if( mask != NULL ){
+     for( nin=jj=0 ; jj < ny ; jj++ ){
+       uu = vv + jj*nx ;
+       for( ii=0 ; ii < nx ; ii++ ) if( mask[ii+uu] ) nin++ ;
+     }
+     if( nin == 0 ) RETURN(NULL) ;
+   } else {
+     nin = nx*ny ;  /* all voxels in slice */
+   }
+
+   sim = mri_new(ng,nin,MRI_FLOAT) ; sar = MRI_FLOAT_PTR(sim) ;
+   if( ng < nt ) tar = (float *)malloc(sizeof(float)*nt) ;
+   else          tar = NULL ;
+
+   for( kk=jj=0 ; jj < ny ; jj++ ){
+     uu = vv + jj*nx ;
+     for( ii=0 ; ii < nx ; ii++ ){
+       if( mask != NULL && mask[ii+uu] == 0 ) continue ;
+       qar = sar + kk*ng ;
+       if( tar != NULL ){
+         THD_extract_array( ii+uu , dset , 0 , tar ) ;
+         for( ww=0 ; ww < ng ; ww++ ) qar[ww] = tar[goodlist[ww]] ;
+       } else {
+         THD_extract_array( ii+uu , dset , 0 , qar ) ;
+       }
+       kk++ ;
+     }
+   }
+
+   if( tar != NULL ) free((void *)tar) ;
+   RETURN(sim) ;
 }
 
 /*===========================================================================*/
@@ -307,6 +361,31 @@ int main( int argc , char *argv[] )
 
    if( concatim != NULL && DSET_IS_TCAT(inset) )
      WARNING_message("-concat ignored since -input catenated on command line");
+
+   /*----- run start indexes -----*/
+
+   if( DSET_IS_TCAT(inset) ){
+     nls->run_num   = inset->tcat_num ;
+     nls->run_start = (int *)malloc( sizeof(int)*nls->run_num ) ;
+     nls->run_start[0] = 0 ;
+     for( ii=0 ; ii < nls->run_num-1 ; ii++ )
+       nls->run_start[ii+1] = nls->run_start[ii] + inset->tcat_len[ii] ;
+   } else if( concatim != NULL ){
+     float *car = MRI_FLOAT_PTR(concatim) ;
+     nls->run_num   = concatim->nvox ;
+     nls->run_start = (int *)malloc( sizeof(int)*nls->run_num ) ;
+     for( ii=0 ; ii < nls->run_num ; ii++ ) nls->run_start[ii] = (int)car[ii] ;
+     mri_free(concatim); concatim = NULL;
+     jj = 0 ;
+     if( nls->run_start[0] != 0 ) jj++ ;
+     for( ii=1 ; ii < nls->run_num ; ii++ )
+       if( nls->run_start[ii] <= nls->run_start[ii-1] ) jj++ ;
+     if( jj > 0 ) ERROR_exit("Disorderly run start indexes in -concat") ;
+   } else {
+     nls->run_num      = 1 ;
+     nls->run_start    = (int *)malloc(sizeof(int)) ;
+     nls->run_start[0] = 0 ;
+   }
 
    /*----- mask-ification -----*/
 
