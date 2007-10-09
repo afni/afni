@@ -223,7 +223,7 @@ int main( int argc , char *argv[] )
      if( mask_nx != DSET_NX(inset) ||
          mask_ny != DSET_NY(inset) ||
          mask_nz != DSET_NZ(inset)   )
-       ERROR_exit("-mask dataset grid doesn't match input dataset") ;
+       ERROR_exit("-mask dataset grid dimensions don't match input dataset") ;
 
    } else if( automask ){
      int mmm ;

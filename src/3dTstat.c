@@ -361,6 +361,10 @@ int main( int argc , char *argv[] )
    if( !ISVALID_DSET(old_dset) )
      ERROR_exit("Can't open dataset %s\n",argv[nopt]);
 
+   nopt++ ;
+   if( nopt < argc )
+     WARNING_message("Trailing datasets on command line ignored: %s ...",argv[nopt]) ;
+
    if( DSET_NVALS(old_dset) < 2 )
      ERROR_exit("Can't use dataset with < 2 values per voxel!\n") ;
 
