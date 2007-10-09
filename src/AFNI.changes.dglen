@@ -229,4 +229,5 @@ to line up with slice positions when vectors are slightly off 1.0
  * added memory and dataset write error checks to mri_read_dicom and to3d
 03 Oct 2007
  * added non-zero mean option to 3dTstat
-
+09 Oct 2007
+ * added additional warning and error message handling to to3d

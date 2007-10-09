@@ -3889,7 +3889,7 @@ void T3D_type_av_CB( MCW_arrowval * av , XtPointer cd )
    if( user_inputs.ntt > 0 && nvals_new != 1 ){
       T3D_poperr("***** DATA TYPE WARNING *****\n",
                  "New data type is not allowed\n"
-                 "with time-dependent datatset!" ) ;
+                 "with time-dependent datatset!" ,1) ;
       return ;
    }
 
@@ -3898,7 +3898,7 @@ void T3D_type_av_CB( MCW_arrowval * av , XtPointer cd )
       if( nz * nvals_new != user_inputs.nimage ){
          T3D_poperr("**** DATA TYPE WARNING *****\n",
                     "Number of images not an even\n"
-                    "multiple of # of data values" ) ;
+                    "multiple of # of data values" ,1) ;
       }
 
       user_inputs.nz    = nz ;
@@ -4007,7 +4007,7 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
      if( ii == 0 ){
        if( mri_dicom_sexinfo() != NULL && !assume_dicom_mosaic )
          WARNING_message(
-            "Hmmm ... try using '-assume_dicom_mosaic'?") ;
+            "No images found. Hmmm ... try using '-assume_dicom_mosaic'?") ;
        ERROR_exit("bad file specifier %s\n",gname[lf]) ;
      }
      nz += ii ; nsmax = MAX(nsmax,ii) ;
@@ -4132,7 +4132,7 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
             arr = mri_read_file( gname[lf] ) ;
 
          if( arr == NULL || arr->num == 0 ){
-           fprintf(stderr,"** cannot read file %s\n",gname[lf]) ; exit(1) ;
+           ERROR_exit("** cannot read file %s\n",gname[lf]) ;
          }
 #ifdef AFNI_DEBUG
 printf("T3D_read_images: file %d (%s) has #im=%d\n",lf,gname[lf],arr->num) ;
@@ -5049,7 +5049,7 @@ void T3D_save_file_CB( Widget w ,
 
    if( !good ) T3D_poperr("*******************\n\n" ,
                           "Some error occurred\n"
-                          "while trying to write file") ;
+                          "while trying to write file", 1) ;
 
    else if( wset.topshell != NULL && wset.good )
       wmsg = MCW_popup_message( wset.save_file_pb ,
@@ -5295,7 +5295,7 @@ ENTRY("T3D_check_data") ;
    zlab = ORIENT_xyz[user_inputs.zorient] ;
 
    if( xlab == ylab || xlab == zlab || ylab == zlab ){
-      if(perr)T3D_poperr( OUTERR , "Axes orientations are not consistent!" ) ;
+      T3D_poperr( OUTERR , "Axes orientations are not consistent!" , perr) ;
       good = False ;
    }
 
@@ -5305,7 +5305,7 @@ STATUS("check output filename") ;
 
    ll_out = ll = strlen( user_inputs.output_filename ) ;
    if( ll == 0 ){
-      if(perr)T3D_poperr( OUTERR , "No output filename provided!" ) ;
+      T3D_poperr( OUTERR , "No output filename provided!", perr ) ;
       good = False ;
    } else {
       for( ii=0 ; ii < ll ; ii++ )
@@ -5314,8 +5314,8 @@ STATUS("check output filename") ;
              user_inputs.output_filename[ii] == '/'     ) break ;
 
       if( ii < ll ){
-         if(perr)T3D_poperr( OUTERR ,
-                             "Output filename contains illegal character!" ) ;
+         T3D_poperr( OUTERR ,
+                    "Output filename contains illegal character!", perr ) ;
          good = False ;
       }
    }
@@ -5326,7 +5326,7 @@ STATUS("check session name") ;
 
    ll_sess = ll = strlen( user_inputs.session_filename ) ;
    if( ll == 0 ){
-      if(perr)T3D_poperr( OUTERR , "No session directory name provided!" ) ;
+      T3D_poperr( OUTERR , "No session directory name provided!", perr ) ;
       good = False ;
    } else {
       for( ii=0 ; ii < ll ; ii++ )
@@ -5334,8 +5334,8 @@ STATUS("check session name") ;
              isspace(user_inputs.session_filename[ii])   ) break ;
 
       if( ii < ll ){
-         if(perr)T3D_poperr( OUTERR ,
-                             "Session filename contains illegal character!" ) ;
+         T3D_poperr( OUTERR ,
+                    "Session filename contains illegal character!", perr ) ;
          good = False ;
       }
    }
@@ -5350,7 +5350,7 @@ STATUS("check if file exists") ;
       strcat(new_name , "+orig." DATASET_HEADER_SUFFIX ) ;
       ll = THD_is_file( new_name ) || THD_is_directory( new_name ) ;
       if( ll ){
-       if(perr) T3D_poperr( OUTERR , "Output file already exists!" ) ;
+       T3D_poperr( OUTERR , "Output file already exists!", perr ) ;
        good = False ;
       }
    }
@@ -5362,7 +5362,7 @@ STATUS("check if file exists") ;
 
 #ifdef REQUIRE_ANAT_PARENT
    if( isfunc && strlen(user_inputs.anatomy_dataname) == 0 ){
-      if(perr)T3D_poperr( OUTERR , "Anatomy parent not properly set!" ) ;
+      T3D_poperr( OUTERR , "Anatomy parent not properly set!", perr ) ;
       good = False ;
    }
 #endif
@@ -5373,12 +5373,12 @@ STATUS("check data types") ;
 
    if( isfunc ){
       if( ! AFNI_GOOD_FUNC_DTYPE(argopt.datum_all) ){
-         if(perr)T3D_poperr(OUTERR , "Illegal functional datum type!" ) ;
+         T3D_poperr(OUTERR , "Illegal functional datum type!", perr ) ;
          good = False ;
       }
    } else {
       if( ! AFNI_GOOD_DTYPE(argopt.datum_all) ){
-         if(perr)T3D_poperr(OUTERR , "Illegal anatomical datum type!" ) ;
+         T3D_poperr(OUTERR , "Illegal anatomical datum type!", perr ) ;
          good = False ;
       }
    }
@@ -5387,7 +5387,8 @@ STATUS("check data types") ;
 
 #ifndef NO_NAMES
    if( strlen(user_inputs.dataset_name) == 0 ){
-      if(perr)T3D_poperr( OUTERR,"You **MUST** supply a name for the dataset!" ) ;
+      T3D_poperr( OUTERR,"You **MUST** supply a name for the dataset!", 
+            perr ) ;
       good = False ;
    }
 #endif
@@ -5403,7 +5404,7 @@ STATUS("check stat aux") ;
          if( user_inputs.stat_aux[ii] <= 0.0 ) break ;
 
       if( ii < FUNC_need_stat_aux[user_inputs.function_type] ){
-         if(perr)T3D_poperr(OUTERR , "Invalid statistical parameters!" ) ;
+         T3D_poperr(OUTERR , "Invalid statistical parameters!", perr ) ;
          good = False ;
       }
    }
@@ -5415,7 +5416,7 @@ STATUS("check stat aux") ;
 
 /*----------------------------------------------------------------*/
 
-void T3D_poperr( char * prefix_msg , char * msg )
+void T3D_poperr( char * prefix_msg , char * msg, Boolean exit_flag )
 {
    static char * total_msg = NULL ;
    static int    len_total = 0 ;
@@ -5438,7 +5439,10 @@ ENTRY("T3D_poperr") ;
       sleep(1) ;
    } else {
 /*      fprintf(stderr,"%s\n",total_msg) ;*/
-     ERROR_message(total_msg);  /* exit with error message */
+     if(exit_flag)
+        ERROR_exit(total_msg);  /* exit with error message */
+     else
+        WARNING_message(total_msg); /* just show warning and continue */
    }
    EXRETURN ;
 }
@@ -5527,7 +5531,7 @@ ENTRY("T3D_geometry_parent_CB") ;
    geom_dset = THD_open_one_dataset( new_path ) ;
    if( geom_dset == NULL ){
       T3D_poperr( INERR ,
-                  "Cannot read 3D dataset\nin geometry parent file" ) ;
+                  "Cannot read 3D dataset\nin geometry parent file", 1 ) ;
       geomparent_loaded = 0 ; EXRETURN ;
    }
 
@@ -5557,14 +5561,14 @@ ENTRY("T3D_geometry_parent_CB") ;
                geom_daxes->nxx,geom_daxes->nyy,geom_daxes->nzz,zpad,
                user_inputs.nx ,user_inputs.ny ,user_inputs.nz  ) ;
 
-       T3D_poperr( INERR , msg ) ;
+       T3D_poperr( INERR , msg , 1) ;
        THD_delete_3dim_dataset( geom_dset , False ) ;
        geomparent_loaded = 0 ; EXRETURN ;
    }
 
 #ifdef ALLOW_NONCONTIG
    if( geom_daxes->xxskip != 0.0 || geom_daxes->yyskip != 0.0 ){
-      T3D_poperr( INERR , "Nonzero skip factors for x and y!" ) ;
+      T3D_poperr( INERR , "Nonzero skip factors for x and y!" , 1) ;
       THD_delete_3dim_dataset( geom_dset , False ) ;
       geomparent_loaded = 0 ; EXRETURN ;
    }
@@ -5724,14 +5728,14 @@ ENTRY("T3D_anatomy_parent_CB") ;
    anat_dset = THD_open_one_dataset( new_path ) ;
    if( anat_dset == NULL ){
       T3D_poperr( INERR ,
-                  "Cannot read 3D dataset\nin anatomy parent file" ) ;
+                  "Cannot read 3D dataset\nin anatomy parent file", 1) ;
       EXRETURN ;
    }
 
    isfunc = ISFUNC(anat_dset) ;
    if( isfunc ){
       T3D_poperr( INERR ,
-                  "Anatomy parent dataset\nis actually Function data!" ) ;
+                  "Anatomy parent dataset\nis actually Function data!",1 ) ;
       THD_delete_3dim_dataset( anat_dset , False ) ;
       EXRETURN ;
    }

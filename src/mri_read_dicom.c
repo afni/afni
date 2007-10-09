@@ -711,8 +711,10 @@ ENTRY("mri_read_dicom") ;
 
      nvox = mos_nx*mos_ny*mos_nz ;         /* total number of voxels */
      dar  = (char*)calloc(bpp,nvox) ;            /* make space for super-image */
-     if(dar==NULL)   /* exit if can't allocate memory */
+     if(dar==NULL)  {  /* exit if can't allocate memory */
         ERROR_message("Could not allocate memory for mosaic volume");
+        RETURN(NULL);
+     }
      fread( dar , bpp , nvox , fp ) ;    /* read data directly into it */
 
      if( swap ){                        /* swap bytes? */
@@ -1521,8 +1523,10 @@ ENTRY("mri_imcount_dicom") ;
   
 	   sexi_size = sexi_end - sexi_start + 19 ;
 	   sexi_tmp = AFMALL( char, sexi_size+1 );
-           if(sexi_tmp==NULL)
+           if(sexi_tmp==NULL) {
               ERROR_message("Could not allocate memory for Siemens info");
+              RETURN(0);
+           }
 	   memcpy(sexi_tmp,sexi_start,sexi_size);
            sexi_tmp[sexi_size] = '\0';
 	   free(str_sexinfo);
