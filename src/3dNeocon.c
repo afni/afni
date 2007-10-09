@@ -120,8 +120,24 @@ void NCO_clear_linear_setup( linear_setup *ls , int dobase )
 
 /*===========================================================================*/
 /*---------------------- Main program (not much here yet) -------------------*/
+
 int main( int argc , char *argv[] )
 {
+   int iarg=1 ;
+
+   THD_3dim_dataset *inset=NULL , *maskset=NULL ;
+   int automask=0 ;
+   float tr=0.0f ;
+   nonlinear_setup *nls ;
+   MRI_IMARR *baseim ;
+   MRI_IMAGE *concatim=NULL ;
+   int         num_CENSOR=0 ;
+   int_triple *abc_CENSOR=NULL ;
+
+   int ii,jj , nslice ;
+   int nmask=0 ; byte *mask=NULL ;
+
+   /*----- help the pitiful user? -----*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){ NCO_help(); exit(0); }
 
@@ -132,6 +148,190 @@ int main( int argc , char *argv[] )
    mainENTRY("3dNeocon main") ; machdep() ;
    AFNI_logger("3dNeocon",argc,argv) ;
 
+   /*----- read arguments -----*/
+
+   nls = (nonlinear_setup *)calloc(1,sizeof(nonlinear_setup)) ;
+   nls->polort = -1 ;
+   INIT_IMARR(baseim) ;
+
+   while( iarg < argc ){
+
+     /*----------*/
+
+     if( strcmp(argv[iarg],"-input") == 0 ){
+       if( iarg == argc-1 ) ERROR_exit("Need argument after '%s'",argv[iarg]) ;
+       if( inset != NULL )
+         ERROR_exit("Can't have two -input arguments!") ;
+       inset = THD_open_dataset( argv[++iarg] ) ;
+       CHECK_OPEN_ERROR(inset,argv[iarg]) ;
+       if( DSET_NVALS(inset) < 9 )
+         ERROR_exit("Input dataset has less than 9 time points!") ;
+       iarg++ ; continue ;
+     }
+
+     /*----------*/
+
+     if( strcmp(argv[iarg],"-mask") == 0 ){
+       if( iarg == argc-1 ) ERROR_exit("Need argument after '%s'",argv[iarg]) ;
+       if( maskset != NULL )
+         ERROR_exit("Can't have two -mask arguments!") ;
+       if( automask )
+         ERROR_exit("Can't combine -mask and -automask!") ;
+       maskset = THD_open_dataset( argv[++iarg] ) ;
+       CHECK_OPEN_ERROR(maskset,argv[iarg]) ;
+       iarg++ ; continue ;
+     }
+
+     /*----------*/
+
+     if( strcmp(argv[iarg],"-automask") == 0 ){
+       if( maskset != NULL ) ERROR_exit("Can't combine -automask and -mask!");
+       automask = 1 ;
+       iarg++ ; continue ;
+     }
+
+     /*----------*/
+
+     if( strcmp(argv[iarg],"-TR") == 0 ){
+       if( iarg == argc-1 ) ERROR_exit("Need argument after '%s'",argv[iarg]) ;
+       tr = (float)strtod(argv[++iarg],NULL) ;
+       if( tr <= 0.0f ) ERROR_exit("Can't read valid value after -TR") ;
+       iarg++ ; continue ;
+     }
+
+     /*----------*/
+
+     if( strcmp(argv[iarg],"-polort") == 0 ){
+       if( iarg == argc-1 ) ERROR_exit("Need argument after '%s'",argv[iarg]) ;
+       iarg++ ;
+       if( argv[iarg][0] == 'A' ) nls->polort = -1 ;
+       else                       nls->polort = (int)strtod(argv[iarg],NULL) ;
+       iarg++ ; continue ;
+     }
+
+     /*----------*/
+
+     if( strcmp(argv[iarg],"-baseline") == 0 ){
+       MRI_IMAGE *bim ;
+       if( iarg == argc-1 ) ERROR_exit("Need argument after '%s'",argv[iarg]) ;
+       bim = mri_read_1D( argv[++iarg] ) ;
+       if( bim == NULL ) ERROR_exit("Can't read -baseline '%s'",argv[iarg]) ;
+       ADDTO_IMARR(baseim,bim) ;
+       iarg++ ; continue ;
+     }
+
+     /*----------*/
+
+     if( strcmp(argv[iarg],"-concat") == 0 ){
+       if( iarg == argc-1   ) ERROR_exit("Need argument after '%s'",argv[iarg]);
+       if( concatim != NULL ) ERROR_exit("Can't have 2 -concat arguments!");
+       concatim = mri_read_1D( argv[++iarg] ) ;
+       if( concatim == NULL ) ERROR_exit("Can't read -concat '%s'",argv[iarg]);
+       iarg++ ; continue ;
+     }
+
+     /*----------*/
+
+     if( strncmp(argv[iarg],"-CENSOR",7)   == 0 ||   /* adapted from */
+         strncmp(argv[iarg],"-censorTR",9) == 0   ){ /* 3dDeconvolve */
+
+       NI_str_array *nsar ;
+       char *src=malloc(1), *cpt, *dpt ;
+       int ns, r,a,b, nerr=0 ; int_triple rab ;
+
+       if( iarg == argc-1 ) ERROR_exit("Need argument after '%s'",argv[iarg]);
+
+       *src = '\0' ;   /* cat all following options until starts with '-' */
+       for( iarg++ ; iarg < argc && argv[iarg][0] != '-' ; iarg++ ){
+         ns = strlen(argv[iarg]) ; if( ns == 0 ) continue ;
+         src = realloc(src,strlen(src)+ns+2) ;
+         strcat(src," ") ; strcat(src,argv[iarg]) ;
+       }
+       if( *src == '\0' ) ERROR_exit("Bad argument after -CENSORTR") ;
+       nsar = NI_decode_string_list( src , "," ) ; /* break into substrings */
+       for( ns=0 ; ns < nsar->num ; ns++ ){ /* loop over substrings */
+         cpt = nsar->str[ns] ; dpt = strchr(cpt,':') ; r = 0 ;
+         if( *cpt == '\0' ) continue ;   /* skip an empty string */
+         if( dpt != NULL ){              /* found 'run:' */
+           if( *cpt == '*' ){ /* wildcard = all runs */
+             r = -666 ;
+           } else {
+             r = (int)strtol(cpt,NULL,10) ;
+             if( r <= 0 ){  /* skip out */
+               ERROR_message("-CENSORTR %s -- run index '%d' is bad!",nsar->str[ns],r);
+               nerr++ ; continue ;
+             }
+           }
+           cpt = dpt+1 ;  /* skip to character after ':' */
+           if( *cpt == '\0' ){  /* skip out */
+             ERROR_message("-CENSORTR %s -- no data after run index!",nsar->str[ns]);
+             nerr++ ; continue ;
+           }
+         }
+         a = (int)strtol(cpt,&dpt,10) ;    /* get first index number */
+         if( a < 0 ){  /* skip out */
+           ERROR_message("-CENSORTR %s -- time index '%d' is bad!",nsar->str[ns],a);
+           nerr++ ; continue ;
+         }
+         if( *dpt == '\0' ){  /* no second number */
+           b = a ;
+         } else {             /* get second number */
+           for( dpt++ ; *dpt != '\0' && !isdigit(*dpt) ; dpt++ ) ; /*nada*/
+           b = (int)strtol(dpt,NULL,10) ;
+           if( b < a || b < 0 ){  /* skip out */
+             ERROR_message("-CENSORTR %s -- time indexes '%d' to '%d' is bad!",
+                           nsar->str[ns],a,b);
+             nerr++ ; continue ;
+           }
+         }
+         abc_CENSOR = (int_triple *)realloc( abc_CENSOR ,
+                                             sizeof(int_triple)*(num_CENSOR+1) );
+         rab.i = r; rab.j = a; rab.k = b; abc_CENSOR[num_CENSOR++] = rab ;
+       } /* end of loop over -CENSORTR strings */
+       if( nerr > 0 ) ERROR_exit("Can't proceed after -CENSORTR errors!") ;
+       NI_delete_str_array(nsar) ; free(src) ;
+       continue ;  /* next option */
+     }
+
+     /*==========*/
+
+     ERROR_exit("Unknown argument: '%s'",argv[iarg]) ;
+
+   } /*----- end of scanning args -----*/
+
+   /*--- check for input errors or inconsistencies ---*/
+
+   if( iarg < argc ) WARNING_message("argument underrun???") ;
+
+   if( inset == NULL ) ERROR_exit("No -input dataset given?") ;
+
+   if( concatim != NULL && DSET_IS_TCAT(inset) )
+     WARNING_message("-concat ignored since -input catenated on command line");
+
+   /*----- mask-ification -----*/
+
+   if( automask ){
+     mask = THD_automask( inset ) ;
+     if( mask == NULL ) ERROR_exit("automask-ing fails?!") ;
+     nmask = THD_countmask( DSET_NVOX(inset) , mask ) ;
+     INFO_message("%d voxels in automask",nmask) ;
+   } else if( maskset != NULL ){
+     if( DSET_NVOX(maskset) != DSET_NVOX(inset) )
+       ERROR_exit("-mask and -input datasets not the same size!") ;
+     if( !EQUIV_GRIDS(maskset,inset) )
+       WARNING_message("-mask and -input datasets have differing grids!") ;
+     mask = THD_makemask( maskset , 0 , 1.0f,-1.0f ) ;
+     DSET_delete(maskset) ;
+     if( mask == NULL ) ERROR_exit("mask is empty?!") ;
+     nmask = THD_countmask( DSET_NVOX(inset) , mask ) ;
+     INFO_message("%d voxels in mask",nmask) ;
+   } else {
+     nmask = DSET_NVOX(inset) ; mask = NULL ;
+     INFO_message("no masking ==> will process all %d voxels",nmask) ;
+   }
+
+   /************/
+   exit(0) ;
 }
 
 /*---------------------------------------------------------------------------*/

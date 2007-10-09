@@ -24,7 +24,7 @@ int main( int argc , char * argv[] )
       printf("Usage: 3ddot [options] dset1 dset2\n"
              "Output = correlation coefficient between 2 dataset bricks\n"
              "         - you can use sub-brick selectors on the dsets\n"
-             "         - the result is a number printed to stdout"
+             "         - the result is a number printed to stdout\n"
              "Options:\n"
              "  -mask mset   Means to use the dataset 'mset' as a mask:\n"
              "                 Only voxels with nonzero values in 'mset'\n"
@@ -123,6 +123,8 @@ int main( int argc , char * argv[] )
    if( nvox != DSET_NVOX(yset) ){
       fprintf(stderr,"*** input datasets dimensions don't match!\n");exit(1);
    }
+   if( !EQUIV_GRIDS(xset,yset) )
+     WARNING_message("input datasets don't have same grids") ;
 
    /* make a byte mask from mask dataset */
 
