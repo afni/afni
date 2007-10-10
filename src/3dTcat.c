@@ -56,10 +56,10 @@ void TCAT_read_opts( int argc , char *argv[] )
    int nopt = 1 , ii ;
    char dname[THD_MAX_NAME] ;
    char subv[THD_MAX_NAME] ;
-   char * cpt ;
-   THD_3dim_dataset * dset ;
-   int * svar ;
-   char * str;
+   char *cpt ;
+   THD_3dim_dataset *dset , *fset ;
+   int *svar ;
+   char *str;
    int ok, ilen, nlen , max_nsub=0 ;
 
    INIT_3DARR(TCAT_dsar) ;  /* array of datasets */
@@ -247,10 +247,11 @@ void TCAT_read_opts( int argc , char *argv[] )
 
       ii = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz ;
       if( TCAT_nvox < 0 ){
-         TCAT_nvox = ii ;
+        TCAT_nvox = ii ; fset = dset ;
       } else if( ii != TCAT_nvox ){
-         fprintf(stderr,"*** Dataset %s differs in size from others\n",dname);
-         exit(1) ;
+        ERROR_exit("Dataset %s differs in size from first one!",dname);
+      } else if( !EQUIV_GRIDS(dset,fset) ){
+        WARNING_message("Dataset %s grid differs from first one!",dname);
       }
       ADDTO_3DARR(TCAT_dsar,dset) ;  /* list of datasets */
 
