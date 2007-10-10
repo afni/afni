@@ -913,7 +913,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
    char *att_prefix , *att_equals , *att_trail ;
    int header_only , header_sharp , outmode ;
 
-   /*--- 09 Mar 2005: outmode overrided tmode, if present ---*/
+   /*--- 09 Mar 2005: outmode overrides tmode, if outmode is present ---*/
 
    switch( tt ){
      default: return -1 ;    /* bad input! */

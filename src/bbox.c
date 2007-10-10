@@ -456,6 +456,7 @@ ENTRY("new_MCW_arrowval") ;
 
    av->block_assign_actions = 0 ;    /* don't block these actions */
    av->wmenu  = NULL ;               /* signal that this is NOT an optmenu */
+   av->optmenu_call_if_unchanged = 0 ; /* 10 Oct 2007 */
 
    AV_assign_ival( av , inival ) ;
 
@@ -522,6 +523,8 @@ ENTRY("new_MCW_optmenu") ;
    /** create the menu window **/
 
    av->wmenu = wmenu = XmCreatePulldownMenu( parent , "menu" , NULL , 0 ) ;
+
+   av->optmenu_call_if_unchanged = 0 ;  /* 10 Oct 2007 */
 
    VISIBILIZE_WHEN_MAPPED(wmenu) ;
 #if 0   /* doesn't work well if optmenu is inside a popup! */
@@ -814,7 +817,8 @@ ENTRY("optmenu_finalize") ;
 
    /* call user callback, if present */
 
-   if( av->dval_CB != NULL && av->fval != av->old_fval )
+   if( av->dval_CB != NULL && 
+       (av->optmenu_call_if_unchanged || av->fval != av->old_fval) )
 #if 0
       av->dval_CB( av , av->dval_data ) ;
 #else
@@ -1044,7 +1048,8 @@ void AVOPT_press_CB( Widget wbut, XtPointer client_data, XtPointer call_data )
 
    /* call user callback, if present */
 
-   if( av->dval_CB != NULL && av->fval != av->old_fval )
+   if( av->dval_CB != NULL &&
+      (av->optmenu_call_if_unchanged || av->fval != av->old_fval) )
 #if 0
       av->dval_CB( av , av->dval_data ) ;
 #else
@@ -1221,7 +1226,7 @@ ENTRY("AV_assign_ival") ;
       ic = newival - av->imin ;
 
       if( ic >= 0 && ic < num_children && wbut != children[ic] )
-         XtVaSetValues( av->wrowcol ,  XmNmenuHistory , children[ic] , NULL ) ;
+        XtVaSetValues( av->wrowcol ,  XmNmenuHistory , children[ic] , NULL ) ;
    }
 
    EXRETURN ;

@@ -27,6 +27,8 @@ static int   TT_pooled     = 1 ;
 static float TT_pthresh    = 0.0 ;
 static int   TT_use_bval   = 0 ;
 static float TT_bval       = 0.0 ;
+static float TT_sd1        = 0.0 ; /* 10 Oct 2007 */
+static int   TT_n1         = 0.0 ; /* 10 Oct 2007 */
 static int   TT_use_editor = 0 ;
 static int   TT_be_quiet   = 0 ;
 static int   TT_workmem    = 12 ;  /* default = 12 Megabytes */
@@ -203,10 +205,10 @@ DUMP2 ;
 
       /**** after this point, the options are no longer 'free floating' ****/
 
-      /** -base1 bval **/
+      /** -base1 bval [sd1 n1] **/
 
       if( strncmp(argv[nopt],"-base1",6) == 0 ){
-         char * ch ;
+         char *ch ;
 
          if( ++nopt >= argc )    TT_syntax("-base1 needs a value!");
          if( TT_use_bval == -1 ) TT_syntax("-base1 with -set1 illegal!");
@@ -214,6 +216,18 @@ DUMP2 ;
          if( *ch != '\0' ) TT_syntax("value after -base1 is illegal!") ;
          TT_use_bval = 1 ;
          nopt++ ; continue ;  /* skip to next arg */
+      }
+
+      /** [10 Oct 2007] -sdn1 sd1 n1 **/
+
+      if( strncmp(argv[nopt],"-sdn1",5) == 0 ){
+        if( ++nopt >= argc-1 )  TT_syntax("-sdn1 needs 2 values!") ;
+        if( TT_use_bval == -1 ) TT_syntax("-sdn1 with -set1 illegal!") ;
+        TT_sd1 = strtod( argv[nopt]   , NULL ) ;
+        TT_n1  = strtod( argv[++nopt] , NULL ) ;
+        if( TT_sd1 <= 0.0 ) TT_syntax("Illegal sigma after -sdn1!") ;
+        if( TT_n1  <  2   ) TT_syntax("Illegal n1 after -sdn1!") ;
+        nopt++ ; continue ;
       }
 
       /** -set1 file file ... **/
@@ -298,6 +312,9 @@ DUMP2 ;
    if( TT_use_bval == 0 )
       TT_syntax("neither -base1 nor -set1 is present!") ;
 
+   if( TT_use_bval == -1 && TT_n1 > 0 )
+      TT_syntax("-sdn1 used with -set1 is illegal!") ; /* 10 Oct 2007 */
+
    if( TT_use_bval == -1 &&
        ( TT_set1 == NULL || TT_set1->num < 2 ) )
       TT_syntax("-set1 has too few datasets in it!") ;
@@ -324,6 +341,11 @@ DUMP2 ;
 
    if( TT_pooled == 0 && TT_use_bval == 1 )
       TT_syntax("-base1 and -unpooled are mutually exclusive!") ;
+
+#if 0
+   if( TT_pooled == 0 && TT_n1 > 0 )
+      TT_syntax("-unpooled and -sdn1 are mutually exclusive!") ;
+#endif
 
    if( TT_pooled == 1 && TT_dof_prefix[0] != '\0' )  /* 27 Dec 2002 */
       WARNING_message("-dof_prefix is used only with -unpooled!");
@@ -370,6 +392,12 @@ void TT_syntax(char * msg)
     "                   N.B.: -set1 and -base1 are mutually exclusive!\n"
     "  -base1 bval        = 'bval' is a numerical value that the mean of set2\n"
     "                         will be tested against with a 1-sample t-test.\n"
+    "  -sdn1  sd n1       = If this option is given along with '-base1', then\n"
+    "                         'bval' is taken to have standard deviation 'sd'\n"
+    "                         computed from 'n1' samples.  In this case, each\n"
+    "                         voxel in set2 is compared to bval using a\n"
+    "                         pooled-variance unpaired 2-sample t-test.\n"
+    "                         [This is for Tom Johnstone; hope we meet someday.]\n"
     "  -set2 datasets ... = Specifies the collection of datasets to put into\n"
     "                         the second set.  There must be at least 2 datasets\n"
     "                         in each of set1 (if used) and set2.\n"
@@ -674,7 +702,7 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
    mri_fix_data_pointer( vsp  , DSET_BRICK(new_dset,1) ) ;  /* to new dataset */
 
    /** only short and float are allowed for output **/
-   if( output_datum != MRI_short && output_datum != MRI_float ) 
+   if( output_datum != MRI_short && output_datum != MRI_float )
       ERROR_exit("Illegal output data type %d = %s",
                  output_datum , MRI_TYPE_name[output_datum] ) ;
 
@@ -902,8 +930,9 @@ printf(" ** forming mean and sigma of set1\n") ;
 
       if( TT_paired || TT_use_bval == 1 ){ /** case 1: paired estimate or 1-sample **/
 
-         f2 = 1.0 / sqrt( (double) num2 ) ;
-         for( ii=0 ; ii < nxyz ; ii++ ){
+        if( TT_paired || TT_n1 == 0 ){       /* the olde waye: 1 sample test */
+          f2 = 1.0 / sqrt( (double) num2 ) ;
+          for( ii=0 ; ii < nxyz ; ii++ ){
             av2[ii] -= TT_bval ;  /* final mean */
             if( sd2[ii] > 0.0 ){
                num_tt++ ;
@@ -914,11 +943,27 @@ printf(" ** forming mean and sigma of set1\n") ;
             } else {
                sd2[ii] = 0.0;
             }
-         }
+          }
+          if( TT_voxel >= 0 )
+             fprintf(stderr,"-- paired/bval mean = %g, t = %g\n",
+                     av2[TT_voxel], sd2[TT_voxel]) ;
 
-         if( TT_voxel >= 0 )
-            fprintf(stderr,"-- paired/bval mean = %g, t = %g\n",
-                    av2[TT_voxel], sd2[TT_voxel]) ;
+        } else {  /* 10 Oct 2007: -sdn1 was used with -base1: 'two' sample test */
+          f1 = (TT_n1-1.0) * (1.0/TT_n1 + 1.0/num2) / (TT_n1+num2-2.0) ;
+          f2 = (num2 -1.0) * (1.0/TT_n1 + 1.0/num2) / (TT_n1+num2-2.0) ;
+          for( ii=0 ; ii < nxyz ; ii++ ){
+            av2[ii] -= TT_bval ;  /* final mean */
+            q1 = f1 * TT_sd1*TT_sd1 + f2 * sd2[ii]*sd2[ii] ;
+            if( q1 > 0.0 ){
+              num_tt++ ;
+              tt = av2[ii] / sqrt(q1) ;
+              sd2[ii] = tt ;      /* final t-stat */
+              tt = fabs(tt) ; if( tt > tt_max ) tt_max = tt ;
+            } else {
+              sd2[ii] = 0.0 ;
+            }
+          }
+        } /* end of -sdn1 special case */
 #ifdef TTDEBUG
 printf(" ** paired or bval test: num_tt = %d\n",num_tt) ;
 #endif
@@ -991,8 +1036,13 @@ printf(" ** unpooled test: num_tt = %d\n",num_tt) ;
       printf("--- Number of degrees of freedom = %d (paired test)\n",num2-1) ;
       dof = num2 - 1 ;
    } else if( TT_use_bval == 1 ){
-      printf("--- Number of degrees of freedom = %d (1-sample test)\n",num2-1) ;
-      dof = num2 - 1 ;
+      if( TT_n1 == 0 ){
+        printf("--- Number of degrees of freedom = %d (1-sample test)\n",num2-1) ;
+        dof = num2 - 1 ;
+      } else {
+        dof = TT_n1+num2-2 ;
+        printf("--- Number of degrees of freedom = %d (-sdn1 2-sample test)\n",(int)dof) ;
+      }
    } else {
       printf("--- Number of degrees of freedom = %d (2-sample test)\n",num1+num2-2) ;
       dof = num1+num2-2 ;
@@ -1019,9 +1069,10 @@ printf(" ** unpooled test: num_tt = %d\n",num_tt) ;
 
    /* if output is of type short, limit t-stat magnitude to 32.7 */
    if( output_datum == MRI_short ){
-      for( ii=0 ; ii < nxyz ; ii++ )
-        if     ( sd2[ii] >  32.7 ) sd2[ii] =  32.7 ;
-        else if( sd2[ii] < -32.7 ) sd2[ii] = -32.7 ;
+     for( ii=0 ; ii < nxyz ; ii++ ){
+       if     ( sd2[ii] >  32.7 ) sd2[ii] =  32.7 ;
+       else if( sd2[ii] < -32.7 ) sd2[ii] = -32.7 ;
+     }
    }
 
    fimfac = EDIT_convert_dtype(nxyz , MRI_float,sd2 , output_datum,vsp , 0.0) ;

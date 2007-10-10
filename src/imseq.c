@@ -5148,6 +5148,7 @@ STATUS(" .. ButtonPress") ;
          /* 26 Feb 2007: Buttons 4 and 5 = Scroll Wheel = change slice */
 
          if( but == Button4 || but == Button5 ){
+           if( seq->button2_enabled ){ busy=0; EXRETURN; }  /* 10 Oct 2007 */
            if( (event->state & (Mod1Mask|Mod2Mask)) ){ /* mod+scroll == '{}' */
              cbs.reason = isqCR_keypress ;
              cbs.event  = ev ;
