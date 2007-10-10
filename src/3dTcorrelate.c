@@ -153,6 +153,8 @@ int main( int argc , char *argv[] )
    if( im_ort != NULL && im_ort->nx < DSET_NUM_TIMES(xset) ){
       fprintf(stderr,"** Input datsets are longer than -ort file!\n"); exit(1);
    }
+   if( !EQUIV_GRIDS(xset,yset) )
+     WARNING_message("Grid mismatch between input datasets!") ;
    DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
    DSET_load(yset) ; CHECK_LOAD_ERROR(yset) ;
 

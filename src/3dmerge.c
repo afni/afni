@@ -1022,7 +1022,7 @@ int main( int argc , char * argv[] )
                        "    You can use '3dbuc2fim' first, if needed.\n"    );
         exit(1) ;
       }
- 
+
       /** get ready to go **/
 
       if( ! MRG_be_quiet ){
@@ -1362,13 +1362,10 @@ int main( int argc , char * argv[] )
 
       /* check for dimensional mismatch */
 
-      if( dset->daxes->nxx != nx ||
-          dset->daxes->nyy != ny || dset->daxes->nzz != nz ){
-
-         fprintf(stderr,"*** dataset brick size mismatch at file %s\n",
-                 argv[file_num] ) ;
-         exit(1) ;
-      }
+      if( dset->daxes->nxx!=nx || dset->daxes->nyy!=ny || dset->daxes->nzz!=nz )
+        ERROR_exit("dataset brick size mismatch at file %s\n",argv[file_num] );
+      else if( !EQUIV_GRIDS(dset,new_dset) )
+        WARNING_message("dataset grid mismatch at file %s",argv[file_num]);
 
       /* 02 Feb 1998 */
       if ( (MRG_doall) && (DSET_NVALS(dset) != iv_top) )
