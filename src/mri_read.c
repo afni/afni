@@ -2004,7 +2004,7 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
 
    /* convert commas (or 'i' for complex numbers ZSS Oct 06) to blanks */
 
-   for( ii=0 ; ii < blen ; ii++ ) if( buf[ii] == ',' || buf[ii] == 'i') buf[ii] = ' ' ;
+   for( ii=0 ; ii < blen ; ii++ ) if( buf[ii] == ',' || buf[ii] == 'i') buf[ii] = ' ';
    
    fv = (floatvec *)malloc(sizeof(floatvec)) ;
    fv->nar = 0 ;
@@ -2019,7 +2019,7 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
      sscanf( buf+bpos , "%63s" , vbuf ) ;
 
      val = 0.0 ; count = 1 ;
-     if( vbuf[0] == '*' ){    /* 10 Aug 2004 */
+     if( vbuf[0] == '*' || isalpha(vbuf[0]) ){    /* 10 Aug 2004 */
        val = lbfill ;
      } else if( (cpt=strchr(vbuf,'@')) != NULL ){
        sscanf( vbuf , "%d%c%f" , &count , &sep , &val ) ;

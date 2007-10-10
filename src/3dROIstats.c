@@ -38,7 +38,7 @@ void Error_Exit(char *message)
 
 int main(int argc, char *argv[])
 {
-    THD_3dim_dataset *mask_dset = NULL, *input_dset = NULL;
+    THD_3dim_dataset *mask_dset = NULL, *input_dset = NULL ;
     int mask_subbrik = 0;
     int sigma = 0, nzmean = 0, nzcount = 0, debug = 0, quiet = 0, summary = 0;
     int minmax = 0, nzminmax = 0;		/* 07 July, 2004 [rickr] */
@@ -449,9 +449,13 @@ int main(int argc, char *argv[])
 	    continue;
 	}
 	if (DSET_NVOX(input_dset) != nvox) {
-	    fprintf(stderr, "Warning: Input dataset %s is a different size than the mask\n", argv[narg]);
+	    WARNING_message("Input dataset %s is different size than mask - skipping",
+                       argv[narg]);
 	    continue;
 	}
+   if( !EQUIV_GRIDS(mask_dset,input_dset) )
+     WARNING_message("Input dataset %s grid mismatch from mask",argv[narg]) ;
+
 	DSET_load(input_dset);
 
 	if (summary)

@@ -1421,7 +1421,8 @@ typedef struct {
     (cax)->yyorient == (dax)->yyorient          && \
     (cax)->zzorient == (dax)->zzorient    )
 
-#define EQUIV_GRIDS(d1,d2) EQUIV_DATAXES((d1)->daxes,(d2)->daxes)
+#define EQUIV_GRIDS(d1,d2) \
+ ( ISVALID_DSET(d1) && ISVALID_DSET(d2) && EQUIV_DATAXES((d1)->daxes,(d2)->daxes) )
 
 extern void THD_edit_dataxes( float , THD_dataxes * , THD_dataxes * ) ;
 

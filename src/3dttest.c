@@ -475,18 +475,18 @@ void TT_syntax(char * msg)
 
 static float ptable[] = { 0.5 , 0.2 , 0.1 , 0.05 , 0.01 , 0.001 , 0.0001 , 0.00001 } ;
 
-int main( int argc , char * argv[] )
+int main( int argc , char *argv[] )
 {
    int nx,ny,nz , nxyz , ii,kk , num1,num2 , num_tt=0 , iv ,
        piece , fim_offset;
    float dx,dy,dz , dxyz ,
          num1_inv , num2_inv , num1m1_inv , num2m1_inv , dof ,
          dd,tt,q1,q2 , f1,f2 , tt_max=0.0 ;
-   THD_3dim_dataset * dset=NULL , * new_dset=NULL ;
-   float * av1 , * av2 , * sd1 , * sd2 , * ffim , * gfim ;
+   THD_3dim_dataset *dset=NULL , *new_dset=NULL ;
+   float *av1 , *av2 , *sd1 , *sd2 , *ffim , *gfim ;
 
-   void  * vsp ;
-   void  * vdif ;           /* output mean difference */
+   void  *vsp ;
+   void  *vdif ;           /* output mean difference */
    char  cbuf[THD_MAX_NAME] ;
    float fbuf[MAX_STAT_AUX] , fimfac ;
    int   output_datum ;
@@ -519,7 +519,7 @@ int main( int argc , char * argv[] )
 
    dset = THD_open_dataset( TT_set2->ar[0] ) ;  /* 20 Dec 1999  BDW */
    if( ! ISVALID_3DIM_DATASET(dset) )
-      ERROR_exit("Unable to open dataset file %s",TT_set2->ar[0]);
+     ERROR_exit("Unable to open dataset file %s",TT_set2->ar[0]);
 
    nx = dset->daxes->nxx ;
    ny = dset->daxes->nyy ;
@@ -692,7 +692,9 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
        if( !ISVALID_3DIM_DATASET((ds)) )                                          \
           ERROR_exit("Can't open dataset: %s",(name)) ;                           \
        if( (ds)->daxes->nxx!=nx || (ds)->daxes->nyy!=ny || (ds)->daxes->nzz!=nz ) \
-          ERROR_exit("Axes mismatch: %s",(name)) ;                                \
+          ERROR_exit("Axes size mismatch: %s",(name)) ;                           \
+       if( !EQUIV_GRIDS((ds),new_dset) )                                          \
+          WARNING_message("Grid mismatch: %s",(name)) ;                           \
        if( DSET_NUM_TIMES((ds)) > 1 )                                             \
          ERROR_exit("Can't use time-dependent data: %s",(name)) ;                 \
        if( TT_use_editor ) EDIT_one_dataset( (ds), &TT_edopt ) ;                  \

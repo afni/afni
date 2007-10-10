@@ -50,17 +50,17 @@ ENTRY("THD_open_tcat") ;
      if( DSET_NX(dset_in[0]) != DSET_NX(dset_in[dd]) ||
          DSET_NY(dset_in[0]) != DSET_NY(dset_in[dd]) ||
          DSET_NZ(dset_in[0]) != DSET_NZ(dset_in[dd])   ){
-       fprintf(stderr,
-               "** THD_open_tcat: %s [%dx%dx%d] doesn't match %s [%dx%dx%d]\n",
+       ERROR_message(
+               "THD_open_tcat: %s [%dx%dx%d] doesn't match %s [%dx%dx%d]\n",
                sar->str[0] ,DSET_NX(dset_in[0]) ,
                             DSET_NY(dset_in[0]) ,DSET_NZ(dset_in[0]) ,
                sar->str[dd],DSET_NX(dset_in[dd]),
                             DSET_NY(dset_in[dd]),DSET_NZ(dset_in[dd]) ) ;
        nerr++ ;
      } else if( !EQUIV_DATAXES(dset_in[dd]->daxes,dset_in[0]->daxes) ){
-       fprintf(stderr,
-               "++ THD_open_tcat: %s grid mismatch with %s\n",
-               sar->str[0] , sar->str[dd] ) ;
+       WARNING_message(
+               "THD_open_tcat: %s grid mismatch with %s\n",
+               sar->str[0] , sar->str[dd] ) ;  /* don't increment nerr! */
      }
    }
    if( nerr > 0 ){
