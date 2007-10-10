@@ -6387,3 +6387,7 @@
      and to not double plot transformed time series that didn't change.
  * Print 'NFirst > 0' informational message in 3dDeconvolve.c.
  * Change OPACITY_BOT from 0 to 1 in imseq.c.
+
+10 Oct 2007
+ * Changes to 3dDeconvolve.c to check -stim_label values: for un-assigned
+     values, and for duplicate values.

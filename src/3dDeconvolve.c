@@ -1761,7 +1761,7 @@ void get_options
         k = ival-1;
         nopt++;
 
-        if( strncmp(option_data->stim_label[k],"Stim#",5) != 0 )
+        if( strncmp(option_data->stim_label[k],"Stim",4) != 0 )
           WARNING_message("-stim_label %d '%s' replacing old label '%s'",
                           ival , argv[nopt] , option_data->stim_label[k] ) ;
 
@@ -2218,8 +2218,20 @@ void get_options
 
   if( option_data->polort == -1 ) demean_base = 0 ;  /* 12 Aug 2004 */
 
+  /* check stimuli for decent and humane values */
+
   nerr = 0 ;
   for( k=0 ; k < option_data->num_stimts ; k++ ){
+
+    if( strncmp(option_data->stim_label[k],"Stim",4) == 0 )
+      WARNING_message("no -stim_label given for stim #%d ==> label = '%s'",
+                      k+1 , option_data->stim_label[k] ) ;
+
+    for( s=0 ; s < k ; s++ ){
+      if( strcmp(option_data->stim_label[k],option_data->stim_label[s]) == 0 )
+        WARNING_message("-stim_label '%s' the same for stim #%d and #%d",
+                        option_data->stim_label[k] , s+1 , k+1 ) ;
+    }
 
     if( basis_stim[k] != NULL ){    /* checking -stim_times input */
 
