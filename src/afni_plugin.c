@@ -1103,6 +1103,11 @@ ENTRY("add_timeseries_to_PLUGIN_interface") ;
    EXRETURN ;
 }
 
+/*-----------------------------------------------------------------------*/
+
+static int initcolorindex=1 ;
+void PLUTO_set_initcolorindex( int i ){ initcolorindex = i; } /* 10 Oct 2007 */
+
 /*-----------------------------------------------------------------------
    Routine to add a color overlay  "chooser" to the most recently
    created option within a plugin interface -- 11 Jul 2001 - RWCox.
@@ -1111,11 +1116,11 @@ ENTRY("add_timeseries_to_PLUGIN_interface") ;
            the color.
 -------------------------------------------------------------------------*/
 
-void add_overlaycolor_to_PLUGIN_interface( PLUGIN_interface * plint, char * label )
+void add_overlaycolor_to_PLUGIN_interface( PLUGIN_interface *plint, char *label )
 {
    int nopt , nsv , ii ;
-   PLUGIN_option * opt ;
-   PLUGIN_subvalue * sv ;
+   PLUGIN_option *opt ;
+   PLUGIN_subvalue *sv ;
 
 ENTRY("add_overlaycolor_to_PLUGIN_interface") ;
 
@@ -1130,8 +1135,8 @@ ENTRY("add_overlaycolor_to_PLUGIN_interface") ;
 
    nsv = opt->subvalue_count ;
    if( nsv == PLUGIN_MAX_SUBVALUES ){
-      fprintf(stderr,"*** Warning: maximum plugin subvalue count exceeded!\n");
-      EXRETURN ;
+     WARNING_message("maximum plugin subvalue count exceeded - overlaycolor");
+     EXRETURN ;
    }
 
    /*-- load values into next subvalue --*/
@@ -1140,6 +1145,7 @@ ENTRY("add_overlaycolor_to_PLUGIN_interface") ;
 
    sv->data_type = PLUGIN_OVERLAY_COLOR_TYPE ;
    PLUGIN_LABEL_strcpy( sv->label , label ) ;
+   sv->value_default = initcolorindex ;
 
    (opt->subvalue_count)++ ;
    EXRETURN ;
@@ -1147,7 +1153,7 @@ ENTRY("add_overlaycolor_to_PLUGIN_interface") ;
 
 /*--------------------------------------------------------------------------*/
 
-int PLUG_nonblank_len( char * str )
+int PLUG_nonblank_len( char *str )
 {
    int ii , ll ;
 
@@ -1556,10 +1562,11 @@ fprintf(stderr,"Option setup %s\n",opt->label) ;
             /** overlay color type -- 11 Jul 2001 **/
 
             case PLUGIN_OVERLAY_COLOR_TYPE:{
-               MCW_arrowval * av ;
+               MCW_arrowval *av ; int iv=sv->value_default ;
 #if 0
 fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
 #endif
+               if( iv < 0 || iv > dc->ovc->ncol_ov-1 ) iv = 1 ;
 
                av = new_MCW_colormenu(
                        wid->workwin ,                    /* parent */
@@ -1567,7 +1574,7 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                        dc ,                              /* display context */
                        1 ,                               /* first color */
                        dc->ovc->ncol_ov - 1 ,            /* last color */
-                       1 ,                               /* initial color */
+                       iv ,                              /* initial color */
                        NULL,NULL                         /* callback func,data */
                     ) ;
 
@@ -2219,10 +2226,10 @@ ENTRY("PLUG_fillin_values") ;
            /** 11 Jul 2001: overlay color type; send in the color index **/
 
            case PLUGIN_OVERLAY_COLOR_TYPE:{
-              MCW_arrowval * av = (MCW_arrowval *) ow->chooser[ib] ;
-              int * iptr ;
+              MCW_arrowval *av = (MCW_arrowval *)ow->chooser[ib] ;
+              int *iptr ;
 
-              iptr  = (int *) XtMalloc( sizeof(int) ) ;
+              iptr  = (int *)XtMalloc( sizeof(int) ) ;
               *iptr = av->ival ;
               opt->callvalue[ib] = (void *) iptr ;
            }
@@ -2232,8 +2239,8 @@ ENTRY("PLUG_fillin_values") ;
                             send in the float value **/
 
            case PLUGIN_NUMBER_TYPE:{
-              MCW_arrowval * av = (MCW_arrowval *) ow->chooser[ib] ;
-              float * fptr ;
+              MCW_arrowval *av = (MCW_arrowval *) ow->chooser[ib] ;
+              float *fptr ;
 
               fptr  = (float *) XtMalloc( sizeof(float) ) ;
               *fptr = av->fval ;
@@ -2466,8 +2473,8 @@ ENTRY("PLUTO_commandstring") ;
                outbuf = THD_zzprintf( outbuf,"?" ) ; break ;
 
             case PLUGIN_OVERLAY_COLOR_TYPE:{
-               int * val = (int *) opt->callvalue[jsv] ;
-               MCW_DC * dc = plint->im3d->dc ;
+               int *val = (int *) opt->callvalue[jsv] ;
+               MCW_DC *dc = plint->im3d->dc ;
                if( val != NULL && *val >= 0 )
                  outbuf = THD_zzprintf( outbuf,"%s",dc->ovc->label_ov[*val] );
                else
