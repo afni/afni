@@ -786,6 +786,9 @@ ENTRY("new_MCW_grapher") ;
                           GRA_transform_CB , (XtPointer) grapher ,
                           GRA_transform_label , (XtPointer) grapher->status->transforms1D ) ;
 
+      /* force the optmenu to call us even if the same button is chosen twice */
+      grapher->transform1D_av->optmenu_call_if_unchanged = 1 ;  /* 10 Oct 2007 */
+
       if( grapher->status->transforms1D->num >= COLSIZE )
          AVOPT_columnize( grapher->transform1D_av ,
                           (grapher->status->transforms1D->num/COLSIZE)+1 ) ;

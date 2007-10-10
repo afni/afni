@@ -6391,3 +6391,11 @@
 10 Oct 2007
  * Changes to 3dDeconvolve.c to check -stim_label values: for un-assigned
      values, and for duplicate values.
+ * Change a few programs to check EQUIV_GRIDS() as well as voxel counts,
+     when combining multiple datasets (3dTcat, etc).
+ * Modify plug_nth_dataset.c to use different set of default overlay colors.
+     Modify afni_plugin.[ch] to allow this.
+ * Modify afni_graph.c to make 'Transform 1D' menu re-activate a button even
+     if it is already the activated one.  Goal: popup Dataset#N plugin
+     controls more easily.
+ * Modify 3dttest.c to add the -sdn1 option (for Tom Johnstone).

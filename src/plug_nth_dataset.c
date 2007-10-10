@@ -107,7 +107,9 @@ DEFINE_PLUGIN_PROTOTYPE
 
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
-   int id ;
+   int id , ic ;
+#define NCTAB 4
+   static int ctab[NCTAB] = { 6 , 7 , 14 , 16 } ;
 
 ENTRY("PLUGIN_init:Dataset#N") ;
 
@@ -131,6 +133,8 @@ ENTRY("PLUGIN_init:Dataset#N") ;
      PLUTO_add_dataset(plint , "Dataset" ,
                                       ANAT_ALL_MASK , FUNC_ALL_MASK ,
                                       DIMEN_4D_MASK | BRICK_ALLREAL_MASK ) ;
+     ic = ctab[id%NCTAB] ;
+     PLUTO_set_initcolorindex(ic) ; /* 10 Oct 2007 */
      PLUTO_add_overlaycolor( plint , "Color" ) ;
    }
 

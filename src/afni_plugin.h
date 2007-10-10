@@ -172,14 +172,14 @@ typedef struct {
    int data_type ;  /* one of the PLUGIN_*_TYPE codes above */
 
    char label[PLUGIN_LABEL_SIZE] ;  /* label for AFNI to display */
-   char * hint ;
+   char *hint ;
 
    /** values describing the range of acceptable inputs **/
 
    int int_range_bot , int_range_top , int_range_decim ; /* for NUMBER */
 
-   int    string_range_count ;                           /* for STRING */
-   char * string_range[PLUGIN_MAX_STRING_RANGE] ;
+   int   string_range_count ;                           /* for STRING */
+   char *string_range[PLUGIN_MAX_STRING_RANGE] ;
 
    int dset_anat_mask , dset_func_mask , dset_ctrl_mask ; /* for DATASET */
 
@@ -393,6 +393,8 @@ extern void add_dataset_list_to_PLUGIN_interface( PLUGIN_interface *,
 extern void add_timeseries_to_PLUGIN_interface( PLUGIN_interface *, char * ) ;
 
 extern void add_overlaycolor_to_PLUGIN_interface( PLUGIN_interface *, char * );
+
+extern void PLUTO_set_initcolorindex(int) ; /* 10 Oct 2007 */
 
 extern void PLUG_fillin_values( PLUGIN_interface * plint ) ;
 extern void PLUG_freeup_values( PLUGIN_interface * plint ) ;
