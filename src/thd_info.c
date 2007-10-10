@@ -260,7 +260,7 @@ ENTRY("THD_dataset_info") ;
    else                            nval_per = 1 ;                 /* 12 Feb 2002 */
 #else
    nval_per = dset->dblk->nvals ;
-   if( verbose < 0 && nval_per > 1 ) nval_per = 1 ;
+   if( verbose < 0 && nval_per > 3 ) nval_per = 3 ;
 #endif
 
    /* print out stuff for each sub-brick */
