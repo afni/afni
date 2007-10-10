@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import math
 import os, afni_util, afni_base
 
 # --------------- tcat ---------------
@@ -867,7 +868,7 @@ def get_default_polort(tr, reps):
         print "** cannot guess polort from tr = %f, reps = %d" % (tr,reps)
         return 2        # return some default
     run_time = tr * reps
-    return 1+floor(run_time/150.0)
+    return 1+math.floor(run_time/150.0)
 
 # dummy main - should not be used
 if __name__ == '__main__':
