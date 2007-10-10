@@ -2203,5 +2203,7 @@
   * modified 3dDeconvolve: use default polort of just 1+floor(rtime/150)
   * modified afni_proc.py, db_mod.py: apply same default polort
 04 Oct 2007: modified ccalc.c: quit on ctrl-D, no error on empty line
-10 Oct 2007: modified db_mod.py: need math for floor()
+10 Oct 2007:
+  * modified db_mod.py: need math for floor()
+  * modified 3dDeconvolve.c: set AFNI_DECONFLICT=OVERWRITE in do_xrestore_stuff
 

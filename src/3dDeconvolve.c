@@ -8144,6 +8144,8 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 
    /*----- Write dataset out! -----*/
 
+   putenv("AFNI_DECONFLICT=OVERWRITE") ;        /* overwrite output dataset */
+
    DSET_write( dset_buck ) ;
    return ;
 }
