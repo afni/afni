@@ -1063,7 +1063,7 @@ g_history = """
     1.26 Oct 03 2007 : set default polort based on run length (like 3dDecon)
 """
 
-g_version = "version 1.25, Jun 27, 2007"
+g_version = "version 1.26, Oct 10, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
