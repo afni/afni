@@ -1993,8 +1993,9 @@ static float lbfill = 0.0 ;  /* 10 Aug 2004 */
 static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
 {
    floatvec *fv=NULL ;
-   int blen, bpos, ncol, ii, count ;
-   char sep, vbuf[64] , *cpt ;
+   int blen, bpos, ncol, ii, count;
+   int alloc_chunk, alloc_unit = 10000, incr, n_alloced = 0, slowmo = 0 ; /* ZSS speedups */
+   char sep, vbuf[64] , *cpt, *ope=NULL;
    float val ;
 
    if( buf == NULL || *buf == '\0' ) return fv ;
@@ -2003,39 +2004,55 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
    ncol = 0 ;
 
    /* convert commas (or 'i' for complex numbers ZSS Oct 06) to blanks */
-
-   for( ii=0 ; ii < blen ; ii++ ) if( buf[ii] == ',' || buf[ii] == 'i') buf[ii] = ' ';
-   
+   for( ii=0 ; ii < blen ; ii++ ) { 
+      if( buf[ii] == ',' || buf[ii] == 'i') buf[ii] = ' ' ;
+      if( !slowmo && (buf[ii] == '*' || buf[ii] == '@')) slowmo = 1;
+   }
    fv = (floatvec *)malloc(sizeof(floatvec)) ;
    fv->nar = 0 ;
    fv->ar  = (float *)NULL ;
 
    for( bpos=0 ; bpos < blen ; ){
      /* skip to next nonblank character */
-
-     for( ; bpos < blen && (isspace(buf[bpos])||buf[bpos]==','||buf[bpos]=='i') ; bpos++ ) ; /* nada */
+     for( ; bpos < blen && isspace(buf[bpos]) ; bpos++ ) ; /* nada */
      if( bpos == blen ) break ;    /* end of line */
 
-     sscanf( buf+bpos , "%63s" , vbuf ) ;
 
      val = 0.0 ; count = 1 ;
-     if( vbuf[0] == '*' || isalpha(vbuf[0]) ){    /* 10 Aug 2004 */
-       val = lbfill ;
-     } else if( (cpt=strchr(vbuf,'@')) != NULL ){
-       sscanf( vbuf , "%d%c%f" , &count , &sep , &val ) ;
-       if( count < 1 ) count = 1 ;
-       if( *(cpt+1) == '*' ) val = lbfill ;  /* 10 Aug 2004 */
-     } else {
-       sscanf( vbuf , "%f" , &val ) ;
+     if (slowmo) {   /* trickery */
+        sscanf( buf+bpos , "%63s" , vbuf ) ;
+        if( vbuf[0] == '*' || isalpha(vbuf[0]) ){    /* 10 Aug 2004 */
+          val = lbfill ;
+        } else if( (cpt=strchr(vbuf,'@')) != NULL ){
+          sscanf( vbuf , "%d%c%f" , &count , &sep , &val ) ;
+          if( count < 1 ) count = 1 ;
+          if( *(cpt+1) == '*' ) val = lbfill ;  /* 10 Aug 2004 */
+        } else {
+          sscanf( vbuf , "%f" , &val ) ;
+        }
+        incr = strlen(vbuf) ;
+     } else {     /* no muss no fuss, take it straight */
+        /* sscanf( vbuf , "%f" , &val ) ; slow, slow, tan go close*/
+        val = strtod(buf+bpos, &ope);
+        incr = ope - (buf+bpos);
+     } 
+     if (fv->nar+count > n_alloced) {
+      /* fprintf(stderr,"reallocing past %d with count %d...\n", n_alloced, count); */
+      if (count > alloc_unit) alloc_chunk = count;
+      else alloc_chunk = alloc_unit;
+      fv->ar = (float *)realloc( (void *)fv->ar , sizeof(float)*(n_alloced+alloc_chunk) );
+      n_alloced = n_alloced + alloc_chunk;
      }
-
-     fv->ar = (float *)realloc( (void *)fv->ar , sizeof(float)*(fv->nar+count) ) ;
      for( ii=0 ; ii < count ; ii++ ) fv->ar[ii+fv->nar] = val ;
      fv->nar += count ;
-     bpos += strlen(vbuf) ;
+     bpos += incr ;
    }
+   
+   
 
-   if( fv->nar == 0 ){ KILL_floatvec(fv); fv = NULL; }
+   
+   if( fv->nar == 0 ){ KILL_floatvec(fv); fv = NULL; } 
+   else { if (fv->nar < n_alloced) fv->ar = (float *)realloc( (void *)fv->ar , sizeof(float)*(fv->nar) ); } 
    return fv ;
 }
 
@@ -2043,7 +2060,8 @@ static doublevec * decode_double_linebuf( char *buf )  /* 20 Jul 2004 */
 {
    doublevec *dv=NULL ;
    int blen, bpos, ncol, ii, count ;
-   char sep, vbuf[64] , *cpt ;
+   int alloc_chunk, alloc_unit = 10000, incr, n_alloced = 0, slowmo = 0 ; /* ZSS speedups */
+   char sep, vbuf[64] , *cpt , *ope=NULL;
    double val ;
 
    if( buf == NULL || *buf == '\0' ) return dv ;
@@ -2052,8 +2070,10 @@ static doublevec * decode_double_linebuf( char *buf )  /* 20 Jul 2004 */
    ncol = 0 ;
 
    /* convert commas (or 'i' for complex numbers ZSS Oct 06) to blanks */
-
-   for( ii=0 ; ii < blen ; ii++ ) if( buf[ii] == ',' || buf[ii] == 'i') buf[ii] = ' ' ;
+   for( ii=0 ; ii < blen ; ii++ ) { 
+      if( buf[ii] == ',' || buf[ii] == 'i') buf[ii] = ' ' ;
+      if( !slowmo && (buf[ii] == '*' || buf[ii] == '@')) slowmo = 1;
+   }
 
    dv = (doublevec *)malloc(sizeof(doublevec)) ;
    dv->nar = 0 ;
@@ -2062,29 +2082,43 @@ static doublevec * decode_double_linebuf( char *buf )  /* 20 Jul 2004 */
    for( bpos=0 ; bpos < blen ; ){
      /* skip to next nonblank character */
 
-     for( ; bpos < blen && (isspace(buf[bpos])||buf[bpos]==','||buf[bpos]=='i') ; bpos++ ) ; /* nada */
+     for( ; bpos < blen && isspace(buf[bpos]) ; bpos++ ) ; /* nada */
      if( bpos == blen ) break ;    /* end of line */
 
-     sscanf( buf+bpos , "%63s" , vbuf ) ;
 
      val = 0.0 ; count = 1 ;
-     if( vbuf[0] == '*' ){    /* 10 Aug 2004 */
-       val = (double)lbfill ;
-     } else if( (cpt=strchr(vbuf,'@')) != NULL ){
-       sscanf( vbuf , "%d%c%lf" , &count , &sep , &val ) ;
-       if( count < 1 ) count = 1 ;
-       if( *(cpt+1) == '*' ) val = (double)lbfill ;  /* 10 Aug 2004 */
-     } else {
-       sscanf( vbuf , "%lf" , &val ) ;
+     if (slowmo) {   /* trickery */
+        sscanf( buf+bpos , "%63s" , vbuf ) ;
+        if( vbuf[0] == '*' ){    /* 10 Aug 2004 */
+          val = (double)lbfill ;
+        } else if( (cpt=strchr(vbuf,'@')) != NULL ){
+          sscanf( vbuf , "%d%c%lf" , &count , &sep , &val ) ;
+          if( count < 1 ) count = 1 ;
+          if( *(cpt+1) == '*' ) val = (double)lbfill ;  /* 10 Aug 2004 */
+        } else {
+          sscanf( vbuf , "%lf" , &val ) ;
+        }
+        incr = strlen(vbuf) ;
+     } else {     /* no muss no fuss, take it straight */
+        /* sscanf( vbuf , "%f" , &val ) ; slow, slow, tan go close*/
+        val = strtod(buf+bpos, &ope);
+        incr = ope - (buf+bpos);
+     } 
+     if (dv->nar+count > n_alloced) {
+      /* fprintf(stderr,"reallocing past %d with count %d...\n", n_alloced, count); */
+      if (count > alloc_unit) alloc_chunk = count;
+      else alloc_chunk = alloc_unit;
+      dv->ar = (double *)realloc( (void *)dv->ar , sizeof(double)*(n_alloced+alloc_chunk) );
+      n_alloced = n_alloced + alloc_chunk;
      }
 
-     dv->ar = (double *)realloc( (void *)dv->ar , sizeof(double)*(dv->nar+count) ) ;
      for( ii=0 ; ii < count ; ii++ ) dv->ar[ii+dv->nar] = val ;
      dv->nar += count ;
-     bpos += strlen(vbuf) ;
+     bpos += incr ;
    }
 
    if( dv->nar == 0 ){ KILL_doublevec(dv); dv = NULL; }
+   else { if (dv->nar < n_alloced) dv->ar = (double *)realloc( (void *)dv->ar , sizeof(double)*(dv->nar) ); } 
    return dv ;
 }
 
@@ -2373,6 +2407,7 @@ ENTRY("mri_read_complex_ascii") ;
                      "\n    That is a must for complex 1D files.\n");
       RETURN(NULL);
    }
+   /* fprintf(stderr,"Have ncol = %d\n", ncol);*/
    /** At this point, ncol is the number of floats to be read from each line **/
 
    rewind( fts ) ;  /* will start over */
@@ -2382,7 +2417,7 @@ ENTRY("mri_read_complex_ascii") ;
    alloc_tsar = incts ;
    tsar       = (float *) malloc( sizeof(float) * alloc_tsar ) ;
    if( tsar == NULL ){
-      fprintf(stderr,"\n*** malloc error in mri_read_float_ascii ***\n"); EXIT(1);
+      fprintf(stderr,"\n*** malloc error in mri_read_complex_ascii ***\n"); EXIT(1);
    }
 
    /** read lines, convert to floats, store **/
@@ -2400,7 +2435,7 @@ ENTRY("mri_read_complex_ascii") ;
         alloc_tsar += incts ;
         tsar        = (float *)realloc( (void *)tsar,sizeof(float)*alloc_tsar );
         if( tsar == NULL ){
-          fprintf(stderr,"\n*** realloc error in mri_read_float_ascii ***\n"); EXIT(1);
+          fprintf(stderr,"\n*** realloc error in mri_read_complex_ascii ***\n"); EXIT(1);
         }
      }
      for( ii=0 ; ii < vec->nar && ii < ncol ; ii++ )
@@ -2420,13 +2455,13 @@ ENTRY("mri_read_complex_ascii") ;
 
    tsar = (float *) realloc( tsar , sizeof(float) * used_tsar ) ;
    if( tsar == NULL ){
-      fprintf(stderr,"\n*** final realloc error in mri_read_float_ascii ***\n"); EXIT(1);
+      fprintf(stderr,"\n*** final realloc error in mri_read_complex_ascii ***\n"); EXIT(1);
    }
    
    /* now turn tsar into a complex vector */
    ctsar = (complex *) calloc(used_tsar, sizeof(complex));
    for( ii=0 ; ii < used_tsar; ii=ii+2) {
-      /* fprintf(stderr,"tsar[%d]=%f\n", ii, tsar[ii]);  */
+      /* fprintf(stderr,"tsar[%d]=%f\n", ii, tsar[ii]);   */
       ih = ii/2;
       ctsar[ih].r = tsar[ii]; ctsar[ih].i = tsar[ii+1];
    }
