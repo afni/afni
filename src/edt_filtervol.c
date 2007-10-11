@@ -18,6 +18,7 @@
       filter_rmm   = radius of "influence" of neighboring voxels
 
       fmask        = if non-NULL, is a mask of allowable voxels
+      fmclip       = if nonzero, zero out non-fmask voxels at end
       fexpr        = character string for FCFLAG_EXPR
 
    The filtered data is returned in vfim.
@@ -33,18 +34,19 @@
 
    Added fmask and fexpr: RWCox - 09 Aug 2000
    Added Winsor filter:   RWCox - 11 Sep 2000
+   Added fmclip:          RWCox - 11 Oct 2007
 -----------------------------------------------------------------------------*/
 
 void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
-                   int fim_type, void * vfim, int filter_opt, float filter_rmm,
-                   byte * fmask , char * fexpr )
+                   int fim_type, void *vfim, int filter_opt, float filter_rmm,
+                   byte *fmask , int fmclip , char *fexpr )
 {
-   MCW_cluster * mask;                   /* mask for filtering */
-   int nxy, nxyz;                        /* dimensions of volume data */
-   int mnum;                             /* number of points in mask */
-   int i, j, k, ii, jj, kk;              /* voxel indices */
-   int ijkvox, ijkma, jma;               /* more voxel indices */
-   float * ffim, * ffim_out;             /* floating point fim's */
+   MCW_cluster *mask;                   /* mask for filtering */
+   int nxy, nxyz;                       /* dimensions of volume data */
+   int mnum;                            /* number of points in mask */
+   int i, j, k, ii, jj, kk;             /* voxel indices */
+   int ijkvox, ijkma, jma;              /* more voxel indices */
+   float *ffim, *ffim_out;              /* floating point fim's */
 
    float
       mag,                 /* voxel intensity */
@@ -58,11 +60,11 @@ void EDIT_filter_volume (int nx, int ny, int nz, float dx, float dy, float dz,
       npts, nznpts;        /* number of points in average */
 
    float wtsum ;           /* 09 Aug 2000: stuff for FCFLAG_EXPR */
-   float * wt=NULL ;
-   PARSER_code * pcode ;
+   float *wt=NULL ;
+   PARSER_code *pcode ;
 
    int nw , nnw , iw ;     /* 11 Sep 2000: Winsor stuff */
-   float * sw=NULL , vw ;
+   float *sw=NULL , vw ;
 
    nxy = nx*ny;  nxyz = nxy*nz;
 
@@ -77,7 +79,7 @@ ENTRY("EDIT_filter_volume") ;
 
    /***--- 07 Jan 1998 ---***/
 
-   if( filter_opt == FCFLAG_AVER ){
+   if( filter_opt == FCFLAG_AVER ){  /* more efficient code */
       if( fim_type != MRI_float ){
          ffim = (float *) malloc (sizeof(float) * nxyz);
          if( ffim == NULL ){
@@ -230,6 +232,8 @@ ENTRY("EDIT_filter_volume") ;
                     for( iw=0 ; iw <= mnum ; iw++ ) sw[iw] = mag ;
                     vw = mag ; break ;
               }
+            } else if( fmclip ){   /* 11 Oct 2007 */
+               ffim_out[ijkvox] = 0.0f ; continue ;
             }
 
             /*--- Now iterate over the positions in the mask ---*/
@@ -389,13 +393,13 @@ ENTRY("EDIT_filter_volume") ;
 --------------------------------------------------------------------------*/
 
 void EDIT_aver_fvol( int   nx, int   ny, int   nz,
-                     float dx, float dy, float dz, float * fim , float rmm )
+                     float dx, float dy, float dz, float *fim , float rmm )
 {
-   MCW_cluster * mask ;
+   MCW_cluster *mask ;
    int i, j, k , ij , ii ;
    int jk,jkadd , nxadd,nyadd,nzadd , nxyz_add , mnum ;
-   float * ffim ;
-   int * madd ;
+   float *ffim ;
+   int *madd ;
    float fac , sum ;
 
 ENTRY("EDIT_aver_fvol") ;

@@ -162,7 +162,7 @@ int MRG_read_opts( int argc , char * argv[] )
       /**** 09 Aug 2000: -1fmask dset ****/
 
       if( strncmp(argv[nopt],"-1fmask",6) == 0 ){
-         THD_3dim_dataset * mset ; int nn ;
+         THD_3dim_dataset *mset ; int nn ;
 
          if( MRG_edopt.nfmask > 0 ){
             fprintf(stderr,"Can't have 2 -fmask options!\n") ;
@@ -200,7 +200,14 @@ int MRG_read_opts( int argc , char * argv[] )
          if( MRG_edopt.thrfilter_opt == FCFLAG_AVER )
             MRG_edopt.thrfilter_opt = FCFLAG_MEAN ;
 
+         MRG_edopt.fmclip = 1 ; /* 11 Oct 2007 */
          continue ;
+      }
+
+      /**** 11 Oct 2007: -1fm_noclip ****/
+
+      if( strncmp(argv[nopt],"-1fm_noclip",9) == 0 ){
+        MRG_edopt.fmclip = 0 ; nopt++ ; continue ;
       }
 
       /**** 11 Sep 2000: -1filter_winsor rmm nw ****/
@@ -227,31 +234,42 @@ int MRG_read_opts( int argc , char * argv[] )
          MRG_have_edopt = 1 ; continue ;
       }
 
+      /**** 11 Oct 2007: -1filter_blur fwhm (cheaply) ****/
       /**** 09 Aug 2000: -1filter_expr rmm expr ****/
 
-      if( strncmp(argv[nopt],"-1filter_expr",13) == 0 ){
-         PARSER_code * pcode ; int hsym[26] , aa , naa , nee ;
-         double atoz[26] , val ;
+      if( strncmp(argv[nopt],"-1filter_expr",13) == 0 ||
+          strncmp(argv[nopt],"-1filter_blur",13) == 0   ){
+
+         PARSER_code *pcode ; int hsym[26] , aa , naa , nee ;
+         double fval ;
+         int doblur=(strncmp(argv[nopt],"-1filter_blur",13) == 0) ;
 
          nopt++ ;
-         if( nopt+1 >= argc ){
-            fprintf(stderr,"*** Need 2 arguments after -1filter_expr\n") ;
-            exit(1) ;
-         }
-         MRG_edopt.filter_opt = FCFLAG_EXPR;
-         MRG_edopt.filter_rmm  = strtod( argv[nopt++] , NULL ) ;
-         if( MRG_edopt.filter_rmm <= 0.0 ){
-            fprintf(stderr,"*** Illegal rmm value after -1filter_expr\n");
-            exit(1) ;
+         if( doblur ){
+           if( nopt >= argc ) ERROR_exit("Need 1 argument after -1filter_blur");
+         } else if( nopt+1 > argc ){
+           ERROR_exit("Need 2 arguments after -1filter_expr") ;
          }
 
-         MRG_edopt.fexpr = argv[nopt++] ;
+         MRG_edopt.filter_opt = FCFLAG_EXPR;
+         fval = strtod( argv[nopt++] , NULL ) ;  /* rmm or fwhm */
+         if( !doblur ){
+           MRG_edopt.filter_rmm = fval ;
+           if( MRG_edopt.filter_rmm <= 0.0 )
+             ERROR_exit("Illegal rmm value after -1filter_expr");
+           MRG_edopt.fexpr = argv[nopt++] ;
+         } else {                              /* Make up blurring expr */
+           MRG_edopt.filter_rmm = 1.3*fval ;
+           if( MRG_edopt.filter_rmm <= 0.0 )
+             ERROR_exit("Illegal fwhm value after -1filter_blur");
+           MRG_edopt.fexpr = (char *)malloc(128) ;
+           fval = 1.0 / (0.36067 * fval * fval) ;
+           sprintf( MRG_edopt.fexpr , "exp(-r*r*%g)" , fval ) ;
+         }
          pcode = PARSER_generate_code( MRG_edopt.fexpr ) ;  /* compile */
 
-         if( pcode == NULL ){
-            fprintf(stderr,"*** Illegal expr after -1filter_expr\n");
-            exit(1);
-         }
+         if( pcode == NULL )
+           ERROR_exit("Illegal expr after -1filter_%s",(doblur)?"blur":"expr");
 
 #undef   MASK
 #undef   PREDEFINED_MASK
@@ -264,29 +282,26 @@ int MRG_read_opts( int argc , char * argv[] )
          PARSER_mark_symbols( pcode , hsym ) ;  /* find symbols used */
 
          for( nee=naa=aa=0 ; aa < 26 ; aa++ ){
-            if( hsym[aa] ){
-               if( ((1<<aa) & PREDEFINED_MASK) == 0 ){
-                  nee++ ;  /* count of illegal symbols */
-                  fprintf(stderr,"*** Symbol %c in -1filter_expr is illegal\n",'a'+aa) ;
-               } else {
-                  naa++ ;  /* count of legal symbols */
-               }
-            }
+           if( hsym[aa] ){
+             if( ((1<<aa) & PREDEFINED_MASK) == 0 ){
+               nee++ ;  /* count of illegal symbols */
+               ERROR_message("Symbol %c in -1filter_expr is illegal",'a'+aa) ;
+             } else {
+               naa++ ;  /* count of legal symbols */
+             }
+           }
          }
          if( nee > 0 ) exit(1) ;  /* can't use this expression! */
          if( naa == 0 ){          /* no symbols?  check if identically 0 */
-            double atoz[26] , val ;
-            val = PARSER_evaluate_one( pcode , atoz ) ;
-            if( val != 0.0 ){
-               fprintf(stderr,"+++ Warning: -1filter_expr is constant = %g\n",val) ;
-            } else {
-               fprintf(stderr,"*** -1filter_expr is identically zero\n") ;
-               exit(1) ;
-            }
+           double atoz[26] , val ;
+           val = PARSER_evaluate_one( pcode , atoz ) ;
+           if( val != 0.0 )
+             WARNING_message("-1filter_expr is constant = %g",val) ;
+           else
+             ERROR_exit("-1filter_expr is identically zero") ;
          }
 
          free(pcode) ;  /* will recompile when it is used */
-
          MRG_have_edopt = 1 ; continue ;
       }
 
@@ -607,32 +622,42 @@ void MRG_Syntax(void)
     "                  be set to 0.\n"
     "         N.B.: * Only the -1filter_* and -t1filter_* options are\n"
     "                 affected by -1fmask.\n"
-    "               * In the linear averaging filters (_mean, _nzmean,\n"
-    "                 and _expr), voxels not in the mask will not be used\n"
-    "                 or counted in either the numerator or denominator.\n"
-    "                 This can give unexpected results.  If the mask is\n"
-    "                 designed to exclude the volume outside the brain,\n"
-    "                 then voxels exterior to the brain, but within 'rmm',\n"
-    "                 will have a few voxels inside the brain included\n"
-    "                 in the filtering.  Since the sum of weights (the\n"
-    "                 denominator) is only over those few intra-brain\n"
-    "                 voxels, the effect will be to extend the significant\n"
-    "                 part of the result outward by rmm from the surface\n"
-    "                 of the brain.  In contrast, without the mask, the\n"
-    "                 many small-valued voxels outside the brain would\n"
-    "                 be included in the numerator and denominator sums,\n"
-    "                 which would barely change the numerator (since the\n"
-    "                 voxel values are small outside the brain), but would\n"
-    "                 increase the denominator greatly (by including many\n"
-    "                 more weights).  The effect in this case (no -1fmask)\n"
-    "                 is to make the filtering taper off gradually in the\n"
-    "                 rmm-thickness shell around the brain.\n"
-    "               * Thus, if the -1fmask is intended to clip off non-brain\n"
-    "                 data from the filtering, its use should be followed by\n"
-    "                 masking operation using 3dcalc:\n"
-    "      3dmerge -1filter_aver 12 -1fmask mask+orig -prefix x input+orig\n"
-    "      3dcalc  -a x -b mask+orig -prefix y -expr 'a*step(b)'\n"
-    "      rm -f x+orig.*\n"
+    "               * Voxels NOT in the fmask will be set to zero in the\n"
+    "                 output when the filtering occurs.  THIS IS NEW BEHAVIOR,\n"
+    "                 as of 11 Oct 2007.  Previously, voxels not in the fmask,\n"
+    "                 but within 'rmm' of a voxel in the mask, would get a\n"
+    "                 nonzero output value, as those nearby voxels would be\n"
+    "                 combined (via whatever '-1f...' option was given).\n"
+    "               * If you wish to restore this old behavior, where non-fmask\n"
+    "                 voxels can get nonzero output, then use the new option\n"
+    "                 '-1fm_noclip' in addition to '-1fmask'. The two comments\n"
+    "                 below apply to the case where '-1fm_noclip' is given!\n"
+    "                 * In the linear averaging filters (_mean, _nzmean,\n"
+    "                   and _expr), voxels not in the mask will not be used\n"
+    "                   or counted in either the numerator or denominator.\n"
+    "                   This can give unexpected results if you use '-1fm_noclip'.\n"
+    "                   For example, if the mask is designed to exclude the volume\n"
+    "                   outside the brain, then voxels exterior to the brain,\n"
+    "                   but within 'rmm', will have a few voxels inside the brain\n"
+    "                   included in the filtering.  Since the sum of weights (the\n"
+    "                   denominator) is only over those few intra-brain\n"
+    "                   voxels, the effect will be to extend the significant\n"
+    "                   part of the result outward by rmm from the surface\n"
+    "                   of the brain.  In contrast, without the mask, the\n"
+    "                   many small-valued voxels outside the brain would\n"
+    "                   be included in the numerator and denominator sums,\n"
+    "                   which would barely change the numerator (since the\n"
+    "                   voxel values are small outside the brain), but would\n"
+    "                   increase the denominator greatly (by including many\n"
+    "                   more weights).  The effect in this case (no -1fmask)\n"
+    "                   is to make the filtering taper off gradually in the\n"
+    "                   rmm-thickness shell around the brain.\n"
+    "                 * Thus, if the -1fmask is intended to clip off non-brain\n"
+    "                   data from the filtering, its use should be followed by\n"
+    "                   masking operation using 3dcalc:\n"
+    "   3dmerge -1filter_aver 12 -1fm_noclip -1fmask mask+orig -prefix x input+orig\n"
+    "   3dcalc  -a x -b mask+orig -prefix y -expr 'a*step(b)'\n"
+    "   rm -f x+orig.*\n"
     "                 The desired result is y+orig - filtered using only\n"
     "                 brain voxels (as defined by mask+orig), and with\n"
     "                 the output confined to the brain voxels as well.\n"
@@ -657,11 +682,18 @@ void MRG_Syntax(void)
     "     This does a Gaussian filter over a radius of 12 mm.  In this\n"
     "     example, the FWHM of the filter is 10 mm. [in general, the\n"
     "     denominator in the exponent would be 0.36067 * FWHM * FWHM.\n"
-    "     This is the only way to get a Gaussian blur combined with the\n"
+    "     This is one way to get a Gaussian blur combined with the\n"
     "     -1fmask option.  The radius rmm=12 is chosen where the weights\n"
     "     get smallish.]  Another example:\n"
     "       -1filter_expr 20.0 'exp(-(x*x+16*y*y+z*z)/36.067)'\n"
     "     which is a non-spherical Gaussian filter.\n"
+    "\n"
+    "  ** For shorthand, you can also use the new option (11 Oct 2007)\n"
+    "  -1filter_blur fwhm\n"
+    "        which is equivalent to\n"
+    "  -1filter_expr 1.3*fwhm 'exp(-r*r/(.36067*fwhm*fwhm)'\n"
+    "        and will implement a Gaussian blur.  The only reason to do\n"
+    "        Gaussian blurring this way is if you also want to use -1fmask!\n"
     "\n"
     "  The following option lets you apply a 'Winsor' filter to the data:\n"
     "\n"
@@ -680,7 +712,7 @@ void MRG_Syntax(void)
     "       -dxyz=1 -1filter_winsor 2.5 19\n"
     "     is a filter with N=81 that gives nice results.\n"
     "   N.B.: This option is NOT affected by -1fmask\n"
-    "   N.B.: This option is slow!\n"
+    "   N.B.: This option is slow! and experimental.\n"
     "\n"
     "MERGING OPTIONS APPLIED TO FORM THE OUTPUT DATASET:\n"
     " [That is, different ways to combine results. The]\n"
@@ -1026,7 +1058,7 @@ int main( int argc , char * argv[] )
       /** get ready to go **/
 
       if( ! MRG_be_quiet ){
-         printf("-- editing input dataset in memory (%.1f MB)\n",
+         printf("++ editing input dataset in memory (%.1f MB)\n",
                 ((double)dset->dblk->total_bytes) / MEGA ) ;
          fflush(stdout) ;
       }
@@ -1049,11 +1081,12 @@ int main( int argc , char * argv[] )
       EDIT_one_dataset( dset , &MRG_edopt ) ;  /* all the real work */
 
       if( !MRG_be_quiet && !MRG_doall ){ printf(".") ; fflush(stdout) ; }
-    }
 
-   if( MRG_edopt.nfmask > 0 ){
-     free(MRG_edopt.fmask) ; MRG_edopt.fmask = NULL ; MRG_edopt.nfmask = 0 ;
-   }
+    }  /* end of loop over sub-bricks */
+
+    if( MRG_edopt.nfmask > 0 ){
+      free(MRG_edopt.fmask) ; MRG_edopt.fmask = NULL ; MRG_edopt.nfmask = 0 ;
+    }
 
     if( !MRG_be_quiet && !MRG_doall ) printf("\n") ;
 

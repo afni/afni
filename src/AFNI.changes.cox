@@ -6399,3 +6399,7 @@
      if it is already the activated one.  Goal: popup Dataset#N plugin
      controls more easily.
  * Modify 3dttest.c to add the -sdn1 option (for Tom Johnstone).
+
+11 Oct 2007
+ * Modify edt_filtervol.c to clip off voxels outside the fmask.
+ * Modify 3dmerge.c to add -1fm_noclip and -1filter_blur options.
