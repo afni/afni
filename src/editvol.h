@@ -52,10 +52,10 @@
 typedef struct {
    int num_pt  ;    /*!< Number of points in cluster */
    int num_all ;    /*!< Number of points allocated for cluster */
-   short * i;       /*!< x index */
-   short * j;       /*!< y index */
-   short * k;       /*!< z index */
-   float * mag ;    /* stores value at each voxel in cluster */
+   short *i;        /*!< x index */
+   short *j;        /*!< y index */
+   short *k;        /*!< z index */
+   float *mag ;     /* stores value at each voxel in cluster */
 } MCW_cluster ;
 
 /*! Initialize a MCW_cluster. */
@@ -149,7 +149,7 @@ typedef struct {
 
 #define SORT_CLARR(name) \
    if( (name) != NULL && (name)->num_clu > 1 ){                             \
-      int iic , jjc , sss ; MCW_cluster * ct ;                              \
+      int iic , jjc , sss ; MCW_cluster *ct ;                               \
       for( iic=0 ; iic < (name)->num_clu ; iic++ ){                         \
          sss = 0 ;                                                          \
          for( jjc=1 ; jjc < (name)->num_clu ; jjc++ ){                      \
@@ -247,9 +247,10 @@ typedef struct EDIT_options {
 
    int   verbose ;                /*!< 01 Nov 1999 --> verbose output during editing */
 
-   int   nfmask ;                 /*!< 09 Aug 2000 --> filter mask */
-   byte * fmask ;
-   char * fexpr ;                 /*!< 09 Aug 2000 --> filter expression */
+   int  nfmask ;                  /*!< 09 Aug 2000 --> filter mask */
+   byte *fmask ;
+   char *fexpr ;                  /*!< 09 Aug 2000 --> filter expression */
+   int   fmclip ;                 /*!< 11 Oct 2007 --> clip at fmask? */
 
    int fake_dxyz ;                /*!< 11 Sep 2000 -> use dx=dy=dz=1.0? */
 
@@ -310,6 +311,7 @@ typedef struct EDIT_options {
         (edopt)->nfmask        = 0   , \
         (edopt)->fmask         = NULL, \
         (edopt)->fexpr         = NULL, \
+        (edopt)->fmclip        = 1,    \
         (edopt)->fake_dxyz     = 0   , \
        0 )
 
@@ -386,7 +388,7 @@ extern void EDIT_cluster_array (MCW_cluster_array * , int, float, float);
 
 /* 11 Sept 1996 */
 extern void EDIT_filter_volume (int, int, int, float, float, float,
-                                int, void *, int, float , byte * , char * );
+                                int, void *, int, float, byte *, int, char * );
 
 /* 13 Sept 2005 [rickr] */
 extern THD_marker_set * create_empty_marker_set(void);
