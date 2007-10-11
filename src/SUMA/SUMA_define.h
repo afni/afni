@@ -55,6 +55,10 @@
 #define SUMA_LMODEL_AMBIENT       SUMA_LMODEL_AMBIENT_COLOR_R, SUMA_LMODEL_AMBIENT_COLOR_G, SUMA_LMODEL_AMBIENT_COLOR_B,  SUMA_LMODEL_AMBIENT_COLOR_A /*!< keep the ambient light high */
 
 #define SUMA_RED_GL 1.0, 0.0, 1.0, 1.0 /*!< red color */
+#define SUMA_YELLOW_GL 0.0, 1.0, 1.0, 1.0 /*!< yellow color */
+#define SUMA_BLUE_GL 0.0, 0.0, 1.0, 1.0 /*!< yellow color */
+#define SUMA_GREEN_GL 0.0, 1.0, 0.0, 1.0 /*!< yellow color */
+
 #define SUMA_CLEAR_COLOR_R         0.0 /*!< clear color (viewer background) Red */
 #define SUMA_CLEAR_COLOR_G         0.0 /*!< clear color (viewer background) Green */
 #define SUMA_CLEAR_COLOR_B         0.0 /*!< clear color (viewer background) Blue */
@@ -144,7 +148,7 @@
 typedef enum { SUMA_VOX_NEIGHB_FACE, SUMA_VOX_NEIGHB_EDGE, SUMA_VOX_NEIGHB_CORNER } SUMA_VOX_NEIGHB_TYPES;
 typedef enum { SUMA_DONT_KNOW = 0, SUMA_IN_TRIBOX_OUTSIDE = 1, SUMA_INTERSECTS_TRIANGLE_OUTSIDE, SUMA_ON_NODE, SUMA_INTERSECTS_TRIANGLE_INSIDE, SUMA_IN_TRIBOX_INSIDE, SUMA_INSIDE_SURFACE } SUMA_SURF_GRID_INTERSECT_OPTIONS;
                                     
-typedef enum { SUMA_SIDE_ERROR=-1, SUMA_NO_SIDE, SUMA_LEFT, SUMA_RIGHT } SUMA_SO_SIDE; 
+typedef enum { SUMA_SIDE_ERROR=-1, SUMA_NO_SIDE, SUMA_LR, SUMA_LEFT, SUMA_RIGHT } SUMA_SO_SIDE; 
 typedef enum { SUMA_GEOM_NOT_SET=-1, SUMA_GEOM_IRREGULAR = 0,    
                SUMA_GEOM_SPHERE = 1, SUMA_GEOM_ICOSAHEDRON, 
                SUMA_N_GEOM } SUMA_GEOM_TYPE;
@@ -155,7 +159,7 @@ typedef enum  { SUMA_NO_ANSWER, SUMA_YES, SUMA_NO, SUMA_HELP, SUMA_CANCEL, SUMA_
 typedef enum  { SUMA_FT_ERROR = -1, SUMA_FT_NOT_SPECIFIED, 
                SUMA_FREE_SURFER, SUMA_FREE_SURFER_PATCH, SUMA_SUREFIT, 
                SUMA_INVENTOR_GENERIC, SUMA_PLY, SUMA_VEC, SUMA_CMAP_SO, SUMA_BRAIN_VOYAGER , 
-               SUMA_OPENDX_MESH, 
+               SUMA_OPENDX_MESH, SUMA_BYU,
                   SUMA_N_SO_FILE_TYPE} SUMA_SO_File_Type; /* add types always between SUMA_FT_NOT_SPECIFIED AND SUMA_N_SO_FILE_TYPE */
 typedef enum { SUMA_FF_NOT_SPECIFIED, SUMA_ASCII, SUMA_BINARY, SUMA_BINARY_BE, SUMA_BINARY_LE } SUMA_SO_File_Format;
 typedef enum { type_not_set = -1,
@@ -250,7 +254,8 @@ typedef enum { SW_Help,
                                                          Make sure you begin with SW_View and end
                                                          with SW_N_View */                                                   
 typedef enum { SW_SurfCont_Render,
-               SW_SurfCont_RenderViewerDefault, SW_SurfCont_RenderFill, SW_SurfCont_RenderLine, SW_SurfCont_RenderPoints, 
+               SW_SurfCont_RenderViewerDefault, SW_SurfCont_RenderFill, 
+               SW_SurfCont_RenderLine, SW_SurfCont_RenderPoints, SW_SurfCont_RenderHide,
                SW_N_SurfCont_Render } SUMA_WIDGET_INDEX_SURFCONT_RENDER; /*!< Indices to widgets in SurfaceController under
                                                                            RenderMode */
 typedef enum { SW_DrawROI_SaveMode,
@@ -346,7 +351,7 @@ typedef enum { SUMA_ROI_Undefined,
 
 typedef enum { SXR_default, SXR_Euro, SXR_Afni , SXR_Bonaire} SUMA_XRESOURCES;   /* flags for different X resources */
 
-typedef enum { SRM_ViewerDefault, SRM_Fill, SRM_Line, SRM_Points , SRM_N_RenderModes} SUMA_RENDER_MODES; /*!< flags for various rendering modes */
+typedef enum { SRM_ViewerDefault, SRM_Fill, SRM_Line, SRM_Points , SRM_Hide, SRM_N_RenderModes} SUMA_RENDER_MODES; /*!< flags for various rendering modes */
 
 #define SUMA_N_STANDARD_VIEWS  2 /*!< number of useful views enumerated in SUMA_STANDARD_VIEWS */
 typedef enum {   SUMA_2D_Z0, SUMA_3D, SUMA_Dunno} SUMA_STANDARD_VIEWS; /*!< Standard viewing modes. These are used to decide what viewing parameters to carry on when switching states 
@@ -1337,6 +1342,14 @@ typedef struct {
    SUMA_STIPPLE Stipple; /*!< dashed or solid line */
    
 }SUMA_SegmentDO;
+
+typedef struct {
+   char *parent_ID;
+   DList *Edges;
+   DList *Points;
+   DList *Nodes;
+   DList *Triangles;
+} SUMA_STRIP;
 
 /*!
    Structure containg a bunch of spheres 

@@ -1,6 +1,3 @@
-/*USE This sample to start writing standalone programs.
-Change SurfSmooth to the program name of your choosing.
-*/
 #include "SUMA_suma.h"
 
 SUMA_SurfaceViewer *SUMAg_cSV = NULL; /*!< Global pointer to current Surface Viewer structure*/
@@ -26,14 +23,22 @@ void usage_SUMA_SurfSmooth ()
               "   progression of the smoothing in real-time in suma.\n"
               "\n"
               "   Method specific options:\n"
-              "      HEAT: <-input inData.1D> <-fwhm F> <-Niter N>  \n"
+              "      HEAT_07: <-input inData.1D> <-target_fwhm F>   \n"
               "            This method is used to filter data\n"
-              "            on the surface. It is faster and more stable than\n"
-              "            the older LB_FEM below.\n"
-/*              "      LB_FEM: <-input inData.1D> <-fwhm f>\n"
+              "            on the surface. It is an significant\n"
+              "            improvement on HEAT_05.\n"
+              "      HEAT_05: <-input inData.1D> <-fwhm F> <-Niter N>  \n"
+              "            Formerly known as HEAT, this method is used \n"
+              "            to filter data on the surface. \n"
+              "            Parameter choice is tricky however as one\n"
+              "            needs to take into account mesh dimensions,\n"
+              "            desired FWHM, and the data's starting FWHM in \n"
+              "            order to make an appropriate selection.\n"
+              "            I do not recommend you use it anymore.\n"
+/*            "      LB_FEM: <-input inData.1D> <-fwhm f>\n"
               "              This method is used to filter data\n"
-              "              on the surface.\n"
-*/              "      LM: [-kpb k] [-lm l m] [-surf_out surfname] [-iw weights]\n"
+              "              on the surface.\n" */
+              "      LM: [-kpb k] [-lm l m] [-surf_out surfname] [-iw weights]\n"
               "          This method is used to filter the surface's\n"
               "          geometry (node coordinates).\n"
               "      NN_geom: smooth by averaging coordinates of \n"
@@ -52,15 +57,22 @@ void usage_SUMA_SurfSmooth ()
               "      -surf_A insurf: Name of surface of interest. \n"
               "                      NOTE: i_TYPE inSurf option is now obsolete.\n"
               "      -met method: name of smoothing method to use. Choose from:\n"
-              "                 HEAT: The newer method by Chung et al. [Ref. 3&4 below]\n"
+              "                 HEAT_07: A significant improvement on HEAT_05.\n" 
               "                         This method is used for filtering \n"
               "                         data on the surface and not for smoothing \n"
-              "                         the surface's geometry per se. \n" 
-              "                 LB_FEM: (Olde, better use HEAT)\n"
+              "                         the surface's geometry per se. \n"
+              "                         This method makes more appropriate parameter\n"
+              "                         choices that take into account:\n"
+              "                         - Numerical precision issues\n"
+              "                         - Mesh resolution\n"
+              "                         - Starting and Target FWHM\n"
+              "                 HEAT_05: The newer method by Chung et al. [Ref. 3&4 below]\n"
+              "                         Better use HEAT_07.\n" 
+        /*    "                 LB_FEM: (Olde, better use HEAT)\n"
               "                         The method by Chung et al. 03.\n"
               "                         This method is used for filtering \n"
               "                         data on the surface and not for smoothing the\n"
-              "                         surface's geometry per se. See References below.\n"
+              "                         surface's geometry per se. See References below.\n" */
               "                 LM: The smoothing method proposed by G. Taubin 2000\n"
               "                     This method is used for smoothing\n"
               "                     a surface's geometry. See References below.\n"
@@ -69,7 +81,7 @@ void usage_SUMA_SurfSmooth ()
               "                          that might need to be corrected with the -match_*\n"
               "                          options below. \n" 
               "\n"
-/*              "   Options for LB_FEM:\n"
+/*            "   Options for LB_FEM:\n"
               "   It is now recommended that you use the newer method HEAT (see below).\n"
               "      -input inData: file containing data (in 1D or niml format)\n"
               "                        Each column in inData is processed separately.\n"
@@ -85,9 +97,71 @@ void usage_SUMA_SurfSmooth ()
               "               an approximation. \n"
               "               Blurring on the surface depends on the geodesic instead \n"
               "               of the Euclidean distances. See Ref #1 for more details \n"
-              "               on this parameter.\n"
-*/              "\n"
-              "   Options for HEAT:\n"
+              "               on this parameter.\n"   */ 
+              "\n"
+              "   Options for HEAT_07:\n"
+              "      -input inData : file containing data (in 1D or NIML format)\n"
+              "                        Each column in inData is processed separately.\n"
+              "                        The number of rows must equal the number of\n"
+              "                        nodes in the surface. You can select certain\n"
+              "                        columns using the [] notation adopted by AFNI's\n"
+              "                  Note: The program will infer the format of the input\n"
+              "                        file from the extension of inData. \n" 
+              "                        programs.\n"
+              "      -fwhm F: Blur by a Gaussian filter that has a Full Width at Half Maximum\n"
+              "               in surface coordinate units (usuallly mm) of F.\n"
+              "               For Gaussian filters, FWHM, SIGMA (STD-DEV) and RMS\n"
+              "               FWHM = 2.354820 * SIGMA = 1.359556 * RMS\n"
+              "               Blurring on the surface depends on the geodesic instead \n"
+              "               of the Euclidean distances. \n"
+              "   or \n"
+              "      -target_fwhm TF: Blur so that the final FWHM of the data is TF mm\n"
+              "                       This option avoids blurring already smooth data.\n"
+              "                       FWHM estimates are obtained from all the data\n"
+              "                       to be processed.\n"
+              "      -blurmaster BLURASTER: Blur so that the final FWHM of dataset BLURASTER\n"
+              "                       is TF mm then use the same blurring parameters on inData.\n"
+              "                       You should almost ALWAYS use the -blurmaster option in conjunction\n"
+              "                       with options -fwhm and target_fwhm\n"
+              "                       BLURMASTER is typically epi time series.\n" 
+              "      -detrend_master [q]: Detrend blurmaster with 2*q+3 basis functions with q > 0.\n"
+              "                         default is -1 where q = NT/30.\n"
+              "                         This option should be used when BLURMASTER is an epi time series.\n"
+              "                         There is no need for detrending when BLURMASTER is the residual\n"
+              "                         from a linear regression analysis.\n"
+              "      -detpoly_master p: Detrend blurmaster with polynomials of order p.\n"
+              "      -detprefix_master d: Save the detrended blurmaster into a dataset with prefix 'd'.\n"
+              "      -detrend_in [q]: Detrend input before blurring it, then retrend \n"
+              "                       it afterwards. Default is no detrending.\n"
+              "                       Detrending mode is similar to detrend_master.\n"
+              "      -detpoly_in p: Detrend input before blurring then retrend.\n"
+              "                     Detrending mode is similar to detpoly_master.\n"
+              "      -detprefix_in d Save the detrended input into a dataset with prefix 'd'.\n"
+              "\n"
+              "   and optionally, one of the following two parameters:\n"
+              "      -Niter N: Number of iterations (default is -1).\n"
+              "                You can now set this parameter to -1 and have \n"
+              "                the program suggest a value based on the surface's\n"
+              "                mesh density (average distance between nodes), \n"
+              "                the desired and starting FWHM. \n"
+              "                Too large or too small a number of iterations can affect \n"
+              "                smoothing results. \n"
+              "      -sigma  S: Bandwidth of smoothing kernel (for a single iteration).\n"
+              "                 S should be small (< 1) but not too small.\n"
+              "      -c_mask or -b_mask or -n_mask (see below for details):\n"
+              "                 Restrict smoothing to nodes in mask.\n"
+              "                 You should not include nodes with no data in \n"
+              "                 the smoothing. Note that the mask is also applied \n"
+              "                 to -blurmaster dataset and all estimations of FWHM.\n"
+              "                 For example:\n"
+              "                    If masked nodes have 0 for value in the input \n"
+              "                    dataset's first (0th) sub-brick, use: \n"
+              "                    -cmask '-a inData[0] -expr bool(a)'\n"
+              "   Notes:\n"
+              "   1- For those of you who know what they are doing, you can also skip \n"
+              "   specifying fwhm options and specify Niter and sigma directly.\n"
+              "\n"
+              "   Options for HEAT_05  (not recommended anymore):\n"
               "      -input inData : file containing data (in 1D or NIML format)\n"
               "                        Each column in inData is processed separately.\n"
               "                        The number of rows must equal the number of\n"
@@ -192,6 +266,7 @@ void usage_SUMA_SurfSmooth ()
               "                   such as .1D.dset or .niml.dset is present in OUT, \n"
               "                   then the output will be written in that format. \n"
               "                   Otherwise, the format is the same as the input's\n"
+              "      -overwrite OUT: Same as -output except that it allows overwriting.\n"
               "      -add_index : Output the node index in the first column.\n"
               "                   This is not done by default.\n"
               "      -dbg_n node : output debug information for node 'node'.\n"
@@ -294,12 +369,15 @@ void usage_SUMA_SurfSmooth ()
 
 #define SURFSMOOTH_MAX_SURF 1  /*!< Maximum number of input surfaces */
 
-typedef enum { SUMA_NO_METH, SUMA_LB_FEM_1D, SUMA_LB_FEM, SUMA_LM, SUMA_BRUTE_FORCE, SUMA_NN_GEOM, SUMA_HEAT_05_1D, SUMA_HEAT_05} SUMA_SMOOTHING_METHODS;
+typedef enum { SUMA_NO_METH,  SUMA_LB_FEM_1D, SUMA_LB_FEM, SUMA_LM, SUMA_BRUTE_FORCE, 
+                              SUMA_NN_GEOM, SUMA_HEAT_05_1D, SUMA_HEAT_05_Pre_07,
+                              SUMA_HEAT_07} SUMA_SMOOTHING_METHODS;
 
 typedef struct {
    float OffsetLim;
    float lim;
-   float fwhm;
+   double fwhm;
+   double tfwhm;
    float kpb;
    float l;
    float m;
@@ -318,6 +396,7 @@ typedef struct {
    char *if_name;
    char *if_name2;
    char *in_name;
+   char *master_name;
    char *out_name;   /* this one's dynamically allocated so you'll have to free it yourself */
    char *ShowOffset_DBG; /* meant to be a file where one outputs some debugging info. Not being used ...*/
    char *surf_out;
@@ -326,7 +405,20 @@ typedef struct {
    int MatchMethod;
    byte *nmask;
    byte strict_mask;
-   float sigma;
+   unsigned int rseed;
+   double sigma;
+   char FWHM_mixmode[20];
+   
+   int overwrite;
+   int detrend_master;
+   int detpoly_master;
+   char *detprefix_master;
+   int detrend_in;
+   int detpoly_in;
+   char *detprefix_in;
+   
+   byte scaleinput;
+   byte scalemaster;
    SUMA_DSET_FORMAT oform;
    SUMA_GENERIC_ARGV_PARSE *ps;
 } SUMA_SURFSMOOTH_OPTIONS;
@@ -345,8 +437,8 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
 {
    static char FuncName[]={"SUMA_SurfSmooth_ParseInput"}; 
    SUMA_SURFSMOOTH_OPTIONS *Opt=NULL;
-   int kar, i, ind;
-   char *outname;
+   int kar, i, ind, exists=0;
+   char *outname = NULL, *ooo=NULL;
    SUMA_Boolean brk = NOPE;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -359,12 +451,15 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
    Opt->MatchMethod = 0;
    Opt->lim = 1000000.0;
    Opt->fwhm = -1;
+   Opt->tfwhm = -1;
    Opt->ShowNode = -1;
    Opt->Method = SUMA_NO_METH;
+   Opt->rseed = 123456;
    Opt->dbg = 0;
    Opt->if_name = NULL;
    Opt->if_name2 = NULL;
    Opt->in_name = NULL;
+   Opt->master_name = NULL;
    Opt->out_name = NULL;
    Opt->vp_name = NULL; 
    Opt->sv_name = NULL;
@@ -382,10 +477,21 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
    Opt->sigma = -1.0;
    Opt->oform = SUMA_NO_DSET_FORMAT;
    Opt->strict_mask = 1;
+   sprintf(Opt->FWHM_mixmode,"arit");
    Opt->ps = ps;
    SUMA_Set_Taubin_Weights(SUMA_EQUAL);
+   Opt->detrend_master = -1;
+   Opt->detpoly_master = -2;
+   Opt->detprefix_master = NULL;
+   Opt->detrend_in = -2;
+   Opt->detpoly_in = -2;
+   Opt->detprefix_in = NULL;
+   Opt->scaleinput = 0;
+   Opt->scalemaster = 1;
    for (i=0; i<SURFSMOOTH_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
-   outname = NULL;
+   outname = NULL; ooo=NULL;
+   exists = 0;
+   Opt->overwrite = 0;
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -396,6 +502,75 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
 		
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
 
+      if (!brk && (strcmp(argv[kar],"-detrend_master") == 0 )){         
+         Opt->detrend_master = -1 ;
+         if( kar < argc-1 && isdigit(argv[kar+1][0]) ){
+            Opt->detrend_master = (int)strtod(argv[++kar],NULL) ;
+            if( Opt->detrend_master == 0 ){ /* Use poly of order 0 (mean) */
+              Opt->detpoly_master = 0 ; 
+              fprintf(SUMA_STDOUT,"-detrend_master 0 replaced by -detpoly_master 0\n") ;
+              Opt->detrend_master = -2;
+            }
+         }
+         brk = YUP;
+      }
+      if (!brk && (strcmp(argv[kar],"-detpoly_master") == 0 )){         
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a value after -detpoly_master \n");
+            exit (1);
+         }
+         Opt->detpoly_master = (int)strtod(argv[++kar],NULL) ;
+         brk = YUP;
+      }
+      if (!brk && (strcmp(argv[kar], "-no_detrend_master") == 0)) {
+			Opt->detrend_master = -2;
+			brk = YUP;
+		}
+      if( strcmp(argv[kar],"-detprefix_master") == 0 ){
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a value after -detprefix_master \n");
+            exit (1);
+         }
+         Opt->detprefix_master = argv[++kar];
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar],"-detrend_in") == 0 )){         
+         Opt->detrend_in = -1 ;
+         if( kar < argc-1 && isdigit(argv[kar+1][0]) ){
+            Opt->detrend_in = (int)strtod(argv[++kar],NULL) ;
+            if( Opt->detrend_in == 0 ){ /* Use poly of order 0 (mean) */
+              Opt->detpoly_in = 0 ; 
+              fprintf(SUMA_STDOUT,"-detrend_in 0 replaced by -detpoly_in 0\n") ;
+              Opt->detrend_in = -2;
+            }
+         }
+         brk = YUP;
+      }
+      if (!brk && (strcmp(argv[kar],"-detpoly_in") == 0 )){         
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a value after -detpoly_in \n");
+            exit (1);
+         }
+         Opt->detpoly_in = (int)strtod(argv[++kar],NULL) ;
+         brk = YUP;
+      }
+      if (!brk && (strcmp(argv[kar], "-no_detrend_in") == 0)) {
+			Opt->detrend_in = -2;
+			brk = YUP;
+		}
+      if( strcmp(argv[kar],"-detprefix_in") == 0 ){
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a value after -detprefix_in \n");
+            exit (1);
+         }
+         Opt->detprefix_in = argv[++kar];
+         brk = YUP;
+      }
       
       if (!brk && strcmp(argv[kar], "-dist") == 0)
 		{
@@ -433,7 +608,19 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
 			Opt->N_iter = atoi(argv[kar]);
 			brk = YUP;
 		}
-      
+      if (!brk && (strcmp(argv[kar], "-rseed") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 1 positive integer after -rseed \n");
+				exit (1);
+			}
+			Opt->rseed = atoi(argv[kar]);
+         if (Opt->rseed < 0) {
+            SUMA_S_Errv("-rseed needs a +ve integer. Have %d\n", Opt->rseed);
+            exit(1);
+         }
+			brk = YUP;
+		}
       if (!brk && (strcmp(argv[kar], "-kpb") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -506,6 +693,17 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
 			brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-blurmaster") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -blurmaster \n");
+				exit (1);
+			}
+			Opt->master_name = argv[kar];
+			brk = YUP;
+		}
+      
+      
       if (!brk && (strcmp(argv[kar], "-output") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -519,7 +717,20 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
          outname = argv[kar];
 			brk = YUP;
 		}
-      
+      if (!brk && (strcmp(argv[kar], "-overwrite") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -overwrite\n");
+				exit (1);
+			}
+			if (Opt->surf_out || outname) {
+            fprintf (SUMA_STDERR, "options -surf_out, -output, and -ovewrite are mutually exclusive\n");
+				exit (1);
+         }
+         outname = argv[kar];
+         Opt->overwrite = 1;
+			brk = YUP;
+		}
       if (!brk && (strcmp(argv[kar], "-add_index") == 0)) {
 			Opt->AddIndex = 1;
 			brk = YUP;
@@ -530,97 +741,6 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
 			brk = YUP;
 		}
       
-      if (!brk && (strcmp(argv[kar], "-i_fs") == 0)) {
-         SUMA_SL_Err("Option -i_fs is obsolete.\nUse -spec and -surf_A instead.\n");
-         exit(1);
-         kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -i_fs \n");
-				exit (1);
-			}
-			Opt->if_name = argv[kar];
-         Opt->iType = SUMA_FREE_SURFER;
-         if (!Opt->insurf_method) Opt->insurf_method = 1;
-         else {
-            fprintf (SUMA_STDERR, "already specified input surface.\n");
-            exit(1);
-         }
-			brk = YUP;
-		}
-      
-      if (!brk && (strcmp(argv[kar], "-i_sf") == 0)) {
-         SUMA_SL_Err("Option -i_sf is obsolete.\nUse -spec and -surf_A instead.\n");
-         exit(1);
-         kar ++;
-			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 argument after -i_sf\n");
-				exit (1);
-			}
-			Opt->if_name = argv[kar]; kar ++;
-         Opt->if_name2 = argv[kar];
-         Opt->iType = SUMA_SUREFIT;
-         if (!Opt->insurf_method) Opt->insurf_method = 1;
-         else {
-            fprintf (SUMA_STDERR, "already specified input surface.\n");
-            exit(1);
-         }
-			brk = YUP;
-		}
-      
-      if (!brk && (strcmp(argv[kar], "-i_vec") == 0)) {
-         SUMA_SL_Err("Option -i_vec is obsolete.\nUse -spec and -surf_A instead.\n");
-         exit(1);
-         kar ++;
-			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 argument after -i_vec\n");
-				exit (1);
-			}
-			Opt->if_name = argv[kar]; kar ++;
-         Opt->if_name2 = argv[kar];
-         Opt->iType = SUMA_VEC;
-         if (!Opt->insurf_method) Opt->insurf_method = 1;
-         else {
-            fprintf (SUMA_STDERR, "already specified input surface.\n");
-            exit(1);
-         }
-			brk = YUP;
-		}
-      
-      if (!brk && (strcmp(argv[kar], "-i_dx") == 0)) {
-         SUMA_SL_Err("Option -i_ply is obsolete.\nUse -spec and -surf_A instead.\n");
-         exit(1);
-         kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -i_dx\n ");
-				exit (1);
-			}
-			Opt->if_name = argv[kar];
-         Opt->iType = SUMA_OPENDX_MESH;
-         if (!Opt->insurf_method) Opt->insurf_method = 1;
-         else {
-            fprintf (SUMA_STDERR, "already specified input surface.\n");
-            exit(1);
-         }
-			brk = YUP;
-		}
-      
-      if (!brk && (strcmp(argv[kar], "-i_ply") == 0)) {
-         SUMA_SL_Err("Option -i_ply is obsolete.\nUse -spec and -surf_A instead.\n");
-         exit(1);
-         kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -i_ply\n ");
-				exit (1);
-			}
-			Opt->if_name = argv[kar];
-         Opt->iType = SUMA_PLY;
-         if (!Opt->insurf_method) Opt->insurf_method = 1;
-         else {
-            fprintf (SUMA_STDERR, "already specified input surface.\n");
-            exit(1);
-         }
-			brk = YUP;
-		}
       
       if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
          kar ++;
@@ -721,6 +841,15 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
 			Opt->fwhm = atof(argv[kar]);
 			brk = YUP;
 		}
+      if (!brk && (strcmp(argv[kar], "-target_fwhm") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -target_fwhm \n");
+				exit (1);
+			}
+			Opt->tfwhm = atof(argv[kar]);
+			brk = YUP;
+		}
       if (!brk && (strcmp(argv[kar], "-sigma") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -743,12 +872,18 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
          else if (strcmp(argv[kar], "BF") == 0)  Opt->Method = SUMA_BRUTE_FORCE;
          else if (strcmp(argv[kar], "NN_geom") == 0)  Opt->Method = SUMA_NN_GEOM;
          else if (strcmp(argv[kar], "HEAT_1D") == 0)  Opt->Method = SUMA_HEAT_05_1D;
-         else if (strcmp(argv[kar], "HEAT") == 0)  Opt->Method = SUMA_HEAT_05;
-         else {
+         else if (strcmp(argv[kar], "HEAT_05") == 0)  Opt->Method = SUMA_HEAT_05_Pre_07;
+         else if (strcmp(argv[kar], "HEAT_07") == 0)  Opt->Method = SUMA_HEAT_07;
+         else if (strcmp(argv[kar], "HEAT") == 0)  {
+            fprintf (SUMA_STDERR,"Option HEAT has been changed considerably.\n"
+                                 "It is recommended you use HEAT_07 or HEAT_05\n"
+                                 "for backward compatibility.\n");
+            exit(1);
+         } else {
             fprintf (SUMA_STDERR, "Method %s not supported.\n", argv[kar]);
 				exit (1);
          }
-         if (Opt->Method == SUMA_HEAT_05) {
+         if (Opt->Method == SUMA_HEAT_05_Pre_07 || Opt->Method == SUMA_HEAT_07) {
             if (Opt->N_iter < 0) {
                Opt->N_iter = -1;
             }
@@ -770,7 +905,31 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
    }
 
    /* check on options for HEAT budiness first */
-   if (Opt->Method == SUMA_HEAT_05_1D || Opt->Method == SUMA_HEAT_05) {
+   if (Opt->Method == SUMA_HEAT_07) {
+      if (Opt->N_iter < 0 &&  (Opt->fwhm > 0 || Opt->tfwhm > 0) && Opt->sigma < 0)  {
+         /* will make a suggestion, but after surface is read */
+      } else if (Opt->N_iter < 0 && Opt->tfwhm && Opt->fwhm < 0 && Opt->sigma < 0)  {
+         fprintf (SUMA_STDERR,"Error %s:\n"
+                              "All blurring parameters unspecified.\n", FuncName);
+         exit (1);
+      } else if (Opt->N_iter > 0 &&  (Opt->fwhm > 0 || Opt->tfwhm > 0) &&   Opt->sigma > 0)  { 
+         fprintf (SUMA_STDERR,"Error %s:\n"
+                              "All three parameters specified.\n", FuncName);
+         exit (1);
+      } else if (Opt->N_iter > 0 &&  (Opt->fwhm > 0 || Opt->tfwhm > 0) ) {
+         /* will work this one later */
+      } else if (Opt->N_iter > 0 && Opt->sigma > 0) {
+         /* this one is OK too. */
+      } else if ((Opt->fwhm > 0 || Opt->tfwhm > 0) &&  Opt->sigma > 0) {
+         /* this one is OK too. */
+      } else {
+         fprintf (SUMA_STDERR,"Error %s:\n"
+                              "Unexpected combo.\n", FuncName);
+         exit (1);
+      }
+   }
+   
+   if (Opt->Method == SUMA_HEAT_05_1D || Opt->Method == SUMA_HEAT_05_Pre_07) {
       float sequiv;
       if (Opt->N_iter < 0 &&  Opt->fwhm > 0 && Opt->sigma < 0)  {
          /* will make a suggestion, but after surface is read */
@@ -810,7 +969,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
       }
    }
    
-   if (Opt->Method != SUMA_HEAT_05) {
+   if (Opt->Method != SUMA_HEAT_05_Pre_07 && Opt->Method != SUMA_HEAT_07) {
       if (Opt->N_iter == -1) { /* default */ Opt->N_iter = 100; }
       if (Opt->N_iter < 1) {
          fprintf (SUMA_STDERR,"Error %s:\nWith -Niter N option, N must be > 1\n", FuncName);
@@ -864,12 +1023,13 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
    }
     
    if (outname) {
-      if (SUMA_filexists(outname)) {
+      if (SUMA_filexists(outname) && !Opt->overwrite) {
          fprintf (SUMA_STDERR,"Error %s:\noutput file %s exists.\n", FuncName, outname);
          exit(1);
       }
       Opt->out_name = SUMA_copy_string(outname);
-      Opt->oform = SUMA_GuessFormatFromExtension(Opt->out_name);
+      Opt->oform = SUMA_GuessFormatFromExtension(Opt->out_name, Opt->in_name);
+      SUMA_LHv("Format with %s, %s is %d\n", Opt->out_name, Opt->in_name, Opt->oform);
    } else {
       switch (Opt->Method) {
          case SUMA_LB_FEM_1D:
@@ -880,7 +1040,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
             break;
          case SUMA_LB_FEM:
             /* form autoname  */
-            Opt->oform = SUMA_GuessFormatFromExtension(Opt->in_name);
+            Opt->oform = SUMA_GuessFormatFromExtension(Opt->in_name, NULL);
             Opt->out_name = SUMA_RemoveDsetExtension_s(Opt->in_name, Opt->oform);
             Opt->out_name = SUMA_append_replace_string(Opt->out_name, "_sm", "", 1); /* add _sm to prefix */
             Opt->out_name = SUMA_append_replace_string(Opt->out_name, (char*)SUMA_ExtensionOfDsetFormat (Opt->oform), "", 1); /* add extension */
@@ -903,11 +1063,18 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
             Opt->out_name = SUMA_append_replace_string(Opt->out_name,"_smh", "", 1); /* add _smh to prefix */
             Opt->out_name = SUMA_append_replace_string(Opt->out_name,".1D", "", 1); /* add .1D */
             break;
-         case SUMA_HEAT_05:
+         case SUMA_HEAT_05_Pre_07:
             /* form autoname  */
-            Opt->oform = SUMA_GuessFormatFromExtension(Opt->in_name);
+            Opt->oform = SUMA_GuessFormatFromExtension(Opt->in_name, NULL);
             Opt->out_name = SUMA_RemoveDsetExtension_s(Opt->in_name, Opt->oform);
             Opt->out_name = SUMA_append_replace_string(Opt->out_name,"_sm", "", 1); /* add _sm to prefix */
+            Opt->out_name = SUMA_append_replace_string(Opt->out_name, (char*)SUMA_ExtensionOfDsetFormat (Opt->oform), "", 1); /* add extension */
+            break;
+         case SUMA_HEAT_07:
+            /* form autoname  */
+            Opt->oform = SUMA_GuessFormatFromExtension(Opt->in_name, NULL);
+            Opt->out_name = SUMA_RemoveDsetExtension_s(Opt->in_name, Opt->oform);
+            Opt->out_name = SUMA_append_replace_string(Opt->out_name,"_smh7", "", 1); /* add _sm to prefix */
             Opt->out_name = SUMA_append_replace_string(Opt->out_name, (char*)SUMA_ExtensionOfDsetFormat (Opt->oform), "", 1); /* add extension */
             break;
          default:
@@ -915,12 +1082,27 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
             exit(1);
             break;
       }
-      if (SUMA_filexists(Opt->out_name)) {
-         fprintf (SUMA_STDERR,"Error %s:\noutput file %s exists.\n", FuncName, Opt->out_name);
-         exit(1);
-      }
+      
+   }
+   
+   exists = SUMA_WriteDset_NameCheck_s (Opt->out_name, NULL, Opt->oform, 0, &ooo);
+   if (exists != 0 && !Opt->overwrite) {
+      SUMA_S_Errv("Output dataset %s exists.\n", ooo);
+      SUMA_free(ooo); ooo=NULL;
+      exit(1);
    }
 
+   if (Opt->tfwhm > -1  && Opt->Method != SUMA_HEAT_07) {
+      SUMA_S_Err("Cannot use -target_fwhm with anything but the HEAT_07 method.\n");
+      exit(1);
+   }
+   
+   if (Opt->N_iter > 0 && Opt->sigma > 0 && Opt->master_name) {
+      SUMA_S_Err("Cannot use both of -Niter and -sigma with -blurmaster.\n"
+                 "What's  the point in doing so since Niter and sigma \n"
+                 "together fully determine the smoothing process.\n");
+      exit(1);
+   }
    /* method specific checks */
    switch (Opt->Method) {
       case SUMA_LB_FEM_1D:
@@ -942,7 +1124,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
          }         
          
          break;
-      case SUMA_HEAT_05:
+      case SUMA_HEAT_05_Pre_07:
       case SUMA_HEAT_05_1D:
          if (!Opt->in_name) {
             fprintf (SUMA_STDERR,"Error %s:\ninput data not specified.\n", FuncName);
@@ -954,6 +1136,37 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
          }else if (Opt->fwhm <= 0.0) {
             fprintf (SUMA_STDERR,"Error %s:\nFWHM must be > 0\n", FuncName);
             exit(1);
+         }
+         if (Opt->kpb >= 0) {
+            fprintf (SUMA_STDERR,"Error %s:\n-kpb option is not valid with -met HEAT.\n", FuncName); 
+            exit(1);
+         }         
+         
+         break;
+      case SUMA_HEAT_07:
+         if (!Opt->in_name) {
+            fprintf (SUMA_STDERR,"Error %s:\ninput data not specified.\n", FuncName);
+            exit(1);
+         }
+         if (Opt->fwhm ==  -1.0 && Opt->tfwhm == -1.0 && !(Opt->sigma > 0 && Opt->N_iter > 0)) {
+            fprintf (SUMA_STDERR,"Error %s:\n-fwhm or -target_fwhm option must be used with -met HEAT.\n", FuncName); 
+            exit(1);
+         }else if (Opt->fwhm !=  -1.0 && Opt->tfwhm != -1.0) {
+            fprintf (SUMA_STDERR,"Error %s:\n-fwhm and -target_fwhm options are mutually exclusive.\n", FuncName); 
+            exit(1);
+         }
+         if (Opt->fwhm > 0.0) {  
+            if (0 && Opt->master_name) { /* I don't see why ... */
+               SUMA_S_Err("No use for -master_name option without -target_fwhm");
+               exit(1);
+            }
+         }
+         
+         if (Opt->tfwhm > 0.0) {
+            if (Opt->N_iter > 0 && Opt->sigma != -1.0) {
+               SUMA_S_Err("With -target_fwhm, you cannot specify both of -niter and -sigma\n");
+               exit(1);
+            }
          }
          if (Opt->kpb >= 0) {
             fprintf (SUMA_STDERR,"Error %s:\n-kpb option is not valid with -met HEAT.\n", FuncName); 
@@ -1029,7 +1242,6 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
    SUMA_RETURN (Opt);
 }
 
-
 int main (int argc,char *argv[])
 {/* Main */    
    static char FuncName[]={"SurfSmooth"}; 
@@ -1052,6 +1264,7 @@ int main (int argc,char *argv[])
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_DSET *dset = NULL;
    int iform;
+   char *ooo=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
@@ -1118,7 +1331,7 @@ int main (int argc,char *argv[])
    
    if (Opt->nmask) {
       fprintf(SUMA_STDOUT,"%d nodes in mask:\n", N_inmask);
-      if (LocalHead) {
+      if (0 && LocalHead) {
          ii = 0;
          for (i=0; i<SO->N_Node; ++i) {
             if (Opt->nmask[i]) {
@@ -1130,7 +1343,7 @@ int main (int argc,char *argv[])
       }
    } else {
       if (LocalHead) {
-         fprintf(SUMA_STDOUT,"No masking.\n");
+         fprintf(SUMA_STDERR,"No masking.\n");
       }
    }
    
@@ -1156,7 +1369,8 @@ int main (int argc,char *argv[])
       cs->istream = SUMA_GEOMCOMP_LINE;
       
       if (  Opt->Method == SUMA_LB_FEM_1D || Opt->Method == SUMA_LB_FEM || 
-            Opt->Method == SUMA_HEAT_05_1D || Opt->Method == SUMA_HEAT_05 ) { 
+            Opt->Method == SUMA_HEAT_05_1D || Opt->Method == SUMA_HEAT_05_Pre_07 ||
+            Opt->Method == SUMA_HEAT_07) { 
          if (!SUMA_SendToSuma (SO, cs, NULL, SUMA_NO_DSET_TYPE, 0)) {
             SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
             cs->Send = NOPE;
@@ -1220,7 +1434,7 @@ int main (int argc,char *argv[])
                exit(1); 
             }
             if (LocalHead) SUMA_etime(&start_time,0);
-            wgt = SUMA_Chung_Smooth_Weights_05(SO, Opt->sigma);
+            wgt = SUMA_Chung_Smooth_Weights_05_single(SO, Opt->sigma);
             if (!wgt) {
                SUMA_SL_Err("Failed to compute weights.\n");
                exit(1);
@@ -1320,7 +1534,7 @@ int main (int argc,char *argv[])
          /* Moo Chung's method for interpolation weights with dsets */
          {
             /* now load the input data */
-            iform = SUMA_GuessFormatFromExtension(Opt->in_name);
+            iform = SUMA_GuessFormatFromExtension(Opt->in_name, NULL);
             if (!(dset = SUMA_LoadDset_s (Opt->in_name, &iform, 0))) {
                SUMA_S_Err("Failed to read dset");
                exit(1);
@@ -1378,7 +1592,370 @@ int main (int argc,char *argv[])
          }
          break;
          
-      case SUMA_HEAT_05:
+      case SUMA_HEAT_07:
+         /* Controlled Moo Chung's method for interpolation weights */
+         {
+            double avg_wt, sequiv, sigma;
+            double fwhmttt;
+            double fwhm_in_start = -1.0, fwhm_master_start = -1.0;
+            double **wgtd=NULL;
+            float *fr = NULL;
+            float *fwhmv=NULL, *fwhmhist=NULL;
+            int  *icols, N_icols = -1, N;
+            int nref_in=-1 , nref_master = -1, jj,iv,kk ;
+            float **ref_in=NULL  , **ref_master = NULL, tm,fac,fq ;            
+            SUMA_DSET *master_dset=NULL;
+            MRI_IMARR *corder_inar=NULL ;
+            THD_3dim_dataset *newset=NULL, *inset=NULL ;
+            
+            /* load dset */
+            iform = SUMA_GuessFormatFromExtension(Opt->in_name, NULL);
+            if (!(dset = SUMA_LoadDset_s (Opt->in_name, &iform, 0))) {
+               SUMA_S_Err("Failed to read  dset");
+               exit(1);
+            }
+            if (LocalHead) {
+               SUMA_LHv("Input %s:\n", Opt->in_name);
+               /* SUMA_ShowDset(dset, 0, NULL); */
+            }  
+            if (Opt->oform == SUMA_NO_DSET_FORMAT) Opt->oform = iform;
+
+            if (!SDSET_VECLEN(dset) || !SDSET_VECNUM(dset)) {
+               SUMA_SL_Err("Empty file");
+               exit(1);
+            }
+            if (SDSET_VECLEN(dset) != SO->N_Node) {
+               if (LocalHead) fprintf(SUMA_STDERR, "Warning %s:\n"
+                                    "Expecting 1D file to have %d rows\n"
+                                    "                    found %d rows instead.\n"
+                                    "Function should deal with this properly but check results\n",
+                                     FuncName, SO->N_Node, SDSET_VECLEN(dset));
+            }
+            
+            if( Opt->detrend_in == -1 ) Opt->detrend_in = SDSET_VECNUM(dset) / 30 ;
+            if( Opt->detrend_in >= 0 && 2*Opt->detrend_in+3 >= SDSET_VECNUM(dset) ){
+               SUMA_S_Errv("-detrend_in %d is too big for this dataset",Opt->detrend_in) ;
+            }
+
+            if (Opt->AddIndex || Opt->oform == SUMA_NIML) {
+               if (!SUMA_AddNodeIndexColumn(dset, SO->N_Node)) {
+                  SUMA_S_Err("Failed to add a node index column");
+                  exit(1);
+               }
+            }
+            
+            if (Opt->fwhm > 0 && Opt->tfwhm > 0) {
+               SUMA_S_Err("Logic error, should not be here.");
+               exit(1);
+            }
+            
+            if (Opt->detrend_in > -2 && Opt->detpoly_in > -1) {
+               SUMA_S_Err("detrend_in & detpoly_in are mutually exclusive.");
+               exit(1);
+            }
+            
+            if (Opt->detrend_in > -2 || Opt->detpoly_in > -1) {
+               /* there is work to do detrending the input */
+               
+               /* need to take dataset to AFNI dset */
+               
+               if (!(inset = SUMA_sumadset2afnidset(&dset, 1, 1))) {
+                  SUMA_S_Err("Failed to transform surface dset to afni dset");
+                  exit(1);
+               }
+               if (Opt->detrend_in > 0) {
+                  SUMA_LHv("Detrending input %d\n", Opt->detrend_in);
+                  nref_in = 2*Opt->detrend_in+3;
+                  SUMA_LHv("trig. detrending start: %d baseline funcs, %d time points\n",nref_in, DSET_NVALS(inset)) ;
+                  ref_in = THD_build_trigref( Opt->detrend_in , DSET_NVALS(inset) ) ;
+                  if( ref_in == NULL ) ERROR_exit("THD_build_trigref failed!") ;
+               } else {
+                  SUMA_LHv("Detrending input with poly %d\n", Opt->detrend_in);
+                  nref_in = Opt->detpoly_in+1;
+                  SUMA_LHv("poly. detrending start: %d baseline funcs, %d time points\n",nref_in, DSET_NVALS(inset)) ;
+                  ref_in = THD_build_polyref( nref_in , DSET_NVALS(inset) ) ;
+                  if( ref_in == NULL ) ERROR_exit("THD_build_trigref failed!") ;
+
+               }
+
+               if (!(newset = THD_detrend_dataset( inset , nref_in , ref_in , 2 , Opt->scaleinput , Opt->nmask , &corder_inar ))) { 
+                  SUMA_S_Err("detrending failed!") ;
+                  exit(1);
+               }
+      
+               SUMA_LH("detrending of input done") ;
+               DSET_delete(inset); inset=newset; newset = NULL;
+               
+               /* Now back to SUMA_DSET */
+               dset = SUMA_afnidset2sumadset(&inset, 1, 1); /* don't need afni volume anymore */
+            }
+            
+            if (Opt->master_name) {
+               if (LocalHead) {
+                  SUMA_LHv("Master Input %s:\n", Opt->master_name);
+                  /* SUMA_ShowDset(master_dset, 0, NULL); */
+               }                SUMA_LHv("Have master %s (detrend %d, poly %d)\n", 
+                        Opt->master_name, Opt->detrend_master, Opt->detpoly_master);
+               /* get the master */
+               iform = SUMA_GuessFormatFromExtension(Opt->master_name, NULL);
+               if (!(master_dset = SUMA_LoadDset_s (Opt->master_name, &iform, 0))) {
+                  SUMA_S_Err("Failed to read master dset");
+                  exit(1);
+               }
+               if (!SDSET_VECLEN(master_dset) || !SDSET_VECNUM(master_dset)) {
+                  SUMA_SL_Err("Empty file");
+                  exit(1);
+               }
+               if (SDSET_VECLEN(master_dset) != SO->N_Node) {
+                  if (LocalHead) fprintf(SUMA_STDERR, "Warning %s:\n"
+                                       "Expecting 1D file to have %d rows\n"
+                                       "                    found %d rows instead.\n"
+                                       "Function should deal with this properly but check results\n",
+                                        FuncName, SO->N_Node, SDSET_VECLEN(master_dset));
+               }
+
+               if (Opt->AddIndex || Opt->oform == SUMA_NIML) {
+                  if (!SUMA_AddNodeIndexColumn(master_dset, SO->N_Node)) {
+                     SUMA_S_Err("Failed to add a node index column");
+                     exit(1);
+                  }
+               }
+
+               if( Opt->detrend_master == -1 ) {
+                  Opt->detrend_master = SDSET_VECNUM(master_dset) / 30 ;
+                  if (Opt->detrend_master < 1) {
+                     SUMA_LHv("Zero order polynomial detrending chosen for %s\n", Opt->master_name); 
+                     Opt->detrend_master = -1;
+                     Opt->detpoly_master = 0;
+                  } else {
+                     SUMA_LHv("detrend %d chosen for %s\n", Opt->detrend_master, Opt->master_name); 
+                  }
+               }
+               if( Opt->detrend_master >= 0 && 2*Opt->detrend_master+3 >= SDSET_VECNUM(master_dset) ){
+                  SUMA_S_Errv("-detrend_master %d is too big for this dataset",Opt->detrend_master) ;
+               }
+
+               if (Opt->detrend_master > 0 || Opt->detpoly_master > -1) {
+                  /* there is work to do detrending the input */
+
+                  /* need to take dataset to AFNI master_dset */
+                  if (!(inset = SUMA_sumadset2afnidset(&master_dset, 1, 1))) {
+                     SUMA_S_Err("Failed to transform surface master_dset to afni master_dset");
+                     exit(1);
+                  }
+
+                  if (Opt->detrend_master > 0) {
+                     SUMA_LHv("Detrending master %d\n", Opt->detrend_master);
+                     nref_master = 2*Opt->detrend_master+3;
+                     SUMA_LHv("trig. detrending start: %d baseline funcs, %d time points\n",nref_master, DSET_NVALS(inset)) ;
+                     ref_master = THD_build_trigref( Opt->detrend_master , DSET_NVALS(inset) ) ;
+                     if( ref_master == NULL ) ERROR_exit("THD_build_trigref failed!") ;
+                  } else {
+                     SUMA_LHv("Detrending master with poly %d\n", Opt->detrend_master);
+                     nref_master = Opt->detpoly_master+1;
+                     SUMA_LHv("poly. detrending start: %d baseline funcs, %d time points\n",nref_master, DSET_NVALS(inset)) ;
+                     ref_master = THD_build_polyref( nref_master , DSET_NVALS(inset) ) ;
+                     if( ref_master == NULL ) ERROR_exit("THD_build_trigref failed!") ;
+
+                  }
+
+                  if (!(newset = THD_detrend_dataset( inset , nref_master , ref_master , 2 , Opt->scalemaster , Opt->nmask , NULL ))) { 
+                     SUMA_S_Err("detrending failed!") ;
+                     exit(1);
+                  }
+
+                  SUMA_LH("detrending of master done") ;
+                  DSET_delete(inset); inset=newset; newset = NULL;
+                  for(jj=0;jj<nref_master;jj++) free(ref_master[jj]) ; free(ref_master); 
+
+                  /* Now back to SUMA_DSET */
+                  master_dset = SUMA_afnidset2sumadset(&inset, 1, 1); /* don't need afni volume anymore */
+               }
+            }
+
+            if (Opt->fwhm > 0 || Opt->tfwhm > 0) {
+               if (!Opt->master_name) {/* what is the smoothness of the input ? */
+                  SUMA_LH("Estimating input smoothness");
+                  icols = SUMA_FindNumericDataDsetCols(dset, &N_icols);
+                  if (N_icols <= 0) { SUMA_SL_Err("No approriate data columns in dset"); exit(1); }
+                  if (!(fwhmv = SUMA_estimate_dset_FWHM_1dif(  SO, dset, 
+                                                         icols, N_icols, Opt->nmask, 
+                                                         1, NULL))) {
+                     SUMA_S_Err("Rien ne va plus"); exit(1);                                         
+                  }
+                  SUMA_FWHM_MEAN(fwhmv, N_icols, fwhm_in_start, Opt->FWHM_mixmode, N);
+                  if (N <= 0) {  SUMA_S_Err("Failed to get mean fwhm"); exit(1); }      
+                  SUMA_LHv ( "Have a global FWHM of %f for input %s.\n"
+                                 , fwhm_in_start, Opt->in_name);
+                  SUMA_free(fwhmv); fwhmv=NULL;
+                  SUMA_free(icols); icols=NULL;
+               } else {/* Need smoothness of master */
+                  if (Opt->oform == SUMA_NO_DSET_FORMAT) Opt->oform = iform;
+                  SUMA_LH("Estimating master smoothness");
+                  icols = SUMA_FindNumericDataDsetCols(master_dset, &N_icols);
+                  if (N_icols <= 0) { SUMA_SL_Err("No approriate data columns in master dset"); exit(1); }
+                  if (!(fwhmv = SUMA_estimate_dset_FWHM_1dif(  SO, master_dset, 
+                                                         icols, N_icols, Opt->nmask, 
+                                                         1, NULL))) {
+                     SUMA_S_Err("Rien ne va plus"); exit(1);                                         
+                  }
+                  SUMA_FWHM_MEAN(fwhmv, N_icols, fwhm_master_start, Opt->FWHM_mixmode, N);
+                  if (N <= 0) {  SUMA_S_Err("Failed to get mean fwhm"); exit(1); }      
+                  SUMA_LHv ( "Have a global FWHM of %f for master %s.\n"
+                                 , fwhm_master_start, Opt->master_name);
+                  SUMA_free(fwhmv); fwhmv=NULL;
+                  SUMA_free(icols); icols=NULL;
+               } 
+            }
+            
+            if (Opt->fwhm > 0) {
+               if (fwhm_in_start < 0 && fwhm_master_start < 0) { 
+                  SUMA_S_Errv("Flow Error, fwhm_in_start = %f, fwhm_master_start= %f.\n"
+                              "This should not be.\n",  fwhm_in_start, fwhm_master_start); 
+                  exit(1);
+               }
+               /* blur by a FWHM filter. When users run this, they expect the FWHMr of the resultant
+                  dataset to be something like: FWHMr = sqrt(FWHMi^2+FWHM^2); where FWHMi is the initial
+                  FWHM of the input dataset and FWHM is the additional blurring they want to apply. */
+               if (Opt->master_name) {
+                  Opt->tfwhm = sqrt(Opt->fwhm*Opt->fwhm+fwhm_master_start*fwhm_master_start);
+               } else {
+                  Opt->tfwhm = sqrt(Opt->fwhm*Opt->fwhm+fwhm_in_start*fwhm_in_start);
+               }
+               SUMA_S_Notev ( "   Have a %s starting FWHM of %.3f, for input dset.\n"
+                              "   User requested additional blur by %.3f FWHM\n"
+                              "   Resultant %s expected be have %.3f FWHM.\n"
+                              , (Opt->master_name ? "master dset":"input dset")
+                              , (Opt->master_name ? fwhm_master_start:fwhm_in_start)
+                              , Opt->fwhm
+                              , (Opt->master_name ? "master dset":"input dset")
+                              , Opt->tfwhm);   
+               Opt->fwhm = -1; /* at this point, we're blurring to a FWHM */
+            }
+                       
+            if (Opt->tfwhm > 0) { /* blur to a final FWHM */
+               if (Opt->N_iter > 0 && Opt->sigma > 0) { SUMA_S_Err("A useless situation, no need for -target_fwhm"); exit(1); }
+               
+               if (Opt->sigma < 0) {
+                  Opt->sigma = SUMA_SigForFWHM(SO->EL->AvgLe, Opt->tfwhm, &(Opt->N_iter), NULL)*SO->EL->AvgLe;  
+                  /* if specified, Opt->N_iter is taken into consideration above. But
+                  it not the condition for stopping, only for setting sigma. Opt->N_iter
+                  is now of no use and will be set at the end of the filtering process.  */
+                  Opt->N_iter = -1; 
+               }               
+               
+               wgtd = SUMA_Chung_Smooth_Weights_07(SO, (double)Opt->sigma);
+               if (!wgtd) {
+                  SUMA_SL_Err("Failed to compute weights.\n");
+                  exit(1);
+               }
+
+               if (Opt->master_name) {
+                  if (!SUMA_Chung_Smooth_07_toFWHM_dset (SO, wgtd, 
+                                                      &(Opt->N_iter), &(Opt->tfwhm), 
+                                                      master_dset, Opt->nmask, 
+                                                      1, Opt->FWHM_mixmode, &fwhmhist)){
+                     SUMA_S_Err("Failed to blur master data dset");  
+                     exit(1);                                     
+                  } 
+                  /* OK, now blur the input data by the previous specs */
+                  if (0) {
+                     fwhmttt = -1.0;
+                     SUMA_LHv("Now blurring the input data by Niter=%d, fwhmtt=%f\n",
+                              Opt->N_iter, fwhmttt); 
+                     if (!SUMA_Chung_Smooth_07_toFWHM_dset (SO, wgtd, 
+                                                            &Opt->N_iter, &fwhmttt, 
+                                                            dset, Opt->nmask, 
+                                                            1, NULL, &fwhmhist)) {
+                        SUMA_S_Err("Failed to blur data dset");  
+                        exit(1);                                     
+                     }
+                  } else { /* maybe faster and slightly more precise than above*/
+                     fwhmttt = -1.0;
+                     SUMA_LHv("Now blurring the input data by Niter=%d, fwhmtt=%f\n"
+                              "Using SUMA_Chung_Smooth_07_dset (OK if fwhmtt < 0)\n",
+                              Opt->N_iter, fwhmttt); 
+                     if (!SUMA_Chung_Smooth_07_dset (SO, wgtd, 
+                                                     &(Opt->N_iter), &fwhmttt, 
+                                                     dset, cs, Opt->nmask, 1)) {
+                        SUMA_S_Err("Failed to blur data dset");  
+                        exit(1);                                     
+                     }
+                  }
+                  fprintf(SUMA_STDOUT, "\n"
+                                       "#Final smoothing parameters via master:\n"
+                                       "#Niter     Sigma    OutputFWHM\n"
+                                       " %5d       %.4f     %.3f     \n"
+                                       "\n", Opt->N_iter , Opt->sigma, fwhmttt);                                      
+               } else {
+                  SUMA_LHv("Now blurring the input data by Niter=%d, Opt->tfwhm=%f\n"
+                           "Using SUMA_Chung_Smooth_07_dset (OK if fwhmtt < 0)\n",
+                              Opt->N_iter, Opt->tfwhm); 
+                  if (!SUMA_Chung_Smooth_07_toFWHM_dset (SO, wgtd, 
+                                                      &(Opt->N_iter), &(Opt->tfwhm), 
+                                                      dset, Opt->nmask, 
+                                                      1, Opt->FWHM_mixmode, &fwhmhist)){
+                     SUMA_S_Err("Failed to blur data dset");  
+                     exit(1);                                     
+                  } 
+                  fprintf(SUMA_STDOUT, "\n"
+                                       "#Final smoothing parameters from input:\n"
+                                       "#Niter     Sigma    OutputFWHM\n"
+                                       " %5d       %.4f     %.3f     \n"
+                                       "\n", Opt->N_iter , Opt->sigma, Opt->tfwhm);                                      
+               }
+            } else if (Opt->sigma > 0 && Opt->N_iter > 0) {
+               /* just blur like you're told */
+               SUMA_LHv("Blurring like requested, Niter=%d, sigma=%f\n", Opt->N_iter, Opt->sigma);
+               wgtd = SUMA_Chung_Smooth_Weights_07(SO, (double)Opt->sigma);
+               if (!wgtd) {
+                  SUMA_SL_Err("Failed to compute weights.\n");
+                  exit(1);
+               }
+               fwhmttt = -1.0;
+               if (!SUMA_Chung_Smooth_07_dset (SO, wgtd, 
+                                               &(Opt->N_iter), &fwhmttt, 
+                                               dset, cs, Opt->nmask, 1)) {
+                  SUMA_S_Err("Failed to blur data dset");  
+                  exit(1);                                     
+               }
+               fprintf(SUMA_STDOUT, "\n"
+                                       "#Final smoothing parameters as requested:\n"
+                                       "#Niter    Sigma     OutputFWHM not estimated\n"
+                                       " %5d      %.4f      %.3f     \n"
+                                       "\n", Opt->N_iter , Opt->sigma, -1.0);      
+            }
+            
+            if (fwhmhist) {
+               SUMA_WriteSmoothingRecord (SO, 
+                                          fwhmhist, Opt->N_iter, 
+                                          &(Opt->sigma), 1,
+                                          Opt->out_name);
+            }
+            
+            if (Opt->detrend_in > 0 || Opt->detpoly_in > -1) {
+               SUMA_LH("Retrending input");
+               /* need to retrend result */
+               if (!(inset = SUMA_sumadset2afnidset(&dset, 1, 1))) {
+                  SUMA_S_Err("Failed to transform surface dset to afni dset");
+                  exit(1);
+               }
+               
+               if (!(THD_retrend_dataset( inset , nref_in , ref_in , Opt->scaleinput , Opt->nmask , corder_inar ))) { 
+                  SUMA_S_Err("retrending failed!") ;
+                  exit(1);
+               }
+               
+               for(jj=0;jj<nref_in;jj++) free(ref_in[jj]) ;
+               free(ref_in);
+
+               /* Now back to SUMA_DSET */
+               dset = SUMA_afnidset2sumadset(&inset, 1, 1); /* don't need afni volume anymore */ 
+            }            
+         }
+         break; 
+      
+      case SUMA_HEAT_05_Pre_07:
          /* Moo Chung's method for interpolation weights */
          {
             double avg_wt, sequiv;
@@ -1390,7 +1967,7 @@ int main (int argc,char *argv[])
                sequiv  = Opt->fwhm * 0.42466090;
                Opt->N_iter = SUMA_POW2(sequiv/Opt->sigma);
                if (Opt->N_iter % 2) ++Opt->N_iter;
-               if (Opt->N_iter < 4) Opt->N_iter = 4; /* need a few iterations */
+               if (Opt->N_iter < 2) Opt->N_iter = 2; /* need a few iterations */
                /* now reset sigma based on number of iterations */
                sequiv = Opt->fwhm * 0.42466090;
                Opt->sigma = sequiv / sqrt(Opt->N_iter);
@@ -1406,10 +1983,10 @@ int main (int argc,char *argv[])
             fprintf(SUMA_STDERR, "Kernel Bandwidth / Average Edge Distance = %f/%f = %f\n"
                                  "   Corresponding Kernel Numerator = %g\n", 
                                     Opt->sigma, SO->EL->AvgLe,  Opt->sigma/SO->EL->AvgLe, avg_wt);
-            if (avg_wt > 0.05) {
+            if (avg_wt > 0.10) {
                SUMA_S_Warnv("Average weight assigned per node is of %g\n"
-                            "It is advisable to increase the number of\n"
-                            "iterations, if possible.\n", avg_wt);
+                            "You can increase the number of\n"
+                            "iterations.\n", avg_wt);
             }
             if (avg_wt < 1e-4) {
                SUMA_S_Warnv("Average weight assigned per node is of %g\n"
@@ -1423,7 +2000,7 @@ int main (int argc,char *argv[])
             }
             
             /* now load the input data */
-            iform = SUMA_GuessFormatFromExtension(Opt->in_name);
+            iform = SUMA_GuessFormatFromExtension(Opt->in_name, NULL);
             if (!(dset = SUMA_LoadDset_s (Opt->in_name, &iform, 0))) {
                SUMA_S_Err("Failed to read dset");
                exit(1);
@@ -1454,7 +2031,7 @@ int main (int argc,char *argv[])
             }
              
             if (LocalHead) SUMA_etime(&start_time,0);
-            wgt = SUMA_Chung_Smooth_Weights_05(SO, Opt->sigma);
+            wgt = SUMA_Chung_Smooth_Weights_05_Pre_07(SO, Opt->sigma);
             if (!wgt) {
                SUMA_SL_Err("Failed to compute weights.\n");
                exit(1);
@@ -1468,10 +2045,14 @@ int main (int argc,char *argv[])
                                        etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
             
-            if (!SUMA_Chung_Smooth_05_dset ( SO, wgt, 
-                                          Opt->N_iter, Opt->fwhm, 
+            if (Opt->N_iter <= 0) {
+               SUMA_S_Errv("Negative Niter (%d)\n", Opt->N_iter);
+               exit(1);
+            }
+            if (!SUMA_Chung_Smooth_05_Pre_07_dset ( SO, wgt, 
+                                          (Opt->N_iter), (Opt->fwhm), 
                                           dset, cs, Opt->nmask, Opt->strict_mask)) {
-               SUMA_S_Err("Failed in  SUMA_Chung_Smooth_05_dset");
+               SUMA_S_Err("Failed in  SUMA_Chung_Smooth_05_Pre_07_dset");
                exit(1);                            
             }
             
@@ -1490,7 +2071,7 @@ int main (int argc,char *argv[])
       case SUMA_BRUTE_FORCE:
          {
             /* now load the input data */
-            iform = SUMA_GuessFormatFromExtension(Opt->in_name);
+            iform = SUMA_GuessFormatFromExtension(Opt->in_name, NULL);
             if (!(dset = SUMA_LoadDset_s (Opt->in_name, &iform, 0))) {
                SUMA_S_Err("Failed to read dset");
                exit(1);
@@ -1781,7 +2362,9 @@ int main (int argc,char *argv[])
             exit(1);
       }
    } else {
-      if (Opt->Method != SUMA_LB_FEM && Opt->Method != SUMA_HEAT_05 && Opt->Method != SUMA_BRUTE_FORCE) {
+      if (  Opt->Method != SUMA_LB_FEM && 
+            Opt->Method != SUMA_HEAT_05_Pre_07 && Opt->Method != SUMA_HEAT_07 && 
+            Opt->Method != SUMA_BRUTE_FORCE) {
          if (!dsmooth) {
             SUMA_SL_Err("NULL dsmooth for data smoothing. Either failed to smooth or logical error.");
             exit(1);
@@ -1790,11 +2373,18 @@ int main (int argc,char *argv[])
          if (Opt->AddIndex) SUMA_disp_vecmat (dsmooth, SO->N_Node, ncol, 1, d_order, fileout, YUP);
          else SUMA_disp_vecmat (dsmooth, SO->N_Node, ncol, 1, d_order, fileout, NOPE);
          fclose(fileout); fileout = NULL;
-      } else if (Opt->Method == SUMA_LB_FEM || Opt->Method == SUMA_HEAT_05 || Opt->Method == SUMA_BRUTE_FORCE) {
+      } else if ( Opt->Method == SUMA_LB_FEM || 
+                  Opt->Method == SUMA_HEAT_05_Pre_07 || Opt->Method == SUMA_HEAT_07 || 
+                  Opt->Method == SUMA_BRUTE_FORCE) {
          SUMA_NEWDSET_ID_LABEL_HIST(dset, Opt->out_name) ;
          if (Opt->AddIndex) SUMA_SetAddIndex_1D(1);
-         SUMA_WriteDset_s(Opt->out_name, dset, Opt->oform, 0, 0);
-         SUMA_FreeDset(dset); dset = NULL;
+         /* Add the history line */
+         if (!SUMA_AddNgrHist (dset->ngr, FuncName, argc, argv)) {
+            SUMA_SL_Err("Failed in SUMA_AddNgrHist");
+         }
+         SUMA_LHv("About to write output dset %s, oform %d\n", Opt->out_name, Opt->oform);
+         ooo = SUMA_WriteDset_s(Opt->out_name, dset, Opt->oform, Opt->overwrite, 0);
+         SUMA_FreeDset(dset); dset = NULL; SUMA_free(ooo); ooo=NULL;
       } else {
          SUMA_S_Err("Fix me");
       }
@@ -1802,7 +2392,7 @@ int main (int argc,char *argv[])
 
 
 
-   /* you don't want to exit rapidly because the SUMA might not be done processing the last elements*/
+   /* you don't want to exit rapidly because SUMA might not be done processing the last elements*/
    if (cs->Send && !cs->GoneBad) {
       /* cleanup and close connections */
       if (Opt->Method == SUMA_LB_FEM_1D) {

@@ -4087,14 +4087,23 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO)
          NULL);
       
       /* open me a glxarea */
-      SO->SurfCont->cmp_ren->cmap_wid = XtVaCreateManagedWidget("glxarea",
-                                          glwDrawingAreaWidgetClass, rcc2,
-                                          GLwNvisualInfo, SUMAg_SVv[0].X->VISINFO,
-                                          XtNcolormap, SUMAg_SVv[0].X->CMAP,
-                                          XmNwidth,   SUMA_CMAP_WIDTH,
-                                          XmNheight,  SUMA_CMAP_HEIGHT,
-                                          NULL);
-
+      #ifdef SUMA_MOTIF_GLXAREA
+         SO->SurfCont->cmp_ren->cmap_wid = XtVaCreateManagedWidget("glxarea",
+             glwMDrawingAreaWidgetClass, rcc2,
+             GLwNvisualInfo, SUMAg_SVv[0].X->VISINFO,
+             XtNcolormap, SUMAg_SVv[0].X->CMAP,
+             XmNwidth,   SUMA_CMAP_WIDTH,
+             XmNheight,  SUMA_CMAP_HEIGHT,
+             NULL);
+      #else
+         SO->SurfCont->cmp_ren->cmap_wid = XtVaCreateManagedWidget("glxarea",
+                                             glwDrawingAreaWidgetClass, rcc2,
+                                             GLwNvisualInfo, SUMAg_SVv[0].X->VISINFO,
+                                             XtNcolormap, SUMAg_SVv[0].X->CMAP,
+                                             XmNwidth,   SUMA_CMAP_WIDTH,
+                                             XmNheight,  SUMA_CMAP_HEIGHT,
+                                             NULL);
+      #endif
       XtManageChild (rcc2);
       
       /* add me some callbacks */
@@ -4735,7 +4744,7 @@ void SUMA_LoadCmapFile (char *filename, void *data)
    }
 
    /* take a stab at the format */
-   form = SUMA_GuessFormatFromExtension(filename);
+   form = SUMA_GuessFormatFromExtension(filename, NULL);
    
    /* load the baby */
    Cmap = NULL;

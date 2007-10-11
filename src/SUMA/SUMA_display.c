@@ -370,6 +370,226 @@ SUMA_postRedisplay(Widget w,
    SUMA_RETURNe;
 }
 
+/*!
+   A function for displaying the results from a plane/surface intersection after it has been rendered into a list of connected
+   strips.
+  A sequence would be:
+    Eq = SUMA_Plane_Equation (...);
+    SPI = SUMA_Surf_Plane_Intersect (SO, Eq);
+    striplist = SUMA_SPI_to_EdgeStrips(SO, SPI);
+    SUMA_display_edge_striplist(striplist, &(SUMAg_SVv[0]), SO, "ShowEdges, ShowConnectedPoints, ShowPoints");
+    
+   "ShowEdges" Means to show the intersected edges
+   "ShowConnectedPoints" Means to show the intersection points with a segment joining them. These segments are
+                         not edges. They are meant to show how the intersected points form a strip(s)
+   "ShowPoints" Just show the intersection points (which lie on intersected edges).
+*/
+SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO, char *DispOptions)
+{
+   static char FuncName[]={"SUMA_display_edge_striplist"};
+   /* no need to worry about freeing the DOs. They go in SUMAg_DOv */
+   SUMA_SegmentDO *SDO = NULL, *SEDO=NULL;
+   SUMA_SphereDO *SPDO = NULL;
+   DListElmt *elm = NULL, *elmlist=NULL, *elmn=NULL;
+   SUMA_STRIP *strip=NULL;
+   int N_allEpath=0, N_allPpath=0, kstrip, ke=0, j, N_Epath, N_Ppath, isclosed;
+   float col_first[4], col_last[4], col_middle[4];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (dlist_size(striplist)) {
+      do {
+         if (!elm) elm = dlist_head(striplist);
+         else elm  = dlist_next(elm);
+         strip = (SUMA_STRIP *)elm->data;
+         N_allEpath += dlist_size(strip->Edges);
+         N_allPpath += dlist_size(strip->Points); 
+      } while (elm != dlist_tail(striplist));
+   }
+   
+   
+   if (SUMA_iswordin_ci(DispOptions, "ShowEdges") == 1) {
+      if (N_allEpath) {
+         SUMA_LHv("Building SDO of %d edges from %d strips\n", N_allEpath, dlist_size(striplist));
+         if ((SDO = SUMA_Alloc_SegmentDO (N_allEpath, "SUMA_SPI_to_EdgeStrips_segs", 0, NULL, LS_type))) {
+            SDO->do_type = LS_type;
+            SDO->colv = (GLfloat *)SUMA_malloc(4*sizeof(GLfloat)*SDO->N_n);
+            SDO->LineWidth = 4;
+            elmlist=NULL; kstrip = 0;
+            ke = 0;
+            do {
+               if (!elmlist) elmlist = dlist_head(striplist);
+               else elmlist  = dlist_next(elmlist);
+               strip = (SUMA_STRIP *)elmlist->data;
+               N_Epath = dlist_size(strip->Edges);
+               isclosed = SUMA_isEdgeStripClosed(strip->Edges, SO);
+               if (isclosed) { 
+                  col_first[0] = col_first[3] = 1.0; col_first[1] = col_first[2] = 0.0;
+                  col_middle[1] = col_middle[3] = 1.0; col_middle[0] = col_middle[2] = 0.0;
+                  col_last[0] = col_last[1] = 0.0;  col_last[2] = col_last[3] = 1.0;
+               } else {
+                  col_first[0] = col_first[3] = 1.0; col_first[1] = col_first[2] = 0.0;
+                  col_middle[0] = col_middle[1] = col_middle[3] = 1.0; col_middle[2] = 0.0;
+                  col_last[0] = col_last[1] = 0.0;  col_last[2] = col_last[3] = 1.0;
+               }
+               SUMA_LHv("   SDO's strip #%d of %d edges (isclosed = %d)\n", kstrip, N_Epath, isclosed);
+               elm=NULL;
+               do{
+                  if (!elm) elm = dlist_head(strip->Edges);
+                  else elm = dlist_next(elm);
+                  if (elm==dlist_head(strip->Edges)) { SUMA_COPY_VEC(col_first, &(SDO->colv[4*ke]), 4, float, GLfloat);  }
+                  else if (elm==dlist_tail(strip->Edges)) { SUMA_COPY_VEC(col_last, &(SDO->colv[4*ke]), 4, float, GLfloat); }
+                  else { SUMA_COPY_VEC(col_middle, &(SDO->colv[4*ke]), 4, float, GLfloat); }
+                  for (j=0; j<3;++j) {
+                     SDO->n0[3*ke+j] = SO->NodeList[3*SO->EL->EL[(int)elm->data][0]+j];
+                     SDO->n1[3*ke+j] = SO->NodeList[3*SO->EL->EL[(int)elm->data][1]+j]; 
+                  }
+                  ++ke;
+               } while (elm != dlist_tail(strip->Edges));
+               ++kstrip;
+            }  while (elmlist != dlist_tail(striplist)); 
+            /* addDO */
+            if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, LS_type, SUMA_LOCAL)) {
+               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+               SUMA_RETURNe;
+            }
+            /* register DO with viewer */
+            if (!SUMA_RegisterDO(SUMAg_N_DOv-1, sv)) {
+               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
+               SUMA_RETURNe;
+            }
+         }
+      }
+   }
+       
+   if (SUMA_iswordin_ci(DispOptions, "ShowConnectedPoints") == 1) {
+      if (N_allEpath) {
+         SUMA_LHv("Building SPDO of %d points from %d strips\n", N_allEpath, dlist_size(striplist));
+         if ((SEDO = SUMA_Alloc_SegmentDO (N_allEpath, "SUMA_SPI_to_EdgeStrips_pointsegs", 1, NULL, OLS_type))) {
+            SEDO->do_type = LS_type;
+            SEDO->colv = (GLfloat *)SUMA_malloc(4*sizeof(GLfloat)*SEDO->N_n);
+            SEDO->LineWidth = 2;
+            elmlist=NULL; kstrip = 0;
+            ke = 0;
+            do {
+               if (!elmlist) elmlist = dlist_head(striplist);
+               else elmlist  = dlist_next(elmlist);
+               strip = (SUMA_STRIP *)elmlist->data;
+               N_Ppath = dlist_size(strip->Points);
+               isclosed = SUMA_isEdgeStripClosed(strip->Edges, SO);
+               if (isclosed) { 
+                  col_first[0] = col_first[3] = 1.0; col_first[1] = col_first[2] = 0.0;
+                  col_middle[1] = col_middle[3] = 1.0; col_middle[0] = col_middle[2] = 0.0;
+                  col_last[0] = col_last[1] = 0.0;  col_last[2] = col_last[3] = 1.0;
+               } else {
+                  col_first[0] = col_first[3] = 1.0; col_first[1] = col_first[2] = 0.0;
+                  col_middle[0] = col_middle[1] = col_middle[3] = 1.0; col_middle[2] = 0.0;
+                  col_last[0] = col_last[1] = 0.0;  col_last[2] = col_last[3] = 1.0;
+               }
+               SUMA_LHv("   SEDO's strip #%d of %d edges (isclosed = %d)\n", kstrip, N_Ppath, isclosed);
+               elm=NULL;
+               do{
+                  if (!elm) elm = dlist_head(strip->Points);
+                  else elm = dlist_next(elm);
+                  if (elm==dlist_head(strip->Points)) { SUMA_COPY_VEC(col_first, &(SEDO->colv[4*ke]), 4, float, GLfloat);  }
+                  else if (elm==dlist_tail(strip->Points)) { SUMA_COPY_VEC(col_last, &(SEDO->colv[4*ke]), 4, float, GLfloat); }
+                  else { SUMA_COPY_VEC(col_middle, &(SEDO->colv[4*ke]), 4, float, GLfloat); }
+                  if (elm != dlist_tail(strip->Points)) elmn = dlist_next(elm);
+                  else {
+                     if (isclosed) elmn = dlist_head(strip->Points);
+                     else elmn = elm;
+                  }  
+                  for (j=0; j<3;++j) {
+                     SEDO->n0[3*ke+j] = ((float*)elm->data)[j];
+                     SEDO->n1[3*ke+j] = ((float*)elmn->data)[j]; 
+                  }
+                  ++ke;
+               } while (elm != dlist_tail(strip->Points));
+               ++kstrip;
+            }  while (elmlist != dlist_tail(striplist)); 
+            /* addDO */
+            if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SEDO, OLS_type, SUMA_LOCAL)) {
+               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+               SUMA_RETURNe;
+            }
+            /* register DO with viewer */
+            if (!SUMA_RegisterDO(SUMAg_N_DOv-1, sv)) {
+               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
+               SUMA_RETURNe;
+            }
+         }
+      }
+   }
+   
+   if (SUMA_iswordin_ci(DispOptions, "ShowPoints") == 1) {
+      if (N_allPpath) {
+         SUMA_LHv("Building SPDO of %d points from %d strips\n", N_allPpath, dlist_size(striplist));
+         if ((SPDO = SUMA_Alloc_SphereDO (N_allPpath, "SUMA_SPI_to_EdgeStrips_points", NULL, SP_type))) {
+            SPDO->do_type = SP_type;
+            SPDO->CommonRad = SO->EL->AvgLe/6.0;
+            SPDO->colv = (GLfloat *)SUMA_malloc(4*sizeof(GLfloat)*SPDO->N_n);
+
+            elmlist=NULL; kstrip = 0;
+            ke = 0;
+            do {
+               if (!elmlist) elmlist = dlist_head(striplist);
+               else elmlist  = dlist_next(elmlist);
+               strip = (SUMA_STRIP *)elmlist->data;
+               N_Ppath = dlist_size(strip->Points);
+               isclosed = SUMA_isEdgeStripClosed(strip->Edges, SO);
+               if (isclosed) { 
+                  col_first[0] = col_first[3] = 1.0; col_first[1] = col_first[2] = 0.0;
+                  col_middle[0] = col_middle[1] = col_middle[2] = col_middle[3] = 1.0;
+                  col_last[0] = col_last[1] = 0.0;  col_last[2] = col_last[3] = 1.0;
+               } else {
+                  col_first[0] = col_first[3] = 1.0; col_first[1] = col_first[2] = 0.0;
+                  col_middle[0] = col_middle[2] = col_middle[3] = 1.0; col_middle[1] = 0.0;
+                  col_last[0] = col_last[1] = 0.0;  col_last[2] = col_last[3] = 1.0;
+               }
+               SUMA_LHv("   SPDO's strip #%d of %d points (isclosed=%d)\n", kstrip, N_Ppath, isclosed);
+               elm=NULL;
+               do{
+                  if (!elm) elm = dlist_head(strip->Points);
+                  else elm = dlist_next(elm);
+                  if (elm==dlist_head(strip->Points)) { SUMA_COPY_VEC(col_first, &(SPDO->colv[4*ke]), 4, float, GLfloat);}
+                  else if (elm==dlist_tail(strip->Points)) { SUMA_COPY_VEC(col_last, &(SPDO->colv[4*ke]), 4, float, GLfloat);  }
+                  else {SUMA_COPY_VEC(col_middle, &(SPDO->colv[4*ke]), 4, float, GLfloat);  }
+                  SPDO->cxyz[3*ke  ] = ((float*)elm->data)[0];
+                  SPDO->cxyz[3*ke+1] = ((float*)elm->data)[1];
+                  SPDO->cxyz[3*ke+2] = ((float*)elm->data)[2]; 
+                  ++ke;
+               } while(elm != dlist_tail(strip->Points));
+               ++kstrip;
+            } while (elmlist != dlist_tail(striplist)); 
+            /* addDO */
+            if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SPDO, SP_type, SUMA_LOCAL)) {
+               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+               SUMA_RETURNe;
+            }
+
+            /* register DO with viewer */
+            if (!SUMA_RegisterDO(SUMAg_N_DOv-1, sv)) {
+               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
+               SUMA_RETURNe;
+            }
+
+         }
+
+      }   
+   }
+
+     
+
+   if (SDO || SPDO || SEDO) {
+      /* redisplay curent only*/
+      sv->ResetGLStateVariables = YUP;
+      SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+   }
+   SUMA_RETURN(YUP); 
+}
+
+
 void SUMA_LoadSegDO (char *s, void *csvp )
 {
    static char FuncName[]={"SUMA_LoadSegDO"};
@@ -926,7 +1146,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                if (SO->Show) {
                   if (  (SO->Side == SUMA_LEFT && csv->ShowLeft) || 
                         (SO->Side == SUMA_RIGHT && csv->ShowRight) ||
-                        SO->Side == SUMA_NO_SIDE) {
+                        SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_LR) {
                         SUMA_DrawMesh(SO, csv); /* create the surface */
                   }
                }
@@ -1110,7 +1330,7 @@ SUMA_context_Init(SUMA_SurfaceViewer *sv)
    /*GLfloat green_light[] = { 0.0, 1.0, 0.0, 1.0};*/
    
    SUMA_ENTRY;
-
+   if (sv->PolyMode == SRM_Hide) { SUMA_SL_Note("sv->PolyMode reset to SRM_Fill"); sv->PolyMode = SRM_Fill; }
    glClearColor (sv->clear_color[0], sv->clear_color[1], sv->clear_color[2], sv->clear_color[3]);
    glShadeModel (GL_SMOOTH);
 
@@ -1664,6 +1884,10 @@ SUMA_MenuItem RenderMode_Menu[] = {
    {  "Points", &xmPushButtonWidgetClass, 
       '\0', NULL, NULL, 
       SUMA_cb_SetRenderMode, (XtPointer) SW_SurfCont_RenderPoints, NULL},
+
+   {  "Hide", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetRenderMode, (XtPointer) SW_SurfCont_RenderHide, NULL},
         
    {NULL},
 };
@@ -1854,22 +2078,14 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          
  
          
-      #ifdef SUMA_MOTIF_GLXAREA
-        /* Step 4. */
-        SUMAg_SVv[ic].X->FORM = XmCreateForm(SUMAg_SVv[ic].X->TOPLEVEL, "form", NULL, 0);
-        XtManageChild(SUMAg_SVv[ic].X->FORM);
-        SUMAg_SVv[ic].X->FRAME = XmCreateFrame(SUMAg_SVv[ic].X->FORM, "frame", NULL, 0);
-        XtVaSetValues(SUMAg_SVv[ic].X->FRAME,
-          XmNbottomAttachment, XmATTACH_FORM,
-          XmNtopAttachment, XmATTACH_FORM,
-          XmNleftAttachment, XmATTACH_FORM,
-          XmNrightAttachment, XmATTACH_FORM,
-          NULL);
-        XtManageChild(SUMAg_SVv[ic].X->FRAME);
-
-        /* Step 5. */
         SUMAg_SVv[ic].X->CMAP = SUMA_getShareableColormap(&(SUMAg_SVv[ic]));
 
+        /* create a frame to put glxarea in */
+        SUMAg_SVv[ic].X->FRAME = XmCreateFrame (mainw, "frame", NULL, 0);
+        XtManageChild(SUMAg_SVv[ic].X->FRAME);
+      
+      #ifdef SUMA_MOTIF_GLXAREA
+        SUMA_LH("MOTIF Drawing Area");
         /* Step 6. */
          /* glwMDrawingAreaWidgetClass requires libMesaGLwM.a */
          SUMAg_SVv[ic].X->GLXAREA = XtVaCreateManagedWidget("glxarea",
@@ -1878,20 +2094,13 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
           XtNcolormap, SUMAg_SVv[ic].X->CMAP,
           NULL);
       #else
-      /* Step 4-6. */
-         SUMAg_SVv[ic].X->CMAP = SUMA_getShareableColormap(&(SUMAg_SVv[ic]));
-
-         /* create a frame to put glxarea in */
-         SUMAg_SVv[ic].X->FRAME  = XmCreateFrame (mainw, "frame", NULL, 0);
-         XtManageChild(SUMAg_SVv[ic].X->FRAME);
-
+        SUMA_LH("GL Drawing Area");
          /* glwDrawingAreaWidgetClass requires libMesaGLw.a */
          SUMAg_SVv[ic].X->GLXAREA = XtVaCreateManagedWidget("glxarea",
           glwDrawingAreaWidgetClass, SUMAg_SVv[ic].X->FRAME,
           GLwNvisualInfo, SUMAg_SVv[ic].X->VISINFO,
           XtNcolormap, SUMAg_SVv[ic].X->CMAP,
           NULL);
-      
       #endif
 
           
@@ -4226,6 +4435,9 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
             break;
          case SRM_Points:
             imenu = SW_SurfCont_RenderPoints;
+            break;
+         case SRM_Hide:
+            imenu = SW_SurfCont_RenderHide;
             break;
          default: 
             fprintf (SUMA_STDERR, "Error %s: Unexpected something.\n", FuncName);
@@ -7881,6 +8093,9 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data, XtPointer call_
          break;
       case SW_SurfCont_RenderPoints:
          imenu = SRM_Points;
+         break;
+      case SW_SurfCont_RenderHide:
+         imenu = SRM_Hide;
          break;
       default: 
          fprintf (SUMA_STDERR, "Error %s: Unexpected widget index.\n", FuncName);

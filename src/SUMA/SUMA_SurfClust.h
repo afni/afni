@@ -27,6 +27,8 @@ typedef struct {
    SUMA_Boolean WriteFile;
    SUMA_SURF_CLUST_SORT_MODES SortMode;
    SUMA_Boolean FullROIList;
+   SUMA_Boolean prepend_node_index;
+   SUMA_DSET_FORMAT oform;
 } SUMA_SURFCLUST_OPTIONS;
 
 typedef struct {

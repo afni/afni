@@ -268,6 +268,15 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
             SUMA_RETURN (NOPE);
          }
          break;
+      case SUMA_BYU:
+         if (SO_FF != SUMA_ASCII) {
+            fprintf (SUMA_STDERR, "Warning %s: Only ASCII supported for BYU surfaces.\n", FuncName);
+         }
+         if (!SUMA_BYU_Write ((char *)F_name, SO, 1)) {
+            fprintf (SUMA_STDERR, "Error %s: Failed to write BYU surface.\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         break;
       case SUMA_INVENTOR_GENERIC:
          fprintf (SUMA_STDERR, "Error %s: Not ready to deal with inventor surfaces.\n", FuncName);
          SUMA_RETURN (NOPE);
@@ -298,15 +307,14 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    
    /* Calculate Min, Max, Mean */
    
-   SUMA_MIN_MAX_SUM_VECMAT_COL (SO->NodeList, SO->N_Node, SO->NodeDim, SO->MinDims, SO->MaxDims, SO->Center);
-     
-   SO->Center[0] /= SO->N_Node;
-   SO->Center[1] /= SO->N_Node;
-   SO->Center[2] /= SO->N_Node;
-
-   SUMA_MIN_VEC (SO->MinDims, 3, SO->aMinDims );
-   SUMA_MAX_VEC (SO->MaxDims, 3, SO->aMaxDims);
-
+   if (!SUMA_isSODimInitialized(SO)) { 
+      if (!SUMA_SetSODims(SO)) {
+         SUMA_S_Err("Failed to set dims!");
+         SUMA_RETURN(NOPE);
+      }
+   } else {
+      SUMA_LH("SODim initialized already");
+   }
    /* calculate the center and dimensions for the nodes in the patch only */
    PatchNodeMask = SUMA_MaskOfNodesInPatch(SO, &(SO->N_patchNode));
    if (!SO->N_patchNode || SO->N_patchNode == SO->N_Node) { 
@@ -560,6 +568,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          break;
       case SUMA_BRAIN_VOYAGER:
          break;
+      case SUMA_BYU:
+         break;
       default:
          SUMA_error_message(FuncName, "SO_FileType not supported", 0);
          SUMA_RETURN (NULL);
@@ -636,7 +646,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          
      case SUMA_BRAIN_VOYAGER:
          if (!SUMA_BrainVoyager_Read ((char *)SO_FileName_vp, SO, 1, 1)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Ply_Read.\n", FuncName);
+            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_BrainVoyager_Read.\n", FuncName);
             SUMA_RETURN(NULL);
          }
          SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
@@ -660,7 +670,34 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          
          SO->normdir = -1;  /* negative */
          break;
-            
+      
+      case SUMA_BYU:
+         if (!SUMA_BYU_Read ((char *)SO_FileName_vp, SO, 1, 1)) {
+            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_BYU_Read.\n", FuncName);
+            SUMA_RETURN(NULL);
+         }
+         SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
+         
+         /* change coordinates to align them with volparent data set, if possible */
+         if (VolParName != NULL) {
+            SO->VolPar = SUMA_VolPar_Attr (VolParName);
+            if (SO->VolPar == NULL) {
+               fprintf(SUMA_STDERR,"Error %s: Failed to load parent volume attributes.\n", FuncName);
+            } else {
+
+            if (!SUMA_Align_to_VolPar (SO, NULL)) SO->SUMA_VolPar_Aligned = NOPE;
+               else {
+                  SO->SUMA_VolPar_Aligned = YUP;
+                  /*SUMA_Show_VolPar(SO->VolPar, NULL);*/
+               }
+         }
+         } else { 
+            SO->SUMA_VolPar_Aligned = NOPE;
+         }
+         
+         SO->normdir = 1;  /* positive */
+         break;
+               
       case SUMA_INVENTOR_GENERIC:
          SO_FileName = (char *)SO_FileName_vp;
          /* You need to split name into path and name ... */
@@ -1332,8 +1369,8 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
                fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
-            if ( strcmp(Spec->Hemisphere[Spec->N_Surfs-1],"L") && strcmp(Spec->Hemisphere[Spec->N_Surfs-1],"R")) {
-               SUMA_SL_Err("Hemisphere can only be L ot R");
+            if ( strcmp(Spec->Hemisphere[Spec->N_Surfs-1],"L") && strcmp(Spec->Hemisphere[Spec->N_Surfs-1],"R") && strcmp(Spec->Hemisphere[Spec->N_Surfs-1],"B")) {
+               SUMA_SL_Err("Hemisphere can only be L or R or B");
                SUMA_RETURN (NOPE);
             }
             if (!OKread_Hemisphere) {
@@ -2153,7 +2190,19 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(SUMA_SurfSpecFile *Spec, int i, char *t
       }
       SurfIn = YUP;
       brk = YUP;
-   } /* load Ply format surface */
+   } /* load bv format surface */
+   
+   if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "BYU") == 1) {/* load BrainVoyager format surface */
+
+      SO = SUMA_Load_Surface_Object_eng ((void *)Spec->SurfaceFile[i], SUMA_BYU, SUMA_FF_NOT_SPECIFIED, tmpVolParName, debug);
+
+      if (SO == NULL)   {
+         fprintf(SUMA_STDERR,"Error %s: could not load SO\n", FuncName);
+         SUMA_RETURN(NULL);
+      }
+      SurfIn = YUP;
+      brk = YUP;
+   } /* load byu format surface */
    
    if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "GenericInventor") == 1) {/* load generic inventor format surface */
       if (tmpVolParName != NULL) {
@@ -2208,6 +2257,8 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(SUMA_SurfSpecFile *Spec, int i, char *t
       SO->Side = SUMA_LEFT;
    } else if (Spec->Hemisphere[i][0] == 'R') {
       SO->Side = SUMA_RIGHT;
+   } else if (Spec->Hemisphere[i][0] == 'B') {
+      SO->Side = SUMA_LR;
    } else SO->Side = SUMA_GuessSide (SO);
 
    
@@ -3462,6 +3513,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
       case SUMA_FREE_SURFER_PATCH:
       case SUMA_BRAIN_VOYAGER:
       case SUMA_OPENDX_MESH:
+      case SUMA_BYU:
       case SUMA_PLY:
          if (MitPath) nalloc = strlen(SO->Name.Path) + strlen(SO->Name.FileName) + 5;
          else nalloc = strlen(SO->Name.FileName) + 5;
@@ -3484,6 +3536,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
       case SUMA_FREE_SURFER_PATCH:
       case SUMA_PLY:
       case SUMA_OPENDX_MESH:
+      case SUMA_BYU:
       case SUMA_BRAIN_VOYAGER:
          if (MitPath) sprintf(Name,"%s%s", SO->Name.Path, SO->Name.FileName);
          else sprintf(Name,"%s", SO->Name.FileName);
@@ -3523,6 +3576,7 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
       case SUMA_FREE_SURFER_PATCH:
       case SUMA_OPENDX_MESH:
       case SUMA_PLY:
+      case SUMA_BYU:
       case SUMA_BRAIN_VOYAGER:
          if (  SUMA_iswordin (SO->Name.FileName, ".white") == 1 || 
                SUMA_iswordin (SO->Name.FileName, ".smoothwm") == 1 ||
@@ -3570,7 +3624,7 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
    static char FuncName[]={"SUMA_GuessSide"};
    
    SUMA_ENTRY;
-   
+    
    switch (SO->FileType) {
       case SUMA_INVENTOR_GENERIC:
          break;
@@ -3613,6 +3667,7 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
       case SUMA_FT_ERROR:
          break;
       case SUMA_OPENDX_MESH:
+      case SUMA_BYU:
       case SUMA_PLY:
          if (SUMA_iswordin (SO->Name.FileName, "lh") == 1 ||
              SUMA_iswordin (SO->Name.FileName, "left") == 1) {
@@ -3636,6 +3691,7 @@ int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
    static char FuncName[]={"SUMA_SetSphereParams"};
    double cent[3], centmed[3], RAD, RAD0, RAD1, rad;
    int i, i3;
+   double r[3], ra=0.0;
    SUMA_GEOM_TYPE isSphere = SUMA_GEOM_NOT_SET;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -3664,6 +3720,8 @@ int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
             break;
          case SUMA_BRAIN_VOYAGER:
              break;
+         case SUMA_BYU:
+             break;
          case SUMA_SUREFIT:
             if (SUMA_iswordin_ci (SO->Name_coord.FileName, "sphere") == 1 ) {
                isSphere = SUMA_GEOM_SPHERE;
@@ -3680,7 +3738,29 @@ int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
          case SUMA_PLY:
             break;
       } 
+      
+      /* the quick way, make sure bounding box is not that of a flat surface*/
+      SUMA_LH("Trying to guess from aspect ratio");
+      if (!SUMA_isSODimInitialized(SO)) { 
+         if (!SUMA_SetSODims(SO)) {
+            SUMA_S_Err("Failed to set dims!");
+            SUMA_RETURN(NOPE);
+         }
+      }else {
+         SUMA_LH("SODim initialized already");
+      }
+      ra = 0.0;
+      for (i=0;i<3;++i) { r[i] = SO->MaxDims[i]-SO->MinDims[i]; ra += r[i]; }
+      ra /= 3.0;
+      
+      if (  r[0] < 0.001 || r[1] < 0.001 || r[2] < 0.001 ||
+            r[0]/ra < 0.8 || r[1]/ra < 0.8 || r[2]/ra < 0.8) {
+         SUMA_LHv("too distorted bounding box dimensions=[%f %f %f]\n", r[0], r[1], r[2]);
+         isSphere  = SUMA_GEOM_IRREGULAR;
+      }
    }
+
+   
     
    if (isSphere ==  SUMA_GEOM_NOT_SET || (SUMA_IS_GEOM_SYMM(isSphere) && SO->SphereRadius < 0.0) ) {  /* need to figure out the hard way
                                                                or need to fill up params */
@@ -3696,7 +3776,7 @@ int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
       }
       /* have center, verify that all nodes are within 1/1000 of Rad */
       SUMA_LHv("Have a center of [%f   %f   %f] for %s\n", 
-               centmed[0] , centmed[1], centmed[2] , SO->Label) ;
+               centmed[0] , centmed[1], centmed[2] , SUMA_CHECK_NULL_STR(SO->Label)) ;
       RAD = sqrt( SUMA_POW2( SO->NodeList[0] - centmed[0] ) +
                   SUMA_POW2( SO->NodeList[1] - centmed[1] ) +
                   SUMA_POW2( SO->NodeList[2] - centmed[2] ) );

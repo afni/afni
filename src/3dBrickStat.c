@@ -6,7 +6,7 @@
 static int datum                   = MRI_float ;
 static void Print_Header_MinMax(int Minflag, int Maxflag, THD_3dim_dataset * dset);
 static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag, int Posflag,\
-    int Negflag, int Zeroflag, int nan_flag, int sum_flag, THD_3dim_dataset * dset, byte *mmm, int mmvox);
+    int Negflag, int Zeroflag, int nan_flag, int sum_flag, int Varflag, THD_3dim_dataset * dset, byte *mmm, int mmvox);
 static void Max_tsfunc( double tzero , double tdelta ,
                          int npts , float ts[] , double ts_mean ,
                          double ts_slope , void * ud , int nbriks, float * val ) ;
@@ -18,7 +18,7 @@ int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
    int nopt, nbriks;
-   int slow_flag, quick_flag, min_flag, max_flag, mean_flag, automask,count_flag, sum_flag;
+   int slow_flag, quick_flag, min_flag, max_flag, mean_flag, automask,count_flag, sum_flag, var_flag;
    int positive_flag, negative_flag, zero_flag, nan_flag, perc_flag;
    byte * mmm=NULL ;
    int    mmvox=0 ;
@@ -47,6 +47,7 @@ int main( int argc , char * argv[] )
              "  -min = print the minimum value in dataset\n"
              "  -max = print the minimum value in dataset (default)\n"
              "  -mean = print the mean value in dataset (implies slow)\n"
+             "  -var = print the variance in the dataset (implies slow)\n"
              "  -count = print the number of voxels included (implies slow)\n"
              "  -positive = include only positive voxel values (implies slow)\n"
              "  -negative = include only negative voxel values (implies slow)\n"
@@ -81,6 +82,7 @@ int main( int argc , char * argv[] )
    max_flag = -1;
    mean_flag = 0;
    sum_flag = 0;
+   var_flag = 0;
    slow_flag = 0;
    quick_flag = -1;
    automask = 0;
@@ -152,6 +154,11 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-mean") == 0 ){
 	mean_flag = 1;
+        nopt++; continue;
+      }
+
+      if( strcmp(argv[nopt],"-var") == 0 ){
+	var_flag = 1;
         nopt++; continue;
       }
 
@@ -287,7 +294,7 @@ int main( int argc , char * argv[] )
 	max_flag = 1;                  /* otherwise check only for max */
      }
 
-   if((mean_flag==1)||(count_flag==1)||(positive_flag!=-1)||(nan_flag!=-1)||(sum_flag == 1)||(perc_flag == 1))  /* mean flag or count_flag implies slow */
+   if((var_flag==1)||(mean_flag==1)||(count_flag==1)||(positive_flag!=-1)||(nan_flag!=-1)||(sum_flag == 1)||(perc_flag == 1))  /* mean flag or count_flag implies slow */
      slow_flag = 1;
 
    /* check slow and quick options */
@@ -388,7 +395,7 @@ int main( int argc , char * argv[] )
    }
 
    Max_func(min_flag, max_flag, mean_flag,count_flag,positive_flag, negative_flag, zero_flag,\
-     nan_flag, sum_flag, old_dset, mmm, mmvox);
+     nan_flag, sum_flag, var_flag, old_dset, mmm, mmvox);
 
    
    if(mmm!=NULL)
@@ -485,14 +492,14 @@ THD_3dim_dataset * dset;
 
 /*! search whole dataset for minimum and maximum */
 /* load all at one time */
-static void Max_func(Minflag, Maxflag, Meanflag, Countflag, Posflag, Negflag, Zeroflag, nan_flag, Sumflag, dset, mmm, mmvox)
+static void Max_func(Minflag, Maxflag, Meanflag, Countflag, Posflag, Negflag, Zeroflag, nan_flag, Sumflag, Varflag, dset, mmm, mmvox)
 int Minflag, Maxflag;
 THD_3dim_dataset * dset;
 byte *mmm;  /* mask pointer */
 int mmvox;
 {
    double overallmin, overallmax, overallmean;
-   double voxval, fac, sum;
+   double voxval, fac, sum, sum2, vr;
    int nvox, npts;
    int i,k;
    int test_flag;
@@ -504,6 +511,8 @@ int mmvox;
    overallmin = 1E10;
    overallmax = -1E10;
    sum = 0.0;
+   vr = 0.0;
+   sum2 = 0.0;
    npts = 0;
    DSET_mallocize (dset);
    DSET_load (dset);	                /* load dataset */
@@ -585,6 +594,7 @@ int mmvox;
               }
               if(((voxval<0)&&Negflag)||((voxval==0)&&Zeroflag)||((voxval>0)&&Posflag)) {
 	         sum += voxval;
+            if (Varflag) sum2 += voxval*voxval;
                  ++npts;            
                  if(voxval<overallmin)
 	            overallmin = voxval;
@@ -608,7 +618,10 @@ int mmvox;
 
    if (Sumflag) 
       printf("%-13.6g ", sum);
-      
+   if (Varflag) {
+      vr = (sum2-sum*sum/(double)npts)/(double)(npts-1);
+      printf("%-13.6g ", vr);   
+   }
    printf("\n");
 
     mri_free (data_im);

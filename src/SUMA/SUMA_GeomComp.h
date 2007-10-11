@@ -5,6 +5,23 @@
 #define MAX_NCODE 111
 #endif
 
+/* 
+   faster than SUMA_ApproxNeighbors but a lot more dangerous!
+*/
+#define SUMA_APPROX_NEIGHBORS(SO, SOf, cent, dnei, SegDist, mask_record, nmask, N_nmask)   \
+{  \
+   static int m_i;   \
+   static float m_dnei_sp, m_alph, m_rsearch;   \
+   /* Now cleanup the previous record */  \
+   for (m_i=0; m_i<N_nmask; ++m_i) { nmask[mask_record[m_i]] = 0; }  \
+   /* Calculate the Equivalent neighborhood distance on the spherical version of the surface */ \
+   m_dnei_sp = dnei * SegDist[cent];  \
+   m_alph = m_dnei_sp / SOf->SphereRadius; \
+   m_rsearch = sin(m_alph/2.0)*2.0*SOf->SphereRadius; \
+   SUMA_NODESINSPHERE2( SOf->NodeList, SOf->N_Node, &(SOf->NodeList[3*cent]), m_rsearch, mask_record, N_nmask);   \
+   for (m_i=0; m_i<N_nmask; ++m_i) nmask[mask_record[m_i]] = 1;  \
+}
+
 typedef enum { SUMA_SMOOTH_NOT_SET, SUMA_EQUAL, SUMA_FUJIWARA, SUMA_DESBRUN } SUMA_TAUBIN_SMOOTH_OPTIONS;
 
 static int SUMA_SSidbg=-1; /*!< Index of node for debug */
@@ -32,6 +49,8 @@ SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle( SUMA_SurfaceObject *SO, SUMA_VOLPA
 
 
 
+DList * SUMA_SPI_to_EdgeStrips(SUMA_SurfaceObject *SO, SUMA_SURF_PLANE_INTERSECT *SPI);
+SUMA_Boolean SUMA_isEdgeStripClosed(DList *edgestrip, SUMA_SurfaceObject *SO);
 int SUMA_isSelfIntersect(SUMA_SurfaceObject *SO, int FullCount, byte * report);
 int SUMA_VoxelNeighbors (int ijk, int ni, int nj, int nk, SUMA_VOX_NEIGHB_TYPES ntype, int *nl);
 byte *SUMA_FillToVoxelMask(byte *ijkmask, int ijkseed, int ni, int nj, int nk, int *N_in, byte *usethisisin); 
@@ -55,7 +74,7 @@ SUMA_SURF_PLANE_INTERSECT * SUMA_Allocate_SPI (SUMA_SurfaceObject *SO);
 SUMA_TRI_BRANCH* SUMA_AssignTriBranch (SUMA_SurfaceObject *SO, SUMA_SURF_PLANE_INTERSECT *SPI, int Nx, int *BranchCount, SUMA_Boolean DoCopy);
 SUMA_Boolean SUMA_show_STB (SUMA_TRI_BRANCH *B, FILE *Out);
 void SUMA_free_STB (SUMA_TRI_BRANCH *Bv, int N_Bv); 
-SUMA_Boolean SUMA_Show_SPI (SUMA_SURF_PLANE_INTERSECT *SPI, FILE * Out, SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_Show_SPI (SUMA_SURF_PLANE_INTERSECT *SPI, FILE * Out, SUMA_SurfaceObject *SO, char *opref, SUMA_SurfaceViewer *sv);
 int *SUMA_NodePath_to_EdgePath (SUMA_EDGE_LIST *EL, int *Path, int N_Path, int *N_Edge);
 int *SUMA_NodePath_to_TriPath_Inters_OLD (SUMA_SurfaceObject *SO, SUMA_TRI_BRANCH *Bv, int *Path, int N_Path, int *N_Tri);
 int *SUMA_NodePath_to_TriPath_Inters ( SUMA_SurfaceObject *SO, SUMA_SURF_PLANE_INTERSECT *SPI, int *nPath, int N_nPath, int *N_tPath);
@@ -73,6 +92,9 @@ SUMA_Boolean SUMA_AddNodeToLayer (int n, int LayInd, SUMA_GET_OFFSET_STRUCT *Off
 SUMA_GET_OFFSET_STRUCT * SUMA_Free_getoffsets (SUMA_GET_OFFSET_STRUCT *OffS);
 SUMA_Boolean SUMA_Recycle_getoffsets (SUMA_GET_OFFSET_STRUCT *OffS);
 float ** SUMA_CalcNeighbDist (SUMA_SurfaceObject *SO);
+int SUMA_Chung_Smooth_05_N_iter (double fwhm, double AvgLe, double *sigmap);
+float SUMA_SigFromBeta (float Beta);
+double SUMA_SigForFWHM(float AvgLe, double dfwhm, int *niter, double *beta);
 float ** SUMA_Chung_Smooth_Weights (SUMA_SurfaceObject *SO);
 float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt, 
                            int N_iter, float FWHM, float *fin, 
@@ -81,15 +103,53 @@ float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt,
 SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt, 
                            int N_iter, float FWHM, SUMA_DSET *dset, 
                            SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask);
+/* NOTE THAT x passed to the macro must be in units of distance^2 */
 #define SUMA_CHUNG_KERNEL_NUMER(x,s) (exp(-(x)/(2.0*(s)*(s)))) 
-float ** SUMA_Chung_Smooth_Weights_05 (SUMA_SurfaceObject *SO, float fwhm);
+#define SUMA_FWHM_MEAN(fwhmv, N_fwhmv, meanfwhm, FWHM_mixmode, N) {\
+   int m_k=0; \
+   N = 0; meanfwhm = 0; \
+   if (SUMA_iswordin_ci(FWHM_mixmode, "geom")) {   \
+     for (m_k=0; m_k<N_fwhmv; ++m_k) { \
+      if (fwhmv[m_k] >= 0.0) { meanfwhm += log(fwhmv[m_k]); ++N; }   \
+     }   \
+     if (N) meanfwhm = exp(meanfwhm/(double)N) ;  \
+     else meanfwhm = 0.0;  \
+   } else if (SUMA_iswordin_ci(FWHM_mixmode, "arit")) {  \
+     for (m_k=0; m_k<N_fwhmv; ++m_k) { \
+      if (fwhmv[m_k] >= 0.0) { meanfwhm += (fwhmv[m_k]); ++N; }  \
+     }   \
+     if (N) meanfwhm = (meanfwhm/(double)N) ;   \
+     else meanfwhm = 0.0;  \
+   } else { \
+      SUMA_S_Err("Bad or NULL FWHM_mixmode");   \
+      N = -1;   \
+   }  \
+}
+
+float ** SUMA_Chung_Smooth_Weights_05_single (SUMA_SurfaceObject *SO, float fwhm);
+float ** SUMA_Chung_Smooth_Weights_05_Pre_07 (SUMA_SurfaceObject *SO, float fwhm);
+double ** SUMA_Chung_Smooth_Weights_07 (SUMA_SurfaceObject *SO, double fwhm);
 float * SUMA_Chung_Smooth_05 (SUMA_SurfaceObject *SO, float **wgt, 
                            int N_iter, float FWHM, float *fin, 
                            int vpn, SUMA_INDEXING_ORDER d_order, float *fout_user,
                            SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask);
-SUMA_Boolean SUMA_Chung_Smooth_05_dset (SUMA_SurfaceObject *SO, float **wgt, 
+SUMA_Boolean SUMA_Chung_Smooth_05_single_dset (SUMA_SurfaceObject *SO, float **wgt, 
                            int N_iter, float FWHM, SUMA_DSET *dset, 
                            SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask);
+SUMA_Boolean SUMA_Chung_Smooth_05_Pre_07_dset (SUMA_SurfaceObject *SO, float **wgt, 
+                           int N_iter, float FWHM, SUMA_DSET *dset, 
+                           SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask);
+SUMA_Boolean SUMA_Chung_Smooth_07_dset (SUMA_SurfaceObject *SO, double **wgt, 
+                           int *N_iter, double *FWHM, SUMA_DSET *dset, 
+                           SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask);
+SUMA_Boolean SUMA_Chung_Smooth_07_toFWHM_dset (SUMA_SurfaceObject *SO, double **wgt, 
+                           int *N_iter, double *FWHM, SUMA_DSET *dset, 
+                           byte *nmask, byte strict_mask, 
+                           char *FWHM_mixmode, float **fwhmrecord);
+SUMA_Boolean SUMA_WriteSmoothingRecord (  SUMA_SurfaceObject *SO, 
+                                          float *fwhmg, int Niter, 
+                                          double *sigma, int cnst_sig,
+                                          char *prefix);
 SUMA_Boolean  SUMA_Taubin_Smooth_TransferFunc (float l, float m, int N, FILE *Out);
 SUMA_Boolean SUMA_Taubin_Smooth_Coef (float k, float *l, float *m);
 void SUMA_Set_Taubin_Weights(SUMA_TAUBIN_SMOOTH_OPTIONS tb);
@@ -122,6 +182,8 @@ float *SUMA_Offset_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float Offestl
 SUMA_Boolean SUMA_GetOffset2Offset (SUMA_GET_OFFSET_STRUCT *GOS, SUMA_OFFSET_STRUCT *OS);
 char * SUMA_ShowOffset_ll_Info (DList *list, int detail);
 char * SUMA_ShowOffset_Info (SUMA_GET_OFFSET_STRUCT *OffS, int detail);
+SUMA_Boolean SUMA_FixNN_Oversampling ( SUMA_SurfaceObject *SO, SUMA_DSET *dset, byte *nmask, 
+                                       int icol, SUMA_Boolean MaskZeros); 
 
 /* Begin function prototypes for VolData.c */
 THD_fvec3 SUMA_THD_3dfind_to_3dmm( SUMA_SurfaceObject *SO, THD_fvec3 iv );
@@ -156,17 +218,77 @@ float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask,
 float *SUMA_estimate_dset_FWHM_1dif(SUMA_SurfaceObject *SO, SUMA_DSET *dset, 
                                     int *icols, int N_icols, byte *nmask, 
                                     int nodup, char *options);
+float SUMA_estimate_slice_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask, int nodup, float *ssvr, DList **striplist_vec);
+void SUMA_Set_UseSliceFWHM(int v);
+int SUMA_Get_UseSliceFWHM(void);
 SUMA_Boolean SUMA_NewSurfaceRadius(SUMA_SurfaceObject *SO, double r, float *Center);
 void SUMA_SetDbgFWHM(int i);
 int SUMA_GetDbgFWHM(void);
 SUMA_Boolean SUMA_CenterOfSphere(double *p1, double *p2, double *p3, double *p4, double *c);
 SUMA_Boolean SUMA_GetCenterOfSphereSurface(SUMA_SurfaceObject *SO, int Nquads, double *cs, double *cm);
+float *SUMA_SegmentDistortion (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2);
+int SUMA_ApproxNeighbors ( SUMA_SurfaceObject *SO,
+                           SUMA_SurfaceObject *SOf,  /* the spherical (or someday flat) version of SO */ 
+                           int cent,      /* the central node*/
+                           float dnei,     /* the search distance, along the surface from node cent */
+                           byte *nmask     /* to contain the nodes within rad from Cent */);
 
 /* End function prototypes for VolData.c */
 
 /* Begin function prototypes for SUMA_ConvexHull.c */
 int SUMA_qhull_wrap( int npt , float * xyz , int ** ijk , int fliporient);
 /* End function prototypes for SUMA_ConvexHull.c */
+
+DList *SUMA_SliceAlongPlane(SUMA_SurfaceObject *SO, float *Eq, float step);
+
+SUMA_DSET *SUMA_RandomDset(int N_Node, int nc, unsigned int seed, float scale, byte norm); 
+
+/*!
+   Macros to merge / join two lists together
+   elements of lst2 are set to NULL and you should free lst2 
+   when these macros are done.
+*/
+#define SUMA_MergeLists_Beg2_End1(lst2,lst1){  \
+   DListElmt *m_elm = NULL;   \
+   if (dlist_size(lst2)){  \
+      do{   \
+         if (!m_elm) m_elm = dlist_head(lst2);   \
+         else m_elm = dlist_next(m_elm);   \
+         dlist_ins_next(lst1, dlist_tail(lst1), m_elm->data);   m_elm->data = NULL; /* protect element from erasure */\
+      } while (m_elm != dlist_tail(lst2));  \
+   }  \
+}  
+#define SUMA_MergeLists_End2_End1(lst2, lst1) {   \
+   DListElmt *m_elm = NULL;   \
+   if (dlist_size(lst2)){  \
+      do{   \
+         if (!m_elm) m_elm = dlist_tail(lst2);   \
+         else m_elm = dlist_prev(m_elm);   \
+         dlist_ins_next(lst1, dlist_tail(lst1), m_elm->data);   m_elm->data = NULL; /* protect element from erasure */\
+     } while (m_elm != dlist_head(lst2));  \
+   }  \
+}
+
+#define SUMA_MergeLists_End2_Beg1(lst2, lst1) {   \
+   DListElmt *m_elm = NULL;   \
+   if (dlist_size(lst2)){  \
+      do{   \
+         if (!m_elm) m_elm = dlist_tail(lst2);   \
+         else m_elm = dlist_prev(m_elm);   \
+         dlist_ins_prev(lst1, dlist_head(lst1), m_elm->data);   m_elm->data = NULL; /* protect element from erasure */\
+      } while (m_elm != dlist_head(lst2));     \
+   }\
+}
+#define SUMA_MergeLists_Beg2_Beg1(lst2, lst1){ \
+   DListElmt *m_elm=NULL;  \
+   if (dlist_size(lst2)) { \
+      do{   \
+         if (!m_elm) m_elm = dlist_head(lst2);   \
+         else m_elm = dlist_next(m_elm);   \
+         dlist_ins_prev(lst1, dlist_head(lst1), m_elm->data);   m_elm->data = NULL; /* protect element from erasure */\
+      } while (m_elm != dlist_tail(lst2));  \
+   }  \
+}
 
 
 #endif            

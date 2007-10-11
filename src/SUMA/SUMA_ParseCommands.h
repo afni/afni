@@ -103,14 +103,14 @@ typedef struct {
 
 typedef struct {
    SUMA_SO_File_Type iType;
-   char *sv_name;
-   char *surf_names[SUMA_GENERIC_PROG_MAX_SURF];
+   char *sv_name; /* do not free, argv[.] copy */
+   char *surf_names[SUMA_GENERIC_PROG_MAX_SURF];/* do not free, argv[.] copy */
    int N_surf;
-   char *spec_file;
-   char *in_name;
+   char *spec_file; /* do not free, argv[.] copy */
+   char *in_name;    /* do not free, argv[.] copy */
    char *in_namev[SUMA_GENERIC_PROG_MAX_IN_NAME]; /* a whole bunch of input files */
    int n_in_namev;
-   char *surftype;
+   char *surftype; /* do not free, argv[.] copy */
    char *out_prefix;   /* this one's dynamically allocated so you'll have to free it yourself */
    char *out_vol_prefix; /* this one's dynamically allocated so you'll have to free it yourself */
    char out_vol_view[5];
@@ -201,6 +201,7 @@ typedef struct {
    char *in_nodeindices;
    
    float *emask;
+   float efrac;
    float *fatemask;
    int Use_emask;
    byte *nmask;
@@ -229,6 +230,12 @@ typedef struct {
    
    char *unit_sphere_name;
    char *bases_prefix;
+   
+   int dmed;
+   int unif;
+   int geom;
+   int corder;
+   int poly;
    
    SUMA_GENERIC_ARGV_PARSE *ps; /* just a holder for convenience, never free it here*/
 } SUMA_GENERIC_PROG_OPTIONS_STRUCT; /* also edit defaults in 

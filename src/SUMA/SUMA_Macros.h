@@ -1,6 +1,12 @@
 #ifndef SUMA_MACROSm_INCLUDED
 #define SUMA_MACROSm_INCLUDED
 
+/* A lazy macro to free a DList */
+#define SUMA_FREE_DLIST(striplist) {   \
+   if (striplist) {  dlist_destroy(striplist); SUMA_free(striplist); }  \
+   striplist = NULL; \
+}
+
 
 #ifdef isfinite
 # define SUMA_IS_GOOD_FLOAT(x) isfinite(x) /* stolen from Bob's thd_floatscan.c */
@@ -11,6 +17,15 @@
 /*!   sqrt(2 pi) and 1/sqrt(2 pi) */
 #define SQ_2PI 2.50662827463100024161
 #define iSQ_2PI 0.39894228040143270286
+
+/*! Return a random number from a gaussian distribution of mean m and std s 
+    Based on parser.c and parser_int.c functions unif_ and gran_1*/
+#define SUMA_GRAN(m,s)  \
+         ( m + \
+           (drand48() + drand48() + drand48() + drand48() + \
+            drand48() + drand48() + drand48() + drand48() + \
+            drand48() + drand48() + drand48() + drand48() - 6.0) * s)
+
 
 /*!
    Macro to create a new ID code at random (when strn = NULL) or a hash of a string
@@ -402,6 +417,8 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
                   break;   \
                case SRM_ViewerDefault: \
                   break;   \
+               case SRM_Hide: \
+                  break;   \
                default: \
                   fprintf (SUMA_STDERR, "Error %s: Wrong Rendering Mode.\n", FuncName);   \
                   break;   \
@@ -477,6 +494,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
       for (m_i=0; m_i < 3; ++m_i) { \
          SO->MinDims[m_i] = (float)(scl*(double)SO->MinDims[m_i]);   \
          SO->MaxDims[m_i] = (float)(scl*(double)SO->MaxDims[m_i]);   \
+         SO->Center[m_i]  = (float)(scl*(double)SO->Center[m_i]);   \
       }  \
       SO->aMinDims = (float)(scl*(double)SO->aMinDims);  \
       SO->aMaxDims = (float)(scl*(double)SO->aMaxDims);  \
@@ -1308,15 +1326,15 @@ SUMA_GET_MAT_COL(a,b, col, rows,typea,typeb)
 */
 #define SUMA_MIN_MAX_SUM_VECMAT_COL(a, rows, cols, amin, amax, asum) { \
                   int m_IX, m_JX, m_id;   \
-                  for (m_IX = 0; m_IX < cols ; m_IX++) {   \
-                     amax[m_IX]=a[m_IX];   \
-                     amin[m_IX]=a[m_IX];   \
-                     asum[m_IX]=a[m_IX];   \
-                     for (m_JX = 1 ; m_JX < rows ; m_JX++) { \
-                        m_id = cols * m_JX + m_IX;   \
-                        if (a[m_id] > amax[m_IX]) amax[m_IX] = a[m_id];\
-                        if (a[m_id] < amin[m_IX]) amin[m_IX] = a[m_id];\
-                        asum[m_IX] += a[m_id];   \
+                  for (m_IX = 0; m_IX < (cols) ; m_IX++) {   \
+                     (amax)[m_IX]=(a)[m_IX];   \
+                     (amin)[m_IX]=(a)[m_IX];   \
+                     (asum)[m_IX]=(a)[m_IX];   \
+                     for (m_JX = 1 ; m_JX < (rows) ; m_JX++) { \
+                        m_id = (cols) * m_JX + m_IX;   \
+                        if ((a)[m_id] > (amax)[m_IX]) (amax)[m_IX] = (a)[m_id];\
+                        if ((a)[m_id] < (amin)[m_IX]) (amin)[m_IX] = (a)[m_id];\
+                        (asum)[m_IX] += (a)[m_id];   \
                      }   \
                   }   \
                }
