@@ -71,26 +71,26 @@ SUMA_SurfaceObject *SUMA_NewSO(float **NodeList, int N_Node, int **FaceSetList, 
    
    SO->FileFormat = nsoopt->FileFormat;
    SO->FileType = nsoopt->FileType;
-   
+
    SUMA_LH("NodeList");
    SO->NodeDim = 3;
    SO->NodeList = *NodeList; *NodeList = NULL;  /* keeps user from freeing afterwards ... */
    SO->N_Node = N_Node;
-   
+
    if (nsoopt->DoCenter) {
       SUMA_LH("Center deal")
       SUMA_DIM_CENTER(SO);
    } else {
       SUMA_LH("Skipping Center deal")
-   }
-   
+   } 
+
    if (nsoopt->LargestBoxSize > 0.0) {
       SUMA_LH("BoxSize deal")
       SUMA_LARGEST_SIZE_SCALE(SO, nsoopt->LargestBoxSize);
    } else {
-      SUMA_LH("Skipping Center deal")
+      SUMA_LH("Skipping BoxSize deal")
    }
-   
+    
    SUMA_LH("FaceSetList");
    SO->FaceSetDim = 3;
    SO->FaceSetList = *FaceSetList; *FaceSetList = NULL;  /* keeps user from freeing afterwards ... */
@@ -2125,7 +2125,7 @@ SUMA_Boolean SUMA_DrawPlaneDO (SUMA_PlaneDO *SDO, SUMA_SurfaceViewer *sv)
       fprintf(stderr,"Error %s: NULL pointer.\n", FuncName);
       SUMA_RETURN (NOPE);
    }
-   
+   if (SDO->PolyMode == SRM_Hide || sv->PolyMode == SRM_Hide) { SUMA_RETURN(YUP); }
    /* check on rendering mode */
    if (SDO->PolyMode != SRM_ViewerDefault) {
      /* not the default, do the deed */
@@ -2477,6 +2477,8 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
    SUMA_RETURN (YUP);
    
 }
+
+
 
 /*!
    A macro to be inserted into SUMA_SortedAxisSegmentList's switch statement
@@ -4469,6 +4471,9 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    #endif
       
    SUMA_LH("Poly Mode");
+   
+   if (SurfObj->PolyMode == SRM_Hide || sv->PolyMode == SRM_Hide) { SUMA_LH("Hiding surface"); SUMA_RETURNe; }
+   
    /* check on rendering mode */
    if (SurfObj->PolyMode != SRM_ViewerDefault) {
      /* not the default, do the deed */
@@ -4933,6 +4938,9 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
             break;
          case SUMA_NO_SIDE:
             SS = SUMA_StringAppend (SS,"No side specified.\n");
+            break;
+         case SUMA_LR:
+            SS = SUMA_StringAppend (SS,"Left and Right hemispheres.\n");
             break;
          case SUMA_LEFT:
             SS = SUMA_StringAppend (SS,"Left hemisphere.\n");
@@ -5403,6 +5411,7 @@ void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
 Create a Surface Object data structure 
 */
 
+
 SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
 {
    static char FuncName[]={"SUMA_Alloc_SurfObject_Struct"};
@@ -5426,11 +5435,11 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].Name_NodeParent = NULL;
       SO[i].Label = NULL;
       SO[i].EmbedDim = 3;
-      SO[i].Center[0] = SO[i].Center[1] = SO[i].Center[2] = 0.0;
-      SO[i].MaxDims[0] = SO[i].MaxDims[1] = SO[i].MaxDims[2] = 0.0;       
-      SO[i].MinDims[0] = SO[i].MinDims[1] = SO[i].MinDims[2] = 0.0;       
-      SO[i].aMinDims = 0.0;     
-      SO[i].aMaxDims = 0.0;
+      SO[i].Center[0] = SO[i].Center[1] = SO[i].Center[2] = 0.0;           /* the zeros in Center, MaxDims, MinDims, */ 
+      SO[i].MaxDims[0] = SO[i].MaxDims[1] = SO[i].MaxDims[2] = 0.0;        /* aMinDims and aMaxDims */
+      SO[i].MinDims[0] = SO[i].MinDims[1] = SO[i].MinDims[2] = 0.0;        /* are used to flag unitialized parameters */
+      SO[i].aMinDims = 0.0;                                                /* always keep zero for initialization */      
+      SO[i].aMaxDims = 0.0;                                                /* see SUMA_isSODimInitialized */
       SO[i].ViewCenterWeight = -1;
       SO[i].RotationWeight = -1;
       SO[i].patchaMaxDims = 0.0;
@@ -5518,6 +5527,37 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
      }
    SUMA_RETURN(SO);
 }/* SUMA_Alloc_SurfObject_Struct */
+
+SUMA_Boolean SUMA_isSODimInitialized(SUMA_SurfaceObject *SO) 
+{
+   if (!SO) return(NOPE);
+   
+   if (  SO->MaxDims[0] == 0.0 && SO->MaxDims[1] == 0.0 && SO->MaxDims[2] == 0.0 &&
+         SO->MinDims[0] == 0.0 && SO->MinDims[1] == 0.0 && SO->MinDims[2] == 0.0 &&
+         SO->aMinDims == 0.0 && SO->aMaxDims == 0.0) { 
+         
+         return(NOPE); 
+   }
+   return(YUP);
+}
+
+SUMA_Boolean SUMA_SetSODims(SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_SetSODims"};
+   
+   SUMA_ENTRY;
+   
+   if (!SO) SUMA_RETURN(NOPE);
+      SUMA_MIN_MAX_SUM_VECMAT_COL (SO->NodeList, SO->N_Node, SO->NodeDim, SO->MinDims, SO->MaxDims, SO->Center);
+
+      SO->Center[0] /= SO->N_Node;
+      SO->Center[1] /= SO->N_Node;
+      SO->Center[2] /= SO->N_Node;
+
+      SUMA_MIN_VEC (SO->MinDims, 3, SO->aMinDims );
+      SUMA_MAX_VEC (SO->MaxDims, 3, SO->aMaxDims);
+   SUMA_RETURN(YUP);
+}
 
 /*! 
    \brief function for freeing a SUMA_ROI structure.

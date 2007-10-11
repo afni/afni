@@ -23,6 +23,14 @@ suma_datasets.c is now in afni's directory and is in libmri.a
    extern SUMA_DO *SUMAg_DOv;
 #endif 
 
+int SUMA_WriteDset_NameCheck_s (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int verb, char **NameOutp) 
+{
+   int exists = SUMA_WriteDset_NameCheck_eng(Name, dset, form, verb, NameOutp);
+   WorkErrLog_s();
+   return(exists);
+} 
+
+
 /*!
    \brief parse command line arguments for input/output debugging and
    memory debugging. Use no fancies in this function!
@@ -89,9 +97,16 @@ void WorkErrLog_s(void)
 */
 SUMA_DSET * SUMA_FindDset_s (char *idcode, DList *DsetList)
 {
-   SUMA_DSET *dset = SUMA_FindDset_eng (idcode, DsetList);
+   SUMA_DSET *dset = SUMA_FindDset_eng (idcode, DsetList, NULL);
    WorkErrLog_s();
    return(dset);
+}
+DListElmt * SUMA_FindDsetEl_s (char *idcode, DList *DsetList)
+{
+   DListElmt *el=NULL;
+   SUMA_DSET *dset = SUMA_FindDset_eng (idcode, DsetList, &el);
+   WorkErrLog_s();
+   return(el);
 }
 
 /*!

@@ -43,6 +43,8 @@ void SUMA_MakeColorMap_usage ()
                             "    Returns one of SUMA's standard colormaps. Choose from:\n"
                             "    rgybr20, ngray20, gray20, bw20, bgyr19, \n"
                             "    matlab_default_byr64, roi128, roi256, roi64\n"
+                            " or if the colormap is in a .pal file:  \n"
+                            "MakeColorMap -cmapdb Palfile -cmap MapName\n"
                             "\n"
                             "Common options to all usages:\n"
                             "    -ah prefix: (optional, Afni Hex format.\n"
@@ -97,8 +99,8 @@ void SUMA_MakeColorMap_usage ()
 int main (int argc,char *argv[])
 {/* Main */
    static char  FuncName[]={"MakeColorMap"};
-   char  *FidName = NULL, *Prfx = NULL, h[9], *StdType=NULL; 
-   int Ncols = 0, N_Fid = 0, kar, i, ifact, *Nind = NULL;
+   char  *FidName = NULL, *Prfx = NULL, h[9], *StdType=NULL, *dbfile=NULL, *MapName=NULL; 
+   int Ncols = 0, N_Fid = 0, kar, i, ifact, *Nind = NULL, imap = -1, MapSpecified = 0;
    float **Fid=NULL, **M=NULL;
    MRI_IMAGE *im = NULL;
    float *far=NULL;
@@ -107,6 +109,7 @@ int main (int argc,char *argv[])
    SUMA_COLOR_MAP *SM=NULL;
       
    SUMA_STANDALONE_INIT;
+
    SUMA_mainENTRY;
    
 
@@ -125,6 +128,7 @@ int main (int argc,char *argv[])
    Usage2 = NOPE;
    Usage3 = NOPE;
    flipud = NOPE;
+   MapSpecified = NOPE;
    while (kar < argc) { /* loop accross command ine options */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           SUMA_MakeColorMap_usage();
@@ -194,12 +198,45 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-std") == 0))
       {
          kar ++;
+         if (MapSpecified) {
+            fprintf (SUMA_STDERR, "Color map already specified.\n-cmap and -std are mutually exclusive\n");
+            exit (1);
+         }
          if (kar >= argc)  {
               fprintf (SUMA_STDERR, "need argument after -std ");
             exit (1);
          }
+         MapSpecified = YUP;
          StdType = argv[kar];
          Usage3 = YUP; 
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-cmapdb") == 0))
+      {
+         kar ++;
+         if (kar >= argc)  {
+              fprintf (SUMA_STDERR, "need argument after -cmapdb ");
+            exit (1);
+         }
+         SUMAg_CF->isGraphical = YUP; /* WILL NEED X DISPLAY TO RESOLVE COLOR NAMES */
+         dbfile = argv[kar];
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-cmap") ==0)) {
+         if (MapSpecified) {
+            fprintf (SUMA_STDERR, "Color map already specified.\n-cmap and -std are mutually exclusive\n");
+            exit (1);
+         }
+         MapSpecified = YUP;
+         kar ++;
+         if (kar >= argc)  {
+            fprintf (SUMA_STDERR, "need 1 arguments after -cmap ");
+            exit (1);
+         }
+         Usage3 = YUP; 
+         MapName = argv[kar];
          brk = YUP;
       }
       
@@ -236,6 +273,22 @@ int main (int argc,char *argv[])
    if (!Usage1 && !Usage2 && !Usage3) {
       fprintf (SUMA_STDERR,"Error %s: One of these options must be used:\n-f -fn or -std.\n", FuncName);
       exit(1);
+   }
+   
+   /* are there database files to read */
+   if (dbfile) {
+      SUMA_LH("Now trying to read db file");
+      if (!SUMAg_CF->scm) {   
+         SUMAg_CF->scm = SUMA_Build_Color_maps();
+         if (!SUMAg_CF->scm) {
+            SUMA_SL_Err("Failed to build color maps.\n");
+            exit(1);
+         }
+      }
+      if (SUMA_AFNI_Extract_Colors ( dbfile, SUMAg_CF->scm ) < 0) {
+         fprintf (SUMA_STDERR,"Error %s: Failed to read %s colormap file.\n", FuncName, dbfile);
+         exit(1);
+      }
    }
    
    if (Usage1 || Usage2) {
@@ -319,12 +372,21 @@ int main (int argc,char *argv[])
    }
    
    if (Usage3) { /* third usage */
-      SM = SUMA_GetStandardMap (SUMA_StandardMapCode(StdType));
-      if (SM == NULL) {
-         fprintf (SUMA_STDERR,"Error %s: Error in SUMA_MakeColorMap.\n", FuncName);
-         exit(1);
+      if (!MapName) {
+         SM = SUMA_GetStandardMap (SUMA_StandardMapCode(StdType));
+         if (SM == NULL) {
+            fprintf (SUMA_STDERR,"Error %s: Error in SUMA_MakeColorMap.\n", FuncName);
+            exit(1);
+         }
+         Ncols = SM->N_Col;
+      } else {
+         imap = SUMA_Find_ColorMap ( MapName, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2);
+         if (imap < 0) {
+            fprintf (SUMA_STDERR,"Error %s: Could not find colormap %s.\n", FuncName, MapName);
+            exit (1); 
+         }
+         SM = SUMAg_CF->scm->CMv[imap]; Ncols = SM->N_Col;
       }
-      Ncols = SM->N_Col;
    }
    
    if (flipud) {
@@ -340,9 +402,10 @@ int main (int argc,char *argv[])
    
    
    
-   if (!AfniHex) 
+   if (!AfniHex) {
          SUMA_disp_mat (M, Ncols, 3, 1);
-   else {
+         /*SUMA_Show_ColorMapVec (&SM, 1, NULL, 2);*/
+   } else {
          fprintf (stdout, "\n***COLORS\n");
          
          for (i=0; i < Ncols; ++i) {
@@ -383,8 +446,8 @@ int main (int argc,char *argv[])
       if (Fid) SUMA_free2D((char **)Fid, N_Fid / 4);
       if (Nind) SUMA_free(Nind);
    }
-   if (SM) SUMA_Free_ColorMap(SM);
    
+   if (SM && !MapName) SUMA_Free_ColorMap(SM);
    if (!SUMA_Free_CommonFields(SUMAg_CF)) { SUMA_SL_Err("Failed to free commonfields."); }
    
    SUMA_RETURN (0);

@@ -33,8 +33,10 @@
 void usage_ConverDset()
 {
    static char FuncName[]={"usage_ConverDset"};
-   char *s = NULL;
+   char *s = NULL, *sd=NULL;
    s = SUMA_help_basics();
+   sd = SUMA_help_dset();
+
    printf ( "Usage: \n"
             "  ConvertDset -o_TYPE -input DSET [-i_TYPE] [-prefix OUT_PREF]\n"
             "  Converts a surface dataset from one format to another.\n"
@@ -46,9 +48,12 @@ void usage_ConverDset()
             "           1D:                 for AFNI's 1D ascii format.\n"
             "           1Dp:                like 1D but with no comments\n"
             "                               or other 1D formatting gimmicks.\n"
+            "           1Dpt:               like 1Dp but transpose the output.\n"
             "         For stderr and stdout output use one of:\n"
-            "           1D_stderr, 1D_stdout, niml_stderr, or niml_stdout\n"
+            "           1D_stderr, 1D_stdout, niml_stderr, or niml_stdout, \n"
+            "           1Dp_stdout, 1Dp_stderr, 1Dpt_stdout, 1Dpt_stderr\n"
             "     -input DSET: Input dataset to be converted.\n"
+            "                  See more on input datasets below.\n"
             "  Optional parameters:\n"
             "     -add_node_index: Add a node index element if one does not exist\n"
             "                      in the input dset. With this option, the indexing\n"
@@ -61,6 +66,9 @@ void usage_ConverDset()
             "                              this option is DSET.1D'[0]'\n"
             "     -node_select_1D MASK.1D: Specify the nodes you want to keep in the\n"
             "                              output.\n" 
+            "     -prepend_node_index_1D: Add a node index column to the data, rather\n"
+            "                             than keep it as part of the metadata.\n"
+            "\n"
             "     -i_TYPE: TYPE of input datasets\n"
             "              where TYPE is one of:\n"
             "           niml: for niml data sets.\n"
@@ -76,9 +84,16 @@ void usage_ConverDset()
             "  Notes:\n"
             "     -This program will not overwrite pre-existing files.\n"  
             "     -The new data set is given a new idcode.\n"
+            "\n"
             "%s"
-            "\n", s);
-   SUMA_free(s); s = NULL;
+            "\n"
+            "%s"
+            "Examples:\n"
+            "1-   Plot a node's time series from a niml dataset:\n"
+            "     ConvertDset -input DemoSubj_EccCntavir.niml.dset'{5779}' \\\n"
+            "                 -o_1D_stdout | 1dplot -nopush -stdin \n"
+            "\n", sd, s);
+   SUMA_free(s); s = NULL; SUMA_free(sd); sd = NULL; 
    #ifdef SUMA_COMPILED
    s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
    #endif
@@ -88,13 +103,14 @@ void usage_ConverDset()
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ConvertDset"};
-   int kar, brk, i_input, i, j, *Ti=NULL, *indexmap = NULL, add_node_index ;
+   int kar, brk, i_input, i, j, *Ti=NULL, *indexmap = NULL, add_node_index, prepend_node_index ;
    byte *Tb=NULL;
    float *fv = NULL;
    SUMA_DSET_FORMAT iform, oform;
    SUMA_DSET *dset = NULL, *dseti=NULL, *dset_m = NULL;
    char *NameOut, *prfx = NULL, *prefix = NULL;
-   char *node_index_1d = NULL, *node_mask = NULL;
+   char *ooo=NULL, *node_index_1d = NULL, *node_mask = NULL;
+   int overwrite = 0, exists = 0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
@@ -107,12 +123,15 @@ int main (int argc,char *argv[])
    }
 
    add_node_index = 0;
+   prepend_node_index=0;
    iform = SUMA_NO_DSET_FORMAT;
    oform = SUMA_NO_DSET_FORMAT;
+   overwrite = 0;
    i_input = -1;
    prfx = NULL;
    node_index_1d = NULL;
    node_mask = NULL;
+   exists = 0;
    kar = 1;
    brk = NOPE;
    while (kar < argc) { /* loop accross command ine options */
@@ -173,6 +192,15 @@ int main (int argc,char *argv[])
          oform = SUMA_1D_PURE;
          brk = YUP;
       }
+      if (!brk && (strcmp(argv[kar], "-o_1dpt") == 0))
+      {
+         if (oform != SUMA_NO_DSET_FORMAT) {
+            SUMA_SL_Err("output type already specified.");
+            exit(1);
+         }
+         oform = SUMA_1D_PURE_TRANSPOSE;
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-o_1d_stderr") == 0))
       {
@@ -183,7 +211,24 @@ int main (int argc,char *argv[])
          oform = SUMA_1D_STDERR;
          brk = YUP;
       }
-      
+      if (!brk && (strcmp(argv[kar], "-o_1dp_stderr") == 0))
+      {
+         if (oform != SUMA_NO_DSET_FORMAT) {
+            SUMA_SL_Err("output type already specified.");
+            exit(1);
+         }
+         oform = SUMA_1D_PURE_STDERR;
+         brk = YUP;
+      }
+      if (!brk && (strcmp(argv[kar], "-o_1dpt_stderr") == 0))
+      {
+         if (oform != SUMA_NO_DSET_FORMAT) {
+            SUMA_SL_Err("output type already specified.");
+            exit(1);
+         }
+         oform = SUMA_1D_PURE_STDERR_TRANSPOSE;
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-o_1d_stdout") == 0))
       {
          if (oform != SUMA_NO_DSET_FORMAT) {
@@ -194,6 +239,24 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-o_1dp_stdout") == 0))
+      {
+         if (oform != SUMA_NO_DSET_FORMAT) {
+            SUMA_SL_Err("output type already specified.");
+            exit(1);
+         }
+         oform = SUMA_1D_PURE_STDOUT;
+         brk = YUP;
+      }
+      if (!brk && (strcmp(argv[kar], "-o_1dpt_stdout") == 0))
+      {
+         if (oform != SUMA_NO_DSET_FORMAT) {
+            SUMA_SL_Err("output type already specified.");
+            exit(1);
+         }
+         oform = SUMA_1D_PURE_STDOUT_TRANSPOSE;
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-o_niml_stderr") == 0))
       {
          if (oform != SUMA_NO_DSET_FORMAT) {
@@ -290,7 +353,12 @@ int main (int argc,char *argv[])
          add_node_index = 1;
          brk = YUP;
       }
-      
+      if (!brk && (strcmp(argv[kar], "-prepend_node_index") == 0))
+      {
+         
+         prepend_node_index = 1;
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-prefix") == 0))
       {
          if (kar+1 >= argc) {
@@ -301,7 +369,17 @@ int main (int argc,char *argv[])
          prfx = argv[kar];
          brk = YUP;
       }
-      
+      if (!brk && (strcmp(argv[kar], "-overwrite") == 0))
+      {
+         if (kar+1 >= argc) {
+            SUMA_SL_Err("Need argument after -overwrite");
+            exit(1);
+         }
+         ++kar;
+         prfx = argv[kar];
+         overwrite = 1;
+         brk = YUP;
+      }
       if (!brk) {
          fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
          exit (1);
@@ -314,6 +392,13 @@ int main (int argc,char *argv[])
     
    if (oform == SUMA_NO_DSET_FORMAT) {
       SUMA_SL_Err("Output format MUST be specified");
+      exit(1);
+   }
+   
+   exists = SUMA_WriteDset_NameCheck_s (prfx, NULL, oform, 0, &ooo);
+   if (exists != 0 && !overwrite) {
+      SUMA_S_Errv("Output dataset %s exists.\n", ooo);
+      SUMA_free(ooo); ooo=NULL;
       exit(1);
    }
 
@@ -412,9 +497,19 @@ int main (int argc,char *argv[])
       
       /* set a new ID for the dset */
       SUMA_NEWDSET_ID_LABEL_HIST(dset, prefix) ;
-
+      
+      
+      if (prepend_node_index) {/* prepend node index? */         
+         if (!SUMA_InsertDsetNelCol (dset, "Node Index Copy", SUMA_NODE_INT, (void *)(dset->inel->vec[0]), NULL ,1, 0)) {
+            SUMA_S_Err("Failed to insert column");
+         }
+         if (LocalHead) SUMA_ShowDset(dset,0, NULL); 
+      }
+      
       NameOut = SUMA_WriteDset_s (prefix, dset, oform, 0, 0);
-      if (!NameOut) { SUMA_SL_Err("Failed to write dataset."); exit(1); } 
+      
+      
+      if (!NameOut && !SUMA_IS_DSET_STDXXX_FORMAT(oform)) { SUMA_SL_Err("Failed to write dataset."); exit(1); } 
       if (prefix) SUMA_free(prefix); prefix = NULL;    
       if (dset) SUMA_FreeDset((void *)dset); dset = NULL;
       if (NameOut) SUMA_free(NameOut); NameOut = NULL;

@@ -449,7 +449,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
    Opt->UseThisBrain = NULL;
    Opt->UseThisBrainHull = NULL;
    Opt->UseThisSkullOuter = NULL;
-      
+   Opt->efrac = -1.0;   
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -860,6 +860,20 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
          brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-edge_thr") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -edge_thr \n");
+				exit (1);
+			}
+			Opt->efrac = atof(argv[kar]);
+         if (Opt->efrac < 0.0f || Opt->efrac > 1.0f) { 
+            fprintf (SUMA_STDERR, " -edge_thr must be between 0.0 and 1.0. Have %f\n", Opt->efrac);
+				exit (1); 
+         }
+         brk = YUP;
+		}
+         
       if (!brk && (strcmp(argv[kar], "-use_edge") == 0)) {
 			Opt->Use_emask = 1;
          brk = YUP;
@@ -1355,7 +1369,7 @@ int main (int argc,char *argv[])
 
    /* calculate an edge mask ? */
    if (Opt->Use_emask) {
-      float *emask_sort = NULL, PercRange[2]= { 10, 90 }, PercRangeVal[2] = { 0.0, 0.0 };
+      float *emask_sort = NULL, PercRange[2]= { 10, 90 }, PercRangeVal[2] = { 0.0, 0.0 }, PercTh=-1.0;
       
       Opt->emask = (float *) SUMA_malloc( sizeof(float)*DSET_NVOX(Opt->in_vol));
       if (!Opt->emask) {
@@ -1423,12 +1437,20 @@ int main (int argc,char *argv[])
       /* The minimum acceptable edge is at least one tenth of the 99.999 percentile edge */
       if (PercRangeVal[0] < PercRangeVal[1]/10.0) PercRangeVal[0] = PercRangeVal[1]/10.0;
       
-      if (Opt->debug) fprintf (SUMA_STDERR,  "%s: Edge threshold set to %f (perhaps from %f percentile, minimum acceptable was %f)\n"
-                                             "      (%f percentile = %f)\n", 
-                        FuncName, PercRangeVal[0], PercRange[0], PercRange[1]/10.0, PercRange[1], PercRangeVal[1]);
+      if (Opt->efrac >= 0.0) {
+         PercTh = PercRangeVal[0]+(PercRangeVal[1]-PercRangeVal[0])*Opt->efrac;
+         if (Opt->debug) fprintf (SUMA_STDERR,  "%s: Edge threshold set to %f. (minimum acceptable was %f)\n"
+                                             "      (%f percentile =%f, %f percentile = %f)\n", 
+                        FuncName, PercTh, PercRangeVal[1]/10.0, PercRange[0], PercRangeVal[0], PercRange[1], PercRangeVal[1]);
+      } else {
+         PercTh = PercRangeVal[0];
+         if (Opt->debug) fprintf (SUMA_STDERR,  "%s: Edge threshold set to %f. (minimum acceptable was %f)\n"
+                                             "      (%f percentile =%f, %f percentile = %f)\n", 
+                        FuncName, PercTh, PercRangeVal[1]/10.0, PercRange[0], PercRangeVal[0], PercRange[1], PercRangeVal[1]);
+      }
       /* Now that we have an edge vector, select appropriate values */
       for (ii=0; ii<DSET_NVOX(Opt->in_vol); ++ii) {
-         if (Opt->emask[ii] < PercRangeVal[0]) Opt->emask[ii] = 0.0;
+         if (Opt->emask[ii] < PercTh) Opt->emask[ii] = 0.0;
       }
       if (Opt->fatemask) {
          /* same for the fat mask */

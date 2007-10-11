@@ -170,29 +170,34 @@ int main( int argc , char * argv[] )
    /*-----------------------------*/
    /*** FIND THE BRAIN-ish MASK ***/
 
-   if( verb ) fprintf(stderr,"++ Forming automask of connected high-intensity voxels\n") ;
-   mask = THD_automask( dset ) ;
-   if( mask == NULL ){
-     fprintf(stderr,"** Mask creation fails for unknown reasons!\n"); exit(1);
+   if (1) {
+      if( verb ) fprintf(stderr,"++ Forming automask of connected high-intensity voxels\n") ;
+      mask = THD_automask( dset ) ;
+      if( mask == NULL ){
+        fprintf(stderr,"** Mask creation fails for unknown reasons!\n"); exit(1);
+      }
+
+      /* do fillin, etc, after dilation */
+
+      if( dilate > 0 ){
+        int nmm=1 ;
+        if( verb ) fprintf(stderr,"++ Dilating automask %d time%c\n",dilate,(dilate==1)?'.':'s') ;
+        ii = rint(0.032*nx) ; nmm = MAX(nmm,ii) ;
+        ii = rint(0.032*ny) ; nmm = MAX(nmm,ii) ;
+        ii = rint(0.032*nz) ; nmm = MAX(nmm,ii) ;
+        for( dd=0 ; dd < dilate ; dd++ ){
+          THD_mask_dilate           ( nx,ny,nz , mask, 3   ) ;
+          THD_mask_fillin_completely( nx,ny,nz , mask, nmm ) ;
+        }
+        for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
+        THD_mask_clust( nx,ny,nz, mask ) ;
+        for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
+      }
+   } else {
+      mask = (byte *)malloc(sizeof(byte)*DSET_NVOX(dset));
+      for (ii=0 ; ii < DSET_NVOX(dset); ii++ ) mask[ii] = 1;
    }
-
-   /* do fillin, etc, after dilation */
-
-   if( dilate > 0 ){
-     int nmm=1 ;
-     if( verb ) fprintf(stderr,"++ Dilating automask %d time%c\n",dilate,(dilate==1)?'.':'s') ;
-     ii = rint(0.032*nx) ; nmm = MAX(nmm,ii) ;
-     ii = rint(0.032*ny) ; nmm = MAX(nmm,ii) ;
-     ii = rint(0.032*nz) ; nmm = MAX(nmm,ii) ;
-     for( dd=0 ; dd < dilate ; dd++ ){
-       THD_mask_dilate           ( nx,ny,nz , mask, 3   ) ;
-       THD_mask_fillin_completely( nx,ny,nz , mask, nmm ) ;
-     }
-     for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
-     THD_mask_clust( nx,ny,nz, mask ) ;
-     for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
-   }
-
+   
    nmask = THD_countmask( DSET_NVOX(dset) , mask ) ;
    if( nmask == 0 ){
      fprintf(stderr,"** No voxels in the automask?!\n");

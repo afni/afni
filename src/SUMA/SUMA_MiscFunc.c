@@ -2669,18 +2669,37 @@ Returns :
 
 \sa  SUMA_iswordin_ci
 ***/
+#define IS_TRACE 0
 int SUMA_iswordin (const char *sbig, const char *ssub)
 {/*SUMA_iswordin*/
    int i=0,j=0;
    static char FuncName[]={"SUMA_iswordin"};
 
+   #if IS_TRACE
    SUMA_ENTRY;
-
-   if (sbig == NULL && ssub == NULL) SUMA_RETURN (-2);
-   if (sbig == NULL || ssub == NULL) SUMA_RETURN (-1);
-
-   if (strlen(sbig) < strlen(ssub))
-       SUMA_RETURN (0);
+   #endif
+   
+   if (sbig == NULL && ssub == NULL) {
+      #if IS_TRACE
+         SUMA_RETURN (-2);
+      #else
+         return(-2);
+      #endif
+   }
+   if (sbig == NULL || ssub == NULL) {
+      #if IS_TRACE
+         SUMA_RETURN (-1);
+      #else
+         return(-1);
+      #endif
+   }
+   if (strlen(sbig) < strlen(ssub)) {
+      #if IS_TRACE
+         SUMA_RETURN (0);
+      #else
+         return(0);
+      #endif
+   }
 
    j=0;
    while (sbig[i] != '\0' && ssub[j] != '\0')
@@ -2695,10 +2714,18 @@ int SUMA_iswordin (const char *sbig, const char *ssub)
    }
 
    if (j == strlen (ssub)) {
-      SUMA_RETURN (1); 
+      #if IS_TRACE
+         SUMA_RETURN (1);
+      #else
+         return(1);
+      #endif
    }
    else {
-      SUMA_RETURN (0);
+      #if IS_TRACE
+         SUMA_RETURN (0);
+      #else
+         return(0);
+      #endif
    }
 
 }/*SUMA_iswordin*/
@@ -3328,10 +3355,11 @@ SUMA_MX_VEC *SUMA_Read1DMxVec(SUMA_VARTYPE tp, char *Name, int *dims, int *N_dim
    double *dv = NULL;
    int ncol, nrow, i, nvals;
    complex *cv = NULL;
+   SUMA_Boolean LocalHead   = NOPE;
    
    SUMA_ENTRY;
    
-   if (*N_dims) {
+   if (*N_dims > 0) {
       /* user has format in mind */
       nvals = dims[0];
       for (i=1;i<*N_dims;++i) nvals = nvals * dims[i];
@@ -3353,8 +3381,9 @@ SUMA_MX_VEC *SUMA_Read1DMxVec(SUMA_VARTYPE tp, char *Name, int *dims, int *N_dim
          } else {
             nvals = ncol*nrow;
             dims[0] = nrow; dims[1] = ncol;
-            *N_dims = ncol;
+            *N_dims = 2;
          }
+         SUMA_LHv("nvals = %d, dims=[%d,%d], ncol=%d, *Ndims=%d\n", nvals, dims[0], dims[1], ncol, *N_dims);
          
          v = SUMA_VecToMxVec(SUMA_complex, *N_dims, dims, 1, (void *)cv); cv = NULL; /* cv should be nulled, pointer copied into output*/
          break;
@@ -3374,7 +3403,7 @@ SUMA_MX_VEC *SUMA_Read1DMxVec(SUMA_VARTYPE tp, char *Name, int *dims, int *N_dim
          } else {
             nvals = ncol*nrow;
             dims[0] = nrow; dims[1] = ncol;
-            *N_dims = ncol;
+            *N_dims = 2;
          }
          v = SUMA_NewMxVec(tp, *N_dims,  dims,  1);
          for (i=0; i<nvals; ++i) {
@@ -3397,8 +3426,9 @@ SUMA_MX_VEC *SUMA_Read1DMxVec(SUMA_VARTYPE tp, char *Name, int *dims, int *N_dim
          } else {
             nvals = ncol*nrow;
             dims[0] = nrow; dims[1] = ncol;
-            *N_dims = ncol;
+            *N_dims = 2;
          }
+         SUMA_LHv("nvals = %d, dims=[%d,%d], ncol=%d, *Ndims=%d\n", nvals, dims[0], dims[1], ncol, *N_dims);
          
          v = SUMA_VecToMxVec(SUMA_double, *N_dims, dims, 1, (void *)dv); dv = NULL; /* dv should be nulled, pointer copied into output*/
          break;
@@ -3519,6 +3549,23 @@ void SUMA_disp_vect (float *v,int l)
    {
    for (i=0;i<l;++i)
                  fprintf (SUMA_STDOUT,"%f\t",v[i]);
+   fprintf (SUMA_STDOUT,"\n");
+   }
+   SUMA_RETURNe;
+}
+void SUMA_disp_doubvect (double *v,int l)
+{ int i;
+   static char FuncName[]={"SUMA_disp_doubvect"};
+   
+   SUMA_ENTRY;
+
+   fprintf (SUMA_STDOUT,"\n");
+   if ((l-1) == 0)
+      fprintf (SUMA_STDOUT,"%g\n",*v);
+   else 
+   {
+   for (i=0;i<l;++i)
+                 fprintf (SUMA_STDOUT,"%g\t",v[i]);
    fprintf (SUMA_STDOUT,"\n");
    }
    SUMA_RETURNe;
@@ -3838,6 +3885,7 @@ SUMA_ISINSPHERE SUMA_isinsphere (float * NodeList, int nr, float *S_cent , float
    SUMA_RETURN (IsIn_strct);
    
 }/*SUMA_isinsphere*/
+
 /*!
 free SUMA_ISINSPHERE structure contents. 
 Structure pointer is not freed
@@ -4013,6 +4061,106 @@ SUMA_ISINBOX SUMA_isinbox (float * XYZ, int nr, float *S_cent , float *S_dim , i
    SUMA_RETURN (IsIn_strct) ;
 
 }/*SUMA_isinbox*/
+
+/*! much faster than isinbox, send NULL for dinsq if you don't care for it 
+   n = SUMA_nodesinbox2(xyz, nr, s_cent, s_dim, nodein, dinsq);
+   \param xyz (float *) xyz triplets
+   \param nr (int) number of triplets
+   \param s_cent (float *) xyz for boxes' center
+   \param s_dim (float *) side to side dimensions of the box
+   \param nodesin (int *) to contain indices of nodes in box. 
+                           if nodesin[i]=nnn when i < Nin, then
+                           node nnn is inside the box.
+   \param dinsq (float *) to contain the squared distance from a node
+                          to the center of the box. Send NULL if you do not
+                          care for it. 
+   \return Nin (int) number of nodes inside box.
+         You must pre-allocate nr values for each of nodesin and dinsq .
+         But on Nin values are meaningful
+*/
+int SUMA_nodesinbox2 (float *XYZ, int nr, float *S_cent , float *S_dim , int *nodesin, float *dinsq)
+{
+   static char FuncName[]={"SUMA_nodesinbox2"};
+   int nin = -1;
+   float hdim0, hdim1, hdim2, t0, t1, t2;
+   int k, id;
+   SUMA_ENTRY;
+   
+   hdim0 = S_dim[0]/2.0;
+   hdim1 = S_dim[1]/2.0;
+   hdim2 = S_dim[2]/2.0;
+   
+   /* Inclusive boundary mode */
+   
+         nin = 0;
+         /*fprintf(SUMA_STDERR,"%s: inbound\n", FuncName);*/
+         for (k=0; k < nr; ++k)
+            {
+            /*fprintf(SUMA_STDERR,"%s: inbound %d\n", FuncName, k);*/
+            /* relative distance to center */
+               id = 3 * k;
+               t0 = hdim0 - SUMA_ABS(XYZ[id] - S_cent[0]);   
+               
+               if (t0 >= 0) {
+                  t1 = hdim1 - SUMA_ABS(XYZ[id+1] - S_cent[1]);   
+                  if (t1 >= 0) {
+                     t2 = hdim2 - SUMA_ABS(XYZ[id+2] - S_cent[2]);   
+                     if (t2 >= 0)
+                        {
+                           nodesin[nin] = k;
+                           if (dinsq) dinsq[nin] = (t0*t0+t1*t1+t2*t2);
+                           ++nin;
+                        }
+                  }
+               }
+            }         
+            /*fprintf(SUMA_STDERR,"%s: outbound\n", FuncName);*/
+   
+   SUMA_RETURN(nin);
+}
+/* same as nodesinbox2 only sdim is one float, specifying the RADIUS,
+see SUMA_NODESINSPHERE2 for slimmed, slightly faster version*/
+int SUMA_nodesinsphere2 (float *XYZ, int nr, float *S_cent , float S_dim , int *nodesin, float *dinsq)
+{
+   static char FuncName[]={"SUMA_nodesinsphere2"};
+   int k;
+   int nin = -1, id;
+   float t0, t1, t2, d2, r2;
+   
+   SUMA_ENTRY;
+   
+   r2 = S_dim*S_dim;
+   nin = 0;
+         /*fprintf(SUMA_STDERR,"%s: inbound\n", FuncName);*/
+         for (k=0; k < nr; ++k)
+            {
+            /*fprintf(SUMA_STDERR,"%s: inbound %d\n", FuncName, k);*/
+            /* relative distance to center */
+               id = 3 * k;
+               t0 = SUMA_ABS(XYZ[id] - S_cent[0]);   
+               
+               if (t0 <= S_dim) {
+                  t1 = SUMA_ABS(XYZ[id+1] - S_cent[1]);   
+                  if (t1 <= S_dim) {
+                     t2 = SUMA_ABS(XYZ[id+2] - S_cent[2]);   
+                     if (t2 <= S_dim)
+                        {
+                           /* in box, is it in sphere? */
+                           d2 = (t0*t0+t1*t1+t2*t2);
+                           if (d2 <=r2) {
+                              nodesin[nin] = k;
+                              if (dinsq) dinsq[nin] = d2;
+                              ++nin;
+                           }
+                        }
+                  }
+               }
+            }         
+            /*fprintf(SUMA_STDERR,"%s: outbound\n", FuncName);*/
+   
+   SUMA_RETURN(nin);
+}
+
 
 /*!
 free SUMA_ISINBOX structure contents. 
@@ -5974,11 +6122,58 @@ int SUMA_whichTri (SUMA_EDGE_LIST * EL, int n1, int n2, int n3, int IOtrace)
    
    Tri = -1;
    /* find incident triangles to n1-n2 edge */
-   if (!SUMA_Get_Incident(n1, n2, EL, IncTri_E1, &N_IncTri_E1, IOtrace)) {
+   if (!SUMA_Get_Incident(n1, n2, EL, IncTri_E1, &N_IncTri_E1, IOtrace, 0)) {
       fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
-   } else if (!SUMA_Get_Incident(n1, n3, EL, IncTri_E2, &N_IncTri_E2, IOtrace)) {
+   } else if (!SUMA_Get_Incident(n1, n3, EL, IncTri_E2, &N_IncTri_E2, IOtrace, 0)) {
       /* find incident triangles to n1-n3 edge */
       fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
+   } else if (N_IncTri_E1 > 99 || N_IncTri_E2 > 99 ) {
+      /* check that we did not go overboard */
+      fprintf (SUMA_STDERR,"Error %s: Exceeded preallocated space.\n", FuncName);
+   } else {
+      /* find triangle incident to both edges */
+      i=0;
+      Found = NOPE;
+      while (i < N_IncTri_E1 && !Found) {
+         j = 0;
+         while (j < N_IncTri_E2 && !Found) {
+            if (IncTri_E2[j] == IncTri_E1[i]) { 
+               Found = YUP;
+               Tri = IncTri_E2[j];
+            }
+            ++j;
+         }
+         ++i;
+      }
+   }
+   if (IOtrace) { SUMA_RETURN (Tri); }
+   else return(Tri);
+}
+int SUMA_whichTri_e (SUMA_EDGE_LIST * EL, int E1, int E2, int IOtrace, byte quiet)
+{
+   static char FuncName[]={"SUMA_whichTri_e"};
+   int IncTri_E1[100], IncTri_E2[100], N_IncTri_E1 = 0, N_IncTri_E2 = 0, i, j, Tri= -1;
+   int n1, n2, n3;
+   SUMA_Boolean Found = NOPE;
+   
+   if (IOtrace) SUMA_ENTRY;
+   
+   n1 = EL->EL[E1][0];
+   n2 = EL->EL[E1][1];
+   n3 = EL->EL[E2][0]; 
+   if (n3 == n2 || n3 == n1) n3 = EL->EL[E2][1];
+   if (n3 == n2 || n3 == n1) {
+      if (IOtrace) { SUMA_RETURN (Tri); }
+      else return(Tri);
+   }
+   
+   Tri = -1;
+   /* find incident triangles to n1-n2 edge */
+   if (!SUMA_Get_Incident(n1, n2, EL, IncTri_E1, &N_IncTri_E1, IOtrace, quiet)) {
+      if (!quiet) fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
+   } else if (!SUMA_Get_Incident(n1, n3, EL, IncTri_E2, &N_IncTri_E2, IOtrace, quiet)) {
+      /* find incident triangles to n1-n3 edge */
+      if (!quiet) fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
    } else if (N_IncTri_E1 > 99 || N_IncTri_E2 > 99 ) {
       /* check that we did not go overboard */
       fprintf (SUMA_STDERR,"Error %s: Exceeded preallocated space.\n", FuncName);
@@ -6860,7 +7055,7 @@ SUMA_Boolean SUMA_Get_NodeIncident(int n1, SUMA_SurfaceObject *SO, int *Incident
 }
 
 /*! \brief finds triangles incident to an edge 
-   ans = SUMA_Get_Incident( n1,  n2,  SEL, Incident, N_Incident, IOtrace);
+   ans = SUMA_Get_Incident( n1,  n2,  SEL, Incident, N_Incident, IOtrace, quiet);
    
    \param n1 (int) node 1
    \param n2 (int) node 2
@@ -6873,7 +7068,7 @@ SUMA_Boolean SUMA_Get_NodeIncident(int n1, SUMA_SurfaceObject *SO, int *Incident
    \sa SUMA_Make_Edge_List
    \sa SUMA_Get_NodeIncident
 */
-SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Incident, int *N_Incident, int IOtrace)
+SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Incident, int *N_Incident, int IOtrace, byte quiet)
 {
    static char FuncName[] = {"SUMA_Get_Incident"};
    int nt, in1, iseek, m_N_EL;
@@ -6900,13 +7095,16 @@ SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Inciden
       }
       ++iseek;
       if (iseek > m_N_EL) {
-         if (!*N_Incident) fprintf(SUMA_STDERR,"Warning %s: No Incident FaceSets found!\n", FuncName);
+         if (!quiet && !*N_Incident) { SUMA_S_Warnv("No edge found for nodes %d and %d\n", n1, n2); }
          if (IOtrace) { SUMA_RETURN (YUP); }
          else return(YUP);
       }
       
    }
-   if (!*N_Incident) fprintf(SUMA_STDERR,"Warning %s: No Incident FaceSets found!\n", FuncName);
+   if (!quiet && !*N_Incident) {
+                     SUMA_S_Warnv(  "No incident triangle found for edge simliar to %d\n"
+                                    "   and formed by nodes %d and %d\n", in1, n1, n2);
+   }
    /*fprintf(SUMA_STDERR,"Leaving %s.\n", FuncName);*/
    if (IOtrace) { SUMA_RETURN(YUP); }
    else return(YUP);   
@@ -8046,7 +8244,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (  float *NodeList, int N_Node, 
          
          /* calculate the weights for integration, Wij */
             /* find the incident triangles */
-            if (!SUMA_Get_Incident(i, ji, SEL, Incident, &N_Incident, 1))
+            if (!SUMA_Get_Incident(i, ji, SEL, Incident, &N_Incident, 1, 0))
             {
                fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
                if (Wij) SUMA_free(Wij);

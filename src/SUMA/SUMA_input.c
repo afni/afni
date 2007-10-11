@@ -721,6 +721,9 @@ int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    static char FuncName[]={"SUMA_P_Key"};
    char tk[]={"P"}, keyname[100];
    int k, nc;
+   int N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
+   SUMA_SurfaceObject *SO = NULL;
+   
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -729,6 +732,18 @@ int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    /* do the work */
    switch (k) {
+      case XK_P:
+         sv->PolyMode = SRM_Fill;
+         N_SOlist = SUMA_RegisteredSOs(sv, SUMAg_DOv, SOlist);
+         for (k=0; k<N_SOlist; ++k) {
+            SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[k]].OP);   
+            SO->PolyMode = SRM_ViewerDefault;
+            SO->Show = YUP;
+         }
+         SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
+         SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         SUMA_SLP_Note("All surfaces displayed as solids");
+         break;
       case XK_p:
          sv->PolyMode = ((sv->PolyMode+1) % SRM_N_RenderModes);
          if (sv->PolyMode <= SRM_ViewerDefault) sv->PolyMode = SRM_Fill;
@@ -1376,16 +1391,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_bracketright: /* The left bracket */
             /* toggle showing left hemispheres */
             {
-               #if 0
-               int Registered_IDs[SUMAg_N_DOv], N_RegisteredSOs, k;
-               SUMA_SurfaceObject *SO = NULL;
-
-                  N_RegisteredSOs = SUMA_RegisteredSOs (sv, SUMAg_DOv, Registered_IDs);
-                  for (k=0; k< N_RegisteredSOs; ++k) {
-                     SO = (SUMA_SurfaceObject *)SUMAg_DOv[Registered_IDs[k]].OP;
-                     if (SO->Side == SUMA_RIGHT) SO->Show = !SO->Show;
-                  }
-               #endif
                sv->ShowRight = !sv->ShowRight;
             }
             /* do the axis setup */
@@ -1918,6 +1923,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_p:
             if (!SUMA_P_Key(sv, "p", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
+            }
+            break;
+
+         case XK_P:
+            if (!SUMA_P_Key(sv, "P", "interactive")) {
                SUMA_S_Err("Failed in key func.");
             }
             break;
@@ -2499,7 +2510,26 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                
             } 
             break;
-         
+         case XK_F13:
+            if (SUMAg_CF->Dev) {
+               DList *striplist=NULL;
+               float Eq[4];
+               int *Vis_IDs, N_vis;
+               SUMA_SurfaceObject *SO=NULL;
+               Vis_IDs = (int *)SUMA_malloc(sizeof(int)*SUMAg_N_DOv);
+               N_vis = SUMA_VisibleSOs (sv, SUMAg_DOv, Vis_IDs);
+               if (N_vis) {
+                  SO = (SUMA_SurfaceObject *)SUMAg_DOv[Vis_IDs[0]].OP;
+                  /* Axial plane */
+                  Eq[0] = Eq[1] = 0.0; Eq[2] = 1.0; Eq[3] = -SO->Center[2];
+                  SUMA_S_Warnv("Kill me!\nEq:[%f %f %f %f], step: %f\n", Eq[0], Eq[1], Eq[2], Eq[3], SO->EL->AvgLe);
+                  striplist = SUMA_SliceAlongPlane(SO, Eq, SO->EL->AvgLe);
+                  SUMA_display_edge_striplist(striplist, &(SUMAg_SVv[0]), SO, 
+                                             "ShowConnectedPoints");
+                  SUMA_FREE_DLIST(striplist);
+               }
+               if (Vis_IDs) SUMA_free(Vis_IDs);
+            }
          case XK_Home:   
             /*printf("HOME\n");*/
             if (!list) list = SUMA_CreateList();

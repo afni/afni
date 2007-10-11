@@ -1158,7 +1158,7 @@ SUMA_Boolean SUMA_inNodeNeighb( SUMA_SurfaceObject *surf, float *nodeList, int *
       i = 0;
       while ((i < surf->FN->N_Neighb[node[itry]] ) && !found) { 
 
-         if (!SUMA_Get_Incident( node[itry], surf->FN->FirstNeighb[node[itry]][i], surf->EL, incidentTri, &N_incident, 1)) {
+         if (!SUMA_Get_Incident( node[itry], surf->FN->FirstNeighb[node[itry]][i], surf->EL, incidentTri, &N_incident, 1, 0)) {
             fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Get_Incident.\n", FuncName);
             SUMA_RETURN (NOPE);
          }
@@ -2160,7 +2160,7 @@ SUMA_SurfaceObject* SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI,
             }
          } else {
            /*otherwise, morphing for this node skipped*/
-           SUMA_LHv(    "MI->ClsNodes[%d || %d || %d] = SO->N_Node=%d", j, j+1, j+2, SO->N_Node);
+           SUMA_LHv(    "MI->ClsNodes[%d || %d || %d] = SO->N_Node=%d\n", j, j+1, j+2, SO->N_Node);
          }
       }
 

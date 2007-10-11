@@ -711,7 +711,10 @@ char * SUMA_help_message_Info(void)
       "     Ctrl+n: Open a new surface viewer window.\n\n");
    SS = SUMA_StringAppend (SS, 
       "     p: Viewer rendering mode  \n"
-      "        (Fill, Line, Points), switch.\n\n");
+      "        (Fill, Line, Points, Hide), switch.\n\n");
+   SS = SUMA_StringAppend (SS, 
+      "     P: Reset viewer and all surfaces to Fill  \n"
+      "        rendering mode.\n\n");
    SS = SUMA_StringAppend (SS, 
       "     r: record current image\n"
       "        in an a la AFNI image viewer.\n"

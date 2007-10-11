@@ -97,6 +97,11 @@ SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( char *if_name, char *if_n
          fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
          SO = SUMA_Load_Surface_Object (SO_name, SUMA_BRAIN_VOYAGER, SUMA_BINARY, sv_name);
          break;  
+      case SUMA_BYU:
+         SO_name = (void *)if_name; 
+         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_BYU, SUMA_ASCII, sv_name);
+         break;  
       default:
          fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
          exit(1);
@@ -146,6 +151,10 @@ char *SUMA_RemoveSurfNameExtension (char*Name, SUMA_SO_File_Type oType)
          break;
       case SUMA_BRAIN_VOYAGER:
          noex  =  SUMA_Extension(Name,".srf" , YUP); 
+         break;
+      case SUMA_BYU:
+         tmp  =  SUMA_Extension(Name,".byu" , YUP);
+         noex  =  SUMA_Extension(tmp, ".g", YUP); SUMA_free(tmp); tmp = NULL; 
          break;
       default:
          /* do nothing, get back fprintf (SUMA_STDERR,"Warning %s: Bad format.\n", FuncName); */
@@ -288,6 +297,11 @@ void * SUMA_Prefix2SurfaceName (char *prefix_in, char *path, char *vp_name, SUMA
          break;  
       case SUMA_BRAIN_VOYAGER:
          SO_name = (void *)SUMA_append_string(ppref,".srf"); 
+         if (SUMA_filexists((char*)SO_name)) *exists = YUP;
+         else *exists = NOPE;
+         break;
+      case SUMA_BYU:
+         SO_name = (void *)SUMA_append_string(ppref,".g"); 
          if (SUMA_filexists((char*)SO_name)) *exists = YUP;
          else *exists = NOPE;
          break;
@@ -450,7 +464,11 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 			++cnt;
 		}
 	if (cnt != SF->N_Node) {
-		fprintf(SUMA_STDERR, "Error %s: Expecting %d Nodes, read %d.\n", FuncName, SF->N_Node, cnt);
+		fprintf(SUMA_STDERR, "Error %s: Expecting %d Nodes, read %d.\n"
+                           "First triplet: %f %f %f\n"
+                           "Last triplet: %f %f %f\n", FuncName, SF->N_Node, cnt,
+                           SF->NodeList[0], SF->NodeList[1], SF->NodeList[2],
+                           SF->NodeList[3*(cnt-1)], SF->NodeList[3*(cnt-1)+1], SF->NodeList[3*(cnt-1)+2]);
 		SUMA_RETURN (NOPE);
 	}
 	fclose (sf_file);
@@ -2072,7 +2090,7 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
 			++cnt;
 		}
 		if (cnt != FS->N_Node) {
-			fprintf(SUMA_STDERR,"Error %s: Expected %d nodes, %d read.\n", FuncName, FS->N_Node, cnt);
+			fprintf(SUMA_STDERR,"Error %s: File %s; Expected %d nodes, %d read.\n", FuncName, f_name, FS->N_Node, cnt);
 			SUMA_RETURN (NOPE);
 		}
 
@@ -2084,7 +2102,7 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
 			++cnt;
 		}
 		if (cnt != FS->N_FaceSet) {
-			fprintf(SUMA_STDERR,"Error %s: Expected %d FaceSets, %d read.\n", FuncName, FS->N_FaceSet, cnt);
+			fprintf(SUMA_STDERR,"Error %s: File %s; expected %d FaceSets, %d read.\n", FuncName, f_name, FS->N_FaceSet, cnt);
 			SUMA_RETURN (NOPE);
 		}
 	} /* read a full surface */
@@ -2508,6 +2526,272 @@ void SUMA_Show_FreeSurfer (SUMA_FreeSurfer_struct *FS, FILE *Out)
 
 }
 
+/*!
+   \brief Change the face vector to a SUMA FaceSetList vector
+   Polygons are automatically triangulated
+   
+   \param face (long *) vector of ace indices. Faces are separated
+                       by -1 entries
+   \param N (int *) to contain the number of faces is FaceSetList
+   \SUMA_RETURN FaceSetList (int *) 3Nx1 vector of triangles making up mesh.
+*/
+
+int * SUMA_BYU_PolyFaceToTriFace(int *face, int *N)
+{
+   static char FuncName[]={"SUMA_BYU_PolyFaceToTriFace"};
+   int i, k, N_alloc, iface, iface0, iFS3;
+   int *FaceSetList=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   /* Can't guess ahead of time, make sure you check down the line */
+   N_alloc = *N*3;
+   FaceSetList = (int *)SUMA_malloc(N_alloc*sizeof(int));   
+   if (!FaceSetList) {
+      fprintf (SUMA_STDERR,"Error %s: Failed to reallocate.\n", FuncName);
+      SUMA_RETURN(NULL);
+   } 
+   iFS3 =0; /* index of triangulated facet */
+   iface = 0;
+   iface0 = 0;
+   while (iface < *N) {
+      iface0 = iface ; /* 1s node in polygon */
+      if (iface0 < 0) {
+         fprintf(SUMA_STDERR, "Error %s: Unexpected end flag", FuncName);
+         SUMA_free(FaceSetList); 
+         SUMA_RETURN(NULL);
+      }
+      if (LocalHead) fprintf(SUMA_STDERR,
+            "%s: iface0 = %d, face[%d] = %d: ", 
+            FuncName, iface0, iface0, (int)face[iface0]) ;
+      do {
+         if (iFS3+3 > N_alloc) {
+            N_alloc = 2 * N_alloc;
+            FaceSetList = (int *)realloc((void *)FaceSetList, N_alloc * sizeof(int));
+            if (!FaceSetList) {
+               fprintf (SUMA_STDERR,"Error %s: Failed to reallocate.\n", FuncName);
+               SUMA_RETURN(NULL);
+            } 
+         }
+         FaceSetList[iFS3] = SUMA_ABS(face[iface0]); /* first node in polygon is first node of triangles forming polygon */
+         if (FaceSetList[iFS3] < 0) {
+            fprintf (SUMA_STDERR,"Negative index loaded (loc 0)\n");
+         }
+         if (LocalHead) fprintf(SUMA_STDERR,
+            "t(%d, ", (int)face[iface0]);
+         if (iface == iface0) ++iface;
+         if (LocalHead) fprintf(SUMA_STDERR,
+            "%d, ", (int)face[iface]);
+         ++iFS3;
+         FaceSetList[iFS3] = SUMA_ABS(face[iface]); /* node 2 */
+         if (FaceSetList[iFS3] < 0) {
+            fprintf (SUMA_STDERR,"Negative index loaded (loc 1)\n");
+         }
+         if (LocalHead) fprintf(SUMA_STDERR,
+            "%d) ", (int)face[iface+1]);
+         ++iFS3; 
+         FaceSetList[iFS3] = SUMA_ABS(face[iface+1]); /* node 3 */
+         if (FaceSetList[iFS3] < 0) {
+            fprintf (SUMA_STDERR,"Negative index loaded (loc 2)\n");
+         }
+         ++iFS3; ++iface; 
+      } while (face[iface] >= 0);
+      if (LocalHead) fprintf(SUMA_STDERR," iFS3/N_alloc = %d/%d\n", iFS3, N_alloc);
+      /* ++iface; skip -1 */
+      ++iface; /* goto next */
+   }
+   
+   *N = iFS3 / 3;
+
+   /* reallocate */
+
+      if (LocalHead) {
+         int tmpmin=-100, n3, itmp;
+         n3 = 3 * *N;
+         fprintf (SUMA_STDERR,"%s: N_FaceSet %d\n", FuncName, *N);
+         SUMA_MIN_VEC (FaceSetList, n3, tmpmin);
+         fprintf (SUMA_STDERR,"Minimum index is %d\n", tmpmin);
+         if (tmpmin < 0) {
+            fprintf (SUMA_STDERR,"Error %s: Bad ass pre-alloc negative number\n", FuncName);
+            for (itmp=0; itmp<n3; ++itmp) {
+               fprintf (SUMA_STDERR, "%d: %d\n", itmp, FaceSetList[itmp]);
+               if (FaceSetList[itmp] < 0) {
+                  fprintf (SUMA_STDERR,"%s: Min of %d, at %d\n", FuncName, FaceSetList[itmp], itmp);
+               }
+            } 
+         }
+      }
+
+   FaceSetList = (int *)SUMA_realloc((void *)FaceSetList, iFS3 * sizeof(int));
+      if (LocalHead) {
+         int tmpmin=-100, n3, itmp;
+         n3 = 3 * *N;
+         fprintf (SUMA_STDERR,"%s: N_FaceSet %d\n", FuncName, *N);
+         SUMA_MIN_VEC (FaceSetList, n3, tmpmin);
+         fprintf (SUMA_STDERR,"Minimum index is %d\n", tmpmin);
+         if (tmpmin < 0) {
+            fprintf (SUMA_STDERR,"Error %s: Bad post realloc ass negative number\n", FuncName);
+            for (itmp=0; itmp<n3; ++itmp) {
+               fprintf (SUMA_STDERR, "%d: %d\n", itmp, FaceSetList[itmp]);
+               if (FaceSetList[itmp] < 0) {
+                  fprintf (SUMA_STDERR,"%s: Min of %d, at %d\n", FuncName, FaceSetList[itmp], itmp);
+               }
+            } 
+         }
+      }
+   
+   
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Returning (iFS3 = %d, N = %d...)\n", FuncName, iFS3, *N);
+   
+   SUMA_RETURN(FaceSetList); 
+}
+
+/*! \brief Load a BYU surface model
+
+*/
+SUMA_Boolean SUMA_BYU_Read(char *f_name, SUMA_SurfaceObject *SO, int debug, byte hide_negcols) 
+{
+   static char FuncName[]={"SUMA_BYU_Read"};
+   int ok, nread, i, k, lessen, nodemin, nodemax, *face=NULL, n = -1, nalloc=-1;
+   double dum;
+   char *fl=NULL, *fli;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   /* suck the file */
+   fl = SUMA_file_suck( f_name , &nread );
+   fli = fl;
+   if (!fl) {
+      SUMA_SL_Err("Failed to read file.");
+      SUMA_RETURN(NOPE);
+   }
+     
+   ok = 0;
+   SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
+   if (!ok) { SUMA_S_Err("Failed to read PART_NUM"); SUMA_free(fli); SUMA_RETURN(NOPE); }
+   SUMA_LHv("PART_NUM %f\n", dum);
+   if ((int)dum != 1) {
+      SUMA_S_Warnv("Not ready to deal with PART_NUM > 1. Have %d\n", (int)dum);
+   }
+   SUMA_ADVANCE_PAST_NUM(fl, dum, ok);SO->N_Node = (int)dum;
+   if (!ok) { SUMA_S_Err("Failed to read VERTEX_NUM"); SUMA_free(fli); SUMA_RETURN(NOPE); }
+   SUMA_LHv("VERTEX_NUM %f\n", dum);
+   SUMA_ADVANCE_PAST_NUM(fl, dum, ok);SO->N_FaceSet=(int)dum;
+   if (!ok) { SUMA_S_Err("Failed to read POLY_NUM"); SUMA_free(fli); SUMA_RETURN(NOPE); }
+   SUMA_LHv("POLY_NUM %f\n", dum);
+   SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
+   if (!ok) { SUMA_S_Err("Failed to read EDGE_NUM"); SUMA_free(fli); SUMA_RETURN(NOPE); }
+   SUMA_LHv("EDGE_NUM %f\n", dum);
+   SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
+   if (!ok) { SUMA_S_Err("Failed to read POLY1"); SUMA_free(fli); SUMA_RETURN(NOPE); }
+   SUMA_LHv("POLY1 %f\n", dum);
+   SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
+   if (!ok) { SUMA_S_Err("Failed to read POLY2"); SUMA_free(fli); SUMA_RETURN(NOPE); }
+   SUMA_LHv("POLY2 %f\n", dum);
+   
+   /* Now allocate for node list */
+   SO->NodeDim = 3;
+   if (!(SO->NodeList = (float *)SUMA_malloc(SO->N_Node*sizeof(float)*SO->NodeDim))) {
+      SUMA_S_Err("Failed to allocate for NodeList");
+      SUMA_free(fli); SUMA_RETURN(NOPE);
+   }
+   for (i=0; i<SO->N_Node*SO->NodeDim; ++i) {
+      SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
+      if (!ok) { 
+         SUMA_S_Err("Failed to read coordinate"); 
+         SUMA_free(fli); SUMA_free(SO->NodeList); SO->NodeList = NULL;
+         SUMA_RETURN(NOPE); 
+      }
+      SO->NodeList[i] = (float)dum;
+      SUMA_LHv("nodec %f\n", dum);
+
+   }
+   
+   #if 1
+   /* Now read all facesets (not triangles necessarily ) */
+   nodemin = 1000; nodemax = -1;
+   SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
+   nalloc = 0;
+   n = 0;
+   while(ok) {
+      if (n+1 > nalloc) {
+         face = (int *)SUMA_realloc(face, (nalloc+10000)*sizeof(int)); nalloc+=10000;      
+      }
+      face[n] = (int) dum;
+      nodemin = SUMA_MIN_PAIR(SUMA_ABS(face[n]), nodemin);
+      nodemax = SUMA_MAX_PAIR(SUMA_ABS(face[n]), nodemax);
+      ++n;
+      SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
+   }
+   
+   /* Now change the polyfaced things to triangles */
+   SO->FaceSetDim = 3;
+   SO->FaceSetList =  SUMA_BYU_PolyFaceToTriFace(face, &n);
+   SO->N_FaceSet = n;
+   if (LocalHead) { SUMA_WRITE_ARRAY_1D(SO->FaceSetList, n*3, 3, "triangulated"); }
+   SUMA_free(face); face = NULL;
+   #else
+   /* Now allocate for facesetlist list */
+   SO->FaceSetDim = 3;
+   if (!(SO->FaceSetList = (int *)SUMA_malloc(SO->N_FaceSet*sizeof(int)*SO->FaceSetDim))) {
+      SUMA_S_Err("Failed to allocate for FaceSetList");
+      SUMA_free(SO->NodeList); SO->NodeList = NULL;
+      SUMA_free(fli); SUMA_RETURN(NOPE);
+   }
+   lessen = 0;
+   nodemin = 1000; nodemax = -1;
+   for (i=0; i<SO->N_FaceSet; ++i) {
+      for (k=0; k<3;++k) {
+         SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
+         if (!ok) { 
+            SUMA_S_Err("Failed to read polynode"); 
+            SUMA_free(fli); SUMA_free(SO->NodeList); SO->NodeList = NULL;
+            SUMA_free(SO->FaceSetList); SO->FaceSetList=NULL;
+            SUMA_RETURN(NOPE); 
+         }
+         SO->FaceSetList[3*i+k] = (int)dum;
+         nodemin = SUMA_MIN_PAIR(SO->FaceSetList[3*i+k], nodemin);
+         nodemax = SUMA_MAX_PAIR(SO->FaceSetList[3*i+k], nodemax);
+         SUMA_LHv("facei %f\n", dum);
+      }
+      SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
+      if (!ok || dum > 0) { 
+         SUMA_S_Err("Failed to read closing negative node"); 
+         SUMA_free(fli); SUMA_free(SO->NodeList); SO->NodeList = NULL;
+         SUMA_free(SO->FaceSetList); SO->FaceSetList=NULL;
+         SUMA_RETURN(NOPE); 
+      }
+   }
+   #endif
+   if (LocalHead && nodemin > 0) { SUMA_S_Notev("Smallest node index in list is %d\n", nodemin); }
+   if (LocalHead && nodemax >= SO->N_Node) { SUMA_S_Notev("Largest node index in list is %d\n", nodemax); }
+   if (nodemin > 0 && nodemax == SO->N_Node) {
+      SUMA_S_Note("FaceSetList is 1 based, changing to 0\n");
+      lessen = 1;
+   } 
+   if (nodemax > SO->N_Node || nodemin < 0) {
+      SUMA_S_Errv("Node indices not strictly between [0, %d]\nhave [%d, %d]\n",
+                  SO->N_Node -1, nodemin, nodemax); 
+      SUMA_free(fli); SUMA_free(SO->NodeList); SO->NodeList = NULL;
+      SUMA_free(SO->FaceSetList); SO->FaceSetList=NULL;
+      SUMA_RETURN(NOPE); 
+   }
+   if (lessen) {
+      for (i=0; i<SO->FaceSetDim*SO->N_FaceSet; ++i) SO->FaceSetList[i] -= 1;
+   }
+   SO->FileType = SUMA_BYU;
+   SO->Name = SUMA_StripPath(f_name);
+   SO->FileFormat = SUMA_ASCII; 
+   if (LocalHead) SUMA_Print_Surface_Object(SO, NULL);
+   
+   SUMA_LH("Done.");
+   
+   SUMA_free(fli); fli=NULL;
+   
+   SUMA_RETURN(YUP);
+}
 /*!
    \brief Load a brain voyager surface model from a .srf file.
    
@@ -3303,6 +3587,73 @@ SUMA_Boolean SUMA_FS_Write (char *fileNm, SUMA_SurfaceObject *SO, char *firstLin
    for (i=0; i<SO->N_FaceSet; ++i) {
       j = SO->FaceSetDim * i;
       fprintf (outFile, "%d %d %d 0\n", SO->FaceSetList[j], SO->FaceSetList[j+1], SO->FaceSetList[j+2]);
+   }
+    
+   
+   fclose(outFile);
+
+   SUMA_RETURN (YUP);
+   
+}
+/*! 
+   \brief Function to write a surface object to a BYU file format
+   ans = SUMA_Boolean SUMA_BYU_Write (fileNm, SO);
+   \param  fileNm (char *) name (and path) of file.
+   \param  SO (SUMA_SurfaceObject *) Surface Object
+   \param base1 (int) if (base1) then 1st node is indexed 1 else it is 0
+   \return YUP/NOPE
+   
+   
+   The function will not overwrite pre-existing.
+   Written by Brenna Bargall
+*/
+SUMA_Boolean SUMA_BYU_Write (char *fileNm, SUMA_SurfaceObject *SO, int base1) 
+{
+   static char FuncName[]={"SUMA_BYU_Write"};
+   int i, j;
+   FILE *outFile = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (SUMA_filexists(fileNm)) {
+      fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n",FuncName, fileNm);
+      SUMA_RETURN (NOPE);
+   }
+   
+   if (SO->NodeDim != 3 || SO->FaceSetDim != 3) {
+      fprintf (SUMA_STDERR, "Error %s: Must have NodeDim and FaceSetDim = 3.\n",FuncName);
+      SUMA_RETURN (NOPE);
+   }
+
+   outFile = fopen(fileNm, "w");
+   if (!outFile) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in opening %s for writing.\n",FuncName, fileNm);
+      SUMA_RETURN (NOPE);
+   } 
+   if (!base1) {
+      SUMA_S_Warn("Not sure what to do when base1 is off.\n");
+   }
+   fprintf (outFile, 
+            "%7d %7d %7d %7d\n %7d %7d\n",
+             1, SO->N_Node, SO->N_FaceSet, 
+             (SO->EL ? SO->EL->N_Distinct_Edges:-1), (base1 ? 1:0), (base1 ? SO->N_FaceSet:SO->N_FaceSet-1));
+
+   j=0;
+   for (i=0; i<SO->N_Node; ++i) {
+      j=SO->NodeDim * i;
+      fprintf (outFile, "%e  %e  %e \n", SO->NodeList[j], SO->NodeList[j+1], SO->NodeList[j+2]);
+   }
+
+   j=0;
+   for (i=0; i<SO->N_FaceSet; ++i) {
+      j = SO->FaceSetDim * i;
+      if (!base1) {
+         fprintf (outFile, "%7d %7d %7d\n", 
+                        SO->FaceSetList[j], SO->FaceSetList[j+1], -SO->FaceSetList[j+2]);
+      } else {
+         fprintf (outFile, "%7d %7d %7d\n", 
+                        SO->FaceSetList[j]+1, SO->FaceSetList[j+1]+1, -(SO->FaceSetList[j+2]+1));
+      }
    }
     
    
@@ -5816,6 +6167,9 @@ NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee)
       case SUMA_RIGHT:
          NI_set_attribute(ngr, "Side", "right");
          break;
+      case SUMA_LR:
+         NI_set_attribute(ngr, "Side", "lr");
+         break;
       default:
          NI_set_attribute(ngr, "Side", SUMA_EMPTY_ATTR);
          break;
@@ -6104,6 +6458,7 @@ SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr)
       if (!strcmp(tmp,"none")) SO->Side = SUMA_NO_SIDE;
       else if (!strcmp(tmp,"left")) SO->Side = SUMA_LEFT;
       else if (!strcmp(tmp,"right")) SO->Side = SUMA_RIGHT;
+      else if (!strcmp(tmp,"lr")) SO->Side = SUMA_LR;
    } 
 
    tmp = NI_get_attribute(ngr, "Layer_Name");

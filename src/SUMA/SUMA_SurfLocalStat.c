@@ -212,7 +212,8 @@ int main (int argc,char *argv[])
    SUMA_DSET *din=NULL, *dout=NULL;
    SUMA_SurfSpecFile *Spec = NULL;
    int i, N_Spec, N_inmask = -1;
-   SUMA_SurfaceObject *SO=NULL;
+   SUMA_SurfaceObject *SO=NULL, *SOf=NULL;
+   char *ooo=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
@@ -259,6 +260,16 @@ int main (int argc,char *argv[])
          exit(1);
       
    }   
+   if (Spec->N_Surfs == 2) { 
+      SOf = SUMA_Load_Spec_Surf(Spec, 1, ps->sv[0], Opt->debug); 
+      if (!SOf) {
+         fprintf (SUMA_STDERR,"Error %s:\n"
+                              "Failed to find surface\n"
+                              "in spec file. \n",
+                              FuncName );
+         exit(1);
+      }   
+   } else { SOf = NULL; }
    
    if (!(Opt->nmask = SUMA_load_all_command_masks(Opt->ps->bmaskname, Opt->ps->nmaskname, Opt->ps->cmask, SO->N_Node, &N_inmask)) && N_inmask < 0) {
          SUMA_S_Err("Failed loading mask");
@@ -269,13 +280,15 @@ int main (int argc,char *argv[])
                                     Opt->nmask, 1,
                                     Opt->r, NULL,
                                     ncode, code, 
-                                    NULL, Opt->NodeDbg))) {
+                                    NULL, Opt->NodeDbg,
+                                    SOf))) {
       SUMA_S_Err("Failed in SUMA_CalculateLocalStats");
       exit(1);
    }
    
    /* write it out */
-   SUMA_WriteDset_s(Opt->out_prefix, dout, iform, 0, 0);
+   ooo = SUMA_WriteDset_s(Opt->out_prefix, dout, iform, 0, 0);
+   SUMA_free(ooo); ooo=NULL;
    
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);

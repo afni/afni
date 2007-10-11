@@ -24,7 +24,8 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
                                     byte *nmask, byte strict_mask,
                                     float rhood, SUMA_OFFSET_STRUCT *UseThisOffset,
                                     int ncode, int *code, 
-                                    SUMA_DSET *UseThisDout, int NodeDebug);
+                                    SUMA_DSET *UseThisDout, int NodeDebug,
+                                    SUMA_SurfaceObject *SOf);
 double SUMA_GetFWHM_MinArea(void);
 void SUMA_SetFWHM_MinArea(double);
 int SUMA_SurfClust_Get_Method(void) ;

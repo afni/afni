@@ -540,7 +540,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_SetRenderMode:
             { /* sets the rendering mode of a surface, expects SO in vp and rendering mode in i*/
                SO = (SUMA_SurfaceObject *)EngineData->vp;
-               SO->PolyMode = EngineData->i;                  
+               SO->PolyMode = EngineData->i;     
+               if (SO->PolyMode == SRM_Hide) SO->Show = NOPE;
+               else SO->Show = YUP;             
             }  
             break;
             
@@ -2745,7 +2747,7 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
       if (SUMA_isSO_G(dov[sv->RegisteredDO[i]], sv->CurGroupName)) {
          SO = (SUMA_SurfaceObject *)dov[sv->RegisteredDO[i]].OP;
          if (SO->Show) {
-            if ( SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_SIDE_ERROR ) {
+            if ( SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_SIDE_ERROR  || SO->Side == SUMA_LR) {
                if (SO_IDs) {
                   SO_IDs[k] = sv->RegisteredDO[i];
                }
@@ -3809,7 +3811,9 @@ int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list, SUMA_DO *d
          if (N_prec_list == 1) {
             /* if all you have is one surface in one state in SUMA then you need not worry about the rest */
          } else {
-            fprintf(SUMA_STDERR,"Error %s: Flow problem. Did not expect identical surfaces in this condition (N_prec_list = %d)\n", FuncName, N_prec_list);
+            fprintf(SUMA_STDERR, "\nError %s: Flow problem.\n"
+                                 "Did not expect identical surfaces \n"
+                                 "in this condition (N_prec_list = %d)\n", FuncName, N_prec_list);
             SUMA_BEEP; 
          }
          /* 
@@ -3889,68 +3893,6 @@ int *SUMA_FormSOListToSendToAFNI(SUMA_DO *dov, int N_dov, int *N_Send)
       }
    }
    
-   #if 0
-   for (s=0; s<3; ++s) {
-      if (s==0) side = SUMA_LEFT;
-      else if (s == 1) side = SUMA_RIGHT;
-      else side = SUMA_NO_SIDE;
-      for (j=0; j<3; ++j) {
-         for (ii=0; ii<N_dov; ++ii) {
-            if (SUMA_isSO(dov[ii])) {
-               SO = (SUMA_SurfaceObject *)(dov[ii].OP);
-               if (s==0) {
-                  if (SO->Side != side) { continue;}
-               } else if (s == 1){
-                  if (SO->Side != side) { continue;}
-               } else {
-                  /* let it proceed */
-               }
-               #if 1 
-               /* Jan. 08 04 this is the right thing to do but 
-               AFNI is not ready to deal with this
-               and things can get confusing. See 
-               confusing fat point in Readme_Modify.log,
-               date: Thu Jan  8 13:55:33 EST 2004 */
-               if (!SO->AnatCorrect) {
-                  continue;
-               }
-               #else 
-               /* Jan. 08 04 the old and not confusing way. 
-               Turn it off as soon as AFNI is ready 
-               for the option  above.
-               See labbook NIH-3 page 146 */
-               if (!SUMA_isLocalDomainParent(SO)) {
-                  continue;
-               }
-               #endif
-               if (j==0) { /* inner surfaces */
-                  if (SUMA_isTypicalSOforVolSurf(SO) != -1 ) {
-                     continue;
-                  }
-               }else if (j==1) { /* outer surfaces */
-                  if (SUMA_isTypicalSOforVolSurf(SO)  != 1 ) {
-                     continue;
-                  }
-               }else if (j==2) { /* other */
-                  if (SUMA_isTypicalSOforVolSurf(SO)  != 0 ) {
-                     continue;
-                  }
-               }
-               /* if this surface has been sent to AFNI before, bypass it */
-               if (SO->SentToAfni) {
-                  if (LocalHead) fprintf(SUMA_STDERR, "Warning %s: Surface %s has been sent to AFNI before.\n", \
-                     FuncName, SO->idcode_str);
-                  continue;
-               }else {
-                  if (LocalHead) fprintf(SUMA_STDERR, "Warning %s: Surface %s Will be sent to AFNI.\n", \
-                     FuncName, SO->idcode_str);
-               }
-               SendList[*N_Send] = ii; *N_Send = *N_Send + 1;
-            }
-         }
-      }
-   }
-   #endif
    SUMA_RETURN(SendList);
 
 }
