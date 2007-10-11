@@ -1232,13 +1232,35 @@ SUMA_Boolean SUMA_isRelated ( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2, 
          if (  (kin > SUMA_DOMAINS_NOT_RELATED) ) SUMA_RETURN(YUP);
          break;
       case 2: /* share an ancestor, but same side */
-         if (  (kin > SUMA_DOMAINS_NOT_RELATED) &&
-               (SO1->Side == SO2->Side) ) SUMA_RETURN(YUP);
+         if (  (kin > SUMA_DOMAINS_NOT_RELATED) ) {
+               if ( (SO1->Side == SO2->Side) ) {
+                  SUMA_RETURN(YUP);
+               } else {
+                  if (SO1->Side < SUMA_LR || SO2->Side < SUMA_LR) {
+                     SUMA_S_Note("Surfaces appear related at level 2 but sides are not the same.\n"
+                                 "Kinship level is being ignored.\n");
+                     SUMA_S_Note("Surface sides are not clearly defined, if this is in error\n"
+                              "Consider adding Hemisphere = R  (or L or B) in the spec file\n"
+                              "to make sure surfaces sides are correctly labeled.\n");
+                  }
+               }
+         }
          break;
       case 1: /* nuclear family only */
          if (  (kin > SUMA_DOMAINS_NOT_RELATED) && 
-               (kin < SUMA_NUCELAR_FAMILY ) &&
-               (SO1->Side == SO2->Side) ) SUMA_RETURN(YUP); /* last condition is not really necessary but it don't hoyt...*/
+               (kin < SUMA_NUCELAR_FAMILY ) ) {
+               if (SO1->Side == SO2->Side) {
+                   SUMA_RETURN(YUP); /* last condition is not really necessary but it don't hoyt...*/
+               } else {
+                  SUMA_S_Note("Surfaces appear related at level 2 but sides are not the same.\n"
+                                 "Kinship level is being ignored.\n");
+                  if (SO1->Side < SUMA_LR || SO2->Side < SUMA_LR) {
+                     SUMA_S_Note("Surface sides are not clearly defined, if this is in error\n"
+                                 "Consider adding Hemisphere = R  (or L or B) in the spec file\n"
+                                 "to make sure surfaces sides are correctly labeled.\n");
+                  }
+               }
+         }
          break;
       default:
          SUMA_SL_Err("Bad value for level.");   

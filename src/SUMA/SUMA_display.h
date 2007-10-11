@@ -336,6 +336,7 @@ SUMA_Boolean SUMA_DrawWindowLine(SUMA_SurfaceViewer *sv, int x0, int y0, int x1,
 void SUMA_cb_SetDrawROI_WhatDist(Widget widget, XtPointer client_data, XtPointer call_data);
 SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_SurfaceObject *SO);
 void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData);
+SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO, char *DispOptions);
 
 
 

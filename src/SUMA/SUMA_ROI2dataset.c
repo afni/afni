@@ -260,7 +260,7 @@ int main (int argc,char *argv[])
       }
 
       /* Now go throught the ROIs and load them if possible into ROIv */
-      SUMA_LHv("Cycling over %d rois %s\n", N_tROI, tROIv[ii]->Parent_idcode_str);
+      SUMA_LHv("Cycling over %d rois\n", N_tROI);
       for (ii=0; ii < N_tROI; ++ii) {
          if (!Parent_idcode_str) {
             /* try to find out what the Parent_idcode_str is */

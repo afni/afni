@@ -46,9 +46,18 @@ function [err, V, Info, ErrMessage] = BrikLoad (BrikName, param1, param2)
 %       since most files created with the old versions of AFNI were on the SGIs .
 %        You must specify the parameter Opt.Format, to specify Opt.MachineFormat and override the defaults
 %       see help fopen for more info 
-%
+%   .OutPrecision: If specified, return V with a certain precision. The default is to return
+%                  V in double precision. Here are the available options:
+%                  '': Default, returns V as double
+%                  '*': Returns V in the precision of the Brik itself. 
+%          NOTE:        Scaling factors are not applied with this option
+%          -----        because of the risk of overflow. You will have to scale
+%                       each sub-brick of V by its scaling factor (if any) outside
+%                       of this BrikLoad function. For instructions on how to scale
+%                       a sub-brick, see the section in BrikLoad.m under the 'if (Opt.Scale)' 
+%                       statement.
 %   .Scale 0/1 if 1, then the scaling factor is applied to the values read from the brik
-%        default is 1
+%        default is 1. Note that Scale cannot be used with OutPrecision.
 %
 %   .Slices: vector of slices, 1 based. Default is all slices. 
 %            Read the set of slices specified in .Slices (added for FMRISTAT)
@@ -123,6 +132,7 @@ switch nargin,
       Opt.Slices = [];
       Opt.Frames = [];
       Opt.FileFormat = '';
+      Opt.OutPrecision = '';
    case 2,
       if (~isstruct(param1)),
          Opt.Format = param1;
@@ -131,9 +141,11 @@ switch nargin,
          Opt.Slices = [];
          Opt.Frames = [];
          Opt.FileFormat = '';
+         Opt.OutPrecision = '';
       else
          Opt = param1;
          if (~isfield(Opt,'FileFormat')),   Opt.FileFormat = ''; end
+         if (~isfield(Opt,'OutPrecision')),   Opt.OutPrecision = ''; end
       end
    case 3,
          Opt.Format = param1;
@@ -141,7 +153,8 @@ switch nargin,
          Opt.Scale = 1;
          Opt.Slices = [];
          Opt.Frames = []; 
-         Opt.FileFormat = '';         
+         Opt.FileFormat = '';
+         Opt.OutPrecision = '';         
    otherwise,
    err= ErrEval(FuncName,'Err_Bad option');
    return;
@@ -196,7 +209,22 @@ end
    if (~isfield(Opt,'Slices') | isempty(Opt.Slices)),   Opt.Slices = []; end 
    if (~isfield(Opt,'Frames') | isempty(Opt.Frames)),   Opt.Frames = []; end 
    if (~isfield(Opt,'FileFormat') | isempty(Opt.FileFormat)),   Opt.FileFormat = ''; end
-   
+   if (~isfield(Opt,'OutPrecision') | isempty(Opt.OutPrecision)),   Opt.OutPrecision = ''; end
+
+%Check for conflicts between OutPrecision and Scale
+if (Opt.Scale & ~isempty(Opt.OutPrecision)),
+   ErrMessage = sprintf ('%s: Opt.Scale = 1 cannot be used with Opt.OutPrecision\n', FuncName);
+   err = ErrEval(FuncName,'Err_Opt.Scale = 1 cannot be used with Opt.OutPrecision');
+   return;
+end
+
+%check on OutPrecision
+if (~isempty(Opt.OutPrecision)),
+   if (~strcmp(Opt.OutPrecision,'*')),
+      ErrMessage = sprintf ('%s: Allowed OutPrecision value is ''*''\n', FuncName);
+      err = ErrEval(FuncName,'Err_Bad value for Opt.OutPrecision');
+   end
+end
 
 %set the format   
    if (eq_str(Opt.Format,'vector')),
@@ -308,7 +336,7 @@ end
    numframes=length(Opt.Frames);
 
    if isallslices & isallframes
-      V = fread(fidBRIK, (Info.DATASET_DIMENSIONS(1) .* Info.DATASET_DIMENSIONS(2) .* Info.DATASET_DIMENSIONS(3) .* Info.DATASET_RANK(2)) , typestr);
+      V = fread(fidBRIK, (Info.DATASET_DIMENSIONS(1) .* Info.DATASET_DIMENSIONS(2) .* Info.DATASET_DIMENSIONS(3) .* Info.DATASET_RANK(2)) , [Opt.OutPrecision,typestr]);
    else
       V=zeros(1,numpix*numslices*numframes);
       for k=1:numframes
@@ -317,14 +345,14 @@ end
             fseek(fidBRIK, numpix*Info.DATASET_DIMENSIONS(3)*(frame-1)*Info.TypeBytes, 'bof');
             istrt=1+numpix*numslices*(k-1);
             istp=istrt-1+numpix*numslices;
-            V(istrt:istp)=fread(fidBRIK,numpix*numslices,typestr);
+            V(istrt:istp)=fread(fidBRIK,numpix*numslices,[Opt.OutPrecision,typestr]);
          else
             for j=1:numslices
                slice=Opt.Slices(j);
                fseek(fidBRIK, numpix*(slice-1+Info.DATASET_DIMENSIONS(3)*(frame-1))*Info.TypeBytes, 'bof');
                istrt=1+numpix*(j-1+numslices*(k-1));
                istp=istrt-1+numpix;
-               V(istrt:istp)=fread(fidBRIK,numpix,typestr);
+               V(istrt:istp)=fread(fidBRIK,numpix,[Opt.OutPrecision,typestr]);
             end
          end
       end
@@ -342,6 +370,15 @@ end
             istp = istrt + NperBrik - 1;
             V(istrt:istp) = V(istrt:istp) .* facs(iscl(j));
          end
+      end
+   else, %give warning
+      facs=Info.BRICK_FLOAT_FACS(Opt.Frames);
+      iscl = find (facs); %find non zero scales
+      if (~isempty(iscl)),
+         fprintf(2,'WARNING: Some sub-bricks read have non-zero scaling factors that were not applied\n');
+         fprintf(2,'         because Opt.Scale is turned off.\n');
+         fprintf(2,'         Those scale factors are in Info.BRICK_FLOAT_FACS and likely should be\n');
+         fprintf(2,'         applied before using values in V\n');
       end
    end
 

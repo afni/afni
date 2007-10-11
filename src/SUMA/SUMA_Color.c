@@ -5009,7 +5009,8 @@ SUMA_OVERLAYS * SUMA_NewPlaneSearch(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overl
    DuplicateFlag == 0 return with error if plane already exists
                     1 return with warning if plane already exists
 */
-SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, SUMA_DO *dov, int N_dov, int DuplicateFlag)
+SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, 
+                                 SUMA_DO *dov, int N_dov, int DuplicateFlag)
 {
    static char FuncName[]={"SUMA_AddNewPlane"};
    DList *ForeList=NULL, *BackList = NULL;
@@ -5027,7 +5028,10 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, S
    
    if (SUMA_NewPlaneSearch(SO, Overlay)) {
       if (DuplicateFlag == 0) {
-         SUMA_S_Errv("Plane exists in SO->Overlays either by pointer %p or by name (%s).\nBoth of these must be unique because DuplicateFlag=%d\n", Overlay, Overlay->Name, DuplicateFlag);
+         SUMA_S_Errv("Plane exists in SO->Overlays either by pointer %p or by name (%s).\n"
+                     "Both of these must be unique because DuplicateFlag=%d\n", 
+                     Overlay, Overlay->Name, DuplicateFlag);
+         SUMA_DUMP_TRACE("Allora");
          SUMA_RETURN (NOPE);
       } else {
          SUMA_S_Note("Plane exists in SO->Overlays. Preserving old one.");
@@ -5783,7 +5787,7 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    }
 
    /* take a stab at the format */
-   form = SUMA_GuessFormatFromExtension(filename);
+   form = SUMA_GuessFormatFromExtension(filename, NULL);
    
    /* load the dude */
    /* first, set the parent ID of the dset to be loaded,
@@ -5891,9 +5895,12 @@ void SUMA_LoadDsetFile (char *filename, void *data)
 
       /* Add this plane to SO->Overlays */
       if (!SUMA_AddNewPlane (SO, NewColPlane, SUMAg_DOv, SUMAg_N_DOv, OKdup)) {
-         SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
+         SUMA_SL_Err("Failed in SUMA_AddNewPlane");
          SUMA_FreeOverlayPointer(NewColPlane);
-         SUMA_FreeDset(dset); dset = NULL;
+         if (!SUMA_DeleteDsetPointer(&dset, SUMAg_CF->DsetList)) {
+            SUMA_S_Err("Failed to delete dset pointer");
+         }
+
          SUMA_RETURNe;
       }
    } 
@@ -6320,6 +6327,7 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
    Display *dpy=NULL;
    XColor color_closest, color_exact;
    Colormap cmap;
+   static int iwarn = 0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -6362,11 +6370,15 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
             XtDestroyWidget(tl); 
             XtDestroyApplicationContext(app);
          } else {
-            if (LocalHead) fprintf(SUMA_STDERR,"%s: \n"
+            if (0 && (LocalHead || !(iwarn % 10))) {
+               fprintf(SUMA_STDERR,"%s: \n"
                                           "Xcolor %s cannot be resolved without \n"
                                           "trying to open X display.\n"
-                                          "Returning color 0.5 0.5 0.5", FuncName, Name);
-            RGB[0] = RGB[1] = RGB[2] = 0.5;
+                                          "Returning color about 0.5 0.5 0.5.\n", FuncName, Name);
+               iwarn = 0;
+            }   
+            ++iwarn;
+            RGB[0] = RGB[1] = RGB[2] = 0.54321;
          }
       }
    
@@ -6593,6 +6605,8 @@ int SUMA_GetNodeOverInd (SUMA_OVERLAYS *Sover, int node)
 
    /* Now look for the node's location in the color overlay plane.
    Nodes that are not colored will be absent ... */
+   if (node < 0) SUMA_RETURN(-1);
+   
    Found = -1;
    if (SDSET_VECFILLED(Sover->dset_link) > node) { /* try the straight shot */
       if (Sover->NodeDef[node] == node) {

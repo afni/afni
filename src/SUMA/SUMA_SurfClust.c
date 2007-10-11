@@ -70,6 +70,11 @@ void usage_SUMA_SurfClust ()
                "                      cluster table is written to a file called\n"
                "                      OUTPREF_ClstTable_rXX_aXX.1D. Otherwise the\n"
                "                      table is written to stdout. \n"
+               "                      You can specify the output format by adding\n"
+               "                      extensions to OUTPREF. For example, \n"
+               "                      OUTPREF.1D.dset will force the output to be \n"
+               "                      in the .1D format. \n"
+               "                      See ConvertDset for many more format options.\n"
                "     -out_clusterdset: Output a clustered version of inData.1D \n"
                "                       preserving only the values of nodes that \n"
                "                       belong to clusters that passed the rmm and amm2\n" 
@@ -84,6 +89,9 @@ void usage_SUMA_SurfClust ()
                "                   the -rmm and -amm2 options respectively.\n"
                "                   The program will not overwrite pre-existing\n"
                "                   dsets.\n"
+               "     -prepend_node_index: Force the output dataset to have node\n"
+               "                    indices in column 0 of output. Use this option\n"
+               "                    if you are parsing .1D format datasets.\n"
                "     -out_fulllist: Output a value for all nodes of insurf.\n"
                "                    This option must be used in conjuction with\n"
                "                    -out_roidset and/or out_clusterdset.\n"
@@ -192,6 +200,7 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
    kar = 1;
    Opt->spec_file = NULL;
    Opt->out_prefix = NULL;
+   Opt->oform = SUMA_ASCII_NIML;
    Opt->sv_name = NULL;
    Opt->N_surf = -1;
    Opt->DistLim = -1.0;
@@ -206,6 +215,7 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
    Opt->DoThreshold = 0;
    Opt->Thresh = 0.0;
    Opt->tind = 0;
+   Opt->prepend_node_index = NOPE;
    Opt->update = 0;
    Opt->SortMode = SUMA_SORT_CLUST_NOT_SET;
    Opt->DoCentrality = 1;
@@ -281,8 +291,10 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
 		  		fprintf (SUMA_STDERR, "need argument after -prefix \n");
 				exit (1);
 			}
-			Opt->out_prefix = SUMA_copy_string(argv[kar]);
-			Opt->WriteFile = YUP;
+         Opt->oform = SUMA_GuessFormatFromExtension(argv[kar], NULL);		
+         if (Opt->oform == SUMA_NO_DSET_FORMAT) Opt->oform = SUMA_ASCII_NIML;
+         Opt->out_prefix = SUMA_RemoveDsetExtension_s(argv[kar], Opt->oform);	
+         Opt->WriteFile = YUP;
          brk = YUP;
 		}
             
@@ -372,7 +384,10 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc)
          Opt->OutROI = YUP;
 			brk = YUP;
       }
-      
+      if (!brk && (strcmp(argv[kar], "-prepend_node_index") == 0)) {
+         Opt->prepend_node_index = YUP;
+			brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-out_clusterdset") == 0)) {
          Opt->OutClustDset = YUP;
 			brk = YUP;
@@ -606,7 +621,14 @@ int main (int argc,char *argv[])
          SUMA_S_Err("NULL dset_roi");
          exit(1);
       }
-      NameOut = SUMA_WriteDset_s (ROIprefix, dset_roi, SUMA_ASCII_NIML, 0, 0);
+      if (Opt->prepend_node_index) {/* prepend node index? */         
+         if (!SUMA_InsertDsetNelCol (dset_roi, "Node Index Copy", SUMA_NODE_INT, (void *)(dset_roi->inel->vec[0]), NULL ,1, 0)) {
+            SUMA_S_Err("Failed to insert column");
+         }
+         if (LocalHead) SUMA_ShowDset(dset_roi,0, NULL); 
+      }
+      
+      NameOut = SUMA_WriteDset_s (ROIprefix, dset_roi, Opt->oform, 0, 0);
       if (!NameOut) { SUMA_SL_Err("Failed to write dataset."); exit(1); } 
       SUMA_FreeDset((void *)dset_roi); dset_roi = NULL; 
       if (NameOut) SUMA_free(NameOut); NameOut = NULL;
@@ -627,7 +649,7 @@ int main (int argc,char *argv[])
          SUMA_S_Err("NULL dset_clust");
          exit(1);
       }
-      NameOut = SUMA_WriteDset_s (Clustprefix, dset_clust, SUMA_ASCII_NIML, 0, 0);
+      NameOut = SUMA_WriteDset_s (Clustprefix, dset_clust, Opt->oform, 0, 0);
       if (!NameOut) { SUMA_SL_Err("Failed to write dataset."); exit(1); } 
       SUMA_FreeDset((void *)dset_clust); dset_clust = NULL; 
       if (NameOut) SUMA_free(NameOut); NameOut = NULL;

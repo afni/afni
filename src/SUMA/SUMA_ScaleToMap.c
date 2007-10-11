@@ -157,7 +157,9 @@ SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing 
                               "   The following options are for debugging and sanity checks.\n"    
                               "    -verb: (optional) verbose mode.\n"    
                               "    -showmap: (optional) print the colormap to the screen and quit.\n"
-                              "       This option is for debugging and sanity checks.\n"    
+                              "       This option is for debugging and sanity checks.\n"
+                              "       You can use MakeColorMap in Usage3 to write out a colormap\n"
+                              "       in its RGB form.\n"    
                               "    -showdb: (optional) print the colors and colormaps of AFNI\n"
                               "       along with any loaded from the file Palfile.\n"    
                               "%s"
@@ -615,9 +617,7 @@ int main (int argc,char *argv[])
          float orig[3]     = { SUMA_CMAP_ORIGIN  };
          float topright[3] = { SUMA_CMAP_TOPLEFT };
          
-         SUMA_SL_Note("JUST FOR TESTING");
          SO = SUMA_Cmap_To_SO (CM, orig, topright, 2);
-         SUMA_SL_Note("Cleanup");
          if (SO) SUMA_Free_Surface_Object(SO);
       }
       exit(0);

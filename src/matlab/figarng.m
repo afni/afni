@@ -7,7 +7,7 @@ function err = figarng (hvect,xll,yll,xur,yur,nfx)
 % to cover all the screen, use :
 % xll,yll = 0 , 0
 % xur,yur = 1280, 1024  (approx values).
-%
+%           3100, 1020  (dual disp)
 % err = 0 if all is fine, 1 otherwise
 %
 % Ziad Saad			Sept 27 97

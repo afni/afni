@@ -223,10 +223,12 @@ if (strcmp(mView, opt.view) == 0), %different
 end
 
 %take care of 4th dimen
-if (length(opt.dimen) > 3),
-   Info.DATASET_RANK(2) = opt.dimen(4);
-   Info.BRICK_TYPES = Info.BRICK_TYPES(1).*ones(1,opt.dimen(4));
-   Info.BRICK_FLOAT_FACS  = Info.BRICK_FLOAT_FACS(1) .*ones(1, opt.dimen(4));
+if (isfield(opt,'dimen')),
+   if (length(opt.dimen) > 3),
+      Info.DATASET_RANK(2) = opt.dimen(4);
+      Info.BRICK_TYPES = Info.BRICK_TYPES(1).*ones(1,opt.dimen(4));
+      Info.BRICK_FLOAT_FACS  = Info.BRICK_FLOAT_FACS(1) .*ones(1, opt.dimen(4));
+   end
 end
 
 %take care of TR

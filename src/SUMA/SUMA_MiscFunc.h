@@ -5,6 +5,38 @@
 #define MATRIX_OUT_SYMMETRIC (1<<2)
 #define MATRIX_B_IS_AT (1<<2)
 
+/*!
+   A slimmed macro version of SUMA_nodesinsphere2
+*/
+#define SUMA_NODESINSPHERE2(XYZ, nr, S_cent, S_dim , nodesin, nin) {\
+   static int m_k, m_nr3;  \
+   static float m_t0, m_t1, m_t2, m_d2, m_r2; \
+   m_k= nin = 0; \
+   m_nr3 = 3*nr;   \
+   m_r2 = S_dim*S_dim;  \
+   nin = 0; \
+   /*fprintf(SUMA_STDERR,"%s: inbound, center %f %f %f, dim %f\n", FuncName, *(S_cent), *((S_cent)+1), *((S_cent)+2), S_dim);   */\
+   while (m_k < m_nr3) {  \
+      /* relative distance to center */   \
+         m_t0 = SUMA_ABS((XYZ[m_k] - *(S_cent)));  ++m_k;   \
+         if (m_t0 <= S_dim) {  \
+            m_t1 = SUMA_ABS((XYZ[m_k] - *((S_cent)+1))); ++m_k;   \
+            if (m_t1 <= S_dim) {  \
+               m_t2 = SUMA_ABS((XYZ[m_k] - *((S_cent)+2))); ++m_k;   \
+               if (m_t2 <= S_dim) {  \
+                  /* in box, is it in sphere? */   \
+                  m_d2 = (m_t0*m_t0+m_t1*m_t1+m_t2*m_t2);   \
+                  if (m_d2 <=m_r2) {   \
+                     nodesin[nin] = m_k/3-1;  /* retreat by 1, increment already done */\
+                     ++nin;   \
+                  }  \
+               }  \
+            } else ++m_k;  \
+         } else m_k += 2;  \
+      }  \
+   }
+
+
 double SUMA_factorial (int n);
 double *SUMA_factorial_array (int n);
 SUMA_MX_VEC *SUMA_KronProd(SUMA_MX_VEC *A, SUMA_MX_VEC *B);
@@ -32,6 +64,8 @@ SUMA_ISINBOX SUMA_isinbox (float * NodeList, int nr, float *S_cent , float *S_di
 SUMA_Boolean SUMA_Free_IsInBox (SUMA_ISINBOX *IB);
 SUMA_ISINSPHERE SUMA_isinsphere (float * NodeList, int nr, float *S_cent , float S_rad , int BoundIn);
 SUMA_Boolean SUMA_Free_IsInSphere (SUMA_ISINSPHERE *IB);
+int SUMA_nodesinsphere2 (float *XYZ, int nr, float *S_cent , float S_dim , int *nodesin, float *dinsq);
+int SUMA_nodesinbox2 (float *XYZ, int nr, float *S_cent , float *S_dim , int *nodesin, float *dinsq);
 float **SUMA_Point_At_Distance(float *U, float *P1, float d);
 double **SUMA_dPoint_At_Distance(double *U, double *P1, double d);
 SUMA_Boolean SUMA_Point_To_Line_Distance (float *NodeList, int N_points, float *P1, float *P2, float *d2, float *d2min, int *i2min);
@@ -61,6 +95,7 @@ void SUMA_disp_vecbytemat (byte *v,int nr, int nc , int SpcOpt,
                         SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd);
 void SUMA_disp_dvect (int *v,int l);
 void SUMA_disp_vect (float *v,int l);
+void SUMA_disp_doubvect (double *v,int l);
 int SUMA_WriteMxVec(SUMA_MX_VEC *mxv, char *Name, char *title);
 void SUMA_Set_VoxIntersDbg(int v);
 SUMA_Boolean SUMA_isVoxelIntersect_Triangle (float *center, float *dxzy, float *vert0, float *vert1, float *vert2);   
@@ -111,7 +146,7 @@ void SUMA_Show_Edge_List (SUMA_EDGE_LIST *SEL, FILE *Out);
 int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2);
 int SUMA_FindEdgeInTri (SUMA_EDGE_LIST *EL, int n1, int n2, int Tri); 
 int SUMA_whichTri (SUMA_EDGE_LIST * EL, int n1, int n2, int n3, int IOtrace);
-SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Incident, int *N_Incident, int IOtrace);
+SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Incident, int *N_Incident, int IOtrace, byte quiet);
 SUMA_Boolean SUMA_Get_NodeIncident(int n1, SUMA_SurfaceObject *SO, int *Incident, int *N_Incident);
 SUMA_IRGB *SUMA_Free_IRGB(SUMA_IRGB *irgb);
 SUMA_IRGB *SUMA_Read_IRGB_file (char *f_name);

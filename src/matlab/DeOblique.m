@@ -55,7 +55,14 @@ while (~isempty(fname)),
       ctr1 = [0 0 0];
       Eq1 = [dpl 0]; 
       Tri1 = [];
-   else
+   elseif (strcmp(fname, 'scan_6') == 1),
+      tlhc1 = [125.994 	145.952 	-25.001];
+      trhc1 = [-113.867 152.413  -29.908];
+      brhc1 = [-120.694 -86.730  -10.843];
+      ctr1  = [2.650 	29.611 	-17.922];
+      Tri1.XYZ = [tlhc1; trhc1; brhc1];
+      [err,Eq1] = Plane_Equation (Tri1);
+    else
       [su_hdr,ex_hdr,se_hdr,im_hdr,pix_hdr,im_offset] = GE_readHeader(fname);
 
       %get three points forming corners of plane and the center of the plane 
@@ -77,10 +84,11 @@ while (~isempty(fname)),
    %form the equation of the desired plane
    ctr2 = ctr1; 
 
-   CardPlane = sprintf('Axial');
-   %CardPlane = sprintf('Sagittal');
-   %CardPlane = sprintf('Coronal');
-
+   for (car=1:1:3),
+      if (car == 1) CardPlane = sprintf('Axial');
+      elseif (car == 3) CardPlane = sprintf('Sagittal');
+      else CardPlane = sprintf('Coronal');
+      end
    %desired plane is one that is parallel to Axial plane and passing through ctr2
    switch (CardPlane(1)),
       case 'A',
@@ -116,7 +124,7 @@ while (~isempty(fname)),
    AngleDeg = AngleRad .* 180 ./ pi
 
    %Show the results 
-   Opt.Fig = figure(1); clf
+   Opt.Fig = figure(car); clf
 
    subplot 211; cla
    if (~isempty(Tri1)),
@@ -146,6 +154,7 @@ while (~isempty(fname)),
    plot3(Line(:,1), Line(:,2), Line(:,3), 'r-', 'LineWidth', 4);
    axis equal; hold on
 
+  
    %suggest a rotation with 3dvolreg, but first, make sure this is not a double oblique slice
    N_RotAx = 0
    if (Line(1,1) ~= Line (2,1)) ,
@@ -167,7 +176,7 @@ while (~isempty(fname)),
       RotAx(3) = 0;
    end
 
-   if (N_RotAx > 1),
+   if (0 & N_RotAx > 1),
       fprintf (1,'Looks like you have super oblique slices, not ready to deal with that yet.\n');
    else 
       if (RotAx(1)),
@@ -199,6 +208,7 @@ while (~isempty(fname)),
       end
    end   
 
+   end
    if (0), %other untested methods ....
       % ----------------------------------
       % get the rotation matrix 

@@ -32,6 +32,8 @@ function ht = plotsign2 (h,s,Opt);
 %  .Color : choose colors that you normally specify in text function, like 'r'
 %       the default is 'k'. You can also specify an rgb vector 
 %       (values between 1 and 0)
+%  .ReverseVideo: 'y' puts a background behind text to ensure it is readable.
+%                 default is to do nothing.
 %  .HAlign : string specifying the horizontal alignment of text, options are
 %       'left', 'center', 'right', '' for default
 %  .VAlign : string specifying the vertical alignment of text, options are 
@@ -128,6 +130,18 @@ if (~isfield(Opt,'Color') | isempty(Opt.Color)),
 	Opt.Color = 'k';
 end
 
+if (~isfield(Opt,'ReverseVideo') | isempty(Opt.ReverseVideo)),
+   Opt.ReverseVideo = '';
+end
+
+if (Opt.ReverseVideo == 'y'), 
+   if (isnumeric(Opt.Color)) Opt.BackgroundColor = 1 - Opt.Color;
+   else Opt.BackgroundColor = [0 0 0];
+   end
+else
+   Opt.BackgroundColor = [];
+end
+
 % Fontsize for text
 	if (~isfield(Opt,'Font') | isempty(Opt.Font)),
 		Opt.Font = 's';
@@ -148,6 +162,20 @@ end
 
 %place text anywhere	
 	ht=text(0,0,s, 'color',Opt.Color);
+   if (~isempty(Opt.ReverseVideo)), 
+      col = get(ht,'color');
+      if (0),
+         col = 1-col; %not nice
+      else,
+         [jjj,iii1] = max(col);
+         col(iii1) = 1- col(iii1);
+         [jjj,iii2] = min(col);
+         col(iii2) = min([col(iii2)+0.5,1]);
+         iii3=setdiff([1 2 3],[iii1 iii2]);
+         col(iii3) = 1 - col(iii3);
+      end
+      set(ht,'BackgroundColor',col);
+   end
 %set fonts
 	if (isfield(Opt,'FontName') & ~isempty(Opt.FontName)),
 		set(ht,'FontName', Opt.FontName);
@@ -155,7 +183,11 @@ end
 %set font size
 	set(ht,'fontsize',fs); 
 %set interpreter
-	set(ht,'Interpreter','none');
+   if (~isfield(Opt,'Interpreter') | isempty(Opt.Interpreter)),
+	   Opt.Interpreter = 'none';
+   end
+   
+   set(ht,'Interpreter',Opt.Interpreter);
 
 %store current units
 	tmpunt = get(ht,'Units');

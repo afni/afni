@@ -166,6 +166,7 @@ SUMA_SurfaceObject *SUMA_MarchingCubesSurface(SUMA_GENERIC_PROG_OPTIONS_STRUCT *
    clean_all(mcp) ;
    free(mcp);
    nsoopt=SUMA_FreeNewSOOpt(nsoopt); 
+
    SUMA_RETURN(SO);
 }
 /*!
@@ -175,6 +176,7 @@ SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_GENERIC_PROG_OPTIONS_STRUCT * Op
 {
    static char FuncName[]={"SUMA_Get_isosurface_datasets"};
    int i;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -205,8 +207,10 @@ SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_GENERIC_PROG_OPTIONS_STRUCT * Op
       SUMA_RETURN(NOPE);
    }
    if (Opt->xform == SUMA_ISO_XFORM_MASK) {
+      SUMA_LH("SUMA_ISO_XFORM_MASK");
       switch (Opt->MaskMode) {
          case SUMA_ISO_CMASK:
+            SUMA_LH("SUMA_ISO_CMASK");
             if (Opt->cmask) {
                /* here's the second order grand theft */
                int    clen = strlen( Opt->cmask );
@@ -218,7 +222,7 @@ SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_GENERIC_PROG_OPTIONS_STRUCT * Op
 	            strcpy( cmd,  Opt->cmask);
 
 	            bmask = EDT_calcmask( cmd, &Opt->ninmask );
-
+               SUMA_LHv("Have %d\n", Opt->ninmask);
 	            free( cmd );			   /* free EDT_calcmask() string */
 
 	            if ( bmask == NULL ) {
@@ -233,6 +237,7 @@ SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_GENERIC_PROG_OPTIONS_STRUCT * Op
 	               SUMA_RETURN(NOPE);
 	            }
 	            Opt->ninmask = THD_countmask( Opt->ninmask, bmask );
+               SUMA_LHv("Have %d\n", Opt->ninmask);
                for (i=0; i<Opt->nvox; ++i) if (bmask[i]) Opt->mcdatav[i] = (double)bmask[i]; else Opt->mcdatav[i] = -1;
                free(bmask);bmask=NULL;
             } else {
@@ -241,6 +246,7 @@ SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_GENERIC_PROG_OPTIONS_STRUCT * Op
             break;
          case SUMA_ISO_VAL:
          case SUMA_ISO_RANGE:
+            SUMA_LH("SUMA_ISO_VAL, SUMA_ISO_RANGE");
             /* load the dset */
             DSET_load(Opt->in_vol);
             Opt->dvec = (double *)SUMA_malloc(sizeof(double) * Opt->nvox);
@@ -320,8 +326,12 @@ SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_GENERIC_PROG_OPTIONS_STRUCT * Op
    }
    
    if ( Opt->ninmask  <= 0 ) {
-	   SUMA_SL_Err("No isovolume found!\n Nothing to do." );
-	   SUMA_RETURN(NOPE);
+	   if (Opt->ninmask == 0) {
+         SUMA_SL_Err("A negative value!\nNothing to do." );
+      } else {
+         SUMA_SL_Err("An empty mask!\n Nothing to do." );
+	   }
+      SUMA_RETURN(NOPE);
 	}
    
    if (Opt->debug > 0) {

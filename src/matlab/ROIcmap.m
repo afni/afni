@@ -4,7 +4,7 @@ function [M] = ROIcmap(nc,opt)
 %           no color too close to grayscale,
 %           no two consecutive colors too close
 %           no colors exeedingly close to another in the map
-%
+%           no colors too close to a background color (optional)
 %   nc: number of colors in map. Default is 64
 %   opt: optional options structure
 %      .show: Figure handle in which to show the map
@@ -17,6 +17,8 @@ function [M] = ROIcmap(nc,opt)
 %      .write: Name of file to write colormap into
 %              Default is '', no writing. Use something like
 %              ROI64s0.1D.cmap, for a 64 cols, seed 0 colormap.
+%      .avoid: Color to avoid getting close to.
+%      .verb: verbosioty. 1 is default. 0 is for quiet
 % returns
 %   M: The colormap. 
 %
@@ -35,6 +37,8 @@ if (isempty(nc)), nc = 64; end
 if (~isfield(opt,'show') | isempty(opt.show)), opt.show = 1; end
 if (~isfield(opt,'state') | isempty(opt.state)), opt.state = 0; end
 if (~isfield(opt,'write') | isempty(opt.write)), opt.write = ''; end
+if (~isfield(opt,'verb') | isempty(opt.verb)), opt.verb = 1; end
+if (~isfield(opt,'avoid') | isempty(opt.avoid)), opt.avoid = []; end
 
 %initialize rng 
 rand('state',opt.state);
@@ -50,20 +54,20 @@ for (i=1:1:nc),
    M(i,:) = rand(1,3);
    cnt = 0;
    %reject if too gray or too close to previous color
-   while (toogray(M(i,:), g_lim, d_lim, b_lim) | tooclose(M,i, 0.6, alldiff_lim)),
+   while (toogray(M(i,:), g_lim, d_lim, b_lim) | tooclose(M,i, 0.6, alldiff_lim) | (~isempty(opt.avoid) & (sum(abs(M(i,:)-opt.avoid)) < 0.6))),
       M(i,:) = rand(1,3);
       cnt = cnt + 1;
       if (cnt > 2000), % too tight, relax
          alldiff_lim = max([0.95.*alldiff_lim 0.1]) ;
          d_lim = max([0.95.*d_lim 0.05]);
          b_lim = min([b_lim*1.05, 3.0]);
-         fprintf(1,'Reduced alldiff_lim to %g, d_lim to %g, b_lim to %g\n', alldiff_lim, d_lim, b_lim);
+         if (opt.verb) fprintf(1,'Reduced alldiff_lim to %g, d_lim to %g, b_lim to %g\n', alldiff_lim, d_lim, b_lim); end
          cnt = 0;
       end
    end
-   fprintf(1,'Color %d OK\n', i);
+   if (opt.verb) fprintf(1,'Color %d OK\n', i); end
 end
-fprintf(1,'alldiff_lim final was %g, d_lim final was %g, b_lim final was %g\n', alldiff_lim, d_lim, b_lim);
+if (opt.verb) fprintf(1,'alldiff_lim final was %g, d_lim final was %g, b_lim final was %g\n', alldiff_lim, d_lim, b_lim); end
 
 if (~isempty(opt.write)),
    optw.OverWrite = 'p';
