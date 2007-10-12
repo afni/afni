@@ -2417,6 +2417,13 @@ If this variable is set to YES, then the default direction of image slice
 and time index scrolling will be reversed in the image and graph viewers,
 respectively.
 
+----------------------------
+Variable: AFNI_STRLIST_INDEX
+----------------------------
+If this variable is set to NO, then the new [12 Oct 2007] 'Index' selector
+at the bottom of a string-list chooser (e.g., the 'Overlay' button popup
+window) will NOT be shown.
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
