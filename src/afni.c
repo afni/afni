@@ -100,11 +100,11 @@
 
 static XtAppContext   MAIN_app ;
 static XtErrorHandler MAIN_old_handler ;   /* no longer used */
-static Three_D_View * MAIN_im3d ;
+static Three_D_View  *MAIN_im3d ;
 static MCW_DC *       MAIN_dc ;
 static Widget         MAIN_shell=NULL ;
 static int            MAIN_argc ;
-static char **        MAIN_argv ;
+static char         **MAIN_argv ;
 static Boolean        MAIN_workprocess( XtPointer ) ;
 
 #define USE_SIDES  /* 01 Dec 1999: replace "left is xxx" */
@@ -406,12 +406,12 @@ void AFNI_syntax(void)
    parse command line switches and store results in a data structure
 ------------------------------------------------------------------------*/
 
-void AFNI_parse_args( int in_argc , char * in_argv[] )
+void AFNI_parse_args( int in_argc , char *in_argv[] )
 {
    int narg = 1 ;
-   char * env_orient , * env ;
-   int     argc=in_argc ,    new_argc      ; /* 18 Nov 1999 */
-   char ** argv=in_argv , ** new_argv=NULL ;
+   char *env_orient , *env ;
+   int    argc=in_argc ,   new_argc      ; /* 18 Nov 1999 */
+   char **argv=in_argv , **new_argv=NULL ;
 
 ENTRY("AFNI_parse_args") ;
 
@@ -448,9 +448,9 @@ ENTRY("AFNI_parse_args") ;
 
    /* 24 Sep 2000: get the default layout name (add $HOME) */
 
-   { char * lf = getenv("AFNI_LAYOUT_FILE") ;
+   { char *lf = getenv("AFNI_LAYOUT_FILE") ;
      if( lf != NULL ){
-        char * eh = getenv("HOME") , * ff ;
+        char *eh = getenv("HOME") , *ff ;
         int ll = strlen(lf) + 8 ;
         if( eh != NULL ) ll += strlen(eh) ;
         ff = AFMALL(char, ll) ;
@@ -1155,7 +1155,7 @@ static char *FALLback[] =
 #include <signal.h>
 void AFNI_sigfunc(int sig)   /** signal handler for fatal errors **/
 {
-   char * sname ;
+   char *sname ;
    static volatile int fff=0 ;
    if( fff ) _exit(1) ; else fff = 1 ;
    switch(sig){
@@ -1193,7 +1193,7 @@ static int check_string( char *targ , int ns , char *ss[] )
     02 Aug 1999: Have moved much of the startup into a work process.
 ===========================================================================*/
 
-int main( int argc , char * argv[] )
+int main( int argc , char *argv[] )
 {
    int ii ;
 
@@ -1317,7 +1317,7 @@ int main( int argc , char * argv[] )
    /*-- Be friendly --*/
 
 #ifdef USE_FRIENDS
-   { char * sf = AFNI_get_friend() ;
+   { char *sf = AFNI_get_friend() ;
      REPORT_PROGRESS( sf ) ;
      REPORT_PROGRESS( "\n\n" ) ;
      if( check_string("-friend",argc,argv) ) exit(0) ;
@@ -1380,8 +1380,8 @@ int main( int argc , char * argv[] )
    AFNI_load_defaults( MAIN_shell ) ;
 
    if( ! GLOBAL_argopt.skip_afnirc ){          /* this line added 14 Jul 1998 */
-      char * home = getenv("HOME") ; char fname[256] ;
-      char * sysenv = getenv("AFNI_SYSTEM_AFNIRC") ;       /* 12 Apr 2000 */
+      char *home = getenv("HOME") ; char fname[256] ;
+      char *sysenv = getenv("AFNI_SYSTEM_AFNIRC") ;       /* 12 Apr 2000 */
 
       GPT = NULL ;  /* 19 Dec 1997 */
 
@@ -1413,7 +1413,7 @@ int main( int argc , char * argv[] )
 
    /* FIM background threshold */
 
-   { char * lenv = getenv("AFNI_FIM_BKTHR") ;          /* 04 Jun 1999 */
+   { char *lenv = getenv("AFNI_FIM_BKTHR") ;          /* 04 Jun 1999 */
      if( lenv != NULL ){
        float bk = strtod(lenv,NULL) ;
        if( bk >= 0.0 && bk < 100.0 ) SET_FIM_bkthr(bk) ;
@@ -1797,7 +1797,7 @@ STATUS("call 15") ;
 
 /*-------------------------------------------------------------------------*/
 
-void FatalError(char * str)
+void FatalError(char *str)
 {
    fprintf(stderr,"\n** Fatal Error **\n %s\n",str) ;
    sleep(1) ; exit(1) ;
@@ -1821,8 +1821,8 @@ static char * random_goodbye(void)
 
 void AFNI_quit_CB( Widget wcall , XtPointer cd , XtPointer cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
-   XmPushButtonCallbackStruct * pbcbs = (XmPushButtonCallbackStruct *) cbs ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
+   XmPushButtonCallbackStruct *pbcbs = (XmPushButtonCallbackStruct *) cbs ;
 
 ENTRY("AFNI_quit_CB") ;
 
@@ -1892,7 +1892,7 @@ ENTRY("AFNI_quit_CB") ;
   after 5 seconds have passed.
 ------------------------------------------------------------------------*/
 
-void AFNI_quit_timeout_CB( XtPointer client_data , XtIntervalId * id )
+void AFNI_quit_timeout_CB( XtPointer client_data , XtIntervalId *id )
 {
    Three_D_View *im3d = (Three_D_View *) client_data ;
 ENTRY("AFNI_quit_timeout_CB") ;
@@ -2077,10 +2077,10 @@ ENTRY("AFNI_startup_timeout_CB") ;
    (used as a "get_image" routine for an MCW_imseq)
 ------------------------------------------------------------------------*/
 
-XtPointer AFNI_brick_to_mri( int n , int type , FD_brick * br )
+XtPointer AFNI_brick_to_mri( int n , int type , FD_brick *br )
 {
-   MRI_IMAGE * im ;
-   MCW_imseq_status * stat ;
+   MRI_IMAGE *im ;
+   MCW_imseq_status *stat ;
    int i1,i2,jb,bb , dd1,dd2,tt1,tt2 ;
 
 ENTRY("AFNI_brick_to_mri") ;
@@ -2091,7 +2091,7 @@ if(PRINT_TRACING){ char str[256] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(s
    /*-------- May 1996: graph callbacks first --------*/
 
    if( type == graCR_getstatus ){
-      MCW_grapher_status * grstat = myXtNew( MCW_grapher_status ) ;
+      MCW_grapher_status *grstat = myXtNew( MCW_grapher_status ) ;
 
       grstat->num_total  = grstat->num_series = br->dset->dblk->nvals ;
       grstat->nx         = br->n1 ;
@@ -2123,7 +2123,7 @@ if(PRINT_TRACING){ char str[256] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(s
    /*--- overlay # n ---*/
 
    if( type == isqCR_getoverlay  ){
-      Three_D_View * im3d = (Three_D_View *) br->parent ;
+      Three_D_View *im3d = (Three_D_View *) br->parent ;
 
 STATUS("get overlay") ;
 
@@ -2567,7 +2567,7 @@ STATUS("drawing triangle lines") ;
      /****** 22 Mar 2002: adapted from pixel overlay  ******/
 
      if( do_xhar ){
-      MCW_grapher * grapher = UNDERLAY_TO_GRAPHER(im3d,br) ;
+      MCW_grapher *grapher = UNDERLAY_TO_GRAPHER(im3d,br) ;
 
       THD_ivec3 ib = THD_3dind_to_fdind( br ,
                                          TEMP_IVEC3( im3d->vinfo->i1 ,
@@ -2734,7 +2734,7 @@ STATUS("drawing crosshairs") ;
    /*--- 20 Sep 2001: image label ---*/
 
    if( type == isqCR_getlabel ){
-      Three_D_View * im3d = (Three_D_View *) br->parent ;
+      Three_D_View *im3d = (Three_D_View *) br->parent ;
       char *lab , str[32] , *dd ;
       THD_ivec3 iv,ivp,ivm ;
       THD_fvec3 fv,fvp,fvm ;
@@ -2779,7 +2779,7 @@ STATUS("drawing crosshairs") ;
    /*--- underlay image # n ---*/
 
    if( type == isqCR_getimage || type == isqCR_getqimage ){
-      Three_D_View * im3d = (Three_D_View *) br->parent ;
+      Three_D_View *im3d = (Three_D_View *) br->parent ;
       int ival ;
 
       /*** decide which 3D brick to extract data from (ival) ***/
@@ -2843,9 +2843,9 @@ STATUS("get something else, but I don't care!") ;
 /*! Set a value label when the nsl-th image is in "im".
 -------------------------------------------------------------------------------*/
 
-void AFNI_set_valabel( FD_brick * br , int nsl , MRI_IMAGE * im , char * blab )
+void AFNI_set_valabel( FD_brick *br , int nsl , MRI_IMAGE *im , char *blab )
 {
-   Three_D_View * im3d = (Three_D_View *) br->parent ;
+   Three_D_View *im3d = (Three_D_View *) br->parent ;
    THD_ivec3 ib ;
 
 ENTRY("AFNI_set_valabel") ;
@@ -2919,15 +2919,15 @@ ENTRY("AFNI_set_valabel") ;
    this will be incomplete, but is enough for display purposes.
 ------------------------------------------------------------------------*/
 
-THD_3dim_dataset * AFNI_read_images( int nf , char * fname[] )
+THD_3dim_dataset * AFNI_read_images( int nf , char *fname[] )
 {
-   MRI_IMAGE * im , * shim ;
-   char * bar ;
+   MRI_IMAGE *im , *shim ;
+   char *bar ;
    register int     npix , ii ;
    int nx , ny , nz , lf , kz , kim ;
-   MRI_IMARR * arr ;
+   MRI_IMARR *arr ;
    char str[256] ;
-   THD_3dim_dataset * dset ;
+   THD_3dim_dataset *dset ;
    int datum = GLOBAL_argopt.datum , dsize ;
 
    int nvals , nzz , nzin=0 ;  /* 19 Oct 1999 */
@@ -3014,7 +3014,7 @@ ENTRY("AFNI_read_images") ;
                            nx,ny,im->nx,im->ny , fname[lf] ) ;
                FatalError(str) ;
             } else {
-               MRI_IMAGE * rim ;
+               MRI_IMAGE *rim ;
                rim = mri_resize( im , nx , ny ) ;
                mri_free( im ) ;
                im = rim ;
@@ -3165,7 +3165,7 @@ ENTRY("AFNI_read_images") ;
               /* 20 Oct 1999: allow for the 3rd dimension as well         */
 
       int iv , jj , kk ;
-      char * qbar ;
+      char *qbar ;
 
       for( iv=0 ; iv < nvals ; iv++ ){
          qbar = (char *) malloc( dsize*npix*nzz ) ;  /* space for nzz slices */
@@ -3418,7 +3418,7 @@ if(PRINT_TRACING)
       /** July 1996: an image viewer changed montage layout **/
 
       case isqCR_newmontage:{
-         THD_ivec3 * minf = (THD_ivec3 *) cbs->userdata ;
+         THD_ivec3 *minf = (THD_ivec3 *) cbs->userdata ;
          int ndown = minf->ijk[0], nup = minf->ijk[1], nskip = minf->ijk[2] ;
          int a3 = br->a123.ijk[2] ,   /* z axis of the brick?    */
              az = abs(a3) - 1       ; /* 0,1,2 for dataset x,y,z */
@@ -3580,10 +3580,10 @@ if(PRINT_TRACING)
 
       case isqCR_button2_points:{
          int npts = cbs->key , zim = cbs->nim ;
-         int * xyout = (int *) cbs->userdata ;
+         int *xyout = (int *) cbs->userdata ;
          THD_ivec3 id ;
          int nvec , ii , xim,yim , fixed_plane ;
-         int * xdset , * ydset , * zdset ;
+         int *xdset , *ydset , *zdset ;
 
          if( zim >= 0 && zim < br->n3 && npts > 0 ){  /* if input is good */
 
@@ -3689,10 +3689,10 @@ if(PRINT_TRACING)
       /*** Death ***/
 
       case graCR_destroy:{
-         MCW_grapher * gxyz = im3d->g123 ,
-                     * gyzx = im3d->g231 ,
-                     * gzxy = im3d->g312  ;
-         MCW_imseq * seq = GRAPHER_TO_VIEWER(im3d,grapher) ;
+         MCW_grapher *gxyz = im3d->g123 ,
+                     *gyzx = im3d->g231 ,
+                     *gzxy = im3d->g312  ;
+         MCW_imseq *seq = GRAPHER_TO_VIEWER(im3d,grapher) ;
          Widget w ;
 
               if( grapher == gxyz ){
@@ -3830,7 +3830,7 @@ STATUS("graCR_pickort") ;
            User supplies a timeseries to add to the global library ***/
 
       case graCR_timeseries_library:{
-         MRI_IMAGE * tsim = (MRI_IMAGE *) cbs->userdata ;
+         MRI_IMAGE *tsim = (MRI_IMAGE *) cbs->userdata ;
 
          AFNI_add_timeseries( tsim ) ;
       }
@@ -3840,9 +3840,9 @@ STATUS("graCR_pickort") ;
 
       case graCR_refadd:
       case graCR_refequals:{
-         MRI_IMAGE * tsim = (MRI_IMAGE *) cbs->userdata ;
-         MRI_IMAGE * qim , * sim ;
-         float * sar , * qar ;
+         MRI_IMAGE *tsim = (MRI_IMAGE *) cbs->userdata ;
+         MRI_IMAGE *qim , *sim ;
+         float *sar , *qar ;
 
          if( tsim != NULL ){
             qim = mri_to_float( tsim ) ;        /* make a copy of input */
@@ -3892,8 +3892,8 @@ STATUS("graCR_pickort") ;
 
       case graCR_refsmooth:{
          if( im3d->fimdata->fimref != NULL ){
-            MRI_IMAGE * sim = mri_to_float(im3d->fimdata->fimref) ; /* copy */
-            float * sar = MRI_FLOAT_PTR(sim) ;
+            MRI_IMAGE *sim = mri_to_float(im3d->fimdata->fimref) ; /* copy */
+            float *sar = MRI_FLOAT_PTR(sim) ;
             float aa,bb,cc ;
             int ii,jj , nx=sim->nx , ny=sim->ny ;
 
@@ -4508,7 +4508,7 @@ if(PRINT_TRACING)
                0,0,0,0,69,124,138,131,120,168,227,194,81,0,0,0,
                0,0,0,0,0,49,69,103,131,153,141,54,0,0,0,0 } ;
 
-          static byte * rwcox[6] = { rrr,www,ccc,ooo,xxx,bob } ;
+          static byte *rwcox[6] = { rrr,www,ccc,ooo,xxx,bob } ;
           int kk ;
 
             for( jj=0 ; jj < QQ_NT ; jj++ ){
@@ -4745,7 +4745,7 @@ STATUS("forcible adoption of unparented datasets") ;
   Final adjustments before a controller is opened for use - 15 Jun 2000
 ----------------------------------------------------------------------------*/
 
-void AFNI_startup_3dview( Three_D_View * im3d )
+void AFNI_startup_3dview( Three_D_View *im3d )
 {
    static int old_0D_num=0 , old_2D_num=0 ;
 
@@ -4809,7 +4809,7 @@ ENTRY("AFNI_startup_3dview") ;
    delete the viewers associated with this controller panel
 ---------------------------------------------------------------------------*/
 
-void AFNI_closedown_3dview( Three_D_View * im3d )
+void AFNI_closedown_3dview( Three_D_View *im3d )
 {
 ENTRY("AFNI_closedown_3dview") ;
 
@@ -4875,7 +4875,7 @@ ENTRY("AFNI_closedown_3dview") ;
 
 void AFNI_controller_panel_CB( Widget wcall , XtPointer cd , XtPointer cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
 
 ENTRY("AFNI_controller_panel_CB") ;
 
@@ -4920,9 +4920,9 @@ ENTRY("AFNI_controller_panel_CB") ;
   Called when the user selects a new option for crosshair visibility
 ---------------------------------------------------------------------------*/
 
-void AFNI_crosshair_visible_CB( MCW_arrowval * av , XtPointer client_data )
+void AFNI_crosshair_visible_CB( MCW_arrowval *av , XtPointer client_data )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
+   Three_D_View *im3d = (Three_D_View *) client_data ;
    int val , omold ;
 
 ENTRY("AFNI_crosshair_visible_CB") ;
@@ -4978,7 +4978,7 @@ ENTRY("AFNI_crosshair_visible_CB") ;
 void AFNI_wrap_bbox_CB( Widget w ,
                         XtPointer client_data , XtPointer call_data )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
+   Three_D_View *im3d = (Three_D_View *) client_data ;
    int bval ;
 
 ENTRY("AFNI_wrap_bbox_CB") ;
@@ -5006,7 +5006,7 @@ ENTRY("AFNI_wrap_bbox_CB") ;
 void AFNI_xhall_bbox_CB( Widget w ,
                          XtPointer client_data , XtPointer call_data )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
+   Three_D_View *im3d = (Three_D_View *) client_data ;
    int bval ;
 
 ENTRY("AFNI_xhall_bbox_CB") ;
@@ -5029,9 +5029,9 @@ ENTRY("AFNI_xhall_bbox_CB") ;
 
 /*------------------------------------------------------------------------*/
 
-void AFNI_crosshair_color_CB( MCW_arrowval * av , XtPointer client_data )
+void AFNI_crosshair_color_CB( MCW_arrowval *av , XtPointer client_data )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
+   Three_D_View *im3d = (Three_D_View *) client_data ;
    int ipx = av->ival ;
 
 ENTRY("AFNI_crosshair_color_CB") ;
@@ -5049,9 +5049,9 @@ ENTRY("AFNI_crosshair_color_CB") ;
 
 /*------------------------------------------------------------------------*/
 
-void AFNI_crosshair_gap_CB( MCW_arrowval * av ,  XtPointer client_data )
+void AFNI_crosshair_gap_CB( MCW_arrowval *av ,  XtPointer client_data )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
+   Three_D_View *im3d = (Three_D_View *) client_data ;
    int ipx ;
 
 ENTRY("AFNI_crosshair_gap_CB") ;
@@ -5180,12 +5180,12 @@ static char * AFNI_arrowpad_hint[] = {
 void AFNI_view_xyz_CB( Widget w ,
                        XtPointer client_data , XtPointer call_data )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
-   MCW_imseq   * sxyz , * syzx , * szxy , ** snew = NULL ;
-   MCW_grapher * gxyz , * gyzx , * gzxy , ** gnew = NULL ;
+   Three_D_View *im3d = (Three_D_View *) client_data ;
+   MCW_imseq   *sxyz , *syzx , *szxy , **snew = NULL ;
+   MCW_grapher *gxyz , *gyzx , *gzxy , **gnew = NULL ;
    Widget        pboff , pb_xyz , pb_yzx , pb_zxy ;
    Widget        groff , gr_xyz , gr_yzx , gr_zxy ;
-   FD_brick    * brnew ;
+   FD_brick    *brnew ;
    int mirror=0 ;
    int m2m=0 ;     /* 04 Nov 2003 */
    int c2c=0 ;     /* 17 Sep 2007 */
@@ -5368,10 +5368,10 @@ STATUS("setting image view to be L-R mirrored") ;
 #define SS 4
 #define II 5
       if( !AFNI_yesenv("AFNI_NO_SIDES_LABELS") ){
-         static char * ssix[6] = { "Left"     , "Right"     ,
-                                   "Anterior" , "Posterior" ,
-                                   "Superior" , "Inferior"   } ;
-         char * ws[4] ;
+         static char *ssix[6] = { "Left"     , "Right"     ,
+                                  "Anterior" , "Posterior" ,
+                                  "Superior" , "Inferior"   } ;
+         char *ws[4] ;
 
          if( *snew == im3d->s123 ){
            ws[0] = ssix[RR]; ws[1] = ssix[AA]; ws[2] = ssix[LL]; ws[3] = ssix[PP];
@@ -5424,7 +5424,7 @@ STATUS("setting image viewer 'sides'") ;
     /** Don't forget to send information like the reference timeseries ... **/
 
     if( gnew != NULL && DSET_GRAPHABLE(brnew->dset) ){
-       MCW_grapher * gr ;
+       MCW_grapher *gr ;
 
 STATUS("opening a graph window") ;
 
@@ -5878,7 +5878,7 @@ DUMP_IVEC3("             new_ib",new_ib) ;
 
    if( new_xyz && im3d->vwid->imag->pop_whereami_twin != NULL ){
 
-      char * tlab = AFNI_ttatlas_query( im3d ) ;
+      char *tlab = AFNI_ttatlas_query( im3d ) ;
 
       if( tlab == NULL ){
          MCW_textwin_alter( im3d->vwid->imag->pop_whereami_twin ,
@@ -5897,16 +5897,16 @@ DUMP_IVEC3("             new_ib",new_ib) ;
    (return NULL if none;  note that the result must be mri_freed by the user)
 ---------------------------------------------------------------------------*/
 
-MRI_IMAGE * AFNI_overlay( int n , FD_brick * br )
+MRI_IMAGE * AFNI_overlay( int n , FD_brick *br )
 {
-   Three_D_View * im3d = (Three_D_View *) br->parent ;
-   MRI_IMAGE * im = NULL , * fov = NULL ;
-   register short * oar ;
+   Three_D_View *im3d = (Three_D_View *) br->parent ;
+   MRI_IMAGE *im = NULL , *fov = NULL ;
+   register short *oar ;
    int ii,jj , npix , xx,yy,zz , nx,ny , gap,ovc , icr,jcr,kcr ;
    Boolean ovgood ;
    THD_ivec3 ib ;
-   THD_3dim_dataset * dset ;
-   FD_brick * br_fim ;
+   THD_3dim_dataset *dset ;
+   FD_brick *br_fim ;
    int do_xhar ;              /* 22 Mar 2002 */
    MRI_IMAGE *rgbov = NULL ;  /* 30 Jan 2003 */
 
@@ -5963,7 +5963,7 @@ if(PRINT_TRACING)
    if( im3d->vinfo->see_ttatlas &&
        im3d->anat_now->view_type == VIEW_TALAIRACH_TYPE ){
 
-      MRI_IMAGE * tov ;
+      MRI_IMAGE *tov ;
 
       int ax_1 = br->a123.ijk[0] ;
       int ax_2 = br->a123.ijk[1] ;
@@ -6004,7 +6004,7 @@ STATUS("new overlay is created de novo") ;
    /*----- put crosshairs on, if desired -----*/
 
    if( do_xhar ){
-      MCW_grapher * grapher = UNDERLAY_TO_GRAPHER(im3d,br) ;
+      MCW_grapher *grapher = UNDERLAY_TO_GRAPHER(im3d,br) ;
 
       ib = THD_3dind_to_fdind( br ,
                               TEMP_IVEC3( im3d->vinfo->i1 ,
@@ -6170,9 +6170,9 @@ if(PRINT_TRACING)
        im3d->anat_now->markers->numset > 0 &&
        (im3d->vwid->marks->ov_visible == True) ){
 
-      THD_marker_set     * markers = im3d->anat_now->markers ;
-      AFNI_marks_widgets * marks   = im3d->vwid->marks ;
-      AFNI_ovtemplate    * tem     = &(marks->ov_mask) ;
+      THD_marker_set     *markers = im3d->anat_now->markers ;
+      AFNI_marks_widgets *marks   = im3d->vwid->marks ;
+      AFNI_ovtemplate    *tem     = &(marks->ov_mask) ;
       int xbase , ybase , zbase , color ;
       THD_ivec3 ib ;
 
@@ -6246,10 +6246,10 @@ if(PRINT_TRACING)
        im3d->anat_now->tagset->num > 0 &&
        (im3d->vwid->marks->tag_visible == True) ){
 
-      static AFNI_ovtemplate * tem = NULL ;
-      static int             npold = -1 ;
+      static AFNI_ovtemplate *tem = NULL ;
+      static int            npold = -1 ;
 
-      THD_usertaglist * tl = im3d->anat_now->tagset ;
+      THD_usertaglist *tl = im3d->anat_now->tagset ;
       int xbase , ybase , zbase , color , np ;
       THD_ivec3 ib ;
       THD_fvec3 fb ;
@@ -6330,14 +6330,14 @@ if(PRINT_TRACING)
 
 /*------------------------------------------------------------------------*/
 
-XmString AFNI_crosshair_label( Three_D_View * im3d )
+XmString AFNI_crosshair_label( Three_D_View *im3d )
 {
    char buf[128] ;
    XmString xstr ;
-   static char * RR="[R]" , * LL="[L]" ,
-               * PP="[P]" , * AA="[A]" ,
-               * SS="[S]" , * II="[I]" , * ZZ="   " ;
-   char * xx , * yy , * zz ;
+   static char *RR="[R]" , *LL="[L]" ,
+               *PP="[P]" , *AA="[A]" ,
+               *SS="[S]" , *II="[I]" , *ZZ="   " ;
+   char *xx , *yy , *zz ;
    float xval,yval,zval ;
 
 ENTRY("AFNI_crosshair_label") ;
@@ -6438,7 +6438,7 @@ void AFNI_marktog_CB( Widget w ,
    XmToggleButtonCallbackStruct *cbs = (XmToggleButtonCallbackStruct *)call_data;
 
    int bval , ip , xx=-1 , yy=-1 , zz=-1 ;
-   Widget * other_tog ;
+   Widget *other_tog ;
 
 ENTRY("AFNI_marktog_CB") ;
 
@@ -6499,7 +6499,7 @@ ENTRY("AFNI_marktog_CB") ;
    EXRETURN ;
 }
 
-void AFNI_set_tog( int nset , int ntog , Widget * tog )
+void AFNI_set_tog( int nset , int ntog , Widget *tog )
 {
    int ib ;
 
@@ -6511,7 +6511,7 @@ ENTRY("AFNI_set_tog") ;
    EXRETURN ;
 }
 
-int AFNI_first_tog( int ntog , Widget * tog )
+int AFNI_first_tog( int ntog , Widget *tog )
 {
    int ib ;
 
@@ -6525,7 +6525,7 @@ ENTRY("AFNI_first_tog") ;
 }
 
 #if 0
-int AFNI_all_tog( int ntog , Widget * tog )
+int AFNI_all_tog( int ntog , Widget *tog )
 {
    int ib , val = 0 ;
 
@@ -6542,11 +6542,11 @@ int AFNI_all_tog( int ntog , Widget * tog )
 void AFNI_marks_action_CB( Widget w ,
                            XtPointer client_data , XtPointer call_data )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
+   Three_D_View *im3d = (Three_D_View *) client_data ;
    int itog , ipt , setmask , vwarp ;
    Boolean sens , transformable ;
-   THD_marker_set * markers ;
-   AFNI_marks_widgets * marks ;
+   THD_marker_set *markers ;
+   AFNI_marks_widgets *marks ;
    THD_fvec3 fv ;
 
 ENTRY("AFNI_marks_action_CB") ;
@@ -6708,9 +6708,9 @@ if(PRINT_TRACING)
   change the resampling size
 -------------------------------------------------------------------------*/
 
-void AFNI_resam_vox_av_CB( MCW_arrowval * av , XtPointer cd )
+void AFNI_resam_vox_av_CB( MCW_arrowval *av , XtPointer cd )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
 
 ENTRY("AFNI_resam_vox_av_CB") ;
 
@@ -6732,9 +6732,9 @@ ENTRY("AFNI_resam_vox_av_CB") ;
      (set colors and sizes of markers)
 --------------------------------------------------------------------------*/
 
-void AFNI_marks_disp_av_CB( MCW_arrowval * av , XtPointer client_data )
+void AFNI_marks_disp_av_CB( MCW_arrowval *av , XtPointer client_data )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
+   Three_D_View *im3d = (Three_D_View *) client_data ;
    int ipx = av->ival ;
 
 ENTRY("AFNI_marks_disp_av_CB") ;
@@ -6785,7 +6785,7 @@ ENTRY("AFNI_marks_disp_av_CB") ;
 #define PUTPIX(x,y) (tem->dx[npix] = (x) , tem->dy[npix++] = (y))
 #define CHKPIX      if( npix >= MAXOVPIX ) break
 
-void AFNI_make_ptmask( int size , int gap , AFNI_ovtemplate * tem )
+void AFNI_make_ptmask( int size , int gap , AFNI_ovtemplate *tem )
 {
    register int ix , npix=0 , ax ;
 
@@ -6805,7 +6805,7 @@ ENTRY("AFNI_make_ptmask") ;
 
 /*-------------  October 1998 --------------------------------------------*/
 
-void AFNI_make_tagmask( int size , int gap , AFNI_ovtemplate * tem )
+void AFNI_make_tagmask( int size , int gap , AFNI_ovtemplate *tem )
 {
    register int ix , npix=0 , ax ;
 
@@ -6832,7 +6832,7 @@ ENTRY("AFNI_make_tagmask") ;
 void AFNI_switchview_CB( Widget w ,
                          XtPointer client_data , XtPointer call_data )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
+   Three_D_View *im3d = (Three_D_View *) client_data ;
    int bval ;
 
 ENTRY("AFNI_switchview_CB") ;
@@ -6869,10 +6869,10 @@ void AFNI_purge_unused_dsets(void)
 void AFNI_purge_dsets( int doall )
 {
    int icc , iss , idd , ivv ;
-   Three_D_View * im3d ;
-   THD_session  * sess ;
-   THD_sessionlist * ssl = GLOBAL_library.sslist ;
-   THD_3dim_dataset * dset ;
+   Three_D_View *im3d ;
+   THD_session  *sess ;
+   THD_sessionlist *ssl = GLOBAL_library.sslist ;
+   THD_3dim_dataset *dset ;
 
 ENTRY("AFNI_purge_dsets") ;
 
@@ -7514,7 +7514,7 @@ STATUS(" -- function underlay widgets") ;
 
    if( im3d->anat_now->pts == NULL ){
       int ii ;
-      THD_3dim_dataset * dset_orig = NULL ;
+      THD_3dim_dataset *dset_orig = NULL ;
       THD_fvec3 fv ;
 
 STATUS(" -- scanning for points in other datasets") ;
@@ -7672,8 +7672,8 @@ STATUS(" -- turning time index control off") ;
   to new_dset coordinates -- 09 Jul 2001 -- RWCox.
 -------------------------------------------------------------------------*/
 
-int AFNI_can_transform_vector( THD_3dim_dataset * old_dset ,
-                               THD_3dim_dataset * new_dset  )
+int AFNI_can_transform_vector( THD_3dim_dataset *old_dset ,
+                               THD_3dim_dataset *new_dset  )
 {
    if( old_dset==NULL || new_dset==NULL  ) return 0 ;
 
@@ -7701,9 +7701,9 @@ int AFNI_can_transform_vector( THD_3dim_dataset * old_dset ,
   Eventually, will warp an input Dicom vector from one dataset to another.
 -------------------------------------------------------------------------*/
 
-THD_fvec3 AFNI_transform_vector( THD_3dim_dataset * old_dset ,
+THD_fvec3 AFNI_transform_vector( THD_3dim_dataset *old_dset ,
                                  THD_fvec3 old_fv ,
-                                 THD_3dim_dataset * new_dset  )
+                                 THD_3dim_dataset *new_dset  )
 {
    if( old_dset==NULL || new_dset==NULL || old_dset==new_dset ) return old_fv ;
 
@@ -7763,7 +7763,7 @@ THD_fvec3 AFNI_transform_vector( THD_3dim_dataset * old_dset ,
    Forward transform a vector following a warp
 --------------------------------------------------------------------------*/
 
-THD_fvec3 AFNI_forward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
+THD_fvec3 AFNI_forward_warp_vector( THD_warp *warp , THD_fvec3 old_fv )
 {
    THD_fvec3 new_fv ;
 
@@ -7808,7 +7808,7 @@ THD_fvec3 AFNI_forward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
    Backward transform a vector following a warp
 --------------------------------------------------------------------------*/
 
-THD_fvec3 AFNI_backward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
+THD_fvec3 AFNI_backward_warp_vector( THD_warp *warp , THD_fvec3 old_fv )
 {
    THD_fvec3 new_fv ;
 
@@ -7855,9 +7855,9 @@ THD_fvec3 AFNI_backward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
 --------------------------------------------------------------------------*/
 
 #ifdef FIX_SCALE_SIZE_LATER
-static void fixscale( XtPointer client_data , XtIntervalId * id )
+static void fixscale( XtPointer client_data , XtIntervalId *id )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
+   Three_D_View *im3d = (Three_D_View *) client_data ;
    FIX_SCALE_SIZE(im3d) ;
 
 #if 0
@@ -7992,8 +7992,8 @@ STATUS("opening marks") ;
    /*----- define function panel -----*/
 
    if( w == im3d->vwid->view->define_func_pb ){
-      AFNI_viewing_widgets  * view  = im3d->vwid->view  ;
-      AFNI_function_widgets * func  = im3d->vwid->func ;
+      AFNI_viewing_widgets  *view  = im3d->vwid->view  ;
+      AFNI_function_widgets *func  = im3d->vwid->func ;
 
       if( XtIsManaged(func->frame) ){
 
@@ -8043,8 +8043,8 @@ STATUS("remanaging children") ;
    /*-- define datamode panel --*/
 
    if( w == im3d->vwid->view->define_dmode_pb ){
-      AFNI_viewing_widgets  * view  = im3d->vwid->view  ;
-      AFNI_datamode_widgets * dmode = im3d->vwid->dmode ;
+      AFNI_viewing_widgets  *view  = im3d->vwid->view  ;
+      AFNI_datamode_widgets *dmode = im3d->vwid->dmode ;
 
       if( XtIsManaged(dmode->frame) ){
 
@@ -8070,8 +8070,8 @@ STATUS("opening dmode" ) ;
 void AFNI_marks_edits_CB( Widget w ,
                           XtPointer client_data , XtPointer call_data )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
-   AFNI_marks_widgets * marks ;
+   Three_D_View *im3d = (Three_D_View *) client_data ;
+   AFNI_marks_widgets *marks ;
    int bval , vwarp ;
    Boolean transformable ;
 
@@ -8123,9 +8123,9 @@ ENTRY("AFNI_marks_edits_CB") ;
 void AFNI_see_marks_CB( Widget w ,
                         XtPointer client_data , XtPointer call_data )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
-   AFNI_marks_widgets * marks ;
-   AFNI_viewing_widgets * view ;
+   Three_D_View *im3d = (Three_D_View *) client_data ;
+   AFNI_marks_widgets *marks ;
+   AFNI_viewing_widgets *view ;
    int bval ;
 
 ENTRY("AFNI_see_marks_CB") ;
@@ -8200,10 +8200,10 @@ ENTRY("AFNI_crosshair_EV") ;
 
 #if 0
      case KeyPress:{
-       XKeyEvent * event = (XKeyEvent *) ev ;
-       char           buf[32] ;
-       KeySym         ks ;
-       int            nbuf ;
+       XKeyEvent *event = (XKeyEvent *) ev ;
+       char      buf[32] ;
+       KeySym    ks ;
+       int       nbuf ;
 
        buf[0] = '\0' ;
        nbuf = XLookupString( event , buf , 32 , &ks , NULL ) ;
@@ -8586,7 +8586,7 @@ ENTRY("AFNI_talto_CB") ;
    10 Jul 2001
 ---------------------------------------------------------------------------*/
 
-void AFNI_pop_whereami_kill( Three_D_View * im3d )
+void AFNI_pop_whereami_kill( Three_D_View *im3d )
 {
    if( im3d == NULL ) return ;
 
@@ -8599,7 +8599,7 @@ void AFNI_pop_whereami_kill( Three_D_View * im3d )
 
 /*-------------------------------------------------------------------------*/
 
-char * AFNI_ttatlas_query( Three_D_View * im3d )
+char * AFNI_ttatlas_query( Three_D_View *im3d )
 {
    static int have_TT = -1 ;
 
@@ -8640,7 +8640,7 @@ char * AFNI_ttatlas_query( Three_D_View * im3d )
 
 void AFNI_see_ttatlas_CB( Widget w, XtPointer cd, XtPointer cb)
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
    int newsee = MCW_val_bbox(im3d->vwid->func->see_ttatlas_bbox) ;
 
    if( newsee == im3d->vinfo->see_ttatlas ) return ;
@@ -8726,9 +8726,9 @@ ENTRY("AFNI_jumpto_CB") ;
 
 /*---------------------------------------------------------------------*/
 
-int AFNI_jumpto_dicom( Three_D_View * im3d , float xx, float yy, float zz )
+int AFNI_jumpto_dicom( Three_D_View *im3d , float xx, float yy, float zz )
 {
-   THD_dataxes  * daxes ;
+   THD_dataxes  *daxes ;
    THD_fvec3 fv ; THD_ivec3 iv ;
    int ii,jj,kk ;
 
@@ -8755,9 +8755,9 @@ ENTRY("AFNI_jumpto_dicom") ;
 
 /*----------- the two functions below date to 19 Aug 1999 -------------*/
 
-int AFNI_jumpto_ijk( Three_D_View * im3d , int ii, int jj, int kk )
+int AFNI_jumpto_ijk( Three_D_View *im3d , int ii, int jj, int kk )
 {
-   THD_dataxes * daxes ;
+   THD_dataxes *daxes ;
 
 ENTRY("AFNI_jumpto_ijk") ;
 
@@ -8838,14 +8838,14 @@ ENTRY("AFNI_sumato_CB") ;
 void AFNI_marks_transform_CB( Widget w ,
                               XtPointer client_data , XtPointer call_data )
 {
-   Three_D_View     * im3d = (Three_D_View *) client_data ;
-   THD_marker_set   * markers ;
-   THD_warp         * warp ;
-   THD_3dim_dataset * new_dset ;
-   THD_session      * ss ;
-   int                vnew , vvv , sss , aaa , fff , id ;
-   float              resam_size ;
-   Widget             wmsg ;
+   Three_D_View     *im3d = (Three_D_View *) client_data ;
+   THD_marker_set   *markers ;
+   THD_warp         *warp ;
+   THD_3dim_dataset *new_dset ;
+   THD_session      *ss ;
+   int              vnew , vvv , sss , aaa , fff , id ;
+   float            resam_size ;
+   Widget           wmsg ;
 
 ENTRY("AFNI_marks_transform_CB") ;
 
@@ -8921,7 +8921,7 @@ STATUS("writing new dataset") ;
 
    if( im3d->vinfo->view_type == VIEW_ORIGINAL_TYPE ){
       int id ;
-      THD_3dim_dataset * dss ;
+      THD_3dim_dataset *dss ;
 
       /* perform surgery on the anat datasets in this session */
 
@@ -8994,11 +8994,11 @@ STATUS("re-anat_parenting anatomical datasets in this session") ;
 #define MVEC(im) \
  TEMP_FVEC3(markers->xyz[im][0],markers->xyz[im][1],markers->xyz[im][2])
 
-THD_warp * AFNI_make_warp( Three_D_View * im3d )
+THD_warp * AFNI_make_warp( Three_D_View *im3d )
 {
-   THD_3dim_dataset * anat    = im3d->anat_now ;
-   THD_marker_set   * markers = im3d->anat_now->markers ;
-   THD_warp         * warp ;
+   THD_3dim_dataset *anat    = im3d->anat_now ;
+   THD_marker_set   *markers = im3d->anat_now->markers ;
+   THD_warp         *warp ;
    Boolean good ;
 
 ENTRY("AFNI_make_warp") ;
@@ -9020,7 +9020,7 @@ ENTRY("AFNI_make_warp") ;
       /*--- bounding box markers set ---*/
 
       case MARKSET_BOUNDING:{
-         THD_talairach_12_warp * twarp = (THD_talairach_12_warp *) warp ;
+         THD_talairach_12_warp *twarp = (THD_talairach_12_warp *) warp ;
          THD_fvec3 mant,mpos,msup,minf,mrig,mlef , pcie ;
          float dist_sup , dist_inf , dist_ant , dist_med , dist_pos ,
                dist_lef , dist_rig ;
@@ -9152,7 +9152,7 @@ ENTRY("AFNI_make_warp") ;
       /*--- AC-PC alignment markers set ---*/
 
       case MARKSET_ALIGN:{
-         THD_affine_warp * awarp = (THD_affine_warp *) warp ;
+         THD_affine_warp *awarp = (THD_affine_warp *) warp ;
 
          THD_fvec3 acsup , acpos , pcinf , msag1 , msag2 ,
                    alpha1,alpha2,alpha,beta,gamma,rr1,rr2,rr , dif ;
@@ -9283,14 +9283,14 @@ DUMP_LMAP(awarp->warp) ;
      error_list = (char*)XtRealloc( error_list , ll ) ;      \
      strcat( error_list , str ) ; num_report++ ; }
 
-Boolean AFNI_marks_quality_check( Boolean make_report, Three_D_View * im3d )
+Boolean AFNI_marks_quality_check( Boolean make_report, Three_D_View *im3d )
 {
-   THD_3dim_dataset * anat    = im3d->anat_now ;
-   THD_marker_set   * markers = im3d->anat_now->markers ;
+   THD_3dim_dataset *anat    = im3d->anat_now ;
+   THD_marker_set   *markers = im3d->anat_now->markers ;
 
-   char *  error_list ;
-   int     num_error , num_report ;
-   char    msg[128] ;
+   char *error_list ;
+   int   num_error , num_report ;
+   char  msg[128] ;
    Boolean good ;
 
 ENTRY("AFNI_marks_quality_check") ;
@@ -9576,19 +9576,19 @@ printf("\n") ;
   warp from the parent.  The actual data will not be filled in yet.
 --------------------------------------------------------------------*/
 
-THD_3dim_dataset * AFNI_init_warp( Three_D_View * im3d ,
-                                   THD_3dim_dataset * parent_dset ,
-                                   THD_warp * warp_init , float resam_vox )
+THD_3dim_dataset * AFNI_init_warp( Three_D_View *im3d ,
+                                   THD_3dim_dataset *parent_dset ,
+                                   THD_warp *warp_init , float resam_vox )
 {
-   THD_3dim_dataset * adam_dset ;  /* the farthest ancestor */
-   THD_warp         * warp_total ; /* the warp from that ancestor */
-   THD_fvec3          xnew_bot , xnew_top ;
+   THD_3dim_dataset *adam_dset ;  /* the farthest ancestor */
+   THD_warp         *warp_total ; /* the warp from that ancestor */
+   THD_fvec3         xnew_bot , xnew_top ;
 
-   THD_3dim_dataset * new_dset ;
-   THD_datablock    * new_dblk  , * adam_dblk  , * parent_dblk ;
-   THD_dataxes      * new_daxes , * adam_daxes , * parent_daxes ;
-   THD_diskptr      * new_dkptr , * adam_dkptr , * parent_dkptr ;
-   THD_marker_set   * new_markers ;
+   THD_3dim_dataset *new_dset ;
+   THD_datablock    *new_dblk  , *adam_dblk  , *parent_dblk ;
+   THD_dataxes      *new_daxes , *adam_daxes , *parent_daxes ;
+   THD_diskptr      *new_dkptr , *adam_dkptr , *parent_dkptr ;
+   THD_marker_set   *new_markers ;
 
    int new_nx , new_ny , new_nz , ii ;
    THD_ivec3 ivbot , ivtop ;
@@ -10026,10 +10026,10 @@ STATUS("initialization complete") ;
 
 /*-----------------------------------------------------------------*/
 
-void AFNI_copy_statistics( THD_3dim_dataset * dsold , THD_3dim_dataset * dsnew )
+void AFNI_copy_statistics( THD_3dim_dataset *dsold , THD_3dim_dataset *dsnew )
 {
    int ibr , nvold , nvnew ;
-   THD_statistics * stold , * stnew ;
+   THD_statistics *stold , *stnew ;
 
 ENTRY("AFNI_copy_statistics") ;
 
@@ -10070,7 +10070,7 @@ ENTRY("AFNI_copy_statistics") ;
 
 void AFNI_set_cursor( int cursor_code )
 {
-   Three_D_View * im3d ;
+   Three_D_View *im3d ;
    int id ;
 
 ENTRY("AFNI_set_cursor") ;
@@ -10194,14 +10194,14 @@ ENTRY("AFNI_set_cursor") ;
 
 void AFNI_load_defaults( Widget w )
 {
-   char    * xdef ;
-   Display * display ;
-   int       ival , ii,jj ;
-   float     fval ;
-   char *    cpt ;
-   char      buf[64] ;
-   float     pthr[NPANE_MAX+1] ;
-   int       pov[NPANE_MAX+1] ;
+   char    *xdef ;
+   Display *display ;
+   int      ival , ii,jj ;
+   float    fval ;
+   char    *cpt ;
+   char     buf[64] ;
+   float    pthr[NPANE_MAX+1] ;
+   int      pov[NPANE_MAX+1] ;
 
 ENTRY("AFNI_load_defaults") ;
 
@@ -10509,10 +10509,10 @@ void AFNI_sonnet_CB( Widget w , XtPointer client_data , XtPointer call_data )
      - modified 21 Jul 2003 to add func_init
 ------------------------------------------------------------------------*/
 
-void AFNI_register_nD_function( int nd, char * name,
-                                generic_func * func, int flags )
+void AFNI_register_nD_function( int nd, char *name,
+                                generic_func *func, int flags )
 {
-   MCW_function_list * rlist ;
+   MCW_function_list *rlist ;
    int num ;
 
    if( name == NULL || strlen(name) == 0 || func == NULL ) return ;
@@ -10567,7 +10567,7 @@ void AFNI_register_nD_function( int nd, char * name,
 
 void AFNI_register_nD_func_init( int nd , generic_func *fin )
 {
-   MCW_function_list * rlist ;
+   MCW_function_list *rlist ;
    int num ;
 
    if( fin == NULL ) return ;
@@ -10603,7 +10603,7 @@ int AFNI_needs_dset_tin(void){ return dset_tin ; }
    Add a timeseries to the global list
 -------------------------------------------------------------------------*/
 
-void AFNI_add_timeseries( MRI_IMAGE * tsim )
+void AFNI_add_timeseries( MRI_IMAGE *tsim )
 {
 ENTRY("AFNI_add_timeseries") ;
 
