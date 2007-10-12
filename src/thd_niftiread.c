@@ -471,13 +471,18 @@ ENTRY("THD_open_nifti") ;
 
    } else {  /* is a time dependent dataset */
 
-          if( nim->time_units == NIFTI_UNITS_MSEC ) nim->dt *= 0.001 ;
-     else if( nim->time_units == NIFTI_UNITS_USEC ) nim->dt *= 1.e-6 ;
+     if( nim->time_units == NIFTI_UNITS_MSEC ){
+            nim->dt *= 0.001 ;
+            nim->toffset *= 0.001 ;
+     } else if( nim->time_units == NIFTI_UNITS_USEC ){
+            nim->dt *= 1.e-6 ;
+            nim->toffset *= 1.e-6 ;
+     }
      EDIT_dset_items( dset ,
                         ADN_nvals     , ntt ,
                         ADN_ntt       , ntt ,
                         ADN_datum_all , datum ,
-                        ADN_ttorg     , 0.0 ,
+                        ADN_ttorg     , nim->toffset , /* 12 Oct 2007 [rickr] */
                         ADN_ttdel     , nim->dt ,
                         ADN_ttdur     , 0.0 ,
                         ADN_tunits    , UNITS_SEC_TYPE ,

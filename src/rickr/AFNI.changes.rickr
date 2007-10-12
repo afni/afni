@@ -2206,4 +2206,5 @@
 10 Oct 2007:
   * modified db_mod.py: need math for floor()
   * modified 3dDeconvolve.c: set AFNI_DECONFLICT=OVERWRITE in do_xrestore_stuff
+12 Oct 2007: modified thd_niftiread/write.c: get/set nim->toffset
 
