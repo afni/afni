@@ -6403,3 +6403,7 @@
 11 Oct 2007
  * Modify edt_filtervol.c to clip off voxels outside the fmask.
  * Modify 3dmerge.c to add -1fm_noclip and -1filter_blur options.
+
+12 Oct 2007
+ * Changes to bbox.c to add an arrowval index selector to the single-selection
+     mode strlist chooser (per Shruti Japee's unreasonable demand).

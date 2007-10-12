@@ -817,7 +817,7 @@ ENTRY("optmenu_finalize") ;
 
    /* call user callback, if present */
 
-   if( av->dval_CB != NULL && 
+   if( av->dval_CB != NULL &&
        (av->optmenu_call_if_unchanged || av->fval != av->old_fval) )
 #if 0
       av->dval_CB( av , av->dval_data ) ;
@@ -2337,26 +2337,65 @@ void MCW_choose_strlist( Widget wpar , char *label ,
 
 /*-------------------------------------------------------------------------*/
 
+static Widget str_wlist           = NULL ;  /* 12 Oct 2007 */
+static int    str_wlist_num       = 0 ;
+static MCW_arrowval *str_wlist_av = NULL ;
+
+static void MCW_strlist_av_CB( MCW_arrowval *av , XtPointer cd )
+{
+   int init=1+av->ival , itop,nvis ;
+
+   if( str_wlist == NULL || !XtIsRealized(str_wlist) ||
+       init <= 0         || init > str_wlist_num       ) return ;
+
+   XmListSelectPos( str_wlist , init , False ) ;
+   XtVaGetValues( str_wlist ,
+                    XmNtopItemPosition ,&itop ,
+                    XmNvisibleItemCount,&nvis ,
+                  NULL ) ;
+        if( init <  itop      ) XmListSetPos      ( str_wlist , init ) ;
+   else if( init >= itop+nvis ) XmListSetBottomPos( str_wlist , init ) ;
+}
+
+static void MCW_strlist_select_CB( Widget w, XtPointer cd, XtPointer cb )
+{
+   int ns=0 ; unsigned int *sp=NULL ;
+
+   if( str_wlist == NULL || !XtIsRealized(str_wlist) ) return ;
+
+   XtVaGetValues( str_wlist ,
+                    XmNselectedPositionCount , &ns ,
+                    XmNselectedPositions     , &sp ,
+                  NULL ) ;
+   if( ns <= 0 || sp == NULL ) return ;
+   AV_assign_ival( str_wlist_av , (int)(sp[0])-1 ) ;
+   MCW_strlist_av_CB( str_wlist_av , NULL ) ;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void MCW_choose_multi_strlist( Widget wpar , char *label , int mode ,
                                int num_str , int *init , char *strlist[] ,
                                gen_func *func , XtPointer func_data )
 {
-   static Widget wpop = NULL , wrc ;
+   static Widget wpop=NULL , wrc ;
    static MCW_choose_data cd ;
    Position xx,yy ;
    int ib , ll , ltop ;
-   Widget wlist = NULL , wlab ;
+   Widget wlist=NULL , wlab ;
    XmStringTable xmstr ;
    XmString xms ;
    char *lbuf ;
    int nvisible ;
-   int bc = browse_select ;  /* 21 Feb 2007 */
+   int bc=browse_select ;  /* 21 Feb 2007 */
+   MCW_arrowval *wav ;     /* 12 Oct 2007 */
 
 ENTRY("MCW_choose_multi_strlist") ;
 
    /** destructor callback **/
 
    browse_select = 0 ;  /* 21 Feb 2007 */
+   str_wlist = NULL ;   /* 12 Oct 2007 */
 
    if( wpar == NULL ){
      if( wpop != NULL ){
@@ -2448,6 +2487,10 @@ ENTRY("MCW_choose_multi_strlist") ;
    wlist = XmCreateScrolledList( wrc , "menu" , NULL , 0 ) ;
 
    nvisible = (num_str < list_maxmax ) ? num_str : list_max ;
+
+   str_wlist      = wlist ;  /* 12 Oct 2007 */
+   str_wlist_num  = num_str ;
+
    XtVaSetValues( wlist ,
                     XmNitems            , xmstr ,
                     XmNitemCount        , num_str ,
@@ -2466,10 +2509,10 @@ ENTRY("MCW_choose_multi_strlist") ;
 
    XtManageChild(wlist) ;
 
-   if( mode == mcwCT_multi_mode ){
+   if( mode == mcwCT_multi_mode ){  /* multiple selections allowed at a time */
      MCW_register_help( wlist , OVC_list_help_2 ) ;
      MCW_register_help( wlab  , OVC_list_help_2 ) ;
-   } else {
+   } else {                         /* single selection allowed at a time */
      MCW_register_help( wlist , OVC_list_help_1 ) ;
      MCW_register_help( wlab  , OVC_list_help_1 ) ;
      XtAddCallback( wlist , XmNdefaultActionCallback , MCW_choose_CB , &cd ) ;
@@ -2494,20 +2537,35 @@ ENTRY("MCW_choose_multi_strlist") ;
    (void) MCW_action_area( wrc , OVC_act , NUM_OVC_ACT ) ;
 
    if( mode == mcwCT_multi_mode ){
-      MCW_arrowval *av ;
-
       (void) XtVaCreateManagedWidget(
                "menu" , xmSeparatorWidgetClass , wrc ,
                    XmNseparatorType , XmSHADOW_ETCHED_IN ,
                    XmNinitialResourcesPersistent , False ,
                NULL ) ;
 
-      av = new_MCW_optmenu( wrc , "Selection Mode" , 0,NUM_LIST_MODES-1,0,0 ,
+      wav = new_MCW_optmenu( wrc , "Selection Mode" , 0,NUM_LIST_MODES-1,0,0 ,
                             MCW_list_mode_CB , wlist ,
                             MCW_av_substring_CB , list_modes ) ;
 
-      MCW_reghelp_children( av->wrowcol , OVC_list_help_2 ) ;
-      MCW_reghint_children( av->wrowcol , "How list selections work" ) ;
+      MCW_reghelp_children( wav->wrowcol , OVC_list_help_2 ) ;
+      MCW_reghint_children( wav->wrowcol , "How list selections work" ) ;
+
+   } else if( mode == mcwCT_single_mode ){  /* 12 Oct 2007 */
+      int ival = 0 ;
+
+      (void) XtVaCreateManagedWidget(
+               "menu" , xmSeparatorWidgetClass , wrc ,
+                   XmNseparatorType , XmSHADOW_ETCHED_OUT ,
+                   XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+
+      if( init != NULL && init[0] > 0 && init[0] < num_str ) ival = init[0] ;
+
+      str_wlist_av = new_MCW_arrowval( wrc , "Index" , MCW_AV_downup ,
+                                       0 , num_str-1 , ival , MCW_AV_editext , 0 ,
+                                       MCW_strlist_av_CB , NULL , NULL , NULL ) ;
+
+      XtAddCallback(wlist,XmNbrowseSelectionCallback,MCW_strlist_select_CB,NULL);
    }
 
    XtTranslateCoords( wpar , 15,15 , &xx , &yy ) ;
@@ -2957,11 +3015,10 @@ ENTRY("MCW_choose_multi_editable_strlist") ;
                      NULL ) ;
 
       if( init != NULL ){
-         for( ib=0 ; init[ib] >= 0 && init[ib] < num_str ; ib++ ){
-            XmListSelectPos( wlist , init[ib]+1 , False ) ;
-         }
+         for( ib=0 ; init[ib] >= 0 && init[ib] < num_str ; ib++ )
+           XmListSelectPos( wlist , init[ib]+1 , False ) ;
          if( ib > 0 && init[ib-1] > nvisible )
-            XmListSetBottomPos( wlist , init[ib-1]+1 ) ;
+           XmListSetBottomPos( wlist , init[ib-1]+1 ) ;
       }
 
       for( ib=0 ; ib < num_str ; ib++ ) XmStringFree(xmstr[ib]) ;
