@@ -2550,7 +2550,8 @@ ENTRY("MCW_choose_multi_strlist") ;
       MCW_reghelp_children( wav->wrowcol , OVC_list_help_2 ) ;
       MCW_reghint_children( wav->wrowcol , "How list selections work" ) ;
 
-   } else if( mode == mcwCT_single_mode ){  /* 12 Oct 2007 */
+   } else if( mode == mcwCT_single_mode &&
+              !AFNI_noenv("AFNI_STRLIST_INDEX") ){  /* 12 Oct 2007 */
       int ival = 0 ;
 
       (void) XtVaCreateManagedWidget(
