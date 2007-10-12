@@ -1,4 +1,4 @@
-#!/bin/tcsh -xf 
+#!/bin/tcsh -f 
 if ("$1" == "-h" || "$1" == "-help") goto HELP
 
 
@@ -19,12 +19,14 @@ set pt=$pt/afni
 set od = $PWD
 
 CREATE_DATA:
-echo "Map time series data onto surface."
-echo "Map delay (statistical data) onto surface."
 set avelist = ()
 set ipref = DemoSubj_EccExpavir
-#Map the data
+
+echo "--"
+echo "Map delay (statistical data) onto surface."
+echo "--"
 rm -f ${ipref}.DEL.niml.dset
+set echo 
 3dVol2Surf        -spec ${pt}/../SurfData/SUMA/DemoSubj_lh.spec  \
                   -surf_A lh.smoothwm.asc \
                   -surf_B lh.pial.asc     \
@@ -32,8 +34,13 @@ rm -f ${ipref}.DEL.niml.dset
                   -grid_parent ${pt}/${ipref}.DEL+orig.BRIK   \
                   -map_func    ave  \
                   -out_niml ${ipref}.DEL
-                  
+unset echo
+
+echo "--"
+echo "Map time series data onto surface."
+echo "--"
 rm -f ${ipref}.niml.dset
+set echo 
 3dVol2Surf        -spec ${pt}/../SurfData/SUMA/DemoSubj_lh.spec  \
                   -surf_A lh.smoothwm.asc \
                   -surf_B lh.pial.asc     \
@@ -41,9 +48,15 @@ rm -f ${ipref}.niml.dset
                   -grid_parent ${pt}/${ipref}+orig.BRIK   \
                   -map_func    ave  \
                   -out_niml ${ipref}
-                  
-#map a full list of the correlation column to be used in masking later on
+unset echo
+                 
+
+echo "--"
+echo "Map a full (all nodes) listing of the correlation coefficients,"
+echo " to be used in masking later on"
+echo "--"
 rm -f ${ipref}.Full.DEL.niml.dset
+set echo 
 3dVol2Surf        -spec ${pt}/../SurfData/SUMA/DemoSubj_lh.spec  \
                   -surf_A lh.smoothwm.asc \
                   -surf_B lh.pial.asc     \
@@ -52,12 +65,17 @@ rm -f ${ipref}.Full.DEL.niml.dset
                   -oob_value 0  \
                   -map_func    ave  \
                   -out_niml ${ipref}.Full.DEL
+unset echo
 set avelist = ($avelist ${ipref}.niml.dset )
                   
 SMOOTHING_VARIATIONS:
-#Smooth the data by an ADDITIONAL 5 mm FWHM
+
+echo "--"
+echo "Smooth the data by an ADDITIONAL 5 mm FWHM"
+echo "--"
 set prefout = ${ipref}_sm1
 rm -rf ${prefout}*.dset ${prefout}*.log
+set echo 
 SurfSmooth     -met HEAT_07   \
                -spec ${pt}/../SurfData/SUMA/DemoSubj_lh.spec \
                -surf_A lh.smoothwm.asc    \
@@ -66,11 +84,15 @@ SurfSmooth     -met HEAT_07   \
                -detrend_master   \
                -output ${prefout}   \
                -fwhm 5 | tee ${prefout}.log
+unset echo
 set avelist = ($avelist ${prefout}.niml.dset )
  
-#Smooth the data until smoothnes REACHES 7mm  FWHM
+echo "--"
+echo "Smooth the data until smoothnes REACHES 7mm  FWHM"
+echo "--"
 set prefout = ${ipref}_sm2
 rm -rf ${prefout}*.dset ${prefout}*.log
+set echo 
 SurfSmooth     -met HEAT_07   \
                -spec ${pt}/../SurfData/SUMA/DemoSubj_lh.spec \
                -surf_A lh.smoothwm.asc    \
@@ -79,15 +101,18 @@ SurfSmooth     -met HEAT_07   \
                -detrend_master   \
                -output ${prefout}   \
                -target_fwhm 7 | tee ${prefout}.log
+unset echo
 set avelist = ($avelist ${prefout}.niml.dset )
     
-#Smooth the dataset with prespecified number of iterations, 
-#To produce same result as above (7mm target FWHM) 
-#Sigma and Niter were taken from the smoothing history file
-#This is equivalent to adding the -blurmaster with the same
-#-target_fwhm, but it is much faster because the smoothness
-#parameters are pre-specified
-
+echo "--"
+echo "Smooth the dataset with prespecified number of iterations, "
+echo " in order to produce same result as above (7mm target FWHM) "
+echo "Sigma and Niter were taken from the smoothing history file."
+echo "This is equivalent to adding the -blurmaster with the same."
+echo " -target_fwhm, but it is much faster because the smoothness"
+echo " parameters are pre-specified."
+echo "--"
+set echo 
 set params = `1dcat ${prefout}.1D.smrec'{$}'`
 set prefout = ${ipref}_sm3
 rm -rf ${prefout}*.dset ${prefout}*.log
@@ -97,24 +122,44 @@ SurfSmooth     -met HEAT_07   \
                -input ${ipref}.niml.dset     \
                -output ${prefout}   \
                -sigma  $params[3]    -Niter $params[1] | tee ${prefout}.log
+unset echo
 set avelist = ($avelist ${prefout}.niml.dset )
 
-#Same as the previous example, but blur to 5mm FWHM 
-#That would be 16 iterations at sigma of 0.415305 according to 
-#the smoothing record
+
+echo "--"
+echo "Same as the previous example, but blur to 5mm FWHM."
+echo "Now find the corresponding entry in the smoothing record."
+echo "--"
+set echo 
+1deval -a ${ipref}_sm2.1D.smrec'[1]' -expr "abs(a-5)" > tmp_diff.1D
+3dTstat -argmin -prefix tmp_min.1D tmp_diff.1D\' 
+set imin = `1dcat tmp_min.1D` 
+set params = `1dcat ${ipref}_sm2.1D.smrec"{$imin}"`
+rm -f tmp_*.1D
+unset echo
+
+echo "--"
+echo "That would be $params[1] iterations at sigma of $params[3]"
+echo " according to the smoothing record"
+echo "--"
+
 set prefout = ${ipref}_sm4
 rm -rf ${prefout}*.dset ${prefout}*.log
+set echo 
 SurfSmooth     -met HEAT_07   \
                -spec ${pt}/../SurfData/SUMA/DemoSubj_lh.spec \
                -surf_A lh.smoothwm.asc    \
                -input ${ipref}.niml.dset     \
                -output ${prefout}   \
-               -sigma  0.415305    -Niter 16 | tee ${prefout}.log
+               -sigma $params[3]    -Niter $params[1] | tee ${prefout}.log
+unset echo
 set avelist = ($avelist ${prefout}.niml.dset )
  
 
-#Check results from a single activated node
-#Node 5779 is in the occipital cortex and well activated
+echo "--"
+echo "Looking at time series from single node 5779"
+echo "--"
+
 set node = 5779
 set nl = ()
 foreach dset ($avelist)
@@ -123,14 +168,16 @@ foreach dset ($avelist)
    ConvertDset -input ${dset}'{5779}' -o_1Dpt_stdout > ${pref}_node${node}.1D
    set nl = ($nl ${pref}_node${node}.1D)
 end
-1dcat $nl | 1dplot -nopush -one -stdin
+1dcat $nl | 1dplot -nopush -one -stdin &
 
 
-#Now blur the delay data now based on the master timeseries
-
-#pretend you had no smoothing record for this master 
+echo "--"
+echo "Blurring the delay data using the master timeseries"
+echo "Pretend we had no smoothing record for this master"
+echo "--" 
 set prefout = ${ipref}.DEL_smd1
 rm -rf ${prefout}*.dset ${prefout}*.log
+set echo 
 SurfSmooth     -met HEAT_07   \
                -spec ../../SurfData/SUMA/DemoSubj_lh.spec \
                -surf_A lh.smoothwm.asc    \
@@ -139,26 +186,33 @@ SurfSmooth     -met HEAT_07   \
                -blurmaster ${ipref}.niml.dset     \
                -detrend_master   \
                -target_fwhm 5 | tee ${prefout}.log
+unset echo
 
-#Or if you had the record, you could have run:
-#Verify the results by looking at smoothed and unsmoothed .DEL data 
+echo "--"
+echo "We could have used the previous records still stored"
+echo " in params variable. ($params)"
+echo "--"
 set prefout = ${ipref}.DEL_smd2
 rm -rf ${prefout}*.dset ${prefout}*.log
+set echo 
 SurfSmooth     -met HEAT_07   \
                -spec ../../SurfData/SUMA/DemoSubj_lh.spec \
                -surf_A lh.smoothwm.asc    \
                -input ${ipref}.DEL.niml.dset     \
                -output ${prefout}   \
-               -sigma  0.415305    -Niter 16 | tee ${prefout}.log
+               -sigma  $params[3]    -Niter $params[1] | tee ${prefout}.log
+unset echo
 
-
-#Blur a specific section only using blurmaster
-#Note that mask is applied to master also
-#Verify results by looking at smoothed and unsmoothed .DEL data
-#The results will not be similar to smd1 in the mask zone
-#because the starting FWHM of the master is different in the mask area
+echo "--"
+echo "Blur a specific section (mask) only using blurmaster"
+echo "Note that mask is applied to master also so smoothness"
+echo " estimates come from mask region only and could therefore"
+echo " vary from cases where the smoothness was estimated from"
+echo " entire dataset such as in _smd1."
+echo "--"
 set prefout = ${ipref}.DEL_smd3
 rm -rf ${prefout}*.dset ${prefout}*.log
+set echo 
 SurfSmooth     -met HEAT_07   \
                -spec ../../SurfData/SUMA/DemoSubj_lh.spec \
                -surf_A lh.smoothwm.asc    \
@@ -168,13 +222,17 @@ SurfSmooth     -met HEAT_07   \
                -blurmaster ${ipref}.niml.dset     \
                -detrend_master         \
                -target_fwhm 5 | tee ${prefout}.log
+unset echo
 
-#Repeat the previous step, this time basing the number of iterations 
-#on the smoothing record from the entire blurmaster, 
-#rather than the masked blurmaster
-#In this case, smd4 is pretty much like smd1 inside mask zone
+echo "--"
+echo "Repeat the previous step, this time basing the number of iterations" 
+echo " on the smoothing record from the entire blurmaster, "
+echo " rather than the masked blurmaster."
+echo "In this case, smd4 is pretty much like smd1 inside mask zone."
+echo "--"
 set prefout = ${ipref}.DEL_smd4
 rm -rf ${prefout}*.dset ${prefout}*.log
+set echo 
 SurfSmooth     -met HEAT_07   \
                -spec ../../SurfData/SUMA/DemoSubj_lh.spec \
                -surf_A lh.smoothwm.asc    \
@@ -182,6 +240,32 @@ SurfSmooth     -met HEAT_07   \
                -cmask "-a ${ipref}.Full.DEL.niml.dset -expr step(a-0.4)" \
                -output ${prefout}   \
                -sigma  0.415305    -Niter 16| tee ${prefout}.log
+unset echo
+
+
+echo ""
+echo ""
+echo "------------"
+echo "--"
+echo "To visualize results, you can launch suma with:"
+echo "   suma -niml -spec $pt/../../SurfData/SUMA/DemoSubj_lh.spec -sv $pt/DemoSubj_SurfVol_Alnd_Exp+orig.HEAD &"
+echo ""
+echo "Then load datasets:"
+echo "   DemoSubj*.DEL_smd[1-4]*.niml.dset and *.Full.DEL.niml.dset"
+echo "   using SUMA's control surface interface and switch between datasets to view the reuslts.\n"
+echo "You probably want to turn on '1 Only' to avoid confusion."
+echo ""
+echo "Or if you are lazy, cut and paste the following:"
+echo ""
+echo 'set lst = (DemoSubj*.DEL_smd[1-4]*.niml.dset *.Full.DEL.niml.dset)'
+echo 'foreach ds ($lst)'
+echo '   DriveSuma -com surf_cont -load_dset $ds -surf_label lh.smoothwm.asc -1_only y'
+echo 'end'
+echo ""
+echo "That will load the datasets in question for you."
+echo "For more info on automation, see @DriveSuma and @DriveAfni."
+echo "--"
+echo "------------"
 
 
 goto END
@@ -189,6 +273,8 @@ goto END
 HELP:
 echo "Usage: `basename $0` <path_to_suma_demo>"
 echo "A script to illustrate controlled blurring of data on the surface."
+echo "Requires archive: http://afni.nimh.nih.gov/pub/dist/edu/data/SUMA_demo.tgz"
+echo ""
 goto END
 
 END:
