@@ -473,6 +473,16 @@ ENTRY("populate_nifti_image") ;
             fprintf(stderr,"+d timing pattern '%s', slice %d to %d, stime %f\n",
                nifti_slice_string(pattern), sfirst, slast, nim->slice_duration);
       }
+
+      /* if toffset is 0 and the timing patter is known and the minimum
+       * slice offset is positive, the toffset to that minimum
+       *                                        12 Oct 2007 [rickr] */
+      if( nim->toffset == 0.0 && nim->slice_code != NIFTI_SLICE_UNKNOWN ){
+         float tmin = tlist[0];
+         for (ii = 1 ; ii < nim->nz ; ii++ )
+            if( tlist[ii] < tmin ) tmin = tlist[ii] ;
+         if( tmin > 0.0 ) nim->toffset = tmin ;
+      }
     }
 
     nim->time_units = NIFTI_UNITS_SEC ;
