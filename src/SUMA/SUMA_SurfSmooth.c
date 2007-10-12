@@ -27,14 +27,16 @@ void usage_SUMA_SurfSmooth ()
               "            This method is used to filter data\n"
               "            on the surface. It is an significant\n"
               "            improvement on HEAT_05.\n"
-              "      HEAT_05: <-input inData.1D> <-fwhm F> <-Niter N>  \n"
+              "      HEAT_05: <-input inData.1D> <-fwhm F>  \n"
               "            Formerly known as HEAT, this method is used \n"
               "            to filter data on the surface. \n"
               "            Parameter choice is tricky however as one\n"
               "            needs to take into account mesh dimensions,\n"
               "            desired FWHM, and the data's starting FWHM in \n"
               "            order to make an appropriate selection.\n"
-              "            I do not recommend you use it anymore.\n"
+              "            Consider using HEAT_07 instead.\n"
+              "            Note that this version will select the number\n"
+              "            of iterations to avoid precision errors.\n"
 /*            "      LB_FEM: <-input inData.1D> <-fwhm f>\n"
               "              This method is used to filter data\n"
               "              on the surface.\n" */
@@ -99,7 +101,7 @@ void usage_SUMA_SurfSmooth ()
               "               of the Euclidean distances. See Ref #1 for more details \n"
               "               on this parameter.\n"   */ 
               "\n"
-              "   Options for HEAT_07:\n"
+              "   Options for HEAT_07 (see @SurfSmooth.HEAT_07.examples for examples):\n"
               "      -input inData : file containing data (in 1D or NIML format)\n"
               "                        Each column in inData is processed separately.\n"
               "                        The number of rows must equal the number of\n"
@@ -112,8 +114,11 @@ void usage_SUMA_SurfSmooth ()
               "               in surface coordinate units (usuallly mm) of F.\n"
               "               For Gaussian filters, FWHM, SIGMA (STD-DEV) and RMS\n"
               "               FWHM = 2.354820 * SIGMA = 1.359556 * RMS\n"
-              "               Blurring on the surface depends on the geodesic instead \n"
-              "               of the Euclidean distances. \n"
+              "               The program first estimates the initial dataset's smoothness\n"
+              "               and determines the final FWHM (FF) that would result from \n"
+              "               the added blurring by the filter of width F.\n"  
+              "               The progression of FWHM is estimated with each iteration, \n"
+              "               and the program stops when the dataset's smoothness reaches FF.\n"
               "   or \n"
               "      -target_fwhm TF: Blur so that the final FWHM of the data is TF mm\n"
               "                       This option avoids blurring already smooth data.\n"
@@ -121,9 +126,17 @@ void usage_SUMA_SurfSmooth ()
               "                       to be processed.\n"
               "      -blurmaster BLURASTER: Blur so that the final FWHM of dataset BLURASTER\n"
               "                       is TF mm then use the same blurring parameters on inData.\n"
-              "                       You should almost ALWAYS use the -blurmaster option in conjunction\n"
-              "                       with options -fwhm and target_fwhm\n"
-              "                       BLURMASTER is typically epi time series.\n" 
+              "                       In most cases, you ought to use the -blurmaster option \n"
+              "                       in conjunction with options -fwhm and target_fwhm\n"
+              "                       BLURMASTER is typically an epi time series or the residual\n"
+              "                       timeseries (errts) from 3dDeconvolve.\n"
+              "                       After detrending (see option -detrend_master), a subset of\n"
+              "                       sub-bricks will be selected for estimating the smoothness.\n"
+              "                       Using all the sub-bricks would slow the program down.\n"
+              "                       The selection is similar to what is done in 3dBlurToFWHM\n"
+              "                       At most 32 sub-bricks are used and they are selected to be\n"
+              "                       scattered throughout the timeseries. You can use -bmall\n"
+              "                       to force the use of all sub-bricks.\n"  
               "      -detrend_master [q]: Detrend blurmaster with 2*q+3 basis functions with q > 0.\n"
               "                         default is -1 where q = NT/30.\n"
               "                         This option should be used when BLURMASTER is an epi time series.\n"
@@ -131,6 +144,7 @@ void usage_SUMA_SurfSmooth ()
               "                         from a linear regression analysis.\n"
               "      -detpoly_master p: Detrend blurmaster with polynomials of order p.\n"
               "      -detprefix_master d: Save the detrended blurmaster into a dataset with prefix 'd'.\n"
+              "      -bmall: Use all sub-bricks in master for FWHM estimation.\n"
               "      -detrend_in [q]: Detrend input before blurring it, then retrend \n"
               "                       it afterwards. Default is no detrending.\n"
               "                       Detrending mode is similar to detrend_master.\n"
@@ -161,7 +175,7 @@ void usage_SUMA_SurfSmooth ()
               "   1- For those of you who know what they are doing, you can also skip \n"
               "   specifying fwhm options and specify Niter and sigma directly.\n"
               "\n"
-              "   Options for HEAT_05  (not recommended anymore):\n"
+              "   Options for HEAT_05  (Consider HEAT_07 method):\n"
               "      -input inData : file containing data (in 1D or NIML format)\n"
               "                        Each column in inData is processed separately.\n"
               "                        The number of rows must equal the number of\n"
@@ -177,7 +191,10 @@ void usage_SUMA_SurfSmooth ()
               "               FWHM = 2.354820 * SIGMA = 1.359556 * RMS\n"
               "               Blurring on the surface depends on the geodesic instead \n"
               "               of the Euclidean distances. \n"
-              "       and one of the following two parameters:\n"
+              "               Unlike with HEAT_07, no attempt is made here at direct\n"
+              "               estimation of smoothness.\n"
+              "\n"
+              "      Optionally, you can add one of the following two parameters:\n"
               "                     (See Refs #3&4 for more details)\n"
               "      -Niter N: Number of iterations (default is -1).\n"
               "                You can now set this parameter to -1 and have \n"
@@ -185,7 +202,7 @@ void usage_SUMA_SurfSmooth ()
               "                Too large or too small a number of iterations can affect \n"
               "                smoothing results. Acceptable values depend on \n"
               "                the average distance between nodes on the mesh and\n"
-              "                the desired fwhm.\n"
+              "                the desired fwhm. \n"
               "      -sigma  S: Bandwidth of smoothing kernel (for a single iteration).\n"
               "                 S should be small (< 1) and is related to the previous two\n"
               "                 parameters by: F = sqrt(N) * S * 2.355\n"
@@ -289,8 +306,12 @@ void usage_SUMA_SurfSmooth ()
               "         quickspec -tn 1D NodeList.1D FaceSetList.1D \n"
               "\n"
               "   Sample commands lines for data smoothing:\n"
-              "      SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met HEAT   \\\n"
-              "                  -input in.1D -Niter -1 -fwhm 8 -add_index         \\\n"
+              " \n"     
+              "      For HEAT_07 method, see multiple examples with data in script\n"
+              "                  @SurfSmooth.HEAT_07.examples\n"
+              "\n"       
+              "      SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met HEAT_05   \\\n"
+              "                  -input in.1D -fwhm 8 -add_index         \\\n"
               "                  -output in_smh8.1D.dset \n"
 /*              "      Or using the older (less recommended method):\n"
               "      SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met LB_FEM   \\\n"
@@ -416,6 +437,7 @@ typedef struct {
    int detrend_in;
    int detpoly_in;
    char *detprefix_in;
+   int bmall;
    
    byte scaleinput;
    byte scalemaster;
@@ -492,6 +514,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
    outname = NULL; ooo=NULL;
    exists = 0;
    Opt->overwrite = 0;
+   Opt->bmall = 0;
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -525,6 +548,10 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
       }
       if (!brk && (strcmp(argv[kar], "-no_detrend_master") == 0)) {
 			Opt->detrend_master = -2;
+			brk = YUP;
+		}
+      if (!brk && (strcmp(argv[kar], "-bmall") == 0)) {
+			Opt->bmall = 1;
 			brk = YUP;
 		}
       if( strcmp(argv[kar],"-detprefix_master") == 0 ){
@@ -1736,7 +1763,7 @@ int main (int argc,char *argv[])
                }
 
                if (Opt->detrend_master > 0 || Opt->detpoly_master > -1) {
-                  /* there is work to do detrending the input */
+                  /* there is work to do detrending the master */
 
                   /* need to take dataset to AFNI master_dset */
                   if (!(inset = SUMA_sumadset2afnidset(&master_dset, 1, 1))) {
@@ -1770,6 +1797,28 @@ int main (int argc,char *argv[])
 
                   /* Now back to SUMA_DSET */
                   master_dset = SUMA_afnidset2sumadset(&inset, 1, 1); /* don't need afni volume anymore */
+               
+                  if (!Opt->bmall) { /* a la 3dBlurToFWHM */
+                     int ntouse, idel, ibot, cnt, ibm;
+                     SUMA_DSET *ndset=NULL;
+                     byte *colmask=NULL;
+                     
+                     ntouse = SUMA_MIN_PAIR(SDSET_VECNUM(master_dset), 32);
+                     idel = SDSET_VECNUM(master_dset)/ntouse;
+                     ibot = (SDSET_VECNUM(master_dset)-1 - idel*(ntouse-1)) / 2;
+                     SUMA_S_Notev("Using blurmaster sub-bricks [%d..%d(%d)]\n", ibot, ibot+(ntouse-1)*idel, idel);
+                     colmask = (byte *)SUMA_malloc(SDSET_VECNUM(master_dset)*sizeof(byte));
+                     cnt = 0;
+                     for (ibm=ibot ; ibm < SDSET_VECNUM(master_dset) && cnt < ntouse  ; ibm+=idel ) {
+                        colmask[ibm] = 1; ++cnt;
+                     }
+                     if (!(ndset = SUMA_MaskedCopyofDset(master_dset, NULL, colmask, 0,0))) {
+                        SUMA_S_Err("Failed to make copy of master_dset!");
+                        exit(1);
+                     }
+                     SUMA_FreeDset((void*)master_dset); master_dset = ndset; ndset=NULL;
+                     SUMA_free(colmask); colmask=NULL;
+                  }
                }
             }
 
