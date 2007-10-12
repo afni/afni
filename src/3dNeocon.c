@@ -1,5 +1,7 @@
 #include "mrilib.h"
 
+static int verb = 1 ;
+
 static void NCO_help(void) ;  /* prototype */
 
 /*---------------------------------------------------------------------------*/
@@ -16,6 +18,8 @@ static void NCO_help(void) ;  /* prototype */
 #endif
 
 /*---------------------------------------------------------------------------*/
+/* Everything needed to solve one linear problem (baseline and full models) */
+
 typedef struct {
   matrix x_all ;  /* the whole matrix (before censoring): nall X p */
   matrix x_full ; /* after censoring: nfull X p */
@@ -37,15 +41,19 @@ typedef struct {
  } while(0)
 
 /*---------------------------------------------------------------------------*/
+/* Specify one HRF model function */
+
 typedef struct {
-  int parnum ;
-  float tbot , ttop ;
-  float *parval , *parbot , *partop ;
-  void *qpar ;
-  float (*f)(float,int,float *,void *) ;
+  int parnum ;                          /* number of parameters */
+  float tbot , ttop ;                   /* start and stop times */
+  float *parval , *parbot , *partop ;   /* parameter values and ranges */
+  void *qpar ;                          /* other information */
+  float (*f)(float,int,float *,void *); /* function to evaluate HRF */
 } hrf_model ;
 
 /*---------------------------------------------------------------------------*/
+/* Everything needed to solve the nonlinear problem. */
+
 typedef struct {
   int polort, /* number of polynomial parameters PER run */
       qp,     /* total number of polynomial baseline parameters */
@@ -54,16 +62,21 @@ typedef struct {
       nall ,  /* number of input data rows (before censoring) */
       nfull ; /* number of input data rows (after censoring) */
 
+  int ngood ;     /* 0 if no censoring, or nfull if censoring */
   int *goodlist ; /* goodlist[i] = index of i-th good row in all data */
   int  run_num ;  /* number of runs in total data */
   int *run_start; /* run_start[i] = data index of start of run #i */
 
-  int          nprob ;      /* number of linear setups */
-  linear_setup *prob ;
+  int          nprob ;      /* number of linear setups (slices) */
+  linear_setup *prob ;      /* one per slice */
   float        *prob_toff ; /* time shift for each prob */
 
+                /* Data time series from input dataset,
+                   separated into slices and in time-then-space order: */
   int   *nvec ; /* nvec[i] = # vectors (length=nfull) in prob #i */
   float **vec ; /* vec[i]  = ptr to nvec[i] data vectors */
+  int  **ivec ; /* ivec[i][k] = 3D index of where k-th data vector is from */
+  int nx,ny,nz; /* spatial dimensions of input grid */
 
   int    num_hrf ;  /* number of HRF model functions we're finding */
   hrf_model *hrf ;  /* description of HRF model function */
@@ -75,26 +88,34 @@ typedef struct {
 } nonlinear_setup ;
 
 /*---------------------------------------------------------------------------*/
+/* Given the x_all matrix, finish setting up the rest of the stuff
+   (i.e., extract the full and base matrices, compute pseudo-inverses).
+-----------------------------------------------------------------------------*/
 
-void NCO_complete_linear_setup( linear_setup *ls, int ngood, int *goodlist, int qb )
+void NCO_finish_linear_setup( linear_setup *ls, int ngood, int *goodlist, int qb )
 {
-   matrix *xf ;
+   matrix *xf ;  /* stand-in for full matrix */
 
-ENTRY("complete_linear_setup") ;
+ENTRY("NCO_finish_linear_setup") ;
 
    if( !ISVALID_MATRIX(ls->x_all) ){
-     WARNING_message("Unprepared call to complete_linear_setup"); EXRETURN;
+     WARNING_message("Unprepared call to NCO_finish_linear_setup"); EXRETURN;
    }
+
+   /* on each entry, x_all was changed in the HRF part,
+      so need to re-extract and pseudo-invert the x_full sub-matrix */
 
    if( ISVALID_MATRIX(ls->x_full) ) matrix_destroy( &(ls->x_full) ) ;
 
-   if( ngood > 0 && goodlist != NULL ){
+   if( ngood > 0 && goodlist != NULL ){  /* if any censoring was done */
      xf = &(ls->x_full) ;
      matrix_extract_rows( ls->x_all , ngood,goodlist , xf ) ;
-   } else {
+   } else {                              /* no censoring was done */
      xf = &(ls->x_all) ;
    }
    matrix_psinv( *xf , &(ls->xtxinv_full) , &(ls->xtxinvxt_full) ) ;
+
+   /* only on first entry should baseline part of x_all change */
 
    if( qb > 0 && !ISVALID_MATRIX(ls->x_base) ){
      int *qlist=malloc(sizeof(int)*qb) , ii ;
@@ -108,6 +129,7 @@ ENTRY("complete_linear_setup") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Erase the forgettable parts of a linear_setup struct. */
 
 void NCO_clear_linear_setup( linear_setup *ls , int dobase )
 {
@@ -122,54 +144,70 @@ void NCO_clear_linear_setup( linear_setup *ls , int dobase )
 }
 
 /*---------------------------------------------------------------------------*/
+/* Extract all slice data in the mask from the given dataset.
+   Output is an image of time series vectors, and an image of their
+   3D indexes in the dataset array.
+-----------------------------------------------------------------------------*/
 
-MRI_IMAGE * NCO_extract_slice( THD_3dim_dataset *dset, int ss,
+MRI_IMARR * NCO_extract_slice( THD_3dim_dataset *dset, int ss,
                                byte *mask, int ngood, int *goodlist )
 {
    int ii,jj,kk,vv,uu,ww , nx,ny,nz , nt,ng , nin;
    MRI_IMAGE *sim ; float *sar , *tar , *qar ;
+   MRI_IMAGE *iim ; int *iar ;
+   MRI_IMARR *imar ;
 
 ENTRY("NCO_extract_slice") ;
 
-   DSET_load(dset);
-   if( !DSET_LOADED(dset) ) ERROR_exit("input dataset not loadable!?") ;
    nx = DSET_NX(dset); ny = DSET_NY(dset);
    nz = DSET_NZ(dset); nt = DSET_NVALS(dset);
    if( ss < 0 || ss >= nz ) ERROR_exit("illegal slice index %d!?",ss) ;
+
+   /* number of output time points */
    ng = (ngood > 0 && goodlist != NULL) ? ngood : nt ;
 
-   vv = ss*nx*ny ;
-   if( mask != NULL ){
+   vv = ss*nx*ny ;     /* slice index offset into 3D arrays */
+   if( mask != NULL ){ /* count number of voxels in mask & in this slice */
      for( nin=jj=0 ; jj < ny ; jj++ ){
        uu = vv + jj*nx ;
        for( ii=0 ; ii < nx ; ii++ ) if( mask[ii+uu] ) nin++ ;
      }
      if( nin == 0 ) RETURN(NULL) ;
    } else {
-     nin = nx*ny ;  /* all voxels in slice */
+     nin = nx*ny ;     /* use all voxels in slice */
    }
 
-   sim = mri_new(ng,nin,MRI_FLOAT) ; sar = MRI_FLOAT_PTR(sim) ;
+   /* create output image */
+
+   sim = mri_new(ng,nin,MRI_float) ; sar = MRI_FLOAT_PTR(sim) ;
+   iim = mri_new(nin,1 ,MRI_int)   ; iar = MRI_INT_PTR  (iim) ;
+
+   /* perhaps need temp staging area for array from dataset? */
+
    if( ng < nt ) tar = (float *)malloc(sizeof(float)*nt) ;
    else          tar = NULL ;
 
-   for( kk=jj=0 ; jj < ny ; jj++ ){
-     uu = vv + jj*nx ;
+   /* loop over voxels in this slice */
+
+   for( kk=jj=0 ; jj < ny ; jj++ ){  /* kk=output voxel index */
+     uu = vv + jj*nx ;               /* uu=index to jj-th row in slice */
      for( ii=0 ; ii < nx ; ii++ ){
-       if( mask != NULL && mask[ii+uu] == 0 ) continue ;
-       qar = sar + kk*ng ;
-       if( tar != NULL ){
+       if( mask != NULL && mask[ii+uu] == 0 ) continue ; /* skip this'n */
+       qar = sar + kk*ng ;           /* where to store output */
+       if( tar != NULL ){            /* get temp array, then sub-sample */
          THD_extract_array( ii+uu , dset , 0 , tar ) ;
          for( ww=0 ; ww < ng ; ww++ ) qar[ww] = tar[goodlist[ww]] ;
-       } else {
+       } else {                      /* get directly into output */
          THD_extract_array( ii+uu , dset , 0 , qar ) ;
        }
-       kk++ ;
+       iar[kk] = ii+uu ; /* save index of where this data vector came from */
+       kk++ ;            /* increment count of saved voxel vectors */
      }
    }
 
-   if( tar != NULL ) free((void *)tar) ;
-   RETURN(sim) ;
+   if( tar != NULL ) free((void *)tar) ;  /* toss some trash */
+
+   INIT_IMARR(imar); ADDTO_IMARR(imar,sim); ADDTO_IMARR(imar,iim); RETURN(imar);
 }
 
 /*===========================================================================*/
@@ -188,8 +226,9 @@ int main( int argc , char *argv[] )
    int         num_CENSOR=0 ;
    int_triple *abc_CENSOR=NULL ;
 
-   int ii,jj , nslice ;
+   int ii,jj,kk , nslice , nt ;
    int nmask=0 ; byte *mask=NULL ;
+   MRI_IMAGE *sim,*iim ; MRI_IMARR *imar ; float *sar ; int *iar ;
 
    /*----- help the pitiful user? -----*/
 
@@ -347,6 +386,19 @@ int main( int argc , char *argv[] )
        continue ;  /* next option */
      }
 
+     /*----------*/
+
+     if( strcasecmp(argv[iarg],"-verb") == 0 ){ verb++ ; iarg++ ; continue ; }
+     if( strcasecmp(argv[iarg],"-quiet")== 0 ){ verb=0 ; iarg++ ; continue ; }
+
+     /*----------*/
+
+     if( strcmp(argv[iarg],"-stimtime") == 0 ){ iarg++ ; continue ; }
+     if( strcmp(argv[iarg],"-threshtype") == 0 ){ iarg++ ; continue ; }
+     if( strcmp(argv[iarg],"-fitts") == 0 ){ iarg++ ; continue ; }
+     if( strcmp(argv[iarg],"-errts") == 0 ){ iarg++ ; continue ; }
+     if( strcmp(argv[iarg],"-cbucket") == 0 ){ iarg++ ; continue ; }
+
      /*==========*/
 
      ERROR_exit("Unknown argument: '%s'",argv[iarg]) ;
@@ -355,22 +407,37 @@ int main( int argc , char *argv[] )
 
    /*--- check for input errors or inconsistencies ---*/
 
-   if( iarg < argc ) WARNING_message("argument underrun???") ;
+   if( iarg < argc ) WARNING_message("arguments after last option???") ;
 
    if( inset == NULL ) ERROR_exit("No -input dataset given?") ;
 
-   if( concatim != NULL && DSET_IS_TCAT(inset) )
-     WARNING_message("-concat ignored since -input catenated on command line");
+   /* check CENSOR command for run indexes: should all have them, or none */
 
-   /*----- run start indexes -----*/
+   if( abc_CENSOR != NULL ){
+     int ic , rr , nzr=0 ;
+     for( ic=0 ; ic < num_CENSOR ; ic++ ) /* count number with run != 0 */
+       if( abc_CENSOR[ic].i ) nzr++ ;
+     if( nzr > 0 && nzr < num_CENSOR )
+       WARNING_message("%d -CENSORTR commands have run: numbers and %d do not!" ,
+                       nzr , num_CENSOR-nzr ) ;
+   }
 
-   if( DSET_IS_TCAT(inset) ){
+   /*----- setup run start indexes -----*/
+
+   nt = DSET_NVALS(inset) ;
+
+   if( DSET_IS_TCAT(inset) ){  /* from dataset catenated on command line */
+
+     if( concatim != NULL )
+       WARNING_message("-concat ignored since -input catenated on command line");
      nls->run_num   = inset->tcat_num ;
      nls->run_start = (int *)malloc( sizeof(int)*nls->run_num ) ;
      nls->run_start[0] = 0 ;
      for( ii=0 ; ii < nls->run_num-1 ; ii++ )
        nls->run_start[ii+1] = nls->run_start[ii] + inset->tcat_len[ii] ;
-   } else if( concatim != NULL ){
+
+   } else if( concatim != NULL ){  /* from -concat */
+
      float *car = MRI_FLOAT_PTR(concatim) ;
      nls->run_num   = concatim->nvox ;
      nls->run_start = (int *)malloc( sizeof(int)*nls->run_num ) ;
@@ -381,7 +448,12 @@ int main( int argc , char *argv[] )
      for( ii=1 ; ii < nls->run_num ; ii++ )
        if( nls->run_start[ii] <= nls->run_start[ii-1] ) jj++ ;
      if( jj > 0 ) ERROR_exit("Disorderly run start indexes in -concat") ;
-   } else {
+     if( nls->run_start[nls->run_num-1] >= nt )
+       ERROR_exit("last -concat value %d is after end of input dataset (%d)?!",
+                  nls->run_start[nls->run_num-1] , nt-1 ) ;
+
+   } else {  /* default = just 1 big happy run */
+
      nls->run_num      = 1 ;
      nls->run_start    = (int *)malloc(sizeof(int)) ;
      nls->run_start[0] = 0 ;
@@ -390,24 +462,125 @@ int main( int argc , char *argv[] )
    /*----- mask-ification -----*/
 
    if( automask ){
+     if( verb > 1 ) INFO_message("Making automask from input dataset") ;
      mask = THD_automask( inset ) ;
      if( mask == NULL ) ERROR_exit("automask-ing fails?!") ;
      nmask = THD_countmask( DSET_NVOX(inset) , mask ) ;
-     INFO_message("%d voxels in automask",nmask) ;
+     if( verb ) INFO_message("%d voxels in automask",nmask) ;
    } else if( maskset != NULL ){
      if( DSET_NVOX(maskset) != DSET_NVOX(inset) )
        ERROR_exit("-mask and -input datasets not the same size!") ;
      if( !EQUIV_GRIDS(maskset,inset) )
        WARNING_message("-mask and -input datasets have differing grids!") ;
+     if( verb > 1 ) INFO_message("reading mask dataset") ;
      mask = THD_makemask( maskset , 0 , 1.0f,-1.0f ) ;
      DSET_delete(maskset) ;
      if( mask == NULL ) ERROR_exit("mask is empty?!") ;
      nmask = THD_countmask( DSET_NVOX(inset) , mask ) ;
-     INFO_message("%d voxels in mask",nmask) ;
+     if( verb ) INFO_message("%d voxels in mask",nmask) ;
    } else {
      nmask = DSET_NVOX(inset) ; mask = NULL ;
-     INFO_message("no masking ==> will process all %d voxels",nmask) ;
+     if( verb ) INFO_message("no masking ==> will process all %d voxels",nmask) ;
    }
+
+   /*----- construct the goodlist (from the censoring data) -----*/
+
+   nls->nall = nt ;
+   if( num_CENSOR == 0 || abc_CENSOR == NULL ){
+     nls->ngood = 0 ; nls->goodlist = NULL ; nls->nfull = nt ;
+     if( verb > 1 )
+       INFO_message("no censoring ==> all %d time points used",nt) ;
+   } else {
+     int ic,it , rr , aa,bb , nerr=0 , bbot,btop , nblk=nls->run_num ;
+     byte *cenar=(byte *)malloc(sizeof(byte)*nt) ;
+     for( it=0 ; it < nt ; it++ ) cenar[it] = 1 ;
+     for( ic=0 ; ic < num_CENSOR ; ic++ ){  /* loop over CENSOR commands */
+       rr = abc_CENSOR[ic].i ;
+       aa = abc_CENSOR[ic].j ; if( aa < 0  ) continue ;  /* shouldn't happen */
+       bb = abc_CENSOR[ic].k ; if( bb < aa ) continue ;  /* shouldn't happen */
+       if( rr == -666 ){  /* run = wildcard ==> expand to nblk new triples */
+         int_triple rab ;
+         abc_CENSOR = (int_triple *)realloc( abc_CENSOR ,
+                                             sizeof(int_triple)*(num_CENSOR+nblk) );
+        for( rr=1 ; rr <= nblk ; rr++ ){
+           rab.i = rr; rab.j = aa; rab.k = bb; abc_CENSOR[num_CENSOR++] = rab;
+         }
+         continue ;  /* skip to next one */
+       }
+       if( rr > 0 ){       /* convert local indexes to global */
+         if( rr > nblk ){  /* stupid user */
+           ERROR_message("-CENSORTR %d:%d-%d has run index out of range 1..%d",
+                         rr,aa,bb , nblk ) ;
+           nerr++ ; aa = -66666666 ;
+         } else {
+           bbot = nls->run_start[rr-1] ;        /* start index of block #rr */
+           btop = (rr < nblk) ? nls->run_start[rr]-1 : nt-1 ; /* last index */
+           if( aa+bbot > btop ){  /* WTF? */
+             WARNING_message(
+              "-CENSORTR %d:%d-%d has start index past end of run (%d) - IGNORING",
+              rr,aa,bb,btop-bbot ) ; aa = -66666666 ;
+           } else if( bb+bbot > btop ){  /* oopsie */
+             WARNING_message(
+              "-CENSORTR %d:%d-%d has stop index past end of run (%d) - STOPPING THERE",
+              rr,aa,bb,btop-bbot ) ;
+           }
+           aa += bbot ; bb += bbot ; if( bb > btop ) bb = btop ;
+         }
+       } else {           /* global indexes: check for stupidities */
+         if( aa >= nt ){
+           WARNING_message(
+            "-CENSORTR %d..%d has start index past end of data (%d) - IGNORING",
+            rr,aa,bb,nt-1 ) ; aa = -66666666 ;
+         } else if( bb > nt ){
+           WARNING_message(
+            "-CENSORTR %d..%d has stop index past end of data (%d) - STOPPING THERE",
+            rr,aa,bb,nt-1 ) ; bb = nt-1 ;
+         }
+       }
+       if( aa < 0  || aa >= nt ) continue ;  /* nothing to do */
+       if( bb < aa || bb >= nt ) continue ;
+       if( verb > 1 )
+         ININFO_message("applying -CENSORTR global time indexes %d..%d",aa,bb) ;
+       for( it=aa ; it <= bb ; it++ ) cenar[it] = 0 ;
+     } /* end of loop over CENSOR commands */
+     if( nerr > 0 ) ERROR_exit("Can't continue! Fix the -CENSORTR error%s",
+                               (nerr==1) ? "." : "s." ) ;
+     free((void *)abc_CENSOR) ; abc_CENSOR = NULL ; num_CENSOR = 0 ;
+     nls->goodlist = (int *)malloc(sizeof(int)*nt) ;
+     for( ic=it=0 ; it < nt ; it++ ){
+       if( cenar[it] ) nls->goodlist[ic++] = it ;
+     }
+     nls->ngood = nls->nfull = ic ;
+     if( ic < 3 ) ERROR_exit("Number of points surviving censoring = %d",ic) ;
+     free((void *)cenar) ;
+     if( verb > 1 )
+       INFO_message("censoring ==> %d time points used (out of %d total)",
+                    nls->ngood , nt ) ;
+   }
+
+   /*----- extract time series from input dataset -----*/
+
+   if( verb > 1 ) INFO_message("loading time series vectors") ;
+
+   DSET_load(inset); CHECK_LOAD_ERROR(inset);
+
+   nls->nz = DSET_NZ(inset); nls->ny = DSET_NY(inset); nls->nx = DSET_NX(inset);
+   nls->nprob = nls->nz ;
+   nls->nvec  = (int *)   calloc(nls->nprob,sizeof(int)    ) ;
+   nls->vec   = (float **)calloc(nls->nprob,sizeof(float *)) ;
+   nls->ivec  = (int **)  calloc(nls->nprob,sizeof(int *)  ) ;
+   for( kk=0 ; kk < nls->nz ; kk++ ){
+     imar = NCO_extract_slice( inset, kk, mask, nls->ngood,nls->goodlist ) ;
+     if( imar == NULL || IMARR_COUNT(imar) != 2 )
+       ERROR_exit("Can't extract data time series vectors?!") ;
+     sim = IMARR_SUBIM(imar,0) ; sar = MRI_FLOAT_PTR(sim) ;
+     iim = IMARR_SUBIM(imar,1) ; iar = MRI_INT_PTR  (iim) ;
+     nls->vec[kk]  = MRI_FLOAT_PTR(sim) ; mri_clear_data_pointer(sim) ;
+     nls->ivec[kk] = MRI_INT_PTR(iim)   ; mri_clear_data_pointer(iim) ;
+     nls->nvec[kk] = iim->nx ;
+     DESTROY_IMARR(imar) ;
+   }
+   DSET_unload(inset) ;
 
    /************/
    exit(0) ;
@@ -527,8 +700,11 @@ static void NCO_help(void)
     " [-fitts fprefix]   = Output a fitted time series model dataset.\n"
     " [-errts eprefix]   = Output the residuals into a dataset.\n"
     " [-cbucket cprefix] = Output the fit coefficients into a dataset.\n"
+    "\n"
+    " [-verb]  = Increase the verbosity of the messages as the program runs.\n"
+    " [-quiet] = Turn off informational progress messages.\n"
    ) ;
 
-   printf("\nAUTHOR = Zhark the Experimental, October 2007\n\n" ) ;
+   printf("\n*** AUTHOR = Zhark the Experimental, October 2007 ***\n\n" ) ;
    return ;
 }
