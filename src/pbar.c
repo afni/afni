@@ -280,13 +280,14 @@ ENTRY("new_MCW_pbar") ;
    PBAR_define_bigmap( CB_CS );
    PBAR_define_bigmap( CYTOARCH_ROI_256_CMD );
    PBAR_define_bigmap( CYTOARCH_ROI_256_GAP_CMD );
+   PBAR_define_bigmap( FREESURFER_SEG_255_CMD );
+   PBAR_define_bigmap( GRAY_CS );
+   PBAR_define_bigmap( GRAY_CIRCLE_CS );
+   PBAR_define_bigmap( GRAY_INV_CIRCLE_CS );
    PBAR_define_bigmap( ROI_32_CMD );
    PBAR_define_bigmap( ROI_64_CMD );
    PBAR_define_bigmap( ROI_128_CMD );
    PBAR_define_bigmap( ROI_256_CMD );
-   PBAR_define_bigmap( GRAY_CS );
-   PBAR_define_bigmap( GRAY_CIRCLE_CS );
-   PBAR_define_bigmap( GRAY_INV_CIRCLE_CS );
 
    
    RETURN( pbar );

@@ -46,12 +46,28 @@ void SUMA_MakeColorMap_usage ()
                             " or if the colormap is in a .pal file:  \n"
                             "MakeColorMap -cmapdb Palfile -cmap MapName\n"
                             "\n"
+                            "Usage4:\n"
+                            "MakeColorMap <-fscolut lbl0 lbl1> \n"
+                            "             [<-fscolutfile FS_COL_LUT>]\n"
+                            "   Create AFNI/SUMA colormaps of FreeSurfer colors\n"
+                            "   indexed between lbl0 and lbl1. \n"
+                            "   -fscolut lbl0 lbl1: Get colors indexed between\n"
+                            "                        lbl0 and lbl1, non existing\n"
+                            "                        integer labels are given a \n"
+                            "                        gray color.\n"
+                            "   -fscolutfile FS_COL_LUT: Use color LUT file FS_COL_LUT\n"
+                            "                            Default is to use \n"
+                            "                            $FREESURFER_HOME/FreeSurferColorLUT.txt\n"
+                            "   -show_fscolut: Show all of the LUT\n"
+                            "\n"
                             "Common options to all usages:\n"
                             "    -ah prefix: (optional, Afni Hex format.\n"
                             "                 default is RGB values in decimal form)\n"
                             "       use this option if you want a color map formatted to fit \n"
                             "       in AFNI's .afnirc file. The colormap is written out as \n"
                             "      prefix_01 = #xxxxxxx \n      prefix_02 = #xxxxxxx\n       etc...\n" 
+                            "    -ahc prefix: optional, Afni Hex format, ready to go into.\n"
+                            "                 pbardefs.h \n"
                             "    -h or -help: displays this help message.\n"
                             "    -flipud: Flip the map upside down. If the colormap is being \n"
                             "             created for interactive loading into SUMA with the 'New'\n"
@@ -79,7 +95,11 @@ void SUMA_MakeColorMap_usage ()
                             "   The following command will generate the RGB colormap in decimal form:\n"
                             "   MakeColorMap -f FidCol -sl -nc 20 \n"
                             "\n"
-                            "Example Usage 3: MakeColorMap -std ngray20 \n"
+                            "Example Usage 3: \n"
+                            "   MakeColorMap -std ngray20 \n"
+                            "\n"
+                            "Example Usage 4: \n"
+                            "   MakeColorMap -fscolut 0 255\n"
                             "\n"
                             "To read in a new colormap into AFNI, either paste the contents of \n"
                             "TestPalette.pal in your .afnirc file or read the .pal file using \n"
@@ -99,13 +119,17 @@ void SUMA_MakeColorMap_usage ()
 int main (int argc,char *argv[])
 {/* Main */
    static char  FuncName[]={"MakeColorMap"};
-   char  *FidName = NULL, *Prfx = NULL, h[9], *StdType=NULL, *dbfile=NULL, *MapName=NULL; 
+   char  *fscolutname = NULL, *FidName = NULL, 
+         *Prfx = NULL, h[9], *StdType=NULL, *dbfile=NULL, *MapName=NULL; 
    int Ncols = 0, N_Fid = 0, kar, i, ifact, *Nind = NULL, imap = -1, MapSpecified = 0;
+   int fsbl0, fsbl1, showfscolut;
    float **Fid=NULL, **M=NULL;
    MRI_IMAGE *im = NULL;
    float *far=NULL;
-   SUMA_Boolean   brk, SkipLast, AfniHex, PosMap, 
-                  Usage1, Usage2, Usage3, flipud, LocalHead = NOPE;
+   int AfniHex=0;
+   SUMA_Boolean   brk, SkipLast, PosMap, 
+                  Usage1, Usage2, Usage3, Usage4, flipud, fscolut,
+                  LocalHead = NOPE;
    SUMA_COLOR_MAP *SM=NULL;
       
    SUMA_STANDALONE_INIT;
@@ -120,14 +144,20 @@ int main (int argc,char *argv[])
    }
    
    kar = 1;
+   fscolutname = NULL;
+   fsbl0 = -1;
+   fsbl1 = -1;
    brk = NOPE;
    SkipLast = NOPE;
-   AfniHex = NOPE;
+   AfniHex = 0;
    PosMap = NOPE;
    Usage1 = NOPE;
    Usage2 = NOPE;
    Usage3 = NOPE;
+   Usage4 = NOPE;
    flipud = NOPE;
+   fscolut = NOPE;
+   showfscolut = 0;
    MapSpecified = NOPE;
    while (kar < argc) { /* loop accross command ine options */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
@@ -158,7 +188,46 @@ int main (int argc,char *argv[])
          Usage1 = YUP;
          brk = YUP;
       }      
-
+      
+      if (!brk && (strcmp(argv[kar], "-fscolutfile") == 0))
+      {
+         Usage4=YUP;
+         kar ++;
+         if (kar >= argc)  {
+              fprintf (SUMA_STDERR, "need 1 argument after -fscolutfile ");
+            exit (1);
+         }
+         fscolutname = argv[kar];
+         if (fsbl0 < 0) {
+            fsbl0 = 0;
+            fsbl1 = 255;
+         }  
+         brk = YUP;
+      }
+      if (!brk && (strcmp(argv[kar], "-fscolut") == 0))
+      {
+         fscolut = YUP;
+         Usage4=YUP;
+         kar ++;
+         if (kar+1 >= argc)  {
+              fprintf (SUMA_STDERR, "need 2 arguments after -fscolut ");
+            exit (1);
+         }
+         fsbl0 = atoi(argv[kar]); ++kar;
+         fsbl1 = atoi(argv[kar]);
+         if (fsbl0 > fsbl1 || fsbl0 < 0 || fsbl1 > 10000) {
+            SUMA_S_Errv("-fscolut values of %d and %d either\n"
+                        "do not make sense or exceed range 0 to 10000\n",
+                        fsbl0, fsbl1);
+            exit(1);
+         } 
+         brk = YUP;
+      }
+      if (!brk && (strcmp(argv[kar], "-show_fscolut") == 0))
+      {
+         showfscolut = 1;
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-fn") == 0))
       {
          kar ++;
@@ -191,10 +260,21 @@ int main (int argc,char *argv[])
             exit (1);
          }
          Prfx = argv[kar];
-         AfniHex = YUP; 
+         AfniHex = 1; 
          brk = YUP;
       }      
       
+      if (!brk && (strcmp(argv[kar], "-ahc") == 0))
+      {
+         kar ++;
+         if (kar >= argc)  {
+              fprintf (SUMA_STDERR, "need argument after -ahc ");
+            exit (1);
+         }
+         Prfx = argv[kar];
+         AfniHex = 2; 
+         brk = YUP;
+      } 
       if (!brk && (strcmp(argv[kar], "-std") == 0))
       {
          kar ++;
@@ -265,13 +345,17 @@ int main (int argc,char *argv[])
    }/* loop accross command ine options */
    
    /* check input */
-   if ( (Usage1 && Usage2) || (Usage1 && Usage3) || (Usage2 && Usage3)) {
+   if (  (Usage1 && (Usage2 || Usage3 || Usage4)) || 
+         (Usage2 && (Usage1 || Usage3 || Usage4)) || 
+         (Usage3 && (Usage1 || Usage2 || Usage4)) || 
+         (Usage4 && (Usage1 || Usage2 || Usage3)) ) {
       fprintf (SUMA_STDERR,"Error %s: Mixing options from multiple usage modes.\n", FuncName);
       exit(1);
    }
    
-   if (!Usage1 && !Usage2 && !Usage3) {
-      fprintf (SUMA_STDERR,"Error %s: One of these options must be used:\n-f -fn or -std.\n", FuncName);
+   if (!Usage1 && !Usage2 && !Usage3 && !Usage4) {
+      fprintf (SUMA_STDERR,"Error %s: One of these options must be used:\n"
+                           "-f, -fn,  -std, or -fscolut.\n", FuncName);
       exit(1);
    }
    
@@ -389,6 +473,14 @@ int main (int argc,char *argv[])
       }
    }
    
+   if (Usage4) { /* 4th usage */
+      if (!(SM = SUMA_FScolutToColorMap(fscolutname, fsbl0, fsbl1, showfscolut))) {
+         SUMA_S_Err("Failed to get FreeSurfer colormap.");
+         exit(1);
+      }
+      Ncols = SM->N_Col;
+   }
+   
    if (flipud) {
       SUMA_Flip_Color_Map (SM);
    }
@@ -396,9 +488,11 @@ int main (int argc,char *argv[])
    M = SM->M;
 
    if (AfniHex && Ncols > 200) {
+      if (!Usage4) {
          fprintf (SUMA_STDERR,"Error %s: Cannot write a colormap of more than 200 colors in Afni's hex format.\n", FuncName);
          exit(1);
-      }
+      }  
+   }
    
    
    
@@ -406,36 +500,79 @@ int main (int argc,char *argv[])
          SUMA_disp_mat (M, Ncols, 3, 1);
          /*SUMA_Show_ColorMapVec (&SM, 1, NULL, 2);*/
    } else {
-         fprintf (stdout, "\n***COLORS\n");
-         
-         for (i=0; i < Ncols; ++i) {
-            /* Now create the hex form */
-            r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][0]*255)), 1, 0);
-            if (i<10) fprintf (stdout, "%s_0%d = #%s", Prfx, i, h);
-               else fprintf (stdout, "%s_%d = #%s", Prfx, i, h); 
+         if (Usage4) {
+            if (AfniHex == 1) {
+               fprintf (stdout, "%s \n", Prfx);
+               for (i=0; i < Ncols; ++i) {
+                  
+                  /* Now create the hex form */
+                  r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][0]*255)), 1, 0);
+                  fprintf (stdout, "#%s", h); 
 
-            r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][1]*255)), 1, 0);
-            fprintf (stdout, "%s", h);
+                  r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][1]*255)), 1, 0);
+                  fprintf (stdout, "%s", h);
 
-            r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][2]*255)), 1, 0);
-            fprintf (stdout, "%s\n", h);
-         }
-         
-         /* color map */
-         
-         fprintf (stdout, "\n***PALETTES %s [%d]\n//1 to -1 range\n", Prfx, Ncols);
-         ifact = 2;
-         for (i=0; i < Ncols; ++i) {
-            fprintf (stdout, "%f -> ", 1.0 - (float)(ifact*i)/Ncols);
-            if (i<10) fprintf (stdout, "%s_0%d\n", Prfx, i);
-               else fprintf (stdout, "%s_%d\n", Prfx, i); 
-         }
-         fprintf (stdout, "\n***PALETTES %s [%d+]\n//1 to 0 range\n", Prfx, Ncols);
-         ifact = 1;
-         for (i=0; i < Ncols; ++i) {
-            fprintf (stdout, "%f -> ", 1.0 - (float)(ifact*i)/Ncols);
-            if (i<10) fprintf (stdout, "%s_0%d\n", Prfx, i);
-               else fprintf (stdout, "%s_%d\n", Prfx, i); 
+                  r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][2]*255)), 1, 0);
+                  fprintf (stdout, "%s \n", h);
+               }
+                fprintf (stdout, "\n") ;
+            } else if (AfniHex == 2){  /* to go in the C code (see pbardef.h and pbar.c)*/
+               char *p2 = SUMA_copy_string(Prfx); 
+               SUMA_TO_UPPER(p2);
+               fprintf (stdout, "static char %s[] = {\n   \"%s \"\n   \"", 
+                  p2, Prfx); SUMA_free(p2); p2 = NULL;
+               for (i=0; i < Ncols; ++i) {
+                  if (i) {
+                     if (!(i % 4)) { fprintf (stdout, " \"\n   \""); }
+                     else { fprintf (stdout, " "); }
+                  }
+                  /* Now create the hex form */
+                  r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][0]*255)), 1, 0);
+                  fprintf (stdout, "#%s", h); 
+
+                  r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][1]*255)), 1, 0);
+                  fprintf (stdout, "%s", h);
+
+                  r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][2]*255)), 1, 0);
+                  fprintf (stdout, "%s", h);
+               }
+                fprintf (stdout, " \"\n};\n") ;
+            } else {
+               SUMA_S_Err("AfniHex should be 0, 1, or 2\n");
+               exit(1);
+            }
+         } else {
+            fprintf (stdout, "\n***COLORS\n");
+
+            for (i=0; i < Ncols; ++i) {
+               /* Now create the hex form */
+               r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][0]*255)), 1, 0);
+               if (i<10) fprintf (stdout, "%s_0%d = #%s", Prfx, i, h);
+                  else fprintf (stdout, "%s_%d = #%s", Prfx, i, h); 
+
+               r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][1]*255)), 1, 0);
+               fprintf (stdout, "%s", h);
+
+               r_sprintf_long_to_hex (h, (unsigned long)rint((M[i][2]*255)), 1, 0);
+               fprintf (stdout, "%s\n", h);
+            }
+
+            /* color map */
+
+            fprintf (stdout, "\n***PALETTES %s [%d]\n//1 to -1 range\n", Prfx, Ncols);
+            ifact = 2;
+            for (i=0; i < Ncols; ++i) {
+               fprintf (stdout, "%f -> ", 1.0 - (float)(ifact*i)/Ncols);
+               if (i<10) fprintf (stdout, "%s_0%d\n", Prfx, i);
+                  else fprintf (stdout, "%s_%d\n", Prfx, i); 
+            }
+            fprintf (stdout, "\n***PALETTES %s [%d+]\n//1 to 0 range\n", Prfx, Ncols);
+            ifact = 1;
+            for (i=0; i < Ncols; ++i) {
+               fprintf (stdout, "%f -> ", 1.0 - (float)(ifact*i)/Ncols);
+               if (i<10) fprintf (stdout, "%s_0%d\n", Prfx, i);
+                  else fprintf (stdout, "%s_%d\n", Prfx, i); 
+            }
          }
    }
    

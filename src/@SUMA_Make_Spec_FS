@@ -307,6 +307,17 @@ L_SET_SURF_DIRS:
 	endif
     end
     
+   set other_mgz = ()
+   set other_candidates = ( aparc+aseg aseg.auto aseg brain.finalsurfs brain brainmask.auto brainmask norm nu nu_noneck lh.ribbon rh.ribbon wm.asegedit wm wm.seg )
+   foreach candidate ($other_candidates)
+      foreach dcand ($surf_dir/ $surf_dir/mri/ ./ mri/ ../ ../mri/ )
+         if ( -f $dcand$candidate.mgz ) then 
+            set other_mgz = ($other_mgz $dcand$candidate.mgz)
+            break
+         endif
+      end
+   end
+   
     if ( $orig_dir == "" && $orig_mgz == "") then
 	set endstr = "failure: cannot find directory 'orig' or file 'orig.mgz' under $fs_dir"
 	goto L_BAD_END
@@ -644,7 +655,14 @@ L_CREATE_BRICK:
     echo "++ created AFNI file '$suma_dir/$afni_dataset.BRIK'"
 
     cd $start_dir
-
+    
+    if ($#other_mgz > 0) then
+       #Do the other .mgz files
+       foreach other ($other_mgz)
+         @SUMA_FSvolToBRIK $other $start_dir/$suma_dir/$other:t:r
+       end
+    endif
+      
 goto L_CREATE_BRICK_DONE
 
 
@@ -681,6 +699,11 @@ L_HELP_END:
     echo "      - creation of ascii surface files via 'mris_convert'"
     echo "      - creation of left and right hemisphere SUMA spec files"
     echo "      - creation of an AFNI dataset from the COR files via 'to3d'"
+    echo "      - creation of AFNI datasets from various .mgz volumes created"
+    echo "        by FreeSurfer. The segmentation volumes with aseg in the "
+    echo "        name are best viewed in AFNI with the FreeSurfer_Seg_255"
+    echo "        colormap. See bottom of @SUMA_FSvolToBRIK -help for more"
+    echo "        info." 
     echo ""
     echo "      - all created files are stored in a new SUMA directory"
     echo ""

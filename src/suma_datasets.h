@@ -528,6 +528,20 @@ typedef struct {
    }  \
 }  
 
+#define SUMA_TO_UPPER_C(c) ( (c >= 'a' && c <= 'z') ? (c - 'a' + 'A'): c )
+
+#define SUMA_TO_UPPER(s) { \
+   int m_i, m_d; \
+   if (s) { \
+      m_d = 'a' - 'A';  \
+      for (m_i=0; m_i < strlen(s); ++m_i) { \
+         if (s[m_i] >= 'a' && s[m_i] <= 'z') s[m_i] = s[m_i] - m_d;  \
+      }   \
+   }  \
+}  
+
+
+
 /*!
    Is this attribute string empty ?
 */
