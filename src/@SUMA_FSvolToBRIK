@@ -1,4 +1,4 @@
-#!/bin/tcsh -xf
+#!/bin/tcsh -f
 
 if ("$1" == "-help" || "$1" == "-h" || "$2" == '') goto HELP
 
@@ -105,8 +105,8 @@ endif
 goto END
 
 HELP:
-   echo "A script to read COR- or .mgz files from FreeSurfer."
    echo "Usage: `basename $0` <FSvoldata> <Prefix>"
+   echo "A script to convert COR- or .mgz files from FreeSurfer."
    echo ""
    echo "Example 1: Taking COR- images in mri/orig to BRIK volume"
    echo "      @SUMA_FSvolToBRIK mri/orig test/cor_afni"
@@ -114,5 +114,14 @@ HELP:
    echo "Example 2: Taking .mgz volume to BRIK volume"
    echo "      @SUMA_FSvolToBRIK mri/aseg.mgz test/aseg_afni"
    echo ""
+   echo "To view segmented volumes in AFNI, use the FreeSurfer"
+   echo "color scale by doing:"
+   echo "   Define Overlay --> Pos? (on)"
+   echo "   Choose continuous (**) colorscale"
+   echo "   Right Click on colorscale --> Choose Colorscale"
+   echo "   Select FreeSurfer_Seg_255"
+   echo ""
+   goto END
+   
 END:
    
