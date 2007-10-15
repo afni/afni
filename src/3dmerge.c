@@ -532,8 +532,7 @@ DUMP1 ;
 
       /**** unknown switch ****/
 
-      fprintf(stderr,"unrecognized option %s\n",argv[nopt]) ;
-      exit(1) ;
+      ERROR_exit("unrecognized option %s",argv[nopt]) ;
 
    }  /* end of loop over options */
 
