@@ -249,7 +249,9 @@ ENTRY("new_MCW_pbar") ;
 
    SAVEUNDERIZE(XtParent(pbar->big_menu)) ;
    VISIBILIZE_WHEN_MAPPED(pbar->big_menu) ;
+#if 0
    if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(pbar->big_menu) ;
+#endif
 
    pbar->big_label = XtVaCreateManagedWidget(
                      "menu" , xmLabelWidgetClass , pbar->big_menu ,
