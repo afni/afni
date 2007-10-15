@@ -28,13 +28,11 @@ ENTRY("EDIT_check_argv") ;
        strncmp(argv[nopt],"-1uclip",6) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"no argument after %s?\n",argv[nopt-1]) ;
-         EXIT(1);
+         fprintf(stderr,"no argument after %s?\n",argv[nopt-1]) ; EXIT(1);
       }
       edopt->clip_top = strtod( argv[nopt++] , NULL ) ;
       if( edopt->clip_top <= 0 ){
-         fprintf(stderr,"illegal value after %s!\n",argv[nopt-2]) ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after %s!\n",argv[nopt-2]) ; EXIT(1) ;
       }
       edopt->clip_bot = -edopt->clip_top ;
       edopt->clip_unscaled = (strncmp(argv[nopt-2],"-1uclip",6) == 0) ;
@@ -47,8 +45,7 @@ ENTRY("EDIT_check_argv") ;
        strncmp(argv[nopt],"-2uclip",6) == 0   ){
       nopt++ ;
       if( nopt+1 >= argc ){
-         fprintf(stderr,"no arguments after %s?\n",argv[nopt-1]) ;
-         EXIT(1) ;
+         fprintf(stderr,"no arguments after %s?\n",argv[nopt-1]) ; EXIT(1) ;
       }
       edopt->clip_bot = strtod( argv[nopt++] , NULL ) ;  /* bot */
       edopt->clip_top = strtod( argv[nopt++] , NULL ) ;  /* top */
@@ -111,13 +108,11 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1thresh",6) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"no argument after -1thresh!\n") ;
-         EXIT(1);
+         fprintf(stderr,"no argument after -1thresh!\n") ; EXIT(1);
       }
       val = strtod( argv[nopt++] , NULL ) ;
       if( val < 0.0 ){
-         fprintf(stderr,"illegal value after -1thresh!\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1thresh!\n") ; EXIT(1) ;
       }
       edopt->thresh = val ;
       CHECK_DONE ;
@@ -128,15 +123,13 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1clust",12) == 0 ){
       nopt++ ;
       if( nopt+1 >= argc ){
-         fprintf(stderr,"need 2 arguments after -1clust!\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 2 arguments after -1clust!\n") ; EXIT(1) ;
       }
       edopt->edit_clust = ECFLAG_SAME;
       edopt->clust_rmm  = strtod( argv[nopt++] , NULL ) ;
       edopt->clust_vmul = strtod( argv[nopt++] , NULL ) ;
       if( edopt->clust_rmm < 0 ){
-         fprintf(stderr,"illegal value after -1clust\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1clust\n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -147,15 +140,13 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1clust_mean",12) == 0 ){
       nopt++ ;
       if( nopt+1 >= argc ){
-         fprintf(stderr,"need 2 arguments after -1clust_mean!\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 2 arguments after -1clust_mean!\n") ; EXIT(1) ;
       }
       edopt->edit_clust = ECFLAG_MEAN;
       edopt->clust_rmm  = strtod( argv[nopt++] , NULL ) ;
       edopt->clust_vmul = strtod( argv[nopt++] , NULL ) ;
       if( edopt->clust_rmm < 0 ){
-         fprintf(stderr,"illegal value after -1clust_mean\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1clust_mean\n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -165,15 +156,13 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1clust_max",12) == 0 ){
       nopt++ ;
       if( nopt+1 >= argc ){
-         fprintf(stderr,"need 2 arguments after -1clust_max!\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 2 arguments after -1clust_max!\n") ; EXIT(1) ;
       }
       edopt->edit_clust = ECFLAG_MAX;
       edopt->clust_rmm  = strtod( argv[nopt++] , NULL ) ;
       edopt->clust_vmul = strtod( argv[nopt++] , NULL ) ;
       if( edopt->clust_rmm < 0 ){
-         fprintf(stderr,"illegal value after -1clust_max\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1clust_max\n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -183,15 +172,13 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1clust_amax",12) == 0 ){
       nopt++ ;
       if( nopt+1 >= argc ){
-         fprintf(stderr,"need 2 arguments after -1clust_amax!\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 2 arguments after -1clust_amax!\n") ; EXIT(1) ;
       }
       edopt->edit_clust = ECFLAG_AMAX;
       edopt->clust_rmm  = strtod( argv[nopt++] , NULL ) ;
       edopt->clust_vmul = strtod( argv[nopt++] , NULL ) ;
       if( edopt->clust_rmm < 0 ){
-         fprintf(stderr,"illegal value after -1clust_amax\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1clust_amax\n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -201,15 +188,13 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1clust_smax",12) == 0 ){
       nopt++ ;
       if( nopt+1 >= argc ){
-         fprintf(stderr,"need 2 arguments after -1clust_smax!\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 2 arguments after -1clust_smax!\n") ; EXIT(1) ;
       }
       edopt->edit_clust = ECFLAG_SMAX;
       edopt->clust_rmm  = strtod( argv[nopt++] , NULL ) ;
       edopt->clust_vmul = strtod( argv[nopt++] , NULL ) ;
       if( edopt->clust_rmm < 0 ){
-         fprintf(stderr,"illegal value after -1clust_smax\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1clust_smax\n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -219,15 +204,13 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1clust_size",12) == 0 ){
       nopt++ ;
       if( nopt+1 >= argc ){
-         fprintf(stderr,"need 2 arguments after -1clust_size!\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 2 arguments after -1clust_size!\n") ; EXIT(1) ;
       }
       edopt->edit_clust = ECFLAG_SIZE;
       edopt->clust_rmm  = strtod( argv[nopt++] , NULL ) ;
       edopt->clust_vmul = strtod( argv[nopt++] , NULL ) ;
       if( edopt->clust_rmm < 0 ){
-         fprintf(stderr,"illegal value after -1clust_size\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1clust_size\n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -237,15 +220,13 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1clust_order",12) == 0 ){
       nopt++ ;
       if( nopt+1 >= argc ){
-         fprintf(stderr,"need 2 arguments after -1clust_order!\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 2 arguments after -1clust_order!\n") ; EXIT(1) ;
       }
       edopt->edit_clust = ECFLAG_ORDER;
       edopt->clust_rmm  = strtod( argv[nopt++] , NULL ) ;
       edopt->clust_vmul = strtod( argv[nopt++] , NULL ) ;
       if( edopt->clust_rmm < 0 ){
-         fprintf(stderr,"illegal value after -1clust_order\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1clust_order\n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -255,14 +236,12 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1erode",7) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need 1 argument after -1erode!\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 1 argument after -1erode!\n") ; EXIT(1) ;
       }
       edopt->erode_pv  = strtod( argv[nopt++] , NULL ) ;
       if (edopt->erode_pv > 1.0)  edopt->erode_pv /= 100.0;
       if( edopt->erode_pv < 0.0 || edopt->erode_pv > 1.0 ){
-         fprintf(stderr,"illegal value after -1erode \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1erode \n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -280,14 +259,12 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1filter_mean",15) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need 1 argument  after -1filter_mean \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 1 argument  after -1filter_mean \n") ; EXIT(1) ;
       }
       edopt->filter_opt = FCFLAG_MEAN;
       edopt->filter_rmm  = strtod( argv[nopt++] , NULL ) ;
       if( edopt->filter_rmm <= 0 ){
-         fprintf(stderr,"illegal value after -1filter_mean \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1filter_mean \n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -297,14 +274,12 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1filter_nzmean",15) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need 1 argument  after -1filter_nzmean \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 1 argument  after -1filter_nzmean \n") ; EXIT(1) ;
       }
       edopt->filter_opt = FCFLAG_NZMEAN;
       edopt->filter_rmm  = strtod( argv[nopt++] , NULL ) ;
       if( edopt->filter_rmm <= 0 ){
-         fprintf(stderr,"illegal value after -1filter_nzmean \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1filter_nzmean \n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -314,14 +289,12 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1filter_max",15) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need 1 argument  after -1filter_max \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 1 argument  after -1filter_max \n") ; EXIT(1) ;
       }
       edopt->filter_opt = FCFLAG_MAX;
       edopt->filter_rmm  = strtod( argv[nopt++] , NULL ) ;
       if( edopt->filter_rmm <= 0 ){
-         fprintf(stderr,"illegal value after -1filter_max \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1filter_max \n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -331,14 +304,12 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1filter_amax",15) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need 1 argument  after -1filter_amax \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 1 argument  after -1filter_amax \n") ; EXIT(1) ;
       }
       edopt->filter_opt = FCFLAG_AMAX;
       edopt->filter_rmm  = strtod( argv[nopt++] , NULL ) ;
       if( edopt->filter_rmm <= 0 ){
-         fprintf(stderr,"illegal value after -1filter_amax \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1filter_amax \n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -348,14 +319,12 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1filter_smax",15) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need 1 argument  after -1filter_smax \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 1 argument  after -1filter_smax \n") ; EXIT(1) ;
       }
       edopt->filter_opt = FCFLAG_SMAX;
       edopt->filter_rmm  = strtod( argv[nopt++] , NULL ) ;
       if( edopt->filter_rmm <= 0 ){
-         fprintf(stderr,"illegal value after -1filter_smax \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1filter_smax \n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -365,14 +334,12 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1filter_aver",15) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need 1 argument  after -1filter_aver \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 1 argument  after -1filter_aver \n") ; EXIT(1) ;
       }
       edopt->filter_opt = FCFLAG_AVER ;
       edopt->filter_rmm  = strtod( argv[nopt++] , NULL ) ;
       if( edopt->filter_rmm <= 0 ){
-         fprintf(stderr,"illegal value after -1filter_aver \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1filter_aver \n") ; EXIT(1) ;
       }
 
       if( edopt->nfmask > 0 ) edopt->filter_opt = FCFLAG_MEAN ;
@@ -385,14 +352,12 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-t1filter_aver",15) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need 1 argument  after -t1filter_aver \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 1 argument  after -t1filter_aver \n") ; EXIT(1) ;
       }
       edopt->thrfilter_opt = FCFLAG_AVER ;
       edopt->thrfilter_rmm  = strtod( argv[nopt++] , NULL ) ;
       if( edopt->thrfilter_rmm <= 0 ){
-         fprintf(stderr,"illegal value after -t1filter_aver \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -t1filter_aver \n") ; EXIT(1) ;
       }
 
       if( edopt->nfmask > 0 ) edopt->thrfilter_opt = FCFLAG_MEAN ;
@@ -405,14 +370,12 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-t1filter_mean",15) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need 1 argument  after -t1filter_mean \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 1 argument  after -t1filter_mean \n") ; EXIT(1) ;
       }
       edopt->thrfilter_opt = FCFLAG_MEAN;
       edopt->thrfilter_rmm  = strtod( argv[nopt++] , NULL ) ;
       if( edopt->thrfilter_rmm <= 0 ){
-         fprintf(stderr,"illegal value after -t1filter_mean \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -t1filter_mean \n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -423,14 +386,12 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-t1filter_nzmean",15) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need 1 argument  after -t1filter_nzmean \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 1 argument  after -t1filter_nzmean \n") ; EXIT(1) ;
       }
       edopt->thrfilter_opt = FCFLAG_NZMEAN;
       edopt->thrfilter_rmm  = strtod( argv[nopt++] , NULL ) ;
       if( edopt->thrfilter_rmm <= 0 ){
-         fprintf(stderr,"illegal value after -t1filter_nzmean \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -t1filter_nzmean \n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -441,14 +402,12 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-t1filter_max",15) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need 1 argument  after -t1filter_max \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 1 argument  after -t1filter_max \n") ; EXIT(1) ;
       }
       edopt->thrfilter_opt = FCFLAG_MAX;
       edopt->thrfilter_rmm  = strtod( argv[nopt++] , NULL ) ;
       if( edopt->thrfilter_rmm <= 0 ){
-         fprintf(stderr,"illegal value after -t1filter_max \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -t1filter_max \n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -459,14 +418,12 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-t1filter_amax",15) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need 1 argument  after -t1filter_amax \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 1 argument  after -t1filter_amax \n") ; EXIT(1) ;
       }
       edopt->thrfilter_opt = FCFLAG_AMAX;
       edopt->thrfilter_rmm  = strtod( argv[nopt++] , NULL ) ;
       if( edopt->thrfilter_rmm <= 0 ){
-         fprintf(stderr,"illegal value after -t1filter_amax \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -t1filter_amax \n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -477,14 +434,12 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-t1filter_smax",15) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need 1 argument  after -t1filter_smax \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 1 argument  after -t1filter_smax \n") ; EXIT(1) ;
       }
       edopt->thrfilter_opt = FCFLAG_SMAX;
       edopt->thrfilter_rmm  = strtod( argv[nopt++] , NULL ) ;
       if( edopt->thrfilter_rmm <= 0 ){
-         fprintf(stderr,"illegal value after -t1filter_smax \n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -t1filter_smax \n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -497,13 +452,11 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1blur_sigma",12) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need argument after -1blur_sigma!\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need argument after -1blur_sigma!\n") ; EXIT(1) ;
       }
       edopt->blur = strtod( argv[nopt++] , NULL ) ;
       if( edopt->blur <= 0 ){
-         fprintf(stderr,"illegal value after -1blur_sigma\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1blur_sigma\n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -513,13 +466,11 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1blur_rms",12) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need argument after -1blur_rms!\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need argument after -1blur_rms!\n") ; EXIT(1) ;
       }
       edopt->blur = strtod( argv[nopt++] , NULL ) ;
       if( edopt->blur <= 0 ){
-         fprintf(stderr,"illegal value after -1blur_rms\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1blur_rms\n") ; EXIT(1) ;
       }
       edopt->blur = RMS_TO_SIGMA(edopt->blur) ;
       CHECK_DONE ;
@@ -530,18 +481,17 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1blur_fwhm",12) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need argument after -1blur_fwhm!\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need argument after -1blur_fwhm!\n") ; EXIT(1) ;
       }
       edopt->blur = strtod( argv[nopt++] , NULL ) ;
       if( edopt->blur <= 0 ){
-         fprintf(stderr,"illegal value after -1blur_fwhm\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1blur_fwhm\n") ; EXIT(1) ;
       }
       edopt->blur = FWHM_TO_SIGMA(edopt->blur) ;
       CHECK_DONE ;
    }
 
+#if 0
    /**** -1blur ****/
 
    if( strncmp(argv[nopt],"-1blur",6) == 0 ){
@@ -549,19 +499,18 @@ ENTRY("EDIT_check_argv") ;
               "*** the old -1blur option is no longer valid! ***\n") ;
       EXIT(1) ;
    }
+#endif
 
    /**** -t1blur_sigma size ****/   /* 4 Oct 1996 */
 
    if( strncmp(argv[nopt],"-t1blur_sigma",12) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need argument after -t1blur_sigma!\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need argument after -t1blur_sigma!\n") ; EXIT(1) ;
       }
       edopt->thrblur = strtod( argv[nopt++] , NULL ) ;
       if( edopt->thrblur <= 0 ){
-         fprintf(stderr,"illegal value after -t1blur_sigma\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -t1blur_sigma\n") ; EXIT(1) ;
       }
       CHECK_DONE ;
    }
@@ -571,13 +520,11 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-t1blur_rms",12) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need argument after -t1blur_rms!\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need argument after -t1blur_rms!\n") ; EXIT(1) ;
       }
       edopt->thrblur = strtod( argv[nopt++] , NULL ) ;
       if( edopt->thrblur <= 0 ){
-         fprintf(stderr,"illegal value after -t1blur_rms\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -t1blur_rms\n") ; EXIT(1) ;
       }
       edopt->thrblur = RMS_TO_SIGMA(edopt->thrblur) ;
       CHECK_DONE ;
@@ -588,13 +535,11 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-t1blur_fwhm",12) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"need argument after -t1blur_fwhm!\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need argument after -t1blur_fwhm!\n") ; EXIT(1) ;
       }
       edopt->thrblur = strtod( argv[nopt++] , NULL ) ;
       if( edopt->thrblur <= 0 ){
-         fprintf(stderr,"illegal value after -t1blur_fwhm\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -t1blur_fwhm\n") ; EXIT(1) ;
       }
       edopt->thrblur = FWHM_TO_SIGMA(edopt->thrblur) ;
       CHECK_DONE ;
@@ -618,13 +563,11 @@ ENTRY("EDIT_check_argv") ;
    if( strncmp(argv[nopt],"-1mult",6) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
-         fprintf(stderr,"no argument after -1mult!\n") ;
-         EXIT(1);
+         fprintf(stderr,"no argument after -1mult!\n") ; EXIT(1);
       }
       val = strtod( argv[nopt++] , NULL ) ;
       if( val == 0.0 ){
-         fprintf(stderr,"illegal value after -1mult!\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal value after -1mult!\n") ; EXIT(1) ;
       }
       edopt->mult = val ;
       CHECK_DONE ;
@@ -636,44 +579,37 @@ ENTRY("EDIT_check_argv") ;
       char * cerr ;
 
       if( nopt+6 >= argc ){
-         fprintf(stderr,"need 6 arguments after -1zvol!\a\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"need 6 arguments after -1zvol!\a\n") ; EXIT(1) ;
       }
 
       edopt->zv_x1 = strtod( argv[nopt+1] , &cerr ) ;
       if( cerr == argv[nopt+1] ){
-         fprintf(stderr,"illegal 1st argument after -1zvol!\a\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal 1st argument after -1zvol!\a\n") ; EXIT(1) ;
       }
 
       edopt->zv_x2 = strtod( argv[nopt+2] , &cerr ) ;
       if( cerr == argv[nopt+2] ){
-         fprintf(stderr,"illegal 2nd argument after -1zvol!\a\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal 2nd argument after -1zvol!\a\n") ; EXIT(1) ;
       }
 
       edopt->zv_y1 = strtod( argv[nopt+3] , &cerr ) ;
       if( cerr == argv[nopt+3] ){
-         fprintf(stderr,"illegal 3rd argument after -1zvol!\a\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal 3rd argument after -1zvol!\a\n") ; EXIT(1) ;
       }
 
       edopt->zv_y2 = strtod( argv[nopt+4] , &cerr ) ;
       if( cerr == argv[nopt+4] ){
-         fprintf(stderr,"illegal 4th argument after -1zvol!\a\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal 4th argument after -1zvol!\a\n") ; EXIT(1) ;
       }
 
       edopt->zv_z1 = strtod( argv[nopt+5] , &cerr ) ;
       if( cerr == argv[nopt+5] ){
-         fprintf(stderr,"illegal 5th argument after -1zvol!\a\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal 5th argument after -1zvol!\a\n") ; EXIT(1) ;
       }
 
       edopt->zv_z2 = strtod( argv[nopt+6] , &cerr ) ;
       if( cerr == argv[nopt+6] ){
-         fprintf(stderr,"illegal 6th argument after -1zvol!\a\n") ;
-         EXIT(1) ;
+         fprintf(stderr,"illegal 6th argument after -1zvol!\a\n") ; EXIT(1) ;
       }
       edopt->do_zvol = 1 ;
 
