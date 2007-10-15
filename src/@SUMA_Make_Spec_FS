@@ -660,6 +660,7 @@ L_CREATE_BRICK:
        #Do the other .mgz files
        foreach other ($other_mgz)
          @SUMA_FSvolToBRIK $other $start_dir/$suma_dir/$other:t:r
+         rm -f $start_dir/$suma_dir/COR-??? $start_dir/$suma_dir/COR-.info >& /dev/null
        end
     endif
       
