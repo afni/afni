@@ -939,8 +939,7 @@ static void optmenu_EV( Widget w , XtPointer cd ,
 #endif
 
    if( bev->button == Button2 ){
-     XUngrabPointer( bev->display , CurrentTime ) ;
-     return ;
+     XUngrabPointer( bev->display , CurrentTime ) ; return ;
    }
 
    /*-- start of actual work --*/
@@ -952,6 +951,7 @@ ENTRY("optmenu_EV") ;
    if( w == NULL || av == NULL || av->wmenu == NULL ) EXRETURN ;
 
    if( bev->button != Button3 ) EXRETURN ;
+   if( av->imin >= av->imax   ) EXRETURN ;   /* 15 Oct 2007: nugation */
 
    XtVaGetValues( av->wlabel , XmNwidth,&lw , NULL ) ;
    if( bev->x > lw ) EXRETURN ;
@@ -963,7 +963,7 @@ ENTRY("optmenu_EV") ;
    av->block_assign_actions = 1 ;         /* temporarily block actions */
    sval = av->ival ;
 
-   /* 06 Aug 2002: free old strings, if any */
+   /* 06 Aug 2002: free list of old strings, if any */
 
    for( ic=0 ; ic < nstrlist ; ic++ ) free(strlist[ic]) ;
 
@@ -2550,8 +2550,9 @@ ENTRY("MCW_choose_multi_strlist") ;
       MCW_reghelp_children( wav->wrowcol , OVC_list_help_2 ) ;
       MCW_reghint_children( wav->wrowcol , "How list selections work" ) ;
 
-   } else if( mode == mcwCT_single_mode &&
-              !AFNI_noenv("AFNI_STRLIST_INDEX") ){  /* 12 Oct 2007 */
+   } else if( mode == mcwCT_single_mode         &&
+              !AFNI_noenv("AFNI_STRLIST_INDEX") &&
+              num_str > 1                         ){  /* 12 Oct 2007 */
       int ival = 0 ;
 
       (void) XtVaCreateManagedWidget(
