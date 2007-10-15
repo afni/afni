@@ -6374,11 +6374,11 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
                fprintf(SUMA_STDERR,"%s: \n"
                                           "Xcolor %s cannot be resolved without \n"
                                           "trying to open X display.\n"
-                                          "Returning color about 0.5 0.5 0.5.\n", FuncName, Name);
+                                          "Returning color of %f %f %f.\n", FuncName, Name, SUMA_DUNNO_GRAY, SUMA_DUNNO_GRAY, SUMA_DUNNO_GRAY);
                iwarn = 0;
             }   
             ++iwarn;
-            RGB[0] = RGB[1] = RGB[2] = 0.54321;
+            RGB[0] = RGB[1] = RGB[2] = SUMA_DUNNO_GRAY;
          }
       }
    

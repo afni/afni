@@ -1,6 +1,8 @@
 #ifndef SUMA_COLOR_INCLUDED
 #define SUMA_COLOR_INCLUDED
 
+#define SUMA_DUNNO_GRAY 0.54321
+
 #define SUMA_ADD_COORD_BIAS_VECT(SO, ovr, BiasDim, BiasVect) {   \
    int m_i, m_i3, mx_i3 = 3*SO->N_Node; \
    switch (BiasDim) {   \
