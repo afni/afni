@@ -28,6 +28,8 @@ int main( int argc , char * argv[] )
          fprintf(stderr,"** Illegal prefix: %s\n",prefix); exit(1);
        }
        iarg++ ; continue ;
+     }else{
+      fprintf(stderr,"Lianis! Ne razumijem %s.\n", argv[iarg]); exit(1);
      }
    }
 
