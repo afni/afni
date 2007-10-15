@@ -2539,7 +2539,7 @@ ENTRY("MCW_choose_multi_strlist") ;
    if( mode == mcwCT_multi_mode ){
       (void) XtVaCreateManagedWidget(
                "menu" , xmSeparatorWidgetClass , wrc ,
-                   XmNseparatorType , XmSHADOW_ETCHED_IN ,
+                   XmNseparatorType , XmSINGLE_LINE ,
                    XmNinitialResourcesPersistent , False ,
                NULL ) ;
 
@@ -2556,7 +2556,7 @@ ENTRY("MCW_choose_multi_strlist") ;
 
       (void) XtVaCreateManagedWidget(
                "menu" , xmSeparatorWidgetClass , wrc ,
-                   XmNseparatorType , XmSHADOW_ETCHED_OUT ,
+                   XmNseparatorType , XmSINGLE_LINE ,
                    XmNinitialResourcesPersistent , False ,
                NULL ) ;
 
