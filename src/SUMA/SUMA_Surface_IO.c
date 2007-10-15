@@ -1366,6 +1366,7 @@ int main (int argc,char *argv[])
 #define SUMA_FS_ANNOT_TAG_COLORTABLE   1
 #define SUMA_FS_STRLEN 50
 typedef struct {
+   int i;
    int r;
    int g;
    int b;
@@ -1379,32 +1380,39 @@ typedef struct {
    SUMA_FS_COLORTABLE_ENTRY *bins;
 } SUMA_FS_COLORTABLE;
 
-SUMA_FS_COLORTABLE *SUMA_CreateFS_ColorTable(int nbins, int len)
+SUMA_FS_COLORTABLE *SUMA_CreateFS_ColorTable(int nbins, int len, SUMA_FS_COLORTABLE *cto)
 {
    static char FuncName[]={"SUMA_CreateFS_ColorTable"};
    SUMA_FS_COLORTABLE *ct = NULL;
    
    SUMA_ENTRY;
    
-   ct = (SUMA_FS_COLORTABLE*) SUMA_malloc(sizeof(SUMA_FS_COLORTABLE));
-   if (!ct) {
-      SUMA_SL_Crit("Failed to allocate for ct");
-      SUMA_RETURN(NULL);
+   if (!cto) {
+      ct = (SUMA_FS_COLORTABLE*) SUMA_malloc(sizeof(SUMA_FS_COLORTABLE));
+      if (!ct) {
+         SUMA_SL_Crit("Failed to allocate for ct");
+         SUMA_RETURN(NULL);
+      }
+      ct->nbins = nbins;
+      ct->bins = (SUMA_FS_COLORTABLE_ENTRY *) SUMA_malloc(nbins * 
+                                             sizeof(SUMA_FS_COLORTABLE_ENTRY));
+
+      ct->fname = (char *)SUMA_malloc((len + 1)*sizeof(char));
+      if (!ct->bins || !ct->fname) {
+         SUMA_SL_Crit("Failed to allocate for ct fields");
+         if (ct->bins) SUMA_free(ct->bins);
+         if (ct->fname) SUMA_free(ct->fname);
+         SUMA_free(ct);
+         SUMA_RETURN(NULL);
+      }
+      ct->fname[0] = '\0';
+      SUMA_RETURN(ct);
+   } else {
+      cto->bins = (SUMA_FS_COLORTABLE_ENTRY *) SUMA_realloc(cto->bins, nbins * 
+                                             sizeof(SUMA_FS_COLORTABLE_ENTRY));
+      cto->nbins = nbins;
+      SUMA_RETURN(cto);
    }
-   ct->nbins = nbins;
-   ct->bins = (SUMA_FS_COLORTABLE_ENTRY *) SUMA_malloc(nbins * 
-                                          sizeof(SUMA_FS_COLORTABLE_ENTRY));
-   
-   ct->fname = (char *)SUMA_malloc((len + 1)*sizeof(char));
-   if (!ct->bins || !ct->fname) {
-      SUMA_SL_Crit("Failed to allocate for ct fields");
-      if (ct->bins) SUMA_free(ct->bins);
-      if (ct->fname) SUMA_free(ct->fname);
-      SUMA_free(ct);
-      SUMA_RETURN(NULL);
-   }
-   ct->fname[0] = '\0';
-   SUMA_RETURN(ct);
 }
 
 SUMA_FS_COLORTABLE *SUMA_FreeFS_ColorTable (SUMA_FS_COLORTABLE *ct)
@@ -1441,8 +1449,8 @@ char *SUMA_FS_ColorTable_Info(SUMA_FS_COLORTABLE *ct)
       if (!ct->bins) SS = SUMA_StringAppend_va(SS, "NULL bins\n");
       else {
          for (i=0; i<ct->nbins; ++i) {
-            SS = SUMA_StringAppend_va(SS, "bin[%d]: %d %d %d %d : %s\n", 
-                                       i, ct->bins[i].r, ct->bins[i].g, 
+            SS = SUMA_StringAppend_va(SS, "bin[%d]: %d   %d %d %d %d : %s\n", 
+                                       i, ct->bins[i].i, ct->bins[i].r, ct->bins[i].g, 
                                        ct->bins[i].b, ct->bins[i].flag,
                                        ct->bins[i].name);
          }
@@ -1476,6 +1484,168 @@ SUMA_Boolean SUMA_Show_FS_ColorTable(SUMA_FS_COLORTABLE *ct, FILE *fout)
    }
    
    SUMA_RETURN(YUP);
+}
+
+SUMA_Boolean SUMA_readFScolorLUT(char *f_name, SUMA_FS_COLORTABLE **ctp)
+{
+   static char FuncName[]={"SUMA_readFScolorLUT"};
+   SUMA_FS_COLORTABLE *ct=NULL;
+   SUMA_FS_COLORTABLE_ENTRY *ce;
+   char *fl=NULL, *fl2=NULL, *colfile=NULL, *florig=NULL, *name=NULL, *fle=NULL;
+   double dum;
+   int i, r, g, b, v, nalloc, nchar, ok, ans, cnt;
+   SUMA_Boolean state = YUP;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (f_name) colfile = f_name;
+   else {
+       char *eee = getenv("FREESURFER_HOME");
+       if (eee) { 
+         colfile = SUMA_append_replace_string(eee,"FreeSurferColorLUT.txt", "/", 0);
+       } else {
+         SUMA_S_Err("FREESURFER_HOME environment variable not set");
+         SUMA_RETURN(NOPE);
+       }
+   }
+   if (ctp && *ctp) {
+      SUMA_S_Err("Colortable pointer pointer must point to null!");
+      SUMA_RETURN(NOPE);
+   }
+   if (!SUMA_filexists(colfile)) {
+      SUMA_S_Errv("File %s not found.\n", colfile); 
+      state = NOPE; goto CLEANUP;
+      SUMA_RETURN(NOPE);
+   }
+   /* suck file */
+   
+   if (!(fl = florig = SUMA_file_suck(colfile, &nchar))) {
+      SUMA_S_Errv("Faile to read %s\n", colfile);
+      state = NOPE; goto CLEANUP;
+   }
+   fle = fl+nchar;
+   nalloc = 256;
+   ct = SUMA_CreateFS_ColorTable(nalloc, strlen(colfile), NULL);
+   snprintf(ct->fname, (strlen(colfile)+1)*sizeof(char),"%s", colfile);
+   ok = 1;
+   cnt = 0;
+   while (ok && fl < fle) {
+      SUMA_SKIP_BLANK(fl, fle);
+      do {
+         /* skip comment, if any */
+         SUMA_IS_COMMENT_LINE(fl, fle, '#', ans);
+         if (ans) {  
+            SUMA_LH("Skipping comment..."); 
+            SUMA_SKIP_LINE(fl, fle);
+         }
+      } while (ans); 
+      SUMA_SKIP_BLANK(fl, fle); if (fl == fle) goto DONEREAD; 
+      if (cnt >= nalloc) {
+         nalloc = nalloc+256;
+         ct = SUMA_CreateFS_ColorTable(nalloc, -1, ct);
+      }
+      ce = &ct->bins[cnt]; 
+      
+      /* read first number */
+      SUMA_ADVANCE_PAST_NUM(fl, dum, ok); 
+      if (!ok && fl!=fle) { SUMA_S_Err("Failed to read i"); state = NOPE; goto CLEANUP; }
+      SUMA_LHv("index %f\n", dum);
+      ce->i=(int)dum;
+      SUMA_GET_BETWEEN_BLANKS(fl, NULL, fl2);
+      if (fl2 > fl) {
+         SUMA_COPY_TO_STRING(fl, fl2, name);
+         SUMA_LHv("name %s\n", name); 
+         snprintf((ce->name), (SUMA_FS_STRLEN-1)*sizeof(char), "%s", name);
+         SUMA_free(name); name = NULL;
+         fl = fl2;
+      }
+      SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
+      if (!ok) { SUMA_S_Err("Failed to read r"); state = NOPE; goto CLEANUP; }
+      SUMA_LHv("r %f\n", dum);
+      ce->r=(int)dum;
+      SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
+      if (!ok) { SUMA_S_Err("Failed to read g"); state = NOPE; goto CLEANUP; }
+      SUMA_LHv("g %f\n", dum);
+      ce->g=(int)dum;
+      SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
+      if (!ok) { SUMA_S_Err("Failed to read b"); state = NOPE; goto CLEANUP; }
+      SUMA_LHv("b %f\n", dum);
+      ce->b=(int)dum;
+      SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
+      if (!ok) { SUMA_S_Err("Failed to read v"); state = NOPE; goto CLEANUP; }
+      SUMA_LHv("v %f\n", dum);
+      ce->flag=(int)dum;
+      ++cnt;
+   }
+      
+   DONEREAD:
+   ct = SUMA_CreateFS_ColorTable(cnt,  -1, ct);
+   if (LocalHead) SUMA_Show_FS_ColorTable(ct, NULL);
+
+   CLEANUP:
+   if (ctp) *ctp = ct;
+   if (!f_name && colfile) SUMA_free(colfile); colfile = NULL;
+   if (florig) SUMA_free(florig);
+   
+   SUMA_RETURN(state);
+}
+
+SUMA_COLOR_MAP *SUMA_FScolutToColorMap(char *fscolutname, int lbl1, int lbl2, int show) 
+{
+   static char FuncName[]={"SUMA_FScolutToColorMap"};
+   SUMA_COLOR_MAP *SM=NULL;
+   SUMA_FS_COLORTABLE *ct=NULL;
+   int cnt =0, ism = 0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!(SUMA_readFScolorLUT(fscolutname, &ct))) {
+      SUMA_S_Err("Failed baby, failed.");
+      SUMA_RETURN(SM);
+   }
+   
+   if (show) {
+      SUMA_Show_FS_ColorTable(ct, NULL);
+   }
+   
+   /* allocate for SM */
+   SM = (SUMA_COLOR_MAP*) SUMA_malloc(sizeof(SUMA_COLOR_MAP));
+   SM->top_frac = 0.0f;
+   SM->SO = NULL; 
+   SM->N_Col = lbl2-lbl1+1;
+   SM->cname = (char **)SUMA_calloc(SM->N_Col, sizeof(char*));
+   SM->M = (float**)SUMA_allocate2D (SM->N_Col, 3, sizeof(float));
+   SM->Name = SUMA_copy_string(ct->fname);
+   SM->Sgn = 0;
+   SM->frac = NULL;
+   
+   /* first find lbl1 */
+   cnt = 0;
+   while (cnt < ct->nbins && ct->bins[cnt].i != lbl1) ++cnt;
+   
+   if (ct->bins[cnt].i == lbl1) { /* Found the starting point */
+      ism = 0;
+      while (cnt < ct->nbins && ct->bins[cnt].i <= lbl2 && ism < SM->N_Col) {
+         SUMA_LHv("ct->bins[cnt].i %d <> lbl1+ism %d\n", ct->bins[cnt].i, lbl1+ism);
+         if (ct->bins[cnt].i == lbl1+ism) {
+            SM->M[ism][0] = (float)(ct->bins[cnt].r) / 255.0;
+            SM->M[ism][1] = (float)(ct->bins[cnt].g) / 255.0;
+            SM->M[ism][2] = (float)(ct->bins[cnt].b) / 255.0;
+            SM->cname[ism] = SUMA_copy_string(ct->bins[cnt].name);
+            SUMA_LHv("FSi %d --> SMi %d\n", ct->bins[cnt].i, ism);
+            ++cnt;   
+         } else {
+            SM->M[ism][0] = SM->M[ism][1] = SM->M[ism][2] = SUMA_DUNNO_GRAY;
+            SM->cname[ism] = SUMA_copy_string("undefined"); 
+            SUMA_LH("Got gap\n");
+         }
+         ++ism;
+      }
+   } 
+ 
+   SUMA_RETURN(SM);
 }
 
 /*!
@@ -1616,12 +1786,12 @@ SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_
          SUMA_LH("Found color table");
          SUMA_READ_INT (&nbins, bs, fl, ex);
          SUMA_READ_INT (&len, bs, fl, ex);
-         ct = SUMA_CreateFS_ColorTable(nbins, len);
+         ct = SUMA_CreateFS_ColorTable(nbins, len, NULL);
          fread(ct->fname, sizeof(char), len, fl) ;
          SUMA_LHv("fname: %s\n", ct->fname);
          for (i = 0 ; i < nbins ; i++)
          {
-                cte = &ct->bins[i] ;
+                cte = &ct->bins[i] ; cte->i = i;
                 SUMA_READ_INT (&len, bs, fl, ex);
                 if (len < 0 || len > SUMA_FS_STRLEN ) {
                      SUMA_SL_Err("Too long a name");

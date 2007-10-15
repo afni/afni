@@ -120,6 +120,7 @@ HELP:
    echo "   Choose continuous (**) colorscale"
    echo "   Right Click on colorscale --> Choose Colorscale"
    echo "   Select FreeSurfer_Seg_255"
+   echo "   Set Range to 255"
    echo ""
    goto END
    
