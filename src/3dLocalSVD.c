@@ -5,6 +5,7 @@
 
 #define NTYPE_SPHERE 1
 #define NTYPE_RECT   2
+#define NTYPE_RHDD   3
 
 MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar ) ;
 MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
@@ -27,6 +28,14 @@ int main( int argc , char *argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
        "Usage: 3dLocalSVD [options] inputdataset\n"
+       "You probably want to use 3dDetrend before running this program!\n"
+       "\n"
+       "Options:\n"
+       " -mask mset\n"
+       " -automask\n"
+       " -prefix ppp\n"
+       " -input inputdataset\n"
+       " -nbhd nnn\n"
      ) ;
      exit(0) ;
    }
@@ -91,8 +100,12 @@ int main( int argc , char *argv[] )
          if( na == 0.0f && nb == 0.0f && nc == 0.0f )
            ERROR_exit("'RECT(0,0,0)' is not a legal neighborhood") ;
          ntype = NTYPE_RECT ;
+       } else if( strncasecmp(cpt,"RHDD",4) == 0 ){
+         sscanf( cpt+5 , "%f" , &na ) ;
+         if( na == 0.0f ) ERROR_exit("Can't have a RHDD of radius 0") ;
+         ntype = NTYPE_RHDD ;
        } else {
-           ERROR_exit("Unknown -nbhd shape: '%s'",cpt) ;
+          ERROR_exit("Unknown -nbhd shape: '%s'",cpt) ;
        }
        iarg++ ; continue ;
      }
@@ -159,6 +172,16 @@ int main( int argc , char *argv[] )
        nbhd = MCW_rectmask( dx,dy,dz , na,nb,nc ) ;
      }
      break ;
+
+     case NTYPE_RHDD:{
+       float dx , dy , dz ;
+       if( na < 0.0f ){ dx = dy = dz = 1.0f ; na = -na ; }
+       else           { dx = fabsf(DSET_DX(inset)) ;
+                        dy = fabsf(DSET_DY(inset)) ;
+                        dz = fabsf(DSET_DZ(inset)) ; }
+       nbhd = MCW_rhddmask( dx,dy,dz , na ) ;
+     }
+     break ;
    }
 
    INFO_message("Neighborhood comprises %d voxels",nbhd->num_pt) ;
@@ -170,7 +193,7 @@ int main( int argc , char *argv[] )
    outset = EDIT_empty_copy(inset) ;
    EDIT_dset_items( outset, ADN_prefix,prefix, ADN_brick_fac,NULL, ADN_none );
    tross_Copy_History( inset , outset ) ;
-   tross_Make_History( "3dLocalstat" , argc,argv , outset ) ;
+   tross_Make_History( "3dLocalSVD" , argc,argv , outset ) ;
    for( kk=0 ; kk < nt ; kk++ )
      EDIT_substitute_brick( outset , kk , MRI_float , NULL ) ;
 
@@ -255,6 +278,17 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
      far = MRI_FLOAT_PTR(tim) ;
      for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) = (double)far[ii] ;
    }
+#if 0
+   if( nvec > 1 ){
+     double sum ;
+     for( ii=0 ; ii < nx ; ii++ ){
+       sum = 0.0 ;
+       for( jj=0 ; jj < nvec ; jj++ ) sum += A(ii,jj) ;
+       sum /= nvec ;
+       for( jj=0 ; jj < nvec ; jj++ ) A(ii,jj) -= sum ;
+     }
+   }
+#endif
 
    svd_double( nx , nvec , amat , sval , umat , vmat ) ;
 
