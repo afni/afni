@@ -181,17 +181,17 @@ static void add_tracker( void * fred , size_t n , char * fn , int ln )
   The tracking replacement for malloc
 -------------------------------------------------------------------*/
 
-static void * malloc_track( size_t n , char * fn , int ln )
+static void * malloc_track( size_t n , char *fn , int ln )
 {
-   char * fred ;
+   char *fred ;
    size_t nn = n + 2*NEXTRA ;
    int ii ;
 
    fred = (char *) malloc(nn) ;
    if( fred == NULL ){                                     /* real bad news */
       fprintf(stderr,
-              "\n*** MCW_malloc(%d) from %s#%d FAILS!\a\n",  /* 02 Jan 2002 */
-              (int)n , fn , ln ) ;
+              "\n*** MCW_malloc(%u) from %s#%d FAILS!\a\n",  /* 02 Jan 2002 */
+              (unsigned int)n , fn , ln ) ;
       return NULL ;
    }
 
@@ -211,11 +211,11 @@ static void * malloc_track( size_t n , char * fn , int ln )
 static const char *pr_nam = NULL ;
 static       int   pr_lin = 0 ;
 
-static void probe_track( mallitem * ip )
+static void probe_track( mallitem *ip )
 {
    int ii ;
    size_t n ;
-   char * fred ;
+   char *fred ;
 
    if( ip == NULL ){ pr_nam=NULL; return; } /* error */
    fred = (char *) ip->pmt ; if( fred == NULL ){ pr_nam=NULL; return; }
@@ -224,8 +224,8 @@ static void probe_track( mallitem * ip )
    for( ii=0 ; ii < NEXTRA ; ii++ )
       if( fred[ii] != MAGIC ){
          fprintf(stderr,"*** MCW_malloc pre-corruption!  "
-                        "serial=%u size=%d source=%s line#%d",
-                        ip->pss,(int)ip->psz,ip->pfn,ip->pln ) ;
+                        "serial=%u size=%u source=%s line#%d",
+                        ip->pss,(unsigned int)ip->psz,ip->pfn,ip->pln ) ;
 #ifdef USE_TRACING
          { int tt ;
            for( tt=0 ; tt < NTB && ip->ptb[tt] != NULL ; tt++ )
@@ -242,8 +242,8 @@ static void probe_track( mallitem * ip )
    for( ii=0 ; ii < NEXTRA ; ii++ )
       if( fred[n+NEXTRA+ii] != MAGIC ){
          fprintf(stderr,"*** MCW_malloc post-corruption!  "
-                        "serial=%u size=%d source=%s line#%d\n",
-                        ip->pss,(int)ip->psz,ip->pfn,ip->pln ) ;
+                        "serial=%u size=%u source=%s line#%d\n",
+                        ip->pss,(unsigned int)ip->psz,ip->pfn,ip->pln ) ;
 #ifdef USE_TRACING
          { int tt ;
            for( tt=0 ; tt < NTB && ip->ptb[tt] != NULL ; tt++ )
@@ -265,9 +265,9 @@ static void probe_track( mallitem * ip )
   The tracking replacement for realloc
 ---------------------------------------------------------------------*/
 
-static void * realloc_track( mallitem * ip, size_t n, char * fn, int ln )
+static void * realloc_track( mallitem *ip, size_t n, char *fn, int ln )
 {
-   char * nfred , * cfred ;
+   char *nfred , *cfred ;
    size_t nn = n + 2*NEXTRA ;
    int ii , cjj,njj , kk ;
 
@@ -280,8 +280,8 @@ static void * realloc_track( mallitem * ip, size_t n, char * fn, int ln )
    nfred = (char*)realloc( cfred , nn ) ;
    if( nfred == NULL ){                                       /* real bad */
       fprintf(stderr,
-              "\n*** MCW_realloc(%d) from %s#%d FAILS!\a\n",  /* 02 Jan 2002 */
-              (int)n , fn , ln ) ;
+              "\n*** MCW_realloc(%u) from %s#%d FAILS!\a\n",  /* 02 Jan 2002 */
+              (unsigned int)n , fn , ln ) ;
       return NULL ;
    }
 
@@ -315,9 +315,9 @@ static void * realloc_track( mallitem * ip, size_t n, char * fn, int ln )
   Tracking replacement for calloc
 -------------------------------------------------------------------*/
 
-static void * calloc_track( size_t n , size_t m , char * fn , int ln )
+static void * calloc_track( size_t n , size_t m , char *fn , int ln )
 {
-   void * fred ;
+   void *fred ;
    size_t nn = n*m ;
 
    fred = malloc_track(nn,fn,ln) ; if( fred == NULL ) return NULL ;
@@ -329,9 +329,9 @@ static void * calloc_track( size_t n , size_t m , char * fn , int ln )
   Tracking replacement for free
 -------------------------------------------------------------------*/
 
-static void free_track( mallitem * ip )
+static void free_track( mallitem *ip )
 {
-   char * cfred ;
+   char *cfred ;
 
    if( ip == NULL ) return ;
    cfred = (char *) ip->pmt ;
@@ -395,10 +395,10 @@ extern void qsort_intint( int , int * , int * ) ;
 void mcw_malloc_dump(void)
 {
    int ii,jj,kk ;
-   char fname[32] , * str ;
-   FILE * fp = NULL ;
+   char fname[32] , *str ;
+   FILE *fp = NULL ;
    int nptr=0 ;
-   int * ss , * jk ;
+   int *ss , *jk ;
 
    if( ! use_tracking ) return ;
 
@@ -508,7 +508,7 @@ void mcw_malloc_dump(void)
 
 void enable_mcw_malloc()       /* cannot be disabled */
 {
-   char * str = getenv("AFNI_NO_MCW_MALLOC") ;  /* NOT my_getenv */
+   char *str = getenv("AFNI_NO_MCW_MALLOC") ;  /* NOT my_getenv */
 
    if( use_tracking ) return ;   /* 05 Nov 2001 */
 
@@ -565,7 +565,7 @@ int mcw_malloc_enabled(void){ return (use_tracking != 0) ; }
    The actual routine that replaces malloc() -- see mcw_malloc.h
 -------------------------------------------------------------------*/
 
-void * mcw_malloc( size_t n , char * fnam , int lnum )
+void * mcw_malloc( size_t n , char *fnam , int lnum )
 {
    if( use_tracking ) return malloc_track(n,fnam,lnum) ;
    else               return malloc(n) ;
@@ -575,9 +575,9 @@ void * mcw_malloc( size_t n , char * fnam , int lnum )
    The actual replacement for realloc()
 ------------------------------------------------------------------*/
 
-void * mcw_realloc( void * fred , size_t n , char * fnam , int lnum )
+void * mcw_realloc( void * fred , size_t n , char *fnam , int lnum )
 {
-   mallitem * ip ;
+   mallitem *ip ;
 
    if( fred == NULL )
       return mcw_malloc( n , fnam , lnum ) ;
@@ -592,7 +592,7 @@ void * mcw_realloc( void * fred , size_t n , char * fnam , int lnum )
    The actual replacement for calloc()
 ------------------------------------------------------------------*/
 
-void * mcw_calloc( size_t n , size_t m , char * fnam , int lnum )
+void * mcw_calloc( size_t n , size_t m , char *fnam , int lnum )
 {
    if( use_tracking ) return calloc_track( n , m , fnam,lnum ) ;
    else               return calloc( n , m ) ;
@@ -602,9 +602,9 @@ void * mcw_calloc( size_t n , size_t m , char * fnam , int lnum )
     The actual replacment for free()
 -------------------------------------------------------------------*/
 
-void mcw_free( void * fred )
+void mcw_free( void *fred )
 {
-   mallitem * ip ;
+   mallitem *ip ;
 
    if( fred == NULL ) return ;
 
@@ -616,7 +616,7 @@ void mcw_free( void * fred )
    The actual replacement for XtMalloc()
 -------------------------------------------------------------------*/
 
-char * mcw_XtMalloc( Cardinal n , char * fnam , int lnum )
+char * mcw_XtMalloc( Cardinal n , char *fnam , int lnum )
 {
    if( use_tracking ) return (char *) malloc_track(n,fnam,lnum) ;
    else               return (char *)XtMalloc(n) ;
@@ -626,9 +626,9 @@ char * mcw_XtMalloc( Cardinal n , char * fnam , int lnum )
    The actual replacement for XtRealloc()
 -------------------------------------------------------------------*/
 
-char * mcw_XtRealloc( char *p, Cardinal n , char * fnam , int lnum )
+char * mcw_XtRealloc( char *p, Cardinal n , char *fnam , int lnum )
 {
-   mallitem * ip ;
+   mallitem *ip ;
 
    if( p == NULL )
       return mcw_XtMalloc( n , fnam , lnum ) ;
@@ -645,7 +645,7 @@ char * mcw_XtRealloc( char *p, Cardinal n , char * fnam , int lnum )
 
 void mcw_XtFree( char *p )
 {
-   mallitem * ip ;
+   mallitem *ip ;
 
    if( p == NULL ) return ;
 
@@ -657,7 +657,7 @@ void mcw_XtFree( char *p )
   The actual replacement for XtCalloc()
 -------------------------------------------------------------------*/
 
-char * mcw_XtCalloc( Cardinal n , Cardinal m , char * fnam , int lnum )
+char * mcw_XtCalloc( Cardinal n , Cardinal m , char *fnam , int lnum )
 {
    if( use_tracking ) return (char *) calloc_track( n , m , fnam,lnum ) ;
    else               return XtCalloc( n , m ) ;

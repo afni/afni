@@ -15,7 +15,12 @@ char * approximate_number_string( double val )
    lv   = (int) floor(log10(aval)/3.0) ;
    tval = pow(10.0,(double)(3*lv)) ;
    qv   = (int) rint(aval/tval) ;
-   sprintf( sval+strlen(sval) , "%d" , qv ) ;
+   if( qv > 9 ){
+     sprintf( sval+strlen(sval) , "%d" , qv ) ;
+   } else {
+     qv = (int) rint(aval/(0.1*tval)) ;
+     sprintf( sval+strlen(sval) , "%.1f" , 0.1*qv ) ;
+   }
 
    switch( lv ){
 

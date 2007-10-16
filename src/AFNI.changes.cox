@@ -6407,3 +6407,9 @@
 12 Oct 2007
  * Changes to bbox.c to add an arrowval index selector to the single-selection
      mode strlist chooser (per Shruti Japee's unreasonable demand).
+
+16 Oct 2007
+ * Small bug in decode_linebuf() in mri_read.c -- if a non-number character
+     is encountered in non-slowmo mode, infinite loop ensues and that's bad.
+     Now, such an encounter leads to an immediate break out of the loop.
+ * Small changes to approximate_number_string() and it's usage in 3dDeconvolve.
