@@ -29,7 +29,7 @@ int main( int argc , char * argv[] )
        }
        iarg++ ; continue ;
      }else{
-      fprintf(stderr,"Lianis! Ne razumijem %s.\n", argv[iarg]); exit(1);
+      fprintf(stderr,"Janez! Ne razumem %s.\n", argv[iarg]); exit(1);
      }
    }
 
