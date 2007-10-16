@@ -193,7 +193,7 @@ static void * malloc_track( size_t n , char *fn , int ln )
       fprintf(stderr,
               "\n*** MCW_malloc(%u) from %s#%d FAILS!\a\n",  /* 02 Jan 2002 */
               (unsigned int)n , fn , ln ) ;
-      val = mcw_malloc_total() ;
+      val = MCW_MALLOC_total ;
       if( val > 0 ) fprintf(stderr,"*** current total usage=%lld bytes\n",val);
       return NULL ;
    }
@@ -286,7 +286,7 @@ static void * realloc_track( mallitem *ip, size_t n, char *fn, int ln )
       fprintf(stderr,
               "\n*** MCW_realloc(%u) from %s#%d FAILS!\a\n",  /* 02 Jan 2002 */
               (unsigned int)n , fn , ln ) ;
-      val = mcw_malloc_total() ;
+      val = MCW_MALLOC_total ;
       if( val > 0 ) fprintf(stderr,"*** current total usage=%lld bytes\n",val);
       return NULL ;
    }
