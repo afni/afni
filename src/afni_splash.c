@@ -454,7 +454,7 @@ ENTRY("SPLASH_imseq_getim") ;
       stat->num_total  = 1 ;
       stat->num_series = 1 ;
       stat->send_CB    = PLUGIN_seq_send_CB ;
-      stat->parent     = (XtPointer) imp  ;
+      stat->parent     = (XtPointer)imp  ;
       stat->aux        = NULL ;
 
       stat->transforms0D = NULL ;  /* 31 Jan 2002: remove all functions */

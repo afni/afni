@@ -4092,74 +4092,75 @@ ENTRY("PLUGIN_seq_send_CB") ;
          XButtonEvent *xev = (XButtonEvent *) cbs->event ;
 #define NBIRN 10
          static int nold=0 ;
-         static char * birn[NBIRN] = { " \n** Don't DO That! **\n "                        ,
-                                       " \n** Stop it, Rasmus! **\n "                      ,
-                                       " \n** Do NOT read this message! **\n "             ,
-                                       " \n** Having fun yet? **\n "                       ,
-                                       " \n** What do you want NOW? **\n "                 ,
-                                       " \n** Too much time on your hands? **\n "          ,
-                                       " \n** Why are you bothering me? **\n "             ,
-                                       " \n** Danger! Danger, Will Robinson! **\n "        ,
-                                       " \n** WARNING: Planetary meltdown imminent! **\n " ,
+         static char *birn[NBIRN] = {
+           " \n** Don't DO That! **\n "                        ,
+           " \n** Stop it, Rasmus! **\n "                      ,
+           " \n** Do NOT read this message! **\n "             ,
+           " \n** Having fun yet? **\n "                       ,
+           " \n** What do you want NOW? **\n "                 ,
+           " \n** Too much time on your hands? **\n "          ,
+           " \n** Why are you bothering me? **\n "             ,
+           " \n** Danger! Danger, Will Robinson! **\n "        ,
+           " \n** WARNING: Planetary meltdown imminent! **\n " ,
 
-                                 " \n"
-                                 " God of our fathers, known of old,\n"
-                                 " Lord of our far-flung battle-line,\n"
-                                 " Beneath whose awful hand we hold\n"
-                                 " Dominion over palm and pine -\n"
-                                 " Lord God of Hosts, be with us yet,\n"
-                                 " Lest we forget - lest we forget!\n"
-                                 " \n"
-                                 " The tumult and the shouting dies;\n"
-                                 " The captains and the kings depart:\n"
-                                 " Still stands Thine ancient sacrifice,\n"
-                                 " An humble and a contrite heart.\n"
-                                 " Lord God of Hosts, be with us yet,\n"
-                                 " Lest we forget - lest we forget!\n"
-                                 " \n"
-                                 " Far-called, our navies melt away;\n"
-                                 " On dune and headland sinks the fire:\n"
-                                 " Lo, all our pomp of yesterday\n"
-                                 " Is one with Nineveh and Tyre!\n"
-                                 " Judge of the Nations, spare us yet.\n"
-                                 " Lest we forget - lest we forget!\n"
-                                 " \n"
-                                 " If, drunk with sight of power, we loose\n"
-                                 " Wild tongues that have not Thee in awe,\n"
-                                 " Such boastings as the Gentiles use,\n"
-                                 " Or lesser breeds without the Law -\n"
-                                 " Lord God of Hosts, be with us yet,\n"
-                                 " Lest we forget - lest we forget!\n"
-                                 " \n"
-                                 " For heathen heart that puts her trust\n"
-                                 " In reeking tube and iron shard,\n"
-                                 " All valiant dust that builds on dust,\n"
-                                 " And, guarding, calls not Thee to guard,\n"
-                                 " For frantic boast and foolish word -\n"
-                                 " The Mercy on Thy People, Lord!\n"
-                               } ;
+           " \n"
+           " God of our fathers, known of old,\n"
+           " Lord of our far-flung battle-line,\n"
+           " Beneath whose awful hand we hold\n"
+           " Dominion over palm and pine -\n"
+           " Lord God of Hosts, be with us yet,\n"
+           " Lest we forget - lest we forget!\n"
+           " \n"
+           " The tumult and the shouting dies;\n"
+           " The captains and the kings depart:\n"
+           " Still stands Thine ancient sacrifice,\n"
+           " An humble and a contrite heart.\n"
+           " Lord God of Hosts, be with us yet,\n"
+           " Lest we forget - lest we forget!\n"
+           " \n"
+           " Far-called, our navies melt away;\n"
+           " On dune and headland sinks the fire:\n"
+           " Lo, all our pomp of yesterday\n"
+           " Is one with Nineveh and Tyre!\n"
+           " Judge of the Nations, spare us yet.\n"
+           " Lest we forget - lest we forget!\n"
+           " \n"
+           " If, drunk with sight of power, we loose\n"
+           " Wild tongues that have not Thee in awe,\n"
+           " Such boastings as the Gentiles use,\n"
+           " Or lesser breeds without the Law -\n"
+           " Lord God of Hosts, be with us yet,\n"
+           " Lest we forget - lest we forget!\n"
+           " \n"
+           " For heathen heart that puts her trust\n"
+           " In reeking tube and iron shard,\n"
+           " All valiant dust that builds on dust,\n"
+           " And, guarding, calls not Thee to guard,\n"
+           " For frantic boast and foolish word -\n"
+           " The Mercy on Thy People, Lord!\n"
+         } ;
 
 #define NKLING 5
          static int nkl=0 ;
          static char *kling[NKLING] = {
-                                 " \n What is this talk of 'release'?\n"
-                                 " Klingons do not make software 'releases'.\n"
-                                 " Our software 'escapes', leaving a bloody trail of\n"
-                                 " designers and 'Quality Assurance' people in its wake.\n"        ,
+            " \n What is this talk of 'release'?\n"
+            " Klingons do not make software 'releases'.\n"
+            " Our software 'escapes', leaving a bloody trail of\n"
+            " designers and 'Quality Assurance' people in its wake.\n"        ,
 
-                                 " \n Debugging? Klingons do not debug.\n"
-                                 " Our software does not coddle the weak.\n"                       ,
+            " \n Debugging? Klingons do not debug.\n"
+            " Our software does not coddle the weak.\n"                       ,
 
-                                 " \n Klingon software does NOT have BUGS.\n"
-                                 " It has FEATURES, and those features are too\n"
-                                 " sophisticated for a Romulan pig like you to understand.\n"      ,
+            " \n Klingon software does NOT have BUGS.\n"
+            " It has FEATURES, and those features are too\n"
+            " sophisticated for a Romulan pig like you to understand.\n"      ,
 
-                                 " \n Our users will know fear and cower before our software!\n"
-                                 " Ship it! Ship it and let them flee like the dogs they are!\n"  ,
+            " \n Our users will know fear and cower before our software!\n"
+            " Ship it! Ship it and let them flee like the dogs they are!\n"  ,
 
-                                 " \n You question the worthiness of my code?\n"
-                                 " I should kill you where you stand!\n"
-                               } ;
+            " \n You question the worthiness of my code?\n"
+            " I should kill you where you stand!\n"
+         } ;
 
          if( xev == NULL || xev->button == Button1 ){
            if( !NO_frivolities && nold < NBIRN ){

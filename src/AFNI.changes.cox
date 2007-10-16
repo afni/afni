@@ -6413,3 +6413,4 @@
      is encountered in non-slowmo mode, infinite loop ensues and that's bad.
      Now, such an encounter leads to an immediate break out of the loop.
  * Small changes to approximate_number_string() and it's usage in 3dDeconvolve.
+ * Fix to afni_graph.c so that 'Boxes' plot mode turns off 'Double Plot'.

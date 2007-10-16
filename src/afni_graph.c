@@ -1764,8 +1764,20 @@ ENTRY("plot_graphs") ;
    if( grapher->transform1D_func != NULL &&
        MCW_val_bbox(grapher->opt_dplot_bbox) != DPLOT_OFF ){
 
-     INIT_IMARR(dplot_imar) ;
-     dplot = MCW_val_bbox(grapher->opt_dplot_bbox) ; /* 07 Aug 2001 */
+     static int first=1 ;
+
+     if( DATA_BOXED(grapher) && first ){
+       MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OFF ) ;
+       (void) MCW_popup_message(
+                 grapher->option_rowcol ,
+                 "'Double Plot' being turned off\n"
+                 "  in 'Boxes' graphing mode!"     ,
+                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
+       first = 0 ;
+     } else {
+       INIT_IMARR(dplot_imar) ;
+       dplot = MCW_val_bbox(grapher->opt_dplot_bbox) ; /* 07 Aug 2001 */
+     }
    }
 
    GRA_CLEAR_tuser( grapher ) ;  /* 22 Apr 1997 */
@@ -3298,6 +3310,8 @@ STATUS(str); }
         ccc = (bbb==4) ? 0 : 4 ;
         MCW_set_bbox( grapher->opt_points_bbox[4] , ccc ) ;
         grapher->points_index[4] = ccc ;
+        if( DATA_BOXED(grapher) )
+          MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OFF ) ;
         if( !grapher->textgraph ) redraw_graph( grapher , 0 ) ;
       }
       break ;
@@ -5620,7 +5634,7 @@ ENTRY("GRA_transform_CB") ;
       }
    }
 
-   if( set_dplot == 1 )  /* 04 Oct 2007 */
+   if( set_dplot == 1 && !DATA_BOXED(grapher) )  /* 04 Oct 2007 */
      MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OVERLAY ) ;
 
    redraw_graph( grapher , 0 ) ;
@@ -5864,7 +5878,7 @@ ENTRY("GRA_thick_CB") ;
 
    for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ )
      if( grapher->opt_thick_bbox[ii] != NULL &&
-        w == grapher->opt_thick_bbox[ii]->wbut[0] ) break ;
+         w == grapher->opt_thick_bbox[ii]->wbut[0] ) break ;
 
    if( ii < NUM_COLOR_ITEMS ){
      jj = grapher->thick_index[ii] ;
@@ -5886,7 +5900,11 @@ ENTRY("GRA_thick_CB") ;
    if( ii < NUM_COLOR_ITEMS ){
      jj = grapher->points_index[ii] ;
      grapher->points_index[ii] = MCW_val_bbox( grapher->opt_points_bbox[ii] ) ;
-     if( jj != grapher->points_index[ii] ) redraw_graph( grapher , 0 ) ;
+     if( jj != grapher->points_index[ii] ){
+       if( DATA_BOXED(grapher) )
+         MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OFF ) ;
+       redraw_graph( grapher , 0 ) ;
+     }
      EXRETURN ;
    }
 
