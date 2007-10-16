@@ -497,12 +497,15 @@ ENTRY("SPLASH_imseq_getim") ;
 
          if( do_write == 2 || 1 ){
            char *sf = AFNI_get_date_trivia() ;
-           int   nn = strlen(sf) , ss=28 ;
-           if( nn > 37 ) ss = (int)(28.0*37.0/nn) ;
-           set_color_memplot(1.0,1.0,0.7) ;           /* whitish */
-           plotpak_pwritf( 0.5,0.089 , "Today is:"  , 30 , 0 , 0 ) ;
-           set_color_memplot(1.0,1.0,0.1) ;           /* yellow */
-           plotpak_pwritf( 0.5,0.033 , sf           , ss , 0 , 0 ) ;
+           int   nn = strlen(sf) , ss=28 ; float hh=0.061f ;
+           if( nn > 37 ) ss = (int)(27*37.0/nn)+1 ;
+           if( strncmp(sf,"Thanks ",7) != 0 ){
+             set_color_memplot(1.0,1.0,0.7) ;           /* whitish */
+             plotpak_pwritf( 0.51,0.089 , "Today is:"  , 30 , 0 , 0 ) ;
+             hh = 0.033f ;
+           }
+           set_color_memplot(1.0,1.0,0.1) ;             /* yellow */
+           plotpak_pwritf( 0.51,hh , sf , ss , 0 , 0 ) ;
          } else {
            char *sf = AFNI_get_friend() ;
            char *mf = strstr(sf," for ") ;
