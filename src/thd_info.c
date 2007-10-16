@@ -28,6 +28,7 @@ char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
    THD_fvec3 fv1 , fv2 , fv3 ;
    int ival , ntimes , nval_per , n1,n2,n3 , kv,npar ;
    float tf ;
+   long long tb ;
 
    static char *RR="[R]" , *LL="[L]" ,
                *PP="[P]" , *AA="[A]" ,
@@ -129,6 +130,11 @@ ENTRY("THD_dataset_info") ;
        break ;
     }
    }
+
+   tb = dset->dblk->total_bytes ;
+   if( tb > 0 )
+     outbuf = THD_zzprintf(outbuf,"Storage Space:   %lld (%s) bytes\n",
+                           tb , approximate_number_string(tb) ) ;
 
    /*-- keywords --*/
 

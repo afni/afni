@@ -189,9 +189,12 @@ static void * malloc_track( size_t n , char *fn , int ln )
 
    fred = (char *) malloc(nn) ;
    if( fred == NULL ){                                     /* real bad news */
+      long long val ;
       fprintf(stderr,
               "\n*** MCW_malloc(%u) from %s#%d FAILS!\a\n",  /* 02 Jan 2002 */
               (unsigned int)n , fn , ln ) ;
+      val = mcw_malloc_total() ;
+      if( val > 0 ) fprintf(stderr,"*** current total usage=%lld bytes\n",val);
       return NULL ;
    }
 
@@ -279,9 +282,12 @@ static void * realloc_track( mallitem *ip, size_t n, char *fn, int ln )
 
    nfred = (char*)realloc( cfred , nn ) ;
    if( nfred == NULL ){                                       /* real bad */
+      long long val ;
       fprintf(stderr,
               "\n*** MCW_realloc(%u) from %s#%d FAILS!\a\n",  /* 02 Jan 2002 */
               (unsigned int)n , fn , ln ) ;
+      val = mcw_malloc_total() ;
+      if( val > 0 ) fprintf(stderr,"*** current total usage=%lld bytes\n",val);
       return NULL ;
    }
 
