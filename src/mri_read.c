@@ -2036,6 +2036,7 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
         val = strtod(buf+bpos, &ope);
         incr = ope - (buf+bpos);
      } 
+     if( incr <= 0 ) break ; /* 16 Oct 2007 */
      if (fv->nar+count > n_alloced) {
       /* fprintf(stderr,"reallocing past %d with count %d...\n", n_alloced, count); */
       if (count > alloc_unit) alloc_chunk = count;
@@ -2047,9 +2048,6 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
      fv->nar += count ;
      bpos += incr ;
    }
-   
-   
-
    
    if( fv->nar == 0 ){ KILL_floatvec(fv); fv = NULL; } 
    else { if (fv->nar < n_alloced) fv->ar = (float *)realloc( (void *)fv->ar , sizeof(float)*(fv->nar) ); } 
@@ -2148,14 +2146,14 @@ static doublevec * decode_double_linebuf( char *buf )  /* 20 Jul 2004 */
   20 Jun 2002: modified to use my_fgets() instead of fgets().
 */
 
-MRI_IMAGE * mri_read_ascii( char * fname )
+MRI_IMAGE * mri_read_ascii( char *fname )
 {
-   MRI_IMAGE * outim ;
+   MRI_IMAGE *outim ;
    int ii,jj,val , used_tsar , alloc_tsar ;
-   float * tsar ;
+   float *tsar ;
    float ftemp ;
-   FILE * fts ;
-   char * ptr ;
+   FILE *fts ;
+   char *ptr ;
    int  ncol , bpos , blen , nrow ;
    static char *buf=NULL ;            /* 20 Jun 2002: make a ptr */
 
@@ -2165,6 +2163,8 @@ MRI_IMAGE * mri_read_ascii( char * fname )
 ENTRY("mri_read_ascii") ;
 
    if( fname == NULL || fname[0] == '\0' ) RETURN(NULL) ;
+
+STATUS(fname) ;  /* 16 Oct 2007 */
 
    if( strncmp(fname,"1D:",3) == 0 ){         /* 28 Apr 2003 */
      MRI_IMAGE *qim = mri_1D_fromstring( fname+3 ) ;

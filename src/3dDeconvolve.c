@@ -3836,8 +3836,15 @@ void proc_finalize_shm_volumes(void)
        "**                and then 3dZcat to glue results back together.\n"
        "** SUGGESTION:  Run on a 64-bit computer system, instead of 32-bit.\n"
       , psum,twogig) ;
-   else
-     INFO_message("total shared memory needed = %lld bytes",psum) ;
+   else {
+     long long val ;
+     INFO_message("total shared memory needed = %lld bytes (about %s)" ,
+                  psum , approximate_number_string((double)psum) ) ;
+     val = MCW_MALLOC_total ;
+     if( val > 0 )
+       INFO_message("current memory allocated = %lld bytes (about %s)" ,
+                    val , approximate_number_string((double)val) ) ;
+   }
 
    proc_shmsize = psum ;  /* global variable */
 
@@ -5288,8 +5295,13 @@ ENTRY("calculate_results") ;
       }
 #endif /* PROC_MAX */
 
-      if( proc_numjob == 1 && !option_data->quiet )
+      if( proc_numjob == 1 && !option_data->quiet ){
+        long long val = MCW_MALLOC_total ;
+        if( val > 0 )
+          INFO_message("current memory allocated = %lld bytes (about %s)" ,
+                       val , approximate_number_string((double)val) ) ;
         INFO_message("Calculations starting; elapsed time=%.3f",COX_clock_time()) ;
+      }
 
       /* show voxel loop when numjob > 1        17 Sep 2007 [rickr] */
       vstep = (ixyz_top - ixyz_bot) / 50 ;
