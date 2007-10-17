@@ -190,10 +190,13 @@ end
 			end
 		end
 
-		if (isfield(Info, 'BRICK_LABS') & (WordCount(Info.BRICK_LABS, '~')-1 ~= Info.DATASET_RANK(2))),
-			%err = 1; ErrMessage = sprintf('Error %s: There has to be exactly %d ~ separated labels in BRICK_LABS', FuncName, Info.DATASET_RANK(2)); errordlg(ErrMessage); return;	
-         if (WordCount(Info.BRICK_LABS, '~') > 1),
-            fprintf(2, 'Warning %s: You have %d sub-bricks but %d ~ separated labels.\n', FuncName, Info.DATASET_RANK(2), WordCount(Info.BRICK_LABS, '~')); 
+      if (isfield(Info, 'BRICK_LABS')),
+		   ntilda = length(find(Info.BRICK_LABS == '~'));
+         if (ntilda ~= Info.DATASET_RANK(2)),
+			   %err = 1; ErrMessage = sprintf('Error %s: There has to be exactly %d ~ separated labels in BRICK_LABS', FuncName, Info.DATASET_RANK(2)); errordlg(ErrMessage); return;	
+            if (ntilda > 1),
+               fprintf(2, 'Warning %s: You have %d sub-bricks but %d ~ separated labels.\n', FuncName, Info.DATASET_RANK(2), ntilda); 
+            end
          end	
       end
 
