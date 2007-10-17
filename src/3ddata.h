@@ -4403,6 +4403,7 @@ extern char * tross_commandline( char * , int , char ** ) ;
 extern int AFNI_logger( char * , int , char ** ) ; /* 13 Aug 2001 */
 extern void AFNI_sleep( int ) ;
 #define AFNI_log_string(ss) AFNI_logger(ss,0,NULL)
+extern long long AFNI_logfilesize(void) ;          /* 17 Oct 2007 */
 
 extern void AFNI_serverlog( char * ) ;             /* 24 Mar 2005 */
 

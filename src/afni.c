@@ -1537,7 +1537,7 @@ STATUS("call 0") ;
       case 9:
       case 10:
 STATUS("sleep call") ;
-        if( !nosplash) iochan_sleep(1) ; /* waste time to let splash popup */
+        if( !nosplash) AFNI_sleep(1) ; /* waste time to let splash popup */
       break ;
 
       /*============================================================================
@@ -1780,8 +1780,18 @@ STATUS("call 14") ;
         putenv("AFNI_DECONFLICT=OVERWRITE") ; /* 24 Sep 2007 */
         putenv("AFNI_IS_RUNNING=YES") ;       /* 08 Jun 2007 */
         REPORT_PROGRESS("\n") ;
+
+        { long long lfs = AFNI_logfilesize(); /* 17 Oct 2007 */
+          if( lfs > 10000000 ){
+            char msg[256] ;
+            sprintf(msg,"\n++ WARNING: ~/.afni.log is now %lld (%s) bytes long!\n",
+                    lfs , approximate_number_string((double)lfs) ) ;
+            REPORT_PROGRESS(msg) ;
+          }
+        }
+
       }
-      break ;
+      break ;  /* end of 14th entry case */
 
       /*============================================================================*/
 #if 0
@@ -1909,9 +1919,9 @@ void AFNI_vcheck_flasher( Three_D_View *im3d )
 
    for( pp=0 ; pp < 19 ; pp++ ){
      PICTURE_SET(im3d,vers_pixmap) ;
-       XmUpdateDisplay(im3d->vwid->top_shell); iochan_sleep(166);
+       XmUpdateDisplay(im3d->vwid->top_shell); AFNI_sleep(166);
      PICTURE_OFF(im3d) ;
-       XmUpdateDisplay(im3d->vwid->top_shell); iochan_sleep(166);
+       XmUpdateDisplay(im3d->vwid->top_shell); AFNI_sleep(166);
    }
    logo_pixmap = vers_pixmap ;     /* replace logo with version warning */
    return ;
@@ -5323,7 +5333,7 @@ STATUS("opening an image window") ;
 STATUS("realizing new image viewer") ;
       drive_MCW_imseq( *snew, isqDR_ignore_redraws, (XtPointer) 1 ) ; /* 16 Aug 2002 */
       drive_MCW_imseq( *snew, isqDR_realize, NULL ) ;
-      iochan_sleep(17) ;                                              /* 17 Oct 2005 */
+      AFNI_sleep(17) ;                                                /* 17 Oct 2005 */
       drive_MCW_imseq( *snew, isqDR_title, (XtPointer) im3d->window_title ) ;
       drive_MCW_imseq( *snew, isqDR_periodicmont,
                       (XtPointer)(int) im3d->vinfo->xhairs_periodic );
@@ -5417,7 +5427,7 @@ STATUS("setting image viewer 'sides'") ;
 
       AFNI_view_setter ( im3d , *snew ) ;
       AFNI_range_setter( im3d , *snew ) ;  /* 04 Nov 2003 */
-      iochan_sleep(17) ;                   /* 17 Oct 2005 */
+      AFNI_sleep(17) ;                     /* 17 Oct 2005 */
 
     } /* end of creating a new image viewer */
 
@@ -7663,7 +7673,7 @@ STATUS(" -- turning time index control off") ;
    old_fim  = im3d->fim_now ;   /* remembrance */
    old_anat = im3d->anat_now ;
 
-   iochan_sleep(13) ;           /* 18 Oct 2005: for luck */
+   AFNI_sleep(13) ;             /* 18 Oct 2005: for luck */
    EXRETURN ;
 }
 
