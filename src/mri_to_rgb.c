@@ -309,3 +309,27 @@ ENTRY("mri_gamma_rgb_inplace") ;
 
    mri_free(flim) ; EXRETURN ;
 }
+
+/*-----------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_make_rainbow( int nx , int ny , int ncol , rgbyte *col )
+{
+   MRI_IMAGE *bim ; byte *bar ; int ii,jj , pp ; float qq,rr ;
+
+   if( ncol < 2 || col == NULL ) return NULL ;
+   if( nx < 1      ) nx = 8 ;
+   if( ny < 2*ncol ) ny = 2*ncol ;
+
+   bim = mri_new(nx,ny,MRI_rgb) ; bar = MRI_RGB_PTR(bim) ;
+
+   for( jj=0 ; jj < ny ; jj++ ){
+     qq = jj*(ncol-1.001f)/(ny-1.0f) ; pp = (int)qq ;
+     qq = qq-pp ; rr = 1.0f-qq ;
+     for( ii=0 ; ii < nx ; ii++ ){
+       bar[3*(ii+jj*nx)+0] = (byte)( rr*col[pp].r + qq*col[pp+1].r ) ;
+       bar[3*(ii+jj*nx)+1] = (byte)( rr*col[pp].g + qq*col[pp+1].g ) ;
+       bar[3*(ii+jj*nx)+2] = (byte)( rr*col[pp].b + qq*col[pp+1].b ) ;
+     }
+   }
+   return bim ;
+}

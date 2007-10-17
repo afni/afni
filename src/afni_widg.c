@@ -511,6 +511,26 @@ STATUS("WANT_AFNI_BITMAP") ;
         }
       }
 
+      if( !AFNI_noenv("AFNI_COLORIZE_CONTROLLER") &&
+          im3d->dc->visual_class     == TrueColor &&
+          afni16_pixmap[num_entry-1] == XmUNSPECIFIED_PIXMAP ){ /* 17 Oct 2007 */
+
+        MRI_IMAGE *bim ; XImage *xim ;
+        rgbyte ccc[3]={ {0,0,66}, {55,0,0}, {0,44,0} } , col[4] ;
+
+        col[0] = ccc[ (num_entry-1)%4 ]; col[1] = ccc[ (num_entry+0)%4 ];
+        col[2] = ccc[ (num_entry+1)%4 ]; col[3] = col[0] ;
+        bim = mri_make_rainbow( 4 , 3*im3d->dc->height/4 , 4 , col ) ;
+        xim = rgb_to_XImage( im3d->dc , bim ) ;
+        afni16_pixmap[num_entry-1] = XCreatePixmap( im3d->dc->display ,
+                                      RootWindowOfScreen(im3d->dc->screen) ,
+                                      bim->nx , bim->ny , im3d->dc->planes ) ;
+        XPutImage( im3d->dc->display , afni16_pixmap[num_entry-1] ,
+                   im3d->dc->origGC , xim , 0,0 , 0,0 , bim->nx , bim->ny ) ;
+        MCW_kill_XImage( xim ) ;
+        mri_free(bim) ;
+      }
+
 #if 0
       if( afni16_pixmap[num_entry-1] == XmUNSPECIFIED_PIXMAP && AFNI_yesenv("AFNI_LOGO16") ){
         Pixel fg16=ICON_bg, bg16=ICON_fg ; int ic ; char ename[32] ;
