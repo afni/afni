@@ -126,7 +126,7 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
               fprintf(stderr,"PO: waiting to listen on control channel") ;
            for( ii=0 ; ii < 10 ; ii++ ){
               if( verbose ) fprintf(stderr,".") ;
-              iochan_sleep(VLONG_DELAY) ;  /* wait a bit, try again */
+              AFNI_sleep(VLONG_DELAY) ;  /* wait a bit, try again */
               ioc_control[cc] = iochan_init( ioc_conname[cc] , "accept" ) ;
               if( ioc_control[cc] != NULL ) break ;
            }
@@ -180,7 +180,7 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
            for( ii=0 ; ii < npobuf ; ii++ ) if( pobuf[ii] == '\0' ) break ;
            if( ii < npobuf ) break ;      /* stop if found a NUL character */
 
-           iochan_sleep( SHORT_DELAY ) ;  /* wait for some more? */
+           AFNI_sleep( SHORT_DELAY ) ;  /* wait for some more? */
         }
 
         if( npobuf < 1 ){
@@ -197,13 +197,13 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
         if( pp == NULL ){
           fprintf(stderr,"PO: can't create PLUGOUT_spec.  Input was:\n%s\n",pobuf) ;
           PO_ACK_BAD(ioc_control[cc]) ;
-          iochan_sleep(LONG_DELAY) ;
+          AFNI_sleep(LONG_DELAY) ;
           iochan_set_cutoff(ioc_control[cc]) ; IOCHAN_CLOSE(ioc_control[cc]) ;
           free(pobuf) ;
           continue ;    /* skip to next control socket */
         } else {
           if( pp->do_ack ) PO_ACK_OK(ioc_control[cc]) ;
-          iochan_sleep(LONG_DELAY) ;
+          AFNI_sleep(LONG_DELAY) ;
           iochan_set_cutoff(ioc_control[cc]) ; IOCHAN_CLOSE(ioc_control[cc]) ;
           fprintf(stderr,"PO: plugout connection name is %s\n",pp->po_name) ;
         }
@@ -252,7 +252,7 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
    /* if nothing happened, take a short nap */
 
    AFNI_block_rescan(0) ;    /* 10 Nov 2005 */
-   if( opcount == 0 ) iochan_sleep(LONG_DELAY) ;
+   if( opcount == 0 ) AFNI_sleep(LONG_DELAY) ;
    return(False) ;
 }
 
@@ -765,7 +765,7 @@ ENTRY("new_PLUGOUT_spec") ;
          for( kk=0 ; kk < 10 ; kk++ ){
             pp->ioc = iochan_init( pp->ioc_name , "accept" ) ;
             if( pp->ioc != NULL ) break ;
-            iochan_sleep(VLONG_DELAY) ; /* wait a bit, try again */
+            AFNI_sleep(VLONG_DELAY) ; /* wait a bit, try again */
          }
          if( pp->ioc == NULL )
             pp->ioc = iochan_init( pp->ioc_name , "accept" ) ;  /* last try */

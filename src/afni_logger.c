@@ -37,7 +37,7 @@ void AFNI_sleep( int msec )
   Log command to a file; return -1 if fails, 0 if good -- 13 Aug 2001
 -----------------------------------------------------------------------*/
 
-int AFNI_logger( char * pname , int argc , char ** argv )
+int AFNI_logger( char *pname , int argc , char **argv )
 {
    char *cline, *cdate , *eh , *fn , *logfile=LOGFILE ;
    FILE *fp ;
@@ -69,4 +69,16 @@ int AFNI_logger( char * pname , int argc , char ** argv )
    fprintf(fp,"[%s] %s\n",cdate,cline) ;
    UNLOCK_file(fp) ; fclose(fp) ;
    free(fn); free(cdate); free(cline) ; return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+long long AFNI_logfilesize(void)
+{
+   char *eh , *fn ;  long long fs ;
+
+   eh = getenv("HOME") ; if( eh == NULL )  return 0 ;
+   fn = (char *)malloc(sizeof(char)*(strlen(eh)+strlen(LOGFILE)+8)) ;
+   strcpy(fn,eh) ; strcat(fn,"/") ; strcat(fn,LOGFILE) ;
+   fs = THD_filesize(fn); free((void *)fn); return fs;
 }

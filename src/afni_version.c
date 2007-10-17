@@ -196,9 +196,10 @@ void AFNI_start_version_check(void)
 
      iochan_sendall( ioc , vbuf , nbuf ) ;
      while( ! iochan_clearcheck(ioc,10) )  /* loop until cleared */
-       iochan_sleep(10) ;                  /* by parent process  */
+       AFNI_sleep(10) ;                   /* by parent process  */
 
-     iochan_sleep(10); /* a little extra napping */     _exit(0);
+     AFNI_sleep(10); /* a little extra napping, then death */
+     _exit(0);
    }
 #endif  /* not CYGWIN */
 }
