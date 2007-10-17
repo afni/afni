@@ -89,6 +89,9 @@
          fprintf(1,'Error %s:\nFailed in New_HEAD\n', FuncName);
          return;
       end
+      %just put some labels to test label checking 
+      Info1.BRICK_LABS = sprintf('%c~', [0:1:Info1.DATASET_RANK(2)-1]+'A');
+      Info1.BRICK_LABS = sprintf('''%s', Info1.BRICK_LABS);
       [e,m,i] = WriteBrik(M,Info1,optt);
       %make output a time series of TR 2.0s
       optt.tr = 2.0;
