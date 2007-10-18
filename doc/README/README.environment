@@ -2048,6 +2048,13 @@ make the windows for the various controllers somewhat distinct in
 appearance.  If these color variables are not set at all, then AFNI
 uses some colors of my choosing for this purpose.
 
+----------------------------------
+Variable: AFNI_COLORIZE_CONTROLLER
+----------------------------------
+If this variable is set to NO, then the background of the AFNI controllers
+and image viewers will NOT be colorized.  The default state is that they
+are colorized (slightly).
+
 --------------------------
 Variable: AFNI_THRESH_LOCK (editable)
 --------------------------
