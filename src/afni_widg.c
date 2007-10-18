@@ -373,35 +373,29 @@ STATUS("WANT_LOGO_BITMAP") ;
       if( logo_pixmap == XmUNSPECIFIED_PIXMAP ){
 
 #ifndef NO_FRIVOLITIES
-#include "lll.h"
+#include "lll.h"  /* contains the colorized image logos */
+
+#define RGB_TO_PIXMAP(data,pnam)                                           \
+ do{ mri_fix_data_pointer( data , bim ) ;                                  \
+     pnam = XCreatePixmap( im3d->dc->display ,                             \
+                           RootWindowOfScreen(im3d->dc->screen) ,          \
+                           lll_width , lll_height , im3d->dc->planes ) ;   \
+     xim = rgb_to_XImage( im3d->dc , bim ) ;                               \
+     if( xim != NULL ) XPutImage( im3d->dc->display , pnam ,               \
+                                  im3d->dc->origGC ,                       \
+                                  xim , 0,0, 0,0, lll_width,lll_height ) ; \
+     MCW_kill_XImage( xim );                                               \
+ } while(0)
+
         if( im3d->dc->visual_class == TrueColor ){  /* 23 Sep 2001 */
           MRI_IMAGE *bim ; XImage *xim ;
           bim = mri_new_vol_empty( lll_width,lll_height,1 , MRI_rgb ) ;
-          mri_fix_data_pointer( lll_rgb , bim ) ;
-          logo_pixmap = XCreatePixmap( im3d->dc->display ,
-                                       RootWindowOfScreen(im3d->dc->screen) ,
-                                       lll_width , lll_height ,
-                                       im3d->dc->planes ) ;
-          xim = rgb_to_XImage( im3d->dc , bim ) ;
-          if( xim != NULL )
-             XPutImage( im3d->dc->display ,
-                        logo_pixmap ,
-                        im3d->dc->origGC ,
-                        xim , 0,0 , 0,0 , lll_width , lll_height ) ;
-          MCW_kill_XImage( xim );
 
-          mri_fix_data_pointer( vvv_rgb , bim ) ;      /* 08 Aug 2005 */
-          vers_pixmap = XCreatePixmap( im3d->dc->display ,
-                                       RootWindowOfScreen(im3d->dc->screen) ,
-                                       lll_width , lll_height ,
-                                       im3d->dc->planes ) ;
-          xim = rgb_to_XImage( im3d->dc , bim ) ;
-          if( xim != NULL )
-             XPutImage( im3d->dc->display ,
-                        vers_pixmap ,
-                        im3d->dc->origGC ,
-                        xim , 0,0 , 0,0 , lll_width , lll_height ) ;
-          MCW_kill_XImage( xim );
+          RGB_TO_PIXMAP(lll_rgb  ,logo_pixmap ) ;
+          RGB_TO_PIXMAP(vvv_rgb  ,vers_pixmap ) ;  /* 08 Aug 2005 */
+          RGB_TO_PIXMAP(sbuck_rgb,sbuck_pixmap) ;  /* 18 Oct 2007 */
+          RGB_TO_PIXMAP(burst_rgb,burst_pixmap) ;  /* 18 Oct 2007 */
+
           mri_clear_data_pointer(bim); mri_free(bim);
         }
 #endif
@@ -5325,7 +5319,7 @@ ENTRY("AFNI_clone_controller_CB") ;
 
    AFNI_controller_clonify() ;
 
-   SHOW_AFNI_READY ; EXRETURN ;
+   PICTURE_OFF(im3d) ; SHOW_AFNI_READY ; EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
