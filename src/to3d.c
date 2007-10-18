@@ -75,9 +75,9 @@ static struct {
 /*----------------------------------------------------------------------*/
 static char * FALLback[] =
   {   "AFNI*fontList:        9x15bold=charset1" ,
-      "AFNI*background:      gray40"            ,
-      "AFNI*menu*background: gray40"            ,
-      "AFNI*borderColor:     gray40"            ,
+      "AFNI*background:      gray30"            ,
+      "AFNI*menu*background: gray20"            ,
+      "AFNI*borderColor:     gray30"            ,
       "AFNI*foreground:      yellow"            ,
       "AFNI*borderWidth:     0"                 ,
       "AFNI*troughColor:     green"             ,
