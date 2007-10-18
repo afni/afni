@@ -2049,6 +2049,13 @@ static char * readme_env[] = {
    "appearance.  If these color variables are not set at all, then AFNI\n" ,
    "uses some colors of my choosing for this purpose.\n" ,
    "\n" ,
+   "----------------------------------\n" ,
+   "Variable: AFNI_COLORIZE_CONTROLLER\n" ,
+   "----------------------------------\n" ,
+   "If this variable is set to NO, then the background of the AFNI controllers\n" ,
+   "and image viewers will NOT be colorized.  The default state is that they\n" ,
+   "are colorized (slightly).\n" ,
+   "\n" ,
    "--------------------------\n" ,
    "Variable: AFNI_THRESH_LOCK (editable)\n" ,
    "--------------------------\n" ,
@@ -2418,6 +2425,13 @@ static char * readme_env[] = {
    "and time index scrolling will be reversed in the image and graph viewers,\n" ,
    "respectively.\n" ,
    "\n" ,
+   "----------------------------\n" ,
+   "Variable: AFNI_STRLIST_INDEX\n" ,
+   "----------------------------\n" ,
+   "If this variable is set to NO, then the new [12 Oct 2007] 'Index' selector\n" ,
+   "at the bottom of a string-list chooser (e.g., the 'Overlay' button popup\n" ,
+   "window) will NOT be shown.\n" ,
+   "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- variables specific to NIML I/O\n" ,
    "----------------------------------------------------------------------\n" ,
@@ -2562,4 +2576,4 @@ static char * readme_env[] = {
    "in 3dDeconvolve by the \"-gltsym\" option will be printed to the screen\n" ,
    "when the program starts up.\n" ,
    NULL } ;
-#define NUM_readme_env 2562
+#define NUM_readme_env 2576
