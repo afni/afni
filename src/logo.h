@@ -10,6 +10,9 @@
 #ifndef MAIN
 extern Pixmap logo_pixmap ;
 extern Pixmap vers_pixmap ;
+extern Pixmap sbuck_pixmap ;
+extern Pixmap burst_pixmap ;
+extern int sbuccc ;
 
 extern int    afni48_good ;
 extern Pixmap afni48_pixmap ;
@@ -24,6 +27,9 @@ extern Pixmap afni16_pixmap[26] ;
 #else
 Pixmap logo_pixmap      = XmUNSPECIFIED_PIXMAP ;
 Pixmap vers_pixmap      = XmUNSPECIFIED_PIXMAP ;  /* 08 Aug 2005 */
+Pixmap sbuck_pixmap     = XmUNSPECIFIED_PIXMAP ;  /* 18 Oct 2007 */
+Pixmap burst_pixmap     = XmUNSPECIFIED_PIXMAP ;  /* 18 Oct 2007 */
+int sbuccc = 0 ;
 
 int    afni48_good      = 0 ;
 Pixmap afni48_pixmap    = XmUNSPECIFIED_PIXMAP ;
