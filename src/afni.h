@@ -714,20 +714,14 @@ typedef struct {
 
 /** picture controls **/
 
-#define PICTURE_ON(im)                                                      \
-   do{ if( (im)->type == AFNI_3DDATA_VIEW )                                 \
-        XtVaSetValues((im)->vwid->picture,XmNlabelPixmap,logo_pixmap,NULL); \
-   } while(0)
-
-#define PICTURE_OFF(im)                                                               \
-   do{ if( (im)->type == AFNI_3DDATA_VIEW )                                           \
-        XtVaSetValues((im)->vwid->picture,XmNlabelPixmap,XmUNSPECIFIED_PIXMAP,NULL ); \
-   } while(0)
-
 #define PICTURE_SET(im,px)                                            \
    do{ if( (im)->type == AFNI_3DDATA_VIEW )                           \
         XtVaSetValues((im)->vwid->picture,XmNlabelPixmap,(px),NULL ); \
    } while(0)
+
+#define PICTURE_ON(im)   PICTURE_SET(im,logo_pixmap)
+#define PICTURE_OFF(im)  PICTURE_SET(im,(++sbuccc%7)?burst_pixmap:sbuck_pixmap)
+#define PICTURE_DEAD(im) PICTURE_SET(im,XmUNSPECIFIED_PIXMAP)
 
 /*-----------------------------*/
 /*----- Data for FIM-age ------*/
