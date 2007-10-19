@@ -4,7 +4,7 @@
 
 int main( int argc , char * argv[] )
 {
-   int mm,ii ;
+   size_t mm,ii ;
    char * cc ;
 
    if( argc < 2 || strcmp(argv[1],"-help")==0 ){
@@ -17,7 +17,9 @@ int main( int argc , char * argv[] )
    if( mm <= 0 ) exit(1) ;
 
    cc = (char *)malloc( mm*1024*1024 * sizeof(char) ) ;
-   printf("Malloc-ed %d Megabytes",mm) ; fflush(stdout) ;
+   if( !cc ){ fprintf(stderr,"** malloc failure\n"); return 1; }
+
+   printf("Malloc-ed %ld Megabytes",mm) ; fflush(stdout) ;
    for( ii=0 ; ii < mm*1024*1024 ; ii++ ) cc[ii] = (char) (ii%128) ;
 
    for( ii=0 ; ii < 3 ; ii++ ){
