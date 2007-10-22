@@ -391,11 +391,13 @@ STATUS("WANT_LOGO_BITMAP") ;
           MRI_IMAGE *bim ; XImage *xim ;
           bim = mri_new_vol_empty( lll_width,lll_height,1 , MRI_rgb ) ;
 
-          RGB_TO_PIXMAP(lll_rgb  ,logo_pixmap ) ;
-          RGB_TO_PIXMAP(vvv_rgb  ,vers_pixmap ) ;  /* 08 Aug 2005 */
-          RGB_TO_PIXMAP(sbuck_rgb,sbuck_pixmap) ;  /* 18 Oct 2007 */
-          RGB_TO_PIXMAP(burst_rgb,burst_pixmap) ;  /* 18 Oct 2007 */
-          RGB_TO_PIXMAP(rhdda_rgb,rhdda_pixmap) ;  /* 19 Oct 2007 */
+          RGB_TO_PIXMAP(lll_rgb  ,logo_pixmap   ) ;
+          RGB_TO_PIXMAP(vvv_rgb  ,vers_pixmap   ) ;  /* 08 Aug 2005 */
+          RGB_TO_PIXMAP(rhdda_rgb,pict_pixmap[0]) ;  /* 19 Oct 2007 */
+          RGB_TO_PIXMAP(sbuck_rgb,pict_pixmap[1]) ;  /* 18 Oct 2007 */
+          RGB_TO_PIXMAP(sscc_rgb ,pict_pixmap[2]) ;  /* 22 Oct 2007 */
+          RGB_TO_PIXMAP(earth_rgb,pict_pixmap[3]) ;  /* 22 Oct 2007 */
+          RGB_TO_PIXMAP(burst_rgb,pict_pixmap[4]) ;  /* 18 Oct 2007 */
 
           mri_clear_data_pointer(bim); mri_free(bim);
         }

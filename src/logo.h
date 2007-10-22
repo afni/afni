@@ -7,13 +7,13 @@
 #ifndef _AFNI_LOGO_HEADER_
 #define _AFNI_LOGO_HEADER_
 
+#undef  NPICT
+#define NPICT 5
+
 #ifndef MAIN
 extern Pixmap logo_pixmap ;
 extern Pixmap vers_pixmap ;
-extern Pixmap sbuck_pixmap ;
-extern Pixmap burst_pixmap ;
-extern Pixmap rhdda_pixmap ;
-extern int sbuccc ;
+extern Pixmap pict_pixmap[] ;
 
 extern int    afni48_good ;
 extern Pixmap afni48_pixmap ;
@@ -26,12 +26,12 @@ extern Pixmap afni48grasag_pixmap ;
 extern Pixmap afni48graaxi_pixmap ;
 extern Pixmap afni16_pixmap[26] ;
 #else
-Pixmap logo_pixmap      = XmUNSPECIFIED_PIXMAP ;
-Pixmap vers_pixmap      = XmUNSPECIFIED_PIXMAP ;  /* 08 Aug 2005 */
-Pixmap sbuck_pixmap     = XmUNSPECIFIED_PIXMAP ;  /* 18 Oct 2007 */
-Pixmap burst_pixmap     = XmUNSPECIFIED_PIXMAP ;  /* 18 Oct 2007 */
-Pixmap rhdda_pixmap     = XmUNSPECIFIED_PIXMAP ;  /* 18 Oct 2007 */
-int sbuccc = 0 ;
+Pixmap logo_pixmap = XmUNSPECIFIED_PIXMAP ;
+Pixmap vers_pixmap = XmUNSPECIFIED_PIXMAP ;  /* 08 Aug 2005 */
+Pixmap pict_pixmap[NPICT] = { XmUNSPECIFIED_PIXMAP,
+                              XmUNSPECIFIED_PIXMAP,
+                              XmUNSPECIFIED_PIXMAP,
+                              XmUNSPECIFIED_PIXMAP } ;
 
 int    afni48_good      = 0 ;
 Pixmap afni48_pixmap    = XmUNSPECIFIED_PIXMAP ;
