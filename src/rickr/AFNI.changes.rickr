@@ -2208,5 +2208,8 @@
   * modified 3dDeconvolve.c: set AFNI_DECONFLICT=OVERWRITE in do_xrestore_stuff
 12 Oct 2007: modified thd_niftiread/write.c: get/set nim->toffset
 19 Oct 2007: modified mbig.c to handle mallocs above 2 GB
-22 Oct 2007: modified Makefile.INCLUDE: added R_scripts dir
+22 Oct 2007:
+  * modified Makefile.INCLUDE: added R_scripts dir
+  * checked in Gang's current 3dLME.R and io.R scripts
+
 
