@@ -148,6 +148,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
 
 PY_DIR = python_scripts
 PY_SCRIPTS = afni_base.py @DoPerRoi.py
+R_DIR = R_scripts
 
 LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h                \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h        \
@@ -1239,7 +1240,8 @@ backup:
 afni_src.tgz:
 	$(MKDIR) afni_src
 	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)               ./afni_src
-	$(CP) -pr coxplot volpack moveup moveAFNI* cdflib eispack $(SCRIPTS) $(PY_DIR)     ./afni_src
+	$(CP) -pr coxplot volpack moveup moveAFNI* cdflib eispack ./afni_src
+	$(CP) -pr $(SCRIPTS) $(PY_DIR) $(R_DIR) ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir ./afni_src
 	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat               ./afni_src
 	$(CP) -pr SUMA svm matlab rickr faces poems gifti ni_test_? README.*                         ./afni_src
@@ -1273,7 +1275,7 @@ afni_doc.tgz:
 install: $(INSTALLDIR) $(INSTALL_PREREQ)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(SCRIPTS)  $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py  $(INSTALLDIR)
+	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
 	if [ -f README.environment ]; then $(CP) README.*    $(INSTALLDIR); fi;
 	if [ -f AFNI.afnirc        ]; then $(CP) AFNI.afnirc $(INSTALLDIR); fi;
 	if [ -f AFNI.sumarc        ]; then $(CP) AFNI.sumarc $(INSTALLDIR); fi;
@@ -1281,7 +1283,7 @@ install: $(INSTALLDIR) $(INSTALL_PREREQ)
 install_noplug: $(INSTALLDIR)
 	$(MV) $(PROGRAMS_NOPLUG) $(INSTALLDIR)
 	$(CP) $(SCRIPTS) $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py $(INSTALLDIR)
+	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
 
 install_lib: $(LIBDIR)
 	$(CP) libmri.a libmrix.a libf2c.a libcoxplot.a libvolpack.a $(LIBHEADERS) $(LIBDIR)
@@ -1293,7 +1295,7 @@ install_exe: $(INSTALLDIR)
              qq=`basename $$pp .exe`; $(MV) $${qq}.exe $(INSTALLDIR) ; \
           done )
 	$(CP) $(SCRIPTS) $(INSTALLDIR)
-	$(CP) $(PY_DIR)/*.py $(INSTALLDIR)
+	$(CP) $(PY_DIR)/*.py $(R_DIR)/*.R $(INSTALLDIR)
 
 ###################################################################
 # some dependencies (not complete)
