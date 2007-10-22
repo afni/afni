@@ -721,17 +721,7 @@ typedef struct {
 
 #define PICTURE_ON(im)   PICTURE_SET(im,logo_pixmap)
 #define PICTURE_DEAD(im) PICTURE_SET(im,XmUNSPECIFIED_PIXMAP)
-
-#define PICTURE_OFF(im)                     \
- do{ Pixmap pm ;                            \
-     switch( AFNI_controller_index(im)%3 ){ \
-       default:                             \
-       case 0: pm = burst_pixmap; break;    \
-       case 1: pm = rhdda_pixmap; break;    \
-       case 2: pm = sbuck_pixmap; break;    \
-     }                                      \
-     PICTURE_SET(im,pm) ;                   \
- } while(0)
+#define PICTURE_OFF(im)  PICTURE_SET(im,pict_pixmap[AFNI_controller_index(im)%NPICT])
 
 /*-----------------------------*/
 /*----- Data for FIM-age ------*/
