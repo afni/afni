@@ -508,7 +508,7 @@ STATUS("WANT_AFNI_BITMAP") ;
         }
       }
 
-      if( !AFNI_noenv("AFNI_COLORIZE_CONTROLLER") &&
+      if( AFNI_yesenv("AFNI_COLORIZE_CONTROLLER") &&
           im3d->dc->visual_class     == TrueColor &&
           afni16_pixmap[num_entry-1] == XmUNSPECIFIED_PIXMAP ){ /* 17 Oct 2007 */
 

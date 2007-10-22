@@ -2051,9 +2051,9 @@ uses some colors of my choosing for this purpose.
 ----------------------------------
 Variable: AFNI_COLORIZE_CONTROLLER
 ----------------------------------
-If this variable is set to NO, then the background of the AFNI controllers
-and image viewers will NOT be colorized.  The default state is that they
-are colorized (slightly).
+If this variable is set to YES, then the background of the AFNI controllers
+and image viewers will be colorized.  The default state is that they are not
+colorized.
 
 --------------------------
 Variable: AFNI_THRESH_LOCK (editable)
