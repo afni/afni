@@ -1,0 +1,5 @@
+#!/bin/tcsh 
+
+setenv AFNI_R_DIR $0:h
+
+R --no-save < $1
