@@ -2211,5 +2211,8 @@
 22 Oct 2007:
   * modified Makefile.INCLUDE: added R_scripts dir
   * checked in Gang's current 3dLME.R and io.R scripts
-
+23 Oct 2007:
+  * added afni_run_R script, to set AFNI_R_DIR and invoke R
+  * modified Makefile.INCLUDE, added afni_run_R to SCRIPTS
+  * modified 3dLME.R, to use the AFNI_R_DIR environment variable
 
