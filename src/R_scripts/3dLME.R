@@ -1,4 +1,4 @@
-#!/usr/bin/env R
+#!/usr/bin/env afni_run_R
 
 #Welcome to 3dLME.R, an AFNI Group Analysis Package!
 #-----------------------------------------------------------
@@ -11,7 +11,7 @@
 
 # Need a mask to reduce runtime!!!!!!
 
-source(file.path(Sys.getenv("LME"), "io.R"));
+source(file.path(Sys.getenv("AFNI_R_DIR"), "io.R"));
 #install.packages("nlme",dependencies=TRUE);
 library(nlme);
 
