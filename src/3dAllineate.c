@@ -478,7 +478,7 @@ int main( int argc , char *argv[] )
        " -automask   = Compute a mask function, which is like -autoweight,\n"
        "               but the weight for a voxel is set to either 0 or 1.\n"
        "       **N.B.: '-automask+3' means to compute the mask function, and\n"
-       "               then dilate it outwards by 3 voxels.\n"
+       "               then dilate it outwards by 3 voxels (e.g.).\n"
        " -autobox    = Expand the -automask function to enclose a rectangular\n"
        "               box that holds the irregular mask.\n"
        "       **N.B.: This is the default mode of operation!\n"
@@ -516,6 +516,8 @@ int main( int argc , char *argv[] )
        " -source_automask = Automatically mask the source dataset.\n"
        "                      [By default, all voxels in the source]\n"
        "                      [dataset are used in the matching.   ]\n"
+       "            **N.B.: You can also use '-source_automask+3' to dilate\n"
+       "                    the default source automask outward by 3 voxels.\n"
       ) ;
 
       printf(
@@ -2608,7 +2610,7 @@ int main( int argc , char *argv[] )
        allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
        INFO_message("allcost output: init #%d",kk) ;
        for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
-         printf("   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
+         fprintf(stderr,"   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
        KILL_floatvec(allcost) ;
        if( do_allcost == -1 ) continue ;  /* skip to next sub-brick */
      }
@@ -2823,7 +2825,7 @@ int main( int argc , char *argv[] )
        allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
        INFO_message("allcost output: fine #%d",kk) ;
        for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
-         printf("   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
+         fprintf(stderr,"   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
        KILL_floatvec(allcost) ;
      }
 
@@ -2878,7 +2880,7 @@ int main( int argc , char *argv[] )
          allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
          INFO_message("allcost output: intermed #%d",kk) ;
          for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
-           printf("   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
+           fprintf(stderr,"   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
          KILL_floatvec(allcost) ;
        }
      }
@@ -2903,7 +2905,7 @@ int main( int argc , char *argv[] )
        allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
        INFO_message("allcost output: final #%d",kk) ;
        for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
-         printf("   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
+         fprintf(stderr,"   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
        KILL_floatvec(allcost) ;
      }
 
