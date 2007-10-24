@@ -41,15 +41,16 @@ void AL_setup_warp_coords( int,int,int,int ,
 
 #undef MEMORY_CHECK
 #ifdef USING_MCW_MALLOC
-# define MEMORY_CHECK                                              \
-   do{ if( verb > 5 ) mcw_malloc_dump() ;                          \
-       if( verb > 1 ){                                             \
-         long long nb = mcw_malloc_total() ;                       \
-         if( nb > 0 ) INFO_message("Memory usage now = %lld",nb) ; \
-       }                                                           \
+# define MEMORY_CHECK(mm)                                                    \
+   do{ if( verb > 5 ) mcw_malloc_dump() ;                                    \
+       if( verb > 1 ){                                                       \
+         long long nb = mcw_malloc_total() ;                                 \
+         if( nb > 0 ) INFO_message("Memory usage now = %lld (%s): %s" ,      \
+                      nb , approximate_number_string((double)nb) , (mm) ) ;  \
+       }                                                                     \
    } while(0)
 #else
-# define MEMORY_CHECK /*nada*/
+# define MEMORY_CHECK(mm) /*nada*/
 #endif
 
 /*----------------------------------------------------------------------------*/
@@ -366,6 +367,13 @@ int main( int argc , char *argv[] )
        "               (preference in that order).  If the program crashes,\n"
        "               these files are named TIM_somethingrandom, and you\n"
        "               may have to delete them manually. (TIM=Temporary IMage)\n"
+       "       **N.B.: If the program fails with a 'malloc failure' type of\n"
+       "               message, then try '-usetemp' (malloc=memory allocator).\n"
+#ifdef USING_MCW_MALLOC
+       "       **N.B.: If you use '-verb', then memory usage is printed out\n"
+       "               at various points along the way.\n"
+#endif
+       " -nousetemp  = Don't use temporary workspace on disk [the default].\n"
        "\n"
        " -check kkk  = After cost function optimization is done, start at the\n"
        "               final parameters and RE-optimize using the new cost\n"
@@ -1073,6 +1081,9 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-usetemp") == 0 ){  /* 20 Dec 2006 */
        usetemp = 1 ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-nousetemp") == 0 ){
+       usetemp = 0 ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -2142,14 +2153,14 @@ int main( int argc , char *argv[] )
 
    stup.blokset = NULL ;
    if( meth_code == GA_MATCH_PEARSON_LOCALS ||
-       meth_code == GA_MATCH_PEARSON_LOCALA   ){
+       meth_code == GA_MATCH_PEARSON_LOCALA || do_allcost  ){
      float mr = 1.23f * ( MAT44_COLNORM(stup.base_cmat,0)
                          +MAT44_COLNORM(stup.base_cmat,1)
                          +MAT44_COLNORM(stup.base_cmat,2) ) ;
      if( blokrad < mr ) blokrad = mr ;
      stup.bloktype = bloktype ; stup.blokrad = blokrad ; stup.blokmin = 0 ;
-     INFO_message("Local correlation: blok type = '%s(%g)'",
-                  GA_BLOK_STRING(bloktype) , blokrad        ) ;
+     if( verb ) INFO_message("Local correlation: blok type = '%s(%g)'",
+                             GA_BLOK_STRING(bloktype) , blokrad        ) ;
    }
 
    /* modify base_cmat to allow for zeropad? */
@@ -2512,6 +2523,8 @@ int main( int argc , char *argv[] )
      mri_genalign_set_targmask( im_tmask , &stup ) ;  /* 07 Aug 2007 */
      mri_free(im_tmask) ; im_tmask = NULL ;
    }
+
+   MEMORY_CHECK("about to start alignment loop") ;
 
    for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){
 
@@ -3130,7 +3143,7 @@ DUMP_MAT44("aff12_ijk",qmat) ;
          mri_purge( DSET_BRICK(dset_out,kk) ) ;
      }
 
-     MEMORY_CHECK ;
+     MEMORY_CHECK("end of 1 sub-brick alignment") ;
 
    } /***------------- end of loop over target sub-bricks ------------------***/
 
@@ -3145,7 +3158,7 @@ DUMP_MAT44("aff12_ijk",qmat) ;
 
    /***--- write output dataset to disk? ---***/
 
-   MEMORY_CHECK ;
+   MEMORY_CHECK("end of sub-brick loop") ;
 
    if( dset_out != NULL ){
      DSET_write(dset_out); WROTE_DSET(dset_out); DSET_unload(dset_out);
@@ -3204,7 +3217,7 @@ DUMP_MAT44("aff12_ijk",qmat) ;
    if( matsave != NULL ) free((void *)matsave) ;
 
    if( verb ) INFO_message("total CPU time = %.1f sec\n",COX_cpu_time()) ;
-   MEMORY_CHECK ;
+   MEMORY_CHECK("end of program") ;
    exit(0) ;
 }
 
