@@ -247,7 +247,7 @@ int main( int argc , char *argv[] )
        "                This option is for compatibility with 3dvolreg.\n"
        "\n"
        " -floatize   = Write result dataset as floats.  Internal calculations\n"
-       "               are all done on float copies of the input datasets.\n"
+       " -float        are all done on float copies of the input datasets.\n"
        "               [Default=convert output dataset to data format of]\n"
        "               [        source dataset, without any scale factor]\n"
        "\n"
