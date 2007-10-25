@@ -6417,3 +6417,7 @@
 
 24 Oct 2007
  * Minor fix to 3dAllineate.c to setup 'blok' stuff when allcost is on.
+
+25 Oct 2007
+ * Minor change to RegAna.c to use matrix_psinv() as a backup to
+     matrix_inverse_dsc() when inverting GLT matrix.
