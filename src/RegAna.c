@@ -141,6 +141,17 @@ ENTRY("calc_glt_matrix") ;
   matrix_multiply (xtxinv, ct, &xtxinvct);   /* inv{[x]'[x]} [c]' */
   matrix_multiply (c, xtxinvct, cxtxinvct);  /* [c] inv{[x]'[x]} [c]' */
   ok = matrix_inverse_dsc (*cxtxinvct, &t2); /* inv{ [c] inv{[x]'[x]} [c]' } */
+
+  if( !ok ){  /*--- 25 Oct 2007 ---*/
+    WARNING_message("GLT setup: inversion of C[1/(X'X)]C' fails; trying SVD.\n"
+                    "   [This happens when some regressor columns are all ]\n"
+                    "   [zero, or when the GLT has linearly-dependent rows]\n"
+                    "   [********* EXAMINE YOUR RESULTS WITH CARE ********]\n"
+                   ) ;
+    matrix_psinv( *cxtxinvct , NULL , &t2 ) ;
+    ok = (matrix_norm(t2) > 0.0) ;
+  }
+
   if (ok)
     {
       matrix_multiply (xtxinvct, t2, &t1);
