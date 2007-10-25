@@ -2216,3 +2216,5 @@
   * modified Makefile.INCLUDE, added afni_run_R to SCRIPTS
   * modified 3dLME.R, to use the AFNI_R_DIR environment variable
 
+25 Oct 2007: modified 3dfractionize.c: added another help example
+
