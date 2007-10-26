@@ -1,5 +1,5 @@
-#ifndef _GIFTI_XML_H_
-#define _GIFTI_XML_H_
+#ifndef GIFTI_XML_H
+#define GIFTI_XML_H
 
 #define GXML_MAX_DEPTH 10    /* maximum stack depth */
 #define GXML_MAX_ELEN  128   /* maximum element length */
@@ -59,7 +59,9 @@
 typedef struct {
     int            verb;            /* verbose level                */
     int            dstore;          /* flag: store data             */
+    int            indent;          /* spaces per depth level       */
     int            buf_size;        /* for XML buffer               */
+
     int            errors;          /* number of errors encountered */
     int            skip;            /* stack depth to skip          */
     int            depth;           /* current stack depth          */
@@ -91,4 +93,4 @@ int   gxml_set_buf_size    ( int val );
 int   gxml_get_buf_size    ( void    );
 
 
-#endif /* _GIFTI_XML_H_ */
+#endif /* GIFTI_XML_H */

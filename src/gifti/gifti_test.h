@@ -1,3 +1,5 @@
+#ifndef GIFTI_TEST_H
+#define GIFTI_TEST_H
 
 #define CHECK_NEXT_OPT(n,m,str)                                     \
    do { if ( (n) >= (m) ) {                                          \
@@ -14,6 +16,8 @@
 
 int ewrite_data_line (void *, int, int, int, int, int, FILE *);
 int ewrite_many_lines(void **, int, size_t, size_t, int, FILE *);
-int write_1D_file(DataArray ** dlist, int len, char * prefix, int add_suf);
-int write_as_ascii(gifti_image * gim, char * prefix);
-int write_surf_file( DataArray * dc, DataArray * dt, char *, int);
+int write_1D_file    (gifti_DataArray **, int, char *, int);
+int write_as_ascii   (gifti_image *, char *);
+int write_surf_file  (gifti_DataArray *, gifti_DataArray *, char *, int);
+
+#endif /* GIFTI_TEST_H */

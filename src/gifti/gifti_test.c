@@ -2,34 +2,34 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "gifti.h"
-#include "gtest.h"
+#include "gifti_io.h"
+#include "gifti_test.h"
 
 int show_help()
 {
     fprintf(stderr,
         "------------------------------------------------------------\n"
-        "gtest  - test reading/writing a GIFTI dataset\n"
+        "gifti_test  - test reading/writing a GIFTI dataset\n"
         "\n"
         "    examples:\n"
         "        1. read in a GIFTI dataset (verbose, show output?)\n"
         "\n"
-        "            gtest -infile dset.gii\n"
-        "            gtest -infile dset.gii -verb 3\n"
-        "            gtest -infile dset.gii -show\n"
+        "            gifti_test -infile dset.gii\n"
+        "            gifti_test -infile dset.gii -verb 3\n"
+        "            gifti_test -infile dset.gii -show\n"
         "\n"
         "        2. copy a GIFTI dataset (check differences?)\n"
         "\n"
-        "            gtest -infile dset.gii -gfile copy.gii\n"
+        "            gifti_test -infile dset.gii -gfile copy.gii\n"
         "            diff dset.gii copy.gii\n"
         "\n"
         "        3. create .asc surfaces dataset (surf.asc)\n"
         "\n"
-        "            gtest -infile pial.gii -prefix surf\n"
+        "            gifti_test -infile pial.gii -prefix surf\n"
         "\n"
         "        4. create .1D time series surface dataset (surf.1D)\n"
         "\n"
-        "            gtest -infile time_series.gii -prefix surf\n"
+        "            gifti_test -infile time_series.gii -prefix surf\n"
         "\n"
         "    options:\n"
         "       -help           : show this help\n"
@@ -38,7 +38,7 @@ int show_help()
         "                         e.g. -buf_size 1024\n"
         "       -gfile   OUTPUT : write out dataset as gifti image\n"
         "       -ghist          : show giftilib history\n"
-        "       -gver           : show giftilib version\n"
+        "       -gifti_ver      : show giftilib version\n"
         "       -infile  INPUT  : write out dataset as gifti image\n"
         "       -no_data        : do not write out data\n"
         "       -prefix  OUTPUT : write out dataset(s) as surf images\n"
@@ -69,7 +69,7 @@ int main( int argc, char * argv[] )
         } else if( !strcmp(argv[ac], "-ghist") ) {
             gifti_disp_lib_hist();
             return 0;
-        } else if( !strcmp(argv[ac], "-gver") ) {
+        } else if( !strcmp(argv[ac], "-gifti_ver") ) {
             gifti_disp_lib_version();
             return 0;
         } else if( !strcmp(argv[ac], "-gfile") ) {
@@ -127,10 +127,10 @@ int main( int argc, char * argv[] )
 
 int write_as_ascii(gifti_image * gim, char * prefix)
 {
-    DataArray  * dac; /* coords */
-    DataArray  * dat; /* triangles */
-    DataArray ** da_list; /* time series? */
-    int          len;
+    gifti_DataArray  * dac; /* coords */
+    gifti_DataArray  * dat; /* triangles */
+    gifti_DataArray ** da_list; /* time series? */
+    int                len;
 
     fprintf(stderr,"-d trying to write data with prefix '%s'\n", prefix);
 
@@ -160,13 +160,13 @@ int write_as_ascii(gifti_image * gim, char * prefix)
 
 /* if dlist contains 1 element, write out as 2-D list,
    else each DA must have only 1 dimension */
-int write_1D_file(DataArray ** dlist, int len, char * prefix, int add_suf)
+int write_1D_file(gifti_DataArray ** dlist, int len, char * prefix, int add_suf)
 {
-    DataArray * da;
-    FILE      * fp;
-    char      * name = prefix;
-    char      * nbuf = NULL;
-    int         rows, cols, c;
+    gifti_DataArray * da;
+    FILE            * fp;
+    char            * name = prefix;
+    char            * nbuf = NULL;
+    int               rows, cols, c;
 
     if( add_suf ) {     /* create a new name */
         nbuf = (char *)malloc(strlen(prefix) + strlen(".1D") + 1);
@@ -243,13 +243,14 @@ int write_1D_file(DataArray ** dlist, int len, char * prefix, int add_suf)
 }
 
 
-int write_surf_file(DataArray * dc, DataArray * dt, char * prefix, int add_suf)
+int write_surf_file(gifti_DataArray * dc, gifti_DataArray * dt, char * prefix,
+                    int add_suf)
 {
-    DataArray * da;
-    FILE      * fp;
-    char      * name = prefix;
-    char      * nbuf = NULL;
-    int         crows, ccols, trows, tcols, rows, cols, c;
+    gifti_DataArray * da;
+    FILE            * fp;
+    char            * name = prefix;
+    char            * nbuf = NULL;
+    int               crows, ccols, trows, tcols, rows, cols, c;
 
     if( add_suf ) {     /* create a new name */
         nbuf = (char *)malloc(strlen(prefix) + strlen(".asc") + 1);
