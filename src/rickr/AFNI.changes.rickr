@@ -2217,4 +2217,16 @@
   * modified 3dLME.R, to use the AFNI_R_DIR environment variable
 
 25 Oct 2007: modified 3dfractionize.c: added another help example
+26 Oct 2007: gifti 0.2
+  * renamed gifti.? to gifti_io.?, gtest to gifti_test
+  * modified get.times, test.io: applied gifti_test name
+  * modified Makefile: applied name changes, added clean: target
+  * modified gifti_io.[ch]: prepended 'gifti_' to main data structures
+        - MetaData    -> gifti_MetaData,    LabelTable -> gifti_LabelTable,
+          CoordSystem -> gifti_CoordSystem, DataArray  -> gifti_DataArray
+  * modified gifti_xml.c:
+        - added indent level to control structure and fixed logic
+        - allowed more CDATA parents (any PCDATA)
+        - added ewrite_text_ele and applied ewrite_cdata_ele
+  * modified gifti_test.c: changed option to -gifti_ver
 

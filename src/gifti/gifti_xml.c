@@ -2,7 +2,7 @@
 #include <ctype.h>
 #include <string.h>
 #include "expat.h"
-#include "gifti.h"
+#include "gifti_io.h"
 #include "gifti_xml.h"
 
 #define GXML_BSIZE 2048
@@ -44,7 +44,7 @@ static int  whitespace_len      (const char *, int);
 static int  update_partial_buffer(char **, int *, int);
 
 
-static MetaData * find_current_MetaData(gxml_data *, int);
+static gifti_MetaData * find_current_MetaData(gxml_data *, int);
 
 static void XMLCALL cb_start_ele    (void *, const char *, const char **);
 static void XMLCALL cb_end_ele      (void *, const char *);
@@ -65,17 +65,18 @@ static XML_Parser init_xml_parser   (void *);
 static int  gxml_write_gifti(gxml_data *, FILE *);
 static int  gxml_write_preamble(gxml_data *, FILE *);
 
-static int  ewrite_cdata_ele        (int, const char *, int, FILE *);
-static int  ewrite_coordsys         (gxml_data *, CoordSystem *, FILE *);
-static int  ewrite_data             (gxml_data *, DataArray *, FILE *);
+static int  ewrite_text_ele         (int, const char *, const char *,
+                                     int, int, FILE *);
+static int  ewrite_coordsys         (gxml_data *, gifti_CoordSystem *, FILE *);
+static int  ewrite_data             (gxml_data *, gifti_DataArray *, FILE *);
 static int  ewrite_data_line        (void *, int, int, int, int, FILE *);
 static int  ewrite_double_line      (double *, int, int, FILE *);
 static int  ewrite_int_attr         (const char *, int, int, int, FILE *);
 static int  ewrite_str_attr         (const char*, const char*, int, int, FILE*);
-static int  ewrite_darray           (gxml_data *, DataArray *, FILE *);
+static int  ewrite_darray           (gxml_data *, gifti_DataArray *, FILE *);
 static int  ewrite_ex_atrs          (gxml_data *, nvpairs *, int, int, FILE *);
-static int  ewrite_LT               (gxml_data *, LabelTable *, FILE *);
-static int  ewrite_meta             (gxml_data *, MetaData *, FILE *);
+static int  ewrite_LT               (gxml_data*, gifti_LabelTable*, int, FILE*);
+static int  ewrite_meta             (gxml_data *, gifti_MetaData *, FILE *);
 
 /* these should match GXML_ETYPE_* defines */
 static char * enames[GXML_MAX_ELEN] = {
@@ -88,11 +89,13 @@ static char * enames[GXML_MAX_ELEN] = {
 /* GIFTI XML global struct and access functions */
 static gxml_data GXD = {
     1,          /* verb, default to 1 (0 means quiet)         */
-    1,          /* flag: whether to store data                */
+    1,          /* flag, whether to store data                */
+    3,          /* indent, spaces per indent level            */
     GXML_BSIZE, /* buf_size, allocated for XML parsing        */
-    0,          /* depth, stack depth, shaken, not stirred    */
+
     0,          /* errors, number of encountered errors       */
     0,          /* skip depth (at positive depth, 0 is clear) */
+    0,          /* depth, current stack depth                 */
     {0},        /* stack, ints, max depth GXML_MAX_DEPTH      */
 
     0,          /* dind, index into decoded data array        */
@@ -103,7 +106,7 @@ static gxml_data GXD = {
     NULL,       /* cdata, CDATA char pointer                  */
     NULL,       /* xdata, xform buffer pointer                */
     NULL,       /* ddata, Data buffer pointer                 */
-    NULL        /* gifti_image *, for results                 */
+    NULL        /* gim, gifti_image *, for results            */
 };
 
 
@@ -154,8 +157,8 @@ gifti_image * gxml_read_image( const char * fname, int read_data )
 
     while( !done )
     {
-        if( reset_xml_buf(xd, &buf, &bsize) )
-        { gifti_free_image(xd->gim); xd->gim = NULL; break; }  /* fail out */
+        if( reset_xml_buf(xd, &buf, &bsize) )  /* fail out */
+            { gifti_free_image(xd->gim); xd->gim = NULL; break; }
 
         blen = (int)fread(buf, 1, bsize, fp);
         done = blen < sizeof(buf);
@@ -215,7 +218,6 @@ int gxml_write_image(gifti_image * gim, const char * fname, int write_data)
 
     init_gxml_data(xd, 0);    /* reset non-user variables */
     xd->dstore = write_data;  /* store for global access */
-    xd->skip = 3;  /* rcr - how to decide this 'spaces per indent' */
     xd->ddata = strdup(fname);
     xd->dlen = strlen(fname);
     xd->gim = gim;
@@ -244,6 +246,9 @@ int gxml_get_verb( void    ){ return GXD.verb; }
 int gxml_set_dstore( int val ){ GXD.dstore = val; return 0; }
 int gxml_get_dstore( void    ){ return GXD.dstore; }
 
+int gxml_set_indent( int val ){ GXD.indent = val; return 0; }
+int gxml_get_indent( void    ){ return GXD.indent; }
+
 /* buf_size is applied only at main reading time, for now */
 int gxml_set_buf_size( int val ){ GXD.buf_size = val; return 0; }
 int gxml_get_buf_size( void    ){ return GXD.buf_size; }
@@ -254,6 +259,7 @@ static void init_gxml_data( gxml_data * dp, int doall )
     if( doall ) {       /* user modifiable */
         dp->verb = 1;
         dp->dstore = 1;
+        dp->indent = 3;
         dp->buf_size = GXML_BSIZE;
     }
 
@@ -393,7 +399,7 @@ static int push_gifti(gxml_data * xd, const char ** attr )
 /* simply verify that we have not been here before */
 static int push_meta(gxml_data * xd)
 {
-    MetaData * md = find_current_MetaData(xd, 0);  /* MD is 1 below MetaData */
+    gifti_MetaData * md = find_current_MetaData(xd, 0);
 
     if( md->length != 0 || md->name || md->value ) {
         fprintf(stderr,"** push meta: already initialized??\n");
@@ -404,11 +410,11 @@ static int push_meta(gxml_data * xd)
 }
 
 /* find the parent struct, and return its meta field */
-static MetaData * find_current_MetaData(gxml_data * xd, int cdepth)
+static gifti_MetaData * find_current_MetaData(gxml_data * xd, int cdepth)
 {
-    DataArray * da;
-    MetaData  * md;
-    int         da_ind, parent;
+    gifti_DataArray * da;
+    gifti_MetaData  * md;
+    int               da_ind, parent;
     if( !xd || cdepth < 0 || xd->depth < (2+cdepth) ) {
         fprintf(stderr,"FMeta: bad params (%p,%d)\n",xd,cdepth);
         return NULL;
@@ -442,7 +448,7 @@ static MetaData * find_current_MetaData(gxml_data * xd, int cdepth)
 /* we will add a pair, so update length and allocate pointers */
 static int push_md(gxml_data * xd)
 {
-    MetaData * md = find_current_MetaData(xd, 1);  /* MD is 1 below MetaData */
+    gifti_MetaData * md = find_current_MetaData(xd, 1);  /* MD is 1 below */
     if( !md ) return 1;  /* error were printed */
 
     md->length++;
@@ -465,7 +471,7 @@ static int push_md(gxml_data * xd)
 /* set cdata to the current meta->name address, and clear it */
 static int push_name(gxml_data * xd, const char ** attr)
 {
-    MetaData * md = find_current_MetaData(xd, 2);  /* name is 2 below Meta */
+    gifti_MetaData * md = find_current_MetaData(xd, 2);  /* name is 2 below */
     if( !md ) return 1;
 
     xd->cdata = &md->name[md->length-1];  /* use cdata to fill */
@@ -478,7 +484,7 @@ static int push_name(gxml_data * xd, const char ** attr)
 /* set cdata to the current meta->value address, and clear it */
 static int push_value(gxml_data * xd, const char ** attr)
 {
-    MetaData * md = find_current_MetaData(xd, 2);  /* name is 2 below Meta */
+    gifti_MetaData * md = find_current_MetaData(xd, 2);  /* value is 2 below */
     if( !md ) return 1;
 
     xd->cdata = &md->value[md->length-1];  /* use cdata to fill */
@@ -491,9 +497,9 @@ static int push_value(gxml_data * xd, const char ** attr)
 /* initialize the gifti_element and set attributes */
 static int push_LT(gxml_data * xd, const char ** attr)
 {
-    LabelTable * lt = &xd->gim->labeltable;
+    gifti_LabelTable * lt = &xd->gim->labeltable;
     if( lt->length || lt->index || lt->label ) {
-        fprintf(stderr,"** multiple LabelTables?\n");
+        fprintf(stderr,"** multiple gifti_LabelTables?\n");
     }
 
     return 0;
@@ -502,7 +508,7 @@ static int push_LT(gxml_data * xd, const char ** attr)
 /* initialize the gifti_element and set attributes */
 static int push_label(gxml_data * xd, const char ** attr)
 {
-    LabelTable * lt = &xd->gim->labeltable;
+    gifti_LabelTable * lt = &xd->gim->labeltable;
 
     lt->length++;
     lt->index = (int *)realloc(lt->index, lt->length * sizeof(int));
@@ -524,8 +530,8 @@ static int push_label(gxml_data * xd, const char ** attr)
 /* initialize the gifti_element and set attributes */
 static int push_darray(gxml_data * xd, const char ** attr)
 {
-    DataArray * da;
-    int         buf_size;
+    gifti_DataArray * da;
+    int               buf_size;
 
     if( gifti_add_empty_darray(xd->gim) ) return 1;
 
@@ -553,9 +559,9 @@ static int push_darray(gxml_data * xd, const char ** attr)
 /* verify the elements are clear */
 static int push_cstm(gxml_data * xd)
 {
-    DataArray * da = xd->gim->darray[xd->gim->numDA-1];  /* get new pointer */
+    gifti_DataArray * da = xd->gim->darray[xd->gim->numDA-1]; /* current DA */
 
-    da->coordsys = (CoordSystem *)malloc(sizeof(CoordSystem));
+    da->coordsys = (gifti_CoordSystem *)malloc(sizeof(gifti_CoordSystem));
     clear_CoordSystem(da->coordsys);
 
     return 0;
@@ -564,7 +570,7 @@ static int push_cstm(gxml_data * xd)
 /* verify the processing buffer space, alloc data space */
 static int push_data(gxml_data * xd)
 {
-    DataArray * da = xd->gim->darray[xd->gim->numDA-1];  /* get cur pointer */
+    gifti_DataArray * da = xd->gim->darray[xd->gim->numDA-1]; /* current DA */
 
     xd->dind = 0;       /* init for filling */
     xd->doff = 0;
@@ -876,7 +882,8 @@ static int append_to_cdata(gxml_data * xd, const char * cdata, int len)
 static int append_to_data(gxml_data * xd, const char * cdata, int len)
 {
     static int  mod_prev = 0;
-    DataArray * da = xd->gim->darray[xd->gim->numDA-1];
+    gifti_DataArray * da = xd->gim->darray[xd->gim->numDA-1]; /* current DA */
+
     char      * dptr;
     char      * cptr;
     int         rem_vals, rem_len = len, copy_len, unused;
@@ -977,7 +984,8 @@ static int append_to_data(gxml_data * xd, const char * cdata, int len)
 static int append_to_xform(gxml_data * xd, const char * cdata, int len)
 {
     static int  mod_prev = 0;
-    DataArray * da = xd->gim->darray[xd->gim->numDA-1];
+    gifti_DataArray * da = xd->gim->darray[xd->gim->numDA-1]; /* current DA */
+
     double    * dptr;
     char      * cptr;
     int         rem_vals, rem_len = len, copy_len, unused;
@@ -1418,10 +1426,12 @@ static int stack_is_valid(gxml_data * xd)
             if( parent != GXML_ETYPE_CSTM )            bad_parent = 1;
             break;
         case GXML_ETYPE_CDATA:
-            if( parent != GXML_ETYPE_NAME      &&
-                parent != GXML_ETYPE_VALUE     &&
-                parent != GXML_ETYPE_DATASPACE &&
-                parent != GXML_ETYPE_XFORMSPACE )      bad_parent = 1;
+            if( parent != GXML_ETYPE_NAME       &&
+                parent != GXML_ETYPE_VALUE      &&
+                parent != GXML_ETYPE_LABEL      &&
+                parent != GXML_ETYPE_DATASPACE  &&
+                parent != GXML_ETYPE_XFORMSPACE &&
+                parent != GXML_ETYPE_MATRIXDATA )      bad_parent = 1;
             break;
     }
 
@@ -1518,9 +1528,9 @@ static int gxml_write_gifti(gxml_data * xd, FILE * fp)
 
     xd->depth++;
     ewrite_meta(xd, &gim->meta, fp);
-    ewrite_LT(xd, &gim->labeltable, fp);
+    ewrite_LT(xd, &gim->labeltable, 0, fp);
 
-    /* write the DataArray */
+    /* write the gifti_DataArray */
     if(!gim->darray) {
         if( xd->verb > 0 )
             fprintf(stderr,"** gifti_image '%s', missing darray\n",xd->ddata);
@@ -1535,13 +1545,13 @@ static int gxml_write_gifti(gxml_data * xd, FILE * fp)
     return 0;
 }
 
-static int ewrite_darray(gxml_data * xd, DataArray * da, FILE * fp)
+static int ewrite_darray(gxml_data * xd, gifti_DataArray * da, FILE * fp)
 {
-    int  spaces = xd->skip * xd->depth;
+    int  spaces = xd->indent * xd->depth;
     int  offset, c;
     char dimstr[5] = "Dim0";
 
-    if( xd->verb > 3 ) fprintf(stderr,"+d write DataArray\n");
+    if( xd->verb > 3 ) fprintf(stderr,"+d write gifti_DataArray\n");
 
     if( !da ) return 0;
 
@@ -1578,9 +1588,9 @@ static int ewrite_darray(gxml_data * xd, DataArray * da, FILE * fp)
 
 
 /* this depends on ind_ord, how to write out lines */
-static int ewrite_data(gxml_data * xd, DataArray * da, FILE * fp)
+static int ewrite_data(gxml_data * xd, gifti_DataArray * da, FILE * fp)
 {
-    int c, spaces = xd->skip * xd->depth;
+    int c, spaces = xd->indent * xd->depth;
     int rows, cols;
 
     if( !da ) return 0;         /* okay, may not exist */
@@ -1591,7 +1601,7 @@ static int ewrite_data(gxml_data * xd, DataArray * da, FILE * fp)
     if( xd->dstore ) {
         gifti_DA_rows_cols(da, &rows, &cols);  /* product will be nvals */
         for(c = 0; c < rows; c++ )
-            ewrite_data_line(da->data, da->datatype,c,cols,spaces+xd->skip,fp);
+            ewrite_data_line(da->data,da->datatype,c,cols,spaces+xd->indent,fp);
     }
 
     fprintf(fp, "%*s</%s>\n", spaces, " ", enames[GXML_ETYPE_DATA]);
@@ -1599,26 +1609,26 @@ static int ewrite_data(gxml_data * xd, DataArray * da, FILE * fp)
 }
 
 
-static int ewrite_coordsys(gxml_data * xd, CoordSystem * cs, FILE * fp)
+static int ewrite_coordsys(gxml_data * xd, gifti_CoordSystem * cs, FILE * fp)
 {
-    int c, spaces = xd->skip * xd->depth;
+    int c, spaces = xd->indent * xd->depth;
 
     if( !cs ) return 0;         /* okay, may not exist */
 
-    if( xd->verb > 3 ) fprintf(stderr,"+d write CoordSystem\n");
+    if( xd->verb > 3 ) fprintf(stderr,"+d write gifti_CoordSystem\n");
 
     fprintf(fp, "%*s<%s>\n", spaces, " ", enames[GXML_ETYPE_CSTM]);
-    spaces += xd->skip;
+    spaces += xd->indent;
 
-    ewrite_cdata_ele(GXML_ETYPE_DATASPACE, cs->dataspace, spaces, fp);
-    ewrite_cdata_ele(GXML_ETYPE_XFORMSPACE, cs->xformspace, spaces,fp);
+    ewrite_text_ele(GXML_ETYPE_DATASPACE, cs->dataspace, NULL, spaces, 1, fp);
+    ewrite_text_ele(GXML_ETYPE_XFORMSPACE, cs->xformspace, NULL, spaces, 1, fp);
 
     fprintf(fp, "%*s<MatrixData>\n", spaces, " ");
     for(c = 0; c < 4; c++ )
-        ewrite_double_line(cs->xform[c], 4, spaces+xd->skip, fp);
+        ewrite_double_line(cs->xform[c], 4, spaces+xd->indent, fp);
     fprintf(fp, "%*s</MatrixData>\n", spaces, " ");
 
-    spaces -= xd->skip;
+    spaces -= xd->indent;
     fprintf(fp, "%*s</%s>\n", spaces, " ", enames[GXML_ETYPE_CSTM]);
 
     return 0;
@@ -1731,23 +1741,31 @@ static int ewrite_double_line(double * data, int nvals, int space, FILE * fp)
 }
 
 
-static int ewrite_cdata_ele(int ele, const char * cdata, int spaces, FILE * fp)
+static int ewrite_text_ele(int ele, const char * cdata, const char * attr,
+                           int spaces, int in_CDATA, FILE * fp)
 {
     int index = ele;
 
     if(ele < 0 || ele > GXML_MAX_ELEN) index = 0;  /* be safe */
 
-    fprintf(fp, "%*s<%s><![CDATA[%s]]></%s>\n",
-            spaces, " ", enames[index], cdata, enames[index]);
+    fprintf(fp, "%*s<%s%s>%s%s%s</%s>\n",
+            spaces, " ", enames[index],
+            attr ? attr : "",
+            in_CDATA ? "<![CDATA[" : "",
+            cdata,
+            in_CDATA ? "]]>" : "",
+            enames[index]);
 
     return 0;
 }
 
-static int ewrite_LT(gxml_data * xd, LabelTable * lt, FILE * fp)
+static int ewrite_LT(gxml_data * xd, gifti_LabelTable * lt,
+                     int in_CDATA, FILE * fp)
 {
-    int c, spaces = xd->skip * xd->depth;
+    char attr[32] = "";
+    int  c, spaces = xd->indent * xd->depth;
 
-    if( xd->verb > 3 ) fprintf(stderr,"+d write LabelTable\n");
+    if( xd->verb > 3 ) fprintf(stderr,"+d write gifti_LabelTable\n");
 
     if( !lt || lt->length == 0 || !lt->index || !lt->label ) {
         fprintf(fp, "%*s<LabelTable/>\n", spaces, " ");
@@ -1761,9 +1779,9 @@ static int ewrite_LT(gxml_data * xd, LabelTable * lt, FILE * fp)
             continue;
         }
 
-        fprintf(fp,"%*s<Label", spaces+xd->skip, " ");
-        if( lt->index[c] ) fprintf(fp, " Index='%d'", lt->index[c]);
-        fprintf(fp,">%s</Label>\n", lt->label[c]);
+        sprintf(attr, " Index=\"%d\"", lt->index[c]);
+        ewrite_text_ele(GXML_ETYPE_LABEL, lt->label[c], attr,
+                        spaces+xd->indent, 0, fp);
     }
     fprintf(fp, "%*s</LabelTable>\n", spaces, " ");
 
@@ -1771,11 +1789,11 @@ static int ewrite_LT(gxml_data * xd, LabelTable * lt, FILE * fp)
 }
 
 
-static int ewrite_meta(gxml_data * xd, MetaData * md, FILE * fp)
+static int ewrite_meta(gxml_data * xd, gifti_MetaData * md, FILE * fp)
 {
-    int c, spaces = xd->skip * xd->depth;
+    int c, spaces = xd->indent * xd->depth;
 
-    if( xd->verb > 3 ) fprintf(stderr,"+d write MetaData\n");
+    if( xd->verb > 3 ) fprintf(stderr,"+d write gifti_MetaData\n");
 
     if( !md || md->length == 0 || !md->name || !md->value ) {
         fprintf(fp, "%*s<MetaData/>\n", spaces, " ");
@@ -1789,14 +1807,16 @@ static int ewrite_meta(gxml_data * xd, MetaData * md, FILE * fp)
             continue;
         }
 
-        fprintf(fp,"%*s<MD>\n", spaces+xd->skip, " ");
+        spaces += xd->indent;
+        fprintf(fp,"%*s<MD>\n", spaces, " ");
 
-        fprintf(fp,"%*s<Name><![CDATA[%s]]></Name>\n",
-                spaces+2*xd->skip, " ", md->name[c]);
-        fprintf(fp,"%*s<Value><![CDATA[%s]]></Value>\n",
-                spaces+2*xd->skip, " ", md->value[c]);
+        spaces += xd->indent;
+        ewrite_text_ele(GXML_ETYPE_NAME, md->name[c], NULL, spaces, 1,fp);
+        ewrite_text_ele(GXML_ETYPE_VALUE,md->value[c],NULL, spaces, 1,fp);
+        spaces -= xd->indent;
 
-        fprintf(fp,"%*s</MD>\n", spaces+xd->skip, " ");
+        fprintf(fp,"%*s</MD>\n", spaces, " ");
+        spaces -= xd->indent;
     }
     fprintf(fp, "%*s</MetaData>\n", spaces, " ");
 
@@ -1808,7 +1828,7 @@ static int ewrite_meta(gxml_data * xd, MetaData * md, FILE * fp)
 static int ewrite_ex_atrs(gxml_data * xd, nvpairs * nvp, int offset,
                           int first, FILE * fp)
 {
-    int c, spaces = xd->skip * xd->depth + offset;
+    int c, spaces = xd->indent * xd->depth + offset;
 
     if(xd->verb > 2) fprintf(stderr,"+d write %d ex_atr's\n", nvp->length);
 
