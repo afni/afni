@@ -2,11 +2,11 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
-#include "gifti.h"
+#include "gifti_io.h"
 #include "gifti_xml.h"  /* not for general consumption */
 
 /*! global history and version strings, for printing */
-static char * ggi_history[] =
+static char * gifti_history[] =
 {
   "----------------------------------------------------------------------\n"
   "history (of gifti library changes):\n"
@@ -18,9 +18,13 @@ static char * ggi_history[] =
   "     - changed dim0..dim5 to dims[]\n"
   "     - changed nvals to size_t\n"
   "     - added gifti_init_darray_from_attrs and some validation functions\n"
+  "0.2  26 October, 2007\n",
+  "     - renamed gifti.[ch] to gifti_io.[ch]\n"
+  "     - main data structures all start with gifti_\n"
+  "     - added user indenting\n"
 };
 
-static char ggi_version[] = "gifti library version 0.1, 31 July, 2007";
+static char gifti_version[] = "gifti library version 0.2, 26 October, 2007";
 
 /* ---------------------------------------------------------------------- */
 /* global lists of XML strings */
@@ -195,16 +199,17 @@ int gifti_free_nvpairs( nvpairs * p )
     return 0;
 }
 
-int gifti_free_LabelTable( LabelTable * t )
+int gifti_free_LabelTable( gifti_LabelTable * t )
 {
     int c;
 
     if( !t ) {
-        if( G.verb > 3 ) fprintf(stderr,"** free w/NULL LabelTable ptr\n");
+        if(G.verb > 3) fprintf(stderr,"** free w/NULL gifti_LabelTable ptr\n");
         return 1;
     }
 
-    if( G.verb > 3 ) fprintf(stderr,"-d freeing %d LabelTables\n", t->length);
+    if(G.verb > 3)
+        fprintf(stderr,"-d freeing %d gifti_LabelTables\n", t->length);
 
     if( t->index && t->label ) {
         for( c = 0; c < t->length; c++ )
@@ -217,7 +222,7 @@ int gifti_free_LabelTable( LabelTable * t )
     return 0;
 }
 
-int gifti_free_DataArray_list( DataArray ** darray, int numDA )
+int gifti_free_DataArray_list(gifti_DataArray ** darray, int numDA)
 {
     int c;
 
@@ -226,7 +231,7 @@ int gifti_free_DataArray_list( DataArray ** darray, int numDA )
         return 1;
     }
 
-    if( G.verb > 3 ) fprintf(stderr,"-d freeing %d DataArrays\n", numDA);
+    if( G.verb > 3 ) fprintf(stderr,"-d freeing %d gifti_DataArrays\n", numDA);
 
     if( !darray || numDA < 0 ) return 1;
     for( c = 0; c < numDA; c++ )
@@ -237,14 +242,14 @@ int gifti_free_DataArray_list( DataArray ** darray, int numDA )
     return 0;
 }
 
-int gifti_free_DataArray( DataArray * darray )
+int gifti_free_DataArray( gifti_DataArray * darray )
 {
     if( !darray ) {
         if( G.verb > 3 ) fprintf(stderr,"** tried to free NULL darray ptr\n");
         return 1;
     }
 
-    if( G.verb > 3 ) fprintf(stderr,"-d freeing DataArray\n");
+    if( G.verb > 3 ) fprintf(stderr,"-d freeing gifti_DataArray\n");
 
     (void)gifti_free_nvpairs(&darray->meta);
     if( darray->coordsys) {
@@ -258,11 +263,11 @@ int gifti_free_DataArray( DataArray * darray )
     return 0;
 }
 
-int gifti_free_CoordSystem( CoordSystem * cs )
+int gifti_free_CoordSystem( gifti_CoordSystem * cs )
 {
     if( !cs ) return 0;  /* this is okay */
 
-    if( G.verb > 3 ) fprintf(stderr,"-d freeing CoordSystem\n");
+    if( G.verb > 3 ) fprintf(stderr,"-d freeing gifti_CoordSystem\n");
 
     if( cs->dataspace ) { free(cs->dataspace); cs->dataspace = NULL; }
     if( cs->xformspace ) { free(cs->xformspace); cs->xformspace = NULL; }
@@ -272,7 +277,7 @@ int gifti_free_CoordSystem( CoordSystem * cs )
     return 0;
 }
 
-int gifti_init_darray_from_attrs(DataArray * da, const char ** attr)
+int gifti_init_darray_from_attrs(gifti_DataArray * da, const char ** attr)
 {
     int c;
 
@@ -308,7 +313,7 @@ int gifti_init_darray_from_attrs(DataArray * da, const char ** attr)
 }
 
 /* check for consistency - rcr - write */
-int gifti_valid_darray(DataArray * da, int whine)
+int gifti_valid_darray(gifti_DataArray * da, int whine)
 {
     int errs = 0;
 
@@ -356,7 +361,7 @@ int gifti_valid_darray(DataArray * da, int whine)
         errs++;
     }
 
-    /* of sub-element, only verify MetaData */
+    /* of sub-element, only verify gifti_MetaData */
     if( ! gifti_valid_nvpairs(&da->meta, whine) ) /* message printed */
         errs++;
 
@@ -461,12 +466,12 @@ int gifti_valid_nbyper(int nbyper, int whine)
     return 0;
 }
 
-int gifti_valid_dims(DataArray * da, int whine)
+int gifti_valid_dims(gifti_DataArray * da, int whine)
 {
     int c;
 
     if( !da ) {
-        if( G.verb > 0 ) fprintf(stderr,"** GVD: no DataArray\n");
+        if( G.verb > 0 ) fprintf(stderr,"** GVD: no gifti_DataArray\n");
         return 0;
     }
 
@@ -483,7 +488,8 @@ int gifti_valid_dims(DataArray * da, int whine)
     return 1;
 }
 
-int gifti_str2attr_darray(DataArray * DA, const char *attr, const char *value)
+int gifti_str2attr_darray(gifti_DataArray * DA, const char *attr,
+                                                const char *value)
 {
     if( !DA || !attr || !value ) {
         if( G.verb > 0 )
@@ -515,7 +521,8 @@ int gifti_str2attr_darray(DataArray * DA, const char *attr, const char *value)
         DA->endian = gifti_str2endian(value);
     else {
         if( G.verb > 1 )        /* might go into ex_atrs */
-            fprintf(stderr,"** unknown DataArray attr, '%s'='%s'\n",attr,value);
+            fprintf(stderr,"** unknown gifti_DataArray attr, '%s'='%s'\n",
+                    attr,value);
         return 1;
     }
 
@@ -616,7 +623,7 @@ int clear_nvpairs(nvpairs * p)
     return 0;
 }
 
-int clear_LabelTable(LabelTable * p)
+int clear_LabelTable(gifti_LabelTable * p)
 {
     if( !p ) return 1;
 
@@ -627,7 +634,7 @@ int clear_LabelTable(LabelTable * p)
     return 0;
 }
 
-int clear_CoordSystem(CoordSystem * p)
+int clear_CoordSystem(gifti_CoordSystem * p)
 {
     if( !p ) return 1;
 
@@ -640,7 +647,7 @@ int clear_CoordSystem(CoordSystem * p)
 
 int gifti_add_empty_darray(gifti_image * gim)
 {
-    DataArray * dptr;
+    gifti_DataArray * dptr;
 
     if( !gim ) return 1;
 
@@ -648,8 +655,8 @@ int gifti_add_empty_darray(gifti_image * gim)
 
     /* allocate for an additional pointer */
     gim->numDA++;
-    gim->darray = (DataArray **)realloc(gim->darray,
-                                        gim->numDA*sizeof(DataArray *));
+    gim->darray = (gifti_DataArray **)realloc(gim->darray,
+                                        gim->numDA*sizeof(gifti_DataArray *));
 
     if( !gim->darray ) {
         fprintf(stderr,"** failed realloc darray, len %d\n", gim->numDA);
@@ -657,8 +664,8 @@ int gifti_add_empty_darray(gifti_image * gim)
         return 1;
     }
 
-    /* allocate the actual DataArray struct */
-    dptr = (DataArray *)calloc(1, sizeof(DataArray));
+    /* allocate the actual gifti_DataArray struct */
+    dptr = (gifti_DataArray *)calloc(1, sizeof(gifti_DataArray));
     if( !dptr ) {
         fprintf(stderr,"** failed to alloc DA element #%d\n",gim->numDA);
         gim->numDA = 0;
@@ -720,15 +727,15 @@ int gifti_disp_nvpairs(const char * mesg, nvpairs * p)
 }
 
 
-int gifti_disp_LabelTable(const char * mesg, LabelTable * p)
+int gifti_disp_LabelTable(const char * mesg, gifti_LabelTable * p)
 {
     int c;
 
     if( mesg ) { fputs(mesg, stderr); fputc(' ', stderr); }
 
-    if( !p ){ fputs("disp: LabelTable = NULL\n", stderr); return 1; }
+    if( !p ){ fputs("disp: gifti_LabelTable = NULL\n", stderr); return 1; }
 
-    fprintf(stderr,"LabelTable struct, len = %d :\n", p->length);
+    fprintf(stderr,"gifti_LabelTable struct, len = %d :\n", p->length);
 
     for(c = 0; c < p->length; c++ )
         fprintf(stderr,"    index %d, label '%s'\n", p->index[c], p->label[c]);
@@ -738,15 +745,15 @@ int gifti_disp_LabelTable(const char * mesg, LabelTable * p)
 }
 
 
-int gifti_disp_CoordSystem(const char * mesg, CoordSystem * p)
+int gifti_disp_CoordSystem(const char * mesg, gifti_CoordSystem * p)
 {
     int c1, c2;
 
     if( mesg ) { fputs(mesg, stderr); fputc(' ', stderr); }
 
-    if( !p ){ fputs("disp: CoordSystem = NULL\n", stderr); return 1; }
+    if( !p ){ fputs("disp: gifti_CoordSystem = NULL\n", stderr); return 1; }
 
-    fprintf(stderr,"CoordSystem struct\n"
+    fprintf(stderr,"gifti_CoordSystem struct\n"
                    "    dataspace  = %s\n"
                    "    xformspace = %s\n", p->dataspace, p->xformspace);
     for( c1 = 0; c1 < 4; c1++ )
@@ -762,15 +769,15 @@ int gifti_disp_CoordSystem(const char * mesg, CoordSystem * p)
 
 
 
-int gifti_disp_DataArray(const char * mesg, DataArray * p, int subs)
+int gifti_disp_DataArray(const char * mesg, gifti_DataArray * p, int subs)
 {
     fprintf(stderr,"--------------------------------------------------\n");
 
     if( mesg ) { fputs(mesg, stderr); fputc(' ', stderr); }
 
-    if( !p ){ fputs("disp: DataArray = NULL\n", stderr); return 1; }
+    if( !p ){ fputs("disp: gifti_DataArray = NULL\n", stderr); return 1; }
 
-    fprintf(stderr,"DataArray struct\n"
+    fprintf(stderr,"gifti_DataArray struct\n"
                    "    category %d = %s\n"
                    "    datatype %d = %s\n"
                    "    location %d = %s\n"
@@ -875,7 +882,7 @@ void gifti_datatype_sizes(int datatype, int *nbyper, int *swapsize)
     if( swapsize ) *swapsize = 0;
 }
 
-size_t gifti_darray_nvals(DataArray * da)
+size_t gifti_darray_nvals(gifti_DataArray * da)
 {
     size_t ndim = 1;
     int    c;
@@ -883,7 +890,8 @@ size_t gifti_darray_nvals(DataArray * da)
     if(!da){ fprintf(stderr,"** GDND, no ptr\n"); return 0; }
 
     if( ! gifti_valid_num_dim(da->num_dim, 0) ) {
-        fprintf(stderr,"** DataArray has illegal num_dim = %d\n", da->num_dim);
+        fprintf(stderr,"** gifti_DataArray has illegal num_dim = %d\n",
+                da->num_dim);
         return 0;
     }
 
@@ -898,8 +906,8 @@ size_t gifti_darray_nvals(DataArray * da)
 }
 
 
-/* find DataArray element #index of the given category */
-DataArray * gifti_find_DA(gifti_image * gim, int category, int index)
+/* find gifti_DataArray element #index of the given category */
+gifti_DataArray * gifti_find_DA(gifti_image * gim, int category, int index)
 {
     int c, nfound;
 
@@ -924,9 +932,9 @@ DataArray * gifti_find_DA(gifti_image * gim, int category, int index)
 }
 
 
-/* return an allocated list of DataArray pointers of the given category */
-int gifti_find_DA_list(gifti_image * gim, int category, DataArray *** list,
-                       int * len)
+/* return an allocated list of gifti_DataArray pointers of the given category */
+int gifti_find_DA_list(gifti_image * gim, int category,
+                       gifti_DataArray *** list, int * len)
 {
     int c, nfound;
 
@@ -943,7 +951,7 @@ int gifti_find_DA_list(gifti_image * gim, int category, DataArray *** list,
 
     /* create one big enough to hold everything */
     *len = gim->numDA;
-    *list = (DataArray **)calloc(*len, sizeof(DataArray *));
+    *list = (gifti_DataArray **)calloc(*len, sizeof(gifti_DataArray *));
     if( !*list ) {
         fprintf(stderr,"** find_DA_list: failed to alloc %d ptrs\n",*len);
         *len = 0;
@@ -960,7 +968,7 @@ int gifti_find_DA_list(gifti_image * gim, int category, DataArray *** list,
     /* otherwise, reallocate a smaller list */
     if( nfound < *len ) {
         *len  = nfound;
-        *list = (DataArray **)realloc(*list, *len * sizeof(DataArray *));
+        *list = (gifti_DataArray**)realloc(*list,*len*sizeof(gifti_DataArray*));
         if( !*list ) {
             fprintf(stderr,"** find_DA_list: failed realloc of %d ptrs\n",*len);
             *len = 0;
@@ -972,7 +980,7 @@ int gifti_find_DA_list(gifti_image * gim, int category, DataArray *** list,
 }
 
 
-int gifti_DA_rows_cols(DataArray * da, int * rows, int * cols)
+int gifti_DA_rows_cols(gifti_DataArray * da, int * rows, int * cols)
 {
     *rows = da->dims[0];  /* init */
     *cols = 1;
@@ -999,13 +1007,13 @@ int gifti_DA_rows_cols(DataArray * da, int * rows, int * cols)
 
 void gifti_disp_lib_hist(void)
 {
-   int c, len = sizeof(ggi_history)/sizeof(char *);
+   int c, len = sizeof(gifti_history)/sizeof(char *);
    for( c = 0; c < len; c++ )
-       fputs(ggi_history[c], stdout);
+       fputs(gifti_history[c], stdout);
 }
 
 void gifti_disp_lib_version(void)
 {
-    printf("%s, compiled %s\n", ggi_version, __DATE__);
+    printf("%s, compiled %s\n", gifti_version, __DATE__);
 }
 
