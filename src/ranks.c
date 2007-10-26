@@ -64,7 +64,7 @@ void list_delete (node ** n)
 
 /*---------------------------------------------------------------------------*/
 /*
-  Insert one node with value r; reset pointers.
+  Insert one node with value r (before the node *n); reset pointers.
 */
 
 void node_insert (node ** n, float r)
@@ -111,6 +111,29 @@ void node_addvalue (node ** head, float r)
         else
 	  node_insert (&(ptr->next), r);
     }
+}
+
+/*---------------------------------------------------------------------------*/
+/* Creates an entire list at once from an array -- RWCox -- Oct 2007.
+*/
+
+void node_allatonce( node **head, int nar , float *ar )
+{
+  node **lastptr; node *ptr;
+  int ii , ibot ; float r ;
+
+  qsort_float( nar , ar ) ;
+
+  *head = NULL ; node_insert(head,ar[0]) ;
+
+  lastptr = head ; ptr = *head ;
+  for( ii=1 ; ii < nar ; ii++ ){
+    r = ar[ii] ;
+    if( r == ptr->fval ){ ptr->d ++ ; }
+    else                { node_insert(&(ptr->next),r); ptr = ptr->next; }
+  }
+
+  return ;
 }
 
 

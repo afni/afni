@@ -31,6 +31,9 @@
 
   Mod:     Set MAX_NAME_LENGTH equal to THD_MAX_NAME.
   Date:    02 December 2002
+
+  Mod:     Use node_allatonce() to hopefully speed things up.
+  Date:    26 Oct 2007 -- RWCox
 */
 
 /*---------------------------------------------------------------------------*/
@@ -38,7 +41,7 @@
 #define PROGRAM_NAME "3dMannWhitney"                 /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "23 July 1997"    /* date of initial program release */
-#define PROGRAM_LATEST  "02 Dec  2002"    /* date of latest program revision */
+#define PROGRAM_LATEST  "26 Oct  2007"    /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -46,7 +49,7 @@
 #include <math.h>
 #include "mrilib.h"
 
-#define MAX_OBSERVATIONS 100     /* max. number of observations per cell */
+#define MAX_OBSERVATIONS 666     /* max. number of observations per cell */
 #define MAX_NAME_LENGTH THD_MAX_NAME   /* max. string length for file names */ 
 #define MEGA  1048576            /* one megabyte */
 
@@ -78,6 +81,12 @@ typedef struct NP_options
 
 
 #include "NPstats.c"
+
+#define USE_ALLATONCE
+#ifdef  USE_ALLATONCE
+  static int   ntar = 0 ;
+  static float *tar = NULL ;
+#endif
 
 
 /*---------------------------------------------------------------------------*/
@@ -140,7 +149,7 @@ void initialize_options (NP_options * option_data)
   option_data->m = 0;
   option_data->n = 0;
 
-  option_data->workmem = 12;
+  option_data->workmem = 166;
  
   /*----- allocate memory for storing data file names -----*/
   option_data->xname = (char ***) malloc (sizeof(char **) * 2);
@@ -306,6 +315,8 @@ void get_options (int argc, char ** argv, NP_options * option_data)
       NP_error ("unrecognized command line option ");
     }
 
+  if( option_data->m < 2 || option_data->n < 2 )
+    ERROR_exit("Need at least 2 datasets in each of '-dset 1' and '-dset 2'!") ;
 }
 
 
@@ -408,15 +419,26 @@ void calc_stat
   float corr;                 /* correction to variance to account for ties */
   float rank;                 /* rank of data point */
 
+#ifdef USE_ALLATONCE
+  if( ntar == 0 ){
+    d = m+n+1 ; ntar = m*n+1 ; if( ntar < d ) ntar = d ;
+    tar = (float *)malloc(sizeof(float)*ntar) ;
+    if( tar == NULL ) ERROR_exit("Can't allocate workspace 'tar[%d]'",ntar) ;
+  }
+#endif
 
+
+#ifdef USE_ALLATONCE
+  memcpy( tar   , xarray, sizeof(float)*m ) ;
+  memcpy( tar+m , yarray , sizeof(float)*n ) ;
+  node_allatonce( &head , n+m , tar ) ;
+#else
   /*----- enter and sort x-array -----*/
-  for (i = 0;  i < m;  i++)
-    node_addvalue (&head, xarray[i]);
-
+  for (i = 0;  i < m;  i++) node_addvalue (&head, xarray[i]);
 
   /*----- enter and sort y-array -----*/
-  for (j = 0;  j < n;  j++)
-    node_addvalue (&head, yarray[j]); 
+  for (j = 0;  j < n;  j++) node_addvalue (&head, yarray[j]); 
+#endif
 
 
   /*----- if display voxel, write the ranks of the input data -----*/
@@ -505,16 +527,26 @@ void calc_shift
 )
 
 {
-  int i, j;                          /* array indices */
+  register int i, j;                  /* array indices */
   int mn;                            /* number of Walsh differences */
   node * head = NULL;                /* points to head of list */
   int count;                         /* list print counter */
 
 
   /*----- enter and sort array of differences -----*/
+#ifdef USE_ADDARRAY
+  { register float xi ; register int k ;
+    for( k=i=0 ; i < m ; i++ ){
+      xi = xarray[i] ;
+      for( j=0 ; j < n ; j++ ) tar[k++] = yarray[j] - xi ;
+    }
+    node_allatonce( &head , m*n , tar ) ;
+  }
+#else
   for (i = 0;  i < m;  i++)
     for (j = 0;  j < n;  j++)
       node_addvalue (&head, yarray[j] - xarray[i]); 
+#endif
 
 
   /*----- if output requested, write the array of ordered differences -----*/
@@ -588,7 +620,6 @@ void process_voxel
 	}
       printf ("\n");
     }
-
 
   /*----- calculate normalized Mann-Whitney statistic -----*/
   calc_stat (nvox, m, n, xarray, yarray, zvar);
