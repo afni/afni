@@ -10,6 +10,11 @@
 #  error "Plugins not properly set up -- see machdep.h"
 #endif
 
+#ifndef BGCOLOR_ARG
+#define BGCOLOR_ARG(str) \
+  XtVaTypedArg , XmNbackground , XmRString , (str) , strlen(str)+1
+#endif
+
 /***********************************************************************
   Plugin to draw values into a dataset.
   Makes a custom interface.
@@ -507,11 +512,15 @@ void DRAW_make_widgets(void)
 
    /*** label at top to let user know who we are ***/
 
+#undef  BCOL
+#define BCOL "#003311"  /* 26 Oct 2007 */
+
    xstr = XmStringCreateLtoR( "[No dataset]" ,
                               XmFONTLIST_DEFAULT_TAG ) ;
    info_lab = XtVaCreateManagedWidget(
                  "AFNI" , xmLabelWidgetClass , rowcol ,
                     XmNlabelString , xstr ,
+                    BGCOLOR_ARG(BCOL) ,
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
    XmStringFree(xstr) ;
@@ -603,11 +612,12 @@ void DRAW_make_widgets(void)
 
    /*** button to let user choose dataset to edit ***/
 
-   xstr = XmStringCreateLtoR( "Choose dataset for copying" , XmFONTLIST_DEFAULT_TAG ) ;
+   xstr = XmStringCreateLtoR( "  Choose dataset for copying" , XmFONTLIST_DEFAULT_TAG ) ;
    choose_pb = XtVaCreateManagedWidget(
                   "AFNI" , xmPushButtonWidgetClass , rowcol ,
                      XmNlabelString , xstr ,
                      XmNtraversalOn , True  ,
+                     BGCOLOR_ARG(BCOL) ,
                      XmNinitialResourcesPersistent , False ,
                   NULL ) ;
    XmStringFree(xstr) ;
@@ -990,9 +1000,9 @@ void DRAW_copy_bbox_CB( Widget w, XtPointer client_data, XtPointer call_data )
    AV_SENSITIZE( copy_type_av , sens ) ;
    AV_SENSITIZE( copy_datum_av, sens ) ;
    if(sens)
-      MCW_set_widget_label( choose_pb , "Choose dataset for copying" );
+     MCW_set_widget_label( choose_pb , "  Choose dataset for copying" );
    else
-      MCW_set_widget_label( choose_pb , "Choose dataset to change" );
+     MCW_set_widget_label( choose_pb , "  Choose dataset to change directly" );
    
    return ;
 }

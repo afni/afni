@@ -6421,3 +6421,8 @@
 25 Oct 2007
  * Minor change to RegAna.c to use matrix_psinv() as a backup to
      matrix_inverse_dsc() when inverting GLT matrix.
+
+26 Oct 2007
+ * Modified ranks.c and 3dMannWhitney.c to create sorted list all at once
+     (via qsort_float), hopefully speeding things up.  Also increased
+     default workmem and MAX_OBSERVATIONS.
