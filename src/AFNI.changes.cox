@@ -6426,3 +6426,4 @@
  * Modified ranks.c and 3dMannWhitney.c to create sorted list all at once
      (via qsort_float), hopefully speeding things up.  Also increased
      default workmem and MAX_OBSERVATIONS.
+ * Same deal for 3dWilcoxon.c.

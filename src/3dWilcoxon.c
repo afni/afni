@@ -45,9 +45,14 @@
 #include <math.h>
 #include "mrilib.h"
 
-#define MAX_OBSERVATIONS 100     /* max. number of observations per cell */
+#define MAX_OBSERVATIONS 666     /* max. number of observations per cell */
 #define MAX_NAME_LENGTH THD_MAX_NAME   /* max. string length for file names */ 
 #define MEGA  1048576            /* one megabyte */
+
+#ifdef USE_ARRAY
+ static int   ntar = 0 ;     /* 26 Oct 2007 */
+ static float *tar = NULL ;
+#endif
 
 /*---------------------------------------------------------------------------*/
 
@@ -139,7 +144,7 @@ void initialize_options (NP_options * option_data)
   option_data->m = 0;
   option_data->n = 0;
 
-  option_data->workmem = 12;
+  option_data->workmem = 166;
  
   /*----- allocate memory for storing data file names -----*/
   option_data->xname = (char ***) malloc (sizeof(char **) * 2);
@@ -323,7 +328,7 @@ void check_for_valid_inputs (NP_options * option_data)
   if (option_data->m != option_data->n)
     NP_error ("Must have equal sample sizes for paired comparisons!");
   
-  if (option_data->n < 1) 
+  if (option_data->n < 2) 
     NP_error ("too few data sets  ");
 
   if (option_data->nvoxel > option_data->nxyz)
@@ -420,8 +425,15 @@ void calc_stat
 	  if (((i+1) % 10 == 0) && (i < n-1))
 	    printf ("\n");
 	}
+#ifdef USE_ARRAY
+      tar[ii] = fabsf(diff) ;
+#else
       node_addvalue (&head, fabs(diff));
+#endif
     }
+#ifdef USE_ARRAY
+    node_allatonce( &head , n , tar ) ;
+#endif
 
 
   /*----- calculate sum of ranks of positive differences -----*/
@@ -510,6 +522,9 @@ void calc_shift
   node * head = NULL;                 /* points to head of list */
   float d1, d2;                       /* two paired differences */
   int count;                          /* list print counter */
+#ifdef USE_ARRAY
+  int kk=0 ;
+#endif
 
 
   /*----- set up ordered array of Walsh averages -----*/
@@ -519,9 +534,16 @@ void calc_shift
       for (j = i;  j < n;  j++)
 	{
 	  d2 = yarray[j] - xarray[j];
+#ifdef USE_ARRAY
+          tar[kk++] = 0.5f * (d1+d2) ;
+#else
 	  node_addvalue (&head, (d1 + d2) / 2.0);
+#endif
 	} 
     }
+#ifdef USE_ARRAY
+    node_allatonce( &head , kk , tar ) ;
+#endif
   
   /*----- if output requested, write the ordered Walsh averages -----*/
   if (nvox > 0)
@@ -567,6 +589,13 @@ void process_voxel
 
 {
   int i;                             /* array index */
+
+#ifdef USE_ARRAY
+  if( ntar == 0 ){
+    ntar = n*n+1 ; tar = (float *)malloc(sizeof(float)*ntar) ;
+    if( tar == NULL ) ERROR_exit("Can't malloc 'tar[%d]'!",ntar) ;
+  }
+#endif
 
   /*----- check for voxel output  -----*/
   if (nvox > 0)
