@@ -1,0 +1,18 @@
+These notes are with respect to the AFNI GIFTI C API.
+
+- This API is built on top of expat (MIT License).
+
+- The main functions are:
+
+    gifti_read_image, gifti_write_image, gifti_free_image
+
+- The exported functions in gifti_io.h are intended for users of this
+  API, particularly those prototypes listed first.  The gifti_xml
+  functions are not intended for external use.
+
+todo:
+    - Base64 encoding
+    - Base64GzipBinary encoding
+    - accessor functions
+    - indexed reading
+    - doxygen comments
