@@ -37,7 +37,7 @@ int show_help()
         "       -buf_size       : set buffer size\n"
         "                         e.g. -buf_size 1024\n"
         "       -gfile   OUTPUT : write out dataset as gifti image\n"
-        "       -ghist          : show giftilib history\n"
+        "       -gifti_hist     : show giftilib history\n"
         "       -gifti_ver      : show giftilib version\n"
         "       -infile  INPUT  : write out dataset as gifti image\n"
         "       -no_data        : do not write out data\n"
@@ -66,7 +66,7 @@ int main( int argc, char * argv[] )
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-buf_size");
             if( gifti_set_xml_buf_size(atoi(argv[ac])) ) return 1;
-        } else if( !strcmp(argv[ac], "-ghist") ) {
+        } else if( !strcmp(argv[ac], "-gifti_hist") ) {
             gifti_disp_lib_hist();
             return 0;
         } else if( !strcmp(argv[ac], "-gifti_ver") ) {
