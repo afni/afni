@@ -144,7 +144,7 @@ void initialize_options (NP_options * option_data)
   option_data->m = 0;
   option_data->n = 0;
 
-  option_data->workmem = 166;
+  option_data->workmem = 266;
  
   /*----- allocate memory for storing data file names -----*/
   option_data->xname = (char ***) malloc (sizeof(char **) * 2);

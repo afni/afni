@@ -31,7 +31,7 @@ static float TT_sd1        = 0.0 ; /* 10 Oct 2007 */
 static int   TT_n1         = 0.0 ; /* 10 Oct 2007 */
 static int   TT_use_editor = 0 ;
 static int   TT_be_quiet   = 0 ;
-static int   TT_workmem    = 12 ;  /* default = 12 Megabytes */
+static int   TT_workmem    = 266 ; /* default = 266 Megabytes */
 static int   TT_voxel      = -1 ;  /* 0-based (but 1-based on cmd, like ANOVA)  */
 
 #define MEGA  1048576  /* 2^20 */
@@ -437,7 +437,7 @@ void TT_syntax(char * msg)
 #if 0
     "  -workmem mega      = 'mega' specifies the number of megabytes of RAM\n"
     "                         to use for statistical workspace.  It defaults\n"
-    "                         to 12.  The program will run faster if this is\n"
+    "                         to 266.  The program will run faster if this is\n"
     "                         larger (see the NOTES section below).\n"
 #endif
     "\n"

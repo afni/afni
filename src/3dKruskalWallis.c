@@ -44,8 +44,8 @@
 #include <math.h>
 #include "mrilib.h"
 
-#define MAX_TREATMENTS 100     /* max. number of treatments */
-#define MAX_OBSERVATIONS 100   /* max. number of observations per treatment */
+#define MAX_TREATMENTS 333     /* max. number of treatments */
+#define MAX_OBSERVATIONS 333   /* max. number of observations per treatment */
 #define MAX_NAME_LENGTH THD_MAX_NAME   /* max. string length for file names */ 
 #define MEGA  1048576          /* one megabyte */
 
@@ -145,7 +145,7 @@ void initialize_options (NP_options * option_data)
   for (i = 0;  i < MAX_TREATMENTS;  i++)
     option_data->n[i] = 0;
 
-  option_data->workmem = 12;
+  option_data->workmem = 266;
  
   /*----- allocate memory for storing data file names -----*/
   option_data->xname = (char ***) malloc (sizeof(char **) * MAX_TREATMENTS);
