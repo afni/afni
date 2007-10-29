@@ -6430,3 +6430,5 @@
 
 29 Oct 2007
  * Change 'workmem' default to 266 in several of Doug Ward's programs.
+ * Added warning message to 3dDeconvolve if TENT() or CSPLIN() inter-knot
+     TR is smaller than the output TR for -iresp.

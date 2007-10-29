@@ -2616,7 +2616,7 @@ ENTRY("read_input_data") ;
           WARNING_message("no TR in dataset: using -TR_1D=%.3f s",dtloc) ;
         } else {
           dtloc = basis_TR = 1.0f;
-          WARNING_message("no TR in dataset; setting TR=1 s");
+          WARNING_message("no TR in dataset; setting TR=1 s (?)");
         }
       } else if( basis_TR <= 0.10f ){
         WARNING_message("TR in dataset = %g s (less than 0.100 s) -- FYI",
@@ -2784,7 +2784,12 @@ ENTRY("read_input_data") ;
     if( basis_TR    <= 0.0f ) basis_TR    = 1.0f ;
     if( basis_dtout <= 0.0f ) basis_dtout = basis_TR ;
 
-    INFO_message("-stim_times using TR=%g seconds",basis_TR) ;
+    INFO_message("-stim_times using TR=%g s for stimulus timing conversion",
+                 basis_TR) ;
+    INFO_message("-stim_times using TR=%g s for any -iresp output datasets",
+                 basis_dtout) ;
+    if( basis_dtout == basis_TR )
+      INFO_message(" [you can alter the -iresp TR via the -TR_times option]");
 
     for( is=0 ; is < num_stimts ; is++ ){
       be = basis_stim[is] ;
@@ -2793,6 +2798,17 @@ ENTRY("read_input_data") ;
       aim = bim = NULL ; aar = zar = NULL ;
 
       btyp = be->type ;  /* 08 Mar 2007: sub-type of -stim_times */
+
+      /** 29 Oct 2007: check TR of -iresp vs. TR of local basis functions **/
+
+      if( strncmp(be->symfun,"TENT"  ,4) == 0 ||
+          strncmp(be->symfun,"CSPLIN",6) == 0   ){
+
+        float dx = (be->ttop - be->tbot)/(be->nfunc-1) ;
+        if( dx < basis_dtout )
+          WARNING_message("%s %d .. %s has inter-knot TR=%g but -iresp output TR=%g",
+            be->option , is+1 , be->symfun , dx , basis_dtout ) ;
+      }
 
       /** convert entries to global time indexes **/
 
@@ -2831,7 +2847,7 @@ ENTRY("read_input_data") ;
 
       if( nx == 1 ){                     /** 1 column = global times **/
         int nbad=0 , nout=0 ;
-        INFO_message("'%s %d' using GLOBAL times",be->option,is+1) ;
+        INFO_message("%s %d using GLOBAL times",be->option,is+1) ;
         tmax = (nt-1)*basis_TR ;         /* max allowed time offset */
         for( ii=0 ; ii < ny ; ii++ ){    /* loop over all input times */
           tt = tar[ii] ;
@@ -2853,7 +2869,7 @@ ENTRY("read_input_data") ;
       } else {                           /** multicol => 1 row per block **/
 
         int nout ;
-        INFO_message("'%s %d' using LOCAL times",be->option,is+1) ;
+        INFO_message("%s %d using LOCAL times",be->option,is+1) ;
         if( ny != nbl ){                 /* times are relative to block */
           WARNING_message(
                   "'%s %d' file '%s' has %d rows,"
