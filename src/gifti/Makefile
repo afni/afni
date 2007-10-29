@@ -2,8 +2,9 @@
 # quick and dirty for now...
 
 # CFLAGS = -Wall -g
-# CFLAGS = -O3
+CFLAGS = -O3
 
+# for macs (getting expat from fink)
 # IFLAGS = -I/sw/include
 # LFLAGS = -L/sw/lib
 

@@ -127,10 +127,10 @@ int main( int argc, char * argv[] )
 
 int write_as_ascii(gifti_image * gim, char * prefix)
 {
-    gifti_DataArray  * dac; /* coords */
-    gifti_DataArray  * dat; /* triangles */
-    gifti_DataArray ** da_list; /* time series? */
-    int                len;
+    giiDataArray  * dac; /* coords */
+    giiDataArray  * dat; /* triangles */
+    giiDataArray ** da_list; /* time series? */
+    int             len;
 
     fprintf(stderr,"-d trying to write data with prefix '%s'\n", prefix);
 
@@ -160,13 +160,13 @@ int write_as_ascii(gifti_image * gim, char * prefix)
 
 /* if dlist contains 1 element, write out as 2-D list,
    else each DA must have only 1 dimension */
-int write_1D_file(gifti_DataArray ** dlist, int len, char * prefix, int add_suf)
+int write_1D_file(giiDataArray ** dlist, int len, char * prefix, int add_suf)
 {
-    gifti_DataArray * da;
-    FILE            * fp;
-    char            * name = prefix;
-    char            * nbuf = NULL;
-    int               rows, cols, c;
+    giiDataArray * da;
+    FILE         * fp;
+    char         * name = prefix;
+    char         * nbuf = NULL;
+    int            rows, cols, c;
 
     if( add_suf ) {     /* create a new name */
         nbuf = (char *)malloc(strlen(prefix) + strlen(".1D") + 1);
@@ -243,14 +243,14 @@ int write_1D_file(gifti_DataArray ** dlist, int len, char * prefix, int add_suf)
 }
 
 
-int write_surf_file(gifti_DataArray * dc, gifti_DataArray * dt, char * prefix,
+int write_surf_file(giiDataArray * dc, giiDataArray * dt, char * prefix,
                     int add_suf)
 {
-    gifti_DataArray * da;
-    FILE            * fp;
-    char            * name = prefix;
-    char            * nbuf = NULL;
-    int               crows, ccols, trows, tcols, rows, cols, c;
+    giiDataArray * da;
+    FILE         * fp;
+    char         * name = prefix;
+    char         * nbuf = NULL;
+    int            crows, ccols, trows, tcols, rows, cols, c;
 
     if( add_suf ) {     /* create a new name */
         nbuf = (char *)malloc(strlen(prefix) + strlen(".asc") + 1);

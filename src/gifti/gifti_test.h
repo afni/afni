@@ -16,8 +16,8 @@
 
 int ewrite_data_line (void *, int, int, int, int, int, FILE *);
 int ewrite_many_lines(void **, int, size_t, size_t, int, FILE *);
-int write_1D_file    (gifti_DataArray **, int, char *, int);
+int write_1D_file    (giiDataArray **, int, char *, int);
 int write_as_ascii   (gifti_image *, char *);
-int write_surf_file  (gifti_DataArray *, gifti_DataArray *, char *, int);
+int write_surf_file  (giiDataArray *, giiDataArray *, char *, int);
 
 #endif /* GIFTI_TEST_H */
