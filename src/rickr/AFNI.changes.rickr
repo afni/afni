@@ -2229,4 +2229,7 @@
         - allowed more CDATA parents (any PCDATA)
         - added ewrite_text_ele and applied ewrite_cdata_ele
   * modified gifti_test.c: changed option to -gifti_ver
+29 Oct 2007:
+  * modified gifti*.[ch]: changed gifti datastruct prefixes from gifti_ to gii
+  * modified test.io: added -nots option, to skip time series
 
