@@ -6,6 +6,8 @@
 #define CENFILL_NONE  3
 #define CENFILL_DSET  4
 
+static char *CENFILL_str[] = { "zero" , "nbhr" , "model" , "none" , "dset" } ;
+
 /*----------------------------------------------------------------------*/
 
 static int is_numeric( char *str )
@@ -101,6 +103,8 @@ int main( int argc , char * argv[] )
        "                   zero    = 0s will be put in at all censored times\n"
        "                   nbhr    = average of non-censored neighboring times\n"
        "                   none    = don't put the censored times in at all\n"
+       "                             (in which  case the created  dataset is)\n"
+       "                             (shorter than the input to 3dDeconvolve)\n"
 #if 0
        "                   model   = compute the model at censored times\n"
        "                   dataset = take the censored values from this dataset\n"
@@ -108,10 +112,10 @@ int main( int argc , char * argv[] )
 #endif
        "                 If you don't give some -cenfill option, the default\n"
        "                 operation is 'zero'.  This default is different than\n"
-       "                 previous versions, which did 'none'.\n"
+       "                 previous versions of this program, which did 'none'.\n"
        "          **N.B.: You might like the program to compute the model fit\n"
        "                  at the censored times, like it does at all others.\n"
-       "                  This can be done if you input the matrix file saved\n"
+       "                  This CAN be done if you input the matrix file saved\n"
        "                  by the '-x1D_uncensored' option in 3dDeconvolve.\n"
        "\n"
        "NOTES:\n"
@@ -507,7 +511,8 @@ int main( int argc , char * argv[] )
     if( cenfill_mode == CENFILL_NONE )
       INFO_message("Input had %d time points censored; these are NOT filled",Nbadlist);
     else
-      INFO_message("Input had %d time points censored; these are filled in",Nbadlist);
+      INFO_message("Input had %d time points censored; filling mode = %s",
+                   Nbadlist,CENFILL_str[cenfill_mode]);
    }
 
    nspk = nxyz / 51 ;
