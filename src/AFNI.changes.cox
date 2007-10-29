@@ -6427,3 +6427,6 @@
      (via qsort_float), hopefully speeding things up.  Also increased
      default workmem and MAX_OBSERVATIONS.
  * Same deal for 3dWilcoxon.c.
+
+29 Oct 2007
+ * Change 'workmem' default to 266 in several of Doug Ward's programs.
