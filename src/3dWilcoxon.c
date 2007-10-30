@@ -427,7 +427,7 @@ void calc_stat
 	    printf ("\n");
 	}
 #ifdef USE_ARRAY
-      tar[ii] = fabsf(diff) ;
+      tar[i] = fabsf(diff) ;
 #else
       node_addvalue (&head, fabs(diff));
 #endif
