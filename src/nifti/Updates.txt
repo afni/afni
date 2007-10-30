@@ -59,3 +59,10 @@ Updated in version 0.6 August 27, 2007
    - HJ/KW Added function to allow any sized subregion of the image to be read 
         from disk
    - RR/KF znzlib/config.h incorporated into znzlib.h and removed
+
+-----------------------------------------------------------------
+Updated in version UNRELEASED
+
+   - MH added DevPak packaging template for Dev-Cpp IDE
+   - MH added Makefile for cross-compiling for win32 on linux using mingw32
+
