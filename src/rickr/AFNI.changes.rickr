@@ -2233,3 +2233,7 @@
   * modified gifti*.[ch]: changed gifti datastruct prefixes from gifti_ to gii
   * modified test.io: added -nots option, to skip time series
   * added README.gifti
+30 Oct 2007: sync nifti from sourceforge (from Michael Hanke)
+  * added LICENSE, Makefile.cross_mingw32, packaging/DevPackage.template
+  * modified CMakeLists.txt, Updates.txt
+
