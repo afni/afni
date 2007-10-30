@@ -1,0 +1,94 @@
+#!/usr/bin/make -f
+# -*- Makefile -*-
+# 
+# This makefile was initially created by Michael Hanke
+# <michael.hanke@gmail.com> to cross compile the nifticlibs for win32 on a
+# Debian system -- although it should work on most Linux systems with possibly
+# minor modifications. The whole process should become a lot easier once
+# CMake 2.6 with cross-compiler toolchain support is released.
+#
+# Like the other parts of this package, this code is placed into the public
+# domain.
+#
+# The 'devpak' target generates a DevPak suiteable for Dev-Cpp, see:
+# http://www.bloodshed.net/devcpp.html
+#
+# Requirements:
+#  - cross-compiler environment (on Debian simply: apt-get install mingw32)
+#  - recent CMake (tested with 2.4)
+#  - cross-compiled zlib installed below $mingw_root_path. The easiest way to
+#    achieve this is using the zlib package provided by the gnuwin32 project:
+#    http://gnuwin32.sourceforge.net/
+#
+# Usage:
+#  Enter the root of the nifticlibs package and execute
+#
+#      make -f Makefile.cross_mingw32
+#
+#  now the generated DevPak should be located in the toplevel directory. This
+#  can be installed using the Package manager of Dev-Cpp under Windows.
+#
+
+
+# default settings
+build_dir = mingw32_cross
+devpak_dir = mingw32_devpak
+
+# where all the cross-compiled libs and binaries are installed
+mingw_root_path = /usr/local/mingw32
+# where the cross-compiler itself is installed
+mingw_bin_path = /usr/bin
+# the common filename prefix of all cross-compiler binaries
+mingw_bin_prefix = i586-mingw32msvc
+# don't touch this one, unless you know what you are doing
+mingw_bin = $(mingw_bin_path)/$(mingw_bin_prefix)
+
+# extract the most recent version from the README file
+nifti_version = $$(grep Version README | head -n1 | awk '{ print $$2 }')
+
+# compile CMake flags.
+cmake_flags = -DCMAKE_SYSTEM_NAME=Windows \
+			  -DCMAKE_AR=$(mingw_bin)-ar \
+			  -DCMAKE_RANLIB=$(mingw_bin)-ranlib \
+			  -DCMAKE_C_COMPILER=$(mingw_bin)-gcc \
+			  -DCMAKE_CXX_COMPILER=$(mingw_bin)-g++ \
+			  -DCMAKE_C_FLAGS="-I$(mingw_root_path)/include -L$(mingw_root_path)/lib -DWIN32"
+
+
+all: devpak
+
+
+clean:
+	-rm -rf $(build_dir)
+	-rm build-devpak configure-devpak
+
+distclean: clean
+	-rm -rf $(devpak_dir)
+
+configure-devpak:
+	if [ ! -d $(build_dir) ]; then mkdir $(build_dir); fi
+	cd $(build_dir) && cmake .. $(cmake_flags) -DCMAKE_INSTALL_PREFIX=/$(devpak_dir)
+	touch $@
+
+build-devpak: configure-devpak
+	cd $(build_dir) && make VERBOSE=1
+	touch $@
+
+install-devpak: build-devpak
+	if [ ! -d $(devpak_dir) ]; then mkdir $(devpak_dir); fi
+	cd $(build_dir) && make install DESTDIR=../
+
+devpak: install-devpak
+	# nifti_tool header is unecessary
+	rm $(devpak_dir)/include/nifti/nifti_tool.h
+	
+	# generate devpak info file
+	sed -e s/__full_version__/$(nifti_version)/g \
+	    -e s/__major_version__/$(nifti_version)/g \
+		< packaging/DevPackage.template > $(devpak_dir)/nifticlib.DevPackage
+	
+	# include license and readme
+	cp LICENSE README $(devpak_dir)
+	
+	# compress
+	cd $(devpak_dir) && tar cvjf ../nifticlib-$(nifti_version).DevPak *
