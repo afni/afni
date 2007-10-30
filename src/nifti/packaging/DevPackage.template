@@ -1,0 +1,18 @@
+[Setup]
+Version=__major_version__
+AppName=nifticlib
+AppVersion=__full_version__
+AppVerName=nifticlib __full_version__
+MenuName=nifticlib
+Description=Niftilib is a set of i/o libraries for reading and writing files in the NIfTI-1 data format. NIfTI-1 is a binary file format for storing medical image data, e.g. magnetic resonance image (MRI) and functional MRI (fMRI) brain images.
+Url=http://niftilib.sourceforge.net/
+License=LICENSE
+Readme=README
+
+[Files]
+bin=<app>\bin\
+include=<app>\include\
+lib=<app>\lib\
+
+[Icons]
+Website=http://niftilib.sourceforge.net
