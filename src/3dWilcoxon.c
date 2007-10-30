@@ -49,7 +49,8 @@
 #define MAX_NAME_LENGTH THD_MAX_NAME   /* max. string length for file names */ 
 #define MEGA  1048576            /* one megabyte */
 
-#ifdef USE_ARRAY
+#define USE_ARRAY
+#ifdef  USE_ARRAY
  static int   ntar = 0 ;     /* 26 Oct 2007 */
  static float *tar = NULL ;
 #endif
