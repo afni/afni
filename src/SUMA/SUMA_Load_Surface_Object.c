@@ -668,7 +668,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
             SO->SUMA_VolPar_Aligned = NOPE;
          }
          
-         SO->normdir = -1;  /* negative */
+         if (SO->SUMA_VolPar_Aligned) SO->normdir = 1;  /* positive */
+         else SO->normdir = -1; /* negative */ 
          break;
       
       case SUMA_BYU:

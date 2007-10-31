@@ -28,6 +28,12 @@
 #include <Xm/CascadeB.h>
 #include <Xm/Frame.h>
 
+#ifdef SUMA_MOTIF_GLXAREA
+   #undef  noMotifGLwidget
+#else
+   #define noMotifGLwidget
+#endif
+
 #ifdef noGLwidget
 #include <Xm/DrawingA.h>  /* Motif drawing area widget */
 #else
