@@ -82,8 +82,8 @@ typedef struct NP_options
 
 #include "NPstats.c"
 
-#define USE_ALLATONCE
-#ifdef  USE_ALLATONCE
+#define USE_ARRAY
+#ifdef  USE_ARRAY
   static int   ntar = 0 ;
   static float *tar = NULL ;
 #endif
@@ -419,7 +419,7 @@ void calc_stat
   float corr;                 /* correction to variance to account for ties */
   float rank;                 /* rank of data point */
 
-#ifdef USE_ALLATONCE
+#ifdef USE_ARRAY
   if( ntar == 0 ){
     d = m+n+1 ; ntar = m*n+1 ; if( ntar < d ) ntar = d ;
     tar = (float *)malloc(sizeof(float)*ntar) ;
@@ -428,7 +428,7 @@ void calc_stat
 #endif
 
 
-#ifdef USE_ALLATONCE
+#ifdef USE_ARRAY
   memcpy( tar   , xarray, sizeof(float)*m ) ;
   memcpy( tar+m , yarray , sizeof(float)*n ) ;
   node_allatonce( &head , n+m , tar ) ;
