@@ -530,18 +530,18 @@ void calc_shift
 
   /*----- set up ordered array of Walsh averages -----*/
   for (i = 0;  i < n;  i++)
-    {
-      d1 = yarray[i] - xarray[i];
-      for (j = i;  j < n;  j++)
-	{
-	  d2 = yarray[j] - xarray[j];
+   {
+     d1 = yarray[i] - xarray[i];
+     for (j = i;  j < n;  j++)
+     {
+      d2 = yarray[j] - xarray[j];
 #ifdef USE_ARRAY
-          tar[kk++] = 0.5f * (d1+d2) ;
+      tar[kk++] = 0.5f * (d1+d2) ;
 #else
-	  node_addvalue (&head, (d1 + d2) / 2.0);
+      node_addvalue (&head, (d1 + d2) / 2.0);
 #endif
-	} 
-    }
+     }
+   }
 #ifdef USE_ARRAY
     node_allatonce( &head , kk , tar ) ;
 #endif
