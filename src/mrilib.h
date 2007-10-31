@@ -1137,7 +1137,7 @@ extern double poisson_p2t ( double qq , double lambda ) ;
 typedef struct { int i,j;   } int_pair ;    /* 12 Aug 2002 */
 typedef struct { int i,j,k; } int_triple ;
 
-typedef struct { int nar ; float *ar ; } floatvec ;
+typedef struct { int nar ; float  *ar ; } floatvec ;
 typedef struct { int nar ; double *ar ; } doublevec ;
 #define KILL_floatvec(fv)                      \
   do{ if( (fv) != NULL ){                      \
