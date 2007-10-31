@@ -49,6 +49,11 @@
 #define MAX_NAME_LENGTH THD_MAX_NAME   /* max. string length for file names */ 
 #define MEGA  1048576          /* one megabyte */
 
+#define USE_ARRAY
+#ifdef  USE_ARRAY
+ static int   ntar = 0 ;     /* 26 Oct 2007 */
+ static float *tar = NULL ;
+#endif
 
 typedef struct NP_options
 { 
@@ -427,6 +432,9 @@ void calc_stat
   float best_rank;            /* best average rank for a treatment */
   float ** rank_array;        /* array to store ranks for all observations */
 
+#ifdef USE_ARRAY
+  int kk=0 ;
+#endif
 
 
   /*----- allocate memory for storing ranks -----*/
@@ -441,13 +449,20 @@ void calc_stat
     {
 
       /*----- enter and sort data for each treatment within block j -----*/
-      for (i = 0;  i < s;  i++)
-	node_addvalue (&head, xarray[i][j]);
+      for (i = 0;  i < s;  i++){
+#ifdef USE_ARRAY
+        tar[kk++] = xarray[i][j] ;
+#else
+        node_addvalue (&head, xarray[i][j]);
+#endif
+      }
+#ifdef USE_ARRAY
+      node_allatonce( &head , kk , tar ) ;
+#endif
 
 
       /*----- store the ranks for each treatment within block j -----*/
-      for (i = 0;  i < s;  i++)
-	rank_array[i][j] = node_get_rank (head, xarray[i][j]);
+      for (i = 0;  i < s;  i++) rank_array[i][j] = node_get_rank (head, xarray[i][j]);
 
       
       /*----- calculate the ties correction factor -----*/
@@ -460,6 +475,9 @@ void calc_stat
 	}
 
       list_delete (&head);
+#ifdef USE_ARRAY
+      kk = 0 ;
+#endif
 
     } /* j loop */
 
@@ -561,6 +579,13 @@ void process_voxel
 {
   int i;                             /* treatment index */
   int j;                             /* array index */
+
+#ifdef USE_ARRAY
+  if( ntar == 0 ){
+    ntar = s*n+1 ; tar = (float *)malloc(sizeof(float)*ntar) ;
+    if( tar == NULL ) ERROR_exit("Can't malloc 'tar[%d]'!",ntar) ;
+  }
+#endif
 
 
   /*----- check for voxel output  -----*/

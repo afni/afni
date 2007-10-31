@@ -49,6 +49,11 @@
 #define MAX_NAME_LENGTH THD_MAX_NAME   /* max. string length for file names */ 
 #define MEGA  1048576          /* one megabyte */
 
+#define USE_ARRAY
+#ifdef  USE_ARRAY
+ static int   ntar = 0 ;     /* 26 Oct 2007 */
+ static float *tar = NULL ;
+#endif
 
 /*---------------------------------------------------------------------------*/
 
@@ -427,18 +432,29 @@ void calc_stat
   float knum;                 /* numerator of Kruskal-Wallis statistic */
   float kden;                 /* denominator of Kruskal-Wallis statistic */
   float best_rank;            /* best average rank for a treatment */
+#ifdef USE_ARRAY
+  int kk=0 ;
+#endif
+
 
 
   /*----- count total number of datasets -----*/
   NN = 0;
-  for (i = 0;  i < s;  i++)
-    NN += n[i];
+  for (i = 0;  i < s;  i++) NN += n[i];
 
 
   /*----- enter data arrays -----*/
   for (i = 0;  i < s;  i++)
-    for (j = 0;  j < n[i];  j++)
+    for (j = 0;  j < n[i];  j++){
+#ifdef USE_ARRAY
+      tar[kk++] = xarray[i][j] ;
+#else
       node_addvalue (&head, xarray[i][j]);
+#endif
+    }
+#ifdef USE_ARRAY
+    node_allatonce( &head , kk , tar ) ;
+#endif
 
 
   /*----- if display voxel, write the ranks of the input data -----*/
@@ -540,6 +556,14 @@ void process_voxel
 {
   int i;                             /* treatment index */
   int j;                             /* array index */
+
+#ifdef USE_ARRAY
+  if( ntar == 0 ){
+    int nn=0 ; for( i=0 ; i < s ; i++ ) nn += n[i] ;
+    ntar = s*nn+1 ; tar = (float *)malloc(sizeof(float)*ntar) ;
+    if( tar == NULL ) ERROR_exit("Can't malloc 'tar[%d]'!",ntar) ;
+  }
+#endif
 
 
   /*----- check for voxel output  -----*/
