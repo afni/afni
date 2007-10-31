@@ -80,15 +80,15 @@ clean:
 .c.o:
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} ${SUMA_INPATH} -c $*.c 
 
-SUMA_glxdino:
+SUMA_glxdino:SUMA_glxdino.c
 	$(RM) $@
 	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_glxdino.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
-SUMA_paperplane:
+SUMA_paperplane:SUMA_paperplane.c
 	$(RM) $@
 	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_paperplane.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
-SUMA_pixmap2eps:
+SUMA_pixmap2eps:SUMA_pixmap2eps.c
 	$(RM) $@
 	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_pixmap2eps.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
