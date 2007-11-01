@@ -3,7 +3,12 @@
 
 typedef void (*Warpfield_basis)(int,void *,int,float *,float *,float *,float *);
 
-typedef void * (*Warpfield_setup)(int,floatvec *) ;
+static void Warpfield_trigfun  (int,void *,int,float *,float *,float *,float *);
+static void Warpfield_legfun   (int,void *,int,float *,float *,float *,float *);
+
+typedef void * (*Warpfield_setup)    (float,int *,void *) ;
+static void * Warpfield_trigfun_setup(float,int *,void *) ;
+static void * Warpfield_legfun_setup (float,int *,void *) ;
 
 /*---------------------------------------------------------------------------*/
 
@@ -15,8 +20,9 @@ typedef void * (*Warpfield_setup)(int,floatvec *) ;
 typedef struct {
   int type ;
   mat44 aa ;
-  int nord ;
+  float order ;
   floatvec *pv ;
+  int nfun ;
   float *cx , *cy , *cz ;
   void *bpar ;
   Warpfield_basis bfun ;
@@ -28,29 +34,34 @@ typedef struct {
 
 /*---------------------------------------------------------------------------*/
 
-Warpfield * Warpfield_init( int type, int nord, floatvec *fv )
+Warpfield * Warpfield_init( int type, float order, floatvec *fv )
 {
    Warpfield *wf ;
 
-   if( type <= 0 || type > WARPFIELD_LAST_TYPE ) return NULL :
+   if( order < 0.0f ) return(NULL) ;
 
    wf = (Warpfield *)calloc( 1 , sizeof(Warpfield) ) ;
    wf->type = type ;
-   wf->aa.m[0][0] = wf->aa.m[1][1] = wf->aa.m[2][2] = 1.0f ;
 
    switch( type ){
-     default: free((void *)wf) ; return NULL ;
+     default: free((void *)wf) ; return(NULL) ;  /* bad */
 
      case WARPFIELD_TRIG_TYPE:
-       wf->bset = Warpfield_sph_setup ;
-       wf->bfun = Warpfield_trig ;
+       wf->bset = Warpfield_trigfun_setup ;
+       wf->bfun = Warpfield_trigfun ;
      break ;
 
      case WARPFIELD_LEGENDRE_TYPE:
-       wf->bset = Warpfield_sph_setup ;
-       wf->bfun = Warpfield_legendre ;
+       wf->bset = Warpfield_legfun_setup ;
+       wf->bfun = Warpfield_legfun ;
      break ;
    }
+
+   /* identity matrix */
+
+   LOAD_DIAG_MAT44( wf->aa , 1.0f , 1.0f , 1.0f ) ;
+
+   /* copy float vector parameters in, if any */
 
    if( fv == NULL || fv->nar <= 0 ){
      wf->pv = NULL ;
@@ -59,35 +70,51 @@ Warpfield * Warpfield_init( int type, int nord, floatvec *fv )
      memcpy( wv->pf->ar , fv->ar , sizeof(float)*fv->nar ) ;
    }
 
-   if( nord > 0 ){
-     wf->cx = (float *)calloc(nord,sizeof(float)) ;
-     wf->cy = (float *)calloc(nord,sizeof(float)) ;
-     wf->cz = (float *)calloc(nord,sizeof(float)) ;
-     wf->bpar = wf->bset( nord , wf->pv ) ;
+   /* set up space for warping parameters */
+
+   wf->order = order ;
+   wf->bpar = wf_bset( wf->order , &(wf->nfun) , (void *)wf->pv ) ;
+   if( wf->nfun > 0 ){
+     wf->cx = (float *)calloc(wf->nfun,sizeof(float)) ;
+     wf->cy = (float *)calloc(wf->nfun,sizeof(float)) ;
+     wf->cz = (float *)calloc(wf->nfun,sizeof(float)) ;
+   } else {
+     wf->cx = wf->cy = wf->cz = NULL ;  /* should not happen */
    }
 
    return wf ;
 }
 
-void Warpfield_change_order( Warpfield *wf , int neword )
-{
-   int nord = wf->nord ;
+/*---------------------------------------------------------------------------*/
 
-   if( neword < 0 ) neword = 0 ;
-   if( neword <= 0 ){
-     FREEIF(wf->cx) ; FREEIF(wf->cy) ; FREEIF(wf->cz) ;
-   } else if( neword != nord ){
-     int ii ;
-     wf->cx = (float *)realloc((void *)wf->cx,sizeof(float)*neword) ;
-     wf->cy = (float *)realloc((void *)wf->cy,sizeof(float)*neword) ;
-     wf->cz = (float *)realloc((void *)wf->cz,sizeof(float)*neword) ;
-     for( ii=nord ; ii < neword ; ii++ )
+void Warpfield_change_order( Warpfield *wf , float neword )
+{
+   float order=wf->order ; int newfun=0 ;
+
+   if( neword < 0.0f || neword == order ) return ;
+
+   if( wf->bpar != NULL ) wf->bset( -1.0f , NULL , wf->bpar ) ;
+   wf->bpar = wf->bset( neword, &newfun, (void *)wf->pv ) ;
+   if( newfun <= 0 ){
+     FREEIF(wf->cx) ; FREEIF(wf->cy) ; FREEIF(wf->cz) ; newfun = 0 ;
+   } else if( newfun != wf->nfun ){
+     register int ii ;
+     wf->cx = (float *)realloc((void *)wf->cx,sizeof(float)*newfun) ;
+     wf->cy = (float *)realloc((void *)wf->cy,sizeof(float)*newfun) ;
+     wf->cz = (float *)realloc((void *)wf->cz,sizeof(float)*newfun) ;
+     for( ii=wf->nfun ; ii < newfun ; ii++ )
        wf->cx[ii] = wf->cy[ii] = wf->cz[ii] = 0.0f ;
-     wf->bpar = wf->bset( neword, wf->pv ) ;
    }
-   wf->nord = neword ; return ;
+   wf->order = neword ; wf->nfun = newfun ; return ;
 }
 
+/*---------------------------------------------------------------------------*/
+
+void Warpfield_fitter( Warpfield *wf , int flags ,
+                       int npt, float *xi , float *yi , float *zi ,
+                                float *xw , float *yw , float *zw  )
+{
+}
 
 /*---------------------------------------------------------------------------*/
 
@@ -106,90 +133,266 @@ float Warpfield_compose( ){ }
 
 /*---------------------------------------------------------------------------*/
 
-typedef struct {
-  int nk ;
-  float *kx , *ky , *kz ;
-} Warpfield_sph_param ;
+typedef struct { int nk ; float *kx, *ky, *kz, *km ; } tenprodpar ;
 
-typedef struct { float a,b,c ; } float_triple ;
+#undef  DESTROY_tenprodpar
+#define DESTROY_tenprodpar(tp)          \
+ do{ free((tp)->kx); free((tp)->ky);    \
+     free((tp)->kz); free((tp)->km); free((tp)); } while(0)
+
+typedef struct { float a,b,c,m ; } fvm ;
+
 #undef  TMAG
-#define TMAG(t) ( SQR((t).a)+SQR((t).b)+SQR((t).c) )
+#define TMAG(t) sqrtf(SQR((t).a)+SQR((t).b)+SQR((t).c))
 
-#undef  PI
-#define PI 3.14159265f
+#undef  CFL
+#define CFL(p,q) ( ((p)<(q)) ? -1 : ((p)>(q)) ? 1 : 0 )
+
+static int cmp_fvm( const fvm *v , const fvm *w )
+{
+  int cc ;
+  cc = CFL(v->m,w->m) ; if(cc) return cc;
+  cc = CFL(v->c,w->c) ; if(cc) return cc;
+  cc = CFL(v->b,w->b) ; if(cc) return cc;
+  cc = CFL(v->a,w->a) ;        return cc;
+}
 
 /*---------------------------------------------------------------------------*/
 
-void * Warpfield_sph_setup( int nord , floatvec *vp )
+static tenprodpar * Warpfield_tenprod_setup( float order )
 {
-   Warpfield_sph_param *spar ;
-   int nk , ii,jj,kk , qq,qs,pp ;
-   float *kmag ;
-   float_triple **kvec , vv ;
+   tenprodpar *spar ;
+   int nk , ii,jj,kk , qq,pp ;
+   float kt ;
+   fvm **kvec , vv ;
 
-   if( nord < 3 ) return (NULL) ;
+   if( order <= 1.0f ) return NULL ;  /* bad call */
 
-   spar = (Warpfield_sph_param *)malloc(sizeof(Warpfield_sph_param)) ;
-   qq = (int)ceil( pow(2.0*nord,0.3333333333333333) ) ; qs = qq*qq ;
-   nk = qq*qs-1 ;
-   kmag = (float *)malloc(sizeof(float)*nk) ;
-   kvec = (float_triple *)malloc(sizeof(float_triple *)*nk) ;
-   for( ii=0 ; ii < nk ; ii++ )
-     kvec[ii] = (float_triple *)malloc(sizeof(float_triple)) ;
+   qq = 1+(int)ceil(order) ; nk = qq*qq*qq ; kt = 1.0001f*order ;
+   kvec = (fvm *)malloc(sizeof(fvm *)*nk) ;
    for( pp=kk=0 ; kk < qq ; kk++ ){
     for( jj=0 ; jj < qq ; jj++ ){
      for( ii=0 ; ii < qq ; ii++ ){
        if( ii==0 && jj==0 && kk==0 ) continue ;
        vv = *(kvec[pp]) ;
-       vv.a = PI*ii ; vv.b = PI*jj ; vv.c = PI*kk ; kmag[pp] = TMAG(vv) ;
-       pp++ ;
+       vv.a = ii ; vv.b = jj ; vv.c = kk ; vv.m = TMAG(vv) ;
+       if( vv.m < kt ){
+         kvec[pp] = (fvm *)malloc(sizeof(fvm)) ; *(kvec[pp++]) = vv ;
+       }
    }}}
-   qsort_floatstuff( nk , kmag , (void **)kvec ) ;
-   free((void *)kmag) ;
-   spar->nk = nord ;
+   qsort( kvec, pp, sizeof(fvm), (int(*)(const void *,const void *))cmp_fvm ) ;
+
+   spar = (tenprodpar *)malloc(sizeof(tenprodpar)) ;
+   spar->nk = pp ;
    spar->kx = (float *)malloc(sizeof(float)*spar->nk) ;
    spar->ky = (float *)malloc(sizeof(float)*spar->nk) ;
    spar->kz = (float *)malloc(sizeof(float)*spar->nk) ;
+   spar->km = (float *)malloc(sizeof(float)*spar->nk) ;
    for( ii=0 ; ii < spar->nk ; ii++ ){
      spar->kx[ii] = kvec[ii]->a ;
      spar->ky[ii] = kvec[ii]->b ;
      spar->kz[ii] = kvec[ii]->c ;
+     spar->kz[ii] = kvec[ii]->m ;
+     free((void *)kvec[ii]) ;
    }
-   for( ii=0 ; ii < nk ; ii++ ) free(kvec[ii]) ;
    free((void *)kvec) ;
-   return ((void *)spar) ;
+
+   return(spar) ;
 }
 
 /*---------------------------------------------------------------------------*/
 
-void Warpfield_sin( int kord, void *vpar,
-                    int npt , float *x, float *y, float *z, float *val )
+static void * Warpfield_trigfun_setup( float order, int *nfun, void *vp )
 {
-   Warpfield_sph_param *spar = (Warpfield_sph_param *)vpar ;
+   tenprodpar *spar ;
+
+   /*-- destructor call --*/
+
+   if( order < 0.0f ){
+     if( vp != NULL ){
+       spar = (tenprodpar *)vp ;
+       DESTROY_tenprodpar(spar) ;
+     }
+     return(NULL) ;
+   }
+
+   if( nfun == NULL ) return(NULL) ;  /* bad call */
+
+   /*-- create list of tensor product indexes --*/
+
+   spar = Warpfield_tenprod_setup(order) ;
+   if( spar == NULL ) return(NULL) ;  /* bad call */
+
+   *nfun = 2 * spar->nk ;  /* 2 functions per index: sin and cos */
+   return((void *)spar) ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+#undef  PI
+#define PI 3.14159265f
+
+void Warpfield_trigfun( int kfun, void *vpar,
+                        int npt , float *x, float *y, float *z, float *val )
+{
+   tenprodpar *spar = (tenprodpar *)vpar ;
    register int ii :
    register float kk ;
+   int kord=kfun/2 , ss=(kfun%2==0) ;
 
+#if 0
    if( spar == NULL || spar->nk < 1     ||
-       kord < 0     || kord >= spar->nk ||
+       kfun < 0     || kord >= spar->nk ||
        npt  < 1     ||
        x == NULL    || y == NULL || z == NULL || val == NULL ) return ;
+#endif
 
-   kx = spar->kx[kord] ; ky = spar->ky[kord] ; kz = spar->kz[kord] ;
-
-   kk = spar->kx[kord] ;
+   kk = PI * spar->kx[kord] ;
    if( kk != 0.0f ){
-     for( ii=0 ; ii < npt ; ii++ ) val[ii] = sinf( kk*x[ii] ) ;
+     if( ss )
+       for( ii=0 ; ii < npt ; ii++ ) val[ii] = sinf( kk*x[ii] ) ;
+     else
+       for( ii=0 ; ii < npt ; ii++ ) val[ii] = cosf( kk*x[ii] ) ;
    } else {
      for( ii=0 ; ii < npt ; ii++ ) val[ii] = 1.0f ;
    }
 
-   kk = spar->ky[kord] ;
-   if( kk != 0.0f )
-     for( ii=0 ; ii < npt ; ii++ ) val[ii] *= sinf( kk*y[ii] ) ;
+   kk = PI * spar->ky[kord] ;
+   if( kk != 0.0f ){
+     if( ss )
+       for( ii=0 ; ii < npt ; ii++ ) val[ii] *= sinf( kk*y[ii] ) ;
+     else
+       for( ii=0 ; ii < npt ; ii++ ) val[ii] *= cosf( kk*y[ii] ) ;
+   }
 
-   kk = spar->ky[kord] ;
-   if( kk != 0.0f )
-     for( ii=0 ; ii < npt ; ii++ ) val[ii] *= sinf( kk*z[ii] ) ;
+   kk = PI * spar->ky[kord] ;
+   if( kk != 0.0f ){
+     if( ss )
+       for( ii=0 ; ii < npt ; ii++ ) val[ii] *= sinf( kk*z[ii] ) ;
+     else
+       for( ii=0 ; ii < npt ; ii++ ) val[ii] *= cosf( kk*z[ii] ) ;
+   }
+
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+#undef  MAXLEG
+#define MAXLEG 9.99f  /* maximum Legendre order is 9 */
+
+static void * Warpfield_legfun_setup( float order, int *nfun, void *vp )
+{
+   tenprodpar *spar ;
+
+   /*-- destructor call --*/
+
+   if( order < 0.0f ){
+     if( vp != NULL ){
+       spar = (tenprodpar *)vp ;
+       DESTROY_tenprodpar(spar) ;
+     }
+     return(NULL) ;
+   }
+
+   if( nfun == NULL || order < 2.0f || order > MAXLEG ) return(NULL) ;
+
+   /*-- create list of tensor product indexes --*/
+
+   spar = Warpfield_tenprod_setup(order) ;
+   if( spar == NULL ) return(NULL) ;
+
+   *nfun = spar->nk - 3 ;     /* 1 function per index, skipping first 3 */
+   return((void *)spar) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Legendre polynomial of non-negative order m evaluated at array x[].
+------------------------------------------------------------------------------*/
+
+#undef P0
+#undef P1
+#undef P2
+#undef P3
+#undef P4
+#undef P5
+#undef P6
+#undef P7
+#undef P8
+#undef P9
+
+#define P0(x) 1.0f  /* not used */
+#define P1(x) x
+#define P2(x) 0.5f*(3.0f*x*x-1.0f)
+#define P3(x) 0.5f*(5.0f*x*x-3.0f)*x
+#define P4(x) 0.125f*((35.0f*x*x-30.0f)*x*x+3.0f)
+#define P5(x) 0.125f*((63.0f*x*x-70.0f)*x*x+15.0f)*x
+#define P6(x) 0.0625f*(((231.0f*x*x-315.0f)*x*x+105.0f)*x*x-5.0f)
+#define P7(x) 0.0625f*(((429.0f*x*x-693.0f)*x*x+315.0f)*x*x-35.0f)*x
+#define P8(x) 0.0078125*((((6435.0f*x*x-12012.0f)*x*x+6930.0f)*x*x-1260.0f)  \
+              *x*x+35.0f)
+#define P9(x) (2.4609375f+(-36.09375f+(140.765625f+(-201.09375f+94.9609375f  \
+              *x*x)*x*x)*x*x)*x*x)*x
+
+/*----------------------------------------------------------------------------*/
+
+static float Wlegendre( int m , int npt , float *x , float *v )
+{
+  register int ii ;
+  register xs ;
+
+  switch( m ){
+    case 1: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=P1(xs); } break;
+    case 2: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=P2(xs); } break;
+    case 3: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=P3(xs); } break;
+    case 4: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=P4(xs); } break;
+    case 5: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=P5(xs); } break;
+    case 6: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=P6(xs); } break;
+    case 7: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=P7(xs); } break;
+    case 8: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=P8(xs); } break;
+    case 9: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=P9(xs); } break;
+  }
+  return ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void Warpfield_legfun( int kfun, void *vpar,
+                       int npt , float *x, float *y, float *z, float *val )
+{
+   tenprodpar *spar = (tenprodpar *)vpar ;
+   register int ii :
+   int kx, ky, kz ;
+   float *qv ;
+
+#if 0
+   if( spar == NULL || spar->nk < 1     ||
+       kfun < 0     || kord >= spar->nk ||
+       npt  < 1     ||
+       x == NULL    || y == NULL || z == NULL || val == NULL ) return ;
+#endif
+
+   kx = (int)spar->kx[kfun+3] ;
+   ky = (int)spar->ky[kfun+3] ;
+   kz = (int)spar->kz[kfun+3] ;
+   if( kx > 0 )
+     Wlegendre( kx , npt , xx , val ) ;
+   else
+     for( ii=0 ; ii < npt ; ii++ ) val[ii] = 1.0f ;
+
+   if( ky > 0 || kz > 0 ){
+     qv = (float *)malloc(sizeof(float)*npt) ;
+     if( ky > 0 ){
+       Wlegendre( ky , npt , yy , qv ) ;
+       for( ii=0 ; ii < npt ; ii++ ) val[ii] *= qv[ii] ;
+     }
+
+     if( kz > 0 ){
+       Wlegendre( kz , npt , zz , qv ) ;
+       for( ii=0 ; ii < npt ; ii++ ) val[ii] *= qv[ii] ;
+     }
+     free((void *)qv) ;
+   }
 
    return ;
 }
@@ -215,7 +418,7 @@ void Warpfield_eval_array( Warpfield *wf ,
 
    val = (float *)malloc(sizeof(float)*npt) ;
 
-   for( kk=0 ; kk < wf->nord ; kk++ ){
+   for( kk=0 ; kk < wf->nfun ; kk++ ){
      cx = wf->cx[kk] ; cy = wf->cy[kk] ; cz = wf->cz[kk] ;
      if( cx == 0.0f && cy == 0.0f && cz == 0.0f ) continue ;
      wf->bfun( kk , wf->bpar , npt , xi,yi,zi , val ) ;
