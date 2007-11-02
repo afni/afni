@@ -76,7 +76,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
-           $(EXTRAS)
+           1dFlagMotion $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise count \
@@ -102,7 +102,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   Imon nifti_tool 3dAllineate nifti1_test Dimon 3danisosmooth       \
                   3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc 3dAcost     \
                   3dLocalBistat 3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize       \
-                  1dMarry 3dEmpty                                                   \
+                  1dMarry 3dEmpty 1dFlagMotion                                                 \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -133,7 +133,8 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                file_tool.exe Imon.exe 3dresample.exe serial_helper.exe im2niml    \
                nifti_tool.exe 3dAFNItoRaw DTIStudioFibertoSegments Dimon.exe      \
                3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAllineate       \
-               3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty
+               3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty      \
+               1dFlagMotion
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -1109,6 +1110,10 @@ afni_vcheck:afni_vcheck.o
 1dnorm:1dnorm.o
 	$(RM) $@
 	$(CC) -o 1dnorm 1dnorm.o $(LFLAGS) $(LLIBS)
+
+1dFlagMotion:1dFlagMotion.o
+	$(RM) $@
+	$(CC) -o 1dFlagMotion 1dFlagMotion.o $(LFLAGS) $(LLIBS)
 
 abut:abut.o
 	$(RM) $@
