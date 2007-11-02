@@ -4,17 +4,19 @@ typedef void (*Warpfield_basis)(int,void *,int,float *,float *,float *,float *);
 
 static void Warpfield_trigfun  (int,void *,int,float *,float *,float *,float *);
 static void Warpfield_legfun   (int,void *,int,float *,float *,float *,float *);
+static void Warpfield_gegenfun (int,void *,int,float *,float *,float *,float *);
 
 typedef void * (*Warpfield_setup)    (float,int *,void *) ;
 static void * Warpfield_trigfun_setup(float,int *,void *) ;
-static void * Warpfield_legfun_setup (float,int *,void *) ;
+static void * Warpfield_polyfun_setup(float,int *,void *) ;
 
 /*---------------------------------------------------------------------------*/
 
-#define WARPFIELD_TRIG_TYPE     1
-#define WARPFIELD_LEGENDRE_TYPE 2
+#define WARPFIELD_TRIG_TYPE   1  /* sin & cos */
+#define WARPFIELD_LEGEN_TYPE  2  /* Legendre polynomials */
+#define WARPFIELD_GEGEN_TYPE  3  /* Gegenbauer(-.5) polynomials */
 
-#define WARPFIELD_LAST_TYPE     2
+#define WARPFIELD_LAST_TYPE   3
 
 typedef struct {
   int type ;
@@ -50,9 +52,14 @@ Warpfield * Warpfield_init( int type, float order, floatvec *fv )
        wf->bfun = Warpfield_trigfun ;
      break ;
 
-     case WARPFIELD_LEGENDRE_TYPE:
-       wf->bset = Warpfield_legfun_setup ;
+     case WARPFIELD_LEGEN_TYPE:
+       wf->bset = Warpfield_polyfun_setup ;
        wf->bfun = Warpfield_legfun ;
+     break ;
+
+     case WARPFIELD_GEGEN_TYPE:
+       wf->bset = Warpfield_polyfun_setup ;
+       wf->bfun = Warpfield_gegenfun ;
      break ;
    }
 
@@ -271,10 +278,10 @@ void Warpfield_trigfun( int kfun, void *vpar,
 
 /*---------------------------------------------------------------------------*/
 
-#undef  MAXLEG
-#define MAXLEG 9.99f  /* maximum Legendre order is 9 */
+#undef  MAXPOL
+#define MAXPOL 9.99f  /* maximum Legendre order is 9 */
 
-static void * Warpfield_legfun_setup( float order, int *nfun, void *vp )
+static void * Warpfield_polyfun_setup( float order, int *nfun, void *vp )
 {
    tenprodpar *spar ;
 
@@ -288,7 +295,7 @@ static void * Warpfield_legfun_setup( float order, int *nfun, void *vp )
      return(NULL) ;
    }
 
-   if( nfun == NULL || order < 2.0f || order > MAXLEG ) return(NULL) ;
+   if( nfun == NULL || order < 2.0f || order > MAXPOL ) return(NULL) ;
 
    /*-- create list of tensor product indexes --*/
 
@@ -390,6 +397,95 @@ fprintf(stderr,"legfun: kx=%d ky=%d kz=%d\n",kx,ky,kz) ;
    return ;
 }
 
+/*----------------------------------------------------------------------------*/
+/* 1D Gegenbauer (alpha=-0.5) polynomials
+------------------------------------------------------------------------------*/
+
+#undef G0
+#undef G1
+#undef G2
+#undef G3
+#undef G4
+#undef G5
+#undef G6
+#undef G7
+#undef G8
+#undef G9
+
+#define G0(x) 1.0f  /* not used */
+#define G1(x) x
+#define G2(x) 0.1666667f-0.5f*x*x            /* G2(x)-1/3 : orthogonal to 1 */
+#define G3(x) (0.3f-0.5f*x*x)*x              /* G3(x)-x/5 : orthogonal to x */
+#define G4(x) -0.125f+(0.75f-0.625f*x*x)*x*x
+#define G5(x) (-0.375f+(1.25f-0.875f*x*x)*x*x)*x
+#define G6(x) 0.0625f+(-0.9375f+(2.1875f-1.3125f*x*x)*x*x)*x*x
+#define G7(x) (0.3125f+(-2.1875f+(3.9375f-2.0625f*x*x)*x*x)*x*x)*x
+#define G8(x) -0.0390625f+(1.09375f+(-4.921875f+(7.21875f-3.3515625f*x*x)*x*x)*x*x)*x*x
+#define G9(x) (-0.2734375f+(3.28125f+(-10.828125f+(13.40625f-5.5859375f*x*x)*x*x)*x*x)*x*x)*x
+
+/*----------------------------------------------------------------------------*/
+
+static float Wgegen( int m , int npt , float *x , float *v )
+{
+  register int ii ;
+  register float xs ;
+
+  switch( m ){
+    case 1: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=G1(xs); } break;
+    case 2: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=G2(xs); } break;
+    case 3: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=G3(xs); } break;
+    case 4: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=G4(xs); } break;
+    case 5: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=G5(xs); } break;
+    case 6: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=G6(xs); } break;
+    case 7: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=G7(xs); } break;
+    case 8: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=G8(xs); } break;
+    case 9: for( ii=0;ii<npt;ii++ ){ xs=2.0f*x[ii]-1.0f; v[ii]=G9(xs); } break;
+  }
+  return ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void Warpfield_gegenfun( int kfun, void *vpar,
+                         int npt , float *x, float *y, float *z, float *val )
+{
+   tenprodpar *spar = (tenprodpar *)vpar ;
+   register int ii ;
+   int kx, ky, kz ;
+
+#if 0
+   if( spar == NULL || spar->nk < 1     ||
+       kfun < 0     || kord >= spar->nk ||
+       npt  < 1     ||
+       x == NULL    || y == NULL || z == NULL || val == NULL ) return ;
+#endif
+
+   kx = spar->kx[kfun+3] ;  /* we skip the first 3 tensor products */
+   ky = spar->ky[kfun+3] ;  /* which are (1,0,0), (0,1,0), (0,0,1) */
+   kz = spar->kz[kfun+3] ;
+fprintf(stderr,"gegenfun: kx=%d ky=%d kz=%d\n",kx,ky,kz) ;
+   if( kx > 0 )
+     Wgegen( kx , npt , x , val ) ;
+   else
+     for( ii=0 ; ii < npt ; ii++ ) val[ii] = 1.0f ;
+
+   if( ky > 0 || kz > 0 ){
+     float *qv = (float *)malloc(sizeof(float)*npt) ;
+     if( ky > 0 ){
+       Wgegen( ky , npt , y , qv ) ;
+       for( ii=0 ; ii < npt ; ii++ ) val[ii] *= qv[ii] ;
+     }
+
+     if( kz > 0 ){
+       Wgegen( kz , npt , z , qv ) ;
+       for( ii=0 ; ii < npt ; ii++ ) val[ii] *= qv[ii] ;
+     }
+     free((void *)qv) ;
+   }
+
+   return ;
+}
+
 /*---------------------------------------------------------------------------*/
 
 void Warpfield_eval_array( Warpfield *wf ,
@@ -468,7 +564,7 @@ void Warpfield_eval_grid( Warpfield *wf ,
 
 int main( int argc , char *argv[] )
 {
-   int ng , iarg=1 ;
+   int ng , iarg=1 , nf ;
    float order=2.0f ;
    Warpfield *wf ;
    float *xw , *yw , *zw ;
@@ -488,12 +584,14 @@ int main( int argc , char *argv[] )
      if( order <= 1.0f ) ERROR_exit("illegal order=%g",order) ;
    }
 
-   wf = Warpfield_init( WARPFIELD_LEGENDRE_TYPE , order , NULL ) ;
+   wf = Warpfield_init( WARPFIELD_LEGEN_TYPE , order , NULL ) ;
    if( wf == NULL ) ERROR_exit("wf is NULL!") ;
 
-   wf->cx[0] = 1.0f ;
-   wf->cy[1] = 1.0f ;
-   wf->cz[2] = 1.0f ;
+   nf = wf->nfun ;
+
+   wf->cx[nf-3] = 1.0f ;
+   wf->cy[nf-2] = 1.0f ;
+   wf->cz[nf-1] = 1.0f ;
    LOAD_DIAG_MAT44( wf->aa , 0.0f , 0.0f , 0.0f ) ;
 
    xw = (float *)calloc(sizeof(float),ng*ng*ng) ;
