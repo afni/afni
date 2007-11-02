@@ -994,13 +994,16 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
          }
          break;
       case SUMA_BRAIN_VOYAGER:
+         #if 0 
+         /* this contraption was used when BV's afni volumes had 0,0,0 for origin
+          which is inappropriate */
          /* For Brain Voyager, all you need to do is 
-          go from AIR to RAI (DICOM)
+          go from ASR to RAI (DICOM)
           Note: The center of the volume is at the 1st voxel's center and that huge
           center shift, relative to standard AFNI dsets (centered about middle of volume)
           might throw off 3dVolreg. If you want to shift volume's center to be in
           the middle voxel, you'll need to shift the surface coordinates before transforming
-          them to ASR*/
+          them to RAI*/
          sprintf(orcode,"ASR");
          THD_coorder_fill(orcode , cord_surf); 
          /*loop over XYZs and change them to dicom*/
@@ -1008,6 +1011,15 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
             id = i * ND;
             THD_coorder_to_dicom (cord_surf, &(SO->NodeList[id]), &(SO->NodeList[id+1]), &(SO->NodeList[id+2])); 
          }
+         #else /*ZSS: Nov. 1 07 */
+         if (SO->VolPar) {
+            /* looks like coordinates are in float index units, go to dicomm */
+            if (!SUMA_vec_3dfind_to_dicomm(SO->NodeList, SO->N_Node, SO->VolPar)) {
+               SUMA_S_Err("Failed to xform coords.");
+               SUMA_RETURN (NOPE);
+            }
+         }
+         #endif
          break;
       default:
          fprintf(SUMA_STDERR,"Warning %s: Unknown SO->FileType. Assuming coordinates are in DICOM already.\n", FuncName);
