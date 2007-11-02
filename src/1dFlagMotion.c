@@ -94,7 +94,7 @@ int main( int argc , char *argv[] )
   printf("#Max Translation in mm: %f\n", MaxTrans);
   printf("#Max Rotation in Degrees: %f\n", MaxRot);
   
-  #if 1  /* ZSS: reading 1D file tools. 
+  #if 0  /* ZSS: reading 1D file tools. 
                   Some 1D files have comments and evil formatting gmmicks */
   {  
    float *far=NULL, *fff=NULL;
