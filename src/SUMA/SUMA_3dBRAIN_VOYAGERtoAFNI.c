@@ -16,7 +16,8 @@ void usage_3dBRAIN_VOYAGERtoAFNI (SUMA_GENERIC_ARGV_PARSE *ps)
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
-               "Usage: 3dBRAIN_VOYAGERtoAFNI <-input BV_VOLUME.vmr> [-bs] [-qx]\n"
+               "Usage: 3dBRAIN_VOYAGERtoAFNI <-input BV_VOLUME.vmr> \n"
+               "                             [-bs] [-qx] [-tlrc|-acpc|-orig] [<-prefix PREFIX>]\n"
                " \n"
                " Converts a BrainVoyager vmr dataset to AFNI's BRIK format\n"
                " The conversion is based on information from BrainVoyager's\n"
@@ -32,6 +33,11 @@ void usage_3dBRAIN_VOYAGERtoAFNI (SUMA_GENERIC_ARGV_PARSE *ps)
                "  Optional Parameters:\n"
                "  -bs: Force byte swapping.\n"
                "  -qx: .vmr file is from BrainVoyager QX\n"
+               "  -tlrc: dset in tlrc space\n"
+               "  -acpc: dset in acpc-aligned space\n"
+               "  -orig: dset in orig space\n"
+               "  If unspecified, the program attempts to guess the view from\n"
+               "  the name of the input.\n"
                "%s"
                "%s"
                "\n", sio,  s);
@@ -54,6 +60,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dBRAIN_VOYAGERtoAFNI_ParseInput(char *ar
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
    Opt->b1 = 0;
    Opt->b2 = 0;
+   Opt->Icold = -1;
+   Opt->out_prefix = NULL;
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -72,6 +80,32 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dBRAIN_VOYAGERtoAFNI_ParseInput(char *ar
 				exit (1);
 			}
          Opt->in_name = argv[kar];
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -prefix\n");
+				exit (1);
+			}
+         Opt->out_prefix = SUMA_copy_string(argv[kar]);
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-tlrc") == 0)) {
+         
+         Opt->Icold = VIEW_TALAIRACH_TYPE;
+			brk = YUP;
+		}
+      if (!brk && (strcmp(argv[kar], "-acpc") == 0)) {
+         
+         Opt->Icold = VIEW_ACPCALIGNED_TYPE;
+			brk = YUP;
+		}
+      if (!brk && (strcmp(argv[kar], "-orig") == 0)) {
+         
+         Opt->Icold = VIEW_ORIGINAL_TYPE;
 			brk = YUP;
 		}
       
@@ -110,7 +144,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dBRAIN_VOYAGERtoAFNI_ParseInput(char *ar
 }
 
 
-char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int LoadData, byte Qxforce, byte bsforce)
+char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int LoadData, 
+                                  byte Qxforce, byte bsforce, int viewforce, char *outname)
 {
    static char FuncName[]={"SUMA_BrainVoyager_Read_vmr"};
    int  i = 0, nf, iop, dchunk, End, bs, doff, ex,
@@ -145,8 +180,11 @@ char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int L
    }
    
    /* make fname be the new name without the extension*/
-   fname = SUMA_Extension(fnameorig,".vmr", YUP);
-   
+   if (!outname) {
+      fname = SUMA_Extension(fnameorig,".vmr", YUP);
+   } else {
+      fname = SUMA_Extension(outname, ".vmr", YUP);
+   }
    prefix = SUMA_AfniPrefix(fname, NULL, NULL, NULL);
    if( !THD_filename_ok(prefix) ) {
       SUMA_SL_Err("Bad prefix");
@@ -161,15 +199,32 @@ char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int L
    } 
    
    /* view ? */
-   view = VIEW_ORIGINAL_TYPE;
-   if (strstr(fname, "_tal")) { view = VIEW_TALAIRACH_TYPE; sprintf(sview,"+tlrc"); }
-   else if (strstr(fname, "_acpc")) { view = VIEW_ACPCALIGNED_TYPE; sprintf(sview,"+acpc"); } 
-   else { view = VIEW_ORIGINAL_TYPE; sprintf(sview,"+orig"); } 
+   SUMA_LHv("Viewforce = %d; [%d %d]\n", viewforce, VIEW_ORIGINAL_TYPE, VIEW_TALAIRACH_TYPE);
+   if (viewforce >=  VIEW_ORIGINAL_TYPE && viewforce <= VIEW_TALAIRACH_TYPE) {
+      view = viewforce;
+   } else {
+      view = VIEW_ORIGINAL_TYPE;
+      if (SUMA_iswordin_ci(fnameorig, "_tal") == 1) { view = VIEW_TALAIRACH_TYPE; }
+      else if (SUMA_iswordin_ci(fnameorig, "_acpc") == 1) { view = VIEW_ACPCALIGNED_TYPE; } 
+      else { view = VIEW_ORIGINAL_TYPE;  } 
+   }
+   switch (view) {
+      case VIEW_ORIGINAL_TYPE:
+         sprintf(sview,"+orig"); break;
+      case VIEW_ACPCALIGNED_TYPE:
+         sprintf(sview,"+acpc"); break;
+      case VIEW_TALAIRACH_TYPE: 
+         sprintf(sview,"+tlrc"); break;
+      default:
+         SUMA_SL_Err("Bad view");
+         goto CLEAN_EXIT; 
+   }
+   
    if (LocalHead) fprintf(SUMA_STDERR,"%s: View %s, %d\n", FuncName, sview, view);    
    
    dsetheadname = SUMA_append_replace_string(prefix,".HEAD", sview, 0);
    if (SUMA_filexists(dsetheadname)) {
-      SUMA_SL_Err("Bad prefix, output dset exists");
+      SUMA_S_Errv("Bad prefix, output dset %s exists\n", dsetheadname);
       goto CLEAN_EXIT;
    }
    SUMA_free(dsetheadname); dsetheadname = NULL;
@@ -226,7 +281,7 @@ char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int L
       nvox[0] = (int)pow((double)len, 1.0/3.0); 
       if (nvox[0] * nvox[0] * nvox[0] != len) {
          fprintf(SUMA_STDERR,"Error %s: Bad voxel numbers and could not infer number from filesize.\n"
-                             "Size of file: %ld, data offset: %d, datum size: %d, data number: %ld\n"
+                             "Size of file: %lld, data offset: %d, datum size: %d, data number: %ld\n"
                              "Inferred nvox:%d\n",
                              FuncName,
                              THD_filesize( fnameorig ), doff, dchunk, len, 
@@ -266,7 +321,7 @@ char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int L
    
    orixyz.ijk[0] = ORI_A2P_TYPE;
    orixyz.ijk[1] = ORI_S2I_TYPE;
-   orixyz.ijk[2] = ORI_R2L_TYPE;
+   orixyz.ijk[2] = ORI_R2L_TYPE;       
    
    /* load number of voxels */
    LOAD_IVEC3( nxyz   , nvox[0]    , nvox[1]    , nvox[2] ) ;
@@ -276,7 +331,12 @@ char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int L
    
    {  
       float delta[3]={1.0, 1.0, 1.0};
-      float origin[3]={0.0, 0.0, 0.0};  
+      float origin[3]={0.0, 0.0, 0.0}; 
+      /* set origin of 0th voxel*/
+      origin[0] = (float)((nvox[0]*delta[0]))/2.0;    /* ZSS: Changed from 0 0 0 Nov 1 07 */
+      origin[1] = (float)((nvox[1]*delta[1]))/2.0;
+      origin[2] = (float)((nvox[2]*delta[2]))/2.0;
+       
       /* dimensions, same for vmr*/
       LOAD_FVEC3( dxyz , delta[0], delta[1], delta[2]   ) ;
       SUMA_sizeto3d_2_deltaHEAD(orixyz, &dxyz);
@@ -379,10 +439,12 @@ int main (int argc,char *argv[])
    
    dset = EDIT_empty_copy( NULL ) ;
    tross_Make_History( "3dBRAIN_VOYAGERtoAFNI" , argc,argv , dset) ;
-   if (!(sto3d = SUMA_BrainVoyager_Read_vmr(Opt->in_name, dset, 1, Opt->b2, Opt->b1))) {
+   if (!(sto3d = SUMA_BrainVoyager_Read_vmr(Opt->in_name, dset, 1, Opt->b2, Opt->b1, Opt->Icold, Opt->out_prefix))) {
       if (Opt->debug) SUMA_SL_Err("Failed in SUMA_BrainVoyager_Read_vmr");
       exit(1);   
    }
+   SUMA_LHv("Old command would be %s\n", sto3d);
+   
    if (dset) {
       SUMA_LH("Writing Dset");
       DSET_write(dset) ;
