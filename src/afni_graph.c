@@ -4518,8 +4518,7 @@ STATUS("replacing ort timeseries") ;
 
             grapher->valid = 2 ;
 
-            XtRealizeWidget( grapher->fdw_graph ) ;
-
+            XtRealizeWidget( grapher->fdw_graph ) ; NI_sleep(1) ;
             WAIT_for_window(grapher->fdw_graph) ;
 
             /* 29 Sep 2000: next 2 lines of code are for the Form change */
@@ -4545,7 +4544,7 @@ STATUS("replacing ort timeseries") ;
 #ifdef USE_OPTMENUS
             GRA_fix_optmenus( grapher ) ;
 #endif
-            AFNI_sleep(1) ;  /* 08 Mar 2002: for good luck */
+            NI_sleep(1) ;  /* 08 Mar 2002: for good luck */
          }
          RETURN( True ) ;
       }
@@ -5053,7 +5052,7 @@ ENTRY("GRA_setshift_startup") ;
    (void) MCW_action_area( wrc , SETSHIFT_act , NUM_SETSHIFT_ACT ) ;
 
    XtManageChild( wrc ) ;
-   XtPopup( grapher->dialog , XtGrabNone ) ; RWC_sleep(1);
+   XtPopup( grapher->dialog , XtGrabNone ) ; NI_sleep(1);
    RWC_visibilize_widget( grapher->dialog ) ; /* 09 Nov 1999 */
    NORMAL_cursorize( grapher->dialog ) ;
    EXRETURN ;

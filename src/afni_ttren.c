@@ -404,7 +404,7 @@ ENTRY("TTRR_setup_widgets") ;
    XtManageChild( frame ) ;
    XtManageChild( ttc->scrollw ) ;
    XtManageChild( toprc ) ;
-   XtRealizeWidget( ttc->shell ) ;
+   XtRealizeWidget( ttc->shell ) ; NI_sleep(1) ;
 
    WATCH_cursorize( ttc->shell ) ;
    XmUpdateDisplay( ttc->shell ) ;
@@ -455,7 +455,7 @@ ENTRY("TTRR_setup_widgets") ;
                       XmNrightAttachment  , XmATTACH_FORM ,
                      NULL ) ;
 
-      XtRealizeWidget( ttc->reg_av[ii]->wrowcol ) ;
+      XtRealizeWidget( ttc->reg_av[ii]->wrowcol ) ; NI_sleep(1) ;
 
       if( ii%NUM_AV_FIRST == 0 )          /* show something occasionally */
          XmUpdateDisplay( ttc->shell ) ;

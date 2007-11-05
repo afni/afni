@@ -6433,3 +6433,7 @@
  * Added warning message to 3dDeconvolve if TENT() or CSPLIN() inter-knot
      TR is smaller than the output TR for -iresp.
  * Added message to 3dSynthesize.c to indicate type of -cenfill being done.
+
+05 Nov 2007
+ * Insert some sleeping to try to avoid X11 errors that have been reported
+     (but not seen by me) about XGeometry.
