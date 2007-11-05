@@ -5163,7 +5163,7 @@ static char * AFNI_image_help =
  "[ = time index down 1    ] = time index up 1\n"
  "> = Page Up   = forward  1 image (e.g., slice)\n"
  "< = Page Down = backward 1 image (e.g., slice)\n"
- "o = toggle (color) overlay on/off\n"      
+ "o = toggle (color) overlay on/off\n"
  "u = toggle background from underlay/overlay dataset\n"
  "v/V = Video image sequence up/down\n"
  "r/R = Ricochet image sequence up/down\n"
