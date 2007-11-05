@@ -4892,7 +4892,7 @@ ENTRY("ISQ_drawing_EV") ;
              if( seq->cmap_changed ){
                COLORMAP_CHANGE(seq); seq->cmap_changed = 0;
                if( seq->graymap_mtd != NULL && AFNI_yesenv("AFNI_STROKE_AUTOPLOT") ){
-                 RWC_sleep(456) ;     /* pop down after a short delay */
+                 NI_sleep(456) ;     /* pop down after a short delay */
                  plotkill_topshell( seq->graymap_mtd ) ;
                  seq->graymap_mtd = NULL ;
                }
@@ -5950,7 +5950,7 @@ ENTRY("ISQ_but_disp_CB") ;
 
    ISQ_place_dialog( seq ) ;  /* 05 Jan 1999 */
 
-   XtPopup( seq->dialog , XtGrabNone ) ; RWC_sleep(1);
+   XtPopup( seq->dialog , XtGrabNone ) ; NI_sleep(1);
 
    if( seq->top_clip <= 0.0f ) ALLOW_CLIPPING( seq , 0 ) ;
 
@@ -7535,8 +7535,8 @@ static unsigned char record_bits[] = {
 
       case isqDR_realize:{
          if( ! ISQ_REALZ(seq) ){
-            XtRealizeWidget( seq->wtop )   ;
-            WAIT_for_window( seq->wtop )   ; RWC_sleep(1) ;
+            XtRealizeWidget( seq->wtop )   ; NI_sleep(1) ;
+            WAIT_for_window( seq->wtop )   ;
             NORMAL_cursorize( seq->wtop )  ;
             POPUP_cursorize( seq->wimage ) ;
             POPUP_cursorize( seq->wbar )   ;
@@ -8332,7 +8332,7 @@ fprintf(stderr,"montage: zoom_fac = %d\n",seq->zoom_fac) ;
 
    XtManageChild( wrc ) ;
    ISQ_place_dialog( seq ) ;  /* 05 Jan 1999 */
-   XtPopup( seq->dialog , XtGrabNone ) ; RWC_sleep(1);
+   XtPopup( seq->dialog , XtGrabNone ) ; NI_sleep(1);
    NORMAL_cursorize( seq->dialog ) ;
    ISQ_but_done_reset( seq ) ;
    EXRETURN ;

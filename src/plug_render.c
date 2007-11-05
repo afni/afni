@@ -1613,8 +1613,7 @@ void REND_make_widgets(void)
    XtManageChild(anat_frame) ;
 
    XtManageChild(top_rowcol) ;
-   XtRealizeWidget(shell) ;      /* will not be mapped */
-
+   XtRealizeWidget(shell) ; NI_sleep(1) ;     /* will not be mapped */
    WAIT_for_window(shell) ;
    POPUP_cursorize(xhair_bbox->wbut[0]) ;
 

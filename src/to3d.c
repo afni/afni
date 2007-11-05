@@ -1935,9 +1935,8 @@ ENTRY("T3D_create_widgets") ;
 
    XtManageChild( wset.topform ) ;
 
-   XtRealizeWidget( wset.topshell ) ;
-
-   WAIT_for_window( wset.topshell ) ;  /* 10 Sep 2002 */
+   XtRealizeWidget( wset.topshell ) ; NI_sleep(1) ;
+   WAIT_for_window( wset.topshell ) ; /* 10 Sep 2002 */
    wset.good = 1 ;
 
    T3D_data_to_widgets() ;
@@ -5436,7 +5435,7 @@ ENTRY("T3D_poperr") ;
       (void) MCW_popup_message( wset.action_frame,
                                 total_msg, MCW_USER_KILL | MCW_TIMER_KILL ) ;
       XFlush( XtDisplay(wset.topshell) ) ;
-      sleep(1) ;
+      NI_sleep(999) ;
    } else {
 /*      fprintf(stderr,"%s\n",total_msg) ;*/
      if(exit_flag)

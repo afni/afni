@@ -65,10 +65,11 @@ extern void MCW_alter_widget_cursor( Widget,int , char * , char * ) ;
 
 extern void RWC_sleep( int ) ;  /* 16 Aug 2002 */
 
-#define WAIT_for_window(w)                                  \
- do{ XSync( XtDisplay(w) , False ) ;                         \
-     while( XtWindow(w) == (Window) NULL ) ; /* spin */       \
-     RWC_sleep(1) ;                                            \
+#define WAIT_for_window(w)                                 \
+ do{ XSync( XtDisplay(w) , False ) ;                        \
+     while( XtWindow(w) == (Window) NULL ) ; /* spin */      \
+     XSync( XtDisplay(w) , False ) ;                          \
+     RWC_sleep(3) ;                                            \
  } while(0)
 
 #define POPUP_cursorize(w)                                        \

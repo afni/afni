@@ -443,7 +443,7 @@ static void NOTES_make_widgets(void)
    /*** done ***/
 
    XtManageChild(topman) ;
-   XtRealizeWidget(shell) ;  /* will not be mapped */
+   XtRealizeWidget(shell) ; NI_sleep(1) ; /* will not be mapped */
 
    return ;
 }

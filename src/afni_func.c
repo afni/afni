@@ -5342,6 +5342,7 @@ STATUS("got func info") ;
       /*-- popup widgets --*/
 
       XtMapWidget( wpop ) ;  /* after this, is up to user */
+      AFNI_sleep(1) ;
       RWC_visibilize_widget( wpop ) ;
    }
 

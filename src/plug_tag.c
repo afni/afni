@@ -585,7 +585,7 @@ static void TAG_make_widgets(void)
    XtManageChild( scrollw ) ;
    XtManageChild( thetop  ) ;
 
-   XtRealizeWidget( shell ) ;  /* will not be mapped */
+   XtRealizeWidget( shell ) ;  NI_sleep(1) ; /* will not be mapped */
 
    /** set up widths and heights **/
 
