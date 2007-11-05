@@ -1108,6 +1108,7 @@ if( PRINT_TRACING ){
 
    /* buttons on right */
 
+   STATUS("creating buttons on right") ;
    for( ii=0 ; ii < NBUTTON_RIG ; ii++){
 
       Arg wa[30] ;
@@ -1156,6 +1157,7 @@ if( PRINT_TRACING ){
 
    /* arrows on right */
 
+   STATUS("creating arrows on right") ;
    for( ii=0 ; ii < NARROW ; ii++ ){
 
       newseq->arrow[ii] = new_MCW_arrowval(
@@ -1196,6 +1198,7 @@ if( PRINT_TRACING ){
 
      /** 08 Mar 2001 - put a line between the arrows above and this control **/
 
+     STATUS("creating opacity control") ;
      newseq->ov_opacity_sep = XtVaCreateManagedWidget(
                                 "imseq" , xmSeparatorWidgetClass , newseq->wform ,
                                    XmNseparatorType , XmSINGLE_LINE ,
@@ -1246,6 +1249,7 @@ if( PRINT_TRACING ){
      newseq->ov_opacity_sep = NULL ;
    }
 
+   STATUS("creating zoom control") ;
      newseq->zoom_sep = XtVaCreateManagedWidget(
                          "imseq" , xmSeparatorWidgetClass , newseq->wform ,
                             XmNseparatorType , XmSINGLE_LINE ,
@@ -1296,6 +1300,7 @@ if( PRINT_TRACING ){
      MCW_reghint_children( newseq->zoom_val_av->wrowcol, "Image zoom factor" );
      AV_SENSITIZE_DOWN( newseq->zoom_val_av , False ) ;
 
+     STATUS("creating pan control") ;
      newseq->zoom_drag_pb =
         XtVaCreateManagedWidget(
            "imseq" , xmPushButtonWidgetClass , newseq->wform ,
@@ -1350,6 +1355,7 @@ if( PRINT_TRACING ){
 
      /* 17 Jun 2002: crop pushbutton */
 
+     STATUS("creating crop control") ;
      newseq->crop_drag_pb =
         XtVaCreateManagedWidget(
            "imseq" , xmPushButtonWidgetClass , newseq->wform ,
@@ -1404,6 +1410,7 @@ if( PRINT_TRACING ){
    /* 18 Jul 2003: toggle button for pen (drawing mode) */
 
    { char *lbl = "pen" ;
+     STATUS("creating pen control") ;
      newseq->pen_bbox = new_MCW_bbox( newseq->wform ,
                                       1 , &lbl ,
                                       MCW_BB_check , MCW_BB_noframe ,
@@ -1434,6 +1441,7 @@ if( PRINT_TRACING ){
 
    ii = (one_image) ? 1 : newseq->status->num_total - 1 ;
 
+   STATUS("creating image scale") ;
    newseq->onoff_widgets[(newseq->onoff_num)++] =
    newseq->wscale =
        XtVaCreateManagedWidget(
@@ -1466,6 +1474,7 @@ if( PRINT_TRACING ){
 
    /* arrowpad at lower right corner */
 
+   STATUS("creating arrowpad") ;
    newseq->arrowpad = new_MCW_arrowpad(
                            newseq->wform ,
                            ISQ_arrowpad_CB , (XtPointer) newseq ) ;
@@ -1482,6 +1491,7 @@ if( PRINT_TRACING ){
 
    /* drawing area for color bar */
 
+   STATUS("creating intensity bar") ;
    newseq->onoff_widgets[(newseq->onoff_num)++] =
    newseq->wbar =
        XtVaCreateManagedWidget(
@@ -1520,6 +1530,8 @@ if( PRINT_TRACING ){
                       "\n"
                       "Use Button 1 to enforce\n"
                       "image aspect ratio"       ) ;
+
+   STATUS("creating intensity bar menu") ;
 
 #ifdef BAD_BUTTON3_POPUPS   /* 21 Jul 2003 */
    newseq->wbar_menu = XmCreatePopupMenu( newseq->wscale, "menu",NULL,0 ) ;
