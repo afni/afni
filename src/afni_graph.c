@@ -908,7 +908,6 @@ if(PRINT_TRACING)
 #if 0
 STATUS("realizing widgets") ;
    XtRealizeWidget( grapher->fdw_graph ) ;
-
    WAIT_for_window(grapher->form_tmp) ;
 
    XtVaSetValues( grapher->option_rowcol ,
@@ -945,7 +944,7 @@ STATUS("realizing widgets") ;
 
 void end_fd_graph_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
-   MCW_grapher * grapher = (MCW_grapher *) client_data ;
+   MCW_grapher *grapher = (MCW_grapher *) client_data ;
    int ii ;
 
 ENTRY("end_fd_graph_CB") ;
@@ -4521,7 +4520,7 @@ STATUS("replacing ort timeseries") ;
             grapher->valid = 2 ;
 
             XtRealizeWidget( grapher->fdw_graph ) ; NI_sleep(1) ;
-            WAIT_for_window(grapher->fdw_graph) ;
+            WAIT_for_window( grapher->fdw_graph ) ; NI_sleep(1) ;
 
             /* 29 Sep 2000: next 2 lines of code are for the Form change */
 
