@@ -344,7 +344,7 @@ typedef struct MCW_imseq {
 
      Boolean done_first ;    /* for the done button */
 
-     MCW_DC * dc ;           /* graphics data (copy of a pointer) */
+     MCW_DC *dc ;            /* graphics data (copy of a pointer) */
 
      MCW_imseq_status * status ;    /* status of image sequence */
 

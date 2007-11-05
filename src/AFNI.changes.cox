@@ -6437,3 +6437,7 @@
 05 Nov 2007
  * Insert some sleeping to try to avoid X11 errors that have been reported
      (but not seen by me) about XGeometry.
+ * If DONT_USE_XTDESTROY is #define-d, then XtDestroyWidget() is replaced by
+     XtUnrealizeWidget() -- this is used in the Makefile for linux_xorg7,
+     where the old bug in that Xt library function seems to have risen
+     from the dead.
