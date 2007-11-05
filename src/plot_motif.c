@@ -1,13 +1,18 @@
 #include "coxplot.h"
 #include <Xm/XmAll.h>
 
+#ifdef DONT_USE_XTDESTROY  /** bug fix for some stupid X11 distributions **/
+# undef  XtDestroyWidget
+# define XtDestroyWidget XtUnrealizeWidget
+#endif
+
 /*****************************************************************************
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 ******************************************************************************/
 
 static char print_command[256] = "\0" ;
-static char * redcolor = NULL ;
+static char *redcolor = NULL ;
 
 #ifndef LABEL_ARG
 #define LABEL_ARG(str) \
@@ -21,7 +26,7 @@ static char * redcolor = NULL ;
 
 #ifndef HOTCOLOR
 #define HOTCOLOR(ww,ss)                                                        \
-  { char * xdef = XGetDefault(XtDisplay(ww),"AFNI","hotcolor") ;               \
+  { char *xdef = XGetDefault(XtDisplay(ww),"AFNI","hotcolor") ;                \
     if( xdef == NULL ) xdef = getenv("AFNI_hotcolor") ;                        \
     if( xdef == NULL ) xdef = getenv("AFNI_HOTCOLOR") ;                        \
     if( xdef == NULL ) xdef = XGetDefault(XtDisplay(ww),"AFNI","background") ; \
@@ -36,7 +41,7 @@ static char * redcolor = NULL ;
 
 static void beep_CB( Widget w , XtPointer cd , XtPointer cb )
 {
-   char * str = (char *) cd ;
+   char *str = (char *) cd ;
 
    if( w != NULL ) XBell(XtDisplay(w),100) ;
    if( str != NULL ) fprintf(stderr,"%s\a\n",str) ;
@@ -51,7 +56,7 @@ static void beep_CB( Widget w , XtPointer cd , XtPointer cb )
 
 static void pscancel_CB( Widget w , XtPointer cd , XtPointer cb )
 {
-   MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;
+   MEM_topshell_data *mpcb = (MEM_topshell_data *) cd ;
 
    if( mpcb == NULL || ! MTD_VALID(mpcb) ) return ;
 
@@ -64,8 +69,8 @@ static void pscancel_CB( Widget w , XtPointer cd , XtPointer cb )
 
 static void psfinalize_CB( Widget w , XtPointer cd , XtPointer cb )
 {
-   MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;
-   char * text , fname[64] ;
+   MEM_topshell_data *mpcb = (MEM_topshell_data *) cd ;
+   char *text , fname[64] ;
    int ii , ll ;
 
    if( mpcb == NULL || ! MTD_VALID(mpcb) ) return ;
@@ -104,7 +109,7 @@ static void psfinalize_CB( Widget w , XtPointer cd , XtPointer cb )
 
 static void psfile_CB( Widget w , XtPointer cd , XtPointer cb )
 {
-   MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;
+   MEM_topshell_data *mpcb = (MEM_topshell_data *) cd ;
    Widget wpop , wrc , wlab , wtf , form , but0 , but1 ;
    int ibut = 0 ;
    Position xx,yy ;
@@ -226,8 +231,8 @@ static void psfile_CB( Widget w , XtPointer cd , XtPointer cb )
 
 static void psprint_CB( Widget w , XtPointer cd , XtPointer cb )
 {
-   MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;
-   MEM_plotdata * mp ;
+   MEM_topshell_data *mpcb = (MEM_topshell_data *) cd ;
+   MEM_plotdata *mp ;
 
    if( mpcb == NULL ) return ;
    mp = mpcb->mp ; if( mp == NULL ) return ;
@@ -241,7 +246,7 @@ static void psprint_CB( Widget w , XtPointer cd , XtPointer cb )
 
 static void donebut_CB( Widget w , XtPointer cd , XtPointer cb )
 {
-   MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;
+   MEM_topshell_data *mpcb = (MEM_topshell_data *) cd ;
 
    if( mpcb == NULL || ! MTD_VALID(mpcb) ) return ;
 
@@ -267,20 +272,20 @@ static void donebut_CB( Widget w , XtPointer cd , XtPointer cb )
 
 static void expose_CB( Widget w , XtPointer cd , XtPointer cb )
 {
-   XmDrawingAreaCallbackStruct * cbs = (XmDrawingAreaCallbackStruct *) cb ;
-   MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;
-   MEM_plotdata * mp ;
+   XmDrawingAreaCallbackStruct *cbs = (XmDrawingAreaCallbackStruct *) cb ;
+   MEM_topshell_data *mpcb = (MEM_topshell_data *) cd ;
+   MEM_plotdata *mp ;
    XEvent evjunk ;
-   Display * dpy = XtDisplay(w) ;
-   Window  win   = XtWindow(w) ;
-   Drawable dw   = win ;                               /* draw into this */
+   Display *dpy = XtDisplay(w) ;
+   Window  win  = XtWindow(w) ;
+   Drawable dw  = win ;                               /* draw into this */
 
    if( win == (Window) 0 ) return ;  /* no window yet? */
    if( mpcb == NULL ) return ;
    mp = mpcb->mp ; if( mp == NULL ) return ;
 
    if( cbs != NULL ){
-      XExposeEvent * ev = (XExposeEvent *) cbs->event ;
+      XExposeEvent *ev = (XExposeEvent *) cbs->event ;
       if( ev->count > 0 ) return ;
    }
 
@@ -319,7 +324,7 @@ static void expose_CB( Widget w , XtPointer cd , XtPointer cb )
    return ;
 }
 
-void redraw_topshell( MEM_topshell_data * mpcb )
+void redraw_topshell( MEM_topshell_data *mpcb )
 {
    if( mpcb == NULL ) return ;
    expose_CB( mpcb->drawing , mpcb , NULL ) ;
@@ -340,7 +345,7 @@ static void resize_CB( Widget w , XtPointer cd , XtPointer cb )
    External killer, for use by user routines
 --------------------------------------------------------------------*/
 
-void plotkill_topshell( MEM_topshell_data * mpcb )
+void plotkill_topshell( MEM_topshell_data *mpcb )
 {
    if( mpcb == NULL || ! MTD_VALID(mpcb) ) return ;
 
@@ -364,13 +369,13 @@ void plotkill_topshell( MEM_topshell_data * mpcb )
    to free it in the call to kfun.
 --------------------------------------------------------------------*/
 
-MEM_topshell_data * memplot_to_topshell( Display * dpy,
-                                         MEM_plotdata * mp, void_func * kfun )
+MEM_topshell_data * memplot_to_topshell( Display *dpy,
+                                         MEM_plotdata *mp, void_func *kfun )
 {
    Widget topshell , drawing , donebut , form , psfilebut , psprintbut ;
-   MEM_topshell_data * mpcb ;
+   MEM_topshell_data *mpcb ;
    int hmin=200 , wmin , ibut=0 ;
-   char * prc ;
+   char *prc ;
 
    /* sanity check */
 

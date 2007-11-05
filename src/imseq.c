@@ -4087,7 +4087,7 @@ ENTRY("ISQ_but_done_CB") ;
    delete malloc-ed data in an imseq
 -------------------------------------------------------------------------*/
 
-void ISQ_free_alldata( MCW_imseq * seq )
+void ISQ_free_alldata( MCW_imseq *seq )
 {
    int ib ;
 
@@ -7530,7 +7530,7 @@ static unsigned char record_bits[] = {
 
       case isqDR_destroy:{
          ISQ_timer_stop(seq) ; NI_sleep(1) ;
-         ISQ_but_done_CB( NULL , (XtPointer)seq , NULL ) ;
+         ISQ_but_done_CB( NULL , (XtPointer)seq , NULL ) ; NI_sleep(1) ;
          RETURN( True );
       }
       break ;
@@ -11423,7 +11423,7 @@ ENTRY("ISQ_handle_keypress") ;
 
      case 'q':
      case 'Q':{
-       ISQ_but_done_CB( NULL, (XtPointer)seq, NULL ) ;
+       ISQ_but_done_CB( NULL, (XtPointer)seq, NULL ) ; NI_sleep(1) ;
        busy=0; RETURN(1) ;
      }
      break ;

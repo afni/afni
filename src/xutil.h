@@ -231,6 +231,11 @@ extern void RWC_XtPopdown( Widget ) ; /* 30 Jun 2003 */
 extern void AFNI_speak( char *string , int nofork ) ;   /* 24 Nov 2003 */
 extern void AFNI_speak_setvoice( char *vvv ) ;
 
+#ifdef DONT_USE_XTDESTROY  /** bug fix for some stupid X11 distributions **/
+# undef  XtDestroyWidget
+# define XtDestroyWidget XtUnrealizeWidget
+#endif
+
 #ifdef  __cplusplus
 }
 #endif
