@@ -2077,7 +2077,7 @@ SUMA_SurfaceObject* SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI,
    int *tmp_newFaceSetList = NULL, *newFaceSetList = NULL, *inclNodes=NULL;
    int i, j, N_FaceSet, ti;
    SUMA_SurfaceObject *SO_new=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
