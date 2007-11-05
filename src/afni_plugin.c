@@ -1986,6 +1986,7 @@ fprintf(stderr,"Widget realization\n") ;
 #endif
 
    XtRealizeWidget( wid->shell ) ;  /* will not be mapped */
+   NI_sleep(1) ;
 
    /** set its width after it is mapped **/
 

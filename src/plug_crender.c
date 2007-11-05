@@ -1814,8 +1814,7 @@ ENTRY( "RCREND_make_widgets" );
    XtManageChild(anat_frame) ;
 
    XtManageChild(top_rowcol) ;
-   XtRealizeWidget(shell) ;      /* will not be mapped */
-
+   XtRealizeWidget(shell) ; NI_sleep(1) ;     /* will not be mapped */
    WAIT_for_window(shell) ;
    POPUP_cursorize(xhair_bbox->wbut[0]) ;
    POPUP_cursorize(accum_bbox->wbut[0]) ;

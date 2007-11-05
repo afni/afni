@@ -187,7 +187,7 @@ int main( int argc , char * argv[] )
 
 
         XtManageChild(fff) ;
-        XtRealizeWidget(top);
+        XtRealizeWidget(top); NI_sleep(1);
         XtAppMainLoop(app);
 
         exit(0); /* never reached */

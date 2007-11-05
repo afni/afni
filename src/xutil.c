@@ -8,6 +8,9 @@
 #include "afni_environ.h"
 #include "debugtrace.h"    /* 12 Mar 2001 */
 
+#undef  SYNC
+#define SYNC(w) XSync(XtDisplay(w),False)
+
 #include "Amalloc.h"
 extern char * THD_find_executable( char * ) ;
 
@@ -34,7 +37,7 @@ void MCW_expose_widget( Widget w )
    xev.window  = XtWindow(w) ; if( xev.window == (Window) NULL ) return ;
    xev.type    = Expose ;
    xev.display = XtDisplay(w) ;
-   xev.x       = xev.y = 0 ;
+   xev.x       = xev.y = 0 ; SYNC(w) ;
    XtVaGetValues( w, XmNwidth, &ww, XmNheight, &hh, NULL ) ;
    if( ww <= 0 || hh <= 0 ) return ;
    xev.width   = ww ; xev.height  = hh ;
@@ -53,6 +56,7 @@ Colormap MCW_get_colormap( Widget w )
 
    if( w == NULL || ! XtIsWidget(w) ) return (Colormap) 0 ;
 
+   SYNC(w) ;
    XtVaGetValues( w , XmNcolormap  , &cmap , NULL ) ;
    return cmap ;
 }
@@ -64,6 +68,7 @@ int MCW_get_depth( Widget w )  /* 14 Sep 1998 */
    int depth = 0 ;
 
    if( w == NULL || ! XtIsWidget(w) ) return 0 ;
+   SYNC(w) ;
    XtVaGetValues( w , XmNdepth  , &depth , NULL ) ;
    return depth  ;
 }
@@ -76,6 +81,7 @@ Visual * MCW_get_visual( Widget w )  /* 14 Sep 1998 */
    Widget wpar = w ;
 
    if( w == NULL || ! XtIsWidget(w) ) return NULL ;
+   SYNC(w) ;
 
    while( XtParent(wpar) != NULL ) wpar = XtParent(wpar) ;  /* find top */
 
@@ -91,6 +97,7 @@ Visual * MCW_get_visual( Widget w )  /* 14 Sep 1998 */
 void MCW_set_colormap( Widget w , Colormap cmap )
 {
    if( w == NULL || ! XtIsWidget(w) ) return ;
+   SYNC(w) ;
    XtVaSetValues( w , XmNcolormap  , cmap , NULL ) ;
    return ;
 }
@@ -106,6 +113,7 @@ void MCW_invert_widget( Widget w )
    Colormap cmap ;
 
    if( ! XtIsWidget(w) ) return ;
+   SYNC(w) ;
 
    XtVaGetValues( w , XmNforeground , &bg_pix ,  /* foreground -> bg */
                       XmNbackground , &fg_pix ,  /* background -> fg */
@@ -148,6 +156,7 @@ void MCW_set_widget_bg( Widget w , char *cname , Pixel pix )
    if( ! XtIsObject(w) ) return ;
 #endif
 
+   SYNC(w) ;
 
    if( cname != NULL && strlen(cname) > 0 ){
       XtVaSetValues( w ,
@@ -202,6 +211,7 @@ void MCW_widget_geom( Widget w, int *wout, int *hout, int *xout, int *yout )
    Position  xx , yy ;
 
    if( w == NULL ) return ;
+   SYNC(w) ; RWC_sleep(1) ;
 
    if( XtIsRealized(w) ){
       XtVaGetValues( w , XmNwidth  , &nx , XmNheight , &ny ,
@@ -526,6 +536,7 @@ void MCW_message_CB( Widget w , XtPointer cd , XtPointer cbs )
    XtDestroyWidget( XtParent(w) ) ;
 
    if( tid > 0 ) XtRemoveTimeOut( tid ) ;  /* if a timer exists, kill it */
+   RWC_sleep(1) ;
 #else
    XtDestroyWidget( XtParent(w) ) ;
 #endif
@@ -538,6 +549,7 @@ void MCW_message_CB( Widget w , XtPointer cd , XtPointer cbs )
 void MCW_message_timer_CB( XtPointer client_data , XtIntervalId *id )
 {
    XtDestroyWidget( (Widget) client_data ) ;
+   RWC_sleep(1) ;
 }
 
 /*------------------------------------------------------------------
@@ -575,6 +587,7 @@ void MCW_alter_widget_cursor( Widget w, int cur, char *fgname, char *bgname )
    }
 
    if( w == NULL || !XtIsRealized(w) || XtWindow(w) == (Window)NULL ) return ;
+   RWC_sleep(1) ;
 
    dis = XtDisplay(w) ;
 
@@ -1540,7 +1553,7 @@ ENTRY("RWC_visibilize_widget") ;
    RWC_xineramize( XtDisplay(w) , xx,yy,wx,hy , &xx,&yy ); /* 27 Sep 2000 */
 
    if( xx != xo || yy != yo )
-      XtVaSetValues( w , XmNx , xx , XmNy , yy , NULL ) ;
+     XtVaSetValues( w , XmNx , xx , XmNy , yy , NULL ) ;
 
    EXRETURN ;
 }
@@ -1974,6 +1987,7 @@ void RWC_XtPopdown( Widget w )
 ENTRY("RWC_XtPopdown") ;
 
    if( wpar == NULL ) EXRETURN ;
+   RWC_sleep(1) ;
    while( XtIsShell(wpar)==0 && XtParent(wpar)!=NULL ) wpar = XtParent(wpar);
    XtPopdown(wpar) ; RWC_sleep(1) ;
    EXRETURN ;

@@ -764,7 +764,7 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
    }
 
    XtManageChild(swid->rowcol) ;
-   XtRealizeWidget(swid->wtop) ;
+   XtRealizeWidget(swid->wtop) ; NI_sleep(1) ;
    EXRETURN ;
 }
 
@@ -907,9 +907,9 @@ ENTRY("AFNI_choose_surface_CB") ;
       so unmanage and remanage them -- this solves that problem */
 
    WAIT_for_window( swid->rowcol ) ;
-   XtUnmanageChild( swid->rowcol ) ;
+   XtUnmanageChild( swid->rowcol ) ; NI_sleep(1) ;
    WAIT_for_window( swid->rowcol ) ;
-   XtManageChild  ( swid->rowcol ) ;
+   XtManageChild  ( swid->rowcol ) ; NI_sleep(1) ;
 
    /* wait for user to press some button */
 

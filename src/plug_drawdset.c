@@ -985,7 +985,7 @@ void DRAW_make_widgets(void)
    /*** that's all ***/
 
    XtManageChild(rowcol) ;
-   XtRealizeWidget(shell) ;  /* will not be mapped */
+   XtRealizeWidget(shell) ; NI_sleep(1) ; /* will not be mapped */
    return ;
 }
 

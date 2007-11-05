@@ -216,7 +216,7 @@ static void psfile_CB( Widget w , XtPointer cd , XtPointer cb )
 
    XtManageChild( form ) ;
    XtManageChild( wrc ) ;
-   XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
+   XtPopup( wpop , XtGrabNone ) ; NI_sleep(1);
    return ;
 }
 
@@ -516,7 +516,7 @@ MEM_topshell_data * memplot_to_topshell( Display * dpy,
    XtVaSetValues( form , BGCOLOR_ARG("white") , NULL ) ;
 
    XtManageChild(form) ;
-   XtRealizeWidget(topshell);
+   XtRealizeWidget(topshell); NI_sleep(1);
 
    mpcb->valid = 1 ; mpcb->userdata = NULL ; mpcb->drawing = drawing ;
    return mpcb ;

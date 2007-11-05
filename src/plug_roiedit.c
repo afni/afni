@@ -156,15 +156,15 @@ char * DRAW_main( PLUGIN_interface * plint )
 
    if( editor_open )
    {
-      XMapRaised( XtDisplay(shell) , XtWindow(shell) ) ;
+      XMapRaised( XtDisplay(shell) , XtWindow(shell) ) ; NI_sleep(1);
 
       if ( gRX.main_is_open )
       {
-	  XMapRaised( XtDisplay( gRX.main ) , XtWindow( gRX.main ) ) ;
+	  XMapRaised( XtDisplay( gRX.main ) , XtWindow( gRX.main ) ) ; NI_sleep(1);
       }
       else
       {
-	  XtMapWidget( gRX.main );
+	  XtMapWidget( gRX.main ); NI_sleep(1) ;
 	  gRX.main_is_open = 1;
       }
 
@@ -204,15 +204,15 @@ char * DRAW_main( PLUGIN_interface * plint )
 
    /*-- pop the widget up --*/
 
-   XtMapWidget(shell) ;
+   XtMapWidget(shell) ; NI_sleep(1) ;
 
    if ( gRX.main_is_open )
    {
-      XMapRaised( XtDisplay( gRX.main ) , XtWindow( gRX.main ) ) ;
+      XMapRaised( XtDisplay( gRX.main ) , XtWindow( gRX.main ) ) ; NI_sleep(1);
    }
    else
    {
-      XtMapWidget( gRX.main );
+      XtMapWidget( gRX.main ); NI_sleep(1) ;
       gRX.main_is_open = 1;
    }
 
@@ -417,7 +417,7 @@ static void DRAW_make_widgets(void)
    /*** that's all  (for Bob) ***/
 
    XtManageChild(rowcol) ;
-   XtRealizeWidget(shell) ;             /* will not be mapped */
+   XtRealizeWidget(shell) ; NI_sleep(1) ;       /* will not be mapped */
 
    r_main_mk_main_shell( );
 
@@ -660,7 +660,7 @@ r_main_mk_show_buttons( void )
 
 
     XtManageChild( gRX.mainForm );
-    XtRealizeWidget( gRX.main );
+    XtRealizeWidget( gRX.main ); NI_sleep(1) ;
 
     EXRETURN;
 }
@@ -834,7 +834,7 @@ r_HL_mk_main_shell( holes_s * H )
     ( void )r_HL_mk_buttons   ( H, H->mainRC );
 
     XtManageChild  ( H->mainRC );
-    XtRealizeWidget( H->main );
+    XtRealizeWidget( H->main ); NI_sleep(1) ;
 
     EXRETURN;
 }
@@ -1282,7 +1282,7 @@ r_INT_mk_main_shell( interp_s * I )
     ( void )r_INT_mk_app_buttons( I, I->mainRC );
 
     XtManageChild( I->mainRC );
-    XtRealizeWidget( I->main );
+    XtRealizeWidget( I->main ); NI_sleep(1) ;
 
     EXRETURN ;
 }
@@ -1541,28 +1541,28 @@ r_any_cb_raise(
 
     if      ( ! strcmp( client_data, "INT" ) )
     {
-	XMapRaised( XtDisplay( gRI.main ) , XtWindow( gRI.main ) );
+	XMapRaised( XtDisplay( gRI.main ) , XtWindow( gRI.main ) ); NI_sleep(1);
     }
     else if ( ! strcmp( client_data, "HL" ) )
     {
-	XMapRaised( XtDisplay( gRH.main ) , XtWindow( gRH.main ) );
+	XMapRaised( XtDisplay( gRH.main ) , XtWindow( gRH.main ) ); NI_sleep(1);
     }
     else if ( ! strcmp( client_data, "wtgr" ) )
     {
-	XMapRaised( XtDisplay( gRX.wtgr_main ) , XtWindow( gRX.wtgr_main ) );
+	XMapRaised( XtDisplay( gRX.wtgr_main ) , XtWindow( gRX.wtgr_main ) ); NI_sleep(1);
     }
     else if ( ! strcmp( client_data, "saveas" ) )
     {
 	XtManageChild( gRX.save_as_file_d );
-	XtPopup( XtParent( gRX.save_as_file_d ), XtGrabNone ); RWC_sleep(1);
+	XtPopup( XtParent( gRX.save_as_file_d ), XtGrabNone ); NI_sleep(1);
     }
     else if ( ! strcmp( client_data, "all" ) )
     {
-	XMapRaised( XtDisplay( gRI.main ) , XtWindow( gRI.main ) );
-	XMapRaised( XtDisplay( gRH.main ) , XtWindow( gRH.main ) );
-	XMapRaised( XtDisplay( gRX.wtgr_main ) , XtWindow( gRX.wtgr_main ) );
+	XMapRaised( XtDisplay( gRI.main ) , XtWindow( gRI.main ) ); NI_sleep(1);
+	XMapRaised( XtDisplay( gRH.main ) , XtWindow( gRH.main ) ); NI_sleep(1);
+	XMapRaised( XtDisplay( gRX.wtgr_main ) , XtWindow( gRX.wtgr_main ) ); NI_sleep(1);
 	XtManageChild( gRX.save_as_file_d );
-	XtPopup( XtParent( gRX.save_as_file_d ), XtGrabNone ); RWC_sleep(1);
+	XtPopup( XtParent( gRX.save_as_file_d ), XtGrabNone ); NI_sleep(1);
     }
     else
     {
