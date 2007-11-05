@@ -952,7 +952,7 @@ ENTRY("end_fd_graph_CB") ;
 
    if( ! GRA_VALID(grapher) ) EXRETURN ;
 
-   GRA_timer_stop( grapher ) ;  /* 04 Dec 2003 */
+   GRA_timer_stop( grapher ) ;  NI_sleep(1) ; /* 04 Dec 2003 */
 
    grapher->valid = 0 ;  /* can't do anything with this anymore */
 
@@ -1020,7 +1020,7 @@ STATUS("destroying widgets") ;
 #else
    XtUnrealizeWidget( grapher->fdw_graph ) ;
 #endif
-STATUS("widgets now destroyed") ;
+STATUS("widgets now destroyed") ; NI_sleep(1) ;
 
    /** if AFNI has a notify callback, it will free the data **/
 
@@ -4502,7 +4502,9 @@ STATUS("replacing ort timeseries") ;
 
       case graDR_unrealize:{
          GRA_timer_stop(grapher) ;   /* 04 Dec 2003 */
-         if( GRA_REALZ(grapher) ) XtUnrealizeWidget( grapher->fdw_graph ) ;
+         if( GRA_REALZ(grapher) ){
+           XtUnrealizeWidget(grapher->fdw_graph); NI_sleep(1);
+         }
          grapher->valid = 1 ;
 
          if( grapher->fd_pxWind != (Pixmap) 0 )
@@ -5099,7 +5101,7 @@ ENTRY("GRA_setshift_action_CB") ;
    }
 
    if( close_window ){                          /* close the window */
-      XtDestroyWidget( grapher->dialog ) ;
+      XtDestroyWidget( grapher->dialog ) ; NI_sleep(1) ;
       grapher->dialog = NULL ;
       FREE_AV( grapher->setshift_right_av ) ;
       FREE_AV( grapher->setshift_left_av )  ;

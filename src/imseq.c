@@ -4032,7 +4032,7 @@ void ISQ_but_done_reset( MCW_imseq * seq )
 void ISQ_but_done_CB( Widget w , XtPointer client_data ,
                                  XtPointer call_data    )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq *seq = (MCW_imseq *)client_data ;
 
 ENTRY("ISQ_but_done_CB") ;
 
@@ -4051,16 +4051,18 @@ ENTRY("ISQ_but_done_CB") ;
    /*-- second call: kill --*/
 
    if( seq->glstat->worker != 0 ){  /* remove work process, if started */
-      XtRemoveWorkProc( seq->glstat->worker ) ;
-      seq->glstat->worker = 0 ;
+     XtRemoveWorkProc( seq->glstat->worker ) ;
+     seq->glstat->worker = 0 ;
    }
 
    ISQ_timer_stop(seq) ;
 
-   if( seq->dialog != NULL ) XtDestroyWidget( seq->dialog ) ;  /* 13 Aug 2002 */
+   if( seq->dialog != NULL ){ /* 13 Aug 2002 */
+     XtDestroyWidget( seq->dialog ) ; NI_sleep(1) ;
+   }
 
    ISQ_free_alldata( seq ) ;
-   XtDestroyWidget( seq->wtop ) ;
+   XtDestroyWidget( seq->wtop ) ; NI_sleep(3) ;
    seq->valid = 0 ;     /* WE do not deallocate the data structure! */
 
    STATUS("IMSEQ: data destroyed!") ;
@@ -6065,11 +6067,11 @@ ENTRY("ISQ_disp_act_CB") ;
    }
 
    if( close_window ){                          /* close the window */
-      XtDestroyWidget( seq->dialog ) ;
+      XtDestroyWidget( seq->dialog ) ; NI_sleep(1) ;
       seq->dialog = NULL ;
       for( ib=0 ; ib < NBUTTON_BOT-1 ; ib++ )       /* turn buttons back on */
          if( ISQ_but_bot_dial[ib] == True )         /* that also want to   */
-            SENSITIZE( seq->wbut_bot[ib] , True ) ; /* use seq->dialog    */
+           SENSITIZE( seq->wbut_bot[ib] , True ) ;  /* use seq->dialog    */
 
       for( ib=0 ; ib < seq->num_bbox ; ib++ ) myXtFree( seq->bbox[ib] ) ;
       seq->num_bbox = 0 ;
@@ -6306,7 +6308,7 @@ ENTRY("ISQ_statify_all") ;
    } while ( ! done ) ;
    /**************************************************************/
 
-   XtDestroyWidget( wmsg ) ;
+   XtDestroyWidget( wmsg ) ; NI_sleep(1) ;
 
    NORMAL_cursorize( seq->wtop ) ;
    if( seq->dialog != NULL )
@@ -7527,8 +7529,8 @@ static unsigned char record_bits[] = {
       /*------- death! -------*/
 
       case isqDR_destroy:{
-         ISQ_timer_stop(seq) ;
-         ISQ_but_done_CB( NULL , (XtPointer) seq , NULL ) ;
+         ISQ_timer_stop(seq) ; NI_sleep(1) ;
+         ISQ_but_done_CB( NULL , (XtPointer)seq , NULL ) ;
          RETURN( True );
       }
       break ;
@@ -7537,7 +7539,7 @@ static unsigned char record_bits[] = {
 
       case isqDR_unrealize:{
          ISQ_timer_stop(seq) ;
-         if( ISQ_REALZ(seq) ) XtUnrealizeWidget( seq->wtop ) ;
+         if( ISQ_REALZ(seq) ){ XtUnrealizeWidget(seq->wtop); NI_sleep(1); }
          seq->valid = 1 ;
          RETURN( True );
       }
@@ -8450,7 +8452,7 @@ ENTRY("ISQ_montage_action_CB") ;
    /*** done -- close the window if ordered ***/
 
    if( close_window ){                          /* close the window */
-      XtDestroyWidget( seq->dialog ) ;
+      XtDestroyWidget( seq->dialog ) ; NI_sleep(1) ;
       seq->dialog = NULL ;
       for( ib=0 ; ib < NBUTTON_BOT-1 ; ib++ )       /* turn buttons back on */
          if( ISQ_but_bot_dial[ib] == True )         /* that also want to   */
@@ -10265,7 +10267,7 @@ ENTRY("ISQ_record_getim") ;
          (since the imseq will delete it when it is done) ---*/
 
    if( type == isqCR_getimage || type == isqCR_getqimage ){
-      MRI_IMAGE * im = NULL , * rim ;
+      MRI_IMAGE *im = NULL , *rim ;
 
       if( seq->record_imarr != NULL ){
          if( n < 0 ) n = 0 ; else if( n >= ntot ) n = ntot-1 ;
@@ -10291,7 +10293,7 @@ ENTRY("ISQ_record_send_CB") ;
    switch( cbs->reason ){
 
       case isqCR_destroy:{
-         MCW_imseq * pseq = (MCW_imseq *) seq->parent ;
+         MCW_imseq *pseq = (MCW_imseq *) seq->parent ;
 
          /* turn off recording in the parent */
 
