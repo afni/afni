@@ -5620,7 +5620,9 @@ ENTRY("AFNI_range_setter") ;
        if( !DSET_BRICK_LOADED(ds,ival) ) DSET_load(ds) ;
        if( DSET_BRICK_LOADED(ds,ival) ){
          float ff = DSET_BRICK_FACTOR(ds,ival) ;
-         tc = mri_topclip( DSET_BRICK(ds,ival) ) ;
+         tc = mri_min( DSET_BRICK(ds,ival) ) ;
+         if( tc < 0.0f ) tc = 0.0f ;
+         else            tc = mri_topclip( DSET_BRICK(ds,ival) ) ;
          if( ff > 0.0f ) tc *= ff ;
        }
      }
