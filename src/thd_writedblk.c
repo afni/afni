@@ -187,7 +187,10 @@ fprintf(stderr,"THD_write_datablock: save_order=%d  dkptr->byte_order=%d\n",
 
    id = THD_count_potential_databricks( blk ) ;
    if( id <= 0 )         return True ;
-   if( id < blk->nvals ) WRITE_ERR("only partial data exists in memory") ;
+   if( id < blk->nvals ){
+     ERROR_message("Write dataset error: only %d out of %d bricks in memory",
+                   id,blk->nvals) ; return False ;
+   }
 
    if( blk->malloc_type == DATABLOCK_MEM_UNDEFINED )
      WRITE_ERR("undefined data exists in memory") ;
