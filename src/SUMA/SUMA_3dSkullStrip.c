@@ -1395,7 +1395,7 @@ int main (int argc,char *argv[])
                code[0] = NSTAT_MEAN; 
                ncode = 1;
                nbhd = MCW_rectmask ( 1.0f, 1.0f, 1.0f , 1.0f, 1.0f, 1.0f  ) ;
-               fatoutset = THD_localstat( outset , NULL , nbhd , 1 , code ) ;
+               fatoutset = THD_localstat( outset , NULL , nbhd , 1 , code, NULL ) ;
                Opt->fatemask = (float *) SUMA_malloc( sizeof(float)*DSET_NVOX(fatoutset));
                if (!Opt->fatemask) {
                   fprintf(SUMA_STDERR,"Error %s:\n Failed to allocate for fat edge mask\n", FuncName);
