@@ -11,8 +11,7 @@ static void Max_tsfunc( double tzero , double tdelta ,
                          int npts , float ts[] , double ts_mean ,
                          double ts_slope , void * ud , int nbriks, float * val ) ;
 static float minvalue=1E10, maxvalue=-1E10;
-
-
+ 
 /*! compute the overall minimum and maximum voxel values for a dataset */
 int main( int argc , char * argv[] )
 {

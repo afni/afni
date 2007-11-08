@@ -564,6 +564,11 @@ extern int              okay_to_add_markers(THD_3dim_dataset * dset);
 /*------------------------------------------------------------------*/
 /* 22 Aug 2005: neighborhood/local operations. */
 
+#define MAX_NCODE 666
+#define MAX_CODE_PARAMS 16
+#define NTYPE_SPHERE 1
+#define NTYPE_RECT   2
+
 extern void SetSearchAboutMaskedVoxel(int v);  /* ZSS */
 extern MRI_IMAGE * THD_get_dset_nbhd( THD_3dim_dataset *, int, byte *,
                                       int, int, int, MCW_cluster *    ) ;
@@ -578,7 +583,7 @@ extern MRI_IMARR * mri_get_indexed_nbhd( MRI_IMAGE *, byte *,
 
 extern MRI_IMAGE * mri_localstat( MRI_IMAGE *, byte *, MCW_cluster *, int ) ;
 extern THD_3dim_dataset * THD_localstat( THD_3dim_dataset *, byte *,
-                                         MCW_cluster *, int, int *) ;
+                                         MCW_cluster *, int, int *, float p[][MAX_CODE_PARAMS+1]) ;
 extern void THD_localstat_verb(int) ;
 
 extern MRI_IMAGE * mri_localbistat( MRI_IMAGE *, MRI_IMAGE *,

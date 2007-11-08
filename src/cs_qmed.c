@@ -234,10 +234,6 @@ static float median_float9(float *p)
 }
 
 
-void *Percentate (void *vec, byte *mm, int nxyz,
-                  int type, double *mpv, int N_mp,
-                  int option, double *perc ,
-                  int zero_flag, int positive_flag, int negative_flag);
 /*************** General purpose sorty functions ZSS 06********************/
 int compare_Z_IQSORT_FLOAT (Z_QSORT_FLOAT *a, Z_QSORT_FLOAT *b )
 {
@@ -321,6 +317,8 @@ int compare_char (char *a, char *b )
 
 /*!
    \brief find the percentiles of values in vec
+
+
    void *Percentate (void *vec, byte *mm, int nxyz,
                   int type, float *mpv, int N_mp,
                   int option, float *perc )
@@ -638,12 +636,46 @@ void *Percentate (void *vec, byte *mm, int nxyz,
             RETURN(NULL);
       }  
    }  
-
+   
+   #if 0
+      switch (type) {
+         case MRI_byte:
+            fprintf(stderr,"bv:\n");
+            for (n=0; n<mmvox; ++n) { fprintf(stderr,"%d ", bv[n]); }
+            fprintf(stderr,"\n");
+            break; 
+         case MRI_short:
+            fprintf(stderr,"sv:\n");
+            for (n=0; n<mmvox; ++n) { fprintf(stderr,"%d ", sv[n]); }
+            fprintf(stderr,"\n");
+            break;
+         case MRI_int:
+            fprintf(stderr,"iv:\n");
+            for (n=0; n<mmvox; ++n) { fprintf(stderr,"%d ", iv[n]); }
+            fprintf(stderr,"\n");
+            break;
+         case MRI_float:
+            fprintf(stderr,"fv:\n");
+            for (n=0; n<mmvox; ++n) { fprintf(stderr,"%f ", fv[n]); }
+            fprintf(stderr,"\n");
+            break;
+         case MRI_double:
+            fprintf(stderr,"dv:\n");
+            for (n=0; n<mmvox; ++n) { fprintf(stderr,"%lf ", dv[n]); }
+            fprintf(stderr,"\n");
+            break;
+         default:
+            ERROR_message("Bad type! Should bot be here honhon.");
+            RETURN(NULL);
+      }  
+   #endif
+   
    /* vvec is now sorted, now we're ready to get the percentile values */
    for (n=0; n<N_mp; ++n) {
-      di = mpv[n]*mmvox;
+      di = mpv[n]*mmvox -1;
       i = ( ( ((di) - (int)(di)) < 0.5f ) ? (int)(di) : ((int)(di)+1) );
-      if (i >= mmvox) i = mmvox-1;
+      if (i<0) i = 0;
+      else if (i >= mmvox) i = mmvox-1;
       switch (type) {
          case MRI_byte:
             bv = (byte *)vvec;
@@ -666,7 +698,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
             perc[n] = (double)(dv[i]);    
             break;
          default:
-            ERROR_message("Bad type! Should bot be here Joe.");
+            ERROR_message("Bad type! Should not be here Joe.");
             RETURN(NULL);
       }     
       /* fprintf(stderr,"mpv[%d] = %f, di = %f, i = %d, mmvox = %d\nperc[%d] = %f\n", n, mpv[n], di, i, mmvox, n, perc[n]); */
