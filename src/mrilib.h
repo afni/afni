@@ -1550,4 +1550,9 @@ extern MRI_IMAGE * mri_byte_blur2D( float sig , MRI_IMAGE *im );
 extern MRI_IMAGE * mri_float_blur2D( float sig , MRI_IMAGE *im ) ;
 extern MRI_IMAGE * mri_float_blur3D( float sig , MRI_IMAGE *im ) ;
 
+void *Percentate (void *vec, byte *mm, int nxyz,
+                  int type, double *mpv, int N_mp,
+                  int option, double *perc ,
+                  int zero_flag, int positive_flag, int negative_flag);
+
 #endif /* _MCW_MRILIB_HEADER_ */
