@@ -1117,11 +1117,14 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
       
    }
    
-   exists = SUMA_WriteDset_NameCheck_s (Opt->out_name, NULL, Opt->oform, 0, &ooo);
-   if (exists != 0 && !Opt->overwrite) {
-      SUMA_S_Errv("Output dataset %s exists.\n", ooo);
-      SUMA_free(ooo); ooo=NULL;
-      exit(1);
+   if (  Opt->Method != SUMA_LM && Opt->Method != SUMA_BRUTE_FORCE &&
+         Opt->Method != SUMA_NN_GEOM ) {
+      exists = SUMA_WriteDset_NameCheck_s (Opt->out_name, NULL, Opt->oform, 0, &ooo);
+      if (exists != 0 && !Opt->overwrite) {
+         SUMA_S_Errv("Output dataset %s exists.\n", ooo);
+         SUMA_free(ooo); ooo=NULL;
+         exit(1);
+      }
    }
 
    if (Opt->tfwhm > -1  && Opt->Method != SUMA_HEAT_07) {
@@ -2359,13 +2362,14 @@ int main (int argc,char *argv[])
    }
    /* write out the filtered geometry. Should not be executed for data smoothing */
    if (Opt->surf_out) {
+      SUMA_SO_File_Type ft=SUMA_FT_NOT_SPECIFIED;
       if (!dsmooth) {
          SUMA_SL_Err("NULL dsmooth for geometry smoothing. Either failed to smooth or logical error.");
          exit(1);
       }
-       
+      if ((ft = SUMA_guess_surftype_argv(Opt->surf_out)) <= SUMA_FT_NOT_SPECIFIED) ft = SO->FileType;
       SUMA_free(SO->NodeList); SO->NodeList = dsmooth; dsmooth = NULL; /* replace NodeList */
-      switch (SO->FileType) {
+      switch (ft) {
          case SUMA_SUREFIT:
             SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
             sprintf(SF_name->name_coord,"%s", Opt->surf_out);

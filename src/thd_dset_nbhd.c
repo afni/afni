@@ -54,7 +54,7 @@ MRI_IMARR * THD_get_dset_indexed_nbhd( THD_3dim_dataset *dset,
    MRI_IMARR *imar ;
    float fac ;
 
-ENTRY("THD_get_dset_nbhd") ;
+ENTRY("THD_get_dset_indexed_nbhd") ;
 
    if( dset == NULL || nbhd == NULL || nbhd->num_pt <= 0 ) RETURN(NULL) ;
    if( ival < 0 || ival >= DSET_NVALS(dset) )              RETURN(NULL) ;
