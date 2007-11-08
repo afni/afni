@@ -271,6 +271,8 @@ extern long   strtol() ;
 # define powf   pow
 # define sinf   sin
 # define cosf   cos
+# define asinf  asin
+# define acosf  acos
 # define floorf floor
 # define ceilf  ceil
 

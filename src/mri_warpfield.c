@@ -15,6 +15,14 @@ char * Warpfield_gegenfun_label(int,void *) ;
 #undef  FREEIF
 #define FREEIF(p) do{ if((p)!=NULL){free(p);(p)=NULL;} }while(0)
 
+#undef  MAXORD
+#define MAXORD 9.99f  /* maximum order in any direction is 9 */
+
+#undef  PI
+#define PI    3.14159265f
+#undef  TWOPI
+#define TWOPI 6.28318531f
+
 /*---------------------------------------------------------------------------*/
 
 Warpfield * Warpfield_init( int type, float order, floatvec *fv )
@@ -100,18 +108,147 @@ void Warpfield_change_order( Warpfield *wf , float neword )
 }
 
 /*---------------------------------------------------------------------------*/
+/* Compute coefficients in wf so that the basis function expansion
+   evaluated at (xi,yi,zi) is a least squares fit to (xw,yw,zw).
+-----------------------------------------------------------------------------*/
 
-void Warpfield_fitter( Warpfield *wf , int flags ,
-                       int npt, float *xi , float *yi , float *zi ,
-                                float *xw , float *yw , float *zw  )
+static float Warpfield_lsqfit( Warpfield *wf , int flags , float order ,
+                               int npt, float *xi , float *yi , float *zi ,
+                                        float *xw , float *yw , float *zw  )
 {
+   MRI_IMAGE *imbase , *imbinv ;
+   float     *bar    , *iar    , *car,*dar,*ear , qsum ;
+   int ii , nrow,ncol ;
+   register float cs,ds,es ; register int jj ;
+
+   /* change order of expansion, if desired */
+
+   if( order > 0.0f )
+     Warpfield_change_order( wf , order ) ;
+
+   /* ncol = number of variables to solve for
+      nrow = number of equations being solved */
+
+   ncol = wf->nfun ; nrow = npt ;
+   if( ncol >= nrow ) return(-1.0f) ;
+
+ININFO_message(" lsqfit: nfun=%d nrow=%d",ncol,nrow) ;
+
+#undef  B   /* macros to access image arrays like matrices */
+#undef  P
+#define B(i,j) bar[(i)+(j)*nrow]  /* i=0..nrow-1 , j=0..ncol-1 */
+#define P(i,j) iar[(i)+(j)*ncol]  /* i=0..ncol-1 , j=0..nrow-1 */
+
+   /* create matrix, each column of which is a
+      basis function evaluated at the (xi,yi,zi) points */
+
+   imbase = mri_new(nrow,ncol,MRI_float); bar = MRI_FLOAT_PTR(imbase);
+   for( jj=0 ; jj < ncol ; jj++ ){  /* loop over columns */
+     car = bar + jj*nrow ;          /* ptr to jj-th column in matrix */
+     wf->bfun( jj , wf->bpar , nrow , xi,yi,zi , car ) ;
+   }
+ININFO_message("   |imbase| = %g",mri_matrix_size(imbase)) ;
+
+   /* compute pseudo-inverse of matrix */
+
+   imbinv = mri_matrix_psinv( imbase , NULL , 1.e-8 ) ;
+   if( imbinv == NULL ){ mri_free(imbase); return(-2.0f); }  /* bad */
+   iar = MRI_FLOAT_PTR(imbinv) ;
+ININFO_message("   |imbinv| = %g",mri_matrix_size(imbinv)) ;
+
+   /* apply pseudo-inverse to (xw,yw,zw) points,
+      to get coefficients for each basis function */
+
+   car = wf->cx ; dar = wf->cy ; ear = wf->cz ;
+   for( ii=0 ; ii < ncol ; ii++ ){
+     cs = ds = es = 0.0f ;
+     for( jj=0 ; jj < nrow ; jj++ ){
+       cs += P(ii,jj)*xw[jj]; ds += P(ii,jj)*yw[jj]; es += P(ii,jj)*zw[jj];
+     }
+ININFO_message("    %d: cx=%g cy=%g cz=%g",ii,cs,ds,es) ;
+     car[ii] = cs ; dar[ii] = ds ; ear[ii] = es ;
+   }
+   mri_free(imbinv) ;  /* done with this */
+
+   /* compute the RMS error between the fitted basis functions
+      evaluated at the (xi,yi,zi) points and the (xw,yw,zw) points */
+
+   qsum = 0.0f ;
+   for( ii=0 ; ii < nrow ; ii++ ){
+     cs = -xw[ii] ; ds = -yw[ii] ; es = -zw[ii] ;
+     for( jj=0 ; jj < ncol ; jj++ ){
+       cs += B(ii,jj)*car[jj]; ds += B(ii,jj)*dar[jj]; es += B(ii,jj)*ear[jj];
+     }
+     qsum += cs*cs + ds*ds + es*es ;
+   }
+   mri_free(imbase) ;
+   qsum = sqrtf(qsum/nrow) ; return(qsum) ;
 }
+
+#undef B
+#undef P
 
 /*---------------------------------------------------------------------------*/
 
+#undef  NG
+#define NG 18
+
 Warpfield * Warpfield_inverse( Warpfield *wf , float *rmserr )
 {
+   Warpfield *uf ;
+   mat44 wa , ub ;
+   float *xi,*yi,*zi , *xw,*yw,*zw , *gg , dg , ss,tt,uu , ord,egoal ;
+   int npt=NG*NG*NG , ii,jj,kk,pp ;
+
+   uf = Warpfield_init( wf->type , wf->order , wf->pv ) ;
+   if( uf == NULL ) return(NULL) ;
+
+   wa = wf->aa ; ub = uf->aa = MAT44_INV(wa) ;
+
+   xi = (float *)malloc(sizeof(float)*npt) ;
+   yi = (float *)malloc(sizeof(float)*npt) ;
+   zi = (float *)malloc(sizeof(float)*npt) ;
+   xw = (float *)malloc(sizeof(float)*npt) ;
+   yw = (float *)malloc(sizeof(float)*npt) ;
+   zw = (float *)malloc(sizeof(float)*npt) ;
+
+   gg = (float *)malloc(sizeof(float)*NG) ;
+   dg = 2.0f / NG ;
+   for( ii=0 ; ii < NG ; ii++ ) gg[ii] = (2.0f/PI)*asinf(-1.0f+(ii+0.499f)*dg);
+
+   pp = 0 ;
+   for( kk=0 ; kk < NG ; kk++ ){
+    for( jj=0 ; jj < NG ; jj++ ){
+     for( ii=0 ; ii < NG ; ii++ ){
+       xw[pp] = gg[ii] ; yw[pp] = gg[jj]; zw[pp] = gg[kk] ; pp++ ;
+   }}}
+   free((void *)gg) ;
+   Warpfield_eval_array( wf , npt , xw,yw,zw , xi,yi,zi ) ;
+
+   for( ii=0 ; ii < npt ; ii++ ){
+     MAT44_VEC( ub , xi[ii],yi[ii],zi[ii] , ss,tt,uu ) ;
+     xw[ii] = xi[ii] - ss ;
+     yw[ii] = yi[ii] - tt ;
+     zw[ii] = zi[ii] - uu ;
+   }
+
+INFO_message("Start inverse fitting with npt=%d",npt) ;
+   if( rmserr != NULL && *rmserr > 0 ) egoal = *rmserr ;
+   else                                egoal = 0.005f ;
+   for( ord=wf->order ; ord < MAXORD ; ord += 0.501 ){
+     dg = Warpfield_lsqfit( uf , 0 , ord , npt , xi,yi,zi , xw,yw,zw ) ;
+ININFO_message(" order=%g rmserr=%g nfun=%d",ord,dg,uf->nfun) ;
+     if( dg <= egoal ) break ;
+   }
+
+   free((void *)zw) ; free((void *)yw) ; free((void *)xw) ;
+   free((void *)zi) ; free((void *)yi) ; free((void *)xi) ;
+
+   if( rmserr != NULL ) *rmserr = dg ;
+   return(uf) ;
 }
+
+#undef NG
 
 /*---------------------------------------------------------------------------*/
 
@@ -224,11 +361,6 @@ char * Warpfield_trigfun_label( int kfun , void *vpar )
 
 /*---------------------------------------------------------------------------*/
 
-#undef  PI
-#define PI    3.14159265f
-#undef  TWOPI
-#define TWOPI 6.28318531f
-
 void Warpfield_trigfun( int kfun, void *vpar,
                         int npt , float *x, float *y, float *z, float *val )
 {
@@ -327,9 +459,6 @@ void Warpfield_trigfun( int kfun, void *vpar,
 
 /*---------------------------------------------------------------------------*/
 
-#undef  MAXPOL
-#define MAXPOL 9.99f  /* maximum Legendre order is 9 */
-
 void * Warpfield_polyfun_setup( float order, int *nfun, void *vp )
 {
    tenprodpar *spar ;
@@ -344,7 +473,7 @@ void * Warpfield_polyfun_setup( float order, int *nfun, void *vp )
      return(NULL) ;
    }
 
-   if( nfun == NULL || order < 2.0f || order > MAXPOL ) return(NULL) ;
+   if( nfun == NULL || order < 2.0f || order > MAXORD ) return(NULL) ;
 
    /*-- create list of tensor product indexes --*/
 
@@ -683,6 +812,7 @@ void Warpfield_eval_grid( Warpfield *wf ,
 /*===========================================================================*/
 /*===========================================================================*/
 
+#if 0
 int main( int argc , char *argv[] )
 {
    int ng , iarg=1 , nf , qq,ii  ;
@@ -746,5 +876,66 @@ int main( int argc , char *argv[] )
    free(yw);free(zw);
 
    DSET_write(dset) ; WROTE_DSET(dset) ;
+   exit(0) ;
+}
+#endif
+
+/*===========================================================================*/
+/*===========================================================================*/
+
+int main( int argc , char *argv[] )
+{
+   int ng , iarg=1 , nf , qq,ii  ;
+   float order=2.0f ;
+   Warpfield *wf , *uf ;
+   float *xw , *yw , *zw ;
+   THD_3dim_dataset *dset ;
+   THD_ivec3 nxyz ;
+   THD_fvec3 orgxyz , delxyz ;
+
+   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
+     printf("%s gridsize [order]\n",argv[0]) ; exit(0) ;
+   }
+
+   ng = (int)strtod(argv[iarg++],NULL) ;
+   if( ng < 9 ) ERROR_exit("illegal gridsize=%d",ng) ;
+
+   if( iarg < argc ){
+     order = (float)strtod(argv[iarg++],NULL) ;
+     if( order <= 1.0f || order >= 9.1f ) ERROR_exit("illegal order=%g",order) ;
+   }
+
+   wf = Warpfield_init( WARPFIELD_TRIG_TYPE , order , NULL ) ;
+   if( wf == NULL ) ERROR_exit("wf is NULL!") ;
+
+   nf = wf->nfun ; INFO_message("%d warp functions",nf) ;
+
+   for( ii=0 ; ii < nf ; ii++ ){
+     wf->cx[ii] = 0.05f / (ii+1.0f) ;
+     wf->cy[ii] = 0.04f / (ii+1.1f) ;
+     wf->cz[ii] = 0.03f / (ii+1.2f) ;
+   }
+
+   uf = Warpfield_inverse( wf , NULL ) ;
+
+#if 0
+   xw = (float *)calloc(sizeof(float),ng*ng*ng) ;
+   yw = (float *)calloc(sizeof(float),ng*ng*ng) ;
+   zw = (float *)calloc(sizeof(float),ng*ng*ng) ;
+
+   dset = EDIT_empty_copy(NULL) ;
+
+   LOAD_IVEC3( nxyz , ng,ng,ng ) ;
+   LOAD_FVEC3( orgxyz , -1.0f,-1.0f,-1.0f ) ;
+   LOAD_FVEC3( delxyz , 2.0f/(ng-1) , 2.0f/(ng-1) , 2.0f/(ng-1) ) ;
+   EDIT_dset_items( dset ,
+                      ADN_nxyz   , nxyz   ,
+                      ADN_xyzdel , delxyz ,
+                      ADN_xyzorg , orgxyz ,
+                      ADN_prefix , "warpfield" ,
+                      ADN_nvals  , nf ,
+                    ADN_none ) ;
+#endif
+
    exit(0) ;
 }

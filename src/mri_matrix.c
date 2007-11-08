@@ -209,7 +209,7 @@ ENTRY("mri_matrix_scale") ;
 /*-----------------------------------------------------------------------*/
 static int force_svd = 0 ;
 void mri_matrix_psinv_svd( int i ){ force_svd = i; }
-/*-----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 /*! Compute the pseudo-inverse of a matrix stored in a 2D float image.
     If the input is mXn, the output is nXm.  wt[] is an optional array
     of positive weights, m of them.  The result can be used to solve
@@ -220,8 +220,17 @@ void mri_matrix_psinv_svd( int i ){ force_svd = i; }
                           -1
       [imc' imc + alpha I]   imc'    (where ' = transpose)
 
-    This result can be used to solve the penalized least squares problem.
--------------------------------------------------------------------------*/
+    This result can be used to solve the penalized least squares problem
+
+           (                                         )
+      min  ( LQ{ [imc] [b] - [v] } + alpha LQ{ [b] } )
+       [b] (                                         )
+
+    where LQ{ [x] } is the sum of squares of the elements of vector [x].
+    The 'penalty' consists of trying to keep the elements of [b] small.
+
+    Note that matrices are stored in column-major order in the 2D image arrays!
+------------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_matrix_psinv( MRI_IMAGE *imc , float *wt , float alpha )
 {
@@ -308,7 +317,7 @@ ENTRY("mri_matrix_psinv") ;
      }
      sum = V(ii,ii) ;
      for( kk=0 ; kk < ii ; kk++ ) sum -= V(ii,kk) * V(ii,kk) ;
-     if( sum <= 0.0 ){
+     if( sum < PSINV_EPS ){
        WARNING_message("Choleski fails in mri_matrix_psinv()!\n");
        do_svd = 1 ; goto SVD_PLACE ;
      }
