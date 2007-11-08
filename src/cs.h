@@ -110,10 +110,6 @@ extern int compare_float (float *a, float *b );
 extern int compare_int (int *a, int *b );
 extern int compare_short (short *a, short *b );
 extern int compare_char (char *a, char *b );
-void *Percentate (void *vec, byte *mm, int nxyz,
-                  int type, double *mpv, int N_mp,
-                  int option, double *perc ,
-                  int zero_flag, int positive_flag, int negative_flag);
                   
 
 /***** pca calc *****/
