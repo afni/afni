@@ -65,4 +65,6 @@ Updated in version UNRELEASED
 
    - MH added DevPak packaging template for Dev-Cpp IDE
    - MH added Makefile for cross-compiling for win32 on linux using mingw32
+   - Yaroslav/MH/RR fixed ARM struct alignment problem when byte-swapping
+   - MH fixed short filename problem in FslFileType
 

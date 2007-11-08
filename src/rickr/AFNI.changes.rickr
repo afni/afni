@@ -2236,4 +2236,7 @@
 30 Oct 2007: sync nifti from sourceforge (from Michael Hanke)
   * added LICENSE, Makefile.cross_mingw32, packaging/DevPackage.template
   * modified CMakeLists.txt, Updates.txt
+08 Nov 2007:
+  * modified fslio.c: applied Henke fix for FslFileType
+  * modified nifti_io.c: applied Yaroslav fix for ARM alignment problem
 
