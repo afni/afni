@@ -32,9 +32,10 @@ typedef struct {
 extern Warpfield * Warpfield_init( int type, float order, floatvec *fv ) ;
 
 extern void Warpfield_change_order( Warpfield *wf , float neword ) ;
-extern void Warpfield_fitter( Warpfield *wf , int flags ,
-                              int npt, float *xi , float *yi , float *zi ,
-                                       float *xw , float *yw , float *zw  ) ;
+
+extern float Warpfield_fitter( Warpfield *wf , int flags ,
+                               int npt, float *xi , float *yi , float *zi ,
+                                        float *xw , float *yw , float *zw  ) ;
 
 extern Warpfield * Warpfield_inverse( Warpfield *wf , float *rmserr ) ;
 
