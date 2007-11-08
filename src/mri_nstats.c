@@ -267,7 +267,8 @@ static void vstep_print(void)
 /*--------------------------------------------------------------------------*/
 
 THD_3dim_dataset * THD_localstat( THD_3dim_dataset *dset , byte *mask ,
-                                  MCW_cluster *nbhd , int ncode, int *code )
+                                  MCW_cluster *nbhd , int ncode, int *code, 
+                                  float codeparam[][MAX_CODE_PARAMS+1] )
 {
    THD_3dim_dataset *oset ;
    MRI_IMAGE *nbim=NULL ;
@@ -275,7 +276,8 @@ THD_3dim_dataset * THD_localstat( THD_3dim_dataset *dset , byte *mask ,
    float **aar ;
    int vstep ;
    THD_fvec3 fwv ;
-   MRI_IMAGE *dsim=NULL; int need_dsim, need_nbim; float dx,dy,dz ;
+   MRI_IMAGE *dsim=NULL; 
+   int need_dsim, need_nbim; float dx,dy,dz ;
 
 ENTRY("THD_localstat") ;
 
@@ -326,8 +328,9 @@ ENTRY("THD_localstat") ;
       for( jj=0 ; jj < ny ; jj++ ){
        for( ii=0 ; ii < nx ; ii++,ijk++ ){
          if( vstep && ijk%vstep==vstep-1 ) vstep_print() ;
-         if( need_nbim )
+         if( need_nbim ) {
            nbim = THD_get_dset_nbhd( dset,iv , mask,ii,jj,kk , nbhd ) ;
+         }
          for( cc=0 ; cc < ncode ; cc++ ){
            if( code[cc] == NSTAT_FWHMbar ){
              aar[cc][ijk] = mri_nstat_fwhmbar( ii,jj,kk , dsim,mask,nbhd ) ;
@@ -335,6 +338,45 @@ ENTRY("THD_localstat") ;
              fwv = mri_nstat_fwhmxyz( ii,jj,kk , dsim,mask,nbhd ) ;
              UNLOAD_FVEC3( fwv, aar[cc][ijk],aar[cc+1][ijk],aar[cc+2][ijk] ) ;
              cc += 2 ;  /* skip FWHMy and FWHMz codes */
+           } else if( code[cc] == NSTAT_PERCENTILE ){ 
+             static double perc[MAX_CODE_PARAMS], mpv[MAX_CODE_PARAMS];
+             int N_mp, pp; 
+             float *sfar=NULL;
+             MRI_IMAGE *fim=NULL;
+                if (codeparam[cc][0] < 1) { ERROR_exit("THD_localstat: No percentile parameters set."); }
+                N_mp = (int) codeparam[cc][0];
+                if (N_mp >  MAX_CODE_PARAMS) {
+                  ERROR_exit("THD_localstat: Cannot exceed %d params.\nHave %d\n", MAX_CODE_PARAMS, N_mp);
+                }
+                for (pp=0; pp<N_mp; ++pp) {
+                  mpv[pp] = (double) codeparam[cc][1+pp]/100.0;
+                }
+                if (nbim) {  
+                  if( nbim->kind != MRI_float ) fim = mri_to_float(nbim) ;
+                  else                          fim = nbim ;
+
+                   sfar = MRI_FLOAT_PTR(fim);
+                   if (!(sfar = (float *)Percentate (MRI_FLOAT_PTR(fim), NULL, fim->nvox,
+                                    MRI_float, mpv, N_mp,
+                                    0, perc,
+                                    1, 1, 1 ))) {
+
+                     ERROR_exit("Failed to compute percentiles.");
+                  } 
+                  /*
+                  fprintf(stderr,"sar=["); 
+                  for (pp=0; pp<fim->nvox; ++pp) fprintf(stderr,"%f,", sfar[pp]);
+                  fprintf(stderr,"];\nperc=["); 
+                  for (pp=0; pp<N_mp; ++pp) fprintf(stderr,"%f,", perc[pp]);
+                  fprintf(stderr,"];\n");
+                  */
+                  for (pp=0; pp<N_mp; ++pp) aar[cc+pp][ijk] = (float)perc[pp];
+                  if( fim != nbim  ) mri_free(fim) ; fim = NULL;
+               } else {
+                  for (pp=0; pp<N_mp; ++pp) aar[cc+pp][ijk] = 0.0;
+               } 
+
+               cc += (N_mp-1);  
            } else {
              aar[cc][ijk] = mri_nstat( code[cc] , nbim ) ;
            }

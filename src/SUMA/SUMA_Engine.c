@@ -115,7 +115,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   break;
                }
                
-               if (cmap->N_Col > 128) {
+               if (cmap->N_Col > 256) {
                   SUMA_SLP_Err(  "Cannot send more\n"
                                  "than 128 colors to\n"
                                  "AFNI.");
