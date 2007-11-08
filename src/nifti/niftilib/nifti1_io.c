@@ -300,11 +300,13 @@ static char * gni_history[] =
   "   - added nifti_is_valid_datatype(), and more debug info\n",
   "1.26 27 Jul 2007 [rickr] handle single volumes > 2^31 bytes (but < 2^32)\n",
   "1.27 28 Jul 2007 [rickr] nim->nvox, NBL-bsize are now type size_t\n"
-  "1.28 30 Jul 2007 [rickr] size_t updates\n"
+  "1.28 30 Jul 2007 [rickr] size_t updates\n",
   "1.29 08 Aug 2007 [rickr] for list, valid_nifti_brick_list requires 3 dims\n"
+  "1.30 08 Nov 2007 [Yaroslav/rickr]\n"
+  "   - fix ARM struct alignment problem in byte-swapping routines\n",
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.29 (08 Aug, 2007)";
+static char gni_version[] = "nifti library version 1.30 (08 Nov, 2007)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1, 0 };
@@ -1975,26 +1977,27 @@ void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
     - 16 at a time:  abcdefghHGFEDCBA -> ABCDEFGHhgfedcba [long double]
 -----------------------------------------------------------------------------*/
 
-typedef struct { unsigned char a,b ; } twobytes ;
-
 /*----------------------------------------------------------------------*/
 /*! swap each byte pair from the given list of n pairs
+ * 
+ *  Due to alignment of structures at some architectures (e.g. on ARM),
+ *  stick to char varaibles.
+ *  Fixes http://bugs.debian.org/446893   Yaroslav <debian@onerussian.com>
+ *
 *//*--------------------------------------------------------------------*/
 void nifti_swap_2bytes( int n , void *ar )    /* 2 bytes at a time */
 {
    register int ii ;
-   register twobytes *tb = (twobytes *)ar ;
-   register unsigned char tt ;
+   unsigned char * cp1 = (unsigned char *)ar, * cp2 ;
+   unsigned char   tval;
 
    for( ii=0 ; ii < n ; ii++ ){
-     tt = tb[ii].a ; tb[ii].a = tb[ii].b ; tb[ii].b = tt ;
+       cp2 = cp1 + 1;
+       tval = *cp1;  *cp1 = *cp2;  *cp2 = tval;
+       cp1 += 2;
    }
    return ;
 }
-
-/*---------------------------------------------------------------------------*/
-
-typedef struct { unsigned char a,b,c,d ; } fourbytes ;
 
 /*----------------------------------------------------------------------*/
 /*! swap 4 bytes at a time from the given list of n sets of 4 bytes
@@ -2002,42 +2005,41 @@ typedef struct { unsigned char a,b,c,d ; } fourbytes ;
 void nifti_swap_4bytes( int n , void *ar )    /* 4 bytes at a time */
 {
    register int ii ;
-   register fourbytes *tb = (fourbytes *)ar ;
-   register unsigned char tt ;
+   unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
+   register unsigned char tval ;
 
    for( ii=0 ; ii < n ; ii++ ){
-     tt = tb[ii].a ; tb[ii].a = tb[ii].d ; tb[ii].d = tt ;
-     tt = tb[ii].b ; tb[ii].b = tb[ii].c ; tb[ii].c = tt ;
+       cp1 = cp0; cp2 = cp0+3;
+       tval = *cp1;  *cp1 = *cp2;  *cp2 = tval;
+       cp1++;  cp2--;
+       tval = *cp1;  *cp1 = *cp2;  *cp2 = tval;
+       cp0 += 4;
    }
    return ;
 }
 
-/*---------------------------------------------------------------------------*/
-
-typedef struct { unsigned char a,b,c,d , D,C,B,A ; } eightbytes ;
-
 /*----------------------------------------------------------------------*/
 /*! swap 8 bytes at a time from the given list of n sets of 8 bytes
+ *
+ *  perhaps use this style for the general Nbytes, as Yaroslav suggests
 *//*--------------------------------------------------------------------*/
 void nifti_swap_8bytes( int n , void *ar )    /* 8 bytes at a time */
 {
    register int ii ;
-   register eightbytes *tb = (eightbytes *)ar ;
-   register unsigned char tt ;
+   unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
+   register unsigned char tval ;
 
    for( ii=0 ; ii < n ; ii++ ){
-     tt = tb[ii].a ; tb[ii].a = tb[ii].A ; tb[ii].A = tt ;
-     tt = tb[ii].b ; tb[ii].b = tb[ii].B ; tb[ii].B = tt ;
-     tt = tb[ii].c ; tb[ii].c = tb[ii].C ; tb[ii].C = tt ;
-     tt = tb[ii].d ; tb[ii].d = tb[ii].D ; tb[ii].D = tt ;
+       cp1 = cp0;  cp2 = cp0+7;
+       while ( cp2 > cp1 )      /* unroll? */
+       {
+           tval = *cp1 ; *cp1 = *cp2 ; *cp2 = tval ;
+           cp1++; cp2--;
+       }
+       cp0 += 8;
    }
    return ;
 }
-
-/*---------------------------------------------------------------------------*/
-
-typedef struct { unsigned char a,b,c,d,e,f,g,h ,
-                               H,G,F,E,D,C,B,A  ; } sixteenbytes ;
 
 /*----------------------------------------------------------------------*/
 /*! swap 16 bytes at a time from the given list of n sets of 16 bytes
@@ -2045,19 +2047,17 @@ typedef struct { unsigned char a,b,c,d,e,f,g,h ,
 void nifti_swap_16bytes( int n , void *ar )    /* 16 bytes at a time */
 {
    register int ii ;
-   register sixteenbytes *tb = (sixteenbytes *)ar ;
-   register unsigned char tt ;
+   unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
+   register unsigned char tval ;
 
    for( ii=0 ; ii < n ; ii++ ){
-     tt = tb[ii].a ; tb[ii].a = tb[ii].A ; tb[ii].A = tt ;
-     tt = tb[ii].b ; tb[ii].b = tb[ii].B ; tb[ii].B = tt ;
-     tt = tb[ii].c ; tb[ii].c = tb[ii].C ; tb[ii].C = tt ;
-     tt = tb[ii].d ; tb[ii].d = tb[ii].D ; tb[ii].D = tt ;
-
-     tt = tb[ii].e ; tb[ii].e = tb[ii].E ; tb[ii].E = tt ;
-     tt = tb[ii].f ; tb[ii].f = tb[ii].F ; tb[ii].F = tt ;
-     tt = tb[ii].g ; tb[ii].g = tb[ii].G ; tb[ii].G = tt ;
-     tt = tb[ii].h ; tb[ii].h = tb[ii].H ; tb[ii].H = tt ;
+       cp1 = cp0;  cp2 = cp0+15;
+       while ( cp2 > cp1 )
+       {
+           tval = *cp1 ; *cp1 = *cp2 ; *cp2 = tval ;
+           cp1++; cp2--;
+       }
+       cp0 += 16;
    }
    return ;
 }
@@ -4412,7 +4412,7 @@ size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot,
   
   if( nim->swapsize > 1 && nim->byteorder != nifti_short_order() )
     nifti_swap_Nbytes( ntot / nim->swapsize , nim->swapsize , dataptr ) ;
-  
+
 #ifdef isfinite
 {
   /* check input float arrays for goodness, and fix bad floats */
