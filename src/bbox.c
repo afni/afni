@@ -506,7 +506,7 @@ static void optmenu_EV_fixup( Widget ww ) ;
 
 MCW_arrowval * new_MCW_optmenu( Widget parent ,
                                 char *label ,
-                                int    minval , int maxval , int inival , int decim ,
+                                int   minval , int maxval , int inival , int decim ,
                                 gen_func *delta_value, XtPointer delta_data,
                                 str_func *text_proc  , XtPointer text_data
                               )
