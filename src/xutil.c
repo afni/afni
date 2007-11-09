@@ -1555,6 +1555,8 @@ ENTRY("RWC_visibilize_widget") ;
    if( xx != xo || yy != yo )
      XtVaSetValues( w , XmNx , xx , XmNy , yy , NULL ) ;
 
+   RWC_sleep(1) ; MCW_expose_widget(w) ;  /* 09 Nov 2007 */
+
    EXRETURN ;
 }
 
@@ -1583,7 +1585,7 @@ ENTRY("RWC_visibilize_CB") ;
    /* must wait for the thing to actually appear, dammit */
 
    (void) XtAppAddTimeOut( XtWidgetToApplicationContext(wpar) ,
-                           1 , RWC_visibilize_timeout_CB , wpar ) ;
+                           3 , RWC_visibilize_timeout_CB , wpar ) ;
    EXRETURN ;
 }
 

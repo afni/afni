@@ -6444,5 +6444,5 @@
 
 09 Nov 2007
  * Fixed bug in build_2Dhist() in thd_correlate.c equal sized bin code,
-     where 'ytop-xbot' was used instead of 'ytop-ybot'.  This is obvious
-     the work of saboteurs.
+     where 'ytop-xbot' was used instead of 'ytop-ybot'.  This is obviously
+     the work of Dutch saboteurs.
