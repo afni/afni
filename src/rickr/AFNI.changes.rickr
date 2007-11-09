@@ -2240,4 +2240,4 @@
   * modified fslio.c: applied Henke fix for FslFileType
   * modified nifti_io.c: applied Yaroslav fix for ARM alignment problem
   * modified model_demri_3.c: allow for nfirst == 0
-
+09 Nov 2007: modified model_demri_3.c: added AFNI_MODEL_D3_PER_MIN
