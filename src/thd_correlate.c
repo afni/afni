@@ -640,9 +640,15 @@ ENTRY("build_2Dhist") ;
 
    if( nxybin <= 0 && !xyclip ){  /*------------ equal size bins ------------*/
 
-     STATUS("equal size bins") ;
+if(PRINT_TRACING){
+  char str[256];
+  sprintf(str,"equal size bins: xbot=%g xtop=%g ybot=%g ytop=%g nbin=%d nval=%d ngood=%d",
+          xbot,xtop,ybot,ytop,nbin,n,ngood);
+  STATUS(str);
+}
+     
      xb = xbot ; xi = nbm/(xtop-xbot) ;
-     yb = ybot ; yi = nbm/(ytop-xbot) ; nww = 0.0f ;
+     yb = ybot ; yi = nbm/(ytop-ybot) ; nww = 0.0f ;
      for( ii=0 ; ii < n ; ii++ ){
        if( !good[ii] ) continue ;
        xx = (x[ii]-xb)*xi ;
@@ -667,6 +673,12 @@ ENTRY("build_2Dhist") ;
    } else if( xyclip ){  /*------------ mostly equal bins ----------------*/
 
      float xbc=xclip_bot , xtc=xclip_top , ybc=yclip_bot , ytc=yclip_top ;
+
+if(PRINT_TRACING){
+  char str[256];
+  sprintf(str,"mostly equal bins: xbc=%g xtc=%g ybc=%g ytc=%g nbin=%d",
+          xbc,xtc,ybc,ytc,nbin) ; STATUS(str);
+}
 
      STATUS("mostly equal bins") ;
      xi = (nbin-2.000001f)/(xtc-xbc) ;
@@ -798,6 +810,8 @@ ENTRY("build_2Dhist") ;
      free(wv); free(yv); free(xv); free(ydup); free(xdup);
 
    } /*----- end of test on equal or unequal size bins -----*/
+
+   STATUS("binning done") ;
 
    /*--- 26 Sep 2006: scale histogram to have sum==1 ---*/
 
