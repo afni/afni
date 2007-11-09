@@ -6441,3 +6441,8 @@
      XtUnrealizeWidget() -- this is used in the Makefile for linux_xorg7,
      where the old bug in that Xt library function seems to have risen
      from the dead.
+
+09 Nov 2007
+ * Fixed bug in build_2Dhist() in thd_correlate.c equal sized bin code,
+     where 'ytop-xbot' was used instead of 'ytop-ybot'.  This is obvious
+     the work of saboteurs.
