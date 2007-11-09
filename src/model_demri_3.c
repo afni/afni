@@ -3,6 +3,8 @@
   This is for the 3-parameter DEMRI model from Bob Cox and Steve Fung,
   implemented for John Butman and Steve Fung.
 
+  Nov 09 2007: allow for nfirst == 0
+
   Author: Rick Reynolds, Daniel Glen  22 Oct 2006
  *----------------------------------------------------------------------
 */
@@ -317,8 +319,7 @@ static int ct_from_cp(demri_params * P, double * ct, float * cp,
     for( k = 1; k < len - nfirst; k++ )   /* fill the list */
         elist[k] = dval * elist[k-1];
     
-    ct[nfirst] = 0;  /* == integral over 0 time */
-    for( n = nfirst+1; n < len; n++ )   /* ct[k] = 0, for k < nfirst */
+    for( n = nfirst; n < len; n++ )   /* ct[k] = 0, for k < nfirst */
     {
         dval = 0.0;   /* dval is sum here */
         for( k = nfirst+1; k < n; k++ )
@@ -691,11 +692,11 @@ static int convert_mp_to_cp(demri_params * P, int mp_len)
     float  r1 = P->r1, RIB = P->RIB, TR = P->TR, cos0 = P->cos0;
     int    nfirst = P->nfirst;
 
-    /* compute m0 equal to mean of first 'nfirst' values */
+    /* compute m0 equal to mean of first 'nfirst+1' values */
     dval = 0.0;
-    for(c = 0; c < nfirst; c++)
+    for(c = 0; c <= nfirst; c++)
         dval += mp[c];
-    m0 = dval / nfirst;
+    m0 = dval / (nfirst+1);
 
     if( m0 < EPSILON ) /* negative is bad, too */
     {
@@ -721,8 +722,8 @@ static int convert_mp_to_cp(demri_params * P, int mp_len)
 
     /* we don't have to be too fast here, since this is one-time-only */
 
-    /* start with setting nfirst terms to 0 */
-    for( c = 0; c < nfirst; c++ )
+    /* start with setting nfirst+1 terms to 0 */
+    for( c = 0; c <= nfirst; c++ )
         mp[c] = 0.0;
 
     /* and compute the remainder of the array */
