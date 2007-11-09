@@ -403,11 +403,14 @@ ENTRY("clipate") ;
    qim->nx = qim->nvox = nq ;
    if( nq < 666 ){ rr.a = 1.0f; rr.b = 0.0f; mri_free(qim); RETURN(rr); }
    mmm  = mri_min( qim ) ;
-   cbot = THD_cliplevel( qim , 0.345f ) ;
-   ctop = mri_quantile ( qim , 0.966f ) ;
+   if( mmm >= 0.0f ){   /* for positive images */
+     cbot = THD_cliplevel( qim , 0.345f ) ;
+     ctop = mri_quantile ( qim , 0.966f ) ;
+     if( ctop > 4.321f*cbot ) ctop = 4.321f*cbot ;
+   } else {  /* for images including negative values: no go */
+     cbot = 1.0f; ctop = 0.0f;
+   }
    mri_free(qim) ;
-   if( ctop > 4.321f*cbot ) ctop = 4.321f*cbot ;
-   if( mmm < 0.0f ){ cbot = 1.0f ; ctop = 0.0f; }  /* bad */
    rr.a = cbot ; rr.b = ctop ; RETURN(rr) ;
 }
 
@@ -646,7 +649,7 @@ if(PRINT_TRACING){
           xbot,xtop,ybot,ytop,nbin,n,ngood);
   STATUS(str);
 }
-     
+
      xb = xbot ; xi = nbm/(xtop-xbot) ;
      yb = ybot ; yi = nbm/(ytop-ybot) ; nww = 0.0f ;
      for( ii=0 ; ii < n ; ii++ ){
