@@ -36,7 +36,7 @@ ENTRY("mri_write") ;
      imfile = fopen( fname , "r" ) ;
      if( imfile != NULL ){
        fclose( imfile ) ;
-       fprintf(stderr,"(FAILED) attempt to overwrite file %s\n",fname) ;
+       ERROR_message("(FAILED) attempt to overwrite file %s",fname) ;
        RETURN(0) ;
      }
    }
@@ -47,7 +47,7 @@ ENTRY("mri_write") ;
      imfile = stdout ;   /* 18 Apr 2005: write to stdout instead */
 
    if( imfile == NULL ){
-     fprintf( stderr , "couldn't open for output file %s\n" , fname ) ;
+     ERROR_message("Couldn't open for output file %s" , fname ) ;
      RETURN(0) ;
    }
 
@@ -119,14 +119,14 @@ ENTRY("mri_write_7D") ;
    imfile = fopen( fname , "r" ) ;
    if( imfile != NULL ){
       fclose( imfile ) ;
-      fprintf(stderr,"(FAILED) attempt to overwrite file %s\n",fname) ;
+      ERROR_message("(FAILED) attempt to overwrite file %s",fname) ;
       RETURN( 0 );
    }
 
    imfile = fopen( fname , "w" ) ;
 
    if( imfile == NULL ){
-      fprintf( stderr , "couldn't open for output file %s\n" , fname ) ;
+      ERROR_message("Couldn't open for output file %s" , fname ) ;
       RETURN( 0 );
    }
 
@@ -274,12 +274,12 @@ ENTRY("mri_write_ascii") ;
      imfile = fopen( fname , "r" ) ;
      if( imfile != NULL ){
        fclose( imfile ) ;
-       fprintf(stderr,"(FAILED) attempt to overwrite file %s\n",fname) ;
+       ERROR_message("(FAILED) attempt to overwrite file %s",fname) ;
        RETURN( 0 );
      }
      imfile = fopen( fname , "w" ) ;
      if( imfile == NULL ){
-       fprintf( stderr , "couldn't open for output file %s\n" , fname ) ;
+       ERROR_message("Couldn't open for output file %s" , fname ) ;
        RETURN( 0 );
      }
    }
@@ -353,9 +353,9 @@ ENTRY("mri_write_ascii") ;
 
 int mri_write_raw( char *fname , MRI_IMAGE *im )
 {
-   FILE  *imfile ;
-   void  *data ;
-   int   dsize ;
+   FILE *imfile ;
+   void *data ;
+   int  dsize ;
 
 ENTRY("mri_write_raw") ;
 
@@ -369,7 +369,7 @@ ENTRY("mri_write_raw") ;
    imfile = fopen( fname , "w" ) ;
 
    if( imfile == NULL ){
-      fprintf(stderr,"** Can't open for output: %s\n",fname) ; RETURN( 0 );
+      ERROR_message("Can't open for output: %s",fname) ; RETURN( 0 );
    }
 
    fwrite( data , 1 , dsize , imfile ) ;

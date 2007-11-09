@@ -552,15 +552,15 @@ static const Boolean ISQ_but_bot_dial[NBUTTON_BOT] = {  /* use seq->dialog? */
    True , False , True , False
 } ;
 
-static char * ISQ_but_done_label1 = "Done" ;
-static char * ISQ_but_done_label2 = "DONE" ;
+static char *ISQ_but_done_label1 = "Done" ;
+static char *ISQ_but_done_label2 = "DONE" ;
 #define NBUT_DONE (NBUTTON_BOT-1)
 #define NBUT_SAVE 1
 #define NBUT_DISP 0
 #define NBUT_MONT 2
 
-static char * ISQ_save_label_bg  = "Save:bkg" ;
-static char * ISQ_save_label_all = "Save:pnm" ;
+static char *ISQ_save_label_bg  = "Save:bkg" ;
+static char *ISQ_save_label_all = "Save:pnm" ;
 
 #define SET_SAVE_LABEL(seq)                                               \
   do{ char sl[16] ;                                                       \
@@ -3255,8 +3255,8 @@ ENTRY("ISQ_saver_CB") ;
       /*-- April 1996: Save One case here --*/
 
       if( seq->opt.save_one && !DO_ANIM(seq) ){
-         char * ppnm = strstr( seq->saver_prefix , ".pnm." ) ;
-         int    sll  = strlen( seq->saver_prefix ) ;
+         char *ppnm = strstr( seq->saver_prefix , ".pnm." ) ;
+         int   sll  = strlen( seq->saver_prefix ) ;
 
          int    mcod = X2M_USE_CMAP ;        /* 21 Sep 2001: */
          if( seq->opt.save_filter >= 0 ||
@@ -3270,7 +3270,6 @@ ENTRY("ISQ_saver_CB") ;
          reload_DC_colordef( seq->dc ) ;  /* 23 Mar 1999 */
          tim = XImage_to_mri( seq->dc , seq->given_xim , mcod ) ; /* 21 Sep 2001: */
                                                                   /* X2M_USE_CMAP -> mcod */
-
 
          if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){   /* 08 Jun 2004 */
            tim->dx = seq->last_dx ; tim->dy = seq->last_dy ;
@@ -3534,7 +3533,7 @@ ENTRY("ISQ_saver_CB") ;
 
       if( seq->opt.save_filter >= 0 || DO_ANIM(seq) ){
          char filt[512] ; int ff=seq->opt.save_filter ; FILE *fp ;
-         MRI_IMAGE * ovim=NULL ;
+         MRI_IMAGE *ovim=NULL ;
          int nx , ny , npix , pc ;
 
          /* process image to make the grayscale index */
@@ -3827,8 +3826,8 @@ ENTRY("ISQ_saver_CB") ;
       } else if( ! seq->opt.save_pnm ){ /** write background only **/
 
          if( seq->opt.save_nsize ){
-            tim = mri_nsize( flim ) ;
-            if( tim != NULL && tim != flim ){ mri_free(flim) ; flim = tim ; }
+           tim = mri_nsize( flim ) ;
+           if( tim != NULL && tim != flim ){ mri_free(flim) ; flim = tim ; }
          }
 
          tim  = flim ;
