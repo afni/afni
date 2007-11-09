@@ -47,6 +47,7 @@ typedef struct
     int      nfirst;            /* num TRs used to compute mean Mp,0 */
     int      ijk;               /* voxel index*/
     int      debug;
+    int      per_min;           /* are parameter rates per minute? */
     int      counter;           /* count iterations */
 
     double * comp;              /* computation data, and elist */
@@ -129,7 +130,7 @@ void signal_model (
 )
 {
     static demri_params P = {0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                             0.0, 0, 0, 0, 0,  NULL, NULL, NULL };
+                             0.0, 0, 0, 0, 0, 0,  NULL, NULL, NULL };
     static int          first_call = 1;
     int                 mp_len;      /* length of mcp list */
     int                 rv, errs = 0;
@@ -176,6 +177,8 @@ void signal_model (
     P.K   = params[0];
     P.fvp = params[2];
 
+    if( P.per_min ) P.K /= 60.0;        /* then convert to per minute */
+
     if( g_use_ve )
     {
         P.ve = params[1];
@@ -200,8 +203,10 @@ void signal_model (
             memset(ts_array, 0, ts_len*sizeof(float));
             return;
         }
+    } else {
+        P.kep = params[1];
+        if( P.per_min ) P.kep /= 60.0;
     }
-    else P.kep = params[1];
 
     if( R1I_data_ptr )
     {
@@ -560,6 +565,9 @@ static int get_env_params(demri_params * P)
         }
     }
 
+    if( AFNI_yesenv("AFNI_MODEL_D3_PER_MIN") )
+        P->per_min = 1;
+
     envp = my_getenv("AFNI_MODEL_D3_DEBUG");
     if( envp ) P->debug = atoi(envp);
 
@@ -767,17 +775,21 @@ static int disp_demri_params( char * mesg, demri_params * p )
                     "    theta  = %f  ( degrees )\n"
                     "    TR     = %f  ( seconds (~0.007) )\n"
                     "    TF     = %f  ( seconds (~20) )\n"
-                    "    cos0   = %f  ( cos(theta) )\n"
-                    "    nfirst = %d\n\n"
-                    "    debug  = %d\n"
-                    "    ijk    = %d\n"
-                    "    comp   = %p\n"
-                    "    elist  = %p\n"
-                    "    mcp    = %p\n"
+                    "\n"
+                    "    cos0    = %f  ( cos(theta) )\n"
+                    "    nfirst  = %d\n"
+                    "    ijk     = %d\n"
+                    "    debug   = %d\n"
+                    "    per_min = %d\n"
+                    "\n"
+                    "    comp    = %p\n"
+                    "    elist   = %p\n"
+                    "    mcp     = %p\n"
             , p,
             p->K, p->kep, p->ve, p->fvp,
-            p->r1, p->RIB, p->RIT, p->theta, p->TR, p->TF, p->cos0,
-            p->nfirst, p->debug, p->ijk, p->comp, p->elist, p->mcp);
+            p->r1, p->RIB, p->RIT, p->theta, p->TR, p->TF,
+            p->cos0, p->nfirst, p->ijk, p->debug, p->per_min,
+            p->comp, p->elist, p->mcp);
 
     return 0;
 }
@@ -791,9 +803,13 @@ static int model_help(void)
     "   MODEL demri_3: 3-parameter DEMRI model\n"
     "\n"
     "   model parameters to fit:\n"
+    "\n"
     "       K_trans   in [0, 0.99]\n"
     "       k_ep      in [0, 0.99]\n"
     "       f_pv      in [0, 0.99]\n"
+    "\n"
+    "       Note that K_trans and k_ep default to rates per second.\n"
+    "       If per minute is desired, use AFNI_MODEL_D3_PER_MIN.\n"
     "\n"
     "   model parameters passed via environment variables:\n"
     "\n"
@@ -850,6 +866,11 @@ static int model_help(void)
     "\n"
     "           e.g. 20 or 20sec\n"
     "\n"
+    "       --- AFNI_MODEL_D3_PER_MIN ----------------------------\n"
+    "\n"
+    "           The default rate units of K_trans and k_ep are per second.\n"
+    "           If this variable is set to YES, then rates are per minute.\n"
+    "\n"
     "     ** note: default units are with respect to seconds\n"
     "\n"
     "   environment variables to control Mp(t):\n"
@@ -882,8 +903,9 @@ static int model_help(void)
     "      setenv AFNI_MODEL_D3_THETA      30\n"
     "      setenv AFNI_MODEL_D3_TF         20s\n"
     "      \n"
-    "      setenv AFNI_MODEL_D3_MP_FILE ROI_mean.1D\n"
-    "      setenv AFNI_MODEL_D3_NFIRST 7\n"
+    "      setenv AFNI_MODEL_D3_PER_MIN    Y\n"
+    "      setenv AFNI_MODEL_D3_MP_FILE    ROI_mean.1D\n"
+    "      setenv AFNI_MODEL_D3_NFIRST     7\n"
     "      \n"
     "      3dNLfim -input scaled_data.nii  \\\n"
     "          -signal demri_3             \\\n"
