@@ -339,8 +339,7 @@ void ISQ_setup_ppmto_filters(void)
       eee = my_getenv("AFNI_JPEG_COMPRESS");
       if(eee!=NULL) {
          jpeg_compress = (int) strtod(eee, NULL);
-	 if((jpeg_compress<=0) || (jpeg_compress>100))
-            jpeg_compress = 95;
+         if((jpeg_compress<=5) || (jpeg_compress>100)) jpeg_compress = 95;
       }
       else jpeg_compress = 95;
 
@@ -6743,6 +6742,7 @@ ENTRY("ISQ_but_cnorm_CB") ;
 
 *    isqDR_save_jpeg       (char *) save current image to this filename
 *    isqDR_save_png        (char *) save current image to this filename
+*    isqDR_save_raw        (char *) save current image to this filename
 *    isqDR_save_filtered   (char *) save current image to this filter
 *    isqDR_save_agif       (char *) save current image series to this filename
 *    isqDR_save_mpeg       (char *) save current image series to this filename
@@ -6861,6 +6861,12 @@ printf("set top_clip=%g  redo_clip=%d zz=%d\n",seq->top_clip,seq->redo_clip,zz);
       case isqDR_save_png:{                  /* 11 Dec 2006 */
         char *fname = (char *)drive_data ;
         ISQ_save_png( seq , fname ) ;
+        RETURN( True ) ;
+      }
+
+      case isqDR_save_raw:{                  /* 13 Nov 2007 */
+        char *fname = (char *)drive_data ;
+        ISQ_save_raw( seq , fname ) ;
         RETURN( True ) ;
       }
 
@@ -7172,7 +7178,7 @@ static unsigned char record_bits[] = {
       /* [mostly copied from ISQ_montage_action_CB()] */
 
       case isqDR_setmontage:{
-         int * mm = (int *) drive_data ;
+         int *mm = (int *) drive_data ;
 
          if( mm == NULL )                     RETURN( False );  /* sanity */
          if( mm[0] < 1 || mm[0] > MONT_NMAX ) RETURN( False );  /* checks */
@@ -10736,25 +10742,25 @@ ENTRY("ISQ_getimage") ;
    iar  = (float **) malloc( sizeof(float *) * rr ) ;
 
    for( ii=0 ; ii < rr ; ii++ )
-      iar[ii] = MRI_FLOAT_PTR(IMARR_SUBIM(imar,ii)) ;
+     iar[ii] = MRI_FLOAT_PTR(IMARR_SUBIM(imar,ii)) ;
 
    for( jj=0 ; jj < npix ; jj++ ){
 
-      for( ii=0 ; ii < rr ; ii++ ) far[ii] = iar[ii][jj] ;
+     for( ii=0 ; ii < rr ; ii++ ) far[ii] = iar[ii][jj] ;
 
 #if 0
-      val = seq->slice_proj_func( rr , far ) ;
+     val = seq->slice_proj_func( rr , far ) ;
 #else
-      AFNI_CALL_proj_function( seq->slice_proj_func , rr,far , val ) ;
+     AFNI_CALL_proj_function( seq->slice_proj_func , rr,far , val ) ;
 #endif
 
-      qar[jj] = val ;
+     qar[jj] = val ;
    }
 
    free(iar) ; free(far) ; DESTROY_IMARR(imar) ;
 
    if( ktim != MRI_float ){
-      tim = mri_to_mri(ktim,qim); mri_free(qim); qim = tim;
+     tim = mri_to_mri(ktim,qim); mri_free(qim); qim = tim;
    }
 
    RETURN(qim) ;
@@ -11557,7 +11563,7 @@ ENTRY("ISQ_handle_keypress") ;
            } else {
              seq->opt.scale_range = ISQ_RNG_MINTOMAX;
            }
-         break; 
+         break;
        }
 
        ISQ_redisplay( seq , -1 , isqDR_display ) ;
@@ -11822,6 +11828,7 @@ ENTRY("ISQ_save_image") ;
    mri_free(tim) ; EXRETURN ;
 }
 
+/*--------------------------------------------------------------------------*/
 
 void ISQ_save_jpeg( MCW_imseq *seq , char *fname )
 {
@@ -11833,6 +11840,27 @@ void ISQ_save_png( MCW_imseq *seq , char *fname )  /* 11 Dec 2006 */
 {
    ISQ_save_image( seq , fname , ppmto_png_filter , ".png" ) ;
    return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void ISQ_save_raw( MCW_imseq *seq , char *fname )  /* 13 Nov 2007 */
+{
+   MRI_IMAGE *im ;
+
+ENTRY("ISQ_save_raw") ;
+
+   if( !ISQ_REALZ(seq) ) EXRETURN ;
+   if( fname == NULL || *fname == '\0' ) fname = "image.raw" ;
+
+   im = ISQ_getimage( seq->im_nr , seq ) ;
+
+   if( im != NULL ){
+     INFO_message("Writing one %dx%d raw image (type=%s bytes=%d) to file '%s'",
+                  im->nx,im->ny,MRI_TYPE_name[im->kind],im->nvox*im->pixel_size,fname ) ;
+     mri_write_raw(fname,im); mri_free(im);
+   }
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/

@@ -362,14 +362,17 @@ ENTRY("mri_write_raw") ;
    if( im == NULL || fname == NULL || fname[0] == '\0' ) RETURN( 0 );
 
    dsize = im->pixel_size * im->nvox ;
-   data = mri_data_pointer( im ) ;
+   data  = mri_data_pointer( im ) ;
 
    if( dsize <= 0 || data == NULL ) RETURN( 0 );
+
+   if( THD_is_file(fname) )
+     WARNING_message("Over-writing file %s",fname) ;
 
    imfile = fopen( fname , "w" ) ;
 
    if( imfile == NULL ){
-      ERROR_message("Can't open for output: %s",fname) ; RETURN( 0 );
+     ERROR_message("Can't open for output: %s",fname); RETURN( 0 );
    }
 
    fwrite( data , 1 , dsize , imfile ) ;

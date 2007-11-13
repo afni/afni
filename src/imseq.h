@@ -179,10 +179,12 @@ typedef struct {
 #undef  MPEG_MODE
 #undef  JPEG_MODE
 #undef  PNG_MODE
+#undef  RAW_MODE
 #define AGIF_MODE 1  /* 06 Dec 2006 - for ISQ_save_anim() */
 #define MPEG_MODE 2
 #define JPEG_MODE 3
 #define PNG_MODE  4
+#define RAW_MODE  5
 
 #define ISQ_OPT_EQUAL(opta,optb)                    \
     ( ((opta).mirror      == (optb).mirror     ) && \
@@ -639,6 +641,7 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_save_png        707  /* 11 Dec 2006 */
 #define isqDR_save_filtered   708  /* 14 Dec 2006 */
 #define isqDR_save_pngall     709  /* 15 Dec 2006 */
+#define isqDR_save_raw        710  /* 13 Nov 2007 */
 
 extern Boolean drive_MCW_imseq( MCW_imseq * , int , XtPointer ) ;
 
@@ -826,6 +829,8 @@ extern void mri_rgb_transform_nD( MRI_IMAGE *, int, generic_func * ) ;
 extern void ISQ_save_jpeg( MCW_imseq *seq , char *fname ) ;    /* 28 Jul 2005 */
 extern void ISQ_save_png ( MCW_imseq *seq , char *fname ) ;    /* 11 Dec 2006 */
 extern void ISQ_save_anim( MCW_imseq *, char *, int,int,int ); /* 06 Dec 2006 */
+
+extern void ISQ_save_raw ( MCW_imseq *seq , char *fname ) ;    /* 13 Nov 2007 */
 
 extern void ISQ_save_image( MCW_imseq *, char *, char *, char *); /* 11 Dec 2006 */
 

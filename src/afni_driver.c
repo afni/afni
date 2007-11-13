@@ -33,6 +33,7 @@ static int AFNI_drive_set_subbricks( char *cmd ) ;  /* 30 Nov 2005 */
 
 static int AFNI_drive_save_jpeg( char *cmd ) ;      /* 28 Jul 2005 */
 static int AFNI_drive_save_png ( char *cmd ) ;      /* 11 Dec 2006 */
+static int AFNI_drive_save_raw ( char *cmd ) ;      /* 13 Nov 2007 */
 static int AFNI_drive_save_agif( char *cmd ) ;      /* 07 Dec 2006 */
 static int AFNI_drive_save_mpeg( char *cmd ) ;      /* 07 Dec 2006 */
 static int AFNI_drive_save_alljpeg( char *cmd ) ;   /* 07 Dec 2006 */
@@ -126,6 +127,7 @@ static AFNI_driver_pair dpair[] = {
 
  { "SAVE_JPEG"        , AFNI_drive_save_jpeg         } ,
  { "SAVE_PNG"         , AFNI_drive_save_png          } ,
+ { "SAVE_RAW"         , AFNI_drive_save_raw          } ,
  { "SAVE_MPEG"        , AFNI_drive_save_mpeg         } ,
  { "SAVE_AGIF"        , AFNI_drive_save_agif         } ,
  { "SAVE_ALLJPEG"     , AFNI_drive_save_alljpeg      } ,
@@ -2447,6 +2449,7 @@ ENTRY("AFNI_drive_save_1image") ;
 
    if( isq != NULL ){
      switch( mode ){
+       case RAW_MODE:  imm = isqDR_save_raw     ; break ;
        case PNG_MODE:  imm = isqDR_save_png     ; break ;
        case JPEG_MODE: imm = isqDR_save_jpeg    ; break ;
        default:        imm = isqDR_save_filtered; break ;
@@ -2479,6 +2482,14 @@ static int AFNI_drive_save_jpeg( char *cmd )
 static int AFNI_drive_save_png( char *cmd )
 {
    return AFNI_drive_save_1image( cmd , PNG_MODE , ".png" ) ;
+}
+
+/*------------*/
+/*! SAVE_RAW */
+
+static int AFNI_drive_save_raw( char *cmd )
+{
+   return AFNI_drive_save_1image( cmd , RAW_MODE , NULL ) ;
 }
 
 /*-----------------*/
