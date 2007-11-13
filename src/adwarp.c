@@ -866,8 +866,6 @@ STATUS("have new image") ;
   THD_load_statistics( dset ) ;
 
   STATUS("rewriting header") ;
-  /* allow overwriting header  */
-  putenv("AFNI_DECONFLICT=OVERWRITE") ;
   (void) THD_write_3dim_dataset( NULL,NULL , dset , False ) ;
 
   STATUS("purging datablock") ;
@@ -920,6 +918,7 @@ int main( int argc , char *argv[] )
          fprintf(stderr,
                  "++ Warning: overwriting dataset %s and %s\n",
                  DSET_HEADNAME(new_dset), DSET_BRIKNAME(new_dset) ) ;
+         putenv("AFNI_DECONFLICT=OVERWRITE") ;  /* 12 Nov 2007 */
       } else if( THD_deathcon() ){
          fprintf(stderr,
                  "** Error: can't overwrite dataset %s and %s\n"
@@ -927,6 +926,7 @@ int main( int argc , char *argv[] )
                  DSET_HEADNAME(new_dset), DSET_BRIKNAME(new_dset) ) ;
          exit(1) ;
       } else {
+         putenv("AFNI_DECONFLICT=YES") ;  /* 12 Nov 2007 */
          THD_deconflict_prefix(new_dset) ;
          WARNING_message("Changed dataset name to '%s' to avoid conflict",
                          DSET_BRIKNAME(new_dset) ) ;
