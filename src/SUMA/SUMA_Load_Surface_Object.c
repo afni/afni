@@ -4080,16 +4080,16 @@ char * SUMA_coord_file( SUMA_SurfSpecFile * spec, int index )
         return NULL;
     }
 
-    if ( strstr(spec->SurfaceType[index], "SureFit") ||
-	      strstr(spec->SurfaceType[index], "1D") )
-	return spec->CoordFile[index];
-    else if ( strstr(spec->SurfaceType[index], "FreeSurfer") ||
-	      strstr(spec->SurfaceType[index], "Ply")        ||
-	      strstr(spec->SurfaceType[index], "GenericInventor" ) ||
-         strstr(spec->SurfaceType[index], "OpenDX" ) )
-	return spec->SurfaceFile[index];
-
-    return NULL;
+    /* SurfaceType field must match the TypeCodes              13 Nov 2007 */
+    switch( SUMA_SurfaceTypeCode((spec->SurfaceType[index])) ){
+        case SUMA_FT_NOT_SPECIFIED:
+            return NULL;
+        case SUMA_VEC:
+        case SUMA_SUREFIT:
+            return spec->CoordFile[index];
+        default: /* FreeSurfer, Ply, etc. */
+            return spec->SurfaceFile[index];
+    }
 }
 
 
