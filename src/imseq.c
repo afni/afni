@@ -6743,6 +6743,7 @@ ENTRY("ISQ_but_cnorm_CB") ;
 *    isqDR_save_jpeg       (char *) save current image to this filename
 *    isqDR_save_png        (char *) save current image to this filename
 *    isqDR_save_raw        (char *) save current image to this filename
+*    isqDR_save_rawmont    (char *) save current montage to this filename
 *    isqDR_save_filtered   (char *) save current image to this filter
 *    isqDR_save_agif       (char *) save current image series to this filename
 *    isqDR_save_mpeg       (char *) save current image series to this filename
@@ -6867,6 +6868,12 @@ printf("set top_clip=%g  redo_clip=%d zz=%d\n",seq->top_clip,seq->redo_clip,zz);
       case isqDR_save_raw:{                  /* 13 Nov 2007 */
         char *fname = (char *)drive_data ;
         ISQ_save_raw( seq , fname ) ;
+        RETURN( True ) ;
+      }
+
+      case isqDR_save_rawmont:{              /* 13 Nov 2007 */
+        char *fname = (char *)drive_data ;
+        ISQ_save_rawmont( seq , fname ) ;
         RETURN( True ) ;
       }
 
@@ -11849,7 +11856,6 @@ void ISQ_save_raw( MCW_imseq *seq , char *fname )  /* 13 Nov 2007 */
    MRI_IMAGE *im ;
 
 ENTRY("ISQ_save_raw") ;
-
    if( !ISQ_REALZ(seq) ) EXRETURN ;
    if( fname == NULL || *fname == '\0' ) fname = "image.raw" ;
 
@@ -11860,6 +11866,53 @@ ENTRY("ISQ_save_raw") ;
                   im->nx,im->ny,MRI_TYPE_name[im->kind],im->nvox*im->pixel_size,fname ) ;
      mri_write_raw(fname,im); mri_free(im);
    }
+   EXRETURN ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void ISQ_save_rawmont( MCW_imseq *seq , char *fname ) /* 13 Nov 2007 */
+{
+   MRI_IMAGE *im ;
+   MRI_IMARR *mar ;
+   int nmont=seq->mont_nx * seq->mont_ny ,ij,nim,ijcen,nxyim ;
+
+ENTRY("ISQ_save_raw_montage") ;
+   if( !ISQ_REALZ(seq) ) EXRETURN ;
+
+   if( nmont < 2 ){
+     INFO_message("save_rawmont: montage not turned on") ;
+     ISQ_save_raw(seq,fname); EXRETURN;
+   }
+
+   if( fname == NULL || *fname == '\0' ) fname = "image_montage.raw" ;
+
+   /* the following code is mostly from ISQ_make_montage() */
+
+   INIT_IMARR(mar) ;
+
+   ijcen = (seq->mont_nx)/2 + (seq->mont_ny/2) * seq->mont_nx ;
+   for( nxyim=ij=0 ; ij < nmont ; ij++ ){
+      nim = seq->im_nr + (seq->mont_skip + 1) * (ij - ijcen) ;
+      im  = ISQ_getimage( nim , seq ) ; if( im != NULL ) nxyim++ ;
+      ADDTO_IMARR(mar,im) ;
+   }
+   if( nxyim == 0 ){
+     ERROR_message("Raw montage error: no images found!") ;
+     DESTROY_IMARR(mar) ; EXRETURN ;
+   }
+
+   im = mri_cat2D( seq->mont_nx , seq->mont_ny , 0 , NULL , mar ) ;
+   DESTROY_IMARR(mar) ;
+
+   if( im != NULL ){
+     INFO_message("Writing one %dx%d raw image (type=%s bytes=%d) to file '%s'",
+                  im->nx,im->ny,MRI_TYPE_name[im->kind],im->nvox*im->pixel_size,fname ) ;
+     mri_write_raw(fname,im); mri_free(im);
+   } else {
+     ERROR_message("Can't make raw montage for some reason!") ;
+   }
+
    EXRETURN ;
 }
 
