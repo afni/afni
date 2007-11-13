@@ -6446,3 +6446,10 @@
  * Fixed bug in build_2Dhist() in thd_correlate.c equal sized bin code,
      where 'ytop-xbot' was used instead of 'ytop-ybot'.  This is obviously
      the work of Dutch saboteurs.
+
+13 Nov 2007
+ * SAVE_RAW and SAVE_RAWMONT commands in afni_driver.c (and so imseq.[ch]).
+ * Fix error in mri_genalign.c for allcost: the various 'cr?' functions
+     weren't being properly separated.
+ * Added multiple -check ability to 3dAllineate.c, and -allcost now printed
+     for each alternative checked parameter set as well.

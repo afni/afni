@@ -1092,9 +1092,9 @@ ENTRY("GA_scalar_costfun") ;
     case GA_MATCH_CRAT_USYM_SCALAR: /* Correlation ratio (various flavors) */
     case GA_MATCH_CRAT_SADD_SCALAR:
     case GA_MATCH_CORRATIO_SCALAR:
-           if( gstup->match_code==GA_MATCH_CRAT_USYM_SCALAR )THD_corr_ratio_sym_not;
-      else if( gstup->match_code==GA_MATCH_CRAT_SADD_SCALAR )THD_corr_ratio_sym_add;
-      else                                                   THD_corr_ratio_sym_mul;
+           if( meth==GA_MATCH_CRAT_USYM_SCALAR )THD_corr_ratio_sym_not;
+      else if( meth==GA_MATCH_CRAT_SADD_SCALAR )THD_corr_ratio_sym_add;
+      else                                      THD_corr_ratio_sym_mul;
 
 #if 0
       if( verb > 8 )

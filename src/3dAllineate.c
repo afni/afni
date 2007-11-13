@@ -168,7 +168,8 @@ int main( int argc , char *argv[] )
    int matorder                = MATORDER_SDU ; /* matrix mult order */
    int smat                    = SMAT_LOWER ;   /* shear matrix triangle */
    int dcode                   = DELTA_AFTER ;  /* shift after */
-   int meth_check              = -1 ;           /* don't do it */
+   int meth_check_count        = 0 ;            /* don't do it */
+   int meth_check[NMETH+1] ;
    char *save_hist             = NULL ;         /* don't save it */
    long seed                   = 7654321 ;      /* random? */
    int XYZ_warp                = 0 ;            /* off by default */
@@ -384,6 +385,8 @@ int main( int argc , char *argv[] )
        "               increases the CPU time, but can help you feel sure\n"
        "               that the alignment process did not go wild and crazy.\n"
        "               [Default == no check == don't worry, be happy!]\n"
+       "       **N.B.: You can put more than one method after '-check', as in\n"
+       "                 -nmi -check hel mi crU\n"
        "\n"
        " ** PARAMETERS THAT AFFECT THE COST OPTIMIZATION STRATEGY **\n"
        " -onepass    = Use only the refining pass -- do not try a coarse\n"
@@ -1151,22 +1154,25 @@ int main( int argc , char *argv[] )
      if( strncmp(argv[iarg],"-check",5) == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '-check'!") ;
 
-       for( jj=ii=0 ; ii < NMETH ; ii++ ){
-         if( strcmp(argv[iarg],meth_shortname[ii]) == 0 ){
-           meth_check = jj = ii+1 ; break ;
+       for( ; iarg < argc && argv[iarg][0] != '-' ; iarg++ ){
+         if( meth_check_count == NMETH ) continue ; /* malicious user? */
+         for( jj=ii=0 ; ii < NMETH ; ii++ ){
+           if( strcmp(argv[iarg],meth_shortname[ii]) == 0 ){
+             jj = ii+1 ; break ;
+           }
          }
-       }
-       if( jj > 0 ){ iarg++ ; continue ; }
+         if( jj > 0 ){ meth_check[ meth_check_count++ ] = jj; continue ;}
 
-       for( jj=ii=0 ; ii < NMETH ; ii++ ){
-         if( strncmp(argv[iarg],meth_longname[ii],7) == 0 ){
-           meth_check = jj = ii+1 ; break ;
+         for( jj=ii=0 ; ii < NMETH ; ii++ ){
+           if( strncmp(argv[iarg],meth_longname[ii],7) == 0 ){
+             jj = ii+1 ; break ;
+           }
          }
-       }
-       if( jj >=0 ){ iarg++ ; continue ; }
+         if( jj >=0 ){ meth_check[ meth_check_count++ ] = jj; continue ;}
 
-       WARNING_message("Unknown code '%s' after -check!",argv[iarg]) ;
-       meth_check = -1 ; iarg++ ; continue ;
+         WARNING_message("Unknown code '%s' after -check!",argv[iarg]) ;
+       }
+       continue ;
      }
 
      /*-----*/
@@ -1801,11 +1807,6 @@ int main( int argc , char *argv[] )
 
    if( seed == 0 ) seed = (long)time(NULL)+(long)getpid() ;
    srand48(seed) ;
-
-   if( meth_check == meth_code ){
-     WARNING_message("-check and -cost are the same?!") ;
-     meth_check = -1 ;
-   }
 
    if( meth_code == GA_MATCH_PEARSON_SCALAR && !wtspecified ){ /* 10 Sep 2007 */
      auto_weight = 1 ;  /* for '-ls', use '-autoweight' */
@@ -2827,7 +2828,7 @@ int main( int argc , char *argv[] )
      if( do_allcost != 0 ){
        PAR_CPY(val_init) ;
        allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
-       INFO_message("allcost output: fine #%d",kk) ;
+       INFO_message("allcost output: start fine #%d",kk) ;
        for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
          fprintf(stderr,"   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
        KILL_floatvec(allcost) ;
@@ -2882,7 +2883,7 @@ int main( int argc , char *argv[] )
        if( do_allcost != 0 ){
          PAR_CPY(val_init) ;
          allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
-         INFO_message("allcost output: intermed #%d",kk) ;
+         INFO_message("allcost output: intermed fine #%d",kk) ;
          for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
            fprintf(stderr,"   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
          KILL_floatvec(allcost) ;
@@ -2907,7 +2908,7 @@ int main( int argc , char *argv[] )
      if( do_allcost != 0 ){
        PAR_CPY(val_out) ;
        allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
-       INFO_message("allcost output: final #%d",kk) ;
+       INFO_message("allcost output: final fine #%d",kk) ;
        for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
          fprintf(stderr,"   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
        KILL_floatvec(allcost) ;
@@ -2952,43 +2953,60 @@ int main( int argc , char *argv[] )
      /*--- 27 Sep 2006: check if results are stable when
                         we optimize a different cost function ---*/
 
-     if( meth_check > 0 ){
+     if( meth_check_count > 0 ){
        float pval[MAXPAR] , pdist , dmax ; int jmax,jtop ;
-       if( verb > 1 ){
-         ININFO_message("- Starting check vs %s",meth_longname[meth_check-1]) ;
-         ctim = COX_cpu_time() ;
-       }
-       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ) /* save output params */
-         stup.wfunc_param[jj].val_init = pval[jj] = stup.wfunc_param[jj].val_out;
-
-       stup.match_code = meth_check ;
-       nfunc = mri_genalign_scalar_optim( &stup, 22.2*conv_rad, conv_rad,666 );
-       stup.match_code = meth_code ;
-
-       /* compute distance between 2 output parameter sets */
-
-       jtop = MIN( 9 , stup.wfunc_numpar ) ;
-       for( dmax=0.0f,jj=0 ; jj < jtop ; jj++ ){
-         if( !stup.wfunc_param[jj].fixed ){
-           pdist = fabsf( stup.wfunc_param[jj].val_out - pval[jj] )
-                  /(stup.wfunc_param[jj].max-stup.wfunc_param[jj].min) ;
-           if( pdist > dmax ){ dmax = pdist ; jmax = jj ; }
+       int mm , mc ;
+       PAROUT("Final fit") ;
+       INFO_message("Checking %s vs other costs",meth_longname[meth_code-1]) ;
+       for( mm=0 ; mm < meth_check_count ; mm++ ){
+         mc = meth_check[mm] ; if( mc <= 0 ) continue ;
+         if( verb > 1 ){
+           ININFO_message("- checking vs cost %s",meth_longname[mc-1]) ;
+           ctim = COX_cpu_time() ;
          }
-       }
+         for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ) /* save output params */
+           stup.wfunc_param[jj].val_init = pval[jj] = stup.wfunc_param[jj].val_out;
 
-       if( verb > 1 ){
-         ININFO_message("- Check CPU time=%.1f s; trials=%d; dmax=%f jmax=%d",
-                        COX_cpu_time()-ctim , nfunc , dmax , jmax ) ;
+         stup.match_code = mc ;
+         nfunc = mri_genalign_scalar_optim( &stup, 22.2*conv_rad, conv_rad,666 );
+         stup.match_code = meth_code ;
+
+         /* compute distance between 2 output parameter sets */
+
+         jtop = MIN( 9 , stup.wfunc_numpar ) ;
+         for( dmax=0.0f,jj=0 ; jj < jtop ; jj++ ){
+           if( !stup.wfunc_param[jj].fixed ){
+             pdist = fabsf( stup.wfunc_param[jj].val_out - pval[jj] )
+                    /(stup.wfunc_param[jj].max-stup.wfunc_param[jj].min) ;
+             if( pdist > dmax ){ dmax = pdist ; jmax = jj ; }
+           }
+         }
+
+         if( verb > 1 )
+           ININFO_message("- Check CPU time=%.1f s; trials=%d; dmax=%f jmax=%d",
+                          COX_cpu_time()-ctim , nfunc , dmax , jmax ) ;
+         if( dmax > 20.0*conv_rad )
+           WARNING_message(
+             "Check vs %s: max parameter discrepancy=%.4f%%! tolerance=%.4f%%",
+             meth_longname[mc-1] , 100.0*dmax , 2000.0*conv_rad ) ;
+         else
+           ININFO_message(
+             "INFO:   Check vs %s: max parameter discrepancy=%.4f%% tolerance=%.4f%%",
+             meth_longname[mc-1] , 100.0*dmax , 2000.0*conv_rad ) ;
          PAROUT("Check fit") ;
-       }
-       if( dmax > 20.0*conv_rad )
-         WARNING_message(
-           "Check vs %s: max parameter discrepancy=%.4f%%! tolerance=%.4f%%",
-           meth_longname[meth_check-1] , 100.0*dmax , 2000.0*conv_rad ) ;
+         if( do_allcost != 0 ){
+           PAR_CPY(val_out) ;
+           allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
+           ININFO_message("allcost output: check %s",meth_shortname[mc-1]) ;
+           for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
+             fprintf(stderr,"   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
+           KILL_floatvec(allcost) ;
+         }
 
-       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
-         stup.wfunc_param[jj].val_out = pval[jj] ;  /* restore previous param */
-     }
+         for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+           stup.wfunc_param[jj].val_out = pval[jj] ;  /* restore previous param */
+       } /* end of loop over check methods */
+     } /* end of checking */
 
      /*- freeze warp-ing parameters (those after #0..5) for later rounds */
 
