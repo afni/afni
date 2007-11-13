@@ -2243,4 +2243,5 @@
 09 Nov 2007: modified model_demri_3.c: added AFNI_MODEL_D3_PER_MIN
 13 Nov 2007:
   * modified adwarp.c: applied AFNI_DECONFLICT for both overwrite and decon
-
+  * modified SUMA_Load_Surface_Object.c:
+        - apply SUMA_SurfaceTypeCode in SUMA_coord_file
