@@ -2241,3 +2241,6 @@
   * modified nifti_io.c: applied Yaroslav fix for ARM alignment problem
   * modified model_demri_3.c: allow for nfirst == 0
 09 Nov 2007: modified model_demri_3.c: added AFNI_MODEL_D3_PER_MIN
+13 Nov 2007:
+  * modified adwarp.c: applied AFNI_DECONFLICT for both overwrite and decon
+
