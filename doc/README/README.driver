@@ -247,6 +247,14 @@ SAVE_PNG [c.]windowname filename
      Unlike cjpeg, this program is NOT part of the AFNI collection, but
      must be installed separately (usually by getting the NETPBM package).
 
+SAVE_RAW [c.]imagewindowname filename
+  Saves the raw data from the given image viewer to a file.  This data
+  is the slice data extracted from the dataset, not further processed
+  in any way (unlike the other SAVE_* image options, which convert the
+  slice data to grayscale or colors).  This output file contains only
+  the data, with no header of any sort indicating the dimensions of the
+  image or the actual type of data stored therein.
+
 SAVE_FILTERED  [c.]windowname filtercommand
   Like SAVE_JPEG or SAVE_PNG, but instead of a filename, you
   give a Unix filter that processes a PPM file. For example
