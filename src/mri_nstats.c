@@ -254,6 +254,19 @@ ENTRY("mri_localstat") ;
 /*--------------------------------------------------------------------------*/
 
 static int verb=0 , vn=0 ;
+static int localstat_datum = MRI_float;
+
+void THD_localstat_datum(int i) {
+   localstat_datum=i;
+   if (  localstat_datum != MRI_byte &&
+         localstat_datum != MRI_short &&
+         localstat_datum != MRI_float) {
+      fprintf(stderr ,  "Warning: Datum can only be one of MRI_byte, MRI_short or MRI_float\n"
+                        "Setting datum to float default.\n");
+      localstat_datum = MRI_float;
+   }
+}
+
 void THD_localstat_verb(int i){ verb=i; vn=0; }
 
 static void vstep_print(void)
@@ -263,6 +276,7 @@ static void vstep_print(void)
    if( vn%10 == 9) fprintf(stderr,".") ;
    vn++ ;
 }
+
 
 /*--------------------------------------------------------------------------*/
 
@@ -387,8 +401,10 @@ ENTRY("THD_localstat") ;
      if( vstep ) fprintf(stderr,"\n") ;
 
      if( dsim != NULL ){ mri_free(dsim); dsim = NULL; }
-     for( cc=0 ; cc < ncode ; cc++ )
-       EDIT_substitute_brick( oset , iv*ncode+cc , MRI_float , aar[cc] ) ;
+     for( cc=0 ; cc < ncode ; cc++ ) {
+       /* EDIT_substitute_brick( oset , iv*ncode+cc , MRI_float , aar[cc] ) ; */
+       EDIT_substscale_brick( oset , iv*ncode+cc , MRI_float , aar[cc], localstat_datum, -1.0);
+     }
    }
 
    free((void *)aar) ;
