@@ -1136,6 +1136,7 @@ SUMA_Boolean SUMA_Delign_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
          }
          break;
       case SUMA_BRAIN_VOYAGER:
+         #if 0
          /* For Brain Voyager, all you need to do is 
           go from AIR to RAI (DICOM)
           Note: The center of the volume is at the 1st voxel's center and that huge
@@ -1150,6 +1151,18 @@ SUMA_Boolean SUMA_Delign_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
             id = i * ND;
             THD_dicom_to_coorder (cord_surf, &(SO->NodeList[id]), &(SO->NodeList[id+1]), &(SO->NodeList[id+2])); 
          }
+         #else /*ZSS: Nov. 1 07 */
+         if (SO->VolPar) {
+            /* to back to float index units */
+            if (!SUMA_vec_dicomm_to_3dfind(SO->NodeList, SO->N_Node, SO->VolPar)) {
+               SUMA_S_Err("Failed to xform coords.");
+               SUMA_RETURN (NOPE);
+            }
+         } else {
+            fprintf(SUMA_STDERR,"Error %s: Can't delign witout a volpar.\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         #endif
          break;
       default:
          fprintf(SUMA_STDERR,"Warning %s: Unknown SO->FileType. Assuming coordinates are in DICOM already.\n", FuncName);

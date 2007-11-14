@@ -1114,6 +1114,8 @@ SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv(char *coordname, SUMA_DO *dov, in
             case SUMA_FREE_SURFER_PATCH:
             case SUMA_INVENTOR_GENERIC:
             case SUMA_OPENDX_MESH:
+            case SUMA_BRAIN_VOYAGER:
+            case SUMA_BYU:
             case SUMA_PLY: 
                if (strstr(SO->Name.FileName, coordname)) {
                   if (SOf) {
