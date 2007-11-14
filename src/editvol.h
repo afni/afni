@@ -254,6 +254,8 @@ typedef struct EDIT_options {
 
    int fake_dxyz ;                /*!< 11 Sep 2000 -> use dx=dy=dz=1.0? */
 
+   int rank;                      /*!< 13 Nov 2007 --> ZSS: Rank dset values. */
+   char rankmapname[THD_MAX_NAME+THD_MAX_PREFIX+1];
 } EDIT_options ;
 
 /*--- cluster editing options ---*/   /* 10 Sept 1996 */
@@ -313,6 +315,8 @@ typedef struct EDIT_options {
         (edopt)->fexpr         = NULL, \
         (edopt)->fmclip        = 1,    \
         (edopt)->fake_dxyz     = 0   , \
+        (edopt)->rank          = 0,    \
+        (edopt)->rankmapname[0]= '\0', \
        0 )
 
 extern void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt ) ;

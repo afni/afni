@@ -296,7 +296,7 @@ int *THD_unique_vals( THD_3dim_dataset *mask_dset ,
       }
       break ;
 
-      #if 0 /* bad idea */
+      #if 1 /* bad idea, but necessary in certain cases. We store ints (from NIFTI) as floats.*/
       case MRI_float:{
          float *mar = (float *) DSET_ARRAY(mask_dset,miv) ;
          float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
@@ -322,6 +322,195 @@ int *THD_unique_vals( THD_3dim_dataset *mask_dset ,
 
    return (unq) ;
 }
+
+/* returns an nvox int array which represents
+the rank of the voxel value in mask_dset
+*/
+int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
+                        int miv,
+                        byte *cmask,
+                        char *mapname)
+{
+   int nvox , ii, *unq = NULL, *vals=NULL;
+   int n_unique, r;
+   FILE *fout=NULL;
+   
+   n_unique = 0;
+   unq = NULL ;
+
+   if( !ISVALID_DSET(mask_dset)    ||
+       miv < 0                     ||
+       miv >= DSET_NVALS(mask_dset)  ) {
+
+      fprintf(stderr,"** Bad mask_dset or sub-brick index.\n");
+      return (vals) ;
+
+   }
+   nvox = DSET_NVOX(mask_dset) ;
+
+   DSET_load(mask_dset) ; if( !DSET_LOADED(mask_dset) ) return (vals) ;
+
+   vals = (int *)malloc(sizeof(int)*nvox);
+   if (!vals) {
+      fprintf(stderr,"** Failed to allocate.\n");
+      return (vals) ;
+   }
+
+   switch( DSET_BRICK_TYPE(mask_dset,miv) ){
+      default:
+         fprintf(stderr,"** Bad dset type for unique operation.\nOnly Byte, Short and float dsets are allowed.\n");
+         DSET_unload(mask_dset) ; if (vals) free(vals); vals = NULL; return (vals) ;
+
+      case MRI_short:{
+         short *mar = (short *) DSET_ARRAY(mask_dset,miv) ;
+         float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
+         if( mfac == 0.0 ) mfac = 1.0 ;
+
+         if (cmask) {
+            for( ii=0 ; ii < nvox ; ii++ )
+               if (cmask[ii]) vals[ii] = (int)(mar[ii]*mfac); else vals[ii] = 0;
+         } else {
+            for( ii=0 ; ii < nvox ; ii++ )
+               vals[ii] = (int)(mar[ii]*mfac);
+         }
+
+      }
+      break ;
+
+      case MRI_byte:{
+         byte *mar = (byte *) DSET_ARRAY(mask_dset,miv) ;
+         float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
+         if( mfac == 0.0 ) mfac = 1.0 ;
+
+         if (cmask) {
+            for( ii=0 ; ii < nvox ; ii++ )
+               if (cmask[ii]) vals[ii] = (int)(mar[ii]*mfac); else vals[ii] = 0;
+         } else {
+            for( ii=0 ; ii < nvox ; ii++ )
+               vals[ii] = (int)(mar[ii]*mfac);
+         }
+
+      }
+      break ;
+
+      #if 1 /* bad idea, but necessary in certain cases. We store ints (from NIFTI) as floats.*/
+      case MRI_float:{
+         float *mar = (float *) DSET_ARRAY(mask_dset,miv) ;
+         float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
+         if( mfac == 0.0 ) mfac = 1.0 ;
+
+         if (cmask) {
+            for( ii=0 ; ii < nvox ; ii++ )
+               if (cmask[ii]) vals[ii] = (int)(mar[ii]*mfac); else vals[ii] = 0;
+         } else {
+            for( ii=0 ; ii < nvox ; ii++ )
+               vals[ii] = (int)(mar[ii]*mfac);
+         }
+
+      }
+      break ;
+      #endif
+   }
+
+   /* unique */
+   unq = UniqueInt (vals, nvox, &n_unique, 0 );
+   /* fprintf(stderr,"-- Have %d unique values\n", n_unique); */
+   if (!unq) {
+      fprintf(stderr,"** Failed to create unique list\n");
+      free(vals); return (NULL);
+   }
+   
+   /*fprintf(stderr,"-- Writing mapping to >>%s<<\n", mapname);*/
+   if (mapname[0]) {
+      if ((fout = fopen(mapname,"w"))) {
+         fprintf(fout, "#Rank Map (%d unique values)\n", n_unique);
+         fprintf(fout, "#Col. 0: Rank\n");
+         fprintf(fout, "#Col. 1: Input Dset Value\n");
+      }
+   }
+   /* now replace by rank */
+   for (r=0; r<n_unique; ++r) {
+      /* fprintf(stderr,"-- Doing %d ...\n", unq[r]); */
+      if (fout) fprintf(fout, "%d   %d\n", r, unq[r]);
+      if (cmask) {
+         for (ii=0; ii<nvox; ii++) {
+            if (cmask[ii]) {
+               if (vals[ii] == unq[r]) vals[ii] = r; 
+            } else vals[ii] = 0;
+         }
+      } else {
+         for( ii=0 ; ii < nvox ; ii++ ) if (vals[ii] == unq[r]) vals[ii] = r; 
+      }
+   }
+
+   free(unq); unq = NULL;
+   if (fout) fclose(fout); fout = NULL;
+
+   return (vals) ;
+}
+
+/* Same as THD_unique_rank but replaces values in mask_dset with rank */
+int THD_unique_rank_edit( THD_3dim_dataset *mask_dset ,
+                           int miv,
+                           byte *cmask,
+                           char *mapname)
+{
+   int *vals=NULL, nvox, mxval, ii;
+   
+   if (!(vals = THD_unique_rank(mask_dset, miv, cmask, mapname))) {
+      fprintf(stderr,"** Failed to uniquate\n");
+      return (0);
+   }
+   
+   mxval = -1;
+   nvox = DSET_NVOX(mask_dset) ;
+   for( ii=0 ; ii < nvox ; ii++ ) { if (vals[ii] > mxval) mxval = vals[ii]; }
+   /* fprintf (stderr,"-- Have maxval of %d\n", mxval); */
+   
+   switch( DSET_BRICK_TYPE(mask_dset,miv) ){
+      default:
+         fprintf(stderr,"** Bad dset type for unique operation.\nShould have been stopped a while ago.\n");
+         if (vals) free(vals); vals = NULL; return (0) ;
+
+      case MRI_short:{
+         short *mar = (short *) DSET_ARRAY(mask_dset,miv) ;
+         if (mxval > MRI_TYPE_maxval[MRI_short]) {
+            fprintf(stderr,"** Have too many unique values (%d) for datatype short (limit %f)!\n",
+                            mxval, MRI_TYPE_maxval[MRI_short]);
+            if (vals) free(vals); vals = NULL; return (0) ; 
+         }
+         EDIT_BRICK_FACTOR(mask_dset,miv,0.0);
+         for( ii=0 ; ii < nvox ; ii++ ) 
+            mar[ii] = (short)(vals[ii]);
+      }
+      break ;
+
+      case MRI_byte:{
+         byte *mar = (byte *) DSET_ARRAY(mask_dset,miv) ;
+         if (mxval > MRI_TYPE_maxval[MRI_byte]) {
+            fprintf(stderr,"** Have too many unique values (%d) for datatype byte (limit %f)!\n", 
+                              mxval, MRI_TYPE_maxval[MRI_byte]);
+            if (vals) free(vals); vals = NULL; return (0) ; 
+         }
+         EDIT_BRICK_FACTOR(mask_dset,miv,0.0);
+         for( ii=0 ; ii < nvox ; ii++ ) 
+            mar[ii] = (byte)(vals[ii]);
+      }
+      break ;
+
+      case MRI_float:{
+         float *mar = (float *) DSET_ARRAY(mask_dset,miv) ;
+         EDIT_BRICK_FACTOR(mask_dset,miv,0.0);
+         for( ii=0 ; ii < nvox ; ii++ ) 
+            mar[ii] = (float)(vals[ii]);
+      }
+      break ;
+   }
+   
+   return (1);
+
+}
+
 /*---------------------------------------------------------------------*/
 /*! Count the number of nonzero voxels in a mask.
 -----------------------------------------------------------------------*/

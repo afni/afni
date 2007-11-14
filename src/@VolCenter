@@ -52,6 +52,8 @@ PARSE:
    endif
 DEED:
    set v1_orient = `@GetAfniOrient $v1`
+   goto NEW_DEED
+   OLD_DEED:   #Pre Nov 07, fails with NIFTI
    set resp = `3dAttribute -name ORIGIN $v1`
    set v1_origin = ( $resp[3] $resp[4] $resp[5] )
    #echo "Origin Experiment Talairach: $v1_origin : $v1_orient"
@@ -72,8 +74,12 @@ DEED:
    
    #get center in RAI	(don't ask me about the F* delta)
    set v1_center_RAI = `@ToRAI -xyz $v1_center[1] $v1_center[2] $v1_center[3] -or $v1_orient -delta`
-
-
+   goto NEXT
+   
+   NEW_DEED:
+   set v1_center_RAI = `3dAttribute -center $v1`
+   
+NEXT:
    if ("$or" == "") then
       set or = $v1_orient
    endif
