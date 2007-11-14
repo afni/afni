@@ -188,6 +188,7 @@ int main( int argc , char *argv[] )
    float  hist_param           = 0.0f ;
    int    hist_setbyuser       = 0 ;
    int    do_cmass             = 0 ;            /* 30 Jul 2007 */
+   int    do_refinal           = 1 ;            /* 14 Nov 2007 */
 
    int auto_tdilation          = 0 ;            /* for -source_automask+N */
    int auto_tmask              = 0 ;
@@ -386,7 +387,9 @@ int main( int argc , char *argv[] )
        "               that the alignment process did not go wild and crazy.\n"
        "               [Default == no check == don't worry, be happy!]\n"
        "       **N.B.: You can put more than one method after '-check', as in\n"
-       "                 -nmi -check hel mi crU\n"
+       "                 -nmi -check nmi hel mi crU\n"
+       "               This example checks the nmi cost against itself, which\n"
+       "               may be a little strange for some tastes.\n"
        "\n"
        " ** PARAMETERS THAT AFFECT THE COST OPTIMIZATION STRATEGY **\n"
        " -onepass    = Use only the refining pass -- do not try a coarse\n"
@@ -772,6 +775,10 @@ int main( int argc , char *argv[] )
         "                 at various points.\n"
         " -allcostX     = Compute and print ALL available cost functions for the\n"
         "                 un-warped inputs, and then quit.\n"
+        " -norefinal    = Do NOT re-start the fine iteration step after it\n"
+        "                 has converged.  The default is to re-start it, which\n"
+        "                 usually results in a small improvement to the result\n"
+        "                 (at the cost of CPU time).\n"
        ) ;
        printf("\n"
               " Hidden experimental cost functions:\n") ;
@@ -804,6 +811,12 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     /*-----*/
+
+     if( strcmp(argv[iarg],"-norefinal") == 0 ){ /* 14 Nov 2007 */
+       do_refinal = 0 ; iarg++ ; continue ;      /* SECRET OPTION */
+     }
 
      /*-----*/
 
@@ -1112,7 +1125,7 @@ int main( int argc , char *argv[] )
      /** -shortname **/
 
      for( jj=ii=0 ; ii < NMETH ; ii++ ){
-       if( strcmp(argv[iarg]+1,meth_shortname[ii]) == 0 ){
+       if( strcasecmp(argv[iarg]+1,meth_shortname[ii]) == 0 ){
          meth_code = jj = ii+1 ; break ;
        }
      }
@@ -1121,7 +1134,7 @@ int main( int argc , char *argv[] )
      /** -longname **/
 
      for( jj=ii=0 ; ii < NMETH ; ii++ ){
-       if( strncmp(argv[iarg]+1,meth_longname[ii],7) == 0 ){
+       if( strncasecmp(argv[iarg]+1,meth_longname[ii],7) == 0 ){
          meth_code = jj = ii+1 ; break ;
        }
      }
@@ -1133,14 +1146,14 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("no argument after '-cost'!") ;
 
        for( jj=ii=0 ; ii < NMETH ; ii++ ){
-         if( strcmp(argv[iarg],meth_shortname[ii]) == 0 ){
+         if( strcasecmp(argv[iarg],meth_shortname[ii]) == 0 ){
            meth_code = jj = ii+1 ; break ;
          }
        }
        if( jj > 0 ){ iarg++ ; continue ; } /* there was a match */
 
        for( jj=ii=0 ; ii < NMETH ; ii++ ){
-         if( strncmp(argv[iarg],meth_longname[ii],7) == 0 ){
+         if( strncasecmp(argv[iarg],meth_longname[ii],7) == 0 ){
            meth_code = jj = ii+1 ; break ;
          }
        }
@@ -1157,14 +1170,14 @@ int main( int argc , char *argv[] )
        for( ; iarg < argc && argv[iarg][0] != '-' ; iarg++ ){
          if( meth_check_count == NMETH ) continue ; /* malicious user? */
          for( jj=ii=0 ; ii < NMETH ; ii++ ){
-           if( strcmp(argv[iarg],meth_shortname[ii]) == 0 ){
+           if( strcasecmp(argv[iarg],meth_shortname[ii]) == 0 ){
              jj = ii+1 ; break ;
            }
          }
          if( jj > 0 ){ meth_check[ meth_check_count++ ] = jj; continue ;}
 
          for( jj=ii=0 ; ii < NMETH ; ii++ ){
-           if( strncmp(argv[iarg],meth_longname[ii],7) == 0 ){
+           if( strncasecmp(argv[iarg],meth_longname[ii],7) == 0 ){
              jj = ii+1 ; break ;
            }
          }
@@ -1663,14 +1676,14 @@ int main( int argc , char *argv[] )
        }
 
        for( jj=ii=0 ; ii < NMETH ; ii++ ){
-         if( strcmp(argv[iarg],meth_shortname[ii]) == 0 ){
+         if( strcasecmp(argv[iarg],meth_shortname[ii]) == 0 ){
            replace_meth = jj = ii+1 ; break ;
          }
        }
        if( jj > 0 ){ iarg++ ; continue ; }
 
        for( jj=ii=0 ; ii < NMETH ; ii++ ){
-         if( strncmp(argv[iarg],meth_longname[ii],7) == 0 ){
+         if( strncasecmp(argv[iarg],meth_longname[ii],7) == 0 ){
            replace_meth = jj = ii+1 ; break ;
          }
        }
@@ -1801,6 +1814,9 @@ int main( int argc , char *argv[] )
 
      ERROR_exit("Unknown and Illegal option '%s'",argv[iarg]) ;
    }
+
+   if( iarg < argc )
+     WARNING_message("Processing command line options stopped at '%s'",argv[iarg]);
 
    /*---------------------------------------------------------------*/
    /*--- check inputs for validity, consistency, and moral fibre ---*/
@@ -2066,8 +2082,8 @@ int main( int argc , char *argv[] )
 
    } else if( auto_weight ){  /* manufacture weight from the base */
      if( meth_noweight[meth_code-1] && auto_weight == 1 && auto_wclip == 0.0f ){
-       WARNING_message("Cost function '%s' uses -automask NOT -autoweight",
-                       meth_longname[meth_code-1] ) ;
+       WARNING_message("Cost function '%s' ('%s') uses -automask NOT -autoweight",
+                       meth_longname[meth_code-1] , meth_shortname[meth_code-1] ) ;
        auto_weight = 2 ;
      } else if( verb >= 1 ){
        INFO_message("Computing %s",auto_string) ;
@@ -2398,16 +2414,17 @@ int main( int argc , char *argv[] )
      zzz = 0.5f * (zp-zm) * dz_base ;
    }
    xxx = (nz_base > 1) ? cbrt(xxx*yyy*zzz) : sqrt(xxx*yyy) ;
-   zzz = 1.e+33 ;
-   for( jj=0 ; jj < 6 && jj < stup.wfunc_numpar ; jj++ ){
+   zzz = 0.01f ;
+   for( jj=0 ; jj < 9 && jj < stup.wfunc_numpar ; jj++ ){
      if( stup.wfunc_param[jj].fixed ) continue ;
      siz = stup.wfunc_param[jj].max - stup.wfunc_param[jj].min ;
      if( siz <= 0.0f ) continue ;
-     if( jj < 3 ) yyy = conv_mm / siz ;               /* shift */
-     else         yyy = 57.3f * conv_mm / (xxx*siz) ; /* angle */
+          if( jj < 3 ) yyy = conv_mm / siz ;               /* shift */
+     else if( jj < 6 ) yyy = 57.3f * conv_mm / (xxx*siz) ; /* angle */
+     else              yyy = conv_mm / (xxx*siz) ;         /* scale */
      zzz = MIN(zzz,yyy) ;
    }
-   conv_rad = MIN(zzz,0.001) ; conv_rad = MAX(conv_rad,0.00001) ;
+   conv_rad = MIN(zzz,0.001f) ; conv_rad = MAX(conv_rad,0.00001f) ;
    if( verb > 1 && apply_mode == 0 )
      INFO_message("Normalized convergence radius = %.6f",conv_rad) ;
 
@@ -2729,7 +2746,7 @@ int main( int argc , char *argv[] )
            }
          }
          if( verb > 1 )
-           ININFO_message("- Total refinement CPU time = %.1f s; funcs = %d",
+           ININFO_message("- Total refinement CPU time = %.1f s; %d funcs",
                           COX_cpu_time()-ctim,nfunc ) ;
 
          tfdone = tb ;  /* number we've saved in tfparm */
@@ -2752,7 +2769,7 @@ int main( int argc , char *argv[] )
          stup.smooth_radius_targ *= 0.666 ;
          mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
          nfunc += mri_genalign_scalar_optim( &stup , 0.0166 , 0.00166 , 666 ) ;
-         if( verb > 1 ) ININFO_message("- Coarse CPU time = %.1f s; funcs = %d",
+         if( verb > 1 ) ININFO_message("- Coarse CPU time = %.1f s; %d funcs",
                                        COX_cpu_time()-ctim,nfunc) ;
          if( verb     ) ININFO_message("- Coarse optimization:  best cost=%f",
                                        stup.vbest) ;
@@ -2836,7 +2853,7 @@ int main( int argc , char *argv[] )
 
      if( verb > 1 ){
        PARINI("- Initial fine") ;
-       ININFO_message("- Initial cost = %f",cost_ini) ;
+       ININFO_message("- Initial  cost = %f",cost_ini) ;
        ctim = COX_cpu_time() ;
      }
 
@@ -2857,7 +2874,7 @@ int main( int argc , char *argv[] )
        stup.npt_match   = MIN(499999,npt_match) ;
        mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;
        if( verb > 1 ) ININFO_message("- start Intermediate optimization") ;
-       if( verb > 2 ) GA_do_params(1) ;
+       /*** if( verb > 2 ) GA_do_params(1) ; ***/
        nfunc = mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 6666 );
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
          pini[jj] = stup.wfunc_param[jj].val_init ;
@@ -2869,13 +2886,13 @@ int main( int argc , char *argv[] )
        cost = mri_genalign_scalar_cost( &stup , NULL ) ; /* interp_code, not LINEAR */
        if( cost > cost_ini ){   /* should not happen, but it could since  */
          if( verb > 1 )         /* LINEAR cost optimized above isn't same */
-           ININFO_message("- Intrmed cost = %f > Initial cost = %f :-(",cost,cost_ini);
+           ININFO_message("- Intrmed  cost = %f > Initial cost = %f :-(",cost,cost_ini);
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
            stup.wfunc_param[jj].val_init = pini[jj] ;
        } else {
          if( verb > 1 ){
            PARINI("- Intrmed fine") ;
-           ININFO_message("- Intrmed cost = %f  funcs = %d",cost,nfunc) ;
+           ININFO_message("- Intrmed  cost = %f ; %d funcs",cost,nfunc) ;
          }
          if( nfunc < 6666 ) rad *= 0.246 ;
        }
@@ -2892,18 +2909,24 @@ int main( int argc , char *argv[] )
 
      /* now do the final final optimization, with the correct interp mode */
 
-     if( verb > 2 ) GA_do_params(1) ;
+     /*** if( verb > 2 ) GA_do_params(1) ; ***/
 
      nfunc += mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
 
-     if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ;
-     if( verb > 2 ) GA_do_params(1) ;
-     if( verb > 1 ) ININFO_message("- Fine CPU time = %.1f s",
-                                   COX_cpu_time()-ctim) ;
-     if( verb ) ININFO_message("- Fine Optimization took %d trials; final cost=%f",
-                               nfunc,stup.vbest) ;
+     if( do_refinal ){  /* 14 Nov 2007: a final final optimization? */
+       if( verb > 1 )
+         ININFO_message("- Finalish cost = %f ; %d funcs",stup.vbest,nfunc) ;
+       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+         stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
+       stup.need_hist_setup = 1 ;
+       nfunc += mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
+     }
 
-     if( verb > 1 ) PAROUT("Final fine fit") ;
+     /*** if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ; ***/
+     /*** if( verb > 2 ) GA_do_params(0) ; ***/
+     if( verb ) ININFO_message("- Final    cost = %f ; %d funcs",stup.vbest,nfunc) ;
+     if( verb > 1 && meth_check_count < 1 ) PAROUT("Final fine fit") ;
+     if( verb > 1 ) ININFO_message("- Fine CPU time = %.1f s",COX_cpu_time()-ctim) ;
 
      if( do_allcost != 0 ){
        PAR_CPY(val_out) ;
@@ -2957,11 +2980,13 @@ int main( int argc , char *argv[] )
        float pval[MAXPAR] , pdist , dmax ; int jmax,jtop ;
        int mm , mc ;
        PAROUT("Final fit") ;
-       INFO_message("Checking %s vs other costs",meth_longname[meth_code-1]) ;
+       INFO_message("Checking %s (%s) vs other costs",
+                    meth_longname[meth_code-1] , meth_shortname[meth_code-1] ) ;
        for( mm=0 ; mm < meth_check_count ; mm++ ){
          mc = meth_check[mm] ; if( mc <= 0 ) continue ;
          if( verb > 1 ){
-           ININFO_message("- checking vs cost %s",meth_longname[mc-1]) ;
+           ININFO_message("- checking vs cost %s (%s)",
+                          meth_longname[mc-1],meth_shortname[mc-1]) ;
            ctim = COX_cpu_time() ;
          }
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ) /* save output params */
@@ -2982,18 +3007,18 @@ int main( int argc , char *argv[] )
            }
          }
 
-         if( verb > 1 )
-           ININFO_message("- Check CPU time=%.1f s; trials=%d; dmax=%f jmax=%d",
-                          COX_cpu_time()-ctim , nfunc , dmax , jmax ) ;
          if( dmax > 20.0*conv_rad )
            WARNING_message(
-             "Check vs %s: max parameter discrepancy=%.4f%%! tolerance=%.4f%%",
-             meth_longname[mc-1] , 100.0*dmax , 2000.0*conv_rad ) ;
+             "Check vs %s (%s): max parameter discrepancy=%.4f%%! tolerance=%.4f%%",
+             meth_longname[mc-1] , meth_shortname[mc-1] , 100.0*dmax , 2000.0*conv_rad ) ;
          else
            ININFO_message(
-             "INFO:   Check vs %s: max parameter discrepancy=%.4f%% tolerance=%.4f%%",
-             meth_longname[mc-1] , 100.0*dmax , 2000.0*conv_rad ) ;
+             "INFO:   Check vs %s (%s): max parameter discrepancy=%.4f%% tolerance=%.4f%%",
+             meth_longname[mc-1] , meth_shortname[mc-1] , 100.0*dmax , 2000.0*conv_rad ) ;
          PAROUT("Check fit") ;
+         if( verb > 1 )
+           ININFO_message("- Check CPU time=%.1f s; funcs=%d; dmax=%f jmax=%d",
+                          COX_cpu_time()-ctim , nfunc , dmax , jmax ) ;
          if( do_allcost != 0 ){
            PAR_CPY(val_out) ;
            allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
@@ -3167,7 +3192,7 @@ DUMP_MAT44("aff12_ijk",qmat) ;
          mri_purge( DSET_BRICK(dset_out,kk) ) ;
      }
 
-     MEMORY_CHECK("end of 1 sub-brick alignment") ;
+     MEMORY_CHECK("end of sub-brick alignment") ;
 
    } /***------------- end of loop over target sub-bricks ------------------***/
 
@@ -3182,10 +3207,11 @@ DUMP_MAT44("aff12_ijk",qmat) ;
 
    /***--- write output dataset to disk? ---***/
 
-   MEMORY_CHECK("end of sub-brick loop") ;
+   MEMORY_CHECK("end of sub-brick loop (after cleanup)") ;
 
    if( dset_out != NULL ){
      DSET_write(dset_out); WROTE_DSET(dset_out); DSET_unload(dset_out);
+     MEMORY_CHECK("after writing output dataset") ;
    }
 
    /*--- save parameters to a file, if desired ---*/
@@ -3241,7 +3267,7 @@ DUMP_MAT44("aff12_ijk",qmat) ;
    if( matsave != NULL ) free((void *)matsave) ;
 
    if( verb ) INFO_message("total CPU time = %.1f sec\n",COX_cpu_time()) ;
-   MEMORY_CHECK("end of program") ;
+   MEMORY_CHECK("end of program (after final cleanup)") ;
    exit(0) ;
 }
 
