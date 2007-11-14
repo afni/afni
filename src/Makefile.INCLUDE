@@ -130,8 +130,8 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC 3dThreetoRGB Ifile  \
                3dAutobox 3dLRflip 3dANALYZEtoAFNI dicom_hdr 3dDespike nicat       \
                dicom_to_raw rotcom 3dDeconvolve_f 3dUniformize 3dWarp 3dWarpDrive \
-               file_tool.exe Imon.exe 3dresample.exe serial_helper.exe im2niml    \
-               nifti_tool.exe 3dAFNItoRaw DTIStudioFibertoSegments Dimon.exe      \
+               file_tool Imon 3dresample serial_helper im2niml                    \
+               nifti_tool 3dAFNItoRaw DTIStudioFibertoSegments Dimon              \
                3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAllineate       \
                3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty      \
                1dFlagMotion
@@ -1864,23 +1864,11 @@ r_misc.o: rickr/r_misc.c rickr/r_misc.h
 	$(RM) $@
 	$(CC) -o 3dresample 3dresample.o $(AFWARPOBJS) $(LFLAGS) $(LLIBS)
 
-3dresample.exe: libmri.a $(AFWARPOBJS)
-	( cd rickr ; 							\
-	$(MAKE) 3dresample 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'     \
-	                'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;		\
-	$(MV) 3dresample.exe .. ; )
-
 file_tool: ge4_header.o
 	( cd rickr ;                                                    \
 	$(MAKE) file_tool 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'      \
 			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
 	$(MV) file_tool .. ; )
-
-file_tool.exe: ge4_header.o
-	( cd rickr ;                                                    \
-	$(MAKE) file_tool 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'      \
-			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
-	$(MV) file_tool.exe .. ; )
 
 Dimon: rickr/Dimon.c rickr/Imon.h rickr/realtime.c rickr/realtime.h
 	( cd rickr ; 							\
@@ -1888,35 +1876,17 @@ Dimon: rickr/Dimon.c rickr/Imon.h rickr/realtime.c rickr/realtime.h
 		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
 	$(MV) Dimon .. ; )
 
-Dimon.exe: rickr/Dimon.c rickr/Imon.h rickr/realtime.c rickr/realtime.h
-	( cd rickr ; 							\
-	$(MAKE) Dimon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'        	\
-		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
-	$(MV) Dimon.exe .. ; )
-
 Imon: rickr/Imon.c rickr/Imon.h rickr/realtime.c rickr/realtime.h thd_iochan.o
 	( cd rickr ; 							\
 	$(MAKE) Imon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'        	\
 		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
 	$(MV) Imon .. ; )
 
-Imon.exe: thd_iochan.o
-	( cd rickr ; 							\
-	$(MAKE) Imon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'        	\
-		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
-	$(MV) Imon.exe .. ; )
-
 serial_helper: rickr/serial_helper.c
 	( cd rickr ;                                                    \
 	$(MAKE) serial_helper 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'  \
 		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
 	$(MV) serial_helper .. ; )
-
-serial_helper.exe: rickr/serial_helper.c
-	( cd rickr ;                                                    \
-	$(MAKE) serial_helper 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'  \
-		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
-	$(MV) serial_helper.exe .. ; )
 
 serial_writer: rickr/serial_writer.c
 	$(RM) $@
