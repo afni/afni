@@ -170,6 +170,7 @@ int main( int argc , char *argv[] )
    int dcode                   = DELTA_AFTER ;  /* shift after */
    int meth_check_count        = 0 ;            /* don't do it */
    int meth_check[NMETH+1] ;
+   int meth_median_replace     = 0 ;            /* don't do it */
    char *save_hist             = NULL ;         /* don't save it */
    long seed                   = 7654321 ;      /* random? */
    int XYZ_warp                = 0 ;            /* off by default */
@@ -386,10 +387,15 @@ int main( int argc , char *argv[] )
        "               increases the CPU time, but can help you feel sure\n"
        "               that the alignment process did not go wild and crazy.\n"
        "               [Default == no check == don't worry, be happy!]\n"
-       "       **N.B.: You can put more than one method after '-check', as in\n"
+       "       **N.B.: You can put more than one function after '-check', as in\n"
        "                 -nmi -check nmi hel mi crU\n"
        "               This example checks the nmi cost against itself, which\n"
        "               may be a little strange for some tastes.\n"
+       "       **N.B.: If you use '-CHECK' instead of '-check', AND there are\n"
+       "               at least two check function specified (in addition to\n"
+       "               the primary cost function), then the output parameter\n"
+       "               set will be the median of all the final parameter sets\n"
+       "               generated at this stage. **THIS IS EXPERIMENTAL**\n"
        "\n"
        " ** PARAMETERS THAT AFFECT THE COST OPTIMIZATION STRATEGY **\n"
        " -onepass    = Use only the refining pass -- do not try a coarse\n"
@@ -1164,8 +1170,9 @@ int main( int argc , char *argv[] )
 
      /*----- -check costname -----*/
 
-     if( strncmp(argv[iarg],"-check",5) == 0 ){
-       if( ++iarg >= argc ) ERROR_exit("no argument after '-check'!") ;
+     if( strncasecmp(argv[iarg],"-check",5) == 0 ){
+       if( strncmp(argv[iarg],"-CHECK",5) == 0 ) meth_median_replace = 1 ;
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
 
        for( ; iarg < argc && argv[iarg][0] != '-' ; iarg++ ){
          if( meth_check_count == NMETH ) continue ; /* malicious user? */
@@ -2978,7 +2985,17 @@ int main( int argc , char *argv[] )
 
      if( meth_check_count > 0 ){
        float pval[MAXPAR] , pdist , dmax ; int jmax,jtop ;
+       float **aval = NULL ;
        int mm , mc ;
+
+       if( meth_check_count > 1 ){   /* save for median-izing at end */
+         aval = (float **)malloc(sizeof(float *)*stup.wfunc_numpar) ;
+         for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
+           aval[jj] = (float *)malloc(sizeof(float)*(meth_check_count+1)) ;
+           aval[jj][0] = stup.wfunc_param[jj].val_out ;
+         }
+       }
+
        PAROUT("Final fit") ;
        INFO_message("Checking %s (%s) vs other costs",
                     meth_longname[meth_code-1] , meth_shortname[meth_code-1] ) ;
@@ -2995,6 +3012,11 @@ int main( int argc , char *argv[] )
          stup.match_code = mc ;
          nfunc = mri_genalign_scalar_optim( &stup, 22.2*conv_rad, conv_rad,666 );
          stup.match_code = meth_code ;
+
+         if( aval != NULL ){
+           for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+             aval[jj][mm+1] = stup.wfunc_param[jj].val_out ;
+         }
 
          /* compute distance between 2 output parameter sets */
 
@@ -3031,6 +3053,23 @@ int main( int argc , char *argv[] )
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
            stup.wfunc_param[jj].val_out = pval[jj] ;  /* restore previous param */
        } /* end of loop over check methods */
+
+       if( aval != NULL ){  /* median-ize the parameter sets */
+         for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
+           pval[jj] = qmed_float( meth_check_count+1 , aval[jj] ) ;
+           free((void *)aval[jj]) ;
+         }
+         free((void *)aval) ;
+         fprintf(stderr," + Median of Parameters =") ;
+         for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ) fprintf(stderr," %.4f",pval[jj]) ;
+         fprintf(stderr,"\n") ;
+         if( meth_median_replace ){  /* replace final results with median! */
+           ININFO_message("Replacing Final parameters with Median") ;
+           for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+             stup.wfunc_param[jj].val_out = pval[jj] ;
+         }
+       }
+
      } /* end of checking */
 
      /*- freeze warp-ing parameters (those after #0..5) for later rounds */
