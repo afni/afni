@@ -281,6 +281,10 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
          fprintf (SUMA_STDERR, "Error %s: Not ready to deal with inventor surfaces.\n", FuncName);
          SUMA_RETURN (NOPE);
          break;
+      case SUMA_BRAIN_VOYAGER:
+         fprintf (SUMA_STDERR, "Error %s: Not ready to deal with brain voyager surface writing.\n", FuncName);
+         SUMA_RETURN (NOPE);
+         break;
       case SUMA_FT_NOT_SPECIFIED:
       default:
          fprintf (SUMA_STDERR, "Error %s: Bad surface type.\n", FuncName);
@@ -3584,8 +3588,8 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
                SUMA_iswordin (SO->Name.FileName, ".pial") == 1 ||
                SUMA_iswordin (SO->Name.FileName, ".orig") == 1 ||
                SUMA_iswordin (SO->Name.FileName, ".fiducial") == 1 ||
-               SUMA_iswordin (SO->Name.FileName, "_WM") == 1 || 
-               SUMA_iswordin (SO->Name.FileName, "_GM") == 1 || 
+               SUMA_iswordin_ci (SO->Name.FileName, "_WM") == 1 || 
+               SUMA_iswordin_ci (SO->Name.FileName, "_GM") == 1 || 
                ( SUMA_iswordin (SO->Name.FileName, "_RECO") == 1 && !(SUMA_iswordin (SO->Name.FileName, "_inf") == 1) )
                ) {
             SUMA_RETURN('Y');

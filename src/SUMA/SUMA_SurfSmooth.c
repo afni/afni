@@ -2416,7 +2416,7 @@ int main (int argc,char *argv[])
             }
             break;  
          default:
-            fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
+            fprintf (SUMA_STDERR,"Error %s: Unsupported format for writing.\n", FuncName);
             exit(1);
       }
    } else {

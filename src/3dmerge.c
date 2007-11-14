@@ -87,6 +87,7 @@ static int   MRG_verbose      = 0;             /* 29 Jul 2003 */
 
 static char  MRG_output_session[THD_MAX_NAME]   = "./" ;
 static char  MRG_output_prefix [THD_MAX_PREFIX] = "mrg" ;
+
 #if 0
 static char  MRG_output_label  [THD_MAX_LABEL]  = "\0" ;
 #endif
@@ -96,6 +97,7 @@ static int   MRG_ivthr = -1 ;
 
 static int   MRG_nscale = 0 ; /* 15 Sep 2000 */
 
+static int   MRG_rank   = 0 ; /* 13 Nov 2007: ZSS */
 /*--------------------------- prototypes ---------------------------*/
 int MRG_read_opts( int , char ** ) ;
 void MRG_Syntax(void) ;
@@ -158,6 +160,12 @@ int MRG_read_opts( int argc , char * argv[] )
          MRG_ivthr = MRG_edopt.iv_thr = (int) strtod( argv[nopt++] , NULL ) ;
          continue ;
       }
+      
+      if( strncmp(argv[nopt],"-1rank", 5) == 0) {
+         MRG_rank = MRG_edopt.rank = 1;
+         nopt++ ; continue;
+      }
+
 
       /**** 09 Aug 2000: -1fmask dset ****/
 
@@ -543,7 +551,26 @@ DUMP1 ;
       MCW_strncpy( MRG_output_label , MRG_output_prefix , THD_MAX_LABEL ) ;
    }
 #endif
-
+   
+   /* if -1rank is used, pass the prefix */
+   if (MRG_rank) {
+      char prefix[THD_MAX_PREFIX];
+      FILENAME_TO_PREFIX(MRG_output_prefix, prefix);
+      if (prefix[0] == '\0') strcpy(prefix, MRG_output_prefix);
+      /*fprintf(stderr,"Prefix >>>%s<<< >>>%s<<<\n", MRG_output_prefix, prefix); */
+      if (PREFIX_IS_NIFTI(prefix)) {
+         char *p2=NULL; 
+         if (STRING_HAS_SUFFIX( prefix,".nii")) {
+            p2 = strstr( prefix, ".nii"); 
+            prefix[p2- prefix]='\0';
+         } else if (STRING_HAS_SUFFIX( prefix,".nii.gz")) {
+            p2 = strstr( prefix, ".nii.gz");
+            prefix[p2- prefix]='\0';
+         } 
+      } 
+      sprintf(MRG_edopt.rankmapname,"%s/%s.1D", MRG_output_session, prefix);
+   }
+   
    return( nopt );
 }
 
@@ -712,6 +739,20 @@ void MRG_Syntax(void)
     "     is a filter with N=81 that gives nice results.\n"
     "   N.B.: This option is NOT affected by -1fmask\n"
     "   N.B.: This option is slow! and experimental.\n"
+    "\n"
+    "  The following option returns a rank value at each voxel in \n"
+    "  the input dataset.\n"
+    "  -1rank \n"
+    "     If the input voxels were, say, 12  45  9  0  9  12  0\n"
+    "     the output would be             2   3  1  0  1   2  0\n"
+    "     This option is handy for turning FreeSurfer's segmentation\n"
+    "     volumes to ROI volumes that can be easily colorized with AFNI.\n"
+    "     For example:\n"
+    "     3dmerge -1rank -prefix aparc+aseg_rank aparc+aseg.nii \n"
+    "     To view aparc+aseg_rank+orig, use the ROI_128 colormap\n"
+    "     and set the colorbar range to 128.\n"
+    "     The option also output a 1D file that contains the mapping\n"
+    "     from the input dataset to the ranked output.\n" 
     "\n"
     "MERGING OPTIONS APPLIED TO FORM THE OUTPUT DATASET:\n"
     " [That is, different ways to combine results. The]\n"

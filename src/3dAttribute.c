@@ -8,13 +8,14 @@
 
 static int do_all  = 0 ;
 static int do_name = 0 ;
-
+static int do_center = 0 ;
 int main( int argc , char * argv[] )
 {
    int nopt=1 , ia ;
    THD_3dim_dataset * dset ;
-   char * aname ;
+   char * aname =NULL;
    ATR_any * atr ;
+   THD_fvec3 fv;
    char *ssep=NULL, *sprep = NULL;
    char ssep_def[] = {"~"};
    char quote = '\0';
@@ -32,6 +33,9 @@ int main( int argc , char * argv[] )
              "          they are in the .HEAD file, one per line.  You may want\n"
              "          to do '3dAttribute -all elvis+orig | sort' to get them\n"
              "          in alphabetical order.\n"
+             "  -center = Center of volume in RAI coordinates.\n"
+             "            Note that center is not itself an attribute in the \n"
+             "           .HEAD file. It is calculated from other attributes.\n"
              "  Special options for string attributes:\n"
              "    -ssep SSEP    Use string SSEP as a separator between strings for\n"
              "                  multiple sub-bricks. The default is '~', which is what\n"
@@ -53,6 +57,11 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-all") == 0 ){
          do_all = do_name = 1 ;
+         nopt++ ; continue ;
+      }
+      
+      if( strcmp(argv[nopt],"-center") == 0 ){
+         do_center = 1 ;
          nopt++ ; continue ;
       }
       
@@ -90,25 +99,32 @@ int main( int argc , char * argv[] )
    }
 
    if (!ssep) ssep = ssep_def;
-   if( !do_all ) aname = argv[nopt++] ;
+   if( !do_all && !do_center) aname = argv[nopt++] ;
 
    dset  = THD_open_one_dataset( argv[nopt] ) ;
    if( !ISVALID_DSET(dset) ){
       fprintf(stderr,"*** Can't open dataset %s\n",argv[nopt]); exit(1);
    }
-
-   if( !do_all ){
+   
+   if( !do_all && aname){
       atr = THD_find_atr( dset->dblk , aname ) ;
       if( atr == NULL ) exit(1) ;                  /* failure */
       atr_print( atr, ssep, sprep, quote, do_name ) ;
       exit(0) ;
    }
 
-   for( ia=0 ; ia < dset->dblk->natr ; ia++ ){
-      atr = &(dset->dblk->atr[ia]) ;
-      atr_print(atr, ssep, sprep, quote, do_name) ;
+   if (do_all) {
+      for( ia=0 ; ia < dset->dblk->natr ; ia++ ){
+         atr = &(dset->dblk->atr[ia]) ;
+         atr_print(atr, ssep, sprep, quote, do_name) ;
+      }
    }
 
+   if (do_center) {
+      fv = THD_dataset_center( dset ) ;
+      if (do_name) fprintf(stdout, "center = ");
+      fprintf(stdout, "%f %f %f\n", fv.xyz[0], fv.xyz[1], fv.xyz[2]);
+   }
    exit(0) ;
 }
 

@@ -45,7 +45,7 @@ void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt )
    int   edit_ivthr    = edopt->iv_thr ;         /* 30 Nov 1997 */
    int   verbose       = edopt->verbose ;        /* 01 Nov 1999 */
    int   fake_dxyz     = edopt->fake_dxyz ;      /* 11 Sep 2000 */
-
+   int   rank          = edopt->rank;            /* 13 Nov 2007 */
    int   edit_clip_unscaled = edopt->clip_unscaled ;  /* 09 Aug 1996 */
 
    THD_dataxes   * daxes ;
@@ -205,7 +205,7 @@ ENTRY("EDIT_one_dataset") ;
    /*----- copy threshold over intensity? -----*/
 
 STATUS("dataset loaded") ;
-
+   
    if( edit_thtoin && iv_thr >= 0 ){
       float new_fimfac , scaling ;
 
@@ -868,6 +868,16 @@ fprintf(stderr," -1zscore: retyping\n") ;
       }
    }
 
+   /* turn dset to rank */
+   if ( edopt->rank) {
+      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: Converting to rank value.\n");
+      if (!(THD_unique_rank_edit(dset ,
+                              iv_fim,
+                              edopt->fmask,
+                              edopt->rankmapname))) {
+         fprintf(stderr,"*** Ranking error.\n");                        
+      }
+   }
    /*------ DONE! -----*/
 
    EXRETURN ;

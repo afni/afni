@@ -107,7 +107,8 @@ goto END
 HELP:
    echo "Usage: `basename $0` <FSvoldata> <Prefix>"
    echo "A script to convert COR- or .mgz files from FreeSurfer."
-   echo ""
+   echo " DO NOT use this script for general purpose .mgz conversions"
+   echo " Use mri_convert instead."
    echo "Example 1: Taking COR- images in mri/orig to BRIK volume"
    echo "      @SUMA_FSvolToBRIK mri/orig test/cor_afni"
    echo ""
