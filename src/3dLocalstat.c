@@ -57,7 +57,8 @@ int main( int argc , char *argv[] )
    int do_fwhm=0 , verb=1 ;
    int npv = -1; 
    int ipv;
-
+   int datum = MRI_float;
+   
    /*---- for the clueless who wish to become clued-in ----*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -136,6 +137,9 @@ int main( int argc , char *argv[] )
       " -prefix ppp = Use string 'ppp' as the prefix for the output dataset.\n"
       "               The output dataset is always stored as floats.\n"
       "\n"
+      " -datum type = Coerce the output data to be stored as the given type, \n"
+      "               which may be byte, short, or float.\n"
+      "               Default is float\n"
       " -quiet      = Stop the annoying progress reports.\n"
       "\n"
       "Author: RWCox - August 2005.  Instigator: ZSSaad.\n"
@@ -158,7 +162,24 @@ int main( int argc , char *argv[] )
      if( strncmp(argv[iarg],"-q",2) == 0 ){
        verb = 0 ; iarg++ ; continue ;
      }
+     
+     /**** -datum type ****/
 
+     if( strncasecmp(argv[iarg],"-datum",6) == 0 ){
+        if( ++iarg >= argc )
+          ERROR_exit("need an argument after -datum!\n") ;
+        if( strcasecmp(argv[iarg],"short") == 0 ){
+           datum = MRI_short ;
+        } else if( strcasecmp(argv[iarg],"float") == 0 ){
+           datum = MRI_float ;
+        } else if( strcasecmp(argv[iarg],"byte") == 0 ){
+           datum = MRI_byte ;
+        } else {
+            ERROR_exit("-datum of type '%s' not supported in 3dLocalstat!\n",argv[iarg]) ;
+        }
+        iarg++ ; continue ;  
+     }
+     
      if( strcmp(argv[iarg],"-input") == 0 ){
        if( inset != NULL  ) ERROR_exit("Can't have two -input options") ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-input'") ;
@@ -353,6 +374,7 @@ int main( int argc , char *argv[] )
    /*---- actually do some work for a change ----*/
 
    THD_localstat_verb(verb) ;
+   THD_localstat_datum(datum);
    outset = THD_localstat( inset , mask , nbhd , ncode , code, codeparams ) ;
 
    DSET_unload(inset) ;
