@@ -3,10 +3,12 @@
 #undef  IS_COLSEP
 #define IS_COLSEP(s) ( strcmp((s),"\\")==0 || strcmp((s),"|")==0 )
 
-/*-----------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 /*! Produce a 1D (float) image from a string of the form "20@1,10@0,5@1".
-    13 Apr 2006: make '\' be a column separator.
--------------------------------------------------------------------------------*/
+    - 13 Apr 2006: make '\' be a column separator.
+    - Later yet:   make '|' be a column separator, too.
+    - Also see:    mri_1D_tostring().
+*//*--------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_1D_fromstring( char *str )
 {
@@ -82,8 +84,9 @@ ENTRY("mri_1D_fromstring") ;
    free(col_len) ; RETURN(flim) ;
 }
 
-/*-----------------------------------------------------------------------------------*/
-/*! Similar to mri_1D_fromstring, but for 'ragged' 1D files. [05 Jan 2007] */
+/*---------------------------------------------------------------------------*/
+/*! Similar to mri_1D_fromstring, but for 'ragged' 1D files. [05 Jan 2007] 
+*//*-------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_read_ragged_fromstring( char *str , float filler )
 {
@@ -163,19 +166,25 @@ ENTRY("mri_read_ragged_fromstring") ;
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Kind of the inverse to mri_1D_fromstring() */
+/*! Kind of the inverse to mri_1D_fromstring().
+    free() the output string when you are done with it!
+*//*------------------------------------------------------------------------*/
 
-char * mri_to1Dstring( MRI_IMAGE *im )  /* 17 Nov 2007 */
+char * mri_1D_tostring( MRI_IMAGE *im )  /* 17 Nov 2007 */
 {
    char *outbuf = NULL ;
    int nx,ny , ii,jj ;
+   MRI_IMAGE *tim ;
    float *far ;
 
-ENTRY("mri_to1Dstring") ;
+ENTRY("mri_1D_tostring") ;
 
-   if( im == NULL || im->kind != MRI_float || im->nz > 1 ) RETURN(NULL) ;
+   if( im == NULL || im->nz > 1 ) RETURN(NULL) ;
 
-   nx = im->nx ; ny = im->ny ; far = MRI_FLOAT_PTR(im) ;
+   if( im->kind != MRI_float ) tim = mri_to_float(im) ;
+   else                        tim = im ;
+
+   nx = tim->nx ; ny = tim->ny ; far = MRI_FLOAT_PTR(tim) ;
 
    outbuf = THD_zzprintf( outbuf , "%s" , "1D:" ) ;
    for( jj=0 ; jj < ny ; jj++ ){
@@ -184,5 +193,7 @@ ENTRY("mri_to1Dstring") ;
      }
      if( jj < ny-1 ) outbuf = THD_zzprintf( outbuf , "%s" , " |" ) ;
    }
+
+   if( tim != im ) mri_free(tim) ;
    RETURN(outbuf) ;
 }
