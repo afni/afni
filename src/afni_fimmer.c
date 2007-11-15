@@ -1967,11 +1967,11 @@ ENTRY("AFNI_fimmer_execute") ;
 
    if( !AFNI_noenv("AFNI_FIM_SAVEREF") ){
      char *istr ;
-     istr = mri_to1Dstring( ref_ts ) ;
+     istr = mri_1D_tostring( ref_ts ) ;
      if( istr != NULL ){
        THD_set_string_atr(new_dset->dblk,"AFNI_FIM_REF",istr) ; free(istr) ;
      }
-     istr = mri_to1Dstring( ort_ts ) ;
+     istr = mri_1D_tostring( ort_ts ) ;
      if( istr != NULL ){
        THD_set_string_atr(new_dset->dblk,"AFNI_FIM_ORT",istr) ; free(istr) ;
      }
