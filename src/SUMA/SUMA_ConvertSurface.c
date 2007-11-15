@@ -750,53 +750,11 @@ int main (int argc,char *argv[])
    
    
    /* write the surface object */
-   switch (oType) {
-      case SUMA_SUREFIT:
-         if (!SUMA_Save_Surface_Object (SO_name, SO,  SUMA_SUREFIT, SUMA_ASCII, NULL)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-            exit (1);
-         }
-         break;
-      case SUMA_VEC:
-         if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_VEC, SUMA_ASCII, NULL)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-            exit (1);
-         }
-         break;
-      case SUMA_FREE_SURFER:
-         if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_FREE_SURFER, SUMA_ASCII, NULL)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-            exit (1);
-         }
-         break;
-      case SUMA_FREE_SURFER_PATCH:
-         if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_FREE_SURFER_PATCH, SUMA_ASCII, SOpar)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-            exit (1);
-         }
-         break;  
-      case SUMA_OPENDX_MESH:
-         if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_OPENDX_MESH, SUMA_ASCII, NULL)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-            exit (1);
-         }
-         break;  
-      case SUMA_PLY:
-         if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, NULL)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-            exit (1);
-         }
-         break;  
-      case SUMA_BYU:
-         if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_BYU, SUMA_ASCII, NULL)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-            exit (1);
-         }
-         break;  
-      default:
-         fprintf (SUMA_STDERR,"Error %s: Unsupported format for writing.\n", FuncName);
-         exit(1);
-   }
+   if (!(SUMA_Save_Surface_Object ( SO_name,
+                                    SO, oType, SUMA_FF_NOT_SPECIFIED, SOpar))) {
+         fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+         exit (1);
+   } 
    
    
    

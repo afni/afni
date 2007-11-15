@@ -1403,8 +1403,7 @@ double SUMA_NewAreaAtRadius(SUMA_SurfaceObject *SO, double r, double Rref, float
    SUMA_ENTRY;
 
    /* calculate Dr and normalize by the radius of SOref */
-   Dr = ( Rref - r ) / Rref;
-
+   Dr = ( r - Rref ) / Rref;
    /* Now loop over all the nodes in SO and add the deal */
    for (i=0; i<SO->N_Node; ++i) {
       /* change node coordinate of each node by Dr, along radial direction  */
@@ -1428,6 +1427,8 @@ double SUMA_NewAreaAtRadius(SUMA_SurfaceObject *SO, double r, double Rref, float
    A = fabs((double)SUMA_Mesh_Area(SO, NULL, -1));
    SO->NodeList = fp; fp = NULL;   /* make NodeList point to the original data */
 
+   SUMA_LHv("Old: Rref=%.4f \n"
+            "New:    r=%.4f, Area=%.4f\n", Rref, r, A);
    SUMA_RETURN(A);
 } 
 /*!
@@ -1494,7 +1495,7 @@ double SUMA_NewVolumeAtRadius(SUMA_SurfaceObject *SO, double r, double Rref, flo
    SUMA_ENTRY;
 
    /* calculate Dr and normalize by the radius of SOref */
-   Dr = ( Rref - r ) / Rref;
+   Dr = ( r - Rref ) / Rref;
 
    /* Now loop over all the nodes in SO and add the deal */
    for (i=0; i<SO->N_Node; ++i) {
@@ -1560,7 +1561,7 @@ double SUMA_AreaDiff(double r, void *fvdata)
    }
    
    A = SUMA_NewAreaAtRadius(SO, r, Rref, fdata->tmpList);
-   da = Aref - A; /* the area difference */
+   da = A - Aref; /* the area difference */
    if (LocalHead) {
       fprintf(SUMA_STDERR,"%s: Call %d, A = %f, Aref = %f, da = %f\n", FuncName,ncall, A, Aref, da);
    }
@@ -1615,7 +1616,7 @@ double SUMA_VolDiff(double r, void *fvdata)
    }
    
    V = SUMA_NewVolumeAtRadius(SO, r, Rref, fdata->tmpList);
-   dv = Vref - V; /* the volume difference */
+   dv = V-Vref; /* the volume difference */
       
    /* need an update ? */
    if (cs->Send) { /* send the update (it's SOref "in SUMA" that's being modified on the fly) */
@@ -1695,29 +1696,28 @@ SUMA_Boolean SUMA_GetAreaDiffRange(SUMA_AreaDiffDataStruct *fdata, double *ap, d
    fdata->A = fabs((double)SUMA_Mesh_Area(fdata->SO, NULL, -1));
    SUMA_SO_RADIUS(fdata->SO, fdata->R);
 
-   /* a very simple range setting. might very well fail at times */
-   if (fdata->Aref - fdata->A < 0) { 
-      a = fdata->R; /* choose 'a' such that Aref - A is < 0, Choose b later*/
+   if (fdata->Aref > fdata->A) { /* current settings low end, acceptable for a */
+      a = fdata->R; 
       An = fdata->A;
+      /* now find b such that area at b is larger than Aref */
       b = fdata->Rref;
       do {
-         SUMA_LH("Looking for b");
-         b *= 1.3;  /* choose A that Aref - A is > 0 */
+         b *= 1.1;
          Bn = SUMA_NewAreaAtRadius(fdata->SO, b, fdata->Rref, fdata->tmpList);
          ++nbt;
-      } while ( fdata->Aref - Bn < 0 && nbt < 200);
-   }else{
-      b = fdata->R; /* choose 'b' such that Aref - A is > 0, Choose a later*/
+      } while ( fdata->Aref > Bn && nbt < 200); /* stop when area at B is larger than Aref */
+   } else { /* current settings high end, acceptable for b */
+      b = fdata->R;
       Bn = fdata->A;
+      /* now find a such that area at a is less than Aref */
       a = fdata->Rref;
       do {
-         SUMA_LH("Looking for a");
-         a *= 0.7;
+         a *= 0.9;
          An = SUMA_NewAreaAtRadius(fdata->SO, a, fdata->Rref, fdata->tmpList);
          ++nat;
-      } while ( fdata->Aref -  An> 0 && nat < 200);
+      } while ( fdata->Aref < An && nat < 200); /* stop when area at A is smaller than Aref */
+   
    }
-
    *ap = a; *bp = b;
 
    if (nat >= 200 || nbt >= 200) {
@@ -1753,20 +1753,20 @@ SUMA_Boolean SUMA_GetVolDiffRange(SUMA_VolDiffDataStruct *fdata, double *ap, dou
    SUMA_SO_RADIUS(fdata->SO, fdata->R);
 
    /* a very simple range setting. might very well fail at times */
-   if (fdata->Vref - fdata->V < 0) { 
-      a = fdata->R; /* choose 'a' such that Vref - V is < 0, Choose b later*/
-      b = fdata->Rref;
+   if (fdata->Vref > fdata->V) { /* current settings low end, acceptable for a */ 
+      a = fdata->R; 
+      b = fdata->Rref;/* now find b such that volume at b is larger than Vref */
       do {
          SUMA_LH("Looking for b");
-         b *= 1.3; ++nbt; /* choose b that Vref - V is > 0 */
-      } while ( fdata->Vref - SUMA_NewVolumeAtRadius(fdata->SO, b, fdata->Rref, fdata->tmpList) < 0 && nbt < 200);
-   }else{
-      b = fdata->R; /* choose 'b' such that Vref - V is > 0, Choose a later*/
-      a = fdata->Rref;
+         b *= 1.1; ++nbt; 
+      } while ( fdata->Vref > SUMA_NewVolumeAtRadius(fdata->SO, b, fdata->Rref, fdata->tmpList) && nbt < 200);/* stop when volume  at B is larger than Vref */
+   }else{ /* current settings high end, acceptable for b */ 
+      b = fdata->R; 
+      a = fdata->Rref;/* now find a such that volume at a is less than Vref */
       do {
          SUMA_LH("Looking for a");
-         a *= 0.7; ++nat;
-      } while ( fdata->Vref - SUMA_NewVolumeAtRadius(fdata->SO, a, fdata->Rref, fdata->tmpList) > 0 && nat < 200);
+         a *= 0.9; ++nat;
+      } while ( fdata->Vref < SUMA_NewVolumeAtRadius(fdata->SO, a, fdata->Rref, fdata->tmpList) && nat < 200); /* stop when volume  at A is smaller than Vref */
    }
 
    *ap = a; *bp = b;

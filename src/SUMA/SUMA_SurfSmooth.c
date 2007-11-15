@@ -2363,62 +2363,18 @@ int main (int argc,char *argv[])
    /* write out the filtered geometry. Should not be executed for data smoothing */
    if (Opt->surf_out) {
       SUMA_SO_File_Type ft=SUMA_FT_NOT_SPECIFIED;
+      SUMA_SO_File_Type ff=SUMA_FF_NOT_SPECIFIED;
       if (!dsmooth) {
          SUMA_SL_Err("NULL dsmooth for geometry smoothing. Either failed to smooth or logical error.");
          exit(1);
       }
       if ((ft = SUMA_guess_surftype_argv(Opt->surf_out)) <= SUMA_FT_NOT_SPECIFIED) ft = SO->FileType;
       SUMA_free(SO->NodeList); SO->NodeList = dsmooth; dsmooth = NULL; /* replace NodeList */
-      switch (ft) {
-         case SUMA_SUREFIT:
-            SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-            sprintf(SF_name->name_coord,"%s", Opt->surf_out);
-            SF_name->name_topo[0] = '\0'; 
-            SO_name = (void *)SF_name;
-            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_SUREFIT, SUMA_ASCII, NULL)) {
-               fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-               exit (1);
-            }
-            break;
-         case SUMA_VEC:
-            SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-            sprintf(SF_name->name_coord,"%s", Opt->surf_out);
-            SF_name->name_topo[0] = '\0';
-            SO_name = (void *)SF_name;
-            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_VEC, SUMA_ASCII, NULL)) {
-               fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-               exit (1);
-            }
-            break;
-         case SUMA_FREE_SURFER:
-            SO_name = (void *)Opt->surf_out; 
-            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_FREE_SURFER, SUMA_ASCII, NULL)) {
-               fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-               exit (1);
-            }
-            break;
-         case SUMA_FREE_SURFER_PATCH:
-            fprintf (SUMA_STDERR,"Error %s: No support for writing Free Surfer patches.\n", FuncName);
-            exit (1);  
-            break;
-         case SUMA_PLY:
-            SO_name = (void *)Opt->surf_out; 
-            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, NULL)) {
-               fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-               exit (1);
-            }
-            break;
-         case SUMA_OPENDX_MESH:
-            SO_name = (void *)Opt->surf_out; 
-            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_OPENDX_MESH, SUMA_ASCII, NULL)) {
-               fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-               exit (1);
-            }
-            break;  
-         default:
-            fprintf (SUMA_STDERR,"Error %s: Unsupported format for writing.\n", FuncName);
-            exit(1);
-      }
+      if (!(SUMA_Save_Surface_Object_Wrap ( Opt->surf_out, NULL,
+                                            SO, ft, ff, NULL))) {
+         fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+         exit (1);
+      } 
    } else {
       if (  Opt->Method != SUMA_LB_FEM && 
             Opt->Method != SUMA_HEAT_05_Pre_07 && Opt->Method != SUMA_HEAT_07 && 

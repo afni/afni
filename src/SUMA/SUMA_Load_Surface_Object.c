@@ -208,7 +208,31 @@ SUMA_Boolean SUMA_FreeSpecFields (SUMA_SurfSpecFile *Spec)
    The Volume Parent transformation is not undone. 
    For SureFit surfaces, the volume param shift is not undone.
 */
-SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, void *someparam)
+SUMA_Boolean SUMA_Save_Surface_Object_Wrap ( char *surf_name, char *topo_name,
+                                             SUMA_SurfaceObject *SO, 
+                                       SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, 
+                                       void *someparam)
+{
+   static char FuncName[]={"SUMA_Save_Surface_Object_Wrap"};
+   void *SO_name;
+   SUMA_Boolean exists;
+   
+   SUMA_ENTRY;
+   if (!(SO_name = SUMA_2Prefix2SurfaceName (surf_name, topo_name, NULL, NULL, SO_FT, &exists))) {
+      SUMA_S_Err("Failed to form SO_name");
+      SUMA_RETURN(NOPE);
+   }
+   if (!SUMA_Save_Surface_Object (SO_name, SO, SO_FT, SO_FF, someparam)) {
+      SUMA_S_Err("Failed to save surface");
+      SUMA_RETURN(NOPE);
+   }
+   
+   SUMA_RETURN(YUP);
+}
+                                             
+SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, 
+                                       SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, 
+                                       void *someparam)
 {/*SUMA_Save_Surface_Object*/
    static char FuncName[]={"SUMA_Save_Surface_Object"};
    
@@ -233,6 +257,7 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
          }
          break;
       case SUMA_FREE_SURFER:
+         if (SO_FF == SUMA_FF_NOT_SPECIFIED) SO_FF = SUMA_ASCII;
          if (SO_FF != SUMA_ASCII) {
             fprintf (SUMA_STDERR, "Warning %s: Only ASCII supported for Free Surfer surfaces.\n", FuncName);
          }
@@ -242,6 +267,7 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
          }
          break;
       case SUMA_FREE_SURFER_PATCH:
+         if (SO_FF == SUMA_FF_NOT_SPECIFIED) SO_FF = SUMA_ASCII;
          if (SO_FF != SUMA_ASCII) {
             fprintf (SUMA_STDERR, "Warning %s: Only ASCII supported for Free Surfer surface patches.\n", FuncName);
          }
@@ -251,6 +277,7 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
          }
          break;
       case SUMA_SUREFIT:
+         if (SO_FF == SUMA_FF_NOT_SPECIFIED) SO_FF = SUMA_ASCII;
          if (SO_FF != SUMA_ASCII) {
             fprintf (SUMA_STDERR, "Warning %s: Only ASCII supported for SureFit surfaces.\n", FuncName);
          }
@@ -260,6 +287,7 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
          }
          break;
       case SUMA_VEC:
+         if (SO_FF == SUMA_FF_NOT_SPECIFIED) SO_FF = SUMA_ASCII;
          if (SO_FF != SUMA_ASCII) {
             fprintf (SUMA_STDERR, "Warning %s: Only ASCII supported for vec surfaces.\n", FuncName);
          }
@@ -269,6 +297,7 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
          }
          break;
       case SUMA_BYU:
+         if (SO_FF == SUMA_FF_NOT_SPECIFIED) SO_FF = SUMA_ASCII;
          if (SO_FF != SUMA_ASCII) {
             fprintf (SUMA_STDERR, "Warning %s: Only ASCII supported for BYU surfaces.\n", FuncName);
          }
@@ -278,7 +307,7 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
          }
          break;
       case SUMA_INVENTOR_GENERIC:
-         fprintf (SUMA_STDERR, "Error %s: Not ready to deal with inventor surfaces.\n", FuncName);
+         fprintf (SUMA_STDERR, "Error %s: Not ready to deal with inventor surface writing.\n", FuncName);
          SUMA_RETURN (NOPE);
          break;
       case SUMA_BRAIN_VOYAGER:
