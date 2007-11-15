@@ -924,6 +924,19 @@ This variable specifies the filename of the initial FIM ideal timeseries.
 The main use of this would be to be able to initialize the Realtime
 plugin without direct user intervention.
 
+--------------------------
+Variable: AFNI_FIM_SAVEREF
+--------------------------
+When you run the interactive AFNI 'fim' (from the graph viewer FIM menu),
+the program saves the reference time series (and ort time series, if any)
+in the new functional dataset header, with the attribute name
+AFNI_FIM_REF (or AFNI_FIM_ORT).  If you do NOT want this information saved,
+then set this variable to NO.  Two sample ways to use this information is
+the command below:
+  1dplot "`3dAttribute -ssep ' ' AFNI_FIM_REF r1_time@1+orig`"
+  1dcat  "`3dAttribute -ssep ' ' AFNI_FIM_REF r1_time@1+orig`" > ref.1D
+The 3 different styles of Unix quotes must be used exactly as shown here!
+
 ----------------------------------
 Variable: AFNI_PLUGINS_ALPHABETIZE
 ----------------------------------
