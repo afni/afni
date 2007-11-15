@@ -53,16 +53,11 @@ int main( int argc , char * argv[] )
       } else
 #endif
       inim[jj] = mri_read_1D( argv[jj+1] ) ;
-      if( inim[jj] == NULL ){
-         fprintf(stderr,"** Can't read input file %s\n",argv[jj+1]) ;
-         exit(1) ;
-      }
-      if( jj > 0 && inim[jj]->nx != inim[0]->nx ){
-         fprintf(stderr,
-                 "** Input file %s doesn't match first file %s in length!\n",
-                 argv[jj+1],argv[1]) ;
-         exit(1) ;
-      }
+      if( inim[jj] == NULL )
+        ERROR_exit("Can't read input file '%s'",argv[jj+1]) ;
+      if( jj > 0 && inim[jj]->nx != inim[0]->nx )
+        ERROR_exit("Input file %s doesn't match first file %s in length!",
+                   argv[jj+1],argv[1]) ;
    }
 
    nx = inim[0]->nx ;

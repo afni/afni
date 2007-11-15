@@ -20,8 +20,11 @@ MRI_IMAGE * mri_1D_fromstring( char *str )
 ENTRY("mri_1D_fromstring") ;
 
    sar = NI_decode_string_list( str , "," ) ;
-   if( sar == NULL ) RETURN(NULL) ;
-   if( sar->num == 0 ){ NI_delete_str_array(sar); RETURN(NULL); }
+   if( sar == NULL ){ ERROR_message("Can't decode 1D: string"); RETURN(NULL); }
+   if( sar->num == 0 ){
+     ERROR_message("1D: string is empty");
+     NI_delete_str_array(sar); RETURN(NULL);
+   }
 
    col_num = 1 ; col_len = (int *)calloc(1,sizeof(int)) ;
    far = (float *)malloc(sizeof(float)) ;
@@ -34,6 +37,7 @@ ENTRY("mri_1D_fromstring") ;
 
         nnn = sscanf( sar->str[ii] , "%d%c%f" , &count , &sep , &value ) ;
         if( nnn != 3 || count < 1 ){
+          ERROR_message("Illegal 1D: value '%s",sar->str[ii]) ;
           free(col_len); free(far); NI_delete_str_array(sar); RETURN(NULL);
         }
 
@@ -47,6 +51,7 @@ ENTRY("mri_1D_fromstring") ;
         count = 1 ;
         nnn   = sscanf( sar->str[ii] , "%f" , &value ) ;
         if( nnn != 1 ){
+          ERROR_message("Illegal 1D: value '%s",sar->str[ii]) ;
           free(col_len); free(far); NI_delete_str_array(sar); RETURN(NULL);
         }
      }

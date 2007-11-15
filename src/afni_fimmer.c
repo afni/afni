@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #undef MAIN
 
 #include "afni.h"
@@ -14,7 +14,7 @@
   if it is, return its index, otherwise return -1.
 ----------------------------------------------------------------------*/
 
-int AFNI_ts_in_library( MRI_IMAGE * tsim )
+int AFNI_ts_in_library( MRI_IMAGE *tsim )
 {
    int its ;
 
@@ -84,7 +84,7 @@ ENTRY("AFNI_fimmer_pickort_CB") ;
    Pass this a timeseries that will not be deleted!
 ---------------------------------------------------------------------*/
 
-void AFNI_fimmer_setref( Three_D_View * im3d , MRI_IMAGE * tsim )
+void AFNI_fimmer_setref( Three_D_View *im3d , MRI_IMAGE *tsim )
 {
    int ii ;
 
@@ -99,13 +99,13 @@ if(PRINT_TRACING)
   STATUS(str) ; }
 
    if( im3d->g123 != NULL )
-      drive_MCW_grapher( im3d->g123 , graDR_addref_ts , (XtPointer) tsim ) ;
+     drive_MCW_grapher( im3d->g123 , graDR_addref_ts , (XtPointer) tsim ) ;
 
    if( im3d->g231 != NULL )
-      drive_MCW_grapher( im3d->g231 , graDR_addref_ts , (XtPointer) tsim ) ;
+     drive_MCW_grapher( im3d->g231 , graDR_addref_ts , (XtPointer) tsim ) ;
 
    if( im3d->g312 != NULL )
-      drive_MCW_grapher( im3d->g312 , graDR_addref_ts , (XtPointer) tsim ) ;
+     drive_MCW_grapher( im3d->g312 , graDR_addref_ts , (XtPointer) tsim ) ;
 
    ii = AFNI_ts_in_library( tsim ) ;
 
@@ -265,29 +265,29 @@ ENTRY("AFNI_fimmer_setpolort") ;
 /** 03 Jan 2000: added PTOP, TOPL, and SIGM options                **/
 /** 01 Feb 2000: added ucode, for user written functions           **/
 
-THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * im3d ,
-                                        THD_3dim_dataset * dset_time ,
-                                        MRI_IMAGE * ref_ts , MRI_IMAGE * ort_ts ,
-                                        THD_session * sess , int code, int ucode )
+THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View *im3d ,
+                                        THD_3dim_dataset *dset_time ,
+                                        MRI_IMAGE *ref_ts , MRI_IMAGE *ort_ts ,
+                                        THD_session *sess , int code, int ucode )
 {
-   THD_3dim_dataset * new_dset=NULL ;
+   THD_3dim_dataset *new_dset=NULL ;
    char new_prefix[THD_MAX_PREFIX] ;
    char old_prefix[THD_MAX_PREFIX] ;
    THD_slist_find fff ;
    int ifim , it,iv , nvox , ngood_ref , ntime , it1 , dtyp , nxyz , itbot ;
-   float * vval, * tsar, * aval, * rbest, * abest, * pbest, * pval, * bbest, * bval;
-   int   * indx ;
-   short * bar ;
-   short * ibest ;  /* 15 Dec 1997 */
-   void  * ptr ;
+   float *vval, *tsar, *aval, *rbest, *abest, *pbest, *pval, *bbest, *bval;
+   int   *indx ;
+   short *bar ;
+   short *ibest ;  /* 15 Dec 1997 */
+   void  *ptr ;
    float stataux[MAX_STAT_AUX] ;
    float fthr , topval ;
    int nx_ref , ny_ref , ivec , nnow ;
-   PCOR_references ** pc_ref ;
-   PCOR_voxel_corr ** pc_vc ;
+   PCOR_references **pc_ref ;
+   PCOR_voxel_corr **pc_vc ;
 
    int fim_nref , nx_ort , ny_ort , internal_ort ;
-   float * ortar ;
+   float *ortar ;
    static float * ref_vec = NULL ;
    static int    nref_vec = -666 ;
 
@@ -297,12 +297,12 @@ THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * im3d ,
 
    float top_perc = 0.0 ;                     /* 30 Aug 1999 */
 
-   int ibr_pave , ibr_aver ;                        /* 08 Sep 1999 */
-   float * paval , * avval , * pabest , * avbest ;  /* 08 Sep 1999 */
+   int ibr_pave , ibr_aver ;                    /* 08 Sep 1999 */
+   float *paval , *avval , *pabest , *avbest ;  /* 08 Sep 1999 */
 
    int ibr_ptop , ibr_topl , ibr_sigm ;             /* 03 Jan 2000 */
-   float * ptval , * tlval , *sgval ,
-         * ptbest, * tlbest, *sgbest ;
+   float *ptval , *tlval , *sgval ,
+         *ptbest, *tlbest, *sgbest ;
 
 #ifndef DONT_USE_METER
    Widget meter = NULL ;
@@ -1901,11 +1901,11 @@ void AFNI_fimmer_dset_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs 
 
 /*---------------------------------------------------------------------------*/
 
-void AFNI_fimmer_execute( Three_D_View * im3d , int code, int ucode )
+void AFNI_fimmer_execute( Three_D_View *im3d , int code, int ucode )
 {
-   THD_3dim_dataset * new_dset , * dset_time ;
-   MRI_IMAGE * ref_ts , * ort_ts ;
-   THD_session * sess ;
+   THD_3dim_dataset *new_dset , *dset_time ;
+   MRI_IMAGE *ref_ts , *ort_ts ;
+   THD_session *sess ;
    int ifunc ;
 
 ENTRY("AFNI_fimmer_execute") ;
@@ -1940,8 +1940,8 @@ ENTRY("AFNI_fimmer_execute") ;
    /*--- End lots of CPU time ---*/
 
    if( new_dset == NULL ){
-       SHOW_AFNI_READY ;
-       XBell(im3d->dc->display,100) ; EXRETURN ;
+     SHOW_AFNI_READY ;
+     XBell(im3d->dc->display,100) ; EXRETURN ;
    }
 
    AFNI_fimmer_redisplay( 1 , im3d , new_dset ) ;
@@ -1963,11 +1963,25 @@ ENTRY("AFNI_fimmer_execute") ;
      tross_Append_History( new_dset , his ) ;
    }
 
+   /* 15 Nov 2007: actually add ref & ort time series data attributes */
+
+   if( !AFNI_noenv("AFNI_FIM_SAVEREF") ){
+     char *istr ;
+     istr = mri_to1Dstring( ref_ts ) ;
+     if( istr != NULL ){
+       THD_set_string_atr(new_dset->dblk,"AFNI_FIM_REF",istr) ; free(istr) ;
+     }
+     istr = mri_to1Dstring( ort_ts ) ;
+     if( istr != NULL ){
+       THD_set_string_atr(new_dset->dblk,"AFNI_FIM_ORT",istr) ; free(istr) ;
+     }
+   }
+
    /* write to disk */
 
    (void) THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
 
-   /*** At this point, FIM is computed and written to disk ***/
+   /*** At this point, FIM is computed and written to disk!!! ***/
 
    AFNI_force_adoption( sess , False ) ;
    AFNI_make_descendants( GLOBAL_library.sslist ) ;
