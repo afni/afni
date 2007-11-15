@@ -1399,9 +1399,9 @@ ENTRY("mri_read_many_files") ;
 
     \param nf = Number of file names
     \param fn = Array of file name strings
-    \param nx = number of pixels  
+    \param nx = number of pixels
     \param ny   in x and y directions
-               if nx is negative, then nx and ny are set 
+               if nx is negative, then nx and ny are set
                to be the dimensions of the very first image
                read.
     \return An array of 2D images (NULL if nothing was found)
@@ -1413,9 +1413,9 @@ MRI_IMARR * mri_read_resamp_many_files( int nf, char * fn[] , int nxnew, int nyn
    MRI_IMARR * newar , * outar ;
    int kf , ii, nxi, nyi ;
    MRI_IMAGE * bim, *qim, *imin;
-   
+
    ENTRY("mri_read_resamp_many_files") ;
-   
+
    if( nf <= 0 ) RETURN( NULL );  /* no inputs! */
    INIT_IMARR(outar) ;          /* initialize output array */
 
@@ -1432,7 +1432,7 @@ MRI_IMARR * mri_read_resamp_many_files( int nf, char * fn[] , int nxnew, int nyn
          nxnew = newar->imarr[0]->nx;
          nynew = newar->imarr[0]->ny;
       }
-      
+
       for( ii=0 ; ii < newar->num ; ii++ )  {/* move images to output array */
          imin = newar->imarr[ii];
          nxi = imin->nx;
@@ -1440,7 +1440,7 @@ MRI_IMARR * mri_read_resamp_many_files( int nf, char * fn[] , int nxnew, int nyn
          if (nxi != nxnew || nyi != nynew) { /* resampling needed (adapted from galler.c)*/
             float fx , fy ;
             fx = nxnew / (float)nxi ; fy = nynew / (float)nyi ;
-            fx = MIN(fx,fy) ; 
+            fx = MIN(fx,fy) ;
             /* fprintf(stderr,"Resizing from %dx%d to %dx%d.\n fx = %.3f\n", nxi, nyi, nxnew, nynew, fx); */
             if( fx < 0.95f ){
                float sigma = 0.3456789f/fx ;
@@ -1463,7 +1463,7 @@ MRI_IMARR * mri_read_resamp_many_files( int nf, char * fn[] , int nxnew, int nyn
 
       FREE_IMARR(newar) ;  /* don't need this no more */
    }
-   
+
    RETURN( outar );
 }
 
@@ -2004,7 +2004,7 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
    ncol = 0 ;
 
    /* convert commas (or 'i' for complex numbers ZSS Oct 06) to blanks */
-   for( ii=0 ; ii < blen ; ii++ ) { 
+   for( ii=0 ; ii < blen ; ii++ ) {
       if( buf[ii] == ',' || buf[ii] == 'i') buf[ii] = ' ' ;
       if( !slowmo && (buf[ii] == '*' || buf[ii] == '@')) slowmo = 1;
    }
@@ -2035,7 +2035,7 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
         /* sscanf( vbuf , "%f" , &val ) ; slow, slow, tan go close*/
         val = strtod(buf+bpos, &ope);
         incr = ope - (buf+bpos);
-     } 
+     }
      if( incr <= 0 ) break ; /* 16 Oct 2007 */
      if (fv->nar+count > n_alloced) {
       /* fprintf(stderr,"reallocing past %d with count %d...\n", n_alloced, count); */
@@ -2048,9 +2048,9 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
      fv->nar += count ;
      bpos += incr ;
    }
-   
-   if( fv->nar == 0 ){ KILL_floatvec(fv); fv = NULL; } 
-   else { if (fv->nar < n_alloced) fv->ar = (float *)realloc( (void *)fv->ar , sizeof(float)*(fv->nar) ); } 
+
+   if( fv->nar == 0 ){ KILL_floatvec(fv); fv = NULL; }
+   else { if (fv->nar < n_alloced) fv->ar = (float *)realloc( (void *)fv->ar , sizeof(float)*(fv->nar) ); }
    return fv ;
 }
 
@@ -2068,7 +2068,7 @@ static doublevec * decode_double_linebuf( char *buf )  /* 20 Jul 2004 */
    ncol = 0 ;
 
    /* convert commas (or 'i' for complex numbers ZSS Oct 06) to blanks */
-   for( ii=0 ; ii < blen ; ii++ ) { 
+   for( ii=0 ; ii < blen ; ii++ ) {
       if( buf[ii] == ',' || buf[ii] == 'i') buf[ii] = ' ' ;
       if( !slowmo && (buf[ii] == '*' || buf[ii] == '@')) slowmo = 1;
    }
@@ -2101,7 +2101,7 @@ static doublevec * decode_double_linebuf( char *buf )  /* 20 Jul 2004 */
         /* sscanf( vbuf , "%f" , &val ) ; slow, slow, tan go close*/
         val = strtod(buf+bpos, &ope);
         incr = ope - (buf+bpos);
-     } 
+     }
      if (dv->nar+count > n_alloced) {
       /* fprintf(stderr,"reallocing past %d with count %d...\n", n_alloced, count); */
       if (count > alloc_unit) alloc_chunk = count;
@@ -2116,7 +2116,7 @@ static doublevec * decode_double_linebuf( char *buf )  /* 20 Jul 2004 */
    }
 
    if( dv->nar == 0 ){ KILL_doublevec(dv); dv = NULL; }
-   else { if (dv->nar < n_alloced) dv->ar = (double *)realloc( (void *)dv->ar , sizeof(double)*(dv->nar) ); } 
+   else { if (dv->nar < n_alloced) dv->ar = (double *)realloc( (void *)dv->ar , sizeof(double)*(dv->nar) ); }
    return dv ;
 }
 
@@ -2269,7 +2269,7 @@ ENTRY("mri_read_double_ascii") ;
    if( fname == NULL || fname[0] == '\0' ) RETURN(NULL) ;
 
    if( strncmp(fname,"1D:",3) == 0 ){         /* 28 Apr 2003 */
-     /* 
+     /*
      MRI_IMAGE *qim = mri_1D_double_fromstring( fname+3 ) ;
      if( qim != NULL ){
        outim = mri_transpose(qim); mri_free(qim); RETURN(outim);
@@ -2457,7 +2457,7 @@ ENTRY("mri_read_complex_ascii") ;
    if( tsar == NULL ){
       fprintf(stderr,"\n*** final realloc error in mri_read_complex_ascii ***\n"); EXIT(1);
    }
-   
+
    /* now turn tsar into a complex vector */
    ctsar = (complex *) calloc(used_tsar, sizeof(complex));
    for( ii=0 ; ii < used_tsar; ii=ii+2) {
@@ -2472,8 +2472,17 @@ ENTRY("mri_read_complex_ascii") ;
 
    FRB(buf) ; RETURN(outim) ;
 }
+
 /*---------------------------------------------------------------------------*/
 
+static char *dname=NULL ; static size_t ndname=0 ;  /* 15 Nov 2007 */
+
+#define DNAME_FIX(fn)                                                         \
+ do{ size_t qq=strlen(fn)+7 ;                                                 \
+     if( ndname < qq ){ dname=(char *)realloc((void *)dname,qq); ndname=qq; } \
+ } while(0)
+
+/*---------------------------------------------------------------------------*/
 /*! Read an ASCII file as columns, transpose to rows, allow column selectors.
 
   \param fname = Input filename (max of 255 characters)
@@ -2489,20 +2498,22 @@ ENTRY("mri_read_complex_ascii") ;
 MRI_IMAGE * mri_read_1D( char *fname )
 {
    MRI_IMAGE *inim , *outim , *flim ;
-   char dname[1024] , *cpt , *dpt ;
+   char *cpt , *dpt ;
    int ii,jj,nx,ny,nts , *ivlist , *ivl , *sslist ;
    float *far , *oar ;
    int flip ;  /* 05 Sep 2006 */
 
 ENTRY("mri_read_1D") ;
 
-   if( fname == NULL || fname[0] == '\0' || strlen(fname) > 511 ) RETURN(NULL) ;
+   if( fname == NULL || fname[0] == '\0' ) RETURN(NULL) ;
 
+   DNAME_FIX(fname) ;
    strcpy(dname,fname); ii = strlen(dname);  /* 05 Sep 2006 */
    flip = (dname[ii-1] == '\''); if( flip ) dname[ii-1] = '\0';
 
    if( strncmp(dname,"1D:",3) == 0 ){       /* 28 Apr 2003 */
      outim = mri_1D_fromstring( dname+3 ) ;
+     /** if( outim == NULL ) ERROR_message("read of '1D:' string fails") ; **/
      if( flip ){ inim=mri_transpose(outim); mri_free(outim); outim=inim; }
      RETURN(outim) ;
    }
@@ -2588,14 +2599,15 @@ ENTRY("mri_read_1D") ;
 MRI_IMAGE * mri_read_double_1D( char *fname )
 {
    MRI_IMAGE *inim , *outim , *flim ;
-   char dname[1024] , *cpt , *dpt ;
+   char *cpt , *dpt ;
    int ii,jj,nx,ny,nts , *ivlist , *ivl , *sslist ;
    double *dar , *oar ;
    int flip ;  /* 05 Sep 2006 */
 
 ENTRY("mri_read_double_1D") ;
 
-   if( fname == NULL || fname[0] == '\0' || strlen(fname) > 511 ) RETURN(NULL) ;
+   if( fname == NULL || fname[0] == '\0' ) RETURN(NULL) ;
+   DNAME_FIX(fname) ;
    strcpy(dname,fname); ii = strlen(dname);  /* 05 Sep 2006 */
    flip = (dname[ii-1] == '\''); if( flip ) dname[ii-1] = '\0';
 
@@ -2605,7 +2617,7 @@ ENTRY("mri_read_double_1D") ;
      if( flip ){ inim=mri_transpose(outim); mri_free(outim); outim=inim; }
      RETURN(outim) ;
      */
-     fprintf(stderr,"Somebody was too lazy to allow this option here.\n"); RETURN(NULL);
+     ERROR_message("Somebody was too lazy to allow this option here."); RETURN(NULL);
    }
 
    /*-- split filename and subvector list --*/
@@ -2692,15 +2704,15 @@ ENTRY("mri_read_double_1D") ;
 MRI_IMAGE * mri_read_complex_1D( char *fname )
 {
    MRI_IMAGE *inim , *outim , *flim ;
-   char dname[1024] , *cpt , *dpt ;
+   char *cpt , *dpt ;
    int ii,jj,nx,ny,nts , *ivlist , *ivl , *sslist ;
    complex *far , *oar ;
    int flip ;  /* 05 Sep 2006 */
 
 ENTRY("mri_read_complex_1D") ;
 
-   if( fname == NULL || fname[0] == '\0' || strlen(fname) > 511 ) RETURN(NULL) ;
-
+   if( fname == NULL || fname[0] == '\0' ) RETURN(NULL) ;
+   DNAME_FIX(fname) ;
    strcpy(dname,fname); ii = strlen(dname);  /* 05 Sep 2006 */
    flip = (dname[ii-1] == '\''); if( flip ) dname[ii-1] = '\0';
 
@@ -2710,7 +2722,7 @@ ENTRY("mri_read_complex_1D") ;
      if( flip ){ inim=mri_transpose(outim); mri_free(outim); outim=inim; }
      RETURN(outim) ;
       */
-     fprintf(stderr,"Somebody was too lazy to allow this option here.\n"); RETURN(NULL);
+     ERROR_message("Somebody was too lazy to allow this option here."); RETURN(NULL);
    }
 
    /*-- split filename and subvector list --*/

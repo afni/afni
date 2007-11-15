@@ -6453,3 +6453,8 @@
      weren't being properly separated.
  * Added multiple -check ability to 3dAllineate.c, and -allcost now printed
      for each alternative checked parameter set as well.
+
+15 Nov 2007
+ * Changes to interactive AFNI to save '1D:' ref and ort files in the
+     header of interactive fim files; new function mri_to1Dstring().
+ * Changes to mri_read_1D() to allow arbitrarily long filenames.

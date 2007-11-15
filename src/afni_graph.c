@@ -4802,7 +4802,7 @@ ENTRY("GRA_fim_CB") ;
    /*** 04 Jan 2000: modify the FIM+ button settings ***/
 
    else if( w == grapher->fmenu->fimp_setdefault_pb ){
-     char * ff = my_getenv( "AFNI_FIM_MASK" ) ; int mm=0 ;
+     char *ff = my_getenv( "AFNI_FIM_MASK" ) ; int mm=0 ;
      if( ff != NULL ) mm = strtol(ff,NULL,10) ;
      if( mm <= 0 ) mm = FIM_DEFAULT_MASK ;
      MCW_set_bbox( grapher->fmenu->fimp_opt_bbox , mm ) ;

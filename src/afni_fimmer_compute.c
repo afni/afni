@@ -15,31 +15,31 @@
 /** 03 Jan 2000: added PTOP, TOPL, and SIGM options                **/
 /** 01 Feb 2000: added ucode, for user written functions           **/
 
-THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * im3d ,
-                                        THD_3dim_dataset * dset_time ,
-                                        MRI_IMAGE * ref_ts , MRI_IMAGE * ort_ts ,
-                                        THD_session * sess , int code, int ucode )
+THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View *im3d ,
+                                        THD_3dim_dataset *dset_time ,
+                                        MRI_IMAGE *ref_ts , MRI_IMAGE *ort_ts ,
+                                        THD_session *sess , int code, int ucode )
 {
-   THD_3dim_dataset * new_dset=NULL ;
+   THD_3dim_dataset *new_dset=NULL ;
    char new_prefix[THD_MAX_PREFIX] ;
    char old_prefix[THD_MAX_PREFIX] ;
    THD_slist_find fff ;
    int ifim , it,iv , nvox , ngood_ref , ntime , it1 , dtyp , nxyz , itbot ;
-   float * vval, * tsar, * aval, * rbest, * abest, * pbest, * pval, * bbest, * bval;
-   int   * indx ;
-   short * bar ;
-   short * ibest ;  /* 15 Dec 1997 */
-   void  * ptr ;
+   float *vval, *tsar, *aval, *rbest, *abest, *pbest, *pval, *bbest, *bval;
+   int   *indx ;
+   short *bar ;
+   short *ibest ;  /* 15 Dec 1997 */
+   void  *ptr ;
    float stataux[MAX_STAT_AUX] ;
    float fthr , topval ;
    int nx_ref , ny_ref , ivec , nnow ;
-   PCOR_references ** pc_ref ;
-   PCOR_voxel_corr ** pc_vc ;
+   PCOR_references **pc_ref ;
+   PCOR_voxel_corr **pc_vc ;
 
    int fim_nref , nx_ort , ny_ort , internal_ort ;
-   float * ortar ;
-   static float * ref_vec = NULL ;
-   static int    nref_vec = -666 ;
+   float *ortar ;
+   static float *ref_vec = NULL ;
+   static int   nref_vec = -666 ;
 
    int ibr_best , ibr_perc , ibr_fim , ibr_corr , ibr_base , nbrik ;
 
@@ -47,12 +47,12 @@ THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * im3d ,
 
    float top_perc = 0.0 ;                     /* 30 Aug 1999 */
 
-   int ibr_pave , ibr_aver ;                        /* 08 Sep 1999 */
-   float * paval , * avval , * pabest , * avbest ;  /* 08 Sep 1999 */
+   int ibr_pave , ibr_aver ;                    /* 08 Sep 1999 */
+   float *paval , *avval , *pabest , *avbest ;  /* 08 Sep 1999 */
 
    int ibr_ptop , ibr_topl , ibr_sigm ;             /* 03 Jan 2000 */
-   float * ptval , * tlval , *sgval ,
-         * ptbest, * tlbest, *sgbest ;
+   float *ptval , *tlval , *sgval ,
+         *ptbest, *tlbest, *sgbest ;
 
 #ifndef DONT_USE_METER
    Widget meter = NULL ;
@@ -169,7 +169,7 @@ if(PRINT_TRACING)
    switch( dtyp ){
 
       case MRI_short:{
-         short * dar = (short *) DSET_ARRAY(dset_time,it1) ;
+         short *dar = (short *) DSET_ARRAY(dset_time,it1) ;
          for( iv=0,fthr=0.0 ; iv < nxyz ; iv++ ) fthr += abs(dar[iv]) ;
          fthr = FIM_THR * fthr / nxyz ;
 
@@ -189,7 +189,7 @@ if(PRINT_TRACING)
       break ;
 
       case MRI_float:{
-         float * dar = (float *) DSET_ARRAY(dset_time,it1) ;
+         float *dar = (float *) DSET_ARRAY(dset_time,it1) ;
          for( iv=0,fthr=0.0 ; iv < nxyz ; iv++ ) fthr += fabs(dar[iv]) ;
          fthr = FIM_THR * fthr / nxyz ;
 
@@ -209,7 +209,7 @@ if(PRINT_TRACING)
       break ;
 
       case MRI_byte:{
-         byte * dar = (byte *) DSET_ARRAY(dset_time,it1) ;
+         byte *dar = (byte *) DSET_ARRAY(dset_time,it1) ;
          for( iv=0,fthr=0.0 ; iv < nxyz ; iv++ ) fthr += dar[iv] ;
          fthr = FIM_THR * fthr / nxyz ;
 
@@ -504,7 +504,7 @@ STATUS("making new dataset") ;
    /*-- 30 Aug 1999: set limits on percent change --*/
 
    if( ibr_perc >= 0 || ibr_pave >= 0 || ibr_ptop >= 0 ){
-      char * cp = my_getenv("AFNI_FIM_PERCENT_LIMIT") ;
+      char *cp = my_getenv("AFNI_FIM_PERCENT_LIMIT") ;
       if( cp != NULL ){
          float tp = strtod(cp,NULL) ;
          if( tp > 0.0 ) top_perc = tp ;
@@ -596,19 +596,19 @@ if(PRINT_TRACING)
          if( nnow == 0 ){
             switch( dtyp ){
                case MRI_short:{
-                  short * dar = (short *) DSET_ARRAY(dset_time,it) ;
+                  short *dar = (short *) DSET_ARRAY(dset_time,it) ;
                   for( iv=0; iv < nvox; iv++ ) vval[iv] = (float) dar[indx[iv]];
                }
                break ;
 
                case MRI_float:{
-                  float * dar = (float *) DSET_ARRAY(dset_time,it) ;
+                  float *dar = (float *) DSET_ARRAY(dset_time,it) ;
                   for( iv=0; iv < nvox; iv++ ) vval[iv] = (float) dar[indx[iv]];
                }
                break ;
 
                case MRI_byte:{
-                  byte * dar = (byte *) DSET_ARRAY(dset_time,it) ;
+                  byte *dar = (byte *) DSET_ARRAY(dset_time,it) ;
                   for( iv=0; iv < nvox; iv++ ) vval[iv] = (float) dar[indx[iv]];
                }
                break ;
@@ -1254,17 +1254,17 @@ ucode_stuff:
 #define MAXTS   32  /* number of timeseries to process at once */
 
    if( ucode != 0 ){
-      MCW_function_list * rlist = &(GLOBAL_library.registered_fim) ;
+      MCW_function_list *rlist = &(GLOBAL_library.registered_fim) ;
       int uuse[MAXUFUN] , nbrik[MAXUFUN] , brik1[MAXUFUN] ;
-      void * udata[MAXUFUN] ;
-      generic_func * ufunc[MAXUFUN] ;
+      void *udata[MAXUFUN] ;
+      generic_func *ufunc[MAXUFUN] ;
       int nuse , uu , newbrik , oldbrik ;
       FIMdata fd ;
-      MRI_IMAGE * tsim ;
-      float     * tsar , * val , ** vbr ;
-      short     * sar ;
+      MRI_IMAGE *tsim ;
+      float     *tsar , *val , **vbr ;
+      short     *sar ;
       int         nts , jts ;
-      MRI_IMARR * imar ;
+      MRI_IMARR *imar ;
 
       /* mark which ones to execute */
 

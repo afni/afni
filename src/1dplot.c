@@ -404,7 +404,7 @@ int main( int argc , char *argv[] )
      if( iarg == argc-1 ){                 /* only 1 input file */
        inim = mri_read_1D( argv[iarg] ) ;
        if( inim == NULL )
-         ERROR_exit("Can't read input file %s\n",argv[iarg]) ;
+         ERROR_exit("Can't read input file '%s'\n",argv[iarg]) ;
 
      } else {                              /* multiple inputs [05 Mar 2003] */
        MRI_IMARR *imar ;                   /* read them & glue into 1 image */
@@ -415,7 +415,7 @@ int main( int argc , char *argv[] )
        for( ; iarg < argc ; iarg++ ){
          inim = mri_read_1D( argv[iarg] ) ;
          if( inim == NULL )
-           ERROR_exit("Can't read input file %s\n",argv[iarg]) ;
+           ERROR_exit("Can't read input file '%s'\n",argv[iarg]) ;
 
          if( iarg == iarg_first || inim->nx < nx ) nx = inim->nx ;
          ADDTO_IMARR(imar,inim) ; nysum += inim->ny ;
