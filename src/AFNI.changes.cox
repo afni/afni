@@ -6457,6 +6457,6 @@
 15 Nov 2007
  * Changes to interactive AFNI to save '1D:' ref and ort files in the
      header of interactive fim files; example:
-       1dplot "`3dAttribute -ssep ' ' AFNI_FIM_ORT r1_time@1+orig`"
+       1dplot "`3dAttribute -ssep ' ' AFNI_FIM_REF r1_time@1+orig`"
  * Changes to mri_read_1D() to allow arbitrarily long filenames.
  * New function mri_to1Dstring(), to create '1D:' strings from MRI_IMAGEs.
