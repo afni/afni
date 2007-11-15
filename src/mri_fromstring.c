@@ -161,3 +161,28 @@ ENTRY("mri_read_ragged_fromstring") ;
 
    free(col_len) ; RETURN(flim) ;
 }
+
+/*--------------------------------------------------------------------------*/
+/*! Kind of the inverse to mri_1D_fromstring() */
+
+char * mri_to1Dstring( MRI_IMAGE *im )  /* 17 Nov 2007 */
+{
+   char *outbuf = NULL ;
+   int nx,ny , ii,jj ;
+   float *far ;
+
+ENTRY("mri_to1Dstring") ;
+
+   if( im == NULL || im->kind != MRI_float || im->nz > 1 ) RETURN(NULL) ;
+
+   nx = im->nx ; ny = im->ny ; far = MRI_FLOAT_PTR(im) ;
+
+   outbuf = THD_zzprintf( outbuf , "%s" , "1D:" ) ;
+   for( jj=0 ; jj < ny ; jj++ ){
+     for( ii=0 ; ii < nx ; ii++ ){
+       outbuf = THD_zzprintf( outbuf , " %g" , far[ii+jj*nx] ) ;
+     }
+     if( jj < ny-1 ) outbuf = THD_zzprintf( outbuf , "%s" , " |" ) ;
+   }
+   RETURN(outbuf) ;
+}
