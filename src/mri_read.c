@@ -1985,7 +1985,7 @@ static char * my_fgets( char *buf , int size , FILE *fts )
 }
 
 /*--------------------------------------------------------------*/
-static float lbfill = 0.0 ;  /* 10 Aug 2004 */
+static float lbfill = 0.0f ;  /* 10 Aug 2004 */
 
 /*--------------------------------------------------------------*/
 /*! Decode a line buffer into an array of floats.               */
@@ -2006,7 +2006,8 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
    /* convert commas (or 'i' for complex numbers ZSS Oct 06) to blanks */
    for( ii=0 ; ii < blen ; ii++ ) {
       if( buf[ii] == ',' || buf[ii] == 'i') buf[ii] = ' ' ;
-      if( !slowmo && (buf[ii] == '*' || buf[ii] == '@')) slowmo = 1;
+      if( !slowmo &&
+          (buf[ii] == '*' || buf[ii] == '@' || isalpha(buf[ii])) ) slowmo = 1;
    }
    fv = (floatvec *)malloc(sizeof(floatvec)) ;
    fv->nar = 0 ;

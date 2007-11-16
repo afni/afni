@@ -6463,3 +6463,14 @@
 
 16 Nov 2007
  * Added -global_times, -local_times, and -guess_times to 3dDeconvolve.c
+ * For ragged 1D input files, arbitrary text starting with alphabetic
+     character is same as '*' for filler.
+ * AFNI_RESCAN_AT_SWITCH is on by default now.
+ * 1dplot takes a 1 row file and flips it to a column for plotting; however,
+     when 2 single row files were input, they'd be catenated and THEN
+     flipped, producing erroneous joined plot.  Now, they are flipped
+     THEN catenated, which does the right thing.
+ * Speaking of 1dplot, '-nopush' now works for multiple graphs, rather
+     than just for '-one'.
+ * Modify AlphaSim.c so that rmm defaults to -1 ==> nearest neighbors,
+     and so that '-seed 0' generates a custom seed.

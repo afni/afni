@@ -235,7 +235,7 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
 
    for( jj=0 ; jj < ny ; jj++ ){
       pbot = p10(ylo[jj]) ; ptop = p10(yhi[jj]) ; if( ptop < pbot ) ptop = pbot ;
-      if( ptop != 0.0 ){
+      if( ptop != 0.0 && ypush ){
          np = (yhi[jj]-ylo[jj]) / ptop ;
          switch( np ){
             case 1:  ptop *= 0.1  ; break ;
