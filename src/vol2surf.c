@@ -2502,7 +2502,7 @@ ENTRY("v2s_make_command");
     dset_file = DSET_FILECODE(p->gpar);
 
     /* start setting options (3dVol2Surf may get replaced) */
-    loc_add_2_list(&argv, &acnall, &argc, "3dVol2surf");
+    loc_add_2_list(&argv, &acnall, &argc, "3dVol2Surf");
 
     loc_add_2_list(&argv, &acnall, &argc, "-spec");
     if( p->surf[0].spec_file[0] )
