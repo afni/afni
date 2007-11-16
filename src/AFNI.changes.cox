@@ -6460,3 +6460,6 @@
        1dplot "`3dAttribute -ssep ' ' AFNI_FIM_REF r1_time@1+orig`"
  * Changes to mri_read_1D() to allow arbitrarily long filenames.
  * New function mri_to1Dstring(), to create '1D:' strings from MRI_IMAGEs.
+
+16 Nov 2007
+ * Added -global_times, -local_times, and -guess_times to 3dDeconvolve.c
