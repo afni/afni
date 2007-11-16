@@ -398,8 +398,7 @@ int main( int argc , char *argv[] )
              /*-- 05 Mar 2003: or more than 1 file --*/
 
      if( iarg >= argc )
-       ERROR_exit("No input files on command line?!\n");
-
+       ERROR_exit("No input files on command line?!\n");  /* bad user?! */
 
      if( iarg == argc-1 ){                 /* only 1 input file */
        inim = mri_read_1D( argv[iarg] ) ;
@@ -417,6 +416,10 @@ int main( int argc , char *argv[] )
          if( inim == NULL )
            ERROR_exit("Can't read input file '%s'\n",argv[iarg]) ;
 
+           if( inim->nx == 1 && inim->ny > 1 ){
+             flim = mri_transpose(inim); mri_free(inim); inim = flim;
+           }
+
          if( iarg == iarg_first || inim->nx < nx ) nx = inim->nx ;
          ADDTO_IMARR(imar,inim) ; nysum += inim->ny ;
        }
@@ -424,7 +427,7 @@ int main( int argc , char *argv[] )
        for( nysum=ii=0 ; ii < imar->num ; ii++ ){
          inim = IMARR_SUBIM(imar,ii) ; iar = MRI_FLOAT_PTR(inim) ;
          for( jj=0 ; jj < inim->ny ; jj++,nysum++ ){
-           memcpy( far + nx*nysum , iar + jj*inim->nx , sizeof(float)*nx ) ;
+           memcpy( far + nx*nysum , iar + jj*inim->nx , sizeof(float)*inim->nx ) ;
          }
        }
        DESTROY_IMARR(imar) ; inim = flim ;

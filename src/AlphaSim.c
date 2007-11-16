@@ -52,6 +52,10 @@
 
 #include "mrilib.h"
 
+#include <time.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #define MAX_NAME_LENGTH THD_MAX_NAME /* max. string length for file names */
 #define MAX_CLUSTER_SIZE 10000       /* max. size of cluster for freq. table */
 
@@ -88,8 +92,9 @@ void display_help_menu()
      "[-mask mset]      Use the 0 sub-brick of dataset 'mset' as a mask     \n"
      "                    to indicate which voxels to analyze (a sub-brick  \n"
      "                    selector is allowed)  [default = use all voxels]  \n"
-     "                  Note:  The -mask command REPLACES the -nx, -ny, -nz,\n"
-     "                         -dx, -dy, and -dz commands.                  \n"
+     "                  Note:  The -mask command also REPLACES the          \n"
+     "                         -nx, -ny, -nz, -dx, -dy, and -dz commands,   \n"
+     "                         and takes the volume dimensions from 'mset'. \n"
      "[-fwhm s]     s  = Gaussian filter width (FWHM)                       \n"
      "[-fwhmx sx]   sx = Gaussian filter width, x-axis (FWHM)               \n"
      "[-fwhmy sy]   sy = Gaussian filter width, y-axis (FWHM)               \n"
@@ -103,13 +108,16 @@ void display_help_menu()
      "[-ay n2]      n2 = extent of active region (in voxels) along y-axis   \n"
      "[-az n3]      n3 = extent of active region (in voxels) along z-axis   \n"
      "[-zsep z]     z = z-score separation between signal and noise         \n"
-     "-rmm r        r  = cluster connection radius (mm)                     \n"
+     "[-rmm r]      r  = cluster connection radius (mm)                     \n"
+     "                   Default is nearest neighbor connection only.       \n"
      "-pthr p       p  = individual voxel threshold probability             \n"
      "-iter n       n  = number of Monte Carlo simulations                  \n"
      "[-quiet]     suppress screen output                                   \n"
      "[-out file]  file = name of output file                               \n"
      "[-max_clust_size size]  size = maximum allowed voxels in a cluster    \n"
      "[-seed S]     S  = random number seed\n"
+     "                   default seed = 1234567\n"
+     "                   if seed=0, then program will randomize it\n"
      "\n"
      "Unix environment variables:\n"
      " Set AFNI_BLUR_FFT to YES to require blurring be done with FFTs\n"
@@ -168,7 +176,7 @@ void initialize_options (
   *ay = 0;                   /* number of activation voxels along y-axis */
   *az = 0;                   /* number of activation voxels along z-axis */
   *zsep = 0.0;               /* z-score signal and noise separation */
-  *rmm = 0.0;                /* cluster connection radius (mm) */
+  *rmm = -1.0 ;              /* cluster connection radius (mm) */
   *pthr = 0.0;               /* individual voxel threshold prob. */
   *niter = 0;                /* number of Monte Carlo simulations  */
   *quiet = 0;                /* generate screen output (default)  */
@@ -538,8 +546,7 @@ void get_options (int argc, char ** argv,
 	  nopt++;
 	  if (nopt >= argc)  AlphaSim_error ("need argument after -rmm ");
 	  sscanf (argv[nopt], "%f", &fval);
-	  if (fval <= 0.0)
-	    AlphaSim_error ("illegal argument after -rmm ");
+	  if (fval <= 0.0) INFO_message("-rmm set to %g",fval) ;
 	  *rmm = fval;
 	  nopt++;
 	  continue;
@@ -613,13 +620,18 @@ void get_options (int argc, char ** argv,
 	  if (nopt >= argc)
              AlphaSim_error ("need argument after -seed ");
 	  *seed = atoi(argv[nopt]);
+     if( *seed == 0 ){
+       *seed = (int)time(NULL) + (int)getpid() ;
+       if( *seed < 0 ) *seed = -*seed ;
+       INFO_message("-seed 0 resets to %d",*seed) ;
+     }
 	  nopt++;
 	  continue;
 	}
       
 
       /*----- unknown command -----*/
-      AlphaSim_error ("unrecognized command line option ");
+      ERROR_exit("AlphaSim -- unknown option '%s'",argv[nopt]) ;
     }
 
 
@@ -659,8 +671,7 @@ void check_for_valid_inputs (int nx,  int ny,  int nz,
   if (power  &&  ((ax <= 0) || (ay <= 0) || (az <= 0)))
     AlphaSim_error ("Illegal dimensions for activation region ");
   if (power && (zsep <= 0.0))  AlphaSim_error ("Illegal value for zsep ");
-  if ( (rmm < dx) && (rmm < dy) && (rmm < dz) )
-    AlphaSim_error ("Cluster connection radius is too small ");
+  if ( (rmm < dx) && (rmm < dy) && (rmm < dz) ) rmm = -1.0f ;
   if ((pthr <= 0.0) || (pthr > 1.0))  
     AlphaSim_error ("Illegal value for pthr ");
   if (niter <= 0)  AlphaSim_error ("Illegal value for niter ");
@@ -1407,7 +1418,12 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
       if(quiet<2)fprintf (fout, "z separation = %f \n\n", zsep);
     }
 
-  if(quiet<2)fprintf (fout, "Cluster connection radius: rmm = %5.2f \n\n", rmm);
+  if(quiet<2){
+    if( rmm > 0.0f )
+      fprintf (fout, "Cluster connection radius: rmm = %5.2f \n\n", rmm);
+    else
+      fprintf (fout, "Cluster connection = Nearest Neighbor\n") ;
+  }
   if(quiet<2)fprintf (fout, "Threshold probability: pthr = %e \n\n", pthr);
   if(quiet<2)fprintf (fout, "Number of Monte Carlo iterations = %5d \n\n", niter);
   if (!power){

@@ -39,7 +39,7 @@ ENTRY("mri_1D_fromstring") ;
 
         nnn = sscanf( sar->str[ii] , "%d%c%f" , &count , &sep , &value ) ;
         if( nnn != 3 || count < 1 ){
-          ERROR_message("Illegal 1D: value '%s",sar->str[ii]) ;
+          ERROR_message("Illegal 1D: value '%s'",sar->str[ii]) ;
           free(col_len); free(far); NI_delete_str_array(sar); RETURN(NULL);
         }
 
@@ -53,7 +53,7 @@ ENTRY("mri_1D_fromstring") ;
         count = 1 ;
         nnn   = sscanf( sar->str[ii] , "%f" , &value ) ;
         if( nnn != 1 ){
-          ERROR_message("Illegal 1D: value '%s",sar->str[ii]) ;
+          ERROR_message("Illegal 1D: value '%s'",sar->str[ii]) ;
           free(col_len); free(far); NI_delete_str_array(sar); RETURN(NULL);
         }
      }
@@ -132,8 +132,8 @@ ENTRY("mri_read_ragged_fromstring") ;
         if( nnn != 1 ){
           free(col_len); free(far); NI_delete_str_array(sar); RETURN(NULL);
         }
-        if( *sval == '*' ) value = filler ;
-        else               value = (float)strtod(sval,NULL) ;
+        if( *sval == '*' || isalpha(*sval) ) value = filler ;
+        else                                 value = (float)strtod(sval,NULL) ;
      }
 
      if( count > 0 ){
