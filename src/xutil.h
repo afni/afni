@@ -141,6 +141,7 @@ extern Widget MCW_action_area( Widget , MCW_action_item * , int ) ;
 #define MCW_CALLER_KILL 1
 #define MCW_USER_KILL   2
 #define MCW_TIMER_KILL  (1<<10)
+#define MCW_QUICK_KILL  (1<<11)
 
 extern Widget MCW_popup_message( Widget , char * , int ) ;
 extern void MCW_message_CB( Widget , XtPointer , XtPointer ) ;

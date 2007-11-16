@@ -484,8 +484,8 @@ ENTRY("AFNI_parse_args") ;
    if( env != NULL )
      prepend_string_to_args( env, in_argc, in_argv, &new_argc, &new_argv ) ;
    if( new_argv != NULL ){
-      MAIN_argc = argc = new_argc ;
-      MAIN_argv = argv = new_argv ;
+     MAIN_argc = argc = new_argc ;
+     MAIN_argv = argv = new_argv ;
    }
 
 #ifdef ALLOW_PLUGINS
@@ -1289,6 +1289,7 @@ int main( int argc , char *argv[] )
    putenv("AFNI_IMAGE_SAVESQUARE=YES") ;
    putenv("AFNI_DECONFLICT=OVERWRITE") ; /* 24 Sep 2007 */
    putenv("AFNI_X11_REDECORATE=NO") ;
+   putenv("AFNI_RESCAN_AT_SWITCH=YES") ; /* 16 Nov 2007 */
 
 #if 0
    putenv("AFNI_IMAGE_LABEL_MODE=1") ;
@@ -1778,6 +1779,7 @@ STATUS("call 14") ;
 
         putenv("AFNI_DECONFLICT=OVERWRITE") ; /* 24 Sep 2007 */
         putenv("AFNI_IS_RUNNING=YES") ;       /* 08 Jun 2007 */
+
         REPORT_PROGRESS("\n") ;
 
         { long long lfs = AFNI_logfilesize(); /* 17 Oct 2007 */
