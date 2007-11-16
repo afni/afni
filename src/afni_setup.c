@@ -1099,8 +1099,14 @@ ENTRY("AFNI_clu_CB") ;
        fvec[0] = 0.0f ; fvec[1] = 20.0f ;
      }
      MCW_choose_vector( im3d->vwid->func->thr_label ,
-                       "Clusterize Parameters" ,
-                        2 , lvec,fvec ,
+                       "------ Set Clusterize Parameters ------\n"
+                       "* rmm=0 is nearest neighbor clustering\n"
+                       "  with vmul is cluster volume threshold\n"
+                       "  measured in voxel count\n"
+                       "* rmm>0 is clustering radius in mm, and\n"
+                       "  vmul is cluster volume threshold in\n"
+                       "  microliters"
+                       , 2 , lvec,fvec ,
                         AFNI_cluster_choose_CB , (XtPointer)im3d ) ;
      EXRETURN ;
    }

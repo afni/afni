@@ -6474,3 +6474,5 @@
      than just for '-one'.
  * Modify AlphaSim.c so that rmm defaults to -1 ==> nearest neighbors,
      and so that '-seed 0' generates a custom seed.
+ * Add some extra text to the 'Clusterize' label (afni_setup.c) to
+     explain that rmm=0 means NN clustering with vmul in voxel count.
