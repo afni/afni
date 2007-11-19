@@ -54,6 +54,7 @@ void usage_Surf2VolCoord_demo (SUMA_GENERIC_ARGV_PARSE *ps)
                "                      <-grid_parent GRID_VOL> \n"
                "                      [-grid_subbrick GSB]\n"
                "                      [-sv SURF_VOL] \n"
+               "                      [-one_node NODE]\n"
                " \n"
                "  Illustrates how surface coordinates relate to voxel grid."
                "  The program outputs surface and equivalent volume coordinates\n"
@@ -68,6 +69,9 @@ void usage_Surf2VolCoord_demo (SUMA_GENERIC_ARGV_PARSE *ps)
                "     -prefix PREFIX: Prefix of output dataset.\n"
                "     -grid_parent GRID_VOL: Specifies the grid for the\n"
                "                  output volume.\n"
+               "  Optional Parameters:\n"
+               "     -grid_subbrick GSB: Sub-brick from which data are taken.\n"
+               "     -one_node NODE: Output results for node NODE only.\n"
                "\n"
                "The output is lots of text so you're better off\n"
                "redirecting to a file.\n"
@@ -84,7 +88,7 @@ void usage_Surf2VolCoord_demo (SUMA_GENERIC_ARGV_PARSE *ps)
 
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_Surf2VolCoord_demo_ParseInput(char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
-   static char FuncName[]={"SUMA_BrainWrap_ParseInput"}; 
+   static char FuncName[]={"SUMA_Surf2VolCoord_demo_ParseInput"}; 
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar;
    SUMA_Boolean brk;
@@ -94,6 +98,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_Surf2VolCoord_demo_ParseInput(char *argv[
    
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
    Opt->obj_type = 0; /* sub-brick index */
+   Opt->NodeDbg = -1;
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -154,6 +159,18 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_Surf2VolCoord_demo_ParseInput(char *argv[
          Opt->debug = atoi(argv[++kar]);
          brk = YUP;
       }
+      if (!brk && (strcmp(argv[kar], "-one_node") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a number after -one_node \n");
+            exit (1);
+         }
+         
+         Opt->NodeDbg = atoi(argv[++kar]);
+         brk = YUP;
+      }
+      
       if (!brk && !ps->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,"Error Surf2VolCoord_demo:\nOption %s not understood. Try -help for usage\n", argv[kar]);
 			exit (1);
@@ -182,7 +199,7 @@ int main (int argc,char *argv[])
    SUMA_Boolean LocalHead = NOPE;
    double *dvec = NULL;
    float *tmpXYZ=NULL;
-   int di, dj, dk, dijk, nx, ny, nxy;
+   int di, dj, dk, dijk, nx, ny, nxy, i0, i1;
    float fi, fj, fk;
    
    SUMA_STANDALONE_INIT;
@@ -244,6 +261,13 @@ int main (int argc,char *argv[])
          exit(1);
       
    }   
+   if (Opt->NodeDbg >= 0 && Opt->NodeDbg >= SO->N_Node) {
+      fprintf (SUMA_STDERR,"Error %s:\n"
+                              "Node index %d is >= SO->N_Node (%d)\n"
+                              "\n",
+                              FuncName, Opt->NodeDbg, SO->N_Node );
+         exit(1);
+   }
    
    /* By now SO is the surface object whose coordinates have transformed
    so that it is in register with the surface volume specifed on command line.
@@ -331,7 +355,9 @@ int main (int argc,char *argv[])
                            MRI_double               , dvec  ) ;   /* output */
    
    nx = DSET_NX(dset); ny = DSET_NY(dset); nxy = nx * ny; 
-   for (i=0; i<SO->N_Node; ++i) {
+   if (Opt->NodeDbg >= 0) { i0 = Opt->NodeDbg; i1 = Opt->NodeDbg+1; }
+   else { i0 = 0; i1 = SO->N_Node;};
+   for (i=i0; i<i1; ++i) {
       fi = tmpXYZ[3*i  ]; di = SUMA_ROUND(fi);
       fj = tmpXYZ[3*i+1]; dj = SUMA_ROUND(fj);
       fk = tmpXYZ[3*i+2]; dk = SUMA_ROUND(fk);
