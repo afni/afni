@@ -2246,4 +2246,5 @@
   * modified SUMA_Load_Surface_Object.c:
         - apply SUMA_SurfaceTypeCode in SUMA_coord_file
 14 Nov 2007: modified Makefile.cygwin, Makefile.INCLUDE for cygwin build
+  * modified adwarp.c: aside from -force, let user's AFNI_DECONFLICT decide
 

@@ -685,6 +685,10 @@ ENTRY("adwarp_refashion_dataset") ;
   }
   STATUS("wrote output header file") ;
 
+  /* at this point in time, the output dataset is set and the header
+   *   has been written - so we must overwrite from now on */
+  putenv("AFNI_DECONFLICT=OVERWRITE") ;  /* 19 Nov 2007 */
+
   /* purge the datablock that now exists,
      then delete the file on disk that now exists (if any) */
 
@@ -919,7 +923,13 @@ int main( int argc , char *argv[] )
                  "++ Warning: overwriting dataset %s and %s\n",
                  DSET_HEADNAME(new_dset), DSET_BRIKNAME(new_dset) ) ;
          putenv("AFNI_DECONFLICT=OVERWRITE") ;  /* 12 Nov 2007 */
-      } else if( THD_deathcon() ){
+      }
+   }
+
+/* aside from -force, let the user's AFNI_DECONFLICT variable control this */
+/*                                                     19 Nov 2007 [rickr] */
+#if 0
+else if( THD_deathcon() ){
          fprintf(stderr,
                  "** Error: can't overwrite dataset %s and %s\n"
                  "          unless you use the -force option!\n" ,
@@ -931,7 +941,7 @@ int main( int argc , char *argv[] )
          WARNING_message("Changed dataset name to '%s' to avoid conflict",
                          DSET_BRIKNAME(new_dset) ) ;
       }
-   }
+#endif
 
   /*----- Record history of dataset -----*/
   tross_Copy_History( option_data->dset , new_dset ) ;
