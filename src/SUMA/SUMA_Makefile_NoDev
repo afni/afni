@@ -369,16 +369,17 @@ SurfMesh: SUMA_coarsen.c libgts.a ${SUMAGTSLIB}
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
-Surf2VolCoord_demo: SUMA_Surf2VolCoord_demo.c
+Surf2VolCoord: SUMA_Surf2VolCoord_demo.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) \
-      ${AFNI_OBJS} SUMA_Surf2VolCoord_demo.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_Surf2VolCoord_demo.c \
+      ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
-
+       
 SurfToSurf: SUMA_SurfToSurf.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SurfToSurf.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SurfToSurf.c \
+      ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
        
@@ -547,7 +548,7 @@ install:
 	@if [ -f 3dCRUISEtoAFNI ]; then mv 3dCRUISEtoAFNI ${INSTALLDIR_SUMA}; fi;
 	@if [ -f 3dBRAIN_VOYAGERtoAFNI ]; then mv 3dBRAIN_VOYAGERtoAFNI ${INSTALLDIR_SUMA}; fi;
 	@if [ -f 3dSurfMask ]; then mv 3dSurfMask ${INSTALLDIR_SUMA}; fi;
-	@if [ -f Surf2VolCoord_demo ]; then mv Surf2VolCoord_demo ${INSTALLDIR_SUMA}; fi;
+	@if [ -f Surf2VolCoord ]; then mv Surf2VolCoord ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SurfToSurf ]; then mv SurfToSurf ${INSTALLDIR_SUMA}; fi;
 	@if [ -f ROIgrow ]; then mv ROIgrow ${INSTALLDIR_SUMA}; fi;
 	@if [ -f NikoMap ]; then mv NikoMap ${INSTALLDIR_SUMA}; fi;
@@ -605,7 +606,7 @@ packbins:
 	@if [ -f 3dCRUISEtoAFNI ]; then $(CP) -p 3dCRUISEtoAFNI SUMA_bin/; fi;
 	@if [ -f 3dBRAIN_VOYAGERtoAFNI ]; then $(CP) -p 3dBRAIN_VOYAGERtoAFNI SUMA_bin/; fi;
 	@if [ -f 3dSurfMask ]; then $(CP) -p 3dSurfMask SUMA_bin/; fi;
-	@if [ -f Surf2VolCoord_demo ]; then $(CP) -p Surf2VolCoord_demo SUMA_bin/; fi;
+	@if [ -f Surf2VolCoord ]; then $(CP) -p Surf2VolCoord SUMA_bin/; fi;
 	@if [ -f SurfToSurf ]; then $(CP) -p SurfToSurf SUMA_bin/; fi;
 	@if [ -f ROIgrow ]; then $(CP) -p ROIgrow SUMA_bin/; fi;
 	@if [ -f NikoMap ]; then $(CP) -p NikoMap SUMA_bin/; fi;
@@ -632,7 +633,7 @@ standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
 	3dVol2Surf 3dSurf2Vol SurfMeasures SurfaceMetrics    \
 	ROI2dataset SurfSmooth SurfPatch SurfQual inspec quickspec FScurv_to_1D FSread_annot	\
    SUMA_TestDsetIO ConvertDset ShowCmap SurfClust IsoSurface 3dSkullStrip \
-   3dCRUISEtoAFNI	3dBRAIN_VOYAGERtoAFNI 3dSurfMask Surf2VolCoord_demo SurfToSurf ROIgrow\
+   3dCRUISEtoAFNI	3dBRAIN_VOYAGERtoAFNI 3dSurfMask Surf2VolCoord SurfToSurf ROIgrow\
    NikoMap SurfDsetInfo SurfInfo AnalyzeTrace DriveSuma SurfLocalstat SurfFWHM \
    SpharmDeco SpharmReco SumaProgramTemplate 
    
