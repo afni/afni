@@ -6481,3 +6481,4 @@
  * Copy auxdata from source to output in 3dAllineate.c (oops).
  * Changed 'report' from mri_clusterize.c and added info to the
      clusterize vector chooser using about BHelp to see this report.
+ * New program 3dTsort.c.  Will this grow to be a monster?
