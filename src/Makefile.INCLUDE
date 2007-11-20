@@ -76,7 +76,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
-           1dFlagMotion $(EXTRAS)
+           1dFlagMotion 3dTsort $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise count \
@@ -102,7 +102,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   Imon nifti_tool 3dAllineate nifti1_test Dimon 3danisosmooth       \
                   3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc 3dAcost     \
                   3dLocalBistat 3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize       \
-                  1dMarry 3dEmpty 1dFlagMotion                                                 \
+                  1dMarry 3dEmpty 3dTsort 1dFlagMotion                              \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -134,7 +134,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                nifti_tool 3dAFNItoRaw DTIStudioFibertoSegments Dimon              \
                3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAllineate       \
                3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty      \
-               1dFlagMotion
+               1dFlagMotion 3dTsort
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -466,6 +466,10 @@ dsetdup:dsetdup.o
 3dTstat:3dTstat.o
 	$(RM) $@
 	$(CC) -o 3dTstat 3dTstat.o $(LFLAGS) $(LLIBS)
+
+3dTsort:3dTsort.o
+	$(RM) $@
+	$(CC) -o 3dTsort 3dTsort.o $(LFLAGS) $(LLIBS)
 
 3dLocalstat:3dLocalstat.o
 	$(RM) $@
