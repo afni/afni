@@ -2909,7 +2909,7 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
    
    if (opt->accept_i) {
       SS = SUMA_StringAppend (SS, 
-                  " Specifying input surfaces using -i_TYPE options: \n"
+                  " Specifying input surfaces using -i or -i_TYPE options: \n"
                   "    -i_TYPE inSurf specifies the input surface,\n"
                   "            TYPE is one of the following:\n"
                   "       fs: FreeSurfer surface. \n"
@@ -2939,6 +2939,9 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
                   "           'field' should contain 2 components 'positions'\n"
                   "           and 'connections' that point to the two objects\n"
                   "           containing node coordinates and topology, respectively.\n"
+                  " Note that if the surface filename has the proper extension, \n"
+                  " it is enough to use the -i option and let the programs guess\n"
+                  " the type from the extension.\n"
       );
    }
    if (opt->accept_ipar) {
@@ -3005,7 +3008,7 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
 
    if (opt->accept_o) {
       SS = SUMA_StringAppend (SS, 
-                  " Specifying output surfaces using -o_TYPE options: \n"
+                  " Specifying output surfaces using -o or -o_TYPE options: \n"
                   "    -o_TYPE outSurf specifies the output surface, \n"
                   "            TYPE is one of the following:\n"
                   "       fs: FreeSurfer ascii surface. \n"
@@ -3034,7 +3037,9 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
                   "            v1 v2 v3 triangle vertices.\n"
                   "       ply: PLY format, ascii or binary.\n"
                   "       byu: BYU format, ascii or binary.\n"
-      );
+                  " Note that if the surface filename has the proper extension, \n"
+                  " it is enough to use the -o option and let the programs guess\n"
+                  " the type from the extension.\n"      );
    }
    
    if (opt->accept_dset) {
@@ -3356,8 +3361,49 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 	      }  
       }
       if (!brk && ps->accept_i) {
+         char *tmp_i = SUMA_copy_string(argv[kar]);
+         if (strcmp(argv[kar], "-i_") == 0 || strcmp(argv[kar], "-i") == 0) {
+            if (kar+1 >= argc)  {
+	            SUMA_S_Err( "need argument after -i_ ");
+	            exit (1);
+            }
+            switch(SUMA_guess_surftype_argv(argv[kar+1])) {
+               case SUMA_FREE_SURFER:
+               case SUMA_FREE_SURFER_PATCH:
+                  tmp_i = SUMA_copy_string("-i_fs");
+                  break;
+               case SUMA_SUREFIT:
+                  tmp_i = SUMA_copy_string("-i_sf");
+                  break;
+               case SUMA_INVENTOR_GENERIC:
+                  tmp_i = SUMA_copy_string("-i_iv");
+                  break;
+               case SUMA_PLY:
+                  tmp_i = SUMA_copy_string("-i_ply");
+                  break;
+               case SUMA_VEC:
+                  tmp_i = SUMA_copy_string("-i_1d");
+                  break;
+               case SUMA_BRAIN_VOYAGER:
+                  tmp_i = SUMA_copy_string("-i_bv");
+                  break;
+               case SUMA_OPENDX_MESH:
+                  tmp_i = SUMA_copy_string("-i_dx");
+                  break;
+               case SUMA_BYU:
+                  tmp_i = SUMA_copy_string("-i_byu");
+                  break;
+                  break;
+               case SUMA_CMAP_SO:
+               default:
+                  tmp_i = SUMA_copy_string(argv[kar]);
+                  break;
+            }
+         } else {
+            tmp_i = SUMA_copy_string(argv[kar]);
+         }
          SUMA_LHv("accept_i %d (argv[%d]=%s)\n", ps->accept_i, kar, argv[kar]);
-         if (!brk && ( (strcmp(argv[kar], "-i_bv") == 0) || (strcmp(argv[kar], "-i_BV") == 0) ) ) {
+         if (!brk && ( (strcmp(tmp_i, "-i_bv") == 0) || (strcmp(tmp_i, "-i_BV") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -3374,7 +3420,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             ++ps->i_N_surfnames;
             brk = YUP;
          }
-         if (!brk && ( (strcmp(argv[kar], "-i_byu") == 0) || (strcmp(argv[kar], "-i_BYU") == 0) ) ) {
+         if (!brk && ( (strcmp(tmp_i, "-i_byu") == 0) || (strcmp(tmp_i, "-i_BYU") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -3391,7 +3437,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             ++ps->i_N_surfnames;
             brk = YUP;
          }
-         if (!brk && ( (strcmp(argv[kar], "-i_fs") == 0) || (strcmp(argv[kar], "-i_FS") == 0)) ) {
+         if (!brk && ( (strcmp(tmp_i, "-i_fs") == 0) || (strcmp(tmp_i, "-i_FS") == 0)) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -3412,7 +3458,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             brk = YUP;
          }
          
-         if (!brk && ( (strcmp(argv[kar], "-i_sf") == 0) || (strcmp(argv[kar], "-i_SF") == 0)) ){
+         if (!brk && ( (strcmp(tmp_i, "-i_sf") == 0) || (strcmp(tmp_i, "-i_SF") == 0)) ){
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar+1 >= argc)  {
@@ -3432,8 +3478,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             brk = YUP;
          }
 
-         if (!brk && ( (strcmp(argv[kar], "-i_vec") == 0) || (strcmp(argv[kar], "-i_1d") == 0) ||
-                       (strcmp(argv[kar], "-i_VEC") == 0) || (strcmp(argv[kar], "-i_1D") == 0) ) ) {
+         if (!brk && ( (strcmp(tmp_i, "-i_vec") == 0) || (strcmp(tmp_i, "-i_1d") == 0) ||
+                       (strcmp(tmp_i, "-i_VEC") == 0) || (strcmp(tmp_i, "-i_1D") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar+1 >= argc)  {
@@ -3453,7 +3499,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             brk = YUP;
          }
 
-         if (!brk && ( (strcmp(argv[kar], "-i_ply") == 0) || (strcmp(argv[kar], "-i_Ply") == 0) || (strcmp(argv[kar], "-i_PLY") == 0))) {
+         if (!brk && (     (strcmp(tmp_i, "-i_ply") == 0) || (strcmp(tmp_i, "-i_Ply") == 0) 
+                        || (strcmp(tmp_i, "-i_PLY") == 0))) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -3470,7 +3517,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             ++ps->i_N_surfnames;
             brk = YUP;
          }
-         if (!brk && ( (strcmp(argv[kar], "-i_DX") == 0) || (strcmp(argv[kar], "-i_dx") == 0) || (strcmp(argv[kar], "-i_Dx") == 0))) {
+         if (!brk && (  (strcmp(tmp_i, "-i_DX") == 0) || (strcmp(tmp_i, "-i_dx") == 0) 
+                     || (strcmp(tmp_i, "-i_Dx") == 0))) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -3487,7 +3535,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             ++ps->i_N_surfnames;
             brk = YUP;
          }
-         if (!brk && ( (strcmp(argv[kar], "-i_iv") == 0) || (strcmp(argv[kar], "-i_IV") == 0) )) {
+         if (!brk && ( (strcmp(tmp_i, "-i_iv") == 0) || (strcmp(tmp_i, "-i_IV") == 0) )) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -3504,7 +3552,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             ++ps->i_N_surfnames;
             brk = YUP;
          }
-                  
+         if (tmp_i) SUMA_free(tmp_i); tmp_i=NULL;         
       }
       
       if (!brk && ps->accept_ipar) {
@@ -3754,7 +3802,48 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
           
       }
       if (!brk && ps->accept_o) {
-         if (!brk && ( (strcmp(argv[kar], "-o_fs") == 0) || (strcmp(argv[kar], "-o_FS") == 0) ) ) {
+         char *tmp_o = SUMA_copy_string(argv[kar]);
+         if (strcmp(argv[kar], "-o_") == 0 || strcmp(argv[kar], "-o") == 0) {
+            if (kar+1 >= argc)  {
+	            SUMA_S_Err( "need argument after -o_ ");
+	            exit (1);
+            }
+            switch(SUMA_guess_surftype_argv(argv[kar+1])) {
+               case SUMA_FREE_SURFER:
+               case SUMA_FREE_SURFER_PATCH:
+                  tmp_o = SUMA_copy_string("-o_fs");
+                  break;
+               case SUMA_SUREFIT:
+                  tmp_o = SUMA_copy_string("-o_sf");
+                  break;
+               case SUMA_INVENTOR_GENERIC:
+                  tmp_o = SUMA_copy_string("-o_iv");
+                  break;
+               case SUMA_PLY:
+                  tmp_o = SUMA_copy_string("-o_ply");
+                  break;
+               case SUMA_VEC:
+                  tmp_o = SUMA_copy_string("-o_1d");
+                  break;
+               case SUMA_BRAIN_VOYAGER:
+                  tmp_o = SUMA_copy_string("-o_bv");
+                  break;
+               case SUMA_OPENDX_MESH:
+                  tmp_o = SUMA_copy_string("-o_dx");
+                  break;
+               case SUMA_BYU:
+                  tmp_o = SUMA_copy_string("-o_byu");
+                  break;
+                  break;
+               case SUMA_CMAP_SO:
+               default:
+                  tmp_o = SUMA_copy_string(argv[kar]);
+                  break;
+            }
+         } else {
+            tmp_o = SUMA_copy_string(argv[kar]);
+         }
+         if (!brk && ( (strcmp(tmp_o, "-o_fs") == 0) || (strcmp(tmp_o, "-o_FS") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
 			   if (kar >= argc)  {
@@ -3772,7 +3861,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 			   brk = YUP;
 		   }
       
-         if (!brk && ( (strcmp(argv[kar], "-o_fsp") == 0) || (strcmp(argv[kar], "-o_FSP") == 0) ) ) {
+         if (!brk && ( (strcmp(tmp_o, "-o_fsp") == 0) || (strcmp(tmp_o, "-o_FSP") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
 			   if (kar >= argc)  {
@@ -3791,7 +3880,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             brk = YUP;
 		   }
 
-         if (!brk && ( (strcmp(argv[kar], "-o_sf") == 0) || (strcmp(argv[kar], "-o_SF") == 0)) ) {
+         if (!brk && ( (strcmp(tmp_o, "-o_sf") == 0) || (strcmp(tmp_o, "-o_SF") == 0)) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
 			   if (kar >= argc)  {
@@ -3820,8 +3909,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 		   }
       
       
-         if (!brk && (  (strcmp(argv[kar], "-o_vec") == 0) || (strcmp(argv[kar], "-o_1d") == 0)  ||
-                        (strcmp(argv[kar], "-o_VEC") == 0) || (strcmp(argv[kar], "-o_1D") == 0) ) ) {
+         if (!brk && (  (strcmp(tmp_o, "-o_vec") == 0) || (strcmp(tmp_o, "-o_1d") == 0)  ||
+                        (strcmp(tmp_o, "-o_VEC") == 0) || (strcmp(tmp_o, "-o_1D") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
 			   if (kar >= argc)  {
@@ -3849,7 +3938,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 			   brk = YUP;
 		   }
       
-         if (!brk && ( (strcmp(argv[kar], "-o_dx") == 0) || (strcmp(argv[kar], "-o_DX") == 0) || (strcmp(argv[kar], "-o_Dx") == 0)) ) {
+         if (!brk && ( (strcmp(tmp_o, "-o_dx") == 0) || (strcmp(tmp_o, "-o_DX") == 0) 
+                     || (strcmp(tmp_o, "-o_Dx") == 0)) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -3866,7 +3956,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 			   ++ps->o_N_surfnames;  
 			   brk = YUP;
 		   }         
-         if (!brk && ( (strcmp(argv[kar], "-o_ply") == 0) || (strcmp(argv[kar], "-o_PLY") == 0) || (strcmp(argv[kar], "-o_Ply") == 0)) ) {
+         if (!brk && ( (strcmp(tmp_o, "-o_ply") == 0) || (strcmp(tmp_o, "-o_PLY") == 0) 
+                     || (strcmp(tmp_o, "-o_Ply") == 0)) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -3883,7 +3974,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 			   ++ps->o_N_surfnames;  
 			   brk = YUP;
 		   }
-         if (!brk && ( (strcmp(argv[kar], "-o_byu") == 0) || (strcmp(argv[kar], "-o_BYU") == 0) || (strcmp(argv[kar], "-o_Ply") == 0)) ) {
+         if (!brk && ( (strcmp(tmp_o, "-o_byu") == 0) || (strcmp(tmp_o, "-o_BYU") == 0) 
+                     || (strcmp(tmp_o, "-o_Ply") == 0)) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -3900,6 +3992,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 			   ++ps->o_N_surfnames;  
 			   brk = YUP;
 		   }
+         if (tmp_o) SUMA_free(tmp_o); tmp_o = NULL;
       }
 
 		brk = NOPE;

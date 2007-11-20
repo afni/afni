@@ -9,7 +9,7 @@ int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing info common to all viewers */
 
 static char help_msg[]= {
-"Once you load a surface and its surface volume\n"
+"Once you load a surface and its surface volume,,\n"
 "its node coordinates are transformed based on the\n"
 "surface format type and the transforms stored in\n"
 "the surface volume. At this stage, the node coordinates\n"
