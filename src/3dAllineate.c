@@ -2488,8 +2488,13 @@ int main( int argc , char *argv[] )
                           ADN_func_type , ISANAT(dset_out) ? ANAT_BUCK_TYPE
                                                            : FUNC_BUCK_TYPE ,
                         ADN_none ) ;
+
+     /* copy brick info into output */
+
+     THD_copy_datablock_auxdata( dset_targ->dblk , dset_out->dblk ) ; /* 20 Nov 2007 */
      for( kk=0 ; kk < DSET_NVALS(dset_out) ; kk++ )
        EDIT_BRICK_FACTOR(dset_out,kk,0.0);
+
      tross_Copy_History( dset_targ , dset_out ) ;
      tross_Make_History( "3dAllineate" , argc,argv , dset_out ) ;
 

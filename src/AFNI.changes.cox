@@ -6476,3 +6476,6 @@
      and so that '-seed 0' generates a custom seed.
  * Add some extra text to the 'Clusterize' label (afni_setup.c) to
      explain that rmm=0 means NN clustering with vmul in voxel count.
+
+20 Nov 2007
+ * Copy auxdata from source to output in 3dAllineate.c (oops).

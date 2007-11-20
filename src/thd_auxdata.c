@@ -7,21 +7,15 @@
 #include "mrilib.h"
 #include "thd.h"
 
-#if 0
-#  define DQQ(s) fprintf(stderr,"THD_copy_datablock_auxdata %s\n",(s))
-#else
-#  define DQQ(s) /* nada */
-#endif
-
 /*---------------------------------------------------------------------------*/
 
 void THD_copy_datablock_auxdata( THD_datablock *old_dblk, THD_datablock *new_dblk )
 {
    int new_nvals , old_nvals , min_nvals , iv,kv , ibr ;
 
-DQQ("entry") ;
+ENTRY("THD_copy_datablock_auxdata") ;
 
-   if( ! ISVALID_DATABLOCK(new_dblk) ) return ;
+   if( ! ISVALID_DATABLOCK(new_dblk) ) EXRETURN ;
 
    new_nvals = new_dblk->nvals ;
 
@@ -48,31 +42,31 @@ DQQ("entry") ;
    new_dblk->brick_statcode = NULL ;
    new_dblk->brick_stataux  = NULL ;
 
-DQQ("finish nulling") ;
+STATUS("finish nulling") ;
 
-   if( ! ISVALID_DATABLOCK(old_dblk) ) return ;
+   if( ! ISVALID_DATABLOCK(old_dblk) ) EXRETURN ;
 
    old_nvals = old_dblk->nvals ;
    min_nvals = (old_nvals < new_nvals) ? old_nvals : new_nvals ;
 
-DQQ("starting copy") ;
+STATUS("starting copy") ;
 
    if( old_dblk->brick_lab != NULL ){
-DQQ("copy labels") ;
+STATUS("copy labels") ;
       THD_init_datablock_labels( new_dblk ) ;
       for( iv=0 ; iv < min_nvals ; iv++ )
          THD_store_datablock_label( new_dblk , iv , old_dblk->brick_lab[iv] ) ;
    }
 
    if( old_dblk->brick_keywords != NULL ){
-DQQ("copy keywords") ;
+STATUS("copy keywords") ;
       THD_init_datablock_keywords( new_dblk ) ;
       for( iv=0 ; iv < min_nvals ; iv++ )
          THD_store_datablock_keywords( new_dblk , iv , old_dblk->brick_keywords[iv] ) ;
    }
 
    if( old_dblk->brick_statcode != NULL ){
-DQQ("copy statcode and stataux") ;
+STATUS("copy statcode and stataux") ;
       THD_init_datablock_stataux( new_dblk ) ;
       for( iv=0 ; iv < min_nvals ; iv++ ){
          kv = old_dblk->brick_statcode[iv] ;
@@ -85,7 +79,7 @@ DQQ("copy statcode and stataux") ;
    /* we may need to copy the node_list    12 Jul 2006 [rickr] */
    if( DBLK_IS_NI_SURF_DSET(old_dblk) && old_dblk->nnodes > 0 &&
                                          old_dblk->node_list ){
-DQQ("copy node_list") ;
+STATUS("copy surface node_list") ;
       iv = old_dblk->nnodes * sizeof(int) ;
       new_dblk->node_list = (int *)XtMalloc(iv) ;
       if( new_dblk->node_list ){
@@ -94,8 +88,7 @@ DQQ("copy node_list") ;
       }
    }
 
-DQQ("exit") ;
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------
