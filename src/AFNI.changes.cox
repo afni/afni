@@ -6316,7 +6316,7 @@
 
 30 Jul 2007
  * Modify thd_read_vecmat.c to use mri_read_double_ascii() to read a file rather
-     than read it directly.  This way, comments will be skipped properly and 
+     than read it directly.  This way, comments will be skipped properly and
      the '1D: ...' format can be used.
  * Fix afni_plugin.c to initialize loading of matrix_initialize(), to fix a
      problem left in plug_deconvolve.c by RCR's matrix.c changes.
@@ -6355,7 +6355,7 @@
      '-autoweight' now the default for '-ls' cost function.
  * Re-insert older fixes to afni.c that were lost in CVS.
 
-11 Sep 2007 
+11 Sep 2007
  * Modified 3dBlurToFWHM.c to remove scale factors from 'outset' if 'inset'
      had them.  Oopsie.
 
@@ -6479,3 +6479,5 @@
 
 20 Nov 2007
  * Copy auxdata from source to output in 3dAllineate.c (oops).
+ * Changed 'report' from mri_clusterize.c and added info to the
+     clusterize vector chooser using about BHelp to see this report.
