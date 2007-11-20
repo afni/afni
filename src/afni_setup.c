@@ -1105,7 +1105,10 @@ ENTRY("AFNI_clu_CB") ;
                        "  measured in voxel count\n"
                        "* rmm>0 is clustering radius in mm, and\n"
                        "  vmul is cluster volume threshold in\n"
-                       "  microliters"
+                       "  microliters\n"
+                       "* Use 'BHelp' on 'Cluster Edit' label\n"
+                       "  to get summary of clustering results.\n"
+                       "---------------------------------------"
                        , 2 , lvec,fvec ,
                         AFNI_cluster_choose_CB , (XtPointer)im3d ) ;
      EXRETURN ;
