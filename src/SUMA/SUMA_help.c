@@ -129,6 +129,7 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "  + AnalyzeTrace: Program to analyze the output of -trace option.\n"
             "  + DriveSuma: Program to control SUMA from the command line\n"
             "  + imcat: Program to catenate images.\n"
+            "  + Surf2VolCoord: Surface-node to voxel correspondence.\n"
             "Modifications:\n"
             "  + SUMA:\n"
             "    o Addition of new Displayable Objects (DO)(ctrl+Alt+s)\n"
