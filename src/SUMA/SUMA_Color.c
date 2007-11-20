@@ -339,7 +339,10 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
                            Cv, &N_cols);
      } 
    }
-   
+   #if 0
+      /* causes crash on Fedora Core 7 and core 6, not worth it */
+      SUMA_Interpret_AFNIColor (NULL, rgb);
+   #endif
    /* Now create the afni color maps with more than 10 panes (excerpts from afni.c)*/
    
    /* start with positive panes */
@@ -6176,6 +6179,10 @@ int SUMA_AFNI_Extract_Colors ( char *fname, SUMA_AFNI_COLORS *SAC )
          }
          continue ;  /* skip to end of outer while loop */   
       } /* end of COLORS */
+      #if 0
+         /* causes crash on Fedora Core 7 and core 6, not worth it */
+         SUMA_Interpret_AFNIColor (NULL, rgb);
+      #endif
 
       /**----------------------**/
       /**-- PALETTES section --**/
@@ -6322,17 +6329,32 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
    int r, g, b;
    char stmp[10];   
    XVisualInfo vtmp, *vislist;
-   XtAppContext app; 
-   Widget tl;
-   Display *dpy=NULL;
+   static XtAppContext app; 
+   static Widget tl=NULL;
+   static Display *dpy=NULL;
    XColor color_closest, color_exact;
-   Colormap cmap;
+   static Colormap cmap;
    static int iwarn = 0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
+   if (!Name) {
+      /* cleanup */
+      if (tl && dpy) {
+         SUMA_LH("Cleanup");
+         XFreeColormap(dpy, cmap);
+         /* These 2 lines cause a crash on Fedora Core 4, but Core 4 crashes at XmCreateMainWindow anyway so we're doomed.*/
+         XtDestroyWidget(tl); 
+         XtDestroyApplicationContext(app);
+         tl = NULL;
+         dpy = NULL;
+      }
+      SUMA_RETURN (YUP);
+   }
+   
       if (Name[0] == '#') { /* explicitly defined */
+         SUMA_LHv("Explicit %s\n", Name);
          sprintf(stmp,"0x%c%c", Name[1], Name[2]);
          sscanf (stmp, "%x", &r);
          sprintf(stmp,"0x%c%c", Name[3], Name[4]);
@@ -6347,14 +6369,19 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
          /* XtAppInitialize (at least on mac osx) forces the application to quit if display cannot be opened
          So you must decide ahead of time whether to call it or not! */
          if (SUMAg_CF->isGraphical) {
-            /* tl = XtAppInitialize(&app, "ScaleToMap", NULL, 0, &cargc, vargv,
-                  SUMA_get_fallbackResources(), NULL, 0); Superseded by XtOpenApplication */
-                  
-            tl = XtOpenApplication(&app, "ScaleToMap", NULL, 0, &cargc, vargv,
-                  SUMA_get_fallbackResources(),topLevelShellWidgetClass,  NULL, 0);
-                  
-            dpy = XtDisplay(tl);
-            cmap = DefaultColormap(dpy, DefaultScreen(dpy));
+            SUMA_LHv("Graphical, named %s\n", Name);
+            if (!tl) {
+               SUMA_LH("tl init\n");
+               /* tl = XtAppInitialize(&app, "ScaleToMap", NULL, 0, &cargc, vargv,
+                     SUMA_get_fallbackResources(), NULL, 0); Superseded by XtOpenApplication */
+
+               tl = XtOpenApplication(&app, "ScaleToMap", NULL, 0, &cargc, vargv,
+                     SUMA_get_fallbackResources(),topLevelShellWidgetClass,  NULL, 0);
+
+               dpy = XtDisplay(tl);
+               cmap = DefaultColormap(dpy, DefaultScreen(dpy));
+            } 
+
 
             XParseColor(dpy, cmap, Name, &color_exact);
 
@@ -6363,13 +6390,8 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
             RGB[0] = (float)color_exact.red/255.0/257.0;
             RGB[1] = (float)color_exact.green/255.0/257.0;
             RGB[2] = (float)color_exact.blue/255.0/257.0;
-
-            XFreeColormap(dpy, cmap);
-            
-            /* These 2 lines cause a crash on Fedora Core 4, but Core 4 crashes at XmCreateMainWindow anyway so we're doomed.*/
-            XtDestroyWidget(tl); 
-            XtDestroyApplicationContext(app);
          } else {
+            SUMA_LH("Not graphical");
             if (0 && (LocalHead || !(iwarn % 10))) {
                fprintf(SUMA_STDERR,"%s: \n"
                                           "Xcolor %s cannot be resolved without \n"
