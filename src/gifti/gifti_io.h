@@ -134,16 +134,24 @@ typedef struct {
 gifti_image * gifti_read_image (const char * fname, int read_data );
 int gifti_write_image(gifti_image * gim, const char * fname, int write_data);
 
-
 int    gifti_free_image         (gifti_image * gim );
+
+int    gifti_check_swap         (void *data, int endian, size_t nsets,
+                                 int swapsize);
+int    gifti_swap_Nbytes        (void *data, size_t nsets, int swapsize);
+
 /* end main interface protos */
+
+int    gifti_get_b64_check      (void);
+int    gifti_set_b64_check      (int level);
+int    gifti_get_verb           (void);
+int    gifti_set_verb           (int level);
 
 size_t gifti_darray_nvals       (giiDataArray * da);
 void   gifti_datatype_sizes     (int datatype, int *nbyper, int *swapsize);
 char * gifti_datatype2str       (int type);
 int    gifti_gim_DA_size        (gifti_image * p, int in_mb);
-int    gifti_get_verb           (void);
-int    gifti_set_verb           (int level);
+char * gifti_list_index2string  (char * list[], int index);
 int    gifti_set_xml_buf_size   (int buf_size);
 int    gifti_str2attr_gifti     (gifti_image * gim, const char * attr,
                                                         const char * val);
@@ -155,6 +163,8 @@ int    gifti_str2dataloc        (const char * str);
 int    gifti_str2encoding       (const char * str);
 int    gifti_str2endian         (const char * str);
 int    gifti_str2datatype       (const char * str);
+int    gifti_swap_2bytes        (void *data, size_t nsets);
+int    gifti_swap_4bytes        (void *data, size_t nsets);
 
 int    gifti_add_empty_darray   (gifti_image * gim);
 int    gifti_add_to_nvpairs     (nvpairs * p, const char * name,
@@ -185,6 +195,10 @@ int    gifti_disp_LabelTable     (const char *mesg, giiLabelTable *p);
 int    gifti_disp_CoordSystem    (const char *mesg, giiCoordSystem *p);
 int    gifti_disp_DataArray      (const char *mesg, giiDataArray *p, int subs);
 int    gifti_disp_gifti_image    (const char *mesg, gifti_image *p, int subs);
+
+int    gifti_disp_hex_data       (const char *mesg, const void *data, int len,
+                                  FILE * fp);
+
 
 int    clear_nvpairs             (nvpairs * p);
 int    clear_LabelTable          (giiLabelTable * p);
