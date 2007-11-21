@@ -1610,6 +1610,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 {
    NI_stream_type *ns ;
    int do_create , do_accept ;
+   int ni_bufsize = NI_BUFSIZE ;  /* 21 Nov 2007 */
 
    /** perhaps initialize debug output **/
 
@@ -1641,6 +1642,18 @@ NI_stream NI_stream_open( char *name , char *mode )
 
    if( ! atexit_is_setup ){         /* 22 Apr 2005 */
      atexit(atexit_open_streams) ; atexit_is_setup = 1 ;
+   }
+
+   /* 21 Nov 2007: alter default buffer size? */
+
+   { char *eee ; int bbb ;
+                       eee = getenv( "AFNI_NIML_BUFSIZE" ) ;
+     if( eee == NULL ) eee = getenv( "NIML_BUFSIZE" ) ;
+     if( eee == NULL ) eee = getenv( "BUFSIZE") ;
+     if( eee != NULL ){
+       bbb = (int)strtod(eee,NULL) ;
+       if( bbb > ni_bufsize ) ni_bufsize = bbb ;
+     }
    }
 
    /************************************/
@@ -1675,8 +1688,8 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->npos = 0 ;            /* scan starts at 0   */
       ns->b64_numleft = 0 ;
 
-      ns->buf     = NI_malloc(char, NI_BUFSIZE) ;
-      ns->bufsize = NI_BUFSIZE ;
+      ns->buf     = NI_malloc(char, ni_bufsize) ;
+      ns->bufsize = ni_bufsize ;
       ns->name[0] = '\0' ;
       NI_strncpy(ns->orig_name,name,256) ;  /* 23 Aug 2002 */
 
@@ -1757,8 +1770,8 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->shmioc   = ioc ;
       ns->b64_numleft = 0 ;
 
-      ns->buf      = NI_malloc(char, NI_BUFSIZE) ;
-      ns->bufsize  = NI_BUFSIZE ;
+      ns->buf      = NI_malloc(char, ni_bufsize) ;
+      ns->bufsize  = ni_bufsize ;
 
       NI_strncpy( ns->name , name , 256 ) ;
 
@@ -1799,7 +1812,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->bad      = 0 ;
       ns->b64_numleft = 0 ;
 
-      ns->bufsize  = do_create ? 16 : NI_BUFSIZE ;
+      ns->bufsize  = do_create ? 16 : ni_bufsize ;
       ns->buf      = NI_malloc(char, ns->bufsize) ;
 
       NI_strncpy( ns->name , fname , 256 ) ;
@@ -1864,7 +1877,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->bad      = 0 ;
       ns->b64_numleft = 0 ;
 
-      ns->bufsize  = do_create ? 16 : NI_BUFSIZE ;
+      ns->bufsize  = do_create ? 16 : ni_bufsize ;
       ns->buf      = NI_malloc(char, ns->bufsize) ;
 
       NI_strncpy( ns->name , name , 256 ) ;

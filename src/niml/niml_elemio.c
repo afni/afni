@@ -614,7 +614,7 @@ NI_dpr(" {fill buf}") ;
 
 int NI_decode_one_string( NI_stream_type *ns, char **str , int ltend )
 {
-   int epos , num_restart, need_data, nn ;
+   int epos , num_restart, need_data, nn , overbuf=0 ;
    intpair sp ;
 
    /*-- check inputs for stupidness --*/
@@ -626,7 +626,14 @@ int NI_decode_one_string( NI_stream_type *ns, char **str , int ltend )
    num_restart = 0 ;
 Restart:
    num_restart++ ; need_data = 0 ;
-   if( num_restart > 19 ) return 0 ;  /*** give up ***/
+   if( num_restart > 19 ){
+     if( overbuf ){         /* 21 Nov 2007 */
+       static int nov=0 ;
+       if( ++nov < 7 )
+         fprintf(stderr,"** ERROR: string runs past end of NIML buffer\n");
+     }
+     return 0 ;  /*** give up ***/
+   }
 
    /*-- advance over useless characters in the buffer --*/
 
@@ -668,6 +675,8 @@ Restart:
       need_data = (sp.i < 0)        ||  /* didn't find a string */
                   (sp.j <= sp.i)    ||  /* ditto */
                   (sp.j == ns->nbuf)  ; /* hit end of data bytes */
+
+      overbuf = (sp.j == ns->nbuf) ; /* 21 Nov 2007: flag buffer overrun */
    }
 
    /*-- read more data now if it is needed --*/
