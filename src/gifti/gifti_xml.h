@@ -61,13 +61,15 @@ typedef struct {
     int            dstore;          /* flag: store data             */
     int            indent;          /* spaces per depth level       */
     int            buf_size;        /* for XML buffer               */
+    int            b64_check;       /* 0=no, 1=check, 2=count, 3=skip */
 
+    int            b64_errors;      /* bad chars, per DATA element  */
     int            errors;          /* number of errors encountered */
     int            skip;            /* stack depth to skip          */
     int            depth;           /* current stack depth          */
     int            stack[GXML_MAX_DEPTH+1]; /* stack of etypes      */
 
-    int            dind;            /* index into decode array      */
+    size_t         dind;            /* index into decode array      */
     int            doff;            /* offset into data buffer      */
     int            clen;            /* length of current CDATA      */
     int            xlen;            /* length of xform buffer       */
@@ -91,6 +93,8 @@ int   gxml_set_dstore      ( int val );
 int   gxml_get_dstore      ( void    );
 int   gxml_set_buf_size    ( int val );
 int   gxml_get_buf_size    ( void    );
+int   gxml_set_b64_check   ( int val );
+int   gxml_get_b64_check   ( void    );
 
 
 #endif /* GIFTI_XML_H */

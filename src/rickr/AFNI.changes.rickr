@@ -2247,4 +2247,13 @@
         - apply SUMA_SurfaceTypeCode in SUMA_coord_file
 14 Nov 2007: modified Makefile.cygwin, Makefile.INCLUDE for cygwin build
   * modified adwarp.c: aside from -force, let user's AFNI_DECONFLICT decide
+21 Nov 2007: gifti base64 I/O: lib version 0.3
+  * modified giftio_io.[ch], gifti_xml.[ch], gifti_test.c, test.io
+        - added I/O routines for base64 via b64_encode_table/b64_decode_table
+        - append_to_data_b64(), decode_b64(), copy_b64_data
+        - added b64_check/b64_errors to global struct
+        - pop_darray: check for b64_errors and  byte-swapping
+        - dind is size_t
+        - notable functions: gifti_list_index2string, gifti_disp_hex_data
+            gifti_check_swap, gifti_swap_Nbytes
 

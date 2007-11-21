@@ -22,9 +22,15 @@ static char * gifti_history[] =
   "     - renamed gifti.[ch] to gifti_io.[ch]\n"
   "     - main data structures all start with gii (or gifti_)\n"
   "     - added user indenting\n"
+  "0.3  21 November, 2007\n",
+  "     - added base64 encoding/decoding, via b64_en/decode_table\n"
+  "     - added gifti_list_index2string, gifti_disp_hex_data, \n"
+  "     -       gifti_check_swap, gifti_swap_Nbytes, etc.\n"
+  "     - pop_darray: check for b64 errors and byte swapping\n"
+  "     - dind is size_t\n"
 };
 
-static char gifti_version[] = "gifti library version 0.2, 29 October, 2007";
+static char gifti_version[] = "gifti library version 0.3, 21 November, 2007";
 
 /* ---------------------------------------------------------------------- */
 /* global lists of XML strings */
@@ -91,6 +97,8 @@ char * gifti_endian_list[] = {"Undefined", "BigEndian", "LittleEndian"};
 static gifti_globals G = { 1 };
 int gifti_get_verb( void )     { return G.verb; }
 int gifti_set_verb( int level ){ G.verb = level;  return 1; }
+int gifti_get_b64_check( void )     { return gxml_get_b64_check(); }
+int gifti_set_b64_check( int level ){ return gxml_set_b64_check(level); }
 
 /* static prototypes */
 static int str2list_index(char *list[], int max, const char *str);
@@ -577,6 +585,47 @@ int gifti_str2encoding( const char * str )
     return rv;
 }
 
+/* This function is to index into one of the gifti_*_list arrays, 
+ * while being certain the index is not out of range.
+ */
+char * gifti_list_index2string(char * list[], int index)
+{
+    int lsize;    /* list size cannot be computed from the passed pointer */
+
+    if     ( list == gifti_index_order_list )
+        lsize = sizeof(gifti_index_order_list)/sizeof(char *);
+
+    else if( list == gifti_category_list )
+        lsize = sizeof(gifti_category_list)/sizeof(char *);
+
+    else if( list == gifti_dataloc_list )
+        lsize = sizeof(gifti_dataloc_list)/sizeof(char *);
+
+    else if( list == nifti_datatype_name_list )
+        lsize = sizeof(nifti_datatype_name_list)/sizeof(char *);
+
+    else if( list == gifti_encoding_list )
+        lsize = sizeof(gifti_encoding_list)/sizeof(char *);
+
+    else if( list == gifti_endian_list )
+        lsize = sizeof(gifti_endian_list)/sizeof(char *);
+
+    else {
+        fprintf(stderr,"** GLI2S: invalid list\n");
+        return "UNKNOWN LIST";
+    }
+
+    if( index < 0 || index >= lsize ) {
+        fprintf(stderr,"** GLI2S: index %d out of range {0..%d}\n",
+                index,lsize-1);
+        return "INDEX OUT OF RANGE";
+    }
+
+    /* all that work, just for the expected indexing...  */
+
+    return list[index];
+}
+
 int gifti_str2datatype(const char * str)
 {
     int len = sizeof(gifti_type_list)/sizeof(gifti_type_ele);
@@ -786,15 +835,20 @@ int gifti_disp_DataArray(const char * mesg, giiDataArray * p, int subs)
                    "    dims       = %d, %d, %d, %d, %d, %d\n"
                    "    encoding %d = %s\n"
                    "    endian   %d = %s\n",
-                p->category, gifti_category_list[p->category],
+                p->category,
+                gifti_list_index2string(gifti_category_list, p->category),
                 p->datatype, gifti_datatype2str(p->datatype),
-                p->location, gifti_dataloc_list[p->location],
-                p->ind_ord, gifti_index_order_list[p->ind_ord],
+                p->location,
+                gifti_list_index2string(gifti_dataloc_list, p->location),
+                p->ind_ord,
+                gifti_list_index2string(gifti_index_order_list, p->ind_ord),
                 p->num_dim,
                 p->dims[0], p->dims[1], p->dims[2],
                 p->dims[3], p->dims[4], p->dims[5],
-                p->encoding, gifti_encoding_list[p->encoding],
-                p->endian, gifti_endian_list[p->endian]
+                p->encoding,
+                gifti_list_index2string(gifti_encoding_list, p->encoding),
+                p->endian,
+                gifti_list_index2string(gifti_endian_list, p->endian)
            );
 
     if( subs ) gifti_disp_nvpairs("darray->meta", &p->meta);
@@ -1015,5 +1069,129 @@ void gifti_disp_lib_hist(void)
 void gifti_disp_lib_version(void)
 {
     printf("%s, compiled %s\n", gifti_version, __DATE__);
+}
+
+int gifti_disp_hex_data(const char *mesg, const void *data, int len, FILE *fp)
+{
+    const char * dp = (const char *)data;
+    FILE       * stream;
+    int          c;
+    
+    stream = fp ? fp : stdout;
+
+    if( !data || len < 1 ) return -1;
+
+    if( mesg ) fputs(mesg, stream);
+
+    for( c = 0; c < len; c++ )
+        fprintf(stream, " %02x", dp[c]);
+
+    return 0;
+}
+
+int gifti_swap_2bytes(void * data, size_t nsets)
+{
+    char * cp1 = (char *)data, * cp2;
+    char   tval;
+    size_t c;
+    
+    for( c = 0; c < nsets; c++ ) {
+        cp2 = cp1 + 1;
+        tval = *cp1;  *cp1 = *cp2;  *cp2 = tval;
+        cp1 += 2;
+    }
+
+    return 0;
+}
+
+
+int gifti_swap_4bytes(void * data, size_t nsets)
+{
+    char * cp0 = (char *)data, * cp1, * cp2;
+    char   tval;
+    size_t c;
+    
+    for( c = 0; c < nsets; c++ ) {
+        cp1 = cp0;
+        cp2 = cp0 + 3;
+        tval = *cp1;  *cp1 = *cp2;  *cp2 = tval;
+        cp1++;  cp2--;
+        tval = *cp1;  *cp1 = *cp2;  *cp2 = tval;
+        cp0 += 4;
+    }
+
+    return 0;
+}
+
+
+int gifti_swap_Nbytes(void * data, size_t nsets, int swapsize)
+{
+    char * cp0, * cp1, * cp2;
+    char   tval;
+    size_t c;
+    int    offset;      /* swapsize - 1, for speed */
+
+    if( ! data || nsets < 0 || swapsize < 0 ) {
+        fprintf(stderr,"** swap_Nbytes: bad params (%p,%zd,%d)\n",
+                data, nsets, swapsize);
+        return 1;
+    }
+
+    if     ( swapsize == 2 ) return gifti_swap_2bytes(data, nsets);
+    else if( swapsize == 4 ) return gifti_swap_4bytes(data, nsets);
+    
+    /* peform a swap */
+    cp0 = (char *)data;
+    offset = swapsize-1;  /* just for speed */
+
+    for( c = 0; c < nsets; c++ ) {
+        cp1 = cp0;
+        cp2 = cp0 + offset;
+        while( cp2 > cp1 ) {
+            tval = *cp1;  *cp1 = *cp2;  *cp2 = tval;
+            cp1++;  cp2--;
+        }
+        cp0 += swapsize;
+    }
+
+    return 0;
+}
+
+/* return the current CPU endian: GIFTI_ENDIAN_BIG or _LITTLE */
+int gifti_get_this_endian(void)
+{
+   int    one = 1;
+   char * cp = (char *)&one;
+
+   if( *cp ) return GIFTI_ENDIAN_LITTLE;
+
+   return GIFTI_ENDIAN_BIG;
+}
+
+int gifti_check_swap(void * data, int endian, size_t nsets, int swapsize)
+{
+    if( !data || nsets < 0 || swapsize < 0 ) {
+        fprintf(stderr,"** check_swap: bad params (%p,%zd, %d)\n",
+                data, nsets, swapsize);
+        return 1;
+    } else if ( endian <= GIFTI_ENDIAN_UNDEF || endian > GIFTI_ENDIAN_MAX ) {
+        fprintf(stderr, "** check_swap: invalid endian %d\n", endian);
+        return 1;
+    }
+
+    /* if endian is the same as this one, just return */
+    if( endian == gifti_get_this_endian() ) {
+        if( G.verb > 2 )
+            fprintf(stderr,"-d darray no swap needed : %zd sets of %d bytes\n",
+                    nsets, swapsize);
+        return 0;
+    }
+
+    if( G.verb > 1 )
+        fprintf(stderr,"+d darray swap: %zd sets of %d bytes\n",
+                nsets, swapsize);
+
+    /* do the swap */
+    return gifti_swap_Nbytes(data, nsets, swapsize);
 }
 
