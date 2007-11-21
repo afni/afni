@@ -311,6 +311,8 @@ ENTRY("storage_mode_from_niml");
     RETURN(STORAGE_UNDEFINED);
 }
 
+#undef  MY_BUFSIZE
+#define MY_BUFSIZE (1024*1024)  /* 21 Nov 2007 */
 
 /*! inhale any NIML data within a file */
 void * read_niml_file( char * fname, int get_data )
@@ -340,6 +342,9 @@ ENTRY("read_niml_file");
         if(gni.debug)fprintf(stderr,"** RNF: failed to open file '%s'\n",fname);
         RETURN(NULL);
     }
+
+    if( get_data && NI_stream_getbufsize(ns) < MY_BUFSIZE ) /* 21 Nov 2007: RWCox */
+      NI_stream_setbufsize(ns,MY_BUFSIZE) ;
 
     /* read the file */
     NI_skip_procins(1);  NI_read_header_only(!get_data);
