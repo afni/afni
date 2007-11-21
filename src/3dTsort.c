@@ -26,6 +26,13 @@ int main( int argc , char *argv[] )
              "               output dataset [DEFAULT = 'tsort']\n"
              " -inc      = sort into increasing order [default]\n"
              " -dec      = sort into decreasing order\n"
+             "\n"
+             "Notes:\n"
+             "* Each voxel is sorted separately.\n"
+             "* Sub-brick labels are not rearranged.\n"
+             "* This program is useful only in limited cases.\n"
+             "  It was written to sort the -stim_times_IM\n"
+             "  beta weights output by 3dDeconvolve.\n"
            ) ;
       exit(0) ;
    }
