@@ -336,7 +336,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 
 /*! Size of NI_stream buffer. */
 
-#define NI_BUFSIZE (31*1024)
+#define NI_BUFSIZE (255*1024)
 
 /*! Data needed to process input stream. */
 
