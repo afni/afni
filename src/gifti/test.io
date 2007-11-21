@@ -32,6 +32,7 @@ endif
 if ( $narg >= 1 ) then
     set files = ( $argv[$base-] )
 else
+    echo applying default gifti files...
     set files = ( gifti.*.gii )
 endif
 

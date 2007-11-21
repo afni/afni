@@ -8,44 +8,56 @@
 int show_help()
 {
     fprintf(stderr,
-        "------------------------------------------------------------\n"
-        "gifti_test  - test reading/writing a GIFTI dataset\n"
-        "\n"
-        "    examples:\n"
-        "        1. read in a GIFTI dataset (verbose, show output?)\n"
-        "\n"
-        "            gifti_test -infile dset.gii\n"
-        "            gifti_test -infile dset.gii -verb 3\n"
-        "            gifti_test -infile dset.gii -show\n"
-        "\n"
-        "        2. copy a GIFTI dataset (check differences?)\n"
-        "\n"
-        "            gifti_test -infile dset.gii -gfile copy.gii\n"
-        "            diff dset.gii copy.gii\n"
-        "\n"
-        "        3. create .asc surfaces dataset (surf.asc)\n"
-        "\n"
-        "            gifti_test -infile pial.gii -prefix surf\n"
-        "\n"
-        "        4. create .1D time series surface dataset (surf.1D)\n"
-        "\n"
-        "            gifti_test -infile time_series.gii -prefix surf\n"
-        "\n"
-        "    options:\n"
-        "       -help           : show this help\n"
-        "\n"
-        "       -buf_size       : set buffer size\n"
-        "                         e.g. -buf_size 1024\n"
-        "       -gfile   OUTPUT : write out dataset as gifti image\n"
-        "       -gifti_hist     : show giftilib history\n"
-        "       -gifti_ver      : show giftilib version\n"
-        "       -infile  INPUT  : write out dataset as gifti image\n"
-        "       -no_data        : do not write out data\n"
-        "       -prefix  OUTPUT : write out dataset(s) as surf images\n"
-        "       -show           : show final gifti image\n"
-        "       -verb    VERB   : set verbose level\n"
-        "------------------------------------------------------------\n"
-        );
+    "------------------------------------------------------------\n"
+    "gifti_test  - test reading/writing a GIFTI dataset\n"
+    "\n"
+    "    examples:\n"
+    "        1. read in a GIFTI dataset (verbose, show output?)\n"
+    "\n"
+    "            gifti_test -infile dset.gii\n"
+    "            gifti_test -infile dset.gii -verb 3\n"
+    "            gifti_test -infile dset.gii -show\n"
+    "\n"
+    "        2. copy a GIFTI dataset (check differences?)\n"
+    "\n"
+    "            gifti_test -infile dset.gii -gfile copy.gii\n"
+    "            diff dset.gii copy.gii\n"
+    "\n"
+    "        3. create .asc surfaces dataset (surf.asc)\n"
+    "\n"
+    "            gifti_test -infile pial.gii -prefix surf\n"
+    "\n"
+    "        4. create .1D time series surface dataset (surf.1D)\n"
+    "\n"
+    "            gifti_test -infile time_series.gii -prefix surf\n"
+    "\n"
+    "    options:\n"
+    "       -help           : show this help\n"
+    "\n"
+    "       -b64_check TYPE : set method for checking base64 errors\n"
+    "                  TYPE = NONE       : no checks - assume all is well\n"
+    "                  TYPE = CHECK      : report whether errors were found\n"
+    "                  TYPE = COUNT      : count the number of bad chars\n"
+    "                  TYPE = SKIP       : ignore any bad characters\n"
+    "                  TYPE = SKIPnCOUNT : ignore but count bad characters\n"
+    "\n"
+    "       -buf_size       : set buffer size\n"
+    "                         e.g. -buf_size 1024\n"
+    "       -encoding  TYPE : set the data encoding for any output file\n"
+    "                  TYPE = ASCII      : ASCII encoding\n"
+    "                  TYPE = BASE64     : report whether errors were found\n"
+    "                  TYPE = BASE64GZIP : count the number of bad chars\n"
+    "       -gfile   OUTPUT : write out dataset as gifti image\n"
+    "       -gifti_hist     : show giftilib history\n"
+    "       -gifti_ver      : show giftilib version\n"
+    "       -infile  INPUT  : write out dataset as gifti image\n"
+    "       -no_data        : do not write out data\n"
+    "       -prefix  OUTPUT : write out dataset(s) as surf images\n"
+    "                         (these are either .asc or .1D files)\n"
+    "       -show           : show final gifti image\n"
+    "       -verb    VERB   : set verbose level\n"
+    "------------------------------------------------------------\n"
+    );
     return 0;
 }
 
@@ -53,7 +65,8 @@ int main( int argc, char * argv[] )
 {
     gifti_image * gim;
     char        * infile = NULL, * prefix = NULL, * gfile = NULL;
-    int           ac, show = 0, data = 1;
+    int           c, ac, show = 0, data = 1;
+    int           encoding = 0; /* no change, else 1,2,3  */
 
     if( argc <= 1 ) {
         show_help();
@@ -66,6 +79,31 @@ int main( int argc, char * argv[] )
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-buf_size");
             if( gifti_set_xml_buf_size(atoi(argv[ac])) ) return 1;
+        } else if( !strcmp(argv[ac], "-b64_check") ) {
+            ac++;
+            CHECK_NEXT_OPT(ac, argc, "-b64_check");
+            if     ( !strcmp(argv[ac], "NONE" ) ) gifti_set_b64_check(0);
+            else if( !strcmp(argv[ac], "CHECK") ) gifti_set_b64_check(1);
+            else if( !strcmp(argv[ac], "COUNT") ) gifti_set_b64_check(2);
+            else if( !strcmp(argv[ac], "SKIP" ) ) gifti_set_b64_check(3);
+            else if( !strcmp(argv[ac], "SKIPnCOUNT" ) ) gifti_set_b64_check(4);
+            else {
+                fprintf(stderr,"** invalid parm to -b64_check: %s\n",argv[ac]);
+                return 1;
+            }
+        } else if( !strcmp(argv[ac], "-encoding") ) {
+            ac++;
+            CHECK_NEXT_OPT(ac, argc, "-encoding");
+            if     ( !strcmp(argv[ac], "ASCII" ) )
+                encoding = GIFTI_ENCODING_ASCII;
+            else if( !strcmp(argv[ac], "BASE64") )
+                encoding = GIFTI_ENCODING_BINARY;
+            else if( !strcmp(argv[ac], "BASE64GZIP") )
+                encoding = GIFTI_ENCODING_GZIP;
+            else {
+                fprintf(stderr,"** invalid parm to -encoding: %s\n",argv[ac]);
+                return 1;
+            }
         } else if( !strcmp(argv[ac], "-gifti_hist") ) {
             gifti_disp_lib_hist();
             return 0;
@@ -115,6 +153,11 @@ int main( int argc, char * argv[] )
     }
 
     if( show ) gifti_disp_gifti_image("FINAL IMAGE", gim, 1 );
+
+    /* possibly adjust encoding */
+    if( encoding > GIFTI_ENCODING_UNDEF && encoding <= GIFTI_ENCODING_MAX )
+        for( c = 0; c < gim->numDA; c++ )
+            if( gim->darray[c]->encoding ) gim->darray[c]->encoding = encoding;
 
     if( gfile ) gifti_write_image(gim, gfile, data);
     if( prefix ) write_as_ascii(gim, prefix);
