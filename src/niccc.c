@@ -28,7 +28,7 @@ int main( int argc , char *argv[] )
    if( ns == NULL ){
       fprintf(stderr,"*** niccc: NI_stream_open fails\n") ; exit(1) ;
    }
-   NI_stream_setbufsize( ns , 6666 ) ;
+   /*** NI_stream_setbufsize( ns , 6666 ) ; ***/
    while(1){
      nn = NI_stream_goodcheck( ns , 1 ) ;
      if( nn < 0 ){
