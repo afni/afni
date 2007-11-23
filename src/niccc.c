@@ -7,7 +7,7 @@ void NIML_to_stderr( void *nini )
    NI_stream ns_err ;
    ns_err = NI_stream_open( "stderr:" , "w" ) ;
    if( ns_err != NULL ){
-     NI_write_element( ns_err , nini , NI_TEXT_MODE | NI_HEADERSHARP_FLAG ) ;
+     NI_write_element( ns_err , nini , NI_TEXT_MODE ) ;
      NI_stream_close( ns_err ) ;
    }
 }
@@ -28,6 +28,7 @@ int main( int argc , char *argv[] )
    if( ns == NULL ){
       fprintf(stderr,"*** niccc: NI_stream_open fails\n") ; exit(1) ;
    }
+   NI_stream_setbufsize( ns , 6666 ) ;
    while(1){
      nn = NI_stream_goodcheck( ns , 1 ) ;
      if( nn < 0 ){
@@ -42,6 +43,7 @@ int main( int argc , char *argv[] )
        if( nini == NULL ){
          fprintf(stderr,"*** niccc: read returns NULL\n");
        } else {
+         fprintf(stderr,"*** niccc: read returned an element:\n") ;
          NIML_to_stderr( nini ) ;
          NI_free_element( nini ) ;
        }

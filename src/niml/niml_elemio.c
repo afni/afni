@@ -105,8 +105,8 @@ void * NI_read_element_header( NI_stream_type *ns , int msec )
    Note that a header that is longer than ns->bufsize will
    never be read properly, since we must have the entire header in
    the buffer before processing it.  This should only be a problem
-   for deranged users.  If such a vast header is encountered, it
-   will be flushed.
+   for deranged users (e.g., Ziad).  If such a vast header is encountered,
+   it will be flushed.
 
    If header start '<' and stop '>' are encountered, then this
    function will read data until it can create an element, or until
@@ -627,13 +627,26 @@ int NI_decode_one_string( NI_stream_type *ns, char **str , int ltend )
 Restart:
    num_restart++ ; need_data = 0 ;
    if( num_restart > 19 ){
-     if( overbuf ){         /* 21 Nov 2007 */
+     if( overbuf ){         /* 21 Nov 2007: warn if buffer was too small */
        static int nov=0 ;
        if( ++nov < 7 )
-         fprintf(stderr,"** ERROR: string runs past end of NIML buffer\n");
+         fprintf(stderr,"** ERROR: String runs past end of NIML buffer\n");
      }
      return 0 ;  /*** give up ***/
    }
+   if( num_restart > 2 && overbuf ){  /* 23 Nov 2007: auto-expand buffer */
+     nn = 2*NI_stream_getbufsize(ns) ;
+     if( nn > 0 ){
+#if 0
+       static int nov=0 ;
+       if( ++nov < 7 )
+         fprintf(stderr,"** WARNING: long String expands NIML buffer to %d bytes\n",nn) ;
+#endif
+       nn = NI_stream_setbufsize( ns , nn ) ;       /* double down */
+       if( nn < 0 ) return 0 ; /*** buffer expand fails? give up ***/
+     }
+   }
+   overbuf = 0 ;
 
    /*-- advance over useless characters in the buffer --*/
 
@@ -808,7 +821,7 @@ Restart:                                       /* loop back here to retry */
   fprintf(stderr, "\nSkipping NIML comment: '%s'\n",cpt); free(cpt);
 }
 #endif
-         
+
            ns->npos = epos+1 ; NI_reset_buffer(ns) ;  /* skip it & try again */
            epos = 0 ; goal = '<' ;
          } else {                              /* '>' doesn't close comment! */
@@ -838,7 +851,7 @@ Restart:                                       /* loop back here to retry */
         (b) if the goal was the closing '>', then we need more data
             in the buffer, but need to keep the existing data
         (c) UNLESS the buffer is full AND npos is zero
-             - in this case, the universe ends right here and now --*/
+             - in this case, we expand the buffer size and hope --*/
 
    if( goal == '<' ){                    /* case (a) */
 
@@ -850,7 +863,10 @@ Restart:                                       /* loop back here to retry */
 
    } else {                              /* case (c) */
 
-      ns->nbuf = 0 ; return -1 ;         /* death of Universe! */
+      epos = ns->nbuf ;
+      nn = NI_stream_setbufsize(ns,2*ns->bufsize) ; /* expand buffer! */
+      if( nn < 0 ){ ns->nbuf = ns->npos = 0 ; return -1 ; } /* fails? */
+
    }
 
    /*-- if we are here, we need more data before scanning again --*/
@@ -858,7 +874,7 @@ Restart:                                       /* loop back here to retry */
    /*-- read at least nbmin bytes,
         waiting up to mleft ms (unless the data stream goes bad) --*/
 
-   if( mleft <= 0 ) mleft = 1 ;
+   if( mleft <= 0 ) mleft = 3 ;
    nbmin = (goal == '<') ? 4 : 1 ;
 
    nn = NI_stream_fillbuf( ns , nbmin , mleft ) ;
@@ -1305,12 +1321,14 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
          if( kk > 0 ){
             strcat(att,att_equals) ;
             qtt = quotize_string( nel->attr_rhs[ii] ) ; /* RHS always quoted */
+            kk = strlen(qtt)+strlen(att)+32 ;
+            if( kk > att_len ){ att_len=kk; att=NI_realloc(att,char,att_len); }
             strcat(att,qtt) ; NI_free(qtt) ;
          }
          nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
       }
 
-      NI_free(att) ; att = NULL ; /* done with attributes */
+      NI_free(att) ; att = NULL ; /**** done with attributes ****/
 
 #undef  AF
 #define AF 0  /* nothing to do if we have to quit early */
