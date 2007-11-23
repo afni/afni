@@ -6488,3 +6488,4 @@
      size if string is too long.  For festering Lebanese programmers.
  * Similarly, modify scan_for_angles() if element header is bigger than
      buffer size.
+ * 'Histogram: Multi' (plug_histog_multi.c) plugin, for Kyle, Alex, & Pat.

@@ -21,15 +21,18 @@ static char helpstring[] =
    " Source#1:  Dataset   = data to be processed\n"
    "            Index Bot = first sub-brick to use\n"
    "            Index Top = last sub-brick to use\n"
+   "            * if(Bot > Top) then all sub-bricks will be used\n"
    "            Color     = line color to use\n"
    " Source#2:  Optional second (etc.) datasets to histogramize\n\n"
    " Values:  Bottom    = minimum value from dataset to include\n"
    "          Top       = maximum value from dataset to include\n\n"
    " Bins:    Number    = number of bins to use\n"
    " Mask:    Dataset   = masking dataset\n"
-   "          Sub-brick = which one to use\n\n"
+   "          Sub-brick = which one to use for the mask \n\n"
    " Aboot:   If activated, then only voxels within a distance of Radius mm\n"
    "          of the current crosshairs will be used in the histogram.\n"
+   "          *  Radius=0 means only that voxel will be used -- in which case\n"
+   "             you must have more than one sub-brick included in the Source!\n"
    "\n"
    " Author -- RW Cox - November 2007\n"
 ;
@@ -101,7 +104,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /*-- Aboot --*/
 
    PLUTO_add_option( plint , "Aboot" , "Aboot" , FALSE ) ;
-   PLUTO_add_number( plint , "Radius" , 2,100,0,10,1 ) ;
+   PLUTO_add_number( plint , "Radius" , 0,100,0,1,1 ) ;
 
    return plint ;
 }
@@ -128,7 +131,7 @@ static char * MHIST_main( PLUGIN_interface *plint )
    int smooth=0 ;      /* 03 Dec 2004 */
    int miv=0 ;
    int maxcount=0 ; /* 01 Mar 2001 */
-   float hrad=0.0 ; /* 20 Mar 2001 */
+   float hrad=-1.0f ; /* 20 Mar 2001 */
    float ovc_rrr[MAXMAX] , ovc_ggg[MAXMAX] , ovc_bbb[MAXMAX] ;
 
    /*--------------------------------------------------------------------*/
@@ -270,48 +273,48 @@ if(DEBUG)fprintf(stderr,"++ Dataset #%d '%s' - %d..%d  ovc=%d\n",
 
    /*-- 20 Mar 2001: modify mask via Aboot Radius, if present --*/
 
-   if( hrad > 0.0 ){
-      MCW_cluster *cl ;
-      short *di,*dj,*dk ;
-      int nd , xx,yy,zz , dd , nx,ny,nz,nxy, nx1,ny1,nz1 , ip,jp,kp ;
+   if( hrad >= 0.0 ){
+     MCW_cluster *cl ;
+     short *di,*dj,*dk ;
+     int nd , xx,yy,zz , dd , nx,ny,nz,nxy, nx1,ny1,nz1 , ip,jp,kp ;
+     float dx,dy,dz , dm ;
 
-      cl = MCW_build_mask( fabs(DSET_DX(input_dset[0])) ,
-                           fabs(DSET_DY(input_dset[0])) ,
-                           fabs(DSET_DZ(input_dset[0])) , hrad ) ;
+     dx = fabs(DSET_DX(input_dset[0])) ;
+     dy = fabs(DSET_DY(input_dset[0])) ; dm = MIN(dx,dy) ;
+     dz = fabs(DSET_DZ(input_dset[0])) ; dm = MIN(dm,dz) ;
 
-      if( cl == NULL || cl->num_pt < 6 ){
-        KILL_CLUSTER(cl);
-        PLUTO_popup_transient(plint, " \n"
-                                     " Aboot Radius too small for\n"
-                                     " this dataset - is ignored!\n"  ) ;
-      } else {
-        ADDTO_CLUSTER(cl,0,0,0,0) ;
-        di = cl->i ; dj = cl->j ; dk = cl->k ; nd = cl->num_pt ;
-        nx = DSET_NX(input_dset[0]) ; nx1 = nx-1 ;
-        ny = DSET_NY(input_dset[0]) ; ny1 = ny-1 ; nxy  = nx*ny ;
-        nz = DSET_NZ(input_dset[0]) ; nz1 = nz-1 ;
-        xx = plint->im3d->vinfo->i1 ;
-        yy = plint->im3d->vinfo->j2 ;
-        zz = plint->im3d->vinfo->k3 ;
-        for( dd=0 ; dd < nd ; dd++ ){
-          ip = xx+di[dd] ; if( ip < 0 || ip > nx1 ) continue ;
-          jp = yy+dj[dd] ; if( jp < 0 || jp > ny1 ) continue ;
-          kp = zz+dk[dd] ; if( kp < 0 || kp > nz1 ) continue ;
-          mmm[ip+jp*nx+kp*nxy]++ ;
-        }
-        KILL_CLUSTER(cl) ;
-        for( dd=0 ; dd < nvox ; dd++ ) if( mmm[dd] == 1 ) mmm[dd] = 0 ;
-        mcount = THD_countmask( nvox , mmm ) ;
-
-        if( mcount < 3 ){
-          free(mmm) ;
-          return " \n*** Less than 3 voxels survive the mask+radius! ***\n" ;
-        }
-        sprintf(buf," \n"
-                    " %d voxels in the mask+radius\n"
-                    " out of %d dataset voxels\n ",mcount,nvox) ;
-        PLUTO_popup_transient(plint,buf) ;
+     if( hrad < dm ){
+       INIT_CLUSTER(cl) ;
+     } else {
+       cl = MCW_build_mask( dx,dy,dz , hrad ) ;
+       if( cl == NULL ) INIT_CLUSTER(cl) ;
      }
+     ADDTO_CLUSTER(cl,0,0,0,0) ;
+     di = cl->i ; dj = cl->j ; dk = cl->k ; nd = cl->num_pt ;
+     nx = DSET_NX(input_dset[0]) ; nx1 = nx-1 ;
+     ny = DSET_NY(input_dset[0]) ; ny1 = ny-1 ; nxy  = nx*ny ;
+     nz = DSET_NZ(input_dset[0]) ; nz1 = nz-1 ;
+     xx = plint->im3d->vinfo->i1 ;
+     yy = plint->im3d->vinfo->j2 ;
+     zz = plint->im3d->vinfo->k3 ;
+     for( dd=0 ; dd < nd ; dd++ ){
+       ip = xx+di[dd] ; if( ip < 0 || ip > nx1 ) continue ;
+       jp = yy+dj[dd] ; if( jp < 0 || jp > ny1 ) continue ;
+       kp = zz+dk[dd] ; if( kp < 0 || kp > nz1 ) continue ;
+       mmm[ip+jp*nx+kp*nxy]++ ;
+     }
+     KILL_CLUSTER(cl) ;
+     for( dd=0 ; dd < nvox ; dd++ ) if( mmm[dd] == 1 ) mmm[dd] = 0 ;
+     mcount = THD_countmask( nvox , mmm ) ;
+
+     if( mcount < 1 ){
+       free(mmm) ;
+       return " \n*** Less than 1 voxels survive the mask+radius! ***\n" ;
+     }
+     sprintf(buf," \n"
+                 " %d voxels in the mask+radius\n"
+                 " out of %d dataset voxels\n ",mcount,nvox) ;
+     PLUTO_popup_transient(plint,buf) ;
    }
 
    /*------ loop over input datasets ------*/
@@ -413,6 +416,11 @@ if(DEBUG)fprintf(stderr,"++ Dataset #%d -- sub-bricks [%d..%d]\n",id,ivbot,ivtop
 
    }
    free(mmm) ;  /* done with mask */
+
+   if( mval_max < 9 ){
+     for( jj=0 ; jj < num_dset ; jj++ ) mri_free(flim[jj]) ;
+     return " \n*** Only 9 values?! -- can't build histogram!\n " ;
+   }
 
    if( val_bot < val_top ){
      hbot = val_bot ; htop = val_top ;
