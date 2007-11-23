@@ -295,7 +295,7 @@ char * quotize_string( char *str )
 
    lstr = NI_strlen(str) ;
    if( lstr == 0 ){ out = NI_malloc(char, 4); strcpy(out,"\"\""); return out; }
-   lout = 4 ;                      /* length of output */
+   lout = 8 ;                      /* length of output */
    for( ii=0 ; ii < lstr ; ii++ ){ /* count characters for output */
       switch( str[ii] ){
          case '&':  lout += 5 ; break ;  /* replace '&' with "&amp;" */
