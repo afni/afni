@@ -258,6 +258,8 @@ extern void plot_ts_xypush( int , int ) ;
 extern void plot_ts_xfix( int,int , float,float ) ;  /* 22 Jul 2003 */
 extern void plot_ts_yfix( int,int , float,float ) ;
 
+extern void plot_ts_setcolors( int, float *, float *, float * ) ; /* 23 Nov 2007 */
+
 extern void plot_ts_lab( Display *,
                          int,float *, int,float **,
                          char *,char *,char *,char ** , void_func * ) ;

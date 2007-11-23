@@ -4853,18 +4853,18 @@ THD_slist_find PLUTO_dset_finder( char *idc )
    Graph is popped up and then "forgotten" -- RWCox - 30 Sep 1999.
 -------------------------------------------------------------------*/
 
-void PLUTO_histoplot( int nbin, float bot, float top, int * hist ,
-                      char * xlab , char * ylab , char * tlab ,
-                      int njist , int ** jist )
+void PLUTO_histoplot( int nbin, float bot, float top, int *hist ,
+                      char *xlab , char *ylab , char *tlab ,
+                      int njist , int **jist )
 {
    int ii , nx , ny,jj ;
-   float * xar , * yar , * zar=NULL , ** yzar ;
+   float *xar , *yar , *zar=NULL , **yzar ;
    float dx ;
 
 ENTRY("PLUTO_histoplot") ;
 
    if( nbin < 2 || hist == NULL ) EXRETURN ;
-   if( bot >= top ){ bot = 0.0 ; top = nbin ; }
+   if( bot >= top ){ bot = 0.0f ; top = nbin ; }
 
    nx  = 2*(nbin+1) ;
    dx  = (top-bot)/nbin ;
@@ -4879,7 +4879,7 @@ ENTRY("PLUTO_histoplot") ;
    for( jj=0 ; jj < njist ; jj++ )
      yzar[jj+1] = (float *) malloc(sizeof(float)*nx) ;
 
-   xar[0] = bot ; yar[0] = 0.0 ;
+   xar[0] = bot ; yar[0] = 0.0f ;
    for( ii=0 ; ii < nbin ; ii++ ){
      xar[2*ii+1] = bot+ii*dx     ; yar[2*ii+1] = (float) hist[ii] ;
      xar[2*ii+2] = bot+(ii+1)*dx ; yar[2*ii+2] = (float) hist[ii] ;
@@ -4887,9 +4887,9 @@ ENTRY("PLUTO_histoplot") ;
      for( jj=0 ; jj < njist ; jj++ )
        yzar[jj+1][2*ii+1] = yzar[jj+1][2*ii+2] = (float) jist[jj][ii] ;
    }
-   xar[2*nbin+1] = top ; yar[2*nbin+1] = 0.0 ;
+   xar[2*nbin+1] = top ; yar[2*nbin+1] = 0.0f ;
    for( jj=0 ; jj < njist ; jj++ )
-     yzar[jj+1][0] = yzar[jj+1][2*nbin+1] = 0.0 ;
+     yzar[jj+1][0] = yzar[jj+1][2*nbin+1] = 0.0f ;
 
    plot_ts_lab( GLOBAL_library.dc->display ,
                 nx , xar , ny , yzar ,
