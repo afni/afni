@@ -2444,6 +2444,14 @@ If this variable is set to NO, then the new [12 Oct 2007] 'Index' selector
 at the bottom of a string-list chooser (e.g., the 'Overlay' button popup
 window) will NOT be shown.
 
+-----------------------------
+Variable: AFNI_HISTOG_MAXDSET
+-----------------------------
+If this variable is set to a numeric value between 4 and 9 (inclusive),
+then the number of Source datasets in the 'Histogram: Multi' plugin
+will be set to this value.  The default number of Source datasets is 3 --
+this variable allows you to increase that setting.
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
