@@ -22,6 +22,7 @@ static float ccc[NCLR_MAX][3] = {
 } ;
 
 static int NCLR = 4 ;
+static int dont_init_colors=0 ;
 
 static int ilab[4] = { 0,2,3,1 } ;  /* whether to plot labels on axes */
 
@@ -60,10 +61,12 @@ static void init_colors(void)
    float rf,gf,bf ;
    int ii ;
 
+   if( dont_init_colors ){ first=1 ; return; }
    if( !first ) return ;
    first = 0 ;
 
-   /* init ii to 0 (was 1) to match README.environment   19 May 2004 [rickr] */
+   /* init ii to 0 (was 1) to match README.environment: 19 May 2004 [rickr] */
+
    for( ii=0 ; ii < NCLR_MAX ; ii++ ){
      sprintf(ename,"AFNI_1DPLOT_COLOR_%02d",ii+1) ;
      eee = getenv(ename) ;
@@ -94,6 +97,30 @@ static void init_colors(void)
      else
        fprintf(stderr,"AFNI_1DPLOT_THIK is not in range [0,0.05].\n") ;
    }
+}
+
+/*-----------------------------------------------------------------------*/
+/* 23 Nov 2007: set colors explicitly */
+
+void plot_ts_setcolors( int ncol , float *rrr , float *ggg , float *bbb )
+{
+   int ii ;
+
+   if( ncol <= 0 || rrr==NULL || ggg==NULL || bbb==NULL ){
+     NCLR = 4 ; dont_init_colors=0 ;
+     ccc[0][0] = 0.0 ; ccc[0][1] = 0.0 ; ccc[0][2] = 0.0 ;
+     ccc[1][0] = 0.9 ; ccc[1][1] = 0.0 ; ccc[1][2] = 0.0 ;
+     ccc[2][0] = 0.0 ; ccc[2][1] = 0.7 ; ccc[2][2] = 0.0 ;
+     ccc[3][0] = 0.0 ; ccc[3][1] = 0.0 ; ccc[3][2] = 0.9 ;
+   } else {
+     if( ncol > NCLR_MAX ) ncol = NCLR_MAX ;
+     dont_init_colors = 1 ;
+     for( ii=0 ; ii < ncol ; ii++ ){
+       ccc[ii][0] = rrr[ii] ; ccc[ii][1] = ggg[ii] ; ccc[ii][2] = bbb[ii] ;
+     }
+     if( ncol > NCLR ) NCLR = ncol ;
+   }
+   return ;
 }
 
 /*-----------------------------------------------------------------------
@@ -419,7 +446,7 @@ void plot_ts_lab( Display * dpy ,
 
    if( dpy == NULL ) return ;
 
-   if (nx < 0 ) { ymask = ymask | TSP_SEPARATE_YSCALE; nx = -nx; } 
+   if (nx < 0 ) { ymask = ymask | TSP_SEPARATE_YSCALE; nx = -nx; }
    if( ny < 0 ){ ymask = ymask | TSP_SEPARATE_YBOX ; ny = -ny ; }
 
    mp = plot_ts_mem( nx,x , ny,ymask,y , lab_xxx , lab_yyy , lab_top , nam_yyy ) ;
