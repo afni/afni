@@ -6482,3 +6482,9 @@
  * Changed 'report' from mri_clusterize.c and added info to the
      clusterize vector chooser using about BHelp to see this report.
  * New program 3dTsort.c.  Will this grow to be a monster?
+
+23 Nov 2007
+ * Modify NI_decode_one_string() in niml_elemio.c to auto-expand buffer
+     size if string is too long.  For festering Lebanese programmers.
+ * Similarly, modify scan_for_angles() if element header is bigger than
+     buffer size.
