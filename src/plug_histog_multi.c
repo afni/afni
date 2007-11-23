@@ -6,7 +6,12 @@
 
 /***************************************************************************/
 
-#define MAX_DSET 3
+static int max_dset = 3 ;   /* number of datasets to allow */
+#undef  MAXMAX
+#define MAXMAX 9
+
+#undef  DEBUG
+#define DEBUG 0
 
 static char *MHIST_main( PLUGIN_interface * ) ;
 
@@ -39,14 +44,14 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 {
    PLUGIN_interface *plint ;
    int ii ; char label[32] ;
-#define NCTAB 4
-   static int ctab[NCTAB] = { 6 , 7 , 14 , 16 } ;
+#define NCTAB 5
+   static int ctab[NCTAB] = { 6 , 7 , 14 , 16 , 20 } ;
 
    if( ncall > 0 ) return NULL ;  /* only one interface */
 
    /*-- set titles and call point --*/
 
-   plint = PLUTO_new_interface( "HistogMulti" ,
+   plint = PLUTO_new_interface( "Histogram: Multi" ,
                                 "Histogram of Dataset Bricks" ,
                                 helpstring ,
                                 PLUGIN_CALL_VIA_MENU , MHIST_main  ) ;
@@ -59,9 +64,12 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*-- Source dataset inputs --*/
 
-   for( ii=0 ; ii < MAX_DSET ; ii++ ){
+   ii = (int)AFNI_numenv("AFNI_HISTOG_MAXDSET") ;
+   if( ii > max_dset && ii <= MAXMAX ) max_dset = ii ;
+
+   for( ii=0 ; ii < max_dset ; ii++ ){
      sprintf(label,"Source#%d",ii+1) ;
-     PLUTO_add_option( plint , label , "Source" , (ii==0) ? TRUE : FALSE ) ;
+     PLUTO_add_option( plint , label , "Source" , FALSE ) ;
      PLUTO_add_dataset(plint , "Dataset" ,
                                 ANAT_ALL_MASK , FUNC_ALL_MASK ,
                                 DIMEN_ALL_MASK | BRICK_ALLREAL_MASK ) ;
@@ -80,7 +88,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /*-- Bins to use --*/
 
    PLUTO_add_option( plint , "Bins" , "Bins" , FALSE ) ;
-   PLUTO_add_number( plint , "Number" , 10,1000,0, 100,1 ) ;
+   PLUTO_add_number( plint , "Number" , 10,1000,0, 10,1 ) ;
 
    /*-- Mask to use --*/
 
@@ -105,26 +113,23 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 static char * MHIST_main( PLUGIN_interface *plint )
 {
    MCW_idcode *idc ;
-   THD_3dim_dataset *input_dset , *mask_dset=NULL ;
-   int iv , mcount , nvox , ii,jj , nbin=-1 , do_mval=0,mval ;
-   float mask_bot=666.0 , mask_top=-666.0 , hbot,htop ;
+   THD_3dim_dataset *input_dset[MAXMAX] , *mask_dset=NULL ;
+   int                   ovcolr[MAXMAX] , indbot[MAXMAX] , indtop[MAXMAX] ;
+   int num_dset=0 ;
+   int iv , mcount , nvox , ii,jj , nbin=-1 ,
+       do_mval=0,mval , id,ivbot,ivtop , nvals , mval_max , tval ;
+   float hbot,htop ;
    float val_bot=666.0  , val_top=-666.0 ;
    char *tag , *str , buf[THD_MAX_NAME+16] ;
    byte *mmm ;
-   MRI_IMAGE *flim ;
+   MRI_IMAGE *flim[MAXMAX] ;
    float     *flar ;
-   int       *hbin ;
+   int       *hbin[MAXMAX] ;
    int smooth=0 ;      /* 03 Dec 2004 */
-
    int miv=0 ;
-
    int maxcount=0 ; /* 01 Mar 2001 */
    float hrad=0.0 ; /* 20 Mar 2001 */
-
-   char *histout=NULL ; /* 05 Feb 2002 - VR */
-   FILE *MHISTUT=NULL ; /* 05 Feb 2002 - VR */
-   int writehist=0    ; /* 05 Feb 2002 - VR */
-   float dx           ; /* 05 Feb 2002 - VR */
+   float ovc_rrr[MAXMAX] , ovc_ggg[MAXMAX] , ovc_bbb[MAXMAX] ;
 
    /*--------------------------------------------------------------------*/
    /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
@@ -134,110 +139,107 @@ static char * MHIST_main( PLUGIN_interface *plint )
              "MHIST_main:  NULL input\n"
              "***********************"  ;
 
-   /*-- read 1st line --*/
-
-   PLUTO_next_option(plint) ;
-   idc        = PLUTO_get_idcode(plint) ;
-   input_dset = PLUTO_find_dset(idc) ;
-   if( input_dset == NULL )
-      return "******************************\n"
-             "MHIST_main:  bad input dataset\n"
-             "******************************"  ;
-
-   iv = (int) PLUTO_get_number(plint) ;
-   if( iv >= DSET_NVALS(input_dset) || iv < 0 )
-      return "********************************\n"
-             "MHIST_main:  bad input sub-brick\n"
-             "********************************" ;
-
-   DSET_load(input_dset) ;
-   if( DSET_ARRAY(input_dset,iv) == NULL )
-      return "*******************************\n"
-             "MHIST_main:  can't load dataset\n"
-             "*******************************"  ;
-   nvox = DSET_NVOX(input_dset) ;
-
-   /*-- read optional lines --*/
+if(DEBUG)fprintf(stderr,"+++++++++++++++++++++++++++++++++++\n") ;
 
    while( (tag=PLUTO_get_optiontag(plint)) != NULL ){
 
-      /*-- Dataset range of values --*/
+     /* Source (dataset) */
 
-      if( strcmp(tag,"Values") == 0 ){
-         val_bot = PLUTO_get_number(plint) ;
-         val_top = PLUTO_get_number(plint) ;
-         do_mval = (val_bot < val_top) ;
-         continue ;
-      }
+     if( strcmp(tag,"Source") == 0 ){
 
-      /*-- Number of bins --*/
+       idc                  = PLUTO_get_idcode(plint) ;
+       input_dset[num_dset] = PLUTO_find_dset(idc) ;
 
-      if( strcmp(tag,"Bins") == 0 ){
-         nbin     = PLUTO_get_number(plint) ;
-         maxcount = PLUTO_get_number(plint) ;
-         smooth   = PLUTO_get_number(plint) ;  /* 03 Dec 2004 */
-         continue ;
-      }
+       if( ! ISVALID_DSET( input_dset[num_dset] ) )
+         return("******************************\n"
+                "MHIST_main:  bad input dataset\n"
+                "******************************") ;
 
-      /*-- Mask range of values --*/
+       DSET_load(input_dset[num_dset]) ;
 
-      if( strcmp(tag,"Range") == 0 ){
-         if( mask_dset == NULL )
-            return "*****************************************\n"
-                   "MHIST_main:  Can't use Range without Mask\n"
-                   "*****************************************"  ;
+       if( !DSET_LOADED(input_dset[num_dset]) )
+         return "*******************************\n"
+                "MHIST_main:  can't load dataset\n"
+                "*******************************"  ;
 
-         mask_bot = PLUTO_get_number(plint) ;
-         mask_top = PLUTO_get_number(plint) ;
-         continue ;
-      }
+       indbot[num_dset] = (int)PLUTO_get_number(plint) ;
+       indtop[num_dset] = (int)PLUTO_get_number(plint) ;
+       ovcolr[num_dset] = PLUTO_get_overlaycolor(plint) ;
 
-      /*-- Mask itself --*/
+       ovc_rrr[num_dset] = DCOV_REDBYTE  (plint->im3d->dc,ovcolr[num_dset])/255.0f ;
+       ovc_ggg[num_dset] = DCOV_GREENBYTE(plint->im3d->dc,ovcolr[num_dset])/255.0f ;
+       ovc_bbb[num_dset] = DCOV_BLUEBYTE (plint->im3d->dc,ovcolr[num_dset])/255.0f ;
 
-      if( strcmp(tag,"Mask") == 0 ){
+if(DEBUG)fprintf(stderr,"++ Dataset #%d '%s' - %d..%d  ovc=%d\n",
+                 num_dset+1,DSET_BRIKNAME(input_dset[num_dset]),
+                 indbot[num_dset],indtop[num_dset],ovcolr[num_dset]) ;
 
-         idc       = PLUTO_get_idcode(plint) ;
-         mask_dset = PLUTO_find_dset(idc) ;
+       if( num_dset == 0 )
+         nvox = DSET_NVOX(input_dset[0]) ;
+       else if( DSET_NVOX(input_dset[num_dset]) != nvox )
+         return "*************************************\n"
+                "MHIST_main:  incompatible datasets?!?\n"
+                "*************************************"  ;
 
-         if( mask_dset == NULL )
-            return "*****************************\n"
-                   "MHIST_main:  bad mask dataset\n"
-                   "*****************************"  ;
+       num_dset++ ; continue ;
+     }
 
-         if( DSET_NVOX(mask_dset) != nvox )
-           return "***********************************************************\n"
-                  "MHIST_main: mask input dataset doesn't match source dataset\n"
-                  "***********************************************************" ;
+     if( strcmp(tag,"Values") == 0 ){
+       val_bot = PLUTO_get_number(plint) ;
+       val_top = PLUTO_get_number(plint) ;
+       do_mval = (val_bot < val_top) ;
+       continue ;
+     }
 
-         miv = (int) PLUTO_get_number(plint) ;  /* 06 Aug 1998 */
-         if( miv >= DSET_NVALS(mask_dset) || miv < 0 )
-            return "***************************************************\n"
-                   "MHIST_main: mask dataset sub-brick index is illegal\n"
-                   "***************************************************"  ;
+     if( strcmp(tag,"Mask") == 0 ){
+       if( num_dset == 0 ) break ;   /* no data == bad! */
+       idc       = PLUTO_get_idcode(plint) ;
+       mask_dset = PLUTO_find_dset(idc) ;
 
-         DSET_load(mask_dset) ;
-         if( DSET_ARRAY(mask_dset,miv) == NULL )
-            return "************************************\n"
-                   "MHIST_main:  can't load mask dataset\n"
-                   "************************************"  ;
-         continue ;
-      }
+       if( mask_dset == NULL )
+          return "*****************************\n"
+                 "MHIST_main:  bad mask dataset\n"
+                 "*****************************"  ;
 
-      /*-- 20 Mar 2001: Aboot --*/
+       if( DSET_NVOX(mask_dset) != nvox )
+         return "***********************************************************\n"
+                "MHIST_main: mask input dataset doesn't match source dataset\n"
+                "***********************************************************" ;
 
-      if( strcmp(tag,"Aboot") == 0 ){
-         hrad = PLUTO_get_number(plint) ;
-         continue ;
-      }
+       miv = (int) PLUTO_get_number(plint) ;  /* 06 Aug 1998 */
+       if( miv >= DSET_NVALS(mask_dset) || miv < 0 )
+          return "***************************************************\n"
+                 "MHIST_main: mask dataset sub-brick index is illegal\n"
+                 "***************************************************"  ;
 
-      /*-- 05 Feb 2002: Output - VR --*/
+       DSET_load(mask_dset) ;
+       if( DSET_ARRAY(mask_dset,miv) == NULL )
+          return "************************************\n"
+                 "MHIST_main:  can't load mask dataset\n"
+                 "************************************"  ;
+       continue ;
+     }
 
-      if( strcmp(tag,"Output") == 0 ){
-         histout = PLUTO_get_string(plint) ;
-	 writehist = 1 ;
-         continue ;
-      }
+     if( strcmp(tag,"Bins") == 0 ){
+       nbin     = PLUTO_get_number(plint) ;
+#if 0
+       maxcount = PLUTO_get_number(plint) ;
+       smooth   = PLUTO_get_number(plint) ;
+#endif
+       continue ;
+     }
+
+     if( strcmp(tag,"Aboot") == 0 ){
+       hrad = PLUTO_get_number(plint) ;
+       continue ;
+     }
+
    }
+
+   if( num_dset == 0 )
+     return("********************************\n"
+            "MHIST_main: no input datasets?!?\n"
+            "********************************") ;
 
    /*------------------------------------------------------*/
    /*---------- At this point, the inputs are OK ----------*/
@@ -251,15 +253,14 @@ static char * MHIST_main( PLUGIN_interface *plint )
       memset( mmm , 1, nvox ) ; mcount = nvox ;
    } else {
 
-      mmm = THD_makemask( mask_dset , miv , mask_bot , mask_top ) ;
+      mmm = THD_makemask( mask_dset , miv , 666.0f , -666.0f ) ;
       if( mmm == NULL )
-         return " \n*** Can't make mask for some reason! ***\n" ;
+        return " \n*** Can't make mask for some reason! ***\n" ;
       mcount = THD_countmask( nvox , mmm ) ;
 
-      if( !EQUIV_DSETS(mask_dset,input_dset) ) DSET_unload(mask_dset) ;
       if( mcount < 3 ){
-         free(mmm) ;
-         return " \n*** Less than 3 voxels survive the mask! ***\n" ;
+        free(mmm) ;
+        return " \n*** Less than 3 voxels survive the mask! ***\n" ;
       }
       sprintf(buf," \n"
                   " %d voxels in the mask\n"
@@ -274,246 +275,221 @@ static char * MHIST_main( PLUGIN_interface *plint )
       short *di,*dj,*dk ;
       int nd , xx,yy,zz , dd , nx,ny,nz,nxy, nx1,ny1,nz1 , ip,jp,kp ;
 
-      cl = MCW_build_mask( fabs(DSET_DX(input_dset)) ,
-                           fabs(DSET_DY(input_dset)) ,
-                           fabs(DSET_DZ(input_dset)) , hrad ) ;
+      cl = MCW_build_mask( fabs(DSET_DX(input_dset[0])) ,
+                           fabs(DSET_DY(input_dset[0])) ,
+                           fabs(DSET_DZ(input_dset[0])) , hrad ) ;
 
       if( cl == NULL || cl->num_pt < 6 ){
-         KILL_CLUSTER(cl);
-         PLUTO_popup_transient(plint, " \n"
-                                      " Aboot Radius too small\n"
-                                      " for this dataset!\n"     ) ;
+        KILL_CLUSTER(cl);
+        PLUTO_popup_transient(plint, " \n"
+                                     " Aboot Radius too small for\n"
+                                     " this dataset - is ignored!\n"  ) ;
       } else {
-         ADDTO_CLUSTER(cl,0,0,0,0) ;
-         di = cl->i ; dj = cl->j ; dk = cl->k ; nd = cl->num_pt ;
-         nx = DSET_NX(input_dset) ; nx1 = nx-1 ;
-         ny = DSET_NY(input_dset) ; ny1 = ny-1 ; nxy  = nx*ny ;
-         nz = DSET_NZ(input_dset) ; nz1 = nz-1 ;
-         xx = plint->im3d->vinfo->i1 ;
-         yy = plint->im3d->vinfo->j2 ;
-         zz = plint->im3d->vinfo->k3 ;
-         for( dd=0 ; dd < nd ; dd++ ){
-            ip = xx+di[dd] ; if( ip < 0 || ip > nx1 ) continue ;
-            jp = yy+dj[dd] ; if( jp < 0 || jp > ny1 ) continue ;
-            kp = zz+dk[dd] ; if( kp < 0 || kp > nz1 ) continue ;
-            mmm[ip+jp*nx+kp*nxy]++ ;
-         }
-         KILL_CLUSTER(cl) ;
-         for( dd=0 ; dd < nvox ; dd++ ) if( mmm[dd] == 1 ) mmm[dd] = 0 ;
-         mcount = THD_countmask( nvox , mmm ) ;
+        ADDTO_CLUSTER(cl,0,0,0,0) ;
+        di = cl->i ; dj = cl->j ; dk = cl->k ; nd = cl->num_pt ;
+        nx = DSET_NX(input_dset[0]) ; nx1 = nx-1 ;
+        ny = DSET_NY(input_dset[0]) ; ny1 = ny-1 ; nxy  = nx*ny ;
+        nz = DSET_NZ(input_dset[0]) ; nz1 = nz-1 ;
+        xx = plint->im3d->vinfo->i1 ;
+        yy = plint->im3d->vinfo->j2 ;
+        zz = plint->im3d->vinfo->k3 ;
+        for( dd=0 ; dd < nd ; dd++ ){
+          ip = xx+di[dd] ; if( ip < 0 || ip > nx1 ) continue ;
+          jp = yy+dj[dd] ; if( jp < 0 || jp > ny1 ) continue ;
+          kp = zz+dk[dd] ; if( kp < 0 || kp > nz1 ) continue ;
+          mmm[ip+jp*nx+kp*nxy]++ ;
+        }
+        KILL_CLUSTER(cl) ;
+        for( dd=0 ; dd < nvox ; dd++ ) if( mmm[dd] == 1 ) mmm[dd] = 0 ;
+        mcount = THD_countmask( nvox , mmm ) ;
 
-         if( mcount < 3 ){
-            free(mmm) ;
-            return " \n*** Less than 3 voxels survive the mask+radius! ***\n" ;
-         }
-         sprintf(buf," \n"
-                     " %d voxels in the mask+radius\n"
-                     " out of %d dataset voxels\n ",mcount,nvox) ;
-         PLUTO_popup_transient(plint,buf) ;
-      }
+        if( mcount < 3 ){
+          free(mmm) ;
+          return " \n*** Less than 3 voxels survive the mask+radius! ***\n" ;
+        }
+        sprintf(buf," \n"
+                    " %d voxels in the mask+radius\n"
+                    " out of %d dataset voxels\n ",mcount,nvox) ;
+        PLUTO_popup_transient(plint,buf) ;
+     }
    }
 
-   /*-- check for text output of histogram - 05 Feb 2002 - VR --*/
+   /*------ loop over input datasets ------*/
 
-   if ( writehist )
-   {
-      static char hbuf[1024] ;
-      if ( ( histout == NULL ) || ( strlen (histout) == 0 ) ){
-         sprintf( hbuf , "%s.histog" , DSET_PREFIX(input_dset) ) ;
-      } else {
-         strcpy( hbuf , histout ) ;
-         if( strstr(hbuf,".hist") == NULL ) strcat( hbuf , ".histog" ) ;
-      }
-      histout = hbuf ;
+   for( id=0 ; id < num_dset ; id++ ) flim[id] = NULL ;
 
-      if (THD_is_file(histout))
-      {
-         free(mmm) ;
+   tval = mval_max = 0 ;
 
-         return "*******************************\n"
-                "Outfile exists, won't overwrite\n"
-                "*******************************\n" ;
-      }
-      else {
-         MHISTUT = fopen (histout, "w") ;
-         if( MHISTUT == NULL ){
-            free(mmm) ;
-            return "**********************************\n"
-                   "Can't open Outfile for some reason\n"
-                   "**********************************\n" ;
-         }
-      }
-   }
+   for( id=0 ; id < num_dset ; id++ ){  /* load data into flim[id] */
 
-   /*-- allocate an array to histogrammatize --*/
+     ivbot = indbot[id] ; ivtop = indtop[id] ; nvals = DSET_NVALS(input_dset[id]) ;
+     if( ivtop > nvals-1 ) ivtop = nvals-1 ;
+     if( ivbot > ivtop ){ ivbot = 0 ; ivtop = nvals-1 ; }
+     indbot[id] = ivbot ; indtop[id] = ivtop ;
+     nvals = ivtop-ivbot+1 ;
+if(DEBUG)fprintf(stderr,"++ Dataset #%d -- sub-bricks [%d..%d]\n",id,ivbot,ivtop) ;
 
-   flim = mri_new( mcount , 1 , MRI_float ) ;
-   flar = MRI_FLOAT_PTR(flim) ;
+     /*-- allocate an array to histogrammatize --*/
 
-   /*-- load values into this array --*/
+     flim[id] = mri_new( mcount*nvals , 1 , MRI_float ) ;
+     flar = MRI_FLOAT_PTR(flim[id]) ;
 
-   switch( DSET_BRICK_TYPE(input_dset,iv) ){
-      default:
-         free(mmm) ; mri_free(flim) ;
-         return "*** Can't use source dataset -- illegal data type! ***" ;
+      /*-- load values into this array --*/
 
-      case MRI_short:{
-         short *bar = (short *) DSET_ARRAY(input_dset,iv) ;
-         float mfac = DSET_BRICK_FACTOR(input_dset,iv) ;
-         if( mfac == 0.0 ) mfac = 1.0 ;
-         if( do_mval ){
-            float val ;
-            for( ii=jj=0 ; ii < nvox ; ii++ ){
+     for( jj=0,iv=ivbot ; iv <= ivtop ; iv++ ){
+       switch( DSET_BRICK_TYPE(input_dset[id],iv) ){
+         default:
+           free(mmm) ;
+           for( jj=0 ; jj < num_dset ; jj++ ) mri_free(flim[jj]) ;
+           return "*** Can't use source dataset -- illegal data type! ***" ;
+
+         case MRI_short:{
+           short *bar = (short *) DSET_ARRAY(input_dset[id],iv) ;
+           float mfac = DSET_BRICK_FACTOR(input_dset[id],iv) ;
+           if( mfac == 0.0 ) mfac = 1.0 ;
+           if( do_mval ){
+             float val ;
+             for( ii=0 ; ii < nvox ; ii++ ){
                if( mmm[ii] ){
-                  val = mfac*bar[ii] ;
-                  if( val >= val_bot && val <= val_top ) flar[jj++] = val ;
+                 val = mfac*bar[ii] ;
+                 if( val >= val_bot && val <= val_top ) flar[jj++] = val ;
                }
-            }
-            mval = jj ;
-         } else {
-            for( ii=jj=0 ; ii < nvox ; ii++ )
+             }
+           } else {
+             for( ii=0 ; ii < nvox ; ii++ )
                if( mmm[ii] ) flar[jj++] = mfac*bar[ii] ;
+           }
          }
-      }
-      break ;
+         break ;
 
-      case MRI_byte:{
-         byte *bar = (byte *) DSET_ARRAY(input_dset,iv) ;
-         float mfac = DSET_BRICK_FACTOR(input_dset,iv) ;
-         if( mfac == 0.0 ) mfac = 1.0 ;
-         if( do_mval ){
-            float val ;
-            for( ii=jj=0 ; ii < nvox ; ii++ ){
+         case MRI_byte:{
+           byte *bar = (byte *) DSET_ARRAY(input_dset[id],iv) ;
+           float mfac = DSET_BRICK_FACTOR(input_dset[id],iv) ;
+           if( mfac == 0.0 ) mfac = 1.0 ;
+           if( do_mval ){
+             float val ;
+             for( ii=0 ; ii < nvox ; ii++ ){
                if( mmm[ii] ){
-                  val = mfac*bar[ii] ;
-                  if( val >= val_bot && val <= val_top ) flar[jj++] = val ;
+                 val = mfac*bar[ii] ;
+                 if( val >= val_bot && val <= val_top ) flar[jj++] = val ;
                }
-            }
-            mval = jj ;
-         } else {
-            for( ii=jj=0 ; ii < nvox ; ii++ )
+             }
+           } else {
+             for( ii=0 ; ii < nvox ; ii++ )
                if( mmm[ii] ) flar[jj++] = mfac*bar[ii] ;
+           }
          }
-      }
-      break ;
+         break ;
 
-      case MRI_float:{
-         float *bar = (float *) DSET_ARRAY(input_dset,iv) ;
-         float mfac = DSET_BRICK_FACTOR(input_dset,iv) ;
-         if( mfac == 0.0 ) mfac = 1.0 ;
-         if( do_mval ){
-            float val ;
-            for( ii=jj=0 ; ii < nvox ; ii++ ){
+         case MRI_float:{
+           float *bar = (float *) DSET_ARRAY(input_dset[id],iv) ;
+           float mfac = DSET_BRICK_FACTOR(input_dset[id],iv) ;
+           if( mfac == 0.0 ) mfac = 1.0 ;
+           if( do_mval ){
+             float val ;
+             for( ii=0 ; ii < nvox ; ii++ ){
                if( mmm[ii] ){
-                  val = mfac*bar[ii] ;
-                  if( val >= val_bot && val <= val_top ) flar[jj++] = val ;
+                 val = mfac*bar[ii] ;
+                 if( val >= val_bot && val <= val_top ) flar[jj++] = val ;
                }
-            }
-            mval = jj ;
-         } else {
-            for( ii=jj=0 ; ii < nvox ; ii++ )
+             }
+           } else {
+             for( ii=0 ; ii < nvox ; ii++ )
                if( mmm[ii] ) flar[jj++] = mfac*bar[ii] ;
+           }
          }
-      }
-      break ;
+         break ;
+       } /* end of switch on sub-brick type */
+     } /* end of loop over sub-bricks */
+     mval = jj ; /* number of values loaded into flar */
+     mval_max = MAX(mval,mval_max) ; tval += mval ;
+
+     if( mval == 0 ){
+       free(mmm) ;
+       for( jj=0 ; jj < num_dset ; jj++ ) mri_free(flim[jj]) ;
+       return " \n*** Can't use source dataset -- no data in Values range ***\n " ;
+     }
+     flim[id]->nx = flim[id]->nvox = mval ;
+
    }
+   free(mmm) ;  /* done with mask */
 
-   if( do_mval ){
-      if( mval == 0 ){
-         free(mmm) ; mri_free(flim) ;
-         return "*** Can't use source dataset -- no data in Values range ***" ;
-      }
-      flim->nx = flim->nvox = mcount = mval ;
-   }
-
-   /*-- set range and size of histogram --*/
-
-   if( val_bot > val_top ){
-      hbot = mri_min(flim) ; htop = mri_max(flim) ;
-      if( hbot >= htop ){
-         free(mmm) ; mri_free(flim) ;
-         return "***********************************\n"
-                "Selected voxels have no data range!\n"
-                "***********************************"  ;
-      }
+   if( val_bot < val_top ){
+     hbot = val_bot ; htop = val_top ;
    } else {
-      hbot = val_bot ; htop = val_top ;
+     val_bot = 1.e+33 ; val_top = -val_bot ;
+     for( id=0 ; id < num_dset ; id++ ){  /* find data range to use */
+       hbot    = mri_min(flim[id]) ; htop    = mri_max(flim[id]) ;
+       val_bot = MIN(val_bot,hbot) ; val_top = MAX(val_top,htop) ;
+     }
+     hbot = val_bot ; htop = val_top ;
+     if( hbot >= htop ){
+       for( jj=0 ; jj < num_dset ; jj++ ) mri_free(flim[jj]) ;
+       return " \n*** Can't use source dataset -- no data range ***\n " ;
+     }
    }
+if(DEBUG)fprintf(stderr,"++ hbot=%g  htop=%g\n",hbot,htop) ;
 
    if( nbin < 10 || nbin > 1000 ){
-      switch( DSET_BRICK_TYPE(input_dset,iv) ){
-         case MRI_float:
-            nbin = (int) sqrt((double)mcount) ;
-         break ;
-
-         case MRI_short:
-         case MRI_byte:{
-            float mfac = DSET_BRICK_FACTOR(input_dset,iv) ;
-            if( mfac == 0.0 || mfac == 1.0 )
-               nbin = (int)( htop - hbot ) ;
-            else
-               nbin = (int) sqrt((double)mcount) ;
-         }
-         break ;
-
-      }
-      if( nbin < 10 ) nbin = 10 ; else if( nbin > 1000 ) nbin = 1000 ;
-   }
-
-   /*-- actually compute and plot histogram --*/
-
-   hbin = (int *) calloc((nbin+1),sizeof(int)) ;
-
-   mri_histogram( flim , hbot,htop , TRUE , nbin,hbin ) ;
-
-   if( smooth > 0 ){  /* 03 Dec 2004 */
-     int nwid=smooth , *gbin=(int *)calloc((nbin+1),sizeof(int)) , ibot,itop ;
-     float ws,wss , *wt ;
-
-     ws = 0.0 ;
-     wt = (float *)malloc(sizeof(float)*(2*nwid+1)) ;
-     for( ii=0 ; ii <= 2*nwid ; ii++ ){
-       wt[ii] = nwid-abs(nwid-ii) + 0.5f ;
-       ws += wt[ii] ;
+     if( (int)hbot == hbot && (int)htop == htop ){
+       nbin = htop - hbot ;
+       if( nbin < 10 ){ nbin = 10 ; }
+       else           { while( nbin > 1000 ) nbin /= 2 ; }
+     } else {
+       nbin = (int) sqrt((double)mval_max) ;
+       if( nbin < 10 ) nbin = 10 ; else if( nbin > 1000 ) nbin = 1000 ;
      }
-     for( ii=0 ; ii <= 2*nwid ; ii++ ) wt[ii] /= ws ;
+   }
+if(DEBUG)fprintf(stderr,"++ nbin=%d\n",nbin) ;
 
-     for( jj=0 ; jj <= nbin ; jj++ ){
-       ibot = jj-nwid ; if( ibot < 0    ) ibot = 0 ;
-       itop = jj+nwid ; if( itop > nbin ) itop = nbin ;
-       ws = wss = 0.0 ;
-       for( ii=ibot ; ii <= itop ; ii++ ){
-         ws += wt[nwid-jj+ii] * hbin[ii] ; wss += wt[nwid-jj+ii] ;
+   /*-- actually compute and plot histograms --*/
+
+   for( id=0 ; id < num_dset ; id++ ){
+     hbin[id] = (int *) calloc((nbin+1),sizeof(int)) ;
+
+if(DEBUG)fprintf(stderr,"++ mri_histogram(#%d)\n",id) ;
+     mri_histogram( flim[id] , hbot,htop , TRUE , nbin,hbin[id] ) ;
+     mri_free(flim[id]) ;
+
+#if 0
+     if( smooth > 0 ){  /* 03 Dec 2004 */
+       int nwid=smooth , *gbin=(int *)calloc((nbin+1),sizeof(int)) , ibot,itop ;
+       float ws,wss , *wt ;
+       ws = 0.0 ;
+       wt = (float *)malloc(sizeof(float)*(2*nwid+1)) ;
+       for( ii=0 ; ii <= 2*nwid ; ii++ ){
+         wt[ii] = nwid-abs(nwid-ii) + 0.5f ;
+         ws += wt[ii] ;
        }
-       gbin[jj] = rint(ws/wss) ;
+       for( ii=0 ; ii <= 2*nwid ; ii++ ) wt[ii] /= ws ;
+
+       for( jj=0 ; jj <= nbin ; jj++ ){
+         ibot = jj-nwid ; if( ibot < 0    ) ibot = 0 ;
+         itop = jj+nwid ; if( itop > nbin ) itop = nbin ;
+         ws = wss = 0.0 ;
+         for( ii=ibot ; ii <= itop ; ii++ ){
+           ws += wt[nwid-jj+ii] * hbin[id][ii] ; wss += wt[nwid-jj+ii] ;
+         }
+         gbin[jj] = rint(ws/wss) ;
+       }
+       memcpy(hbin[id],gbin,sizeof(int)*(nbin+1)) ;
+       free((void *)wt) ; free((void *)gbin) ;
      }
-     memcpy(hbin,gbin,sizeof(int)*(nbin+1)) ;
-     free((void *)wt) ; free((void *)gbin) ;
+#endif
+
+#if 0
+     if( maxcount > 0 ){
+        for( ii=0 ; ii <= nbin ; ii++ ) hbin[id][ii] = MIN(hbin[id][ii],maxcount);
+     }
+#endif
    }
-
-   if( maxcount > 0 ){
-      for( ii=0 ; ii <= nbin ; ii++ ) hbin[ii] = MIN( hbin[ii] , maxcount ) ;
-   }
-   sprintf(buf,"\\noesc %s[%d] %d voxels",DSET_FILECODE(input_dset),iv,mcount);
-   PLUTO_histoplot( nbin,hbot,htop,hbin , NULL , NULL ,  buf , 0,NULL ) ;
-
-   /*-- 05 Feb 2002: Output - VR --*/
-
-   if ( MHISTUT != NULL )
-   {
-      if( hbot >= htop ){ hbot = 0.0 ; htop = nbin ;}
-
-      dx = (htop-hbot)/nbin ;
-
-      for( ii=0 ; ii <= nbin ; ii++ )
-         fprintf (MHISTUT, "%12.6f %13d \n", hbot+ii*dx, hbin[ii]) ;
-
-      fclose (MHISTUT) ;
-
-      fprintf (stderr, "%s written to disk \n", histout) ;
-   }
+if(DEBUG)fprintf(stderr,"++ about to plot\n") ;
+   sprintf(buf,"\\noesc mask=%d voxels  value count=%d voxels",mcount,tval);
+   plot_ts_setcolors( num_dset , ovc_rrr , ovc_ggg , ovc_bbb ) ;
+   PLUTO_histoplot( nbin,hbot,htop,hbin[0] , NULL , NULL ,  buf , num_dset-1,hbin+1 ) ;
 
    /*-- go home to mama --*/
 
-   free(hbin) ; free(mmm) ; mri_free(flim) ; return NULL ;
+   for( jj=0 ; jj < num_dset ; jj++ ) free(hbin[jj]) ;
+   return NULL ;
 }
