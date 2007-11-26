@@ -461,6 +461,10 @@ PLUGIN_interface * ENV_init(void)
                     "Set clipped grayscale top = fraction of default" ,
                     60,190,2,100 , ENV_redisplay ) ;
 
+   ENV_add_numeric( "AFNI_1DPLOT_THIK" ,
+                    "Set 1dplot-style line thickness" ,
+                    0,200,4,30 , NULL ) ;
+
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
    if( !AFNI_yesenv("AFNI_DONT_SORT_ENVIRONMENT") )

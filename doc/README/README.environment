@@ -1743,6 +1743,14 @@ are needed, they will cycle back to color 01.  If you leave a gap in the
 numbering (e.g., you define color 07 but not 05 or 06), then the undefined
 colors will be black.
 
+--------------------------
+Variable: AFNI_1DPLOT_THIK (editable)
+--------------------------
+This numeric variable lets you control the thickness of lines drawn in the
+1dplot-style windows.  The units are in terms of the width of the entire
+plot, so that a value of 0.005 is 'reasonable'; 0.01 will be fairly thick
+lines, and 0.02 will be too thick for most purposes.
+
 ---------------------------------
 Variable: AFNI_SIEMENS_INTERLEAVE
 ---------------------------------

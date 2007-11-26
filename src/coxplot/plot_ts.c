@@ -123,6 +123,11 @@ void plot_ts_setcolors( int ncol , float *rrr , float *ggg , float *bbb )
    return ;
 }
 
+void plot_ts_setthik( float thk )
+{
+   THIK = (thk >= 0.0f && thk <= 0.05) ? thk : 0.003f ;
+}
+
 /*-----------------------------------------------------------------------
   Plot some timeseries data into an in-memory plot structure, which
   must be displayed later in some fashion.
