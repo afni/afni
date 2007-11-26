@@ -167,6 +167,7 @@ def db_cmd_tshift(proc, block):
 def db_mod_volreg(block, proc, user_opts):
     if len(block.opts.olist) == 0:    # then init dset/brick indices to defaults
         block.opts.add_opt('-volreg_base_ind', 2, [0, 2], setpar=1)
+        block.opts.add_opt('-volreg_interp', 1, ['-cubic'], setpar=1)
         block.opts.add_opt('-volreg_opts_vr', -1, [])
         block.opts.add_opt('-volreg_zpad', 1, [1], setpar=1)
 
@@ -206,6 +207,11 @@ def db_mod_volreg(block, proc, user_opts):
                   % aopt.parlist[0]
             return 1
 
+    uopt = user_opts.find_opt('-volreg_interp')
+    if uopt:
+        bopt = block.opts.find_opt('-volreg_interp')
+        bopt.parlist = uopt.parlist
+
     zopt = user_opts.find_opt('-volreg_zpad')
     if zopt:
         bopt = block.opts.find_opt('-volreg_zpad')
@@ -237,6 +243,10 @@ def db_cmd_volreg(proc, block):
     # get base prefix (run is index+1)
     base = proc.prev_prefix_form(dset_ind+1)
 
+    # get the interpolation value
+    opt = block.opts.find_opt('-volreg_interp')
+    resam = ' '.join(opt.parlist)     # maybe '-cubic'
+
     # get the zpad value
     opt = block.opts.find_opt('-volreg_zpad')
     if not opt or not opt.parlist: zpad = 1
@@ -252,13 +262,14 @@ def db_cmd_volreg(proc, block):
                 "foreach run ( $runs )\n"                                     \
                 "    3dvolreg -verbose -zpad %d -base %s+orig'[%d]'  \\\n"    \
                 "             -1Dfile dfile.r$run.1D -prefix %s  \\\n"        \
+                "             %s \\\n"                                        \
                 "%s"                                                          \
                 "             %s+orig\n"                                      \
                 "end\n\n"                                                     \
                 "# make a single file of registration params\n"               \
                 "cat dfile.r??.1D > dfile.rall.1D\n\n" %                      \
                     (zpad, proc.prev_prefix_form(dset_ind+1), sub, 
-                     proc.prefix_form_run(block), other_opts,
+                     proc.prefix_form_run(block), resam, other_opts,
                      proc.prev_prefix_form_run())
 
     # used 3dvolreg, so have these labels

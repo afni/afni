@@ -2256,4 +2256,5 @@
         - dind is size_t
         - notable functions: gifti_list_index2string, gifti_disp_hex_data
             gifti_check_swap, gifti_swap_Nbytes
+26 Nov 2007: modified afni_proc.py, db_mod.py: 3dvolreg defaults to cubic interp.
 
