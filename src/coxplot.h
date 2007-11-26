@@ -259,6 +259,10 @@ extern void plot_ts_xfix( int,int , float,float ) ;  /* 22 Jul 2003 */
 extern void plot_ts_yfix( int,int , float,float ) ;
 
 extern void plot_ts_setcolors( int, float *, float *, float * ) ; /* 23 Nov 2007 */
+extern void plot_ts_setthik( float thk ) ;                        /* 26 Nov 2007 */
+#define plot_ts_setthick plot_ts_setthik /* for clumsy typists */
+#define plot_ts_sethik   plot_ts_setthik
+#define plot_ts_sethick  plot_ts_setthik
 
 extern void plot_ts_lab( Display *,
                          int,float *, int,float **,

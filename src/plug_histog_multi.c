@@ -27,6 +27,7 @@ static char helpstring[] =
    " Values:  Bottom    = minimum value from dataset to include\n"
    "          Top       = maximum value from dataset to include\n\n"
    " Bins:    Number    = number of bins to use\n"
+   "          Smooth    = number of bins to smooth over (+/-)\n"
    " Mask:    Dataset   = masking dataset\n"
    "          Sub-brick = which one to use for the mask \n\n"
    " Aboot:   If activated, then only voxels within a distance of Radius mm\n"
@@ -92,6 +93,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_option( plint , "Bins" , "Bins" , FALSE ) ;
    PLUTO_add_number( plint , "Number" , 10,1000,0, 10,1 ) ;
+   PLUTO_add_number( plint , "Smooth" ,  0,100 ,0,  0,1 ) ;
 
    /*-- Mask to use --*/
 
@@ -128,10 +130,10 @@ static char * MHIST_main( PLUGIN_interface *plint )
    MRI_IMAGE *flim[MAXMAX] ;
    float     *flar ;
    int       *hbin[MAXMAX] ;
-   int smooth=0 ;      /* 03 Dec 2004 */
+   int smooth=0 ;
    int miv=0 ;
-   int maxcount=0 ; /* 01 Mar 2001 */
-   float hrad=-1.0f ; /* 20 Mar 2001 */
+   int maxcount=0 ;
+   float hrad=-1.0f ;
    float ovc_rrr[MAXMAX] , ovc_ggg[MAXMAX] , ovc_bbb[MAXMAX] ;
 
    /*--------------------------------------------------------------------*/
@@ -225,9 +227,9 @@ if(DEBUG)fprintf(stderr,"++ Dataset #%d '%s' - %d..%d  ovc=%d\n",
 
      if( strcmp(tag,"Bins") == 0 ){
        nbin     = PLUTO_get_number(plint) ;
+       smooth   = PLUTO_get_number(plint) ;
 #if 0
        maxcount = PLUTO_get_number(plint) ;
-       smooth   = PLUTO_get_number(plint) ;
 #endif
        continue ;
      }
@@ -265,10 +267,12 @@ if(DEBUG)fprintf(stderr,"++ Dataset #%d '%s' - %d..%d  ovc=%d\n",
         free(mmm) ;
         return " \n*** Less than 3 voxels survive the mask! ***\n" ;
       }
+#if 0
       sprintf(buf," \n"
                   " %d voxels in the mask\n"
                   " out of %d dataset voxels\n ",mcount,nvox) ;
       PLUTO_popup_transient(plint,buf) ;
+#endif
    }
 
    /*-- 20 Mar 2001: modify mask via Aboot Radius, if present --*/
@@ -311,10 +315,12 @@ if(DEBUG)fprintf(stderr,"++ Dataset #%d '%s' - %d..%d  ovc=%d\n",
        free(mmm) ;
        return " \n*** Less than 1 voxels survive the mask+radius! ***\n" ;
      }
+#if 0
      sprintf(buf," \n"
                  " %d voxels in the mask+radius\n"
                  " out of %d dataset voxels\n ",mcount,nvox) ;
      PLUTO_popup_transient(plint,buf) ;
+#endif
    }
 
    /*------ loop over input datasets ------*/
@@ -419,7 +425,7 @@ if(DEBUG)fprintf(stderr,"++ Dataset #%d -- sub-bricks [%d..%d]\n",id,ivbot,ivtop
 
    if( mval_max < 9 ){
      for( jj=0 ; jj < num_dset ; jj++ ) mri_free(flim[jj]) ;
-     return " \n*** Only 9 values?! -- can't build histogram!\n " ;
+     return " \n*** Less than 9 values?! -- can't build histogram!\n " ;
    }
 
    if( val_bot < val_top ){
@@ -459,8 +465,7 @@ if(DEBUG)fprintf(stderr,"++ mri_histogram(#%d)\n",id) ;
      mri_histogram( flim[id] , hbot,htop , TRUE , nbin,hbin[id] ) ;
      mri_free(flim[id]) ;
 
-#if 0
-     if( smooth > 0 ){  /* 03 Dec 2004 */
+     if( smooth > 0 ){
        int nwid=smooth , *gbin=(int *)calloc((nbin+1),sizeof(int)) , ibot,itop ;
        float ws,wss , *wt ;
        ws = 0.0 ;
@@ -483,7 +488,6 @@ if(DEBUG)fprintf(stderr,"++ mri_histogram(#%d)\n",id) ;
        memcpy(hbin[id],gbin,sizeof(int)*(nbin+1)) ;
        free((void *)wt) ; free((void *)gbin) ;
      }
-#endif
 
 #if 0
      if( maxcount > 0 ){
@@ -492,8 +496,11 @@ if(DEBUG)fprintf(stderr,"++ mri_histogram(#%d)\n",id) ;
 #endif
    }
 if(DEBUG)fprintf(stderr,"++ about to plot\n") ;
-   sprintf(buf,"\\noesc mask=%d voxels  value count=%d voxels",mcount,tval);
+   hrad = AFNI_numenv("AFNI_1DPLOT_THIK") ;
+   if( hrad <= 0.0f || hrad >= 0.02f ) hrad = 0.005f ;
+   plot_ts_setthik(hrad) ;
    plot_ts_setcolors( num_dset , ovc_rrr , ovc_ggg , ovc_bbb ) ;
+   sprintf(buf,"#mask=%d #values=%d",mcount,tval);
    PLUTO_histoplot( nbin,hbot,htop,hbin[0] , NULL , NULL ,  buf , num_dset-1,hbin+1 ) ;
 
    /*-- go home to mama --*/
