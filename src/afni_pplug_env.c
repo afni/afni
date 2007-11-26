@@ -463,7 +463,7 @@ PLUGIN_interface * ENV_init(void)
 
    ENV_add_numeric( "AFNI_1DPLOT_THIK" ,
                     "Set 1dplot-style line thickness" ,
-                    0,200,4,30 , NULL ) ;
+                    0,20,3,3 , NULL ) ;
 
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
