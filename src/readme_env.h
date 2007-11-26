@@ -1744,6 +1744,14 @@ static char * readme_env[] = {
    "numbering (e.g., you define color 07 but not 05 or 06), then the undefined\n" ,
    "colors will be black.\n" ,
    "\n" ,
+   "--------------------------\n" ,
+   "Variable: AFNI_1DPLOT_THIK (editable)\n" ,
+   "--------------------------\n" ,
+   "This numeric variable lets you control the thickness of lines drawn in the\n" ,
+   "1dplot-style windows.  The units are in terms of the width of the entire\n" ,
+   "plot, so that a value of 0.005 is 'reasonable'; 0.01 will be fairly thick\n" ,
+   "lines, and 0.02 will be too thick for most purposes.\n" ,
+   "\n" ,
    "---------------------------------\n" ,
    "Variable: AFNI_SIEMENS_INTERLEAVE\n" ,
    "---------------------------------\n" ,
@@ -2605,4 +2613,4 @@ static char * readme_env[] = {
    "in 3dDeconvolve by the \"-gltsym\" option will be printed to the screen\n" ,
    "when the program starts up.\n" ,
    NULL } ;
-#define NUM_readme_env 2605
+#define NUM_readme_env 2613
