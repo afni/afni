@@ -266,10 +266,14 @@ g_help_string = """
                   - use no extra options (so automask is default)
 
         tshift:   - align slices to the beginning of the TR
+                  - use quintic interpolation for time series resampling
+                        (option: -tshift_interp -quintic)
 
         volreg:   - align to third volume of first run, -zpad 1
                         (option: -volreg_align_to third)
                         (option: -volreg_zpad 1)
+                  - use cubic interpolation for volume resampling
+                        (option: -volreg_interp -cubic)
 
         blur:     - blur data using a 4 mm FWHM filter
                         (option: -blur_filter -1blur_fwhm)
@@ -614,6 +618,14 @@ g_help_string = """
             -volreg_base_ind options.
 
             See also -volreg_align_to, -tcat_remove_first_trs.
+
+        -volreg_interp METHOD   : specify the interpolation method for volreg
+
+                e.g. -volreg_interp -quintic
+                e.g. -volreg_interp -Fourier
+                default -cubic
+
+            Please see '3dTvolreg -help' for more information.
 
         -volreg_opts_vr OPTS ... : specify extra options for 3dvolreg
 
@@ -1061,9 +1073,10 @@ g_history = """
     1.24 Jun 04 2007 : added -scale_no_max
     1.25 Jun 27 2007 : on error, display failed command
     1.26 Oct 03 2007 : set default polort based on run length (like 3dDecon)
+    1.27 Nov 26 2007 : added -volreg_interp, default is -cubic (was Fourier)
 """
 
-g_version = "version 1.26, Oct 10, 2007"
+g_version = "version 1.27, Nov 26, 2007"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -1179,6 +1192,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-volreg_align_to', 1, [],
                                 ['first','third', 'last'])
         self.valid_opts.add_opt('-volreg_base_ind', 2, [])
+        self.valid_opts.add_opt('-volreg_interp', 1, [])
         self.valid_opts.add_opt('-volreg_opts_vr', -1, [])
         self.valid_opts.add_opt('-volreg_zpad', 1, [])
 
