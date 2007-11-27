@@ -1085,6 +1085,7 @@ void CALC_Syntax(void)
     "                    of the input dataset and variable 'b' to the        \n"
     "                    imaginary part of the input dataset.                \n"
     "                * 3dcalc cannot be used to CREATE a complex dataset!    \n"
+    "                    [See program 3dTwotoComplex for that purpose.]      \n"
     "                                                                        \n"
     "------------------------------------------------------------------------\n"
     "DATASET TYPES:                                                          \n"
