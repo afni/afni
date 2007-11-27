@@ -136,9 +136,23 @@ char * AFNI_get_friend(void)
 
 typedef struct { int mon,day; char *label; } mday ;
 
+/*-----------------------------------------*/
 /*! max # trivia elements allowed per date */
 
 #define NTMAX 9
+
+char * AFNI_get_date_trivia(void) ;
+
+static int  ntar=0 ;
+static char *tar[NTMAX] ;
+
+int AFNI_get_todays_trivia( char ***triv )
+{
+   (void)AFNI_get_date_trivia() ;
+   if( triv != NULL ) *triv = tar ;
+   return ntar ;
+}
+/*-----------------------------------------*/
 
 /*! The date trivia array. */
 
@@ -1099,14 +1113,13 @@ static mday holiday[] = {
  {0,0,NULL} } ;  /* the last element, a flag to stop searching */
 
 /*------------------------------------------------------------------------------*/
-/*! Return today's date trivia string. */
+/*! Return one of today's date trivia string. */
 
 char * AFNI_get_date_trivia(void)
 {
    time_t tt ;
    struct tm *lt ;
-   int ii , ntar ;
-   char *tar[NTMAX] ;
+   int ii ;
    static char *monthlist[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" } ;
    static char dmy[32] ;
