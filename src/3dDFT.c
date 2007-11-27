@@ -9,6 +9,7 @@ int main( int argc , char * argv[] )
    complex *comp_array;
    int iarg=1 , doabs=0, ii, jj, kk, ll, nvox, nvals=1, isfloat=0;
    int nx, ny, nz, nfft=0 , detrend=0 ;
+   float *xtap=NULL , ftap=0.0f ;  /* 27 Nov 2007 */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: 3dDFT [-prefix ppp] [-abs] [-nfft N] [-detrend] dataset\n"
@@ -17,6 +18,9 @@ int main( int argc , char * argv[] )
             " -abs     == output float dataset = abs(DFT)\n"
             " -nfft N  == use 'N' for DFT length (must be >= #time points)\n"
             " -detrend == least-squares remove linear drift before DFT\n"
+            " -taper f == taper 'f' fraction of data at ends (0 <= f <= 1).\n"
+            "             [Hamming 'raised cosine' taper of f/2 of the ]\n"
+            "             [data length at each end; default is no taper]\n"
            ) ;
      exit(0) ;
    }
@@ -32,6 +36,13 @@ int main( int argc , char * argv[] )
 #define GOOD_TYPE(tt) ((tt)==MRI_complex || (tt)==MRI_float )
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+      if( strcmp(argv[iarg],"-taper") == 0 ){  /* 27 Nov 2007 */
+        ftap = (float)strtod(argv[++iarg],NULL) ;
+        if( ftap < 0.0f || ftap > 1.0f )
+          ERROR_exit("Illegal value after -taper: %g",ftap) ;
+        iarg++ ; continue ;
+      }
 
       if( strcmp(argv[iarg],"-prefix") == 0 ){
          prefix = argv[++iarg] ;
@@ -109,6 +120,9 @@ int main( int argc , char * argv[] )
                      nvals,nfft,ii);
    nfft = ii ;
 
+   if( ftap > 0.0f )
+     xtap = mri_setup_taper( nvals , ftap ) ;  /* 27 Nov 2007 */
+
    /* make output dataset */
 
    oset = EDIT_empty_copy( dset1 ) ;
@@ -163,6 +177,12 @@ int main( int argc , char * argv[] )
        if( detrend ) THD_linear_detrend( nvals , real , NULL,NULL ) ;
        for( jj=0 ; jj < nvals ; jj++ ) {
          comp_array[jj].r = real[jj]; comp_array[jj].i = 0.0f ;
+       }
+     }
+
+     if( xtap != NULL ){                 /* 27 Nov 2007 */
+       for( jj=0 ; jj < nvals ; jj++ ){
+         comp_array[jj].r *= xtap[jj] ; comp_array[jj].i *= xtap[jj] ;
        }
      }
 
