@@ -108,7 +108,7 @@ float *mri_setup_taper( int nx , float taper )
 
    phi = PI / ntap ;
    for( ii=0 ; ii < ntap ; ii++ ){
-      tap[ii]      = 0.5 - 0.5 * cos( ii*phi ) ;
+      tap[ii]      = 0.54 - 0.46 * cos( ii*phi ) ;
       tap[nx-1-ii] = tap[ii] ;
    }
 
