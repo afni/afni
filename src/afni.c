@@ -79,8 +79,6 @@
  "      Computers and Biomedical Research, 29:162-173, 1996.\n\n"
 #endif
 
-#define USE_FRIENDS
-
 #ifdef AFNI_DEBUG
 #  define REPORT_PROGRESS(str)  /* nada */
 #else
@@ -1312,18 +1310,28 @@ int main( int argc , char *argv[] )
 
    srand48((long)time(NULL)) ;  /* initialize random number generator */
 
-   REPORT_PROGRESS( "\n" ) ;         /* 02 Dec 2000 */
-   REPORT_PROGRESS( ANNOUNCEMENT ) ;
+   REPORT_PROGRESS( "\n" ) ;
 
-   /*-- Be friendly --*/
+   /*-- Be friendly or trivial --*/
 
-#ifdef USE_FRIENDS
+   if( check_string("-trivia",argc,argv) ){   /* 27 Nov 2007 */
+     char **triv ; int ntriv,tt ;
+     ntriv = AFNI_get_todays_trivia( &triv ) ;
+     for( tt=0 ; tt < ntriv ; tt++ ){
+       REPORT_PROGRESS(triv[tt]) ; REPORT_PROGRESS("\n") ;
+     }
+     REPORT_PROGRESS( "\n" ) ; exit(0) ;
+   }
+
    { char *sf = AFNI_get_friend() ;
      REPORT_PROGRESS( sf ) ;
      REPORT_PROGRESS( "\n\n" ) ;
      if( check_string("-friend",argc,argv) ) exit(0) ;
    }
-#endif
+
+   /*----- tell the user who we are -----*/
+
+   REPORT_PROGRESS( ANNOUNCEMENT ) ;
 
    /*-------------------------------------------------------------*/
    /*------------ initialize the controllers list ----------------*/
