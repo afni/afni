@@ -925,6 +925,7 @@ extern char * AFNI_make_update_script (void) ;   /* 20 Nov 2003 */
 
 extern char * AFNI_get_friend(void) ;      /* 26 Feb 2001 */
 extern char * AFNI_get_date_trivia(void) ; /* 25 Nov 2002 */
+extern int AFNI_get_todays_trivia( char *** ) ; /* 27 Nov 2007 */
 
 #define OPEN_CONTROLLER(iq)                                  \
  do{ XtRealizeWidget((iq)->vwid->top_shell) ;                \
