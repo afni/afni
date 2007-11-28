@@ -2256,5 +2256,13 @@
         - dind is size_t
         - notable functions: gifti_list_index2string, gifti_disp_hex_data
             gifti_check_swap, gifti_swap_Nbytes
-26 Nov 2007: modified afni_proc.py, db_mod.py: 3dvolreg defaults to cubic interp.
+26 Nov 2007: modified afni_proc.py, db_mod.py: volreg defaults to cubic interp.
+28 Nov 2007: nifti updates for GIFTI and datatype_to/from_string
+  * modified nifti1.h: added 5 new INTENTs for GIFTI, plus RGBA32 types
+  * modified nifti1.[ch]:
+        - added NIFTI_ECODE_FREESURFER
+        - added nifti_type_list, an array of nifti_type_ele structs
+  * modified nifti_tool.[ch]: added -help_datatypes, to list or test types
+  * modified nifti_regress_test/commands/c02.nt.help: added -help_datatypes
+  * modified Updates.txt: for these changes
 
