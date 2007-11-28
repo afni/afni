@@ -31,6 +31,7 @@
  *   nifti_tool -help
  *   nifti_tool -help_hdr
  *   nifti_tool -help_nim
+ *   nifti_tool -help_datatypes
  *   nifti_tool -hist
  *   nifti_tool -ver
  *   nifti_tool -nifti_hist
@@ -141,9 +142,10 @@ static char * g_history[] =
   "   - added -make_im, -new_dim, -new_datatype and -copy_im\n"
   "1.17 13 Jun 2007 [rickr] - added help for -copy_im, enumerate examples\n",
   "1.18 23 Jun 2007 [rickr] - main returns 0 on -help, -hist, -ver\n"
+  "1.19 28 Nov 2007 [rickr] - added -help_datatypes\n",
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 1.18 (June 23, 2007)";
+static char g_version[] = "version 1.19 (Nov 28, 2007)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -238,11 +240,24 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
    /* terminal options are first, the rest are sorted */
    for( ac = 1; ac < argc; ac++ )
    {
-      if( ! strncmp(argv[ac], "-help_hdr", 9) )
+      if( ! strncmp(argv[ac], "-help_datatypes", 9) )
+      {
+         ac++;
+         if( ac >= argc )
+            nifti_disp_type_list(3);  /* show all types */
+         else if( argv[ac][0] == 'd' || argv[ac][0] == 'D' )
+            nifti_disp_type_list(1);  /* show DT_* types */
+         else if( argv[ac][0] == 't' || argv[ac][0] == 'T' )
+            nifti_test_datatype_sizes(1); /* test each nbyper and swapsize */
+         else
+            nifti_disp_type_list(2);  /* show NIFTI_* types */
+         return 1;
+      }
+      else if( ! strncmp(argv[ac], "-help_hdr", 9) )
          return usage(argv[0], USE_FIELD_HDR);
-      if( ! strncmp(argv[ac], "-help_nim", 9) )
+      else if( ! strncmp(argv[ac], "-help_nim", 9) )
          return usage(argv[0], USE_FIELD_NIM);
-      if( ! strncmp(argv[ac], "-help", 5) )
+      else if( ! strncmp(argv[ac], "-help", 5) )
          return usage(argv[0], USE_FULL);
       else if( ! strncmp(argv[ac], "-hist", 5) )
          return usage(argv[0], USE_HIST);
@@ -836,6 +851,7 @@ int use_full(char * prog)
    "    nifti_tool -help                 : show this help\n"
    "    nifti_tool -help_hdr             : show nifti_1_header field info\n"
    "    nifti_tool -help_nim             : show nifti_image field info\n"
+   "    nifti_tool -help_datatypes       : show datatype table\n"
    "\n");
    printf(
    "    nifti_tool -ver                  : show the current version\n"
@@ -1538,6 +1554,17 @@ int use_full(char * prog)
    "    -help_nim         : show nifti_image field info\n"
    "\n"
    "       e.g.  nifti_tool -help_nim\n");
+
+   printf(
+   "\n"
+   "    -help_datatypes [TYPE] : display datatype table\n"
+   "\n"
+   "       e.g.  nifti_tool -help_datatypes\n"
+   "       e.g.  nifti_tool -help_datatypes N\n"
+   "\n"
+   "       This displays the contents of the nifti_type_list table.\n"
+   "       An additional 'D' or 'N' parameter will restrict the type\n"
+   "       name to 'DT_' or 'NIFTI_TYPE_' names, 'T' will test.\n");
 
    printf(
    "\n"

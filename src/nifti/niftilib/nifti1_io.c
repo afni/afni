@@ -304,12 +304,64 @@ static char * gni_history[] =
   "1.29 08 Aug 2007 [rickr] for list, valid_nifti_brick_list requires 3 dims\n"
   "1.30 08 Nov 2007 [Yaroslav/rickr]\n"
   "   - fix ARM struct alignment problem in byte-swapping routines\n",
+  "1.31 28 Nov 2007 [rickr]\n"
+  "   - added nifti_datatype_to/from_string routines\n"
+  "   - added DT_RGBA32/NIFTI_TYPE_RGBA32 datatype macros (3072)\n"
+  "   - added NIFTI_ECODE_FREESURFER (14)\n",
   "----------------------------------------------------------------------\n"
 };
 static char gni_version[] = "nifti library version 1.30 (08 Nov, 2007)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1, 0 };
+
+/*! global nifti types structure list (per type, ordered oldest to newest) */
+static nifti_type_ele nifti_type_list[] = {
+    /* type  nbyper  swapsize   name  */
+    {    0,     0,       0,   "DT_UNKNOWN"              }, 
+    {    0,     0,       0,   "DT_NONE"                 }, 
+    {    1,     0,       0,   "DT_BINARY"               },  /* not usable */
+    {    2,     1,       0,   "DT_UNSIGNED_CHAR"        },
+    {    2,     1,       0,   "DT_UINT8"                },
+    {    2,     1,       0,   "NIFTI_TYPE_UINT8"        },
+    {    4,     2,       2,   "DT_SIGNED_SHORT"         },
+    {    4,     2,       2,   "DT_INT16"                },
+    {    4,     2,       2,   "NIFTI_TYPE_INT16"        },
+    {    8,     4,       4,   "DT_SIGNED_INT"           },
+    {    8,     4,       4,   "DT_INT32"                },
+    {    8,     4,       4,   "NIFTI_TYPE_INT32"        },
+    {   16,     4,       4,   "DT_FLOAT"                },
+    {   16,     4,       4,   "DT_FLOAT32"              },
+    {   16,     4,       4,   "NIFTI_TYPE_FLOAT32"      },
+    {   32,     8,       4,   "DT_COMPLEX"              },
+    {   32,     8,       4,   "DT_COMPLEX64"            },
+    {   32,     8,       4,   "NIFTI_TYPE_COMPLEX64"    },
+    {   64,     8,       8,   "DT_DOUBLE"               },
+    {   64,     8,       8,   "DT_FLOAT64"              },
+    {   64,     8,       8,   "NIFTI_TYPE_FLOAT64"      },
+    {  128,     3,       0,   "DT_RGB"                  },
+    {  128,     3,       0,   "DT_RGB24"                },
+    {  128,     3,       0,   "NIFTI_TYPE_RGB24"        },
+    {  255,     0,       0,   "DT_ALL"                  },
+    {  256,     1,       0,   "DT_INT8"                 },
+    {  256,     1,       0,   "NIFTI_TYPE_INT8"         },
+    {  512,     2,       2,   "DT_UINT16"               },
+    {  512,     2,       2,   "NIFTI_TYPE_UINT16"       },
+    {  768,     4,       4,   "DT_UINT32"               },
+    {  768,     4,       4,   "NIFTI_TYPE_UINT32"       },
+    { 1024,     8,       8,   "DT_INT64"                },
+    { 1024,     8,       8,   "NIFTI_TYPE_INT64"        },
+    { 1280,     8,       8,   "DT_UINT64"               },
+    { 1280,     8,       8,   "NIFTI_TYPE_UINT64"       },
+    { 1536,    16,      16,   "DT_FLOAT128"             },
+    { 1536,    16,      16,   "NIFTI_TYPE_FLOAT128"     },
+    { 1792,    16,       8,   "DT_COMPLEX128"           },
+    { 1792,    16,       8,   "NIFTI_TYPE_COMPLEX128"   },
+    { 2048,    32,      16,   "DT_COMPLEX256"           },
+    { 2048,    32,      16,   "NIFTI_TYPE_COMPLEX256"   },
+    { 3072,     4,       0,   "DT_RGBA32"               },
+    { 3072,     4,       0,   "NIFTI_TYPE_RGBA32"       },
+};
 
 /*---------------------------------------------------------------------------*/
 /* prototypes for internal functions - not part of exported library          */
@@ -1055,6 +1107,7 @@ char *nifti_datatype_string( int dt )
      case DT_COMPLEX128: return "COMPLEX128" ;
      case DT_COMPLEX256: return "COMPLEX256" ;
      case DT_RGB24:      return "RGB24"      ;
+     case DT_RGBA32:     return "RGBA32"     ;
    }
    return "**ILLEGAL**" ;
 }
@@ -1086,6 +1139,7 @@ int nifti_is_inttype( int dt )
      case DT_COMPLEX128: return 0 ;
      case DT_COMPLEX256: return 0 ;
      case DT_RGB24:      return 1 ;
+     case DT_RGBA32:     return 1 ;
    }
    return 0 ;
 }
@@ -1271,6 +1325,7 @@ void nifti_datatype_sizes( int datatype , int *nbyper, int *swapsize )
      case DT_UINT16:      nb =  2 ; ss =  2 ; break ;
 
      case DT_RGB24:       nb =  3 ; ss =  0 ; break ;
+     case DT_RGBA32:      nb =  4 ; ss =  0 ; break ;
 
      case DT_INT32:
      case DT_UINT32:
@@ -2819,6 +2874,7 @@ int nifti_is_valid_datatype( int dtype )
        dtype == NIFTI_TYPE_COMPLEX64    ||
        dtype == NIFTI_TYPE_FLOAT64      ||
        dtype == NIFTI_TYPE_RGB24        ||
+       dtype == NIFTI_TYPE_RGBA32       ||
        dtype == NIFTI_TYPE_INT8         ||
        dtype == NIFTI_TYPE_UINT16       ||
        dtype == NIFTI_TYPE_UINT32       ||
@@ -6802,3 +6858,115 @@ int * nifti_get_intlist( int nvals , const char * str )
    if( subv[0] == 0 ){ free(subv); subv = NULL; }
    return subv ;
 }
+
+/*---------------------------------------------------------------------*/
+/*! Given a NIFTI_TYPE string, such as "NIFTI_TYPE_INT16", return the
+ *  corresponding integral type code.  The type code is the macro
+ *  value defined in nifti1.h.
+*//*-------------------------------------------------------------------*/
+int nifti_datatype_from_string( const char * name )
+{
+    int tablen = sizeof(nifti_type_list)/sizeof(nifti_type_ele);
+    int c;
+
+    if( !name ) return DT_UNKNOWN;
+
+    for( c = tablen-1; c > 0; c-- )
+        if( !strcmp(name, nifti_type_list[c].name) )
+            break;
+
+    return nifti_type_list[c].type;
+}
+
+
+/*---------------------------------------------------------------------*/
+/*! Given a NIFTI_TYPE value, such as NIFTI_TYPE_INT16, return the
+ *  corresponding macro label as a string.  The dtype code is the
+ *  macro value defined in nifti1.h.
+*//*-------------------------------------------------------------------*/
+char * nifti_datatype_to_string( int dtype )
+{
+    int tablen = sizeof(nifti_type_list)/sizeof(nifti_type_ele);
+    int c;
+
+    for( c = tablen-1; c > 0; c-- )
+        if( nifti_type_list[c].type == dtype )
+            break;
+
+    return nifti_type_list[c].name;
+}
+
+
+/*---------------------------------------------------------------------*/
+/*! Only as a test, verify that the new nifti_type_list table matches
+ *  the the usage of nifti_datatype_sizes (which could be changed to
+ *  use the table, if there were interest).
+ *
+ *  return the number of errors (so 0 is success, as usual)
+*//*-------------------------------------------------------------------*/
+int nifti_test_datatype_sizes(int verb)
+{
+    int tablen = sizeof(nifti_type_list)/sizeof(nifti_type_ele);
+    int nbyper, ssize;
+    int c, errs = 0;
+
+    for( c = 0; c < tablen; c++ )
+    {
+        nbyper = ssize = -1;
+        nifti_datatype_sizes(nifti_type_list[c].type, &nbyper, &ssize);
+        if( nbyper < 0 || ssize < 0 ||
+                nbyper != nifti_type_list[c].nbyper ||
+                ssize != nifti_type_list[c].swapsize )
+        {
+            if( verb || g_opts.debug > 2 )
+                fprintf(stderr, "** type mismatch: %s, %d, %d, %d : %d, %d\n",
+                    nifti_type_list[c].name, nifti_type_list[c].type,
+                    nifti_type_list[c].nbyper, nifti_type_list[c].swapsize,
+                    nbyper, ssize);
+            errs++;
+        }
+    }
+
+    if( errs )
+        fprintf(stderr,"** nifti_test_datatype_sizes: found %d errors\n",errs);
+    else if( verb || g_opts.debug > 1 )
+        fprintf(stderr,"-- nifti_test_datatype_sizes: all OK\n");
+
+    return errs;
+}
+
+
+/*---------------------------------------------------------------------*/
+/*! Display the nifti_type_list table.
+ *
+ *  if which == 1  : display DT_*
+ *  if which == 2  : display NIFTI_TYPE*
+ *  else           : display all
+*//*-------------------------------------------------------------------*/
+int nifti_disp_type_list( int which )
+{
+    char * style;
+    int    tablen = sizeof(nifti_type_list)/sizeof(nifti_type_ele);
+    int    lwhich, c;
+
+    if     ( which == 1 ){ lwhich = 1; style = "DT_"; }
+    else if( which == 2 ){ lwhich = 2; style = "NIFTI_TYPE_"; }
+    else                 { lwhich = 3; style = "ALL"; }
+
+    printf("nifti_type_list entries (%s) :\n"
+           "  name                    type    nbyper    swapsize\n"
+           "  ---------------------   ----    ------    --------\n", style);
+
+    for( c = 0; c < tablen; c++ )
+        if( (lwhich & 1 && nifti_type_list[c].name[0] == 'D')  ||
+            (lwhich & 2 && nifti_type_list[c].name[0] == 'N')     )
+            printf("  %-22s %5d     %3d      %5d\n",
+                   nifti_type_list[c].name,
+                   nifti_type_list[c].type,
+                   nifti_type_list[c].nbyper,
+                   nifti_type_list[c].swapsize);
+
+    return 0;
+}
+
+
