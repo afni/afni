@@ -2265,5 +2265,7 @@
   * modified nifti_tool.[ch]: added -help_datatypes, to list or test types
   * modified nifti_regress_test/commands/c02.nt.help: added -help_datatypes
   * modified Updates.txt: for these changes
-29 Nov 2007: modified nifti1.h, nifti1_io.c: use 2304 for RGBA32 types
+29 Nov 2007:
+  * modified nifti1.h, nifti1_io.c: use 2304 for RGBA32 types
+  * modified gifti_io.c, gifti_xml.c: fixed nvpair value alloc
 
