@@ -742,8 +742,14 @@ DSET_DONE: continue;  /*** target for various goto statements above ***/
      ERROR_exit("-gscale and -usetemp are incompatible!") ;
 
    for( ids=0 ; ids < 26 ; ids++ ) if( CALC_dset[ids] != NULL ) break ;
-   if( ids == 26 )
-     ERROR_exit("No actual input datasets given!\n") ;
+   if( ids == 26 ){
+     for( ids=0 ; ids < 26 ; ids++ ) if( TS_flim[ids] != NULL ) break ;
+     if( ids < 26 )
+       ERROR_exit("No actual input datasets given! "
+                  "Use '1deval' for .1D file calculations.");
+     else
+       ERROR_exit("No actual input datasets given!") ;
+   }
 
    /* 22 Feb 2005: check IJKAR inputs against 1st dataset found */
 
@@ -1179,6 +1185,9 @@ void CALC_Syntax(void)
     " or 3D bucket datasets are input, they must all have the same number of \n"
     " points along the 'time' dimension.                                     \n"
     "                                                                        \n"
+    " N.B.: To perform calculations ONLY on .1D files, use program 1deval.   \n"
+    "       3dcalc takes .1D files for use in combination with 3D datasets!  \n"
+    "                                                                        \n"
     "------------------------------------------------------------------------\n"
     "'1D:' INPUT:                                                            \n"
     "-----------                                                             \n"
@@ -1474,7 +1483,8 @@ int main( int argc , char *argv[] )
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
-   mainENTRY("3dcalc main"); machdep() ; PRINT_VERSION("3dcalc") ;
+   mainENTRY("3dcalc main"); machdep() ;
+   PRINT_VERSION("3dcalc") ; AUTHOR("A cast of thousands") ;
    THD_check_AFNI_version("3dcalc") ;
 
    { int new_argc ; char ** new_argv ;
