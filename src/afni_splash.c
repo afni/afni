@@ -54,7 +54,7 @@ static int find_relprime_random( int n ) /* find one relatively prime to n */
 {
    int dj , n5=n/5 , n2=3*n5 ;
    if( n5 < 2 ) return 1 ;
-   do{ dj = n5 + lrand48()%n2 ; } while( gcd(n,dj) > 1 ) ;
+   do{ dj = lrand48() % n + 1 ; } while( gcd(n,dj) > 1 ) ;
    return dj ;
 }
 /*---------------------------------------------------------------------------*/
@@ -141,18 +141,18 @@ static int AFNI_change_splash(void)
    index_splash = (index_splash+delta_splash+num_splash)%(num_splash) ;
    imov = mri_read_stuff( fname_splash[index_splash] ) ;
 
-   if( imov != NULL ){
+   if( imov != NULL ){ /* overlay new splash image */
+
      mri_overlay_2D( imspl , imov , 0,0 ) ; mri_free(imov) ;
 
-     /* get new face */
+     /* get new face and overlay it as well */
 
      if( num_face > 1 ){
        static int ff=-1 , df=1 ;
-       int dd=AFNI_find_todays_face() , nxov,nyov,ee ;
-            if( dd >= 0 ) ff = dd ;
-       else if( ff >= 0 ) ff = (ff+df) % num_face ;
-       else {             ff = (lrand48() >> 8) % num_face ;
-                          df = find_relprime_random(num_face) ;
+       int nxov,nyov,ee,dd ;
+       if( ff >= 0 ) ff = (ff+df) % num_face ;
+       else {        ff = (lrand48() >> 8) % num_face ;
+                     df = find_relprime_random(num_face) ;
        }
        imov = mri_read_stuff( fname_face[ff] ) ;
        if( imov != NULL ){
@@ -327,11 +327,12 @@ if(PRINT_TRACING){
 
         if( index_splash < 0 || ncall < 2 ){
           index_splash = (first_splash >= 0) ? first_splash
-                                   : (lrand48() >> 8) % num_splash ;
+                                             : (lrand48() >> 8) % num_splash ;
           delta_splash = 2*((lrand48() >> 8)%2)-1 ;  /* -1 or +1 */
           delta_splash *= find_relprime_random(num_splash) ; /* 13 Sep 2007 */
-        } else
+        } else {
           index_splash = (index_splash+delta_splash+num_splash)%(num_splash) ;
+        }
         imov = mri_read_stuff( fname_splash[index_splash] ) ;
         if( imov != NULL ){
 #if 0
