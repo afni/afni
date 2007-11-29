@@ -25,12 +25,14 @@ static char * gifti_history[] =
   "0.3  21 November, 2007\n",
   "     - added base64 encoding/decoding, via b64_en/decode_table\n"
   "     - added gifti_list_index2string, gifti_disp_hex_data, \n"
-  "     -       gifti_check_swap, gifti_swap_Nbytes, etc.\n"
+  "             gifti_check_swap, gifti_swap_Nbytes, etc.\n"
   "     - pop_darray: check for b64 errors and byte swapping\n"
-  "     - dind is size_t\n"
+  "     - dind is size_t\n",
+  "0.4  29 November, 2007\n"
+  "     - added more checks and fixed nvpair value allocation\n"
 };
 
-static char gifti_version[] = "gifti library version 0.3, 21 November, 2007";
+static char gifti_version[] = "gifti library version 0.4, 29 November, 2007";
 
 /* ---------------------------------------------------------------------- */
 /* global lists of XML strings */
@@ -100,6 +102,12 @@ int gifti_set_verb( int level ){ G.verb = level;  return 1; }
 int gifti_get_b64_check( void )     { return gxml_get_b64_check(); }
 int gifti_set_b64_check( int level ){ return gxml_set_b64_check(level); }
 
+/* ---------------------------------------------------------------------- */
+
+#undef G_CHECK_NULL
+#define G_CHECK_NULL(s) (s ? s : "isNULL")
+
+/* ---------------------------------------------------------------------- */
 /* static prototypes */
 static int str2list_index(char *list[], int max, const char *str);
 
@@ -201,6 +209,8 @@ int gifti_free_nvpairs( nvpairs * p )
         }
         free(p->name);
         free(p->value);
+        p->name = NULL;
+        p->value = NULL;
     }
     p->length = 0;
 
@@ -224,6 +234,8 @@ int gifti_free_LabelTable( giiLabelTable * t )
             if( t->label[c] ) free(t->label[c]);
         free(t->index);
         free(t->label);
+        t->index = NULL;
+        t->label = NULL;
     }
     t->length = 0;
 
@@ -530,7 +542,7 @@ int gifti_str2attr_darray(giiDataArray * DA, const char *attr,
     else {
         if( G.verb > 1 )        /* might go into ex_atrs */
             fprintf(stderr,"** unknown giiDataArray attr, '%s'='%s'\n",
-                    attr,value);
+                    G_CHECK_NULL(attr),G_CHECK_NULL(value));
         return 1;
     }
 
@@ -739,12 +751,14 @@ int gifti_add_to_nvpairs(nvpairs * p, const char * name, const char * value)
 
     p->length++;
     p->name = (char **)realloc(p->name, p->length * sizeof(char *));
-    p->value = (char **)realloc(p->name, p->length * sizeof(char *));
+    p->value = (char **)realloc(p->value, p->length * sizeof(char *));
 
     if( !p->name || !p->value ) {
         fprintf(stderr,"** GATN: failed to realloc %d pointers\n",p->length);
         return 1;
-    }
+    } else if ( G.verb > 3 )
+        fprintf(stderr,"+d add_nvp [%d]: '%s', '%s'\n", p->length,
+                name ? name : "NULL", value ? value : "NULL");
 
     index = p->length - 1;
     p->name[index] = strdup(name);
@@ -769,7 +783,8 @@ int gifti_disp_nvpairs(const char * mesg, nvpairs * p)
     fprintf(stderr,"nvpairs struct, len = %d :\n", p->length);
 
     for(c = 0; c < p->length; c++ )
-        fprintf(stderr,"    nvpair: '%s' = '%s'\n", p->name[c], p->value[c]);
+        fprintf(stderr,"    nvpair: '%s' = '%s'\n",
+                G_CHECK_NULL(p->name[c]), G_CHECK_NULL(p->value[c]));
     if( p->length > 0 ) fputc('\n', stderr);
 
     return 0;
@@ -827,14 +842,14 @@ int gifti_disp_DataArray(const char * mesg, giiDataArray * p, int subs)
     if( !p ){ fputs("disp: giiDataArray = NULL\n", stderr); return 1; }
 
     fprintf(stderr,"giiDataArray struct\n"
-                   "    category %d = %s\n"
-                   "    datatype %d = %s\n"
-                   "    location %d = %s\n"
-                   "    ind_ord  %d = %s\n"
-                   "    num_dim    = %d\n"
-                   "    dims       = %d, %d, %d, %d, %d, %d\n"
-                   "    encoding %d = %s\n"
-                   "    endian   %d = %s\n",
+                   "    category %2d = %s\n"
+                   "    datatype %2d = %s\n"
+                   "    location %2d = %s\n"
+                   "    ind_ord  %2d = %s\n"
+                   "    num_dim     = %d\n"
+                   "    dims        = %d, %d, %d, %d, %d, %d\n"
+                   "    encoding %2d = %s\n"
+                   "    endian   %2d = %s\n",
                 p->category,
                 gifti_list_index2string(gifti_category_list, p->category),
                 p->datatype, gifti_datatype2str(p->datatype),
@@ -1017,7 +1032,7 @@ int gifti_find_DA_list(gifti_image * gim, int category,
             (*list)[nfound++] = gim->darray[c];
 
     /* if we didn't find any, nuke list, but do not return an error */
-    if( nfound == 0 ) { free(*list); *len = 0; return 0; }
+    if( nfound == 0 ) { free(*list); *list = NULL; *len = 0; return 0; }
 
     /* otherwise, reallocate a smaller list */
     if( nfound < *len ) {

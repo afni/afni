@@ -262,9 +262,9 @@ gifti_image * gxml_read_image( const char * fname, int read_data )
     }
 
     fclose(fp);
-    if( buf       ) free(buf);          /* parser buffer */
-    if( xd->xdata ) free(xd->xdata);    /* xform matrix buffer */
-    if( xd->ddata ) free(xd->ddata);    /* Data buffer */
+    if( buf       ) free(buf);                            /* parser buffer */
+    if( xd->xdata ){ free(xd->xdata); xd->xdata = NULL; } /* xform matrix  */
+    if( xd->ddata ){ free(xd->ddata); xd->ddata = NULL; } /* Data buffer   */
     XML_ParserFree(parser);
 
     return xd->gim;
@@ -308,8 +308,8 @@ int gxml_write_image(gifti_image * gim, const char * fname, int write_data)
 
     (void)gxml_write_gifti(xd, fp);
 
-    if( xd->ddata ) free(xd->ddata);
-    if( xd->xdata ) free(xd->xdata);
+    if( xd->ddata ){ free(xd->ddata);  xd->ddata = NULL; }
+    if( xd->xdata ){ free(xd->xdata);  xd->xdata = NULL; }
 
     fclose(fp);
 
