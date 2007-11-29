@@ -304,13 +304,13 @@ static char * gni_history[] =
   "1.29 08 Aug 2007 [rickr] for list, valid_nifti_brick_list requires 3 dims\n"
   "1.30 08 Nov 2007 [Yaroslav/rickr]\n"
   "   - fix ARM struct alignment problem in byte-swapping routines\n",
-  "1.31 28 Nov 2007 [rickr]\n"
+  "1.31 29 Nov 2007 [rickr]\n"
   "   - added nifti_datatype_to/from_string routines\n"
-  "   - added DT_RGBA32/NIFTI_TYPE_RGBA32 datatype macros (3072)\n"
+  "   - added DT_RGBA32/NIFTI_TYPE_RGBA32 datatype macros (2304)\n"
   "   - added NIFTI_ECODE_FREESURFER (14)\n",
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.30 (08 Nov, 2007)";
+static char gni_version[] = "nifti library version 1.31 (29 Nov, 2007)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1, 0 };
@@ -359,8 +359,8 @@ static nifti_type_ele nifti_type_list[] = {
     { 1792,    16,       8,   "NIFTI_TYPE_COMPLEX128"   },
     { 2048,    32,      16,   "DT_COMPLEX256"           },
     { 2048,    32,      16,   "NIFTI_TYPE_COMPLEX256"   },
-    { 3072,     4,       0,   "DT_RGBA32"               },
-    { 3072,     4,       0,   "NIFTI_TYPE_RGBA32"       },
+    { 2304,     4,       0,   "DT_RGBA32"               },
+    { 2304,     4,       0,   "NIFTI_TYPE_RGBA32"       },
 };
 
 /*---------------------------------------------------------------------------*/
