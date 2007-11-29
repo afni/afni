@@ -40,7 +40,7 @@ void mri_draw_opacity( float val ){ if( val >= 0.0 && val <= 1.0 ) opa = val ; }
        bo = (byte)(opa*(b) + (1.0-opa)*(p)[3*((x)+(y)*cols)+2]) ;   \
        ASSPIX_OLD(p,x,y,ro,go,bo) ;                                 \
      } } while(0)
- 
+
 
 /*--------------------------- Simple fill routine ---------------------------*/
 

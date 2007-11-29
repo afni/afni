@@ -391,6 +391,7 @@ ENTRY("new_MCW_grapher") ;
                       "                 in each sub-graph box\n"
                       "Save PNM    --> Save the graph window as an\n"
                       "                 image to a PNM format file\n"
+                      "                 [or .png or .jpg]\n"
                       "Write Center--> Central voxel timeseries will\n"
                       "                 be written to a file with a\n"
                       "                 name like 'X_Y_Z.suffix.1D'\n"
@@ -3325,7 +3326,9 @@ STATUS(str); }
 
       case 'S':
         MCW_choose_string( grapher->option_rowcol ,
-                           "Save PNM Prefix:" , NULL ,
+                           "Save Image prefix:\n"
+                           "  * end in .jpg or .png *\n"
+                           "  * for those formats   *" , NULL ,
                            GRA_saver_CB , (XtPointer) grapher ) ;
       break ;
 
@@ -5915,11 +5918,11 @@ ENTRY("GRA_thick_CB") ;
    Save the background pixmap to a PNM file
 ----------------------------------------------------------------------------*/
 
-void GRA_saver_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
+void GRA_saver_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs *cbs )
 {
    int ll , ii ;
-   MCW_grapher * grapher = (MCW_grapher *) cd ;
-   char * fname , * ppnm ;
+   MCW_grapher *grapher = (MCW_grapher *)cd ;
+   char *fname , *ppnm ;
 
 ENTRY("GRA_saver_CB") ;
 
@@ -5935,16 +5938,19 @@ ENTRY("GRA_saver_CB") ;
    strcpy( fname , cbs->cval ) ;
 
    for( ii=0 ; ii < ll ; ii++ )
-      if( iscntrl(fname[ii]) || isspace(fname[ii]) ) break ;
+     if( iscntrl(fname[ii]) || isspace(fname[ii]) ) break ;
 
    if( ii < ll || ll < 2 || ll > 240 ){
-      XBell( XtDisplay(wcaller) , 100 ) ;
-      free( fname ) ; EXRETURN ;
+     XBell( XtDisplay(wcaller) , 100 ) ;
+     free( fname ) ; EXRETURN ;
    }
 
                       ppnm = strstr( fname , ".ppm" ) ;
    if( ppnm == NULL ) ppnm = strstr( fname , ".pnm" ) ;
    if( ppnm == NULL ) ppnm = strstr( fname , ".jpg" ) ;
+   if( ppnm == NULL ) ppnm = strstr( fname , ".JPG" ) ;
+   if( ppnm == NULL ) ppnm = strstr( fname , ".png" ) ;
+   if( ppnm == NULL ) ppnm = strstr( fname , ".PNG" ) ;
    if( ppnm == NULL ) strcat(fname,".ppm") ;
 
    GRA_file_pixmap( grapher , fname ) ;
