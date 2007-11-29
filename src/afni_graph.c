@@ -1379,18 +1379,18 @@ ENTRY("redraw_graph") ;
      xd = id.ijk[0] ; yd = id.ijk[1] ; zd = id.ijk[2] ; }
 #endif
 
-   sprintf(strp,"X: %d", xd) ;
+   sprintf(strp,"I: %d", xd) ;
    fd_txt( grapher , GL_DLX+5 , 35, strp) ;
    xxx = DC_text_width(grapher->dc,strp) ;
 
-   sprintf(strp,"Y: %d", yd) ;
+   sprintf(strp,"J: %d", yd) ;
    fd_txt( grapher , GL_DLX+5 , 21, strp) ;
    www = DC_text_width(grapher->dc,strp) ; xxx = MAX(xxx,www) ;
 
    if( grapher->status->nz > 1 ){
-      sprintf(strp,"Z: %d", zd) ;
-      fd_txt( grapher , GL_DLX+5 ,  7, strp) ;
-      www = DC_text_width(grapher->dc,strp) ; xxx = MAX(xxx,www) ;
+     sprintf(strp,"K: %d", zd) ;
+     fd_txt( grapher , GL_DLX+5 ,  7, strp) ;
+     www = DC_text_width(grapher->dc,strp) ; xxx = MAX(xxx,www) ;
    }
 
    /* second column */
