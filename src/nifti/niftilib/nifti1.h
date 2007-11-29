@@ -1,5 +1,12 @@
 /** \file nifti1.h
     \brief Official definition of the nifti1 header.  Written by Bob Cox, SSCC, NIMH.
+
+    HISTORY:
+
+        29 Nov 2007 [rickr]
+           - added DT_RGBA32 and NIFTI_TYPE_RGBA32
+           - added NIFTI_INTENT codes:
+                TIME_SERIES, NODE_INDEX, RGB_VECTOR, RGBA_VECTOR, SHAPE
  */
 
 #ifndef _NIFTI_HEADER_
@@ -504,7 +511,7 @@ typedef struct nifti1_extension nifti1_extension ;
 #define DT_FLOAT128             1536     /* long double (128 bits)       */
 #define DT_COMPLEX128           1792     /* double pair (128 bits)       */
 #define DT_COMPLEX256           2048     /* long double pair (256 bits)  */
-#define DT_RGBA32               3072     /* 4 byte RGBA (32 bits/voxel)  */
+#define DT_RGBA32               2304     /* 4 byte RGBA (32 bits/voxel)  */
 /* @} */
 
 
@@ -545,7 +552,7 @@ typedef struct nifti1_extension nifti1_extension ;
                                        /*! 256 bit complex = 2 128 bit floats */
 #define NIFTI_TYPE_COMPLEX256   2048
                                        /*! 4 8 bit bytes. */
-#define NIFTI_TYPE_RGBA32       3072
+#define NIFTI_TYPE_RGBA32       2304
 /* @} */
 
                      /*-------- sample typedefs for complicated types ---*/
