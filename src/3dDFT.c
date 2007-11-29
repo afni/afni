@@ -18,6 +18,7 @@ int main( int argc , char * argv[] )
             " -abs     == output float dataset = abs(DFT)\n"
             " -nfft N  == use 'N' for DFT length (must be >= #time points)\n"
             " -detrend == least-squares remove linear drift before DFT\n"
+            "             [for more complex detrending, use 3dDetrend first]\n"
             " -taper f == taper 'f' fraction of data at ends (0 <= f <= 1).\n"
             "             [Hamming 'raised cosine' taper of f/2 of the ]\n"
             "             [data length at each end; default is no taper]\n"
