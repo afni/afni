@@ -6716,7 +6716,10 @@ ENTRY( "RCREND_pbarmenu_CB" );
 
    else if( w == wfunc_pbar_saveim_pb ){
       MCW_choose_string( wfunc_choices_label,
-                         "PPM file prefix" , NULL ,
+                         "PPM file prefix\n"
+                         "  * end in .jpg or .png *\n"
+                         "  * for those formats   *"
+                         , NULL ,
                          RCREND_finalize_saveim_CB , cd ) ;
    }
 

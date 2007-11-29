@@ -38,7 +38,7 @@ void set_memplot_RGB_box( int xbot, int ybot, int xtop, int ytop )
   - 23 Mar 2002: actually tested for the first time
 ----------------------------------------------------------------------------*/
 
-void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata * mp ,
+void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata *mp ,
                          int start , int end , int freee    )
 {
    byte rrr=0,ggg=0,bbb=0 ;
