@@ -31,8 +31,9 @@ int main( int argc , char * argv[] )
 	    " Input file 2:\n   5\n   6\n   7\n   8\n"
             "\n 1dcat data1.1D data2.1D > catout.1D\n" 
 	    " Output file: \n   1 5\n   2 6\n   3 7\n   4 8\n"
-            "\n\nGeneric 1D file usage help:\n"
-            TS_HELP_STRING 
+
+       "\n"
+       "For generic 1D file usage help, see '1dplot -help'\n"
            ) ;
       exit(0) ;
    }

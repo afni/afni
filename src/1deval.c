@@ -13,7 +13,7 @@ int main( int argc , char * argv[] )
 {
    PARSER_code * pcode = NULL ;
    char sym[4] ;
-   double atoz[26] , value , del=1.0 ;
+   double atoz[26] , value , del=1.0 , dzero=0.0 ;
    int ii,jj , kvar , nopt , qvar , num=-1 , verbose=0 ;
    MRI_IMAGE * inim[26] ;
    float     * inar[26] ;
@@ -26,15 +26,17 @@ int main( int argc , char * argv[] )
    if( argc < 3 ){
       printf("Usage: 1deval [options] -expr 'expression'\n"
              "Evaluates an expression that may include columns of data\n"
-	     "from one or more text files and writes the result to stdout.\n\n"
+             "from one or more text files and writes the result to stdout.\n\n"
              "Any single letter from a-z can be used as the independent\n"
              "variable in the expression. Only a single column can be\n"
-	     "used for each variable. Unless specified (as described below),\n"
-	     "the first column is used, and other columns are ignored.\n"
+             "used for each variable. Unless specified (as described below),\n"
+             "the first column is used, and other columns are ignored.\n"
              "\n"
              "Options:\n"
              "  -del d   = Use 'd' as the step for a single undetermined variable\n"
              "               in the expression [default = 1.0]\n"
+             "  -start z = Start at value 'z' for a single undetermined variable\n"
+             "               in the expression [default = 0.0]\n"
              "  -num n   = Evaluate the expression 'n' times.\n"
              "               If -num is not used, then the length of an\n"
              "               input time series is used.  If there are no\n"
@@ -44,12 +46,13 @@ int main( int argc , char * argv[] )
              "  -index i.1D = Read index column from file i.1D and\n"
              "                 write it out as 1st column of output.\n"
              "                 This option is useful when working with\n"
-             "                 surface data.\n" 
+             "                 surface data.\n"
              "Examples:\n"
              "  1deval -expr 'sin(2*PI*t)' -del 0.01 -num 101 > sin.1D\n"
-             "  1deval -expr 'a*b*x' -a fred.1D -b ethel.1D > x.1D\n\n"
-             "Generic 1D file usage help:\n"
-             TS_HELP_STRING
+             "  1deval -expr 'a*b*x' -a fred.1D -b ethel.1D > x.1D\n"
+             "  1deval -start 10 -num 90 -expr 'fift_p2t(0.001,n,2*n)' | 1dplot -xzero 10 -stdin\n\n"
+             "* For generic 1D file usage help, see '1dplot -help'\n"
+             "* For help with expression format, see '3dcalc -help'\n"
             ) ;
       exit(0) ;
    }
@@ -128,14 +131,25 @@ int main( int argc , char * argv[] )
          if( verbose ) fprintf(stderr,"del set to %g\n",del) ;
          nopt++ ; continue ;
       }
-      
+
+      if( strcmp(argv[nopt],"-start") == 0 ){  /* 29 Nov 2007 */
+         nopt++ ;
+         if( nopt >= argc ){
+            fprintf(stderr,"** -start needs an argument!\n") ;
+            exit(1) ;
+         }
+         dzero = strtod( argv[nopt] , NULL ) ;
+         if( verbose ) fprintf(stderr,"start set to %g\n",dzero) ;
+         nopt++ ; continue ;
+      }
+
       if( strcmp(argv[nopt],"-index") == 0 ){
          nopt++ ;
          if( nopt >= argc ){
             fprintf(stderr,"** -index needs an argument!\n") ;
             exit(1) ;
          }
-         
+
          dindex_im = mri_read_1D( argv[nopt] ) ;
          if( dindex_im == NULL ){
             fprintf(stderr,"** Can't read time series file %s\n",argv[nopt]);
@@ -147,7 +161,7 @@ int main( int argc , char * argv[] )
          }
          dindex = MRI_FLOAT_PTR(dindex_im) ;
          nopt++ ; continue ;
-         
+
       }
 
 
@@ -187,14 +201,14 @@ int main( int argc , char * argv[] )
          qvar++ ;
       }
    }
-   
+
    if (dindex) {
       if ( dindex_im->nx != num) {
          fprintf(stderr,"** Number of values in index column (%d) \n   not equal to number of values in data (%d)\n", dindex_im->nx, num );
          exit(1) ;
       }
    }
-   
+
    if( qvar > 0 ) exit(1) ;
 
    if( pcode == NULL ){
@@ -224,7 +238,7 @@ int main( int argc , char * argv[] )
    for( ii=0 ; ii < num ; ii++ ){
       for( jj=0 ; jj < 26 ; jj++ )
          if( inar[jj] != NULL ) atoz[jj] = inar[jj][ii] ;
-      if( kvar >= 0 ) atoz[kvar] = ii * del ;
+      if( kvar >= 0 ) atoz[kvar] = ii * del + dzero ;
       value = PARSER_evaluate_one( pcode , atoz ) ;
       if (dindex) printf(" %d\t%g\n", (int)dindex[ii], value) ;
       else printf(" %g\n",value) ;
