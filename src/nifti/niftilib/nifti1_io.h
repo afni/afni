@@ -376,7 +376,7 @@ int    valid_nifti_extensions(const nifti_image *nim);
                                            mah5@leicester.ac.uk
                                            http://someplace/something         */
 
-#define NIFTI_ECODE_WORKFLOW_FWDS   12  /* Kate Fissell: fissel+@pitt.edu
+#define NIFTI_ECODE_WORKFLOW_FWDS   12  /* Kate Fissell: fissell@pitt.edu
                                            http://kraepelin.wpic.pitt.edu
                                             /~fissell/NIFTI_ECODE_WORKFLOW_FWDS
                                             /NIFTI_ECODE_WORKFLOW_FWDS.html   */
