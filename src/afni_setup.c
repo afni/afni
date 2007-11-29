@@ -660,7 +660,10 @@ ENTRY("AFNI_pbar_CB") ;
 
    else if( w == im3d->vwid->func->pbar_saveim_pb ){
       MCW_choose_string( im3d->vwid->func->options_label ,
-                         "PPM file prefix" , NULL ,
+                         "PPM file prefix\n"
+                         "  * end in .jpg or .png *\n"
+                         "  * for those formats   *"
+                         , NULL ,
                          AFNI_finalize_saveim_CB , cd ) ;
    }
 
