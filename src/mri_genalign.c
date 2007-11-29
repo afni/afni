@@ -37,15 +37,6 @@ static int find_relprime_fixed( int n )  /* find number relatively prime to n */
    for( dj=n5 ; gcd(n,dj) > 1 ; dj++ ) ; /*nada*/
    return dj ;
 }
-#if 0
-static int find_relprime_random( int n ) /* another one relatively prime to n */
-{
-   int dj , n5=n/5 , n2=3*n5 ;
-   if( n5 < 2 ) return 1 ;
-   do{ dj = n5 + lrand48()%n2 ; } while( gcd(n,dj) > 1 ) ;
-   return dj ;
-}
-#endif
 /*---------------------------------------------------------------------------*/
 /*! Smooth an image with a given method to a given radius.
     Assumes the dx,dy,dz parameters in the image struct are correct! */
