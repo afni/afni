@@ -2268,4 +2268,7 @@
 29 Nov 2007:
   * modified nifti1.h, nifti1_io.c: use 2304 for RGBA32 types
   * modified gifti_io.c, gifti_xml.c: fixed nvpair value alloc
+02 Dec 2007:
+  * modified Makefile.linux_xorg7: added -D_FILE_OFFSET_BITS=64 for LFS
+    (will probably do that in other Makefiles)
 
