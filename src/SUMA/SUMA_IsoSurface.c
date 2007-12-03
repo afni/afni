@@ -221,7 +221,7 @@ SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_GENERIC_PROG_OPTIONS_STRUCT * Op
 	            cmd = (char *)malloc((clen + 1) * sizeof(char));
 	            strcpy( cmd,  Opt->cmask);
 
-	            bmask = EDT_calcmask( cmd, &Opt->ninmask );
+	            bmask = EDT_calcmask( cmd, &Opt->ninmask, 0 );
                SUMA_LHv("Have %d\n", Opt->ninmask);
 	            free( cmd );			   /* free EDT_calcmask() string */
 

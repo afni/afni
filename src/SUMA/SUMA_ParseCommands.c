@@ -2586,6 +2586,9 @@ void SUMA_ShowList (DList *list, FILE *Out)
 /*!
    \brief looks for words in str to guess what surface type
    is being mentioned
+   at times you're better off with 
+   SUMA_GuessSurfFormatFromExtension_core and/or
+   SUMA_GuessSurfFormatFromExtension
 */
 SUMA_SO_File_Type SUMA_guess_surftype_argv(char *str)
 {
@@ -2593,19 +2596,83 @@ SUMA_SO_File_Type SUMA_guess_surftype_argv(char *str)
    SUMA_SO_File_Type tp=SUMA_FT_NOT_SPECIFIED;
    
    SUMA_ENTRY;
-   if (SUMA_iswordin_ci(str, "FreeSurfer") == 1 || SUMA_iswordin_ci(str, "fs") == 1 ) {
+   if (  SUMA_iswordin_ci(str, "FreeSurfer") == 1 || 
+         SUMA_iswordin_ci(str, "fs") == 1 ) {
       SUMA_RETURN( SUMA_FREE_SURFER );
    }
-   if (SUMA_iswordin_ci(str, "SureFit")  == 1 || SUMA_iswordin_ci(str, "sf") == 1  || SUMA_iswordin_ci(str, "caret") == 1 ) SUMA_RETURN( SUMA_SUREFIT );
-   if (SUMA_iswordin_ci(str, "Inventor")  == 1 || SUMA_iswordin_ci(str, "iv") == 1  || SUMA_iswordin_ci(str, "inv") == 1 ) SUMA_RETURN( SUMA_INVENTOR_GENERIC );
-   if (SUMA_iswordin_ci(str, "dx")  == 1 ) SUMA_RETURN( SUMA_OPENDX_MESH );
-   if (SUMA_iswordin_ci(str, "ply")  == 1 ) SUMA_RETURN( SUMA_PLY );
-   if (SUMA_iswordin_ci(str, "vec")  == 1 || SUMA_iswordin_ci(str, "1d") == 1   ) SUMA_RETURN( SUMA_VEC );
-   if (SUMA_iswordin_ci(str, "BrainVoyager") == 1  || SUMA_iswordin_ci(str, "bv") == 1 ) SUMA_RETURN( SUMA_BRAIN_VOYAGER );
-   if (SUMA_iswordin_ci(str, "BYU") == 1  ) SUMA_RETURN( SUMA_BYU );
-   if (SUMA_iswordin_ci(str, "cmap")  == 1 ) SUMA_RETURN( SUMA_CMAP_SO );
+   if (  SUMA_iswordin_ci(str, "SureFit")  == 1 || 
+         SUMA_iswordin_ci(str, "sf") == 1  || 
+         SUMA_iswordin_ci(str, "caret") == 1 ) 
+      SUMA_RETURN( SUMA_SUREFIT );
+   if (  SUMA_iswordin_ci(str, "Inventor")  == 1 || 
+         SUMA_iswordin_ci(str, "iv") == 1  || 
+         SUMA_iswordin_ci(str, "inv") == 1 ) 
+      SUMA_RETURN( SUMA_INVENTOR_GENERIC );
+   if (SUMA_iswordin_ci(str, "dx")  == 1 ) 
+      SUMA_RETURN( SUMA_OPENDX_MESH );
+   if (SUMA_iswordin_ci(str, "ply")  == 1 ) 
+      SUMA_RETURN( SUMA_PLY );
+   if (  SUMA_iswordin_ci(str, "vec")  == 1 || 
+         SUMA_iswordin_ci(str, "1d") == 1   ) 
+      SUMA_RETURN( SUMA_VEC );
+   if (SUMA_iswordin_ci(str, "BrainVoyager") == 1  || 
+         SUMA_iswordin_ci(str, "bv") == 1 ) 
+      SUMA_RETURN( SUMA_BRAIN_VOYAGER );
+   if (SUMA_iswordin_ci(str, "BYU") == 1  ) 
+      SUMA_RETURN( SUMA_BYU );
+   if (SUMA_iswordin_ci(str, "cmap")  == 1 ) 
+      SUMA_RETURN( SUMA_CMAP_SO );
 
    SUMA_RETURN(tp);
+}
+
+/*!
+   \brief Surface Type from extension
+   \param Name (char *) name 
+   \return form SUMA_DSET_FORMAT
+*/
+SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension_core(char *Name)
+{
+   static char FuncName[]={"SUMA_GuessSurfFormatFromExtension_core"};
+   SUMA_SO_File_Type form=SUMA_FT_NOT_SPECIFIED;
+     
+   SUMA_ENTRY;
+   
+   if (!Name) { SUMA_RETURN(form); }
+   if (  SUMA_isExtension(Name, ".asc")) SUMA_RETURN(SUMA_FREE_SURFER);
+   if (  SUMA_isExtension(Name, ".topo") ||
+         SUMA_isExtension(Name, ".coord") ) SUMA_RETURN(SUMA_SUREFIT);
+   if (  SUMA_isExtension(Name, ".iv") ) SUMA_RETURN(SUMA_INVENTOR_GENERIC);
+   if (  SUMA_isExtension(Name, ".dx")) SUMA_RETURN(SUMA_OPENDX_MESH); 
+   if (  SUMA_isExtension(Name, ".ply")) SUMA_RETURN(SUMA_PLY); 
+   if (  SUMA_isExtension(Name, ".1D.coord") ||
+         SUMA_isExtension(Name, ".1D.topo")) SUMA_RETURN(SUMA_VEC);
+   if (  SUMA_isExtension(Name, ".srf")) SUMA_RETURN(SUMA_BRAIN_VOYAGER);
+   if (  SUMA_isExtension(Name, ".byu") ||
+         SUMA_isExtension(Name, ".g") ||
+         SUMA_isExtension(Name, ".go")) SUMA_RETURN( SUMA_BYU);
+   if (  SUMA_isExtension(Name, ".cmap")) SUMA_RETURN(SUMA_CMAP_SO);
+   
+   SUMA_RETURN(form);
+}
+
+SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension(
+   char *Name, 
+   char *fallbackname)
+{
+   static char FuncName[]={"SUMA_GuessSurfFormatFromExtension"};
+   SUMA_SO_File_Type form=SUMA_FT_NOT_SPECIFIED;
+     
+   SUMA_ENTRY;
+   
+   if (!Name && fallbackname) {Name = fallbackname;}
+   form = SUMA_GuessSurfFormatFromExtension_core(Name);
+
+   if (form <= SUMA_NO_DSET_FORMAT && fallbackname && Name != fallbackname ) { /* try with fallback */
+      form = SUMA_GuessSurfFormatFromExtension_core(fallbackname);
+   }
+   
+   SUMA_RETURN(form);
 }
 
 
@@ -3367,7 +3434,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 	            SUMA_S_Err( "need argument after -i_ ");
 	            exit (1);
             }
-            switch(SUMA_guess_surftype_argv(argv[kar+1])) {
+            switch(SUMA_GuessSurfFormatFromExtension_core(argv[kar+1])) {
                case SUMA_FREE_SURFER:
                case SUMA_FREE_SURFER_PATCH:
                   tmp_i = SUMA_copy_string("-i_fs");
@@ -3808,7 +3875,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 	            SUMA_S_Err( "need argument after -o_ ");
 	            exit (1);
             }
-            switch(SUMA_guess_surftype_argv(argv[kar+1])) {
+            switch(SUMA_GuessSurfFormatFromExtension_core(argv[kar+1])) {
                case SUMA_FREE_SURFER:
                case SUMA_FREE_SURFER_PATCH:
                   tmp_o = SUMA_copy_string("-o_fs");
