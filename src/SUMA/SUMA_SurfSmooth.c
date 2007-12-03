@@ -16,376 +16,391 @@ void usage_SUMA_SurfSmooth ()
       s = SUMA_help_basics();
       st = SUMA_help_talk();
       sm = SUMA_help_mask();
-      printf ("\nUsage:  SurfSmooth <-spec SpecFile> <-surf_A insurf> <-met method> \n"
-              "\n"
-              "   Some methods require additional options detailed below.\n"
-              "   I recommend using the -talk_suma option to watch the \n"
-              "   progression of the smoothing in real-time in suma.\n"
-              "\n"
-              "   Method specific options:\n"
-              "      HEAT_07: <-input inData.1D> <-target_fwhm F>   \n"
-              "            This method is used to filter data\n"
-              "            on the surface. It is an significant\n"
-              "            improvement on HEAT_05.\n"
-              "      HEAT_05: <-input inData.1D> <-fwhm F>  \n"
-              "            Formerly known as HEAT, this method is used \n"
-              "            to filter data on the surface. \n"
-              "            Parameter choice is tricky however as one\n"
-              "            needs to take into account mesh dimensions,\n"
-              "            desired FWHM, and the data's starting FWHM in \n"
-              "            order to make an appropriate selection.\n"
-              "            Consider using HEAT_07 if applicable.\n"
-              "            Note that this version will select the number\n"
-              "            of iterations to avoid precision errors.\n"
+      printf (
+"\nUsage:  SurfSmooth <-spec SpecFile> <-surf_A insurf> <-met method> \n"
+"\n"
+"   Some methods require additional options detailed below.\n"
+"   I recommend using the -talk_suma option to watch the \n"
+"   progression of the smoothing in real-time in suma.\n"
+"\n"
+"   Method specific options:\n"
+"      HEAT_07: <-input inData.1D> <-target_fwhm F>   \n"
+"            This method is used to filter data\n"
+"            on the surface. It is an significant\n"
+"            improvement on HEAT_05.\n"
+"      HEAT_05: <-input inData.1D> <-fwhm F>  \n"
+"            Formerly known as HEAT, this method is used \n"
+"            to filter data on the surface. \n"
+"            Parameter choice is tricky however as one\n"
+"            needs to take into account mesh dimensions,\n"
+"            desired FWHM, and the data's starting FWHM in \n"
+"            order to make an appropriate selection.\n"
+"            Consider using HEAT_07 if applicable.\n"
+"            Note that this version will select the number\n"
+"            of iterations to avoid precision errors.\n"
 /*            "      LB_FEM: <-input inData.1D> <-fwhm f>\n"
-              "              This method is used to filter data\n"
-              "              on the surface.\n" */
-              "      LM: [-kpb k] [-lm l m] [-surf_out surfname] [-iw weights]\n"
-              "          This method is used to filter the surface's\n"
-              "          geometry (node coordinates).\n"
-              "      NN_geom: smooth by averaging coordinates of \n"
-              "               nearest neighbors.\n"
-              "               This method causes shrinkage of surface\n"
-              "               and is meant for test purposes only.\n"
-              "\n"
-              "   Common options:\n"
-              "      [-Niter N] [-output out.1D] [-h/-help] [-dbg_n node]\n"
-              "      [-add_index] [-ni_text|-ni_binary] [-talk_suma]\n\n"
-              "\n"
-              "   Detailed usage:\n"
-              "      -spec SpecFile: Name of specfile containing surface of interest.\n"
-              "                      If the surface does not have a spec file, use the \n"
-              "                      program quickspec to create one.\n"
-              "      -surf_A insurf: Name of surface of interest. \n"
-              "                      NOTE: i_TYPE inSurf option is now obsolete.\n"
-              "      -met method: name of smoothing method to use. Choose from:\n"
-              "                 HEAT_07: A significant improvement on HEAT_05.\n" 
-              "                         This method is used for filtering \n"
-              "                         data on the surface and not for smoothing \n"
-              "                         the surface's geometry per se. \n"
-              "                         This method makes more appropriate parameter\n"
-              "                         choices that take into account:\n"
-              "                         - Numerical precision issues\n"
-              "                         - Mesh resolution\n"
-              "                         - Starting and Target FWHM\n"
-              "                 HEAT_05: The newer method by Chung et al. [Ref. 3&4 below]\n"
-              "                         Consider using HEAT_07 if applicable.\n" 
-        /*    "                 LB_FEM: (Olde, better use HEAT)\n"
-              "                         The method by Chung et al. 03.\n"
-              "                         This method is used for filtering \n"
-              "                         data on the surface and not for smoothing the\n"
-              "                         surface's geometry per se. See References below.\n" */
-              "                 LM: The smoothing method proposed by G. Taubin 2000\n"
-              "                     This method is used for smoothing\n"
-              "                     a surface's geometry. See References below.\n"
-              "                 NN_geom: A simple nearest neighbor coordinate smoothing.\n"
-              "                          This interpolation method causes surface shrinkage\n"
-              "                          that might need to be corrected with the -match_*\n"
-              "                          options below. \n" 
-              "\n"
+"              This method is used to filter data\n"
+"              on the surface.\n" */
+"      LM: [-kpb k] [-lm l m] [-surf_out surfname] [-iw weights]\n"
+"          This method is used to filter the surface's\n"
+"          geometry (node coordinates).\n"
+"      NN_geom: smooth by averaging coordinates of \n"
+"               nearest neighbors.\n"
+"               This method causes shrinkage of surface\n"
+"               and is meant for test purposes only.\n"
+"\n"
+"   Common options:\n"
+"      [-Niter N] [-output out.1D] [-h/-help] [-dbg_n node]\n"
+"      [-add_index] [-ni_text|-ni_binary] [-talk_suma]\n\n"
+"\n"
+"   Detailed usage:\n"
+"      -spec SpecFile: Name of specfile containing surface of interest.\n"
+"                      If the surface does not have a spec file, use the \n"
+"                      program quickspec to create one.\n"
+"      -surf_A insurf: Name of surface of interest. \n"
+"                      NOTE: i_TYPE inSurf option is now obsolete.\n"
+"      -met method: name of smoothing method to use. Choose from:\n"
+"                 HEAT_07: A significant improvement on HEAT_05.\n" 
+"                         This method is used for filtering \n"
+"                         data on the surface and not for smoothing \n"
+"                         the surface's geometry per se. \n"
+"                         This method makes more appropriate parameter\n"
+"                         choices that take into account:\n"
+"                         - Numerical precision issues\n"
+"                         - Mesh resolution\n"
+"                         - Starting and Target FWHM\n"
+"                 HEAT_05: The newer method by Chung et al. [Ref. 3&4 below]\n"
+"                         Consider using HEAT_07 if applicable.\n" 
+/*    "                 LB_FEM: (Olde, better use HEAT)\n"
+"                         The method by Chung et al. 03.\n"
+"                         This method is used for filtering \n"
+"                         data on the surface and not for smoothing the\n"
+"                         surface's geometry per se. See References below.\n" */
+"                 LM: The smoothing method proposed by G. Taubin 2000\n"
+"                     This method is used for smoothing\n"
+"                     a surface's geometry. See References below.\n"
+"                 NN_geom: A simple nearest neighbor coordinate smoothing.\n"
+"                          This interpolation method causes surface shrinkage\n"
+"                          that might need to be corrected with the -match_*\n"
+"                          options below. \n" 
+"\n"
 /*            "   Options for LB_FEM:\n"
-              "   It is now recommended that you use the newer method HEAT (see below).\n"
-              "      -input inData: file containing data (in 1D or niml format)\n"
-              "                        Each column in inData is processed separately.\n"
-              "                        The number of rows must equal the number of\n"
-              "                        nodes in the surface. You can select certain\n"
-              "                        columns using the [] notation adopted by AFNI's\n"
-              "                        programs.\n"
-              "                  Note: The program will infer the format of the input\n"
-              "                        file from the extension of inData. \n" 
-              "      -fwhm f: Full Width at Half Maximum in surface coordinate units (usuallly mm)\n"
-              "               of an equivalent Gaussian filter had the surface been flat.\n"
-              "               With curved surfaces, the equation used to estimate FWHM is \n"
-              "               an approximation. \n"
-              "               Blurring on the surface depends on the geodesic instead \n"
-              "               of the Euclidean distances. See Ref #1 for more details \n"
-              "               on this parameter.\n"   */ 
-              "\n"
-              "   Options for HEAT_07 (see @SurfSmooth.HEAT_07.examples for examples):\n"
-              "      -input inData : file containing data (in 1D or NIML format)\n"
-              "                        Each column in inData is processed separately.\n"
-              "                        The number of rows must equal the number of\n"
-              "                        nodes in the surface. You can select certain\n"
-              "                        columns using the [] notation adopted by AFNI's\n"
-              "                  Note: The program will infer the format of the input\n"
-              "                        file from the extension of inData. \n" 
-              "                        programs.\n"
-              "      -fwhm F: Blur by a Gaussian filter that has a Full Width at Half Maximum\n"
-              "               in surface coordinate units (usuallly mm) of F.\n"
-              "               For Gaussian filters, FWHM, SIGMA (STD-DEV) and RMS\n"
-              "               FWHM = 2.354820 * SIGMA = 1.359556 * RMS\n"
-              "               The program first estimates the initial dataset's smoothness\n"
-              "               and determines the final FWHM (FF) that would result from \n"
-              "               the added blurring by the filter of width F.\n"  
-              "               The progression of FWHM is estimated with each iteration, \n"
-              "               and the program stops when the dataset's smoothness reaches FF.\n"
-              "   or \n"
-              "      -target_fwhm TF: Blur so that the final FWHM of the data is TF mm\n"
-              "                       This option avoids blurring already smooth data.\n"
-              "                       FWHM estimates are obtained from all the data\n"
-              "                       to be processed.\n"
-              "      -blurmaster BLURASTER: Blur so that the final FWHM of dataset BLURASTER\n"
-              "                       is TF mm then use the same blurring parameters on inData.\n"
-              "                       In most cases, you ought to use the -blurmaster option \n"
-              "                       in conjunction with options -fwhm and target_fwhm\n"
-              "                       BLURMASTER is preferably the residual timeseries (errts) \n"
-              "                       from 3dDeconvolve. If using the residual is impractical,\n"
-              "                       you can use the epi time series with detrending option below.\n"
-              "                       The two approaches give similar results for block design data\n"
-              "                       but we have not checked for randomised event related designs.\n"
-              "                       After detrending (see option -detrend_master), a subset of\n"
-              "                       sub-bricks will be selected for estimating the smoothness.\n"
-              "                       Using all the sub-bricks would slow the program down.\n"
-              "                       The selection is similar to what is done in 3dBlurToFWHM\n"
-              "                       At most 32 sub-bricks are used and they are selected to be\n"
-              "                       scattered throughout the timeseries. You can use -bmall\n"
-              "                       to force the use of all sub-bricks.\n"  
-              "      -detrend_master [q]: Detrend blurmaster with 2*q+3 basis functions with q > 0.\n"
-              "                         default is -1 where q = NT/30.\n"
-              "                         This option should be used when BLURMASTER is an epi time series.\n"
-              "                         There is no need for detrending when BLURMASTER is the residual\n"
-              "                         from a linear regression analysis.\n"
-              "      -no_detrend_master: Do not detrend the master. That would be used if you are\n"
-              "                          using residuals for master.\n"
-              "      -detpoly_master p: Detrend blurmaster with polynomials of order p.\n"
-              "      -detprefix_master d: Save the detrended blurmaster into a dataset with prefix 'd'.\n"
-              "      -bmall: Use all sub-bricks in master for FWHM estimation.\n"
-              "      -detrend_in [q]: Detrend input before blurring it, then retrend \n"
-              "                       it afterwards. Default is no detrending.\n"
-              "                       Detrending mode is similar to detrend_master.\n"
-              "      -detpoly_in p: Detrend input before blurring then retrend.\n"
-              "                     Detrending mode is similar to detpoly_master.\n"
-              "      -detprefix_in d Save the detrended input into a dataset with prefix 'd'.\n"
-              "\n"
-              "   and optionally, one of the following two parameters:\n"
-              "      -Niter N: Number of iterations (default is -1).\n"
-              "                You can now set this parameter to -1 and have \n"
-              "                the program suggest a value based on the surface's\n"
-              "                mesh density (average distance between nodes), \n"
-              "                the desired and starting FWHM. \n"
-              "                Too large or too small a number of iterations can affect \n"
-              "                smoothing results. \n"
-              "      -sigma  S: Bandwidth of smoothing kernel (for a single iteration).\n"
-              "                 S should be small (< 1) but not too small.\n"
-              "      -c_mask or -b_mask or -n_mask (see below for details):\n"
-              "                 Restrict smoothing to nodes in mask.\n"
-              "                 You should not include nodes with no data in \n"
-              "                 the smoothing. Note that the mask is also applied \n"
-              "                 to -blurmaster dataset and all estimations of FWHM.\n"
-              "                 For example:\n"
-              "                    If masked nodes have 0 for value in the input \n"
-              "                    dataset's first (0th) sub-brick, use: \n"
-              "                    -cmask '-a inData[0] -expr bool(a)'\n"
-              "   Notes:\n"
-              "   1- For those of you who know what they are doing, you can also skip \n"
-              "   specifying fwhm options and specify Niter and sigma directly.\n"
-              "\n"
-              "   Options for HEAT_05  (Consider HEAT_07 method):\n"
-              "      -input inData : file containing data (in 1D or NIML format)\n"
-              "                        Each column in inData is processed separately.\n"
-              "                        The number of rows must equal the number of\n"
-              "                        nodes in the surface. You can select certain\n"
-              "                        columns using the [] notation adopted by AFNI's\n"
-              "                  Note: The program will infer the format of the input\n"
-              "                        file from the extension of inData. \n" 
-              "                        programs.\n"
-              "      -fwhm F: Effective Full Width at Half Maximum in surface coordinate units \n"
-              "               (usuallly mm) of an equivalent Gaussian filter had the surface been \n"
-              "               flat. With curved surfaces, the equation used to estimate FWHM is \n"
-              "               an approximation. For Gaussian filters, FWHM, SIGMA (STD-DEV) and RMS\n"
-              "               FWHM = 2.354820 * SIGMA = 1.359556 * RMS\n"
-              "               Blurring on the surface depends on the geodesic instead \n"
-              "               of the Euclidean distances. \n"
-              "               Unlike with HEAT_07, no attempt is made here at direct\n"
-              "               estimation of smoothness.\n"
-              "\n"
-              "      Optionally, you can add one of the following two parameters:\n"
-              "                     (See Refs #3&4 for more details)\n"
-              "      -Niter N: Number of iterations (default is -1).\n"
-              "                You can now set this parameter to -1 and have \n"
-              "                the program suggest a value based on the -fwhm value.\n"
-              "                Too large or too small a number of iterations can affect \n"
-              "                smoothing results. Acceptable values depend on \n"
-              "                the average distance between nodes on the mesh and\n"
-              "                the desired fwhm. \n"
-              "      -sigma  S: Bandwidth of smoothing kernel (for a single iteration).\n"
-              "                 S should be small (< 1) and is related to the previous two\n"
-              "                 parameters by: F = sqrt(N) * S * 2.355\n"
-              "\n"
-              "\n"
-              "   Options for LM:\n"
-              "      -kpb k: Band pass frequency (default is 0.1).\n"
-              "              values should be in the range 0 < k < 10\n"
-              "              -lm and -kpb options are mutually exclusive.\n"
-              "      -lm l m: Lambda and Mu parameters. Sample values are:\n"
-              "               0.6307 and -.6732\n"
-              "      NOTE: -lm and -kpb options are mutually exclusive.\n"
-              "      -surf_out surfname: Writes the surface with smoothed coordinates\n"
-              "                          to disk. For SureFit and 1D formats, only the\n"
-              "                          coord file is written out.\n"
-              "      NOTE: -surf_out and -output are mutually exclusive.\n" 
-              "      -iw wgt: Set interpolation weights to wgt. You can choose from:\n"
-              "               Equal   : Equal weighting, fastest (default), \n"
-              "                         tends to make edges equal.\n"
-              "               Fujiwara: Weighting based on inverse edge length.\n"
-              "                         Would be a better preserver of geometry when\n"
-              "                         mesh has irregular edge lengths.\n"
-              "               Desbrun : Weighting based on edge angles (slooow).\n"
-              "                         Removes tangential displacement during smoothing.\n"
-              "                         Might not be too useful for brain surfaces.\n"
-              "\n"
-              "   Options for NN_geom:\n"
-              "      -match_size r: Adjust node coordinates of smoothed surface to \n"
-              "                   approximates the original's size.\n"
-              "                   Node i on the filtered surface is repositioned such \n"
-              "                   that |c i| = 1/N sum(|cr j|) where\n"
-              "                   c and cr are the centers of the smoothed and original\n"
-              "                   surfaces, respectively.\n"
-              "                   N is the number of nodes that are within r [surface \n"
-              "                   coordinate units] along the surface (geodesic) from node i.\n"
-              "                   j is one of the nodes neighboring i.\n"
-              "      -match_vol tol: Adjust node coordinates of smoothed surface to \n"
-              "                   approximates the original's volume.\n"
-              "                   Nodes on the filtered surface are repositioned such\n"
-              "                   that the volume of the filtered surface equals, \n"
-              "                   within tolerance tol, that of the original surface. \n"
-              "                   See option -vol in SurfaceMetrics for information about\n"
-              "                   and calculation of the volume of a closed surface.\n"
-              "      -match_area tol: Adjust node coordinates of smoothed surface to \n"
-              "                   approximates the original's surface.\n"
-              "                   Nodes on the filtered surface are repositioned such\n"
-              "                   that the surface of the filtered surface equals, \n"
-              "                   within tolerance tol, that of the original surface. \n"
-              "      -match_sphere rad: Project nodes of smoothed surface to a sphere\n"
-              "                   of radius rad. Projection is carried out along the \n"
-              "                   direction formed by the surface's center and the node.\n"
-              "      -surf_out surfname: Writes the surface with smoothed coordinates\n"
-              "                          to disk. For SureFit and 1D formats, only the\n"
-              "                          coord file is written out.\n"
-              "\n"
-              "   Common options:\n"
-              "      -Niter N: Number of smoothing iterations (default is 100)\n"
-              "                For practical reasons, this number must be a multiple of 2\n"
-              "          NOTE 1: For HEAT method, you can set Niter to -1, in conjunction\n"
-              "                  with -fwhm FWHM option, and the program\n"
-              "                  will pick an acceptable number for you.\n"
-              "          NOTE 2: For LB_FEM method, the number of iterations controls the\n"
-              "                iteration steps (dt in Ref #1).\n"
-              "                dt = fwhm*fwhm / (16*Niter*log(2));\n"
-              "                dt must satisfy conditions that depend on the internodal\n"
-              "                distance and the spatial derivatives of the signals being \n"
-              "                filtered on the surface.\n"
-              "                As a rule of thumb, if increasing Niter does not alter\n"
-              "                the results then your choice is fine (smoothing has converged).\n"
-              "                For an example of the artifact caused by small Niter see:\n"
-              "          http://afni.nimh.nih.gov/sscc/staff/ziad/SUMA/SuSmArt/DSart.html\n"
-              "                To avoid this problem altogether, it is better that you use \n"
-              "                the newer method HEAT which does not suffer from this problem.\n"
-              "      -output OUT: Name of output file. \n"
-              "                   The default is inData_sm with LB_FEM and HEAT method\n"
-              "                   and NodeList_sm with LM method.\n" 
-              "             NOTE: For data smoothing methods like HEAT, If a format extension,\n"
-              "                   such as .1D.dset or .niml.dset is present in OUT, \n"
-              "                   then the output will be written in that format. \n"
-              "                   Otherwise, the format is the same as the input's\n"
-              "      -overwrite OUT: Same as -output except that it allows overwriting.\n"
-              "      -add_index : Output the node index in the first column.\n"
-              "                   This is not done by default.\n"
-              "      -dbg_n node : output debug information for node 'node'.\n"
-              "      -use_neighbors_outside_mask: When using -c_mask or -b_mask or -n_mask\n"
-              "                                   options, allow value from a node nj neighboring\n"
-              "                                   node n to contribute to the value at n even if\n"
-              "                                   nj is not in the mask.\n"
-              "                                   The default is to ignore all nodes not in the\n"
-              "                                   mask.\n"
-              "\n"
-              "%s"
-              "\n"
-              "%s"
-              "\n"
-              "%s"
-              "\n"
-              "   Sample commands lines for using SurfSmooth:\n"
-              "         The surface used in this example had no spec file, so \n"
-              "         a quick.spec was created using:\n"
-              "         quickspec -tn 1D NodeList.1D FaceSetList.1D \n"
-              "\n"
-              "   Sample commands lines for data smoothing:\n"
-              " \n"     
-              "      For HEAT_07 method, see multiple examples with data in script\n"
-              "                  @SurfSmooth.HEAT_07.examples\n"
-              "\n"       
-              "      SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met HEAT_05   \\\n"
-              "                  -input in.1D -fwhm 8 -add_index         \\\n"
-              "                  -output in_smh8.1D.dset \n"
+"   It is now recommended that you use the newer method HEAT (see below).\n"
+"      -input inData: file containing data (in 1D or niml format)\n"
+"                        Each column in inData is processed separately.\n"
+"                        The number of rows must equal the number of\n"
+"                        nodes in the surface. You can select certain\n"
+"                        columns using the [] notation adopted by AFNI's\n"
+"                        programs.\n"
+"                  Note: The program will infer the format of the input\n"
+"                        file from the extension of inData. \n" 
+"      -fwhm f: Full Width at Half Maximum in surface coordinate units (usuallly mm)\n"
+"               of an equivalent Gaussian filter had the surface been flat.\n"
+"               With curved surfaces, the equation used to estimate FWHM is \n"
+"               an approximation. \n"
+"               Blurring on the surface depends on the geodesic instead \n"
+"               of the Euclidean distances. See Ref #1 for more details \n"
+"               on this parameter.\n"   */ 
+"\n"
+"   Options for HEAT_07 (see @SurfSmooth.HEAT_07.examples for examples):\n"
+"      -input inData : file containing data (in 1D or NIML format)\n"
+"                        Each column in inData is processed separately.\n"
+"                        The number of rows must equal the number of\n"
+"                        nodes in the surface. You can select certain\n"
+"                        columns using the [] notation adopted by AFNI's\n"
+"                  Note: The program will infer the format of the input\n"
+"                        file from the extension of inData. \n" 
+"                        programs.\n"
+"      -fwhm F: Blur by a Gaussian filter that has a Full Width at Half \n"
+"               Maximum in surface coordinate units (usuallly mm) of F.\n"
+"               For Gaussian filters, FWHM, SIGMA (STD-DEV) and RMS\n"
+"               FWHM = 2.354820 * SIGMA = 1.359556 * RMS\n"
+"               The program first estimates the initial dataset's smoothness\n"
+"               and determines the final FWHM (FF) that would result from \n"
+"               the added blurring by the filter of width F.\n"  
+"               The progression of FWHM is estimated with each iteration, \n"
+"               and the program stops when the dataset's smoothness reaches\n"
+"               FF.\n"
+"   or \n"
+"      -target_fwhm TF: Blur so that the final FWHM of the data is TF mm\n"
+"                       This option avoids blurring already smooth data.\n"
+"                       FWHM estimates are obtained from all the data\n"
+"                       to be processed.\n"
+"      -blurmaster BLURASTER: Blur so that the final FWHM of dataset\n"
+"                       BLURASTER is TF mm, then use the same blurring\n"
+"                       parameters on inData. In most cases, \n"
+"                       you ought to use the -blurmaster option in \n"
+"                       conjunction with options -fwhm and target_fwhm.\n"
+"                       BLURMASTER is preferably the residual timeseries \n"
+"                       (errts)  from 3dDeconvolve. \n"
+"                       If using the residual is impractical, you can \n"
+"                       use the epi time series with detrending option below.\n"
+"                       The two approaches give similar results for block \n"
+"                       design data  but we have not checked for randomised\n"
+"                       event related designs.\n"
+"                       After detrending (see option -detrend_master), a \n"
+"                       subset of sub-bricks will be selected for estimating \n"
+"                       the smoothness.\n"
+"                       Using all the sub-bricks would slow the program down.\n"
+"                       The selection is similar to what is done in \n"
+"                       3dBlurToFWHM.\n"
+"                       At most 32 sub-bricks are used and they are selected \n"
+"                       to be scattered throughout the timeseries. You can\n"
+"                       use -bmall to force the use of all sub-bricks.\n"
+"      -detrend_master [q]: Detrend blurmaster with 2*q+3 basis functions \n"
+"                           with q > 0.\n"
+"                         default is -1 where q = NT/30.\n"
+"                         This option should be used when BLURMASTER is an\n"
+"                         epi time series.\n"
+"                         There is no need for detrending when BLURMASTER \n"
+"                         is the residual\n"
+"                         from a linear regression analysis.\n"
+"      -no_detrend_master: Do not detrend the master. That would be used \n"
+"                          if you are using residuals for master.\n"
+"      -detpoly_master p: Detrend blurmaster with polynomials of order p.\n"
+"      -detprefix_master d: Save the detrended blurmaster into a dataset \n"
+"                           with prefix 'd'.\n"
+"      -bmall: Use all sub-bricks in master for FWHM estimation.\n"
+"      -detrend_in [q]: Detrend input before blurring it, then retrend \n"
+"                       it afterwards. Default is no detrending.\n"
+"                       Detrending mode is similar to detrend_master.\n"
+"      -detpoly_in p: Detrend input before blurring then retrend.\n"
+"                     Detrending mode is similar to detpoly_master.\n"
+"      -detprefix_in d Save the detrended input into a dataset with\n"
+"                      prefix 'd'.\n"
+"\n"
+"   and optionally, one of the following two parameters:\n"
+"      -Niter N: Number of iterations (default is -1).\n"
+"                You can now set this parameter to -1 and have \n"
+"                the program suggest a value based on the surface's\n"
+"                mesh density (average distance between nodes), \n"
+"                the desired and starting FWHM. \n"
+"                Too large or too small a number of iterations can affect \n"
+"                smoothing results. \n"
+"      -sigma  S: Bandwidth of smoothing kernel (for a single iteration).\n"
+"                 S should be small (< 1) but not too small.\n"
+"      -c_mask or -b_mask or -n_mask (see below for details):\n"
+"                 Restrict smoothing to nodes in mask.\n"
+"                 You should not include nodes with no data in \n"
+"                 the smoothing. Note that the mask is also applied \n"
+"                 to -blurmaster dataset and all estimations of FWHM.\n"
+"                 For example:\n"
+"                    If masked nodes have 0 for value in the input \n"
+"                    dataset's first (0th) sub-brick, use: \n"
+"                    -cmask '-a inData[0] -expr bool(a)'\n"
+"   Notes:\n"
+"   1- For those of you who know what they are doing, you can also skip \n"
+"   specifying fwhm options and specify Niter and sigma directly.\n"
+"\n"
+"   Options for HEAT_05  (Consider HEAT_07 method):\n"
+"      -input inData : file containing data (in 1D or NIML format)\n"
+"                        Each column in inData is processed separately.\n"
+"                        The number of rows must equal the number of\n"
+"                        nodes in the surface. You can select certain\n"
+"                        columns using the [] notation adopted by AFNI's\n"
+"                  Note: The program will infer the format of the input\n"
+"                        file from the extension of inData. \n" 
+"                        programs.\n"
+"      -fwhm F: Effective Full Width at Half Maximum in surface \n"
+"               coordinate units (usuallly mm) \n"
+"               of an equivalent Gaussian filter had the surface been flat.\n"
+"               With curved surfaces, the equation used to estimate FWHM is \n"
+"               an approximation. For Gaussian filters, FWHM, SIGMA \n"
+"               (STD-DEV) and RMS are related by:\n"
+"               FWHM = 2.354820 * SIGMA = 1.359556 * RMS\n"
+"               Blurring on the surface depends on the geodesic instead \n"
+"               of the Euclidean distances. \n"
+"               Unlike with HEAT_07, no attempt is made here at direct\n"
+"               estimation of smoothness.\n"
+"\n"
+"      Optionally, you can add one of the following two parameters:\n"
+"                     (See Refs #3&4 for more details)\n"
+"      -Niter N: Number of iterations (default is -1).\n"
+"                You can now set this parameter to -1 and have \n"
+"                the program suggest a value based on the -fwhm value.\n"
+"                Too large or too small a number of iterations can affect \n"
+"                smoothing results. Acceptable values depend on \n"
+"                the average distance between nodes on the mesh and\n"
+"                the desired fwhm. \n"
+"      -sigma  S: Bandwidth of smoothing kernel (for a single iteration).\n"
+"                 S should be small (< 1) and is related to the previous two\n"
+"                 parameters by: F = sqrt(N) * S * 2.355\n"
+"\n"
+"\n"
+"   Options for LM:\n"
+"      -kpb k: Band pass frequency (default is 0.1).\n"
+"              values should be in the range 0 < k < 10\n"
+"              -lm and -kpb options are mutually exclusive.\n"
+"      -lm l m: Lambda and Mu parameters. Sample values are:\n"
+"               0.6307 and -.6732\n"
+"      NOTE: -lm and -kpb options are mutually exclusive.\n"
+"      -surf_out surfname: Writes the surface with smoothed coordinates\n"
+"                          to disk. For SureFit and 1D formats, only the\n"
+"                          coord file is written out.\n"
+"      NOTE: -surf_out and -output are mutually exclusive.\n" 
+"      -iw wgt: Set interpolation weights to wgt. You can choose from:\n"
+"               Equal   : Equal weighting, fastest (default), \n"
+"                         tends to make edges equal.\n"
+"               Fujiwara: Weighting based on inverse edge length.\n"
+"                         Would be a better preserver of geometry when\n"
+"                         mesh has irregular edge lengths.\n"
+"               Desbrun : Weighting based on edge angles (slooow).\n"
+"                         Removes tangential displacement during smoothing.\n"
+"                         Might not be too useful for brain surfaces.\n"
+"\n"
+"   Options for NN_geom:\n"
+"      -match_size r: Adjust node coordinates of smoothed surface to \n"
+"                   approximates the original's size.\n"
+"                   Node i on the filtered surface is repositioned such \n"
+"                   that |c i| = 1/N sum(|cr j|) where\n"
+"                   c and cr are the centers of the smoothed and original\n"
+"                   surfaces, respectively.\n"
+"                   N is the number of nodes that are within r [surface \n"
+"                   coordinate units] along the surface (geodesic) from node i.\n"
+"                   j is one of the nodes neighboring i.\n"
+"      -match_vol tol: Adjust node coordinates of smoothed surface to \n"
+"                   approximates the original's volume.\n"
+"                   Nodes on the filtered surface are repositioned such\n"
+"                   that the volume of the filtered surface equals, \n"
+"                   within tolerance tol, that of the original surface. \n"
+"                   See option -vol in SurfaceMetrics for information about\n"
+"                   and calculation of the volume of a closed surface.\n"
+"      -match_area tol: Adjust node coordinates of smoothed surface to \n"
+"                   approximates the original's surface.\n"
+"                   Nodes on the filtered surface are repositioned such\n"
+"                   that the surface of the filtered surface equals, \n"
+"                   within tolerance tol, that of the original surface. \n"
+"      -match_sphere rad: Project nodes of smoothed surface to a sphere\n"
+"                   of radius rad. Projection is carried out along the \n"
+"                   direction formed by the surface's center and the node.\n"
+"      -surf_out surfname: Writes the surface with smoothed coordinates\n"
+"                          to disk. For SureFit and 1D formats, only the\n"
+"                          coord file is written out.\n"
+"\n"
+"   Common options:\n"
+"      -Niter N: Number of smoothing iterations (default is 100)\n"
+"                For practical reasons, this number must be a multiple of 2\n"
+"          NOTE 1: For HEAT method, you can set Niter to -1, in conjunction\n"
+"                  with -fwhm FWHM option, and the program\n"
+"                  will pick an acceptable number for you.\n"
+"          NOTE 2: For LB_FEM method, the number of iterations controls the\n"
+"                iteration steps (dt in Ref #1).\n"
+"                dt = fwhm*fwhm / (16*Niter*log(2));\n"
+"                dt must satisfy conditions that depend on the internodal\n"
+"                distance and the spatial derivatives of the signals being \n"
+"                filtered on the surface.\n"
+"                As a rule of thumb, if increasing Niter does not alter\n"
+"                the results then your choice is fine (smoothing has\n"
+"                converged).\n"
+"                For an example of the artifact caused by small Niter see:\n"
+"          http://afni.nimh.nih.gov/sscc/staff/ziad/SUMA/SuSmArt/DSart.html\n"
+"                To avoid this problem altogether, it is better that you use \n"
+"                the newer method HEAT which does not suffer from this\n"
+"                problem.\n"
+"      -output OUT: Name of output file. \n"
+"                   The default is inData_sm with LB_FEM and HEAT method\n"
+"                   and NodeList_sm with LM method.\n" 
+"             NOTE: For data smoothing methods like HEAT, If a format\n"
+"                   extension, such as .1D.dset or .niml.dset is present \n"
+"                   in OUT, then the output will be written in that format.\n"
+"                   Otherwise, the format is the same as the input's\n"
+"      -overwrite OUT: Same as -output except that it allows overwriting.\n"
+"      -add_index : Output the node index in the first column.\n"
+"                   This is not done by default.\n"
+"      -dbg_n node : output debug information for node 'node'.\n"
+"      -use_neighbors_outside_mask: When using -c_mask or -b_mask or -n_mask\n"
+"                                   options, allow value from a node nj \n"
+"                                   neighboring node n to contribute to the \n"
+"                                   value at n even if nj is not in the mask.\n"
+"                                   The default is to ignore all nodes not in\n" "                                   the mask.\n"
+"\n"
+"%s"
+"\n"
+"%s"
+"\n"
+"%s"
+"\n"
+"   Sample commands lines for using SurfSmooth:\n"
+"         The surface used in this example had no spec file, so \n"
+"         a quick.spec was created using:\n"
+"         quickspec -tn 1D NodeList.1D FaceSetList.1D \n"
+"\n"
+"   Sample commands lines for data smoothing:\n"
+" \n"     
+"      For HEAT_07 method, see multiple examples with data in script\n"
+"                  @SurfSmooth.HEAT_07.examples\n"
+"\n"       
+"      SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met HEAT_05   \\\n"
+"                  -input in.1D -fwhm 8 -add_index         \\\n"
+"                  -output in_smh8.1D.dset \n"
 /*              "      Or using the older (less recommended method):\n"
-              "      SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met LB_FEM   \\\n"
-              "                  -input in.1D -Niter 100 -fwhm 8 -add_index         \\\n"
-              "                  -output in_sm8.1D.dset \n"
-              "         This command filters (on the surface) the data in in.1D\n"
-              "         and puts the output in in_sm8.1D.dset with the first column \n"
-              "         containing the node index and the second containing the \n"
-              "         filtered version of in.1D.\n"
-              "         \n"*/
-              "\n"
-              "         You can colorize the input and output data using ScaleToMap:\n"
-              "         ScaleToMap  -input in.1D 0 1 -cmap BGYR19       \\\n"
-              "                     -clp MIN MAX > in.1D.col            \\\n"
-              "         ScaleToMap  -input in_sm8.1D 0 1 -cmap BGYR19   \\\n"
-              "                     -clp MIN MAX > in_sm8.1D.col        \\\n"
-              "\n"
-              "         For help on using ScaleToMap see ScaleToMap -help\n"
-              "         Note that the MIN MAX represent the minimum and maximum\n"
-              "         values in in.1D. You should keep them constant in both \n"
-              "         commands in order to be able to compare the resultant colorfiles.\n"
-              "         You can import the .col files with the 'c' command in SUMA.\n"
-              "\n"
-              "         You can send the data to SUMA with each iteration.\n"
-              "         To do so, start SUMA with these options:\n"
-              "         suma -spec quick.spec -niml &\n"
-              "         and add these options to SurfSmooth's command line above:\n"
-              "         -talk_suma -refresh_rate 5\n" 
-              "\n"
-              "   Sample commands lines for surface smoothing:\n"
-              "      SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met LM    \\\n"
-              "                  -output NodeList_sm100.1D -Niter 100 -kpb 0.1   \n"
-              "         This command smoothes the surface's geometry. The smoothed\n"
-              "         node coordinates are written out to NodeList_sm100.1D. \n"
-              "\n"
-              "   Sample command for considerable surface smoothing and inflation\n"
-              "   back to original volume:\n"
-              "       SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met NN_geom \\\n"
-              "                   -output NodeList_inflated_mvol.1D -Niter 1500 \\\n"
-              "                   -match_vol 0.01\n" 
-              "   Sample command for considerable surface smoothing and inflation\n"
-              "   back to original area:\n"
-              "       SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met NN_geom \\\n"
-              "                   -output NodeList_inflated_marea.1D -Niter 1500 \\\n"
-              "                   -match_area 0.01\n" 
-              "\n"
-              "   References: \n"
-              "      (1) M.K. Chung et al.   Deformation-based surface morphometry\n"
-              "                              applied to gray matter deformation. \n"
-              "                              Neuroimage 18 (2003) 198-213\n"
-              "          M.K. Chung   Statistical morphometry in computational\n"
-              "                       neuroanatomy. Ph.D. thesis, McGill Univ.,\n"
-              "                       Montreal, Canada\n"
-              "      (2) G. Taubin.       Mesh Signal Processing. \n"
-              "                           Eurographics 2000.\n"
-              "      (3) M.K. Chung et al.  Cortical thickness analysis in autism \n"
-              "                             via heat kernel smoothing. NeuroImage, \n"
-              "                             submitted.(2005) \n"
-              "             http://www.stat.wisc.edu/~mchung/papers/ni_heatkernel.pdf\n"
-              "      (4) M.K. Chung,  Heat kernel smoothing and its application to \n"
-              "                       cortical manifolds. Technical Report 1090. \n"
-              "                       Department of Statististics, U.W.Madison\n"
-              "             http://www.stat.wisc.edu/~mchung/papers/heatkernel_tech.pdf"
-              "\n"
-              "   See Also:   \n"
-              "       ScaleToMap to colorize the output, however it is better\n"
-              "       to load surface datasets directly into SUMA and colorize\n"
-              "       them interactively."
-              "\n"
+"      SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met LB_FEM   \\\n"
+"                  -input in.1D -Niter 100 -fwhm 8 -add_index         \\\n"
+"                  -output in_sm8.1D.dset \n"
+"         This command filters (on the surface) the data in in.1D\n"
+"         and puts the output in in_sm8.1D.dset with the first column \n"
+"         containing the node index and the second containing the \n"
+"         filtered version of in.1D.\n"
+"         \n"*/
+"\n"
+"         You can colorize the input and output data using ScaleToMap:\n"
+"         ScaleToMap  -input in.1D 0 1 -cmap BGYR19       \\\n"
+"                     -clp MIN MAX > in.1D.col            \\\n"
+"         ScaleToMap  -input in_sm8.1D 0 1 -cmap BGYR19   \\\n"
+"                     -clp MIN MAX > in_sm8.1D.col        \\\n"
+"\n"
+"         For help on using ScaleToMap see ScaleToMap -help\n"
+"         Note that the MIN MAX represent the minimum and maximum\n"
+"         values in in.1D. You should keep them constant in both \n"
+"         commands in order to be able to compare the resultant colorfiles.\n"
+"         You can import the .col files with the 'c' command in SUMA.\n"
+"\n"
+"         You can send the data to SUMA with each iteration.\n"
+"         To do so, start SUMA with these options:\n"
+"         suma -spec quick.spec -niml &\n"
+"         and add these options to SurfSmooth's command line above:\n"
+"         -talk_suma -refresh_rate 5\n" 
+"\n"
+"   Sample commands lines for surface smoothing:\n"
+"      SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met LM    \\\n"
+"                  -output NodeList_sm100.1D -Niter 100 -kpb 0.1   \n"
+"         This command smoothes the surface's geometry. The smoothed\n"
+"         node coordinates are written out to NodeList_sm100.1D. \n"
+"\n"
+"   Sample command for considerable surface smoothing and inflation\n"
+"   back to original volume:\n"
+"       SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met NN_geom \\\n"
+"                   -output NodeList_inflated_mvol.1D -Niter 1500 \\\n"
+"                   -match_vol 0.01\n" 
+"   Sample command for considerable surface smoothing and inflation\n"
+"   back to original area:\n"
+"       SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met NN_geom \\\n"
+"                   -output NodeList_inflated_marea.1D -Niter 1500 \\\n"
+"                   -match_area 0.01\n" 
+"\n"
+"   References: \n"
+"      (1) M.K. Chung et al.   Deformation-based surface morphometry\n"
+"                              applied to gray matter deformation. \n"
+"                              Neuroimage 18 (2003) 198-213\n"
+"          M.K. Chung   Statistical morphometry in computational\n"
+"                       neuroanatomy. Ph.D. thesis, McGill Univ.,\n"
+"                       Montreal, Canada\n"
+"      (2) G. Taubin.       Mesh Signal Processing. \n"
+"                           Eurographics 2000.\n"
+"      (3) M.K. Chung et al.  Cortical thickness analysis in autism \n"
+"                             via heat kernel smoothing. NeuroImage, \n"
+"                             submitted.(2005) \n"
+"             http://www.stat.wisc.edu/~mchung/papers/ni_heatkernel.pdf\n"
+"      (4) M.K. Chung,  Heat kernel smoothing and its application to \n"
+"                       cortical manifolds. Technical Report 1090. \n"
+"                       Department of Statististics, U.W.Madison\n"
+"             http://www.stat.wisc.edu/~mchung/papers/heatkernel_tech.pdf"
+"\n"
+"   See Also:   \n"
+"       ScaleToMap to colorize the output, however it is better\n"
+"       to load surface datasets directly into SUMA and colorize\n"
+"       them interactively."
+"\n"
               "\n", sm,  st, s); SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sm); sm = NULL; 
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
        printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
@@ -443,6 +458,8 @@ typedef struct {
    int detpoly_in;
    char *detprefix_in;
    int bmall;
+   
+   int debug;
    
    byte scaleinput;
    byte scalemaster;
@@ -515,6 +532,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
    Opt->detprefix_in = NULL;
    Opt->scaleinput = 0;
    Opt->scalemaster = 1;
+   Opt->debug = 0;
    for (i=0; i<SURFSMOOTH_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
    outname = NULL; ooo=NULL;
    exists = 0;
@@ -620,12 +638,23 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
 			brk = YUP;
 		}
      
+      if (!brk && (strcmp(argv[kar], "-debug") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 1 argument after -debug \n");
+				exit (1);
+			}
+			Opt->debug = atoi(argv[kar]); 
+			brk = YUP;
+		}
+      
       if (!brk && (strcmp(argv[kar], "-dbg_n") == 0)) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (SUMA_STDERR, "need 1 argument after -dbg_n \n");
 				exit (1);
 			}
+         if (!Opt->debug) Opt->debug = 1;
 			Opt->ShowNode = atoi(argv[kar]); 
          SUMA_Set_SurfSmooth_NodeDebug(Opt->ShowNode);
 			brk = YUP;
@@ -1320,6 +1349,9 @@ int main (int argc,char *argv[])
    cs = ps->cs;
    if (!cs) exit(1);
    
+   if (Opt->debug > 2) LocalHead = YUP;
+   
+   if (Opt->debug) SUMA_S_Note("Reading surface(s)\n");
    /* now for the real work */
    if (Opt->insurf_method == 1) { /* method 1 */
       SUMA_SL_Err("Input in this method is no longer supported.\n");
@@ -1331,26 +1363,35 @@ int main (int argc,char *argv[])
          exit(1);
       }
       if (!SUMA_Read_SpecFile (Opt->spec_file, &Spec)) {
-			fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
+			fprintf(SUMA_STDERR,
+                  "Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
 			exit(1);
 		}
-      SO_read = SUMA_spec_select_surfs(&Spec, Opt->surf_names, SURFSMOOTH_MAX_SURF, 0);
+      SO_read = SUMA_spec_select_surfs(&Spec, 
+                     Opt->surf_names, SURFSMOOTH_MAX_SURF, 0);
       if ( SO_read != 1 )
       {
-	      fprintf(SUMA_STDERR,"Error %s: Found %d surfaces, expected only 1.\n", FuncName,  SO_read);
+	      fprintf(SUMA_STDERR,
+            "Error %s: Found %d surfaces, expected only 1.\n"
+            , FuncName,  SO_read);
          exit(1);
       }
       /* now read into SUMAg_DOv */
-      if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, Opt->sv_name, 0, SUMAg_CF->DsetList) ) {
-	      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec_eng\n", FuncName);
+      if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, 
+                  &SUMAg_N_DOv, Opt->sv_name, 
+                  Opt->debug, SUMAg_CF->DsetList) ) {
+	      fprintf(SUMA_STDERR,
+                  "Error %s: Failed in SUMA_LoadSpec_eng\n", FuncName);
          exit(1);
       }
       /* now identify surface needed */
-      SO = SUMA_find_named_SOp_inDOv(Opt->surf_names[0], SUMAg_DOv, SUMAg_N_DOv);
+      SO = SUMA_find_named_SOp_inDOv(Opt->surf_names[0],
+                                     SUMAg_DOv, SUMAg_N_DOv);
    }
    
    if (!SO) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to read input surface.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Failed to read input surface.\n", FuncName);
       exit (1);
    }
 
@@ -1359,32 +1400,48 @@ int main (int argc,char *argv[])
       SUMA_S_Err("Should be null here!");
       exit(1);
    }
-   if (!(Opt->nmask = SUMA_load_all_command_masks(Opt->ps->bmaskname, Opt->ps->nmaskname, Opt->ps->cmask, SO->N_Node, &N_inmask)) && N_inmask < 0) {
+   
+   if (Opt->debug) SUMA_S_Note("Considering masks, if any are specified.");
+   if (!(Opt->nmask = 
+            SUMA_load_all_command_masks(  Opt->ps->bmaskname, 
+                                          Opt->ps->nmaskname, 
+                                          Opt->ps->cmask, 
+                                          SO->N_Node, &N_inmask)) 
+         && N_inmask < 0) {
          SUMA_S_Err("Failed loading mask");
          exit(1);
    }
    
    if (Opt->nmask) {
-      fprintf(SUMA_STDOUT,"%d nodes in mask:\n", N_inmask);
-      if (0 && LocalHead) {
+      if (Opt->debug) fprintf(SUMA_STDOUT,"%d nodes in mask:\n", N_inmask);
+      if (LocalHead) {
          ii = 0;
          for (i=0; i<SO->N_Node; ++i) {
             if (Opt->nmask[i]) {
-               fprintf(SUMA_STDERR,"%6d   ", i); ++ii;
+               fprintf(SUMA_STDERR,"%6d\n", i); ++ii;
                if (!(ii % 12)) fprintf(SUMA_STDERR,"\n");
             }
          }
-         fprintf(SUMA_STDERR,"\n");   
+         fprintf(SUMA_STDERR,"\n"); 
+      }
+      if (Opt->debug > 1){
+         char *stmp=SUMA_append_replace_string(
+                  "surfsmooth_mask_", ".1D", Opt->out_name, 0);
+         SUMA_S_Notev("Wrote mask to %s\n", stmp);
+         SUMA_WRITE_ARRAY_1D(Opt->nmask,SO->N_Node,1,stmp);
+         SUMA_free(stmp); stmp = NULL;
       }
    } else {
-      if (LocalHead) {
-         fprintf(SUMA_STDERR,"No masking.\n");
+      if (Opt->debug) {
+         SUMA_S_Note("No masking.");
       }
    }
    
    if (Opt->ShowNode >= 0 && Opt->ShowNode >= SO->N_Node) {
-      fprintf (SUMA_STDERR,"Error %s: Requesting debugging info for a node index (%d) \n"
-                           "that does not exist in a surface of %d nodes.\nRemember, indexing starts at 0.\n", 
+      fprintf (SUMA_STDERR,
+               "Error %s: Requesting debugging info for a node index (%d) \n"
+               "that does not exist in a surface of %d nodes.\n"
+               "Remember, indexing starts at 0.\n", 
                            FuncName, Opt->ShowNode, SO->N_Node);
       exit (1);
    }
@@ -1402,9 +1459,11 @@ int main (int argc,char *argv[])
    /* see if SUMA talk is turned on */
    if (ps->cs->talk_suma) {
       cs->istream = SUMA_GEOMCOMP_LINE;
-      
-      if (  Opt->Method == SUMA_LB_FEM_1D || Opt->Method == SUMA_LB_FEM || 
-            Opt->Method == SUMA_HEAT_05_1D || Opt->Method == SUMA_HEAT_05_Pre_07 ||
+      if (Opt->debug) SUMA_S_Note("Setting up communication");
+      if (  Opt->Method == SUMA_LB_FEM_1D || 
+            Opt->Method == SUMA_LB_FEM || 
+            Opt->Method == SUMA_HEAT_05_1D || 
+            Opt->Method == SUMA_HEAT_05_Pre_07 ||
             Opt->Method == SUMA_HEAT_07) { 
          if (!SUMA_SendToSuma (SO, cs, NULL, SUMA_NO_DSET_TYPE, 0)) {
             SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
@@ -1435,11 +1494,14 @@ int main (int argc,char *argv[])
       }
    }
   
-   ncol = 3; /* default for geometry smoothing. That is changed below for data smoothing. */
+   ncol = 3; /* default for geometry smoothing. 
+               That is changed below for data smoothing. */
    switch (Opt->Method) {
-      case SUMA_HEAT_05_1D:/* Operates on 1D files, OBSOLETE but still accessible with -met HEAT_1D */
+      case SUMA_HEAT_05_1D:/* Operates on 1D files, OBSOLETE but still */
+                           /* accessible with -met HEAT_1D */
          /* Moo Chung's method for interpolation weights */
          {
+            if (Opt->debug) SUMA_S_Note("HEAT_05_1D method");
             if (Opt->N_iter < 0) {
                SUMA_S_Errv("Bad number of iterations (%d)\n", Opt->N_iter);
                exit(1);
@@ -1464,11 +1526,13 @@ int main (int argc,char *argv[])
             if (nvec != SO->N_Node) {
                fprintf(SUMA_STDERR, "Error %s:\n"
                                     "Expecting 1D file to have %d rows\n"
-                                    "                    found %d rows instead.\n",
+                                    "                    found %d rows"
+                                    " instead.\n",
                                      FuncName, SO->N_Node, nvec);
                exit(1); 
             }
             if (LocalHead) SUMA_etime(&start_time,0);
+            if (Opt->debug) SUMA_S_Note("Calculating weights");
             wgt = SUMA_Chung_Smooth_Weights_05_single(SO, Opt->sigma);
             if (!wgt) {
                SUMA_SL_Err("Failed to compute weights.\n");
@@ -1477,21 +1541,26 @@ int main (int argc,char *argv[])
             
             if (LocalHead) {
                etime_GetOffset = SUMA_etime(&start_time,1);
-               fprintf(SUMA_STDERR, "%s: weight computation took %f seconds for %d nodes.\n"
-                                 "Projected time per 100000 nodes is: %f minutes\n", 
-                                       FuncName, etime_GetOffset, SO->N_Node, 
-                                       etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
+               fprintf(SUMA_STDERR, 
+                  "%s: weight computation took %f seconds for %d nodes.\n"
+                  "Projected time per 100000 nodes is: %f minutes\n", 
+                     FuncName, etime_GetOffset, SO->N_Node, 
+                        etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
             
-            dsmooth = SUMA_Chung_Smooth_05 ( SO, wgt, Opt->N_iter, Opt->fwhm, far, ncol, 
-                                             SUMA_COLUMN_MAJOR, NULL, cs, Opt->nmask, Opt->strict_mask);
+            if (Opt->debug) SUMA_S_Note("HEAT_05_1D smoothing");
+            dsmooth = SUMA_Chung_Smooth_05 ( 
+                        SO, wgt, Opt->N_iter, Opt->fwhm, far, ncol, 
+                        SUMA_COLUMN_MAJOR, NULL, cs, Opt->nmask,
+                        Opt->strict_mask);
             
             if (LocalHead) {
                etime_GetOffset = SUMA_etime(&start_time,1);
-               fprintf(SUMA_STDERR, "%s: Total processing took %f seconds for %d nodes.\n"
-                                 "Projected time per 100000 nodes is: %f minutes\n", 
-                                       FuncName, etime_GetOffset, SO->N_Node, 
-                                       etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
+               fprintf(SUMA_STDERR, 
+                  "%s: Total processing took %f seconds for %d nodes.\n"
+                  "Projected time per 100000 nodes is: %f minutes\n", 
+                     FuncName, etime_GetOffset, SO->N_Node, 
+                     etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
             
             if (wgt) SUMA_free2D ((char **)wgt, SO->N_Node); wgt = NULL;
@@ -1501,6 +1570,7 @@ int main (int argc,char *argv[])
       case SUMA_LB_FEM_1D: /* Operates on 1D files, OBSOLETE but still accessible with -met LB_FEM_1D */
          /* Moo Chung's method for interpolation weights */
          {
+            if (Opt->debug) SUMA_S_Note("LB_FEM_1D method");
             /* now load the input data */
             im = mri_read_1D (Opt->in_name);
 
@@ -1526,6 +1596,7 @@ int main (int argc,char *argv[])
                exit(1); 
             }
             if (LocalHead) SUMA_etime(&start_time,0);
+            if (Opt->debug) SUMA_S_Note("Calculating weights");
             wgt = SUMA_Chung_Smooth_Weights(SO);
             if (!wgt) {
                SUMA_SL_Err("Failed to compute weights.\n");
@@ -1534,22 +1605,25 @@ int main (int argc,char *argv[])
             
             if (LocalHead) {
                etime_GetOffset = SUMA_etime(&start_time,1);
-               fprintf(SUMA_STDERR, "%s: weight computation took %f seconds for %d nodes.\n"
-                                 "Projected time per 100000 nodes is: %f minutes\n", 
-                                       FuncName, etime_GetOffset, SO->N_Node, 
-                                       etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
+               fprintf(SUMA_STDERR, 
+                  "%s: weight computation took %f seconds for %d nodes.\n"
+                  "Projected time per 100000 nodes is: %f minutes\n", 
+                     FuncName, etime_GetOffset, SO->N_Node, 
+                     etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
             
-            
-            dsmooth = SUMA_Chung_Smooth ( SO, wgt, Opt->N_iter, Opt->fwhm, far, ncol, 
-                                          SUMA_COLUMN_MAJOR, NULL, cs, Opt->nmask, Opt->strict_mask);
+            if (Opt->debug) SUMA_S_Note("LB_FEM_1D smoothing");
+            dsmooth = SUMA_Chung_Smooth ( 
+                  SO, wgt, Opt->N_iter, Opt->fwhm, far, ncol, 
+                  SUMA_COLUMN_MAJOR, NULL, cs, Opt->nmask, Opt->strict_mask);
             
             if (LocalHead) {
                etime_GetOffset = SUMA_etime(&start_time,1);
-               fprintf(SUMA_STDERR, "%s: Total processing took %f seconds for %d nodes.\n"
-                                 "Projected time per 100000 nodes is: %f minutes\n", 
-                                       FuncName, etime_GetOffset, SO->N_Node, 
-                                       etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
+               fprintf(SUMA_STDERR, 
+                     "%s: Total processing took %f seconds for %d nodes.\n"
+                     "Projected time per 100000 nodes is: %f minutes\n", 
+                        FuncName, etime_GetOffset, SO->N_Node, 
+                        etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
             
             #if 0
@@ -1568,6 +1642,7 @@ int main (int argc,char *argv[])
          case SUMA_LB_FEM: 
          /* Moo Chung's method for interpolation weights with dsets */
          {
+            if (Opt->debug) SUMA_S_Note("LB_FEM method");
             /* now load the input data */
             iform = SUMA_GuessFormatFromExtension(Opt->in_name, NULL);
             if (!(dset = SUMA_LoadDset_s (Opt->in_name, &iform, 0))) {
@@ -1594,6 +1669,7 @@ int main (int argc,char *argv[])
                }
             } 
             if (LocalHead) SUMA_etime(&start_time,0);
+            if (Opt->debug) SUMA_S_Note("Calculating weights");
             wgt = SUMA_Chung_Smooth_Weights(SO);
             if (!wgt) {
                SUMA_SL_Err("Failed to compute weights.\n");
@@ -1608,6 +1684,7 @@ int main (int argc,char *argv[])
                                        etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
             
+            if (Opt->debug) SUMA_S_Note("LB_FEM smoothing");
             if (!SUMA_Chung_Smooth_dset ( SO, wgt, 
                                           Opt->N_iter, Opt->fwhm, 
                                           dset, cs, Opt->nmask, Opt->strict_mask)) {
@@ -1643,9 +1720,11 @@ int main (int argc,char *argv[])
             MRI_IMARR *corder_inar=NULL ;
             THD_3dim_dataset *newset=NULL, *inset=NULL ;
             
+            if (Opt->debug) SUMA_S_Note("HEAT_07 method");
+            
             /* load dset */
             iform = SUMA_GuessFormatFromExtension(Opt->in_name, NULL);
-            if (!(dset = SUMA_LoadDset_s (Opt->in_name, &iform, 0))) {
+            if (!(dset = SUMA_LoadDset_s (Opt->in_name, &iform, Opt->debug))) {
                SUMA_S_Err("Failed to read  dset");
                exit(1);
             }
@@ -1660,16 +1739,20 @@ int main (int argc,char *argv[])
                exit(1);
             }
             if (SDSET_VECLEN(dset) != SO->N_Node) {
-               if (LocalHead) fprintf(SUMA_STDERR, "Warning %s:\n"
-                                    "Expecting 1D file to have %d rows\n"
-                                    "                    found %d rows instead.\n"
-                                    "Function should deal with this properly but check results\n",
-                                     FuncName, SO->N_Node, SDSET_VECLEN(dset));
+               if (LocalHead) fprintf(SUMA_STDERR, 
+                  "Warning %s:\n"
+                  "Expecting 1D file to have %d rows\n"
+                  "                    found %d rows instead.\n"
+                  "Function should deal with this properly but check results\n",
+                   FuncName, SO->N_Node, SDSET_VECLEN(dset));
             }
             
-            if( Opt->detrend_in == -1 ) Opt->detrend_in = SDSET_VECNUM(dset) / 30 ;
-            if( Opt->detrend_in >= 0 && 2*Opt->detrend_in+3 >= SDSET_VECNUM(dset) ){
-               SUMA_S_Errv("-detrend_in %d is too big for this dataset",Opt->detrend_in) ;
+            if( Opt->detrend_in == -1 ) 
+               Opt->detrend_in = SDSET_VECNUM(dset) / 30 ;
+            if(   Opt->detrend_in >= 0 && 
+               2*Opt->detrend_in+3 >= SDSET_VECNUM(dset) ){
+               SUMA_S_Errv(   "-detrend_in %d is too big for"
+                              " this dataset",Opt->detrend_in) ;
             }
 
             if (Opt->AddIndex || Opt->oform == SUMA_NIML) {
@@ -1699,21 +1782,34 @@ int main (int argc,char *argv[])
                   exit(1);
                }
                if (Opt->detrend_in > 0) {
-                  SUMA_LHv("Detrending input %d\n", Opt->detrend_in);
+                  if (Opt->debug) SUMA_S_Notev(
+                                    "Detrending input %d\n",
+                                     Opt->detrend_in);
                   nref_in = 2*Opt->detrend_in+3;
-                  SUMA_LHv("trig. detrending start: %d baseline funcs, %d time points\n",nref_in, DSET_NVALS(inset)) ;
-                  ref_in = THD_build_trigref( Opt->detrend_in , DSET_NVALS(inset) ) ;
+                  SUMA_LHv("trig. detrending start: "
+                           "%d baseline funcs, %d time points\n"
+                           ,nref_in, DSET_NVALS(inset)) ;
+                  ref_in = THD_build_trigref( Opt->detrend_in ,
+                                              DSET_NVALS(inset) ) ;
                   if( ref_in == NULL ) ERROR_exit("THD_build_trigref failed!") ;
                } else {
-                  SUMA_LHv("Detrending input with poly %d\n", Opt->detrend_in);
+                  if (Opt->debug) SUMA_S_Notev(
+                           "Detrending input with poly %d\n",
+                            Opt->detrend_in);
                   nref_in = Opt->detpoly_in+1;
-                  SUMA_LHv("poly. detrending start: %d baseline funcs, %d time points\n",nref_in, DSET_NVALS(inset)) ;
+                  SUMA_LHv("poly. detrending start: "
+                           "%d baseline funcs, %d time points\n",
+                           nref_in, DSET_NVALS(inset)) ;
                   ref_in = THD_build_polyref( nref_in , DSET_NVALS(inset) ) ;
                   if( ref_in == NULL ) ERROR_exit("THD_build_trigref failed!") ;
 
                }
 
-               if (!(newset = THD_detrend_dataset( inset , nref_in , ref_in , 2 , Opt->scaleinput , Opt->nmask , &corder_inar ))) { 
+               if (!(newset = THD_detrend_dataset( inset , nref_in ,
+                                                   ref_in , 2 , 
+                                                   Opt->scaleinput , 
+                                                   Opt->nmask , &corder_inar )))
+               { 
                   SUMA_S_Err("detrending failed!") ;
                   exit(1);
                }
@@ -1722,18 +1818,21 @@ int main (int argc,char *argv[])
                DSET_delete(inset); inset=newset; newset = NULL;
                
                /* Now back to SUMA_DSET */
-               dset = SUMA_afnidset2sumadset(&inset, 1, 1); /* don't need afni volume anymore */
+               dset = SUMA_afnidset2sumadset(&inset, 1, 1); /* don't need afni
+                                                               volume anymore */
             }
             
             if (Opt->master_name) {
-               if (LocalHead) {
-                  SUMA_LHv("Master Input %s:\n", Opt->master_name);
-                  /* SUMA_ShowDset(master_dset, 0, NULL); */
-               }                SUMA_LHv("Have master %s (detrend %d, poly %d)\n", 
-                        Opt->master_name, Opt->detrend_master, Opt->detpoly_master);
+               if (Opt->debug) {
+                  SUMA_LHv("Master Processing %s:\n", Opt->master_name);
+               }                
+               SUMA_LHv("Have master %s (detrend %d, poly %d)\n", 
+                        Opt->master_name, Opt->detrend_master,
+                        Opt->detpoly_master);
                /* get the master */
                iform = SUMA_GuessFormatFromExtension(Opt->master_name, NULL);
-               if (!(master_dset = SUMA_LoadDset_s (Opt->master_name, &iform, 0))) {
+               if (!(master_dset = 
+                  SUMA_LoadDset_s (Opt->master_name, &iform, 0))) {
                   SUMA_S_Err("Failed to read master dset");
                   exit(1);
                }
@@ -1742,11 +1841,13 @@ int main (int argc,char *argv[])
                   exit(1);
                }
                if (SDSET_VECLEN(master_dset) != SO->N_Node) {
-                  if (LocalHead) fprintf(SUMA_STDERR, "Warning %s:\n"
-                                       "Expecting 1D file to have %d rows\n"
-                                       "                    found %d rows instead.\n"
-                                       "Function should deal with this properly but check results\n",
-                                        FuncName, SO->N_Node, SDSET_VECLEN(master_dset));
+                  if (LocalHead) fprintf(SUMA_STDERR, 
+                        "Warning %s:\n"
+                        "Expecting 1D file to have %d rows\n"
+                        "                    found %d rows instead.\n"
+                        "Function should deal with this properly \n"
+                        "but check results\n",
+                        FuncName, SO->N_Node, SDSET_VECLEN(master_dset));
                }
 
                if (Opt->AddIndex || Opt->oform == SUMA_NIML) {
@@ -1759,15 +1860,21 @@ int main (int argc,char *argv[])
                if( Opt->detrend_master == -1 ) {
                   Opt->detrend_master = SDSET_VECNUM(master_dset) / 30 ;
                   if (Opt->detrend_master < 1) {
-                     SUMA_LHv("Zero order polynomial detrending chosen for %s\n", Opt->master_name); 
+                     if (Opt->debug) 
+                        SUMA_S_Notev("Zero order polynomial detrending"
+                                     "chosen for %s\n", Opt->master_name); 
                      Opt->detrend_master = -1;
                      Opt->detpoly_master = 0;
                   } else {
-                     SUMA_LHv("detrend %d chosen for %s\n", Opt->detrend_master, Opt->master_name); 
+                     if (Opt->debug) 
+                        SUMA_S_Notev("detrend %d chosen for %s\n", 
+                           Opt->detrend_master, Opt->master_name); 
                   }
                }
-               if( Opt->detrend_master >= 0 && 2*Opt->detrend_master+3 >= SDSET_VECNUM(master_dset) ){
-                  SUMA_S_Errv("-detrend_master %d is too big for this dataset",Opt->detrend_master) ;
+               if(   Opt->detrend_master >= 0 && 
+                     2*Opt->detrend_master+3 >= SDSET_VECNUM(master_dset) ){
+                  SUMA_S_Errv("-detrend_master %d is too big for this"
+                              "dataset",Opt->detrend_master) ;
                }
 
                if (Opt->detrend_master > 0 || Opt->detpoly_master > -1) {
@@ -1775,36 +1882,53 @@ int main (int argc,char *argv[])
 
                   /* need to take dataset to AFNI master_dset */
                   if (!(inset = SUMA_sumadset2afnidset(&master_dset, 1, 1))) {
-                     SUMA_S_Err("Failed to transform surface master_dset to afni master_dset");
+                     SUMA_S_Err( "Failed to transform surface "
+                                 "master_dset to afni master_dset");
                      exit(1);
                   }
 
                   if (Opt->detrend_master > 0) {
-                     SUMA_LHv("Detrending master %d\n", Opt->detrend_master);
+                     if (Opt->debug) 
+                        SUMA_S_Notev("Detrending master %d\n",
+                              Opt->detrend_master);
                      nref_master = 2*Opt->detrend_master+3;
-                     SUMA_LHv("trig. detrending start: %d baseline funcs, %d time points\n",nref_master, DSET_NVALS(inset)) ;
-                     ref_master = THD_build_trigref( Opt->detrend_master , DSET_NVALS(inset) ) ;
-                     if( ref_master == NULL ) ERROR_exit("THD_build_trigref failed!") ;
+                     SUMA_LHv("trig. detrending start: "
+                              "%d baseline funcs, %d time points\n",
+                              nref_master, DSET_NVALS(inset)) ;
+                     ref_master = THD_build_trigref( Opt->detrend_master ,
+                                                DSET_NVALS(inset) ) ;
+                     if( ref_master == NULL ) 
+                        ERROR_exit("THD_build_trigref failed!") ;
                   } else {
-                     SUMA_LHv("Detrending master with poly %d\n", Opt->detrend_master);
+                     if (Opt->debug) 
+                        SUMA_S_Notev("Detrending master with poly %d\n",
+                                    Opt->detrend_master);
                      nref_master = Opt->detpoly_master+1;
-                     SUMA_LHv("poly. detrending start: %d baseline funcs, %d time points\n",nref_master, DSET_NVALS(inset)) ;
-                     ref_master = THD_build_polyref( nref_master , DSET_NVALS(inset) ) ;
-                     if( ref_master == NULL ) ERROR_exit("THD_build_trigref failed!") ;
+                     SUMA_LHv("poly. detrending start: %d baseline funcs,"
+                              " %d time points\n",
+                              nref_master, DSET_NVALS(inset)) ;
+                     ref_master = THD_build_polyref( nref_master ,
+                                              DSET_NVALS(inset) ) ;
+                     if( ref_master == NULL ) 
+                        ERROR_exit("THD_build_trigref failed!") ;
 
                   }
 
-                  if (!(newset = THD_detrend_dataset( inset , nref_master , ref_master , 2 , Opt->scalemaster , Opt->nmask , NULL ))) { 
+                  if (!(newset = THD_detrend_dataset( 
+                              inset , nref_master , ref_master , 2 ,
+                              Opt->scalemaster , Opt->nmask , NULL ))) { 
                      SUMA_S_Err("detrending failed!") ;
                      exit(1);
                   }
 
                   SUMA_LH("detrending of master done") ;
                   DSET_delete(inset); inset=newset; newset = NULL;
-                  for(jj=0;jj<nref_master;jj++) free(ref_master[jj]) ; free(ref_master); 
+                  for(jj=0;jj<nref_master;jj++) 
+                     free(ref_master[jj]) ; 
+                  free(ref_master); 
 
-                  /* Now back to SUMA_DSET */
-                  master_dset = SUMA_afnidset2sumadset(&inset, 1, 1); /* don't need afni volume anymore */
+                  /* Now back to SUMA_DSET, and kill afni volume*/
+                  master_dset = SUMA_afnidset2sumadset(&inset, 1, 1); 
                
                   if (!Opt->bmall) { /* a la 3dBlurToFWHM */
                      int ntouse, idel, ibot, cnt, ibm;
@@ -1814,51 +1938,71 @@ int main (int argc,char *argv[])
                      ntouse = SUMA_MIN_PAIR(SDSET_VECNUM(master_dset), 32);
                      idel = SDSET_VECNUM(master_dset)/ntouse;
                      ibot = (SDSET_VECNUM(master_dset)-1 - idel*(ntouse-1)) / 2;
-                     SUMA_S_Notev("Using blurmaster sub-bricks [%d..%d(%d)]\n", ibot, ibot+(ntouse-1)*idel, idel);
-                     colmask = (byte *)SUMA_malloc(SDSET_VECNUM(master_dset)*sizeof(byte));
+                     if (Opt->debug) SUMA_S_Notev(
+                        "Using blurmaster sub-bricks [%d..%d(%d)]\n",
+                              ibot, ibot+(ntouse-1)*idel, idel);
+                     colmask = (byte *)SUMA_malloc(
+                                 SDSET_VECNUM(master_dset)*sizeof(byte));
                      cnt = 0;
-                     for (ibm=ibot ; ibm < SDSET_VECNUM(master_dset) && cnt < ntouse  ; ibm+=idel ) {
+                     for ( ibm=ibot ; ibm < SDSET_VECNUM(master_dset) && 
+                           cnt < ntouse  ; ibm+=idel ) {
                         colmask[ibm] = 1; ++cnt;
                      }
-                     if (!(ndset = SUMA_MaskedCopyofDset(master_dset, NULL, colmask, 0,0))) {
+                     if (!(ndset = SUMA_MaskedCopyofDset(master_dset, 
+                                       NULL, colmask, 0,0))) {
                         SUMA_S_Err("Failed to make copy of master_dset!");
                         exit(1);
                      }
-                     SUMA_FreeDset((void*)master_dset); master_dset = ndset; ndset=NULL;
+                     SUMA_FreeDset((void*)master_dset); 
+                     master_dset = ndset; ndset=NULL;
                      SUMA_free(colmask); colmask=NULL;
                   }
                }
             }
 
             if (Opt->fwhm > 0 || Opt->tfwhm > 0) {
-               if (!Opt->master_name) {/* what is the smoothness of the input ? */
-                  SUMA_LH("Estimating input smoothness");
+               if (!Opt->master_name) {/* what is the smoothness of input ? */
+                  if (Opt->debug) SUMA_S_Note("Estimating input smoothness");
                   icols = SUMA_FindNumericDataDsetCols(dset, &N_icols);
-                  if (N_icols <= 0) { SUMA_SL_Err("No approriate data columns in dset"); exit(1); }
+                  if (N_icols <= 0) { 
+                     SUMA_SL_Err("No approriate data columns in dset"); 
+                     exit(1); 
+                  }
                   if (!(fwhmv = SUMA_estimate_dset_FWHM_1dif(  SO, dset, 
-                                                         icols, N_icols, Opt->nmask, 
+                                                         icols, N_icols,
+                                                         Opt->nmask, 
                                                          1, NULL))) {
                      SUMA_S_Err("Rien ne va plus"); exit(1);                                         
                   }
-                  SUMA_FWHM_MEAN(fwhmv, N_icols, fwhm_in_start, Opt->FWHM_mixmode, N);
-                  if (N <= 0) {  SUMA_S_Err("Failed to get mean fwhm"); exit(1); }      
-                  SUMA_LHv ( "Have a global FWHM of %f for input %s.\n"
+                  SUMA_FWHM_MEAN(fwhmv, N_icols, fwhm_in_start,
+                                  Opt->FWHM_mixmode, N);
+                  if (N <= 0) {  
+                     SUMA_S_Err("Failed to get mean fwhm"); exit(1); 
+                  }      
+                  if (Opt->debug) 
+                     SUMA_S_Notev ( "Have a global FWHM of %f for input %s.\n"
                                  , fwhm_in_start, Opt->in_name);
                   SUMA_free(fwhmv); fwhmv=NULL;
                   SUMA_free(icols); icols=NULL;
                } else {/* Need smoothness of master */
                   if (Opt->oform == SUMA_NO_DSET_FORMAT) Opt->oform = iform;
-                  SUMA_LH("Estimating master smoothness");
+                  if (Opt->debug) SUMA_S_Note("Estimating master smoothness");
                   icols = SUMA_FindNumericDataDsetCols(master_dset, &N_icols);
-                  if (N_icols <= 0) { SUMA_SL_Err("No approriate data columns in master dset"); exit(1); }
+                  if (N_icols <= 0) { 
+                     SUMA_SL_Err("No approriate data columns in master dset");
+                     exit(1); 
+                  }
                   if (!(fwhmv = SUMA_estimate_dset_FWHM_1dif(  SO, master_dset, 
-                                                         icols, N_icols, Opt->nmask, 
+                                                         icols, N_icols,
+                                                         Opt->nmask, 
                                                          1, NULL))) {
                      SUMA_S_Err("Rien ne va plus"); exit(1);                                         
                   }
-                  SUMA_FWHM_MEAN(fwhmv, N_icols, fwhm_master_start, Opt->FWHM_mixmode, N);
+                  SUMA_FWHM_MEAN(fwhmv, N_icols, fwhm_master_start,
+                                 Opt->FWHM_mixmode, N);
                   if (N <= 0) {  SUMA_S_Err("Failed to get mean fwhm"); exit(1); }      
-                  SUMA_LHv ( "Have a global FWHM of %f for master %s.\n"
+                  if (Opt->debug) 
+                     SUMA_S_Notev ( "Have a global FWHM of %f for master %s.\n"
                                  , fwhm_master_start, Opt->master_name);
                   SUMA_free(fwhmv); fwhmv=NULL;
                   SUMA_free(icols); icols=NULL;
@@ -1867,40 +2011,55 @@ int main (int argc,char *argv[])
             
             if (Opt->fwhm > 0) {
                if (fwhm_in_start < 0 && fwhm_master_start < 0) { 
-                  SUMA_S_Errv("Flow Error, fwhm_in_start = %f, fwhm_master_start= %f.\n"
-                              "This should not be.\n",  fwhm_in_start, fwhm_master_start); 
+                  SUMA_S_Errv("Flow Error, fwhm_in_start = %f,"
+                              "fwhm_master_start= %f.\n"
+                              "This should not be.\n",  
+                              fwhm_in_start, fwhm_master_start); 
                   exit(1);
                }
-               /* blur by a FWHM filter. When users run this, they expect the FWHMr of the resultant
-                  dataset to be something like: FWHMr = sqrt(FWHMi^2+FWHM^2); where FWHMi is the initial
-                  FWHM of the input dataset and FWHM is the additional blurring they want to apply. */
+               /* blur by a FWHM filter. When users run this, 
+                  they expect the FWHMr of the resultant
+                  dataset to be something like: 
+                  FWHMr = sqrt(FWHMi^2+FWHM^2); where FWHMi is the initial
+                  FWHM of the input dataset and FWHM is the additional 
+                  blurring they want to apply. */
                if (Opt->master_name) {
-                  Opt->tfwhm = sqrt(Opt->fwhm*Opt->fwhm+fwhm_master_start*fwhm_master_start);
+                  Opt->tfwhm = sqrt(Opt->fwhm*Opt->fwhm+
+                                    fwhm_master_start*fwhm_master_start);
                } else {
-                  Opt->tfwhm = sqrt(Opt->fwhm*Opt->fwhm+fwhm_in_start*fwhm_in_start);
+                  Opt->tfwhm = sqrt(Opt->fwhm*Opt->fwhm+
+                                    fwhm_in_start*fwhm_in_start);
                }
-               SUMA_S_Notev ( "   Have a %s starting FWHM of %.3f, for input dset.\n"
-                              "   User requested additional blur by %.3f FWHM\n"
-                              "   Resultant %s expected be have %.3f FWHM.\n"
-                              , (Opt->master_name ? "master dset":"input dset")
-                              , (Opt->master_name ? fwhm_master_start:fwhm_in_start)
-                              , Opt->fwhm
-                              , (Opt->master_name ? "master dset":"input dset")
-                              , Opt->tfwhm);   
+               SUMA_S_Notev ( 
+                     "   Have a %s starting FWHM of %.3f, for input dset.\n"
+                     "   User requested additional blur by %.3f FWHM\n"
+                     "   Resultant %s expected be have %.3f FWHM.\n"
+                     , (Opt->master_name ? "master dset":"input dset")
+                     , (Opt->master_name ? fwhm_master_start:fwhm_in_start)
+                     , Opt->fwhm
+                     , (Opt->master_name ? "master dset":"input dset")
+                     , Opt->tfwhm);   
                Opt->fwhm = -1; /* at this point, we're blurring to a FWHM */
             }
                        
             if (Opt->tfwhm > 0) { /* blur to a final FWHM */
-               if (Opt->N_iter > 0 && Opt->sigma > 0) { SUMA_S_Err("A useless situation, no need for -target_fwhm"); exit(1); }
+               if (Opt->N_iter > 0 && Opt->sigma > 0) { 
+                  SUMA_S_Err("A useless situation, no need for -target_fwhm");
+                  exit(1); 
+               }
                
                if (Opt->sigma < 0) {
-                  Opt->sigma = SUMA_SigForFWHM(SO->EL->AvgLe, Opt->tfwhm, &(Opt->N_iter), NULL)*SO->EL->AvgLe;  
-                  /* if specified, Opt->N_iter is taken into consideration above. But
-                  it not the condition for stopping, only for setting sigma. Opt->N_iter
-                  is now of no use and will be set at the end of the filtering process.  */
+                  Opt->sigma = SUMA_SigForFWHM( SO->EL->AvgLe, 
+                                                Opt->tfwhm, &(Opt->N_iter),
+                                                NULL)*SO->EL->AvgLe;  
+                  /* if specified, Opt->N_iter is taken into consideration
+                   above. But it is not the condition for stopping, only for
+                   setting sigma. Opt->N_iter is now of no use and 
+                  will be set at the end of the filtering process.  */
                   Opt->N_iter = -1; 
                }               
                
+               if (Opt->debug) SUMA_S_Note("Calculating weights");
                wgtd = SUMA_Chung_Smooth_Weights_07(SO, (double)Opt->sigma);
                if (!wgtd) {
                   SUMA_SL_Err("Failed to compute weights.\n");
@@ -1908,29 +2067,37 @@ int main (int argc,char *argv[])
                }
 
                if (Opt->master_name) {
-                  if (!SUMA_Chung_Smooth_07_toFWHM_dset (SO, wgtd, 
-                                                      &(Opt->N_iter), &(Opt->tfwhm), 
-                                                      master_dset, Opt->nmask, 
-                                                      1, Opt->FWHM_mixmode, &fwhmhist)){
+                  if (Opt->debug) SUMA_S_Note("Smoothing master");
+                  if (!SUMA_Chung_Smooth_07_toFWHM_dset (
+                           SO, wgtd, 
+                           &(Opt->N_iter), &(Opt->tfwhm), 
+                           master_dset, Opt->nmask, 
+                           1, Opt->FWHM_mixmode, &fwhmhist)){
                      SUMA_S_Err("Failed to blur master data dset");  
                      exit(1);                                     
                   } 
                   /* OK, now blur the input data by the previous specs */
                   if (0) {
                      fwhmttt = -1.0;
-                     SUMA_LHv("Now blurring the input data by Niter=%d, fwhmtt=%f\n",
+                     SUMA_LHv("Now blurring the input data by Niter=%d,"
+                              " fwhmtt=%f\n",
                               Opt->N_iter, fwhmttt); 
-                     if (!SUMA_Chung_Smooth_07_toFWHM_dset (SO, wgtd, 
-                                                            &Opt->N_iter, &fwhmttt, 
-                                                            dset, Opt->nmask, 
-                                                            1, NULL, &fwhmhist)) {
+                     if (!SUMA_Chung_Smooth_07_toFWHM_dset (
+                              SO, wgtd, 
+                              &Opt->N_iter, &fwhmttt, 
+                              dset, Opt->nmask, 
+                              1, NULL, &fwhmhist)) {
                         SUMA_S_Err("Failed to blur data dset");  
                         exit(1);                                     
                      }
-                  } else { /* maybe faster and slightly more precise than above*/
+                  } else { 
+                     /* maybe faster and slightly more precise than above*/
                      fwhmttt = -1.0;
-                     SUMA_LHv("Now blurring the input data by Niter=%d, fwhmtt=%f\n"
-                              "Using SUMA_Chung_Smooth_07_dset (OK if fwhmtt < 0)\n",
+                     if (Opt->debug) 
+                        SUMA_S_Notev("Now blurring the input data by "
+                                      "Niter=%d, fwhmtt=%f\n"
+                                      "Using SUMA_Chung_Smooth_07_dset"
+                                      " (OK if fwhmtt < 0)\n",
                               Opt->N_iter, fwhmttt); 
                      if (!SUMA_Chung_Smooth_07_dset (SO, wgtd, 
                                                      &(Opt->N_iter), &fwhmttt, 
@@ -1939,51 +2106,70 @@ int main (int argc,char *argv[])
                         exit(1);                                     
                      }
                   }
-                  fprintf(SUMA_STDOUT, "\n"
-                                       "#Final smoothing parameters via master:\n"
-                                       "#Niter     Sigma    OutputFWHM\n"
-                                       " %5d       %.4f     %.3f     \n"
-                                       "\n", Opt->N_iter , Opt->sigma, fwhmttt);                                      
+                  fprintf(SUMA_STDOUT, 
+                        "\n"
+                        "#Final smoothing parameters via master:\n"
+                        "#Niter     Sigma    OutputFWHM\n"
+                        " %5d       %.4f     %.3f     \n"
+                        "\n", Opt->N_iter , Opt->sigma, fwhmttt);                                      
                } else {
-                  SUMA_LHv("Now blurring the input data by Niter=%d, Opt->tfwhm=%f\n"
-                           "Using SUMA_Chung_Smooth_07_dset (OK if fwhmtt < 0)\n",
+                  if (Opt->debug) 
+                        SUMA_S_Notev(
+                           "Now blurring the input data by Niter=%d,"
+                           " Opt->tfwhm=%f\n"
+                           "Using SUMA_Chung_Smooth_07_dset "
+                           "(OK if fwhmtt < 0)\n",
                               Opt->N_iter, Opt->tfwhm); 
-                  if (!SUMA_Chung_Smooth_07_toFWHM_dset (SO, wgtd, 
-                                                      &(Opt->N_iter), &(Opt->tfwhm), 
-                                                      dset, Opt->nmask, 
-                                                      1, Opt->FWHM_mixmode, &fwhmhist)){
+                  if (!SUMA_Chung_Smooth_07_toFWHM_dset (
+                        SO, wgtd, 
+                        &(Opt->N_iter), &(Opt->tfwhm), 
+                        dset, Opt->nmask, 
+                        1, Opt->FWHM_mixmode, &fwhmhist)){
                      SUMA_S_Err("Failed to blur data dset");  
                      exit(1);                                     
                   } 
-                  fprintf(SUMA_STDOUT, "\n"
-                                       "#Final smoothing parameters from input:\n"
-                                       "#Niter     Sigma    OutputFWHM\n"
-                                       " %5d       %.4f     %.3f     \n"
-                                       "\n", Opt->N_iter , Opt->sigma, Opt->tfwhm);                                      
+                  fprintf(SUMA_STDOUT, 
+                        "\n"
+                        "#Final smoothing parameters from input:\n"
+                        "#Niter     Sigma    OutputFWHM\n"
+                        " %5d       %.4f     %.3f     \n"
+                        "\n", Opt->N_iter , Opt->sigma, Opt->tfwhm);                                      
                }
             } else if (Opt->sigma > 0 && Opt->N_iter > 0) {
                /* just blur like you're told */
-               SUMA_LHv("Blurring like requested, Niter=%d, sigma=%f\n", Opt->N_iter, Opt->sigma);
+               if (Opt->debug) 
+                  SUMA_S_Notev(  "Blurring like requested, "
+                                 "Niter=%d, sigma=%f\n", 
+                                 Opt->N_iter, Opt->sigma);
+               if (Opt->debug) 
+                  SUMA_S_Note("Calculating weights");
                wgtd = SUMA_Chung_Smooth_Weights_07(SO, (double)Opt->sigma);
                if (!wgtd) {
                   SUMA_SL_Err("Failed to compute weights.\n");
                   exit(1);
                }
                fwhmttt = -1.0;
+               if (Opt->debug) 
+                  SUMA_S_Note("Blurring");
                if (!SUMA_Chung_Smooth_07_dset (SO, wgtd, 
                                                &(Opt->N_iter), &fwhmttt, 
                                                dset, cs, Opt->nmask, 1)) {
                   SUMA_S_Err("Failed to blur data dset");  
                   exit(1);                                     
                }
-               fprintf(SUMA_STDOUT, "\n"
-                                       "#Final smoothing parameters as requested:\n"
-                                       "#Niter    Sigma     OutputFWHM not estimated\n"
-                                       " %5d      %.4f      %.3f     \n"
-                                       "\n", Opt->N_iter , Opt->sigma, -1.0);      
+               fprintf(SUMA_STDOUT, 
+                     "\n"
+                     "#Final smoothing parameters as requested:\n"
+                     "#Niter    Sigma     OutputFWHM not estimated\n"
+                     " %5d      %.4f      %.3f     \n"
+                     "\n", Opt->N_iter , Opt->sigma, -1.0);      
             }
             
             if (fwhmhist) {
+               if (Opt->debug) {
+                  SUMA_S_Notev("Writing smoothing record to prefix %s\n",
+                              Opt->out_name);
+               }
                SUMA_WriteSmoothingRecord (SO, 
                                           fwhmhist, Opt->N_iter, 
                                           &(Opt->sigma), 1,
@@ -1991,14 +2177,16 @@ int main (int argc,char *argv[])
             }
             
             if (Opt->detrend_in > 0 || Opt->detpoly_in > -1) {
-               SUMA_LH("Retrending input");
+               if (Opt->debug)SUMA_S_Note("Retrending input");
                /* need to retrend result */
                if (!(inset = SUMA_sumadset2afnidset(&dset, 1, 1))) {
                   SUMA_S_Err("Failed to transform surface dset to afni dset");
                   exit(1);
                }
                
-               if (!(THD_retrend_dataset( inset , nref_in , ref_in , Opt->scaleinput , Opt->nmask , corder_inar ))) { 
+               if (!(THD_retrend_dataset( inset , nref_in , 
+                                          ref_in , Opt->scaleinput , 
+                                          Opt->nmask , corder_inar ))) { 
                   SUMA_S_Err("retrending failed!") ;
                   exit(1);
                }
@@ -2006,8 +2194,8 @@ int main (int argc,char *argv[])
                for(jj=0;jj<nref_in;jj++) free(ref_in[jj]) ;
                free(ref_in);
 
-               /* Now back to SUMA_DSET */
-               dset = SUMA_afnidset2sumadset(&inset, 1, 1); /* don't need afni volume anymore */ 
+               /* Now back to SUMA_DSETand kill afni volume*/
+               dset = SUMA_afnidset2sumadset(&inset, 1, 1); 
             }            
          }
          break; 

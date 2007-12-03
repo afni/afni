@@ -153,27 +153,27 @@
    #define SUMA_L_Crit SUMA_S_Crit
    
    #define SUMA_LH(msg) {\
-      if (LocalHead) fprintf (SUMA_STDERR, "%s:\n %s\n", FuncName, msg);  \
+      if (LocalHead) fprintf (SUMA_STDERR, "##      %s:\n %s\n", FuncName, msg);  \
    }
    #define SUMA_LHv SUMA_LH
     
    #define SUMA_S_Warn(msg) {\
-      fprintf (SUMA_STDERR, "Warning %s:\n %s\n", FuncName, msg);  \
+      fprintf (SUMA_STDERR, "oo     Warning %s:\n %s\n", FuncName, msg);  \
    }
    #define SUMA_S_Warnv SUMA_S_Warn 
    
    #define SUMA_S_Note(msg) {\
-      fprintf (SUMA_STDERR, "Notice %s:\n %s\n", FuncName, msg);  \
+      fprintf (SUMA_STDERR, "++     Notice %s:\n %s\n", FuncName, msg);  \
    }
    #define SUMA_S_Notev SUMA_S_Note
    
    #define SUMA_S_Err(msg) {\
-      fprintf (SUMA_STDERR, "Error %s:\n %s\n", FuncName, msg);  \
+      fprintf (SUMA_STDERR, "--     Error %s:\n %s\n", FuncName, msg);  \
    }
    #define SUMA_S_Errv SUMA_S_Err
    
    #define SUMA_S_Crit(msg) {\
-      fprintf (SUMA_STDERR, "Critical error %s:\n %s\n", FuncName, msg);  \
+      fprintf (SUMA_STDERR, "**     Critical error %s:\n %s\n", FuncName, msg);  \
    }
     
 #endif

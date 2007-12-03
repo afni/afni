@@ -127,7 +127,7 @@
    #define SUMA_L_Crit SUMA_S_Crit
    
    #define SUMA_LH(msg) {\
-      if (LocalHead) fprintf (SUMA_STDERR, "%s:\n %s\n", FuncName, msg);  \
+      if (LocalHead) fprintf (SUMA_STDERR, "##      %s:\n %s\n", FuncName, msg);  \
    }
    #define SUMA_LHv SUMA_LH
    

@@ -510,6 +510,13 @@ int main (int argc,char *argv[])
                   Opt->corder, Opt->poly);
       exit(1);
    }
+   if (Opt->r == -1.0f || Opt->r > 0.0) {
+      if (!SOf && !SO->isSphere) {
+         SUMA_S_Err("Need a spherical surface to accompany the non-spherical surface on input.\n");
+         exit(1);
+      }
+   }
+
    /*-- if detrending, do that now --*/
 
    if( Opt->corder > 0 || Opt->poly >= 0){
@@ -525,18 +532,27 @@ int main (int argc,char *argv[])
 
       if (Opt->corder > 0) {
          nref = 2*Opt->corder+3;
-         SUMA_LHv("trig. detrending start: %d baseline funcs, %d time points\n",nref, DSET_NVALS(inset)) ;
+         if (Opt->debug) { 
+            SUMA_S_Notev(  "trig. detrending start: "
+                           "%d baseline funcs, %d time points\n"
+                           ,nref, DSET_NVALS(inset)) ; 
+         }
          ref = THD_build_trigref( Opt->corder , DSET_NVALS(inset) ) ;
          if( ref == NULL ) ERROR_exit("THD_build_trigref failed!") ;
       } else {
          nref = Opt->poly+1;
-         SUMA_LHv("poly. detrending start: %d baseline funcs, %d time points\n",nref, DSET_NVALS(inset)) ;
+         if (Opt->debug) {
+            SUMA_S_Notev(  "poly. detrending start: "
+                           "%d baseline funcs, %d time points\n"
+                           ,nref, DSET_NVALS(inset)) ;
+         }
          ref = THD_build_polyref( nref , DSET_NVALS(inset) ) ;
          if( ref == NULL ) ERROR_exit("THD_build_trigref failed!") ;
 
       }
       
-      if (!(newset = THD_detrend_dataset( inset , nref , ref , 2 , 1 , Opt->nmask , NULL ))) { 
+      if (!(newset = THD_detrend_dataset( inset , nref , 
+                                          ref , 2 , 1 , Opt->nmask , NULL ))) { 
          SUMA_S_Err("detrending failed!") ;
          exit(1);
       }
@@ -549,26 +565,37 @@ int main (int argc,char *argv[])
       
       SUMA_LH("detrending cleanup done") ;
 
-      /* Now back to SUMA_DSET */
-      din = SUMA_afnidset2sumadset(&inset, 1, 1); /* don't need afni volume anymore */
+      /* Now back to SUMA_DSET,  don't need afni volume anymore*/
+      din = SUMA_afnidset2sumadset(&inset, 1, 1); 
 
    }
-   if( Opt->out_vol_prefix != NULL ){    /** for debugging, keep it outside of detrending condition **/
-      char *ooo=NULL;
+   if( Opt->out_vol_prefix != NULL ){     /** for debugging,  keep it outside**/
+      char *ooo=NULL;                     /**  of detrending condition **/
+      if (Opt->debug) {
+         SUMA_S_Notev("Writing detrended volume to %s\n",
+                        Opt->out_vol_prefix);
+      }
       ooo = SUMA_WriteDset_s(Opt->out_vol_prefix, din, SUMA_ASCII_NIML, 1, 0);
       SUMA_free(ooo); ooo=NULL;
    }
 
-   /* check for and fix nearest neighbor sampling which results in identical values on neighboring nodes */
+   /* check for and fix nearest neighbor sampling which results in identical
+   values on neighboring nodes */
    if (Opt->b2) {
-      SUMA_LH("Fixing NN resampling problem (should pass perhaps a data column that is surely floaty...");
+      if (Opt->debug) {
+         SUMA_S_Note(  "Fixing NN resampling problem "
+                        "(should pass perhaps a data column "
+                        "that is surely floaty...");
+      }
       if (!SUMA_FixNN_Oversampling(SO, din, Opt->nmask, 0, YUP)) {
          SUMA_S_Err("Failed in SUMA_FixNN_Oversampling");
          exit(1);
       }
    }
 
-   SUMA_S_Note("Doing Global FWHM...");
+   if (Opt->debug) {
+      SUMA_S_Note("Doing Global FWHM...");
+   }
    /* what columns can we process ?*/
    icols = SUMA_FindNumericDataDsetCols(din, &N_icols);
          
@@ -625,25 +652,31 @@ int main (int argc,char *argv[])
    }
    
    if (Opt->r > 0.0) { /* wants to do localized FWHM */
-      SUMA_S_Note("Doing local FWHM...");
+      if (Opt->debug) {
+         SUMA_S_Note("Doing local FWHM...");
+      }
       if (!SOf) {
          if (!SO->isSphere) {
-            SUMA_S_Err("Need a spherical surface to accompany the non-spherical surface on input.\n");
+            SUMA_S_Err( "Need a spherical surface to accompany the "
+                        "non-spherical surface on input.\n");
             exit(1);
          } else {
             /* Keep SOf NULL, that is acceptable, 'cause SO is spherical */ 
          }
       } else {
          if (!SOf->isSphere) {
-            SUMA_S_Err("The spherical surface does not have the spherical flag set.\n");
+            SUMA_S_Err( "The spherical surface does not have the spherical flag"
+                        " set.\n");
             exit(1);
          }
       }
       code[0] = NSTAT_FWHMx;
       ncode = 1;
       if (Opt->d1 > 0.0) {
-         /* have a way of suggesting minimum number of nodes to enter in FWHM calculations */
-         MinArea = SUMA_PI * SUMA_POW2((3.0 * Opt->d1)); /* need at least area covering a radius of 3 voxels */ 
+         /* have a way of suggesting minimum number of nodes to 
+            enter in FWHM calculations 
+            need at least area covering a radius of 3 voxels */
+         MinArea = SUMA_PI * SUMA_POW2((3.0 * Opt->d1)); 
          SUMA_SetFWHM_MinArea(MinArea);
       }
       if (Opt->Use_emask) SUMA_Set_UseSliceFWHM(1);
@@ -659,6 +692,9 @@ int main (int argc,char *argv[])
       }
    
       /* write it out */
+      if (Opt->debug) {
+         SUMA_S_Notev("Writing output to %s\n", Opt->out_prefix);
+      }
       ooo = SUMA_WriteDset_s(Opt->out_prefix, dout, iform, 0, 0);
       if (dout) SUMA_FreeDset(dout); dout = NULL; SUMA_free(ooo); ooo=NULL;
    }
@@ -669,7 +705,8 @@ int main (int argc,char *argv[])
    if (fwhmv) SUMA_free(fwhmv); fwhmv=NULL;
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+      SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    
    exit(0);
    

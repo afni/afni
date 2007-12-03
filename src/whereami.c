@@ -642,7 +642,7 @@ int main(int argc, char **argv)
                fprintf(stderr,"** Error: -cmask option requires a following argument!\n");
                exit(1) ;
             }
-            cmask = EDT_calcmask( argv[++iarg] , &ncmask ) ;
+            cmask = EDT_calcmask( argv[++iarg] , &ncmask, 0 ) ;
             if( cmask == NULL ){
                fprintf(stderr,"** Error: Can't compute -cmask!\n"); exit(1);
             }

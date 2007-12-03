@@ -569,14 +569,20 @@ Input paramters :
 \sa SUMA_Align_to_VolPar()   
    
 ***/
-SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName, int debug)
+SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
+      void *SO_FileName_vp, SUMA_SO_File_Type SO_FT, 
+      SUMA_SO_File_Format SO_FF, char *VolParName, 
+      int debug)
 {/*SUMA_Load_Surface_Object_eng*/
    static char FuncName[]={"SUMA_Load_Surface_Object_eng"};
    char stmp[1000], *SO_FileName=NULL;
    SUMA_SFname *SF_FileName; 
    SUMA_SureFit_struct *SF;
    SUMA_FreeSurfer_struct *FS;
+   SUMA_SO_File_Type gSO_FT;
+   char *tname=NULL;
    SUMA_SurfaceObject *SO;
+   
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -584,6 +590,33 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
    /* Allocate and initialize SUMA_SurfaceObject Pointer */
    SO = SUMA_Alloc_SurfObject_Struct(1);
    
+   if (SO_FT == SUMA_SUREFIT || SO_FT == SUMA_VEC) {
+      tname = ((SUMA_SFname*)SO_FileName_vp)->name_coord;   
+   } else {
+      tname = (char *)SO_FileName_vp;
+   }
+   if (tname) {
+      gSO_FT = SUMA_GuessSurfFormatFromExtension(tname, NULL);
+      if (SO_FT <= SUMA_FT_NOT_SPECIFIED && gSO_FT > SO_FT) {
+         SUMA_S_Notev( "Surface type not specified.\n"
+                       "Format appears to be %s\n"
+                       "based of filename extension.\n",
+                       SUMA_SurfaceTypeString(gSO_FT));
+         SO_FT = gSO_FT;
+      }
+      if (  gSO_FT > SUMA_FT_NOT_SPECIFIED && 
+            gSO_FT != SO_FT ) {
+         SUMA_S_Warnv("Warning Warning MSB!!!\n"
+                      "Surface file name's (%s) extension indcates a\n"
+                      "surface of type %s and conflicts with specified\n"
+                      "type of %s.\n"
+                      "Function will attempt to proceed as if type is\n"
+                      "%s.\n",
+                      tname, SUMA_SurfaceTypeString(gSO_FT),
+                      SUMA_SurfaceTypeString(SO_FT),
+                      SUMA_SurfaceTypeString(SO_FT));     
+      }
+   }  
    /* check if recognizable type */
    switch (SO_FT) {
       case SUMA_INVENTOR_GENERIC:
