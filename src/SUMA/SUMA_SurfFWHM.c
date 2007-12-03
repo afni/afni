@@ -107,6 +107,8 @@ void usage_SurfFWHM (SUMA_GENERIC_ARGV_PARSE *ps)
                "    from linear regression are used for estimating FWHM.\n"
                "  A lesser alternate would be to use a detrended version\n"
                "    of the FMRI time series. \n"
+               "  N.B.: Do not use catenated time series. Process one\n"
+               "        continuous run at a time.\n"
                "\n"
                "  See note under 'INPUT FILE RECOMMENDATIONS' in 3dFWHMx -help : \n"
                "\n"
