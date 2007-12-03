@@ -1622,7 +1622,7 @@ ENTRY("get_cmask");
 
     strcpy(cmd, opts->cmask_cmd);
 
-    p->cmask = EDT_calcmask(cmd, &p->ncmask);
+    p->cmask = EDT_calcmask(cmd, &p->ncmask, p->nnodes);
 
     free(cmd);		/* we are done with the now corrupted command */
 

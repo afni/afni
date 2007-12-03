@@ -65,7 +65,13 @@ static int CALC_read_opts( int argc , char * argv[] ) ;
 /*------------------------------------------------------------------
   Input: cmd  = a command string, like the options for 3dcalc
          nxyz = pointer to integer
-
+         forced_mask_length = force length of mask to be 
+                              forced_mask_length. This is used
+                              for sparse surface dsets.
+                              Use 0 when not dealing with surface
+                              related dsets.
+                           This parameter is not used if
+                           CALC_dset[ids]->blk->node_list = NULL
   Output: return value is a byte mask (array of 0 or 1)
           *nxyz = number of voxels in output array
   The returned array should be free()-ed when its usefulness ends.
@@ -73,14 +79,15 @@ static int CALC_read_opts( int argc , char * argv[] ) ;
   Example:
     byte * bm ; int ibm ;
     bm = EDT_calcmask( "-a fred+orig[7] -b ethel+orig[0]"
-                       "-expr AND(step(a-99),b)" , &ibm   ) ;
+                       "-expr AND(step(a-99),b)" , &ibm  ,
+                       0 ) ;
 
     Here, bm[i] is 1 if the 7th sub-brick of fred+orig is
     greater than 99 at the i-th voxel, and at the same time
     the 0th sub-brick of ethel+orig is nonzero at the i-th voxel.
 --------------------------------------------------------------------*/
 
-byte * EDT_calcmask( char * cmd , int * nxyz )
+byte * EDT_calcmask( char * cmd , int * nxyz, int forced_mask_length )
 {
    int Argc=0 ;
    char ** Argv=NULL ;
@@ -89,8 +96,8 @@ byte * EDT_calcmask( char * cmd , int * nxyz )
 #define VSIZE 1024
 
    double * atoz[26] ;
-   int ii , ids , jj, ll, jbot, jtop ;
-   THD_3dim_dataset * new_dset ;
+   int zii, ii , ids , jj, ll, jbot, jtop, nodemax=-1 ;
+   THD_3dim_dataset * new_dset, *node_dset=NULL;
    double   temp[VSIZE];
 
    int   nx,nxy ;
@@ -122,7 +129,24 @@ ENTRY("EDT_calcmask") ;
    for( ids=0 ; ids < 26 ; ids++ ) if( CALC_dset[ids] != NULL ) break ;
 
    new_dset = EDIT_empty_copy( CALC_dset[ids] ) ;
-
+   if (nodemax < 0 && CALC_dset[ids]->dblk->node_list) {
+      /*keep track of the maximum node index */
+      node_dset = CALC_dset[ids];
+      nodemax = CALC_dset[ids]->dblk->node_list[0];
+      for (zii=0; zii<CALC_dset[ids]->dblk->nnodes; ++zii) 
+         if (nodemax < CALC_dset[ids]->dblk->node_list[zii])  nodemax = CALC_dset[ids]->dblk->node_list[zii];
+      if (forced_mask_length > 0) {
+         if (nodemax+1 > forced_mask_length) {
+            fprintf(stderr,"** nodemax(+1) of %d(+1) is larger than the forced_mask_length of %d\n"
+                        "   -cmask datasets may be inappropriate for surface used\n", 
+                        nodemax, forced_mask_length);
+            CALC_nvox = 0;
+            goto CLEANUP;
+         }
+         nodemax = forced_mask_length-1;
+      }
+   }
+   
    for (ids=0; ids<26; ids++)
       atoz[ids] = (double *) malloc(sizeof(double) * VSIZE ) ;
 
@@ -323,15 +347,33 @@ ENTRY("EDT_calcmask") ;
 
          } /* end of loop over space (voxels) */
 
-   /* cleanup and go home */
+   if (nodemax >= 0) {
+      byte *m2 = NULL;
+      if (nodemax+1 < CALC_nvox) {
+         fprintf(stderr,   "** Gosh darn it Cleatus! Now how on earth can that happen?\n"
+                           "   nodemax(+1) is %d(+1) and CALC_nvox is %d\n"
+                           "   Al Gore was right now, all along!\n", nodemax, CALC_nvox);
+         CALC_nvox = 0;
+         free(bmask); bmask=NULL;
+         goto CLEANUP;
+      }
+      m2 = (byte *) calloc(nodemax+1, sizeof(byte)) ;
+      for (zii=0; zii<CALC_nvox; ++zii) {
+         if (bmask[zii]) m2[node_dset->dblk->node_list[zii]] = 1;
+      }
+      free(bmask); 
+      bmask = m2; m2 = NULL;
+      CALC_nvox = nodemax+1;
+   }
 
+   /* cleanup and go home */
+   CLEANUP:
    for( ids=0 ; ids < 26 ; ids++ ){
       free(atoz[ids]) ;
       if( CALC_dset[ids] != NULL ) DSET_delete( CALC_dset[ids] ) ;
    }
    DSET_delete(new_dset) ;
    free(CALC_code) ;
-
    if( nxyz != NULL ) *nxyz = CALC_nvox ;
    RETURN( bmask );
 }

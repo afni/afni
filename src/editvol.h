@@ -360,7 +360,7 @@ extern void EDIT_zscore_vol( int,int,float,void *,int,float * ) ;
 
 extern void EDIT_clip_float( float , int , float * ) ;
 
-extern byte * EDT_calcmask( char * , int * ) ;  /* 16 Mar 2000 */
+extern byte * EDT_calcmask( char * , int * , int) ;  /* 16 Mar 2000 */
 
 extern void * EDIT_volpad( int,int,int,int,int,int ,
                            int,int,int , int,void * ) ; /* 09 Feb 2001 */

@@ -2323,7 +2323,7 @@ ENTRY("validate_datasets");
         cmd = (char *)malloc((clen + 1) * sizeof(char));
         strcpy( cmd, opts->cmask_cmd );
 
-        p->cmask = EDT_calcmask( cmd, &p->ncmask );
+        p->cmask = EDT_calcmask( cmd, &p->ncmask, 0 );
 
         free( cmd );                       /* free EDT_calcmask() string */
 

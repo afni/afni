@@ -4188,8 +4188,10 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       pb = XtVaCreateWidget ("Load Dset", 
             xmPushButtonWidgetClass, rc, 
             NULL);   
-         XtAddCallback (pb, XmNactivateCallback, SUMA_cb_Dset_Load, (XtPointer) SO);
-         MCW_register_hint(pb ,  "Load a new dataset (much more with BHelp)" ) ;
+         XtAddCallback (pb, XmNactivateCallback, 
+                        SUMA_cb_Dset_Load, (XtPointer) SO);
+         MCW_register_hint(pb ,  
+                  "Load a new dataset (much more with BHelp)" ) ;
          MCW_register_help(pb ,  SUMA_SurfContHelp_DsetLoad ) ;
          XtManageChild (pb);
       
@@ -9544,10 +9546,13 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (Widget daddy
    \param title (char *) title of window
    \param dlg (SUMA_SELECTION_DIALOG_STRUCT **) pointer to structure created and initialized by SUMA_CreateFileSelectionDialogStruct
 */                                                            
-SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (char *title_extension, SUMA_SELECTION_DIALOG_STRUCT **dlgp)
+SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (
+      char *title_extension, 
+      SUMA_SELECTION_DIALOG_STRUCT **dlgp)
 {
    static char FuncName[]={"SUMA_CreateFileSelectionDialog"};
-   SUMA_Boolean LocalHead = NOPE;
+   static char *last_title_extension=NULL;
+   SUMA_Boolean LocalHead = NOPE, same;
    SUMA_SELECTION_DIALOG_STRUCT *dlg = NULL;
    XmString button, title, pattern;
 
@@ -9562,51 +9567,70 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (char *title_extens
          XmNdeleteResponse, XmUNMAP,  /* system menu "Close" action */
         NULL);
         
-      /* you can't cancel the kill button's effect, the way you do for toplevel shells. 
-      But it does appear that the kill button is just unmanaging the widget, which is fine.
+      /* you can't cancel the kill button's effect, 
+      the way you do for toplevel shells. 
+      But it does appear that the kill button is just 
+      unmanaging the widget, which is fine.
       see my modified action_area.c file
       */
-      
    } else { 
       SUMA_LH ("Updating");
-      /* update and raise dialogue, that is done next, for the moment, remove pre-existing callbacks*/
+      /* update and raise dialogue, 
+        that is done next. 
+        For the moment, remove pre-existing callbacks*/
       XtRemoveAllCallbacks (dlg->dlg_w, XmNcancelCallback);
       XtRemoveAllCallbacks (dlg->dlg_w, XmNokCallback);
       XtRemoveAllCallbacks (dlg->dlg_w, XmNunmapCallback);
    }
       
-      if (dlg->FilePattern) {
-         pattern = XmStringCreateLocalized (dlg->FilePattern);
-         XtVaSetValues (dlg->dlg_w,
-            XmNpattern, pattern,
-            NULL);
-         XmStringFree (pattern);
+   same = NOPE;
+   if (title_extension) {
+      if (last_title_extension) {
+         if (strcmp(last_title_extension, title_extension) == 0) 
+            { same = YUP; }
+         SUMA_free(last_title_extension); last_title_extension=NULL;
       }
-      
-      XtAddCallback (dlg->dlg_w, XmNcancelCallback, SUMA_FileSelection_popdown_cb, (XtPointer)dlg);
-      XtAddCallback (dlg->dlg_w, XmNokCallback, SUMA_FileSelection_file_select_cb, (XtPointer)dlg);
-      XtAddCallback (dlg->dlg_w, XmNunmapCallback, SUMA_FileSelection_Unmap_cb, (XtPointer)dlgp);
-
-      if (dlg->Mode == SUMA_FILE_OPEN) {
-         button = XmStringCreateLocalized ("Open");
-         title = XmStringCreateLocalized (title_extension);
-      } 
-      else { /* dlg->Mode == SUMA_FILE_SAVE */
-        button = XmStringCreateLocalized ("Save");
-        title = XmStringCreateLocalized (title_extension);
-      }
+      last_title_extension = SUMA_copy_string( title_extension);
+   }
+   
+   if (dlg->FilePattern && !same) {
+      pattern = XmStringCreateLocalized (dlg->FilePattern);
       XtVaSetValues (dlg->dlg_w,
-        XmNokLabelString, button,
-        XmNdialogTitle,   title,
-        NULL);
+         XmNpattern, pattern,
+         NULL);
+      XmStringFree (pattern);
+   }
       
-      XmStringFree (button);
-      XmStringFree (title);
+   XtAddCallback (dlg->dlg_w, 
+                  XmNcancelCallback, SUMA_FileSelection_popdown_cb,
+                  (XtPointer)dlg);
+   XtAddCallback (dlg->dlg_w, 
+                  XmNokCallback, SUMA_FileSelection_file_select_cb, 
+                  (XtPointer)dlg);
+   XtAddCallback (dlg->dlg_w, 
+                  XmNunmapCallback, SUMA_FileSelection_Unmap_cb,
+                  (XtPointer)dlgp);
+
+   if (dlg->Mode == SUMA_FILE_OPEN) {
+      button = XmStringCreateLocalized ("Open");
+      title = XmStringCreateLocalized (title_extension);
+   } 
+   else { /* dlg->Mode == SUMA_FILE_SAVE */
+     button = XmStringCreateLocalized ("Save");
+     title = XmStringCreateLocalized (title_extension);
+   }
+   XtVaSetValues (dlg->dlg_w,
+     XmNokLabelString, button,
+     XmNdialogTitle,   title,
+     NULL);
+
+   XmStringFree (button);
+   XmStringFree (title);
+
+   XtManageChild (dlg->dlg_w);
       
-      XtManageChild (dlg->dlg_w);
-      
-      /* make sure that dialog is raised to top of window stack */
-      XMapRaised (XtDisplay (dlg->dlg_w), XtWindow (XtParent (dlg->dlg_w)));      
+   /* make sure that dialog is raised to top of window stack */
+   XMapRaised (XtDisplay (dlg->dlg_w), XtWindow (XtParent (dlg->dlg_w)));      
    
    SUMA_RETURN(dlg);
 }
@@ -9643,7 +9667,8 @@ void SUMA_FileSelection_popdown_cb (Widget w, XtPointer client_data, XtPointer c
  
  -expect SUMA_SELECTION_DIALOG_STRUCT ** in client_data
 */
-void SUMA_FileSelection_Unmap_cb (Widget w, XtPointer client_data, XtPointer call_data)
+void SUMA_FileSelection_Unmap_cb (
+   Widget w, XtPointer client_data, XtPointer call_data)
 {
    static char FuncName[]={"SUMA_FileSelection_Unmap_cb"};
    SUMA_SELECTION_DIALOG_STRUCT *dlg;
@@ -9895,17 +9920,20 @@ void SUMA_cb_Dset_Load(Widget w, XtPointer data, XtPointer client_data)
                                           SEF_vp, (void *)data,
                                           SES_Suma, NULL, NOPE,
                                           SEI_Head, NULL))) {
-      fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+         "Error %s: Failed to register command.\n", FuncName);
    }
    if (!SUMA_RegisterEngineListCommand (  list, ED,
                                           SEF_ip, (int *)w,
                                           SES_Suma, NULL, NOPE,
                                           SEI_In, NextElm)) {
-      fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+         "Error %s: Failed to register command.\n", FuncName);
    }
    
    if (!SUMA_Engine (&list)) {
-      fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      fprintf(SUMA_STDERR, 
+         "Error %s: SUMA_Engine call failed.\n", FuncName);
    }
    
    SUMA_RETURNe;

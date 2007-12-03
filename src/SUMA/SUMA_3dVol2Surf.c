@@ -1642,7 +1642,7 @@ ENTRY("validate_datasets");
         cmd = (char *)malloc((clen + 1) * sizeof(char));
         strcpy( cmd, opts->cmask_cmd );
 
-        p->cmask = EDT_calcmask( cmd, &ncmask );
+        p->cmask = EDT_calcmask( cmd, &ncmask, 0 );
 
         free( cmd );                       /* free EDT_calcmask() string */
 
@@ -2333,6 +2333,11 @@ ENTRY("usage");
             "        that the value_0 column number will be 6 in the 1D case,\n"
             "        but will be 2 in the niml case.  The index columns will\n"
             "        not be used for niml output.\n"
+            "        It is possible to write niml datasets in both ASCII and \n"
+            "        BINARY formats. BINARY format is recommended for large\n"
+            "        datasets. The .afnirc environment variable:\n"
+            "        AFNI_NIML_TEXT_DATA controls whether output is\n"
+            "        ASCII (YES) or BINARY (NO).\n"
             "\n"
             "        Note : the output file should not yet exist.\n"
             "             : -out_1D or -out_niml must be used\n"
