@@ -1,6 +1,6 @@
 These notes are with respect to the AFNI GIFTI C API.
 
-- This API is built on top of expat (MIT License).
+- This API is built on top of expat, and is released into the public domain.
 
 - The main functions are:
 
@@ -10,9 +10,63 @@ These notes are with respect to the AFNI GIFTI C API.
   API, particularly those prototypes listed first.  The gifti_xml
   functions are not intended for external use.
 
+----------------------------------------------------------------------
 todo:
-    - Base64 encoding
     - Base64GzipBinary encoding
     - accessor functions
     - indexed reading
     - doxygen comments
+
+
+x - put new intent codes in nifti1.h
+  - add -no_updates option, not to update GIFTI element
+    else, update:
+        AFNI-Version
+        date
+        Endian
+
+  - #ifdef  __cplusplus
+  - set endian on write
+  - option to set encoding
+  - deal with new datasets
+        - Category -> Intent
+        - new dtd location
+        - GIFTI *might* have new NumberOfDataArrays attribute
+        - DataArray *might* have new ExternalFileName/Offset attributes
+        - ArrayIndexingOrder=RowMajorOrder
+  - eventually replace Caret-Version with AFNI-Version
+
+  - gifti_MD_find(char * name)
+  - gifti_MD_delete(name)
+  - gifti_MD_add(name, value)
+  - gifti_MD_replace(name, value)
+  - post XML read: validate gifti structure
+        - check for UNKNOWN attributes
+                - done?? "invalid darray XX"
+        - check that numDA matches numDAfound (unless user requested fewer)
+----------------------------------------------------------------------
+11/21 GIFTI_Format changes:
+
+        - CoordSys, should only be under DA with intent NI_POINTSET
+        - Data can be empty if contents are in external file
+          (see FileName and FileOffset)
+        - encoding: ExternalFileBinary
+                - be able to read sub-surfaces?
+                        - can skip DA elements, if desired
+                - in which case, unencoded binary
+                - so read data after XML
+                - note: external file required to be in same dir
+        - DataArray attributes:
+                - ExternalFileName
+                - ExternalFileOffset
+        - GIFTI attribute: Intent
+                - replaces Category
+                - apply any INTENT code in nifti1.h
+                        - add new codes, starting at 2000
+                        - should NIFTI_INTENT_UNKNOWN be zero?
+        - GIFTI attribute: NumberOfDataArrays
+                - replace gim->numDA with xd->numDAfound
+                - then add gim->numDA from XML
+                - on pop gifti, verify numDA
+        - consider an application of 3.0: Common MetaData
+

@@ -83,6 +83,7 @@ static int  ewrite_data             (gxml_data *, giiDataArray *, FILE *);
 static int  ewrite_data_line        (void *, int, int, int, int, FILE *);
 static int  ewrite_double_line      (double *, int, int, FILE *);
 static int  ewrite_int_attr         (const char *, int, int, int, FILE *);
+static int  ewrite_off_t_attr       (const char *, off_t, int, int, FILE *);
 static int  ewrite_str_attr         (const char*, const char*, int, int, FILE*);
 static int  ewrite_darray           (gxml_data *, giiDataArray *, FILE *);
 static int  ewrite_ex_atrs          (gxml_data *, nvpairs *, int, int, FILE *);
@@ -1933,10 +1934,11 @@ static int gxml_write_gifti(gxml_data * xd, FILE * fp)
     gxml_write_preamble(xd, fp);
     fprintf(fp,"<%s",enames[GXML_ETYPE_GIFTI]);
     if(gim->version){ fprintf(fp," Version=\"%s\"", gim->version); first = 0; }
+    fprintf(fp,"%sNumberOfDataArrays=\"%d\"", first ? "" : "  ", gim->numDA);
 
     /* add any extra attributes */
     offset = strlen(enames[GXML_ETYPE_GIFTI]) + 2;
-    ewrite_ex_atrs(xd, &gim->ex_atrs, offset, first, fp);
+    ewrite_ex_atrs(xd, &gim->ex_atrs, offset, 0, fp);
     fputs(">\n",fp);
 
     xd->depth++;
@@ -1972,14 +1974,8 @@ static int ewrite_darray(gxml_data * xd, giiDataArray * da, FILE * fp)
     fprintf(fp, "%*s<DataArray", spaces, " ");
 
     /* print attributes */
-    ewrite_str_attr("Category",
-                    gifti_list_index2string(gifti_category_list,da->category),
-                    offset,1,fp);
-    ewrite_str_attr("DataType", gifti_datatype2str(da->datatype),
-                    offset,0,fp);
-    ewrite_str_attr("DataLocation",
-                    gifti_list_index2string(gifti_dataloc_list,da->location),
-                    offset,0,fp);
+    ewrite_str_attr("Intent", gifti_intent_to_string(da->intent), offset,1,fp);
+    ewrite_str_attr("DataType", gifti_datatype2str(da->datatype), offset,0,fp);
     ewrite_str_attr("ArrayIndexingOrder",
                     gifti_list_index2string(gifti_index_order_list,da->ind_ord),
                     offset,0,fp);
@@ -1992,6 +1988,11 @@ static int ewrite_darray(gxml_data * xd, giiDataArray * da, FILE * fp)
         gifti_list_index2string(gifti_encoding_list,da->encoding),offset,0,fp);
     ewrite_str_attr("Endian",
         gifti_list_index2string(gifti_endian_list,da->endian),offset,0,fp);
+    ewrite_str_attr("ExternalFileName", da->ext_fname, offset, 0, fp);
+    if( da->ext_fname && *da->ext_fname )
+        ewrite_off_t_attr("ExternalFileOffset", da->ext_offset, offset, 0, fp);
+    else
+        ewrite_str_attr("ExternalFileOffset", NULL, offset, 0, fp);
     fprintf(fp, ">\n");
 
     /* write sub-elements */
@@ -2226,7 +2227,7 @@ static int ewrite_text_ele(int ele, const char * cdata, const char * attr,
             spaces, " ", enames[index],
             attr ? attr : "",
             in_CDATA ? "<![CDATA[" : "",
-            cdata,
+            cdata ? cdata : "",
             in_CDATA ? "]]>" : "",
             enames[index]);
 
@@ -2273,9 +2274,11 @@ static int ewrite_meta(gxml_data * xd, giiMetaData * md, FILE * fp)
         return 0;
     }
 
+    if( xd->verb > 3 ) fprintf(stderr,"   MD length = %d\n", md->length);
+
     fprintf(fp, "%*s<MetaData>\n", spaces, " ");
     for( c = 0; c < md->length; c++ ) {
-        if( !md->name[c] || !md->value[c] ) {
+        if( !md->name[c] ) {  /* allow empty value, but not name */
             if(xd->verb > 1) fprintf(stderr,"** MD[%d] unset\n", c);
             continue;
         }
@@ -2325,13 +2328,24 @@ static int ewrite_int_attr(const char *name, int value, int spaces,
 }
 
 
+static int ewrite_off_t_attr(const char *name, off_t value, int spaces,
+                           int first, FILE * fp)
+{
+    fprintf(fp, "%s%*s%s=\"%zd\"",
+            (first) ? "" : "\n",        /* maybe a newline   */
+            (first) ?  1 : spaces, " ", /* 1 or many spaces  */
+            name, value);
+    return 0;
+}
+
+
 static int ewrite_str_attr(const char * name, const char * value, int spaces,
                            int first, FILE * fp)
 {
     fprintf(fp, "%s%*s%s=\"%s\"",
             (first) ? "" : "\n",        /* maybe a newline   */
             (first) ?  1 : spaces, " ", /* 1 or many spaces  */
-            name, value);
+            name, value ? value : "");
     return 0;
 }
 
@@ -2340,7 +2354,7 @@ static int gxml_write_preamble(gxml_data * xd, FILE * fp)
 {
     char version[]  = "1.0";     /* rcr - move to header */
     char encoding[] = "UTF-8";
-    char dtd[]      = "http://brainmap.wustl.edu/gifti/gifti.dtd";
+    char dtd[]      = "http://www.nitrc.org/frs/download.php/115/gifti.dtd";
 
     fprintf(fp, "<?xml version=\"%s\" encoding=\"%s\"?>\n", version, encoding);
     fprintf(fp, "<!DOCTYPE GIFTI SYSTEM \"%s\">\n", dtd);

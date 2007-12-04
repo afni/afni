@@ -9,8 +9,8 @@
 */
 
 #define GIFTI_IND_ORD_UNDEF     0
-#define GIFTI_IND_ORD_HIGH2LOW  1
-#define GIFTI_IND_ORD_LOW2HIGH  2
+#define GIFTI_IND_ORD_ROW_MAJOR 1
+#define GIFTI_IND_ORD_COL_MAJOR 2
 #define GIFTI_IND_ORD_MAX       2
 
 #define GIFTI_CAT_UNDEF         0
@@ -44,7 +44,6 @@
 
 /* global declarations of matching lists */
 extern char * gifti_index_order_list[];
-extern char * gifti_category_list[];
 extern char * gifti_dataloc_list[];
 extern char * nifti_datatype_name_list[];
 extern int    nifti_datatype_value_list[];
@@ -80,14 +79,15 @@ typedef struct {
 
 typedef struct {
     /* attributes */
-    int              category;  /* category of data                      */
+    int              intent;    /* NIFTI_INTENT code, describing data    */
     int              datatype;  /* numerical type of Data values         */
-    int              location;  /* Internal or External                  */
     int              ind_ord;   /* lowest Dim to highest, or reverse     */
     int              num_dim;   /* level of DimX applied                 */
     int              dims[6];   /* dimension lengths (first num_dim set) */
     int              encoding;  /* format of Data on disk                */
     int              endian;    /* endian, if binary Encoding            */
+    char *           ext_fname; /* external filename, in cur directory   */
+    size_t           ext_offset;/* offset of data within external file   */
 
     /* elements */
     giiMetaData      meta;
@@ -151,6 +151,9 @@ size_t gifti_darray_nvals       (giiDataArray * da);
 void   gifti_datatype_sizes     (int datatype, int *nbyper, int *swapsize);
 char * gifti_datatype2str       (int type);
 int    gifti_gim_DA_size        (gifti_image * p, int in_mb);
+int    gifti_intent_from_string (const char * name);
+int    gifti_intent_is_valid    (int code);
+char * gifti_intent_to_string   (int code);
 char * gifti_list_index2string  (char * list[], int index);
 int    gifti_set_xml_buf_size   (int buf_size);
 int    gifti_str2attr_gifti     (gifti_image * gim, const char * attr,
@@ -158,7 +161,6 @@ int    gifti_str2attr_gifti     (gifti_image * gim, const char * attr,
 int    gifti_str2attr_darray    (giiDataArray * DA, const char * attr,
                                                  const char * value);
 int    gifti_str2ind_ord        (const char * str);
-int    gifti_str2category       (const char * str);
 int    gifti_str2dataloc        (const char * str);
 int    gifti_str2encoding       (const char * str);
 int    gifti_str2endian         (const char * str);
@@ -204,8 +206,8 @@ int    clear_nvpairs             (nvpairs * p);
 int    clear_LabelTable          (giiLabelTable * p);
 int    clear_CoordSystem         (giiCoordSystem * p);
 
-giiDataArray * gifti_find_DA     (gifti_image * gim, int category, int index);
-int    gifti_find_DA_list        (gifti_image * gim, int category,
+giiDataArray * gifti_find_DA     (gifti_image * gim, int intent, int index);
+int    gifti_find_DA_list        (gifti_image * gim, int intent,
                                   giiDataArray *** list,int *len);
 int    gifti_DA_rows_cols        (giiDataArray * da, int *rows, int *cols);
 
