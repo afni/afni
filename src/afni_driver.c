@@ -186,6 +186,16 @@ static AFNI_driver_pair dpair[] = {
  { NULL , NULL }  /* flag that we've reached the end times */
 } ;
 
+static int           num_epair = 0 ;      /* 04 Dec 2007 */
+static AFNI_driver_pair *epair = NULL ;   /* dynamic commands */
+
+/*----------------------------------------------------------------------*/
+
+static int junkfun( char *cmd )   /* 04 Dec 2007 */
+{
+  fprintf(stderr,"junkfun('%s')\n",cmd) ; return 0 ;
+}
+
 /*----------------------------------------------------------------------*/
 /*! Accept a command, find the corresponding action function, call it.
     Return value is -1 if bad things happened, otherwise return is 0.   */
@@ -197,13 +207,18 @@ int AFNI_driver( char *cmdd )
 
 ENTRY("AFNI_driver") ;
 
+#if 0
+   if( num_epair == 0 )
+     AFNI_driver_register( "JUNK" , junkfun ) ;   /* 04 Dec 2007: testing */
+#endif
+
    if( cmdd == NULL || *cmdd == '\0' ) RETURN(-1) ;  /* bad */
 
    if( strncmp(cmdd,"DRIVE_AFNI ",11) == 0 ) cmdd += 11 ;  /* 28 Dec 2006 */
 
    dmd = cmd = strdup(cmdd) ; clen = strlen(cmd) ;
 
-   /* skip leading blanks */
+   /*--- skip leading blanks ---*/
 
    for( ii=0 ; ii < clen ; ii++ )
      if( !isspace(cmd[ii]) ) break ;
@@ -212,14 +227,14 @@ ENTRY("AFNI_driver") ;
 
    cmd += ii ; clen = strlen(cmd) ;
 
-   /* 19 Dec 2002: trim trailing blanks */
+   /*--- 19 Dec 2002: trim trailing blanks ---*/
 
    for( ii=clen-1 ; ii > 0 && isspace(cmd[ii]) ; ii-- )
      cmd[ii] = '\0' ;
 
    clen = strlen(cmd) ;
 
-   /* scan dpair list for command */
+   /*--- scan dpair list for command ---*/
 
    for( dd=0 ; dpair[dd].nam != NULL ; dd++ ){
 
@@ -233,11 +248,33 @@ ENTRY("AFNI_driver") ;
        AFNI_block_rescan(1) ;                /* 10 Nov 2005 */
        rval = dpair[dd].fun( cmd+ii ) ;      /* execute command */
        if( rval < 0 )
-         WARNING_message("Bad drive AFNI in '%s'",cmd) ;  /* 22 Feb 2007 */
+         WARNING_message("Bad drive AFNI result in '%s'",cmd) ;  /* 22 Feb 2007 */
        AFNI_block_rescan(0) ;
        free(dmd) ; RETURN(rval) ;
      }
    }
+
+   /*--- scan epair list for command [04 Dec 2007] ---*/
+
+   for( dd=0 ; dd < num_epair ; dd++ ){
+
+     dlen = strlen(epair[dd].nam) ;
+     if( clen >= dlen                         &&
+         strncmp(cmd,epair[dd].nam,dlen) == 0   ){  /* found it */
+
+       for( ii=dlen ; ii < clen ; ii++ )     /* skip blanks */
+         if( !isspace(cmd[ii]) ) break ;     /* after command name */
+
+       AFNI_block_rescan(1) ;                /* 10 Nov 2005 */
+       rval = epair[dd].fun( cmd+ii ) ;      /* execute command */
+       if( rval < 0 )
+         WARNING_message("Bad drive AFNI result in '%s'",cmd) ;
+       AFNI_block_rescan(0) ;
+       free(dmd) ; RETURN(rval) ;
+     }
+   }
+
+   /*--- didn't match command at all?!? ---*/
 
    ERROR_message("Can't drive AFNI with '%s'",cmd) ;  /* 22 Feb 2007 */
 
@@ -2746,4 +2783,35 @@ static int AFNI_trace( char *cmd )
    DBG_trace = (YESSISH(cmd)) ? 2 : 0 ;
 #endif
    return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
+
+void AFNI_driver_register( char *cmd , int (*cbfun)(char *) )
+{
+   int nn ; char *cpt ;
+
+   if( cmd == NULL || *cmd == '\0' || cbfun == NULL ) return ;
+   for( cpt=cmd ; *cpt != '\0' ; cpt++ ){
+     if( isspace(*cpt) ){
+       WARNING_message("Illegal driver registration '%s'",cmd); return;
+     }
+   }
+   for( nn=0 ; dpair[nn].nam != NULL ; nn++ ){
+     if( strcmp(cmd,dpair[nn].nam) == 0 ){
+       WARNING_message("Illegal driver duplication '%s'",cmd); return;
+     }
+   }
+   for( nn=0 ; nn < num_epair; nn++ ){
+     if( strcmp(cmd,epair[nn].nam) == 0 ){
+       WARNING_message("Illegal driver duplication '%s'",cmd); return;
+     }
+   }
+
+   nn = num_epair + 1 ;
+   epair = (AFNI_driver_pair *)realloc( (void *)epair , sizeof(AFNI_driver_pair)*nn) ;
+   epair[num_epair].nam = strdup(cmd) ;
+   epair[num_epair].fun = cbfun ;
+   num_epair            = nn ;
+   return ;
 }

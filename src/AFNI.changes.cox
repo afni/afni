@@ -6489,3 +6489,7 @@
  * Similarly, modify scan_for_angles() if element header is bigger than
      buffer size.
  * 'Histogram: Multi' (plug_histog_multi.c) plugin, for Kyle, Alex, & Pat.
+
+04 Dec 2007
+ * Add AFNI_driver_register() to afni_driver.c to allow a plugin (say) to
+     register a driver callback function.
