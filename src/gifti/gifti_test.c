@@ -45,8 +45,8 @@ int show_help()
     "                         e.g. -buf_size 1024\n"
     "       -encoding  TYPE : set the data encoding for any output file\n"
     "                  TYPE = ASCII      : ASCII encoding\n"
-    "                  TYPE = BASE64     : report whether errors were found\n"
-    "                  TYPE = BASE64GZIP : count the number of bad chars\n"
+    "                  TYPE = BASE64     : base64 binary\n"
+    "                  TYPE = BASE64GZIP : base64 compressed binary\n"
     "       -gfile   OUTPUT : write out dataset as gifti image\n"
     "       -gifti_hist     : show giftilib history\n"
     "       -gifti_ver      : show giftilib version\n"
@@ -234,7 +234,7 @@ int write_1D_file(giiDataArray ** dlist, int len, char * prefix, int add_suf)
         }
 
         fprintf(stderr,"+d 1D write, RxC = %d x %d\n", rows, cols);
-        if( da->ind_ord == GIFTI_IND_ORD_LOW2HIGH ) {
+        if( da->ind_ord == GIFTI_IND_ORD_COL_MAJOR ) {
             fprintf(stderr,"-d writing data rows in reverse order\n");
             for(c = rows-1; c >= 0; c-- )
                 ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
@@ -328,7 +328,7 @@ int write_surf_file(giiDataArray * dc, giiDataArray * dt, char * prefix,
     rows = crows;
     cols = ccols;
 
-    if( da->ind_ord == GIFTI_IND_ORD_LOW2HIGH ) {
+    if( da->ind_ord == GIFTI_IND_ORD_COL_MAJOR ) {
         fprintf(stderr,"-d writing coord rows in reverse order\n");
         for(c = rows-1; c >= 0; c-- )
             ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
@@ -344,7 +344,7 @@ int write_surf_file(giiDataArray * dc, giiDataArray * dt, char * prefix,
     rows = trows;
     cols = tcols;
 
-    if( da->ind_ord == GIFTI_IND_ORD_LOW2HIGH ) {
+    if( da->ind_ord == GIFTI_IND_ORD_COL_MAJOR ) {
         fprintf(stderr,"-d writing triangle rows in reverse order\n");
         for(c = rows-1; c >= 0; c-- )
             ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
