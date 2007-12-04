@@ -30,6 +30,11 @@ static char * gifti_history[] =
   "     - dind is size_t\n",
   "0.4  29 November, 2007\n"
   "     - added more checks and fixed nvpair value allocation\n"
+  "0.5  03 December, 2007: applied changes for GIFTI Format 1.0 (11/21)\n",
+  "     - replaced Category with Intent\n"
+  "     - replaced Location attribute with ExternalFileName/Offset\n"
+  "     - added NumberOfDataArrays attribute to GIFTI element\n"
+  "     - applied new index_order strings\n"
 };
 
 static char gifti_version[] = "gifti library version 0.4, 29 November, 2007";
@@ -38,16 +43,11 @@ static char gifti_version[] = "gifti library version 0.4, 29 November, 2007";
 /* global lists of XML strings */
 
 /* this should match GIFTI_IND_ORD_* */
-char * gifti_index_order_list[] = {"Undefined", "HighestFirst", "LowestFirst"};
+char * gifti_index_order_list[] = {"Undefined", "RowMajorOrder",
+                                                "ColumnMajorOrder"};
+/* {"Undefined", "HighestFirst", "LowestFirst"}; */
 
-/* this should match GIFTI_CAT_* */
-char * gifti_category_list[] = {
-    "Undefined", "Coordinates", "Functional", "Normals",
-    "Labels", "RGBA", "Shape", "Tensors", "TopologyTriangles"
-};
-
-/* this should match GIFTI_DATALOC_* */
-char * gifti_dataloc_list[] = {"Undefined", "Internal", "External"};
+/* char * gifti_dataloc_list[] = {"Undefined", "Internal", "External"}; */
 
 static gifti_type_ele gifti_type_list[] = {
     /* type  nbyper  swapsize   name  */
@@ -67,6 +67,51 @@ static gifti_type_ele gifti_type_list[] = {
     {1536,     16,     16,      "NIFTI_TYPE_FLOAT128"   },
     {1792,     16,      8,      "NIFTI_TYPE_COMPLEX128" },
     {2048,     32,     16,      "NIFTI_TYPE_COMPLEX256" },
+};
+
+/* treat intent codes internally, in case we eventually link to nifti */
+typedef struct { char * name; int code; } gifti_intent_ele;
+static gifti_intent_ele gifti_intent_list[] = {
+    { "NIFTI_INTENT_NONE",               0 },
+    { "NIFTI_INTENT_CORREL",             2 },
+    { "NIFTI_INTENT_TTEST",              3 },
+    { "NIFTI_INTENT_FTEST",              4 },
+    { "NIFTI_INTENT_ZSCORE",             5 },
+    { "NIFTI_INTENT_CHISQ",              6 },
+    { "NIFTI_INTENT_BETA",               7 },
+    { "NIFTI_INTENT_BINOM",              8 },
+    { "NIFTI_INTENT_GAMMA",              9 },
+    { "NIFTI_INTENT_POISSON",           10 },
+    { "NIFTI_INTENT_NORMAL",            11 },
+    { "NIFTI_INTENT_FTEST_NONC",        12 },
+    { "NIFTI_INTENT_CHISQ_NONC",        13 },
+    { "NIFTI_INTENT_LOGISTIC",          14 },
+    { "NIFTI_INTENT_LAPLACE",           15 },
+    { "NIFTI_INTENT_UNIFORM",           16 },
+    { "NIFTI_INTENT_TTEST_NONC",        17 },
+    { "NIFTI_INTENT_WEIBULL",           18 },
+    { "NIFTI_INTENT_CHI",               19 },
+    { "NIFTI_INTENT_INVGAUSS",          20 },
+    { "NIFTI_INTENT_EXTVAL",            21 },
+    { "NIFTI_INTENT_PVAL",              22 },
+    { "NIFTI_INTENT_LOGPVAL",           23 },
+    { "NIFTI_INTENT_LOG10PVAL",         24 },
+    { "NIFTI_INTENT_ESTIMATE",        1001 },
+    { "NIFTI_INTENT_LABEL",           1002 },
+    { "NIFTI_INTENT_NEURONAME",       1003 },
+    { "NIFTI_INTENT_GENMATRIX",       1004 },
+    { "NIFTI_INTENT_SYMMATRIX",       1005 },
+    { "NIFTI_INTENT_DISPVECT",        1006 },
+    { "NIFTI_INTENT_VECTOR",          1007 },
+    { "NIFTI_INTENT_POINTSET",        1008 },
+    { "NIFTI_INTENT_TRIANGLE",        1009 },
+    { "NIFTI_INTENT_QUATERNION",      1010 },
+    { "NIFTI_INTENT_DIMLESS",         1011 },
+    { "NIFTI_INTENT_TIME_SERIES",     2001 },
+    { "NIFTI_INTENT_NODE_INDEX",      2002 },
+    { "NIFTI_INTENT_RGB_VECTOR",      2003 },
+    { "NIFTI_INTENT_RGBA_VECTOR",     2004 },
+    { "NIFTI_INTENT_SHAPE",           2005 }
 };
 
 /* this should match nifti_datatype_value_list (replaced by gifti_type_list?) */
@@ -104,8 +149,8 @@ int gifti_set_b64_check( int level ){ return gxml_set_b64_check(level); }
 
 /* ---------------------------------------------------------------------- */
 
-#undef G_CHECK_NULL
-#define G_CHECK_NULL(s) (s ? s : "isNULL")
+#undef G_CHECK_NULL_STR
+#define G_CHECK_NULL_STR(s) (s ? s : "NULL")
 
 /* ---------------------------------------------------------------------- */
 /* static prototypes */
@@ -125,6 +170,13 @@ int gifti_str2attr_gifti(gifti_image * gim, const char *attr, const char *val)
     if( !strcmp(attr, "Version") ) {
         if( gim->version ) free( gim->version );  /* lose any old copy */
         gim->version = strdup(val);
+    } else if( !strcmp(attr, "NumberOfDataArrays") ) {
+        gim->numDA = 0;  /* rcr, put back atol(val); */
+        if( gim->numDA < 0 ) {
+            fprintf(stderr,"** invalid NumberOfDataArrays attribute: %s\n",val);
+            gim->numDA = 0;
+            return 1;
+        }
     } else {
         if( G.verb > 0 )
             fprintf(stderr,"** unknown GIFTI attr, '%s'='%s'\n",attr,val);
@@ -342,20 +394,16 @@ int gifti_valid_darray(giiDataArray * da, int whine)
         return 0;
     }
 
-    if( da->category <= GIFTI_CAT_UNDEF || da->category > GIFTI_CAT_MAX ) {
+    if( ! gifti_intent_is_valid(da->intent) ) {
         if( whine || G.verb > 1 )
-            fprintf(stderr,"** invalid darray category = %d\n", da->category);
+            fprintf(stderr,"** invalid darray intent code = %d\n", da->intent);
         errs++;
     }
 
     if( ! gifti_valid_datatype(da->datatype, whine) ) /* message printed */
         errs++;
 
-    if( da->location<=GIFTI_DATALOC_UNDEF || da->location>GIFTI_DATALOC_MAX ) {
-        if( whine || G.verb > 1 )
-            fprintf(stderr,"** invalid darray location = %d\n", da->location);
-        errs++;
-    }
+    /* no checks for ext_fname and ext_offset (until reading) */
 
     if( da->ind_ord<=GIFTI_IND_ORD_UNDEF || da->ind_ord>GIFTI_IND_ORD_MAX ) {
         if( whine || G.verb > 1 )
@@ -520,12 +568,10 @@ int gifti_str2attr_darray(giiDataArray * DA, const char *attr,
 
     if(G.verb > 3) fprintf(stderr,"+d setting DA attr '%s'='%s'\n",attr,value);
 
-    if( !strcmp(attr, "Category") )
-        DA->category = gifti_str2category(value);
+    if( !strcmp(attr, "Intent") )
+        DA->intent = gifti_intent_from_string(value);
     else if( !strcmp(attr, "DataType") )
         DA->datatype = gifti_str2datatype(value);
-    else if( !strcmp(attr, "DataLocation") )
-        DA->location = gifti_str2dataloc(value);
     else if( !strcmp(attr, "ArrayIndexingOrder") )
         DA->ind_ord = gifti_str2ind_ord(value);
     else if( !strcmp(attr, "Dimensionality") ) DA->num_dim = atoi(value);
@@ -539,10 +585,14 @@ int gifti_str2attr_darray(giiDataArray * DA, const char *attr,
         DA->encoding = gifti_str2encoding(value);
     else if( !strcmp(attr, "Endian") )
         DA->endian = gifti_str2endian(value);
+    else if( !strcmp(attr, "ExternalFileName") )
+        DA->ext_fname = strdup(value);
+    else if( !strcmp(attr, "ExternalFileOffset") )
+        DA->ext_offset = atoll(value);  /* assumes C99 */
     else {
         if( G.verb > 1 )        /* might go into ex_atrs */
             fprintf(stderr,"** unknown giiDataArray attr, '%s'='%s'\n",
-                    G_CHECK_NULL(attr),G_CHECK_NULL(value));
+                    G_CHECK_NULL_STR(attr),G_CHECK_NULL_STR(value));
         return 1;
     }
 
@@ -573,21 +623,6 @@ int gifti_str2ind_ord( const char * str )
     return rv;
 }
 
-int gifti_str2category( const char * str )
-{
-    int rv = str2list_index(gifti_category_list, GIFTI_CAT_MAX, str);
-    if( rv <= GIFTI_CAT_UNDEF && G.verb > 1 )
-        fprintf(stderr,"** bad category, '%s'\n", str);
-    return rv;
-}
-
-int gifti_str2dataloc( const char * str )
-{
-    int rv = str2list_index(gifti_dataloc_list, GIFTI_DATALOC_MAX, str);
-    if( rv <= GIFTI_DATALOC_UNDEF && G.verb > 1 )
-        fprintf(stderr,"** bad data location, '%s'\n", str);
-    return rv;
-}
 
 int gifti_str2encoding( const char * str )
 {
@@ -606,12 +641,6 @@ char * gifti_list_index2string(char * list[], int index)
 
     if     ( list == gifti_index_order_list )
         lsize = sizeof(gifti_index_order_list)/sizeof(char *);
-
-    else if( list == gifti_category_list )
-        lsize = sizeof(gifti_category_list)/sizeof(char *);
-
-    else if( list == gifti_dataloc_list )
-        lsize = sizeof(gifti_dataloc_list)/sizeof(char *);
 
     else if( list == nifti_datatype_name_list )
         lsize = sizeof(nifti_datatype_name_list)/sizeof(char *);
@@ -784,7 +813,7 @@ int gifti_disp_nvpairs(const char * mesg, nvpairs * p)
 
     for(c = 0; c < p->length; c++ )
         fprintf(stderr,"    nvpair: '%s' = '%s'\n",
-                G_CHECK_NULL(p->name[c]), G_CHECK_NULL(p->value[c]));
+                G_CHECK_NULL_STR(p->name[c]), G_CHECK_NULL_STR(p->value[c]));
     if( p->length > 0 ) fputc('\n', stderr);
 
     return 0;
@@ -842,19 +871,18 @@ int gifti_disp_DataArray(const char * mesg, giiDataArray * p, int subs)
     if( !p ){ fputs("disp: giiDataArray = NULL\n", stderr); return 1; }
 
     fprintf(stderr,"giiDataArray struct\n"
-                   "    category %2d = %s\n"
+                   "    intent   %2d = %s\n"
                    "    datatype %2d = %s\n"
-                   "    location %2d = %s\n"
                    "    ind_ord  %2d = %s\n"
                    "    num_dim     = %d\n"
                    "    dims        = %d, %d, %d, %d, %d, %d\n"
                    "    encoding %2d = %s\n"
-                   "    endian   %2d = %s\n",
-                p->category,
-                gifti_list_index2string(gifti_category_list, p->category),
+                   "    endian   %2d = %s\n"
+                   "    ext_fname   = %s\n"
+                   "    ext_offset  = %zd\n"
+                , p->intent,
+                gifti_intent_to_string(p->intent),
                 p->datatype, gifti_datatype2str(p->datatype),
-                p->location,
-                gifti_list_index2string(gifti_dataloc_list, p->location),
                 p->ind_ord,
                 gifti_list_index2string(gifti_index_order_list, p->ind_ord),
                 p->num_dim,
@@ -863,7 +891,8 @@ int gifti_disp_DataArray(const char * mesg, giiDataArray * p, int subs)
                 p->encoding,
                 gifti_list_index2string(gifti_encoding_list, p->encoding),
                 p->endian,
-                gifti_list_index2string(gifti_endian_list, p->endian)
+                gifti_list_index2string(gifti_endian_list, p->endian),
+                G_CHECK_NULL_STR(p->ext_fname), p->ext_offset
            );
 
     if( subs ) gifti_disp_nvpairs("darray->meta", &p->meta);
@@ -975,23 +1004,21 @@ size_t gifti_darray_nvals(giiDataArray * da)
 }
 
 
-/* find giiDataArray element #index of the given category */
-giiDataArray * gifti_find_DA(gifti_image * gim, int category, int index)
+/* find giiDataArray element #index of the given intent */
+giiDataArray * gifti_find_DA(gifti_image * gim, int intent, int index)
 {
     int c, nfound;
 
-    if( !gim || category <= GIFTI_CAT_UNDEF
-             || category > GIFTI_CAT_MAX
-             || index < 0 ) {
+    if( !gim || !gifti_intent_is_valid(intent) || index < 0 ) {
         fprintf(stderr,"** find_DA: bad inputs (%p, %d, %d)\n",
-                gim, category, index);
+                gim, intent, index);
         return NULL;
     }
 
     if ( !gim-> darray ) return NULL;
 
     for( c = 0, nfound = 0; c < gim->numDA; c++ )
-        if( gim->darray[c] && gim->darray[c]->category == category ) {
+        if( gim->darray[c] && gim->darray[c]->intent == intent ) {
             if( nfound == index )
                 return gim->darray[c];  /* success */
             nfound++;   /* else, increment counter and keep looking */
@@ -1001,18 +1028,15 @@ giiDataArray * gifti_find_DA(gifti_image * gim, int category, int index)
 }
 
 
-/* return an allocated list of giiDataArray pointers of the given category */
-int gifti_find_DA_list(gifti_image * gim, int category,
+/* return an allocated list of giiDataArray pointers of the given intent */
+int gifti_find_DA_list(gifti_image * gim, int intent,
                        giiDataArray *** list, int * len)
 {
     int c, nfound;
 
-    if( !gim || category <= GIFTI_CAT_UNDEF
-             || category > GIFTI_CAT_MAX
-             || !list
-             || !len ) {
+    if( !gim || !gifti_intent_is_valid(intent) || !list || !len ) {
         fprintf(stderr,"** find_DA: bad inputs (%p, %d, %p, %p)\n",
-                gim, category, list, len);
+                gim, intent, list, len);
         return 1;
     }
 
@@ -1028,7 +1052,7 @@ int gifti_find_DA_list(gifti_image * gim, int category,
     }
 
     for( c = 0, nfound = 0; c < gim->numDA; c++ )
-        if( gim->darray[c] && gim->darray[c]->category == category )
+        if( gim->darray[c] && gim->darray[c]->intent == intent )
             (*list)[nfound++] = gim->darray[c];
 
     /* if we didn't find any, nuke list, but do not return an error */
@@ -1056,7 +1080,7 @@ int gifti_DA_rows_cols(giiDataArray * da, int * rows, int * cols)
                                                                                 
     if( da->num_dim == 1 ) return 0;  /* use default */
                                                                                 
-    if( da->ind_ord == GIFTI_IND_ORD_HIGH2LOW ) {
+    if( da->ind_ord == GIFTI_IND_ORD_ROW_MAJOR ) {
         /* treat Dim[0] as nodes (they change most slowly) */
         *rows = da->dims[0];
         *cols = (*rows) ? da->nvals / *rows : 1;    /* be safe */
@@ -1208,5 +1232,60 @@ int gifti_check_swap(void * data, int endian, size_t nsets, int swapsize)
 
     /* do the swap */
     return gifti_swap_Nbytes(data, nsets, swapsize);
+}
+
+/*---------------------------------------------------------------------*/
+/*! Given a NIFTI_INTENT string, such as "NIFTI_INTENT_NODE_INDEX",
+ *  return the corresponding integral intent code.  The intent code is
+ *  the macro value defined in nifti1.h.
+ *
+ *  return 0 on failure (NIFTI_INTENT_NONE)
+*//*-------------------------------------------------------------------*/
+int gifti_intent_from_string( const char * name )
+{
+    int tablen = sizeof(gifti_intent_list)/sizeof(gifti_intent_ele);
+    int c;
+
+    if( !name ) return 0;
+
+    for( c = tablen-1; c > 0; c-- )
+        if( !strcmp(name, gifti_intent_list[c].name) )
+            break;
+
+    return gifti_intent_list[c].code;
+}
+
+
+/*---------------------------------------------------------------------*/
+/*! Given a NIFTI_TYPE value, such as NIFTI_TYPE_INT16, return the
+ *  corresponding macro label as a string.  The dtype code is the
+ *  macro value defined in nifti1.h.
+*//*-------------------------------------------------------------------*/
+char * gifti_intent_to_string( int code )
+{
+    int tablen = sizeof(gifti_intent_list)/sizeof(gifti_intent_ele);
+    int c;
+
+    for( c = tablen-1; c > 0; c-- )
+        if( gifti_intent_list[c].code == code )
+            break;
+
+    return gifti_intent_list[c].name;
+}
+
+
+/*---------------------------------------------------------------------*/
+/*! Return whether the given code is a valid NIFTI_INTENT code.
+*//*-------------------------------------------------------------------*/
+int gifti_intent_is_valid( int code )
+{
+    int tablen = sizeof(gifti_intent_list)/sizeof(gifti_intent_ele);
+    int c;
+
+    for( c = tablen-1; c > 0; c-- )
+        if( gifti_intent_list[c].code == code )
+            break;
+
+    return( c > 0 );
 }
 

@@ -2271,4 +2271,9 @@
 02 Dec 2007:
   * modified Makefile.linux_xorg7: added -D_FILE_OFFSET_BITS=64 for LFS
     (will probably do that in other Makefiles)
+03 Dec 2007: applied changes for GIFTI Format 1.0 (11/21)
+  * replaced Category with Intent
+  * replaced Location attribute with ExternalFileName/Offset
+  * added NumberOfDataArrays attribute to GIFTI element
+  * applied new index_order strings
 
