@@ -34,6 +34,26 @@ actually occur -- the image opens and gets saved, and then AFNI just ends.
 N.B.: If the 'QUIT' command weren't included above, AFNI would remain open,
 ready for user interaction after the image file was saved.
 
+==============================================================================
+A programmer of a plugin can register a command string and a callback function
+to be called when that command string is 'driven' to AFNI.  For example:
+
+  static int junkfun( char *cmd )
+  {
+    fprintf(stderr,"junkfun('%s')\n",cmd) ; return 0 ;
+  }
+
+  AFNI_driver_register( "JUNK" , junkfun ) ;
+
+If the callback function return value is negative, a warning message will be
+printed to stderr; otherwise, the return value is ignored.  The string that
+is passed to the callback function is everything AFTER the initial command
+and the blank(s) that follows; in the above example, if "JUNK elvis lives"
+were the driver command, then junkfun is called with the string "elvis lives".
+
+In a plugin, the logical place to put the call to AFNI_driver_register() is
+in the PLUGIN_init() function.
+
 =============================================================================
 COMMANDS (in no coherent order)
 -------------------------------
