@@ -1619,6 +1619,7 @@ extern void AFNI_set_thr_index ( Three_D_View * , int ) ; /* 30 Nov 2005 */
 extern void AFNI_set_anat_index( Three_D_View * , int ) ;
 extern void AFNI_set_fim_index ( Three_D_View * , int ) ;
 
+extern void AFNI_driver_register( char * , int (*)(char *) ) ;
 
 /*-------------------------------------------------------*/
 /*--------------  registration of functions -------------*/
