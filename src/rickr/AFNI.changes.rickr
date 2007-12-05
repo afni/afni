@@ -2276,4 +2276,8 @@
   * replaced Location attribute with ExternalFileName/Offset
   * added NumberOfDataArrays attribute to GIFTI element
   * applied new index_order strings
+05 Dec 2007: applied changes for NIfTI release 1.0.0
+  * modified Updates.txt, Makefile, README, CMakeLists.txt
+             fsliolib/CMakeLists.txt nifticdf/CMakeLists.txt
+             niftilib/CMakeLists.txt znzlib/CMakeLists.txt
 
