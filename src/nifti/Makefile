@@ -13,7 +13,7 @@ UTILS_PROGS	=	nifti_stats nifti_tool nifti1_test
 THIS_DIR	=	`basename ${PWD}`
 
 ## Note the TARFILE_NAME embeds the release version number
-TARFILE_NAME	=	nifticlib-0.6
+TARFILE_NAME	=	nifticlib-1.0
 
 
 ## Compiler  defines
