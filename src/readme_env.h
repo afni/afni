@@ -1607,7 +1607,9 @@ static char * readme_env[] = {
    "You can save a file \".afni.startup_script\" that will recreate the window\n" ,
    "layout you currently have.  Use the \"Datamode->Misc->Save Layout\" button\n" ,
    "and press \"Set\" on the popup control without entering any filename.  Instead\n" ,
-   "of a Layout file (cf. AFNI_LAYOUT_FILE above), you'll get a Script file.\n" ,
+   "of a Layout file (cf. AFNI_LAYOUT_FILE above), you'll get a Script file\n" ,
+   "if you leave the filename blank or enter any filename with the string\n" ,
+   "\"script\" included (e.g., \"coolstuff.script\").\n" ,
    "\n" ,
    "The capabilities of Script files are being expanded.  Not all features of\n" ,
    "the AFNI window setup are currently save-able this way.\n" ,
@@ -2613,4 +2615,4 @@ static char * readme_env[] = {
    "in 3dDeconvolve by the \"-gltsym\" option will be printed to the screen\n" ,
    "when the program starts up.\n" ,
    NULL } ;
-#define NUM_readme_env 2613
+#define NUM_readme_env 2615
