@@ -509,6 +509,9 @@ void startup_timeout_CB( XtPointer client_data , XtIntervalId *id )
 
    /* make graph */
 
+   memplot_topshell_setsaver( ".jpg" , memplot_to_jpg ) ; /* 05 Dec 2007 */
+   memplot_topshell_setsaver( ".png" , memplot_to_png ) ;
+
    ng = (sep) ? (-nts) : (nts) ;
    ngx = (sepscl) ? (-nx) : (nx) ;
    plot_ts_lab( dc->display , ngx , xar , ng , yar ,

@@ -247,6 +247,8 @@ extern MEM_topshell_data * memplot_to_topshell(Display *,MEM_plotdata *,void_fun
 extern void plotkill_topshell( MEM_topshell_data * ) ;
 extern void redraw_topshell( MEM_topshell_data * ) ;
 
+extern void memplot_topshell_setsaver( char * , void (*)(char *,MEM_plotdata *) ) ;
+
 #define memplot_to_shell(d) memplot_to_topshell( (d),get_active_memplot(),1 )
 
 /*-- plot time series --*/

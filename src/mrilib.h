@@ -1069,8 +1069,11 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 
 extern void set_memplot_RGB_box( int xbot, int ybot, int xtop, int ytop ) ;
 
-extern void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata * mp ,
+extern void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata *mp ,
                                 int start , int end , int freee    ) ;
+
+extern void memplot_to_jpg( char * , MEM_plotdata * ) ; /* 05 Dec 2007 */
+extern void memplot_to_png( char * , MEM_plotdata * ) ;
 
 /************************ Statistics routines *************************/
 

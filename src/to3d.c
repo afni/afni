@@ -5982,6 +5982,8 @@ ENTRY("T3D_check_outliers") ;
               for( iv=0 ; iv < nvals ; iv++ ){
                  y[0][iv] = out_count[iv] ; y[1][iv] = out_ctop ;
               }
+              memplot_topshell_setsaver( ".jpg", memplot_to_jpg ); /* 05 Dec 2007 */
+              memplot_topshell_setsaver( ".png", memplot_to_png );
               plot_ts_lab( XtDisplay(wset.topshell) ,              /* graph */
                            nvals , NULL , 2 , y ,
                            "Sub-brick Index" ,
