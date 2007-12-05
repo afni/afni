@@ -15,7 +15,7 @@
 #endif
 #define PSIZE 4096
 
-void memplot_to_postscript( char * fname , MEM_plotdata * mp )
+void memplot_to_postscript( char *fname , MEM_plotdata *mp )
 {
    int ii , nline ;
    float old_thick , old_color , new_color , new_thick ;

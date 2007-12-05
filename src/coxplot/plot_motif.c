@@ -9,7 +9,7 @@
 ******************************************************************************/
 
 static char print_command[256] = "\0" ;
-static char * redcolor = NULL ;
+static char *redcolor = NULL ;
 
 #ifndef LABEL_ARG
 #define LABEL_ARG(str) \
@@ -30,9 +30,33 @@ static char * redcolor = NULL ;
     (ss) = (xdef != NULL) ? (xdef) : ("gray40") ; }
 #endif
 
-/*--------------------------------------------------------------------------
+/*--------------------------------------------------------------------------*/
+#undef  STRING_HAS_SUFFIX
+#define STRING_HAS_SUFFIX(ss,suf)              \
+  ((ss != NULL) && (suf != NULL) &&            \
+   (strlen(ss) >= strlen(suf))   &&            \
+   (strcmp(ss+strlen(ss)-strlen(suf),suf) == 0))
+
+typedef void vpfunc(char *,MEM_plotdata *) ;
+typedef struct { char *suf ; vpfunc *fun ; } saver_pair ;
+static int     num_spair = 0 ;
+static saver_pair *spair = NULL ;
+
+void memplot_topshell_setsaver( char *suf, void (*fun)(char *,MEM_plotdata *) )
+{
+   int nn ;
+   if( suf == NULL || *suf == '\0' || fun == NULL ) return ;
+   nn = num_spair + 1 ;
+   spair = (saver_pair *)realloc( (void *)spair , sizeof(saver_pair)*nn ) ;
+   spair[num_spair].suf = strdup(suf) ;
+   spair[num_spair].fun = fun ;
+   num_spair            = nn ;
+   return ;
+}
+
+/*==========================================================================
   Callback routines for memplot_to_topshell
-----------------------------------------------------------------------------*/
+============================================================================*/
 
 /*--------------------------------------------------------------------------*/
 
@@ -53,7 +77,7 @@ static void beep_CB( Widget w , XtPointer cd , XtPointer cb )
 
 static void pscancel_CB( Widget w , XtPointer cd , XtPointer cb )
 {
-   MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;
+   MEM_topshell_data *mpcb = (MEM_topshell_data *) cd ;
 
    if( mpcb == NULL || ! MTD_VALID(mpcb) ) return ;
 
@@ -66,8 +90,8 @@ static void pscancel_CB( Widget w , XtPointer cd , XtPointer cb )
 
 static void psfinalize_CB( Widget w , XtPointer cd , XtPointer cb )
 {
-   MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;
-   char * text , fname[64] ;
+   MEM_topshell_data *mpcb = (MEM_topshell_data *) cd ;
+   char *text , fname[128] ;
    int ii , ll ;
 
    if( mpcb == NULL || ! MTD_VALID(mpcb) ) return ;
@@ -92,8 +116,16 @@ static void psfinalize_CB( Widget w , XtPointer cd , XtPointer cb )
    }
 
    strcpy(fname,text) ;
-   if( !(ll > 2 && text[ll-2] == 'p' && text[ll-1] == 's' ) )
-      strcat(fname,".ps") ;
+
+   for( ii=0 ; ii < num_spair ; ii++ ){               /* 05 Dec 2007 */
+     if( STRING_HAS_SUFFIX(fname,spair[ii].suf) ){
+       spair[ii].fun( fname , mpcb->mp ) ;
+       XtDestroyWidget( mpcb->dial ) ; mpcb->dial = mpcb->wtf = NULL ;
+       return ;
+     }
+   }
+
+   if( !STRING_HAS_SUFFIX(text,"ps") ) strcat(fname,".ps") ;
 
    memplot_to_postscript( fname , mpcb->mp ) ;
 
@@ -136,7 +168,7 @@ static void psfile_CB( Widget w , XtPointer cd , XtPointer cb )
 
    wlab = XtVaCreateManagedWidget(
              "menu" , xmLabelWidgetClass , wrc ,
-                LABEL_ARG("PostScript filename:") ,
+                LABEL_ARG("PostScript filename:\n[[or .jpg or .png ]]") ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
@@ -228,8 +260,8 @@ static void psfile_CB( Widget w , XtPointer cd , XtPointer cb )
 
 static void psprint_CB( Widget w , XtPointer cd , XtPointer cb )
 {
-   MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;
-   MEM_plotdata * mp ;
+   MEM_topshell_data *mpcb = (MEM_topshell_data *) cd ;
+   MEM_plotdata *mp ;
 
    if( mpcb == NULL ) return ;
    mp = mpcb->mp ; if( mp == NULL ) return ;
@@ -434,13 +466,13 @@ static void decode_geom( char * geom , int *ww, int *hh , int *xx, int *yy )
    to free it in the call to kfun.
 --------------------------------------------------------------------*/
 
-MEM_topshell_data * memplot_to_topshell( Display * dpy,
-                                         MEM_plotdata * mp, void_func * kfun )
+MEM_topshell_data * memplot_to_topshell( Display *dpy,
+                                         MEM_plotdata *mp, void_func *kfun )
 {
    Widget topshell , drawing , donebut , form , psfilebut , psprintbut ;
-   MEM_topshell_data * mpcb ;
+   MEM_topshell_data *mpcb ;
    int hmin=400 , wmin , ibut=0 , hh,ww,xx,yy ;
-   char * prc , * ept ;
+   char *prc , *ept ;
 
    /* sanity check */
 

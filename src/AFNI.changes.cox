@@ -6493,3 +6493,7 @@
 04 Dec 2007
  * Add AFNI_driver_register() to afni_driver.c to allow a plugin (say) to
      register a driver callback function.
+
+05 Dec 2007
+ * Modify plot_motif.c to allow saving plots (as in 1dplot.c) to .jpg and
+     .png files (if the proper suffix is given).
