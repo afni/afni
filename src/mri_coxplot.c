@@ -159,3 +159,53 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
    set_memplot_RGB_box(0,0,0,0) ; /* clear box */
    EXRETURN ;
 }
+
+/*-----------------------------------------------------------------------*/
+
+#undef  IMSIZ
+#define IMSIZ 1024
+
+static MRI_IMAGE * memplot_to_mri( MEM_plotdata *mp )
+{
+   MRI_IMAGE *im ; int nx , ny ;
+   byte *imp ;
+
+   if( mp == NULL || MEMPLOT_NLINE(mp) < 1 ) return NULL ;
+
+   if( mp->aspect > 1.0f ){
+     nx = IMSIZ ; ny = nx / mp->aspect ;
+   } else {
+     nx = IMSIZ * mp->aspect ; ny = IMSIZ ;
+   }
+   im = mri_new( nx , ny , MRI_rgb ) ;
+   imp = MRI_RGB_PTR(im) ; memset( imp , 255 , 3*nx*ny ) ;
+   set_memplot_RGB_box(0,0,0,0) ;
+   memplot_to_RGB_sef( im , mp , 0 , 0 , 0 ) ;
+   return im ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+void memplot_to_jpg( char *fname , MEM_plotdata *mp )
+{
+   MRI_IMAGE *im ;
+
+   if( fname == NULL || *fname == '\0' ) return ;
+
+   im = memplot_to_mri( mp ) ; if( im == NULL ) return ;
+   mri_write_jpg(fname,im) ; mri_free(im) ;
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+void memplot_to_png( char *fname , MEM_plotdata *mp )
+{
+   MRI_IMAGE *im ;
+
+   if( fname == NULL || *fname == '\0' ) return ;
+
+   im = memplot_to_mri( mp ) ; if( im == NULL ) return ;
+   mri_write_png(fname,im) ; mri_free(im) ;
+   return ;
+}

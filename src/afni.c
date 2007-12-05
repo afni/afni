@@ -1788,6 +1788,9 @@ STATUS("call 14") ;
         putenv("AFNI_DECONFLICT=OVERWRITE") ; /* 24 Sep 2007 */
         putenv("AFNI_IS_RUNNING=YES") ;       /* 08 Jun 2007 */
 
+        memplot_topshell_setsaver( ".jpg" , memplot_to_jpg ) ; /* 05 Dec 2007 */
+        memplot_topshell_setsaver( ".png" , memplot_to_png ) ;
+
         REPORT_PROGRESS("\n") ;
 
         { long long lfs = AFNI_logfilesize(); /* 17 Oct 2007 */
