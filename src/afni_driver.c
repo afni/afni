@@ -191,10 +191,12 @@ static AFNI_driver_pair *epair = NULL ;   /* dynamic commands */
 
 /*----------------------------------------------------------------------*/
 
+#if 0
 static int junkfun( char *cmd )   /* 04 Dec 2007 */
 {
   fprintf(stderr,"junkfun('%s')\n",cmd) ; return 0 ;
 }
+#endif
 
 /*----------------------------------------------------------------------*/
 /*! Accept a command, find the corresponding action function, call it.
@@ -274,11 +276,11 @@ ENTRY("AFNI_driver") ;
      }
    }
 
-   /*--- didn't match command at all?!? ---*/
+   /*--- didn't match user command to anything at all?!? ---*/
 
    ERROR_message("Can't drive AFNI with '%s'",cmd) ;  /* 22 Feb 2007 */
 
-   free(dmd) ; RETURN(-1) ;  /* not in the list */
+   free(dmd) ; RETURN(-1) ;  /* not in the lists */
 }
 
 /*---------------------------------------------------------------*/
@@ -2794,17 +2796,17 @@ void AFNI_driver_register( char *cmd , int (*cbfun)(char *) )
    if( cmd == NULL || *cmd == '\0' || cbfun == NULL ) return ;
    for( cpt=cmd ; *cpt != '\0' ; cpt++ ){
      if( isspace(*cpt) ){
-       WARNING_message("Illegal driver registration '%s'",cmd); return;
+       ERROR_message("Illegal driver registration '%s' (spaces not allowed)",cmd); return;
      }
    }
    for( nn=0 ; dpair[nn].nam != NULL ; nn++ ){
      if( strcmp(cmd,dpair[nn].nam) == 0 ){
-       WARNING_message("Illegal driver duplication '%s'",cmd); return;
+       ERROR_message("Illegal driver built-in duplication '%s'",cmd); return;
      }
    }
    for( nn=0 ; nn < num_epair; nn++ ){
      if( strcmp(cmd,epair[nn].nam) == 0 ){
-       WARNING_message("Illegal driver duplication '%s'",cmd); return;
+       ERROR_message("Illegal driver custom duplication '%s'",cmd); return;
      }
    }
 
