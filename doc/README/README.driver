@@ -17,7 +17,9 @@ of a sequence of command lines (without the "DRIVE_AFNI" prefix).  It is
 also possible to read in a Script file using the "Datamode->Misc->Run Script"
 button from the AFNI controller.  Some of the current state of AFNI can
 be saved to ".afni.startup_script" using the "Datamode->Misc->Save Layout"
-button (by giving a blank as the filename).
+button (by giving a blank as the filename -- or any filename containing the
+string "script" -- other filenames produce a 'layout' description which
+is intended to be included in your .afnirc file).
 
 You can also give commands to AFNI on the 'afni' command line, using the
 '-com' option.  For example:
