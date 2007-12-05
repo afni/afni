@@ -5798,7 +5798,7 @@ ENTRY("AFNI_misc_button") ;
             NULL ) ;
    XtAddCallback( dmode->misc_savelayout_pb , XmNactivateCallback ,
                   AFNI_save_layout_CB , im3d ) ;
-   MCW_register_hint( dmode->misc_savelayout_pb , "Save windows layout to file" ) ;
+   MCW_register_hint( dmode->misc_savelayout_pb , "Save layout to file (or .script)" ) ;
 
    /*--- 22 Jan 2003: Run Script [see afni_splash.c] ---*/
 

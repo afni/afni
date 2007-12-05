@@ -1681,11 +1681,14 @@ ENTRY("AFNI_finalsave_layout_CB") ;
      fp = fopen( cbs->cval , "w" ) ;
      if( fp == NULL ){ BEEPIT; EXRETURN; }
    }
+   if( fp != NULL && strstr(cbs->cval,"script") != NULL ){  /* 05 Dec 2007 */
+     gp = fp ; fp = NULL ;                  /* write as a driver script */
+   }
    if( fp != NULL ) fprintf(fp,"\n***LAYOUT\n") ;
 
    /*-- 22 Jan 2002: maybe write a startup script to do same things --*/
 
-   if( fp == NULL ) gp = fopen( ".afni.startup_script" , "w" ) ;
+   if( fp == NULL && gp == NULL ) gp = fopen( ".afni.startup_script" , "w" ) ;
 
    if( gp != NULL ){  /* start with a comment */
 
