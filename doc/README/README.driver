@@ -54,6 +54,13 @@ were the driver command, then junkfun is called with the string "elvis lives".
 In a plugin, the logical place to put the call to AFNI_driver_register() is
 in the PLUGIN_init() function.
 
+If you call AFNI_driver_register() with a new command name that duplicates
+an existing one, then an error message is printed to stderr and this call
+will be ignored.  For this reason, you may want to prefix your commands
+with some identifier; for example, a hypothetical diffusion tensor analysis
+plugin could give command names starting with "DTI_".  Or perhaps use your
+institution's name or your initials as a prefix, as in "NIMH_" or "RWC_".
+
 =============================================================================
 COMMANDS (in no coherent order)
 -------------------------------
