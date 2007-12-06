@@ -69,7 +69,7 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: 1dplot [options] tsfile ...\n"
-            "Graphs the columns of a *.1D type time series file to the screen.\n"
+            "Graphs the columns of a *.1D time series file to the X11 screen.\n"
             "\n"
             "Options:\n"
             " -install   = Install a new X11 colormap.\n"
@@ -78,10 +78,10 @@ int main( int argc , char *argv[] )
             "                [default = -sep]\n"
             " -sepscl    = Plot each column in a separate sub-graph\n"
             "              and allow each sub-graph to have a different\n"
-            "              y-scale. -sepscl is meaningless with -one.\n"
+            "              y-scale.  -sepscl is meaningless with -one!\n"
             " -x  X.1D   = Use for X axis the data in X.1D.\n"
             "              Note that X.1D should have one column\n"
-            "              of the same size as the columns in tsfile. \n"
+            "              of the same length as the columns in tsfile. \n"
             " N.B.: -x will override -dx and -xzero; -xaxis still has effects\n"
             "\n"
             " -dx xx     = Spacing between points on the x-axis is 'xx'\n"
@@ -102,23 +102,23 @@ int main( int argc , char *argv[] )
             "        echo 2 4.5 -1 | 1dplot -plabel 'test_underscore' -stdin\n"
             "              versus\n"
             "        echo 2 4.5 -1 | 1dplot -plabel 'test\\_underscore' -stdin\n"
-            " -title pp = Same as -plabel, but only works with -ps option.\n"
-            "             Consider using -plabel instead.\n"
+            " -title pp = Same as -plabel, but only works with -ps/-png/-jpg options.\n"
+            "             Use -plabel instead for full interoperability.\n"
             "             [In X11 mode, the X11 startup 'consumes' the '-title' ]\n"
             "             [before the program scans the command line for options]\n"
             "\n"
             " -stdin     = Don't read from tsfile; instead, read from\n"
             "              stdin and plot it. You cannot combine input\n"
-            "              from stdin and tsfile(s).  If you want to do\n"
-            "              so, see program 1dcat.\n"
+            "              from stdin and tsfile(s).  If you want to do so,\n"
+            "              use program 1dcat first.\n"
             "\n"
             " -ps        = Don't draw plot in a window; instead, write it\n"
             "              to stdout in PostScript format.\n"
-            "              * If you view this result in 'gv', you should turn\n"
-            "                'anti-alias' off, and switch to landscape mode.\n"
-            "              * You can use the 'gs' program to convert PostScript\n"
-            "                to other formats; for example, a .bmp file:\n"
-            "            1dplot -PS ~/data/verbal/cosall.1D | \n"
+            "             * If you view the result in 'gv', you should turn\n"
+            "               'anti-alias' off, and switch to landscape mode.\n"
+            "             * You can use the 'gs' program to convert PostScript\n"
+            "               to other formats; for example, a .bmp file:\n"
+            "            1dplot -ps ~/data/verbal/cosall.1D | \n"
             "             gs -r100 -sOutputFile=fred.bmp -sDEVICE=bmp256 -q -dBATCH -\n"
             "\n"
             " -jpg fname  } = Render plot to an image and save to a file named\n"
@@ -126,7 +126,10 @@ int main( int argc , char *argv[] )
             " -png fname  } = The default image width is 1024 pixels; to change\n"
             "                 this value to 2000 pixels (say), do\n"
             "                   setenv AFNI_1DPLOT_IMSIZE 2000\n"
-            "                 before running 1dplot.  Widths over 2000 may look odd.\n"
+            "                 before running 1dplot.  Widths over 2000 may start\n"
+            "                 to look odd, and will run more slowly.\n"
+            "               * PNG files will be smaller than JPEG, and are\n"
+            "                 compressed without loss.\n"
             "\n"
             " -xaxis b:t:n:m    = Set the x-axis to run from value 'b' to\n"
             "                     value 't', with 'n' major divisions and\n"
@@ -189,15 +192,24 @@ int main( int argc , char *argv[] )
       exit(0) ;
    }
 
-   mainENTRY("1dplot main"); machdep(); PRINT_VERSION("1dplot");
+   mainENTRY("1dplot main"); machdep(); PRINT_VERSION("1dplot"); AUTHOR("RWC et al.");
 
-   /* 29 Nov 2002: scan for -ps */
+   /* 29 Nov 2002: scan for things that make us skip X11 */
 
    for( ii=1 ; ii < argc ; ii++ ){
      if( strcasecmp(argv[ii],"-ps")   == 0 ){ skip_x11 = 1; break; }
      if( strcasecmp(argv[ii],"-jpg")  == 0 ){ skip_x11 = 1; break; }
      if( strcasecmp(argv[ii],"-jpeg") == 0 ){ skip_x11 = 1; break; }
      if( strcasecmp(argv[ii],"-png")  == 0 ){ skip_x11 = 1; break; }
+   }
+
+   if( !skip_x11 ){
+     for( ii=1 ; ii < argc ; ii++ ){
+       if( strcmp(argv[ii],"-title") == 0 ){
+         WARNING_message("-title used with X11 plotting: use -plabel instead!") ;
+         title = argv[ii+1] ; break ;
+       }
+     }
    }
 
    /* open X11 */
@@ -252,6 +264,8 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
 
+     /*-- image file output --*/
+
      if( strcasecmp(argv[iarg],"-jpeg") == 0 || strcasecmp(argv[iarg],"-jpg") == 0 ){
         out_ps = 0 ; imsave = JPEG_MODE ;
         iarg++ ; if( iarg >= argc ) ERROR_exit("need argument after '%s'",argv[iarg-1]) ;
@@ -304,9 +318,9 @@ int main( int argc , char *argv[] )
      }
 
      if( strcmp(argv[iarg],"-title") == 0 ){ /* this option normally gets eaten by XtVaAppInitialize */
-        fprintf(stderr,                      /* unless that is one is using -ps! So keep it here, it */
-         "Consider using -plabel, -title "   /* don't hurt. */
-         "only works with -ps option.\n"  );
+        WARNING_message(                     /* unless that is one is using -ps! So keep it here, it */
+         "Consider using -plabel; -title "   /* don't hurt. */
+         "only works with the -ps / -jpg / -png options"  );
         title = argv[++iarg] ;
         iarg++ ; continue ;
      }
@@ -339,7 +353,7 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
 
-     if( strcmp(argv[iarg],"-xzero") == 0 ){
+     if( strcmp(argv[iarg],"-xzero") == 0 || strcmp(argv[iarg],"-start") == 0 ){
         xzero = strtod( argv[++iarg] , NULL ) ;
         iarg++ ; continue ;
      }
@@ -363,6 +377,8 @@ int main( int argc , char *argv[] )
    }
    if( iarg >= argc && !use_stdin )
       ERROR_exit("No time series file on command line!\n") ;
+
+   /*-- setup color info --*/
 
    if( !skip_x11 )
      dc = MCW_new_DC( shell , 16 ,
@@ -516,15 +532,17 @@ int main( int argc , char *argv[] )
       for( ii=0 ; ii < nx ; ii++ ) xar[ii] = far[ii+ignore] ;
       mri_free(inimx); inimx=NULL; far = NULL;
    }
-   /* start X11 */
+
+   /*--- start X11 ---*/
 
    if( !skip_x11 ){
      (void) XtAppAddTimeOut( app , 123 , startup_timeout_CB , NULL ) ;
      XtAppMainLoop(app) ;   /* never returns */
    }
 
+   /*---------------------------------------------------*/
    /* 29 Nov 2002: if here, output PostScript to stdout */
-   /* 06 Dec 2007: or to an image file */
+   /* 06 Dec 2007: or write plot to an image file       */
 
    { MEM_plotdata *mp ;
      int ymask = (sep) ? TSP_SEPARATE_YBOX : 0 ;
