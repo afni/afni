@@ -1,6 +1,6 @@
 Name: nifticlib
 Summary: Niftilib C library
-Version: 0.5
+Version: 1.0.0
 Release: 1
 License: Public Domain
 Group: Applications/Scientific
