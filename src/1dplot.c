@@ -130,6 +130,8 @@ int main( int argc , char *argv[] )
             "                 to look odd, and will run more slowly.\n"
             "               * PNG files will be smaller than JPEG, and are\n"
             "                 compressed without loss.\n"
+            "               * PNG output requires that the netpbm program\n"
+            "                 pnmtopng be installed somewhere in your PATH.\n"
             "\n"
             " -xaxis b:t:n:m    = Set the x-axis to run from value 'b' to\n"
             "                     value 't', with 'n' major divisions and\n"
