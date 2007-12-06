@@ -17,6 +17,8 @@
 static int box_xbot=0 , box_xtop=0 ,
            box_ybot=0 , box_ytop=0  ;
 
+static int do_thick=0 ;
+
 void set_memplot_RGB_box( int xbot, int ybot, int xtop, int ytop )
 {
    if( xbot < xtop && ybot < ytop ){
@@ -43,7 +45,7 @@ void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata *mp ,
 {
    byte rrr=0,ggg=0,bbb=0 ;
    int ii , nline , same ;
-   float old_thick , old_color , new_color , new_thick ;
+   float old_thick , old_color , new_color , new_thick , sthick ;
    float scal,xscal,yscal , xoff,yoff ;
    int x1,y1 , x2,y2 ;
    int skip ;
@@ -139,20 +141,39 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
       } else if( new_thick != old_thick ){ /* normal case: change line thickness */
 
          old_thick = new_thick ;  /* thickness not used at this time */
+         sthick = new_thick * scal ; sthick = MIN(sthick,9.0f) ;
 
       }
 
       /* scale coords to ints (also see zzphph.f) */
 
       if( !skip ){
-        x1 = (int)( xoff + xscal * MEMPLOT_X1(mp,ii)         ) ;
-        x2 = (int)( xoff + xscal * MEMPLOT_X2(mp,ii)         ) ;
-        y1 = (int)( yoff + yscal * (1.0 - MEMPLOT_Y1(mp,ii)) ) ;
-        y2 = (int)( yoff + yscal * (1.0 - MEMPLOT_Y2(mp,ii)) ) ;
+        float a1 = MEMPLOT_X1(mp,ii) ;
+        float a2 = MEMPLOT_X2(mp,ii) ;
+        float b1 = (1.0f - MEMPLOT_Y1(mp,ii)) ;
+        float b2 = (1.0f - MEMPLOT_Y2(mp,ii)) ;
+
+        x1 = (int)( xoff + xscal * a1 ) ; x2 = (int)( xoff + xscal * a2 ) ;
+        y1 = (int)( yoff + yscal * b1 ) ; y2 = (int)( yoff + yscal * b2 ) ;
 
         /* draw it */
 
         mri_drawline( im , x1,y1 , x2,y2 , rrr,ggg,bbb ) ;
+
+        if( do_thick && sthick >= 1.0f && (x1 != x2 || y1 != y2) ){  /* 06 Dec 2007 */
+          float da=a2-a1 , db=b2-b1 , dl=new_thick/sqrtf(da*da+db*db) ;
+          float c1,c2 , d1,d2 ;
+          int jj , ss=(int)(2.0f*sthick) ;
+          dl /= (2*ss) ; da *= dl ; db *= dl ;
+          for( jj=-ss ; jj <= ss ; jj++ ){
+            if( jj == 0 ) continue ;
+            c1 = a1 + jj*db ; c2 = a2 + jj*db ;
+            d1 = b1 - jj*da ; d2 = b2 - jj*da ;
+            x1 = (int)( xoff + xscal * c1 ) ; x2 = (int)( xoff + xscal * c2 ) ;
+            y1 = (int)( yoff + yscal * d1 ) ; y2 = (int)( yoff + yscal * d2 ) ;
+            mri_drawline( im , x1,y1 , x2,y2 , rrr,ggg,bbb ) ;
+          }
+        }
       }
    }
 
@@ -165,28 +186,33 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
 #undef  IMSIZ
 #define IMSIZ 1024
 
-static MRI_IMAGE * memplot_to_mri( MEM_plotdata *mp )
+static MRI_IMAGE * memplot_to_mri( MEM_plotdata *mp )  /* 05 Dec 2007 */
 {
-   MRI_IMAGE *im ; int nx , ny ;
+   MRI_IMAGE *im ; int nx , ny , imsiz ;
    byte *imp ;
 
    if( mp == NULL || MEMPLOT_NLINE(mp) < 1 ) return NULL ;
 
+   imsiz = (int)AFNI_numenv("AFNI_1DPLOT_IMSIZE") ;
+   if( imsiz < 100 || imsiz > 9999 ) imsiz = IMSIZ ;
+
    if( mp->aspect > 1.0f ){
-     nx = IMSIZ ; ny = nx / mp->aspect ;
+     nx = imsiz ; ny = nx / mp->aspect ;
    } else {
-     nx = IMSIZ * mp->aspect ; ny = IMSIZ ;
+     nx = imsiz * mp->aspect ; ny = imsiz ;
    }
    im = mri_new( nx , ny , MRI_rgb ) ;
-   imp = MRI_RGB_PTR(im) ; memset( imp , 255 , 3*nx*ny ) ;
+   imp = MRI_RGB_PTR(im) ; memset( imp , 255 , 3*nx*ny ) ; /* white-ize */
    set_memplot_RGB_box(0,0,0,0) ;
+   do_thick = 1 ;
    memplot_to_RGB_sef( im , mp , 0 , 0 , 0 ) ;
+   do_thick = 0 ;
    return im ;
 }
 
 /*-----------------------------------------------------------------------*/
 
-void memplot_to_jpg( char *fname , MEM_plotdata *mp )
+void memplot_to_jpg( char *fname , MEM_plotdata *mp )  /* 05 Dec 2007 */
 {
    MRI_IMAGE *im ;
 
@@ -199,7 +225,7 @@ void memplot_to_jpg( char *fname , MEM_plotdata *mp )
 
 /*-----------------------------------------------------------------------*/
 
-void memplot_to_png( char *fname , MEM_plotdata *mp )
+void memplot_to_png( char *fname , MEM_plotdata *mp )  /* 05 Dec 2007 */
 {
    MRI_IMAGE *im ;
 

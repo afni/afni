@@ -680,17 +680,17 @@ static char * ISQ_arrow_hint[NARROW] = {
 #define ZOOM_BOT  1          /* 11 Mar 2002: zoom controls */
 #define ZOOM_TOP  4
 
-MCW_imseq * open_MCW_imseq( MCW_DC * dc ,
+MCW_imseq * open_MCW_imseq( MCW_DC *dc ,
                             get_ptr get_image , XtPointer aux )
 {
-   MCW_imseq        * newseq ;
-   MCW_imseq_status * imstatus ;
+   MCW_imseq        *newseq ;
+   MCW_imseq_status *imstatus ;
    int ii , xwide , yhigh , one_image ;
    float fac ;
-   MRI_IMAGE * tim ;
-   float minfrac=DEFAULT_MINFRAC ; char * eee ; /* 27 Feb 2001 */
-   Widget wtemp ;                               /* 11 Mar 2002 */
-   float maxfrac=DEFAULT_MAXFRAC ;              /* 13 Jun 2003 */
+   MRI_IMAGE *tim ;
+   float minfrac=DEFAULT_MINFRAC ; char *eee ; /* 27 Feb 2001 */
+   Widget wtemp ;                              /* 11 Mar 2002 */
+   float maxfrac=DEFAULT_MAXFRAC ;             /* 13 Jun 2003 */
 
 ENTRY("open_MCW_imseq") ;
 
@@ -1823,6 +1823,15 @@ STATUS("creation: widgets created") ;
    }
 
    newseq->parent = NULL ;
+
+   { static int first=1 ;
+     if( first ){
+       memplot_topshell_setsaver( ".jpg" , memplot_to_jpg ) ; /* 05 Dec 2007 */
+       memplot_topshell_setsaver( ".png" , memplot_to_png ) ;
+       first = 0 ;
+     }
+   }
+
    RETURN(newseq) ;
 }
 
