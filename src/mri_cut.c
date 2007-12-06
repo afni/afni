@@ -13,10 +13,10 @@
    if inputs are incoherent.  RWCox -- 13 April 1999.
 ---------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_cut_2D( MRI_IMAGE * im , int xa, int xb, int ya, int yb )
+MRI_IMAGE * mri_cut_2D( MRI_IMAGE *im , int xa, int xb, int ya, int yb )
 {
-   char * par , * qar , * irow , * orow ;
-   MRI_IMAGE * qim ;
+   char *par , *qar , *irow , *orow ;
+   MRI_IMAGE *qim ;
    int qx,qy , ps , xx,yy , nx, xps ;
 
 ENTRY("mri_cut_2D") ;
@@ -55,11 +55,11 @@ ENTRY("mri_cut_2D") ;
    Returns NULL if inputs are incoherent.  RWCox -- 06 Jun 2002.
 ---------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_cut_3D( MRI_IMAGE * im ,
+MRI_IMAGE * mri_cut_3D( MRI_IMAGE *im ,
                         int xa, int xb, int ya, int yb, int za, int zb )
 {
-   char * par , * qar , * irow , * orow ;
-   MRI_IMAGE * qim ;
+   char *par , *qar , *irow , *orow ;
+   MRI_IMAGE *qim ;
    int qx,qy,qz, ps , xx,yy,zz , nx,nxy , xps ;
 
 ENTRY("mri_cut_3D") ;
