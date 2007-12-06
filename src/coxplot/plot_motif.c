@@ -541,7 +541,7 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
    ibut = 0 ;
    psfilebut = XtVaCreateManagedWidget(
                  "dialog" , xmPushButtonWidgetClass , form ,
-                    LABEL_ARG("PS->file") ,
+                    LABEL_ARG("save to file") ,
                     XmNtopAttachment  , XmATTACH_FORM ,
 
                     XmNleftAttachment   ,
@@ -561,7 +561,7 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
    ibut++ ;
    psprintbut = XtVaCreateManagedWidget(
                  "dialog" , xmPushButtonWidgetClass , form ,
-                    LABEL_ARG("->printer") ,
+                    LABEL_ARG("to printer") ,
                     XmNtopAttachment  , XmATTACH_FORM ,
 
                     XmNleftAttachment   ,
