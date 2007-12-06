@@ -452,6 +452,8 @@ typedef struct MRI_IMARR {
           (name)->num = qq ;                                                    \
        } } while(0)
 
+extern MRI_IMARR * mri_to_imarr( MRI_IMAGE *imin ) ; /* 06 Dec 2007 */
+
 /******* macros for complex arithmetic, using comma operator *******/
 
 static float   MRI_fla ;                      /* float temporaries   */
