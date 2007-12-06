@@ -6497,3 +6497,6 @@
 05 Dec 2007
  * Modify plot_motif.c to allow saving plots (as in 1dplot.c) to .jpg and
      .png files (if the proper suffix is given).
+
+06 Dec 2007
+ * Add -jpg and -png options to 1dplot.c.

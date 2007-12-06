@@ -45,7 +45,11 @@ static saver_pair *spair = NULL ;
 void memplot_topshell_setsaver( char *suf, void (*fun)(char *,MEM_plotdata *) )
 {
    int nn ;
+
    if( suf == NULL || *suf == '\0' || fun == NULL ) return ;
+   for( nn=0 ; nn < num_spair ; nn++ )
+     if( strcmp(suf,spair[nn].suf) == 0 ) return ;
+
    nn = num_spair + 1 ;
    spair = (saver_pair *)realloc( (void *)spair , sizeof(saver_pair)*nn ) ;
    spair[num_spair].suf = strdup(suf) ;

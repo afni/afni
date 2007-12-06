@@ -141,9 +141,9 @@ void plot_ts_setthik( float thk )
                transform for the data at box #0 as the last setting
 -------------------------------------------------------------------------*/
 
-MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y ,
-                            char * lab_xxx , char * lab_yyy , char * lab_top ,
-                            char ** nam_yyy )
+MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
+                            char *lab_xxx , char *lab_yyy , char *lab_top ,
+                            char **nam_yyy )
 {
    int ii , jj , np , nnax,nnay , mmax,mmay ;
    float *xx , *yy ;
@@ -284,7 +284,7 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
    /*-- setup to plot --*/
 
    create_memplot_surely( "tsplot" , 1.3 ) ;
-   set_thick_memplot( 0.2*THIK ) ;
+   set_thick_memplot( 0.2*THIK ) ;  /* for labels */
 
    /*-- plot labels, if any --*/
 
@@ -298,19 +298,19 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
 
    set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    if( STGOOD(lab_xxx) )
-      plotpak_pwritf( 0.5*(xobot+xotop) , yobot-0.06 , lab_xxx , 16 , 0 , 0 ) ;
+     plotpak_pwritf( 0.5*(xobot+xotop) , yobot-0.06 , lab_xxx , 16 , 0 , 0 ) ;
 
    /* y-axis label? */
 
    set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    if( STGOOD(lab_yyy) )
-      plotpak_pwritf( xobot-0.10 , 0.5*(yobot+yotop) , lab_yyy , 16 , 90 , 0 ) ;
+     plotpak_pwritf( xobot-0.10 , 0.5*(yobot+yotop) , lab_yyy , 16 , 90 , 0 ) ;
 
    /* label at top? */
 
    set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    if( STGOOD(lab_top) )
-      plotpak_pwritf( xobot+0.01 , yotop+0.01 , lab_top , 18 , 0 , -2 ) ;
+     plotpak_pwritf( xobot+0.01 , yotop+0.01 , lab_top , 18 , 0 , -2 ) ;
 
    /*-- plot all on same vertical scale --*/
 
@@ -322,16 +322,16 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
          float yv = yotop ; int sz ;
 
          for( jj=0 ; jj < ny ; jj++ ){
-            if( STGOOD(nam_yyy[jj]) ){
-               set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
-               set_thick_memplot( THIK ) ;
-               plotpak_line( xotop+0.008 , yv , xotop+0.042 , yv ) ;
-               set_thick_memplot( 0.2*THIK ) ;
-               set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
-               sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 10 ;
-               plotpak_pwritf( xotop+0.048 , yv , nam_yyy[jj] , sz , 0 , -1 ) ;
-               yv -= 0.05 ;
-            }
+           if( STGOOD(nam_yyy[jj]) ){
+             set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
+             set_thick_memplot( THIK ) ;
+             plotpak_line( xotop+0.008 , yv , xotop+0.042 , yv ) ;
+             set_thick_memplot( 0.2*THIK ) ;
+             set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+             sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 10 ;
+             plotpak_pwritf( xotop+0.048 , yv , nam_yyy[jj] , sz , 0 , -1 ) ;
+             yv -= 0.05 ;
+           }
          }
       }
 
@@ -401,12 +401,14 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
            else if( mmay == 3 ) mmay = 6 ;
          }
 
+         set_thick_memplot( 0.1*THIK ) ;
          set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
          plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)*(jj==0)+2*(nnay>0)] ) ;
          if( ylo[jj] < 0.0 && yhi[jj] > 0.0 ){
-            plotpak_setlin(5) ;
-            plotpak_line( xbot,0.0 , xtop,0.0 ) ;
-            plotpak_setlin(1) ;
+           set_thick_memplot( 0.0 ) ;
+           plotpak_setlin(5) ;
+           plotpak_line( xbot,0.0 , xtop,0.0 ) ;
+           plotpak_setlin(1) ;
          }
 
          set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
@@ -425,6 +427,9 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
    }
 
    /*-- exit, stage left --*/
+
+   set_thick_memplot( 0.0 ) ;
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
 
    if( xx != x ) free(xx) ;
    free(ylo) ; free(yhi) ;
