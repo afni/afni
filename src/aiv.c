@@ -226,11 +226,19 @@ int main( int argc , char *argv[] )
        fprintf(stderr,"%s",gname[ii]) ;
      }
 
+     if( IMARR_COUNT(qar) == 1 ){  /* possibly a 3D dataset from AFNI */
+       im = IMARR_SUBIM(qar,0) ;
+       if( im != NULL && im->nz > 1 ){  /* break 3D array into 2D images */
+         MRI_IMARR *zar = mri_to_imarr(im) ;
+         if( zar != NULL ){ DESTROY_IMARR(qar) ; qar = zar ; }
+       }
+     }
+
      for( jj=0 ; jj < IMARR_COUNT(qar) ; jj++ ){
        im = IMARR_SUBIM(qar,jj) ;
        if( im != NULL && im->nx > 1 && im->ny > 1 ) ADDTO_IMARR(MAIN_imar,im);
      }
-     FREE_IMARR(qar) ;
+     FREE_IMARR(qar) ;  /* just FREE, not DESTROY */
    }
 
    /* print a message about the images? */
