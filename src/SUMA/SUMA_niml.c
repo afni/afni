@@ -2603,7 +2603,9 @@ SUMA_Boolean SUMA_NodeXYZ_nel2NodeXYZ (SUMA_SurfaceObject *SO, NI_element *nel)
    \sa SUMA_NodeXYZ_nel2NodeXYZ
    
 */
-NI_element * SUMA_NodeXYZ2NodeXYZ_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Boolean cleanup, SUMA_DSET_TYPE dtype)
+NI_element * SUMA_NodeXYZ2NodeXYZ_nel (
+   SUMA_SurfaceObject *SO, float *val, 
+   SUMA_Boolean cleanup, SUMA_DSET_TYPE dtype)
 {
    static char FuncName[]={"SUMA_NodeXYZ2NodeXYZ_nel"};
    static int i_in=0;
@@ -2647,6 +2649,7 @@ NI_element * SUMA_NodeXYZ2NodeXYZ_nel (SUMA_SurfaceObject *SO, float *val, SUMA_
       SUMA_RETURN(NULL);
    }
    
+   SUMA_LH("Setting attributes");
    sprintf(stmp, "%d", SO->NodeDim);
    NI_set_attribute (nel, "Node_Dim", stmp);
 
@@ -2657,12 +2660,15 @@ NI_element * SUMA_NodeXYZ2NodeXYZ_nel (SUMA_SurfaceObject *SO, float *val, SUMA_
    
    /* set the label */
    if (SO->Label) {
+      SUMA_LH(" label");
       sprintf(stmp, "NodeList for surface %s", SO->Label);
       NI_set_attribute (nel, "Object_Label", stmp);
    } else {
+      SUMA_LH(" no label");
       NI_set_attribute (nel, "Object_Label", SUMA_EMPTY_ATTR);
    }
          
+   SUMA_LH("Adding data");
    #if 0 /* old way */
    /* Add the coordinate column */
    if (!SUMA_AddNelCol (nel, /* the famed nel */ 

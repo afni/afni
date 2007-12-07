@@ -32,317 +32,320 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
       sts = SUMA_help_talk(ps);
-      printf ( "\n"
-               "Usage: A program to extract the brain from surrounding.\n"
-               "  tissue from MRI T1-weighted images. The fully automated\n"
-               "  process consists of three steps:\n"
-               "  1- Preprocessing of volume to remove gross spatial image \n"
-               "  non-uniformity artifacts and reposition the brain in\n"
-               "  a reasonable manner for convenience.\n"
-               "  2- Expand a spherical surface iteratively until it envelopes\n"
-               "  the brain. This is a modified version of the BET algorithm:\n"
-               "     Fast robust automated brain extraction, \n"
-               "      by Stephen M. Smith, HBM 2002 v 17:3 pp 143-155\n"
-               "    Modifications include the use of:\n"
-               "     . outer brain surface\n"
-               "     . expansion driven by data inside and outside the surface\n"
-               "     . avoidance of eyes and ventricles\n"
-               "     . a set of operations to avoid the clipping of certain brain\n"
-               "       areas and reduce leakage into the skull in heavily shaded\n"
-               "       data\n"
-               "     . two additional processing stages to ensure convergence and\n"
-               "       reduction of clipped areas.\n"
-               "     . use of 3d edge detection, see Deriche and Monga references\n"
-               "       in 3dedge3 -help.\n"
-               "  3- The creation of various masks and surfaces modeling brain\n"
-               "     and portions of the skull\n"
-               "\n"
-               "  Common examples of usage:\n"
-               "  -------------------------\n"
-               "  o 3dSkullStrip -input VOL -prefix VOL_PREFIX\n"
-               "     Vanilla mode, should work for most datasets.\n"
-               "  o 3dSkullStrip -input VOL -prefix VOL_PREFIX -push_to_edge\n"
-               "     Adds an agressive push to brain edges. Use this option\n"
-               "     when the chunks of gray matter are not included. This option\n"
-               "     might cause the mask to leak into non-brain areas.\n"
-               "  o 3dSkullStrip -input VOL -surface_coil -prefix VOL_PREFIX -monkey\n"
-               "     Vanilla mode, for use with monkey data.\n"
-               "  o 3dSkullStrip -input VOL -prefix VOL_PREFIX -ld 30\n"
-               "     Use a denser mesh, in the cases where you have lots of \n"
-               "     csf between gyri. Also helps when some of the brain is clipped\n"
-               "     close to regions of high curvature.\n"
-               "\n"
-               "  Tips:\n"
-               "  -----\n"
-               "     I ran the program with the default parameters on 200+ datasets.\n"
-               "     The results were quite good in all but a couple of instances, here\n"
-               "     are some tips on fixing trouble spots:\n"  
-               "\n"
-               "     Clipping in frontal areas, close to the eye balls:\n"
-               "        + Try -push_to_edge option first.\n"
-               "          Can also try -no_avoid_eyes option.\n"
-               "     Clipping in general:\n"
-               "        + Try -push_to_edge option first.\n"
-               "          Can also use lower -shrink_fac, start with 0.5 then 0.4\n"
-               "     Problems down below:\n"
-               "        + Piece of cerbellum missing, reduce -shrink_fac_bot_lim \n"
-               "          from default value.\n"
-               "        + Leakage in lower areas, increase -shrink_fac_bot_lim \n"
-               "          from default value.\n"
-               "     Some lobules are not included:\n"
-               "        + Use a denser mesh. Start with -ld 30. If that still fails,\n"
-               "        try even higher density (like -ld 50) and increase iterations \n"
-               "        (say to -niter 750). Expect the program to take much longer in that case.\n"
-               "        + Instead of using denser meshes, you could try blurring the data \n"
-               "        before skull stripping. Something like -blur_fwhm 2 did\n"
-               "        wonders for some of my data with the default options of 3dSkullStrip\n"
-               "        Blurring is a lot faster than increasing mesh density.\n"
-               "        + Use also a smaller -shrink_fac is you have lots of CSF between gyri.\n"
-               "     Massive chunks missing:\n"
-               "        + If brain has very large ventricles and lots of CSF between gyri, the\n"
-               "        ventricles will keep attracting the surface inwards. In such cases, use\n"
-               "        the -visual option to see what is happening and try these options to \n"
-               "        reduce the severity of the problem:\n"
-               "            -blur_fwhm 2 -use_skull\n"
-               "\n" 
-               "  Eye Candy Mode: \n"
-               "  ---------------\n"
-               "  You can run BrainWarp and have it send successive iterations\n"
-               " to SUMA and AFNI. This is very helpful in following the\n"
-               " progression of the algorithm and determining the source\n"
-               " of trouble, if any.\n"
-               "  Example:\n"
-               "     afni -niml -yesplugouts &\n"
-               "     suma -niml &\n"
-               "     3dSkullStrip -input Anat+orig -o_ply anat_brain -visual\n"
-               "\n"
-               "  Help section for the intrepid:\n"
-               "  ------------------------------\n" 
-               "  3dSkullStrip  < -input VOL >\n"
-               "             [< -o_TYPE PREFIX >] [< -prefix VOL_PREFIX >] \n"
-               "             [< -spatnorm >] [< -no_spatnorm >] [< -write_spatnorm >]\n"
-               "             [< -niter N_ITER >] [< -ld LD >] \n"
-               "             [< -shrink_fac SF >] [< -var_shrink_fac >] \n"
-               "             [< -no_var_shrink_fac >] [< -shrink_fac_bot_lim SFBL >]\n"
-               "             [< -pushout >] [< -no_pushout >] [< -exp_frac FRAC]\n"
-               "             [< -touchup >] [< -no_touchup >]\n"
-               "             [< -fill_hole R >] [< -NN_smooth NN_SM >]\n"
-               "             [< -smooth_final SM >] [< -avoid_vent >] [< -no_avoid_vent >]\n"
-               "             [< -use_skull >] [< -no_use_skull >] \n"
-               "             [< -avoid_eyes >] [< -no_avoid_eyes >] \n"
-               "             [< -use_edge >] [< -no_use_edge >] \n"
-               "             [< -push_to_edge >] [<-no_push_to_edge>]\n"
-               "             [< -perc_int PERC_INT >] \n"
-               "             [< -max_inter_iter MII >] [-mask_vol | -orig_vol | -norm_vol]\n"
-               "             [< -debug DBG >] [< -node_debug NODE_DBG >]\n"
-               "             [< -demo_pause >]\n"
-               "             [< -monkey >] [<-rat>]\n"  
-               "\n"
-               "  NOTE: Please report bugs and strange failures\n"
-               "        to saadz@mail.nih.gov\n"
-               "\n"
-               "  Mandatory parameters:\n"
-               "     -input VOL: Input AFNI (or AFNI readable) volume.\n"
-               "                 \n"
-               "\n"
-               "  Optional Parameters:\n"
-               "     -monkey: the brain of a monkey.\n"
-               "     -rat: the brain of a rat.\n"
-               "           By default, no_touchup is used with the rat.\n"
-               "     -surface_coil: Data acquired with a surface coil.\n"
-               "     -o_TYPE PREFIX: prefix of output surface.\n"
-               "        where TYPE specifies the format of the surface\n"
-               "        and PREFIX is, well, the prefix.\n"
-               "        TYPE is one of: fs, 1d (or vec), sf, ply.\n"
-               "        More on that below.\n"
-               "     -skulls: Output surface models of the skull.\n"
-               "     -4Tom:   The output surfaces are named based\n"
-               "             on PREFIX following -o_TYPE option below.\n"
-               "     -prefix VOL_PREFIX: prefix of output volume.\n"
-               "        If not specified, the prefix is the same\n"
-               "        as the one used with -o_TYPE.\n"
-               "        The output volume is skull stripped version\n"
-               "        of the input volume. In the earlier version\n"
-               "        of the program, a mask volume was written out.\n" 
-               "        You can still get that mask volume instead of the\n"
-               "        skull-stripped volume with the option -mask_vol . \n"
-               "        NOTE: In the default setting, the output volume does not \n"
-               "              have values identical to those in the input. \n"
-               "              In particular, the range might be larger \n"
-               "              and some low-intensity values are set to 0.\n"
-               "              If you insist on having the same range of values as in\n"
-               "              the input, then either use option -orig_vol, or run:\n"
-               "         3dcalc -nscale -a VOL+VIEW -b VOL_PREFIX+VIEW \\\n"
-               "                -expr 'a*step(b)' -prefix VOL_SAME_RANGE\n"
-               "              With the command above, you can preserve the range\n"
-               "              of values of the input but some low-intensity voxels would still\n"
-               "              be masked. If you want to preserve them, then use -mask_vol\n"
-               "              in the 3dSkullStrip command that would produce \n"
-               "              VOL_MASK_PREFIX+VIEW. Then run 3dcalc masking with voxels\n"
-               "              inside the brain surface envelope:\n"
-               "         3dcalc -nscale -a VOL+VIEW -b VOL_MASK_PREFIX+VIEW \\\n"
-               "                -expr 'a*step(b-3.01)' -prefix VOL_SAME_RANGE_KEEP_LOW\n"
-               "     -norm_vol: Output a masked and somewhat intensity normalized and \n"
-               "                thresholded version of the input. This is the default,\n"
-               "                and you can use -orig_vol to override it.\n"
-               "     -orig_vol: Output a masked version of the input AND do not modify\n"
-               "                the values inside the brain as -norm_vol would.\n"
-               "     -mask_vol: Output a mask volume instead of a skull-stripped\n"
-               "                volume.\n"
-               "                The mask volume containes:\n"
-               "                 0: Voxel outside surface\n"
-               "                 1: Voxel just outside the surface. This means the voxel\n"
-               "                    center is outside the surface but inside the \n"
-               "                    bounding box of a triangle in the mesh. \n"
-               "                 2: Voxel intersects the surface (a triangle), but center\n"
-               "                    lies outside.\n"
-               "                 3: Voxel contains a surface node.\n"
-               "                 4: Voxel intersects the surface (a triangle), center lies\n"
-               "                    inside surface. \n"
-               "                 5: Voxel just inside the surface. This means the voxel\n"
-               "                    center is inside the surface and inside the \n"
-               "                    bounding box of a triangle in the mesh. \n"
-               "                 6: Voxel inside the surface. \n"
-               "     -spat_norm: (Default) Perform spatial normalization first.\n"
-               "                 This is a necessary step unless the volume has\n"
-               "                 been 'spatnormed' already.\n"
-               "     -no_spatnorm: Do not perform spatial normalization.\n"
-               "                   Use this option only when the volume \n"
-               "                   has been run through the 'spatnorm' process\n"
-               "     -spatnorm_dxyz DXYZ: Use DXY for the spatial resolution of the\n"
-               "                          spatially normalized volume. The default \n"
-               "                          is the lowest of all three dimensions.\n"
-               "                          For human brains, use DXYZ of 1.0, for\n"
-               "                          primate brain, use the default setting.\n"
-               "     -write_spatnorm: Write the 'spatnormed' volume to disk.\n"
-               "     -niter N_ITER: Number of iterations. Default is 250\n"
-               "        For denser meshes, you need more iterations\n"
-               "        N_ITER of 750 works for LD of 50.\n"
-               "     -ld LD: Parameter to control the density of the surface.\n"
-               "             Default is 20 if -no_use_edge is used,\n"
-               "             30 with -use_edge. See CreateIcosahedron -help\n"
-               "             for details on this option.\n"
-               "     -shrink_fac SF: Parameter controlling the brain vs non-brain\n"
-               "             intensity threshold (tb). Default is 0.6.\n"
-               "              tb = (Imax - t2) SF + t2 \n"
-               "             where t2 is the 2 percentile value and Imax is the local\n"
-               "             maximum, limited to the median intensity value.\n"
-               "             For more information on tb, t2, etc. read the BET paper\n"
-               "             mentioned above. Note that in 3dSkullStrip, SF can vary across \n"
-               "             iterations and might be automatically clipped in certain areas.\n"
-               "             SF can vary between 0 and 1.\n"
-               "             0: Intensities < median inensity are considered non-brain\n"
-               "             1: Intensities < t2 are considered non-brain\n" 
-               "     -var_shrink_fac: Vary the shrink factor with the number of\n"
-               "             iterations. This reduces the likelihood of a surface\n"
-               "             getting stuck on large pools of CSF before reaching\n"
-               "             the outer surface of the brain. (Default)\n"
-               "     -no_var_shrink_fac: Do not use var_shrink_fac.\n"
-               "     -shrink_fac_bot_lim SFBL: Do not allow the varying SF to go\n"
-               "             below SFBL . Default 0.65, 0.4 when edge detection is used. \n"
-               "             This option helps reduce potential for leakage below \n"
-               "             the cerebellum.\n"
-               "             In certain cases where you have severe non-uniformity resulting\n"
-               "             in low signal towards the bottom of the brain, you will need to reduce\n"
-               "             this parameter.\n"
+      printf ( 
+"\n"
+"Usage: A program to extract the brain from surrounding.\n"
+"  tissue from MRI T1-weighted images. The fully automated\n"
+"  process consists of three steps:\n"
+"  1- Preprocessing of volume to remove gross spatial image \n"
+"  non-uniformity artifacts and reposition the brain in\n"
+"  a reasonable manner for convenience.\n"
+"  2- Expand a spherical surface iteratively until it envelopes\n"
+"  the brain. This is a modified version of the BET algorithm:\n"
+"     Fast robust automated brain extraction, \n"
+"      by Stephen M. Smith, HBM 2002 v 17:3 pp 143-155\n"
+"    Modifications include the use of:\n"
+"     . outer brain surface\n"
+"     . expansion driven by data inside and outside the surface\n"
+"     . avoidance of eyes and ventricles\n"
+"     . a set of operations to avoid the clipping of certain brain\n"
+"       areas and reduce leakage into the skull in heavily shaded\n"
+"       data\n"
+"     . two additional processing stages to ensure convergence and\n"
+"       reduction of clipped areas.\n"
+"     . use of 3d edge detection, see Deriche and Monga references\n"
+"       in 3dedge3 -help.\n"
+"  3- The creation of various masks and surfaces modeling brain\n"
+"     and portions of the skull\n"
+"\n"
+"  Common examples of usage:\n"
+"  -------------------------\n"
+"  o 3dSkullStrip -input VOL -prefix VOL_PREFIX\n"
+"     Vanilla mode, should work for most datasets.\n"
+"  o 3dSkullStrip -input VOL -prefix VOL_PREFIX -push_to_edge\n"
+"     Adds an agressive push to brain edges. Use this option\n"
+"     when the chunks of gray matter are not included. This option\n"
+"     might cause the mask to leak into non-brain areas.\n"
+"  o 3dSkullStrip -input VOL -surface_coil -prefix VOL_PREFIX -monkey\n"
+"     Vanilla mode, for use with monkey data.\n"
+"  o 3dSkullStrip -input VOL -prefix VOL_PREFIX -ld 30\n"
+"     Use a denser mesh, in the cases where you have lots of \n"
+"     csf between gyri. Also helps when some of the brain is clipped\n"
+"     close to regions of high curvature.\n"
+"\n"
+"  Tips:\n"
+"  -----\n"
+"     I ran the program with the default parameters on 200+ datasets.\n"
+"     The results were quite good in all but a couple of instances, here\n"
+"     are some tips on fixing trouble spots:\n"  
+"\n"
+"     Clipping in frontal areas, close to the eye balls:\n"
+"        + Try -push_to_edge option first.\n"
+"          Can also try -no_avoid_eyes option.\n"
+"     Clipping in general:\n"
+"        + Try -push_to_edge option first.\n"
+"          Can also use lower -shrink_fac, start with 0.5 then 0.4\n"
+"     Problems down below:\n"
+"        + Piece of cerbellum missing, reduce -shrink_fac_bot_lim \n"
+"          from default value.\n"
+"        + Leakage in lower areas, increase -shrink_fac_bot_lim \n"
+"          from default value.\n"
+"     Some lobules are not included:\n"
+"        + Use a denser mesh. Start with -ld 30. If that still fails,\n"
+"        try even higher density (like -ld 50) and increase iterations \n"
+"        (say to -niter 750). \n"
+"        Expect the program to take much longer in that case.\n"
+"        + Instead of using denser meshes, you could try blurring the data \n"
+"        before skull stripping. Something like -blur_fwhm 2 did\n"
+"        wonders for some of my data with the default options of 3dSkullStrip\n"
+"        Blurring is a lot faster than increasing mesh density.\n"
+"        + Use also a smaller -shrink_fac is you have lots of CSF between\n"
+"        gyri.\n"
+"     Massive chunks missing:\n"
+"        + If brain has very large ventricles and lots of CSF between gyri,\n"
+"        the ventricles will keep attracting the surface inwards. In such \n"
+"        cases, use the -visual option to see what is happening and try these\n"
+"        options to reduce the severity of the problem:\n"
+"            -blur_fwhm 2 -use_skull\n"
+"\n" 
+"  Eye Candy Mode: \n"
+"  ---------------\n"
+"  You can run BrainWarp and have it send successive iterations\n"
+" to SUMA and AFNI. This is very helpful in following the\n"
+" progression of the algorithm and determining the source\n"
+" of trouble, if any.\n"
+"  Example:\n"
+"     afni -niml -yesplugouts &\n"
+"     suma -niml &\n"
+"     3dSkullStrip -input Anat+orig -o_ply anat_brain -visual\n"
+"\n"
+"  Help section for the intrepid:\n"
+"  ------------------------------\n" 
+"  3dSkullStrip  < -input VOL >\n"
+"             [< -o_TYPE PREFIX >] [< -prefix VOL_PREFIX >] \n"
+"             [< -spatnorm >] [< -no_spatnorm >] [< -write_spatnorm >]\n"
+"             [< -niter N_ITER >] [< -ld LD >] \n"
+"             [< -shrink_fac SF >] [< -var_shrink_fac >] \n"
+"             [< -no_var_shrink_fac >] [< -shrink_fac_bot_lim SFBL >]\n"
+"             [< -pushout >] [< -no_pushout >] [< -exp_frac FRAC]\n"
+"             [< -touchup >] [< -no_touchup >]\n"
+"             [< -fill_hole R >] [< -NN_smooth NN_SM >]\n"
+"             [< -smooth_final SM >] [< -avoid_vent >] [< -no_avoid_vent >]\n"
+"             [< -use_skull >] [< -no_use_skull >] \n"
+"             [< -avoid_eyes >] [< -no_avoid_eyes >] \n"
+"             [< -use_edge >] [< -no_use_edge >] \n"
+"             [< -push_to_edge >] [<-no_push_to_edge>]\n"
+"             [< -perc_int PERC_INT >] \n"
+"             [< -max_inter_iter MII >] [-mask_vol | -orig_vol | -norm_vol]\n"
+"             [< -debug DBG >] [< -node_debug NODE_DBG >]\n"
+"             [< -demo_pause >]\n"
+"             [< -monkey >] [<-rat>]\n"  
+"\n"
+"  NOTE: Please report bugs and strange failures\n"
+"        to saadz@mail.nih.gov\n"
+"\n"
+"  Mandatory parameters:\n"
+"     -input VOL: Input AFNI (or AFNI readable) volume.\n"
+"                 \n"
+"\n"
+"  Optional Parameters:\n"
+"     -monkey: the brain of a monkey.\n"
+"     -rat: the brain of a rat.\n"
+"           By default, no_touchup is used with the rat.\n"
+"     -surface_coil: Data acquired with a surface coil.\n"
+"     -o_TYPE PREFIX: prefix of output surface.\n"
+"        where TYPE specifies the format of the surface\n"
+"        and PREFIX is, well, the prefix.\n"
+"        TYPE is one of: fs, 1d (or vec), sf, ply.\n"
+"        More on that below.\n"
+"     -skulls: Output surface models of the skull.\n"
+"     -4Tom:   The output surfaces are named based\n"
+"             on PREFIX following -o_TYPE option below.\n"
+"     -prefix VOL_PREFIX: prefix of output volume.\n"
+"        If not specified, the prefix is the same\n"
+"        as the one used with -o_TYPE.\n"
+"        The output volume is skull stripped version\n"
+"        of the input volume. In the earlier version\n"
+"        of the program, a mask volume was written out.\n" 
+"        You can still get that mask volume instead of the\n"
+"        skull-stripped volume with the option -mask_vol . \n"
+"        NOTE: In the default setting, the output volume does not \n"
+"              have values identical to those in the input. \n"
+"              In particular, the range might be larger \n"
+"              and some low-intensity values are set to 0.\n"
+"              If you insist on having the same range of values as in\n"
+"              the input, then either use option -orig_vol, or run:\n"
+"         3dcalc -nscale -a VOL+VIEW -b VOL_PREFIX+VIEW \\\n"
+"                -expr 'a*step(b)' -prefix VOL_SAME_RANGE\n"
+"              With the command above, you can preserve the range\n"
+"              of values of the input but some low-intensity voxels would\n"
+"              still be masked. If you want to preserve them, then use\n"
+"              -mask_vol in the 3dSkullStrip command that would produce \n"
+"              VOL_MASK_PREFIX+VIEW. Then run 3dcalc masking with voxels\n"
+"              inside the brain surface envelope:\n"
+"         3dcalc -nscale -a VOL+VIEW -b VOL_MASK_PREFIX+VIEW \\\n"
+"                -expr 'a*step(b-3.01)' -prefix VOL_SAME_RANGE_KEEP_LOW\n"
+"     -norm_vol: Output a masked and somewhat intensity normalized and \n"
+"                thresholded version of the input. This is the default,\n"
+"                and you can use -orig_vol to override it.\n"
+"     -orig_vol: Output a masked version of the input AND do not modify\n"
+"                the values inside the brain as -norm_vol would.\n"
+"     -mask_vol: Output a mask volume instead of a skull-stripped\n"
+"                volume.\n"
+"                The mask volume containes:\n"
+"                 0: Voxel outside surface\n"
+"                 1: Voxel just outside the surface. This means the voxel\n"
+"                    center is outside the surface but inside the \n"
+"                    bounding box of a triangle in the mesh. \n"
+"                 2: Voxel intersects the surface (a triangle), but center\n"
+"                    lies outside.\n"
+"                 3: Voxel contains a surface node.\n"
+"                 4: Voxel intersects the surface (a triangle), center lies\n"
+"                    inside surface. \n"
+"                 5: Voxel just inside the surface. This means the voxel\n"
+"                    center is inside the surface and inside the \n"
+"                    bounding box of a triangle in the mesh. \n"
+"                 6: Voxel inside the surface. \n"
+"     -spat_norm: (Default) Perform spatial normalization first.\n"
+"                 This is a necessary step unless the volume has\n"
+"                 been 'spatnormed' already.\n"
+"     -no_spatnorm: Do not perform spatial normalization.\n"
+"                   Use this option only when the volume \n"
+"                   has been run through the 'spatnorm' process\n"
+"     -spatnorm_dxyz DXYZ: Use DXY for the spatial resolution of the\n"
+"                          spatially normalized volume. The default \n"
+"                          is the lowest of all three dimensions.\n"
+"                          For human brains, use DXYZ of 1.0, for\n"
+"                          primate brain, use the default setting.\n"
+"     -write_spatnorm: Write the 'spatnormed' volume to disk.\n"
+"     -niter N_ITER: Number of iterations. Default is 250\n"
+"        For denser meshes, you need more iterations\n"
+"        N_ITER of 750 works for LD of 50.\n"
+"     -ld LD: Parameter to control the density of the surface.\n"
+"             Default is 20 if -no_use_edge is used,\n"
+"             30 with -use_edge. See CreateIcosahedron -help\n"
+"             for details on this option.\n"
+"     -shrink_fac SF: Parameter controlling the brain vs non-brain\n"
+"             intensity threshold (tb). Default is 0.6.\n"
+"              tb = (Imax - t2) SF + t2 \n"
+"             where t2 is the 2 percentile value and Imax is the local\n"
+"             maximum, limited to the median intensity value.\n"
+"             For more information on tb, t2, etc. read the BET paper\n"
+"             mentioned above. Note that in 3dSkullStrip, SF can vary across \n"
+"             iterations and might be automatically clipped in certain areas.\n"
+"             SF can vary between 0 and 1.\n"
+"             0: Intensities < median inensity are considered non-brain\n"
+"             1: Intensities < t2 are considered non-brain\n" 
+"     -var_shrink_fac: Vary the shrink factor with the number of\n"
+"             iterations. This reduces the likelihood of a surface\n"
+"             getting stuck on large pools of CSF before reaching\n"
+"             the outer surface of the brain. (Default)\n"
+"     -no_var_shrink_fac: Do not use var_shrink_fac.\n"
+"     -shrink_fac_bot_lim SFBL: Do not allow the varying SF to go\n"
+"             below SFBL . Default 0.65, 0.4 when edge detection is used. \n"
+"             This option helps reduce potential for leakage below \n"
+"             the cerebellum.\n"
+"             In certain cases where you have severe non-uniformity resulting\n"
+"             in low signal towards the bottom of the brain, you will need to\n"
+"             reduce this parameter.\n"
 /*               "     -shrink_fac_bias SHRINK_BIAS_FILE: A file containing bias \n"
-               "                      factors to apply to the shrink_fac at certain nodes.\n"
-               "                      This option is experimental at the moment.\n"
-               "                      Column 0 has node indices, Col. 1 has the bias factors\n" */
-               "     -pushout: Consider values above each node in addition to values\n"
-               "               below the node when deciding on expansion. (Default)\n"
-               "     -no_pushout: Do not use -pushout.\n"
-               "     -exp_frac FRAC: Speed of expansion (see BET paper). Default is 0.1.\n"
-               "     -touchup: Perform touchup operations at end to include\n"
-               "               areas not covered by surface expansion. \n"
-               "               Use -touchup -touchup for aggressive makeup.\n"
-               "               (Default is -touchup)\n"
-               "     -no_touchup: Do not use -touchup\n"
-               "     -fill_hole R: Fill small holes that can result from small surface\n"
-               "                   intersections caused by the touchup operation.\n"
-               "                   R is the maximum number of pixels on the side of a hole\n"
-               "                   that can be filled. Big holes are not filled.\n"
-               "                   If you use -touchup, the default R is 10. Otherwise \n"
-               "                   the default is 0.\n"
-               "                   This is a less than elegant solution to the small\n"
-               "                   intersections which are usually eliminated\n"
-               "                   automatically. \n"
-               "     -NN_smooth NN_SM: Perform Nearest Neighbor coordinate interpolation\n"
-               "                       every few iterations. Default is 72\n"
-               "     -smooth_final SM: Perform final surface smoothing after all iterations.\n"
-               "                       Default is 20 smoothing iterations.\n"
-               "                       Smoothing is done using Taubin's method, \n"
-               "                       see SurfSmooth -help for detail.\n"
-               "     -avoid_vent: avoid ventricles. Default.\n"
-               "     -no_avoid_vent: Do not use -avoid_vent.\n"
-               "     -init_radius RAD: Use RAD for the initial sphere radius.\n"
-               "                       For the automatic setting, there is an\n"
-               "                       upper limit of 80mm for humans.\n"
-               "     -avoid_eyes: avoid eyes. Default\n"
-               "     -no_avoid_eyes: Do not use -avoid_eyes.\n"
-               "     -use_edge: Use edge detection to reduce leakage into meninges and eyes.\n"
-               "                Default.\n"
-               "     -no_use_edge: Do no use edges.\n"
-               "     -push_to_edge: Perform aggressive push to edge at the end.\n"
-               "                    This option might cause leakage.\n"
-               "     -no_push_to_edge: (Default).\n"
-               "     -use_skull: Use outer skull to limit expansion of surface into\n"
-               "                 the skull due to very strong shading artifacts.\n"
-               "                 This option is buggy at the moment, use it only \n"
-               "                 if you have leakage into skull.\n"
-               "     -no_use_skull: Do not use -use_skull (Default).\n"
-               "     -send_no_skull: Do not send the skull surface to SUMA if you are\n"
-               "                     using  -talk_suma\n" 
-               "     -perc_int PERC_INT: Percentage of segments allowed to intersect\n"
-               "                         surface. Ideally this should be 0 (Default). \n"
-               "                         However, few surfaces might have small stubborn\n"
-               "                         intersections that produce a few holes.\n"
-               "                         PERC_INT should be a small number, typically\n"
-               "                         between 0 and 0.1\n. A -1 means do not do\n"
-               "                         any testing for intersection.\n"
-               "     -max_inter_iter N_II: Number of iteration to remove intersection\n"
-               "                           problems. With each iteration, the program\n"
-               "                           automatically increases the amount of smoothing\n"
-               "                           to get rid of intersections. Default is 4\n"
-               "     -blur_fwhm FWHM: Blur dset after spatial normalization.\n"
-               "                      Recommended when you have lots of CSF in brain\n"
-               "                      and when you have protruding gyri (finger like)\n"
-               "                      Recommended value is 2..4. \n"
-               "     -interactive: Make the program stop at various stages in the \n"
-               "                   segmentation process for a prompt from the user\n"
-               "                   to continue or skip that stage of processing.\n"
-               "                   This option is best used in conjunction with options\n"
-               "                   -talk_suma and -feed_afni\n"
-               "     -demo_pause: Pause at various step in the process to facilitate\n"
-               "                  interactive demo while 3dSkullStrip is communicating\n"
-               "                  with AFNI and SUMA. See 'Eye Candy' mode below and\n"
-               "                  -talk_suma option. \n"
-               "\n"
-               "%s"
-               "     -visual: Equivalent to using -talk_suma -feed_afni -send_kth 5\n"
-               "\n"
-               "     -debug DBG: debug levels of 0 (default), 1, 2, 3.\n"
-               "        This is no Rick Reynolds debug, which is oft nicer\n"
-               "        than the results, but it will do.\n"
-               "     -node_debug NODE_DBG: Output lots of parameters for node\n"
-               "                         NODE_DBG for each iteration.\n"
-               "     The next 3 options are for specifying surface coordinates\n"
-               "     to keep the program from having to recompute them.\n"
-               "     The options are only useful for saving time during debugging.\n"
-               "     -brain_contour_xyz_file BRAIN_CONTOUR_XYZ.1D\n"
-               "     -brain_hull_xyz_file BRAIN_HULL_XYZ.1D\n"
-               "     -skull_outer_xyz_file SKULL_OUTER_XYZ.1D\n"
-               "\n"
-               /*
-               "     -sm_fac SMFAC: Smoothing factor (Default is 1)\n"
-               "     -d1 D1: Distance to search inward (Default 20 mm)\n"
-               "     -t2 T2: Force t2 to be T2 (Default automated)\n"
-               "     -t T: Force t to be T (Default automated)\n"
-               "     -tm TM: Force tm to be TM (Default automated)\n"
-               "     -t98 T98: Force t98 to be T98 (Default automated)\n"
-               */
-               "%s"
-               "\n", sio,  s);
+"                      factors to apply to the shrink_fac at certain nodes.\n"
+"                      This option is experimental at the moment.\n"
+"                      Column 0 has node indices, Col. 1 has the bias factors\n" */
+"     -pushout: Consider values above each node in addition to values\n"
+"               below the node when deciding on expansion. (Default)\n"
+"     -no_pushout: Do not use -pushout.\n"
+"     -exp_frac FRAC: Speed of expansion (see BET paper). Default is 0.1.\n"
+"     -touchup: Perform touchup operations at end to include\n"
+"               areas not covered by surface expansion. \n"
+"               Use -touchup -touchup for aggressive makeup.\n"
+"               (Default is -touchup)\n"
+"     -no_touchup: Do not use -touchup\n"
+"     -fill_hole R: Fill small holes that can result from small surface\n"
+"                   intersections caused by the touchup operation.\n"
+"                   R is the maximum number of pixels on the side of a hole\n"
+"                   that can be filled. Big holes are not filled.\n"
+"                   If you use -touchup, the default R is 10. Otherwise \n"
+"                   the default is 0.\n"
+"                   This is a less than elegant solution to the small\n"
+"                   intersections which are usually eliminated\n"
+"                   automatically. \n"
+"     -NN_smooth NN_SM: Perform Nearest Neighbor coordinate interpolation\n"
+"                       every few iterations. Default is 72\n"
+"     -smooth_final SM: Perform final surface smoothing after all iterations.\n"
+"                       Default is 20 smoothing iterations.\n"
+"                       Smoothing is done using Taubin's method, \n"
+"                       see SurfSmooth -help for detail.\n"
+"     -avoid_vent: avoid ventricles. Default.\n"
+"     -no_avoid_vent: Do not use -avoid_vent.\n"
+"     -init_radius RAD: Use RAD for the initial sphere radius.\n"
+"                       For the automatic setting, there is an\n"
+"                       upper limit of 80mm for humans.\n"
+"     -avoid_eyes: avoid eyes. Default\n"
+"     -no_avoid_eyes: Do not use -avoid_eyes.\n"
+"     -use_edge: Use edge detection to reduce leakage into meninges and eyes.\n"
+"                Default.\n"
+"     -no_use_edge: Do no use edges.\n"
+"     -push_to_edge: Perform aggressive push to edge at the end.\n"
+"                    This option might cause leakage.\n"
+"     -no_push_to_edge: (Default).\n"
+"     -use_skull: Use outer skull to limit expansion of surface into\n"
+"                 the skull due to very strong shading artifacts.\n"
+"                 This option is buggy at the moment, use it only \n"
+"                 if you have leakage into skull.\n"
+"     -no_use_skull: Do not use -use_skull (Default).\n"
+"     -send_no_skull: Do not send the skull surface to SUMA if you are\n"
+"                     using  -talk_suma\n" 
+"     -perc_int PERC_INT: Percentage of segments allowed to intersect\n"
+"                         surface. Ideally this should be 0 (Default). \n"
+"                         However, few surfaces might have small stubborn\n"
+"                         intersections that produce a few holes.\n"
+"                         PERC_INT should be a small number, typically\n"
+"                         between 0 and 0.1\n. A -1 means do not do\n"
+"                         any testing for intersection.\n"
+"     -max_inter_iter N_II: Number of iteration to remove intersection\n"
+"                           problems. With each iteration, the program\n"
+"                           automatically increases the amount of smoothing\n"
+"                           to get rid of intersections. Default is 4\n"
+"     -blur_fwhm FWHM: Blur dset after spatial normalization.\n"
+"                      Recommended when you have lots of CSF in brain\n"
+"                      and when you have protruding gyri (finger like)\n"
+"                      Recommended value is 2..4. \n"
+"     -interactive: Make the program stop at various stages in the \n"
+"                   segmentation process for a prompt from the user\n"
+"                   to continue or skip that stage of processing.\n"
+"                   This option is best used in conjunction with options\n"
+"                   -talk_suma and -feed_afni\n"
+"     -demo_pause: Pause at various step in the process to facilitate\n"
+"                  interactive demo while 3dSkullStrip is communicating\n"
+"                  with AFNI and SUMA. See 'Eye Candy' mode below and\n"
+"                  -talk_suma option. \n"
+"\n"
+"%s"
+"     -visual: Equivalent to using -talk_suma -feed_afni -send_kth 5\n"
+"\n"
+"     -debug DBG: debug levels of 0 (default), 1, 2, 3.\n"
+"        This is no Rick Reynolds debug, which is oft nicer\n"
+"        than the results, but it will do.\n"
+"     -node_debug NODE_DBG: Output lots of parameters for node\n"
+"                         NODE_DBG for each iteration.\n"
+"     The next 3 options are for specifying surface coordinates\n"
+"     to keep the program from having to recompute them.\n"
+"     The options are only useful for saving time during debugging.\n"
+"     -brain_contour_xyz_file BRAIN_CONTOUR_XYZ.1D\n"
+"     -brain_hull_xyz_file BRAIN_HULL_XYZ.1D\n"
+"     -skull_outer_xyz_file SKULL_OUTER_XYZ.1D\n"
+"\n"
+/*
+"     -sm_fac SMFAC: Smoothing factor (Default is 1)\n"
+"     -d1 D1: Distance to search inward (Default 20 mm)\n"
+"     -t2 T2: Force t2 to be T2 (Default automated)\n"
+"     -t T: Force t to be T (Default automated)\n"
+"     -tm TM: Force tm to be TM (Default automated)\n"
+"     -t98 T98: Force t98 to be T98 (Default automated)\n"
+*/
+"%s"
+"\n", sio,  s);
        SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL; SUMA_free(sts); sts = NULL;         
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
        printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
@@ -358,7 +361,8 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                SUMA_free(Opt->out_name); 
                SUMA_free(Opt);
 */
-SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
+SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
+   char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
    static char FuncName[]={"SUMA_BrainWrap_ParseInput"}; 
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
@@ -449,7 +453,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
    Opt->UseThisBrain = NULL;
    Opt->UseThisBrainHull = NULL;
    Opt->UseThisSkullOuter = NULL;
-   Opt->efrac = -1.0;   
+   Opt->efrac = -1.0;
+   Opt->match_area = 0;   
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -465,7 +470,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
          brk = YUP;
       }
       
-      if (!brk && ( (strcmp(argv[kar], "-4Tom") == 0) || (strcmp(argv[kar], "-skulls") == 0) ) ) {
+      if (!brk && ( (strcmp(argv[kar], "-4Tom") == 0) 
+         || (strcmp(argv[kar], "-skulls") == 0) ) ) {
          Opt->DoSkulls = 1;
          brk = YUP;
       }
@@ -1153,7 +1159,10 @@ int main (int argc,char *argv[])
       mri_speciebusiness(Opt->specie);
       if (Opt->SpatNormDxyz) {
          if (Opt->debug) SUMA_S_Note("Overriding default resampling");
-         mri_brainormalize_initialize(Opt->SpatNormDxyz, Opt->SpatNormDxyz, Opt->SpatNormDxyz);
+         mri_brainormalize_initialize(
+            Opt->SpatNormDxyz, 
+            Opt->SpatNormDxyz, 
+            Opt->SpatNormDxyz);
       } else {
          float xxdel, yydel, zzdel, minres;
          if (Opt->specie == MONKEY) minres = 0.5;
@@ -1167,9 +1176,14 @@ int main (int argc,char *argv[])
          if (SUMA_ABS(Opt->iset->daxes->zzdel) < minres) zzdel = minres;
          else zzdel = SUMA_ABS(Opt->iset->daxes->zzdel);
          if (Opt->debug) {
-            fprintf(SUMA_STDERR,"%s:\n Original resolution %f, %f, %f\n SpatNorm resolution %f, %f, %f\n",
-                        FuncName, Opt->iset->daxes->xxdel, Opt->iset->daxes->yydel, Opt->iset->daxes->zzdel, 
-                        xxdel, yydel, zzdel);
+            fprintf(SUMA_STDERR,
+               "%s:\n Original resolution %f, %f, %f\n "
+               "SpatNorm resolution %f, %f, %f\n",
+               FuncName, 
+               Opt->iset->daxes->xxdel, 
+               Opt->iset->daxes->yydel, 
+               Opt->iset->daxes->zzdel, 
+               xxdel, yydel, zzdel);
          }   
          mri_brainormalize_initialize(xxdel, yydel, zzdel);
       }
@@ -1181,7 +1195,8 @@ int main (int argc,char *argv[])
          Opt->d4 = 15.0/THD_BN_rat(); /* account for size difference */
       }
       
-      if (Opt->debug > 1) fprintf(SUMA_STDERR,"%s: Size Ratio = %f\n", FuncName, THD_BN_rat());
+      if (Opt->debug > 1) 
+         fprintf(SUMA_STDERR,"%s: Size Ratio = %f\n", FuncName, THD_BN_rat());
       
       imin->dx = fabs(Opt->iset->daxes->xxdel) ;
       imin->dy = fabs(Opt->iset->daxes->yydel) ;
@@ -1267,10 +1282,12 @@ int main (int argc,char *argv[])
                             ADN_prefix      , spatprefix,
                             ADN_none ) ;
          tross_Copy_History( Opt->OrigSpatNormedSet , oset ) ;
-         DSET_delete(Opt->OrigSpatNormedSet); Opt->OrigSpatNormedSet = oset; oset = NULL;
+         DSET_delete(Opt->OrigSpatNormedSet); 
+         Opt->OrigSpatNormedSet = oset; oset = NULL;
 
          if (Opt->WriteSpatNorm) {
-            if (Opt->debug) SUMA_S_Note("Writing SpatNormed dset in original space");
+            if (Opt->debug) 
+               SUMA_S_Note("Writing SpatNormed dset in original space");
             DSET_write(Opt->OrigSpatNormedSet) ;
          }
          if (prefix) SUMA_free(prefix); prefix = NULL;
@@ -1278,9 +1295,13 @@ int main (int argc,char *argv[])
       }
             
       oset = EDIT_empty_copy( NULL ) ;
-      /* reset the idcode using a hash of a string formed by idcode or orig dset and _Spatnorm */
-      {  char idstr[500], *nid=NULL; sprintf(idstr,"%s_Spatnorm", Opt->iset->idcode.str); 
-         SUMA_NEW_ID(nid, idstr); strncpy(oset->idcode.str, nid, IDCODE_LEN); SUMA_free(nid); nid = NULL;}
+      /* reset the idcode using a hash of a string formed 
+      by idcode or orig dset and _Spatnorm */
+      {  char idstr[500], *nid=NULL; 
+         sprintf(idstr,"%s_Spatnorm", Opt->iset->idcode.str); 
+         SUMA_NEW_ID(nid, idstr); 
+         strncpy(oset->idcode.str, nid, IDCODE_LEN); 
+         SUMA_free(nid); nid = NULL;}
       tross_Copy_History( Opt->iset , oset ) ;
       tross_Make_History( "3dSkullStrip" , argc,argv , oset ) ;
       
@@ -1305,7 +1326,8 @@ int main (int argc,char *argv[])
                          ADN_func_type   , ANAT_BUCK_TYPE ,
                        ADN_none ) ; 
 
-      EDIT_substitute_brick( oset , 0 , imout->kind , mri_data_pointer(imout) ) ;      
+      EDIT_substitute_brick(oset , 0 , 
+                            imout->kind , mri_data_pointer(imout) ) ;      
       if (Opt->WriteSpatNorm) {
          SUMA_LH("Writing SpatNormed dset");
          DSET_write(oset) ;
@@ -1314,9 +1336,13 @@ int main (int argc,char *argv[])
       
       if (prefix) SUMA_free(prefix); prefix = NULL;
       if (spatprefix) SUMA_free(spatprefix); spatprefix = NULL;
-      if( Opt->debug ) fprintf(SUMA_STDERR,"%s: -spatnorm: Expecting %d voxels in in_vol dset (%d %d %d)\n", 
-         FuncName, DSET_NVOX( Opt->in_vol ), DSET_NX( Opt->in_vol ), DSET_NY( Opt->in_vol ), DSET_NZ( Opt->in_vol )); 
-      
+      if( Opt->debug ) 
+            fprintf(SUMA_STDERR,
+                     "%s: -spatnorm: Expecting %d voxels"
+                     " in in_vol dset (%d %d %d)\n", 
+                     FuncName, 
+                     DSET_NVOX( Opt->in_vol ), DSET_NX( Opt->in_vol ), 
+                     DSET_NY( Opt->in_vol ), DSET_NZ( Opt->in_vol )); 
    } else {
       /* volume already SpatNormed, or user does not want SpatNorm */
       SUMA_SL_Note("Loading dset, performing no Spatial Normalization");
@@ -1325,16 +1351,30 @@ int main (int argc,char *argv[])
         fprintf(stderr,"**ERROR: can't open dataset %s\n",Opt->in_name) ;
         exit(1);
       }
-      if( Opt->debug ) fprintf(SUMA_STDERR,"%s: -no_spatnorm: Expecting %d voxels in in_vol dset (%d %d %d)\n", 
-         FuncName, DSET_NVOX( Opt->in_vol ), DSET_NX( Opt->in_vol ), DSET_NY( Opt->in_vol ), DSET_NZ( Opt->in_vol )); 
+      if( Opt->debug ) 
+         fprintf(SUMA_STDERR,
+            "%s: -no_spatnorm: Expecting %d voxels in in_vol dset (%d %d %d)\n",
+            FuncName, 
+            DSET_NVOX( Opt->in_vol ), 
+            DSET_NX( Opt->in_vol ), 
+            DSET_NY( Opt->in_vol ), 
+            DSET_NZ( Opt->in_vol )); 
       /* load the dset */
       DSET_load(Opt->in_vol);
-      if (Opt->fillhole) Opt->OrigSpatNormedSet = Opt->in_vol; /* original is same as in_vol */
+      if (Opt->fillhole) 
+         Opt->OrigSpatNormedSet = Opt->in_vol; /* original is same as in_vol */
       /* initialize, just to make sure numbers are ok for if statement below */
       mri_speciebusiness(Opt->specie);
-      mri_brainormalize_initialize(Opt->in_vol->daxes->xxdel, Opt->in_vol->daxes->yydel, Opt->in_vol->daxes->zzdel);
-      if (DSET_NX( Opt->in_vol) !=  THD_BN_nx() || DSET_NY( Opt->in_vol) !=  THD_BN_ny()  || DSET_NZ( Opt->in_vol) !=  THD_BN_nz() ) {
-         fprintf(SUMA_STDERR,"Error %s:\n SpatNormed Dset must be %d x %d x %d\n", FuncName, THD_BN_nx(), THD_BN_ny(), THD_BN_nz() );
+      mri_brainormalize_initialize(
+         Opt->in_vol->daxes->xxdel, 
+         Opt->in_vol->daxes->yydel, 
+         Opt->in_vol->daxes->zzdel);
+      if (  DSET_NX( Opt->in_vol) !=  THD_BN_nx() || 
+            DSET_NY( Opt->in_vol) !=  THD_BN_ny() || 
+            DSET_NZ( Opt->in_vol) !=  THD_BN_nz() ) {
+         fprintf(SUMA_STDERR,
+            "Error %s:\n SpatNormed Dset must be %d x %d x %d\n",
+             FuncName, THD_BN_nx(), THD_BN_ny(), THD_BN_nz() );
          exit(1);
       }
       if (Opt->d1 < 0) {
@@ -1343,7 +1383,8 @@ int main (int argc,char *argv[])
       if (Opt->d4 < 0) {
          Opt->d4 = 15.0/THD_BN_rat(); /* half as big */
       }
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: Size factor = %f\n", FuncName, THD_BN_rat());
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s: Size factor = %f\n", FuncName, THD_BN_rat());
 
       Opt->iset_hand = SUMA_THD_handedness( Opt->in_vol );
       if (LocalHead) fprintf(SUMA_STDERR,"%s: Handedness of orig dset %d\n", FuncName, Opt->iset_hand);
@@ -1680,7 +1721,9 @@ int main (int argc,char *argv[])
          /* Now take mask and turn it into a volume */
          fprintf (SUMA_STDERR,"%s: Locating voxels on skull boundary  ...\n", FuncName);
          isin = SUMA_FindVoxelsInSurface (SOhull, SO->VolPar, &N_in, 0, NULL);
-         for (i=0; i<SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz; ++i) { if (isin[i] <= SUMA_ON_NODE) Opt->fvec[i] = 0; }
+         for (i=0; i<SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz; ++i) { 
+            if (isin[i] <= SUMA_ON_NODE) Opt->fvec[i] = 0; 
+         }
          #if 0
             SUMA_SL_Note("Writing hull mask");
             {
@@ -2286,9 +2329,16 @@ int main (int argc,char *argv[])
    }
    
    /* what voxels are inside the surface ? */
-   if (Opt->debug) fprintf (SUMA_STDERR,"%s: Locating voxels inside surface  ...\n", FuncName);
-   isin = SUMA_FindVoxelsInSurface (SO, SO->VolPar, &N_in, Opt->fillhole, Opt->OrigSpatNormedSet);
-   isin_float = (float *)SUMA_malloc(sizeof(float) * SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz);
+   if (Opt->debug) 
+      fprintf (SUMA_STDERR,
+         "%s: Locating voxels inside surface  ...\n", FuncName);
+   isin = SUMA_FindVoxelsInSurface (
+                  SO, SO->VolPar, &N_in, 
+                  Opt->fillhole, Opt->OrigSpatNormedSet);
+   isin_float = (float *)SUMA_malloc(sizeof(float) *
+                                    SO->VolPar->nx *
+                                    SO->VolPar->ny *
+                                    SO->VolPar->nz);
    if (!isin_float) {
       SUMA_SL_Crit("Failed to allocate");
       exit(1);

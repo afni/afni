@@ -8,6 +8,49 @@ static int verb = 0 ;
 static int specie = HUMAN;
 void mri_brainormalize_verbose( int v ){ verb = v ; THD_automask_verbose(v); }
 
+/* a debugging macro to write out an MRI_IMAGE */
+#define WRITE_MRI_IMAGE_3D_RAI(im, pref){\
+   char *m_pout=NULL, *m_en=NULL, m_nen[300];  \
+   THD_ivec3 m_orixyz , m_nxyz ;   \
+   THD_fvec3 m_dxyz , m_orgxyz;  \
+   THD_3dim_dataset *m_oset = NULL;   \
+   \
+   if (MRI_IS_3D(im)) { \
+      m_oset = EDIT_empty_copy( NULL ) ;\
+      LOAD_IVEC3( m_nxyz   , im->nx    , im->ny    , im->nz    );  \
+      LOAD_FVEC3( m_dxyz   , im->dx    , im->dy    , im->dz    );  \
+      LOAD_FVEC3( m_orgxyz , im->xo    , im->yo    , im->zo    );  \
+      LOAD_IVEC3( m_orixyz , ORI_R2L_TYPE , ORI_A2P_TYPE , ORI_I2S_TYPE );  \
+      if (pref) m_pout = pref; else m_pout = "imout";  \
+      EDIT_dset_items( m_oset ,  \
+                      ADN_prefix      , m_pout ,  \
+                      ADN_datum_all   , im->kind , \
+                      ADN_nxyz        , m_nxyz ,  \
+                      ADN_xyzdel      , m_dxyz ,  \
+                      ADN_xyzorg      , m_orgxyz ,   \
+                      ADN_xyzorient   , m_orixyz ,   \
+                      ADN_malloc_type , DATABLOCK_MEM_MALLOC , \
+                      ADN_view_type   , VIEW_ORIGINAL_TYPE ,   \
+                      ADN_type        , HEAD_ANAT_TYPE , \
+                      ADN_func_type   , ANAT_BUCK_TYPE ,    \
+                    ADN_none ) ; \
+      EDIT_substitute_brick(  m_oset , 0 , im->kind ,  \
+                              mri_data_pointer(im) ) ;  \
+      m_en = my_getenv("AFNI_DECONFLICT");   \
+      putenv("AFNI_DECONFLICT=OVERWRITE") ;  \
+      fprintf(stderr,"Notice WRITE_MRI_IMAGE_3D_RAI: Wrote %s\n", pref);   \
+      DSET_write(m_oset) ; \
+      if (m_en) { sprintf(m_nen,"AFNI_DECONFLICT %s", m_en); } \
+      else { unsetenv("AFNI_DECONFLICT"); }  \
+      AFNI_setenv(m_nen);  \
+      /* Now delete m_oset but preserve pointer */  \
+      mri_fix_data_pointer(NULL, DSET_BRICK(m_oset,0));\
+      DSET_delete(m_oset); m_oset = NULL; \
+   } else { \
+      fprintf(stderr,"-- Error WRITE_MRI_IMAGE_3D_RAI: image not 3D\n");   \
+   }  \
+} 
+
 #define  THD_BN_DXYZ    1.0
 #define  THD_BN_NX      167
 #define  THD_BN_NY      212
@@ -1386,10 +1429,13 @@ ENTRY("mri_brainormalize") ;
    /* apply mask to image (will also remove any negative values) */
 
    if( verb > 1)
-     fprintf(stderr,"++mri_brainormalize: applying mask to image; %d voxels\n",kk) ;
+     fprintf(stderr,
+      "++mri_brainormalize: applying mask to image; %d voxels\n",kk) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( !mask[ii] ) sar[ii] = 0 ;
 
    free((void *)mask) ;  /* done with this mask */
+   
+   if (verb > 1) WRITE_MRI_IMAGE_3D_RAI(sim,"sim");
 
    /* compute CM of masked image (indexes, not mm) */
 
@@ -1410,14 +1456,27 @@ ENTRY("mri_brainormalize") ;
        kcm += val * kk ;
    }}}
    if( sum == 0.0 ){ mri_free(sim); RETURN(NULL); }  /* huh? */
+   
+   ai = thd_bn_dxyz/dx ; 
+   bi = icm/sum - (thd_bn_xcm-thd_bn_xorg)/dx ;
+   aj = thd_bn_dxyz/dy ; 
+   bj = jcm/sum - (thd_bn_ycm-thd_bn_yorg)/dy ;
+   ak = thd_bn_dxyz/dz ; 
+   bk = kcm/sum - (thd_bn_zcm-thd_bn_zorg)/dz ;
 
-   ai = thd_bn_dxyz/dx ; bi = icm/sum - ai*(thd_bn_xcm-thd_bn_xorg)/thd_bn_dxyz ;
-   aj = thd_bn_dxyz/dy ; bj = jcm/sum - aj*(thd_bn_ycm-thd_bn_yorg)/thd_bn_dxyz ;
-   ak = thd_bn_dxyz/dz ; bk = kcm/sum - ak*(thd_bn_zcm-thd_bn_zorg)/thd_bn_dxyz ;
-
-   if( verb > 1) fprintf(stderr,"++mri_brainormalize: warping to standard grid\n a = [%f %f %f], b = [%f %f %f]\nthd_bn_nxyz=[%d %d %d]\n", 
-                           ai, aj, ak, bi, bj, bk, thd_bn_nx,thd_bn_ny,thd_bn_nz) ;
-
+   if (specie == RAT) { /* Dec 07 */
+      /* nudge center of mass up by 5 mm , lots of meat under brain */
+      bk = bk + 5.0/dz;   
+   }
+   if( verb > 1) 
+      fprintf(stderr,"++mri_brainormalize: warping to standard grid\n" 
+                     "old icm = [%f %f %f],\n"
+                     "a = [%f %f %f], b = [%f %f %f]\n"
+                     "thd_bn_nxyz=[%d %d %d]\n",
+                     icm/sum, jcm/sum, kcm/sum,
+                     ai, aj, ak, bi, bj, bk, 
+                     thd_bn_nx,thd_bn_ny,thd_bn_nz) ;
+                     
    mri_warp3D_method( MRI_CUBIC ) ;
    tim = mri_warp3D( sim , thd_bn_nx,thd_bn_ny,thd_bn_nz , ijkwarp ) ;
    mri_free(sim) ;
@@ -1429,9 +1488,15 @@ ENTRY("mri_brainormalize") ;
    
    nx = tim->nx ; ny = tim->ny ; nz = tim->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
    sar = MRI_SHORT_PTR(tim) ;
-   if( verb > 1) fprintf(stderr,"++mri_brainormalize: sar points to %d values.\n", nxyz);
-   if( verb > 1) fprintf(stderr,"++mri_brainormalize: sar[%d] = %d, sar[%d]=%d, sar[%d]=%d\n", 0, sar[0], nxyz/2, sar[nxyz/2], nxyz-1, sar[nxyz-1]);
+   if( verb > 1) 
+      fprintf(stderr,"++mri_brainormalize: sar points to %d values.\n", nxyz);
+   if( verb > 1) 
+      fprintf(stderr,
+         "++mri_brainormalize: sar[%d] = %d, sar[%d]=%d, sar[%d]=%d\n",
+         0, sar[0], nxyz/2, sar[nxyz/2], nxyz-1, sar[nxyz-1]);
    
+   if (verb > 1) WRITE_MRI_IMAGE_3D_RAI(tim,"tim");
+
    
    /*-- rescale to partially uniformize --*/
 

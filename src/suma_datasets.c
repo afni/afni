@@ -609,13 +609,16 @@ NI_element * SUMA_NewNel (SUMA_DSET_TYPE dtp, char* MeshParent_idcode,
 
    if (!SUMA_ALLOW_NEL_USE) SUMA_SL_Warn("Obsolete, perhaps. Check on caller.");
    
-   nel = NI_new_data_element(SUMA_Dset_Type_Name(dtp), N_el);
+   if (!(nel = NI_new_data_element(SUMA_Dset_Type_Name(dtp), N_el))) {
+      SUMA_S_Err("Failed to create nel");
+      fprintf(SUMA_STDERR,"Had N_el = %d\n", N_el);
+   }
    
    /* assign an idcode */
    if (!thisidcode) {
       if (!filename) {
          UNIQ_idcode_fill(idcode);
-         NI_set_attribute (nel, "self_idcode", idcode); /* create one *//* changed from idcode March 31 */
+         NI_set_attribute (nel, "self_idcode", idcode); /* create one */
       } else { 
          namecode = UNIQ_hashcode(filename);  /* from filename */
          NI_set_attribute (nel, "self_idcode", namecode); SUMA_free(namecode);
@@ -624,10 +627,10 @@ NI_element * SUMA_NewNel (SUMA_DSET_TYPE dtp, char* MeshParent_idcode,
       NI_set_attribute (nel, "self_idcode", thisidcode);
    }
    
-   
+
    /* set the idcodes of the parents */
    if (MeshParent_idcode) {
-      NI_set_attribute (nel, "domain_parent_idcode", MeshParent_idcode); /* changed from MeshParent_idcode March 31 */
+      NI_set_attribute (nel, "domain_parent_idcode", MeshParent_idcode); 
    } else {
       NI_set_attribute (nel, "domain_parent_idcode", SUMA_EMPTY_ATTR);
    }
