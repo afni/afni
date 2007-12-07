@@ -251,20 +251,16 @@ int main( int argc , char * argv[] )
           val = waveform_EXPR( WAV_dt * ii ) ; val = fabs(val) ;
           if( val > vtop ){ vtop = val ; itop = ii ; }
         }
-        if( itop < 0 ){
-          fprintf(stderr,"** -EXPR is 0 for 1st %d points!\n",FPASS);
-          exit(1) ;
-        }
+        if( itop < 0 )
+          ERROR_exit("-EXPR is 0 for 1st %d points!",FPASS);
         vthr = 0.01 * vtop ;
         for( icount=0,ii=itop+1 ; ii < SPASS && icount < STHR ; ii++ ){
           val = waveform_EXPR( WAV_dt * ii ) ; val = fabs(val) ;
           if( val <= vthr ) icount++ ;
           else              icount=0 ;
         }
-        if( ii == SPASS && icount < STHR ){
-          fprintf(stderr,"** -EXPR doesn't decay away in %d points!\n",SPASS);
-          exit(1) ;
-        }
+        if( ii == SPASS && icount < STHR )
+          ERROR_exit("-EXPR doesn't decay away in %d points!",SPASS);
         WAV_duration = WAV_dt * ii ;
 
         if( WAV_peak != 0.0 ) EXPR_fac = WAV_peak / vtop ;
@@ -542,11 +538,6 @@ void Syntax(void)
 
 /*----------------------------------------------------------------*/
 
-/* no -help here (let the user see the error)        9 Mar 2006 [rickr]  */
-#define ERROR \
- do{fprintf(stderr,"Illegal '%s' option",argv[nopt]);  \
-    fprintf(stderr,"  (consider 'waver -help')\n");exit(0);}while(0)
-
 void Process_Options( int argc , char * argv[] )
 {
    int nopt = 1 ;
@@ -588,32 +579,25 @@ void Process_Options( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-EXPR",4) == 0 ){  /* 01 Aug 2001 */
          waveform_type = EXPR_TYPE ;
-         if( EXPR_pcode != NULL ){
-            fprintf(stderr,"** Can't have 2 -EXPR options!\n") ;
-            exit(1) ;
-         }
+         if( EXPR_pcode != NULL )
+           ERROR_exit("Can't have 2 -EXPR options!") ;
          nopt++ ;
-         if( nopt >= argc ){
-            fprintf(stderr,"** -EXPR needs an argument!\n") ; exit(1) ;
-         }
+         if( nopt >= argc )
+           ERROR_exit("-EXPR needs an argument!") ;
          EXPR_pcode = PARSER_generate_code( argv[nopt] ) ;  /* compile */
-         if( EXPR_pcode == NULL ){
-            fprintf(stderr,"** Illegal -EXPR expression!\n") ;
-            exit(1) ;
-         }
-         if( !PARSER_has_symbol("T",EXPR_pcode) ){
-            fprintf(stderr,"** -EXPR expression doesn't use variable 't'!\n");
-            exit(1) ;
-         }
+         if( EXPR_pcode == NULL )
+           ERROR_exit("Illegal -EXPR expression!") ;
+         if( !PARSER_has_symbol("T",EXPR_pcode) )
+           ERROR_exit("-EXPR expression doesn't use variable 't'!");
          nopt++ ; continue ;
       }
 
       /*-----*/
 
       if( strncmp(argv[nopt],"-gamb",5) == 0 ){
-         if( nopt+1 >= argc ) ERROR ;
+         if( nopt+1 >= argc ) ERROR_exit("need argument after -gamb") ;
          GAM_power = strtod(argv[nopt+1],NULL) ;
-         if( GAM_power <= 0.0 ) ERROR ;
+         if( GAM_power <= 0.0 ) ERROR_exit("non-positive value after -gamb") ;
          waveform_type = GAM_TYPE ;
          nopt++ ; nopt++ ; continue ;
       }
@@ -621,9 +605,9 @@ void Process_Options( int argc , char * argv[] )
       /*-----*/
 
       if( strncmp(argv[nopt],"-gamc",5) == 0 ){
-         if( nopt+1 >= argc ) ERROR ;
+         if( nopt+1 >= argc ) ERROR_exit("need argument after %s",argv[nopt]) ;
          GAM_time = strtod(argv[nopt+1],NULL) ;
-         if( GAM_time <= 0.0 ) ERROR ;
+         if( GAM_time <= 0.0 ) ERROR_exit("non-positive value after -gamc") ;
          waveform_type = GAM_TYPE ;
          nopt++ ; nopt++ ; continue ;
       }
@@ -631,9 +615,9 @@ void Process_Options( int argc , char * argv[] )
       /*-----*/
 
       if( strncmp(argv[nopt],"-gamd",5) == 0 ){
-         if( nopt+1 >= argc ) ERROR ;
+         if( nopt+1 >= argc ) ERROR_exit("need argument after %s",argv[nopt]) ;
          GAM_delay_time = strtod(argv[nopt+1],NULL) ;
-         /*if( GAM_time <= 0.0 ) ERROR ;*/
+         /*if( GAM_time <= 0.0 ) ERROR_exit("non-positive value after -gamd") ;*/
          waveform_type = GAM_TYPE ;
          nopt++ ; nopt++ ; continue ;
       }
@@ -641,9 +625,9 @@ void Process_Options( int argc , char * argv[] )
       /*-----*/
 
       if( strncmp(argv[nopt],"-del",4) == 0 ){
-         if( nopt+1 >= argc ) ERROR ;
+         if( nopt+1 >= argc ) ERROR_exit("need argument after %s",argv[nopt]) ;
          WAV_delay_time = strtod(argv[nopt+1],NULL) ;
-         if( WAV_delay_time < 0.0 ) ERROR ;
+         if( WAV_delay_time < 0.0 ) ERROR_exit("negative value after -del") ;
          waveform_type = WAV_TYPE ;
          nopt++ ; nopt++ ; continue ;
       }
@@ -651,9 +635,9 @@ void Process_Options( int argc , char * argv[] )
       /*-----*/
 
       if( strncmp(argv[nopt],"-ris",4) == 0 ){
-         if( nopt+1 >= argc ) ERROR ;
+         if( nopt+1 >= argc ) ERROR_exit("need argument after %s",argv[nopt]) ;
          WAV_rise_time = strtod(argv[nopt+1],NULL) ;
-         if( WAV_rise_time <= 0.0 ) ERROR ;
+         if( WAV_rise_time <= 0.0 ) ERROR_exit("non-positive value after -ris") ;
          waveform_type = WAV_TYPE ;
          nopt++ ; nopt++ ; continue ;
       }
@@ -661,9 +645,9 @@ void Process_Options( int argc , char * argv[] )
       /*-----*/
 
       if( strncmp(argv[nopt],"-fal",4) == 0 ){
-         if( nopt+1 >= argc ) ERROR ;
+         if( nopt+1 >= argc ) ERROR_exit("need argument after %s",argv[nopt]) ;
          WAV_fall_time = strtod(argv[nopt+1],NULL) ;
-         if( WAV_fall_time <= 0.0 ) ERROR ;
+         if( WAV_fall_time <= 0.0 ) ERROR_exit("non-positive value after -fal") ;
          waveform_type = WAV_TYPE ;
          nopt++ ; nopt++ ; continue ;
       }
@@ -671,7 +655,7 @@ void Process_Options( int argc , char * argv[] )
       /*-----*/
 
       if( strncmp(argv[nopt],"-und",4) == 0 ){
-         if( nopt+1 >= argc ) ERROR ;
+         if( nopt+1 >= argc ) ERROR_exit("need argument after %s",argv[nopt]) ;
          WAV_undershoot = strtod(argv[nopt+1],NULL) ;
          waveform_type = WAV_TYPE ;
          nopt++ ; nopt++ ; continue ;
@@ -680,7 +664,7 @@ void Process_Options( int argc , char * argv[] )
       /*-----*/
 
       if( strncmp(argv[nopt],"-pea",4) == 0 ){
-         if( nopt+1 >= argc ) ERROR ;
+         if( nopt+1 >= argc ) ERROR_exit("need argument after %s",argv[nopt]) ;
          WAV_peak = strtod(argv[nopt+1],NULL) ;
          nopt++ ; nopt++ ; continue ;
       }
@@ -688,9 +672,9 @@ void Process_Options( int argc , char * argv[] )
       /*-----*/
 
       if( strncmp(argv[nopt],"-res",4) == 0 ){
-         if( nopt+1 >= argc ) ERROR ;
+         if( nopt+1 >= argc ) ERROR_exit("need argument after %s",argv[nopt]) ;
          WAV_restore_time = strtod(argv[nopt+1],NULL) ;
-         if( WAV_restore_time <= 0.0 ) ERROR ;
+         if( WAV_restore_time <= 0.0 ) ERROR_exit("non-positive value after -res") ;
          waveform_type = WAV_TYPE ;
          nopt++ ; nopt++ ; continue ;
       }
@@ -698,9 +682,9 @@ void Process_Options( int argc , char * argv[] )
       /*-----*/
 
       if( strncmp(argv[nopt],"-dt",3) == 0 || strncmp(argv[nopt],"-TR",3) == 0 ){
-         if( nopt+1 >= argc ) ERROR ;
+         if( nopt+1 >= argc ) ERROR_exit("need argument after %s",argv[nopt]) ;
          WAV_dt = strtod(argv[nopt+1],NULL) ;
-         if( WAV_dt <= 0.0 ) ERROR ;
+         if( WAV_dt <= 0.0 ) ERROR_exit("non-positive value after -dt") ;
          nopt++ ; nopt++ ; continue ;
       }
 
@@ -718,14 +702,12 @@ void Process_Options( int argc , char * argv[] )
          float * tsar ;
          int ii ;
 
-         if( IN_npts > 0 || IN_num_tstim > 0 ){
-            fprintf(stderr,"Cannot input two timeseries!\n") ;
-            exit(1) ;
-         }
+         if( IN_npts > 0 || IN_num_tstim > 0 )
+           ERROR_exit("Cannot input two timeseries!") ;
 
-         if( nopt+1 >= argc ) ERROR ;
+         if( nopt+1 >= argc ) ERROR_exit("need argument after %s",argv[nopt]) ;
          tsim = mri_read_1D( argv[nopt+1] ) ;
-         if( tsim == NULL ) ERROR ;
+         if( tsim == NULL ) ERROR_exit("can't read -input file '%s'",argv[nopt+1]) ;
 
          IN_npts = tsim->nx ;
          IN_ts   = (double *) malloc( sizeof(double) * IN_npts ) ;
@@ -742,10 +724,10 @@ void Process_Options( int argc , char * argv[] )
         float value , valb , valc ;
         char *cpt , *dpt ;
 
-        if( IN_num_tstim > 0 || IN_npts > 0 ){
-          fprintf(stderr,"Cannot input two timeseries!\n"); exit(1);
-        }
-        if( nopt+1 >= argc ) ERROR ;
+        if( IN_num_tstim > 0 || IN_npts > 0 )
+          ERROR_exit("Cannot input two timeseries!") ;
+        if( nopt+1 >= argc )
+          ERROR_exit("need argument after %s",argv[nopt]) ;
 
         iopt         = nopt+1 ;
         IN_num_tstim = 0 ;
@@ -758,8 +740,8 @@ void Process_Options( int argc , char * argv[] )
         while( iopt < argc && argv[iopt][0] != '-' ){
 
           if( isspace(argv[iopt][0]) ){   /* skip if starts with blank */
-            fprintf(stderr,               /* (usually from Microsoft!) */
-                    "** Skipping -tstim value #%d that starts with whitespace!\n",
+            ERROR_message(                /* (usually from Microsoft!) */
+                    "Skipping -tstim value #%d that starts with whitespace!",
                     IN_num_tstim ) ;
             iopt++; continue;
           }
@@ -806,8 +788,7 @@ void Process_Options( int argc , char * argv[] )
           iopt++ ;
         }
         if( zero_valc == IN_num_tstim )
-          fprintf(stderr,
-                  "** WARNING: all '/' amplitudes in 'waver -tstim' are zero!\n") ;
+          WARNING_message("all '/' amplitudes in 'waver -tstim' are zero!") ;
 
         nopt = iopt ; continue ;  /* end of -tstim */
       }
@@ -819,12 +800,10 @@ void Process_Options( int argc , char * argv[] )
          float value ;
          char sep ;
 
-         if( IN_npts > 0 || IN_num_tstim > 0 ){
-            fprintf(stderr,"Cannot input two timeseries!\n") ;
-            exit(1) ;
-         }
-
-         if( nopt+1 >= argc ) ERROR ;
+         if( IN_npts > 0 || IN_num_tstim > 0 )
+           ERROR_exit("Cannot input two timeseries!") ;
+         if( nopt+1 >= argc )
+           ERROR_exit("need argument after %s",argv[nopt]) ;
          iopt    = nopt+1 ;
          IN_npts = 0 ;
          IN_ts   = (double *) malloc( sizeof(double) ) ;
@@ -836,18 +815,14 @@ void Process_Options( int argc , char * argv[] )
                 strstr(argv[iopt],"*") != NULL   ){  /* scan for count@value */
 
                nnn = sscanf( argv[iopt] , "%d%c%f" , &count , &sep , &value ) ;
-               if( nnn != 3 || count < 1 ){
-                  fprintf(stderr,"Illegal value after -inline: %s\n",argv[iopt]) ;
-                  exit(1) ;
-               }
+               if( nnn != 3 || count < 1 )
+                 ERROR_exit("Illegal value after -inline: '%s'",argv[iopt]) ;
 
             } else {                                 /* just scan for value */
                count = 1 ;
                nnn   = sscanf( argv[iopt] , "%f" , &value ) ;
-               if( nnn != 1 ){
-                  fprintf(stderr,"Illegal value after -inline: %s\n",argv[iopt]) ;
-                  exit(1) ;
-               }
+               if( nnn != 1 )
+                 ERROR_exit("Illegal value after -inline: '%s'",argv[iopt]) ;
             }
 
             IN_ts = (double *) realloc( IN_ts , sizeof(double) * (IN_npts+count) ) ;
@@ -864,12 +839,10 @@ void Process_Options( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-when") == 0 ){   /* 08 Apr 2002 */
          int iopt , bot,top , nn , nbt,*bt , count=0 , ii,kk ;
 
-         if( IN_npts > 0 || IN_num_tstim > 0 ){
-            fprintf(stderr,"Cannot input two timeseries!\n") ;
-            exit(1) ;
-         }
+         if( IN_npts > 0 || IN_num_tstim > 0 )
+           ERROR_exit("Cannot input two timeseries!") ;
 
-         if( nopt+1 >= argc ) ERROR ;
+         if( nopt+1 >= argc ) ERROR_exit("need argument after %s",argv[nopt]) ;
          iopt = nopt+1 ;
          nbt  = 0 ;
          bt   = (int *) malloc(sizeof(int)) ;
@@ -879,16 +852,12 @@ void Process_Options( int argc , char * argv[] )
 
             bot = top = -1 ;
             nn = sscanf( argv[iopt],"%d..%d",&bot,&top) ;
-            if( nn < 1 || bot < 0 ){
-              fprintf(stderr,"Illegal value after -when: %s\n",argv[iopt]) ;
-              exit(1) ;
-            }
-            if( nn == 1 ){
+            if( nn < 1 || bot < 0 )
+              ERROR_exit("Illegal value after -when: '%s'",argv[iopt]) ;
+            if( nn == 1 )
               top = bot ;
-            } else if( top < bot ){
-              fprintf(stderr,"Illegal value after -when: %s\n",argv[iopt]) ;
-              exit(1) ;
-            }
+            else if( top < bot )
+              ERROR_exit("Illegal value after -when: '%s'",argv[iopt]) ;
 
             /* save (bot,top) pairs in bt */
 
@@ -899,9 +868,7 @@ void Process_Options( int argc , char * argv[] )
             iopt++ ;
          }
 
-         if( nbt < 1 ){
-            fprintf(stderr,"No ranges after -when?\n") ; exit(1) ;
-         }
+         if( nbt < 1 ) ERROR_exit("No ranges after -when?") ;
 
          IN_npts = count+1 ;
          IN_ts   = (double *) malloc( sizeof(double) * IN_npts ) ;
@@ -919,12 +886,10 @@ void Process_Options( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-numout") == 0 ){   /* 08 Apr 2002 */
          int val = -1 ;
-         if( nopt+1 >= argc ) ERROR ;
+         if( nopt+1 >= argc ) ERROR_exit("need argument after %s",argv[nopt]) ;
          sscanf(argv[nopt+1],"%d",&val) ;
-         if( val <= 1 ){
-           fprintf(stderr,"Illegal value after -numout: %s\n",argv[nopt]);
-           exit(1);
-         }
+         if( val <= 1 )
+           ERROR_exit("Illegal value after -numout: '%s'",argv[nopt]);
          OUT_numout = val ;
          nopt++ ; nopt++ ; continue ;
       }
@@ -933,19 +898,16 @@ void Process_Options( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-ver",4) == 0 ){  /* 06 Jan 2006 [rickr] */
          PRINT_VERSION("waver");
-         fprintf(stderr,"   (compiled %s)\n",__DATE__);
          exit(0) ;
       }
 
       /*-----*/
 
-      ERROR ;
+      ERROR_exit("Unknown option '%s'",argv[nopt]) ;
    }
 
-   if( WAV_peak == 0.0 && waveform_type != EXPR_TYPE ){
-     fprintf(stderr,"** Illegal -peak 0 for non-EXPR waveform type!\n") ;
-     exit(1) ;
-   }
+   if( WAV_peak == 0.0 && waveform_type != EXPR_TYPE )
+     ERROR_exit("Illegal -peak 0 for non-EXPR waveform type!") ;
 
    return ;
 }
