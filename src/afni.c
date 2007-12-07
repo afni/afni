@@ -1647,6 +1647,7 @@ STATUS("call 13") ;
         AFNI_register_slice_proj( "Mean"    , mean_proj  ) ;
 
         AFNI_register_slice_proj( "Median"  , qmed_float   ) ; /* cs_qmed.c */
+        AFNI_register_slice_proj( "OSfilt"  , osfilt_proj  ) ; /* 07 Dec 2007 */
         AFNI_register_slice_proj( "Extreme" , extreme_proj ) ; /* 02 Feb 2002 */
 
 #ifdef HUBERIZE

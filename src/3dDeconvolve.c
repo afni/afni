@@ -919,6 +919,7 @@ void display_help_menu()
     "[-quiet]             Flag to suppress most screen output               \n"
     "[-xout]              Flag to write X and inv(X'X) matrices to screen   \n"
     "[-xjpeg filename]    Write a JPEG file graphing the X matrix           \n"
+    "                     * If filename ends in '.png', a PNG file is output\n"
     "[-x1D filename]      Save X matrix to a .xmat.1D (ASCII) file [default]\n"
     "[-nox1D]             Don't save X matrix                               \n"
     "[-x1D_uncensored ff  Save X matrix to a .xmat.1D file, but WITHOUT     \n"
@@ -1250,9 +1251,9 @@ void get_options
         option_data->xjpeg_filename = malloc (sizeof(char)*THD_MAX_NAME);
         MTEST (option_data->xjpeg_filename);
         strcpy (option_data->xjpeg_filename, argv[nopt]);
-          if( strstr(option_data->xjpeg_filename,".jpg") == NULL &&
-              strstr(option_data->xjpeg_filename,".JPG") == NULL   )
-            strcat( option_data->xjpeg_filename , ".jpg" ) ;
+        if( !STRING_HAS_SUFFIX_CASE(option_data->xjpeg_filename,".jpg") &&
+            !STRING_HAS_SUFFIX_CASE(option_data->xjpeg_filename,".png")   )
+          strcat( option_data->xjpeg_filename , ".jpg" ) ;
         nopt++; continue;
       }
 
@@ -5190,6 +5191,8 @@ ENTRY("calculate_results") ;
       strcpy(fn,option_data->xjpeg_filename) ;
                          jpt = strstr(fn,".jpg") ; jsuf = ".jpg" ;
       if( jpt == NULL ){ jpt = strstr(fn,".JPG") ; jsuf = ".JPG" ; }
+      if( jpt == NULL ){ jpt = strstr(fn,".png") ; jsuf = ".png" ; }
+      if( jpt == NULL ){ jpt = strstr(fn,".PNG") ; jsuf = ".PNG" ; }
       if( jpt == NULL )  jpt = fn + strlen(fn) ;
       strcpy(jpt,"_psinv") ; strcat(fn,jsuf) ;
       JPEG_matrix_gray( xpsinv , fn ) ;
@@ -7152,55 +7155,20 @@ MRI_IMAGE * PLOT_matrix_gray( matrix X )
 
 void JPEG_matrix_gray( matrix X , char *fname )
 {
-   char *pg , *jpfilt, *eee ;
    MRI_IMAGE *im ;
-   FILE *fp ;
-   int jpeg_compress;
 
    if( fname == NULL || *fname == '\0' ) return ;
 
-   pg = THD_find_executable( "cjpeg" ) ;
-   if( pg == NULL ){
-     WARNING_message(
-             "can't save %s because program 'cjpeg' not in path!",
-             fname) ;
-     return ;
-   }
-
    im = PLOT_matrix_gray( X ) ;
    if( im == NULL ){
-     WARNING_message(
-             "can't save %s because of internal error!",fname) ;
+     WARNING_message("Can't save %s because of internal error!",fname) ;
      return ;
    }
 
-   eee = my_getenv("AFNI_JPEG_COMPRESS");
-   if(eee!=NULL) {
-      jpeg_compress = strtod(eee, NULL);
-      if((jpeg_compress<=0) || (jpeg_compress>100))
-         jpeg_compress = 95;
-    }
-   else jpeg_compress = 95;
+   mri_write_jpg( fname , im ) ;
 
-   jpfilt = (char *)malloc( sizeof(char)*(strlen(pg)+strlen(fname)+32) ) ;
-
-   sprintf( jpfilt , "%s -quality %d > %s" , pg , jpeg_compress, fname ) ;
-
-#ifndef CYGWIN
-   signal( SIGPIPE , SIG_IGN ) ; errno = 0 ;
-#endif
-   fp = popen( jpfilt , "w" ) ;
-   if( fp == NULL ){
-     mri_free(im) ; free((void *)jpfilt) ;
-     WARNING_message("can't save %s because cjpeg filter fails!",fname) ;
-     return ;
-   }
-   fprintf(fp,"P6\n%d %d\n255\n" , im->nx,im->ny ) ;
-   fwrite( MRI_RGB_PTR(im), sizeof(byte), 3*im->nvox, fp ) ;
-   (void) pclose(fp) ;
    if( verb ) INFO_message("Wrote matrix image to file %s",fname) ;
-
-   mri_free(im) ; free((void *)jpfilt) ; return ;
+   mri_free(im) ; return ;
 }
 
 /*----------------------------------------------------------------------------*/

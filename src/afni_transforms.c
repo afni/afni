@@ -147,12 +147,25 @@ float extreme_proj( int n , float *ar )  /* 02 Feb 2002 */
    float vv,ww , med=qmed_float(n,ar) ;
    int ii , jj ;
 
-   jj = 0 ; vv = fabs(ar[0]-med) ;       /* Find the value */
-   for( ii=1 ; ii < n ; ii++ ){          /* furthest from */
-      ww = fabs(ar[ii]-med) ;            /* the median.  */
-      if( ww > vv ){ vv=ww; jj=ii; }
+   jj = 0 ; vv = fabs(ar[0]-med) ;      /* Find the value */
+   for( ii=1 ; ii < n ; ii++ ){         /* furthest from */
+     ww = fabs(ar[ii]-med) ;            /* the median.  */
+     if( ww > vv ){ vv=ww; jj=ii; }
    }
    return ar[jj] ;
+}
+
+float osfilt_proj( int n , float *ar )  /* 07 Dec 2007 */
+{
+   int ii , n2 ; float v=0.0f , d=0.0f ;
+   qsort_float( n , ar ) ;
+   n2 = n/2 ;
+   for( ii=0 ; ii < n2 ; ii++ ){
+     v += (ii+1)*(ar[ii]+ar[n-1-ii]) ;
+     d += 2*(ii+1) ;
+   }
+   v += (n2+1)*ar[n2] ; d += (n2+1) ;
+   return (v/d) ;
 }
 
 /*======================================================================*/
