@@ -168,6 +168,10 @@ int main( int argc , char *argv[] )
             "                     Roll, Pitch, Yaw, I-S, R-L, and A-P\n"
             "                     movements, in that order.\n"
             "\n"
+            " -Dname=val        = Set environment variable 'name' to 'val'\n"
+            "                     for this run of the program only:\n"
+            "             1dplot -DAFNI_1DPLOT_THIK=0.01 '1D: 3 4 5 3 1 0'\n"
+            "\n"
             "You may also select a subset of columns to display using\n"
             "a tsfile specification like 'fred.1D[0,3,5]', indicating\n"
             "that columns #0, #3, and #5 will be the only ones plotted.\n"
@@ -369,6 +373,11 @@ int main( int argc , char *argv[] )
      }
      if( strcmp(argv[iarg],"-one") == 0 ){
         sep = 0 ; iarg++ ; continue ;
+     }
+
+     if( strncmp(argv[iarg],"-D",2) == 0 && strchr(argv[iarg],'=') != NULL ){
+       (void) AFNI_setenv( argv[iarg]+2 ) ;
+       iarg++ ; continue ;
      }
 
      ERROR_exit("Unknown option: %s\n",argv[iarg]) ;
