@@ -9,15 +9,16 @@ int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing info common to all viewers */
 
 
-void usage_SUMA_SurfSmooth ()
+void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps)
    {
       static char FuncName[]={"usage_SUMA_SurfSmooth"};
-      char * s = NULL, *st = NULL, *sm = NULL;
+      char * s = NULL, *st = NULL, *sm = NULL, *sio=NULL;
       s = SUMA_help_basics();
+      sio  = SUMA_help_IO_Args(ps);
       st = SUMA_help_talk();
       sm = SUMA_help_mask();
       printf (
-"\nUsage:  SurfSmooth <-spec SpecFile> <-surf_A insurf> <-met method> \n"
+"\nUsage:  SurfSmooth <-SURF_1> <-met method> \n"
 "\n"
 "   Some methods require additional options detailed below.\n"
 "   I recommend using the -talk_suma option to watch the \n"
@@ -26,7 +27,7 @@ void usage_SUMA_SurfSmooth ()
 "   Method specific options:\n"
 "      HEAT_07: <-input inData.1D> <-target_fwhm F>   \n"
 "            This method is used to filter data\n"
-"            on the surface. It is an significant\n"
+"            on the surface. It is a significant\n"
 "            improvement on HEAT_05.\n"
 "      HEAT_05: <-input inData.1D> <-fwhm F>  \n"
 "            Formerly known as HEAT, this method is used \n"
@@ -51,14 +52,17 @@ void usage_SUMA_SurfSmooth ()
 "\n"
 "   Common options:\n"
 "      [-Niter N] [-output out.1D] [-h/-help] [-dbg_n node]\n"
-"      [-add_index] [-ni_text|-ni_binary] [-talk_suma]\n\n"
+"      [-add_index] [-ni_text|-ni_binary] [-talk_suma] [-MASK] \n\n"
 "\n"
 "   Detailed usage:\n"
-"      -spec SpecFile: Name of specfile containing surface of interest.\n"
-"                      If the surface does not have a spec file, use the \n"
-"                      program quickspec to create one.\n"
-"      -surf_A insurf: Name of surface of interest. \n"
-"                      NOTE: i_TYPE inSurf option is now obsolete.\n"
+"     (-SURF_1):  An option for specifying the surface to smooth or\n"
+"                 the domain over which DSET is defined.\n"
+"                 (For option's syntax, see 'Specifying input surfaces'\n"
+"                 section below).\n"
+"     (-MASK)  :  An option to specify a node mask so that only\n"
+"                 nodes in the mask are used in the smoothing.\n"
+"                 See section 'SUMA mask options' for details on\n"
+"                 the masking options.\n"
 "      -met method: name of smoothing method to use. Choose from:\n"
 "                 HEAT_07: A significant improvement on HEAT_05.\n" 
 "                         This method is used for filtering \n"
@@ -323,6 +327,8 @@ void usage_SUMA_SurfSmooth ()
 "\n"
 "%s"
 "\n"
+"%s"
+"\n"
 "   Sample commands lines for using SurfSmooth:\n"
 "         The surface used in this example had no spec file, so \n"
 "         a quick.spec was created using:\n"
@@ -404,7 +410,9 @@ void usage_SUMA_SurfSmooth ()
 "       to load surface datasets directly into SUMA and colorize\n"
 "       them interactively."
 "\n"
-              "\n", sm,  st, s); SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sm); sm = NULL; 
+"\n", sio, sm,  st, s); 
+       SUMA_free(s); s = NULL; SUMA_free(st); 
+       st = NULL; SUMA_free(sm); sm = NULL; SUMA_free(sio); sio = NULL;
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
        printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
        exit (0);
@@ -480,7 +488,8 @@ typedef struct {
                SUMA_free(Opt->out_name); 
                SUMA_free(Opt);
 */
-SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
+SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
+   char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
    static char FuncName[]={"SUMA_SurfSmooth_ParseInput"}; 
    SUMA_SURFSMOOTH_OPTIONS *Opt=NULL;
@@ -545,7 +554,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SUMA_SurfSmooth();
+			 usage_SUMA_SurfSmooth(ps);
           exit (0);
 		}
 		
@@ -1327,9 +1336,10 @@ int main (int argc,char *argv[])
    float **wgt=NULL, *dsmooth=NULL;
    SUMA_INDEXING_ORDER d_order=SUMA_NO_ORDER;
    SUMA_COMM_STRUCT *cs = NULL;
-	SUMA_SurfSpecFile Spec; 
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_DSET *dset = NULL;
+   SUMA_SurfSpecFile *Spec = NULL;
+   int N_Spec=-1;
    int iform;
    char *ooo=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -1340,11 +1350,11 @@ int main (int argc,char *argv[])
    
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-i;-sv;-talk;-mask;");
+   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-i;-t;-spec;-sv;-talk;-mask;");
    
    if (argc < 6)
        {
-          usage_SUMA_SurfSmooth();
+          usage_SUMA_SurfSmooth(ps);
           exit (1);
        }
    
@@ -1355,7 +1365,21 @@ int main (int argc,char *argv[])
    if (Opt->debug > 2) LocalHead = YUP;
    
    if (Opt->debug) SUMA_S_Note("Reading surface(s)\n");
-   /* now for the real work */
+   #if 1       /* New loading approach */
+   Spec = SUMA_IO_args_2_spec(ps, &N_Spec);
+   if (N_Spec == 0) {
+      SUMA_S_Err("No surfaces found.");
+      exit(1);
+   }
+
+   SUMA_LH("Loading surface...");
+   SO = SUMA_Load_Spec_Surf(Spec, 0, ps->sv[0], Opt->debug);
+   if (!SUMA_SurfaceMetrics_eng (SO, "EdgeList, MemberFace", 
+                                 NULL, Opt->debug, SUMAg_CF->DsetList)) {
+      SUMA_S_Err("Failed in SUMA_SurfaceMetrics.\n");
+      exit(1);
+   }
+   #else
    if (Opt->insurf_method == 1) { /* method 1 */
       SUMA_SL_Err("Input in this method is no longer supported.\n");
       exit(1);
@@ -1391,10 +1415,9 @@ int main (int argc,char *argv[])
       SO = SUMA_find_named_SOp_inDOv(Opt->surf_names[0],
                                      SUMAg_DOv, SUMAg_N_DOv);
    }
-   
+   #endif
    if (!SO) {
-      fprintf (SUMA_STDERR,
-               "Error %s: Failed to read input surface.\n", FuncName);
+      SUMA_S_Err("Failed to read input surface \n");
       exit (1);
    }
 
@@ -2387,10 +2410,13 @@ int main (int argc,char *argv[])
             d_order =  SUMA_ROW_MAJOR; 
             
             dsmooth = SUMA_NN_GeomSmooth( SO, Opt->N_iter, SO->NodeList,
-                                          3, d_order, NULL, cs, Opt->nmask, Opt->strict_mask);
+                                          3, d_order, NULL, cs, Opt->nmask,
+                                          Opt->strict_mask);
             if (0 && LocalHead) {
                SUMA_LH("See dsmooth.1D");
-               SUMA_disp_vecmat (dsmooth, SO->N_Node, 3, 1,  d_order, NULL, YUP);
+               SUMA_disp_vecmat (dsmooth, 
+                                 SO->N_Node, 3, 1,  
+                                 d_order, NULL, YUP);
             }
             if (!dsmooth) {
                SUMA_SL_Err("Failed in SUMA_NN_Geom_Smooth");
@@ -2422,7 +2448,8 @@ int main (int argc,char *argv[])
                   exit(1);
                }
             } else if (SUMA_Get_Taubin_Weights() != SUMA_EQUAL) {
-               /* fprintf(stderr,"%d, %d\n", SUMA_Get_Taubin_Weights() , SUMA_EQUAL); */
+               /* fprintf(stderr,"%d, %d\n", SUMA_Get_Taubin_Weights() ,
+                            SUMA_EQUAL); */
                SUMA_SL_Err("Weights improperly initialized!");
                exit(1);
             }
@@ -2434,10 +2461,11 @@ int main (int argc,char *argv[])
 
             if (LocalHead) {
                etime_GetOffset = SUMA_etime(&start_time,1);
-               fprintf(SUMA_STDERR, "%s: Total processing took %f seconds for %d nodes.\n"
-                                    "Projected time per 100000 nodes is: %f minutes\n", 
-                                       FuncName, etime_GetOffset, SO->N_Node, 
-                                       etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
+               fprintf(SUMA_STDERR, 
+                  "%s: Total processing took %f seconds for %d nodes.\n"
+                  "Projected time per 100000 nodes is: %f minutes\n", 
+                  FuncName, etime_GetOffset, SO->N_Node, 
+                  etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
             
             if (wgt) SUMA_free2D ((char **)wgt, SO->N_Node); wgt = NULL;
@@ -2455,7 +2483,8 @@ int main (int argc,char *argv[])
    {
       if (Opt->MatchMethod) {   
          SUMA_LH("Fixing shrinkage...");
-         /* Create a surface that is a descendant of SO, use the new coordinates */
+         /* Create a surface that is a descendant of SO, 
+            use the new coordinates */
          SOnew = SUMA_CreateChildSO( SO,
                                      dsmooth, SO->N_Node,
                                      NULL, -1,
@@ -2466,7 +2495,8 @@ int main (int argc,char *argv[])
          switch (Opt->MatchMethod) {
             case 1:
                if (!SUMA_EquateSurfaceSize(SOnew, SO, Opt->lim, cs)) {
-                  SUMA_SL_Warn("Failed to fix surface size.\nTrying to finish ...");
+                  SUMA_SL_Warn(  "Failed to fix surface size.\n"
+                                 "Trying to finish ...");
                }
 
                /* send the unshrunk bunk */
@@ -2622,10 +2652,10 @@ int main (int argc,char *argv[])
       if (dsmooth) SUMA_free(dsmooth); dsmooth = NULL;
       SUMA_LH("Done:");
    }
-   if (!SUMA_FreeSpecFields(&Spec)) {
-      SUMA_S_Err("Failed to free spec fields");
-   }
    mri_free(im); im = NULL;   /* done with that baby */
+   if (!SUMA_FreeSpecFields(Spec)) {
+      SUMA_S_Err("Failed to free Spec fields");
+   } SUMA_free(Spec); Spec = NULL;
    if (cs) cs = NULL; /* ps->cs if freed below */
    if (SF_name) SUMA_free(SF_name);
    if (Opt->insurf_method == 1) { if (SO) SUMA_Free_Surface_Object(SO); }

@@ -45,12 +45,16 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_datase
    float *m_a, m_P2[2][3], m_U[3], m_Un, m_Rref, m_R, m_Dr, m_Dn;  \
    if (!refNodeList) {  \
       refNodeList = (float *)SUMA_malloc(sizeof(float)*SO->N_Node*3);   \
-      if (!refNodeList) { SUMA_SL_Crit("Failed to allocate for refNodeList!"); SUMA_RETURN(NOPE); }   \
+      if (!refNodeList) { \
+         SUMA_SL_Crit("Failed to allocate for refNodeList!"); \
+         SUMA_RETURN(NOPE); }   \
    }  \
    SUMA_SO_RADIUS(SO, m_Rref);   /* get the radius before shrinking */\
-   memcpy((void*)refNodeList, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float)); /* copy original surface coords */ \
-   dsmooth = SUMA_NN_GeomSmooth( SO, niter, SO->NodeList, 3, SUMA_ROW_MAJOR, dsmooth, cs, nmask, 1);    \
-   memcpy((void*)SO->NodeList, (void *)dsmooth, SO->N_Node * 3 * sizeof(float)); /* copy smoothed surface coords */  \
+   memcpy(  (void*)refNodeList, (void *)SO->NodeList, \
+            SO->N_Node * 3 * sizeof(float)); /* copy original coords */ \
+   dsmooth = SUMA_NN_GeomSmooth( SO, niter, SO->NodeList, 3, \
+                                 SUMA_ROW_MAJOR, dsmooth, cs, nmask, 1);    \
+   memcpy((void*)SO->NodeList, (void *)dsmooth, SO->N_Node * 3 * sizeof(float));    /* copy smoothed surface coords */  \
    /* matching area fails for some reason. */\
    if (0) { \
       /* just grow surface by 3 mm outward, fails for meshes of different size and different degrees of smoothing*/  \
@@ -79,19 +83,28 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, THD_3dim_datase
 }
 
 /* Area matching is failing for some reason (negative area patches ?) */
-#define SUMA_WRAP_BRAIN_SMOOTH_MATCHAREA(niter, dsmooth, refNodeList){ \
+#define SUMA_WRAP_BRAIN_SMOOTH_MATCHAREA(niter, dsmooth, refNodeList, nmask){ \
    SUMA_SurfaceObject m_SOref;   \
    if (!refNodeList) {  \
       refNodeList = (float *)SUMA_malloc(sizeof(float)*SO->N_Node*3);   \
-      if (!refNodeList) { SUMA_SL_Crit("Failed to allocate for refNodeList!"); SUMA_RETURN(NOPE); }   \
+      if (!refNodeList) {  \
+         SUMA_SL_Crit("Failed to allocate for refNodeList!"); \
+         SUMA_RETURN(NOPE); \
+      }   \
    }  \
-   memcpy((void*)refNodeList, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float)); /* copy original surface coords */ \
-   dsmooth = SUMA_NN_GeomSmooth( SO, niter, SO->NodeList, 3, SUMA_ROW_MAJOR, dsmooth, cs, NULL);    \
-   memcpy((void*)SO->NodeList, (void *)dsmooth, SO->N_Node * 3 * sizeof(float)); /* copy smoothed surface coords */  \
+   memcpy(  (void*)refNodeList, (void *)SO->NodeList,    \
+            SO->N_Node * 3 * sizeof(float)); /* copy original surface coords */\
+   dsmooth = SUMA_NN_GeomSmooth( SO, niter, SO->NodeList, \
+                                 3, SUMA_ROW_MAJOR, dsmooth, cs, nmask,1);    \
+   memcpy((void*)SO->NodeList, (void *)dsmooth, \
+            SO->N_Node * 3 * sizeof(float));\
+   /* copy smoothed surface coords */  \
    m_SOref.PolyArea = NULL; m_SOref.NodeDim = 3; m_SOref.FaceSetDim = 3;   \
    m_SOref.NodeList = refNodeList; m_SOref.N_Node = SO->N_Node;   \
    m_SOref.FaceSetList = SO->FaceSetList; m_SOref.N_FaceSet = SO->N_FaceSet;  \
+   m_SOref.idcode_str = SO->idcode_str; m_SOref.Label = SO->Label;\
    SUMA_EquateSurfaceAreas(SO, &m_SOref, 0.1, cs);  \
+   SUMA_RECOMPUTE_NORMALS(SO);   \
 }
 
 /*!

@@ -749,7 +749,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          if (VolParName != NULL) {
             SO->VolPar = SUMA_VolPar_Attr (VolParName);
             if (SO->VolPar == NULL) {
-               fprintf(SUMA_STDERR,"Error %s: Failed to load parent volume attributes.\n", FuncName);
+               fprintf(SUMA_STDERR,
+                  "Error %s: Failed to load parent volume attributes.\n", FuncName);
             } else {
 
             if (!SUMA_Align_to_VolPar (SO, NULL)) SO->SUMA_VolPar_Aligned = NOPE;
@@ -762,7 +763,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
             SO->SUMA_VolPar_Aligned = NOPE;
          }
          
-         SO->normdir = 1;  /* positive */
+         SO->normdir = SUMA_SurfNormDir(SO);  /* guess */
          break;
                
       case SUMA_INVENTOR_GENERIC:
@@ -2498,15 +2499,19 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
        fprintf (SUMA_STDERR, "Expecting to read %d surfaces.\n", Spec->N_Surfs);
    for (i=0; i<Spec->N_Surfs; ++i) { /* first loop across mappable surfaces */
       /*locate and load all Mappable surfaces */
-      if (SUMA_iswordin(Spec->LocalDomainParent[i],"SAME") == 1) { /* Mappable surfaces */
+      if (SUMA_iswordin(Spec->LocalDomainParent[i],"SAME") == 1) { 
+         /* Mappable surfaces */
          if ( debug || 1) { /* turned this back on as a pacifier */
 	    fprintf (SUMA_STDERR,"\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
 	    fprintf (SUMA_STDERR,
-		     "Surface #%d/%d(Local Domain Parent), loading ...\n",i+1, Spec->N_Surfs );
+		     "Surface #%d/%d(Local Domain Parent), loading ...\n",
+           i+1, Spec->N_Surfs );
 	 }
 
          if (Spec->VolParName[i][0] != '\0') {
-            fprintf (SUMA_STDOUT, "Warning %s: Using Volume Parent Specified in Spec File. This overrides -sv option.\n", FuncName);
+            fprintf (SUMA_STDOUT, 
+               "Warning %s: Using Volume Parent Specified in Spec File.\n"
+               " This overrides -sv option.\n", FuncName);
             tmpVolParName = Spec->VolParName[i];
          }else {
             tmpVolParName = VolParName;

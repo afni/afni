@@ -3294,7 +3294,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 			   if (strcmp(argv[kar],"localhost") != 0) {
                ps->cs->suma_host_name = SUMA_copy_string(argv[kar]);
             }else {
-              fprintf (SUMA_STDERR, "localhost is the default for -sh\nNo need to specify it.\n");
+              SUMA_S_Note ("localhost is the default for -sh\n"
+                           "No need to specify it.\n");
             }
 
 			   brk = YUP;
@@ -3311,7 +3312,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 			   if (strcmp(argv[kar],"localhost") != 0) {
                ps->cs->afni_host_name = SUMA_copy_string(argv[kar]);
             }else {
-              fprintf (SUMA_STDERR, "localhost is the default for -ah\nNo need to specify it.\n");
+              SUMA_S_Note ("localhost is the default for -ah\n"
+                           "No need to specify it.\n");
             }
 
 			   brk = YUP;
@@ -3327,7 +3329,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 			   }
 			   ps->cs->rps = atof(argv[kar]);
             if (ps->cs->rps <= 0) {
-               fprintf (SUMA_STDERR, "Bad value (%f) for refresh_rate\n", ps->cs->rps);
+               SUMA_S_Errv("Bad value (%f) for refresh_rate\n", ps->cs->rps);
 				   exit (1);
             }
 
