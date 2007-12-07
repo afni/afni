@@ -208,7 +208,7 @@ int main( int argc , char *argv[] )
 
    MCW_file_expand( argc-iarg , argv+iarg , &gnim , &gname ) ;
    if( gnim == 0 && AIVVV_stream==(NI_stream)NULL )
-     ERROR_exit("No filenames on command line?!") ;
+     ERROR_exit("No filenames on command line (after wildcard expansion)?!") ;
 
    INIT_IMARR(MAIN_imar) ;
 
