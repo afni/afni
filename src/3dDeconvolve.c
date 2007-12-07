@@ -727,6 +727,8 @@ void display_help_menu()
     "[-allzero_OK]        Don't consider all zero matrix columns to be      \n"
     "                      the type of error that -GOFORIT is needed to     \n"
     "                      ignore.                                          \n"
+    "[-Dname=val]       = Set environment variable 'name' to 'val' for this \n"
+    "                     run of the program only.                          \n"
     "                                                                       \n"
     "**** Input stimulus options:                                           \n"
     "-num_stimts num      num = number of input stimulus time series        \n"
@@ -2177,6 +2179,12 @@ void get_options
         nopt++; continue;
       }
 
+      /*----- -Dname=val to set environment variable [07 Dec 2007] -----*/
+
+      if( strncmp(argv[nopt],"-D",2) == 0 && strchr(argv[nopt],'=') != NULL ){
+        (void) AFNI_setenv( argv[nopt]+2 ) ;
+        nopt++ ; continue ;
+      }
 
       /*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
