@@ -170,6 +170,20 @@ if (isempty(Opt.FileFormat)), % try to guess
 elseif (strcmp(Opt.FileFormat, '1D') | strcmp(Opt.FileFormat, '1d')),
    is1D = 1;
 end
+isNIFTI = 0;
+if (isempty(Opt.FileFormat)), % try to guess 
+   [St, xtr] = RemoveNiftiExtension(BrikName);
+   if (~isempty(xtr)),
+      isNIFTI = 1;
+   end
+elseif (   strcmp(Opt.FileFormat, 'NIFTI') ...
+         | strcmp(Opt.FileFormat, 'nifti') ...
+         | strcmp(Opt.FileFormat, 'Nifti') ...
+         | strcmp(Opt.FileFormat, 'Nii') ...
+         | strcmp(Opt.FileFormat, 'nii') ...
+         | strcmp(Opt.FileFormat, 'NII')),
+   isNIFTI = 1;
+end
 
 if (is1D), % 1D land
    V = []; Info = []; ErrMessage = '';
@@ -198,6 +212,28 @@ if (is1D), % 1D land
       return;
    end
    return;
+end
+
+if (isNIFTI),
+   [St, xtr] = RemoveNiftiExtension(BrikName); 
+   NiftiPref = St;          
+   %create a BRIK version
+   otmp = sprintf('./____tmp_%s', St);
+   stmp = sprintf('3dcopy %s %s', BrikName, otmp);
+   [us, uw] = unix(stmp);
+   if (us),
+      ErrMessage = sprintf ('%s: Failed to create afni brick:\n%s',...
+                            FuncName, uw);
+      err = ErrEval(FuncName,'Err_Could not create afni brick');
+      return;
+   end
+   obrik = dir(sprintf('%s+*',otmp));
+   if (length(obrik) ~= 2),
+      ErrMessage = sprintf ('%s: Failed to find afni brick', FuncName);
+      err = ErrEval(FuncName,'Err_Could not find afni brick');
+      return;
+   end
+   BrikName = obrik(1).name;
 end
 
 %assume you have a brik format and proceed as usual 
@@ -390,6 +426,11 @@ end
 		V = reshape(V, Info.DATASET_DIMENSIONS(1).* Info.DATASET_DIMENSIONS(2).* numslices, numframes);
 	end
 
+if (isNIFTI),
+   delete(obrik(1).name);
+   delete(obrik(2).name);
+   Info.RootName = NiftiPref;
+end
    
 err = 0;
 return;
