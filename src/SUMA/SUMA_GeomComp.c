@@ -1392,7 +1392,8 @@ typedef struct {
    \return A (double) the area of the new surface (post streching)
    \sa SUMA_AreaDiff
 */
-double SUMA_NewAreaAtRadius(SUMA_SurfaceObject *SO, double r, double Rref, float *tmpList)
+double SUMA_NewAreaAtRadius(SUMA_SurfaceObject *SO, double r, 
+                           double Rref, float *tmpList)
 {
    static char FuncName[]={"SUMA_NewAreaAtRadius"};
    double Dr, A=0.0,  Un, U[3], Dn, P2[2][3], c[3];
@@ -1552,9 +1553,13 @@ double SUMA_AreaDiff(double r, void *fvdata)
       SUMA_LH("Initializing, calculating Aref and Rref");
       Aref = fdata->Aref;
       Rref = fdata->Rref;
-      if (LocalHead) { fprintf(SUMA_STDERR,"%s: Reference volume = %f, radius = %f \n", FuncName, Aref, Rref); }
-      if (cs->Send) { /* send the first monster (it's SOref "in SUMA" that's being modified on the fly) */
-         if (!SUMA_SendToSuma (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+      if (LocalHead) { 
+         fprintf(SUMA_STDERR,"%s: Reference area = %f, radius = %f \n",
+                        FuncName, Aref, Rref); }
+      if (cs->Send) { /* send the first monster 
+                     ( it's SOref "in SUMA" that's being modified on the fly) */
+         if (!SUMA_SendToSuma (  SOref, cs, (void *)SO->NodeList, 
+                                 SUMA_NODE_XYZ, 1)) {
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
          }
       }
@@ -1563,12 +1568,17 @@ double SUMA_AreaDiff(double r, void *fvdata)
    A = SUMA_NewAreaAtRadius(SO, r, Rref, fdata->tmpList);
    da = A - Aref; /* the area difference */
    if (LocalHead) {
-      fprintf(SUMA_STDERR,"%s: Call %d, A = %f, Aref = %f, da = %f\n", FuncName,ncall, A, Aref, da);
+      fprintf(SUMA_STDERR,
+               "%s: Call %d, A = %f, Aref = %f, da = %f\n", 
+               FuncName,  ncall, A, Aref, da);
+      fprintf(SUMA_STDERR, "SOref->idcode_str=%s\n", SOref->idcode_str);
    }
       
    /* need an update ? */
-   if (cs->Send) { /* send the update (it's SOref "in SUMA" that's being modified on the fly) */
-      if (!SUMA_SendToSuma (SOref, cs, (void *)fdata->tmpList, SUMA_NODE_XYZ, 1)) {
+   if (cs->Send) { /* send the update 
+                     (it's SOref "in SUMA" that's being modified on the fly) */
+      if (!SUMA_SendToSuma (SOref, cs, (void *)fdata->tmpList, 
+                            SUMA_NODE_XYZ, 1)) {
       SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
    }
@@ -1638,7 +1648,9 @@ double SUMA_VolDiff(double r, void *fvdata)
    \param Nitermax (int) the maximum number of iterations
    \param tol(double) the tolerance for convergence. Stop when ( |f(x)| < tol ) 
 */
-double SUMA_BinaryZeroSearch(double a, double b, double(*f)(double x, void *data), void *fdata, int Nitermax, double tol) {
+double SUMA_BinaryZeroSearch( double a, double b, 
+                              double(*f)(double x, void *data), 
+                              void *fdata, int Nitermax, double tol) {
    static char FuncName[]={"SUMA_BinaryZeroSearch"};
    int Niter;
    double x, fx;
@@ -1655,13 +1667,17 @@ double SUMA_BinaryZeroSearch(double a, double b, double(*f)(double x, void *data
    while(!done && Niter < Nitermax) {
       x = (a+b)/2.0;
       fx = (*f)(x, fdata);
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: %d\ta=%.4f\tb=%.4f\tx=%.4f\tfx=%.4f\n", 
-                                          FuncName, Niter, a, b, x, fx);
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s: %d\ta=%.4f\tb=%.4f\tx=%.4f\tfx=%.4f\n", 
+                             FuncName, Niter, a, b, x, fx);
       if (fx < 0) a = x;
       else b = x;
       if (fabs(fx) < tol) done = YUP;
       ++Niter;
    }
+   
+   /* Now do a cleanup call */
+   fx = (*f)(x, NULL);
    
    if (!done) {
       SUMA_SL_Warn(  "Reached iteration limit\n"
@@ -1682,7 +1698,8 @@ double SUMA_BinaryZeroSearch(double a, double b, double(*f)(double x, void *data
    These two starting points are used for the optimization function
    SUMA_BinaryZeroSearch
 */
-SUMA_Boolean SUMA_GetAreaDiffRange(SUMA_AreaDiffDataStruct *fdata, double *ap, double *bp)
+SUMA_Boolean SUMA_GetAreaDiffRange(
+      SUMA_AreaDiffDataStruct *fdata, double *ap, double *bp)
 {
    static char FuncName[]={"SUMA_GetAreaDiffRange"};
    double a = 0.0, b = 0.0, nat=0, nbt=0, An, Bn;
@@ -1696,7 +1713,8 @@ SUMA_Boolean SUMA_GetAreaDiffRange(SUMA_AreaDiffDataStruct *fdata, double *ap, d
    fdata->A = fabs((double)SUMA_Mesh_Area(fdata->SO, NULL, -1));
    SUMA_SO_RADIUS(fdata->SO, fdata->R);
 
-   if (fdata->Aref > fdata->A) { /* current settings low end, acceptable for a */
+   if (fdata->Aref > fdata->A) { /* current settings low end, 
+                                    acceptable for a */
       a = fdata->R; 
       An = fdata->A;
       /* now find b such that area at b is larger than Aref */
@@ -1705,7 +1723,8 @@ SUMA_Boolean SUMA_GetAreaDiffRange(SUMA_AreaDiffDataStruct *fdata, double *ap, d
          b *= 1.1;
          Bn = SUMA_NewAreaAtRadius(fdata->SO, b, fdata->Rref, fdata->tmpList);
          ++nbt;
-      } while ( fdata->Aref > Bn && nbt < 200); /* stop when area at B is larger than Aref */
+      } while ( fdata->Aref > Bn && nbt < 200); /* stop when area at B is 
+                                                   larger than Aref */
    } else { /* current settings high end, acceptable for b */
       b = fdata->R;
       Bn = fdata->A;
@@ -1715,7 +1734,8 @@ SUMA_Boolean SUMA_GetAreaDiffRange(SUMA_AreaDiffDataStruct *fdata, double *ap, d
          a *= 0.9;
          An = SUMA_NewAreaAtRadius(fdata->SO, a, fdata->Rref, fdata->tmpList);
          ++nat;
-      } while ( fdata->Aref < An && nat < 200); /* stop when area at A is smaller than Aref */
+      } while ( fdata->Aref < An && nat < 200); /* stop when area at A is
+                                                   smaller than Aref */
    
    }
    *ap = a; *bp = b;
@@ -1726,7 +1746,9 @@ SUMA_Boolean SUMA_GetAreaDiffRange(SUMA_AreaDiffDataStruct *fdata, double *ap, d
    }
 
    if (LocalHead) {
-      fprintf (SUMA_STDERR,"%s:\nChosen range is [%f %f] with Areas [%f %f], reference Area is %f\n", 
+      fprintf (SUMA_STDERR,
+         "%s:\nChosen range is [%f %f] with Areas [%f %f]\n"
+         "             , reference Area is %f\n", 
             FuncName, a, b, An, Bn, fdata->Aref);
    }
    
@@ -1789,7 +1811,10 @@ SUMA_Boolean SUMA_GetVolDiffRange(SUMA_VolDiffDataStruct *fdata, double *ap, dou
    - This function does not update the normals and other coordinate related properties for SO.
    \sa SUMA_RECOMPUTE_NORMALS 
 */
-SUMA_Boolean SUMA_EquateSurfaceAreas(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref, float tol, SUMA_COMM_STRUCT *cs)
+SUMA_Boolean SUMA_EquateSurfaceAreas(
+                  SUMA_SurfaceObject *SO, 
+                  SUMA_SurfaceObject *SOref, 
+                  float tol, SUMA_COMM_STRUCT *cs)
 {
    static char FuncName[]={"SUMA_EquateSurfaceAreas"};
    int iter, i, iter_max, ndiv;
@@ -1800,7 +1825,10 @@ SUMA_Boolean SUMA_EquateSurfaceAreas(SUMA_SurfaceObject *SO, SUMA_SurfaceObject 
    SUMA_ENTRY;
 
    if (!SO || !SOref) { SUMA_SL_Err("NULL surfaces"); SUMA_RETURN(NOPE); }
-   if (SO->N_Node != SOref->N_Node || SO->N_FaceSet != SOref->N_FaceSet) { SUMA_SL_Err("Surfaces not isotopic"); SUMA_RETURN(NOPE); }
+   if (  SO->N_Node != SOref->N_Node 
+      || SO->N_FaceSet != SOref->N_FaceSet) { 
+         SUMA_SL_Err("Surfaces not isotopic"); SUMA_RETURN(NOPE); 
+   }
    
    if (LocalHead) {
       fprintf(SUMA_STDERR, "%s:\n"
@@ -1808,12 +1836,14 @@ SUMA_Boolean SUMA_EquateSurfaceAreas(SUMA_SurfaceObject *SO, SUMA_SurfaceObject 
                            " SOref Center: %f, %f, %f\n"
                            , FuncName, 
                            SO->Center[0], SO->Center[1], SO->Center[2],
-                           SOref->Center[0], SOref->Center[1], SOref->Center[2]);  
+                           SOref->Center[0], SOref->Center[1],
+                           SOref->Center[2]);  
    }
      
    /* fill up fdata */
    fdata.SO = SO; fdata.SOref = SOref; fdata.cs = cs;
-   fdata.tmpList = (float *)SUMA_malloc(SOref->NodeDim * SOref->N_Node * sizeof(float));
+   fdata.tmpList = (float *)SUMA_malloc(
+                              SOref->NodeDim * SOref->N_Node * sizeof(float));
    if (!fdata.tmpList) {
       SUMA_SL_Err("Failed to allocate");
       SUMA_RETURN(0);

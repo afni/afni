@@ -21,8 +21,8 @@ function [err, V, Info, ErrMessage] = BrikLoad (BrikName, param1, param2)
 %   [err, V, Info, ErrMessage] = BrikLoad (BrikName, [Opt])
 %
 %Purpose:
-%   loads an AFNI brik or a 1D file into V
-%   
+%   loads an AFNI brik or a NIFTI or a 1D file into V
+%   (NIFTI files are loaded via a hidden 3dcopy command)
 %   
 %Input Parameters:
 %   BrikName, name of the brik
@@ -33,11 +33,13 @@ function [err, V, Info, ErrMessage] = BrikLoad (BrikName, param1, param2)
 %        (N * M * K) column vector. If the brick has multiple volumes (4-D)
 %        then an N x M x K x J brick is stored in an (N * M * K) x J  matrix.
 %        If you use 'vector' option you can change V to matrix format by using
-%        M = reshape(V, Info.DATASET_DIMENSIONS(1), Info.DATASET_DIMENSIONS(2),...
-%            Info.DATASET_DIMENSIONS(3), Info.DATASET_RANK(2));
+%        M = reshape(...
+%              V, Info.DATASET_DIMENSIONS(1), Info.DATASET_DIMENSIONS(2),...
+%              Info.DATASET_DIMENSIONS(3), Info.DATASET_RANK(2));
 %        
-%        Note that indexing in matlab is different than in AFNI. Matlab starts indexing at 
-%        1 while AFNI starts with 0. So voxel (i,j,k) in AFNI corresponds to voxel (i+1,j+1,k+1) 
+%        Note that indexing in matlab is different than in AFNI. 
+%        Matlab starts indexing at  1 while AFNI starts with 0. 
+%        So voxel (i,j,k) in AFNI corresponds to voxel (i+1,j+1,k+1) 
 %        in matlab. (see example below).
 %
 %   .MachineFormat is a string such as 'native' or 'ieee-le' (LSB_FIRST) or 'ieee-be' (MSB_FIRST)
