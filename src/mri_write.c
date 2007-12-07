@@ -393,6 +393,10 @@ int mri_write_jpg( char *fname , MRI_IMAGE *im )  /* 15 Apr 2005 */
    if( fname == NULL || *fname == '\0' || im == NULL ) return 0 ;
    if( im->kind != MRI_rgb && im->kind != MRI_byte   ) return 0 ;
 
+   if( STRING_HAS_SUFFIX_CASE(fname,".png") ){  /* 07 Dec 2007 */
+     RETURN( mri_write_png(fname,im) ) ;
+   }
+
    pg = THD_find_executable( "cjpeg" ) ;
    if( pg == NULL ) return 0 ;
    /* user environment variable compression quality - mod 5/10/2006 drg */
@@ -430,6 +434,10 @@ int mri_write_png( char *fname , MRI_IMAGE *im )  /* 11 Dec 2006 */
 
    if( fname == NULL || *fname == '\0' || im == NULL ) return 0 ;
    if( im->kind != MRI_rgb && im->kind != MRI_byte   ) return 0 ;
+
+   if( STRING_HAS_SUFFIX_CASE(fname,".jpg") ){  /* 07 Dec 2007 */
+     RETURN( mri_write_jpg(fname,im) ) ;
+   }
 
    pg = THD_find_executable( "pnmtopng" ) ; if( pg == NULL ) return 0 ;
    pgfilt = (char *)malloc( sizeof(char)*(strlen(pg)+strlen(fname)+32) ) ;
