@@ -163,7 +163,7 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
         if( do_thick && sthick >= 1.0f && (x1 != x2 || y1 != y2) ){  /* 06 Dec 2007 */
           float da=a2-a1 , db=b2-b1 , dl=new_thick/sqrtf(da*da+db*db) ;
           float c1,c2 , d1,d2 ;
-          int jj , ss=(int)(2.0f*sthick) ;
+          int jj , ss=(int)(3.5f*sthick) ;
           dl /= (2*ss) ; da *= dl ; db *= dl ; ss = MIN(ss,9) ;
           for( jj=-ss ; jj <= ss ; jj++ ){
             if( jj == 0 ) continue ;
