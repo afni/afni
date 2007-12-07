@@ -33,6 +33,7 @@ N.B.: You can now set environment variables on the 'afni' command
       line; for example:
         afni -DAFNI_EDGIZE_OVERLAY=YES -DAFNI_SESSTRAIL=3
       This may be useful for a 'one time' situation, or as an alias.
+      You can also use this '-Dname=val' option in 1dplot and 3dDeconvolve.
       -- RWCox - 22 Mar 2005
 
 N.B.: At the end of this file is a list of several environment variables
@@ -1743,7 +1744,7 @@ colors, or leave them unchanged and start defining colors at 05.  The largest
 color number you define will be the last color index used; if more line colors
 are needed, they will cycle back to color 01.  If you leave a gap in the
 numbering (e.g., you define color 07 but not 05 or 06), then the undefined
-colors will be black.
+colors will be fuliginous.
 
 --------------------------
 Variable: AFNI_1DPLOT_THIK (editable)
@@ -1752,6 +1753,15 @@ This numeric variable lets you control the thickness of lines drawn in the
 1dplot-style windows.  The units are in terms of the width of the entire
 plot, so that a value of 0.005 is 'reasonable'; 0.01 will be fairly thick
 lines, and 0.02 will be too thick for most purposes.
+
+----------------------------
+Variable: AFNI_1DPLOT_IMSIZE
+----------------------------
+This numeric variable sets the image size (in pixels across the screen) of
+images saved via the '-png' or '-jpg' options of 1dplot, or images saved
+when giving the '.png' or '.jpg' from 1dplot-style graphs.  The default
+value is 1024.  Values over 2048 may give odd looking results, and will
+be palpably slower to render.
 
 ---------------------------------
 Variable: AFNI_SIEMENS_INTERLEAVE
