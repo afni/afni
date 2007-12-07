@@ -168,6 +168,12 @@ float osfilt_proj( int n , float *ar )  /* 07 Dec 2007 */
    return (v/d) ;
 }
 
+float mad_proj( int n , float *ar )  /* 07 Dec 2007 */
+{
+   float v ;
+   qmedmad_float( n , ar , NULL , &v ) ; return v ;
+}
+
 /*======================================================================*/
 /*----------------------- Sample 2D transformations --------------------*/
 /*======================================================================*/

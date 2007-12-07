@@ -1643,6 +1643,7 @@ extern float mean_proj( int, float * ) ;
 
 extern float extreme_proj( int, float * ) ;  /* 02 Feb 2002 */
 extern float osfilt_proj ( int, float * ) ;  /* 07 Dec 2007 */
+extern float mad_proj    ( int, float * ) ;  /* 07 Dec 2007 */
 
 /* sample 2D transform functions */
 
