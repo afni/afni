@@ -304,13 +304,16 @@ static char * gni_history[] =
   "1.29 08 Aug 2007 [rickr] for list, valid_nifti_brick_list requires 3 dims\n"
   "1.30 08 Nov 2007 [Yaroslav/rickr]\n"
   "   - fix ARM struct alignment problem in byte-swapping routines\n",
-  "1.31 29 Nov 2007 [rickr]\n"
+  "1.31 29 Nov 2007 [rickr] for nifticlib-1.0.0\n"
   "   - added nifti_datatype_to/from_string routines\n"
   "   - added DT_RGBA32/NIFTI_TYPE_RGBA32 datatype macros (2304)\n"
   "   - added NIFTI_ECODE_FREESURFER (14)\n",
+  "1.32 08 Dec 2007 [rickr]\n"
+  "   - nifti_hdr_looks_good() allows ANALYZE headers (req. by V. Luccio)\n"
+  "   - added nifti_datatype_is_valid()\n",
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.31 (29 Nov, 2007)";
+static char gni_version[] = "nifti library version 1.32 (8 Dec, 2007)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1, 0 };
@@ -3542,8 +3545,7 @@ nifti_1_header * nifti_read_header(const char * hname, int * swapped, int check)
 *//*--------------------------------------------------------------------*/
 int nifti_hdr_looks_good(const nifti_1_header * hdr)
 {
-   int nbyper, swapsize;
-   int c, errs = 0;
+   int is_nifti, c, errs = 0;
 
    /* check dim[0] and sizeof_hdr */
    if( need_nhdr_swap(hdr->dim[0], hdr->sizeof_hdr) < 0 ){
@@ -3561,34 +3563,27 @@ int nifti_hdr_looks_good(const nifti_1_header * hdr)
          errs++;
       }
 
-   /* check the magic string */
-   if( (hdr->magic[0] != 'n')                           ||
-       (hdr->magic[1] != 'i' && hdr->magic[1] != '+')   ||
-       (hdr->magic[2] != '1')                           ||
-       (hdr->magic[3] != '\0') )
-   {
-      if( g_opts.debug > 0 )
+   is_nifti = NIFTI_VERSION(*hdr);      /* determine header type */
+
+   if( is_nifti ){      /* NIFTI */
+
+      if( ! nifti_datatype_is_valid(hdr->datatype, 1) ){
+         if( g_opts.debug > 0 )
+            fprintf(stderr,"** bad NIFTI datatype in hdr, %d\n",hdr->datatype);
+         errs++;
+      }
+
+   } else {             /* ANALYZE 7.5 */
+
+      if( g_opts.debug > 1 )  /* maybe tell user it's an ANALYZE hdr */
          fprintf(stderr,
-            "** bad nhdr field: magic = '%.4s', should be \"n+1\" or \"ni1\"\n"
-            "   (in hex) magic = 0x%02x%02x%02x%02x\n"
-            "        should be = 0x6e2b3100  or  0x6e693100\n",
-            hdr->magic, hdr->magic[0], hdr->magic[1],
-            hdr->magic[2], hdr->magic[3]);
-      errs++;
-   }
+            "-- nhdr magic field implies ANALYZE: magic = '%.4s'\n",hdr->magic);
 
-   /* check the datatype */
-   if( hdr->datatype == DT_BINARY || hdr->datatype == DT_UNKNOWN ){
-      if( g_opts.debug > 0 )
-         fprintf(stderr,"** bad nhdr field: datatype = %d\n",hdr->datatype);
-      errs++;
-   }
-
-   nifti_datatype_sizes(hdr->datatype, &nbyper, &swapsize);
-   if( nbyper == 0 ){
-      if( g_opts.debug > 0 )
-         fprintf(stderr,"** bad nhdr field: datatype = %d\n",hdr->datatype);
-      errs++;
+      if( ! nifti_datatype_is_valid(hdr->datatype, 0) ){
+         if( g_opts.debug > 0 )
+           fprintf(stderr,"** bad ANALYZE datatype in hdr, %d\n",hdr->datatype);
+         errs++;
+      }
    }
 
    if( errs ) return 0;  /* problems */
@@ -6894,6 +6889,30 @@ char * nifti_datatype_to_string( int dtype )
             break;
 
     return nifti_type_list[c].name;
+}
+
+
+/*---------------------------------------------------------------------*/
+/*! Determine whether dtype is a valid NIFTI_TYPE.
+ *
+ *  DT_UNKNOWN is considered invalid
+ *
+ *  The only difference 'for_nifti' makes is that DT_BINARY
+ *  should be invalid for a NIfTI dataset.
+*//*-------------------------------------------------------------------*/
+int nifti_datatype_is_valid( int dtype, int for_nifti )
+{
+    int tablen = sizeof(nifti_type_list)/sizeof(nifti_type_ele);
+    int c;
+
+    /* special case */
+    if( for_nifti && dtype == DT_BINARY ) return 0;
+
+    for( c = tablen-1; c > 0; c-- )
+        if( nifti_type_list[c].type == dtype )
+            return 1;
+
+    return 0;
 }
 
 
