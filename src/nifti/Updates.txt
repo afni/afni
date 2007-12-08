@@ -72,3 +72,9 @@ Updated in version 1.0 December 6, 2007
     - RR added nifti_datatype_to_string and similar functionality
     - MH Simplified CMake configuration to apply same shared library version
          to all libraries.
+
+-----------------------------------------------------------------
+Updated in version UNRELEASED
+
+    - RR allowed ANALYZE headers in nifti_hdr_looks_good
+

@@ -206,6 +206,7 @@ void  nifti_swap_8bytes ( int n , void *ar ) ;
 void  nifti_swap_16bytes( int n , void *ar ) ;
 void  nifti_swap_Nbytes ( int n , int siz , void *ar ) ;
 
+int    nifti_datatype_is_valid   (int dtype, int for_nifti);
 int    nifti_datatype_from_string(const char * name);
 char * nifti_datatype_to_string  (int dtype);
 
