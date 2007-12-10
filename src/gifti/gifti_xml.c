@@ -263,7 +263,7 @@ gifti_image * gxml_read_image(const char * fname, int read_data,
         blen = (int)fread(buf, 1, bsize, fp);
         done = blen < sizeof(buf);
 
-        if(xd->verb > 4) fprintf(stderr,"-- XML_Parse # %d\n", pcount);
+        if(xd->verb > 3) fprintf(stderr,"-- XML_Parse # %d\n", pcount);
         pcount++;
         if( XML_Parse(parser, buf, blen, done) == XML_STATUS_ERROR) {
             fprintf(stderr,"** %s at line %u\n",
@@ -451,7 +451,7 @@ static int short_sorted_da_list(gxml_data *dp, const int * dalist, int len)
     dp->da_list = da_copy;
     dp->da_len = cind+1;
 
-    if( dp->verb > 2 ) {
+    if( dp->verb > 1 ) {
         fprintf(stderr,"-- original da_list:");
         for(c = 0; c < len; c++ )
             fprintf(stderr," %d", dalist[c]);
@@ -514,7 +514,7 @@ static int epush( gxml_data * xd, int etype, const char * ename,
         return 1;
     }
 
-    if( xd->verb > 2 ) {       /* maybe we want to print something */
+    if( xd->verb > 4 ) {       /* maybe we want to print something */
         show_depth(xd->depth, 1, stderr);
         fprintf(stderr,"++ push %02d: '%s'\n", etype, enames[etype]);
     }
@@ -524,7 +524,7 @@ static int epush( gxml_data * xd, int etype, const char * ename,
 
     /* if we are in a skip block, do nothing but monitor stack */
     if( xd->skip ) {
-        if( xd->verb > 1 )
+        if( xd->verb > 2 )
             fprintf(stderr,"-- skip=%d, depth=%d, skipping element '%s'\n",
                     xd->skip, xd->depth, ename);
         return 0;
@@ -539,7 +539,7 @@ static int epush( gxml_data * xd, int etype, const char * ename,
         return 1;
     }
 
-    if ( xd->verb > 4 ) show_stack("++ ", xd);
+    if ( xd->verb > 5 ) show_stack("++ ", xd);
     if( !stack_is_valid(xd) ) return 1;
 
     /* call appropriate XML processing function */
@@ -587,7 +587,7 @@ static int push_gifti(gxml_data * xd, const char ** attr )
             if( gifti_add_to_nvpairs(&gim->ex_atrs,attr[c],attr[c+1]) )
                 return 1;
 
-    if( xd->verb > 2 ) fprintf(stderr,"++ set %d GIFTI attr(s)\n",c/2);
+    if( xd->verb > 1 ) fprintf(stderr,"++ set %d GIFTI attr(s)\n",c/2);
     if( xd->verb > 3 ) gifti_disp_gifti_image("push:", gim, 0);
 
     /* now store any gim->numDA, and use gim to count as they are added */
@@ -988,14 +988,15 @@ static int epop( gxml_data * xd, int etype, const char * ename )
                 else if(xd->da_list && (xd->da_len != xd->da_ind))
                     fprintf(stderr,"** stored %d DAs, wanted %d\n",
                             xd->da_len, xd->da_ind);
-                if(xd->verb > 4) gifti_disp_gifti_image("pop:",xd->gim,1);
+                if(xd->verb > 2)
+                    gifti_disp_gifti_image("pop:", xd->gim, xd->verb > 4);
                 break;
         }
     }
 
     xd->depth--;
 
-    if( xd->verb > 3 )
+    if( xd->verb > 5 )
     {
         show_depth(xd->depth, 1, stderr);
         fprintf(stderr,"++ pop %02d : '%s'\n", etype, enames[etype]);
@@ -1080,7 +1081,7 @@ static void XMLCALL cb_char(void *udata, const char * cdata, int length)
     int          len = length, wlen = 0, parent;
 
     if( xd->skip > 0 ) {
-        if(xd->verb > 2) fprintf(stderr,"-- skipping char [%d]\n",len);
+        if(xd->verb > 3) fprintf(stderr,"-- skipping char [%d]\n",len);
         return;
     }
 
@@ -1876,9 +1877,9 @@ static void XMLCALL cb_default(void *udata, const char * str, int length)
         len = strlen(str);
     }
 
-    if( xd->verb > 1 ){
+    if( xd->verb > 3 ){
         show_depth(xd->depth, 1, stderr);
-        fprintf(stderr, "unknown XML element [%d]: '%.*s'\n",length,len,str);
+        fprintf(stderr, "default XML element [%d]: '%.*s'\n",length,len,str);
     }
 }
 
