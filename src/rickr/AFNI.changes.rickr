@@ -2283,5 +2283,14 @@
 06 Dec 2007: applied more NIfTI updates: release 1.0.0 (extra 0 :)
   * modified Makefile README packaging/nifticlib.spec
 08 Dec 2007: allowed ANALYZE headers in nifti_hdr_looks_good
-10 Dec 2007: allow for AFNI_DECONFLICT in 3dresample
+10 Dec 2007: gifticlib 0.4
+  * modified gifti_io.[ch], gifti_test.[ch], gifti_xml.[ch],
+             Makefile, README.gifti
+        - can read/write Base64Binary datasets (can set compress level)
+        - removed datatype lists (have gifti_type_list)
+        - added gifti_read_da_list(), with only partial ability
+        - added GIFTI numDA attribute
+        - change size_t to long long
+  * modified 3dresample.c: allowed for AFNI_DECONFLICT
+
 
