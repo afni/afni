@@ -1065,6 +1065,28 @@ ENTRY("mri_read_file") ;
 
       newar = mri_read_3A( new_fname ) ;   /* from a 3A: file */
 
+   /*-- from a dataset? [10 Dec 2007] --*/
+
+   } else if( strstr(fname,".HEAD") != NULL || strstr(fname,".nii") != NULL ){
+
+     THD_3dim_dataset *dset = THD_open_dataset(fname) ;
+     if( dset != NULL ){
+       int ii,jj ; MRI_IMAGE *qim ; void *qar ; MRI_IMARR *qimar ;
+       DSET_load(dset) ; INIT_IMARR(newar) ;
+       for( ii=0 ; ii < DSET_NVALS(dset) ; ii++ ){
+         qim = DSET_BRICK(dset,ii) ; qar = mri_data_pointer(qim) ;
+         if( qim != NULL && qar != NULL ){
+           qimar = mri_to_imarr( qim ) ;
+           if( qimar != NULL ){
+             for( jj=0 ; jj < IMARR_COUNT(qimar) ; jj++ )
+               ADDTO_IMARR(newar,IMARR_SUBIM(qimar,jj)) ;
+             FREE_IMARR(qimar) ;
+           }
+         }
+       }
+       DSET_delete(dset) ; RETURN(newar) ;
+     }
+
    } else if( check_dicom_magic_num( new_fname ) ) { /* 10 Aug 2004 */
 
      newar = mri_read_dicom( new_fname );  tried_dicom=2 ;
