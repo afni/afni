@@ -456,6 +456,7 @@ typedef struct MCW_imseq {
      /* text for sides of window in default orientation [01 Dec 1999] */
 
      char winfo_sides[4][16] ;
+     char winfo_prefix[16] ;    /* 10 Dec 2007 */
 
      /* opacity of overlay */
 
@@ -602,6 +603,7 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_winfotext     202
 #define isqDR_getoptions    203
 #define isqDR_winfosides    204
+#define isqDR_winfoprefix   205
 
 #define isqDR_destroy       666
 

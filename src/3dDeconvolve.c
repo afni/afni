@@ -472,6 +472,7 @@ static float             basis_normall  = 0.0f ; /* 28 Apr 2005 */
 static int               basis_timetype = GUESS_TIMES ;  /* 16 Nov 2007 */
 
 #define basis_filler 3.e+33 /* filler in basis_times for missing entries */
+#define big_time     1.e+9  /* a very long time */
 
 /*...........................................................................*/
 
@@ -2871,7 +2872,7 @@ ENTRY("read_input_data") ;
       { /* check if all input times are 0s or 1s (a mistake) [15 Aug 2007] */
         int nzo , nsm ;
         for( nsm=nzo=ii=0 ; ii < nx*ny ; ii++ ){
-          if( tar[ii] < 1.e+9 ){
+          if( tar[ii] < big_time ){
             nsm++ ;                               /* number of 'small' values */
             if( tar[ii] == 0.0f || tar[ii] == 1.0f ) nzo++ ; /* number of 0-1 */
           }
@@ -2901,7 +2902,7 @@ ENTRY("read_input_data") ;
                if( tt >= 0.0f && tt <= tmax ){
                               if( zar != NULL ) zar[ngood  ] = aar[ii] ;
                                                 qar[ngood++] = tt/basis_TR ;
-          } else if( tt >= basis_filler       ) nbad++ ; /* '*' entries */
+          } else if( tt >= big_time           ) nbad++ ; /* '*' entries */
             else                                nout++ ; /* PSFB entries */
         }
         if( nbad )          /* warn about '*' times in GLOBAL input */
@@ -2931,7 +2932,7 @@ ENTRY("read_input_data") ;
             if( tt >= 0.0f && tt <= tmax ){
                if( zar != NULL ) zar[ngood  ] = aar[ii+jj*nx] ;
                                  qar[ngood++] = tt/basis_TR+bst[jj] ;
-            } else if( tt < basis_filler ) nout++ ; /* PSFB entries */
+            } else if( tt < big_time ) nout++ ; /* PSFB entries */
           }
           if( nout )
             WARNING_message(
