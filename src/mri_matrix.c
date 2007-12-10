@@ -469,7 +469,7 @@ MRI_IMAGE * mri_matrix_sqrt( MRI_IMAGE *imc )  /* 30 Jul 2007 */
 {
    float gam , fa,fb , csiz ;
    int nn , ite , ii ;
-   MRI_IMAGE *imy , *imz , *imyinv,*imzinv ;
+   MRI_IMAGE *imy , *imz , *imyinv,*imzinv , *tim ;
    float     *yar , *zar , *car ;
 
    if( imc == NULL || imc->kind != MRI_float ) RETURN(NULL) ;
@@ -483,7 +483,7 @@ MRI_IMAGE * mri_matrix_sqrt( MRI_IMAGE *imc )  /* 30 Jul 2007 */
    imz = mri_new(nn,nn,MRI_float) ; zar = MRI_FLOAT_PTR(imz) ;
    csiz = mri_matrix_size(imc) ; if( csiz <= 0.0f ) RETURN(imz) ;
    imy = mri_copy(imc) ;
-   for( ii=0 ; ii < nn ; ii++ ) zar[ii+ii*nn] = 1.0f ;
+   for( ii=0 ; ii < nn ; ii++ ) zar[ii+ii*nn] = 1.0f ; /* identity */
 
    /** start iterations: usually 3-5 is enough **/
 
@@ -501,16 +501,19 @@ MRI_IMAGE * mri_matrix_sqrt( MRI_IMAGE *imc )  /* 30 Jul 2007 */
      }
      gam = 1.0f ;  /* someday, could put a scaling calculation in for gam */
      fa = 0.5f*gam ; fb = 0.5f/gam ;
-     imy = mri_matrix_sadd( fa,imy , fb,imzinv ) ;
-     imz = mri_matrix_sadd( fa,imz , fb,imyinv ) ;
+     tim = mri_matrix_sadd( fa,imy , fb,imzinv ) ; mri_free(imy) ; imy = tim ;
+     tim = mri_matrix_sadd( fa,imz , fb,imyinv ) ; mri_free(imz) ; imz = tim ;
      mri_free(imyinv) ; mri_free(imzinv) ;
      if( ite > 2 ){  /* check for convergence: see if imy*imy-imc is small */
        imyinv = mri_matrix_mult( imy , imy ) ;
-       imyinv = mri_matrix_sadd( 1.0f,imyinv , -1.0f,imc ) ;
-       fa = mri_matrix_size(imyinv) ; mri_free(imyinv) ;
-       if( fa <= 5.e-6*csiz ){ mri_free(imz); RETURN(imy); }
+       tim    = mri_matrix_sadd( 1.0f,imyinv , -1.0f,imc ) ; mri_free(imyinv) ;
+       fa = mri_matrix_size(tim) ; mri_free(tim) ;
+       if( fa <= 5.e-5*csiz ){ mri_free(imz); RETURN(imy); }
      }
    }
+#if 0
+   ERROR_message("mri_matrix_sqrt() fails to converge: err=%g",fa/csiz);
+#endif
    mri_free(imz) ; mri_free(imy) ; RETURN(NULL) ;
 }
 
