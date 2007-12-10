@@ -1613,6 +1613,7 @@ if( PRINT_TRACING ){
     newseq->winfo_sides[1][0] =
      newseq->winfo_sides[2][0] =
       newseq->winfo_sides[3][0] = '\0' ; /* 01 Dec 1999 */
+   newseq->winfo_prefix[0] = '\0' ; /* 10 Dec 2007 */
 
    /***---------- all widgets now created ------------***/
 
@@ -4706,7 +4707,10 @@ ENTRY("ISQ_draw_winfo") ;
      sprintf(buf+strlen(buf)," s=%d",(int)(10.0*seq->sharp_fac+.01)) ;
 
    if( seq->im_label[0] == '\0' || strcmp(buf,seq->im_label) != 0 ){
-     char qbuf[128] ;
+     char qbuf[128] ; qbuf[0] = '\0' ;
+     if( seq->winfo_prefix[0] != '\0' ){  /* 10 Dec 2007 */
+       strcat(qbuf,seq->winfo_prefix) ; strcat(qbuf,": ") ;
+     }
      if( seq->winfo_extra[0] == '\0' ){
 
        int iw=0 ;                                   /* winfo_sides stuff */
@@ -4719,16 +4723,16 @@ ENTRY("ISQ_draw_winfo") ;
        if( seq->opt.mirror ) iw = (iw+2)%4 ;
 
        if( seq->winfo_sides[iw][0] != '\0' ){
-         strcpy(qbuf,"left=") ;
+         strcat(qbuf,"left=") ;
          strcat(qbuf,seq->winfo_sides[iw]) ;
          strcat(qbuf," ") ; strcat(qbuf,buf) ;
          MCW_set_widget_label( seq->winfo , qbuf ) ;
        } else if( seq->opt.mirror || seq->opt.rot != ISQ_ROT_0 ){
          switch( seq->opt.rot ){
-           case ISQ_ROT_0  : strcpy(qbuf,"["   ) ; break ;
-           case ISQ_ROT_90 : strcpy(qbuf,"[90" ) ; break ;
-           case ISQ_ROT_180: strcpy(qbuf,"[180") ; break ;
-           case ISQ_ROT_270: strcpy(qbuf,"[270") ; break ;
+           case ISQ_ROT_0  : strcat(qbuf,"["   ) ; break ;
+           case ISQ_ROT_90 : strcat(qbuf,"[90" ) ; break ;
+           case ISQ_ROT_180: strcat(qbuf,"[180") ; break ;
+           case ISQ_ROT_270: strcat(qbuf,"[270") ; break ;
          }
          if( seq->opt.mirror ){
            if( seq->opt.rot == ISQ_ROT_0 ) strcat(qbuf,"l] " ) ;
@@ -6707,7 +6711,8 @@ ENTRY("ISQ_but_cnorm_CB") ;
 
 *    isqDR_winfotext       (char *) sets the winfo extra text
 
-*    isqDR_winfosides      (char **) sets the winfo sides text
+*    isqDR_winfosides      (char **) sets the winfo_sides text
+*    isqDR_winfoprefix     (char *) set the winfo_prefix text
 
 *    isqDR_getoptions      (ISQ_options *) to get the current options
 
@@ -7258,27 +7263,42 @@ static unsigned char record_bits[] = {
       }
       break ;
 
-      /*------- winfo sides text [01 Dec 1999] -------*/
+      /*------- winfo_prefix text [10 Dec 2007] -------*/
+
+      case isqDR_winfoprefix:{
+        char *pf = (char *)drive_data ;
+        if( pf == NULL ){
+          seq->winfo_prefix[0] = '\0' ;
+        } else {
+          strncpy( seq->winfo_prefix , pf , 15 ) ;
+          seq->winfo_prefix[15] = '\0' ;
+        }
+        seq->im_label[0] = '\0' ;  /* will force redraw */
+        ISQ_draw_winfo( seq ) ;
+        RETURN( True );
+      }
+
+      /*------- winfo_sides text [01 Dec 1999] -------*/
 
       case isqDR_winfosides:{
-         char ** ws = (char **) drive_data ;
+         char **ws = (char **) drive_data ;
          int iw ;
 
          if( ws == NULL ){                   /* remove the label data */
-            seq->winfo_sides[0][0] =
-             seq->winfo_sides[1][0] =
-              seq->winfo_sides[2][0] =
-               seq->winfo_sides[3][0] = '\0' ;
+           seq->winfo_sides[0][0] =
+            seq->winfo_sides[1][0] =
+             seq->winfo_sides[2][0] =
+              seq->winfo_sides[3][0] = '\0' ;
 
          } else {                           /* change the label data */
-            for( iw=0 ; iw < 4 ; iw++ ){
-               if( ws[iw] == NULL || ws[iw][0] == '\0' ){
-                  seq->winfo_sides[iw][0] = '\0' ;
-               } else {
-                  strncpy( seq->winfo_sides[iw] , ws[iw] , 15 ) ;
-                  seq->winfo_sides[iw][15] = '\0' ;
-               }
-            }
+           for( iw=0 ; iw < 4 ; iw++ ){
+             if( ws[iw] == NULL || ws[iw][0] == '\0' ){
+               seq->winfo_sides[iw][0] = '\0' ;
+             } else {
+               strncpy( seq->winfo_sides[iw] , ws[iw] , 15 ) ;
+               seq->winfo_sides[iw][15] = '\0' ;
+             }
+           }
          }
          seq->im_label[0] = '\0' ;  /* will force redraw */
          ISQ_draw_winfo( seq ) ;

@@ -5410,6 +5410,16 @@ STATUS("setting image view to be L-R mirrored") ;
 STATUS("setting image viewer 'sides'") ;
 
          drive_MCW_imseq( *snew,isqDR_winfosides,(XtPointer)ws ) ;
+
+         /* 10 Dec 2007: label image orientation */
+
+         if( *snew == im3d->s123 )
+           drive_MCW_imseq( *snew,isqDR_winfoprefix,(XtPointer)"Axial" ) ;
+         else if( *snew == im3d->s231 )
+           drive_MCW_imseq( *snew,isqDR_winfoprefix,(XtPointer)"Sagittal" ) ;
+         else if( *snew == im3d->s312 )
+           drive_MCW_imseq( *snew,isqDR_winfoprefix,(XtPointer)"Coronal" ) ;
+
       }
 #undef LL
 #undef RR
