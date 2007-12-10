@@ -1,30 +1,35 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-#include "expat.h"
+#include <zlib.h>
+#include <expat.h>
 #include "gifti_io.h"
 #include "gifti_xml.h"
 
 #define GXML_MIN_BSIZE 2048
+#define GXML_DEF_BSIZE 32768
 
 /* local prototypes */
 static int  append_to_cdata     (gxml_data *, const char *, int);
 static int  append_to_data      (gxml_data *, const char *, int);
 static int  append_to_data_ascii(gxml_data *, const char *, int);
-static int  append_to_data_b64  (gxml_data *, const char *, int);
+static int  append_to_data_b64  (gxml_data *, char*,long long,const char*, int);
 /* 
 static int  append_to_data_b64gz(gxml_data *, const char *, int);
 */
 
 static int  append_to_xform     (gxml_data *, const char *, int);
+static int  apply_da_list_order (gxml_data * xd);
+static int  int_compare         (const void * v0, const void * v1);
 static int  copy_b64_data       (gxml_data *, const char *, char *, int, int*);
-static int  decode_ascii        (gxml_data*,char*,int,int,void*, size_t*,int*);
-static int  decode_b64          (gxml_data*, char*, int, char *, size_t *);
+static int  decode_ascii       (gxml_data*,char*,int,int,void*,long long*,int*);
+static int  decode_b64          (gxml_data*, char*, int, char *, long long *);
 static int  ename2type          (const char *);
 static int  epush               (gxml_data *, int, const char *, const char **);
 static int  epop                (gxml_data *, int, const char *);
-static void init_gxml_data      (gxml_data *, int);
-static int  partial_buf_size    (size_t);
+static int  free_xd_data        (gxml_data *);
+static int  init_gxml_data      (gxml_data *, int, const int *, int);
+static int  partial_buf_size    (long long);
 
 static int  push_gifti          (gxml_data *, const char **);
 static int  push_meta           (gxml_data *);
@@ -47,10 +52,11 @@ static void show_depth          (int, int, FILE *);
 static void show_enames         (FILE *);
 static int  show_stack          (char *, gxml_data *);
 
+static int  short_sorted_da_list(gxml_data *dp, const int * dalist, int len);
 static int  stack_is_valid      (gxml_data *);
 static int  whitespace_len      (const char *, int);
-static int  update_buf_size     (gxml_data *, size_t);
-static int  update_partial_buffer(char **, int *, size_t, int);
+static int  update_xml_buf_size (gxml_data *, long long);
+static int  update_partial_buffer(char **, int *, long long, int);
 
 static int  count_bad_b64_chars (const char *, int);
 static int  show_bad_b64_chars  (const char *, int);
@@ -83,7 +89,7 @@ static int  ewrite_data             (gxml_data *, giiDataArray *, FILE *);
 static int  ewrite_data_line        (void *, int, int, int, int, FILE *);
 static int  ewrite_double_line      (double *, int, int, FILE *);
 static int  ewrite_int_attr         (const char *, int, int, int, FILE *);
-static int  ewrite_off_t_attr       (const char *, off_t, int, int, FILE *);
+static int  ewrite_long_long_attr   (const char *, long long, int, int, FILE *);
 static int  ewrite_str_attr         (const char*, const char*, int, int, FILE*);
 static int  ewrite_darray           (gxml_data *, giiDataArray *, FILE *);
 static int  ewrite_ex_atrs          (gxml_data *, nvpairs *, int, int, FILE *);
@@ -103,25 +109,34 @@ static char * enames[GXML_MAX_ELEN] = {
 /* GIFTI XML global struct and access functions */
 static gxml_data GXD = {
     1,          /* verb, default to 1 (0 means quiet)         */
-    1,          /* flag, whether to store data                */
+    1,          /* dstore, flag whether to store data         */
     3,          /* indent, spaces per indent level            */
-    GXML_MIN_BSIZE, /* buf_size, allocated for XML parsing    */
-    2,          /* b64_check: check, count, or fix b64 errors */
-    0,          /* b64_errors: number of errors found         */
+    GXML_DEF_BSIZE, /* buf_size, allocated for XML parsing    */
+    2,          /* b64_check, check, count, or fix b64 errors */
+    Z_DEFAULT_COMPRESSION, /* zlevel, compress level, -1..9   */
 
+    NULL,       /* da_list, list of DA indices to store       */
+    0,          /* da_len, length of da_list                  */
+    0,          /* da_ind, current index into da_list         */
+
+    0,          /* eleDA, number of DA elements found         */
+    0,          /* expDA, number of DA elements expected      */
+    0,          /* b64_errors, number of errors found         */
     0,          /* errors, number of encountered errors       */
     0,          /* skip depth (at positive depth, 0 is clear) */
     0,          /* depth, current stack depth                 */
     {0},        /* stack, ints, max depth GXML_MAX_DEPTH      */
 
     0,          /* dind, index into decoded data array        */
-    0,          /* doff, offset into current data buffer      */
     0,          /* clen, length of current CDATA string       */
     0,          /* xlen, length of current xform buffer       */
     0,          /* dlen, length of current Data buffer        */
+    0,          /* doff, offset into current data buffer      */
+    0,          /* zlen, length of compression buffer         */
     NULL,       /* cdata, CDATA char pointer                  */
     NULL,       /* xdata, xform buffer pointer                */
     NULL,       /* ddata, Data buffer pointer                 */
+    NULL,       /* zdata, compression buffer pointer          */
     NULL        /* gim, gifti_image *, for results            */
 };
 
@@ -191,7 +206,8 @@ static unsigned char b64_decode_table[256] = {
 
 /* note: the buffer needs to be large enough to contain any contiguous
          piece of (CDATA?) text, o.w. it will require parsing in pieces */
-gifti_image * gxml_read_image( const char * fname, int read_data )
+gifti_image * gxml_read_image(const char * fname, int read_data,
+                             const int * dalist, int len)
 {
     gxml_data  * xd = &GXD;     /* point to global struct */
     XML_Parser   parser;
@@ -201,7 +217,9 @@ gifti_image * gxml_read_image( const char * fname, int read_data )
     int          done = 0, blen;
     int          pcount = 1;
  
-    init_gxml_data(xd, 0); /* reset non-user variables */
+    if( init_gxml_data(xd, 0, dalist, len) ) /* reset non-user variables */
+        return NULL;
+
     xd->dstore = read_data;  /* store for global access */
 
     if( !fname ) {
@@ -219,9 +237,12 @@ gifti_image * gxml_read_image( const char * fname, int read_data )
     bsize = 0;
     if( reset_xml_buf(xd, &buf, &bsize) ) { fclose(fp); return NULL; }
 
-    if(xd->verb > 2) fprintf(stderr,"-d reading gifti image '%s'\n", fname);
-    if(xd->verb > 2) fprintf(stderr,"-d using %d byte XML buffer\n",bsize);
-    if(xd->verb > 3) show_enames(stderr);
+    if(xd->verb > 1) {
+        fprintf(stderr,"-- reading gifti image '%s'\n", fname);
+        if(xd->da_list) fprintf(stderr,"   (length %d DA list)\n", xd->da_len);
+        fprintf(stderr,"-- using %d byte XML buffer\n",bsize);
+        if(xd->verb > 4) show_enames(stderr);
+    }
 
     /* allocate return structure */
     xd->gim = (gifti_image *)calloc(1,sizeof(gifti_image));
@@ -242,7 +263,7 @@ gifti_image * gxml_read_image( const char * fname, int read_data )
         blen = (int)fread(buf, 1, bsize, fp);
         done = blen < sizeof(buf);
 
-        if(xd->verb > 4) fprintf(stderr,"-d XML_Parse # %d\n", pcount);
+        if(xd->verb > 4) fprintf(stderr,"-- XML_Parse # %d\n", pcount);
         pcount++;
         if( XML_Parse(parser, buf, blen, done) == XML_STATUS_ERROR) {
             fprintf(stderr,"** %s at line %u\n",
@@ -256,19 +277,42 @@ gifti_image * gxml_read_image( const char * fname, int read_data )
 
     if(xd->verb > 1) {
         if(xd->gim)
-            fprintf(stderr,"-d gifti image '%s', success "
+            fprintf(stderr,"-- have gifti image '%s', "
                            "(%d DA elements = %d MB)\n",
                     fname, xd->gim->numDA, gifti_gim_DA_size(xd->gim,1));
         else fprintf(stderr,"** gifti image '%s', failure\n", fname);
     }
 
     fclose(fp);
-    if( buf       ) free(buf);                            /* parser buffer */
-    if( xd->xdata ){ free(xd->xdata); xd->xdata = NULL; } /* xform matrix  */
-    if( xd->ddata ){ free(xd->ddata); xd->ddata = NULL; } /* Data buffer   */
+    if( buf ) free(buf);        /* parser buffer */
     XML_ParserFree(parser);
 
+    if( dalist && xd->da_list )
+        (void)apply_da_list_order(xd);
+
+    free_xd_data(xd);
+
     return xd->gim;
+}
+
+
+/* free da_list and buffers */
+static int free_xd_data(gxml_data * xd)
+{
+    if( xd->da_list ){ free(xd->da_list); xd->da_list = NULL; }
+
+    if( xd->xdata ){ free(xd->xdata); xd->xdata = NULL; } /* xform matrix  */
+    if( xd->zdata) { free(xd->zdata); xd->zdata = NULL; } /* compress buff */
+    if( xd->ddata ){ free(xd->ddata); xd->ddata = NULL; } /* Data buffer   */
+
+    return 0;
+}
+
+
+/* reorder and copy duplicate DA elements */
+static int apply_da_list_order(gxml_data * xd)
+{
+    return 0;
 }
 
 
@@ -287,7 +331,7 @@ int gxml_write_image(gifti_image * gim, const char * fname, int write_data)
     }
 
     if(GXD.verb > 1) {
-        fprintf(stderr,"+d writing gifti image (%s data) to '%s'",
+        fprintf(stderr,"++ writing gifti image (%s data) to '%s'",
                 write_data?"with":"no", fname);
         if( write_data )
             fprintf(stderr," (%d DA elements = %d MB)",
@@ -295,10 +339,8 @@ int gxml_write_image(gifti_image * gim, const char * fname, int write_data)
         fputc('\n', stderr);
     }
 
-    init_gxml_data(xd, 0);    /* reset non-user variables */
+    init_gxml_data(xd, 0, NULL, 0);    /* reset non-user variables */
     xd->dstore = write_data;  /* store for global access */
-    xd->ddata = strdup(fname);
-    xd->dlen = strlen(fname);
     xd->gim = gim;
 
     fp = fopen(fname, "w");
@@ -309,8 +351,8 @@ int gxml_write_image(gifti_image * gim, const char * fname, int write_data)
 
     (void)gxml_write_gifti(xd, fp);
 
-    if( xd->ddata ){ free(xd->ddata);  xd->ddata = NULL; }
     if( xd->xdata ){ free(xd->xdata);  xd->xdata = NULL; }
+    if( xd->zdata) { free(xd->zdata);  xd->zdata = NULL; }
 
     fclose(fp);
 
@@ -335,30 +377,103 @@ int gxml_get_buf_size( void    ){ return GXD.buf_size; }
 int gxml_set_b64_check( int val ){ GXD.b64_check = val; return 0; }
 int gxml_get_b64_check( void    ){ return GXD.b64_check; }
 
+int gxml_set_zlevel( int val ){ GXD.zlevel = val; return 0; }
+int gxml_get_zlevel( void    ){ return GXD.zlevel; }
 
-static void init_gxml_data( gxml_data * dp, int doall )
+
+static int init_gxml_data(gxml_data *dp, int doall, const int *dalist, int len)
 {
+    int errs = 0;
+
     if( doall ) {       /* user modifiable */
         dp->verb = 1;
         dp->dstore = 1;
         dp->indent = 3;
-        dp->buf_size = GXML_MIN_BSIZE;
+        dp->buf_size = GXML_DEF_BSIZE;
+        dp->b64_check = 0;
+        dp->zlevel = Z_DEFAULT_COMPRESSION;     /* -1, or 0..9 */
     }
 
+    if( dalist && len > 0 ) {
+        if( short_sorted_da_list(dp, dalist, len) ) errs++;  /* continue */
+    } else {
+        dp->da_list = NULL;
+        dp->da_len  = 0;
+    }
+    dp->da_ind  = 0;
+
+    dp->eleDA = 0;
+    dp->expDA = 0;
+    dp->b64_errors = 0;
     dp->errors = 0;
     dp->skip = 0;
     dp->depth = 0;
     memset(dp->stack, 0, sizeof(dp->stack));
 
     dp->dind = 0;
-    dp->doff = 0;
     dp->clen = 0;
     dp->xlen = 0;
     dp->dlen = 0;
+    dp->doff = 0;
+    dp->zlen = 0;
     dp->cdata = NULL;
     dp->xdata = NULL;
     dp->ddata = NULL;
-    dp->gim = NULL;
+    dp->zdata = NULL;
+    dp->gim   = NULL;
+
+    return errs;
+}
+
+static int short_sorted_da_list(gxml_data *dp, const int * dalist, int len)
+{
+    int * da_copy, c, cind;
+
+    /* first, duplicate list */
+    da_copy = (int *)malloc(len*sizeof(int));
+    if( !da_copy ) {
+        fprintf(stderr,"** cannot duplicate da_list of %d elements\n", len);
+        return 1;
+    }
+    for( c = 0; c < len; c++ ) da_copy[c] = dalist[c];
+
+    /* now sort */
+    qsort(da_copy, len, sizeof(int), int_compare);
+
+    /* remove duplicates */
+    for( c = 1, cind = 0; c < len; c++ ) {
+        if( da_copy[c] != da_copy[cind] ) {
+            cind++;
+            if( cind < c ) da_copy[cind] = da_copy[c];
+        }
+    }
+
+    dp->da_list = da_copy;
+    dp->da_len = cind+1;
+
+    if( dp->verb > 2 ) {
+        fprintf(stderr,"-- original da_list:");
+        for(c = 0; c < len; c++ )
+            fprintf(stderr," %d", dalist[c]);
+        fputc('\n', stderr);
+        fprintf(stderr,"++ unique, sorted da_list:");
+        for(c = 0; c < dp->da_len; c++ )
+            fprintf(stderr," %d", dp->da_list[c]);
+        fputc('\n', stderr);
+    }
+
+    return 0;
+}
+
+/* for qsort */
+static int int_compare(const void * v0, const void * v1)
+{
+    int * i0 = (int *)v0;
+    int * i1 = (int *)v1;
+
+    if( *i0  < *i1 ) return -1;
+    if( *i0 == *i1 ) return  0;
+    return 1;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -373,7 +488,7 @@ static void show_enames( FILE * fp )
 {
     int c;
     fprintf(fp, "-------------------------------\n"
-                "+d ename list :\n");
+                "++ ename list :\n");
     for( c = 0; c <= GXML_ETYPE_LAST; c++ )
         fprintf(fp,"    %02d : %s\n", c, enames[c]);
     fprintf(fp, "-------------------------------\n");
@@ -401,7 +516,7 @@ static int epush( gxml_data * xd, int etype, const char * ename,
 
     if( xd->verb > 2 ) {       /* maybe we want to print something */
         show_depth(xd->depth, 1, stderr);
-        fprintf(stderr,"+d push %02d: '%s'\n", etype, enames[etype]);
+        fprintf(stderr,"++ push %02d: '%s'\n", etype, enames[etype]);
     }
 
     xd->stack[xd->depth] = etype;
@@ -410,7 +525,7 @@ static int epush( gxml_data * xd, int etype, const char * ename,
     /* if we are in a skip block, do nothing but monitor stack */
     if( xd->skip ) {
         if( xd->verb > 1 )
-            fprintf(stderr,"-d skip=%d, depth=%d, skipping element '%s'\n",
+            fprintf(stderr,"-- skip=%d, depth=%d, skipping element '%s'\n",
                     xd->skip, xd->depth, ename);
         return 0;
     }
@@ -424,7 +539,7 @@ static int epush( gxml_data * xd, int etype, const char * ename,
         return 1;
     }
 
-    if ( xd->verb > 4 ) show_stack("+d ", xd);
+    if ( xd->verb > 4 ) show_stack("++ ", xd);
     if( !stack_is_valid(xd) ) return 1;
 
     /* call appropriate XML processing function */
@@ -472,8 +587,16 @@ static int push_gifti(gxml_data * xd, const char ** attr )
             if( gifti_add_to_nvpairs(&gim->ex_atrs,attr[c],attr[c+1]) )
                 return 1;
 
-    if( xd->verb > 2 ) fprintf(stderr,"+d set %d GIFTI attr(s)\n",c/2);
+    if( xd->verb > 2 ) fprintf(stderr,"++ set %d GIFTI attr(s)\n",c/2);
     if( xd->verb > 3 ) gifti_disp_gifti_image("push:", gim, 0);
+
+    /* now store any gim->numDA, and use gim to count as they are added */
+    if( gim->numDA >= 0 ) {
+        xd->expDA = gim->numDA;
+        gim->numDA = 0;  /* clear for counting */
+        if( xd->verb > 1 )
+            fprintf(stderr,"-- expecting %d DA elements\n", xd->expDA);
+    }
 
     return 0;
 }
@@ -499,7 +622,7 @@ static giiMetaData * find_current_MetaData(gxml_data * xd, int cdepth)
     int            da_ind, parent;
 
     if( !xd || cdepth < 0 || xd->depth < (2+cdepth) ) {
-        fprintf(stderr,"FMeta: bad params (%p,%d)\n",xd,cdepth);
+        fprintf(stderr,"FMeta: bad params (%p,%d)\n",(void *)xd,cdepth);
         return NULL;
     }
 
@@ -619,6 +742,22 @@ static int push_darray(gxml_data * xd, const char ** attr)
 {
     giiDataArray * da;
 
+    /* maintain a count of the number seen */
+    xd->eleDA++;
+
+    if( xd->da_list ) {
+        if( (xd->da_ind < xd->da_len) &&
+            (xd->da_list[xd->da_ind] == xd->eleDA-1) )    /* keeper */
+        {
+            if(xd->verb > 1) fprintf(stderr,"++ keeping DA[%d]\n",xd->eleDA-1);
+            xd->da_ind++;
+        } else {
+            if(xd->verb > 1) fprintf(stderr,"++ skipping DA[%d]\n",xd->eleDA-1);
+            xd->skip = xd->depth;
+            return 1;   /* return and skip this element */
+        }
+    }
+
     if( gifti_add_empty_darray(xd->gim) ) return 1;
 
     da = xd->gim->darray[xd->gim->numDA-1];  /* get new pointer */
@@ -628,14 +767,14 @@ static int push_darray(gxml_data * xd, const char ** attr)
 
     /* make a request to potentially update the XML buffer size */
     if( da->nvals>0 && da->nbyper>0 )
-        update_buf_size(xd, da->nvals*da->nbyper);
+        update_xml_buf_size(xd, da->nvals*da->nbyper);
 
     if( xd->verb > 4 ) gifti_disp_DataArray("push:", da, 0);
 
     return 0;
 }
 
-/* check for byte swapping and base64 errors */
+/* check for base64 errors, needed uncompression, and byte swapping */
 static int pop_darray(gxml_data * xd)
 {
     giiDataArray * da = xd->gim->darray[xd->gim->numDA-1]; /* current DA */
@@ -653,9 +792,56 @@ static int pop_darray(gxml_data * xd)
         xd->b64_errors = 0;
     }
 
+    if( da->encoding == GIFTI_ENCODING_B64GZ ) { /* unzip zdata to da->data */
+        uLongf outlen = da->nvals*da->nbyper;
+        int    rv;
+        rv = uncompress(da->data, &outlen, (Bytef*)xd->zdata, xd->dind);
+        if( rv != Z_OK ) {
+            fprintf(stderr,"** uncompress fails for DA[%d]\n",xd->gim->numDA-1);
+            if( rv == Z_MEM_ERROR )
+                fprintf(stderr,"** zlib failure, not enough memory\n");
+            else if ( rv == Z_BUF_ERROR )
+                fprintf(stderr,"** zlib failure, output buffer too short\n");
+            else if ( rv == Z_DATA_ERROR )
+                fprintf(stderr,"** zlib failure, corrupted data\n");
+            else if ( rv != Z_OK )
+                fprintf(stderr,"** zlib failure, unknown error %d\n", rv);
+        } else if ( xd->verb > 2 || (xd->verb > 1 && xd->gim->numDA == 1 ))
+            fprintf(stderr,"-- uncompressed buffer (%.2f%% of %zd bytes)\n",
+                    100.0*xd->dind/outlen, outlen);
+
+        if( outlen != (int)da->nvals*da->nbyper ) {
+            fprintf(stderr,"** uncompressed buff is %zd bytes, expected %lld\n",
+                    outlen, da->nvals*da->nbyper);
+        }
+    }
+
+    /* possibly read data from an external file */
+    if( da->ext_fname && *da->ext_fname ) {
+        if( da->data ) {
+            fprintf(stderr,"** have data, but external filename '%s'\n",
+                    da->ext_fname);
+        } else {
+            fprintf(stderr,"** TODO: read data from file '%s', offset '%lld'\n",
+                    da->ext_fname, da->ext_offset);
+        }
+    }
+
     /* possibly perform byte-swapping on data */
-    if( da->data && da->encoding != GIFTI_ENCODING_ASCII )
-        gifti_check_swap(da->data, da->endian, da->nvals, da->nbyper);
+    if( da->data && da->encoding != GIFTI_ENCODING_ASCII ) {
+        long long nvals;
+        int       swapsize;
+
+        gifti_datatype_sizes(da->datatype, NULL, &swapsize);
+        if( swapsize <= 0 ) {
+            fprintf(stderr,"** bad swapsize %d for dtype %d\n",
+                    swapsize, da->datatype);
+            return 1;
+        }
+
+        nvals = da->nvals * da->nbyper / swapsize;
+        gifti_check_swap(da->data, da->endian, nvals, swapsize);
+    }
 
     return 0;
 }
@@ -665,6 +851,12 @@ static int pop_darray(gxml_data * xd)
 static int push_cstm(gxml_data * xd)
 {
     giiDataArray * da = xd->gim->darray[xd->gim->numDA-1]; /* current DA */
+
+    /* NIFTI_INTENT_POINTSET is 1008 - don't know whether to use nifti1.h */
+    if( da->intent != 1008 && xd->verb > 0 )
+        fprintf(stderr,"** DA[%d] has coordsys with intent %s (should be %s)\n",
+                xd->gim->numDA-1, gifti_intent_to_string(da->intent),
+                gifti_intent_to_string(1008));
 
     da->coordsys = (giiCoordSystem *)malloc(sizeof(giiCoordSystem));
     clear_CoordSystem(da->coordsys);
@@ -680,9 +872,16 @@ static int push_data(gxml_data * xd)
     xd->dind = 0;       /* init for filling */
     xd->doff = 0;
 
-    /* rcr - in the case of b64gz, will need 1.1*bytes for compressed data */
     if( update_partial_buffer(&xd->ddata, &xd->dlen, da->nbyper*da->nvals, 0) )
         return 1;
+
+    if( da->encoding == GIFTI_ENCODING_B64GZ ) {
+        int zsize = da->nbyper*da->nvals * 1.01 + 12; /* zlib.net */
+        if( xd->verb > 2 )
+            fprintf(stderr,"++ creating extra zdata for zlib extraction\n");
+        if( update_partial_buffer(&xd->zdata, &xd->zlen, zsize, 1) )
+            return 1;
+    }
 
     /* allocate space for data */
     if( da->nvals <= 0 || da->nbyper <= 0 ) {
@@ -693,11 +892,11 @@ static int push_data(gxml_data * xd)
 
     da->data = calloc(da->nvals, da->nbyper);
     if( ! da->data ) {
-        fprintf(stderr,"** PD: failed to alloc %zd bytes for darray[%d]\n",
+        fprintf(stderr,"** PD: failed to alloc %lld bytes for darray[%d]\n",
                 da->nvals*da->nbyper, xd->gim->numDA-1);
         return 1;
     } else if ( xd->verb > 3 )
-        fprintf(stderr,"+d PD: alloc %zd bytes for darray[%d]\n",
+        fprintf(stderr,"++ PD: alloc %lld bytes for darray[%d]\n",
                 da->nvals*da->nbyper, xd->gim->numDA-1);
 
     return 0;
@@ -771,7 +970,7 @@ static int epop( gxml_data * xd, int etype, const char * ename )
 
     if( xd->skip == xd->depth ) {       /* just completed skip element */
         if( xd->verb > 1 )
-            fprintf(stderr,"-d popping skip element '%s' at depth %d\n",
+            fprintf(stderr,"-- popping skip element '%s' at depth %d\n",
                     ename, xd->depth);
         xd->skip = 0;  /* clear skip level */
     } else {    /* may peform pop action for this element */
@@ -783,6 +982,12 @@ static int epop( gxml_data * xd, int etype, const char * ename )
                 break;
 
             case GXML_ETYPE_GIFTI      :
+                if(xd->eleDA != xd->expDA)
+                    fprintf(stderr,"** found %d DAs, expected %d\n",
+                            xd->eleDA, xd->expDA);
+                else if(xd->da_list && (xd->da_len != xd->da_ind))
+                    fprintf(stderr,"** stored %d DAs, wanted %d\n",
+                            xd->da_len, xd->da_ind);
                 if(xd->verb > 4) gifti_disp_gifti_image("pop:",xd->gim,1);
                 break;
         }
@@ -793,7 +998,7 @@ static int epop( gxml_data * xd, int etype, const char * ename )
     if( xd->verb > 3 )
     {
         show_depth(xd->depth, 1, stderr);
-        fprintf(stderr,"+d pop %02d : '%s'\n", etype, enames[etype]);
+        fprintf(stderr,"++ pop %02d : '%s'\n", etype, enames[etype]);
     }
 
     if( xd->depth < 0 || xd->depth > GXML_MAX_DEPTH ) {
@@ -875,7 +1080,7 @@ static void XMLCALL cb_char(void *udata, const char * cdata, int length)
     int          len = length, wlen = 0, parent;
 
     if( xd->skip > 0 ) {
-        if(xd->verb > 2) fprintf(stderr,"-d skipping char [%d]\n",len);
+        if(xd->verb > 2) fprintf(stderr,"-- skipping char [%d]\n",len);
         return;
     }
 
@@ -911,7 +1116,7 @@ static void XMLCALL cb_char(void *udata, const char * cdata, int length)
         case GXML_ETYPE_DATASPACE  :
         case GXML_ETYPE_XFORMSPACE :
             if( xd->verb > 4 )
-                fprintf(stderr,"+d append cdata, parent %s\n",enames[parent]);
+                fprintf(stderr,"++ append cdata, parent %s\n",enames[parent]);
             (void)append_to_cdata(xd, cdata, length);
             break;
 
@@ -937,11 +1142,20 @@ static void XMLCALL cb_char(void *udata, const char * cdata, int length)
     }
 }
 
+
+/* ----------------------------------------------------------------------
+ * xd->cdata points to one of:
+ *      md->name[k], md->value[k], lt->label[k],
+ *      da[k]->coordsys->dataspace, da[k]->coordsys->xformspace
+ *
+ * append the new data and null terminate
+ * ---------------------------------------------------------------------- */
 static int append_to_cdata(gxml_data * xd, const char * cdata, int len)
 {
     int offset;
     if( !xd || !cdata || len <= 0 ) {
-        fprintf(stderr,"** A2CD, bad params (%p,%p,%d)\n",xd, cdata, len);
+        fprintf(stderr,"** A2CD, bad params (%p,%p,%d)\n",
+                (void *)xd,(void *)cdata, len);
         return 1;
     }
     if( !*xd->cdata ) {
@@ -954,7 +1168,7 @@ static int append_to_cdata(gxml_data * xd, const char * cdata, int len)
     }
 
     if( xd->verb > 4 )
-        fprintf(stderr,"+d a2cdata, len %d, clen %d, data '%.*s'\n",
+        fprintf(stderr,"++ a2cdata, len %d, clen %d, data '%.*s'\n",
                 len, xd->clen, len, cdata);
 
     *xd->cdata = (char *)realloc(*xd->cdata, xd->clen*sizeof(char));
@@ -976,8 +1190,8 @@ static int append_to_data(gxml_data * xd, const char * cdata, int len)
     giiDataArray * da = xd->gim->darray[xd->gim->numDA-1]; /* current DA */
 
     if( !da || !xd->dlen || !xd->ddata || xd->dind < 0 ) {
-        fprintf(stderr,"** A2D: bad setup (%p,%d,%p,%zd)\n",
-                da, xd->dlen, xd->ddata, xd->dind);
+        fprintf(stderr,"** A2D: bad setup (%p,%d,%p,%lld)\n",
+                (void *)da, xd->dlen, (void *)xd->ddata, xd->dind);
         return 1;
     } else if( !da->data ) {
         fprintf(stderr,"** A2D: no data allocated\n");
@@ -987,10 +1201,13 @@ static int append_to_data(gxml_data * xd, const char * cdata, int len)
     switch( da->encoding ){
         case GIFTI_ENCODING_ASCII:
             return append_to_data_ascii(xd, cdata, len);
-        case GIFTI_ENCODING_BINARY:
-            return append_to_data_b64(xd, cdata, len);
-        case GIFTI_ENCODING_GZIP:
-            /* return append_to_data_b64gz(xd, cdata, len); */
+
+        case GIFTI_ENCODING_B64BIN:
+            return append_to_data_b64(xd, (char *)da->data,
+                                      da->nvals*da->nbyper, cdata, len);
+        case GIFTI_ENCODING_B64GZ:
+            return append_to_data_b64(xd, xd->zdata, xd->zlen, cdata, len);
+
         default:
             fprintf(stderr,"** A2D: invalid encoding value %d (%s)\n",
                     da->encoding,
@@ -1018,17 +1235,16 @@ static int append_to_data(gxml_data * xd, const char * cdata, int len)
  *       rem_bytes_in -= copy_len
  *       dind = updated offset into output da->data buffer
  */
-static int append_to_data_b64(gxml_data * xd, const char * cdata, int len)
+static int append_to_data_b64(gxml_data * xd, char * dest, long long tot_bytes,
+                              const char * cdata, int cdlen)
 {
-    giiDataArray * da = xd->gim->darray[xd->gim->numDA-1]; /* current DA */
-
     const char   * cptr;
-    size_t         rem_bytes_out;      /* remaining length in darray->data */
-    int            rem_bytes_in = len; /* remaining length in cdata */
+    long long      rem_bytes_out;        /* remaining length in darray->data */
+    int            rem_bytes_in = cdlen; /* remaining length in cdata */
     int            copy_len, apply_len, unused;
 
     if( xd->verb > 4 )
-        fprintf(stderr,"+d appending %d base64 binary bytes to data\n",len);
+        fprintf(stderr,"++ appending %d base64 binary bytes to data\n",cdlen);
 
     /* Copy cdata to local buffer in pieces, for storage of trailing
        characters from a previous call.  Given that, processing data
@@ -1037,7 +1253,7 @@ static int append_to_data_b64(gxml_data * xd, const char * cdata, int len)
         /*--- prepare intermediate buffer ---*/
 
         /* point to the current location */
-        cptr = cdata + len - rem_bytes_in;
+        cptr = cdata + cdlen - rem_bytes_in;
 
         /* decide how many bytes to copy (avail space w/max of rem_bytes_in) */
         copy_len = xd->dlen - xd->doff - 1;
@@ -1053,17 +1269,17 @@ static int append_to_data_b64(gxml_data * xd, const char * cdata, int len)
         /*--- process the data ---*/
 
         /* note how many bytes remain to be computed */
-        rem_bytes_out = da->nvals * da->nbyper - xd->dind;
+        rem_bytes_out = tot_bytes - xd->dind;
         if(xd->verb > 5)
-            fprintf(stderr,"-d %zd bytes left at offset %zd, nbyper %d\n",
-                    da->nvals-xd->dind, xd->dind, da->nbyper);
+            fprintf(stderr,"-- %lld bytes left at offset %lld\n",
+                    rem_bytes_out, xd->dind);
 
         /* convert to binary bytes */
         xd->doff = decode_b64(xd,
-                        xd->ddata,                   /* data source */
-                        xd->doff+apply_len,          /* data length */
-                        (char *)da->data + xd->dind, /* output destination  */
-                        &rem_bytes_out               /* nbytes left to fill */
+                        xd->ddata,              /* data source */
+                        xd->doff+apply_len,     /* data length */
+                        dest + xd->dind,        /* output destination  */
+                        &rem_bytes_out          /* nbytes left to fill */
                         );
 
         /*--- check results --- */
@@ -1080,7 +1296,7 @@ static int append_to_data_b64(gxml_data * xd, const char * cdata, int len)
         /* move any unused bytes to the beginning (last doff, before unused) */
         if( xd->doff > 0 ) {
             if( xd->verb > 5 )
-                fprintf(stderr,"+d A2Db64: move %d bytes from %d (blen %d)\n",
+                fprintf(stderr,"++ A2Db64: move %d bytes from %d (blen %d)\n",
                     xd->doff, xd->dlen - unused - xd->doff, xd->dlen);
             /* (subtract unused+1, since 1 byte is saved for null */
             memmove(xd->ddata, xd->ddata+xd->dlen -(unused+1) - xd->doff,
@@ -1092,7 +1308,7 @@ static int append_to_data_b64(gxml_data * xd, const char * cdata, int len)
 
         /* adjust remaining bytes for next time */
         rem_bytes_in -= copy_len;  /* more than apply_len, if bad chars */
-        xd->dind = da->nvals*da->nbyper - rem_bytes_out;
+        xd->dind = tot_bytes - rem_bytes_out;
     }
 
     return 0;
@@ -1111,7 +1327,7 @@ static int copy_b64_data(gxml_data * xd, const char * src, char * dest,
     const unsigned char * usrc = (const unsigned char *)src;
     int c, errs = 0, apply_len;
 
-    if( xd->verb > 2 ) {  /* in verbose mode, perform automatic check */
+    if( xd->verb > 1 ) {  /* in verbose mode, perform automatic check */
         c = count_bad_b64_chars(src, src_len);
         if( c > 0 ) {
             fprintf(stderr, "CB64D: found %d bad b64 chars\n", c);
@@ -1212,12 +1428,12 @@ static int append_to_data_ascii(gxml_data * xd, const char * cdata, int len)
 
     char      * dptr;
     char      * cptr;
-    size_t      rem_vals;
+    long long   rem_vals;
     int         rem_len = len, copy_len, unused;
     int         type = da->datatype;
 
     if( xd->verb > 4 )
-        fprintf(stderr,"+d appending %d ASCII bytes to data\n",len);
+        fprintf(stderr,"++ appending %d ASCII bytes to data\n",len);
 
     /* if there is only whitespace, blow outta here */
     if( whitespace_len(cdata, len) == len ) { xd->doff = 0; return 0; }
@@ -1250,7 +1466,7 @@ static int append_to_data_ascii(gxml_data * xd, const char * cdata, int len)
         /* note how many values remain to be computed */
         rem_vals = da->nvals - xd->dind;
         if(xd->verb > 5)
-            fprintf(stderr,"-d %zd vals left at offset %zd, nbyper %d\n",
+            fprintf(stderr,"-- %lld vals left at offset %lld, nbyper %d\n",
                     rem_vals, xd->dind, da->nbyper);
 
         if( xd->dind == 0 ) mod_prev = 0;       /* nothing to modify at first */
@@ -1277,7 +1493,7 @@ static int append_to_data_ascii(gxml_data * xd, const char * cdata, int len)
         /* move any unused bytes to the beginning (last doff, before unused) */
         if( xd->doff > 0 ) {
             if( xd->verb > 5 )
-                fprintf(stderr,"+d A2D: move %d bytes from %d (blen %d)\n",
+                fprintf(stderr,"++ A2D: move %d bytes from %d (blen %d)\n",
                     xd->doff, xd->dlen - unused - xd->doff, xd->dlen);
             /* (subtract unused+1, since 1 byte is saved for null */
             memmove(xd->ddata, xd->ddata+xd->dlen -(unused+1) - xd->doff,
@@ -1304,16 +1520,16 @@ static int append_to_xform(gxml_data * xd, const char * cdata, int len)
 
     double    * dptr;
     char      * cptr;
-    size_t      rem_vals;
+    long long   rem_vals;
     int         rem_len = len, copy_len, unused;
     int         type = gifti_str2datatype("NIFTI_TYPE_FLOAT64"); /* double */
 
     if( !da || !xd->xlen || !xd->xdata || xd->dind < 0 ) {
-        fprintf(stderr,"** A2X: bad setup (%p,%d,%p,%zd)\n",
-                da, xd->xlen, xd->xdata, xd->dind);
+        fprintf(stderr,"** A2X: bad setup (%p,%d,%p,%lld)\n",
+                (void *)da, xd->xlen, (void *)xd->xdata, xd->dind);
         return 1;
     } else if( xd->verb > 4 )
-        fprintf(stderr,"+d appending %d bytes to xform\n",len);
+        fprintf(stderr,"++ appending %d bytes to xform\n",len);
 
     /* if there is only whitespace, blow outta here */
     if( whitespace_len(cdata, len) == len ) { xd->doff = 0; return 0; }
@@ -1369,7 +1585,7 @@ static int append_to_xform(gxml_data * xd, const char * cdata, int len)
         /* move any unused bytes to the beginning (last doff, before unused) */
         if( xd->doff > 0 ) {
             if( xd->verb > 5 )
-                fprintf(stderr,"+d A2X: move %d bytes from %d (blen %d)\n",
+                fprintf(stderr,"++ A2X: move %d bytes from %d (blen %d)\n",
                         xd->doff, xd->dlen - unused - xd->doff, xd->dlen);
                 /* (subtract unused+1, since 1 bytes is saved for null */
                 memmove(xd->xdata, xd->xdata+xd->xlen -(unused+1) -xd->doff,
@@ -1407,7 +1623,7 @@ static int append_to_xform(gxml_data * xd, const char * cdata, int len)
             o padding is expected (using '=')
 */
 static int decode_b64(gxml_data * xd, char * cdata, int cdlen,
-                      char * dptr, size_t * needed)
+                      char * dptr, long long * needed)
 {
     unsigned char * din = (unsigned char *)cdata;
     unsigned char * dout = (unsigned char *)dptr;
@@ -1415,7 +1631,7 @@ static int decode_b64(gxml_data * xd, char * cdata, int cdlen,
     int             ind, assigned;
 
     if( xd->verb > 4)
-        fprintf(stderr,"-d DB64: decode len %d, remain %zd\n", cdlen,*needed);
+        fprintf(stderr,"-- DB64: decode len %d, remain %lld\n", cdlen,*needed);
     if( *needed <= 0 ) {
         if( cdlen > 0 )
             fprintf(stderr,"** DB64: %d bytes left without a home\n", cdlen);
@@ -1463,7 +1679,7 @@ static int decode_b64(gxml_data * xd, char * cdata, int cdlen,
    read failure happens only when no characters are processed
 */
 static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
-                        void * dptr, size_t * nvals, int * mod_prev)
+                        void * dptr, long long * nvals, int * mod_prev)
 {
     char * p1, *p2;     /* for strtoX */
     char * prev;        /* for remain */
@@ -1473,13 +1689,13 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
     int    vals = 0;
 
     if( xd->verb > 4)
-        fprintf(stderr,"-d DA: type %s, len %d, nvals %zd\n",
+        fprintf(stderr,"-- DA: type %s, len %d, nvals %lld\n",
                 gifti_datatype2str(type),cdlen,*nvals);
 
     /* if reprocessing, maybe let the user know */
     if( xd->doff > 0 && *mod_prev ) {
         if( xd->verb > 4)
-            fprintf(stderr,"+d DA: re-proc '%.*s' from '%.*s'...\n",
+            fprintf(stderr,"++ DA: re-proc '%.*s' from '%.*s'...\n",
                     xd->doff, cdata, xd->doff+15, cdata);
         vals--;  /* back up */
     }
@@ -1606,7 +1822,7 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
     if( whitespace_len(cdata + (cdlen-remain), remain) == remain )
         remain = 0;
 
-    if(xd->verb > 6) fprintf(stderr,"-d DA: remain = %d\n", remain);
+    if(xd->verb > 6) fprintf(stderr,"-- DA: remain = %d\n", remain);
 
     return remain;
 }
@@ -1623,7 +1839,7 @@ static void XMLCALL cb_instr(void *udata, const char *target, const char *data)
 static void XMLCALL cb_comment(void *udata, const char * str)
 {
     gxml_data * xd = (gxml_data *)udata;
-    if( xd->verb > 3 ){
+    if( xd->verb > 1 ){
         show_depth(xd->depth, 1, stderr);
         fprintf(stderr, "comment: '%s'\n",str);
     }
@@ -1660,9 +1876,9 @@ static void XMLCALL cb_default(void *udata, const char * str, int length)
         len = strlen(str);
     }
 
-    if( xd->verb > 2 ){
+    if( xd->verb > 1 ){
         show_depth(xd->depth, 1, stderr);
-        fprintf(stderr, "default [%d]: '%.*s'\n",length,len,str);
+        fprintf(stderr, "unknown XML element [%d]: '%.*s'\n",length,len,str);
     }
 }
 
@@ -1705,7 +1921,7 @@ static void XMLCALL cb_elem_dec(void *udata, const char * ename,
         show_depth(xd->depth, 1, stderr);
         fprintf(stderr,"%s: type=%d, quant=%d, name=%s, numc=%d, cp=%p\n",
                 ename, content->type, content->quant, content->name,
-                content->numchildren, content->children);
+                content->numchildren, (void *)content->children);
     }
 }
 
@@ -1728,7 +1944,7 @@ static XML_Parser init_xml_parser( void * user_data )
     XML_SetEndDoctypeDeclHandler(parser, cb_end_doctype);
     XML_SetElementDeclHandler(parser, cb_elem_dec);
 
-    if( GXD.verb > 3 ) fprintf(stderr,"-d parser initialized\n");
+    if( GXD.verb > 3 ) fprintf(stderr,"-- parser initialized\n");
 
     return parser;
 }
@@ -1834,12 +2050,12 @@ static int reset_xml_buf(gxml_data * xd, char ** buf, int * bsize)
 {
     if( *bsize == xd->buf_size ) {
         if( xd->verb > 3 )
-            fprintf(stderr,"-d buffer kept at %d bytes\n", *bsize);
+            fprintf(stderr,"-- buffer kept at %d bytes\n", *bsize);
         return 0;
     }
 
     if( xd->verb > 2 )
-        fprintf(stderr,"+d update buf, %d to %d bytes\n",*bsize,xd->buf_size);
+        fprintf(stderr,"++ update buf, %d to %d bytes\n",*bsize,xd->buf_size);
 
     *bsize = xd->buf_size;
     *buf = (char *)realloc(*buf, *bsize * sizeof(char));
@@ -1856,7 +2072,7 @@ static int reset_xml_buf(gxml_data * xd, char ** buf, int * bsize)
 /* decide how big a processing buffer should be
    (either for a small xform matrix or a Data element)
 */
-static int partial_buf_size(size_t nbytes)
+static int partial_buf_size(long long nbytes)
 {
     int ibytes = (int)nbytes;    /* never more than 10 MB, anyway */
 
@@ -1869,20 +2085,22 @@ static int partial_buf_size(size_t nbytes)
     return 1024*1024;
 }
 
-static int update_buf_size(gxml_data * xd, size_t bytes)
+/* update xd->buf_size, used prior to reset_xml_buf */
+static int update_xml_buf_size(gxml_data * xd, long long bytes)
 {
     int new_size;
 
     if( !xd || bytes < 0 ){
         if( xd->verb > 1 )
-            fprintf(stderr,"** bad update_buf_size with %p and %zd\n",xd,bytes);
+            fprintf(stderr,"** bad update_xml_buf_size with %p and %lld\n",
+                    (void *)xd,bytes);
         return 0;
     }
     
     new_size = partial_buf_size(bytes);
     if( new_size != xd->buf_size ){
         if( xd->verb > 2 )
-            fprintf(stderr,"+d update XML buf size, %d to %d (for %zd)\n",
+            fprintf(stderr,"++ update XML buf size, %d to %d (for %lld)\n",
                     xd->buf_size, new_size, bytes);
         xd->buf_size = new_size;
     }
@@ -1891,21 +2109,24 @@ static int update_buf_size(gxml_data * xd, size_t bytes)
 }
 
 
-static int update_partial_buffer(char **buf, int *blen, size_t bytes, int full)
+/* used to update any buffer, as the pointer address is passed in */
+static int update_partial_buffer(char ** buf, int * blen, long long bytes,
+                                 int full)
 {
     int bsize = partial_buf_size(bytes);
 
     if( full ) bsize = bytes;   /* want entire buffer */
 
     if( !buf || !blen || bytes <= 0 ) {
-        fprintf(stderr,"** UPB: bad params (%p,%p,%zd)\n", buf, blen, bytes);
+        fprintf(stderr,"** UPB: bad params (%p,%p,%lld)\n",
+                (void *)buf, (void *)blen, bytes);
         return 1;
     }
 
     /* just make sure we have a text buffer to work with */
     if( *buf || *blen != bsize ) {
         if( GXD.verb > 2 )
-            fprintf(stderr,"+d UPB, alloc %d bytes (from %zd, %d) for buffer\n",
+            fprintf(stderr,"++ UPB, alloc %d bytes (from %lld, %d) for buff\n",
                     bsize, bytes, full);
         *buf = (char *)realloc(*buf, bsize * sizeof(char));
         if( !*buf ) {
@@ -1927,8 +2148,8 @@ static int gxml_write_gifti(gxml_data * xd, FILE * fp)
 
     if( !gim || !fp ) return 1;
 
-    if( xd->verb > 2 )
-        fprintf(stderr,"+d gifti image, numDA = %d, size = %d MB\n",
+    if( xd->verb > 1 )
+        fprintf(stderr,"++ gifti image, numDA = %d, size = %d MB\n",
                 gim->numDA, gifti_gim_DA_size(gim,1));
 
     gxml_write_preamble(xd, fp);
@@ -1947,8 +2168,7 @@ static int gxml_write_gifti(gxml_data * xd, FILE * fp)
 
     /* write the giiDataArray */
     if(!gim->darray) {
-        if( xd->verb > 0 )
-            fprintf(stderr,"** gifti_image '%s', missing darray\n",xd->ddata);
+        if( xd->verb > 0 ) fprintf(stderr,"** gifti_image, missing darray\n");
     } else {
         for( c = 0; c < gim->numDA; c++ )
             ewrite_darray(xd, gim->darray[c], fp);
@@ -1966,7 +2186,7 @@ static int ewrite_darray(gxml_data * xd, giiDataArray * da, FILE * fp)
     int  offset, c;
     char dimstr[5] = "Dim0";
 
-    if( xd->verb > 3 ) fprintf(stderr,"+d write giiDataArray\n");
+    if( xd->verb > 3 ) fprintf(stderr,"++ write giiDataArray\n");
 
     if( !da ) return 0;
 
@@ -1986,11 +2206,12 @@ static int ewrite_darray(gxml_data * xd, giiDataArray * da, FILE * fp)
     }
     ewrite_str_attr("Encoding",
         gifti_list_index2string(gifti_encoding_list,da->encoding),offset,0,fp);
-    ewrite_str_attr("Endian",
-        gifti_list_index2string(gifti_endian_list,da->endian),offset,0,fp);
+    ewrite_str_attr("Endian",   /* set endian to that of this CPU */
+        gifti_list_index2string(gifti_endian_list, gifti_get_this_endian()),
+                                offset,0,fp);
     ewrite_str_attr("ExternalFileName", da->ext_fname, offset, 0, fp);
     if( da->ext_fname && *da->ext_fname )
-        ewrite_off_t_attr("ExternalFileOffset", da->ext_offset, offset, 0, fp);
+        ewrite_long_long_attr("ExternalFileOffset",da->ext_offset, offset,0,fp);
     else
         ewrite_str_attr("ExternalFileOffset", NULL, offset, 0, fp);
     fprintf(fp, ">\n");
@@ -2012,12 +2233,12 @@ static int ewrite_darray(gxml_data * xd, giiDataArray * da, FILE * fp)
 static int ewrite_data(gxml_data * xd, giiDataArray * da, FILE * fp)
 {
     int c, spaces = xd->indent * xd->depth;
-    int rows, cols, errs = 0;
+    int rows, cols, errs = 0, rv;
 
     if( !da ) return 0;         /* okay, may not exist */
 
     if( xd->verb > 3 )
-        fprintf(stderr,"+d write %s Data\n",
+        fprintf(stderr,"++ write %s Data\n",
                 gifti_list_index2string(gifti_encoding_list, da->encoding));
     fprintf(fp, "%*s<%s>", spaces, " ", enames[GXML_ETYPE_DATA]);
 
@@ -2029,11 +2250,26 @@ static int ewrite_data(gxml_data * xd, giiDataArray * da, FILE * fp)
                 ewrite_data_line(da->data,da->datatype,c,cols,
                                  spaces+xd->indent,fp);
             fprintf(fp, "%*s", spaces, " ");
-        } else if( da->encoding == GIFTI_ENCODING_BINARY ) {
+        } else if( da->encoding == GIFTI_ENCODING_B64BIN ) {
             gxml_disp_b64_data(NULL, da->data, da->nvals*da->nbyper, fp);
-        } else if( da->encoding == GIFTI_ENCODING_GZIP ) {
-            fprintf(stderr,"** not ready for writing base64 compressed data\n");
-            errs = 1;
+        } else if( da->encoding == GIFTI_ENCODING_B64GZ ) {
+            uLongf blen = da->nvals*da->nbyper * 1.01 + 12; /* zlib.net */
+            if( update_partial_buffer(&xd->zdata, &xd->zlen, blen, 1) )
+                return 1;
+            rv = compress2((Bytef *)xd->zdata, &blen, da->data,
+                           da->nvals*da->nbyper, xd->zlevel);
+            if( rv != Z_OK ) {
+                if( rv == Z_MEM_ERROR )
+                    fprintf(stderr,"** zlibc failure, not enough memory\n");
+                if( rv == Z_BUF_ERROR )
+                    fprintf(stderr,"** zlibc failure, buffer too short\n");
+                else
+                    fprintf(stderr,"** zlibc failure, unknown error %d\n", rv);
+                errs++;
+            } else if ( xd->verb > 2 )
+                fprintf(stderr,"-- compressed buffer (%.2f%% of %lld bytes)\n",
+                        100.0*blen/(da->nvals*da->nbyper),da->nvals*da->nbyper);
+            gxml_disp_b64_data(NULL, xd->zdata, blen, fp);
         } else {
             fprintf(stderr,"** unknown data encoding, %d\n", da->encoding);
             errs = 1;
@@ -2090,7 +2326,7 @@ static int ewrite_coordsys(gxml_data * xd, giiCoordSystem * cs, FILE * fp)
 
     if( !cs ) return 0;         /* okay, may not exist */
 
-    if( xd->verb > 3 ) fprintf(stderr,"+d write giiCoordSystem\n");
+    if( xd->verb > 3 ) fprintf(stderr,"++ write giiCoordSystem\n");
 
     fprintf(fp, "%*s<%s>\n", spaces, " ", enames[GXML_ETYPE_CSTM]);
     spaces += xd->indent;
@@ -2239,7 +2475,7 @@ static int ewrite_LT(gxml_data *xd, giiLabelTable *lt, int in_CDATA, FILE *fp)
     char attr[32] = "";
     int  c, spaces = xd->indent * xd->depth;
 
-    if( xd->verb > 3 ) fprintf(stderr,"+d write giiLabelTable\n");
+    if( xd->verb > 3 ) fprintf(stderr,"++ write giiLabelTable\n");
 
     if( !lt || lt->length == 0 || !lt->index || !lt->label ) {
         fprintf(fp, "%*s<LabelTable/>\n", spaces, " ");
@@ -2267,7 +2503,7 @@ static int ewrite_meta(gxml_data * xd, giiMetaData * md, FILE * fp)
 {
     int c, spaces = xd->indent * xd->depth;
 
-    if( xd->verb > 3 ) fprintf(stderr,"+d write giiMetaData\n");
+    if( xd->verb > 3 ) fprintf(stderr,"++ write giiMetaData\n");
 
     if( !md || md->length == 0 || !md->name || !md->value ) {
         fprintf(fp, "%*s<MetaData/>\n", spaces, " ");
@@ -2306,7 +2542,7 @@ static int ewrite_ex_atrs(gxml_data * xd, nvpairs * nvp, int offset,
 {
     int c, spaces = xd->indent * xd->depth + offset;
 
-    if(xd->verb > 2) fprintf(stderr,"+d write %d ex_atr's\n", nvp->length);
+    if(xd->verb > 2) fprintf(stderr,"++ write %d ex_atr's\n", nvp->length);
 
     for( c = 0; c < nvp->length; c++ ) {
         ewrite_str_attr(nvp->name[c], nvp->value[c], spaces, first, fp);
@@ -2328,10 +2564,10 @@ static int ewrite_int_attr(const char *name, int value, int spaces,
 }
 
 
-static int ewrite_off_t_attr(const char *name, off_t value, int spaces,
-                           int first, FILE * fp)
+static int ewrite_long_long_attr(const char *name, long long value, int spaces,
+                                 int first, FILE * fp)
 {
-    fprintf(fp, "%s%*s%s=\"%zd\"",
+    fprintf(fp, "%s%*s%s=\"%lld\"",
             (first) ? "" : "\n",        /* maybe a newline   */
             (first) ?  1 : spaces, " ", /* 1 or many spaces  */
             name, value);

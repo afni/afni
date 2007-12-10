@@ -1,7 +1,9 @@
 
 # quick and dirty for now...
 
-# CFLAGS = -Wall -g
+CC = gcc
+
+# CFLAGS = -Wall -g -pedantic -std=c99
 CFLAGS = -O3
 
 # for macs (getting expat from fink)
@@ -10,7 +12,7 @@ CFLAGS = -O3
 
 gifti_test: gifti_test.o gifti_io.o gifti_xml.o
 	$(RM) $@
-	$(CC) $(CFLAGS) -o $@ $(LFLAGS) -lexpat	\
+	$(CC) $(CFLAGS) -o $@ $(LFLAGS) -lexpat	-lz \
 		gifti_test.o gifti_io.o gifti_xml.o
 
 clean:

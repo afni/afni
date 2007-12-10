@@ -30,10 +30,11 @@
 #define GIFTI_DATALOC_MAX       2
 
 #define GIFTI_ENCODING_UNDEF     0
-#define GIFTI_ENCODING_ASCII     1
-#define GIFTI_ENCODING_BINARY    2
-#define GIFTI_ENCODING_GZIP      3
-#define GIFTI_ENCODING_MAX       3
+#define GIFTI_ENCODING_ASCII     1      /* human readable ASCII data  */
+#define GIFTI_ENCODING_B64BIN    2      /* base64 encoded binary data */
+#define GIFTI_ENCODING_B64GZ     3      /* base64 compressed binary   */
+#define GIFTI_ENCODING_EXTBIN    4      /* external unencoded binary  */
+#define GIFTI_ENCODING_MAX       4
 
 #define GIFTI_ENDIAN_UNDEF       0
 #define GIFTI_ENDIAN_BIG         1
@@ -45,8 +46,6 @@
 /* global declarations of matching lists */
 extern char * gifti_index_order_list[];
 extern char * gifti_dataloc_list[];
-extern char * nifti_datatype_name_list[];
-extern int    nifti_datatype_value_list[];
 extern char * gifti_encoding_list[] ;
 extern char * gifti_endian_list[];
 
@@ -59,7 +58,7 @@ extern char * gifti_endian_list[];
 */
 
 typedef struct {
-    int     length;             /* do we want a nalloc field? */
+    int     length;
     char ** name;
     char ** value;
 } nvpairs;
@@ -67,7 +66,7 @@ typedef nvpairs giiMetaData;
 
 typedef struct {
     int     length;
-    int   * index;              /* should 0 be invalid ? */
+    int   * index;
     char ** label;
 } giiLabelTable;
 
@@ -87,15 +86,15 @@ typedef struct {
     int              encoding;  /* format of Data on disk                */
     int              endian;    /* endian, if binary Encoding            */
     char *           ext_fname; /* external filename, in cur directory   */
-    size_t           ext_offset;/* offset of data within external file   */
+    long long        ext_offset;/* offset of data within external file   */
 
     /* elements */
     giiMetaData      meta;
     giiCoordSystem * coordsys;
-    void           * data;      /* unencoded, uncompressed, swapped?     */
+    void           * data;      /* unencoded, uncompressed, swapped      */
 
     /* extras */
-    size_t           nvals;     /* number of values (product of Dims)    */
+    long long        nvals;     /* number of values (product of Dims)    */
     int              nbyper;    /* number of bytes per value             */
     nvpairs          ex_atrs;   /* extra attributes                      */
 } giiDataArray;
@@ -132,24 +131,30 @@ typedef struct {
 
 /* main interface protos */
 gifti_image * gifti_read_image (const char * fname, int read_data );
+gifti_image * gifti_read_da_list (const char * fname, int read_data,
+                                  const int * dalist, int len );
 int gifti_write_image(gifti_image * gim, const char * fname, int write_data);
 
 int    gifti_free_image         (gifti_image * gim );
 
-int    gifti_check_swap         (void *data, int endian, size_t nsets,
+int    gifti_check_swap         (void *data, int endian, long long nsets,
                                  int swapsize);
-int    gifti_swap_Nbytes        (void *data, size_t nsets, int swapsize);
+int    gifti_swap_Nbytes        (void *data, long long nsets, int swapsize);
 
 /* end main interface protos */
 
 int    gifti_get_b64_check      (void);
 int    gifti_set_b64_check      (int level);
+int    gifti_get_zlevel         (void);
+int    gifti_set_zlevel         (int level);
 int    gifti_get_verb           (void);
 int    gifti_set_verb           (int level);
 
-size_t gifti_darray_nvals       (giiDataArray * da);
+long long gifti_darray_nvals       (giiDataArray * da);
+
 void   gifti_datatype_sizes     (int datatype, int *nbyper, int *swapsize);
 char * gifti_datatype2str       (int type);
+int    gifti_get_this_endian    (void);
 int    gifti_gim_DA_size        (gifti_image * p, int in_mb);
 int    gifti_intent_from_string (const char * name);
 int    gifti_intent_is_valid    (int code);
@@ -165,8 +170,9 @@ int    gifti_str2dataloc        (const char * str);
 int    gifti_str2encoding       (const char * str);
 int    gifti_str2endian         (const char * str);
 int    gifti_str2datatype       (const char * str);
-int    gifti_swap_2bytes        (void *data, size_t nsets);
-int    gifti_swap_4bytes        (void *data, size_t nsets);
+char * gifti_strdup             (const char * src);
+int    gifti_swap_2bytes        (void *data, long long nsets);
+int    gifti_swap_4bytes        (void *data, long long nsets);
 
 int    gifti_add_empty_darray   (gifti_image * gim);
 int    gifti_add_to_nvpairs     (nvpairs * p, const char * name,
