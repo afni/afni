@@ -175,7 +175,7 @@ ENTRY("THD_set_dataset_attributes") ;
           tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
       if(MAT44_NORM(daxes->ijk_to_dicom_real)>1.001){
          Tr = MAT44_SUB(Tc, daxes->ijk_to_dicom_real);
-         if(MAT44_NORM(Tr)>0.001)
+         if(0 && MAT44_NORM(Tr)>0.001)
             INFO_message("Transformation matrix changed from original");
       }
       daxes->ijk_to_dicom_real = Tc;
