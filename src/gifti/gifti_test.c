@@ -23,11 +23,16 @@ int show_help()
     "            gifti_test -infile dset.gii -gfile copy.gii\n"
     "            diff dset.gii copy.gii\n"
     "\n"
-    "        3. create .asc surfaces dataset (surf.asc)\n"
+    "        3. copy a GIFTI data, but write out only 3 surf indices: 0,4,5\n"
+    "\n"
+    "            gifti_test -infile time_series.gii -gfile ts3.gii  \\\n"
+    "                       -slist 3 0 4 5\n"
+    "\n"
+    "        4. create .asc surfaces dataset (surf.asc)\n"
     "\n"
     "            gifti_test -infile pial.gii -prefix surf\n"
     "\n"
-    "        4. create .1D time series surface dataset (surf.1D)\n"
+    "        5. create .1D time series surface dataset (surf.1D)\n"
     "\n"
     "            gifti_test -infile time_series.gii -prefix surf\n"
     "\n"
@@ -55,7 +60,9 @@ int show_help()
     "       -prefix  OUTPUT : write out dataset(s) as surf images\n"
     "                         (these are either .asc or .1D files)\n"
     "       -show           : show final gifti image\n"
+    "       -slist LEN s0...: restrict output to list of length LEN\n"
     "       -verb    VERB   : set verbose level\n"
+    "       -zlevel  LEVEL  : set compression level (-1 or 0..9)\n"
     "------------------------------------------------------------\n"
     );
     return 0;
@@ -65,7 +72,8 @@ int main( int argc, char * argv[] )
 {
     gifti_image * gim;
     char        * infile = NULL, * prefix = NULL, * gfile = NULL;
-    int           c, ac, show = 0, data = 1;
+    int         * slist = NULL, slen = 0;
+    int           c, ac, show = 0, data = 1, zlevel;
     int           encoding = 0; /* no change, else 1,2,3  */
 
     if( argc <= 1 ) {
@@ -97,9 +105,9 @@ int main( int argc, char * argv[] )
             if     ( !strcmp(argv[ac], "ASCII" ) )
                 encoding = GIFTI_ENCODING_ASCII;
             else if( !strcmp(argv[ac], "BASE64") )
-                encoding = GIFTI_ENCODING_BINARY;
+                encoding = GIFTI_ENCODING_B64BIN;
             else if( !strcmp(argv[ac], "BASE64GZIP") )
-                encoding = GIFTI_ENCODING_GZIP;
+                encoding = GIFTI_ENCODING_B64GZ;
             else {
                 fprintf(stderr,"** invalid parm to -encoding: %s\n",argv[ac]);
                 return 1;
@@ -129,10 +137,43 @@ int main( int argc, char * argv[] )
             prefix = argv[ac];
         } else if( !strcmp(argv[ac], "-show") ) {
             show = 1;
+        } else if( !strcmp(argv[ac], "-slist") ) {
+            ac++;
+            CHECK_NEXT_OPT(ac, argc, "-slist");
+            slen = atol(argv[ac]);
+            if( slen <= 0 ){ 
+                fprintf(stderr,"** bad -slist length, '%s'\n", argv[ac]);
+                return 1;
+            }
+
+            slist = (int *)malloc(slen*sizeof(int));
+            if( !slist ) {
+                fprintf(stderr,"** failed alloc of len %d slist\n",slen);
+                return 1;
+            }
+            for( c = 0; c < slen; c++ ) {
+                ac++;
+                if( ac >= argc ) {
+                    fprintf(stderr,"** have only %d of %d -slist files\n",
+                            c, slen);
+                    return 1;
+                }
+                slist[c] = atol(argv[ac]);
+                if( slist[c] < 0 ){ 
+                    fprintf(stderr,"** bad slist index[%d], '%s'\n",c,argv[ac]);
+                    return 1;
+                }
+            }
+            
         } else if( !strcmp(argv[ac], "-verb") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-verb");
             gifti_set_verb( atoi(argv[ac]) );
+        } else if( !strcmp(argv[ac], "-zlevel") ) {
+            ac++;
+            CHECK_NEXT_OPT(ac, argc, "-zlevel");
+            zlevel = atoi(argv[ac]);
+            if( gifti_set_zlevel(zlevel) ) return 1;
         } else {
             fprintf(stderr,"** unknown option: '%s'\n",argv[ac]);
             return 1;
@@ -146,9 +187,9 @@ int main( int argc, char * argv[] )
     }
 
     /* actually read the dataset */
-    gim = gifti_read_image(infile, 0);
+    gim = gifti_read_da_list(infile, 0, slist, slen);
     if( !gim ) {
-        fprintf(stderr,"** failed gifti_read_image()\n");
+        fprintf(stderr,"** failed gifti_read_da_list()\n");
         return 1;
     }
 
@@ -165,6 +206,8 @@ int main( int argc, char * argv[] )
     /* clean up */
     gifti_free_image(gim);  gim = NULL;
 
+    if( slist ){ free(slist); slist = NULL; slen = 0; }
+
     return 0;
 }
 
@@ -175,7 +218,7 @@ int write_as_ascii(gifti_image * gim, char * prefix)
     giiDataArray ** da_list; /* time series? */
     int             len;
 
-    fprintf(stderr,"-d trying to write data with prefix '%s'\n", prefix);
+    fprintf(stderr,"-- trying to write data with prefix '%s'\n", prefix);
 
     /* write surface file, *.1D */
     if( (dac = gifti_find_DA(gim, GIFTI_CAT_COORDINATES, 0)) &&
@@ -220,7 +263,7 @@ int write_1D_file(giiDataArray ** dlist, int len, char * prefix, int add_suf)
 
     if( len == 1 ){     /* write out as 2D list */
         /* note the number of rows and columns */
-        fprintf(stderr,"+d writing 1D '%s' from single DA\n", name);
+        fprintf(stderr,"++ writing 1D '%s' from single DA\n", name);
         da = dlist[0];
         if( gifti_DA_rows_cols(da, &rows, &cols) ) {
             if( nbuf ) free(nbuf);
@@ -233,20 +276,20 @@ int write_1D_file(giiDataArray ** dlist, int len, char * prefix, int add_suf)
             return 1;
         }
 
-        fprintf(stderr,"+d 1D write, RxC = %d x %d\n", rows, cols);
+        fprintf(stderr,"++ 1D write, RxC = %d x %d\n", rows, cols);
         if( da->ind_ord == GIFTI_IND_ORD_COL_MAJOR ) {
-            fprintf(stderr,"-d writing data rows in reverse order\n");
+            fprintf(stderr,"-- writing data rows in reverse order\n");
             for(c = rows-1; c >= 0; c-- )
                 ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
         } else {
-            fprintf(stderr,"-d writing data rows in normal order\n");
+            fprintf(stderr,"-- writing data rows in normal order\n");
             for(c = 0; c < rows; c++ )
                 ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
         }
     } else {            /* write da->nvals lines of 'num values */
         void ** vlist = (void **)malloc(len * sizeof(void *));
 
-        fprintf(stderr,"+d writing 1D '%s' from DA list (%d)\n", name, len);
+        fprintf(stderr,"++ writing 1D '%s' from DA list (%d)\n", name, len);
 
         /* set data pointers */
         for( c = 0; c < len; c++ ) {
@@ -271,14 +314,14 @@ int write_1D_file(giiDataArray ** dlist, int len, char * prefix, int add_suf)
             return 1;
         }
 
-        fprintf(stderr,"+d 1D write, RxC = %u x %d\n",
+        fprintf(stderr,"++ 1D write, RxC = %u x %d\n",
                 (unsigned)dlist[0]->nvals, len);
         ewrite_many_lines(vlist, dlist[0]->datatype,len, dlist[0]->nvals, 0,fp);
                           
         free(vlist);
     }
 
-    fprintf(stderr,"+d 1D write, apparent success\n");
+    fprintf(stderr,"++ 1D write, apparent success\n");
 
     fclose(fp);
 
@@ -329,11 +372,11 @@ int write_surf_file(giiDataArray * dc, giiDataArray * dt, char * prefix,
     cols = ccols;
 
     if( da->ind_ord == GIFTI_IND_ORD_COL_MAJOR ) {
-        fprintf(stderr,"-d writing coord rows in reverse order\n");
+        fprintf(stderr,"-- writing coord rows in reverse order\n");
         for(c = rows-1; c >= 0; c-- )
             ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
     } else {
-        fprintf(stderr,"-d writing coord rows in normal order\n");
+        fprintf(stderr,"-- writing coord rows in normal order\n");
         for(c = 0; c < rows; c++ )
             ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
     }
@@ -345,11 +388,11 @@ int write_surf_file(giiDataArray * dc, giiDataArray * dt, char * prefix,
     cols = tcols;
 
     if( da->ind_ord == GIFTI_IND_ORD_COL_MAJOR ) {
-        fprintf(stderr,"-d writing triangle rows in reverse order\n");
+        fprintf(stderr,"-- writing triangle rows in reverse order\n");
         for(c = rows-1; c >= 0; c-- )
             ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
     } else {
-        fprintf(stderr,"-d writing triangle rows in normal order\n");
+        fprintf(stderr,"-- writing triangle rows in normal order\n");
         for(c = 0; c < rows; c++ )
             ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
     }
@@ -453,10 +496,10 @@ int ewrite_data_line(void * data, int type, int row, int cols, int spaces,
 
 
 /* write out as cols by rows (else we'd use ewrite_data_line) */
-int ewrite_many_lines(void ** data, int type, size_t cols, size_t rows,
+int ewrite_many_lines(void ** data, int type, long long cols, long long rows,
                       int spaces, FILE * fp)
 {
-    size_t r, c;
+    long long r, c;
 
     if( !data || rows == 0 || cols == 0 || !fp ) return 1;
 
