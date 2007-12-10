@@ -594,12 +594,7 @@ int write_results ( THD_3dim_dataset * dout, options_t * opts,
     /* set filename */
     EDIT_dset_items( dout, ADN_prefix, opts->prefix, ADN_none );
 
-    if ( THD_is_file(DSET_HEADNAME(dout)) )
-    {
-        fprintf( stderr, "error: cannot overwrite existing dataset <%s>\n",
-                 DSET_HEADNAME(dout) );
-        return FAIL;
-    }
+    /* don't worry about overwriting, that's AFNI_DECONFLICT's job */
 
     /* set number of time-axis slices to 0 */
     if( DSET_NUM_TTOFF(dout) > 0 )
