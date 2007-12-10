@@ -2283,3 +2283,5 @@
 06 Dec 2007: applied more NIfTI updates: release 1.0.0 (extra 0 :)
   * modified Makefile README packaging/nifticlib.spec
 08 Dec 2007: allowed ANALYZE headers in nifti_hdr_looks_good
+10 Dec 2007: allow for AFNI_DECONFLICT in 3dresample
+
