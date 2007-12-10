@@ -7266,13 +7266,15 @@ static unsigned char record_bits[] = {
       /*------- winfo_prefix text [10 Dec 2007] -------*/
 
       case isqDR_winfoprefix:{
-        char *pf = (char *)drive_data ;
-        if( pf == NULL ){
+        char *pf=(char *)drive_data , lab[2]=" " ;
+        if( pf == NULL || *pf == '\0' ){
           seq->winfo_prefix[0] = '\0' ;
         } else {
           strncpy( seq->winfo_prefix , pf , 15 ) ;
           seq->winfo_prefix[15] = '\0' ;
+          if( isgraph(*pf) ) lab[0]=*pf ;
         }
+        MCW_set_widget_label( seq->arrowpad->wbut[4] , lab ) ;
         seq->im_label[0] = '\0' ;  /* will force redraw */
         ISQ_draw_winfo( seq ) ;
         RETURN( True );
@@ -7836,9 +7838,9 @@ static unsigned char record_bits[] = {
 #define XYORG 128
 #define DXY    64
 
-void ISQ_arrowpad_CB( MCW_arrowpad * apad , XtPointer client_data )
+void ISQ_arrowpad_CB( MCW_arrowpad *apad , XtPointer client_data )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
 
    ISQ_cbs cbs ;
    int xorg,yorg , xwin,ywin , xoff,yoff ;
