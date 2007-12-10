@@ -75,12 +75,12 @@ extern "C" {
 #endif
 
 #ifdef _DEBUGTRACE_MAIN_
-   char * DBG_rout[DEBUG_MAX_DEPTH] = { "Bottom of Debug Stack" } ;
+   char *DBG_rout[DEBUG_MAX_DEPTH] = { "Bottom of Debug Stack" } ;
    int DBG_num   = 1 ;
    int DBG_trace = 0 ;   /* turn off at start (cf. mainENTRY) */
    FILE *DBG_fp  = NULL ;    /* 01 Sep 2006 */
 
-   char * DBG_labels[3] = { "Trace=OFF " , "Trace=LOW " , "Trace=HIGH" } ;
+   char *DBG_labels[3] = { "Trace=OFF " , "Trace=LOW " , "Trace=HIGH" } ;
 
    char last_status[1024] = "\0" ;  /* 22 Apr 2002 */
 
@@ -95,7 +95,7 @@ void DBG_traceback(void)
 
 void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 {
-   char * sname ; int ii ;
+   char *sname ; int ii ;
    static volatile int fff=0 ;
    if( fff ) _exit(1); else fff=1 ;
    switch(sig){
@@ -129,11 +129,11 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 -----------------------------------------------------------------*/
 
 #else /* not _DEBUGTRACE_MAIN_ */
-   extern char * DBG_rout[DEBUG_MAX_DEPTH] ;
+   extern char *DBG_rout[DEBUG_MAX_DEPTH] ;
    extern int DBG_num ;
    extern int DBG_trace ;
    extern FILE *DBG_fp ;
-   extern char * DBG_labels[3] ;
+   extern char *DBG_labels[3] ;
    extern void DBG_sigfunc(int) ;
    extern void DBG_traceback(void) ;
    extern char last_status[1024] ;
@@ -151,15 +151,15 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 #define DBG_LEADER_IN  "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 #define DBG_LEADER_OUT "-----------------------------------------------------------"
 
-#define ENTRY(rout) do{ static char * rrr = (rout) ;  DBG_rout[DBG_num++] = rrr ; \
-                        if( DBG_trace ){                                         \
-                          if( DBG_fp == NULL ) DBG_fp = stdout ;                \
-                          fprintf(DBG_fp,                                      \
-                                  "%*.*s%s [%d]: ENTRY (file=%s line=%d)\n",  \
+#define ENTRY(rout) do{ static char *rrr = (rout) ;  DBG_rout[DBG_num++] = rrr ; \
+                        if( DBG_trace ){                                        \
+                          if( DBG_fp == NULL ) DBG_fp = stdout ;               \
+                          fprintf(DBG_fp,                                     \
+                                  "%*.*s%s [%d]: ENTRY (file=%s line=%d)\n", \
                                   DBG_num,DBG_num,DBG_LEADER_IN,rrr,DBG_num, \
-                                  __FILE__ , __LINE__ ) ;                   \
-                          MCHECK ; fflush(DBG_fp) ; }                      \
-                        last_status[0] = '\0' ;                           \
+                                  __FILE__ , __LINE__ ) ;                    \
+                          MCHECK ; fflush(DBG_fp) ; }                        \
+                        last_status[0] = '\0' ;                              \
                     } while(0)
 
 #define DBROUT      DBG_rout[DBG_num-1]
