@@ -778,10 +778,7 @@ ENTRY("AFNI_faceup") ;
 
    ddss = num_face + 16449/num_face ; if( ddss > 222 ) ddss = 222 ;
 
-   if( num_face > 4 ){
-     ii = num_face / 2 ;
-     do{ dj = 1 + lrand48() % ii ; } while( gcd(num_face,dj) > 1 ) ;
-   }
+   if( num_face > 4 ) dj = find_relprime_random(num_face) ;
    j0 = lrand48() % num_face ;
 
    for( ii=0 ; ii < num_face ; ii++ ){
