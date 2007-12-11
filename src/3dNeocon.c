@@ -66,6 +66,7 @@ typedef struct {
   int *goodlist ; /* goodlist[i] = index of i-th good row in all data */
   int  run_num ;  /* number of runs in total data */
   int *run_start; /* run_start[i] = data index of start of run #i */
+  float tr ;      /* time step of data */
 
   int          nprob ;      /* number of linear setups (slices) */
   linear_setup *prob ;      /* one per slice */
@@ -92,7 +93,7 @@ typedef struct {
    (i.e., extract the full and base matrices, compute pseudo-inverses).
 -----------------------------------------------------------------------------*/
 
-void NCO_finish_linear_setup( linear_setup *ls, int ngood, int *goodlist, int qb )
+void NCO_finish_linear_setup( linear_setup *ls, int ngd, int *gdlist, int qb )
 {
    matrix *xf ;  /* stand-in for full matrix */
 
@@ -107,9 +108,9 @@ ENTRY("NCO_finish_linear_setup") ;
 
    if( ISVALID_MATRIX(ls->x_full) ) matrix_destroy( &(ls->x_full) ) ;
 
-   if( ngood > 0 && goodlist != NULL ){  /* if any censoring was done */
+   if( ngd > 0 && gdlist != NULL ){      /* if any censoring was done */
      xf = &(ls->x_full) ;
-     matrix_extract_rows( ls->x_all , ngood,goodlist , xf ) ;
+     matrix_extract_rows( ls->x_all , ngd,gdlist , xf ) ;
    } else {                              /* no censoring was done */
      xf = &(ls->x_all) ;
    }
@@ -172,7 +173,7 @@ ENTRY("NCO_extract_slice") ;
        uu = vv + jj*nx ;
        for( ii=0 ; ii < nx ; ii++ ) if( mask[ii+uu] ) nin++ ;
      }
-     if( nin == 0 ) RETURN(NULL) ;
+     if( nin == 0 ) RETURN(NULL) ;  /* nothing in the mask */
    } else {
      nin = nx*ny ;     /* use all voxels in slice */
    }
@@ -225,8 +226,9 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *concatim=NULL ;
    int         num_CENSOR=0 ;
    int_triple *abc_CENSOR=NULL ;
+   char *tpat=NULL ;
 
-   int ii,jj,kk , nslice , nt ;
+   int ii,jj,kk , nslice , nt , nvectot ;
    int nmask=0 ; byte *mask=NULL ;
    MRI_IMAGE *sim,*iim ; MRI_IMARR *imar ; float *sar ; int *iar ;
 
@@ -244,7 +246,7 @@ int main( int argc , char *argv[] )
    /*----- read arguments -----*/
 
    nls = (nonlinear_setup *)calloc(1,sizeof(nonlinear_setup)) ;
-   nls->polort = -1 ;
+   nls->polort = -666 ;  /* automatic */
    INIT_IMARR(baseim) ;
 
    while( iarg < argc ){
@@ -393,6 +395,14 @@ int main( int argc , char *argv[] )
 
      /*----------*/
 
+     if( strcmp(argv[iarg],"-tpattern") == 0 ){
+       if( iarg == argc-1 ) ERROR_exit("Need argument after '%s'",argv[iarg]);
+       tpat = argv[++iarg] ;
+       iarg++ ; continue ;
+     }
+
+     /*----------*/
+
      if( strcmp(argv[iarg],"-stimtime") == 0 ){ iarg++ ; continue ; }
      if( strcmp(argv[iarg],"-threshtype") == 0 ){ iarg++ ; continue ; }
      if( strcmp(argv[iarg],"-fitts") == 0 ){ iarg++ ; continue ; }
@@ -422,6 +432,32 @@ int main( int argc , char *argv[] )
                        nzr , num_CENSOR-nzr ) ;
    }
 
+   /*--- setup timing information ---*/
+
+   if( tr <= 0.0f ){
+     tr = DSET_TR(inset) ;
+     if( tr <= 0.0f ){
+       WARNING_message("no TR in dataset and no -TR option ==> TR = 1 s") ;
+       tr = 1.0f ;
+     }
+   } else {
+     float dd = DSET_TR(inset) ;
+     if( dd > 0.0f && fabsf(dd-tr) > 0.001f )
+       WARNING_message("-TR %g overrides dataset TR=%g",tr,dd) ;
+   }
+   nls->tr = tr ;
+
+   if( tpat != NULL ){
+     nls->prob_toff = TS_parse_tpattern( DSET_NZ(inset), nls->tr , tpat ) ;
+     if( nls->prob_toff == NULL )
+       nls->prob_toff = (float *)calloc(sizeof(float),DSET_NZ(inset)) ;
+   } else {
+     nls->prob_toff = (float *)calloc(sizeof(float),DSET_NZ(inset)) ;
+     if( inset->taxis != NULL && inset->taxis->toff_sl != NULL )
+       memcpy( nls->prob_toff, inset->taxis->toff_sl,
+                               sizeof(float)*DSET_NZ(inset) ) ;
+   }
+
    /*----- setup run start indexes -----*/
 
    nt = DSET_NVALS(inset) ;
@@ -447,7 +483,7 @@ int main( int argc , char *argv[] )
      if( nls->run_start[0] != 0 ) jj++ ;
      for( ii=1 ; ii < nls->run_num ; ii++ )
        if( nls->run_start[ii] <= nls->run_start[ii-1] ) jj++ ;
-     if( jj > 0 ) ERROR_exit("Disorderly run start indexes in -concat") ;
+     if( jj > 0 ) ERROR_exit("Disordered run start indexes in -concat") ;
      if( nls->run_start[nls->run_num-1] >= nt )
        ERROR_exit("last -concat value %d is after end of input dataset (%d)?!",
                   nls->run_start[nls->run_num-1] , nt-1 ) ;
@@ -457,6 +493,25 @@ int main( int argc , char *argv[] )
      nls->run_num      = 1 ;
      nls->run_start    = (int *)malloc(sizeof(int)) ;
      nls->run_start[0] = 0 ;
+   }
+
+   /*--- estimate desirable polort from max block duration ---*/
+
+   { int ibot, itop, ilen, lmax=0 ; float dmax ;
+     for( ii=0 ; ii < nls->run_num ; ii++ ){
+       ibot = nls->run_start[ii] ;
+       itop = (ii < nls->run_num-1) ? nls->run_start[ii+1] : nt ;
+       ilen = itop - ibot ; lmax = MAX(lmax,ilen) ;
+     }
+     dmax = tr * lmax ; ilen = 1 + (int)floor(dmax/150.0) ;
+     if( nls->polort < -1 ){
+       nls->polort = ilen ;
+       INFO_message("longest run=%.1f s; automatic polort=%d",dmax,ilen) ;
+     } else if( nls->polort >= 0 && ilen > nls->polort ){
+       WARNING_message(
+           "input polort=%d; longest run=%.1fs; recommended polort=%d",
+           nls->polort , dmax , ilen ) ;
+     }
    }
 
    /*----- mask-ification -----*/
@@ -569,18 +624,23 @@ int main( int argc , char *argv[] )
    nls->nvec  = (int *)   calloc(nls->nprob,sizeof(int)    ) ;
    nls->vec   = (float **)calloc(nls->nprob,sizeof(float *)) ;
    nls->ivec  = (int **)  calloc(nls->nprob,sizeof(int *)  ) ;
-   for( kk=0 ; kk < nls->nz ; kk++ ){
+   for( nvectot=kk=0 ; kk < nls->nz ; kk++ ){
      imar = NCO_extract_slice( inset, kk, mask, nls->ngood,nls->goodlist ) ;
-     if( imar == NULL || IMARR_COUNT(imar) != 2 )
-       ERROR_exit("Can't extract data time series vectors?!") ;
-     sim = IMARR_SUBIM(imar,0) ; sar = MRI_FLOAT_PTR(sim) ;
-     iim = IMARR_SUBIM(imar,1) ; iar = MRI_INT_PTR  (iim) ;
-     nls->vec[kk]  = MRI_FLOAT_PTR(sim) ; mri_clear_data_pointer(sim) ;
-     nls->ivec[kk] = MRI_INT_PTR(iim)   ; mri_clear_data_pointer(iim) ;
-     nls->nvec[kk] = iim->nx ;
-     DESTROY_IMARR(imar) ;
+     if( imar == NULL || IMARR_COUNT(imar) != 2 ){
+       WARNING_message("No data extracted in slice #%d",kk) ;
+       nls->vec[kk] = NULL ; nls->ivec[kk] = NULL ; nls->nvec[kk] = 0 ;
+     } else {
+       sim = IMARR_SUBIM(imar,0) ; sar = MRI_FLOAT_PTR(sim) ;
+       iim = IMARR_SUBIM(imar,1) ; iar = MRI_INT_PTR  (iim) ;
+       nls->vec[kk]  = MRI_FLOAT_PTR(sim) ; mri_clear_data_pointer(sim) ;
+       nls->ivec[kk] = MRI_INT_PTR(iim)   ; mri_clear_data_pointer(iim) ;
+       nls->nvec[kk] = iim->nx ; nvectot += iim->nx ;
+       DESTROY_IMARR(imar) ;
+     }
    }
    DSET_unload(inset) ;
+   if( nvectot == 0 ) ERROR_exit("no time series to analyze?!") ;
+   else if( verb )    INFO_message("analyzing %d time series",nvectot) ;
 
    /************/
    exit(0) ;
@@ -601,12 +661,12 @@ static void NCO_help(void)
     "These arguments specify the input data and things about it.\n"
     "\n"
     "  -input dname      = read 3D+time dataset 'dname'\n"
-    " [-mask mname]      = read dataset 'mname' as a mask\n"
-    " [-automask]        = compute a mask from the 3D+time dataset\n"
-    " [-TR tt]           = use 'tt' as the TR (in seconds)\n"
-    " [-CENSORTR clist]  = like in 3dDeconvolve\n"
-    " [-concat rname]    = like in 3dDeconvolve\n"
-    " [-tpattern ppp]    = set the slice timing pattern to 'ppp', as in\n"
+    "  -mask mname       = read dataset 'mname' as a mask\n"
+    "  -automask         = compute a mask from the 3D+time dataset\n"
+    "  -TR tt            = use 'tt' as the TR (in seconds)\n"
+    "  -CENSORTR clist   = like in 3dDeconvolve\n"
+    "  -concat rname     = like in 3dDeconvolve\n"
+    "  -tpattern ppp     = set the slice timing pattern to 'ppp', as in\n"
     "                      3dTshift, to override whatever slice timing\n"
     "                      information is in the '-input' dataset header;\n"
     "                      in particular, use 'zero' or 'equal' to specify\n"
@@ -619,9 +679,9 @@ static void NCO_help(void)
     "These arguments set up the baseline model, which is linear and estimated\n"
     "separately in each voxel (much as in 3dDeconvolve).\n"
     "\n"
-    " [-polort pnum]     = like in 3dDeconvolve [default is 'pnum' == 'A']\n"
+    "  -polort pnum      = like in 3dDeconvolve [default is 'pnum' == 'A']\n"
     "\n"
-    " [-baseline bb]     = read 'bb' (a 1D file) for the baseline model;\n"
+    "  -baseline bb      = read 'bb' (a 1D file) for the baseline model;\n"
     "                      this file can have 1 or more columns:\n"
     "                      * if 1 column, then it is used in all slices\n"
     "                      * if more than 1 column, then 'bb' must have\n"
@@ -676,7 +736,7 @@ static void NCO_help(void)
     "        Of course, the linear amplitudes for the two sets of times will be\n"
     "        separated.\n"
     "\n"
-    " [-threshtype hhh]\n"
+    "  -threshtype hhh \n"
     "\n"
     "   'hhh' specifies the thresholding model used in the HRF analysis.\n"
     "   Given a set of HRF parameters, linear regression is used to fit\n"
@@ -697,12 +757,12 @@ static void NCO_help(void)
     "\n"
     "Output Arguments\n"
     "----------------\n"
-    " [-fitts fprefix]   = Output a fitted time series model dataset.\n"
-    " [-errts eprefix]   = Output the residuals into a dataset.\n"
-    " [-cbucket cprefix] = Output the fit coefficients into a dataset.\n"
+    "  -fitts fprefix    = Output a fitted time series model dataset.\n"
+    "  -errts eprefix    = Output the residuals into a dataset.\n"
+    "  -cbucket cprefix  = Output the fit coefficients into a dataset.\n"
     "\n"
-    " [-verb]  = Increase the verbosity of the messages as the program runs.\n"
-    " [-quiet] = Turn off informational progress messages.\n"
+    "  -verb   = Increase the verbosity of the messages as the program runs.\n"
+    "  -quiet  = Turn off informational progress messages.\n"
    ) ;
 
    printf("\n*** AUTHOR = Zhark the Experimental, October 2007 ***\n\n" ) ;

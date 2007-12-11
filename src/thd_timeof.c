@@ -3,10 +3,9 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
-
 
 /*****************************************************************
   Time at the z-coordinate "z", at the it-th time step
@@ -73,4 +72,119 @@ float THD_timeof_slice( int it , int isl , THD_3dim_dataset * dset )
    if( isl < 0 || isl >= dset->taxis->nsl ) return tof ;
 
    return tof + dset->taxis->toff_sl[isl] ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* moved here (and slightly edited) from 3dTshift.c [11 Dec 2007] */
+
+float * TS_parse_tpattern( int nzz , float TR , char *tpattern )
+{
+   int ii ;
+   float tframe , tsl ;
+   float *tpat ;
+
+   if( nzz < 1 ) return NULL ;
+   tpat = (float *)malloc( sizeof(float) * nzz ) ;
+   for( ii=0 ; ii < nzz ; ii++ ) tpat[ii] = 0.0 ;
+
+   if( TR  < 0.0f ) TR = 1.0f ;
+   tframe = TR / nzz ;  /* time per slice */
+
+   if( nzz == 1 ||
+       (tpattern == NULL || *tpattern == '\0' ||
+        strcasecmp(tpattern,"zero")==0 || strcasecmp(tpattern,"simult")==0) ){
+
+      /*--- do nothing [leave it all zeros] ---*/
+
+   } else if( tpattern[0] == '@' ){
+      MRI_IMAGE *tim ; float *tar ;
+
+      /*--- read pattern file ---*/
+
+      tim = mri_read_1D( tpattern+1 ) ;
+      if( tim == NULL ){
+         ERROR_exit("Can't read tpattern file %s",tpattern+1) ;
+      } else if( tim->nx < nzz ){
+         ERROR_exit("tpattern file %s has %d values but have %d slices",
+                    tpattern+1 , tim->nx , nzz ) ;
+      } else {
+         tar = MRI_FLOAT_PTR(tim) ;
+         for( ii=0 ; ii < nzz ; ii++ ){
+            tpat[ii] = tar[ii] ;
+            if( tpat[ii] < 0.0f || tpat[ii] > TR )
+               ERROR_exit("Illegal value %g in tpattern file %s",
+                          tpat[ii] , tpattern+1 ) ;
+         }
+         mri_free(tim) ;
+      }
+
+   } else if( (strcmp(tpattern,"alt+z")==0 || strcmp(tpattern,"altplus")==0) ){
+
+      /*--- set up alternating in the +z direction ---*/
+
+      tsl = 0.0f ;
+      for( ii=0 ; ii < nzz ; ii+=2 ){
+        tpat[ii] = tsl ; tsl += tframe ;
+      }
+      for( ii=1 ; ii < nzz ; ii+=2 ){
+        tpat[ii] = tsl ; tsl += tframe ;
+      }
+
+   } else if( strcmp(tpattern,"alt+z2")==0 ){  /* 22 Feb 2005 */ 
+      /*--- set up alternating in the +z direction ---*/
+
+      tsl = 0.0f ;
+      for( ii=1 ; ii < nzz ; ii+=2 ){
+        tpat[ii] = tsl ; tsl += tframe ;
+      }
+      for( ii=0 ; ii < nzz ; ii+=2 ){
+        tpat[ii] = tsl ; tsl += tframe ;
+      }
+
+   } else if( (strcmp(tpattern,"alt-z")==0 || strcmp(tpattern,"altminus")==0) ){
+
+      /*--- set up alternating in the -z direction ---*/
+
+      tsl = 0.0f ;
+      for( ii=nzz-1 ; ii >=0 ; ii-=2 ){
+        tpat[ii] = tsl ; tsl += tframe ;
+      }
+      for( ii=nzz-2 ; ii >=0 ; ii-=2 ){
+        tpat[ii] = tsl ; tsl += tframe ;
+      }
+
+   } else if( strcmp(tpattern,"alt-z2") == 0 ){  /* 22 Feb 2005 */
+
+      /*--- set up alternating in the -z direction ---*/
+
+      tsl = 0.0f ;
+      for( ii=nzz-2 ; ii >=0 ; ii-=2 ){
+        tpat[ii] = tsl ; tsl += tframe ;
+      }
+      for( ii=nzz-1 ; ii >=0 ; ii-=2 ){
+        tpat[ii] = tsl ; tsl += tframe ;
+      }
+
+   } else if( (strcmp(tpattern,"seq+z")==0 || strcmp(tpattern,"seqplus")==0) ){
+
+      /*--- set up sequential in the +z direction ---*/
+
+      tsl = 0.0f ;
+      for( ii=0 ; ii < nzz ; ii++ ){
+        tpat[ii] = tsl ; tsl += tframe ;
+      }
+
+   } else if( (strcmp(tpattern,"seq-z")==0 || strcmp(tpattern,"seqminus")==0) ){ 
+      /*--- set up sequential in the -z direction ---*/
+
+      tsl = 0.0f ;
+      for( ii=nzz-1 ; ii >=0 ; ii-- ){
+        tpat[ii] = tsl ; tsl += tframe ;
+      }
+
+   } else {
+      ERROR_exit("Unknown tpattern = %s",tpattern) ;
+   }
+
+   return tpat ;
 }
