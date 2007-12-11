@@ -2181,12 +2181,14 @@ void get_options
         nopt++; continue;
       }
 
+#if 0
       /*----- -Dname=val to set environment variable [07 Dec 2007] -----*/
 
       if( strncmp(argv[nopt],"-D",2) == 0 && strchr(argv[nopt],'=') != NULL ){
         (void) AFNI_setenv( argv[nopt]+2 ) ;
         nopt++ ; continue ;
       }
+#endif
 
       /*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);

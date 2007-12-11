@@ -80,8 +80,8 @@ void AFNI_mark_environ_done(void){ afni_env_done = 1 ; return ; }
 char * my_getenv( char *ename )
 {
    if( !afni_env_done ){
-      char * sysenv = getenv("AFNI_SYSTEM_AFNIRC") ;       /* 16 Apr 2000 */
-      if( sysenv != NULL ) AFNI_process_environ(sysenv) ;  /* 16 Apr 2000 */
+      char *sysenv = getenv("AFNI_SYSTEM_AFNIRC") ;       /* 16 Apr 2000 */
+      if( sysenv != NULL ) AFNI_process_environ(sysenv) ; /* 16 Apr 2000 */
       AFNI_process_environ(NULL) ;
    }
    return getenv( ename ) ;
@@ -225,4 +225,70 @@ int AFNI_setenv( char *cmd )
    sprintf(eqn,"%s=%s",nam,val) ;
    eee = strdup(eqn) ; putenv(eee) ;
    return(0) ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+int AFNI_prefilter_args( int *argc , char **argv )
+{
+   int narg=*argc , ii,jj , nused , ttt ;
+   char *used , *eee ;
+
+   if( narg <= 1 || argv == NULL ) return(0) ;
+
+   used = (char *)calloc((size_t)narg,sizeof(char)) ;
+
+   eee = getenv("AFNI_TRACE") ; ttt = YESSISH(eee) ;
+   if( ttt )
+     fprintf(stderr,"++ AFNI_prefilter_args() processing argv[1..%d]\n",narg-1) ;
+
+   /*--- scan thru argv[];
+         see if any should be processed now and marked as 'used up' ---*/
+
+   for( ii=1 ; ii < narg ; ii++ ){
+
+     /*** empty argument (should never happen in Unix) ***/
+
+     if( argv[ii] == NULL ){
+       if( ttt ) fprintf(stderr,"++ argv[%d] is NULL\n",ii) ;
+       used[ii] = 1 ; continue ;
+     }
+
+     /*** -Dname=val to set environment variable ***/
+
+     if( strncmp(argv[ii],"-D",2) == 0 && strchr(argv[ii],'=') != NULL ){
+       if( ttt ) fprintf(stderr,"++ argv[%d] does setenv %s\n",ii,argv[ii]) ;
+       (void)AFNI_setenv(argv[ii]+2) ; used[ii] = 1 ; continue ;
+     }
+
+     /*** -overwrite to set AFNI_DECONFLICT ***/
+
+     if( strcmp(argv[ii],"-overwrite") == 0 ){
+       if( ttt ) fprintf(stderr,"++ argv[%d] is -overwrite\n",ii) ;
+       AFNI_setenv("AFNI_DECONFLICT=OVERWRITE") ; used[ii] = 1 ; continue ;
+     }
+
+     /*** -skip_afnirc to avoid .afnirc file ***/
+
+     if( strcmp(argv[ii],"-skip_afnirc") == 0 ){
+       if( ttt ) fprintf(stderr,"++ argv[%d] is -skip_afnirc\n",ii) ;
+       AFNI_mark_environ_done() ; used[ii] = 1 ; continue ;
+     }
+
+     /*** if get to here, argv[ii] is nothing special ***/
+
+   } /* end of loop over argv[] */
+
+   /*--- compress out used up argv[] entries ---*/
+
+   for( nused=0,ii=narg-1 ; ii >= 1 ; ii-- ){
+     if( !used[ii] ) continue ;
+     for( jj=ii+1 ; jj < narg ; jj++ ) argv[jj-1] = argv[jj] ;
+     argv[narg-1] = NULL ; narg-- ; nused++ ;
+   }
+
+   if( ttt && nused > 0 )
+     fprintf(stderr,"++ 'used up' %d argv[] entries, leaving %d\n",nused,narg) ;
+
+   free((void *)used) ; *argc = narg ; return(nused);
 }

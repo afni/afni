@@ -549,12 +549,14 @@ ENTRY("AFNI_parse_args") ;
       }
 #endif
 
+#if 0
       /*----- -Dname=val -- set environment variable [22 Mar 2005] -----*/
 
       if( strncmp(argv[narg],"-D",2) == 0 && strchr(argv[narg],'=') != NULL ){
         (void) AFNI_setenv( argv[narg]+2 ) ;
         narg++ ; continue ;                 /* go to next arg */
       }
+#endif
 
       /*----- -layout (23 Sep 2000) -----*/
 
@@ -1199,10 +1201,7 @@ int main( int argc , char *argv[] )
 
    if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
 
-   /** 15 Jan 2004: check for -skip_afnirc right away **/
-
-   GLOBAL_argopt.skip_afnirc = check_string("-skip_afnirc",argc,argv) ;
-   if( GLOBAL_argopt.skip_afnirc ) AFNI_mark_environ_done() ;
+   AFNI_prefilter_args( &argc , argv ) ;  /* 11 Dec 2007 */
 
    /*--- Initialize some stuff ---*/
 
