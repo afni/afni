@@ -3,14 +3,26 @@
 # either include the names of the gifti files on the command line,
 # or be sitting in the directory with them
 
-if ( $#argv > 1 ) then
-    set files = ( $argv )
+set narg = $#argv
+set arg0 = 1
+
+set check = ""
+if ( $narg > 0 ) then
+    if ( "$argv[1]" == "-none" ) then
+        set check = "-b64_check NONE"
+        @ narg -= 1
+        @ arg0 += 1
+    endif
+endif
+
+if ( $narg > 1 ) then
+    set files = ( $argv[$arg0-] )
 else
     set files = ( gifti.*.gii )
 endif
 
 foreach file ( $files )
     echo "----------------  $file  ----------------"
-    /usr/bin/time gifti_test -infile $file
+    /usr/bin/time gifti_test $check -infile $file
     if( $status ) echo "****** FAILURE ********"
 end

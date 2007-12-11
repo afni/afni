@@ -24,6 +24,7 @@ static int  int_compare         (const void * v0, const void * v1);
 static int  copy_b64_data       (gxml_data *, const char *, char *, int, int*);
 static int  decode_ascii       (gxml_data*,char*,int,int,void*,long long*,int*);
 static int  decode_b64          (gxml_data*, char*, int, char *, long long *);
+static int  disp_gxml_data      (char *, gxml_data *, int);
 static int  ename2type          (const char *);
 static int  epush               (gxml_data *, int, const char *, const char **);
 static int  epop                (gxml_data *, int, const char *);
@@ -112,7 +113,7 @@ static gxml_data GXD = {
     1,          /* dstore, flag whether to store data         */
     3,          /* indent, spaces per indent level            */
     GXML_DEF_BSIZE, /* buf_size, allocated for XML parsing    */
-    2,          /* b64_check, check, count, or fix b64 errors */
+    GIFTI_B64_CHECK_SKIPNCOUNT, /* b64_check, for b64 errors  */
     Z_DEFAULT_COMPRESSION, /* zlevel, compress level, -1..9   */
 
     NULL,       /* da_list, list of DA indices to store       */
@@ -390,7 +391,7 @@ static int init_gxml_data(gxml_data *dp, int doall, const int *dalist, int len)
         dp->dstore = 1;
         dp->indent = 3;
         dp->buf_size = GXML_DEF_BSIZE;
-        dp->b64_check = 0;
+        dp->b64_check = GIFTI_B64_CHECK_SKIPNCOUNT;
         dp->zlevel = Z_DEFAULT_COMPRESSION;     /* -1, or 0..9 */
     }
 
@@ -401,6 +402,10 @@ static int init_gxml_data(gxml_data *dp, int doall, const int *dalist, int len)
         dp->da_len  = 0;
     }
     dp->da_ind  = 0;
+
+    /* maybe show the user */
+    if( dp->verb > 1 )
+        disp_gxml_data("-- user opts: ", dp, dp->verb > 3);
 
     dp->eleDA = 0;
     dp->expDA = 0;
@@ -783,10 +788,11 @@ static int pop_darray(gxml_data * xd)
 
     /* check for and clear any b64 errors */
     if( xd->b64_errors > 0 ) {
-        if( xd->b64_check == 1 )
+        if( xd->b64_check == GIFTI_B64_CHECK_DETECT )
             fprintf(stderr,"** bad base64 chars found in DataArray[%d]\n",
                     xd->gim->numDA-1);
-        else if( xd->b64_check == 2 || xd->b64_check == 4 )
+        else if( xd->b64_check == GIFTI_B64_CHECK_COUNT ||
+                 xd->b64_check == GIFTI_B64_CHECK_SKIPNCOUNT )
             fprintf(stderr,"** %d bad base64 chars found in DataArray[%d]\n",
                     xd->b64_errors, xd->gim->numDA-1);
         xd->b64_errors = 0;
@@ -1315,12 +1321,10 @@ static int append_to_data_b64(gxml_data * xd, char * dest, long long tot_bytes,
     return 0;
 }
 
-/* b64_check = 0 : simple memcpy
-             = 1 : simple memcpy, but report bad chars
-             = 2 : simple memcpy, but count bad chars
-             = 3 : skip bad chars
-
-   return the number of bad characters noted
+/* Copy the base64 data to the dest buffer, possibly noting, counting
+ * and/or skipping any invalid characters, based on b64_check.
+ *
+ * return the number of bad characters noted
 */
 static int copy_b64_data(gxml_data * xd, const char * src, char * dest,
                          int src_len, int * dest_len)
@@ -1341,12 +1345,12 @@ static int copy_b64_data(gxml_data * xd, const char * src, char * dest,
             fprintf(stderr,"** CB64D: b64_check = %d\n", xd->b64_check);
             /* whine and fall through */
 
-        case 0:   /* basic case - just copy the data */
+        case GIFTI_B64_CHECK_NONE:   /* basic case - just copy the data */
             memcpy(dest, src, src_len);
             apply_len = src_len;
             break;
 
-        case 1:   /* check for existence of bad chars */
+        case GIFTI_B64_CHECK_DETECT:   /* check for existence of bad chars */
             for(c = 0; c < src_len; c++)
                 if( b64_decode_table[usrc[c]] == (unsigned char)0x80 ) {
                     errs++;
@@ -1356,7 +1360,7 @@ static int copy_b64_data(gxml_data * xd, const char * src, char * dest,
             apply_len = src_len;
             break;
 
-        case 2:   /* count bad characters */
+        case GIFTI_B64_CHECK_COUNT:   /* count bad characters */
             for(c = 0; c < src_len; c++)
                 if( b64_decode_table[usrc[c]] == (unsigned char)0x80 )
                     errs++;
@@ -1364,14 +1368,14 @@ static int copy_b64_data(gxml_data * xd, const char * src, char * dest,
             apply_len = src_len;
             break;
 
-        case 3:    /* skip over bad characters, but don't count */
+        case GIFTI_B64_CHECK_SKIP: /* skip bad characters, but don't count */
             apply_len = 0;
             for(c = 0; c < src_len; c++){
                 if( b64_decode_table[usrc[c]] != (unsigned char)0x80 )
                     dest[apply_len++] = src[c];
             }
             break;
-        case 4:    /* skip and count bad characters */
+        case GIFTI_B64_CHECK_SKIPNCOUNT:    /* skip and count bad characters */
             apply_len = 0;
             for(c = 0; c < src_len; c++){
                 if( b64_decode_table[usrc[c]] == (unsigned char)0x80 )
@@ -2595,6 +2599,51 @@ static int gxml_write_preamble(gxml_data * xd, FILE * fp)
 
     fprintf(fp, "<?xml version=\"%s\" encoding=\"%s\"?>\n", version, encoding);
     fprintf(fp, "<!DOCTYPE GIFTI SYSTEM \"%s\">\n", dtd);
+
+    return 0;
+}
+
+static int disp_gxml_data(char * mesg, gxml_data * dp, int show_all )
+{
+    if( mesg ) fputs(mesg, stderr);
+
+    if( !dp ) return 1;
+
+    fprintf(stderr,"gxml_data :\n"
+                "   verb        : %d\n"
+                "   dstore      : %d\n"
+                "   indent      : %d\n"
+                "   buf_size    : %d\n"
+                "   b64_check   : %d\n"
+                "   zlevel      : %d\n"
+                "   da_len      : %d\n"
+           , dp->verb, dp->dstore, dp->indent, dp->buf_size, dp->b64_check,
+             dp->zlevel, dp->da_len);
+
+    if( show_all )
+        fprintf(stderr,
+                "   da_list     : %p\n"
+                "   da_ind      : %d\n"
+                "   eleDA       : %d\n"
+                "   expDA       : %d\n"
+                "   b64_errors  : %d\n"
+                "   errors      : %d\n"
+                "   skip        : %d\n"
+                "   depth       : %d\n"
+                "   dind        : %lld\n"
+                "   clen        : %d\n"
+                "   doff        : %d\n"
+                "   zlen        : %d\n"
+                "   cdata       : %p\n"
+                "   xdata       : %p\n"
+                "   ddata       : %p\n"
+                "   zdata       : %p\n"
+                "   gim         : %p\n"
+           , (void *)dp->da_list, dp->da_ind, dp->eleDA, dp->expDA,
+             dp->b64_errors, dp->errors, dp->skip, dp->depth, dp->dind,
+             dp->clen, dp->doff, dp->zlen,
+             (void *)dp->cdata, (void *)dp->xdata, (void *)dp->ddata,
+             (void *)dp->zdata, (void *)dp->gim);
 
     return 0;
 }

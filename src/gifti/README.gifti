@@ -7,44 +7,44 @@ These notes are with respect to the AFNI GIFTI C API.
     gifti_read_image, gifti_write_image, gifti_free_image
 
 - The exported functions in gifti_io.h are intended for users of this
-  API, particularly those prototypes listed first.  The gifti_xml
-  functions are not intended for external use.
+  API, particularly those prototypes listed first.
+- The gifti_xml functions are not intended for external use.
 
 - Taking pointers from the gifti_image structure should be okay (providing
-  they are then set to NULL), but it may be less confusing to copy data out,
-  instead (except for darray[k]->data pointers).
-
-- The darray[k]->data pointers in a gifti_image structure should be available
-  to steal, but set them to NULL when doing so (so that gifti_free_image()
-  would still work).
+  they are then set to NULL), but it may be less confusing to copy data out.
+- To save memory, it is suggested to steal the darray[k]->data pointers, and
+  set them to NULL.
 
 ----------------------------------------------------------------------
+Speeds: (last checked in version 0.7)
+
+    Since I/O speed was a question when deciding whether to use XML for
+    GIFTI, read times (in seconds) from a mac G5 are provided.
+
+    (no b64 error checking)         (with b64 error counting and skipping)
+
+    ascii     base64    base64gz    base64    base64gz  surface name
+    -----     ------    --------    ------    --------  ------------
+     0.05       0.00     0.00        0.01     0.00      aoantonym
+     0.37       0.08     0.12        0.10     0.13      pial
+     7.20       0.95     0.75        1.14     0.79      time_series
+----------------------------------------------------------------------
+
 todo:
-x   - Base64GzipBinary encoding
-    - accessor functions
-    - indexed reading
-    - doxygen comments
-    - consider using a long long C99 type
+  - accessor functions
+  - indexed reading
+  - doxygen comments
 
-
-x - put new intent codes in nifti1.h
   - add -no_updates option, not to update GIFTI element
     else, update: (maybe have a higher level do this)
-        AFNI-Version (no, that would be at a higher level)
         add gifticlib version?
         date
         Endian
 
   - #ifdef  __cplusplus
-x - set endian on write
   - option to set encoding (or let users set that in the DA struct?)
-x - deal with new datasets
-        - Category -> Intent
-        - new dtd location
-        - GIFTI *might* have new NumberOfDataArrays attribute
-        - DataArray *might* have new ExternalFileName/Offset attributes
-        - ArrayIndexingOrder=RowMajorOrder
   - eventually replace Caret-Version with AFNI-Version (no, at higher level)
+  - data in external file(s)
 
   - gifti_set_all_DA_intent()
   - gifti_set_all_DA_datatype()
@@ -61,32 +61,8 @@ x - deal with new datasets
                 - done?? "invalid darray XX"
         - check that numDA matches numDAfound (unless user requested fewer)
 
-  - change size_t to int64_t
   - change gifti_test to gifti_tool (leave simplified gifti_test)
   - only print pointers on error
   - finish read_da_list
-----------------------------------------------------------------------
-11/21 GIFTI_Format changes:
-
-x       - CoordSys, should only be under DA with intent NI_POINTSET
-        - Data can be empty if contents are in external file
-          (see FileName and FileOffset)
-        - encoding: ExternalFileBinary
-                - be able to read sub-surfaces?
-                        - can skip DA elements, if desired
-                - in which case, unencoded binary
-                - note: external file required to be in same dir
-x       - DataArray attributes:
-                - ExternalFileName
-                - ExternalFileOffset
-x       - GIFTI attribute: Intent
-                - replaces Category
-                - apply any INTENT code in nifti1.h
-                        - add new codes, starting at 2000
-                        - NIFTI_INTENT_NONE exists and is zero
-x       - GIFTI attribute: NumberOfDataArrays
-                - replace gim->numDA with xd->numDAfound
-                - then add gim->numDA from XML
-                - on pop gifti, verify numDA
-        - consider an application of 3.0: Common MetaData  ???
-
+  - rename test.io to gifti.test.io
+  - rename get.times to gifti.get.times (and fix get.all.gifti.times)
