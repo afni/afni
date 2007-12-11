@@ -41,6 +41,12 @@
 #define GIFTI_ENDIAN_LITTLE      2
 #define GIFTI_ENDIAN_MAX         2
 
+#define GIFTI_B64_CHECK_NONE     0
+#define GIFTI_B64_CHECK_DETECT   1
+#define GIFTI_B64_CHECK_COUNT    2
+#define GIFTI_B64_CHECK_SKIP     3
+#define GIFTI_B64_CHECK_SKIPNCOUNT 4
+
 #define GIFTI_DARRAY_DIM_LEN     6  /* length of dims[] array */
 
 /* global declarations of matching lists */

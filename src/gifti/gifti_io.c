@@ -36,15 +36,19 @@ static char * gifti_history[] =
   "     - replaced Location attribute with ExternalFileName/Offset\n"
   "     - added NumberOfDataArrays attribute to GIFTI element\n"
   "     - applied new index_order strings\n"
-  "0.6  10, 2007: applied changes for GIFTI Format 1.0 (11/21)\n",
+  "0.6  10 December, 2007:\n"
   "     - can read/write Base64Binary datasets (can set compress level)\n"
   "     - removed datatype lists (have gifti_type_list)\n"
   "     - added gifti_read_da_list(), with only partial ability\n"
   "     - added GIFTI numDA attribute\n"
   "     - change size_t to long long\n"
+  "0.7  11 December, 2007:\n"
+  "     - added GIFTI_B64_CHECK defines\n"
+  "     - set b64_check default to SKIPNCOUNT\n"
+  "     - added disp_gxml_data\n"
 };
 
-static char gifti_version[] = "gifti library version 0.6, 10 December, 2007";
+static char gifti_version[] = "gifti library version 0.7, 11 December, 2007";
 
 /* ---------------------------------------------------------------------- */
 /* global lists of XML strings */
