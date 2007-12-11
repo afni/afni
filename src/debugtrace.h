@@ -183,7 +183,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
       e = getenv("AFNI_TRACE_FILE") ;                                 \
       if( e != NULL ) DBG_fp=fopen(e,"w") ;                           \
       if( DBG_fp==NULL ) DBG_fp=stdout;                               \
-      DBG_SIGNALS ; ENTRY(rout) ; } while(0)
+      DBG_SIGNALS; ENTRY(rout); (void)AFNI_prefilter_args(&argc,argv); } while(0)
 
 #define PRINT_TRACING (DBG_trace > 1)
 

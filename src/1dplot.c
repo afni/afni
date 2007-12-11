@@ -375,10 +375,12 @@ int main( int argc , char *argv[] )
         sep = 0 ; iarg++ ; continue ;
      }
 
+#if 0 
      if( strncmp(argv[iarg],"-D",2) == 0 && strchr(argv[iarg],'=') != NULL ){
        (void) AFNI_setenv( argv[iarg]+2 ) ;
        iarg++ ; continue ;
      }
+#endif
 
      ERROR_exit("Unknown option: %s\n",argv[iarg]) ;
    }
