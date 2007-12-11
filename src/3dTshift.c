@@ -141,140 +141,23 @@ void TS_syntax(char * str)
    exit(0) ;
 }
 
-/*--------------------------------------------------------------------------*/
-
-float * TS_parse_tpattern( int nzz , float TR , char * tpattern )
-{
-   int ii ;
-   float tframe , tsl ;
-   float * tpat ;
-
-   tpat = (float *) malloc( sizeof(float) * nzz ) ;
-   for( ii=0 ; ii < nzz ; ii++ ) tpat[ii] = 0.0 ;
-
-   tframe = TR / nzz ;  /* time per slice */
-
-   if( nzz > 1 && tpattern[0] == '@' ){
-      FILE * fp ;
-
-      /*--- read pattern file (ignore EOFs!) ---*/
-
-      fp = fopen( tpattern+1 , "r" ) ;
-      if( fp == NULL ){
-         fprintf(stderr,"*** Cannot open tpattern file %s\n",tpattern+1) ;
-         exit(1) ;
-      } else {
-         for( ii=0 ; ii < nzz ; ii++ ){
-            fscanf( fp , "%f" , tpat + ii ) ;
-            if( tpat[ii] < 0.0 || tpat[ii] > TR ){
-               fprintf(stderr,"*** Illegal value %g in tpattern file %s\n",
-                       tpat[ii] , tpattern+1 ) ;
-               exit(1) ;
-            }
-         }
-         fclose( fp ) ;
-      }
-
-   } else if( nzz > 1 &&
-             (strcmp(tpattern,"alt+z")==0 || strcmp(tpattern,"altplus")==0) ){
-
-      /*--- set up alternating in the +z direction ---*/
-
-      tsl = 0.0 ;
-      for( ii=0 ; ii < nzz ; ii+=2 ){
-         tpat[ii] = tsl ; tsl += tframe ;
-      }
-      for( ii=1 ; ii < nzz ; ii+=2 ){
-         tpat[ii] = tsl ; tsl += tframe ;
-      }
-
-   } else if( nzz > 1 && strcmp(tpattern,"alt+z2")==0 ){  /* 22 Feb 2005 */
-
-      /*--- set up alternating in the +z direction ---*/
-
-      tsl = 0.0 ;
-      for( ii=1 ; ii < nzz ; ii+=2 ){
-         tpat[ii] = tsl ; tsl += tframe ;
-      }
-      for( ii=0 ; ii < nzz ; ii+=2 ){
-         tpat[ii] = tsl ; tsl += tframe ;
-      }
-
-   } else if( nzz > 1 &&
-             (strcmp(tpattern,"alt-z")==0 || strcmp(tpattern,"altminus")==0) ){
-
-      /*--- set up alternating in the -z direction ---*/
-
-      tsl = 0.0 ;
-      for( ii=nzz-1 ; ii >=0 ; ii-=2 ){
-         tpat[ii] = tsl ; tsl += tframe ;
-      }
-      for( ii=nzz-2 ; ii >=0 ; ii-=2 ){
-         tpat[ii] = tsl ; tsl += tframe ;
-      }
-
-   } else if( nzz > 1 && strcmp(tpattern,"alt-z2") == 0 ){  /* 22 Feb 2005 */
-
-      /*--- set up alternating in the -z direction ---*/
-
-      tsl = 0.0 ;
-      for( ii=nzz-2 ; ii >=0 ; ii-=2 ){
-         tpat[ii] = tsl ; tsl += tframe ;
-      }
-      for( ii=nzz-1 ; ii >=0 ; ii-=2 ){
-         tpat[ii] = tsl ; tsl += tframe ;
-      }
-
-   } else if( nzz > 1 &&
-             (strcmp(tpattern,"seq+z")==0 || strcmp(tpattern,"seqplus")==0) ){
-
-      /*--- set up sequential in the +z direction ---*/
-
-      tsl = 0.0 ;
-      for( ii=0 ; ii < nzz ; ii++ ){
-         tpat[ii] = tsl ; tsl += tframe ;
-      }
-
-   } else if( nzz > 1 &&
-             (strcmp(tpattern,"seq-z")==0 || strcmp(tpattern,"seqminus")==0) ){
-
-      /*--- set up sequential in the -z direction ---*/
-
-      tsl = 0.0 ;
-      for( ii=nzz-1 ; ii >=0 ; ii-- ){
-         tpat[ii] = tsl ; tsl += tframe ;
-      }
-
-   } else if( nzz == 1 ||
-             (strcmp(tpattern,"zero")==0 || strcmp(tpattern,"simult")==0) ){
-
-      /*--- do nothing [leave it all zeros] ---*/
-
-   } else {
-      fprintf(stderr,"*** Unknown tpattern = %s\n",tpattern) ;
-      exit(1) ;
-   }
-
-   return tpat ;
-}
-
 /*-----------------------------------------------------------------------------*/
 
-static float   TS_TR     = 0.0 ;
-static int     TS_tunits = UNITS_SEC_TYPE ;
-static float * TS_tpat   = NULL ;
-static float   TS_tzero  = -1.0 ;
-static int     TS_slice  = -1 ;
-static int     TS_rlt    = 0 ;   /* 0=add both in; 1=add neither; 2=add mean */
+static float  TS_TR     = 0.0 ;
+static int    TS_tunits = UNITS_SEC_TYPE ;
+static float *TS_tpat   = NULL ;
+static float  TS_tzero  = -1.0 ;
+static int    TS_slice  = -1 ;
+static int    TS_rlt    = 0 ;   /* 0=add both in; 1=add neither; 2=add mean */
 
-static int     TS_detrend = 1 ;  /* do any detrend?  3 Jan 2007 [rickr] */
-static int     TS_verbose = 0 ;
+static int    TS_detrend = 1 ;  /* do any detrend?  3 Jan 2007 [rickr] */
+static int    TS_verbose = 0 ;
 
-static int     TS_ignore  = 0 ;  /* 15 Feb 2001 */
+static int    TS_ignore  = 0 ;  /* 15 Feb 2001 */
 
-static THD_3dim_dataset * TS_dset = NULL , * TS_oset = NULL ;
+static THD_3dim_dataset *TS_dset = NULL , *TS_oset = NULL ;
 
-static char * TS_tpattern = NULL ;
+static char *TS_tpattern = NULL ;
 
 static char TS_prefix[THD_MAX_PREFIX] = "tshift" ;
 
@@ -286,8 +169,8 @@ int main( int argc , char *argv[] )
    int nzz, ii,jj,kk , ntt,nxx,nyy,nxy , nup ;
    float tomax,tomin , tshift , fmin,fmax , gmin,gmax , f0,f1 , g0,g1 ;
    float ffmin,ffmax , ggmin,ggmax ;
-   MRI_IMAGE * flim , * glim ;
-   float * far , * gar ;
+   MRI_IMAGE *flim , *glim ;
+   float *far , *gar ;
    int ignore=0 , BAD=0 ;
 
    /*- scan command line -*/
