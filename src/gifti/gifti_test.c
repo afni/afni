@@ -41,7 +41,7 @@ int show_help()
     "\n"
     "       -b64_check TYPE : set method for checking base64 errors\n"
     "                  TYPE = NONE       : no checks - assume all is well\n"
-    "                  TYPE = CHECK      : report whether errors were found\n"
+    "                  TYPE = DETECT     : report whether errors were found\n"
     "                  TYPE = COUNT      : count the number of bad chars\n"
     "                  TYPE = SKIP       : ignore any bad characters\n"
     "                  TYPE = SKIPnCOUNT : ignore but count bad characters\n"
@@ -90,11 +90,16 @@ int main( int argc, char * argv[] )
         } else if( !strcmp(argv[ac], "-b64_check") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-b64_check");
-            if     ( !strcmp(argv[ac], "NONE" ) ) gifti_set_b64_check(0);
-            else if( !strcmp(argv[ac], "CHECK") ) gifti_set_b64_check(1);
-            else if( !strcmp(argv[ac], "COUNT") ) gifti_set_b64_check(2);
-            else if( !strcmp(argv[ac], "SKIP" ) ) gifti_set_b64_check(3);
-            else if( !strcmp(argv[ac], "SKIPnCOUNT" ) ) gifti_set_b64_check(4);
+            if     ( !strcmp(argv[ac], "NONE" ) )
+                        gifti_set_b64_check(GIFTI_B64_CHECK_NONE);
+            else if( !strcmp(argv[ac], "DETECT") )
+                        gifti_set_b64_check(GIFTI_B64_CHECK_DETECT);
+            else if( !strcmp(argv[ac], "COUNT") )
+                        gifti_set_b64_check(GIFTI_B64_CHECK_COUNT);
+            else if( !strcmp(argv[ac], "SKIP" ) )
+                        gifti_set_b64_check(GIFTI_B64_CHECK_SKIP);
+            else if( !strcmp(argv[ac], "SKIPnCOUNT" ) )
+                        gifti_set_b64_check(GIFTI_B64_CHECK_SKIPNCOUNT);
             else {
                 fprintf(stderr,"** invalid parm to -b64_check: %s\n",argv[ac]);
                 return 1;
