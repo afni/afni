@@ -3884,6 +3884,8 @@ extern float THD_timeof      ( int , float , THD_timeaxis * ) ;
 extern float THD_timeof_vox  ( int , int , THD_3dim_dataset * ) ;
 extern float THD_timeof_slice( int , int , THD_3dim_dataset * ) ;  /* BDW */
 
+extern float * TS_parse_tpattern( int, float, char * ) ;  /* 11 Dec 2007 */
+
 extern THD_fvec3 THD_dataset_center( THD_3dim_dataset * ) ;  /* 01 Feb 2001 */
 extern int THD_dataset_mismatch(THD_3dim_dataset *, THD_3dim_dataset *) ;
 
