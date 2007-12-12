@@ -83,7 +83,8 @@ int main( int argc , char *argv[] )
              "Computes one or more voxel-wise statistics for a 3D+time dataset\n"
              "and stores them in a bucket dataset.  If no statistic option is\n"
              "given, computes just the mean of each voxel time series.\n"
-             "Multiple statistics options may be given.\n"
+             "Multiple statistics options may be given, and will result in\n"
+             "a multi-volume dataset.\n"
              "\n"
              "Statistics Options:\n"
              " -mean   = compute mean of input voxels\n"
@@ -124,6 +125,8 @@ int main( int argc , char *argv[] )
              "               first n coefficients\n"
              "   [N.B.: -autocorr 0 and/or -autoreg 0 will return number\n"
              "          coefficients equal to the length of the input data]\n"
+             "\n"
+             " ** If no statistic option is given, then '-mean' is assumed **\n"
              "\n"
              "Other Options:\n"
              " -prefix p = use string 'p' for the prefix of the\n"
@@ -854,7 +857,7 @@ Calc_duration(float ts[], int npts, float vmax, int max_index)
 
    /* find end of peak - offset - first point after max that falls below min */
    /*  this starting index needs to be the same for centroid or peak*/
-   i = max_index + 1;  
+   i = max_index + 1;
    while(i<npts) {
      if(ts[i]<minlimit) {
         offset = i;
