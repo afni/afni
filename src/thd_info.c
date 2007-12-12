@@ -233,8 +233,7 @@ ENTRY("THD_dataset_info") ;
    if( ntimes > 1 ){
 
       outbuf = THD_zzprintf(outbuf,
-         "Number of time steps = %d  Number of values at each pixel = %d\n",
-         ntimes , nval_per ) ;
+         "Number of time steps = %d" , ntimes ) ;
 
       STATUS("timestep") ;
 

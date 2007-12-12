@@ -209,10 +209,9 @@ typedef struct MRI_IMAGE {
 #define MRI_IS_4D(iq)  ((iq)->nt > 1 && (iq)->nu == 1)
 
 /*! Return dimensionality of MRI_IMAGE */
-#define MRI_DIMENSIONALITY(iq)                     \
- ( ((iq)->ny == 1) ? 1 : ((iq)->nz == 1) ? 2 :     \
-   ((iq)->nt == 1) ? 3 : ((iq)->nu == 1) ? 4 :     \
-   ((iq)->nv == 1) ? 5 : ((iq)->nw == 1) ? 6 : 7 )
+
+#define MRI_DIMENSIONALITY  mri_dimensionality
+extern int mri_dimensionality(MRI_IMAGE *) ;
 
 extern void *mri_data_pointer( MRI_IMAGE * ) ;
 
