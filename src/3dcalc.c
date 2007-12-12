@@ -1019,6 +1019,10 @@ void CALC_Syntax(void)
     "       The shell will not expand variables inside single 'quotes',      \n"
     "       and 3dcalc's parser will not understand the '$' character.       \n"
     "                                                                        \n"
+    " NOTE: You can use the ccalc program to play with the expression        \n"
+    "       evaluator, in order to get a feel for how it works and           \n"
+    "       what it accepts.                                                 \n"
+    "                                                                        \n"
     "------------------------------------------------------------------------\n"
    ) ;
    printf(
