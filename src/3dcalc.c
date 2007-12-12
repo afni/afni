@@ -961,7 +961,7 @@ void CALC_Syntax(void)
     "---------                                                               \n"
     "                                                                        \n"
     " -a dname    = Read dataset 'dname' and call the voxel values 'a' in the\n"
-    "               expression (-expr) that is input below. Up to 24 dnames  \n"
+    "               expression (-expr) that is input below. Up to 26 dnames  \n"
     "               (-a, -b, -c, ... -z) can be included in a single 3dcalc  \n"
     "               calculation/expression.                                  \n"
     "               ** If some letter name is used in the expression, but    \n"
@@ -977,6 +977,12 @@ void CALC_Syntax(void)
     " -expr       = Apply the expression - within quotes - to the input      \n"
     "               datasets (dnames), one voxel at time, to produce the     \n"
     "               output dataset.                                          \n"
+    "                                                                        \n"
+    " NOTE: If you want to average or sum up a lot of datasets, programs     \n"
+    "       3dTstat and/or 3dMean are better suited for these purposes.      \n"
+    "       A common request is to increase the number of input datasets     \n"
+    "       beyond 26, but in almost all cases such users simply want        \n"
+    "       to average or sum up datasets.                                   \n"
     "------------------------------------------------------------------------\n"
    ) ;
    printf(
