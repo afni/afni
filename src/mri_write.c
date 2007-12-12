@@ -132,7 +132,7 @@ ENTRY("mri_write_7D") ;
 
    /*** write MR7 header ***/
 
-   switch( MRI_DIMENSIONALITY(im) ){
+   switch( mri_dimensionality(im) ){
       default:
       case 1:
          fprintf( imfile , "MR1 %d %d\n" ,

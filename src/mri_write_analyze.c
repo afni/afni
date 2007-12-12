@@ -117,7 +117,7 @@ ENTRY("mri_write_analyze") ;
 
    /*-- set data dimensions --*/
 
-   hdr.dime.dim[0] = MRI_DIMENSIONALITY(im) ;
+   hdr.dime.dim[0] = mri_dimensionality(im) ;
    hdr.dime.dim[1] = im->nx ; hdr.dime.pixdim[1] = im->dx ;
    hdr.dime.dim[2] = im->ny ; hdr.dime.pixdim[2] = im->dy ;
    hdr.dime.dim[3] = im->nz ; hdr.dime.pixdim[3] = im->dz ;

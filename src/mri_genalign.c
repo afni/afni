@@ -1197,16 +1197,16 @@ ENTRY("mri_genalign_scalar_setup") ;
    /* check dimensionality of input images (2D or 3D) */
 
    if( basim != NULL ){
-     qdim = MRI_DIMENSIONALITY(basim) ;
+     qdim = mri_dimensionality(basim) ;
      if( qdim < 2 || qdim > 3 )
        ERREX("basim dimensionality is not 2 or 3") ;
    } else {
-     qdim = MRI_DIMENSIONALITY(stup->bsim) ;
+     qdim = mri_dimensionality(stup->bsim) ;
    }
    stup->abdim = qdim ;
 
    if( targim != NULL ){
-     if( qdim != MRI_DIMENSIONALITY(targim) )
+     if( qdim != mri_dimensionality(targim) )
        ERREX("basim & targim dimensionalities differ") ;
    }
 
