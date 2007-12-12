@@ -137,6 +137,21 @@ int mri_datum_size( MRI_TYPE typ )
 }
 
 /*-------------------------------------------------------------------------*/
+/* Replaces former MRI_DIMENSIONALITY macro.  [12 Dec 2007] */
+
+int mri_dimensionality( MRI_IMAGE *im )
+{
+  if( im == NULL ) return 0 ;
+  if( im->nw > 1 ) return 7 ;
+  if( im->nv > 1 ) return 6 ;
+  if( im->nu > 1 ) return 5 ;
+  if( im->nt > 1 ) return 4 ;
+  if( im->nz > 1 ) return 3 ;
+  if( im->ny > 1 ) return 2 ;
+  return 1;
+}
+
+/*-------------------------------------------------------------------------*/
 /*! Replace the guts of MRI_IMAGE struct qim with those of zim.
     Afterwards, what's left of zim is mri_free()-ed, so don't ever refer
     to it again. If you want a copy of an image, use mri_copy() instead.
