@@ -1929,7 +1929,8 @@ for (sn = 1:1:slices),
 			   switch Contr.ord3.cnt(i).idx2
 				   case 2, 
 					   switch Contr.ord3.cnt(i).idx3
-						   case 3, Contr.ord3.df(i) = dfdenom(11)*(dsgn == 1 | dsgn == 2) + dfdenom(10)* (dsgn == 3 | dsgn == 4 | dsgn == 5);  % MSABC
+						   %case 3, Contr.ord3.df(i) = dfdenom(11)*(dsgn == 1 | dsgn == 2) + dfdenom(10)* (dsgn == 3 | dsgn == 4 | dsgn == 5);  % MSABC
+							case 3, Contr.ord3.df(i) = dfdenom(11)*(dsgn == 1 | dsgn == 2) + dfdenom(10)* (dsgn == 3 | dsgn == 4) + dfdenom(9)* (dsgn == 5);  % MSABC
 							case 4, Contr.ord3.df(i) = dfdenom(12)*(dsgn == 1 | dsgn == 2);  % MSABD not exist for (dsgn == 3 | dsgn == 4 | dsgn == 5)			
 						end	
 					case 3, 
