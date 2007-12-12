@@ -27,15 +27,15 @@ char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
    THD_dataxes      *daxes ;
    THD_fvec3 fv1 , fv2 , fv3 ;
    int ival , ntimes , nval_per , n1,n2,n3 , kv,npar ;
-   float tf ;
+   float tf, angle=0.0;
    long long tb ;
 
    static char *RR="[R]" , *LL="[L]" ,
                *PP="[P]" , *AA="[A]" ,
                *SS="[S]" , *II="[I]" , *ZZ="   " ;
    char *xlbot , *xltop , *ylbot , *yltop , *zlbot , *zltop , *cpt ;
-   char str[256] ;
-   int nstr ;
+   char str[256], soblq[256] ;
+   int nstr , obliquity;
 
    char *outbuf = NULL ;
 
@@ -170,11 +170,34 @@ ENTRY("THD_dataset_info") ;
                             ns , dset->tagset->num ) ;
    }
 
+   /* are we oblique ? */
+   obliquity = -1;
+   if(ISVALID_MAT44(dset->daxes->ijk_to_dicom_real)) {
+	   angle = THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0);
+	   if(angle>0.0) {
+         sprintf (soblq, 
+            "Data Axes Tilt:  Oblique (%.3f deg. from plumb)\n"
+            "Data Axes Approximate Orientation:",
+            angle);
+         obliquity = 1;
+      } else {
+         sprintf (soblq, 
+            "Data Axes Tilt:  Plumb\n"
+            "Data Axes Orientation:");
+         obliquity = 0;
+      }
+   } else {
+      sprintf (soblq, 
+            "Data Axes Tilt:  Unspecified, assumed plumb\n"
+            "Data Axes Orientation:");
+   }      
+
    outbuf = THD_zzprintf(outbuf,
-      "Data Axes Orientation:\n"
+      "%s\n"
       "  first  (x) = %s\n"
       "  second (y) = %s\n"
       "  third  (z) = %s   [-orient %c%c%c]\n" ,
+    soblq,
     ORIENT_typestr[daxes->xxorient] ,
       ORIENT_typestr[daxes->yyorient] ,
       ORIENT_typestr[daxes->zzorient] ,

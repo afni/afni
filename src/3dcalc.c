@@ -374,7 +374,6 @@ void CALC_read_opts( int argc , char * argv[] )
          MCW_strncpy( CALC_output_prefix , argv[nopt++] , THD_MAX_PREFIX ) ;
          continue ;
       }
-
       /**** -session directory ****/
 
       if( strncasecmp(argv[nopt],"-session",6) == 0 ){

@@ -36,7 +36,7 @@ int main( int argc , char * argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
-
+ 
       if( strcmp(argv[iarg],"-prefix") == 0 ){
          prefix = argv[++iarg] ;
          if( !THD_filename_ok(prefix) ){
@@ -44,7 +44,6 @@ int main( int argc , char * argv[] )
          }
          iarg++ ; continue ;
       }
-      
       if( strcmp(argv[iarg],"-help") == 0 || strcmp(argv[iarg],"-h") == 0){
          help_autobox();
          exit(0) ;
