@@ -22,7 +22,7 @@ function [err, fstat, intensity_new, dfterm_new, dfdenom, tnames_new, LC] = Sums
 %   intensity_new: intensity for those terms at a voxel, which are defined as the sqare root of MS terms
 %   dfterm: vector of degree of freedom for those terms (numerators) at each voxel (but the same for all voxels). 
 %           This is why I don't differentiate them among the voxels in anova.m
-%   dfdenom: vector 
+%   dfdenom: vector of denominator
 %      
 %Key Terms:
 %   
@@ -128,7 +128,7 @@ switch NF
 	         ssterm(3) = ssterm(3) + ssterm(5);  % SSC(A) = SSC + SSAC
 	         dfterm(3) = dfterm(3) + dfterm(5);        %  DF C(A) = DF C + DF AC
 		
-	         ssterm(6) = ssterm(6) + ssterm(7);   % SSBC(A) = SSC + SSAC
+	         ssterm(6) = ssterm(6) + ssterm(7);   % SSBC(A) = SSBC + SSABC
 	         dfterm(6) = dfterm(6) + dfterm(7);
 				
 				fstat = repmat(0, [1 N_Brik]); 	
@@ -414,7 +414,7 @@ if (NF == 3),
 	      switch Contr.ord2.cnt(i).idx1
 	         case 1,
 	            switch Contr.ord2.cnt(i).idx2
-		            case 2, what = msdenom(4);   % MSAB
+		            case 2, what = msdenom(4);   % for MSAB
 						case 3, what = msdenom(5) * (dsgn == 1 | dsgn == 2) + msdenom(3) * (dsgn == 4);   % MSAC
 						% For design type 4 -- BXC(A): the denominator for this contrast C(A) is MSBC(A), the one for main effect of C(A)!
 	            end	
