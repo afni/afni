@@ -956,7 +956,6 @@ void CALC_Syntax(void)
     "          (see 'whereami -help' for more information on atlases)        \n"
     "                                                                        \n"
     "------------------------------------------------------------------------\n"
-    "                                                                        \n"
     "ARGUMENTS for 3dcalc (must be included on command line):                \n"
     "---------                                                               \n"
     "                                                                        \n"
@@ -979,10 +978,11 @@ void CALC_Syntax(void)
     "               output dataset.                                          \n"
     "                                                                        \n"
     " NOTE: If you want to average or sum up a lot of datasets, programs     \n"
-    "       3dTstat and/or 3dMean are better suited for these purposes.      \n"
-    "       A common request is to increase the number of input datasets     \n"
-    "       beyond 26, but in almost all cases such users simply want        \n"
-    "       to average or sum up datasets.                                   \n"
+    "       3dTstat and/or 3dMean and/or 3dmerge are better suited for these \n"
+    "       purposes.  A common request is to increase the number of input   \n"
+    "       datasets beyond 26, but in almost all cases such users simply    \n"
+    "       want to do simple addition!                                      \n"
+    "                                                                        \n"
     "------------------------------------------------------------------------\n"
    ) ;
    printf(
