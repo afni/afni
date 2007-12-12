@@ -2324,7 +2324,7 @@ ENTRY("ISQ_overlay") ;
             our[jj+2] = orr[jj+2] ;
          }
       }
-   } else {                                     /* translucent overlay */
+   } else if (!my_getenv("AFNI_MIX_BY_BRIGHT")) {     /* translucent overlay */
       register float aa=alpha , bb=1.0-alpha ;
       for( jj=ii=0 ; ii < npix ; ii++,jj+=3 ){
          if( orr[jj] > 0 || orr[jj+1] > 0 || orr[jj+2] > 0 ){
@@ -2333,6 +2333,46 @@ ENTRY("ISQ_overlay") ;
             our[jj+2] = aa*orr[jj+2] + bb*our[jj+2] ;
          }
       }
+   } else {       /* mix by scaling color with brightness of background */
+      register float aa=alpha, bb,
+                     mings, maxgs, *gs=NULL,
+                     MaxGain = 2.0-alpha,
+                     MinGain = alpha*alpha ;
+      gs = (float *)malloc(sizeof(float)*npix);
+      /* calculate grey scale, keep track of range */
+      mings = 255*3.0; maxgs = 0;
+      for( jj=ii=0 ; ii < npix ; ii++,jj+=3 ){
+         if( orr[jj] > 0 || orr[jj+1] > 0 || orr[jj+2] > 0 ){
+            gs[ii] = (our[jj  ]+our[jj+1]+orr[jj+2]);
+            if (gs[ii] < mings) mings = gs[ii];
+            else if (gs[ii] > maxgs) maxgs = gs[ii];
+         } else {
+            gs[ii] = 0.0;
+         }
+      }
+      /* now scale gs values */
+      bb = (MaxGain - MinGain)/(maxgs-mings);
+      for( ii=0 ; ii < npix ; ii++ ){
+         if( gs[ii] ){
+            gs[ii] =  bb * (gs[ii]-mings)+MinGain;
+         }  
+      }
+      for( jj=ii=0 ; ii < npix ; ii++,jj+=3 ){
+         if( gs[ii] ){ /* Colors will change here, not just a brightness
+                          modulation. Need much fancier method to deal
+                          with mixing appropriately */
+               bb = (gs[ii])*orr[jj  ]  ;  /* mix colors */
+               if (bb > 255) our[jj  ] = 255;
+               else our[jj  ] = (byte)bb;
+               bb = (gs[ii])*orr[jj+1]  ;  
+               if (bb > 255) our[jj+1] = 255;
+               else our[jj+1] = (byte)bb;
+               bb = (gs[ii])*orr[jj+2]  ; 
+               if (bb > 255) our[jj+2] = 255;
+               else our[jj+2] = (byte)bb;
+         }
+      }
+      free(gs); gs=NULL;
    }
 
    if( orim != ovim ) mri_free(orim) ;  /* destroy copy of overlay, if any */

@@ -369,6 +369,7 @@ int main (int argc,char *argv[])
          prfx = argv[kar];
          brk = YUP;
       }
+      #if 0 /* now handled in mainENTRY() */
       if (!brk && (strcmp(argv[kar], "-overwrite") == 0))
       {
          if (kar+1 >= argc) {
@@ -380,8 +381,13 @@ int main (int argc,char *argv[])
          overwrite = 1;
          brk = YUP;
       }
+      #else
+         overwrite = SUMA_ok_overwrite();
+      #endif
       if (!brk) {
-         fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+         fprintf (SUMA_STDERR,
+            "Error %s: Option %s not understood. Try -help for usage\n",
+               FuncName, argv[kar]);
          exit (1);
       } else {   
          brk = NOPE;

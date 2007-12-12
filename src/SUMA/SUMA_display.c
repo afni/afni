@@ -5797,7 +5797,10 @@ void SUMA_ATF_start_stop (Widget w, XtPointer client_data, XtPointer call_data)
    
    SUMA_ENTRY;
    
+   if (!w) SUMA_RETURNe;
+   
    XtVaGetValues(w, XmNuserData, &n, NULL);
+   if (!n) SUMA_RETURNe;
    AF = (SUMA_ARROW_TEXT_FIELD *)n;
    AF->direction = incr;
 

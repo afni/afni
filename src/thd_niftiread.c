@@ -357,9 +357,17 @@ ENTRY("THD_open_nifti") ;
      ang_merit = acos (fig_merit) * 180.0 / 3.141592653 ;
 
      if (fabs(ang_merit) > .01) {
-       fprintf(stderr, "qform not present, sform used.\n"
-                       "sform was not exact, and the worst axis is\n"
-                       "%f degrees from plumb.\n",ang_merit ) ;
+       WARNING_message (
+         "qform not present in:\n"
+         "   '%s'\n"
+         "  oblique sform used, and the worst axis is\n"
+         "  %f degrees from plumb.\n"
+         "  If you are performing spatial transformations on this dset, \n"
+         "  or viewing/combining it with volumes of differing obliquity,\n"
+         "  you should consider running: \n"
+         "     3dWarp -deoblique \n"
+         "  on this and  other oblique datasets in the same session.\n"
+         ,pathname, ang_merit ) ;
      }
 
      if( nim->xyz_units == NIFTI_UNITS_METER ){

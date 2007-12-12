@@ -1408,12 +1408,15 @@ double SUMA_NewAreaAtRadius(SUMA_SurfaceObject *SO, double r,
    /* Now loop over all the nodes in SO and add the deal */
    for (i=0; i<SO->N_Node; ++i) {
       /* change node coordinate of each node by Dr, along radial direction  */
-      fp = &(SO->NodeList[3*i]); SUMA_UNIT_VEC(SO->Center, fp, U, Un);
+      fp = &(SO->NodeList[3*i]); 
+      SUMA_UNIT_VEC(SO->Center, fp, U, Un);
       Dn = Dr*Un + Un;
       if (Un) {
          SUMA_COPY_VEC(SO->Center, c, 3, float, double);
          SUMA_POINT_AT_DISTANCE_NORM(U, c, Dn, P2);
-         tmpList[3*i] = (float)P2[0][0]; tmpList[3*i+1] = (float)P2[0][1]; tmpList[3*i+2] = (float)P2[0][2];
+         tmpList[3*i  ] = (float)P2[0][0]; 
+         tmpList[3*i+1] = (float)P2[0][1]; 
+         tmpList[3*i+2] = (float)P2[0][2];
       } else {
          SUMA_SL_Err("Identical points!\n"
                      "No coordinates modified");

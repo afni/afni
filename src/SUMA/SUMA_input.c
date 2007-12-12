@@ -977,7 +977,10 @@ int SUMA_Z_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    /* do the work */
    switch (k) {
       case XK_Z:
-         sv->FOV[sv->iState] /= (1+sv->KeyZoomGain); if (sv->FOV[sv->iState] < FOV_MIN) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MIN; }
+         sv->FOV[sv->iState] /= (1+sv->KeyZoomGain); 
+         if (sv->FOV[sv->iState] < FOV_MIN) { 
+            SUMA_BEEP; sv->FOV[sv->iState] = FOV_MIN; 
+         }
          /*fprintf(stderr,"Zoom in %f\n", sv->FOV[sv->iState]);*/
          /* Now update the zoom compensation variable */
          if (sv->ZoomCompensate) {
@@ -2715,7 +2718,20 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                }
             }
             break;
-            
+         case Button4:
+            {
+               if (!SUMA_Z_Key(sv, "z", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               }
+            }
+            break;
+         case Button5:
+            {
+               if (!SUMA_Z_Key(sv, "Z", "interactive")) {
+                  SUMA_S_Err("Failed in key func.");
+               }
+            }
+            break;
          case Button2:
             if (Bev.state & ShiftMask) {
                /* setup initial zooming conditions */

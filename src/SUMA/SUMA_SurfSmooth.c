@@ -311,7 +311,7 @@ void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps)
 "                   extension, such as .1D.dset or .niml.dset is present \n"
 "                   in OUT, then the output will be written in that format.\n"
 "                   Otherwise, the format is the same as the input's\n"
-"      -overwrite OUT: Same as -output except that it allows overwriting.\n"
+"      -overwrite : A flag to allow overwriting OUT\n"
 "      -add_index : Output the node index in the first column.\n"
 "                   This is not done by default.\n"
 "      -dbg_n node : output debug information for node 'node'.\n"
@@ -500,7 +500,8 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
 
    SUMA_ENTRY;
    
-   Opt = (SUMA_SURFSMOOTH_OPTIONS *)SUMA_malloc(sizeof(SUMA_SURFSMOOTH_OPTIONS));
+   Opt = (SUMA_SURFSMOOTH_OPTIONS *)
+            SUMA_malloc(sizeof(SUMA_SURFSMOOTH_OPTIONS));
    
    kar = 1;
    Opt->OffsetLim = -1.0;
@@ -790,6 +791,8 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
          outname = argv[kar];
 			brk = YUP;
 		}
+      #if 0 /* -overwrite now processed secretly by mainENTRY(); */
+         
       if (!brk && (strcmp(argv[kar], "-overwrite") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -804,6 +807,9 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
          Opt->overwrite = 1;
 			brk = YUP;
 		}
+      #else
+      Opt->overwrite = SUMA_ok_overwrite();
+      #endif
       if (!brk && (strcmp(argv[kar], "-add_index") == 0)) {
 			Opt->AddIndex = 1;
 			brk = YUP;
