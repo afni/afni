@@ -65,12 +65,12 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"** ERROR: need an argument after -prefix!\n"); exit(1);
+            fprintf(stderr,
+               "** ERROR: need an argument after -prefix!\n"); exit(1);
          }
          prefix = argv[nopt] ;
          nopt++ ; continue ;
       }
-      
       if( strcmp(argv[nopt],"-input") == 0 ){
          if( ++nopt >= argc ){
             fprintf(stderr,"** ERROR: need an argument after -input!\n"); exit(1);

@@ -414,7 +414,7 @@ int main (int argc,char *argv[])
                               "#%s\n"
                               "#A total of %d segments (search limit is 500) were found to intersect the surface.\n"
                               "#Col.1 : Node index\n"
-                              "#Col.2 : Dummny flag, always 1\n", SUMA_CHECK_NULL_STR(SO->Label), nsi );
+                              "#Col.2 : Dummy flag, always 1\n", SUMA_CHECK_NULL_STR(SO->Label), nsi );
                for (iii=0; iii<SO->N_Node; ++iii) if (report[iii]) fprintf(fout, "%d\t1\n", iii);
                fclose(fout); fout = NULL;
             } else {

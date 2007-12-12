@@ -1232,7 +1232,7 @@ SUMA_DSET *SUMA_afnidset2sumadset(THD_3dim_dataset **dsetp, int copy_data, int c
       SUMA_ParseInput_basics_ns (argv, argc);   \
    }
 
-
+int SUMA_ok_overwrite(void) ;
 int SUMA_filexists (char *f_name);
 char *SUMA_help_basics();
 char *SUMA_help_talk();
