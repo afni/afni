@@ -973,6 +973,8 @@ void CALC_Syntax(void)
     "                                                                        \n"
     "      3dcalc -a zork+orig -prefix zfloat.nii -datum float -expr 'a'     \n"
     "                                                                        \n"
+    "    This operation could also be performed with program 3dAFNItoNIFTI.  \n"
+    "                                                                        \n"
     "------------------------------------------------------------------------\n"
     "ARGUMENTS for 3dcalc (must be included on command line):                \n"
     "---------                                                               \n"
