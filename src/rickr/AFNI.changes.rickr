@@ -2300,4 +2300,5 @@
   * modified gifti_io.[ch], gifti_xml.c:
         - added sub-surface selection, via dalist in gifti_read_da_list()
         - added gifti_copy_DataArray, and other structures
+13 Dec 2007: modified thd_brainnormalize.h: replace unsetenv with putenv(NO)
 

@@ -2,12 +2,6 @@
 
 typedef enum { SPECIE_NOT_SET=-1, HUMAN = 0, MONKEY, RAT, N_SPECIES} Species; 
 
-/* a debugging macro to write out an MRI_IMAGE */
-static int SunOfaSam = 0;
-#if defined(SOLARIS) || defined(SUN)   
-   SunOfaSam = 1;
-#endif
-   
 #define WRITE_MRI_IMAGE_3D_RAI(im, pref){\
    char *m_pout=NULL, *m_en=NULL, m_nen[300];  \
    THD_ivec3 m_orixyz , m_nxyz ;   \
@@ -43,7 +37,7 @@ static int SunOfaSam = 0;
          sprintf(m_nen,"AFNI_DECONFLICT %s", m_en);  \
          AFNI_setenv(m_nen);  \
       } else { \
-        if (!SunOfaSam) unsetenv("AFNI_DECONFLICT");     \
+         putenv("AFNI_DECONFLICT=NO") ;  /* set to default */ \
       }  \
       /* Now delete m_oset but preserve pointer */  \
       mri_fix_data_pointer(NULL, DSET_BRICK(m_oset,0));\
