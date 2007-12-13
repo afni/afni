@@ -19,7 +19,7 @@ static int  append_to_data_b64gz(gxml_data *, const char *, int);
 */
 
 static int  append_to_xform     (gxml_data *, const char *, int);
-static int  apply_da_list_order (gxml_data * xd);
+static int  apply_da_list_order (gxml_data *, const int *, int);
 static int  int_compare         (const void * v0, const void * v1);
 static int  copy_b64_data       (gxml_data *, const char *, char *, int, int*);
 static int  decode_ascii       (gxml_data*,char*,int,int,void*,long long*,int*);
@@ -208,7 +208,7 @@ static unsigned char b64_decode_table[256] = {
 /* note: the buffer needs to be large enough to contain any contiguous
          piece of (CDATA?) text, o.w. it will require parsing in pieces */
 gifti_image * gxml_read_image(const char * fname, int read_data,
-                             const int * dalist, int len)
+                             const int * dalist, int dalen)
 {
     gxml_data  * xd = &GXD;     /* point to global struct */
     XML_Parser   parser;
@@ -218,7 +218,7 @@ gifti_image * gxml_read_image(const char * fname, int read_data,
     int          done = 0, blen;
     int          pcount = 1;
  
-    if( init_gxml_data(xd, 0, dalist, len) ) /* reset non-user variables */
+    if( init_gxml_data(xd, 0, dalist, dalen) ) /* reset non-user variables */
         return NULL;
 
     xd->dstore = read_data;  /* store for global access */
@@ -289,9 +289,13 @@ gifti_image * gxml_read_image(const char * fname, int read_data,
     XML_ParserFree(parser);
 
     if( dalist && xd->da_list )
-        (void)apply_da_list_order(xd);
+        if( apply_da_list_order(xd, dalist, dalen) ) {
+            fprintf(stderr,"** failed apply_da_list_order\n");
+            gifti_free_image(xd->gim);
+            xd->gim = NULL;
+        }
 
-    free_xd_data(xd);
+    free_xd_data(xd);  /* free data buffers */
 
     return xd->gim;
 }
@@ -310,10 +314,79 @@ static int free_xd_data(gxml_data * xd)
 }
 
 
-/* reorder and copy duplicate DA elements */
-static int apply_da_list_order(gxml_data * xd)
+/* verify that the current lengths match
+ * create a new list of NULL DA pointers
+ * create a 'taken' list, matching xd->da_len (but unset)
+ * for each index, if it is not set, find one and copy
+ */
+static int apply_da_list_order(gxml_data * xd, const int * orig, int len)
 {
-    return 0;
+    giiDataArray ** newlist;
+    int           * taken;      /* whether xd->da_list[i] was used */
+    int             newc, oldc, errors = 0;
+
+    if( !xd || !xd->gim || !orig || len <= 0 || !xd->da_list || xd->da_len<=0 )
+        return 0;  /* do nothing, or start small, diversionary fire, hmmm... */
+
+    /* create new DA list */
+    newlist = (giiDataArray **)malloc(len * sizeof(giiDataArray *));
+    if(!newlist){ fprintf(stderr,"** ADLO: no alloc fo DAlist\n"); return 1; }
+
+    /* create taken list (of all 0) */
+    taken = (int *)calloc(xd->da_len, sizeof(int));
+
+    /* insert pointers to current or copied DA */
+    for( newc = 0; newc < len; newc++ ) {
+        newlist[newc] = NULL;      /* in case there are failures */
+
+        /* find old index in da_list */
+        for( oldc = 0; oldc < xd->da_len; oldc++ )
+            if( xd->da_list[oldc] == orig[newc] )
+                break;
+        if( oldc >= xd->da_len ) {      /* should never happen */
+            fprintf(stderr,"** ADLO: failed to find index %d in da_list\n",
+                    orig[newc]);
+            errors++;
+            continue;
+        } else if ( xd->verb > 3 )
+            fprintf(stderr,"++ found orig index %d at sorted list %d\n",
+                    orig[newc], oldc);
+
+        /* either steal the pointer or copy the DA */
+        if( !taken[oldc] ) {
+            taken[oldc] = 1;    /* mark it as taken */
+            newlist[newc] = xd->gim->darray[oldc];
+        } else { /* we must make a new copy */
+            newlist[newc] = gifti_copy_DataArray( xd->gim->darray[oldc], 1);
+            if( ! newlist[newc] ) errors++;
+        }
+    }
+
+    /* at this point, we should be good, but check...  */
+
+    /* if anything has not been taken, free them and fail */
+    for( oldc = 0; oldc < xd->da_len; oldc++ ) {
+        if( !taken[oldc] ) {
+            fprintf(stderr,"** ADLO: taken list is not all set\n");
+            errors++;
+            free(xd->gim->darray[oldc]);
+        }
+    }
+    free(taken);        /* we're done with that */
+
+    /* free old DA list, since all the pointers are free'd or taken */
+    free(xd->gim->darray);
+    xd->gim->darray = newlist;
+    xd->gim->numDA  = len;
+
+    /* last check for errors, is the current darray filled? */
+    for( newc = 0; newc < len; newc++ )
+        if( ! xd->gim->darray[newc] ) {
+            fprintf(stderr,"** ADLO: copied darray not full\n");
+            errors++;
+        }
+
+    return errors;      /* we just need to free gim on return */
 }
 
 
@@ -975,7 +1048,7 @@ static int epop( gxml_data * xd, int etype, const char * ename )
     xd->clen = 0;
 
     if( xd->skip == xd->depth ) {       /* just completed skip element */
-        if( xd->verb > 1 )
+        if( xd->verb > 2 )
             fprintf(stderr,"-- popping skip element '%s' at depth %d\n",
                     ename, xd->depth);
         xd->skip = 0;  /* clear skip level */

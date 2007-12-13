@@ -36,19 +36,22 @@ static char * gifti_history[] =
   "     - replaced Location attribute with ExternalFileName/Offset\n"
   "     - added NumberOfDataArrays attribute to GIFTI element\n"
   "     - applied new index_order strings\n"
-  "0.6  10 December, 2007:\n"
+  "0.6  10 December, 2007:\n",
   "     - can read/write Base64Binary datasets (can set compress level)\n"
   "     - removed datatype lists (have gifti_type_list)\n"
   "     - added gifti_read_da_list(), with only partial ability\n"
   "     - added GIFTI numDA attribute\n"
   "     - change size_t to long long\n"
-  "0.7  11 December, 2007:\n"
+  "0.7  11 December, 2007:\n",
   "     - added GIFTI_B64_CHECK defines\n"
   "     - set b64_check default to SKIPNCOUNT\n"
   "     - added disp_gxml_data\n"
+  "0.8  12 December, 2007:\n",
+  "     - added sub-surface selection, via dalist in gifti_read_da_list()\n"
+  "     - added gifti_copy_DataArray, and other structures\n"
 };
 
-static char gifti_version[] = "gifti library version 0.7, 11 December, 2007";
+static char gifti_version[] = "gifti library version 0.8, 12 December, 2007";
 
 /* ---------------------------------------------------------------------- */
 /* global lists of XML strings */
@@ -221,7 +224,7 @@ gifti_image * gifti_read_da_list( const char * fname, int read_data,
     return gxml_read_image(fname, read_data, dalist, len);
 }
 
-int gifti_write_image(gifti_image * gim, const char * fname, int write_data)
+int gifti_write_image(gifti_image *gim, const char *fname, int write_data)
 {
     int errs = 0;
 
@@ -822,7 +825,7 @@ int gifti_add_to_nvpairs(nvpairs * p, const char * name, const char * value)
     return 0;
 }
 
-int gifti_disp_nvpairs(const char * mesg, nvpairs * p)
+int gifti_disp_nvpairs(const char * mesg, const nvpairs * p)
 {
     int c;
 
@@ -841,7 +844,7 @@ int gifti_disp_nvpairs(const char * mesg, nvpairs * p)
 }
 
 
-int gifti_disp_LabelTable(const char * mesg, giiLabelTable * p)
+int gifti_disp_LabelTable(const char * mesg, const giiLabelTable * p)
 {
     int c;
 
@@ -859,7 +862,7 @@ int gifti_disp_LabelTable(const char * mesg, giiLabelTable * p)
 }
 
 
-int gifti_disp_CoordSystem(const char * mesg, giiCoordSystem * p)
+int gifti_disp_CoordSystem(const char * mesg, const giiCoordSystem * p)
 {
     int c1, c2;
 
@@ -883,7 +886,7 @@ int gifti_disp_CoordSystem(const char * mesg, giiCoordSystem * p)
 
 
 
-int gifti_disp_DataArray(const char * mesg, giiDataArray * p, int subs)
+int gifti_disp_DataArray(const char * mesg, const giiDataArray * p, int subs)
 {
     fprintf(stderr,"--------------------------------------------------\n");
 
@@ -892,15 +895,15 @@ int gifti_disp_DataArray(const char * mesg, giiDataArray * p, int subs)
     if( !p ){ fputs("disp: giiDataArray = NULL\n", stderr); return 1; }
 
     fprintf(stderr,"giiDataArray struct\n"
-                   "    intent   %2d = %s\n"
-                   "    datatype %2d = %s\n"
-                   "    ind_ord  %2d = %s\n"
-                   "    num_dim     = %d\n"
-                   "    dims        = %d, %d, %d, %d, %d, %d\n"
-                   "    encoding %2d = %s\n"
-                   "    endian   %2d = %s\n"
-                   "    ext_fname   = %s\n"
-                   "    ext_offset  = %lld\n"
+                   "    intent   %4d = %s\n"
+                   "    datatype   %2d = %s\n"
+                   "    ind_ord    %2d = %s\n"
+                   "    num_dim       = %d\n"
+                   "    dims          = %d, %d, %d, %d, %d, %d\n"
+                   "    encoding   %2d = %s\n"
+                   "    endian     %2d = %s\n"
+                   "    ext_fname     = %s\n"
+                   "    ext_offset    = %lld\n"
                 , p->intent,
                 gifti_intent_to_string(p->intent),
                 p->datatype, gifti_datatype2str(p->datatype),
@@ -932,7 +935,7 @@ int gifti_disp_DataArray(const char * mesg, giiDataArray * p, int subs)
 
 
 
-int gifti_disp_gifti_image(const char * mesg, gifti_image * p, int subs)
+int gifti_disp_gifti_image(const char * mesg, const gifti_image * p, int subs)
 {
     fprintf(stderr,"==================================================\n");
 
@@ -969,7 +972,7 @@ int gifti_disp_gifti_image(const char * mesg, gifti_image * p, int subs)
 }
 
 
-int gifti_gim_DA_size(gifti_image * p, int in_mb)
+int gifti_gim_DA_size(const gifti_image * p, int in_mb)
 {
     int c, bytes = 0;
 
@@ -1317,7 +1320,11 @@ int gifti_intent_is_valid( int code )
 char * gifti_strdup( const char * src )
 {
     char * newstr;
-    int    len = strlen(src) + 1;
+    int    len;
+
+    if( !src ) return NULL;  /* easy case */
+
+    len = strlen(src) + 1;
 
     newstr = (char *)malloc(len * sizeof(char));
     if( !newstr ) {
@@ -1328,4 +1335,127 @@ char * gifti_strdup( const char * src )
     strcpy(newstr, src);
 
     return newstr;
+}
+
+/*---------------------------------------------------------------------*/
+/*! duplicate the given giiDataArray struct, optionally including data
+ *
+ *  Allocate for a new struct, and fill it so that the contents are
+ *  identical (sans pointers) to orig.  Sub-structure arrays will need
+ *  to be allocated, also.
+ *
+ *  If get_data is not set, gnew->data will be left as NULL.
+ *  
+ *  return the address of the newly allocated structure
+*//*-------------------------------------------------------------------*/
+giiDataArray * gifti_copy_DataArray(const giiDataArray * orig, int get_data)
+{
+    giiDataArray * gnew;
+
+    if( ! orig ){ fprintf(stderr,"** copy_DA: input is NULL\n"); return NULL; }
+
+    if(G.verb > 5) fprintf(stderr,"++ copying giiDataArray...\n");
+
+    gnew = (giiDataArray *)calloc(1, sizeof(giiDataArray));
+    if(!gnew){fprintf(stderr,"** copy_DA, failed to alloc DA\n"); return NULL;}
+
+    /* cheat - start by copying the entire struct contents */
+    *gnew = *orig;
+
+    /* copy any pointer data or structures */
+    gnew->ext_fname = gifti_strdup(orig->ext_fname);
+    gifti_copy_nvpairs(&gnew->meta, &orig->meta);
+    gnew->coordsys = gifti_copy_CoordSystem(orig->coordsys);
+
+    /* maybe the needy user wants data, too */
+    if(orig->data && get_data) {
+        if(G.verb > 5) fprintf(stderr,"++ copy_DA, adding data\n");
+        gnew->data = malloc(gnew->nvals * gnew->nbyper);
+        if(!gnew->data)       /* continue? */
+            fprintf(stderr,"** copy DA, failed to alloc %lld bytes for data\n",
+                    gnew->nvals * gnew->nbyper);
+    } else
+        gnew->data = NULL;
+
+    /* last and certainly least, ex_atrs */
+    gifti_copy_nvpairs(&gnew->ex_atrs, &orig->ex_atrs);
+
+    return gnew;
+}
+
+/*---------------------------------------------------------------------*/
+/*! dupliate the giiCoordSystem struct (passing NULL is okay)
+*//*-------------------------------------------------------------------*/
+giiCoordSystem * gifti_copy_CoordSystem(const giiCoordSystem * src)
+{
+    giiCoordSystem * csnew;
+    int              r, c;
+
+    if( !src ) return NULL;     /* this may be okay */
+
+    if( G.verb > 6 ) fprintf(stderr,"++ copy_CS\n");
+
+    csnew = (giiCoordSystem *)malloc(sizeof(giiCoordSystem));
+    if( !csnew ){ fprintf(stderr,"** copy_CS: failed alloc\n"); return NULL; }
+
+    csnew->dataspace  = gifti_strdup(src->dataspace);
+    csnew->xformspace = gifti_strdup(src->xformspace);
+
+    for( r = 0; r < 4; r++ )
+        for( c = 0; c < 4; c++ )
+            csnew->xform[r][c] = src->xform[r][c];
+
+    return csnew;
+}
+
+/*---------------------------------------------------------------------*/
+/*! dupliate the contents of one nvpairs structure into an empty one
+ *
+ *  return 0 on success
+*//*-------------------------------------------------------------------*/
+int gifti_copy_nvpairs(nvpairs * dest, const nvpairs * src)
+{
+    if( !dest || !src ){
+        fprintf(stderr,"** copy_NVP, bad params (%p,%p)\n",
+                (void*)dest,(void*)src);
+        return 1;
+    }
+
+    if( G.verb > 6 ) fprintf(stderr,"++ copy_nvp, length %d\n", src->length);
+
+    /* check for a simple case */
+    if( src->length <= 0 || !src->name || !src->value ) {
+        dest->length = 0;
+        dest->name = dest->value = NULL;
+        return 0;
+    }
+
+    /* else, copy the lists */
+    dest->length = src->length;
+    dest->name   = gifti_copy_char_list(src->name, src->length);
+    dest->value  = gifti_copy_char_list(src->value, src->length);
+
+    return 0;
+}
+
+/*---------------------------------------------------------------------*/
+/*! dupliate the list of strings
+*//*-------------------------------------------------------------------*/
+char ** gifti_copy_char_list(char ** list, int len)
+{
+    char ** newlist = NULL;
+    int     c;
+
+    if( !list || len <= 0 ) return NULL;
+
+    newlist = (char **)malloc(len * sizeof(char *));
+    if( !newlist ) {
+        fprintf(stderr,"** copy_char_list fails for %d pointers\n", len);
+        return NULL;
+    }
+
+    for( c = 0; c < len; c++)                   /* big finish */
+        newlist[c] = gifti_strdup(list[c]);
+
+    return newlist;
 }
