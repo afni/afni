@@ -64,5 +64,3 @@ todo:
   - change gifti_test to gifti_tool (leave simplified gifti_test)
   - only print pointers on error
   - finish read_da_list
-  - rename test.io to gifti.test.io
-  - rename get.times to gifti.get.times (and fix get.all.gifti.times)
