@@ -78,14 +78,29 @@ static void init_colors(void)
      }
      if( eee != NULL ){
        rf=gf=bf = -1.0 ;
-       sscanf( eee , "rgbi:%f/%f/%f" , &rf,&gf,&bf ) ;
-       if( rf >= 0.0 && rf <= 1.0 && gf >= 0.0 && gf <= 1.0 && bf >= 0.0 && bf <= 1.0 ){
+       (void)sscanf( eee , "rgbi:%f/%f/%f" , &rf,&gf,&bf ) ;
+       if( rf >= 0.0 && rf <= 1.0 &&
+           gf >= 0.0 && gf <= 1.0 &&
+           bf >= 0.0 && bf <= 1.0   ){
+
          ccc[ii][0] = rf ; ccc[ii][1] = gf ; ccc[ii][2] = bf ;
          NCLR = ii+1 ;
+       } else if( strcasecmp(eee,"green") == 0 ){
+         ccc[ii][0] = 0.0f; ccc[ii][1] = 0.9f; ccc[ii][2] = 0.0f; NCLR = ii+1;
+       } else if( strcasecmp(eee,"red") == 0 ){
+         ccc[ii][0] = 0.9f; ccc[ii][1] = 0.0f; ccc[ii][2] = 0.0f; NCLR = ii+1;
+       } else if( strcasecmp(eee,"blue") == 0 ){
+         ccc[ii][0] = 0.0f; ccc[ii][1] = 0.0f; ccc[ii][2] = 0.9f; NCLR = ii+1;
+       } else if( *eee == '#' && *(eee+1) != '\0' ){
+         int le=strlen(eee+1) , val , bas , rr,gg,bb ;
+         val = (int)strtol( eee+1 , NULL , 16 ) ;
+         bas = (le <= 3) ? 16 : 256 ;
+         bb  = val % bas ; val = val / bas ; bf  = bb / ((float)bas) ;
+         gg  = val % bas ; val = val / bas ; gf  = gg / ((float)bas) ;
+         rr  = val % bas ;                   rf  = rr / ((float)bas) ;
+         ccc[ii][0] = rf ; ccc[ii][1] = gf ; ccc[ii][2] = bf ; NCLR = ii+1 ;
        } else {
-         fprintf(stderr,
-                 "%s = %s is not in form 'rgbi:val/val/val' with each val in [0,1].\n" ,
-                 ename , eee ) ;
+         fprintf(stderr, "%s = %s is not a recognizable color\n", ename,eee ) ;
        }
      }
    }

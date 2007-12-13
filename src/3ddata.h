@@ -3675,7 +3675,7 @@ extern THD_3dim_dataset * THD_copy_dset_subs( THD_3dim_dataset * , int * ) ;
     " read in (by default, all of a dataset's sub-bricks are input).\n"       \
     " A sub-brick selection list looks like one of the following forms:\n"    \
     "   fred+orig[5]                     ==> use only sub-brick #5\n"         \
-    "   fred+orig[5,9,17]                ==> use #5, #9, and #12\n"           \
+    "   fred+orig[5,9,17]                ==> use #5, #9, and #17\n"           \
     "   fred+orig[5..8]     or [5-8]     ==> use #5, #6, #7, and #8\n"        \
     "   fred+orig[5..13(2)] or [5-13(2)] ==> use #5, #7, #9, #11, and #13\n"  \
     " Sub-brick indexes start at 0.  You can use the character '$'\n"         \
@@ -3746,7 +3746,7 @@ extern THD_3dim_dataset * THD_copy_dset_subs( THD_3dim_dataset * , int * ) ;
    "When specifying a timeseries file to an command-line AFNI program, you\n" \
    "can select a subset of columns using the '[...]' notation:\n"             \
    "  'fred.1D[5]'            ==> use only column #5\n"                       \
-   "  'fred.1D[5,9,17]'       ==> use columns #5, #9, and #12\n"              \
+   "  'fred.1D[5,9,17]'       ==> use columns #5, #9, and #17\n"              \
    "  'fred.1D[5..8]'         ==> use columns #5, #6, #7, and #8\n"           \
    "  'fred.1D[5..13(2)]'     ==> use columns #5, #7, #9, #11, and #13\n"     \
    "Column indices start at 0.  You can use the character '$'\n"           \

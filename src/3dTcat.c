@@ -452,7 +452,7 @@ void TCAT_Syntax(void)
     "is copied into the output).  A sub-brick selection list looks like\n"
     "one of the following forms:\n"
     "  fred+orig[5]                     ==> use only sub-brick #5\n"
-    "  fred+orig[5,9,17]                ==> use #5, #9, and #12\n"
+    "  fred+orig[5,9,17]                ==> use #5, #9, and #17\n"
     "  fred+orig[5..8]     or [5-8]     ==> use #5, #6, #7, and #8\n"
     "  fred+orig[5..13(2)] or [5-13(2)] ==> use #5, #7, #9, #11, and #13\n"
     "Sub-brick indexes start at 0.  You can use the character '$'\n"
