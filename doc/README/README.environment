@@ -35,6 +35,8 @@ N.B.: You can now set environment variables on the 'afni' command
       This may be useful for a 'one time' situation, or as an alias.
       You can also use this '-Dname=val' option in 1dplot and 3dDeconvolve.
       -- RWCox - 22 Mar 2005
+      And now you can use this feature on most program command lines.
+      -- RWCox - 13 Dec 2007
 
 N.B.: At the end of this file is a list of several environment variables
       that affect the program 3dDeconvolve, rather than the interactive
