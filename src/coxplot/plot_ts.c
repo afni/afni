@@ -76,7 +76,7 @@ static void init_colors(void)
      if( eee == NULL && ii <= 9 ){
        sprintf(ename,"AFNI_1DPLOT_COLOR_O%1d",ii+1) ; eee = getenv(ename) ;
      }
-     if( eee != NULL ){
+     if( eee != NULL && *eee != '\0' ){
        rf=gf=bf = -1.0 ;
        (void)sscanf( eee , "rgbi:%f/%f/%f" , &rf,&gf,&bf ) ;
        if( rf >= 0.0 && rf <= 1.0 &&
@@ -86,11 +86,17 @@ static void init_colors(void)
          ccc[ii][0] = rf ; ccc[ii][1] = gf ; ccc[ii][2] = bf ;
          NCLR = ii+1 ;
        } else if( strcasecmp(eee,"green") == 0 ){
-         ccc[ii][0] = 0.0f; ccc[ii][1] = 0.9f; ccc[ii][2] = 0.0f; NCLR = ii+1;
+         ccc[ii][0] = 0.0f; ccc[ii][1] = 0.8f; ccc[ii][2] = 0.0f; NCLR = ii+1;
        } else if( strcasecmp(eee,"red") == 0 ){
-         ccc[ii][0] = 0.9f; ccc[ii][1] = 0.0f; ccc[ii][2] = 0.0f; NCLR = ii+1;
+         ccc[ii][0] = 0.8f; ccc[ii][1] = 0.0f; ccc[ii][2] = 0.0f; NCLR = ii+1;
        } else if( strcasecmp(eee,"blue") == 0 ){
-         ccc[ii][0] = 0.0f; ccc[ii][1] = 0.0f; ccc[ii][2] = 0.9f; NCLR = ii+1;
+         ccc[ii][0] = 0.0f; ccc[ii][1] = 0.0f; ccc[ii][2] = 0.8f; NCLR = ii+1;
+       } else if( strcasecmp(eee,"black") == 0 ){
+         ccc[ii][0] = 0.0f; ccc[ii][1] = 0.0f; ccc[ii][2] = 0.0f; NCLR = ii+1;
+       } else if( strcasecmp(eee,"purple") == 0 || strcasecmp(eee,"violet") == 0 ){
+         ccc[ii][0] = 0.8f; ccc[ii][1] = 0.0f; ccc[ii][2] = 0.8f; NCLR = ii+1;
+       } else if( strcasecmp(eee,"gold") == 0 || strcasecmp(eee,"yellow") == 0 ){
+         ccc[ii][0] = 0.8f; ccc[ii][1] = 0.6f; ccc[ii][2] = 0.0f; NCLR = ii+1;
        } else if( *eee == '#' && *(eee+1) != '\0' ){
          int le=strlen(eee+1) , val , bas , rr,gg,bb ;
          val = (int)strtol( eee+1 , NULL , 16 ) ;
