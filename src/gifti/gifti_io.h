@@ -139,9 +139,9 @@ typedef struct {
 gifti_image * gifti_read_image (const char * fname, int read_data );
 gifti_image * gifti_read_da_list (const char * fname, int read_data,
                                   const int * dalist, int len );
-int gifti_write_image(gifti_image * gim, const char * fname, int write_data);
+int gifti_write_image(gifti_image *gim, const char *fname,int write_data);
 
-int    gifti_free_image         (gifti_image * gim );
+int    gifti_free_image         (gifti_image * gim);
 
 int    gifti_check_swap         (void *data, int endian, long long nsets,
                                  int swapsize);
@@ -156,12 +156,20 @@ int    gifti_set_zlevel         (int level);
 int    gifti_get_verb           (void);
 int    gifti_set_verb           (int level);
 
+/* data copy routines */
+int     gifti_copy_nvpairs         (nvpairs *dest, const nvpairs *src);
+char ** gifti_copy_char_list       (char ** list, int len);
+char  * gifti_strdup               (const char * src);
+giiCoordSystem * gifti_copy_CoordSystem(const giiCoordSystem *src);
+giiDataArray   * gifti_copy_DataArray  (const giiDataArray *orig, int get_data);
+
+
 long long gifti_darray_nvals       (giiDataArray * da);
 
 void   gifti_datatype_sizes     (int datatype, int *nbyper, int *swapsize);
 char * gifti_datatype2str       (int type);
 int    gifti_get_this_endian    (void);
-int    gifti_gim_DA_size        (gifti_image * p, int in_mb);
+int    gifti_gim_DA_size        (const gifti_image * p, int in_mb);
 int    gifti_intent_from_string (const char * name);
 int    gifti_intent_is_valid    (int code);
 char * gifti_intent_to_string   (int code);
@@ -176,7 +184,6 @@ int    gifti_str2dataloc        (const char * str);
 int    gifti_str2encoding       (const char * str);
 int    gifti_str2endian         (const char * str);
 int    gifti_str2datatype       (const char * str);
-char * gifti_strdup             (const char * src);
 int    gifti_swap_2bytes        (void *data, long long nsets);
 int    gifti_swap_4bytes        (void *data, long long nsets);
 
@@ -204,11 +211,13 @@ int    gifti_validate_dims      (giiDataArray * da, int whine);
 void   gifti_disp_lib_hist       (void);
 void   gifti_disp_lib_version    (void);
 
-int    gifti_disp_nvpairs        (const char *mesg, nvpairs *p);
-int    gifti_disp_LabelTable     (const char *mesg, giiLabelTable *p);
-int    gifti_disp_CoordSystem    (const char *mesg, giiCoordSystem *p);
-int    gifti_disp_DataArray      (const char *mesg, giiDataArray *p, int subs);
-int    gifti_disp_gifti_image    (const char *mesg, gifti_image *p, int subs);
+int    gifti_disp_nvpairs        (const char *mesg, const nvpairs *p);
+int    gifti_disp_LabelTable     (const char *mesg, const giiLabelTable *p);
+int    gifti_disp_CoordSystem    (const char *mesg, const giiCoordSystem *p);
+int    gifti_disp_DataArray      (const char *mesg, const giiDataArray *p,
+                                  int subs);
+int    gifti_disp_gifti_image    (const char *mesg, const gifti_image *p,
+                                  int subs);
 
 int    gifti_disp_hex_data       (const char *mesg, const void *data, int len,
                                   FILE * fp);

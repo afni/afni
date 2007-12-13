@@ -2296,3 +2296,8 @@
   * modified gifti_io.[ch], gifti_xml.c, gifti_test.c, README.gifti:
         - added GIFTI_B64_CHECK defines and disp_gxml_data()
         - set b64_check default to SKIPNCOUNT
+12 Dec 2007: gifticlib 0.8
+  * modified gifti_io.[ch], gifti_xml.c:
+        - added sub-surface selection, via dalist in gifti_read_da_list()
+        - added gifti_copy_DataArray, and other structures
+
