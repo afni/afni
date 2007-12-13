@@ -353,7 +353,10 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
 
-     if( strcmp(argv[iarg],"-dx") == 0 || strcmp(argv[iarg],"-del") == 0 ){
+     if( strcmp(argv[iarg],"-dx" ) == 0 ||
+         strcmp(argv[iarg],"-del") == 0 ||
+         strcmp(argv[iarg],"-dt" ) == 0   ){
+
         dx = strtod( argv[++iarg] , NULL ) ;
         if( dx <= 0.0 ) ERROR_exit("Illegal -dx value!\n");
         iarg++ ; continue ;
