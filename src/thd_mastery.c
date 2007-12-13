@@ -62,7 +62,7 @@ ENTRY("THD_open_dataset") ;
    /*-- 04 Mar 2003: allow input of .1D files   --*/
    /*--              which deals with [] itself --*/
 
-   if( strstr(pathname,".1D") != NULL ){
+   if( strstr(pathname,".1D") != NULL || strncmp(pathname,"1D:",3) == 0 ){
      dset = THD_open_1D( pathname ) ;
      if( ISVALID_DSET(dset) &&
         !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */

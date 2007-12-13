@@ -29,8 +29,8 @@ ENTRY("THD_open_1D") ;
    /*-- check if it is a NIML-ish AFNI dataset;
         if so, read it in that way instead of the 1D way [21 Mar 2003] --*/
 
-   if( strchr(pathname,'[') == NULL &&
-       strchr(pathname,'{') == NULL && strchr(pathname,'\'') == NULL ){
+   if( strchr(pathname,'[') == NULL && strncmp(pathname,"1D:",3) != 0 &&
+       strchr(pathname,'{') == NULL && strchr(pathname,'\'')     == NULL ){
 
      pn = strdup(pathname) ; fp = fopen(pn,"r") ;
 
