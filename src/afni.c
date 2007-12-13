@@ -355,7 +355,9 @@ void AFNI_syntax(void)
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
      "      can be controlled by appropriate X11 resources.  See the\n"
-     "      file AFNI.Xdefaults for instructions and examples.\n"
+     "      files AFNI.Xdefaults and README.environment for instructions\n"
+     "      and examples.  For more help on all AFNI programs, see\n"
+     "        http://afni.nimh.nih.gov/afni/doc/program_help/index.html\n"
 
      , DEFAULT_NGRAY
    ) ;

@@ -170,7 +170,7 @@ int main( int argc , char *argv[] )
             "\n"
             " -Dname=val        = Set environment variable 'name' to 'val'\n"
             "                     for this run of the program only:\n"
-            "             1dplot -DAFNI_1DPLOT_THIK=0.01 '1D: 3 4 5 3 1 0'\n"
+            " 1dplot -DAFNI_1DPLOT_THIK=0.01 -DAFNI_1DPLOT_COLOR_01=blue '1D:3 4 5 3 1 0'\n"
             "\n"
             "You may also select a subset of columns to display using\n"
             "a tsfile specification like 'fred.1D[0,3,5]', indicating\n"
