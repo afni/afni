@@ -200,7 +200,8 @@ SUMA_VTI * SUMA_FreeVTI(SUMA_VTI *vti)
    - Closely based on section in function SUMA_SurfGridIntersect
    If you find bugs here, fix them there too. 
 */
-SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle(   SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, float *NodeIJKlist,
+SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle(   
+   SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, float *NodeIJKlist,
                                                 SUMA_VTI *vti )
 {
    static char FuncName[]={"SUMA_GetVoxelsIntersectingTriangle"};
@@ -211,7 +212,7 @@ SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle(   SUMA_SurfaceObject *SO, SUMA_VOL
    float tol_dist = 0; /* A way to fatten up the shell a little bit. Set to 0 if no fat is needed */
    float *p1, *p2, *p3, min_v[3], max_v[3], p[3], dist;
    FILE *fp=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
       
@@ -8254,7 +8255,7 @@ SUMA_Boolean SUMA_Show_SPI (SUMA_SURF_PLANE_INTERSECT *SPI, FILE * Out, SUMA_Sur
    int i, j;
    char *fname=NULL;
    FILE *fout=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
    
    if (!Out) Out = SUMA_STDERR;
