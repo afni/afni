@@ -422,36 +422,55 @@ static char CB_CS[] = {
 /* regular gray from white to black */
 static char GRAY_CS[] = {
    "gray_scale "
-   "#ffffff #eeeeee #dddddd #cccccc "
-   "#bbbbbb #aaaaaa #999999 #888888 "
-   "#777777 #666666 #555555 #444444 "
-   "#333333 #222222 #111111 #010101 "
+   "#ffffff #010101 "
 };
 
 /* mirrored gray for +/- values */
 static char GRAY_CIRCLE_CS[] = {
    "gray_circle "
-   "#ffffff #eeeeee #dddddd #cccccc "
-   "#bbbbbb #aaaaaa #999999 #888888 "
-   "#777777 #666666 #555555 #444444 "
-   "#333333 #222222 #111111 #010101 "
-   "#111111 #222222 #333333 #444444 "
-   "#555555 #666666 #777777 #888888 "
-   "#999999 #aaaaaa #bbbbbb #cccccc "
-   "#dddddd #eeeeee #ffffff "
+   "#ffffff #010101 #ffffff "
 };
 /* mirrored and inverted gray for +/- values */
 static char GRAY_INV_CIRCLE_CS[] = {
    "inverted_gray_circle "
-   "#010101 "
-   "#111111 #222222 #333333 #444444 "
-   "#555555 #666666 #777777 #888888 "
-   "#999999 #aaaaaa #bbbbbb #cccccc "
-   "#dddddd #eeeeee #ffffff "
-   "#eeeeee #dddddd #cccccc "
-   "#bbbbbb #aaaaaa #999999 #888888 "
-   "#777777 #666666 #555555 #444444 "
-   "#333333 #222222 #111111 #010101 "
+   "#010101 #ffffff #010101 "
+};
+
+/* amber monochrome from bright orange to black */
+static char AMBER_CS[] = {
+   "amber_monochrome "
+   "#ffbf00 #010100 "
+};
+
+/* mirrored amber for +/- values */
+static char AMBER_CIRCLE_CS[] = {
+   "amber_circle "
+   "#ffbf00 #010100 #ffbf00 "
+};
+
+/* mirrored and inverted amber for +/- values */
+static char AMBER_INV_CIRCLE_CS[] = {
+   "inverted_amber_circle "
+   "#010100 #ffbf00 #010100 "
+};
+
+
+/* green monochrome from bright green to black */
+static char GREEN_CS[] = {
+   "green_monochrome "
+   "#00ff00 #000100 "
+};
+
+/* blue monochrome from bright blue to black  - really "azure" */
+static char BLUE_CS[] = {
+   "blue_monochrome "
+   "#007fff #000001 "
+};
+
+/* red monochrome from bright red to black */
+static char RED_CS[] = {
+   "red_monochrome "
+   "#ff0000 #010000 "
 };
 
 /* FreeSurfer colormap from 0 to 255

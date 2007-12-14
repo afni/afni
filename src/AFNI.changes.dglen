@@ -231,3 +231,6 @@ to line up with slice positions when vectors are slightly off 1.0
  * added non-zero mean option to 3dTstat
 09 Oct 2007
  * added additional warning and error message handling to to3d
+14 Dec 2007
+ * added various monochrome lookup tables to overlay color scale choices
+including amber, red, green and blue (azure)
