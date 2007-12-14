@@ -5,12 +5,18 @@
 USE_ZLIB = -DHAVE_ZLIB
 LZLIB    = -lz
 
+# default to having these off
+# D_USE_ACML = -DUSE_ACML
+# I_USE_ACML = -I/opt/acml3.1.0/gnu64/include
+# L_USE_ACML = /opt/acml3.1.0/gnu64/lib/libacml.a
+
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF)
 
 CC     = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
 CCVOL  = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA)
-CCFAST = /usr/bin/gcc -O3 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA) -DUSE_ACML
+CCFAST = /usr/bin/gcc -O3 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA) $(D_USE_ACML)
+
 
 # The following line includes compiling for the SSE operations.
 # However, I found that it actually makes things worse in some test code.
@@ -20,8 +26,10 @@ CCFAST = /usr/bin/gcc -O3 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA) -DUSE_
 
 CCMIN  = /usr/bin/gcc -m64 $(CPROF)
 CCD    = $(CC) $(CCDEBS)
-IFLAGS = -I. -I/usr/X11R6/include -I/opt/acml3.1.0/gnu64/include
-LFLAGS = -L. -L/usr/X11R6/lib64 /opt/acml3.1.0/gnu64/lib/libacml.a
+IFLAGS = -I. -I/usr/X11R6/include $(I_USE_ACML)
+LFLAGS = -L. -L/usr/X11R6/lib64 $(L_USE_ACML)
+
+# maybe 
 
 CCSVD  = /usr/bin/gcc -O0 -m64 -fPIC
 
@@ -76,7 +84,8 @@ LLIBS  = -lmri /usr/X11R6/lib64/libXm.a -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE 
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma (NO STATIC LINKING OF GL libs)
-SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/usr/include/glib-1.2 -I/usr/lib64/glib/include
+SUMA_GLIB_VER = -2.0
+SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/usr/include/glib-1.2 -I/usr/include/glib-2.0 -I/usr/lib64/glib/include -I/usr/lib64/glib-2.0/include
 SUMA_LINK_PATH = -L/usr/lib64 -L/usr/X11R6/lib64 -L../
 #use -lGLw if you have libGLw.a or libGLw.so* or 
 #  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
