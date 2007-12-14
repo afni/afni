@@ -114,7 +114,7 @@ int main (int argc,char *argv[])
    char *ooo=NULL, *node_index_1d = NULL, *node_mask = NULL;
    int overwrite = 0, exists = 0, N_inmask=-1;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
@@ -386,7 +386,7 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       #else
-         overwrite = SUMA_ok_overwrite();
+      /* handled in mainENTRY(); */
       #endif
       if (!brk && !ps->arg_checked[kar]) {
          fprintf (SUMA_STDERR,
@@ -399,7 +399,9 @@ int main (int argc,char *argv[])
       }
       
    }/* loop accross command ine options */
-    
+   
+   overwrite = SUMA_ok_overwrite();
+ 
    if (oform == SUMA_NO_DSET_FORMAT) {
       SUMA_SL_Err("Output format MUST be specified");
       exit(1);
@@ -551,7 +553,7 @@ int main (int argc,char *argv[])
          if (LocalHead) SUMA_ShowDset(dset,0, NULL); 
       }
       SUMA_LHv("About to write dset to %s\n", prefix);
-      NameOut = SUMA_WriteDset_s (prefix, dset, oform, 0, 0);
+      NameOut = SUMA_WriteDset_s (prefix, dset, oform, overwrite, 0);
       
       
       if (!NameOut && !SUMA_IS_DSET_STDXXX_FORMAT(oform)) { 
