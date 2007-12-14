@@ -775,13 +775,16 @@ NI_element *SUMA_FindNgrDataElement(NI_group *ngr, char *nelname, char *typename
    char *rs=NULL;
    static int nwarn = 0;
    int ip;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
 
    SUMA_ENTRY;
    
-   if (!ngr || !typename || !nelname) { SUMA_SL_Err("NUll input "); SUMA_RETURN(nel); }
+   if (!ngr || !typename || !nelname) { 
+      SUMA_SL_Err("NUll input "); SUMA_RETURN(nel); 
+   }
    
-   /* search for an element of type nelname that is also of data_type typename */
+   /* search for an element of type nelname 
+      that is also of data_type typename */
    for( ip=0 ; ip < ngr->part_num ; ip++ ){ 
       switch( ngr->part_typ[ip] ){
          /*-- a sub-group ==> recursion! --*/
@@ -4986,7 +4989,9 @@ byte *SUMA_get_c_mask(char *mask, int N_Node, byte *omask, const char *oper, int
    N_inmask will contain the number of nodes in the mask (if it is -1 then an error occurred)
    mask is a vector (N_Node) of 1 for nodes in the mask (N_inmask of them) and 0 for nodes not in mask.
 */   
-byte * SUMA_load_all_command_masks(char *bmaskname, char *nmaskname, char *cmask, int N_Node, int *N_inmask)
+byte * SUMA_load_all_command_masks(
+   char *bmaskname, char *nmaskname, 
+   char *cmask, int N_Node, int *N_inmask)
 {
    static char FuncName[]={"SUMA_load_all_command_masks"};
    byte *nmask=NULL;
@@ -4996,26 +5001,31 @@ byte * SUMA_load_all_command_masks(char *bmaskname, char *nmaskname, char *cmask
    *N_inmask = -1;   /* indicates an error */
    
    if (bmaskname) {
-      if (!(nmask = SUMA_load_1D_b_mask(bmaskname, N_Node, nmask, "and", N_inmask))) {
+      if (!(nmask = SUMA_load_1D_b_mask(
+                        bmaskname, N_Node, nmask, "and", N_inmask))) {
          SUMA_S_Err("Failed loading mask");
          if (nmask) SUMA_free(nmask); nmask=NULL; SUMA_RETURN(nmask);
       }
    }
    if (cmask) {
-      if (!(nmask = SUMA_get_c_mask(cmask, N_Node, nmask, "and", N_inmask))) {
+      if (!(nmask = SUMA_get_c_mask(
+                        cmask, N_Node, nmask, "and", N_inmask))) {
          SUMA_S_Err("Failed loading mask");
          if (nmask) SUMA_free(nmask); nmask=NULL; SUMA_RETURN(nmask);
       }
    }
    if (nmaskname) {
-      if (!(nmask = SUMA_load_1D_n_mask(nmaskname, N_Node, nmask, "and", N_inmask))) {
+      if (!(nmask = SUMA_load_1D_n_mask(
+                        nmaskname, N_Node, nmask, "and", N_inmask))) {
          SUMA_S_Err("Failed loading mask");
          if (nmask) SUMA_free(nmask); nmask=NULL; SUMA_RETURN(nmask);
       }
    }
    
    
-   if (*N_inmask < 0) *N_inmask = 0; /* Remove error flag, even if nmask is NULL (no mask to speak of) */
+   if (*N_inmask < 0) 
+      *N_inmask = 0; /* Remove error flag, 
+                        even if nmask is NULL (no mask to speak of) */
    
    SUMA_RETURN(nmask);
 }
@@ -6559,7 +6569,7 @@ SUMA_DSET *SUMA_LoadNimlDset (char *Name, int verb)
    SUMA_DSET *dset=NULL;
    int tt;
    SUMA_Boolean iselement = NOPE;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
 
    SUMA_ENTRY;
    

@@ -37,62 +37,63 @@ void usage_ConverDset()
    s = SUMA_help_basics();
    sd = SUMA_help_dset();
 
-   printf ( "Usage: \n"
-            "  ConvertDset -o_TYPE -input DSET [-i_TYPE] [-prefix OUT_PREF]\n"
-            "  Converts a surface dataset from one format to another.\n"
-            "  Mandatory parameters:\n"
-            "     -o_TYPE: TYPE of output datasets\n"
-            "              where TYPE is one of:\n"
-            "           niml_asc (or niml): for ASCII niml format.\n"
-            "           niml_bi:            for BINARY niml format.\n"
-            "           1D:                 for AFNI's 1D ascii format.\n"
-            "           1Dp:                like 1D but with no comments\n"
-            "                               or other 1D formatting gimmicks.\n"
-            "           1Dpt:               like 1Dp but transpose the output.\n"
-            "         For stderr and stdout output use one of:\n"
-            "           1D_stderr, 1D_stdout, niml_stderr, or niml_stdout, \n"
-            "           1Dp_stdout, 1Dp_stderr, 1Dpt_stdout, 1Dpt_stderr\n"
-            "     -input DSET: Input dataset to be converted.\n"
-            "                  See more on input datasets below.\n"
-            "  Optional parameters:\n"
-            "     -add_node_index: Add a node index element if one does not exist\n"
-            "                      in the input dset. With this option, the indexing\n"
-            "                      is assumed to be implicit (0,1,2,3.... for rows 0,1\n"
-            "                      2,3,...). If that is not the case, use -node_index_1D\n"
-            "                      option below. \n"
-            "     -node_index_1D INDEX.1D: Specify file containing node indices\n"
-            "                              Use this to provide node indices with \n"
-            "                              a .1D dset. In many cases for .1D data\n"
-            "                              this option is DSET.1D'[0]'\n"
-            "     -node_select_1D MASK.1D: Specify the nodes you want to keep in the\n"
-            "                              output.\n" 
-            "     -prepend_node_index_1D: Add a node index column to the data, rather\n"
-            "                             than keep it as part of the metadata.\n"
-            "\n"
-            "     -i_TYPE: TYPE of input datasets\n"
-            "              where TYPE is one of:\n"
-            "           niml: for niml data sets.\n"
-            "           1D:   for AFNI's 1D ascii format.\n"
-            "           dx: OpenDX format, expects to work on 1st\n"
-            "               object only.\n"
-            "           If no format is specified, the program will \n"
-            "           guess however that might slow \n"
-            "           operations down considerably.\n"
-            "     -prefix OUT_PREF: Output prefix for data set.\n"
-            "                       Default is something based\n"
-            "                       on the input prefix.\n"
-            "  Notes:\n"
-            "     -This program will not overwrite pre-existing files.\n"  
-            "     -The new data set is given a new idcode.\n"
-            "\n"
-            "%s"
-            "\n"
-            "%s"
-            "Examples:\n"
-            "1-   Plot a node's time series from a niml dataset:\n"
-            "     ConvertDset -input DemoSubj_EccCntavir.niml.dset'{5779}' \\\n"
-            "                 -o_1D_stdout | 1dplot -nopush -stdin \n"
-            "\n", sd, s);
+   printf ( 
+"Usage: \n"
+"  ConvertDset -o_TYPE -input DSET [-i_TYPE] [-prefix OUT_PREF]\n"
+"  Converts a surface dataset from one format to another.\n"
+"  Mandatory parameters:\n"
+"     -o_TYPE: TYPE of output datasets\n"
+"              where TYPE is one of:\n"
+"           niml_asc (or niml): for ASCII niml format.\n"
+"           niml_bi:            for BINARY niml format.\n"
+"           1D:                 for AFNI's 1D ascii format.\n"
+"           1Dp:                like 1D but with no comments\n"
+"                               or other 1D formatting gimmicks.\n"
+"           1Dpt:               like 1Dp but transpose the output.\n"
+"         For stderr and stdout output use one of:\n"
+"           1D_stderr, 1D_stdout, niml_stderr, or niml_stdout, \n"
+"           1Dp_stdout, 1Dp_stderr, 1Dpt_stdout, 1Dpt_stderr\n"
+"     -input DSET: Input dataset to be converted.\n"
+"                  See more on input datasets below.\n"
+"  Optional parameters:\n"
+"     -add_node_index: Add a node index element if one does not exist\n"
+"                      in the input dset. With this option, the indexing\n"
+"                      is assumed to be implicit (0,1,2,3.... for rows 0,1\n"
+"                      2,3,...). If that is not the case, use -node_index_1D\n"
+"                      option below. \n"
+"     -node_index_1D INDEX.1D: Specify file containing node indices\n"
+"                              Use this to provide node indices with \n"
+"                              a .1D dset. In many cases for .1D data\n"
+"                              this option is DSET.1D'[0]'\n"
+"     -node_select_1D MASK.1D: Specify the nodes you want to keep in the\n"
+"                              output.\n" 
+"     -prepend_node_index_1D: Add a node index column to the data, rather\n"
+"                             than keep it as part of the metadata.\n"
+"\n"
+"     -i_TYPE: TYPE of input datasets\n"
+"              where TYPE is one of:\n"
+"           niml: for niml data sets.\n"
+"           1D:   for AFNI's 1D ascii format.\n"
+"           dx: OpenDX format, expects to work on 1st\n"
+"               object only.\n"
+"           If no format is specified, the program will \n"
+"           guess however that might slow \n"
+"           operations down considerably.\n"
+"     -prefix OUT_PREF: Output prefix for data set.\n"
+"                       Default is something based\n"
+"                       on the input prefix.\n"
+"  Notes:\n"
+"     -This program will not overwrite pre-existing files.\n"  
+"     -The new data set is given a new idcode.\n"
+"\n"
+"%s"
+"\n"
+"%s"
+"Examples:\n"
+"1-   Plot a node's time series from a niml dataset:\n"
+"     ConvertDset -input DemoSubj_EccCntavir.niml.dset'{5779}' \\\n"
+"                 -o_1D_stdout | 1dplot -nopush -stdin \n"
+"\n", sd, s);
    SUMA_free(s); s = NULL; SUMA_free(sd); sd = NULL; 
    #ifdef SUMA_COMPILED
    s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
@@ -103,19 +104,22 @@ void usage_ConverDset()
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ConvertDset"};
-   int kar, brk, i_input, i, j, *Ti=NULL, *indexmap = NULL, add_node_index, prepend_node_index ;
-   byte *Tb=NULL;
+   int   kar, brk, i_input, i, j, *Ti=NULL, 
+         *indexmap = NULL, add_node_index, prepend_node_index ;
+   byte *Tb=NULL, *auto_nmask=NULL;
    float *fv = NULL;
    SUMA_DSET_FORMAT iform, oform;
    SUMA_DSET *dset = NULL, *dseti=NULL, *dset_m = NULL;
    char *NameOut, *prfx = NULL, *prefix = NULL;
    char *ooo=NULL, *node_index_1d = NULL, *node_mask = NULL;
-   int overwrite = 0, exists = 0;
-   SUMA_Boolean LocalHead = NOPE;
+   int overwrite = 0, exists = 0, N_inmask=-1;
+   SUMA_GENERIC_ARGV_PARSE *ps=NULL;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
    
+   ps = SUMA_Parse_IO_Args(argc, argv, "-mask;");
 
    if (argc < 3) {
       usage_ConverDset  ();
@@ -384,7 +388,7 @@ int main (int argc,char *argv[])
       #else
          overwrite = SUMA_ok_overwrite();
       #endif
-      if (!brk) {
+      if (!brk && !ps->arg_checked[kar]) {
          fprintf (SUMA_STDERR,
             "Error %s: Option %s not understood. Try -help for usage\n",
                FuncName, argv[kar]);
@@ -409,16 +413,20 @@ int main (int argc,char *argv[])
    }
 
    for (i=i_input; i<i_input + 1; ++i) {
-      if (LocalHead) fprintf(SUMA_STDERR,"%s:\n Reading %s...\n", FuncName, argv[i]); 
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s:\n Reading %s...\n", FuncName, argv[i]); 
       dset = SUMA_LoadDset_s (argv[i], &iform, 0); 
       if (!dset) { SUMA_SL_Err(  "Failed to load dataset.\n"
                                  "Make sure file exists\n"
                                  "and is of the specified\n"
                                  "format."); exit(1); }
       if (LocalHead) {
-         fprintf(SUMA_STDERR,"%s:\n Read dset of format %s\n", FuncName, SUMA_Dset_Format_Name(iform));
+         fprintf(SUMA_STDERR,"%s:\n Read dset of format %s\n", 
+            FuncName, SUMA_Dset_Format_Name(iform));
          SUMA_ShowDset(dset, 0, NULL);
       }
+      
+      SUMA_LH("Checking on inel...");
       /* make sure inel is initialized*/
       if (!dset->inel || !SDSET_NODEINDLEN(dset)) { 
          SUMA_SL_Err("Bad dset->inel\nOld niml dset?"); 
@@ -428,6 +436,7 @@ int main (int argc,char *argv[])
          SUMA_RETURN(1); 
       }
 
+      SUMA_LH("On to node index stuff...");
       if (node_index_1d) { /* add a node index column */
          iform = SUMA_1D;
          if (!(dseti = SUMA_LoadDset_s (node_index_1d, &iform, 0))) {
@@ -439,7 +448,8 @@ int main (int argc,char *argv[])
             exit(1);
          }
          if (SDSET_VECFILLED(dseti) != SDSET_VECFILLED(dset)) {
-            SUMA_S_Err("mismatch in number of values in index source and dataset");
+            SUMA_S_Err(
+               "mismatch in number of values in index source and dataset");
             exit(1);
          } 
          Ti = (int *) SUMA_calloc(SDSET_VECFILLED(dseti), sizeof(int));
@@ -447,7 +457,8 @@ int main (int argc,char *argv[])
          for (j=0; j<SDSET_VECFILLED(dseti); ++j) {
             Ti[j] = (int)fv[j];
          }
-         if (!SUMA_AddDsetNelCol (dset, "Node Index", SUMA_NODE_INDEX, (void *)Ti, NULL, 1)) {
+         if (!SUMA_AddDsetNelCol (  dset, "Node Index", 
+                                    SUMA_NODE_INDEX, (void *)Ti, NULL, 1)) {
             SUMA_SL_Err("Failed to add column");
             if (Ti) SUMA_free(Ti); Ti = NULL;
             exit(1);
@@ -463,6 +474,29 @@ int main (int argc,char *argv[])
          }
       }
       
+      SUMA_LHv("On to auto_nmask ...%p %p %p\n", 
+               ps->bmaskname,ps->nmaskname,ps->cmask);
+      if (!(auto_nmask = 
+               SUMA_load_all_command_masks(  ps->bmaskname, 
+                                             ps->nmaskname, 
+                                             ps->cmask, 
+                                             SDSET_VECFILLED(dset), 
+                                             &N_inmask)) 
+            && N_inmask < 0) {
+            SUMA_S_Err("Failed loading mask");
+            exit(1);
+      }
+      if (auto_nmask) { /* mask input here */
+         SUMA_LH("Masking here ...");
+         if (!(dset_m = SUMA_MaskedCopyofDset(dset, auto_nmask, NULL, 1, 0))){
+            SUMA_S_Err("Failed to mask dset by mask options\n");
+            exit(1);
+         }
+         SUMA_FreeDset(dset); dset = NULL;
+         dset = dset_m;  dset_m = NULL;       
+      }
+      
+      SUMA_LH("On to node_mask ...");
       if (node_mask) { /* mask dataset */
          iform = SUMA_1D;
          if (!(dseti = SUMA_LoadDset_s (node_mask, &iform, 0))) {
@@ -477,7 +511,8 @@ int main (int argc,char *argv[])
          Ti = (int *) SUMA_calloc(SDSET_VECFILLED(dseti), sizeof(int));
          fv = (float *)dseti->dnel->vec[0];
          for (j=0; j<SDSET_VECFILLED(dseti); ++j) Ti[j] = (int)fv[j];
-         if (!(dset_m = SUMA_MaskedByNodeIndexCopyofDset(dset, Ti, SDSET_VECFILLED(dseti),  NULL, 1, 0))) {
+         if (!(dset_m = SUMA_MaskedByNodeIndexCopyofDset(
+                  dset, Ti, SDSET_VECFILLED(dseti),  NULL, 1, 0))) {
             SUMA_S_Err("Failed to mask dset by node indices\n");
             SUMA_S_Note(   "If your input dataset did not have a node index \n"
                            "explicitly defined, use -add_node_index or\n"
@@ -492,6 +527,7 @@ int main (int argc,char *argv[])
          dset = dset_m;  dset_m = NULL;       
       }
 
+      SUMA_LH("On to prefix ...");
       
       if (!prfx) {
          /* don't use iform because some 1Ds are NIML compatible and they get
@@ -506,16 +542,21 @@ int main (int argc,char *argv[])
       
       
       if (prepend_node_index) {/* prepend node index? */         
-         if (!SUMA_InsertDsetNelCol (dset, "Node Index Copy", SUMA_NODE_INT, (void *)(dset->inel->vec[0]), NULL ,1, 0)) {
+         if (!SUMA_InsertDsetNelCol (  dset, "Node Index Copy", 
+                                       SUMA_NODE_INT, 
+                                       (void *)(dset->inel->vec[0]), 
+                                       NULL ,1, 0)) {
             SUMA_S_Err("Failed to insert column");
          }
          if (LocalHead) SUMA_ShowDset(dset,0, NULL); 
       }
-      
+      SUMA_LHv("About to write dset to %s\n", prefix);
       NameOut = SUMA_WriteDset_s (prefix, dset, oform, 0, 0);
       
       
-      if (!NameOut && !SUMA_IS_DSET_STDXXX_FORMAT(oform)) { SUMA_SL_Err("Failed to write dataset."); exit(1); } 
+      if (!NameOut && !SUMA_IS_DSET_STDXXX_FORMAT(oform)) { 
+         SUMA_SL_Err("Failed to write dataset."); exit(1); 
+      } 
       if (prefix) SUMA_free(prefix); prefix = NULL;    
       if (dset) SUMA_FreeDset((void *)dset); dset = NULL;
       if (NameOut) SUMA_free(NameOut); NameOut = NULL;

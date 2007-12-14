@@ -178,15 +178,17 @@ ENTRY("THD_dblkatr_from_niml") ;
                              must reassemble them into a single array */
 
              case NI_STRING:{
-               char **sar = (char **)nel->vec[0] , *str ;
-               int nch , nstr=nel->vec_len , istr , lll=0 ;
-               for( istr=0 ; istr < nstr ; istr++ ) lll += strlen(sar[istr]) ;
-               str = malloc(lll+4) ; *str = '\0' ;
-               for( istr=0 ; istr < nstr ; istr++ ) strcat(str,sar[istr]) ;
-               nch = strlen(str) ;
-               THD_unzblock( nch+1 , str ) ;  /* re-insert NULs */
-               THD_set_char_atr( blk , rhs , nch+1 , str ) ;
-               free(str) ;
+               if (nel->vec) { /* to be expected */
+                  char **sar = (char **)nel->vec[0] , *str ;
+                  int nch , nstr=nel->vec_len , istr , lll=0 ;
+                  for( istr=0 ; istr < nstr ; istr++) lll += strlen(sar[istr]);
+                  str = malloc(lll+4) ; *str = '\0' ;
+                  for( istr=0 ; istr < nstr ; istr++ ) strcat(str,sar[istr]);
+                  nch = strlen(str) ;
+                  THD_unzblock( nch+1 , str ) ;  /* re-insert NULs */
+                  THD_set_char_atr( blk , rhs , nch+1 , str ) ;
+                  free(str) ;
+               } 
              }
              break ;
            }
@@ -250,7 +252,6 @@ ENTRY("THD_niml_to_dataset") ;
    /* build the datablock from the loaded attributes */
 
    ii = THD_datablock_from_atr( blk , NULL , NULL ) ;
-
    if( ii == 0 ){                               /* bad attributes */
      THD_delete_datablock( blk ) ; RETURN(NULL) ;
    }
