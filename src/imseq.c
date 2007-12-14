@@ -2336,7 +2336,7 @@ ENTRY("ISQ_overlay") ;
    } else {       /* mix by scaling color with brightness of background */
       register float aa=alpha, bb,
                      mings, maxgs, *gs=NULL,
-                     MaxGain = 2.0-alpha,
+                     MaxGain = 2.0-alpha*alpha,
                      MinGain = alpha*alpha ;
       gs = (float *)malloc(sizeof(float)*npix);
       /* calculate grey scale, keep track of range */

@@ -4,7 +4,9 @@ if ("$1" == '' || "$1" == '-h' || "$1" == '-help') then
 endif
 
 set ans = `3dinfo "$1" |& grep 'Data Axes Tilt:' | cut -d: -f2 `
-if ( "$ans[1]" != "Oblique" && "$ans[1]" != "Plumb") then
+if (  "$ans[1]" != "Oblique" && \
+      "$ans[1]" != "Plumb" && \
+      "$ans[1]" != "Unspecified") then
    echo "Error: Failed to find Data Axes Tilt string in 3dinfo output"
    echo "Make sure $1 is a valid dset."
    goto ENDALL

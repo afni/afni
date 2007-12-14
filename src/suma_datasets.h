@@ -566,7 +566,7 @@ typedef struct {
    #define SDSET_TYPE(dset) SUMA_Dset_Type(dset->nel->name)
    #define SDSET_VECLEN(dset) dset->nel->vec_len
    #define SDSET_VECNUM(dset) dset->nel->vec_num
-   #define SDSET_VECFILLED(dset) dset->nel->vec_filled
+   #define SDSET_VECFILLED(dset) (dset && dset->nel) ? dset->nel->vec_filled:-1
 #else
    #define SDSET_FILENAME(dset) NI_get_attribute(dset->ngr,"filename")
    #define SDSET_LABEL(dset) NI_get_attribute(dset->ngr,"label")
@@ -581,7 +581,8 @@ typedef struct {
    #define SDSET_NODEINDLEN(dset) dset->inel->vec_len
    #define SDSET_VECNUM(dset) dset->dnel->vec_num
    #define SDSET_NODEINDNUM(dset) dset->inel->vec_num
-   #define SDSET_VECFILLED(dset) dset->dnel->vec_filled
+   #define SDSET_VECFILLED(dset) (dset && dset->dnel) ?  \
+                                 dset->dnel->vec_filled:-1
    #define SDSET_NODEINDFILLED(dset) dset->inel->vec_filled
    #define SDSET_NODE_INDEX_COL(dset) ( (!dset || !dset->inel || !dset->inel->vec) ? NULL:(int*)(dset->inel->vec[0]) )
 #endif
