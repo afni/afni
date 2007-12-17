@@ -187,7 +187,7 @@ void CALC_Syntax(void)
    printf(
     "  -datum type = Coerce the output data to be stored as the given type,\n"
     "                  which may be byte, short, or float.\n"
-    "                  [default = datum of first input image]\n"
+    "                  [default = datum of first input image on command line]\n"
     "  -a dname    = Read image 'dname' and call the voxel values 'a'\n"
     "                  in the expression.  'a' may be any letter from 'a' to 'z'.\n"
     "               ** If some letter name is used in the expression, but not\n"
