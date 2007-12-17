@@ -4373,7 +4373,7 @@ extern double ENTROPY_compute   (void) ;
 extern double ENTROPY_dataset   (THD_3dim_dataset *) ;
 extern double ENTROPY_datablock (THD_datablock *) ;
 
-extern void AFNI_vedit( THD_3dim_dataset *dset , VEDIT_settings vednew ) ;
+extern int  AFNI_vedit( THD_3dim_dataset *dset , VEDIT_settings vednew ) ;
 extern void AFNI_vedit_clear( THD_3dim_dataset *dset ) ;
 
 /*--------------------------------------------------------------------------*/

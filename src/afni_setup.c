@@ -651,7 +651,7 @@ ENTRY("AFNI_pbar_CB") ;
    /*--- Display the palette table ---*/
 
    else if( w == im3d->vwid->func->pbar_showtable_pb ){
-      char * dum = dump_PBAR_palette_table(1) ;
+      char *dum = dump_PBAR_palette_table(1) ;
       new_MCW_textwin( im3d->vwid->func->options_label, dum, TEXT_READONLY ) ;
       free(dum) ;
    }
@@ -1019,24 +1019,110 @@ ENTRY("AFNI_palette_tran_CB") ;
 }
 
 /*****************************************************************************/
-/*************  Functions for all actions in the thr_label popup *************/
+/*************  Functions for all actions in the clu_label popup *************/
+
+/*---------------------------------------------------------------------------*/
+
+static MCW_textwin *clu_twin[MAX_CONTROLLERS] ;
+
+void AFNI_cluster_textkill( Three_D_View *im3d )
+{
+   int ic ;
+
+ENTRY("AFNI_cluster_textkill") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+   ic = AFNI_controller_index(im3d) ;
+   if( ic < 0 || ic >= MAX_CONTROLLERS ) EXRETURN ;
+   if( clu_twin[ic] != NULL ){
+     XtDestroyWidget(clu_twin[ic]->wshell); myXtFree(clu_twin[ic]);
+   }
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void AFNI_cluster_textdeath( XtPointer cb )
+{
+   int ic = (int)cb ;
+   if( ic >= 0 || ic < MAX_CONTROLLERS ) clu_twin[ic] = NULL ;
+/** fprintf(stderr,"AFNI_cluster_textdeath(%d)\n",ic) ; **/
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void AFNI_cluster_textize( Three_D_View *im3d , int force )
+{
+   int nclu , ic , ii ;
+   mri_cluster_detail *cld=NULL ;
+   char *msg , *rpt , line[80] ;
+   float px,py,pz ;
+
+ENTRY("AFNI_cluster_textize") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+   ic = AFNI_controller_index(im3d) ;
+   if( ic < 0 || ic >= MAX_CONTROLLERS ) EXRETURN ;
+   if( !force && clu_twin[ic] == NULL ) EXRETURN ;
+
+   nclu = mri_clusterize_details( &cld ) ;
+   if( nclu == 0 || cld == NULL ){
+     if( clu_twin[ic] != NULL ){
+       XtDestroyWidget(clu_twin[ic]->wshell); myXtFree(clu_twin[ic]);
+     }
+     EXRETURN ;
+   }
+
+   if( nclu > 22 ) nclu = 20 ;
+   msg = (char *)malloc(sizeof(char)*(nclu*99+999)) ;
+   rpt = mri_clusterize_report() ;
+   if( rpt != NULL ) strcpy(msg,rpt) ;
+   else              strcpy(msg,"Cluster Report\n") ;
+   strcat(msg ,
+           "----------------------------------\n"
+           "##  --Size-- ---Peak DICOM xyz---\n"
+         ) ;
+
+   for( ii=0 ; ii < nclu ; ii++ ){
+     MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom ,
+                cld[ii].xpk,cld[ii].ypk,cld[ii].zpk , px,py,pz ) ;
+     if( cld[ii].nvox <= 99999 )
+       sprintf(line,"%2d:%5d vox %+6.1f %+6.1f %+6.1f\n",
+               ii+1,cld[ii].nvox , px,py,pz ) ;
+     else
+       sprintf(line,"%2d:%9d %+6.1f %+6.1f %+6.1f\n",
+               ii+1,cld[ii].nvox , px,py,pz ) ;
+     strcat(msg,line) ;
+   }
+
+   if( clu_twin[ic] == NULL ){
+     clu_twin[ic] = new_MCW_textwin_2001( im3d->vwid->func->options_label ,
+                                          msg , TEXT_READONLY ,
+                                          AFNI_cluster_textdeath,(XtPointer)ic ) ;
+   } else {
+     MCW_textwin_alter( clu_twin[ic] , msg ) ;
+   }
+   free((void *)msg ) ;
+   EXRETURN ;
+}
 
 /*---------------------------------------------------------------------*/
 /* Put a '*' next to the active item in the vedit list on the menu.    */
 
-static char *thrbutlab[] = { " Clear Edit" ,
+static char *clubutlab[] = { " Clear Edit" ,
                              " Clusterize"  } ;
-#define NTHRBUT (sizeof(thrbutlab)/sizeof(char *))
+#define NTHRBUT (sizeof(clubutlab)/sizeof(char *))
 
 void set_vedit_label( Three_D_View *im3d , int ll )
 {
    char lab[64] ;
    if( !IM3D_OPEN(im3d) ) return ;
 
-   strcpy(lab,thrbutlab[0]); if( ll==0 ) lab[0] = '*' ;
+   strcpy(lab,clubutlab[0]); if( ll==0 ) lab[0] = '*' ;
    MCW_set_widget_label( im3d->vwid->func->clu_clear_pb , lab ) ;
 
-   strcpy(lab,thrbutlab[1]); if( ll==1 ) lab[0] = '*' ;
+   strcpy(lab,clubutlab[1]); if( ll==1 ) lab[0] = '*' ;
    MCW_set_widget_label( im3d->vwid->func->clu_cluster_pb , lab ) ;
 
    return ;
@@ -1070,7 +1156,7 @@ ENTRY("AFNI_cluster_choose_CB") ;
 }
 
 /*---------------------------------------------------------------*/
-/* Callback for items on the thr_label menu itself.              */
+/* Callback for items on the clu_label menu itself.              */
 
 void AFNI_clu_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
@@ -1086,6 +1172,7 @@ ENTRY("AFNI_clu_CB") ;
      im3d->vedset.code = 0 ;
      AFNI_vedit_clear( im3d->fim_now ) ;
      set_vedit_label(im3d,0) ; VEDIT_unhelpize(im3d) ;
+     AFNI_cluster_textkill(im3d) ;
      if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
      EXRETURN ;
    }
@@ -1118,6 +1205,16 @@ ENTRY("AFNI_clu_CB") ;
    }
 
    EXRETURN ;  /* should be unreachable */
+}
+
+/*---------------------------------------------------------------------------*/
+
+void AFNI_cluster_EV( Widget w , XtPointer cd ,
+                      XEvent *ev , Boolean *continue_to_dispatch )
+{
+ENTRY("AFNI_cluster_EV") ;
+   AFNI_cluster_textize((Three_D_View *)cd , 1 ) ;
+   EXRETURN ;
 }
 
 #if 1
