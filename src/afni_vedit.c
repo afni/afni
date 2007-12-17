@@ -5,7 +5,7 @@
     parameters stored in dset->dblk->vedset.  [05 Sep 2006]
 -----------------------------------------------------------------------------*/
 
-void AFNI_vedit( THD_3dim_dataset *dset , VEDIT_settings vednew )
+int AFNI_vedit( THD_3dim_dataset *dset , VEDIT_settings vednew )
 {
    THD_datablock *dblk ;
    int ival ;
@@ -13,7 +13,7 @@ void AFNI_vedit( THD_3dim_dataset *dset , VEDIT_settings vednew )
 
 ENTRY("AFNI_vedit") ;
 
-   if( !ISVALID_DSET(dset) ) EXRETURN ;
+   if( !ISVALID_DSET(dset) ) RETURN(0) ;
 
    dblk = dset->dblk ;
 
@@ -23,7 +23,7 @@ ENTRY("AFNI_vedit") ;
    if( vednew.code <= 0 || vednew.code > VEDIT_LASTCODE ){
      if( dblk->vedim != NULL ){ mri_free(dblk->vedim); dblk->vedim=NULL; }
      dblk->vedset.code = 0 ; dblk->vedset.ival = -1 ;
-     EXRETURN ;
+     RETURN(0) ;
    }
 
    /* if we have existing editing results,
@@ -32,7 +32,7 @@ ENTRY("AFNI_vedit") ;
 
    if( dblk->vedim != NULL ){
      if( memcmp(&dblk->vedset,&vednew,sizeof(VEDIT_settings)) == 0 ){
-       EXRETURN ;
+       RETURN(0) ;
      }
      mri_free(dblk->vedim); dblk->vedim=NULL;
    }
@@ -44,12 +44,12 @@ ENTRY("AFNI_vedit") ;
    /* get volume to edit */
 
    ival = vednew.ival ;
-   if( ival < 0 || ival > DSET_NVALS(dset) ) EXRETURN ;
+   if( ival < 0 || ival > DSET_NVALS(dset) ) RETURN(0) ;
    dim = DBLK_BRICK(dblk,ival) ;
    if( dim == NULL || mri_data_pointer(dim) == NULL ){
      DSET_load(dset) ;
      dim = DBLK_BRICK(dblk,ival) ;
-     if( dim == NULL || mri_data_pointer(dim) == NULL ) EXRETURN ;
+     if( dim == NULL || mri_data_pointer(dim) == NULL ) RETURN(0) ;
    }
    dim->dx = fabs(DSET_DX(dset));
    dim->dy = fabs(DSET_DY(dset));
@@ -77,7 +77,7 @@ ENTRY("AFNI_vedit") ;
 
    /*--- done ---*/
 
-   EXRETURN ;
+   RETURN(1) ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -87,6 +87,6 @@ void AFNI_vedit_clear( THD_3dim_dataset *dset )
    VEDIT_settings vs ;
 ENTRY("AFNI_vedit_clear") ;
    memset(&vs,0,sizeof(VEDIT_settings)) ;
-   AFNI_vedit( dset , vs ) ;
+   (void)AFNI_vedit( dset , vs ) ;
    EXRETURN ;
 }

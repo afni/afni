@@ -382,6 +382,18 @@ typedef struct {
 /*---*/
 
 typedef struct {
+  Widget wtop , rowcol , top_lab , dataset_pb , done_pb ;
+  int nrow , nall ;
+  Widget *clu_rc ;
+  Widget *clu_lab ;
+  Widget *clu_jump_pb ;
+  Widget *clu_ave_pb ;
+  Widget *clu_pc1_pb ;
+} AFNI_clu_widgets ;      /** not yet used **/
+
+/*---*/
+
+typedef struct {
       Widget     frame , rowcol ;
       MCW_bbox * view_bbox ;
 
@@ -1170,7 +1182,8 @@ extern void AFNI_view_xyz_CB         ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_marktog_CB          ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_marks_action_CB     ( Widget , XtPointer , XtPointer ) ;
 
-extern void AFNI_viewbut_EV          ( Widget, XtPointer, XEvent *, Boolean * ) ;
+extern void AFNI_viewbut_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
+extern void AFNI_cluster_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
 
 #define AFNI_SEE_FUNC_ON(iq) ( MCW_set_bbox( (iq)->vwid->view->see_func_bbox, 1 ), \
                                AFNI_see_func_CB( NULL , (XtPointer)(iq) , NULL )  )
