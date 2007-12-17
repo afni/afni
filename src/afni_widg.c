@@ -3184,6 +3184,14 @@ STATUS("making func->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
+    XtInsertEventHandler( func->options_label ,   /* handle events in label */
+                             ButtonPressMask ,    /* button presses */
+                             FALSE ,              /* nonmaskable events? */
+                             AFNI_cluster_EV ,    /* handler */
+                             (XtPointer)im3d ,    /* client data */
+                             XtListTail           /* last in queue */
+                         ) ;
+
    /*-- 26 Mar 2007: rowcol for clustering stuff --*/
 
    func->ulaclu_rowcol =
