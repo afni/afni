@@ -97,8 +97,8 @@ extern void AFNI_thronoff_change_CB( Widget, XtPointer, XtPointer ) ;
 
 extern void set_vedit_label( Three_D_View *im3d , int ll ) ;  /* 26 Mar 2007 */
 
-extern void AFNI_cluster_textkill( Three_D_View *im3d ) ;
-extern void AFNI_cluster_textize( Three_D_View *im3d , int force ) ;
+extern void AFNI_cluster_dispkill( Three_D_View *im3d ) ;
+extern void AFNI_cluster_dispize( Three_D_View *im3d , int force ) ;
 
 #define VEDIT_unhelpize(iq)                                                   \
  do{ MCW_unregister_help((iq)->vwid->func->options_label);                     \
