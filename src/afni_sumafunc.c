@@ -535,7 +535,7 @@ void AFNI_init_suma_color( int ss , char *bcol , char *lcol )  /* 06 Sep 2006 */
 
 static void AFNI_surf_done_CB( Widget,XtPointer,XtPointer ) ;
 static void AFNI_surf_redraw_CB( MCW_arrowval *,XtPointer ) ;
-static AFNI_make_surface_widgets( Three_D_View *, int ) ;
+static void AFNI_make_surface_widgets( Three_D_View *, int ) ;
 static void AFNI_surf_bbox_CB( Widget,XtPointer,XtPointer ) ; /* 19 Feb 2003 */
 
 /*---------------------------------------------------------------------------*/
@@ -602,13 +602,15 @@ static void AFNI_surf_bbox_CB( Widget,XtPointer,XtPointer ) ; /* 19 Feb 2003 */
     when something changes.
 --------------------------------------------------------------------------*/
 
-static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
+static void AFNI_make_surface_widgets( Three_D_View *im3d, int num )
 {
    AFNI_surface_widgets *swid ;
    Widget ww , rc ;
    XmString xstr ;
    char str[32] , *eee ;
    int ii , line_col, box_col , lincol_default , boxcol_default ;
+
+ENTRY("AFNI_make_surface_widgets") ;
 
    im3d->vwid->view->swid = swid = myXtNew( AFNI_surface_widgets ) ;
 

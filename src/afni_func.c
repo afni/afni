@@ -2075,7 +2075,7 @@ int DSET_in_global_session( THD_3dim_dataset *dset )
 
 /** labels for the chooser window **/
 
-static char *dset_choice[] = { "Session" , "Underlay" , "Overlay" } ;
+static char *dset_choice[] = { "Session" , "Underlay" , "Overlay" , "Dataset" } ;
 
 /** max size of strings in the list **/
 
@@ -2092,6 +2092,8 @@ void AFNI_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cb )
    Three_D_View *im3d = (Three_D_View *) cd ;
    int llen , ltop ;
    int browse_select = 0 ;
+   int is_other = 0 ;       /* 18 Dec 2007 */
+   void (*cbfun)(Widget,XtPointer,MCW_choose_cbs *)=AFNI_finalize_dataset_CB;
 
 ENTRY("AFNI_choose_dataset_CB") ;
 
@@ -2211,68 +2213,95 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
    /*--- make a list of function names ---*/
 
-   } else if( w == im3d->vwid->view->choose_func_pb ||
-              w == im3d->vwid->view->popchoose_func_pb ){
+   } else {
+      int nn=0 , ndset=0 ; THD_3dim_dataset **dset_list=NULL , *dset ;
 
-      wpar    = im3d->vwid->view->choose_func_pb ;
+      is_other = !( w == im3d->vwid->view->choose_func_pb ||
+                    w == im3d->vwid->view->popchoose_func_pb ) ;
+
       num_str = im3d->ss_now->num_dsset ;
       if( num_str < 1 ) EXRETURN ;
 
-      if( AFNI_yesenv("AFNI_DATASET_BROWSE") ) browse_select = 1 ;
+      if( is_other ){
+        AFNI_dataset_choose_stuff *cs = (AFNI_dataset_choose_stuff *)cb ;
+        if( cs == NULL ) EXRETURN ;
+        ndset = cs->ndset ; if( ndset < 1 ) EXRETURN ;
+        dset_list = cs->dset ; if( dset_list == NULL ) EXRETURN ;
+        cbfun = cs->cb ; if( cbfun == NULL ) EXRETURN ;
+        wpar = w ;
+      } else {
+        if( AFNI_yesenv("AFNI_DATASET_BROWSE") ) browse_select = 1 ;
+        wpar = im3d->vwid->view->choose_func_pb ;
+        ndset = num_str ;
+      }
 
       ltop = 4 ;
-      for( ii=0 ; ii < num_str ; ii++ ){
-         for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ )
-            if( ISVALID_3DIM_DATASET(im3d->ss_now->dsset[ii][vv]) ) break ;
-
-         if( vv <= LAST_VIEW_TYPE ){
-            llen = strlen( im3d->ss_now->dsset[ii][vv]->dblk->diskptr->prefix ) ;
-            ltop = MAX( ltop , llen ) ;
-         }
+      for( ii=0 ; ii < ndset ; ii++ ){
+        if( is_other ){
+          dset = dset_list[ii] ;
+        } else {
+          for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ){
+            dset = im3d->ss_now->dsset[ii][vv]; if( ISVALID_DSET(dset) ) break;
+          }
+        }
+        if( ISVALID_DSET(dset) ){
+          llen = strlen( dset->dblk->diskptr->prefix ) ;
+          ltop = MAX( ltop , llen ) ;
+        }
       }
       ltop = MIN(ltop,STRLIST_SIZE-24) ;  /* 06 Aug 2002 */
 
-      for( ii=0 ; ii < num_str ; ii++ ){
-         for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ )
-            if( ISVALID_3DIM_DATASET(im3d->ss_now->dsset[ii][vv]) ) break ;
+      for( ii=0 ; ii < ndset ; ii++ ){
 
-         if( vv <= LAST_VIEW_TYPE ){
-            sprintf( strlist[ii] , "%-*s" ,
-                     ltop , im3d->ss_now->dsset[ii][vv]->dblk->diskptr->prefix ) ;
+         if( is_other ){
+           dset = dset_list[ii] ; if( !ISVALID_DSET(dset) ) continue ;
+         } else {
+           for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ){
+             dset = im3d->ss_now->dsset[ii][vv]; if( ISVALID_DSET(dset) ) break;
+           }
+         }
 
-            strcat( strlist[ii] , " [" ) ;
-            strcat( strlist[ii] , DSET_PREFIXSTR(im3d->ss_now->dsset[ii][vv]) ) ;
+         if( ISVALID_DSET(dset) ){
+           sprintf( strlist[nn] , "%-*s" ,
+                    ltop , dset->dblk->diskptr->prefix ) ;
 
-            if( DSET_NUM_TIMES(im3d->ss_now->dsset[ii][vv]) > 1 ){
-               int ll = strlen(strlist[ii]) ;
-               sprintf( strlist[ii]+ll , ":3D+t:%d]" ,
-                        DSET_NUM_TIMES(im3d->ss_now->dsset[ii][vv]) ) ;
-            } else if( ISBUCKET(im3d->ss_now->dsset[ii][vv]) ){
-               int ll = strlen(strlist[ii]) ;
-               sprintf( strlist[ii]+ll , ":%d]" ,
-                        DSET_NVALS(im3d->ss_now->dsset[ii][vv]) ) ;
-            } else {
-               strcat( strlist[ii] , "]" ) ;
-            }
+           strcat( strlist[nn] , " [" ) ;
+           strcat( strlist[nn] , DSET_PREFIXSTR(dset) ) ;
 
-            if( DSET_COMPRESSED(im3d->ss_now->dsset[ii][vv]) )
-               strcat( strlist[ii] , "z" ) ;
+           if( DSET_NUM_TIMES(dset) > 1 ){
+             int ll = strlen(strlist[nn]) ;
+             sprintf( strlist[nn]+ll , ":3D+t:%d]" , DSET_NUM_TIMES(dset) ) ;
+           } else if( ISBUCKET(dset) ){
+             int ll = strlen(strlist[nn]) ;
+             sprintf( strlist[nn]+ll , ":%d]" , DSET_NVALS(dset) ) ;
+           } else {
+             strcat( strlist[nn] , "]" ) ;
+           }
 
-            /* 20 Dec 2001: mark if this is a global dataset */
+           if( DSET_COMPRESSED(dset) ) strcat( strlist[nn] , "z" ) ;
 
-            if( DSET_in_global_session(im3d->ss_now->dsset[ii][vv]) )
-              strcat( strlist[ii] , "G" ) ;
+           /* 20 Dec 2001: mark if this is a global dataset */
 
-         } else
-            MCW_strncpy( strlist[ii] , "**?BAD?**" , THD_MAX_PREFIX ) ;
+           if( DSET_in_global_session(dset) ) strcat( strlist[nn] , "G" ) ;
 
+         } else { /* should never happen */
+           MCW_strncpy( strlist[nn] , "**?BAD?**" , THD_MAX_PREFIX ) ;
+         }
+
+         nn++ ;
       }
 
-      init_str = im3d->vinfo->func_num ;
-      label    = dset_choice[2] ;
+      if( nn < 1 ) EXRETURN ;
 
-   } else {
-      XBell( im3d->dc->display , 100 ) ; EXRETURN ;  /* bad news! */
+      if( is_other ){
+        init_str = 0 ;
+        label    = dset_choice[3] ;
+      } else {
+        init_str = im3d->vinfo->func_num ;
+        label    = dset_choice[2] ;
+      }
+      num_str = nn ;
+
    }
 
    /*--- call the chooser ---*/
@@ -2280,7 +2309,7 @@ ENTRY("AFNI_choose_dataset_CB") ;
    MCW_set_browse_select( browse_select ) ;
 
    MCW_choose_strlist( wpar , label , num_str , init_str , strlist ,
-                       AFNI_finalize_dataset_CB , (XtPointer) im3d ) ;
+                       cbfun , (XtPointer)im3d ) ;
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
