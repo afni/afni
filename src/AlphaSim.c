@@ -1427,11 +1427,11 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
   if(quiet<2)fprintf (fout, "Threshold probability: pthr = %e \n\n", pthr);
   if(quiet<2)fprintf (fout, "Number of Monte Carlo iterations = %5d \n\n", niter);
   if (!power){
-    if(quiet<2)fprintf (fout, "Cl Size     Frequency    Cum Prop     p/Voxel"
+    if(quiet<2)fprintf (fout, "Cl Size     Frequency    CumuProp     p/Voxel"
 	     "   Max Freq       Alpha\n");
   }
   else {
-    if(quiet<2)fprintf (fout, "Cl Size     Frequency    Cum Prop     p/Voxel"
+    if(quiet<2)fprintf (fout, "Cl Size     Frequency    CumuProp     p/Voxel"
 	     "   Max Freq       Power\n"); 
   }
 	     
