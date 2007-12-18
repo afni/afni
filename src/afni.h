@@ -383,6 +383,7 @@ typedef struct {
 
 typedef struct {
   Widget wtop , rowcol , top_lab , dataset_pb , done_pb ;
+  MCW_arrowval *ignore_av , *coord_av ;
   int nrow , nall ;
   Widget *clu_rc ;
   Widget *clu_lab ;
