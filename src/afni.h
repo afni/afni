@@ -388,8 +388,11 @@ typedef struct {
   Widget *clu_rc ;
   Widget *clu_lab ;
   Widget *clu_jump_pb ;
-  Widget *clu_ave_pb ;
-  Widget *clu_pc1_pb ;
+  Widget *clu_gave_pb ;
+  Widget *clu_gpc1_pb ;
+
+  THD_3dim_dataset *dset ;
+  int ignore , cmode ;
 } AFNI_clu_widgets ;      /** not yet used **/
 
 /*---*/
@@ -533,9 +536,14 @@ typedef struct {
 
       Widget bkgd_lab ;
 
-      MCW_arrowval * range_rotate_av ;  /* 30 Mar 2001 */
+      MCW_arrowval *range_rotate_av ;  /* 30 Mar 2001 */
 
-      MCW_bbox * see_ttatlas_bbox ;     /* 25 Jul 2001 */
+      MCW_bbox *see_ttatlas_bbox ;     /* 25 Jul 2001 */
+
+      AFNI_clu_widgets *cwid ;         /* 18 Dec 2007 */
+      int                 clu_num ;
+      mri_cluster_detail *clu_det ;
+      char               *clu_rep ;
 } AFNI_function_widgets ;
 
 extern void AFNI_func_autothresh_CB(Widget,XtPointer,XtPointer) ; /* 25 Jul 2007 */
@@ -1209,6 +1217,12 @@ extern void AFNI_cluster_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
          MCW_set_bbox( (iq)->vwid->view->view_bbox , 1 << (vv) ) ; \
          (iq)->vinfo->view_type = (vv) ;                           \
        } } while(0) ;
+
+typedef struct {
+  int ndset ;
+  THD_3dim_dataset **dset ;
+  void (*cb)(Widget , XtPointer , MCW_choose_cbs *) ;
+} AFNI_dataset_choose_stuff ;
 
 extern void AFNI_switchview_CB        ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_see_marks_CB         ( Widget , XtPointer , XtPointer ) ;

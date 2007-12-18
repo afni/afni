@@ -5797,13 +5797,42 @@ DUMP_IVEC3("  new_id",new_id) ;
          break ;
        }
        changed = AFNI_vedit( im3d->fim_now , im3d->vedset ) ;
-       if( !DSET_VEDIT_good(im3d->fim_now) ) VEDIT_clear_label(im3d) ;
-       else if( changed ){
-         VEDIT_helpize(im3d); AFNI_cluster_textize(im3d,0);
+       if( !DSET_VEDIT_good(im3d->fim_now) ){
+         VEDIT_clear_label(im3d) ;
+         im3d->vwid->func->clu_num = 0 ;
+         if( im3d->vwid->func->clu_det != NULL ){
+           free(im3d->vwid->func->clu_det); im3d->vwid->func->clu_det = NULL;
+         }
+         if( im3d->vwid->func->clu_rep != NULL ){
+           free(im3d->vwid->func->clu_rep); im3d->vwid->func->clu_rep = NULL;
+         }
+       } else if( changed ){
+         mri_cluster_detail *cld ; int nc ; char *rrr ;
+         VEDIT_helpize(im3d);
+         im3d->vwid->func->clu_num = nc = mri_clusterize_details( &cld ) ;
+         if( im3d->vwid->func->clu_det != NULL ){
+           free(im3d->vwid->func->clu_det); im3d->vwid->func->clu_det = NULL;
+         }
+         if( nc > 0 && cld != NULL ){
+           im3d->vwid->func->clu_det = malloc(sizeof(mri_cluster_detail)*nc) ;
+           memcpy( im3d->vwid->func->clu_det , cld , sizeof(mri_cluster_detail)*nc ) ;
+         }
+         rrr = mri_clusterize_report() ;
+         if( im3d->vwid->func->clu_rep != NULL ){
+           free(im3d->vwid->func->clu_rep); im3d->vwid->func->clu_rep = NULL;
+         }
+         if( rrr != NULL && *rrr != '\0' ) im3d->vwid->func->clu_rep = strdup(rrr) ;
+         AFNI_cluster_dispize(im3d,0);  /* display the results */
        }
      } else {
        AFNI_vedit_clear( im3d->fim_now ) ; VEDIT_clear_label(im3d) ;
-       AFNI_cluster_textkill(im3d) ;
+       AFNI_cluster_dispkill(im3d) ;
+       if( im3d->vwid->func->clu_det != NULL ){
+         free(im3d->vwid->func->clu_det); im3d->vwid->func->clu_det = NULL;
+       }
+       if( im3d->vwid->func->clu_rep != NULL ){
+         free(im3d->vwid->func->clu_rep); im3d->vwid->func->clu_rep = NULL;
+       }
      }
      AFNI_set_thr_pval(im3d) ;  /* for the * marker */
    }
