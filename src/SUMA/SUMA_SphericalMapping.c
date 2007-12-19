@@ -188,7 +188,7 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char
    }
    
    /* get the color map */
-   CM = SUMA_GetStandardMap (SUMA_CMAP_MATLAB_DEF_BYR64);
+   CM = SUMA_FindNamedColMap ("byr64");
    if (CM == NULL) {
       fprintf (SUMA_STDERR,"Error %s: Could not get standard colormap.\n", FuncName);
       if (OptScl) SUMA_free(OptScl);
@@ -231,7 +231,6 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char
    if (!SV) {
       fprintf (SUMA_STDERR,"Error %s: Could not allocate for SV.\n", FuncName);
       if (dist) SUMA_free(dist);
-      if (CM) SUMA_Free_ColorMap (CM);
       if (OptScl) SUMA_free(OptScl);
       exit(1);
    }
@@ -239,7 +238,6 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char
    if (!SUMA_ScaleToMap (dist, SO->N_Node, dmin, dmax, CM, OptScl, SV)) {
       fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
       if (dist) SUMA_free(dist);
-      if (CM) SUMA_Free_ColorMap (CM);
       if (OptScl) SUMA_free(OptScl);
       exit(1);
    }
@@ -367,7 +365,6 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char
          if (bad_ind) SUMA_free(bad_ind);
          if (isortdist) SUMA_free(isortdist);
          if (dist) SUMA_free(dist);
-         if (CM) SUMA_Free_ColorMap (CM);
          if (OptScl) SUMA_free(OptScl);
          exit(1);
       }
@@ -412,7 +409,6 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char
          if (bad_ind) SUMA_free(bad_ind);
          if (isortdist) SUMA_free(isortdist);
          if (dist) SUMA_free(dist);
-         if (CM) SUMA_Free_ColorMap (CM);
          if (OptScl) SUMA_free(OptScl);
          exit(1);
       }
@@ -424,7 +420,6 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char
          if (bad_ind) SUMA_free(bad_ind);
          if (isortdist) SUMA_free(isortdist);
          if (dist) SUMA_free(dist);
-         if (CM) SUMA_Free_ColorMap (CM);
          if (OptScl) SUMA_free(OptScl);
          exit(1);
       }
@@ -516,7 +511,6 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char
    if (face_bad_ind) SUMA_free(face_bad_ind); 
    if (isortdist) SUMA_free(isortdist);
    if (dist) SUMA_free(dist);
-   if (CM) SUMA_Free_ColorMap (CM);
    if (OptScl) SUMA_free(OptScl);
 
 /* CAREFUL, MIGHT HAVE CHANGED RETURN VARIABLE TO REFLECT FACET DEVIATIONS INSTEAD OF BAD NODES.  

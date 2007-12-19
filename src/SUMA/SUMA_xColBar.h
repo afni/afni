@@ -126,6 +126,9 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer call);
 unsigned char *SUMA_read_ppm(char *fname, int *width, int *height, int verb);
 void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO);
 void SUMA_cb_ColMap_Switch(Widget w, XtPointer clientData, XtPointer call);
+int SUMA_SwitchColPlaneBrightness(
+         SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+         int ind, int setmen);
 void SUMA_cb_SwitchBrightness(Widget w, XtPointer clientData, XtPointer call);
 int SUMA_SwitchColPlaneThreshold(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, int ind, int setmen);
 void SUMA_cb_SwitchThreshold(Widget w, XtPointer clientData, XtPointer call);
@@ -141,6 +144,24 @@ void SUMA_cb_CloseSwitchCmap (Widget w, XtPointer client_data, XtPointer call);
 SUMA_Boolean SUMA_CmapSelectList(SUMA_SurfaceObject *SO, int type, int bringup);
 SUMA_Boolean SUMA_SwitchColPlaneCmap(SUMA_SurfaceObject *SO, SUMA_COLOR_MAP *CM);
 SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_SurfaceObject *SO, char *str);
+int SUMA_GetListIchoice(XmListCallbackStruct *cbs, 
+                        SUMA_LIST_WIDGET *LW,
+                        SUMA_Boolean *CloseShop);
+void SUMA_cb_SelectSwitchInt (
+         Widget w, XtPointer client_data, 
+         XtPointer call_data);
+void SUMA_cb_SelectSwitchThr (
+         Widget w, XtPointer client_data, 
+         XtPointer call_data);
+void SUMA_cb_SelectSwitchBrt (
+         Widget w, XtPointer client_data, 
+         XtPointer call_data);
+int SUMA_SelectSwitchDsetCol(
+         SUMA_SurfaceObject *SO, 
+         SUMA_LIST_WIDGET *LW, 
+         int block,
+         int ichoice);
+void SUMA_cb_CloseSwitchLst (Widget w, XtPointer client_data, XtPointer call);
 void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, float range[2]);  
 void SUMA_cb_set_threshold_label(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_optmenu_EV( Widget w , XtPointer cd ,
@@ -188,6 +209,10 @@ void SUMA_LoadCmapFile (char *filename, void *data);
 void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO);
 int SUMA_ThreshVal2ScalePos(SUMA_SurfaceObject *SO, float *val);
 void SUMA_SetScaleThr(void *data);
+SUMA_Boolean SUMA_DsetColSelectList(
+         SUMA_SurfaceObject *SO, int type, 
+         int refresh, int bringup);
+SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleDsetColList(SUMA_DSET *dset); 
 
 /* the help strings */
 
@@ -405,6 +430,11 @@ void SUMA_SetScaleThr(void *data);
    "used for an Intensity (I)\n"   \
    "measure.\n"   \
    "\n"   \
+   "Right click on 'I' to get a \n" \
+   "list widget, which is better \n" \
+   "when you have many columns \n"   \
+   "from which to choose.\n"\
+   "\n"  \
    "I values are the ones that \n"   \
    "get colored by the colormap.\n" \
    "\n"   \
@@ -425,6 +455,11 @@ void SUMA_SetScaleThr(void *data);
    "used for a Threshold (T)\n"   \
    "measure.\n"   \
    "\n"   \
+   "Right click on 'T' to get a \n" \
+   "list widget, which is better \n" \
+   "when you have many columns \n"   \
+   "from which to choose.\n"\
+   "\n"  \
    "T values are the ones used \n"   \
    "to determine if a node \n"   \
    "gets colored based on its\n"   \
@@ -453,6 +488,11 @@ void SUMA_SetScaleThr(void *data);
    "used for color Brightness (B)\n"   \
    "modulation.\n"   \
    "\n"   \
+   "Right click on 'B' to get a \n" \
+   "list widget which is better \n" \
+   "when you have many columns \n"   \
+   "from which to choose.\n"\
+   "\n"  \
    "B values are the ones used \n"   \
    "to control the brightness of\n"   \
    "a node's color.\n"  \

@@ -361,7 +361,7 @@ int main (int argc,char *argv[])
   }
   
   /* output this distance as a color file */
-  MyColMap = SUMA_GetStandardMap(SUMA_CMAP_MATLAB_DEF_BYR64);
+  MyColMap = SUMA_FindNamedColMap("byr64");
   MyOpt = SUMA_ScaleToMapOptInit();
   MySV = SUMA_Create_ColorScaledVect(num_nodes1);
   mindistance = minimum(num_nodes1, distance);

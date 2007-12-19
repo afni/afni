@@ -33,10 +33,10 @@
 void usage_ConverDset()
 {
    static char FuncName[]={"usage_ConverDset"};
-   char *s = NULL, *sd=NULL;
+   char *s = NULL, *sd=NULL, *sm=NULL;
    s = SUMA_help_basics();
    sd = SUMA_help_dset();
-
+   sm = SUMA_help_mask();
    printf ( 
 "Usage: \n"
 "  ConvertDset -o_TYPE -input DSET [-i_TYPE] [-prefix OUT_PREF]\n"
@@ -69,6 +69,13 @@ void usage_ConverDset()
 "                              output.\n" 
 "     -prepend_node_index_1D: Add a node index column to the data, rather\n"
 "                             than keep it as part of the metadata.\n"
+"     -pad_to_node max_index: Output a full dset from node 0 \n"
+"                            to node max_index (a total of \n"
+"                            max_index + 1 nodes). Nodes that\n"
+"                            get no value from input DSET are\n"
+"                            assigned a value of 0\n"
+"                            Notice that padding get done at the\n"
+"                            very end.\n"
 "\n"
 "     -i_TYPE: TYPE of input datasets\n"
 "              where TYPE is one of:\n"
@@ -89,12 +96,15 @@ void usage_ConverDset()
 "%s"
 "\n"
 "%s"
+"\n"
+"%s"
+"\n"
 "Examples:\n"
 "1-   Plot a node's time series from a niml dataset:\n"
 "     ConvertDset -input DemoSubj_EccCntavir.niml.dset'{5779}' \\\n"
 "                 -o_1D_stdout | 1dplot -nopush -stdin \n"
-"\n", sd, s);
-   SUMA_free(s); s = NULL; SUMA_free(sd); sd = NULL; 
+"\n", sd, sm, s);
+   SUMA_free(s); s = NULL; SUMA_free(sd); sd = NULL; SUMA_free(sm); sm = NULL;  
    #ifdef SUMA_COMPILED
    s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
    #endif
@@ -112,7 +122,7 @@ int main (int argc,char *argv[])
    SUMA_DSET *dset = NULL, *dseti=NULL, *dset_m = NULL;
    char *NameOut, *prfx = NULL, *prefix = NULL;
    char *ooo=NULL, *node_index_1d = NULL, *node_mask = NULL;
-   int overwrite = 0, exists = 0, N_inmask=-1;
+   int overwrite = 0, exists = 0, N_inmask=-1, pad_to_node = -1;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -126,6 +136,7 @@ int main (int argc,char *argv[])
       exit (1);
    }
 
+   pad_to_node = -1;
    add_node_index = 0;
    prepend_node_index=0;
    iform = SUMA_NO_DSET_FORMAT;
@@ -401,7 +412,8 @@ int main (int argc,char *argv[])
    }/* loop accross command ine options */
    
    overwrite = SUMA_ok_overwrite();
- 
+   pad_to_node = MRILIB_DomainMaxNodeIndex;
+   
    if (oform == SUMA_NO_DSET_FORMAT) {
       SUMA_SL_Err("Output format MUST be specified");
       exit(1);
@@ -529,6 +541,13 @@ int main (int argc,char *argv[])
          dset = dset_m;  dset_m = NULL;       
       }
 
+      
+      if (pad_to_node >= 0) {
+         dset_m = SUMA_PaddedCopyofDset ( dset, pad_to_node );
+         SUMA_FreeDset(dset); dset = NULL;
+         dset = dset_m; dset_m = NULL;       
+      }
+      
       SUMA_LH("On to prefix ...");
       
       if (!prfx) {

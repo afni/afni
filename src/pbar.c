@@ -290,9 +290,9 @@ ENTRY("new_MCW_pbar") ;
    PBAR_define_bigmap( GREEN_CS );
    PBAR_define_bigmap( RED_CS );
    PBAR_define_bigmap( BLUE_CS );
-   PBAR_define_bigmap( ROI_32_CMD );
-   PBAR_define_bigmap( ROI_64_CMD );
-   PBAR_define_bigmap( ROI_128_CMD );
+   PBAR_define_bigmap( ROI_32_256_CMD );
+   PBAR_define_bigmap( ROI_64_256_CMD );
+   PBAR_define_bigmap( ROI_128_256_CMD );
    PBAR_define_bigmap( ROI_256_CMD );
 
    
@@ -473,14 +473,13 @@ ENTRY("PBAR_make_bigmap") ;
 }
 
 /*-----------------------------------------------------------------------*/
-#define NSBUF 128
 
 int PBAR_define_bigmap( char *cmd )
 {
   int ii , neq=0 , nonum=0 ;
   char name[NSBUF], eqn[NSBUF] , rhs[NSBUF] ;
-  float  val[NPANE_BIG] , fr,fg,fb ;
-  rgbyte col[NPANE_BIG] ;
+  float  val[NPANE_BIG+1] , fr,fg,fb ;
+  rgbyte col[NPANE_BIG+1] ;
 
 ENTRY("PBAR_define_bigmap") ;
 

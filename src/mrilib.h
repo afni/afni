@@ -35,6 +35,8 @@ extern float MRILIB_zcos[3] ;
 extern int   use_MRILIB_slicespacing ;  /* 10 Jan 2004 */
 extern float MRILIB_slicespacing ;
 
+extern int MRILIB_DomainMaxNodeIndex ;         /* 32 Dec 2007 */
+
 extern int   assume_dicom_mosaic ;   /* mri_read_dicom.c  13 Mar 2006 [rickr] */
 
 #ifdef  __cplusplus

@@ -2239,7 +2239,10 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
       for (i=0; i< cf->N_Group; ++i) if (cf->GroupList[i]) SUMA_free(cf->GroupList[i]);
       SUMA_free(cf->GroupList); cf->GroupList = NULL;
    }
-   if (cf->ROI_CM) SUMA_Free_ColorMap(cf->ROI_CM); /* free the colormap */ cf->ROI_CM = NULL;
+   #if 0 /* not anymore!, that is now a pointer copy */
+   if (cf->ROI_CM) SUMA_Free_ColorMap(cf->ROI_CM); /* free the colormap */ 
+   #endif
+   cf->ROI_CM = NULL;
    if (cf->X->FileSelectDlg) SUMA_FreeFileSelectionDialogStruct(cf->X->FileSelectDlg); cf->X->FileSelectDlg = NULL;
    if (cf->X->SumaCont) SUMA_FreeSumaContStruct (cf->X->SumaCont); cf->X->SumaCont = NULL;
    if (cf->X->DrawROI) SUMA_FreeDrawROIStruct (cf->X->DrawROI); cf->X->DrawROI = NULL;

@@ -1142,6 +1142,7 @@ int SUMA_FillNelCol (NI_element *nel, char *col_label,
 int *SUMA_GetDsetColIndex (SUMA_DSET *dset, SUMA_COL_TYPE tp, int *N_i);
 int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i);
 int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind, float *V, int FilledOnly, byte *replacemask);
+int * SUMA_DsetCol2Int (SUMA_DSET *dset, int ind, int FilledOnly);
 float * SUMA_DsetCol2Float (SUMA_DSET *dset, int ind, int FilledOnly);
 float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly);
 int SUMA_GetDsetColRange(SUMA_DSET *dset, int col_index, float range[2], int loc[2]);
@@ -1176,6 +1177,7 @@ SUMA_Boolean SUMA_NewDsetID (SUMA_DSET *dset);
 SUMA_Boolean SUMA_NewDsetID2 (SUMA_DSET *dset, char *str);
 char *SUMA_DsetColLabelCopy(SUMA_DSET *dset, int i, int addcolnum);
 char *SUMA_ColLabelCopy(NI_element *nel, int i, int addcolnum);
+SUMA_DSET * SUMA_PaddedCopyofDset ( SUMA_DSET *odset, int MaxNodeIndex );
 SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, byte *rowmask, byte *colmask, int masked_only, int keep_node_index);
 SUMA_DSET * SUMA_MaskedByNodeIndexCopyofDset(SUMA_DSET *odset, int *indexlist, int N_indexlist, byte *colmask, 
                                              int masked_only, int keep_node_index);

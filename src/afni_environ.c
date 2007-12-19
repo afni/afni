@@ -229,6 +229,8 @@ int AFNI_setenv( char *cmd )
 
 /*-------------------------------------------------------------------------*/
 
+int MRILIB_DomainMaxNodeIndex = -1;
+
 int AFNI_prefilter_args( int *argc , char **argv )
 {
    int narg=*argc , ii,jj , nused , ttt ;
@@ -240,11 +242,12 @@ int AFNI_prefilter_args( int *argc , char **argv )
 
    eee = getenv("AFNI_TRACE") ; ttt = YESSISH(eee) ;
    if( ttt )
-     fprintf(stderr,"++ AFNI_prefilter_args() processing argv[1..%d]\n",narg-1) ;
+     fprintf(  stderr,
+               "++ AFNI_prefilter_args() processing argv[1..%d]\n",narg-1) ;
 
    /*--- scan thru argv[];
          see if any should be processed now and marked as 'used up' ---*/
-
+   
    for( ii=1 ; ii < narg ; ii++ ){
 
      /*** empty argument (should never happen in Unix) ***/
@@ -275,6 +278,30 @@ int AFNI_prefilter_args( int *argc , char **argv )
        AFNI_mark_environ_done() ; used[ii] = 1 ; continue ;
      }
 
+     /*** -pad_to_node to force sparse data to a particular size ***/
+
+     if( strcmp(argv[ii],"-pad_to_node") == 0 ){
+       if( ttt ) fprintf(stderr,"++ argv[%d] is -pad_to_node\n",ii) ;
+       if (ii+1 >= narg) {
+         fprintf(stderr,"** -pad_to_node needs a positive integer.\n");
+         exit(1); 
+       }
+       used[ii] = 1 ; ii++; 
+       MRILIB_DomainMaxNodeIndex = atoi(argv[ii]);
+       if (MRILIB_DomainMaxNodeIndex < 0) { 
+         fprintf(stderr,"** parameter for -pad_to_node (%d) is negative!\n",
+                        MRILIB_DomainMaxNodeIndex);
+         exit(1); 
+       }else if (MRILIB_DomainMaxNodeIndex > 500000) {
+         fprintf(stderr,
+                  "** parameter for -pad_to_node (%d) is suspiciously large.\n"
+                  "   I hope you know what you're doing.\n", 
+                  MRILIB_DomainMaxNodeIndex );
+       }
+       used[ii] = 1; 
+       continue ;
+     }
+     
      /*** if get to here, argv[ii] is nothing special ***/
 
    } /* end of loop over argv[] */

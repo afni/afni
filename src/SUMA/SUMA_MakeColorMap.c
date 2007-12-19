@@ -126,7 +126,7 @@ int main (int argc,char *argv[])
    float **Fid=NULL, **M=NULL;
    MRI_IMAGE *im = NULL;
    float *far=NULL;
-   int AfniHex=0;
+   int AfniHex=0, freesm;
    SUMA_Boolean   brk, SkipLast, PosMap, 
                   Usage1, Usage2, Usage3, Usage4, flipud, fscolut,
                   LocalHead = NOPE;
@@ -144,6 +144,7 @@ int main (int argc,char *argv[])
    }
    
    kar = 1;
+   freesm = 1;
    fscolutname = NULL;
    fsbl0 = -1;
    fsbl1 = -1;
@@ -457,7 +458,8 @@ int main (int argc,char *argv[])
    
    if (Usage3) { /* third usage */
       if (!MapName) {
-         SM = SUMA_GetStandardMap (SUMA_StandardMapCode(StdType));
+         SM = SUMA_FindNamedColMap (StdType);
+         freesm = 0;
          if (SM == NULL) {
             fprintf (SUMA_STDERR,"Error %s: Error in SUMA_MakeColorMap.\n", FuncName);
             exit(1);
@@ -584,7 +586,7 @@ int main (int argc,char *argv[])
       if (Nind) SUMA_free(Nind);
    }
    
-   if (SM && !MapName) SUMA_Free_ColorMap(SM);
+   if (SM && !MapName && freesm) SUMA_Free_ColorMap(SM);
    if (!SUMA_Free_CommonFields(SUMAg_CF)) { SUMA_SL_Err("Failed to free commonfields."); }
    
    SUMA_RETURN (0);

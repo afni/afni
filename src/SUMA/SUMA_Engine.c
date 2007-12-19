@@ -104,22 +104,24 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                char sbuf[50], *stmp=NULL;
                
                if (EngineData->i_Dest != NextComCode ) {
-                  fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
+                  fprintf (
+                     SUMA_STDERR,
+                     "Error %s: Data not destined correctly for %s (%d).\n", \
                    FuncName, NextCom, NextComCode);
                   break;
                }
                
                /* get the CMAP */
-               if (!(cmap = SUMA_GetStandardMap (EngineData->i))) {
-                  SUMA_SLP_Err("Failed to create colormap");
+               if (!(cmap = SUMA_FindCodedColMap(EngineData->i))) {
+                  SUMA_SLP_Err("Failed to get colormap");
                   break;
                }
                
                if (cmap->N_Col > 256) {
                   SUMA_SLP_Err(  "Cannot send more\n"
-                                 "than 128 colors to\n"
+                                 "than 256 colors to\n"
                                  "AFNI.");
-                  SUMA_Free_ColorMap(cmap); cmap = NULL;
+                  cmap = NULL;
                   break;
                }
                
@@ -143,7 +145,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_SLP_Err("Failed to send CMAP to afni");
                   NI_free_element(nel) ; nel = NULL;
                   if (stmp) SUMA_free(stmp); stmp = NULL;
-                  SUMA_Free_ColorMap(cmap); cmap = NULL;
+                  cmap = NULL;
                   break;
                }
                
@@ -164,7 +166,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_SLP_Err("Failed to send CMAP to afni");
                   NI_free_element(nel) ; nel = NULL;
                   if (stmp) SUMA_free(stmp); stmp = NULL;
-                  SUMA_Free_ColorMap(cmap); cmap = NULL;
+                  cmap = NULL;
                   break;
                }
                
@@ -178,7 +180,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel, NI_BINARY_MODE ) < 0) {
                   SUMA_SLP_Err("Failed to send CMAP to afni");
                   NI_free_element(nel) ; nel = NULL;
-                  SUMA_Free_ColorMap(cmap); cmap = NULL;
+                  cmap = NULL;
                   break;
                }
                
@@ -194,13 +196,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_SLP_Err("Failed to send CMAP to afni");
                   NI_free_element(nel) ; nel = NULL;
                   if (stmp) SUMA_free(stmp); stmp = NULL;
-                  SUMA_Free_ColorMap(cmap); cmap = NULL;
+                  cmap = NULL;
                   break;
                }
                NI_free_element(nel) ; nel = NULL;
                if (stmp) SUMA_free(stmp); stmp = NULL;
                
-               SUMA_Free_ColorMap(cmap); cmap = NULL;
+               cmap = NULL;
             }
             break;
          case SE_OpenDrawnROIFileSelection:
