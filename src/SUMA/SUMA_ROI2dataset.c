@@ -162,6 +162,7 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
+      #if 0   /* now handled in main_ENTRY() */
       if (!brk && (strcmp(argv[kar], "-pad_to_node") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -171,8 +172,9 @@ int main (int argc,char *argv[])
 			pad_to = atoi(argv[kar]);
          brk = YUP;
       }
-      
-      if (!brk && ( (strcmp(argv[kar], "-pad_label") == 0) || (strcmp(argv[kar], "-pad_val") == 0) )) {
+      #endif
+      if (!brk && ( (strcmp(argv[kar], "-pad_label") == 0) || 
+                     (strcmp(argv[kar], "-pad_val") == 0) )) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (SUMA_STDERR, "need argument after -pad_label");
@@ -191,6 +193,8 @@ int main (int argc,char *argv[])
 		}   
    }   
    
+   if (MRILIB_DomainMaxNodeIndex >= 0) pad_to = MRILIB_DomainMaxNodeIndex;
+
    if (!prefix_name) {
       fprintf (SUMA_STDERR,"Error %s: No output prefix was specified.\n", FuncName);
       exit(1);

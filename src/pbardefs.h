@@ -1,3 +1,5 @@
+#define NSBUF 128    /* Place here because SUMA needs that baby too */
+
 /* ZSS: New 256-color maps.
    Each new color map is added with 
    a call to PBAR_define_bigmap in pbar.c
@@ -176,7 +178,37 @@ static char ROI_256_CMD[] = {
       "#5c0a08 #e3f92f #49ff00 #3ed78e #872cde "
       "#df5146 "
 };
+
 static char ROI_128_CMD[] = {  
+      "ROI_128 "
+      "#ed2b3e #67a84b #cb7941 #7a2eb0 #39af94 "
+      "#57fa28 #fb7dfd #a46b42 #13e94c #4b70f0 "
+      "#c8cf33 #02e79a #fcae11 #96d7fb #42358b "
+      "#0009fd #ff2bcf #9d9909 #173472 #fe7c31 "
+      "#3780c8 #1041fe #f0d260 #a19349 #45ff8a "
+      "#fd9376 #cf3fcc #c3c866 #059489 #3cfe59 "
+      "#ff0091 #fbb3a1 #c8f104 #d92a70 #86ef42 "
+      "#7b02ea #fde693 #b408b2 #1b52d4 #f687cd "
+      "#8257b9 #88100b #fa03cb #e85783 #045602 "
+      "#7d97fa #8cfe76 #1608a9 #fdff01 #ff56b9 "
+      "#0d359a #b41335 #7b07ab #3dc0c5 #feab3d "
+      "#6fc9af #0afdf9 #b9f760 #4cc50f #c067fe "
+      "#fffb5f #df7e05 #ba00de #3d954b #c636f6 "
+      "#05b7c2 #ac3d02 #0d7e3d #534fb4 #ac7119 "
+      "#ab0a85 #0667a5 #17b80f #494be9 #860b3b "
+      "#85c323 #6ddedd #3d888c #d5956d #378307 "
+      "#390872 #8463ff #24f0c6 #d1b100 #02fc73 "
+      "#90ffa8 #01c6fc #fd1017 #4407f2 #9b4450 "
+      "#03b24b #a0428e #02bf89 #4d96ff #79490c "
+      "#461ab6 #43d344 #b06dc9 #df4e04 #83d16f "
+      "#04f025 #a2fee4 #e80153 #ffa6f8 #96f718 "
+      "#5e83c0 #eb02f9 #bf0005 #cfa736 #0a7fdf "
+      "#f685a0 #000a7a #e12ba0 #046372 #d1eb91 "
+      "#740377 #39d6fc #708e1f #acb0fd #fd52fa "
+      "#01840a #0626d6 #5c0a08 #e3f92f #49ff00 "
+      "#3ed78e #872cde #df5146 "
+};
+static char ROI_128_256_CMD[] = {  
       "ROI_128 "
       "#ed2b3e #ed2b3e #67a84b #67a84b #cb7941 "
       "#cb7941 #7a2eb0 #7a2eb0 #39af94 #39af94 "
@@ -231,7 +263,24 @@ static char ROI_128_CMD[] = {
       "#3ed78e #3ed78e #872cde #872cde #df5146 "
       "#df5146 "
 };
+
 static char ROI_64_CMD[] = {  
+      "ROI_64 "
+      "#c636f6 #05b7c2 #ac3d02 #0d7e3d #534fb4 "
+      "#ac7119 #ab0a85 #0667a5 #17b80f #494be9 "
+      "#860b3b #85c323 #6ddedd #3d888c #d5956d "
+      "#378307 #390872 #8463ff #24f0c6 #d1b100 "
+      "#02fc73 #90ffa8 #01c6fc #fd1017 #4407f2 "
+      "#9b4450 #03b24b #a0428e #02bf89 #4d96ff "
+      "#79490c #461ab6 #43d344 #b06dc9 #df4e04 "
+      "#83d16f #04f025 #a2fee4 #e80153 #ffa6f8 "
+      "#96f718 #5e83c0 #eb02f9 #bf0005 #cfa736 "
+      "#0a7fdf #f685a0 #000a7a #e12ba0 #046372 "
+      "#d1eb91 #740377 #39d6fc #708e1f #acb0fd "
+      "#fd52fa #01840a #0626d6 #5c0a08 #e3f92f "
+      "#49ff00 #3ed78e #872cde #df5146 "
+};
+static char ROI_64_256_CMD[] = {  
       "ROI_64 "
       "#c636f6 #c636f6 #c636f6 #c636f6 #05b7c2 "
       "#05b7c2 #05b7c2 #05b7c2 #ac3d02 #ac3d02 "
@@ -288,6 +337,17 @@ static char ROI_64_CMD[] = {
 };
 
 static char ROI_32_CMD[] = {  
+      "ROI_32 "
+      "#43d344 #b06dc9 #df4e04 #83d16f #04f025 "
+      "#a2fee4 #e80153 #ffa6f8 #96f718 #5e83c0 "
+      "#eb02f9 #bf0005 #cfa736 #0a7fdf #f685a0 "
+      "#000a7a #e12ba0 #046372 #d1eb91 #740377 "
+      "#39d6fc #708e1f #acb0fd #fd52fa #01840a "
+      "#0626d6 #5c0a08 #e3f92f #49ff00 #3ed78e "
+      "#872cde #df5146 "
+};
+
+static char ROI_32_256_CMD[] = {  
       "ROI_32 "
       "#43d344 #43d344 #43d344 #43d344 #43d344 "
       "#43d344 #43d344 #43d344 #b06dc9 #b06dc9 "

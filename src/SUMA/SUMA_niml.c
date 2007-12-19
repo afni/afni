@@ -2951,7 +2951,6 @@ NI_element *SUMA_SOVolPar2VolPar_nel (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPa
 /*! Macro specific for SUMA_NodeVal2irgba_nel */
 #define SUMA_NODEVAL2IRGBA_CLEANUP { \
    if (node) SUMA_free(node); node = NULL;   \
-   if (CM) SUMA_Free_ColorMap (CM); CM = NULL;  \
    if (OptScl) SUMA_free(OptScl); OptScl = NULL;   \
    if (SV) SUMA_Free_ColorScaledVect (SV); SV = NULL; \
    if (rgba) SUMA_free(rgba); rgba = NULL;   \
@@ -2981,7 +2980,7 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, char *i
    static int i_in=0, *node=NULL;
    static SUMA_COLOR_MAP *CM=NULL;
    static SUMA_SCALE_TO_MAP_OPT * OptScl=NULL;
-   static SUMA_STANDARD_CMAP MapType;
+   static int MapType;
    static SUMA_COLOR_SCALED_VECT * SV=NULL;
    static byte *rgba=NULL;
    static char past_instance[50]={""};
@@ -3019,7 +3018,7 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, char *i
    if (!i_in) {
       /* first time around */
       /* create the color mapping of Cx (SUMA_CMAP_MATLAB_DEF_BYR64)*/
-      CM = SUMA_GetStandardMap (SUMA_CMAP_MATLAB_DEF_BYR64);
+      CM = SUMA_FindNamedColMap ("byr64");
       if (CM == NULL) {
          fprintf (SUMA_STDERR,"Error %s: Could not get standard colormap.\n", FuncName); 
          SUMA_RETURN (NULL);

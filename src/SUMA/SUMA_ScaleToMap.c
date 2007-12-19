@@ -175,7 +175,8 @@ SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing 
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ScaleToMap"};
-   char *IntName = NULL, *Prfx, h[9], *CmapFileName = NULL, *dbfile = NULL, *MapName=NULL; 
+   char  *IntName = NULL, *Prfx, h[9], 
+         *CmapFileName = NULL, *dbfile = NULL, *MapName=NULL; 
    MRI_IMAGE *im = NULL;
    float *far=NULL;
    int N_V, N_Int, kar, k, ii, i, icol=-1, vcol=-1, Sgn, interpmode, k3;
@@ -188,7 +189,7 @@ int main (int argc,char *argv[])
    SUMA_Boolean brk, frf, ShowMap, ShowMapdb;
    SUMA_COLOR_MAP *CM;
    SUMA_SCALE_TO_MAP_OPT * OptScl;
-   SUMA_STANDARD_CMAP MapType;
+   int MapType, freecm = 1;
    SUMA_COLOR_SCALED_VECT * SV;
    SUMA_AFNI_COLORS *SAC=NULL;
    SUMA_Boolean FromAFNI = NOPE;
@@ -196,25 +197,8 @@ int main (int argc,char *argv[])
    SUMA_Boolean LocalHead = NOPE;
    
    
-   #if 0
-   /* allocate space for CommonFields structure and initialize debug*/
-   SUMAg_CF = SUMA_Create_CommonFields ();
-   if (SUMAg_CF == NULL) {
-      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
-      exit(1);
-   }
-   SUMAg_CF->isGraphical = YUP;
-   /* fill the color maps */
-   SUMAg_CF->scm = SUMA_Build_Color_maps();
-   if (!SUMAg_CF->scm) {
-      SUMA_SL_Err("Failed to build color maps.\n");
-      exit(1);
-   }
-   SUMA_INOUT_NOTIFY_OFF;
-   #else
    SUMA_STANDALONE_INIT;
    SUMAg_CF->isGraphical = YUP;
-   #endif
    SUMA_mainENTRY;
    
    /* this is placed down here to */
@@ -499,25 +483,7 @@ int main (int argc,char *argv[])
             exit (1);
          }
          MapName = argv[kar];
-         MapType = SUMA_CMAP_UNDEFINED;
-         if (strcmp(argv[kar], "RYGBR20") == 0)    MapType = SUMA_CMAP_RGYBR20;
-         if (strcmp(argv[kar], "BW20") == 0)    MapType = SUMA_CMAP_BW20;
-         if (strcmp(argv[kar], "GRAY02") == 0)    MapType = SUMA_CMAP_GRAY02;
-         if (strcmp(argv[kar], "flpGRAY02") == 0)    MapType = SUMA_CMAP_flpGRAY02;
-         if (strcmp(argv[kar], "GRAY20") == 0)    MapType = SUMA_CMAP_GRAY20;
-         if (strcmp(argv[kar], "BGYR19") == 0)    MapType = SUMA_CMAP_BGYR19;
-         if (strcmp(argv[kar], "MATLAB_DEF_BYR64") == 0)    MapType = SUMA_CMAP_MATLAB_DEF_BYR64;
-         if (strcmp(argv[kar], "BGYR64") == 0)    MapType = SUMA_CMAP_BGYR64;
-         if (strcmp(argv[kar], "ROI64") == 0)    MapType = SUMA_CMAP_ROI64;
-         if (strcmp(argv[kar], "ROI128") == 0)    MapType = SUMA_CMAP_ROI128;
-         if (strcmp(argv[kar], "ROI256") == 0)    MapType = SUMA_CMAP_ROI256;
-   
-         if (MapType == SUMA_CMAP_UNDEFINED) {
-            /* hold till later, could be a map from SAC */
-            /*
-            fprintf (SUMA_STDERR, "Color map type not recognized.\n");
-            exit (1);*/
-         }      
+         
          brk = YUP;
       }
       
@@ -585,8 +551,9 @@ int main (int argc,char *argv[])
       if (!CM->Sgn) CM->Sgn = Sgn; 
    }else{
       /* dunno what kind of map yet. Try default first */
-      if (MapType != SUMA_CMAP_UNDEFINED) {
-         CM = SUMA_GetStandardMap (MapType);
+      if (MapName) {
+         CM = SUMA_FindNamedColMap (MapName);
+         freecm = 0;
          if (CM) {
             /* good, sign it and out you go */   
             CM->Sgn = Sgn;
@@ -839,7 +806,7 @@ int main (int argc,char *argv[])
    /* freeing time */
    if (V) SUMA_free(V);
    if (iV) SUMA_free(iV);
-   if (!FromAFNI) if (CM) SUMA_Free_ColorMap (CM); /* only free CM if it was a pointer copy from a map in SAC */
+   if (!FromAFNI && freecm) if (CM) SUMA_Free_ColorMap (CM); /* only free CM if it was a pointer copy from a map in SAC */
    if (OptScl) SUMA_free(OptScl);
    if (SV) SUMA_Free_ColorScaledVect (SV);
    #if 0
