@@ -75,13 +75,28 @@ typedef struct {
          myXtFree((cc)->mag) ; \
          myXtFree((cc)) ;      \
          (cc) = NULL ;         \
-      } break ; } while(0)
+      }} while(0)
 
 #ifdef CLUST_DEBUG
 #  define DBMALL(n) printf(" -- Realloc-ing cluster: %d\n",(n))
 #else
 #  define DBMALL(n)
 #endif
+
+/*! Duplicate an MCW_cluster */
+
+#define COPY_CLUSTER(dd,cc)                              \
+ do{ int nn ; INIT_CLUSTER(dd) ;                         \
+     (dd)->num_pt = (dd)->num_all = nn = (cc)->num_pt ;  \
+     (dd)->i   = (short *)XtMalloc(sizeof(short)*nn);    \
+     (dd)->j   = (short *)XtMalloc(sizeof(short)*nn);    \
+     (dd)->k   = (short *)XtMalloc(sizeof(short)*nn);    \
+     (dd)->mag = (float *)XtMalloc(sizeof(float)*nn);    \
+     memcpy((dd)->i  ,(cc)->i  ,sizeof(short)*nn);       \
+     memcpy((dd)->j  ,(cc)->j  ,sizeof(short)*nn);       \
+     memcpy((dd)->k  ,(cc)->k  ,sizeof(short)*nn);       \
+     memcpy((dd)->mag,(cc)->mag,sizeof(float)*nn);       \
+ } while(0)
 
 /*! Add point (ii,jj,kk) with magnitude mm to a MCW_cluster. */
 

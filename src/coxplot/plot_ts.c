@@ -283,6 +283,8 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
       mmay = (nnay < 3) ? 10
                         : (nnay < 6) ? 5 : 2 ;
    } else {
+      float dif=(ytop-ybot)*0.005f ;
+      ybot -= dif ; ytop += dif ;
       nnay = 1 ; mmay = 10 ;
    }
 
@@ -299,6 +301,9 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          }
          ylo[jj] = floor( ylo[jj]/ptop ) * ptop ;
          yhi[jj] =  ceil( yhi[jj]/ptop ) * ptop ;
+      } else {
+        float dif=(yhi[jj]-ylo[jj])*0.005f ;
+        ylo[jj] -= dif ; yhi[jj] += dif ;
       }
    }
 
@@ -567,6 +572,8 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
       mmay = (nnay < 3) ? 10
                         : (nnay < 6) ? 5 : 2 ;
    } else {
+      float dif=(ytop-ybot)*0.005f ;
+      ybot -= dif ; ytop += dif ;
       nnay = 1 ; mmay = 10 ;
    }
 

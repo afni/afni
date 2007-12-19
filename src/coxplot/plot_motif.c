@@ -541,7 +541,7 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
    ibut = 0 ;
    psfilebut = XtVaCreateManagedWidget(
                  "dialog" , xmPushButtonWidgetClass , form ,
-                    LABEL_ARG("save to file") ,
+                    LABEL_ARG("save image to file") ,
                     XmNtopAttachment  , XmATTACH_FORM ,
 
                     XmNleftAttachment   ,
@@ -583,9 +583,11 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
    } else {
 #if 0
       XtAddCallback( psprintbut , XmNactivateCallback , beep_CB ,
-                     (XtPointer) "*** AFNI_PSPRINT not defined - see README.environment" ) ;
-#else
+                     (XtPointer)"*** AFNI_PSPRINT not defined - see README.environment" );
+#elif 0
       XtSetSensitive( psprintbut , False ) ;  /* 05 Nov 2001 */
+#else
+      XtUnmanageChild( psprintbut ) ;
 #endif
    }
 
