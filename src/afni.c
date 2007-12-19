@@ -5806,6 +5806,7 @@ DUMP_IVEC3("  new_id",new_id) ;
          if( im3d->vwid->func->clu_rep != NULL ){
            free(im3d->vwid->func->clu_rep); im3d->vwid->func->clu_rep = NULL;
          }
+         DESTROY_CLARR(im3d->vwid->func->clu_list) ;
        } else if( changed ){
          mri_cluster_detail *cld ; int nc ; char *rrr ;
          VEDIT_helpize(im3d);
@@ -5822,6 +5823,8 @@ DUMP_IVEC3("  new_id",new_id) ;
            free(im3d->vwid->func->clu_rep); im3d->vwid->func->clu_rep = NULL;
          }
          if( rrr != NULL && *rrr != '\0' ) im3d->vwid->func->clu_rep = strdup(rrr) ;
+         DESTROY_CLARR(im3d->vwid->func->clu_list) ;
+         im3d->vwid->func->clu_list = mri_clusterize_array(1) ;
          AFNI_cluster_dispize(im3d,0);  /* display the results */
        }
      } else {
@@ -5833,6 +5836,7 @@ DUMP_IVEC3("  new_id",new_id) ;
        if( im3d->vwid->func->clu_rep != NULL ){
          free(im3d->vwid->func->clu_rep); im3d->vwid->func->clu_rep = NULL;
        }
+       DESTROY_CLARR(im3d->vwid->func->clu_list) ;
      }
      AFNI_set_thr_pval(im3d) ;  /* for the * marker */
    }

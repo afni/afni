@@ -382,9 +382,9 @@ typedef struct {
 /*---*/
 
 typedef struct {
-  Widget wtop , rowcol , top_lab , dataset_pb , done_pb ;
+  Widget wtop , rowcol , top_lab , dataset_pb , done_pb , dset_lab ;
   MCW_arrowval *ignore_av , *coord_av ;
-  int nrow , nall ;
+  int nrow , nall , is_open ;
   Widget *clu_rc ;
   Widget *clu_lab ;
   Widget *clu_jump_pb ;
@@ -544,6 +544,7 @@ typedef struct {
       int                 clu_num ;
       mri_cluster_detail *clu_det ;
       char               *clu_rep ;
+      MCW_cluster_array  *clu_list;
 } AFNI_function_widgets ;
 
 extern void AFNI_func_autothresh_CB(Widget,XtPointer,XtPointer) ; /* 25 Jul 2007 */
