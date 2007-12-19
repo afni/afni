@@ -515,6 +515,10 @@ L_LOOK_FOR_VOLPARAMS:
 	foreach Side (L R LR)
 		set candidate = `ls -t *.$Side.*.params`
 		if ($#candidate == 0) then
+         #Maybe names do not contain sides...
+         set candidate = `ls -t *.params`
+      endif
+      if ($#candidate == 0) then
 				#Ignore, if not found, not all hemis are there
             #set endstr = "found no vol params found for $Side side"
 				#goto L_BAD_END
@@ -550,7 +554,7 @@ L_LOOK_FOR_VOLPARAMS:
 	
 	# try for afni data set used in creating surface
    set candidate = `ls -t *.HEAD`
-	echo $#candidate $candidate
+	#echo $#candidate $candidate
 	if ($#candidate == 0) then
 				#ignore, do not complain
             set endstr = "found no afni data sets used in creating surfaces"
@@ -720,14 +724,28 @@ goto L_CREATE_SPEC_DONE
 
 L_TEST_SURF_VOL:
 
+    set l = `\ls ${subj_id}_lh.spec ${subj_id}_rh.spec ${subj_id}_lrh.spec`
+    if ($#l < 1) then
+      set endstr = "Found no spec files!"
+      echo "It is your fault Sarah"
+      goto L_BAD_END
+    endif
     echo ""
     echo "------------------------------------------------------------------"
     echo "Please verify that the datasets are aligned properly in both"
-    echo "afni and suma.  You may do this by running the following commands:"
+    echo "afni and suma.  You may do this by running something like :"
     echo ""
     echo "    cd $suma_dir"
     echo "    afni -niml &"
-    echo "    suma -spec $spec_file -sv $afni_dataset"
+    #This was meant to show multiple spec files but things get crazy...
+    set lstl = ()
+    set cnt = 1
+    while ($cnt <= 1 && $cnt <= $#l)      
+      set ll = $l[$cnt]
+      set lstl = ($lstl -spec $ll)
+      @ cnt ++
+    end
+    echo "    suma $lstl -sv $afni_dataset"
 
 goto L_TEST_SURF_VOL_DONE
 

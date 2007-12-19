@@ -1070,7 +1070,7 @@ typedef struct {
    MCW_function_list registered_slice_proj ;      /* 31 Jan 2002 */
 
    Htable *warptable ;                            /* 28 Aug 2002 */
-
+   
 } AFNI_library_type ;
 
 #ifdef MAIN

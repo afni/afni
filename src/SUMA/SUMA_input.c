@@ -2185,7 +2185,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                SUMA_SurfaceObject *SO;
                SUMA_COLOR_MAP *CM;
                SUMA_SCALE_TO_MAP_OPT * OptScl;
-               SUMA_STANDARD_CMAP MapType;
+               int MapType;
                SUMA_COLOR_SCALED_VECT * SV;
                float IntRange[2], *Vsort;
                float * attr_sm;
@@ -2213,7 +2213,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                if (attr_sm) SUMA_free(attr_sm);
 
                fprintf(SUMA_STDOUT, "%s: Use SUMA_ScaleToMap to colorize Conv.txt and display it on surface.\n", FuncName);
-               CM = SUMA_GetStandardMap (SUMA_CMAP_nGRAY20);
+               CM = SUMA_FindNamedColMap ("ngray20");
                if (CM == NULL) {
                   fprintf (SUMA_STDERR,"Error %s: Could not get standard colormap.\n", FuncName);
                   exit (1); 
@@ -2259,7 +2259,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                   /* free */
                   if (Vsort) SUMA_free(Vsort);
-                  if (CM) SUMA_Free_ColorMap (CM);
                    if (OptScl) SUMA_free(OptScl);
                   if (SV) SUMA_Free_ColorScaledVect (SV);
                   if (Cx) {

@@ -52,7 +52,9 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void);
 void SUMA_Free_ColorScaledVect (SUMA_COLOR_SCALED_VECT * S);
 SUMA_COLOR_SCALED_VECT * SUMA_Create_ColorScaledVect(int N_Node);
 SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V, float Vmin, float Vmax, SUMA_COLOR_MAP *ColMap, SUMA_SCALE_TO_MAP_OPT *Opt, SUMA_COLOR_SCALED_VECT * SV);
-SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname);
+SUMA_COLOR_MAP * SUMA_MakeStandardMap (char *mapname);
+SUMA_COLOR_MAP *SUMA_FindNamedColMap(char *Name);
+SUMA_COLOR_MAP *SUMA_FindCodedColMap(int imap); 
 float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float *PercRangeVal, int *iPercRange);
 double * SUMA_dPercRange (double *V, double *Vsort, int N_V, double *PercRange, double *PercRangeVal, int *iPercRangeVal);
 SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SUMA_Boolean SkipLast, char *Name);
@@ -89,8 +91,8 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleColorPlaneList (SUMA_SurfaceObject *SO)
 void SUMA_RefreshDsetList (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_SurfaceObject *SO, SUMA_DO *dov, int N_dov);
 char *SUMA_CmapModeName (SUMA_COLORMAP_INTERP_MODE mapmode);
-SUMA_STANDARD_CMAP SUMA_StandardMapCode (char *Name);
-char *SUMA_StandardMapName (SUMA_STANDARD_CMAP mapcode, int *N_col);
+int SUMA_StandardMapCode (char *Name);
+char *SUMA_StandardMapName (int mapcode, int *N_col);
 SUMA_COLOR_MAP *SUMA_Linearize_Color_Map (SUMA_COLOR_MAP* SM, int N_lin);
 SUMA_COLOR_MAP *SUMA_Read_Color_Map_1D (char *Name);
 SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V, 
@@ -126,6 +128,13 @@ SUMA_Boolean SUMA_NewSurfaceGeometry(SUMA_SurfaceObject *SO);
 int SUMA_GetNodeOverInd (SUMA_OVERLAYS *Sover, int node);
 SUMA_Boolean SUMA_isDsetColumn_inferred(SUMA_DSET *dset, int icol);
 SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO);
+SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd);
+static char SUMA_COLOR_MAP_NAMES[][32]={
+         "rgybr20"   , "bgyr19"  , "gray02"  ,
+         "gray_i02"  , "gray20"  , "ngray20" ,
+         "bw20"      , "byr64"   , "bgyr64"  , 
+         "ygbrp256"  , "ygbrp128", "ygbrp64",
+         "\0" };
 
 
 

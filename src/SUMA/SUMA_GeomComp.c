@@ -6875,7 +6875,9 @@ SUMA_Boolean SUMA_ShowPatch (SUMA_PATCH *Patch, FILE *Out)
    mode (int) 0: nice contour, not necessarily outermost boundary
               1: outermost edge, might look a tad jagged
 */
-SUMA_CONTOUR_EDGES * SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, int N_Node, int *N_ContEdges, int ContourMode, SUMA_PATCH *UseThisPatch)
+SUMA_CONTOUR_EDGES * SUMA_GetContour (
+         SUMA_SurfaceObject *SO, int *Nodes, int N_Node, 
+         int *N_ContEdges, int ContourMode, SUMA_PATCH *UseThisPatch)
 {
    static char FuncName[]={"SUMA_GetContour"};
    SUMA_EDGE_LIST * SEL=NULL;
@@ -6944,17 +6946,22 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (SUMA_SurfaceObject *SO, int *Nodes, int N_
                   Tri1 = SEL->ELps[i][1];
                   Tri2 = SEL->ELps[i+1][1];
                   sHits = Patch->nHits[Tri1] + Patch->nHits[Tri2];
-                  if (sHits == 5 || sHits == 4) { /* one tri with 3 hits and one with 2 hits or 2 Tris with 2 hits each */
-                     /* Pick edges that are part of only one triangle with three hits */
-                                                 /* or two triangles with two hits */
-                     /* There's one more condition, both nodes have to be a part of the original list */
+                  if (sHits == 5 || sHits == 4) { 
+                     /* one tri with 3 hits and one with 2 hits 
+                        or 2 Tris with 2 hits each */
+                     /* Pick edges that are part of only one 
+                        triangle with three hits */
+                     /* or two triangles with two hits */
+                     /* There's one more condition, both nodes 
+                        have to be a part of the original list */
                      if (isNode[SEL->EL[i][0]] && isNode[SEL->EL[i][1]]) {
                         CE[*N_ContEdges].n1 = SEL->EL[i][0];
                         CE[*N_ContEdges].n2 = SEL->EL[i][1];
                         ++ *N_ContEdges;
 
                         if (LocalHead) {
-                           fprintf (SUMA_STDERR,"%s: Found edge made up of nodes [%d %d]\n",
+                           fprintf (SUMA_STDERR,
+                                    "%s: Found edge made up of nodes [%d %d]\n",
                               FuncName, SEL->EL[i][0], SEL->EL[i][1]);
                         }
                      }

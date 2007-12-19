@@ -5098,12 +5098,19 @@ void SUMA_CreateDrawROIWindow(void)
    \sa SUMA_FreeScrolledList
    
 */   
-SUMA_LIST_WIDGET * SUMA_AllocateScrolledList (char *Label, int SelectPolicy, 
-                                                SUMA_Boolean RemoveDups, SUMA_Boolean ShowSorted,
-                                                Widget PosRef, SUMA_WINDOW_POSITION Pos,
-                                                void (*Default_cb)(Widget w, XtPointer data, XtPointer calldata), void *Default_Data,
-                                                void (*Select_cb)(Widget w, XtPointer data, XtPointer calldata), void *Select_Data,
-                                                void (*CloseList_cb)(Widget w, XtPointer data, XtPointer calldata), void *CloseList_Data)
+SUMA_LIST_WIDGET * SUMA_AllocateScrolledList (
+      char *Label, int SelectPolicy, 
+      SUMA_Boolean RemoveDups, SUMA_Boolean ShowSorted,
+      Widget PosRef, SUMA_WINDOW_POSITION Pos,
+      void (*Default_cb)
+            (Widget w, XtPointer data, XtPointer calldata), 
+      void *Default_Data,
+      void (*Select_cb)
+            (Widget w, XtPointer data, XtPointer calldata), 
+      void *Select_Data,
+      void (*CloseList_cb)
+            (Widget w, XtPointer data, XtPointer calldata), 
+      void *CloseList_Data)
 {
    static char FuncName[]={"SUMA_AllocateScrolledList"};
    SUMA_LIST_WIDGET *LW = NULL;

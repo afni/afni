@@ -5,6 +5,7 @@
 ******************************************************************************/
 
 #include "to3d.h"
+
 extern void mri_read_dicom_reset_obliquity();
 extern void mri_read_dicom_get_obliquity(float *);
 

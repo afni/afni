@@ -726,7 +726,10 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
 }
 
 /* changes you do here should be reflected under SE_SetSurfCont in SUMA_Engine*/
-int SUMA_SwitchColPlaneIntensity(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, int ind, int setmen)
+int SUMA_SwitchColPlaneIntensity (
+         SUMA_SurfaceObject *SO, 
+         SUMA_OVERLAYS *colp, 
+         int ind, int setmen)
 {
    static char FuncName[]={"SUMA_SwitchColPlaneIntensity"};
    char srange[500];
@@ -734,9 +737,13 @@ int SUMA_SwitchColPlaneIntensity(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, in
    
    SUMA_ENTRY;
 
-   if (!SO || !SO->SurfCont || !SO->SurfCont->curColPlane || !colp || ind < 0 || !colp->dset_link) { SUMA_RETURN(0); }
+   if (  !SO || !SO->SurfCont || 
+         !SO->SurfCont->curColPlane || 
+         !colp || ind < 0 || !colp->dset_link) { SUMA_RETURN(0); }
    if (LocalHead) {
-      fprintf(SUMA_STDERR, "%s:\n request to switch intensity to col. %d\n", FuncName, ind);
+      fprintf( SUMA_STDERR, 
+               "%s:\n request to switch intensity to col. %d\n", 
+               FuncName, ind);
       fprintf(SUMA_STDERR, "SO->Label = %s\n", SO->Label);
    }
    if (ind >= SDSET_VECNUM(colp->dset_link)) {
@@ -877,6 +884,81 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    SUMA_SwitchColPlaneThreshold(SO, SO->SurfCont->curColPlane, imenu -1, 0);
    SUMA_RETURNe;
 }
+
+int SUMA_SwitchColPlaneBrightness(
+         SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+         int ind, int setmen)
+{
+   static char FuncName[]={"SUMA_SwitchColPlaneBrightness"};
+   char srange[500];
+   float range[2]; int loc[2];  
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (  !SO || !SO->SurfCont || !SO->SurfCont->curColPlane || 
+         !colp || ind < -1 || !colp->dset_link) { SUMA_RETURN(0); }
+   
+   
+   if (LocalHead) {
+      fprintf(SUMA_STDERR, 
+         "%s:\n request to switch brightness to col. %d\n", FuncName, ind);
+   }
+   if (ind < 0) {
+      /* turn brightness off */
+      XmToggleButtonSetState (SO->SurfCont->Brt_tb, NOPE, YUP);
+      SUMA_RETURN(1);
+   } 
+   
+   if (ind >= SDSET_VECNUM(colp->dset_link)) {
+      SUMA_S_Errv("Col. Index of %d exceeds maximum of %d for this dset.\n",
+                  ind, SDSET_VECNUM(colp->dset_link)-1);
+      SUMA_RETURN(0);
+   }
+   colp->OptScl->bind = ind;
+
+   /* make sure brightness is on if command is not from the interface*/
+   if (setmen && !colp->OptScl->UseBrt && colp->OptScl->bind >= 0) {
+      colp->OptScl->UseBrt = YUP;
+      XmToggleButtonSetState (SO->SurfCont->Brt_tb, YUP, NOPE);
+   }
+   
+   if (setmen && colp == SO->SurfCont->curColPlane) {
+      XtVaSetValues( SO->SurfCont->SwitchBrtMenu[0], 
+                     XmNmenuHistory , 
+                     SO->SurfCont->SwitchBrtMenu[colp->OptScl->bind+1] , 
+                     NULL ) ; 
+   }
+   
+   if (SUMA_GetDsetColRange(colp->dset_link, colp->OptScl->bind, range, loc)) {   
+      SUMA_SetScaleRange(SO, range );
+   }else {
+      SUMA_SLP_Err("Failed to get range");
+      SUMA_RETURN(0);
+   }
+    
+   SUMA_InitRangeTable(SO, -1) ;
+   
+   SUMA_UpdateNodeValField(SO);
+   
+   if (!colp->OptScl->UseBrt) { SUMA_RETURN(0); } /* nothing else to do */
+
+   if (!SUMA_ColorizePlane (colp)) {
+         SUMA_SLP_Err("Failed to colorize plane.\n");
+         SUMA_RETURN(0);
+   }
+   
+   SUMA_RemixRedisplay(SO);
+
+   #if SUMA_SEPARATE_SURF_CONTROLLERS
+      SUMA_UpdateColPlaneShellAsNeeded(SO);
+   #endif
+   
+   SUMA_UpdateNodeLblField(SO);
+
+   SUMA_RETURN(1);
+}
+
 
 void SUMA_cb_SwitchBrightness(Widget w, XtPointer client_data, XtPointer call)
 {
@@ -2751,7 +2833,7 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          SUMA_BuildMenu (SO->SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
                            "I", '\0', YUP, SwitchInt_Menu, 
                            (void *)SO, 
-                           "Select Intensity (I) column", 
+                           "Select Intensity (I) column (BHelp for more)", 
                            SUMA_SurfContHelp_SelInt,
                            SO->SurfCont->SwitchIntMenu );
          XtInsertEventHandler( SO->SurfCont->SwitchIntMenu[0] ,      /* handle events in optmenu */
@@ -2785,7 +2867,7 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          SUMA_BuildMenu (SO->SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
                            "T", '\0', YUP, SwitchThr_Menu, 
                            (void *)SO,  
-                           "Select Threshold (T) column", 
+                           "Select Threshold (T) column (BHelp for more)", 
                            SUMA_SurfContHelp_SelThr ,    
                            SO->SurfCont->SwitchThrMenu );
          XtInsertEventHandler( SO->SurfCont->SwitchThrMenu[0] ,      /* handle events in optmenu */
@@ -2818,7 +2900,7 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          SUMA_BuildMenu (SO->SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
                            "B", '\0', YUP, SwitchBrt_Menu, 
                            (void *)SO,  
-                           "Select Brightness (B) column", 
+                           "Select Brightness (B) column (BHelp for more)", 
                            SUMA_SurfContHelp_SelBrt,
                            SO->SurfCont->SwitchBrtMenu );
          XtInsertEventHandler( SO->SurfCont->SwitchBrtMenu[0] ,      /* handle events in optmenu */
@@ -3202,18 +3284,22 @@ void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO)
          (more additions for sub-menus, see how SUMA_BuildMenu works )*/
       SO->SurfCont->SwitchCmapMenu = (Widget *)SUMA_malloc(sizeof(Widget)*(SUMAg_CF->scm->N_maps+1));  
       SUMA_BuildMenuReset(10);
-      SO->SurfCont->N_CmapMenu = SUMA_BuildMenu (SO->SurfCont->rc_CmapCont, XmMENU_OPTION, /* populate it */
-                        "Cmp", '\0', YUP, SwitchCmap_Menu, 
-                        (void *)SO,  
-                        "Switch between available color maps. (BHelp for more)", 
-                        SUMA_SurfContHelp_Cmp, 
-                        SO->SurfCont->SwitchCmapMenu );
-      XtInsertEventHandler( SO->SurfCont->SwitchCmapMenu[0] ,      /* handle events in optmenu */
-                        ButtonPressMask ,  /* button presses */
-                        FALSE ,            /* nonmaskable events? */
-                        SUMA_optmenu_EV ,  /* handler */
-                        (XtPointer) SO ,   /* client data */
-                        XtListTail ) ;
+      SO->SurfCont->N_CmapMenu = 
+         SUMA_BuildMenu (  SO->SurfCont->rc_CmapCont, 
+                           XmMENU_OPTION, /* populate it */
+                           "Cmp", '\0', YUP, SwitchCmap_Menu, 
+                           (void *)SO,  
+                           "Switch between available color maps."
+                           " (BHelp for more)", 
+                           SUMA_SurfContHelp_Cmp, 
+                           SO->SurfCont->SwitchCmapMenu );
+      XtInsertEventHandler( SO->SurfCont->SwitchCmapMenu[0] ,      
+                                               /* handle events in optmenu */
+                            ButtonPressMask ,  /* button presses */
+                            FALSE ,            /* nonmaskable events? */
+                            SUMA_optmenu_EV ,  /* handler */
+                            (XtPointer) SO ,   /* client data */
+                            XtListTail ) ;
       XtManageChild (SO->SurfCont->SwitchCmapMenu[0]);
       /* Now destroy the SwitchCmap_Menu */
       SwitchCmap_Menu = SUMA_FreeMenuVector(SwitchCmap_Menu, SUMAg_CF->scm->N_maps);
@@ -3405,10 +3491,37 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleCmapList(SUMA_COLOR_MAP **CMv, int N_ma
    SUMA_RETURN(clist_str);
 }
 
+SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleDsetColList(SUMA_DSET *dset) 
+{
+   static char FuncName[]={"SUMA_AssembleDsetColList"};
+   SUMA_ASSEMBLE_LIST_STRUCT *clist_str = NULL;  
+   int i;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (SDSET_VECNUM(dset) < 1) SUMA_RETURNe;
+   
+   clist_str = SUMA_CreateAssembleListStruct();
+   clist_str->clist = (char **)SUMA_calloc(SDSET_VECNUM(dset), sizeof(char *));
+   clist_str->oplist = (void **)SUMA_calloc(SDSET_VECNUM(dset), sizeof(void *));
+   clist_str->N_clist = SDSET_VECNUM(dset);
+   
+   for (i=0; i<SDSET_VECNUM(dset); ++i) {
+      clist_str->clist[SDSET_VECNUM(dset)-1-i] = 
+                  SUMA_DsetColLabelCopy(dset,i, 1);
+      clist_str->oplist[SDSET_VECNUM(dset)-1-i] = (XtPointer)i;
+   }
+   
+   SUMA_RETURN(clist_str);
+}
+
 /*!
    \brief opens a list selection for choosing a Dset column 
 */
-SUMA_Boolean SUMA_DsetColSelectList(SUMA_SurfaceObject *SO, int type)
+SUMA_Boolean SUMA_DsetColSelectList(
+         SUMA_SurfaceObject *SO, int type, 
+         int refresh, int bringup)
 {
    static char FuncName[]={"SUMA_DsetColSelectList"};
    SUMA_LIST_WIDGET *LW = NULL;
@@ -3418,7 +3531,6 @@ SUMA_Boolean SUMA_DsetColSelectList(SUMA_SurfaceObject *SO, int type)
    
    SUMA_LH("Called");
    
-   #if 0 /* not ready yet */
    if (!SO || !SO->SurfCont) SUMA_RETURN(NOPE);
    
    /* Widget is common to a surface controller. */
@@ -3428,28 +3540,72 @@ SUMA_Boolean SUMA_DsetColSelectList(SUMA_SurfaceObject *SO, int type)
          if (!LW) {
             SUMA_LH("Allocating widget");
             /* need to create widget */
-            LW = SUMA_AllocateScrolledList   (  "Switch Intensity", SUMA_LSP_BROWSE,
-                                                NOPE,          NOPE,
-                                                SO->SurfCont->TopLevelShell, SWP_POINTER_OFF,
-                                                SUMA_cb_SelectSwitchInt, (void *)SO,
-                                                SUMA_cb_SelectSwitchInt, (void *)SO,
-                                                SUMA_cb_CloseSwitchInt, NULL);
+            LW = SUMA_AllocateScrolledList   (  
+                  "Switch Intensity", SUMA_LSP_BROWSE,
+                  NOPE,          NOPE,
+                  SO->SurfCont->TopLevelShell, SWP_POINTER_OFF,
+                  SUMA_cb_SelectSwitchInt, (void *)SO,
+                  SUMA_cb_SelectSwitchInt, (void *)SO,
+                  SUMA_cb_CloseSwitchLst, NULL);
 
             SO->SurfCont->SwitchIntLst = LW;
             refresh = 1; /* no doubt aboot it */
          } else {
-            /* STOPPED HERE, figure out what that block does below, all that's next was for the Cmp equivalent...*/
-            if ((void *)SO != LW->Default_Data || (void *)SO != LW->Select_Data) {
+            if (  (void *)SO != LW->Default_Data || 
+                  (void *)SO != LW->Select_Data) {
                /* just update the callback data info in LW */
                SUMA_UpdateScrolledListData(LW, (void *)SO, (void *)SO, NULL);
             }
+            
          }
          break;
       case 1:
          LW = SO->SurfCont->SwitchThrLst;
+         if (!LW) {
+            SUMA_LH("Allocating widget");
+            /* need to create widget */
+            LW = SUMA_AllocateScrolledList   (  
+                  "Switch Intensity", SUMA_LSP_BROWSE,
+                  NOPE,          NOPE,
+                  SO->SurfCont->TopLevelShell, SWP_POINTER_OFF,
+                  SUMA_cb_SelectSwitchThr, (void *)SO,
+                  SUMA_cb_SelectSwitchThr, (void *)SO,
+                  SUMA_cb_CloseSwitchLst, NULL);
+
+            SO->SurfCont->SwitchThrLst = LW;
+            refresh = 1; /* no doubt aboot it */
+         } else {
+            if (  (void *)SO != LW->Default_Data || 
+                  (void *)SO != LW->Select_Data) {
+               /* just update the callback data info in LW */
+               SUMA_UpdateScrolledListData(LW, (void *)SO, (void *)SO, NULL);
+            }
+            
+         }
          break;
       case 2:
          LW = SO->SurfCont->SwitchBrtLst;
+         if (!LW) {
+            SUMA_LH("Allocating widget");
+            /* need to create widget */
+            LW = SUMA_AllocateScrolledList   (  
+                  "Switch Intensity", SUMA_LSP_BROWSE,
+                  NOPE,          NOPE,
+                  SO->SurfCont->TopLevelShell, SWP_POINTER_OFF,
+                  SUMA_cb_SelectSwitchBrt, (void *)SO,
+                  SUMA_cb_SelectSwitchBrt, (void *)SO,
+                  SUMA_cb_CloseSwitchLst, NULL);
+
+            SO->SurfCont->SwitchBrtLst = LW;
+            refresh = 1; /* no doubt aboot it */
+         } else {
+            if (  (void *)SO != LW->Default_Data || 
+                  (void *)SO != LW->Select_Data) {
+               /* just update the callback data info in LW */
+               SUMA_UpdateScrolledListData(LW, (void *)SO, (void *)SO, NULL);
+            }
+            
+         }
          break;
       default:
          SUMA_SL_Err("Unexpected type");
@@ -3463,26 +3619,308 @@ SUMA_Boolean SUMA_DsetColSelectList(SUMA_SurfaceObject *SO, int type)
          LW->ALS = SUMA_FreeAssembleListStruct(LW->ALS);
       }
       SUMA_LH("Assembling");
-      LW->ALS = SUMA_AssembleCmapList(SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps);
+      LW->ALS = SUMA_AssembleDsetColList(SO->SurfCont->curColPlane->dset_link);
       if (!LW->ALS) {
          SUMA_SL_Err("Failed to assemble list");
          SUMA_RETURN(NOPE);
       }
       if (LW->ALS->N_clist < 0) {
-         SUMA_SL_Err("Failed in SUMA_AssembleCmapList");
+         SUMA_SL_Err("Failed in SUMA_AssembleDsetColList");
          SUMA_RETURN(NOPE);
       }
       if (!LW->ALS->N_clist) {
-         SUMA_SLP_Note ("No cmaps to choose from.");
+         SUMA_SLP_Note ("No Dset Cols to choose from.");
          SUMA_RETURN(NOPE);
       }
    }
    
-   if (bringup) SUMA_CreateScrolledList ( LW->ALS->clist, LW->ALS->N_clist, NOPE, LW);
-   #endif
+   if (bringup) 
+      SUMA_CreateScrolledList ( LW->ALS->clist, LW->ALS->N_clist, NOPE, LW);
    
    SUMA_RETURN(YUP);
 }
+
+
+int SUMA_GetListIchoice(XmListCallbackStruct *cbs, 
+                        SUMA_LIST_WIDGET *LW, 
+                        SUMA_Boolean *CloseShop)
+{
+   static char FuncName[]={"SUMA_GetListIchoice"};
+   int ichoice;
+   char *choice=NULL;
+   SUMA_Boolean Found = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   *CloseShop = NOPE;
+   ichoice = -1;
+   if (!LW) {
+      SUMA_S_Err("NULL LW!");
+      SUMA_RETURN(ichoice);
+   }
+
+
+   if (  cbs->reason == XmCR_SINGLE_SELECT || 
+         cbs->reason == XmCR_BROWSE_SELECT) {
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,
+                  "%s: Single selection (reason %d, (%d, %d)),\n"
+                  "list widget %s... \n", 
+               FuncName, cbs->reason, 
+               XmCR_SINGLE_SELECT, XmCR_BROWSE_SELECT , LW->Label);
+   } else {
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,
+                  "%s: Default selection (reason %d, (%d, %d)),\n"
+                  "list widget %s... \n", 
+                  FuncName, cbs->reason, 
+                  XmCR_SINGLE_SELECT, XmCR_BROWSE_SELECT, LW->Label);
+      /*double click or enter on that one, close shop after selection */
+      *CloseShop = YUP;
+   }
+
+   XmStringGetLtoR (cbs->item, XmFONTLIST_DEFAULT_TAG, &choice);
+
+   if (LocalHead) 
+      fprintf (SUMA_STDERR,
+               "%s: Selected item: %s {%s} (%d)\n", 
+               FuncName, choice, choice, cbs->item_position);
+   /* because of sorting, choice cannot be used 
+      as an index into clist and oplist in ALS */
+   Found = NOPE;
+   ichoice = 0;
+   do {
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: Comparing:\t>%s<\t>%s<\n", 
+                  FuncName, LW->ALS->clist[ichoice], choice);
+      if (strncmp(LW->ALS->clist[ichoice], 
+                  choice, strlen(choice)) == 0) Found = YUP; 
+      else ++ichoice;
+   } while (ichoice < LW->ALS->N_clist && !Found);
+
+   if (!Found) {
+      SUMA_SLP_Err("Choice not found.");
+      SUMA_RETURN(-1);
+   }
+
+   XtFree (choice);
+   SUMA_RETURN(ichoice);
+}
+/*!
+   \brief function that handles switching intensity from the list widget 
+   \sa SUMA_cb_SwitchIntensity
+*/
+void SUMA_cb_SelectSwitchInt (
+         Widget w, XtPointer client_data, 
+         XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_SelectSwitchInt"};
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_LIST_WIDGET *LW = NULL;
+   XmListCallbackStruct *cbs = (XmListCallbackStruct *) call_data;
+   int ichoice;
+   SUMA_Boolean CloseShop = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   SO = (SUMA_SurfaceObject *)client_data;
+   LW = SO->SurfCont->SwitchIntLst;
+   
+   ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
+   
+
+   if (!SUMA_SelectSwitchDsetCol(SO, LW, 0, ichoice)) {
+      SUMA_S_Err("Failed to SelectSwitchDsetCol");
+      SUMA_RETURNe;
+   }
+   
+   if (CloseShop) {
+      SUMA_cb_CloseSwitchLst( w,  (XtPointer)LW,  call_data);
+   }  
+   
+   /* update Lbl fields */
+   SUMA_UpdateNodeLblField(SO);
+
+   SUMA_RETURNe;
+}
+void SUMA_cb_SelectSwitchThr (
+         Widget w, XtPointer client_data, 
+         XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_SelectSwitchThr"};
+   SUMA_SurfaceObject *SO = NULL;
+   XmListCallbackStruct *cbs = (XmListCallbackStruct *) call_data;
+   SUMA_Boolean CloseShop = NOPE;
+   SUMA_LIST_WIDGET *LW = NULL;
+   int ichoice;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   SO = (SUMA_SurfaceObject *)client_data;
+   LW = SO->SurfCont->SwitchThrLst;
+   
+   ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
+   
+   if (!SUMA_SelectSwitchDsetCol(SO, LW, 1, ichoice)) {
+      SUMA_S_Err("Failed to SelectSwitchDsetCol");
+      SUMA_RETURNe;
+   }
+
+   if (CloseShop) {
+      SUMA_cb_CloseSwitchLst( w,  (XtPointer)LW,  call_data);
+   }  
+   
+   /* update Lbl fields */
+   SUMA_UpdateNodeLblField(SO);
+
+   SUMA_RETURNe;
+}
+void SUMA_cb_SelectSwitchBrt (
+         Widget w, XtPointer client_data, 
+         XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_SelectSwitchBrt"};
+   SUMA_SurfaceObject *SO = NULL;
+   XmListCallbackStruct *cbs = (XmListCallbackStruct *) call_data;
+   SUMA_Boolean CloseShop = NOPE;
+   SUMA_LIST_WIDGET *LW = NULL;
+   int ichoice;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   SO = (SUMA_SurfaceObject *)client_data;
+   LW = SO->SurfCont->SwitchBrtLst;
+   
+   ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
+
+   if (!SUMA_SelectSwitchDsetCol(SO, LW, 2, ichoice)) {
+      SUMA_S_Err("Failed to SelectSwitchDsetCol");
+      SUMA_RETURNe;
+   }
+   
+   if (CloseShop) {
+      SUMA_cb_CloseSwitchLst( w,  (XtPointer)LW,  call_data);
+   }  
+   
+   /* update Lbl fields */
+   SUMA_UpdateNodeLblField(SO);
+
+   SUMA_RETURNe;
+}
+
+   
+int SUMA_SelectSwitchDsetCol(
+         SUMA_SurfaceObject *SO, 
+         SUMA_LIST_WIDGET *LW, 
+         int block,
+         int ichoice)
+{
+   static char FuncName[]={"SUMA_SelectSwitchDsetCol"};
+   SUMA_MenuCallBackData data;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   if (!SO || !LW || block < 0 || block > 2 || ichoice < 0) SUMA_RETURN(0);
+   
+   /* now retrieve that choice from the 
+      SUMA_ASSEMBLE_LIST_STRUCT structure and initialize  */
+   if (LW->ALS) {
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,
+                  "%s: N_clist = %d\n", 
+                  FuncName, LW->ALS->N_clist); 
+      if (LW->ALS->N_clist > ichoice) {
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Retrieved Column indexed %d\n", 
+                     FuncName, (int)LW->ALS->oplist[ichoice]);
+         
+         switch (block){
+            case 0:
+               if (!SUMA_SwitchColPlaneIntensity
+                     (SO, SO->SurfCont->curColPlane, 
+                      (int)LW->ALS->oplist[ichoice], 1)) {
+                  SUMA_SL_Err("Failed in SUMA_SwitchColPlaneIntensity");
+               }
+               break;
+            case 1:
+               if (!SUMA_SwitchColPlaneThreshold
+                     (SO, SO->SurfCont->curColPlane, 
+                      (int)LW->ALS->oplist[ichoice], 1)) {
+                  SUMA_SL_Err("Failed in SUMA_SwitchColPlaneIntensity");
+               }
+               break;
+            case 2:
+               if (!SUMA_SwitchColPlaneBrightness
+                     (SO, SO->SurfCont->curColPlane, 
+                      (int)LW->ALS->oplist[ichoice], 1)) {
+                  SUMA_SL_Err("Failed in SUMA_SwitchColPlaneIntensity");
+               }
+               break;
+            default:
+               SUMA_S_Err("Ah NON!");
+               SUMA_RETURN(0);
+               break;
+         }
+      }
+   } else {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: NULL ALS\n", FuncName); 
+   }
+
+   SUMA_RETURN(1);
+}
+
+/*!
+   \brief function that handles closing switch * list widget 
+   expects LW in client_data
+*/
+void SUMA_cb_CloseSwitchLst (Widget w, XtPointer client_data, XtPointer call)
+{
+   static char FuncName[]={"SUMA_cb_CloseSwitchLst"};
+   SUMA_LIST_WIDGET *LW = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   SUMA_S_Note("Make Switch Cmap (SUMA_cb_CloseSwitchCmap) use me !");
+   LW = (SUMA_LIST_WIDGET *)client_data;
+   
+   #if defined SUMA_USE_WITHDRAW 
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,
+                  "%s: Withdrawing list widget %s...\n", 
+                  FuncName, LW->Label);
+      
+      XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
+         XtWindow(LW->toplevel),
+         XScreenNumberOfScreen(XtScreen(LW->toplevel)));
+   #elif defined SUMA_USE_DESTROY 
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Destroying list widget %s...\n", 
+                     FuncName, LW->Label);
+         XtDestroyWidget(LW->toplevel);
+         LW->toplevel = NULL;
+   #endif
+   
+   LW->isShaded = YUP; 
+   
+   
+   
+   SUMA_RETURNe;
+}
+
+
 /*!
    \brief opens a list selection for choosing a color map 
 */
@@ -3508,13 +3946,14 @@ SUMA_Boolean SUMA_CmapSelectList(SUMA_SurfaceObject *SO, int refresh, int bringu
    if (!LW) {
       SUMA_LH("Allocating widget");
       /* need to create widget */
-      LW = SUMA_AllocateScrolledList   (  "Switch Cmap", SUMA_LSP_BROWSE,
-                                          NOPE,          NOPE,
-                                          SO->SurfCont->TopLevelShell, SWP_POINTER_OFF,
-                                          SUMA_cb_SelectSwitchCmap, (void *)SO,
-                                          SUMA_cb_SelectSwitchCmap, (void *)SO,
-                                          SUMA_cb_CloseSwitchCmap, NULL);
-                                          
+      LW = SUMA_AllocateScrolledList   (  
+            "Switch Cmap", SUMA_LSP_BROWSE,
+            NOPE,          NOPE,
+            SO->SurfCont->TopLevelShell, SWP_POINTER_OFF,
+            SUMA_cb_SelectSwitchCmap, (void *)SO,
+            SUMA_cb_SelectSwitchCmap, (void *)SO,
+            SUMA_cb_CloseSwitchCmap, NULL);
+
       SUMAg_CF->X->SwitchCmapLst = LW;
       refresh = 1; /* no doubt aboot it */
    } else {
@@ -3627,41 +4066,8 @@ void SUMA_cb_SelectSwitchCmap (Widget w, XtPointer client_data, XtPointer call_d
    SO = (SUMA_SurfaceObject *)client_data;
    LW = SUMAg_CF->X->SwitchCmapLst;
    
-   if (!LW) {
-      SUMA_S_Err("NULL LW!");
-      SUMA_RETURNe;
-   }
-   
-   
-   if (cbs->reason == XmCR_SINGLE_SELECT || cbs->reason == XmCR_BROWSE_SELECT) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Single selection (reason %d, (%d, %d)), list widget %s... \n", 
-               FuncName, cbs->reason, XmCR_SINGLE_SELECT, XmCR_BROWSE_SELECT , LW->Label);
-   } else {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Default selection (reason %d, (%d, %d)), list widget %s... \n", 
-                  FuncName, cbs->reason, XmCR_SINGLE_SELECT, XmCR_BROWSE_SELECT, LW->Label);
-      /*double click or enter on that one, close shop after selection */
-      CloseShop = YUP;
-   }
-   
-   XmStringGetLtoR (cbs->item, XmFONTLIST_DEFAULT_TAG, &choice);
-   
-   if (LocalHead) fprintf (SUMA_STDERR,"%s: Selected item: %s {%s} (%d)\n", FuncName, choice, choice, cbs->item_position);
-   /* because of sorting, choice cannot be used as an index into clist and oplist in ALS */
-   Found = NOPE;
-   ichoice = 0;
-   do {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing:\t>%s<\t>%s<\n", FuncName, LW->ALS->clist[ichoice], choice);
-      if (strncmp(LW->ALS->clist[ichoice], choice, strlen(choice)) == 0) Found = YUP; 
-      else ++ichoice;
-   } while (ichoice < LW->ALS->N_clist && !Found);
-   
-   if (!Found) {
-      SUMA_SLP_Err("Choice not found.");
-      SUMA_RETURNe;
-   }
-   
-   XtFree (choice);
-   
+   ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
+
    /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT structure and initialize the drawing window */
    if (LW->ALS) {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: N_clist = %d\n", FuncName, LW->ALS->N_clist); 
@@ -3799,19 +4205,19 @@ void SUMA_optmenu_EV( Widget w , XtPointer cd ,
    }
    
    /* Need to create a list */
-   SUMA_LH("Now creating list ");
+   SUMA_LHv("Now creating list XtName(w)=%s \n", XtName(w));
    if (strcmp(XtName(w), "I") == 0) {
-      if (!SUMA_DsetColSelectList(SO, 0)) {
+      if (!SUMA_DsetColSelectList(SO, 0, 0, 1)) {
          SUMA_SLP_Err("Failed to create DsetList");
          SUMA_RETURNe;
       }
    } else if (strcmp(XtName(w), "T") == 0){
-      if (!SUMA_DsetColSelectList(SO, 1)) {
+      if (!SUMA_DsetColSelectList(SO, 1, 0, 1)) {
          SUMA_SLP_Err("Failed to create DsetList");
          SUMA_RETURNe;
       }
    } else if (strcmp(XtName(w), "B") == 0){
-      if (!SUMA_DsetColSelectList(SO, 2)) {
+      if (!SUMA_DsetColSelectList(SO, 2, 0, 1)) {
          SUMA_SLP_Err("Failed to create DsetList");
          SUMA_RETURNe;
       }
