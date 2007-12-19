@@ -3292,6 +3292,13 @@ STATUS("making func->rowcol") ;
                         "N.B.: Clustering cannot be done if the overlay\n"
                         "      dataset does not have a stored volume\n"
                         "      (e.g., is 'warp-on-demand' only)." ) ;
+   XtInsertEventHandler( func->clu_cluster_pb , /* handle events in button */
+                           ButtonPressMask ,    /* button presses */
+                           FALSE ,              /* nonmaskable events? */
+                           AFNI_cluster_EV ,    /* handler */
+                           (XtPointer)im3d ,    /* client data */
+                           XtListTail           /* last in queue */
+                        ) ;
 
    /*--- 30 Nov 1997: bucket managers ---*/
 
