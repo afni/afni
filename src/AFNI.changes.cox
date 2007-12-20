@@ -6501,3 +6501,6 @@
 06 Dec 2007
  * Add -jpg and -png options to 1dplot.c.
  * Add thick line drawing to mri_coxplot.c (by repeated thin line drawing).
+
+20 Dec 2007
+ * Clusterize reporting window.

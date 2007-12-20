@@ -1176,7 +1176,7 @@ ENTRY("AFNI_func_overlay") ;
 
    if( ! AFNI_GOOD_FUNC_DTYPE(im_fim->kind) ){   /* should never happen! */
      MRI_IMAGE *qim = mri_to_float(im_fim) ;     /* (but fix it if it does) */
-STATUS("had to convert im_fim to floats?????") ;
+     STATUS("had to convert im_fim to floats?????") ;
      mri_free(im_fim) ; im_fim = qim ;
    }
 

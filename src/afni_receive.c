@@ -14,7 +14,7 @@
      rmask = bitwise OR (|) mask of RECEIVE_*_MASK (cf. afni.h)
 
      cb    = callback function to receive data; will be called like
-               cb( int why , int np , void * vp , void * cb_data )
+               cb( int why , int np , void *vp , void *cb_data )
              where why = a RECEIVE_* code (cf. below)
                    np  = count of data in vp (may be 0)
                    vp  = pointer to data being sent (may be NULL)
@@ -90,8 +90,8 @@
    (but drawing can only be done in one mode).
 ---------------------------------------------------------------------*/
 
-int AFNI_receive_init( Three_D_View * im3d , int rmask ,
-                       gen_func * cb , void * cb_data  , char * cbname )
+int AFNI_receive_init( Three_D_View *im3d , int rmask ,
+                       gen_func *cb , void *cb_data  , char *cbname )
 {
    int ir ;
 
@@ -104,7 +104,7 @@ ENTRY("AFNI_receive_init") ;
        (rmask & RECEIVE_ALL_MASK) == 0 ) RETURN(-1) ; /* no action? */
 
    for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ )
-      if( im3d->vinfo->receiver[ir] == NULL ) break ;
+     if( im3d->vinfo->receiver[ir] == NULL ) break ;
 
    if( ir == im3d->vinfo->num_receiver ){
 #if 0

@@ -465,6 +465,10 @@ PLUGIN_interface * ENV_init(void)
                     "Set 1dplot-style line thickness" ,
                     0,20,3,3 , NULL ) ;
 
+   /* 20 Dec 2007 [RWCox] */
+   ENV_add_string( "AFNI_CLUSTER_PREFIX" ,
+                   "Prefix for Clusterize 1D file Saves" , 0 , NULL , NULL ) ;
+
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
    if( !AFNI_yesenv("AFNI_DONT_SORT_ENVIRONMENT") )
