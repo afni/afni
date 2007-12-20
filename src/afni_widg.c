@@ -3191,8 +3191,9 @@ STATUS("making func->rowcol") ;
                            (XtPointer)im3d ,    /* client data */
                            XtListTail           /* last in queue */
                         ) ;
-   func->cwid    = NULL ; func->clu_num = 0    ;
-   func->clu_det = NULL ; func->clu_rep = NULL ;
+   func->cwid = NULL;
+   func->clu_rep = NULL; func->clu_list = NULL; func->clu_index = -1;
+   func->clu_det = NULL; func->clu_num  = 0 ;
 
    /*-- 26 Mar 2007: rowcol for clustering stuff --*/
 

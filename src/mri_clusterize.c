@@ -5,27 +5,6 @@ static char *report = NULL ;
 char * mri_clusterize_report(void){ return report; }
 
 /*---------------------------------------------------------------------*/
-static int                 clu_num = 0 ;
-static mri_cluster_detail *clu_rep = NULL ;
-
-int mri_clusterize_details( mri_cluster_detail **cld ){
-  if( cld != NULL ) *cld = clu_rep ;
-  return clu_num ;
-}
-
-/*---------------------------------------------------------------------*/
-
-#undef  CV
-#define CV(p,q) ( ((p)<(q)) ? 1 : ((p)>(q)) ? -1 : 0 )
-
-static int compar_clu_detail( const void *a , const void *b )
-{
-  mri_cluster_detail *ca = (mri_cluster_detail *)a ;
-  mri_cluster_detail *cb = (mri_cluster_detail *)b ;
-  return CV(ca->nvox,cb->nvox) ;
-}
-
-/*---------------------------------------------------------------------*/
 static MCW_cluster_array *clarout=NULL ;
 
 MCW_cluster_array * mri_clusterize_array(int clear)
@@ -41,9 +20,10 @@ MCW_cluster_array * mri_clusterize_array(int clear)
 -----------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_clusterize( float rmm , float vmul , MRI_IMAGE *bim ,
-                                        float thr  , MRI_IMAGE *tim  )
+                            float thb , float tht  , MRI_IMAGE *tim ,
+                            int posonly )
 {
-   float dx,dy,dz , dbot , xcm,ycm,zcm , xpk,ypk,zpk , vpk,vvv ;
+   float dx,dy,dz , dbot ;
    int   nx,ny,nz , ptmin,iclu , nkeep,nkill,ncgood , nbot,ntop , ii ;
    MRI_IMAGE *cim ; void *car ;
    MCW_cluster *cl , *dl ; MCW_cluster_array *clar ;
@@ -51,7 +31,6 @@ MRI_IMAGE * mri_clusterize( float rmm , float vmul , MRI_IMAGE *bim ,
 ENTRY("mri_clusterize") ;
 
    if( report  != NULL ){ free((void *)report);  report  = NULL; }
-   if( clu_rep != NULL ){ free((void *)clu_rep); clu_rep = NULL; clu_num = 0; }
    if( clarout != NULL ){ DESTROY_CLARR(clarout); }
 
    if( bim == NULL || mri_data_pointer(bim) == NULL ) RETURN(NULL) ;
@@ -73,8 +52,11 @@ ENTRY("mri_clusterize") ;
 
    /* threshold it, if so ordered (note that tim==bim is legal) */
 
-   if( thr > 0.0f && tim != NULL )
-     mri_threshold( -thr , thr , tim , cim ) ;
+   if( tht > thb && tim != NULL )
+     mri_threshold( thb , tht , tim , cim ) ;
+
+   if( posonly )
+     mri_threshold( -1.e9 , 0.0 , cim , cim ) ;
 
    /* smallest cluster to keep */
 
@@ -97,26 +79,6 @@ ENTRY("mri_clusterize") ;
          nkeep += cl->num_pt ; ncgood++ ;
          nbot = MIN(nbot,cl->num_pt); ntop = MAX(ntop,cl->num_pt);
 
-         clu_num++ ;
-         clu_rep = (mri_cluster_detail *)realloc((void *)clu_rep,
-                                                 sizeof(mri_cluster_detail)*clu_num) ;
-         clu_rep[clu_num-1].nvox   = cl->num_pt ;
-         clu_rep[clu_num-1].volume = cl->num_pt ;
-         xcm = ycm = zcm = 0.0f ; vpk = 0.0f ;
-         for( ii=0 ; ii < cl->num_pt ; ii++ ){
-           xcm += cl->i[ii] ; ycm += cl->j[ii] ; zcm += cl->k[ii] ;
-           vvv = fabsf(cl->mag[ii]) ;
-           if( vvv > vpk ){
-             xpk = cl->i[ii] ; ypk = cl->j[ii] ; zpk = cl->k[ii] ; vpk = vvv ;
-           }
-         }
-         clu_rep[clu_num-1].xcm = xcm / cl->num_pt ;
-         clu_rep[clu_num-1].ycm = ycm / cl->num_pt ;
-         clu_rep[clu_num-1].zcm = zcm / cl->num_pt ;
-         clu_rep[clu_num-1].xpk = xpk ;
-         clu_rep[clu_num-1].ypk = ypk ;
-         clu_rep[clu_num-1].zpk = zpk ;
-
          if( clarout == NULL ) INIT_CLARR(clarout) ;
          COPY_CLUSTER(dl,cl) ; ADDTO_CLARR(clarout,dl) ;
        } else {
@@ -135,10 +97,39 @@ ENTRY("mri_clusterize") ;
                             " Number of clusters kept    =%6d\n" ,
                             nbot , ntop , ncgood ) ;
 
-     if( clu_num > 1 )
-       qsort( clu_rep , (size_t)clu_num ,
-              sizeof(mri_cluster_detail) , compar_clu_detail ) ;
    }
 
    RETURN(cim) ;
+}
+
+/*---------------------------------------------------------------------*/
+
+mri_cluster_detail mri_clusterize_detailize( MCW_cluster *cl )
+{
+   mri_cluster_detail cld ;
+   float xcm,ycm,zcm , xpk,ypk,zpk , vpk,vvv ;
+   int ii ;
+
+ENTRY("mri_clusterize_detailize") ;
+
+   if( cl == NULL || cl->num_pt <= 0 ){ cld.nvox = 0; RETURN(cld); }
+
+   cld.nvox   = cl->num_pt ;
+   cld.volume = cl->num_pt ;
+   xcm = ycm = zcm = 0.0f ; vpk = 0.0f ;
+   for( ii=0 ; ii < cl->num_pt ; ii++ ){
+     xcm += cl->i[ii] ; ycm += cl->j[ii] ; zcm += cl->k[ii] ;
+     vvv = fabsf(cl->mag[ii]) ;
+     if( vvv > vpk ){
+       xpk = cl->i[ii]; ypk = cl->j[ii]; zpk = cl->k[ii]; vpk = vvv;
+     }
+   }
+   cld.xcm = xcm / cl->num_pt ;
+   cld.ycm = ycm / cl->num_pt ;
+   cld.zcm = zcm / cl->num_pt ;
+   cld.xpk = xpk ;
+   cld.ypk = ypk ;
+   cld.zpk = zpk ;
+
+   RETURN(cld) ;
 }

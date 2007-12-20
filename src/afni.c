@@ -5794,15 +5794,13 @@ DUMP_IVEC3("  new_id",new_id) ;
            im3d->vedset.param[0] = (float)im3d->vinfo->thr_index ;
            im3d->vedset.param[1] = im3d->vinfo->func_threshold
                                   *im3d->vinfo->func_thresh_top ;
+           im3d->vedset.param[4] = im3d->vinfo->thr_sign ;
+           im3d->vedset.param[5] = im3d->vinfo->use_posfunc ;
          break ;
        }
        changed = AFNI_vedit( im3d->fim_now , im3d->vedset ) ;
        if( !DSET_VEDIT_good(im3d->fim_now) ){
          VEDIT_clear_label(im3d) ;
-         im3d->vwid->func->clu_num = 0 ;
-         if( im3d->vwid->func->clu_det != NULL ){
-           free(im3d->vwid->func->clu_det); im3d->vwid->func->clu_det = NULL;
-         }
          if( im3d->vwid->func->clu_rep != NULL ){
            free(im3d->vwid->func->clu_rep); im3d->vwid->func->clu_rep = NULL;
          }
@@ -5810,18 +5808,10 @@ DUMP_IVEC3("  new_id",new_id) ;
        } else if( changed ){
          mri_cluster_detail *cld ; int nc ; char *rrr ;
          VEDIT_helpize(im3d);
-         im3d->vwid->func->clu_num = nc = mri_clusterize_details( &cld ) ;
-         if( im3d->vwid->func->clu_det != NULL ){
-           free(im3d->vwid->func->clu_det); im3d->vwid->func->clu_det = NULL;
-         }
-         if( nc > 0 && cld != NULL ){
-           im3d->vwid->func->clu_det = malloc(sizeof(mri_cluster_detail)*nc) ;
-           memcpy( im3d->vwid->func->clu_det , cld , sizeof(mri_cluster_detail)*nc ) ;
-         }
-         rrr = mri_clusterize_report() ;
          if( im3d->vwid->func->clu_rep != NULL ){
            free(im3d->vwid->func->clu_rep); im3d->vwid->func->clu_rep = NULL;
          }
+         rrr = mri_clusterize_report() ;
          if( rrr != NULL && *rrr != '\0' ) im3d->vwid->func->clu_rep = strdup(rrr) ;
          DESTROY_CLARR(im3d->vwid->func->clu_list) ;
          im3d->vwid->func->clu_list = mri_clusterize_array(1) ;
@@ -5830,9 +5820,6 @@ DUMP_IVEC3("  new_id",new_id) ;
      } else {
        AFNI_vedit_clear( im3d->fim_now ) ; VEDIT_clear_label(im3d) ;
        AFNI_cluster_dispkill(im3d) ;
-       if( im3d->vwid->func->clu_det != NULL ){
-         free(im3d->vwid->func->clu_det); im3d->vwid->func->clu_det = NULL;
-       }
        if( im3d->vwid->func->clu_rep != NULL ){
          free(im3d->vwid->func->clu_rep); im3d->vwid->func->clu_rep = NULL;
        }

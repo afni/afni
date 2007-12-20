@@ -1,12 +1,19 @@
 #undef MAIN
 #include "afni.h"
 
-static void AFNI_cluster_textkill( Three_D_View *im3d ) ;
-static void AFNI_cluster_textize( Three_D_View *im3d , int force ) ;
 static void AFNI_cluster_widgkill( Three_D_View *im3d ) ;
 static void AFNI_cluster_widgize( Three_D_View *im3d , int force ) ;
 static void AFNI_clus_update_widgets( Three_D_View *im3d ) ;
 static MRI_IMARR * AFNI_cluster_timeseries( Three_D_View *im3d , int ncl ) ;
+static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd ) ;
+
+#undef  SET_INDEX_LAB
+#define SET_INDEX_LAB(iq) AFNI_clus_viewpoint_CB(0,0,NULL,(void *)(iq))
+
+#undef  PEAK_MODE
+#undef  CMASS_MODE
+#define PEAK_MODE  0
+#define CMASS_MODE 1
 
 /*****************************************************************************/
 /*************  Functions for all actions in the cluster group ***************/
@@ -60,10 +67,10 @@ ENTRY("AFNI_cluster_choose_CB") ;
                            "** With rmm = 0, vmul is min cluster\n"
                            "** size in voxels, and is reset to 2\n "  ,
                           MCW_USER_KILL | MCW_TIMER_KILL ) ;
-     } 
+     }
      im3d->vedset.code     = VEDIT_CLUST ;
      im3d->vedset.param[2] = rmm ;
-     im3d->vedset.param[3] = vmul ;
+     im3d->vedset.param[3] = vmul ;  /* other params set in afni.c */
      set_vedit_label(im3d,1) ;
    }
    if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
@@ -127,105 +134,14 @@ ENTRY("AFNI_clu_CB") ;
 
 void AFNI_cluster_dispkill( Three_D_View *im3d )
 {
-   if( AFNI_yesenv("AFNI_CLUSTER_TEXTWIN") )
-     AFNI_cluster_textkill(im3d) ;
-   else
-     AFNI_cluster_widgkill(im3d) ;
+   AFNI_cluster_widgkill(im3d) ;
 }
 
 void AFNI_cluster_dispize( Three_D_View *im3d , int force )
 {
-   if( AFNI_yesenv("AFNI_CLUSTER_TEXTWIN") )
-     AFNI_cluster_textize( im3d , force ) ;
-   else
-     AFNI_cluster_widgize( im3d , force ) ;
+   AFNI_cluster_widgize( im3d , force ) ;
 }
 
-/*---------------------------------------------------------------------------*/
-/*---------------------------------------------------------------------------*/
-
-static MCW_textwin *clu_twin[MAX_CONTROLLERS] ;
-
-static void AFNI_cluster_textkill( Three_D_View *im3d )
-{
-   int ic ;
-
-ENTRY("AFNI_cluster_textkill") ;
-
-   if( !IM3D_OPEN(im3d) ) EXRETURN ;
-   ic = AFNI_controller_index(im3d) ;
-   if( ic < 0 || ic >= MAX_CONTROLLERS ) EXRETURN ;
-   if( clu_twin[ic] != NULL ){
-     XtDestroyWidget(clu_twin[ic]->wshell); myXtFree(clu_twin[ic]);
-   }
-   EXRETURN ;
-}
-
-/*---------------------------------------------------------------------------*/
-
-static void AFNI_cluster_textdeath( XtPointer cb )
-{
-   int ic = (int)cb ;
-   if( ic >= 0 || ic < MAX_CONTROLLERS ) clu_twin[ic] = NULL ;
-/** fprintf(stderr,"AFNI_cluster_textdeath(%d)\n",ic) ; **/
-   return ;
-}
-
-/*---------------------------------------------------------------------------*/
-
-static void AFNI_cluster_textize( Three_D_View *im3d , int force )
-{
-   int nclu , ic , ii ;
-   char *msg , *rpt , line[80] ;
-   float px,py,pz ;
-   mri_cluster_detail *cld ;
-
-ENTRY("AFNI_cluster_textize") ;
-
-   if( !IM3D_OPEN(im3d) ) EXRETURN ;
-   ic = AFNI_controller_index(im3d) ;
-   if( ic < 0 || ic >= MAX_CONTROLLERS ) EXRETURN ;
-   if( !force && clu_twin[ic] == NULL ) EXRETURN ;
-
-   nclu = im3d->vwid->func->clu_num ;
-   cld  = im3d->vwid->func->clu_det ;
-   if( nclu == 0 || cld == NULL ){
-     AFNI_cluster_textkill(im3d) ;
-     EXRETURN ;
-   }
-
-   if( nclu > 22 ) nclu = 20 ;  /* don't get carried away */
-   msg = (char *)malloc(sizeof(char)*(nclu*99+999)) ;
-   rpt = im3d->vwid->func->clu_rep ;  /* summary report */
-   if( rpt != NULL ) strcpy(msg,rpt) ;
-   else              strcpy(msg,"Cluster Report\n") ;
-   strcat(msg ,
-           "----------------------------------\n"
-           "##  --Size-- ---Peak DICOM xyz---\n"
-         ) ;
-
-   for( ii=0 ; ii < nclu ; ii++ ){
-     MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom ,
-                cld[ii].xpk,cld[ii].ypk,cld[ii].zpk , px,py,pz ) ;
-     if( cld[ii].nvox <= 99999 )
-       sprintf(line,"%2d:%5d vox %+6.1f %+6.1f %+6.1f\n",
-               ii+1,cld[ii].nvox , px,py,pz ) ;
-     else
-       sprintf(line,"%2d:%9d %+6.1f %+6.1f %+6.1f\n",
-               ii+1,cld[ii].nvox , px,py,pz ) ;
-     strcat(msg,line) ;
-   }
-
-   if( clu_twin[ic] == NULL ){
-     clu_twin[ic] = new_MCW_textwin_2001( im3d->vwid->func->options_label ,
-                                          msg , TEXT_READONLY ,
-                                          AFNI_cluster_textdeath,(XtPointer)ic ) ;
-   } else {
-     MCW_textwin_alter( clu_twin[ic] , msg ) ;
-   }
-   free((void *)msg ) ;
-   EXRETURN ;
-}
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
 
@@ -236,8 +152,7 @@ void AFNI_cluster_EV( Widget w , XtPointer cd ,
    XButtonEvent *event = (XButtonEvent *)ev ;
    if( event->button != Button3 ) return ;
    if( im3d->vedset.code != VEDIT_CLUST ) return ;
-   if( AFNI_yesenv("AFNI_CLUSTER_TEXTWIN") ) AFNI_cluster_textize(im3d,1) ;
-   else                                      AFNI_cluster_widgize(im3d,1) ;
+   AFNI_cluster_widgize(im3d,1) ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -250,44 +165,49 @@ static void AFNI_clus_av_CB( MCW_arrowval * , XtPointer ) ;
 static void AFNI_clus_action_CB( Widget,XtPointer,XtPointer ) ;
 
 /*---------------------------------------------------------------------------*/
+static char *avlab[2] = { "Mean" , "PC#1" } ;
+
 /*! Make the widgets for one row of the cluster display/control panel.
     The row itself will not be managed at this time; that comes later. */
 
 #undef  MAKE_CLUS_ROW
 #define MAKE_CLUS_ROW(ii)                                           \
  do{ Widget rc ; char *str[1]={"abcdefghijklmn: "} ;                \
+     char *ff = (ii%2==0) ? "menu" : "dialog" ;                     \
      rc = cwid->clu_rc[ii] =                                        \
          XtVaCreateWidget(                                          \
-           "dialog" , xmRowColumnWidgetClass , cwid->rowcol ,       \
+           ff     , xmRowColumnWidgetClass , cwid->rowcol ,         \
              XmNpacking     , XmPACK_TIGHT ,                        \
              XmNorientation , XmHORIZONTAL ,                        \
              XmNadjustMargin , True ,                               \
-             XmNmarginHeight , 1 , XmNmarginWidth , 0 ,             \
+             XmNmarginHeight , 2 , XmNmarginWidth , 0 ,             \
              XmNtraversalOn , True ,                                \
            NULL ) ;                                                 \
      cwid->clu_lab[ii] = XtVaCreateManagedWidget(                   \
-            "menu" , xmLabelWidgetClass , rc ,                      \
+            ff     , xmLabelWidgetClass , rc ,                      \
             LABEL_ARG("##:xxxxx vox +xxx.x +xxx.x +xxx.x") ,        \
             XmNalignment , XmALIGNMENT_BEGINNING ,                  \
             XmNrecomputeSize , False ,  XmNtraversalOn , True ,     \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
      cwid->clu_jump_pb[ii] = XtVaCreateManagedWidget(               \
-            "menu" , xmPushButtonWidgetClass , rc ,                 \
+            ff     , xmPushButtonWidgetClass , rc ,                 \
             LABEL_ARG("Jump") , XmNtraversalOn , True ,             \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
-     cwid->clu_gave_pb[ii] = XtVaCreateManagedWidget(               \
-            "menu" , xmPushButtonWidgetClass , rc ,                 \
-            LABEL_ARG("Aver") , XmNtraversalOn , True ,             \
+     cwid->clu_aver_av[ii] = new_MCW_optmenu( rc , "\0" ,           \
+            0,1,0,0 , NULL,NULL , MCW_av_substring_CB , avlab ) ;   \
+     cwid->clu_plot_pb[ii] = XtVaCreateManagedWidget(               \
+            ff     , xmPushButtonWidgetClass , rc ,                 \
+            LABEL_ARG("Plot") , XmNtraversalOn , True ,             \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
-     cwid->clu_gpc1_pb[ii] = XtVaCreateManagedWidget(               \
-            "menu" , xmPushButtonWidgetClass , rc ,                 \
-            LABEL_ARG("PC#1") , XmNtraversalOn , True ,             \
+     cwid->clu_save_pb[ii] = XtVaCreateManagedWidget(               \
+            ff     , xmPushButtonWidgetClass , rc ,                 \
+            LABEL_ARG("Save") , XmNtraversalOn , True ,             \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
      XtAddCallback( cwid->clu_jump_pb[ii],                          \
                     XmNactivateCallback,AFNI_clus_action_CB,im3d ); \
-     XtAddCallback( cwid->clu_gave_pb[ii],                          \
+     XtAddCallback( cwid->clu_plot_pb[ii],                          \
                     XmNactivateCallback,AFNI_clus_action_CB,im3d ); \
-     XtAddCallback( cwid->clu_gpc1_pb[ii],                          \
+     XtAddCallback( cwid->clu_save_pb[ii],                          \
                     XmNactivateCallback,AFNI_clus_action_CB,im3d ); \
   } while(0)
 
@@ -379,14 +299,13 @@ ENTRY("AFNI_clus_make_widgets") ;
    /* Separator from other widgets */
 
    (void) XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass,cwid->rowcol,
-                                      XmNseparatorType   , XmSHADOW_ETCHED_IN ,
-                                      XmNshadowThickness , 3 ,
+                                      XmNseparatorType   , XmSINGLE_LINE ,
                                    NULL ) ;
 
    /* horiz rowcol for top controls */
 
    rc = XtVaCreateWidget(
-          "dialog" , xmRowColumnWidgetClass , cwid->rowcol ,
+          "menu" , xmRowColumnWidgetClass , cwid->rowcol ,
              XmNpacking      , XmPACK_TIGHT ,
              XmNorientation  , XmHORIZONTAL   ,
              XmNadjustMargin , True ,
@@ -397,30 +316,47 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    xstr = XmStringCreateLtoR( "Timeseries Dataset" , XmFONTLIST_DEFAULT_TAG ) ;
    cwid->dataset_pb = XtVaCreateManagedWidget(
-           "dialog" , xmPushButtonWidgetClass , rc ,
+           "menu" , xmPushButtonWidgetClass , rc ,
             XmNlabelString , xstr ,
             XmNtraversalOn , True  ,
          NULL ) ;
    XmStringFree(xstr) ;
    XtAddCallback( cwid->dataset_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
+   MCW_register_hint( cwid->dataset_pb , "data for Plot/Save of cluster average" ) ;
 
    /* Ignore chooser */
 
    cwid->ignore_av = new_MCW_optmenu( rc , "Ignore" , 0,19,0,0 ,
                                       AFNI_clus_av_CB , im3d , NULL,NULL ) ;
+   MCW_reghint_children( cwid->ignore_av->wrowcol , "TRs to ignore for Plot/Save" ) ;
 
-   cwid->coord_av = NULL ;  /* not yet implemented */
+   /* cmode chooser */
+
+   { static char *clab[2] = { "Peak" , "Cmass" } ;
+     cwid->cmode_av = new_MCW_optmenu( rc , "xyz" , 0,1,0,0 ,
+                        AFNI_clus_av_CB,im3d , MCW_av_substring_CB,clab ) ;
+     MCW_reghint_children( cwid->cmode_av->wrowcol , "Coordinate display type" ) ;
+   }
+
+   /* index label */
+
+   (void) XtVaCreateManagedWidget( "menu", xmSeparatorWidgetClass, rc ,
+                                      XmNorientation   , XmVERTICAL    ,
+                                      XmNseparatorType , XmSINGLE_LINE ,
+                                   NULL ) ;
+   cwid->index_lab = XtVaCreateWidget(
+                      "menu" , xmLabelWidgetClass , rc , NULL ) ;
 
    /* Done button */
 
    (void) XtVaCreateManagedWidget( "menu", xmSeparatorWidgetClass, rc ,
                                       XmNorientation   , XmVERTICAL    ,
-                                      XmNseparatorType , XmDOUBLE_LINE ,
+                                      XmNseparatorType , XmSINGLE_LINE ,
                                    NULL ) ;
    xstr = XmStringCreateLtoR( "Done" , XmFONTLIST_DEFAULT_TAG ) ;
    cwid->done_pb =
      XtVaCreateManagedWidget(
-           "dialog" , xmPushButtonWidgetClass , rc ,
+           "menu" , xmPushButtonWidgetClass , rc ,
             XmNlabelString , xstr ,
             XmNtraversalOn , True  ,
          NULL ) ;
@@ -432,15 +368,17 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    /* Time series dataset label */
 
+   (void) XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass,cwid->rowcol,
+                                      XmNseparatorType   , XmSHADOW_ETCHED_IN ,
+                                   NULL ) ;
    cwid->dset_lab = XtVaCreateManagedWidget(
-                      "menu" , xmLabelWidgetClass , cwid->rowcol , NULL ) ;
+                      "dialog" , xmLabelWidgetClass , cwid->rowcol , NULL ) ;
    AFNI_clus_dsetlabel(im3d) ;
 
    /* Separator from other widgets */
 
    (void) XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass,cwid->rowcol,
-                                      XmNseparatorType   , XmSHADOW_ETCHED_IN ,
-                                      XmNshadowThickness , 3 ,
+                                      XmNseparatorType   , XmSINGLE_LINE ,
                                    NULL ) ;
 
    /* Now create rows of widgets to display results from clusters */
@@ -452,17 +390,22 @@ ENTRY("AFNI_clus_make_widgets") ;
    cwid->clu_rc      = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
    cwid->clu_lab     = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
    cwid->clu_jump_pb = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
-   cwid->clu_gave_pb = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
-   cwid->clu_gpc1_pb = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
+   cwid->clu_plot_pb = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
+   cwid->clu_save_pb = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
+   cwid->clu_aver_av = (MCW_arrowval **) XtCalloc( num , sizeof(MCW_arrowval *) ) ;
 
    for( ii=0 ; ii < num ; ii++ ){ MAKE_CLUS_ROW(ii) ; }
-   MCW_register_hint( cwid->clu_lab[0]     , "DICOM coordinates of peak voxel" ) ;
+   MCW_register_hint( cwid->clu_lab[0]     , "DICOM coordinates of cluster (Peak or Cmass)" ) ;
    MCW_register_hint( cwid->clu_jump_pb[0] , "Set crosshairs to this point" ) ;
-   MCW_register_hint( cwid->clu_gave_pb[0] , "Plot average over cluster of Timeseries Dataset" ) ;
-   MCW_register_hint( cwid->clu_gpc1_pb[0] , "Plot principal component Timeseries" ) ;
+   MCW_register_hint( cwid->clu_plot_pb[0] , "Plot average over cluster of Timeseries Dataset" ) ;
+   MCW_register_hint( cwid->clu_save_pb[0] , "Save average timeseries to 1D file" ) ;
+   MCW_reghint_children( cwid->clu_aver_av[0]->wrowcol , "Set timeseries averaging method" ) ;
 
    XtManageChild( cwid->rowcol ) ;
    XtRealizeWidget( cwid->wtop ) ; NI_sleep(1) ;
+
+   AFNI_receive_init( im3d, RECEIVE_VIEWPOINT_MASK,
+                      AFNI_clus_viewpoint_CB, im3d, "AFNI_clus_viewpoint_CB" ) ;
    EXRETURN ;
 }
 
@@ -499,6 +442,79 @@ static void AFNI_cluster_widgkill( Three_D_View *im3d )
 }
 
 /*---------------------------------------------------------------------------*/
+/* Get the cluster index of the DICOM coords, if it exists. */
+
+static int AFNI_clus_find_xyz( Three_D_View *im3d , float x,float y,float z )
+{
+   float xf,yf,zf ; int xi,yi,zi , ii,jj,npt,nclu ;
+   MCW_cluster_array *clar ; MCW_cluster *cl ;
+
+   if( !IM3D_OPEN(im3d) || !ISVALID_DSET(im3d->fim_now) ) return -1 ;
+   clar = im3d->vwid->func->clu_list ; if( clar == NULL ) return -1 ;
+   nclu = clar->num_clu ;              if( nclu == 0    ) return -1 ;
+
+   MAT44_VEC( im3d->fim_now->daxes->dicom_to_ijk , x,y,z , xf,yf,zf ) ;
+   xi = rint(xf) ; yi = rint(yf) ; zi = rint(zf) ;
+   for( ii=0 ; ii < nclu ; ii++ ){
+     cl = clar->clar[ii] ; npt = cl->num_pt ;
+     for( jj=0 ; jj < npt ; jj++ ){
+       if( xi == cl->i[jj] && yi == cl->j[jj] && zi == cl->k[jj] ) return ii;
+     }
+   }
+   return -1 ;
+}
+
+static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   AFNI_clu_widgets *cwid ;
+   int ncl ;
+
+   if( !IM3D_VALID(im3d) ) return;
+
+   ncl = AFNI_clus_find_xyz( im3d ,
+                             im3d->vinfo->xi,im3d->vinfo->yj,im3d->vinfo->zk );
+
+   im3d->vwid->func->clu_index = ncl ;
+   cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) return ;
+   if( ncl < 0 ){
+     XtUnmanageChild( cwid->index_lab ) ;
+   } else {
+     char lab[8] ;
+     XtManageChild( cwid->index_lab ) ;
+     sprintf(lab,"#%d",ncl+1) ;
+     MCW_set_widget_label( cwid->index_lab , lab ) ;
+   }
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void AFNI_clus_makedetails( Three_D_View *im3d )
+{
+   MCW_cluster_array *clar ;
+   int ii , nclu ;
+
+ENTRY("AFNI_clus_makedetails") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+   clar = im3d->vwid->func->clu_list ;
+   if( clar == NULL ){
+     im3d->vwid->func->clu_num = 0 ;
+     free((void *)im3d->vwid->func->clu_det); im3d->vwid->func->clu_det=NULL;
+   } else {
+     im3d->vwid->func->clu_num = nclu = clar->num_clu ;
+     im3d->vwid->func->clu_det = (mri_cluster_detail *)
+                                 realloc( (void *)im3d->vwid->func->clu_det ,
+                                          sizeof(mri_cluster_detail)*nclu    );
+     for( ii=0 ; ii < nclu ; ii++ )
+       im3d->vwid->func->clu_det[ii] = mri_clusterize_detailize(clar->clar[ii]);
+   }
+
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
 
 static void AFNI_clus_update_widgets( Three_D_View *im3d )
 {
@@ -506,7 +522,7 @@ static void AFNI_clus_update_widgets( Three_D_View *im3d )
    char *rpt , *rrr ;
    mri_cluster_detail *cld ;
    int nclu , ii ;
-   float px,py,pz ;
+   float px,py,pz , xx,yy,zz ;
    char line[128] ;
    MCW_cluster_array *clar ;
 
@@ -514,13 +530,18 @@ ENTRY("AFNI_clus_update_widgets") ;
 
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
+   clar = im3d->vwid->func->clu_list ;
+   if( clar != NULL ){  /* sort and truncate */
+     nclu = clar->num_clu ; if( nclu > 16 ) nclu = 15 ;
+     SORT_CLARR(clar) ;
+     for( ii=nclu ; ii < clar->num_clu ; ii++ ){ KILL_CLUSTER(clar->clar[ii]); }
+     clar->num_clu = nclu ;
+   }
+   AFNI_clus_makedetails( im3d ) ;
+
    nclu = im3d->vwid->func->clu_num ;
    cld  = im3d->vwid->func->clu_det ;
    rpt  = im3d->vwid->func->clu_rep ;
-   if( rpt == NULL || *rpt == '\0' ) rpt = " \n --- Cluster Report --- \n " ;
-
-   if( nclu == 0 || cld == NULL ) EXRETURN ;
-   if( nclu > 17 ) nclu = 15 ;  /* don't get carried away */
 
    cwid = im3d->vwid->func->cwid ;
    if( cwid == NULL ){
@@ -528,28 +549,28 @@ ENTRY("AFNI_clus_update_widgets") ;
      cwid = im3d->vwid->func->cwid ;
    }
 
-   clar = im3d->vwid->func->clu_list ;
-   if( clar != NULL ){  /* sort and truncate */
-     SORT_CLARR(clar) ;
-     for( ii=nclu ; ii < clar->num_clu ; ii++ ){
-       KILL_CLUSTER( clar->clar[ii] ) ;
-     }
-     clar->num_clu = nclu ;
+   if( nclu == 0 || cld == NULL ){
+     for( ii=0 ; ii < cwid->nrow ; ii++ )
+       XtUnmanageChild( cwid->clu_rc[ii] ) ;
+     cwid->nrow = 0 ;  /* # of managed rows */
+     EXRETURN ;
    }
 
-   STATUS("set top_lab") ;
+   if( rpt == NULL || *rpt == '\0' ) rpt = " \n --- Cluster Report --- \n " ;
+
    rrr = malloc(strlen(rpt)+8) ; strcpy(rrr," \n") ; strcat(rrr,rpt) ;
    MCW_set_widget_label( cwid->top_lab , rrr ) ; free(rrr) ;
 
    /* make more widget rows? (1 per cluster is needed) */
 
    if( cwid->nall < nclu ){
-     STATUS("make rows") ;
      cwid->clu_rc     =(Widget *)XtRealloc((char *)cwid->clu_rc     ,nclu*sizeof(Widget));
      cwid->clu_lab    =(Widget *)XtRealloc((char *)cwid->clu_lab    ,nclu*sizeof(Widget));
      cwid->clu_jump_pb=(Widget *)XtRealloc((char *)cwid->clu_jump_pb,nclu*sizeof(Widget));
-     cwid->clu_gave_pb=(Widget *)XtRealloc((char *)cwid->clu_gave_pb,nclu*sizeof(Widget));
-     cwid->clu_gpc1_pb=(Widget *)XtRealloc((char *)cwid->clu_gpc1_pb,nclu*sizeof(Widget));
+     cwid->clu_plot_pb=(Widget *)XtRealloc((char *)cwid->clu_plot_pb,nclu*sizeof(Widget));
+     cwid->clu_save_pb=(Widget *)XtRealloc((char *)cwid->clu_save_pb,nclu*sizeof(Widget));
+     cwid->clu_aver_av=(MCW_arrowval **)XtRealloc( (char *)cwid->clu_aver_av,
+                                                   nclu*sizeof(MCW_arrowval *) ) ;
      for( ii=cwid->nall ; ii < nclu ; ii++ ){ MAKE_CLUS_ROW(ii) ; }
      cwid->nall = nclu ;
    }
@@ -557,11 +578,9 @@ ENTRY("AFNI_clus_update_widgets") ;
    /* map or unmap widget rows? */
 
    if( cwid->nrow < nclu ){
-     STATUS("mapping") ;
      for( ii=cwid->nrow ; ii < nclu ; ii++ )
        XtManageChild( cwid->clu_rc[ii] ) ;
    } else if( cwid->nrow > nclu ){
-     STATUS("unmapping") ;
      for( ii=nclu ; ii < cwid->nrow ; ii++ )
        XtUnmanageChild( cwid->clu_rc[ii] ) ;
    }
@@ -569,10 +588,13 @@ ENTRY("AFNI_clus_update_widgets") ;
 
    /* change labels for each row */
 
-   STATUS("labeling") ;
    for( ii=0 ; ii < nclu ; ii++ ){
-     MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom ,
-                cld[ii].xpk,cld[ii].ypk,cld[ii].zpk , px,py,pz ) ;
+     switch( cwid->cmode ){
+       default:
+       case PEAK_MODE:  xx=cld[ii].xpk; yy=cld[ii].ypk; zz=cld[ii].zpk; break;
+       case CMASS_MODE: xx=cld[ii].xcm; yy=cld[ii].ycm; zz=cld[ii].zcm; break;
+     }
+     MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom , xx,yy,zz , px,py,pz ) ;
      if( cld[ii].nvox <= 99999 )
        sprintf(line,"%2d:%5d vox %+6.1f %+6.1f %+6.1f",
                ii+1,cld[ii].nvox , px,py,pz ) ;
@@ -581,6 +603,8 @@ ENTRY("AFNI_clus_update_widgets") ;
                ii+1,cld[ii].nvox , px,py,pz ) ;
      MCW_set_widget_label( cwid->clu_lab[ii] , line ) ;
    }
+
+   SET_INDEX_LAB(im3d) ;
 
    EXRETURN ;
 }
@@ -679,19 +703,24 @@ ENTRY("AFNI_clus_action_CB") ;
 
    for( ii=0 ; ii < nclu ; ii++ ){
 
-     /*-- Jump to the cluster peak --*/
+     /*-- Jump to the cluster peak or cmass --*/
 
      if( w == cwid->clu_jump_pb[ii] ){
-       float px,py,pz ;
-       MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom ,
-                  cld[ii].xpk,cld[ii].ypk,cld[ii].zpk , px,py,pz ) ;
+       float px,py,pz , xx,yy,zz ;
+       switch( cwid->cmode ){
+         default:
+         case PEAK_MODE:  xx=cld[ii].xpk; yy=cld[ii].ypk; zz=cld[ii].zpk; break;
+         case CMASS_MODE: xx=cld[ii].xcm; yy=cld[ii].ycm; zz=cld[ii].zcm; break;
+       }
+       MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom , xx,yy,zz , px,py,pz ) ;
        AFNI_jumpto_dicom( im3d , px,py,pz ) ;
        EXRETURN ;
 
-     /*-- Graph the cluster timeseries --*/
+     /*-- Process the cluster timeseries --*/
 
-     } else if( w == cwid->clu_gave_pb[ii] || w == cwid->clu_gpc1_pb[ii] ){
-       int dopc = (w == cwid->clu_gpc1_pb[ii]) ;
+     } else if( w == cwid->clu_plot_pb[ii] || w == cwid->clu_save_pb[ii] ){
+       int dosave = (w == cwid->clu_save_pb[ii]) ;
+       int dopc   = (cwid->clu_aver_av[ii]->ival == 1) ;
        MRI_IMARR *imar = AFNI_cluster_timeseries(im3d,ii) ;
        MRI_IMAGE *im=NULL ;
 
@@ -701,32 +730,35 @@ ENTRY("AFNI_clus_action_CB") ;
                                 "** Need a dataset!! **\n " ,
                             MCW_USER_KILL | MCW_TIMER_KILL ) ;
          EXRETURN ;
-       } else if( IMARR_COUNT(imar) == 1 ){
+       } else if( IMARR_COUNT(imar) == 1 ){   /* should not transpire */
          im = IMARR_SUBIM(imar,0) ;
        } else if( dopc ){           /* PC#1 */
          im = mri_pcvector( imar , cwid->ignore ) ;
-       } else {                     /* Aver */
-         float *qar , *far ; int nx,nv,jj,kk ;
-         nx = IMARR_SUBIM(imar,0)->nx ; nv = IMARR_COUNT(imar) ;
-         im = mri_new( nx , 1 , MRI_float ) ; far = MRI_FLOAT_PTR(im) ;
-         for( jj=0 ; jj < nv ; jj++ ){
-           qar = MRI_FLOAT_PTR(IMARR_SUBIM(imar,jj)) ;
-           for( kk=0 ; kk < nx ; kk++ ) far[kk] += qar[kk] ;
-         }
-         for( kk=cwid->ignore ; kk < nx ; kk++ ) far[kk] /= nv ;
-         for( kk=0 ; kk < cwid->ignore ; kk++ )  far[kk] = far[cwid->ignore] ;
+       } else {                     /* Mean */
+         im = mri_meanvector( imar , cwid->ignore ) ;
        }
        if( im != NULL ){
-         char ylab[64] , tlab[THD_MAX_NAME+2] ;
-         float *far = MRI_FLOAT_PTR(im) ;
-         sprintf(ylab,"%s: Cluster #%d = %d voxels",
-                 (dopc) ? "PC#1" : "Aver" , ii+1 , IMARR_COUNT(imar) ) ;
-         sprintf(tlab,"\\noesc %s",
-                 THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL+1)) ;
-         plot_ts_xypush(1,0) ;
-         plot_ts_lab( im3d->dc->display ,
-                      im->nx , NULL , 1 , &far ,
-                      "TR index" , ylab , tlab , NULL , NULL ) ;
+         if( !dosave ){                       /* Plotting (to rule the world) */
+           char ylab[64] , tlab[THD_MAX_NAME+2] ;
+           float *far = MRI_FLOAT_PTR(im) ;
+           sprintf(ylab,"%s: Cluster #%d = %d voxels",
+                   (dopc) ? "PC#1" : "Aver" , ii+1 , IMARR_COUNT(imar) ) ;
+           sprintf(tlab,"\\noesc %s",
+                   THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL+1)) ;
+           plot_ts_xypush(1,0) ;
+           plot_ts_lab( im3d->dc->display ,
+                        im->nx , NULL , 1 , &far ,
+                        "TR index" , ylab , tlab , NULL , NULL ) ;
+
+         } else {                                       /* Saving (the world) */
+           char fnam[32] , *ppp ; int jj ;
+           ppp = getenv("AFNI_CLUSTER_PREFIX") ;
+           if( ppp == NULL || *ppp == '\0' || !THD_filename_pure(ppp) )
+             ppp = "Clust" ;
+           sprintf(fnam,"%s%02d_%s.1D",ppp,ii+1,(dopc)?"pc":"mean") ;
+           jj = mri_write_1D( fnam , im ) ;
+           if( jj ) INFO_message("Wrote file %s",fnam) ;
+         }
          if( im != IMARR_SUBIM(imar,0) ) mri_free(im) ;
        }
        DESTROY_IMARR(imar) ; EXRETURN ;
@@ -777,6 +809,10 @@ ENTRY("AFNI_clus_av_CB") ;
 
    if( av == cwid->ignore_av ){
      cwid->ignore = av->ival ; EXRETURN ;
+   } else if( av == cwid->cmode_av ){
+     cwid->cmode = av->ival ;
+     AFNI_clus_update_widgets(im3d) ;  /* redisplay coordinates */
+     EXRETURN ;
    }
 
    fprintf(stderr,"** Unknown button? **\n") ; EXRETURN ;

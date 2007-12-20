@@ -382,14 +382,15 @@ typedef struct {
 /*---*/
 
 typedef struct {
-  Widget wtop , rowcol , top_lab , dataset_pb , done_pb , dset_lab ;
-  MCW_arrowval *ignore_av , *coord_av ;
+  Widget wtop, rowcol, top_lab, dataset_pb, done_pb, dset_lab, index_lab ;
+  MCW_arrowval *ignore_av , *cmode_av ;
   int nrow , nall , is_open ;
-  Widget *clu_rc ;
-  Widget *clu_lab ;
-  Widget *clu_jump_pb ;
-  Widget *clu_gave_pb ;
-  Widget *clu_gpc1_pb ;
+  Widget        *clu_rc ;
+  Widget        *clu_lab ;
+  Widget        *clu_jump_pb ;
+  MCW_arrowval **clu_aver_av ;
+  Widget        *clu_plot_pb ;
+  Widget        *clu_save_pb ;
 
   THD_3dim_dataset *dset ;
   int ignore , cmode ;
@@ -540,11 +541,12 @@ typedef struct {
 
       MCW_bbox *see_ttatlas_bbox ;     /* 25 Jul 2001 */
 
-      AFNI_clu_widgets *cwid ;         /* 18 Dec 2007 */
-      int                 clu_num ;
-      mri_cluster_detail *clu_det ;
+      AFNI_clu_widgets   *cwid ;       /* 18 Dec 2007 */
       char               *clu_rep ;
       MCW_cluster_array  *clu_list;
+      int                 clu_index;
+      int                 clu_num ;
+      mri_cluster_detail *clu_det ;
 } AFNI_function_widgets ;
 
 extern void AFNI_func_autothresh_CB(Widget,XtPointer,XtPointer) ; /* 25 Jul 2007 */
