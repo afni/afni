@@ -7,7 +7,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *iset, *oset , *ooset;
    char *prefix = "SpatNorm" ;
    int iarg , verb=0, OrigSpace = 0 , specie = HUMAN;
-   float SpatNormDxyz= 0.0, iset_xyzscaled=1.0;
+   float SpatNormDxyz= 0.0, iset_scaled=1.0;
    THD_ivec3 orixyz , nxyz ;
    THD_fvec3 dxyz , orgxyz, originRAIfv, fv2;
 
