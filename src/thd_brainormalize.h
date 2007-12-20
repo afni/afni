@@ -1,6 +1,6 @@
 #define THD_BN_CMTOP
 
-typedef enum { SPECIE_NOT_SET=-1, HUMAN = 0, MONKEY, RAT, N_SPECIES} Species; 
+typedef enum { SPECIE_NOT_SET=-1, HUMAN = 0, MONKEY, MARMOSET, RAT, N_SPECIES} Species; 
 
 #define WRITE_MRI_IMAGE_3D_RAI(im, pref){\
    char *m_pout=NULL, *m_en=NULL, m_nen[300];  \

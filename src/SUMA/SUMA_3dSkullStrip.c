@@ -139,7 +139,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
 "             [< -max_inter_iter MII >] [-mask_vol | -orig_vol | -norm_vol]\n"
 "             [< -debug DBG >] [< -node_debug NODE_DBG >]\n"
 "             [< -demo_pause >]\n"
-"             [< -monkey >] [<-rat>]\n"  
+"             [< -monkey >] [< -marmoset >] [<-rat>]\n"  
 "\n"
 "  NOTE: Please report bugs and strange failures\n"
 "        to saadz@mail.nih.gov\n"
@@ -150,6 +150,10 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
 "\n"
 "  Optional Parameters:\n"
 "     -monkey: the brain of a monkey.\n"
+"     -marmoset: the brain of a marmoset. \n"
+"                this one was tested on one dataset\n"
+"                and may not work with non default\n"
+"                options. Check your results!\n"
 "     -rat: the brain of a rat.\n"
 "           By default, no_touchup is used with the rat.\n"
 "     -surface_coil: Data acquired with a surface coil.\n"
@@ -454,7 +458,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
    Opt->UseThisBrainHull = NULL;
    Opt->UseThisSkullOuter = NULL;
    Opt->efrac = -1.0;
-   Opt->match_area = 0;   
+   Opt->match_area = 0;  
+   Opt->xyz_scale = 1.0; 
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -478,6 +483,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
       
       if (!brk && (strcmp(argv[kar], "-monkey") == 0)) {
          Opt->specie = MONKEY;
+         brk = YUP;
+      }
+      if (!brk && (strcmp(argv[kar], "-marmoset") == 0)) {
+         Opt->specie = MARMOSET;
          brk = YUP;
       }
       if (!brk && (strcmp(argv[kar], "-rat") == 0)) {
@@ -1013,7 +1022,14 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
       Opt->SurfFileType = ps->o_FT[0];
       Opt->SurfFileFormat = ps->o_FF[0];
    }
-   
+   if (ps->o_N_surfnames && Opt->specie == MARMOSET) {
+      SUMA_S_Err("Cannot write out surfaces with MARMOSET brain.");
+      exit(1);
+   }
+   if (ps->cs->talk_suma&& Opt->specie == MARMOSET) {
+      SUMA_S_Err("Cannot talk to suma with MARMOSET brain.");
+      exit(1);
+   }
    if (Opt->DoSkulls && !ps->o_N_surfnames) {
       fprintf (SUMA_STDERR,"Error %s:\n-skulls must be used in conjunction with -o_TYPE option\n", FuncName);
       exit(1);
@@ -1038,7 +1054,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
       Opt->out_vol_prefix = SUMA_AfniPrefix(stmp, NULL, NULL, &exists); 
       SUMA_free(stmp); stmp = NULL;
    }
-   if (SUMA_AfniExistsView(exists, cview)) {
+   if (!SUMA_ok_overwrite() && SUMA_AfniExistsView(exists, cview)) {
       fprintf (SUMA_STDERR,"Error %s:\nOutput dset %s%s exists, will not overwrite\n", FuncName, Opt->out_vol_prefix, cview);
       exit(1);
    }
@@ -1099,34 +1115,51 @@ int main (int argc,char *argv[])
 
    if (Opt->debug > 2) LocalHead = YUP;
 
-   SO_name = SUMA_Prefix2SurfaceName(Opt->out_prefix, NULL, NULL, Opt->SurfFileType, &exists);
-   if (exists && strcmp(Opt->out_prefix,"skull_strip_out")) { /* do not worry about the default name for the surface */
-      fprintf(SUMA_STDERR,"Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n", FuncName, Opt->out_prefix);
+   SO_name = SUMA_Prefix2SurfaceName(
+               Opt->out_prefix, NULL, NULL, 
+               Opt->SurfFileType, &exists);
+   if (exists && strcmp(Opt->out_prefix,"skull_strip_out")) { 
+      /* do not worry about the default name for the surface */
+      fprintf( SUMA_STDERR,
+               "Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n",
+               FuncName, Opt->out_prefix);
       exit(1);
    }
    bhullprefix = SUMA_append_string(Opt->out_prefix,"_brainhull");
    oskullprefix = SUMA_append_string(Opt->out_prefix,"_outerskull");
    iskullprefix = SUMA_append_string(Opt->out_prefix,"_innerskull");
-   SO_name_bhull = SUMA_Prefix2SurfaceName(bhullprefix, NULL, NULL, Opt->SurfFileType, &exists);
+   SO_name_bhull = SUMA_Prefix2SurfaceName(bhullprefix, NULL, NULL,
+                                           Opt->SurfFileType, &exists);
    if (exists && strcmp(Opt->out_prefix,"skull_strip_out")) {
-      fprintf(SUMA_STDERR,"Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n", FuncName, Opt->out_prefix);
+      fprintf( SUMA_STDERR,
+               "Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n",
+               FuncName, Opt->out_prefix);
       exit(1);
    }   
-   SO_name_iskull = SUMA_Prefix2SurfaceName(iskullprefix, NULL, NULL, Opt->SurfFileType, &exists);
+   SO_name_iskull = SUMA_Prefix2SurfaceName( iskullprefix, NULL, NULL,
+                                             Opt->SurfFileType, &exists);
    if (exists && strcmp(Opt->out_prefix,"skull_strip_out")) {
-      fprintf(SUMA_STDERR,"Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n", FuncName, Opt->out_prefix);
+      fprintf( SUMA_STDERR,
+               "Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n",
+               FuncName, Opt->out_prefix);
       exit(1);
    }  
-   SO_name_oskull = SUMA_Prefix2SurfaceName(oskullprefix, NULL, NULL, Opt->SurfFileType, &exists);
+   SO_name_oskull = SUMA_Prefix2SurfaceName( oskullprefix, NULL, NULL,
+                                             Opt->SurfFileType, &exists);
    if (exists && strcmp(Opt->out_prefix,"skull_strip_out")) {
-      fprintf(SUMA_STDERR,"Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n", FuncName, Opt->out_prefix);
+      fprintf( SUMA_STDERR,
+               "Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n",
+                FuncName, Opt->out_prefix);
       exit(1);
    }   
    
    hullprefix = SUMA_append_string(Opt->out_prefix,"_hull");
-   SO_name_hull = SUMA_Prefix2SurfaceName(hullprefix, NULL, NULL, Opt->SurfFileType, &exists);
+   SO_name_hull = SUMA_Prefix2SurfaceName(hullprefix, NULL, NULL,
+                                          Opt->SurfFileType, &exists);
    if (exists) {
-      fprintf(SUMA_STDERR,"Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n", FuncName, hullprefix);
+      fprintf(SUMA_STDERR,
+               "Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n",
+                FuncName, hullprefix);
       exit(1);
    }   
    kth_buf = ps->cs->kth; /* keep track of required value */
@@ -1139,7 +1172,8 @@ int main (int argc,char *argv[])
    
    /* Load the AFNI volume and prep it*/
    if (Opt->DoSpatNorm) { /* chunk taken from 3dSpatNorm.c */
-      if (Opt->debug) SUMA_SL_Note("Loading dset, performing Spatial Normalization");
+      if (Opt->debug) 
+         SUMA_SL_Note("Loading dset, performing Spatial Normalization");
       /* load the dset */
       Opt->iset = THD_open_dataset( Opt->in_name );
       if( !ISVALID_DSET(Opt->iset) ){
@@ -1147,8 +1181,16 @@ int main (int argc,char *argv[])
         exit(1);
       }
       Opt->iset_hand = SUMA_THD_handedness( Opt->iset );
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: Handedness of orig dset %d\n", FuncName, Opt->iset_hand);
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,
+                  "%s: Handedness of orig dset %d\n", FuncName, Opt->iset_hand);
       
+      /* if have marmoset, scale coords by 2.5 and pretend tiz a monkey */
+      if (Opt->specie == MARMOSET) {
+         Opt->xyz_scale = 2.5;
+         THD_volDXYZscale(Opt->iset->daxes, Opt->xyz_scale, 0);
+         Opt->specie = MONKEY;   /* now pretend it is a monkey! */
+      }
       /*--- get median brick --*/
       imin = THD_median_brick( Opt->iset ) ;
       if( imin == NULL ){
@@ -1166,6 +1208,7 @@ int main (int argc,char *argv[])
       } else {
          float xxdel, yydel, zzdel, minres;
          if (Opt->specie == MONKEY) minres = 0.5;
+         else if (Opt->specie == MARMOSET) minres = 0.2;
          else if (Opt->specie == RAT) minres = 0.1;
          else minres = 0.5;
          /* don't allow for too low a resolution, please */
@@ -1288,7 +1331,15 @@ int main (int argc,char *argv[])
          if (Opt->WriteSpatNorm) {
             if (Opt->debug) 
                SUMA_S_Note("Writing SpatNormed dset in original space");
+            if (Opt->xyz_scale != 1.0f) 
+                  THD_volDXYZscale(Opt->OrigSpatNormedSet->daxes,
+                                  1.0/Opt->xyz_scale, 0);
+
             DSET_write(Opt->OrigSpatNormedSet) ;
+            /* now rescale back up in case it is to be reused */
+            if (Opt->xyz_scale != 1.0f) 
+                  THD_volDXYZscale(Opt->OrigSpatNormedSet->daxes,
+                                   Opt->xyz_scale, 0);
          }
          if (prefix) SUMA_free(prefix); prefix = NULL;
          if (spatprefix) SUMA_free(spatprefix); spatprefix = NULL; 
@@ -1330,7 +1381,12 @@ int main (int argc,char *argv[])
                             imout->kind , mri_data_pointer(imout) ) ;      
       if (Opt->WriteSpatNorm) {
          SUMA_LH("Writing SpatNormed dset");
+         if (Opt->xyz_scale != 1.0f) 
+            THD_volDXYZscale(oset->daxes, 1.0/Opt->xyz_scale, 0);
          DSET_write(oset) ;
+         /* and rescale back up for further usage */
+         if (Opt->xyz_scale != 1.0f) 
+            THD_volDXYZscale(oset->daxes, Opt->xyz_scale, 0);
       }
       Opt->in_vol = oset; oset = NULL;
       
@@ -1361,6 +1417,18 @@ int main (int argc,char *argv[])
             DSET_NZ( Opt->in_vol )); 
       /* load the dset */
       DSET_load(Opt->in_vol);
+      
+      /* if have marmoset, scale coords by 2.5 and pretend tiz a monkey */
+      if (Opt->specie == MARMOSET) {
+         if (Opt->debug)
+            SUMA_S_Warn("Performing temporary scaling of axes. \n"
+                     "-visual mode and other mm related parameters\n"
+                     "may be off...\n");
+         Opt->xyz_scale = 2.5;
+         THD_volDXYZscale(Opt->in_vol->daxes, Opt->xyz_scale, 0);
+         Opt->specie = MONKEY;   /* now pretend it is a monkey! */
+      }
+
       if (Opt->fillhole) 
          Opt->OrigSpatNormedSet = Opt->in_vol; /* original is same as in_vol */
       /* initialize, just to make sure numbers are ok for if statement below */
@@ -1556,12 +1624,21 @@ int main (int argc,char *argv[])
 
          /* load the shrink_bias_file */
          im = mri_read_1D(Opt->shrink_bias_name);
-         if (!im) { SUMA_SL_Err("Failed to read 1D file of shrink factor bias file."); exit(1);}
+         if (!im) { 
+            SUMA_SL_Err("Failed to read 1D file of shrink factor bias file.");
+            exit(1);
+         }
          far = MRI_FLOAT_PTR(im);
-         if (im->ny != 2) { SUMA_SL_Err("Need 2 columns in shrink factor bias file."); exit(1); }
+         if (im->ny != 2) { 
+            SUMA_SL_Err("Need 2 columns in shrink factor bias file."); 
+            exit(1); 
+         }
          if (im->nx > nico) {
-            fprintf(SUMA_STDERR, "Error %s: File too big. Maximum number of lines (%d) should not exceed %d,\n"
-                                 "which is the number of nodes forming the surface.\n", FuncName, im->nx, nico);
+            fprintf(SUMA_STDERR, 
+                        "Error %s: File too big. \n"
+                        "Maximum number of lines (%d) should not exceed %d,\n"
+                        "which is the number of nodes forming the surface.\n",
+                        FuncName, im->nx, nico);
             exit(1);
          }
 
@@ -1570,8 +1647,12 @@ int main (int argc,char *argv[])
             if (far[i] < nico) {
                Opt->shrink_bias[(int)far[i]] = far[i+  im->nx];
             } else {
-               fprintf(SUMA_STDERR, "Error %s: Node index of (%d) in shrink factor bias file\n"
-                                    "exceeds maximum allowed node index (%d) for surface.\n", FuncName, (int)far[i], nico-1);
+               fprintf( SUMA_STDERR, 
+                        "Error %s: Node index of (%d) \n"
+                        "in shrink factor bias file\n"
+                        "exceeds maximum allowed node \n"
+                        "index (%d) for surface.\n", 
+                        FuncName, (int)far[i], nico-1);
                exit(1);
             }
          }
@@ -1617,7 +1698,7 @@ int main (int argc,char *argv[])
             SUMA_WRITE_ARRAY_1D(Opt->shrink_bias,SO->N_Node,1, stmp);        
          }
       #endif
-      }
+      } else if (Opt->specie == MARMOSET) { }
 
    } 
    if (Opt->debug) fprintf (SUMA_STDERR,"%s: Beginning brain extraction...\n", FuncName);
@@ -2189,6 +2270,7 @@ int main (int argc,char *argv[])
          SO->NodeList[i3 + 1] += Opt->SpatShift[1];
          SO->NodeList[i3 + 2] += Opt->SpatShift[2];
       }
+      
       /* do the deed for the hull thing */
       if (SOhull) {
          for (i=0; i<SOhull->N_Node; ++i) {
@@ -2199,7 +2281,7 @@ int main (int argc,char *argv[])
          }
       }
       /* ditto for other layers */
-      if (Opt->Brain_Contour) {
+      if (Opt->Brain_Contour) {  
          for (i=0; i<SO->N_Node; ++i) {
             i3 = 3*i;
             Opt->Brain_Contour[i3 + 0] += Opt->SpatShift[0];
@@ -2207,6 +2289,7 @@ int main (int argc,char *argv[])
             Opt->Brain_Contour[i3 + 2] += Opt->SpatShift[2];
          }
       }
+      
       if (Opt->Brain_Hull) {
          for (i=0; i<SO->N_Node; ++i) {
             i3 = 3*i;
@@ -2388,17 +2471,24 @@ int main (int argc,char *argv[])
    }
    if (isin) SUMA_free(isin); isin = NULL;
       
-   if (Opt->debug) fprintf (SUMA_STDERR,"%s: Writing masked volume  ...\n", FuncName);
+   if (Opt->debug) 
+      fprintf (SUMA_STDERR,"%s: Writing masked volume  ...\n", FuncName);
    OptDs->full_list = 1;
    OptDs->dval = 1;
-   dset = SUMA_FormAfnidset (NULL, isin_float, SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz, OptDs);
+   dset = SUMA_FormAfnidset (NULL, isin_float,
+                             SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz,
+                             OptDs);
    
    /* erode and dilate, a bit of a cleanup? */
    if (1){
       EDIT_options *edopt = SUMA_BlankAfniEditOptions();
-      if (Opt->debug) fprintf (SUMA_STDERR,"%s: Applying a bit of erosion and dilatation \n", FuncName);
+      if (Opt->debug) 
+         fprintf (SUMA_STDERR,
+                  "%s: Applying a bit of erosion and dilatation \n", 
+                  FuncName);
       edopt->edit_clust = ECFLAG_SAME;
-      edopt->clust_rmm = SUMA_MAX_PAIR(SUMA_ABS((DSET_DX(OptDs->mset))), SUMA_ABS((DSET_DY(OptDs->mset))));
+      edopt->clust_rmm = SUMA_MAX_PAIR(SUMA_ABS((DSET_DX(OptDs->mset))),
+                                       SUMA_ABS((DSET_DY(OptDs->mset))));
       edopt->clust_rmm = SUMA_MAX_PAIR(SUMA_ABS((DSET_DZ(OptDs->mset))), edopt->clust_rmm)*1.01;
 	   edopt->clust_vmul = 1000*SUMA_ABS((DSET_DX(OptDs->mset)))*SUMA_ABS((DSET_DY(OptDs->mset)))*SUMA_ABS((DSET_DZ(OptDs->mset)));
       edopt->erode_pv  = 75.0 / 100.0;
@@ -2412,6 +2502,10 @@ int main (int argc,char *argv[])
       SUMA_SL_Err("Failed to create output dataset!");
    } else {
       tross_Make_History( FuncName , argc,argv , dset ) ;
+      #if 1
+      if (Opt->xyz_scale != 1.0f) 
+         THD_volDXYZscale(dset->daxes, 1.0/Opt->xyz_scale, 0);
+      #endif
       DSET_write(dset) ;
       if (Opt->MaskMode != 2) {
          if (Opt->MaskMode == 0) {

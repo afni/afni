@@ -826,6 +826,59 @@ fprintf(stderr,"EDIT_dset_items: about to make datum_array\n") ;
    RETURN(errnum) ;
 }
 
+/*!
+   Scale dataset's dxyz, same as 3drefit's -xyzscale
+*/
+int THD_volDXYZscale( THD_dataxes  * daxes, float xyzscale, int reuse_shift)
+{   
+   static char FuncName[]={"THD_volDXYZscale"};
+   float dxp, dyp, dzp;
+   int   rl, ap , is;
+   float xop , yop , zop ;
+   static float shift[3] ;
+
+   ENTRY("THD_volDXYZscale");
+
+   if (!daxes) RETURN(0);
+
+   if( xyzscale > 0.0f ){  /* 18 Jul 2006 */
+     dxp = daxes->xxdel * xyzscale ;  /* new grid */
+     dyp = daxes->yydel * xyzscale ;  /* spacings */
+     dzp = daxes->zzdel * xyzscale ;
+     rl  = abs(THD_get_axis_direction(daxes,ORI_R2L_TYPE)) ;
+     ap  = abs(THD_get_axis_direction(daxes,ORI_A2P_TYPE)) ;
+     is  = abs(THD_get_axis_direction(daxes,ORI_I2S_TYPE)) ;
+
+     if( rl == 0 || ap == 0 || is == 0 )
+       ERROR_exit("-xyzscale: Indeterminate axis directions!") ;
+
+     if( !reuse_shift ){  /* to calculate shift */
+       float op[3] , oo[3] ;
+       op[0] = xop = daxes->xxorg + 
+                     (daxes->xxdel-dxp)*0.5f*(daxes->nxx-1) ;
+       op[1] = yop = daxes->yyorg + 
+                     (daxes->yydel-dyp)*0.5f*(daxes->nyy-1) ;
+       op[2] = zop = daxes->zzorg + 
+                     (daxes->zzdel-dzp)*0.5f*(daxes->nzz-1) ;
+       oo[0] = daxes->xxorg ;
+       oo[1] = daxes->yyorg ;
+       oo[2] = daxes->zzorg ;
+       shift[0] = op[rl-1] - xyzscale * oo[rl-1] ;   /* RL shift */
+       shift[1] = op[ap-1] - xyzscale * oo[ap-1] ;   /* AP shift */
+       shift[2] = op[is-1] - xyzscale * oo[is-1] ;   /* IS shift */
+
+     } else {           /* to apply pre calculated shift */
+
+       xop = xyzscale * daxes->xxorg + shift[daxes->xxorient/2] ;
+       yop = xyzscale * daxes->yyorg + shift[daxes->yyorient/2] ;
+       zop = xyzscale * daxes->zzorg + shift[daxes->zzorient/2] ;
+     }
+
+     daxes->xxdel = dxp ; daxes->yydel = dyp ; daxes->zzdel = dzp ;
+     daxes->xxorg = xop ; daxes->yyorg = yop ; daxes->zzorg = zop ;
+   }
+   RETURN(1);
+}
 
 /*-------------------------------------------------------------------*/
 /*! Remove any +???? suffix from a prefix, returning a new one.

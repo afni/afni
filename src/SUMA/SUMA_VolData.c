@@ -3,6 +3,7 @@
 
 extern SUMA_CommonFields *SUMAg_CF; 
 
+
 /*!
    \brief Find the closest node on the surface to a voxel in the volume (as defined in vp)
    \param SO (SUMA_SurfaceObject *)
