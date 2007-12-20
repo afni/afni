@@ -402,7 +402,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    MCW_reghint_children( cwid->clu_aver_av[0]->wrowcol , "Set timeseries averaging method" ) ;
 
    XtManageChild( cwid->rowcol ) ;
-   XtRealizeWidget( cwid->wtop ) ; NI_sleep(1) ;
+   XtRealizeWidget( cwid->wtop ) ;
 
    AFNI_receive_init( im3d, RECEIVE_VIEWPOINT_MASK,
                       AFNI_clus_viewpoint_CB, im3d, "AFNI_clus_viewpoint_CB" ) ;
