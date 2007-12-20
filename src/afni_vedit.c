@@ -1,5 +1,12 @@
 #include "mrilib.h"
 
+#undef  THBOT
+#undef  THTOP
+#undef  THBIG
+#define THBIG    1.e+9f
+#define THBOT(t) ((thrsign==0 || thrsign==2) ? (-(t)) : (-THBIG))
+#define THTOP(t) ((thrsign==0 || thrsign==1) ? (t)    :  (THBIG))
+
 /*---------------------------------------------------------------------------*/
 /*! Volume edit on demand: produce a new volume for display based on the
     parameters stored in dset->dblk->vedset.  [05 Sep 2006]
@@ -60,16 +67,21 @@ ENTRY("AFNI_vedit") ;
    switch( vednew.code ){
 
      case VEDIT_CLUST:{
-       MRI_IMAGE *tim=NULL ; int ithr ; float thr,rmm,vmul ;
+       MRI_IMAGE *tim=NULL ;
+       float thr,rmm,vmul,thb,tht ;
+       int thrsign,posfunc,ithr ;
 
-       ithr = (int)vednew.param[0] ;
+       ithr    = (int)vednew.param[0] ;
+       thrsign = (int)vednew.param[4] ;
+       posfunc = (int)vednew.param[5] ;
        if( ithr >= 0 && ithr < DSET_NVALS(dset) )
          tim = DBLK_BRICK(dblk,ithr) ;
        thr  = vednew.param[1] ;
        if( DSET_BRICK_FACTOR(dset,ithr) > 0.0f )
          thr /= DSET_BRICK_FACTOR(dset,ithr) ;
+       thb = THBOT(thr) ; tht = THTOP(thr) ;
        rmm  = vednew.param[2] ; vmul = vednew.param[3] ;
-       dblk->vedim = mri_clusterize( rmm, vmul, dim, thr, tim  );
+       dblk->vedim = mri_clusterize( rmm,vmul,dim,thb,tht,tim,posfunc );
      }
      break ;
 

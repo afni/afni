@@ -43,11 +43,12 @@ MRI_IMAGE * mri_pcvector( MRI_IMARR *imar , int ignore )
 
    svd_double( nx , nvec , amat , sval , umat , vmat ) ;
 
-   tim = mri_new( nx+ign , 1 , MRI_float ) ;
+   tim = mri_new( nx+ign , 1 , MRI_float ) ;  /* all zero */
    far = MRI_FLOAT_PTR(tim) ;
    for( ii=0 ; ii < nx ; ii++ ) far[ii+ign] = (float)U(ii,0) ;
 
-   /* compute dot product with original vectors */
+   /* compute dot products with original vectors,
+      and flip sign if more of them are negative than positive */
 
    for( npos=nneg=jj=0 ; jj < nvec ; jj++ ){
      for( sum=ii=0 ; ii < nx ; ii++ ) sum += A(ii,jj)*far[ii+ign] ;
@@ -58,4 +59,26 @@ MRI_IMAGE * mri_pcvector( MRI_IMARR *imar , int ignore )
    }
 
    free(sval); free(vmat); free(umat); free(amat); return tim;
+}
+
+/*------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_meanvector( MRI_IMARR *imar , int ignore )
+{
+   float *qar , *far ;
+   int nx,nv,jj,kk , ign=ignore ;
+   MRI_IMAGE *im ;
+
+   if( imar == NULL ) return NULL ;
+
+   nx = IMARR_SUBIM(imar,0)->nx ; nv = IMARR_COUNT(imar) ;
+   im = mri_new( nx , 1 , MRI_float ) ; far = MRI_FLOAT_PTR(im) ;
+   for( jj=0 ; jj < nv ; jj++ ){
+     qar = MRI_FLOAT_PTR(IMARR_SUBIM(imar,jj)) ;
+     for( kk=0 ; kk < nx ; kk++ ) far[kk] += qar[kk] ;
+   }
+   if( ign < 0 || ign > nx-3 ) ign = 0 ;
+   for( kk=ign ; kk < nx ; kk++ ) far[kk] /= nv ;
+   for( kk=0   ; kk < ign; kk++ ) far[kk] = far[ign] ;
+   return im ;
 }

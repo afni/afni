@@ -939,17 +939,12 @@ extern float * lsqfit( int , float * , float * , int , float *ref[] ) ;
 extern double * startup_lsqfit( int , float * , int , float *ref[] ) ;
 extern float * delayed_lsqfit( int , float * , int , float *ref[] , double * ) ;
 
-extern MRI_IMAGE * mri_pcvector( MRI_IMARR *imar , int ignore ) ;
+extern MRI_IMAGE * mri_pcvector  ( MRI_IMARR *imar , int ignore ) ;
+extern MRI_IMAGE * mri_meanvector( MRI_IMARR *imar , int ignore ) ;
 
 extern MRI_IMAGE * mri_sobel( int , int , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_sharpen( float , int , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_transpose( MRI_IMAGE * ) ;
-
-typedef struct {
-  int nvox ;
-  float volume , xcm , ycm , zcm ;
-  float          xpk , ypk , zpk ;
-} mri_cluster_detail ;
 
 #define FILT_FFT_WRAPAROUND  1
 
@@ -1239,11 +1234,19 @@ extern int SYM_expand_errcount(void) ; /* 03 May 2007 */
 #include "rickr/r_misc.h"
 
 /*------------------------------------------------------------------------*/
-/* these require editvol.h */
-extern MRI_IMAGE * mri_clusterize( float,float, MRI_IMAGE *, float, MRI_IMAGE * );
+/* some these clusterize prototypes require editvol.h */
+
+typedef struct {
+  int nvox ;
+  float volume , xcm , ycm , zcm ;
+  float          xpk , ypk , zpk ;
+} mri_cluster_detail ;
+
+extern MRI_IMAGE * mri_clusterize( float,float, MRI_IMAGE * ,
+                                   float,float, MRI_IMAGE * , int );
 extern char * mri_clusterize_report(void) ;
-extern int mri_clusterize_details( mri_cluster_detail ** ) ;
 extern MCW_cluster_array * mri_clusterize_array(int clear) ;
+extern mri_cluster_detail mri_clusterize_detailize( MCW_cluster *cl ) ;
 
 /*------------------------------------------------------------------------*/
 /*--- Functions in mri_matrix.c (matrix operations, stored as images) ----*/
