@@ -162,6 +162,15 @@ float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObj
                "%s: Radius kept at %f, less brain, more muscle.\n",
                FuncName, Opt->r);
          }
+      } else if (Opt->specie == MARMOSET) {
+         Opt->r  = Opt->r/THD_BN_rat(); /* used to reduce radius by 
+                                       because of large amount of
+                                       muscle around brain to Dec. 08 */
+         if (Opt->debug) {
+            fprintf (SUMA_STDERR,
+               "%s: Radius kept at %f, less brain, more muscle.\n",
+               FuncName, Opt->r);
+         }
       } else if (Opt->specie == RAT) {
          Opt->r  = SUMA_MAX_PAIR(Opt->r/THD_BN_rat(), 6.0);       
          if (Opt->debug) {

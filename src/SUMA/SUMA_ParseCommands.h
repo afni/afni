@@ -239,6 +239,7 @@ typedef struct {
    
    int match_area; 
    
+   float xyz_scale;
    SUMA_GENERIC_ARGV_PARSE *ps; /* just a holder for convenience, never free it here*/
 } SUMA_GENERIC_PROG_OPTIONS_STRUCT; /* also edit defaults in 
                                  SUMA_Alloc_Generic_Prog_Options_Struct and in 

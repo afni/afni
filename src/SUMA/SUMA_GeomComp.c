@@ -6248,11 +6248,12 @@ float SUMA_estimate_slice_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *
    SUMA_RETURN(ssc) ;
 }
 
-SUMA_Boolean SUMA_Offset_Smooth_dset( SUMA_SurfaceObject *SO, 
-                                          float FWHM, float OffsetLim, 
-                                          int N_iter,
-                                          SUMA_DSET *dset, 
-                                          SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask) 
+SUMA_Boolean SUMA_Offset_Smooth_dset( 
+   SUMA_SurfaceObject *SO, 
+   float FWHM, float OffsetLim, 
+   int N_iter,
+   SUMA_DSET *dset, 
+   SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask) 
 {
    static char FuncName[]={"SUMA_Offset_Smooth_dset"};
    float *fout_final = NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, *fin_next = NULL, *fin_orig = NULL;
