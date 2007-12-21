@@ -165,7 +165,6 @@ static void AFNI_clus_av_CB( MCW_arrowval * , XtPointer ) ;
 static void AFNI_clus_action_CB( Widget,XtPointer,XtPointer ) ;
 
 /*---------------------------------------------------------------------------*/
-static char *avlab[2] = { "Mean" , "PC#1" } ;
 
 /*! Make the widgets for one row of the cluster display/control panel.
     The row itself will not be managed at this time; that comes later. */
@@ -193,8 +192,6 @@ static char *avlab[2] = { "Mean" , "PC#1" } ;
             ff     , xmPushButtonWidgetClass , rc ,                 \
             LABEL_ARG("Jump") , XmNtraversalOn , True ,             \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
-     cwid->clu_aver_av[ii] = new_MCW_optmenu( rc , "\0" ,           \
-            0,1,0,0 , NULL,NULL , MCW_av_substring_CB , avlab ) ;   \
      cwid->clu_plot_pb[ii] = XtVaCreateManagedWidget(               \
             ff     , xmPushButtonWidgetClass , rc ,                 \
             LABEL_ARG("Plot") , XmNtraversalOn , True ,             \
@@ -203,11 +200,17 @@ static char *avlab[2] = { "Mean" , "PC#1" } ;
             ff     , xmPushButtonWidgetClass , rc ,                 \
             LABEL_ARG("Save") , XmNtraversalOn , True ,             \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
+     cwid->clu_flsh_pb[ii] = XtVaCreateManagedWidget(               \
+            ff     , xmPushButtonWidgetClass , rc ,                 \
+            LABEL_ARG("Flash") , XmNtraversalOn , True ,            \
+            XmNinitialResourcesPersistent , False , NULL ) ;        \
      XtAddCallback( cwid->clu_jump_pb[ii],                          \
                     XmNactivateCallback,AFNI_clus_action_CB,im3d ); \
      XtAddCallback( cwid->clu_plot_pb[ii],                          \
                     XmNactivateCallback,AFNI_clus_action_CB,im3d ); \
      XtAddCallback( cwid->clu_save_pb[ii],                          \
+                    XmNactivateCallback,AFNI_clus_action_CB,im3d ); \
+     XtAddCallback( cwid->clu_flsh_pb[ii],                          \
                     XmNactivateCallback,AFNI_clus_action_CB,im3d ); \
   } while(0)
 
@@ -322,7 +325,7 @@ ENTRY("AFNI_clus_make_widgets") ;
          NULL ) ;
    XmStringFree(xstr) ;
    XtAddCallback( cwid->dataset_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
-   MCW_register_hint( cwid->dataset_pb , "data for Plot/Save of cluster average" ) ;
+   MCW_register_hint( cwid->dataset_pb , "data for timeseries Plot/Save of cluster average" ) ;
 
    /* Ignore chooser */
 
@@ -330,22 +333,31 @@ ENTRY("AFNI_clus_make_widgets") ;
                                       AFNI_clus_av_CB , im3d , NULL,NULL ) ;
    MCW_reghint_children( cwid->ignore_av->wrowcol , "TRs to ignore for Plot/Save" ) ;
 
+   { static char *clab[2] = { "Mean" , "PC#1" } ;
+     cwid->aver_av = new_MCW_optmenu( rc , " " , 0,1,0,0 ,
+                                      NULL,NULL , MCW_av_substring_CB,clab ) ;
+     MCW_reghint_children( cwid->aver_av->wrowcol , "Set timeseries averaging method" ) ;
+   }
+
    /* cmode chooser */
 
    { static char *clab[2] = { "Peak" , "Cmass" } ;
+     (void) XtVaCreateManagedWidget( "menu", xmSeparatorWidgetClass, rc ,
+                                        XmNorientation   , XmVERTICAL    ,
+                                        XmNseparatorType , XmSINGLE_LINE ,
+                                     NULL ) ;
      cwid->cmode_av = new_MCW_optmenu( rc , "xyz" , 0,1,0,0 ,
                         AFNI_clus_av_CB,im3d , MCW_av_substring_CB,clab ) ;
      MCW_reghint_children( cwid->cmode_av->wrowcol , "Coordinate display type" ) ;
    }
 
-   /* index label */
+   /* index label (not managed here -- only when it is needed) */
 
    (void) XtVaCreateManagedWidget( "menu", xmSeparatorWidgetClass, rc ,
                                       XmNorientation   , XmVERTICAL    ,
                                       XmNseparatorType , XmSINGLE_LINE ,
                                    NULL ) ;
-   cwid->index_lab = XtVaCreateWidget(
-                      "menu" , xmLabelWidgetClass , rc , NULL ) ;
+   cwid->index_lab = XtVaCreateWidget( "menu" , xmLabelWidgetClass , rc , NULL ) ;
 
    /* Done button */
 
@@ -392,14 +404,19 @@ ENTRY("AFNI_clus_make_widgets") ;
    cwid->clu_jump_pb = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
    cwid->clu_plot_pb = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
    cwid->clu_save_pb = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
-   cwid->clu_aver_av = (MCW_arrowval **) XtCalloc( num , sizeof(MCW_arrowval *) ) ;
+   cwid->clu_flsh_pb = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
 
    for( ii=0 ; ii < num ; ii++ ){ MAKE_CLUS_ROW(ii) ; }
-   MCW_register_hint( cwid->clu_lab[0]     , "DICOM coordinates of cluster (Peak or Cmass)" ) ;
-   MCW_register_hint( cwid->clu_jump_pb[0] , "Set crosshairs to this point" ) ;
-   MCW_register_hint( cwid->clu_plot_pb[0] , "Plot average over cluster of Timeseries Dataset" ) ;
-   MCW_register_hint( cwid->clu_save_pb[0] , "Save average timeseries to 1D file" ) ;
-   MCW_reghint_children( cwid->clu_aver_av[0]->wrowcol , "Set timeseries averaging method" ) ;
+   MCW_register_hint( cwid->clu_lab[0]     ,
+                      "DICOM coordinates of cluster (Peak or Cmass)" ) ;
+   MCW_register_hint( cwid->clu_jump_pb[0] ,
+                      "Set crosshairs to these xyz coordinates" ) ;
+   MCW_register_hint( cwid->clu_plot_pb[0] ,
+                      "Plot average over cluster of Timeseries Dataset" ) ;
+   MCW_register_hint( cwid->clu_save_pb[0] ,
+                      "Save average timeseries to 1D file" ) ;
+   MCW_register_hint( cwid->clu_flsh_pb[0] ,
+                      "Flash cluster voxels in image viewers" ) ;
 
    XtManageChild( cwid->rowcol ) ;
    XtRealizeWidget( cwid->wtop ) ;
@@ -569,8 +586,7 @@ ENTRY("AFNI_clus_update_widgets") ;
      cwid->clu_jump_pb=(Widget *)XtRealloc((char *)cwid->clu_jump_pb,nclu*sizeof(Widget));
      cwid->clu_plot_pb=(Widget *)XtRealloc((char *)cwid->clu_plot_pb,nclu*sizeof(Widget));
      cwid->clu_save_pb=(Widget *)XtRealloc((char *)cwid->clu_save_pb,nclu*sizeof(Widget));
-     cwid->clu_aver_av=(MCW_arrowval **)XtRealloc( (char *)cwid->clu_aver_av,
-                                                   nclu*sizeof(MCW_arrowval *) ) ;
+     cwid->clu_flsh_pb=(Widget *)XtRealloc((char *)cwid->clu_flsh_pb,nclu*sizeof(Widget));
      for( ii=cwid->nall ; ii < nclu ; ii++ ){ MAKE_CLUS_ROW(ii) ; }
      cwid->nall = nclu ;
    }
@@ -720,7 +736,7 @@ ENTRY("AFNI_clus_action_CB") ;
 
      } else if( w == cwid->clu_plot_pb[ii] || w == cwid->clu_save_pb[ii] ){
        int dosave = (w == cwid->clu_save_pb[ii]) ;
-       int dopc   = (cwid->clu_aver_av[ii]->ival == 1) ;
+       int dopc   = (cwid->aver_av->ival == 1) ;
        MRI_IMARR *imar = AFNI_cluster_timeseries(im3d,ii) ;
        MRI_IMAGE *im=NULL ;
 
@@ -762,9 +778,34 @@ ENTRY("AFNI_clus_action_CB") ;
          if( im != IMARR_SUBIM(imar,0) ) mri_free(im) ;
        }
        DESTROY_IMARR(imar) ; EXRETURN ;
+
+     /*-- flash the voxels for this cluster --*/
+
+     } else if( w == cwid->clu_flsh_pb[ii] ){
+       THD_3dim_dataset  *fset = im3d->fim_now ;
+       MCW_cluster_array *clar = im3d->vwid->func->clu_list ; int jj ;
+       STATUS("flashing") ;
+       if( ISVALID_DSET(fset) && fset->dblk->vedim != NULL && clar != NULL ){
+         MRI_IMAGE *vm = fset->dblk->vedim ;
+         im3d->vedskip = 1 ;
+         for( jj=0 ; jj < 3 ; jj++ ){
+           MCW_vol_to_cluster(vm->nx,vm->ny,vm->nz ,
+                              vm->kind,mri_data_pointer(vm) , clar->clar[ii] );
+           AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
+           NI_sleep(32) ;
+           MCW_cluster_to_vol(vm->nx,vm->ny,vm->nz ,
+                              vm->kind,mri_data_pointer(vm) , clar->clar[ii] );
+           AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
+           NI_sleep(32) ;
+         }
+         im3d->vedskip = 0 ;
+       }
+       EXRETURN ;
      }
 
    } /* end of loop over button rows */
+
+   /* this should never be reached, unless the code is haunted */
 
    fprintf(stderr,"** Unknown button? **\n") ; EXRETURN ;
 }

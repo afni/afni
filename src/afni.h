@@ -383,14 +383,14 @@ typedef struct {
 
 typedef struct {
   Widget wtop, rowcol, top_lab, dataset_pb, done_pb, dset_lab, index_lab ;
-  MCW_arrowval *ignore_av , *cmode_av ;
+  MCW_arrowval *ignore_av , *cmode_av , *aver_av ;
   int nrow , nall , is_open ;
-  Widget        *clu_rc ;
-  Widget        *clu_lab ;
-  Widget        *clu_jump_pb ;
-  MCW_arrowval **clu_aver_av ;
-  Widget        *clu_plot_pb ;
-  Widget        *clu_save_pb ;
+  Widget *clu_rc ;
+  Widget *clu_lab ;
+  Widget *clu_jump_pb ;
+  Widget *clu_plot_pb ;
+  Widget *clu_save_pb ;
+  Widget *clu_flsh_pb ;
 
   THD_3dim_dataset *dset ;
   int ignore , cmode ;
@@ -883,12 +883,13 @@ typedef struct {
 
       int brand_new ;                           /* 07 Dec 2001 */
 
-      THD_warp * fim_selfwarp ;                 /* 27 Aug 2002 */
+      THD_warp *fim_selfwarp ;                 /* 27 Aug 2002 */
 
       int dummied ;                             /* 27 Jan 2004 */
 
       VEDIT_settings vedset ;                   /* 05 Sep 2006 */
-      char * vedlabel ;                         /* 27 Mar 2007 */
+      char *vedlabel ;                          /* 27 Mar 2007 */
+      int   vedskip ;
 } Three_D_View ;
 
 /*! Is any image viewer window open? */

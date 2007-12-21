@@ -5786,7 +5786,7 @@ DUMP_IVEC3("  new_id",new_id) ;
    /*--- 05 Sep 2006: volume edit on demand? ---*/
 
    if( IM3D_IMAGIZED(im3d) && im3d->vinfo->thr_onoff ){
-     int changed ;
+     int changed=0 ;
      if( VEDIT_good(im3d->vedset) ){
        im3d->vedset.ival = im3d->vinfo->fim_index ;
        switch( VEDIT_CODE(im3d->vedset) ){
@@ -5798,7 +5798,8 @@ DUMP_IVEC3("  new_id",new_id) ;
            im3d->vedset.param[5] = im3d->vinfo->use_posfunc ;
          break ;
        }
-       changed = AFNI_vedit( im3d->fim_now , im3d->vedset ) ;
+       if( !im3d->vedskip )
+         changed = AFNI_vedit( im3d->fim_now , im3d->vedset ) ;
        if( !DSET_VEDIT_good(im3d->fim_now) ){
          VEDIT_clear_label(im3d) ;
          if( im3d->vwid->func->clu_rep != NULL ){
