@@ -3269,6 +3269,7 @@ STATUS("making func->rowcol") ;
                                            "thresholded overlay\n"
                                            "volume." ) ;
    im3d->vedset.code = 0 ; im3d->vedset.ival = -1 ;
+   im3d->vedskip = 0 ;  /* 20 Dec 2007 */
 
    func->clu_cluster_pb =
       XtVaCreateManagedWidget(

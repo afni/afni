@@ -186,6 +186,7 @@ extern MCW_cluster_array * NIH_find_clusters( int,int,int , float,float,float ,
                                               int , void * , float , int ) ;
 
 extern void MCW_cluster_to_vol( int,int,int, int,void *, MCW_cluster * ) ;
+extern void MCW_vol_to_cluster( int,int,int, int,void *, MCW_cluster * ) ;
 
 extern void MCW_scale_to_max( int,int,int, int,void * );
 
