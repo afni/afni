@@ -8247,8 +8247,10 @@ ENTRY("AFNI_crosshair_pop_CB") ;
      POPDOWN_string_chooser ;   /* in case "Jumpto xyz" is open */
      MCW_strncpy(GLOBAL_argopt.orient_code,val,4) ;
      THD_coorder_fill( GLOBAL_argopt.orient_code , &GLOBAL_library.cord ) ;
-     for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
-       AFNI_crosshair_relabel( GLOBAL_library.controllers[ii] ) ;
+     for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+       AFNI_crosshair_relabel  ( GLOBAL_library.controllers[ii] );
+       AFNI_clus_update_widgets( GLOBAL_library.controllers[ii] ); /* 21 Dec 2007 */
+     }
    }
    EXRETURN ;
 }

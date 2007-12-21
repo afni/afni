@@ -3184,6 +3184,7 @@ STATUS("making func->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
+#if 0
    XtInsertEventHandler( func->options_label ,  /* handle events in label */
                            ButtonPressMask ,    /* button presses */
                            FALSE ,              /* nonmaskable events? */
@@ -3191,6 +3192,7 @@ STATUS("making func->rowcol") ;
                            (XtPointer)im3d ,    /* client data */
                            XtListTail           /* last in queue */
                         ) ;
+#endif
    func->cwid = NULL;
    func->clu_rep = NULL; func->clu_list = NULL; func->clu_index = -1;
    func->clu_det = NULL; func->clu_num  = 0 ;
@@ -3252,22 +3254,6 @@ STATUS("making func->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
-   func->clu_clear_pb =
-      XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , func->clu_rowcol ,
-            LABEL_ARG("*Clear Edit") ,
-            XmNmarginHeight, 0 ,
-            XmNtraversalOn , True  ,
-            XmNinitialResourcesPersistent , False ,
-         NULL ) ;
-   XtAddCallback( func->clu_clear_pb , XmNactivateCallback ,
-                  AFNI_clu_CB , im3d ) ;
-   MCW_register_hint( func->clu_clear_pb , "Turn off Cluster Edit" ) ;
-   MCW_register_help( func->clu_clear_pb , "Disable on-the-fly\n"
-                                           "clustering of the\n"
-                                           "thresholded overlay\n"
-                                           "volume." ) ;
    im3d->vedset.code = 0 ; im3d->vedset.ival = -1 ;
    im3d->vedskip = 0 ;  /* 20 Dec 2007 */
 
@@ -3294,6 +3280,7 @@ STATUS("making func->rowcol") ;
                         "N.B.: Clustering cannot be done if the overlay\n"
                         "      dataset does not have a stored volume\n"
                         "      (e.g., is 'warp-on-demand' only)." ) ;
+#if 0
    XtInsertEventHandler( func->clu_cluster_pb , /* handle events in button */
                            ButtonPressMask ,    /* button presses */
                            FALSE ,              /* nonmaskable events? */
@@ -3301,6 +3288,43 @@ STATUS("making func->rowcol") ;
                            (XtPointer)im3d ,    /* client data */
                            XtListTail           /* last in queue */
                         ) ;
+#endif
+
+   hrc = XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , func->clu_rowcol ,
+            XmNorientation , XmHORIZONTAL ,
+            XmNpacking , XmPACK_TIGHT ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   func->clu_clear_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , hrc ,
+            LABEL_ARG("*Clear") ,
+            XmNmarginHeight, 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->clu_clear_pb , XmNactivateCallback ,
+                  AFNI_clu_CB , im3d ) ;
+   MCW_register_hint( func->clu_clear_pb , "Turn off Cluster Edit" ) ;
+   MCW_register_help( func->clu_clear_pb , "Disable on-the-fly\n"
+                                           "clustering of the\n"
+                                           "thresholded overlay\n"
+                                           "volume." ) ;
+   func->clu_report_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , hrc ,
+            LABEL_ARG("Rpt") ,
+            XmNmarginHeight, 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->clu_report_pb , XmNactivateCallback ,
+                  AFNI_clu_CB , im3d ) ;
+   MCW_register_hint( func->clu_report_pb , "Open cluster report window" ) ;
+   XtManageChild( hrc ) ;
 
    /*--- 30 Nov 1997: bucket managers ---*/
 
