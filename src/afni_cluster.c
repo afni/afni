@@ -227,7 +227,7 @@ ENTRY("AFNI_clus_dsetlabel") ;
    cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) EXRETURN ;
 
    if( !ISVALID_DSET(cwid->dset) )
-     str = " [No Timeseries Dataset selected yet] " ;
+     str = " [No 3D+time Dataset selected yet] " ;
    else
      str = THD_trailname( DSET_HEADNAME(cwid->dset) , SESSTRAIL+1 ) ;
 
@@ -317,7 +317,7 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    /* Timeseries chooser */
 
-   xstr = XmStringCreateLtoR( "Timeseries Dataset" , XmFONTLIST_DEFAULT_TAG ) ;
+   xstr = XmStringCreateLtoR( "3D+time Dataset" , XmFONTLIST_DEFAULT_TAG ) ;
    cwid->dataset_pb = XtVaCreateManagedWidget(
            "menu" , xmPushButtonWidgetClass , rc ,
             XmNlabelString , xstr ,
@@ -336,7 +336,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    { static char *clab[2] = { "Mean" , "PC#1" } ;
      cwid->aver_av = new_MCW_optmenu( rc , " " , 0,1,0,0 ,
                                       NULL,NULL , MCW_av_substring_CB,clab ) ;
-     MCW_reghint_children( cwid->aver_av->wrowcol , "Set timeseries averaging method" ) ;
+     MCW_reghint_children( cwid->aver_av->wrowcol , "Set timeseries averaging method for Plot/Save" ) ;
    }
 
    /* cmode chooser */
@@ -412,7 +412,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    MCW_register_hint( cwid->clu_jump_pb[0] ,
                       "Set crosshairs to these xyz coordinates" ) ;
    MCW_register_hint( cwid->clu_plot_pb[0] ,
-                      "Plot average over cluster of Timeseries Dataset" ) ;
+                      "Plot average over cluster of 3D+time Dataset" ) ;
    MCW_register_hint( cwid->clu_save_pb[0] ,
                       "Save average timeseries to 1D file" ) ;
    MCW_register_hint( cwid->clu_flsh_pb[0] ,
@@ -613,6 +613,15 @@ ENTRY("AFNI_clus_update_widgets") ;
      MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom , xx,yy,zz , px,py,pz ) ;
      if( cld[ii].nvox <= 99999 )
        sprintf(line,"%2d:%5d vox %+6.1f %+6.1f %+6.1f",
+               ii+1,cld[ii].nvox , px,py,pz ) ;
+     else if( cld[ii].nvox <= 999999 )
+       sprintf(line,"%2d:%6dvox %+6.1f %+6.1f %+6.1f",
+               ii+1,cld[ii].nvox , px,py,pz ) ;
+     else if( cld[ii].nvox <= 9999999 )
+       sprintf(line,"%2d:%7dvx %+6.1f %+6.1f %+6.1f",
+               ii+1,cld[ii].nvox , px,py,pz ) ;
+     else if( cld[ii].nvox <= 99999999 )
+       sprintf(line,"%2d:%8dv %+6.1f %+6.1f %+6.1f",
                ii+1,cld[ii].nvox , px,py,pz ) ;
      else
        sprintf(line,"%2d:%9d %+6.1f %+6.1f %+6.1f",
