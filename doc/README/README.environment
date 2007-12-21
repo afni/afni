@@ -2464,6 +2464,12 @@ If this variable is set to YES, then the default direction of image slice
 and time index scrolling will be reversed in the image and graph viewers,
 respectively.
 
+-----------------------------
+Variable: AFNI_CLUSTER_PREFIX (editable)
+-----------------------------
+This variable sets the prefix for 'Save' timeseries 1D files from the
+'Clusterize' report panel.  The default string is "Clust".
+
 ----------------------------
 Variable: AFNI_STRLIST_INDEX
 ----------------------------
