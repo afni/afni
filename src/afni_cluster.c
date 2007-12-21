@@ -3,7 +3,6 @@
 
 static void AFNI_cluster_widgkill( Three_D_View *im3d ) ;
 static void AFNI_cluster_widgize( Three_D_View *im3d , int force ) ;
-static void AFNI_clus_update_widgets( Three_D_View *im3d ) ;
 static MRI_IMARR * AFNI_cluster_timeseries( Three_D_View *im3d , int ncl ) ;
 static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd ) ;
 
@@ -21,7 +20,7 @@ static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd ) ;
 /*---------------------------------------------------------------------*/
 /* Put a '*' next to the active item in the vedit list on the menu.    */
 
-static char *clubutlab[] = { " Clear Edit" ,
+static char *clubutlab[] = { " Clear" ,
                              " Clusterize"  } ;
 #define NTHRBUT (sizeof(clubutlab)/sizeof(char *))
 
@@ -36,8 +35,7 @@ void set_vedit_label( Three_D_View *im3d , int ll )
    strcpy(lab,clubutlab[1]); if( ll==1 ) lab[0] = '*' ;
    MCW_set_widget_label( im3d->vwid->func->clu_cluster_pb , lab ) ;
 
-        if( ll == 0 ) NORMAL_cursorize(im3d->vwid->func->clu_cluster_pb);
-   else if( ll == 1 ) POPUP_cursorize (im3d->vwid->func->clu_cluster_pb);
+   SENSITIZE( im3d->vwid->func->clu_report_pb , (ll==1) ) ;
 
    return ;
 }
@@ -114,16 +112,39 @@ ENTRY("AFNI_clu_CB") ;
                        "------ Set Clusterize Parameters ------\n"
                        "* rmm=0 is Nearest Neighbor clustering;\n"
                        "  then vmul is cluster volume threshold\n"
-                       "  measured in voxel count\n"
+                       "  measured in Overlay voxel count\n"
+                       "----------------------------------------\n"
                        "* rmm>0 is clustering radius in mm; then\n"
                        "  vmul = volume threshold in microliters\n"
+                       "----------------------------------------\n"
                        "* Use 'BHelp' on 'Cluster Edit' label\n"
                        "  to get summary of clustering results.\n"
-                       "* Right-click on '*Clusterize' to open\n"
-                       "  a more complete cluster report panel.\n"
+                       "----------------------------------------\n"
+                       "* Click on the 'Rpt' button to open a\n"
+                       "  more complete cluster report panel.\n"
                        "----------------------------------------"
                        , 2 , lvec,fvec ,
                         AFNI_cluster_choose_CB , (XtPointer)im3d ) ;
+     EXRETURN ;
+   }
+
+   /*--- Open the report window ---*/
+
+   if( w == im3d->vwid->func->clu_report_pb ){
+     if( im3d->vedset.code == VEDIT_CLUST &&
+         im3d->vinfo->func_visible        &&
+         IM3D_IMAGIZED(im3d)                ){
+
+       AFNI_cluster_widgize(im3d,1) ;
+     } else {
+       MCW_popup_message( im3d->vwid->func->clu_report_pb ,
+                           " \n"
+                           "** You must have 'Clusterize' on   **\n"
+                           "** AND 'See Overlay' on AND have   **\n"
+                           "** at least one image viewer open  **\n"
+                           "** to get the cluster report table **\n " ,
+                          MCW_USER_KILL | MCW_TIMER_KILL ) ;
+     }
      EXRETURN ;
    }
 
@@ -148,11 +169,13 @@ void AFNI_cluster_dispize( Three_D_View *im3d , int force )
 void AFNI_cluster_EV( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch )
 {
+#if 0
    Three_D_View *im3d = (Three_D_View *)cd ;
    XButtonEvent *event = (XButtonEvent *)ev ;
    if( event->button != Button3 ) return ;
    if( im3d->vedset.code != VEDIT_CLUST ) return ;
    AFNI_cluster_widgize(im3d,1) ;
+#endif
 }
 
 /*---------------------------------------------------------------------------*/
@@ -192,6 +215,10 @@ static void AFNI_clus_action_CB( Widget,XtPointer,XtPointer ) ;
             ff     , xmPushButtonWidgetClass , rc ,                 \
             LABEL_ARG("Jump") , XmNtraversalOn , True ,             \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
+     cwid->clu_flsh_pb[ii] = XtVaCreateManagedWidget(               \
+            ff     , xmPushButtonWidgetClass , rc ,                 \
+            LABEL_ARG("Flash") , XmNtraversalOn , True ,            \
+            XmNinitialResourcesPersistent , False , NULL ) ;        \
      cwid->clu_plot_pb[ii] = XtVaCreateManagedWidget(               \
             ff     , xmPushButtonWidgetClass , rc ,                 \
             LABEL_ARG("Plot") , XmNtraversalOn , True ,             \
@@ -199,10 +226,6 @@ static void AFNI_clus_action_CB( Widget,XtPointer,XtPointer ) ;
      cwid->clu_save_pb[ii] = XtVaCreateManagedWidget(               \
             ff     , xmPushButtonWidgetClass , rc ,                 \
             LABEL_ARG("Save") , XmNtraversalOn , True ,             \
-            XmNinitialResourcesPersistent , False , NULL ) ;        \
-     cwid->clu_flsh_pb[ii] = XtVaCreateManagedWidget(               \
-            ff     , xmPushButtonWidgetClass , rc ,                 \
-            LABEL_ARG("Flash") , XmNtraversalOn , True ,            \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
      XtAddCallback( cwid->clu_jump_pb[ii],                          \
                     XmNactivateCallback,AFNI_clus_action_CB,im3d ); \
@@ -285,11 +308,11 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    /* top label to say what session we are dealing with */
 
-   xstr = XmStringCreateLtoR( " xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \n"
-                              " xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \n"
-                              " xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \n"
-                              " xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \n"
-                              " xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx "   ,
+   xstr = XmStringCreateLtoR( " If you see this text, this means   \n"
+                              " that clustering hasn't happened.   \n"
+                              " 'See Overlay' needs to be turned   \n"
+                              " on, and you might need to force a  \n"
+                              " redisplay by changing the threshold"   ,
                               XmFONTLIST_DEFAULT_TAG ) ;
    cwid->top_lab = XtVaCreateManagedWidget(
                     "menu" , xmLabelWidgetClass , cwid->rowcol ,
@@ -351,13 +374,14 @@ ENTRY("AFNI_clus_make_widgets") ;
      MCW_reghint_children( cwid->cmode_av->wrowcol , "Coordinate display type" ) ;
    }
 
-   /* index label (not managed here -- only when it is needed) */
+   /* index label */
 
    (void) XtVaCreateManagedWidget( "menu", xmSeparatorWidgetClass, rc ,
                                       XmNorientation   , XmVERTICAL    ,
                                       XmNseparatorType , XmSINGLE_LINE ,
                                    NULL ) ;
-   cwid->index_lab = XtVaCreateWidget( "menu" , xmLabelWidgetClass , rc , NULL ) ;
+   cwid->index_lab = XtVaCreateManagedWidget( "menu" , xmLabelWidgetClass , rc , NULL ) ;
+   MCW_register_hint( cwid->index_lab , "Crosshairs are in this cluster" ) ;
 
    /* Done button */
 
@@ -408,7 +432,7 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    for( ii=0 ; ii < num ; ii++ ){ MAKE_CLUS_ROW(ii) ; }
    MCW_register_hint( cwid->clu_lab[0]     ,
-                      "DICOM coordinates of cluster (Peak or Cmass)" ) ;
+                      "Coordinates of cluster (Peak or Cmass)" ) ;
    MCW_register_hint( cwid->clu_jump_pb[0] ,
                       "Set crosshairs to these xyz coordinates" ) ;
    MCW_register_hint( cwid->clu_plot_pb[0] ,
@@ -481,25 +505,24 @@ static int AFNI_clus_find_xyz( Three_D_View *im3d , float x,float y,float z )
    return -1 ;
 }
 
+/*---------------------------------------------------------------------------*/
+
 static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
    AFNI_clu_widgets *cwid ;
-   int ncl ;
+   int ncl ; char lab[8] ;
 
    if( !IM3D_VALID(im3d) ) return;
 
    ncl = AFNI_clus_find_xyz( im3d ,
                              im3d->vinfo->xi,im3d->vinfo->yj,im3d->vinfo->zk );
 
-   im3d->vwid->func->clu_index = ncl ;
-   cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) return ;
-   if( ncl < 0 ){
-     XtUnmanageChild( cwid->index_lab ) ;
-   } else {
-     char lab[8] ;
-     XtManageChild( cwid->index_lab ) ;
-     sprintf(lab,"#%d",ncl+1) ;
+   im3d->vwid->func->clu_index = ncl ; /* not used at this time, but someday? */
+   cwid = im3d->vwid->func->cwid ;
+   if( cwid != NULL ){
+     if( ncl >= 0 ) sprintf(lab,"#%d",ncl+1) ;
+     else           strcpy(lab,"??") ;
      MCW_set_widget_label( cwid->index_lab , lab ) ;
    }
    return ;
@@ -533,7 +556,7 @@ ENTRY("AFNI_clus_makedetails") ;
 
 /*---------------------------------------------------------------------------*/
 
-static void AFNI_clus_update_widgets( Three_D_View *im3d )
+void AFNI_clus_update_widgets( Three_D_View *im3d )
 {
    AFNI_clu_widgets *cwid ;
    char *rpt , *rrr ;
@@ -562,6 +585,7 @@ ENTRY("AFNI_clus_update_widgets") ;
 
    cwid = im3d->vwid->func->cwid ;
    if( cwid == NULL ){
+     if( nclu == 0 ) EXRETURN ;
      AFNI_clus_make_widgets( im3d , nclu ) ;
      cwid = im3d->vwid->func->cwid ;
    }
@@ -611,6 +635,9 @@ ENTRY("AFNI_clus_update_widgets") ;
        case CMASS_MODE: xx=cld[ii].xcm; yy=cld[ii].ycm; zz=cld[ii].zcm; break;
      }
      MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom , xx,yy,zz , px,py,pz ) ;
+     px *= GLOBAL_library.cord.xxsign ;
+     py *= GLOBAL_library.cord.yysign ;
+     pz *= GLOBAL_library.cord.zzsign ;
      if( cld[ii].nvox <= 99999 )
        sprintf(line,"%2d:%5d vox %+6.1f %+6.1f %+6.1f",
                ii+1,cld[ii].nvox , px,py,pz ) ;
@@ -644,7 +671,7 @@ static void AFNI_clus_done_CB( Widget w , XtPointer cd, XtPointer cbs )
 
 ENTRY("AFNI_clus_done_CB") ;
 
-   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+   if( !IM3D_VALID(im3d) ) EXRETURN ;
    cwid = im3d->vwid->func->cwid ;
    if( cwid != NULL ){
      cwid->dset = NULL ; AFNI_clus_dsetlabel(im3d) ;
@@ -652,6 +679,11 @@ ENTRY("AFNI_clus_done_CB") ;
      DESTROY_CLARR(im3d->vwid->func->clu_list) ;
    }
    EXRETURN ;
+}
+
+void AFNI_clus_popdown( Three_D_View *im3d )
+{
+   AFNI_clus_done_CB(NULL,(XtPointer)im3d,NULL) ;
 }
 
 /*---------------------------------------------------------------------------*/
