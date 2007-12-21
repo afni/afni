@@ -2465,6 +2465,12 @@ static char * readme_env[] = {
    "and time index scrolling will be reversed in the image and graph viewers,\n" ,
    "respectively.\n" ,
    "\n" ,
+   "-----------------------------\n" ,
+   "Variable: AFNI_CLUSTER_PREFIX (editable)\n" ,
+   "-----------------------------\n" ,
+   "This variable sets the prefix for 'Save' timeseries 1D files from the\n" ,
+   "'Clusterize' report panel.  The default string is \"Clust\".\n" ,
+   "\n" ,
    "----------------------------\n" ,
    "Variable: AFNI_STRLIST_INDEX\n" ,
    "----------------------------\n" ,
@@ -2632,4 +2638,4 @@ static char * readme_env[] = {
    "in 3dDeconvolve by the \"-gltsym\" option will be printed to the screen\n" ,
    "when the program starts up.\n" ,
    NULL } ;
-#define NUM_readme_env 2632
+#define NUM_readme_env 2638
