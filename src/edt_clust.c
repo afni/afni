@@ -198,13 +198,13 @@ printf("  starting cluster at ijk=%d\n",ijk) ;
 -----------------------------------------------------------------*/
 
 void MCW_cluster_to_vol( int nx , int ny , int nz ,
-                         int ftype , void * fim , MCW_cluster * clust )
+                         int ftype , void *fim , MCW_cluster *clust )
 {
    int icl, ijk ;
    int nxy ;
-   short * sfar ;
-   float * ffar ;
-   byte  * bfar ;
+   short *sfar ;
+   float *ffar ;
+   byte  *bfar ;
 
 ENTRY("MCW_cluster_to_vol") ;
 
@@ -240,6 +240,62 @@ ENTRY("MCW_cluster_to_vol") ;
           ijk = THREE_TO_IJK (clust->i[icl], clust->j[icl], clust->k[icl],
                               nx, nxy);
           ffar[ijk] = clust->mag[icl] ;
+         }
+      EXRETURN ;
+   }
+
+   EXRETURN ;  /* should not be reached */
+}
+
+/*-------------------------------------------------------------------*/
+/* Put the values from the dataset at the cluster locations into
+   the 'mag' component of the cluster, and zero out the dataset
+   at those location.  Can use MCW_cluster_to_vol() to restore later.
+---------------------------------------------------------------------*/
+
+void MCW_vol_to_cluster( int nx , int ny , int nz ,
+                         int ftype , void *fim , MCW_cluster *clust )
+{
+   int icl, ijk ;
+   int nxy ;
+   short *sfar ;
+   float *ffar ;
+   byte  *bfar ;
+
+ENTRY("MCW_vol_to_cluster") ;
+
+   if( fim == NULL || clust == NULL ) EXRETURN ;
+
+   nxy = nx * ny;
+
+   switch( ftype ){
+      case MRI_short:
+         sfar = (short *) fim ;
+         for( icl=0 ; icl < clust->num_pt ; icl++ )
+         {
+          ijk = THREE_TO_IJK (clust->i[icl], clust->j[icl], clust->k[icl],
+                              nx, nxy);
+          clust->mag[icl] = sfar[ijk] ; sfar[ijk] = 0 ;
+         }
+      EXRETURN ;
+
+      case MRI_byte:
+         bfar = (byte *) fim ;
+         for( icl=0 ; icl < clust->num_pt ; icl++ )
+         {
+            ijk = THREE_TO_IJK (clust->i[icl], clust->j[icl], clust->k[icl],
+                                nx, nxy);
+            clust->mag[icl] = bfar[ijk] ; bfar[ijk] = 0 ;
+         }
+      EXRETURN ;
+
+      case MRI_float:
+         ffar = (float *) fim ;
+         for( icl=0 ; icl < clust->num_pt ; icl++ )
+         {
+          ijk = THREE_TO_IJK (clust->i[icl], clust->j[icl], clust->k[icl],
+                              nx, nxy);
+          clust->mag[icl] = ffar[ijk] ; ffar[ijk] = 0.0f ;
          }
       EXRETURN ;
    }
