@@ -234,3 +234,7 @@ to line up with slice positions when vectors are slightly off 1.0
 14 Dec 2007
  * added various monochrome lookup tables to overlay color scale choices
 including amber, red, green and blue (azure)
+23 Dec 2007
+ * put warnings in when using oblique datasets in AFNI GUI and when opening
+datasets elsewhere
+ * added another colorscale with amber/red/blue

@@ -355,7 +355,7 @@ ENTRY("THD_open_nifti") ;
 
      fig_merit = MIN3(xmax,ymax,zmax) ;
      ang_merit = acos (fig_merit) * 180.0 / 3.141592653 ;
-
+#if 0
      if (fabs(ang_merit) > .01) {
        WARNING_message (
          "qform not present in:\n"
@@ -369,6 +369,7 @@ ENTRY("THD_open_nifti") ;
          "  on this and  other oblique datasets in the same session.\n"
          ,pathname, ang_merit ) ;
      }
+#endif
 
      if( nim->xyz_units == NIFTI_UNITS_METER ){
        dxtmp *= 1000.0 ; dytmp *= 1000.0 ; dztmp *= 1000.0 ;
