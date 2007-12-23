@@ -165,7 +165,7 @@ ENTRY("THD_set_dataset_attributes") ;
    /* to store obliquity information */
    if( !ISVALID_MAT44(daxes->ijk_to_dicom_real) ) THD_daxes_to_mat44( daxes ) ;
 
-   /* if cardinal matrix,compute Tc (Cardinal transformation matrix) */
+   /* if not oblique already,compute Tc (Cardinal transformation matrix) */
    angle = THD_compute_oblique_angle(daxes->ijk_to_dicom_real, 0);
    if(angle==0.0){
       THD_dicom_card_xform(dset, &tmat, &tvec); 
@@ -173,11 +173,6 @@ ENTRY("THD_set_dataset_attributes") ;
           tmat.mat[0][0], tmat.mat[0][1], tmat.mat[0][2], tvec.xyz[0],
           tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
           tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
-      if(MAT44_NORM(daxes->ijk_to_dicom_real)>1.001){
-         Tr = MAT44_SUB(Tc, daxes->ijk_to_dicom_real);
-         if(0 && MAT44_NORM(Tr)>0.001)
-            INFO_message("Transformation matrix changed from original");
-      }
       daxes->ijk_to_dicom_real = Tc;
    }
 

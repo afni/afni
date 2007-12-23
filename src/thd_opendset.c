@@ -130,6 +130,7 @@ ENTRY("THD_open_one_dataset") ;
      CHECK_FOR_DATA(pathname) ;               /* 06 Jan 2005 */
      dset = THD_open_nifti(pathname) ;
      THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
+     THD_report_obliquity(dset) ;  /* 20 Dec 2007 */
      RETURN(dset) ;
    }
 
@@ -213,6 +214,7 @@ ENTRY("THD_open_one_dataset") ;
       if( dblk != NULL ) {
          dset = THD_3dim_from_block( dblk ) ;
          THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
+         THD_report_obliquity(dset) ;  /* 20 Dec 2007 */
          RETURN(dset) ;
       }
    } else {

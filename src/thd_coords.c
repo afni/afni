@@ -7,6 +7,11 @@
 #include "mrilib.h"
 #include "thd.h"
 
+static int oblique_report_index = 0;
+static int oblique_report_repeat = 20;
+static int oblique_report_repeat2 = 100;
+static int first_oblique = 1;
+
 /*====================================================================
    3D coordinate conversion routines;
      tags for coordinate systems:
@@ -588,4 +593,69 @@ float THD_compute_oblique_angle(mat44 ijk_to_dicom44, int verbose)
    return(ang_merit);
 }
 
+void
+THD_report_obliquity(THD_3dim_dataset *dset)
+{
+   double angle;
 
+   if(oblique_report_repeat==0)
+      return;
+
+   angle = THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0);
+   if(angle == 0.0)
+      return;
+
+   if(oblique_report_index<oblique_report_repeat) {
+      if(first_oblique) {
+         WARNING_message(
+         "  If you are performing spatial transformations on an oblique dset, \n"
+         "  or viewing/combining it with volumes of differing obliquity,\n"
+         "  you should consider running: \n"
+         "     3dWarp -deoblique \n"
+         "  on this and  other oblique datasets in the same session.\n"
+         " See 3dWarp -help for details.\n");
+         first_oblique = 0;
+      }
+
+      INFO_message("Oblique dataset:%s is %f degrees from plumb.\n",
+        DSET_BRIKNAME(dset), angle  ) ;
+      
+   }
+
+
+   oblique_report_index++;
+
+   if(oblique_report_repeat2==-1) {   /* report obliquity n times, stop */
+      if(oblique_report_index>oblique_report_repeat) 
+         oblique_report_index = oblique_report_repeat;
+      return;
+   }
+
+   /* reset counter if needed*/
+   if(oblique_report_index>=(oblique_report_repeat+oblique_report_repeat2))
+      oblique_report_index = 0;
+
+}
+
+/* set the number of times to report obliquity and 
+   the number of oblique datasets to skip.
+   If the first number is 0, don't report at all.
+   If the second number is 0 (and the first number is not), always report.
+   If the second number is -1, stop reporting after reporting the first n1
+ */
+void THD_set_oblique_report(int n1, int n2)
+{
+   oblique_report_repeat = n1;
+   oblique_report_repeat2 = n2;
+}
+
+
+int THD_get_oblique_report()
+{
+   return(oblique_report_repeat);
+}
+
+void THD_reset_oblique_report_index()
+{
+   oblique_report_index = 0;
+}

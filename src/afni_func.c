@@ -2160,6 +2160,8 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
       ltop = 4 ;
       for( ii=0 ; ii < num_str ; ii++ ){
+         THD_report_obliquity(im3d->ss_now->dsset[ii][0]) ;  /* 20 Dec 2007 */
+
          for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ )
             if( ISVALID_3DIM_DATASET(im3d->ss_now->dsset[ii][vv]) ) break ;
 
@@ -2570,6 +2572,39 @@ ENTRY("AFNI_finalize_dataset_CB") ;
      if( new_thresh > 0.0f ) AFNI_set_threshold(im3d,new_thresh) ;
    }
 
+   /* check obliquity of overlay and underlay */
+   /* pop up warning if necessary */
+   if(wcall == im3d->vwid->view->choose_func_pb)
+      AFNI_check_obliquity(wcall, ss_new->dsset[new_func][0]);
+   else
+      AFNI_check_obliquity(wcall, ss_new->dsset[new_anat][0]);
+
+
+   EXRETURN ;
+}
+
+
+/* check dataset for obliquity and pop-up warning if oblique */
+void
+AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset)
+{
+   double angle;
+   char str[1024];
+
+   ENTRY("AFNI_check_obliquity");
+   angle = THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0);
+   if(angle == 0.0)
+      EXRETURN ;
+
+   sprintf( str,
+         " You have selected an oblique dataset.\n"
+         "  If you are performing spatial transformations on an oblique dset, \n"
+         "  or viewing/combining it with volumes of differing obliquity,\n"
+         "  you should consider running: \n"
+         "     3dWarp -deoblique \n"
+         "  on this and other oblique datasets in the same session.\n");
+
+   (void) MCW_popup_message( w , str, MCW_USER_KILL | MCW_TIMER_KILL ) ;
    EXRETURN ;
 }
 
