@@ -4158,6 +4158,15 @@ extern void THD_dicom_card_xform (THD_3dim_dataset * dset ,
                       THD_dmat33 *tmat, THD_dfvec3 *dics );
 extern float THD_compute_oblique_angle(mat44 ijk_to_dicom44, int verbose);
 
+extern void THD_report_obliquity(THD_3dim_dataset *dset);
+
+extern void THD_set_oblique_report(int n1, int n2);
+
+extern int THD_get_oblique_report(void);
+
+extern void THD_reset_oblique_report_index(void);
+
+
   /* cf. thd_tmask.c */
 
 #define TM_IXY 2  /* fixdir-1 for each plane */
