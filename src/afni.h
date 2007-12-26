@@ -382,18 +382,27 @@ typedef struct {
 /*---*/
 
 typedef struct {
-  Widget wtop, rowcol, top_lab, dataset_pb, done_pb, dset_lab, index_lab ;
-  MCW_arrowval *ignore_av , *cmode_av , *aver_av ;
-  int nrow , nall , is_open ;
-  Widget *clu_rc ;
+  Widget wtop, rowcol;      /* containers */
+  Widget top_lab;           /* overall report text */
+
+  MCW_arrowval *cmode_av ;  /* first row of controls */
+  Widget clust3d_pb, savetable_pb, index_lab, prefix_tf, done_pb ;
+
+  Widget dataset_pb ;       /* second row of controls */
+  MCW_arrowval *from_av, *to_av, *aver_av ;
+
+  Widget dset_lab ;         /* label after second row */
+
+  int nrow, nall, is_open ;
+  Widget *clu_rc ;          /* rows of widgets */
   Widget *clu_lab ;
   Widget *clu_jump_pb ;
   Widget *clu_plot_pb ;
   Widget *clu_save_pb ;
   Widget *clu_flsh_pb ;
 
-  THD_3dim_dataset *dset ;
-  int ignore , cmode ;
+  THD_3dim_dataset *dset ;  /* selected from dataset_pb */
+  int coord_mode ;  
 } AFNI_clu_widgets ;      /** not yet used **/
 
 /*---*/
@@ -1255,6 +1264,7 @@ extern int  AFNI_jumpto_ijk          ( Three_D_View * , int, int, int  ) ;
 extern void AFNI_jumpto_ijk_CB       ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_sumato_CB           ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_mnito_CB            ( Widget , XtPointer , MCW_choose_cbs * ) ;
+extern void AFNI_check_obliquity     ( Widget , THD_3dim_dataset * ) ;
 
 extern void AFNI_crosshair_pop_CB    ( Widget , XtPointer , XtPointer ) ; /* 12 Mar 2004 */
 extern void AFNI_crosshair_EV        ( Widget , XtPointer , XEvent * , Boolean * ) ;

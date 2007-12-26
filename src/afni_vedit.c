@@ -76,7 +76,7 @@ ENTRY("AFNI_vedit") ;
        posfunc = (int)vednew.param[5] ;
        if( ithr >= 0 && ithr < DSET_NVALS(dset) )
          tim = DBLK_BRICK(dblk,ithr) ;
-       thr  = vednew.param[1] ;
+       thr = vednew.param[1] ;
        if( DSET_BRICK_FACTOR(dset,ithr) > 0.0f )
          thr /= DSET_BRICK_FACTOR(dset,ithr) ;
        thb = THBOT(thr) ; tht = THTOP(thr) ;

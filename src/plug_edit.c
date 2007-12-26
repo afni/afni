@@ -397,7 +397,8 @@ char * EDIT_opts
 	      "EDIT_opts: Dataset has no threshold sub-brick\n"
 	      "*********************************************";
 	  
-	  edopt->thresh = thresh;
+	  edopt->thresh =  thresh;
+	  edopt->thbot  = -thresh;  /* 26 Dec 2007 */
 	  
 	  continue;
 	} 

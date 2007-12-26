@@ -114,7 +114,24 @@ ENTRY("EDIT_check_argv") ;
       if( val < 0.0 ){
          fprintf(stderr,"illegal value after -1thresh!\n") ; EXIT(1) ;
       }
-      edopt->thresh = val ;
+      edopt->thresh =  val ;
+      edopt->thbot  = -val ;  /* 26 Dec 2007 */
+      CHECK_DONE ;
+   }
+
+   /**** -2thresh bot top [26 Dec 2007] ****/
+
+   if( strncmp(argv[nopt],"-2thresh",6) == 0 ){
+      float v1,v2 ;
+      nopt++ ;
+      if( nopt+1 >= argc ){
+         fprintf(stderr,"need 2 arguments after -2thresh!\n") ; EXIT(1);
+      }
+      v1 = strtod( argv[nopt++] , NULL ) ;
+      v2 = strtod( argv[nopt++] , NULL ) ;
+      if( v1 >= v2 ) ERROR_exit("Illegal values after -2thresh") ;
+      edopt->thresh = v2 ;
+      edopt->thbot  = v1 ;
       CHECK_DONE ;
    }
 
