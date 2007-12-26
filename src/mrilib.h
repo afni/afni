@@ -939,8 +939,8 @@ extern float * lsqfit( int , float * , float * , int , float *ref[] ) ;
 extern double * startup_lsqfit( int , float * , int , float *ref[] ) ;
 extern float * delayed_lsqfit( int , float * , int , float *ref[] , double * ) ;
 
-extern MRI_IMAGE * mri_pcvector  ( MRI_IMARR *imar , int ignore ) ;
-extern MRI_IMAGE * mri_meanvector( MRI_IMARR *imar , int ignore ) ;
+extern MRI_IMAGE * mri_pcvector  ( MRI_IMARR *imar , int,int ) ;
+extern MRI_IMAGE * mri_meanvector( MRI_IMARR *imar , int,int ) ;
 
 extern MRI_IMAGE * mri_sobel( int , int , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_sharpen( float , int , MRI_IMAGE * ) ;

@@ -2574,19 +2574,21 @@ ENTRY("AFNI_finalize_dataset_CB") ;
 
    /* check obliquity of overlay and underlay */
    /* pop up warning if necessary */
+
    if(wcall == im3d->vwid->view->choose_func_pb)
-      AFNI_check_obliquity(wcall, ss_new->dsset[new_func][0]);
+     AFNI_check_obliquity(wcall, ss_new->dsset[new_func][0]);
    else
-      AFNI_check_obliquity(wcall, ss_new->dsset[new_anat][0]);
+     AFNI_check_obliquity(wcall, ss_new->dsset[new_anat][0]);
 
 
    EXRETURN ;
 }
 
 
+/*-----------------------------------------------------------*/
 /* check dataset for obliquity and pop-up warning if oblique */
-void
-AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset)
+
+void AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset)
 {
    double angle;
    char str[1024];

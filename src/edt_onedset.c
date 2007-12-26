@@ -19,7 +19,7 @@
   17 June 1998:  Modifications for erosion and dilation of clusters.
 ----------------------------------------------------------------------*/
 
-void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt )
+void EDIT_one_dataset( THD_3dim_dataset *dset , EDIT_options *edopt )
 {
    int   edit_thtoin   = edopt->thtoin ;       /* copy into local variables */
    int   edit_noneg    = edopt->noneg ;        /* for historical reasons    */
@@ -27,6 +27,7 @@ void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt )
    float edit_clip_bot = edopt->clip_bot ;     /* Nov 1995: changed to floats */
    float edit_clip_top = edopt->clip_top ;
    float edit_thresh   = edopt->thresh ;
+   float edit_thbot    = edopt->thbot ;          /* 26 Dec 2007 */
    int   edit_clust    = edopt->edit_clust ;     /* 10 Sept 1996 */
    float clust_rmm     = edopt->clust_rmm ;
    float clust_vmul    = edopt->clust_vmul ;
@@ -48,18 +49,18 @@ void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt )
    int   rank          = edopt->rank;            /* 13 Nov 2007 */
    int   edit_clip_unscaled = edopt->clip_unscaled ;  /* 09 Aug 1996 */
 
-   THD_dataxes   * daxes ;
-   short   * sfim = NULL , * sthr = NULL ;
-   float   * ffim = NULL , * fthr = NULL ;
-   complex * cfim = NULL ;
-   byte    * bfim = NULL , * bthr = NULL ;
-   void    * vfim = NULL , * vthr = NULL ;
+   THD_dataxes   *daxes ;
+   short   *sfim = NULL , *sthr = NULL ;
+   float   *ffim = NULL , *fthr = NULL ;
+   complex *cfim = NULL ;
+   byte    *bfim = NULL , *bthr = NULL ;
+   void    *vfim = NULL , *vthr = NULL ;
    int nx,ny,nz,nxy,nxyz , jj,kk , ptmin , iclu,nclu , fim_max ;
    int iv_fim , iv_thr , fim_type , thr_type ;
    register int ii ;
    float dx,dy,dz , dxyz , rmm,vmul , val , vvv ;
-   MCW_cluster_array * clar ;
-   MCW_cluster       * blur=NULL ;
+   MCW_cluster_array *clar ;
+   MCW_cluster       *blur=NULL ;
    int fimtype , thrtype ;
    float fimfac , thrfac ;
 
@@ -89,8 +90,15 @@ ENTRY("EDIT_one_dataset") ;
 
       fim_type = DSET_BRICK_TYPE(dset,iv_fim) ;
       fimfac   = DSET_BRICK_FACTOR(dset,iv_fim) ;
-      iv_thr   = -1 ;
-      thr_type = ILLEGAL_TYPE ;
+      if( edit_ivthr >= 0 && edit_ivthr < DSET_NVALS(dset) ){  /* 26 Dec 2007 */
+         iv_thr   = edit_ivthr ;
+         thr_type = DSET_BRICK_TYPE(dset,iv_thr) ;
+         thrfac   = DSET_BRICK_FACTOR(dset,iv_thr) ;
+         if( thrfac == 0.0f ) thrfac = 1.0f ;
+      } else {
+        iv_thr   = -1 ;            /* old code didn't allow thresholding */
+        thr_type = ILLEGAL_TYPE ;  /* of an anatomical type dataset!    */
+      }
 
       if( !AFNI_GOOD_DTYPE(fim_type) || fim_type == MRI_rgb ){
          fprintf(stderr,"\n*** Illegal anatomy data type %s in dataset %s\a\n" ,
@@ -185,9 +193,9 @@ ENTRY("EDIT_one_dataset") ;
                     dset->dblk->diskptr->brick_name ) ;
          EXRETURN ;
 
-         case MRI_short:   sthr = (short *) vthr ; break ;
-         case MRI_float:   fthr = (float *) vthr ; break ;
-         case MRI_byte:    bthr = (byte *)  vthr ; break ;
+         case MRI_short:  sthr = (short *)vthr ; break ;
+         case MRI_float:  fthr = (float *)vthr ; break ;
+         case MRI_byte:   bthr = (byte *) vthr ; break ;
       }
    }
 
@@ -205,7 +213,7 @@ ENTRY("EDIT_one_dataset") ;
    /*----- copy threshold over intensity? -----*/
 
 STATUS("dataset loaded") ;
-   
+
    if( edit_thtoin && iv_thr >= 0 ){
       float new_fimfac , scaling ;
 
@@ -465,13 +473,7 @@ STATUS("abs applied to meaningless type: will be ignored") ;
 
    /*----- apply threshold? -----*/
 
-   if( edit_thresh > 0.0 && iv_thr >= 0 ){
-#ifdef AFNI_DEBUG
-   int nthresh = 0 ;
-#  define THADD (nthresh++)
-#else
-#  define THADD /* nada */
-#endif
+   if( iv_thr >= 0 && (edit_thresh > 0.0 || edit_thresh > edit_thbot) ){
 
       if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: apply threshold\n") ;
 
@@ -482,38 +484,29 @@ STATUS("abs applied to meaningless type: will be ignored") ;
          case MRI_short:{
             short thrplu , thrmin ;
             float fplu = edit_thresh / thrfac ;
-            if( fplu > 32767.0 ){
-               fprintf(stderr,"\n*** -1thresh out of range: reset to %g\n",
-                               32767.0 * thrfac ) ;
-               fplu = 32767.0 ;
-            }
-            thrplu = (short) fplu ;
-            thrmin = -thrplu ;
-#ifdef AFNI_DEBUG
-{ char str[256] ;
-  sprintf(str,"short threshold = %d\n",(int)thrplu) ; STATUS(str) ; }
-#endif
+            float fmin = edit_thbot  / thrfac ;
+            thrplu = SHORTIZE(fplu) ; thrmin = SHORTIZE(fmin) ;
             switch( fim_type ){
                case MRI_short:   /* fim datum is shorts */
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                     if( sthr[ii] < thrplu && sthr[ii] > thrmin ){ sfim[ii] = 0 ; THADD ; }
+                 for( ii=0 ; ii < nxyz ; ii++ )
+                   if( sthr[ii] < thrplu && sthr[ii] > thrmin ){ sfim[ii] = 0; }
                break ;
 
                case MRI_byte:    /* fim datum is bytes */
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                     if( sthr[ii] < thrplu && sthr[ii] > thrmin ){ bfim[ii] = 0 ; THADD ; }
+                 for( ii=0 ; ii < nxyz ; ii++ )
+                   if( sthr[ii] < thrplu && sthr[ii] > thrmin ){ bfim[ii] = 0; }
                break ;
 
                case MRI_float:   /* fim datum is floats */
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                     if( sthr[ii] < thrplu && sthr[ii] > thrmin ){ ffim[ii] = 0.0 ; THADD ; }
+                 for( ii=0 ; ii < nxyz ; ii++ )
+                   if( sthr[ii] < thrplu && sthr[ii] > thrmin ){ ffim[ii] = 0.0; }
                break ;
 
                case MRI_complex: /* fim datum is complex */
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                     if( sthr[ii] < thrplu && sthr[ii] > thrmin ){
-                       cfim[ii].r = cfim[ii].i = 0.0 ; THADD ;
-                     }
+                 for( ii=0 ; ii < nxyz ; ii++ )
+                   if( sthr[ii] < thrplu && sthr[ii] > thrmin ){
+                     cfim[ii].r = cfim[ii].i = 0.0 ;
+                   }
                break ;
             }
          }
@@ -522,37 +515,38 @@ STATUS("abs applied to meaningless type: will be ignored") ;
          /** threshold datum is bytes **/
 
          case MRI_byte:{
-            byte thrplu ;
+            byte thrplu , thrmin ;
             float fplu = edit_thresh / thrfac ;
-            if( fplu > 255.0 ){
-               fprintf(stderr,"\n*** -1thresh out of range: reset to %g\n",
-                               255.0 * thrfac ) ;
-               fplu = 255.0 ;
-            }
-            thrplu = (byte) fplu ;
-#ifdef AFNI_DEBUG
-{ char str[256] ;
-  sprintf(str,"byte threshold = %d\n",(int)thrplu) ; STATUS(str) ; }
-#endif
+            float fmin = edit_thbot  / thrfac ;
+            thrplu = BYTEIZE(fplu) ; thrmin = BYTEIZE(fmin) ;
             switch( fim_type ){
-               case MRI_short:   /* fim datum is shorts */
-                  for( ii=0 ; ii < nxyz ; ii++ ) if( bthr[ii] < thrplu ){ sfim[ii] = 0 ; THADD ; }
-               break ;
+              case MRI_short:   /* fim datum is shorts */
+                for( ii=0 ; ii < nxyz ; ii++ )
+                  if( bthr[ii] < thrplu && (thrmin == 0 || bthr[ii] > thrmin) ){
+                    sfim[ii] = 0;
+                  }
+              break ;
 
-               case MRI_byte:    /* fim datum is bytes */
-                  for( ii=0 ; ii < nxyz ; ii++ ) if( bthr[ii] < thrplu ){ bfim[ii] = 0 ; THADD ; }
-               break ;
+              case MRI_byte:    /* fim datum is bytes */
+                for( ii=0 ; ii < nxyz ; ii++ )
+                  if( bthr[ii] < thrplu && (thrmin == 0 || bthr[ii] > thrmin) ){
+                     bfim[ii] = 0;
+                  }
+              break ;
 
-               case MRI_float:   /* fim datum is floats */
-                  for( ii=0 ; ii < nxyz ; ii++ ) if( bthr[ii] < thrplu ){ ffim[ii] = 0.0 ; THADD ; }
-               break ;
+              case MRI_float:   /* fim datum is floats */
+                for( ii=0 ; ii < nxyz ; ii++ )
+                  if( bthr[ii] < thrplu && (thrmin == 0 || bthr[ii] > thrmin) ){
+                     ffim[ii] = 0.0;
+                  }
+              break ;
 
-               case MRI_complex: /* fim datum is complex */
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                     if( bthr[ii] < thrplu ){
-                       cfim[ii].r = cfim[ii].i = 0.0 ; THADD ;
-                     }
-               break ;
+              case MRI_complex: /* fim datum is complex */
+                for( ii=0 ; ii < nxyz ; ii++ )
+                  if( bthr[ii] < thrplu && (thrmin == 0 || bthr[ii] > thrmin) ){
+                    cfim[ii].r = cfim[ii].i = 0.0 ;
+                  }
+              break ;
             }
          }
          break ;
@@ -562,42 +556,33 @@ STATUS("abs applied to meaningless type: will be ignored") ;
          case MRI_float:{
             float thrplu , thrmin ;
             thrplu = edit_thresh ; if( thrfac > 0.0 ) thrplu /= thrfac ;
-            thrmin = -thrplu ;
-#ifdef AFNI_DEBUG
-{ char str[256] ;
-  sprintf(str,"float threshold = %g\n",thrplu) ; STATUS(str) ; }
-#endif
+            thrmin = edit_thbot  ; if( thrfac > 0.0 ) thrmin /= thrfac ;
             switch( fim_type ){
-               case MRI_short:   /* fim datum is shorts */
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                     if( fthr[ii] < thrplu && fthr[ii] > thrmin ){ sfim[ii] = 0 ; THADD ; }
-               break ;
+              case MRI_short:   /* fim datum is shorts */
+                for( ii=0 ; ii < nxyz ; ii++ )
+                  if( fthr[ii] < thrplu && fthr[ii] > thrmin ){ sfim[ii] = 0 ;  }
+              break ;
 
-               case MRI_byte:    /* fim datum is bytes */
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                     if( fthr[ii] < thrplu && fthr[ii] > thrmin ){ bfim[ii] = 0 ; THADD ; }
-               break ;
+              case MRI_byte:    /* fim datum is bytes */
+                for( ii=0 ; ii < nxyz ; ii++ )
+                  if( fthr[ii] < thrplu && fthr[ii] > thrmin ){ bfim[ii] = 0 ;  }
+              break ;
 
-               case MRI_float:   /* fim datum is floats */
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                     if( fthr[ii] < thrplu && fthr[ii] > thrmin ){ ffim[ii] = 0.0 ; THADD ; }
-               break ;
+              case MRI_float:   /* fim datum is floats */
+                for( ii=0 ; ii < nxyz ; ii++ )
+                  if( fthr[ii] < thrplu && fthr[ii] > thrmin ){ ffim[ii] = 0.0 ;  }
+              break ;
 
-               case MRI_complex: /* fim datum is complex */
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                     if( fthr[ii] < thrplu && fthr[ii] > thrmin ){
-                       cfim[ii].r = cfim[ii].i = 0.0 ; THADD ;
-                     }
-               break ;
+              case MRI_complex: /* fim datum is complex */
+                for( ii=0 ; ii < nxyz ; ii++ )
+                  if( fthr[ii] < thrplu && fthr[ii] > thrmin ){
+                    cfim[ii].r = cfim[ii].i = 0.0 ;
+                  }
+              break ;
             }
          }
          break ;
       }
-#ifdef AFNI_DEBUG
-{ char str[256] ;
-  sprintf(str,"number thresholded to zero = %d",nthresh) ;
-  STATUS(str) ; }
-#endif
    }
 
    /*----- blur? -----*/
@@ -682,8 +667,8 @@ STATUS("abs applied to meaningless type: will be ignored") ;
 
    if( rmm >= 0.0 ){       /* do clustering? */
 
-      MCW_cluster_array * clbig ;
-      MCW_cluster * cl ;
+      MCW_cluster_array *clbig ;
+      MCW_cluster *cl ;
 
       if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: clustering with rmm=%g vmul=%g\n",
                             rmm,vmul ) ;
@@ -691,7 +676,7 @@ STATUS("abs applied to meaningless type: will be ignored") ;
      /*----- Erosion and dilation of clusters -----*/   /* 17 June 1998 */
      if (erode_pv > 0.0)
        MCW_erode_clusters (nx, ny, nz, dx, dy, dz, fim_type, vfim, rmm,
-			   erode_pv, dilate);
+                           erode_pv, dilate);
 
 
 STATUS("clustering") ;
@@ -875,7 +860,7 @@ fprintf(stderr," -1zscore: retyping\n") ;
                               iv_fim,
                               edopt->fmask,
                               edopt->rankmapname))) {
-         fprintf(stderr,"*** Ranking error.\n");                        
+         fprintf(stderr,"*** Ranking error.\n");
       }
    }
    /*------ DONE! -----*/
