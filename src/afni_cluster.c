@@ -5,6 +5,7 @@ static void AFNI_cluster_widgkill( Three_D_View *im3d ) ;
 static void AFNI_cluster_widgize( Three_D_View *im3d , int force ) ;
 static MRI_IMARR * AFNI_cluster_timeseries( Three_D_View *im3d , int ncl ) ;
 static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd ) ;
+static char * AFNI_clus_3dclust( Three_D_View *im3d ) ;
 
 #undef  SET_INDEX_LAB
 #define SET_INDEX_LAB(iq) AFNI_clus_viewpoint_CB(0,0,NULL,(void *)(iq))
@@ -14,15 +15,17 @@ static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd ) ;
 #define PEAK_MODE  0
 #define CMASS_MODE 1
 
+#undef  MAX_INDEX
+#define MAX_INDEX 99999
+
 /*****************************************************************************/
 /*************  Functions for all actions in the cluster group ***************/
 
 /*---------------------------------------------------------------------*/
 /* Put a '*' next to the active item in the vedit list on the menu.    */
 
-static char *clubutlab[] = { " Clear" ,
-                             " Clusterize"  } ;
-#define NTHRBUT (sizeof(clubutlab)/sizeof(char *))
+static char *clubutlab[] = { " Clear" ,          /* first blank saves */
+                             " Clusterize"  } ;  /* space for a '*'  */
 
 void set_vedit_label( Three_D_View *im3d , int ll )
 {
@@ -250,7 +253,7 @@ ENTRY("AFNI_clus_dsetlabel") ;
    cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) EXRETURN ;
 
    if( !ISVALID_DSET(cwid->dset) )
-     str = " [No 3D+time Dataset selected yet] " ;
+     str = " [No Auxiliary Dataset selected yet] " ;
    else
      str = THD_trailname( DSET_HEADNAME(cwid->dset) , SESSTRAIL+1 ) ;
 
@@ -273,7 +276,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    if( !IM3D_OPEN(im3d) || im3d->vwid->func->cwid != NULL ) EXRETURN ; /* bad */
 
    im3d->vwid->func->cwid = cwid = myXtNew( AFNI_clu_widgets ) ;
-   cwid->dset = NULL ; cwid->ignore = cwid->cmode = 0 ;
+   cwid->dset = NULL ; cwid->coord_mode = 0 ;
 
    /* shell to hold it all */
 
@@ -322,13 +325,23 @@ ENTRY("AFNI_clus_make_widgets") ;
                     NULL ) ;
    XmStringFree(xstr) ;
 
+#undef  VLINE
+#undef  HLINE
+#define VLINE(rr)                                                           \
+     (void) XtVaCreateManagedWidget( "menu", xmSeparatorWidgetClass, (rr) , \
+                                        XmNorientation   , XmVERTICAL    ,  \
+                                        XmNseparatorType , XmSINGLE_LINE ,  \
+                                     NULL )
+#define HLINE(rr)                                                           \
+   (void) XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass, (rr) , \
+                                      XmNseparatorType   , XmSINGLE_LINE ,  \
+                                   NULL )
+
    /* Separator from other widgets */
 
-   (void) XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass,cwid->rowcol,
-                                      XmNseparatorType   , XmSINGLE_LINE ,
-                                   NULL ) ;
+   HLINE(cwid->rowcol) ;
 
-   /* horiz rowcol for top controls */
+   /* horiz rowcol for row #1 controls */
 
    rc = XtVaCreateWidget(
           "menu" , xmRowColumnWidgetClass , cwid->rowcol ,
@@ -338,57 +351,71 @@ ENTRY("AFNI_clus_make_widgets") ;
              XmNtraversalOn , True  ,
           NULL ) ;
 
-   /* Timeseries chooser */
+   /* row #1: index label */
 
-   xstr = XmStringCreateLtoR( "3D+time Dataset" , XmFONTLIST_DEFAULT_TAG ) ;
-   cwid->dataset_pb = XtVaCreateManagedWidget(
-           "menu" , xmPushButtonWidgetClass , rc ,
-            XmNlabelString , xstr ,
-            XmNtraversalOn , True  ,
-         NULL ) ;
-   XmStringFree(xstr) ;
-   XtAddCallback( cwid->dataset_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
-   MCW_register_hint( cwid->dataset_pb , "data for timeseries Plot/Save of cluster average" ) ;
+   cwid->index_lab = XtVaCreateManagedWidget( "menu" , xmLabelWidgetClass , rc , NULL ) ;
+   MCW_register_hint( cwid->index_lab , "Crosshairs are in this cluster" ) ;
+   VLINE(rc) ;
 
-   /* Ignore chooser */
-
-   cwid->ignore_av = new_MCW_optmenu( rc , "Ignore" , 0,19,0,0 ,
-                                      AFNI_clus_av_CB , im3d , NULL,NULL ) ;
-   MCW_reghint_children( cwid->ignore_av->wrowcol , "TRs to ignore for Plot/Save" ) ;
-
-   { static char *clab[2] = { "Mean" , "PC#1" } ;
-     cwid->aver_av = new_MCW_optmenu( rc , " " , 0,1,0,0 ,
-                                      NULL,NULL , MCW_av_substring_CB,clab ) ;
-     MCW_reghint_children( cwid->aver_av->wrowcol , "Set timeseries averaging method for Plot/Save" ) ;
-   }
-
-   /* cmode chooser */
+   /* row #1: coord_mode chooser */
 
    { static char *clab[2] = { "Peak" , "Cmass" } ;
-     (void) XtVaCreateManagedWidget( "menu", xmSeparatorWidgetClass, rc ,
-                                        XmNorientation   , XmVERTICAL    ,
-                                        XmNseparatorType , XmSINGLE_LINE ,
-                                     NULL ) ;
      cwid->cmode_av = new_MCW_optmenu( rc , "xyz" , 0,1,0,0 ,
                         AFNI_clus_av_CB,im3d , MCW_av_substring_CB,clab ) ;
      MCW_reghint_children( cwid->cmode_av->wrowcol , "Coordinate display type" ) ;
    }
 
-   /* index label */
+   /* row #1: 3dclust button */
 
-   (void) XtVaCreateManagedWidget( "menu", xmSeparatorWidgetClass, rc ,
-                                      XmNorientation   , XmVERTICAL    ,
-                                      XmNseparatorType , XmSINGLE_LINE ,
-                                   NULL ) ;
-   cwid->index_lab = XtVaCreateManagedWidget( "menu" , xmLabelWidgetClass , rc , NULL ) ;
-   MCW_register_hint( cwid->index_lab , "Crosshairs are in this cluster" ) ;
+   VLINE(rc) ;
+   xstr = XmStringCreateLtoR( "3dclust" , XmFONTLIST_DEFAULT_TAG ) ;
+   cwid->clust3d_pb = XtVaCreateManagedWidget(
+           "menu" , xmPushButtonWidgetClass , rc ,
+            XmNlabelString , xstr ,
+            XmNtraversalOn , True  ,
+         NULL ) ;
+   XmStringFree(xstr) ;
+   XtAddCallback( cwid->clust3d_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
+   MCW_register_hint( cwid->clust3d_pb , "Output equivalent 3dclust command" ) ;
 
-   /* Done button */
+   /* row #1: Save Table button */
 
-   (void) XtVaCreateManagedWidget( "menu", xmSeparatorWidgetClass, rc ,
-                                      XmNorientation   , XmVERTICAL    ,
-                                      XmNseparatorType , XmSINGLE_LINE ,
-                                   NULL ) ;
+   xstr = XmStringCreateLtoR( "Save Table" , XmFONTLIST_DEFAULT_TAG ) ;
+   cwid->savetable_pb = XtVaCreateManagedWidget(
+           "menu" , xmPushButtonWidgetClass , rc ,
+            XmNlabelString , xstr ,
+            XmNtraversalOn , True  ,
+         NULL ) ;
+   XmStringFree(xstr) ;
+   XtAddCallback( cwid->savetable_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
+   MCW_register_hint( cwid->savetable_pb , "Write results to a text file" ) ;
+
+   /* row #1: prefix textfield */
+
+   { char *ppp = getenv("AFNI_CLUSTER_PREFIX") ;
+     if( ppp == NULL || *ppp == '\0' ||
+         !THD_filename_pure(ppp)     || strlen(ppp) > 61 ) ppp = "Clust";
+     cwid->prefix_tf = XtVaCreateManagedWidget(
+                       "menu" , xmTextFieldWidgetClass , rc ,
+                           XmNvalue        , ppp ,
+                           XmNcolumns      , 11 ,
+                           XmNeditable     , True ,
+                           XmNmaxLength    , 64 ,
+                           XmNresizeWidth  , False ,
+                           XmNmarginHeight , 1 ,
+                           XmNmarginWidth  , 1 ,
+                           XmNcursorPositionVisible , True ,
+                           XmNblinkRate , 0 ,
+                           XmNautoShowCursorPosition , True ,
+                           XmNtraversalOn , True  ,
+                           XmNinitialResourcesPersistent , False ,
+                        NULL ) ;
+     MCW_register_hint( cwid->prefix_tf , "Output file prefix" ) ;
+   }
+
+   /* row #1: Done button */
+
+   VLINE(rc) ;
    xstr = XmStringCreateLtoR( "Done" , XmFONTLIST_DEFAULT_TAG ) ;
    cwid->done_pb =
      XtVaCreateManagedWidget(
@@ -400,7 +427,57 @@ ENTRY("AFNI_clus_make_widgets") ;
    XtAddCallback( cwid->done_pb, XmNactivateCallback, AFNI_clus_done_CB, im3d );
    MCW_set_widget_bg( cwid->done_pb, MCW_hotcolor(cwid->done_pb), 0 ) ;
 
-   XtManageChild(rc) ;
+   XtManageChild(rc) ;  /* finished with row #1 setup */
+   HLINE(cwid->rowcol) ;
+
+   /* horiz rowcol for row #2 controls */
+
+   rc = XtVaCreateWidget(
+          "menu" , xmRowColumnWidgetClass , cwid->rowcol ,
+             XmNpacking      , XmPACK_TIGHT ,
+             XmNorientation  , XmHORIZONTAL   ,
+             XmNadjustMargin , True ,
+             XmNtraversalOn , True  ,
+          NULL ) ;
+
+   /* row #2: dataset chooser */
+
+   xstr = XmStringCreateLtoR( "Aux Dataset" , XmFONTLIST_DEFAULT_TAG ) ;
+   cwid->dataset_pb = XtVaCreateManagedWidget(
+           "menu" , xmPushButtonWidgetClass , rc ,
+            XmNlabelString , xstr ,
+            XmNtraversalOn , True  ,
+         NULL ) ;
+   XmStringFree(xstr) ;
+   XtAddCallback( cwid->dataset_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
+   MCW_register_hint( cwid->dataset_pb , "data for Plot/Save from cluster" ) ;
+
+   /* row #2: 'from' and 'to' choosers */
+
+   cwid->from_av = new_MCW_arrowval( rc , "From" , MCW_AV_downup ,
+                                     0,MAX_INDEX,0,MCW_AV_noactext,0 ,
+                                     NULL,NULL , NULL,NULL ) ;
+   MCW_reghint_children( cwid->from_av->wrowcol ,
+                         "first sub-brick to use from Aux Dataset" ) ;
+   XtVaSetValues( cwid->from_av->wtext , XmNcolumns , 6 , NULL ) ;
+
+   cwid->to_av = new_MCW_arrowval( rc , "To" , MCW_AV_downup ,
+                                     0,MAX_INDEX,MAX_INDEX,MCW_AV_noactext,0 ,
+                                     NULL,NULL , NULL,NULL ) ;
+   MCW_reghint_children( cwid->to_av->wrowcol ,
+                         "last sub-brick to use from Aux Dataset" ) ;
+   XtVaSetValues( cwid->to_av->wtext , XmNcolumns , 6 , NULL ) ;
+
+   /* row #2: data processing method */
+
+   { static char *clab[3] = { "Mean" , "PC#1" , "Hist" } ;
+     cwid->aver_av = new_MCW_optmenu( rc , " " , 0,2,0,0 ,
+                                      NULL,NULL , MCW_av_substring_CB,clab ) ;
+     MCW_reghint_children( cwid->aver_av->wrowcol ,
+                           "Set data processing method for Plot/Save" ) ;
+   }
+
+   XtManageChild(rc) ;  /* row #2 is finished */
 
    /* Time series dataset label */
 
@@ -419,7 +496,7 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    /* Now create rows of widgets to display results from clusters */
 
-   if( num < 1 ) num = 1 ;
+   if( num < 2 ) num = 2 ;
    cwid->nall = num ;
    cwid->nrow = 0 ;     /* none are managed at this time */
 
@@ -629,7 +706,7 @@ ENTRY("AFNI_clus_update_widgets") ;
    /* change labels for each row */
 
    for( ii=0 ; ii < nclu ; ii++ ){
-     switch( cwid->cmode ){
+     switch( cwid->coord_mode ){
        default:
        case PEAK_MODE:  xx=cld[ii].xpk; yy=cld[ii].ypk; zz=cld[ii].zpk; break;
        case CMASS_MODE: xx=cld[ii].xcm; yy=cld[ii].ycm; zz=cld[ii].zcm; break;
@@ -722,7 +799,7 @@ ENTRY("AFNI_clus_action_CB") ;
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
    cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) EXRETURN ;
 
-   /*-- timeseries dataset chooser --*/
+   /*-- dataset chooser --*/
 
    if( w == cwid->dataset_pb ){
      int vv = im3d->vinfo->view_type ;
@@ -735,10 +812,9 @@ ENTRY("AFNI_clus_action_CB") ;
      cdds.cb = AFNI_clus_finalize_dataset_CB ;
      for( ii=0 ; ii < im3d->ss_now->num_dsset ; ii++ ){
        dset = im3d->ss_now->dsset[ii][vv] ;
-       if( ISVALID_DSET(dset)                           &&  /* qualifications */
-           DSET_NVALS(dset) >= cwid->ignore+3           &&  /* to be selected */
-           DSET_NVOX(dset)  == DSET_NVOX(im3d->fim_now) &&
-           DSET_INMEMORY(dset)                            )
+       if( ISVALID_DSET(dset)                          &&  /* qualifications */
+           DSET_NVOX(dset) == DSET_NVOX(im3d->fim_now) &&
+           DSET_INMEMORY(dset)                           )
          cdds.dset[cdds.ndset++] = dset ;
      }
      if( cdds.ndset > 0 )
@@ -752,7 +828,24 @@ ENTRY("AFNI_clus_action_CB") ;
      EXRETURN ;
    }
 
-   /*-- scan button list, see if widget matches on of them --*/
+   /*-- Save Table button --*/
+
+   if( w == cwid->savetable_pb ){
+     MCW_popup_message( w , "** Not implemented yet **" ,
+                        MCW_USER_KILL | MCW_TIMER_KILL ) ;
+     EXRETURN ;
+   }
+
+   /*-- 3dclust button --*/
+
+   if( w == cwid->clust3d_pb ){
+     char *cmd = AFNI_clus_3dclust(im3d) ;
+     if( cmd != NULL ) INFO_message("3dclust command:\n %s",cmd) ;
+     else              ERROR_message("Can't generate 3dclust command!") ;
+     EXRETURN ;
+   }
+
+   /*-- scan button list, see if widget matches one of them --*/
 
    nclu = im3d->vwid->func->clu_num ;
    cld  = im3d->vwid->func->clu_det ;
@@ -764,7 +857,7 @@ ENTRY("AFNI_clus_action_CB") ;
 
      if( w == cwid->clu_jump_pb[ii] ){
        float px,py,pz , xx,yy,zz ;
-       switch( cwid->cmode ){
+       switch( cwid->coord_mode ){
          default:
          case PEAK_MODE:  xx=cld[ii].xpk; yy=cld[ii].ypk; zz=cld[ii].zpk; break;
          case CMASS_MODE: xx=cld[ii].xcm; yy=cld[ii].ycm; zz=cld[ii].zcm; break;
@@ -777,9 +870,18 @@ ENTRY("AFNI_clus_action_CB") ;
 
      } else if( w == cwid->clu_plot_pb[ii] || w == cwid->clu_save_pb[ii] ){
        int dosave = (w == cwid->clu_save_pb[ii]) ;
+       int domean = (cwid->aver_av->ival == 0) ;
        int dopc   = (cwid->aver_av->ival == 1) ;
-       MRI_IMARR *imar = AFNI_cluster_timeseries(im3d,ii) ;
-       MRI_IMAGE *im=NULL ;
+       int dohist = (cwid->aver_av->ival == 2) ;
+       MRI_IMARR *imar ; MRI_IMAGE *im=NULL ; int nx,ibot,itop ;
+
+       if( dohist ){
+         MCW_popup_message( w , "** Hist not implemented yet **" ,
+                            MCW_USER_KILL | MCW_TIMER_KILL ) ;
+         EXRETURN ;
+       }
+
+       imar = AFNI_cluster_timeseries(im3d,ii) ;
 
        if( imar == NULL || IMARR_COUNT(imar) < 1 ){
          MCW_popup_message( w , " \n"
@@ -787,25 +889,43 @@ ENTRY("AFNI_clus_action_CB") ;
                                 "** Need a dataset!! **\n " ,
                             MCW_USER_KILL | MCW_TIMER_KILL ) ;
          EXRETURN ;
-       } else if( IMARR_COUNT(imar) == 1 ){   /* should not transpire */
+       }
+
+       nx = IMARR_SUBIM(imar,0)->nx ;
+       ibot = cwid->from_av->ival ; itop = cwid->to_av->ival ;
+       if( itop < ibot || itop >= nx ) itop = nx-1 ;
+       if( (domean || dopc) && itop == ibot ){
+         MCW_popup_message( w , " \n"
+                                "** Need at least two   **\n"
+                                "** time series indexes **\n"
+                                "** to do Mean or PC#1  **\n " ,
+                            MCW_USER_KILL | MCW_TIMER_KILL ) ;
+         DESTROY_IMARR(imar) ; EXRETURN ;
+       }
+
+       if( IMARR_COUNT(imar) == 1 ){   /* should not transpire */
          im = IMARR_SUBIM(imar,0) ;
        } else if( dopc ){           /* PC#1 */
-         im = mri_pcvector( imar , cwid->ignore ) ;
-       } else {                     /* Mean */
-         im = mri_meanvector( imar , cwid->ignore ) ;
+         im = mri_pcvector( imar , ibot,itop ) ;
+       } else if( domean ){         /* Mean */
+         im = mri_meanvector( imar , ibot,itop ) ;
        }
        if( im != NULL ){
          if( !dosave ){                       /* Plotting (to rule the world) */
            char ylab[64] , tlab[THD_MAX_NAME+2] ;
-           float *far = MRI_FLOAT_PTR(im) ;
+           float *far = MRI_FLOAT_PTR(im) , *xax ;
+           int jj ;
            sprintf(ylab,"%s: Cluster #%d = %d voxels",
                    (dopc) ? "PC#1" : "Aver" , ii+1 , IMARR_COUNT(imar) ) ;
            sprintf(tlab,"\\noesc %s",
                    THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL+1)) ;
            plot_ts_xypush(1,0) ;
+           xax = (float *)malloc(sizeof(float)*im->nx) ;
+           for( jj=0 ; jj < im->nx ; jj++ ) xax[jj] = ibot+jj ;
            plot_ts_lab( im3d->dc->display ,
-                        im->nx , NULL , 1 , &far ,
+                        im->nx , xax , 1 , &far ,
                         "TR index" , ylab , tlab , NULL , NULL ) ;
+           free((void *)xax) ;
 
          } else {                                       /* Saving (the world) */
            char fnam[32] , *ppp ; int jj ;
@@ -889,15 +1009,60 @@ ENTRY("AFNI_clus_av_CB") ;
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
    cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) EXRETURN ;
 
-   if( av == cwid->ignore_av ){
-     cwid->ignore = av->ival ; EXRETURN ;
-   } else if( av == cwid->cmode_av ){
-     cwid->cmode = av->ival ;
+   if( av == cwid->cmode_av ){
+     cwid->coord_mode = av->ival ;
      AFNI_clus_update_widgets(im3d) ;  /* redisplay coordinates */
      EXRETURN ;
    }
 
    fprintf(stderr,"** Unknown button? **\n") ; EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+#undef  THBOT
+#undef  THTOP
+#undef  THBIG
+#define THBIG    1.e+9f
+#define THBOT(t) ((thrsign==0 || thrsign==2) ? (-(t)) : (-THBIG))
+#define THTOP(t) ((thrsign==0 || thrsign==1) ? (t)    :  (THBIG))
+
+static char * AFNI_clus_3dclust( Three_D_View *im3d )
+{
+   static char cmd[3333] ;
+   VEDIT_settings vednew ;
+   float thr,rmm,vmul,thb,tht ;
+   int thrsign,posfunc,ithr ;
+
+   if( !IM3D_OPEN(im3d) ) return NULL ;
+
+   vednew = im3d->vedset ;
+
+   ithr    = (int)vednew.param[0] ;
+   thr     =      vednew.param[1] ;
+   rmm     =      vednew.param[2] ;
+   vmul    =      vednew.param[3] ;
+   thrsign = (int)vednew.param[4] ;
+   posfunc = (int)vednew.param[5] ;
+
+   thb = THBOT(thr) ; tht = THTOP(thr) ;
+
+   sprintf(cmd,"3dclust -1Dformat -nosum -1tindex %d",ithr) ;
+
+   if( posfunc )
+     strcat(cmd," -1noneg") ;
+
+   if( thb < tht )
+     sprintf(cmd+strlen(cmd)," -2thresh %g %g",thb,tht) ;
+
+   if( rmm <= 0.0f ){
+     strcat(cmd," -dxyz=1") ; rmm = 1.0f ;
+   }
+
+   sprintf(cmd+strlen(cmd)," %g %g %s",
+           rmm , vmul , DSET_HEADNAME(im3d->fim_now) ) ;
+
+   return cmd ;
 }
 
 /*---------------------------------------------------------------------------*/

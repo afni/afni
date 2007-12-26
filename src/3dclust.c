@@ -366,6 +366,9 @@ int main( int argc , char * argv[] )
    if( rmm < 0.0 ){
       fprintf(stderr,"\n*** Illegal rmm=%f \a\n",rmm) ;
       exit(1) ;
+   } else if ( rmm == 0.0f ){
+      CL_edopt.fake_dxyz = 1 ;  /* 26 Dec 2007 */
+      rmm = 1.001f ;
    }
 
    /* BDW  26 March 1999  */

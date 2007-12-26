@@ -226,6 +226,7 @@ typedef struct EDIT_options {
    int   clip_unscaled ;          /*!< clip without scaling? [09 Aug 1996]  */
 
    float thresh ;                 /*!< zero out if threshold < thresh     */
+   float thbot ;                  /*!< 26 Dec 2007 */
    float clust_rmm ;              /*!< cluster data with rmm radius       */
    float clust_vmul ;             /*!< remove clusters smaller than vmul  */
    float blur ;                   /*!< Gaussian blur data with sigma = blur */
@@ -307,6 +308,7 @@ typedef struct EDIT_options {
         (edopt)->clip_bot      = 0.0 , \
         (edopt)->clip_top      = 0.0 , \
         (edopt)->thresh        = 0.0 , \
+        (edopt)->thbot         = 0.0 , \
         (edopt)->clust_rmm     = -1.0, \
         (edopt)->clust_vmul    = 0.0 , \
         (edopt)->edit_clust    = 0   , \
