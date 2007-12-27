@@ -500,6 +500,7 @@ if(DEBUG)fprintf(stderr,"++ about to plot\n") ;
    if( hrad <= 0.0f || hrad >= 0.02f ) hrad = 0.005f ;
    plot_ts_setthik(hrad) ;
    plot_ts_setcolors( num_dset , ovc_rrr , ovc_ggg , ovc_bbb ) ;
+   plot_ts_xypush(0,-1) ;
    sprintf(buf,"#mask=%d #values=%d",mcount,tval);
    PLUTO_histoplot( nbin,hbot,htop,hbin[0] , NULL , NULL ,  buf , num_dset-1,hbin+1 ) ;
 

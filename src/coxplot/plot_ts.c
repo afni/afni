@@ -204,7 +204,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
      mmax = mmaxx ;
      xbot = xxbot ;
      xtop = xxtop ;
-   } else if( ptop != 0.0 && xpush ){
+   } else if( ptop != 0.0 && xpush > 0 ){
       np = (xtop-xbot) / ptop ;
       switch( np ){
          case 1:  ptop *= 0.1  ; break ;
@@ -268,7 +268,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
      ybot = yybot ;
      ytop = yytop ;
      for( jj=0 ; jj < ny ; jj++ ){ ylo[jj] = ybot ; yhi[jj] = ytop ; }
-   } else if( ptop != 0.0 && ypush ){
+   } else if( ptop != 0.0 && ypush > 0 ){
       np = (ytop-ybot) / ptop ;
       switch( np ){
          case 1:  ptop *= 0.1  ; break ;
@@ -284,13 +284,13 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
                         : (nnay < 6) ? 5 : 2 ;
    } else {
       float dif=(ytop-ybot)*0.005f ;
-      ybot -= dif ; ytop += dif ;
+      if( ypush == 0 ){ ybot -= dif ; ytop += dif ; }
       nnay = 1 ; mmay = 10 ;
    }
 
    for( jj=0 ; jj < ny ; jj++ ){
       pbot = p10(ylo[jj]) ; ptop = p10(yhi[jj]) ; if( ptop < pbot ) ptop = pbot ;
-      if( ptop != 0.0 && ypush ){
+      if( ptop != 0.0 && ypush > 0 ){
          np = (yhi[jj]-ylo[jj]) / ptop ;
          switch( np ){
             case 1:  ptop *= 0.1  ; break ;
@@ -301,7 +301,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          }
          ylo[jj] = floor( ylo[jj]/ptop ) * ptop ;
          yhi[jj] =  ceil( yhi[jj]/ptop ) * ptop ;
-      } else {
+      } else if( ypush == 0 ){
         float dif=(yhi[jj]-ylo[jj])*0.005f ;
         ylo[jj] -= dif ; yhi[jj] += dif ;
       }
@@ -532,7 +532,7 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
    /*-- push range of x outwards --*/
 
    pbot = p10(xbot) ; ptop = p10(xtop) ; if( ptop < pbot ) ptop = pbot ;
-   if( ptop != 0.0 && xpush ){
+   if( ptop != 0.0 && xpush > 0 ){
       np = (xtop-xbot) / ptop ;
       switch( np ){
          case 1:  ptop *= 0.1  ; break ;
@@ -557,7 +557,7 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
    yall = (ny > 0) ; if( !yall ) ny = -ny ;
 
    pbot = p10(ybot) ; ptop = p10(ytop) ; if( ptop < pbot ) ptop = pbot ;
-   if( ptop != 0.0 && ypush ){
+   if( ptop != 0.0 && ypush > 0){
       np = (ytop-ybot) / ptop ;
       switch( np ){
          case 1:  ptop *= 0.1  ; break ;
@@ -573,7 +573,7 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
                         : (nnay < 6) ? 5 : 2 ;
    } else {
       float dif=(ytop-ybot)*0.005f ;
-      ybot -= dif ; ytop += dif ;
+      if( ypush == 0 ){ ybot -= dif ; ytop += dif ; }
       nnay = 1 ; mmay = 10 ;
    }
 
