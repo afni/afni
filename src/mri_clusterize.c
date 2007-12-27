@@ -107,7 +107,7 @@ ENTRY("mri_clusterize") ;
 mri_cluster_detail mri_clusterize_detailize( MCW_cluster *cl )
 {
    mri_cluster_detail cld ;
-   float xcm,ycm,zcm , xpk,ypk,zpk , vpk,vvv ;
+   float xcm,ycm,zcm , xpk,ypk,zpk , vpk,vvv,vsum ;
    int ii ;
 
 ENTRY("mri_clusterize_detailize") ;
@@ -117,19 +117,17 @@ ENTRY("mri_clusterize_detailize") ;
    cld.nvox   = cl->num_pt ;
    cld.volume = cl->num_pt ;
    xcm = ycm = zcm = 0.0f ; vpk = 0.0f ;
-   for( ii=0 ; ii < cl->num_pt ; ii++ ){
-     xcm += cl->i[ii] ; ycm += cl->j[ii] ; zcm += cl->k[ii] ;
-     vvv = fabsf(cl->mag[ii]) ;
+   for( vsum=ii=0 ; ii < cl->num_pt ; ii++ ){
+     vvv = fabsf(cl->mag[ii]) ; vsum += vvv ;
+     xcm += vvv*cl->i[ii] ; ycm += vvv*cl->j[ii] ; zcm += vvv*cl->k[ii] ;
      if( vvv > vpk ){
        xpk = cl->i[ii]; ypk = cl->j[ii]; zpk = cl->k[ii]; vpk = vvv;
      }
    }
-   cld.xcm = xcm / cl->num_pt ;
-   cld.ycm = ycm / cl->num_pt ;
-   cld.zcm = zcm / cl->num_pt ;
-   cld.xpk = xpk ;
-   cld.ypk = ypk ;
-   cld.zpk = zpk ;
+   if( vsum > 0.0f ){
+     cld.xcm = xcm / vsum; cld.ycm = ycm / vsum; cld.zcm = zcm / vsum;
+   }
+   cld.xpk = xpk; cld.ypk = ypk; cld.zpk = zpk;
 
    RETURN(cld) ;
 }
