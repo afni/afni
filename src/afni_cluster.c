@@ -8,7 +8,8 @@ static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd ) ;
 static char * AFNI_clus_3dclust( Three_D_View *im3d ) ;
 
 #undef  SET_INDEX_LAB
-#define SET_INDEX_LAB(iq) AFNI_clus_viewpoint_CB(0,0,NULL,(void *)(iq))
+#define SET_INDEX_LAB(iq) \
+  AFNI_clus_viewpoint_CB(RECEIVE_VIEWPOINT,0,NULL,(void *)(iq))
 
 #undef  PEAK_MODE
 #undef  CMASS_MODE
@@ -523,9 +524,8 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    XtManageChild( cwid->rowcol ) ;
    XtRealizeWidget( cwid->wtop ) ;
+   cwid->receive_on = 0 ;
 
-   AFNI_receive_init( im3d, RECEIVE_VIEWPOINT_MASK,
-                      AFNI_clus_viewpoint_CB, im3d, "AFNI_clus_viewpoint_CB" ) ;
    EXRETURN ;
 }
 
@@ -597,17 +597,37 @@ static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd )
    int ncl ; char lab[8] ;
 
    if( !IM3D_VALID(im3d) ) return;
+   cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) return ;
 
-   ncl = AFNI_clus_find_xyz( im3d ,
-                             im3d->vinfo->xi,im3d->vinfo->yj,im3d->vinfo->zk );
+   switch( why ){
 
-   im3d->vwid->func->clu_index = ncl ; /* not used at this time, but someday? */
-   cwid = im3d->vwid->func->cwid ;
-   if( cwid != NULL ){
-     if( ncl >= 0 ) sprintf(lab,"#%d",ncl+1) ;
-     else           strcpy(lab,"??") ;
-     MCW_set_widget_label( cwid->index_lab , lab ) ;
+     case RECEIVE_VIEWPOINT:
+       ncl = AFNI_clus_find_xyz( im3d ,
+                                 im3d->vinfo->xi ,
+                                 im3d->vinfo->yj , im3d->vinfo->zk ) ;
+
+       im3d->vwid->func->clu_index = ncl ; /* not used at this time; someday? */
+       if( ncl >= 0 ) sprintf(lab,"#%d",ncl+1) ;
+       else           strcpy(lab,"??") ;
+       MCW_set_widget_label( cwid->index_lab , lab ) ;
+     break ;
+
+     case RECEIVE_ALTERATION:
+       if( !ISVALID_DSET(im3d->fim_now) ||
+           !ISVALID_DSET(cwid->dset)    ||
+           DSET_NVOX(im3d->fim_now) != DSET_NVOX(cwid->dset) ){
+
+           cwid->dset = NULL ; AFNI_clus_dsetlabel(im3d) ;
+       }
+     break ;
+
+     case RECEIVE_CLOSURE:
+       AFNI_clus_popdown( im3d ) ;
+       cwid->receive_on = 0 ;
+     break ;
+
    }
+
    return ;
 }
 
@@ -742,6 +762,12 @@ ENTRY("AFNI_clus_update_widgets") ;
    }
 
    SET_INDEX_LAB(im3d) ;
+
+   if( !cwid->receive_on ){
+     AFNI_receive_init( im3d, RECEIVE_VIEWPOINT_MASK,
+                        AFNI_clus_viewpoint_CB, im3d, "AFNI_clus_viewpoint_CB" ) ;
+     cwid->receive_on = 1 ;
+   }
 
    EXRETURN ;
 }
