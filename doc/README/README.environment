@@ -2465,10 +2465,13 @@ and time index scrolling will be reversed in the image and graph viewers,
 respectively.
 
 -----------------------------
-Variable: AFNI_CLUSTER_PREFIX (editable)
+Variable: AFNI_CLUSTER_PREFIX
 -----------------------------
 This variable sets the prefix for 'Save' timeseries 1D files from the
-'Clusterize' report panel.  The default string is "Clust".
+'Clusterize' report panel.  The default string is "Clust".  The value
+of this variable will be loaded into the cluster Rpt window text entry
+field, and the prefix can be edited there by the users when it comes
+time to save files.
 
 ----------------------------
 Variable: AFNI_STRLIST_INDEX
