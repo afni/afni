@@ -2302,4 +2302,6 @@
         - added gifti_copy_DataArray, and other structures
 13 Dec 2007: modified thd_brainnormalize.h: replace unsetenv with putenv(NO)
 14 Dec 2007: modified Makefile.linux_gcc33_64 for building on FC3 (was 2)
+27 Dec 2007: added Makefile.macosx_10.5_G5, Makefile.macosx_10.5_Intel
+        - contain -dylib_file option, for resolving 10.5 problem with libGL
 
