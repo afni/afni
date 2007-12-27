@@ -402,7 +402,8 @@ typedef struct {
   Widget *clu_flsh_pb ;
 
   THD_3dim_dataset *dset ;  /* selected from dataset_pb */
-  int coord_mode ;  
+  int coord_mode ;
+  int receive_on ;
 } AFNI_clu_widgets ;      /** not yet used **/
 
 /*---*/
