@@ -524,6 +524,7 @@ static char * HISTO_main( PLUGIN_interface * plint )
    hrad = AFNI_numenv("AFNI_1DPLOT_THIK") ;
    if( hrad <= 0.0f || hrad >= 0.02f ) hrad = 0.005f ;
    plot_ts_setthik(hrad) ;
+   plot_ts_xypush(0,-1) ;
    sprintf(buf,"\\noesc %s[%d] %d voxels",DSET_FILECODE(input_dset),iv,mcount);
    PLUTO_histoplot( nbin,hbot,htop,hbin , NULL , NULL ,  buf , 0,NULL ) ;
 
@@ -960,6 +961,7 @@ static char *  CORREL_main( PLUGIN_interface * plint )
                DSET_FILECODE(input_dset),
                (tsim->name != NULL) ? THD_trailname(tsim->name,0) : " " ,
                sum,sumq , psum,msum ) ;
+   plot_ts_xypush(0,-1) ;
 #ifdef DO_GREEN
    PLUTO_histoplot( nbin,hbot,htop,hbin ,
                     "Correlation Coefficient",NULL,buf , 2,jist ) ;

@@ -241,6 +241,7 @@ static void AFNI_clus_action_CB( Widget,XtPointer,XtPointer ) ;
   } while(0)
 
 /*---------------------------------------------------------------------------*/
+/* Set the label for the auxiliary dataset */
 
 static void AFNI_clus_dsetlabel( Three_D_View *im3d )
 {
@@ -262,6 +263,7 @@ ENTRY("AFNI_clus_dsetlabel") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Make the cluster report widgets initially */
 
 static void AFNI_clus_make_widgets( Three_D_View *im3d, int num )
 {
@@ -393,8 +395,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    /* row #1: prefix textfield */
 
    { char *ppp = getenv("AFNI_CLUSTER_PREFIX") ;
-     if( ppp == NULL || *ppp == '\0' ||
-         !THD_filename_pure(ppp)     || strlen(ppp) > 61 ) ppp = "Clust";
+     if( !THD_filename_pure(ppp) || strlen(ppp) > 61 ) ppp = "Clust" ;
      cwid->prefix_tf = XtVaCreateManagedWidget(
                        "menu" , xmTextFieldWidgetClass , rc ,
                            XmNvalue        , ppp ,
@@ -411,6 +412,7 @@ ENTRY("AFNI_clus_make_widgets") ;
                            XmNinitialResourcesPersistent , False ,
                         NULL ) ;
      MCW_register_hint( cwid->prefix_tf , "Output file prefix" ) ;
+     MCW_set_widget_bg( cwid->prefix_tf , "black" , (Pixel)0 ) ;
    }
 
    /* row #1: Done button */
@@ -455,14 +457,14 @@ ENTRY("AFNI_clus_make_widgets") ;
    /* row #2: 'from' and 'to' choosers */
 
    cwid->from_av = new_MCW_arrowval( rc , "From" , MCW_AV_downup ,
-                                     0,MAX_INDEX,0,MCW_AV_noactext,0 ,
+                                     0,MAX_INDEX,0,MCW_AV_editext,0 ,
                                      NULL,NULL , NULL,NULL ) ;
    MCW_reghint_children( cwid->from_av->wrowcol ,
                          "first sub-brick to use from Aux Dataset" ) ;
    XtVaSetValues( cwid->from_av->wtext , XmNcolumns , 6 , NULL ) ;
 
    cwid->to_av = new_MCW_arrowval( rc , "To" , MCW_AV_downup ,
-                                     0,MAX_INDEX,MAX_INDEX,MCW_AV_noactext,0 ,
+                                     0,MAX_INDEX,MAX_INDEX,MCW_AV_editext,0 ,
                                      NULL,NULL , NULL,NULL ) ;
    MCW_reghint_children( cwid->to_av->wrowcol ,
                          "last sub-brick to use from Aux Dataset" ) ;
@@ -528,6 +530,7 @@ ENTRY("AFNI_clus_make_widgets") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Display the cluster report */
 
 static void AFNI_cluster_widgize( Three_D_View *im3d , int force )
 {
@@ -547,6 +550,7 @@ static void AFNI_cluster_widgize( Three_D_View *im3d , int force )
 }
 
 /*---------------------------------------------------------------------------*/
+/* Kill the cluster report */
 
 static void AFNI_cluster_widgkill( Three_D_View *im3d )
 {
@@ -583,6 +587,8 @@ static int AFNI_clus_find_xyz( Three_D_View *im3d , float x,float y,float z )
 }
 
 /*---------------------------------------------------------------------------*/
+/* A 'receive' function for when the viewpoint changes;
+   used to report which cluster the crosshairs are in (if any) */
 
 static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd )
 {
@@ -606,6 +612,7 @@ static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd )
 }
 
 /*---------------------------------------------------------------------------*/
+/* Extract details (coordinates, etc.) from the clusterized clusters */
 
 static void AFNI_clus_makedetails( Three_D_View *im3d )
 {
@@ -632,6 +639,7 @@ ENTRY("AFNI_clus_makedetails") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Re-display the report to be updated to the current clusterization status. */
 
 void AFNI_clus_update_widgets( Three_D_View *im3d )
 {
@@ -758,12 +766,17 @@ ENTRY("AFNI_clus_done_CB") ;
    EXRETURN ;
 }
 
+/*---------------------------------------------------------------------------*/
+/* Another way to force the hiding of the cluster report */
+
 void AFNI_clus_popdown( Three_D_View *im3d )
 {
    AFNI_clus_done_CB(NULL,(XtPointer)im3d,NULL) ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Called when the user finally makes up his pitiful little mind. */
+
 static AFNI_dataset_choose_stuff cdds = { 0, NULL, NULL } ;
 
 static void AFNI_clus_finalize_dataset_CB( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
@@ -787,6 +800,7 @@ ENTRY("AFNI_clus_finalize_dataset_CB") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Callback for all pushbuttons (except 'Done') on the report window. */
 
 static void AFNI_clus_action_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
@@ -799,7 +813,7 @@ ENTRY("AFNI_clus_action_CB") ;
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
    cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) EXRETURN ;
 
-   /*-- dataset chooser --*/
+   /*--------- dataset chooser ---------*/
 
    if( w == cwid->dataset_pb ){
      int vv = im3d->vinfo->view_type ;
@@ -828,15 +842,50 @@ ENTRY("AFNI_clus_action_CB") ;
      EXRETURN ;
    }
 
-   /*-- Save Table button --*/
+   /*--------- Save Table button ---------*/
 
    if( w == cwid->savetable_pb ){
-     MCW_popup_message( w , "** Not implemented yet **" ,
-                        MCW_USER_KILL | MCW_TIMER_KILL ) ;
+     char fnam[128] , *ppp ; FILE *fp ; int ff ;
+     float px,py,pz , mx,my,mz , xx,yy,zz ;
+
+     nclu = im3d->vwid->func->clu_num ;
+     cld  = im3d->vwid->func->clu_det ;
+     if( nclu == 0 || cld == NULL ) EXRETURN ;
+
+     ppp = XmTextFieldGetString( cwid->prefix_tf ) ;
+     if( !THD_filename_pure(ppp) ) ppp = "Clust" ;
+     sprintf(fnam,"%s_table.1D",ppp) ;
+     ff = THD_is_file(fnam) ;
+     fp = fopen(fnam,"w") ;
+     if( fp == NULL ){
+       ERROR_message("Can't open file %s for writing",fnam) ;
+     } else {
+       ppp = AFNI_clus_3dclust(im3d) ;
+       if( ppp != NULL )
+         fprintf(fp,"# AFNI interactive cluster table\n# %s\n" , ppp ) ;
+       fprintf(fp, "#Coordinate order = %s\n"
+                   "#Voxels  CM x   CM y   CM z  Peak x Peak y Peak z\n"
+                   "#------ ------ ------ ------ ------ ------ ------\n" ,
+                  (GLOBAL_library.cord.xxsign < 0) ? "LPI" : "RAI" ) ;
+       for( ii=0 ; ii < nclu ; ii++ ){
+         xx=cld[ii].xpk; yy=cld[ii].ypk; zz=cld[ii].zpk;
+         MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom , xx,yy,zz , px,py,pz ) ;
+         xx=cld[ii].xcm; yy=cld[ii].ycm; zz=cld[ii].zcm;
+         MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom , xx,yy,zz , mx,my,mz ) ;
+         px *= GLOBAL_library.cord.xxsign ; mx *= GLOBAL_library.cord.xxsign ;
+         py *= GLOBAL_library.cord.yysign ; my *= GLOBAL_library.cord.yysign ;
+         pz *= GLOBAL_library.cord.zzsign ; mz *= GLOBAL_library.cord.zzsign ;
+         fprintf(fp,"%7d %+6.1f %+6.1f %+6.1f %+6.1f %+6.1f %+6.1f\n" ,
+                 cld[ii].nvox , mx,my,mz , px,py,pz ) ;
+       }
+       fclose(fp) ;
+       if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
+       else     INFO_message   ("Wrote file %s"     ,fnam) ;
+     }
      EXRETURN ;
    }
 
-   /*-- 3dclust button --*/
+   /*--------- 3dclust button ---------*/
 
    if( w == cwid->clust3d_pb ){
      char *cmd = AFNI_clus_3dclust(im3d) ;
@@ -845,7 +894,7 @@ ENTRY("AFNI_clus_action_CB") ;
      EXRETURN ;
    }
 
-   /*-- scan button list, see if widget matches one of them --*/
+   /*------ scan button list, see if widget matches one of them ------*/
 
    nclu = im3d->vwid->func->clu_num ;
    cld  = im3d->vwid->func->clu_det ;
@@ -853,7 +902,7 @@ ENTRY("AFNI_clus_action_CB") ;
 
    for( ii=0 ; ii < nclu ; ii++ ){
 
-     /*-- Jump to the cluster peak or cmass --*/
+     /*-------- Jump to the cluster peak or cmass --------*/
 
      if( w == cwid->clu_jump_pb[ii] ){
        float px,py,pz , xx,yy,zz ;
@@ -866,7 +915,7 @@ ENTRY("AFNI_clus_action_CB") ;
        AFNI_jumpto_dicom( im3d , px,py,pz ) ;
        EXRETURN ;
 
-     /*-- Process the cluster timeseries --*/
+     /*----------- Process the cluster data -----------*/
 
      } else if( w == cwid->clu_plot_pb[ii] || w == cwid->clu_save_pb[ii] ){
        int dosave = (w == cwid->clu_save_pb[ii]) ;
@@ -875,14 +924,7 @@ ENTRY("AFNI_clus_action_CB") ;
        int dohist = (cwid->aver_av->ival == 2) ;
        MRI_IMARR *imar ; MRI_IMAGE *im=NULL ; int nx,ibot,itop ;
 
-       if( dohist ){
-         MCW_popup_message( w , "** Hist not implemented yet **" ,
-                            MCW_USER_KILL | MCW_TIMER_KILL ) ;
-         EXRETURN ;
-       }
-
        imar = AFNI_cluster_timeseries(im3d,ii) ;
-
        if( imar == NULL || IMARR_COUNT(imar) < 1 ){
          MCW_popup_message( w , " \n"
                                 "** Can't get data!! **\n"
@@ -893,7 +935,92 @@ ENTRY("AFNI_clus_action_CB") ;
 
        nx = IMARR_SUBIM(imar,0)->nx ;
        ibot = cwid->from_av->ival ; itop = cwid->to_av->ival ;
+       if( ibot >= nx ) ibot = 0 ;
        if( itop < ibot || itop >= nx ) itop = nx-1 ;
+
+       { static float rrr[3] = { 0.7f , 0.0f , 0.1f } ;
+         static float ggg[3] = { 0.0f , 0.6f , 0.1f } ;
+         static float bbb[3] = { 0.1f , 0.0f , 0.7f } ;
+         plot_ts_setcolors( 3 , rrr,ggg,bbb ) ;
+       }
+
+       /*---------- build histogram ----------*/
+
+       if( dohist ){
+         float *far , hbot,htop,val,sbin ; int jj,kk,nbin,ih , *hbin ;
+         hbot = 1.e+33 ; htop = -hbot ;
+         for( kk=0 ; kk < IMARR_COUNT(imar) ; kk++ ){
+           far = MRI_FLOAT_PTR( IMARR_SUBIM(imar,kk) ) ;
+           for( jj=ibot ; jj <= itop ; jj++ ){
+             val = far[jj] ;
+             if( hbot > val ) hbot = val ;
+             if( htop < val ) htop = val ;
+           }
+         }
+         if( hbot >= htop ){ DESTROY_IMARR(imar); EXRETURN; } /* bad */
+         if( (int)hbot == hbot && (int)htop == htop ){
+           nbin = htop - hbot ;
+           if( nbin < 8 ){ nbin = 8 ; }
+           else          { while( nbin > 1000 ) nbin /= 2 ; }
+         } else {
+           nbin = 100 ;
+         }
+         kk = (int)sqrt((double)((itop-ibot+1)*IMARR_COUNT(imar))) ;
+         if( nbin > kk ) nbin = kk ;
+         sbin = 0.999999 * nbin / (htop-hbot) ;
+         hbin = (int *)calloc(sizeof(int),(nbin+1)) ;
+         for( kk=0 ; kk < IMARR_COUNT(imar) ; kk++ ){
+           far = MRI_FLOAT_PTR( IMARR_SUBIM(imar,kk) ) ;
+           for( jj=ibot ; jj <= itop ; jj++ ){
+             val = far[jj] ; if( val < hbot || val > htop ) continue ;
+             ih = (int)(sbin*(val-hbot)) ; hbin[ih]++ ;
+           }
+         }
+
+         if( !dosave ){   /*----- plot histogram -----*/
+
+           char xlab[64] , ylab[64] , tlab[THD_MAX_NAME+2] ;
+           sprintf(xlab,"Data Value [%d bins]",nbin) ;
+           sprintf(ylab,"Cluster #%d = %d voxels", ii+1 , IMARR_COUNT(imar) ) ;
+           sprintf(tlab,"\\noesc %s[%d..%d]",
+                   THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL+1) , ibot,itop ) ;
+           plot_ts_xypush(0,-1) ;
+           PLUTO_histoplot( nbin,hbot,htop , hbin , xlab,ylab,tlab , 0,NULL ) ;
+
+         } else {         /*----- save histogram -----*/
+
+           char fnam[128] , *ppp ; FILE *fp ; int ff ;
+
+           ppp = XmTextFieldGetString( cwid->prefix_tf ) ;
+           if( !THD_filename_pure(ppp) ) ppp = "Clust" ;
+           sprintf(fnam,"%s_table.1D",ppp) ;
+           ff = THD_is_file(fnam) ;
+           fp = fopen(fnam,"w") ;
+           if( fp == NULL ){
+             ERROR_message("Can't open file %s for writing",fnam) ;
+           } else {
+             ppp = AFNI_clus_3dclust(im3d) ;
+             if( ppp != NULL )
+               fprintf(fp,"# Histogram of %s[%d..%d]\n"
+                          "# over Cluster #%d from\n"
+                          "# %s\n" ,
+                       DSET_HEADNAME(im3d->vwid->func->cwid->dset) ,
+                       ibot , itop , ii+1 , ppp ) ;
+             fprintf(fp,"# min data value = %g\n"
+                        "# max data value = %g\n" , hbot,htop ) ;
+             for( jj=0 ; jj < nbin ; jj++ ) fprintf(fp,"%7d\n",hbin[jj]) ;
+             fclose(fp) ;
+             if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
+             else     INFO_message   ("Wrote file %s"     ,fnam) ;
+           }
+
+         }
+
+         free((void *)hbin); DESTROY_IMARR(imar); EXRETURN;
+       }
+
+       /*------------ time series processing ------------*/
+
        if( (domean || dopc) && itop == ibot ){
          MCW_popup_message( w , " \n"
                                 "** Need at least two   **\n"
@@ -903,11 +1030,13 @@ ENTRY("AFNI_clus_action_CB") ;
          DESTROY_IMARR(imar) ; EXRETURN ;
        }
 
+       /*--- extract single vector for display or save ---*/
+
        if( IMARR_COUNT(imar) == 1 ){   /* should not transpire */
          im = IMARR_SUBIM(imar,0) ;
-       } else if( dopc ){           /* PC#1 */
+       } else if( dopc ){              /*-------- PC#1 --------*/
          im = mri_pcvector( imar , ibot,itop ) ;
-       } else if( domean ){         /* Mean */
+       } else if( domean ){            /*-------- Mean --------*/
          im = mri_meanvector( imar , ibot,itop ) ;
        }
        if( im != NULL ){
@@ -917,8 +1046,9 @@ ENTRY("AFNI_clus_action_CB") ;
            int jj ;
            sprintf(ylab,"%s: Cluster #%d = %d voxels",
                    (dopc) ? "PC#1" : "Aver" , ii+1 , IMARR_COUNT(imar) ) ;
-           sprintf(tlab,"\\noesc %s",
-                   THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL+1)) ;
+           sprintf(tlab,"\\noesc %s[%d..%d]",
+                   THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL+1),
+                   ibot,itop) ;
            plot_ts_xypush(1,0) ;
            xax = (float *)malloc(sizeof(float)*im->nx) ;
            for( jj=0 ; jj < im->nx ; jj++ ) xax[jj] = ibot+jj ;
@@ -928,50 +1058,76 @@ ENTRY("AFNI_clus_action_CB") ;
            free((void *)xax) ;
 
          } else {                                       /* Saving (the world) */
-           char fnam[32] , *ppp ; int jj ;
-           ppp = getenv("AFNI_CLUSTER_PREFIX") ;
-           if( ppp == NULL || *ppp == '\0' || !THD_filename_pure(ppp) )
-             ppp = "Clust" ;
-           sprintf(fnam,"%s%02d_%s.1D",ppp,ii+1,(dopc)?"pc":"mean") ;
-           jj = mri_write_1D( fnam , im ) ;
-           if( jj ) INFO_message("Wrote file %s",fnam) ;
+           char fnam[128] , *ppp ; int jj,kk,nx,ny,ff ; float *far ; FILE *fp ;
+           ppp = XmTextFieldGetString( cwid->prefix_tf ) ;
+           if( !THD_filename_pure(ppp) ) ppp = "Clust" ;
+           sprintf(fnam,"%s_%02d_%s.1D",ppp,ii+1,(dopc)?"pc":"mean") ;
+           ff = THD_is_file(fnam) ;
+           fp = fopen(fnam,"w") ;
+           if( fp == NULL ){
+             ERROR_message("Can't open file %s for writing",fnam) ;
+           } else {
+             ppp = AFNI_clus_3dclust(im3d) ;
+             if( ppp != NULL )
+               fprintf(fp,"# %s of %s[%d..%d]\n"
+                          "# over Cluster #%d from\n"
+                          "# %s\n" ,
+                       (dopc)?"pc#1":"mean" ,
+                       DSET_HEADNAME(im3d->vwid->func->cwid->dset) ,
+                       ibot , itop , ii+1 , ppp ) ;
+
+             nx = im->nx ; ny = im->ny ; far = MRI_FLOAT_PTR(im) ;
+             for( jj=0 ; jj < nx ; jj++ ){
+               for( kk=0 ; kk < ny ; kk++ ){
+                 fprintf(fp," %14g",far[jj+kk*ny]) ;
+               }
+               fprintf(fp,"\n") ;
+             }
+             fclose(fp) ;
+             if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
+             else     INFO_message   ("Wrote file %s"     ,fnam) ;
+           }
          }
          if( im != IMARR_SUBIM(imar,0) ) mri_free(im) ;
        }
        DESTROY_IMARR(imar) ; EXRETURN ;
 
-     /*-- flash the voxels for this cluster --*/
+     /*--------- flash the voxels for this cluster ---------*/
 
      } else if( w == cwid->clu_flsh_pb[ii] ){
        THD_3dim_dataset  *fset = im3d->fim_now ;
        MCW_cluster_array *clar = im3d->vwid->func->clu_list ; int jj ;
        STATUS("flashing") ;
        if( ISVALID_DSET(fset) && fset->dblk->vedim != NULL && clar != NULL ){
+         double tz , tt ; int ss ;
          MRI_IMAGE *vm = fset->dblk->vedim ;
-         im3d->vedskip = 1 ;
+         im3d->vedskip = 1 ; tz = PLUTO_elapsed_time() ;
          for( jj=0 ; jj < 3 ; jj++ ){
            MCW_vol_to_cluster(vm->nx,vm->ny,vm->nz ,
                               vm->kind,mri_data_pointer(vm) , clar->clar[ii] );
            AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
-           NI_sleep(32) ;
+           tt = PLUTO_elapsed_time() ; ss = 66-(int)(tt-tz) ; tz = tt ;
+           if( ss > 0 ) NI_sleep(ss) ;
            MCW_cluster_to_vol(vm->nx,vm->ny,vm->nz ,
                               vm->kind,mri_data_pointer(vm) , clar->clar[ii] );
            AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
-           NI_sleep(32) ;
+           tt = PLUTO_elapsed_time() ; ss = 66-(int)(tt-tz) ; tz = tt ;
+           if( ss > 0 ) NI_sleep(ss) ;
          }
          im3d->vedskip = 0 ;
        }
        EXRETURN ;
      }
 
-   } /* end of loop over button rows */
+   } /*---------- end of loop over button rows ----------*/
 
    /* this should never be reached, unless the code is haunted */
 
-   fprintf(stderr,"** Unknown button? **\n") ; EXRETURN ;
+   fprintf(stderr,"** Unknown button? **\n\a") ; EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Get the time series from the points in a cluster */
 
 static MRI_IMARR * AFNI_cluster_timeseries( Three_D_View *im3d , int ncl )
 {
@@ -999,6 +1155,7 @@ ENTRY("AFNI_cluster_timeseries") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Callback for arrowvals on the cluster report panel. */
 
 static void AFNI_clus_av_CB( MCW_arrowval *av , XtPointer cd )
 {
@@ -1026,6 +1183,8 @@ ENTRY("AFNI_clus_av_CB") ;
 #define THBIG    1.e+9f
 #define THBOT(t) ((thrsign==0 || thrsign==2) ? (-(t)) : (-THBIG))
 #define THTOP(t) ((thrsign==0 || thrsign==1) ? (t)    :  (THBIG))
+
+/* return the equivalent 3dclust command string */
 
 static char * AFNI_clus_3dclust( Three_D_View *im3d )
 {
