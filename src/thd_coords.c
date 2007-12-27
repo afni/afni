@@ -552,7 +552,9 @@ void THD_dicom_card_xform (THD_3dim_dataset * dset ,
 #define MAX3(a,b,c) ( (MAXNUM(a,b)) > (MAXNUM(a,c)) ? (MAXNUM(a,b)):(MAXNUM(a,c)))
 #define MINNUM(a,b) ( (a) < (b) ? (a):(b))
 #define MIN3(a,b,c) ( (MINNUM(a,b)) < (MINNUM(a,c)) ? (MINNUM(a,b)):(MINNUM(a,c)))
+
 /* compute angle of greatest obliquity given transformation matrix */
+
 float THD_compute_oblique_angle(mat44 ijk_to_dicom44, int verbose)
 {
    float dxtmp, dytmp, dztmp ;
@@ -593,17 +595,14 @@ float THD_compute_oblique_angle(mat44 ijk_to_dicom44, int verbose)
    return(ang_merit);
 }
 
-void
-THD_report_obliquity(THD_3dim_dataset *dset)
+void THD_report_obliquity(THD_3dim_dataset *dset)
 {
    double angle;
 
-   if(oblique_report_repeat==0)
-      return;
+   if( !ISVALID_DSET(dset) || oblique_report_repeat==0 ) return;
 
    angle = THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0);
-   if(angle == 0.0)
-      return;
+   if(angle == 0.0) return;
 
    if(oblique_report_index<oblique_report_repeat) {
       if(first_oblique) {

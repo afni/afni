@@ -2594,9 +2594,9 @@ void AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset)
    char str[1024];
 
    ENTRY("AFNI_check_obliquity");
+   if( !ISVALID_DSET(dset) ) EXRETURN ;
    angle = THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0);
-   if(angle == 0.0)
-      EXRETURN ;
+   if(angle == 0.0) EXRETURN ;
 
    sprintf( str,
          " You have selected an oblique dataset.\n"
