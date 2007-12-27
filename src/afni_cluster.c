@@ -1045,7 +1045,7 @@ ENTRY("AFNI_clus_action_CB") ;
            float *far = MRI_FLOAT_PTR(im) , *xax ;
            int jj ;
            sprintf(ylab,"%s: Cluster #%d = %d voxels",
-                   (dopc) ? "PC#1" : "Aver" , ii+1 , IMARR_COUNT(imar) ) ;
+                   (dopc) ? "PC#1" : "Mean" , ii+1 , IMARR_COUNT(imar) ) ;
            sprintf(tlab,"\\noesc %s[%d..%d]",
                    THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL+1),
                    ibot,itop) ;
