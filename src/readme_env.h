@@ -2466,10 +2466,13 @@ static char * readme_env[] = {
    "respectively.\n" ,
    "\n" ,
    "-----------------------------\n" ,
-   "Variable: AFNI_CLUSTER_PREFIX (editable)\n" ,
+   "Variable: AFNI_CLUSTER_PREFIX\n" ,
    "-----------------------------\n" ,
    "This variable sets the prefix for 'Save' timeseries 1D files from the\n" ,
-   "'Clusterize' report panel.  The default string is \"Clust\".\n" ,
+   "'Clusterize' report panel.  The default string is \"Clust\".  The value\n" ,
+   "of this variable will be loaded into the cluster Rpt window text entry\n" ,
+   "field, and the prefix can be edited there by the users when it comes\n" ,
+   "time to save files.\n" ,
    "\n" ,
    "----------------------------\n" ,
    "Variable: AFNI_STRLIST_INDEX\n" ,
@@ -2638,4 +2641,4 @@ static char * readme_env[] = {
    "in 3dDeconvolve by the \"-gltsym\" option will be printed to the screen\n" ,
    "when the program starts up.\n" ,
    NULL } ;
-#define NUM_readme_env 2638
+#define NUM_readme_env 2641
