@@ -6506,6 +6506,10 @@
  * Clusterize reporting window.
 
 27 Dec 2007
- * Upgrades to clusterize reporting window.
+ * Upgrades to clusterize reporting window: histograms, from/to indexes
+     on auxiliary dataset, 3dclust and save table buttons, &c.
  * Fixed bug in DG's obliquity reporting function in thd_coords.c -- it
      didn't check if the input dataset was valid -- caused AFNI to crash.
+
+28 Dec 2007
+ * Popup menu in clusterize report to set histogram range.

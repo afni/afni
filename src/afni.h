@@ -384,6 +384,7 @@ typedef struct {
 typedef struct {
   Widget wtop, rowcol;      /* containers */
   Widget top_lab;           /* overall report text */
+  Widget top_menu , histrange_pb ;
 
   MCW_arrowval *cmode_av ;  /* first row of controls */
   Widget clust3d_pb, savetable_pb, index_lab, prefix_tf, done_pb ;
@@ -404,6 +405,7 @@ typedef struct {
   THD_3dim_dataset *dset ;  /* selected from dataset_pb */
   int coord_mode ;
   int receive_on ;
+  float hbot,htop ;
 } AFNI_clu_widgets ;      /** not yet used **/
 
 /*---*/
