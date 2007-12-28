@@ -80,6 +80,25 @@ ENTRY("AFNI_cluster_choose_CB") ;
 }
 
 /*---------------------------------------------------------------*/
+
+static void AFNI_histrange_choose_CB( Widget wc, XtPointer cd, MCW_choose_cbs *cbs )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   AFNI_clu_widgets *cwid ;
+   float *vec = (float *)(cbs->cval) , hb,ht ;
+
+ENTRY("AFNI_histrange_choose_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+   cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) EXRETURN ;
+
+   hb = vec[0] ; ht = vec[1] ;
+   if( hb >= ht ){ hb = ht = 0.0f ; }
+   cwid->hbot = hb ; cwid->htop = ht ;
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------*/
 /* Callback for items on the clu_label menu itself.              */
 
 void AFNI_clu_CB( Widget w , XtPointer cd , XtPointer cbs )
@@ -173,13 +192,27 @@ void AFNI_cluster_dispize( Three_D_View *im3d , int force )
 void AFNI_cluster_EV( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch )
 {
-#if 0
    Three_D_View *im3d = (Three_D_View *)cd ;
-   XButtonEvent *event = (XButtonEvent *)ev ;
-   if( event->button != Button3 ) return ;
-   if( im3d->vedset.code != VEDIT_CLUST ) return ;
-   AFNI_cluster_widgize(im3d,1) ;
-#endif
+   AFNI_clu_widgets *cwid ;
+
+ENTRY("AFNI_cluster_EV") ;
+
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+   cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) EXRETURN ;
+
+   switch( ev->type ){
+     case ButtonPress:{
+       XButtonEvent *event = (XButtonEvent *) ev ;
+       im3d->vwid->butx = event->x_root ;
+       im3d->vwid->buty = event->y_root ;
+       event->button    = Button3 ;               /* fakeout */
+       XmMenuPosition( cwid->top_menu , event ) ; /* where */
+       XtManageChild ( cwid->top_menu ) ;         /* popup */
+     }
+     break ;
+   }
+
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -312,7 +345,7 @@ ENTRY("AFNI_clus_make_widgets") ;
             XmNtraversalOn  , True ,
          NULL ) ;
 
-   /* top label to say what session we are dealing with */
+   /* top label to describe the overall results */
 
    xstr = XmStringCreateLtoR( " If you see this text, this means   \n"
                               " that clustering hasn't happened.   \n"
@@ -327,6 +360,41 @@ ENTRY("AFNI_clus_make_widgets") ;
                        XmNtraversalOn , True  ,
                     NULL ) ;
    XmStringFree(xstr) ;
+
+   /*---- popup menu on top label ----*/
+
+   XtInsertEventHandler( cwid->top_lab ,        /* handle events in label */
+                           ButtonPressMask ,    /* button presses */
+                           FALSE ,              /* nonmaskable events? */
+                           AFNI_cluster_EV ,    /* handler */
+                           (XtPointer) im3d ,   /* client data */
+                           XtListTail           /* last in queue */
+                       ) ;
+
+   cwid->top_menu = XmCreatePopupMenu( cwid->top_lab , "menu" , NULL , 0 ) ;
+   SAVEUNDERIZE(cwid->top_menu) ; VISIBILIZE_WHEN_MAPPED(cwid->top_menu) ;
+   if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(cwid->top_menu) ;
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmLabelWidgetClass , cwid->top_menu ,
+               LABEL_ARG("--- Cancel ---") ,
+               XmNrecomputeSize , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+
+   xstr = XmStringCreateLtoR( "Hist range" , XmFONTLIST_DEFAULT_TAG ) ;
+   cwid->histrange_pb = XtVaCreateManagedWidget(
+           "menu" , xmPushButtonWidgetClass , cwid->top_menu ,
+            XmNlabelString , xstr ,
+            XmNtraversalOn , True  ,
+         NULL ) ;
+   XmStringFree(xstr) ;
+   XtAddCallback( cwid->histrange_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
+   MCW_register_hint( cwid->histrange_pb , "Set Histogram data range" ) ;
+   cwid->hbot = cwid->htop = 0.0f ;
+
+   /*---- end of popup menu ----*/
+
 
 #undef  VLINE
 #undef  HLINE
@@ -525,6 +593,9 @@ ENTRY("AFNI_clus_make_widgets") ;
    XtManageChild( cwid->rowcol ) ;
    XtRealizeWidget( cwid->wtop ) ;
    cwid->receive_on = 0 ;
+
+   WAIT_for_window( cwid->wtop ) ;
+   POPUP_cursorize( cwid->top_lab ) ;
 
    EXRETURN ;
 }
@@ -786,6 +857,7 @@ ENTRY("AFNI_clus_done_CB") ;
    cwid = im3d->vwid->func->cwid ;
    if( cwid != NULL ){
      cwid->dset = NULL ; AFNI_clus_dsetlabel(im3d) ;
+     cwid->hbot = cwid->htop = 0.0f ;
      XtUnmapWidget(cwid->wtop) ; cwid->is_open = 0 ;
      DESTROY_CLARR(im3d->vwid->func->clu_list) ;
    }
@@ -920,6 +992,24 @@ ENTRY("AFNI_clus_action_CB") ;
      EXRETURN ;
    }
 
+   /*------ Hist range button ------*/
+
+   if( w == cwid->histrange_pb ){
+     char *lvec[2] = { "Minimum" , "Maximum" } ;
+     float fvec[2] ;
+     if( cwid->hbot < cwid->htop ){ fvec[0]=cwid->hbot; fvec[1]=cwid->htop; }
+     else                         { fvec[0] = fvec[1] = 0.0f;               }
+     MCW_choose_vector( cwid->top_lab ,
+                        "Set range of values to\n"
+                        "include in Histogram. \n"
+                        "[ Min=Max=0 means all]\n"
+                        "[ data will be used  ]\n"
+                        "----------------------" ,
+                        2 , lvec,fvec ,
+                        AFNI_histrange_choose_CB , (XtPointer)im3d ) ;
+     EXRETURN ;
+   }
+
    /*------ scan button list, see if widget matches one of them ------*/
 
    nclu = im3d->vwid->func->clu_num ;
@@ -973,17 +1063,20 @@ ENTRY("AFNI_clus_action_CB") ;
        /*---------- build histogram ----------*/
 
        if( dohist ){
-         float *far , hbot,htop,val,sbin ; int jj,kk,nbin,ih , *hbin ;
-         hbot = 1.e+33 ; htop = -hbot ;
-         for( kk=0 ; kk < IMARR_COUNT(imar) ; kk++ ){
-           far = MRI_FLOAT_PTR( IMARR_SUBIM(imar,kk) ) ;
-           for( jj=ibot ; jj <= itop ; jj++ ){
-             val = far[jj] ;
-             if( hbot > val ) hbot = val ;
-             if( htop < val ) htop = val ;
+         float *far, hbot,htop,val,sbin ; int jj,kk,nbin,ih, *hbin, nval ;
+         hbot = cwid->hbot ; htop = cwid->htop ;   /* range from user */
+         if( hbot >= htop ){            /* scan data for range to use */
+           hbot = 1.e+33 ; htop = -hbot ;
+           for( kk=0 ; kk < IMARR_COUNT(imar) ; kk++ ){
+             far = MRI_FLOAT_PTR( IMARR_SUBIM(imar,kk) ) ;
+             for( jj=ibot ; jj <= itop ; jj++ ){
+               val = far[jj] ;
+               if( hbot > val ) hbot = val ;
+               if( htop < val ) htop = val ;
+             }
            }
+           if( hbot >= htop ){ DESTROY_IMARR(imar); EXRETURN; } /* bad */
          }
-         if( hbot >= htop ){ DESTROY_IMARR(imar); EXRETURN; } /* bad */
          if( (int)hbot == hbot && (int)htop == htop ){
            nbin = htop - hbot ;
            if( nbin < 8 ){ nbin = 8 ; }
@@ -992,25 +1085,25 @@ ENTRY("AFNI_clus_action_CB") ;
            nbin = 100 ;
          }
          kk = (int)sqrt((double)((itop-ibot+1)*IMARR_COUNT(imar))) ;
-         if( nbin > kk ) nbin = kk ;
-         sbin = 0.999999 * nbin / (htop-hbot) ;
+         if( nbin > kk ) nbin = MAX(kk,4) ;
+         sbin = 0.999999f * nbin / (htop-hbot) ;
          hbin = (int *)calloc(sizeof(int),(nbin+1)) ;
-         for( kk=0 ; kk < IMARR_COUNT(imar) ; kk++ ){
+         for( nval=kk=0 ; kk < IMARR_COUNT(imar) ; kk++ ){
            far = MRI_FLOAT_PTR( IMARR_SUBIM(imar,kk) ) ;
            for( jj=ibot ; jj <= itop ; jj++ ){
              val = far[jj] ; if( val < hbot || val > htop ) continue ;
-             ih = (int)(sbin*(val-hbot)) ; hbin[ih]++ ;
+             ih = (int)(sbin*(val-hbot)) ; hbin[ih]++ ; nval++ ;
            }
          }
 
          if( !dosave ){   /*----- plot histogram -----*/
 
            char xlab[64] , ylab[64] , tlab[THD_MAX_NAME+2] ;
-           sprintf(xlab,"Data Value [%d bins]",nbin) ;
+           sprintf(xlab,"Data Value [%d bins; %d values in range]",nbin,nval) ;
            sprintf(ylab,"Cluster #%d = %d voxels", ii+1 , IMARR_COUNT(imar) ) ;
            sprintf(tlab,"\\noesc %s[%d..%d]",
                    THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL+1) , ibot,itop ) ;
-           plot_ts_xypush(0,-1) ;
+           plot_ts_xypush(0,-1) ; plot_ts_setthik(0.005f) ;
            PLUTO_histoplot( nbin,hbot,htop , hbin , xlab,ylab,tlab , 0,NULL ) ;
 
          } else {         /*----- save histogram -----*/
@@ -1019,7 +1112,7 @@ ENTRY("AFNI_clus_action_CB") ;
 
            ppp = XmTextFieldGetString( cwid->prefix_tf ) ;
            if( !THD_filename_pure(ppp) ) ppp = "Clust" ;
-           sprintf(fnam,"%s_table.1D",ppp) ;
+           sprintf(fnam,"%s_%02d_hist.1D",ppp,ii+1) ;
            ff = THD_is_file(fnam) ;
            fp = fopen(fnam,"w") ;
            if( fp == NULL ){
@@ -1034,6 +1127,8 @@ ENTRY("AFNI_clus_action_CB") ;
                        ibot , itop , ii+1 , ppp ) ;
              fprintf(fp,"# min data value = %g\n"
                         "# max data value = %g\n" , hbot,htop ) ;
+             fprintf(fp,"# num of voxels  = %d\n"
+                        "# num of values  = %d\n" , IMARR_COUNT(imar),nval ) ;
              for( jj=0 ; jj < nbin ; jj++ ) fprintf(fp,"%7d\n",hbin[jj]) ;
              fclose(fp) ;
              if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
@@ -1075,7 +1170,7 @@ ENTRY("AFNI_clus_action_CB") ;
            sprintf(tlab,"\\noesc %s[%d..%d]",
                    THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL+1),
                    ibot,itop) ;
-           plot_ts_xypush(1,0) ;
+           plot_ts_xypush(1,0) ; plot_ts_setthik(0.005f) ;
            xax = (float *)malloc(sizeof(float)*im->nx) ;
            for( jj=0 ; jj < im->nx ; jj++ ) xax[jj] = ibot+jj ;
            plot_ts_lab( im3d->dc->display ,

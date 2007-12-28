@@ -3184,15 +3184,6 @@ STATUS("making func->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
-#if 0
-   XtInsertEventHandler( func->options_label ,  /* handle events in label */
-                           ButtonPressMask ,    /* button presses */
-                           FALSE ,              /* nonmaskable events? */
-                           AFNI_cluster_EV ,    /* handler */
-                           (XtPointer)im3d ,    /* client data */
-                           XtListTail           /* last in queue */
-                        ) ;
-#endif
    func->cwid = NULL;
    func->clu_rep = NULL; func->clu_list = NULL; func->clu_index = -1;
    func->clu_det = NULL; func->clu_num  = 0 ;
@@ -3280,15 +3271,6 @@ STATUS("making func->rowcol") ;
                         "N.B.: Clustering cannot be done if the overlay\n"
                         "      dataset does not have a stored volume\n"
                         "      (e.g., is 'warp-on-demand' only)." ) ;
-#if 0
-   XtInsertEventHandler( func->clu_cluster_pb , /* handle events in button */
-                           ButtonPressMask ,    /* button presses */
-                           FALSE ,              /* nonmaskable events? */
-                           AFNI_cluster_EV ,    /* handler */
-                           (XtPointer)im3d ,    /* client data */
-                           XtListTail           /* last in queue */
-                        ) ;
-#endif
 
    hrc = XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , func->clu_rowcol ,
@@ -5253,8 +5235,10 @@ ENTRY("AFNI_initialize_controller") ;
 
    WAIT_for_window( im3d->vwid->top_shell ) ;
 
-#if 0
+#if 1
    POPUP_cursorize( im3d->vwid->func->thr_label ) ;       /* 05 Sep 2006 */
+#endif
+#if 0
    POPUP_cursorize( im3d->vwid->func->thr_pval_label ) ;  /* 05 Sep 2006 */
 #endif
    POPUP_cursorize( im3d->vwid->func->inten_label ) ;
