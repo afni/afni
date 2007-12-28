@@ -60,7 +60,7 @@ static char * gifti_history[] =
   "     -fixed 0-width indenting and accumulating base64 errors\n"
 };
 
-static char gifti_version[] = "gifti library version 0.8, 12 December, 2007";
+static char gifti_version[] = "gifti library version 0.9, 28 December, 2007";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
