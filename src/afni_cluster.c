@@ -595,6 +595,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    cwid->receive_on = 0 ;
 
    WAIT_for_window( cwid->wtop ) ;
+   NORMAL_cursorize( cwid->rowcol ) ;
    POPUP_cursorize( cwid->top_lab ) ;
 
    EXRETURN ;
