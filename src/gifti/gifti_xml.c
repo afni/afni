@@ -1,10 +1,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-#include <zlib.h>
-#include <expat.h>
 #include "gifti_io.h"
-#include "gifti_xml.h"
 
 #define GXML_MIN_BSIZE 2048
 #define GXML_DEF_BSIZE 32768
@@ -87,7 +84,8 @@ static int  ewrite_text_ele         (int, const char *, const char *,
                                      int, int, FILE *);
 static int  ewrite_coordsys         (gxml_data *, giiCoordSystem *, FILE *);
 static int  ewrite_data             (gxml_data *, giiDataArray *, FILE *);
-static int  ewrite_data_line        (void *, int, int, int, int, FILE *);
+static int  ewrite_data_line        (void *, int, long long, long long,
+                                     int, FILE *);
 static int  ewrite_double_line      (double *, int, int, FILE *);
 static int  ewrite_int_attr         (const char *, int, int, int, FILE *);
 static int  ewrite_long_long_attr   (const char *, long long, int, int, FILE *);
@@ -114,7 +112,7 @@ static gxml_data GXD = {
     3,          /* indent, spaces per indent level            */
     GXML_DEF_BSIZE, /* buf_size, allocated for XML parsing    */
     GIFTI_B64_CHECK_SKIPNCOUNT, /* b64_check, for b64 errors  */
-    Z_DEFAULT_COMPRESSION, /* zlevel, compress level, -1..9   */
+    GZ_DEFAULT_COMPRESSION, /* zlevel, compress level, -1..9  */
 
     NULL,       /* da_list, list of DA indices to store       */
     0,          /* da_len, length of da_list                  */
@@ -141,6 +139,9 @@ static gxml_data GXD = {
     NULL        /* gim, gifti_image *, for results            */
 };
 
+#ifndef HAVE_ZLIB  /* so we can print a callback message once per file */
+    static int g_first_zlib = 1;
+#endif
 
 /*--- Base64 binary encoding and decoding tables ---*/
 
@@ -279,7 +280,7 @@ gifti_image * gxml_read_image(const char * fname, int read_data,
     if(xd->verb > 1) {
         if(xd->gim)
             fprintf(stderr,"-- have gifti image '%s', "
-                           "(%d DA elements = %d MB)\n",
+                           "(%d DA elements = %lld MB)\n",
                     fname, xd->gim->numDA, gifti_gim_DA_size(xd->gim,1));
         else fprintf(stderr,"** gifti image '%s', failure\n", fname);
     }
@@ -408,10 +409,18 @@ int gxml_write_image(gifti_image * gim, const char * fname, int write_data)
         fprintf(stderr,"++ writing gifti image (%s data) to '%s'",
                 write_data?"with":"no", fname);
         if( write_data )
-            fprintf(stderr," (%d DA elements = %d MB)",
+            fprintf(stderr," (%d DA elements = %lld MB)",
                     gim->numDA, gifti_gim_DA_size(xd->gim,1));
         fputc('\n', stderr);
     }
+
+#ifndef HAVE_ZLIB  /* if the data is to be compressed, fail */
+    if( gim->darray && gim->darray[0] &&
+                       gim->darray[0]->encoding == GIFTI_ENCODING_B64GZ ) {
+        fprintf(stderr,"** no ZLIB for compression...\n");
+        gifti_set_all_DA_attribs(gim, "Encoding", "Base64Binary");
+    }
+#endif
 
     init_gxml_data(xd, 0, NULL, 0);    /* reset non-user variables */
     xd->dstore = write_data;  /* store for global access */
@@ -434,38 +443,86 @@ int gxml_write_image(gifti_image * gim, const char * fname, int write_data)
 }
 
 
-/* maybe these can be enhanced tomorrow, tomorrow, tomorrow... */
-int gxml_set_verb( int val ){ GXD.verb = val; return 0; }
+/*---------- accessor functions for user-controllable variables ----------*/
+/*----------     (one can pass -1 to set the default value)     ----------*/
+
+/*! verb is the vebose level, with 0 meaning "only report errors" (up to 7) */
 int gxml_get_verb( void    ){ return GXD.verb; }
+int gxml_set_verb( int val )
+{
+    if     ( val == -1 ) GXD.verb = 1;
+    else if( val >=  0 ) GXD.verb = val;
+    return 0;
+}
 
-int gxml_set_dstore( int val ){ GXD.dstore = val; return 0; }
+/*! the dstore flag controls whether data is read from a GIFTI file */
 int gxml_get_dstore( void    ){ return GXD.dstore; }
+int gxml_set_dstore( int val )
+{
+    if( val ) GXD.dstore = 1;   /* includes -1 as applying the default */
+    else      GXD.dstore = 0;
+    return 0;
+}
 
-int gxml_set_indent( int val ){ GXD.indent = val; return 0; }
+/*! indent is the number of spaces per indent level written to a GIFTI file */
 int gxml_get_indent( void    ){ return GXD.indent; }
+int gxml_set_indent( int val )
+{
+    if      ( val == -1 ) GXD.indent = 3;
+    else if ( val >=  0 ) GXD.indent = val;
+    else return 1;  /* failure - no action */
+    return 0;
+}
 
-/* buf_size is applied only at main reading time, for now */
-int gxml_set_buf_size( int val ){ GXD.buf_size = val; return 0; }
+/*! buf_size is the size of the XML I/O buffer given to expat */
 int gxml_get_buf_size( void    ){ return GXD.buf_size; }
+int gxml_set_buf_size( int val )
+{
+    if      ( val == -1 ) GXD.buf_size = GXML_DEF_BSIZE;
+    else if ( val  >  0 ) GXD.buf_size = val;
+    else return 1;      /* failure - no action */
+    return 0;
+}
 
-int gxml_set_b64_check( int val ){ GXD.b64_check = val; return 0; }
+/*! b64_check is the checking level for base64 binary data (see gifti_io.h) */
 int gxml_get_b64_check( void    ){ return GXD.b64_check; }
+int gxml_set_b64_check( int val ) /* -1 means apply default */
+{
+    if( val == -1 )
+        GXD.b64_check = GIFTI_B64_CHECK_SKIPNCOUNT;
+    else if ( val > GIFTI_B64_CHECK_UNDEF && val <= GIFTI_B64_CHECK_MAX )
+        GXD.b64_check = val;
+    else return 1;      /* failure - no action */
+    return 0;
+}
 
-int gxml_set_zlevel( int val ){ GXD.zlevel = val; return 0; }
+/*! zlevel is the zlib compression level, with -1 implying the default
+    (of 6, I believe) and value levels being in {0..9} (with 0 meaning
+    no compression) */
 int gxml_get_zlevel( void    ){ return GXD.zlevel; }
+int gxml_set_zlevel( int val )
+{
+    if( val == -1 )
+        GXD.zlevel = GZ_DEFAULT_COMPRESSION;
+    else if ( val >= 0 && val <= 9 )
+        GXD.zlevel = val;
+    else return 1;      /* failure - no action */
+    return 0;
+}
+/*----------------------- END accessor functions -----------------------*/
 
 
 static int init_gxml_data(gxml_data *dp, int doall, const int *dalist, int len)
 {
     int errs = 0;
 
-    if( doall ) {       /* user modifiable */
-        dp->verb = 1;
-        dp->dstore = 1;
-        dp->indent = 3;
-        dp->buf_size = GXML_DEF_BSIZE;
+    if( doall ) {           /* user modifiable - init all to defaults */
+        dp->verb      = 1;
+        dp->dstore    = 1;
+        dp->indent    = 3;
+        dp->buf_size  = GXML_DEF_BSIZE;
         dp->b64_check = GIFTI_B64_CHECK_SKIPNCOUNT;
-        dp->zlevel = Z_DEFAULT_COMPRESSION;     /* -1, or 0..9 */
+        dp->zlevel    = GZ_DEFAULT_COMPRESSION;
     }
 
     if( dalist && len > 0 ) {
@@ -499,6 +556,10 @@ static int init_gxml_data(gxml_data *dp, int doall, const int *dalist, int len)
     dp->ddata = NULL;
     dp->zdata = NULL;
     dp->gim   = NULL;
+
+#ifndef HAVE_ZLIB  /* if we don't have this (and need it), print warnings */
+    g_first_zlib = 1;
+#endif
 
     return errs;
 }
@@ -558,8 +619,8 @@ static int int_compare(const void * v0, const void * v1)
 
 static void show_depth( int depth, int show, FILE * fp )
 {
-    if( show ) fprintf(fp, "%*s %02d ", 3*depth, " ", depth);
-    else       fprintf(fp, "%*s    ", 3*depth, " ");
+    if( show ) fprintf(fp, "%*s %02d ", 3*depth, "", depth);
+    else       fprintf(fp, "%*s    ", 3*depth, "");
 }
 
 static void show_enames( FILE * fp )
@@ -636,11 +697,11 @@ static int epush( gxml_data * xd, int etype, const char * ename,
         case GXML_ETYPE_XFORMSPACE : return push_xspace(xd);
         case GXML_ETYPE_MATRIXDATA : return push_xform (xd, attr);
         case GXML_ETYPE_CDATA      : return push_cdata (xd, attr);
-        default: /* drop through */
+        default:
+            fprintf(stderr,"** epush, unknow type '%s'\n",enames[etype]);
             break;
     }
 
-    fprintf(stderr,"** epush, unknow type '%s'\n",enames[etype]);
     return 1;
 }
 
@@ -655,10 +716,10 @@ static int push_gifti(gxml_data * xd, const char ** attr )
     /* be explicit with pointers (struct should be clear) */
     gim = xd->gim;
     gim->version = NULL;
-    clear_nvpairs(&gim->meta);
-    clear_LabelTable(&gim->labeltable);
+    gifti_clear_nvpairs(&gim->meta);
+    gifti_clear_LabelTable(&gim->labeltable);
     gim->darray = NULL;
-    clear_nvpairs(&gim->ex_atrs);
+    gifti_clear_nvpairs(&gim->ex_atrs);
 
     for(c = 0; attr[c]; c+= 2 )
         if( gifti_str2attr_gifti(gim, attr[c], attr[c+1]) )
@@ -871,10 +932,17 @@ static int pop_darray(gxml_data * xd)
         xd->b64_errors = 0;
     }
 
-    if( da->encoding == GIFTI_ENCODING_B64GZ ) { /* unzip zdata to da->data */
-        uLongf outlen = da->nvals*da->nbyper;
-        int    rv;
+    if( da->encoding == GIFTI_ENCODING_B64GZ && da->data ) {
+        long long olen;  /* to avoid warnings printing outlen */
+        uLongf    outlen = da->nvals*da->nbyper;
+        int       rv = 0;
+
+        /* unzip zdata to da->data */
+
+#ifdef HAVE_ZLIB   /* for compiling, higher level test elsewhere */
         rv = uncompress(da->data, &outlen, (Bytef*)xd->zdata, xd->dind);
+#endif
+        olen = outlen;
         if( rv != Z_OK ) {
             fprintf(stderr,"** uncompress fails for DA[%d]\n",xd->gim->numDA-1);
             if( rv == Z_MEM_ERROR )
@@ -886,12 +954,12 @@ static int pop_darray(gxml_data * xd)
             else if ( rv != Z_OK )
                 fprintf(stderr,"** zlib failure, unknown error %d\n", rv);
         } else if ( xd->verb > 2 || (xd->verb > 1 && xd->gim->numDA == 1 ))
-            fprintf(stderr,"-- uncompressed buffer (%.2f%% of %zd bytes)\n",
-                    100.0*xd->dind/outlen, outlen);
+            fprintf(stderr,"-- uncompressed buffer (%.2f%% of %lld bytes)\n",
+                    100.0*xd->dind/olen, olen);
 
-        if( outlen != (int)da->nvals*da->nbyper ) {
-            fprintf(stderr,"** uncompressed buff is %zd bytes, expected %lld\n",
-                    outlen, da->nvals*da->nbyper);
+        if( olen != da->nvals*da->nbyper ) {
+            fprintf(stderr,"** uncompressed buf is %lld bytes, expected %lld\n",
+                    olen, da->nvals*da->nbyper);
         }
     }
 
@@ -938,7 +1006,7 @@ static int push_cstm(gxml_data * xd)
                 gifti_intent_to_string(1008));
 
     da->coordsys = (giiCoordSystem *)malloc(sizeof(giiCoordSystem));
-    clear_CoordSystem(da->coordsys);
+    gifti_clear_CoordSystem(da->coordsys);
 
     return 0;
 }
@@ -947,15 +1015,34 @@ static int push_cstm(gxml_data * xd)
 static int push_data(gxml_data * xd)
 {
     giiDataArray * da = xd->gim->darray[xd->gim->numDA-1]; /* current DA */
+    int            zsize;
 
     xd->dind = 0;       /* init for filling */
     xd->doff = 0;
+
+    if( ! xd->dstore ) {
+        if( xd->verb > 3 )
+            fprintf(stderr,"-- skipping data[%d]\n",xd->gim->numDA-1);
+        xd->skip = xd->depth;
+        return 1;
+    }
 
     if( update_partial_buffer(&xd->ddata, &xd->dlen, da->nbyper*da->nvals, 0) )
         return 1;
 
     if( da->encoding == GIFTI_ENCODING_B64GZ ) {
-        int zsize = da->nbyper*da->nvals * 1.01 + 12; /* zlib.net */
+
+#ifndef HAVE_ZLIB  /* we don't know the encoding until push_darray */
+        if( g_first_zlib ) {
+            fprintf(stderr,"** no ZLIB: skipping all compressed data\n");
+            g_first_zlib = 0;
+        }
+        xd->skip = xd->depth;
+        return 1;   /* return and skip this element */
+#endif
+
+        zsize = da->nbyper*da->nvals * 1.01 + 12; /* zlib.net */
+
         if( xd->verb > 2 )
             fprintf(stderr,"++ creating extra zdata for zlib extraction\n");
         if( update_partial_buffer(&xd->zdata, &xd->zlen, zsize, 1) )
@@ -1464,7 +1551,7 @@ static int copy_b64_data(gxml_data * xd, const char * src, char * dest,
 
     /* note length and any errors */
     *dest_len = apply_len;
-    xd->b64_errors = errs;
+    xd->b64_errors += errs;
 
     return errs;
 }
@@ -2227,7 +2314,7 @@ static int gxml_write_gifti(gxml_data * xd, FILE * fp)
     if( !gim || !fp ) return 1;
 
     if( xd->verb > 1 )
-        fprintf(stderr,"++ gifti image, numDA = %d, size = %d MB\n",
+        fprintf(stderr,"++ gifti image, numDA = %d, size = %lld MB\n",
                 gim->numDA, gifti_gim_DA_size(gim,1));
 
     gxml_write_preamble(xd, fp);
@@ -2269,7 +2356,7 @@ static int ewrite_darray(gxml_data * xd, giiDataArray * da, FILE * fp)
     if( !da ) return 0;
 
     offset = strlen(enames[GXML_ETYPE_DATAARRAY]) + 2 + spaces;
-    fprintf(fp, "%*s<DataArray", spaces, " ");
+    fprintf(fp, "%*s<DataArray", spaces, "");
 
     /* print attributes */
     ewrite_str_attr("Intent", gifti_intent_to_string(da->intent), offset,1,fp);
@@ -2301,7 +2388,7 @@ static int ewrite_darray(gxml_data * xd, giiDataArray * da, FILE * fp)
     ewrite_data(xd, da, fp);
     xd->depth--;
 
-    fprintf(fp, "%*s</DataArray>\n", spaces, " ");
+    fprintf(fp, "%*s</DataArray>\n", spaces, "");
 
     return 0;
 }
@@ -2310,15 +2397,16 @@ static int ewrite_darray(gxml_data * xd, giiDataArray * da, FILE * fp)
 /* this depends on ind_ord, how to write out lines */
 static int ewrite_data(gxml_data * xd, giiDataArray * da, FILE * fp)
 {
-    int c, spaces = xd->indent * xd->depth;
-    int rows, cols, errs = 0, rv;
+    long long c, rows, cols;
+    int       spaces = xd->indent * xd->depth;
+    int       errs = 0, rv = 0;
 
     if( !da ) return 0;         /* okay, may not exist */
 
     if( xd->verb > 3 )
         fprintf(stderr,"++ write %s Data\n",
                 gifti_list_index2string(gifti_encoding_list, da->encoding));
-    fprintf(fp, "%*s<%s>", spaces, " ", enames[GXML_ETYPE_DATA]);
+    fprintf(fp, "%*s<%s>", spaces, "", enames[GXML_ETYPE_DATA]);
 
     if( xd->dstore ) {
         if( da->encoding == GIFTI_ENCODING_ASCII ) {
@@ -2327,15 +2415,18 @@ static int ewrite_data(gxml_data * xd, giiDataArray * da, FILE * fp)
             for(c = 0; c < rows; c++ )
                 ewrite_data_line(da->data,da->datatype,c,cols,
                                  spaces+xd->indent,fp);
-            fprintf(fp, "%*s", spaces, " ");
+            fprintf(fp, "%*s", spaces, "");
         } else if( da->encoding == GIFTI_ENCODING_B64BIN ) {
             gxml_disp_b64_data(NULL, da->data, da->nvals*da->nbyper, fp);
         } else if( da->encoding == GIFTI_ENCODING_B64GZ ) {
             uLongf blen = da->nvals*da->nbyper * 1.01 + 12; /* zlib.net */
             if( update_partial_buffer(&xd->zdata, &xd->zlen, blen, 1) )
                 return 1;
+
+#ifdef HAVE_ZLIB   /* for compiling, higher level test elsewhere */
             rv = compress2((Bytef *)xd->zdata, &blen, da->data,
                            da->nvals*da->nbyper, xd->zlevel);
+#endif
             if( rv != Z_OK ) {
                 if( rv == Z_MEM_ERROR )
                     fprintf(stderr,"** zlibc failure, not enough memory\n");
@@ -2406,32 +2497,32 @@ static int ewrite_coordsys(gxml_data * xd, giiCoordSystem * cs, FILE * fp)
 
     if( xd->verb > 3 ) fprintf(stderr,"++ write giiCoordSystem\n");
 
-    fprintf(fp, "%*s<%s>\n", spaces, " ", enames[GXML_ETYPE_CSTM]);
+    fprintf(fp, "%*s<%s>\n", spaces, "", enames[GXML_ETYPE_CSTM]);
     spaces += xd->indent;
 
     ewrite_text_ele(GXML_ETYPE_DATASPACE, cs->dataspace, NULL, spaces, 1, fp);
     ewrite_text_ele(GXML_ETYPE_XFORMSPACE, cs->xformspace, NULL, spaces, 1, fp);
 
-    fprintf(fp, "%*s<MatrixData>\n", spaces, " ");
+    fprintf(fp, "%*s<MatrixData>\n", spaces, "");
     for(c = 0; c < 4; c++ )
         ewrite_double_line(cs->xform[c], 4, spaces+xd->indent, fp);
-    fprintf(fp, "%*s</MatrixData>\n", spaces, " ");
+    fprintf(fp, "%*s</MatrixData>\n", spaces, "");
 
     spaces -= xd->indent;
-    fprintf(fp, "%*s</%s>\n", spaces, " ", enames[GXML_ETYPE_CSTM]);
+    fprintf(fp, "%*s</%s>\n", spaces, "", enames[GXML_ETYPE_CSTM]);
 
     return 0;
 }
 
 
 /* rcr - review format strings */
-static int ewrite_data_line(void * data, int type, int row, int cols,
-                            int space, FILE * fp)
+static int ewrite_data_line(void * data, int type, long long row,
+                            long long cols, int space, FILE * fp)
 {
     int c;
     if( !data || row < 0 || cols <= 0 || !fp ) return 1;
 
-    fprintf(fp, "%*s", space, " ");
+    fprintf(fp, "%*s", space, "");
     switch( type ) {
         default : 
             fprintf(stderr,"** write_data_line, unknown type %d\n",type);
@@ -2521,7 +2612,7 @@ static int ewrite_double_line(double * data, int nvals, int space, FILE * fp)
     int c;
     if( !data || nvals <= 0 || !fp ) return 1;
 
-    fprintf(fp, "%*s", space, " ");
+    fprintf(fp, "%*s", space, "");
     for( c = 0; c < nvals; c++ )        /* duplicate trailing space for diff */
         fprintf(fp, "%f ", data[c]);
     fputc('\n', fp);
@@ -2538,7 +2629,7 @@ static int ewrite_text_ele(int ele, const char * cdata, const char * attr,
     if(ele < 0 || ele > GXML_MAX_ELEN) index = 0;  /* be safe */
 
     fprintf(fp, "%*s<%s%s>%s%s%s</%s>\n",
-            spaces, " ", enames[index],
+            spaces, "", enames[index],
             attr ? attr : "",
             in_CDATA ? "<![CDATA[" : "",
             cdata ? cdata : "",
@@ -2556,11 +2647,11 @@ static int ewrite_LT(gxml_data *xd, giiLabelTable *lt, int in_CDATA, FILE *fp)
     if( xd->verb > 3 ) fprintf(stderr,"++ write giiLabelTable\n");
 
     if( !lt || lt->length == 0 || !lt->index || !lt->label ) {
-        fprintf(fp, "%*s<LabelTable/>\n", spaces, " ");
+        fprintf(fp, "%*s<LabelTable/>\n", spaces, "");
         return 0;
     }
 
-    fprintf(fp, "%*s<LabelTable>\n", spaces, " ");
+    fprintf(fp, "%*s<LabelTable>\n", spaces, "");
     for( c = 0; c < lt->length; c++ ) {
         if( !lt->label[c] ) {
             if(xd->verb > 1) fprintf(stderr,"** label[%d] unset\n", c);
@@ -2571,7 +2662,7 @@ static int ewrite_LT(gxml_data *xd, giiLabelTable *lt, int in_CDATA, FILE *fp)
         ewrite_text_ele(GXML_ETYPE_LABEL, lt->label[c], attr,
                         spaces+xd->indent, 0, fp);
     }
-    fprintf(fp, "%*s</LabelTable>\n", spaces, " ");
+    fprintf(fp, "%*s</LabelTable>\n", spaces, "");
 
     return 0;
 }
@@ -2584,13 +2675,13 @@ static int ewrite_meta(gxml_data * xd, giiMetaData * md, FILE * fp)
     if( xd->verb > 3 ) fprintf(stderr,"++ write giiMetaData\n");
 
     if( !md || md->length == 0 || !md->name || !md->value ) {
-        fprintf(fp, "%*s<MetaData/>\n", spaces, " ");
+        fprintf(fp, "%*s<MetaData/>\n", spaces, "");
         return 0;
     }
 
     if( xd->verb > 3 ) fprintf(stderr,"   MD length = %d\n", md->length);
 
-    fprintf(fp, "%*s<MetaData>\n", spaces, " ");
+    fprintf(fp, "%*s<MetaData>\n", spaces, "");
     for( c = 0; c < md->length; c++ ) {
         if( !md->name[c] ) {  /* allow empty value, but not name */
             if(xd->verb > 1) fprintf(stderr,"** MD[%d] unset\n", c);
@@ -2598,17 +2689,17 @@ static int ewrite_meta(gxml_data * xd, giiMetaData * md, FILE * fp)
         }
 
         spaces += xd->indent;
-        fprintf(fp,"%*s<MD>\n", spaces, " ");
+        fprintf(fp,"%*s<MD>\n", spaces, "");
 
         spaces += xd->indent;
         ewrite_text_ele(GXML_ETYPE_NAME, md->name[c], NULL, spaces, 1,fp);
         ewrite_text_ele(GXML_ETYPE_VALUE,md->value[c],NULL, spaces, 1,fp);
         spaces -= xd->indent;
 
-        fprintf(fp,"%*s</MD>\n", spaces, " ");
+        fprintf(fp,"%*s</MD>\n", spaces, "");
         spaces -= xd->indent;
     }
-    fprintf(fp, "%*s</MetaData>\n", spaces, " ");
+    fprintf(fp, "%*s</MetaData>\n", spaces, "");
 
     return 0;
 }
@@ -2636,7 +2727,7 @@ static int ewrite_int_attr(const char *name, int value, int spaces,
 {
     fprintf(fp, "%s%*s%s=\"%d\"",
             (first) ? "" : "\n",        /* maybe a newline   */
-            (first) ?  1 : spaces, " ", /* 1 or many spaces  */
+            (first) ?  1 : spaces, "",  /* 1 or many spaces  */
             name, value);
     return 0;
 }
@@ -2647,7 +2738,7 @@ static int ewrite_long_long_attr(const char *name, long long value, int spaces,
 {
     fprintf(fp, "%s%*s%s=\"%lld\"",
             (first) ? "" : "\n",        /* maybe a newline   */
-            (first) ?  1 : spaces, " ", /* 1 or many spaces  */
+            (first) ?  1 : spaces, "",  /* 1 or many spaces  */
             name, value);
     return 0;
 }
@@ -2658,7 +2749,7 @@ static int ewrite_str_attr(const char * name, const char * value, int spaces,
 {
     fprintf(fp, "%s%*s%s=\"%s\"",
             (first) ? "" : "\n",        /* maybe a newline   */
-            (first) ?  1 : spaces, " ", /* 1 or many spaces  */
+            (first) ?  1 : spaces, "",  /* 1 or many spaces  */
             name, value ? value : "");
     return 0;
 }

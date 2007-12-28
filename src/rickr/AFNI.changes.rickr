@@ -2305,3 +2305,18 @@
 27 Dec 2007: added Makefile.macosx_10.5_G5, Makefile.macosx_10.5_Intel
         - contain -dylib_file option, for resolving 10.5 problem with libGL
 
+28 Dec 2007: gifti_io v0.9 (now, with gifti_tool)
+  * added gifti_tool.[ch]: replacing gifti_test, with added fucntionality
+  * modified gifti_test.[ch]: simplifying the program as a sample
+  * modified gifti.get.times, gifti.test.io, Makefile: use tifti_tool
+  * modified gifti_io.[ch], gifti_xml.[ch]:
+        -made zlib optional, via -DHAVE_ZLIB in compile
+         (without zlib, the user will get warnings)
+        -now users only #include gifti_io.h, not gifti_xml, expat or zlib
+        -added more comments and made tables more readable
+        -added all user-variable access functions and reset_user_vars()
+        -added gifti_free_image_contents(), gifti_disp_raw_data(),
+               gifti_clear_float_zeros() and gifti_set_all_DA_attribs()
+        -changed gifti_gim_DA_size to long long
+        -added GIFTI_B64_CHECK_UNDEF as 0
+        -fixed 0-width indenting and accumulating base64 errors

@@ -106,6 +106,8 @@ int   gxml_set_verb        ( int val );
 int   gxml_get_verb        ( void    );
 int   gxml_set_dstore      ( int val );
 int   gxml_get_dstore      ( void    );
+int   gxml_set_indent      ( int val );
+int   gxml_get_indent      ( void    );
 int   gxml_set_buf_size    ( int val );
 int   gxml_get_buf_size    ( void    );
 int   gxml_set_b64_check   ( int val );
