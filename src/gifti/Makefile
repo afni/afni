@@ -1,24 +1,38 @@
 
-# quick and dirty for now...
+# quick and dirty (getting dirtier) for now...
 
-CC = gcc
+# might not have zlib
+APPLY_ZLIB = -DHAVE_ZLIB
 
-# CFLAGS = -Wall -g -pedantic -std=c99
-CFLAGS = -O3
+NIFTI_DIR = ../nifti/Clibs
+
+# CFLAGS = -Wall -g -pedantic -std=c99 $(APPLY_ZLIB)
+CFLAGS = -O3 $(APPLY_ZLIB)
+IFLAGS = -I$(NIFTI_DIR)/include
+LFLAGS = -L$(NIFTI_DIR)/lib
+
+CC = gcc $(CFLAGS)
 
 # for macs (getting expat from fink)
-# IFLAGS = -I/sw/include
-# LFLAGS = -L/sw/lib
+# IFLAGS = -I/sw/include $(IFLAGS)
+# LFLAGS = -L/sw/lib $(LFLAGS)
+
+gifti_tool: gifti_tool.o gifti_io.o gifti_xml.o
+	$(RM) $@
+	$(CC) -o $@ gifti_tool.o gifti_io.o gifti_xml.o \
+	      $(LFLAGS) -lexpat -lz 
 
 gifti_test: gifti_test.o gifti_io.o gifti_xml.o
 	$(RM) $@
-	$(CC) $(CFLAGS) -o $@ $(LFLAGS) -lexpat	-lz \
-		gifti_test.o gifti_io.o gifti_xml.o
+	$(CC) -o $@ gifti_test.o gifti_io.o gifti_xml.o \
+	      $(LFLAGS) -lexpat -lz 
+
+all: gifti_tool gifti_test
 
 clean:
-	$(RM) gifti_test *.o
+	$(RM) gifti_test gifti_tool *.o
 
 %.o: %.c %.h
 	$(RM) $@
-	$(CC) $(CFLAGS) $(IFLAGS) -c $<
+	$(CC) $(IFLAGS) -c $<
 
