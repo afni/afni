@@ -4,22 +4,23 @@
 # or be sitting in the directory with them
 
 set skip_ts = 0
+set prog = gifti_tool   # was gifti_test
 
 # if the user specifies -nots, skip the time series dataset
 set narg = $#argv
 set base = 1
 if ( $narg >= 1 ) then
     if ( "$argv[1]" == "-help" ) then
-        echo "usage: test.io [-nots] [files...]"
+        echo "usage: gifti.test.io [-nots] [files...]"
         echo ""
         echo "option:"
         echo "    -nots         : do not process *time_series*.gii"
         echo ""
         echo "examples:"
-        echo "    test.io"
-        echo "    test.io *.gii"
-        echo "    test.io -nots"
-        echo "    test.io -nots *.gii"
+        echo "    gifti.test.io"
+        echo "    gifti.test.io *.gii"
+        echo "    gifti.test.io -nots"
+        echo "    gifti.test.io -nots *.gii"
 
         exit
     else if ( "$argv[1]" == "-nots" ) then
@@ -28,6 +29,8 @@ if ( $narg >= 1 ) then
         set skip_ts = 1
     endif
 endif
+
+echo using `which $prog` ...
  
 if ( $narg >= 1 ) then
     set files = ( $argv[$base-] )
@@ -35,6 +38,8 @@ else
     echo applying default gifti files...
     set files = ( gifti.*.gii )
 endif
+
+echo ""
 
 foreach file ( $files )
     echo -n "$file : "
@@ -44,9 +49,9 @@ foreach file ( $files )
         continue
     endif
 
-    gifti_test -infile $file -gfile new.gii
+    $prog -infile $file -write_gifti new.gii
     if( $status ) then
-        echo "****** FAILURE ********"
+        echo "** FAILURE : $prog -infile $file -write_gifti new.gii"
     else
         cmp $file new.gii
         if( ! $status ) echo okay

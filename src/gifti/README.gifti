@@ -33,7 +33,7 @@ Speeds: (last checked in version 0.7)
 todo:
   - accessor functions
   - indexed reading
-  - doxygen comments
+  - test doxygen comments
 
   - add -no_updates option, not to update GIFTI element
     else, update: (maybe have a higher level do this)
@@ -60,7 +60,5 @@ todo:
         - check for UNKNOWN attributes
                 - done?? "invalid darray XX"
         - check that numDA matches numDAfound (unless user requested fewer)
-
-  - change gifti_test to gifti_tool (leave simplified gifti_test)
+        - check that MD names are unique
   - only print pointers on error
-  - finish read_da_list
