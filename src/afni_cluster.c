@@ -393,6 +393,12 @@ ENTRY("AFNI_clus_make_widgets") ;
    MCW_register_hint( cwid->histrange_pb , "Set Histogram data range" ) ;
    cwid->hbot = cwid->htop = 0.0f ;
 
+   { char *blab = "SqrtHist?" ;
+     cwid->histsqrt_bbox = new_MCW_bbox( cwid->top_menu , 1,&blab ,
+                                         MCW_BB_check , MCW_BB_noframe , NULL,NULL ) ;
+     MCW_reghint_children( cwid->histsqrt_bbox->wrowcol , "Plot square root of histogram?" ) ;
+   }
+
    /*---- end of popup menu ----*/
 
 
@@ -858,7 +864,7 @@ ENTRY("AFNI_clus_done_CB") ;
    cwid = im3d->vwid->func->cwid ;
    if( cwid != NULL ){
      cwid->dset = NULL ; AFNI_clus_dsetlabel(im3d) ;
-     cwid->hbot = cwid->htop = 0.0f ;
+     cwid->hbot = cwid->htop = 0.0f ; MCW_set_bbox( cwid->histsqrt_bbox , 0 ) ;
      XtUnmapWidget(cwid->wtop) ; cwid->is_open = 0 ;
      DESTROY_CLARR(im3d->vwid->func->clu_list) ;
    }
@@ -1067,7 +1073,7 @@ ENTRY("AFNI_clus_action_CB") ;
        /*---------- build histogram ----------*/
 
        if( dohist ){
-         float *far, hbot,htop,val,sbin ; int jj,kk,nbin,ih, *hbin, nval ;
+         float *far,*hbin, hbot,htop,val,sbin ; int jj,kk,nbin,ih, nval , dosqrt ;
          hbot = cwid->hbot ; htop = cwid->htop ;   /* range from user */
          if( hbot >= htop ){            /* scan data for range to use */
            hbot = 1.e+33 ; htop = -hbot ;
@@ -1091,7 +1097,7 @@ ENTRY("AFNI_clus_action_CB") ;
          kk = (int)sqrt((double)((itop-ibot+1)*IMARR_COUNT(imar))) ;
          if( nbin > kk ) nbin = MAX(kk,4) ;
          sbin = 0.999999f * nbin / (htop-hbot) ;
-         hbin = (int *)calloc(sizeof(int),(nbin+1)) ;
+         hbin = (float *)calloc(sizeof(float),(nbin+1)) ;
          for( nval=kk=0 ; kk < IMARR_COUNT(imar) ; kk++ ){
            far = MRI_FLOAT_PTR( IMARR_SUBIM(imar,kk) ) ;
            for( jj=ibot ; jj <= itop ; jj++ ){
@@ -1100,15 +1106,20 @@ ENTRY("AFNI_clus_action_CB") ;
            }
          }
 
+         dosqrt = !dosave && (MCW_val_bbox(cwid->histsqrt_bbox)==1) ;
+         if( dosqrt )
+           for( ih=0 ; ih<=nbin ; ih++ ) hbin[ih] = sqrtf(hbin[ih]);
+
          if( !dosave ){   /*----- plot histogram -----*/
 
            char xlab[64] , ylab[64] , tlab[THD_MAX_NAME+2] ;
            sprintf(xlab,"Data Value [%d bins; %d values in range]",nbin,nval) ;
-           sprintf(ylab,"Cluster #%d = %d voxels", ii+1 , IMARR_COUNT(imar) ) ;
+           sprintf(ylab,"Cluster #%d = %d vox", ii+1 , IMARR_COUNT(imar) ) ;
+           strcat(ylab,(dosqrt)?" [SqrtHist]" : " [Hist]") ;
            sprintf(tlab,"\\noesc %s[%d..%d]",
                    THD_trailname(DSET_HEADNAME(cwid->dset),SESSTRAIL+1) , ibot,itop ) ;
            plot_ts_xypush(0,-1) ; plot_ts_setthik(0.005f) ;
-           PLUTO_histoplot( nbin,hbot,htop , hbin , xlab,ylab,tlab , 0,NULL ) ;
+           PLUTO_histoplot_f( nbin,hbot,htop , hbin , xlab,ylab,tlab , 0,NULL ) ;
 
          } else {         /*----- save histogram -----*/
 
@@ -1133,7 +1144,7 @@ ENTRY("AFNI_clus_action_CB") ;
                         "# max data value = %g\n" , hbot,htop ) ;
              fprintf(fp,"# num of voxels  = %d\n"
                         "# num of values  = %d\n" , IMARR_COUNT(imar),nval ) ;
-             for( jj=0 ; jj < nbin ; jj++ ) fprintf(fp,"%7d\n",hbin[jj]) ;
+             for( jj=0 ; jj < nbin ; jj++ ) fprintf(fp,"%7d\n",(int)hbin[jj]) ;
              fclose(fp) ;
              if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
              else     INFO_message   ("Wrote file %s"     ,fnam) ;

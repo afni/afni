@@ -689,6 +689,8 @@ extern THD_slist_find     PLUTO_dset_finder( char * ) ;
 
 extern void PLUTO_histoplot( int, float, float, int *,
                              char *, char *, char * , int,int ** ) ;
+extern void PLUTO_histoplot_f( int, float, float, float *,
+                             char *, char *, char * , int,float ** ) ;
 
 extern void PLUTO_scatterplot( int , float *, float *,
                                char *, char *, char * , float,float ) ;
