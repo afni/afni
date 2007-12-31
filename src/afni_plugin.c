@@ -4853,9 +4853,9 @@ THD_slist_find PLUTO_dset_finder( char *idc )
    Graph is popped up and then "forgotten" -- RWCox - 30 Sep 1999.
 -------------------------------------------------------------------*/
 
-void PLUTO_histoplot( int nbin, float bot, float top, int *hist ,
-                      char *xlab , char *ylab , char *tlab ,
-                      int njist , int **jist )
+void PLUTO_histoplot_f( int nbin, float bot, float top, float *hist ,
+                        char *xlab , char *ylab , char *tlab ,
+                        int njist , float **jist )
 {
    int ii , nx , ny,jj ;
    float *xar , *yar , *zar=NULL , **yzar ;
@@ -4881,11 +4881,11 @@ ENTRY("PLUTO_histoplot") ;
 
    xar[0] = bot ; yar[0] = 0.0f ;
    for( ii=0 ; ii < nbin ; ii++ ){
-     xar[2*ii+1] = bot+ii*dx     ; yar[2*ii+1] = (float) hist[ii] ;
-     xar[2*ii+2] = bot+(ii+1)*dx ; yar[2*ii+2] = (float) hist[ii] ;
+     xar[2*ii+1] = bot+ii*dx     ; yar[2*ii+1] = hist[ii] ;
+     xar[2*ii+2] = bot+(ii+1)*dx ; yar[2*ii+2] = hist[ii] ;
 
      for( jj=0 ; jj < njist ; jj++ )
-       yzar[jj+1][2*ii+1] = yzar[jj+1][2*ii+2] = (float) jist[jj][ii] ;
+       yzar[jj+1][2*ii+1] = yzar[jj+1][2*ii+2] = jist[jj][ii] ;
    }
    xar[2*nbin+1] = top ; yar[2*nbin+1] = 0.0f ;
    for( jj=0 ; jj < njist ; jj++ )
@@ -4897,6 +4897,39 @@ ENTRY("PLUTO_histoplot") ;
 
    for( jj=0 ; jj < njist ; jj++ ) free(yzar[jj+1]) ;
    free(yzar) ; free(xar) ; free(yar) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------*/
+
+void PLUTO_histoplot( int nbin, float bot, float top, int *hist ,
+                      char *xlab , char *ylab , char *tlab ,
+                      int njist , int **jist )
+{
+   float *hist_f , **jist_f ;
+   int ii,jj ;
+
+ENTRY("PLUTO_histoplot") ;
+
+   if( nbin < 2 || hist == NULL ) EXRETURN ;
+
+   hist_f = (float *)malloc(sizeof(float)*nbin) ;
+   for( ii=0 ; ii < nbin ; ii++ ) hist_f[ii] = (float)hist[ii] ;
+
+   if( njist <= 0 || jist == NULL ){
+     PLUTO_histoplot_f( nbin, bot,top , hist_f , xlab,ylab,tlab , 0,NULL ) ;
+     free((void *)hist_f) ;
+     EXRETURN ;
+   }
+
+   jist_f = (float **)malloc(sizeof(float *)*njist) ;
+   for( jj=0 ; jj < njist ; jj++ ){
+     jist_f[jj] = (float *)malloc(sizeof(float)*nbin) ;
+     for( ii=0 ; ii < nbin ; ii++ ) jist_f[jj][ii] = (float)jist[jj][ii] ;
+   }
+   PLUTO_histoplot_f( nbin,bot,top , hist_f , xlab,ylab,tlab , njist,jist_f );
+   for( jj=0 ; jj < njist ; jj++ ) free((void *)jist_f[jj]) ;
+   free((void *)jist_f) ; free((void *)hist_f) ;
    EXRETURN ;
 }
 
