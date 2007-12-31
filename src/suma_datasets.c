@@ -8247,7 +8247,8 @@ infancy
    
    \sa SUMA_afnidset2sumadset
 */
-THD_3dim_dataset *SUMA_sumadset2afnidset(SUMA_DSET **dsetp, int copy_data, int cleardset)
+THD_3dim_dataset *SUMA_sumadset2afnidset(
+      SUMA_DSET **dsetp, int copy_data, int cleardset)
 {
    static char FuncName[]={"SUMA_sumadset2afnidset"};
    SUMA_DSET *dset = NULL;
@@ -8262,7 +8263,9 @@ THD_3dim_dataset *SUMA_sumadset2afnidset(SUMA_DSET **dsetp, int copy_data, int c
    if (!dset) { SUMA_S_Err("NULL *dsetp."); SUMA_RETURN(newset); }
    
    if (!copy_data && cleardset) {
-      SUMA_S_Err("Requesting no datacopy and cleardset. That's a combo I can refuse.\n");
+      SUMA_S_Err(
+         "Requesting no datacopy and cleardset. \n"
+         "That's a combo I can refuse.\n");
       SUMA_RETURN(newset); 
    }
    if (!SUMA_is_AllNumeric_dset(dset)) { 
@@ -8270,7 +8273,9 @@ THD_3dim_dataset *SUMA_sumadset2afnidset(SUMA_DSET **dsetp, int copy_data, int c
       SUMA_RETURN(newset);   
    }
    if (!dset->ngr || !dset->dnel) {
-      fprintf(SUMA_STDERR,"Error %s: NULL dset contents: ngr=%p , dnel=%p\n", FuncName, dset->ngr, dset->dnel);
+      fprintf( SUMA_STDERR,
+               "Error %s: NULL dset contents: ngr=%p , dnel=%p\n", 
+               FuncName, dset->ngr, dset->dnel);
       SUMA_RETURN(newset); 
    }
    
@@ -8287,12 +8292,16 @@ THD_3dim_dataset *SUMA_sumadset2afnidset(SUMA_DSET **dsetp, int copy_data, int c
       SUMA_LH("Copying data");
       rv = THD_add_sparse_data(newset->dblk->parent, dset->ngr);
       if( rv <= 0 ){
-          fprintf(SUMA_STDERR,"Error %s: add sdata returned %d for '%s'\n",FuncName, rv, SDSET_LABEL(dset));
+          fprintf(SUMA_STDERR,
+                  "Error %s: add sdata returned %d for '%s'\n",
+                  FuncName, rv, SDSET_LABEL(dset));
           DSET_delete(newset); newset=NULL;
           SUMA_RETURN(newset);
       }
       else if( rv < newset->dblk->nvals ){
-          fprintf(SUMA_STDERR,"Error %s: loaded only %d vols for '%s'\n",FuncName, rv,SDSET_LABEL(dset));
+          fprintf(SUMA_STDERR,
+                  "Error %s: loaded only %d vols for '%s'\n",
+                  FuncName, rv,SDSET_LABEL(dset));
           DSET_delete(newset); newset=NULL;
           SUMA_RETURN(newset);
       }
@@ -8316,7 +8325,9 @@ infancy
    
    \sa SUMA_sumadset2afnidset
 */
-SUMA_DSET *SUMA_afnidset2sumadset(THD_3dim_dataset **dsetp, int copy_data, int cleardset)
+SUMA_DSET *SUMA_afnidset2sumadset(
+      THD_3dim_dataset **dsetp, 
+      int copy_data, int cleardset)
 {
    static char FuncName[]={"SUMA_afnidset2sumadset"};
    THD_3dim_dataset *dset = NULL;
@@ -8327,7 +8338,8 @@ SUMA_DSET *SUMA_afnidset2sumadset(THD_3dim_dataset **dsetp, int copy_data, int c
    
    if (!dsetp) { SUMA_S_Err("Null of Null you are!"); SUMA_RETURN(newset); }
    if (!copy_data && cleardset) {
-      SUMA_S_Err("Requesting no datacopy and cleardset. That's a combo I can refuse.\n");
+      SUMA_S_Err( "Requesting no datacopy and cleardset. \n"
+                  "That's a combo I can refuse.\n");
       SUMA_RETURN(newset); 
    }
    dset = *dsetp;
