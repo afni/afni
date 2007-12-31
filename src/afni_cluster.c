@@ -1041,19 +1041,22 @@ ENTRY("AFNI_clus_action_CB") ;
        int dohist = (cwid->aver_av->ival == 2) ;
        MRI_IMARR *imar ; MRI_IMAGE *im=NULL ; int nx,ibot,itop ;
 
+       SHOW_AFNI_PAUSE ;
+
        imar = AFNI_cluster_timeseries(im3d,ii) ;
        if( imar == NULL || IMARR_COUNT(imar) < 1 ){
          MCW_popup_message( w , " \n"
-                                "** Can't get data!! **\n"
-                                "** Need a dataset!! **\n " ,
+                                "** Can't get data!!! **\n"
+                                "** Need Aux Dataset! **\n " ,
                             MCW_USER_KILL | MCW_TIMER_KILL ) ;
-         EXRETURN ;
+         SHOW_AFNI_READY; EXRETURN ;
        }
 
-       nx = IMARR_SUBIM(imar,0)->nx ;
+       nx = IMARR_SUBIM(imar,0)->nx ;  /* number of voxel time series */
        ibot = cwid->from_av->ival ; itop = cwid->to_av->ival ;
        if( ibot >= nx ) ibot = 0 ;
        if( itop < ibot || itop >= nx ) itop = nx-1 ;
+
 
        { static float rrr[3] = { 0.7f , 0.0f , 0.1f } ;
          static float ggg[3] = { 0.0f , 0.6f , 0.1f } ;
@@ -1076,7 +1079,7 @@ ENTRY("AFNI_clus_action_CB") ;
                if( htop < val ) htop = val ;
              }
            }
-           if( hbot >= htop ){ DESTROY_IMARR(imar); EXRETURN; } /* bad */
+           if( hbot >= htop ){ DESTROY_IMARR(imar); SHOW_AFNI_READY; EXRETURN; } /* bad */
          }
          if( (int)hbot == hbot && (int)htop == htop ){
            nbin = htop - hbot ;
@@ -1138,7 +1141,7 @@ ENTRY("AFNI_clus_action_CB") ;
 
          }
 
-         free((void *)hbin); DESTROY_IMARR(imar); EXRETURN;
+         free((void *)hbin); DESTROY_IMARR(imar); SHOW_AFNI_READY; EXRETURN;
        }
 
        /*------------ time series processing ------------*/
@@ -1149,7 +1152,7 @@ ENTRY("AFNI_clus_action_CB") ;
                                 "** time series indexes **\n"
                                 "** to do Mean or PC#1  **\n " ,
                             MCW_USER_KILL | MCW_TIMER_KILL ) ;
-         DESTROY_IMARR(imar) ; EXRETURN ;
+         DESTROY_IMARR(imar) ; SHOW_AFNI_READY; EXRETURN ;
        }
 
        /*--- extract single vector for display or save ---*/
@@ -1212,7 +1215,7 @@ ENTRY("AFNI_clus_action_CB") ;
          }
          if( im != IMARR_SUBIM(imar,0) ) mri_free(im) ;
        }
-       DESTROY_IMARR(imar) ; EXRETURN ;
+       DESTROY_IMARR(imar) ; SHOW_AFNI_READY; EXRETURN ;
 
      /*--------- flash the voxels for this cluster ---------*/
 
