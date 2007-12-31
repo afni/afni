@@ -1682,42 +1682,42 @@ void calculate_results
          for( kk=0 ; kk < nuse ; kk++ ) vox_vect[kk] *= fac[kk] ;
       
 
-      #if 0 /* now detrending is done at input */
-		/** compute mean and slope **/
+      #if 0 /* now detrending is done at input, kill this block someday*/
+		   /** compute mean and slope **/
 
-		#ifdef ZDBG
-		if (ixyz == iposdbg)
-			{
-				printf("Before Detrending\n");
-				printf("TS: %f\t%f\t%f\t%f\t%f\n", vox_vect[0], vox_vect[1],  vox_vect[2], vox_vect[3], vox_vect[4]);
-				/*getchar ();*/
-			}
-		#endif
-      x0 = x1 = 0.0 ;
-      for( kk=0 ; kk < nuse ; kk++ ){
-         x0 += vox_vect[kk] ; x1 += vox_vect[kk] * dtr[kk] ;
-      }
+		   #ifdef ZDBG
+		   if (ixyz == iposdbg)
+			   {
+				   printf("Before Detrending\n");
+				   printf("TS: %f\t%f\t%f\t%f\t%f\n", vox_vect[0], vox_vect[1],  vox_vect[2], vox_vect[3], vox_vect[4]);
+				   /*getchar ();*/
+			   }
+		   #endif
+         x0 = x1 = 0.0 ;
+         for( kk=0 ; kk < nuse ; kk++ ){
+            x0 += vox_vect[kk] ; x1 += vox_vect[kk] * dtr[kk] ;
+         }
 
-      x0 *= d0fac ; x1 *= d1fac ;  /* factors to remove mean and trend */
+         x0 *= d0fac ; x1 *= d1fac ;  /* factors to remove mean and trend */
 
-      ts_mean  = x0 ;
-      ts_slope = x1 / tdelta ;
+         ts_mean  = x0 ;
+         ts_slope = x1 / tdelta ;
 
-      /** detrend? **/
+         /** detrend? **/
 
-      if( option_data->dtrnd )
-         for( kk=0 ; kk < nuse ; kk++ ) vox_vect[kk] -= (x0 + x1 * dtr[kk]) ;
-      else
-         for( kk=0 ; kk < nuse ; kk++ ) vox_vect[kk] -= x0;
-         
-		#ifdef ZDBG
-		if (ixyz == iposdbg)
-			{
-				printf("After Detrending (or just zero-meaning)\n");
-				printf("TS: %f\t%f\t%f\t%f\t%f\n", vox_vect[0], vox_vect[1],  vox_vect[2], vox_vect[3], vox_vect[4]);
-				/*getchar ();*/
-			}
-		#endif
+         if( option_data->dtrnd )
+            for( kk=0 ; kk < nuse ; kk++ ) vox_vect[kk] -= (x0 + x1 * dtr[kk]) ;
+         else
+            for( kk=0 ; kk < nuse ; kk++ ) vox_vect[kk] -= x0;
+
+		   #ifdef ZDBG
+		   if (ixyz == iposdbg)
+			   {
+				   printf("After Detrending (or just zero-meaning)\n");
+				   printf("TS: %f\t%f\t%f\t%f\t%f\n", vox_vect[0], vox_vect[1],  vox_vect[2], vox_vect[3], vox_vect[4]);
+				   /*getchar ();*/
+			   }
+		   #endif
 
       #endif
 		/* calculate the T0 and Tdelta */

@@ -4146,7 +4146,10 @@ void SUMA_cb_CloseSwitchCmap (Widget w, XtPointer client_data, XtPointer call)
    LW = (SUMA_LIST_WIDGET *)client_data;
    
    #if defined SUMA_USE_WITHDRAW 
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Withdrawing list widget %s...\n", FuncName, LW->Label);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,
+                  "%s: Withdrawing list widget %s...\n", 
+                  FuncName, LW->Label);
       
       XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
          XtWindow(LW->toplevel),
