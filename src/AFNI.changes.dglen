@@ -238,3 +238,5 @@ including amber, red, green and blue (azure)
  * put warnings in when using oblique datasets in AFNI GUI and when opening
 datasets elsewhere
  * added another colorscale with amber/red/blue
+02 Jan 2008
+ * removed obliquity warnings when deobliquing with 3dWarp or 3drefit
