@@ -1009,6 +1009,7 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-deoblique") == 0 ){
          deoblique = 1 ;
+         THD_set_oblique_report(0,0); /* turn off obliquity warning */
          new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
       }
 

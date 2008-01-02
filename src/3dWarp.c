@@ -43,7 +43,7 @@ int main( int argc , char * argv[] )
 {
    THD_3dim_dataset *inset , *outset=NULL , *newgset=NULL ;
    char * prefix = "warped" ;
-   int nopt=1 , verb=0 , zpad=0 , fsl=0 ;
+   int nopt=1 , verb=0 , zpad=0 , fsl=0 , gsetopt=0;
    int use_matvec=0 ;
    int use_newgrid=0 ;
    float ddd_newgrid=0.0 ;
@@ -281,9 +281,8 @@ int main( int argc , char * argv[] )
          ERROR_exit("Can't use -gridset twice!\n");
        if( ++nopt >= argc )
          ERROR_exit("Need argument after -gridset!\n");
-       newgset = THD_open_dataset( argv[nopt] ) ;
-       if( newgset == NULL )
-         ERROR_exit("Can't open -gridset %s\n",argv[nopt]);
+       newgset = (THD_3dim_dataset *) -1; /* open the dataset later instead */
+       gsetopt = nopt;
        nopt++ ; continue ;
      }
 
@@ -419,7 +418,8 @@ int main( int argc , char * argv[] )
         (strncmp(argv[nopt],"-card2oblique",13) == 0 )) {
        if( matdefined )
          ERROR_exit("-oblique_parent: Matrix already defined!\n");
-       if( ++nopt >= argc )
+      THD_set_oblique_report(0,0); /* turn off obliquity warning */
+      if( ++nopt >= argc )
          ERROR_exit("Need argument after -oblique_parent!\n");
        oblparset = THD_open_dataset( argv[nopt] ) ;
        if( oblparset == NULL )
@@ -429,6 +429,7 @@ int main( int argc , char * argv[] )
 
      if((strncmp(argv[nopt],"-deoblique",10) == 0 ) ||
        ( strncmp(argv[nopt],"-oblique2card",13) == 0 )){
+        THD_set_oblique_report(0,0);
         oblique_flag = 1; matdefined = 1; nopt++ ; continue ;
      }
 
@@ -497,7 +498,10 @@ int main( int argc , char * argv[] )
    if( use_newgrid ){
      newggg = &ddd_newgrid ; gflag = WARP3D_NEWGRID ;
    } else if( newgset != NULL ){
-     newggg = newgset      ; gflag = WARP3D_NEWDSET ;
+     newggg = newgset = THD_open_dataset( argv[gsetopt] ) ;
+       if( newgset == NULL )
+         ERROR_exit("Can't open -gridset %s\n",argv[nopt]);
+     gflag = WARP3D_NEWDSET ;
    }
 
     /* handling oblique and deoblique cases */
