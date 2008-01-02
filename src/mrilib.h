@@ -1192,6 +1192,12 @@ typedef struct { int nar ; int *ar ; } intvec ;
       (iv)->ar  = (int *)calloc(sizeof(int),(n)) ;  \
   } while(0)
 
+#define RESIZE_intvec(iv,m)                                   \
+  do{ if( (iv)->nar != (m) ){                                 \
+        (iv)->nar = (m) ;                                     \
+        (iv)->ar  = (int *)realloc((iv)->ar,sizeof(int)*(m)); \
+  }} while(0)
+
 typedef struct {
   int nbot, ntop , gbot ;
   char name[64] ;
