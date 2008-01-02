@@ -2599,12 +2599,13 @@ void AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset)
    if(angle == 0.0) EXRETURN ;
 
    sprintf( str,
-         " You have selected an oblique dataset.\n"
-         "  If you are performing spatial transformations on an oblique dset, \n"
-         "  or viewing/combining it with volumes of differing obliquity,\n"
-         "  you should consider running: \n"
-         "     3dWarp -deoblique \n"
-         "  on this and other oblique datasets in the same session.\n");
+      " You have selected an oblique dataset (%s).\n"
+      "  If you are performing spatial transformations on an oblique dset, \n"
+      "  or viewing/combining it with volumes of differing obliquity,\n"
+      "  you should consider running: \n"
+      "     3dWarp -deoblique \n"
+      "  on this and other oblique datasets in the same session.\n",
+      DSET_BRIKNAME(dset));
 
    (void) MCW_popup_message( w , str, MCW_USER_KILL | MCW_TIMER_KILL ) ;
    EXRETURN ;
