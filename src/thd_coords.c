@@ -608,11 +608,12 @@ void THD_report_obliquity(THD_3dim_dataset *dset)
       if(first_oblique) {
          WARNING_message(
          "  If you are performing spatial transformations on an oblique dset, \n"
+         "  such as %s,\n"
          "  or viewing/combining it with volumes of differing obliquity,\n"
          "  you should consider running: \n"
          "     3dWarp -deoblique \n"
          "  on this and  other oblique datasets in the same session.\n"
-         " See 3dWarp -help for details.\n");
+         " See 3dWarp -help for details.\n", DSET_BRIKNAME(dset));
          first_oblique = 0;
       }
 
