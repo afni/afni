@@ -318,7 +318,7 @@ byte * SUMA_ROIgrow( SUMA_SurfaceObject *SO,
    if (ilb < 0) sprintf(m_stmp, ".1D"); \
    else sprintf(m_stmp, ".%d.1D", ilb);  \
    m_oname = SUMA_append_string(Opt->out_prefix, m_stmp);     \
-   if (!SUMA_ok_overwrite() && SUMA_filexists(m_oname)) {   \
+   if (!THD_ok_overwrite() && SUMA_filexists(m_oname)) {   \
       fprintf(SUMA_STDERR,"Output file %s exists.\n", outname);   \
       exit(1); \
    }  \
@@ -371,7 +371,7 @@ int main (int argc,char *argv[])
 
    
    outname = SUMA_append_string(Opt->out_prefix,".1D");
-   if (!SUMA_ok_overwrite() && SUMA_filexists(outname)) {
+   if (!THD_ok_overwrite() && SUMA_filexists(outname)) {
       fprintf(SUMA_STDERR,"Output file %s exists.\n", outname);
       exit(1);
    }

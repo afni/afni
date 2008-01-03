@@ -23,87 +23,96 @@ int main( int argc , char * argv[] )
    int gap = 0, ScaleInt=0, force_rgb_out = 0, matrix_size_from_scale = 0;
    byte  gap_col[3] = {255, 20, 128} ;
    MRI_IMAGE *imscl=NULL;
-   int kkk, nscl=-1, resix=-1, resiy=-1, force_rgb_at_input=0, N_byte = 0, N_rgb = 0;
+   int kkk, nscl=-1, resix=-1, resiy=-1, force_rgb_at_input=0, 
+       N_byte = 0, N_rgb = 0;
    float *scl=NULL;
    byte *scl3=NULL, *rgb=NULL;
    char name[100];
    void *ggg=NULL;
+   
+   
+   mainENTRY("imcat main"); machdep() ;
     
    if( argc < 4 ){
-      printf("Usage: imcat [options] fname1 fname2 etc.\n"
-             "Puts a set images into an image matrix (IM) \n"
-             " montage of NX by NY images.\n"
-             " The minimum set of input is N images (N >= 1).\n"
-             " If need be, images are reused until the desired\n"
-             " NX by NY size is achieved.\n"
-             " \n"
-             "OPTIONS:\n"
-             " ++ Options for editing, coloring input images:\n"
-             "  -scale_image SCALE_IMG: Multiply each image IM(i,j) in output\n"
-             "                          image matrix IM by the color or intensity\n"
-             "                          of the pixel (i,j) in SCALE_IMG.\n"
-             "  -scale_intensity: Instead of multiplying by the color of \n"
-             "                          pixel (i,j), use its intensity \n"
-             "                          (average color)\n"
-             "  -rgb_out: Force output to be in rgb, even if input is bytes.\n"
-             "            This option is turned on automatically in certain cases.\n"
-             "  -res_in RX RY: Set resolution of all input images to RX by RY pixels.\n"
-             "                 Default is to make all input have the same\n"
-             "                 resolution as the first image.\n"
-             " ++ Options for output:\n"
-             "  -prefix ppp = Prefix the output files with string 'ppp'\n"
-             "  -matrix NX NY: Specify number of images in each row and column \n"
-             "                 of IM at the same time. \n"
-             "  -nx NX: Number of images in each row (3 for example below)\n"
-             "  -ny NY: Number of images in each column (4 for example below)\n"
-             "      Example: If 12 images appearing on the command line\n"
-             "               are to be assembled into a 3x4 IM matrix they\n"
-             "               would appear in this order:\n"
-             "                 0  1  2\n"
-             "                 3  4  5\n"
-             "                 6  7  8\n"
-             "                 9  10 11\n"
-             "    NOTE: The program will try to guess if neither NX nor NY \n"
-             "          are specified.\n"
-             "  -matrix_from_scale: Set NX and NY to be the same as the \n"
-             "                      SCALE_IMG's dimensions. (needs -scale_image)\n"
-             "  -gap G: Put a line G pixels wide between images.\n"
-             "  -gap_col R G B: Set color of line to R G B values.\n"
-             "                  Values range between 0 and 255.\n"
-             "\n"
-             "Example 0 (assuming afni is in ~/abin directory):\n"
-             "   Resizing an image:\n"
-             "   imcat -prefix big -res_in 1024 1024 \\\n"
-             "         ~/abin/face_zzzsunbrain.jpg \n"
-             "   imcat -prefix small -res_in 64 64 \\\n"
-             "         ~/abin/face_zzzsunbrain.jpg \n"
-             "   aiv small.ppm big.ppm \n"
-             "\n"
-             "Example 1:\n"
-             "   Stitching together images:\n"
-             "    (Can be used to make very high resolution SUMA images.\n"
-             "     Read about 'Ctrl+r' in SUMA's GUI help.)\n"
-             "   imcat -prefix cat -matrix 14 12 \\\n"
-             "         ~/abin/face_*.jpg\n"
-             "   aiv cat.ppm\n"
-             "\n"
-             "Example 2 (assuming afni is in ~/abin directory):\n"
-             "   imcat -prefix bigcat -scale_image ~/abin/face_rwcox.jpg \\\n"
-             "         -matrix_from_scale -rgb_out -res_in 32 32 ~/abin/face_*.jpg \n"
-             "   aiv   bigcat.ppm bigcat.ppm \n"
-             "   Crop/Zoom in to see what was done. In practice, you want to use\n"
-             "   a faster image viewer to examine the result. Zooming on such\n"
-             "   a large image is not fast in aiv.\n"
-             "   Be careful with this toy. Images get real big, real quick.\n"
-             "\n"
-             "You can look at the output image file with\n"
-             "  afni -im ppp.ppm  [then open the Sagittal image window]\n"
-             "\n"
+      printf(
+ "Usage: imcat [options] fname1 fname2 etc.\n"
+ "Puts a set images into an image matrix (IM) \n"
+ " montage of NX by NY images.\n"
+ " The minimum set of input is N images (N >= 1).\n"
+ " If need be, the default is to reuse images until the desired\n"
+ " NX by NY size is achieved. \n"
+ " See options -zero_wrap and -image_wrap for more detail.\n"
+ " \n"
+ "OPTIONS:\n"
+ " ++ Options for editing, coloring input images:\n"
+ "  -scale_image SCALE_IMG: Multiply each image IM(i,j) in output\n"
+ "                          image matrix IM by the color or intensity\n"
+ "                          of the pixel (i,j) in SCALE_IMG.\n"
+ "  -scale_intensity: Instead of multiplying by the color of \n"
+ "                          pixel (i,j), use its intensity \n"
+ "                          (average color)\n"
+ "  -rgb_out: Force output to be in rgb, even if input is bytes.\n"
+ "            This option is turned on automatically in certain cases.\n"
+ "  -res_in RX RY: Set resolution of all input images to RX by RY pixels.\n"
+ "                 Default is to make all input have the same\n"
+ "                 resolution as the first image.\n"
+ " ++ Options for output:\n"
+ "  -zero_wrap: If number of images is not enough to fill matrix\n"
+ "              blank images are used.\n"
+ "  -image_wrap: If number of images is not enough to fill matrix\n"
+ "               images on command line are reused (default)\n"
+ "  -prefix ppp = Prefix the output files with string 'ppp'\n"
+ "  -matrix NX NY: Specify number of images in each row and column \n"
+ "                 of IM at the same time. \n"
+ "  -nx NX: Number of images in each row (3 for example below)\n"
+ "  -ny NY: Number of images in each column (4 for example below)\n"
+ "      Example: If 12 images appearing on the command line\n"
+ "               are to be assembled into a 3x4 IM matrix they\n"
+ "               would appear in this order:\n"
+ "                 0  1  2\n"
+ "                 3  4  5\n"
+ "                 6  7  8\n"
+ "                 9  10 11\n"
+ "    NOTE: The program will try to guess if neither NX nor NY \n"
+ "          are specified.\n"
+ "  -matrix_from_scale: Set NX and NY to be the same as the \n"
+ "                      SCALE_IMG's dimensions. (needs -scale_image)\n"
+ "  -gap G: Put a line G pixels wide between images.\n"
+ "  -gap_col R G B: Set color of line to R G B values.\n"
+ "                  Values range between 0 and 255.\n"
+ "\n"
+ "Example 0 (assuming afni is in ~/abin directory):\n"
+ "   Resizing an image:\n"
+ "   imcat -prefix big -res_in 1024 1024 \\\n"
+ "         ~/abin/face_zzzsunbrain.jpg \n"
+ "   imcat -prefix small -res_in 64 64 \\\n"
+ "         ~/abin/face_zzzsunbrain.jpg \n"
+ "   aiv small.ppm big.ppm \n"
+ "\n"
+ "Example 1:\n"
+ "   Stitching together images:\n"
+ "    (Can be used to make very high resolution SUMA images.\n"
+ "     Read about 'Ctrl+r' in SUMA's GUI help.)\n"
+ "   imcat -prefix cat -matrix 14 12 \\\n"
+ "         ~/abin/face_*.jpg\n"
+ "   aiv cat.ppm\n"
+ "\n"
+ "Example 2 (assuming afni is in ~/abin directory):\n"
+ "   imcat -prefix bigcat -scale_image ~/abin/face_rwcox.jpg \\\n"
+ "         -matrix_from_scale -rgb_out -res_in 32 32 ~/abin/face_*.jpg \n"
+ "   aiv   bigcat.ppm bigcat.ppm \n"
+ "   Crop/Zoom in to see what was done. In practice, you want to use\n"
+ "   a faster image viewer to examine the result. Zooming on such\n"
+ "   a large image is not fast in aiv.\n"
+ "   Be careful with this toy. Images get real big, real quick.\n"
+ "\n"
+ "You can look at the output image file with\n"
+ "  afni -im ppp.ppm  [then open the Sagittal image window]\n"
+ "\n"
             ) ;
       exit(0) ;
     }
 
-   machdep() ;
 
     ScaleInt = 0;
     resix=-1;
@@ -189,6 +198,14 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;
        }
        
+       if( strcmp(argv[iarg],"-zero_wrap") == 0) {
+         mri_Set_OK_WrapZero();
+         iarg++ ; continue ;
+       }
+       if( strcmp(argv[iarg],"-image_wrap") == 0) {
+         mri_Set_KO_WrapZero();
+         iarg++ ; continue ;
+       }
        if( strcmp(argv[iarg],"-matrix_from_scale") == 0) {
          matrix_size_from_scale = 1;
          iarg++ ; continue ;
@@ -246,7 +263,7 @@ int main( int argc , char * argv[] )
    }
    /* allow from catwrapping */
    mri_Set_OK_catwrap();
-
+  
    /* read all images */
    inimar = mri_read_resamp_many_files( argc-iarg , argv+iarg, resix, resiy ) ;
    if( inimar == NULL ){
@@ -267,16 +284,22 @@ int main( int argc , char * argv[] )
       }
    } else if (nx < 0) {
       if (inimar->num % ny) {
-         fprintf(stderr,"*** Have %d images, not divisible by %d!\n", inimar->num, ny);
-         exit(1);
+         fprintf(stderr,"--- Have %d images, not divisible by %d\n"
+                        "    will pad to fill matrix.\n"
+                        , inimar->num, ny);      
+         nx = inimar->num / ny + 1;
+      } else {
+         nx = inimar->num / ny;
       }
-      nx = inimar->num / ny;
    } else if (ny < 0) {
       if (inimar->num % nx) {
-         fprintf(stderr,"*** Have %d images, not divisible by %d!\n", inimar->num, nx);
-         exit(1);
+         fprintf(stderr,"--- Have %d images, not divisible by %d!\n"
+                        "    will pad to fill matrix.\n"
+                        , inimar->num, nx);
+         ny = inimar->num / nx + 1;
+      } else {
+         ny = inimar->num / nx;
       }
-      ny = inimar->num / nx;
    }
    
    if( nx < 1 || ny < 1 ){

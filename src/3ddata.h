@@ -3113,6 +3113,7 @@ static char tmp_dblab[8] ;
                           THD_write_3dim_dataset( NULL,NULL , (ds),True ) )
 
 extern int THD_deathcon(void) ; /* 06 Jun 2007 */
+extern int THD_ok_overwrite(void) ; /* Jan 2008 */
 
 /*! Write only the dataset header to disk, for dataset ds */
 

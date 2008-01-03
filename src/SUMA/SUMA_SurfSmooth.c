@@ -980,7 +980,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
 			kar ++;
 		}
    }
-   Opt->overwrite = SUMA_ok_overwrite();
+   Opt->overwrite = THD_ok_overwrite();
 
    /* check on options for HEAT budiness first */
    if (Opt->Method == SUMA_HEAT_07) {

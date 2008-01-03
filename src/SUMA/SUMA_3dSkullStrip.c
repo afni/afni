@@ -1054,7 +1054,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
       Opt->out_vol_prefix = SUMA_AfniPrefix(stmp, NULL, NULL, &exists); 
       SUMA_free(stmp); stmp = NULL;
    }
-   if (!SUMA_ok_overwrite() && SUMA_AfniExistsView(exists, cview)) {
+   if (!THD_ok_overwrite() && SUMA_AfniExistsView(exists, cview)) {
       fprintf (SUMA_STDERR,"Error %s:\nOutput dset %s%s exists, will not overwrite\n", FuncName, Opt->out_vol_prefix, cview);
       exit(1);
    }

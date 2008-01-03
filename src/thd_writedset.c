@@ -196,3 +196,11 @@ int THD_deathcon(void)  /* 06 Jun 2007 */
    if( ppp != NULL && *ppp == 'N' ) return 1 ;
    return 0 ;
 }
+
+int THD_ok_overwrite(void)  /* Jan 2008*/
+{
+   char *ppp=my_getenv("AFNI_DECONFLICT");
+   if (ppp && strcmp(ppp,"OVERWRITE")==0) return 1;
+   return 0;
+}
+

@@ -9212,13 +9212,6 @@ void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test)
 }
 
 
-int SUMA_ok_overwrite(void) 
-{
-   char *ppp=my_getenv("AFNI_DECONFLICT");
-   if (ppp && strcmp(ppp,"OVERWRITE")==0) return 1;
-   return 0;
-}
- 
 
 /*! Taken from filexists 
 returns 1 if file can be read/found

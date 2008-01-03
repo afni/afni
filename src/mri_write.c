@@ -31,8 +31,8 @@ ENTRY("mri_write") ;
    if( im->kind == MRI_byte ){ RETURN(mri_write_pnm( fname , im )) ; }
 
    /* open the file for output */
-
-   if( strcmp(fname,"-") != 0 ){
+ 
+   if( !THD_ok_overwrite() && strcmp(fname,"-") != 0 ){
      imfile = fopen( fname , "r" ) ;
      if( imfile != NULL ){
        fclose( imfile ) ;
@@ -117,7 +117,7 @@ ENTRY("mri_write_7D") ;
    if( im == NULL ) RETURN( 0 );
 
    imfile = fopen( fname , "r" ) ;
-   if( imfile != NULL ){
+   if( !THD_ok_overwrite() && imfile != NULL ){
       fclose( imfile ) ;
       ERROR_message("(FAILED) attempt to overwrite file %s",fname) ;
       RETURN( 0 );
@@ -201,7 +201,7 @@ ENTRY("mri_write_pnm") ;
      RETURN( mri_write_filtered(fname+1,im) ) ;
    }
 
-   if( strcmp(fname,"-") != 0 ){
+   if( !THD_ok_overwrite() && strcmp(fname,"-") != 0 ){
      imfile = fopen( fname , "r" ) ;
      if( imfile != NULL ){
        fclose( imfile ) ;
@@ -270,7 +270,7 @@ ENTRY("mri_write_ascii") ;
 
    if( strcmp(fname,"-") == 0 ){
      imfile = stdout ;
-   } else {
+   } else if (!THD_ok_overwrite()){
      imfile = fopen( fname , "r" ) ;
      if( imfile != NULL ){
        fclose( imfile ) ;
