@@ -16,9 +16,14 @@
    At this time, all the images must be the same dimensions and kind.
 ----------------------------------------------------------------------*/
 static byte OK_wrap = 0;
+static byte WrapZero = 0;
 void mri_Set_KO_catwrap(void) { OK_wrap = 0; return; }
 void mri_Set_OK_catwrap(void) { OK_wrap = 1; return; }
-MRI_IMAGE * mri_cat2D( int mx , int my , int gap , void *gapval , MRI_IMARR *imar )
+void mri_Set_OK_WrapZero(void) { WrapZero = 1; return; }
+void mri_Set_KO_WrapZero(void) { WrapZero = 0; return; }
+
+MRI_IMAGE * mri_cat2D(  int mx , int my , int gap , 
+                        void *gapval , MRI_IMARR *imar )
 {
    int nx , ny , ii , jj , kind , ij , nxout , nyout , ijoff , jout,iout ;
    MRI_IMAGE *imout , *imin ;
@@ -28,7 +33,9 @@ ENTRY("mri_cat2D") ;
 
    /*--- sanity checks ---*/
 
-   if( mx < 1 || my < 1 || imar == NULL || (!OK_wrap && imar->num < mx*my) ) RETURN( NULL );   
+   if(   mx < 1 || my < 1 || imar == NULL || 
+         (!OK_wrap && imar->num < mx*my) ) 
+      RETURN( NULL );   
    if( gap < 0 || (gap > 0 && gapval == NULL) )                RETURN( NULL );
 
    for( ij=0 ; ij < mx*my ; ij++ ){     /* find first non-empty image */
@@ -65,7 +72,8 @@ ENTRY("mri_cat2D") ;
    for( jj=0 ; jj < my ; jj++ ){            /* loop over rows */
       for( ii=0 ; ii < mx ; ii++ , ij++ ){  /* loop over columns */
 
-         imin  = IMARR_SUBIMAGE(imar,ij%imar->num) ;
+         if (WrapZero && ij >= imar->num) imin = NULL;
+         else imin  = IMARR_SUBIMAGE(imar,ij%imar->num) ;
          ijoff = ii * (nx+gap) + jj * (ny+gap) * nxout ;
 
          /*--- NULL image ==> fill this spot with zeroes ---*/
