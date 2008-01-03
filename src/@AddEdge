@@ -4,7 +4,7 @@ set olist = ()
 set dd = $PWD:t
 set uname = `whoami`
 set listlog = 'ExamineList.log'
-set opa = 9
+set opa = 7
 
 if ("$1" == "") goto DANCE
 if ("$1" == "-help") then
@@ -171,13 +171,14 @@ end
       set vole = $qlist[$pair_epi_ind]
       set rvola = ${uname}_ana${cnt}+orig
       set rvole = ${uname}_epi${cnt}+orig
+      echo "1 <-- $rli[$cnt]" >> ${uname}${dd}_randmap.txt 
       if (`@CheckForAfniDset ${rvola}` == 0) then
          echo "Creating $rvola, patience..."
          3dcopy $vola $rvola
          3dNotes -HH "pair map $rli" $rvola
       else 
          echo "Reusing $rvola ..."
-         echo "$vola --> $rvola" \
+         echo "$rvola <-- $vola " \
                >> ${uname}${dd}_randmap.txt
       endif
       if (`@CheckForAfniDset ${rvole}` == 0) then
@@ -186,7 +187,7 @@ end
          3dNotes -HH "pair map $rli" $rvole
       else 
          echo "Reusing $rvole ..."
-         echo "$vole --> $rvole" \
+         echo "$rvole <-- $vole " \
                >> ${uname}${dd}_randmap.txt      
       endif
       set olist = ($olist ${rvola}.HEAD ${rvole}.HEAD )
@@ -273,14 +274,16 @@ goto END
 
 SCORE:
 echo ""
-echo "Enter scores for dsets 1..$#rli :"
+echo "Enter scores for dsets 1..$#rli (just one 0 to score all with 0s):"
 echo ""
-set scl = `count -digits 1 0 0 S$#rli`
+set scl = `count -quiet -digits 1 0 0 S$#rli`
 set sc = ""
 if (1) then
    while ("$sc" == "")
       set sc = ($<)
-      if ($#sc != $#rli) then
+      if ($#sc > 0 && $sc[1] == 0) then
+         set sc = ($scl)
+      else if ($#sc != $#rli) then
          echo "Need $#rli values"
          set sc = ""
       endif
@@ -313,14 +316,16 @@ else
 endif
 RANK:
 echo ""
-echo "Enter ranks for dsets 1..$#rli :"
+echo "Enter ranks for dsets 1..$#rli (just one 0 to rank all with 0s):"
 echo ""
-set rnl = `count -digits 1 0 0 S$#rli`
+set rnl = `count -quiet -digits 1 0 0 S$#rli`
 set rn = ""
 if (1) then
    while ("$rn" == "")
       set rn = ($<)
-      if ($#rn != $#rli) then
+      if ($#rn > 0 && $rn[1] == 0) then
+         set rn = ($rnl)
+      else if ($#rn != $#rli) then
          echo "Need $#rli values"
          set rn = ""
       endif
@@ -355,7 +360,7 @@ endif
 
 STORE:
 #Now spit out the score sheet correctly
-set rnlunt = `count -digits 1 0 0 S$#rli`
+set rnlunt = `count -quiet -digits 1 0 0 S$#rli`
 set sclunt = ($rnlunt)
 set dlist = ""
 set cnt = 1
