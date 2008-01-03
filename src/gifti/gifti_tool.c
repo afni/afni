@@ -13,9 +13,14 @@ static char * g_history[] =
   "0.0  28 Dec, 2007\n"
   "     (Rick Reynolds of the National Institutes of Health, SSCC/DIRP/NIMH)\n"
   "     - initial version\n"
+  "0.1  03 Jan, 2008: changed structure of program\n",
+  "     - can do one of display, write or test (more to come)\n"
+  "     - added dset creation ability and options, via -new_dset or MAKE_IM\n"
+  "         (options -new_*, for numDA, intent, dtype, ndim, dims, data)\n"
+  "     - added AFNI-style DA selection, for input datasets\n"
 };
 
-static char g_version[] = "gifti_tool version 0.0, 28 December 2007";
+static char g_version[] = "gifti_tool version 0.1, 03 January 2008";
 
 /* globals: verbosity, for now */
 typedef struct { int verb; } gt_globs;
@@ -25,7 +30,6 @@ gt_globs G = { 1 };
 static int add_to_int_list(gt_int_list * ilist, int val);
 static int add_to_str_list(gt_str_list * slist, char * str);
 static int disp_gt_opts(char * mesg, gt_opts * opts, FILE * stream);
-static int execute(gt_opts * opts);
 static int free_gt_opts(gt_opts * opts);
 static int init_opts(gt_opts * opts);
 static int show_help(void);
@@ -41,13 +45,19 @@ int main( int argc, char * argv[] )
 
     init_opts(&opts);
     rv = process_opts(argc, argv, &opts);
-    if( !rv ) rv = execute(&opts);
+    if      ( rv < 0 ) return 1;        /* non-zero means terminate */
+    else if ( rv > 0 ) return 0;
+
+    /* choose top-level operation to perform */
+    if     ( opts.gt_display ) rv = gt_display(&opts);
+    else if( opts.gt_write )   rv = gt_write(&opts);
+    else if( opts.gt_compare ) rv = 1; /* gt_compare(&opts); to do */
+    else                       rv = gt_test(&opts);
 
     free_gt_opts(&opts);
 
     return rv;
 }
-
 
 /* process the user options
  *
@@ -57,7 +67,7 @@ int main( int argc, char * argv[] )
 */
 static int process_opts(int argc, char *argv[], gt_opts * opts)
 {
-    int ac;
+    int ac, c;
 
     if( argc <= 1 ) { show_help(); return 1; }
 
@@ -112,12 +122,11 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
             CHECK_NEXT_OPT(ac, argc, "-buf_size");
             opts->buf_size = atoi(argv[ac]);
         } else if( !strcmp(argv[ac], "-da_list") ) {
-            int count;
             ac++;
-            for( count = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, count++ )
+            for( c = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, c++ )
                if( add_to_int_list(&opts->DAlist, atoi(argv[ac])) ) return -1;
             if( G.verb > 1 )
-                fprintf(stderr,"+d have %d DA indices names\n", count);
+                fprintf(stderr,"+d have %d DA indices names\n", c);
             if( opts->DAlist.len == 0 ) {
                 fprintf(stderr,"** no DA indices with '-da_list'\n");
                 return -1;
@@ -142,34 +151,76 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
             CHECK_NEXT_OPT(ac, argc, "-indent");
             opts->indent = atoi(argv[ac]);
         } else if( !strncmp(argv[ac], "-infile", 7) ) { /* maybe infiles... */
-            int count;          /* read until '-' or done */
             ac++;
-            for( count = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, count++ )
+            for( c = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, c++ )
                if( add_to_str_list(&opts->infiles, argv[ac]) ) return -1;
             if( G.verb > 1 )
-                fprintf(stderr,"+d have %d infile names\n", count);
+                fprintf(stderr,"+d have %d infile names\n", c);
             if( opts->infiles.len == 0 ) {
                 fprintf(stderr,"** no filenames with '-infiles'\n");
                 return -1;
             }
             /* and back up if we've looked too far */
             if( ac < argc && argv[ac][0] == '-') ac--;
+        } else if( !strcmp(argv[ac], "-new_dset") ) {
+            if( add_to_str_list(&opts->infiles, "MAKE_IM") ) return -1;
+        } else if( !strcmp(argv[ac], "-new_numDA") ) {
+            ac++;
+            CHECK_NEXT_OPT(ac, argc, "-new_numDA");
+            opts->new_numDA = atol(argv[ac]);
+        } else if( !strcmp(argv[ac], "-new_intent") ) {
+            ac++;
+            CHECK_NEXT_OPT(ac, argc, "-new_intent");
+            opts->new_intent = gifti_intent_from_string(argv[ac]);
+            if( !gifti_intent_is_valid(opts->new_intent) ) {
+                fprintf(stderr,"** invalid intent '%s'\n",argv[ac]);
+                return -1;
+            }
+        } else if( !strcmp(argv[ac], "-new_dtype") ) {
+            ac++;
+            CHECK_NEXT_OPT(ac, argc, "-new_dtype");
+            opts->new_dtype = gifti_str2datatype(argv[ac]);
+            if( opts->new_dtype == DT_UNKNOWN ) {
+                fprintf(stderr,"** invalid datatype '%s'\n",argv[ac]);
+                return -1;
+            }
+        } else if( !strcmp(argv[ac], "-new_ndim") ) {
+            ac++;
+            CHECK_NEXT_OPT(ac, argc, "-new_ndim");
+            opts->new_ndim = atol(argv[ac]);
+        } else if( !strcmp(argv[ac], "-new_dims") ) {
+            ac++;
+            for( c = 0; ac < argc && c < GIFTI_DARRAY_DIM_LEN
+                                  && argv[ac][0] != '-'; ac++, c++ )
+               opts->new_dims[c] = atol(argv[ac]);
+            if( c < GIFTI_DARRAY_DIM_LEN ) {
+                fprintf(stderr, "** -new_dims have only %d of %d dims\n",
+                                c, GIFTI_DARRAY_DIM_LEN);
+                return -1;
+            }
+            ac--;  /* You've gone too far, go to your room! */
+        } else if( !strcmp(argv[ac], "-new_data") ) {
+            opts->new_data = 1;
         } else if( !strcmp(argv[ac], "-no_data") ) {
             opts->dstore = 0;
         } else if( !strcmp(argv[ac], "-show") ) {
+            opts->gt_display = 1;
             opts->show_gifti = 1;
         } else if( !strcmp(argv[ac], "-write_1D") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-write_1D");
             opts->ofile_1D = argv[ac];
+            opts->gt_write = 1;
         } else if( !strcmp(argv[ac], "-write_asc") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-write_asc");
             opts->ofile_asc = argv[ac];
+            opts->gt_write = 1;
         } else if( !strcmp(argv[ac], "-write_gifti") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-write_gifti");
             opts->ofile_gifti = argv[ac];
+            opts->gt_write = 1;
         } else if( !strcmp(argv[ac], "-zlevel") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-zlevel");
@@ -180,7 +231,7 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
         }
     }
 
-    if( G.verb > 1 ) disp_gt_opts("options read: ", opts, stderr);
+    if( G.verb > 2 ) disp_gt_opts("options read: ", opts, stderr);
 
     /* be sure we have something to read */
     if( opts->infiles.len <= 0 ) {
@@ -211,23 +262,78 @@ static int free_gt_opts(gt_opts * opts)
     return 0;
 }
 
-/* for now, just read a single GIFTI dataset, then possibly:
- *   - disply the contents of the gifti_image struct
- *   - write out a new GIFTI dataset
- *   - write out a 1D file as text data
- *   - write out a .asc file, as a FreeSurfer style geometry dataset
+
+int gt_display(gt_opts * opts)
+{
+    gifti_image * gim;
+    int           c, rv = 0;
+
+    if( opts->infiles.len < 1 ) {
+        fprintf(stderr,"** no datasets to display\n");
+        return 1;
+    }
+
+    /* just display any dataset for now */
+    opts->show_gifti = 1;
+
+    for( c = 0; c < opts->infiles.len; c++ ) {
+        gim = gt_read_dataset(opts, opts->infiles.list[c]);
+        if( !gim ) {
+            fprintf(stderr,"** gt_display: failed to read '%s'\n",
+                           opts->infiles.list[c]);
+            rv = 1;
+        }
+        else gifti_free_image(gim);
+    }
+
+    return rv;
+}
+
+int gt_test(gt_opts * opts)
+{
+    gifti_image * gim;
+    int           c, rv = 0;
+
+    if( opts->infiles.len < 1 ) {
+        fprintf(stderr,"** no datasets to test\n");
+        return 1;
+    }
+
+    /* add more test later, now we just try to read */
+    for( c = 0; c < opts->infiles.len; c++ ) {
+        gim = gt_read_dataset(opts, opts->infiles.list[c]);
+        if( !gim ) {
+            fprintf(stderr,"** gt_test: failed to read '%s'\n",
+                           opts->infiles.list[c]);
+            rv = 1;
+        }
+        else gifti_free_image(gim);
+    }
+
+    return rv;
+}
+
+/* output is desired, one of:
+ *
+ *   - GIFTI dataset
+ *   - 1D file as text data
+ *   - .asc file, as a FreeSurfer style geometry dataset
+ *
+ * input: there can be only one (immortal?  Sean Connery?)
  */
-static int execute(gt_opts * opts)
+int gt_write(gt_opts * opts)
 {
     gifti_image * gim;
     int           c;
 
-    /* actually read the dataset */
-    gim = gifti_read_da_list(opts->infiles.list[0], opts->dstore,
-                             opts->DAlist.list, opts->DAlist.len);
-    if( !gim ){ fprintf(stderr,"** failed gifti_read_da_list()\n"); return 1; }
+    if( opts->infiles.len > 1 ) {
+        fprintf(stderr,"** when writing, only one input dataset is allowed\n");
+        return 1;
+    }
 
-    if( opts->show_gifti ) gifti_disp_gifti_image("FINAL IMAGE", gim, 1 );
+    /* actually read the dataset */
+    gim = gt_read_dataset(opts, opts->infiles.list[0]);
+    if( !gim ){ fprintf(stderr,"** failed gifti_read_da_list()\n"); return 1; }
 
     /* possibly adjust encoding */
     if( opts->encoding > GIFTI_ENCODING_UNDEF &&
@@ -246,11 +352,114 @@ static int execute(gt_opts * opts)
     return 0;
 }
 
+/* read one GIFTI dataset
+ *
+ * The default is to just call gifti_read_da_list(), but...
+ * if name == MAKE_IM   : create a new dataset
+ * else if we have name : read one dataset
+ *
+ * Note that name may have the form dset[int list], where the integer
+ * list is used to create the DataArray list.
+ * 
+ * e.g.  dset.gii[5..12(3),0,$]
+ *
+ *       this would select DA elements 5,8,11,0,numDA-1
+ *
+ * Note that the DA list selection requires reading the dataset twice,
+ * first to compute the number of DA elements.
+ */
+gifti_image * gt_read_dataset(gt_opts * opts, char * fname)
+{
+    gifti_image * gim;
+    char        * fcopy = NULL, * iptr, * infile = fname;
+    int         * dalist = NULL, numDA = -1;
+
+    if( !fname || !*fname ) {
+        fprintf(stderr,"** gt_read_dataset: no filename to read\n");
+        return NULL;
+    }
+
+    /* first case, create a new image (fname == MAKE_IM) */
+    if( !strcmp(fname, "MAKE_IM") ) {
+        if( opts->verb > 1 ) fprintf(stderr,"++ creating new GIFTI dataset\n");
+
+        gim = gifti_create_image(opts->new_numDA, opts->new_intent,
+                                 opts->new_dtype, opts->new_ndim,
+                                 opts->new_dims,  opts->new_data);
+
+        if( opts->show_gifti ) gifti_disp_gifti_image("dset MAKE_IM :",gim,1);
+
+        return gim;
+    }
+
+    /* otherwise, see if there is an int list, before using gifti_read */
+
+    if( strchr(fname, '[') ) { /* then create an int list */
+        fcopy = gifti_strdup(fname);
+        infile = fcopy;         /* store for later */
+        iptr = strchr(fcopy, '[');
+
+        if(opts->verb>2) fprintf(stderr,"-- getting DA list from %s\n",iptr);
+        *iptr = '\0';   /* don't need the char, but want terminated filename */
+
+        /* read dataset just for numDA */
+        numDA = gifti_read_dset_numDA(fcopy);
+        if( numDA < 0 ) {
+            fprintf(stderr, "** GT_RD: failed to get numDA from '%s'\n", fcopy);
+            free(fcopy);
+            return NULL;
+        }
+
+        dalist = nifti_get_intlist(numDA, iptr+1);
+        if( !dalist ) {
+            fprintf(stderr,"** GT_RD: bad int list from '%s'\n", iptr+1);
+            free(fcopy);
+            return NULL;
+        }
+        if( opts->verb > 2 ) {
+            fprintf(stderr,"++ have DA list: ");
+            gifti_disp_raw_data(dalist, NIFTI_TYPE_INT32, numDA, 1, stderr);
+        }
+    }
+
+    /* pass either dalist or from opts */
+    if( dalist && numDA > 0 )
+        gim = gifti_read_da_list(infile, opts->dstore, dalist+1, dalist[0]);
+    else
+        gim = gifti_read_da_list(infile, opts->dstore,
+                                 opts->DAlist.list, opts->DAlist.len);
+
+    /* regardless of success, check to free data and return */
+    if( dalist ) free(dalist);
+    if( fcopy  ) free(fcopy);
+
+    if( opts->show_gifti ) {
+        fcopy = (char *)malloc((strlen(fname)+32) * sizeof(char));
+        if( !fcopy ) return gim;  /* forget it */
+        sprintf(fcopy, "dset '%s' :", fname);
+
+        gifti_disp_gifti_image(fcopy, gim, 1 );
+        free(fcopy);
+    }
+
+    return gim;
+}
+
 /* init any options that should not default to 0 (so 0 means something,
  * or the default is non-zero) */
 static int init_opts(gt_opts * opts)
 {
     memset(opts, 0, sizeof(gt_opts));
+
+    /* gt_* should init to 0 */
+
+    /* new flags can be set to something useful (1 DA, no data, ...) */
+    opts->new_numDA = 1;
+    opts->new_intent = NIFTI_INTENT_NONE;
+    opts->new_dtype = NIFTI_TYPE_FLOAT32;
+    opts->new_ndim = 0;
+    /* opts->new_dims left with zeros */
+    opts->new_data = 0;
 
     opts->verb = 1;
     opts->indent = -1;
@@ -268,6 +477,28 @@ static int disp_gt_opts(char * mesg, gt_opts * opts, FILE * stream)
     if( mesg ) fputs(mesg, fp);
 
     fprintf(fp, "gt_opts struct:\n"
+        "    gt_compare    : %d\n"
+        "    gt_display    : %d\n"
+        "    gt_test       : %d\n"
+        "    gt_write      : %d\n"
+        "    gt_modify     : %d\n"
+        "\n"
+        "    new_numDA     : %d\n"
+        "    new_intent    : %d\n"
+        "    new_dtype     : %d\n"
+        "    new_ndim      : %d\n"
+        "    new_dims [%d]  : ",
+        opts->gt_compare, opts->gt_display, opts->gt_test,
+        opts->gt_write, opts->gt_modify,
+        opts->new_numDA, opts->new_intent, opts->new_dtype, opts->new_ndim,
+        GIFTI_DARRAY_DIM_LEN
+        );
+
+    gifti_disp_raw_data(opts->new_dims, NIFTI_TYPE_INT32,
+                        GIFTI_DARRAY_DIM_LEN, 1, fp);
+    fprintf(fp,
+        "    new_data      : %d\n"
+        "\n"
         "    verb          : %d\n"
         "    indent        : %d\n"
         "    buf_size      : %d\n"
@@ -280,6 +511,7 @@ static int disp_gt_opts(char * mesg, gt_opts * opts, FILE * stream)
         "    ofile_1D      : %s\n"
         "    ofile_asc     : %s\n"
         "    ofile_gifti   : %s\n\n",
+        opts->new_data,
         opts->verb, opts->indent, opts->buf_size, opts->b64_check, opts->zlevel,
         opts->dstore, opts->encoding, opts->show_gifti,
         G_CHECK_NULL_STR(opts->ofile_1D),
@@ -344,6 +576,9 @@ static int show_help()
     "\n"
     "        gifti_tool -infile time_series.gii -write_gifti ts3.gii  \\\n"
     "                   -da_list 4 0 5\n"
+    "              OR\n"
+    "\n"
+    "        gifti_tool -infile time_series.gii'[4,0,5]' -write_gifti ts3.gii\n"
     "\n"
     "    4. create .asc FreeSurfer-style surface dataset (pial.asc)\n"
     "\n"
@@ -352,6 +587,13 @@ static int show_help()
     "    5. create .1D time series surface dataset (ts.1D)\n"
     "\n"
     "        gifti_tool -infile time_series.gii -write_1D ts.1D\n"
+    "\n"
+    "    6. create a new gifti dataset from nothing\n"
+    "\n"
+    "        gifti_tool -new_dset -write_gifti new.gii           \\\n"
+    "                   -new_numDA 3 -new_dtype NIFTI_TYPE_INT16 \\\n"
+    "                   -new_intent NIFTI_INTENT_TTEST           \\\n"
+    "                   -new_ndim 2 -new_dims 5 2 0 0 0 0\n"
     "\n"
     "  options:\n"
     "     -help             : show this help\n"
@@ -372,6 +614,19 @@ static int show_help()
     "     -gifti_hist       : show giftilib history\n"
     "     -gifti_ver        : show giftilib version\n"
     "     -infile     INPUT : write out dataset as gifti image\n"
+    "\n"
+    "     -new_dset         : create a new GIFTI dataset\n"
+    "     -new_numDA  NUMDA : new dataset will have NUMDA DataArray elements\n"
+    "                         e.g. -new_numDA 3\n"
+    "     -new_intent INTENT: DA elements will have intent INTENT\n"
+    "                         e.g. -new_intent NIFTI_INTENT_FTEST\n"
+    "     -new_dtype   TYPE : set datatype to TYPE\n"
+    "                         e.g. -new_dtype NIFTI_TYPE_FLOAT32\n"
+    "     -new_ndim NUMDIMS : set Dimensionality to NUMDIMS (see -new_dims)\n"
+    "     -new_dims D0...D5 : set dims[] to these 6 values\n"
+    "                         e.g. -new_ndim 2 -new_dims 7 2 0 0 0 0\n"
+    "     -new_data         : allocate space for data in created dataset\n"
+    "\n"
     "     -no_data          : do not write out data\n"
     "     -show             : show final gifti image\n"
     "     -verb        VERB : set verbose level\n"

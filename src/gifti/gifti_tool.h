@@ -5,7 +5,22 @@ typedef struct { int len; char ** list; } gt_str_list;
 typedef struct { int len; int   * list; } gt_int_list;
 
 typedef struct {
-    /* start with GIFTI user options */
+    /* main action flags */
+    int           gt_compare;   /* somehow compare 2 datasets */
+    int           gt_display;   /* display something */
+    int           gt_test;      /* perform some tests on the datasets */
+    int           gt_write;     /* create output datasets */
+    int           gt_modify;    /* sub-action: to modify datasets */
+
+    /* action options */
+    int           new_numDA;    /* numDA for new dataset */
+    int           new_intent;   /* intent for new dataset */
+    int           new_dtype;    /* dtype for new dataset */
+    int           new_ndim;     /* num_dims for new dataset */
+    int           new_dims[GIFTI_DARRAY_DIM_LEN];
+    int           new_data;     /* allocate data in new dataset */
+
+    /* GIFTI user options */
     int           verb;         /* verbose level */
     int           indent;       /* spaces per indent level */
     int           buf_size;     /* buffer space for expat library */
@@ -14,7 +29,7 @@ typedef struct {
 
     int           dstore;       /* whether to store read data */
     int           encoding;     /* encoding for output data             */
-    int           show_gifti;   /* do we read data */
+    int           show_gifti;   /* display the gifti_image */
 
     char        * ofile_1D;     /* 1D output filename           */
     char        * ofile_asc;    /* 'asc' output filename        */
@@ -38,6 +53,15 @@ typedef struct {
            fprintf(stderr,"   consider: '-help' option\n");                  \
            return 1;      }                                                   \
       } while(0)
+
+
+/* protos */
+gifti_image * gt_read_dataset(gt_opts * opts, char * fname);
+
+int gt_display       (gt_opts *);
+int gt_test          (gt_opts *);
+int gt_write         (gt_opts *);
+
 
 int ewrite_data_line (void *, int, int, int, int, int, FILE *);
 int ewrite_many_lines(void **, int, long long, long long, int, FILE *);

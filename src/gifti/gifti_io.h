@@ -111,6 +111,7 @@ typedef struct {
 
 typedef struct {
     /* attributes */
+    int              numDA;     /* number of DataArrays            */
     char           * version;   /* GIFTI version string            */
 
     /* elements */
@@ -119,7 +120,6 @@ typedef struct {
     giiDataArray  ** darray;
 
     /* extras */
-    int              numDA;     /* number of DataArrays            */
     int              swapped;   /* were the bytes swapped          */
     int              compressed;/* was the data compressed         */
     nvpairs          ex_atrs;   /* extra attributes                */
@@ -150,6 +150,9 @@ int    gifti_free_image         (gifti_image * gim);
 int    gifti_check_swap         (void *data, int endian, long long nsets,
                                  int swapsize);
 int    gifti_swap_Nbytes        (void *data, long long nsets, int swapsize);
+
+gifti_image * gifti_create_image(int numDA, int intent, int dtype, int ndim,
+                                 const int * dims, int alloc_data);
 
 /* end main interface protos */
 
@@ -196,7 +199,8 @@ int    gifti_str2datatype       (const char * str);
 int    gifti_swap_2bytes        (void *data, long long nsets);
 int    gifti_swap_4bytes        (void *data, long long nsets);
 
-int    gifti_add_empty_darray   (gifti_image * gim);
+int    gifti_alloc_all_data     (gifti_image * gim);
+int    gifti_add_empty_darray   (gifti_image * gim, int num_to_add);
 int    gifti_add_to_nvpairs     (nvpairs * p, const char * name,
                                               const char * value);
 
@@ -209,6 +213,11 @@ int    gifti_free_LabelTable    (giiLabelTable * t);
 int    gifti_free_nvpairs       (nvpairs * p);
 
 int    gifti_is_valid_darray    (giiDataArray * da, int whine);
+int    gifti_read_dset_numDA    (const char * fname);
+int    gifti_set_attr_all_DA    (gifti_image *gim, const char *name,
+                                                   const char *value);
+int    gifti_set_DA_defaults    (giiDataArray * da);
+int    gifti_set_dims_all_DA    (gifti_image * gim, int ndim, const int * dims);
 int    gifti_valid_datatype     (int dtype, int whine);
 int    gifti_valid_dims         (giiDataArray * da, int whine);
 int    gifti_valid_nbyper       (int nbyper, int whine);
@@ -234,7 +243,9 @@ int    gifti_disp_raw_data       (const void *data, int type, int nvals,
                                   int newline, FILE * stream);
 
 
+int    gifti_clear_DataArray     (giiDataArray * da);
 int    gifti_clear_float_zeros   (char * str);
+int    gifti_clear_gifti_image   (gifti_image * gim);
 int    gifti_clear_nvpairs       (nvpairs * p);
 int    gifti_clear_LabelTable    (giiLabelTable * p);
 int    gifti_clear_CoordSystem   (giiCoordSystem * p);
