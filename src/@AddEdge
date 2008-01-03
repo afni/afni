@@ -365,12 +365,13 @@ while ($cnt <= $#rli)
    set dlist = ($dlist $qlist[$cnt2])
    @ cnt ++
 end
-echo "#Ranks Untangled: $PWD `date` $uname :" >> ${uname}${dd}_untrank.1D
+echo "#Ranks Untangled: $PWD `date` $uname :" > ${uname}${dd}_untrank.1D
 echo "#dlist $dlist"  >> ${uname}${dd}_untrank.1D
 echo $rnlunt >> ${uname}${dd}_untrank.1D
-echo "#Scores Untangled: $PWD `date` $uname :" >> ${uname}${dd}_untscores.1D
+echo "#Scores Untangled: $PWD `date` $uname :" > ${uname}${dd}_untscores.1D
 echo "#dlist $dlist"  >> ${uname}${dd}_untscores.1D
 echo $sclunt >> ${uname}${dd}_untscores.1D
+
 
 goto END
 
