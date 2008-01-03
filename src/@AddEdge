@@ -4,7 +4,7 @@ set olist = ()
 set dd = $PWD:t
 set uname = `whoami`
 set listlog = 'ExamineList.log'
-set opa = 7
+set opa = 9
 
 if ("$1" == "") goto DANCE
 if ("$1" == "-help") then
@@ -259,7 +259,7 @@ while ($cnt < $#olist)
             -zero_wrap  \
             -prefix at${uname}${dd}sag_all \
             at${uname}*${dd}sag*.jpg
-      aiv -quiat${uname}${dd}axi_all.ppm at${uname}${dd}sag_all.ppm &
+      aiv -quiet at${uname}${dd}axi_all.ppm at${uname}${dd}sag_all.ppm &
       goto SCORE
    endif
    
