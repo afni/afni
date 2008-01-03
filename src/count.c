@@ -19,7 +19,7 @@ int main( int argc , char *argv[] )
    long int seed = 0;
    static char root[6664] , fmt[128] , suffix[6664] ;
    float sclfac = 0.0 ;
-   int comma=0 ;   /* 18 Jan 2007 */
+   int comma=0 , quiet = 0;   /* 18 Jan 2007 */
    char sep=' ' ;
    int skipn = 0; /* skip numbers that modulus m = n  08 May 2007 */
    int skipm = 0;
@@ -83,6 +83,7 @@ int main( int argc , char *argv[] )
    col = 0;
    rando_count = 0;
    seed = 0;
+   quiet = 0;
    do {
 
    /*** switches ***/
@@ -96,6 +97,10 @@ int main( int argc , char *argv[] )
          continue ;
       }
       
+      if( strncmp(argv[narg],"-quiet",5) == 0 ){
+         quiet = 1 ;
+         continue ;
+      }
       if( strncmp(argv[narg],"-seed",5) == 0 ){
          seed = strtol( argv[++narg] , NULL , 10 ) ;
          continue ;
@@ -264,9 +269,12 @@ int main( int argc , char *argv[] )
       if (top < bot) nmax = bot-top+1;
       else nmax = top-bot+1;
       if (rando_num == -1) rando_num = nmax;
-      if (nmax < rando_num) {
-         fprintf(stderr,"Warning: requested %d numbers in a shuffled sequence of %d unique values.\n"
-                        "         Sequence will repeat until %d values are output.\n", rando_num, nmax, rando_num);
+      if (!quiet && nmax < rando_num) {
+         fprintf(stderr,
+            "Warning: "
+            "requested %d numbers in a shuffled sequence of %d unique values.\n"
+            "         Sequence will repeat until %d values are output.\n",
+            rando_num, nmax, rando_num);
       }
       if (ir) {
          for( ii=0 ; ii < rando_num ; ii++ ){
