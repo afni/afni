@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <time.h>
 
-static intvec * count_clusters( MRI_IMAGE *bim , float rmm ) ;
+static intvec * count_clusters( MRI_IMAGE *bim , float rmm , int minsize ) ;
 
 MRI_IMAGE * mri_alphasim( int   nx, int   ny, int   nz ,
                           float dx, float dy, float dz ,
@@ -14,9 +14,9 @@ MRI_IMAGE * mri_alphasim( int   nx, int   ny, int   nz ,
    MRI_IMAGE *bim , *tim , *aim , *cim ,      *dim ;
    float     *bar , *tar , *aar , *car ; byte *dar ;
    int ite , jsm , kth , nxyz , ii ;
-   float *thr, tt , u1,u2 ;
-   double p,q,z,mean,sd,bound ; int which,status ;
-   intvec *iv ;
+   float *thr, tt , u1,u2 , *ath ;
+   double sd ;
+   intvec *iv ; int niv , *iva ;
    static long sseed=0 ;
 
 ENTRY("mri_alphasim") ;
@@ -44,18 +44,19 @@ ENTRY("mri_alphasim") ;
    bim = mri_new_vol( nx,ny,nz , MRI_float ) ; bar = MRI_FLOAT_PTR(bim) ;
    tim = mri_new_vol( nx,ny,nz , MRI_float ) ; tar = MRI_FLOAT_PTR(tim) ;
    dim = mri_new_vol( nx,ny,nz , MRI_byte  ) ; dar = MRI_BYTE_PTR (dim) ;
+   dim->dx = dx ; dim->dy = dy ; dim->dz = dz ;
 
    aim = mri_new_vol( max_clustsize , num_fwhm , num_pval , MRI_float ) ;
    aar = MRI_FLOAT_PTR(aim) ;
-#undef  ALP
-#define ALP(c,s,t) aar[c+s*num_fwhm+t*(num_fwhm*num_pval)]
+#undef  ATH
+#define ATH(s,t) (aar+((s)*num_fwhm+(t)*(num_fwhm*num_pval)))
 
    nxyz = nx*ny*nz ;
 
    if( seed != 0 ){
      srand48(seed) ;
    } else if( sseed == 0 ){
-     sseed = (long)(time(NULL)) + (long)((long)getpid()) ;
+     sseed = (long)time(NULL) + (long)getpid() ;
      srand48(sseed) ;
    }
 
@@ -70,14 +71,12 @@ ENTRY("mri_alphasim") ;
 
      for( ii=0 ; ii < nxyz ; ii+=2 ){
        do{ u1 = (float)drand48(); } while( u1==0.0f ) ;
-       u1 = sqrtf(-2.0f*logf(u1)) ;
-       u2 = TPI * (float)drand48() ;
+       u1 = sqrtf(-2.0f*logf(u1)) ; u2 = TPI * (float)drand48() ;
        bar[ii] = u1 * cosf(u2) ; bar[ii+1] = u1 * sinf(u2) ;
      }
      if( ii == nxyz-1 ){
        do{ u1 = (float)drand48(); } while( u1==0.0f ) ;
-       u1 = sqrtf(-2.0f*logf(u1)) ;
-       u2 = TPI * (float)drand48() ;
+       u1 = sqrtf(-2.0f*logf(u1)) ; u2 = TPI * (float)drand48() ;
        bar[ii] = u1 * cosf(u2) ;
      }
 
@@ -99,13 +98,9 @@ ENTRY("mri_alphasim") ;
 
        /* find thresholds for p-values in blurred dataset */
 
-       which = 2 ;
-       mean  = 0.0 ;
        for( kth=0 ; kth < num_pval ; kth++ ){
-         p = 1.0 - pval[kth] ;
-         q =       pval[kth] ;
-         cdfnor( &which , &p , &q , &z , &mean , &sd , &status , &bound ) ;
-         thr[kth] = (float)z ;
+         thr[kth] = sd * nifti_rcdf2stat( (double)pval[kth] ,
+                                          NIFTI_INTENT_ZSCORE , 0.0,0.0,0.0 ) ;
        }
 
        /* mask blurred dataset */
@@ -120,13 +115,17 @@ ENTRY("mri_alphasim") ;
           /* threshold at thr[kth] */
 
           tt = thr[kth] ;
-          for( ii=0 ; ii < nxyz ; ii++ ) dar[ii] = (car[ii] > tt) ;
+          for( ii=0 ; ii < nxyz ; ii++ ) dar[ii] = (car[ii] >= tt) ;
 
           /* clusterize and count into aar[ csize + jsm*num_fwhm + kth*num_fwhm*num_pval ] */
 
-          iv = count_clusters( dim , rmm ) ;
-
-          KILL_intvec(iv) ;
+          iv = count_clusters( dim , rmm , 1 ) ;
+          if( iv != NULL ){
+            niv = iv->nar ; iva = iv->ar ;
+            ath = ATH(jsm,kth) ;
+            for( ii=0 ; ii < niv ; ii++ ) ath[iva[ii]]++ ;
+            KILL_intvec(iv) ;
+          }
 
        } /* end of loop over thresholds */
 
@@ -144,7 +143,7 @@ ENTRY("mri_alphasim") ;
 
 /*--------------------------------------------------------------------------*/
 
-static intvec * count_clusters( MRI_IMAGE *bim , float rmm )
+static intvec * count_clusters( MRI_IMAGE *bim , float rmm , int minsize )
 {
    intvec *iv ;
    int nx,ny,nz , nclu ;
@@ -153,7 +152,7 @@ static intvec * count_clusters( MRI_IMAGE *bim , float rmm )
    int icl , jma , ijkma ;
    float dx,dy,dz ;
    byte  *bfar ;
-   short ic, jc, kc , im, jm, km;
+   short ic, jc, kc , im, jm, km, *mi,*mj,*mk ;
 
 ENTRY("count clusters") ;
 
@@ -171,47 +170,53 @@ ENTRY("count clusters") ;
      if( mask == NULL ) RETURN(NULL) ;
    }
 
-   nxy = nx*ny ; nxyz = nxy*nz ; mnum = mask->num_pt ;
+   nxy = nx*ny ; nxyz = nxy*nz ;
+
+   mnum = mask->num_pt ; mi = mask->i ; mj = mask->j ; mk = mask->k ;
 
    /*--- scan through array, find nonzero point, build a cluster, ... ---*/
 
    nclu = ijk_last = 0 ; INIT_CLUSTER(clust) ; MAKE_INTVEC(iv,16) ;
    do {
-     for( ijk=ijk_last ; ijk < nxyz ; ijk++ ) if( bfar[ijk] != 0 ) break ;
-     if( ijk < nxyz ) bfar[ijk] = 0 ;  /* save found point */
-     else             break ;          /* didn't find any! */
+     for( ijk=ijk_last ; ijk < nxyz && bfar[ijk] != 0 ; ijk++ ) ; /*nada*/
+     if( ijk < nxyz ) bfar[ijk] = 0 ;  /* found a nonzero point */
+     else             break ;          /* didn't find any ==> done */
 
      ijk_last = ijk+1 ;         /* start here next time */
 
      clust->num_pt = 0 ;        /* clear out old cluster */
      IJK_TO_THREE(ijk,ic,jc,kc,nx,nxy) ;
-     ADDTO_CLUSTER( clust , ic, jc, kc, 0.0f ) ;  /* start it off */
+     ADDTO_CLUSTER_NOMAG( clust , ic,jc,kc ) ;  /* start it off */
 
      for( icl=0 ; icl < clust->num_pt ; icl++ ){
-       ic = clust->i[icl];
-       jc = clust->j[icl];
-       kc = clust->k[icl];
+       ic = clust->i[icl] ;
+       jc = clust->j[icl] ;
+       kc = clust->k[icl] ;
 
        for( jma=0 ; jma < mnum ; jma++ ){
-         im = ic + mask->i[jma]; if( im < 0 || im >= nx ) continue;
-         jm = jc + mask->j[jma]; if( jm < 0 || jm >= ny ) continue;
-         km = kc + mask->k[jma]; if( km < 0 || km >= nz ) continue;
+         im = ic + mi[jma] ; if( im < 0 || im >= nx ) continue ;
+         jm = jc + mj[jma] ; if( jm < 0 || jm >= ny ) continue ;
+         km = kc + mk[jma] ; if( km < 0 || km >= nz ) continue ;
 
-         ijkma = THREE_TO_IJK (im, jm, km, nx, nxy);
-         if( ijkma < ijk_last || bfar[ijkma] == 0 ) continue ;
+         ijkma = THREE_TO_IJK(im,jm,km,nx,nxy) ;
+         if( bfar[ijkma] == 0 ) continue ;
 
-         ADDTO_CLUSTER( clust , im, jm, km, 0.0f ) ;
+         ADDTO_CLUSTER_NOMAG( clust , im,jm,km ) ;
          bfar[ijkma] = 0 ;
        }
      }
 
-     if( iv->nar == nclu ){
-       icl = 2*nclu + 32 ; RESIZE_intvec(iv,nclu) ;
+     if( clust->num_pt >= minsize ){
+       if( iv->nar == nclu ){ icl = 2*nclu+32; RESIZE_intvec(iv,icl); }
+       iv->ar[nclu++] = clust->num_pt ;
      }
-     iv->ar[nclu++] = clust->num_pt ;
 
    } while( 1 ) ;
 
    KILL_CLUSTER(clust) ; KILL_CLUSTER(mask) ;
-   RESIZE_intvec(iv,nclu) ; RETURN(iv) ;
+
+   if( nclu == 0 ) KILL_intvec(iv) ;
+   else            RESIZE_intvec(iv,nclu) ;
+
+   RETURN(iv) ;
 }

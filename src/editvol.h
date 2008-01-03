@@ -114,6 +114,21 @@ typedef struct {
       (cc)->i[nn] = (ii) ; (cc)->j[nn] = (jj) ; (cc)->k[nn] = (kk) ;        \
       (cc)->mag[nn] = (m) ; break ; } while(0)
 
+/*! Add point (ii,jj,kk) a MCW_cluster, don't save mag. */
+
+#define ADDTO_CLUSTER_NOMAG(cc,ii,jj,kk)                               \
+  do{ int nn ;                                                         \
+      if( (cc)->num_pt == (cc)->num_all ){                             \
+         (cc)->num_all = 1.25*(cc)->num_all + INC_CLUSTER ;            \
+         nn = (cc)->num_all ;                                          \
+         (cc)->i=(short *)XtRealloc((char *)(cc)->i,sizeof(short)*nn); \
+         (cc)->j=(short *)XtRealloc((char *)(cc)->j,sizeof(short)*nn); \
+         (cc)->k=(short *)XtRealloc((char *)(cc)->k,sizeof(short)*nn); \
+      }                                                                \
+      nn = (cc)->num_pt ; ((cc)->num_pt)++ ;                           \
+      (cc)->i[nn] = (ii) ; (cc)->j[nn] = (jj) ; (cc)->k[nn] = (kk) ;   \
+   } while(0)
+
 #define ISOVALUE_MODE  1
 #define ISOMERGE_MODE  2
 
