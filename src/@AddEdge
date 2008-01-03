@@ -4,7 +4,7 @@ set olist = ()
 set dd = $PWD:t
 set uname = `whoami`
 set listlog = 'ExamineList.log'
-set opa = 7
+set opa = 9
 
 if ("$1" == "") goto DANCE
 if ("$1" == "-help") then
@@ -171,7 +171,7 @@ end
       set vole = $qlist[$pair_epi_ind]
       set rvola = ${uname}_ana${cnt}+orig
       set rvole = ${uname}_epi${cnt}+orig
-      echo "1 <-- $rli[$cnt]" >> ${uname}${dd}_randmap.txt 
+      echo "$cnt <-- $rli[$cnt]" >> ${uname}${dd}_randmap.txt 
       if (`@CheckForAfniDset ${rvola}` == 0) then
          echo "Creating $rvola, patience..."
          3dcopy $vola $rvola
