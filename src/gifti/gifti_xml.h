@@ -4,6 +4,11 @@
 #define GXML_MAX_DEPTH 10    /* maximum stack depth */
 #define GXML_MAX_ELEN  128   /* maximum element length */
 
+#define GIFTI_XML_VERSION       "1.0"
+#define GIFTI_XML_ENCODING      "UTF-8"
+#define GIFTI_XML_DTD_SOURCE    \
+                  "http://www.nitrc.org/frs/download.php/115/gifti.dtd"
+
 /* ----------------------------------------------------------------------
    element      depths  parent(s)       children
    -------      ------  --------------  -----------------------

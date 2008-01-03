@@ -324,27 +324,30 @@ static int apply_da_list_order(gxml_data * xd, const int * orig, int len)
 {
     giiDataArray ** newlist;
     int           * taken;      /* whether xd->da_list[i] was used */
-    int             newc, oldc, errors = 0;
+    int             newc, oldc, errors = 0, nDA;
 
     if( !xd || !xd->gim || !orig || len <= 0 || !xd->da_list || xd->da_len<=0 )
         return 0;  /* do nothing, or start small, diversionary fire, hmmm... */
+
+    nDA = xd->gim->numDA;       /* this may replace da_len */
+    if( nDA <= 0 ) return 0;
 
     /* create new DA list */
     newlist = (giiDataArray **)malloc(len * sizeof(giiDataArray *));
     if(!newlist){ fprintf(stderr,"** ADLO: no alloc fo DAlist\n"); return 1; }
 
     /* create taken list (of all 0) */
-    taken = (int *)calloc(xd->da_len, sizeof(int));
+    taken = (int *)calloc(nDA, sizeof(int));
 
     /* insert pointers to current or copied DA */
     for( newc = 0; newc < len; newc++ ) {
         newlist[newc] = NULL;      /* in case there are failures */
 
         /* find old index in da_list */
-        for( oldc = 0; oldc < xd->da_len; oldc++ )
+        for( oldc = 0; oldc < nDA; oldc++ )
             if( xd->da_list[oldc] == orig[newc] )
                 break;
-        if( oldc >= xd->da_len ) {      /* should never happen */
+        if( oldc >= nDA ) {      /* should never happen */
             fprintf(stderr,"** ADLO: failed to find index %d in da_list\n",
                     orig[newc]);
             errors++;
@@ -366,7 +369,7 @@ static int apply_da_list_order(gxml_data * xd, const int * orig, int len)
     /* at this point, we should be good, but check...  */
 
     /* if anything has not been taken, free them and fail */
-    for( oldc = 0; oldc < xd->da_len; oldc++ ) {
+    for( oldc = 0; oldc < nDA; oldc++ ) {
         if( !taken[oldc] ) {
             fprintf(stderr,"** ADLO: taken list is not all set\n");
             errors++;
@@ -534,7 +537,7 @@ static int init_gxml_data(gxml_data *dp, int doall, const int *dalist, int len)
     dp->da_ind  = 0;
 
     /* maybe show the user */
-    if( dp->verb > 1 )
+    if( dp->verb > 2 )
         disp_gxml_data("-- user opts: ", dp, dp->verb > 3);
 
     dp->eleDA = 0;
@@ -715,11 +718,7 @@ static int push_gifti(gxml_data * xd, const char ** attr )
 
     /* be explicit with pointers (struct should be clear) */
     gim = xd->gim;
-    gim->version = NULL;
-    gifti_clear_nvpairs(&gim->meta);
-    gifti_clear_LabelTable(&gim->labeltable);
-    gim->darray = NULL;
-    gifti_clear_nvpairs(&gim->ex_atrs);
+    gifti_clear_gifti_image(gim);
 
     for(c = 0; attr[c]; c+= 2 )
         if( gifti_str2attr_gifti(gim, attr[c], attr[c+1]) )
@@ -897,7 +896,7 @@ static int push_darray(gxml_data * xd, const char ** attr)
         }
     }
 
-    if( gifti_add_empty_darray(xd->gim) ) return 1;
+    if( gifti_add_empty_darray(xd->gim, 1) ) return 1;
 
     da = xd->gim->darray[xd->gim->numDA-1];  /* get new pointer */
 
@@ -961,6 +960,8 @@ static int pop_darray(gxml_data * xd)
             fprintf(stderr,"** uncompressed buf is %lld bytes, expected %lld\n",
                     olen, da->nvals*da->nbyper);
         }
+
+        xd->gim->compressed = 1;   /* flag whether some data was compressed */
     }
 
     /* possibly read data from an external file */
@@ -987,7 +988,8 @@ static int pop_darray(gxml_data * xd)
         }
 
         nvals = da->nvals * da->nbyper / swapsize;
-        gifti_check_swap(da->data, da->endian, nvals, swapsize);
+        if( gifti_check_swap(da->data, da->endian, nvals, swapsize) )
+            xd->gim->swapped = 1;       /* flag that it happened */
     }
 
     return 0;
@@ -1131,6 +1133,8 @@ static int push_cdata(gxml_data * xd, const char ** attr)
 
 static int epop( gxml_data * xd, int etype, const char * ename )
 {
+    giiDataArray * da;
+
     xd->cdata = NULL;                   /* clear fields for future use */
     xd->clen = 0;
 
@@ -1143,6 +1147,17 @@ static int epop( gxml_data * xd, int etype, const char * ename )
         switch( etype ) {
             default: /* do nothing special */
                 break;
+            case GXML_ETYPE_DATA : 
+                if(xd->verb>3)fprintf(stderr,"-- data dind = %lld\n",xd->dind);
+                /* if we have not read data, but allocated for it, free */
+                da = xd->gim->darray[xd->gim->numDA-1];
+                if( da->data && xd->dind == 0 ) {
+                    if( xd->verb > 3 ) fprintf(stderr,"   (freeing data)\n");
+                    free(da->data);
+                    da->data = NULL;
+                }
+                break;
+
             case GXML_ETYPE_DATAARRAY  : 
                 pop_darray(xd);
                 break;
@@ -1153,9 +1168,17 @@ static int epop( gxml_data * xd, int etype, const char * ename )
                             xd->eleDA, xd->expDA);
                 else if(xd->da_list && (xd->da_len != xd->da_ind))
                     fprintf(stderr,"** stored %d DAs, wanted %d\n",
-                            xd->da_len, xd->da_ind);
+                            xd->da_ind, xd->da_len);
                 if(xd->verb > 2)
                     gifti_disp_gifti_image("pop:", xd->gim, xd->verb > 4);
+
+                if(xd->verb > 1) {      /* check flags */
+                    if(xd->gim->swapped)
+                        fprintf(stderr,"++ data was byte-swapped\n");
+                    if(xd->gim->compressed)
+                        fprintf(stderr,"++ data was compressed\n");
+                }
+
                 break;
         }
     }
@@ -2406,6 +2429,13 @@ static int ewrite_data(gxml_data * xd, giiDataArray * da, FILE * fp)
     if( xd->verb > 3 )
         fprintf(stderr,"++ write %s Data\n",
                 gifti_list_index2string(gifti_encoding_list, da->encoding));
+
+    /* maybe there is no data to write */
+    if( !da->data || da->nvals <= 0 || da->nbyper <= 0 ) {
+        fprintf(fp, "%*s<%s/>\n", spaces, "", enames[GXML_ETYPE_DATA]);
+        return 0;
+    }
+
     fprintf(fp, "%*s<%s>", spaces, "", enames[GXML_ETYPE_DATA]);
 
     if( xd->dstore ) {
@@ -2515,7 +2545,7 @@ static int ewrite_coordsys(gxml_data * xd, giiCoordSystem * cs, FILE * fp)
 }
 
 
-/* rcr - review format strings */
+/* write one 'row' ('cols' values) of data in text */
 static int ewrite_data_line(void * data, int type, long long row,
                             long long cols, int space, FILE * fp)
 {
@@ -2527,76 +2557,80 @@ static int ewrite_data_line(void * data, int type, long long row,
         default : 
             fprintf(stderr,"** write_data_line, unknown type %d\n",type);
             return -1;
-        case 2: {       /* NIFTI_TYPE_UINT8 */
+        case NIFTI_TYPE_UINT8: {
             unsigned char * ptr = (unsigned char *)data + row * cols;
             for( c = 0; c < cols; c++ ) fprintf(fp, "%u ", ptr[c]);
             break;
         }
-        case 4: {       /* NIFTI_TYPE_INT16 */
+        case NIFTI_TYPE_INT16: {
             short * ptr = (short *)data + row * cols;
             for( c = 0; c < cols; c++ ) fprintf(fp, "%d ", ptr[c]);
             break;
         }
-        case 8: {       /* NIFTI_TYPE_INT32 */
+        case NIFTI_TYPE_INT32: {
             int * ptr = (int *)data + row * cols;
             for( c = 0; c < cols; c++ ) fprintf(fp, "%d ", ptr[c]);
             break;
         }
-        case 16: {      /* NIFTI_TYPE_FLOAT32 */
+        case NIFTI_TYPE_FLOAT32: {
             float * ptr = (float *)data + row * cols;
             for( c = 0; c < cols; c++ ) fprintf(fp, "%f ", ptr[c]);
             break;
         }
-        case 32: {      /* NIFTI_TYPE_COMPLEX64 */
+        case NIFTI_TYPE_COMPLEX64: {
             float * ptr = (float *)data + row * cols;
             for(c = 0; c < 2*cols; c+=2)fprintf(fp, "%f %f   ",ptr[c],ptr[c+1]);
             break;
         }
-        case 64: {      /* NIFTI_TYPE_FLOAT64 */
+        case NIFTI_TYPE_FLOAT64: {
             double * ptr = (double *)data + row * cols;
             for( c = 0; c < cols; c++ ) fprintf(fp, "%f ", ptr[c]);
             break;
         }
-        case 128: {     /* NIFTI_TYPE_RGB24 */
+        case NIFTI_TYPE_RGB24: {
             unsigned char * ptr = (unsigned char *)data + row * cols;
             for( c = 0; c < 3*cols; c+=3 )
                 fprintf(fp, "%u %u %u   ", ptr[c], ptr[c+1], ptr[c+2]);
             break;
         }
-        case 256: {     /* NIFTI_TYPE_INT8 */
+        case NIFTI_TYPE_INT8: {
             char * ptr = (char *)data + row * cols;
             for( c = 0; c < cols; c++ ) fprintf(fp, "%d ", ptr[c]);
             break;
         }
-        case 512: {     /* NIFTI_TYPE_UINT16 */
+        case NIFTI_TYPE_UINT16: {
             unsigned short * ptr = (unsigned short *)data + row * cols;
             for( c = 0; c < cols; c++ ) fprintf(fp, "%u ", ptr[c]);
             break;
         }
-        case 768: {     /* NIFTI_TYPE_UINT32 */
+        case NIFTI_TYPE_UINT32: {
             unsigned int * ptr = (unsigned int *)data + row * cols;
             for( c = 0; c < cols; c++ ) fprintf(fp, "%u ", ptr[c]);
             break;
         }
-        case 1024: {    /* NIFTI_TYPE_INT64 */
-            /* rcr - do we need to check #defines? */
+        case NIFTI_TYPE_INT64: {
+            long long * ptr = (long long *)data + row * cols;
+            for( c = 0; c < cols; c++ ) fprintf(fp, "%lld ", ptr[c]);
             break;
         }
-        case 1280: {    /* NIFTI_TYPE_UINT64 */
-            /* rcr - do we need to check #defines? */
+        case NIFTI_TYPE_UINT64: {
+            unsigned long long * ptr = (unsigned long long *)data + row * cols;
+            for( c = 0; c < cols; c++ ) fprintf(fp, "%llu ", ptr[c]);
             break;
         }
-        case 1536: {    /* NIFTI_TYPE_FLOAT128 */
-            /* rcr - do we need to check #defines? */
+        case NIFTI_TYPE_FLOAT128: {
+            long double * ptr = (long double *)data + row * cols;
+            for( c = 0; c < cols; c++ ) fprintf(fp, "%Lf ", ptr[c]);
             break;
         }
-        case 1792: {    /* NIFTI_TYPE_COMPLEX128 */
+        case NIFTI_TYPE_COMPLEX128: {
             double * ptr = (double *)data + row * cols;
             for(c = 0; c < 2*cols; c+=2)fprintf(fp, "%f %f   ",ptr[c],ptr[c+1]);
             break;
         }
-        case 2048: {    /* NIFTI_TYPE_COMPLEX256 */
-            /* rcr - do we need to check #defines? */
+        case NIFTI_TYPE_COMPLEX256: {
+            long double * ptr = (long double *)data + row * cols;
+            for(c = 0; c<2*cols; c+=2)fprintf(fp, "%Lf %Lf   ",ptr[c],ptr[c+1]);
             break;
         }
     }
@@ -2757,9 +2791,9 @@ static int ewrite_str_attr(const char * name, const char * value, int spaces,
 
 static int gxml_write_preamble(gxml_data * xd, FILE * fp)
 {
-    char version[]  = "1.0";     /* rcr - move to header */
-    char encoding[] = "UTF-8";
-    char dtd[]      = "http://www.nitrc.org/frs/download.php/115/gifti.dtd";
+    char * version  = GIFTI_XML_VERSION;
+    char * encoding = GIFTI_XML_ENCODING;
+    char * dtd      = GIFTI_XML_DTD_SOURCE;
 
     fprintf(fp, "<?xml version=\"%s\" encoding=\"%s\"?>\n", version, encoding);
     fprintf(fp, "<!DOCTYPE GIFTI SYSTEM \"%s\">\n", dtd);
