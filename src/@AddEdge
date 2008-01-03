@@ -1,0 +1,273 @@
+#!/bin/tcsh -f 
+
+set olist = ()
+set dd = $PWD:t
+set uname = `whoami`
+set listlog = 'ExamineList_d0.log'
+
+if ("$1" == "") goto DANCE
+if ("$1" == "-help") then
+   echo "A script to examine the results of registration"
+   echo "using various cost functions and software."
+   echo "The script adds edge markers to anatomy"
+   echo "and EPI and attempts to illustrate the match."
+   echo "To run this, first do:"
+   echo "@AddEdge epi+orig. \"
+   echo "         anat+orig.  \"
+   echo "         Alline_aff_*.nii  \"
+   echo "         SPManat_coreg_rs.nii SPManat_norm_rs.nii SPManat_seg_rs.nii \"
+   echo "         FLIRT_aff_*_*w.nii"
+   echo "To examine results, open afni in listen mode "
+   echo "and preferably with a nice .layout file, then "
+   echo "rerun @AddEdge with no options."
+   echo ""
+   echo "The edges from the EPI are added to the epi overlay using"
+   echo "the minimum value so they are of a dark blue. Edges from"
+   echo "the anatomy are added as the max of the epi. They end up"
+   echo "in orange on the composite image and dark red wherever"
+   echo "they also overlap with the epi's blue edges"
+   echo ""
+   echo "The colormap used is  Spectrum:red_to_blue, Pos"
+   echo ""
+   echo " Note: Had to prep SPM dset that way:"
+   echo "3dresample  -master Alline_aff_lpc.nii -rmode Cu \"
+   echo "            -inset SPManat_coreg.nii -prefix SPManat_coreg_rs.nii"
+   echo "3dresample  -master Alline_aff_lpc.nii -rmode Cu \"
+   echo "            -inset SPManat_seg.nii -prefix SPManat_seg_rs.nii"
+   echo "3dWarp -deoblique -overwrite -prefix SPManat_norm_do.nii\"
+   echo "            SPManat_norm.nii
+   echo "3dresample  -master Alline_aff_lpc.nii -rmode Cu \"
+   echo "            -inset SPManat_norm_do.nii -prefix SPManat_norm_rs.nii"
+   echo "ALSO: Note that for SPM, only coreg can be compared to our results"
+   echo "      Only coreg results used MI for cost but with only 6 params!"
+   echo "Use: "
+   echo "setenv AFNI_MIX_BY_BRIGHT"
+   echo "setenv AFNI_IMAGE_LABEL_MODE 1"
+   echo "setenv AFNI_IMAGE_LABEL_SIZE 2"
+   echo "setenv AFNI_JPEG_COMPRESS 100"
+   echo ""
+   goto END
+endif
+
+set epi = $1
+set epipref = `@GetAfniPrefix $epi`
+set epipref = `@NoExt $epipref nii nii.gz`
+
+
+#Get epi edges
+3dedge3 -input $epi  -prefix  ${epipref}_e3
+
+#Get average of anats
+if ($#argv > 2) then
+   3dMean -prefix tmp_avg $argv[2-] 
+else
+   3dcopy $argv[2]        tmp_avg 
+endif
+#Get a nice cropping box
+3dAutobox   -input "3dcalc( -a tmp_avg+orig -b $epi -expr ((a+b)/2.0) )" \
+            -noclust -overwrite -prefix tmp_box+orig
+
+set eth = `3dBrickStat -non-zero -percentile 30 1 30 ${epipref}_e3+orig`
+set eth = $eth[2]
+set eminval = `3dBrickStat -non-zero -min $epi`
+set emaxval = `3dBrickStat -non-zero -max $epi`
+3dcalc   -a $epi -b ${epipref}_e3+orig -overwrite -prefix ${epipref}_e \
+         -expr "(1-step(b-$eth))*a+step(b-$eth)*$eminval"
+3dresample  -master tmp_box+orig -rmode NN \
+            -overwrite -prefix ${epipref}_ec+orig \
+            -inset ${epipref}_e+orig
+set olist = ($olist ${epipref}_ec+orig.HEAD)
+rm -f ${epipref}_e+orig* 
+
+foreach anain ($argv[2-])
+   set anat = $anain
+   set anatpref = `@GetAfniPrefix $anat`
+   set anatpref = `@NoExt $anatpref nii nii.gz`
+
+   #deoblique if necessary
+   if (`@isOblique $anat`) then
+      3dWarp -deoblique -overwrite -prefix $anat -input $anat
+   endif
+   #Get anat edges
+   3dedge3 -input $anat -overwrite -prefix ${anatpref}_e3
+
+   #Create an edgized anat and an edgized EPI for display
+
+   set ath = `3dBrickStat -non-zero -percentile 30 1 30 ${anatpref}_e3+orig`
+   set ath = $ath[2]
+
+
+   
+   set amaxval = `3dBrickStat -max $anat`
+   3dcalc   -a $anat -b ${anatpref}_e3+orig -overwrite -prefix ${anatpref}_e \
+            -expr "(1-step(b-$ath))*a+step(b-$ath)*$amaxval"
+   3dresample  -master tmp_box+orig -rmode NN \
+               -overwrite -prefix ${anatpref}_ec+orig \
+               -inset ${anatpref}_e+orig
+               
+   set olist = ($olist ${anatpref}_ec+orig.HEAD)
+   
+   #put some of the anat edge in the epi image
+   3dcalc   -a $epi \
+            -b ${anatpref}_e3+orig \
+            -c ${epipref}_e3+orig   \
+            -overwrite -prefix ${epipref}_${anatpref}_e  \
+            -expr "(1-step((step(c-$eth)+step(b-$ath))))*a\
+                  + step(c-$eth)*$eminval \
+                  + step(b-$ath)*$emaxval"
+   3dresample  -master tmp_box+orig -rmode NN \
+               -overwrite -prefix ${epipref}_${anatpref}_ec+orig  \
+               -inset ${epipref}_${anatpref}_e+orig 
+   set olist = (  $olist \
+                  ${epipref}_${anatpref}_ec+orig.HEAD)               
+   
+   rm -f ${anatpref}_e+orig* ${anatpref}_e3+orig* ${epipref}_${anatpref}_e+orig* 
+end
+
+
+rm -f tmp_box+orig* tmp_avg+orig*
+
+echo "Recommended command:"
+echo "afni $olist"
+if (-f ${listlog}) goto LOG_EXISTS
+
+echo "$olist" > ${listlog}
+#better not go into interactive mode now since this mode is slow and not done repeatedly
+goto END
+
+DANCE:
+if ("$olist" == "") set olist = (`cat ${listlog}`)
+#trim what is not desired from list
+set qlist = ($olist)
+set olist = ()
+foreach ll ($qlist)
+   if (  "$ll" !~ *SPM*norm* &&  \
+         "$ll" !~ *SPM*seg* ) set olist = ($olist $ll)
+end
+#Randomize list 
+   #Number of elements must be odd
+   set n_pairs = `ccalc -form int "($#olist-1)/2"`
+   if (`ccalc -form int "$n_pairs*2+1"` != $#olist) then
+      echo "Damn it!"
+      goto END
+   endif
+   
+   #Get a random sequence for the pairs
+   set rli = `count -digits 1 1 $n_pairs S -sseed "${dd}_${uname}"`
+   
+   #Now randomize the volume order AND rename them
+   #first copy first volume in list (never used!)
+   set qlist = ($olist)
+   set olist = ($qlist[1])
+   
+   set cnt = 1
+   while ($cnt <= $#rli)
+      set pair_ana_ind = `ccalc -form int "2*$rli[$cnt]"`
+      set pair_epi_ind = `ccalc -form int $pair_ana_ind + 1`
+      set vola = $qlist[$pair_ana_ind]
+      set vole = $qlist[$pair_epi_ind]
+      set rvola = ${uname}_ana${cnt}+orig
+      set rvole = ${uname}_epi${cnt}+orig
+      if (`@CheckForAfniDset ${rvola}` == 0) then
+         echo "Creating $rvola, patience..."
+         3dcopy $vola $rvola
+         3dNotes -HH "pair map $rli" $rvola
+      else 
+         echo "Reusing $rvola ..."
+      endif
+      if (`@CheckForAfniDset ${rvole}` == 0) then
+         echo "Copying $rvole, patience..."
+         3dcopy $vole $rvole
+         3dNotes -HH "pair map $rli" $rvole
+      else 
+         echo "Reusing $rvole ..."
+      endif
+      set olist = ($olist ${rvola}.HEAD ${rvole}.HEAD )
+      @ cnt ++
+   end
+   echo "Randomized list is:"
+   echo "$olist"
+
+#It is time to dance
+plugout_drive -com "RESCAN_THIS A" -quit
+set cnt = 2
+while ($cnt < $#olist)
+   set ilbl =  `ccalc -form int $cnt/2`
+   set ana = `@GetAfniPrefix $olist[$cnt]`
+   @ cnt ++
+   set ep = `@GetAfniPrefix $olist[$cnt]`
+   @ cnt ++
+   plugout_drive  \
+      -com "SWITCH_UNDERLAY $ana"   \
+      -com "SWITCH_OVERLAY  $ep"    \
+      -com "OPEN_WINDOW A.axialimage mont=2x2:24 opacity=5"\
+      -com "OPEN_WINDOW A.axialimage ifrac=0.9"\
+      -com "OPEN_WINDOW A.sagittalimage ifrac=0.9"\
+      -com "OPEN_WINDOW A.sagittalimage opacity=5"\
+      -com "SEE_OVERLAY +"          \
+      -com "SET_THRESHOLD A.0"      \
+      -com "SET_PBAR_ALL A.+99 1.0 SpectrumLred_to_blue" \
+      -quit
+   set ilst = 2
+   set iii  = 0
+   while ($ilst < $#olist)
+      @ iii ++
+      echo "$iii---`@GetAfniPrefix $olist[$ilst]`"
+      @ ilst ++
+      @ ilst ++
+   end
+   set stay = 1
+   while ($stay == 1)
+      echo "Enter: proceed to next inline (`ccalc -form int $ilbl + 1`)"
+      echo "i: proceed to number i"
+      echo "'r': record current"
+      echo "'s': save automatically recorded images and quit"
+      echo "'q': quit"
+      set stay = 0
+      set nx = $<
+      if ("$nx" == 'r') then
+         set stay = 1
+         plugout_drive \
+            -com "SEE_OVERLAY +"   \
+            -com "SAVE_JPEG A.axialimage ${uname}${dd}axi_$ana.jpg"  \
+            -com "SAVE_JPEG A.sagittalimage ${uname}${dd}sag_$ana.jpg"  \
+            -quit 
+      endif
+      if ("$nx" == 'q')   goto END
+   end
+   #auto_record
+   echo "Autorecording number ${ilbl} to at${uname}${ilbl}${dd}..."
+   plugout_drive \
+            -com "SAVE_JPEG A.axialimage at${uname}${ilbl}${dd}axi_$ana.jpg"  \
+            -com "SAVE_JPEG A.sagittalimage at${uname}${ilbl}${dd}sag_$ana.jpg"\
+            -quit
+   if ("$nx" == 's') then
+      #auto_stitch
+      imcat -nx 3 -overwrite -gap 1 -gap_col 0 0 255 \
+            -zero_wrap \
+            -prefix at${uname}${dd}axi_all \
+            at${uname}*${dd}axi*.jpg
+      imcat -nx 3 -overwrite -gap 1 -gap_col 0 0 255 \
+            -zero_wrap  \
+            -prefix at${uname}${dd}sag_all \
+            at${uname}*${dd}sag*.jpg
+      aiv at${uname}${dd}axi_all.ppm at${uname}${dd}sag_all.ppm &
+      goto END
+   endif
+   
+   if ($nx >= 1) then
+      set cnt = `ccalc -form int $nx\*2`
+   endif
+   if ($cnt > $#olist) set cnt = 2 
+   echo "Opening @GetAfniPrefix $olist[$cnt] results"
+end
+
+goto END
+
+LOG_EXISTS:
+echo ""
+echo "File ${listlog} already  exists, will not overwrite."
+echo ""
+
+goto END
+END:
