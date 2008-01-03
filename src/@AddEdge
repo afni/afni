@@ -4,6 +4,7 @@ set olist = ()
 set dd = $PWD:t
 set uname = `whoami`
 set listlog = 'ExamineList.log'
+set opa = 9
 
 if ("$1" == "") goto DANCE
 if ("$1" == "-help") then
@@ -35,7 +36,7 @@ if ("$1" == "-help") then
    echo "3dresample  -master Alline_aff_lpc.nii -rmode Cu \"
    echo "            -inset SPManat_seg.nii -prefix SPManat_seg_rs.nii"
    echo "3dWarp -deoblique -overwrite -prefix SPManat_norm_do.nii\"
-   echo "            SPManat_norm.nii
+   echo "            SPManat_norm.nii"
    echo "3dresample  -master Alline_aff_lpc.nii -rmode Cu \"
    echo "            -inset SPManat_norm_do.nii -prefix SPManat_norm_rs.nii"
    echo "ALSO: Note that for SPM, only coreg can be compared to our results"
@@ -206,10 +207,10 @@ while ($cnt < $#olist)
    plugout_drive  \
       -com "SWITCH_UNDERLAY $ana"   \
       -com "SWITCH_OVERLAY  $ep"    \
-      -com "OPEN_WINDOW A.axialimage mont=2x2:24 opacity=5"\
+      -com "OPEN_WINDOW A.axialimage mont=2x2:24 opacity=$opa"\
       -com "OPEN_WINDOW A.axialimage ifrac=0.9"\
       -com "OPEN_WINDOW A.sagittalimage ifrac=0.9"\
-      -com "OPEN_WINDOW A.sagittalimage opacity=5"\
+      -com "OPEN_WINDOW A.sagittalimage opacity=$opa"\
       -com "SEE_OVERLAY +"          \
       -com "SET_THRESHOLD A.0"      \
       -com "SET_PBAR_ALL A.+99 1.0 SpectrumLred_to_blue" \

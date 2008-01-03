@@ -1157,6 +1157,8 @@ extern double poisson_p2t ( double qq , double lambda ) ;
 typedef struct { int i,j;   } int_pair ;    /* 12 Aug 2002 */
 typedef struct { int i,j,k; } int_triple ;
 
+/*----------*/
+
 typedef struct { int nar ; float  *ar ; } floatvec ;
 typedef struct { int nar ; double *ar ; } doublevec ;
 #define KILL_floatvec(fv)                      \
@@ -1179,6 +1181,8 @@ typedef struct { int nar ; double *ar ; } doublevec ;
 
 typedef struct { int nvec ; floatvec *fvar ; } floatvecvec ;
 
+/*----------*/
+
 typedef struct { int nar ; int *ar ; } intvec ;
 #define KILL_intvec(iv)                        \
   do{ if( (iv) != NULL ){                      \
@@ -1197,6 +1201,29 @@ typedef struct { int nar ; int *ar ; } intvec ;
         (iv)->nar = (m) ;                                     \
         (iv)->ar  = (int *)realloc((iv)->ar,sizeof(int)*(m)); \
   }} while(0)
+
+/*----------*/
+
+typedef struct { short nar ; short *ar ; } shortvec ;
+#define KILL_shortvec(iv)                    \
+  do{ if( (iv) != NULL ){                     \
+        if( (iv)->ar != NULL ) free((iv)->ar); \
+        free(iv); (iv) = NULL;                  \
+  } } while(0)
+
+#define MAKE_shortvec(iv,n)                          \
+  do{ (iv) = (shortvec *)malloc(sizeof(shortvec)) ;   \
+      (iv)->nar = (n) ;                                \
+      (iv)->ar  = (short *)calloc(sizeof(short),(n)) ;  \
+  } while(0)
+
+#define RESIZE_shortvec(iv,m)                                  \
+  do{ if( (iv)->nar != (m) ){                                   \
+        (iv)->nar = (m) ;                                        \
+        (iv)->ar  = (short *)realloc((iv)->ar,sizeof(short)*(m)); \
+  }} while(0)
+
+/*----------*/
 
 typedef struct {
   int nbot, ntop , gbot ;
