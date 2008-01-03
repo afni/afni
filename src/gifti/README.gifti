@@ -46,12 +46,13 @@ todo:
   - eventually replace Caret-Version with AFNI-Version (no, at higher level)
   - data in external file(s)
 
-  - gifti_set_all_DA_intent()
-  - gifti_set_all_DA_datatype()
-  - ...
-  - gifti_clear_gim_metadata()
-  - gifti_clear_DA_metadata()
-  - gifti_clear_all_metadata()
+  - create a new GIFTI dataset
+            - add the ability to point to parts of external file
+            - no geometry for now (useless to fill with values)
+
+  - gifti_remove_gim_metadata()
+  - gifti_remove_DA_metadata()
+  - gifti_remove_all_metadata()
   - gifti_MD_find(char * name)
   - gifti_MD_delete(name)
   - gifti_MD_add(name, value)
@@ -59,6 +60,5 @@ todo:
   - post XML read: validate gifti structure
         - check for UNKNOWN attributes
                 - done?? "invalid darray XX"
-        - check that numDA matches numDAfound (unless user requested fewer)
         - check that MD names are unique
   - only print pointers on error
