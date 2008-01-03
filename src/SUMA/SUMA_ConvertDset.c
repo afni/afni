@@ -411,7 +411,7 @@ int main (int argc,char *argv[])
       
    }/* loop accross command ine options */
    
-   overwrite = SUMA_ok_overwrite();
+   overwrite = THD_ok_overwrite();
    pad_to_node = MRILIB_DomainMaxNodeIndex;
    
    if (oform == SUMA_NO_DSET_FORMAT) {
