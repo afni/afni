@@ -164,8 +164,6 @@ int main( int argc , char *argv[] )
      exit(0) ;
    }
 
-   if (!quiet) PRINT_VERSION("aiv") ; 
-   
    mainENTRY("aiv main") ; machdep() ;
 
    /* options? */
@@ -208,6 +206,8 @@ int main( int argc , char *argv[] )
 
      ERROR_message("Unknown option: %s",argv[iarg]) ;
    }
+   if (!quiet) { PRINT_VERSION("aiv") ; } 
+   
 
    /* glob filenames, read images */
 
@@ -251,7 +251,7 @@ int main( int argc , char *argv[] )
    if( IMARR_COUNT(MAIN_imar) == 0 && AIVVV_stream==(NI_stream)NULL )
      ERROR_exit("No images found on command line!?") ;
    if( IMARR_COUNT(MAIN_imar) > 0 ){
-     fprintf(stderr, (verb) ? " = " : "++ " ) ;
+     if (!quiet) fprintf(stderr, (verb) ? " = " : "++ " ) ;
      if( IMARR_COUNT(MAIN_imar) == 1 )
        if (!quiet) fprintf(stderr,"1 image\n") ;
      else
