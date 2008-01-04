@@ -66,7 +66,8 @@ int main( int argc , char * argv[] )
       for( jj=0 ; jj < nim ; jj++ ){
          far = MRI_FLOAT_PTR(inim[jj]) ;
          for( kk=0 ; kk < inim[jj]->ny ; kk++ ){
-            printf(" %g", far[ii+kk*nx] ) ;
+            printf(" %g", far[ii+kk*nx] ) ; 
+            /* printf(" %+.2f", far[ii+kk*nx] ) ;*/
          }
       }
       printf("\n") ;
