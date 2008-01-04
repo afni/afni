@@ -4,7 +4,9 @@ set olist = ()
 set dd = $PWD:t
 set uname = `whoami`
 set listlog = 'ExamineList.log'
-set opa = 9
+set opa = 7
+set do_score = 0
+set do_rand = 0
 
 if ("$1" == "") goto DANCE
 if ("$1" == "-help") then
@@ -145,17 +147,18 @@ foreach ll ($qlist)
    if (  "$ll" !~ *SPM*norm* &&  \
          "$ll" !~ *SPM*seg* ) set olist = ($olist $ll)
 end
-#Randomize list 
-   #Number of elements must be odd
-   set n_pairs = `ccalc -form int "($#olist-1)/2"`
-   if (`ccalc -form int "$n_pairs*2+1"` != $#olist) then
-      echo "Damn it!"
-      goto END
-   endif
+#Number of elements must be odd
+set n_pairs = `ccalc -form int "($#olist-1)/2"`
+if (`ccalc -form int "$n_pairs*2+1"` != $#olist) then
+   echo "Damn it!"
+   goto END
+endif
+
    
+if ($do_rand == 1) then
+#Randomize list 
    #Get a random sequence for the pairs
    set rli = `count -digits 1 1 $n_pairs S -sseed "${dd}_${uname}"`
-   
    #Now randomize the volume order AND rename them
    #first copy first volume in list (never used!)
    set qlist = ($olist)
@@ -195,6 +198,12 @@ end
    end
    echo "Randomized list is:"
    echo "$olist"
+else
+   set qlist = ($olist)
+   set rli = `count -digits 1 1 $n_pairs`
+   #Do not allow rating when there is no randomization
+   set do_score = 0   
+endif
 
 #It is time to dance
 plugout_drive -com "RESCAN_THIS A" -quit
@@ -250,16 +259,21 @@ while ($cnt < $#olist)
             -com "SAVE_JPEG A.sagittalimage at${uname}${ilbl}${dd}sag_$ana.jpg"\
             -quit
    if ("$nx" == 's') then
+      if ($do_rand == 1) then
+         set flr = '_all'
+      else 
+         set flr = '_all_norand'
+      endif
       #auto_stitch
       imcat -nx 3 -overwrite -gap 1 -gap_col 0 0 255 \
             -zero_wrap \
-            -prefix at${uname}${dd}axi_all \
+            -prefix at${uname}${dd}axi${flr} \
             at${uname}*${dd}axi*.jpg
       imcat -nx 3 -overwrite -gap 1 -gap_col 0 0 255 \
             -zero_wrap  \
-            -prefix at${uname}${dd}sag_all \
+            -prefix at${uname}${dd}sag${flr} \
             at${uname}*${dd}sag*.jpg
-      aiv -quiet at${uname}${dd}axi_all.ppm at${uname}${dd}sag_all.ppm &
+      aiv -quiet at${uname}${dd}axi${flr}.ppm at${uname}${dd}sag${flr}.ppm &
       goto SCORE
    endif
    
@@ -273,111 +287,112 @@ end
 goto END
 
 SCORE:
-echo ""
-echo "Enter scores for dsets 1..$#rli (just one 0 to score all with 0s):"
-echo ""
-set scl = `count -quiet -digits 1 0 0 S$#rli`
-set sc = ""
-if (1) then
-   while ("$sc" == "")
-      set sc = ($<)
-      if ($#sc > 0 && $sc[1] == 0) then
-         set sc = ($scl)
-      else if ($#sc != $#rli) then
-         echo "Need $#rli values"
-         set sc = ""
-      endif
-   end
-   set scl = ($sc)
-   echo "Scores are: $scl"
-   echo "#Scores: $PWD `date` $uname :" >> ${uname}${dd}_scores.1D
-   echo $scl >> ${uname}${dd}_scores.1D    
-   goto RANK
-else
+if ($do_score == 1) then
+   echo ""
+   echo "Enter scores for dsets 1..$#rli (just one 0 to score all with 0s):"
+   echo ""
+   set scl = `count -quiet -digits 1 0 0 S$#rli`
+   set sc = ""
+   if (1) then
+      while ("$sc" == "")
+         set sc = ($<)
+         if ($#sc > 0 && $sc[1] == 0) then
+            set sc = ($scl)
+         else if ($#sc != $#rli) then
+            echo "Need $#rli values"
+            set sc = ""
+         endif
+      end
+      set scl = ($sc)
+      echo "Scores are: $scl"
+      echo "#Scores: $PWD `date` $uname :" >> ${uname}${dd}_scores.1D
+      echo $scl >> ${uname}${dd}_scores.1D    
+      goto RANK
+   else
+      set cnt = 1
+      while ($cnt <= $#rli)
+         set cnt2 = `ccalc -form int $cnt\* 2`
+         echo "$olist[$cnt2]"
+         set sc = $<
+         set scl[$cnt] = sc
+         echo "Enter dset number to score"
+         set nn = $<
+         if ("$nn" == "") then
+            @ cnt ++
+         else if ($nn > $#rli) then
+            echo "Scores are: $scl"
+            echo "#Scores: $PWD `date` $uname :" >> ${uname}${dd}_scores.1D
+            echo $scl >> ${uname}${dd}_scores.1D    
+            goto RANK
+         else
+            set cnt = $nn
+         endif
+      end
+   endif
+   RANK:
+   echo ""
+   echo "Enter ranks for dsets 1..$#rli (just one 0 to rank all with 0s):"
+   echo ""
+   set rnl = `count -quiet -digits 1 0 0 S$#rli`
+   set rn = ""
+   if (1) then
+      while ("$rn" == "")
+         set rn = ($<)
+         if ($#rn > 0 && $rn[1] == 0) then
+            set rn = ($rnl)
+         else if ($#rn != $#rli) then
+            echo "Need $#rli values"
+            set rn = ""
+         endif
+      end
+      set rnl = ($rn)
+      echo "Ranks are: $rnl"
+      echo "#Ranks: $PWD `date` $uname :" >> ${uname}${dd}_rank.1D
+      echo $rnl >> ${uname}${dd}_rank.1D
+      goto STORE
+   else
+      set cnt = 1
+      while ($cnt <= $#rli)
+         set cnt2 = `ccalc -form int $cnt\*2`
+         echo "$olist[$cnt2]"
+         set rn = $<
+         set rnl[$cnt] = rn
+         echo "Enter dset number to rank"
+         set nn = $<
+         if ("$nn" == "") then
+            @ cnt ++
+         else if ($nn > $#rli) then
+            echo "Ranks are: $rnl"
+            echo "#Ranks: $PWD `date` $uname :" >> ${uname}${dd}_rank.1D
+            echo $rnl >> ${uname}${dd}_rank.1D
+            goto STORE
+         else
+            set cnt = $nn
+         endif
+
+      end
+   endif
+
+   STORE:
+   #Now spit out the score sheet correctly
+   set rnlunt = `count -quiet -digits 1 0 0 S$#rli`
+   set sclunt = ($rnlunt)
+   set dlist = ""
    set cnt = 1
    while ($cnt <= $#rli)
-      set cnt2 = `ccalc -form int $cnt\* 2`
-      echo "$olist[$cnt2]"
-      set sc = $<
-      set scl[$cnt] = sc
-      echo "Enter dset number to score"
-      set nn = $<
-      if ("$nn" == "") then
-         @ cnt ++
-      else if ($nn > $#rli) then
-         echo "Scores are: $scl"
-         echo "#Scores: $PWD `date` $uname :" >> ${uname}${dd}_scores.1D
-         echo $scl >> ${uname}${dd}_scores.1D    
-         goto RANK
-      else
-         set cnt = $nn
-      endif
-   end
-endif
-RANK:
-echo ""
-echo "Enter ranks for dsets 1..$#rli (just one 0 to rank all with 0s):"
-echo ""
-set rnl = `count -quiet -digits 1 0 0 S$#rli`
-set rn = ""
-if (1) then
-   while ("$rn" == "")
-      set rn = ($<)
-      if ($#rn > 0 && $rn[1] == 0) then
-         set rn = ($rnl)
-      else if ($#rn != $#rli) then
-         echo "Need $#rli values"
-         set rn = ""
-      endif
-   end
-   set rnl = ($rn)
-   echo "Ranks are: $rnl"
-   echo "#Ranks: $PWD `date` $uname :" >> ${uname}${dd}_rank.1D
-   echo $rnl >> ${uname}${dd}_rank.1D
-   goto STORE
-else
-   set cnt = 1
-   while ($cnt <= $#rli)
+      set rnlunt[$rli[$cnt]] = $rnl[$cnt]
+      set sclunt[$rli[$cnt]] = $scl[$cnt]
       set cnt2 = `ccalc -form int $cnt\*2`
-      echo "$olist[$cnt2]"
-      set rn = $<
-      set rnl[$cnt] = rn
-      echo "Enter dset number to rank"
-      set nn = $<
-      if ("$nn" == "") then
-         @ cnt ++
-      else if ($nn > $#rli) then
-         echo "Ranks are: $rnl"
-         echo "#Ranks: $PWD `date` $uname :" >> ${uname}${dd}_rank.1D
-         echo $rnl >> ${uname}${dd}_rank.1D
-         goto STORE
-      else
-         set cnt = $nn
-      endif
-
+      set dlist = ($dlist $qlist[$cnt2])
+      @ cnt ++
    end
+   echo "#Ranks Untangled: $PWD `date` $uname :" > ${uname}${dd}_untrank.1D
+   echo "#dlist $dlist"  >> ${uname}${dd}_untrank.1D
+   echo $rnlunt >> ${uname}${dd}_untrank.1D
+   echo "#Scores Untangled: $PWD `date` $uname :" > ${uname}${dd}_untscores.1D
+   echo "#dlist $dlist"  >> ${uname}${dd}_untscores.1D
+   echo $sclunt >> ${uname}${dd}_untscores.1D
 endif
-
-STORE:
-#Now spit out the score sheet correctly
-set rnlunt = `count -quiet -digits 1 0 0 S$#rli`
-set sclunt = ($rnlunt)
-set dlist = ""
-set cnt = 1
-while ($cnt <= $#rli)
-   set rnlunt[$rli[$cnt]] = $rnl[$cnt]
-   set sclunt[$rli[$cnt]] = $scl[$cnt]
-   set cnt2 = `ccalc -form int $cnt\*2`
-   set dlist = ($dlist $qlist[$cnt2])
-   @ cnt ++
-end
-echo "#Ranks Untangled: $PWD `date` $uname :" > ${uname}${dd}_untrank.1D
-echo "#dlist $dlist"  >> ${uname}${dd}_untrank.1D
-echo $rnlunt >> ${uname}${dd}_untrank.1D
-echo "#Scores Untangled: $PWD `date` $uname :" > ${uname}${dd}_untscores.1D
-echo "#dlist $dlist"  >> ${uname}${dd}_untscores.1D
-echo $sclunt >> ${uname}${dd}_untscores.1D
-
 
 goto END
 
