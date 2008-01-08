@@ -546,7 +546,7 @@ void get_options (int argc, char ** argv,
 	  nopt++;
 	  if (nopt >= argc)  AlphaSim_error ("need argument after -rmm ");
 	  sscanf (argv[nopt], "%f", &fval);
-	  if (fval <= 0.0) INFO_message("-rmm set to %g",fval) ;
+	  if (fval <= 0.0) INFO_message("-rmm set to %g ==> NN clustering",fval) ;
 	  *rmm = fval;
 	  nopt++;
 	  continue;
