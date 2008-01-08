@@ -516,6 +516,7 @@ void NI_add_column( NI_element *nel , int typ , void *arr )
    return ;
 }
 
+/*-------------------------------------------------------------------------*/
 /*!
    Like add_column, but inserts the column at nel->vec[icol] rather than
    at the end.
@@ -549,6 +550,7 @@ void NI_insert_column( NI_element *nel , int typ , void *arr, int icol )
    return ;
 }
 
+/*-------------------------------------------------------------------------*/
 /*!
    move a column from index ibefore to iafter
    if ibefore (or iafter) is (< 0 || > nel->vec_num) then  
@@ -600,6 +602,7 @@ void NI_move_column(NI_element *nel, int ibefore, int iafter)
    return ;
 }
 
+/*-------------------------------------------------------------------------*/
 /*!
    Do we really need to document this too?
    Removes column irm from nel. If irm < 0 or
@@ -706,6 +709,7 @@ void NI_add_column_stride( NI_element *nel, int typ, void *arr, int stride )
    return ;
 }
 
+/*-------------------------------------------------------------------------*/
 /*!
    See NI_insert_column for inspiration
 */
