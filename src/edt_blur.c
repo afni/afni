@@ -829,7 +829,8 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
       the CPU cache, to speed up processing (a lot).  For the x-axis, this
       was unneeded, since the x-rows are contiguous in memory. For data at 256x256
       this 2D extract/process/insert trick was nugatory. However, for 512x512 data
-      this trick becomes important. The same method is used for the z-axis in fir_blurz*/
+      this trick becomes important.
+      The same method is used for the z-axis in fir_blurz(). */
 
    /* macro to access the input data 2D slice: (i,j) = (x,y) indexes */
 

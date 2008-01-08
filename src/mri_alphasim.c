@@ -3,7 +3,11 @@
 #include <unistd.h>
 #include <time.h>
 
+#define USE_ZGAUSSIAN
+#ifdef  USE_ZGAUSSIAN
 /*****************************************************************************/
+/*********** function zgaussian() adapted from the following code: ***********/
+
 /* gauss.c - gaussian random numbers, using the Ziggurat method
  *
  * Copyright (C) 2005  Jochen Voss.
@@ -159,168 +163,11 @@ static INLINE float zgaussian(void)
   return (sgn ? x : -x) ;
 }
 /*****************************************************************************/
-
-static intvec * count_clusters( MRI_IMAGE *bim , float rmm , int minsize ) ;
-
-static int largest_clustersize( MRI_IMAGE *bim , float rmm ) ;
+#endif /* USE_ZGAUSSIAN */
 
 /*----------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_alphasim( int   nx, int   ny, int   nz ,
-                          float dx, float dy, float dz ,
-                          int niter , int max_clustsize , float rmm ,
-                          int num_pval , float *pval ,
-                          int num_fwhm , float *fwhm , byte *mask , long seed )
-{
-   MRI_IMAGE *bim , *aim , *cim ,      *dim ;
-   float     *bar , *aar , *car ; byte *dar ;
-   int ite , jsm , kth , nxyz , ii,jj ;
-   float tt , u1,u2 , *ath , nitinv , *thr ;
-   double sd ;
-   intvec *iv ; int niv , *iva ;
-   static long sseed=0 ;
-
-ENTRY("mri_alphasim") ;
-
-   if( nx < 8 || ny < 8 || nz < 1 ) RETURN(NULL) ;
-
-   if( dx <= 0.0f ) dx = 1.0f ;
-   if( dy <= 0.0f ) dy = 1.0f ;
-   if( dz <= 0.0f ) dz = 1.0f ;
-
-   if( niter         < 1  ) niter         =  1000 ;
-   if( max_clustsize < 16 ) max_clustsize = 10000 ;
-
-   if( num_pval < 1 || pval == NULL ){
-     static float pp = 0.001f ;
-     num_pval = 1 ; pval = &pp ;
-   }
-
-   if( num_fwhm < 1 || fwhm == NULL ){
-     static float ff = 0.0f ;
-     num_fwhm = 1 ; fwhm = &ff ;
-   }
-
-   aim = mri_new_vol( max_clustsize , num_fwhm , num_pval , MRI_float ) ;
-   aar = MRI_FLOAT_PTR(aim) ;
-#undef  ATH
-#define ATH(s,t) ( aar + ((s)*max_clustsize + (t)*(max_clustsize*num_fwhm) -1) )
-
-   nxyz = nx*ny*nz ;
-
-   if( seed != 0 ){
-     srand48(seed) ;
-   } else if( sseed == 0 ){
-     sseed = (long)time(NULL) + (long)getpid() ;
-     srand48(sseed) ;
-   }
-
-   thr = (float *)malloc(sizeof(float)*num_pval) ;
-   for( kth=0 ; kth < num_pval ; kth++ )
-     thr[kth] = nifti_rcdf2stat( (double)pval[kth] ,
-                                 NIFTI_INTENT_ZSCORE , 0.0,0.0,0.0 ) ;
-
-   bim = mri_new_vol( nx,ny,nz , MRI_float ) ; bar = MRI_FLOAT_PTR(bim) ;
-   cim = mri_new_vol( nx,ny,nz , MRI_float ) ; car = MRI_FLOAT_PTR(bim) ;
-   dim = mri_new_vol( nx,ny,nz , MRI_byte  ) ; dar = MRI_BYTE_PTR (dim) ;
-   dim->dx = dx ; dim->dy = dy ; dim->dz = dz ;
-
-   /*-- iteration loop --*/
-
-   nitinv = 1.0f / niter ;
-
-   for( ite=0 ; ite < niter ; ite++ ){
-
-     /*-- create uncorrelated random field --*/
-
-#undef  TPI
-#define TPI 6.283185f
-
-     for( ii=0 ; ii < nxyz ; ii+=2 ){
-       do{ u1 = (float)drand48(); } while( u1==0.0f ) ;
-       u1 = sqrtf(-logf(u1)) ; u2 = TPI * (float)drand48() ;
-       bar[ii] = u1 * cosf(u2) ; bar[ii+1] = u1 * sinf(u2) ;
-     }
-     if( ii == nxyz-1 ){
-       do{ u1 = (float)drand48(); } while( u1==0.0f ) ;
-       u1 = sqrtf(-logf(u1)) ; u2 = TPI * (float)drand48() ;
-       bar[ii] = u1 * cosf(u2) ;
-     }
-
-     /*-- loop over smoothings --*/
-
-     for( jsm=0 ; jsm < num_fwhm ; jsm++ ){
-
-       /* blur dataset */
-
-       memcpy( car , bar , sizeof(float)*nxyz ) ;
-       if( fwhm[jsm] > 0.0f )
-         EDIT_blur_volume( nx,ny,nz , dx,dy,dz ,
-                           MRI_float,car , FWHM_TO_SIGMA(fwhm[jsm]) ) ;
-
-       /* find sigma of blurred dataset (we know the mean is zero) */
-
-       sd = 0.0 ;
-       for( ii=0 ; ii < nxyz ; ii++ ) sd += car[ii]*car[ii] ;
-       sd = sqrt(sd/nxyz) ;
-
-       /* mask blurred dataset */
-
-       if( mask != NULL )
-         for( ii=0 ; ii < nxyz ; ii++ ) if( mask[ii] == 0 ) car[ii] = 0.0f ;
-
-       /*-- loop over per-voxel thresholds --*/
-
-       for( kth=0 ; kth < num_pval ; kth++ ){
-
-          /* threshold */
-
-          tt = sd * thr[kth] ;
-          for( ii=0 ; ii < nxyz ; ii++ ) dar[ii] = (car[ii] >= tt) ;
-
-          /* clusterize and count into aar */
-
 #if 0
-          iv = count_clusters( dim , rmm , 1 ) ;
-          if( iv != NULL ){
-            niv = iv->nar ; iva = iv->ar ; ath = ATH(jsm,kth) ;
-            for( ii=0 ; ii < niv ; ii++ ){
-              jj = iva[ii] ; if( jj > max_clustsize ) jj = max_clustsize ;
-              ath[jj] += nitinv ;
-            }
-            KILL_intvec(iv) ;
-          }
-#else
-          jj = largest_clustersize( dim , rmm ) ;
-          if( jj > 0 ){
-            ath = ATH(jsm,kth) ; ath[jj] += 1.0f ;
-          }
-#endif
-
-       } /* end of loop over thresholds */
-
-     } /* end of loop over smoothings */
-
-   } /* end of iterations */
-
-   mri_free(dim) ; mri_free(cim) ; mri_free(bim) ; free((void *)thr) ;
-
-   /* convert to rates of clusters >= given size */
-
-#if 0
-   for( jsm=0 ; jsm < num_fwhm ; jsm++ ){
-     for( kth=0 ; kth < num_pval ; kth++ ){
-       ath = ATH(jsm,kth) ;
-       for( jj=max_clustsize-1 ; jj >= 1 ; jj-- ) ath[jj] += ath[jj+1] ;
-     }
-   }
-#endif
-
-   RETURN(aim) ;
-}
-
-/*----------------------------------------------------------------------------*/
-
 static intvec * count_clusters( MRI_IMAGE *bim , float rmm , int minsize )
 {
    intvec *iv ;
@@ -398,6 +245,7 @@ ENTRY("count_clusters") ;
 
    RETURN(iv) ;
 }
+#endif
 
 /*----------------------------------------------------------------------------*/
 
@@ -470,45 +318,234 @@ ENTRY("largest_clustersize") ;
    RETURN(biggest) ;
 }
 
+/*----------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_alphasim( int   nx, int   ny, int   nz ,
+                          float dx, float dy, float dz ,
+                          int niter , int max_clustsize , float rmm ,
+                          int num_pval , float *pval ,
+                          int num_fwhm , float *fwhm , byte *mask , long seed )
+{
+   MRI_IMAGE *bim , *aim , *cim ,      *dim ;
+   float     *bar , *aar , *car ; byte *dar ;
+   int ite , jsm , kth , nxyz , ii,jj ;
+   float tt , u1,u2 , *ath , nitinv , *thr ;
+   double sd ;
+   static long sseed=0 ;
+#if 0
+   intvec *iv ; int niv , *iva ;
+#endif
+
+ENTRY("mri_alphasim") ;
+
+   if( nx < 8 || ny < 8 || nz < 1 ) RETURN(NULL) ;
+
+   if( dx <= 0.0f ) dx = 1.0f ;
+   if( dy <= 0.0f ) dy = 1.0f ;
+   if( dz <= 0.0f ) dz = 1.0f ;
+
+   if( niter         < 1  ) niter         =  1000 ;
+   if( max_clustsize < 16 ) max_clustsize = 10000 ;
+
+   if( num_pval < 1 || pval == NULL ){
+     static float pp = 0.001f ;
+     num_pval = 1 ; pval = &pp ;
+   }
+
+   if( num_fwhm < 1 || fwhm == NULL ){
+     static float ff = 0.0f ;
+     num_fwhm = 1 ; fwhm = &ff ;
+   }
+
+   aim = mri_new_vol( max_clustsize , num_fwhm , num_pval , MRI_float ) ;
+   aar = MRI_FLOAT_PTR(aim) ;
+#undef  ATH
+#define ATH(s,t) ( aar + ((s)*max_clustsize + (t)*(max_clustsize*num_fwhm) -1) )
+
+   nxyz = nx*ny*nz ;
+
+   if( seed != 0 ){
+     srand48(seed) ;
+   } else if( sseed == 0 ){
+     sseed = (long)time(NULL) + (long)getpid() ;
+     srand48(sseed) ;
+   }
+
+   thr = (float *)malloc(sizeof(float)*num_pval) ;
+   for( kth=0 ; kth < num_pval ; kth++ )
+     thr[kth] = nifti_rcdf2stat( (double)pval[kth] ,
+                                 NIFTI_INTENT_ZSCORE , 0.0,0.0,0.0 ) ;
+
+   bim = mri_new_vol( nx,ny,nz , MRI_float ) ; bar = MRI_FLOAT_PTR(bim) ;
+   cim = mri_new_vol( nx,ny,nz , MRI_float ) ; car = MRI_FLOAT_PTR(bim) ;
+   dim = mri_new_vol( nx,ny,nz , MRI_byte  ) ; dar = MRI_BYTE_PTR (dim) ;
+   dim->dx = dx ; dim->dy = dy ; dim->dz = dz ;
+
+   /*-- iteration loop --*/
+
+   nitinv = 1.0f / niter ;
+
+   for( ite=0 ; ite < niter ; ite++ ){
+
+     /*-- create uncorrelated random field --*/
+
+#ifdef USE_ZGAUSSIAN
+     for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = zgaussian() ;
+#else
+# undef  TPI
+# define TPI 6.283185f
+     for( ii=0 ; ii < nxyz ; ii+=2 ){
+       do{ u1 = (float)drand48(); } while( u1==0.0f ) ;
+       u1 = sqrtf(-logf(u1)) ; u2 = TPI * (float)drand48() ;
+       bar[ii] = u1 * cosf(u2) ; bar[ii+1] = u1 * sinf(u2) ;
+     }
+     if( ii == nxyz-1 ){
+       do{ u1 = (float)drand48(); } while( u1==0.0f ) ;
+       u1 = sqrtf(-logf(u1)) ; u2 = TPI * (float)drand48() ;
+       bar[ii] = u1 * cosf(u2) ;
+     }
+#endif
+
+     /*-- loop over smoothings --*/
+
+     for( jsm=0 ; jsm < num_fwhm ; jsm++ ){
+
+       /* blur dataset */
+
+       memcpy( car , bar , sizeof(float)*nxyz ) ;
+       if( fwhm[jsm] > 0.0f )
+         EDIT_blur_volume( nx,ny,nz , dx,dy,dz ,
+                           MRI_float,car , FWHM_TO_SIGMA(fwhm[jsm]) ) ;
+
+       /* find sigma of blurred dataset (we know the mean is zero) */
+
+       sd = 0.0 ;
+       for( ii=0 ; ii < nxyz ; ii++ ) sd += car[ii]*car[ii] ;
+       sd = sqrt(sd/nxyz) ;
+
+       /* mask blurred dataset */
+
+       if( mask != NULL )
+         for( ii=0 ; ii < nxyz ; ii++ ) if( mask[ii] == 0 ) car[ii] = 0.0f ;
+
+       /*-- loop over per-voxel thresholds --*/
+
+       for( kth=0 ; kth < num_pval ; kth++ ){
+
+          /* threshold */
+
+          tt = sd * thr[kth] ;
+          for( ii=0 ; ii < nxyz ; ii++ ) dar[ii] = (car[ii] >= tt) ;
+
+          /* clusterize and count into aar */
+
+#if 0
+          iv = count_clusters( dim , rmm , 1 ) ;
+          if( iv != NULL ){
+            niv = iv->nar ; iva = iv->ar ; ath = ATH(jsm,kth) ;
+            for( ii=0 ; ii < niv ; ii++ ){
+              jj = iva[ii] ; if( jj > max_clustsize ) jj = max_clustsize ;
+              ath[jj] += nitinv ;
+            }
+            KILL_intvec(iv) ;
+          }
+#else
+          jj = largest_clustersize( dim , rmm ) ;
+          if( jj > 0 ){
+            if( jj > max_clustsize ) jj = max_clustsize ;
+            ath = ATH(jsm,kth); ath[jj] += 1.0f ;
+          }
+#endif
+
+       } /* end of loop over thresholds */
+     } /* end of loop over smoothings */
+   } /* end of iterations */
+
+   mri_free(dim) ; mri_free(cim) ; mri_free(bim) ; free((void *)thr) ;
+
+   /* convert x-th entry to prob(largest cluster size >= x) */
+
+#if 1
+   for( jsm=0 ; jsm < num_fwhm ; jsm++ ){
+     for( kth=0 ; kth < num_pval ; kth++ ){
+       ath = ATH(jsm,kth) ;
+       for( jj=max_clustsize-1 ; jj >= 1 ; jj-- ) ath[jj] += ath[jj+1] ;
+       for( jj=1 ; jj <= max_clustsize ; jj++ ) ath[jj] *= nitinv ;
+     }
+   }
+#endif
+
+   RETURN(aim) ;
+}
+
 /**********************************************************/
 
 int main( int argc , char *argv[] )
 {
-   int nx,ny,nz , niter , num_pval=5,num_fwhm=5 , jsm,kth,ii , max_clustsize=10000 ;
+   int nx,ny,nz , niter , jsm,kth,ii,jj,kk,qq , max_clustsize=32768 ;
    float dx,dy,dz , rmm ;
-   float pval[5] = { 0.01f , 0.005f , 0.002f , 0.001f , 0.0005f } ;
-   float fwhm[5] = { 0.0f  , 2.0f   , 4.0f   , 6.0f   , 8.0f    } ;
    MRI_IMAGE *aim ; float *aar,*ath ;
 
-   if( argc < 9 ){
-     printf("args: nx ny nz dx dy dz rmm niter\n") ; exit(0) ;
+   float pval[28] ; int num_pval=28 ;
+   float fwhm[21] ; int num_fwhm=21 ;
+   MRI_IMAGE *maskim ; byte *mask, *mmm ;
+
+   NI_element *nel ;
+   NI_stream ns ;
+   int clast , cfirst , cnum ;
+   char atr[256] ;
+
+   if( argc < 4 ){
+     printf("args: nx nz niter\n") ; exit(0) ;
    }
 
-   nx = (int)strtod(argv[1],NULL) ; if( nx < 8 ) ERROR_exit("nx") ;
-   ny = (int)strtod(argv[2],NULL) ; if( ny < 8 ) ERROR_exit("ny") ;
-   nz = (int)strtod(argv[3],NULL) ; if( nz < 1 ) ERROR_exit("nz") ;
-   dx = (float)strtod(argv[4],NULL) ;
-   dy = (float)strtod(argv[5],NULL) ;
-   dz = (float)strtod(argv[6],NULL) ;
-   rmm = (float)strtod(argv[7],NULL) ;
-   niter = (int)strtod(argv[8],NULL) ;
+   ny = nx = (int)strtod(argv[1],NULL); if( nx    < 8 ) ERROR_exit("nx bad")   ;
+   nz      = (int)strtod(argv[2],NULL); if( nz    < 1 ) ERROR_exit("nz bad")   ;
+   niter   = (int)strtod(argv[3],NULL); if( niter < 1 ) ERROR_exit("niter bad");
+
+   for( ii=0 ; ii < 28 ; ii++ ) pval[ii] = (float)pow( 10.0 , 0.1*ii-4.0 ) ;
+   for( ii=0 ; ii < 21 ; ii++ ) fwhm[ii] = ii*0.25 ;
+
+   dx = dy = dz = 1.0f ; rmm = 0.0f ;
+
+   maskim = mri_new_vol(nx,ny,nz,MRI_byte) ; mask = MRI_BYTE_PTR(maskim) ;
+   jsm = 1+nx*nx/4 ; kth = nx/2 ;
+   for( kk=0 ; kk < nz ; kk++ ){
+     for( jj=0 ; jj < ny ; jj++ ){
+       mmm = mask + (kk*nx*ny + jj*nx) ; qq = jsm - (jj-kth)*(jj-kth) ;
+       for( ii=0 ; ii < nx ; ii++ )
+         mmm[ii] = ( (ii-kth)*(ii-kth) <= qq ) ;
+     }
+   }
+   INFO_message("%d voxels in mask",THD_countmask(nx*ny*nz,mask)) ;
 
    aim = mri_alphasim( nx,ny,nz , dx,dy,dz , niter , max_clustsize , rmm ,
                        num_pval,pval , num_fwhm,fwhm , NULL , 0 ) ;
 
-   if( aim == NULL ) ERROR_exit("aim") ;
+   INFO_message("simulation done: CPU=%g",COX_cpu_time()) ;
+
+   mri_free(maskim) ;
+
+   if( aim == NULL ) ERROR_exit("aim bad") ;
    aar = MRI_FLOAT_PTR(aim) ;
 
+   ns = NI_stream_open( "fd:1" , "w" ) ; if( ns == NULL ) ERROR_exit("bad ns") ;
    for( jsm=0 ; jsm < num_fwhm ; jsm++ ){
      for( kth=0 ; kth < num_pval ; kth++ ){
-       printf("\n********************************************************\n\n"
-              "***** Blur = %g  pval = %g *****\n"
-              " Size   Rate\n"
-              "------ ----------\n" , fwhm[jsm] , pval[kth] ) ;
        ath = ATH(jsm,kth) ;
-       for( ii=1 ; ii <= max_clustsize ; ii++ )
-         if( ath[ii] > 0.0f ) printf( "%6d  %.6g\n" , ii , ath[ii] ) ;
+       for( ii=max_clustsize ; ii > 0 && ath[ii] < 0.01f ; ii-- ) ; /*nada*/
+       if( ii == 0 ) continue ;  /* should not happen */
+       clast = MIN(max_clustsize,ii+1) ;
+       for( ii=2 ; ii <= clast && ath[ii] > 0.5f ; ii++ ) ; /*nada*/
+       cfirst = ii-1 ; cnum = clast-cfirst+1 ;
+       nel = NI_new_data_element( "AlphaSim" , cnum ) ;
+       NI_add_column( nel , NI_FLOAT , ath+cfirst ) ;
+       sprintf(atr,"%d %d %g %g %d",nx,nz,pval[kth],fwhm[jsm],cfirst) ;
+       NI_set_attribute( nel , "NxNzPvalBlurCfirst" , atr ) ;
+       NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+       NI_free_element( nel ) ;
    }}
 
+   NI_stream_close( ns ) ;
    exit(0) ;
 }
