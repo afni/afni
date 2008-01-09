@@ -1191,7 +1191,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Fare thee well, and if forever, still forever, fare thee well" ,
      "Don't cry because it's over; smile because it happened"        ,
      "Farewell! Thou art too dear for my possessing"                 ,
-     "Farewell, farewell, you old rhinoceros"
+     "Farewell, farewell, you old rhinoceros"                        ,
+     "Is that you, Jerzy?"
    } ;
    int nn = (lrand48()>>3) % NMSG ;
    fprintf(stderr,"** AFNI forced QUIT: %s!\n\n",msg[nn]);
