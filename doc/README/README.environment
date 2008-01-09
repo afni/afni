@@ -2488,6 +2488,15 @@ then the number of Source datasets in the 'Histogram: Multi' plugin
 will be set to this value.  The default number of Source datasets is 3 --
 this variable allows you to increase that setting.
 
+----------------------------
+Variable: AFNI_SIGQUIT_DELAY
+----------------------------
+This numeric variable (between 1 and 30) sets the number of seconds AFNI
+will delay before exiting after a SIGQUIT signal is delivered to the process.
+The default delay is 5 seconds.  If you deliver a SIGALRM signal, AFNI will
+exit immediately.  If you don't know what Unix signals are, then don't pay
+any attention to this subject!
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
