@@ -75,3 +75,89 @@ int strcmp_aboot( char *a , char *b )  /* 12 Mar 2007 */
    ii = strcmp(aa,bb) ;                          /* and compare THESE strings */
    free(bb); free(aa); return ii;
 }
+
+/*! function to write a value in nice formatted ways 
+   Daniel Glen (put here by ZSS)
+*/ 
+char *format_value_4print(double value, int oform, char *formatstr) 
+{
+   static int ii, len, isint;
+   static char sans[256]={""}, *strptr=NULL, ch='\0';
+   
+   switch (oform) {
+      case CCALC_DOUBLE: /* double */
+         sprintf(sans,"%f",value) ;
+         break;
+      case CCALC_NICE:
+         sprintf(sans,"%g",value) ;
+         break;
+      case CCALC_INT:
+         if ( (value - (int)value) < 0.5) value = (int)value;
+         else value = (int)value + 1;
+         sprintf(sans,"%d",(int)value) ;
+         break;
+      case CCALC_FINT:
+         sprintf(sans,"%d",(int)value) ;
+         break;
+      case CCALC_CINT:
+         sprintf(sans,"%d",(int)ceil(value)) ;
+         break;
+  	   case CCALC_CUSTOM:           /* use user customized format */
+	      sans[0]='\0';
+         /* add check for integer output %d */
+	      strptr = strchr(formatstr, '%');
+         if(strptr==NULL) {
+            sprintf(sans,"%f",value) ;
+         } else {
+            isint = 0;
+            len = strlen(strptr);
+            for(ii=1;ii<len;ii++) {
+               ch = *(++strptr);
+  	            switch(ch) {
+		            case 'd':  
+                  case 'i': 
+                  case 'c': 
+                  case 'o': 
+                  case 'u': 
+                  case 'x': case 'X':
+		               isint = 1; /* integer (no decimal) type output */
+                     ii = len + 1;
+                     break;
+                  case 'e': case 'E':         /* floating point output types */
+		            case 'f': case 'F':
+                  case 'g': case 'G':
+                  case 'a': case 'A':
+                     ii = len+1;
+		               break;
+                  case '%':
+                     strptr = strchr(strptr, '%'); /* find next % symbol */
+                  default:
+		               break;
+               }
+            }   
+		      if(ii==len) {
+		         fprintf(stderr,
+                     "unknown format specifier.\n"
+                     "Try %%d, %%c, %%f or %%g instead.\n");
+               sans[0] = '\0';
+               return(sans);
+		      }
+            strptr = (char *) 1;
+            while(strptr) {
+	  	         strptr = strstr(formatstr, "\\n");
+               if(strptr) {
+                  *strptr = ' ';
+                  *(strptr+1) = AFNI_EOL;
+		         }
+            }
+            /* must type cast here*/
+            if (isint) sprintf(sans,formatstr,(int)value) ; 
+            else sprintf(sans,formatstr,value) ;
+         }
+         break;
+      default:
+         sprintf(sans,"%f",value) ;
+         break; 
+   }
+   return(sans);
+}      
