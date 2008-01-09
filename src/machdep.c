@@ -38,6 +38,12 @@ void srand48( long int s ){ srandom((unsigned int) s); }
 double drand48(void){ return (((double)random())/LONG_MAX); }
 
 long int lrand48(void){ return random(); }
+
+long int mrand48(void)       /* need 32 bits but random only gives 31 */
+{ register long i , j , k ;
+  i = random() ; j = random() ;
+  k = ((i & 0xFFFF)<<16) | (j & 0xFFFF) ; return k ;
+}
 #endif /* USE_RANDOM */
 
 /*-------------------------------------------------------------------
