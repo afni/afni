@@ -92,6 +92,8 @@
 #  define USE_TRACING
 #endif
 
+#define AFexit AFNI_sigfunc_alrm
+
 /*----------------------------------------------------------------
    Global variables that used to be local variables in main()
 ------------------------------------------------------------------*/
@@ -1173,31 +1175,40 @@ void AFNI_sigfunc(int sig)   /** signal handler for fatal errors **/
    exit(1) ;
 }
 
-/*-------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+/* The functions below implement the delayed quit feature:
+     - when signal SIGQUIT==3 is sent to AFNI, AFNI_sigfunc_quit() gets called
+     - which uses alarm() to send signal SIGALRM after 5 sec
+     - which invokes AFNI_sigfunc_alrm()
+     - which says something cute and dies
+------------------------------------------------------------------------------*/
 
 void AFNI_sigfunc_alrm(int sig)
 {
 #undef  NMSG
 #define NMSG (sizeof(msg)/sizeof(char *))
    static char *msg[] = {
-     "Farewell, my friend"                                           ,
-     "We shall meet again, when the fields are white with daisies"   ,
-     "Parting is such sweet sorrow"                                  ,
-     "Gone, and a cloud in my heart"                                 ,
-     "Happy trails to you"                                           ,
-     "Be well, do good work, and keep in touch"                      ,
-     "In the hope to meet shortly again"                             ,
-     "May the wind be ever at your back"                             ,
-     "Fare thee well, and if forever, still forever, fare thee well" ,
-     "Don't cry because it's over; smile because it happened"        ,
-     "Farewell! Thou art too dear for my possessing"                 ,
-     "Farewell, farewell, you old rhinoceros"                        ,
-     "Is that you, Jerzy?"
+     "Farewell, my friend"                                          ,
+     "We shall meet again, when the fields are white with daisies"  ,
+     "Parting is such sweet sorrow"                                 ,
+     "Gone, and a cloud in my heart"                                ,
+     "Happy trails to you"                                          ,
+     "Be well, do good work, and keep in touch"                     ,
+     "In the hope to meet shortly again"                            ,
+     "May the wind be ever at your back"                            ,
+     "Fare thee well, and if forever, still forever fare thee well" ,
+     "Don't cry because it's over; smile because it happened"       ,
+     "Farewell! Thou art too dear for my possessing"                ,
+     "Farewell, farewell, you old rhinoceros"                       ,
+     "Is that you, Jerzy?"                                          ,
+     "A farewell is necessary before we can meet again"             ,
+     "Absent from thee I languish"
    } ;
    int nn = (lrand48()>>3) % NMSG ;
-   fprintf(stderr,"** AFNI forced QUIT: %s!\n\n",msg[nn]);
-   exit(0);
+   fprintf(stderr,"** AFNI is done: %s!\n\n",msg[nn]);
+   exit(sig);
 }
+#undef NMSG
 
 void AFNI_sigfunc_quit(int sig)
 {
@@ -1205,6 +1216,7 @@ void AFNI_sigfunc_quit(int sig)
   if( nsec == 0 || nsec > 30 ) nsec = 5 ;
   fprintf(stderr,
           "\n** AFNI received QUIT signal ==> exit in %d seconds! **\n",nsec) ;
+  signal(SIGALRM,AFNI_sigfunc_alrm) ;
   (void) alarm(nsec) ;
   return ;
 }
@@ -1331,6 +1343,8 @@ int main( int argc , char *argv[] )
    /** Start the debug traceback stuff **/
 
    mainENTRY("AFNI:main") ; /* 26 Jan 2001: replace ENTRY w/ mainENTRY */
+
+   signal(SIGQUIT,AFNI_sigfunc_quit) ;  /* 09 Jan 2008 */
 
    /** set the function to call if run out of memory when creating datasets **/
 
@@ -1494,8 +1508,8 @@ int main( int argc , char *argv[] )
 
 STATUS("start XtAppMainLoop") ;
 
-   XtAppMainLoop(MAIN_app) ;
-   exit(0) ;
+   XtAppMainLoop(MAIN_app) ;  /* never returns */
+   exit(0) ;                  /* should never be reached */
 }
 
 #undef HUBERIZE
@@ -1836,8 +1850,6 @@ STATUS("call 14") ;
           }
         }
 
-        signal(SIGQUIT,AFNI_sigfunc_quit) ;  /* 09 Jan 2008 */
-        signal(SIGALRM,AFNI_sigfunc_alrm) ;
       }
       break ;  /* end of 14th entry case */
 
@@ -1908,7 +1920,7 @@ ENTRY("AFNI_quit_CB") ;
 
       XtCloseDisplay( XtDisplay(im3d->vwid->top_shell) ) ;
       AFNI_speak(random_goodbye(),0) ;
-      exit(0) ;
+      AFexit(0) ;
    }
 
    /* First press --> just change button label */
@@ -1935,7 +1947,7 @@ ENTRY("AFNI_quit_CB") ;
       XtCloseDisplay( XtDisplay(im3d->vwid->top_shell) ) ;
       AFNI_speak(random_goodbye(),0) ;
       STATUS("calling exit(0) -- farewell cruel world!") ;
-      exit(0) ;
+      AFexit(0) ;
 
    } else {  /* otherwise, patch up the other windows and continue */
 

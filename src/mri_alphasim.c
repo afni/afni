@@ -5,10 +5,12 @@
 
 #include "zgaussian.c"   /** fast function for generating Gaussian deviates **/
 
-/*----------------------------------------------------------------------------*/
+/*============================================================================*/
+/* The function below is no longer used,
+   but could be recycled if one wants to get a more AlphaSim-like result. ====*/
 
 #if 0
-static intvec * count_clusters( MRI_IMAGE *bim , float rmm , int minsize )
+static intvec * ALP_count_clusters( MRI_IMAGE *bim , float rmm , int minsize )
 {
    intvec *iv ;
    int nx,ny,nz , nclu ;
@@ -19,7 +21,7 @@ static intvec * count_clusters( MRI_IMAGE *bim , float rmm , int minsize )
    byte  *bfar ;
    short ic, jc, kc , im, jm, km, *mi,*mj,*mk ;
 
-ENTRY("count_clusters") ;
+ENTRY("ALP_count_clusters") ;
 
    if( bim == NULL || bim->kind != MRI_byte ) RETURN(NULL) ;
    bfar = MRI_BYTE_PTR(bim) ;
@@ -86,10 +88,13 @@ ENTRY("count_clusters") ;
    RETURN(iv) ;
 }
 #endif
+/*============================================================================*/
 
 /*----------------------------------------------------------------------------*/
+/* Clusterize and return the size of the largest cluster in the image.
+   The image is destroyed in the process; it must be comprised of bytes. -----*/
 
-static int largest_clustersize( MRI_IMAGE *bim , float rmm )
+static int ALP_largest_clustersize( MRI_IMAGE *bim , float rmm )
 {
    int nx,ny,nz , nclu , biggest=0 ;
    MCW_cluster *clust , *mask ;
@@ -99,7 +104,7 @@ static int largest_clustersize( MRI_IMAGE *bim , float rmm )
    byte  *bfar ;
    short ic, jc, kc , im, jm, km, *mi,*mj,*mk ;
 
-ENTRY("largest_clustersize") ;
+ENTRY("ALP_largest_clustersize") ;
 
    if( bim == NULL || bim->kind != MRI_byte ) RETURN(0) ;
    bfar = MRI_BYTE_PTR(bim) ;
@@ -159,17 +164,19 @@ ENTRY("largest_clustersize") ;
 }
 
 /*----------------------------------------------------------------------------*/
+#define MAX_CLUSTSIZE 32768
 
-MRI_IMAGE * mri_alphasim( int   nx, int   ny, int   nz ,
-                          float dx, float dy, float dz ,
-                          int niter , int max_clustsize , float rmm ,
+MRI_IMAGE * mri_alphasim( int   nx , int nzbot , int nztop ,
+                          float dx , float dz  ,
+                          int niter , float rmm ,
                           int num_pval , float *pval ,
-                          int num_fwhm , float *fwhm , byte *mask , long seed )
+                          int num_fwhm , float *fwhmx , float *fwhmz ,
+                          byte *mask , long seed )
 {
    MRI_IMAGE *bim , *aim , *cim ,      *dim ;
    float     *bar , *aar , *car ; byte *dar ;
-   int ite , jsm , kth , nxyz , ii,jj ;
-   float tt , u1,u2 , *ath , nitinv , *thr ;
+   int ite , jsm , kth , nxyz , ii,jj , ny , nz ;
+   float tt , u1,u2 , *ath , nitinv , *thr , dy , sx,sz ;
    double sd ;
    static long sseed=0 ;
 #if 0
@@ -178,31 +185,32 @@ MRI_IMAGE * mri_alphasim( int   nx, int   ny, int   nz ,
 
 ENTRY("mri_alphasim") ;
 
-   if( nx < 8 || ny < 8 || nz < 1 ) RETURN(NULL) ;
+   if( nx < 8 || nzbot < 1 || nztop < nzbot ) RETURN(NULL) ;
 
    if( dx <= 0.0f ) dx = 1.0f ;
-   if( dy <= 0.0f ) dy = 1.0f ;
    if( dz <= 0.0f ) dz = 1.0f ;
 
-   if( niter         < 1  ) niter         =  1000 ;
-   if( max_clustsize < 16 ) max_clustsize = 10000 ;
+   ny = nx ; dy = dx ;
+
+   if( niter < 1 ) niter = 1000 ;
 
    if( num_pval < 1 || pval == NULL ){
      static float pp = 0.001f ;
      num_pval = 1 ; pval = &pp ;
    }
 
-   if( num_fwhm < 1 || fwhm == NULL ){
+   if( num_fwhm < 1 || fwhmx == NULL ){
      static float ff = 0.0f ;
-     num_fwhm = 1 ; fwhm = &ff ;
+     num_fwhm = 1 ; fwhmx = &ff ;
    }
+   if( fwhmz == NULL ) fwhmz = fwhmx ;
 
-   aim = mri_new_vol( max_clustsize , num_fwhm , num_pval , MRI_float ) ;
+   aim = mri_new_vol( MAX_CLUSTSIZE , num_fwhm , num_pval , MRI_float ) ;
    aar = MRI_FLOAT_PTR(aim) ;
 #undef  ATH
-#define ATH(s,t) ( aar + ((s)*max_clustsize + (t)*(max_clustsize*num_fwhm) -1) )
+#define ATH(s,t) ( aar + ((s)*MAX_CLUSTSIZE + (t)*(MAX_CLUSTSIZE*num_fwhm) -1) )
 
-   nxyz = nx*ny*nz ;
+   nxyz = nx*ny*nztop ;
 
    if( seed != 0 ){
      srand48(seed) ;
@@ -216,9 +224,9 @@ ENTRY("mri_alphasim") ;
      thr[kth] = nifti_rcdf2stat( (double)pval[kth] ,
                                  NIFTI_INTENT_ZSCORE , 0.0,0.0,0.0 ) ;
 
-   bim = mri_new_vol( nx,ny,nz , MRI_float ) ; bar = MRI_FLOAT_PTR(bim) ;
-   cim = mri_new_vol( nx,ny,nz , MRI_float ) ; car = MRI_FLOAT_PTR(bim) ;
-   dim = mri_new_vol( nx,ny,nz , MRI_byte  ) ; dar = MRI_BYTE_PTR (dim) ;
+   bim = mri_new_vol( nx,ny,nztop , MRI_float ) ; bar = MRI_FLOAT_PTR(bim) ;
+   cim = mri_new_vol( nx,ny,nztop , MRI_float ) ; car = MRI_FLOAT_PTR(bim) ;
+   dim = mri_new_vol( nx,ny,nztop , MRI_byte  ) ; dar = MRI_BYTE_PTR (dim) ;
    dim->dx = dx ; dim->dy = dy ; dim->dz = dz ;
 
    /*-- iteration loop --*/
@@ -238,9 +246,11 @@ ENTRY("mri_alphasim") ;
        /* blur dataset */
 
        memcpy( car , bar , sizeof(float)*nxyz ) ;
-       if( fwhm[jsm] > 0.0f )
-         EDIT_blur_volume( nx,ny,nz , dx,dy,dz ,
-                           MRI_float,car , FWHM_TO_SIGMA(fwhm[jsm]) ) ;
+       sx = FWHM_TO_SIGMA(fwhmx[jsm]) ;
+       sz = FWHM_TO_SIGMA(fwhmz[jsm]) ;
+       if( sx > 0.0f || sz > 0.0f )
+         EDIT_blur_volume_3d( nx,ny,nztop   , dx,dy,dz ,
+                              MRI_float,car , sx,sx,sz  ) ;
 
        /* find sigma of blurred dataset (we know the mean is zero) */
 
@@ -264,23 +274,11 @@ ENTRY("mri_alphasim") ;
 
           /* clusterize and count into aar */
 
-#if 0
-          iv = count_clusters( dim , rmm , 1 ) ;
-          if( iv != NULL ){
-            niv = iv->nar ; iva = iv->ar ; ath = ATH(jsm,kth) ;
-            for( ii=0 ; ii < niv ; ii++ ){
-              jj = iva[ii] ; if( jj > max_clustsize ) jj = max_clustsize ;
-              ath[jj] += nitinv ;
-            }
-            KILL_intvec(iv) ;
-          }
-#else
-          jj = largest_clustersize( dim , rmm ) ;
+          jj = ALP_largest_clustersize( dim , rmm ) ;
           if( jj > 0 ){
-            if( jj > max_clustsize ) jj = max_clustsize ;
+            if( jj > MAX_CLUSTSIZE ) jj = MAX_CLUSTSIZE ;
             ath = ATH(jsm,kth); ath[jj] += 1.0f ;
           }
-#endif
 
        } /* end of loop over thresholds */
      } /* end of loop over smoothings */
@@ -290,15 +288,13 @@ ENTRY("mri_alphasim") ;
 
    /* convert x-th entry to prob(largest cluster size >= x) */
 
-#if 1
    for( jsm=0 ; jsm < num_fwhm ; jsm++ ){
      for( kth=0 ; kth < num_pval ; kth++ ){
        ath = ATH(jsm,kth) ;
-       for( jj=max_clustsize-1 ; jj >= 1 ; jj-- ) ath[jj] += ath[jj+1] ;
-       for( jj=1 ; jj <= max_clustsize ; jj++ ) ath[jj] *= nitinv ;
+       for( jj=MAX_CLUSTSIZE-1 ; jj >= 1 ; jj-- ) ath[jj] += ath[jj+1] ;
+       for( jj=1 ; jj <= MAX_CLUSTSIZE ; jj++ ) ath[jj] *= nitinv ;
      }
    }
-#endif
 
    RETURN(aim) ;
 }
@@ -307,7 +303,7 @@ ENTRY("mri_alphasim") ;
 
 int main( int argc , char *argv[] )
 {
-   int nx,ny,nz , niter , jsm,kth,ii,jj,kk,qq , max_clustsize=32768 ;
+   int nx,ny,nz , niter , jsm,kth,ii,jj,kk,qq ;
    float dx,dy,dz , rmm ;
    MRI_IMAGE *aim ; float *aar,*ath ;
 
@@ -358,9 +354,9 @@ int main( int argc , char *argv[] )
    for( jsm=0 ; jsm < num_fwhm ; jsm++ ){
      for( kth=0 ; kth < num_pval ; kth++ ){
        ath = ATH(jsm,kth) ;
-       for( ii=max_clustsize ; ii > 0 && ath[ii] < 0.01f ; ii-- ) ; /*nada*/
+       for( ii=MAX_CLUSTSIZE ; ii > 0 && ath[ii] < 0.01f ; ii-- ) ; /*nada*/
        if( ii == 0 ) continue ;  /* should not happen */
-       clast = MIN(max_clustsize,ii+1) ;
+       clast = MIN(MAX_CLUSTSIZE,ii+1) ;
        for( ii=2 ; ii <= clast && ath[ii] > 0.5f ; ii++ ) ; /*nada*/
        cfirst = ii-1 ; cnum = clast-cfirst+1 ;
        nel = NI_new_data_element( "AlphaSim" , cnum ) ;
