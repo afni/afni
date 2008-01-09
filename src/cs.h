@@ -111,6 +111,17 @@ extern int compare_int (int *a, int *b );
 extern int compare_short (short *a, short *b );
 extern int compare_char (char *a, char *b );
                   
+/***** little things to format values for nice printing *****/
+typedef enum { 
+   CCALC_NOT_SET = 0,
+   CCALC_DOUBLE = 1, 
+   CCALC_NICE, CCALC_INT, CCALC_FINT, CCALC_CINT, 
+   CCALC_CUSTOM } FORMAT_VALUE;
+#define AFNI_EOL '\n'
+extern char *format_value_4print
+                     (double value, int oform, char *formatstr);
+
+
 
 /***** pca calc *****/
 double covariance(float *data_mat, double *cov_mat, unsigned char * row_mask, int num_rows, int num_cols, int norm, int remove_mean, int be_quiet);
