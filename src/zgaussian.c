@@ -1,11 +1,12 @@
 #include <math.h>
 #include <stdlib.h>
 
-/***-------------------------------------------------------------------------*/
-/*** This file is meant to be #include-d into another file, for efficiency ***/
+/***=======================================================================***/
+/*** Gaussian random number generator.
+     This file is meant to be #include-d into another file, for efficiency ***/
 
-/*****************************************************************************/
-/*********** function zgaussian() adapted from the following code: ***********/
+/***=======================================================================***/
+/***======== function zgaussian() adapted from the following code: ========***/
 
 /* gauss.c - gaussian random numbers, using the Ziggurat method
  *
@@ -142,7 +143,7 @@ static const float wtab[128] = {
 # define INLINE /*nada*/
 #endif
 
-static INLINE float zgaussian(void)
+static INLINE float zgaussian(void)  /* return one Gaussian random deviate */
 {
   unsigned long  U, sgn, i, j;
   float  x, y;
