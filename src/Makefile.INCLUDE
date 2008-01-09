@@ -2206,6 +2206,10 @@ nicat:nicat.o
 	$(RM) $@
 	$(CC) -o nicat nicat.o $(LFLAGS) $(LLIBS)
 
+malp:mri_alphasim.o
+	$(RM) $@
+	$(CC) -o malp mri_alphasim.o $(LFLAGS) $(LLIBS)
+
 test_rowtype:test_rowtype.o
 	$(RM) $@
 	$(CC) -o test_rowtype test_rowtype.o $(LFLAGS) $(LLIBS)
