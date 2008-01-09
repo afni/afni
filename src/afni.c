@@ -1152,8 +1152,6 @@ static char *FALLback[] =
 
 /*-----------------------------------------------------------------------*/
 
-#define CATCH_SIGNALS
-#ifdef CATCH_SIGNALS
 #include <signal.h>
 void AFNI_sigfunc(int sig)   /** signal handler for fatal errors **/
 {
@@ -1174,7 +1172,41 @@ void AFNI_sigfunc(int sig)   /** signal handler for fatal errors **/
    fprintf(stderr,"** Program Abort **\n") ; fflush(stderr) ;
    exit(1) ;
 }
-#endif
+
+/*-------------------------------------------------------------------------*/
+
+void AFNI_sigfunc_alrm(int sig)
+{
+#undef  NMSG
+#define NMSG (sizeof(msg)/sizeof(char *))
+   static char *msg[] = {
+     "Farewell, my friend"                                           ,
+     "We shall meet again, when the fields are white with daisies"   ,
+     "Parting is such sweet sorrow"                                  ,
+     "Gone, and a cloud in my heart"                                 ,
+     "Happy trails to you"                                           ,
+     "Be well, do good work, and keep in touch"                      ,
+     "In the hope to meet shortly again"                             ,
+     "May the wind be ever at your back"                             ,
+     "Fare thee well, and if forever, still forever, fare thee well" ,
+     "Don't cry because it's over; smile because it happened"        ,
+     "Farewell! Thou art too dear for my possessing"                 ,
+     "Farewell, farewell, you old rhinoceros"
+   } ;
+   int nn = (lrand48()>>3) % NMSG ;
+   fprintf(stderr,"** AFNI forced QUIT: %s!\n\n",msg[nn]);
+   exit(0);
+}
+
+void AFNI_sigfunc_quit(int sig)
+{
+  unsigned int nsec = (unsigned int)AFNI_numenv("AFNI_SIGQUIT_DELAY") ;
+  if( nsec == 0 || nsec > 30 ) nsec = 5 ;
+  fprintf(stderr,
+          "\n** AFNI received QUIT signal ==> exit in %d seconds! **\n",nsec) ;
+  (void) alarm(nsec) ;
+  return ;
+}
 
 /*-------------------------------------------------------------------------*/
 /*! Check if a particular option is present; 1=yes, 0=no.  [15 Jan 2004]
@@ -1210,12 +1242,10 @@ int main( int argc , char *argv[] )
    machdep() ;                      /* RWCox: 20 Apr 2001 */
    THD_load_datablock_verbose(1) ;  /* 21 Aug 2002 */
 
-#ifdef CATCH_SIGNALS
    signal(SIGINT ,AFNI_sigfunc) ;   /* may be superseded by mainENTRY below */
    signal(SIGBUS ,AFNI_sigfunc) ;
    signal(SIGSEGV,AFNI_sigfunc) ;
    signal(SIGTERM,AFNI_sigfunc) ;
-#endif
 
    /** Check for -version [15 Aug 2003] **/
 
@@ -1805,6 +1835,8 @@ STATUS("call 14") ;
           }
         }
 
+        signal(SIGQUIT,AFNI_sigfunc_quit) ;  /* 09 Jan 2008 */
+        signal(SIGALRM,AFNI_sigfunc_alrm) ;
       }
       break ;  /* end of 14th entry case */
 

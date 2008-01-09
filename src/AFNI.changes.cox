@@ -6513,3 +6513,6 @@
 
 28 Dec 2007
  * Popup menu in clusterize report to set histogram range.
+
+09 Dec 2007
+ * SIGQUIT delay in afni.c, for Jerzy.
