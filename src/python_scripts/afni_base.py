@@ -330,6 +330,17 @@ def read_attribute(dset, atr):
         print '** 3dAttribute failure for "%s %s":' % (atr, dset)
         return None
 
+# return dimensions of dset, 4th dimension included
+def dset_dims(dset):
+   ld = read_attribute(dset, 'DATASET_DIMENSIONS')
+   lr = read_attribute(dset, 'DATASET_RANK')
+   dl = []
+   for dd in ld[0:3]:
+      dl.append(int(dd))
+   dl.append(int(lr[1]))
+   return dl
+   
+
 #transform a list of afni names to one string for shell script usage
 def anlist(vlst, sb=''):
    namelst = []
