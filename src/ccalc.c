@@ -6,13 +6,12 @@
 
 #include "parser.h"
 #include <ctype.h>
+#include "cs.h"
 
 #undef USE_READLINE
 #ifdef USE_READLINE
 #include "readline.h"
 #endif
-enum { CCALC_DOUBLE = 1, CCALC_NICE, CCALC_INT, CCALC_FINT, CCALC_CINT, CCALC_CUSTOM};
-#define AFNI_EOL '\n'
 
 int main( int argc , char * argv[] )
 {
@@ -33,45 +32,60 @@ int main( int argc , char * argv[] )
    oform = CCALC_DOUBLE; /* double is default */
    while (kar < argc) {
       if (strcmp(argv[1],"-help") == 0 ){
-         printf("Usage: ccalc [-form FORM] [-eval 'expr']\n"
-                "Usage mode 1: Interactive numerical calculator\n"
-                "    Interactive numerical calculator, using the \n"
-                "    same expression syntax as 3dcalc. \n"
-                "    No command line parameters are permitted in\n"
-                "    usage 1 mode.\n"
-                "Usage mode 2: Command line expression calculator\n"
-                "    Evaluate an expression specified on command\n"
-                "    line, return answer and quit.\n"
-                "    Optional parameters: (must come first)\n"
-                "    -form FORM: Format output in a nice form\n"
-                "                Choose from:\n"
-                "                double: Macho numbers (default).\n"
-                "                nice: Metrosexual output.\n"
-                "                int (or rint): Rounded to nearest integer.\n"
-                "                cint: Rounded up.\n"
-                "                fint: Rounded down.\n"
-                "                %%n.mf: custom format string, used as in printf.\n"
-                "                   format string can contain %%%%, \\n and other\n"
-                "                   regular characters.\n"
-                "                   See man fprintf and man printf for details.\n"
-                "    Mandatory parameter: (must come last on command line)\n"
-                "    -eval EXPR: EXPR is the expression to evaluate.\n" 
-                "                Example: ccalc -eval '3 + 5 * sin(22)' \n"
-                "                     or: ccalc -eval 3 +5 '*' 'sin(22)'\n"
-                "                You can not use variables in EXPR\n"
-                "                as you do with 3dcalc.\n"
-                "    Example with formatting:\n"
-                "        ccalc -form '********\\n%%6.4f%%%%\\n********' -eval '100*328/457'\n" 
-                "    gives:\n"
-                "        ********\n"
-                "        0.7177%%\n"
-                "        ********\n\n"
-                "    SECRET: You don't need to use -eval if you are \n"
-                "            not using any other options. I hate typing\n"
-                "            it for quick command line calculations. \n"
-                "            But that feature might be removed in the\n"
-                "            future, so always use -eval when you are \n"
-                "            using this program in your scripts.\n" 
+         printf(
+"Usage: ccalc [-form FORM] [-eval 'expr']\n"
+ "Usage mode 1: Interactive numerical calculator\n"
+ "    Interactive numerical calculator, using the \n"
+ "    same expression syntax as 3dcalc. \n"
+ "    No command line parameters are permitted in\n"
+ "    usage 1 mode.\n"
+ "Usage mode 2: Command line expression calculator\n"
+ "    Evaluate an expression specified on command\n"
+ "    line, return answer and quit.\n"
+ "    Optional parameters: (must come first)\n"
+ "    -form FORM: Format output in a nice form\n"
+ "                Choose from:\n"
+ "                double: Macho numbers (default).\n"
+ "                nice: Metrosexual output.\n"
+ "                int (or rint): Rounded to nearest integer.\n"
+ "                cint: Rounded up.\n"
+ "                fint: Rounded down.\n"
+ "                %%n.mf: custom format string, used as in printf.\n"
+ "                   format string can contain %%%%, \\n and other\n"
+ "                   regular characters.\n"
+ "                   See man fprintf and man printf for details.\n"
+ "                You can also replace:\n"
+ "                   -form int    with    -i\n"
+ "                   -form nice   with    -n\n"
+ "                   -form double with    -d\n"
+ "                   -form fint   with    -f  (evokes float, unfortunately!)\n"
+ "                   -form cint   with    -c\n"
+ "    Mandatory parameter: (must come last on command line)\n"
+ "    -eval EXPR: EXPR is the expression to evaluate.\n" 
+ "                Example: ccalc -eval '3 + 5 * sin(22)' \n"
+ "                     or: ccalc -eval 3 +5 '*' 'sin(22)'\n"
+ "                You can not use variables in EXPR\n"
+ "                as you do with 3dcalc.\n"
+ "    Example with formatting:\n"
+ "        ccalc -form '********\\n%%6.4f%%%%\\n********' -eval '100*328/457'\n" 
+ "    gives:\n"
+ "        ********\n"
+ "        0.7177%%\n"
+ "        ********\n"
+ "    Try also:\n"
+ "        ccalc -i 3.6\n"
+ "        ccalc -f 3.6\n"
+ "        ccalc -c 3.6\n"
+ "        ccalc -form '%%3.5d' 3.3\n"
+ "        ccalc -form '**%%5d**' 3.3\n"
+ "        ccalc -form '**%%-5d**' 3.3\n"
+ "\n"
+ "    SECRET: You don't need to use -eval if you are \n"
+ "            not using any other options. I hate typing\n"
+ "            it for quick command line calculations. \n"
+ "            But that feature might be removed in the\n"
+ "            future, so always use -eval when you are \n"
+ "            using this program in your scripts.\n" 
                 ) ;
          exit(0) ;
       }
@@ -98,6 +112,31 @@ int main( int argc , char * argv[] )
          }
          DoOnce = 1;
          brk = 1;
+      }
+      
+      if (!brk && strncmp(argv[kar],"-d",2) == 0 ) {
+         oform = CCALC_DOUBLE;
+         brk = 1; DoOnce = 1;
+      }
+      if (!brk && strncmp(argv[kar],"-n",2) == 0 ) {
+         oform = CCALC_NICE;
+         brk = 1; DoOnce = 1;
+      }
+      if (!brk && strncmp(argv[kar],"-i",2) == 0 ) {
+         oform = CCALC_INT;
+         brk = 1; DoOnce = 1;
+      }
+      if (!brk && strncmp(argv[kar],"-r",2) == 0 ) {
+         oform = CCALC_INT;
+         brk = 1; DoOnce = 1;
+      }
+      if (!brk && strncmp(argv[kar],"-f",2) == 0 ) {
+         oform = CCALC_FINT;
+         brk = 1; DoOnce = 1;
+      }
+      if (!brk && strncmp(argv[kar],"-c",2) == 0 ) {
+         oform = CCALC_CINT;
+         brk = 1; DoOnce = 1;
       }
       if( !brk &&  ( strcmp(argv[kar],"-eval") == 0 || strcmp(argv[kar],"-expr") == 0) ){
          ++kar;
@@ -209,6 +248,7 @@ int main( int argc , char * argv[] )
          }
          printf(" = %g\n",value) ; fflush(stdout) ;
       } else {
+         #if 0
          switch (oform) {
             case CCALC_DOUBLE: /* double */
                printf("%f\n",value) ;
@@ -277,6 +317,10 @@ int main( int argc , char * argv[] )
                break; 
          }
          exit (0);
+         #else
+         printf("%s\n", format_value_4print(value, oform, formatstr ));
+         exit (0);
+         #endif
       }
    } while(1) ;
 }
