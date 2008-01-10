@@ -157,6 +157,11 @@ void display_help_menu()
    " That is, thresholded random noise alone (no signal) would produce a\n"
    " cluster of size 6 or larger 1.9%% (Alpha) of the time, in a 64x64x64\n"
    " volume with cubical 3 mm voxels and a FHWM noise smoothness of 3 mm.\n"
+   "\n"
+   "N.B.: If you run the exact command above, you will get slightly\n"
+   " different results, due to variations in the random numbers generated\n"
+   " in the simulations.\n"
+   "\n"
   ) ;
   
   exit(0);
