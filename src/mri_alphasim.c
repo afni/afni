@@ -10,7 +10,7 @@
    but could be recycled if one wants to get a more AlphaSim-like result. ====*/
 
 #if 0
-static intvec * ALP_count_clusters( MRI_IMAGE *bim , float rmm , int minsize )
+intvec * ALP_count_clusters( MRI_IMAGE *bim , float rmm , int minsize )
 {
    intvec *iv ;
    int nx,ny,nz , nclu ;
@@ -94,7 +94,7 @@ ENTRY("ALP_count_clusters") ;
 /* Clusterize and return the size of the largest cluster in the image.
    The image is destroyed in the process; it must be comprised of bytes. -----*/
 
-static int ALP_largest_clustersize( MRI_IMAGE *bim , float rmm )
+int ALP_largest_clustersize( MRI_IMAGE *bim , float rmm )
 {
    int nx,ny,nz , nclu , biggest=0 ;
    MCW_cluster *clust , *mask ;
@@ -179,13 +179,12 @@ MRI_IMAGE * mri_alphasim( int   nx , int nzbot , int nztop ,
    float tt , u1,u2 , *ath , nitinv , *thr , dy , sx,sz ;
    double sd ;
    static long sseed=0 ;
-#if 0
-   intvec *iv ; int niv , *iva ;
-#endif
 
 ENTRY("mri_alphasim") ;
 
-   if( nx < 8 || nzbot < 1 || nztop < nzbot ) RETURN(NULL) ;
+   if( nx < 8 || nztop < 1 ) RETURN(NULL) ;
+
+   if( nzbot > nztop || nzbot < 1 ) nzbot = nztop ;
 
    if( dx <= 0.0f ) dx = 1.0f ;
    if( dz <= 0.0f ) dz = 1.0f ;
@@ -252,7 +251,7 @@ ENTRY("mri_alphasim") ;
          EDIT_blur_volume_3d( nx,ny,nztop   , dx,dy,dz ,
                               MRI_float,car , sx,sx,sz  ) ;
 
-       /* find sigma of blurred dataset (we know the mean is zero) */
+       /* find stdev of blurred dataset (we know the mean is zero) */
 
        sd = 0.0 ;
        for( ii=0 ; ii < nxyz ; ii++ ) sd += car[ii]*car[ii] ;
@@ -308,7 +307,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *aim ; float *aar,*ath ;
 
    float pval[28] ; int num_pval=28 ;
-   float fwhm[21] ; int num_fwhm=21 ;
+   float fwhm[ 5] ; int num_fwhm= 5 ;  /* not 21 */
    MRI_IMAGE *maskim ; byte *mask, *mmm ;
 
    NI_element *nel ;
@@ -324,8 +323,8 @@ int main( int argc , char *argv[] )
    nz      = (int)strtod(argv[2],NULL); if( nz    < 1 ) ERROR_exit("nz bad")   ;
    niter   = (int)strtod(argv[3],NULL); if( niter < 1 ) ERROR_exit("niter bad");
 
-   for( ii=0 ; ii < 28 ; ii++ ) pval[ii] = (float)pow( 10.0 , 0.1*ii-4.0 ) ;
-   for( ii=0 ; ii < 21 ; ii++ ) fwhm[ii] = ii*0.25 ;
+   for( ii=0 ; ii < num_pval ; ii++ ) pval[ii] = (float)pow(10.0,0.1*ii-4.0) ;
+   for( ii=0 ; ii < num_fwhm ; ii++ ) fwhm[ii] = ii*0.25 ;
 
    dx = dy = dz = 1.0f ; rmm = 0.0f ;
 
@@ -340,8 +339,8 @@ int main( int argc , char *argv[] )
    }
    INFO_message("%d voxels in mask",THD_countmask(nx*ny*nz,mask)) ;
 
-   aim = mri_alphasim( nx,ny,nz , dx,dy,dz , niter , max_clustsize , rmm ,
-                       num_pval,pval , num_fwhm,fwhm , NULL , 0 ) ;
+   aim = mri_alphasim( nx,nz,nz , dx,dz , niter,rmm ,
+                       num_pval,pval , num_fwhm,fwhm,NULL , NULL , 0 ) ;
 
    INFO_message("simulation done: CPU=%g",COX_cpu_time()) ;
 
@@ -357,8 +356,13 @@ int main( int argc , char *argv[] )
        for( ii=MAX_CLUSTSIZE ; ii > 0 && ath[ii] < 0.01f ; ii-- ) ; /*nada*/
        if( ii == 0 ) continue ;  /* should not happen */
        clast = MIN(MAX_CLUSTSIZE,ii+1) ;
+#if 0
        for( ii=2 ; ii <= clast && ath[ii] > 0.5f ; ii++ ) ; /*nada*/
        cfirst = ii-1 ; cnum = clast-cfirst+1 ;
+#else
+       cfirst = 1 ;
+#endif
+       cnum = clast-cfirst+1 ;
        nel = NI_new_data_element( "AlphaSim" , cnum ) ;
        NI_add_column( nel , NI_FLOAT , ath+cfirst ) ;
        sprintf(atr,"%d %d %g %g %d",nx,nz,pval[kth],fwhm[jsm],cfirst) ;
