@@ -2473,6 +2473,13 @@ of this variable will be loaded into the cluster Rpt window text entry
 field, and the prefix can be edited there by the users when it comes
 time to save files.
 
+-----------------------------
+Variable: AFNI_CLUSTER_REPMAX  (editable)
+-----------------------------
+This numeric variable (between 10 and 99, inclusive) sets the maximum
+number of clusters that will be reported in a 'Clusterize' 'Rpt' table.
+The default value is 15.
+
 ----------------------------
 Variable: AFNI_STRLIST_INDEX
 ----------------------------
