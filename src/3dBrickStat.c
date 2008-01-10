@@ -50,7 +50,7 @@ int main( int argc , char * argv[] )
              "  -mean = print the mean value in dataset \n"
              "  -var = print the variance in the dataset \n"
              "  -count = print the number of voxels included\n"
-             "  -volume = print the volume of voxels included\n"
+             "  -volume = print the volume of voxels included in microliters\n"
              "  -positive = include only positive voxel values \n"
              "  -negative = include only negative voxel values \n"
              "  -zero = include only zero voxel values \n"
