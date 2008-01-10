@@ -70,6 +70,7 @@ static int mask_ngood = 0;           /* number of good voxels in mask volume */
 /* allow updating via the -max_clust_size option         12 Apr 2006 [rickr] */
 static int g_max_cluster_size = MAX_CLUSTER_SIZE;
 
+static int use_zg = 0 ;  /* 10 Jan 2008 */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -89,6 +90,8 @@ void display_help_menu()
      "-dx d1        d1 = voxel size (mm) along x-axis                       \n"
      "-dy d2        d2 = voxel size (mm) along y-axis                       \n"
      "-dz d3        d3 = voxel size (mm) along z-axis                       \n"
+     "-nxyz n1 n2 n3   = give all 3 grid dimensions at once                 \n"
+     "-dxyz d1 d2 d3   = give all 3 voxel sizes at once                     \n"
      "[-mask mset]      Use the 0 sub-brick of dataset 'mset' as a mask     \n"
      "                    to indicate which voxels to analyze (a sub-brick  \n"
      "                    selector is allowed)  [default = use all voxels]  \n"
@@ -118,8 +121,13 @@ void display_help_menu()
      "[-seed S]     S  = random number seed\n"
      "                   default seed = 1234567\n"
      "                   if seed=0, then program will randomize it\n"
+     "[-fast]       Use a faster random number generator:\n"
+     "                Can speed program up by about a factor of 2,\n"
+     "                but detailed results will differ slightly since\n"
+     "                a different sequence of random values will be used.\n"
      "\n"
-     "Unix environment variables:\n"
+     "Unix environment variables you can use:\n"
+     "---------------------------------------\n"
      " Set AFNI_BLUR_FFT to YES to require blurring be done with FFTs\n"
      "   (the oldest way, and slowest).\n"
      " Set AFNI_BLUR_FFT to NO and AFNI_BLUR_FIROLD to YES to require\n"
@@ -129,6 +137,27 @@ void display_help_menu()
      " Results will differ in detail depending on the blurring method\n"
      "   used to generate the simulated noise fields.\n"
      );
+
+  printf("\n"
+   "SAMPLE OUTPUT:\n"
+   "--------------\n"
+   " AlphaSim -nxyz 64 64 10 -dxyz 3 3 3 -iter 10000 -pthr 0.004 -fwhm 3 -quiet -fast\n"
+   "\n"
+   "Cl Size     Frequency    CumuProp     p/Voxel   Max Freq       Alpha\n"
+   "      1       1316125    0.898079  0.00401170          0    1.000000\n"
+   "      2        126353    0.984298  0.00079851       1023    1.000000\n"
+   "      3         18814    0.997136  0.00018155       5577    0.897700\n"
+   "      4          3317    0.999400  0.00004375       2557    0.340000\n"
+   "      5           688    0.999869  0.00001136        653    0.084300\n"
+   "      6           150    0.999971  0.00000296        148    0.019000\n"
+   "      7            29    0.999991  0.00000076         29    0.004200\n"
+   "      8             8    0.999997  0.00000027          8    0.001300\n"
+   "      9             5    1.000000  0.00000011          5    0.000500\n"
+   "\n"
+   " That is, thresholded random noise alone (no signal) would produce a\n"
+   " cluster of size 6 or larger 1.9%% (Alpha) of the time, in a 64x64x64\n"
+   " volume with cubical 3 mm voxels and a FHWM noise smoothness of 3 mm.\n"
+  ) ;
   
   exit(0);
 }
@@ -138,11 +167,15 @@ void display_help_menu()
    Routine to print error message and stop.
 */
 
+#if 0
 void AlphaSim_error (char * message)
 {
    fprintf (stderr, "%s Error: %s \n", PROGRAM_NAME, message);
    exit(1);
 }
+#else
+# define AlphaSim_error(m) ERROR_exit("AlphaSim: %s",(m))
+#endif
 
 
 /*---------------------------------------------------------------------------*/
@@ -222,6 +255,35 @@ void get_options (int argc, char ** argv,
   /*----- main loop over input options -----*/
   while (nopt < argc )
     {
+
+      /*-----  -zg [10 Jan 2008] -----*/
+
+      if( strcmp(argv[nopt],"-zg") == 0 || strcmp(argv[nopt],"-fast") == 0 ){
+        use_zg = 1 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-nozg") == 0 || strcmp(argv[nopt],"-nofast") == 0 ){
+        use_zg = 0 ; nopt++ ; continue ;
+      }
+
+      /*-----  -nxyz n1 n2 n3 [10 Jan 2008: RWC] -----*/
+
+      if( strcmp(argv[nopt],"-nxyz") == 0 ){
+        nopt++ ; if( nopt+2 >= argc ) AlphaSim_error ("need 3 arguments after -nxyz ") ;
+        *nx = (int)strtod(argv[nopt++],NULL); if( *nx <= 0 ) AlphaSim_error("illegal n1 value") ;
+        *ny = (int)strtod(argv[nopt++],NULL); if( *ny <= 0 ) AlphaSim_error("illegal n2 value") ;
+        *nz = (int)strtod(argv[nopt++],NULL); if( *nz <= 0 ) AlphaSim_error("illegal n3 value") ;
+        continue ;
+      }
+
+      /*-----  -dxyz d1 d2 d3 [10 Jan 2008: RWC] -----*/
+
+      if( strcmp(argv[nopt],"-dxyz") == 0 ){
+        nopt++ ; if( nopt+2 >= argc ) AlphaSim_error ("need 3 arguments after -dxyz ") ;
+        *dx = strtod(argv[nopt++],NULL); if( *dx <= 0 ) AlphaSim_error("illegal d1 value") ;
+        *dy = strtod(argv[nopt++],NULL); if( *dy <= 0 ) AlphaSim_error("illegal d2 value") ;
+        *dz = strtod(argv[nopt++],NULL); if( *dz <= 0 ) AlphaSim_error("illegal d3 value") ;
+        continue ;
+      }
       
       /*-----   -nx n  -----*/
       if (strncmp(argv[nopt], "-nx", 3) == 0)
@@ -671,8 +733,10 @@ void check_for_valid_inputs (int nx,  int ny,  int nz,
   if (power  &&  ((ax <= 0) || (ay <= 0) || (az <= 0)))
     AlphaSim_error ("Illegal dimensions for activation region ");
   if (power && (zsep <= 0.0))  AlphaSim_error ("Illegal value for zsep ");
-  if ( (rmm < dx) && (rmm < dy) && (rmm < dz) ) rmm = -1.0f ;
-  if ((pthr <= 0.0) || (pthr > 1.0))  
+  if ( (rmm < dx) && (rmm < dy) && (rmm < dz) ){
+     rmm = -1.0f ; INFO_message("default NN connectivity being used") ;
+  }
+  if ((pthr <= 0.0) || (pthr >= 1.0))  
     AlphaSim_error ("Illegal value for pthr ");
   if (niter <= 0)  AlphaSim_error ("Illegal value for niter ");
 
@@ -685,6 +749,7 @@ void check_for_valid_inputs (int nx,  int ny,  int nz,
 	  sprintf (message, "Output file %s already exists. ", outfilename); 
 	  AlphaSim_error (message);
 	}
+      fclose(fout) ;
     }
 
                                                   /* 12 Apr 2006 [rickr] */
@@ -823,10 +888,16 @@ float uniform ()
   Routine to generate a normal N(0,1) random variate.
 */
 
+#include "zgaussian.c"
+
 void normal (float * n1, float * n2)
 {
   float u1, u2;
   float r;
+
+  if( use_zg ){
+    *n1 = zgaussian() ; *n2 = zgaussian() ; return ;
+  }
 
 
   u1 = 0.0;
@@ -1369,12 +1440,13 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
 	  sprintf (message, "file %s already exists. ", outfilename); 
 	  AlphaSim_error (message);
 	}
+      fclose(fout) ;
       
       /*----- open file for output -----*/
       fout = fopen (outfilename, "w");
       if (fout == NULL)
 	{ 
-	  AlphaSim_error ("unable to write file ");
+	  AlphaSim_error ("unable to open output file ");
 	}
     }
 
@@ -1444,7 +1516,7 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
 	       max_table[i], alpha_table[i]);
   }
 
-  fclose(fout);
+  if( fout != stdout ) fclose(fout);
 
 }
  
