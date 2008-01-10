@@ -9,9 +9,9 @@
 /**************************************************************************/
 /***** prototypes for FIR blurring functions at the end of this file ******/
 
-static void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f ) ;
-static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f ) ;
-static void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f ) ;
+void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f ) ;
+void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f ) ;
+void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f ) ;
 
 static void fir_gaussian_load( int m, float dx, float *ff ) ; /* 03 Apr 2007 */
 
@@ -595,7 +595,7 @@ STATUS("start z FFTs") ;
   -- RWCox - 03 Oct 2005 - trying for some speedup for Daniel Glen
 ---------------------------------------------------------------------*/
 
-static void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f )
+void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f )
 {
    int ii,jj,kk,qq , nxy=nx*ny , off ;
    float *r , wt0,wt1,wt2,wt3,wt4,wt5,wt6,wt7 , sum , *ff ;
@@ -788,7 +788,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 /*! Similar to fir_blurx(), but along the y-axis.
     For further comments, see fir_blurx() source code. */
 
-static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
+void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
 {
    int ii,jj,kk,qq , nxy=nx*ny , off ;
    float *r, wt0,wt1,wt2,wt3,wt4,wt5,wt6,wt7 , sum , *ff ;
@@ -1120,7 +1120,7 @@ SMALLIMAGE:
 
 /*! Similar to fir_blurx(), but along z-axis. */
 
-static void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f )
+void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f )
 {
    int ii,jj,kk,qq , nxy=nx*ny , off ;
    float *rr,*ss , wt0,wt1,wt2,wt3,wt4,wt5,wt6,wt7 , sum , *ff ;
