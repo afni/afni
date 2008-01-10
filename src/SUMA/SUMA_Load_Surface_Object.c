@@ -1205,31 +1205,45 @@ SUMA_Boolean SUMA_ParseLHS_RHS (char *s, char *lhs, char *rhs)
    \param Spec (SUMA_SurfSpecFile *) pre-allocated pointer to SUMA_SurfSpecFile structure. )
    \ret YUP, good, NOPE, not good
 */
-SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
+SUMA_Boolean SUMA_Read_SpecFile (
+                  char *f_name, SUMA_SurfSpecFile * Spec)
 {/* SUMA_Read_SpecFile */
    static char FuncName[]={"SUMA_Read_SpecFile"};
-   char s[SUMA_MAX_DIR_LENGTH], stmp[SUMA_MAX_DIR_LENGTH],  stmp2[SUMA_MAX_DIR_LENGTH], c;
+   char  s[SUMA_MAX_DIR_LENGTH], stmp[SUMA_MAX_DIR_LENGTH],
+         stmp2[SUMA_MAX_DIR_LENGTH], c;
    int ex, skp, evl, i;
    FILE *sf_file;
    SUMA_FileName SpecName;
-   SUMA_Boolean OKread_SurfaceFormat, OKread_SurfaceType, OKread_TopoFile, OKread_CoordFile;
-   SUMA_Boolean OKread_MappingRef, OKread_SureFitVolParam, OKread_FreeSurferSurface, OKread_InventorSurface;
-   SUMA_Boolean OKread_Group, OKread_State, OKread_EmbedDim, OKread_SurfaceVolume, OKread_SurfaceLabel;
-   SUMA_Boolean OKread_AnatCorrect, OKread_Hemisphere, OKread_DomainGrandParentID, OKread_OriginatorID;
-   SUMA_Boolean OKread_LocalCurvatureParent, OKread_LocalDomainParent;
-   char DupWarn[]={"Bad format in specfile (you may need a NewSurface line). Duplicate specification of"};
-   char NewSurfWarn[]={"Bad format in specfile. You must start with NewSurface line before any other field."};
+   SUMA_Boolean   OKread_SurfaceFormat, OKread_SurfaceType, 
+                  OKread_TopoFile, OKread_CoordFile;
+   SUMA_Boolean   OKread_MappingRef, OKread_SureFitVolParam,
+                  OKread_FreeSurferSurface, OKread_InventorSurface;
+   SUMA_Boolean   OKread_Group, OKread_State, OKread_EmbedDim,
+                  OKread_SurfaceVolume, OKread_SurfaceLabel;
+   SUMA_Boolean   OKread_AnatCorrect, OKread_Hemisphere,
+                  OKread_DomainGrandParentID, OKread_OriginatorID;
+   SUMA_Boolean   OKread_LocalCurvatureParent, OKread_LocalDomainParent;
+   char DupWarn[]={  "Bad format in specfile "
+                     "(you may need a NewSurface line). "
+                     "Duplicate specification of"};
+   char NewSurfWarn[]={ "Bad format in specfile. "
+                        "You must start with NewSurface line "
+                        "before any other field."};
    SUMA_Boolean LocalHead = NOPE;   
    SUMA_ENTRY;
 
    /*make sure file is there */
    if (!SUMA_filexists(f_name)) {
-      fprintf(SUMA_STDERR,"Error %s: File %s does not exist or cannot be read.\n", FuncName, f_name);
+      fprintf(SUMA_STDERR,
+               "Error %s: File %s does not exist or cannot be read.\n",
+               FuncName, f_name);
       SUMA_RETURN (NOPE);
    }
    
    if (Spec->N_Surfs != -1) {
-      fprintf(SUMA_STDERR,"Error %s: Spec is not fresh after SUMA_AllocSpecFields.\n", FuncName);
+      fprintf(SUMA_STDERR,
+               "Error %s: Spec is not fresh after SUMA_AllocSpecFields.\n",
+               FuncName);
       SUMA_RETURN (NOPE);
    }
    
@@ -1238,15 +1252,21 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
    /* set the path for the spec file */
    SpecName = SUMA_StripPath (f_name);
    if (strlen(SpecName.Path) > SUMA_MAX_DIR_LENGTH-1) {
-      fprintf(SUMA_STDERR,"Error %s: Path of specfile > %d charcters.\n", FuncName, SUMA_MAX_DIR_LENGTH-1);
+      fprintf( SUMA_STDERR,
+               "Error %s: Path of specfile > %d charcters.\n", 
+               FuncName, SUMA_MAX_DIR_LENGTH-1);
       SUMA_RETURN (NOPE);
    }
    if (strlen(SpecName.FileName) > SUMA_MAX_NAME_LENGTH-1) {
-      fprintf(SUMA_STDERR,"Error %s: Name of specfile > %d charcters.\n", FuncName, SUMA_MAX_NAME_LENGTH-1);
+      fprintf( SUMA_STDERR,
+               "Error %s: Name of specfile > %d charcters.\n", 
+               FuncName, SUMA_MAX_NAME_LENGTH-1);
       SUMA_RETURN (NOPE);
    }
-   snprintf(Spec->SpecFilePath,SUMA_MAX_DIR_LENGTH*sizeof(char), "%s", SpecName.Path);
-   snprintf(Spec->SpecFileName,SUMA_MAX_NAME_LENGTH*sizeof(char), "%s", SpecName.FileName);
+   snprintf(Spec->SpecFilePath,SUMA_MAX_DIR_LENGTH*sizeof(char), 
+            "%s", SpecName.Path);
+   snprintf(Spec->SpecFileName,SUMA_MAX_NAME_LENGTH*sizeof(char), 
+            "%s", SpecName.FileName);
    
    /* free SpecName since it's not used elsewhere */
    if (SpecName.Path) SUMA_free(SpecName.Path);
@@ -1256,7 +1276,8 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
    sf_file = fopen (f_name,"r");
    if (sf_file == NULL)
       {
-         fprintf(SUMA_STDERR,"Error %s: Could not open file for read\n", FuncName);
+         fprintf( SUMA_STDERR,
+                  "Error %s: Could not open file for read\n", FuncName);
          SUMA_RETURN (NOPE);
       }
    
@@ -1274,11 +1295,16 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
    }
    s[i] = '\0';
    if (LocalHead) fprintf(SUMA_STDERR,"Read %s\n", s);
-   OKread_Group = YUP; /* it is OK to read a group before a new surface is declared */
-   OKread_SurfaceFormat = OKread_SurfaceType = OKread_TopoFile = OKread_CoordFile = NOPE;
-   OKread_MappingRef = OKread_SureFitVolParam = OKread_FreeSurferSurface = OKread_InventorSurface = NOPE;
-   OKread_State = OKread_EmbedDim = OKread_SurfaceVolume = OKread_SurfaceLabel = NOPE ;
-   OKread_AnatCorrect = OKread_Hemisphere = OKread_DomainGrandParentID = OKread_OriginatorID = NOPE;
+   OKread_Group = YUP; /* it is OK to read a group before 
+                           a new surface is declared */
+   OKread_SurfaceFormat = OKread_SurfaceType = 
+      OKread_TopoFile = OKread_CoordFile = NOPE;
+   OKread_MappingRef = OKread_SureFitVolParam = 
+      OKread_FreeSurferSurface = OKread_InventorSurface = NOPE;
+   OKread_State = OKread_EmbedDim = OKread_SurfaceVolume = 
+      OKread_SurfaceLabel = NOPE ;
+   OKread_AnatCorrect = OKread_Hemisphere = OKread_DomainGrandParentID =
+      OKread_OriginatorID = NOPE;
    OKread_LocalCurvatureParent = OKread_LocalDomainParent = NOPE;
    
    Spec->StateList[0] = '\0';
@@ -1292,21 +1318,29 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
          sprintf(stmp,"NewSurface");
          if (!skp && SUMA_iswordin (s, stmp) == 1) {
             if(Spec->N_Surfs >= SUMA_MAX_N_SURFACE_SPEC) {
-               fprintf(SUMA_STDERR,"Error %s: Cannot read in more than %d new surfaces.\n", FuncName, SUMA_MAX_N_SURFACE_SPEC);
+               fprintf( SUMA_STDERR,
+                        "Error %s: Cannot read in more than %d new surfaces.\n",
+                        FuncName, SUMA_MAX_N_SURFACE_SPEC);
                SUMA_RETURN (NOPE);
             }
             Spec->N_Surfs += 1;
-            if (LocalHead) fprintf(SUMA_STDERR,"Found New Surface, N = %d\n", Spec->N_Surfs);
+            if (LocalHead) 
+               fprintf( SUMA_STDERR,
+                        "Found New Surface, N = %d\n", Spec->N_Surfs);
             /* initialize some of the fields */
             if (Spec->N_Surfs == 1) { /* first surface, initialize to empty */
                sprintf(Spec->SurfaceFormat[Spec->N_Surfs-1],"ASCII");
                Spec->SurfaceType[Spec->N_Surfs-1][0] = '\0';
-               Spec->TopoFile[Spec->N_Surfs-1][0] = Spec->CoordFile[Spec->N_Surfs-1][0] = '\0';
-               Spec->MappingRef[Spec->N_Surfs-1][0] = '\0';  /* Should become obsolete, ZSS Jan 02 03 */
+               Spec->TopoFile[Spec->N_Surfs-1][0] =
+                  Spec->CoordFile[Spec->N_Surfs-1][0] = '\0';
+               Spec->MappingRef[Spec->N_Surfs-1][0] = '\0';  /* Should become
+                                                                obsolete, 
+                                                                ZSS Jan 02 03 */
                Spec->SureFitVolParam[Spec->N_Surfs-1][0] = '\0';
                Spec->SurfaceFile[Spec->N_Surfs-1][0] = '\0';
                Spec->State[Spec->N_Surfs-1][0] = '\0';
-               Spec->IDcode[Spec->N_Surfs-1] = NULL; /* this field is set in LoadSpec function */
+               Spec->IDcode[Spec->N_Surfs-1] = NULL; /* this field is set in
+                                                         LoadSpec function */
                Spec->EmbedDim[Spec->N_Surfs-1] = 3;
                Spec->VolParName[Spec->N_Surfs-1][0] = '\0';
                Spec->SurfaceLabel[Spec->N_Surfs-1][0] = '\0';
@@ -1319,24 +1353,40 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
             } else { 
                /* make sure important fields have been filled */
                if (Spec->SurfaceType[Spec->N_Surfs-2][0] == '\0') {
-                  fprintf(SUMA_STDERR,"Error %s: Failed to specify surface type for surface %d\n", FuncName, Spec->N_Surfs-2);
+                  fprintf(SUMA_STDERR,
+                           "Error %s: Failed to specify surface type "
+                           "for surface %d\n", 
+                           FuncName, Spec->N_Surfs-2);
                   SUMA_RETURN (NOPE);
                }
                /* initilize SOME of the fields to previous one */
                Spec->CoordFile[Spec->N_Surfs-1][0] = '\0';  /* *** BA, Dec 03 */
-               Spec->SurfaceFile[Spec->N_Surfs-1][0] = '\0'; /* *** BA, Dec 03 */
+               Spec->SurfaceFile[Spec->N_Surfs-1][0] = '\0';/* *** BA, Dec 03 */
                
-               strcpy(Spec->SurfaceFormat[Spec->N_Surfs-1], Spec->SurfaceFormat[Spec->N_Surfs-2]);
-               strcpy(Spec->SurfaceType[Spec->N_Surfs-1], Spec->SurfaceType[Spec->N_Surfs-2]);
-               strcpy(Spec->TopoFile[Spec->N_Surfs-1], Spec->TopoFile[Spec->N_Surfs-2]);
-               strcpy(Spec->MappingRef[Spec->N_Surfs-1], Spec->MappingRef[Spec->N_Surfs-2]);   /* Should become obsolete, ZSS Jan 02 03 */
-               strcpy(Spec->SureFitVolParam[Spec->N_Surfs-1], Spec->SureFitVolParam[Spec->N_Surfs-2]);
-               Spec->VolParName[Spec->N_Surfs-1][0] = '\0'; /* it is confusing to users to inherit this one from the pervious, keep it separate.*/
-               Spec->IDcode[Spec->N_Surfs-1] = NULL; /* this field is set in LoadSpec function */
+               strcpy(  Spec->SurfaceFormat[Spec->N_Surfs-1],
+                        Spec->SurfaceFormat[Spec->N_Surfs-2]);
+               strcpy(  Spec->SurfaceType[Spec->N_Surfs-1],
+                        Spec->SurfaceType[Spec->N_Surfs-2]);
+               strcpy(  Spec->TopoFile[Spec->N_Surfs-1],
+                        Spec->TopoFile[Spec->N_Surfs-2]);
+               strcpy(  Spec->MappingRef[Spec->N_Surfs-1],
+                        Spec->MappingRef[Spec->N_Surfs-2]);/*  Should become
+                                                               obsolete, 
+                                                               ZSS Jan 02 03 */
+               strcpy(  Spec->SureFitVolParam[Spec->N_Surfs-1],
+                        Spec->SureFitVolParam[Spec->N_Surfs-2]);
+               Spec->VolParName[Spec->N_Surfs-1][0] = '\0'; 
+                     /* it is confusing to users to inherit 
+                        this one from the pervious, keep it separate.*/
+               Spec->IDcode[Spec->N_Surfs-1] = NULL; /*  this field is set in
+                                                         LoadSpec function */
                Spec->SurfaceLabel[Spec->N_Surfs-1][0] = '\0';
-               strcpy(Spec->Group[Spec->N_Surfs-1], Spec->Group[Spec->N_Surfs-2]);
-               strcpy(Spec->State[Spec->N_Surfs-1], Spec->State[Spec->N_Surfs-2]);
-               Spec->EmbedDim[Spec->N_Surfs-1] = Spec->EmbedDim[Spec->N_Surfs-2];
+               strcpy(  Spec->Group[Spec->N_Surfs-1],
+                        Spec->Group[Spec->N_Surfs-2]);
+               strcpy(  Spec->State[Spec->N_Surfs-1], 
+                        Spec->State[Spec->N_Surfs-2]);
+               Spec->EmbedDim[Spec->N_Surfs-1] =
+                  Spec->EmbedDim[Spec->N_Surfs-2];
                /* perhaps make these inheritable from previous */
                Spec->AnatCorrect[Spec->N_Surfs-1][0] = '\0';
                Spec->Hemisphere[Spec->N_Surfs-1][0] = '\0';
@@ -1344,12 +1394,17 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
                Spec->OriginatorID[Spec->N_Surfs-1][0] = '\0';
                Spec->LocalCurvatureParent[Spec->N_Surfs-1][0] = '\0'; 
                Spec->LocalDomainParent[Spec->N_Surfs-1][0] = '\0';
-              /* only Spec->CoordFile, Spec->SurfaceFile MUST be specified with a new surface */
+               /* only Spec->CoordFile, Spec->SurfaceFile MUST be 
+                  specified with a new surface */
             } 
-            OKread_SurfaceFormat = OKread_SurfaceType = OKread_TopoFile = OKread_CoordFile = YUP;
-            OKread_MappingRef = OKread_SureFitVolParam = OKread_FreeSurferSurface = OKread_InventorSurface = YUP;
-            OKread_Group = OKread_State = OKread_EmbedDim = OKread_SurfaceLabel = OKread_SurfaceVolume = YUP;
-            OKread_AnatCorrect = OKread_Hemisphere = OKread_DomainGrandParentID = OKread_OriginatorID = YUP;
+            OKread_SurfaceFormat = OKread_SurfaceType = OKread_TopoFile =
+               OKread_CoordFile = YUP;
+            OKread_MappingRef = OKread_SureFitVolParam =
+               OKread_FreeSurferSurface = OKread_InventorSurface = YUP;
+            OKread_Group = OKread_State = OKread_EmbedDim = 
+               OKread_SurfaceLabel = OKread_SurfaceVolume = YUP;
+            OKread_AnatCorrect = OKread_Hemisphere = 
+               OKread_DomainGrandParentID = OKread_OriginatorID = YUP;
             OKread_LocalCurvatureParent = OKread_LocalDomainParent = YUP;
             skp = 1;
          }
@@ -1358,9 +1413,16 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
          if (!skp && SUMA_iswordin (s, stmp) == 1) {
             /* found a state definition, parse it 
             Use Spec->State[0] as buffer, since SurfaceState comes later*/
-            if (LocalHead) fprintf(SUMA_STDERR,"%s: Sending %p )\n", FuncName, Spec->State[0]);
-            if (!SUMA_ParseLHS_RHS (s, stmp, Spec->State[0])) {
-               fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
+            if (LocalHead) 
+               fprintf( SUMA_STDERR,
+                        "%s: Sending %p )\n", 
+                        FuncName, Spec->State[0]);
+            if (!SUMA_ParseLHS_RHS (
+                     s, stmp, 
+                     Spec->State[0])) {
+               fprintf( SUMA_STDERR,
+                        "Error %s: Error in SUMA_ParseLHS_RHS.\n", 
+                        FuncName);
                SUMA_RETURN (NOPE);
             }
             if (Spec->N_States == 0) {
@@ -1370,11 +1432,15 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
             } else  {
                if (strcmp(Spec->StateList, Spec->State[0]) == 0) {
                   /* it's a duplicate, complain and get outa here */
-                  fprintf(SUMA_STDERR,"Error %s: Duplicate StateDef (%s).\n", FuncName, Spec->State[0]);
+                  fprintf( SUMA_STDERR,
+                           "Error %s: Duplicate StateDef (%s).\n", 
+                           FuncName, Spec->State[0]);
                   SUMA_RETURN (NOPE);
                } else {
-                  /* a new one, add it to the list and increment States counter */
-                  sprintf(Spec->StateList, "%s%s|", Spec->StateList, Spec->State[0]);
+                  /* a new one, add it to the list and 
+                     increment States counter */
+                  sprintf( Spec->StateList, "%s%s|", 
+                           Spec->StateList, Spec->State[0]);
                   Spec->N_States += 1;
                }
             }
@@ -1385,16 +1451,26 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
          sprintf(stmp,"Group");
          if (!skp && SUMA_iswordin (s, stmp) == 1) {
             /* found a state definition, parse it */
-            if (LocalHead) fprintf(SUMA_STDERR,"%s: Found %s.\n", FuncName, stmp);
-            if (Spec->N_Surfs < 1) { /* no surfaces have been defined yet, group goes for all */
-               if (!SUMA_ParseLHS_RHS (s, stmp, Spec->Group[0])) {
-                  fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
+            if (LocalHead) 
+               fprintf(SUMA_STDERR,"%s: Found %s.\n", FuncName, stmp);
+            if (Spec->N_Surfs < 1) { /* no surfaces have been defined yet, 
+                                        group goes for all */
+               if (!SUMA_ParseLHS_RHS (
+                     s, stmp, 
+                     Spec->Group[0])) {
+                  fprintf( SUMA_STDERR,
+                           "Error %s: Error in SUMA_ParseLHS_RHS.\n", 
+                           FuncName);
                   SUMA_RETURN (NOPE);
                }
             }
             else {
-               if (!SUMA_ParseLHS_RHS (s, stmp, Spec->Group[Spec->N_Surfs-1])) {
-                  fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
+               if (!SUMA_ParseLHS_RHS (
+                     s, stmp, 
+                     Spec->Group[Spec->N_Surfs-1])) {
+                  fprintf( SUMA_STDERR,
+                           "Error %s: Error in SUMA_ParseLHS_RHS.\n", 
+                           FuncName);
                   SUMA_RETURN (NOPE);
                }
             }
@@ -1402,7 +1478,8 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
             Spec->N_Groups += 1;
             
             if (!OKread_Group) {
-               fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
+               fprintf( SUMA_STDERR,"Error %s: %s %s\n", 
+                        FuncName, DupWarn, stmp);
                SUMA_RETURN (NOPE);
             } else {
                OKread_Group = NOPE;
@@ -1413,16 +1490,20 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
          sprintf(stmp,"Anatomical");
          if (!skp && SUMA_iswordin (s, stmp) == 1) {
             /* found Anatomically Correct field, parse it */
-            if (!SUMA_ParseLHS_RHS (s, stmp, Spec->AnatCorrect[Spec->N_Surfs-1])) {
-               fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
+            if (!SUMA_ParseLHS_RHS (s, stmp,
+                                    Spec->AnatCorrect[Spec->N_Surfs-1])) {
+               fprintf( SUMA_STDERR,
+                        "Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
-            if ( strcmp(Spec->AnatCorrect[Spec->N_Surfs-1],"Y") && strcmp(Spec->AnatCorrect[Spec->N_Surfs-1],"N")) {
+            if (  strcmp(Spec->AnatCorrect[Spec->N_Surfs-1],"Y") &&
+                  strcmp(Spec->AnatCorrect[Spec->N_Surfs-1],"N")) {
                SUMA_SL_Err("Anatomical can only be Y ot N");
                SUMA_RETURN (NOPE);
             }
             if (!OKread_AnatCorrect) {
-               fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
+               fprintf( SUMA_STDERR,"Error %s: %s %s\n", 
+                        FuncName, DupWarn, stmp);
                SUMA_RETURN (NOPE);
             } else  {
                OKread_AnatCorrect = NOPE;
@@ -1433,7 +1514,9 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
          sprintf(stmp,"Hemisphere");
          if (!skp && SUMA_iswordin (s, stmp) == 1) {
             /* found Hemisphere field, parse it */
-            if (!SUMA_ParseLHS_RHS (s, stmp, Spec->Hemisphere[Spec->N_Surfs-1])) {
+            if (!SUMA_ParseLHS_RHS (
+                     s, stmp, 
+                     Spec->Hemisphere[Spec->N_Surfs-1])) {
                fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
@@ -1453,7 +1536,9 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
          sprintf(stmp,"DomainGrandParentID");
          if (!skp && SUMA_iswordin (s, stmp) == 1) {
             /* found DomainGrandParentID field, parse it */
-            if (!SUMA_ParseLHS_RHS (s, stmp, Spec->DomainGrandParentID[Spec->N_Surfs-1])) {
+            if (!SUMA_ParseLHS_RHS (
+                     s, stmp, 
+                     Spec->DomainGrandParentID[Spec->N_Surfs-1])) {
                fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
@@ -1470,7 +1555,9 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
          sprintf(stmp,"OriginatorID");
          if (!skp && SUMA_iswordin (s, stmp) == 1) {
             /* found OriginatorID  field, parse it */
-            if (!SUMA_ParseLHS_RHS (s, stmp, Spec->OriginatorID[Spec->N_Surfs-1])) {
+            if (!SUMA_ParseLHS_RHS (
+                     s, stmp, 
+                     Spec->OriginatorID[Spec->N_Surfs-1])) {
                fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
@@ -1549,18 +1636,25 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
          sprintf(stmp,"SurfaceState");
          if (!skp && SUMA_iswordin (s, stmp) == 1) {
             /* found surface state, parse it */
-            if (!SUMA_ParseLHS_RHS (s, stmp, Spec->State[Spec->N_Surfs-1])) {
-               fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
+            if (!SUMA_ParseLHS_RHS (
+                     s, stmp, 
+                     Spec->State[Spec->N_Surfs-1])) {
+               fprintf( SUMA_STDERR,
+                        "Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
             /* make sure it is in the StateList */
-            if (SUMA_iswordin (Spec->StateList, Spec->State[Spec->N_Surfs-1]) != 1) {
-               fprintf(SUMA_STDERR,"Error %s: State %s was not predefined in StateDef.\nStateDef List (| delimited) = %s \n",\
+            if (SUMA_iswordin (Spec->StateList, Spec->State[Spec->N_Surfs-1]) 
+                != 1) {
+               fprintf( SUMA_STDERR,
+                        "Error %s: State %s was not predefined in StateDef.\n"
+                        "StateDef List (| delimited) = %s \n",\
                 FuncName, Spec->State[Spec->N_Surfs-1], Spec->StateList);
                SUMA_RETURN (NOPE);
             }
             if (!OKread_State) {
-               fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
+               fprintf( SUMA_STDERR,
+                        "Error %s: %s %s\n", FuncName, DupWarn, stmp);
                SUMA_RETURN (NOPE);
             } else  {
                OKread_State = NOPE;
@@ -1576,19 +1670,24 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
             }
             /*fprintf(SUMA_STDERR,"Found %s: ", stmp);*/
             
-            if (!SUMA_ParseLHS_RHS (s, stmp, Spec->SurfaceFormat[Spec->N_Surfs-1])) {
-               fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
+            if (!SUMA_ParseLHS_RHS (
+                     s, stmp, 
+                     Spec->SurfaceFormat[Spec->N_Surfs-1])) {
+               fprintf( SUMA_STDERR,
+                        "Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
             
             if (!OKread_SurfaceFormat) {
-               fprintf(SUMA_STDERR,"Error %s: %s %s\n", FuncName, DupWarn, stmp);
+               fprintf( SUMA_STDERR,
+                        "Error %s: %s %s\n", FuncName, DupWarn, stmp);
                SUMA_RETURN (NOPE);
             } else {
                OKread_SurfaceFormat = NOPE;
             }
             skp = 1;
-            /*fprintf(SUMA_STDERR,"%s\n", Spec->SurfaceFormat[Spec->N_Surfs-1]);*/
+            /*fprintf(  SUMA_STDERR,"%s\n",
+                        Spec->SurfaceFormat[Spec->N_Surfs-1]);*/
          }
          
          sprintf(stmp,"SurfaceType");
@@ -1598,7 +1697,9 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
                SUMA_RETURN (NOPE);
             }
             /*fprintf(SUMA_STDERR,"Found %s\n", stmp);*/
-            if (!SUMA_ParseLHS_RHS (s, stmp, Spec->SurfaceType[Spec->N_Surfs-1])) {
+            if (!SUMA_ParseLHS_RHS (
+                     s, stmp, 
+                     Spec->SurfaceType[Spec->N_Surfs-1])) {
                fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ParseLHS_RHS.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
@@ -2482,7 +2583,12 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 /*! 
    Loads the surfaces specified in Spec and stores them in DOv
 */
-SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, char *VolParName, int debug, DList *DsetList)
+static int LoadPacify = 0;
+void SetLoadPacify(int k) { LoadPacify = k; }
+int  GetLoadPacify(void) { return LoadPacify; }
+SUMA_Boolean SUMA_LoadSpec_eng (
+                  SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, 
+                  char *VolParName, int debug, DList *DsetList)
 {/* SUMA_LoadSpec_eng */
    static char FuncName[]={"SUMA_LoadSpec_eng"};
    int i, k;
@@ -2501,7 +2607,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
       /*locate and load all Mappable surfaces */
       if (SUMA_iswordin(Spec->LocalDomainParent[i],"SAME") == 1) { 
          /* Mappable surfaces */
-         if ( debug || 1) { /* turned this back on as a pacifier */
+         if ( debug || LoadPacify) { /* turned this back on as a pacifier */
 	    fprintf (SUMA_STDERR,"\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
 	    fprintf (SUMA_STDERR,
 		     "Surface #%d/%d(Local Domain Parent), loading ...\n",
@@ -2561,7 +2667,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
       }
 
       if (SUMA_iswordin(Spec->LocalDomainParent[i],"SAME") != 1) { /* Non Mappable surfaces */
-	 if ( debug  || 1) { /* turned this back on as a pacifier */
+	 if ( debug  || LoadPacify) { /* turned this back on as a pacifier */
             fprintf (SUMA_STDERR,"\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
             fprintf (SUMA_STDERR,
 		     "Surface #%d/%d (mappable via Local Domain Parent), loading ...\n",i+1, Spec->N_Surfs);
@@ -2788,33 +2894,49 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
    
    /* check for input inconsistencies and warn */
    if (!DoConv && !DoArea && !DoCurv && !DoEL  && !DoMF && !DoWind) {
-      fprintf (SUMA_STDERR,"Warning %s: Nothing to do.\n", FuncName);
+      if (debug) fprintf ( SUMA_STDERR,
+                           "Warning %s: Nothing to do.\n", FuncName);
       SUMA_RETURN (YUP);
    }
    
    SOCx = (float *)SUMA_GetCx (SO->idcode_str, DsetList, 0); 
    if (DoConv && SOCx) {
-      fprintf (SUMA_STDERR,"Warning %s: SOCx != NULL and thus appears to have been precomputed.\n", FuncName);
+      if (debug) fprintf ( SUMA_STDERR,
+                           "Warning %s: SOCx != NULL \n"
+                           "and thus appears to have been precomputed.\n",
+                           FuncName);
       DoConv = NOPE;
    }
    
    if (DoArea && SO->PolyArea != NULL) {
-      fprintf (SUMA_STDERR,"Warning %s: SO->PolyArea != NULL and thus appears to have been precomputed.\n", FuncName);
+      if (debug) fprintf ( SUMA_STDERR,
+                           "Warning %s: SO->PolyArea != NULL and "
+                           "thus appears to have been precomputed.\n",
+                           FuncName);
       DoArea = NOPE;
    }
    
    if (DoCurv && SO->SC != NULL) {
-      fprintf (SUMA_STDERR,"Warning %s: SO->SC != NULL and thus appears to have been precomputed.\n", FuncName);
+      if (debug) fprintf ( SUMA_STDERR,
+                           "Warning %s: SO->SC != NULL and thus "
+                           "appears to have been precomputed.\n", 
+                           FuncName);
       DoCurv = NOPE;
    }
    
    if (DoMF && SO->MF != NULL) {
-      fprintf (SUMA_STDERR,"Warning %s: SO->MF != NULL and thus appears to have been precomputed.\n", FuncName);
+      if (debug) fprintf ( SUMA_STDERR,
+                           "Warning %s: SO->MF != NULL and thus "
+                           "appears to have been precomputed.\n", 
+                           FuncName);
       DoMF = NOPE;
    }
    
    if (DoEL && (SO->EL != NULL || SO->FN != NULL)) {
-      fprintf (SUMA_STDERR,"Warning %s: SO->EL != NULL || SO->FN != NULL and thus appears to have been precomputed.\n", FuncName);
+      if (debug) fprintf ( SUMA_STDERR,
+                           "Warning %s: SO->EL != NULL || SO->FN != NULL "
+                           "and thus appears to have been precomputed.\n",
+                           FuncName);
       DoEL = NOPE;
    }
    
@@ -3905,21 +4027,24 @@ int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
 int SUMA_spec_select_surfs( SUMA_SurfSpecFile * spec, char ** names, int nnames,
 		       int debug )
 {
+    static char FuncName[]={"SUMA_spec_select_surfs"};
     char * nfile;
     int    name, surf, name_ind;
-
+    
+    SUMA_ENTRY;
+    
     if ( ! spec || ! names )
     {
 	fprintf(stderr,"** SUMA_spec_select_surfs: invalid params (%p,%p)\n",
 		spec, names);
-	return -1;
+	SUMA_RETURN( -1 );
     }
 
     if ( debug > 1 )
 	fprintf(stderr, "-- select surfs: searching %d names...\n", nnames);
 
     if ( nnames <= 0 )
-	return 0;
+	SUMA_RETURN( 0 );
 
     /* first, check for existence and uniquenes in list */
     for ( name = 0; name < nnames; name++ )
@@ -3936,7 +4061,7 @@ int SUMA_spec_select_surfs( SUMA_SurfSpecFile * spec, char ** names, int nnames,
 	{
 	    if ( name_ind == -1 )
 		fprintf(stderr,"** surface name '%s' not found\n",names[name]);
-	    return -1;
+	    SUMA_RETURN( -1 );
 	}
 
 	if ( debug > 1 )
@@ -3952,7 +4077,7 @@ int SUMA_spec_select_surfs( SUMA_SurfSpecFile * spec, char ** names, int nnames,
     if ( debug > 1 )
 	fprintf(stderr, "-- select surfs: returning %d names\n", nnames);
 
-    return nnames;
+    SUMA_RETURN( nnames );
 }
 
 /*---------------------------------------------------------------------------
