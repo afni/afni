@@ -838,9 +838,13 @@ int main( int argc , char *argv[] )
 
      if( strncmp(argv[iarg],"-cmass",6) == 0 ){
        if( argv[iarg][6] == '+' ){
-         do_cmass =    (strchr(argv[iarg]+6,'x') != NULL)
-                   + 2*(strchr(argv[iarg]+6,'y') != NULL)
-                   + 4*(strchr(argv[iarg]+6,'z') != NULL) ;
+         if (strchr(argv[iarg]+6,'a')) { 
+            do_cmass = -1; /* ZSS */
+         } else {
+            do_cmass =    (strchr(argv[iarg]+6,'x') != NULL)
+                      + 2*(strchr(argv[iarg]+6,'y') != NULL)
+                      + 4*(strchr(argv[iarg]+6,'z') != NULL) ;
+         }
          if( do_cmass == 0 )
            ERROR_exit("Don't understand coordinates in '%s",argv[iarg]) ;
        } else {
@@ -2278,9 +2282,32 @@ int main( int argc , char *argv[] )
      mri_get_cmass_3D( im_targ , &xc,&yc,&zc ) ; mri_free(im_targ) ;
      MAT44_VEC( targ_cmat , xc,yc,zc , xtarg,ytarg,ztarg ) ;
      xc = xtarg-xbase ; yc = ytarg-ybase ; zc = ztarg-zbase ;
-     if( (do_cmass & 1) == 0 ) xc = 0.0f ;
-     if( (do_cmass & 2) == 0 ) yc = 0.0f ;
-     if( (do_cmass & 4) == 0 ) zc = 0.0f ;
+     if (do_cmass < 0) {
+         /* try to figure what is OK, for partial coverage */
+         if (fabs(xc) >= fabs(yc) && fabs(xc) >= fabs(zc)) {
+            if (     fabs(xc) > 4.0          /* more than 4 voxels */
+                  && fabs(xc) > 2.0*fabs(yc) /* more than twice the 2nd */
+                  && fabs(xc) > 2.0*fabs(zc) /* more than twice the 3rd */) { 
+               xc = 0.0f;
+            }
+         } else if (fabs(yc) >= fabs(xc) && fabs(yc) >= fabs(zc)) {
+            if (     fabs(yc) > 4.0          /* more than 4 voxels */
+                  && fabs(yc) > 2.0*fabs(xc) /* more than twice the 2nd */
+                  && fabs(yc) > 2.0*fabs(zc) /* more than twice the 3rd */) { 
+               yc = 0.0f;
+            }
+         } else if (fabs(zc) >= fabs(xc) && fabs(zc) >= fabs(yc)) {
+            if (     fabs(zc) > 4.0          /* more than 4 voxels */
+                  && fabs(zc) > 2.0*fabs(xc) /* more than twice the 2nd */
+                  && fabs(zc) > 2.0*fabs(yc) /* more than twice the 3rd */) { 
+               zc = 0.0f;
+            }
+         }
+     } else {
+        if( (do_cmass & 1) == 0 ) xc = 0.0f ;
+        if( (do_cmass & 2) == 0 ) yc = 0.0f ;
+        if( (do_cmass & 4) == 0 ) zc = 0.0f ;
+     } 
      if( verb > 2 && apply_mode == 0 ){
        INFO_message("center of mass shifts = %.1f %.1f %.1f",xc,yc,zc) ;
      }
