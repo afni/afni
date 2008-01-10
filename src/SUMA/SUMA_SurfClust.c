@@ -487,10 +487,14 @@ int main (int argc,char *argv[])
    
    if (Opt->WriteFile) {
       if (Opt->AreaLim < 0) sprintf(stmp,"_ClstTable_r%.1f.1D", Opt->DistLim);
-      else sprintf(stmp,"_ClstTable_r%.1f_a%.1f.1D", Opt->DistLim, Opt->AreaLim);
+      else sprintf(  stmp,"_ClstTable_r%.1f_a%.1f.1D", 
+                     Opt->DistLim, Opt->AreaLim);
       ClustOutName = SUMA_append_string(Opt->out_prefix, stmp);   
       if (SUMA_filexists(ClustOutName)) {
-         fprintf (SUMA_STDERR,"Error %s:\nOutput file %s exists, will not overwrite.\n", FuncName, ClustOutName);
+         fprintf (SUMA_STDERR,
+                  "Error %s:\n"
+                  "Output file %s exists, will not overwrite.\n", 
+                  FuncName, ClustOutName);
          exit(1);
       }
    }
@@ -510,11 +514,14 @@ int main (int argc,char *argv[])
    if ( SO_read != Opt->N_surf )
    {
 	   if (SO_read >=0 )
-         fprintf(SUMA_STDERR,"Error %s:\nFound %d surfaces, expected %d.\n", FuncName,  SO_read, Opt->N_surf);
+         fprintf( SUMA_STDERR,
+                  "Error %s:\nFound %d surfaces, expected %d.\n", 
+                  FuncName,  SO_read, Opt->N_surf);
       exit(1);
    }
    /* now read into SUMAg_DOv */
-   if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, Opt->sv_name, 0, SUMAg_CF->DsetList) ) {
+   if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, 
+                           Opt->sv_name, 0, SUMAg_CF->DsetList) ) {
 	   fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec_eng\n", FuncName);
       exit(1);
    }
@@ -529,9 +536,9 @@ int main (int argc,char *argv[])
    dset = SUMA_LoadDset_s (Opt->in_name, &iform, 0); 
    if (LocalHead) SUMA_ShowDset(dset, 0, NULL);
    if (!dset) { SUMA_S_Err(  "Failed to load dataset.\n"
-                                 "Make sure file exists\n"
-                                 "and is of the specified\n"
-                                 "format."); 
+                              "Make sure file exists\n"
+                              "and is of the specified\n"
+                              "format."); 
                exit(1); }
    if (!SUMA_OKassign(dset, SO)) {
       SUMA_SL_Err("Failed to assign data set to surface.");
