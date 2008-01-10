@@ -26,148 +26,150 @@ void usage_SUMA_SurfClust ()
       static char FuncName[]={"usage_SUMA_SurfClust"};
       char * s = NULL;
       s = SUMA_help_basics();
-      printf ( "\nUsage: A program to perform clustering analysis surfaces.\n"
-               "  SurfClust <-spec SpecFile> \n"/* [<-sv sv_name>] */
-               "            <-surf_A insurf> \n"
-               "            <-input inData.1D dcol_index> \n"
-               "            <-rmm rad>\n"
-               "            [-amm2 minarea]\n"
-               "            [-prefix OUTPREF]  \n"
-               "            [-out_clusterdset] [-out_roidset] \n"
-               "            [-out_fulllist]\n"
-               "            [-sort_none | -sort_n_nodes | -sort_area]\n"
-               "\n"
-               "  The program can outputs a table of the clusters on the surface,\n"
-               "  a mask dataset formed by the different clusters and a clustered\n"
-               "  version of the input dataset.\n"
-               "\n"
-               "  Mandatory parameters:\n"
-               "     -spec SpecFile: The surface spec file.\n"
-               "     -surf_A insurf: The input surface name.\n"
-               "     -input inData.1D dcol_index: The input 1D dataset\n"
-               "                                  and the index of the\n"
-               "                                  datacolumn to use\n"
-               "                                  (index 0 for 1st column).\n"
-               "                                  Values of 0 indicate \n"
-               "                                  inactive nodes.\n"
-               "     -rmm rad: Maximum distance between an activated node\n"
-               "               and the cluster to which it belongs.\n"
-               "               Distance is measured on the surface's graph (mesh).\n"
-               "\n"
-               "  Optional Parameters:\n"
-               "     -thresh_col tcolind: Index of thresholding column.\n"
-               "                          Default is column 0.\n "
-               "     -thresh tval: Apply thresholding prior to clustering.\n"
-               "                   A node n is considered if thresh_col[n] > tval.\n"
-               "     -athresh tval: Apply absolute thresholding prior to clustering.\n"
-               "                    A node n is considered if | thresh_col[n] | > tval.\n" 
-               "     -amm2 minarea: Do not output resutls for clusters having\n"
-               "                    an area less than minarea.\n"
-               "     -prefix OUTPREF: Prefix for output.\n"
-               "                      Default is the prefix of \n"
-               "                      the input dataset.\n"
-               "                      If this option is used, the\n"
-               "                      cluster table is written to a file called\n"
-               "                      OUTPREF_ClstTable_rXX_aXX.1D. Otherwise the\n"
-               "                      table is written to stdout. \n"
-               "                      You can specify the output format by adding\n"
-               "                      extensions to OUTPREF. For example, \n"
-               "                      OUTPREF.1D.dset will force the output to be \n"
-               "                      in the .1D format. \n"
-               "                      See ConvertDset for many more format options.\n"
-               "     -out_clusterdset: Output a clustered version of inData.1D \n"
-               "                       preserving only the values of nodes that \n"
-               "                       belong to clusters that passed the rmm and amm2\n" 
-               "                       conditions above.\n"
-               "                       The clustered dset's prefix has\n"
-               "                       _Clustered_rXX_aXX affixed to the OUTPREF\n"
-               "     -out_roidset: Output an ROI dataset with the value\n"
-               "                   at each node being the rank of its\n"
-               "                   cluster. The ROI dataset's prefix has\n"
-               "                   _ClstMsk_rXX_aXX affixed to the OUTPREF\n"
-               "                   where XX represent the values for the\n"
-               "                   the -rmm and -amm2 options respectively.\n"
-               "                   The program will not overwrite pre-existing\n"
-               "                   dsets.\n"
-               "     -prepend_node_index: Force the output dataset to have node\n"
-               "                    indices in column 0 of output. Use this option\n"
-               "                    if you are parsing .1D format datasets.\n"
-               "     -out_fulllist: Output a value for all nodes of insurf.\n"
-               "                    This option must be used in conjuction with\n"
-               "                    -out_roidset and/or out_clusterdset.\n"
-               "                    With this option, the output files might\n"
-               "                    be mostly 0, if you have small clusters.\n"
-               "                    However, you should use it if you are to \n"
-               "                    maintain the same row-to-node correspondence\n"
-               "                    across multiple datasets.\n"  
-               "     -sort_none: No sorting of ROI clusters.\n"
-               "     -sort_n_nodes: Sorting based on number of nodes\n"
-               "                    in cluster.\n"
-               "     -sort_area: Sorting based on area of clusters \n"
-               "                 (default).\n"
-               "     -update perc: Pacify me when perc of the data have been\n"
-               "                   processed. perc is between 1%% and 50%%.\n"
-               "                   Default is no update.\n"
-               "     -no_cent: Do not find the central nodes.\n"
-               "               Finding the central node is a \n"
-               "               relatively slow operation. Use\n"
-               "               this option to skip it.\n"
-               /*"     -sv SurfaceVolume \n"
-               "        If you supply a surface volume, the coordinates of the input surface.\n"
-               "        are modified to SUMA's convention and aligned with SurfaceVolume.\n"
-               "     -acpc: Apply acpc transform (which must be in acpc version of \n"
-               "        SurfaceVolume) to the surface vertex coordinates. \n"
-               "        This option must be used with the -sv option.\n"
-               "     -tlrc: Apply Talairach transform (which must be a talairach version of \n"
-               "        SurfaceVolume) to the surface vertex coordinates. \n"
-               "        This option must be used with the -sv option.\n"
-               "     -MNI_rai/-MNI_lpi: Apply Andreas Meyer Lindenberg's transform to turn \n"
-               "        AFNI tlrc coordinates (RAI) into MNI coord space \n"
-               "        in RAI (with -MNI_rai) or LPI (with -MNI_lpi)).\n"
-               "        NOTE: -MNI_lpi option has not been tested yet (I have no data\n"
-               "        to test it on. Verify alignment with AFNI and please report\n"
-               "        any bugs.\n" 
-               "        This option can be used without the -tlrc option.\n"
-               "        But that assumes that surface nodes are already in\n"
-               "        AFNI RAI tlrc coordinates .\n"    
-               "\n" */
-               "\n"
-               "  The cluster table output:\n"
-               "  A table where ach row shows results from one cluster.\n"
-               "  Each row contains 13 columns:   \n"
-               "     Col. 0  Rank of cluster (sorting order).\n"
-               "     Col. 1  Number of nodes in cluster.\n"
-               "     Col. 2  Total area of cluster. Units are the \n"
-               "             the surface coordinates' units^2.\n"
-               "     Col. 3  Mean data value in cluster.\n"
-               "     Col. 4  Mean of absolute data value in cluster.\n"
-               "     Col. 5  Central node of cluster (see below).\n"
-               "     Col. 6  Weighted central node (see below).\n"
-               "     Col. 7  Minimum value in cluster.\n"
-               "     Col. 8  Node where minimum value occurred.\n"
-               "     Col. 9  Maximum value in cluster.\n"
-               "     Col. 10 Node where maximum value occurred.\n"
-               "     Col. 11 Variance of values in cluster.\n"
-               "     Col. 12 Standard error of the mean ( sqrt(variance / number of nodes) ).\n"
-               "   The CenterNode n is such that: \n"
-               "   ( sum (Uia * dia * wi) ) - ( Uca * dca * sum (wi) ) is minimal\n" 
-               "     where i is a node in the cluster\n"
-               "           a is an anchor node on the surface\n"
-               "           sum is carried over all nodes i in a cluster\n"
-               "           w. is the weight of a node \n"
-               "              = 1.0 for central node \n"
-               "              = value at node for the weighted central node\n"
-               "           U.. is the unit vector between two nodes\n"
-               "           d.. is the distance between two nodes on the graph\n"
-               "              (an approximation of the geodesic distance)\n"
-               "   If -no_cent is used, CenterNode columns are set to 0.\n"
-               "\n"
-               "%s"
-               "\n", s);
-               /* Can use -O2_NR, -O2 and -Oll to try different implementations 
-               of the cluster building function. -O2 and -Oll are recursive and
-               work well for small clusters, a catastrophy for large clusters.
-               -O2_NR is fast and reliable. */
+      printf ( 
+"\nUsage: A program to perform clustering analysis surfaces.\n"
+"  SurfClust <-spec SpecFile> \n"/* [<-sv sv_name>] */
+"            <-surf_A insurf> \n"
+"            <-input inData.1D dcol_index> \n"
+"            <-rmm rad>\n"
+"            [-amm2 minarea]\n"
+"            [-prefix OUTPREF]  \n"
+"            [-out_clusterdset] [-out_roidset] \n"
+"            [-out_fulllist]\n"
+"            [-sort_none | -sort_n_nodes | -sort_area]\n"
+"\n"
+"  The program can outputs a table of the clusters on the surface,\n"
+"  a mask dataset formed by the different clusters and a clustered\n"
+"  version of the input dataset.\n"
+"\n"
+"  Mandatory parameters:\n"
+"     -spec SpecFile: The surface spec file.\n"
+"     -surf_A insurf: The input surface name.\n"
+"     -input inData.1D dcol_index: The input 1D dataset\n"
+"                                  and the index of the\n"
+"                                  datacolumn to use\n"
+"                                  (index 0 for 1st column).\n"
+"                                  Values of 0 indicate \n"
+"                                  inactive nodes.\n"
+"     -rmm rad: Maximum distance between an activated node\n"
+"               and the cluster to which it belongs.\n"
+"               Distance is measured on the surface's graph (mesh).\n"
+"\n"
+"  Optional Parameters:\n"
+"     -thresh_col tcolind: Index of thresholding column.\n"
+"                          Default is column 0.\n "
+"     -thresh tval: Apply thresholding prior to clustering.\n"
+"                   A node n is considered if thresh_col[n] > tval.\n"
+"     -athresh tval: Apply absolute thresholding prior to clustering.\n"
+"                    A node n is considered if | thresh_col[n] | > tval.\n" 
+"     -amm2 minarea: Do not output resutls for clusters having\n"
+"                    an area less than minarea.\n"
+"     -prefix OUTPREF: Prefix for output.\n"
+"                      Default is the prefix of \n"
+"                      the input dataset.\n"
+"                      If this option is used, the\n"
+"                      cluster table is written to a file called\n"
+"                      OUTPREF_ClstTable_rXX_aXX.1D. Otherwise the\n"
+"                      table is written to stdout. \n"
+"                      You can specify the output format by adding\n"
+"                      extensions to OUTPREF. For example, \n"
+"                      OUTPREF.1D.dset will force the output to be \n"
+"                      in the .1D format. \n"
+"                      See ConvertDset for many more format options.\n"
+"     -out_clusterdset: Output a clustered version of inData.1D \n"
+"                       preserving only the values of nodes that \n"
+"                       belong to clusters that passed the rmm and amm2\n" 
+"                       conditions above.\n"
+"                       The clustered dset's prefix has\n"
+"                       _Clustered_rXX_aXX affixed to the OUTPREF\n"
+"     -out_roidset: Output an ROI dataset with the value\n"
+"                   at each node being the rank of its\n"
+"                   cluster. The ROI dataset's prefix has\n"
+"                   _ClstMsk_rXX_aXX affixed to the OUTPREF\n"
+"                   where XX represent the values for the\n"
+"                   the -rmm and -amm2 options respectively.\n"
+"                   The program will not overwrite pre-existing\n"
+"                   dsets.\n"
+"     -prepend_node_index: Force the output dataset to have node\n"
+"                    indices in column 0 of output. Use this option\n"
+"                    if you are parsing .1D format datasets.\n"
+"     -out_fulllist: Output a value for all nodes of insurf.\n"
+"                    This option must be used in conjuction with\n"
+"                    -out_roidset and/or out_clusterdset.\n"
+"                    With this option, the output files might\n"
+"                    be mostly 0, if you have small clusters.\n"
+"                    However, you should use it if you are to \n"
+"                    maintain the same row-to-node correspondence\n"
+"                    across multiple datasets.\n"  
+"     -sort_none: No sorting of ROI clusters.\n"
+"     -sort_n_nodes: Sorting based on number of nodes\n"
+"                    in cluster.\n"
+"     -sort_area: Sorting based on area of clusters \n"
+"                 (default).\n"
+"     -update perc: Pacify me when perc of the data have been\n"
+"                   processed. perc is between 1%% and 50%%.\n"
+"                   Default is no update.\n"
+"     -no_cent: Do not find the central nodes.\n"
+"               Finding the central node is a \n"
+"               relatively slow operation. Use\n"
+"               this option to skip it.\n"
+/*"     -sv SurfaceVolume \n"
+"        If you supply a surface volume, the coordinates of the input surface.\n"
+"        are modified to SUMA's convention and aligned with SurfaceVolume.\n"
+"     -acpc: Apply acpc transform (which must be in acpc version of \n"
+"        SurfaceVolume) to the surface vertex coordinates. \n"
+"        This option must be used with the -sv option.\n"
+"     -tlrc: Apply Talairach transform (which must be a talairach version of \n"
+"        SurfaceVolume) to the surface vertex coordinates. \n"
+"        This option must be used with the -sv option.\n"
+"     -MNI_rai/-MNI_lpi: Apply Andreas Meyer Lindenberg's transform to turn \n"
+"        AFNI tlrc coordinates (RAI) into MNI coord space \n"
+"        in RAI (with -MNI_rai) or LPI (with -MNI_lpi)).\n"
+"        NOTE: -MNI_lpi option has not been tested yet (I have no data\n"
+"        to test it on. Verify alignment with AFNI and please report\n"
+"        any bugs.\n" 
+"        This option can be used without the -tlrc option.\n"
+"        But that assumes that surface nodes are already in\n"
+"        AFNI RAI tlrc coordinates .\n"    
+"\n" */
+"\n"
+"  The cluster table output:\n"
+"  A table where ach row shows results from one cluster.\n"
+"  Each row contains 13 columns:   \n"
+"     Col. 0  Rank of cluster (sorting order).\n"
+"     Col. 1  Number of nodes in cluster.\n"
+"     Col. 2  Total area of cluster. Units are the \n"
+"             the surface coordinates' units^2.\n"
+"     Col. 3  Mean data value in cluster.\n"
+"     Col. 4  Mean of absolute data value in cluster.\n"
+"     Col. 5  Central node of cluster (see below).\n"
+"     Col. 6  Weighted central node (see below).\n"
+"     Col. 7  Minimum value in cluster.\n"
+"     Col. 8  Node where minimum value occurred.\n"
+"     Col. 9  Maximum value in cluster.\n"
+"     Col. 10 Node where maximum value occurred.\n"
+"     Col. 11 Variance of values in cluster.\n"
+"     Col. 12 Standard error of the mean ( sqrt(variance/number of nodes) ).\n"
+"   The CenterNode n is such that: \n"
+"   ( sum (Uia * dia * wi) ) - ( Uca * dca * sum (wi) ) is minimal\n" 
+"     where i is a node in the cluster\n"
+"           a is an anchor node on the surface\n"
+"           sum is carried over all nodes i in a cluster\n"
+"           w. is the weight of a node \n"
+"              = 1.0 for central node \n"
+"              = value at node for the weighted central node\n"
+"           U.. is the unit vector between two nodes\n"
+"           d.. is the distance between two nodes on the graph\n"
+"              (an approximation of the geodesic distance)\n"
+"   If -no_cent is used, CenterNode columns are set to 0.\n"
+"\n"
+"%s"
+"\n"
+      , s);
+/* Can use -O2_NR, -O2 and -Oll to try different implementations 
+of the cluster building function. -O2 and -Oll are recursive and
+work well for small clusters, a catastrophy for large clusters.
+-O2_NR is fast and reliable. */
        SUMA_free(s); s = NULL;        
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
        printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
@@ -502,7 +504,9 @@ int main (int argc,char *argv[])
 		fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
 		exit(1);
 	}
-   SO_read = SUMA_spec_select_surfs(&Spec, Opt->surf_names, SURFCLUST_MAX_SURF, 0);
+   SO_read = SUMA_spec_select_surfs(
+                  &Spec, Opt->surf_names, 
+                  SURFCLUST_MAX_SURF, 0);
    if ( SO_read != Opt->N_surf )
    {
 	   if (SO_read >=0 )
@@ -579,33 +583,51 @@ int main (int argc,char *argv[])
       N_ni = cnt;
    }
    if (Opt->update) {
-      Opt->update = -(N_ni * Opt->update / 100); /* make it negative before you begin a clustering operation */
+      Opt->update = -(N_ni * Opt->update / 100); /* make it negative 
+                                                   before you begin a 
+                                                   clustering operation */
       if (LocalHead) {
-         fprintf(SUMA_STDERR,"Update parameter, once every %d nodes\n%d nodes to work with.\n", -(int)Opt->update, N_ni);
+         fprintf( SUMA_STDERR,
+                  "Update parameter, once every %d nodes\n"
+                  "%d nodes to work with.\n", 
+                  -(int)Opt->update, N_ni);
       }    
    }
    
    /* make the call */
    list = SUMA_FindClusters (SO, ni, nv, N_ni, -1, Opt, NodeArea);
-   
-   /* sort the list */
-   if (!SUMA_Sort_ClustersList (list, Opt->SortMode)) {
-      SUMA_S_Err("Failed to sort cluster list");
-      exit(1);
+   if (!list) {
+      SUMA_S_Err("Failed in SUMA_FindClusters"); 
+      exit(1);      
    }
-       
+   
+   if (list->size) {
+      /* sort the list */
+      if (!SUMA_Sort_ClustersList (list, Opt->SortMode)) {
+         SUMA_S_Err("Failed to sort cluster list");
+         exit(1);
+      }
+   }       
    /* Show the results */
    params = SUMA_HistString(FuncName, argc, argv, NULL);
    if (Opt->WriteFile) {
       clustout = fopen(ClustOutName, "w");
       if (!clustout) {
-         fprintf (SUMA_STDERR,"Error %s:\nFailed to open %s for writing.\nCheck permissions.\n",  FuncName, ClustOutName);
+         fprintf (SUMA_STDERR,
+                  "Error %s:\n"
+                  "Failed to open %s for writing.\n"
+                  "Check permissions.\n",  
+                  FuncName, ClustOutName);
          exit(1);
       }
       SUMA_Show_SurfClust_list(list, clustout, 0, params);
       fclose(clustout);clustout = NULL;  
    }  else SUMA_Show_SurfClust_list(list, NULL, 0, params);
    
+   if (!list->size) {
+      /* nothing left to do, quit */
+      exit(0);
+   }
    
    if (Opt->OutROI) {
       SUMA_DSET *dset_roi = NULL;
@@ -614,15 +636,19 @@ int main (int argc,char *argv[])
       if (Opt->AreaLim < 0) sprintf(stmp,"_ClstMsk_r%.1f", Opt->DistLim);
       else sprintf(stmp,"_ClstMsk_r%.1f_a%.1f", Opt->DistLim, Opt->AreaLim);
       ROIprefix = SUMA_append_string(Opt->out_prefix, stmp);
-      /* Call this function, write out the resultant dset to disk then cleanup */
-      dset_roi = SUMA_SurfClust_list_2_DsetMask(SO, list, Opt->FullROIList, ROIprefix);
+      /* Call this function, write out the resultant dset to disk 
+         then cleanup */
+      dset_roi = 
+         SUMA_SurfClust_list_2_DsetMask(SO, list, Opt->FullROIList, ROIprefix);
       
       if (!dset_roi) {
          SUMA_S_Err("NULL dset_roi");
          exit(1);
       }
       if (Opt->prepend_node_index) {/* prepend node index? */         
-         if (!SUMA_InsertDsetNelCol (dset_roi, "Node Index Copy", SUMA_NODE_INT, (void *)(dset_roi->inel->vec[0]), NULL ,1, 0)) {
+         if (!SUMA_InsertDsetNelCol (
+               dset_roi, "Node Index Copy", SUMA_NODE_INT, 
+               (void *)(dset_roi->inel->vec[0]), NULL ,1, 0)) {
             SUMA_S_Err("Failed to insert column");
          }
          if (LocalHead) SUMA_ShowDset(dset_roi,0, NULL); 
@@ -642,9 +668,12 @@ int main (int argc,char *argv[])
       if (Opt->AreaLim < 0) sprintf(stmp,"_Clustered_r%.1f", Opt->DistLim);
       else sprintf(stmp,"_Clustered_r%.1f_a%.1f", Opt->DistLim, Opt->AreaLim);
       Clustprefix = SUMA_append_string(Opt->out_prefix, stmp);
-      /* Call this function, write out the resultant dset to disk then cleanup */
+      /* Call this function, write out the resultant dset to disk 
+         then cleanup */
       
-      dset_clust = SUMA_MaskDsetByClustList(dset, SO, list, Opt->FullROIList, Clustprefix);
+      dset_clust = 
+         SUMA_MaskDsetByClustList(  dset, SO, list, 
+                                    Opt->FullROIList, Clustprefix);
       if (!dset_clust) {
          SUMA_S_Err("NULL dset_clust");
          exit(1);
