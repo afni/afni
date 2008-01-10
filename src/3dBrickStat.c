@@ -6,7 +6,8 @@
 static int datum                   = MRI_float ;
 static void Print_Header_MinMax(int Minflag, int Maxflag, THD_3dim_dataset * dset);
 static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag, int Posflag,\
-    int Negflag, int Zeroflag, int nan_flag, int sum_flag, int Varflag, THD_3dim_dataset * dset, byte *mmm, int mmvox);
+    int Negflag, int Zeroflag, int nan_flag, int sum_flag, int Varflag, \
+    int Volflag,  THD_3dim_dataset * dset, byte *mmm, int mmvox);
 static void Max_tsfunc( double tzero , double tdelta ,
                          int npts , float ts[] , double ts_mean ,
                          double ts_slope , void * ud , int nbriks, float * val ) ;
@@ -18,7 +19,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
    int nopt, nbriks;
    int slow_flag, quick_flag, min_flag, max_flag, mean_flag, automask,count_flag, sum_flag, var_flag;
-   int positive_flag, negative_flag, zero_flag, nan_flag, perc_flag;
+   int positive_flag, negative_flag, zero_flag, nan_flag, perc_flag, vol_flag;
    byte * mmm=NULL ;
    int    mmvox=0 ;
    int nxyz, i;
@@ -43,17 +44,19 @@ int main( int argc , char * argv[] )
              "Options :\n"
              "  -quick = get the information from the header only (default)\n"
              "  -slow = read the whole dataset to find the min and max values\n"
+             "         all other options except min and max imply slow\n"
              "  -min = print the minimum value in dataset\n"
              "  -max = print the minimum value in dataset (default)\n"
-             "  -mean = print the mean value in dataset (implies slow)\n"
-             "  -var = print the variance in the dataset (implies slow)\n"
-             "  -count = print the number of voxels included (implies slow)\n"
-             "  -positive = include only positive voxel values (implies slow)\n"
-             "  -negative = include only negative voxel values (implies slow)\n"
-             "  -zero = include only zero voxel values (implies slow)\n"
-             "  -non-positive = include only voxel values 0 or negative (implies slow)\n"
-             "  -non-negative = include only voxel values 0 or greater (implies slow)\n"
-             "  -non-zero = include only voxel values not equal to 0 (implies slow)\n"
+             "  -mean = print the mean value in dataset \n"
+             "  -var = print the variance in the dataset \n"
+             "  -count = print the number of voxels included\n"
+             "  -volume = print the volume of voxels included\n"
+             "  -positive = include only positive voxel values \n"
+             "  -negative = include only negative voxel values \n"
+             "  -zero = include only zero voxel values \n"
+             "  -non-positive = include only voxel values 0 or negative \n"
+             "  -non-negative = include only voxel values 0 or greater \n"
+             "  -non-zero = include only voxel values not equal to 0 \n"
              "  -nan = include only voxel values that are not numbers (NaN, inf, -if,\n       implies slow)\n"
              "  -nonan =exclude voxel values that are not numbers\n"
              "  -mask dset = use dset as mask to include/exclude voxels\n"
@@ -86,6 +89,7 @@ int main( int argc , char * argv[] )
    quick_flag = -1;
    automask = 0;
    count_flag = 0;
+   vol_flag = 0;
    positive_flag = -1;
    negative_flag = -1;
    zero_flag = -1;
@@ -163,6 +167,11 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-count") == 0 ){
 	count_flag = 1;
+        nopt++; continue;
+      }
+
+      if( strcmp(argv[nopt],"-volume") == 0 ){
+	vol_flag = 1;
         nopt++; continue;
       }
 
@@ -287,13 +296,15 @@ int main( int argc , char * argv[] )
    }
 
    if(max_flag==-1) {                   /* if max_flag is not set by user,*/
-     if(min_flag || mean_flag ||count_flag || sum_flag || perc_flag)   /* check if other user options set */
+     if(min_flag || mean_flag ||count_flag || vol_flag 
+          || sum_flag || perc_flag)   /* check if other user options set */
          max_flag = 0;
       else
 	max_flag = 1;                  /* otherwise check only for max */
      }
 
-   if((var_flag==1)||(mean_flag==1)||(count_flag==1)||(positive_flag!=-1)||(nan_flag!=-1)||(sum_flag == 1)||(perc_flag == 1))  /* mean flag or count_flag implies slow */
+   if((var_flag==1)||(mean_flag==1)||(count_flag==1)||(vol_flag==1)
+     ||(positive_flag!=-1)||(nan_flag!=-1)||(sum_flag == 1)||(perc_flag == 1))  /* mean flag or count_flag implies slow */
      slow_flag = 1;
 
    /* check slow and quick options */
@@ -393,8 +404,9 @@ int main( int argc , char * argv[] )
       
    }
 
-   Max_func(min_flag, max_flag, mean_flag,count_flag,positive_flag, negative_flag, zero_flag,\
-     nan_flag, sum_flag, var_flag, old_dset, mmm, mmvox);
+   Max_func(min_flag, max_flag, mean_flag,count_flag,
+        positive_flag, negative_flag, zero_flag,
+        nan_flag, sum_flag, var_flag, vol_flag,old_dset, mmm, mmvox);
 
    
    if(mmm!=NULL)
@@ -491,8 +503,11 @@ THD_3dim_dataset * dset;
 
 /*! search whole dataset for minimum and maximum */
 /* load all at one time */
-static void Max_func(Minflag, Maxflag, Meanflag, Countflag, Posflag, Negflag, Zeroflag, nan_flag, Sumflag, Varflag, dset, mmm, mmvox)
+static void Max_func(Minflag, Maxflag, Meanflag, Countflag, Posflag, 
+   Negflag, Zeroflag, nan_flag, Sumflag, Varflag, Volflag,
+   dset, mmm, mmvox)
 int Minflag, Maxflag;
+/* variables declared at beginning */
 THD_3dim_dataset * dset;
 byte *mmm;  /* mask pointer */
 int mmvox;
@@ -614,6 +629,11 @@ int mmvox;
      }
    if(Countflag)
      printf("%-13d", npts);
+
+   if(Volflag)
+     printf("%-13.6f", dset->daxes->xxdel *  dset->daxes->yydel * 
+          dset->daxes->zzdel * npts);
+
 
    if (Sumflag) 
       printf("%-13.6g ", sum);
