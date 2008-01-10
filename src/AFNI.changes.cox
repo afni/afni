@@ -6516,3 +6516,6 @@
 
 09 Dec 2007
  * SIGQUIT delay in afni.c, for Jerzy.
+
+10 Dec 2007
+ * Small changes to AlphaSim.c, like using -fast option and better help.
