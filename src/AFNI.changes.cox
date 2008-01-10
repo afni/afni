@@ -6519,3 +6519,4 @@
 
 10 Dec 2007
  * Small changes to AlphaSim.c, like using -fast option and better help.
+ * Scrolling window changes to afni_cluster.c (Clusterize report panel).

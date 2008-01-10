@@ -226,6 +226,9 @@ static void AFNI_clus_action_CB( Widget,XtPointer,XtPointer ) ;
 
 /*---------------------------------------------------------------------------*/
 
+static int maxclu_default = 15 ;
+static int scrolling      =  1 ;
+
 /*! Make the widgets for one row of the cluster display/control panel.
     The row itself will not be managed at this time; that comes later. */
 
@@ -272,6 +275,7 @@ static void AFNI_clus_action_CB( Widget,XtPointer,XtPointer ) ;
                     XmNactivateCallback,AFNI_clus_action_CB,im3d ); \
      XtAddCallback( cwid->clu_flsh_pb[ii],                          \
                     XmNactivateCallback,AFNI_clus_action_CB,im3d ); \
+     if( scrolling && ii%2==1 ) MCW_set_widget_bg(rc,"black",0) ;   \
   } while(0)
 
 /*---------------------------------------------------------------------------*/
@@ -306,6 +310,7 @@ static void AFNI_clus_make_widgets( Three_D_View *im3d, int num )
    XmString xstr ;
    char str[32] , *eee ;
    int ii ;
+   Widget shtop , swtop=NULL ;
 
 ENTRY("AFNI_clus_make_widgets") ;
 
@@ -333,11 +338,25 @@ ENTRY("AFNI_clus_make_widgets") ;
            XmInternAtom( im3d->dc->display , "WM_DELETE_WINDOW" , False ) ,
            AFNI_clus_done_CB , im3d ) ;
 
+   if( !AFNI_noenv("AFNI_CLUSTER_SCROLL") )
+     swtop = shtop = XtVaCreateManagedWidget(
+                   "menu" , xmScrolledWindowWidgetClass , cwid->wtop ,
+                      XmNscrollingPolicy        , XmAUTOMATIC ,
+                      XmNvisualPolicy           , XmVARIABLE ,
+                      XmNscrollBarDisplayPolicy , XmSTATIC ,
+                      XmNinitialResourcesPersistent , False ,
+                   NULL ) ;
+   else
+     shtop = cwid->wtop ;
+
+   scrolling      = (swtop!=NULL) ;
+   maxclu_default = (scrolling) ? 99 : 15 ;
+
    /* vertical rowcol to hold it all */
 
    cwid->rowcol =
       XtVaCreateWidget(
-         "dialog" , xmRowColumnWidgetClass , cwid->wtop ,
+         "dialog" , xmRowColumnWidgetClass , shtop ,
             XmNpacking      , XmPACK_TIGHT ,
             XmNorientation  , XmVERTICAL   ,
             XmNspacing      , 0 ,
@@ -597,6 +616,16 @@ ENTRY("AFNI_clus_make_widgets") ;
                       "Flash cluster voxels in image viewers" ) ;
 
    XtManageChild( cwid->rowcol ) ;
+
+   if( swtop != NULL ){
+     int wx,hy , cmax ;
+     MCW_widget_geom( cwid->rowcol  , &wx,&hy,NULL,NULL ) ;
+     cmax = im3d->dc->height - 128 ;
+     hy  *= 3 ;
+     if( hy > cmax ) hy = cmax ;
+     XtVaSetValues( cwid->wtop , XmNwidth,wx+29,XmNheight,hy+19 , NULL ) ;
+   }
+
    XtRealizeWidget( cwid->wtop ) ;
    cwid->receive_on = 0 ;
 
@@ -748,6 +777,7 @@ void AFNI_clus_update_widgets( Three_D_View *im3d )
    float px,py,pz , xx,yy,zz ;
    char line[128] ;
    MCW_cluster_array *clar ;
+   int maxclu ;
 
 ENTRY("AFNI_clus_update_widgets") ;
 
@@ -755,7 +785,12 @@ ENTRY("AFNI_clus_update_widgets") ;
 
    clar = im3d->vwid->func->clu_list ;
    if( clar != NULL ){  /* sort and truncate */
-     nclu = clar->num_clu ; if( nclu > 16 ) nclu = 15 ;
+     maxclu = maxclu_default ;
+     if( !scrolling ){
+       maxclu = AFNI_numenv("AFNI_CLUSTER_REPMAX") ;
+       if( maxclu < 10 || maxclu > 99 ) maxclu = maxclu_default ;
+     }
+     nclu = clar->num_clu ; nclu = MIN(nclu,maxclu) ;
      SORT_CLARR(clar) ;
      for( ii=nclu ; ii < clar->num_clu ; ii++ ){ KILL_CLUSTER(clar->clar[ii]); }
      clar->num_clu = nclu ;
