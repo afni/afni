@@ -320,12 +320,12 @@ static void EIG_tsfunc( double tzero, double tdelta ,
    if(udflag) {               /* read in as upper diagonal elements */
       a[0]=ts[0]; a[1]=ts[1]; a[2]=ts[2];  
       a[3]=ts[1]; a[4]=ts[3]; a[5]=ts[4];
-      a[6]=ts[2]; a[5]=ts[4]; a[8]=ts[5];
+      a[6]=ts[2]; a[7]=ts[4]; a[8]=ts[5];
    }
    else {         /* read D tensor in as lower diagonal elements - NIFTI standard */ 
       a[0]=ts[0]; a[1]=ts[1]; a[2]=ts[3];
       a[3]=ts[1]; a[4]=ts[2]; a[5]=ts[4];
-      a[6]=ts[3]; a[5]=ts[4]; a[8]=ts[5];
+      a[6]=ts[3]; a[7]=ts[4]; a[8]=ts[5];
    }
   symeig_double(3, a, e);    /* compute eigenvalues in e, eigenvectors in a */
  
