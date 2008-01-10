@@ -244,3 +244,5 @@ datasets elsewhere
  * onset, offset (around maximum) added to 3dTstat
 09 Jan 2008
  * volume added to 3dBrickStat
+10 Jan 2008
+ * fixed bug in 3dDTeig in eigenvalue calculation
