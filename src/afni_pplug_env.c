@@ -471,6 +471,11 @@ PLUGIN_interface * ENV_init(void)
                    "Prefix for Clusterize 1D file Saves" , 0 , NULL , NULL ) ;
 #endif
 
+   /* 10 Jan 2008 [RWCox] */
+   ENV_add_numeric( "AFNI_CLUSTER_REPMAX" ,
+                    "Max number rows in Clusterize Rpt table" ,
+                    10,99,0,15 , NULL ) ;
+
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
    if( !AFNI_yesenv("AFNI_DONT_SORT_ENVIRONMENT") )
