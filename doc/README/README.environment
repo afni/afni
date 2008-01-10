@@ -2474,11 +2474,19 @@ field, and the prefix can be edited there by the users when it comes
 time to save files.
 
 -----------------------------
+Variable: AFNI_CLUSTER_SCROLL
+-----------------------------
+If this variable is NO, then the 'Clusterize' report will not be given
+scrollbars.  The default is to give it scroll bars.
+
+-----------------------------
 Variable: AFNI_CLUSTER_REPMAX  (editable)
 -----------------------------
 This numeric variable (between 10 and 99, inclusive) sets the maximum
-number of clusters that will be reported in a 'Clusterize' 'Rpt' table.
-The default value is 15.
+number of clusters that will be reported in a 'Clusterize' report panel,
+if scroll bars are turned off by AFNI_CLUSTER_SCROLL. The default value
+is 15.  If scroll bars are turned on, then the maximum number of clusters
+shown is fixed at 99.
 
 ----------------------------
 Variable: AFNI_STRLIST_INDEX
