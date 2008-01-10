@@ -41,8 +41,10 @@
 #define METH_ABSSUM       21
 
 #define METH_NZMEAN       22  /* DRG 03 Oct 2007 */
+#define METH_ONSET        23  /* DRG 08 Jan 2008 */
+#define METH_OFFSET       24
 
-#define MAX_NUM_OF_METHS  23
+#define MAX_NUM_OF_METHS  25
 
 static int meth[MAX_NUM_OF_METHS]  = {METH_MEAN};
 static int nmeths                  = 0;
@@ -56,7 +58,8 @@ static char *meth_names[] = {
    "Durbin-Watson" , "Std Dev(NOD)" , "Coef Var(NOD)" , "AutoCorr"    ,
    "AutoReg"       , "Absolute Max" , "ArgMax"        , "ArgMin"      ,
    "ArgAbsMax"     , "Sum"          , "Duration"      , "Centroid"    ,
-   "CentDuration"  , "Absolute Sum" , "Non-zero Mean"
+   "CentDuration"  , "Absolute Sum" , "Non-zero Mean" , "Onset"       ,
+   "Offset"
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
@@ -65,7 +68,8 @@ static void STATS_tsfunc( double tzero , double tdelta ,
 
 static void autocorr( int npts, float ints[], int numVals, float outcoeff[] ) ;
 
-static int Calc_duration(float *ts, int npts, float vmax, int max_index);
+static int Calc_duration(float *ts, int npts, float vmax, int max_index,
+   int *onset, int *offset);
 static float Calc_centroid(float *ts, int npts);
 
 
@@ -114,6 +118,10 @@ int main( int argc , char *argv[] )
              " -argabsmax = index of absolute maximum of input voxels [undetrended]\n"
              " -duration  = compute number of points around max above a threshold\n"
              "              Use basepercent option to set limits\n"
+             " -onset     = beginning of duration around max where value\n"
+             "              exceeds basepercent\n"
+             " -offset    = end of duration around max where value\n"
+             "              exceeds basepercent\n"
              " -centroid  = compute centroid of data time curves\n"
              "              (sum(i*f(i)) / sum(f(i)))\n"
              " -centduration = compute duration using centroid's index as center\n"
@@ -270,6 +278,19 @@ int main( int argc , char *argv[] )
          nbriks++ ;
          nopt++ ; continue ;
       }
+
+      if( strcmp(argv[nopt],"-onset") == 0 ){
+         meth[nmeths++] = METH_ONSET ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-offset") == 0 ){
+         meth[nmeths++] = METH_OFFSET ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+
       if( strcmp(argv[nopt],"-centroid") == 0 ){
          meth[nmeths++] = METH_CENTROID ;
          nbriks++ ;
@@ -440,7 +461,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
                           void *ud, int nbriks, float *val          )
 {
    static int nvox , ncall ;
-   int meth_index, ii , out_index, nzpts;
+   int meth_index, ii , out_index, nzpts, onset, offset, duration;
    float* ts_det;
 
    /** is this a "notification"? **/
@@ -583,6 +604,8 @@ static void STATS_tsfunc( double tzero, double tdelta ,
       }
       break ;
 
+      case METH_ONSET:
+      case METH_OFFSET:
       case METH_DURATION:
       case METH_ABSMAX:
       case METH_ARGMAX:
@@ -615,8 +638,17 @@ static void STATS_tsfunc( double tzero, double tdelta ,
                val[out_index] = vm ;
             break;
 
+            case METH_ONSET:
+            case METH_OFFSET:
             case METH_DURATION:
-              val[out_index] = Calc_duration(ts, npts, vm, outdex);
+               duration = Calc_duration(ts, npts, vm, outdex,
+                                    &onset,&offset);
+               switch(meth[meth_index]) {
+                  case METH_ONSET: val[out_index] = onset; break;
+                  case METH_OFFSET: val[out_index] = offset; break;
+                  case METH_DURATION: val[out_index] = duration; break;
+               }
+
             break;
 
             case METH_ARGMAX:
@@ -629,7 +661,8 @@ static void STATS_tsfunc( double tzero, double tdelta ,
               float cm;
               cm = Calc_centroid(ts, npts);
               if(meth[meth_index]== METH_CENTDURATION)
-                 val[out_index] = Calc_duration(ts, npts, vm, (int) cm);
+                 val[out_index] = Calc_duration(ts, npts, vm, (int) cm,
+                                &onset,&offset);
               else
                  val[out_index] = cm;
             }
@@ -837,19 +870,20 @@ static void autocorr( int npts, float in_ts[], int numVals, float outcoeff[] )
 /* calculate the duration of a peak in number of subbricks */
 /* duration is the number of points at or above the threshold*/
 static int
-Calc_duration(float ts[], int npts, float vmax, int max_index)
+Calc_duration(float ts[], int npts, float vmax, int max_index, 
+  int *onset, int *offset)
 {
    float minlimit;
-   int onset, offset, i;
+   int i;
    ENTRY("Calc_duration");
    /* find beginning - onset - first point before max that falls below min */
    minlimit = basepercent * vmax;
    i = max_index;   /* for centroid option we need to start at max_index*/
-   onset = -1;
-   offset = npts;
+   *onset = -1;
+   *offset = npts;
    while(i>=0) {
      if(ts[i]<minlimit) {
-        onset = i;
+        *onset = i;
         break;
      }
      i--;
@@ -860,12 +894,12 @@ Calc_duration(float ts[], int npts, float vmax, int max_index)
    i = max_index + 1;
    while(i<npts) {
      if(ts[i]<minlimit) {
-        offset = i;
+        *offset = i;
         break;
      }
      i++;
    }
-   RETURN(offset - onset -1);
+  RETURN(*offset - *onset -1);
 }
 
 /* calculate the centroid of a time series*/
