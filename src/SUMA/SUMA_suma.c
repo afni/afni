@@ -508,7 +508,9 @@ int main (int argc,char *argv[])
 			}
 			
          if (ispec >= SUMA_MAX_N_GROUPS) {
-            fprintf (SUMA_STDERR, "Cannot accept more than %d spec files.\n", SUMA_MAX_N_GROUPS);
+            fprintf (SUMA_STDERR, 
+                     "Cannot accept more than %d spec files.\n",     
+                     SUMA_MAX_N_GROUPS);
             exit(1);
          }
          
@@ -522,7 +524,9 @@ int main (int argc,char *argv[])
 		
 
 		if (!brk && !ps->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			fprintf (SUMA_STDERR,
+                  "Error %s: Option %s not understood. Try -help for usage\n", 
+                  FuncName, argv[kar]);
 			exit (1);
 		} else {	
 			brk = NOPE;
@@ -543,12 +547,13 @@ int main (int argc,char *argv[])
 	if (specfilename[0] == NULL && Specp[0] == NULL) {
       SUMA_SurfaceObject **SOv=NULL;
       int N_SOv = 0;
-      fprintf (SUMA_STDERR,"\n"
-                           "%s: \n"
-                           "     No input specified, loading some toy surfaces...\n"
-                           "     Use '.' and ',' to cycle between them.\n"
-                           "     See suma -help for assistance.\n"
-                           "\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "\n"
+               "%s: \n"
+               "     No input specified, loading some toy surfaces...\n"
+               "     Use '.' and ',' to cycle between them.\n"
+               "     See suma -help for assistance.\n"
+               "\n", FuncName);
 		/* create your own surface and put it in a spec file */
       SOv = SUMA_GimmeSomeSOs(&N_SOv);
       Specp[ispec] = SUMA_SOGroup_2_Spec (SOv, N_SOv);
