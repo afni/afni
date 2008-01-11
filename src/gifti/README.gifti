@@ -45,10 +45,9 @@ todo:
   - option to set encoding (or let users set that in the DA struct?)
   - eventually replace Caret-Version with AFNI-Version (no, at higher level)
   - data in external file(s)
-
-  - create a new GIFTI dataset
-            - add the ability to point to parts of external file
-            - no geometry for now (useless to fill with values)
+  - convert to float
+  - select node list
+  - display valid attributes?  DTD?  valid attribute values given the name?
 
   - gifti_remove_gim_metadata()
   - gifti_remove_DA_metadata()

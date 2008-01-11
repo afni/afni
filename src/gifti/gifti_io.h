@@ -183,8 +183,6 @@ int    gifti_intent_from_string (const char * name);
 int    gifti_intent_is_valid    (int code);
 char * gifti_intent_to_string   (int code);
 char * gifti_list_index2string  (char * list[], int index);
-int    gifti_set_all_DA_attribs (gifti_image * gim, const char * name,
-                                                    const char * value );
 int    gifti_get_xml_buf_size   (void);
 int    gifti_set_xml_buf_size   (int buf_size);
 int    gifti_str2attr_gifti     (gifti_image * gim, const char * attr,
@@ -199,12 +197,12 @@ int    gifti_str2datatype       (const char * str);
 int    gifti_swap_2bytes        (void *data, long long nsets);
 int    gifti_swap_4bytes        (void *data, long long nsets);
 
-int    gifti_alloc_all_data     (gifti_image * gim);
+int    gifti_alloc_DA_data      (gifti_image * gim, const int *dalist, int len);
 int    gifti_add_empty_darray   (gifti_image * gim, int num_to_add);
+int    gifti_add_to_meta        (giiMetaData * md, const char * name,
+                                 const char * value, int replace);
 int    gifti_add_to_nvpairs     (nvpairs * p, const char * name,
                                               const char * value);
-
-int    gifti_init_darray_from_attrs(giiDataArray * da, const char ** attr);
 
 int    gifti_free_CoordSystem   (giiCoordSystem * cs);
 int    gifti_free_DataArray_list(giiDataArray ** darray, int numDA);
@@ -214,18 +212,26 @@ int    gifti_free_nvpairs       (nvpairs * p);
 
 int    gifti_is_valid_darray    (giiDataArray * da, int whine);
 int    gifti_read_dset_numDA    (const char * fname);
-int    gifti_set_attr_all_DA    (gifti_image *gim, const char *name,
-                                                   const char *value);
+int    gifti_set_atr_in_DAs     (gifti_image *gim, const char *name,
+                                 const char *value, const int *dalist, int len);
+int    gifti_set_DA_atrs        (giiDataArray * da, const char ** attr, int len,
+                                 int add_to_extras);
 int    gifti_set_DA_defaults    (giiDataArray * da);
+int    gifti_set_DA_meta        (gifti_image *gim, const char *name,
+                                 const char *value, const int * dalist,
+                                 int len, int replace);
 int    gifti_set_dims_all_DA    (gifti_image * gim, int ndim, const int * dims);
 int    gifti_valid_datatype     (int dtype, int whine);
 int    gifti_valid_dims         (giiDataArray * da, int whine);
+int    gifti_valid_int_list     (const int *list, int len, int min, int max,
+                                 int whine);
 int    gifti_valid_nbyper       (int nbyper, int whine);
 int    gifti_valid_num_dim      (int num_dim, int whine);
 int    gifti_valid_nvpairs      (nvpairs * nvp, int whine);
 int    gifti_validate_dims      (giiDataArray * da, int whine);
 
 
+void   gifti_disp_dtd_url        (void);
 void   gifti_disp_lib_hist       (void);
 void   gifti_disp_lib_version    (void);
 

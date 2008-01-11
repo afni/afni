@@ -18,9 +18,16 @@ static char * g_history[] =
   "     - added dset creation ability and options, via -new_dset or MAKE_IM\n"
   "         (options -new_*, for numDA, intent, dtype, ndim, dims, data)\n"
   "     - added AFNI-style DA selection, for input datasets\n"
+  "0.2  11 Jan, 2008: added modification functionality\n",
+  "     - added option -gifti_dtd_url\n"
+  "     - added options -mod_DAs and -read_DAs (replaced -dalist)\n"
+  "     - added options -mod_add_data, -mod_DA_attr, -mod_DA_meta,\n"
+  "                     -mod_gim_attr, -mod_gim_meta\n"
+  "       (modification takes place at dataset read time)\n"
+  "     - reformatted help output\n"
 };
 
-static char g_version[] = "gifti_tool version 0.1, 03 January 2008";
+static char g_version[] = "gifti_tool version 0.2, 11 January 2008";
 
 /* globals: verbosity, for now */
 typedef struct { int verb; } gt_globs;
@@ -34,6 +41,7 @@ static int free_gt_opts(gt_opts * opts);
 static int init_opts(gt_opts * opts);
 static int show_help(void);
 static int show_hist(void);
+static int show_str_list(const char * mesg, gt_str_list * list, FILE * fp);
 static int process_opts(int argc, char *argv[], gt_opts * opts);
 static int show_version(void);
 
@@ -83,6 +91,9 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
         } else if( !strcmp(argv[ac], "-ver") ) {
             show_version();
             return 1;
+        } else if( !strcmp(argv[ac], "-gifti_dtd_url") ) {
+            gifti_disp_dtd_url();
+            return 1;
         } else if( !strcmp(argv[ac], "-gifti_hist") ) {
             gifti_disp_lib_hist();
             return 1;
@@ -121,18 +132,6 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-buf_size");
             opts->buf_size = atoi(argv[ac]);
-        } else if( !strcmp(argv[ac], "-da_list") ) {
-            ac++;
-            for( c = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, c++ )
-               if( add_to_int_list(&opts->DAlist, atoi(argv[ac])) ) return -1;
-            if( G.verb > 1 )
-                fprintf(stderr,"+d have %d DA indices names\n", c);
-            if( opts->DAlist.len == 0 ) {
-                fprintf(stderr,"** no DA indices with '-da_list'\n");
-                return -1;
-            }
-            /* and back up if we've looked too far */
-            if( ac < argc && argv[ac][0] == '-') ac--;
         } else if( !strcmp(argv[ac], "-encoding") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-encoding");
@@ -162,6 +161,64 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
             }
             /* and back up if we've looked too far */
             if( ac < argc && argv[ac][0] == '-') ac--;
+        } else if( !strcmp(argv[ac], "-mod_add_data") ) {
+            opts->mod_add_data = 1;
+        } else if( !strcmp(argv[ac], "-mod_DA_attr") ) {
+            opts->mod_DA_atr = 1;
+            ac++;
+            if( ac > argc-2 || argv[ac][0] == '-' || argv[ac+1][0] == '-' ) {
+                fprintf(stderr,"** option -mod_DA_attr requires 2 arguments\n");
+                return -1;
+            }
+            if( add_to_str_list(&opts->DA_atrs, argv[ac] ) ||
+                add_to_str_list(&opts->DA_atrs, argv[ac+1] ) )
+                return -1;
+            ac++;  /* and consume last arg */
+        } else if( !strcmp(argv[ac], "-mod_DA_meta") ) {
+            opts->mod_DA_meta = 1;
+            ac++;
+            if( ac > argc-2 || argv[ac][0] == '-' || argv[ac+1][0] == '-' ) {
+                fprintf(stderr,"** option -mod_DA_meta requires 2 arguments\n");
+                return -1;
+            }
+            if( add_to_str_list(&opts->DA_meta, argv[ac] ) ||
+                add_to_str_list(&opts->DA_meta, argv[ac+1] ) )
+                return -1;
+            ac++;  /* and consume last arg */
+        } else if( !strcmp(argv[ac], "-mod_DAs") ) {
+            ac++;
+            for( c = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, c++ )
+               if(add_to_int_list(&opts->DAmodlist, atoi(argv[ac]))) return -1;
+            if( G.verb > 1 )
+                fprintf(stderr,"+d have %d DA mod indices\n", c);
+            if( opts->DAmodlist.len == 0 ) {
+                fprintf(stderr,"** no DA indices with '-mod_DAs'\n");
+                return -1;
+            }
+            /* and back up if we've looked too far */
+            if( ac < argc && argv[ac][0] == '-') ac--;
+        } else if( !strcmp(argv[ac], "-mod_gim_attr") ) {
+            opts->mod_gim_atr = 1;
+            ac++;
+            if( ac > argc-2 || argv[ac][0] == '-' || argv[ac+1][0] == '-' ) {
+                fprintf(stderr,"** option -mod_gim_attr requires 2 args\n");
+                return -1;
+            }
+            if( add_to_str_list(&opts->gim_atrs, argv[ac] ) ||
+                add_to_str_list(&opts->gim_atrs, argv[ac+1] ) )
+                return -1;
+            ac++;  /* and consume last arg */
+        } else if( !strcmp(argv[ac], "-mod_gim_meta") ) {
+            opts->mod_gim_meta = 1;
+            ac++;
+            if( ac > argc-2 || argv[ac][0] == '-' || argv[ac+1][0] == '-' ) {
+                fprintf(stderr,"** option -mod_gim_meta requires 2 args\n");
+                return -1;
+            }
+            if( add_to_str_list(&opts->gim_meta, argv[ac] ) ||
+                add_to_str_list(&opts->gim_meta, argv[ac+1] ) )
+                return -1;
+            ac++;  /* and consume last arg */
         } else if( !strcmp(argv[ac], "-new_dset") ) {
             if( add_to_str_list(&opts->infiles, "MAKE_IM") ) return -1;
         } else if( !strcmp(argv[ac], "-new_numDA") ) {
@@ -203,7 +260,19 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
             opts->new_data = 1;
         } else if( !strcmp(argv[ac], "-no_data") ) {
             opts->dstore = 0;
-        } else if( !strcmp(argv[ac], "-show") ) {
+        } else if( !strcmp(argv[ac], "-read_DAs") ) {
+            ac++;
+            for( c = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, c++ )
+               if( add_to_int_list(&opts->DAlist, atoi(argv[ac])) ) return -1;
+            if( G.verb > 1 )
+                fprintf(stderr,"+d have %d DA indices names\n", c);
+            if( opts->DAlist.len == 0 ) {
+                fprintf(stderr,"** no DA indices with -read_DAs'\n");
+                return -1;
+            }
+            /* and back up if we've looked too far */
+            if( ac < argc && argv[ac][0] == '-') ac--;
+        } else if( !strcmp(argv[ac], "-show_gifti") ) {
             opts->gt_display = 1;
             opts->show_gifti = 1;
         } else if( !strcmp(argv[ac], "-write_1D") ) {
@@ -231,11 +300,24 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
         }
     }
 
-    if( G.verb > 2 ) disp_gt_opts("options read: ", opts, stderr);
+    /* flat whether we are modifying input data */
+    opts->gt_modify = opts->mod_add_data ||
+                      opts->mod_gim_atr  || opts->mod_gim_meta ||
+                      opts->mod_DA_atr   || opts->mod_DA_meta;
+
+    if( G.verb > 3 ) disp_gt_opts("options read: ", opts, stderr);
 
     /* be sure we have something to read */
     if( opts->infiles.len <= 0 ) {
         fprintf(stderr,"** missing option: -infiles\n");
+        return 1;
+    }
+
+    /* only allow one major operation per program execution */
+    c = opts->gt_compare + opts->gt_display + opts->gt_test + opts->gt_write;
+    if( c == 0 ) opts->gt_test = 1;
+    else if( c > 1 ) {
+        fprintf(stderr,"** only 1 major operation allowed, have %d\n", c);
         return 1;
     }
 
@@ -387,6 +469,13 @@ gifti_image * gt_read_dataset(gt_opts * opts, char * fname)
                                  opts->new_dtype, opts->new_ndim,
                                  opts->new_dims,  opts->new_data);
 
+        if( opts->gt_modify && gt_modify_dset(opts, gim) ) {
+            if( opts->verb > 1 )
+                fprintf(stderr,"** bad modification to new dset, failing...\n");
+            gifti_free_image(gim);
+            return NULL;
+        }
+
         if( opts->show_gifti ) gifti_disp_gifti_image("dset MAKE_IM :",gim,1);
 
         return gim;
@@ -428,6 +517,9 @@ gifti_image * gt_read_dataset(gt_opts * opts, char * fname)
     else
         gim = gifti_read_da_list(infile, opts->dstore,
                                  opts->DAlist.list, opts->DAlist.len);
+
+    /* possibly make modifications */
+    if( opts->gt_modify ) gt_modify_dset(opts, gim);
 
     /* regardless of success, check to free data and return */
     if( dalist ) free(dalist);
@@ -472,7 +564,6 @@ static int init_opts(gt_opts * opts)
 static int disp_gt_opts(char * mesg, gt_opts * opts, FILE * stream)
 {
     FILE * fp = stream ? stream : stdout;
-    int    c;
 
     if( mesg ) fputs(mesg, fp);
 
@@ -499,6 +590,12 @@ static int disp_gt_opts(char * mesg, gt_opts * opts, FILE * stream)
     fprintf(fp,
         "    new_data      : %d\n"
         "\n"
+        "    mod_add_data  : %d\n"
+        "    mod_gim_atr   : %d\n"
+        "    mod_gim_meta  : %d\n"
+        "    mod_DA_atr    : %d\n"
+        "    mod_DA_meta   : %d\n"
+        "\n"
         "    verb          : %d\n"
         "    indent        : %d\n"
         "    buf_size      : %d\n"
@@ -511,7 +608,8 @@ static int disp_gt_opts(char * mesg, gt_opts * opts, FILE * stream)
         "    ofile_1D      : %s\n"
         "    ofile_asc     : %s\n"
         "    ofile_gifti   : %s\n\n",
-        opts->new_data,
+        opts->new_data, opts->mod_add_data, opts->mod_gim_atr,
+        opts->mod_gim_meta, opts->mod_DA_atr, opts->mod_DA_meta,
         opts->verb, opts->indent, opts->buf_size, opts->b64_check, opts->zlevel,
         opts->dstore, opts->encoding, opts->show_gifti,
         G_CHECK_NULL_STR(opts->ofile_1D),
@@ -526,15 +624,40 @@ static int disp_gt_opts(char * mesg, gt_opts * opts, FILE * stream)
         gifti_disp_raw_data(opts->DAlist.list, NIFTI_TYPE_INT32,
                             opts->DAlist.len, 1, fp);
 
-    /* infile list */
-    fprintf(fp, "    infiles[%d]    : ", opts->infiles.len);
-    if( opts->infiles.len <= 0 || !opts->infiles.list )
+    /* DataArray modification list */
+    fprintf(fp, "    DAmodlist[%d]  : ", opts->DAmodlist.len);
+    if( opts->DAmodlist.len <= 0 || !opts->DAmodlist.list )
         fprintf(fp, "<empty>\n");
-    else {
-        for( c = 0; c < opts->infiles.len; c++ )
-            fprintf(fp, "%s ", opts->infiles.list[c]);
-        fputc('\n', fp);
+    else
+        gifti_disp_raw_data(opts->DAmodlist.list, NIFTI_TYPE_INT32,
+                            opts->DAmodlist.len, 1, fp);
+
+    show_str_list("    gim_atrs ", &opts->gim_atrs, fp);
+    show_str_list("    gim_meta ", &opts->gim_meta, fp);
+    show_str_list("    DA_atrs ", &opts->DA_atrs, fp);
+    show_str_list("    DA_meta ", &opts->DA_meta, fp);
+    show_str_list("    infiles ", &opts->infiles, fp);
+
+    return 0;
+}
+
+static int show_str_list( const char * mesg, gt_str_list * list, FILE * fp )
+{
+    FILE * stream = fp ? fp : stdout;
+    int    c;
+
+    if( mesg ) fprintf(stream, "%-14s", mesg);
+    else       fputs("list",stream);
+
+    if( ! list || !list->list || list->len <= 0 ) {
+        fprintf(stream, "[0] : <empty>\n");
+        return 0;
     }
+
+    fprintf(stream, "[%d] : ", list->len);
+    for( c = 0; c < list->len; c++ )
+        fprintf(stream, "%s ", list->list[c]);
+    fputc('\n', stream);
 
     return 0;
 }
@@ -559,13 +682,13 @@ static int show_help()
     "------------------------------------------------------------\n"
     "gifti_tool  - create, display, modify or compare GIFTI datasets\n"
     "\n"
-    "  examples:\n"
+    "  general examples:\n"
     "\n"
     "    1. read in a GIFTI dataset (verbose?  show output?)\n"
     "\n"
     "        gifti_tool -infile dset.gii\n"
     "        gifti_tool -infile dset.gii -verb 3\n"
-    "        gifti_tool -infile dset.gii -show\n"
+    "        gifti_tool -infile dset.gii -show_gifti\n"
     "\n"
     "    2. copy a GIFTI dataset (check differences?)\n"
     "\n"
@@ -575,7 +698,7 @@ static int show_help()
     "    3. copy a GIFTI data, but write out only 3 surf indices: 4, 0, 5\n"
     "\n"
     "        gifti_tool -infile time_series.gii -write_gifti ts3.gii  \\\n"
-    "                   -da_list 4 0 5\n"
+    "                   -read_DAs 4 0 5\n"
     "              OR\n"
     "\n"
     "        gifti_tool -infile time_series.gii'[4,0,5]' -write_gifti ts3.gii\n"
@@ -595,25 +718,218 @@ static int show_help()
     "                   -new_intent NIFTI_INTENT_TTEST           \\\n"
     "                   -new_ndim 2 -new_dims 5 2 0 0 0 0\n"
     "\n"
-    "  options:\n"
-    "     -help             : show this help\n"
+    "----------------------------------------------------------------------\n"
+    );
+    printf (
+    "\n"
+    "  (comparison function are still on the TODO list)\n"
+    "  (all warranties are void in Montana, and after 4 pm)\n"
+    "\n"
+    "----------------------------------------------------------------------\n"
+    "  informational options:\n"
+    "\n"
+    "     -help             : display this help\n"
+    "     -hist             : display the modification history of gifti_tool\n"
+    "     -ver              : display the gifti_tool version\n"
+    "     -gifti_hist       : display thd modification history of gifticlib\n"
+    "     -gifti_ver        : display gifticlib version\n"
+    "     -gifti_dtd_url    : display the gifti DTD URL\n"
+    "\n"
+    "  ----------------------------------------\n"
+    "  general/input options\n"
     "\n"
     "     -b64_check   TYPE : set method for checking base64 errors\n"
-    "                  TYPE = NONE       : no checks - assume all is well\n"
-    "                  TYPE = DETECT     : report whether errors were found\n"
-    "                  TYPE = COUNT      : count the number of bad chars\n"
-    "                  TYPE = SKIP       : ignore any bad characters\n"
-    "                  TYPE = SKIPnCOUNT : ignore but count bad characters\n"
-    "     -buf_size         : set buffer size\n"
-    "                         e.g. -buf_size 1024\n"
-    "     -da_list s0 ...   : restrict DataArray list indices s0, s1, ...\n"
+    "\n"
+    "           e.g. -b64_check COUNT\n"
+    "\n"
+    "           This option sets the preference for how to deal with errors\n"
+    "           in Base64 encoded data (whether compressed or not).  The\n"
+    "           default is SKIPnCOUNT, which skips any illegal characters,\n"
+    "           and reports a count of the number found.\n"
+    "\n"
+    "               TYPE = NONE       : no checks - assume all is well\n"
+    "               TYPE = DETECT     : report whether errors were found\n"
+    "               TYPE = COUNT      : count the number of bad chars\n"
+    "               TYPE = SKIP       : ignore any bad characters\n"
+    "               TYPE = SKIPnCOUNT : ignore but count bad characters\n"
+    "\n"
+    "           This default adds perhaps 10%% to the reading time.\n"
+    "\n"
+    "     -buf_size         : set the buffer size (given to expat library)\n"
+    "\n"
+    "           e.g. -buf_size 1024\n"
+    "\n"
+    "     -infile     INPUT : specify one or more GIFTI datasets as input\n"
+    "\n"
+    "           e.g. -input pial.gii\n"
+    "           e.g. -input run1.gii run2.gii\n"
+    "           e.g. -input MAKE_IM                 (create a new image)\n"
+    "           e.g. -input run1.gii'[3,4,5]'       (read DAs 3,4,5    )\n"
+    "           e.g. -input run1.gii'[0..16(2)]'    (read evens from 0 to 16)\n"
+    "           e.g. -input run1.gii'[4..$]'        (read all but 0..3)\n"
+    "\n"
+    "           There are 2 special ways to specify input.  One is via the\n"
+    "           name 'MAKE_IM'.  That 'input' filename tell gifti_tool to\n"
+    "           create a new dataset, applying any '-new_*' options to it.\n"
+    "\n"
+    "               (refer to options: -new_*)\n"
+    "\n"
+    "           The other special way is to specify which DataArray elements\n"
+    "           should be read in, using AFNI-style syntax within '[]'.  The\n"
+    "           quotes prevent the shell from interpretting the brackets.\n"
+    "\n"
+    "           DataArray indices are zero-based.\n"
+    "\n"
+    "           The list of DAs can be comma-delimited, and can use '..' or\n"
+    "           '-' to specify a range, and a value in parentheses to be used\n"
+    "           as a step.  The '$' character means the last index (numDA-1).\n"
+    "\n"
+    );
+    printf (
+    "     -no_data          : do not read in data\n"
+    "\n"
+    "           This option means not to read in the Data element in any\n"
+    "           DataArray, akin to reading only the header.\n"
+    "\n"
+    "     -read_DAs s0 ...  : read DataArray list indices s0,... from input\n"
+    "\n"
+    "           e.g. -read_DAs 0 4 3 3 8\n"
+    "           e.g. -input run1.gii -read_DAs 0 2 4 6 8\n"
+    "           e.g. -input run1.gii'[0..8(2)]'              (same effect)\n"
+    "\n"
+    "           Specify a list of DataArray indices to read.  This is a\n"
+    "           simplified form of using brackets '[]' with -input names.\n"
+    "\n"
+    "     -show_gifti       : show final gifti image\n"
+    "\n"
+    "           Display all of the dataset information on the screen (sans\n"
+    "           data).  This includes meta data and all DataArray elements.\n"
+    "\n"
+    "     -verb        VERB : set verbose level   (default: 1)\n"
+    "\n"
+    "           e.g. -verb 2\n"
+    "\n"
+    "           Pring extra information to the screen.  The VERB level can\n"
+    "           be from 0 to 8, currently.\n"
+    "\n"
+    "           Level 0 is considered 'quiet' mode, and should only report\n"
+    "           serious errors.  Level 1 is the default.\n"
+    "\n"
+    );
+    printf (
+    "  ----------------------------------------\n"
+    "  output options\n"
+    "\n"
     "     -encoding    TYPE : set the data encoding for any output file\n"
-    "                  TYPE = ASCII      : ASCII encoding\n"
-    "                  TYPE = BASE64     : base64 binary\n"
-    "                  TYPE = BASE64GZIP : base64 compressed binary\n"
-    "     -gifti_hist       : show giftilib history\n"
-    "     -gifti_ver        : show giftilib version\n"
-    "     -infile     INPUT : write out dataset as gifti image\n"
+    "\n"
+    "           e.g. -encoding BASE64GZIP\n"
+    "\n"
+    "               TYPE = ASCII      : ASCII encoding\n"
+    "               TYPE = BASE64     : base64 binary\n"
+    "               TYPE = BASE64GZIP : base64 compressed binary\n"
+    "\n"
+    "           This operation can also be performed via -mod_DA_attr:\n"
+    "           e.g. -mod_DA_attr Encoding BASE64GZIP\n"
+    "\n"
+    "     -write_1D    DSET : write out data to AFNI style 1D file\n"
+    "\n"
+    "           e.g. -write_1D stats.1D\n"
+    "\n"
+    "           Currently, all DAs need to be of the same datatype.  This\n"
+    "           restriction could be lifted if there is interest.\n"
+    "\n"
+    "     -write_asc   DSET : write out geometry to FreeSurfer style ASC file\n"
+    "\n"
+    "           e.g. -write_asc pial.asc\n"
+    "\n"
+    "           To write a surface file in FreeSurfer asc format, it must\n"
+    "           contain DataArray elements of intent NIFTI_INTENT_POINTSET\n"
+    "           and NIFTI_INTENT_TRIANGLE.  The POINTSET data is written as\n"
+    "           node coordinates and the TRIANGLE data as triangles (node\n"
+    "           index triplets).\n"
+    "\n"
+    "     -write_gifti DSET : write out dataset as gifti image\n"
+    "\n"
+    "           e.g. -write_gifti new.pial.gii\n"
+    "\n"
+    "     -zlevel     LEVEL : set compression level (-1 or 0..9)\n"
+    "\n"
+    "           This option sets the compression level used by zlib.  Some\n"
+    "           LEVEL values are noteworthy:\n"
+    "\n"
+    "              -1   : specify to use the default of zlib (currently 6)\n"
+    "               0   : no compression (but still needs a few extra bytes)\n"
+    "               1   : fastest but weakest compression\n"
+    "               6   : default (good speed/compression trade-off)\n"
+    "               9   : slowest but strongest compression\n"
+    "\n"
+    );
+    printf (
+    "  ----------------------------------------\n"
+    "  modification options\n"
+    "\n"
+    "     These modification options will affect every DataArray element\n"
+    "     specified by the -mod_DAs option.  If the option is not used,\n"
+    "     then ALL DataArray elements will be affected.\n"
+    "\n"
+    "     -mod_add_data     : add data to empty DataArray elements\n"
+    "\n"
+    "           Allocate data in every DataArray element.  Datasets can be\n"
+    "           created without any stored data.  This will allocate data\n"
+    "           and fill it with zeros of the given type.\n"
+    "\n"
+    "     -mod_DA_attr NAME VALUE : set the NAME=VALUE attribute pair\n"
+    "\n"
+    "           e.g. -mod_DA_attr Intent NIFTI_INTENT_ZSCORE\n"
+    "\n"
+    "           This option will set the DataArray attribute corresponding\n"
+    "           to NAME to the value, VALUE.  Attribute name=value pairs are\n"
+    "           specified in the gifti DTD (see -gifti_dtd_url).\n"
+    "\n"
+    "           One NAME=VALUE pair can be specified per -mod_DA_attr\n"
+    "           option.  Multiple -mod_DA_attr options can be used.\n"
+    "\n"
+    "     -mod_DA_meta NAME VALUE : set the NAME=VALUE pair in DA's MetaData\n"
+    "\n"
+    "           e.g. -mod_DA_meta Description 'the best dataset, ever'\n"
+    "\n"
+    "           Add a MetaData entry to each DataArray element for this\n"
+    "           NAME and VALUE.  If 'NAME' already exists, the old value\n"
+    "           is replaced by VALUE.\n"
+    "\n"
+    "     -mod_DAs i0 i1 ...      : specify the set of DataArrays to modify\n"
+    "\n"
+    "           e.g. -mod_DAs 0 4 5\n"
+    "\n"
+    "           Specify the list of DataArray elements to modify.  All the\n"
+    "           -mod_* options apply to this list of DataArray indices.  If\n"
+    "           no -mod_DAs option is used, the operations apply to ALL\n"
+    "           DataArray elements.\n"
+    "\n"
+    "           Note that the indices are zero-based, 0 .. numDA-1.\n"
+    "\n"
+    "     -mod_gim_attr NAME VALUE : set the GIFTI NAME=VALUE attribute pair\n"
+    "\n"
+    "           e.g. -mod_gim_attr Version 3.141592\n"
+    "\n"
+    "           Set the GIFTI element attribute correponding to NAME to the\n"
+    "           value, VALUE.\n"
+    "\n"
+    "           Given that numDA is computed and version will rarely change,\n"
+    "           this option will probably not feel much love.\n"
+    "\n"
+    "     -mod_gim_meta NAME VALUE : add this pair to the GIFTI MetaData\n"
+    "\n"
+    "           e.g. -mod_gim_meta date \"`date`\"\n"
+    "\n"
+    "           Add a MetaData entry to each DataArray element for this\n"
+    "           NAME and VALUE pair.  If NAME exists, VALUE will replace\n"
+    "           the old value.\n"
+    "\n"
+    );
+    printf (
+    "  ----------------------------------------\n"
+    "  creation (new dataset) options\n"
     "\n"
     "     -new_dset         : create a new GIFTI dataset\n"
     "     -new_numDA  NUMDA : new dataset will have NUMDA DataArray elements\n"
@@ -626,14 +942,6 @@ static int show_help()
     "     -new_dims D0...D5 : set dims[] to these 6 values\n"
     "                         e.g. -new_ndim 2 -new_dims 7 2 0 0 0 0\n"
     "     -new_data         : allocate space for data in created dataset\n"
-    "\n"
-    "     -no_data          : do not write out data\n"
-    "     -show             : show final gifti image\n"
-    "     -verb        VERB : set verbose level\n"
-    "     -write_1D    DSET : write out data to AFNI style 1D file\n"
-    "     -write_asc   DSET : write out geometry to FreeSurfer style ASC file\n"
-    "     -write_gifti DSET : write out dataset as gifti image\n"
-    "     -zlevel     LEVEL : set compression level (-1 or 0..9)\n"
     "------------------------------------------------------------\n"
     );
     return 0;
@@ -704,21 +1012,27 @@ int write_1D_file(giiDataArray ** dlist, int len, char * prefix, int add_suf)
         }
     } else {            /* write da->nvals lines of 'num values */
         void ** vlist = (void **)malloc(len * sizeof(void *));
+        int     fail = 0;
 
         fprintf(stderr,"++ writing 1D '%s' from DA list (%d)\n", name, len);
 
         /* set data pointers */
         for( c = 0; c < len; c++ ) {
             vlist[c] = dlist[c]->data;
-            if( dlist[c]->nvals != dlist[0]->nvals ) {
+            if( !vlist[c] ) {
+                fprintf(stderr,"** DA[%lld] has no data, bailing...\n", c);
+                fail = 1;
+            } else if( dlist[c]->nvals != dlist[0]->nvals ) {
                 fprintf(stderr,"** d[%lld] has %lld vals, but d[0] has %lld\n",
                         c, dlist[c]->nvals, dlist[0]->nvals);
-                free(vlist);
-                if( nbuf ) free(nbuf);
-                return 1;
+                fail = 1;
             } else if (dlist[c]->datatype != dlist[0]->datatype) {
                 fprintf(stderr,"** d[%lld] has type %d, but d[0] has %d\n",
                         c, dlist[c]->datatype, dlist[0]->datatype);
+                fail = 1;
+            }
+
+            if( fail ) {
                 free(vlist);
                 if( nbuf ) free(nbuf);
                 return 1;
@@ -732,8 +1046,8 @@ int write_1D_file(giiDataArray ** dlist, int len, char * prefix, int add_suf)
             return 1;
         }
 
-        fprintf(stderr,"++ 1D write, RxC = %u x %d\n",
-                (unsigned)dlist[0]->nvals, len);
+        if(G.verb > 1) fprintf(stderr,"++ 1D write many, RxC = %lld x %d\n",
+                               dlist[0]->nvals, len);
         ewrite_many_lines(vlist, dlist[0]->datatype,len, dlist[0]->nvals, 0,fp);
                           
         free(vlist);
@@ -939,7 +1253,7 @@ int ewrite_many_lines(void ** data, int type, long long cols, long long rows,
         default :
             fprintf(stderr,"** write_data_line, unknown type %d\n",type);
             return -1;
-        case 2: {       /* NIFTI_TYPE_UINT8 */
+        case NIFTI_TYPE_UINT8: {
             unsigned char ** ptr = (unsigned char **)data;
             for( r = 0; r < rows; r++ ) {
                 for( c = 0; c < cols; c++ ) fprintf(fp, "%u ", ptr[c][r]);
@@ -947,7 +1261,7 @@ int ewrite_many_lines(void ** data, int type, long long cols, long long rows,
             }
             break;
         }
-        case 4: {       /* NIFTI_TYPE_INT16 */
+        case NIFTI_TYPE_INT16: {
             short ** ptr = (short **)data;
             for( r = 0; r < rows; r++ ) {
                 for( c = 0; c < cols; c++ ) fprintf(fp, "%d ", ptr[c][r]);
@@ -955,7 +1269,7 @@ int ewrite_many_lines(void ** data, int type, long long cols, long long rows,
             }
             break;
         }
-        case 8: {       /* NIFTI_TYPE_INT32 */
+        case NIFTI_TYPE_INT32: {
             int ** ptr = (int **)data;
             for( r = 0; r < rows; r++ ) {
                 for( c = 0; c < cols; c++ ) fprintf(fp, "%d ", ptr[c][r]);
@@ -963,7 +1277,7 @@ int ewrite_many_lines(void ** data, int type, long long cols, long long rows,
             }
             break;
         }
-        case 16: {      /* NIFTI_TYPE_FLOAT32 */
+        case NIFTI_TYPE_FLOAT32: {
             float ** ptr = (float **)data;
             for( r = 0; r < rows; r++ ) {
                 for( c = 0; c < cols; c++ ) fprintf(fp, "%f ", ptr[c][r]);
@@ -971,10 +1285,16 @@ int ewrite_many_lines(void ** data, int type, long long cols, long long rows,
             }
             break;
         }
-        case 32: {      /* NIFTI_TYPE_COMPLEX64 */
+        case NIFTI_TYPE_COMPLEX64: {    /* process as float32 pairs */
+            float ** ptr = (float **)data;
+            for( r = 0; r < 2*rows; r+=2 ) {
+                for( c = 0; c < cols; c++ )
+                    fprintf(fp, "%f %f  ", ptr[c][r], ptr[c][r+1]);
+                fputc('\n', fp);
+            }
             break;
         }
-        case 64: {      /* NIFTI_TYPE_FLOAT64 */
+        case NIFTI_TYPE_FLOAT64: {
             double ** ptr = (double **)data;
             for( r = 0; r < rows; r++ ) {
                 for( c = 0; c < cols; c++ ) fprintf(fp, "%f ", ptr[c][r]);
@@ -982,10 +1302,16 @@ int ewrite_many_lines(void ** data, int type, long long cols, long long rows,
             }
             break;
         }
-        case 128: {     /* NIFTI_TYPE_RGB24 */
+        case NIFTI_TYPE_RGB24: {        /* process as char triplets */
+            char ** ptr = (char **)data;
+            for( r = 0; r < 3*rows; r+=3 ) {
+                for( c = 0; c < cols; c++ )
+                    fprintf(fp, "%u %u %u  ",ptr[c][r],ptr[c][r+1],ptr[c][r+2]);
+                fputc('\n', fp);
+            }
             break;
         }
-        case 256: {     /* NIFTI_TYPE_INT8 */
+        case NIFTI_TYPE_INT8: {
             char ** ptr = (char **)data;
             for( r = 0; r < rows; r++ ) {
                 for( c = 0; c < cols; c++ ) fprintf(fp, "%d ", ptr[c][r]);
@@ -993,7 +1319,7 @@ int ewrite_many_lines(void ** data, int type, long long cols, long long rows,
             }
             break;
         }
-        case 512: {     /* NIFTI_TYPE_UINT16 */
+        case NIFTI_TYPE_UINT16: {
             unsigned short ** ptr = (unsigned short **)data;
             for( r = 0; r < rows; r++ ) {
                 for( c = 0; c < cols; c++ ) fprintf(fp, "%u ", ptr[c][r]);
@@ -1001,7 +1327,7 @@ int ewrite_many_lines(void ** data, int type, long long cols, long long rows,
             }
             break;
         }
-        case 768: {     /* NIFTI_TYPE_UINT32 */
+        case NIFTI_TYPE_UINT32: {
             unsigned int ** ptr = (unsigned int **)data;
             for( r = 0; r < rows; r++ ) {
                 for( c = 0; c < cols; c++ ) fprintf(fp, "%u ", ptr[c][r]);
@@ -1009,25 +1335,27 @@ int ewrite_many_lines(void ** data, int type, long long cols, long long rows,
             }
             break;
         }
-        case 1024: {    /* NIFTI_TYPE_INT64 */
-            /* rcr - do we need to check #defines? */
+        case NIFTI_TYPE_INT64: {
+            long long ** ptr = (long long **)data;
+            for( r = 0; r < rows; r++ ) {
+                for( c = 0; c < cols; c++ ) fprintf(fp, "%lld ", ptr[c][r]);
+                fputc('\n', fp);
+            }
             break;
         }
-        case 1280: {    /* NIFTI_TYPE_UINT64 */
-            /* rcr - do we need to check #defines? */
+        case NIFTI_TYPE_UINT64: {
+            unsigned long long ** ptr = (unsigned long long **)data;
+            for( r = 0; r < rows; r++ ) {
+                for( c = 0; c < cols; c++ ) fprintf(fp, "%llu ", ptr[c][r]);
+                fputc('\n', fp);
+            }
             break;
         }
-        case 1536: {    /* NIFTI_TYPE_FLOAT128 */
-            /* rcr - do we need to check #defines? */
-            break;
-        }
-        case 1792: {    /* NIFTI_TYPE_COMPLEX128 */
-            break;
-        }
-        case 2048: {    /* NIFTI_TYPE_COMPLEX256 */
-            /* rcr - do we need to check #defines? */
-            break;
-        }
+        /* just forget these ...
+            case NIFTI_TYPE_FLOAT128:   { break; }
+            case NIFTI_TYPE_COMPLEX128: { break; }
+            case NIFTI_TYPE_COMPLEX256: { break; }
+        */
     }
 
     return 0;
@@ -1072,5 +1400,63 @@ static int add_to_str_list(gt_str_list * slist, char * str)
    slist->list[slist->len-1] = str;
 
    return 0;
+}
+
+int gt_modify_dset(gt_opts * opts, gifti_image * gim)
+{
+    gt_int_list * ilist;
+    int           c, errs = 0;
+
+    if( !gim ) return 0;
+
+    if( opts->verb > 2 ) fprintf(stderr,"-- starting modifications\n");
+
+    /* modify GIFTI attributes */
+    if( opts->mod_gim_atr )
+        for( c = 0; c < opts->gim_atrs.len-1; c+=2 )  /* grab in pairs */
+            errs += gifti_str2attr_gifti(gim, opts->gim_atrs.list[c],
+                                              opts->gim_atrs.list[c+1]);
+
+    /* modify GIFTI MetaData (replacing any 'name' matches) */
+    if( opts->mod_gim_meta )
+        for( c = 0; c < opts->gim_meta.len-1; c+=2 )  /* grab in pairs */
+            errs += gifti_add_to_meta(&gim->meta, opts->gim_meta.list[c],
+                                                  opts->gim_meta.list[c+1], 1);
+
+    /* modify DataArray attributes */
+    if( opts->mod_DA_atr ) {
+        ilist = &opts->DAmodlist;
+        if( ilist->list && ilist->len > 0 ) {
+            if(!gifti_valid_int_list(ilist->list,ilist->len,0,gim->numDA-1,1)){
+                fprintf(stderr,"** invalid DAmodlist\n");
+                return 1;
+            }
+
+            /* apply to list */
+            for( c = 0; c < opts->DAmodlist.len; c++ )
+                errs += gifti_set_DA_atrs(gim->darray[ilist->list[c]], 
+                        (const char **)opts->DA_atrs.list,opts->DA_atrs.len,0);
+        } else  /* apply to all DA elements */
+            for( c = 0; c < gim->numDA; c++ )
+                errs += gifti_set_DA_atrs(gim->darray[c],
+                        (const char **)opts->DA_atrs.list,opts->DA_atrs.len, 0);
+    }
+
+    /* modify DataArray MetaData (replacing any 'name' matches) */
+    if( opts->mod_DA_meta )
+        for( c = 0; c < opts->DA_meta.len-1; c+=2 )  /* grab in pairs */
+            errs += gifti_set_DA_meta(gim,
+                                opts->DA_meta.list[c], opts->DA_meta.list[c+1],
+                                opts->DAmodlist.list, opts->DAmodlist.len, 1);
+
+    /* do this last, in case data related attributes were modified */
+    if( opts->mod_add_data )
+        if(gifti_alloc_DA_data(gim, opts->DAmodlist.list, opts->DAmodlist.len))
+            errs++;
+
+
+    if(opts->verb>2) fprintf(stderr,"-- modifications done, %d errors\n",errs);
+
+    return errs;
 }
 

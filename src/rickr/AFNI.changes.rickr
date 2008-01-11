@@ -2310,34 +2310,47 @@
   * modified gifti_test.[ch]: simplifying the program as a sample
   * modified gifti.get.times, gifti.test.io, Makefile: use tifti_tool
   * modified gifti_io.[ch], gifti_xml.[ch]:
-        -made zlib optional, via -DHAVE_ZLIB in compile
-         (without zlib, the user will get warnings)
-        -now users only #include gifti_io.h, not gifti_xml, expat or zlib
-        -added more comments and made tables more readable
-        -added all user-variable access functions and reset_user_vars()
-        -added gifti_free_image_contents(), gifti_disp_raw_data(),
-               gifti_clear_float_zeros() and gifti_set_all_DA_attribs()
-        -changed gifti_gim_DA_size to long long
-        -added GIFTI_B64_CHECK_UNDEF as 0
-        -fixed 0-width indenting and accumulating base64 errors
+        - made zlib optional, via -DHAVE_ZLIB in compile
+          (without zlib, the user will get warnings)
+        - now users only #include gifti_io.h, not gifti_xml, expat or zlib
+        - added more comments and made tables more readable
+        - added all user-variable access functions and reset_user_vars()
+        - added gifti_free_image_contents(), gifti_disp_raw_data(),
+                gifti_clear_float_zeros() and gifti_set_all_DA_attribs()
+        - changed gifti_gim_DA_size to long long
+        - added GIFTI_B64_CHECK_UNDEF as 0
+        - fixed 0-width indenting and accumulating base64 errors
 
 03 Jan 2008:
   * modified gifti_io.[ch], gifti_xml.[ch] (v0.10)
-       - added top-level gifti_create_image() interface
-       - must now link libniftiio
-       - gifti_add_empty_darray() now takes num_to_add
-       - if data was expected but not read, free it
-           (can add via gifti_alloc_all_data())
-       - many minor changes
+        - added top-level gifti_create_image() interface
+        - must now link libniftiio
+        - gifti_add_empty_darray() now takes num_to_add
+        - if data was expected but not read, free it
+          (can add via gifti_alloc_all_data())
+        - many minor changes
   * modified gifti_tool.[ch] (v0.1)
-       - can do one of display, write or test (more to come)
-       - added dset creation ability and options, via -new_dset or MAKE_IM
-           (options -new_*, for numDA, intent, dtype, ndim, dims, data)
-       - added AFNI-style DA selection, for input datasets
+        - can do one of display, write or test (more to come)
+        - added dset creation ability and options, via -new_dset or MAKE_IM
+          (options -new_*, for numDA, intent, dtype, ndim, dims, data)
+        - added AFNI-style DA selection, for input datasets
   * modified README.gifti, gifti/Makefile
 
 11 Jan 2008:
   * modified mri_to_byte.c afni_vol2surf.c mrilib.h:
-       - added mri_to_bytemask() and a call to it in afni_vol2surf, for
-         using the clustered result in vol2surf
+        - added mri_to_bytemask() and a call to it in afni_vol2surf, for
+          using the clustered result in vol2surf
+  * modified gifti_io.[ch], gifti_xml.c, Makefile, README.gifti
+        - attribute/data setting functions are more flexible
+        - added gifti_disp_dtd_url, gifti_set_DA_meta, gifti_valid_int_list,
+          DA_data_exists, gifti_add_to_meta 
+  * modified gifti_tool.[ch]
+        - added option -gifti_dtd_url
+        - added options -mod_DAs and -read_DAs (replaced -dalist)
+        - added options -mod_add_data, -mod_DA_attr, -mod_DA_meta,
+                        -mod_gim_attr, -mod_gim_meta
+          (modification takes place at dataset read time)
+        - reformatted help output
+
+
 
