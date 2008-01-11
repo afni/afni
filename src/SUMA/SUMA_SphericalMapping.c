@@ -148,7 +148,8 @@ int SUMA_Bad_FacesetNorm_Dot_Radius(SUMA_SurfaceObject *SO, byte *FaceMask, doub
    
       
 */
-SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
+SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, 
+                                       char *Froot, char *shist)
 {
    static char FuncName[]={"SUMA_SphereQuality"};
    float *dist = NULL, mdist, *dot=NULL, nr, r[3], *bad_dot = NULL;
@@ -183,14 +184,16 @@ SUMA_SPHERE_QUALITY SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char
    /* get the options for creating the scaled color mapping */
    OptScl = SUMA_ScaleToMapOptInit();
    if (!OptScl) {
-      fprintf (SUMA_STDERR,"Error %s: Could not get scaling option structure.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Could not get scaling option structure.\n", FuncName);
       exit (1); 
    }
    
    /* get the color map */
    CM = SUMA_FindNamedColMap ("byr64");
    if (CM == NULL) {
-      fprintf (SUMA_STDERR,"Error %s: Could not get standard colormap.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Could not get standard colormap.\n", FuncName);
       if (OptScl) SUMA_free(OptScl);
       exit (1); 
    }
