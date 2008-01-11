@@ -275,6 +275,7 @@ extern long   strtol() ;
 # define acosf  acos
 # define floorf floor
 # define ceilf  ceil
+# define expf   exp
 
 #endif
 
