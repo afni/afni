@@ -13,40 +13,42 @@ void usage_SUMA_quickspec()
 {
    static char FuncName[]={"usage_SUMA_quickspec"};
    char * s = NULL;
-   printf ( "\nUsage:  quickspec \n"
-            "        <-tn TYPE NAME> ...\n"
-            "        <-tsn TYPE STATE NAME> ...\n"
-            "        [<-spec specfile>] [-h/-help]\n"
-            "  Use this spec file for quick and dirty way of \n"
-            "  loading a surface into SUMA or the command line programs.\n"
-            "\n"
-            "Options:\n"
-            "   -tn TYPE NAME: specify surface type and name.\n"
-            "                  See below for help on the parameters.\n"
-            "   -tsn TYPE STATE NAME: specify surface type state and name.\n"
-	         "        TYPE: Choose from the following (case sensitive):\n"
-            "           1D: 1D format\n"
-            "           FS: FreeSurfer ascii format\n"
-            "           PLY: ply format\n"
-            "           SF: Caret/SureFit format\n"
-            "           BV: BrainVoyager format\n"
-            "        NAME: Name of surface file. \n"
-            "           For SF and 1D formats, NAME is composed of two names\n"
-            "           the coord file followed by the topo file\n"
-            "        STATE: State of the surface.\n"
-            "           Default is S1, S2.... for each surface.\n"
-            "   -spec specfile: Name of spec file output.\n"
-            "                   Default is quick.spec\n"
-            "                   The program will only overwrite \n"
-            "                   quick.spec (the default) spec file.\n"
-            "   -h or -help: This message here.\n" 
-            "\n"
-            "  You can use any combinaton of -tn and -tsn options.\n"
-            "  Fields in the spec file that are (or cannot) be specified\n"
-            "  by this program are set to default values.\n"
-            "\n   This program was written to ward off righteous whiners and is\n"
-            "  not meant to replace the venerable @SUMA_Make_Spec_XX scripts.\n"
-            "\n");
+   printf ( 
+"\nUsage:  quickspec \n"
+"        <-tn TYPE NAME> ...\n"
+"        <-tsn TYPE STATE NAME> ...\n"
+"        [<-spec specfile>] [-h/-help]\n"
+"  Use this spec file for quick and dirty way of \n"
+"  loading a surface into SUMA or the command line programs.\n"
+"\n"
+"Options:\n"
+"   -tn TYPE NAME: specify surface type and name.\n"
+"                  See below for help on the parameters.\n"
+"   -tsn TYPE STATE NAME: specify surface type state and name.\n"
+"        TYPE: Choose from the following (case sensitive):\n"
+"           1D: 1D format\n"
+"           FS: FreeSurfer ascii format\n"
+"           PLY: ply format\n"
+"           SF: Caret/SureFit format\n"
+"           BV: BrainVoyager format\n"
+"        NAME: Name of surface file. \n"
+"           For SF and 1D formats, NAME is composed of two names\n"
+"           the coord file followed by the topo file\n"
+"        STATE: State of the surface.\n"
+"           Default is S1, S2.... for each surface.\n"
+"   -spec specfile: Name of spec file output.\n"
+"                   Default is quick.spec\n"
+"                   The program will only overwrite \n"
+"                   quick.spec (the default) spec file.\n"
+"   -h or -help: This message here.\n" 
+"\n"
+"  You can use any combinaton of -tn and -tsn options.\n"
+"  Fields in the spec file that are (or cannot) be specified\n"
+"  by this program are set to default values.\n"
+"\n   This program was written to ward off righteous whiners and is\n"
+"  not meant to replace the venerable @SUMA_Make_Spec_XX scripts.\n"
+"\n"
+      );
      s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
      printf("      Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n\t\t Tue Dec 30\n"
             "\n");
@@ -99,8 +101,9 @@ int main (int argc,char *argv[])
 				exit (1);
 			}
          spec_name = argv[kar];
-			if (SUMA_filexists(spec_name)) {
-            fprintf (SUMA_STDERR, "File %s exists, choose another one.\n", spec_name);
+			if (!THD_ok_overwrite() && SUMA_filexists(spec_name)) {
+            fprintf (SUMA_STDERR, 
+               "File %s exists, choose another one.\n", spec_name);
             exit(1);
          }
 			brk = YUP;

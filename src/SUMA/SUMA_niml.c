@@ -299,11 +299,13 @@ SUMA_Boolean SUMA_niml_call (SUMA_CommonFields *cf, int si, SUMA_Boolean fromSUM
      /* find out if the stream has been established already */
       if (cf->ns_v[si]) { /* stream is open, nothing to do */
          cf->ns_flags_v[si] = SUMA_FLAG_CONNECTED;
-         if (LocalHead) fprintf(SUMA_STDOUT,"%s: Stream existed, reusing.\n", FuncName);
+         if (LocalHead) 
+            fprintf(SUMA_STDOUT,"%s: Stream existed, reusing.\n", FuncName);
          fprintf(SUMA_STDOUT,"%s: Connected.\n", FuncName); fflush(SUMA_STDOUT);
       }else {   /* must open stream */              
          /* contact afni */
-            fprintf(SUMA_STDOUT,"%s: Contacting ...\n", FuncName); fflush(SUMA_STDOUT);
+            fprintf(SUMA_STDOUT,"%s: Contacting ...\n", FuncName);
+            fflush(SUMA_STDOUT);
             cf->ns_v[si] =  NI_stream_open( cf->NimlStream_v[si] , "w" ) ;
             if (!cf->ns_v[si]) {
                cf->ns_flags_v[si] = 0;
@@ -315,16 +317,20 @@ SUMA_Boolean SUMA_niml_call (SUMA_CommonFields *cf, int si, SUMA_Boolean fromSUM
                cf->Connected_v[si] = !cf->Connected_v[si];
                SUMA_RETURN(NOPE) ;
             }
-            if (!strcmp(cf->HostName_v[si],"localhost")) { /* only try shared memory when 
-                                                                  AfniHostName is localhost */
-               fprintf (SUMA_STDERR, "%s: Trying local connection...\n", FuncName);
+            if (!strcmp(cf->HostName_v[si],"localhost")) { 
+               /* only try shared memory when 
+                  AfniHostName is localhost */
+               fprintf (SUMA_STDERR, 
+                        "%s: Trying local connection...\n", FuncName);
                if( strstr( cf->NimlStream_v[si] , "tcp:localhost:" ) != NULL ) {
-                  if (!NI_stream_reopen( cf->ns_v[si] , "shm:WeLikeElvis:1M" )) {
-                     fprintf (SUMA_STDERR, "Warning %s: Shared memory communcation failed.\n", FuncName);
+                  if (!NI_stream_reopen( cf->ns_v[si] , "shm:WeLikeElvis:1M" )){
+                     fprintf (SUMA_STDERR, 
+                              "Warning %s: "
+                              "Shared memory communcation failed.\n",
+                              FuncName);
                   }
                }
             }
-            /*   cf->ns_v[si] = NI_stream_open( "tcp:128.231.212.194:53211" , "w" ) ;*/
 
             if( cf->ns_v[si] == NULL ){
                if (fromSUMA) { SUMA_SLP_Err("NI_stream_open failed (2p)");} 
