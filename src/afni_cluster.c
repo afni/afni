@@ -343,7 +343,7 @@ ENTRY("AFNI_clus_make_widgets") ;
                    "menu" , xmScrolledWindowWidgetClass , cwid->wtop ,
                       XmNscrollingPolicy        , XmAUTOMATIC ,
                       XmNvisualPolicy           , XmVARIABLE ,
-                      XmNscrollBarDisplayPolicy , XmSTATIC ,
+                      XmNscrollBarDisplayPolicy , XmAS_NEEDED /* XmSTATIC */ ,
                       XmNinitialResourcesPersistent , False ,
                    NULL ) ;
    else
@@ -623,7 +623,7 @@ ENTRY("AFNI_clus_make_widgets") ;
      cmax = im3d->dc->height - 128 ;
      hy  *= 3 ;
      if( hy > cmax ) hy = cmax ;
-     XtVaSetValues( cwid->wtop , XmNwidth,wx+29,XmNheight,hy+19 , NULL ) ;
+     XtVaSetValues( cwid->wtop , XmNwidth,wx+33,XmNheight,hy+19 , NULL ) ;
    }
 
    XtRealizeWidget( cwid->wtop ) ;

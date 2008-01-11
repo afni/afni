@@ -98,25 +98,27 @@ void display_help_menu()
      "                  Note:  The -mask command also REPLACES the          \n"
      "                         -nx, -ny, -nz, -dx, -dy, and -dz commands,   \n"
      "                         and takes the volume dimensions from 'mset'. \n"
-     "[-fwhm s]     s  = Gaussian filter width (FWHM)                       \n"
+     "[-fwhm s]     s  = Gaussian filter width (FWHM, in mm)                \n"
      "[-fwhmx sx]   sx = Gaussian filter width, x-axis (FWHM)               \n"
      "[-fwhmy sy]   sy = Gaussian filter width, y-axis (FWHM)               \n"
      "[-fwhmz sz]   sz = Gaussian filter width, z-axis (FWHM)               \n"
-     "[-sigma s]    s  = Gaussian filter width (1 sigma)                    \n"
+     "[-sigma s]    s  = Gaussian filter width (1 sigma, in mm)             \n"
      "[-sigmax sx]  sx = Gaussian filter width, x-axis (1 sigma)            \n"
      "[-sigmay sy]  sy = Gaussian filter width, y-axis (1 sigma)            \n"
      "[-sigmaz sz]  sz = Gaussian filter width, z-axis (1 sigma)            \n"
+     "\n"
      "[-power]      perform statistical power calculations                  \n"
      "[-ax n1]      n1 = extent of active region (in voxels) along x-axis   \n"
      "[-ay n2]      n2 = extent of active region (in voxels) along y-axis   \n"
      "[-az n3]      n3 = extent of active region (in voxels) along z-axis   \n"
      "[-zsep z]     z = z-score separation between signal and noise         \n"
+     "\n"
      "[-rmm r]      r  = cluster connection radius (mm)                     \n"
      "                   Default is nearest neighbor connection only.       \n"
      "-pthr p       p  = individual voxel threshold probability             \n"
      "-iter n       n  = number of Monte Carlo simulations                  \n"
-     "[-quiet]     suppress screen output                                   \n"
-     "[-out file]  file = name of output file                               \n"
+     "[-quiet]      suppress lengthy per-iteration screen output            \n"
+     "[-out file]   file = name of output file [default value = screen]     \n"
      "[-max_clust_size size]  size = maximum allowed voxels in a cluster    \n"
      "[-seed S]     S  = random number seed\n"
      "                   default seed = 1234567\n"
@@ -621,7 +623,7 @@ void get_options (int argc, char ** argv,
 
 
       /*-----   -pthr p   -----*/
-      if (strncmp(argv[nopt], "-pthr", 5) == 0)
+      if (strncmp(argv[nopt], "-pthr", 5) == 0 || strcmp(argv[nopt],"-pval") == 0 )
 	{
 	  nopt++;
 	  if (nopt >= argc)  AlphaSim_error ("need argument after -pthr ");
@@ -635,7 +637,7 @@ void get_options (int argc, char ** argv,
 
       
       /*-----   -iter n  -----*/
-      if (strncmp(argv[nopt], "-iter", 5) == 0)
+      if (strncmp(argv[nopt], "-iter", 5) == 0 || strcmp(argv[nopt],"-niter") == 0 )
 	{
 	  nopt++;
 	  if (nopt >= argc)  AlphaSim_error ("need argument after -iter ");

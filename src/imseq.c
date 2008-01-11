@@ -5682,7 +5682,7 @@ ENTRY("ISQ_but_disp_CB") ;
                  "menu" , xmScrolledWindowWidgetClass , seq->dialog ,
                     XmNscrollingPolicy        , XmAUTOMATIC ,
                     XmNvisualPolicy           , XmVARIABLE ,
-                    XmNscrollBarDisplayPolicy , XmSTATIC ,
+                    XmNscrollBarDisplayPolicy , XmAS_NEEDED /* XmSTATIC */ ,
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
    } else {
@@ -6006,11 +6006,8 @@ ENTRY("ISQ_but_disp_CB") ;
    if( swtop != NULL ){       /* 31 Jan 2002 */
      int wx,hy , cmax ;
      MCW_widget_geom( rctop  , &wx,&hy,NULL,NULL ) ;
-
-     cmax = HeightOfScreen(XtScreen(rctop)) - 128 ;
-     if( hy > cmax ) hy = cmax ;
-
-     XtVaSetValues( seq->dialog , XmNwidth,wx+29,XmNheight,hy+19 , NULL ) ;
+     cmax = seq->dc->height - 128 ; if( hy > cmax ) hy = cmax ;
+     XtVaSetValues( seq->dialog , XmNwidth,wx+33,XmNheight,hy+19 , NULL ) ;
    }
 
    ISQ_place_dialog( seq ) ;  /* 05 Jan 1999 */
