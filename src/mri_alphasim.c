@@ -322,7 +322,12 @@ int main( int argc , char *argv[] )
    NI_element *nel ;
    NI_stream ns ;
    int clast , cfirst , cnum ;
-   char atr[256] ;
+   char atr[6666] ;
+
+   float alph[ 3] = { 0.01f , 0.05f , 0.10f } ;
+   int num_alph= 3 ;
+   int qaa ; float aa , ff ;
+   MRI_IMAGE *alpim ; float *alpar ;
 
    if( argc < 4 ){
      printf("args: nx nz niter\n") ; exit(0) ;
@@ -337,8 +342,8 @@ int main( int argc , char *argv[] )
 
    dx = dy = dz = 1.0f ; rmm = 0.0f ;
 
-   maskim = mri_new_vol(nx,ny,nz,MRI_byte) ; mask = MRI_BYTE_PTR(maskim) ;
 #if 1
+   maskim = mri_new_vol(nx,ny,nz,MRI_byte) ; mask = MRI_BYTE_PTR(maskim) ;
    jsm = 1+nx*nx/4 ; kth = nx/2 ;
    for( kk=0 ; kk < nz ; kk++ ){
      for( jj=0 ; jj < ny ; jj++ ){
@@ -348,6 +353,8 @@ int main( int argc , char *argv[] )
      }
    }
    INFO_message("%d voxels in mask",THD_countmask(nx*ny*nz,mask)) ;
+#else
+   maskim = NULL ; mask = NULL ;
 #endif
 
    aim = mri_alphasim( nx,nz , dx,dz , niter,rmm ,
@@ -361,29 +368,40 @@ int main( int argc , char *argv[] )
    aar = MRI_FLOAT_PTR(aim) ;
 
    ns = NI_stream_open( "fd:1" , "w" ) ; if( ns == NULL ) ERROR_exit("bad ns") ;
-   for( jsm=0 ; jsm < num_fwhm ; jsm++ ){
-     for( kth=0 ; kth < num_pval ; kth++ ){
-       ath = ATH(jsm,kth) ;
-       for( ii=MAX_CLUSTSIZE ; ii > 0 && ath[ii] < 0.01f ; ii-- ) ; /*nada*/
-       if( ii == 0 ){
-         WARNING_message("jsm=%d kth=%d has empty results!",jsm,kth) ;
-         continue ;  /* should not happen */
-       }
-       clast = MIN(MAX_CLUSTSIZE,ii+1) ;
-#if 0
-       for( ii=2 ; ii <= clast && ath[ii] > 0.5f ; ii++ ) ; /*nada*/
-       cfirst = ii-1 ; cnum = clast-cfirst+1 ;
-#else
-       cfirst = 1 ;
-#endif
-       cnum = clast-cfirst+1 ;
-       nel = NI_new_data_element( "AlphaSim" , cnum ) ;
-       NI_add_column( nel , NI_FLOAT , ath+cfirst ) ;
-       sprintf(atr,"%d %d %g %g %d",nx,nz,pval[kth],fwhm[jsm],cfirst) ;
-       NI_set_attribute( nel , "NxNzPvalBlurCfirst" , atr ) ;
-       NI_write_element( ns , nel , NI_TEXT_MODE ) ;
-       NI_free_element( nel ) ;
-   }}
+   for( qaa=0 ; qaa < num_alph ; qaa++ ){
+     aa    = alph[qaa] ;
+     alpim = mri_new( num_pval , num_fwhm , MRI_float ) ;
+     alpar = MRI_FLOAT_PTR(alpim) ;
+     for( jsm=0 ; jsm < num_fwhm ; jsm++ ){
+       for( kth=0 ; kth < num_pval ; kth++ ){
+         ath = ATH(jsm,kth) ;
+         for( ii=MAX_CLUSTSIZE ; ii > 0 && ath[ii] < aa ; ii-- ) ; /*nada*/
+         if( ii == 0 ){
+           alpar[kth+jsm*num_pval] = 0.0f ;     /* failed to find cutoff */
+         } else if( ii == MAX_CLUSTSIZE ){
+           alpar[kth+jsm*num_pval] = MAX_CLUSTSIZE ; /* shouldn't happen */
+         } else {
+           ff = (ath[ii]-aa)/(ath[ii]-ath[ii+1]) ;  /* ath[ii] >= aa > ath[ii+1] */
+           alpar[kth+jsm*num_pval] = ii+ff ;
+         }
+     }}
+     nel = NI_new_data_element( "AlphaSim" , num_pval ) ;
+     for( jsm=0 ; jsm < num_fwhm ; jsm++ )
+       NI_add_column( nel , NI_FLOAT , alpar+jsm*num_pval ) ;
+     sprintf(atr,"%d %d %g",nx,nz,aa) ;
+     NI_set_attribute( nel , "NxNzAlpha" , atr ) ;
+
+     atr[0] = '\0' ;
+     for( kth=0 ; kth < num_pval ; kth++ ) sprintf(atr+strlen(atr),"%g ",pval[kth]) ;
+     atr[strlen(atr)-1] = '\0' ; NI_set_attribute( nel , "Pval" , atr ) ;
+
+     atr[0] = '\0' ;
+     for( jsm=0 ; jsm < num_fwhm ; jsm++ ) sprintf(atr+strlen(atr),"%g ",fwhm[jsm]) ;
+     atr[strlen(atr)-1] = '\0' ; NI_set_attribute( nel , "Fwhm" , atr ) ;
+
+     NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+     NI_free_element( nel ) ; mri_free(alpim) ;
+   }
 
    NI_stream_close( ns ) ;
    exit(0) ;
