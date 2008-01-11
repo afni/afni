@@ -413,7 +413,7 @@ int gxml_write_image(gifti_image * gim, const char * fname, int write_data)
                 write_data?"with":"no", fname);
         if( write_data )
             fprintf(stderr," (%d DA elements = %lld MB)",
-                    gim->numDA, gifti_gim_DA_size(xd->gim,1));
+                    gim->numDA, gifti_gim_DA_size(gim,1));
         fputc('\n', stderr);
     }
 
@@ -421,7 +421,7 @@ int gxml_write_image(gifti_image * gim, const char * fname, int write_data)
     if( gim->darray && gim->darray[0] &&
                        gim->darray[0]->encoding == GIFTI_ENCODING_B64GZ ) {
         fprintf(stderr,"** no ZLIB for compression...\n");
-        gifti_set_all_DA_attribs(gim, "Encoding", "Base64Binary");
+        gifti_set_DA_atrs(gim, "Encoding", "Base64Binary", NULL, 0);
     }
 #endif
 
@@ -900,8 +900,9 @@ static int push_darray(gxml_data * xd, const char ** attr)
 
     da = xd->gim->darray[xd->gim->numDA-1];  /* get new pointer */
 
-    /* fill the struct from the attributes */
-    if( gifti_init_darray_from_attrs(da, attr) ) return 1;
+    /* fill the struct from the attributes (store ex_atrs) */
+    if( gifti_set_DA_atrs(da, attr, 0, 1) ) return 1;
+    (void)gifti_is_valid_darray(da, xd->verb > 1);
 
     /* make a request to potentially update the XML buffer size */
     if( da->nvals>0 && da->nbyper>0 )
@@ -940,7 +941,6 @@ static int pop_darray(gxml_data * xd)
 
 #ifdef HAVE_ZLIB   /* for compiling, higher level test elsewhere */
         rv = uncompress(da->data, &outlen, (Bytef*)xd->zdata, xd->dind);
-#endif
         olen = outlen;
         if( rv != Z_OK ) {
             fprintf(stderr,"** uncompress fails for DA[%d]\n",xd->gim->numDA-1);
@@ -960,6 +960,7 @@ static int pop_darray(gxml_data * xd)
             fprintf(stderr,"** uncompressed buf is %lld bytes, expected %lld\n",
                     olen, da->nvals*da->nbyper);
         }
+#endif
 
         xd->gim->compressed = 1;   /* flag whether some data was compressed */
     }
@@ -2456,7 +2457,6 @@ static int ewrite_data(gxml_data * xd, giiDataArray * da, FILE * fp)
 #ifdef HAVE_ZLIB   /* for compiling, higher level test elsewhere */
             rv = compress2((Bytef *)xd->zdata, &blen, da->data,
                            da->nvals*da->nbyper, xd->zlevel);
-#endif
             if( rv != Z_OK ) {
                 if( rv == Z_MEM_ERROR )
                     fprintf(stderr,"** zlibc failure, not enough memory\n");
@@ -2473,6 +2473,7 @@ static int ewrite_data(gxml_data * xd, giiDataArray * da, FILE * fp)
             fprintf(stderr,"** unknown data encoding, %d\n", da->encoding);
             errs = 1;
         }
+#endif
     }
 
     fprintf(fp, "</%s>\n", enames[GXML_ETYPE_DATA]);
