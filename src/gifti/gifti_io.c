@@ -54,7 +54,7 @@ static char * gifti_history[] =
   "     - added more comments and made tables more readable\n"
   "     - added all user-variable access functions and reset_user_vars()\n",
   "     - added gifti_free_image_contents(), gifti_disp_raw_data(),\n"
-  "             gifti_clear_float_zeros() and gifti_set_all_DA_attribs()\n"
+  "             gifti_clear_float_zeros() and gifti_set_DA_atrs()\n"
   "     - changed gifti_gim_DA_size to long long\n"
   "     - added GIFTI_B64_CHECK_UNDEF as 0\n"
   "     - fixed 0-width indenting and accumulating base64 errors\n"
@@ -63,11 +63,15 @@ static char * gifti_history[] =
   "     - must now link libniftiio\n"
   "     - gifti_add_empty_darray() now takes num_to_add\n"
   "     - if data was expected but not read, free it\n"
-  "         (can add via gifti_alloc_all_data())\n"
+  "         (can add via gifti_alloc_DA_data())\n"
   "     - many minor changes\n"
+  "0.11 11 January, 2008:\n",
+  "     - attribute/data setting functions are more flexible\n"
+  "     - added gifti_disp_dtd_url, gifti_set_DA_meta, gifti_valid_int_list,\n"
+  "       DA_data_exists, gifti_add_to_meta \n"
 };
 
-static char gifti_version[] = "gifti library version 0.10, 3 January, 2008";
+static char gifti_version[] = "gifti library version 0.11, 11 January, 2008";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -159,6 +163,7 @@ char * gifti_endian_list[] = {"Undefined", "BigEndian", "LittleEndian"};
 /* ---------------------------------------------------------------------- */
 /* local prototypes */
 static int str2list_index(char *list[], int max, const char *str);
+static int DA_data_exists(gifti_image * gim, const int * dalist, int len);
 
 /* ---------------------------------------------------------------------- */
 /*! giftilib globals */
@@ -472,6 +477,8 @@ int gifti_free_DataArray( giiDataArray * darray )
 
     if( G.verb > 3 ) fprintf(stderr,"-- freeing giiDataArray\n");
 
+    if(darray->ext_fname) { free(darray->ext_fname); darray->ext_fname = NULL; }
+
     (void)gifti_free_nvpairs(&darray->meta);
     if( darray->coordsys) {
         gifti_free_CoordSystem(darray->coordsys);
@@ -508,33 +515,50 @@ int gifti_free_CoordSystem( giiCoordSystem * cs )
 /*----------------------------------------------------------------------
  *! initialize an existing DataArray structure given a list of name=value
  *  attribute pairs
+ *
+ *  if alen > 0, consider it the length of the attr list
+ *  else         process until attr[i] == NULL
+ *
+ *  if add_to_extras, add any bad attribute pairs to ex_atrs
+ *  else              whine about any bad ones and return
 *//*-------------------------------------------------------------------*/
-int gifti_init_darray_from_attrs(giiDataArray * da, const char ** attr)
+int gifti_set_DA_atrs(giiDataArray * da, const char ** attr, int alen,
+                      int add_to_extras )
 {
-    int c;
+    int c, length = alen;
 
     if( !da || !attr ) {
-        if(G.verb>0) fprintf(stderr,"** G_IDFA: bad params (%p,%p)\n",
+        if(G.verb>1) fprintf(stderr,"** G_IDFA: bad params (%p,%p)\n",
                              (void *)da,(void *)attr);
         return 1;
     }
 
-    /* init to something kinder and gentler */
-    for(c = 0; c < GIFTI_DARRAY_DIM_LEN; c++ ) da->dims[c] = 1;
+    /* if length was not passed, compute it */
+    if( length <= 0 ) for( length = 0; attr[length]; length++ ) /* nada */ ;
+
+    if( G.verb > 5 )
+        fprintf(stderr,"++ init darray attrs, len %d, ex_atrs = %d\n",
+                length, add_to_extras);
 
     /* insert attributes - if unknown, store with extras */
-    for(c = 0; attr[c]; c += 2 ) {
-        if( gifti_str2attr_darray(da, attr[c],attr[c+1]) )
-            if( gifti_add_to_nvpairs(&da->ex_atrs,attr[c],attr[c+1]) )
+    for(c = 0; c < length; c += 2 )
+        if( gifti_str2attr_darray(da, attr[c],attr[c+1]) ) {
+            /* a bad name=value pair, maybe add to ex_atrs */
+            if( add_to_extras ) {
+                if( gifti_add_to_nvpairs(&da->ex_atrs,attr[c],attr[c+1]) )
+                    return 1;
+            }
+            else {
+                fprintf(stderr,"** set_darray_atrs, bad pair '%s'='%s'\n",
+                        attr[c],attr[c+1]);
                 return 1;
-    }
+            }
+        }
 
-    /* and init extras */
+    /* and set computed values */
 
     da->nvals = gifti_darray_nvals(da);
     gifti_datatype_sizes(da->datatype, &da->nbyper, NULL); /* set nbyper */
-
-    (void)gifti_is_valid_darray(da, G.verb>0);           /* just a check */
 
     return 0;
 }
@@ -1203,8 +1227,17 @@ long long gifti_gim_DA_size(const gifti_image * p, int in_mb)
     if( !p ) return -1;
     if( !p->darray || p->numDA <= 0 ) return 0;
 
-    for( c = 0, bytes = 0; c < p->numDA; c++ )
+    for( c = 0; c < p->numDA; c++ ) {
+        if( ! p->darray[c]->data ) continue;  /* skip anything without data */
+        if( p->darray[c]->nvals <= 0 || p->darray[c]->nbyper <= 0 ) {
+            fprintf(stderr,"** have data[%d], but nvals = %lld, nbyper = %d\n",
+                    c, p->darray[c]->nvals, p->darray[c]->nbyper);
+            return 0;
+        }
         bytes += p->darray[c]->nvals * p->darray[c]->nbyper;
+    }
+
+    if( bytes <= 0LL ) return 0;
 
     if( in_mb ) bytes = (bytes + (1<<19) ) >> 20;  /* round to nearest MB */
 
@@ -1379,6 +1412,15 @@ void gifti_disp_lib_hist(void)
 void gifti_disp_lib_version(void)
 {
     printf("%s, compiled %s\n", gifti_version, __DATE__);
+}
+
+/*----------------------------------------------------------------------
+ *! print the gifti DTD URL
+*//*-------------------------------------------------------------------*/
+void gifti_disp_dtd_url(void)
+{
+    printf("The GIFTI Document Type Definition (DTD) is at:\n    %s\n",
+           GIFTI_XML_DTD_SOURCE);
 }
 
 /*----------------------------------------------------------------------
@@ -1648,6 +1690,7 @@ giiDataArray * gifti_copy_DataArray(const giiDataArray * orig, int get_data)
         if(!gnew->data)       /* continue? */
             fprintf(stderr,"** copy DA, failed to alloc %lld bytes for data\n",
                     gnew->nvals * gnew->nbyper);
+        memcpy(gnew->data, orig->data, gnew->nvals * gnew->nbyper);
     } else
         gnew->data = NULL;
 
@@ -1830,34 +1873,102 @@ int gifti_clear_float_zeros( char * str )
 /*----------------------------------------------------------------------
  *! set all DataArray attributes of the given name to the given value
 *//*-------------------------------------------------------------------*/
-int gifti_set_all_DA_attribs( gifti_image * gim, const char * name,
-                                                 const char * value )
+int gifti_set_atr_in_DAs(gifti_image *gim, const char *name, const char *value,
+                         const int * dalist, int len)
 {
-   int c, rv;
+    int c, ind;
 
-   if( !gim || !name || !value ) {
-        fprintf(stderr,"** set_DA_attribs: bad params (%p,%p,%p)\n",
+    if( !gim || !name || !value ) {
+        fprintf(stderr,"** set_DA_atrs: bad params (%p,%p,%p)\n",
                 (void *)gim, (void *)name, (void *)value);
         return 1;
-   }
+    }
 
-   if( !gim->darray ) return 0;  /* just leave */
+    if( !gim->darray ) return 0;    /* just leave */
 
-   for( c = 0; c < gim->numDA; c++ ) {
-        if( gim->darray[c] ) {
+    if( dalist && len > 0 ) {       /* set atrs for those DA in dalist */
+        if( ! gifti_valid_int_list(dalist, len, 0, gim->numDA-1, 1) )
+            return 1;
 
-            rv = gifti_str2attr_darray(gim->darray[c], name, value);
-
-            if( rv ) {  /* failure, maybe whine */
+        /* good to go */
+        for( c = 0; c < len; c++ ) {
+            ind = dalist[c];    /* for clarity */
+            if( ! gim->darray[ind] ) continue;  /* trioanoid */
+            if( gifti_str2attr_darray(gim->darray[ind], name, value) ) {
                 if( G.verb > 1 )
-                    fprintf(stderr,"** failed to set attr '%s' = '%s'\n",
-                            name, value);
+                    fprintf(stderr,"** bad DA attr '%s'='%s'\n",name,value);
                 return 1;
             }
         }
-   }
 
-   return 0;
+        if( G.verb > 2 )
+            fprintf(stderr,"++ set atrs in %d DAs, '%s'='%s'\n",len,name,value);
+
+        return 0;
+    }
+
+    /* else continue, do all of them */
+
+    for( c = 0; c < gim->numDA; c++ ) {
+        if( ! gim->darray[c] ) continue;  /* trioanoid */
+        if( gifti_str2attr_darray(gim->darray[c], name, value) ) {
+            if(G.verb>1)fprintf(stderr,"** bad DA attr '%s'='%s'\n",name,value);
+            return 1;
+        }
+    }
+
+    if( G.verb > 4 )
+        fprintf(stderr,"++ set attr in all DAs, '%s'='%s'\n", name, value);
+
+    return 0;
+}
+
+/*----------------------------------------------------------------------
+ *! set MetaData name/value pairs in all DAs in list (or all in gim)
+*//*-------------------------------------------------------------------*/
+int gifti_set_DA_meta( gifti_image *gim, const char *name, const char *value,
+                       const int * dalist, int len, int replace )
+{
+    int c, ind;
+
+    if( !gim || !name || !value ) {
+        fprintf(stderr,"** set_DA_meta: bad params (%p,%p,%p)\n",
+                (void *)gim, (void *)name, (void *)value);
+        return 1;
+    }
+
+    if( !gim->darray ) return 0;    /* just leave */
+
+    if( dalist && len > 0 ) {       /* set meta for those DA in dalist */
+        if( ! gifti_valid_int_list(dalist, len, 0, gim->numDA-1, 1) )
+            return 1;
+
+        /* good to go */
+        for( c = 0; c < len; c++ ) {
+            ind = dalist[c];    /* for clarity */
+            if( ! gim->darray[ind] ) continue;  /* trioanoid */
+            if( gifti_add_to_meta(&gim->darray[ind]->meta,name,value,replace) )
+                return 1;
+        }
+
+        if( G.verb > 2 )
+            fprintf(stderr,"++ set meta in %d DAs, '%s'='%s'\n",len,name,value);
+
+        return 0;
+    }
+
+    /* else continue, do all of them */
+
+    for( c = 0; c < gim->numDA; c++ ) {
+        if( ! gim->darray[c] ) continue;  /* trioanoid */
+        if( gifti_add_to_meta(&gim->darray[c]->meta,name,value,replace) )
+            return 1;
+    }
+
+    if( G.verb > 4 )
+        fprintf(stderr,"++ set MetaData in all DAs, '%s'='%s'\n", name, value);
+
+    return 0;
 }
 
 /*----------------------------------------------------------------------
@@ -1880,8 +1991,8 @@ gifti_image * gifti_create_image( int numDA, int intent, int dtype, int ndim,
     if( G.verb > 1 ) {  /* maybe start with some chit-chat */
         fprintf(stderr,"++ creating gifti_image with %d DA elements\n", numDA);
         if( G.verb > 2 ) {
-            fprintf(stderr,"   intent [%d] %s, dtype [%d] %s, alloc_data %d\n"
-                           "   ndim = %d, dims: ",
+            fprintf(stderr,"     intent[%d] = %s, dtype[%d] = %s,\n"
+                           "     alloc_data = %d, ndim = %d, dims: ",
                     intent, gifti_intent_to_string(intent),
                     dtype,  gifti_datatype2str(dtype), alloc_data, ndim);
             if( !dims ) fprintf(stderr,"<empty>\n");
@@ -1913,16 +2024,17 @@ gifti_image * gifti_create_image( int numDA, int intent, int dtype, int ndim,
     /* and fill in any other pieces */
 
     if( gifti_intent_is_valid(intent) )
-        errs += gifti_set_attr_all_DA(gim, "Intent",
-                                      gifti_intent_to_string(intent));
+        errs += gifti_set_atr_in_DAs(gim,"Intent",
+                                     gifti_intent_to_string(intent), NULL, 0);
 
     if( gifti_valid_datatype(dtype, 1) )
-        errs += gifti_set_attr_all_DA(gim,"DataType",gifti_datatype2str(dtype));
+        errs += gifti_set_atr_in_DAs(gim,"DataType", gifti_datatype2str(dtype),
+                                     NULL, 0);
 
     if( dims && ndim >= 0 ) errs += gifti_set_dims_all_DA(gim, ndim, dims);
 
     /* don't try this if there are errors */
-    if( !errs && alloc_data ) errs += gifti_alloc_all_data(gim);
+    if( !errs && alloc_data ) errs += gifti_alloc_DA_data(gim, NULL, 0);
 
     if( errs ) {  /* then fail out */
         gifti_free_image(gim);      
@@ -1934,37 +2046,54 @@ gifti_image * gifti_create_image( int numDA, int intent, int dtype, int ndim,
 
 /*----------------------------------------------------------------------
  *! allocate nvals*nbyper bytes of (zero-filled) data in each DataArray
+ *  (in dalist or simply in gim)
  *
  *  return 0 on success
  *         1 on error
 *//*-------------------------------------------------------------------*/
-int gifti_alloc_all_data(gifti_image * gim)
+int gifti_alloc_DA_data(gifti_image * gim, const int * dalist, int len)
 {
-    long long nbytes, ntot = 0;
-    int       c, nset = 0;
+    giiDataArray * da;
+    long long      nbytes, ntot = 0;
+    int            c, index, nset = 0, use_list, numDA;
 
     if( !gim || !gim->darray || gim->numDA <= 0 ) return 0;
 
-    if( G.verb > 2 ) fprintf(stderr,"++ allocating all data\n");
+    use_list = gifti_valid_int_list(dalist, len, 0, gim->numDA-1, 0);
+    if( use_list && DA_data_exists(gim, dalist, len) ) {
+        fprintf(stderr,"** data already exists for some DAs in list\n");
+        return 1;
+    }
 
-    for( c = 0; c < gim->numDA; c++ ) {
-        if( ! gim->darray[c] ) continue;
-        if( gim->darray[c]->nvals < 0 || gim->darray[c]->nbyper < 0 ) {
-            fprintf(stderr,"** bad nvals, nbyper in DA[%d]\n",c);
+    if( G.verb > 2 ) fprintf(stderr,"++ allocating data for %s\n",
+                             use_list ? "DA in list" : "all DAs");
+
+    numDA = use_list ? len : gim->numDA;
+    for( c = 0; c < numDA; c++ ) {
+        index = use_list ? dalist[c] : c;  /* choose appropriate DA index */
+        da = gim->darray[index];           /* set convenient pointer */
+
+        if( ! da ) continue;
+
+        /* if dimensions do not make sense, fail out */
+        if( ! gifti_valid_dims(da, G.verb > 0) ) return 1;
+
+        if( gim->darray[index]->nvals < 0 || gim->darray[index]->nbyper < 0 ) {
+            fprintf(stderr,"** bad nvals, nbyper in DA[%d]\n",index);
             return 1;
         }
-        nbytes = gim->darray[c]->nvals * gim->darray[c]->nbyper;
+        nbytes = gim->darray[index]->nvals * gim->darray[index]->nbyper;
 
         if( nbytes <= 0 ) continue;  /* skip empty data */
 
-        ntot += nbytes; /* keep tabs, though they are recyclable */
+        ntot += nbytes;          /* compute total bytes */
         nset++;
 
-        gim->darray[c]->data = calloc(nbytes, sizeof(char));
-        if( !gim->darray[c]->data ) {
-            fprintf(stderr,"** gifti_alloc_all_data: failed on DA %d of %d\n"
+        gim->darray[index]->data = calloc(nbytes, sizeof(char));
+        if( !gim->darray[index]->data ) {
+            fprintf(stderr,"** gifti_alloc_DA_data: failed on DA %d of %d\n"
                            "     %lld bytes (%lld total)\n",
-                           c, gim->numDA, nbytes, ntot);
+                           index, numDA, nbytes, ntot);
             return 1;
         }
     }
@@ -2003,7 +2132,6 @@ int gifti_set_dims_all_DA(gifti_image * gim, int ndim, const int * dims)
     }
     if( ndim == 0 ) nvals = 0;
 
-
     /* insert num_dim and fill dims (pad with 0s) */
     for( c = 0; c < gim->numDA; c++ ) {
         if( !gim->darray[c] ) continue;  /* paranoid */
@@ -2026,40 +2154,6 @@ int gifti_set_dims_all_DA(gifti_image * gim, int ndim, const int * dims)
 }
 
 /*----------------------------------------------------------------------
- *! set the given attribute in every DataArray element
- *
- *  we'll see how it goes just working with strings for now
- *
- *  return 0 on success
- *         1 on error
-*//*-------------------------------------------------------------------*/
-int gifti_set_attr_all_DA(gifti_image *gim, const char *name, const char *value)
-{
-    int c;
-
-    if(!gim || !name || !value) {
-        fprintf(stderr,"** SAA_DA: bad params (%p, %p, %p)\n",
-                (void *)gim, name, value);
-        return 1;
-    }
-
-    if( !gim->darray || gim->numDA == 0 ) return 0;
-
-    if( G.verb > 3 )
-        fprintf(stderr,"++ set attr in all DAs, '%s'='%s'\n", name, value);
-
-    for( c = 0; c < gim->numDA; c++ ) {
-        if( !gim->darray[c] ) continue;  /* trioanoid */
-        if( gifti_str2attr_darray(gim->darray[c], name, value) ) {
-            fprintf(stderr,"** bad DataArray attr, '%s'='%s'\n", name, value);
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
-/*----------------------------------------------------------------------
  *! fill DataArray element with default values
  *
  *  return 0 on success
@@ -2071,6 +2165,8 @@ int gifti_set_DA_defaults(giiDataArray * da)
 
     if(!da) { fprintf(stderr,"** NULL in set_DA_defaults\n"); return 1; }
 
+    if( G.verb > 6 ) fprintf(stderr,"-- setting DA defaults\n");
+
     gifti_clear_DataArray(da);                  /* start with empty struct */
 
     /* and fill with any non-NULL, non-zero values */
@@ -2080,7 +2176,7 @@ int gifti_set_DA_defaults(giiDataArray * da)
     da->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
     da->num_dim = 1;                            /* one value per node */
 
-    for( c = 0; c < 6; c++ ) da->dims[c] = 0;   /* zero nodes (might change) */
+    for( c = 0; c < GIFTI_DARRAY_DIM_LEN; c++ ) da->dims[c] = 0;
 
     da->encoding = GIFTI_ENCODING_B64BIN;       /* zlib may not be available */
     da->endian = gifti_get_this_endian();
@@ -2099,6 +2195,8 @@ int gifti_set_DA_defaults(giiDataArray * da)
 int gifti_clear_DataArray(giiDataArray * da)
 {
     if(!da) { fprintf(stderr,"** NULL in clear_DataArray\n"); return 1; }
+
+    if( G.verb > 5 ) fprintf(stderr,"-- clearing DataArray\n");
 
     memset(da, 0, sizeof(giiDataArray));
 
@@ -2121,6 +2219,8 @@ int gifti_clear_DataArray(giiDataArray * da)
 int gifti_clear_gifti_image(gifti_image * gim)
 {
     if(!gim) { fprintf(stderr,"** NULL in clear_gifti_image\n"); return 1; }
+
+    if( G.verb > 5 ) fprintf(stderr,"-- clearing gifti_image\n");
 
     /* set the version and clear all pointers */
     memset(gim, 0, sizeof(gim));
@@ -2149,9 +2249,15 @@ int gifti_read_dset_numDA(const char * fname)
         return -1;
     }
 
+    if( G.verb > 2 ) fprintf(stderr,"++ read dset numDA, file '%s'\n",fname);
+
     gim = gifti_read_da_list(fname, 0, NULL, 0);
 
     if( !gim ) return -1;       /* errors already printed */
+
+    if(G.verb > 1)
+        fprintf(stderr,"++ read dset numDA, file '%s', numDA = %d\n",
+                fname, numDA);
 
     numDA = gim->numDA;
 
@@ -2159,4 +2265,101 @@ int gifti_read_dset_numDA(const char * fname)
 
     return numDA;
 }
-    
+
+/*----------------------------------------------------------------------
+ *! return whether the list values are from min to max
+*//*-------------------------------------------------------------------*/
+int gifti_valid_int_list(const int *list, int len, int min, int max, int whine)
+{
+    int c;
+
+    if( !list || len <= 0 ) return 0;
+
+    for( c = 0; c < len; c++ )
+        if( list[c] < min || list[c] > max ) {
+            if( whine )
+                fprintf(stderr,"** bad list index [%d] = %d, not in [%d,%d]\n",
+                    c, list[c], min, max);
+            return 0;
+        }
+
+    return 1;
+}
+
+/* return whether any DAs in list have data */
+static int DA_data_exists(gifti_image * gim, const int * dalist, int len)
+{
+    int c;
+
+    if( !dalist || len <= 0 ) return 0;
+    if( !gifti_valid_int_list(dalist, len, 0, gim->numDA-1, 1) ) return 0;
+
+    for( c = 0; c < gim->numDA; c++ )
+        if( gim->darray[c] && gim->darray[c]->data )
+            return 1;
+
+    return 0;
+}
+
+/*----------------------------------------------------------------------
+ *! add the name=value pair to the MetaData lists
+ *
+ *  if the name already exists, fail, unless 'replace' is set
+ *
+ *  return 0 on success, 1 on error
+*//*-------------------------------------------------------------------*/
+int gifti_add_to_meta( giiMetaData * md, const char * name, const char * value,
+                       int replace )
+{
+    int c;
+
+    if( !md || !name || !value ) return 1;
+
+    if( G.verb > 5 )
+        fprintf(stderr,"++ GA2M: name '%s', value '%s', replace = %d\n",
+                       name, value, replace);
+
+    /* see if 'name' is already here */
+    for( c = 0; c < md->length; c++ )
+    {
+        if( !md->name[c] || !md->value[c] ) {
+            fprintf(stderr,"** Gadd_to_meta: no name/value pair at MD %d\n",c);
+            return 1;
+        }
+        if( !strcmp(md->name[c], name) ) {      /* a match, apply and return */
+            if( replace ) {
+                if( G.verb > 5 ) fprintf(stderr,"   (add via REPLACE)\n");
+                free(md->value[c]);
+                md->value[c] = gifti_strdup(value);
+                return 0;
+            } else {
+                fprintf(stderr,"** G_add_to_meta: name '%s', already exists\n",
+                               name);
+                return 1;
+            }
+        }
+    }
+
+    /* name is new, so just add it */
+
+    if( G.verb > 5 ) fprintf(stderr,"   (adding new entry)\n");
+
+    md->length++;
+    md->name = (char **)realloc(md->name, md->length * sizeof(char *));
+    md->value = (char **)realloc(md->value, md->length * sizeof(char *));
+
+    if( !md->name || !md->value ) {
+        fprintf(stderr,"** GA2M:failed to realloc %d MD pointers\n",md->length);
+        md->length = 0;
+        return 1;
+    }
+
+    md->name[md->length-1] = gifti_strdup(name);
+    md->value[md->length-1] = gifti_strdup(value);
+
+    if( ! md->name[md->length-1] || ! md->value[md->length-1] )
+        return 1;
+
+    return 0;
+}
+
