@@ -234,7 +234,7 @@ static int scrolling      =  1 ;
 
 #undef  MAKE_CLUS_ROW
 #define MAKE_CLUS_ROW(ii)                                           \
- do{ Widget rc ; char *str[1]={"abcdefghijklmn: "} ;                \
+ do{ Widget rc,lb ; char *str[1]={"abcdefghijklmn: "} ;             \
      char *ff = (ii%2==0) ? "menu" : "dialog" ;                     \
      rc = cwid->clu_rc[ii] =                                        \
          XtVaCreateWidget(                                          \
@@ -245,7 +245,7 @@ static int scrolling      =  1 ;
              XmNmarginHeight , 2 , XmNmarginWidth , 0 ,             \
              XmNtraversalOn , True ,                                \
            NULL ) ;                                                 \
-     cwid->clu_lab[ii] = XtVaCreateManagedWidget(                   \
+     lb = cwid->clu_lab[ii] = XtVaCreateManagedWidget(              \
             ff     , xmLabelWidgetClass , rc ,                      \
             LABEL_ARG("##:xxxxx vox +xxx.x +xxx.x +xxx.x") ,        \
             XmNalignment , XmALIGNMENT_BEGINNING ,                  \
@@ -275,7 +275,10 @@ static int scrolling      =  1 ;
                     XmNactivateCallback,AFNI_clus_action_CB,im3d ); \
      XtAddCallback( cwid->clu_flsh_pb[ii],                          \
                     XmNactivateCallback,AFNI_clus_action_CB,im3d ); \
-     if( scrolling && ii%2==1 ) MCW_set_widget_bg(rc,"black",0) ;   \
+     if( scrolling && ii%2==1 ){                                    \
+       MCW_set_widget_bg(rc,"black",0);                             \
+       MCW_set_widget_bg(lb,"black",0);                             \
+     }                                                              \
   } while(0)
 
 /*---------------------------------------------------------------------------*/
@@ -620,9 +623,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    if( swtop != NULL ){
      int wx,hy , cmax ;
      MCW_widget_geom( cwid->rowcol  , &wx,&hy,NULL,NULL ) ;
-     cmax = im3d->dc->height - 128 ;
-     hy  *= 3 ;
-     if( hy > cmax ) hy = cmax ;
+     hy *= 2 ; cmax = im3d->dc->height-128 ; if( hy > cmax ) hy = cmax ;
      XtVaSetValues( cwid->wtop , XmNwidth,wx+33,XmNheight,hy+19 , NULL ) ;
    }
 
@@ -1274,11 +1275,13 @@ ENTRY("AFNI_clus_action_CB") ;
          MRI_IMAGE *vm = fset->dblk->vedim ;
          im3d->vedskip = 1 ; tz = PLUTO_elapsed_time() ;
          for( jj=0 ; jj < 3 ; jj++ ){
+           MCW_invert_widget(w) ;
            MCW_vol_to_cluster(vm->nx,vm->ny,vm->nz ,
                               vm->kind,mri_data_pointer(vm) , clar->clar[ii] );
            AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
            tt = PLUTO_elapsed_time() ; ss = 66-(int)(tt-tz) ; tz = tt ;
            if( ss > 0 ) NI_sleep(ss) ;
+           MCW_invert_widget(w) ;
            MCW_cluster_to_vol(vm->nx,vm->ny,vm->nz ,
                               vm->kind,mri_data_pointer(vm) , clar->clar[ii] );
            AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
