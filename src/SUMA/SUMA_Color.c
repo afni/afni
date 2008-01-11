@@ -1220,6 +1220,7 @@ SUMA_COLOR_MAP *SUMA_FindNamedColMap(char *Name)
    
    SUMA_ENTRY;
    
+   if (!SUMAg_CF->scm) SUMAg_CF->scm = SUMA_Build_Color_maps();
    if (!SUMAg_CF->scm || !SUMAg_CF->scm->CMv) SUMA_RETURN(NULL);
    if ((imap = SUMA_Find_ColorMap(Name, SUMAg_CF->scm->CMv, 
                            SUMAg_CF->scm->N_maps, -2)) >= 0) { 
