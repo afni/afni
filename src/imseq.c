@@ -6006,7 +6006,7 @@ ENTRY("ISQ_but_disp_CB") ;
    if( swtop != NULL ){       /* 31 Jan 2002 */
      int wx,hy , cmax ;
      MCW_widget_geom( rctop  , &wx,&hy,NULL,NULL ) ;
-     cmax = seq->dc->height - 128 ; if( hy > cmax ) hy = cmax ;
+     cmax = seq->dc->height-128 ; if( hy > cmax ) hy = cmax ;
      XtVaSetValues( seq->dialog , XmNwidth,wx+33,XmNheight,hy+19 , NULL ) ;
    }
 
