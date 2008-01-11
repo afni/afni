@@ -194,3 +194,101 @@ ENTRY("mri_to_byte_scl") ;
    MRI_COPY_AUX(newim,oldim) ;
    RETURN( newim );
 }
+
+/* compute a byte mask from the input image     11 Jan 2008 [rickr]
+ * (this is akin to THD_makemask)                                   */
+byte * mri_to_bytemask( MRI_IMAGE * maskim, float mask_bot, float mask_top )
+{
+   float   maxval;
+   byte  * bmask;
+   int     nvox, ii;
+   int     empty = 0;
+
+ENTRY("mri_to_bytemask") ;
+
+   if( maskim == NULL ) RETURN( NULL );  /* 09 Feb 1999 */
+
+   nvox  = maskim->nvox ;
+   bmask = (byte *)calloc( sizeof(byte) * nvox, 1 );
+   if( !bmask ) {
+        fprintf(stderr,"** failed to alloc %d bytes for mask\n", nvox);
+        RETURN(NULL);
+   }
+
+   switch( maskim->kind ) {
+      default:
+         fprintf(stderr,"** mri_to_bytemask: invalid kind %d\n", maskim->kind);
+         free(bmask);  RETURN(NULL);
+
+      case MRI_byte: {
+         byte mbot, mtop;
+         byte *qar = MRI_BYTE_PTR(maskim) ;
+         if( mask_bot <= mask_top ) {
+            maxval = MRI_TYPE_maxval[MRI_byte] + 0.5;
+            if( mask_bot >= maxval || mask_top <= -maxval ) empty = 1;
+            mbot = BYTEIZE(mask_bot); mtop = BYTEIZE(mask_top);
+         } else {
+            mbot = (byte) -MRI_TYPE_maxval[MRI_byte];
+            mtop = (byte)  MRI_TYPE_maxval[MRI_byte];
+         }
+         if( !empty )
+            for( ii=0 ; ii < nvox ; ii++ )
+               if( qar[ii] >= mbot && qar[ii] <= mtop && qar[ii] != 0 )
+                  bmask[ii] = 1;
+      }
+      break ;
+
+      case MRI_short: {
+         short mbot, mtop;
+         short *qar = MRI_SHORT_PTR(maskim) ;
+         if( mask_bot <= mask_top ) {
+            maxval = MRI_TYPE_maxval[MRI_short] + 0.5;
+            if( mask_bot >= maxval || mask_top <= -maxval ) empty = 1;
+            mbot = SHORTIZE(mask_bot); mtop = SHORTIZE(mask_top);
+         } else {
+            mbot = (short) -MRI_TYPE_maxval[MRI_short];
+            mtop = (short)  MRI_TYPE_maxval[MRI_short];
+         }
+         if( !empty )
+            for( ii=0 ; ii < nvox ; ii++ )
+               if( qar[ii] >= mbot && qar[ii] <= mtop && qar[ii] != 0 )
+                  bmask[ii] = 1;
+      }
+      break ;
+
+      case MRI_int: {
+         int mbot, mtop;
+         int *qar = MRI_INT_PTR(maskim) ;
+         if( mask_bot <= mask_top ) {
+            maxval = MRI_TYPE_maxval[MRI_int] + 0.5;
+            if( mask_bot >= maxval || mask_top <= -maxval ) empty = 1;
+            mbot = (int)mask_bot; mtop = (int)mask_top;
+         } else {
+            mbot = (int) -MRI_TYPE_maxval[MRI_int];
+            mtop = (int)  MRI_TYPE_maxval[MRI_int];
+         }
+         if( !empty )
+            for( ii=0 ; ii < nvox ; ii++ )
+               if( qar[ii] >= mbot && qar[ii] <= mtop && qar[ii] != 0 )
+                  bmask[ii] = 1;
+      }
+      break ;
+
+      case MRI_float:{
+         float *qar = MRI_FLOAT_PTR(maskim) ;
+         if( mask_bot <= mask_top ) {   /* check bot/top */
+            for( ii=0 ; ii < nvox ; ii++ )
+               if( qar[ii]>=mask_bot && qar[ii]<=mask_top && qar[ii]!=0.0 )
+                  bmask[ii] = 1;
+         } else {                       /* no interval check */
+            for( ii=0 ; ii < nvox ; ii++ )
+               if( qar[ii] != 0.0 )
+                  bmask[ii] = 1;
+         }
+      }
+      break ;
+   }
+
+   RETURN(bmask);
+}
+

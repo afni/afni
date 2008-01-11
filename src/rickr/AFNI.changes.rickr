@@ -2336,3 +2336,8 @@
        - added AFNI-style DA selection, for input datasets
   * modified README.gifti, gifti/Makefile
 
+11 Jan 2008:
+  * modified mri_to_byte.c afni_vol2surf.c mrilib.h:
+       - added mri_to_bytemask() and a call to it in afni_vol2surf, for
+         using the clustered result in vol2surf
+
