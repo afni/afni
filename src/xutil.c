@@ -190,6 +190,21 @@ void MCW_set_widget_bg( Widget w , char *cname , Pixel pix )
    return ;
 }
 
+void MCW_set_widget_fg( Widget w , char *cname )
+{
+   Pixel bg_pix , topsh_pix , botsh_pix , fg_pix , sel_pix ;
+   Colormap cmap ;
+
+   if( !XtIsWidget(w) || cname == NULL || *cname == '\0' ) return ;
+
+   SYNC(w) ;
+
+   XtVaSetValues( w , XtVaTypedArg , XmNforeground , XmRString ,
+                                     cname , strlen(cname)+1 , NULL ) ;
+   return ;
+}
+
+
 /*-------------------------------------------------------------------*/
 
 void MCW_set_widget_label( Widget w , char *str )
@@ -316,7 +331,7 @@ Widget MCW_action_area( Widget parent, MCW_action_item *action, int num_act )
                action[ii].label , xmPushButtonWidgetClass , act_area ,
 
                   XmNleftAttachment   ,
-		       (ii) ? XmATTACH_POSITION : XmATTACH_FORM ,
+           (ii) ? XmATTACH_POSITION : XmATTACH_FORM ,
                   XmNleftPosition     , ii*TIG ,
                   XmNtopAttachment    , XmATTACH_FORM ,
                   XmNbottomAttachment , XmATTACH_FORM ,
@@ -486,7 +501,7 @@ ENTRY("MCW_popup_message") ;
       XtIntervalId tid ;
 
       tid = XtAppAddTimeOut( XtWidgetToApplicationContext( wmsg ) ,
-	                     22222 , MCW_message_timer_CB , wmsg   ) ;
+                             22222 , MCW_message_timer_CB , wmsg   ) ;
 
       XtVaSetValues( wlab , XmNuserData ,  tid , NULL );/* put tid on wlab; */
    } else {                                             /* shells don't */
@@ -1333,7 +1348,7 @@ ENTRY("new_MCW_textwin_2001") ;
      (void)XmProcessTraversal( ws , XmTRAVERSE_CURRENT ) ;
 #if 0
      (void)XtAppAddTimeOut( XtWidgetToApplicationContext(ws) ,
-	                         66 , MCW_textwin_timer_CB , ws   ) ;
+                            66 , MCW_textwin_timer_CB , ws   ) ;
 #endif
    }
 #ifdef DARWIN

@@ -99,7 +99,7 @@ int ALP_largest_clustersize( MRI_IMAGE *bim , float rmm )
    int nx,ny,nz , nclu , biggest=0 ;
    MCW_cluster *clust , *mask ;
    int nxy,nxyz , ijk , ijk_last , mnum ;
-   int icl , jma , ijkma ;
+   int icl , jma , ijkma , do_nn=0 ;
    float dx,dy,dz ;
    byte  *bfar ;
    short ic, jc, kc , im, jm, km, *mi,*mj,*mk ;
@@ -110,13 +110,13 @@ ENTRY("ALP_largest_clustersize") ;
    bfar = MRI_BYTE_PTR(bim) ;
    nx = bim->nx ; ny = bim->ny ; nz = bim->nz ;
    dx = bim->dx ; dy = bim->dy ; dz = bim->dz ;
-   if( rmm <= 0.0f ){ dx = dy = dz = 1.0f ; rmm = 1.01f ; }
+   if( rmm <= 0.0f ){ dx = dy = dz = 1.0f ; rmm = 1.01f ; do_nn = 1 ; }
 
    /*--- make a cluster that is a mask of points closer than max_dist ---*/
 
    mask = MCW_build_mask( dx, dy, dz, rmm ) ;
    if( mask == NULL ){
-     mask = MCW_build_mask( 1.0f,1.0f,1.0f, 1.01f ) ;
+     mask = MCW_build_mask( 1.0f,1.0f,1.0f, 1.01f ) ; do_nn = 1 ;
      if( mask == NULL ) RETURN(0) ;
    }
 
@@ -143,16 +143,27 @@ ENTRY("ALP_largest_clustersize") ;
        jc = clust->j[icl] ;
        kc = clust->k[icl] ;
 
-       for( jma=0 ; jma < mnum ; jma++ ){
-         im = ic + mi[jma] ; if( im < 0 || im >= nx ) continue ;
-         jm = jc + mj[jma] ; if( jm < 0 || jm >= ny ) continue ;
-         km = kc + mk[jma] ; if( km < 0 || km >= nz ) continue ;
+#undef  PROC
+#define PROC(p,q,r)                                    \
+ ijkma = THREE_TO_IJK(p,q,r,nx,nxy) ;                  \
+ if( bfar[ijkma] != 0 ){                               \
+   ADDTO_CLUSTER_NOMAG(clust,p,q,r); bfar[ijkma] = 0;  \
+ }
 
-         ijkma = THREE_TO_IJK(im,jm,km,nx,nxy) ;
-         if( bfar[ijkma] == 0 ) continue ;
-
-         ADDTO_CLUSTER_NOMAG( clust , im,jm,km ) ;
-         bfar[ijkma] = 0 ;
+       if( do_nn ){  /*--------------------------- NN special code for speed */
+         im = ic+1 ; if( im < nx ){ PROC(im,jc,kc) ; }
+         im = ic-1 ; if( im >= 0 ){ PROC(im,jc,kc) ; }
+         jm = jc+1 ; if( jm < ny ){ PROC(ic,jm,kc) ; }
+         jm = jc-1 ; if( jm >= 0 ){ PROC(ic,jm,kc) ; }
+         km = kc+1 ; if( km < nz ){ PROC(ic,jc,km) ; }
+         km = kc-1 ; if( km >= 0 ){ PROC(ic,jc,km) ; }
+       } else {      /*--------------------------- general rmm > 0 clustering */
+         for( jma=0 ; jma < mnum ; jma++ ){
+           im = ic + mi[jma] ; if( im < 0 || im >= nx ) continue ;
+           jm = jc + mj[jma] ; if( jm < 0 || jm >= ny ) continue ;
+           km = kc + mk[jma] ; if( km < 0 || km >= nz ) continue ;
+           PROC(im,jm,km) ;
+         }
        }
      }
 
@@ -166,7 +177,7 @@ ENTRY("ALP_largest_clustersize") ;
 /*----------------------------------------------------------------------------*/
 #define MAX_CLUSTSIZE 32768
 
-MRI_IMAGE * mri_alphasim( int   nx , int nzbot , int nztop ,
+MRI_IMAGE * mri_alphasim( int   nx , int nz ,
                           float dx , float dz  ,
                           int niter , float rmm ,
                           int num_pval , float *pval ,
@@ -175,16 +186,14 @@ MRI_IMAGE * mri_alphasim( int   nx , int nzbot , int nztop ,
 {
    MRI_IMAGE *bim , *aim , *cim ,      *dim ;
    float     *bar , *aar , *car ; byte *dar ;
-   int ite , jsm , kth , nxyz , ii,jj , ny , nz ;
+   int ite , jsm , kth , nxyz , ii,jj , ny ;
    float tt , u1,u2 , *ath , nitinv , *thr , dy , sx,sz ;
    double sd ;
    static long sseed=0 ;
 
 ENTRY("mri_alphasim") ;
 
-   if( nx < 8 || nztop < 1 ) RETURN(NULL) ;
-
-   if( nzbot > nztop || nzbot < 1 ) nzbot = nztop ;
+   if( nx < 8 || nz < 1 ) RETURN(NULL) ;
 
    if( dx <= 0.0f ) dx = 1.0f ;
    if( dz <= 0.0f ) dz = dx ;
@@ -209,7 +218,7 @@ ENTRY("mri_alphasim") ;
 #undef  ATH
 #define ATH(s,t) ( aar + ((s)*MAX_CLUSTSIZE + (t)*(MAX_CLUSTSIZE*num_fwhm) -1) )
 
-   nxyz = nx*ny*nztop ;
+   nxyz = nx*ny*nz ;
 
    if( seed != 0 ){
      srand48(seed) ;
@@ -223,9 +232,9 @@ ENTRY("mri_alphasim") ;
      thr[kth] = nifti_rcdf2stat( (double)pval[kth] ,
                                  NIFTI_INTENT_ZSCORE , 0.0,0.0,0.0 ) ;
 
-   bim = mri_new_vol( nx,ny,nztop , MRI_float ) ; bar = MRI_FLOAT_PTR(bim) ;
-   cim = mri_new_vol( nx,ny,nztop , MRI_float ) ; car = MRI_FLOAT_PTR(bim) ;
-   dim = mri_new_vol( nx,ny,nztop , MRI_byte  ) ; dar = MRI_BYTE_PTR (dim) ;
+   bim = mri_new_vol( nx,ny,nz , MRI_float ) ; bar = MRI_FLOAT_PTR(bim) ;
+   cim = mri_new_vol( nx,ny,nz , MRI_float ) ; car = MRI_FLOAT_PTR(cim) ;
+   dim = mri_new_vol( nx,ny,nz , MRI_byte  ) ; dar = MRI_BYTE_PTR (dim) ;
    dim->dx = dx ; dim->dy = dy ; dim->dz = dz ;
 
    /*-- iteration loop --*/
@@ -248,7 +257,7 @@ ENTRY("mri_alphasim") ;
        sx = FWHM_TO_SIGMA(fwhmx[jsm]) ;
        sz = FWHM_TO_SIGMA(fwhmz[jsm]) ;
        if( sx > 0.0f || sz > 0.0f )
-         EDIT_blur_volume_3d( nx,ny,nztop   , dx,dy,dz ,
+         EDIT_blur_volume_3d( nx,ny,nz      , dx,dy,dz ,
                               MRI_float,car , sx,sx,sz  ) ;
 
        /* find stdev of blurred dataset (we know the mean is zero) */
@@ -307,9 +316,8 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *aim ; float *aar,*ath ;
 
    float pval[28] ; int num_pval=28 ;
-   float fwhm[21] ; int num_fwhm= 5 ;  /* not 21 */
+   float fwhm[21] ; int num_fwhm=21 ; float dfwhm=0.25f ;
    MRI_IMAGE *maskim ; byte *mask, *mmm ;
-   float dfwhm = 2.0f ; /* not 0.25 */
 
    NI_element *nel ;
    NI_stream ns ;
@@ -327,10 +335,10 @@ int main( int argc , char *argv[] )
    for( ii=0 ; ii < num_pval ; ii++ ) pval[ii] = (float)pow(10.0,0.1*ii-4.0) ;
    for( ii=0 ; ii < num_fwhm ; ii++ ) fwhm[ii] = ii*dfwhm ;
 
-   dx = dy = dz = 3.0f ; rmm = 0.0f ;
+   dx = dy = dz = 1.0f ; rmm = 0.0f ;
 
    maskim = mri_new_vol(nx,ny,nz,MRI_byte) ; mask = MRI_BYTE_PTR(maskim) ;
-#if 0
+#if 1
    jsm = 1+nx*nx/4 ; kth = nx/2 ;
    for( kk=0 ; kk < nz ; kk++ ){
      for( jj=0 ; jj < ny ; jj++ ){
@@ -342,8 +350,8 @@ int main( int argc , char *argv[] )
    INFO_message("%d voxels in mask",THD_countmask(nx*ny*nz,mask)) ;
 #endif
 
-   aim = mri_alphasim( nx,nz,nz , dx,dz , niter,rmm ,
-                       num_pval,pval , num_fwhm,fwhm,NULL , NULL , 0 ) ;
+   aim = mri_alphasim( nx,nz , dx,dz , niter,rmm ,
+                       num_pval,pval , num_fwhm,fwhm,NULL , mask , 0 ) ;
 
    INFO_message("simulation done: CPU=%g",COX_cpu_time()) ;
 
@@ -357,7 +365,10 @@ int main( int argc , char *argv[] )
      for( kth=0 ; kth < num_pval ; kth++ ){
        ath = ATH(jsm,kth) ;
        for( ii=MAX_CLUSTSIZE ; ii > 0 && ath[ii] < 0.01f ; ii-- ) ; /*nada*/
-       if( ii == 0 ) continue ;  /* should not happen */
+       if( ii == 0 ){
+         WARNING_message("jsm=%d kth=%d has empty results!",jsm,kth) ;
+         continue ;  /* should not happen */
+       }
        clast = MIN(MAX_CLUSTSIZE,ii+1) ;
 #if 0
        for( ii=2 ; ii <= clast && ath[ii] > 0.5f ; ii++ ) ; /*nada*/

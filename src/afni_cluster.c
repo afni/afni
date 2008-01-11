@@ -74,6 +74,10 @@ ENTRY("AFNI_cluster_choose_CB") ;
      im3d->vedset.param[2] = rmm ;
      im3d->vedset.param[3] = vmul ;  /* other params set in afni.c */
      set_vedit_label(im3d,1) ;
+     if( ISVALID_3DIM_DATASET(im3d->fim_now) && !im3d->vinfo->func_visible ){
+       MCW_set_bbox( im3d->vwid->view->see_func_bbox , 1 ) ;
+       im3d->vinfo->func_visible = True ;
+     }
    }
    if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
    EXRETURN ;
@@ -586,6 +590,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    cwid->dset_lab = XtVaCreateManagedWidget(
                       "dialog" , xmLabelWidgetClass , cwid->rowcol , NULL ) ;
    AFNI_clus_dsetlabel(im3d) ;
+   MCW_set_widget_fg( cwid->dset_lab , "white" ) ;
 
    /* Separator from other widgets */
 
