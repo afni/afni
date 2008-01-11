@@ -187,7 +187,7 @@ ENTRY("mri_alphasim") ;
    if( nzbot > nztop || nzbot < 1 ) nzbot = nztop ;
 
    if( dx <= 0.0f ) dx = 1.0f ;
-   if( dz <= 0.0f ) dz = 1.0f ;
+   if( dz <= 0.0f ) dz = dx ;
 
    ny = nx ; dy = dx ;
 
@@ -307,8 +307,9 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *aim ; float *aar,*ath ;
 
    float pval[28] ; int num_pval=28 ;
-   float fwhm[ 5] ; int num_fwhm= 5 ;  /* not 21 */
+   float fwhm[21] ; int num_fwhm= 5 ;  /* not 21 */
    MRI_IMAGE *maskim ; byte *mask, *mmm ;
+   float dfwhm = 2.0f ; /* not 0.25 */
 
    NI_element *nel ;
    NI_stream ns ;
@@ -324,11 +325,12 @@ int main( int argc , char *argv[] )
    niter   = (int)strtod(argv[3],NULL); if( niter < 1 ) ERROR_exit("niter bad");
 
    for( ii=0 ; ii < num_pval ; ii++ ) pval[ii] = (float)pow(10.0,0.1*ii-4.0) ;
-   for( ii=0 ; ii < num_fwhm ; ii++ ) fwhm[ii] = ii*0.25 ;
+   for( ii=0 ; ii < num_fwhm ; ii++ ) fwhm[ii] = ii*dfwhm ;
 
-   dx = dy = dz = 1.0f ; rmm = 0.0f ;
+   dx = dy = dz = 3.0f ; rmm = 0.0f ;
 
    maskim = mri_new_vol(nx,ny,nz,MRI_byte) ; mask = MRI_BYTE_PTR(maskim) ;
+#if 0
    jsm = 1+nx*nx/4 ; kth = nx/2 ;
    for( kk=0 ; kk < nz ; kk++ ){
      for( jj=0 ; jj < ny ; jj++ ){
@@ -338,6 +340,7 @@ int main( int argc , char *argv[] )
      }
    }
    INFO_message("%d voxels in mask",THD_countmask(nx*ny*nz,mask)) ;
+#endif
 
    aim = mri_alphasim( nx,nz,nz , dx,dz , niter,rmm ,
                        num_pval,pval , num_fwhm,fwhm,NULL , NULL , 0 ) ;
