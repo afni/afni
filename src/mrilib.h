@@ -827,6 +827,7 @@ extern MRI_IMAGE *mri_to_short_scl( double,double , MRI_IMAGE * ) ;
 extern MRI_IMAGE *mri_to_short_sclip( double,double , int,int , MRI_IMAGE * ) ;
 extern MRI_IMAGE *mri_to_complex( MRI_IMAGE * ) ;
 extern MRI_IMAGE *mri_to_byte( MRI_IMAGE * ) ;
+extern byte      *mri_to_bytemask( MRI_IMAGE *, float,float ) ;
 extern MRI_IMAGE *mri_to_byte_scl( double , double , MRI_IMAGE * ) ;
 
 extern MRI_IMAGE * mri_to_rgb( MRI_IMAGE * ) ;
