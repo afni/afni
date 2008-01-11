@@ -54,6 +54,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 extern void MCW_expose_widget( Widget ) ;
 extern void MCW_invert_widget( Widget ) ;
 extern void MCW_set_widget_bg( Widget , char * , Pixel ) ;
+extern void MCW_set_widget_fg( Widget , char * ) ;
 
 extern Colormap MCW_get_colormap( Widget ) ;            /* 01 Sep 1998 */
 extern void     MCW_set_colormap( Widget , Colormap ) ; /* 14 Sep 1998 */
