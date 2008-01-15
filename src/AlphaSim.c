@@ -38,6 +38,10 @@
 
   Mod:     Added AFNI_BLUR_* environment variable stuff.
   Date:    03 Apr 2007 [RWC]
+
+  Mod:     Add -fast and -nxyz and -dxyz options.
+  Date:    10 Jan 2008 [RWC]
+
 */
 
 
@@ -46,7 +50,7 @@
 #define PROGRAM_NAME "AlphaSim"                      /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "18 June 1997"    /* date of initial program release */
-#define PROGRAM_LATEST  "03 April 2007"   /* date of latest program revision */
+#define PROGRAM_LATEST  "10 Jan 2008"    /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
