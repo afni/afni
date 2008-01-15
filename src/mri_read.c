@@ -2015,8 +2015,9 @@ static float lbfill = 0.0f ;  /* 10 Aug 2004 */
 static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
 {
    floatvec *fv=NULL ;
-   int blen, bpos, ncol, ii, count;
-   int alloc_chunk, alloc_unit = 10000, incr, n_alloced = 0, slowmo = 0 ; /* ZSS speedups */
+   int blen, bpos, ncol, ii, jj, temppos, count;
+   int alloc_chunk, alloc_unit = 10000, incr;
+   int n_alloced = 0, slowmo = 0 ; /* ZSS speedups */
    char sep, vbuf[64] , *cpt, *ope=NULL;
    float val ;
 
@@ -2026,11 +2027,28 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
    ncol = 0 ;
 
    /* convert commas (or 'i' for complex numbers ZSS Oct 06) to blanks */
+   /* note 'e' is commonly found in numeric files as in scientific notation*/
    for( ii=0 ; ii < blen ; ii++ ) {
-      if( buf[ii] == ',' || buf[ii] == 'i') buf[ii] = ' ' ;
-      if( !slowmo &&
-          (buf[ii] == '*' || buf[ii] == '@' || isalpha(buf[ii])) ) slowmo = 1;
+         temppos = ii; incr = 0;
+         if(isalpha(buf[ii])){
+            /* skip past alphabetics in a row*/
+            jj = ii;
+            for( ; jj < blen && isalpha(buf[jj]) ; jj++ ) ; 
+            incr = jj - ii - 1; /* only move if more than 1 char long */
+            if(incr) ii = jj;
+        }
+
+      /* convert some alphabetic characters to space (:,i)
+         if they are not followed by other alphabetics */
+         if((incr<=0) &&( buf[temppos] == ',' || buf[temppos] == 'i') ||
+            buf[temppos] == ':' )
+             buf[temppos] = ' ' ;
+         /* turn on "slow mo" reading if non-numeric */
+         if( !slowmo &&
+           (buf[temppos] == '*' || buf[temppos] == '@' || 
+            isalpha(buf[temppos])) ) slowmo = 1;
    }
+
    fv = (floatvec *)malloc(sizeof(floatvec)) ;
    fv->nar = 0 ;
    fv->ar  = (float *)NULL ;
@@ -2080,8 +2098,9 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
 static doublevec * decode_double_linebuf( char *buf )  /* 20 Jul 2004 */
 {
    doublevec *dv=NULL ;
-   int blen, bpos, ncol, ii, count ;
-   int alloc_chunk, alloc_unit = 10000, incr, n_alloced = 0, slowmo = 0 ; /* ZSS speedups */
+   int blen, bpos, ncol, ii, jj, temppos, count ;
+   int alloc_chunk, alloc_unit = 10000, incr;
+   int n_alloced = 0, slowmo = 0 ; /* ZSS speedups */
    char sep, vbuf[64] , *cpt , *ope=NULL;
    double val ;
 
@@ -2091,9 +2110,26 @@ static doublevec * decode_double_linebuf( char *buf )  /* 20 Jul 2004 */
    ncol = 0 ;
 
    /* convert commas (or 'i' for complex numbers ZSS Oct 06) to blanks */
+   /* note 'e' is commonly found in numeric files as in scientific notation*/
    for( ii=0 ; ii < blen ; ii++ ) {
-      if( buf[ii] == ',' || buf[ii] == 'i') buf[ii] = ' ' ;
-      if( !slowmo && (buf[ii] == '*' || buf[ii] == '@')) slowmo = 1;
+         temppos = ii; incr = 0;
+         if(isalpha(buf[ii])){
+            /* skip past alphabetics in a row*/
+            jj = ii;
+            for( ; jj < blen && isalpha(buf[jj]) ; jj++ ) ; 
+            incr = jj - ii - 1; /* only move if more than 1 char long */
+            if(incr) ii = jj;
+        }
+
+      /* convert some alphabetic characters to space (:,i)
+         if they are not followed by other alphabetics */
+         if((incr<=0) &&( buf[temppos] == ',' || buf[temppos] == 'i') ||
+            buf[temppos] == ':' )
+             buf[temppos] = ' ' ;
+         /* turn on "slow mo" reading if non-numeric */
+         if( !slowmo &&
+           (buf[temppos] == '*' || buf[temppos] == '@' || 
+            isalpha(buf[temppos])) ) slowmo = 1;
    }
 
    dv = (doublevec *)malloc(sizeof(doublevec)) ;
