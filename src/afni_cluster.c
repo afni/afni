@@ -103,6 +103,24 @@ ENTRY("AFNI_histrange_choose_CB") ;
 }
 
 /*---------------------------------------------------------------*/
+
+static void AFNI_fwhm_choose_CB( Widget wc, XtPointer cd, MCW_choose_cbs *cbs )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   AFNI_clu_widgets *cwid ;
+   float *vec = (float *)(cbs->cval) , ff ;
+
+ENTRY("AFNI_fhwm_choose_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+   cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) EXRETURN ;
+
+   cwid->fwhm = vec[0] ;
+   AFNI_clus_update_widgets( im3d ) ;
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------*/
 /* Callback for items on the clu_label menu itself.              */
 
 void AFNI_clu_CB( Widget w , XtPointer cd , XtPointer cbs )
@@ -238,7 +256,7 @@ static int scrolling      =  1 ;
 
 #undef  MAKE_CLUS_ROW
 #define MAKE_CLUS_ROW(ii)                                           \
- do{ Widget rc,lb ; char *str[1]={"abcdefghijklmn: "} ;             \
+ do{ Widget rc,lb,mb ; char *str[1]={"abcdefghijklmn: "} ;          \
      char *ff = (ii%2==0) ? "menu" : "dialog" ;                     \
      rc = cwid->clu_rc[ii] =                                        \
          XtVaCreateWidget(                                          \
@@ -270,6 +288,12 @@ static int scrolling      =  1 ;
      cwid->clu_save_pb[ii] = XtVaCreateManagedWidget(               \
             ff     , xmPushButtonWidgetClass , rc ,                 \
             LABEL_ARG("Save") , XmNtraversalOn , True ,             \
+            XmNinitialResourcesPersistent , False , NULL ) ;        \
+     mb = cwid->clu_alph_lab[ii] = XtVaCreateManagedWidget(         \
+            ff     , xmLabelWidgetClass , rc ,                      \
+            LABEL_ARG(" N/A") ,                                     \
+            XmNalignment , XmALIGNMENT_BEGINNING ,                  \
+            XmNrecomputeSize , False ,  XmNtraversalOn , True ,     \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
      XtAddCallback( cwid->clu_jump_pb[ii],                          \
                     XmNactivateCallback,AFNI_clus_action_CB,im3d ); \
@@ -424,6 +448,17 @@ ENTRY("AFNI_clus_make_widgets") ;
                                          MCW_BB_check , MCW_BB_noframe , NULL,NULL ) ;
      MCW_reghint_children( cwid->histsqrt_bbox->wrowcol , "Plot square root of histogram?" ) ;
    }
+
+   xstr = XmStringCreateLtoR( "noise FWHM" , XmFONTLIST_DEFAULT_TAG ) ;
+   cwid->fwhm_pb = XtVaCreateManagedWidget(
+           "menu" , xmPushButtonWidgetClass , cwid->top_menu ,
+            XmNlabelString , xstr ,
+            XmNtraversalOn , True  ,
+         NULL ) ;
+   XmStringFree(xstr) ;
+   XtAddCallback( cwid->fwhm_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
+   MCW_register_hint( cwid->fwhm_pb , "Set noise FWHM for cluster alpha calculation" ) ;
+   cwid->fwhm = -1.0f ;
 
    /*---- end of popup menu ----*/
 
@@ -610,6 +645,7 @@ ENTRY("AFNI_clus_make_widgets") ;
    cwid->clu_plot_pb = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
    cwid->clu_save_pb = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
    cwid->clu_flsh_pb = (Widget *) XtCalloc( num , sizeof(Widget) ) ;
+   cwid->clu_alph_lab= (Widget *) XtCalloc( num , sizeof(Widget) ) ;
 
    for( ii=0 ; ii < num ; ii++ ){ MAKE_CLUS_ROW(ii) ; }
    MCW_register_hint( cwid->clu_lab[0]     ,
@@ -622,6 +658,8 @@ ENTRY("AFNI_clus_make_widgets") ;
                       "Save average timeseries to 1D file" ) ;
    MCW_register_hint( cwid->clu_flsh_pb[0] ,
                       "Flash cluster voxels in image viewers" ) ;
+   MCW_register_hint( cwid->clu_alph_lab[0] ,
+                      "Approximate alpha value for cluster" ) ;
 
    XtManageChild( cwid->rowcol ) ;
 
@@ -629,7 +667,7 @@ ENTRY("AFNI_clus_make_widgets") ;
      int wx,hy , cmax ;
      MCW_widget_geom( cwid->rowcol  , &wx,&hy,NULL,NULL ) ;
      hy *= 2 ; cmax = im3d->dc->height-128 ; if( hy > cmax ) hy = cmax ;
-     XtVaSetValues( cwid->wtop , XmNwidth,wx+33,XmNheight,hy+19 , NULL ) ;
+     XtVaSetValues( cwid->wtop , XmNwidth,wx+63,XmNheight,hy+19 , NULL ) ;
    }
 
    XtRealizeWidget( cwid->wtop ) ;
@@ -784,6 +822,7 @@ void AFNI_clus_update_widgets( Three_D_View *im3d )
    char line[128] ;
    MCW_cluster_array *clar ;
    int maxclu ;
+   int ja,nx,ny,nz ; float fwhmvox=-1.0f ;
 
 ENTRY("AFNI_clus_update_widgets") ;
 
@@ -829,12 +868,13 @@ ENTRY("AFNI_clus_update_widgets") ;
    /* make more widget rows? (1 per cluster is needed) */
 
    if( cwid->nall < nclu ){
-     cwid->clu_rc     =(Widget *)XtRealloc((char *)cwid->clu_rc     ,nclu*sizeof(Widget));
-     cwid->clu_lab    =(Widget *)XtRealloc((char *)cwid->clu_lab    ,nclu*sizeof(Widget));
-     cwid->clu_jump_pb=(Widget *)XtRealloc((char *)cwid->clu_jump_pb,nclu*sizeof(Widget));
-     cwid->clu_plot_pb=(Widget *)XtRealloc((char *)cwid->clu_plot_pb,nclu*sizeof(Widget));
-     cwid->clu_save_pb=(Widget *)XtRealloc((char *)cwid->clu_save_pb,nclu*sizeof(Widget));
-     cwid->clu_flsh_pb=(Widget *)XtRealloc((char *)cwid->clu_flsh_pb,nclu*sizeof(Widget));
+     cwid->clu_rc      =(Widget *)XtRealloc((char *)cwid->clu_rc      ,nclu*sizeof(Widget));
+     cwid->clu_lab     =(Widget *)XtRealloc((char *)cwid->clu_lab     ,nclu*sizeof(Widget));
+     cwid->clu_jump_pb =(Widget *)XtRealloc((char *)cwid->clu_jump_pb ,nclu*sizeof(Widget));
+     cwid->clu_plot_pb =(Widget *)XtRealloc((char *)cwid->clu_plot_pb ,nclu*sizeof(Widget));
+     cwid->clu_save_pb =(Widget *)XtRealloc((char *)cwid->clu_save_pb ,nclu*sizeof(Widget));
+     cwid->clu_flsh_pb =(Widget *)XtRealloc((char *)cwid->clu_flsh_pb ,nclu*sizeof(Widget));
+     cwid->clu_alph_lab=(Widget *)XtRealloc((char *)cwid->clu_alph_lab,nclu*sizeof(Widget));
      for( ii=cwid->nall ; ii < nclu ; ii++ ){ MAKE_CLUS_ROW(ii) ; }
      cwid->nall = nclu ;
    }
@@ -849,6 +889,17 @@ ENTRY("AFNI_clus_update_widgets") ;
        XtUnmanageChild( cwid->clu_rc[ii] ) ;
    }
    cwid->nrow = nclu ;  /* # of managed rows */
+
+   nx = DSET_NX(im3d->fim_now) ;
+   ny = DSET_NY(im3d->fim_now) ;
+   nz = (nx > 64 || ny > 64) ? -1 : DSET_NZ(im3d->fim_now) ;
+   if( nz > 0 && cwid->fwhm >= 0.0f ){
+     float dx = DSET_DX(im3d->fim_now) ;
+     float dy = DSET_DY(im3d->fim_now) ;
+     float dz = DSET_DZ(im3d->fim_now) ;
+     float dd = cbrtf(fabsf(dx*dy*dz)) ;
+     if( dd > 0.0f ) fwhmvox = cwid->fwhm / dd ;
+   }
 
    /* change labels for each row */
 
@@ -878,6 +929,21 @@ ENTRY("AFNI_clus_update_widgets") ;
        sprintf(line,"%2d:%9d %+6.1f %+6.1f %+6.1f",
                ii+1,cld[ii].nvox , px,py,pz ) ;
      MCW_set_widget_label( cwid->clu_lab[ii] , line ) ;
+
+#if 0
+     ja = cluster_alphaindex_64( cld[ii].nvox , nz ,
+                                 fwhmvox , im3d->vinfo->func_pval ) ;
+     switch( ja ){
+       default:  rrr = " N/A" ; break ;
+       case 666: rrr = ">.10" ; break ;
+       case   2: rrr = "<.10" ; break ;
+       case   1: rrr = "<.05" ; break ;
+       case   0: rrr = "<.01" ; break ;
+     }
+     MCW_set_widget_label( cwid->clu_alph_lab[ii] , rrr ) ;
+#else
+     XtUnmanageChild( cwid->clu_alph_lab[ii] ) ;
+#endif
    }
 
    SET_INDEX_LAB(im3d) ;
@@ -1043,7 +1109,7 @@ ENTRY("AFNI_clus_action_CB") ;
    /*------ Hist range button ------*/
 
    if( w == cwid->histrange_pb ){
-     char *lvec[2] = { "Minimum" , "Maximum" } ;
+     static char *lvec[2] = { "Minimum" , "Maximum" } ;
      float fvec[2] ;
      if( cwid->hbot < cwid->htop ){ fvec[0]=cwid->hbot; fvec[1]=cwid->htop; }
      else                         { fvec[0] = fvec[1] = 0.0f;               }
@@ -1055,6 +1121,20 @@ ENTRY("AFNI_clus_action_CB") ;
                         "----------------------" ,
                         2 , lvec,fvec ,
                         AFNI_histrange_choose_CB , (XtPointer)im3d ) ;
+     EXRETURN ;
+   }
+
+   /*------ noise FWHM button ------*/
+
+   if( w == cwid->fwhm_pb ){
+     static char *lvec[1] = { "FWHM" } ; float val=cwid->fwhm ;
+     MCW_choose_vector( cwid->top_lab ,
+                        "Set FWHM of noise\n"
+                        "for cluster alpha\n"
+                        "value calculation\n"
+                        "[in millimeters] \n"
+                        "-----------------" ,
+                        1 , lvec , &val , AFNI_fwhm_choose_CB , (XtPointer)im3d ) ;
      EXRETURN ;
    }
 

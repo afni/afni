@@ -1361,7 +1361,7 @@ mri_percents.o:mri_percents.c
 	$(RM) $@
 	$(CCFAST) -c mri_percents.c $(INFLAGS)
 
-edt_clustalpha.o:AlphaTab64.h
+edt_clustalpha.o:AlphaTab64.h edt_clustalpha.c
 	$(RM) $@
 	$(CCFAST) -c edt_clustalpha.c $(INFLAGS)
 
