@@ -384,7 +384,7 @@ typedef struct {
 typedef struct {
   Widget wtop, rowcol;      /* containers */
   Widget top_lab;           /* overall report text */
-  Widget top_menu , histrange_pb ;
+  Widget top_menu , histrange_pb , fwhm_pb ;
   MCW_bbox *histsqrt_bbox ;
 
   MCW_arrowval *cmode_av ;  /* first row of controls */
@@ -402,11 +402,13 @@ typedef struct {
   Widget *clu_plot_pb ;
   Widget *clu_save_pb ;
   Widget *clu_flsh_pb ;
+  Widget *clu_alph_lab ;
 
   THD_3dim_dataset *dset ;  /* selected from dataset_pb */
   int coord_mode ;
   int receive_on ;
   float hbot,htop ;
+  float fwhm ;
 } AFNI_clu_widgets ;      /** not yet used **/
 
 /*---*/

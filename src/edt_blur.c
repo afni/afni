@@ -1487,7 +1487,7 @@ ENTRY("mri_float_blur3D") ;
 /*-----------------------------------------------------------------------------*/
 
 #undef  NG
-#define NG 3
+#define NG 11
 static void fir_gaussian_load( int m, float dx, float *ff )
 {
    int ii ; float fac ; double xx ;
