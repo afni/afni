@@ -434,6 +434,10 @@ extern void EDIT_filter_volume (int, int, int, float, float, float,
 extern THD_marker_set * create_empty_marker_set(void);
 extern int              okay_to_add_markers(THD_3dim_dataset * dset);
 
+/* 15 Jan 2007 [RWC] -- in edt_clustalpha.c */
+
+extern int cluster_alphaindex_64( int csize, int nz, float fw, float pv ) ;
+
 
 /**---------------- AFNI Dataset item Names ----------------**/
 
