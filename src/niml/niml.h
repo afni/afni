@@ -502,6 +502,30 @@ DIME_part    * DIME_read_part   ( NI_stream_type * , int ) ;
 
 void           DIME_destroy_message( DIME_message * ) ;
 
+/*****--------------------------------------------------------------*****/
+
+#if 0
+typedef struct { int nar ; float  *ar ; } NI_floatvec ;
+
+#define KILL_NI_floatvec(fv)                 \
+  do{ if( (fv) != NULL ){                     \
+        if( (fv)->ar != NULL ) free((fv)->ar); \
+        free(fv); (fv) = NULL;                  \
+  }} while(0)
+
+#define MAKE_NI_floatvec(fv,n)                           \
+  do{ (fv) = (NI_floatvec *)malloc(sizeof(NI_floatvec)) ; \
+      (fv)->nar = (n) ;                                    \
+      (fv)->ar  = (float *)calloc(sizeof(float),(n)) ;      \
+  } while(0)
+
+#define RESIZE_NI_floatvec(fv,m)                               \
+  do{ if( (fv)->nar != (m) ){                                   \
+        (fv)->nar = (m) ;                                        \
+        (fv)->ar  = (float *)realloc((fv)->ar,sizeof(float)*(m)); \
+  }} while(0)
+#endif
+
 /*****------------------------- prototypes -------------------------*****/
 
 /** 18 Nov 2002: replace old malloc functions with new ones **/
@@ -570,12 +594,12 @@ extern char * NI_element_name( void * ) ;  /* 18 Apr 2005 */
 extern NI_element * NI_new_data_element( char *, int ) ;
 extern void NI_add_column( NI_element *, int, void * ) ;
 extern void NI_move_column(NI_element *nel, int ibefore, int iafter);
-extern void NI_insert_column( NI_element *nel , int typ , void *arr, int icol ); 
+extern void NI_insert_column( NI_element *nel , int typ , void *arr, int icol );
 extern void NI_remove_column(NI_element *nel, int irm);
-extern void NI_set_attribute( void *, char *, char * ) ;
+extern void   NI_set_attribute( void *, char *, char * ) ;
 extern char * NI_get_attribute( void *, char * ) ;
 extern void NI_insert_value( NI_element *, int,int, void * );       /* 03 Apr 2003 */
-extern void NI_insert_column_stride( NI_element *nel, int typ, void *arr, int stride, int icol ); 
+extern void NI_insert_column_stride( NI_element *nel, int typ, void *arr, int stride, int icol );
 extern void NI_add_column_stride( NI_element *, int, void *, int ); /* 29 May 2003 */
 extern void NI_fill_column_stride( NI_element *,int,void *,int,int);/* 23 Mar 2004 */
 extern void NI_insert_string( NI_element *, int,int, char *);       /* 19 Apr 2005 */

@@ -176,6 +176,7 @@ ENTRY("ALP_largest_clustersize") ;
 
 /*----------------------------------------------------------------------------*/
 #define MAX_CLUSTSIZE 32768
+static int verb = 1 ;
 
 MRI_IMAGE * mri_alphasim( int   nx , int nz ,
                           float dx , float dz  ,
@@ -187,7 +188,7 @@ MRI_IMAGE * mri_alphasim( int   nx , int nz ,
    MRI_IMAGE *bim , *aim , *cim ,      *dim ;
    float     *bar , *aar , *car ; byte *dar ;
    int ite , jsm , kth , nxyz , ii,jj , ny ;
-   float tt , u1,u2 , *ath , nitinv , *thr , dy , sx,sz ;
+   float tt , u1,u2 , *ath , nitinv , *thr , dy , sx,sz , fdx,fdz , fx,fz ;
    double sd ;
    static long sseed=0 ;
 
@@ -241,24 +242,35 @@ ENTRY("mri_alphasim") ;
 
    nitinv = 1.0f / niter ;
 
+   if( verb ) fprintf(stderr,"mri_alphasim:") ;
    for( ite=0 ; ite < niter ; ite++ ){
+
+     if( verb && ite%500 == 499 ) fprintf(stderr,".") ;
 
      /*-- create uncorrelated random field --*/
 
      for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = zgaussian() ;
 
+     fx = fz = 0.0f ;  /* set current smoothness level */
+
      /*-- loop over smoothings --*/
 
      for( jsm=0 ; jsm < num_fwhm ; jsm++ ){
 
-       /* blur dataset */
+       /* incrementally blur dataset */
+
+       fdx = sqrtf(fwhmx[jsm]*fwhmx[jsm]-fx*fx) ;
+       fdz = sqrtf(fwhmz[jsm]*fwhmz[jsm]-fz*fz) ;
+       /** if( verb && ite == 0 ) fprintf(stderr," %d:fdx=%g fdz=%g ",jsm,fdx,fdz) ; **/
+       if( fdx > 0.0f || fdz > 0.0f ){
+         sx = FWHM_TO_SIGMA(fdx) ;
+         sz = FWHM_TO_SIGMA(fdz) ;
+         EDIT_blur_volume_3d( nx,ny,nz      , dx,dy,dz ,
+                              MRI_float,bar , sx,sx,sz  ) ;
+       }
+       fx = fwhmx[jsm] ; fz = fwhmz[jsm] ;
 
        memcpy( car , bar , sizeof(float)*nxyz ) ;
-       sx = FWHM_TO_SIGMA(fwhmx[jsm]) ;
-       sz = FWHM_TO_SIGMA(fwhmz[jsm]) ;
-       if( sx > 0.0f || sz > 0.0f )
-         EDIT_blur_volume_3d( nx,ny,nz      , dx,dy,dz ,
-                              MRI_float,car , sx,sx,sz  ) ;
 
        /* find stdev of blurred dataset (we know the mean is zero) */
 
@@ -291,6 +303,7 @@ ENTRY("mri_alphasim") ;
        } /* end of loop over thresholds */
      } /* end of loop over smoothings */
    } /* end of iterations */
+   if( verb ) fprintf(stderr,"\n") ;
 
    mri_free(dim) ; mri_free(cim) ; mri_free(bim) ; free((void *)thr) ;
 
@@ -311,11 +324,16 @@ ENTRY("mri_alphasim") ;
 
 int main( int argc , char *argv[] )
 {
-   int nx,ny,nz , niter , jsm,kth,ii,jj,kk,qq ;
-   float dx,dy,dz , rmm ;
+   int nx,ny,nz , niter , jsm,kth,ii,jj,kk,qq , nrev ;
+   float dx,dy,dz , rmm , drev ;
    MRI_IMAGE *aim ; float *aar,*ath ;
 
-   float pval[28] ; int num_pval=28 ;
+#define NQVAL 12
+   float qval[NQVAL] = { 1.0f, 1.3f, 1.6f, 2.0f, 2.5f, 3.0f,
+                         4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f } ;
+#define NPVAL (2*NQVAL+8)
+#define PBASE 0.0001f
+   float pval[NPVAL] ; int num_pval=NPVAL ;
    float fwhm[21] ; int num_fwhm=21 ; float dfwhm=0.25f ;
    MRI_IMAGE *maskim ; byte *mask, *mmm ;
 
@@ -337,7 +355,9 @@ int main( int argc , char *argv[] )
    nz      = (int)strtod(argv[2],NULL); if( nz    < 1 ) ERROR_exit("nz bad")   ;
    niter   = (int)strtod(argv[3],NULL); if( niter < 1 ) ERROR_exit("niter bad");
 
-   for( ii=0 ; ii < num_pval ; ii++ ) pval[ii] = (float)pow(10.0,0.1*ii-4.0) ;
+   for( ii=0 ; ii < num_pval ; ii++ ){
+     jj = ii%NQVAL; kk = ii/NQVAL; pval[ii] = PBASE * qval[jj] * pow(10.0,kk);
+   }
    for( ii=0 ; ii < num_fwhm ; ii++ ) fwhm[ii] = ii*dfwhm ;
 
    dx = dy = dz = 1.0f ; rmm = 0.0f ;
@@ -355,6 +375,7 @@ int main( int argc , char *argv[] )
    INFO_message("%d voxels in mask",THD_countmask(nx*ny*nz,mask)) ;
 #else
    maskim = NULL ; mask = NULL ;
+   INFO_message("%d voxels in dataset",nx*ny*nz) ;
 #endif
 
    aim = mri_alphasim( nx,nz , dx,dz , niter,rmm ,
@@ -367,11 +388,15 @@ int main( int argc , char *argv[] )
    if( aim == NULL ) ERROR_exit("aim bad") ;
    aar = MRI_FLOAT_PTR(aim) ;
 
+#if 0
    ns = NI_stream_open( "fd:1" , "w" ) ; if( ns == NULL ) ERROR_exit("bad ns") ;
+#endif
    for( qaa=0 ; qaa < num_alph ; qaa++ ){
+
      aa    = alph[qaa] ;
      alpim = mri_new( num_pval , num_fwhm , MRI_float ) ;
      alpar = MRI_FLOAT_PTR(alpim) ;
+
      for( jsm=0 ; jsm < num_fwhm ; jsm++ ){
        for( kth=0 ; kth < num_pval ; kth++ ){
          ath = ATH(jsm,kth) ;
@@ -385,24 +410,71 @@ int main( int argc , char *argv[] )
            alpar[kth+jsm*num_pval] = ii+ff ;
          }
      }}
+
+     nrev = 0 ; drev = 0.0f ;
+     for( kth=0 ; kth < num_pval ; kth++ ){ /* edit each row to ensure it */
+       for( jsm=1 ; jsm < num_fwhm ; jsm++ ){    /* is non-decreasing in fwhm */
+         if( alpar[kth+jsm*num_pval] < alpar[kth+(jsm-1)*num_pval] ){
+           nrev++ ; drev += alpar[kth+(jsm-1)*num_pval] - alpar[kth+jsm*num_pval] ;
+           alpar[kth+jsm*num_pval] = alpar[kth+(jsm-1)*num_pval] ;
+         }
+       }
+     }
+     if( nrev > 0 ) INFO_message("%d reversals at Alpha=%g; sum=%g",nrev,aa,drev) ;
+
+#if 0
      nel = NI_new_data_element( "AlphaSim" , num_pval ) ;
      for( jsm=0 ; jsm < num_fwhm ; jsm++ )
        NI_add_column( nel , NI_FLOAT , alpar+jsm*num_pval ) ;
+
      sprintf(atr,"%d %d %g",nx,nz,aa) ;
      NI_set_attribute( nel , "NxNzAlpha" , atr ) ;
-
-     atr[0] = '\0' ;
-     for( kth=0 ; kth < num_pval ; kth++ ) sprintf(atr+strlen(atr),"%g ",pval[kth]) ;
-     atr[strlen(atr)-1] = '\0' ; NI_set_attribute( nel , "Pval" , atr ) ;
 
      atr[0] = '\0' ;
      for( jsm=0 ; jsm < num_fwhm ; jsm++ ) sprintf(atr+strlen(atr),"%g ",fwhm[jsm]) ;
      atr[strlen(atr)-1] = '\0' ; NI_set_attribute( nel , "Fwhm" , atr ) ;
 
+     atr[0] = '\0' ;
+     for( kth=0 ; kth < num_pval ; kth++ ) sprintf(atr+strlen(atr),"%g ",pval[kth]) ;
+     atr[strlen(atr)-1] = '\0' ; NI_set_attribute( nel , "Pval" , atr ) ;
+
      NI_write_element( ns , nel , NI_TEXT_MODE ) ;
      NI_free_element( nel ) ; mri_free(alpim) ;
+#else
+
+     for( jsm=0 ; jsm < num_fwhm ; jsm++ ){
+       printf("static float alpha%02d_nx%03d_nz%02d_fwhm%03d[%d] = {\n ",
+               (int)rint(aa*100.0) , nx , nz ,
+               (int)rint(fwhm[jsm]*100.0) , num_pval ) ;
+       for( kth=0 ; kth < num_pval ; kth++ ){
+         printf("%.2f%c",alpar[kth+jsm*num_pval],(kth==num_pval-1)?'}':',' ) ;
+         if( kth%10==9 && kth < num_pval-2 ) printf("\n ") ;
+       }
+       printf(";\n") ;
+     }
+     printf("static float *alpha%02d_nx%03d_nz%02d[%d] = {\n ",
+             (int)rint(aa*100.0) , nx , nz , num_fwhm ) ;
+     for( jsm=0 ; jsm < num_fwhm ; jsm++ ){
+       printf("alpha%02d_nx%03d_nz%02d_fwhm%03d%c ",
+              (int)rint(aa*100.0) , nx , nz ,
+              (int)rint(fwhm[jsm]*100.0) , (jsm==num_fwhm-1)?'}':',' ) ;
+       if( jsm%3==2 && jsm < num_fwhm-1 ) printf("\n ") ;
+     }
+     printf(";\n\n") ;
+#endif
+
    }
 
+   printf("static float **nx%03d_nz%02d[%d] = {\n ", nx , nz , num_alph ) ;
+   for( qaa=0 ; qaa < num_alph ; qaa++ ){
+     printf(" alpha%02d_nx%03d_nz%02d %c",
+            (int)rint(alph[qaa]*100.0) , nx , nz ,
+            (qaa==num_alph-1)?'}':',' ) ;
+   }
+   printf(";\n\n") ;
+
+#if 0
    NI_stream_close( ns ) ;
+#endif
    exit(0) ;
 }
