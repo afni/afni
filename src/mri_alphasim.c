@@ -185,10 +185,11 @@ MRI_IMAGE * mri_alphasim( int   nx , int nz ,
                           int num_fwhm , float *fwhmx , float *fwhmz ,
                           byte *mask , long seed )
 {
-   MRI_IMAGE *bim , *aim , *cim ,      *dim ;
-   float     *bar , *aar , *car ; byte *dar ;
+   MRI_IMAGE *bim , *aim , *cim , *qim ,      *dim ;
+   float     *bar , *aar , *car , *qar ; byte *dar ;
    int ite , jsm , kth , nxyz , ii,jj , ny ;
-   float tt , u1,u2 , *ath , nitinv , *thr , dy , sx,sz , fdx,fdz , fx,fz ;
+   float tt , u1,u2 , *ath , nitinv , *thr , dy , sx,sz ;
+   float fdx,fdz , fx,fz , fnx,fnz ;
    double sd ;
    static long sseed=0 ;
 
@@ -233,6 +234,7 @@ ENTRY("mri_alphasim") ;
      thr[kth] = nifti_rcdf2stat( (double)pval[kth] ,
                                  NIFTI_INTENT_ZSCORE , 0.0,0.0,0.0 ) ;
 
+   qim = mri_new_vol( nx,ny,nz , MRI_float ) ; qar = MRI_FLOAT_PTR(qim) ;
    bim = mri_new_vol( nx,ny,nz , MRI_float ) ; bar = MRI_FLOAT_PTR(bim) ;
    cim = mri_new_vol( nx,ny,nz , MRI_float ) ; car = MRI_FLOAT_PTR(cim) ;
    dim = mri_new_vol( nx,ny,nz , MRI_byte  ) ; dar = MRI_BYTE_PTR (dim) ;
@@ -250,27 +252,38 @@ ENTRY("mri_alphasim") ;
      /*-- create uncorrelated random field --*/
 
      for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = zgaussian() ;
+     memcpy( qar , bar , sizeof(float)*nxyz ) ;  /* qar = unsmoothed */
 
-     fx = fz = 0.0f ;  /* set current smoothness level */
+     fx = fz = 0.0f ;  /* set current smoothness level of bar */
 
      /*-- loop over smoothings --*/
 
      for( jsm=0 ; jsm < num_fwhm ; jsm++ ){
 
-       /* incrementally blur dataset */
+       /* incrementally blur dataset? */
 
-       fdx = sqrtf(fwhmx[jsm]*fwhmx[jsm]-fx*fx) ;
-       fdz = sqrtf(fwhmz[jsm]*fwhmz[jsm]-fz*fz) ;
-       /** if( verb && ite == 0 ) fprintf(stderr," %d:fdx=%g fdz=%g ",jsm,fdx,fdz) ; **/
-       if( fdx > 0.0f || fdz > 0.0f ){
-         sx = FWHM_TO_SIGMA(fdx) ;
-         sz = FWHM_TO_SIGMA(fdz) ;
+       fnx = fwhmx[jsm] ; fdx = sqrtf(fnx*fnx-fx*fx) ;
+       fnz = fwhmz[jsm] ; fdz = sqrtf(fnz*fnz-fz*fz) ;
+
+       if( fnx > 2.0f*dx && fnz > 2.0*dz ){     /*---- incremental blur ----*/
+
+         fdx = sqrtf(fnx*fnx-fx*fx) ; fdz = sqrtf(fnz*fnz-fz*fz) ;
+         sx  = FWHM_TO_SIGMA(fdx)   ; sz  = FWHM_TO_SIGMA(fdz)   ;
          EDIT_blur_volume_3d( nx,ny,nz      , dx,dy,dz ,
                               MRI_float,bar , sx,sx,sz  ) ;
-       }
-       fx = fwhmx[jsm] ; fz = fwhmz[jsm] ;
+         memcpy( car , bar , sizeof(float)*nxyz ) ;
+         fx = fnx ; fz = fnz ; /* set blur that bar has now */
 
-       memcpy( car , bar , sizeof(float)*nxyz ) ;
+       } else if( fnx > 0.0f || fnz > 0.0f ){      /*---- directly blur ----*/
+
+         memcpy( car , qar , sizeof(float)*nxyz ) ;
+         sx = FWHM_TO_SIGMA(fnx) ; sz = FWHM_TO_SIGMA(fnz) ;
+         EDIT_blur_volume_3d( nx,ny,nz      , dx,dy,dz ,
+                              MRI_float,car , sx,sx,sz  ) ;
+
+       } else {
+         memcpy( car , qar , sizeof(float)*nxyz ) ;  /*---- no blurring ----*/
+       }
 
        /* find stdev of blurred dataset (we know the mean is zero) */
 
@@ -305,7 +318,7 @@ ENTRY("mri_alphasim") ;
    } /* end of iterations */
    if( verb ) fprintf(stderr,"\n") ;
 
-   mri_free(dim) ; mri_free(cim) ; mri_free(bim) ; free((void *)thr) ;
+   mri_free(dim); mri_free(cim); mri_free(bim); mri_free(qim); free((void *)thr);
 
    /* convert x-th entry to prob(largest cluster size >= x) */
 
@@ -362,7 +375,7 @@ int main( int argc , char *argv[] )
 
    dx = dy = dz = 1.0f ; rmm = 0.0f ;
 
-#if 1
+#if 0
    maskim = mri_new_vol(nx,ny,nz,MRI_byte) ; mask = MRI_BYTE_PTR(maskim) ;
    jsm = 1+nx*nx/4 ; kth = nx/2 ;
    for( kk=0 ; kk < nz ; kk++ ){

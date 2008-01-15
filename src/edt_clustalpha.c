@@ -27,7 +27,7 @@ int cluster_alphaindex_64( int csize , int nz , float fw , float pv )
 
    if( csize < 2 || nz < 1 || nz > NZMAX ) return -1 ;   /** bad inputs **/
 
-        if( fw < 0.0f          ) fw = 0.0f ;
+        if( fw < 0.0f          ) return -1 ;
    else if( fw > fwhm[NFWHM-1] ) return -1 ;             /** bad input fw **/
 
         if( pv < pval[0]       ) pv = pval[0] ;
