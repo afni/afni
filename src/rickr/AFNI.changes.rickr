@@ -2363,4 +2363,4 @@
   * modified gifti_tool.[ch]:
        - added options -gifti_zlib, -gifti_test, -mod_to_float, -no_updates
   * modified gifti/Makefile: in clean_all, rm gifti*.lo*
-
+  * modified Makefile.INCLUDE: added gifti_tool target
