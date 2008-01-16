@@ -72,6 +72,7 @@ typedef struct {
     int            indent;          /* spaces per depth level       */
     int            buf_size;        /* for XML buffer               */
     int            b64_check;       /* 0=no, 1=check, 2=count, 3=skip */
+    int            update_ok;       /* library can update metadata  */
     int            zlevel;          /* compression level -1..9      */
 
     int          * da_list;         /* DA index list to store       */
@@ -117,6 +118,8 @@ int   gxml_set_buf_size    ( int val );
 int   gxml_get_buf_size    ( void    );
 int   gxml_set_b64_check   ( int val );
 int   gxml_get_b64_check   ( void    );
+int   gxml_set_update_ok   ( int val );
+int   gxml_get_update_ok   ( void    );
 int   gxml_set_zlevel      ( int val );
 int   gxml_get_zlevel      ( void    );
 

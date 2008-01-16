@@ -2351,6 +2351,16 @@
                         -mod_gim_attr, -mod_gim_meta
           (modification takes place at dataset read time)
         - reformatted help output
-
-
+16 Jan 2008: giftilib 0.12, gifti_tool 0.3
+  * modified gifti.test.io: added new -no_updates option
+  * modified gifti_io.[ch], gifti_xml.[ch], README.gifti:
+       - added gifti_copy_gifti_image() and gifti_convert_to_float()
+       - added gifti_valid_LabelTable(), gifticlib_version(),
+               gifti_copy_LabelTable(), gifti_updaet_nbyper() and
+               gifti_valid_gifti_image()
+       - added control over library updates to metadata
+       - expanded checks in gifti_valid_dims
+  * modified gifti_tool.[ch]:
+       - added options -gifti_zlib, -gifti_test, -mod_to_float, -no_updates
+  * modified gifti/Makefile: in clean_all, rm gifti*.lo*
 
