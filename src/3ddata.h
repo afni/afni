@@ -2818,6 +2818,11 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 
 #define DSET_DZ(ds) ((ds)->daxes->zzdel)
 
+/*! Return volume of a voxel */
+
+#define DSET_VOXVOL(ds) \
+  fabsf((ds)->daxes->xxdel*(ds)->daxes->yydel*(ds)->daxes->zzdel)
+
 /*! Return minimum grid spacing in 2 dimensions for dataset ds */
 #define DSET_MIN_DELXY(ds) ((fabs(DSET_DX(ds)) < (fabs(DSET_DY(ds))) ) ?  \
      fabs(DSET_DX(ds)) : fabs(DSET_DY(ds)) )
