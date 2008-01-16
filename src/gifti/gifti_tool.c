@@ -21,13 +21,15 @@ static char * g_history[] =
   "0.2  11 Jan, 2008: added modification functionality\n",
   "     - added option -gifti_dtd_url\n"
   "     - added options -mod_DAs and -read_DAs (replaced -dalist)\n"
-  "     - added options -mod_add_data, -mod_DA_attr, -mod_DA_meta,\n"
-  "                     -mod_gim_attr, -mod_gim_meta\n"
+  "     - added options -mod_add_data, -mod_DA_atr, -mod_DA_meta,\n"
+  "                     -mod_gim_atr, -mod_gim_meta\n"
   "       (modification takes place at dataset read time)\n"
   "     - reformatted help output\n"
+  "0.3  16 Jan, 2008:\n",
+  "     - added options -gifti_zlib, -gifti_test, -mod_to_float, -no_updates\n"
 };
 
-static char g_version[] = "gifti_tool version 0.2, 11 January 2008";
+static char g_version[] = "gifti_tool version 0.3, 16 January 2008";
 
 /* globals: verbosity, for now */
 typedef struct { int verb; } gt_globs;
@@ -100,6 +102,10 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
         } else if( !strcmp(argv[ac], "-gifti_ver") ) {
             gifti_disp_lib_version();
             return 1;
+        } else if( !strcmp(argv[ac], "-gifti_zlib") ) {
+            printf("library compiled %s ZLIB\n",
+                   GIFTI_COMP_WITH_ZLIB ? "with" : "without");
+            return 1;
         }
 
         /* do this early, in case it is wanted for other options */
@@ -132,6 +138,8 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-buf_size");
             opts->buf_size = atoi(argv[ac]);
+        } else if( !strcmp(argv[ac], "-gifti_test") ) {
+            opts->gt_test = 1;
         } else if( !strcmp(argv[ac], "-encoding") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-encoding");
@@ -163,11 +171,11 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
             if( ac < argc && argv[ac][0] == '-') ac--;
         } else if( !strcmp(argv[ac], "-mod_add_data") ) {
             opts->mod_add_data = 1;
-        } else if( !strcmp(argv[ac], "-mod_DA_attr") ) {
+        } else if( !strcmp(argv[ac], "-mod_DA_atr") ) {
             opts->mod_DA_atr = 1;
             ac++;
             if( ac > argc-2 || argv[ac][0] == '-' || argv[ac+1][0] == '-' ) {
-                fprintf(stderr,"** option -mod_DA_attr requires 2 arguments\n");
+                fprintf(stderr,"** option -mod_DA_atr requires 2 arguments\n");
                 return -1;
             }
             if( add_to_str_list(&opts->DA_atrs, argv[ac] ) ||
@@ -197,11 +205,11 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
             }
             /* and back up if we've looked too far */
             if( ac < argc && argv[ac][0] == '-') ac--;
-        } else if( !strcmp(argv[ac], "-mod_gim_attr") ) {
+        } else if( !strcmp(argv[ac], "-mod_gim_atr") ) {
             opts->mod_gim_atr = 1;
             ac++;
             if( ac > argc-2 || argv[ac][0] == '-' || argv[ac+1][0] == '-' ) {
-                fprintf(stderr,"** option -mod_gim_attr requires 2 args\n");
+                fprintf(stderr,"** option -mod_gim_atr requires 2 args\n");
                 return -1;
             }
             if( add_to_str_list(&opts->gim_atrs, argv[ac] ) ||
@@ -219,6 +227,8 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
                 add_to_str_list(&opts->gim_meta, argv[ac+1] ) )
                 return -1;
             ac++;  /* and consume last arg */
+        } else if( !strcmp(argv[ac], "-mod_to_float") ) {
+            opts->mod_to_float = 1;
         } else if( !strcmp(argv[ac], "-new_dset") ) {
             if( add_to_str_list(&opts->infiles, "MAKE_IM") ) return -1;
         } else if( !strcmp(argv[ac], "-new_numDA") ) {
@@ -260,6 +270,8 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
             opts->new_data = 1;
         } else if( !strcmp(argv[ac], "-no_data") ) {
             opts->dstore = 0;
+        } else if( !strcmp(argv[ac], "-no_updates") ) {
+            opts->update_ok = 0;
         } else if( !strcmp(argv[ac], "-read_DAs") ) {
             ac++;
             for( c = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, c++ )
@@ -303,7 +315,8 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
     /* flat whether we are modifying input data */
     opts->gt_modify = opts->mod_add_data ||
                       opts->mod_gim_atr  || opts->mod_gim_meta ||
-                      opts->mod_DA_atr   || opts->mod_DA_meta;
+                      opts->mod_DA_atr   || opts->mod_DA_meta  ||
+                      opts->mod_to_float;
 
     if( G.verb > 3 ) disp_gt_opts("options read: ", opts, stderr);
 
@@ -314,7 +327,7 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
     }
 
     /* only allow one major operation per program execution */
-    c = opts->gt_compare + opts->gt_display + opts->gt_test + opts->gt_write;
+    c = opts->gt_compare + opts->gt_display + opts->gt_write;
     if( c == 0 ) opts->gt_test = 1;
     else if( c > 1 ) {
         fprintf(stderr,"** only 1 major operation allowed, have %d\n", c);
@@ -324,11 +337,12 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
     /* apply any XML user options
      * (non-zero defaults: verb, zlevel -1)
      */
-    if( opts->verb   !=  1 ) gifti_set_verb(opts->verb);
-    if( opts->indent != -1 ) gifti_set_indent(opts->indent);
-    if( opts->buf_size     ) gifti_set_xml_buf_size(opts->buf_size);
-    if( opts->b64_check    ) gifti_set_b64_check(opts->b64_check);
-    if( opts->zlevel != -1 ) gifti_set_zlevel(opts->zlevel);
+    if( opts->verb      !=  1 ) gifti_set_verb(opts->verb);
+    if( opts->indent    != -1 ) gifti_set_indent(opts->indent);
+    if( opts->buf_size        ) gifti_set_xml_buf_size(opts->buf_size);
+    if( opts->b64_check       ) gifti_set_b64_check(opts->b64_check);
+    if( opts->update_ok != -1 ) gifti_set_update_ok(opts->update_ok);
+    if( opts->zlevel    != -1 ) gifti_set_zlevel(opts->zlevel);
 
     return 0;
 }
@@ -534,6 +548,13 @@ gifti_image * gt_read_dataset(gt_opts * opts, char * fname)
         free(fcopy);
     }
 
+    if( opts->gt_test ) {
+        if( gifti_valid_gifti_image(gim, opts->verb > 0) )
+            printf("++ gifti_image '%s' is VALID\n", fname);
+        else
+            printf("++ gifti_image '%s' is INVALID\n", fname);
+    }
+
     return gim;
 }
 
@@ -556,6 +577,7 @@ static int init_opts(gt_opts * opts)
     opts->verb = 1;
     opts->indent = -1;
     opts->dstore = 1;
+    opts->update_ok = -1;
     opts->zlevel = -1;
 
     return 0;
@@ -570,17 +592,17 @@ static int disp_gt_opts(char * mesg, gt_opts * opts, FILE * stream)
     fprintf(fp, "gt_opts struct:\n"
         "    gt_compare    : %d\n"
         "    gt_display    : %d\n"
-        "    gt_test       : %d\n"
         "    gt_write      : %d\n"
         "    gt_modify     : %d\n"
+        "    gt_test       : %d\n"
         "\n"
         "    new_numDA     : %d\n"
         "    new_intent    : %d\n"
         "    new_dtype     : %d\n"
         "    new_ndim      : %d\n"
         "    new_dims [%d]  : ",
-        opts->gt_compare, opts->gt_display, opts->gt_test,
-        opts->gt_write, opts->gt_modify,
+        opts->gt_compare, opts->gt_display, opts->gt_write,
+        opts->gt_modify, opts->gt_test,
         opts->new_numDA, opts->new_intent, opts->new_dtype, opts->new_ndim,
         GIFTI_DARRAY_DIM_LEN
         );
@@ -595,11 +617,13 @@ static int disp_gt_opts(char * mesg, gt_opts * opts, FILE * stream)
         "    mod_gim_meta  : %d\n"
         "    mod_DA_atr    : %d\n"
         "    mod_DA_meta   : %d\n"
+        "    mod_to_float  : %d\n"
         "\n"
         "    verb          : %d\n"
         "    indent        : %d\n"
         "    buf_size      : %d\n"
         "    b64_check     : %d\n"
+        "    update_ok     : %d\n"
         "    zlevel        : %d\n"
         "\n"
         "    dstore        : %d\n"
@@ -610,7 +634,9 @@ static int disp_gt_opts(char * mesg, gt_opts * opts, FILE * stream)
         "    ofile_gifti   : %s\n\n",
         opts->new_data, opts->mod_add_data, opts->mod_gim_atr,
         opts->mod_gim_meta, opts->mod_DA_atr, opts->mod_DA_meta,
-        opts->verb, opts->indent, opts->buf_size, opts->b64_check, opts->zlevel,
+        opts->mod_to_float,
+        opts->verb, opts->indent, opts->buf_size, opts->b64_check,
+        opts->update_ok, opts->zlevel,
         opts->dstore, opts->encoding, opts->show_gifti,
         G_CHECK_NULL_STR(opts->ofile_1D),
         G_CHECK_NULL_STR(opts->ofile_asc),
@@ -734,7 +760,10 @@ static int show_help()
     "     -gifti_hist       : display thd modification history of gifticlib\n"
     "     -gifti_ver        : display gifticlib version\n"
     "     -gifti_dtd_url    : display the gifti DTD URL\n"
+    "     -gifti_zlib       : display whether the zlib is linked in library\n"
     "\n"
+    );
+    printf (
     "  ----------------------------------------\n"
     "  general/input options\n"
     "\n"
@@ -755,9 +784,14 @@ static int show_help()
     "\n"
     "           This default adds perhaps 10%% to the reading time.\n"
     "\n"
-    "     -buf_size         : set the buffer size (given to expat library)\n"
+    "     -buf_size    SIZE : set the buffer size (given to expat library)\n"
     "\n"
     "           e.g. -buf_size 1024\n"
+    "\n"
+    "     -gifti_test       : test whether each gifti dataset is valid\n"
+    "\n"
+    "           This performs a consistency check on each input GIFTI\n"
+    "           dataset.  Lists and dimensions must be consistent.\n"
     "\n"
     "     -infile     INPUT : specify one or more GIFTI datasets as input\n"
     "\n"
@@ -790,6 +824,12 @@ static int show_help()
     "\n"
     "           This option means not to read in the Data element in any\n"
     "           DataArray, akin to reading only the header.\n"
+    "\n"
+    "     -no_updates       : do not allow the library to modify metadata\n"
+    "\n"
+    "           By default, the library may update some metadata fields, such\n"
+    "           as 'gifticlib-version'.  The -no_updates option will prevent\n"
+    "           that operation.\n"
     "\n"
     "     -read_DAs s0 ...  : read DataArray list indices s0,... from input\n"
     "\n"
@@ -828,8 +868,8 @@ static int show_help()
     "               TYPE = BASE64     : base64 binary\n"
     "               TYPE = BASE64GZIP : base64 compressed binary\n"
     "\n"
-    "           This operation can also be performed via -mod_DA_attr:\n"
-    "           e.g. -mod_DA_attr Encoding BASE64GZIP\n"
+    "           This operation can also be performed via -mod_DA_atr:\n"
+    "           e.g. -mod_DA_atr Encoding BASE64GZIP\n"
     "\n"
     "     -write_1D    DSET : write out data to AFNI style 1D file\n"
     "\n"
@@ -878,16 +918,16 @@ static int show_help()
     "           created without any stored data.  This will allocate data\n"
     "           and fill it with zeros of the given type.\n"
     "\n"
-    "     -mod_DA_attr NAME VALUE : set the NAME=VALUE attribute pair\n"
+    "     -mod_DA_atr  NAME VALUE : set the NAME=VALUE attribute pair\n"
     "\n"
-    "           e.g. -mod_DA_attr Intent NIFTI_INTENT_ZSCORE\n"
+    "           e.g. -mod_DA_atr Intent NIFTI_INTENT_ZSCORE\n"
     "\n"
     "           This option will set the DataArray attribute corresponding\n"
     "           to NAME to the value, VALUE.  Attribute name=value pairs are\n"
     "           specified in the gifti DTD (see -gifti_dtd_url).\n"
     "\n"
-    "           One NAME=VALUE pair can be specified per -mod_DA_attr\n"
-    "           option.  Multiple -mod_DA_attr options can be used.\n"
+    "           One NAME=VALUE pair can be specified per -mod_DA_atr\n"
+    "           option.  Multiple -mod_DA_atr options can be used.\n"
     "\n"
     "     -mod_DA_meta NAME VALUE : set the NAME=VALUE pair in DA's MetaData\n"
     "\n"
@@ -908,9 +948,9 @@ static int show_help()
     "\n"
     "           Note that the indices are zero-based, 0 .. numDA-1.\n"
     "\n"
-    "     -mod_gim_attr NAME VALUE : set the GIFTI NAME=VALUE attribute pair\n"
+    "     -mod_gim_atr  NAME VALUE : set the GIFTI NAME=VALUE attribute pair\n"
     "\n"
-    "           e.g. -mod_gim_attr Version 3.141592\n"
+    "           e.g. -mod_gim_atr Version 3.141592\n"
     "\n"
     "           Set the GIFTI element attribute correponding to NAME to the\n"
     "           value, VALUE.\n"
@@ -925,6 +965,14 @@ static int show_help()
     "           Add a MetaData entry to each DataArray element for this\n"
     "           NAME and VALUE pair.  If NAME exists, VALUE will replace\n"
     "           the old value.\n"
+    "\n"
+    "     -mod_to_float            : change all DataArray data to float\n"
+    "\n"
+    "           Convert all DataArray elements of all datasets to datatype\n"
+    "           NIFTI_TYPE_FLOAT32 (4-byte floats).  If the data does not\n"
+    "           actually exist, only the attribute will be set.  Otherwise\n"
+    "           all of the data will be converted.  There are some types\n"
+    "           for which this operation may not be appropriate.\n"
     "\n"
     );
     printf (
@@ -1449,11 +1497,15 @@ int gt_modify_dset(gt_opts * opts, gifti_image * gim)
                                 opts->DA_meta.list[c], opts->DA_meta.list[c+1],
                                 opts->DAmodlist.list, opts->DAmodlist.len, 1);
 
+    /* for data manipulation functions, do not proceed if there there errors */
+
+    /* if desired, convert any existing data to float */
+    if( !errs && opts->mod_to_float ) errs += gifti_convert_to_float(gim);
+
     /* do this last, in case data related attributes were modified */
-    if( opts->mod_add_data )
+    if( !errs && opts->mod_add_data )
         if(gifti_alloc_DA_data(gim, opts->DAmodlist.list, opts->DAmodlist.len))
             errs++;
-
 
     if(opts->verb>2) fprintf(stderr,"-- modifications done, %d errors\n",errs);
 

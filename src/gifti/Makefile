@@ -48,7 +48,7 @@ clean:
 
 clean_all:
 	$(RM) gifti_test gifti_tool *.o
-	$(RM) gifti*.lo
+	$(RM) gifti*.lo*
 	$(RM) libgifti*.la
 	$(RM) *.so
 

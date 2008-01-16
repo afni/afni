@@ -8,9 +8,9 @@ typedef struct {
     /* main action flags */
     int           gt_compare;   /* somehow compare 2 datasets           */
     int           gt_display;   /* display something                    */
-    int           gt_test;      /* perform some tests on the datasets   */
     int           gt_write;     /* create output datasets               */
     int           gt_modify;    /* sub-action: to modify datasets       */
+    int           gt_test;      /* sub-action: check for valid datasets */
 
     /* action options */
     int           new_numDA;    /* numDA for new dataset                */
@@ -26,12 +26,14 @@ typedef struct {
     int           mod_gim_meta; /* modify gifti meta data               */
     int           mod_DA_atr;   /* modify DataArray attribute           */
     int           mod_DA_meta;  /* modify DataArray meta data           */
+    int           mod_to_float; /* convert all input data to FLOAT32    */
 
     /* GIFTI user options */
     int           verb;         /* verbose level                        */
     int           indent;       /* spaces per indent level              */
     int           buf_size;     /* buffer space for expat library       */
     int           b64_check;    /* check level */
+    int           update_ok;    /* okay for library to update metadata  */
     int           zlevel;       /* compression level for output data    */
 
     int           dstore;       /* whether to store read data           */
