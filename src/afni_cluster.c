@@ -57,28 +57,40 @@ ENTRY("AFNI_cluster_choose_CB") ;
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    rmm = vec[0] ; vmul = vec[1] ;
-   if( vmul <= 0.0f ){
-     im3d->vedset.code = 0 ;
-     AFNI_vedit_clear( im3d->fim_now ) ;
-     set_vedit_label(im3d,0) ; VEDIT_unhelpize(im3d) ;
-   } else {
-     if( rmm <= 0.0f && vmul < 2.0f ){
-       vmul = 2.0f ; rmm = 0.0f ;
+   if( rmm <= 0.0f && vmul < 2.0f ){
+     static int first=1 ;
+     vmul = 2.0f ; rmm = 0.0f ;
+     if( first ){
        MCW_popup_message( im3d->vwid->func->clu_cluster_pb ,
                            "** WARNING **\n"
-                           "** With rmm = 0, vmul is min cluster\n"
+                           "** With rmm <= 0, vmul is min cluster\n"
                            "** size in voxels, and is reset to 2\n "  ,
                           MCW_USER_KILL | MCW_TIMER_KILL ) ;
+       first = 0 ;
      }
-     im3d->vedset.code     = VEDIT_CLUST ;
-     im3d->vedset.param[2] = rmm ;
-     im3d->vedset.param[3] = vmul ;  /* other params set in afni.c */
-     set_vedit_label(im3d,1) ;
-     if( ISVALID_3DIM_DATASET(im3d->fim_now) && !im3d->vinfo->func_visible ){
-       MCW_set_bbox( im3d->vwid->view->see_func_bbox , 1 ) ;
-       im3d->vinfo->func_visible = True ;
+   } else if( rmm > 0.0f && vmul < 2.0f*DSET_VOXVOL(im3d->fim_now) ){
+     static int first=1 ;
+     vmul = 1.e-7 ;
+     if( first ){
+       MCW_popup_message( im3d->vwid->func->clu_cluster_pb ,
+                           "** NOTICE **\n"
+                           "** When vmul is too small, it will\n"
+                           "** be the same as setting it to be\n"
+                           "** twice the overlay dataset's\n"
+                           "** voxel volume\n " ,
+                          MCW_USER_KILL | MCW_TIMER_KILL ) ;
+       first = 0 ;
      }
    }
+   im3d->vedset.code     = VEDIT_CLUST ;
+   im3d->vedset.param[2] = rmm ;
+   im3d->vedset.param[3] = vmul ;  /* other params set in afni.c */
+   set_vedit_label(im3d,1) ;
+   if( ISVALID_3DIM_DATASET(im3d->fim_now) && !im3d->vinfo->func_visible ){
+     MCW_set_bbox( im3d->vwid->view->see_func_bbox , 1 ) ;
+     im3d->vinfo->func_visible = True ;
+   }
+
    if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
    EXRETURN ;
 }
@@ -158,9 +170,11 @@ ENTRY("AFNI_clu_CB") ;
                        "* rmm=0 is Nearest Neighbor clustering;\n"
                        "  then vmul is cluster volume threshold\n"
                        "  measured in Overlay voxel count\n"
+                       "   [vmul should be at least 2 voxels]\n"
                        "----------------------------------------\n"
                        "* rmm>0 is clustering radius in mm; then\n"
                        "  vmul = volume threshold in microliters\n"
+                       "   [at least 2 * dataset voxel volume]\n"
                        "----------------------------------------\n"
                        "* Use 'BHelp' on 'Cluster Edit' label\n"
                        "  to get summary of clustering results.\n"
@@ -1475,6 +1489,10 @@ static char * AFNI_clus_3dclust( Three_D_View *im3d )
 
    if( rmm <= 0.0f ){
      strcat(cmd," -dxyz=1") ; rmm = 1.0f ;
+     if( vmul < 2.0f ) vmul = 2.0f ;
+   } else {
+     float vmin=2.0f*DSET_VOXVOL(im3d->fim_now) ;
+     vmul = MAX(vmin,vmul) ;
    }
 
    sprintf(cmd+strlen(cmd)," %g %g %s",
