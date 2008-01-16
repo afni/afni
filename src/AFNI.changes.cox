@@ -6514,10 +6514,16 @@
 28 Dec 2007
  * Popup menu in clusterize report to set histogram range.
 
-09 Dec 2007
+09 Jan 2008
  * SIGQUIT delay in afni.c, for Jerzy.
 
-10 Dec 2007
+11 Jan 2008
  * Small changes to AlphaSim.c, like using -fast option and better help.
  * Scrolling window changes to afni_cluster.c (Clusterize report panel).
  * mri_alphasim.c seems to work now.
+
+16 Jan 2008
+ * Fix clusterize so that too small a value of vmul means just set the
+     min cluster volume to 2 voxels.
+ * Unfixed bug: display of clusterized func+tlrc.BRIK when func+tlrc dataset
+     is warped from func+orig -- must fix afni_warp.c in this case.
