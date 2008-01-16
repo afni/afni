@@ -49,9 +49,9 @@ foreach file ( $files )
         continue
     endif
 
-    $prog -infile $file -write_gifti new.gii
+    $prog -infile $file -no_updates -write_gifti new.gii
     if( $status ) then
-        echo "** FAILURE : $prog -infile $file -write_gifti new.gii"
+        echo "** FAILURE : $prog -infile $file -no_updates -write_gifti new.gii"
     else
         cmp $file new.gii
         if( ! $status ) echo okay

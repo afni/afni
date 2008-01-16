@@ -42,12 +42,10 @@ todo:
         Endian
 
   - #ifdef  __cplusplus
-  - option to set encoding (or let users set that in the DA struct?)
-  - eventually replace Caret-Version with AFNI-Version (no, at higher level)
   - data in external file(s)
-  - convert to float
   - select node list
-  - display valid attributes?  DTD?  valid attribute values given the name?
+  - display all valid attributes?  DTD?  valid attribute values given the name?
+            known metadata?
 
   - gifti_remove_gim_metadata()
   - gifti_remove_DA_metadata()

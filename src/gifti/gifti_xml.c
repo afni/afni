@@ -112,6 +112,7 @@ static gxml_data GXD = {
     3,          /* indent, spaces per indent level            */
     GXML_DEF_BSIZE, /* buf_size, allocated for XML parsing    */
     GIFTI_B64_CHECK_SKIPNCOUNT, /* b64_check, for b64 errors  */
+    1,          /* assume it is okay to update metadata       */
     GZ_DEFAULT_COMPRESSION, /* zlevel, compress level, -1..9  */
 
     NULL,       /* da_list, list of DA indices to store       */
@@ -231,7 +232,7 @@ gifti_image * gxml_read_image(const char * fname, int read_data,
 
     fp = fopen(fname, "r");
     if( !fp ) {
-        fprintf(stderr,"** failed to open GIFTI xml file '%s'\n", fname);
+        fprintf(stderr,"** failed to open GIFTI XML file '%s'\n", fname);
         return NULL;
     }
 
@@ -421,13 +422,21 @@ int gxml_write_image(gifti_image * gim, const char * fname, int write_data)
     if( gim->darray && gim->darray[0] &&
                        gim->darray[0]->encoding == GIFTI_ENCODING_B64GZ ) {
         fprintf(stderr,"** no ZLIB for compression...\n");
-        gifti_set_DA_atrs(gim, "Encoding", "Base64Binary", NULL, 0);
+        gifti_set_atr_in_DAs(gim, "Encoding", "Base64Binary", NULL, 0);
     }
 #endif
 
     init_gxml_data(xd, 0, NULL, 0);    /* reset non-user variables */
     xd->dstore = write_data;  /* store for global access */
     xd->gim = gim;
+
+    /* note the library version */
+    if( xd->update_ok ) {
+        if( xd->verb > 2 )
+            fprintf(stderr,"++ setting GIFTI MD: gifticlib-version to %s\n",
+                    gifticlib_version());
+        gifti_add_to_meta(&gim->meta,"gifticlib-version",gifticlib_version(),1);
+    }
 
     fp = fopen(fname, "w");
     if( !fp ) {
@@ -499,6 +508,16 @@ int gxml_set_b64_check( int val ) /* -1 means apply default */
     return 0;
 }
 
+/*! update_ok tells the library whether it is allowed to modify metadata */
+int gxml_get_update_ok( void    ){ return GXD.update_ok; }
+int gxml_set_update_ok( int val )
+{
+    if      ( val == -1 ) GXD.update_ok = 1;    /* default is yes */
+    else if ( val >=  0 ) GXD.update_ok = val;
+    else return 1;  /* failure - no action */
+    return 0;
+}
+
 /*! zlevel is the zlib compression level, with -1 implying the default
     (of 6, I believe) and value levels being in {0..9} (with 0 meaning
     no compression) */
@@ -525,6 +544,7 @@ static int init_gxml_data(gxml_data *dp, int doall, const int *dalist, int len)
         dp->indent    = 3;
         dp->buf_size  = GXML_DEF_BSIZE;
         dp->b64_check = GIFTI_B64_CHECK_SKIPNCOUNT;
+        dp->update_ok = 1;
         dp->zlevel    = GZ_DEFAULT_COMPRESSION;
     }
 
@@ -902,7 +922,7 @@ static int push_darray(gxml_data * xd, const char ** attr)
 
     /* fill the struct from the attributes (store ex_atrs) */
     if( gifti_set_DA_atrs(da, attr, 0, 1) ) return 1;
-    (void)gifti_is_valid_darray(da, xd->verb > 1);
+    (void)gifti_valid_DataArray(da, xd->verb > 1);
 
     /* make a request to potentially update the XML buffer size */
     if( da->nvals>0 && da->nbyper>0 )
@@ -933,13 +953,13 @@ static int pop_darray(gxml_data * xd)
     }
 
     if( da->encoding == GIFTI_ENCODING_B64GZ && da->data ) {
+#ifdef HAVE_ZLIB   /* for compiling, higher level test elsewhere */
         long long olen;  /* to avoid warnings printing outlen */
         uLongf    outlen = da->nvals*da->nbyper;
         int       rv = 0;
 
         /* unzip zdata to da->data */
 
-#ifdef HAVE_ZLIB   /* for compiling, higher level test elsewhere */
         rv = uncompress(da->data, &outlen, (Bytef*)xd->zdata, xd->dind);
         olen = outlen;
         if( rv != Z_OK ) {
@@ -2423,7 +2443,7 @@ static int ewrite_data(gxml_data * xd, giiDataArray * da, FILE * fp)
 {
     long long c, rows, cols;
     int       spaces = xd->indent * xd->depth;
-    int       errs = 0, rv = 0;
+    int       errs = 0;
 
     if( !da ) return 0;         /* okay, may not exist */
 
@@ -2450,11 +2470,12 @@ static int ewrite_data(gxml_data * xd, giiDataArray * da, FILE * fp)
         } else if( da->encoding == GIFTI_ENCODING_B64BIN ) {
             gxml_disp_b64_data(NULL, da->data, da->nvals*da->nbyper, fp);
         } else if( da->encoding == GIFTI_ENCODING_B64GZ ) {
+#ifdef HAVE_ZLIB   /* for compiling, higher level test elsewhere */
             uLongf blen = da->nvals*da->nbyper * 1.01 + 12; /* zlib.net */
+            int    rv = 0;
             if( update_partial_buffer(&xd->zdata, &xd->zlen, blen, 1) )
                 return 1;
 
-#ifdef HAVE_ZLIB   /* for compiling, higher level test elsewhere */
             rv = compress2((Bytef *)xd->zdata, &blen, da->data,
                            da->nvals*da->nbyper, xd->zlevel);
             if( rv != Z_OK ) {
@@ -2469,11 +2490,13 @@ static int ewrite_data(gxml_data * xd, giiDataArray * da, FILE * fp)
                 fprintf(stderr,"-- compressed buffer (%.2f%% of %lld bytes)\n",
                         100.0*blen/(da->nvals*da->nbyper),da->nvals*da->nbyper);
             gxml_disp_b64_data(NULL, xd->zdata, blen, fp);
+#else
+            fprintf(stderr,"** ewrite_data: no ZLIB to compress with\n");
+#endif
         } else {
             fprintf(stderr,"** unknown data encoding, %d\n", da->encoding);
             errs = 1;
         }
-#endif
     }
 
     fprintf(fp, "</%s>\n", enames[GXML_ETYPE_DATA]);

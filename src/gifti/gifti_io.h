@@ -49,8 +49,10 @@
 #undef GZ_DEFAULT_COMPRESSION
 #ifdef HAVE_ZLIB
 #define GZ_DEFAULT_COMPRESSION Z_DEFAULT_COMPRESSION
+#define GIFTI_COMP_WITH_ZLIB    1       /* to show at run-time */
 #else
 #define GZ_DEFAULT_COMPRESSION -1
+#define GIFTI_COMP_WITH_ZLIB    0
 #endif
 
 /* global declarations of matching lists */
@@ -140,16 +142,13 @@ typedef struct {
 /* prototypes */
 
 /* main interface protos */
-gifti_image * gifti_read_image (const char * fname, int read_data );
-gifti_image * gifti_read_da_list (const char * fname, int read_data,
-                                  const int * dalist, int len );
-int gifti_write_image(gifti_image *gim, const char *fname,int write_data);
-
+gifti_image * gifti_read_image  (const char * fname, int read_data );
+gifti_image * gifti_read_da_list(const char * fname, int read_data,
+                                 const int * dalist, int len );
 int    gifti_free_image         (gifti_image * gim);
-
-int    gifti_check_swap         (void *data, int endian, long long nsets,
-                                 int swapsize);
-int    gifti_swap_Nbytes        (void *data, long long nsets, int swapsize);
+int    gifti_valid_gifti_image  (gifti_image * gim, int whine);
+int    gifti_write_image        (gifti_image *gim, const char *fname,
+                                 int write_data);
 
 gifti_image * gifti_create_image(int numDA, int intent, int dtype, int ndim,
                                  const int * dims, int alloc_data);
@@ -162,13 +161,18 @@ int    gifti_get_indent         (void);
 int    gifti_set_indent         (int level);
 int    gifti_get_verb           (void);
 int    gifti_set_verb           (int level);
+int    gifti_get_update_ok      (void);
+int    gifti_set_update_ok      (int level);
 int    gifti_get_zlevel         (void);
 int    gifti_set_zlevel         (int level);
 
 /* data copy routines */
-int     gifti_copy_nvpairs         (nvpairs *dest, const nvpairs *src);
-char ** gifti_copy_char_list       (char ** list, int len);
-char  * gifti_strdup               (const char * src);
+int     gifti_convert_to_float(gifti_image * gim);
+int     gifti_copy_nvpairs    (nvpairs *dest, const nvpairs *src);
+char ** gifti_copy_char_list  (char ** list, int len);
+int     gifti_copy_LabelTable (giiLabelTable * dest, const giiLabelTable * src);
+char  * gifti_strdup          (const char * src);
+gifti_image    * gifti_copy_gifti_image(const gifti_image *gold, int copy_data);
 giiCoordSystem * gifti_copy_CoordSystem(const giiCoordSystem *src);
 giiDataArray   * gifti_copy_DataArray  (const giiDataArray *orig, int get_data);
 
@@ -176,6 +180,8 @@ giiDataArray   * gifti_copy_DataArray  (const giiDataArray *orig, int get_data);
 long long gifti_darray_nvals    (giiDataArray * da);
 long long gifti_gim_DA_size     (const gifti_image * p, int in_mb);
 
+int    gifti_check_swap         (void *data, int endian, long long nsets,
+                                 int swapsize);
 int    gifti_datatype_sizes     (int datatype, int *nbyper, int *swapsize);
 char * gifti_datatype2str       (int type);
 int    gifti_get_this_endian    (void);
@@ -196,6 +202,7 @@ int    gifti_str2endian         (const char * str);
 int    gifti_str2datatype       (const char * str);
 int    gifti_swap_2bytes        (void *data, long long nsets);
 int    gifti_swap_4bytes        (void *data, long long nsets);
+int    gifti_swap_Nbytes        (void *data, long long nsets, int swapsize);
 
 int    gifti_alloc_DA_data      (gifti_image * gim, const int *dalist, int len);
 int    gifti_add_empty_darray   (gifti_image * gim, int num_to_add);
@@ -210,7 +217,6 @@ int    gifti_free_DataArray     (giiDataArray * darray);
 int    gifti_free_LabelTable    (giiLabelTable * t);
 int    gifti_free_nvpairs       (nvpairs * p);
 
-int    gifti_is_valid_darray    (giiDataArray * da, int whine);
 int    gifti_read_dset_numDA    (const char * fname);
 int    gifti_set_atr_in_DAs     (gifti_image *gim, const char *name,
                                  const char *value, const int *dalist, int len);
@@ -221,10 +227,13 @@ int    gifti_set_DA_meta        (gifti_image *gim, const char *name,
                                  const char *value, const int * dalist,
                                  int len, int replace);
 int    gifti_set_dims_all_DA    (gifti_image * gim, int ndim, const int * dims);
+int    gifti_update_nbyper      (gifti_image * gim);
+int    gifti_valid_DataArray    (giiDataArray * da, int whine);
 int    gifti_valid_datatype     (int dtype, int whine);
 int    gifti_valid_dims         (giiDataArray * da, int whine);
 int    gifti_valid_int_list     (const int *list, int len, int min, int max,
                                  int whine);
+int    gifti_valid_LabelTable   (giiLabelTable * T, int whine);
 int    gifti_valid_nbyper       (int nbyper, int whine);
 int    gifti_valid_num_dim      (int num_dim, int whine);
 int    gifti_valid_nvpairs      (nvpairs * nvp, int whine);
@@ -261,7 +270,7 @@ int    gifti_find_DA_list        (gifti_image * gim, int intent,
                                   giiDataArray *** list,int *len);
 int    gifti_DA_rows_cols        (giiDataArray * da, long long *rows,
                                                      long long *cols);
-
+char * gifticlib_version         (void);
 
 #undef G_CHECK_NULL_STR
 #define G_CHECK_NULL_STR(s) (s ? s : "NULL")
