@@ -23,7 +23,7 @@ MRI_IMAGE * mri_clusterize( float rmm , float vmul , MRI_IMAGE *bim ,
                             float thb , float tht  , MRI_IMAGE *tim ,
                             int posonly )
 {
-   float dx,dy,dz , dbot ;
+   float dx,dy,dz , dbot , vmin ;
    int   nx,ny,nz , ptmin,iclu , nkeep,nkill,ncgood , nbot,ntop , ii ;
    MRI_IMAGE *cim ; void *car ;
    MCW_cluster *cl , *dl ; MCW_cluster_array *clar ;
@@ -43,7 +43,7 @@ ENTRY("mri_clusterize") ;
    dbot = MIN(dx,dy) ; dbot = MIN(dbot,dz) ;
 
    if( rmm < dbot ){ dx = dy = dz = 1.0f; rmm = 1.01f; }
-   if( vmul < 2.0*dx*dy*dz ) RETURN(NULL) ;
+   vmin = 2.0f*dx*dy*dz ; if( vmul < vmin ) vmul = vmin ;
 
    /* create copy of input image (this will be edited below) */
 
