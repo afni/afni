@@ -2292,6 +2292,13 @@ nifti_tool.exe:nifti_tool.o nifti1_io.o znzlib.o
 	$(RM) $@
 	$(CC) -o nifti_tool.exe nifti_tool.o nifti1_io.o znzlib.o $(LZLIB) -lm
 
+# just compile completely, removing issue of libraries
+gifti_tool:nifti1_io.o znzlib.o
+	$(RM) $@
+	$(CC) -o gifti_tool $(INFLAGS) \
+		gifti/gifti_tool.c gifti/gifti_io.c gifti/gifti_xml.c 	\
+		nifti1_io.o znzlib.o -lexpat $(LZLIB) -lm
+
 tsdsim:tsdsim.o
 	$(RM) $@
 	$(CC) -o tsdsim tsdsim.o $(LFLAGS) $(LLIBS) -lmx
