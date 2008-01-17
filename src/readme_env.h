@@ -2561,6 +2561,14 @@ static char * readme_env[] = {
    "String data components (I'm looking at YOU, Ziad), then you may want\n" ,
    "to increase this past its default size of 255*1024=261120.\n" ,
    "\n" ,
+   "-----------------------\n" ,
+   "Variable: AFNI_FLOATIZE\n" ,
+   "-----------------------\n" ,
+   "If this YES/NO variable is set to YES, then 3dDeconvolve and 3dcalc\n" ,
+   "will write their outputs in floating point format (unless they are\n" ,
+   "forced to do otherwise with the '-datum short' type of option).  In\n" ,
+   "the future, other programs may also be affected by this variable.\n" ,
+   "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- END: variables specific to NIML I/O\n" ,
    "----------------------------------------------------------------------\n" ,
@@ -2665,4 +2673,4 @@ static char * readme_env[] = {
    "in 3dDeconvolve by the \"-gltsym\" option will be printed to the screen\n" ,
    "when the program starts up.\n" ,
    NULL } ;
-#define NUM_readme_env 2665
+#define NUM_readme_env 2673

@@ -1206,6 +1206,7 @@ void get_options
   /*----- initialize the input options -----*/
   initialize_options (option_data);
 
+  if( AFNI_yesenv("AFNI_FLOATIZE") ) floatout = 1 ;  /* 17 Jan 2008 */
 
   if( AFNI_yesenv("AFNI_3dDeconvolve_GOFORIT") ) goforit++ ; /* 07 Mar 2007 */
 
