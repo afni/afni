@@ -1268,7 +1268,7 @@ extern int SYM_expand_errcount(void) ; /* 03 May 2007 */
 #include "rickr/r_misc.h"
 
 /*------------------------------------------------------------------------*/
-/* some these clusterize prototypes require editvol.h */
+/* some of these clusterize prototypes require editvol.h */
 
 typedef struct {
   int nvox ;
@@ -1281,6 +1281,8 @@ extern MRI_IMAGE * mri_clusterize( float,float, MRI_IMAGE * ,
 extern char * mri_clusterize_report(void) ;
 extern MCW_cluster_array * mri_clusterize_array(int clear) ;
 extern mri_cluster_detail mri_clusterize_detailize( MCW_cluster *cl ) ;
+
+extern void mri_fdrize( MRI_IMAGE *im , int statcode , float *stataux ) ;
 
 /*------------------------------------------------------------------------*/
 /*--- Functions in mri_matrix.c (matrix operations, stored as images) ----*/

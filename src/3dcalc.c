@@ -57,6 +57,8 @@ static int                CALC_histpar = -1; /* 22 Nov 1999 */
 
 static int                CALC_usetemp = 0 ; /* 18 Oct 2005 */
 
+static int                CALC_fdrize  = 0 ; /* 17 Jan 2008 */
+
 /*---------- dshift stuff [22 Nov 1999] ----------*/
 
 #define DSHIFT_MODE_STOP  0
@@ -240,6 +242,12 @@ void CALC_read_opts( int argc , char * argv[] )
         if( Rfac == 0.0 && Gfac == 0.0 && Bfac == 0.0 )
           ERROR_exit("All 3 factors after -rgbfac are zero!?\n");
         continue ;
+      }
+
+      /**** -fdr ****/  /* [[ not in -help at this time ]] */
+
+      if( strcasecmp(argv[nopt],"-fdr") == 0 ){  /* 17 Jan 2008 */
+        CALC_fdrize = 1 ; CALC_datum = MRI_float ; nopt++ ; continue ;
       }
 
       /**** -cx2r code [10 Mar 2006] ***/
@@ -1543,6 +1551,8 @@ int main( int argc , char *argv[] )
 
    for (ii=0; ii<26; ii++) ntime[ii] = 0 ;
 
+   if( AFNI_yesenv("AFNI_FLOATIZE") ) CALC_datum = MRI_float ;
+
    CALC_read_opts( argc , argv ) ;
 
    /*** make output dataset ***/
@@ -2113,6 +2123,18 @@ int main( int argc , char *argv[] )
       case MRI_float:{
         for( ii=0 ; ii < ntime_max ; ii++ ){
           TGET(ii) ;                  /* 18 Oct 2005: load from temp file? */
+          if( CALC_fdrize && DSET_BRICK_STATCODE(new_dset,ii) > 0 ){
+            MRI_IMAGE *qim=mri_new_vol_empty(CALC_nvox,1,1,MRI_float) ;
+            mri_fix_data_pointer( buf[ii] , qim ) ;
+            mri_fdrize(qim,DSET_BRICK_STATCODE(new_dset,ii),
+                           DSET_BRICK_STATAUX (new_dset,ii) ) ;
+            mri_clear_data_pointer(qim); mri_free(qim);
+            if( !ISFUNCBUCKET(new_dset) )
+              EDIT_dset_items( new_dset ,
+                                 ADN_type     , HEAD_FUNC_TYPE,
+                                 ADN_func_type, FUNC_BUCK_TYPE, ADN_none ) ;
+            EDIT_BRICK_TO_FIZT(new_dset,ii) ;
+          }
           EDIT_substitute_brick(new_dset, ii, MRI_float, buf[ii]);
           DSET_BRICK_FACTOR(new_dset, ii) = 0.0;
         }
