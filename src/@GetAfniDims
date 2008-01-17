@@ -1,0 +1,5 @@
+#!/bin/tcsh -f
+
+set d1 = `3dAttribute -name DATASET_RANK $1`
+set d2 = `3dAttribute -name DATASET_DIMENSIONS $1`
+echo $d2[3-5] $d1[4] 
