@@ -1282,7 +1282,7 @@ extern char * mri_clusterize_report(void) ;
 extern MCW_cluster_array * mri_clusterize_array(int clear) ;
 extern mri_cluster_detail mri_clusterize_detailize( MCW_cluster *cl ) ;
 
-extern void mri_fdrize( MRI_IMAGE *im , int statcode , float *stataux ) ;
+extern void mri_fdrize( MRI_IMAGE *, int, float *, int ) ; /* 17 Jan 2008 */
 
 /*------------------------------------------------------------------------*/
 /*--- Functions in mri_matrix.c (matrix operations, stored as images) ----*/
