@@ -19,7 +19,7 @@
 #define PROGRAM_NAME "3dFDR"                         /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "31 January 2002" /* date of initial program release */
-#define PROGRAM_LATEST "31 January 2002"    /* date of last program revision */
+#define PROGRAM_LATEST "18 January 2008"    /* date of last program revision */
 
 
 /*---------------------------------------------------------------------------*/
@@ -70,6 +70,18 @@ static voxel * FDR_head_voxel[FDR_MAX_LL]; /* linked lists of voxels */
 static char * commandline = NULL;          /* command line for history notes */
 static THD_3dim_dataset * FDR_dset = NULL; /* input dataset */  
 
+/*---------------------------------------------------------------------------*/
+/*** 18 Jan 2008 changes [RWCox]:
+     * replace FDR calculation with mri_fdrize() unless -old is given
+     * add -force option to force conversion, assuming input is p-values
+     * add -pmask and -nopmask options
+     * add -float option
+-----------------------------------------------------------------------------*/
+
+static int FDR_old   = 0 ;  /* new mode is on by default */
+static int FDR_force = 0 ;  /* only if the user asks */
+static int FDR_pmask = 1 ;  /* on by default in new mode */
+static int FDR_float = 0 ;  /* must be turned on by user */
 
 /*---------------------------------------------------------------------------*/
 
@@ -185,7 +197,49 @@ printf(
 "                                                                           \n"
 "\n") ;
 
-   printf("\n" MASTER_SHORTHELP_STRING ) ;
+printf(
+"===========================================================================\n"
+"\n"
+"January 2008: Changes to 3dFDR\n"
+"------------------------------\n"
+"The default mode of operation of 3dFDR has altered somewhat:\n"
+"\n"
+" * Voxel p-values of exactly 1 (e.g., from t=0 or F=0 or correlation=0)\n"
+"     are ignored by default; in the old mode of operation, they were\n"
+"     included in the count which goes into the FDR algorithm.  The old\n"
+"     process tends to increase the q-values and so decrease the z-scores.\n"
+"\n"
+" * The array of voxel p-values are now sorted via Quicksort, rather than\n"
+"     by binning, as in the old mode.  This probably has no discernible\n"
+"     effect on the results.\n"
+"\n"
+"New Options:\n"
+"------------\n"
+"    -old     = Use the old mode of operation\n"
+"    -new     = Use the new mode of operation [now the default]\n"
+"                N.B.: '-list' does not work in the new mode!\n"
+"    -pmask   = Instruct the program to ignore p=1 voxels\n"
+"                [the default in the new mode, but not in the old mode]\n"
+"    -nopmask = Instruct the program to count p=1 voxels\n"
+"                [the default in the old mode, but not in the new mode]\n"
+"    -force   = Force the conversion of all sub-bricks, even if they\n"
+"                are not marked as with a statistical code; such\n"
+"                sub-bricks are treated as though they were p-values.\n"
+"    -float   = Force the output of z-scores as in floating point\n"
+"                format.\n"
+"\n"
+"* To be clear, you can use '-new -nopmask' to have the new mode of computing\n"
+"  carried out, but with p=1 voxels included (which should give results\n"
+"  virtually identical to '-old').\n"
+"* Or you can use '-old -pmask' to use the old mode of computing but where\n"
+"  p=1 voxels are not counted (which should give results virtually\n"
+"  identical to '-new').\n"
+"\n"
+"-- cf. http://en.wikipedia.org/wiki/False_discovery_rate\n"
+"-- cf. C source code in mri_fdrize.c\n"
+"-- RWCox -- 18 Jan 2008 == Cary Grant's Birthday!\n"
+"\n"
+) ;
 
    exit(0) ;
 
@@ -204,6 +258,7 @@ void read_options ( int argc , char * argv[] )
   char message[80];        /* error message */
 
 
+  if( AFNI_yesenv("AFNI_FLOATIZE") ) FDR_float = 1 ;
   
   /*----- main loop over input options -----*/
   while( nopt < argc )
@@ -263,6 +318,26 @@ void read_options ( int argc , char * argv[] )
 	 nopt++;  continue;
       }
 
+      /*---- -force & -old & -pmask & -float etc. [18 Jan 2008] -----*/
+
+      if( strcmp(argv[nopt],"-force") == 0 ){
+        FDR_force = 1 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-old") == 0 ){
+        FDR_old = 1 ; FDR_pmask = 0 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-new") == 0 ){
+        FDR_old = -1 ; FDR_pmask = 1 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-pmask") == 0 ){
+        FDR_pmask = 1 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-nopmask") == 0 ){
+        FDR_pmask = 0 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-float") == 0 ){
+        FDR_float = 1 ; nopt++ ; continue ;
+      }
 
       /*----- -cind -----*/
       if( strcmp(argv[nopt],"-cind") == 0 ){
@@ -313,6 +388,19 @@ void read_options ( int argc , char * argv[] )
    }  /*----- end of loop over command line arguments -----*/
 
 
+   if( FDR_old == 0 && FDR_pmask ){  /* the new way is on by default */
+     fprintf(stderr,"\n"
+       "++ The 'new' method of FDR calculation is on by default; in particular:\n"
+       " + * Voxel p-values of exactly 1 (e.g., from t=0 or F=0 or correlation=0)\n"
+       " +   are ignored by default; in the old mode of operation, they were\n"
+       " +   included in the count which goes into the FDR algorithm.  The old\n"
+       " +   process tends to increase the q-values and so decrease the z-scores.\n"
+       " + * If you wish to do the FDR conversion using the old mode, use '-old'\n"
+       " +   on the command line.  For more information, use '3dFDR -help'.\n"
+       " + * If you don't want to see this message, use the '-new' option.\n"
+       "++ RWCox - 18 Jan 2008\n\n"
+     ) ;
+   }
 }
 
 
@@ -777,6 +865,27 @@ void process_volume (float * ffim, int statcode, float * stataux)
   float * qarray = NULL;         /* output array of voxel FDR q-values */
   float * zarray = NULL;         /* output array of voxel FDR z-scores */
 
+  float numer ;
+
+
+  /*------------ 18 Jan 2008: use the 'new' method? ------------*/
+
+  if( FDR_old < 1 ){
+    MRI_IMAGE *qim ; int flags=0 ;
+    qim = mri_new_vol_empty( FDR_nxyz,1,1 , MRI_float ) ;
+    mri_fix_data_pointer( ffim , qim ) ;
+    if (FDR_mask != NULL){
+      float zz = (statcode > 0) ? 0.0f : 1.0f ;
+      for( ixyz=0 ; ixyz < FDR_nxyz ; ixyz++ ) ffim[ixyz] = zz ;
+    }
+    if( FDR_pmask == 0    ) flags |= 1 ;  /* compatibility mode */
+    if( FDR_cn    >  1.0f ) flags |= 2 ;  /* dependency flag */
+    mri_fdrize( qim , statcode,stataux , flags ) ;
+    mri_clear_data_pointer(qim); mri_free(qim);
+    return ;
+  }
+
+  /*---------------- back to the 'old' method ------------------*/
   
   /*----- Allocate memory for screen output arrays -----*/
   if (FDR_list)
@@ -790,6 +899,7 @@ void process_volume (float * ffim, int statcode, float * stataux)
   
   /*----- Loop over all voxels; sort p-values -----*/
   icount = FDR_nthr;
+
   for (ixyz = 0;  ixyz < FDR_nxyz;  ixyz++)
     {
 
@@ -828,10 +938,10 @@ void process_volume (float * ffim, int statcode, float * stataux)
 	}
     }
 
-  
   /*----- Calculate FDR q-values -----*/
   qval_min = 1.0;
   ibin = FDR_MAX_LL-1;
+  numer = (FDR_pmask) ? icount : FDR_nthr ;  /* 18 Jan 2008 */
   while (ibin >= 0) 
     {
       voxel_ptr = FDR_head_voxel[ibin];
@@ -840,7 +950,7 @@ void process_volume (float * ffim, int statcode, float * stataux)
 	{
           /*----- Convert sorted p-values to FDR q-values -----*/
 	  pval = voxel_ptr->pvalue;
-	  qval = FDR_cn * (pval*FDR_nthr) / icount;
+	  qval = FDR_cn * (pval*numer) / icount;
 	  if (qval > qval_min)
 	    qval = qval_min;
 	  else
@@ -995,15 +1105,20 @@ void process_subbrick (THD_3dim_dataset * dset, int ibrick)
 
 
   /*----- Replace old sub-brick with new z-scores -----*/
-  SUB_POINTER (dset, ibrick, 0, vfim);
-  factor = EDIT_coerce_autoscale_new (FDR_nxyz, MRI_float, ffim,
+  if( !FDR_float || DSET_BRICK_TYPE(dset,ibrick)==MRI_float ){
+    SUB_POINTER (dset, ibrick, 0, vfim);
+    factor = EDIT_coerce_autoscale_new (FDR_nxyz, MRI_float, ffim,
 				      DSET_BRICK_TYPE(dset,ibrick), vfim);  
-  if (factor < EPSILON)  factor = 0.0;
-  else factor = 1.0 / factor;
+    if (factor < EPSILON)  factor = 0.0;
+    else factor = 1.0 / factor;
+  } else {                          /*** if -float was given ***/
+    EDIT_substitute_brick( dset , ibrick , MRI_float , ffim ) ;
+    ffim = NULL ; factor = 0.0f ;
+  }
   
 
   /*----- edit the sub-brick -----*/
-  strcpy (brick_label, "FDRz ");
+  strcpy (brick_label, "FDRz:");
   strcat (brick_label, DSET_BRICK_LABEL(dset, ibrick));
   EDIT_BRICK_LABEL (dset, ibrick, brick_label);
   EDIT_BRICK_FACTOR (dset, ibrick, factor);
@@ -1052,7 +1167,7 @@ THD_3dim_dataset * process_dataset ()
   for (ibrick = 0;  ibrick < nbricks;  ibrick++)
     {
       statcode = DSET_BRICK_STATCODE(new_dset, ibrick);
-      if (FUNC_IS_STAT(statcode))
+      if (FUNC_IS_STAT(statcode) || FDR_force )
 	{
 	  /*----- Process the statistical sub-bricks -----*/
 	  if (!FDR_quiet)  

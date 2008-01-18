@@ -6531,3 +6531,6 @@
 17 Jan 2008
  * AFNI_FLOATIZE environment variable for 3dDeconvolve.c and 3dcalc.c.
  * mri_fdrize.c function for FDR-z conversion.
+
+18 Jan 2008
+ * Incorporate mri_fdrize() into 3dFDR.
