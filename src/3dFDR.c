@@ -875,7 +875,7 @@ void process_volume (float * ffim, int statcode, float * stataux)
     qim = mri_new_vol_empty( FDR_nxyz,1,1 , MRI_float ) ;
     mri_fix_data_pointer( ffim , qim ) ;
     if (FDR_mask != NULL){
-      float zz = (statcode > 0) ? 0.0f : 1.0f ;
+      float zz = (FUNC_IS_STAT(statcode)) ? 0.0f : 1.0f ;
       for( ixyz=0 ; ixyz < FDR_nxyz ; ixyz++ ) ffim[ixyz] = zz ;
     }
     if( FDR_pmask == 0    ) flags |= 1 ;  /* compatibility mode */
