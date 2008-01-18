@@ -2364,3 +2364,5 @@
        - added options -gifti_zlib, -gifti_test, -mod_to_float, -no_updates
   * modified gifti/Makefile: in clean_all, rm gifti*.lo*
   * modified Makefile.INCLUDE: added gifti_tool target
+18 Jan 2008: modified 3dclust.c: fixed "MI RL" description in -help
+
