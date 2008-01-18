@@ -3,6 +3,13 @@
 #undef  PMAX
 #define PMAX 0.9999f  /* don't process p-values >= PMAX */
 
+#undef QTOZ  /* convert q-value to z-score */
+#if 0
+#  define QTOZ(x) normal_p2t(x)
+#else
+#  define QTOZ(x) qginv(0.5*x)   /* a little faster */
+#endif
+
 /*--------------------------------------------------------------------------*/
 /*! Take an image of statistics and convert to FDR-ized z-scores (in place):
       - im must be in float format
@@ -63,7 +70,7 @@ ENTRY("mri_fdrize") ;
       if( qval > qmin ) qval = qmin; else qmin = qval;
            if( qval <  1.e-20 ) qval = 10.0 ;  /* honking big z-score */
       else if( qval >= 1.0    ) qval =  0.0 ;  /* very non-significant */
-      else                      qval = normal_p2t(qval) ;
+      else                      qval = QTOZ(qval) ;
       far[iq[jj]] = (float)qval ;
     }
   }
