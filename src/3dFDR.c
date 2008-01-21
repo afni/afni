@@ -76,12 +76,14 @@ static THD_3dim_dataset * FDR_dset = NULL; /* input dataset */
      * add -force option to force conversion, assuming input is p-values
      * add -pmask and -nopmask options
      * add -float option
+     * add -qval option
 -----------------------------------------------------------------------------*/
 
 static int FDR_old   = 0 ;  /* new mode is on by default */
 static int FDR_force = 0 ;  /* only if the user asks */
 static int FDR_pmask = 1 ;  /* on by default in new mode */
 static int FDR_float = 0 ;  /* must be turned on by user */
+static int FDR_qval  = 0 ;  /* must be turned on by user */
 
 /*---------------------------------------------------------------------------*/
 
@@ -225,8 +227,10 @@ printf(
 "    -force   = Force the conversion of all sub-bricks, even if they\n"
 "                are not marked as with a statistical code; such\n"
 "                sub-bricks are treated as though they were p-values.\n"
-"    -float   = Force the output of z-scores as in floating point\n"
-"                format.\n"
+"    -float   = Force the output of z-scores in floating point format.\n"
+"    -qval    = Force the output of q-values rather than z-scores.\n"
+"                N.B.: A smaller q-value is more significant!\n"
+"                [-float is highly recommended when -qval is used]\n"
 "\n"
 "* To be clear, you can use '-new -nopmask' to have the new mode of computing\n"
 "  carried out, but with p=1 voxels included (which should give results\n"
@@ -235,6 +239,10 @@ printf(
 "  p=1 voxels are not counted (which should give results virtually\n"
 "  identical to '-new').\n"
 "\n"
+"-- q-values are estimates of the False Discovery Rate at a given\n"
+"   threshold; that is, about 5%% of voxels with q <= 0.05 (z >= 1.96)\n"
+"   are (presumably) 'false positive' detections, and the other 95%%\n"
+"   are (presumably) 'true positives'.\n"
 "-- cf. http://en.wikipedia.org/wiki/False_discovery_rate\n"
 "-- cf. C source code in mri_fdrize.c\n"
 "-- RWCox -- 18 Jan 2008 == Cary Grant's Birthday!\n"
@@ -322,6 +330,9 @@ void read_options ( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-force") == 0 ){
         FDR_force = 1 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-qval") == 0 ){
+        FDR_qval = 1 ; nopt++ ; continue ;
       }
       if( strcmp(argv[nopt],"-old") == 0 ){
         FDR_old = 1 ; FDR_pmask = 0 ; nopt++ ; continue ;
@@ -880,6 +891,7 @@ void process_volume (float * ffim, int statcode, float * stataux)
     }
     if( FDR_pmask == 0    ) flags |= 1 ;  /* compatibility mode */
     if( FDR_cn    >  1.0f ) flags |= 2 ;  /* dependency flag */
+    if( FDR_qval          ) flags |= 4 ;  /* qval flag */
     mri_fdrize( qim , statcode,stataux , flags ) ;
     mri_clear_data_pointer(qim); mri_free(qim);
     return ;
@@ -957,10 +969,10 @@ void process_volume (float * ffim, int statcode, float * stataux)
 	    qval_min = qval;
 
 	  /*----- Convert FDR q-value to FDR z-score -----*/
-	  if (qval < 1.0e-20)
-	    zval = 10.0;
-	  else
-	    zval = normal_p2t(qval);
+          if( !FDR_qval ){
+            if (qval < 1.0e-20) zval = 10.0;
+            else                zval = normal_p2t(qval);
+          } else {              zval = qval ; }
 
 	  icount--;
 
@@ -1118,12 +1130,12 @@ void process_subbrick (THD_3dim_dataset * dset, int ibrick)
   
 
   /*----- edit the sub-brick -----*/
-  strcpy (brick_label, "FDRz:");
+  if( FDR_qval ) strcpy (brick_label, "FDRq:");
+  else           strcpy (brick_label, "FDRz:");
   strcat (brick_label, DSET_BRICK_LABEL(dset, ibrick));
   EDIT_BRICK_LABEL (dset, ibrick, brick_label);
   EDIT_BRICK_FACTOR (dset, ibrick, factor);
-  EDIT_BRICK_TO_FIZT (dset, ibrick);
- 
+  if( !FDR_qval ) EDIT_BRICK_TO_FIZT (dset, ibrick);
 
   /*----- Deallocate memory -----*/
   if (ffim != NULL) { free (ffim);   ffim = NULL; }

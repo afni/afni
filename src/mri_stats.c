@@ -192,6 +192,8 @@ double fstat_t2p( double ff , double dofnum , double dofden )
    int which , status ;
    double p , q , f , dfn , dfd , bound ;
 
+   if( ff <= 0.0 ) return 1.0 ;
+
    which  = 1 ;
    p      = 0.0 ;
    q      = 0.0 ;
@@ -536,6 +538,8 @@ double chisq_t2p( double xx , double dof )
    int which , status ;
    double p,q,x,df,bound ;
 
+   if( xx <= 0.0 ) return 1.0 ;
+
    which  = 1 ;
    p      = 0.0 ;
    q      = 0.0 ;
@@ -584,6 +588,8 @@ double beta_t2p( double xx , double aa , double bb )
 {
    int which , status ;
    double p,q,x,y,a,b,bound ;
+
+   if( xx <= 0.0 ) return 1.0 ;
 
    which  = 1 ;
    p      = 0.0 ;
@@ -695,6 +701,8 @@ double gamma_t2p( double xx , double sh , double sc )
 {
    int which , status ;
    double p,q, x,shape,scale,bound ;
+
+   if( xx <= 0.0 ) return 1.0 ;
 
    which  = 1 ;
    p      = 0.0 ;

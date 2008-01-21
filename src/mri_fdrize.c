@@ -15,6 +15,7 @@
       - im must be in float format
       - if statcode > 0, the data is a statistic to be converted to
         a p-value first; otherwise, the data is already p-value-ized
+        (values < 0 or >= 1 will be masked out)
       - if flags&1==1, then the function tries to be compatible with the
         3dFDR program in '-old' mode:
           - in 3dFDR -old, processed input values that give p==1 are
@@ -26,21 +27,24 @@
             just bins them, small differences will be present anyhoo
       - if flags&2==1, then the q-values are corrected for arbitrary
         correlation structure -- this is not necessary for FMRI data!
+      - if flags&4==1, then the output is q-values, not z-values
       - to mask, set input values to a statistic that will give p==1
-        (e.g., 0.0 for t, F, or rho; 1.0 for p or z) -- and set flags=0!
+        (e.g., 0.0 for t, F, or rho; 1.0 for p or z) -- and set flags=0;
+        masked out voxels will be set to 0 (or 1 if flags&4 is set).
 *//*------------------------------------------------------------------------*/
 
 void mri_fdrize( MRI_IMAGE *im, int statcode, float *stataux, int flags )
 {
   float *far ;
-  int ii,jj , nvox ;
-  float *qq , nthr ; int *iq , nq ; double qval , qmin ;
+  int ii,jj , nvox , doz ;
+  float *qq , nthr , fbad ; int *iq , nq ; double qval , qmin ;
 
 ENTRY("mri_fdrize") ;
 
   if( im == NULL || im->kind != MRI_float )   EXRETURN ;
-  far = MRI_FLOAT_PTR(im) ; if( far == NULL ) EXRETURN ;
+  far  = MRI_FLOAT_PTR(im); if( far == NULL ) EXRETURN ;
   nvox = im->nvox ;
+  doz  = (flags&4) == 0 ;
 
   /* convert to p-value? */
 
@@ -49,13 +53,14 @@ ENTRY("mri_fdrize") ;
       far[ii] = THD_stat_to_pval( fabsf(far[ii]), statcode,stataux ) ;
   }
 
-  qq = (float *)malloc(sizeof(float)*nvox) ;
-  iq = (int   *)malloc(sizeof(int  )*nvox) ;
+  qq   = (float *)malloc(sizeof(float)*nvox) ;
+  iq   = (int   *)malloc(sizeof(int  )*nvox) ;
+  fbad = (doz) ? 0.0f : 1.0f ;
   for( nq=ii=0 ; ii < nvox ; ii++ ){
     if( far[ii] >= 0.0f && far[ii] < PMAX ){  /* reasonable p-value */
       qq[nq] = far[ii] ; iq[nq] = ii ; nq++ ;
     } else {
-      far[ii] = 0.0f ;  /* clear out such criminal voxels */
+      far[ii] = fbad ;  /* clear out such criminal voxels */
     }
   }
 
@@ -64,13 +69,15 @@ ENTRY("mri_fdrize") ;
 
     qmin = 1.0 ;
     nthr = (flags&1) ? nvox : nq ;
-    if( flags&2 && nthr > 1 ) nthr *= (logf(nthr)+0.5772157f) ;
+    if( (flags&2) && nthr > 1 ) nthr *= (logf(nthr)+0.5772157f) ;
     for( jj=nq-1 ; jj >= 0 ; jj-- ){           /* convert to q, then z */
       qval = (nthr * qq[jj]) / (jj+1.0) ;
       if( qval > qmin ) qval = qmin; else qmin = qval;
-           if( qval <  1.e-20 ) qval = 10.0 ;  /* honking big z-score */
-      else if( qval >= 1.0    ) qval =  0.0 ;  /* very non-significant */
-      else                      qval = QTOZ(qval) ;
+      if( doz ){                                 /*** convert q to z ***/
+             if( qval <  1.e-20 ) qval = 10.0 ;  /* honking big z-score */
+        else if( qval >= 1.0    ) qval =  0.0 ;  /* very non-significant */
+        else                      qval = QTOZ(qval) ;
+      }
       far[iq[jj]] = (float)qval ;
     }
   }
