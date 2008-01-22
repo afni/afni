@@ -165,6 +165,9 @@ g_help_string = """
         5. Similar to #4, but replace some glt files with SYM, and request
            to run @auto_tlrc.
 
+           Also, compute estimates of the smoothness in both the EPI (all_runs)
+           and errts (via -regress_est_blur_*).
+
            afni_proc.py -dsets ED/ED_r??+orig.HEAD                           \\
               -subj_id ED.8.gltsym                                           \\
               -copy_anat ED/EDspgr                                           \\
@@ -179,7 +182,9 @@ g_help_string = """
                 -gltsym 'SYM: -ToolMovie +HumanMovie -ToolPoint +HumanPoint' \\
                 -glt_label 1 HvsT                                            \\
                 -gltsym 'SYM: +HumanMovie -HumanPoint'                       \\
-                -glt_label 2 HMvsHP
+                -glt_label 2 HMvsHP                                          \\
+              -regress_est_blur_epits                                        \\
+              -regress_est_blur_errts
 
         6. Similar to #3, but find the response for the TENT functions on a
            1-second grid, such as how the data is processed in the class
@@ -299,6 +304,7 @@ g_help_string = """
 
         -help                   : show this help
         -hist                   : show the module history
+        -show_valid_opts        : show all valid options (brief format)
         -ver                    : show the version number
 
         ------------ general execution and setup options ------------
@@ -764,6 +770,58 @@ g_help_string = """
             Please see '3dDeconvolve -help' for more information.
             See also -regress_basis.
 
+        -regress_est_blur_epits      : estimate the smoothness of the EPI data
+
+            This option specifies to run 3dFWHMx on the EPI dataset used for
+            regression (all_runs).  These blur values are saved to the file
+            blur_est.$subj.1D, along with any similar output from errts.
+
+            These blur estimates may be input to AlphaSim, for any multiple
+            testing correction done for this subject.  If AlphaSim is run at
+            the group level, it is reasonable to average these estimates
+            across all subjects (assuming they were scanned with the same
+            protocol and at the same scanner).
+
+            The mask block is required for this operation (without which the
+            estimates are not reliable).  If masking is not desired for the
+            regression, use the option '-regress_no_mask'.
+
+            Please see '3dFWHMx -help' for more information.
+            See also -regress_est_blur_errts, -regress_no_mask.
+
+        -regress_est_blur_errts      : estimate the smoothness of the errts
+
+            This option specifies to run 3dFWHMx on the errts dataset, output
+            from the regression (by 3dDeconvolve).
+
+            These blur estimates may be input to AlphaSim, for any multiple
+            testing correction done for this subject.  If AlphaSim is run at
+            the group level, it is reasonable to average these estimates
+            across all subjects (assuming they were scanned with the same
+            protocol and at the same scanner).
+
+            Note that the errts blur estimates should be not only slightly
+            more accurate than the epits blur estimates, but they should be
+            slightly smaller, too (which is beneficial).
+
+            The mask block is required for this operation (without which the
+            estimates are not reliable).  If masking is not desired for the
+            regression, use the option '-regress_no_mask'.
+
+            Please see '3dFWHMx -help' for more information.
+            See also -regress_est_blur_epits, -regress_no_mask.
+
+        -regress_errts_prefix PREFIX : specify a prefix for the -errts option
+
+                e.g. -regress_fitts_prefix errts
+
+            This option is used to add a -errts option to 3dDeconvolve.  As
+            with -regress_fitts_prefix, only the PREFIX is specified, to which
+            the subject ID will be added.
+
+            Please see '3dDeconvolve -help' for more information.
+            See also -regress_fitts_prefix.
+
         -regress_fitts_prefix PREFIX : specify a prefix for the -fitts option
 
                 e.g. -regress_fitts_prefix model_fit
@@ -853,6 +911,18 @@ g_help_string = """
             By default -iresp will be used unless the basis function is GAM.
 
             See also -regress_iresp_prefix, -regress_basis.
+
+        -regress_no_mask        : do not apply the mask in regression
+
+            This option prevents the program from applying the mask dataset
+            in the regression step.  It also prevents the program from applying
+            the mask in the scaling step.
+
+            If the user does not want to apply a mask in the regression
+            analysis, but wants the full_mask dataset for other reasons
+            (such as computing blur estimates), this option is needed.
+
+            See also -regress_est_blur_epits, -regress_est_blur_errts.
 
         -regress_no_motion      : do not apply motion params in 3dDeconvolve
 
@@ -1074,9 +1144,10 @@ g_history = """
     1.25 Jun 27 2007 : on error, display failed command
     1.26 Oct 03 2007 : set default polort based on run length (like 3dDecon)
     1.27 Nov 26 2007 : added -volreg_interp, default is -cubic (was Fourier)
+    1.28 Jan 22 2008 : added...
 """
 
-g_version = "version 1.27, Nov 26, 2007"
+g_version = "version 1.28, Jan 28, 2008"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -1129,14 +1200,16 @@ class SubjProcSream:
         self.tr         = 0.0           # TR, in seconds
         self.reps       = 0             # TRs per run
         self.runs       = 0             # number of runs
+        self.all_runs   = None          # all_runs dataset
         self.mask       = None          # mask dataset
+        self.regmask    = 1             # apply any full_mask in regression
 
         self.bindex     = 0             # current block index
         self.pblabel    = ''            # previous block label
 
         return
         
-    def show(self, mesg):       # rcr - update
+    def show(self, mesg):
         print '%sSubjProcSream: %s' % (mesg, self.label)
         for block in self.blocks:
             block.show('    Block %d: ' % self.blocks.index(block))
@@ -1216,12 +1289,16 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_stim_times_offset', 1, [])
         self.valid_opts.add_opt('-regress_use_stim_files', 0, [])
 
+        self.valid_opts.add_opt('-regress_est_blur_epits', 0, [])
+        self.valid_opts.add_opt('-regress_est_blur_errts', 0, [])
+        self.valid_opts.add_opt('-regress_errts_prefix', 1, [])
         self.valid_opts.add_opt('-regress_fitts_prefix', 1, [])
         self.valid_opts.add_opt('-regress_iresp_prefix', 1, [])
         self.valid_opts.add_opt('-regress_make_ideal_sum', 1, [])
         self.valid_opts.add_opt('-regress_no_fitts', 0, [])
         self.valid_opts.add_opt('-regress_no_ideals', 0, [])
         self.valid_opts.add_opt('-regress_no_iresp', 0, [])
+        self.valid_opts.add_opt('-regress_no_mask', 0, [])
         self.valid_opts.add_opt('-regress_no_motion', 0, [])
         self.valid_opts.add_opt('-regress_opts_3dD', -1, [])
 
@@ -1229,6 +1306,7 @@ class SubjProcSream:
         # other options
         self.valid_opts.add_opt('-help', 0, [])
         self.valid_opts.add_opt('-hist', 0, [])
+        self.valid_opts.add_opt('-show_valid_opts', 0, [])
         self.valid_opts.add_opt('-ver', 0, [])
         self.valid_opts.add_opt('-verb', 1, [])
 
@@ -1239,13 +1317,18 @@ class SubjProcSream:
         if self.user_opts == None: return 1     # error condition
         if len(self.user_opts.olist) == 0:      # no options: apply -help
             print g_help_string
-            return 1
+            return 0
         if self.user_opts.trailers:
             opt = self.user_opts.find_opt('trailers')
             if not opt: print "** seem to have trailers, but cannot find them!"
             else: print "** have invalid trailing args: %s", opt.show()
             return 1  # failure
 
+        # maybe the users justs wants a complete option list
+        if self.user_opts.find_opt('-show_valid_opts'):
+            self.valid_opts.show('afni_proc.py:', 1)
+            return 0  # gentle termination
+        
         # apply the user options
         rv = self.apply_initial_opts(self.user_opts)
         if rv != None: return rv
@@ -1470,7 +1553,7 @@ class SubjProcSream:
         if not self.overwrite and os.path.isfile(self.script):
             print "error: script file '%s' already exists, exiting..." % \
                   self.script
-            return 1
+            return 0
         try: self.fp = open(self.script,'w')
         except:
             print "cannot open script file '%s' for writing" % self.script
@@ -1636,8 +1719,10 @@ def run_proc():
         show_args_as_command(sys.argv, "** failed command (create_blocks):")
         return rv
 
-    if ps.create_script():
-        show_args_as_command(sys.argv, "** failed command (create_script):")
+    rv = ps.create_script()
+    if rv != None:  # terminal, but do not display command on 0
+        if rv != 0:
+            show_args_as_command(sys.argv, "** failed command (create_script):")
         return rv
 
 # main
