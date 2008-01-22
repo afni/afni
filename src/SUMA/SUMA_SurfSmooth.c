@@ -819,6 +819,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
 		}
       
       
+      #if 0    /* Now handled in default parsing */
       if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -854,6 +855,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
          brk = YUP;
 		}
       
+      #endif
       
       if (!brk && (strcmp(argv[kar], "-lim") == 0)) {
          kar ++;
@@ -1085,14 +1087,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
       fprintf (SUMA_STDERR,"Error %s:\nNo method was specified.\n", FuncName);
       exit(1);  
    }
-   
-   if (ps->cs->talk_suma && Opt->insurf_method != 2) {
-      fprintf (SUMA_STDERR,   "must specify surface using -spec option\n"
-                              "if you whish to talk to suma.\n");
-      exit(1); 
-   }
-   
-   
+     
    if (Opt->insurf_method == 2) {
       if (!Opt->surf_names[0] || !Opt->spec_file) {
          fprintf (SUMA_STDERR,   "failed to specify either -spec or -surf_X options.\n");
@@ -1355,7 +1350,7 @@ int main (int argc,char *argv[])
    
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-i;-t;-spec;-sv;-talk;-mask;");
+   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-i;-t;-spec;-s;-sv;-talk;-mask;");
    
    if (argc < 6)
        {

@@ -1612,7 +1612,7 @@ int *z_idqsort (int *x , int nx )
    int *I, k;
    Z_QSORT_INT *Z_Q_fStrct;
    
-   ENTRY("z_iqsort");
+   ENTRY("z_idqsort");
 
    /* allocate for the structure */
    Z_Q_fStrct = (Z_QSORT_INT *) calloc(nx, sizeof (Z_QSORT_INT));

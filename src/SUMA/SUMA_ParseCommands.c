@@ -3825,7 +3825,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             }
             /* get the type */
             ps->t_FT[ps->t_N_surfnames] = SUMA_SurfaceTypeCode(argv[kar]);
-            if (ps->t_FT[ps->t_N_surfnames] == SUMA_FT_ERROR || ps->t_FT[ps->t_N_surfnames] == SUMA_FT_NOT_SPECIFIED) {
+            if (  ps->t_FT[ps->t_N_surfnames] == SUMA_FT_ERROR ||
+                  ps->t_FT[ps->t_N_surfnames] == SUMA_FT_NOT_SPECIFIED) {
                fprintf (SUMA_STDERR, "%s is a bad file type.\n", argv[kar]);
                exit(1);
             }
@@ -3838,10 +3839,13 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             ps->t_state[ps->t_N_surfnames] = SUMA_copy_string(argv[kar]);
 
             /* get the name */
-            if (ps->t_FT[ps->t_N_surfnames] == SUMA_SUREFIT || ps->t_FT[ps->t_N_surfnames] == SUMA_VEC) N_name = 2;
+            if (  ps->t_FT[ps->t_N_surfnames] == SUMA_SUREFIT ||
+                  ps->t_FT[ps->t_N_surfnames] == SUMA_VEC) N_name = 2;
             else N_name = 1;
             if (kar+N_name >= argc)  {
-		  		   fprintf (SUMA_STDERR, "Error %s:\nneed %d elements for NAME \n", FuncName, N_name);
+		  		   fprintf (SUMA_STDERR, 
+                        "Error %s:\nneed %d elements for NAME \n"
+                        , FuncName, N_name);
 				   exit (1);
 			   }
             kar ++; ps->arg_checked[kar]=1;
@@ -3851,13 +3855,16 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                ps->t_surftopo[ps->t_N_surfnames] = SUMA_copy_string(argv[kar]);
             } 
             /* get the format */
-            if (  ps->t_FT[ps->t_N_surfnames] == SUMA_SUREFIT || ps->t_FT[ps->t_N_surfnames] == SUMA_VEC ||
+            if (  ps->t_FT[ps->t_N_surfnames] == SUMA_SUREFIT ||
+                  ps->t_FT[ps->t_N_surfnames] == SUMA_VEC ||
                   ps->t_FT[ps->t_N_surfnames] == SUMA_INVENTOR_GENERIC || 
                   ps->t_FT[ps->t_N_surfnames] == SUMA_OPENDX_MESH ||
                   ps->t_FT[ps->t_N_surfnames] == SUMA_BYU) 
                   ps->t_FF[ps->t_N_surfnames] = SUMA_ASCII;
-            else if (ps->t_FT[ps->t_N_surfnames] == SUMA_PLY)  ps->t_FF[ps->t_N_surfnames] = SUMA_FF_NOT_SPECIFIED;
-            else if (ps->t_FT[ps->t_N_surfnames] == SUMA_BRAIN_VOYAGER) ps->t_FF[ps->t_N_surfnames] = SUMA_BINARY;
+            else if (ps->t_FT[ps->t_N_surfnames] == SUMA_PLY)
+                  ps->t_FF[ps->t_N_surfnames] = SUMA_FF_NOT_SPECIFIED;
+            else if (ps->t_FT[ps->t_N_surfnames] == SUMA_BRAIN_VOYAGER) 
+                  ps->t_FF[ps->t_N_surfnames] = SUMA_BINARY;
             else if (ps->t_FT[ps->t_N_surfnames] == SUMA_FREE_SURFER) {
                if (SUMA_isExtension(ps->t_surfnames[ps->t_N_surfnames], ".asc")) 
                ps->t_FF[ps->t_N_surfnames] = SUMA_ASCII;
