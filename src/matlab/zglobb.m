@@ -25,7 +25,7 @@ function [err,ErrMessage, NameList] = zglobb (Identifiers, Opt)
 %Key Terms:
 %   
 %More Info :
-%   ? as a wildcard is not woring
+%   ? as a wildcard now works on unix/OSX machines
 %   
 %   
 %
@@ -65,12 +65,35 @@ switch Opt.LsType,
 		return;  
 end
 
+if (ischar(Identifiers)),
+   Identifiers = cellstr(Identifiers);
+end
 %get the names of the BRIKS identified in Identifiers
 N_ID = length(Identifiers);
 
 cnt = 0;
-for (i=1:1:N_ID)
-	sd = dir (char(Identifiers(i)));
+i=1;
+while (i<=length(Identifiers)),
+   if (~isempty (find(char(Identifiers(i)) == '?'))),
+      %have to go via ls!
+      com = sprintf('\\ls %s', char(Identifiers(i)));
+      [ee,ll] = unix(com);
+      if (ee),
+         i = i + 1;
+         continue;
+      end
+      cl = zstr2cell(ll);
+      
+      if (length(Identifiers)>=i+1),
+         Identifiers = [  Identifiers(1:i-1) ...
+                           cl ...
+                           Identifiers(i+1:length(Identifiers))];
+      else
+         Identifiers = [  Identifiers(1:i-1) ...
+                           cl ];
+      end
+   end 
+   sd = dir (char(Identifiers(i)));
 	ns = length(sd);
 	for (j=1:1:ns)
 		if (~strcmp(sd(j).name, '.') & ~strcmp(sd(j).name, '..'))
@@ -89,6 +112,7 @@ for (i=1:1:N_ID)
 			end
 		end 
 	end
+   i = i + 1;
 end
 	
 if (Opt.LsType == '|'),
@@ -105,3 +129,13 @@ err = 0;
 ErrMessage = '';
 return;
 
+function cl = zstr2cell(ll)
+   sp = find(isspace(ll));
+   strt = 1;
+   cl = cellstr('');
+   for(i=1:1:length(sp)),
+      cl(i) = cellstr(ll(strt:sp(i)-1));
+      strt = sp(i)+1;
+   end
+   
+return;

@@ -42,6 +42,10 @@ typedef struct {
                               
    int *N_IntersectedVoxels;  /*!< Number of voxels intersected by some triangle */
 } SUMA_VTI; /*!< Voxel Triangle Intersection Structure. Create with SUMA_CreateVTI, Destroy with SUMA_FreeVTI*/
+
+SUMA_Boolean SUMA_TriTrig(float *p1, float *p2, float *p3, 
+                           double *s, double *c);
+
 SUMA_VTI *SUMA_CreateVTI(int N_TriIndex, int *TriIndex);
 SUMA_VTI * SUMA_FreeVTI(SUMA_VTI *vti);
 SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle( SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, float *NodeIJKlist,

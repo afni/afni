@@ -26,6 +26,68 @@ extern int SUMAg_N_DOv;
 #endif
 
 /*!
+   \brief Calculate the sine and cosines of angles in a triangle 
+   return -2 where calculation fails
+*/
+SUMA_Boolean SUMA_TriTrig(float *p1, float *p2, float *p3, double *s, double *c)
+{
+   static char FuncName[]={"SUMA_TriTrig"};
+   double U13[3], U12[3], U23[3], U21[3], X1[3], X[3], X1n;
+   double Xn, Un13, Un12, Un23, Up1, Up2, Up3;
+   
+   SUMA_ENTRY;
+   if (!p1 || !p2 || !p3 || !s || !c) SUMA_RETURN(NOPE);
+   
+   /* Unit vectors and their norms */
+   SUMA_UNIT_VEC(p1, p2, U12, Un12); 
+      U21[0] = -U12[0];
+      U21[1] = -U12[1];
+      U21[2] = -U12[2];
+   SUMA_UNIT_VEC(p1, p3, U13, Un13);
+   SUMA_UNIT_VEC(p2, p3, U23, Un23);
+   
+   Up1 = Un12*Un13;
+   Up2 = Un12*Un23;
+   Up3 = Un13*Un23;
+   
+   if (Up1 > 0.0f) {
+      /* sine of angle at n1 */
+      SUMA_MT_CROSS(X1, U12, U13);
+      SUMA_NORM(X1n, X1);
+      s[0] = X1n/(Up1);
+      /* now cosine */
+      c[0] = SUMA_MT_DOT(U12,U13)/(Up1);
+   } else {
+      s[0] = -2.0;
+      c[0] = -2.0;
+   }
+   if (Up2 > 0.0f) {
+      /* sine of angle at n2 */
+      SUMA_MT_CROSS(X, U23, U21);
+      SUMA_NORM(Xn, X);
+      s[1] = Xn/(Up2);
+      /* now cosine */
+      c[1] = SUMA_MT_DOT(U23,U21)/(Up2);
+   } else {
+      s[1] = -2.0;
+      c[1] = -2.0;
+   }
+   if (Up3 > 0.0f) {
+      /* sine of angle at n3 */
+      SUMA_MT_CROSS(X, U13, U23);
+      SUMA_NORM(Xn, X);
+      s[2] = Xn/(Up3);
+      /* now cosine */
+      c[2] = SUMA_MT_DOT(U13,U23)/(Up3);
+   } else {
+      s[2] = -2.0;
+      c[2] = -2.0;
+   }
+
+   
+   SUMA_RETURN(YUP);
+}
+/*!
 
    \brief A function to calculate the geodesic distance of nodes connected to node n
           See labbook NIH-3 pp 138 and on for notes on algorithm 
