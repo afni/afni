@@ -326,6 +326,18 @@ void CALC_read_opts( int argc , char * argv[] )
          nopt++ ; continue ;  /* go to next arg */
       }
 
+      /**** -float and -short and -byte [22 Jan 2008] ****/
+
+      if( strcasecmp(argv[nopt],"-float") == 0 ){
+        CALC_datum = MRI_float ; nopt++ ; continue ;
+      }
+      if( strcasecmp(argv[nopt],"-short") == 0 ){
+        CALC_datum = MRI_short ; nopt++ ; continue ;
+      }
+      if( strcasecmp(argv[nopt],"-byte") == 0 ){
+        CALC_datum = MRI_byte ; nopt++ ; continue ;
+      }
+
       /**** -datum type ****/
 
       if( strncasecmp(argv[nopt],"-datum",6) == 0 ){
@@ -1049,6 +1061,9 @@ void CALC_Syntax(void)
     "  -datum type= Coerce the output data to be stored as the given type,   \n"
     "               which may be byte, short, or float.                      \n"
     "               [default = datum of first input dataset]                 \n"
+    "  -float }                                                              \n"
+    "  -short }   = Alternative options to specify output data format.       \n"
+    "  -byte  }                                                              \n"
     "                                                                        \n"
     "  -fscale    = Force scaling of the output to the maximum integer       \n"
     "               range. This only has effect if the output datum is byte  \n"
