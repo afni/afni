@@ -62,6 +62,11 @@ static int                CALC_usetemp = 0 ; /* 18 Oct 2005 */
 static int                CALC_fdrize  = 0 ; /* 17 Jan 2008 */
 #endif
 
+#define ALLOW_SORT
+#ifdef  ALLOW_SORT
+static int                CALC_sort    = 0 ; /* 22 Jan 2008 */
+#endif
+
 /*---------- dshift stuff [22 Nov 1999] ----------*/
 
 #define DSHIFT_MODE_STOP  0
@@ -252,6 +257,17 @@ void CALC_read_opts( int argc , char * argv[] )
 
       if( strcasecmp(argv[nopt],"-fdrize") == 0 ){  /* 17 Jan 2008 */
         CALC_fdrize++ ; CALC_datum = MRI_float ; nopt++ ; continue ;
+      }
+#endif
+
+#ifdef ALLOW_SORT
+      /**** -sort ****/
+
+      if( strcmp(argv[nopt],"-sort") == 0 ){  /* 22 Jan 2008 */
+        CALC_sort = 1 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-SORT") == 0 ){
+        CALC_sort = -1 ; nopt++ ; continue ;
       }
 #endif
 
@@ -1167,6 +1183,12 @@ void CALC_Syntax(void)
     "                    imaginary part of the input dataset.                \n"
     "                * 3dcalc cannot be used to CREATE a complex dataset!    \n"
     "                    [See program 3dTwotoComplex for that purpose.]      \n"
+#ifdef ALLOW_SORT
+    "                                                                        \n"
+    "  -sort         = Sort each output brick separately, before output:     \n"
+    "  -SORT           'sort' ==> increasing order, 'SORT' ==> decreasing.   \n"
+    "                  [This is useful only under unusual circumstances!]    \n"
+#endif
     "                                                                        \n"
     "------------------------------------------------------------------------\n"
     "DATASET TYPES:                                                          \n"
@@ -1410,121 +1432,28 @@ void CALC_Syntax(void)
     " * Differential subscripts slow the program down even more.\n"
     "\n"
     "------------------------------------------------------------------------\n"
+   ) ;
+
+   printf(
     "EXPRESSIONS:\n"
     "----------- \n"
     "\n"
-    " Arithmetic expressions are allowed, using + - * / ** and parentheses.\n"
     " As noted above, datasets are referred to by single letter variable names.\n"
-    " At this time, C relational, boolean, and conditional expressions are\n"
-    " NOT implemented.  Built in functions include:\n"
+    PARSER_HELP_STRING 
+    "** If you modify a statistical sub-brick, you may want to use program\n"
+    "  '3drefit' to modify the dataset statistical auxiliary parameters.\n"
     "\n"
-    "    sin  , cos  , tan  , asin  , acos  , atan  , atan2,       \n"
-    "    sinh , cosh , tanh , asinh , acosh , atanh , exp  ,       \n"
-    "    log  , log10, abs  , int   , sqrt  , max   , min  ,       \n"
-    "    J0   , J1   , Y0   , Y1    , erf   , erfc  , qginv, qg ,  \n"
-    "    rect , step , astep, bool  , and   , or    , mofn ,       \n"
-    "    sind , cosd , tand , median, lmode , hmode , mad  ,       \n"
-    "    gran , uran , iran , eran  , lran  , orstat,              \n"
-    "    mean , stdev, sem  , Pleg\n"
+    "** Computations are carried out in double precision before being\n"
+    "   truncated to the final output 'datum'.\n"
     "\n"
-    " where:\n"
-    " * qg(x)    = reversed cdf of a standard normal distribution\n"
-    " * qginv(x) = inverse function to qg\n"
-    " * min, max, atan2 each take 2 arguments ONLY\n"
-    " * J0, J1, Y0, Y1 are Bessel functions (see Watson)\n"
-    " * Pleg(m,x) is the m'th Legendre polynomial evaluated at x\n"
-    " * erf, erfc are the error and complementary error functions\n"
-    " * sind, cosd, tand take arguments in degrees (vs. radians)\n"
-    " * median(a,b,c,...) computes the median of its arguments\n"
-    " * mad(a,b,c,...) computes the MAD of its arguments\n"
-    " * mean(a,b,c,...) computes the mean of its arguments\n"
-    " * stdev(a,b,c,...) computes the standard deviation of its arguments\n"
-    " * sem(a,b,c,...) computes the standard error of the mean of its arguments,\n"
-    "                  where sem(n arguments) = stdev(same)/sqrt(n)\n"
-    " * orstat(n,a,b,c,...) computes the n-th order statistic of\n"
-    "    {a,b,c,...} - that is, the n-th value in size, starting\n"
-    "    at the bottom (e.g., orstat(1,a,b,c) is the minimum)\n"
-    " * lmode(a,b,c,...) and hmode(a,b,c,...) compute the mode\n"
-    "    of their arguments - lmode breaks ties by choosing the\n"
-    "    smallest value with the maximal count, hmode breaks ties by\n"
-    "    choosing the largest value with the maximal count\n"
-    "    [median,lmode,hmode take a variable number of arguments]\n"
-    " * gran(m,s) returns a Gaussian deviate with mean=m, stdev=s\n"
-    " * uran(r)   returns a uniform deviate in the range [0,r]\n"
-    " * iran(t)   returns a random integer in the range [0..t]\n"
-    " * eran(s)   returns an exponentially distributed deviate\n"
-    " * lran(t)   returns a logistically distributed deviate\n"
+    "** Note that the quotes around the expression are needed so the shell\n"
+    "   doesn't try to expand * characters, or interpret parentheses.\n"
     "\n"
-    " You may use the symbol 'PI' to refer to the constant of that name.\n"
-    " This is the only 2 letter symbol defined; all input files are\n"
-    " referred to by 1 letter symbols.  The case of the expression is\n"
-    " ignored (in fact, it is converted to uppercase as the first step\n"
-    " in the parsing algorithm).\n"
-    "\n"
-    " The following functions are designed to help implement logical\n"
-    " functions, such as masking of 3D volumes against some criterion:\n"
-    "       step(x)    = {1 if x>0        , 0 if x<=0},\n"
-    "       astep(x,y) = {1 if abs(x) > y , 0 otherwise} = step(abs(x)-y)\n"
-    "       rect(x)    = {1 if abs(x)<=0.5, 0 if abs(x)>0.5},\n"
-    "       bool(x)    = {1 if x != 0.0   , 0 if x == 0.0},\n"
-    "    notzero(x)    = bool(x),\n"
-    "     iszero(x)    = 1-bool(x) = { 0 if x != 0.0, 1 if x == 0.0 },\n"
-    "     equals(x,y)  = 1-bool(x-y) = { 1 if x == y , 0 if x != y },\n"
-    "   ispositive(x)  = { 1 if x > 0; 0 if x <= 0 },\n"
-    "   isnegative(x)  = { 1 if x < 0; 0 if x >= 0 },\n"
-    "   and(a,b,...,c) = {1 if all arguments are nonzero, 0 if any are zero}\n"
-    "    or(a,b,...,c) = {1 if any arguments are nonzero, 0 if all are zero}\n"
-    "  mofn(m,a,...,c) = {1 if at least 'm' arguments are nonzero, 0 otherwise}\n"
-    "  argmax(a,b,...) = index of largest argument; = 0 if all args are 0\n"
-    "  argnum(a,b,...) = number of nonzero arguments\n"
-    "  pairmax(a,b,...)= finds the 'paired' argument that corresponds to the\n"
-    "                    maximum of the first half of the input arguments;\n"
-    "                    for example, pairmax(a,b,c,p,q,r) determines which\n"
-    "                    of {a,b,c} is the max, then returns the corresponding\n"
-    "                    value from {p,q,r}; requires even number of arguments.\n"
-    "  pairmin(a,b,...)= Similar to pairmax, but for the minimum; for example,\n"
-    "                    pairmin(a,b,c,p,q,r} finds the minimum of {a,b,c}\n"
-    "                    and returns the corresponding value from {p,q,r};\n"
-    "                      pairmin(3,2,7,5,-1,-2,-3,-4) = -2\n"
-    "                    (The 'pair' functions are the Lukas Pezawas specials!)\n"
-    "  amongst(a,b,...)= Return value is 1 if any of the b,c,... values equals\n"
-    "                    the a value; otherwise, return value is 0.\n"
-    "\n"
-    "  [These last 8 functions take a variable number of arguments.]\n"
-    "\n"
-    " The following 27 new [Mar 1999] functions are used for statistical\n"
-    " conversions, as in the program 'cdf':\n"
-    "   fico_t2p(t,a,b,c), fico_p2t(p,a,b,c), fico_t2z(t,a,b,c),\n"
-    "   fitt_t2p(t,a)    , fitt_p2t(p,a)    , fitt_t2z(t,a)    ,\n"
-    "   fift_t2p(t,a,b)  , fift_p2t(p,a,b)  , fift_t2z(t,a,b)  ,\n"
-    "   fizt_t2p(t)      , fizt_p2t(p)      , fizt_t2z(t)      ,\n"
-    "   fict_t2p(t,a)    , fict_p2t(p,a)    , fict_t2z(t,a)    ,\n"
-    "   fibt_t2p(t,a,b)  , fibt_p2t(p,a,b)  , fibt_t2z(t,a,b)  ,\n"
-    "   fibn_t2p(t,a,b)  , fibn_p2t(p,a,b)  , fibn_t2z(t,a,b)  ,\n"
-    "   figt_t2p(t,a,b)  , figt_p2t(p,a,b)  , figt_t2z(t,a,b)  ,\n"
-    "   fipt_t2p(t,a)    , fipt_p2t(p,a)    , fipt_t2z(t,a)    .\n"
-    "\n"
-    " See the output of 'cdf -help' for documentation on the meanings of\n"
-    " and arguments to these functions.  (After using one of these, you\n"
-    " may wish to use program '3drefit' to modify the dataset statistical\n"
-    " auxiliary parameters.)\n"
-    "\n"
-    " The two functions below use the NIfTI-1 statistical codes to\n"
-    " map between statistical values and cumulative distribution values:\n"
-    "   cdf2stat(val,code,p1,p2,3)\n"
-    "   stat2cdf(val,code,p1,p2,3)\n"
-    "\n"
-    " Computations are carried out in double precision before being\n"
-    " truncated to the final output 'datum'.\n"
-    "\n"
-    " Note that the quotes around the expression are needed so the shell\n"
-    " doesn't try to expand * characters, or interpret parentheses.\n"
-    "\n"
-    " (Try the 'ccalc' program to see how the expression evaluator works.\n"
-    "  The arithmetic parser and evaluator is written in Fortran-77 and\n"
-    "  is derived from a program written long ago by RW Cox to facilitate\n"
-    "  compiling on an array processor hooked up to a VAX.  It's a mess, but\n"
-    "  it works - somewhat slowly - but hey, computers are fast these days.)\n"
+    "** Try the 'ccalc' program to see how the expression evaluator works.\n"
+    "   The arithmetic parser and evaluator is written in Fortran-77 and\n"
+    "   is derived from a program written long ago by RW Cox to facilitate\n"
+    "   compiling on an array processor hooked up to a VAX.  It's a mess, but\n"
+    "   it works - somewhat slowly - but hey, computers are fast these days.)\n"
    ) ;
    exit(0) ;
 }
@@ -2144,6 +2073,11 @@ int main( int argc , char *argv[] )
         for( ii=0 ; ii < ntime_max ; ii++ ){
           TGET(ii) ;                  /* 18 Oct 2005: load from temp file? */
 
+#ifdef ALLOW_SORT
+               if( CALC_sort > 0 ) qsort_float    ( CALC_nvox, buf[ii] ) ;
+          else if( CALC_sort < 0 ) qsort_float_rev( CALC_nvox, buf[ii] ) ;
+#endif
+
 #ifdef ALLOW_FDR
           if( CALC_fdrize && DSET_BRICK_STATCODE(new_dset,ii) > 0 ){
             MRI_IMAGE *qim=mri_new_vol_empty(CALC_nvox,1,1,MRI_float) ;
@@ -2191,6 +2125,11 @@ int main( int argc , char *argv[] )
          for( ii=0 ; ii < ntime_max ; ii++ ) {
 
            TGET(ii) ;   /* 18 Oct 2005: temp load */
+
+#ifdef ALLOW_SORT
+               if( CALC_sort > 0 ) qsort_float    ( CALC_nvox, buf[ii] ) ;
+          else if( CALC_sort < 0 ) qsort_float_rev( CALC_nvox, buf[ii] ) ;
+#endif
 
            /* get max of this sub-brick, if not doing global scaling */
 

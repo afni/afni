@@ -230,7 +230,7 @@ printf(
 "    -float   = Force the output of z-scores in floating point format.\n"
 "    -qval    = Force the output of q-values rather than z-scores.\n"
 "                N.B.: A smaller q-value is more significant!\n"
-"                [-float is highly recommended when -qval is used]\n"
+"                [-float is recommended when -qval is used]\n"
 "\n"
 "* To be clear, you can use '-new -nopmask' to have the new mode of computing\n"
 "  carried out, but with p=1 voxels included (which should give results\n"
@@ -239,10 +239,18 @@ printf(
 "  p=1 voxels are not counted (which should give results virtually\n"
 "  identical to '-new').\n"
 "\n"
-"-- q-values are estimates of the False Discovery Rate at a given\n"
-"   threshold; that is, about 5%% of voxels with q <= 0.05 (z >= 1.96)\n"
-"   are (presumably) 'false positive' detections, and the other 95%%\n"
-"   are (presumably) 'true positives'.\n"
+"-- q-values are estimates of the False Discovery Rate at a given threshold;\n"
+"   that is, about 5%% of all voxels with q <= 0.05 (z >= 1.96) are\n"
+"   (presumably) 'false positive' detections, and the other 95%% are\n"
+"   (presumably) 'true positives'.\n"
+"-- Note the use of the words 'estimate' and 'about' in the above statement!\n"
+"   In particular, the accuracy of the q-value calculation depends on the\n"
+"   assumption that the p-values calculated from the input statistics are\n"
+"   correctly distributed (e.g., that the DOF parameters are correct).\n"
+"-- The z-score is the conversion of the q-value to a double-sided tail\n"
+"   probability of the unit Gaussian N(0,1) distribution; that is, z(q)\n"
+"   is the value such that if x is a N(0,1) random variable, then\n"
+"   Prob[|x|>z] = q: for example, z(0.05) = 1.95996.\n"
 "-- cf. http://en.wikipedia.org/wiki/False_discovery_rate\n"
 "-- cf. C source code in mri_fdrize.c\n"
 "-- RWCox -- 18 Jan 2008 == Cary Grant's Birthday!\n"
@@ -1135,7 +1143,8 @@ void process_subbrick (THD_3dim_dataset * dset, int ibrick)
   strcat (brick_label, DSET_BRICK_LABEL(dset, ibrick));
   EDIT_BRICK_LABEL (dset, ibrick, brick_label);
   EDIT_BRICK_FACTOR (dset, ibrick, factor);
-  if( !FDR_qval ) EDIT_BRICK_TO_FIZT (dset, ibrick);
+  if( !FDR_qval ) EDIT_BRICK_TO_FIZT  (dset,ibrick);
+  else            EDIT_BRICK_TO_NOSTAT(dset,ibrick);
 
   /*----- Deallocate memory -----*/
   if (ffim != NULL) { free (ffim);   ffim = NULL; }

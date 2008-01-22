@@ -6534,3 +6534,8 @@
 
 18 Jan 2008
  * Incorporate mri_fdrize() into 3dFDR.
+
+22 Jan 2008
+ * Minor changes to 3dFDR: better help, -float, -qval.
+ * Add -sort and -SORT options to 3dcalc, for no good reason.
+ * Add 'help' command to ccalc, to give parser info.
