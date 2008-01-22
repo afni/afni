@@ -187,8 +187,10 @@ class comopt:
       self.required = 0     # is the argument required?
       return 
 
-   def show(self, mesg = ''):
+   def show(self, mesg = '', short = 0):
       print "%sComopt: %s" % (mesg, self.name)
+      if short: return      # 22 Jan 2008 [rickr]
+
       print "  (i_name, n_exp, n_found) = (%d, %d, %d)" % \
                (self.i_name, self.n_exp, self.n_found)
       print "  parlist = %s" % self.parlist
