@@ -900,7 +900,7 @@ void process_volume (float * ffim, int statcode, float * stataux)
     if( FDR_pmask == 0    ) flags |= 1 ;  /* compatibility mode */
     if( FDR_cn    >  1.0f ) flags |= 2 ;  /* dependency flag */
     if( FDR_qval          ) flags |= 4 ;  /* qval flag */
-    mri_fdrize( qim , statcode,stataux , flags ) ;
+    (void)mri_fdrize( qim , statcode,stataux , flags ) ;
     mri_clear_data_pointer(qim); mri_free(qim);
     return ;
   }

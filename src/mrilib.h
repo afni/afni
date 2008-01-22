@@ -1161,8 +1161,8 @@ typedef struct { int i,j,k; } int_triple ;
 
 /*----------*/
 
-typedef struct { int nar ; float  *ar ; } floatvec ;
-typedef struct { int nar ; double *ar ; } doublevec ;
+typedef struct { int nar ; float  *ar , dx,x0 ; } floatvec ;
+typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
 #define KILL_floatvec(fv)                      \
   do{ if( (fv) != NULL ){                      \
         if( (fv)->ar != NULL ) free((fv)->ar); \
@@ -1172,12 +1172,12 @@ typedef struct { int nar ; double *ar ; } doublevec ;
 
 #define MAKE_floatvec(fv,n)                             \
   do{ (fv) = (floatvec *)malloc(sizeof(floatvec)) ;     \
-      (fv)->nar = (n) ;                                 \
+      (fv)->nar = (n) ; (fv)->dx=1.0f; (fv)->x0=0.0f;   \
       (fv)->ar  = (float *)calloc(sizeof(float),(n)) ;  \
   } while(0)
-#define MAKE_doublevec(dv,n)                             \
+#define MAKE_doublevec(dv,n)                              \
   do{ (dv) = (doublevec *)malloc(sizeof(doublevec)) ;     \
-      (dv)->nar = (n) ;                                 \
+      (dv)->nar = (n) ; (dv)->dx=1.0; (dv)->x0=0.0;       \
       (dv)->ar  = (double *)calloc(sizeof(double),(n)) ;  \
   } while(0)
 
@@ -1283,7 +1283,8 @@ extern char * mri_clusterize_report(void) ;
 extern MCW_cluster_array * mri_clusterize_array(int clear) ;
 extern mri_cluster_detail mri_clusterize_detailize( MCW_cluster *cl ) ;
 
-extern void mri_fdrize( MRI_IMAGE *, int, float *, int ) ; /* 17 Jan 2008 */
+extern int mri_fdrize( MRI_IMAGE *, int, float *, int ) ; /* 17 Jan 2008 */
+extern floatvec * mri_fdr_curve( MRI_IMAGE *, int , float * ) ;
 
 /*------------------------------------------------------------------------*/
 /*--- Functions in mri_matrix.c (matrix operations, stored as images) ----*/
