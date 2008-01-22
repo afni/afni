@@ -772,9 +772,10 @@ g_help_string = """
 
         -regress_est_blur_epits      : estimate the smoothness of the EPI data
 
-            This option specifies to run 3dFWHMx on the EPI dataset used for
-            regression (all_runs).  These blur values are saved to the file
-            blur_est.$subj.1D, along with any similar output from errts.
+            This option specifies to run 3dFWHMx on each of the EPI datasets
+            used for regression, the results of which are averaged.  These blur
+            values are saved to the file blur_est.$subj.1D, along with any
+            similar output from errts.
 
             These blur estimates may be input to AlphaSim, for any multiple
             testing correction done for this subject.  If AlphaSim is run at
@@ -1144,7 +1145,11 @@ g_history = """
     1.25 Jun 27 2007 : on error, display failed command
     1.26 Oct 03 2007 : set default polort based on run length (like 3dDecon)
     1.27 Nov 26 2007 : added -volreg_interp, default is -cubic (was Fourier)
-    1.28 Jan 22 2008 : added...
+    1.28 Jan 22 2008 : estimating smoothness
+         - added -regress_est_blur_errts, -regress_est_blur_epits options
+           for estimating the blur in the EPI and errts data
+         - added -regress_no_mask, -regress_errts_prefix and -show_valid_opts
+                       
 """
 
 g_version = "version 1.28, Jan 28, 2008"
@@ -1200,7 +1205,6 @@ class SubjProcSream:
         self.tr         = 0.0           # TR, in seconds
         self.reps       = 0             # TRs per run
         self.runs       = 0             # number of runs
-        self.all_runs   = None          # all_runs dataset
         self.mask       = None          # mask dataset
         self.regmask    = 1             # apply any full_mask in regression
 
