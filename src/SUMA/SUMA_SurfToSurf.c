@@ -532,70 +532,82 @@ int main (int argc,char *argv[])
    
    /* first create the header of the output */
    SS = SUMA_StringAppend(NULL, NULL);
-   SS = SUMA_StringAppend_va(SS, "#Mapping from nodes on surf 1 (S1) to nodes on surf 2 (S2)\n"
-                                 "#  Surf 1 is labeled %s, idcode:%s\n"
-                                 "#  Surf 2 is labeled %s, idcode:%s\n",
-                                 SO1->Label, SO1->idcode_str, SO2->Label, SO2->idcode_str);
+   SS = SUMA_StringAppend_va(SS, 
+      "#Mapping from nodes on surf 1 (S1) to nodes on surf 2 (S2)\n"
+      "#  Surf 1 is labeled %s, idcode:%s\n"
+      "#  Surf 2 is labeled %s, idcode:%s\n",
+      SO1->Label, SO1->idcode_str, SO2->Label, SO2->idcode_str);
    icol = 0;
    SS = SUMA_StringAppend_va(SS, "#Col. %d:\n"
                                  "#     S1n (or nj): Index of node on S1\n"
-                                 , icol); ++icol;
+                                 , icol); 
+   ++icol;
    if (Opt->NearestNode > 1) {
       SS = SUMA_StringAppend_va(SS, 
-                                 "#Col. %d..%d:\n"
-                                 "#     S2ne_S1n: Indices of %d nodes on S2 \n"
-                                 "#     that are closest neighbors of nj.\n"
-                                 "#     The first index is that of the node on S2 that is closest to nj.\n"
-                                 "#     If -1 then thes values should be ignored. This happens when nj's projection failed.\n" 
-                                 , icol, icol+Opt->NearestNode-1, Opt->NearestNode); icol += Opt->NearestNode;
+         "#Col. %d..%d:\n"
+         "#     S2ne_S1n: Indices of %d nodes on S2 \n"
+         "#     that are closest neighbors of nj.\n"
+         "#     The first index is that of the node on S2 that is closest \n"
+         "#     to nj. If -1 then these values should be ignored because\n"
+         "#     in such cases, nj's projection failed.\n" 
+         , icol, icol+Opt->NearestNode-1, Opt->NearestNode); 
+      icol += Opt->NearestNode;
       SS = SUMA_StringAppend_va(SS, 
-                                 "#Col. %d..%d:\n"
-                                 "#     S2we_S1n: Weights assigned to nodes on surf 2 (S2) \n"
-                                 "#     that are closest neighbors of nj.\n"
-                                 , icol, icol+Opt->NearestNode-1, Opt->NearestNode); icol += Opt->NearestNode;
+         "#Col. %d..%d:\n"
+         "#     S2we_S1n: Weights assigned to nodes on surf 2 (S2) \n"
+         "#     that are closest neighbors of nj.\n"
+         , icol, icol+Opt->NearestNode-1, Opt->NearestNode); 
+      icol += Opt->NearestNode;
    } else if (Opt->NearestNode == 1) {
       SS = SUMA_StringAppend_va(SS, 
-                                 "#Col. %d:\n"
-                                 "#     S2ne_S1n: Index of the node on S2 (label:%s idcode:%s)\n"
-                                 "#     that is the closest neighbor of nj.\n"
-                                 "#     If -1 then this value should be ignored. This happens when nj's projection failed.\n" 
-                                 , icol, SO2->Label, SO2->idcode_str); ++icol;
+         "#Col. %d:\n"
+         "#     S2ne_S1n: Index of the node on S2 (label:%s idcode:%s)\n"
+         "#     that is the closest neighbor of nj.\n"
+         "#     If -1 then this value should be ignored because\n"
+         "#     nj's projection failed.\n" 
+         , icol, SO2->Label, SO2->idcode_str); 
+      ++icol;
    }
    if (Opt->NearestTriangle) { 
       SS = SUMA_StringAppend_va(SS, 
-                                 "#Col. %d:\n"
-                                 "#     S2t_S1n: Index of the triangle on S2 that hosts node nj on S1.\n"
-                                 "#     In other words, nj's closest projection onto S2 falls on \n"
-                                 "#     triangle S2t_S1n\n"
-                                 "#     If -1 then this value should be ignored. This happens when nj's projection failed.\n" 
-                                 , icol); ++icol; 
+         "#Col. %d:\n"
+         "#     S2t_S1n: Index of the S2 triangle that hosts node nj on S1.\n"
+         "#     In other words, nj's closest projection onto S2 falls on \n"
+         "#     triangle S2t_S1n\n"
+         "#     If -1 then this value should be ignored because \n"
+         "#     nj's projection failed.\n" 
+         , icol); 
+      ++icol; 
    }
    if (Opt->ProjectionOnMesh) { 
       SS = SUMA_StringAppend_va(SS, 
-                                 "#Col. %d..%d:\n"
-                                 "#     S2p_S1n: Coordinates of projection of nj onto S2\n"
-                                 , icol, icol+2); icol += 3; 
+         "#Col. %d..%d:\n"
+         "#     S2p_S1n: Coordinates of projection of nj onto S2\n"
+         , icol, icol+2); 
+      icol += 3; 
    }
    if (Opt->DistanceToMesh) {
       SS = SUMA_StringAppend_va(SS, 
-                                 "#Col. %d:\n"
-                                 "#     Closest distance from nj to S2\n"
-                                 , icol); ++icol;
+         "#Col. %d:\n"
+         "#     Closest distance from nj to S2\n"
+         , icol); 
+         ++icol;
    }
    if (Opt->Data) {
       if (!Opt->in_name) {
          SS = SUMA_StringAppend_va(SS, 
-                                    "#Col. %d..%d:\n"
-                                    "#     Interpolation using XYZ coordinates of nodes on S2 that neighbor nj\n"
-                                    "#     (same as coordinates of node's projection onto triangle in S2, if using \n"
-                                    "       barycentric interpolation)\n"
-                                    , icol, icol+2); icol += 3; 
-      } else {
-         SS = SUMA_StringAppend_va(SS, 
-                                    "#Col. %d..%d:\n"
-                                    "#     Interpolation of data at nodes on S2 that neighbor nj\n"
-                                    "#     Data obtained from %s\n"
-                                    , icol, icol+ncol_data-1, Opt->in_name);  icol += ncol_data;
+      "#Col. %d..%d:\n"
+      "#     Interpolation using XYZ coordinates of S2 nodes that neighbor nj\n"
+      "#     (same as coordinates of node's projection onto triangle in S2, \n"
+      "#     if using barycentric interpolation)\n"
+         , icol, icol+2); 
+      icol += 3; 
+} else {
+SS = SUMA_StringAppend_va(SS, 
+         "#Col. %d..%d:\n"
+         "#     Interpolation of data at nodes on S2 that neighbor nj\n"
+         "#     Data obtained from %s\n"
+         , icol, icol+ncol_data-1, Opt->in_name);  icol += ncol_data;
       }
    } 
    s = SUMA_HistString("SurfToSurf", argc, argv, NULL);

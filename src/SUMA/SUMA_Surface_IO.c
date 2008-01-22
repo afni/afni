@@ -994,14 +994,14 @@ SUMA_Boolean SUMA_SureFit_Write (SUMA_SFname *Fname, SUMA_SurfaceObject *SO)
    SUMA_ENTRY;
 
    if (strlen(Fname->name_coord)) {
-      if (SUMA_filexists(Fname->name_coord)) {
+      if (!THD_ok_overwrite() && SUMA_filexists(Fname->name_coord)) {
          fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n",FuncName, Fname->name_coord);
          SUMA_RETURN (NOPE);
       }
    }
    
    if (strlen(Fname->name_topo)) {
-      if (SUMA_filexists(Fname->name_topo)) {
+      if (!THD_ok_overwrite() && SUMA_filexists(Fname->name_topo)) {
          fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n",FuncName, Fname->name_topo);
          SUMA_RETURN (NOPE);
       }
@@ -2440,7 +2440,7 @@ SUMA_Boolean SUMA_FreeSurfer_WritePatch (char *fileNm, SUMA_SurfaceObject *SO, c
       SUMA_RETURN(NOPE);
    }
    
-   if (SUMA_filexists(fileNm)) {
+   if (!THD_ok_overwrite() && SUMA_filexists(fileNm)) {
       SUMA_SL_Err("Output file exists, will not overwrite");
       SUMA_RETURN(NOPE);
    }
@@ -3597,7 +3597,7 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name_in, SUMA_SurfaceObject *SO)
    
    f_name = SUMA_Extension(f_name_in,".ply" , YUP); 
    f_name2  = SUMA_append_string(f_name,".ply");
-   if (SUMA_filexists (f_name2)) {
+   if (!THD_ok_overwrite() && SUMA_filexists (f_name2)) {
       fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n", FuncName, f_name2);
       SUMA_free(f_name2);f_name2 = NULL;
       SUMA_free(f_name);f_name = NULL;
@@ -3727,7 +3727,7 @@ SUMA_Boolean SUMA_FS_Write (char *fileNm, SUMA_SurfaceObject *SO, char *firstLin
    
    SUMA_ENTRY;
    
-   if (SUMA_filexists(fileNm)) {
+   if (!THD_ok_overwrite() && SUMA_filexists(fileNm)) {
       fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n",FuncName, fileNm);
       SUMA_RETURN (NOPE);
    }
@@ -3785,7 +3785,7 @@ SUMA_Boolean SUMA_BYU_Write (char *fileNm, SUMA_SurfaceObject *SO, int base1)
    
    SUMA_ENTRY;
    
-   if (SUMA_filexists(fileNm)) {
+   if (!THD_ok_overwrite() && SUMA_filexists(fileNm)) {
       fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n",FuncName, fileNm);
       SUMA_RETURN (NOPE);
    }
@@ -3858,13 +3858,13 @@ SUMA_Boolean SUMA_VEC_Write (SUMA_SFname *Fname, SUMA_SurfaceObject *SO)
    SUMA_ENTRY;
 
    if (strlen(Fname->name_coord)) {
-      if (SUMA_filexists(Fname->name_coord)) {
+      if (!THD_ok_overwrite() && SUMA_filexists(Fname->name_coord)) {
          fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n",FuncName, Fname->name_coord);
          SUMA_RETURN (NOPE);
       }
    }
    if (strlen(Fname->name_topo)) {
-      if (SUMA_filexists(Fname->name_topo)) {
+      if (!THD_ok_overwrite() && SUMA_filexists(Fname->name_topo)) {
          fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n",FuncName, Fname->name_topo);
          SUMA_RETURN (NOPE);
       }

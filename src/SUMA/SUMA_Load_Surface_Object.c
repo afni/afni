@@ -231,7 +231,8 @@ SUMA_Boolean SUMA_Save_Surface_Object_Wrap ( char *surf_name, char *topo_name,
 }
                                              
 SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, 
-                                       SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, 
+                                       SUMA_SO_File_Type SO_FT,
+                                       SUMA_SO_File_Format SO_FF, 
                                        void *someparam)
 {/*SUMA_Save_Surface_Object*/
    static char FuncName[]={"SUMA_Save_Surface_Object"};
@@ -246,72 +247,106 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO,
    switch (SO_FT) {
       case SUMA_OPENDX_MESH:
          if (!SUMA_OpenDX_Write ((char *)F_name, SO)) {
-            fprintf (SUMA_STDERR, "Error %s: Failed to write SUMA_OPENDX_MESH surface.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed to write SUMA_OPENDX_MESH surface.\n"
+                     , FuncName);
             SUMA_RETURN (NOPE);
          }
          break;
       case SUMA_PLY:
          if (!SUMA_Ply_Write ((char *)F_name, SO)) {
-            fprintf (SUMA_STDERR, "Error %s: Failed to write PLY surface.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed to write PLY surface.\n"
+                     , FuncName);
             SUMA_RETURN (NOPE);
          }
          break;
       case SUMA_FREE_SURFER:
          if (SO_FF == SUMA_FF_NOT_SPECIFIED) SO_FF = SUMA_ASCII;
          if (SO_FF != SUMA_ASCII) {
-            fprintf (SUMA_STDERR, "Warning %s: Only ASCII supported for Free Surfer surfaces.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                     "Warning %s: "
+                     "Only ASCII supported for Free Surfer surfaces.\n"
+                     , FuncName);
          }
-         if (!SUMA_FS_Write ((char *)F_name, SO, "!ascii version in FreeSurfer format (SUMA)")) {
-            fprintf (SUMA_STDERR, "Error %s: Failed to write FreeSurfer surface.\n", FuncName);
+         if (!SUMA_FS_Write ((char *)F_name, SO, 
+                              "!ascii version in FreeSurfer format (SUMA)")) {
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed to write FreeSurfer surface.\n"
+                     , FuncName);
             SUMA_RETURN (NOPE);
          }
          break;
       case SUMA_FREE_SURFER_PATCH:
          if (SO_FF == SUMA_FF_NOT_SPECIFIED) SO_FF = SUMA_ASCII;
          if (SO_FF != SUMA_ASCII) {
-            fprintf (SUMA_STDERR, "Warning %s: Only ASCII supported for Free Surfer surface patches.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                     "Warning %s: "
+                     "Only ASCII supported for Free Surfer surface patches.\n"
+                     , FuncName);
          }
-         if (!SUMA_FreeSurfer_WritePatch ((char *)F_name, SO, NULL, (SUMA_SurfaceObject *)someparam)) {
-            fprintf (SUMA_STDERR, "Error %s: Failed to write FreeSurfer surface.\n", FuncName);
+         if (!SUMA_FreeSurfer_WritePatch ((char *)F_name, SO, NULL,
+                                          (SUMA_SurfaceObject *)someparam)) {
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed to write FreeSurfer surface.\n"
+                     , FuncName);
             SUMA_RETURN (NOPE);
          }
          break;
       case SUMA_SUREFIT:
          if (SO_FF == SUMA_FF_NOT_SPECIFIED) SO_FF = SUMA_ASCII;
          if (SO_FF != SUMA_ASCII) {
-            fprintf (SUMA_STDERR, "Warning %s: Only ASCII supported for SureFit surfaces.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                     "Warning %s: Only ASCII supported for SureFit surfaces.\n"
+                     , FuncName);
          }
          if (!SUMA_SureFit_Write ((SUMA_SFname *)F_name, SO)) {
-            fprintf (SUMA_STDERR, "Error %s: Failed to write SureFit surface.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed to write SureFit surface.\n"
+                     , FuncName);
             SUMA_RETURN (NOPE);
          }
          break;
       case SUMA_VEC:
          if (SO_FF == SUMA_FF_NOT_SPECIFIED) SO_FF = SUMA_ASCII;
          if (SO_FF != SUMA_ASCII) {
-            fprintf (SUMA_STDERR, "Warning %s: Only ASCII supported for vec surfaces.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                     "Warning %s: Only ASCII supported for vec surfaces.\n"
+                     , FuncName);
          }
          if (!SUMA_VEC_Write ((SUMA_SFname *)F_name, SO)) {
-            fprintf (SUMA_STDERR, "Error %s: Failed to write vec surface.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed to write vec surface.\n"
+                     , FuncName);
             SUMA_RETURN (NOPE);
          }
          break;
       case SUMA_BYU:
          if (SO_FF == SUMA_FF_NOT_SPECIFIED) SO_FF = SUMA_ASCII;
          if (SO_FF != SUMA_ASCII) {
-            fprintf (SUMA_STDERR, "Warning %s: Only ASCII supported for BYU surfaces.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                     "Warning %s: Only ASCII supported for BYU surfaces.\n"
+                     , FuncName);
          }
          if (!SUMA_BYU_Write ((char *)F_name, SO, 1)) {
-            fprintf (SUMA_STDERR, "Error %s: Failed to write BYU surface.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed to write BYU surface.\n"
+                     , FuncName);
             SUMA_RETURN (NOPE);
          }
          break;
       case SUMA_INVENTOR_GENERIC:
-         fprintf (SUMA_STDERR, "Error %s: Not ready to deal with inventor surface writing.\n", FuncName);
+         fprintf (SUMA_STDERR, 
+                  "Error %s: "
+                  "Not ready to deal with inventor surface writing.\n"
+                  , FuncName);
          SUMA_RETURN (NOPE);
          break;
       case SUMA_BRAIN_VOYAGER:
-         fprintf (SUMA_STDERR, "Error %s: Not ready to deal with brain voyager surface writing.\n", FuncName);
+         fprintf (SUMA_STDERR, 
+                  "Error %s: "
+                  "Not ready to deal with brain voyager surface writing.\n"
+                  , FuncName);
          SUMA_RETURN (NOPE);
          break;
       case SUMA_FT_NOT_SPECIFIED:
@@ -2253,7 +2288,7 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(SUMA_SurfSpecFile *Spec, int i, char *t
    SUMA_SFname *SF_name;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean brk, SurfIn=NOPE;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -4209,7 +4244,9 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
       {  
          int k=0; 
          for (k=0; k<*nspec; ++k) {
-            if (!SUMA_FreeSpecFields(&(spec[k]))) { SUMA_S_Err("Failed to free spec fields"); } 
+            if (!SUMA_FreeSpecFields(&(spec[k]))) { 
+               SUMA_S_Err("Failed to free spec fields"); 
+            } 
          }
       }
       SUMA_free(spec); spec = NULL; *nspec = 0; ispec0 = 0;
@@ -4217,10 +4254,18 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
     
    /* Now see if you have explicity define specs on command line */
    if (ps->accept_spec || ps->accept_s) {
+      SUMA_LHv("Working Specs, %d %d\n"
+               "ps->N_spec_names = %d\n", 
+               ps->accept_spec, ps->accept_s,
+               ps->N_spec_names);
       if (ps->N_spec_names) {
          *nspec = ispec0 + ps->N_spec_names;
-         spec = (SUMA_SurfSpecFile *)SUMA_realloc(spec, *nspec * sizeof(SUMA_SurfSpecFile));
-         if (!SUMA_AllocSpecFields(&(spec[i+ispec0]))) { SUMA_S_Err("Failed to init spec fields"); }
+         spec = (SUMA_SurfSpecFile *)
+                  SUMA_realloc(  spec, 
+                                 *nspec * sizeof(SUMA_SurfSpecFile));
+         if (!SUMA_AllocSpecFields(&(spec[i+ispec0]))) { 
+            SUMA_S_Err("Failed to init spec fields"); 
+         }
          SUMA_LH("Here");
          for (i=0; i<ps->N_spec_names; ++i) {   
             if (!SUMA_Read_SpecFile (ps->spec_names[i], &(spec[i+ispec0]))) {
@@ -4228,22 +4273,29 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
                {  
                   int k=0; 
                   for (k=0; k<*nspec; ++k) {
-                     if (!SUMA_FreeSpecFields(&(spec[k]))) { SUMA_S_Err("Failed to free spec fields"); } 
+                     if (!SUMA_FreeSpecFields(&(spec[k]))) { 
+                        SUMA_S_Err("Failed to free spec fields"); 
+                     } 
                   }
                }
                SUMA_free(spec); spec = NULL; *nspec = 0; 
                SUMA_RETURN(spec);
             }
          }
-         /* do we have a set of surfaces to read here ? only works with one spec  */
+         /* do we have a set of surfaces to read here ? 
+            only works with one spec  */
+         SUMA_LHv("Have %d surf_\n",ps->s_N_surfnames);
          if (ps->s_N_surfnames) {
             int n_read;
             if (ps->N_spec_names > 1) {
-               SUMA_S_Err("Cannot deal with multiple -spec on command line combined with -surf_ selectors.");
+               SUMA_S_Err( "Cannot deal with multiple -spec on \n"
+                           "command line combined with -surf_ selectors.");
                {  
                   int k=0; 
                   for (k=0; k<*nspec; ++k) {
-                     if (!SUMA_FreeSpecFields(&(spec[k]))) { SUMA_S_Err("Failed to free spec fields"); } 
+                     if (!SUMA_FreeSpecFields(&(spec[k]))) { 
+                        SUMA_S_Err("Failed to free spec fields"); 
+                     } 
                   }
                }
                SUMA_free(spec); spec = NULL; *nspec = 0; 

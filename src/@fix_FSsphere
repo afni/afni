@@ -123,7 +123,9 @@ PROJECT_TO_SPHERE:
 if ($DoProject_First == 1) then
    echo "Projecting to sphere ..."
    rm -f ${tmp}_${srfp}_pj.asc >& /dev/null
-   ConvertSurface -i_fs ${srfin} -o_fs ${tmp}_${srfp}_pj.asc -radial_to_sphere 100
+   ConvertSurface -i_fs ${srfin} \
+                  -o_fs ${tmp}_${srfp}_pj.asc \
+                  -radial_to_sphere 100
    set srfp = ${tmp}_${srfp}_pj
    set srfn = $srfp.asc
    rm -f ${srfp}.spec >& /dev/null
@@ -143,7 +145,9 @@ endif
 SURFQUAL:
    echo "Running SurfQual ..."
    rm -f ${tmp}_sq_*.* >& /dev/null 
-   SurfQual -spec $spc -surf_A $srfp.asc -sphere -prefix ${tmp}_sq_ -summary > ${tmp}_sq_.log
+   SurfQual -spec $spc -surf_A $srfp.asc \
+            -sphere -prefix ${tmp}_sq_ -summary \
+            > ${tmp}_sq_.log
    set bad = `grep Sketchy_nodes ${tmp}_sq_.log` 
    set nbad = $bad[2]
    echo "Found $nbad sketchy nodes."
@@ -158,7 +162,10 @@ SURFQUAL:
 FATTEN_THE_GOOSE:
    echo "Fattening the goose..."
    rm -f ${tmp}_bd*.* >& /dev/null 
-   ROIgrow -i_fs $srfp.asc -lim $lim -roi_nodes ${tmp}_sq__BadNodes.1D.dset'[0]' -prefix ${tmp}_bd
+   ROIgrow  -i_fs $srfp.asc \
+            -lim $lim \
+            -roi_nodes ${tmp}_sq__BadNodes.1D.dset'[0]' \
+            -prefix ${tmp}_bd
    set troub = ${tmp}_bd.1D
 
 SMOOTH_OUT_TROUBLE:
@@ -168,13 +175,15 @@ SMOOTH_OUT_TROUBLE:
    if ( -f ${out}.1D) rm -f ${out}.1D
    if ( -f ${outsn} ) rm -f ${outsn} 
    SurfSmooth  -spec $spc -surf_A $srfn  \
-               -met NN_geom -use_neighbors_outside_mask -Niter $niter -surf_out ${outsn}        \
+               -met NN_geom -use_neighbors_outside_mask \
+               -Niter $niter -surf_out ${outsn}        \
                -n_mask $troub
 
 PROJECT_AGAIN:
    echo "Projecting again..."
    mv ${outsn} ${tmp}_${srfp}_pj_final.asc
-   ConvertSurface -i_fs ${tmp}_${srfp}_pj_final.asc -o_fs ${outsn} -radial_to_sphere 100
+   ConvertSurface -i_fs ${tmp}_${srfp}_pj_final.asc \
+                  -o_fs ${outsn} -radial_to_sphere 100
 
    rm -f ${outsn}.spec >& /dev/null
    quickspec -tn FS ${outsn} -tn FS $srfin -spec ${outsn}.spec
@@ -189,7 +198,9 @@ NEW_METRICS:
 
 CHECK_AGAIN:
    echo "Running SurfQual on fixed surface..."
-   SurfQual -spec ${outsn}.spec -surf_A ${outsn} -sphere -prefix ${tmp}_sq_${outsn} -summary > ${tmp}_sq_${outsn}.log
+   SurfQual -spec ${outsn}.spec -surf_A ${outsn} \
+            -sphere -prefix ${tmp}_sq_${outsn} -summary \
+            > ${tmp}_sq_${outsn}.log
    set bad = `grep Sketchy_nodes ${tmp}_sq_${outsn}.log` 
    set nbad = $bad[2]
    echo "Found $nbad sketchy nodes."

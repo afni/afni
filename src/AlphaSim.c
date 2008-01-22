@@ -751,16 +751,16 @@ void check_for_valid_inputs (int nx,  int ny,  int nz,
     AlphaSim_error ("Illegal value for pthr ");
   if (niter <= 0)  AlphaSim_error ("Illegal value for niter ");
 
-  if (outfilename != NULL)
+  if (outfilename != NULL && !THD_ok_overwrite())
     {
       /*----- see if output file already exists -----*/
       fout = fopen (outfilename, "r");
       if (fout != NULL)
 	{
+     fclose(fout) ;
 	  sprintf (message, "Output file %s already exists. ", outfilename); 
 	  AlphaSim_error (message);
 	}
-      fclose(fout) ;
     }
 
                                                   /* 12 Apr 2006 [rickr] */
@@ -1387,7 +1387,7 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
   float * cum_prop_table;
   long total_num_clusters;
   char message[MAX_NAME_LENGTH];     /* error message */
-  FILE * fout;
+  FILE * fout=NULL;
 
   
   /*----- allocate memory space for probability table -----*/   
@@ -1444,14 +1444,17 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
     fout = stdout;
   else
     {
-      /*----- see if output file already exists -----*/
-      fout = fopen (outfilename, "r");
-      if (fout != NULL)
-	{
-	  sprintf (message, "file %s already exists. ", outfilename); 
-	  AlphaSim_error (message);
-	}
-      fclose(fout) ;
+      
+      if (!THD_ok_overwrite()) {
+            /*----- see if output file already exists -----*/
+            fout = fopen (outfilename, "r");
+            if (fout != NULL)
+	      {
+           fclose(fout) ;
+	        sprintf (message, "file %s already exists. ", outfilename); 
+	        AlphaSim_error (message);
+	      }
+      }
       
       /*----- open file for output -----*/
       fout = fopen (outfilename, "w");
@@ -1667,7 +1670,6 @@ int main (int argc, char ** argv)
 
     }
   
-
   /*----- generate requested output -----*/
   output_results (nx, ny, nz, dx, dy, dz, filter, sigmax, sigmay, sigmaz,
 		  egfw, avgsx, avgsy, avgsz, power, ax, ay, az, zsep, 
