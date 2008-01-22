@@ -33,7 +33,7 @@
         masked out voxels will be set to 0 (or 1 if flags&4 is set).
 *//*------------------------------------------------------------------------*/
 
-void mri_fdrize( MRI_IMAGE *im, int statcode, float *stataux, int flags )
+int mri_fdrize( MRI_IMAGE *im, int statcode, float *stataux, int flags )
 {
   float *far ;
   int ii,jj , nvox , doz ;
@@ -41,8 +41,8 @@ void mri_fdrize( MRI_IMAGE *im, int statcode, float *stataux, int flags )
 
 ENTRY("mri_fdrize") ;
 
-  if( im == NULL || im->kind != MRI_float )   EXRETURN ;
-  far  = MRI_FLOAT_PTR(im); if( far == NULL ) EXRETURN ;
+  if( im == NULL || im->kind != MRI_float )   RETURN(0) ;
+  far  = MRI_FLOAT_PTR(im); if( far == NULL ) RETURN(0) ;
   nvox = im->nvox ;
   doz  = (flags&4) == 0 ;
 
@@ -82,5 +82,33 @@ ENTRY("mri_fdrize") ;
     }
   }
 
-  free(iq); free(qq); EXRETURN;
+  free(iq); free(qq); RETURN(nq);
+}
+
+/*--------------------------------------------------------------------------*/
+
+floatvec * mri_fdr_curve( MRI_IMAGE *im, int statcode, float *stataux )
+{
+  MRI_IMAGE *cim ; float *car , *far ;
+  int nvox , ii,jj , nq , *iq ;
+  floatvec *fv=NULL ;
+
+ENTRY("mri_fdr_curve") ;
+
+  if( im == NULL || im->kind != MRI_float )  RETURN(NULL) ;
+  far = MRI_FLOAT_PTR(im); if( far == NULL ) RETURN(NULL) ;
+  cim = mri_to_float(im) ; car = MRI_FLOAT_PTR(cim) ;
+
+  mri_fdrize( cim , statcode , stataux , 0 ) ;
+
+  nvox = im->nvox ;
+  iq   = (int   *)malloc(sizeof(int  )*nvox) ;
+  for( nq=ii=0 ; ii < nvox ; ii++ ){
+    if( car[ii] > 0.0f ) iq[nq++] = ii ;
+  }
+  if( nq < 2 ){ free(iq); mri_free(cim); RETURN(NULL); }
+
+  /*** to be finished ***/
+
+  RETURN(fv) ;
 }
