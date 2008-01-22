@@ -96,7 +96,7 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
    
    ND = 3;
    NP = 3;
-   RetStrct.N_Node = N_NodeList; /* redundant, but practical for clean up outside the function */
+   RetStrct.N_Node = N_NodeList; /* redundant, for clean up outside function */
    RetStrct.N_Face = N_FaceSetList;
 
    /* allocate space */
