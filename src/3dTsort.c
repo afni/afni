@@ -242,7 +242,7 @@ static void SORTS_itsfunc( double tzero, double tdelta ,
    memcpy( val , ts , sizeof(float)*nval ) ;
    
    /* Using an inverse sorting function, for excitement */
-   #if 0 /* the dumber way */
+#if 0 /* the dumber way */
    for( ii=0 ; ii < nval ; ii++ ) val[ii] = -val[ii] ;
    rnk = z_iqsort( val, nval ) ;
    if( inc == 1 ){
@@ -250,14 +250,14 @@ static void SORTS_itsfunc( double tzero, double tdelta ,
    }else {
       for( ii=0 ; ii < nval ; ii++ ) val[ii] = nval - rnk[ii] ;
    }
-   #else /* the dumb way */
+#else /* the dumb way */
    rnk = z_iqsort( val, nval ) ;
    if( inc == 1 ){
      for( ii=0 ; ii < nval ; ii++ )  val[rnk[ii]] = nval - ii ;
    }else {
       for( ii=0 ; ii < nval ; ii++ ) val[rnk[ii]] = ii+1 ;
    }
-   #endif
+#endif
    free(rnk); rnk=NULL;
    return ;
 }

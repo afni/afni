@@ -337,10 +337,20 @@ void qsrec_float( int n , float * ar , int cutoff )
 
 /* quick_sort :  sort an array partially recursively, and partially insertion */
 
-void qsort_float( int n , float * a )
+void qsort_float( int n , float *a )
 {
    qsrec_float( n , a , QS_CUTOFF ) ;
    isort_float( n , a ) ;
+   return ;
+}
+
+void qsort_float_rev( int n , float *a )
+{
+   register int ii ;
+   if( n < 2 || a == NULL ) return ;
+   for( ii=0 ; ii < n ; ii++ ) a[ii] = -a[ii] ;
+   qsort_float(n,a) ;
+   for( ii=0 ; ii < n ; ii++ ) a[ii] = -a[ii] ;
    return ;
 }
 

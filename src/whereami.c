@@ -413,7 +413,7 @@ int main(int argc, char **argv)
          /* fprintf(stderr, "Not naked!\n"); */
          /* Parse land */
          nakedland = 0;
-         #ifdef USE_TRACING
+#ifdef USE_TRACING
                if( strncmp(argv[iarg],"-trace",5) == 0 ){
                   DBG_trace = 1 ;
                   iarg++ ; continue ;
@@ -422,7 +422,7 @@ int main(int argc, char **argv)
                   DBG_trace = 2 ;
                   iarg++ ; continue ;
                }
-         #endif
+#endif
          for (i=1;i<arglen; ++i) argv[iarg][i] = tolower(argv[iarg][i]);
 
          if (strcmp(argv[iarg],"-spm") == 0 || strcmp(argv[iarg],"-lpi") == 0) { 
@@ -1074,7 +1074,7 @@ int main(int argc, char **argv)
           return 1;
         }
 
-        #if 0 /* ZSS does not work Fri Jan 20 15:54:41 EST 2006 */
+#if 0 /* ZSS does not work Fri Jan 20 15:54:41 EST 2006 */
         if (output == 1) {
           fstring = malloc(sizeof(string));
           strncpy(fstring, "Focus point", 11);
@@ -1107,7 +1107,7 @@ int main(int argc, char **argv)
         } else {
           printf("%s\n", string);
         }
-        #else
+#else
          if (output == 1) { 
             /* ZSS: my best interpretation of the original intent of output == 1 */
             fstring = strdup(string);
@@ -1138,7 +1138,7 @@ int main(int argc, char **argv)
          } else {
             printf("%s\n", string);
          }
-        #endif
+#endif
       } /* end TT_Daemon */
 
 

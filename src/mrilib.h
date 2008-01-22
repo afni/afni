@@ -924,6 +924,7 @@ extern float_pair mri_twoquantiles( MRI_IMAGE * im, float alpha, float beta ) ;
 
 extern void qsort_short( int , short * ) ;
 extern void qsort_float( int , float * ) ;
+extern void qsort_float_rev( int , float * ) ;
 extern void qsort_pair( int , float * , int * ) ;
 extern void qsort_int( int , int * ) ;
 
