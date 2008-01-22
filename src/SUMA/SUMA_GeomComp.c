@@ -29,34 +29,62 @@ extern int SUMAg_N_DOv;
    \brief Calculate the sine and cosines of angles in a triangle 
    return -2 where calculation fails
 */
-SUMA_Boolean SUMA_TriTrig(float *p1, float *p2, float *p3, double *s, double *c)
+SUMA_Boolean SUMA_TriTrig( float *p1, float *p2, float *p3, 
+                           double *s, double *c, double *a)
 {
    static char FuncName[]={"SUMA_TriTrig"};
-   double U13[3], U12[3], U23[3], U21[3], X1[3], X[3], X1n;
+   double U13[3], U12[3], U23[3], U21[3], X[3];
    double Xn, Un13, Un12, Un23, Up1, Up2, Up3;
+   int k;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    if (!p1 || !p2 || !p3 || !s || !c) SUMA_RETURN(NOPE);
    
-   /* Unit vectors and their norms */
-   SUMA_UNIT_VEC(p1, p2, U12, Un12); 
-      U21[0] = -U12[0];
-      U21[1] = -U12[1];
-      U21[2] = -U12[2];
-   SUMA_UNIT_VEC(p1, p3, U13, Un13);
-   SUMA_UNIT_VEC(p2, p3, U23, Un23);
+#if 0
+   if (LocalHead) {
+      fprintf(SUMA_STDERR, "%s:\n"
+                           "n1=[%f, %f, %f];\n"
+                           "n2=[%f, %f, %f];\n"
+                           "n3=[%f, %f, %f];\n",
+                           FuncName, 
+                           p1[0], p1[1], p1[2],
+                           p2[0], p2[1], p2[2],
+                           p3[0], p3[1], p3[2]);
+   }
+#endif
+   /* vectors and their norms */
+   Un12 = Un13 = Un23 = 0.0f;
+   for (k=0;k<3;++k) {
+      U12[k] = p2[k] - p1[k]; Un12 += (U12[k]*U12[k]);
+      U21[k] = p1[k] - p2[k];
+      U13[k] = p3[k] - p1[k]; Un13 += (U13[k]*U13[k]);
+      U23[k] = p3[k] - p2[k]; Un23 += (U23[k]*U23[k]);
+   }
    
+#if 0
+   if (LocalHead) {
+      fprintf(SUMA_STDERR, "%s:\n"
+                           "U12=[%f, %f, %f]; Un12^2=%f;\n"
+                           "U13=[%f, %f, %f]; Un13^2=%f;\n"
+                           "U23=[%f, %f, %f]; Un23^2=%f;\n",
+                           FuncName, 
+                           U12[0], U12[1], U12[2], Un12,
+                           U13[0], U13[1], U13[2], Un13,
+                           U23[0], U23[1], U23[2], Un23);
+   }
+#endif   
    Up1 = Un12*Un13;
    Up2 = Un12*Un23;
    Up3 = Un13*Un23;
    
    if (Up1 > 0.0f) {
       /* sine of angle at n1 */
-      SUMA_MT_CROSS(X1, U12, U13);
-      SUMA_NORM(X1n, X1);
-      s[0] = X1n/(Up1);
+      SUMA_MT_CROSS(X, U12, U13);
+      Xn = X[0]*X[0] +  X[1]*X[1] + X[2]*X[2];
+      s[0] = sqrtf(Xn/Up1);
       /* now cosine */
-      c[0] = SUMA_MT_DOT(U12,U13)/(Up1);
+      c[0] = SUMA_MT_DOT(U12,U13)/(sqrtf(Up1));
    } else {
       s[0] = -2.0;
       c[0] = -2.0;
@@ -64,10 +92,10 @@ SUMA_Boolean SUMA_TriTrig(float *p1, float *p2, float *p3, double *s, double *c)
    if (Up2 > 0.0f) {
       /* sine of angle at n2 */
       SUMA_MT_CROSS(X, U23, U21);
-      SUMA_NORM(Xn, X);
-      s[1] = Xn/(Up2);
+      Xn = X[0]*X[0] +  X[1]*X[1] + X[2]*X[2];
+      s[1] = sqrtf(Xn/Up2);
       /* now cosine */
-      c[1] = SUMA_MT_DOT(U23,U21)/(Up2);
+      c[1] = SUMA_MT_DOT(U23,U21)/(sqrtf(Up2));
    } else {
       s[1] = -2.0;
       c[1] = -2.0;
@@ -75,16 +103,36 @@ SUMA_Boolean SUMA_TriTrig(float *p1, float *p2, float *p3, double *s, double *c)
    if (Up3 > 0.0f) {
       /* sine of angle at n3 */
       SUMA_MT_CROSS(X, U13, U23);
-      SUMA_NORM(Xn, X);
-      s[2] = Xn/(Up3);
+      Xn = X[0]*X[0] +  X[1]*X[1] + X[2]*X[2];
+      s[2] = sqrtf(Xn/Up3);
       /* now cosine */
-      c[2] = SUMA_MT_DOT(U13,U23)/(Up3);
+      c[2] = SUMA_MT_DOT(U13,U23)/(sqrtf(Up3));
    } else {
       s[2] = -2.0;
       c[2] = -2.0;
    }
 
-   
+   /* now angles */
+   if (a) {
+      for (k=0; k<3; ++k) {
+         if (s[k] >= 0.0f) { /* always the case, unless you have a reference
+                                direction to compare with cross product. 
+                                Unsigned angles only then.*/
+            a[k] = acos(c[k]);   /* You could do 180-a1-a2 but that goes awry
+                                    is calculations fail on a1 or a2... */
+         } else { a[k] = -2.0; }
+      }
+   }
+#if 0
+   if (LocalHead) {
+      fprintf(SUMA_STDERR, "%s:\n"
+                           "s =[%f, %f, %f]; \n"
+                           "c =[%f, %f, %f]; \n"
+                           ,FuncName, 
+                           s[0], s[1], s[2], 
+                           c[0], c[1], c[2]);
+   }
+#endif
    SUMA_RETURN(YUP);
 }
 /*!
