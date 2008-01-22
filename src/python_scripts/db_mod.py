@@ -756,10 +756,10 @@ def db_cmd_regress(proc, block):
     cmd = cmd + "    -bucket stats.$subj\n\n\n"
 
     # create all_runs, and store name for blur_est
-    proc.all_runs = 'all_runs.$subj'
+    all_runs = 'all_runs.$subj'
     cmd = cmd + "# create an all_runs dataset to match the fitts, errts, etc.\n"
     cmd = cmd + "3dTcat -prefix %s %s+orig.HEAD\n\n" % \
-                (proc.all_runs, proc.prev_prefix_form_rwild())
+                (all_runs, proc.prev_prefix_form_rwild())
 
     opt = block.opts.find_opt('-regress_no_ideals')
     if not opt and afni_util.basis_has_known_response(basis):
@@ -817,30 +817,44 @@ def db_cmd_blur_est(proc, block):
                 'touch %s   # start with empty file\n\n' % blur_file
 
 
-    if aopt:    # get all_runs blur estimate
-        if not proc.all_runs:
-            print '** blur_est: MISSING proc.all_runs, failing...'
-            return
-
-        cmd = cmd + '# estimate all_runs blur, append to file\n' +      \
-                    'set blurs = `3dFWHMx -detrend %s %s+orig`\n'  %    \
-                    (mask, proc.all_runs)
-        cmd = cmd + 'echo all_runs blurs: $blurs\n'                         \
-                    'echo "$blurs   # all_runs blur estimates" >> %s\n\n' % \
-                    blur_file
+    if aopt:    # get average across all runs
+        prev = proc.prev_prefix_form_run()
+        cmd = cmd + '# estimate blur for each run\n'                         \
+                    'touch blur.EPI.1D \n'                                   \
+                    'foreach run ( $runs )\n'                                \
+                    '    3dFWHMx -detrend %s %s+orig >> blur.EPI.1D\n'       \
+                    'end\n\n' % (mask, prev)
+        cmd = cmd +                                                          \
+                '# compute average blur, and append\n'                       \
+                'set blurs = ( `3dTstat -mean -prefix - blur.EPI.1D\\\'` )\n'\
+                'echo average EPI blurs: $blurs\n'                           \
+                'echo "$blurs   # EPI blur estimates" >> %s\n\n'         %   \
+                blur_file
 
     if eopt:    # get errts blur estimate
         etsopt = block.opts.find_opt('-regress_errts_prefix')
+        errts = etsopt.parlist[0] + '+orig'
         if not etsopt or not etsopt.parlist:
             print '** want est_blur_errts, but have no errts_prefix'
             return
 
-        cmd = cmd + '# estimate errts blur, append to file\n' +           \
-                    'set blurs = `3dFWHMx -detrend %s %s+orig`\n'  %      \
-                    (mask, etsopt.parlist[0])
-        cmd = cmd + 'echo errts blurs: $blurs\n'                          \
-                    'echo "$blurs   # errts blur estimates" >> %s\n\n' %  \
-                    blur_file
+        cmd = cmd + '# estimate blur for each run in errts\n'           \
+                    'touch blur.errts.1D\n\n'
+        cmd = cmd + 'set b0 = 0\n'                                      \
+                    'set b1 = %d    # nreps-1\n' % (proc.reps-1)
+        cmd = cmd + 'foreach run ( $runs )\n'                           \
+                    '    3dFWHMx -detrend %s %s"[$b0..$b1]" \\\n'       \
+                    '        >> blur.errts.1D\n'                        \
+                    '    @ b0 += %d   # add nreps\n'                    \
+                    '    @ b1 += %d\n'                                  \
+                    'end\n\n' % (mask, errts, proc.reps, proc.reps)
+
+        cmd = cmd +                                                          \
+                '\n# compute average blur, and append\n'                     \
+                'set blurs = ( `3dTstat -mean -prefix - blur.errts.1D\\\'` )\n'\
+                'echo average errts blurs: $blurs\n'                         \
+                'echo "$blurs   # errts blur estimates" >> %s\n\n'       %   \
+                blur_file
 
     return cmd
 
