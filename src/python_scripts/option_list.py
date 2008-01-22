@@ -16,12 +16,12 @@ class OptionList:
         self.trailers = 0       # for  read_options: no trailing args allowed
                                 # from read_options: say there were such args
 
-    def show(self, mesg = ''):
+    def show(self, mesg = '', short = 0):
         print "%sOptionList: %s (len %d)" % \
                (mesg, self.label, len(self.olist))
         for index in range(len(self.olist)):
-            str = "opt %d: " % index
-            self.olist[index].show(str)
+            str = "%sopt %d: " % (mesg, index)
+            self.olist[index].show(str, short)
 
     def find_opt(self, name, nth=1):    # find nth occurance of option label
         """return nth comopt where name=name, else None"""

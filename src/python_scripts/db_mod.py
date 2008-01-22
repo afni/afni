@@ -419,7 +419,7 @@ def db_cmd_scale(proc, block):
     if max > 100: valstr = 'min(%d, a/b*100)' % max
     else:         valstr = 'a/b*100'
 
-    if proc.mask:
+    if proc.mask and proc.regmask:
         mask_dset = '           -c %s+orig \\\n' % proc.mask
         expr      = 'c * %s' % valstr
     else:
@@ -458,6 +458,7 @@ def db_mod_regress(block, proc, user_opts):
 
         block.opts.add_opt('-regress_opts_3dD', -1, [])
         block.opts.add_opt('-regress_make_ideal_sum', 1, [])
+        block.opts.add_opt('-regress_errts_prefix', 1, [])
         block.opts.add_opt('-regress_fitts_prefix', 1, ['fitts.$subj'],
                                                        setpar=1)
 
@@ -556,11 +557,29 @@ def db_mod_regress(block, proc, user_opts):
         for file in proc.stims_orig:
             proc.stims.append('stimuli/%s' % os.path.basename(file))
 
+    # check for EPI blur estimate
+    uopt = user_opts.find_opt('-regress_est_blur_epits')
+    bopt = block.opts.find_opt('-regress_est_blur_epits')
+    if uopt and not bopt:
+        block.opts.add_opt('-regress_est_blur_epits', 0, [])
+
+    # check for errts blur estimate
+    uopt = user_opts.find_opt('-regress_est_blur_errts')
+    bopt = block.opts.find_opt('-regress_est_blur_errts')
+    if uopt and not bopt:
+        block.opts.add_opt('-regress_est_blur_errts', 0, [])
+
+    # check for errts prefix
+    uopt = user_opts.find_opt('-regress_errts_prefix')
+    bopt = block.opts.find_opt('-regress_errts_prefix')
+    if uopt and bopt:
+        bopt.parlist = [uopt.parlist[0] + '.$subj']    # add $subj to prefix
+
     # check for fitts prefix
     uopt = user_opts.find_opt('-regress_fitts_prefix')
     bopt = block.opts.find_opt('-regress_fitts_prefix')
     if uopt and bopt:
-        bopt.parlist[0] = uopt.parlist[0]
+        bopt.parlist[0] = uopt.parlist[0] + '.$subj'   # add $subj to prefix
     elif not bopt: # maybe it was deleted previously (not currently possible)
         block.opts.add_opt('-regress_fitts_prefix', 1, uopt.parlist,setpar=1)
 
@@ -586,6 +605,11 @@ def db_mod_regress(block, proc, user_opts):
     uopt = user_opts.find_opt('-regress_no_iresp')
     bopt = block.opts.find_opt('-regress_iresp_prefix')
     if uopt and bopt: block.opts.del_opt('-regress_iresp_prefix')
+
+    # maybe the user does not want to apply the mask to regression
+    # (applies to other blocks, so note at the 'proc' level)
+    uopt = user_opts.find_opt('-regress_no_mask')
+    if uopt: proc.regmask = 0
 
     # maybe the user does not want to regress the motion parameters
     # apply uopt to bopt
@@ -649,8 +673,8 @@ def db_cmd_regress(proc, block):
         if not newcmd: return
         cmd = cmd + newcmd
 
-    if proc.mask: mask = '    -mask %s+orig  \\\n' % proc.mask
-    else        : mask = ''
+    if proc.mask and proc.regmask: mask = '    -mask %s+orig  \\\n' % proc.mask
+    else                         : mask = ''
 
     cmd = cmd + '3dDeconvolve -input %s+orig.HEAD    \\\n'      \
                 '    -polort %d  \\\n'                          \
@@ -707,6 +731,17 @@ def db_cmd_regress(proc, block):
     if not opt or not opt.parlist: fitts = ''
     else: fitts = '    -fitts %s  \\\n' % opt.parlist[0]
 
+    # -- see if the user wants the error time series --
+    opt = block.opts.find_opt('-regress_errts_prefix')
+    bluropt = block.opts.find_opt('-regress_est_blur_errts')
+    # if there is no errts prefix, but the user wants to measure blur, add one
+    if not opt.parlist and bluropt:
+        opt.parlist = ['errts.$subj']
+
+    if not opt or not opt.parlist: errts = ''
+    else: errts = '    -errts %s  \\\n' % opt.parlist[0]
+    # -- end errts --
+
     # see if the user has provided other options (like GLTs)
     opt = block.opts.find_opt('-regress_opts_3dD')
     if not opt or not opt.parlist: other_opts = ''
@@ -717,13 +752,14 @@ def db_cmd_regress(proc, block):
     cmd = cmd + iresp
     cmd = cmd + other_opts
     cmd = cmd + "    -fout -tout -x1D X.xmat.1D -xjpeg X.jpg \\\n"
-    cmd = cmd + fitts
+    cmd = cmd + fitts + errts
     cmd = cmd + "    -bucket stats.$subj\n\n\n"
 
-    if fitts != '':
-        cmd = cmd + "# create an all_runs dataset to match the fitts\n"
-        cmd = cmd + "3dTcat -prefix all_runs.$subj %s+orig.HEAD\n\n" % \
-                    proc.prev_prefix_form_rwild()
+    # create all_runs, and store name for blur_est
+    proc.all_runs = 'all_runs.$subj'
+    cmd = cmd + "# create an all_runs dataset to match the fitts, errts, etc.\n"
+    cmd = cmd + "3dTcat -prefix %s %s+orig.HEAD\n\n" % \
+                (proc.all_runs, proc.prev_prefix_form_rwild())
 
     opt = block.opts.find_opt('-regress_no_ideals')
     if not opt and afni_util.basis_has_known_response(basis):
@@ -743,7 +779,68 @@ def db_cmd_regress(proc, block):
         cmd = cmd + "3dTstat -sum -prefix %s X.xmat.1D'[%d..%d]'\n\n" % \
                     (opt.parlist[0], first, last)
 
+    # check for blur estimates
+    bcmd = db_cmd_blur_est(proc, block)
+    if bcmd == None: return  # error
+    cmd = cmd + bcmd
+
     proc.pblabel = block.label  # set 'previous' block label
+
+    return cmd
+
+# might estimate blur from either all_runs or errts
+# need mask (from mask, or automask from all_runs)
+# requires 'all_runs' dataset, in case a mask is needed
+#
+# return None to fail out
+def db_cmd_blur_est(proc, block):
+    cmd = ''
+    aopt = block.opts.find_opt('-regress_est_blur_epits')
+    eopt = block.opts.find_opt('-regress_est_blur_errts')
+    if not aopt and not eopt:
+        if proc.verb > 2: print '-d no blur estimation'
+        return cmd
+
+    # set the mask (if we don't have one, bail)
+    if proc.mask: mask = '-mask %s+orig' % proc.mask
+    else:
+        print '** refusing to estimate blur without a mask dataset'
+        return
+
+    if proc.verb > 1: print 'computing blur_estimates'
+    blur_file = 'blur_est.$subj.1D'
+
+
+    # call this a new sub-block
+    cmd = cmd + '# -------------------------\n'                 \
+                '# compute blur estimates\n'                    \
+                'touch %s   # start with empty file\n\n' % blur_file
+
+
+    if aopt:    # get all_runs blur estimate
+        if not proc.all_runs:
+            print '** blur_est: MISSING proc.all_runs, failing...'
+            return
+
+        cmd = cmd + '# estimate all_runs blur, append to file\n' +      \
+                    'set blurs = `3dFWHMx -detrend %s %s+orig`\n'  %    \
+                    (mask, proc.all_runs)
+        cmd = cmd + 'echo all_runs blurs: $blurs\n'                         \
+                    'echo "$blurs   # all_runs blur estimates" >> %s\n\n' % \
+                    blur_file
+
+    if eopt:    # get errts blur estimate
+        etsopt = block.opts.find_opt('-regress_errts_prefix')
+        if not etsopt or not etsopt.parlist:
+            print '** want est_blur_errts, but have no errts_prefix'
+            return
+
+        cmd = cmd + '# estimate errts blur, append to file\n' +           \
+                    'set blurs = `3dFWHMx -detrend %s %s+orig`\n'  %      \
+                    (mask, etsopt.parlist[0])
+        cmd = cmd + 'echo errts blurs: $blurs\n'                          \
+                    'echo "$blurs   # errts blur estimates" >> %s\n\n' %  \
+                    blur_file
 
     return cmd
 
