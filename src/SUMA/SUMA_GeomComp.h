@@ -44,7 +44,7 @@ typedef struct {
 } SUMA_VTI; /*!< Voxel Triangle Intersection Structure. Create with SUMA_CreateVTI, Destroy with SUMA_FreeVTI*/
 
 SUMA_Boolean SUMA_TriTrig(float *p1, float *p2, float *p3, 
-                           double *s, double *c);
+                           double *s, double *c, double *a);
 
 SUMA_VTI *SUMA_CreateVTI(int N_TriIndex, int *TriIndex);
 SUMA_VTI * SUMA_FreeVTI(SUMA_VTI *vti);

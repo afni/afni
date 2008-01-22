@@ -70,13 +70,24 @@ void usage_SUMA_SurfaceMetrics ()
 "         Output file is prefix.area. Results in two columns:\n"
 "         Col.0: Triangle Index\n"
 "         Col.1: Triangle Area\n"
-"      -sine_angles/-cosine_angles: (co)sine of angles at nodes forming\n"
+"      -tri_sines/-tri_cosines: (co)sine of angles at nodes forming\n"
 "                                   triangles.\n"
 "         Output file is prefix.(co)sine. Results in 4 columns:\n"
 "         Col.0: Triangle Index\n"
-"         Col.1: sine of angle at node 0\n"
+"         Col.1: (co)sine of angle at node 0\n"
 "         Col.2: (co)sine of angle at node 1\n"
 "         Col.3: (co)sine of angle at node 2\n"
+"      -tri_CoSines: Both cosines and sines.\n"
+"      -tri_angles: Unsigned angles in radians of triangles.\n"
+"         Col.0: Triangle Index\n"
+"         Col.1: angle at node 0\n"
+"         Col.2: angle at node 1\n"
+"         Col.3: angle at node 2\n"
+"      -node_angles: Unsigned angles in radians at nodes of surface.\n"
+"         Col.0: Node Index\n"
+"         Col.1: minimum angle at node \n"
+"         Col.2: maximum angle at node \n"
+"         Col.3: average angle at node \n"
 "      -curv: output curvature at each node.\n"
 "         Output file is prefix.curv. Results in nine columns:\n"
 "         Col.0: Node Index\n"
@@ -179,7 +190,9 @@ int main (int argc,char *argv[])
    int insurf_method = 0, N_surf = 0, ind = 0;
    SUMA_Boolean   brk, Do_tlrc, Do_conv, Do_curv, 
                   Do_area, Do_edges, Do_vol, Do_sph, NewCent, 
-                  Do_cord, Do_TriNorm, Do_TriSine, Do_TriCosine, 
+                  Do_cord, Do_TriNorm, Do_TriSine, Do_TriCosine,
+                  Do_TriCoSine, Do_TriAngles,
+                  Do_NodeAngles,
                   Do_NodeNorm, Do_en, Do_in, LocalHead = NOPE;  
    
 	SUMA_STANDALONE_INIT;
@@ -211,6 +224,9 @@ int main (int argc,char *argv[])
    Do_NodeNorm = NOPE;
    Do_TriSine = NOPE;
    Do_TriCosine = NOPE;
+   Do_TriCoSine = NOPE;
+   Do_TriAngles = NOPE;
+   Do_NodeAngles = NOPE;
    Do_en = NOPE;
    Do_in = NOPE;
    closest_to_xyz = NULL;
@@ -334,14 +350,27 @@ int main (int argc,char *argv[])
 			brk = YUP;
 		}
       
-      if (!brk && (strcmp(argv[kar], "-sine_angles") == 0)) {
+      if (!brk && (strcmp(argv[kar], "-tri_sines") == 0)) {
          Do_TriSine = YUP;
 			brk = YUP;
 		}
-      if (!brk && (strcmp(argv[kar], "-cosine_angles") == 0)) {
+      if (!brk && (strcmp(argv[kar], "-tri_angles") == 0)) {
+         Do_TriAngles = YUP;
+			brk = YUP;
+		}
+      if (!brk && (strcmp(argv[kar], "-node_angles") == 0)) {
+         Do_NodeAngles = YUP;
+			brk = YUP;
+		}
+      if (!brk && (strcmp(argv[kar], "-tri_cosines") == 0)) {
          Do_TriCosine = YUP;
 			brk = YUP;
 		}
+      if (!brk && (strcmp(argv[kar], "-tri_CoSines") == 0)) {
+         Do_TriCoSine = YUP;
+			brk = YUP;
+		}
+      
       if (!brk && (strcmp(argv[kar], "-sph_coords") == 0)) {
          Do_sph = YUP;
 			brk = YUP;
@@ -477,7 +506,8 @@ int main (int argc,char *argv[])
       !Do_vol && !Do_sph && !Do_cord && 
       !Do_TriNorm && !Do_NodeNorm && 
       !Do_en && !Do_in && !closest_to_xyz &&
-      !Do_TriSine && !Do_TriCosine) {
+      !Do_TriSine && !Do_TriCosine && !Do_TriCoSine && 
+      !Do_TriAngles && !Do_NodeAngles) {
       SUMA_S_Err("No Metrics specified.\nNothing to do.\n");
       exit(1);
    }
@@ -610,12 +640,15 @@ int main (int argc,char *argv[])
 
       fout = fopen(OutName,"w");
       if (!fout) {
-         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         SUMA_S_Err( "Failed to open file for writing.\n"
+                     "Check your permissions.\n");
          exit(1);
       }
       
       fprintf (fout,"#Spherical coords, \n");
-      fprintf (fout,"#  cartesian coords shifted by [%f %f %f] prior to xform\n", sph_center[0], sph_center[1], sph_center[2]);
+      fprintf (fout,
+               "#  cartesian coords shifted by [%f %f %f] prior to xform\n",
+                sph_center[0], sph_center[1], sph_center[2]);
       fprintf (fout,"#nI = Node Index\n");
       fprintf (fout,"#r  = Rho (radius)\n");
       fprintf (fout,"#t  = theta(azimuth)\n");
@@ -642,7 +675,8 @@ int main (int argc,char *argv[])
       }
       fout = fopen(OutName,"w");
       if (!fout) {
-         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         SUMA_S_Err( "Failed to open file for writing.\n"
+                     "Check your permissions.\n");
          exit(1);
       }
       
@@ -706,15 +740,15 @@ int main (int argc,char *argv[])
       fclose(fout); fout = NULL;
    }
    
-   if (Do_TriSine) {
+   if (Do_TriAngles) {
       int n1, n2, n3;
       float *p1, *p2, *p3;
-      double s[3], c[3];
+      double s[3], c[3], a[3];
       if (SO->FaceSetDim != 3) {
          SUMA_S_Err("Triangular meshes only please.");
          exit(1);
       }
-      sprintf(OutName, "%s.TriSine.1D", OutPrefix);
+      sprintf(OutName, "%s.TriAngles.1D", OutPrefix);
       if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
          SUMA_S_Err( "Triangle normals output file exists.\n"
                      "Will not overwrite.");
@@ -727,7 +761,11 @@ int main (int argc,char *argv[])
          exit(1);
       }
       
-      fprintf (fout,"#Triangle Sines.\n");
+      fprintf (fout,"#Triangle Angles in radians(unsigned).\n");
+      fprintf (fout,"#Col. 0: Triangle index.\n");
+      fprintf (fout,"#Col. 1: angle at node 1\n");
+      fprintf (fout,"#Col. 2: angle at node 2\n");
+      fprintf (fout,"#Col. 3: angle at node 3\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
       
       for (i=0; i<SO->N_FaceSet; ++i) {
@@ -737,12 +775,233 @@ int main (int argc,char *argv[])
          p1 = &(SO->NodeList[3*n1]);
          p2 = &(SO->NodeList[3*n2]);
          p3 = &(SO->NodeList[3*n3]);
-         if (!SUMA_TriTrig(p1, p2, p3, s, c)) {
+         if (!SUMA_TriTrig(p1, p2, p3, s, c, a)) {
+            SUMA_S_Err("Failed in SUMA_TriTrig");
+            exit(1);
+         }
+
+         fprintf (fout,"%d \t%f %f %f \n", i, a[0], a[1], a[2]);
+      }
+   }
+   if (Do_NodeAngles) {
+      int n1, n2, n3;
+      float *p1, *p2, *p3;
+      double s[3], c[3], a[3];
+      double *mia=NULL, *maa=NULL, *mea=NULL;
+      int *n_a=NULL;
+      if (SO->FaceSetDim != 3) {
+         SUMA_S_Err("Triangular meshes only please.");
+         exit(1);
+      }
+      sprintf(OutName, "%s.NodeAngles.1D", OutPrefix);
+      if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
+         SUMA_S_Err( "Node angles output file exists.\n"
+                     "Will not overwrite.");
+         exit(1);
+      }
+      fout = fopen(OutName,"w");
+      if (!fout) {
+         SUMA_S_Err( "Failed to open file for writing.\n"
+                     "Check your permissions.\n");
+         exit(1);
+      }
+      
+      fprintf (fout,"#Angles at nodes in radians(unsigned).\n");
+      fprintf (fout,"#Col. 0: Node index.\n");
+      fprintf (fout,"#Col. 1: minimum angle at node \n");
+      fprintf (fout,"#Col. 2: maximum angle at node \n");
+      fprintf (fout,"#Col. 3: average angle at node \n");
+      if (histnote) fprintf (fout,"#History:%s\n", histnote);
+      mea = (double *)SUMA_calloc(SO->N_Node, sizeof(double));
+      mia = (double *)SUMA_calloc(SO->N_Node, sizeof(double));
+      maa = (double *)SUMA_calloc(SO->N_Node, sizeof(double));
+      n_a = (int *)SUMA_calloc(SO->N_Node, sizeof(int));
+      if (!mea || !mia || !maa || !n_a) {
+         SUMA_S_Crit("Failed to allocate");
+         exit(1);
+      }
+      for (i=0; i<SO->N_FaceSet; ++i) {
+         n1 = SO->FaceSetList[3*i]; 
+         n2 = SO->FaceSetList[3*i+1]; 
+         n3 = SO->FaceSetList[3*i+2];
+         p1 = &(SO->NodeList[3*n1]);
+         p2 = &(SO->NodeList[3*n2]);
+         p3 = &(SO->NodeList[3*n3]);
+         if (!SUMA_TriTrig(p1, p2, p3, s, c, a)) {
+            SUMA_S_Err("Failed in SUMA_TriTrig");
+            exit(1);
+         }
+
+         if (!n_a[n1]) {
+            mea[n1] = a[0]; ++n_a[n1];
+            mia[n1] = a[0];
+            maa[n1] = a[0];
+         } else {
+            mea[n1] += a[0]; ++n_a[n1];
+            if (mia[n1] > a[0]) mia[n1] = a[0];
+            if (maa[n1] < a[0]) maa[n1] = a[0];
+         }
+         if (!n_a[n2]) {
+            mea[n2] = a[1]; ++n_a[n2];
+            mia[n2] = a[1];
+            maa[n2] = a[1];
+         } else {
+            mea[n2] += a[1]; ++n_a[n2];
+            if (mia[n2] > a[1]) mia[n2] = a[1];
+            if (maa[n2] < a[1]) maa[n2] = a[1];
+         }
+         if (!n_a[n3]) {
+            mea[n3] = a[2]; ++n_a[n3];
+            mia[n3] = a[2];
+            maa[n3] = a[2];
+         } else {
+            mea[n3] += a[2]; ++n_a[n3];
+            if (mia[n3] > a[2]) mia[n3] = a[2];
+            if (maa[n3] < a[2]) maa[n3] = a[2];
+         }
+      }
+      for (i=0; i<SO->N_Node; ++i) {
+         if (n_a[i]) {
+            fprintf (fout,"%d \t%f %f %f \n",
+                  i, mia[i], maa[i], mea[i]/(double)n_a[i]);
+         } else {
+            fprintf (fout,"%d \t%f %f %f \n",
+                  i, -1.0, -1.0, -1.0);
+         }
+      }
+      SUMA_free(mea); SUMA_free(mia); SUMA_free(n_a); SUMA_free(maa);
+   }
+   if (Do_TriSine) {
+      int n1, n2, n3;
+      float *p1, *p2, *p3;
+      double s[3], c[3], *a=NULL;
+      if (SO->FaceSetDim != 3) {
+         SUMA_S_Err("Triangular meshes only please.");
+         exit(1);
+      }
+      sprintf(OutName, "%s.TriSine.1D", OutPrefix);
+      if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
+         SUMA_S_Err( "Triangle sines output file exists.\n"
+                     "Will not overwrite.");
+         exit(1);
+      }
+      fout = fopen(OutName,"w");
+      if (!fout) {
+         SUMA_S_Err( "Failed to open file for writing.\n"
+                     "Check your permissions.\n");
+         exit(1);
+      }
+      
+      fprintf (fout,"#Triangle Sines.\n");
+      fprintf (fout,"#Col. 0: Triangle index.\n");
+      fprintf (fout,"#Col. 1: sin(angle) at node 1\n");
+      fprintf (fout,"#Col. 2: sin(angle) at node 2\n");
+      fprintf (fout,"#Col. 3: sin(angle) at node 3\n");
+      if (histnote) fprintf (fout,"#History:%s\n", histnote);
+      
+      for (i=0; i<SO->N_FaceSet; ++i) {
+         n1 = SO->FaceSetList[3*i]; 
+         n2 = SO->FaceSetList[3*i+1]; 
+         n3 = SO->FaceSetList[3*i+2];
+         p1 = &(SO->NodeList[3*n1]);
+         p2 = &(SO->NodeList[3*n2]);
+         p3 = &(SO->NodeList[3*n3]);
+         if (!SUMA_TriTrig(p1, p2, p3, s, c, a)) {
             SUMA_S_Err("Failed in SUMA_TriTrig");
             exit(1);
          }
 
          fprintf (fout,"%d \t%f %f %f \n", i, s[0], s[1], s[2]);
+      }
+   }
+   if (Do_TriCosine) {
+      int n1, n2, n3;
+      float *p1, *p2, *p3;
+      double s[3], c[3], *a=NULL;
+      if (SO->FaceSetDim != 3) {
+         SUMA_S_Err("Triangular meshes only please.");
+         exit(1);
+      }
+      sprintf(OutName, "%s.TriCosine.1D", OutPrefix);
+      if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
+         SUMA_S_Err( "Triangle cosines output file exists.\n"
+                     "Will not overwrite.");
+         exit(1);
+      }
+      fout = fopen(OutName,"w");
+      if (!fout) {
+         SUMA_S_Err( "Failed to open file for writing.\n"
+                     "Check your permissions.\n");
+         exit(1);
+      }
+      
+      fprintf (fout,"#Triangle Cosines.\n");
+      fprintf (fout,"#Col. 0: Triangle index.\n");
+      fprintf (fout,"#Col. 1: cos(angle) at node 1\n");
+      fprintf (fout,"#Col. 2: cos(angle) at node 2\n");
+      fprintf (fout,"#Col. 3: cos(angle) at node 3\n");
+      if (histnote) fprintf (fout,"#History:%s\n", histnote);
+      
+      for (i=0; i<SO->N_FaceSet; ++i) {
+         n1 = SO->FaceSetList[3*i]; 
+         n2 = SO->FaceSetList[3*i+1]; 
+         n3 = SO->FaceSetList[3*i+2];
+         p1 = &(SO->NodeList[3*n1]);
+         p2 = &(SO->NodeList[3*n2]);
+         p3 = &(SO->NodeList[3*n3]);
+         if (!SUMA_TriTrig(p1, p2, p3, s, c, a)) {
+            SUMA_S_Err("Failed in SUMA_TriTrig");
+            exit(1);
+         }
+
+         fprintf (fout,"%d \t%f %f %f \n", i, c[0], c[1], c[2]);
+      }
+   }
+   if (Do_TriCoSine) {
+      int n1, n2, n3;
+      float *p1, *p2, *p3;
+      double s[3], c[3], *a=NULL;
+      if (SO->FaceSetDim != 3) {
+         SUMA_S_Err("Triangular meshes only please.");
+         exit(1);
+      }
+      sprintf(OutName, "%s.TriCoSine.1D", OutPrefix);
+      if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
+         SUMA_S_Err( "Triangle cosines and sines output file exists.\n"
+                     "Will not overwrite.");
+         exit(1);
+      }
+      fout = fopen(OutName,"w");
+      if (!fout) {
+         SUMA_S_Err( "Failed to open file for writing.\n"
+                     "Check your permissions.\n");
+         exit(1);
+      }
+      
+      fprintf (fout,"#Triangle Cosines and Sines.\n");
+      fprintf (fout,"#Col. 0: Triangle index.\n");
+      fprintf (fout,"#Col. 1: cos(angle) at node 1\n");
+      fprintf (fout,"#Col. 2: cos(angle) at node 2\n");
+      fprintf (fout,"#Col. 3: cos(angle) at node 3\n");
+      fprintf (fout,"#Col. 4: sin(angle) at node 1\n");
+      fprintf (fout,"#Col. 5: sin(angle) at node 2\n");
+      fprintf (fout,"#Col. 6: sin(angle) at node 3\n");
+      if (histnote) fprintf (fout,"#History:%s\n", histnote);
+      
+      for (i=0; i<SO->N_FaceSet; ++i) {
+         n1 = SO->FaceSetList[3*i]; 
+         n2 = SO->FaceSetList[3*i+1]; 
+         n3 = SO->FaceSetList[3*i+2];
+         p1 = &(SO->NodeList[3*n1]);
+         p2 = &(SO->NodeList[3*n2]);
+         p3 = &(SO->NodeList[3*n3]);
+         if (!SUMA_TriTrig(p1, p2, p3, s, c, a)) {
+            SUMA_S_Err("Failed in SUMA_TriTrig");
+            exit(1);
+         }
+
+         fprintf (fout,"%d \t%f %f %f \t%f %f %f\n",
+                      i, c[0], c[1], c[2], s[0], s[1], s[2]);
       }
    }
    
