@@ -216,6 +216,9 @@ int main( int argc , char * argv[] )
       if( strlen(expr) == 0 || *expr == '\n' ) continue ;
       if( strstr(expr,"quit") != NULL ) exit(0) ;
       if( strstr(expr,"exit") != NULL ) exit(0) ;
+      if( strstr(expr,"help") != NULL ){
+        printf(PARSER_HELP_STRING) ; continue ;  /* 22 Jan 2008 */
+      }
 
       if( strstr(expr,"=") != NULL ){
          kvar = toupper(expr[0]) - 'A' ;

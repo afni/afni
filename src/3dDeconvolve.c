@@ -5028,20 +5028,24 @@ ENTRY("calculate_results") ;
   { int *iar , k , nerr=0 ;
     iar = matrix_check_columns( xdata , QEPS ) ;
     if( iar != NULL ){
+      WARNING_message("-------------------------------------------------") ;
       WARNING_message("Problems with the X matrix columns, listed below:") ;
       for( k=0 ; iar[2*k] >= 0 ; k++ ){
         if( iar[2*k+1] >= 0 ){
-          WARNING_message("!! * Columns %d and %d are nearly collinear!",
-                  iar[2*k],iar[2*k+1] ) ; nerr++ ; badlev++ ;
+          WARNING_message("!! * Columns %d [%s] and %d [%s] are nearly collinear!",
+                  iar[2*k]  ,COLUMN_LABEL(iar[2*k]  ),
+                  iar[2*k+1],COLUMN_LABEL(iar[2*k+1]) ) ;
+          nerr++ ; badlev++ ;
         } else {
           char *ww = (allzero_OK) ? ("  ") : ("!!") ;
-          WARNING_message("%s * Column %d is all zeros",
-                  ww , iar[2*k] ) ;
+          WARNING_message("%s * Column %d [%s] is all zeros",
+                  ww , iar[2*k] , COLUMN_LABEL(iar[2*k]) ) ;
           if( !allzero_OK ) badlev++ ;
         }
       }
+      WARNING_message("-------------------------------------------------") ;
       if( nerr > 0 && AFNI_yesenv("AFNI_3dDeconvolve_nodup") )
-        ERROR_exit("Can't continue after above problems/warnings!\n");
+        ERROR_exit("Can't continue after above problems/warnings!");
       free(iar) ;
     }
   }
@@ -5096,7 +5100,7 @@ ENTRY("calculate_results") ;
     if( nlist > 0 ){
       matrix_initialize (&xext);
       matrix_extract( xdata , nlist , clist , &xext ) ;
-      qbad = check_matrix_condition( xext, "-polort-only" ); badlev += qbad;
+      qbad = check_matrix_condition( xext, "polort-only" ); badlev += qbad;
       matrix_destroy( &xext ) ;
     }
   }
@@ -5259,8 +5263,8 @@ ENTRY("calculate_results") ;
             "!! If in doubt, consult with someone or with the AFNI message board !!") ;
         } else {
           ERROR_message(
-            "!! " PROGRAM_NAME ": Can't run past %d matrix warnings without -GOFORIT %d",
-            badlev , goforit ) ;
+            "!! " PROGRAM_NAME ": Can't run past %d matrix warnings without '-GOFORIT %d'",
+            badlev , badlev ) ;
           ERROR_message(
             "!!                Currently at -GOFORIT %d",goforit) ;
           ERROR_message(
@@ -9502,7 +9506,7 @@ static int check_matrix_condition( matrix xdata , char *xname )
     if( ssing ) fprintf(stderr,"\n") ;
 
     if( emin <= 0.0 || emax <= 0.0 ){
-      ERROR_message("!! %s matrix condition:  UNDEFINED ** VERY BAD **\n" ,
+      ERROR_message("----- !! %s matrix condition:  UNDEFINED ** VERY BAD **\n" ,
                      xname ) ;
       ssing = 1 ; bad++ ;
     } else {
@@ -9514,11 +9518,11 @@ static int check_matrix_condition( matrix xdata , char *xname )
       else if( cond < CN_BEWARE   )  rating = "++ A LITTLE BIG ++" ;
       else                         { rating = "** BEWARE **" ; bad++; ssing = 1; }
       if( strstr(rating,"*") == NULL )
-        INFO_message("%s matrix condition [%s] (%dx%d):  %g  %s\n",
+        INFO_message("----- %s matrix condition [%s] (%dx%d):  %g  %s\n",
                 xname, (use_psinv) ? "X" : "XtX",
                 xdata.rows,xdata.cols , cond , rating ) ;
       else
-        WARNING_message("!! %s matrix condition [%s] (%dx%d):  %g  %s\n",
+        WARNING_message("----- !! %s matrix condition [%s] (%dx%d):  %g  %s\n",
                 xname, (use_psinv) ? "X" : "XtX",
                 xdata.rows,xdata.cols , cond , rating ) ;
     }
