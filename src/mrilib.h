@@ -1175,11 +1175,21 @@ typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
       (fv)->nar = (n) ; (fv)->dx=1.0f; (fv)->x0=0.0f;   \
       (fv)->ar  = (float *)calloc(sizeof(float),(n)) ;  \
   } while(0)
+
 #define MAKE_doublevec(dv,n)                              \
   do{ (dv) = (doublevec *)malloc(sizeof(doublevec)) ;     \
       (dv)->nar = (n) ; (dv)->dx=1.0; (dv)->x0=0.0;       \
       (dv)->ar  = (double *)calloc(sizeof(double),(n)) ;  \
   } while(0)
+
+#define COPY_floatvec(ev,fv)                          \
+ do{ int n = (fv)->nar ; MAKE_floatvec((ev),n) ;      \
+     (ev)->dx = (fv)->dx ; (ev)->x0 = (fv)->x0 ;      \
+     memcpy( (ev)->ar, (fv)->ar, sizeof(float)*n ) ;  \
+ } while(0)
+
+extern float  interp_floatvec ( floatvec  *fv , float  x ) ;
+extern double interp_doublevec( doublevec *dv , double x ) ;
 
 typedef struct { int nvec ; floatvec *fvar ; } floatvecvec ;
 

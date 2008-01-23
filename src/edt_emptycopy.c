@@ -132,6 +132,8 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
 
    new_dblk->vedim = NULL ; /* 05 Sep 2006 */
 
+   new_dblk->brick_fdrcurve = NULL ; /* 23 Jan 2008 */
+
    DBLK_unlock(new_dblk) ;  /* Feb 1998 */
 
    new_dblk->brick_fac   = NULL ;
@@ -244,6 +246,8 @@ ENTRY("EDIT_empty_datablock") ;
    new_dblk->node_list      = NULL ;
 
    new_dblk->vedim = NULL ; /* 05 Sep 2006 */
+
+   new_dblk->brick_fdrcurve = NULL ; /* 23 Jan 2008 */
 
    new_dkptr = new_dblk->diskptr = myXtNew( THD_diskptr ) ;
 

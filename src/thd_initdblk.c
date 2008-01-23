@@ -80,6 +80,8 @@ ENTRY("THD_init_one_datablock") ;
 
    dblk->vedim = NULL ; /* 05 Sep 2006 */
 
+   dblk->brick_fdrcurve = NULL ; /* 23 Jan 2008 */
+
    dblk->master_bot = 1.0 ;     /* 21 Feb 2001 */
    dblk->master_top = 0.0 ;
 
@@ -149,6 +151,7 @@ int THD_datablock_from_atr( THD_datablock *dblk, char *dirname, char *headname )
    char prefix[THD_MAX_NAME]="Unknown" ;
    MRI_IMAGE *qim ;
    int brick_ccode ;
+   char name[666] ;
 
 ENTRY("THD_datablock_from_atr") ;
 
@@ -423,6 +426,22 @@ ENTRY("THD_datablock_from_atr") ;
    }
 #endif
 
+   /*-- FDR curves [23 Jan 2008] --*/
+
+   for( ibr=0 ; ibr < dblk->nvals ; ibr++ ){
+     sprintf(name,"FDRCURVE_%06d",ibr) ;
+     atr_flt = THD_find_float_atr( dblk , name ) ;
+     if( atr_flt != NULL && atr_flt->nfl > 3 ){
+       int nv = atr_flt->nfl - 2 ; floatvec *fv ;
+       MAKE_floatvec(fv,nv) ;
+       fv->x0 = atr_flt->fl[0] ; fv->dx = atr_flt->fl[1] ;
+       memcpy( fv->ar , atr_flt->fl + 2 , sizeof(float)*nv ) ;
+       if( dblk->brick_fdrcurve == NULL )
+         dblk->brick_fdrcurve = (floatvec **)calloc(sizeof(floatvec *),dblk->nvals);
+       dblk->brick_fdrcurve[ibr] = fv ;
+     }
+   }
+
    RETURN(1) ;
 }
 
@@ -641,6 +660,7 @@ void THD_datablock_apply_atr( THD_3dim_dataset *dset )
    char prefix[THD_MAX_NAME]="Unknown" ;
    MRI_IMAGE *qim ;
    int brick_ccode ;
+   char name[666] ;
 
 ENTRY("THD_datablock_apply_atr") ;
 
@@ -731,6 +751,22 @@ ENTRY("THD_datablock_apply_atr") ;
 
        THD_store_datablock_stataux( blk , iv , jv , nv , atr_flt->fl + ipos ) ;
        ipos += nv ;
+     }
+   }
+
+   /*-- FDR curves [23 Jan 2008] --*/
+
+   for( ibr=0 ; ibr < blk->nvals ; ibr++ ){
+     sprintf(name,"FDRCURVE_%06d",ibr) ;
+     atr_flt = THD_find_float_atr( blk , name ) ;
+     if( atr_flt != NULL && atr_flt->nfl > 3 ){
+       int nv = atr_flt->nfl - 2 ; floatvec *fv ;
+       MAKE_floatvec(fv,nv) ;
+       fv->x0 = atr_flt->fl[0] ; fv->dx = atr_flt->fl[1] ;
+       memcpy( fv->ar , atr_flt->fl + 2 , sizeof(float)*nv ) ;
+       if( blk->brick_fdrcurve == NULL )
+         blk->brick_fdrcurve = (floatvec **)calloc(sizeof(floatvec *),blk->nvals);
+       blk->brick_fdrcurve[ibr] = fv ;
      }
    }
 

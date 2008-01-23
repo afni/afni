@@ -283,7 +283,18 @@ void Syntax(char *str)
     "\n"
    );
 
-   printf("++ Last program update: 20 Jun 2007\n");
+   printf(
+    "\n"
+    "The following options let you modify the FDR curves stored in the header:\n"
+    "  -addFDR   = for each sub-brick marked with a statistical code, (re)compute\n"
+    "              the FDR curve of z(q) vs. statistic, and store in the header\n"
+    "  -killFDR  = remove all FDR curves from the header\n"
+    "              [you will want to do this if you have done something to ]\n"
+    "              [modify the values in the dataset statistical sub-bricks]\n"
+    "\n"
+   ) ;
+
+   printf("++ Last program update: 23 Jan 2008\n");
 
    exit(0) ;
 }
@@ -329,6 +340,7 @@ int main( int argc , char * argv[] )
    int keepcen        = 0 ;          /* 17 Jul 2006 [RWCox] */
    float xyzscale     = 0.0f ;       /* 17 Jul 2006 */
    int deoblique  = 0;               /* 20 Jun 2007 [drg] */
+   int do_FDR = 0 ;                  /* 23 Jan 2008 [RWCox] */
    int   ndone=0 ;                   /* 18 Jul 2006 */
    int   verb =0 ;
 #define VINFO(x) if(verb)ININFO_message(x)
@@ -380,6 +392,15 @@ int main( int argc , char * argv[] )
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
+      /*----- -addFDR [23 Jan 2008] -----*/
+
+      if( strcmp(argv[iarg],"-addFDR") == 0 ){
+        do_FDR = 1 ;  new_stuff++ ; iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-killFDR") == 0 ){
+        do_FDR = -1 ;  new_stuff++ ; iarg++ ; continue ;
+      }
+
       /*----- -atrcopy dd nn [03 Aug 2005] -----*/
 
       if( strcmp(argv[iarg],"-atrcopy") == 0 ){
@@ -405,7 +426,7 @@ int main( int argc , char * argv[] )
         /* atr_print( atr, NULL , NULL, '\0', 1) ;  */
         DSET_delete(qset) ; atrmod = 1;  /* replaced new_stuff   28 Jul 2006 rcr */
 
-       atrcopy_done:
+      atrcopy_done:
         iarg++ ; continue ;
       }
 
@@ -1563,6 +1584,16 @@ int main( int argc , char * argv[] )
 
       for( ii=0 ; ii < num_atrcopy ; ii++ ) {
         THD_insert_atr( dset->dblk , atrcopy[ii] ) ;
+      }
+
+      /* 23 Jan 2008: the FDR stuff */
+
+      if( do_FDR ){
+        DSET_BRICK_FDRCURVE_ALLKILL(dset) ;
+        if( do_FDR > 0 ){
+          int nf = THD_create_all_fdrcurves(dset) ;
+          if( verb ) ININFO_message("created %d FDR curves in dataset header",nf) ;
+        }
       }
 
       /* Do we want to force new attributes into output ? ZSS Jun 06*/

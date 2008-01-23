@@ -5,10 +5,15 @@
 
 #undef QTOZ  /* convert q-value to z-score */
 #if 0
-#  define QTOZ(x) normal_p2t(x)
+#  define QTOZ(x) normal_p2t(x)  /* the olde waye */
 #else
 #  define QTOZ(x) qginv(0.5*x)   /* a little faster */
 #endif
+
+#undef  ZTOP
+#undef  QBOT
+#define ZTOP 9.0           /* largest value of z(q) to output */
+#define QBOT 2.25718e-19   /* smallest value of q to return */
 
 /*--------------------------------------------------------------------------*/
 /*! Take an image of statistics and convert to FDR-ized z-scores (in place):
@@ -55,7 +60,7 @@ ENTRY("mri_fdrize") ;
 
   qq   = (float *)malloc(sizeof(float)*nvox) ;
   iq   = (int   *)malloc(sizeof(int  )*nvox) ;
-  fbad = (doz) ? 0.0f : 1.0f ;
+  fbad = (doz) ? 0.0f : 1.0f ;  /* output value for masked voxels */
   for( nq=ii=0 ; ii < nvox ; ii++ ){
     if( far[ii] >= 0.0f && far[ii] < PMAX ){  /* reasonable p-value */
       qq[nq] = far[ii] ; iq[nq] = ii ; nq++ ;
@@ -65,18 +70,18 @@ ENTRY("mri_fdrize") ;
   }
 
   if( nq > 0 ){  /* something to process! */
-    qsort_floatint( nq , qq , iq ) ;
-
+    qsort_floatint( nq , qq , iq ) ;  /* sort into increasing order */
+                                      /* iq[] tracks where its from */
     qmin = 1.0 ;
     nthr = (flags&1) ? nvox : nq ;
     if( (flags&2) && nthr > 1 ) nthr *= (logf(nthr)+0.5772157f) ;
     for( jj=nq-1 ; jj >= 0 ; jj-- ){           /* convert to q, then z */
       qval = (nthr * qq[jj]) / (jj+1.0) ;
       if( qval > qmin ) qval = qmin; else qmin = qval;
-      if( doz ){                                 /*** convert q to z ***/
-             if( qval <  1.e-20 ) qval = 10.0 ;  /* honking big z-score */
-        else if( qval >= 1.0    ) qval =  0.0 ;  /* very non-significant */
-        else                      qval = QTOZ(qval) ;
+      if( doz ){                               /**** convert q to z ****/
+             if( qval <  QBOT ) qval = ZTOP ;  /* honking big z-score  */
+        else if( qval >= 1.0  ) qval =  0.0 ;  /* very non-significant */
+        else                    qval = QTOZ(qval) ; /* meaningful z(q) */
       }
       far[iq[jj]] = (float)qval ;
     }
@@ -87,28 +92,60 @@ ENTRY("mri_fdrize") ;
 
 /*--------------------------------------------------------------------------*/
 
+#undef  NCURV
+#define NCURV 101
+
 floatvec * mri_fdr_curve( MRI_IMAGE *im, int statcode, float *stataux )
 {
-  MRI_IMAGE *cim ; float *car , *far ;
-  int nvox , ii,jj , nq , *iq ;
+  MRI_IMAGE *cim ;
+  float *car , *far , *zar , *tar ;
+  int nvox , ii , nq , *iq ;
   floatvec *fv=NULL ;
+  float tbot,ttop , zbot,ztop , dt,tt,zz , t1,t2,z1,z2 , tf,zf ;
+  int kk,klast,jj ;
 
 ENTRY("mri_fdr_curve") ;
 
+  if( !FUNC_IS_STAT(statcode) )              RETURN(NULL) ;
   if( im == NULL || im->kind != MRI_float )  RETURN(NULL) ;
   far = MRI_FLOAT_PTR(im); if( far == NULL ) RETURN(NULL) ;
   cim = mri_to_float(im) ; car = MRI_FLOAT_PTR(cim) ;
 
-  mri_fdrize( cim , statcode , stataux , 0 ) ;
+  nq = mri_fdrize( cim , statcode , stataux , 0 ) ;
+  if( nq < 9 ){ mri_free(cim); RETURN(NULL); }
 
   nvox = im->nvox ;
-  iq   = (int   *)malloc(sizeof(int  )*nvox) ;
-  for( nq=ii=0 ; ii < nvox ; ii++ ){
-    if( car[ii] > 0.0f ) iq[nq++] = ii ;
+  iq   = (int *)malloc(sizeof(int)*nvox) ;
+  for( nq=ii=0 ; ii < nvox ; ii++ ){      /* make list of voxels with */
+    if( car[ii] > 0.0f ) iq[nq++] = ii ;  /* meaningful z(q) values   */
   }
-  if( nq < 2 ){ free(iq); mri_free(cim); RETURN(NULL); }
+  if( nq < 9 ){ free(iq); mri_free(cim); RETURN(NULL); }
 
-  /*** to be finished ***/
+  zar = (float *)malloc(sizeof(float)*nq) ;
+  tar = (float *)malloc(sizeof(float)*nq) ;
+  for( ii=0 ; ii < nq ; ii++ ){
+    zar[ii] = car[iq[ii]] ; tar[ii] = far[iq[ii]] ;
+  }
+  free(iq) ; mri_free(cim) ;
+  qsort_floatfloat( nq , zar , tar ) ;
 
-  RETURN(fv) ;
+  for( klast=nq-1 ; klast > 0 && zar[klast] >= ZTOP ; klast-- ) ; /*nada */
+  if( klast == 0 ){ free(tar); free(zar); RETURN(NULL); }
+  if( klast < nq-1 ) klast++ ;
+
+  tbot = tar[0] ; ttop = tar[klast] ; dt = (ttop-tbot)/(NCURV-1) ;
+  zbot = zar[0] ; ztop = zar[klast] ;
+
+  MAKE_floatvec(fv,NCURV) ; fv->dx = dt ; fv->x0 = tbot ;
+  fv->ar[0] = zbot ;
+  for( jj=ii=1 ; ii < NCURV-1 ; ii++ ){
+    tt = tbot + ii*dt ;
+    for( ; jj < nq && tar[jj] < tt ; jj++ ) ; /*nada*/
+    t1 = tar[jj-1] ; t2 = tar[jj] ; tf = (tt-t1)/(t2-t1) ;
+    z1 = zar[jj-1] ; z2 = zar[jj] ; zf = tf*z2 + (1.0f-tf)*z1 ;
+    fv->ar[ii] = zf ;
+  }
+  fv->ar[NCURV-1] = ztop ;
+
+  free(tar) ; free(zar) ; RETURN(fv) ;
 }
