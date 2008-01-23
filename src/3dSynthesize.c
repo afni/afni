@@ -29,13 +29,14 @@ int main( int argc , char * argv[] )
    char *prefix  = "Synthesize" ;
    int   nselect = 0 ;
    char **select = NULL ;
-   char *cdt , *cgrp , *clab , *ccc , *cgl ;
+   char *cdt , *cgrp , *clab , *ccc , *cgl, *matname ;
    float  dt=0.0f ;
    NI_str_array *clab_sar=NULL ;
    int          *cgrp_val=NULL ;
    int Ngoodlist, *goodlist=NULL, Nbadlist, *badlist=NULL;
    int *nbblist=NULL , *nbtlist=NULL ;
-   int *ilist, nadd , nilist , ll , dry=0 , nelim=0 , nerr ;
+   int   *ilist, nadd , nilist , ll , 
+         dry=0 , nelim=0 , nerr, dry_info=0 ;
    float **clist , *tsar , *cfar , tval ;
    NI_int_array *niar ;
 
@@ -94,6 +95,9 @@ int main( int argc , char * argv[] )
        "                 responses together, ignoring any other stimuli\n"
        "                 in the dataset and matrix.\n"
        " -dry         = Don't compute the output, just check the inputs.\n"
+       /*" -dry_info    = Don't compute the output, but give info on selection.\n"
+       "                No need for cbucket with that option.\n"
+       "                Output is to stdout.\n"*/
        " -TR dt       = Set TR in the output to 'dt'.  The default value\n"
        "                 of TR is read from the header of the matrix file.\n"
        " -prefix ppp  = Output result into dataset with name 'ppp'.\n"
@@ -231,6 +235,7 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[iarg],"-matrix") == 0 ){
         if( nelmat != NULL ) ERROR_exit("More than 1 -matrix option!");
         nelmat = NI_read_element_fromfile( argv[++iarg] ) ;
+        matname = argv[iarg];
         if( nelmat == NULL ){
           MRI_IMAGE *nim ; float *nar ;
           nim = mri_read_1D(argv[iarg]) ;
@@ -262,12 +267,20 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[iarg],"-dry") == 0 ){
         dry++ ; iarg++ ; continue ;
       }
-
+      if( strcmp(argv[iarg],"-dry_info") == 0 ){
+        dry_info++ ; iarg++ ; continue ;
+      }
       /** bozo-ific user **/
 
       ERROR_exit("Unknown option: %s",argv[iarg]) ;
    }
 
+   if (dry_info && !inset) {
+      if (matname) inset = THD_open_dataset(matname) ;
+      if (!inset) {
+         ERROR_exit("Can't load -matrix for inset use.");
+      }
+   }
    ii = 0 ;
    if( nelmat == NULL ){ ii++; ERROR_message("Missing -matrix!") ; }
    if( inset  == NULL ){ ii++; ERROR_message("Missing -cbucket!"); }
@@ -468,10 +481,22 @@ int main( int argc , char * argv[] )
    if( dry ){
      INFO_message("Index list: %d nonzero entries",nilist) ;
      fprintf(stderr,"++ ") ;
-     for( ii=0 ; ii < ncol ; ii++ ) if( ilist[ii] ) fprintf(stderr," %d",ii) ;
+     for( ii=0 ; ii < ncol ; ii++ ) 
+         if( ilist[ii] ) 
+            fprintf(stderr," %d "
+                           ,ii) ;
      fprintf(stderr,"\n") ;
      INFO_message("3dSynthesize exits: -dry option was given") ;
      exit(0) ;
+   }
+   if (dry_info) {
+     fprintf(stdout,"TR:%.3f\tN_TR:%d\n", dt, nrow);
+     for( ii=0 ; ii < ncol ; ii++ ) 
+         if( ilist[ii] ) 
+            fprintf(stdout,"%d:%s \t"
+                           ,ii, clab_sar->str[ii]) ;
+     fprintf(stdout,"\n") ;
+     exit(0); 
    }
 
    /*-- create empty output 3D+time dataset --*/
