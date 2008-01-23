@@ -14,16 +14,16 @@ SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object structure vector
 int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
 
-void usage_SUMA_SurfaceMetrics ()
+void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps)
    {
       static char FuncName[]={"usage_SUMA_SurfaceMetrics"};
-      char * s = NULL;
+      char * s = NULL, *sio=NULL;
       s = SUMA_help_basics();
+      sio  = SUMA_help_IO_Args(ps);
       printf ( 
          "\n"
 "Usage: SurfaceMetrics <-Metric1> [[-Metric2] ...] \n"
-"                  <-spec SpecFile> <-surf_A insurf> \n"
-"                  [<-sv SurfaceVolume [VolParam for sf surfaces]>]\n"
+"                  <-SURF_1> \n"
 "                  [-tlrc] [<-prefix prefix>]\n"
 "\n"
 "Outputs information about a surface's mesh\n"
@@ -140,12 +140,9 @@ void usage_SUMA_SurfaceMetrics ()
 "\n"
 "      You can use any or all of these metrics simultaneously.\n"
 "\n"
-"   -spec SpecFile: Name of specfile containing surface of interest.\n"
-"                   If the surface does not have a spec file, use the \n"
-"                   program quickspec to create one.\n"
-"   -surf_A insurf: Name of surface of interest. \n"
-"                   NOTE: i_TYPE inSurf option is not supported for \n"
-"                         this program.\n"
+"     (-SURF_1):  An option for specifying the surface.\n"
+"                 (For option's syntax, see 'Specifying input surfaces'\n"
+"                 section below).\n"
 "\n"
 "   -sv SurfaceVolume [VolParam for sf surfaces]: Specify a surface volume\n"
 "                   for surface alignment. See ConvertSurface -help for \n"
@@ -156,9 +153,13 @@ void usage_SUMA_SurfaceMetrics ()
 "\n"
 "   -prefix prefix: Use prefix for output files. \n"
 "                   (default is prefix of inSurf)\n"
+"\n"
 "%s"
-"\n", s);
+"\n"
+"%s"
+"\n", sio, s);
       SUMA_free(s); s = NULL;
+      SUMA_free(sio); sio = NULL;
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       printf ( "       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n"
                "       Mon May 19 15:41:12 EDT 2003\n"
@@ -174,14 +175,14 @@ int main (int argc,char *argv[])
          *tlrc_name = NULL;
    float *Cx = NULL, sph_center[3], NormScale;
    SUMA_STRING *MetricList = NULL;
-   int i, n1, n2, n1_3, n2_3, kar, nt, SO_read;
+   int i, n1, n2, n1_3, n2_3, kar, nt, SO_read, N_Spec=0;
    double edgeL2;
    FILE *fout=NULL;
    SUMA_SO_File_Type iType = SUMA_FT_NOT_SPECIFIED;
    SUMA_SurfaceObject *SO = NULL;   
    SUMA_SFname *SF_name = NULL;
    void *SO_name = NULL;   
-   SUMA_SurfSpecFile Spec;
+   SUMA_SurfSpecFile *pSpec=NULL;
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
    char *surf_names[SURFACEMETRICS_MAX_SURF];
@@ -194,10 +195,12 @@ int main (int argc,char *argv[])
                   Do_TriCoSine, Do_TriAngles,
                   Do_NodeAngles,
                   Do_NodeNorm, Do_en, Do_in, LocalHead = NOPE;  
+   SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    
 	SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
    
+   ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;");
    
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
@@ -205,7 +208,7 @@ int main (int argc,char *argv[])
    if (argc < 4)
        {
           SUMA_S_Err("Too few parameters");
-          usage_SUMA_SurfaceMetrics ();
+          usage_SUMA_SurfaceMetrics (ps);
           exit (1);
        }
    
@@ -239,107 +242,17 @@ int main (int argc,char *argv[])
 	while (kar < argc) { /* loop accross command ine options */
 		/* fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName); */
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SUMA_SurfaceMetrics();
+			 usage_SUMA_SurfaceMetrics(ps);
           exit (1);
 		}
 		
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
-		if (!brk && (strcmp(argv[kar], "-i_fs") == 0)) {
-         SUMA_SL_Err("Option -i_fs is not supported for this program.\n"
-                     "Use -spec and -surf_A instead.\n");
-         exit(1);
-         kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -i_fs ");
-				exit (1);
-			}
-			if_name = argv[kar];
-         iType = SUMA_FREE_SURFER;
-			brk = YUP;
-		}
-      
-      if (!brk && (strcmp(argv[kar], "-i_sf") == 0)) {
-         SUMA_SL_Err("Option -i_sf is not supported for this program.\nUse -spec and -surf_A instead.\n");
-         exit(1);
-         kar ++;
-			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 argument after -i_sf");
-				exit (1);
-			}
-			if_name = argv[kar]; kar ++;
-         if_name2 = argv[kar];
-         iType = SUMA_SUREFIT;
-			brk = YUP;
-		}
-      
-      if (!brk && (strcmp(argv[kar], "-i_vec") == 0)) {
-         SUMA_SL_Err("Option -i_vec is not supported for this program.\nUse -spec and -surf_A instead.\n");
-         exit(1);
-         kar ++;
-			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 argument after -i_vec");
-				exit (1);
-			}
-			if_name = argv[kar]; kar ++;
-         if_name2 = argv[kar];
-         iType = SUMA_VEC;
-			brk = YUP;
-		}
-      
-      if (!brk && (strcmp(argv[kar], "-i_ply") == 0)) {
-         SUMA_SL_Err("Option -i_ply is not supported for this program.\nUse -spec and -surf_A instead.\n");
-         exit(1);
-         kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -i_ply ");
-				exit (1);
-			}
-			if_name = argv[kar];
-         iType = SUMA_PLY;
-			brk = YUP;
-		}
-      
-      if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
-         kar ++;
-			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -spec \n");
-				exit (1);
-			}
-			spec_file = argv[kar];
-         if (!insurf_method) insurf_method = 2;
-         else {
-            fprintf (SUMA_STDERR, "already specified spec file.\n");
-            exit(1);
-         }
-			brk = YUP;
-		}
-      
-      if (!brk && (strncmp(argv[kar], "-surf_", 6) == 0)) {
-			if (kar + 1>= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -surf_X SURF_NAME \n");
-				exit (1);
-			}
-			ind = argv[kar][6] - 'A';
-         if (ind < 0 || ind >= SURFACEMETRICS_MAX_SURF) {
-            fprintf (SUMA_STDERR, "-surf_X SURF_NAME option is out of range,\n"
-                                  "   only surf_A allowed.\n");
-				exit (1);
-         }
-         kar ++;
-         surf_names[ind] = argv[kar];
-         N_surf = ind+1;
-			if (insurf_method != 2) {
-            fprintf (SUMA_STDERR, "-surf_X SURF_NAME option must be used with -spec option.\n");
-            exit(1);
-         }
-         brk = YUP;
-		}
-      
       if (!brk && (strcmp(argv[kar], "-sph_coords_center") == 0)) {
          kar ++;
 			if (kar+2 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 3 arguments after -sph_coords_center \n");
+		  		fprintf (SUMA_STDERR, 
+                     "need 3 arguments after -sph_coords_center \n");
 				exit (1);
 			}
 			sph_center[0] = atof(argv[kar]); kar ++;
@@ -484,7 +397,7 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
-      if (!brk) {
+      if (!brk && !ps->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
 			exit (1);
 		} else {	
@@ -493,11 +406,6 @@ int main (int argc,char *argv[])
 		}
    }
    
-   if (N_surf < 1) {
-      SUMA_SL_Err("No surface specified.");
-      exit(1);
-   }
-
    /* clean MetricList */
    MetricList = SUMA_StringAppend (MetricList, NULL); 
    
@@ -512,26 +420,21 @@ int main (int argc,char *argv[])
       exit(1);
    }
    
-   if (0 && sv_name) { /* stupid check for volumes... */
-      if (SUMA_filexists(sv_name)) {
-         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, sv_name);
-         exit(1);
-      }
-   }
-   
-   if (Do_tlrc && !sv_name) {
+   if (Do_tlrc && !ps->sv[0]) {
       fprintf (SUMA_STDERR,"Error %s: -tlrc must be used with -sv option.\n", FuncName);
       exit(1);
    }
-   
-   if (vp_name) {
-      if (SUMA_filexists(vp_name)) {
-         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, vp_name);
-         exit(1);
-      }
+
+   #if 1
+   pSpec = SUMA_IO_args_2_spec(ps, &N_Spec);
+   if (N_Spec == 0) {
+      SUMA_S_Err("No surfaces found.");
+      exit(1);
    }
 
-   
+   SUMA_LH("Loading surface...");
+   SO = SUMA_Load_Spec_Surf(pSpec, 0, ps->sv[0], 1);
+   #else
    /* read all surfaces */
    if (!SUMA_AllocSpecFields(&Spec)) { SUMA_S_Err("Error initing"); exit(1); }
    if (!SUMA_Read_SpecFile (spec_file, &Spec)) {
@@ -547,7 +450,7 @@ int main (int argc,char *argv[])
    }
    
    /* now read into SUMAg_DOv */
-   if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, sv_name, 0, SUMAg_CF->DsetList) ) {
+   if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, ps->sv[0], 0, SUMAg_CF->DsetList) ) {
 	   fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec_eng\n", FuncName);
       exit(1);
    }   SO = SUMA_find_named_SOp_inDOv(surf_names[0], SUMAg_DOv, SUMAg_N_DOv);
@@ -555,7 +458,7 @@ int main (int argc,char *argv[])
       fprintf (SUMA_STDERR,"Error %s: Failed to read input surface.\n", FuncName);
       exit (1);
    }
-   
+   #endif
    if (Do_tlrc) {
       fprintf (SUMA_STDOUT,"Performing talairach transform...\n");
 
@@ -1367,17 +1270,19 @@ int main (int argc,char *argv[])
    
    SUMA_LH("Clean up");
    /* clean up */
-   if (!SUMA_FreeSpecFields(&Spec)) { SUMA_S_Err("Error freeing"); exit(1); }
-
    if (MetricList) SUMA_free(MetricList);
    if (OutPrefix) SUMA_free(OutPrefix);
    if (OutName) SUMA_free(OutName);   
    if (SO) SUMA_Free_Surface_Object(SO);
+   if (!SUMA_FreeSpecFields(pSpec)) {
+      SUMA_S_Err("Failed to free Spec fields");
+   } SUMA_free(pSpec); pSpec = NULL; 
+ 	if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    
    /* dset and its contents are freed in SUMA_Free_CommonFields */
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
 
    if (histnote) SUMA_free(histnote);
-   
+    
    SUMA_RETURN(0);
 } /* Main */

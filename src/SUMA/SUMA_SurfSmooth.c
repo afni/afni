@@ -751,7 +751,9 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
          }else if (strcmp(argv[kar],"desbrun")==0) {
             SUMA_Set_Taubin_Weights(SUMA_DESBRUN);
          } else {
-            fprintf (SUMA_STDERR, "Weights option %s not understood.\n", argv[kar]);
+            fprintf (SUMA_STDERR, 
+                     "Weights option %s not understood.\n", 
+                     argv[kar]);
             exit (1);
          } 
 			brk = YUP;
@@ -781,11 +783,13 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
       if (!brk && (strcmp(argv[kar], "-output") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -output\n");
+		  		fprintf (SUMA_STDERR, 
+                     "need argument after -output\n");
 				exit (1);
 			}
 			if (Opt->surf_out) {
-            fprintf (SUMA_STDERR, "options -surf_out and -output are mutually exclusive\n");
+            fprintf (SUMA_STDERR, 
+                     "options -surf_out and -output are mutually exclusive\n");
 				exit (1);
          }
          outname = argv[kar];
