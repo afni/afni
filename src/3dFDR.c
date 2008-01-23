@@ -85,6 +85,8 @@ static int FDR_pmask = 1 ;  /* on by default in new mode */
 static int FDR_float = 0 ;  /* must be turned on by user */
 static int FDR_qval  = 0 ;  /* must be turned on by user */
 
+static int FDR_curve = 0 ;  /* hidden option: -curve */
+
 /*---------------------------------------------------------------------------*/
 
 /** macro to open a dataset and make it ready for processing **/
@@ -356,6 +358,9 @@ void read_options ( int argc , char * argv[] )
       }
       if( strcmp(argv[nopt],"-float") == 0 ){
         FDR_float = 1 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-curve") == 0 ){  /* hidden option */
+        FDR_curve = 1 ; nopt++ ; continue ;
       }
 
       /*----- -cind -----*/
@@ -897,10 +902,21 @@ void process_volume (float * ffim, int statcode, float * stataux)
       float zz = (FUNC_IS_STAT(statcode)) ? 0.0f : 1.0f ;
       for( ixyz=0 ; ixyz < FDR_nxyz ; ixyz++ ) ffim[ixyz] = zz ;
     }
-    if( FDR_pmask == 0    ) flags |= 1 ;  /* compatibility mode */
-    if( FDR_cn    >  1.0f ) flags |= 2 ;  /* dependency flag */
-    if( FDR_qval          ) flags |= 4 ;  /* qval flag */
-    (void)mri_fdrize( qim , statcode,stataux , flags ) ;
+    if( FDR_curve ){ /* hidden option: produce t-z curve */
+      floatvec *fv = mri_fdr_curve( qim , statcode , stataux ) ;
+      if( fv == NULL ) ERROR_message("mri_fdr_curve fails!") ;
+      else {
+        printf("# FDR thresh-z curve\n") ;
+        for( ixyz=0 ; ixyz < fv->nar ; ixyz++ )
+          printf("%g %g\n", fv->x0+ixyz*fv->dx , fv->ar[ixyz] ) ;
+      }
+      exit(0) ;
+    } else {         /* normal operation: convert to z(q) or q */
+      if( FDR_pmask == 0    ) flags |= 1 ;  /* compatibility mode */
+      if( FDR_cn    >  1.0f ) flags |= 2 ;  /* dependency flag */
+      if( FDR_qval          ) flags |= 4 ;  /* qval flag */
+      (void)mri_fdrize( qim , statcode,stataux , flags ) ;
+    }
     mri_clear_data_pointer(qim); mri_free(qim);
     return ;
   }

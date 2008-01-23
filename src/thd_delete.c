@@ -82,6 +82,14 @@ STATUS("free brick_ stuff") ;
       myXtFree( dblk->brick_stataux ) ;
    }
 
+   if( dblk->brick_fdrcurve != NULL ){ /* 23 Jan 2008 */
+     floatvec *fv ;
+     for( ibr=0 ; ibr < dblk->nvals ; ibr++ ){
+       fv = dblk->brick_fdrcurve[ibr] ; KILL_floatvec(fv) ;
+     }
+     free((void *)dblk->brick_fdrcurve) ;
+   }
+
    if( DBLK_IS_MASTERED(dblk) ){       /* 11 Jan 1999 */
       myXtFree( dblk->master_ival ) ;
       myXtFree( dblk->master_bytes ) ;

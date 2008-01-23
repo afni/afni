@@ -6539,3 +6539,8 @@
  * Minor changes to 3dFDR: better help, -float, -qval.
  * Add -sort and -SORT options to 3dcalc, for no good reason.
  * Add 'help' command to ccalc, to give parser info.
+
+23 Jan 2008
+ * FDR thresh-vs-z(q) curve generation and storage in datasets.
+ * Display FDR q in AFNI pval label.
+ * Generate FDR curves automatically in 3dDeconvolve.

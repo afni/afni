@@ -185,16 +185,17 @@ ENTRY("AFNI_thr_scale_CB") ;
    MCW_discard_events_all( w , ButtonPressMask ) ;  /* 20 Mar 2007 */
 
    if( im3d->vinfo->func_pval >= 0.0 && im3d->vinfo->func_pval <= 1.0 ){
-     char pstr[32] ;
-     sprintf( pstr , "nominal p=%.5e" , im3d->vinfo->func_pval ) ;
+     char pstr[64] ;
+     sprintf( pstr , "nominal p=%.4e" , im3d->vinfo->func_pval ) ;
+     if( im3d->vinfo->func_qval >= 0.0 && im3d->vinfo->func_qval <= 1.0 )
+       sprintf(pstr+strlen(pstr)," FDR q=%.4e",im3d->vinfo->func_qval) ;
      MCW_register_hint( im3d->vwid->func->thr_pval_label , pstr ) ;
    } else {
      MCW_register_hint( im3d->vwid->func->thr_pval_label ,
                         "Nominal p-value per voxel"       ) ;
    }
 
-   if( ! DOING_REALTIME_WORK )
-     AFNI_redisplay_func( im3d ) ;
+   if( ! DOING_REALTIME_WORK ) AFNI_redisplay_func( im3d ) ;
 
    AFNI_thresh_lock_carryout(im3d) ;  /* 06 Feb 2004 */
 
@@ -306,9 +307,9 @@ ENTRY("AFNI_thresh_top_CB") ;
 
 void AFNI_set_thr_pval( Three_D_View *im3d )
 {
-   float thresh , pval ;
+   float thresh , pval , zval ;
    int   dec ;
-   char  buf[16] ;
+   char  buf[32] ;
 
 ENTRY("AFNI_set_thr_pval") ;
 
@@ -325,6 +326,7 @@ ENTRY("AFNI_set_thr_pval") ;
               DSET_BRICK_STATAUX (im3d->fim_now,im3d->vinfo->thr_index)  ) ;
 
    im3d->vinfo->func_pval = pval ;  /* 06 Feb 2004 */
+   im3d->vinfo->func_qval = 0.0f ;  /* 23 Jan 2008 */
 
 if(PRINT_TRACING)
 { char buf[128] ;
@@ -332,26 +334,52 @@ if(PRINT_TRACING)
            thresh,im3d->vinfo->func_thresh_top,pval ) ; STATUS(buf) ; }
 
    if( pval < 0.0 ){
-      strcpy( buf , THR_PVAL_LABEL_NONE ) ;
+     strcpy( buf , THR_PVAL_LABEL_NONE ) ;
    } else {
-      if( pval == 0.0 ){
-         strcpy( buf , "p = 0" ) ;
-      } else if( pval >= 0.9999 ){
-         strcpy( buf , "p = 1" ) ;
-      } else if( pval >= 0.0010 ){
-         char qbuf[16] ;
-         sprintf( qbuf , "%5.4f" , pval ) ;
-         strcpy( buf , qbuf+1 ) ;
-      } else {
-         int dec = (int)(0.999 - log10(pval)) ;
-         pval = pval * pow( 10.0 , (double) dec ) ;  /* between 1 and 10 */
-         if( dec < 10 ) sprintf( buf , "%3.1f-%1d" ,           pval , dec ) ;
-         else           sprintf( buf , "%1d.-%2d"  , (int)rint(pval), dec ) ;
-      }
+     if( pval == 0.0 ){
+       strcpy( buf , " p = 0 " ) ;
+     } else if( pval >= 0.9999 ){
+       strcpy( buf , " p = 1 " ) ;
+     } else if( pval >= 0.0010 ){
+       char qbuf[16] ;
+       sprintf( qbuf , "%5.4f" , pval ) ;
+       strcpy(buf,"p=") ; strcat( buf , qbuf+1 ) ;
+     } else {
+       int dec = (int)(0.999 - log10(pval)) ;
+       zval = pval * pow( 10.0 , (double) dec ) ;  /* between 1 and 10 */
+       if( dec < 10 ) sprintf( buf , "p=%3.1f-%1d" ,           zval , dec ) ;
+       else           sprintf( buf , "p=%1d.-%2d"  , (int)rint(zval), dec ) ;
+     }
    }
    if( im3d->vedset.code > 0 && im3d->fim_now->dblk->vedim != NULL ) /* 05 Sep 2006 */
      strcat(buf,"*") ;
+
+   /* 23 Jan 2007: q-value from FDR curve? */
+
+   if( pval >= 0.0 ){
+     zval = THD_fdrcurve_zval( im3d->fim_now, im3d->vinfo->thr_index, thresh ) ;
+     if( zval > 0.0f ){
+       float qval = 2.0*qg(zval) ;         /* convert z back to FDR q */
+       im3d->vinfo->func_qval = qval ;
+       if( qval > 0.0f & qval < 0.9999 ){
+         char qbuf[16] ;
+         if( qval >= 0.0010 ) sprintf(qbuf,"%5.4f",qval) ;
+         else {
+           int dec = (int)(0.999 - log10(qval)) ;
+           zval = qval * pow( 10.0 , (double)dec ) ;  /* between 1 and 10 */
+           if( dec < 10 ) sprintf( qbuf , " %3.1f-%1d" ,           zval , dec );
+           else           sprintf( qbuf , " %1d.-%2d"  , (int)rint(zval), dec );
+         }
+         strcat(buf,"\nq=") ; strcat(buf,qbuf+1) ;
+       }
+     }
+   }
+#if 0
    MCW_set_widget_label( im3d->vwid->func->thr_pval_label , buf ) ;
+#else
+   MCW_set_widget_label_tagged( im3d->vwid->func->thr_pval_label , buf , "charset2" ) ;
+#endif
+   FIX_SCALE_SIZE(im3d) ;
    EXRETURN ;
 }
 

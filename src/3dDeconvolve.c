@@ -400,6 +400,8 @@ static int show_singvals = 0 ;
 static int         num_CENSOR = 0 ;     /* 01 Mar 2007 */
 static int_triple *abc_CENSOR = NULL ;
 
+static int do_FDR = 1 ;                 /* 23 Jan 2008 */
+
 /*---------- Typedefs for basis function expansions of the IRF ----------*/
 
 #include "parser.h"   /* for EXPR, et cetera */
@@ -1364,6 +1366,12 @@ void get_options
         if (nopt >= argc)  DC_error ("need argument after -TR_1D ");
         option_data->input1D_TR = (float)strtod(argv[nopt++],NULL) ;
         continue;
+      }
+
+      /*-----   -noFDR  [23 Jan 2008]  -----*/
+
+      if( strcmp(argv[nopt],"-noFDR") == 0 ){
+        do_FDR = 0 ; nopt++ ; continue ;
       }
 
       /*-----   -censor filename   -----*/
@@ -5089,7 +5097,7 @@ ENTRY("calculate_results") ;
     if( nlist > 0 ){
       matrix_initialize (&xext);
       matrix_extract( xdata , nlist , clist , &xext ) ;
-      qbad = check_matrix_condition( xext, "-stim_base-only" ); badlev += qbad;
+      qbad = check_matrix_condition( xext, "stim_base-only" ); badlev += qbad;
       matrix_destroy( &xext ) ;
     }
 
@@ -6489,10 +6497,18 @@ void write_bucket_data
 
   /*----- write bucket data set -----*/
 
+  if( do_FDR )
+    ibrick = THD_create_all_fdrcurves( new_dset ) ;
+  else
+    ibrick = 0 ;
+
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
-  if (! option_data->quiet)
-    printf("++ Wrote bucket dataset into %s\n",  DSET_BRIKNAME(new_dset));
+  if (! option_data->quiet){
+    INFO_message("Wrote bucket dataset into %s",  DSET_BRIKNAME(new_dset));
+    if( ibrick > 0 )
+      ININFO_message("created %d FDR curves in bucket header",ibrick) ;
+  }
 
 
   /*----- deallocate memory -----*/
