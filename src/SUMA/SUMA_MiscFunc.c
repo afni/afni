@@ -7805,7 +7805,14 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node,
       #endif
    }
    if (TessErr_Cnt) {
-      if ( !(el->min_N_Hosts == 1 && el->max_N_Hosts == 2) ) fprintf (SUMA_STDERR, " %d similar occurences were found in this mesh.\n", TessErr_Cnt);
+      if ( !(el->min_N_Hosts == 1 && el->max_N_Hosts == 2) ) {
+         if (TessErr_Cnt > 1) fprintf (SUMA_STDERR, 
+            " %d similar occurences were found in this mesh.\n", 
+            TessErr_Cnt);
+         else  fprintf (SUMA_STDERR, 
+            " %d occurence was found in this mesh.\n", 
+            TessErr_Cnt);
+      }
    }
    SUMA_free2D((char **)FN->FirstNeighb, N_Node);
    FN->FirstNeighb = FirstNeighb;
