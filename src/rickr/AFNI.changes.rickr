@@ -2375,3 +2375,5 @@
               -regress_no_mask and -regress_errts_prefix options
       - creation of all_runs always happens now
 
+23 Jan 2008: added useless statements to fix suma crashes on FC7 (compiler?)
+  * modified SUMA_Load_Surface_Object.c: added optimization appease message
