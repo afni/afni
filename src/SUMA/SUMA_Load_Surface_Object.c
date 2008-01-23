@@ -840,6 +840,10 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
             fprintf(SUMA_STDERR,"Error %s: Failed to allocate for FS\n", FuncName);
             SUMA_RETURN (NULL);
          }
+         /* add a couple of lines to appease the optimation gods...         */
+         /* (suma, v2s, SSmooth were crashing on FC7)   23 Jan 2008 [rickr] */
+         memset(FS, 0, sizeof(SUMA_FreeSurfer_struct));
+         if(debug > 1) fprintf(stderr,"-- optimization appeasement message\n");
          SO->Name = SUMA_StripPath((char*)SO_FileName_vp);
          SO->FileType = SO_FT;
          SO->FileFormat = SO_FF;
