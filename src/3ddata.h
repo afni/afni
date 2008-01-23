@@ -1138,6 +1138,8 @@ typedef struct {
       VEDIT_settings vedset ; /*!< Volume edit-on-the-fly settings */
       MRI_IMAGE *vedim ;      /*!< Volume edit-on-the-fly result */
 
+      floatvec **brick_fdrcurve ; /*!< FDR z(q) as a function of statistic */
+
 } THD_datablock ;
 
 /*! Force bricks to be allocated with malloc(). */
@@ -3016,6 +3018,34 @@ static char tmp_dblab[8] ;
 
 #define DSET_KEYWORDS_HAS(ds,ss) \
    THD_string_has( DSET_KEYWORDS((ds)) , (ss) )
+
+/*---- macros to get the FDR curve for a sub-brick (if any) [23 Jan 2008] ----*/
+
+#define DBLK_BRICK_FDRCURVE(db,ii) \
+ ( ((db)->brick_fdrcurve==NULL) ? NULL : (db)->brick_fdrcurve[ii] )
+
+#define DSET_BRICK_FDRCURVE(ds,ii) DBLK_BRICK_FDRCURVE((ds)->dblk,(ii))
+
+#define DBLK_BRICK_FDRCURVE_KILL(db,ii)                                      \
+ do{ if( (db)->brick_fdrcurve != NULL ){                                     \
+       floatvec *fv = (db)->brick_fdrcurve[ii] ;                             \
+       if( fv != NULL ){ KILL_floatvec(fv); (db)->brick_fdrcurve[ii]=NULL; } \
+ }} while(0)
+
+#define DSET_BRICK_FDRCURVE_KILL(ds,ii) DBLK_BRICK_FDRCURVE_KILL((ds)->dblk,(ii))
+
+#define DBLK_BRICK_FDRCURVE_ALLKILL(db)                                    \
+ do{ if( (db)->brick_fdrcurve != NULL ){                                   \
+      int qq;                                                              \
+      for( qq=0; qq < (db)->nvals; qq++ ) DBLK_BRICK_FDRCURVE_KILL(db,qq); \
+      free((db)->brick_fdrcurve) ; (db)->brick_fdrcurve = NULL ;           \
+ }} while(0)
+
+#define DSET_BRICK_FDRCURVE_ALLKILL(ds) DBLK_BRICK_FDRCURVE_ALLKILL((ds)->dblk)
+
+extern int   THD_create_one_fdrcurve( THD_3dim_dataset *, int ) ;
+extern int   THD_create_all_fdrcurves( THD_3dim_dataset * ) ;
+extern float THD_fdrcurve_zval( THD_3dim_dataset *, int, float ) ;
 
 /*! Macro to load the self_name and labels of a dataset
     with values computed from the filenames;

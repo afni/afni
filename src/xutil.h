@@ -124,6 +124,8 @@ extern void MCW_widget_geom( Widget , int * , int * , int * , int * ) ;
 extern void MCW_discard_events( Widget , int ) ;
 extern void MCW_discard_events_all( Widget , int ) ;
 
+extern void MCW_set_widget_label_tagged( Widget , char * , char *) ;
+
 typedef struct {
       char         * label ;        /* label for button       */
       XtCallbackProc func_CB ;      /* callback procedure     */

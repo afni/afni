@@ -5,7 +5,7 @@
     sub-brick, and store it in the dataset struct.
 *//*-----------------------------------------------------------------------*/
 
-void THD_create_one_fdrcurve( THD_3dim_dataset *dset , int iv )
+int THD_create_one_fdrcurve( THD_3dim_dataset *dset , int iv )
 {
    int sc ;
    floatvec *fv ;
@@ -13,10 +13,10 @@ void THD_create_one_fdrcurve( THD_3dim_dataset *dset , int iv )
 
 ENTRY("THD_create_one_fdrcurve") ;
 
-   if( !ISVALID_DSET(dset) ) EXRETURN ;
-   if( iv < 0 || iv >= DSET_NVALS(dset) ) EXRETURN ;
+   if( !ISVALID_DSET(dset) ) RETURN(0) ;
+   if( iv < 0 || iv >= DSET_NVALS(dset) ) RETURN(0) ;
    sc = DSET_BRICK_STATCODE(dset,iv) ;
-   if( !FUNC_IS_STAT(sc) ) EXRETURN ;
+   if( !FUNC_IS_STAT(sc) ) RETURN(0) ;
    if( !DSET_LOADED(dset) ) DSET_load(dset) ;
    bim = DSET_BRICK(dset,iv) ;
    if( bim->kind != MRI_float ){
@@ -36,23 +36,23 @@ ENTRY("THD_create_one_fdrcurve") ;
      dset->dblk->brick_fdrcurve[iv] = fv ;
    }
 
-   EXRETURN ;
+   RETURN(1) ;
 }
 
 /*-------------------------------------------------------------------------*/
 
-void THD_create_all_fdrcurves( THD_3dim_dataset *dset )
+int THD_create_all_fdrcurves( THD_3dim_dataset *dset )
 {
-   int iv ;
+   int iv , nfdr=0 ;
 
 ENTRY("THD_create_all_fdrcurves") ;
 
-   if( !ISVALID_DSET(dset) ) EXRETURN ;
+   if( !ISVALID_DSET(dset) ) RETURN(0) ;
 
    for( iv=0 ; iv < dset->dblk->nvals ; iv++ )
-     THD_create_one_fdrcurve( dset , iv ) ;
+     nfdr += THD_create_one_fdrcurve( dset , iv ) ;
 
-   EXRETURN ;
+   RETURN(nfdr) ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -65,5 +65,5 @@ float THD_fdrcurve_zval( THD_3dim_dataset *dset , int iv , float thresh )
 
    fv = DSET_BRICK_FDRCURVE(dset,iv) ; if( fv == NULL ) return 0.0f ;
 
-   return ( inter_floatvec(fv,thresh) ) ;
+   return ( interp_floatvec(fv,thresh) ) ;
 }

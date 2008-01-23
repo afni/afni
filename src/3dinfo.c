@@ -47,58 +47,74 @@ int main( int argc , char *argv[] )
 
    else if ( strncmp(argv[iarg],"-label2",7) == 0 )
    {
-      iarg++;
-      if (iarg >= argc)
-         ERROR_exit( "3dinfo needs an argument after -label2number\n");
-      labelName = malloc(sizeof(char) * 2048);
-      strcpy(labelName, argv[iarg]);
-      iarg++;
+     iarg++;
+     if (iarg >= argc)
+        ERROR_exit( "3dinfo needs an argument after -label2number\n");
+     labelName = malloc(sizeof(char) * 2048);
+     strcpy(labelName, argv[iarg]);
+     iarg++;
    }
 
 
    THD_allow_empty_dataset(1) ;  /* 21 Mar 2007 */
 
    for( ; iarg < argc ; iarg++ ){
-#if 0
-      dset = THD_open_one_dataset( argv[iarg] ) ;
-#else
-      dset = THD_open_dataset( argv[iarg] ) ;
-#endif
-      if( dset == NULL ){
-         printf("\nCan't open dataset %s\n",argv[iarg]) ;
+
+     if( argv[iarg][0] == '\0' ) continue ;  /* bad filename */
+
+     dset = THD_open_dataset( argv[iarg] ) ;
+
+     if( dset == NULL ){  /* open failed */
+
+       /* 23 Jan 2008: try again with +orig, +acpc, +tlrc appended */
+
+       if( strchr(argv[iarg],'+')==NULL && strstr(argv[iarg],".nii")==NULL ){
+         char str[THD_MAX_NAME] ; int vv , ll=strlen(argv[iarg]) ;
+         for( vv=0 ; vv <= LAST_VIEW_TYPE && dset == NULL ; vv++ ){
+           strcpy(str,argv[iarg]); if( str[ll-1] == '.' ) str[ll-1] = '\0';
+           strcat(str,"+") ; strcat(str,VIEW_codestr[vv]) ;
+           dset = THD_open_dataset(str) ;
+         }
+       }
+
+       if( dset == NULL ){  /* still not open? */
+         WARNING_message("----------------------------------------") ;
+         WARNING_message("Can't open dataset %s",argv[iarg]) ;
+         WARNING_message("----------------------------------------") ;
          continue ;
-      }
+       }
+     }
 
-      if (labelName == NULL )
-      {
-          outbuf = THD_dataset_info( dset , verbose ) ;
-          if( outbuf != NULL ){
-              printf("\n") ;
-              puts(outbuf) ;
-              free(outbuf) ; outbuf = NULL ;
-          } else {
-              printf("\nCan't get info for dataset %s\n",argv[iarg]) ;
-          }
-      }
-      else
-      {
-          int nval_per = dset->dblk->nvals;
-          int foundLabel = 0;
-          int ival=0;
+     if (labelName == NULL )  /*** get and output info ***/
+     {
+       outbuf = THD_dataset_info( dset , verbose ) ;
+       if( outbuf != NULL ){
+         printf("\n") ;
+         puts(outbuf) ;
+         free(outbuf) ; outbuf = NULL ;
+       } else {
+         WARNING_message("----------------------------------------") ;
+         WARNING_message("Can't get info for dataset %s",argv[iarg]) ;
+         WARNING_message("----------------------------------------") ;
+       }
+     }
+     else   /*** get and output label ***/
+     {
+       int nval_per = dset->dblk->nvals;
+       int foundLabel = 0;
+       int ival=0;
 
-          for (ival=0 ; ival < nval_per && !foundLabel; ival++ )
-          {
-              if (strcmp(DSET_BRICK_LAB(dset,ival), labelName) == 0)
-              {
-                  printf("%d\n", ival);
-                  foundLabel = 1;
-              }
-          } /* end of for (ival=0 ; ival < nval_per ; ival++ ) */
-          if (!foundLabel)
-              printf("\n");
-      }
+       for (ival=0 ; ival < nval_per && !foundLabel; ival++ )
+       {
+         if (strcmp(DSET_BRICK_LAB(dset,ival), labelName) == 0)
+         {
+           printf("%d\n", ival); foundLabel = 1;
+         }
+       } /* end of for (ival=0 ; ival < nval_per ; ival++ ) */
+       if (!foundLabel) printf("\n");
+     }
 
-      THD_delete_3dim_dataset( dset , False ) ;
+     THD_delete_3dim_dataset( dset , False ) ;
    }
    free(labelName);
 

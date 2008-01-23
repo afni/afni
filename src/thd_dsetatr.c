@@ -47,6 +47,7 @@ void THD_set_dataset_attributes( THD_3dim_dataset *dset )
    THD_dfvec3 tvec ;
    mat44 Tc, Tr;
    float angle;
+   char name[666] ; floatvec *fv ;
 
 ENTRY("THD_set_dataset_attributes") ;
 
@@ -168,8 +169,8 @@ ENTRY("THD_set_dataset_attributes") ;
    /* if not oblique already,compute Tc (Cardinal transformation matrix) */
    angle = THD_compute_oblique_angle(daxes->ijk_to_dicom_real, 0);
    if(angle==0.0){
-      THD_dicom_card_xform(dset, &tmat, &tvec); 
-      LOAD_MAT44(Tc, 
+      THD_dicom_card_xform(dset, &tmat, &tvec);
+      LOAD_MAT44(Tc,
           tmat.mat[0][0], tmat.mat[0][1], tmat.mat[0][2], tvec.xyz[0],
           tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
           tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
@@ -574,12 +575,27 @@ ENTRY("THD_set_dataset_attributes") ;
      strcat(statsym,sstr) ; free(sstr) ;
      THD_set_string_atr( blk , "BRICK_STATSYM" , statsym ) ;
    }
-     
-       
+
+   /* 23 Jan 2008 -- the FDRCURVE attributes */
+
+   for( ibr=0 ; ibr < blk->nvals ; ibr++ ){
+     sprintf(name,"FDRCURVE_%06d",ibr) ;
+     fv = DBLK_BRICK_FDRCURVE(blk,ibr) ;
+     if( fv == NULL || fv->ar == NULL ){
+        THD_erase_one_atr( blk , name ) ;
+     } else {
+       int nv = fv->nar ;
+       float *far = (float *)malloc(sizeof(float)*(nv+2)) ;
+       far[0] = fv->x0 ; far[1] = fv->dx ;
+       memcpy(far+2,fv->ar,sizeof(float)*nv) ;
+       THD_set_float_atr( blk , name , nv+2 , far ) ;
+       free(far) ;
+     }
+   }
 
    /******/
    /****** N.B.: we do NOT set the byte order attribute here *****/
-   /******/ 
+   /******/
 
    if( anonymize ) THD_anonymize_dset(dset) ;  /* 08 Jul 2005 */
 

@@ -218,6 +218,17 @@ void MCW_set_widget_label( Widget w , char *str )
    return ;
 }
 
+void MCW_set_widget_label_tagged( Widget w , char *str , char *tag )
+{
+   XmString xstr ;
+   if( w == NULL || str == NULL ) return ;
+   xstr = XmStringCreateLtoR( str , tag ) ;
+   XtVaSetValues( w , XmNlabelString , xstr , NULL ) ;
+   XmStringFree( xstr ) ;
+   MCW_expose_widget( w ) ;
+   return ;
+}
+
 /*-----------------------------------------------------------------------*/
 
 void MCW_widget_geom( Widget w, int *wout, int *hout, int *xout, int *yout )

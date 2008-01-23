@@ -270,6 +270,7 @@ typedef struct {
       int view_setter ;  /* 20 Feb 2003 */
 
       float func_pval ;  /* 06 Feb 2004 */
+      float func_qval ;  /* 23 Jan 2008 */
 
       int stats_anat_ok,     /* 29 Mar 2005: set in AFNI_range_label() */
           stats_func_ok,     /*   to indicate if the sub-brick range  */
