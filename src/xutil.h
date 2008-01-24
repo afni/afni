@@ -124,7 +124,9 @@ extern void MCW_widget_geom( Widget , int * , int * , int * , int * ) ;
 extern void MCW_discard_events( Widget , int ) ;
 extern void MCW_discard_events_all( Widget , int ) ;
 
+#if 0
 extern void MCW_set_widget_label_tagged( Widget , char * , char *) ;
+#endif
 
 typedef struct {
       char         * label ;        /* label for button       */

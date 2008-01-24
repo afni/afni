@@ -496,7 +496,7 @@ typedef struct {
 
 /*---*/
 
-#define THR_PVAL_LABEL_NONE "[N/A]"
+#define THR_PVAL_LABEL_NONE " [N/A] "
 
 #define THR_TOP_EXPON  4         /* 30 Nov 1997 */
 #define THR_FACTOR     0.0001    /* pow(10,-THR_TOP_EXPON) */

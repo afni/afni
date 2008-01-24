@@ -218,6 +218,7 @@ void MCW_set_widget_label( Widget w , char *str )
    return ;
 }
 
+#if 0
 void MCW_set_widget_label_tagged( Widget w , char *str , char *tag )
 {
    XmString xstr ;
@@ -228,6 +229,7 @@ void MCW_set_widget_label_tagged( Widget w , char *str , char *tag )
    MCW_expose_widget( w ) ;
    return ;
 }
+#endif
 
 /*-----------------------------------------------------------------------*/
 
