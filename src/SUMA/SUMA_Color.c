@@ -292,8 +292,8 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
    static char FuncName[]={"SUMA_pbardef_to_CM"};
    SUMA_COLOR_MAP *CM=NULL;
    int ii , neq=0 , nonum=0, N_Col;
-   float  val[NPANE_BIG+1],rgb[3], **M=NULL;
-   char name[NSBUF], eqn[NSBUF] , rhs[NSBUF] ;
+   float  val[NPANE_BIG+1],rgb[3]={0.0, 0.0, 0.0}, **M=NULL;
+   char name[NSBUF]="\0", eqn[NSBUF]="\0" , rhs[NSBUF]="\0" ;
    rgbyte col[NPANE_BIG+1] ;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -398,15 +398,15 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
 SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
 {
    static char FuncName[]={"SUMA_Get_AFNI_Default_Color_Maps"};
-   float rgb[3];
+   float rgb[3]={0.0, 0.0, 0.0};
    SUMA_RGB_NAME *Cv = NULL;
    SUMA_COLOR_MAP **CMv=NULL;
    SUMA_COLOR_MAP *CMp=NULL, *CMn=NULL;
    SUMA_AFNI_COLORS *SAC=NULL;
-   int i, j, icol;
-   int N_maps, N_cols;
-   int       ival , ii,jj ;
-   float     fval ;
+   int i=-1, j=-1, icol=-1;
+   int N_maps=-1, N_cols=-1;
+   int       ival=-1 , ii=-1,jj=-1 ;
+   float     fval =0.0;
    float     pthr[NPANE_MAX+1] ;
    int       pov[NPANE_MAX+1] ;
    char *homeenv=NULL, *sumarc=NULL;
@@ -420,7 +420,8 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
    /* initilialize*/
    N_maps = -1;
    N_cols = -1;
-
+   for (i=0;i<NPANE_MAX+1;++i) { pthr[i] = 0.0; pov[i] = 0;}
+   
    /* add the none color first */
    Cv = SUMA_Add_Color ("none", 
                         -1.0, -1.0, -1.0, 1.0, 
@@ -6227,9 +6228,9 @@ int SUMA_AFNI_Extract_Colors ( char *fname, SUMA_AFNI_COLORS *SAC )
 {
    static char FuncName[]={"SUMA_AFNI_Extract_Colors"};
    int    nbuf , nused , ii, ngood = -1;
-   float rgb[3];
+   float rgb[3]={0.0, 0.0, 0.0};
    char * fbuf , * fptr ;
-   char str[SUMA_NSBUF] , left[SUMA_NSBUF] , middle[SUMA_NSBUF] , right[SUMA_NSBUF] ;
+   char str[SUMA_NSBUF]="\0" , left[SUMA_NSBUF]="\0" , middle[SUMA_NSBUF]="\0" , right[SUMA_NSBUF]="\0" ;
    SUMA_STRING *SS = NULL;
    SUMA_COLOR_MAP *CM=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -6275,7 +6276,7 @@ int SUMA_AFNI_Extract_Colors ( char *fname, SUMA_AFNI_COLORS *SAC )
       /**-- COLORS section --**/
 
       if( strcmp(str,"***COLORS") == 0 ){
-         char label[SUMA_NSBUF] , defn[SUMA_NSBUF] ;
+         char label[SUMA_NSBUF]="\0" , defn[SUMA_NSBUF]="\0" ;
 
          if (LocalHead) fprintf (SUMA_STDERR,"%s: Found ***COLORS\n", FuncName);
          while(1){                          /* loop, looking for 'label = color' */
@@ -6451,18 +6452,25 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
    static char FuncName[]={"SUMA_Interpret_AFNIColor"};
    char *vargv[1]={ "SCALE_TO_MAP" };
    int cargc = 1;
-   int r, g, b;
-   char stmp[10];   
-   XVisualInfo vtmp, *vislist;
-   static XtAppContext app; 
+   int r=0, g=0, b=0;
+   char stmp[10]="\0";   
+   XVisualInfo *vislist=NULL;
+   static XtAppContext *app=NULL; 
    static Widget tl=NULL;
    static Display *dpy=NULL;
-   XColor color_closest, color_exact;
+   XColor *color_exact=NULL;
    static Colormap cmap;
    static int iwarn = 0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+   if (!app) {
+      app = (XtAppContext *)XtCalloc(1, sizeof(XtAppContext));
+      memset(app, 0, sizeof(XtAppContext));
+   }
+   color_exact = (XColor*)XtCalloc(1, sizeof(XColor));
+   memset(color_exact, 0, sizeof(color_exact));
    
    if (!Name) {
       /* cleanup */
@@ -6471,7 +6479,7 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
          XFreeColormap(dpy, cmap);
          /* These 2 lines cause a crash on Fedora Core 4, but Core 4 crashes at XmCreateMainWindow anyway so we're doomed.*/
          XtDestroyWidget(tl); 
-         XtDestroyApplicationContext(app);
+         XtDestroyApplicationContext(*app);
          tl = NULL;
          dpy = NULL;
       }
@@ -6497,24 +6505,28 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
             SUMA_LHv("Graphical, named %s\n", Name);
             if (!tl) {
                SUMA_LH("tl init\n");
-               /* tl = XtAppInitialize(&app, "ScaleToMap", NULL, 0, &cargc, vargv,
+               /* tl = XtAppInitialize(app, "ScaleToMap", NULL, 0, &cargc, vargv,
                      SUMA_get_fallbackResources(), NULL, 0); Superseded by XtOpenApplication */
 
-               tl = XtOpenApplication(&app, "ScaleToMap", NULL, 0, &cargc, vargv,
-                     SUMA_get_fallbackResources(),topLevelShellWidgetClass,  NULL, 0);
+               tl = XtOpenApplication( app, "ScaleToMap", NULL, 
+                                       0, &cargc, vargv,
+                                       SUMA_get_fallbackResources(),
+                                       topLevelShellWidgetClass,  
+                                       NULL, 0);
 
                dpy = XtDisplay(tl);
                cmap = DefaultColormap(dpy, DefaultScreen(dpy));
             } 
 
 
-            XParseColor(dpy, cmap, Name, &color_exact);
+            XParseColor(dpy, cmap, Name, color_exact);
 
             /* You need to divide by color_exact.red ,green and blue by 257
             to bring the numbers in the 0..255 range as listed in the rgb.txt file */
-            RGB[0] = (float)color_exact.red/255.0/257.0;
-            RGB[1] = (float)color_exact.green/255.0/257.0;
-            RGB[2] = (float)color_exact.blue/255.0/257.0;
+            RGB[0] = (float)color_exact->red/255.0/257.0;
+            RGB[1] = (float)color_exact->green/255.0/257.0;
+            RGB[2] = (float)color_exact->blue/255.0/257.0;
+            XtFree(color_exact); color_exact=NULL;
          } else {
             SUMA_LH("Not graphical");
             if (0 && (LocalHead || !(iwarn % 10))) {

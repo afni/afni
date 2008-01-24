@@ -1560,10 +1560,10 @@ int SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title,
                      Widget *MenuWidgets )
 {
    static char FuncName[]={"SUMA_BuildMenu"};
-   char nlabel[300];
+   char nlabel[300]="\0";
    Widget menu = NULL, cascade = NULL;
-   XmString str;
-   int i;
+   XmString str=NULL;
+   int i=-1;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1938,9 +1938,9 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    int ic = 0;
    char *vargv[1]={ "[A] SUMA" };
    int cargc = 1;
-   SUMA_Boolean NewCreation = NOPE, Found, Inherit = NOPE;
+   SUMA_Boolean NewCreation = NOPE, Found=NOPE, Inherit = NOPE;
    SUMA_Boolean LocalHead = NOPE;
-   char slabel[20]; 
+   char slabel[20]="\0"; 
        
    SUMA_ENTRY;
 

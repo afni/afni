@@ -138,9 +138,10 @@ Create a SurfaceViewer data structure
 */
 SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 {
-   SUMA_SurfaceViewer *SV, *SVv;
+   SUMA_SurfaceViewer *SV=NULL, *SVv=NULL;
    static char FuncName[]={"SUMA_Alloc_SurfaceViewer_Struct"};
-   int i, j, n;
+   int i=-1, j=-1, n=-1, iii=-1;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
@@ -442,6 +443,16 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->X->ViewCont = SUMA_CreateViewContStruct();
       SV->X->DPY = NULL;
       SV->X->FORM = SV->X->FRAME = SV->X->GLXAREA = NULL;
+      SV->X->VISINFO = NULL;
+      SV->X->REDISPLAYID = SV->X->MOMENTUMID = 0;
+      SV->X->CMAP = 0;
+      SV->X->GLXCONTEXT=NULL;
+      SV->X->gc=NULL;
+      SV->X->ToggleCrossHair_View_tglbtn=NULL;
+      for (iii=0; iii<SW_N_Tools; ++iii) {
+         SV->X->FileMenu[iii] = SV->X->ToolsMenu[iii] = SV->X->ViewMenu[iii] = SV->X->HelpMenu[iii] = NULL;
+      }
+      
       SV->Focus_SO_ID = -1;
       SV->Focus_DO_ID = -1;
       
